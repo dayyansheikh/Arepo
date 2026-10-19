@@ -1,0 +1,47 @@
+{
+ "id": "q0306_cb14_w_revisions",
+ "title": "CB14-W: MediaWiki prop=revisions metadata (revid, parentid, timestamp, userid, size; frozen comment/tag booleans; user read in memory only for the bot flag and distinct-user index) per mapped page from max(createdAt, 2024-01-01) - 30 d to 2026-04-01; bot-group list; first-revision date per page",
+ "family": "creative_batch_14",
+ "priority": 12,
+ "expected_value": "W bursts (features)",
+ "data": [
+  "en.wikipedia.org action API",
+  "history/h14_wiki/subjects.csv.gz"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "net",
+  "network": "en.wikipedia.org"
+ },
+ "depends_on": [
+  "q0305_cb14_w_pregate"
+ ],
+ "argv": [
+  "scripts/run_cb14.py",
+  "w-revisions",
+  "--rules",
+  "../docs/research_lab/seals/cb14_rules.json",
+  "--wiki-rps",
+  "1",
+  "--maxlag",
+  "5",
+  "--disk-cap-gb",
+  "0.03",
+  "--data-dumps-cap-gb",
+  "40",
+  "--budget-min",
+  "100"
+ ],
+ "timeout_s": 7200,
+ "max_retries": 2,
+ "outputs": [
+  "history/h14_wiki/{revisions.csv.gz,bots.csv.gz,manifest.json}"
+ ],
+ "next_action": "q0307",
+ "notes": "DRAFT. mw-reverted never parsed; no user name written. Resumable; incomplete = pending. Rules part sha256 (seals/cb14_rules.json, code of 2026-10-19 after CB14 code completion): common 27e65215ec577c600168385da5ef6649573ae2c56f9f854559b9a943c40e75c1, W b90f46e754088f3443256731874d47e2546e9244019ae6e5f5af3187617578af. CB14 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes.",
+ "repeat": {
+  "max_runs": 4,
+  "until_log_regex": "\"status\": \"w_revisions_complete\""
+ }
+}

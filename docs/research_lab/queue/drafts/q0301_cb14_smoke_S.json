@@ -1,0 +1,36 @@
+{
+ "id": "q0301_cb14_smoke_S",
+ "title": "CB14-S smoke (S part hash; refusals: N paths before T14_S_open, causal accessor after e_t, prices after t in census mode; tag 100343 walk on one out-of-window week; Factbase search + one out-of-window transcript parsed to >= 100 stamps; term parser/matcher on 3 out-of-window events; 1-minute availability rule on P months, row counts only)",
+ "family": "creative_batch_14",
+ "priority": 14,
+ "expected_value": "go/no-go for every S source",
+ "data": [
+  "public Gamma, CLOB prices-history",
+  "rollcall.com factbase"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "net",
+  "network": "gamma-api, clob, rollcall.com"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb14.py",
+  "smoke",
+  "--part",
+  "S",
+  "--rules",
+  "../docs/research_lab/seals/cb14_rules.json",
+  "--rps",
+  "1"
+ ],
+ "timeout_s": 1200,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch14/smoke_S.json",
+  "trials.jsonl (cb14_descriptive)"
+ ],
+ "next_action": "PASS: q0312; FAIL: S not testable (source), counted",
+ "notes": "DRAFT. <= 30 requests; Factbase <= 0.5 rps. Rules part sha256 (seals/cb14_rules.json, code of 2026-10-19 after CB14 code completion): common 27e65215ec577c600168385da5ef6649573ae2c56f9f854559b9a943c40e75c1, S 0970b078f3c86b1f06d7c16c8537d86ae3ba8e644edc8acddb42586134e18938. CB14 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes."
+}

@@ -1,0 +1,44 @@
+{
+ "id": "q0312_cb14_s_frame",
+ "title": "CB14-S frame: Gamma tag 100343 one-week end-date walk over [2024-11-01, 2026-03-01); >= 8 binary members, startTime, occasion <= 36 h, CB12-M sports registry + broadcast regex, key drops (S rule; h12_say SCREEN ids kept for N), primary-speaker title map, rule booleans, term parser; Factbase record map (speaker, date +-1 d, type, keywords); subsets P and N; NO outcome stored (outcomePrices/umaResolutionStatus discarded at parse); GS0 audit sample (seed 14122)",
+ "family": "creative_batch_14",
+ "priority": 13,
+ "expected_value": "S population and transcript map",
+ "data": [
+  "public Gamma",
+  "rollcall.com factbase search API",
+  "creative_batch14/exclusion_keys.csv.gz"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "net",
+  "network": "gamma-api, rollcall.com"
+ },
+ "depends_on": [
+  "q0301_cb14_smoke_S",
+  "q0302_cb14_exclusion_keys"
+ ],
+ "argv": [
+  "scripts/run_cb14.py",
+  "s-frame",
+  "--rules",
+  "../docs/research_lab/seals/cb14_rules.json",
+  "--rps",
+  "2",
+  "--factbase-rps",
+  "0.5",
+  "--disk-cap-gb",
+  "0.005",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 2400,
+ "max_retries": 2,
+ "outputs": [
+  "history/h14_speech/{frame.csv.gz,members.csv.gz,map.csv.gz,manifest.json}",
+  "research_lab/creative_batch14/s_map_audit_sample.csv"
+ ],
+ "next_action": "q0313; GS0 audit (science-reviewer, blind)",
+ "notes": "DRAFT. No price, print, transcript text or outcome read. Never opens h12_say. Rules part sha256 (seals/cb14_rules.json, code of 2026-10-19 after CB14 code completion): common 27e65215ec577c600168385da5ef6649573ae2c56f9f854559b9a943c40e75c1, S 0970b078f3c86b1f06d7c16c8537d86ae3ba8e644edc8acddb42586134e18938. CB14 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes."
+}

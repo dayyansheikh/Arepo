@@ -1,0 +1,39 @@
+{
+ "id": "q0310_cb14_w_live",
+ "title": "CB14-W live collector (cron every minute, flock, outside queue lanes): list=recentchanges poll (namespace 0, rclimit 500, receipt time, rcstart overlap 120 s, rccontinue, rcid dedup, gaps logged as unavailable), live burst rule with bootstrapped baselines and the Stage-1 bot rule, CLOB /book at b+60s, 5, 15, 120 min for each mapped market of the subject; daily frozen-query refresh of active markets; weekly blind map-audit batch file",
+ "family": "creative_batch_14",
+ "priority": 0,
+ "expected_value": "W Stage 2 data at recorded books",
+ "data": [
+  "en.wikipedia.org action API",
+  "public CLOB /book",
+  "public Gamma"
+ ],
+ "resources": {
+  "mem_mb": 150,
+  "cpu": 1,
+  "lane": "cron",
+  "network": "en.wikipedia.org, clob, gamma-api"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb14.py",
+  "w-live",
+  "--rules",
+  "../docs/research_lab/seals/cb14_rules.json",
+  "--not-before",
+  "2026-10-26T00:00:00Z",
+  "--disk-cap-gb",
+  "0.05",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 55,
+ "max_retries": 0,
+ "outputs": [
+  "history/h14_wiki_live/{polls,bursts,books,frame,audit_batches}/"
+ ],
+ "next_action": "runs to T14_W2_end; then q0311 if triggered",
+ "notes": "DRAFT. Installed by the coordinator after the W freeze (crontab.txt line, as CB12 q0257). Reads no AREPO store. Stops at T14_W2_cap. Rules part sha256 (seals/cb14_rules.json, code of 2026-10-19 after CB14 code completion): common 27e65215ec577c600168385da5ef6649573ae2c56f9f854559b9a943c40e75c1, W b90f46e754088f3443256731874d47e2546e9244019ae6e5f5af3187617578af. CB14 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes.",
+ "not_before": "2026-10-26T00:00:00Z"
+}

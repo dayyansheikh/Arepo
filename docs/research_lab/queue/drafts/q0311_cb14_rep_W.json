@@ -1,0 +1,33 @@
+{
+ "id": "q0311_cb14_rep_W",
+ "title": "CB14-W Stage 2: W2-rep (recorded best ask at b+60s, best bid at b+120 min, fee, +1c robustness; >= 300 bursts in >= 30 subjects) and W1-rep (>= 20 decisive moves in >= 15 subjects, live burst log as the clock); poll latency and ask life reported",
+ "family": "creative_batch_14",
+ "priority": 14,
+ "expected_value": "L2 verdicts",
+ "data": [
+  "history/h14_wiki_live/",
+  "public Data API (post-hoc prints for W1-rep)"
+ ],
+ "resources": {
+  "mem_mb": 500,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0309_cb14_screen_W"
+ ],
+ "argv": [
+  "scripts/run_cb14.py",
+  "rep",
+  "--family",
+  "W"
+ ],
+ "timeout_s": 2400,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch14/results_W_rep.json",
+  "trials.jsonl (cb14_replication + creative_batch_14:W:rep)"
+ ],
+ "next_action": "pass: Stage P-W registration draft",
+ "notes": "DRAFT. Only triggered tests; alpha/4 if early, full Stage-2 Holm once. Rules part sha256 (seals/cb14_rules.json, code of 2026-10-19 after CB14 code completion): common 27e65215ec577c600168385da5ef6649573ae2c56f9f854559b9a943c40e75c1, W b90f46e754088f3443256731874d47e2546e9244019ae6e5f5af3187617578af. CB14 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes."
+}

@@ -1,0 +1,39 @@
+{
+ "id": "q0307_cb14_w_prints",
+ "title": "CB14-W: Data API newest-first prints (<= 2 pages of 10,000) per mapped market, aggregated to transactions (time, YES-terms VWAP, min/max price, size; hash discarded); rows before 2026-04-01 kept; covered span recorded",
+ "family": "creative_batch_14",
+ "priority": 12,
+ "expected_value": "W state, entry, exit, decisive moves",
+ "data": [
+  "public Data API",
+  "history/h14_wiki/frame.csv.gz"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "net",
+  "network": "data-api"
+ },
+ "depends_on": [
+  "q0306_cb14_w_revisions"
+ ],
+ "argv": [
+  "scripts/run_cb14.py",
+  "w-prints",
+  "--rules",
+  "../docs/research_lab/seals/cb14_rules.json",
+  "--rps",
+  "2",
+  "--disk-cap-gb",
+  "0.02",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 2400,
+ "max_retries": 2,
+ "outputs": [
+  "history/h14_wiki/{tx.csv.gz,reach.csv.gz,manifest.json}"
+ ],
+ "next_action": "q0308",
+ "notes": "DRAFT. No side, wallet or hash stored. Rules part sha256 (seals/cb14_rules.json, code of 2026-10-19 after CB14 code completion): common 27e65215ec577c600168385da5ef6649573ae2c56f9f854559b9a943c40e75c1, W b90f46e754088f3443256731874d47e2546e9244019ae6e5f5af3187617578af. CB14 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes."
+}

@@ -1,0 +1,33 @@
+{
+ "id": "q0305_cb14_w_pregate",
+ "title": "CB14-W pre-fetch gate GWC, counts only, no network: mapped markets, events, subjects after GW0 drops; frame completeness >= 95%; < 150 markets / 60 events / 40 subjects -> W1, W2 not testable (population), counted, and q0306/q0307 never committed",
+ "family": "creative_batch_14",
+ "priority": 14,
+ "expected_value": "saves about 6,000 requests if W cannot be powered",
+ "data": [
+  "history/h14_wiki/{frame,subjects}.csv.gz",
+  "creative_batch14/w_map_audit.json"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0303_cb14_w_frame"
+ ],
+ "argv": [
+  "scripts/run_cb14.py",
+  "pregate",
+  "--family",
+  "W"
+ ],
+ "timeout_s": 900,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch14/pregate_W.json",
+  "trials.jsonl (cb14_descriptive or the counted not-testable lines)"
+ ],
+ "next_action": "PASS: commit q0306",
+ "notes": "DRAFT. Rules part sha256 (seals/cb14_rules.json, code of 2026-10-19 after CB14 code completion): common 27e65215ec577c600168385da5ef6649573ae2c56f9f854559b9a943c40e75c1, W b90f46e754088f3443256731874d47e2546e9244019ae6e5f5af3187617578af. CB14 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes."
+}

@@ -1,0 +1,44 @@
+{
+ "id": "q0302_cb14_exclusion_keys",
+ "title": "CB14 exclusion keys = CB13 q0276 key file + id columns of h11_attn frame (both strata, both splits) and its entity-map canonical titles, h11_pol, h11_wprints, h12_* frames (h12_say SCREEN ids kept for S-N by declared deviation), h13_touch, CB13 T fill markets/events, seal copies; Gamma lookups for missing keys",
+ "family": "creative_batch_14",
+ "priority": 14,
+ "expected_value": "disjointness of W and S",
+ "data": [
+  "creative_batch13/exclusion_keys.csv.gz",
+  "history/h11_attn/{frame,entities}.csv.gz (id and canonical-title columns only)",
+  "history/*/ (id columns only)",
+  "docs/research_lab/seals/*",
+  "public Gamma (ids)"
+ ],
+ "resources": {
+  "mem_mb": 500,
+  "cpu": 1,
+  "lane": "net",
+  "network": "gamma-api"
+ },
+ "depends_on": [
+  "q0300_cb14_smoke_W",
+  "q0276_cb13_exclusion_keys",
+  "q0227_cb11_attn_frame"
+ ],
+ "argv": [
+  "scripts/run_cb14.py",
+  "exclusion-keys",
+  "--rules",
+  "../docs/research_lab/seals/cb14_rules.json",
+  "--rps",
+  "2",
+  "--disk-cap-gb",
+  "0.01",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 2400,
+ "max_retries": 2,
+ "outputs": [
+  "research_lab/creative_batch14/{exclusion_keys.csv.gz,attn_entities.csv.gz,manifest.json}"
+ ],
+ "next_action": "q0303, q0312",
+ "notes": "DRAFT. A dependency recorded as stopped in the ledger is 'absent' (recorded). Never opens h12_say or any holdout/ path. >2% missing metadata -> unverified (family not testable, counted). Rules part sha256 (seals/cb14_rules.json, code of 2026-10-19 after CB14 code completion): common 27e65215ec577c600168385da5ef6649573ae2c56f9f854559b9a943c40e75c1, W b90f46e754088f3443256731874d47e2546e9244019ae6e5f5af3187617578af, S 0970b078f3c86b1f06d7c16c8537d86ae3ba8e644edc8acddb42586134e18938. CB14 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes."
+}
