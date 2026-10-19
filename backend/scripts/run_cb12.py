@@ -1,7 +1,8 @@
 # ruff: noqa: E501
 """CB12 runner (docs/research_lab/CREATIVE_BATCH_12.md section 4). Run from cwd=backend (queue worker). EXPLORATORY / METHODS DATA ONLY: no edge, calibration or
-profitability claim. This file covers common + smoke + X + M (queue ids q0240, q0241, q0242, q0243, q0248 (M), q0249 (M part), q0251, q0252, q0255, q0256) and O
-(q0260 opt-smoke, q0261 opt-live, q0262 census O, q0263 screen O, q0264 rep O); E and F subcommands arrive with their modules and are refused here.
+profitability claim. This file covers common + smoke + X + M (queue ids q0240, q0241, q0242, q0243, q0248 (M), q0249 (M part), q0251, q0252, q0255, q0256), O
+(q0260 opt-smoke, q0261 opt-live, q0262 census O, q0263 screen O, q0264 rep O) and E (q0244 quake-frame, q0245 quake-prices, q0266 census E, q0253 screen E, q0257 quake-live,
+q0258 rep E); F subcommands arrive with their module and are refused here.
 
     python scripts/run_cb12.py rules                       # write docs/research_lab/seals/cb12_rules.json (one sha256 per part: common, M, E, F, X, O); commit before q0240
     python scripts/run_cb12.py freeze-part --part M|X      # print a part of the CB12 freeze declaration (model_specs/cb12_v1.json carries one entry per family part)
@@ -9,9 +10,11 @@ profitability claim. This file covers common + smoke + X + M (queue ids q0240, q
     python scripts/run_cb12.py exclusion-keys ...          # q0241: CB11 q0221 key file (sha256 pin MANDATORY) + every set created since + seal copies + C1 ids (resumable)
     python scripts/run_cb12.py say-frame | say-prices ...  # q0242 / q0243 (CB12-M)
     python scripts/run_cb12.py seal --family M|auto ...    # q0248 (M HOLDOUT listing + outcome file sha256)
-    python scripts/run_cb12.py census --family M|X         # q0249 (M part) / q0251: counts only; gates; coverage; MDEs
-    python scripts/run_cb12.py screen --family M|X         # q0252 / q0255 (refuse before the family's freeze entry)
-    python scripts/run_cb12.py rep --family M|O            # q0256 / q0264 (verifies the seal / the pinned Stage-1 results first)
+    python scripts/run_cb12.py quake-frame | quake-prices  # q0244 / q0245 (CB12-E: Gamma tag events, parser, USGS catalogue; prices-history)
+    python scripts/run_cb12.py quake-live ...              # q0257: the E collector (cron 10:00Z and 16:00Z; refuses before the E freeze)
+    python scripts/run_cb12.py census --family M|X|O|E     # q0249 (M part) / q0251 / q0262 / q0266 (E): counts only; gates; coverage; MDEs
+    python scripts/run_cb12.py screen --family M|X|O|E     # q0252 / q0255 / q0263 / q0253 (refuse before the family's freeze entry)
+    python scripts/run_cb12.py rep --family M|O|E          # q0256 / q0264 / q0258 (verifies the seal / the pinned Stage-1 results first)
     python scripts/run_cb12.py opt-smoke ...               # q0260: one live checkpoint dry run in a regular session (exit 75 outside), WRITE-ONCE opt_smoke.json
     python scripts/run_cb12.py opt-live ...                # q0261: the O collector (cron every 5 min on weekdays; refuses before the O freeze)
 
@@ -34,9 +37,9 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "backend"))
 
 REFUSED, TEMPFAIL, DISK_BUDGET = 2, 75, 4
-IMPLEMENTED = ("M", "X", "O")
-DECLARED_DISK_CAP_GB = {"exclusion-keys": 0.01, "say-frame": 0.005, "say-prices": 0.08, "opt-live": 0.3}
-DECLARED_RPS_MAX = {"smoke": 1.0, "exclusion-keys": 2.0, "say-frame": 2.0, "say-prices": 2.0, "seal": 2.0, "opt-smoke": 2.0, "opt-live": 2.0}
+IMPLEMENTED = ("M", "X", "O", "E")
+DECLARED_DISK_CAP_GB = {"exclusion-keys": 0.01, "say-frame": 0.005, "say-prices": 0.08, "opt-live": 0.3, "quake-frame": 0.03, "quake-prices": 0.01, "quake-live": 0.01}
+DECLARED_RPS_MAX = {"smoke": 1.0, "exclusion-keys": 2.0, "say-frame": 2.0, "say-prices": 2.0, "seal": 2.0, "opt-smoke": 2.0, "opt-live": 2.0, "quake-frame": 2.0, "quake-prices": 2.0, "quake-live": 1.0}
 
 
 def _emit(obj: dict) -> None:
@@ -174,7 +177,7 @@ def _o_frozen_epoch(entry: dict) -> float:
     c12 = _c12()
     t = c12.parse_iso(entry.get("frozen_utc"))
     if not t == t:  # NaN
-        raise c12.Refused("the O freeze entry has no frozen_utc (window 1 starts at the first session >= 1 day after it)")
+        raise c12.Refused("the freeze entry has no frozen_utc (O: window 1 starts at the first session >= 1 day after it; E: T12_E2_start is the first market listed >= 1 day after it)")
     return t
 
 
@@ -364,6 +367,33 @@ def cmd_say_prices(a):
     return _result(m)
 
 
+# ---- q0244 / q0245 E data ---------------------------------------------------------------------------------------------------------------------
+
+
+@_guarded
+def cmd_quake_frame(a):
+    from astrolabe.research_lab import cb12_e as e12  # noqa: PLC0415
+    from astrolabe.research_lab import history_backfill as hb  # noqa: PLC0415
+
+    _declared(a, "quake-frame")
+    sha = _rules(a, "E")
+    kw = _net_kw(a)
+    m = e12.quake_frame(_hist(a), hb.httpx_transport(), rules_sha=sha, smoke_paths=_smoke_paths(a, "E"), exclusion_keys_path=_keys_path(a), now=time.time(),
+                        usgs_rps=min(a.usgs_rps, e12.USGS_RPS), disk_cap=int(a.disk_cap_gb * 1024**3), **kw)
+    return _result(m)
+
+
+@_guarded
+def cmd_quake_prices(a):
+    from astrolabe.research_lab import cb12_e as e12  # noqa: PLC0415
+    from astrolabe.research_lab import history_backfill as hb  # noqa: PLC0415
+
+    _declared(a, "quake-prices")
+    sha = _rules(a, "E")
+    m = e12.quake_prices(_hist(a), hb.httpx_transport(), rules_sha=sha, now=time.time(), disk_cap=int(a.disk_cap_gb * 1024**3), **_net_kw(a))
+    return _result(m)
+
+
 # ---- q0248 seal --------------------------------------------------------------------------------------------------------------------------------
 
 
@@ -457,7 +487,20 @@ def census_o_block(a) -> dict:
     return o12.census_o(root, win["w1"], conv) | {"windows": win}
 
 
-CENSUS_BLOCKS = {"M": census_m_block, "X": census_x_block, "O": census_o_block}
+def census_e_block(a) -> dict:
+    """q0266: counts only (no outcome file opened; the catalogue only through the t - 72 h accessor). A stalled frame/prices run carries its label."""
+    from astrolabe.research_lab import cb12_e as e12  # noqa: PLC0415
+
+    c12 = _c12()
+    rdir = _hist(a) / e12.FRAME_RUN
+    st = c12.stall_of(rdir)
+    if st:
+        return {"status": "stalled", "stall": st, "label_E": st.get("label") or "not testable (source)"}
+    c12.verify_fetch(rdir, (e12.PRICES_STATUS,), "quake_prices (q0245)")
+    return e12.census_e(rdir)
+
+
+CENSUS_BLOCKS = {"M": census_m_block, "X": census_x_block, "O": census_o_block, "E": census_e_block}
 
 
 @_guarded
@@ -529,6 +572,13 @@ def cmd_screen(a):
             c12.verify_fetch(rdir, (m12.PRICES_STATUS,), "say_prices")
             c12.verify_holdout_seal(rdir, "cb12_say_holdout_SEAL.json", _seals_dir(a), require_committed=not a.allow_uncommitted_rules)
         body = m12.screen_m(rdir, census)
+    elif fam == "E":
+        from astrolabe.research_lab import cb12_e as e12  # noqa: PLC0415
+
+        rdir = _hist(a) / e12.FRAME_RUN
+        if not census.get("label_E"):
+            c12.verify_fetch(rdir, (e12.PRICES_STATUS,), "quake_prices")
+        body = e12.screen_e(rdir, census)
     elif fam == "O":
         from astrolabe.research_lab import cb12_o as o12  # noqa: PLC0415
 
@@ -579,7 +629,7 @@ def _pinned_stage1(a, fam: str, root: Path) -> tuple[dict, tuple[str, ...]]:
 def cmd_rep(a):
     c12 = _c12()
     fam = _family(a)
-    if fam not in ("M", "O"):
+    if fam not in ("M", "O", "E"):
         raise c12.Refused(f"family {fam} has no Stage 2 in this runner")
     freeze_sha = _freeze(a, fam)
     sha = _rules(a, fam)
@@ -593,6 +643,17 @@ def cmd_rep(a):
         c12.verify_fetch(rdir, (m12.PRICES_STATUS,), "say_prices")
         seal = c12.verify_holdout_seal(rdir, "cb12_say_holdout_SEAL.json", _seals_dir(a), require_committed=not a.allow_uncommitted_rules)
         body = m12.rep_m(rdir, census, adv, seal, k2=a.stage2_k)
+    elif fam == "E":
+        from astrolabe.research_lab import cb12_e as e12  # noqa: PLC0415
+
+        # E1 advanced -> its replication AND the economic check E2 run on the same Stage-2 units (CB12-E Stage 2)
+        adv = c12.FAMILY_REP_TESTS["E"]
+        _fsha, entry = _freeze_entry(a, "E")
+        rdir = _hist(a) / e12.FRAME_RUN
+        c12.verify_fetch(rdir, (e12.PRICES_STATUS,), "quake_prices")
+        live = _hist(a) / e12.LIVE_RUN
+        model, maxima = e12.model_inputs(e12.load_frame(rdir))
+        body = e12.rep_e(live, adv, frozen_epoch=_o_frozen_epoch(entry), now=time.time(), model=model, maxima=maxima, gamma_rows=e12.open_live_outcomes(live, "rep-E"), k2=a.stage2_k)
     else:
         from astrolabe.research_lab import cb12_o as o12  # noqa: PLC0415
 
@@ -666,6 +727,36 @@ def cmd_opt_live(a):
     return 0, res
 
 
+# ---- q0257 CB12-E collector ---------------------------------------------------------------------------------------------------------------------
+
+
+def _e_sources(a):
+    from astrolabe.research_lab import cb12_e as e12  # noqa: PLC0415
+    from astrolabe.research_lab import history_backfill as hb  # noqa: PLC0415
+
+    live = None if getattr(a, "standalone", False) else hb.live_pass_or_lock
+    pm = hb.Limiter(hb.httpx_transport(), rps=min(a.rps, 1.0), live_check=live)
+    ext = hb.Limiter(hb.httpx_transport(), rps=e12.USGS_RPS, live_check=live)
+    return e12.LiveSources(pm, ext)
+
+
+@_guarded
+def cmd_quake_live(a):
+    from astrolabe.research_lab import cb8_common as cm  # noqa: PLC0415
+    from astrolabe.research_lab import cb12_e as e12  # noqa: PLC0415
+
+    c12 = _c12()
+    _declared(a, "quake-live")
+    sha = _rules(a, "E")
+    _fsha, entry = _freeze_entry(a, "E")
+    frozen = _o_frozen_epoch(entry)
+    root = c12.require_output_root(_hist(a) / e12.LIVE_RUN)
+    dd = Path(a.data_dumps) if a.data_dumps else cm.DATA_DUMPS
+    cap = int(a.disk_cap_gb * 1024**3)
+    res = e12.quake_live_tick(root, now=time.time(), src=_e_sources(a), rules_sha=sha, frozen_epoch=frozen, disk_check=lambda: c12.require_disk(dd, a.data_dumps_cap_gb, cap), sleep=time.sleep)
+    return 0, res
+
+
 # ---- parser -------------------------------------------------------------------------------------------------------------------------------------
 
 
@@ -725,15 +816,34 @@ def build_parser() -> argparse.ArgumentParser:
     net(q, disk_cap=0.08)
     q.set_defaults(fn=cmd_say_prices)
 
+    q = sub.add_parser("quake-frame", help="q0244 (CB12-E frame and USGS catalogue)")
+    common(q)
+    net(q, disk_cap=0.03)
+    q.add_argument("--smoke", default=None)
+    q.add_argument("--exclusion-keys", default=None)
+    q.add_argument("--usgs-rps", type=float, default=1.0)
+    q.set_defaults(fn=cmd_quake_frame)
+
+    q = sub.add_parser("quake-prices", help="q0245 (CB12-E prices-history)")
+    common(q)
+    net(q, disk_cap=0.01)
+    q.set_defaults(fn=cmd_quake_prices)
+
+    q = sub.add_parser("quake-live", help="q0257 (CB12-E collector; cron)")
+    common(q, rps=1.0)
+    net(q, disk_cap=0.01)
+    q.add_argument("--freeze-spec", default=None)
+    q.set_defaults(fn=cmd_quake_live)
+
     q = sub.add_parser("seal", help="q0248")
     common(q)
     q.add_argument("--family", default="auto", help="M | auto (every implemented family; one still fetching is pending)")
     q.add_argument("--seals-dir", default=None)
     q.set_defaults(fn=cmd_seal)
 
-    q = sub.add_parser("census", help="q0249 (M) / q0251 (X) / q0262 (O)")
+    q = sub.add_parser("census", help="q0249 (M) / q0251 (X) / q0262 (O) / q0266 (E)")
     common(q)
-    q.add_argument("--family", required=True, help="M | X | O (one family per job)")
+    q.add_argument("--family", required=True, help="M | X | O | E (one family per job)")
     q.add_argument("--freeze-spec", default=None)
     q.add_argument("--opt-smoke", default=None)
     q.add_argument("--smoke", default=None)
@@ -743,9 +853,9 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--census-tag", default="", help="file-name suffix of the census (e.g. _v2: a census re-run under amended code; the earlier file is kept)")
     q.set_defaults(fn=cmd_census)
 
-    q = sub.add_parser("screen", help="q0252 (M) / q0255 (X) / q0263 (O)")
+    q = sub.add_parser("screen", help="q0252 (M) / q0255 (X) / q0263 (O) / q0253 (E)")
     common(q)
-    q.add_argument("--family", required=True, help="M | X | O")
+    q.add_argument("--family", required=True, help="M | X | O | E")
     q.add_argument("--opt-smoke", default=None)
     q.add_argument("--smoke", default=None)
     q.add_argument("--census", default=None)
@@ -756,9 +866,9 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--allow-unpinned-c1", action="store_true", help="tests only")
     q.set_defaults(fn=cmd_screen)
 
-    q = sub.add_parser("rep", help="q0256 (M) / q0264 (O)")
+    q = sub.add_parser("rep", help="q0256 (M) / q0264 (O) / q0258 (E)")
     common(q)
-    q.add_argument("--family", required=True, help="M | O")
+    q.add_argument("--family", required=True, help="M | O | E")
     q.add_argument("--opt-smoke", default=None)
     q.add_argument("--out", default=None)
     q.add_argument("--freeze-spec", default=None)

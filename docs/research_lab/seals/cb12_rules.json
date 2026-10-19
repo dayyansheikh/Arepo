@@ -1,11 +1,924 @@
 {
  "parts": {
   "E": {
+   "constants": {
+    "cb12_common": {
+     "ACCESS_LOG": "ACCESS_LOG.jsonl",
+     "ALLOWED_OUTPUT_ROOT_PARTS": [
+      "creative_batch12",
+      "h12_say",
+      "h12_quake",
+      "h12_prints",
+      "h12_quake_live",
+      "h12_opt_live"
+     ],
+     "AVAIL_MIN": 0.6,
+     "BATCH_HOLM_K1": 10,
+     "BY_Q": 0.1,
+     "CB12_SPORTS_IN_PRIMARY": false,
+     "DATA_DUMPS_CAP_GB": 40.0,
+     "DATA_PAGES": 2,
+     "DATA_PAGE_LIMIT": 10000,
+     "DROPS_FILE": "drops.csv.gz",
+     "EARLY_ALPHA": 0.005,
+     "EVIDENCE_ROLE_HIST": "exploratory_historical",
+     "EXCLUSION_KEYS_COMPLETE": "exclusion_keys_complete",
+     "EXCLUSION_RUN": "exclusion_run12",
+     "EXTRACT_ROOT_RE": "^cb\\d+_extract$",
+     "EXTRA_REFUSED_ROOTS": [
+      "creative_batch11",
+      "creative_batch10",
+      "creative_batch9",
+      "snapshots",
+      "trade_samples",
+      "live_trades",
+      "book_sweeps",
+      "surprise_live",
+      "cross_venue_live",
+      "h9_flow",
+      "h10_sign",
+      "h10_dlad",
+      "h10_brk",
+      "h11_wprints",
+      "h11_pol",
+      "h11_attn",
+      "h1_first",
+      "h2_main",
+      "h3_power",
+      "h4_seal",
+      "h5_cb1",
+      "h5_cb1_ladders",
+      "h6_weather",
+      "h7_cb4_era",
+      "h7_cb4_series",
+      "h8_tail",
+      "h8_tail_b",
+      "h8_text",
+      "h8_geo"
+     ],
+     "FAMILY_MODULES": {
+      "E": [
+       "cb12_e"
+      ],
+      "F": [
+       "cb12_f"
+      ],
+      "M": [
+       "cb12_m"
+      ],
+      "O": [
+       "cb12_o"
+      ],
+      "X": [
+       "cb12_x"
+      ]
+     },
+     "FAMILY_PARTS": [
+      "M",
+      "E",
+      "F",
+      "X",
+      "O"
+     ],
+     "FAMILY_REP_TESTS": {
+      "E": [
+       "E1",
+       "E2"
+      ],
+      "F": [
+       "AL1",
+       "AL2",
+       "SH1",
+       "SH2"
+      ],
+      "M": [
+       "M1",
+       "M2"
+      ],
+      "O": [
+       "O1",
+       "O2"
+      ],
+      "X": []
+     },
+     "FAMILY_TESTS": {
+      "E": [
+       "E1"
+      ],
+      "F": [
+       "AL1",
+       "AL2",
+       "SH1",
+       "SH2"
+      ],
+      "M": [
+       "M1",
+       "M2"
+      ],
+      "O": [
+       "O1",
+       "O2"
+      ],
+      "X": [
+       "X1"
+      ]
+     },
+     "FREE_DISK_MIN_GB": 4.5,
+     "GAMMA_EVENTS": "https://gamma-api.polymarket.com/events",
+     "GAMMA_OFFSET_CAP": 2000,
+     "GAMMA_PAGE": 100,
+     "GATE_P": 0.01,
+     "GMP_DRAWS": 500,
+     "GUARDED_NAMES": [
+      "outcomes_guarded_screen.csv.gz",
+      "outcomes_guarded_holdout.csv.gz",
+      "outcomes_guarded.csv.gz"
+     ],
+     "HEARTBEAT_S": 36000.0,
+     "HOLDOUT_PART": "holdout",
+     "ID_SOURCES": [
+      [
+       "h9_flow",
+       "sample.csv.gz"
+      ],
+      [
+       "h10_sign",
+       "sample.csv.gz"
+      ],
+      [
+       "h10_dlad",
+       "frame.csv.gz"
+      ],
+      [
+       "h10_brk",
+       "frame.csv.gz"
+      ],
+      [
+       "h11_wprints",
+       "markets.csv.gz"
+      ],
+      [
+       "h11_pol",
+       "frame.csv.gz"
+      ],
+      [
+       "h11_attn",
+       "frame.csv.gz"
+      ]
+     ],
+     "LIVE_ROOT_NAME": "cross_venue_live",
+     "LOOKUP_PER_REQUEST": 50,
+     "MAX_UNVERIFIED_KEY_SHARE": 0.02,
+     "MIN_CLUSTERS": 30,
+     "MIN_UNITS": 100,
+     "N_BOOT": 2000,
+     "N_WILD": 9999,
+     "OWN_SEAL_COPIES": [
+      "cb12_say_holdout_SEAL.json",
+      "cb12_prints_holdout_SEAL.json"
+     ],
+     "PARTS": [
+      "common",
+      "M",
+      "E",
+      "F",
+      "X",
+      "O"
+     ],
+     "PENDING": "pending",
+     "PIN_UNSET": "TODO-COORDINATOR",
+     "PLACEBO_DRAWS": 200,
+     "PLACEBO_MAX_ADVANCE": 0.015,
+     "PLACEBO_SEEDS": {
+      "M1_copula": 12101,
+      "M2_fill_calibrated": 12102,
+      "X1_horizon_offset": 12108
+     },
+     "PRICE_CAP": 0.99,
+     "PRICE_MAX_AGE_S": 86400.0,
+     "PRICE_MIN_LAG_S": 600,
+     "REP_JOBS": [
+      "rep-M",
+      "rep-E",
+      "rep-F",
+      "rep-O"
+     ],
+     "RULES_MACHINERY": [
+      "rules_part_doc",
+      "rules_part_file_doc",
+      "rules_file_doc",
+      "write_rules",
+      "verify_rules",
+      "family_modules",
+      "common_funcs",
+      "module_funcs",
+      "module_constants",
+      "part_funcs",
+      "_mods",
+      "_jsonable"
+     ],
+     "RULES_VERSION": "cb12-rules-v1",
+     "SCREEN_JOBS": [
+      "screen-M",
+      "screen-E",
+      "screen-F",
+      "screen-X",
+      "screen-O"
+     ],
+     "SEAL_NAME": "holdout_SEAL.json",
+     "SEED_BOOT": 1212,
+     "SEED_GMP": 12121,
+     "SERIES_DATES_COLUMNS": [
+      "series_id",
+      "event_id",
+      "start_epoch"
+     ],
+     "SERIES_DATES_NAME": "exclusion_series_dates.csv.gz",
+     "SERIES_DATES_RUN_FILE": "series_dates_report.json",
+     "SMOKE_VERSION": "cb12-smoke-v1",
+     "STAGE1_HOLM_FAMILY": [
+      "M1",
+      "M2",
+      "E1",
+      "AL1",
+      "AL2",
+      "SH1",
+      "SH2",
+      "X1",
+      "O1",
+      "O2"
+     ],
+     "STAGE2_K_MAX": 10,
+     "STAGE_ALPHA": 0.05,
+     "T12_HIST_END": "2026-10-01T00:00:00Z",
+     "T12_HIST_END_EPOCH": 1790812800.0,
+     "T12_X_END": "2026-10-12T00:00:00Z",
+     "T12_X_END_EPOCH": 1791763200.0,
+     "TICK": 0.01,
+     "TOP_DROP": 5,
+     "T_SEAL": "2026-10-22T00:00:00Z",
+     "UNVERIFIED": "disjointness_unverified",
+     "X_MTIME_MAX_EPOCH": 1791849600.0,
+     "X_READABLE_ROOTS": [
+      "cross_venue"
+     ]
+    },
+    "cb12_e": {
+     "AGREE_MIN": 0.97,
+     "ALT_LAG_S": 172800.0,
+     "AMBIG_BAND": 0.3,
+     "BIG_QUAKE": 7.5,
+     "BIG_QUAKE_DAYS": 30,
+     "BUCKET_RES": [
+      [
+       {
+        "flags": 32,
+        "regex": "^(\\d+)$"
+       },
+       "eq"
+      ],
+      [
+       {
+        "flags": 32,
+        "regex": "^(?:\u2264|<=)\\s*(\\d+)$"
+       },
+       "le"
+      ],
+      [
+       {
+        "flags": 32,
+        "regex": "^<\\s*(\\d+)$"
+       },
+       "lt"
+      ],
+      [
+       {
+        "flags": 34,
+        "regex": "(?i)^more than (\\d+)$"
+       },
+       "gt"
+      ],
+      [
+       {
+        "flags": 32,
+        "regex": "^(\\d+)\\s*\\+$"
+       },
+       "ge"
+      ],
+      [
+       {
+        "flags": 34,
+        "regex": "(?i)^(\\d+) or more$"
+       },
+       "ge"
+      ],
+      [
+       {
+        "flags": 34,
+        "regex": "(?i)^fewer than (\\d+)$"
+       },
+       "lt"
+      ],
+      [
+       {
+        "flags": 32,
+        "regex": "^(\\d+)\\s*[\u2013-]\\s*(\\d+)$"
+       },
+       "range"
+      ],
+      [
+       {
+        "flags": 34,
+        "regex": "(?i)^between (\\d+) and (\\d+)$"
+       },
+       "range"
+      ]
+     ],
+     "CAT_COLUMNS": [
+      "time_ms",
+      "lat",
+      "lon",
+      "mag",
+      "mag_type",
+      "status",
+      "updated_ms"
+     ],
+     "CAT_LAG_ROBUST_S": 604800.0,
+     "CAT_LAG_S": 259200.0,
+     "CAT_M45_CHUNK_YEARS": 2,
+     "CAT_M45_FROM": [
+      "2000-01-01",
+      "2026-10-01"
+     ],
+     "CAT_M6_CHUNKS": [
+      [
+       "1976-01-01",
+       "1986-01-01"
+      ],
+      [
+       "1986-01-01",
+       "1996-01-01"
+      ],
+      [
+       "1996-01-01",
+       "2006-01-01"
+      ],
+      [
+       "2006-01-01",
+       "2016-01-01"
+      ],
+      [
+       "2016-01-01",
+       "2026-10-01"
+      ]
+     ],
+     "CHECKPOINT_HOUR_UTC": 16,
+     "CHECKPOINT_START": "2024-09-04T16:00:00Z",
+     "CHUNK_DAYS": 14,
+     "DAY": 86400.0,
+     "DT": "([A-Z][a-z]+ \\d{1,2}(?:, \\d{4})?),?\\s*(?:(\\d{1,2}:\\d{2}(?::\\d{2})?\\s*[AP]M)\\s*)?(?:ET|EST|EDT|Eastern(?: Time)?)?",
+     "E1_FLOOR": 0.25,
+     "E2_COST_ROBUST": 0.005,
+     "E2_EDGE": 0.08,
+     "E2_FEE_FLOOR": 0.05,
+     "E2_FLOOR": 0.01,
+     "E2_MAX_DAYS": 90,
+     "E2_MIN_DAYS": 56,
+     "E2_OUTCOME_AFTER_S": 259200.0,
+     "E2_START_DELAY_DAYS": 1,
+     "EA_Q_RE": {
+      "flags": 34,
+      "regex": "(?i)^Will there be (.+?) earthquakes? of (?:magnitude )?(\\d+(?:\\.\\d)?) or (?:above|higher)"
+     },
+     "EB_Q_RE": {
+      "flags": 34,
+      "regex": "(?i)\\b(?:another|an?)\\s+(\\d+(?:\\.\\d)?)\\+?\\s*(?:or above\\s+|or higher\\s+)?(?:magnitude\\s+)?earthquake\\b.*\\b(?:by|before)\\b"
+     },
+     "EB_T_RE": {
+      "flags": 34,
+      "regex": "(?i)^(?:another\\s+)?(\\d+(?:\\.\\d)?)\\+? or above earthquake (?:by|before)\\b"
+     },
+     "ECDF_START": "2000-01-01",
+     "EC_Q_RE": {
+      "flags": 34,
+      "regex": "(?i)^Will the biggest earthquake on ([A-Z][a-z]+ \\d{1,2}, \\d{4}) be (.+?)\\?$"
+     },
+     "END_BUFFER_S": 21600.0,
+     "ET_MENTION_RE": {
+      "flags": 32,
+      "regex": "\\b(ET|EST|EDT|Eastern)\\b"
+     },
+     "EVENT_COLUMNS": [
+      "event_id",
+      "klass",
+      "status",
+      "src",
+      "win_start",
+      "win_end",
+      "n_members",
+      "n_parsed",
+      "neg_risk",
+      "title_sha256",
+      "tz",
+      "nr_id"
+     ],
+     "E_WINDOW": [
+      "2024-09-01",
+      "2026-10-01"
+     ],
+     "FIDELITY": 60,
+     "FIT_END": "2024-09-01",
+     "FIT_START": "1976-01-01",
+     "FRAME_OUTPUT_CAP_GB": 0.03,
+     "FRAME_RUN": "h12_quake",
+     "FRAME_STATUS": "quake_frame_complete",
+     "GEP_LOADINGS": [
+      0.3,
+      0.3,
+      0.4
+     ],
+     "GEP_MDE_MAX": 1.0,
+     "GE_MIN": {
+      "components": 30,
+      "events": 60,
+      "markets": 300,
+      "weeks": 40
+     },
+     "GLOBAL_RE": {
+      "flags": 34,
+      "regex": "(?i)anywhere on Earth|anywhere in the world|\\bglobally\\b|\\bworldwide\\b"
+     },
+     "HOUR": 3600.0,
+     "LABEL_E": "L1 historical (E1); Stage 2 prospective (L2)",
+     "LIST_BUFFER_S": 3600.0,
+     "LIVE_BOOK_GAP_S": 60.0,
+     "LIVE_MAX_MEMBERS": 80,
+     "LIVE_OUTPUT_CAP_GB": 0.01,
+     "LIVE_PASSES_UTC": [
+      10,
+      16
+     ],
+     "LIVE_PASS_WINDOW_S": 1800,
+     "LIVE_RUN": "h12_quake_live",
+     "LIVE_STORE_MIN_MAG": 5.5,
+     "LIVE_STORE_RECENT_DAYS": 10,
+     "LIVE_USGS_SPAN_CAP_DAYS": 400,
+     "MAG_BUCKET_RES": [
+      [
+       {
+        "flags": 34,
+        "regex": "(?i)^under (\\d+(?:\\.\\d)?)$"
+       },
+       "under"
+      ],
+      [
+       {
+        "flags": 34,
+        "regex": "(?i)^(\\d+(?:\\.\\d)?) to (\\d+(?:\\.\\d)?)$"
+       },
+       "range"
+      ],
+      [
+       {
+        "flags": 34,
+        "regex": "(?i)^(\\d+(?:\\.\\d)?) or more$"
+       },
+       "more"
+      ]
+     ],
+     "MEMBER_COLUMNS": [
+      "event_id",
+      "market_id",
+      "condition_id",
+      "token_yes",
+      "yes_index",
+      "created_epoch",
+      "end_epoch",
+      "klass",
+      "threshold",
+      "lo",
+      "hi",
+      "win_start",
+      "win_end",
+      "tz",
+      "parse",
+      "fee_rate",
+      "desc_sha256",
+      "n_chunks"
+     ],
+     "MONTHS": [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December"
+     ],
+     "MONTH_DAYS": 30,
+     "OUTCOME_COLUMNS": [
+      "market_id",
+      "event_id",
+      "yes_index",
+      "outcome_prices",
+      "uma_status"
+     ],
+     "PARSER_FAIL_MAX": 0.2,
+     "PLACEBO_SEED": 12107,
+     "PRICES_OUTPUT_CAP_GB": 0.01,
+     "PRICES_REQUEST_CAP": 15000,
+     "PRICES_STATUS": "quake_prices_complete",
+     "PRICE_COLUMNS": [
+      "market_id",
+      "ts",
+      "p"
+     ],
+     "REGIONAL_RE": {
+      "flags": 32,
+      "regex": "\\bWhere will\\b|\\b(?:in|near)\\s+(?!\\d{4}\\b)(?!the\\b)(?!(?:January|February|March|April|May|June|July|August|September|October|November|December)\\b)[A-Z][A-Za-z]+|\\bCalifornia\\b|\\bLos Angeles\\b|\\bLA\\b|\\bJapan\\b|\\bAlaska\\b|\\bthis month\\b"
+     },
+     "REG_LAG_S": 21600.0,
+     "SEED_GEP": 12122,
+     "SMOKE_FAMILY_VERSION": "cb12-smoke-E-v1",
+     "SMOKE_NEEDS": [
+      "guards_fixture_E",
+      "e_parser_out_of_window",
+      "e_usgs"
+     ],
+     "SMOKE_N_EVENTS": 3,
+     "SMOKE_OUT_OF_WINDOW": "2026-10-01T00:00:00Z",
+     "TAG_IDS": [
+      103038,
+      100184
+     ],
+     "THIN_MAX": 0.3,
+     "THRESHOLDS": [
+      6.0,
+      6.5,
+      7.0,
+      7.5,
+      8.0
+     ],
+     "THRESH_DESC_RE": {
+      "flags": 34,
+      "regex": "(?i)magnitude of (\\d+(?:\\.\\d)?) or (?:higher|above|greater)"
+     },
+     "USGS_COUNT": "https://earthquake.usgs.gov/fdsnws/event/1/count",
+     "USGS_MAX_ROWS": 20000,
+     "USGS_QUERY": "https://earthquake.usgs.gov/fdsnws/event/1/query",
+     "USGS_RE": {
+      "flags": 34,
+      "regex": "(?i)\\bUSGS\\b|United States Geological Survey"
+     },
+     "USGS_RPS": 1.0,
+     "UTC_DAY_RE": {
+      "flags": 34,
+      "regex": "UTC calendar day[^.]*?on ([A-Z][a-z]+ \\d{1,2}, \\d{4})"
+     },
+     "WIN_CREATION_RE": {
+      "flags": 34,
+      "regex": "between market creation and\\s+([A-Z][a-z]+ \\d{1,2}, \\d{4}),?\\s*(\\d{1,2}:\\d{2}(?::\\d{2})?\\s*[AP]M)\\s*ET"
+     },
+     "WIN_ET_RE": {
+      "flags": 34,
+      "regex": "between\\s+([A-Z][a-z]+ \\d{1,2}(?:, \\d{4})?),?\\s*(?:(\\d{1,2}:\\d{2}(?::\\d{2})?\\s*[AP]M)\\s*)?(?:ET|EST|EDT|Eastern(?: Time)?)?,?\\s+and\\s+([A-Z][a-z]+ \\d{1,2}(?:, \\d{4})?),?\\s*(?:(\\d{1,2}:\\d{2}(?::\\d{2})?\\s*[AP]M)\\s*)?(?:ET|EST|EDT|Eastern(?: Time)?)?"
+     }
+    }
+   },
+   "declared": {
+    "cb12_e": {
+     "catalogue": {
+      "eventtype": "earthquake",
+      "fields": [
+       "time_ms",
+       "lat",
+       "lon",
+       "mag",
+       "mag_type",
+       "status",
+       "updated_ms"
+      ],
+      "m45": {
+       "chunk_years": 2,
+       "count_first": true,
+       "from": [
+        "2000-01-01",
+        "2026-10-01"
+       ],
+       "max_rows": 20000
+      },
+      "m6": {
+       "chunks": [
+        [
+         "1976-01-01",
+         "1986-01-01"
+        ],
+        [
+         "1986-01-01",
+         "1996-01-01"
+        ],
+        [
+         "1996-01-01",
+         "2006-01-01"
+        ],
+        [
+         "2006-01-01",
+         "2016-01-01"
+        ],
+        [
+         "2016-01-01",
+         "2026-10-01"
+        ]
+       ],
+       "minmag": 6.0
+      },
+      "magnitude": "E-a / E-b: served magnitude >= threshold; E-c: rounded to the nearest tenth (0.05 up), inclusive brackets"
+     },
+     "e1": {
+      "floor": 0.25,
+      "independent_price": "p_alt (t - 48 h): fails p and beta(q) - beta(p_alt) >= 0.25",
+      "placebo": "sign flip per week / event / component, seed 12107",
+      "robustness": "top-5 per way; class E-a and E-b+E-c signs; 30 days after M >= 7.5 excluded; halves; Gamma outcome sign and >= half; 7-day catalogue lag sign",
+      "ways": [
+       "event",
+       "week",
+       "component"
+      ]
+     },
+     "frame": {
+      "classes": {
+       "E-a": "(?i)^Will there be (.+?) earthquakes? of (?:magnitude )?(\\d+(?:\\.\\d)?) or (?:above|higher)",
+       "E-b": [
+        "(?i)\\b(?:another|an?)\\s+(\\d+(?:\\.\\d)?)\\+?\\s*(?:or above\\s+|or higher\\s+)?(?:magnitude\\s+)?earthquake\\b.*\\b(?:by|before)\\b",
+        "(?i)^(?:another\\s+)?(\\d+(?:\\.\\d)?)\\+? or above earthquake (?:by|before)\\b"
+       ],
+       "E-c": "(?i)^Will the biggest earthquake on ([A-Z][a-z]+ \\d{1,2}, \\d{4}) be (.+?)\\?$"
+      },
+      "fetch": "every closed event of both tags (union by id; no date bound, so key-excluded events define the overlap drops)",
+      "key_rule": "event id / member market id key drop, then every event whose window overlaps a key-excluded earthquake event (counted by source); > 30% dropped -> 'population thinned by exclusions'",
+      "parser": {
+       "count_buckets": [
+        "^(\\d+)$",
+        "^(?:\u2264|<=)\\s*(\\d+)$",
+        "^<\\s*(\\d+)$",
+        "(?i)^more than (\\d+)$",
+        "^(\\d+)\\s*\\+$",
+        "(?i)^(\\d+) or more$",
+        "(?i)^fewer than (\\d+)$",
+        "^(\\d+)\\s*[\u2013-]\\s*(\\d+)$",
+        "(?i)^between (\\d+) and (\\d+)$"
+       ],
+       "global": "(?i)anywhere on Earth|anywhere in the world|\\bglobally\\b|\\bworldwide\\b",
+       "mag_buckets": [
+        "(?i)^under (\\d+(?:\\.\\d)?)$",
+        "(?i)^(\\d+(?:\\.\\d)?) to (\\d+(?:\\.\\d)?)$",
+        "(?i)^(\\d+(?:\\.\\d)?) or more$"
+       ],
+       "threshold_desc": "(?i)magnitude of (\\d+(?:\\.\\d)?) or (?:higher|above|greater)",
+       "usgs": "(?i)\\bUSGS\\b|United States Geological Survey",
+       "utc_day": "UTC calendar day[^.]*?on ([A-Z][a-z]+ \\d{1,2}, \\d{4})",
+       "window_creation": "between market creation and\\s+([A-Z][a-z]+ \\d{1,2}, \\d{4}),?\\s*(\\d{1,2}:\\d{2}(?::\\d{2})?\\s*[AP]M)\\s*ET",
+       "window_et": "between\\s+([A-Z][a-z]+ \\d{1,2}(?:, \\d{4})?),?\\s*(?:(\\d{1,2}:\\d{2}(?::\\d{2})?\\s*[AP]M)\\s*)?(?:ET|EST|EDT|Eastern(?: Time)?)?,?\\s+and\\s+([A-Z][a-z]+ \\d{1,2}(?:, \\d{4})?),?\\s*(?:(\\d{1,2}:\\d{2}(?::\\d{2})?\\s*[AP]M)\\s*)?(?:ET|EST|EDT|Eastern(?: Time)?)?",
+       "written_from": "out-of-window events only (endDate >= 2026-10-01), text read 2026-10-19; no price or outcome"
+      },
+      "regional": "\\bWhere will\\b|\\b(?:in|near)\\s+(?!\\d{4}\\b)(?!the\\b)(?!(?:January|February|March|April|May|June|July|August|September|October|November|December)\\b)[A-Z][A-Za-z]+|\\bCalifornia\\b|\\bLos Angeles\\b|\\bLA\\b|\\bJapan\\b|\\bAlaska\\b|\\bthis month\\b",
+      "tag_ids": [
+       103038,
+       100184
+      ],
+      "window_market_end": [
+       "2024-09-01",
+       "2026-10-01"
+      ]
+     },
+     "gates": {
+      "GE": {
+       "components": 30,
+       "events": 60,
+       "markets": 300,
+       "weeks": 40
+      },
+      "GEP": {
+       "draws": 500,
+       "loadings": [
+        0.3,
+        0.3,
+        0.4
+       ],
+       "mde_max": 1.0,
+       "seed": 12122
+      },
+      "agreement_min": 0.97,
+      "parser_failure_max": 0.2
+     },
+     "label": "L1 historical (E1); Stage 2 prospective (L2)",
+     "model": {
+      "bin_days": 30,
+      "e_c": "empirical share of days 2000-01-01..2024-09-01 in the rule's own day (UTC or ET) whose rounded maximum is in the bucket; no M >= 4.5 -> lowest bucket",
+      "fit": [
+       "1976-01-01",
+       "2024-09-01"
+      ],
+      "horizon": "NegBin(mean lambda tau, size k tau / 30)",
+      "k": "method of moments; var <= mean -> Poisson",
+      "thresholds": [
+       6.0,
+       6.5,
+       7.0,
+       7.5,
+       8.0
+      ]
+     },
+     "smoke": {
+      "needs": [
+       "guards_fixture_E",
+       "e_parser_out_of_window",
+       "e_usgs"
+      ],
+      "out_of_window": "2026-10-01T00:00:00Z",
+      "version": "cb12-smoke-E-v1"
+     },
+     "stage1": "p < 0.01, floor, both binding placebos, robustness, early Holm at alpha / 10",
+     "stage2": {
+      "book_gap_s": 60.0,
+      "e1_rep": "p_t = first 16:00Z read mid, p_reg = first 10:00Z read mid of the same day, p_alt = 16:00Z read 48 h earlier; outcome from the first read >= 72 h after the window end",
+      "e2": {
+       "edge": 0.08,
+       "fee": "r a (1 - a), r = max(feeSchedule.rate, 0.05)",
+       "floor": 0.01,
+       "payoff": "Gamma resolution",
+       "robustness": 0.005
+      },
+      "end": "later of start + 56 d and 30 resolved components, never after start + 90 d",
+      "max_members": 80,
+      "pass_window_s": 1800,
+      "passes_utc": [
+       10,
+       16
+      ],
+      "power": ">= 100 units and >= 30 window components, else not run (power), counted",
+      "start": "first earthquake market listed >= 1 day after the E freeze",
+      "usgs": "one read from the earliest open window start (cap 400 d), M >= 4.5; stored: >= 5.5 over the span + every event of the last 10 d"
+     },
+     "units": {
+      "ambiguous_band": 0.3,
+      "catalogue_lag_s": 259200.0,
+      "checkpoint": "16:00Z daily",
+      "end_buffer_s": 21600.0,
+      "fidelity": 60,
+      "listing_buffer_s": 3600.0,
+      "p_alt_lag_s": 172800.0,
+      "p_reg_lag_s": 21600.0,
+      "price_rule": "stamp + 3,600 s < t, age <= 24 h",
+      "start": "2024-09-04T16:00:00Z",
+      "weights": "each market weight 1"
+     }
+    }
+   },
+   "func_sources_sha256": {
+    "cb12_common.aggregate_transactions": "08f41e54495e027b0ce3e213b6548ce55999782173c2f79ad54683e4a8324a6c",
+    "cb12_common.c1_market_ids": "2d470f722e34a801c5751de43d423bf3c03a51353c4b0d9ae5321c6e25d0e599",
+    "cb12_common.ceil_tick": "af6783f6548c6e1c33f48702e468c51ba0299ecd63bbf5541cbf5a4d8706d36d",
+    "cb12_common.cluster_p": "a7e86a6d0f27ae1b45f8936c410f4862034b4534c9af2cf87bdddec413c18291",
+    "cb12_common.cluster_se_mean": "d8c8ed52c7eb81940adc26f9acb4ba90fbd3fc251a796274faa7c9b3230029c6",
+    "cb12_common.early_stage1_ok": "046fbc6823754520e2157b71a894d1e9382af4ef3d1d42353d7ce7904e123bb5",
+    "cb12_common.early_stage2_ok": "a986684721616f7569597ce748b214f92e6221ff78a3fe7cd8e73b3cffec8fb8",
+    "cb12_common.exclusion_keys": "25dd2f6ca4263c40e2a14f0dedaf30c5d4523a642927cfa33061680efc82e6a8",
+    "cb12_common.exclusion_stage": "b2dd35c1ec54c7121299bf8e5f6d5b657691366488904e553d9195e6f1e86e97",
+    "cb12_common.fetch_prints_paged": "db90a4c31db02d6535efd8c88a0bda75dad6b22be99d094f7e7b4659ab7ba5cb",
+    "cb12_common.guard_screen_path": "635560bb0998aa2a9c54b25fab2e02858f9c76cfd9bd39202c0af51c9e03fc07",
+    "cb12_common.holm": "7831f9b32b4876f0450ed05cb8050f4c22ce84e78e12430e8d5efd3aee861803",
+    "cb12_common.is_holdout_path": "c35f9f1dc469e31a1e3c6ed9ca5fa1c76829eed14514af2c8f4fa8c9b909240b",
+    "cb12_common.iso_week_of": "8380c27fb3b8e66a304fe0bbae7a45da206ae521ce57764292e51f45a982c0ac",
+    "cb12_common.known_lag_s": "d0fbc9efe75f0d01a15dc8da29870bcd07edac0b9b3eb45ea242c6fadd85dae2",
+    "cb12_common.listish": "66999b312145ac17e5fd36f52a83fb78253aaa91dc03b49c9124589a11602024",
+    "cb12_common.load_drops": "036934dd94bcd6d9224319afa98a97a11df8bb69e7968816ff10786c989419fb",
+    "cb12_common.load_exclusion_keys": "c31f3f8c0c742ba5e773cbc9974075445d7ddd4f1fcd637d67deb0fce9f91eef",
+    "cb12_common.load_series_dates": "11bf16994a88daaab5efce62c7774af0207ff067cff3ff61a55520acf10d5fc7",
+    "cb12_common.log_access": "2aef281b30cfd935ebcc282a96c3fa891e84b0099a47fb18c149f952cc6e5630",
+    "cb12_common.log_descriptive": "6ac8c24f70b29c81cdb0b1ede5acf24d32027a1003d8c748e2eafec18c3bf291",
+    "cb12_common.log_family": "c9d5853516d2d7c6b77368245d0b1c78499cdbfc60801cc7261a3b353f5d4c96",
+    "cb12_common.lookup_keys_closed_first": "466132284fb1886941bcbdc820c075250009fa794dcb9112c2bd74aa7e5654d2",
+    "cb12_common.manifest_complete": "242883ea1969a82f1f2614ae217699788f001e6047505786b420a64710a5bed0",
+    "cb12_common.mde": "6c43ef79505a40b002ccc422274968450ee6d1e76af1134cff17a43471a87170",
+    "cb12_common.num": "6b0d39403e1916672eadc55c8241ff0c3cdfb233983e5e8b36b400140ab6f068",
+    "cb12_common.one_sided_boot_p": "7812ce5bccc071522932012f9886313a9281ef9045cf06f5d46ae4a553092e2f",
+    "cb12_common.open_guarded": "092952dedb85d730d5d534d348a9cc4d9fc382312de0abc008d0f573dfb1af20",
+    "cb12_common.parse_iso": "f56a746aac64f2456a69e6ad81c952e3b4ebff1aa8a167e5ab567d2182477da3",
+    "cb12_common.placebo_advance_rate": "dddafa6653cc29c6d9cfaac9f5cbf9b45bb978e4249f3b54b1f0854c7dcbe0ea",
+    "cb12_common.price_at": "63939905ce42d13dbf916af2260a51a849770c64cec1f590444e6825aa562db9",
+    "cb12_common.rank": "84ab60daca926f462c2bc318f0a7a3b6b4d5a2480a5640d13181fcbec93683bc",
+    "cb12_common.reach_ok": "c1027e0f9f22591e52de9c54ee1cec87bbff59fc529022838f630b36f35b9036",
+    "cb12_common.read_csv_gz": "0de78d753f9c22f4985ca862de9e64db28b0333f859376b5d38ce4eb9aedc535",
+    "cb12_common.read_id_set": "247f84572b3a12e65d3b20d455cb7de0da46cbcf6a98ffe4244b844dbac9e57c",
+    "cb12_common.refuse_path": "28d433c10d4e09f2f81181a4ae07cbc3f8ca857c01e14e26fed7104a7bf3c844",
+    "cb12_common.refuse_read": "0ed50e47e225b7a86ea71f52f9fc02122d50d66d35c8665fe8ea2c6faecb7a54",
+    "cb12_common.refused_names": "32b50ab79443589af19374c0cc7519d67f852856b04b43f23c510ec76c27b790",
+    "cb12_common.require_after": "6241d5801e7645bf91762727ba115dfb8b52b46613a150bdc9a424f9ebd4480b",
+    "cb12_common.require_complete": "3b6604357fd07395f4104daa66c2311f94cad2703e372c20966f9c5c9d619474",
+    "cb12_common.require_disk": "66681a0d33bf0192436c44a5e343dfbc775a355bfe24fdfdfd809fb2c08f1ada",
+    "cb12_common.require_freeze": "3015dec7fa1068400db9fce1cd514493d0f0a79d09ac54060e11de8690d99031",
+    "cb12_common.require_output_root": "3a7951b8ce7552c8540ba4cfb5445cae02e40188d5619f4a816c2792956e0cb0",
+    "cb12_common.seal_holdout": "c61638765f2453c90f866c2c008f0419d5d09eedee8657b3744613d3e6f0e812",
+    "cb12_common.series_dates_stage": "67cc3b3cb1a54a7af532c08f532917e14ee6eb6e37f90a89bd8090987b79d7bb",
+    "cb12_common.sha256_obj": "29f7a73c2109e9902f07d1b4343c0975871e392d9e53aea23bc0b4e5d4ca548f",
+    "cb12_common.stage1_holm": "2b310b34ba4f4a1615fdaab65b1eb04b049e9a66d84f54501cc399e2da9a933c",
+    "cb12_common.stage2_holm": "6cac1a8ca6ba3581d623159a413631d164fe5e490e43bd54bef66f01c24dd165",
+    "cb12_common.stall_of": "beaf29289839d29160f8aa542364dc8395c2620bbe57d025038cbfa1443bc186",
+    "cb12_common.top_k_drop_mask": "6582a115058255fc43f961c9c4e156af75be744d0ddbc3806df9af0d4a175d6b",
+    "cb12_common.upstream_stall": "cc030b6f9a1b37b4930f960dab3878bfd23010a9963eb7b96d4caf22cf2c4ffe",
+    "cb12_common.utc_day": "08bd95ebea2913c2ac28497a6f68d35937ad7630f9a0653a2f7e6f1b8c389cdb",
+    "cb12_common.verify_fetch": "cac10ee8e422fb149ac3d0242da785480b95f233ce272d9a8af21d1781b2e427",
+    "cb12_common.verify_holdout_seal": "5808eba6429a1171804a805321ec8287c3d4f96583d0619b67f42952a0280f7e",
+    "cb12_common.wait_or_idle": "9eaca81ab04a1251f7f09314d6e3aec8d3161c53c55922c90fcc9f002ba2a6bd",
+    "cb12_common.write_results_once": "8d9db29f6dfe30663f51418686250cc01acae415517635cf5fb419c14c3cc630",
+    "cb12_common.write_stall": "a75cca03b65b4179b2e461a6ed1c21fbc71752f6090a554ae30f71e2da4b675d",
+    "cb12_e.LiveSources": "c8d286259cd6d7f7f8d69e0d5950b65b8f2da45298f8fe06aae8703bf764c298",
+    "cb12_e._clock": "cf22ebe8f056804d518592e376c7dc42f387188a5197e828cc5ab6357c423859",
+    "cb12_e._date_of": "36a57e01dea835b91a9bde98f0431e461d0ba1e3c7b0834b2d2f230b414451f6",
+    "cb12_e._ep": "9e5036d523cbb6c30c7b330c6f5f3a6ed1260a58803770ed130d3ca321d5b49a",
+    "cb12_e._et": "8ba0e4cbb2243a5444ed14bf82156c2fe5b2220ae2f37afa5ee1bc4c42098fec",
+    "cb12_e._mid": "4db1d36dcfa380a9b61813985517afffddd31995c3a85ee341a62f42736e2671",
+    "cb12_e._rjson_gz": "e24e4fe9b6be4fff9d595f747db305533f7541f1c31655e2882032c8c85fc323",
+    "cb12_e._wcsv": "ec80c1682e35c1af5e4a80e8fcfc4b772fb3d6d2274533e576bfc9baef129d46",
+    "cb12_e._wjson_gz": "d36decfea436aa1a6f63bcf43ab0ad990c365ba9467c18b110102f9c842847c7",
+    "cb12_e.ambiguous": "067a1b7d238cade7ac8b90ffa11ca1707004c7762937f6e63ccd8dab8ea73c15",
+    "cb12_e.apply_exclusions": "ef66f01a2ba1ba978ddfc3b1c0c7b3a7dbda8cd3bb119da3e44d9ccf9db96405",
+    "cb12_e.attach_outcomes": "f051ff77ad3fb0103872d0a946d953605e6e6067b18c7e0789231634b1415d7e",
+    "cb12_e.book_state": "6c8556f7ccdbd75f4acbfcc6f727be6868932ba31ee38a3847d813c8f107ebd5",
+    "cb12_e.build_units": "2e88634a8045e29fa29b402998d7b9a8960c48bcc8415dcc1cf48bca9f5b58cd",
+    "cb12_e.census_e": "011a9c4119a9282d3b30dba92796af972602ebb4b63bbaf7ce156a86e2a43c31",
+    "cb12_e.checkpoints_for": "ec0584792c483f83753306b63138596535e8b5a7804b543f18d75e96bfdf8256",
+    "cb12_e.classify": "b9de845b5d17af6b0bef66726e1cc38b65a9800062b3dc0bf798bb5dd7be2cae",
+    "cb12_e.components": "3817b002e217971e1a01f5927bbb0806ca82c01e237c26dc3650d8e81d0b45ae",
+    "cb12_e.day_key": "0d4c5e8b9b63999b8c2361e27fe7e9127baae33ca83900f6a12d6b3fe2856997",
+    "cb12_e.day_maxima": "1dc9fa0042473b5078e39f8b4b1e555957544de4d36bedb44c8116a163765677",
+    "cb12_e.declared": "7200ec85f66faafd597bfe2a7945d3713e48c3730806b55453e76d60c975a42c",
+    "cb12_e.e1_signflip": "8dd60c24a4aaad4d3a104ca0ff8cccc6bd43684d5619a3418a03659969594363",
+    "cb12_e.e1_slope": "03524560bb93345bd7d1d6e58bb3cb6eb735735b76b5a6a61eb2b415b9bd69a1",
+    "cb12_e.e1_test": "535a4cf1edcbb0d50394d6b1168a0285d63919441a3ce36b82ecd458d55b17aa",
+    "cb12_e.e2_end": "1795bbba69045fd515c2025aed6244086805e66602646151e00a1fe87f47e6ad",
+    "cb12_e.e2_start": "cd8be22e3019a4c3b644045793dd95a91d08128610237bca7c508f4dcf933002",
+    "cb12_e.e2_trades": "07121d07dfceec1bc1f1ce98004e0a0395269ce5c821974e8321a91feae3355c",
+    "cb12_e.fetch_catalogue": "f2b688a4e0ce9fe435c6a0ad295edd3f4079548c9a85ab0f32c4ffd21ddd2ad0",
+    "cb12_e.fit_model": "e898a165052703f43155caa235f110b615dc84c1ac600651e5586d81ef349348",
+    "cb12_e.frame_members": "6dbdb29ee0b91862ceea0e137e28651c496b9d4871da4309fe3a04a5b18c9de0",
+    "cb12_e.gamma_yes": "70cba3259fd13540dcc5da81563ef9d24f2622a7e7466dc10e2fbf76c758965b",
+    "cb12_e.gep": "302ae549eeff943f83425be954004672eeb2aa1d5812d4569fc66aa12dc2e740",
+    "cb12_e.in_window": "2d6dddf33d76998fcfa872337ccdeb26cb331e4f7a3557da8ebfb0a735fc1cb6",
+    "cb12_e.live_big_events": "eae5b70ab1a939c90903e05bee7cebdd653f4351c2c9fad4cbfeb2dd1409f768",
+    "cb12_e.live_outcomes": "5677358af7e0637307b07db9de401539980004e34be0436f1cc3cae5e92d1657",
+    "cb12_e.live_pass": "fbc40b4f855ca984a7cfe402dd93577e720c986c341f9b8d0cb23eb08f122559",
+    "cb12_e.live_pass_label": "79e0ed69347c1e03368cc90c779efa7d39ce1ac49f801383c5c68d74a601576b",
+    "cb12_e.live_units": "f699d28c233f23e8bf95827329b7ebf70c1ec497c90b032d080ecb67cec67b88",
+    "cb12_e.load_catalogue": "5fe698e2b7b76145de3cfc62ee29d2a5a0868004b563a9f48c0df3af441eeae7",
+    "cb12_e.load_frame": "513da5c37567b41697fa917b846ce5de957113db8d28fc95d96f1fc5bb8c6923",
+    "cb12_e.m45_chunks": "986c48c759ec405049c2c708b61dbdf721f71fe23d236eee438049dc0927d202",
+    "cb12_e.market_weights": "01b665e419a212a77a85075c846b06aa739b2f2e7ab32f385482dad7348463fb",
+    "cb12_e.model_inputs": "d22d64b44d2fb87a4c0f12a98f248b23be8286ab14240179601da3b309fc242e",
+    "cb12_e.n_chunks": "00436cd79c3a5d065f28750e7cb24403d9ca40a9789f59d12c06490adc983169",
+    "cb12_e.n_rem_pmf_range": "60e336589e7881f469f7d779f915d23549e011f034f2bdca11030e2dc60825c2",
+    "cb12_e.not_run_result": "acd2aef6a5a56b1da45af7684bbbfb06db98ef0fcfb4127bfd7a37d63229acbd",
+    "cb12_e.open_live_outcomes": "bc6e43d256774d72fc829229f8b108b649f0f80b26d20c1a048214f7eb7ce6a3",
+    "cb12_e.outcome_of": "c57298f68e5a774d078b9aadb7212a74dac0faa7a2043ffd340c1c1171015bf6",
+    "cb12_e.overlaps": "c256e90823bab69fd16450337f6f06cb6c18d4cf70121164ea8ed4518197902e",
+    "cb12_e.parse_count_bucket": "a487ed0a25f801cf25b8bee7fda338a9f7d121c6cc76208dd5b33f4d18e7341f",
+    "cb12_e.parse_event": "5865e6f7d4676b92e8def12bd5564a28f9c4851351d822c1eea4419e1a0665f8",
+    "cb12_e.parse_mag_bucket": "1bc190296a7471a14680270f06033d0fa04a166039f807c9316e6ca7d2279e5e",
+    "cb12_e.parse_member": "d45246da842831126ab1d9ae349fef9d57c0a22e49c3c9a63027eb1586df113c",
+    "cb12_e.parse_window": "99a1dbe645585cf28b05a2de1f2d94653deac6e2b00106d486ff91f62ceb7914",
+    "cb12_e.point_at": "ee253560b22d3302cc8d3ebe9ffdd1c914b0c8579e89a08c5f15672e728705df",
+    "cb12_e.q_of": "c20b79a361b118398ea8c65b02e0f801944b5794ea3264628afa226f0699473b",
+    "cb12_e.quake_frame": "0480e691c6a02d444e0a4288429e22d830db1258c8e7fcddb7d699dc3399d3c5",
+    "cb12_e.quake_live_tick": "b533282294928a97e13c3b5891e645696735a2787a8103c75ef1b8a00b8cf85b",
+    "cb12_e.quake_prices": "eb451af5df582459adc8ccdd94fa49d34bdc5459d5619832a9fd5a6865b6887b",
+    "cb12_e.rep_e": "2473da8b0eca6fcee93d20b8f94cf70d1fd9e2f413193a04684f2270212a9bb0",
+    "cb12_e.round_mag": "512418508e0d84fc7f7edae00e9bec1175261f13fe38677d371ad418b5a409cb",
+    "cb12_e.screen_e": "5d5155d78affdb6e23219e86734f9feb316a93b80f8c33416ce74ed9af0d954e",
+    "cb12_e.slope_pseudo": "a85a065261318bc4c03b8e7d1d33c86b5e8a3415eb0fbf486114a1a5cd48b680",
+    "cb12_e.smoke_offline": "03b14217c456b3bba4234338480ee7f1768ed3ec77f984e5d2ae788a2ae44fba",
+    "cb12_e.smoke_online": "cc1840d4e16a8bbb4284fe28ba287697bc4062ab748df22f40113335e9c61e2f",
+    "cb12_e.store_events": "843cd2014cd2b910d63e2360f32d0ea8c18b124ab84b8ee3346751c31d0bf1d4",
+    "cb12_e.usable": "b0dfe2e24933765470402f049034cb00330162d3a7f1f3546efde951cb55143d",
+    "cb12_e.usgs_params": "51a576631fcee610369f15d503e78f0557399b9a4bc7c99fe27f0b4c989946c5",
+    "cb12_e.usgs_rows": "bc7cdcce358860367d06ed5d98bd9dea9a039144d799b74adb4f80b225dffe06",
+    "cb12_e.walk_tag": "1bd4f69e98cde9e3339775b6d07423fb83d255cb216db9ce285d7086abe843f3",
+    "cb12_e.ways": "118e0449e2a0750c66a19250628d83c406ea7be953df033892988a373a112db5"
+   },
+   "funcs_sha256": "152f5ba435f105d3c30939b60919cadde9601117e510fadc26007ef9130ba193",
    "part": "E",
-   "part_declared": false,
-   "reason": "family module ('cb12_e',) not present yet",
-   "rules_sha256": null,
-   "rules_version": "cb12-rules-v1"
+   "part_declared": true,
+   "rules_sha256": "9a60a4a53b49ba47be6b101c1af7f66d76a96f200aac2f97cc09992d2936394f",
+   "rules_version": "cb12-rules-v1",
+   "wallet": {
+    "note": "no CB12 job reads or stores a wallet field, a transaction hash, or the Data API side field",
+    "read": false
+   }
   },
   "F": {
    "part": "F",

@@ -1,0 +1,47 @@
+{
+ "id": "q0244_cb12_quake_frame",
+ "title": "CB12-E: Gamma closed events tag 103038 or 100184 (union by event id, every date so key-excluded earthquake events outside the window define the overlap drops), market endDate [2024-09-01,2026-10-01); frozen title classes E-a/E-b/E-c and rule parser (window, threshold, USGS, ET/UTC); key drop (market id, event id, negRiskMarketID) then overlap exclusion; USGS catalogue M>=6.0 1976-2026 and M>=4.5 2000-2026 (time, lat, lon, mag, magType, status, updated); Gamma outcomes to the guarded file only",
+ "family": "creative_batch_12",
+ "priority": 23,
+ "expected_value": "E population, model inputs",
+ "data": [
+  "public Gamma",
+  "USGS FDSN event API",
+  "creative_batch12/exclusion_keys.csv.gz"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "net",
+  "network": "gamma-api, earthquake.usgs.gov"
+ },
+ "depends_on": [
+  "q0241_cb12_exclusion_keys",
+  "q0267_cb12_smoke_E"
+ ],
+ "argv": [
+  "scripts/run_cb12.py",
+  "quake-frame",
+  "--rules",
+  "../docs/research_lab/seals/cb12_rules.json",
+  "--rps",
+  "2",
+  "--usgs-rps",
+  "1",
+  "--disk-cap-gb",
+  "0.03",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 2400,
+ "max_retries": 2,
+ "outputs": [
+  "history/h12_quake/{events.csv.gz,members.csv.gz,outcomes_guarded.csv.gz,catalogue_m6.csv.gz,catalogue_m45.csv.gz,frame_report.json,manifest.json}"
+ ],
+ "next_action": "q0245",
+ "notes": "DRAFT. Model constants are fitted later from catalogue rows before 2024-09-01 only (the fit refuses later rows; unit-tested). No price read. The manifest and frame_report.json record the q0245 request sum = sum of ceil(span/14 d) over parsed members (from createdAt and endDate only; bound 15,000, planning 3,000-5,000). A transient Gamma/USGS failure ends the run in_progress (re-run resumes nothing partial: the frame is rebuilt from scratch, ~30 requests per tag page plus ~16 USGS requests). Frame report counts: classes, parser failures, regional questions, key and overlap drops by source, thinned-population label (> 30% dropped). Rules part sha256 (seals/cb12_rules.json, 2026-10-19 code): common f2f672c1dfa22ce1388fd85b42bebc23248f58c5bb4349f6745c4b2493dcc647, E 9a60a4a53b49ba47be6b101c1af7f66d76a96f200aac2f97cc09992d2936394f. CB12 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / E code changes.",
+ "repeat": {
+  "max_runs": 4,
+  "until_log_regex": "\"status\": \"(quake_frame_complete|not_run_source|disjointness_unverified|upstream_not_testable)\""
+ }
+}

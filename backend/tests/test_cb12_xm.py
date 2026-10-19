@@ -164,7 +164,7 @@ def test_declared_arguments_cannot_change(capsys, rules_file, tmp_path):
     assert code == 2
 
 
-@pytest.mark.parametrize("family", ["E", "F", "O", "M,X", "Z"])
+@pytest.mark.parametrize("family", ["F", "M,X", "Z"])  # E and O are implemented (test_cb12_e.py / test_cb12_o.py)
 def test_unimplemented_or_multiple_families_refused(capsys, rules_file, family):
     code, out = _run(["census", "--family", family, "--rules", rules_file.as_posix(), "--allow-uncommitted-rules"], capsys)
     assert code == 2 and "refused" in out
@@ -1187,7 +1187,7 @@ def test_smoke_criteria_merge_and_failures(tmp_path):
         sm.smoke_failures(q, ("a",))
     assert sm.family_needs("X") == x12.SMOKE_NEEDS and sm.family_needs("M") == m12.SMOKE_NEEDS
     with pytest.raises(c12.Refused, match="no module yet"):
-        sm.family_needs("E")
+        sm.family_needs("F")
     with pytest.raises(c12.Refused, match="no module yet"):
         sm.collect_checks(("F",), {})
 
@@ -1203,8 +1203,8 @@ def test_smoke_command_is_write_once_and_covers_the_requested_families(world, ca
     code, out = _run(args, capsys)
     assert code == 2 and "write-once" in out["refused"]
     assert sm.smoke_failures(out_path, x12.SMOKE_NEEDS) == ["x_inputs_pinned", "x_c1_reproduction"]
-    code, out = _run(["smoke", "--families", "E", "--rules", world.common[1], "--allow-uncommitted-rules", "--out", (tmp_path / "s.json").as_posix()], capsys)
-    assert code == 2  # family E has no rules part declared / no module yet
+    code, out = _run(["smoke", "--families", "F", "--rules", world.common[1], "--allow-uncommitted-rules", "--out", (tmp_path / "s.json").as_posix()], capsys)
+    assert code == 2  # family F has no rules part declared / no module yet
     code, out = _run(["smoke", "--rps", "2", "--rules", world.common[1], "--allow-uncommitted-rules", "--out", (tmp_path / "s2.json").as_posix()], capsys)
     assert code == 2 and "declaration" in out["refused"]
 

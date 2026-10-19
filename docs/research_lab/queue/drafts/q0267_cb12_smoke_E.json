@@ -1,0 +1,36 @@
+{
+ "id": "q0267_cb12_smoke_E",
+ "title": "CB12-E smoke (family E only; rules parts common and E; guards fixture; frozen title classes and rule parser on 3 out-of-window earthquake events (endDate >= 2026-10-01); USGS count and query of the 1976-1986 chunk); counts only, write-once to smoke_E.json",
+ "family": "creative_batch_12",
+ "priority": 24,
+ "expected_value": "go/no-go for the CB12-E sources",
+ "data": [
+  "public Gamma tags 103038/100184",
+  "USGS FDSN count and query"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "gamma-api, earthquake.usgs.gov"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb12.py",
+  "smoke",
+  "--rules",
+  "../docs/research_lab/seals/cb12_rules.json",
+  "--rps",
+  "1",
+  "--families",
+  "E"
+ ],
+ "timeout_s": 1200,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch12/smoke_E.json (write-once; the default output of an E-only smoke)",
+  "trials.jsonl (cb12_descriptive)"
+ ],
+ "next_action": "PASS: q0244; FAIL: E not testable (source), counted; no smoke v2",
+ "notes": "DRAFT. q0240 (v1) did not cover E (its module did not exist). Criteria guards_fixture_E, e_parser_out_of_window, e_usgs (cb12_e.SMOKE_NEEDS); q0244 reads smoke.json + smoke_E.json (E criteria only in the latter). <= 12 requests (up to 200 Gamma events listed per tag + 2 USGS). Write-once; exit 2 if smoke_E.json exists or on a rules-hash mismatch. Section 0.1 reserved ids q0266-q0269: this takes q0267. Rules part sha256 (seals/cb12_rules.json, 2026-10-19 code): common f2f672c1dfa22ce1388fd85b42bebc23248f58c5bb4349f6745c4b2493dcc647, E 9a60a4a53b49ba47be6b101c1af7f66d76a96f200aac2f97cc09992d2936394f. CB12 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / E code changes."
+}
