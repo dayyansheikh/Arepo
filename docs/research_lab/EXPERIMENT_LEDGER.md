@@ -1873,3 +1873,12 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   argv/code/rules (common `13c70322…`, E `10ab88e7…`), mem_mb 1000 (e8c44f9, deployed).
 - **Host data steps complete (queue events, no test):** CB12 q0241 exclusion keys (`exclusion_keys_complete`); CB11 W v2
   q0222b frame, q0223b prints (4,788 markets, 16 truncated, 0 unavailable), q0224b censoring (300 windows, 0 unavailable).
+
+## CB13 GL round 2 (blind labeller audit): PASS, 2026-10-19 ~14:30Z; q0271/q0272 promoted; not counted
+- New blind science-reviewer saw only `DEFINITIONS.md` and the 200-title sample (isolated folder); labels committed
+  before scoring (727665d, `4710f404…`; LOW 60 / NEWS 55 / other 85). `audit-score --round 2` (host): overall 0.97;
+  LOW 0.98 of the labeller's / 0.93 of the reviewer's; NEWS 0.92 / 0.98 -> **PASS** (`audit_final`). Declared
+  sensitivity (164 markets not in round 1): overall 0.97, LOW 0.98 / 0.94, NEWS 0.92 / 0.98 -> PASS; verdicts agree, so
+  **GL passes** and T1/T2 stay testable. Records in `research_lab/audits/cb13_gl/` (4cfb587).
+- **Promoted (4cfb587, deployed): q0271 T frame, q0272 T census** (cpu lane; rules common `62e90149…`, LABELLER
+  `95cde0ab…`, T `f72683f5…` verified).
