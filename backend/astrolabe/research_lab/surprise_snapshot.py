@@ -618,6 +618,15 @@ def write_outcomes(lim, root: Path = ROOT, *, now: float | None = None,
 # --- 5. analysis (once, after END_UTC) --------------------------------------------------------
 
 
+def _cluster_id(a: dict) -> str:
+    """E011 cluster = Gamma event id, market id when absent (EXPERIMENT_LEDGER E011). Alert lines
+    store ``str(row["event_id"])``, so a capture row without an event id arrives as "nan" (or
+    "None"); those are absent ids, not one shared event (readiness audit 2026-10-19)."""
+    ev = a.get("event_id")
+    ev = "" if ev is None else str(ev).strip()
+    return ev if ev and ev.lower() not in ("nan", "none") else str(a["market_id"])
+
+
 def analyze(root: Path = ROOT, *, start_utc: str = REGISTERED_UTC, end_utc: str = END_UTC,
             n_boot: int = 4000, seed: int = 20261013) -> dict:
     """E011 single analysis. Primary: matched excess of the 6h surprise label (alert minus the
@@ -666,7 +675,7 @@ def analyze(root: Path = ROOT, *, start_utc: str = REGISTERED_UTC, end_utc: str 
         if not cs:
             dropped["no_control_label"] += 1
             continue
-        rows.append({"cluster": a.get("event_id") or a["market_id"], "fee": a.get("fee_category"),
+        rows.append({"cluster": _cluster_id(a), "fee": a.get("fee_category"),
                      "hit": float(la["hit_6h"]), "ctrl": float(np.mean([c["hit_6h"] for c in cs])),
                      "sharp": float(la["sharp_any_6h"]),
                      "sharp_ctrl": float(np.mean([c["sharp_any_6h"] for c in cs])),
