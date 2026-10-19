@@ -2178,3 +2178,8 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   sealed HOLDOUT (lookback floor); C terciles include r_{k+1}; branch-S signing gate per band. Rulings: add CB16 §11's
   <= 3/200 rule to the composition check; binding d-balanced estimate for A; B2 placebo stays binding; decide the
   live_trades 3 GB cap (est. reached ~11-25..11-29) before S_8. Designer response running.
+- **Amendment done (a198f5a, ~21:45Z):** §11.t; when the census leaves no T test testable the screen opens no fills,
+  prints, pin or mark index, runs no GTI, writes no `reported`/estimate, only the two counted lines (p = 1) and an
+  `outcome_exposure` record (all false). Precedence GL -> GT -> GTP. T `f72683f5…` -> `33bd165b…` (common, LABELLER,
+  R unchanged); 124 CB13 tests; q0273/q0274/q0275 re-pinned. Re-check + freeze decision running (incl. whether the
+  census written under the old T hash is accepted or needs a counts-only q0272b).
