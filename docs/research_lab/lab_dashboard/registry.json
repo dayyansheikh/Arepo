@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-19T04:25:00Z",
+ "updated": "2026-10-19T04:45:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1119,18 +1119,41 @@
   {
    "id": "CB14",
    "title": "Wikipedia edit bursts; the speech clock",
-   "plain": "Designed from round 6: whether bursts of Wikipedia edits come before the market moves on resignations and similar news, and whether unsaid words in a speech become less likely as the speech runs on. Code written; under independent review against the design.",
+   "plain": "Designed from round 6: whether bursts of Wikipedia edits come before the market moves on resignations and similar news, and whether unsaid words in a speech become less likely as the speech runs on. The code review found 18 faults; they are being fixed.",
    "batch": "CB14",
    "family": "mixed",
    "stage": "designed",
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Independent code check, then connection checks",
+   "next": "Fix the 18 review faults, re-check, then connection checks",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB14 drafted (03f7200), challenger round 1 and response"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB14 code (d50a2ed) freeze check, 2026-10-19"
+   },
+   "stage_results": {
+    "designed": "pending"
+   },
+   "reached": [
+    "designed"
+   ]
+  },
+  {
+   "id": "CB15",
+   "title": "US election night; pairs listed first on Kalshi",
+   "plain": "Designed from round 6: whether, on election night (3 Nov), markets in states whose late count usually moves one way drift that way after polls close, compared within the same closing hour; and whether pairs listed first on Kalshi are mispriced at birth on Polymarket. A leaderboard idea was withdrawn before any data was seen.",
+   "batch": "CB15",
+   "family": "mixed",
+   "stage": "designed",
+   "status": "running",
+   "verdict": "pending",
+   "effect": null,
+   "next": "State sign table from saved sources, code, freeze by 1 Nov midday UTC",
+   "next_date": "2026-11-01",
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB15 drafted (2920504), challenger round 1 and response, 2026-10-19"
    },
    "stage_results": {
     "designed": "pending"
