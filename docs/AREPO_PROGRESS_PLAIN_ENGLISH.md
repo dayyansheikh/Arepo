@@ -1,31 +1,30 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-19 10:09 UTC+1
+**Last updated:** 2026-10-19 10:38 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **Autopilot:** a new session started at about 10:03 UTC+1 (19 Oct), after the usage limit reset. The previous
-  session stopped at about 05:55 with four pieces of work unfinished; all four have been restarted.
-- **Server:** it ran out of ready work at about 09:00. Now running: **batch 12's "mentions" data chain** (ID check,
-  then about 7-9 hours of price downloads), started 10:08.
-- **Batch 11 results so far:**
-  - The ID check finished (98.7% of markets matched; the limit is 98%).
-  - **Part W (Wikipedia):** it stopped at the first step. The saved censoring windows cover only about 58% of
-    finished markets, and the pre-registered rule needs 99%. An engineering check is under way: is this a real gap in
-    the data, or a counting fault? It is only recorded as a counted "not testable" result if no fault is found.
-  - **Parts P/A (politics, attention):** prices for 1,857 markets were downloaded. The attention step ran out of
-    memory three times. It is being fixed and will re-run under a new job number.
-- **Batch 13:** both connection checks **failed**: one join step for the touch markets, and three steps for the
-  crypto part. Each failure is being checked: real data limit, or code fault? Faults get fixed and the checks re-run.
-- **Batch 14:** the 18 code fixes are being finished. **Batch 15 (election night, freeze by 1 Nov):** its code is
-  being written. Two independent helpers are re-compiling which way each state's late count moves, from saved 2022
-  and 2024 sources.
-- **Batch 12, three untested parts (earthquakes, stock-option prices, large-trade footprints):** the code is being
-  written now. The stock-option and earthquake parts collect live data, so they start as soon as they are frozen.
-- **Batch 16:** a design is being drafted from the round-7 ideas that can be tested on data already on the server.
+- **Autopilot:** session running since about 10:03 UTC+1 (19 Oct). Up to 9 helpers work in parallel; each result is
+  reviewed independently before anything runs on the server.
+- **Server:** downloading batch 12's "mentions" data (about 7-9 hours). Three short connection checks run next.
+- **Batch 11:** the "not testable" label on the Wikipedia part was a **code fault**, not a data gap. The code treated a
+  time window's end as open, while the data treats it as closed. With the fix, 100% of markets are covered, so the
+  label is withdrawn and the part will re-run. The memory fault in the attention step is also fixed and waiting to
+  re-run.
+- **Batch 13:** the touch-market connection check **passed** on re-run (the first run picked two snapshots from before
+  the data window). The crypto part needed a rule fix, reviewed and accepted, and its check is queued. **Blind label
+  check, round 1: failed** (the labeller filed too many scheduled events, such as elections and central-bank meetings, as
+  "news"). The design allows one correction and one fresh blind round; a second failure records the part as
+  "not testable".
+- **Batch 14:** all review fixes done and re-checked; its two connection checks are queued.
+- **Batch 15 (election night, freeze by 1 Nov):** code for the election part is written and under review. Two
+  independent helpers are compiling the state-by-state "late count" table from saved 2022/2024 sources.
+- **Batch 16 (new, from round-7 ideas):** designed and challenged. One part (the hedging skew) was withdrawn before
+  any data, because it could never reach the detectable size. Code is being written.
+- **Batch 12 (earthquakes, stock options, trade footprints):** code being written.
 - **Second free server:** still "out of host capacity" at Oracle; it retries every 10 min.
 
 ## 2. Approvals needed from you

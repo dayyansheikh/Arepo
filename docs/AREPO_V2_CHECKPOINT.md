@@ -220,28 +220,29 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-19 09:10Z
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-19 09:40Z
 0. **Autopilot session from 09:03Z 10-19.**
-   - **Done:** a7736e3 CB12 M chain promoted (q0241 pin `c8a1d64b…` = q0221b key file; q0242/q0243/q0248/q0249);
-     deployed; q0241 started 09:08Z (net lane; M chain ~7-9 h). c0e5f22 ledger entry (CB11 W provisional not-testable,
-     q0227 MemoryError, CB13 smokes FAIL, checks pending).
-   - **Agents running (re-run any without a commit; each commits only its own files, none deploys):**
-     a. CB14 fixes 1-18 (finishing the uncommitted working-tree edits; battery2.py is theirs) -> then a science-reviewer
-        re-check -> promote q0300/q0301.
-     b. CB15 code (E first; `cb15_common.py`/`cb15_e.py` untracked partials) -> freeze check -> promote q0341 (priority
-        99, 2-h hold) / q0343.
-     c. CB11 debug: q0227 MemoryError -> q0227b (+ re-point q0229 etc.); W coverage 0.59/0.57 < 0.99: genuine vs
-        defect. If genuine, W is counted "not testable (censoring windows)"; if a defect, new-id W chain drafts.
-     d. CB13 smoke failures (T: capture_print_join; R: prices_history, rule_parser, walk_finds_search): genuine vs
-        defect; v2 smoke drafts q0270b/q0285b; q0276 pin `c8a1d64b…` + dep q0221b.
-     e. CB16 design draft (`CREATIVE_BATCH_16.md`) -> challenger round 1.
-     f. GE0 pass A and pass B (independent; `~/arepo_ge0/pass_A|pass_B/`, outside the repo) -> science-reviewer
-        archive audit -> commit tables under `research_lab/creative_batch15/` (archive to the host).
-     g. CB12 E/O/F code (new modules; common/M/X hashes must stay identical) -> freeze checks; O collector first.
-   - **After results:** deploy; promote reviewed drafts; ledger + registry; keep >= 12 h queued (cpu lane is idle until
-     T_seal 10-22 unless CB11-W/CB13/CB14 smokes come back).
-   - **CB13 next (after a smoke PASS):** GL labeller audit (`run_cb13.py audit-sample --round 1`, independent labels,
-     `audit-score`), then q0271 -> q0272; T freeze via `freeze-part`.
+   - **Queue now:** q0241 (CB12 M exclusion keys, net, repeat) running since 09:08Z; then CB14 smokes q0300/q0301 and
+     CB13 R smoke v2 q0285b (priority 25, net), then the M chain q0242/q0243/q0248/q0249 (~7-9 h). cpu lane idle.
+   - **Done this session:** CB12 M promoted (a7736e3, pin `c8a1d64b…`); CB14 fixes 515d68d + 31bdc39 (re-check
+     ACCEPT_WITH_FIXES; smokes promoted a1d9399); CB13 smoke defects ca86bf2, §11.z b702269 + 7860893 (R `91907024…`),
+     **T smoke v2 PASS**, q0285b promoted (d759773); **GL round 1 FAIL** (NEWS 0.75 < 0.80; records
+     `research_lab/audits/cb13_gl/`, 33a8b17); CB11 defects 9ede7dd (W `[a,b)` vs `[a,b]` -> W label withdrawn;
+     q0227 memory -> q0227b draft; P/A `125386f2…`); CB15-E code dbb5db4 + P stage 1 e01ce12; CB16 draft f78a396 ->
+     challenger REVISE -> DRAFT-REVISED 5f99f36 (H withdrawn uncounted; k 2 + up to 4). All deployed up to 7860893.
+   - **Agents running (re-run any without a commit):**
+     a. CB13 labeller revision 1 of 1 (from the definitions) -> reseal LABELLER/T -> deploy -> `audit-sample --round 2`
+        on the host -> a NEW blind science-reviewer labels only the sample + DEFINITIONS -> `audit-score --round 2`
+        (second FAIL = T1/T2 "not testable (labeller)", counted) -> commit audit records -> q0271 -> q0272.
+     b. CB11 W v2 output naming: prints/markets into canonical `history/h11_wprints/` as NEW files only (stalled
+        `manifest.json` untouched) so CB12-CB15 readers need no rehash; then one science-reviewer pass on §11.3/§11.4
+        -> promote q0227b and q0222b-q0231b.
+     c. CB15: part E freeze check (science-reviewer) -> promote q0341 (priority 99) and q0343; P stage 2 (implementer).
+     d. GE0 passes A and B (`~/arepo_ge0/`) -> archive audit -> commit under `docs/research_lab/seals/cb15_ge0/`
+        (schemas `cb15_e.GE0_SCHEMAS`) -> `ge0-cross-table --write`, `ge0-check` -> pin q0344/q0346.
+     e. CB12 E/O/F code (common/M/X hashes must not change) -> freeze checks -> O collector cron.
+     f. CB16 code (Q, U, K) -> freeze check.
+   - **Ledger/registry:** keep updating per unit; registry plain text for CB11-CB16 when verdicts move.
 1. **CB8-H:** q0162/q0163 wait on spec `not_before` (10-21T06Z / 10-22T12Z). **CB8-B:** q0161/q0164 after T_seal; before
    promoting q0164 run the two `derive-exclusion-ids` commands in its draft notes on the host and fill both sha256 tokens.
 2. **CB9:** data jobs q0181+ only after T_seal 2026-10-22T00Z; q0182 needs the pinned q0164 hash. **CB10:** q0201 needs
