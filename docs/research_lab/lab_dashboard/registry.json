@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-19T04:45:00Z",
+ "updated": "2026-10-19T09:12:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -998,14 +998,14 @@
   {
    "id": "CB11",
    "title": "Proposer clocks, political underconfidence, attention",
-   "plain": "How long markets wait to resolve, long-horizon political underconfidence and attention without news. Its market-ID check was rebuilt (it read the full 4-million-market list instead of the sampled ones) and reviewed; it runs on the server, then the downloads follow.",
+   "plain": "How long markets wait to resolve, long-horizon political underconfidence and attention without news. The market-ID check finished; the Wikipedia part stopped early (its saved windows cover too few markets) and is being checked for a code fault; one attention step ran out of memory and is being fixed.",
    "batch": "CB11",
    "family": "resolution",
    "stage": "designed",
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Market-ID check (about 1-2 h), then downloads (about 10-15 h), then the counts-only census",
+   "next": "Fault check of the Wikipedia part; attention step re-run; then the politics/attention counts-only census",
    "next_date": null,
    "candidate": false,
    "sources": {
@@ -1021,7 +1021,7 @@
   {
    "id": "CB12",
    "title": "Mention baskets, stale horizons and other round-5 ideas",
-   "plain": "Word-mention baskets, earthquake counts and other round-5 ideas. The stale-horizon part (CB12-X) was screened and closed with no finding; the mention-basket part waits for batch 11's exclusion list.",
+   "plain": "Word-mention baskets, earthquake counts, stock-option prices and large-trade footprints. The stale-horizon part (CB12-X) was screened and closed with no finding; the mention-basket downloads started on 19 Oct; code for the earthquake, option and footprint parts is being written.",
    "batch": "CB12",
    "family": "mixed",
    "stage": "designed",
@@ -1096,7 +1096,7 @@
   {
    "id": "CB13",
    "title": "Where makers lose money; touch versus end-above markets",
-   "plain": "Designed from round 6: whether the losses of resting orders differ by type of market, and whether 'will it touch X' crypto markets are priced as if they were 'will it end above X'. Code written and reviewed twice; two final-decision faults are being fixed; its connection checks run now.",
+   "plain": "Whether the losses of resting orders differ by type of market, and whether 'will it touch X' crypto markets are priced as if they were 'will it end above X'. Both connection checks failed on 19 Oct; each failure is being checked (data limit or code fault) before anything is counted.",
    "batch": "CB13",
    "family": "mixed",
    "stage": "designed",
