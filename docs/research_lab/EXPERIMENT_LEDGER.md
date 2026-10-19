@@ -2130,3 +2130,6 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
 - Order: q0347 with q0340 (CB14 draft); q0348 in jobs; q0349 + q0350 only after q0347 and q0348 pass; then P freeze
   check and `freeze-part --part P`; q0351 after the freeze; q0354 (>= 2026-11-03) and q0352 (>= max(freeze + 1 d,
   2026-11-04)) as cron after the freeze; q0353 only if q0351 advances P1 or P2.
+- **P-28 done (066ffbe, 21:05Z):** stale-cache listings logged (no prices) and counted; `cache_cap_unavailable_upper_bound`;
+  cap counters in `rep_p`; NO-404 units counted once as "ok (P1 only; NO book unavailable at 24 h)", label counts sum to
+  the total. P `7d856416…` -> `1c6b7e95…` (common/E unchanged); 127 cb15 tests. Deployed to the host with HEAD 066ffbe.
