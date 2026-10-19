@@ -1713,3 +1713,16 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   way has < 15 clusters (design: that way leaves the max and its leave-one-out sign binds); W live tracks nothing (date
   clamp); W Stage 2 reads only the latest live frame (selection on outcome); the N exemption can be emptied by CB13's
   key file. Implementer fixing 1-18; nothing promoted.
+
+## CB15 drafted (2920504), challenger round 1 and response, 2026-10-19 (design only, not counted)
+- `CREATIVE_BATCH_15.md` from round 6: **CB15-E** (CH129, US election night 2026-11-03, a one-night case study with
+  the single-cluster caveat in its title; part E frozen by 2026-11-01T12:00Z or "not run (calendar)", counted),
+  **CB15-P** (CH130, cross-venue pairs listed first on Kalshi, census-gated), CB15-L (CH125 leaderboard incumbency).
+- Challenger (science-reviewer): E REVISE (the national swing does not cancel across per-state windows, so tests are
+  stratified by closing time with a control-market drift check; no spread-based selection at entry; network-archived
+  sign sources; priority-99 jobs and cron pause/resume for the night), P REVISE (birth from first print, not resampled
+  history; the C1 population is selected on lifetime volume, so it is labelled as such with a lowest-volume-tercile
+  check), **L WITHDRAWN uncounted** (no L outcome, price or leader seen; archived leaderboard pages hold no table).
+- Response: 8 adopted, 3 adopted with stated modifications, none rejected. k = 4 fixed (E1, E2, P1, P2) + up to 2
+  conditional; k1 = 4 fixed now (because of the withdrawal). Jobs q0340-q0353. Next: GE0 sign table compiled by two
+  independent network-enabled compilers with archived sources, then rules, code, the freeze check by 10-29.
