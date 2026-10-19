@@ -17,8 +17,10 @@ import csv
 import gzip
 import hashlib
 import inspect
+import io
 import json
 import math
+import re
 import time
 from collections import Counter
 from collections.abc import Callable, Iterable
@@ -117,7 +119,7 @@ NOT_TESTABLE_AVAIL = "not testable (availability)"
 NOT_RUN_POWER = "not run (power)"
 UNKNOWN = "unknown"
 # ---- smoke (q0348) ---------------------------------------------------------------------------------------------------------------------------------------
-SMOKE_NEEDS = ("guards_fixture_P", "p_matches_reader", "p_hist_end_refusal", "p_birth_from_prints", "p_c1_reproduction", "p_first_tx_reach", "p_kalshi_candles", "p_kalshi_min_created")
+SMOKE_NEEDS = ("guards_fixture_P", "p_matches_reader", "p_hist_end_refusal", "p_birth_from_prints", "p_c1_reproduction", "p_first_tx_reach", "p_kalshi_candles", "p_kalshi_min_created", "p_kalshi_open_cache")
 SMOKE_MAX_REQUESTS = 30
 KALSHI_API = "https://api.elections.kalshi.com/trade-api/v2"
 KALSHI_FORBIDDEN = ("result", "settlement_value", "expiration_value", "settlement_timer_seconds")
@@ -375,15 +377,19 @@ def truthy(v) -> bool:
 
 
 def rule_booleans_differ(meta: dict) -> bool:
-    """The design's rule-boolean exclusion (P-6). Polymarket's markets are declared to carry neither Kalshi flag (no provisional outcome, no early close): ``is_provisional = False`` and
-    ``can_close_early = False`` on the Polymarket side. A pair whose Kalshi ``is_provisional`` or ``can_close_early`` is true therefore differs and is excluded (counted). A missing
-    Kalshi flag is not an exclusion (counted separately as unknown)."""
+    """The design's rule-boolean exclusion (P-6, restated by P-20). Polymarket exposes no ``is_provisional`` / ``can_close_early`` flag at listing, so its side is declared UNKNOWN
+    (``POLY_RULE_BOOLEANS``), not False (Polymarket markets can resolve early). The design says nothing for an unknown side; the declared conservative choice is to exclude every pair
+    whose KALSHI flag is true (equality with a Polymarket contract cannot be shown) and to keep a pair whose Kalshi flags are false or missing (excluding all of them would empty the
+    study); the residual early-resolution mismatch is bounded by the scheduled-end exclusion (P-16) and the unavailable (no order book at 24 h) label. A missing Kalshi flag is counted
+    separately as unknown."""
     return truthy(meta.get("k_bool_provisional")) or truthy(meta.get("k_bool_close_early"))
 
 
 def unit_features(meta: dict, txs: list[dict], candles: np.ndarray, *, td_off: float = T_D_OFFSET_S, kalshi_first_s: float = KALSHI_FIRST_S) -> dict:
     """Features at ``t_d`` only (what the census may read): the binding Kalshi-first rule (``t_birth - k_open >= 24 h``; exactly 24 h counts), the scheduled-end exclusion, ``p_d``
     (the last print at or before ``t_d``; the first print itself if none since), ``k_d``, ``g_d`` and the label."""
+    if str(meta.get("status") or "").startswith(UNAVAILABLE_SOURCE):
+        return {"label": UNAVAILABLE_SOURCE}  # P-17: counted in the labels and the denominators, never a unit
     tb = c15.num(meta.get("t_birth"))
     if not math.isfinite(tb):
         return {"label": "no birth print (uncovered)"}
@@ -492,19 +498,35 @@ class PairPending(Exception):
         self.statuses = dict(statuses)
 
 
+CANDLE_FIELDS = ("end_period_ts", "yes_bid", "yes_ask", "price")  # what cross_venue.parse_k_candles reads (volume is optional there)
+
+
+def candle_has_fields(c) -> bool:
+    """P-17: a fallback-endpoint candle is accepted only if it carries the same fields the frozen parser reads; anything else leaves the pair pending (never reinterpreted)."""
+    return isinstance(c, dict) and all(k in c for k in CANDLE_FIELDS)
+
+
 def fetch_k_candles_checked(klim, ticker: str, series: str, start: int, end: int, historical: bool, stat: Counter) -> np.ndarray:
     """Status-aware Kalshi 1-minute candles (the same request as ``cross_venue.fetch_k_candles``, which skips a non-200 silently and is left unchanged): every chunk's status is counted in
     ``stat`` (key ``kalshi_candles:<status>``); a non-200 chunk or a non-dict body raises ``PairPending`` after the loop (the pair is retried, never written finished)."""
     from . import cross_venue as cv  # noqa: PLC0415
 
-    path = f"{KALSHI_API}/historical/markets/{ticker}/candlesticks" if historical else f"{KALSHI_API}/series/{series}/markets/{ticker}/candlesticks"
+    def path_of(hist: bool) -> str:
+        return f"{KALSHI_API}/historical/markets/{ticker}/candlesticks" if hist else f"{KALSHI_API}/series/{series}/markets/{ticker}/candlesticks"
+
     raw: list[dict] = []
     bad = 0
     a = start
     while a < end:
         b = min(a + K_CANDLE_CHUNK_S, end)
-        st, data = klim.get(path, {"start_ts": a, "end_ts": b, "period_interval": 1})
+        params = {"start_ts": a, "end_ts": b, "period_interval": 1}
+        st, data = klim.get(path_of(historical), params)
         stat[f"kalshi_candles:{st}"] += 1
+        if st == 404:  # P-17: the live / historical endpoint split (market archived or not yet archived): ONE try of the other endpoint for this chunk, same-fields only
+            st2, data2 = klim.get(path_of(not historical), params)
+            stat[f"kalshi_candles_fallback:{st2}"] += 1
+            if st2 == 200 and isinstance(data2, dict) and all(candle_has_fields(c) for c in (data2.get("candlesticks") or [])):
+                st, data = st2, data2
         if st == 200 and isinstance(data, dict):
             raw.extend(data.get("candlesticks") or [])
         else:
@@ -599,7 +621,19 @@ def p_data(hist_root: Path, lim, klim, *, frame_path: Path, kalshi_bools: dict[s
     finished = {r["k_ticker"]: r for r in c15.jsonl_iter(work)}
     attempts = out_dir / DATA_FILES["attempts"]
     pending: dict[str, dict] = {}
+    # P-17: the terminal rule. A pair with >= PAIR_FAIL_ATTEMPTS failed attempts in that many separate runs, first to last >= PAIR_FAIL_SPAN_S apart, becomes "unavailable (source)"
+    # (a finished record: no data, counted in the labels and denominators). Declared before any failure was observed; the attempt log is the evidence.
+    fails: dict[str, list[tuple[str, float]]] = {}
+    for rec_a in c15.jsonl_iter(attempts):
+        fails.setdefault(str(rec_a.get("k_ticker")), []).append((str(rec_a.get("run") or rec_a.get("t")), float(rec_a.get("t") or 0.0)))
+    for kt, att in fails.items():
+        runs, times = {x[0] for x in att}, [x[1] for x in att]
+        if kt not in finished and len(runs) >= PAIR_FAIL_ATTEMPTS and max(times) - min(times) >= PAIR_FAIL_SPAN_S:
+            rec_t = {"k_ticker": kt, "status": UNAVAILABLE_SOURCE, "attempts": len(att), "span_s": max(times) - min(times)}
+            c15.jsonl_append(work, rec_t)
+            finished[kt] = rec_t
     todo = [r for r in frame if r["k_ticker"] not in finished]
+    run_id = f"{clock():.3f}"
     t0 = clock()
     if todo:
         if gamma_lookup is None:
@@ -629,7 +663,7 @@ def p_data(hist_root: Path, lim, klim, *, frame_path: Path, kalshi_bools: dict[s
             try:
                 got = fetch_pair(lim, klim, r, gm)
             except PairPending as exc:
-                c15.jsonl_append(attempts, {"k_ticker": r["k_ticker"], "t": clock(), "statuses": exc.statuses, "why": str(exc)[:160]})
+                c15.jsonl_append(attempts, {"k_ticker": r["k_ticker"], "t": clock(), "run": run_id, "statuses": exc.statuses, "why": str(exc)[:160]})
                 pending[r["k_ticker"]] = exc.statuses
                 continue
             kb = (kalshi_bools or {}).get(r["k_ticker"], {})
@@ -643,7 +677,8 @@ def p_data(hist_root: Path, lim, klim, *, frame_path: Path, kalshi_bools: dict[s
         return {"status": P_DATA_PROGRESS, "complete": False, "done": len(finished), "todo": len(frame) - len(finished), "pending_read_failures": sorted(pending),
                 "note": "a pair with a non-200 read stays pending; statuses in attempts.jsonl"}
     files = write_data_files(out_dir, frame, finished)
-    c15.write_dir_manifest(out_dir, P_DATA_STATUS, files, {"n_pairs": len(frame), "labels": dict(Counter(str(v.get("meta", {}).get("reach") or v.get("status")) for v in finished.values()))})
+    c15.write_dir_manifest(out_dir, P_DATA_STATUS, files, {"n_pairs": len(frame), "labels": dict(Counter(str(v.get("meta", {}).get("reach") or v.get("status")) for v in finished.values())),
+                                                                  "unavailable_source": sum(1 for v in finished.values() if v.get("status") == UNAVAILABLE_SOURCE)})
     return {"status": P_DATA_STATUS, "complete": True, "n_pairs": len(frame)}
 
 
@@ -912,7 +947,7 @@ def p1_test(data: dict, vols: dict[str, float], *, draws_placebo: int = c15.PLAC
         if not math.isfinite(tg["delta"]):
             continue
         units.append({**f, **tg})
-    eligible = sum(1 for f in feats if f.get("label") in ("ok", "no Kalshi quote"))  # P-10: a unit without a Kalshi quote at t_d is eligible and unavailable
+    eligible = sum(1 for f in feats if f.get("label") in ("ok", "no Kalshi quote", UNAVAILABLE_SOURCE))  # P-10 / P-17: a unit without a Kalshi quote at t_d, or whose source stayed unavailable, is eligible and unavailable
     av = {"available": len(units), "eligible": eligible, "share": len(units) / eligible if eligible else math.nan, "ok": bool(eligible and len(units) / eligible >= c15.AVAIL_MIN)}
     if len(units) < P1_MIN["pairs"] or len({u["event"] for u in units}) < P1_MIN["events"]:
         return nt(NOT_TESTABLE_POP, n=len(units), availability=av)
@@ -1038,8 +1073,8 @@ def p2_units(data: dict, *, entry_win=ENTRY_WINDOW_S, exit_win=EXIT_WINDOW_S, ex
     units, lost = [], Counter()
     for f in feats:
         lab = f.get("label")
-        if lab == "no birth print (uncovered)":
-            lost["uncovered"] += 1
+        if lab in ("no birth print (uncovered)", UNAVAILABLE_SOURCE):
+            lost["uncovered" if lab != UNAVAILABLE_SOURCE else UNAVAILABLE_SOURCE] += 1  # P-17: the worst-case reach includes both at w*
             units.append({**f, "status": "uncovered", "event": f["event"], "t_birth": math.nan})
             continue
         if lab != "ok" or abs(f["g_d"]) < GAP_MIN:
@@ -1196,6 +1231,34 @@ def smoke_offline(ctx: dict) -> dict:
     return res
 
 
+def cache_size_probe(klim, pages: int | None = None) -> dict:
+    """P-19, counts only: up to ``pages`` pages of the open-market list through the cache's own parser; reports the records, the plain and gzip bytes per record, whether the listing was
+    exhausted, and the projected upper bound at the page cap (``KALSHI_MAX_PAGES`` x ``KALSHI_PAGE``) against the declared cache-folder cap. No price or title leaves this function."""
+    pages = SMOKE_CACHE_PAGES if pages is None else pages
+    recs, cur, n_pages, status = [], None, 0, 200
+    try:
+        for _ in range(pages):
+            r, cur = kalshi_page(klim, cur, None)
+            recs += r
+            n_pages += 1
+            if cur is None:
+                break
+    except ApiError as exc:
+        status = int(re.search(r"status (\d+)", str(exc)).group(1)) if re.search(r"status (\d+)", str(exc)) else 0
+    plain = sum(len(json.dumps(r, sort_keys=True)) + 1 for r in recs)
+    buf = io.BytesIO()
+    with gzip.GzipFile(fileobj=buf, mode="wb") as fh:
+        for r in recs:
+            fh.write((json.dumps(r, sort_keys=True) + "\n").encode())
+    gz = len(buf.getvalue())
+    per_plain, per_gz = (plain / len(recs), gz / len(recs)) if recs else (math.nan, math.nan)
+    cap_records = KALSHI_MAX_PAGES * KALSHI_PAGE
+    proj = per_plain * cap_records + per_gz * cap_records if recs else math.nan  # partial (plain) + cache (gzip) at the page cap
+    return {"ok": bool(recs) and status == 200, "status": status, "pages": n_pages, "records": len(recs), "exhausted": cur is None and bool(recs), "plain_bytes": plain, "gzip_bytes": gz,
+            "plain_per_record": per_plain, "gzip_per_record": per_gz, "projected_max_folder_bytes": proj, "cache_dir_cap_bytes": CACHE_DIR_CAP_BYTES,
+            "within_cap": bool(math.isfinite(proj) and proj <= CACHE_DIR_CAP_BYTES)}
+
+
 def smoke_online(lim, ctx: dict) -> dict:
     """<= 30 requests, counts only: the first-transaction reach of one out-of-frame 2025 market (newest-first paging, page count), Kalshi 1-minute candlesticks on one settled
     (historical endpoint) and one open market, Kalshi ``/markets`` with ``min_created_ts``. ``result`` is discarded at parse; no price is stored."""
@@ -1229,6 +1292,7 @@ def smoke_online(lim, ctx: dict) -> dict:
     res["p_kalshi_candles"] = _chk(all(v.get("ok") for v in got.values()), **got)
     st, d = klim.get(f"{KALSHI_API}/markets", {"min_created_ts": int(time.time()) - 86400, "limit": 5})
     res["p_kalshi_min_created"] = _chk(st == 200 and isinstance(d, dict) and "markets" in d, status=st)
+    res["p_kalshi_open_cache"] = _chk(**cache_size_probe(klim))
     total = lim.requests - r0 + ((klim.requests - k0) if klim is not lim else 0)
     res["_requests"] = {"pass": total <= SMOKE_MAX_REQUESTS, "requests": total}
     return res
@@ -1246,7 +1310,8 @@ def declared() -> dict:
             "population": {"c1_expected": C1_EXPECTED, "c1_call": "cb12_x.load_c1(root, expected=cb12_x.C1_EXPECTED) (pinned inputs and study source)", "c1_loader_sha256": c1_loader_sha(),
                            "fields": list(MATCH_FIELDS), "never_read": list(NEVER_READ_FIELDS), "sports_cat": SPORTS_CAT, "sports_in_primary": c15.CB15_SPORTS_IN_PRIMARY,
                            "kalshi_first_proxy": "p_start - k_open >= 24 h (census)", "kalshi_first_binding": "t_birth - k_open >= 24 h (exactly 24 h counts)", "gpb": GPB_MIN,
-                           "rule_booleans": "P-6: Polymarket declared is_provisional = can_close_early = False; a pair whose Kalshi is_provisional or can_close_early is true (C1 universe rows; live: the Kalshi market record) is excluded, counted; a missing flag is not an exclusion (counted unknown)",
+                           "rule_booleans": "P-6/P-20: Polymarket's is_provisional / can_close_early are declared UNKNOWN (no field at listing; Polymarket markets can resolve early); the design is silent for unknown, so the conservative choice: a pair whose Kalshi is_provisional or can_close_early is true (C1 universe rows; live: the Kalshi market record) is excluded, counted; Kalshi false or missing is kept (counted unknown); residual mismatch is bounded by the scheduled-end exclusion and the 24-h no-book label",
+                           "polymarket_rule_booleans": POLY_RULE_BOOLEANS,
                            "key_rule": "P-7: q0347 re-reads the frames recorded absent at q0340; q0349 checks ALL keys of each pair (market, events, negRiskMarketID, series ids) by source (a C1-only key is kept)"},
             "clocks": {"t_d_offset_s": T_D_OFFSET_S, "t_l_offset_s": T_L_OFFSET_S, "print_max_age_s": PRINT_MAX_AGE_S, "target_print_window_s": list(TARGET_PRINT_WINDOW_S), "ph_lag_s": PH_LAG_S,
                        "ph_max_age_s": PH_MAX_AGE_S, "ph_after_birth_only": True, "k_max_age_s": K_MAX_AGE_S, "k_spread_max": K_SPREAD_MAX, "end_margin_s": END_MARGIN_S},
@@ -1254,6 +1319,8 @@ def declared() -> dict:
                       "tx_windows": "[t_birth, t_birth + 25 h] and [t_L - 2 h, t_L + 24 h 30 min]", "candles": "[t_birth - 6 h, t_d + 25 h] and [t_L - 1 h, t_L + 25 h]",
                       "prices_history": "fidelity 10 after t_birth only; points before counted", "volume": "stored apart; opened only by the screen's tercile check",
                       "non_200": "P-5: status-aware candle and prices-history fetches in this module (the shared cross_venue / history_backfill fetchers skip a non-200 silently and are unchanged); any non-200 leaves the pair pending (attempts.jsonl), the run never completes with a pending pair",
+                      "terminal_rule": {"P-17": f"a pair with >= {PAIR_FAIL_ATTEMPTS} failed attempts in that many separate runs, first to last >= {PAIR_FAIL_SPAN_S:.0f} s apart, becomes '{UNAVAILABLE_SOURCE}' (counted in labels and denominators; P2 worst case at w*)",
+                                         "kalshi_fallback": f"a 404 on the frozen candle endpoint -> ONE try of the other endpoint (live/historical), accepted only if every candle carries {list(CANDLE_FIELDS)}; otherwise the chunk fails"},
                       "chunks": {"candle_chunk_s": K_CANDLE_CHUNK_S, "ph_window_days": PH_WINDOW_DAYS, "ph_fidelity": PH_FIDELITY, "clob_prices": CLOB_PRICES},
                       "shared_parser_sha256": {"cross_venue.parse_k_candles": _src_sha("cross_venue", "parse_k_candles")}},
             "p1": {"floor": P1_FLOOR, "min": P1_MIN, "ways": ["event", "birth_week"], "birth_contrast_p": BIRTH_CONTRAST_P, "paired_boot": {"draws": c15.N_BOOT, "seed": c15.SEED_PAIRED_BOOT},
@@ -1268,8 +1335,12 @@ def declared() -> dict:
                        "kalshi_cache": {"full_every_s": KALSHI_FULL_EVERY_S, "incremental": "min_created_ts, 1 h overlap"},
                        "matcher": "cross_venue.match_markets over the FULL Kalshi open-market cache (C1 mutual best, against the new listings: declared), then each pair's lead is checked (kalshi_first) and the r1 audit_conflict rule applied (flag -> excluded, counted); source sha256 = CB12-X's pinned cross_venue.py",
                        "eligible": "Kalshi-first (open_time <= listing - 24 h), no audit-conflict flag, no rule-boolean difference, Kalshi series category known and not Sports; only eligible pairs are polled",
+                       "scheduled_end": "P-16: endDate stored at the match; at the first-print detection a pair with endDate < t_d + 25 h is 'ends early (scheduled)' (no reads, counted, outside the availability denominators); a missing endDate is not an exclusion (counted); a Polymarket 404 at the 24-h read is 'unavailable (no order book at 24 h)': never read as an empty book, counted in the availability denominators, in no estimate",
+                       "legs": "P-18: only the legs the analysis uses are required (t_d: Polymarket YES + Kalshi, NO when g_d <= -5c; 24 h: YES, NO when the t_d read put P2 on NO; Kalshi is not read at 24 h)",
+                       "cache_folder": {"subdir": CACHE_SUBDIR, "cap_bytes": CACHE_DIR_CAP_BYTES, "files": CACHE_FILES, "live_cap": "live files <= live cap AND live files + cache folder <= live cap + cache cap (the cache is counted in the total)", "smoke_pages": SMOKE_CACHE_PAGES},
+                       "shared_count": "P-19b: the cache writes the daily request count after every page and re-reads the watcher's before every page; the watcher writes after every batch and re-reads the cache's at every check",
                        "cadence": {"watcher": "cron every minute under flock, 55-s timeout: reads first, then eligible first-print polls (5 min), then the hourly listing scan against the cache; soft deadline 35 s", "cache": "separate job and lock (p_cache), hourly cron, 3,000-s timeout, resumable cursor, full pull daily, min_created_ts hourly, starts one day before T15_P2_start", "cache_daily_max": CACHE_DAILY_MAX,
-                                   "read_reserve": READ_RESERVE, "live_dir_cap_bytes": LIVE_DIR_CAP_BYTES, "disk_check_every_s": DISK_CHECK_EVERY_S},
+                                   "read_reserve": READ_RESERVE, "read_max_requests": READ_MAX_REQUESTS, "live_dir_cap_bytes": LIVE_DIR_CAP_BYTES, "disk_check_every_s": DISK_CHECK_EVERY_S},
                        "first_print": {"poll_s": FIRST_PRINT_POLL_S, "page": FIRST_PRINT_PAGE, "give_up_s": FIRST_PRINT_GIVE_UP_S, "late": "detection after t_birth + 10 min -> late, excluded and counted"},
                        "reads": {"t_d_lag_s": READ_LAG_TD_S, "t_d_24h_lag_s": READ_LAG_TB_S, "books": "Polymarket YES and NO /book, Kalshi orderbook (YES ask = 1 - best NO bid)",
                                  "window": "a read counts only if due <= receipt <= due + lag (receipt after the response; first in-window read per pair and read); a failed HTTP read is retried inside the window, never stored, and is 'unavailable (read)'; a Polymarket 404 = empty book",
@@ -1311,9 +1382,18 @@ def read_gz_rows(path: Path) -> list[dict]:
 # =====================================================================================================================================================
 
 LIVE_RUN = "h15_birth_live"
-LIVE_FILES = {"state": "state.json", "kalshi_cache": "kalshi_open.jsonl.gz", "series_cat": "series_cat.json", "listings": "listings.jsonl", "pairs": "pairs.jsonl",
-              "first_prints": "first_prints.jsonl", "books": "books.jsonl", "gaps": "gaps.jsonl", "audit_dir": "audit_batches", "closed": "closed.json", "heartbeat": "heartbeat.json",
-              "cache_state": "cache_state.json", "kalshi_partial": "kalshi_partial.jsonl", "cache_heartbeat": "cache_heartbeat.json"}
+LIVE_FILES = {"state": "state.json", "series_cat": "series_cat.json", "listings": "listings.jsonl", "pairs": "pairs.jsonl",
+              "first_prints": "first_prints.jsonl", "books": "books.jsonl", "gaps": "gaps.jsonl", "audit_dir": "audit_batches", "closed": "closed.json", "heartbeat": "heartbeat.json"}
+# P-19: the Kalshi open-market cache has its OWN folder (a subfolder of the live run, allowed by the CB15 output-root rule) and its OWN cap, outside the 0.05 GB live-directory cap.
+CACHE_SUBDIR = "kcache"
+CACHE_FILES = {"cache": "kalshi_open.jsonl.gz", "partial": "kalshi_partial.jsonl", "state": "cache_state.json", "heartbeat": "cache_heartbeat.json", "gaps": "gaps.jsonl"}
+CACHE_DIR_CAP_BYTES = int(0.25 * 1024**3)  # declared before any size is observed; the smoke measures the open-market count and the file sizes (counts only)
+SMOKE_CACHE_PAGES = 3
+PAIR_FAIL_ATTEMPTS = 3  # P-17: a pair with >= 3 failed q0349 attempts in 3 separate runs ...
+PAIR_FAIL_SPAN_S = 15 * MINUTE  # ... spread over >= 15 minutes (first to last) becomes "unavailable (source)"
+UNAVAILABLE_SOURCE = "unavailable (source)"
+POLY_RULE_BOOLEANS = "unknown"  # P-20: Polymarket exposes no is_provisional / can_close_early flag at listing; declared unknown, not False
+NO_BOOK_24H = "unavailable (no order book at 24 h)"  # P-16
 LISTING_LOOKBACK_S = 2 * HOUR
 LISTING_SCAN_EVERY_S = HOUR
 LISTING_PAGE = 100
@@ -1328,6 +1408,7 @@ FIRST_PRINT_GIVE_UP_S = 7 * DAY
 READ_LAG_TD_S = 120.0  # the read at t_d: first successful read with receipt >= t_d within 2 min
 READ_LAG_TB_S = 300.0  # the read at t_d + 24 h: within 5 min
 DAILY_REQUEST_CAP = 3500
+READ_MAX_REQUESTS = 3  # P-22: the most requests one recorded read can make (Polymarket YES, Kalshi, Polymarket NO)
 READ_RESERVE = 300  # requests of the daily cap kept for the book reads: scans, polls and the cache stop 300 requests before the cap (reads are prioritised)
 CACHE_DAILY_MAX = 1800  # the Kalshi cache job's own share of the day
 CACHE_BUDGET_S = 2900.0  # one cache invocation (own lock, hourly cron, timeout 3,000 s); resumable by cursor
@@ -1455,8 +1536,9 @@ def series_category(klim, series: str, cache: dict) -> str:
 
 def match_new(kalshi: list[dict], listings: list[dict]) -> list[dict]:
     """The frozen matcher on the new listings: ``cross_venue.match_markets`` over the FULL Kalshi open-market cache (C1 mutual-best as frozen, P-8), then each pair's own lead is
-    checked (``kalshi_first``) and the r1 ``audit_conflict`` rule applied (a flagged pair is dropped from eligibility, counted). Declared: the mutual-best step runs against the new
-    listings, not the whole Polymarket universe."""
+    checked (``kalshi_first``) and the r1 ``audit_conflict`` rule applied (a flagged pair is dropped from eligibility, counted). Declared (P-21): the mutual-best step is taken over the
+    NEW listings (the Kalshi side is the full cache), not the whole Polymarket universe, so a Kalshi market is matched to its best new listing, never compared with older listings. The
+    listing's scheduled ``endDate`` is stored (``end_sched``) for the scheduled-end exclusion at the birth (P-16)."""
     from . import cross_venue as cv  # noqa: PLC0415
 
     if not listings:
@@ -1470,6 +1552,7 @@ def match_new(kalshi: list[dict], listings: list[dict]) -> list[dict]:
         flags = cv.audit_conflict(cv.k_text(k), cv.p_text(p))
         out.append({"k_ticker": k["ticker"], "k_series": k["series"], "k_open": c15.parse_iso(k.get("open_time")), "p_market_id": p["market_id"], "p_event_id": p["event_id"],
                     "condition_id": p["condition_id"], "token_yes": p["token_yes"], "token_no": p["token_no"], "listed": p["created"], "fee_rate": p["fee_rate"], "score": mp.score,
+                    "end_sched": c15.parse_iso(p.get("end")),
                     "kalshi_first": bool(math.isfinite(lead) and lead >= KALSHI_FIRST_S), "audit_conflict": flags, "k_text": cv.k_text(k), "p_text": p["question"],
                     "rule_booleans_differ": rule_booleans_differ({"k_bool_provisional": k.get("is_provisional"), "k_bool_close_early": k.get("can_close_early")})})
     return out
@@ -1518,12 +1601,27 @@ def poly_book(data: dict) -> dict:
     return {"bid": bb[0], "ask": ba[0], "bid_size": bb[1], "ask_size": ba[1]}
 
 
-def read_books(lim, klim, pair: dict) -> dict:
-    """One recorded read: Polymarket YES and NO ``/book`` and the Kalshi orderbook. ``http_ok`` is True only if every leg answered 200 (a Polymarket 404 = no order book = an EMPTY
-    book, a recorded read, P-1); any other status or a transport error makes the read FAILED: the caller never stores it and retries inside the window. ``statuses`` lists the legs."""
+def p2_side(read: dict | None) -> str:
+    """The side P2-rep trades from a ``t_d`` read: ``no`` iff ``g_d <= -5c`` (both quotes two-sided), else ``yes`` (as ``rep_p2_net``)."""
+    if not read:
+        return "yes"
+    try:
+        g = two_sided(read["kalshi"]["k_bid"], read["kalshi"]["k_ask"]) - two_sided(read["yes"]["bid"], read["yes"]["ask"])
+    except (KeyError, TypeError):
+        return "yes"
+    return "no" if math.isfinite(g) and g <= -GAP_MIN else "yes"
+
+
+def read_books(lim, klim, pair: dict, which: str = "t_d", td_read: dict | None = None) -> dict:
+    """One recorded read. Only the legs the analysis USES are required (P-18): at ``t_d`` the Polymarket YES book and the Kalshi orderbook (and the NO book when ``g_d <= -5c``, the
+    side P2-rep buys); at ``t_d + 24 h`` the YES book (and the NO book when the ``t_d`` read put P2 on the NO side). Kalshi is not read at 24 h at all (nothing uses it); a leg that is
+    not needed is not fetched (statuses ``not requested``). ``http_ok`` is True only if every REQUIRED leg answered 200 (a Polymarket 404 = no order book = an EMPTY book, a recorded
+    read, P-1; at 24 h the caller labels a 404 as ``unavailable (no order book at 24 h)``, P-16); any other status or a transport error on a required leg makes the read FAILED: the
+    caller never stores it and retries inside the window. ``statuses`` lists the legs."""
     out: dict = {"statuses": {}}
     ok = True
-    for side, tok in (("yes", pair["token_yes"]), ("no", pair["token_no"])):
+
+    def poly(side: str, tok: str) -> bool:
         try:
             st, data = lim.get(CLOB_BOOK, {"token_id": tok})
         except (ApiError, RuntimeError):
@@ -1531,22 +1629,33 @@ def read_books(lim, klim, pair: dict) -> dict:
         out["statuses"][side] = st
         if st == 200 and isinstance(data, dict):
             out[side] = poly_book(data)
-        elif st == POLY_NO_BOOK_STATUS:
-            out[side] = poly_book({})
+            return True
+        out[side] = poly_book({})
+        return st == POLY_NO_BOOK_STATUS
+
+    ok &= poly("yes", pair["token_yes"])
+    if which == "t_d":
+        try:
+            st, data = klim.get(f"{KALSHI_API}/markets/{pair['k_ticker']}/orderbook", {})
+        except (ApiError, RuntimeError):
+            st, data = None, None
+        out["statuses"]["kalshi"] = st
+        if st == 200 and isinstance(data, dict):
+            out["kalshi"] = kalshi_book(data)
         else:
             ok = False
-            out[side] = poly_book({})
-    try:
-        st, data = klim.get(f"{KALSHI_API}/markets/{pair['k_ticker']}/orderbook", {})
-    except (ApiError, RuntimeError):
-        st, data = None, None
-    out["statuses"]["kalshi"] = st
-    if st == 200 and isinstance(data, dict):
-        out["kalshi"] = kalshi_book(data)
+            out["kalshi"] = kalshi_book({})
+        need_no = p2_side(out) == "no" if ok else False
     else:
-        ok = False
+        out["statuses"]["kalshi"] = "not requested"
         out["kalshi"] = kalshi_book({})
-    out["http_ok"] = ok
+        need_no = p2_side(td_read) == "no"
+    if need_no:
+        ok &= poly("no", pair["token_no"])
+    else:
+        out["statuses"]["no"] = "not requested"
+        out["no"] = poly_book({})
+    out["http_ok"] = bool(ok)
     return out
 
 
@@ -1569,8 +1678,10 @@ def _save_cache(p: Path, rows: list[dict]) -> None:
     tmp.replace(p)
 
 
-def _dir_bytes(d: Path) -> int:
-    return sum(f.stat().st_size for f in Path(d).rglob("*") if f.is_file())
+def _dir_bytes(d: Path, exclude: Path | None = None) -> int:
+    """Bytes under ``d`` (the Kalshi cache folder, a subfolder of the live run with its own cap, is excluded from the live-directory cap: P-19)."""
+    ex = Path(exclude).resolve() if exclude is not None else None
+    return sum(f.stat().st_size for f in Path(d).rglob("*") if f.is_file() and not (ex is not None and ex in f.resolve().parents))
 
 
 def _day_requests(path: Path, day: str) -> int:
@@ -1613,7 +1724,7 @@ def births_with_24h_read(live_dir: Path) -> int:
     pairs = {p["pair_id"]: p for p in c15.jsonl_iter(Path(live_dir) / LIVE_FILES["pairs"])}
     births = {b["pair_id"]: b for b in c15.jsonl_iter(Path(live_dir) / LIVE_FILES["first_prints"])}
     reads, _ = valid_reads(live_dir)
-    return sum(1 for pid, rd in reads.items() if "t_d" in rd and "t_d+24h" in rd and pairs.get(pid, {}).get("eligible") and not births[pid].get("late"))
+    return sum(1 for pid, rd in reads.items() if "t_d" in rd and "t_d+24h" in rd and pairs.get(pid, {}).get("eligible") and not births[pid].get("late") and not births[pid].get("ends_early"))
 
 
 def p_cache(hist_root: Path, klim, *, now: float, freeze_ts: float | None, budget_s: float = CACHE_BUDGET_S, clock=time.time) -> dict:
@@ -1622,22 +1733,31 @@ def p_cache(hist_root: Path, klim, *, now: float, freeze_ts: float | None, budge
     invocation continues. The cache file is replaced atomically only when a job is complete. Daily share <= 1,800 requests and nothing past the shared cap minus the read reserve."""
     live = c15.require_output_root(Path(hist_root) / LIVE_RUN)
     live.mkdir(parents=True, exist_ok=True)
+    cdir = live / CACHE_SUBDIR  # P-19: its own folder and cap
+    cdir.mkdir(parents=True, exist_ok=True)
     start, cap = p2_window(freeze_ts)
-    hb_path = live / LIVE_FILES["cache_heartbeat"]
+    hb_path = cdir / CACHE_FILES["heartbeat"]
     if now < start - CACHE_WARMUP_S or now >= cap or (live / LIVE_FILES["closed"]).is_file():
         cm.write_json_atomic(hb_path, {"epoch": now, "utc": cm.iso(now), "status": "idle"})
         return {"status": "p_cache_idle", "complete": False}
-    cs_path, partial, cache_p, gp = live / LIVE_FILES["cache_state"], live / LIVE_FILES["kalshi_partial"], live / LIVE_FILES["kalshi_cache"], live / LIVE_FILES["gaps"]
+    cs_path, partial, cache_p, gp = cdir / CACHE_FILES["state"], cdir / CACHE_FILES["partial"], cdir / CACHE_FILES["cache"], cdir / CACHE_FILES["gaps"]
     cs = _read_json(cs_path, {"last_full": None, "last_incr": None, "job": None, "day": None, "requests_day": 0})
     day = c15.utc_day(now)
     if cs["day"] != day:
         cs.update(day=day, requests_day=0)
-    watcher = _day_requests(live / LIVE_FILES["state"], day)
+    base = cs["requests_day"]
     k0, t0 = klim.requests, clock()
 
     def room() -> bool:
-        mine = cs["requests_day"] + (klim.requests - k0)
-        return mine < CACHE_DAILY_MAX and mine + watcher < DAILY_REQUEST_CAP - READ_RESERVE
+        # P-4/P-18-style shared count: this job's requests are written to cache_state.json after EVERY page; the watcher's count is re-read from its state before every page.
+        mine = base + (klim.requests - k0)
+        return mine < CACHE_DAILY_MAX and mine + _day_requests(live / LIVE_FILES["state"], day) < DAILY_REQUEST_CAP - READ_RESERVE
+
+    def disk_room() -> bool:
+        if _dir_bytes(cdir) > CACHE_DIR_CAP_BYTES:
+            c15.jsonl_append(gp, {"t": now, "why": f"kalshi cache folder over its {CACHE_DIR_CAP_BYTES} byte cap: no further page this invocation (the old cache stays)"})
+            return False
+        return True
 
     job = cs.get("job")
     if job is None:
@@ -1654,13 +1774,15 @@ def p_cache(hist_root: Path, klim, *, now: float, freeze_ts: float | None, budge
     out = {"status": "p_cache_in_progress", "complete": False, "mode": job["mode"], "pages": 0}
     done = False
     try:
-        while room() and clock() - t0 < budget_s:
+        while room() and clock() - t0 < budget_s and disk_room():
             recs, cur = kalshi_page(klim, job["cursor"], job["min_created_ts"])
             with open(partial, "a", encoding="utf-8") as fh:
                 for r in recs:
                     fh.write(json.dumps(r, sort_keys=True) + "\n")
             job["cursor"], job["pages"] = cur, job["pages"] + 1
             out["pages"] += 1
+            cs["job"], cs["requests_day"] = job, base + (klim.requests - k0)
+            cm.write_json_atomic(cs_path, cs)  # the shared daily count and the cursor are on disk after every page
             if cur is None:
                 done = True
                 break
@@ -1687,7 +1809,7 @@ def p_cache(hist_root: Path, klim, *, now: float, freeze_ts: float | None, budge
         cs["job"] = None
         if partial.exists():
             partial.unlink()
-    cs["requests_day"] += klim.requests - k0
+    cs["requests_day"] = base + (klim.requests - k0)
     cm.write_json_atomic(cs_path, cs)
     cm.write_json_atomic(hb_path, {"epoch": now, "utc": cm.iso(now), "status": out["status"]})
     return out
@@ -1722,14 +1844,24 @@ def p_live(hist_root: Path, lim, klim, *, now: float, rules_sha: str, freeze_ts:
     if st["day"] != day:
         st.update(day=day, requests_day=0)
     r0, k0, t0 = lim.requests, klim.requests, clock()
-    cache_used = _day_requests(live / LIVE_FILES["cache_state"], day)
+    cdir = live / CACHE_SUBDIR
+    cstate = cdir / CACHE_FILES["state"]
+    base_req = st["requests_day"]
     gp = live / LIVE_FILES["gaps"]
 
+    def mine() -> int:
+        return base_req + (lim.requests - r0) + (klim.requests - k0)
+
+    def flush() -> None:
+        """The shared daily count is on disk after every batch of requests (the cache job re-reads it before every page)."""
+        st["requests_day"] = mine()
+        cm.write_json_atomic(live / LIVE_FILES["state"], st)
+
     def used() -> int:
-        return st["requests_day"] + (lim.requests - r0) + (klim.requests - k0) + cache_used
+        return mine() + _day_requests(cstate, day)  # the cache job's count is re-read from its state at every check, never held from the start of the run
 
     def reads_ok() -> bool:
-        return used() < DAILY_REQUEST_CAP
+        return used() + READ_MAX_REQUESTS <= DAILY_REQUEST_CAP  # P-22: a read needs room for ALL its legs (<= 3), so the 3,500 cap is never overshot by a read
 
     def other_ok() -> bool:
         return used() < DAILY_REQUEST_CAP - READ_RESERVE and clock() - t0 < LIVE_SOFT_DEADLINE_S
@@ -1745,7 +1877,7 @@ def p_live(hist_root: Path, lim, klim, *, now: float, rules_sha: str, freeze_ts:
     # (1) reads first
     for pid, b in births.items():
         pr = pairs.get(pid)
-        if not pr or not pr.get("eligible") or b.get("late") or not math.isfinite(c15.num(b.get("t_birth"))):
+        if not pr or not pr.get("eligible") or b.get("late") or b.get("ends_early") or not math.isfinite(c15.num(b.get("t_birth"))):
             continue
         for which, lag in READ_LAGS.items():
             key, due = f"{pid}|{which}", read_due(b, which)
@@ -1761,8 +1893,10 @@ def p_live(hist_root: Path, lim, klim, *, now: float, rules_sha: str, freeze_ts:
             if not reads_ok():
                 log_hourly("cap_reads", {"why": "daily request cap reached: reads deferred (window may be missed)"})
                 continue
-            bk = read_books(lim, klim, pr)
+            td_read = valid_reads(live)[0].get(pid, {}).get("t_d") if which == "t_d+24h" else None
+            bk = read_books(lim, klim, pr, which, td_read)
             rcpt = clock()
+            flush()
             if not bk["http_ok"]:
                 out["read_failures"] += 1
                 _gap(gp, {"t": rcpt, "pair_id": pid, "which": which, "why": "read failed (HTTP); retried inside the window", "statuses": bk["statuses"]})
@@ -1784,17 +1918,22 @@ def p_live(hist_root: Path, lim, klim, *, now: float, rules_sha: str, freeze_ts:
                 continue
             tb, reach = first_print_poll(lim, pr["condition_id"])
             st["polls"][pid] = now
+            flush()
             if reach in ("complete", "uncovered"):
-                rec = {"pair_id": pid, "t_birth": tb, "reach": reach, "detected": now, "late": bool(not math.isfinite(tb) or now > tb + T_D_OFFSET_S)}
+                # P-16: the scheduled-end exclusion, from information available at t_d (the listing's endDate stored at the match; never closedTime): endDate < t_d + 25 h -> no reads
+                end = c15.num(pr.get("end_sched"))
+                rec = {"pair_id": pid, "t_birth": tb, "reach": reach, "detected": now, "late": bool(not math.isfinite(tb) or now > tb + T_D_OFFSET_S),
+                       "ends_early": bool(math.isfinite(tb) and math.isfinite(end) and end < tb + T_D_OFFSET_S + END_MARGIN_S), "end_sched": end if math.isfinite(end) else None}
                 c15.jsonl_append(live / LIVE_FILES["first_prints"], rec)
                 births[pid] = rec
                 out["births"] += 1
         # (3) hourly listing scan against the cache
         if closed is None and other_ok() and (st["last_scan"] is None or now - st["last_scan"] >= LISTING_SCAN_EVERY_S):
-            cache_p = live / LIVE_FILES["kalshi_cache"]
-            cs = _read_json(live / LIVE_FILES["cache_state"], {})
-            if _dir_bytes(live) > cap_bytes:
-                log_hourly("disk_cap", {"why": f"live dir over its {cap_bytes} byte cap: no new pair taken (reads continue)"})
+            cache_p = cdir / CACHE_FILES["cache"]
+            cs = _read_json(cstate, {})
+            if _dir_bytes(live, exclude=cdir) > cap_bytes or _dir_bytes(live) > cap_bytes + CACHE_DIR_CAP_BYTES:
+                # P-19/P-22: the live files have their cap, and the TOTAL (live files + the Kalshi cache folder) is held to the live cap plus the cache's own cap, so the cache is counted
+                log_hourly("disk_cap", {"why": f"live dir over its {cap_bytes} byte cap (cache folder counted in the total, cap + {CACHE_DIR_CAP_BYTES}): no new pair taken (reads continue)"})
             elif not cache_p.is_file() or cs.get("last_incr") is None or now - cs["last_incr"] > CACHE_MAX_AGE_S:
                 log_hourly("cache_stale", {"why": "kalshi cache missing or older than 4 h: listing scan skipped (the 2-h lookback re-covers the listings)"})
             else:
@@ -1821,6 +1960,7 @@ def p_live(hist_root: Path, lim, klim, *, now: float, rules_sha: str, freeze_ts:
                         out["matched"] += 1
                 cm.write_json_atomic(live / LIVE_FILES["series_cat"], cats)
                 st["last_scan"] = now
+                flush()
         # (4) weekly blind title-audit batches
         week = c15.iso_week_of(now)
         ap = live / LIVE_FILES["audit_dir"]
@@ -1833,8 +1973,7 @@ def p_live(hist_root: Path, lim, klim, *, now: float, rules_sha: str, freeze_ts:
                                                                                                                          for p in pairs.values() if c15.iso_week_of(p["matched_at"]) == w]})
     except (ApiError, RuntimeError) as exc:
         c15.jsonl_append(gp, {"t": now, "why": f"request failed: {str(exc)[:100]}"})
-    st["requests_day"] += (lim.requests - r0) + (klim.requests - k0)
-    cm.write_json_atomic(live / LIVE_FILES["state"], st)
+    flush()
     cm.write_json_atomic(hb_path, {"epoch": now, "utc": cm.iso(now), "status": "closed" if closed else "watching", "rules_sha256": rules_sha})
     if closed is not None:
         out["status"] = LIVE_STATUS_CLOSED
@@ -1898,9 +2037,14 @@ def rep_units(live_dir: Path, audits: dict[str, str]) -> tuple[list[dict], dict]
         if b is None or not math.isfinite(c15.num(b.get("t_birth"))):
             labels["no first print"] += 1
             continue
+        if b.get("ends_early"):
+            labels["ends early (scheduled)"] += 1  # P-16: excluded before entry, as in Stage 1 (not in the availability denominators)
+            continue
         if b.get("late"):
             labels["late detection"] += 1
             continue
+        if not math.isfinite(c15.num(pr.get("end_sched"))):
+            labels["scheduled end unknown (not excluded)"] += 1
         labels["eligible for availability"] += 1
         rd = reads.get(pid, {})
         if "t_d" not in rd or "t_d+24h" not in rd:
@@ -1913,6 +2057,14 @@ def rep_units(live_dir: Path, audits: dict[str, str]) -> tuple[list[dict], dict]
         if not (math.isfinite(ma) and math.isfinite(kd)):
             labels["no two-sided quote at t_d"] += 1
             continue
+        zs = z.get("statuses") or {}
+        if zs.get("yes") == POLY_NO_BOOK_STATUS or (p2_side(a) == "no" and zs.get("no") == POLY_NO_BOOK_STATUS):
+            # P-16: a Polymarket 404 at the 24-h read (no order book: the market closed or was emptied) is NOT read as an empty book (no mid is invented): the unit is "unavailable (no
+            # order book at 24 h)", it stays in the availability denominators (P1: eligible; P2: the |g_d| >= 5c set, kept with delta = NaN) and is in neither estimate.
+            labels[NO_BOOK_24H] += 1
+            units.append({"pair_id": pid, "event": pr["p_event_id"] or pid, "t_birth": float(b["t_birth"]), "g_d": kd - ma, "delta": math.nan, "read_a": a, "read_z": z,
+                          "fee_rate": c15.num(pr.get("fee_rate")), "unavailable_24h": True})
+            continue
         units.append({"pair_id": pid, "event": pr["p_event_id"] or pid, "t_birth": float(b["t_birth"]), "g_d": kd - ma, "delta": mz - ma, "read_a": a, "read_z": z,
                       "fee_rate": c15.num(pr.get("fee_rate"))})
         labels["ok"] += 1
@@ -1921,6 +2073,8 @@ def rep_units(live_dir: Path, audits: dict[str, str]) -> tuple[list[dict], dict]
 
 def rep_p2_net(u: dict, extra_per_side: float = 0.0) -> float | None:
     """P2-rep: buy the side toward Kalshi at the recorded best ask of the ``t_d`` read; sell at the recorded best bid of the ``t_d + 24 h`` read (no bid -> w*)."""
+    if u.get("unavailable_24h"):
+        return None  # P-16: no 24-h book (counted in the availability denominator, in no estimate)
     side = "yes" if u["g_d"] >= GAP_MIN else "no"
     e = u["read_a"][side]["ask"]
     if not math.isfinite(e):

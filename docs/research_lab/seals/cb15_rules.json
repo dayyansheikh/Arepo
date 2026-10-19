@@ -1864,8 +1864,23 @@
      },
      "CACHE_BUDGET_S": 2900.0,
      "CACHE_DAILY_MAX": 1800,
+     "CACHE_DIR_CAP_BYTES": 268435456,
+     "CACHE_FILES": {
+      "cache": "kalshi_open.jsonl.gz",
+      "gaps": "gaps.jsonl",
+      "heartbeat": "cache_heartbeat.json",
+      "partial": "kalshi_partial.jsonl",
+      "state": "cache_state.json"
+     },
      "CACHE_MAX_AGE_S": 14400.0,
+     "CACHE_SUBDIR": "kcache",
      "CACHE_WARMUP_S": 86400.0,
+     "CANDLE_FIELDS": [
+      "end_period_ts",
+      "yes_bid",
+      "yes_ask",
+      "price"
+     ],
      "CANDLE_L_PRE_S": 3600.0,
      "CANDLE_POST_S": 90000.0,
      "CANDLE_PRE_S": 21600.0,
@@ -1952,14 +1967,10 @@
      "LIVE_FILES": {
       "audit_dir": "audit_batches",
       "books": "books.jsonl",
-      "cache_heartbeat": "cache_heartbeat.json",
-      "cache_state": "cache_state.json",
       "closed": "closed.json",
       "first_prints": "first_prints.jsonl",
       "gaps": "gaps.jsonl",
       "heartbeat": "heartbeat.json",
-      "kalshi_cache": "kalshi_open.jsonl.gz",
-      "kalshi_partial": "kalshi_partial.jsonl",
       "listings": "listings.jsonl",
       "pairs": "pairs.jsonl",
       "series_cat": "series_cat.json",
@@ -2017,6 +2028,7 @@
      "NOT_TESTABLE_AVAIL": "not testable (availability)",
      "NOT_TESTABLE_POP": "not testable (population)",
      "NOT_TESTABLE_SOURCE": "not testable (source)",
+     "NO_BOOK_24H": "unavailable (no order book at 24 h)",
      "OPENING_CONTROL_P": 0.05,
      "OPENING_CONTROL_SHARE": 0.5,
      "P1_FLOOR": 0.3,
@@ -2029,6 +2041,8 @@
       "events": 25,
       "pairs": 40
      },
+     "PAIR_FAIL_ATTEMPTS": 3,
+     "PAIR_FAIL_SPAN_S": 900.0,
      "PH_COLUMNS": [
       "p_market_id",
       "t",
@@ -2040,6 +2054,7 @@
      "PH_PRE_S": 21600.0,
      "PH_WINDOW_DAYS": 14,
      "POLY_NO_BOOK_STATUS": 404,
+     "POLY_RULE_BOOLEANS": "unknown",
      "PRINT_MAX_AGE_S": 7200.0,
      "PRINT_PAGES": 6,
      "PRINT_PAGE_LIMIT": 10000,
@@ -2053,6 +2068,7 @@
      },
      "READ_LAG_TB_S": 300.0,
      "READ_LAG_TD_S": 120.0,
+     "READ_MAX_REQUESTS": 3,
      "READ_RESERVE": 300,
      "REP_MIN": {
       "P1": 60,
@@ -2060,6 +2076,7 @@
      },
      "SEEDED_MID": 0.5,
      "SEEDED_TOL": 0.005,
+     "SMOKE_CACHE_PAGES": 3,
      "SMOKE_MAX_REQUESTS": 30,
      "SMOKE_NEEDS": [
       "guards_fixture_P",
@@ -2069,7 +2086,8 @@
       "p_c1_reproduction",
       "p_first_tx_reach",
       "p_kalshi_candles",
-      "p_kalshi_min_created"
+      "p_kalshi_min_created",
+      "p_kalshi_open_cache"
      ],
      "SPORTS_CAT": "Sports",
      "STAGE2_BIRTHS_STOP": 60,
@@ -2097,6 +2115,7 @@
      "T_D_OFFSET_S": 600.0,
      "T_D_ROBUST_S": 1800.0,
      "T_L_OFFSET_S": 604800.0,
+     "UNAVAILABLE_SOURCE": "unavailable (source)",
      "UNKNOWN": "unknown",
      "VOL_COLUMNS": [
       "p_market_id",
@@ -2143,6 +2162,10 @@
       "reach": "complete iff a non-full page is reached (newest-first offset paging)",
       "shared_parser_sha256": {
        "cross_venue.parse_k_candles": "13affe3e1bc1d807c2b3c9386587eb1a543335501a5190d226745e426ff00403"
+      },
+      "terminal_rule": {
+       "P-17": "a pair with >= 3 failed attempts in that many separate runs, first to last >= 900 s apart, becomes 'unavailable (source)' (counted in labels and denominators; P2 worst case at w*)",
+       "kalshi_fallback": "a 404 on the frozen candle endpoint -> ONE try of the other endpoint (live/historical), accepted only if every candle carries ['end_period_ts', 'yes_bid', 'yes_ask', 'price']; otherwise the chunk fails"
       },
       "tx_windows": "[t_birth, t_birth + 25 h] and [t_L - 2 h, t_L + 24 h 30 min]",
       "volume": "stored apart; opened only by the screen's tercile check"
@@ -2244,7 +2267,8 @@
        "closed_time",
        "closedTime"
       ],
-      "rule_booleans": "P-6: Polymarket declared is_provisional = can_close_early = False; a pair whose Kalshi is_provisional or can_close_early is true (C1 universe rows; live: the Kalshi market record) is excluded, counted; a missing flag is not an exclusion (counted unknown)",
+      "polymarket_rule_booleans": "unknown",
+      "rule_booleans": "P-6/P-20: Polymarket's is_provisional / can_close_early are declared UNKNOWN (no field at listing; Polymarket markets can resolve early); the design is silent for unknown, so the conservative choice: a pair whose Kalshi is_provisional or can_close_early is true (C1 universe rows; live: the Kalshi market record) is excluded, counted; Kalshi false or missing is kept (counted unknown); residual mismatch is bounded by the scheduled-end exclusion and the 24-h no-book label",
       "sports_cat": "Sports",
       "sports_in_primary": false
      },
@@ -2258,7 +2282,8 @@
        "p_c1_reproduction",
        "p_first_tx_reach",
        "p_kalshi_candles",
-       "p_kalshi_min_created"
+       "p_kalshi_min_created",
+       "p_kalshi_open_cache"
       ]
      },
      "stage2": {
@@ -2271,11 +2296,25 @@
        ],
        "verdicts_dir": "docs/research_lab/seals/cb15_p_audit"
       },
+      "cache_folder": {
+       "cap_bytes": 268435456,
+       "files": {
+        "cache": "kalshi_open.jsonl.gz",
+        "gaps": "gaps.jsonl",
+        "heartbeat": "cache_heartbeat.json",
+        "partial": "kalshi_partial.jsonl",
+        "state": "cache_state.json"
+       },
+       "live_cap": "live files <= live cap AND live files + cache folder <= live cap + cache cap (the cache is counted in the total)",
+       "smoke_pages": 3,
+       "subdir": "kcache"
+      },
       "cadence": {
        "cache": "separate job and lock (p_cache), hourly cron, 3,000-s timeout, resumable cursor, full pull daily, min_created_ts hourly, starts one day before T15_P2_start",
        "cache_daily_max": 1800,
        "disk_check_every_s": 3600.0,
        "live_dir_cap_bytes": 53687091,
+       "read_max_requests": 3,
        "read_reserve": 300,
        "watcher": "cron every minute under flock, 55-s timeout: reads first, then eligible first-print polls (5 min), then the hourly listing scan against the cache; soft deadline 35 s"
       },
@@ -2293,6 +2332,7 @@
        "full_every_s": 86400.0,
        "incremental": "min_created_ts, 1 h overlap"
       },
+      "legs": "P-18: only the legs the analysis uses are required (t_d: Polymarket YES + Kalshi, NO when g_d <= -5c; 24 h: YES, NO when the t_d read put P2 on NO; Kalshi is not read at 24 h)",
       "listing": {
        "every_s": 3600.0,
        "lookback_s": 7200.0,
@@ -2313,6 +2353,8 @@
        "P2": 40
       },
       "rep_quote": "t_d: Polymarket and Kalshi two-sided, spread <= 10c each (P-13a); t_d + 24 h Polymarket mid by the one-sided-bound rule (no ask -> 1, no bid -> 0), never dropped (P-3)",
+      "scheduled_end": "P-16: endDate stored at the match; at the first-print detection a pair with endDate < t_d + 25 h is 'ends early (scheduled)' (no reads, counted, outside the availability denominators); a missing endDate is not an exclusion (counted); a Polymarket 404 at the 24-h read is 'unavailable (no order book at 24 h)': never read as an empty book, counted in the availability denominators, in no estimate",
+      "shared_count": "P-19b: the cache writes the daily request count after every page and re-reads the watcher's before every page; the watcher writes after every batch and re-reads the cache's at every check",
       "window": "T15_P2_start = max(P freeze + 1 d, 2026-11-04T00:00Z); stop at >= 60 eligible births with their 24-h read (births, never results); cap 2027-04-30"
      },
      "stage2_ready": true
@@ -2393,7 +2435,7 @@
     "cb15_p.PairPending": "b7230057541a0f5f63aea662e1a6aa91e478eec2e1491f494126d3131920646c",
     "cb15_p._chk": "23583bb5704fd13ade8e6407f0dc2750b436d540ead9f313604e390d09c2c7bb",
     "cb15_p._day_requests": "914bd6c614518e4e7d786330c7b0b610abdf730669a73e1e8fd4a7bfee2f6ef2",
-    "cb15_p._dir_bytes": "82308ca1144b87aec1ddfc719f799496bae3622870e7a54bb3db205e0b107749",
+    "cb15_p._dir_bytes": "a10b1ca646a447ae66aa087f16eee0fb9e24d80278783a86b3ba7216ec74fa45",
     "cb15_p._gap": "683a3d45c0439aeca53947e4d4117deed7b1f896b7620354a85f4801fbf54f4a",
     "cb15_p._load_cache": "b9490ffdb8444caab1314902bc2cc2fc3a0c82b193f0082ead7432efa6ba6cf2",
     "cb15_p._read_json": "aebd02de4f117191f60f830ffb54929ac32303301d8cc2dade337de7f08ae66c",
@@ -2402,15 +2444,17 @@
     "cb15_p.avail": "4660a4b7d726e3c9213734c6f52a3987a15293a479279e347bd54dcda69b1d72",
     "cb15_p.birth_census": "76823e1572049669e1f2eef84f45ba1701b2cc60a4d2369e1e2f64bb86c77664",
     "cb15_p.birth_of": "c9d581364b402d0ff6b4e7f0756c55984cdf7c5824f78c7c3aebc454ace9e874",
-    "cb15_p.births_with_24h_read": "8dab38b6fc11e2c2513eb2e6746bbe722ab1dddd4d72186c7799d09966ef5c77",
+    "cb15_p.births_with_24h_read": "989d9fca13bb450d7436bbf7a5ed0b7c5d2cf3f6a2a8c57de09cbac13b37abc1",
     "cb15_p.c1_frame": "d0ca73d234fc5f3f15f97e575a46fd87e110b1bae81fed475ed7459fc0eb17cc",
     "cb15_p.c1_loader_sha": "2a23cae440062ca8d2b4001e3e459e73cdb7db07cce164a63590963ac5054465",
+    "cb15_p.cache_size_probe": "a79fcdfc8e911772a579fb698b64743dc6c91f178037e743d6044c9b219c491d",
+    "cb15_p.candle_has_fields": "fb1cd7281494adafdcf5ae7a8906dc0889d6e18d974182eeefc3d084956d21f2",
     "cb15_p.census_p": "0ab9881079a54ad4439625058948605f2ccd95f335a7c5d74a7e0b6cad513f38",
-    "cb15_p.declared": "321ecd9d6cb6e2b4463dd3bbf36f309a63941f6de9570458f8ecd019be7bb90f",
+    "cb15_p.declared": "adc7fc6e14007e0e05e5724a687738bec99609dba26deccbc486e57e008e6f29",
     "cb15_p.ep": "d5bd2bb62fd73161eef1a1f8576056d57ba15ff28937cb658c67d50a5a8516a9",
     "cb15_p.event_weights": "8155632843dfe0042ba371da7a327d9140de0fd170b34649b2010423663e4202",
     "cb15_p.features_table": "695d84fcfb3d1f6cb63689576f89aa8a6eba2b968db9adedb9cba4ce121f5a06",
-    "cb15_p.fetch_k_candles_checked": "960e4ce3a940594a898efc71ad1ff4c94da831ffeb133c393ac7c03a193931a4",
+    "cb15_p.fetch_k_candles_checked": "1c9c28ed750ee04e22e0dcf67e3387ea730c0fa1d31c4091d9c5c50f6fd5e5b2",
     "cb15_p.fetch_pair": "a113d3365cdf92723ead1132b328792ffccebd211bed2df9e91096cc98e1bdb8",
     "cb15_p.fetch_prices_checked": "b9e4c766192e0c61103eb5febe440ffaa33024ca52f9a577ae9d53dc2010d10b",
     "cb15_p.fetch_prints_from_birth": "e5a30b483dd878b2f6669f6958ed7a0ae363024d67583a354cf7ae7f72914dc9",
@@ -2426,22 +2470,23 @@
     "cb15_p.lead_bin": "7f95222e14343051ef531e4746ebca19390209580be71407d4f9aef0ca1134e5",
     "cb15_p.load_data": "7e0e3029d10ab2318f8d1e19cb8a6e4f112078cf3c23832fa1eab4ccad00d198",
     "cb15_p.lowest_tercile": "b4e6c72d875d22a7be6d6211387031b4ce5e4772a249487f8f4049d80bef5531",
-    "cb15_p.match_new": "0a4a640a261d767eba17276ec9f15f83ddbc027169fa28614d660481150f5dba",
+    "cb15_p.match_new": "f0f4a3a7e3522171ef6e298756131db1f734126c0beff5e5e64c69040d948efa",
     "cb15_p.matcher_sha": "8bdf498eea6c505dbbe0e3934f3e0ee018504edeb440927bb681b361b3926b30",
     "cb15_p.mean_test": "62ffb4e788c5d24e64162474b33047b53ceaf781055a418fd4178f6d9c7540db",
     "cb15_p.mid_one_sided": "8140fbb26a4a5925a1779a983338247be19dd82d05ec2118d1dc8dd68f1f0305",
     "cb15_p.month_of": "2e636f3ce9696508b4c588fb800182d9ac4ab0a7abd43cce249f39992d2f1c90",
     "cb15_p.nt": "655b6afe14325df8ccf96182bb12019fe15c2e09eac0c1b561d8a989e41cea1d",
     "cb15_p.open_volume": "495785c3b89bd4658de0780ecb4f987021fb8c2c7956862e2910c510a8ad6cca",
-    "cb15_p.p1_test": "251b396423eb4115ec663bd45da709d797df225d677ff59798daf57755a8fe58",
+    "cb15_p.p1_test": "f88e348d030f2190a96012e941d136fb83d830ba1aea60a7491be8b4b42b2bcf",
     "cb15_p.p2_net": "658e9dd2fd66d6c1ffccba0e37bb222b5876bc12304edc068f3c8fe05cfd6862",
+    "cb15_p.p2_side": "0b3f83df09fbee9278eea9e0c30931ae1b426e9829d71a0971e39f2d3a22af0d",
     "cb15_p.p2_test": "2d0743b2d09b0223042cb90761bd3c5fa5720757031edf7d49c247880c504908",
-    "cb15_p.p2_units": "b0f151e2344a3ac02673d18aa2c0bee7c1b2be1433be41d5cbb66a41380c9f06",
+    "cb15_p.p2_units": "c3205f2ecf806e2f51ee44a5351e75f34201e71989055d3b630b8abbee8ca7a7",
     "cb15_p.p2_window": "eaedf8813ec3f895820d6c7f4c165b07d4776a2866865fc9b0f7acb3c53d7219",
     "cb15_p.p_at": "228b90d0feb1d9db9dfbfeaa38dfb3bba0c53d47c61385e1e5961adb61c7005e",
-    "cb15_p.p_cache": "83cf63b891337a71582ca62e55ade57fee8894811a78a8e7a398768d9ed1c4c6",
-    "cb15_p.p_data": "52eacfa1c08ed3e239420ebe0b4a3918aad68ae02eb993de749271f2ff3c67e2",
-    "cb15_p.p_live": "c72f85f5e065eb4cf40d35eb6817104d859d6577e830cdf60114588ad1a3973d",
+    "cb15_p.p_cache": "787b4fc0977d5fd18f411991bac6c99441fdfc919ed3017db525dd1a6f3452da",
+    "cb15_p.p_data": "a3c8bf724b6f768558a57d0e44f04c299b55b3d84353f3b5b22f641ab4fa808f",
+    "cb15_p.p_live": "0248498111199f980f19635a22c090c65b478d9352e30b6ee186cb93325033d9",
     "cb15_p.paired_contrast": "b4881d23d94fc2a283cbc3d73da9acdbac1aa0095bbfde11de471ab740b65dff",
     "cb15_p.part_unready": "e5fa7a01285a0e56b8a46a8c13dd1c92b35f8ce782e82bb4d9722babc4922230",
     "cb15_p.ph_at": "287c592a454e5e5166ac0ffd895b21bd432a4afab25fda925d205f61bf25bff0",
@@ -2450,17 +2495,17 @@
     "cb15_p.print_in": "c70d605ba367e551b8886fd89f06d1274b211b7fa91373c1306500a583adcd3a",
     "cb15_p.quarter_of": "170f439d6d92d97e515330db8f68f0f1284188e86b353929d2234f9c1165789e",
     "cb15_p.read_audits": "176bd843bf11ac6f3d11eec16788126ca83eb5614a6598b51e0c19eb62c860cd",
-    "cb15_p.read_books": "434a0656976e5b8d899551cc7d42dc285e3a8a30d0c91b77a239e1ab81428895",
+    "cb15_p.read_books": "81a2782887e12c08e7ae1d1c7dfb1c41122171120194fd8c12ba0a17fe15344f",
     "cb15_p.read_due": "177206d72c154a96ae5715103646c5d2ca3a63e3a37a11e358143247703c8944",
     "cb15_p.read_frame": "f0995395849625f341f91e348b9f6289f81c36cd8a3c06ac46d69770e9e495db",
     "cb15_p.read_gz_rows": "60afb66f29914ee221be9327368809e97e177562f6c2668fe5f6acf8cda4793d",
     "cb15_p.read_matches": "febb844c187967c733c76c2ccf588290efdf86af7db2a2b2f8b71ff2d286ee3b",
     "cb15_p.refuse_hist_row": "b9cfdee7c4954fe6b855d0ed0aee334765d69aa4815502f435a203e769a00069",
     "cb15_p.rep_p": "b29f068ef08e3de25c1410ecc5fac14201383f720e1e36f0401703a7558a9237",
-    "cb15_p.rep_p2_net": "fbfb9d5f5df4b8f38776dadfe1b78a341dd0a94952363f27bd8e5cf03a01a903",
-    "cb15_p.rep_units": "9bf4aca8e7838895f55c3d423d74ab0ec023577bd18b519b1eaa233cf0b54bc5",
+    "cb15_p.rep_p2_net": "cd8fa5e21975cdf26b747a1f1902b0e6f4a99ba79599a8f92a5455d185e06b32",
+    "cb15_p.rep_units": "7a69993c95988e16cad3fe153576b911141b26d6162bcd0fb7c379c85104dec0",
     "cb15_p.reread_absent_frames": "5d7bf9993efe185698700556cec9d80d1dd5a335d190cc53eff8e065bae2fed2",
-    "cb15_p.rule_booleans_differ": "17d170860a560d6017e66bf803fb8bcf11e935f2a71e7142756cfd458b512f28",
+    "cb15_p.rule_booleans_differ": "fff3e15dba8f0df313375b8d86316255eeef07358c3dd330b1a6a9c63cfd0120",
     "cb15_p.scan_listings": "e5a7c21a6b553cdd0e53f0b1bfcc229437033ced5fc397ae3dd78cad67088ff1",
     "cb15_p.screen_p": "b5064f16aa832296d4f79203fc2c17d539b990edab3f72a404c3b302a380d8ab",
     "cb15_p.se_only_proxy": "b4d3efecce63c7c929b2ad1574abf64954a192190604028993ced7096fefa63a",
@@ -2469,13 +2514,13 @@
     "cb15_p.sign_checks": "0d635570f193c85d06af7958ce7c2c9a40bea453ab5880ae2523746585d31fe8",
     "cb15_p.slope_test": "3062e609ef5973b9545675d99283dba458416266e5faad078e9336e0f7dd93a8",
     "cb15_p.smoke_offline": "99e42ef7025d1f9cb2446f295e1a643d7557c36c3956d6584fcdd272a5623831",
-    "cb15_p.smoke_online": "e2cd3bb94d29da82ccd0c4daf8f13c66d147cc5cd1fccfadf3e883cfadf65b50",
+    "cb15_p.smoke_online": "ef7c633141c7e9e02510868cd4ec24d7ecfb329ae7b60e77ee65a2c8be237666",
     "cb15_p.strip_kalshi": "506996ede8f0a67b60263ba9b7b3297c868ce6fd115d6f1eb98418019adc8b52",
     "cb15_p.target_availability": "57b76c650df6e9db6e5699d8e120ffd321265905febcbbdf33c54b6e074db445",
     "cb15_p.transactions": "a3e78fea13c09acaa5a722cecbe735d1d5ddd0fc680e53c2049b5b60adc8660a",
     "cb15_p.truthy": "493f37cab87d0f342c9d4ebed1d27d47b6b7ef02638e3c26d7b3b489e3e3e431",
     "cb15_p.two_sided": "8445849c58a54e22308884ac88204b6da98a7d1f210f261c0649858e383f1210",
-    "cb15_p.unit_features": "04c29f67d3e9e299fd4c89396eadd749cc4c61208d325ec5281ecd281bcc3c13",
+    "cb15_p.unit_features": "97f560b2e9fe43ec5c0d66fc86ab401708ba214123b3d0bacb77d8f824846c67",
     "cb15_p.unit_target": "5cebc1170ca7448639ab030df7ab0f28bc0568591a2c0ea56f13d80dab7f8ed5",
     "cb15_p.valid_reads": "1ca37db8380c61bdba23555817a702efbd0894b36995b973da7c2011fce3cd62",
     "cb15_p.verify_matcher": "e65a5ec3f158f73c05cfaed3df98b2fb807f87b21d4c7cd11aa5bcc5e3c2e48d",
@@ -2483,10 +2528,10 @@
     "cb15_p.write_birth_frame": "6f2bf2ca09314865b0376345913632db5d19a2be0c4da828e9a490433700a2fe",
     "cb15_p.write_data_files": "ef6af4a2ae686eef89e6605f848603d187a89f0fcb5b3b18f7335c32c44644b5"
    },
-   "funcs_sha256": "c8a2e6eb3249ef50828aa459a08d995e8c02e05c1a8a24c4daa6a2fe342e5fd4",
+   "funcs_sha256": "e0b64e4a9f07132ac38dfcc078c1f8c6bd0bc65af064fde8648f62879060bbdb",
    "part": "P",
    "part_declared": true,
-   "rules_sha256": "80db6dfa1841ca8cead4924303f368bd48d829cd5c42e2a3e25a776d6ef4cd6c",
+   "rules_sha256": "6ac3b610d474a051336ce6d9e5d1aca1a3ca8b8c3c303e35bdd0be20754ab046",
    "rules_version": "cb15-rules-v1",
    "shared_helper_sources_sha256": {
     "bk.seal_copy_ids_audited": "32cb7d6a72748799474f853a829c6860672fba51d5fd736c0b8f3fd81e7d84de",

@@ -34,6 +34,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import sys
 import time
@@ -50,7 +51,9 @@ DECLARED_KALSHI_RPS_MAX = 1.0
 DECLARED_DISK_CAP_GB["p-live"] = 0.05
 DECLARED_RPS_MAX["p-live"] = 2.0
 DECLARED_DISK_CAP_GB["p-cache"] = 0.05
-DECLARED_RPS_MAX["p-cache"] = 2.0  # --rps is unused by p-cache (Kalshi only; --kalshi-rps <= 1 binds)
+DECLARED_RPS_MAX["p-cache"] = 2.0  # --rps is unused by p-cache (Kalshi only; the per-command Kalshi cap binds)
+# P-22: the Kalshi budget of the two concurrent cron jobs is split so that the COMBINED rate is <= 1 req/s as the design states (watcher 0.5 + cache 0.5)
+DECLARED_KALSHI_RPS_BY_CMD = {"p-live": 0.5, "p-cache": 0.5}
 _TRANSIENT_STATUS = re.compile(r"status (None|0|408|429|5\d\d)\b")
 
 
@@ -128,8 +131,9 @@ def _declared(a, cmd: str) -> None:
     cap = DECLARED_RPS_MAX.get(cmd)
     if cap is not None and float(getattr(a, "rps", cap)) > cap + 1e-9:
         raise c15.Refused(f"arguments differ from the declaration: rps={a.rps!r} > declared {cap!r}")
-    if float(getattr(a, "kalshi_rps", 0.0)) > DECLARED_KALSHI_RPS_MAX + 1e-9:
-        raise c15.Refused(f"arguments differ from the declaration: kalshi_rps={a.kalshi_rps!r} > declared {DECLARED_KALSHI_RPS_MAX!r}")
+    kcap = DECLARED_KALSHI_RPS_BY_CMD.get(cmd, DECLARED_KALSHI_RPS_MAX)
+    if float(getattr(a, "kalshi_rps", 0.0)) > kcap + 1e-9:
+        raise c15.Refused(f"arguments differ from the declaration: kalshi_rps={a.kalshi_rps!r} > declared {kcap!r}")
     if float(getattr(a, "data_dumps_cap_gb", c15.DATA_DUMPS_CAP_GB)) > c15.DATA_DUMPS_CAP_GB + 1e-9:
         raise c15.Refused(f"arguments differ from the declaration: data_dumps_cap_gb={a.data_dumps_cap_gb!r} > {c15.DATA_DUMPS_CAP_GB!r}")
 
@@ -921,11 +925,16 @@ def _hourly_disk_check(a, now: float) -> None:
     live = c15.require_output_root(_hist(a) / p.LIVE_RUN)
     live.mkdir(parents=True, exist_ok=True)
     stamp = live / "disk_check.json"
-    last = json.loads(stamp.read_text()).get("epoch", 0.0) if stamp.is_file() else 0.0
+    try:  # P-22: a torn / missing stamp means "check now"; the stamp is replaced atomically (the two cron jobs share it)
+        last = float(json.loads(stamp.read_text()).get("epoch", 0.0)) if stamp.is_file() else 0.0
+    except (ValueError, OSError, AttributeError):
+        last = 0.0
     if now - last < p.DISK_CHECK_EVERY_S:
         return
     c15.require_disk(_data_dumps(a), a.data_dumps_cap_gb, int(a.disk_cap_gb * 1024**3))
-    stamp.write_text(json.dumps({"epoch": now}))
+    tmp = stamp.with_name(f"{stamp.name}.{os.getpid()}.tmp")
+    tmp.write_text(json.dumps({"epoch": now}))
+    os.replace(tmp, stamp)
 
 
 @_guarded
@@ -1124,7 +1133,7 @@ def build_parser() -> argparse.ArgumentParser:
     q = sub.add_parser("p-live", help="q0352 (cron every minute)")
     common(q)
     net(q, disk_cap=0.05)
-    q.add_argument("--kalshi-rps", type=float, default=DECLARED_KALSHI_RPS_MAX)
+    q.add_argument("--kalshi-rps", type=float, default=DECLARED_KALSHI_RPS_BY_CMD["p-live"])
     q.add_argument("--not-before", default=None)
     q.add_argument("--freeze-spec", default=None)
     q.add_argument("--freeze-ts", type=float, default=None, help="tests only")

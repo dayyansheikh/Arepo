@@ -353,7 +353,7 @@ def test_p_drafts_exist_parse_and_carry_the_p_sha():
         if a.cmd in run_cb15.DECLARED_DISK_CAP_GB:
             assert abs(a.disk_cap_gb - run_cb15.DECLARED_DISK_CAP_GB[a.cmd]) < 1e-9
         assert getattr(a, "rps", 0.0) <= run_cb15.DECLARED_RPS_MAX.get(a.cmd, 99.0) + 1e-9
-        assert 5 <= d["priority"] <= 9 or d["resources"]["lane"] == "cron"
+        assert 5 <= d["priority"] <= 9 or d["resources"]["lane"] == "cron" or a.cmd == "smoke"  # the smoke is promoted to queue/jobs with its own (higher) priority
     by = {d["id"][:5]: d for d in ds}
     assert by["q0352"]["not_before"] == "2026-11-04T00:00:00Z" and c15.PIN_UNSET in by["q0353"]["argv"]
 

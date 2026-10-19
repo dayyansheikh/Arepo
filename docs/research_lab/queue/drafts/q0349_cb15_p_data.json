@@ -41,7 +41,7 @@
   "history/h15_birth/{meta.csv.gz,tx.csv.gz,kalshi.csv.gz,prices.csv.gz,volume_guarded.csv.gz,work.jsonl,manifest.json}"
  ],
  "next_action": "q0350",
- "notes": "CREATIVE_BATCH_15.md CB15-P, section 2.8. DRAFT. No outcome, side, wallet or hash stored. Resumable (work.jsonl); incomplete = pending (p_data_in_progress, exit 0). Rules part sha256 (seals/cb15_rules.json, P declared 2026-10-19): common 13c703222500e502cd29acb94cdec497c43ff68cfc9415bd0efbfd4699718f3a, P 80db6dfa1841ca8cead4924303f368bd48d829cd5c42e2a3e25a776d6ef4cd6c. CB15 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer, part P) and the committed rules file; the coordinator regenerates the rules and these shas if any common / P code changes.",
+ "notes": "CREATIVE_BATCH_15.md CB15-P, section 2.8. DRAFT. No outcome, side, wallet or hash stored. Resumable (work.jsonl); incomplete = pending (p_data_in_progress, exit 0). Rules part sha256 (seals/cb15_rules.json, P declared 2026-10-19): common 13c703222500e502cd29acb94cdec497c43ff68cfc9415bd0efbfd4699718f3a, P 6ac3b610d474a051336ce6d9e5d1aca1a3ca8b8c3c303e35bdd0be20754ab046. CB15 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer, part P) and the committed rules file; the coordinator regenerates the rules and these shas if any common / P code changes. P-17: a pair with >= 3 failed attempts in 3 separate runs spanning >= 15 min becomes 'unavailable (source)' (counted, never a unit) so the run can complete; re-run until complete.",
  "repeat": {
   "max_runs": 4,
   "until_log_regex": "\"status\": \"p_data_complete\""

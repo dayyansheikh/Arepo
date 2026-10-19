@@ -504,6 +504,7 @@ def test_each_listing_is_logged_once_and_cap_blocks_new_pairs(tmp_path):
     lim2 = LiveLim([_gm(2, NOW - 600, q)], [_km("FED-26DEC", q, NOW - 3 * DAY)], {})
     hist2 = tmp_path / "h2" / "research_lab" / "history"
     p.p_cache(hist2, lim2, now=NOW, freeze_ts=None, clock=lambda: NOW)
+    (hist2 / p.LIVE_RUN / "pad.bin").write_bytes(b"x" * 64)  # live files over the cap (the cache folder is outside the live-file cap, inside the total)
     r = p.p_live(hist2, lim2, lim2, now=NOW + 30, rules_sha="x", freeze_ts=None, clock=lambda: NOW + 30, cap_bytes=10)
     assert r["matched"] == 0
     assert any("cap" in json.loads(x)["why"] for x in (hist2 / p.LIVE_RUN / p.LIVE_FILES["gaps"]).read_text().splitlines())
@@ -516,7 +517,7 @@ def test_cache_job_resumes_at_its_cursor_and_keeps_the_old_cache_until_complete(
     lim.kalshi_pages = [[_km("A-1", q, NOW - 3 * DAY)], None, [_km("B-1", q + " again", NOW - 3 * DAY)]]
     r = p.p_cache(hist, lim, now=NOW, freeze_ts=None, clock=lambda: NOW)
     assert r["status"] == "p_cache_in_progress" and r["pages"] == 1
-    assert not (hist / p.LIVE_RUN / p.LIVE_FILES["kalshi_cache"]).exists()
+    assert not (hist / p.LIVE_RUN / p.CACHE_SUBDIR / p.CACHE_FILES["cache"]).exists()
     lim.kalshi_pages[1] = [_km("A-2", q + " two", NOW - 3 * DAY)]  # the page recovers
     r = p.p_cache(hist, lim, now=NOW + 60, freeze_ts=None, clock=lambda: NOW + 60)
     assert r["status"] == "p_cache_complete" and r["cached"] == 3 and r["pages"] == 2  # resumed at the cursor: pages 2 and 3 only
@@ -656,3 +657,155 @@ def test_census_reports_target_availability_counts():
     t = c["targets"]
     assert set(t) == {"print_target", "history_target", "no_target"} and t["print_target"] + t["history_target"] + t["no_target"] == c["labels"]["ok"]
     assert "rule_booleans" in c and "key_drops" in c
+
+
+# ---- re-check fixes (P-16 .. P-22) --------------------------------------------------------------------------------------------------------------------
+
+
+def test_scheduled_end_before_the_24h_read_excludes_the_pair_before_any_read(tmp_path):
+    """P-16: endDate < t_d + 25 h -> 'ends early (scheduled)': no reads (so no 404 is ever read as an empty book), counted, outside the availability denominators."""
+    hist = tmp_path / "research_lab" / "history"
+    q = "Will the Federal Reserve cut rates at the December 2026 meeting"
+    gm = _gm(1, NOW - 600, q)
+    gm["endDate"] = p.cm.iso(NOW + 5 * HOUR)
+    km = _km("FED-26DEC", q, NOW - 3 * DAY)
+    km["close_time"] = gm["endDate"]
+    lim = LiveLim([gm], [km], {"c1": [{"timestamp": NOW + 60, "price": 0.5, "size": 3, "outcomeIndex": 0, "transactionHash": "h"}]})
+    p.p_cache(hist, lim, now=NOW, freeze_ts=None, clock=lambda: NOW)
+    p.p_live(hist, lim, lim, now=NOW + 30, rules_sha="x", freeze_ts=None, clock=lambda: NOW + 30)
+    p.p_live(hist, lim, lim, now=NOW + 120, rules_sha="x", freeze_ts=None, clock=lambda: NOW + 120)
+    live = hist / p.LIVE_RUN
+    b = next(c15.jsonl_iter(live / p.LIVE_FILES["first_prints"]))
+    assert b["ends_early"] is True
+    td = NOW + 60 + 600
+    r = p.p_live(hist, lim, lim, now=td + 5, rules_sha="x", freeze_ts=None, clock=lambda: td + 5)
+    assert r["reads"] == 0 and not (live / p.LIVE_FILES["books"]).exists()
+    assert p.births_with_24h_read(live) == 0
+    units, labels = p.rep_units(live, {pid: "pass" for pid in (x["pair_id"] for x in c15.jsonl_iter(live / p.LIVE_FILES["pairs"]))})
+    assert not units and labels["ends early (scheduled)"] == 1 and "eligible for availability" not in labels
+
+
+def test_a_404_at_the_24h_read_is_unavailable_not_an_empty_book(tmp_path):
+    live = tmp_path / "live"
+    live.mkdir()
+    audits = _live_fixture(live, 70, 0.7)
+    rows = list(c15.jsonl_iter(live / p.LIVE_FILES["books"]))
+    (live / p.LIVE_FILES["books"]).unlink()
+    for b in rows:
+        if b["which"] == "t_d+24h" and int(b["pair_id"].split("|")[0][1:]) < 5:
+            b["yes"] = {"bid": float("nan"), "ask": float("nan")}
+            b["statuses"] = {"yes": 404, "kalshi": "not requested", "no": "not requested"}
+        c15.jsonl_append(live / p.LIVE_FILES["books"], b)
+    units, labels = p.rep_units(live, audits)
+    assert labels[p.NO_BOOK_24H] == 5 and labels["ok"] == 65
+    bad = [u for u in units if u.get("unavailable_24h")]
+    assert len(bad) == 5 and all(math.isnan(u["delta"]) for u in bad) and p.rep_p2_net(bad[0]) is None  # in the denominators, in no estimate
+
+
+def test_24h_read_does_not_request_kalshi_and_only_the_needed_legs():
+    """P-18: a failed (unused) Kalshi leg at 24 h cannot drop the unit, because Kalshi is not read at 24 h."""
+    lim = LiveLim([], [], {})
+    pair = {"token_yes": "y", "token_no": "n", "k_ticker": "K"}
+    td = p.read_books(lim, lim, pair, "t_d")
+    assert td["http_ok"] and td["statuses"]["kalshi"] == 200
+    n0 = lim.requests
+    z = p.read_books(lim, lim, pair, "t_d+24h", td)
+    assert z["http_ok"] and z["statuses"]["kalshi"] == "not requested" and lim.requests - n0 <= 2
+    assert p.READ_MAX_REQUESTS == 3
+
+
+def test_a_read_never_overshoots_the_daily_cap(tmp_path):
+    hist, live, lim, td = _born_pair(tmp_path)
+    st = json.loads((live / p.LIVE_FILES["state"]).read_text())
+    st["requests_day"] = p.DAILY_REQUEST_CAP - 2  # a read can need 3 requests: no room, deferred
+    (live / p.LIVE_FILES["state"]).write_text(json.dumps(st))
+    r = p.p_live(hist, lim, lim, now=td + 5, rules_sha="x", freeze_ts=None, clock=lambda: td + 5)
+    assert r["reads"] == 0
+    assert json.loads((live / p.LIVE_FILES["state"]).read_text())["requests_day"] <= p.DAILY_REQUEST_CAP
+
+
+def test_pair_that_always_fails_becomes_unavailable_source_and_the_run_completes(tmp_path):
+    """P-17: >= 3 failed attempts in 3 separate runs spanning >= 15 min -> 'unavailable (source)' (finished, counted, never a unit)."""
+
+    class Lim:
+        requests = 0
+
+        def get(self, url, params):
+            self.requests += 1
+            if "trades" in url:
+                return 200, [{"timestamp": BASE + 100, "price": 0.5, "size": 5, "outcomeIndex": 0, "transactionHash": "h"}]
+            if "candlesticks" in url:
+                return 500, None
+            if "prices-history" in url:
+                return 200, {"history": []}
+            raise AssertionError(url)
+
+    (tmp_path / "creative_batch15").mkdir()
+    frame = tmp_path / "creative_batch15" / "birth_frame.csv.gz"
+    p.write_birth_frame(frame, [["K1", "S", "Politics", "/live", "1", "e1", p.cm.iso(BASE - 3 * DAY), p.cm.iso(BASE), 72.0, 0.0, 1.0]])
+    hist = tmp_path / "research_lab" / "history"
+    gm = {"1": {"id": "1", "conditionId": "c1", "outcomes": '["Yes","No"]', "clobTokenIds": '["a","b"]', "events": [{"id": "e1"}]}}
+    for t in (1000.0, 1500.0):  # two failed runs: still pending
+        r = p.p_data(hist, Lim(), Lim(), frame_path=frame, gamma_lookup=lambda ids: gm, clock=lambda t=t: t)
+        assert r["status"] == p.P_DATA_PROGRESS
+    r = p.p_data(hist, Lim(), Lim(), frame_path=frame, gamma_lookup=lambda ids: gm, clock=lambda: 2000.0)  # third failed attempt, span 1000 s >= 900 s
+    assert r["status"] == p.P_DATA_PROGRESS
+    r = p.p_data(hist, Lim(), Lim(), frame_path=frame, gamma_lookup=lambda ids: gm, clock=lambda: 2100.0)
+    assert r["status"] == p.P_DATA_STATUS and r["complete"]
+    d = hist / p.DATA_RUN
+    rec = next(c15.jsonl_iter(d / p.DATA_FILES["work"]))
+    assert rec["status"] == p.UNAVAILABLE_SOURCE and rec["attempts"] == 3
+    assert p.unit_features(rec, [], np.zeros((0, 5)))["label"] == p.UNAVAILABLE_SOURCE
+
+
+def test_too_few_attempts_or_too_short_a_span_does_not_terminate(tmp_path):
+    class Lim:
+        requests = 0
+
+        def get(self, url, params):
+            self.requests += 1
+            if "trades" in url:
+                return 200, [{"timestamp": BASE + 100, "price": 0.5, "size": 5, "outcomeIndex": 0, "transactionHash": "h"}]
+            return (500, None) if "candlesticks" in url else (200, {"history": []})
+
+    (tmp_path / "creative_batch15").mkdir()
+    frame = tmp_path / "creative_batch15" / "birth_frame.csv.gz"
+    p.write_birth_frame(frame, [["K1", "S", "Politics", "/live", "1", "e1", p.cm.iso(BASE - 3 * DAY), p.cm.iso(BASE), 72.0, 0.0, 1.0]])
+    hist = tmp_path / "research_lab" / "history"
+    gm = {"1": {"id": "1", "conditionId": "c1", "outcomes": '["Yes","No"]', "clobTokenIds": '["a","b"]', "events": [{"id": "e1"}]}}
+    for t in (1000.0, 1100.0, 1200.0, 1300.0, 1400.0):  # 5 runs but only 400 s apart (< 15 min)
+        r = p.p_data(hist, Lim(), Lim(), frame_path=frame, gamma_lookup=lambda ids: gm, clock=lambda t=t: t)
+        assert r["status"] == p.P_DATA_PROGRESS
+
+
+def test_kalshi_cache_folder_is_capped_and_counted_in_the_live_total(tmp_path, monkeypatch):
+    hist = tmp_path / "research_lab" / "history"
+    q = "Will the Federal Reserve cut rates at the December 2026 meeting"
+    lim = LiveLim([_gm(2, NOW - 600, q)], [_km("FED-26DEC", q, NOW - 3 * DAY)], {})
+    p.p_cache(hist, lim, now=NOW, freeze_ts=None, clock=lambda: NOW)
+    cdir = hist / p.LIVE_RUN / p.CACHE_SUBDIR
+    assert (cdir / p.CACHE_FILES["cache"]).is_file() and p._dir_bytes(hist / p.LIVE_RUN) > p._dir_bytes(hist / p.LIVE_RUN, exclude=cdir)
+    # the cache job stops paging over its own cap (the old cache stays)
+    monkeypatch.setattr(p, "CACHE_DIR_CAP_BYTES", 10)
+    lim.kalshi_pages = [[_km("A-1", q, NOW - 3 * DAY)], [_km("B-1", q + " b", NOW - 3 * DAY)]]
+    r = p.p_cache(hist, lim, now=NOW + 5 * HOUR, freeze_ts=None, clock=lambda: NOW + 5 * HOUR)
+    assert r["pages"] == 0 and any("cap" in json.loads(x)["why"] for x in (cdir / p.CACHE_FILES["gaps"]).read_text().splitlines())
+    # the watcher counts the cache in the total: live cap + cache cap
+    (hist / p.LIVE_RUN / "pad.bin").write_bytes(b"x" * 1000)
+    r = p.p_live(hist, lim, lim, now=NOW + 5 * HOUR + 30, rules_sha="x", freeze_ts=None, clock=lambda: NOW + 5 * HOUR + 30, cap_bytes=500)
+    assert r["matched"] == 0
+
+
+def test_combined_kalshi_rate_is_at_most_one_per_second():
+    import importlib.util
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+    run = importlib.import_module("run_cb15")
+    assert run.DECLARED_KALSHI_RPS_BY_CMD["p-live"] + run.DECLARED_KALSHI_RPS_BY_CMD["p-cache"] <= 1.0
+    assert importlib.util.find_spec("run_cb15") is not None
+
+
+def test_poly_rule_booleans_declared_unknown_and_kalshi_true_flag_excludes():
+    assert p.POLY_RULE_BOOLEANS == "unknown"
+    assert p.rule_booleans_differ({"k_bool_provisional": True}) and not p.rule_booleans_differ({"k_bool_provisional": False}) and not p.rule_booleans_differ({})
