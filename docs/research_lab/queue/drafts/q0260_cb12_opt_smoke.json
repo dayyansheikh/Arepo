@@ -1,0 +1,39 @@
+{
+ "id": "q0260_cb12_opt_smoke",
+ "title": "CB12-O smoke (one live checkpoint dry run inside a regular session, 10:00-15:45 ET): both strike-frame regexes on the frozen public searches ('closes above', 'close above'), rule-text flags, CBOE chain per underlying with its timestamp (older than the receipt, < 1 h), the iv time-convention check (theo recomputed under ACT/365 vs 252 x 6.5 trading hours for 20 near-the-money calls; >= 80% within 1%; ACT/365 if both; none -> Phi(d2) units excluded), two /book reads on up to 4 members, Nasdaq earnings calendar keyless, chain dividend field (informational); no unit kept",
+ "family": "creative_batch_12",
+ "priority": 21,
+ "expected_value": "go/no-go for O and the iv convention written into the O freeze entry",
+ "data": [
+  "public Gamma public-search, CLOB /book",
+  "cdn.cboe.com delayed quotes",
+  "api.nasdaq.com earnings calendar"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "gamma-api, clob, cdn.cboe.com, api.nasdaq.com"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb12.py",
+  "opt-smoke",
+  "--rules",
+  "../docs/research_lab/seals/cb12_rules.json",
+  "--rps",
+  "2"
+ ],
+ "timeout_s": 900,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch12/opt_smoke.json (write-once)",
+  "trials.jsonl (cb12_descriptive)"
+ ],
+ "next_action": "PASS: copy opt_smoke.json iv_convention into the O entry of model_specs/cb12_v1.json (with frozen_utc), science-reviewer freeze confirmation, commit the O freeze, install the q0261 cron line; FAIL: O not testable (source), counted",
+ "notes": "DRAFT. <= 450 requests (one checkpoint). Outside a regular session it exits 75 (pending) and returns a clean idle heartbeat at least every 10 h, so a weekend wait never trips the 48-tempfail cap; it ends only on the smoke line. No price, outcome or unit kept. Smoke needs: guards_fixture_O, o_frame_regex (daily template >= 1 hit), o_chain, o_chain_timestamp, o_books, o_iv_convention_checked (>= 20 options examined; 'none' is a valid declared outcome). OPEN ITEM for the freeze: the declared ex-dividend rule reads the chain's own data, and the CBOE delayed chain carries no dividend field (key listing 2026-10-19), so every unit would be 'excluded: ex-dividend unknown' unless the rule is amended before the O freeze (the collector keeps the Nasdaq ex-dividend dates point-in-time as raw data). Rules part sha256 (seals/cb12_rules.json, 2026-10-19 code): common f2f672c1dfa22ce1388fd85b42bebc23248f58c5bb4349f6745c4b2493dcc647, O 766eed85ea10ef9fb0b83469481d05e46b29e84b72f69be1b328f4b01bf54470. Disclosed deviation: the design's seals/cb12_opt_rules.json is part O of seals/cb12_rules.json (per-part hashing). CB12 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / O code changes.",
+ "repeat": {
+  "max_runs": 12,
+  "until_log_regex": "\"smoke\": (true|false)"
+ }
+}

@@ -1,7 +1,7 @@
 # ruff: noqa: E501
 """CB12 runner (docs/research_lab/CREATIVE_BATCH_12.md section 4). Run from cwd=backend (queue worker). EXPLORATORY / METHODS DATA ONLY: no edge, calibration or
-profitability claim. This file covers common + smoke + X + M (queue ids q0240, q0241, q0242, q0243, q0248 (M), q0249 (M part), q0251, q0252, q0255, q0256); E, F and O
-subcommands arrive with their modules and are refused here.
+profitability claim. This file covers common + smoke + X + M (queue ids q0240, q0241, q0242, q0243, q0248 (M), q0249 (M part), q0251, q0252, q0255, q0256) and O
+(q0260 opt-smoke, q0261 opt-live, q0262 census O, q0263 screen O, q0264 rep O); E and F subcommands arrive with their modules and are refused here.
 
     python scripts/run_cb12.py rules                       # write docs/research_lab/seals/cb12_rules.json (one sha256 per part: common, M, E, F, X, O); commit before q0240
     python scripts/run_cb12.py freeze-part --part M|X      # print a part of the CB12 freeze declaration (model_specs/cb12_v1.json carries one entry per family part)
@@ -11,7 +11,9 @@ subcommands arrive with their modules and are refused here.
     python scripts/run_cb12.py seal --family M|auto ...    # q0248 (M HOLDOUT listing + outcome file sha256)
     python scripts/run_cb12.py census --family M|X         # q0249 (M part) / q0251: counts only; gates; coverage; MDEs
     python scripts/run_cb12.py screen --family M|X         # q0252 / q0255 (refuse before the family's freeze entry)
-    python scripts/run_cb12.py rep --family M              # q0256 (verifies the seal and the pinned Stage-1 results first)
+    python scripts/run_cb12.py rep --family M|O            # q0256 / q0264 (verifies the seal / the pinned Stage-1 results first)
+    python scripts/run_cb12.py opt-smoke ...               # q0260: one live checkpoint dry run in a regular session (exit 75 outside), WRITE-ONCE opt_smoke.json
+    python scripts/run_cb12.py opt-live ...                # q0261: the O collector (cron every 5 min on weekdays; refuses before the O freeze)
 
 Exit codes: 0 ok / transient pause / declared stall (the label is carried, never exit 2) / declared end state; 1 error; 2 refusal (rules hash of the command's part, smoke
 result exists or missing, run id, refused root, declared argument changed, before the family's freeze for analysis jobs, HOLDOUT, guarded file, results exist); 4 disk
@@ -32,9 +34,9 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "backend"))
 
 REFUSED, TEMPFAIL, DISK_BUDGET = 2, 75, 4
-IMPLEMENTED = ("M", "X")
-DECLARED_DISK_CAP_GB = {"exclusion-keys": 0.01, "say-frame": 0.005, "say-prices": 0.08}
-DECLARED_RPS_MAX = {"smoke": 1.0, "exclusion-keys": 2.0, "say-frame": 2.0, "say-prices": 2.0, "seal": 2.0}
+IMPLEMENTED = ("M", "X", "O")
+DECLARED_DISK_CAP_GB = {"exclusion-keys": 0.01, "say-frame": 0.005, "say-prices": 0.08, "opt-live": 0.3}
+DECLARED_RPS_MAX = {"smoke": 1.0, "exclusion-keys": 2.0, "say-frame": 2.0, "say-prices": 2.0, "seal": 2.0, "opt-smoke": 2.0, "opt-live": 2.0}
 
 
 def _emit(obj: dict) -> None:
@@ -158,6 +160,54 @@ def _committed(a):
 
 def _freeze(a, part: str) -> str:
     return _c12().require_freeze(part, Path(a.freeze_spec) if getattr(a, "freeze_spec", None) else None, require_committed=not getattr(a, "allow_uncommitted_rules", False))
+
+
+def _freeze_entry(a, part: str) -> tuple[str, dict]:
+    """(sha256, entry) of one family part of the committed CB12 freeze declaration."""
+    c12 = _c12()
+    sha = _freeze(a, part)
+    p = Path(a.freeze_spec) if getattr(a, "freeze_spec", None) else Path(c12.__file__).resolve().parent / "model_specs" / "cb12_v1.json"
+    return sha, json.loads(p.read_text())[part]
+
+
+def _o_frozen_epoch(entry: dict) -> float:
+    c12 = _c12()
+    t = c12.parse_iso(entry.get("frozen_utc"))
+    if not t == t:  # NaN
+        raise c12.Refused("the O freeze entry has no frozen_utc (window 1 starts at the first session >= 1 day after it)")
+    return t
+
+
+def _o_convention(a, entry: dict) -> str | None:
+    """The iv time convention written into the O freeze entry (``iv_convention``); it must equal the smoke's choice. "none" -> Phi(d2) units are excluded."""
+    from astrolabe.research_lab import cb12_o as o12  # noqa: PLC0415
+
+    c12 = _c12()
+    conv = entry.get("iv_convention")
+    sp = Path(a.opt_smoke) if getattr(a, "opt_smoke", None) else o12.SMOKE_V2_DEFAULT
+    if not sp.exists():
+        raise c12.Refused(f"{sp.name} missing (q0260 first)")
+    choice = ((json.loads(sp.read_text()).get("detail") or {}).get("O") or {}).get("o_iv_convention_checked", {}).get("choice")
+    if conv not in (*o12.CONVENTIONS, "none") or conv != choice:
+        raise c12.Refused(f"O freeze iv_convention {conv!r} differs from the smoke's choice {choice!r} (or is missing)")
+    return None if conv == "none" else conv
+
+
+def _o_earnings_identified(a) -> bool:
+    from astrolabe.research_lab import cb12_o as o12  # noqa: PLC0415
+
+    sp = Path(a.opt_smoke) if getattr(a, "opt_smoke", None) else o12.SMOKE_V2_DEFAULT
+    return bool((json.loads(sp.read_text()).get("criteria") or {}).get("o_earnings_keyless")) if sp.exists() else False
+
+
+def _o_sources(a):
+    from astrolabe.research_lab import cb12_o as o12  # noqa: PLC0415
+    from astrolabe.research_lab import history_backfill as hb  # noqa: PLC0415
+
+    live = None if getattr(a, "standalone", False) else hb.live_pass_or_lock
+    pm = hb.Limiter(hb.httpx_transport(), rps=min(a.rps, o12.PM_RPS), live_check=live)
+    ext = hb.Limiter(o12.ext_transport(), rps=o12.EXT_RPS, live_check=live)
+    return o12.Sources(pm, ext)
 
 
 def _family(a) -> str:
@@ -391,6 +441,25 @@ def census_x_block(a) -> dict:
     return x12.census_x(loaded["pairs"], loaded["report"])
 
 
+def census_o_block(a) -> dict:
+    """q0262: window-1 census of the O collector (counts only). Needs the O freeze entry (frozen_utc, iv_convention); waits (exit 75) until window 1 closed and the
+    outcome step is final for its dates; a failed smoke criterion is the counted label "not testable (source)"."""
+    from astrolabe.research_lab import cb12_o as o12  # noqa: PLC0415
+    from astrolabe.research_lab import cb12_smoke as sm  # noqa: PLC0415
+
+    _fsha, entry = _freeze_entry(a, "O")
+    root = _hist(a) / o12.RUN
+    bad = sm.smoke_failures(_smoke_paths(a, "O"), sm.family_needs("O"))
+    if bad:
+        return {"label_O": "not testable (source)", "smoke_failures": bad, "counts_only": True}
+    conv = _o_convention(a, entry)
+    win = o12.windows(root, _o_frozen_epoch(entry), time.time())
+    return o12.census_o(root, win["w1"], conv) | {"windows": win}
+
+
+CENSUS_BLOCKS = {"M": census_m_block, "X": census_x_block, "O": census_o_block}
+
+
 @_guarded
 def cmd_census(a):
     from astrolabe.research_lab import cb8_common as cm  # noqa: PLC0415
@@ -398,17 +467,14 @@ def cmd_census(a):
     c12 = _c12()
     fam = _family(a)
     sha = _rules(a, fam)
-    if fam == "M":
-        out = Path(a.out) if a.out else _root(a) / f"census_M{a.census_tag}.json"
-    else:
-        out = Path(a.out) if a.out else _root(a) / f"census_X{a.census_tag}.json"
+    out = Path(a.out) if a.out else _root(a) / f"census_{fam}{a.census_tag}.json"
     if out.exists():
         raise c12.Refused(f"{out} exists; the census is written once")
     ver = int(a.census_tag[2:]) if re.fullmatch(r"_v[0-9]+", a.census_tag or "") else 1
-    doc = {"version": f"cb12-census-{fam}-v{ver}", "counts_only": True, "rules_sha256": sha, fam: census_m_block(a) if fam == "M" else census_x_block(a)}
+    doc = {"version": f"cb12-census-{fam}-v{ver}", "counts_only": True, "rules_sha256": sha, fam: CENSUS_BLOCKS[fam](a)}
     cm.write_once_json(out, doc)
-    c12.log_descriptive(f"census_{fam}", {"census_sha256": cm.sha_obj(doc), "path": str(out)}, trials_path=_tp(a))
-    return 0, {"status": "census_complete", "written": str(out), "label": doc[fam].get("label_M" if fam == "M" else "label_X")}
+    c12.log_descriptive(f"census_{fam}", {"census_sha256": cm.sha_obj(doc), "path": str(out)}, trials_path=_tp(a), role="prospective" if fam == "O" else c12.EVIDENCE_ROLE_HIST)
+    return 0, {"status": "census_complete", "written": str(out), "label": doc[fam].get(f"label_{fam}")}
 
 
 # ---- screens -----------------------------------------------------------------------------------------------------------------------------------
@@ -463,6 +529,12 @@ def cmd_screen(a):
             c12.verify_fetch(rdir, (m12.PRICES_STATUS,), "say_prices")
             c12.verify_holdout_seal(rdir, "cb12_say_holdout_SEAL.json", _seals_dir(a), require_committed=not a.allow_uncommitted_rules)
         body = m12.screen_m(rdir, census)
+    elif fam == "O":
+        from astrolabe.research_lab import cb12_o as o12  # noqa: PLC0415
+
+        _fsha, entry = _freeze_entry(a, "O")
+        conv = _o_convention(a, entry) if not census.get("label_O") else None
+        body = o12.screen_o(_hist(a) / o12.RUN, census, conv, earnings_identified=_o_earnings_identified(a))
     else:
         from astrolabe.research_lab import cb12_smoke as sm  # noqa: PLC0415
         from astrolabe.research_lab import cb12_x as x12  # noqa: PLC0415
@@ -482,42 +554,116 @@ def cmd_screen(a):
     doc = {**body, "rules_sha256": sha, "freeze_part": fam, "freeze_sha256": freeze_sha, "census_sha256": hashlib.sha256(cpath.read_bytes()).hexdigest(), "written_epoch": time.time()}
     doc["by_triage"] = _by_triage({t: doc[t] for t in tids}, _tp(a))
     rsha = c12.write_results_once(Path(a.out) if a.out else root / f"results_{fam}.json", doc)
-    c12.log_family(fam, {t: _line(doc[t]) for t in tids}, trials_path=_tp(a), results_sha256=rsha, placebos=_placebos(doc, tids))
+    c12.log_family(fam, {t: _line(doc[t]) for t in tids}, trials_path=_tp(a), results_sha256=rsha, placebos=_placebos(doc, tids),
+                   role="prospective" if fam == "O" else c12.EVIDENCE_ROLE_HIST)
     return 0, {"status": f"screen_{fam}_complete", **{t: {k: doc[t].get(k) for k in ("p", "advance", "verdict")} for t in tids}}
+
+
+def _pinned_stage1(a, fam: str, root: Path) -> tuple[dict, tuple[str, ...]]:
+    c12 = _c12()
+    rp = root / f"results_{fam}.json"
+    if not rp.exists():
+        raise c12.NotNow(f"results_{fam}.json missing: Stage 1 first")
+    res = json.loads(rp.read_text())
+    adv = tuple(t for t in c12.FAMILY_TESTS[fam] if (res.get(t) or {}).get("advance") is True)
+    if not adv:
+        raise c12.Refused(f"no CB12-{fam} test advanced: there is no {fam} Stage 2")
+    if not a.results_sha256:
+        raise c12.Refused(f"--results-sha256 is required for the {fam} replication (pin the committed Stage-1 results_{fam}.json first)")
+    if hashlib.sha256(rp.read_bytes()).hexdigest() != a.results_sha256.lower():
+        raise c12.Refused(f"results_{fam}.json sha256 differs from --results-sha256: Stage 2 stays closed")
+    return res, adv
 
 
 @_guarded
 def cmd_rep(a):
-    from astrolabe.research_lab import cb12_m as m12  # noqa: PLC0415
-
     c12 = _c12()
     fam = _family(a)
-    if fam != "M":
+    if fam not in ("M", "O"):
         raise c12.Refused(f"family {fam} has no Stage 2 in this runner")
     freeze_sha = _freeze(a, fam)
     sha = _rules(a, fam)
     root = _root(a)
-    rdir = _hist(a) / m12.FRAME_RUN
-    rp = root / "results_M.json"
-    if not rp.exists():
-        raise c12.NotNow("results_M.json missing: Stage 1 first")
-    res = json.loads(rp.read_text())
-    adv = tuple(t for t in c12.FAMILY_TESTS["M"] if (res.get(t) or {}).get("advance") is True)
-    if not adv:
-        raise c12.Refused("neither M1 nor M2 advanced: there is no M Stage 2")
-    if not a.results_sha256:
-        raise c12.Refused("--results-sha256 is required for the M replication (pin the committed Stage-1 results_M.json before the HOLDOUT is opened)")
-    if hashlib.sha256(rp.read_bytes()).hexdigest() != a.results_sha256.lower():
-        raise c12.Refused("results_M.json sha256 differs from --results-sha256: the HOLDOUT stays closed")
-    census = json.loads((root / "census_M.json").read_text())["M"]
-    c12.verify_fetch(rdir, (m12.PRICES_STATUS,), "say_prices")
-    seal = c12.verify_holdout_seal(rdir, "cb12_say_holdout_SEAL.json", _seals_dir(a), require_committed=not a.allow_uncommitted_rules)
-    body = m12.rep_m(rdir, census, adv, seal, k2=a.stage2_k)
+    _res, adv = _pinned_stage1(a, fam, root)
+    if fam == "M":
+        from astrolabe.research_lab import cb12_m as m12  # noqa: PLC0415
+
+        rdir = _hist(a) / m12.FRAME_RUN
+        census = json.loads((root / "census_M.json").read_text())["M"]
+        c12.verify_fetch(rdir, (m12.PRICES_STATUS,), "say_prices")
+        seal = c12.verify_holdout_seal(rdir, "cb12_say_holdout_SEAL.json", _seals_dir(a), require_committed=not a.allow_uncommitted_rules)
+        body = m12.rep_m(rdir, census, adv, seal, k2=a.stage2_k)
+    else:
+        from astrolabe.research_lab import cb12_o as o12  # noqa: PLC0415
+
+        _fsha, entry = _freeze_entry(a, "O")
+        orun = _hist(a) / o12.RUN
+        win = o12.windows(orun, _o_frozen_epoch(entry), time.time())
+        o12.require_outcomes_final(orun, o12.window_dates(win["w2"]))
+        body = o12.rep_o(orun, win["w2"], _o_convention(a, entry), adv, earnings_identified=_o_earnings_identified(a), k2=a.stage2_k)
     doc = {**body, "rules_sha256": sha, "freeze_sha256": freeze_sha, "stage1_results_sha256": a.results_sha256.lower()}
-    rsha = c12.write_results_once(Path(a.out) if a.out else root / "results_M_rep.json", doc)
+    rsha = c12.write_results_once(Path(a.out) if a.out else root / f"results_{fam}_rep.json", doc)
     lines = {t: _line(doc[f"{t}_rep"], advance_key="stage2_pass_alpha_over_k") for t in adv}
-    c12.log_family("M", lines, replication=True, trials_path=_tp(a), results_sha256=rsha, n_triggered=len(adv), placebos=_placebos({t: doc[f"{t}_rep"] for t in adv}, adv))
-    return 0, {"status": "rep_M_complete", "tests": list(adv)}
+    c12.log_family(fam, lines, replication=True, trials_path=_tp(a), results_sha256=rsha, n_triggered=len(adv), placebos=_placebos({t: doc[f"{t}_rep"] for t in adv}, adv),
+                   role="prospective" if fam == "O" else c12.EVIDENCE_ROLE_HIST)
+    return 0, {"status": f"rep_{fam}_complete", "tests": list(adv)}
+
+
+# ---- q0260 / q0261 CB12-O ----------------------------------------------------------------------------------------------------------------------
+
+
+@_guarded
+def cmd_opt_smoke(a):
+    from astrolabe.research_lab import cb8_common as cm  # noqa: PLC0415
+    from astrolabe.research_lab import cb12_o as o12  # noqa: PLC0415
+    from astrolabe.research_lab import cb12_smoke as sm  # noqa: PLC0415
+    from astrolabe.research_lab import history_backfill as hb  # noqa: PLC0415
+
+    c12 = _c12()
+    _declared(a, "opt-smoke")
+    out = c12.refuse_path(Path(a.out) if a.out else o12.SMOKE_V2_DEFAULT)
+    if out.exists():
+        raise c12.Refused(f"smoke result {out} already exists; it is write-once")
+    shas = {"common": _rules(a, "common"), "O": _rules(a, "O")}
+    now = time.time()
+    if not o12.in_smoke_session(now):  # exit 75 while waiting, a clean idle heartbeat at least every 10 h (the queue's 48-tempfail cap never fires over a weekend)
+        return 0, cm.idle(out.parent / "opt_smoke_wait", "opt-smoke runs only inside a regular US session (10:00-15:45 ET); pending", now)
+    src = _o_sources(a)
+    try:
+        crit, detail = sm.collect_checks(("O",), {"o_sources": src, "now": now}, src.pm)
+    except cm.ApiError as exc:
+        _not_now_if_transient("a CB12-O source", exc)
+        raise
+    except RuntimeError:
+        raise cm.NotNow("opt-smoke: a request failed (network); nothing written") from None
+    need = set(o12.SMOKE_NEEDS)
+    res = {"smoke_version": c12.SMOKE_VERSION, "family_smoke_versions": {"O": o12.SMOKE_FAMILY_VERSION}, "rules_sha256": shas, "git_commit": hb._git_commit(), "run_utc": cm.iso(now),
+           "counts_only": True, "families_covered": ["O"], "requests": src.pm.requests + src.ext.requests, "criteria": crit, "pass": all(v for k, v in crit.items() if k in need),
+           "iv_convention": detail["O"]["o_iv_convention_checked"]["choice"], "detail": detail, "no_unit_kept": True,
+           "consequences": {"a failed needed criterion": "O not testable (source), counted", "iv_convention": "written into the O freeze entry (iv_convention) before the freeze; none -> Phi(d2) units excluded"}}
+    cm.write_once_json(out, res)
+    c12.log_descriptive("opt_smoke", {"pass": res["pass"], "criteria": crit, "iv_convention": res["iv_convention"], "smoke_path": str(out)}, trials_path=_tp(a), role="prospective")
+    return 0, {"smoke": res["pass"], "criteria": crit, "iv_convention": res["iv_convention"], "written": str(out), "requests": res["requests"]}
+
+
+@_guarded
+def cmd_opt_live(a):
+    from astrolabe.research_lab import cb8_common as cm  # noqa: PLC0415
+    from astrolabe.research_lab import cb12_o as o12  # noqa: PLC0415
+
+    c12 = _c12()
+    _declared(a, "opt-live")
+    sha = _rules(a, "O")
+    _fsha, entry = _freeze_entry(a, "O")
+    frozen = _o_frozen_epoch(entry)
+    root = c12.require_output_root(_hist(a) / o12.RUN)
+    dd = Path(a.data_dumps) if a.data_dumps else cm.DATA_DUMPS
+    cap = int(a.disk_cap_gb * 1024**3)
+    res = o12.opt_live_tick(root, now=time.time(), src=_o_sources(a), rules_sha=sha, frozen_epoch=frozen,
+                            disk_check=lambda: c12.require_disk(dd, a.data_dumps_cap_gb, cap), sleep=time.sleep)
+    if res.get("status") in ("outcomes", "daily"):
+        cm.write_json_atomic(root / "windows.json", {**o12.windows(root, frozen, time.time()), "updated_utc": cm.iso(time.time())})
+    return 0, res
 
 
 # ---- parser -------------------------------------------------------------------------------------------------------------------------------------
@@ -585,9 +731,11 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--seals-dir", default=None)
     q.set_defaults(fn=cmd_seal)
 
-    q = sub.add_parser("census", help="q0249 (M) / q0251 (X)")
+    q = sub.add_parser("census", help="q0249 (M) / q0251 (X) / q0262 (O)")
     common(q)
-    q.add_argument("--family", required=True, help="M | X (one family per job)")
+    q.add_argument("--family", required=True, help="M | X | O (one family per job)")
+    q.add_argument("--freeze-spec", default=None)
+    q.add_argument("--opt-smoke", default=None)
     q.add_argument("--smoke", default=None)
     q.add_argument("--out", default=None)
     q.add_argument("--seals-dir", default=None)
@@ -595,9 +743,10 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--census-tag", default="", help="file-name suffix of the census (e.g. _v2: a census re-run under amended code; the earlier file is kept)")
     q.set_defaults(fn=cmd_census)
 
-    q = sub.add_parser("screen", help="q0252 (M) / q0255 (X)")
+    q = sub.add_parser("screen", help="q0252 (M) / q0255 (X) / q0263 (O)")
     common(q)
-    q.add_argument("--family", required=True, help="M | X")
+    q.add_argument("--family", required=True, help="M | X | O")
+    q.add_argument("--opt-smoke", default=None)
     q.add_argument("--smoke", default=None)
     q.add_argument("--census", default=None)
     q.add_argument("--census-tag", default="", help="reads census_<family><tag>.json (default: the untagged file)")
@@ -607,15 +756,27 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--allow-unpinned-c1", action="store_true", help="tests only")
     q.set_defaults(fn=cmd_screen)
 
-    q = sub.add_parser("rep", help="q0256 (M)")
+    q = sub.add_parser("rep", help="q0256 (M) / q0264 (O)")
     common(q)
-    q.add_argument("--family", required=True, help="M")
+    q.add_argument("--family", required=True, help="M | O")
+    q.add_argument("--opt-smoke", default=None)
     q.add_argument("--out", default=None)
     q.add_argument("--freeze-spec", default=None)
     q.add_argument("--seals-dir", default=None)
     q.add_argument("--stage2-k", type=int, default=None)
-    q.add_argument("--results-sha256", default=None, help="pinned sha256 of the committed Stage-1 results_M.json (required)")
+    q.add_argument("--results-sha256", default=None, help="pinned sha256 of the committed Stage-1 results_<family>.json (required)")
     q.set_defaults(fn=cmd_rep)
+
+    q = sub.add_parser("opt-smoke", help="q0260 (CB12-O smoke, one live checkpoint dry run)")
+    common(q)
+    q.add_argument("--out", default=None)
+    q.set_defaults(fn=cmd_opt_smoke)
+
+    q = sub.add_parser("opt-live", help="q0261 (CB12-O collector; cron)")
+    common(q)
+    net(q, disk_cap=0.3)
+    q.add_argument("--freeze-spec", default=None)
+    q.set_defaults(fn=cmd_opt_live)
     return ap
 
 

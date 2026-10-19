@@ -67,7 +67,10 @@ def test_rules_round_trip_parts_and_hashes(rules_file):
         assert c12.verify_rules(rules_file, require_committed=False, part=part) == doc["parts"][part]["rules_sha256"]
     shas = {doc["parts"][p]["rules_sha256"] for p in ("common", "M", "X")}
     assert len(shas) == 3 and all(len(s) == 64 for s in shas)
-    for part in ("E", "F", "O"):
+    for part in ("E", "F", "O"):  # a family part is declared exactly when its module exists (added later without moving common / M / X)
+        if c12.family_modules(part):
+            assert doc["parts"][part]["part_declared"] is True and len(doc["parts"][part]["rules_sha256"]) == 64
+            continue
         assert doc["parts"][part]["part_declared"] is False and doc["parts"][part]["rules_sha256"] is None
         with pytest.raises(c12.Refused, match="not declared"):
             c12.verify_rules(rules_file, require_committed=False, part=part)
@@ -123,11 +126,14 @@ def test_adding_a_family_module_changes_no_other_part(monkeypatch):
 
 def test_rules_cli_and_freeze_part(tmp_path, capsys):
     code, out = _run(["rules", "--path", (tmp_path / "r.json").as_posix()], capsys)
-    assert code == 0 and out["parts"]["M"]["declared"] and out["parts"]["X"]["declared"] and not out["parts"]["E"]["declared"] and len(out["parts"]["X"]["rules_sha256"]) == 64
+    assert code == 0 and out["parts"]["M"]["declared"] and out["parts"]["X"]["declared"] and len(out["parts"]["X"]["rules_sha256"]) == 64
+    assert all(out["parts"][p]["declared"] == bool(c12.family_modules(p)) for p in ("E", "F", "O"))
     code, out = _run(["freeze-part", "--part", "X"], capsys)
     assert code == 0 and out["part"] == "X" and out["declaration"]["cb12_x"]["label"] == x12.LABEL_X
-    code, out = _run(["freeze-part", "--part", "E"], capsys)
-    assert code == 2 and "not declared" in out["refused"]
+    undeclared = [p for p in ("E", "F", "O") if not c12.family_modules(p)]
+    if undeclared:
+        code, out = _run(["freeze-part", "--part", undeclared[0]], capsys)
+        assert code == 2 and "not declared" in out["refused"]
 
 
 def test_verify_rules_refuses_uncommitted_file(rules_file):
@@ -1595,16 +1601,25 @@ def test_seal_rereads_frames_absent_at_q0241_and_rep_applies_the_drops(world, ca
         m12.rep_m(w.rdir, {}, ("M1",), verified)
 
 
+def _queue_spec(name: str) -> Path:
+    """A CB12 queue spec, wherever it currently lives (drafts/ before promotion, jobs/ after)."""
+    for sub in ("drafts", "jobs"):
+        p = REPO / "docs/research_lab/queue" / sub / name
+        if p.exists():
+            return p
+    raise FileNotFoundError(name)
+
+
 def test_q0241_q0242_drafts_carry_repeat_and_pinned_shas():
     drafts = REPO / "docs/research_lab/queue/drafts"
     import re
     for name, status in (("q0241_cb12_exclusion_keys.json", "exclusion_keys_complete"), ("q0242_cb12_say_frame.json", "say_frame_complete")):
-        d = json.loads((drafts / name).read_text())
+        d = json.loads(_queue_spec(name).read_text())
         rx = d["repeat"]["until_log_regex"]
         assert d["repeat"]["max_runs"] >= 3 and re.search(rx, json.dumps({"status": status}, sort_keys=True)) and not re.search(rx, json.dumps({"status": "in_progress"}, sort_keys=True))
-    assert re.search(json.loads((drafts / "q0241_cb12_exclusion_keys.json").read_text())["repeat"]["until_log_regex"], json.dumps({"status": "disjointness_unverified"}))
+    assert re.search(json.loads(_queue_spec("q0241_cb12_exclusion_keys.json").read_text())["repeat"]["until_log_regex"], json.dumps({"status": "disjointness_unverified"}))
     rules = json.loads((REPO / "docs/research_lab/seals/cb12_rules.json").read_text())["parts"]
-    for f in drafts.glob("q02[45]*_cb12_*.json"):
+    for f in drafts.glob("q02[4-6]*_cb12_*.json"):  # pending drafts only (promoted jobs keep the shas they ran under)
         txt = json.loads(f.read_text()).get("notes", "")
         for part in ("common", "M", "X"):
             for m_ in re.finditer(rf"(?<![A-Za-z]){part} ([0-9a-f]{{64}})", txt):
@@ -1684,9 +1699,10 @@ def test_sports_dropped_by_tag_is_counted():
 def test_cb12_drafts_budgeted_stops_regexes_and_lanes():
     import re
     drafts = REPO / "docs/research_lab/queue/drafts"
+    assert drafts.is_dir()
     for name in ("q0241_cb12_exclusion_keys.json", "q0242_cb12_say_frame.json"):
-        d = json.loads((drafts / name).read_text())
+        d = json.loads(_queue_spec(name).read_text())
         assert d["argv"][d["argv"].index("--budget-min") + 1] == "35" and d["repeat"]["max_runs"] == 12
-    rx = json.loads((drafts / "q0243_cb12_say_prices.json").read_text())["repeat"]["until_log_regex"]
+    rx = json.loads(_queue_spec("q0243_cb12_say_prices.json").read_text())["repeat"]["until_log_regex"]
     assert all(re.search(rx, json.dumps({"status": s})) for s in ("say_prices_complete", "not_run_source", "disjointness_unverified", "upstream_not_testable"))
-    assert json.loads((drafts / "q0248_cb12_seal.json").read_text())["resources"]["lane"] == "net"
+    assert json.loads(_queue_spec("q0248_cb12_seal.json").read_text())["resources"]["lane"] == "net"

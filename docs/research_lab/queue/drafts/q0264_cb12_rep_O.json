@@ -1,0 +1,34 @@
+{
+ "id": "q0264_cb12_rep_O",
+ "title": "CB12-O: O1-rep and/or O2-rep on window 2 (same rules)",
+ "family": "creative_batch_12",
+ "priority": 20,
+ "expected_value": "L2 verdicts",
+ "data": [
+  "history/h12_opt_live (window-2 settlement dates) + outcomes_guarded/<window-2 dates>"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0263_cb12_screen_O"
+ ],
+ "argv": [
+  "scripts/run_cb12.py",
+  "rep",
+  "--family",
+  "O",
+  "--results-sha256",
+  "TODO-COORDINATOR"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch12/results_O_rep.json",
+  "trials.jsonl (cb12_replication + creative_batch_12:O:rep)"
+ ],
+ "next_action": "pass: Stage P-O depth-aware window",
+ "notes": "DRAFT. Only if O1 or O2 advanced; the coordinator pins the committed results_O.json sha256 in --results-sha256; waits until window 2 closed and its outcome step is final. Early reps at alpha/10. Rules part sha256 (seals/cb12_rules.json, 2026-10-19 code): common f2f672c1dfa22ce1388fd85b42bebc23248f58c5bb4349f6745c4b2493dcc647, O 766eed85ea10ef9fb0b83469481d05e46b29e84b72f69be1b328f4b01bf54470. Disclosed deviation: the design's seals/cb12_opt_rules.json is part O of seals/cb12_rules.json (per-part hashing). CB12 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / O code changes."
+}

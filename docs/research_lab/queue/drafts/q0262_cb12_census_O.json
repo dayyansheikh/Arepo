@@ -1,0 +1,30 @@
+{
+ "id": "q0262_cb12_census_O",
+ "title": "CB12-O census (window 1), counts only: units by ticker/settlement/checkpoint/template/anchor type/tightness/exclusion label, GO (>= 1,000 tight analysable units, >= 40 (ticker, settlement) clusters, >= 30 distinct settlement dates, >= 10 per session), cor(q - m1, q_RV - m1) for the attribution label",
+ "family": "creative_batch_12",
+ "priority": 20,
+ "expected_value": "O gate",
+ "data": [
+  "history/h12_opt_live/raw, daily (no outcome file opened)"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb12.py",
+  "census",
+  "--family",
+  "O"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch12/census_O.json",
+  "trials.jsonl (cb12_descriptive)"
+ ],
+ "next_action": "q0263",
+ "notes": "DRAFT. Commit only after windows.json shows w1 closed and the outcome step final for its dates (else it waits, exit 75). Needs the O freeze entry (frozen_utc; iv_convention equal to opt_smoke.json's choice). A failed smoke criterion writes the counted label 'not testable (source)'. Fewer than 30 settlement dates -> 'not run (power)', counted. Rules part sha256 (seals/cb12_rules.json, 2026-10-19 code): common f2f672c1dfa22ce1388fd85b42bebc23248f58c5bb4349f6745c4b2493dcc647, O 766eed85ea10ef9fb0b83469481d05e46b29e84b72f69be1b328f4b01bf54470. Disclosed deviation: the design's seals/cb12_opt_rules.json is part O of seals/cb12_rules.json (per-part hashing). CB12 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / O code changes."
+}

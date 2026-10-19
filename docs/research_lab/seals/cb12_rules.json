@@ -1693,11 +1693,923 @@
    }
   },
   "O": {
+   "constants": {
+    "cb12_common": {
+     "ACCESS_LOG": "ACCESS_LOG.jsonl",
+     "ALLOWED_OUTPUT_ROOT_PARTS": [
+      "creative_batch12",
+      "h12_say",
+      "h12_quake",
+      "h12_prints",
+      "h12_quake_live",
+      "h12_opt_live"
+     ],
+     "AVAIL_MIN": 0.6,
+     "BATCH_HOLM_K1": 10,
+     "BY_Q": 0.1,
+     "CB12_SPORTS_IN_PRIMARY": false,
+     "DATA_DUMPS_CAP_GB": 40.0,
+     "DATA_PAGES": 2,
+     "DATA_PAGE_LIMIT": 10000,
+     "DROPS_FILE": "drops.csv.gz",
+     "EARLY_ALPHA": 0.005,
+     "EVIDENCE_ROLE_HIST": "exploratory_historical",
+     "EXCLUSION_KEYS_COMPLETE": "exclusion_keys_complete",
+     "EXCLUSION_RUN": "exclusion_run12",
+     "EXTRACT_ROOT_RE": "^cb\\d+_extract$",
+     "EXTRA_REFUSED_ROOTS": [
+      "creative_batch11",
+      "creative_batch10",
+      "creative_batch9",
+      "snapshots",
+      "trade_samples",
+      "live_trades",
+      "book_sweeps",
+      "surprise_live",
+      "cross_venue_live",
+      "h9_flow",
+      "h10_sign",
+      "h10_dlad",
+      "h10_brk",
+      "h11_wprints",
+      "h11_pol",
+      "h11_attn",
+      "h1_first",
+      "h2_main",
+      "h3_power",
+      "h4_seal",
+      "h5_cb1",
+      "h5_cb1_ladders",
+      "h6_weather",
+      "h7_cb4_era",
+      "h7_cb4_series",
+      "h8_tail",
+      "h8_tail_b",
+      "h8_text",
+      "h8_geo"
+     ],
+     "FAMILY_MODULES": {
+      "E": [
+       "cb12_e"
+      ],
+      "F": [
+       "cb12_f"
+      ],
+      "M": [
+       "cb12_m"
+      ],
+      "O": [
+       "cb12_o"
+      ],
+      "X": [
+       "cb12_x"
+      ]
+     },
+     "FAMILY_PARTS": [
+      "M",
+      "E",
+      "F",
+      "X",
+      "O"
+     ],
+     "FAMILY_REP_TESTS": {
+      "E": [
+       "E1",
+       "E2"
+      ],
+      "F": [
+       "AL1",
+       "AL2",
+       "SH1",
+       "SH2"
+      ],
+      "M": [
+       "M1",
+       "M2"
+      ],
+      "O": [
+       "O1",
+       "O2"
+      ],
+      "X": []
+     },
+     "FAMILY_TESTS": {
+      "E": [
+       "E1"
+      ],
+      "F": [
+       "AL1",
+       "AL2",
+       "SH1",
+       "SH2"
+      ],
+      "M": [
+       "M1",
+       "M2"
+      ],
+      "O": [
+       "O1",
+       "O2"
+      ],
+      "X": [
+       "X1"
+      ]
+     },
+     "FREE_DISK_MIN_GB": 4.5,
+     "GAMMA_EVENTS": "https://gamma-api.polymarket.com/events",
+     "GAMMA_OFFSET_CAP": 2000,
+     "GAMMA_PAGE": 100,
+     "GATE_P": 0.01,
+     "GMP_DRAWS": 500,
+     "GUARDED_NAMES": [
+      "outcomes_guarded_screen.csv.gz",
+      "outcomes_guarded_holdout.csv.gz",
+      "outcomes_guarded.csv.gz"
+     ],
+     "HEARTBEAT_S": 36000.0,
+     "HOLDOUT_PART": "holdout",
+     "ID_SOURCES": [
+      [
+       "h9_flow",
+       "sample.csv.gz"
+      ],
+      [
+       "h10_sign",
+       "sample.csv.gz"
+      ],
+      [
+       "h10_dlad",
+       "frame.csv.gz"
+      ],
+      [
+       "h10_brk",
+       "frame.csv.gz"
+      ],
+      [
+       "h11_wprints",
+       "markets.csv.gz"
+      ],
+      [
+       "h11_pol",
+       "frame.csv.gz"
+      ],
+      [
+       "h11_attn",
+       "frame.csv.gz"
+      ]
+     ],
+     "LIVE_ROOT_NAME": "cross_venue_live",
+     "LOOKUP_PER_REQUEST": 50,
+     "MAX_UNVERIFIED_KEY_SHARE": 0.02,
+     "MIN_CLUSTERS": 30,
+     "MIN_UNITS": 100,
+     "N_BOOT": 2000,
+     "N_WILD": 9999,
+     "OWN_SEAL_COPIES": [
+      "cb12_say_holdout_SEAL.json",
+      "cb12_prints_holdout_SEAL.json"
+     ],
+     "PARTS": [
+      "common",
+      "M",
+      "E",
+      "F",
+      "X",
+      "O"
+     ],
+     "PENDING": "pending",
+     "PIN_UNSET": "TODO-COORDINATOR",
+     "PLACEBO_DRAWS": 200,
+     "PLACEBO_MAX_ADVANCE": 0.015,
+     "PLACEBO_SEEDS": {
+      "M1_copula": 12101,
+      "M2_fill_calibrated": 12102,
+      "X1_horizon_offset": 12108
+     },
+     "PRICE_CAP": 0.99,
+     "PRICE_MAX_AGE_S": 86400.0,
+     "PRICE_MIN_LAG_S": 600,
+     "REP_JOBS": [
+      "rep-M",
+      "rep-E",
+      "rep-F",
+      "rep-O"
+     ],
+     "RULES_MACHINERY": [
+      "rules_part_doc",
+      "rules_part_file_doc",
+      "rules_file_doc",
+      "write_rules",
+      "verify_rules",
+      "family_modules",
+      "common_funcs",
+      "module_funcs",
+      "module_constants",
+      "part_funcs",
+      "_mods",
+      "_jsonable"
+     ],
+     "RULES_VERSION": "cb12-rules-v1",
+     "SCREEN_JOBS": [
+      "screen-M",
+      "screen-E",
+      "screen-F",
+      "screen-X",
+      "screen-O"
+     ],
+     "SEAL_NAME": "holdout_SEAL.json",
+     "SEED_BOOT": 1212,
+     "SEED_GMP": 12121,
+     "SERIES_DATES_COLUMNS": [
+      "series_id",
+      "event_id",
+      "start_epoch"
+     ],
+     "SERIES_DATES_NAME": "exclusion_series_dates.csv.gz",
+     "SERIES_DATES_RUN_FILE": "series_dates_report.json",
+     "SMOKE_VERSION": "cb12-smoke-v1",
+     "STAGE1_HOLM_FAMILY": [
+      "M1",
+      "M2",
+      "E1",
+      "AL1",
+      "AL2",
+      "SH1",
+      "SH2",
+      "X1",
+      "O1",
+      "O2"
+     ],
+     "STAGE2_K_MAX": 10,
+     "STAGE_ALPHA": 0.05,
+     "T12_HIST_END": "2026-10-01T00:00:00Z",
+     "T12_HIST_END_EPOCH": 1790812800.0,
+     "T12_X_END": "2026-10-12T00:00:00Z",
+     "T12_X_END_EPOCH": 1791763200.0,
+     "TICK": 0.01,
+     "TOP_DROP": 5,
+     "T_SEAL": "2026-10-22T00:00:00Z",
+     "UNVERIFIED": "disjointness_unverified",
+     "X_MTIME_MAX_EPOCH": 1791849600.0,
+     "X_READABLE_ROOTS": [
+      "cross_venue"
+     ]
+    },
+    "cb12_o": {
+     "AGREE_MIN": 0.97,
+     "BOOK_GAP_S": 60.0,
+     "BOOK_LEVELS": 5,
+     "CAP_SEED": "arepo-cb12-opt-cap",
+     "CBOE_TS_FORMAT": "%Y-%m-%d %H:%M:%S",
+     "CBOE_URL": "https://cdn.cboe.com/api/global/delayed_quotes/options/{}.json",
+     "CHAIN_STRIKES_EACH_SIDE": 3,
+     "CHECKPOINTS_ET": [
+      [
+       11,
+       0
+      ],
+      [
+       13,
+       0
+      ],
+      [
+       15,
+       0
+      ]
+     ],
+     "CHECKPOINT_WINDOW_S": 1200,
+     "CLOB_BOOK": "https://clob.polymarket.com/book",
+     "CLOSE_COLUMNS": [
+      "symbol",
+      "settle",
+      "close"
+     ],
+     "CLOSE_ET": [
+      16,
+      0
+     ],
+     "CONVENTIONS": [
+      "act365",
+      "trading_hours"
+     ],
+     "CONVENTION_N": 20,
+     "CONVENTION_SHARE": 0.8,
+     "CONVENTION_TOL": 0.01,
+     "CONV_DAYS": [
+      2,
+      60
+     ],
+     "CONV_MIN_THEO": 0.05,
+     "CONV_MONEYNESS": 0.03,
+     "CONV_PER_UNDERLYING": 4,
+     "COR_MAX": 0.9,
+     "DAILY_FROM_ET": [
+      10,
+      0
+     ],
+     "DAILY_RE": {
+      "flags": 32,
+      "regex": "^.+ \\(([A-Z.]{1,6})\\) closes above ___ on [A-Z][a-z]+ \\d{1,2}\\?$"
+     },
+     "DAY": 86400.0,
+     "DIVIDEND_RULE": "chain",
+     "DIV_KEY_RE": {
+      "flags": 34,
+      "regex": "(?i)div"
+     },
+     "EARNINGS_MAX_DAYS": 45,
+     "EDGE": 0.04,
+     "END_OF_RE": {
+      "flags": 32,
+      "regex": "end of ([A-Z][a-z]+)\\?$"
+     },
+     "EXCLUDED_UNDERLYINGS": [
+      "WTI",
+      "CL",
+      "BRENT",
+      "BZ",
+      "GC",
+      "GOLD",
+      "XAU",
+      "SI",
+      "SILVER",
+      "XAG",
+      "NG",
+      "HG",
+      "COPPER",
+      "BTC",
+      "ETH",
+      "SOL",
+      "XRP",
+      "DOGE",
+      "VIX",
+      "DXY"
+     ],
+     "EXT_RPS": 1.0,
+     "EXT_UA": "Mozilla/5.0 (arepo-research-lab/1)",
+     "FEE_FLOOR": 0.04,
+     "FLAG_RES": {
+      "equal_clause": {
+       "flags": 34,
+       "regex": "(?i)\\b(exactly\\s+equal|equal\\s+to|or\\s+equal|at\\s+or\\s+above)\\b"
+      },
+      "exchange_close": {
+       "flags": 34,
+       "regex": "(?i)\\b(nasdaq|nyse|exchange)\\b[^.]{0,60}\\bclos"
+      },
+      "final_close": {
+       "flags": 34,
+       "regex": "(?i)\\b(final|closing)\\b[^.]{0,30}\\b(price|close)\\b"
+      },
+      "official_close": {
+       "flags": 34,
+       "regex": "(?i)\\bofficial\\b[^.]{0,40}\\bclos"
+      },
+      "pyth": {
+       "flags": 34,
+       "regex": "(?i)\\bpyth\\b"
+      },
+      "regular_session": {
+       "flags": 34,
+       "regex": "(?i)\\bregular\\s+(trading\\s+)?(session|hours)\\b"
+      }
+     },
+     "GO_MIN": {
+      "clusters": 40,
+      "dates": 30,
+      "per_session": 10,
+      "tight_units": 1000
+     },
+     "HALF_CLOSE_ET": [
+      13,
+      0
+     ],
+     "HALF_SESSIONS": [
+      "2026-11-27",
+      "2026-12-24",
+      "2027-11-26"
+     ],
+     "HOLIDAYS": [
+      "2026-01-01",
+      "2026-01-19",
+      "2026-02-16",
+      "2026-04-03",
+      "2026-05-25",
+      "2026-06-19",
+      "2026-07-03",
+      "2026-09-07",
+      "2026-11-26",
+      "2026-12-25",
+      "2027-01-01",
+      "2027-01-18",
+      "2027-02-15",
+      "2027-03-26",
+      "2027-05-31",
+      "2027-06-18",
+      "2027-07-05",
+      "2027-09-06",
+      "2027-11-25",
+      "2027-12-24"
+     ],
+     "HOUR": 3600.0,
+     "INDEX_CBOE": {
+      "NDX": "_NDX",
+      "RUT": "_RUT",
+      "SPX": "_SPX"
+     },
+     "INDEX_ROOT": {
+      "NDX": "NDXP",
+      "RUT": "RUTW",
+      "SPX": "SPXW"
+     },
+     "INDEX_YAHOO": {
+      "NDX": "^NDX",
+      "RUT": "^RUT",
+      "SPX": "^GSPC"
+     },
+     "LABEL_O": "prospective (window 1 Stage 1; window 2 L2); not independent of CB9-P",
+     "MAX_CHAINS": 20,
+     "MAX_MEMBERS": 200,
+     "MONTHS": [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December"
+     ],
+     "MONTH_END_RE": {
+      "flags": 32,
+      "regex": "^Will .+ \\(([A-Z.]{1,6})\\) close above ___ (on .+|end of [A-Z][a-z]+)\\?$"
+     },
+     "NASDAQ_DIVIDENDS": "https://api.nasdaq.com/api/quote/{}/dividends",
+     "NASDAQ_EARNINGS": "https://api.nasdaq.com/api/calendar/earnings",
+     "O1_FLOOR": 0.3,
+     "O2_COST_ROBUST": 0.005,
+     "O2_FLOOR": 0.01,
+     "ON_DATE_RE": {
+      "flags": 32,
+      "regex": " on ([A-Z][a-z]+) (\\d{1,2})(?:, (\\d{4}))?\\?$"
+     },
+     "OPEN_ET": [
+      9,
+      30
+     ],
+     "OPT_SPREAD_MAX": 0.1,
+     "OPT_SYM_RE": {
+      "flags": 32,
+      "regex": "^([A-Z]+)(\\d{6})([CP])(\\d{8})$"
+     },
+     "OUTCOME_COLUMNS": [
+      "market_id",
+      "settle",
+      "yes_index",
+      "outcome_prices",
+      "uma_status"
+     ],
+     "OUTCOME_EVERY_S": 10800.0,
+     "OUTCOME_MAX_DAYS": 7,
+     "PM_RPS": 2.0,
+     "Q_MAX": 0.95,
+     "Q_MIN": 0.05,
+     "RUN": "h12_opt_live",
+     "RV_DAYS": 20,
+     "SEARCH_LIMIT": 100,
+     "SEARCH_MAX_PAGES": 2,
+     "SEARCH_QUERIES": [
+      "closes above",
+      "close above"
+     ],
+     "SEARCH_URL": "https://gamma-api.polymarket.com/public-search",
+     "SEED_SIGNFLIP": 12109,
+     "SETTLEMENT_TOL_DAYS": 3,
+     "SMOKE_FAMILY_VERSION": "cb12-smoke-O-v1",
+     "SMOKE_NEEDS": [
+      "guards_fixture_O",
+      "o_frame_regex",
+      "o_chain",
+      "o_chain_timestamp",
+      "o_books",
+      "o_iv_convention_checked"
+     ],
+     "SMOKE_SESSION_ET": [
+      [
+       10,
+       0
+      ],
+      [
+       15,
+       45
+      ]
+     ],
+     "STRIKE_Q_RE": {
+      "flags": 34,
+      "regex": "(?i)above \\$?\\s*([0-9][0-9,]*(?:\\.[0-9]+)?)"
+     },
+     "STRIKE_RE": {
+      "flags": 32,
+      "regex": "([0-9][0-9,]*(?:\\.[0-9]+)?)"
+     },
+     "TIGHT_SPREAD": 0.045,
+     "UNIT_LABELS": [
+      "available",
+      "unavailable (first read)",
+      "crossed",
+      "not tight",
+      "unavailable (chain)",
+      "unavailable (chain timestamp)",
+      "excluded: no anchor",
+      "excluded: option spread",
+      "excluded: q range",
+      "excluded: ex-dividend",
+      "excluded: ex-dividend unknown",
+      "excluded: phi(d2) without convention",
+      "unavailable (second read)"
+     ],
+     "WEEKLY_RE": {
+      "flags": 34,
+      "regex": "(?i)\\bfinish(?:es)?\\s+(?:the\\s+)?week\\b"
+     },
+     "WINDOW1_CAP": "2027-01-31",
+     "WINDOW2_CAP": "2027-05-31",
+     "WINDOW_MIN_CLUSTERS": 60,
+     "WINDOW_MIN_DATES": 30,
+     "YAHOO_CHART": "https://query1.finance.yahoo.com/v8/finance/chart/",
+     "YAHOO_FEATURE_DAYS": 45
+    }
+   },
+   "declared": {
+    "cb12_o": {
+     "anchor": {
+      "chain_clock": "chain timestamp (UTC) < first book receipt",
+      "convention_rule": {
+       "days": [
+        2,
+        60
+       ],
+       "min_theo": 0.05,
+       "moneyness": 0.03,
+       "n": 20,
+       "per_underlying": 4,
+       "share": 0.8,
+       "tie": "act365",
+       "tol": 0.01
+      },
+      "conventions": [
+       "act365",
+       "trading_hours"
+      ],
+      "direct": "listed expiry == d: (C(K_lo) - C(K_hi)) / (K_hi - K_lo) from two-sided call mids, clipped [0, 1]; listed K -> the strikes immediately below and above",
+      "exclusions": {
+       "earnings": "flag only (primary includes all); robustness excludes flagged units if the smoke verified the calendar keyless",
+       "ex_dividend": "source chain: (t, d] or unknown -> excluded",
+       "option_spread_max_share_of_mid": 0.1,
+       "q_range": [
+        0.05,
+        0.95
+       ]
+      },
+      "phi_d2": "else Phi(d2), iv linear in strike at K from the nearest expiry >= d, spot = chain underlying price, r = 0, T under the smoke-chosen convention (none -> excluded)"
+     },
+     "collection": {
+      "book_levels": 5,
+      "cap_rank_seed": "arepo-cb12-opt-cap",
+      "chain_strikes_each_side": 3,
+      "checkpoints_et": [
+       "11:00",
+       "13:00",
+       "15:00"
+      ],
+      "daily": "Yahoo daily bars before the day; Nasdaq earnings rows of the frame symbols over [day, max settlement] (<= 45 d); Nasdaq ex-dividend dates (raw, kept)",
+      "half_sessions": [
+       "2026-11-27",
+       "2026-12-24",
+       "2027-11-26"
+      ],
+      "holidays": [
+       "2026-01-01",
+       "2026-01-19",
+       "2026-02-16",
+       "2026-04-03",
+       "2026-05-25",
+       "2026-06-19",
+       "2026-07-03",
+       "2026-09-07",
+       "2026-11-26",
+       "2026-12-25",
+       "2027-01-01",
+       "2027-01-18",
+       "2027-02-15",
+       "2027-03-26",
+       "2027-05-31",
+       "2027-06-18",
+       "2027-07-05",
+       "2027-09-06",
+       "2027-11-25",
+       "2027-12-24"
+      ],
+      "max_chains": 20,
+      "max_members": 200,
+      "missed": "unavailable (collection), never back-filled; host disk refusal at a due checkpoint -> unavailable (host disk)",
+      "order": "frame -> chain -> book read 1 -> book read 2 (>= 60 s)",
+      "outcomes": "outcomes_guarded/<d>/ only: Yahoo close of d (fetched >= 1 day after d) and Gamma resolution; final when complete or 7 days after d",
+      "regular_sessions_only": true,
+      "window_s": 1200
+     },
+     "frame": {
+      "daily_re": "^.+ \\(([A-Z.]{1,6})\\) closes above ___ on [A-Z][a-z]+ \\d{1,2}\\?$",
+      "listing": "createdAt <= t - 1 h",
+      "month_end_re": "^Will .+ \\(([A-Z.]{1,6})\\) close above ___ (on .+|end of [A-Z][a-z]+)\\?$",
+      "rule_flags": {
+       "equal_clause": "(?i)\\b(exactly\\s+equal|equal\\s+to|or\\s+equal|at\\s+or\\s+above)\\b",
+       "exchange_close": "(?i)\\b(nasdaq|nyse|exchange)\\b[^.]{0,60}\\bclos",
+       "final_close": "(?i)\\b(final|closing)\\b[^.]{0,30}\\b(price|close)\\b",
+       "official_close": "(?i)\\bofficial\\b[^.]{0,40}\\bclos",
+       "pyth": "(?i)\\bpyth\\b",
+       "regular_session": "(?i)\\bregular\\s+(trading\\s+)?(session|hours)\\b"
+      },
+      "search": {
+       "events_status": "active",
+       "limit": 100,
+       "max_pages": 2,
+       "queries": [
+        "closes above",
+        "close above"
+       ],
+       "url": "https://gamma-api.polymarket.com/public-search"
+      },
+      "settlement": "title date (on <Month> <day>) or the month's last session (end of <Month>), year closest to endDate; > 3 days from endDate's ET date -> ambiguous (excluded)",
+      "underlyings": {
+       "equity": "CBOE <TICKER>.json, option root = ticker",
+       "excluded": [
+        "WTI",
+        "CL",
+        "BRENT",
+        "BZ",
+        "GC",
+        "GOLD",
+        "XAU",
+        "SI",
+        "SILVER",
+        "XAG",
+        "NG",
+        "HG",
+        "COPPER",
+        "BTC",
+        "ETH",
+        "SOL",
+        "XRP",
+        "DOGE",
+        "VIX",
+        "DXY"
+       ],
+       "index_cboe": {
+        "NDX": "_NDX",
+        "RUT": "_RUT",
+        "SPX": "_SPX"
+       },
+       "index_root": {
+        "NDX": "NDXP",
+        "RUT": "RUTW",
+        "SPX": "SPXW"
+       },
+       "index_yahoo": {
+        "NDX": "^NDX",
+        "RUT": "^RUT",
+        "SPX": "^GSPC"
+       }
+      },
+      "weekly_excluded_re": "(?i)\\bfinish(?:es)?\\s+(?:the\\s+)?week\\b"
+     },
+     "gates": {
+      "GO": {
+       "clusters": 40,
+       "dates": 30,
+       "per_session": 10,
+       "tight_units": 1000
+      },
+      "agreement_min": 0.97
+     },
+     "label": "prospective (window 1 Stage 1; window 2 L2); not independent of CB9-P",
+     "o1": {
+      "attribution": "q_RV (20-day realised vol); joint coefficient >= half solo; cor > 0.9 -> not identifiable",
+      "floor": 0.3,
+      "placebo": "settlement-date sign flip, seed 12109",
+      "robustness": "direct-digital; each checkpoint; earnings excluded (if identified); halves; top-5 per way",
+      "stat": "WLS slope of Y - m2 on q - m1, cluster (ticker, d) weight 1",
+      "ways": [
+       "settle",
+       "ticker_settle"
+      ]
+     },
+     "o2": {
+      "fee": "r a (1 - a), r = max(feeSchedule.rate, 0.04)",
+      "floor": 0.01,
+      "placebo": "m_prev (13->11, 15->13, 11->previous session 15:00) must not pass p < 0.01",
+      "robustness": "+0.005 on the ask; halves; top-5 per way",
+      "rule": "first tight checkpoint with q - a_YES >= 0.04 or (1 - q) - a_NO >= 0.04"
+     },
+     "rules_file_note": "the design's seals/cb12_opt_rules.json is part O of seals/cb12_rules.json (per-part hashing)",
+     "smoke": {
+      "needs": [
+       "guards_fixture_O",
+       "o_frame_regex",
+       "o_chain",
+       "o_chain_timestamp",
+       "o_books",
+       "o_iv_convention_checked"
+      ],
+      "session_et": [
+       [
+        10,
+        0
+       ],
+       [
+        15,
+        45
+       ]
+      ],
+      "version": "cb12-smoke-O-v1"
+     },
+     "stage1": "p < 0.01, floor, binding placebo, robustness, early Holm at alpha / 10 (full step-down when O is final)",
+     "units": {
+      "availability_min": 0.6,
+      "m1_m2": "mids of the first and second reads",
+      "q_rv": "Phi(d2) with the 20-day realised vol of Yahoo closes dated before the unit's day, T under the chosen convention (act365 if none was chosen)",
+      "tight": "both touches and spread <= 0.045 in the first read",
+      "y_o1": "Yahoo close of d vs K (equal 0.5)",
+      "y_o2": "Gamma resolution (what the venue paid)"
+     },
+     "windows": {
+      "caps": [
+       "2027-01-31",
+       "2027-05-31"
+      ],
+      "close": ">= 60 (ticker, d) clusters and >= 30 dates with a tight unit, settled",
+      "power": "fewer than 30 dates by the cap -> not run (power), counted",
+      "start": "first session >= 1 day after the O freeze (frozen_utc of the freeze entry)"
+     }
+    }
+   },
+   "func_sources_sha256": {
+    "cb12_common.aggregate_transactions": "08f41e54495e027b0ce3e213b6548ce55999782173c2f79ad54683e4a8324a6c",
+    "cb12_common.c1_market_ids": "2d470f722e34a801c5751de43d423bf3c03a51353c4b0d9ae5321c6e25d0e599",
+    "cb12_common.ceil_tick": "af6783f6548c6e1c33f48702e468c51ba0299ecd63bbf5541cbf5a4d8706d36d",
+    "cb12_common.cluster_p": "a7e86a6d0f27ae1b45f8936c410f4862034b4534c9af2cf87bdddec413c18291",
+    "cb12_common.cluster_se_mean": "d8c8ed52c7eb81940adc26f9acb4ba90fbd3fc251a796274faa7c9b3230029c6",
+    "cb12_common.early_stage1_ok": "046fbc6823754520e2157b71a894d1e9382af4ef3d1d42353d7ce7904e123bb5",
+    "cb12_common.early_stage2_ok": "a986684721616f7569597ce748b214f92e6221ff78a3fe7cd8e73b3cffec8fb8",
+    "cb12_common.exclusion_keys": "25dd2f6ca4263c40e2a14f0dedaf30c5d4523a642927cfa33061680efc82e6a8",
+    "cb12_common.exclusion_stage": "b2dd35c1ec54c7121299bf8e5f6d5b657691366488904e553d9195e6f1e86e97",
+    "cb12_common.fetch_prints_paged": "db90a4c31db02d6535efd8c88a0bda75dad6b22be99d094f7e7b4659ab7ba5cb",
+    "cb12_common.guard_screen_path": "635560bb0998aa2a9c54b25fab2e02858f9c76cfd9bd39202c0af51c9e03fc07",
+    "cb12_common.holm": "7831f9b32b4876f0450ed05cb8050f4c22ce84e78e12430e8d5efd3aee861803",
+    "cb12_common.is_holdout_path": "c35f9f1dc469e31a1e3c6ed9ca5fa1c76829eed14514af2c8f4fa8c9b909240b",
+    "cb12_common.iso_week_of": "8380c27fb3b8e66a304fe0bbae7a45da206ae521ce57764292e51f45a982c0ac",
+    "cb12_common.known_lag_s": "d0fbc9efe75f0d01a15dc8da29870bcd07edac0b9b3eb45ea242c6fadd85dae2",
+    "cb12_common.listish": "66999b312145ac17e5fd36f52a83fb78253aaa91dc03b49c9124589a11602024",
+    "cb12_common.load_drops": "036934dd94bcd6d9224319afa98a97a11df8bb69e7968816ff10786c989419fb",
+    "cb12_common.load_exclusion_keys": "c31f3f8c0c742ba5e773cbc9974075445d7ddd4f1fcd637d67deb0fce9f91eef",
+    "cb12_common.load_series_dates": "11bf16994a88daaab5efce62c7774af0207ff067cff3ff61a55520acf10d5fc7",
+    "cb12_common.log_access": "2aef281b30cfd935ebcc282a96c3fa891e84b0099a47fb18c149f952cc6e5630",
+    "cb12_common.log_descriptive": "6ac8c24f70b29c81cdb0b1ede5acf24d32027a1003d8c748e2eafec18c3bf291",
+    "cb12_common.log_family": "c9d5853516d2d7c6b77368245d0b1c78499cdbfc60801cc7261a3b353f5d4c96",
+    "cb12_common.lookup_keys_closed_first": "466132284fb1886941bcbdc820c075250009fa794dcb9112c2bd74aa7e5654d2",
+    "cb12_common.manifest_complete": "242883ea1969a82f1f2614ae217699788f001e6047505786b420a64710a5bed0",
+    "cb12_common.mde": "6c43ef79505a40b002ccc422274968450ee6d1e76af1134cff17a43471a87170",
+    "cb12_common.num": "6b0d39403e1916672eadc55c8241ff0c3cdfb233983e5e8b36b400140ab6f068",
+    "cb12_common.one_sided_boot_p": "7812ce5bccc071522932012f9886313a9281ef9045cf06f5d46ae4a553092e2f",
+    "cb12_common.open_guarded": "092952dedb85d730d5d534d348a9cc4d9fc382312de0abc008d0f573dfb1af20",
+    "cb12_common.parse_iso": "f56a746aac64f2456a69e6ad81c952e3b4ebff1aa8a167e5ab567d2182477da3",
+    "cb12_common.placebo_advance_rate": "dddafa6653cc29c6d9cfaac9f5cbf9b45bb978e4249f3b54b1f0854c7dcbe0ea",
+    "cb12_common.price_at": "63939905ce42d13dbf916af2260a51a849770c64cec1f590444e6825aa562db9",
+    "cb12_common.rank": "84ab60daca926f462c2bc318f0a7a3b6b4d5a2480a5640d13181fcbec93683bc",
+    "cb12_common.reach_ok": "c1027e0f9f22591e52de9c54ee1cec87bbff59fc529022838f630b36f35b9036",
+    "cb12_common.read_csv_gz": "0de78d753f9c22f4985ca862de9e64db28b0333f859376b5d38ce4eb9aedc535",
+    "cb12_common.read_id_set": "247f84572b3a12e65d3b20d455cb7de0da46cbcf6a98ffe4244b844dbac9e57c",
+    "cb12_common.refuse_path": "28d433c10d4e09f2f81181a4ae07cbc3f8ca857c01e14e26fed7104a7bf3c844",
+    "cb12_common.refuse_read": "0ed50e47e225b7a86ea71f52f9fc02122d50d66d35c8665fe8ea2c6faecb7a54",
+    "cb12_common.refused_names": "32b50ab79443589af19374c0cc7519d67f852856b04b43f23c510ec76c27b790",
+    "cb12_common.require_after": "6241d5801e7645bf91762727ba115dfb8b52b46613a150bdc9a424f9ebd4480b",
+    "cb12_common.require_complete": "3b6604357fd07395f4104daa66c2311f94cad2703e372c20966f9c5c9d619474",
+    "cb12_common.require_disk": "66681a0d33bf0192436c44a5e343dfbc775a355bfe24fdfdfd809fb2c08f1ada",
+    "cb12_common.require_freeze": "3015dec7fa1068400db9fce1cd514493d0f0a79d09ac54060e11de8690d99031",
+    "cb12_common.require_output_root": "3a7951b8ce7552c8540ba4cfb5445cae02e40188d5619f4a816c2792956e0cb0",
+    "cb12_common.seal_holdout": "c61638765f2453c90f866c2c008f0419d5d09eedee8657b3744613d3e6f0e812",
+    "cb12_common.series_dates_stage": "67cc3b3cb1a54a7af532c08f532917e14ee6eb6e37f90a89bd8090987b79d7bb",
+    "cb12_common.sha256_obj": "29f7a73c2109e9902f07d1b4343c0975871e392d9e53aea23bc0b4e5d4ca548f",
+    "cb12_common.stage1_holm": "2b310b34ba4f4a1615fdaab65b1eb04b049e9a66d84f54501cc399e2da9a933c",
+    "cb12_common.stage2_holm": "6cac1a8ca6ba3581d623159a413631d164fe5e490e43bd54bef66f01c24dd165",
+    "cb12_common.stall_of": "beaf29289839d29160f8aa542364dc8395c2620bbe57d025038cbfa1443bc186",
+    "cb12_common.top_k_drop_mask": "6582a115058255fc43f961c9c4e156af75be744d0ddbc3806df9af0d4a175d6b",
+    "cb12_common.upstream_stall": "cc030b6f9a1b37b4930f960dab3878bfd23010a9963eb7b96d4caf22cf2c4ffe",
+    "cb12_common.utc_day": "08bd95ebea2913c2ac28497a6f68d35937ad7630f9a0653a2f7e6f1b8c389cdb",
+    "cb12_common.verify_fetch": "cac10ee8e422fb149ac3d0242da785480b95f233ce272d9a8af21d1781b2e427",
+    "cb12_common.verify_holdout_seal": "5808eba6429a1171804a805321ec8287c3d4f96583d0619b67f42952a0280f7e",
+    "cb12_common.wait_or_idle": "9eaca81ab04a1251f7f09314d6e3aec8d3161c53c55922c90fcc9f002ba2a6bd",
+    "cb12_common.write_results_once": "8d9db29f6dfe30663f51418686250cc01acae415517635cf5fb419c14c3cc630",
+    "cb12_common.write_stall": "a75cca03b65b4179b2e461a6ed1c21fbc71752f6090a554ae30f71e2da4b675d",
+    "cb12_o.Sources": "2b6ff941440ae50187e4cd7ebc4f9f0f719f119be3d183add15ee6f4ff519ae9",
+    "cb12_o._closest_year": "a170d13da2701ccaaefabba4be70c71c2202444fb17c49926c639afc72725071",
+    "cb12_o._d": "373702709575aba0d37d505042db2388e476edd979e434a1c5f73460d26d2050",
+    "cb12_o._holds": "f3d42cf4fb868c6cc7bef4c68c2544488a0e6afe1ce57cbfcf73127e849ebf45",
+    "cb12_o._mid": "c04cbbf96baa5f05fe5405ae1a97df952c25c0c208351338e9678a8b365a4593",
+    "cb12_o._record": "8877009084cf93f67ad92e1fd1750247d168aecdab7a6357c3e05033fce8cf91",
+    "cb12_o._rjson_gz": "e24e4fe9b6be4fff9d595f747db305533f7541f1c31655e2882032c8c85fc323",
+    "cb12_o._spread_ok": "fbf7d3db72434825a2e6b5049a6e0a94ff8dbc4793e9cba1bf62515d40e2a520",
+    "cb12_o._strip": "87711787709cc5f1071a06b4329d092cdaf5004d8965141a620e4f71c6cee660",
+    "cb12_o._wjson_gz": "d36decfea436aa1a6f63bcf43ab0ad990c365ba9467c18b110102f9c842847c7",
+    "cb12_o.anchor": "3497d8136813c6970364b5269d0fd7cc6a66df239e8edffa2ac783ebdb5eb802",
+    "cb12_o.attach_mprev": "2d655449db1c3e795516da9ba3d05767a0d5fdcef0d9e9c077ba9bd9048939ec",
+    "cb12_o.attach_outcomes": "a9f5e0ca89d7fa69ec4b05ad28f0ab05849b034e6bc5e89197f9bcc9f19765e9",
+    "cb12_o.availability": "4b22b2aea46bc7e37e8996ff79745e3537933b5d91cf417e9e0657b71a7675fb",
+    "cb12_o.book_state": "1dbc584616828a953b0930e287a2533c1f3396d592bbf1b3cdcb120492cc9243",
+    "cb12_o.bracket": "ce1835af53862d9cb75e5cf077f7ff61d57216e1db9e33061229612602bf3133",
+    "cb12_o.bs_call": "5d4fcc677b10bb2df890e712187a74624c303d8d7b6d826be2732f82b08898bf",
+    "cb12_o.build_units": "714f1900c07d0e72c7611e8b71626044cff7bd408f506040ece038bc2f7fb1c2",
+    "cb12_o.census_o": "d683f5ef396b591d610bf3b068bdd57ffc12928765cccc2a0477cc39ba041326",
+    "cb12_o.chain_calls": "1d09f4795252914bb645f8a855006e5f37ac1d6afc5faa9203f022dfcef2b4c6",
+    "cb12_o.chain_subset": "9710a89956cde3f8f0e18368fb6b066492b35ab016766a5f9338b85754241ae4",
+    "cb12_o.chain_ts": "a13295274b5dc5b0df55bf21da52cd0d54d758f48645e82dd80d370c35ea779b",
+    "cb12_o.checkpoint_epochs": "d5386ed6fcccb481cdb7367e9074a8a4d166096789aa4ee74a90c340d3df9974",
+    "cb12_o.classify_title": "c7d3ca5164cbe94c9b117f56930f4b4589ea69e1e70a95a48cbd7048ccb5bec4",
+    "cb12_o.close_hm": "19dfd4fd01f4ec82809013896c8c21d03517af45c46d1902ff95f82007bcf66d",
+    "cb12_o.cluster_weights": "2f016f79acf09ef05f9182d6999cf8b5ed5ff35202c6c60be92507f7d0cf3de4",
+    "cb12_o.convention_check": "cefa6c56f36daf73ece22b9d222132038a6cebc7fca7a489605bf8fcb218fae1",
+    "cb12_o.day_add": "af2cf02918d4e3521f155f69edd717fd484242ee8e40dc6d751504ccf28e5956",
+    "cb12_o.declared": "f162438e14ba1a3fc5f24899daec3d5e2b37b2e89bf241a46e07302005b8611e",
+    "cb12_o.discover": "a550633acbe382f028cabb0cf811ac3fea0ad606fdb18c8e9e4f4b4abb11c615",
+    "cb12_o.dividend_dates": "e8018e25f05c2975c1f4b29e839a116529f469b0b7881255278bdbb8cb4ff7f6",
+    "cb12_o.earnings_flag": "0ecdc77421f8250a8fe63d92d9c828fbc83a3643d1116606b4646294ac792c4b",
+    "cb12_o.earnings_rows": "de5d7db03501f2a0b59dd6d147da801b253cd3d9f819f42ed779c64927cc4668",
+    "cb12_o.et_day": "f4e300fb3f03de574fb045a4118740b3007037c1bbc2771e8588be7a00c53fe4",
+    "cb12_o.et_epoch": "5a7c7ed851e093cce092ed6e829f1a6189e520aa8672ff58f55d845b97d6d48e",
+    "cb12_o.exdiv_status": "5fe99df729adeb21aec73f929b0ecc813d1b712e2c47c97b1107d3a4088a3cc6",
+    "cb12_o.ext_transport": "71420b95ed69648401acd16cae4f77b35d6b0afbef772f79c20faf228330faa0",
+    "cb12_o.gamma_yes": "7acde3e33e78ec14237e7d7c716264a03d8a7a179a07075933ba4aa08f995374",
+    "cb12_o.in_smoke_session": "94529bc56c6f28eb11945c4a8f31fdc03c7dfd331aea6f1afcda4995a7d4f14e",
+    "cb12_o.is_regular": "6618a5b0717ddd822df4f3199ec5ca3115954cd7f5cbd9272dde7abaa44778ef",
+    "cb12_o.is_session": "90dbc50a5620426040f02893f4016e5164c67e29d2efdf11f7677e11913a7c70",
+    "cb12_o.is_tight": "a29803ed8da339c43becff476871771e1520bc7c3c915dd8307c0d8b77b07d9b",
+    "cb12_o.iter_checkpoints": "b44fdc8c1b7f7b9fde15c630226f3e9c695a91dd2b8104a2e9939f8e8afc0629",
+    "cb12_o.last_session_of_month": "c929d7df3d49e4da545e615ebad522613edde8bf6312c2a92d1971f751b7f99d",
+    "cb12_o.load_daily": "76eb63e79eb45f41b4108165b76e475d832cd83d5fdb88bbe95b510614ec0d86",
+    "cb12_o.member_status": "6a7c2e2d218a82248911cb872937e7a9feff7dee4a5ce1abdf60e5920f448e06",
+    "cb12_o.next_session": "c13422f53761d3a779d5279586bf919cbe580f8aaecff1a64d156bece7dea786",
+    "cb12_o.not_run_result": "8eda2595c615448605884344a605c63a4e78b2089ccc06becf7fb99927085f06",
+    "cb12_o.o1_attribution": "d7da4103ada9212f256958186379e7a4d1b5371fab2e0d74f766b6342e115217",
+    "cb12_o.o1_signflip": "9cfd67d04376f4d2fe6670e07667002f0479c0c480bcb1184301cce05723da9a",
+    "cb12_o.o1_slope": "43b19d4e06735013a795ad64b85e069699a3206b9045f440e464af4d08c9a228",
+    "cb12_o.o1_test": "acb08a507f594cbe73fbd47127777f65e9fee9ee7b476a9bdbedfa59e7df00f0",
+    "cb12_o.o2_test": "efcf10e885c090f946eb7071d2053aaa461f456cf5d681a2f9a7793d2f87095c",
+    "cb12_o.o2_trades": "5e5786e0b6f20608a81795a5bb2b52f99564f6cca621690f11e8f88a56ca237f",
+    "cb12_o.open_outcomes": "734abd26468ace84a2f2655650597513f1d23846407aea36dc3a6177c8fce774",
+    "cb12_o.opt_live_tick": "57a34fd4f0ee5dca5f6f9e31d782ff8c9c41eb9ae6b65c9aeca7462aa81d5daf",
+    "cb12_o.parse_event": "7112f5d445613405ebdadd6af25247fb83cb7af353248bf9e467dc524d896d13",
+    "cb12_o.parse_option": "b4ca0053586f059642ec4d9f8e81c70d7a6eb3230a73b5fff54a4b4aba2ebf53",
+    "cb12_o.parse_strike": "35b0d86bc697ded350b4286cb957de72991221dfa0dd327b3a9724c643d5beb4",
+    "cb12_o.phi_d2": "13b379fcdec36d55bca5322ce2c99c1b72d7ca4f48b2c718f9e01d1f3a3ce629",
+    "cb12_o.prev_session": "54ce534a6c3320f1ee4d1aa92d188aaf7dae48e6674873f0bf42612f50f33d4d",
+    "cb12_o.realised_vol": "e1c71d11f47f507a9fd64f98eaeaff4028cccc086cf78c0f027eaed33aa3277e",
+    "cb12_o.rep_o": "2529a46acc64cb0b01c90c92d00d52f399aabfc6a0a233d33cf985454765a4bc",
+    "cb12_o.require_outcomes_final": "e09dd6beea464dbd5595e077c1d65836e123eb2e94c8363ec97e8593dc69aefa",
+    "cb12_o.rule_flags": "f9ac77c1e0a4833b222b429453c7fa211249d8cc3164d30fd16d2bb0aa52394a",
+    "cb12_o.run_checkpoint": "1180d94f7d1bb222fd85247c1eb15f90f0ec82c1ba29dfa447ae2ac715bea05f",
+    "cb12_o.run_daily": "78b58a24e391f4839429984fe6f819e2a6c939d9d0c7977dd040cda8834483c6",
+    "cb12_o.run_outcomes": "bde89a7dedf6e774321c0abfba101f2a8d98f1965547e7a8e0d76c9a06754fd6",
+    "cb12_o.screen_o": "a02dc5552857b409c4dd3e68b8b799977981a7e8f9f770b2cd61d5bd1b2a87e9",
+    "cb12_o.session_hours": "9ecff978705d1e89c4085a286018a9cc85873afa17006a56e9f8181f8e79f3d3",
+    "cb12_o.sessions_between": "634b24d84d2f318f7b1eab12a50c1fc403fdd138a368b88f52768f96be5e936d",
+    "cb12_o.settled_members": "e405a2dac4332481c5084cdf1a8a3dd57e68936b82c82ef9da6d732344268085",
+    "cb12_o.settlement_date": "d4f609b2347d7ea2e620ed93eb6a1bda0a68fb8e313f4e34d4d6eb622850cf0e",
+    "cb12_o.slope_pseudo": "d01b155418d51d88a102aa9f0db0d6b133420c996368c09209d62a005e737b26",
+    "cb12_o.smoke_offline": "7728830f5212385b6fb9506124cad6f3c45f43a60d495faa1f5bece6634e0511",
+    "cb12_o.smoke_online": "9be1f42aaaf6c2b3b38f8014fd8357509653e89b8caa2db64e9b5fc461bc131a",
+    "cb12_o.tight_by_date": "88da7b0f1189004d45d47d0ffd32eb0239bbac42c6326f804550b47512bf0bea",
+    "cb12_o.time_to_expiry": "81ea29adc92ccdc6b591095e7bec1d56aa63c08052c20f99cd3d1d500ae72f53",
+    "cb12_o.underlying_of": "78a6709aaa6396ac230f417fa62e118525e6832bdde61400f7a39be78d457ed5",
+    "cb12_o.ways": "5a095a571b3ef1ea8f45e305071bdf9e0aa8a2a3918345a939c7cd6f29795002",
+    "cb12_o.window1_start": "4beb435fa1db4db008e2a3c46cfdeb68072412ad35ff60b9f76aa9c5f4e7aa00",
+    "cb12_o.window_bounds": "3a378be050965c86afc1a09c412d701218840e7d434a22a25d3773edfe7b9795",
+    "cb12_o.window_dates": "fbddf38425aa6a7b94b4d67fb0be6ce14f887558b570b12f15690e3e45bbd193",
+    "cb12_o.windows": "6960202c5ba5eb48b917d8cf65c0d23a3aa4df2f69182b3a4183b394fc27f95f",
+    "cb12_o.yahoo_closes": "1b7b96edd90950858eceda1f06631c177332c850521c95484d407d919150bb7a"
+   },
+   "funcs_sha256": "54e06bd4ec7bf03976676fdfbba8ea8824de0d9fd1659b280ef7e494af2fc77a",
    "part": "O",
-   "part_declared": false,
-   "reason": "family module ('cb12_o',) not present yet",
-   "rules_sha256": null,
-   "rules_version": "cb12-rules-v1"
+   "part_declared": true,
+   "rules_sha256": "766eed85ea10ef9fb0b83469481d05e46b29e84b72f69be1b328f4b01bf54470",
+   "rules_version": "cb12-rules-v1",
+   "wallet": {
+    "note": "no CB12 job reads or stores a wallet field, a transaction hash, or the Data API side field",
+    "read": false
+   }
   },
   "X": {
    "constants": {
