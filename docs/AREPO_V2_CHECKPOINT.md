@@ -220,20 +220,20 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-19 20:40Z
-0. **Autopilot session from 20:29Z 10-19** (the 14:10Z session stopped ~14:50Z; its uncommitted CB12-E and CB15-P fix
-   WIP failed tests and was handed to new implementers; round-8 hypotheses committed 67df385).
-   - **Queue:** q0227b (CB11-A frame, net, repeat, 139/164 days) running; smokes q0285b/q0300/q0301/q0348 raised to
-     priority 27 to run between its budget runs; q0273 (CB13-T screen, cpu) promoted to write the counted GT-fail lines.
-     Then CB12 M chain q0242-q0249, CB11 q0229/q0230b/q0238/q0231b/q0239.
-   - **Results written (ledger c9fbbdf):** q0267 CB12-E smoke PASS; CB13-T GT FAILED (LOW 163/NEWS 427 fills < 500) ->
-     T1/T2 "not testable (population)", counted 2; q0341b CB15-E completeness 0.051 < 0.95 -> E1/E2 terminal written
-     (counted) but **under audit** (science-reviewer: faithful or defect?).
-   - **Agents running (re-run any without a commit):** CB12-E fixes and CB15-P fixes (general-purpose Sonnet as
-     implementer; `implementer` type unavailable this session); CB12-O re-check (beadf81); CB16 freeze check (5c3644f,
-     drafts 1eeb1fa; K pin and placebo ruling); CB15-E completeness audit; CB17 design draft from round 8 (Opus).
-   - **After them:** promote what the reviews allow (CB12-O q0260+, CB16 smoke first), freeze checks for CB12-E/CB15-P
-     fixes, CB17 challenger review then cpu-lane census jobs (the cpu lane is otherwise idle).
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-19 21:00Z
+0. **Autopilot session from 20:29Z 10-19.** All results/rulings are in the ledger (entries from "Session 2026-10-19
+   ~20:30Z" on).
+   - **Queue:** q0227b (CB11-A, net, repeat) running. Promoted this session: q0273 (CB13-T counted GT-fail lines, cpu),
+     q0260 (CB12-O smoke, not_before 10-20T14:05Z), q0244 (CB12-E quake frame, net, 1,000 MB), q0381 (CB16 A+K smoke,
+     cpu, priority 20). q0348 (CB15-P smoke) hold lifted. Smokes at priority 27. **Deploy HEAD** (a deploy of 7e36f35
+     was waiting for the 20:31Z collector pass; re-run `scripts/oracle/deploy.sh` afterwards so the host gets HEAD).
+   - **Verdicts:** CB15-E E1/E2 "not testable (frame completeness)" FAITHFUL (counted 2; q0343-q0346 retired); CB13-T
+     T1/T2 "not testable (population)" (counted 2, via q0273); CB12-O, CB12-E, CB15-P, CB16 code accepted with fixes,
+     all fixes committed except the CB15-P P-28 LOW items (agent running).
+   - **Next promotions:** CB12-E q0245 after q0244, then q0266 after a short confirmation of 3716711; CB12-O freeze
+     confirmation (fixes 1, 3 in 89fd546) after the q0260 smoke -> O freeze -> q0261 cron; CB16 q0382 after q0381,
+     q0380 after q0340, q0383 alone; CB15-P q0349/q0350 after q0347 (with q0340) and q0348 pass.
+   - **CB17:** design draft from round 8 (Opus agent) running -> challenger review -> cpu-lane census jobs.
 1. **CB8-H:** q0162/q0163 wait on spec `not_before` (10-21T06Z / 10-22T12Z). **CB8-B:** q0161/q0164 after T_seal; before
    promoting q0164 run the two `derive-exclusion-ids` commands in its draft notes on the host and fill both sha256 tokens.
 2. **CB9:** data jobs q0181+ only after T_seal 2026-10-22T00Z; q0182 needs the pinned q0164 hash. **CB10:** q0201 needs
