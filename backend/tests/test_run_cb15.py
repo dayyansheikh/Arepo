@@ -232,17 +232,20 @@ def test_terminal_family_short_circuits_downstream(env, capsys):
 
 
 def _drafts(ids) -> list[dict]:
+    """Each id exists exactly once, as a draft or (after a coordinator promotion) as a job."""
     out = []
     for n in ids:
-        fs = sorted(DRAFTS.glob(f"q{n:04d}_cb15_*.json"))
+        fs = sorted(DRAFTS.glob(f"q{n:04d}_cb15_*.json")) + sorted(JOBS.glob(f"q{n:04d}_cb15_*.json"))
         assert len(fs) == 1, n
-        out.append(json.loads(fs[0].read_text()))
+        d = json.loads(fs[0].read_text())
+        d["_promoted"] = fs[0].parent == JOBS
+        out.append(d)
     return out
 
 
 def test_e_drafts_exist_parse_and_are_drafts_not_jobs():
     ds = _drafts(E_IDS)
-    assert not list(JOBS.glob("q03*_cb15_*.json"))
+    assert all("PROMOTED" in d["notes"] for d in ds if d["_promoted"])
     ap = run_cb15.build_parser()
     rules = json.loads(RULES.read_text())["parts"]
     for d in ds:
@@ -267,13 +270,15 @@ def test_e_drafts_exist_parse_and_are_drafts_not_jobs():
     assert by["q0346"]["not_before"] == e.T15_E_END
 
 
-# ---- part P (undeclared until Stage 2 exists) ----------------------------------------------------------------------------------------------------
+# ---- part P ----------------------------------------------------------------------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("argv", [["p-birth-census"], ["p-data"], ["census", "--family", "P"], ["screen", "--family", "P"], ["smoke", "--part", "P", "--rps", "1"]])
-def test_p_commands_refuse_while_part_p_is_undeclared(env, capsys, argv):
-    code, out = _run(capsys, [*argv, *env["base"]])
-    assert code == 2 and "not declared" in out["refused"], out
+P_IDS = [347, 348, 349, 350, 351, 352, 353]
+
+
+def test_p_birth_census_waits_for_exclusion_keys(env, capsys):
+    code, out = _run(capsys, ["p-birth-census", *env["base"]])
+    assert code == 75 and "exclusion keys" in out["tempfail"]
 
 
 def test_p_data_declared_arguments(env, capsys):
@@ -281,3 +286,56 @@ def test_p_data_declared_arguments(env, capsys):
     assert code == 2 and "kalshi_rps" in out["refused"]
     code, out = _run(capsys, ["p-data", *env["base"], "--disk-cap-gb", "0.1"])
     assert code == 2 and "disk_cap_gb" in out["refused"]
+
+
+def test_p_live_refuses_before_the_p_freeze_and_idles_after(env, capsys):
+    args = ["p-live", *env["base"], "--not-before", "2026-11-04T00:00:00Z", "--disk-cap-gb", "0.05", "--data-dumps-cap-gb", "40", "--now", str(e.ep("2026-11-04T00:00:00Z") - 60)]
+    code, out = _run(capsys, [*args, "--freeze-spec", str(env["tmp"] / "none.json")])
+    assert code == 2 and "freeze" in out["refused"]
+    from astrolabe.research_lab import cb15_p as p
+
+    doc = json.loads(env["rules"].read_text())["parts"]
+    spec = env["tmp"] / "spec.json"
+    spec.write_text(json.dumps({"P": {"rules_sha256": doc["P"]["rules_sha256"], "common_rules_sha256": doc["common"]["rules_sha256"], "matcher_sha256": p.verify_matcher(),
+                                      "p_freeze_marker": p.P_FREEZE_MARKER}}))
+    code, out = _run(capsys, [*args, "--freeze-spec", str(spec), "--freeze-ts", str(e.ep("2026-11-02T00:00:00Z")), "--data-dumps", str(env["tmp"] / "data")])
+    assert code == 0 and out["status"] == "p_live_idle", out
+    bad = [*args, "--freeze-spec", str(spec)]
+    bad[bad.index("--not-before") + 1] = "2026-11-05T00:00:00Z"
+    code, out = _run(capsys, bad)
+    assert code == 2
+
+
+def test_rep_requires_the_results_pin(env, capsys):
+    from astrolabe.research_lab import cb15_p as p
+
+    doc = json.loads(env["rules"].read_text())["parts"]
+    spec = env["tmp"] / "spec.json"
+    spec.write_text(json.dumps({"P": {"rules_sha256": doc["P"]["rules_sha256"], "common_rules_sha256": doc["common"]["rules_sha256"], "matcher_sha256": p.verify_matcher(),
+                                      "p_freeze_marker": p.P_FREEZE_MARKER}}))
+    (env["root"] / "results_P.json").write_text(json.dumps({"P1": {"advance": False}, "P2": {"advance": False}}))
+    code, out = _run(capsys, ["rep", "--family", "P", *env["base"], "--freeze-spec", str(spec), "--results-sha256", c15.PIN_UNSET])
+    assert code == 2 and "results-sha256" in out["refused"]
+    code, out = _run(capsys, ["rep", "--family", "P", *env["base"], "--freeze-spec", str(spec), "--results-sha256", c15.sha256_file(env["root"] / "results_P.json")])
+    assert code == 0 and out["status"] == "rep_P_not_triggered"
+    assert not [x for x in _trials(env) if x.get("kind") == "ml_explain"]
+
+
+def test_p_drafts_exist_parse_and_carry_the_p_sha():
+    ds = _drafts(P_IDS)
+    ap = run_cb15.build_parser()
+    rules = json.loads(RULES.read_text())["parts"]
+    assert rules["P"]["part_declared"] is not False
+    for d in ds:
+        assert d["family"] == "creative_batch_15" and "DRAFT" in d["notes"] and d["argv"][0] == "scripts/run_cb15.py"
+        a = ap.parse_args(d["argv"][1:])
+        assert callable(a.fn)
+        assert rules["common"]["rules_sha256"] in d["notes"] and rules["P"]["rules_sha256"] in d["notes"], d["id"]
+        if d["resources"]["lane"] in ("net", "cron") and a.cmd not in ("smoke",):
+            assert d["argv"][d["argv"].index("--data-dumps-cap-gb") + 1] == "40", d["id"]
+        if a.cmd in run_cb15.DECLARED_DISK_CAP_GB:
+            assert abs(a.disk_cap_gb - run_cb15.DECLARED_DISK_CAP_GB[a.cmd]) < 1e-9
+        assert getattr(a, "rps", 0.0) <= run_cb15.DECLARED_RPS_MAX.get(a.cmd, 99.0) + 1e-9
+        assert 5 <= d["priority"] <= 9 or d["resources"]["lane"] == "cron"
+    by = {d["id"][:5]: d for d in ds}
+    assert by["q0352"]["not_before"] == "2026-11-04T00:00:00Z" and c15.PIN_UNSET in by["q0353"]["argv"]

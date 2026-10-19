@@ -6,8 +6,8 @@ print + 10 min predict Polymarket's move over the next 24 h (P1), and does tradi
 network, gate GPB), the smoke helpers (q0348), the data fetch (q0349: Gamma metadata, Data API prints from the first transaction aggregated to transactions, Kalshi 1-minute candles,
 ``prices-history`` AFTER the first print only), the census (q0350: gates GP and GPP with the SE-only proxy) and the screen (q0351: P1, P2 with every binding check).
 
-``part_unready()`` keeps part P UNDECLARED until the Stage-2 birth watcher (q0352) and rep (q0353) exist: the P rules are fixed only when the whole part is written, and no P job runs
-before (``verify_rules`` refuses an undeclared part). This module imports ``cb15_common`` and nothing from the E family. No P statistic reads a C1 series VALUE (the C1 reproduction
+Stage 2: the birth watcher (q0352: causal selection, no volume filter, the frozen matcher, first-print polling, recorded books at ``t_d`` and ``t_d + 24 h``, weekly blind title-audit
+batches) and the rep (q0353: P1-rep, P2-rep at recorded books; one Stage-2 Holm). ``part_unready()`` kept part P undeclared until the whole part was written. This module imports ``cb15_common`` and nothing from the E family. No P statistic reads a C1 series VALUE (the C1 reproduction
 call is used for the pair list and the series window TIMES only); ``p_end`` is never read; no Gamma outcome, Kalshi ``result`` / ``settlement_value``, side, wallet or hash is stored.
 """
 
@@ -38,7 +38,7 @@ MINUTE = 60.0
 HOUR = 3600.0
 DAY = 86400.0
 LABEL_P = "selected on lifetime volume (C1 universe: Polymarket event volume >= 20k, Kalshi >= 5,000 contracts, >= 200 usable steps near resolution); L1 worn set; only P-rep can lead to Stage P"
-STAGE2_READY = False  # the Stage-2 watcher (q0352) and rep (q0353) are not written yet: part P stays undeclared
+STAGE2_READY = True  # the Stage-2 watcher (q0352) and rep (q0353) are written: part P is declared
 # ---- dates (section 1.2) --------------------------------------------------------------------------------------------------------------------------------
 T15_HIST_END = "2026-10-12T00:00:00Z"  # every P historical row is before it (asserted; rows at or after are refused at parse)
 T15_P2_START_MIN = "2026-11-04T00:00:00Z"
@@ -741,10 +741,16 @@ def month_of(t: float) -> str:
 
 
 def sign_checks(est_fn: Callable[[np.ndarray], float], n: int, ev: list[str], wk: list[str], tb: list[float], pv: np.ndarray) -> dict:
-    """Shared binding sign robustness: top-5 event and week drops, each calendar half by birth date and every leave-one-quarter-out (section 2.6 ii-iii)."""
+    """Shared binding sign robustness: top-5 event and week drops, each calendar half by birth date and every leave-one-quarter-out (section 2.6 ii-iii). Declared: a way with fewer
+    than 15 clusters leaves the max and its leave-one-cluster-out sign rule binds instead (CB10 small-G rule, ``small_g`` check), so its top-5 drop is not applied (recorded); with a
+    single calendar quarter, leave-one-quarter-out is not applicable (recorded) and the halves bind."""
     ev_a, wk_a, tb_a = np.asarray(ev), np.asarray(wk), np.asarray(tb, float)
     out = {}
     for name, cl in (("top5_event_drop", ev_a), ("top5_week_drop", wk_a)):
+        G = len(set(cl.astype(str).tolist()))
+        if G < c15.G_CR2:
+            out[name] = {"skipped": f"G = {G} < {c15.G_CR2}: the way's leave-one-cluster-out sign rule binds (small_g)", "holds": True}
+            continue
         keep = c15.top_k_drop_mask(pv, cl)
         e = est_fn(keep)
         out[name] = {"est": e, "holds": bool(math.isfinite(e) and e > 0)}
@@ -753,8 +759,11 @@ def sign_checks(est_fn: Callable[[np.ndarray], float], n: int, ev: list[str], wk
         e = est_fn(keep) if keep.sum() >= 3 else math.nan
         out[name] = {"est": e, "holds": bool(math.isfinite(e) and e > 0)}
     qs = np.array([quarter_of(t) for t in tb_a])
-    loq = {q: est_fn(qs != q) for q in sorted(set(qs.tolist()))} if n else {}
-    out["leave_one_quarter_out"] = {"min": min((v for v in loq.values() if math.isfinite(v)), default=math.nan), "holds": bool(loq) and all(math.isfinite(v) and v > 0 for v in loq.values())}
+    if len(set(qs.tolist())) < 2:
+        out["leave_one_quarter_out"] = {"skipped": "one calendar quarter: not applicable (the halves bind)", "holds": bool(n)}
+        return out
+    loq = {q: est_fn(qs != q) for q in sorted(set(qs.tolist()))}
+    out["leave_one_quarter_out"] = {"min": min((v for v in loq.values() if math.isfinite(v)), default=math.nan), "holds": all(math.isfinite(v) and v > 0 for v in loq.values())}
     return out
 
 
@@ -820,7 +829,7 @@ def p1_test(data: dict, vols: dict[str, float], *, draws_placebo: int = c15.PLAC
     pls = []
     for _ in range(int(draws_placebo)):
         xs = x.copy()
-        for mo in set(months.tolist()):
+        for mo in sorted(set(months.tolist())):
             ii = np.flatnonzero(months == mo)
             xs[ii] = xs[ii][rng.permutation(len(ii))]
         r = slope_test(y, xs, ev, wk)
@@ -1096,7 +1105,18 @@ def declared() -> dict:
             "p2": {"floor": P2_FLOOR, "min": P2_MIN, "gap_min": GAP_MIN, "entry_s": list(ENTRY_WINDOW_S), "exit_s": list(EXIT_WINDOW_S), "entry_robust_s": list(ENTRY_ROBUST_S),
                    "exit_robust_s": list(EXIT_ROBUST_S), "w_star": c15.W_STAR, "fee_floor": c15.FEE_FLOOR, "cost_robust": c15.COST_ROBUST_PER_SIDE},
             "gpp": {"p1_max_mde": GPP_P1_MAX, "p2_max_mde": GPP_P2_MAX, "mult": c15.MDE_MULT, "inflate": c15.MDE_INFLATE, "proxy": "SE only at t_L"},
-            "smoke": {"needs": list(SMOKE_NEEDS), "max_requests": SMOKE_MAX_REQUESTS}}
+            "smoke": {"needs": list(SMOKE_NEEDS), "max_requests": SMOKE_MAX_REQUESTS},
+            "stage2": {"window": "T15_P2_start = max(P freeze + 1 d, 2026-11-04T00:00Z); stop at >= 60 eligible births with their 24-h read (births, never results); cap 2027-04-30",
+                       "listing": {"lookback_s": LISTING_LOOKBACK_S, "every_s": LISTING_SCAN_EVERY_S, "max_pages": LISTING_MAX_PAGES},
+                       "kalshi_cache": {"full_every_s": KALSHI_FULL_EVERY_S, "incremental": "min_created_ts, 1 h overlap"},
+                       "matcher": "cross_venue.match_markets over Kalshi markets opened >= 24 h before the listing (mutual best against the new listings: declared), then the r1 audit_conflict rule (flag -> excluded, counted); source sha256 = CB12-X's pinned cross_venue.py",
+                       "eligible": "Kalshi-first (open_time <= listing - 24 h), no audit-conflict flag, Kalshi series category known and not Sports",
+                       "first_print": {"poll_s": FIRST_PRINT_POLL_S, "page": FIRST_PRINT_PAGE, "give_up_s": FIRST_PRINT_GIVE_UP_S, "late": "detection after t_birth + 10 min -> late, excluded and counted"},
+                       "reads": {"t_d_lag_s": READ_LAG_TD_S, "t_d_24h_lag_s": READ_LAG_TB_S, "books": "Polymarket YES and NO /book, Kalshi orderbook (YES ask = 1 - best NO bid)"},
+                       "audit": {"batches": "weekly, titles only", "verdicts_dir": AUDIT_DIR_REL, "values": list(AUDIT_VALUES), "missing": "pending (the rep waits)"},
+                       "daily_request_cap": DAILY_REQUEST_CAP, "rep_min": REP_MIN, "rep_quote": "two-sided, spread <= 10c, at the recorded reads",
+                       "rep_checks": "floor, small-G, top-5 event / week drops, halves, leave-one-quarter-out; P2-rep +1c per side; no bid at t_d + 24 h -> w*",
+                       "holm": "one Stage-2 Holm over the triggered tests; early alpha/2; the Holm only adds passes", "freeze_marker": P_FREEZE_MARKER}}
 
 
 def kalshi_bools_from_universe(root: Path, tickers: set[str]) -> dict[str, dict]:
@@ -1122,3 +1142,494 @@ def write_birth_frame(path: Path, rows: list[list]) -> Path:
 def read_gz_rows(path: Path) -> list[dict]:
     with gzip.open(Path(path), "rt", encoding="utf-8", newline="") as fh:
         return list(csv.DictReader(fh))
+
+
+# =====================================================================================================================================================
+# Stage 2 (q0352 birth watcher, q0353 rep): causal selection, no volume filter, recorded books
+# =====================================================================================================================================================
+
+LIVE_RUN = "h15_birth_live"
+LIVE_FILES = {"state": "state.json", "kalshi_cache": "kalshi_open.jsonl.gz", "series_cat": "series_cat.json", "listings": "listings.jsonl", "pairs": "pairs.jsonl",
+              "first_prints": "first_prints.jsonl", "books": "books.jsonl", "gaps": "gaps.jsonl", "audit_dir": "audit_batches", "closed": "closed.json", "heartbeat": "heartbeat.json"}
+LISTING_LOOKBACK_S = 2 * HOUR
+LISTING_SCAN_EVERY_S = HOUR
+LISTING_PAGE = 100
+LISTING_MAX_PAGES = 10
+KALSHI_FULL_EVERY_S = DAY
+KALSHI_INCR_OVERLAP_S = HOUR
+KALSHI_PAGE = 1000
+KALSHI_MAX_PAGES = 400
+FIRST_PRINT_POLL_S = 5 * MINUTE
+FIRST_PRINT_PAGE = 500
+FIRST_PRINT_GIVE_UP_S = 7 * DAY
+READ_LAG_TD_S = 120.0  # the read at t_d: first successful read with receipt >= t_d within 2 min
+READ_LAG_TB_S = 300.0  # the read at t_d + 24 h: within 5 min
+DAILY_REQUEST_CAP = 3500
+STAGE2_BIRTHS_STOP = 60  # T15_P2_end: >= 60 non-sports Kalshi-first births with their 24-h read (births, never results)
+REP_MIN = {"P1": 60, "P2": 40}
+NOT_RUN_POWER_REP = "not run (power)"
+P_FREEZE_MARKER = "cb15-P-freeze"
+CV_MODULE_REL = "backend/astrolabe/research_lab/cross_venue.py"
+CLOB_BOOK = "https://clob.polymarket.com/book"
+AUDIT_DIR_REL = "docs/research_lab/seals/cb15_p_audit"
+AUDIT_VALUES = ("pass", "fail")
+LIVE_STATUS_CLOSED = "p_live_closed"
+
+
+def matcher_sha(repo_root: Path | None = None) -> str:
+    """sha256 of ``cross_venue.py`` (the frozen matcher ``match_markets`` and the r1 ``audit_conflict`` rule); must equal CB12-X's pinned study source."""
+    from . import provenance  # noqa: PLC0415
+
+    return c15.sha256_file((Path(repo_root) if repo_root is not None else provenance.REPO_ROOT) / CV_MODULE_REL)
+
+
+def verify_matcher(repo_root: Path | None = None) -> str:
+    from . import cb12_x  # noqa: PLC0415
+
+    got, want = matcher_sha(repo_root), cb12_x.CV_SOURCE_PINS[CV_MODULE_REL]
+    if got != want:
+        raise Refused(f"cross_venue.py sha256 {got[:12]} != the pinned matcher {want[:12]}: the frozen matcher changed; refusing")
+    return got
+
+
+def p2_window(freeze_ts: float | None) -> tuple[float, float]:
+    """``T15_P2_start = max(P freeze + 1 d, 2026-11-04T00:00Z)``; the cap ``T15_P2_cap = 2027-04-30``."""
+    lo = ep(T15_P2_START_MIN)
+    if freeze_ts is not None and math.isfinite(freeze_ts):
+        lo = max(lo, float(freeze_ts) + DAY)
+    return lo, ep(T15_P2_CAP)
+
+
+def kalshi_record(m: dict) -> dict | None:
+    """A whitelisted Kalshi market record for the matcher (``result`` / settlement fields discarded): ticker, event and series tickers, title, yes subtitle, scheduled close, open."""
+    m = strip_kalshi(m)
+    if not m.get("ticker") or m.get("market_type", "binary") != "binary":
+        return None
+    ev = str(m.get("event_ticker") or "")
+    return {"ticker": str(m["ticker"]), "event_ticker": ev, "series": ev.split("-")[0] if ev else "", "title": str(m.get("title") or ""), "yes_sub": str(m.get("yes_sub_title") or ""),
+            "close_time": m.get("close_time"), "open_time": m.get("open_time")}
+
+
+def poly_listing(m: dict) -> dict | None:
+    """A whitelisted Gamma listing (binary Yes/No; outcome fields discarded): matcher fields, ids, tokens, createdAt, fee rate."""
+    m = c15.strip_forbidden(m)
+    outs = [str(x) for x in c15.c12.listish(m.get("outcomes"))]
+    toks = [str(x) for x in c15.c12.listish(m.get("clobTokenIds"))]
+    if outs != ["Yes", "No"] or len(toks) != 2 or m.get("id") is None:
+        return None
+    ev = m.get("events") if isinstance(m.get("events"), list) else []
+    eid = str(ev[0].get("id")) if ev and isinstance(ev[0], dict) and ev[0].get("id") is not None else ""
+    fs = m.get("feeSchedule") if isinstance(m.get("feeSchedule"), dict) else {}
+    from . import cross_venue as cv  # noqa: PLC0415
+
+    return {"market_id": str(m["id"]), "event_id": eid, "question": cv.p_text({"question": m.get("question") or "", "item": m.get("groupItemTitle") or ""}), "outcomes": ["Yes", "No"],
+            "end": m.get("endDate"), "created": c15.parse_iso(m.get("createdAt")), "condition_id": str(m.get("conditionId") or ""), "token_yes": toks[0], "token_no": toks[1],
+            "fee_rate": c15.num(fs.get("rate"))}
+
+
+def scan_listings(lim, now: float, *, lookback_s: float = LISTING_LOOKBACK_S, max_pages: int = LISTING_MAX_PAGES) -> tuple[list[dict], dict]:
+    """Gamma markets created in the last 2 h (open, newest id first, paged until a page holds a market created before the lookback); a capped scan is logged, never silent."""
+    out, pages, capped = [], 0, True
+    for page in range(max_pages):
+        st, data = lim.get(c15.GAMMA_MARKETS, {"closed": "false", "order": "id", "ascending": "false", "limit": LISTING_PAGE, "offset": page * LISTING_PAGE})
+        pages += 1
+        if st != 200 or not isinstance(data, list):
+            raise ApiError(f"gamma markets status {st}")
+        old = False
+        for m in data:
+            if not isinstance(m, dict):
+                continue
+            c = c15.parse_iso(m.get("createdAt"))
+            if math.isfinite(c) and c < now - lookback_s:
+                old = True
+                continue
+            pl = poly_listing(m)
+            if pl is not None and math.isfinite(pl["created"]):
+                out.append(pl)
+        if old or len(data) < LISTING_PAGE:
+            capped = False
+            break
+    return out, {"pages": pages, "capped": capped}
+
+
+def kalshi_pull(klim, *, min_created_ts: int | None = None, max_pages: int = KALSHI_MAX_PAGES) -> tuple[list[dict], dict]:
+    """Open Kalshi markets (``/markets?status=open``, cursor paging); incremental with ``min_created_ts``. Records are whitelisted at parse."""
+    out, cur, pages = [], None, 0
+    while pages < max_pages:
+        params: dict = {"status": "open", "limit": KALSHI_PAGE, "mve_filter": "exclude"}
+        if min_created_ts is not None:
+            params["min_created_ts"] = int(min_created_ts)
+        if cur:
+            params["cursor"] = cur
+        st, data = klim.get(f"{KALSHI_API}/markets", params)
+        pages += 1
+        if st != 200 or not isinstance(data, dict):
+            raise ApiError(f"kalshi markets status {st}")
+        ms = data.get("markets") or []
+        out += [r for r in (kalshi_record(m) for m in ms if isinstance(m, dict)) if r]
+        cur = data.get("cursor")
+        if not cur or not ms:
+            return out, {"pages": pages, "complete": True}
+    return out, {"pages": pages, "complete": False}
+
+
+def series_category(klim, series: str, cache: dict) -> str:
+    """Kalshi series category (cached); unknown on failure (such pairs are excluded and counted: non-sports cannot be verified)."""
+    if series in cache:
+        return cache[series]
+    st, data = klim.get(f"{KALSHI_API}/series/{series}", {})
+    cat = str(((data or {}).get("series") or {}).get("category") or "unknown") if st == 200 and isinstance(data, dict) else "unknown"
+    cache[series] = cat
+    return cat
+
+
+def match_new(kalshi: list[dict], listings: list[dict]) -> list[dict]:
+    """The frozen matcher on the new listings: ``cross_venue.match_markets`` over the Kalshi markets that opened >= 24 h before each listing, then the r1 ``audit_conflict`` rule
+    (a flagged pair is dropped, counted). Declared: the mutual-best step runs against the new listings, not the whole Polymarket universe."""
+    from . import cross_venue as cv  # noqa: PLC0415
+
+    if not listings:
+        return []
+    last = max(x["created"] for x in listings)
+    ks = [k for k in kalshi if c15.parse_iso(k.get("open_time")) <= last - KALSHI_FIRST_S]  # a superset; each pair's own lead is checked below (kalshi_first)
+    kb = {k["ticker"]: k for k in ks}
+    pb = {x["market_id"]: x for x in listings}
+    out = []
+    for mp in cv.match_markets(ks, listings):
+        k, p = kb[mp.k_ticker], pb[mp.p_market_id]
+        lead = p["created"] - c15.parse_iso(k.get("open_time"))
+        flags = cv.audit_conflict(cv.k_text(k), cv.p_text(p))
+        out.append({"k_ticker": k["ticker"], "k_series": k["series"], "k_open": c15.parse_iso(k.get("open_time")), "p_market_id": p["market_id"], "p_event_id": p["event_id"],
+                    "condition_id": p["condition_id"], "token_yes": p["token_yes"], "token_no": p["token_no"], "listed": p["created"], "fee_rate": p["fee_rate"], "score": mp.score,
+                    "kalshi_first": bool(lead >= KALSHI_FIRST_S), "audit_conflict": flags, "k_text": cv.k_text(k), "p_text": p["question"]})
+    return out
+
+
+def first_print_poll(lim, cid: str, yes_index: int = 0) -> tuple[float, str]:
+    """One Data API poll (newest first, one page): (time of the first transaction, reach). Only a non-full page reaches the first transaction."""
+    from . import history_backfill as hb  # noqa: PLC0415
+
+    st, data = lim.get(hb.DATA_TRADES, {"market": cid, "limit": FIRST_PRINT_PAGE, "offset": 0})
+    if st != 200 or not isinstance(data, list):
+        raise ApiError(f"trades status {st}")
+    if not data:
+        return math.nan, "none"
+    txs = transactions([{k: x.get(k) for k in ("timestamp", "price", "size", "outcomeIndex", "transactionHash")} for x in data if isinstance(x, dict)], yes_index)
+    if len(data) >= FIRST_PRINT_PAGE:
+        return math.nan, "uncovered"
+    return (float(txs[0]["ts"]), "complete") if txs else (math.nan, "none")
+
+
+def kalshi_book(data: dict) -> dict:
+    """Kalshi orderbook -> YES best bid / ask (ask = 1 - best NO bid); dollars lists preferred, cents otherwise."""
+    ob = (data or {}).get("orderbook") or (data or {}).get("orderbook_fp") or {}
+
+    def best(side: str) -> float:
+        for key, scale in ((f"{side}_dollars", 1.0), (side, 0.01)):
+            lv = ob.get(key)
+            if isinstance(lv, list) and lv:
+                ps = [c15.num(x[0]) * scale for x in lv if isinstance(x, (list, tuple)) and len(x) >= 2 and c15.num(x[1]) > 0]
+                ps = [x for x in ps if math.isfinite(x)]
+                if ps:
+                    return max(ps)
+        return math.nan
+
+    yb, nb = best("yes"), best("no")
+    return {"k_bid": yb, "k_ask": (1.0 - nb) if math.isfinite(nb) else math.nan}
+
+
+def poly_book(data: dict) -> dict:
+    bids = [(c15.num(x.get("price")), c15.num(x.get("size"))) for x in ((data or {}).get("bids") or []) if isinstance(x, dict)]
+    asks = [(c15.num(x.get("price")), c15.num(x.get("size"))) for x in ((data or {}).get("asks") or []) if isinstance(x, dict)]
+    bids = [b for b in bids if math.isfinite(b[0]) and b[1] > 0]
+    asks = [a for a in asks if math.isfinite(a[0]) and a[1] > 0]
+    bb = max(bids, default=(math.nan, math.nan))
+    ba = min(asks, default=(math.nan, math.nan))
+    return {"bid": bb[0], "ask": ba[0], "bid_size": bb[1], "ask_size": ba[1]}
+
+
+def read_books(lim, klim, pair: dict) -> dict:
+    """One recorded read: Polymarket YES and NO ``/book`` and the Kalshi orderbook (receipt-timed by the caller)."""
+    out = {}
+    for side, tok in (("yes", pair["token_yes"]), ("no", pair["token_no"])):
+        st, data = lim.get(CLOB_BOOK, {"token_id": tok})
+        out[side] = poly_book(data) if st == 200 and isinstance(data, dict) else {"bid": math.nan, "ask": math.nan, "bid_size": math.nan, "ask_size": math.nan, "status": st}
+    st, data = klim.get(f"{KALSHI_API}/markets/{pair['k_ticker']}/orderbook", {})
+    out["kalshi"] = kalshi_book(data) if st == 200 and isinstance(data, dict) else {"k_bid": math.nan, "k_ask": math.nan, "status": st}
+    return out
+
+
+def _read_json(p: Path, default):
+    return json.loads(Path(p).read_text()) if Path(p).is_file() else default
+
+
+def _load_cache(p: Path) -> list[dict]:
+    if not Path(p).is_file():
+        return []
+    with gzip.open(p, "rt", encoding="utf-8") as fh:
+        return [json.loads(x) for x in fh if x.strip()]
+
+
+def _save_cache(p: Path, rows: list[dict]) -> None:
+    tmp = Path(str(p) + ".tmp")
+    with gzip.open(tmp, "wt", encoding="utf-8") as fh:
+        for r in rows:
+            fh.write(json.dumps(r, sort_keys=True) + "\n")
+    tmp.replace(p)
+
+
+def births_with_24h_read(live_dir: Path) -> int:
+    """The stop rule counts births (non-sports, Kalshi-first, audit-flag free pairs with a recorded 24-h read), never results."""
+    pairs = {p["pair_id"]: p for p in c15.jsonl_iter(Path(live_dir) / LIVE_FILES["pairs"])}
+    done = {b["pair_id"] for b in c15.jsonl_iter(Path(live_dir) / LIVE_FILES["books"]) if b.get("which") == "t_d+24h"}
+    return sum(1 for pid in done if pid in pairs and pairs[pid].get("eligible"))
+
+
+def p_live(hist_root: Path, lim, klim, *, now: float, rules_sha: str, freeze_ts: float | None, clock=time.time) -> dict:
+    """q0352, ONE invocation (cron every minute under flock). Before ``T15_P2_start``: idle. After the stop (>= 60 births with their 24-h read) or the cap: closed (write-once).
+    Work, by schedule: the hourly listing scan + Kalshi cache refresh (full daily, incremental hourly by ``min_created_ts``) + frozen matcher; first-print polls every 5 min per
+    pending pair (give up after 7 d); book reads at ``t_d`` (<= 2 min late) and ``t_d + 24 h`` (<= 5 min late); the weekly blind title-audit batch (titles only). Never reads
+    ``cross_venue_live/``. A daily request cap of 3,500 is enforced (skipped work is logged)."""
+    live = c15.require_output_root(Path(hist_root) / LIVE_RUN)
+    live.mkdir(parents=True, exist_ok=True)
+    start, cap = p2_window(freeze_ts)
+    hb_path = live / LIVE_FILES["heartbeat"]
+    if now < start:
+        cm.write_json_atomic(hb_path, {"epoch": now, "utc": cm.iso(now), "status": f"before T15_P2_start {cm.iso(start)}"})
+        return {"status": "p_live_idle", "complete": False, "start": cm.iso(start)}
+    closed = _read_json(live / LIVE_FILES["closed"], None)
+    if closed is None and (now >= cap or births_with_24h_read(live) >= STAGE2_BIRTHS_STOP):
+        closed = {"closed_at": float(now), "by": "cap" if now >= cap else f"stop rule (>= {STAGE2_BIRTHS_STOP} births with their 24-h read; births, never results)", "written_utc": cm.iso(now)}
+        cm.write_once_json(live / LIVE_FILES["closed"], closed)
+    st = _read_json(live / LIVE_FILES["state"], {"last_scan": None, "last_full": None, "last_incr": None, "day": None, "requests_day": 0, "polls": {}, "reads": {}})
+    day = c15.utc_day(now)
+    if st["day"] != day:
+        st.update(day=day, requests_day=0)
+    r0, k0 = lim.requests, klim.requests
+    gp = live / LIVE_FILES["gaps"]
+
+    def budget_left() -> bool:
+        return st["requests_day"] + (lim.requests - r0) + (klim.requests - k0) < DAILY_REQUEST_CAP
+
+    out = {"status": "p_live_polled", "complete": False, "matched": 0, "births": 0, "reads": 0}
+    pairs = {p["pair_id"]: p for p in c15.jsonl_iter(live / LIVE_FILES["pairs"])}
+    births = {b["pair_id"]: b for b in c15.jsonl_iter(live / LIVE_FILES["first_prints"])}
+    try:
+        if closed is None and budget_left() and (st["last_scan"] is None or now - st["last_scan"] >= LISTING_SCAN_EVERY_S):
+            cache_p = live / LIVE_FILES["kalshi_cache"]
+            cache = {r["ticker"]: r for r in _load_cache(cache_p)}
+            if st["last_full"] is None or now - st["last_full"] >= KALSHI_FULL_EVERY_S:
+                rows, info = kalshi_pull(klim)
+                if info["complete"]:
+                    cache = {r["ticker"]: r for r in rows}
+                    st["last_full"] = now
+                else:
+                    c15.jsonl_append(gp, {"t": now, "why": "kalshi full pull incomplete (page cap)"})
+            else:
+                rows, _ = kalshi_pull(klim, min_created_ts=int((st["last_incr"] or st["last_full"]) - KALSHI_INCR_OVERLAP_S))
+                cache.update({r["ticker"]: r for r in rows})
+            st["last_incr"] = now
+            _save_cache(cache_p, list(cache.values()))
+            listings, linfo = scan_listings(lim, now)
+            if linfo["capped"]:
+                c15.jsonl_append(gp, {"t": now, "why": "listing scan capped", "pages": linfo["pages"]})
+            seen = {p["p_market_id"] for p in pairs.values()}
+            new = [x for x in listings if x["market_id"] not in seen]
+            for x in new:
+                c15.jsonl_append(live / LIVE_FILES["listings"], {"t": now, "market_id": x["market_id"], "created": x["created"]})
+            cats = _read_json(live / LIVE_FILES["series_cat"], {})
+            for mrec in match_new(list(cache.values()), new):
+                cat = series_category(klim, mrec["k_series"], cats)
+                pid = f"{mrec['k_ticker']}|{mrec['p_market_id']}"
+                elig = bool(mrec["kalshi_first"] and not mrec["audit_conflict"] and cat not in (SPORTS_CAT, "unknown"))
+                rec = {**mrec, "pair_id": pid, "k_cat": cat, "matched_at": now, "eligible": elig}
+                if pid not in pairs:
+                    c15.jsonl_append(live / LIVE_FILES["pairs"], rec)
+                    pairs[pid] = rec
+                    out["matched"] += 1
+            cm.write_json_atomic(live / LIVE_FILES["series_cat"], cats)
+            st["last_scan"] = now
+        for pid, pr in pairs.items():
+            if pid in births or not budget_left():
+                continue
+            last = st["polls"].get(pid)
+            if now - pr["matched_at"] > FIRST_PRINT_GIVE_UP_S:
+                continue
+            if last is not None and now - last < FIRST_PRINT_POLL_S:
+                continue
+            tb, reach = first_print_poll(lim, pr["condition_id"])
+            st["polls"][pid] = now
+            if reach in ("complete", "uncovered"):
+                rec = {"pair_id": pid, "t_birth": tb, "reach": reach, "detected": now, "late": bool(not math.isfinite(tb) or now > tb + T_D_OFFSET_S)}
+                c15.jsonl_append(live / LIVE_FILES["first_prints"], rec)
+                births[pid] = rec
+                out["births"] += 1
+        for pid, b in births.items():
+            if not math.isfinite(c15.num(b.get("t_birth"))):
+                continue
+            td = float(b["t_birth"]) + T_D_OFFSET_S
+            for which, due, lag in (("t_d", td, READ_LAG_TD_S), ("t_d+24h", td + HORIZON_S, READ_LAG_TB_S)):
+                key = f"{pid}|{which}"
+                if key in st["reads"] or now < due:
+                    continue
+                if now > due + lag:
+                    st["reads"][key] = "missed"
+                    c15.jsonl_append(gp, {"t": now, "pair_id": pid, "which": which, "why": "read window missed (unavailable)"})
+                    continue
+                if not budget_left():
+                    continue
+                bk = read_books(lim, klim, pairs[pid])
+                c15.jsonl_append(live / LIVE_FILES["books"], {"pair_id": pid, "which": which, "due": due, "receipt": clock(), **bk})
+                st["reads"][key] = "done"
+                out["reads"] += 1
+        week = c15.iso_week_of(now)
+        ap = live / LIVE_FILES["audit_dir"]
+        ap.mkdir(exist_ok=True)
+        prev = sorted({c15.iso_week_of(p["matched_at"]) for p in pairs.values()} - {week})
+        for w in prev:
+            f = ap / f"{w}.json"
+            if not f.exists():
+                cm.write_once_json(f, {"week": w, "blind": True, "note": "titles only; no price, book or outcome", "pairs": [{"pair_id": p["pair_id"], "k_text": p["k_text"], "p_text": p["p_text"]}
+                                                                                                                         for p in pairs.values() if c15.iso_week_of(p["matched_at"]) == w]})
+    except (ApiError, RuntimeError) as exc:
+        c15.jsonl_append(gp, {"t": now, "why": f"request failed: {str(exc)[:100]}"})
+    st["requests_day"] += (lim.requests - r0) + (klim.requests - k0)
+    cm.write_json_atomic(live / LIVE_FILES["state"], st)
+    cm.write_json_atomic(hb_path, {"epoch": now, "utc": cm.iso(now), "status": "closed" if closed else "watching", "rules_sha256": rules_sha})
+    if closed is not None:
+        out["status"] = LIVE_STATUS_CLOSED
+        out["closed"] = closed
+    return out
+
+
+# ---- rep (q0353) ---------------------------------------------------------------------------------------------------------------------------------------
+
+
+def read_audits(audit_dir: Path, weeks: set[str]) -> dict[str, str]:
+    """The science-reviewer verdicts of every weekly batch (``<week>.json`` with ``{"pairs": {pair_id: "pass"|"fail"}}``); a missing week is pending (NotNow)."""
+    out: dict[str, str] = {}
+    miss = []
+    for w in sorted(weeks):
+        f = Path(audit_dir) / f"{w}.json"
+        if not f.is_file():
+            miss.append(w)
+            continue
+        for pid, v in (json.loads(f.read_text()).get("pairs") or {}).items():
+            if v not in AUDIT_VALUES:
+                raise Refused(f"audit {f.name}: verdict {v!r} not in {AUDIT_VALUES}")
+            out[pid] = v
+    if miss:
+        raise NotNow(f"title audits pending for weeks {miss}")
+    return out
+
+
+def two_sided(bid: float, ask: float, spread_max: float = K_SPREAD_MAX) -> float:
+    if not (math.isfinite(bid) and math.isfinite(ask)) or ask < bid or ask - bid > spread_max + 1e-12:
+        return math.nan
+    return (bid + ask) / 2.0
+
+
+def rep_units(live_dir: Path, audits: dict[str, str]) -> tuple[list[dict], dict]:
+    """Stage-2 units: eligible pairs (non-sports, Kalshi-first, no audit-conflict flag), audit pass, not late, both reads recorded; ``g_d`` = Kalshi mid - Polymarket YES mid at the
+    ``t_d`` read (both two-sided, spread <= 10c); Delta = YES mid at ``t_d + 24 h`` - YES mid at ``t_d``."""
+    pairs = {p["pair_id"]: p for p in c15.jsonl_iter(Path(live_dir) / LIVE_FILES["pairs"])}
+    births = {b["pair_id"]: b for b in c15.jsonl_iter(Path(live_dir) / LIVE_FILES["first_prints"])}
+    books: dict[str, dict] = {}
+    for b in c15.jsonl_iter(Path(live_dir) / LIVE_FILES["books"]):
+        books.setdefault(b["pair_id"], {})[b["which"]] = b
+    labels: Counter = Counter()
+    units = []
+    for pid, pr in sorted(pairs.items()):
+        if not pr.get("eligible"):
+            labels["not eligible (sports / polymarket first / audit-conflict / unknown category)"] += 1
+            continue
+        if audits.get(pid) != "pass":
+            labels["audit fail" if audits.get(pid) == "fail" else "unaudited"] += 1
+            continue
+        b = births.get(pid)
+        if b is None or not math.isfinite(c15.num(b.get("t_birth"))):
+            labels["no first print"] += 1
+            continue
+        if b.get("late"):
+            labels["late detection"] += 1
+            continue
+        rd = books.get(pid, {})
+        if "t_d" not in rd or "t_d+24h" not in rd:
+            labels["unavailable (read)"] += 1
+            continue
+        a, z = rd["t_d"], rd["t_d+24h"]
+        ma, mz = two_sided(a["yes"]["bid"], a["yes"]["ask"]), two_sided(z["yes"]["bid"], z["yes"]["ask"])
+        kd = two_sided(a["kalshi"]["k_bid"], a["kalshi"]["k_ask"])
+        if not (math.isfinite(ma) and math.isfinite(kd)):
+            labels["no two-sided quote at t_d"] += 1
+            continue
+        units.append({"pair_id": pid, "event": pr["p_event_id"] or pid, "t_birth": float(b["t_birth"]), "g_d": kd - ma, "delta": mz - ma if math.isfinite(mz) else math.nan, "read_a": a,
+                      "read_z": z, "fee_rate": c15.num(pr.get("fee_rate"))})
+        labels["ok"] += 1
+    return units, dict(labels)
+
+
+def rep_p2_net(u: dict, extra_per_side: float = 0.0) -> float | None:
+    """P2-rep: buy the side toward Kalshi at the recorded best ask of the ``t_d`` read; sell at the recorded best bid of the ``t_d + 24 h`` read (no bid -> w*)."""
+    side = "yes" if u["g_d"] >= GAP_MIN else "no"
+    e = u["read_a"][side]["ask"]
+    if not math.isfinite(e):
+        return None
+    x = u["read_z"][side]["bid"]
+    if not math.isfinite(x):
+        return c15.W_STAR
+    return c15.round_trip_net(e, x, c15.taker_rate(u["fee_rate"]), extra_per_side)
+
+
+def rep_p(live_dir: Path, audits: dict[str, str], triggered: list[str]) -> dict:
+    """q0353: the triggered tests only. P1-rep (slope of the book-mid Delta on g_d; >= 60 pairs; floor 0.30) and P2-rep (|g_d| >= 5c at recorded books; >= 40 units; floor +1.0c;
+    binding +1c per side); each with the top-5 event / week drops and the halves as sign checks; one Stage-2 Holm over the triggered tests (early alpha / 2 rule; the Holm only adds)."""
+    units, labels = rep_units(live_dir, audits)
+    res: dict[str, dict] = {}
+    if "P1" in triggered:
+        uu = [u for u in units if math.isfinite(u["delta"])]
+        if len(uu) < REP_MIN["P1"]:
+            res["P1"] = nt(NOT_RUN_POWER_REP, n=len(uu))
+        else:
+            y, x, ev, tb = np.array([u["delta"] for u in uu]), np.array([u["g_d"] for u in uu]), [u["event"] for u in uu], [u["t_birth"] for u in uu]
+            m = slope_test(y, x, ev, weeks_of(tb))
+
+            def est1(keep: np.ndarray) -> float:
+                keep = np.asarray(keep, bool)
+                return c15.wls_coef_pseudo(y[keep], x[keep], event_weights([ev[i] for i in np.flatnonzero(keep)]), 0)[1] if keep.sum() >= 3 else math.nan
+
+            rob = sign_checks(est1, len(uu), ev, weeks_of(tb), tb, m["pv"])
+            checks = {"floor": bool(math.isfinite(m["est"]) and m["est"] >= P1_FLOOR), "small_g": bool(m.get("small_g_rules_hold", True)), "robustness": all(v["holds"] for v in rob.values())}
+            res["P1"] = {"testable": bool(m.get("testable")), "p": float(m["p"] if m.get("testable") else 1.0), "est": m["est"], "n": len(uu), "checks": checks, "robustness": rob}
+    if "P2" in triggered:
+        uu = [u for u in units if abs(u["g_d"]) >= GAP_MIN]
+        nets = [(u, rep_p2_net(u)) for u in uu]
+        nets = [(u, v) for u, v in nets if v is not None]
+        if len(nets) < REP_MIN["P2"]:
+            res["P2"] = nt(NOT_RUN_POWER_REP, n=len(nets))
+        else:
+            v = np.array([n for _, n in nets])
+            ev, tb = [u["event"] for u, _ in nets], [u["t_birth"] for u, _ in nets]
+            m = mean_test(v, ev, weeks_of(tb))
+
+            def est2(keep: np.ndarray, vv: np.ndarray = v) -> float:
+                keep = np.asarray(keep, bool)
+                if keep.sum() < 2:
+                    return math.nan
+                w = event_weights([ev[i] for i in np.flatnonzero(keep)])
+                return float(np.sum(vv[keep] * w) / w.sum())
+
+            vc = np.array([rep_p2_net(u, c15.COST_ROBUST_PER_SIDE) for u, _ in nets], float)
+            rob = sign_checks(est2, len(v), ev, weeks_of(tb), tb, m["pv"])
+            ec = est2(np.ones(len(vc), bool), vc)
+            rob["cost_plus_1c_per_side"] = {"est": ec, "holds": bool(math.isfinite(ec) and ec > 0)}
+            checks = {"floor": bool(math.isfinite(m["est"]) and m["est"] >= P2_FLOOR), "small_g": bool(m.get("small_g_rules_hold", True)), "robustness": all(r["holds"] for r in rob.values())}
+            res["P2"] = {"testable": bool(m.get("testable")), "p": float(m["p"] if m.get("testable") else 1.0), "est": m["est"], "n": len(v), "checks": checks, "robustness": rob}
+    holm = c15.stage2_final({t: (r["p"] if r.get("testable") else None) for t, r in res.items()})
+    for t, r in res.items():
+        ok = all((r.get("checks") or {"x": False}).values()) and bool(r.get("testable"))
+        rej = bool(((holm["tests"] or {}).get(c15.STAGE2_NAMES[t]) or {}).get("reject"))
+        r["advance"] = c15.stage2_pass(ok, r.get("p") if r.get("testable") else None, rej)
+        r.setdefault("verdict", "advance (Stage 2, recorded books, causal selection)" if r["advance"] else "not replicated at MDE")
+        r.pop("pv", None)
+    return {**res, "stage2_holm": holm, "labels": labels, "evidence": "L2 prospective, causal selection, recorded books"}

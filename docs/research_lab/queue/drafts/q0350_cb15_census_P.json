@@ -1,0 +1,34 @@
+{
+ "id": "q0350_cb15_census_P",
+ "title": "CB15-P census, counts only: binding Kalshi-first from the first print (24 h exactly counts), scheduled-end exclusion, labels (no birth print, Polymarket first, ends early, no Kalshi quote), rule booleans, seeded-history shares, g_d distribution (features at t_d), |g_d| >= 5c count; gates GP (P1 >= 60 pairs in >= 30 events; P2 >= 40 in >= 25) and GPP (SE-only proxy at t_L: MDE_P1 <= 0.60, MDE_P2 <= 2c)",
+ "family": "creative_batch_15",
+ "priority": 9,
+ "expected_value": "P gates and MDEs before the freeze",
+ "data": [
+  "history/h15_birth/ (prints after t_d only through the SE-only proxy; volume not opened)"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0349_cb15_p_data"
+ ],
+ "argv": [
+  "scripts/run_cb15.py",
+  "census",
+  "--family",
+  "P",
+  "--rules",
+  "../docs/research_lab/seals/cb15_rules.json"
+ ],
+ "timeout_s": 900,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch15/census_P.json",
+  "trials.jsonl (cb15_descriptive; if neither test can run, P1, P2 counted once here)"
+ ],
+ "next_action": "science-reviewer freeze check (part P); run_cb15.py freeze-part --part P",
+ "notes": "CREATIVE_BATCH_15.md CB15-P. DRAFT. No slope, Delta or net written. Rules part sha256 (seals/cb15_rules.json, P declared 2026-10-19): common 13c703222500e502cd29acb94cdec497c43ff68cfc9415bd0efbfd4699718f3a, P 198b7fab6a709a6bd63a3bd509d614792997512a9bd2ecf1ae0e24585ecf61e3. CB15 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer, part P) and the committed rules file; the coordinator regenerates the rules and these shas if any common / P code changes."
+}

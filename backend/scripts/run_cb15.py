@@ -19,7 +19,8 @@ CB15-E (election-night reporting-order drift, CH129; one-night case study, the n
     python scripts/run_cb15.py p-data                        # q0349: prints from the first transaction, Kalshi candles, prices-history after the first print (resumable, budgeted)
     python scripts/run_cb15.py census --family P             # q0350: counts only; GP, GPP (SE-only proxy)
     python scripts/run_cb15.py screen --family P             # q0351 (refuses before the part-P freeze)
-    Part P stays UNDECLARED in the rules file until the Stage-2 watcher (q0352) and rep (q0353) are written: every P command refuses (exit 2) until then.
+    python scripts/run_cb15.py p-live                        # q0352: ONE birth-watcher invocation (cron every minute under flock); refuses before the part-P freeze
+    python scripts/run_cb15.py rep --family P                # q0353 (triggered tests only; pinned Stage-1 results; title audits complete; after T15_P2_end)
 
 Exit codes: 0 ok / transient pause / declared stall or terminal (the label is carried, never exit 2) / declared end state; 1 error; 2 refusal (rules hash of the command's part, smoke
 result missing or failed, refused root, declared argument changed, GE0 pin unset or different, before the family's freeze for analysis and live jobs, results exist); 4 disk budget;
@@ -45,6 +46,8 @@ FAMILIES = ("E", "P")
 DECLARED_DISK_CAP_GB = {"exclusion-keys": 0.01, "e-census": 0.005, "pregate-E": 0.002, "p-data": 0.05}
 DECLARED_RPS_MAX = {"smoke": 1.0, "exclusion-keys": 2.0, "e-census": 2.0, "pregate-E": 1.0, "e-live": 2.0, "p-data": 2.0}
 DECLARED_KALSHI_RPS_MAX = 1.0
+DECLARED_DISK_CAP_GB["p-live"] = 0.05
+DECLARED_RPS_MAX["p-live"] = 2.0
 _TRANSIENT_STATUS = re.compile(r"status (None|0|408|429|5\d\d)\b")
 
 
@@ -314,6 +317,10 @@ def cmd_freeze_part(a):
             raise c15.Refused(f"collector cap {cap} < {e.CAP_MIN_GB} GB")
         entry["disk_cap_gb"] = round(cap, 3)
         entry["t15_e_freeze_deadline"] = e.T15_E_FREEZE
+    if a.part == "P":
+        p = _p()
+        entry["matcher_sha256"] = p.verify_matcher()
+        entry["p_freeze_marker"] = p.P_FREEZE_MARKER
     return 0, {"part": a.part, "entry": entry, "declaration": d["declared"], "note": "commit this entry under the part key of model_specs/cb15_v1.json"}
 
 
@@ -801,6 +808,72 @@ def _screen_p(a) -> tuple[int, dict]:
     return 0, {"status": "screen_P_complete", **{t: {k: (doc[t] or {}).get(k) for k in ("p", "advance", "verdict")} for t in tids}}
 
 
+def _freeze_ts_p(a) -> float | None:
+    """The commit time of the first commit of ``model_specs/cb15_v1.json`` carrying the part-P marker; ``--freeze-ts`` overrides (tests)."""
+    c15, p = _c15(), _p()
+    if getattr(a, "freeze_ts", None) is not None:
+        return float(a.freeze_ts)
+    spec = _freeze_spec(a) or (Path(c15.__file__).resolve().parent / "model_specs" / "cb15_v1.json")
+    out = c15.provenance._git(["log", "--reverse", "--format=%ct", f"-S{p.P_FREEZE_MARKER}", "--", str(spec)], c15.provenance.REPO_ROOT)
+    times = [t for t in (out or "").split() if t.isdigit()]
+    return float(times[0]) if times else None
+
+
+@_guarded
+def cmd_p_live(a):
+    """ONE birth-watcher invocation (cron every minute). Refuses before the part-P freeze (and if the frozen matcher changed); idles before T15_P2_start."""
+    c15, p = _c15(), _p()
+    for name in ("now", "freeze_ts"):
+        _test_only(a, name)
+    _declared(a, "p-live")
+    if a.not_before != p.T15_P2_START_MIN:
+        raise c15.Refused(f"arguments differ from the declaration: --not-before {a.not_before} (declared {p.T15_P2_START_MIN})")
+    shas = _shas(a, "P")
+    entry = _freeze(a, "P", shas, {"matcher_sha256": p.verify_matcher(), "p_freeze_marker": p.P_FREEZE_MARKER})
+    now = float(a.now) if getattr(a, "now", None) else time.time()
+    c15.require_disk(_data_dumps(a), a.data_dumps_cap_gb, int(a.disk_cap_gb * 1024**3))
+    m = p.p_live(_hist(a), _limiter(a, a.rps, yield_to_collector=False), _limiter(a, a.kalshi_rps, yield_to_collector=False), now=now, rules_sha=shas["P"], freeze_ts=_freeze_ts_p(a))
+    m["freeze_sha256"] = entry["entry_sha256"]
+    return 0, m
+
+
+@_guarded
+def cmd_rep(a):
+    """q0353: P1-rep / P2-rep for the tests that advanced at Stage 1 (pinned results sha256), after the watcher closed; the title audits of every batch week must be in."""
+    c15, p = _c15(), _p()
+    if _family(a) != "P":
+        raise c15.Refused("rep is P only: E has no Stage 2 in CB15 (a pass yields a 2028 registration draft)")
+    root = _root(a)
+    out = Path(a.out) if a.out else root / "results_P_rep.json"
+    if out.exists():
+        raise c15.Refused(f"{out} exists; results are written once")
+    shas = _shas(a, "P")
+    entry = _freeze(a, "P", shas, {"matcher_sha256": p.verify_matcher(), "p_freeze_marker": p.P_FREEZE_MARKER})
+    rp = root / "results_P.json"
+    if not rp.exists():
+        raise c15.NotNow("results_P.json missing (q0351 first); pending")
+    if not a.results_sha256 or a.results_sha256 == c15.PIN_UNSET or c15.sha256_file(rp) != a.results_sha256:
+        raise c15.Refused("the pinned sha256 of results_P.json (--results-sha256) is unset or differs")
+    s1 = json.loads(rp.read_text())
+    triggered = [t for t in c15.FAMILY_TESTS["P"] if (s1.get(t) or {}).get("advance")]
+    if not triggered:
+        return 0, {"status": "rep_P_not_triggered", "note": "no P test advanced at Stage 1: nothing to replicate, nothing counted"}
+    live = _hist(a) / p.LIVE_RUN
+    closed = json.loads((live / p.LIVE_FILES["closed"]).read_text()) if (live / p.LIVE_FILES["closed"]).exists() else None
+    if closed is None:
+        raise c15.NotNow("the birth watcher has not closed (T15_P2_end not reached); pending")
+    pairs = list(c15.jsonl_iter(live / p.LIVE_FILES["pairs"]))
+    weeks = {c15.iso_week_of(x["matched_at"]) for x in pairs}
+    audits = p.read_audits(Path(a.audit_dir) if a.audit_dir else ROOT / p.AUDIT_DIR_REL, weeks)
+    body = p.rep_p(live, audits, triggered)
+    doc = {**body, "triggered": triggered, "rules_sha256": shas, "freeze_sha256": entry["entry_sha256"], "results_P_sha256": a.results_sha256, "closed": closed, "written_epoch": time.time()}
+    rsha = c15.write_results_once(out, doc)
+    c15.log_family("P", {t: {"p": doc[t].get("p", 1.0), "testable": doc[t].get("testable", False), "advance": doc[t].get("advance"), "effect": doc[t].get("est"), "n": doc[t].get("n"),
+                             "verdict": doc[t].get("verdict")} for t in triggered}, replication=True, trials_path=_tp(a), results_sha256=rsha, role=c15.EVIDENCE_ROLE_PROSPECTIVE,
+                   n_triggered=len(triggered))
+    return 0, {"status": "rep_P_complete", "triggered": triggered, **{t: {k: doc[t].get(k) for k in ("p", "advance", "verdict")} for t in triggered}}
+
+
 @_guarded
 def cmd_census(a):
     fam = _family(a)
@@ -934,6 +1007,25 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--c1-root", default=None)
     q.add_argument("--smoke", default=None)
     q.set_defaults(fn=cmd_p_data)
+
+    q = sub.add_parser("p-live", help="q0352 (cron every minute)")
+    common(q)
+    net(q, disk_cap=0.05)
+    q.add_argument("--kalshi-rps", type=float, default=DECLARED_KALSHI_RPS_MAX)
+    q.add_argument("--not-before", default=None)
+    q.add_argument("--freeze-spec", default=None)
+    q.add_argument("--freeze-ts", type=float, default=None, help="tests only")
+    q.add_argument("--now", default=None, help="tests only")
+    q.set_defaults(fn=cmd_p_live)
+
+    q = sub.add_parser("rep", help="q0353 (P)")
+    common(q)
+    q.add_argument("--family", required=True)
+    q.add_argument("--out", default=None)
+    q.add_argument("--freeze-spec", default=None)
+    q.add_argument("--results-sha256", default=None, help="MANDATORY pin of the committed results_P.json")
+    q.add_argument("--audit-dir", default=None, help="the science-reviewer verdicts per batch week (default docs/research_lab/seals/cb15_p_audit)")
+    q.set_defaults(fn=cmd_rep)
 
     q = sub.add_parser("census", help="q0350 (P)")
     common(q)

@@ -55,9 +55,10 @@ def test_volume_is_opened_only_by_the_screen(tmp_path):
         p.open_volume(d, "census-P")
 
 
-def test_part_p_stays_undeclared_until_stage2():
+def test_part_p_is_declared_with_stage2_and_common_e_untouched():
     d = c15.rules_part_file_doc("P")
-    assert d["part_declared"] is False and "Stage-2" in d["reason"]
+    assert d["part_declared"] is True and p.part_unready() is None
+    assert "import cb15_p" not in Path(c15.__file__).read_text() and "cb15_p as" not in Path(c15.__file__).read_text()  # common does not import P
 
 
 # ---- birth and clocks ----------------------------------------------------------------------------------------------------------------------------
@@ -260,3 +261,130 @@ def test_screen_gates_from_census(tmp_path):
     res = p.screen_p(d, census, draws_placebo=5, boot_draws=50)
     assert res["P1"]["verdict"] == p.NOT_RUN_POWER and res["P2"]["verdict"] == p.NOT_TESTABLE_POP
     assert p.load_data(d)["meta"]["K0"]["p_market_id"] == "0"
+
+
+# ---- Stage 2: watcher and rep ------------------------------------------------------------------------------------------------------------------------
+
+
+NOW = p.ep("2026-11-10T12:00:00Z")
+
+
+def _gm(i: int, created: float, q: str) -> dict:
+    return {"id": str(9000 + i), "outcomes": '["Yes","No"]', "clobTokenIds": json.dumps([f"y{i}", f"n{i}"]), "question": q, "createdAt": p.cm.iso(created), "endDate": "2026-12-31T00:00:00Z",
+            "conditionId": f"c{i}", "events": [{"id": f"ev{i}"}], "outcomePrices": '["0.5","0.5"]', "feeSchedule": {"rate": 0.02}}
+
+
+def _km(t: str, title: str, open_t: float, sub: str = "") -> dict:
+    return {"ticker": t, "event_ticker": f"{t.split('-')[0]}-X", "title": title, "yes_sub_title": sub, "close_time": "2026-12-31T00:00:00Z", "open_time": p.cm.iso(open_t), "result": "", "market_type": "binary"}
+
+
+class LiveLim:
+    """Gamma, Data API, CLOB /book and Kalshi fakes, counting requests."""
+
+    def __init__(self, listings, kalshi, trades, cat="Politics"):
+        self.listings, self.kalshi, self.trades, self.cat, self.requests = listings, kalshi, trades, cat, 0
+
+    def get(self, url, params):
+        self.requests += 1
+        if url == c15.GAMMA_MARKETS:
+            return 200, self.listings if params["offset"] == 0 else []
+        if url.endswith("/markets") and "kalshi" in url:
+            return 200, {"markets": self.kalshi, "cursor": ""}
+        if "/series/" in url:
+            return 200, {"series": {"category": self.cat}}
+        if url.endswith("/orderbook"):
+            return 200, {"orderbook": {"yes_dollars": [["0.55", 10]], "no_dollars": [["0.40", 10]]}}
+        if url == p.CLOB_BOOK:
+            return 200, {"bids": [{"price": "0.49", "size": "50"}], "asks": [{"price": "0.51", "size": "50"}]}
+        if "trades" in url:
+            return 200, self.trades.get(params["market"], [])
+        raise AssertionError(url)
+
+
+def test_watcher_matches_polls_reads_audits_and_stops(tmp_path):
+    hist = tmp_path / "research_lab" / "history"
+    q = "Will the Federal Reserve cut rates at the December 2026 meeting"
+    lis = [_gm(1, NOW - 600, q)]
+    kal = [_km("FED-26DEC", q, NOW - 3 * DAY)]
+    lim = LiveLim(lis, kal, {"c1": [{"timestamp": NOW + 60, "price": 0.5, "size": 3, "outcomeIndex": 0, "transactionHash": "h"}]})
+    r = p.p_live(hist, lim, lim, now=p.ep(p.T15_P2_START_MIN) - 1, rules_sha="x", freeze_ts=None)
+    assert r["status"] == "p_live_idle"
+    r = p.p_live(hist, lim, lim, now=NOW, rules_sha="x", freeze_ts=None, clock=lambda: NOW)
+    assert r["matched"] == 1, r
+    live = hist / p.LIVE_RUN
+    pr = next(c15.jsonl_iter(live / p.LIVE_FILES["pairs"]))
+    assert pr["eligible"] and pr["kalshi_first"] and pr["k_cat"] == "Politics" and "result" not in json.dumps(pr)
+    r = p.p_live(hist, lim, lim, now=NOW + 120, rules_sha="x", freeze_ts=None, clock=lambda: NOW + 120)
+    assert r["births"] == 0  # polled < 5 min ago at NOW (no print yet then? the fake already has one: polled at NOW)
+    births = list(c15.jsonl_iter(live / p.LIVE_FILES["first_prints"]))
+    assert len(births) == 1 and births[0]["t_birth"] == NOW + 60 and not births[0]["late"]
+    td = NOW + 60 + 600
+    r = p.p_live(hist, lim, lim, now=td + 30, rules_sha="x", freeze_ts=None, clock=lambda: td + 31)
+    assert r["reads"] == 1
+    r = p.p_live(hist, lim, lim, now=td + DAY + 400, rules_sha="x", freeze_ts=None, clock=lambda: td + DAY + 401)
+    assert r["reads"] == 0  # 24-h read window (5 min) missed: unavailable, logged
+    gaps = [json.loads(x) for x in (live / p.LIVE_FILES["gaps"]).read_text().splitlines()]
+    assert any(g.get("which") == "t_d+24h" for g in gaps)
+    later = NOW + 8 * DAY
+    p.p_live(hist, lim, lim, now=later, rules_sha="x", freeze_ts=None, clock=lambda: later)
+    batch = json.loads((live / p.LIVE_FILES["audit_dir"] / f"{c15.iso_week_of(NOW)}.json").read_text())
+    assert batch["blind"] and set(batch["pairs"][0]) == {"pair_id", "k_text", "p_text"}
+
+
+def test_watcher_excludes_polymarket_first_and_sports(tmp_path):
+    hist = tmp_path / "research_lab" / "history"
+    q = "Will the Federal Reserve cut rates at the December 2026 meeting"
+    lim = LiveLim([_gm(1, NOW - 600, q)], [_km("FED-26DEC", q, NOW - 3 * DAY)], {}, cat="Sports")
+    p.p_live(hist, lim, lim, now=NOW, rules_sha="x", freeze_ts=None)
+    pr = next(c15.jsonl_iter(hist / p.LIVE_RUN / p.LIVE_FILES["pairs"]))
+    assert not pr["eligible"]
+    assert p.match_new([p.kalshi_record(_km("FED-26DEC", q, NOW - 3600))], [p.poly_listing(_gm(2, NOW - 600, q))]) == []  # Kalshi opened < 24 h before the listing
+
+
+def test_watcher_closes_at_the_cap(tmp_path):
+    hist = tmp_path / "research_lab" / "history"
+    lim = LiveLim([], [], {})
+    r = p.p_live(hist, lim, lim, now=p.ep(p.T15_P2_CAP), rules_sha="x", freeze_ts=None)
+    assert r["status"] == p.LIVE_STATUS_CLOSED and r["closed"]["by"] == "cap"
+    assert p.p2_window(p.ep("2026-11-10T00:00:00Z"))[0] == p.ep("2026-11-11T00:00:00Z")
+
+
+def test_kalshi_book_parse():
+    assert p.kalshi_book({"orderbook": {"yes_dollars": [["0.55", 10]], "no_dollars": [["0.40", 3]]}}) == {"k_bid": 0.55, "k_ask": pytest.approx(0.60)}
+    assert p.kalshi_book({"orderbook": {"yes": [[55, 10]], "no": [[40, 3]]}})["k_bid"] == pytest.approx(0.55)
+    assert math.isnan(p.kalshi_book({"orderbook": {}})["k_ask"])
+
+
+def _live_fixture(live: Path, n: int, slope: float, gap: float = 0.08) -> dict:
+    rng = np.random.default_rng(5)
+    audits = {}
+    for i in range(n):
+        pid = f"K{i}|{i}"
+        tb = NOW + i * 3 * HOUR
+        m0 = float(rng.uniform(0.3, 0.6))
+        g = float(rng.choice([-1, 1]) * gap * rng.uniform(0.8, 1.5))
+        m1 = m0 + slope * g + float(rng.normal(0, 0.005))
+        c15.jsonl_append(live / p.LIVE_FILES["pairs"], {"pair_id": pid, "eligible": True, "p_event_id": f"e{i // 2}", "matched_at": NOW, "fee_rate": 0.02})
+        c15.jsonl_append(live / p.LIVE_FILES["first_prints"], {"pair_id": pid, "t_birth": tb, "late": False})
+        for which, mid in (("t_d", m0), ("t_d+24h", m1)):
+            k = m0 + g
+            c15.jsonl_append(live / p.LIVE_FILES["books"], {"pair_id": pid, "which": which, "yes": {"bid": mid - 0.005, "ask": mid + 0.005}, "no": {"bid": 1 - mid - 0.005, "ask": 1 - mid + 0.005},
+                                                           "kalshi": {"k_bid": k - 0.01, "k_ask": k + 0.01}})
+        audits[pid] = "pass"
+    return audits
+
+
+def test_rep_replicates_a_planted_effect_and_counts_power(tmp_path):
+    live = tmp_path / "live"
+    live.mkdir()
+    audits = _live_fixture(live, 70, 0.7)
+    res = p.rep_p(live, audits, ["P1", "P2"])
+    assert res["P1"]["advance"] and res["P2"]["advance"], (res["P1"].get("checks"), res["P2"].get("checks"))
+    assert res["stage2_holm"]["k"] == 2
+    audits2 = dict(audits)
+    for k in list(audits2)[:15]:
+        audits2[k] = "fail"
+    res2 = p.rep_p(live, audits2, ["P1"])
+    assert res2["P1"]["verdict"] == p.NOT_RUN_POWER_REP and res2["labels"]["audit fail"] == 15
+    with pytest.raises(c15.NotNow):
+        p.read_audits(tmp_path / "none", {"2026-W46"})
