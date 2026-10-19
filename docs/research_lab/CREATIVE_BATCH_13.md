@@ -1213,3 +1213,57 @@ unaffected):**
 
 **After the 11.z review fixes (2026-10-19; `member_flag_counts`, `late_kept_members`, HOLDOUT member counters; the promoted q0285b was built on R `7d05b00d…`, whose smoke code is unchanged):**
 R `919070246add0ef76100a9d375c1c16b18c15fa817e2be9492bd9fc03f1775f7` (common, LABELLER, T unchanged).
+
+### 11.r Labeller revision 1 of 1 (2026-10-19; written after the round 1 FAIL and before round 2)
+
+Round 1 of gate GL (seed 13121; records in `docs/research_lab/audits/cb13_gl/`) **failed**: overall 0.91; LOW 0.98 /
+0.90; NEWS 0.75 of the labeller's 60 / 0.94 of the reviewer's 48 (each group needs ≥ 0.80 both ways). The design
+allows **one** revision before the T freeze, written from the class definitions (§CB13-T "Labeller"), followed by a
+fresh round 2 (seed 13122, same strata, a new blind reviewer). A second FAIL makes T1 and T2 "not testable
+(labeller)", counted. This is that revision. Its inputs were the class definitions and the titles-only
+disagreement list. It is not tuned to individual titles: every rule is a general form that a definition names. No
+price, mark or outcome was read. A false-positive check ran on question texts of `cross_venue/poly_markets.json`
+(questions only, the source the design names for writing the labeller).
+
+Rules added (`cb13_label.py`; precedence unchanged: SPORTS-FEED > PATH-SETTLED > PUBLIC-STATISTIC > SCHEDULED-EVENT >
+UNSCHEDULED-NEWS):
+- **PUBLIC-STATISTIC (`PUBLIC_R1_RE`)**, from "macro releases ...; box office; review and chart scores; post or tweet
+  counts". The macro list gains PPI / producer prices, the consumer price index (spelled out), core inflation, JOLTS
+  and job openings, ADP, initial and continuing claims, trade balance / deficit / surplus, industrial production,
+  durable goods, and the release forms YoY / MoM / QoQ (year- and month-over-month). **Post counts:** a number or a
+  range followed within three words by "posts" or "tweets". **Box office:** "grossing" forms (top, highest). **Chart
+  ranks:** "#n song / album / single / artist", "top song / album / ...", "most streamed", "number one song".
+- **SCHEDULED-EVENT (`SCHEDULED_R1_RE`)**, from "award shows" and "Fed/FOMC and central-bank decisions". Award shows:
+  "at the [year] ... Awards", the Game Awards, BAFTA, VMA, Brit Awards, Cannes / Palme d'Or, the Booker and Nobel
+  prizes (all announced at a set date). Central banks: policy-rate names (key, policy, bank, cash, repo, benchmark,
+  refinancing, deposit, target, federal / fed funds rate), "central bank", "monetary policy" and named central banks
+  (ECB, BoE, BoJ, BoC, RBA, RBNZ, RBI, SNB, PBoC, Riksbank, Norges Bank, Bundesbank, Bank of England / Japan / Canada /
+  Russia / Korea / Mexico / Brazil / Turkey / Israel / Thailand). Their rate is set at scheduled meetings, so a rate
+  level at a date is decided by those meetings.
+- **SCHEDULED-EVENT (`NEXT_OFFICE_RE`)**, from "elections ... nominations ... votes with a scheduled time": "the next
+  <Prime Minister | President | Chancellor | Premier | Chief Minister | First Minister | Minister-President | Taoiseach
+  | Mayor | Governor | Speaker of the House>". The holder of such an office is chosen by a general election, an
+  investiture vote or a party leadership vote. **Guard against resignation-driven questions:** the rule does not apply
+  when the title carries a deadline ("by", "before") or a removal trigger (resign, ousted, removed, impeach, "out as",
+  no-confidence, death). Those titles ask *when* a change happens, which is the UNSCHEDULED-NEWS form "will X happen by
+  <date>". A generic "next PM" rule without this guard was rejected for that reason. **Known imprecision:** offices
+  filled by appointment (for example France's Prime Minister) also match. They are nominations in the definition's
+  sense, but their timing can be unscheduled.
+
+Deliberately **not** changed:
+- "Republican Senate odds hit 45%": these are Polymarket's own odds, not a published statistic.
+- LeBron retirement and Phillies manager: SPORTS-FEED via the sidecar's sports fee type; the reviewer saw titles only.
+- "Anthropic's valuation hit $5.0T": the title alone classifies as UNSCHEDULED-NEWS (no asset list matches it). The
+  PATH label came from the market's fee type (`crypto_fees*` / `finance_prices_fees`), which the written PATH-SETTLED
+  definition makes sufficient on its own. Overriding a definition for one market is outside a vocabulary revision.
+- Every threshold, the strata, the seeds, the 5% UNKNOWN rule and the audit protocol.
+
+False-positive check (130,328 historical questions; counts of titles that only the new rules move): PUBLIC_R1 291
+(post-count ranges, grossing ranks), SCHEDULED_R1 157 (central-bank meetings, award shows), NEXT_OFFICE 167 (elected
+heads of government and mayors; appointed offices as disclosed). Only the rules part LABELLER changes. Part T
+hashes `cb13_t` only and pins the labeller through the freeze's `labeller_rules_sha256` and the audit file's
+`labeller_sha256`, so the T sha is unchanged. The round 2 sample is drawn with the revised labeller. Its sha is final
+from the round 2 audit file onwards.
+
+**Rules part sha256 after 11.r:** LABELLER `95cde0ab70a3845977933a5a13ed2f65263eb903f86ca9da93a90924948d79b9`
+(was `1e515bb4…`). common `62e90149…`, T `f72683f5…` and R `91907024…` are unchanged.

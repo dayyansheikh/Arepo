@@ -68,6 +68,14 @@ PUBLIC_RE = re.compile(
     r"\bconsumer sentiment\b|\bhighest temperature\b|\blowest temperature\b|\btemperature\b|\bdegrees\b|\b°\s?[FC]\b|\bprecipitation\b|\brainfall\b|\bsnowfall\b|\bearthquakes?\b|"
     r"\bmagnitude\s*\d|\bbox office\b|\bopening weekend\b|\bgross(?:es)?\b|\bRotten Tomatoes\b|\bMetacritic\b|\bIMDb\b|\bBillboard\b|\bSpotify\b|\btop \d+ (?:on|in)\b|\b#1 (?:on|in)\b|"
     r"\bhow many (?:times|tweets|posts)\b|\btweets?\b|\bposts? (?:on|per)\b|\bpolls?\b|\bapproval rating\b|\bfavorability\b|\bsubscribers?\b|\bviews?\b|\bfollowers\b)")
+# Revision 1 of 1 (CREATIVE_BATCH_13.md section 11.r, written from the PUBLIC-STATISTIC definition before audit round 2): further named macro releases and release forms; post or tweet
+# COUNTS (a number or range of posts); box office ("grossing" forms); chart ranks (#n / top song, album, single, artist; most streamed)
+PUBLIC_R1_RE = re.compile(
+    r"(?i)(\bPPI\b|\bproducer price(?:s| index)?\b|\bconsumer price index\b|\bcore inflation\b|\bJOLTS\b|\bjob openings\b|\bADP\b|\binitial claims\b|\bcontinuing claims\b|"
+    r"\btrade (?:balance|deficit|surplus)\b|\bindustrial production\b|\bdurable goods\b|\b(?:YoY|MoM|QoQ)\b|\byear[- ]over[- ]year\b|\bmonth[- ]over[- ]month\b|"
+    r"\b\d[\d,]*\s*(?:-|–|to)\s*\d[\d,]*\s+(?:[\w'.]+\s+){0,3}(?:posts|tweets)\b|\b\d[\d,]*\+?\s+(?:or more\s+)?(?:[\w'.]+\s+){0,3}(?:posts|tweets)\b|"
+    r"\b(?:top|highest)[- ]grossing\b|\bgrossing\b|"
+    r"(?<!\w)#\s?\d+\s+(?:song|album|single|artist)s?\b|\btop (?:song|album|single|artist)s?\b|\bmost[- ]streamed\b|\bnumber (?:one|1) (?:song|album|single)\b)")
 
 # ---- SCHEDULED-EVENT: an event with a public date ---------------------------------------------------------------------------------------------------------
 SCHEDULED_FEE_PREFIXES = ("mentions_fees",)
@@ -75,6 +83,17 @@ SCHEDULED_RE = re.compile(
     r"(?i)(\belections?\b|\bprimar(?:y|ies)\b|\bnominee\b|\bnomination\b|\bdebates?\b|\bOscars?\b|\bAcademy Awards?\b|\bGrammys?\b|\bEmmys?\b|\bGolden Globes?\b|\bTonys?\b|\bFed\b|\bFOMC\b|"
     r"\brate (?:cut|hike|decision)\b|\binterest rates?\b|\bearnings\b|\bruling\b|\bSupreme Court\b|\bspeech\b|\bwhat will .{1,60}? say\b|\bsay during\b|\bmention(?:s|ed)?\b|\blaunch(?:es)?\b|"
     r"\bvotes?\b|\breferendum\b|\b(?:win|wins|wins the)\b.{0,60}\b(?:race|seat|governorship|mayor(?:al)?|senate|house|gubernatorial|presidential)\b|\bballot\b|\bcongress\b|\bconfirmed?\b)")
+# Revision 1 of 1 (section 11.r), from the SCHEDULED-EVENT definition ("award shows", "Fed/FOMC and central-bank decisions", "elections ... votes with a scheduled time"):
+# award-show forms; central-bank policy rates and named central banks (their level is set at scheduled meetings);
+SCHEDULED_R1_RE = re.compile(
+    r"(?i)(\bat the (?:\d{4}\s+)?(?:[\w'&.-]+\s+){0,4}Awards\b|\bGame Awards\b|\bBAFTAs?\b|\bVMAs?\b|\bBrit Awards\b|\bCannes\b|\bPalme d.Or\b|\bBooker Prize\b|\bNobel (?:Peace )?Prize\b|"
+    r"\b(?:key|policy|bank|cash|repo|benchmark|refinancing|deposit|federal funds|fed funds|target)\s+(?:interest\s+)?rates?\b|\bcentral bank\b|\bmonetary policy\b|"
+    r"\b(?:ECB|BoE|BoJ|BoC|RBA|RBNZ|RBI|SNB|PBoC|Riksbank|Norges Bank|Bundesbank|Bank of (?:England|Japan|Canada|Russia|Korea|Mexico|Brazil|Turkey|Israel|Thailand))\b)")
+# "the next <elected head of government / executive office>": the holder is chosen by an election, an investiture vote or a party leadership vote, each a vote with a scheduled time.
+# Excluded when the title carries a deadline ("by" / "before") or a removal trigger: then the question is WHEN a change happens (unscheduled timing, UNSCHEDULED-NEWS "will X happen by <date>").
+NEXT_OFFICE_RE = re.compile(
+    r"(?i)\bnext\s+(?:Prime Minister|President|Chancellor|Premier|Chief Minister|First Minister|Minister[- ]President|Taoiseach|Mayor|Governor|Speaker of the House)\b")
+NEXT_OFFICE_EXCLUDE_RE = re.compile(r"(?i)(\bby\b|\bbefore\b|\bresign\w*\b|\bousted\b|\bremoved\b|\bimpeach\w*\b|\bout as\b|\bno[- ]confidence\b|\bdies?\b|\bdeath\b)")
 
 # ---- audit stratum: non-game sports titles (frozen keyword list) -----------------------------------------------------------------------------------------
 SPORTS_ADJACENT_RE = re.compile(
@@ -117,9 +136,9 @@ def classify(title, slug="", fee_type="", fee_category="", series_slugs="", ctx_
     asset = underlying_of(ttl)
     if ft.startswith(PATH_FEE_PREFIXES) or (asset is not None and PATH_FORM_RE.search(ttl)):  # design: asset term + price form, OR fee type crypto_fees* / finance_prices_fees (a bare crypto category is not enough)
         return PATH, asset or ("CRYPTO" if ft.startswith("crypto") else None)
-    if ft.startswith(PUBLIC_FEE_PREFIXES) or PUBLIC_RE.search(ttl):
+    if ft.startswith(PUBLIC_FEE_PREFIXES) or PUBLIC_RE.search(ttl) or PUBLIC_R1_RE.search(ttl):
         return PUBLIC, None
-    if ft.startswith(SCHEDULED_FEE_PREFIXES) or SCHEDULED_RE.search(ttl):
+    if ft.startswith(SCHEDULED_FEE_PREFIXES) or SCHEDULED_RE.search(ttl) or SCHEDULED_R1_RE.search(ttl) or (NEXT_OFFICE_RE.search(ttl) and not NEXT_OFFICE_EXCLUDE_RE.search(ttl)):
         return SCHEDULED, None
     return NEWS, None
 
@@ -205,4 +224,6 @@ def declared() -> dict:
             "inputs": "title, slug, ctx_category, ctx_fee_type (static attributes) and the touch capture sidecar fee_type, fee_category, series_slugs; no price, mark or outcome",
             "audit": {"n": AUDIT_N, "sports_adjacent_min": AUDIT_SPORTS_ADJACENT_MIN, "seeds": list(AUDIT_SEEDS), "agree_all": AUDIT_AGREE_ALL, "agree_each": AUDIT_AGREE_EACH,
                       "one_revision_allowed": True, "second_fail": "T1 and T2 not testable (labeller), counted"},
-            "unknown_max_share": UNKNOWN_MAX_SHARE, "sports_counted": False}
+            "unknown_max_share": UNKNOWN_MAX_SHARE, "sports_counted": False,
+            "revision": {"n": 1, "of": 1, "section": "CREATIVE_BATCH_13.md 11.r", "added": ["PUBLIC_R1_RE (macro releases, post counts, box office, chart ranks)",
+                                                                                          "SCHEDULED_R1_RE (award shows, central-bank rates)", "NEXT_OFFICE_RE minus NEXT_OFFICE_EXCLUDE_RE"]}}

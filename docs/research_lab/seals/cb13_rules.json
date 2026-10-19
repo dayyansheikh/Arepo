@@ -458,6 +458,14 @@
      "NEWS_CLASSES": [
       "UNSCHEDULED-NEWS"
      ],
+     "NEXT_OFFICE_EXCLUDE_RE": {
+      "flags": 34,
+      "regex": "(?i)(\\bby\\b|\\bbefore\\b|\\bresign\\w*\\b|\\bousted\\b|\\bremoved\\b|\\bimpeach\\w*\\b|\\bout as\\b|\\bno[- ]confidence\\b|\\bdies?\\b|\\bdeath\\b)"
+     },
+     "NEXT_OFFICE_RE": {
+      "flags": 34,
+      "regex": "(?i)\\bnext\\s+(?:Prime Minister|President|Chancellor|Premier|Chief Minister|First Minister|Minister[- ]President|Taoiseach|Mayor|Governor|Speaker of the House)\\b"
+     },
      "PATH": "PATH-SETTLED",
      "PATH_ASSETS": [
       [
@@ -641,6 +649,10 @@
      "PUBLIC_FEE_PREFIXES": [
       "weather_fees"
      ],
+     "PUBLIC_R1_RE": {
+      "flags": 34,
+      "regex": "(?i)(\\bPPI\\b|\\bproducer price(?:s| index)?\\b|\\bconsumer price index\\b|\\bcore inflation\\b|\\bJOLTS\\b|\\bjob openings\\b|\\bADP\\b|\\binitial claims\\b|\\bcontinuing claims\\b|\\btrade (?:balance|deficit|surplus)\\b|\\bindustrial production\\b|\\bdurable goods\\b|\\b(?:YoY|MoM|QoQ)\\b|\\byear[- ]over[- ]year\\b|\\bmonth[- ]over[- ]month\\b|\\b\\d[\\d,]*\\s*(?:-|\u2013|to)\\s*\\d[\\d,]*\\s+(?:[\\w'.]+\\s+){0,3}(?:posts|tweets)\\b|\\b\\d[\\d,]*\\+?\\s+(?:or more\\s+)?(?:[\\w'.]+\\s+){0,3}(?:posts|tweets)\\b|\\b(?:top|highest)[- ]grossing\\b|\\bgrossing\\b|(?<!\\w)#\\s?\\d+\\s+(?:song|album|single|artist)s?\\b|\\btop (?:song|album|single|artist)s?\\b|\\bmost[- ]streamed\\b|\\bnumber (?:one|1) (?:song|album|single)\\b)"
+     },
      "PUBLIC_RE": {
       "flags": 34,
       "regex": "(?i)(\\bCPI\\b|\\binflation\\b|\\bunemployment\\b|\\bjobs report\\b|\\bnonfarm\\b|\\bpayrolls?\\b|\\bGDP\\b|\\bjobless claims\\b|\\bPCE\\b|\\bretail sales\\b|\\bhousing starts\\b|\\bPMI\\b|\\bISM\\b|\\bconsumer sentiment\\b|\\bhighest temperature\\b|\\blowest temperature\\b|\\btemperature\\b|\\bdegrees\\b|\\b\u00b0\\s?[FC]\\b|\\bprecipitation\\b|\\brainfall\\b|\\bsnowfall\\b|\\bearthquakes?\\b|\\bmagnitude\\s*\\d|\\bbox office\\b|\\bopening weekend\\b|\\bgross(?:es)?\\b|\\bRotten Tomatoes\\b|\\bMetacritic\\b|\\bIMDb\\b|\\bBillboard\\b|\\bSpotify\\b|\\btop \\d+ (?:on|in)\\b|\\b#1 (?:on|in)\\b|\\bhow many (?:times|tweets|posts)\\b|\\btweets?\\b|\\bposts? (?:on|per)\\b|\\bpolls?\\b|\\bapproval rating\\b|\\bfavorability\\b|\\bsubscribers?\\b|\\bviews?\\b|\\bfollowers\\b)"
@@ -649,6 +661,10 @@
      "SCHEDULED_FEE_PREFIXES": [
       "mentions_fees"
      ],
+     "SCHEDULED_R1_RE": {
+      "flags": 34,
+      "regex": "(?i)(\\bat the (?:\\d{4}\\s+)?(?:[\\w'&.-]+\\s+){0,4}Awards\\b|\\bGame Awards\\b|\\bBAFTAs?\\b|\\bVMAs?\\b|\\bBrit Awards\\b|\\bCannes\\b|\\bPalme d.Or\\b|\\bBooker Prize\\b|\\bNobel (?:Peace )?Prize\\b|\\b(?:key|policy|bank|cash|repo|benchmark|refinancing|deposit|federal funds|fed funds|target)\\s+(?:interest\\s+)?rates?\\b|\\bcentral bank\\b|\\bmonetary policy\\b|\\b(?:ECB|BoE|BoJ|BoC|RBA|RBNZ|RBI|SNB|PBoC|Riksbank|Norges Bank|Bundesbank|Bank of (?:England|Japan|Canada|Russia|Korea|Mexico|Brazil|Turkey|Israel|Thailand))\\b)"
+     },
      "SCHEDULED_RE": {
       "flags": 34,
       "regex": "(?i)(\\belections?\\b|\\bprimar(?:y|ies)\\b|\\bnominee\\b|\\bnomination\\b|\\bdebates?\\b|\\bOscars?\\b|\\bAcademy Awards?\\b|\\bGrammys?\\b|\\bEmmys?\\b|\\bGolden Globes?\\b|\\bTonys?\\b|\\bFed\\b|\\bFOMC\\b|\\brate (?:cut|hike|decision)\\b|\\binterest rates?\\b|\\bearnings\\b|\\bruling\\b|\\bSupreme Court\\b|\\bspeech\\b|\\bwhat will .{1,60}? say\\b|\\bsay during\\b|\\bmention(?:s|ed)?\\b|\\blaunch(?:es)?\\b|\\bvotes?\\b|\\breferendum\\b|\\b(?:win|wins|wins the)\\b.{0,60}\\b(?:race|seat|governorship|mayor(?:al)?|senate|house|gubernatorial|presidential)\\b|\\bballot\\b|\\bcongress\\b|\\bconfirmed?\\b)"
@@ -712,6 +728,16 @@
       "UNSCHEDULED-NEWS",
       "UNKNOWN"
      ],
+     "revision": {
+      "added": [
+       "PUBLIC_R1_RE (macro releases, post counts, box office, chart ranks)",
+       "SCHEDULED_R1_RE (award shows, central-bank rates)",
+       "NEXT_OFFICE_RE minus NEXT_OFFICE_EXCLUDE_RE"
+      ],
+      "n": 1,
+      "of": 1,
+      "section": "CREATIVE_BATCH_13.md 11.r"
+     },
      "sports_counted": false,
      "unknown_max_share": 0.05
     }
@@ -795,17 +821,17 @@
     "cb13_label.audit_group": "86deaf8f1768141659b9a20308ff13d6c59dedea1aab4ad338048f5567366b24",
     "cb13_label.audit_sample": "956f9010ac8b875401ed147031be9b566a09e5a3c434e654a8ed086770c805b2",
     "cb13_label.audit_score": "0cf42a3daca1a72225db33e6cc60a0d16bf6752c0dfaf89d899fcfd5d7dbd9b7",
-    "cb13_label.classify": "6b97ce42931763a2fc8827217d68f61df347a168c3e4b88170c45522f644b64e",
-    "cb13_label.declared": "c3cdd84c375b95d3fc29dcb74df82d82d254ec6f5dd8e48822724ada5e2499fc",
+    "cb13_label.classify": "d94d6645e05e07032fa0d73f63375849acbf3b92f1f83e64524e636d0203a0dc",
+    "cb13_label.declared": "c1fdda3bf43f0f5b27c5d2ac2bde06da15b782ce012252ebad15cbd00b3ee221",
     "cb13_label.first_series_slug": "7bfcc9ce328d1f75f82774a57ad26aa933fbfb7085a9887ca003101f69e171d2",
     "cb13_label.reviewer_view": "4e55448978bfa50eaf015250f0aec4131bd6b3d36af543980928bdbdcdd5e8b0",
     "cb13_label.sports_adjacent": "7e02cc3a59db5a38f7132b3eef131fa0b94e140c2f5b89c830a2972620cb5bed",
     "cb13_label.underlying_of": "89d25064c2b8d141dbb60f5c95297a6ea0bf72ee629b5e90dda79cec2e5956a9"
    },
-   "funcs_sha256": "99b2eafc39b0cd4fed87abf0f432177c2d5aa8103c3bfda1e3a7c46ef71626ea",
+   "funcs_sha256": "7e9b62b39dd253b97288a7bfd575f8733857dd365f7938e47388173d1859f20b",
    "part": "LABELLER",
    "part_declared": true,
-   "rules_sha256": "1e515bb410598ed7ebc5f6f722b77554acd22d6d9a7548365ba74780c843c780",
+   "rules_sha256": "95cde0ab70a3845977933a5a13ed2f65263eb903f86ca9da93a90924948d79b9",
    "rules_version": "cb13-rules-v1",
    "wallet": {
     "note": "no CB13 job reads or stores a wallet field, a transaction hash (tx16 is aggregated in memory and discarded) or the monitor's side field",

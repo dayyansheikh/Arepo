@@ -2101,3 +2101,53 @@ def test_member_flag_counts_both_ways_and_late_kept_members_report_section_11z_f
     late = r13.late_kept_members([ev, {**_row("x"), "status": "dropped:key"}], {**mem, "x": [_member("d", "x", created=lo + 9e5, start=lo + 9e5)]})
     k = late["kept_events"]
     assert (k["kept_members"], k["created_after_window_start"], k["created_after_window_start_plus_1h"], k["events_with_any"]) == (3, 2, 1, 1) and late["primary"]["kept_members"] == 3
+
+
+# =====================================================================================================================================================
+# Labeller revision 1 of 1 (section 11.r): general rules from the class definitions, with negative cases
+# =====================================================================================================================================================
+
+
+@pytest.mark.parametrize("title,cls", [
+    # PUBLIC-STATISTIC: named macro releases and release forms
+    ("Will PPI come in above 3% in November?", "PUBLIC-STATISTIC"), ("Will the producer price index rise MoM in March?", "PUBLIC-STATISTIC"),
+    ("Will JOLTS job openings exceed 7.5M?", "PUBLIC-STATISTIC"), ("Will the ADP report show over 150k jobs?", "PUBLIC-STATISTIC"),
+    ("Will core inflation YoY be 3.1% in May?", "PUBLIC-STATISTIC"), ("Will the US trade deficit widen in Q3?", "PUBLIC-STATISTIC"),
+    # post / tweet counts
+    ("Will Elon Musk post 200-219 posts from May 1 to May 8?", "PUBLIC-STATISTIC"), ("Will Kim Kardashian post 40+ Instagram posts in June?", "PUBLIC-STATISTIC"),
+    ("Will the Pope publish 10 to 14 X posts this week?", "PUBLIC-STATISTIC"),
+    # box office and chart ranks
+    ("Will Avatar 4 be the highest-grossing film of 2027?", "PUBLIC-STATISTIC"), ("Will Wicked be the top grossing musical of the year?", "PUBLIC-STATISTIC"),
+    ("Will 'Song X' be the #3 song of the week?", "PUBLIC-STATISTIC"), ("Will Artist Y have the top album of 2026?", "PUBLIC-STATISTIC"),
+    ("Will Z be the most streamed artist on Spotify in 2026?", "PUBLIC-STATISTIC"),
+    # SCHEDULED-EVENT: award shows
+    ("Will Film A win Best Picture at the 2027 Critics Choice Awards?", "SCHEDULED-EVENT"), ("Will Game B win Game of the Year at The Game Awards?", "SCHEDULED-EVENT"),
+    ("Will Author C win the Booker Prize?", "SCHEDULED-EVENT"), ("Who will win the Nobel Peace Prize in 2026?", "SCHEDULED-EVENT"),
+    # central-bank policy rates and named central banks
+    ("Will the ECB hold rates in December?", "SCHEDULED-EVENT"), ("Will the Bank of England lower the bank rate in November?", "SCHEDULED-EVENT"),
+    ("Will the RBA policy rate be 3.6% at year end?", "SCHEDULED-EVENT"), ("Will the fed funds rate be below 3% at the end of 2027?", "SCHEDULED-EVENT"),
+    ("Will the central bank of Turkey raise its key rate?", "SCHEDULED-EVENT"),
+    # the next holder of an elected office, no deadline or removal trigger
+    ("Will Jane Doe be the next Prime Minister of Norway?", "SCHEDULED-EVENT"), ("Will John Roe be the next Mayor of London?", "SCHEDULED-EVENT"),
+    ("Will Max M be the next Chancellor of Germany?", "SCHEDULED-EVENT"), ("Will Ana B be the next First Minister of Scotland?", "SCHEDULED-EVENT"),
+    # negative cases: these stay UNSCHEDULED-NEWS
+    ("Will Keir Starmer resign as Prime Minister by December 31?", "UNSCHEDULED-NEWS"), ("Will Rishi Sunak be the next Prime Minister of the UK by March 31?", "UNSCHEDULED-NEWS"),
+    ("Will the next Prime Minister of France be ousted before 2027?", "UNSCHEDULED-NEWS"), ("Will X be named next CEO of OpenAI?", "UNSCHEDULED-NEWS"),
+    ("Will Elon Musk delete his post about Trump?", "UNSCHEDULED-NEWS"), ("Will Taylor Swift release a new song in 2026?", "UNSCHEDULED-NEWS"),
+    ("Will Russia's birth rate fall in 2026?", "UNSCHEDULED-NEWS"), ("Will Trump award the Medal of Freedom to X?", "UNSCHEDULED-NEWS"),
+    ("Will Iran agree to a ceasefire by October 31?", "UNSCHEDULED-NEWS"), ("Will the Pope visit China in 2026?", "UNSCHEDULED-NEWS"),
+    ("Will OpenAI announce GPT-6 by December 31?", "UNSCHEDULED-NEWS"),
+])
+def test_labeller_revision_1_rules_and_negatives_section_11r(title, cls):
+    from astrolabe.research_lab import cb13_label as lab  # noqa: PLC0415
+
+    assert lab.classify(title)[0] == cls, title
+
+
+def test_labeller_revision_1_keeps_precedence_and_declares_the_revision():
+    from astrolabe.research_lab import cb13_label as lab  # noqa: PLC0415
+
+    assert lab.classify("Will Bitcoin hit $150k by December 31?")[0] == lab.PATH  # PATH before the new PUBLIC / SCHEDULED rules
+    assert lab.classify("Will the next Prime Minister of Sweden be a woman?", fee_type="sports_fees_v1")[0] == lab.SPORTS  # sports fee type first
+    assert lab.classify("Will CPI YoY be 3%?")[0] == lab.PUBLIC
+    assert lab.declared()["revision"]["n"] == 1 and lab.declared()["revision"]["of"] == 1
