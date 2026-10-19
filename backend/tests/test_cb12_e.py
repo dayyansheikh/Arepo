@@ -1002,32 +1002,74 @@ def test_unresolved_e2_trades_are_counted(tmp_path, monkeypatch):
     assert len(trades) == 1 and trades[0]["net"] is None
 
 
-def test_census_never_sees_catalogue_events_at_or_after_t_minus_72h_in_any_unit_feature(world, capsys):
+def _inject_and_compare(world, capsys, mags):
     w = world
     _run(["quake-frame", *w.common, *w.dd, *w.frame], capsys)
     _run(["quake-prices", *w.common, *w.dd], capsys)
     data = e12.load_frame(w.rdir)
     units, _ = e12.build_units(data)
     av = [u for u in units if u["label"] == "available"]
-    # for a spread of units, inject events of every modelled magnitude into [t - 72 h, t) of ALL units at once: no label and no q changes anywhere
     rng = np.random.default_rng(5)
     ts = sorted({u["t"] for u in av})
     pick = [ts[i] for i in rng.integers(0, len(ts), size=12)]
-    inj = [[t - h, mg] for t in pick for h in (3600.0, 40 * 3600.0, 72 * 3600.0 - 1.0) for mg in (6.0, 6.5, 7.0, 7.5, 8.0)]
+    inj = [[t - h, mg] for t in pick for h in (3600.0, 40 * 3600.0, 72 * 3600.0 - 1.0) for mg in mags]
     cat = np.vstack([data["cat45"], inj])
-    data2 = {**data, "cat45": cat[np.argsort(cat[:, 0])]}
-    units2, _ = e12.build_units(data2)
-    # an injected event is old enough (>= 72 h before t) for the checkpoint t + 3 d; compare only the picked checkpoints t, whose own window [t-72h, t) is untouched by
-    # injections placed for t itself but not by injections for other picks, so restrict the comparison to picks at least 4 days from every other pick
+    units2, _ = e12.build_units({**data, "cat45": cat[np.argsort(cat[:, 0])]})
+    # compare only picks at least 4 days from every other pick, so injections for other picks cannot reach their [t - 72 h, t) window
     iso_pick = [t for t in pick if all(abs(t - o) > 4 * DAY for o in pick if o != t)]
     assert iso_pick
     a = {(u["market_id"], u["t"]): (u["label"], u.get("q")) for u in units if u["t"] in iso_pick}
     b = {(u["market_id"], u["t"]): (u["label"], u.get("q")) for u in units2 if u["t"] in iso_pick}
-    # q never moves; the only allowed change is the frozen ambiguity guard ([t - 72 h, t)) excluding a unit that was available
     assert a.keys() == b.keys()
+    return a, b
+
+
+def test_census_never_sees_catalogue_events_at_or_after_t_minus_72h_in_any_unit_feature(world, capsys):
+    # magnitudes more than 0.3 from every modelled threshold: the ambiguity guard cannot fire, so q (and the label) must be exactly unchanged
+    mags = (7.0, 7.5, 8.0, 8.5)
+    a, b = _inject_and_compare(world, capsys, mags)
+    thresholds = {float(m["threshold"]) for m in e12.load_frame(world.rdir)["members"] if m["threshold"] == m["threshold"]}
+    assert thresholds and all(abs(mg - th) > 0.3 for mg in mags for th in thresholds)
+    compared = [k for k in a if a[k][0] == "available"]
+    assert compared, "no available unit was compared"
+    assert a == b
+
+
+def test_near_threshold_injected_quake_only_flips_available_units_to_ambiguous(world, capsys):
+    a, b = _inject_and_compare(world, capsys, (6.5,))  # the fixture's threshold
+    flipped = [k for k in a if a[k] != b[k]]
+    assert flipped, "a near-threshold quake in [t - 72 h, t) must trip the frozen ambiguity guard"
     for k in a:
         if a[k] != b[k]:
             assert a[k][0] == "available" and b[k] == ("ambiguous recent quake", None), (k, a[k], b[k])
+        else:
+            assert a[k] == b[k]
+
+
+def test_e_frame_rules_guard_refuses_other_rules_and_accepts_current(tmp_path):
+    r12 = run_cb12
+    cur = "a" * 64
+    mp = tmp_path / "manifest.json"
+    for rec in (cur, {"E": cur, "common": "c" * 64}):
+        mp.write_text(json.dumps({"rules_sha256": rec}))
+        r12._e_frame_rules_guard(tmp_path, cur)
+    for rec in ("b" * 64, {"E": "b" * 64}, {"M": cur}, None):
+        mp.write_text(json.dumps({"rules_sha256": rec}))
+        with pytest.raises(c12.Refused, match="current E part is " + cur[:12]):
+            r12._e_frame_rules_guard(tmp_path, cur)
+
+
+def test_census_refuses_a_frame_fetched_under_other_e_rules(world, capsys):
+    w = world
+    _run(["quake-frame", *w.common, *w.dd, *w.frame], capsys)
+    _run(["quake-prices", *w.common, *w.dd], capsys)
+    mp = w.rdir / "manifest.json"
+    man = json.loads(mp.read_text())
+    assert isinstance(man["rules_sha256"], str) and man["rules_sha256"]
+    man["rules_sha256"] = "0" * 64
+    mp.write_text(json.dumps(man))
+    code, out = _run(["census", "--family", "E", *w.common], capsys)
+    assert code == 2 and "current E part" in out["refused"], out
 
 
 # =====================================================================================================================================================

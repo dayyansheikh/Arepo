@@ -487,6 +487,17 @@ def census_o_block(a) -> dict:
     return o12.census_o(root, win["w1"], conv) | {"windows": win}
 
 
+def _e_frame_rules_guard(rdir: Path, sha: str) -> None:
+    """Refuse an E frame / prices run whose manifest records a rules hash other than the current E part (a frame fetched under other code is not this code's frame)."""
+    c12 = _c12()
+    mp = Path(rdir) / "manifest.json"
+    rec = (json.loads(mp.read_text()) if mp.exists() else {}).get("rules_sha256")
+    if isinstance(rec, dict):
+        rec = rec.get("E")
+    if rec != sha:
+        raise c12.Refused(f"frame/prices manifest {mp.name} in {Path(rdir).name} was fetched under E rules {str(rec)[:12]} but the current E part is {sha[:12]}; refusing")
+
+
 def census_e_block(a) -> dict:
     """q0266: counts only (no outcome file opened; the catalogue only through the t - 72 h accessor). A stalled frame/prices run carries its label."""
     from astrolabe.research_lab import cb12_e as e12  # noqa: PLC0415
@@ -497,6 +508,7 @@ def census_e_block(a) -> dict:
     if st:
         return {"status": "stalled", "stall": st, "label_E": st.get("label") or "not testable (source)"}
     c12.verify_fetch(rdir, (e12.PRICES_STATUS,), "quake_prices (q0245)")
+    _e_frame_rules_guard(rdir, _rules(a, "E"))
     return e12.census_e(rdir)
 
 
@@ -578,6 +590,7 @@ def cmd_screen(a):
         rdir = _hist(a) / e12.FRAME_RUN
         if not census.get("label_E"):
             c12.verify_fetch(rdir, (e12.PRICES_STATUS,), "quake_prices")
+            _e_frame_rules_guard(rdir, sha)
         body = e12.screen_e(rdir, census)
     elif fam == "O":
         from astrolabe.research_lab import cb12_o as o12  # noqa: PLC0415
@@ -651,6 +664,7 @@ def cmd_rep(a):
         _fsha, entry = _freeze_entry(a, "E")
         rdir = _hist(a) / e12.FRAME_RUN
         c12.verify_fetch(rdir, (e12.PRICES_STATUS,), "quake_prices")
+        _e_frame_rules_guard(rdir, _rules(a, "E"))
         live = _hist(a) / e12.LIVE_RUN
         model, maxima = e12.model_inputs(e12.load_frame(rdir))
         body = e12.rep_e(live, adv, frozen_epoch=_o_frozen_epoch(entry), now=time.time(), model=model, maxima=maxima, gamma_rows=e12.open_live_outcomes(live, "rep-E"), k2=a.stage2_k)
