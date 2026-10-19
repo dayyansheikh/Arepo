@@ -1743,3 +1743,26 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   the smokes re-run as v2 after defect fixes is being checked against the design's consequence table. Not counted yet.
 - **CB12 M chain promoted** (a7736e3; q0241 `--base-sha256 c8a1d64b…`, depends on q0221b; q0242/q0243/q0248/q0249);
   regenerated CB12 rules identical to the committed file (common `f2f672c1…`, M `a2e420b0…`). Deployed 09:05Z.
+
+## CB14 fixes (515d68d) re-check, 2026-10-19 ~09:40Z (science-reviewer): ACCEPT_WITH_FIXES; smokes promoted; not counted
+- All 18 freeze-check items addressed (F8, F13 partial). 109 CB14 tests pass; rules reproduce (common `0440b859…`,
+  W `1a9b1132…`, S `8e448f1e…`). q0302's base pin is CB13 q0276's key file (design §1.3), so it stays a token until
+  q0276 runs. New draft q0323 (Stage-2 final Holm).
+- Open before the S freeze / q0302 / q0321: **F13 (high)**: S Stage-2 sets unresolved members to y = 0.5 at window close
+  and never re-fetches outcomes; resolution timing may depend on outcome. F5 gap (smoke ignores a terminal record),
+  F8 transitive helpers unhashed, F12 wording, q0302 still depends on the failed q0227, q0321 regex lacks
+  `terminal_not_testable`, stage2-final skips the rules check, live-print merge overwrites coverage (power only).
+  The implementer is fixing these.
+- **Promoted and deployed (a1d9399): q0300 (W smoke) and q0301 (S smoke), priority 25, net lane.**
+
+## CB13 smoke defects fixed (ca86bf2), 2026-10-19 ~09:45Z; v2 smokes drafted; not counted
+- All six failed v1 criteria were code defects: T paired two SCREEN captures before the print window opened (0 prints
+  between; the fix uses the first in-window pair: a host dry run joins 422 = 422 prints); R's undated search queries
+  found no event in the window, so the walk, parser and prices-history never ran (fix: dated queries, end ±60 s
+  window, which also removes a hidden breach of the 30-request cap). Disclosure `CREATIVE_BATCH_13.md` §11.y; rules T
+  `f72683f5…`, R `32bbd825…` (common, LABELLER unchanged). Drafts q0270b/q0285b (`--supersedes default`).
+- v1 count lines (T 2, R 1) stay in trials.jsonl (conservative double count if v2 passes).
+- **Open scientific question:** every probed weekly barrier event has 7-9 late-added members whose rules start "from
+  the creation of this market" with unquoted High/Low, so the frozen R flag rule gives flags_ok = 0 per event. A
+  science-reviewer is ruling on whether this is a genuine source limit (R not testable, counted) or a specification
+  defect that may be corrected before data with written justification.
