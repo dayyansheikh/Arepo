@@ -1826,3 +1826,11 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   "not testable (labeller)", counted.
 - CB13 q0276 draft now also depends on CB11 q0223b (the h11_wprints directory exists with only the stalled manifest,
   so an earlier run would read 0 ids and never re-read them).
+
+## CB13 GL round 2 sample drawn, 2026-10-19 09:47Z; scoring rule declared before labelling; not counted
+- `audit-sample --round 2` on the host: 200 SCREEN markets, seed 13122, labeller `95cde0ab…`. **36 of the 200 also
+  appeared in round 1** (the frozen sampler does not exclude round-1 ids); 2 of those 36 were round-1 disagreements,
+  which the revision addressed. Declared now, before any round-2 label exists: the binding score is the full 200 as
+  drawn by the frozen sampler; the 164 markets not in round 1 are scored as a sensitivity check; **if the two verdicts
+  differ, round 2 is recorded as FAIL** (conservative). A new blind science-reviewer (no access to round-1 material)
+  labels the sample.
