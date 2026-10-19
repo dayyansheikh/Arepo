@@ -281,6 +281,21 @@ KIND_RULES: dict[str, tuple[str, str]] = {
         "CB15 descriptive lines (smokes, GE0 and its audit, exclusion keys, pre-gates, censuses, gates GEI/GEC/GEP/GE/GPB/GP/GPP, strata, tiers, sign shares, "
         "Polymarket-first and sports pairs, seeded-history shares, gap-closure shares, latency, gap and storage logs, the CH125 withdrawal); no inference, not a test.",
     ),
+    "cb16_test": (
+        EXCLUDE,
+        "CB16 Stage-1 per-test lines (Q1, U1); the tests are the n_tests of the 'creative_batch_16:Q|U' ml_explain count lines, counted there. "
+        "Placebo lines count 0.",
+    ),
+    "cb16_replication": (
+        EXCLUDE,
+        "CB16 Stage-2 per-test lines (Q1-rep, Q2, U1-rep, U2); counted by the n_tests of the 'creative_batch_16:<Q|U>:rep' ml_explain lines. "
+        "Placebo lines count 0.",
+    ),
+    "cb16_descriptive": (
+        EXCLUDE,
+        "CB16 descriptive lines (smoke, exclusion keys, the grain census, the K census, gates, strata, sports arms, shape descriptor, "
+        "U validity sample, exclusion tables, decomposition, the H withdrawal record); no inference, not a test.",
+    ),
     "history_cross_venue": (
         ONE,
         "each line is one analysis x subset/revision result with its own p / BY entry (82 lines); "
