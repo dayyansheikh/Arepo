@@ -1766,3 +1766,33 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   the creation of this market" with unquoted High/Low, so the frozen R flag rule gives flags_ok = 0 per event. A
   science-reviewer is ruling on whether this is a genuine source limit (R not testable, counted) or a specification
   defect that may be corrected before data with written justification.
+
+## Hour 10:00-11:00 UTC+1, 2026-10-19: fixes, reviews, promotions (nothing counted)
+- **CB11 provisional W label WITHDRAWN (not counted): engineering defect.** The code checked censoring windows as
+  half-open `[a, b)`, while the Gamma walk that built the frames and the q0224 count use `[a, b]`. Host evidence: every
+  unmatched closed row (h2_main 81,574 of 199,868; h3_power 94,273 of 221,169) ends exactly on a window end, in every
+  month and category; with `[a, b]` both frames match 100%. Fix 9ede7dd (amendment `CREATIVE_BATCH_11.md` §11.4; W
+  `6d3f1613…` -> `7734729d…`); new-id W chain drafts q0222b-q0231b (output naming being adjusted so CB12-CB15
+  exclusion readers see the W prints file without rehashing their frozen code). The q0222-q0231 stall records stay.
+- **CB11 q0227 MemoryError: engineering defect** (`walk_day` held a whole day of raw Gamma markets, ~10 KB each,
+  under an 800 MB cap; peak 250 -> 64 MB after the fix, same rows and order). §11.3; P/A rules `2d48bd73…` ->
+  `125386f2…` (only `walk_day`/`attn_frame`; q0225/q0226 code unchanged); q0227b drafted (mem 600, resumes the 9 walk
+  days on disk); q0229 depends on q0227b. Review of §11.3/§11.4 before promotion.
+- **CB13:** T smoke v2 (q0270b) **PASS** 09:24Z (capture-print join 422 = 422). Labeller audit round 1 sample drawn on
+  the host (200 SCREEN markets, 30 sports-adjacent, seed 13121; sample `e474c5f4…`, key `9db3c64f…`); a blind
+  science-reviewer is labelling titles and slugs only. §11.z (R flags per member as designed; creation-anchored members
+  excluded and counted by a description-only rule) science-reviewer **ACCEPT_WITH_FIXES**: it decides gate GR (with
+  anchored members the probe share is 0.667 < 0.95), so §11.z must say so; R1's claims are limited to strikes listed
+  when the window opens. R `7d05b00d…`. **q0285b (R smoke v2) promoted** (d759773).
+- **CB14:** re-check fixes 31bdc39 (F13: 14-day post-close outcome re-fetch before q0322; smoke terminal check;
+  transitive helper hashing; q0302 -> q0227b): common `d34a2e73…`, W `011abaf5…`, S `657c7ae3…`. Smokes q0300/q0301
+  queued (net lane, behind the running CB12 M job).
+- **CB15:** part E code dbb5db4 (rules common `13c70322…`, E `a796280b…`; drafts q0340-q0346; additive `LANE_HOLD`
+  flag in `queue_worker.py`, inert until a hold file exists; `scripts/oracle/cb15_e_crontab.txt` not installed);
+  P Stage 1 e01ce12 (P undeclared until Stage 2 exists). Part E freeze check running.
+- **CB16:** draft f78a396 (Q quoter grain, U wake-up prints, K Kalshi-absent census k = 0, H hedging skew).
+  Challenger round 1: **REVISE**; Q REVISE (the mark-out includes the realised half-spread, a mechanical grain bias near
+  the floor; stale-spread strata; single-grain placebo cells), U REVISE (the activity rule excludes the dead books that
+  are CH132's object; U2 cost robustness vacuous; HB1 MS2 disclosure), K ACCEPT with fixes, **H WITHDRAWN uncounted**
+  (MDE 12-20c vs the 4c gate; trigger depends on R1's outcome on the same units; no R result exists). Response in
+  progress.
