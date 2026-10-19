@@ -2016,3 +2016,12 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
 - Order: fix 2 -> promote q0260 smoke (run inside a regular session 10:00-15:45 ET) -> fixes 1 and 3 -> reseal -> freeze
   confirmation -> O freeze commit -> install cron on the freeze day. q0262-q0264 after window 1 closes. Fix agent starts
   after the concurrent CB12-E fix commit (shared seal file and design doc).
+
+## CB12-E freeze-check fixes (38bef1a), 2026-10-19 ~21:05Z (implementer); re-check running; not counted
+- E `9a60a4a5…` -> `eb086757…`; common/M/X/O unchanged; `pytest tests/test_cb12*.py` 183 passed. Amendment row E2 in
+  CREATIVE_BATCH_12.md §11. Fixed: E1-rep needs the p_alt placebo credit; Stage-2 outcomes only from reads spanning the
+  window start (else "unavailable (outcome read)"), USGS span >= 30 days, 400-day-cap windows "unavailable (span cap)";
+  availability denominator counts every "unavailable (…)" and "no separate earlier point" (stricter; 60% unchanged);
+  per-slot pass state; p_alt fails closed; calendar halves; LOW items; q0245 streams; bisect lookups.
+- Not fixed: q0244 memory/request count (draft at 400 MB); E2 drops only via counting unresolved trades. Rulings asked:
+  stricter denominator, span-cap label for E-c windows, q0244 cap vs streaming.
