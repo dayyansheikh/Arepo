@@ -35,6 +35,10 @@
   "trials.jsonl (cb14_replication + creative_batch_14:S:rep)"
  ],
  "next_action": "pass: Stage P-S registration draft (recorded books)",
- "notes": "DRAFT. Only triggered tests. Waits (exit 75) until q0321 has closed the Stage-2 window (>= 100 resolved events with a unit, or the cap). --results-sha256 / --stage2-k TODO-COORDINATOR: the coordinator fills the sha256 of the committed results file and k2 (an integer in [k_min, 4]) or drops --stage2-k (alpha / 4); the runner refuses the token. Then stage2-final (CB14-wide Holm) once every triggered rep is final. Rules part sha256 (seals/cb14_rules.json, resealed 2026-10-19 after the code-against-design freeze-check fixes, CREATIVE_BATCH_14.md section 11): common 0440b859b334695166bd664a226ad7478e1c838b0ec7ee3b05551a1e977c7c1f, S 8e448f1e147b9737eff92ec37bb3cb6457e2709ab5db8c58318428e4758a9633. CB14 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes.",
- "not_before": "2026-12-01T00:00:00Z"
+ "notes": "DRAFT. Long wait: exit 75 (pending) with an idle heartbeat (exit 0) at least every 10 h, so the repeat (until the completion status) keeps it alive. Only triggered tests. Waits until q0321 has closed the Stage-2 window (>= 100 resolved events with a unit, or the cap) AND finished the 14-day post-close outcome re-fetch (s_stage2_outcomes_final); never analyses outcomes frozen at the closing pass. --results-sha256 / --stage2-k TODO-COORDINATOR: the coordinator fills the sha256 of the committed results file and k2 (an integer in [k_min, 4]) or drops --stage2-k (alpha / 4); the runner refuses the token. Then stage2-final (CB14-wide Holm) once every triggered rep is final. Rules part sha256 (seals/cb14_rules.json, resealed 2026-10-19 after the freeze-check fixes and the re-check of 515d68d, CREATIVE_BATCH_14.md section 11): common d34a2e739bacc69957fb0df777c174cfcbf95a92bdc72152a88bf4b326297e9c, S 657c7ae3b081d965d8dd01e2a9787d45ebb7adbf5774af2a7f931f14faba856f. CB14 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes.",
+ "not_before": "2026-12-01T00:00:00Z",
+ "repeat": {
+  "max_runs": 600,
+  "until_log_regex": "\"status\": \"rep_S_complete\""
+ }
 }

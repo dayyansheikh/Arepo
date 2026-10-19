@@ -36,9 +36,9 @@
   "history/h14_speech/guarded_s2/"
  ],
  "next_action": "q0322 if triggered",
- "notes": "DRAFT. Weekly by an internal 7-day gate (idle exit 75 between passes, an idle heartbeat exit 0 at least every 10 h); unresolved outcomes are re-fetched every pass; closes at >= 100 resolved Stage-2 events with a mapped transcript and >= 1 aligned unit or at the cap (the stop counts resolutions, never results). Rules part sha256 (seals/cb14_rules.json, resealed 2026-10-19 after the code-against-design freeze-check fixes, CREATIVE_BATCH_14.md section 11): common 0440b859b334695166bd664a226ad7478e1c838b0ec7ee3b05551a1e977c7c1f, S 8e448f1e147b9737eff92ec37bb3cb6457e2709ab5db8c58318428e4758a9633. CB14 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes.",
+ "notes": "DRAFT. After the closing pass (status s_stage2_window_closed: event set fixed) it keeps re-fetching unresolved outcomes at most daily for the fixed 14-day post-close wait (S2_OUTCOME_WAIT_D), then writes s_stage2_outcomes_final; the repeat ends only there (or on terminal_not_testable). Weekly by an internal 7-day gate (idle exit 75 between passes, an idle heartbeat exit 0 at least every 10 h); unresolved outcomes are re-fetched every pass; closes at >= 100 resolved Stage-2 events with a mapped transcript and >= 1 aligned unit or at the cap (the stop counts resolutions, never results). Rules part sha256 (seals/cb14_rules.json, resealed 2026-10-19 after the freeze-check fixes and the re-check of 515d68d, CREATIVE_BATCH_14.md section 11): common d34a2e739bacc69957fb0df777c174cfcbf95a92bdc72152a88bf4b326297e9c, S 657c7ae3b081d965d8dd01e2a9787d45ebb7adbf5774af2a7f931f14faba856f. CB14 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes.",
  "repeat": {
   "max_runs": 600,
-  "until_log_regex": "\"status\": \"s_stage2_window_closed\""
+  "until_log_regex": "\"status\": \"(s_stage2_outcomes_final|terminal_not_testable)\""
  }
 }

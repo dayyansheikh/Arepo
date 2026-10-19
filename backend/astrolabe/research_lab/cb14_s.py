@@ -64,6 +64,7 @@ DATA_STATUS_P = "s_data_P_complete"
 DATA_STATUS_N = "s_data_N_complete"
 STAGE2_STATUS_CLOSED = "s_stage2_window_closed"
 STAGE2_STATUS_OPEN = "s_stage2_collecting"
+STAGE2_STATUS_FINAL = "s_stage2_outcomes_final"  # the post-close outcome wait is over: q0322 may analyse
 IN_PROGRESS = "in_progress"
 # dates (UTC; the three windows are keyed on the event ``endDate``)
 T14_P = ("2024-11-01", "2025-06-01")
@@ -187,6 +188,12 @@ REP_MIN_EVENTS = 100
 REP_CAP_MIN_EVENTS = 60
 S2_STOP_EVENTS = 100  # T14_S2_end (section 1.2): Stage-2 collection closes at the cap or once this many Stage-2 events with a mapped transcript and >= 1 aligned unit have RESOLVED (every
 # member resolved on Gamma; counted from resolution flags, never from outcome values)
+# Post-close outcome wait (review of 515d68d, F13): the window closes on a count of resolutions, so the latest events are unresolved by construction. After the closing pass NO event is
+# added; every member whose last lookup was unresolved is looked up again at most once a day until closed_at + S2_OUTCOME_WAIT_D (a fixed, pre-declared wait: mention markets normally
+# resolve within 1-2 days of the event, a UMA dispute round adds about 2-4 days, so 14 days cover two dispute rounds); the first pass at or after that time is final
+# (``STAGE2_STATUS_FINAL``) and only then does q0322 analyse. A word still unresolved at the final lookup follows the design rule (scored 0.5 with the binding worst case at 1; counted).
+S2_OUTCOME_WAIT_D = 14
+S2_POST_CLOSE_EVERY_S = DAY
 S2_PASS_EVERY_S = 7 * DAY  # q0321 is weekly: a pass starts at most once per 7 days (idle exit 75 between, an idle heartbeat exit 0 at least every 10 h; CB8 q0162 pattern)
 # availability rule on the P months (smoke; section 11 fix F12, declared engineering gate, outcome-blind): the design's 3 events x 2 members per month over 7 months (7 lookups + 42 price
 # reads) cannot fit the smoke's 30 requests, so ONE out-of-frame event x 2 members per month (7 + 14 = 21 requests) and a month is usable iff BOTH members return rows (the design's
@@ -1864,18 +1871,24 @@ def screen_s(hist_root: Path, *, census: dict, out_root: Path, rules_sha: str = 
 def rep_s(hist_root: Path, *, out_root: Path, tests: tuple[str, ...] = ("S1", "S2"), now: float, k2: int | None = None, model_pin: str | None = None, rebased_pin: str | None = None,
           n_draws: int = SIGNFLIP_DRAWS, n_wild: int = c14.N_WILD, placebo: bool = True, keys_report: dict | None = None) -> dict:
     """q0322: S1-rep / S2-rep on the post-freeze Stage-2 events (same frame, map, pinned model without refit, alignment and rules), only once q0321 has CLOSED the window (>= 100 resolved
-    events with >= 1 aligned unit = ``T14_S2_end``, or the cap); < 60 such events at the cap -> 'not run (power)'. ``stage2_early_alpha_ok`` = p < alpha / 4 (strict);
+    events with >= 1 aligned unit = ``T14_S2_end``, or the cap) AND the fixed post-close outcome wait (``S2_OUTCOME_WAIT_D``) is over (``STAGE2_STATUS_FINAL``); < 60 resolved events
+    with a unit at the final lookup -> 'not run (power)'. ``stage2_early_alpha_ok`` = p < alpha / 4 (strict);
     ``stage2_pass_alpha_over_k`` = ``checks_ok`` and p < alpha / k2 (alpha / 4 while k2 is unknown); the CB14-wide ``stage2-final`` Holm can only add passes."""
     rdir = refuse_if_other_root(Path(hist_root) / FRAME_RUN)
     models = make_models(out_root, rdir / "fit", model_pin=model_pin, rebased_pin=rebased_pin)
-    closed = bool(manifest_done(subset_files(rdir, "S2")["manifest"], STAGE2_STATUS_CLOSED))
-    if not closed:
-        raise NotNow(f"S Stage 2: the collection window has not closed (q0321 closes it at >= {S2_STOP_EVENTS} resolved events with a unit or at the cap {T14_S2_CAP}); pending")
-    prog = stage2_progress(rdir, models["base"], rdir / "stage2" / "fetch_partial.jsonl")
+    fin = manifest_done(subset_files(rdir, "S2")["manifest"], STAGE2_STATUS_FINAL)
+    if not fin:
+        raise NotNow(f"S Stage 2: the window has not closed (q0321 closes it at >= {S2_STOP_EVENTS} resolved events with a unit or at the cap {T14_S2_CAP}) or the {S2_OUTCOME_WAIT_D}-day "
+                     "post-close outcome wait is not over; pending (never analysed with outcomes frozen at the closing pass)")
+    store = subset_files(rdir, "S2")["frame"].parent / "fetch_partial.jsonl"
+    prog = stage2_progress(rdir, models["base"], store)
     n_ev = prog["resolved_events_with_unit"]
     data = load_dataset(rdir, ("S2",), job="rep")
     late = late_overlap_s(Path(hist_root), keys_report, data)
-    out: dict = {"label": LABEL_S2, "k2": k2, "n_events_with_unit": prog["events_with_unit"], "n_resolved_events_with_unit": n_ev, "late_overlap": late}
+    rs = resolution_state(store)
+    mids = [m["market_id"] for ms in data["members"].values() for m in ms]
+    out: dict = {"label": LABEL_S2, "k2": k2, "n_events_with_unit": prog["events_with_unit"], "n_resolved_events_with_unit": n_ev, "late_overlap": late,
+                 "outcome_wait_d": S2_OUTCOME_WAIT_D, "members_unresolved_at_final_lookup": sum(1 for mid in mids if not rs.get(mid, False)), "members": len(mids)}
     if n_ev < REP_CAP_MIN_EVENTS:
         for t in tests:
             out[f"{t}_rep"] = {**not_run_result("not run (power)", f"{t}-rep"), "label": LABEL_S2, "n_events_with_unit": n_ev}
@@ -2586,7 +2599,8 @@ def s_stage2_data(hist_root: Path, transport, *, rules_sha: str, exclusion_keys_
                   rebased_pin: str | None = None) -> dict:
     """q0321 (re-queued weekly): post-freeze mention events (``startTime >= max(S freeze + 1 d, 2026-10-27)``), the same frame / map / model (no refit) / fetch / guards, into ``stage2/`` and
     ``guarded_s2/``. The frame is recomputed from the whole walk each run (cheap); per-event fetches persist in a store and are never repeated. Status ``s_stage2_collecting`` until
-    the cap or ``S2_STOP_EVENTS`` complete events, then ``s_stage2_window_closed``."""
+    the cap or ``S2_STOP_EVENTS`` resolved events with a unit, then ``s_stage2_window_closed`` (event set fixed; daily outcome re-fetches for ``S2_OUTCOME_WAIT_D`` days,
+    ``stage2_post_close``), then ``s_stage2_outcomes_final``."""
     rdir = c14.require_output_root(Path(hist_root) / FRAME_RUN)
     out_root = Path(out_root) if out_root is not None else c14.CB14_DIR
     f = subset_files(rdir, "S2")
@@ -2600,12 +2614,19 @@ def s_stage2_data(hist_root: Path, transport, *, rules_sha: str, exclusion_keys_
     if not frame_manifest(rdir):
         raise Refused("S Stage 2 needs the Stage-1 frame (q0312) for the key drops")
     _check_pins(out_root, model_pin, rebased_pin)
-    done = manifest_done(f["manifest"], STAGE2_STATUS_CLOSED)
-    if done:
-        return {"stopped": None, "status": STAGE2_STATUS_CLOSED, "complete": True, "counts": done.get("counts")}
+    prior_m = json.loads(f["manifest"].read_text()) if f["manifest"].exists() else {}
+    final = manifest_done(f["manifest"], STAGE2_STATUS_FINAL)
+    if final:
+        return {"stopped": None, "status": STAGE2_STATUS_FINAL, "complete": True, "counts": final.get("counts")}
     term = cm.prior_terminal(rdir)
     if term:
         return term
+    closed_at = c14.num((prior_m.get("state") or {}).get("closed_at"))
+    if math.isfinite(closed_at):  # the window is closed: outcome re-fetches only (no new event), until the fixed post-close wait is over
+        return stage2_post_close(hist_root, transport, rdir=rdir, closed_at=closed_at, prior=prior_m, now=now, rules_sha=rules_sha, rps=rps, factbase_rps=factbase_rps,
+                                 disk_cap=disk_cap, budget_min=budget_min, sleep=sleep, live_check=live_check, should_stop=should_stop, wall_clock=wall_clock,
+                                 snapshot_root=snapshot_root, health_check=health_check, data_dumps=data_dumps, data_dumps_cap_gb=data_dumps_cap_gb, free_fn=free_fn,
+                                 out_root=out_root, model_pin=model_pin)
     gate = stage2_weekly_gate(f["manifest"], now, cap_ts)
     if gate is not None:
         return cm.idle(f["frame"].parent, gate, now)
@@ -2668,8 +2689,51 @@ def s_stage2_data(hist_root: Path, transport, *, rules_sha: str, exclusion_keys_
     fr.counts.update(prog)
     closed = bool(now >= cap_ts or prog["resolved_events_with_unit"] >= S2_STOP_EVENTS)
     status = STAGE2_STATUS_CLOSED if closed else STAGE2_STATUS_OPEN
-    m = fr.manifest(None, {"complete": closed, "status": status, "pins": pins, "window_start": c14.iso(start), "window_cap": c14.iso(cap_ts), "last_pass_epoch": now,
-                           "closed_by": ("cap" if now >= cap_ts else "resolved events with a unit") if closed else None})
+    if closed:  # the event set is fixed from here; outcomes keep being re-fetched for S2_OUTCOME_WAIT_D (stage2_post_close)
+        fr.extra_state["closed_at"] = now
+        fr.extra_state["closed_by"] = "cap" if now >= cap_ts else "resolved events with a unit"
+    m = fr.manifest(None, {"complete": False, "status": status, "pins": pins, "window_start": c14.iso(start), "window_cap": c14.iso(cap_ts), "last_pass_epoch": now,
+                           "closed_by": fr.extra_state.get("closed_by") if closed else None,
+                           "outcomes_final_due": c14.iso(now + S2_OUTCOME_WAIT_D * DAY) if closed else None})
+    m["status"] = status
+    return m
+
+
+def stage2_post_close(hist_root: Path, transport, *, rdir: Path, closed_at: float, prior: dict, now: float, rules_sha: str, rps: float = 2.0, factbase_rps: float = 0.5,
+                      disk_cap: int | None = None, budget_min: float | None = None, sleep=time.sleep, live_check=None, should_stop=None, wall_clock=time.time,
+                      snapshot_root: Path | None = None, health_check=None, data_dumps: Path | None = None, data_dumps_cap_gb: float = c14.DATA_DUMPS_CAP_GB, free_fn=None,
+                      out_root: Path | None = None, model_pin: str | None = None) -> dict:
+    """q0321 after the closing pass: NO new event; every member whose last lookup was unresolved is looked up again (at most once per ``S2_POST_CLOSE_EVERY_S``) and the guarded outcome
+    file is rewritten (latest lookup per market). The first pass at or after ``closed_at + S2_OUTCOME_WAIT_D`` is final (``STAGE2_STATUS_FINAL``, complete): only then may q0322 run.
+    An interrupted pass resumes at once."""
+    f = subset_files(rdir, "S2")
+    due = closed_at + S2_OUTCOME_WAIT_D * DAY
+    last = c14.num(prior.get("last_pass_epoch"))
+    if prior.get("status") == STAGE2_STATUS_CLOSED and now < due and math.isfinite(last) and now - last < S2_POST_CLOSE_EVERY_S:
+        return cm.idle(f["frame"].parent, f"S Stage 2 closed; next outcome re-fetch at {c14.iso(last + S2_POST_CLOSE_EVERY_S)}, final at {c14.iso(due)}", now)
+    cap = int(DATA_OUTPUT_CAP_GB["S2"] * 1024**3) if disk_cap is None else disk_cap
+    c14.require_disk(data_dumps, data_dumps_cap_gb, cap, free_fn=free_fn)
+    pins = verify_pins()
+    fr, fb = _open(Path(hist_root), FRAME_RUN, transport, kind="cb14_s_stage2", label="CB14-S Stage 2 (post-close outcomes)", params={k: v for k, v in (prior.get("params") or {}).items() if k in ("window", "keys", "fidelity")},
+                   rules_sha=rules_sha, disk_cap=cap, rps=rps, factbase_rps=factbase_rps, budget_min=budget_min, now=now, sleep=sleep, live_check=live_check, wall_clock=wall_clock,
+                   snapshot_root=snapshot_root, health_check=health_check, manifest_name=f["manifest"].name)
+    store = f["frame"].parent / "fetch_partial.jsonl"
+    try:
+        items = _target_items(rdir, "S2")
+        why = _fetch_targets(fr, fb, items, store, should_stop, oc_part=oc_partial(rdir, "S2"), refetch_unresolved=True)
+        if why:
+            return _stop_result(fr, why)
+        fr.counts.update(_write_target_outputs(fr, rdir, "S2", items, store))
+    except OSError as exc:
+        return cm.disk_budget_end(fr, exc)
+    prog = stage2_progress(rdir, load_model(Path(out_root if out_root is not None else c14.CB14_DIR) / MODEL_FILE, model_pin), store)
+    rs = resolution_state(store)
+    mids = [m["market_id"] for it in items for m in it["members"]]
+    fr.counts.update(prog, members=len(mids), members_unresolved=sum(1 for mid in mids if not rs.get(mid, False)))
+    final = bool(now >= due)
+    status = STAGE2_STATUS_FINAL if final else STAGE2_STATUS_CLOSED
+    m = fr.manifest(None, {"complete": final, "status": status, "pins": pins, "last_pass_epoch": now, "closed_by": fr.extra_state.get("closed_by"), "outcomes_final_due": c14.iso(due),
+                           "outcome_wait_d": S2_OUTCOME_WAIT_D})
     m["status"] = status
     return m
 
@@ -2815,7 +2879,8 @@ def smoke_online(lim, ctx: dict) -> dict:
 
 def declared() -> dict:
     return {"family": "S", "label": LABEL_S, "label_stage2": LABEL_S2, "tag_id": TAG_ID,
-            "windows": {"P": list(T14_P), "N": list(T14_N), "HOLDOUT_never_touched": list(T14_HOLDOUT), "fit": list(T14_FIT), "stage2": [T14_S2_FLOOR, T14_S2_CAP], "stage2_stop_events": S2_STOP_EVENTS},
+            "windows": {"P": list(T14_P), "N": list(T14_N), "HOLDOUT_never_touched": list(T14_HOLDOUT), "fit": list(T14_FIT), "stage2": [T14_S2_FLOOR, T14_S2_CAP], "stage2_stop_events": S2_STOP_EVENTS,
+                        "stage2_outcome_wait_d": S2_OUTCOME_WAIT_D, "stage2_post_close_every_s": S2_POST_CLOSE_EVERY_S, "stage2_pass_every_s": S2_PASS_EVERY_S},
             "pins": {"registry_file": S_SPORTS_REGISTRY_FILE_SHA256, "ids": S_SPORTS_IDS_SHA256, "slugs": S_SPORTS_SLUGS_SHA256, "broadcast_regex": S_BROADCAST_RE_SHA256,
                      "model_pin_file": MODEL_PIN_REL, "model_pin_note": "outside the rules hash; the S freeze entry carries s_model_sha256 / s_model_rebased_sha256"},
             "population": {"min_members": MIN_MEMBERS, "occasion_max_s": OCCASION_MAX_S, "primary_min_fit": PRIMARY_MIN_FIT, "timestamped_min_stamps": TIMESTAMPED_MIN_STAMPS,

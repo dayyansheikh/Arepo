@@ -144,7 +144,8 @@ SMOKE_S_DEFAULT = CB14_DIR / "smoke_S.json"
 FEE_FLOOR = 0.04  # W2 / W2-rep taker fee floor (politics convention; the current, not the point-in-time, schedule)
 P90_ROUND_TRIP = -0.093  # EXECUTION_COSTS.md line 39
 
-RULES_MACHINERY = ("rules_part_doc", "rules_part_file_doc", "rules_file_doc", "write_rules", "verify_rules", "family_modules", "common_funcs", "part_funcs", "shared_helper_sources")
+RULES_MACHINERY = ("rules_part_doc", "rules_part_file_doc", "rules_file_doc", "write_rules", "verify_rules", "family_modules", "common_funcs", "part_funcs", "shared_helper_sources",
+                   "external_closure", "_code_names", "_helper_key")
 # Cross-module helpers the CB14 rules call (section 11 fix F8): the sha256 of each one's source is part of EVERY part's rules doc, so a change to a shared CB2 / CB6 / CB8 / CB9 / CB10 /
 # CB12 helper changes the CB14 rules shas (as CB13 ``SHARED_HELPERS``).
 SHARED_HELPERS = (("cw", "small_g_pvalue"), ("c12", "holm"), ("c12", "cluster_se_mean"), ("c9", "top_k_drop_mask"), ("c10", "placebo_advance_rate"), ("c10", "leave_one_out_sign"),
@@ -901,14 +902,70 @@ def part_funcs(part: str) -> list:
     return [f for f in funcs if not (id(f) in seen or seen.add(id(f)))]
 
 
-def shared_helper_sources() -> dict[str, str]:
-    """sha256 of the source of every shared helper the CB14 rules call (``SHARED_HELPERS``)."""
+def _code_names(obj) -> tuple[set[str], dict]:
+    """The global / attribute names a function (with its nested functions, lambdas and comprehensions) or a class's methods reference, and the globals they resolve in."""
+    names: set[str] = set()
+    glb: dict = {}
+    funcs = [obj] if inspect.isfunction(obj) else []
+    if inspect.isclass(obj):
+        for v in vars(obj).values():
+            v = getattr(v, "__func__", v)
+            if isinstance(v, property):
+                funcs += [x for x in (v.fget, v.fset, v.fdel) if x is not None]
+            elif inspect.isfunction(v):
+                funcs.append(v)
+    for fn in funcs:
+        glb = fn.__globals__
+        stack = [fn.__code__]
+        while stack:
+            co = stack.pop()
+            names.update(co.co_names)
+            stack += [c for c in co.co_consts if inspect.iscode(c)]
+    return names, glb
+
+
+def _helper_key(obj) -> str:
+    return f"{obj.__module__.rsplit('.', 1)[-1]}.{obj.__qualname__}"
+
+
+def external_closure(roots: Iterable) -> dict[str, Any]:
+    """Every function / class OUTSIDE the CB14 modules (``astrolabe.*`` only) that ``roots`` reach, transitively (section 11 fix F8, review of 515d68d: a shared helper's own helpers,
+    e.g. ``cb2_weather._cluster_sums`` under ``small_g_pvalue``, are hashed too). A name resolves through the referencing function's globals: a function or class directly, or, for a
+    module, every attribute name the function uses that is a function / class of that module (over-inclusive, never under-inclusive). CB14 functions are traversed, not recorded (their
+    sources are in the part's own ``func_sources_sha256``)."""
+    out: dict[str, Any] = {}
+    seen: set[int] = set()
+    stack = list(roots)
+    while stack:
+        obj = stack.pop()
+        if id(obj) in seen:
+            continue
+        seen.add(id(obj))
+        mod = getattr(obj, "__module__", "") or ""
+        if not mod.startswith("astrolabe."):
+            continue
+        if not mod.startswith(__package__ + ".cb14"):
+            out[_helper_key(obj)] = obj
+        names, glb = _code_names(obj)
+        for n in names:
+            g = glb.get(n)
+            if inspect.isfunction(g) or inspect.isclass(g):
+                stack.append(g)
+            elif inspect.ismodule(g) and g.__name__.startswith("astrolabe."):
+                stack += [a for a in (getattr(g, x, None) for x in names) if (inspect.isfunction(a) or inspect.isclass(a)) and getattr(a, "__module__", None) == g.__name__]
+    return dict(sorted(out.items()))
+
+
+def shared_helper_sources(part: str = "common") -> dict[str, str]:
+    """sha256 of the source of every shared helper the CB14 rules of ``part`` call: the declared roots (``SHARED_HELPERS``) and every helper reached transitively from them and from the
+    part's own functions (``external_closure``)."""
     from . import cb2_weather as cw  # noqa: PLC0415  (small_g_pvalue: the p engine of cluster_p)
     from . import cb6_tail as c6  # noqa: PLC0415
     from . import cb8_books as bk  # noqa: PLC0415
 
     mods = {"c12": c12, "c10": c10, "c9": c9, "cw": cw, "c6": c6, "bk": bk}
-    return {f"{m}.{n}": hashlib.sha256(inspect.getsource(getattr(mods[m], n)).encode()).hexdigest() for m, n in SHARED_HELPERS}
+    roots = [getattr(mods[m], n) for m, n in SHARED_HELPERS] + list(part_funcs(part))
+    return {k: hashlib.sha256(inspect.getsource(v).encode()).hexdigest() for k, v in external_closure(roots).items()}
 
 
 def rules_part_doc(part: str) -> dict:
@@ -937,7 +994,7 @@ def rules_part_doc(part: str) -> dict:
     src = {f"{f.__module__.rsplit('.', 1)[-1]}.{f.__qualname__}": hashlib.sha256(inspect.getsource(f).encode()).hexdigest() for f in funcs}
     return {"part": part, "part_declared": True, "rules_version": RULES_VERSION, "constants": consts, "declared": declared,
             "wallet": {"read": False, "note": "no CB14 job reads or stores a wallet field, a transaction hash (aggregated in memory and discarded), the Data API side field, or a Wikipedia user name"},
-            "shared_helper_sources_sha256": shared_helper_sources(),
+            "shared_helper_sources_sha256": shared_helper_sources(part),
             "funcs_sha256": hashlib.sha256("\n".join(src[k] for k in sorted(src)).encode()).hexdigest(), "func_sources_sha256": dict(sorted(src.items()))}
 
 

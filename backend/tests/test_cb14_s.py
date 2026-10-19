@@ -970,6 +970,36 @@ def test_f13_unresolved_outcomes_are_refetched_and_only_a_flag_leaves_the_guarde
     assert s.resolved_flag({"outcome_prices": "", "uma_status": "unavailable (network)", "yes_index": 0}) is False
 
 
+def test_f13_post_close_outcome_wait_gates_the_rep_and_never_adds_events(tmp_path, world):
+    # q0322 refuses (pending) until q0321 has written the FINAL status after the fixed post-close outcome wait; a closed-but-not-final window is never analysed
+    hist = tmp_path / "hist"
+    rdir = hist / s.FRAME_RUN
+    mp = s.subset_files(rdir, "S2")["manifest"]
+    mp.parent.mkdir(parents=True, exist_ok=True)
+    kw = dict(out_root=world["out_root"], model_pin=world["pins"]["model_pin"], rebased_pin=world["pins"]["rebased_pin"], now=ep("2027-03-01T00:00:00Z"))
+    import shutil
+
+    shutil.copytree(world["hist"] / s.FRAME_RUN / "fit", rdir / "fit")
+    for status, complete in ((None, False), (s.STAGE2_STATUS_CLOSED, False), (s.STAGE2_STATUS_CLOSED, True)):
+        if status:
+            mp.write_text(json.dumps({"status": status, "complete": complete, "stopped": None}))
+        with pytest.raises(s.NotNow, match="post-close outcome wait"):
+            s.rep_s(hist, **kw)
+    assert s.S2_OUTCOME_WAIT_D == 14 and s.S2_POST_CLOSE_EVERY_S == D_ and s.declared()["windows"]["stage2_outcome_wait_d"] == 14
+    # between daily re-fetches the post-close pass idles (no request, no new event); at the due time it runs at once
+    closed_at = ep("2027-01-10T00:00:00Z")
+    prior = {"status": s.STAGE2_STATUS_CLOSED, "last_pass_epoch": closed_at + 2 * D_, "state": {"closed_at": closed_at}}
+
+    class NoNet:
+        def __call__(self, *a, **k):
+            raise AssertionError("no request between daily post-close passes")
+
+    out = s.stage2_post_close(hist, NoNet(), rdir=rdir, closed_at=closed_at, prior=prior, now=closed_at + 2 * D_ + 3600, rules_sha="rs")
+    assert out["status"] == "idle_heartbeat" and "final at" in out["idle"]
+    with pytest.raises(s.NotNow):
+        s.stage2_post_close(hist, NoNet(), rdir=rdir, closed_at=closed_at, prior=prior, now=closed_at + 2 * D_ + 7200, rules_sha="rs")
+
+
 def test_f11_screen_recomputes_the_gates_on_p_alone_when_n_is_reported_only(world, monkeypatch):
     def boom(*a, **k):
         raise AssertionError("an outcome file was opened although every P-only gate failed")

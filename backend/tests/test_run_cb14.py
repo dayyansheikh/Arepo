@@ -18,12 +18,13 @@ import run_cb14  # noqa: E402
 DRAFTS = ROOT / "docs" / "research_lab" / "queue" / "drafts"
 JOBS = ROOT / "docs" / "research_lab" / "queue" / "jobs"
 IDS = [300, 301, 302, 303, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 316, 317, 318, 319, 320, 321, 322, 323]
+PROMOTED = {300, 301}  # the smokes, promoted to queue/jobs by the coordinator after the re-check of 515d68d (their notes carry the shas at promotion)
 
 
 def _drafts() -> list[dict]:
     out = []
     for n in IDS:
-        fs = sorted(DRAFTS.glob(f"q{n:04d}_cb14_*.json"))
+        fs = sorted((JOBS if n in PROMOTED else DRAFTS).glob(f"q{n:04d}_cb14_*.json"))
         assert len(fs) == 1, n
         out.append(json.loads(fs[0].read_text()))
     return out
@@ -32,10 +33,10 @@ def _drafts() -> list[dict]:
 def test_every_draft_exists_parses_and_is_a_draft_not_a_job():
     ds = _drafts()
     assert [d["id"][:5] for d in ds] == [f"q{n:04d}" for n in IDS]
-    assert not list(JOBS.glob("q03*_cb14_*.json"))
+    assert {int(p.name[1:5]) for p in JOBS.glob("q03*_cb14_*.json")} == PROMOTED  # nothing else promoted by an implementer
     ap = run_cb14.build_parser()
     for d in ds:
-        assert d["family"] == "creative_batch_14" and "DRAFT" in d["notes"]
+        assert d["family"] == "creative_batch_14" and ("DRAFT" in d["notes"] or int(d["id"][1:5]) in PROMOTED)
         assert d["argv"][0] == "scripts/run_cb14.py"
         a = ap.parse_args(d["argv"][1:])
         assert callable(a.fn)
@@ -55,6 +56,8 @@ def test_drafts_carry_the_declared_arguments_and_the_current_rules_shas():
         if cmd == "s-data":
             assert abs(a.disk_cap_gb - run_cb14.DECLARED_DISK_CAP_S_DATA[a.subset]) < 1e-9
         assert getattr(a, "rps", 0.0) <= run_cb14.DECLARED_RPS_MAX.get(cmd, 99.0) + 1e-9
+        if int(d["id"][1:5]) in PROMOTED:
+            continue
         assert rules["common"]["rules_sha256"] in d["notes"], d["id"]
         fam = getattr(a, "part", None) or getattr(a, "family", None) or ("S" if cmd.startswith("s-") else "W")
         if cmd != "exclusion-keys":
@@ -187,6 +190,11 @@ def test_f5_a_recorded_stall_is_counted_once_and_downstream_jobs_end_with_exit_0
                           "--trials-path", str(tmp_path / "t2.jsonl")])
     capsys.readouterr()
     assert code == 0 and len(_count_lines(tmp_path / "t2.jsonl", "S")) == 1 and c14.read_terminal(root2, "S")["label"] == "not testable (disjointness unverified)"
+    # a smoke run AFTER the family became terminal counts nothing a second time (it never runs)
+    code = run_cb14.main(["smoke", "--part", "S", "--standalone", "--root", str(root2), "--history-root", str(tmp_path / "history"), "--rules", str(rules), "--allow-uncommitted-rules",
+                          "--trials-path", str(tmp_path / "t2.jsonl")])
+    out = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
+    assert code == 0 and out["status"] == c14.TERMINAL_STATUS and len(_count_lines(tmp_path / "t2.jsonl", "S")) == 1 and not (root2 / "smoke_S.json").exists()
 
 
 def test_f6_stage2_final_holm_can_add_a_pass_after_the_early_alpha_over_four(tmp_path, capsys):
@@ -194,8 +202,14 @@ def test_f6_stage2_final_holm_can_add_a_pass_after_the_early_alpha_over_four(tmp
     root.mkdir()
     (root / "results_W.json").write_text(json.dumps({"W1": {"advance": False}, "W2": {"advance": True}}))
     (root / "results_S.json").write_text(json.dumps({"S1": {"advance": False}, "S2": {"advance": False}}))
-    argv = ["stage2-final", "--root", str(root), "--history-root", str(tmp_path / "history"), "--trials-path", str(tmp_path / "t.jsonl")]
-    assert run_cb14.main(argv) == run_cb14.TEMPFAIL  # W triggered Stage 2 and its rep is not final
+    stale = tmp_path / "stale_rules.json"
+    stale.write_text(json.dumps({"rules_version": c14.RULES_VERSION, "parts": {}}))
+    base = ["stage2-final", "--root", str(root), "--history-root", str(tmp_path / "history"), "--trials-path", str(tmp_path / "t.jsonl"), "--allow-uncommitted-rules"]
+    assert run_cb14.main([*base, "--rules", str(stale)]) == run_cb14.REFUSED  # the final step verifies the rules file first
+    capsys.readouterr()
+    argv = [*base, "--rules", str(c14.write_rules(tmp_path / "rules.json"))]
+    assert run_cb14.main(argv) == 0 and json.loads(capsys.readouterr().out.strip().splitlines()[-1])["status"] == "idle_heartbeat"  # a long wait: heartbeat first
+    assert run_cb14.main(argv) == run_cb14.TEMPFAIL  # W triggered Stage 2 and its rep is not final: pending
     capsys.readouterr()
     (root / "results_W_rep.json").write_text(json.dumps({"W2_rep": {"p": 0.03, "testable": True, "checks_ok": True, "stage2_early_alpha_ok": False}}))
     assert run_cb14.main(argv) == 0
@@ -265,7 +279,9 @@ def test_f7_f13_f17_drafts_carry_the_pins_tokens_windows_and_repeats():
         assert d["not_before"] and d["argv"][d["argv"].index("--results-sha256") + 1] == c14.PIN_UNSET and d["argv"][d["argv"].index("--stage2-k") + 1] == c14.PIN_UNSET
         assert "--rules" in d["argv"]
     assert by["q0311"]["not_before"] >= "2027-01-27T00:00:00Z"
-    assert by["q0321"]["repeat"]["max_runs"] >= 600 and "s_stage2_window_closed" in by["q0321"]["repeat"]["until_log_regex"]
+    assert by["q0321"]["repeat"]["max_runs"] >= 600 and "s_stage2_outcomes_final" in by["q0321"]["repeat"]["until_log_regex"] and "s_stage2_window_closed" not in by["q0321"]["repeat"]["until_log_regex"]
+    assert "terminal_not_testable" in by["q0321"]["repeat"]["until_log_regex"]
+    assert "q0227b_cb11_attn_frame" in q302["depends_on"] and "q0227_cb11_attn_frame" not in q302["depends_on"]
     assert "q0221b_cb11_exclusion_keys" in q302["depends_on"] and "q0221_cb11_exclusion_keys" not in q302["depends_on"] and "q0276_cb13_exclusion_keys" in q302["depends_on"]
     fin = by["q0323"]
     assert fin["argv"][1] == "stage2-final" and fin["resources"]["lane"] == "cpu" and fin["not_before"]

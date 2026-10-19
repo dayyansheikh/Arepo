@@ -43,7 +43,7 @@
   "history/h14_speech/{prices_p.csv.gz,tx_p.csv.gz,guarded_p/,manifest_p.json}"
  ],
  "next_action": "q0319 (with q0318)",
- "notes": "DRAFT. Refuses unless the model sha256 is pinned in part S. No side, wallet or hash stored. Rules part sha256 (seals/cb14_rules.json, resealed 2026-10-19 after the code-against-design freeze-check fixes, CREATIVE_BATCH_14.md section 11): common 0440b859b334695166bd664a226ad7478e1c838b0ec7ee3b05551a1e977c7c1f, S 8e448f1e147b9737eff92ec37bb3cb6457e2709ab5db8c58318428e4758a9633. CB14 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes.",
+ "notes": "DRAFT. Refuses unless the model sha256 is pinned in part S. No side, wallet or hash stored. Rules part sha256 (seals/cb14_rules.json, resealed 2026-10-19 after the freeze-check fixes and the re-check of 515d68d, CREATIVE_BATCH_14.md section 11): common d34a2e739bacc69957fb0df777c174cfcbf95a92bdc72152a88bf4b326297e9c, S 657c7ae3b081d965d8dd01e2a9787d45ebb7adbf5774af2a7f931f14faba856f. CB14 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes.",
  "repeat": {
   "max_runs": 3,
   "until_log_regex": "\"status\": \"s_data_P_complete\""

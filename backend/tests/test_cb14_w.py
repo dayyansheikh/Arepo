@@ -835,3 +835,13 @@ def test_f14_events_with_missing_fields_are_looked_up_and_smoke_paging_is_robust
     got, used = w.lookup_events(lim, ["5", "8"])
     assert set(got) == {"5"} and used == 2 and lim.calls[0]["id"] == ["5", "8"] and lim.calls[1]["id"] == ["8"]
     assert w.SMOKE_RV_LIMIT == 1 and "w_search_fields" in w.SMOKE_NEEDS
+
+
+def test_live_print_coverage_is_merged_across_daily_fetches_never_overwritten():
+    m = w.merge_print_coverage
+    assert m(None, 100.0, True) == (100.0, True)
+    old = {"oldest_ts": 10.0, "truncated": False, "tx": [{"ts": 50.0}, {"ts": 90.0}]}
+    assert m(old, 80.0, True) == (10.0, False)  # a truncated later fetch overlapping the earlier prints keeps the earlier reach
+    o, t = m(old, 95.0, True)
+    assert (o, t) == (95.0, True)  # a gap after the earlier prints: the later fetch cannot vouch for it
+    assert m({**old, "truncated": True}, 5.0, False) == (5.0, False)  # an untruncated fetch reaches the market start

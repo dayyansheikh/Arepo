@@ -28,5 +28,5 @@
   "trials.jsonl (cb14_test + creative_batch_14:W n_tests=2)"
  ],
  "next_action": "advanced: q0311 after the live window",
- "notes": "DRAFT. Refuses before the W freeze hash and unless GW0, GWC, GW and GWP passed (else counted lines). Rules part sha256 (seals/cb14_rules.json, resealed 2026-10-19 after the code-against-design freeze-check fixes, CREATIVE_BATCH_14.md section 11): common 0440b859b334695166bd664a226ad7478e1c838b0ec7ee3b05551a1e977c7c1f, W 1a9b1132fe917a32e2afb2521d3fb12720a98828143ca8c31d70ef755990a1d3. CB14 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes."
+ "notes": "DRAFT. Refuses before the W freeze hash and unless GW0, GWC, GW and GWP passed (else counted lines). Rules part sha256 (seals/cb14_rules.json, resealed 2026-10-19 after the freeze-check fixes and the re-check of 515d68d, CREATIVE_BATCH_14.md section 11): common d34a2e739bacc69957fb0df777c174cfcbf95a92bdc72152a88bf4b326297e9c, W 011abaf508b061e84b2e005c7774a4f2f6ccf0d4d8a8cf3566540ab4f933a369. CB14 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes."
 }

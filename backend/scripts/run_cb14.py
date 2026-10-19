@@ -351,6 +351,9 @@ def cmd_smoke(a):
     if out.exists():
         raise c14.Refused(f"smoke result {out} already exists; it is write-once")
     shas = {"common": _rules(a, "common"), part: _rules(a, part)}
+    term = _terminal(a, part)
+    if term:  # the family is already terminal "not testable" (e.g. q0302 found disjointness unverified before q0301 ran): counted once there, never again here
+        return _terminal_payload(term)
     now = time.time()
     live = None if a.standalone else hb.live_pass_or_lock
     transport = _transport()
@@ -759,16 +762,19 @@ def cmd_rep(a):
     k2 = _stage2_k(a, fam, len(adv), root)
     hist = _hist(a)
     now = time.time()
-    if fam == "W":
-        from astrolabe.research_lab import cb14_w as w  # noqa: PLC0415
+    try:
+        if fam == "W":
+            from astrolabe.research_lab import cb14_w as w  # noqa: PLC0415
 
-        la = Path(a.live_audit) if a.live_audit else None
-        body = w.rep_w(hist / w.LIVE_RUN, adv, now=now, k2=k2, live_audit=json.loads(la.read_text()) if la and la.exists() else None)
-    else:
-        from astrolabe.research_lab import cb14_s as s  # noqa: PLC0415
+            la = Path(a.live_audit) if a.live_audit else None
+            body = w.rep_w(hist / w.LIVE_RUN, adv, now=now, k2=k2, live_audit=json.loads(la.read_text()) if la and la.exists() else None)
+        else:
+            from astrolabe.research_lab import cb14_s as s  # noqa: PLC0415
 
-        pins = _model_pins(a)
-        body = s.rep_s(hist, out_root=root, tests=adv, now=now, k2=k2, model_pin=pins["model"], rebased_pin=pins["model_rebased"], keys_report=_keys_report(a))
+            pins = _model_pins(a)
+            body = s.rep_s(hist, out_root=root, tests=adv, now=now, k2=k2, model_pin=pins["model"], rebased_pin=pins["model_rebased"], keys_report=_keys_report(a))
+    except c14.NotNow as exc:  # the window is not closed / final yet: a long wait, so an idle heartbeat (exit 0) at least every 10 h keeps the job alive
+        return _pending_heartbeat(a, f"rep_{fam}", exc)
     doc = {**body, "rules_sha256": sha, "freeze_sha256": freeze_sha, "stage1_results_sha256": a.results_sha256.lower()}
     rsha = c14.write_results_once(Path(a.out) if a.out else root / f"results_{fam}_rep.json", doc)
     lines = _lines({t: doc.get(f"{t}_rep") or {} for t in adv}, adv)
@@ -778,12 +784,29 @@ def cmd_rep(a):
     return 0, {"status": f"rep_{fam}_complete", "tests": list(adv)}
 
 
+def _pending_heartbeat(a, name: str, exc) -> tuple[int, dict]:
+    """A Stage-2 job that waits weeks or months: normally exit 75 (pending), but at least every heartbeat interval a clean ``idle_heartbeat`` (exit 0) so the queue's tempfail limit
+    never marks it failed (CB8 q0162 pattern; the drafts repeat until the completion status)."""
+    from astrolabe.research_lab import cb8_common as cm  # noqa: PLC0415
+
+    return 0, cm.idle(_root(a) / "waits" / name, str(exc), time.time())
+
+
 @_guarded
 def cmd_stage2_final(a):
+    c14 = _c14()
+    try:
+        return _stage2_final(a)
+    except c14.NotNow as exc:
+        return _pending_heartbeat(a, "stage2_final", exc)
+
+
+def _stage2_final(a):
     """The final CB14-wide Stage-2 step (section 2.3): once every TRIGGERED family's rep result exists (W iff W1 or W2 advanced at Stage 1, S iff S1 or S2 advanced), ONE strict Holm at
     one-sided alpha 0.05 over every triggered Stage-2 test (a triggered test that could not run enters with p = 1). Write-once; it can only ADD passes to the early alpha / 4 decisions
     (a pass also needs ``checks_ok``: every binding check except the primary p gate)."""
     c14 = _c14()
+    shas = {p: _rules(a, p) for p in ("common", *FAMILIES)}  # the rules file must match the code (every part) before the final step
     root = _root(a)
     out = Path(a.out) if a.out else root / "results_stage2_final.json"
     if out.exists():
@@ -819,7 +842,7 @@ def cmd_stage2_final(a):
     holm = c14.stage2_final(pvals)
     verdict = {t: {"checks_ok": checks[t], "early_alpha_over_4": early[t], "final_holm_reject": bool(holm["tests"][c14.STAGE2_NAMES[t]]["reject"]),
                    "pass": bool(checks[t] and (early[t] or holm["tests"][c14.STAGE2_NAMES[t]]["reject"]))} for t in pvals}
-    doc = {"version": "cb14-stage2-final-v1", "triggered_families": triggered, "k2": holm["k"], "alpha": holm["alpha"], "holm": holm, "verdict": verdict, "inputs_sha256": inputs,
+    doc = {"version": "cb14-stage2-final-v1", "rules_sha256": shas, "triggered_families": triggered, "k2": holm["k"], "alpha": holm["alpha"], "holm": holm, "verdict": verdict, "inputs_sha256": inputs,
            "rule": "strict Holm over every triggered CB14 Stage-2 test; early alpha/4 passes are never withdrawn; the final step only adds passes"}
     _write_json_once(out, doc)
     c14.log_descriptive("stage2_final", {"k2": holm["k"], "verdict": verdict, "inputs_sha256": inputs}, trials_path=_tp(a), role=c14.EVIDENCE_ROLE_PROSPECTIVE)
@@ -994,6 +1017,8 @@ def build_parser() -> argparse.ArgumentParser:
     q.set_defaults(fn=cmd_rep)
 
     q = sub.add_parser("stage2-final", help="final CB14-wide Stage-2 strict Holm (after q0311 / q0322)")
+    q.add_argument("--rules", default=None)
+    q.add_argument("--allow-uncommitted-rules", action="store_true")
     q.add_argument("--root", default=None)
     q.add_argument("--history-root", default=None)
     q.add_argument("--smoke", default=None)

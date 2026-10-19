@@ -2429,12 +2429,29 @@ def refresh_live_prints(lim, live_dir: Path, markets: Iterable[dict], *, page_li
             continue
         rows = build_transactions(prints, int(m["yes_index"]))
         p = d / f"{m['market_id']}.json"
-        old = json.loads(p.read_text()) if p.is_file() else {"tx": []}
-        merged = {(r["ts"], r["price"], r["size"]): r for r in [*old["tx"], *rows]}
-        cm.write_json_atomic(p, {"market_id": m["market_id"], "oldest_ts": info["oldest_ts"] if math.isfinite(info["oldest_ts"]) else None, "truncated": bool(info["truncated"]),
-                                 "tx": [merged[k] for k in sorted(merged)]})
+        old = json.loads(p.read_text()) if p.is_file() else None
+        merged = {(r["ts"], r["price"], r["size"]): r for r in [*((old or {}).get("tx") or []), *rows]}
+        oldest, trunc = merge_print_coverage(old, c14.num(info["oldest_ts"]), bool(info["truncated"]))
+        cm.write_json_atomic(p, {"market_id": m["market_id"], "oldest_ts": oldest if math.isfinite(oldest) else None, "truncated": trunc, "tx": [merged[k] for k in sorted(merged)]})
         n += 1
     return n
+
+
+def merge_print_coverage(old: dict | None, new_oldest: float, new_truncated: bool) -> tuple[float, bool]:
+    """Coverage of the merged post-hoc prints of one market across daily fetches (review of 515d68d; power only): a later fetch never discards the reach of an earlier one. Without an
+    earlier file the new fetch's ``(oldest_ts, truncated)``; an untruncated new fetch reaches the market start (``truncated`` False, the earliest oldest); a truncated new fetch that
+    overlaps the earlier prints (its oldest print at or before the newest earlier print) keeps the earlier coverage; one with a gap after the earlier prints cannot vouch for the gap
+    (its own oldest, truncated)."""
+    if old is None:
+        return new_oldest, bool(new_truncated)
+    o_old = c14.num(old.get("oldest_ts"))
+    finite = [x for x in (o_old, new_oldest) if math.isfinite(x)]
+    if not new_truncated:
+        return (min(finite) if finite else math.nan), False
+    old_newest = max((float(r["ts"]) for r in old.get("tx") or []), default=-math.inf)
+    if math.isfinite(new_oldest) and new_oldest <= old_newest:
+        return (min(finite) if finite else math.nan), bool(old.get("truncated"))
+    return new_oldest, True
 
 
 def post_close_refresh(transport, live_dir: Path, closed: dict, now: float, *, rps: float = 2.0, sleep=time.sleep, live_check=None) -> dict:
