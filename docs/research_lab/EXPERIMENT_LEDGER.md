@@ -2141,3 +2141,8 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
 - (B) O: ACCEPT; 89fd546 is freeze-ready code (causal: strictly earlier daily file plus `fetched_t_end < t`). Optional
   LOW: `earnings_flag` checks `fetched_t_end` itself; report per-unit previous-file age (outage case). Taken now (O5,
   reseals O) so the freeze uses final code. O freeze still needs q0260's iv_convention (2026-10-20).
+- **E3/O5 done (c9002da, ~21:20Z):** frame/prices rules hashes recorded in state, q0245 refuses a missing/mismatched
+  frame or earlier-chunk hash, guard checks both; `earnings_flag` fails closed without `fetched_t_end < t`; per-unit
+  `daily_file_age_days` in the census. E `a63672c9…` -> `bd512db4…`, O `0899797a…` -> `4e1dd759…`; common/M/X
+  unchanged; 191 cb12 tests. q0244 hold lifted; q0244/q0260 and drafts re-pinned. A short confirmation precedes q0266
+  and the O freeze.
