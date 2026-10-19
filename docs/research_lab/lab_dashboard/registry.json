@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-19",
+ "updated": "2026-10-19T04:25:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -998,18 +998,18 @@
   {
    "id": "CB11",
    "title": "Proposer clocks, political underconfidence, attention",
-   "plain": "How long markets wait to resolve, long-horizon political underconfidence and attention without news. The code passed its independent checks after fixes; its small test download was fixed and restarted, then the downloads run.",
+   "plain": "How long markets wait to resolve, long-horizon political underconfidence and attention without news. Its market-ID check was rebuilt (it read the full 4-million-market list instead of the sampled ones) and reviewed; it runs on the server, then the downloads follow.",
    "batch": "CB11",
    "family": "resolution",
    "stage": "designed",
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Test download, then downloads (about 10-15 h), then the counts-only census",
+   "next": "Market-ID check (about 1-2 h), then downloads (about 10-15 h), then the counts-only census",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Smoke fixes and CB12-X freshness correction reviewed, 2026-10-18 ~21:20Z"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB11 q0221 superseded by q0221b, 2026-10-19"
    },
    "stage_results": {
     "designed": "pending"
@@ -1096,18 +1096,18 @@
   {
    "id": "CB13",
    "title": "Where makers lose money; touch versus end-above markets",
-   "plain": "Designed from round 6: whether the losses of resting orders differ by type of market, and whether 'will it touch X' crypto markets are priced as if they were 'will it end above X'. The design was challenged and revised; code is being written.",
+   "plain": "Designed from round 6: whether the losses of resting orders differ by type of market, and whether 'will it touch X' crypto markets are priced as if they were 'will it end above X'. Code written and reviewed twice; two final-decision faults are being fixed; its connection checks run now.",
    "batch": "CB13",
    "family": "mixed",
    "stage": "designed",
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Code, then an independent code check",
+   "next": "Fix two final-decision faults, re-review, then the data jobs",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB13 drafted (98a00e6) and challenger round 1, 2026-10-18"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB13 verify round (fixes 39c85d9), 2026-10-19"
    },
    "stage_results": {
     "designed": "pending"
@@ -1119,18 +1119,18 @@
   {
    "id": "CB14",
    "title": "Wikipedia edit bursts; the speech clock",
-   "plain": "Designed from round 6: whether bursts of Wikipedia edits come before the market moves on resignations and similar news, and whether unsaid words in a speech become less likely as the speech runs on. Under challenger review.",
+   "plain": "Designed from round 6: whether bursts of Wikipedia edits come before the market moves on resignations and similar news, and whether unsaid words in a speech become less likely as the speech runs on. Code written; under independent review against the design.",
    "batch": "CB14",
    "family": "mixed",
    "stage": "designed",
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Challenger review, then code",
+   "next": "Independent code check, then connection checks",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/CREATIVE_BATCH_14.md header (DRAFT, 03f7200)"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB14 drafted (03f7200), challenger round 1 and response"
    },
    "stage_results": {
     "designed": "pending"
