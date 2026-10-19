@@ -895,8 +895,9 @@ def test_event_templates_terminal_updown_race_and_no_outcome_leak():
     blob = json.dumps(pe["row"], default=float) + json.dumps(pe["members"], default=float)
     assert "outcomePrices" not in blob and "umaResolution" not in blob and "resolved" not in blob and "Binance" not in blob  # only the sha256 and booleans leave
     assert set(pe["outcomes"][0]) == set(r13.OUTCOME_COLUMNS)  # the guarded rows are separate
-    assert r13.parse_event(_event(q="Will Bitcoin dip to $60,000 October 12-18?"))["members"][0]["direction"] == "dip"
-    k = r13.parse_event(_event(q="Will Bitcoin dip to $1.5k October 12-18?"))["members"][0]["strike"]
+    low = 'This market will resolve to "Yes" if any Binance 1-minute candle for BTC/USDT (from 12:00 AM ET to 11:59 PM ET) has a final "Low" price equal to or less than the price.'
+    assert r13.parse_event(_event(q="Will Bitcoin dip to $60,000 October 12-18?", desc=low))["members"][0]["direction"] == "dip"
+    k = r13.parse_event(_event(q="Will Bitcoin dip to $1.5k October 12-18?", desc=low))["members"][0]["strike"]
     assert k == 1500.0
     term = r13.parse_event({"id": "9", "title": "Bitcoin above ___ on October 18?", "endDate": "2026-10-18T16:00:00Z", "markets": [{"id": "1", "question": "Will Bitcoin be above $100,000 on October 18?"}]})
     assert term == {"kind": "terminal"}
@@ -919,7 +920,8 @@ def test_event_templates_terminal_updown_race_and_no_outcome_leak():
 def _row(eid, asset="BTC", lo="2025-01-06T05:00:00Z", days=7, status="kept", template="weekly", split="screen"):
     a = ep(lo)
     return {"event_id": eid, "title_sha256": "", "template": template, "asset": asset, "split": split, "status": status, "reason": "", "win_lo": a, "win_hi": a + days * 86400, "end_epoch": a + days * 86400,
-            "start_epoch": a, "neg_risk": 0, "n_members": 1, "series_id": "", "component": "", "desc_sha256": "", "flags_ok": 1, "parse_ok": 1, "key_source": ""}
+            "start_epoch": a, "neg_risk": 0, "n_members": 1, "series_id": "", "component": "", "desc_sha256": "", "flags_ok": 1, "parse_ok": 1, "key_source": "",
+            "n_members_parsed": 1, "n_creation_anchored": 0, "n_flag_fail": 0, "n_flags_pass_all": 1}
 
 
 def test_status_key_drops_overlap_and_components():
@@ -1646,6 +1648,8 @@ def test_r_pipeline_frame_klines_pregate_prices_seal_census_screen_rep(tmp_path,
     cen = r13.census_r(fdir, bdir, n_draws=20)
     assert cen["counts_only"] and cen["gr"]["pass_population"] is False and cen["gr"]["pass_parser"] and cen["primary"]["events"] == 35 and "unit_counts" in cen
     assert "y" not in json.dumps(cen["gr"]) and math.isfinite(cen["grp"]["mde"])
+    g = cen["gr"]  # section 11.z: member-level shares travel through the frame's event counters
+    assert g["members_parsed"] > 0 and g["creation_anchored_members"] == 0 and g["flags_share"] == g["flags_share_incl_creation_anchored"] == 1.0 and g["pass_basis"]
     # seal, then verify (copy equal, listing combined over the frame and Binance HOLDOUT)
     seals = tmp_path / "seals"
     sealed = r13.seal_r(fdir, bdir, rules_sha="x", transport=transport, seals_dir=seals, is_committed=lambda p: True, sleep=nosleep)
@@ -2002,12 +2006,14 @@ def test_r_smoke_dated_queries_and_narrow_walk_window_fit_the_cap_v1_defect():
     assert walks == [("2026-10-12T03:59:00Z", "2026-10-12T04:01:00Z")]
     assert res["r_walk_finds_search"]["pass"] and res["r_request_cap"]["pass"] and res["r_request_cap"]["requests"] <= r13.SMOKE_MAX_REQUESTS
     rp = res["r_rule_parser"]
-    assert rp["pass"] and rp["parsed"] == 3 and all(e["n_members_flags_ok"] == e["n_members"] == 2 and e["missing_flags"] == {} for e in rp["per_event"])
+    assert rp["pass"] and rp["parsed"] == 3 and rp["member_flag_share"] == 1.0
+    assert all(e["n_members_kept"] == e["n_members_parsed"] == 2 and e["n_creation_anchored"] == e["n_flag_fail"] == 0 and e["missing_flags"] == {} for e in rp["per_event"])
     assert res["r_prices_history"]["pass"]
 
 
-def test_r_smoke_reports_missing_flags_of_creation_anchored_members_without_relaxing_the_rule():
-    """Counts only: an event with one member whose description has an unquoted High fails flags_ok (frozen rule unchanged) and the smoke reports which flag is missing."""
+def test_r_smoke_member_level_flags_exclude_creation_anchored_members_section_11z():
+    """Section 11.z: a creation-anchored member (unquoted High, window from its creation) is excluded and counted, never rescued; flags are per member, so the event keeps its other member
+    and the smoke passes; no description text leaves the smoke."""
     late = 'This market will resolve to "Yes" if any Binance 1 minute candle for BTC/USDT from the creation of this market through 11:59 PM ET has a final High price equal to or greater.'
     evs = []
     for i in range(3):
@@ -2022,9 +2028,30 @@ def test_r_smoke_reports_missing_flags_of_creation_anchored_members_without_rela
         return base_tr(url, params)
     res = r13.smoke_online(hb.Limiter(tr, rps=1e6, sleep=lambda s: None), {})
     rp = res["r_rule_parser"]
-    assert rp["pass"] is False and rp["parsed"] == 3
-    assert all(e["parse_ok"] == 1 and e["flags_ok"] == 0 and e["n_members"] == 2 and e["n_members_flags_ok"] == 1 and e["missing_flags"] == {"hi_lo": 1} for e in rp["per_event"])
-    assert "creation of this market" not in json.dumps(res)  # no description text leaves the smoke
+    assert rp["pass"] is True and rp["parsed"] == 3 and rp["member_flag_share"] == 1.0
+    assert all(e["parse_ok"] == 1 and e["flags_ok"] == 1 and e["n_members_parsed"] == 2 and e["n_creation_anchored"] == 1 and e["n_flag_fail"] == 0 and e["n_members_kept"] == 1
+               for e in rp["per_event"])
+    assert "creation of this market" not in json.dumps(res)
+
+
+def test_member_level_flags_and_creation_anchor_exclusion_in_parse_event_status_and_census_counts_section_11z():
+    late = 'This market will resolve to "Yes" if any Binance 1 minute candle for BTC/USDT from the creation of this market through 11:59 PM ET has a final "High" price equal to or greater.'
+    nohigh = 'This market will resolve to "Yes" if any Binance 1-minute candle for BTC/USDT (from 12:00 AM ET to 11:59 PM ET) has a final High price equal to or greater than the price.'
+    e = _event(n=4)
+    e["markets"][1]["description"] = late  # anchored even with a quoted "High": excluded by the description-only rule, not by the flags
+    e["markets"][2]["description"] = nohigh  # not anchored, fails the quoted-High flag: dropped and counted, the event stays
+    pe = r13.parse_event(e)
+    r = pe["row"]
+    assert r["flags_ok"] == 1 and r["n_members"] == 2 and len(pe["members"]) == 2 and len(pe["outcomes"]) == 2
+    assert (r["n_members_parsed"], r["n_creation_anchored"], r["n_flag_fail"], r["n_flags_pass_all"]) == (4, 1, 1, 3)
+    assert {m["market_id"] for m in pe["members"]} == {"10", "13"}
+    # an event whose every member fails a flag is dropped for flags; one whose every member is creation-anchored is dropped (and counted) as such
+    bad = _event(eid="2", n=2, desc=nohigh)
+    rb = r13.parse_event(bad)["row"]
+    assert rb["flags_ok"] == 0 and r13.classify_status({**rb, "split": "screen"}, [], set(), {})[0] == "dropped:flags"
+    anc = r13.parse_event(_event(eid="3", n=2, desc=late))["row"]
+    assert anc["n_creation_anchored"] == 2 and r13.classify_status({**anc, "split": "screen"}, [], set(), {})[0] == "dropped:creation_anchored"
+    assert r13.classify_status({**r, "split": "screen"}, pe["members"], set(), {})[0] == "kept"
 
 
 def test_smoke_v2_supersedes_a_failed_v1_without_a_second_count_and_jobs_read_v2(tmp_path, capsys, rules_file, pin_file, monkeypatch):

@@ -103,6 +103,9 @@ FLAG_1M_RE = re.compile(r"(?i)\b1[- ]?(?:minute|min|m)\b")
 FLAG_ET_RE = re.compile(r"\bET\b")
 FLAG_HIGH_RE = re.compile(r"[\"“‘']High[\"”’']")
 FLAG_LOW_RE = re.compile(r"[\"“‘']Low[\"”’']")
+# Section 11.z (A, B): a member whose description anchors its rule window at its own creation has window [createdAt, T], not the title window (Deviation 19 parses the title): it is EXCLUDED
+# and COUNTED by this fixed description-only rule (like race-form members), before the per-member flags; it is never rescued by relaxing the "High" / "Low" quote rule.
+CREATION_ANCHOR_RE = re.compile(r"(?i)\bfrom\s+the\s+creation\s+of\s+this\s+market\b")
 SMOKE_NEEDS = ("guards_fixture_R", "r_request_cap", "r_walk_finds_search", "r_rule_parser", "r_prices_history", "r_binance_units")
 SMOKE_WALK_DAYS = ("2026-10-05", "2026-10-12")
 SMOKE_RANGE = ("2026-10-02", "2026-10-16")  # inclusive: out-of-window days the smoke may use (fallback pick search when the declared days hold no search-found event)
@@ -118,7 +121,8 @@ SMOKE_MAX_WALK_DAYS = 5
 BINANCE_BASE = "https://data.binance.vision/data/spot/monthly/klines"
 BINANCE_UA = "arepo-research"
 EVENT_COLUMNS = ["event_id", "title_sha256", "template", "asset", "split", "status", "reason", "win_lo", "win_hi", "end_epoch", "start_epoch", "neg_risk", "n_members", "series_id", "component", "desc_sha256",
-                 "flags_ok", "parse_ok", "key_source"]
+                 "flags_ok", "parse_ok", "key_source", "n_members_parsed", "n_creation_anchored", "n_flag_fail", "n_flags_pass_all"]
+MEMBER_COUNT_COLUMNS = ("n_members_parsed", "n_creation_anchored", "n_flag_fail", "n_flags_pass_all")  # section 11.z: per-event member counters (binary barrier members before any exclusion)
 MEMBER_COLUMNS = ["event_id", "market_id", "condition_id", "token_yes", "yes_index", "created_epoch", "start_epoch", "strike", "direction", "asset", "fee_rate", "neg_risk_market_id"]
 OUTCOME_COLUMNS = ["market_id", "event_id", "yes_index", "outcome_prices", "uma_status"]
 PRICE_COLUMNS = ["market_id", "ts", "p"]
@@ -237,6 +241,7 @@ def parse_event(ev: dict) -> dict | None:
     ser = [s for s in (ev.get("series") if isinstance(ev.get("series"), list) else []) if isinstance(s, dict) and s.get("id") is not None]
     members, outs = [], []
     first_desc = ""
+    n_parsed = n_anchor = n_flag_fail = n_pass_all = 0
     for m, p in parsed:
         if p is None:
             continue
@@ -245,28 +250,38 @@ def parse_event(ev: dict) -> dict | None:
         if len(labels) != 2 or set(labels) != {"yes", "no"} or len(toks) != 2 or m.get("id") is None:
             continue
         yi = labels.index("yes")
+        desc = str(m.get("description") or "")
+        if not first_desc:
+            first_desc = desc
+        # section 11.z: flags PER MEMBER (design CB13-R population); creation-anchored members excluded first (fixed description-only rule); both counted
+        n_parsed += 1
+        flags_all = desc_flags(desc, p["asset"], p["direction"])["all"]
+        n_pass_all += int(flags_all)
+        if CREATION_ANCHOR_RE.search(desc):
+            n_anchor += 1
+            continue
+        if not flags_all:
+            n_flag_fail += 1
+            continue
         fs = m.get("feeSchedule") if isinstance(m.get("feeSchedule"), dict) else {}
         members.append({"event_id": eid, "market_id": str(m["id"]), "condition_id": str(m.get("conditionId") or ""), "token_yes": toks[yi], "yes_index": yi,
                         "created_epoch": c13.parse_iso(m.get("createdAt")), "start_epoch": c13.parse_iso(m.get("startDate")), "strike": p["strike"], "direction": p["direction"], "asset": p["asset"],
-                        "fee_rate": c13.num(fs.get("rate")), "neg_risk_market_id": str(m.get("negRiskMarketID") or ""), "_desc": str(m.get("description") or "")})
+                        "fee_rate": c13.num(fs.get("rate")), "neg_risk_market_id": str(m.get("negRiskMarketID") or "")})
         statuses = m.get("umaResolutionStatuses")
         outs.append({"market_id": str(m["id"]), "event_id": eid, "yes_index": yi, "outcome_prices": json.dumps(c13.c12.listish(m.get("outcomePrices"))),
                      "uma_status": str(m.get("umaResolutionStatus") or (statuses if statuses else ""))})
-        if not first_desc:
-            first_desc = str(m.get("description") or "")
     win = parse_weekly_window(datepart, end) if tmpl == "weekly" else None
-    flags_ok = bool(members) and all(desc_flags(mm["_desc"], mm["asset"], mm["direction"])["all"] for mm in members)
+    flags_ok = bool(members)  # section 11.z: at least one member passes every frozen flag (members failing a flag are dropped and counted, never the whole event for one member)
     parse_ok = bool(win) if tmpl == "weekly" else True
     if win:
         lo, hi = win
     else:
         lo = start if math.isfinite(start) else (min((mm["start_epoch"] for mm in members if math.isfinite(mm["start_epoch"])), default=math.nan))
         hi = end
-    for mm in members:
-        mm.pop("_desc")
     row = {"event_id": eid, "title_sha256": c13.rank("arepo-cb13-title", title), "template": tmpl, "asset": asset or "", "split": "", "status": "", "reason": "", "win_lo": lo, "win_hi": hi,
            "end_epoch": end, "start_epoch": start, "neg_risk": int(bool(ev.get("negRisk"))), "n_members": len(members), "series_id": str(ser[0]["id"]) if ser else "", "component": "",
-           "desc_sha256": hashlib.sha256(first_desc.encode()).hexdigest(), "flags_ok": int(flags_ok), "parse_ok": int(parse_ok), "key_source": ""}
+           "desc_sha256": hashlib.sha256(first_desc.encode()).hexdigest(), "flags_ok": int(flags_ok), "parse_ok": int(parse_ok), "key_source": "",
+           "n_members_parsed": n_parsed, "n_creation_anchored": n_anchor, "n_flag_fail": n_flag_fail, "n_flags_pass_all": n_pass_all}
     return {"kind": "barrier", "row": row, "members": members, "outcomes": outs, "race": race}
 
 
@@ -297,6 +312,8 @@ def classify_status(row: dict, members: list[dict], ids: set[str], keys: dict[st
         return "dropped:outside_windows", "frame"
     if row["template"] == "weekly" and not int(row["parse_ok"]):
         return "dropped:parser", "parser"
+    if int(row.get("n_members_parsed") or 0) and int(row.get("n_creation_anchored") or 0) == int(row.get("n_members_parsed") or 0):
+        return "dropped:creation_anchored", "creation"  # section 11.z: every member's window starts at its creation (excluded and counted)
     if not int(row["flags_ok"]):
         return "dropped:flags", "flags"
     if row["event_id"] in keys.get("event", set()):
@@ -654,8 +671,8 @@ def load_frame(rdir: Path, split: str, *, job: str) -> dict:
     for r in c13.read_csv_gz(base / "events.csv.gz"):
         for c in ("win_lo", "win_hi", "end_epoch", "start_epoch"):
             r[c] = c13.num(r[c])
-        for c in ("flags_ok", "parse_ok", "neg_risk", "n_members"):
-            r[c] = int(float(r[c] or 0))
+        for c in ("flags_ok", "parse_ok", "neg_risk", "n_members", *MEMBER_COUNT_COLUMNS):
+            r[c] = int(float(r.get(c) or 0))
         ev.append(r)
     mem: dict[str, list[dict]] = {}
     for r in c13.read_csv_gz(base / "members.csv.gz"):
@@ -1557,14 +1574,21 @@ def census_r(frame_dir: Path, bin_dir: Path, *, n_draws: int = c13.GRP_DRAWS) ->
     n_markets = sum(len(mem.get(r["event_id"], [])) for r in prim)
     parser_fail = sum(1 for r in rows if r["template"] == "weekly" and not int(r["parse_ok"]))
     n_weekly = sum(1 for r in rows if r["template"] == "weekly")
-    flags_have = sum(len(mem.get(r["event_id"], [])) for r in rows if int(r["flags_ok"]))
-    flags_all = sum(len(mem.get(r["event_id"], [])) for r in rows)
+    # section 11.z: member-level flag shares. BINDING (gate GR basis): members passing every flag among the members that are not creation-anchored; reported too: the share over ALL parsed
+    # members (creation-anchored included, flags as evaluated on their own descriptions) and the creation-anchored share
+    n_parsed = sum(int(r.get("n_members_parsed") or 0) for r in rows)
+    n_anchor = sum(int(r.get("n_creation_anchored") or 0) for r in rows)
+    flags_all = n_parsed - n_anchor
+    flags_have = flags_all - sum(int(r.get("n_flag_fail") or 0) for r in rows)
+    flags_pass_incl = sum(int(r.get("n_flags_pass_all") or 0) for r in rows)
     dropped = sum(1 for r in rows if r["status"] in ("dropped:key", "dropped:overlap"))
     kept_or_dropped = sum(1 for r in rows if r["status"] in ("kept", "dropped:key", "dropped:overlap") and r["template"] == "weekly")
     pc = fr_rep.get("poly_markets_cross_check")
     xs = [u["q_touch"] - u["p_reg"] for u in units]
     gr = {"markets_with_units": len(markets_with_units), "events_with_units": len(events_with_units), "weeks": len(weeks), "components": len(comps),
           "parser_fail_share": (parser_fail / n_weekly) if n_weekly else math.nan, "flags_share": (flags_have / flags_all) if flags_all else math.nan,
+          "flags_share_incl_creation_anchored": (flags_pass_incl / n_parsed) if n_parsed else math.nan, "members_parsed": n_parsed, "creation_anchored_members": n_anchor,
+          "creation_anchored_share": (n_anchor / n_parsed) if n_parsed else math.nan, "flag_fail_members": flags_all - flags_have,
           "frame_found_share": (pc or {}).get("share"), "min": GR_MIN}
     gr["pass_population"] = bool(len(markets_with_units) >= GR_MIN["markets"] and len(events_with_units) >= GR_MIN["events"] and len(weeks) >= GR_MIN["weeks"] and len(comps) >= GR_MIN["components"])
     gr["pass_parser"] = bool(math.isfinite(gr["parser_fail_share"]) and gr["parser_fail_share"] <= GR_PARSER_FAIL_MAX)
@@ -1897,21 +1921,26 @@ def smoke_online(lim, ctx: dict) -> dict:
         if len(walked_days) <= 2:  # the walk-versus-search check covers the first two days
             found.update(by_day[day])
     walk_ok = bool(found) and len(walked_days) >= 1 and all(i in walked for i in found)
-    parser_ok = bool(len(parsed) >= 3 and all(p["row"]["parse_ok"] and p["row"]["flags_ok"] and p["row"]["win_lo"] < p["row"]["win_hi"] for p in parsed) and all(p["members"] for p in parsed))
-    flag_detail = []  # counts only: per parsed event, members and the frozen flags each failing member misses (booleans of desc_flags; no description text leaves this function)
+    flag_detail = []  # counts only: per parsed event, members (parsed / creation-anchored / failing a flag / kept) and the frozen flags the non-anchored failing members miss (booleans only)
     for pe in parsed:
         ev = walked.get(str(pe["row"]["event_id"])) or {}
         miss: Counter = Counter()
-        n_mem = n_ok = 0
         for m in (ev.get("markets") if isinstance(ev.get("markets"), list) else []):
             q = parse_member_question(str((m or {}).get("question") or "")) if isinstance(m, dict) else None
-            if q is None:
+            if q is None or CREATION_ANCHOR_RE.search(str(m.get("description") or "")):
                 continue
-            n_mem += 1
             f = desc_flags(str(m.get("description") or ""), q["asset"], q["direction"])
-            n_ok += int(f["all"])
             miss.update(k for k, v in f.items() if k != "all" and not v)
-        flag_detail.append({"parse_ok": int(pe["row"]["parse_ok"]), "flags_ok": int(pe["row"]["flags_ok"]), "n_members": n_mem, "n_members_flags_ok": n_ok, "missing_flags": dict(sorted(miss.items()))})
+        r = pe["row"]
+        flag_detail.append({"parse_ok": int(r["parse_ok"]), "flags_ok": int(r["flags_ok"]), "n_members_parsed": int(r["n_members_parsed"]), "n_creation_anchored": int(r["n_creation_anchored"]),
+                            "n_flag_fail": int(r["n_flag_fail"]), "n_members_kept": len(pe["members"]), "missing_flags": dict(sorted(miss.items()))})
+    # section 11.z: member-level flags. Every parsed event parses (window, B, direction, asset) and keeps >= 1 member, and over the parsed events the non-anchored members pass the flags at
+    # the gate-GR share (>= GR_FLAGS_MIN)
+    n_na = sum(d["n_members_parsed"] - d["n_creation_anchored"] for d in flag_detail)
+    n_ff = sum(d["n_flag_fail"] for d in flag_detail)
+    flag_share = ((n_na - n_ff) / n_na) if n_na else math.nan
+    parser_ok = bool(len(parsed) >= 3 and all(p["row"]["parse_ok"] and p["row"]["flags_ok"] and p["row"]["win_lo"] < p["row"]["win_hi"] for p in parsed) and all(p["members"] for p in parsed)
+                     and math.isfinite(flag_share) and flag_share >= GR_FLAGS_MIN)
     ph = {}
     for i, pe in enumerate(parsed[:2]):
         r, m = pe["row"], pe["members"][0]
@@ -1927,7 +1956,7 @@ def smoke_online(lim, ctx: dict) -> dict:
     n_req = lim.requests + blim.requests
     return {"r_request_cap": {"pass": bool(n_req <= SMOKE_MAX_REQUESTS), "requests": n_req},
             "r_walk_finds_search": {"pass": bool(walk_ok and walked), "walked": len(walked), "search_found": len(found), "days": walked_days, "search_queries": n_queries},
-            "r_rule_parser": {"pass": parser_ok, "parsed": len(parsed), "windows": [(cm.iso(p["row"]["win_lo"]), cm.iso(p["row"]["win_hi"])) for p in parsed], "per_event": flag_detail},
+            "r_rule_parser": {"pass": parser_ok, "parsed": len(parsed), "windows": [(cm.iso(p["row"]["win_lo"]), cm.iso(p["row"]["win_hi"])) for p in parsed], "per_event": flag_detail, "member_flag_share": flag_share, "flag_share_min": GR_FLAGS_MIN},
             "r_prices_history": {"pass": bool(len(ph) >= 2 and all(v["ok"] for v in ph.values())), "per": ph},
             "r_binance_units": {"pass": bool(all(v["ok"] for v in bin_res.values())), "per": bin_res}}
 
@@ -1935,6 +1964,9 @@ def smoke_online(lim, ctx: dict) -> dict:
 def declared() -> dict:
     return {"tag_id": TAG_ID, "windows": {"screen": [R_FIRST, R_SCREEN_END], "holdout": [R_SCREEN_END, R_HOLD_END], "holdout_first_checkpoint": R_HOLD_FIRST_CHECKPOINT},
             "primary": "weekly template only (window <= 8 d); monthly, yearly and by are census-only (no prices)",
+            "members": {"flags": "per member (section 11.z A): a member failing a frozen flag is dropped and counted; an event is dropped for flags only if no member passes",
+                        "creation_anchored": f"excluded and counted before the flags (section 11.z B): description matches {CREATION_ANCHOR_RE.pattern!r}; never rescued by relaxing the High/Low rule",
+                        "gr_flag_share": "binding over non-anchored members; also reported over all parsed members (creation-anchored included) and the creation-anchored share"},
             "templates": {"event": EVENT_TITLE_RE.pattern, "member": MEMBER_RE.pattern, "terminal_excluded": TERMINAL_RE.pattern, "race_excluded": RACE_RE.pattern},
             "window": "12:00 AM ET on the first title date to 11:59 PM ET on the last; T = 00:00 ET of the next day (exclusive); ET via America/New_York (DST)",
             "units": "daily 00:00Z checkpoints from max(T0, listing + 1 h) to T - 1 h; undecided on usable klines; p in [0.03, 0.97]; p_t age <= 6 h, p_reg age <= 24 h before t - 6 h",

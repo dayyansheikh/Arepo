@@ -31,5 +31,5 @@
   "trials.jsonl (cb13_descriptive)"
  ],
  "next_action": "science-reviewer freeze check (R part)",
- "notes": "DRAFT. No Y, slope or net computed. Refuses on an incomplete manifest. Rules part sha256 (seals/cb13_rules.json, code of 2026-10-19 after the freeze-check round 1 fixes (CREATIVE_BATCH_13.md section 11)): common 62e90149ba7e3f282d9876626d51667fd40a559da16b813e03c431f5084ef014, R 32bbd825843b43a93652d6d04e2a2c4a4fa3caabb9d9044ac8cb406dabf68cff. CB13 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes."
+ "notes": "DRAFT. No Y, slope or net computed. Refuses on an incomplete manifest. Rules part sha256 (seals/cb13_rules.json, code of 2026-10-19 after the freeze-check round 1 fixes (CREATIVE_BATCH_13.md section 11)): common 62e90149ba7e3f282d9876626d51667fd40a559da16b813e03c431f5084ef014, R 7d05b00d276e52097f637939202d79178b3e87c5490d65cbe1a8dcf76009304f. CB13 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes."
 }

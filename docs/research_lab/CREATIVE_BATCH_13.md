@@ -1153,3 +1153,47 @@ changes.
 - LABELLER `1e515bb410598ed7ebc5f6f722b77554acd22d6d9a7548365ba74780c843c780`
 - T `f72683f5a5c315552fd6b8defc00613b6eb19c82224bb52477188bb4ddbd90d3`
 - R `32bbd825843b43a93652d6d04e2a2c4a4fa3caabb9d9044ac8cb406dabf68cff`
+
+### 11.z Member-level flags and creation-anchored members (2026-10-19; design amendment, pre-data)
+
+The science-reviewer returned **NO_GO** on the first R smoke v2 draft (11.y): its `r_rule_parser` criterion, and the
+frame, applied the description flags at event level. Declared **before q0277 (the R frame) and before the R smoke v2
+run**. No R outcome, price, kline-derived unit or census count had been read when it was written (the only R data seen
+are the v1 smoke counts and the 11.y probes of 8 out-of-window event descriptions).
+
+- **(A) Flags are evaluated per member, as the design states.** The population paragraph (§CB13-R population) defines
+  the flags as a member requirement ("Each member must be binary, with a parsed strike ... All frozen flags must be
+  present"), and gate GR counts **markets** ("≥ 95% of markets carry the Binance 1-minute high/low flags"). The code
+  required every member of an event to pass (`flags_ok = all(...)`), dropped the whole event when one member failed,
+  and counted GR's flag share as all-or-none per event. That was a code-versus-design defect. Now a member failing a
+  frozen flag is dropped and counted (`n_flag_fail`); an event is dropped for flags (`dropped:flags`) only if no member
+  passes; GR's flag share counts members.
+- **(B) Creation-anchored members are excluded and counted.** Late-added members state "from the creation of this
+  market through 11:59 PM ET on the last day": their rule window is `[createdAt, T]`, not the title window. Deviation 19
+  derives the window from the title, so for these members "not decided" and Y would be computed over the wrong window.
+  They are **excluded by a fixed description-only rule** (`CREATION_ANCHOR_RE`, `(?i)\bfrom\s+the\s+creation\s+of\s+this\s+market\b`),
+  applied before the flags and counted (`n_creation_anchored`), like race-form members. An event whose every member is
+  creation-anchored is `dropped:creation_anchored`. They are **not** rescued by relaxing the quoted "High"/"Low" flag:
+  the window problem holds whatever the quoting.
+- **Disclosed consequences.** Late strikes are listed in response to price moves (strikes the price approaches), so
+  this exclusion shifts the population mix towards the strikes listed at the start. In the 11.y probe, 56 of 168 members
+  (33%) of the 8 weekly events were creation-anchored; every non-anchored member passed every flag. The census
+  reports GR's flag share both ways: the **binding** `flags_share` over the members that are not creation-anchored,
+  and `flags_share_incl_creation_anchored` (flags as evaluated on all parsed members), with `creation_anchored_members`
+  and `creation_anchored_share`. The GR threshold (0.95), every other gate, floor and alpha are unchanged.
+- **Smoke v2 criterion `r_rule_parser`.** Every parsed weekly event parses (window, B, direction, asset) and keeps at
+  least one member. Across the parsed events, the non-anchored member flag share must be at least `GR_FLAGS_MIN` (0.95);
+  this is the gate's threshold applied early, not weaker than the v1 wording. The smoke reports per event the parsed,
+  creation-anchored, flag-failing and kept members and the missing flags (counts only).
+- **If this amendment is rejected,** R stays "not testable (source)", counted (v1's line already stands).
+
+Code: `cb13_r.parse_event` (member-level flags, creation-anchor exclusion, event counters `n_members_parsed`,
+`n_creation_anchored`, `n_flag_fail`, `n_flags_pass_all` in `EVENT_COLUMNS`), `classify_status`, `census_r` (GR shares),
+`smoke_online`, `declared()`; tests in `test_cb13.py`.
+
+**Rules part sha256 after 11.z (supersede the 11.y list; common, LABELLER and T unchanged, so the promoted q0270b is
+unaffected):**
+- common `62e90149ba7e3f282d9876626d51667fd40a559da16b813e03c431f5084ef014`
+- LABELLER `1e515bb410598ed7ebc5f6f722b77554acd22d6d9a7548365ba74780c843c780`
+- T `f72683f5a5c315552fd6b8defc00613b6eb19c82224bb52477188bb4ddbd90d3`
+- R `7d05b00d276e52097f637939202d79178b3e87c5490d65cbe1a8dcf76009304f`

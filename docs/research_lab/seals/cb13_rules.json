@@ -1264,6 +1264,10 @@
       "flags": 32,
       "regex": "^by\\s+.+$"
      },
+     "CREATION_ANCHOR_RE": {
+      "flags": 34,
+      "regex": "(?i)\\bfrom\\s+the\\s+creation\\s+of\\s+this\\s+market\\b"
+     },
      "DAY": 86400.0,
      "DEPENDENCE_LABEL": "not testable (dependence)",
      "EVENT_COLUMNS": [
@@ -1285,7 +1289,11 @@
       "desc_sha256",
       "flags_ok",
       "parse_ok",
-      "key_source"
+      "key_source",
+      "n_members_parsed",
+      "n_creation_anchored",
+      "n_flag_fail",
+      "n_flags_pass_all"
      ],
      "EVENT_TITLE_RE": {
       "flags": 34,
@@ -1377,6 +1385,12 @@
       "asset",
       "fee_rate",
       "neg_risk_market_id"
+     ],
+     "MEMBER_COUNT_COLUMNS": [
+      "n_members_parsed",
+      "n_creation_anchored",
+      "n_flag_fail",
+      "n_flags_pass_all"
      ],
      "MEMBER_RE": {
       "flags": 34,
@@ -1564,6 +1578,11 @@
       "R2": "modelled-cost economic check on the sealed window (L2)",
       "rep": "out-of-time replication on a sealed later window (L2)"
      },
+     "members": {
+      "creation_anchored": "excluded and counted before the flags (section 11.z B): description matches '(?i)\\\\bfrom\\\\s+the\\\\s+creation\\\\s+of\\\\s+this\\\\s+market\\\\b'; never rescued by relaxing the High/Low rule",
+      "flags": "per member (section 11.z A): a member failing a frozen flag is dropped and counted; an event is dropped for flags only if no member passes",
+      "gr_flag_share": "binding over non-anchored members; also reported over all parsed members (creation-anchored included) and the creation-anchored share"
+     },
      "model": {
       "drift": "trailing 30 d mean log return",
       "q_touch": "min(1, 2 (1 - Phi(|ln(B/S)| / (sigma sqrt tau))))",
@@ -1724,13 +1743,13 @@
     "cb13_r.binance_fetch": "8bea5555719731dd82f5c3f7552c67621c6ddb022ad4d2908e06d8fea564df23",
     "cb13_r.binance_url": "4b343035cb258d11a5bb4b6ec1883999ceea01d4185c58b739f254f4a8a982d5",
     "cb13_r.build_units": "deefc82c9748ad63a61b88d427caae01d9c924e3d8f430f2141479fa8ce21ab7",
-    "cb13_r.census_r": "3419c1991d1e9fc35479bf67bef277ec5022bbb9ac529ae1ad99e8d2dbd28684",
+    "cb13_r.census_r": "8e74f29e66c949498619a52b6be0f4f6a62193cc64db88fe38c1b744384cbf3c",
     "cb13_r.checkpoints": "f6150191ef06ed4c2f6fa56a36cc4f1b3193c6acedacadb70f40d9b24b614a51",
-    "cb13_r.classify_status": "c55a24f4bba781385479b8a27e4259153e369cf29f499ee32149c81ceada30fc",
+    "cb13_r.classify_status": "68ef88e13242ba2d9830c77b79d8dda0ad37cb193e8c44bd86838e7231d4ac76",
     "cb13_r.components": "d90a40a126e197938896c349052ffd7350f90f2b5f12c25a8c5abc24000f715d",
     "cb13_r.cross_horizon_sigma": "98af887fa6db3dba51dec83e9e949c7f62a7dfab8db681a8bc9ae99f75d42819",
     "cb13_r.day_windows": "103cc011537a06e85a531d6981b53eace16c3458f375e002df5b29748a899fe2",
-    "cb13_r.declared": "ff84f5fc3192fb96f8931137169ba09d122ba29fd5fbec2c8fb1a88ba1d8981b",
+    "cb13_r.declared": "493c95c65875646c1020a1c650228c5e43f7aab5e56ae024edb2fc1670361954",
     "cb13_r.desc_flags": "b0988db4df4cd25c45ba9f9baf3cb11ac5507b8247d54b97e8d3e233c09e2724",
     "cb13_r.et_midnight": "d2897f57a23b35ad6988507726177d9748e6b7f718b68272e141c6fc5e399e58",
     "cb13_r.exclusion_keys": "6651bfe552525633d2385a728c09662bbfe68ab40ec93ffd51e96a1e07711b0f",
@@ -1747,14 +1766,14 @@
     "cb13_r.iter_json_array": "1107e7b4f586cfba9f0969a4567fd9d5371e6e021b3c03ac11c52c54fdbc16d4",
     "cb13_r.kline_range_start": "3daabd443d038b835f762afef9fc7bbc66fbf9ebbff1ef8f4f906348d6cb0ca4",
     "cb13_r.last_point": "b487a36a3dc9bd21d723d15df3f02925da7155d57f8e9d2da81f03a91d187caf",
-    "cb13_r.load_frame": "a88439b3c4332193f719108f5371f7f65dc2a438006d5eaea593af53e1d13855",
+    "cb13_r.load_frame": "e7f4a1a24828da1c6ec7192ddaa23179073d47afc8104126585897edab41ca6e",
     "cb13_r.load_klines": "cef4be8df69ad3742ca1321cfe37b839e97c1c32127ceafcae4cd25adbe8d6f4",
     "cb13_r.load_prices": "7c9abb7c84840155be2ab9db584de56502e9aabbc31be69f413379e85aee0dea",
     "cb13_r.month_of": "496d73c60779eb11b928a14ad59090c1e450db747eadadfed3c22242d71b2b60",
     "cb13_r.month_range": "f9d509fd8eeecc394b65f217866c45f8ca72e31161abea5e6b719e12235155ff",
     "cb13_r.overlap_pass": "ce67de34afd4526296b728cb26fd77fefe8884ad37b3d2602beeac5aef6f41a6",
     "cb13_r.parse_checksum": "9626d11787c0349399b0000db1452684730a3a327f1a23825da940a089130589",
-    "cb13_r.parse_event": "25e66c2f3cd0fdfb66fcebb8485a5c044e54158f01989292100a64879b80b794",
+    "cb13_r.parse_event": "dba36d5d7824032ea6307dbc32089be025fa9765d0503d7002af2737729d9cc6",
     "cb13_r.parse_kline_zip": "74d015e068a18465e53a20a670a3b5b991bfbdb0230d3701bf7b33dc0b83583a",
     "cb13_r.parse_member_question": "5828dd6931db10c300051b51faaf935b7d2809c49577cf1a772c37558a1a46e5",
     "cb13_r.parse_strike": "366ff6165acf052906142e2708010a8836a2efcd69f13892d0aa6f7fc1827778",
@@ -1776,7 +1795,7 @@
     "cb13_r.slope_p": "48c51ef7b795679c94eb90ca5bc01c9d6ad47e1c46b26b726b41c384fb6b45fc",
     "cb13_r.slope_stat": "b98ac3c751f600ad9d76b69a2bc69e3b17244435a7e7ff50ad026704e2a9877f",
     "cb13_r.smoke_offline": "afdf0fe1e752c96035370fd27b51c6534d01ad1e19c3a1ea720105f35f1a4b7e",
-    "cb13_r.smoke_online": "829ce936e58d3cfc5713e3b195d59c27cba90f8f990f473a605aba899a4ac9e0",
+    "cb13_r.smoke_online": "c84182094ecd62556bf61d73d3cb55b5206ebf4d5a28465f51ee17c6000d11e5",
     "cb13_r.split_of": "3b1e53e7df2d5297e2f03c157d91363c9395568342b98a75c6ea19181c714e0d",
     "cb13_r.template_of": "3323fd76821a5139ba2c4cbe63cafb6ad6f1a87bd49f1e15d96dfb9b87a052ab",
     "cb13_r.timestamp_unit": "904b59c2a4a1d53895a4926a9253d22bfa0937fbf628d78fc13ede3791bf09fd",
@@ -1790,10 +1809,10 @@
     "cb13_r.window_components_with_units": "eef83fef5042d38c449107c8121df1e11b14db45f44e4b9cbfba11fb3df61b9d",
     "cb13_r.window_is_weekly": "e824bf4bb65eeee7972877894b72f6032cb5a4e7008f968e8989a98c588e8e7b"
    },
-   "funcs_sha256": "43fb0943d6e4b052d64b12f07960ce92cb5f15e0663cd8ea1f462ac5cd39e41d",
+   "funcs_sha256": "4161acd693c7015e17deeb2c762a83bd3b3b394b415269f4b5436e9395d027fe",
    "part": "R",
    "part_declared": true,
-   "rules_sha256": "32bbd825843b43a93652d6d04e2a2c4a4fa3caabb9d9044ac8cb406dabf68cff",
+   "rules_sha256": "7d05b00d276e52097f637939202d79178b3e87c5490d65cbe1a8dcf76009304f",
    "rules_version": "cb13-rules-v1",
    "wallet": {
     "note": "no CB13 job reads or stores a wallet field, a transaction hash (tx16 is aggregated in memory and discarded) or the monitor's side field",
