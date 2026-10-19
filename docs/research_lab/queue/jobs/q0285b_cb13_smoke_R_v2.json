@@ -2,7 +2,7 @@
  "id": "q0285b_cb13_smoke_R_v2",
  "title": "SMOKE v2 (supersedes the failed q0285 v1 by disclosure, CREATIVE_BATCH_13.md section 11.y). CB13-R smoke (R rules part hash; refusals: klines >= t and holdout/ in census mode, outcomePrices outside guarded files; tag-21 one-day walk on 2 out-of-window days; rule parser and member-level flags (creation-anchored members excluded and counted, section 11.z) on 3 out-of-window weekly barrier events; prices-history bounds on 2; Binance HEAD+CHECKSUM+parse for one 2024 and one 2025 month, ms->us timestamp change); counts only",
  "family": "creative_batch_13",
- "priority": 25,
+ "priority": 27,
  "expected_value": "go/no-go for every CB13 source",
  "data": [
   "public Gamma, CLOB prices-history",

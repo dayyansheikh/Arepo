@@ -2,7 +2,7 @@
  "id": "q0301_cb14_smoke_S",
  "title": "CB14-S smoke (S part hash; refusals: N paths before T14_S_open, causal accessor after e_t, prices after t in census mode; tag 100343 walk on one out-of-window week; Factbase search + one out-of-window transcript parsed to >= 100 stamps; term parser/matcher on 3 out-of-window events; 1-minute availability rule on P months, row counts only)",
  "family": "creative_batch_14",
- "priority": 25,
+ "priority": 27,
  "expected_value": "go/no-go for every S source",
  "data": [
   "public Gamma, CLOB prices-history",

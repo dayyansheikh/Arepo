@@ -2,7 +2,7 @@
  "id": "q0300_cb14_smoke_W",
  "title": "CB14-W smoke (common + W part hashes; refusals: live stores, h12_say, h11_attn/holdout, pageviews, mw-reverted, forbidden fields side/proxyWallet/user/outcomePrices, rows >= T14_W_end; public-search paging to hasMore=false on one term; entity rule + summary type on 5 out-of-frame subjects; revisions bounds + continuation on one busy page out of window; bot list; Data API 2-page reach on one 2024 and one 2025 out-of-frame market; recentchanges fields); counts only",
  "family": "creative_batch_14",
- "priority": 25,
+ "priority": 27,
  "expected_value": "go/no-go for every W source",
  "data": [
   "public Gamma, Data API",

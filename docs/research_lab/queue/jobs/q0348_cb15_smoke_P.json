@@ -2,7 +2,7 @@
  "id": "q0348_cb15_smoke_P",
  "title": "CB15-P smoke: guards (Kalshi result discarded, forbidden fields, refused roots), matches reader (p_end never read), rows >= 2026-10-12 refused, t_birth from prints (prices-history before it ignored), the C1 reproduction call; online (<= 30 requests): first-transaction reach of one out-of-frame 2025 market, Kalshi 1-minute candlesticks (historical and live endpoints), Kalshi /markets with min_created_ts",
  "family": "creative_batch_15",
- "priority": 9,
+ "priority": 27,
  "expected_value": "go/no-go for P sources",
  "data": [
   "public Gamma, Data API",
