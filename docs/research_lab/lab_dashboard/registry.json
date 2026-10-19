@@ -1188,7 +1188,7 @@
   {
    "id": "CB17",
    "title": "Opens versus closes; book age; event open interest",
-   "plain": "Designed from round 8, using data already on the server: whether trades that open a position carry more information than trades that close one, whether resting orders on a book that has not been updated for a while lose more, whether depth shifting under an unchanged price predicts the next move, and whether new money entering an event (rising open interest) predicts continuation. A first-day-trades idea was kept as counts only because too few trades exist.",
+   "plain": "Designed from round 8, using data already on the server: whether trades that open a position carry more information than closing trades, whether orders on a long-unchanged book lose more, whether depth shifting under a still price predicts the next move, and whether new money entering an event predicts continuation. First-day trades: counts only (too few).",
    "batch": "CB17",
    "family": "mixed",
    "stage": "designed",
