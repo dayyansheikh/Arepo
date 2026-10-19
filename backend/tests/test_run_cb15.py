@@ -258,6 +258,8 @@ def test_e_drafts_exist_parse_and_are_drafts_not_jobs():
             key = a.cmd if a.cmd in run_cb15.DECLARED_DISK_CAP_GB else f"{a.cmd}-E"
             assert abs(a.disk_cap_gb - run_cb15.DECLARED_DISK_CAP_GB[key]) < 1e-9, d["id"]
         assert getattr(a, "rps", 0.0) <= run_cb15.DECLARED_RPS_MAX.get(a.cmd, run_cb15.DECLARED_RPS_MAX.get(f"{a.cmd}-E", 99.0)) + 1e-9
+        if d["_promoted"]:
+            continue  # a promoted job keeps the shas it ran under (jobs/ is the coordinator's)
         assert rules["common"]["rules_sha256"] in d["notes"], d["id"]
         if d["id"] != "q0340_cb15_exclusion_keys":
             assert rules["E"]["rules_sha256"] in d["notes"], d["id"]
@@ -339,3 +341,37 @@ def test_p_drafts_exist_parse_and_carry_the_p_sha():
         assert 5 <= d["priority"] <= 9 or d["resources"]["lane"] == "cron"
     by = {d["id"][:5]: d for d in ds}
     assert by["q0352"]["not_before"] == "2026-11-04T00:00:00Z" and c15.PIN_UNSET in by["q0353"]["argv"]
+
+
+# ---- round-2 runner fixes ------------------------------------------------------------------------------------------------------------------------------
+
+
+def test_smoke_honours_an_existing_terminal_record(env, capsys):
+    c15.record_terminal(env["root"], "E", e.NOT_TESTABLE_FRAME, "test", trials_path=env["trials"])
+    code, out = _run(capsys, ["smoke", "--part", "E", *env["base"], "--rps", "1"])
+    assert code == 0 and out["status"] == c15.TERMINAL_STATUS and not (env["root"] / "smoke_E.json").exists()
+
+
+def test_watchdog_alerts_on_a_stale_heartbeat_and_a_heavy_job(env, capsys, tmp_path):
+    live = env["hist"] / e.RUN
+    live.mkdir(parents=True)
+    now = e.ep("2026-11-03T21:30:00Z")
+    (live / "heartbeat.json").write_text(json.dumps({"epoch": now - 600}))
+    q = tmp_path / "q"
+    j = tmp_path / "jobs"
+    q.mkdir()
+    j.mkdir()
+    (q / "status.json").write_text(json.dumps({"jobs": [{"id": "qX", "status": "running"}]}))
+    (j / "qX.json").write_text(json.dumps({"resources": {"lane": "cpu", "mem_mb": 600}}))
+    code, out = _run(capsys, ["e-watchdog", "--history-root", str(env["hist"]), "--queue-root", str(q), "--jobs-dir", str(j), "--now", str(now), "--dry-run"])
+    assert code == 0 and len(out["alerts"]) == 2
+    (live / "heartbeat.json").write_text(json.dumps({"epoch": now - 30}))
+    (j / "qX.json").write_text(json.dumps({"resources": {"lane": "cpu", "mem_mb": 400}}))
+    code, out = _run(capsys, ["e-watchdog", "--history-root", str(env["hist"]), "--queue-root", str(q), "--jobs-dir", str(j), "--now", str(now), "--dry-run"])
+    assert out["alerts"] == []
+
+
+def test_e_live_refusal_leaves_a_record_and_no_heartbeat(env, capsys):
+    rm = te._write_map(env["hist"] / "rm.csv", [te._race("OH", 1, te.CLOSES[0])])
+    code, _ = _run(capsys, _live_args(env, rm, env["tmp"] / "missing.json", "--now", "1"))
+    assert code == 2 and (env["hist"] / e.RUN / "last_refusal.json").is_file() and not (env["hist"] / e.RUN / "heartbeat.json").exists()

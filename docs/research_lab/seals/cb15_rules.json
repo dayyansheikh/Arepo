@@ -464,6 +464,7 @@
      "W_STAR": -0.093
     },
     "cb15_e": {
+     "ABSENT_WHY": "token absent from the response",
      "BAND": [
       0.1,
       0.9
@@ -503,6 +504,8 @@
      "CENSUS_MAX_REQ": 620,
      "CENSUS_STATUS": "e_census_complete",
      "CLOB_BOOKS": "https://clob.polymarket.com/books",
+     "CLOSED_BEFORE_TA": "closed before t_a (pre-entry)",
+     "CLOSED_STATUS": "closed before t_b (last read)",
      "COLLECTOR_LOCK": "/tmp/arepo_cb15_e_live.lock",
      "COLLECTOR_MEM_MB": 200,
      "COLLECTOR_NICE": 5,
@@ -517,6 +520,7 @@
       "flags": 34,
       "regex": "(?i)\\b(democrat|democrats|democratic)\\b"
      },
+     "DEPLOY_FREEZE": "from the part-E freeze to 2026-11-06T00:00Z: no deploy that changes backend/astrolabe/research_lab/{cb15_common,cb15_e}.py or any SHARED_HELPERS module (cb2_weather, cb6_tail, cb8_books, cb8_common, cb9_common, cb10_common, cb12_common); e-live re-verifies these hashes every minute and refuses on a change",
      "DISTRICT_ORD_RE": {
       "flags": 34,
       "regex": "(?i)\\b(\\d{1,2})(st|nd|rd|th)\\s+(congressional\\s+)?district\\b"
@@ -530,6 +534,7 @@
      "E2_FLOOR": 0.01,
      "ELECTION_DAY": "2026-11-03",
      "EVENT_LOOKUP_MAX_REQ": 400,
+     "GAMMA_TIMEOUT_S": 10.0,
      "GE0_ARCHIVE_REL": "research_lab/creative_batch15/ge0_sources",
      "GE0_AUDIT_VALUES": [
       "supported",
@@ -823,6 +828,7 @@
       "2026-11-03T21:00:00Z",
       "2026-11-04T22:00:00Z"
      ],
+     "T15_CPU_HOLD_PLACE": "2026-11-03T15:00:00Z",
      "T15_DISK_CHECK_DAY": "2026-11-02",
      "T15_E_END": "2026-11-06T00:00:00Z",
      "T15_E_FREEZE": "2026-11-01T12:00:00Z",
@@ -830,6 +836,7 @@
      "T15_E_ON": "2026-11-03T22:00:00Z",
      "T15_E_PRE": "2026-11-02T12:00:00Z",
      "TIER_LIQUID_SHARE": 0.3333333333333333,
+     "TIER_RETRY_S": 600.0,
      "TOP_STATES_PER_SIGN": 2,
      "T_A_OFFSET_S": 5400.0,
      "T_A_ROBUST_S": [
@@ -847,7 +854,8 @@
      ],
      "WALK_MAX_REQ": 100,
      "WALK_STEP_D": 7,
-     "WALK_TAG_ID": 2
+     "WALK_TAG_ID": 2,
+     "WATCHDOG_MAX_AGE_S": 180.0
     }
    },
    "declared": {
@@ -882,20 +890,25 @@
       "rps": 2.0
      },
      "cron": {
+      "deploy_freeze": "from the part-E freeze to 2026-11-06T00:00Z: no deploy that changes backend/astrolabe/research_lab/{cb15_common,cb15_e}.py or any SHARED_HELPERS module (cb2_weather, cb6_tail, cb8_books, cb8_common, cb9_common, cb10_common, cb12_common); e-live re-verifies these hashes every minute and refuses on a change",
       "file": "scripts/oracle/cb15_e_crontab.txt",
       "hold": {
        "lane": "cpu",
-       "min_mem_mb": 500
+       "min_mem_mb": 500,
+       "placed": "2026-11-03T15:00:00Z"
       },
       "lines": [
-       "# --- CB15-E election night (docs/research_lab/CREATIVE_BATCH_15.md sections 1.2, 2.8; q0345). Install after the part-E freeze, by 2026-11-02T00:00Z; remove after 2026-11-06T00:00Z. ---",
+       "# --- CB15-E election night (docs/research_lab/CREATIVE_BATCH_15.md sections 1.2, 2.8, 11; q0345). Install after the part-E freeze, by 2026-11-02T00:00Z; remove after 2026-11-06T00:00Z. ---",
+       "# DEPLOY FREEZE from the part-E freeze to 2026-11-06T00:00Z: no deploy that changes backend/astrolabe/research_lab/{cb15_common,cb15_e}.py or any SHARED_HELPERS module (cb2_weather, cb6_tail, cb8_books, cb8_common, cb9_common, cb10_common, cb12_common); e-live re-verifies these hashes every minute and refuses on a change.",
        "* * * * * cd /home/opc/arepo/backend && flock -n /tmp/arepo_cb15_e_live.lock nice -n 5 /home/opc/arepo/.venv/bin/python scripts/run_cb15.py e-live --rules ../docs/research_lab/seals/cb15_rules.json --not-before 2026-11-02T12:00:00Z --until 2026-11-06T00:00:00Z --disk-cap-gb freeze --data-dumps-cap-gb 40 --no-exit75-in-window >> /home/opc/arepo_collector/logs/cb15-e-live.log 2>&1",
        "0 12 2 11 * [ \"$(date -u +\\%Y)\" = 2026 ] && /home/opc/arepo/.venv/bin/python /home/opc/arepo/scripts/oracle/queue_worker.py hold-lane cpu 500 >> /home/opc/arepo_collector/logs/cb15-e-hold.log 2>&1  # dry run (verify a held job is not promoted)",
        "10 12 2 11 * [ \"$(date -u +\\%Y)\" = 2026 ] && /home/opc/arepo/.venv/bin/python /home/opc/arepo/scripts/oracle/queue_worker.py release-lane >> /home/opc/arepo_collector/logs/cb15-e-hold.log 2>&1  # dry run (verify promotion)",
-       "0 21 3 11 * [ \"$(date -u +\\%Y)\" = 2026 ] && /home/opc/arepo/.venv/bin/python /home/opc/arepo/scripts/oracle/queue_worker.py hold-lane cpu 500 >> /home/opc/arepo_collector/logs/cb15-e-hold.log 2>&1",
+       "0 15 3 11 * [ \"$(date -u +\\%Y)\" = 2026 ] && /home/opc/arepo/.venv/bin/python /home/opc/arepo/scripts/oracle/queue_worker.py hold-lane cpu 500 >> /home/opc/arepo_collector/logs/cb15-e-hold.log 2>&1  # placed 6 h before 2026-11-03T21:00:00Z",
+       "*/5 * * * * cd /home/opc/arepo/backend && /home/opc/arepo/.venv/bin/python scripts/run_cb15.py e-watchdog >> /home/opc/arepo_collector/logs/cb15-e-watchdog.log 2>&1  # heartbeat age + heavy cpu job alert (notify)",
        "0 22 4 11 * [ \"$(date -u +\\%Y)\" = 2026 ] && /home/opc/arepo/.venv/bin/python /home/opc/arepo/scripts/oracle/queue_worker.py release-lane >> /home/opc/arepo_collector/logs/cb15-e-hold.log 2>&1",
        "# --- end CB15-E ---"
-      ]
+      ],
+      "watchdog_max_age_s": 180.0
      },
      "dates": {
       "cpu_dry_run": [
@@ -1100,6 +1113,14 @@
       "rule": "judged when it runs at p < min(0.01, alpha/k1), strict; never withdrawn; the final Holm only adds passes; no Stage 2 in CB15"
      },
      "label": "one-night case study (2026-11-03 US general election); the night is one cluster; L2 prospective, recorded books; no claim beyond that night",
+     "round2": {
+      "calendar": "first commit of model_specs/cb15_v1.json carrying the pinned race-map sha256 value",
+      "closure": "a missing t_b read after closure evidence (token omitted by a successful batch, or the market unlisted / inactive in a map refresh) uses the last read before closure (mid by the one-sided rule; E2 exit at its best bid, none -> w*), counted as 'closed before t_b (last read)'; closure before t_a is a counted pre-entry state; without evidence a missing read is a gap",
+      "gamma": "collector Gamma calls without retries, short timeout, attempt marked first; tier only in [T15_E_pre, T15_E_on); a snapshot at or after T15_E_on is never used",
+      "placebo": "an untestable pre-night placebo is unknown: E1 cannot advance",
+      "smoke": "transient /books or NTP faults -> pending (exit 75), never a counted FAIL; out-of-frame tokens from order-book markets accepting orders",
+      "trade_market": "several members naming Democrat(ic) -> ambiguous, excluded and counted"
+     },
      "smoke": {
       "full_pass_tokens": 1000,
       "max_requests": 30,
@@ -1205,7 +1226,7 @@
     "cb15_common.write_results_once": "8d9db29f6dfe30663f51418686250cc01acae415517635cf5fb419c14c3cc630",
     "cb15_common.write_stall": "a75cca03b65b4179b2e461a6ed1c21fbc71752f6090a554ae30f71e2da4b675d",
     "cb15_common.yes_price": "71a7eeb5ab5dbe172e2df3b468985054f1bde3636d9759961f8e0f92f93b23a2",
-    "cb15_e.BookIndex": "19e6cda6b8064b45a1f01897662f0fb2cd863beee966c51a732177d65cd2ae89",
+    "cb15_e.BookIndex": "77570a05192d0933b894126b51e6483af07c7ff87acc50da47d9c668059a45c3",
     "cb15_e._arrays": "dfe1c54fc44356db62498e74246146cc2f838c9d379cb46d9660c5a1a3a7a004",
     "cb15_e._chk": "23583bb5704fd13ade8e6407f0dc2750b436d540ead9f313604e390d09c2c7bb",
     "cb15_e._cron_at": "9c544d76f16f1756ad703374054b07808c8121c8e79033ff24932adc68e8fa3f",
@@ -1221,27 +1242,28 @@
     "cb15_e.cited": "d83c20d497ab878e1e6ef07d880c9d11e5425afd929c1f07d087aa85b67b0c5f",
     "cb15_e.cited_party_map": "e43a3779d593c626466bb076ff168f7e541a55d3c905aee546783e0a27e7bf2b",
     "cb15_e.classify_event": "0752ac55b09181bff40d5dd37ad56b2aa1c58b0da62f2ad3356a321e099edc44",
+    "cb15_e.closure_evidence": "986a472e003fe48bf6d30dfc475ecacebdda05e55a0c2008cbf08e82d529d423",
     "cb15_e.collector_cap_gb": "940dbf804d6c171edc8eab5aa93e8ab4757fde1894fddc3426c7c04d5a823bb0",
     "cb15_e.collector_tokens": "89af1610a97d43e196f7bac1078d38f9f6843ccfeacf141cab61b4214ab83814",
     "cb15_e.contrast": "7317a90155dd3f174fc1341311310861a9c6191a1a9183658bfb4a80fae3de75",
-    "cb15_e.control_drift": "afef5775f4050a918600a4861413e82d7ea259facd6ee8aae6ac6d2d876c2ba4",
+    "cb15_e.control_drift": "670291478a7987c70aa5c56ff12be908f0000618af523cb8baf7da5ae7519c0b",
     "cb15_e.control_member": "2a2c1f4158a88af7863c603e55e79b6f531cde71774b3ce6d248fcf6109aac69",
-    "cb15_e.cron_lines": "bf4a41858cd7cd6185e86dd625d95a11a1371f83ba346826792da46e5c2ada13",
+    "cb15_e.cron_lines": "38ce72f1ef4db5ec6f8815134efec6b02d59274c2b55cd36829adac3cd3be1e2",
     "cb15_e.cron_text": "6fb8ccb87bf9c73734ce72995953c4d621ea07e86518ebf1436f6ed9bfe9710a",
     "cb15_e.cross_table": "b3170717a65bb3888e0b69fbc7414ce1d613d9119fe2f6509013140c9f38853a",
     "cb15_e.cross_table_doc": "3e272e0195063fc0d995671cd58e239a947e28c492cea4bd38a3f579e6644047",
-    "cb15_e.declared": "d4c899b03e3610b921938b5e91e9beb30f83e50a8796a64d80996d9293596683",
+    "cb15_e.declared": "a24081a9e5ce89d8f916380097447fcd15c3b509484fd8bbce696d946b59c5f8",
     "cb15_e.dir_bytes": "6aa6bfc378ef4890b0f7bdad4d57393078049885eb8926061279954485ed792a",
     "cb15_e.district_of": "967f64eb82e18f8802aa2b342ce660d0e9774067e7191c2e6195bf26d5cfde14",
     "cb15_e.drop_top_per_sign": "4453ca47f15502761b5e0e22df0bcf15578398c1fbcf93e1acb5a2f645320043",
-    "cb15_e.e1_test": "eb7eec68c7f995ce7db44299bf0b7b701117eae3bcdbd8d3b09092c8696c731b",
-    "cb15_e.e2_test": "fa7c36b075fa926f24cf6af9f34bddd5e4bac56c5d14c79b0b278476de33f3fe",
-    "cb15_e.e_freeze_commit_time": "00ecc674c69364dad555076573ff252d89e0440425d89bfc9a9993ed692f0f63",
-    "cb15_e.e_live": "3bc1777f038bb5d4210615320e4425d6540fb13df80faa14b6b20f52c026e9f0",
+    "cb15_e.e1_test": "d991e69e5f19fdb794e0e54fe7b4282258cb72beb8ab3162cb33a3c0e42792a5",
+    "cb15_e.e2_test": "f54c49385d8a7ec2dbf0b44bc9ca9f39bf9e39f5729491e82b843638a4e46d83",
+    "cb15_e.e_freeze_commit_time": "d6a06ef5ed39cfde8053b98a7e0afde6be3dfc5efebe34f391f4c1517151989c",
+    "cb15_e.e_live": "a1413cb107f47c420f710cfc5cd1dfb80ae3b2e1086a2fba49a5eafc588d26e8",
     "cb15_e.effective_sign": "c3255b38e7f09cc9601d1c622a3761eb64198b0f9ce9c886bd0975b8865fbb8e",
     "cb15_e.ep": "d5bd2bb62fd73161eef1a1f8576056d57ba15ff28937cb658c67d50a5a8516a9",
     "cb15_e.file_sha": "3cb1574dce9f3ba81c056915ef69a17674b36d89841bada9b207bac0141fec1b",
-    "cb15_e.gamma_markets": "155f372ad5c072de63ffcfda1d9f86ab2416a3cfbd9520017f87022f3cb6cbcc",
+    "cb15_e.gamma_markets": "a134a51a59301bf099b6653a9a899a08f981817a70eed9256e9fb3fed367579d",
     "cb15_e.gate_ge": "19391ad25e0239f3107fdef9d680a4b3f835e28b9cc1496435bc2ad4b52e9127",
     "cb15_e.gates_pregate": "9f3eec76b792264c7b8142be662cd566c63df49987315482e41170fe53e0cd4f",
     "cb15_e.ge0_bundle_sha256": "bed0b2f83e49fa992a0860a39dbf08060437a0ad04e9061a79a69ead44275fae",
@@ -1251,10 +1273,11 @@
     "cb15_e.grid_due": "bca815e93db85053b951603891222b99f52c4698b2e9706eacd5b161e976ae66",
     "cb15_e.identified_only": "03041a273dc2db629d40901e2b753de00e007e233a6e61c86e0bd60b82d13873",
     "cb15_e.is_night": "f41b1caa3c8bf20eb59f92d3f0ad183caeaa8c6061a04b65e0cd7fc3965fb027",
+    "cb15_e.is_transient": "50ea7f8fea321bfdc8c8acc200b308d28435dd3b1ae73659ec59a7d63a070dcb",
     "cb15_e.listish": "ef522edc88a15b04cc77d48d01c99fe53495dad824b095536480e70f4afe747b",
-    "cb15_e.load_books": "7851db754c572a67d8aca5ac6b88e6bf5b5bc39298adce90f20ac1c13c43de4e",
+    "cb15_e.load_books": "2b69468edf39e66b5c429c37f17906ea43f645775702acd1500e86f48be15a9f",
     "cb15_e.load_ge0": "837f47f9455c2089b421f6bb8ac135c79c2b888c7016d3ae5c8a4d1d4bf65cb7",
-    "cb15_e.load_screen_inputs": "58d02b7bf19814e7051e2490f5d1577022cfa7b74329a7e5c57bb14c9dfa045c",
+    "cb15_e.load_screen_inputs": "83980efddae9e4196aef4ab566de92c12fa9d59993ef4834dbecf95bcc5f9f97",
     "cb15_e.logit": "e011c448744d28c7bd7a186e3379117d923d2527318e9a357d5e2b7cb6ff82e4",
     "cb15_e.lookup_events": "b9238646993fa1ad85e11e899345d628535b4f18ee848e7deb29c884ecb474a6",
     "cb15_e.loso": "edbdde9359e6f85efba9538b91a8568e77bfaa42b6f1e36199a63a2da212e403",
@@ -1266,7 +1289,7 @@
     "cb15_e.ntp_offset": "8c21ce18025862b99a4187f0309ebc23b2d3334cc3fd48e427e399a3ba08c14f",
     "cb15_e.office_of": "6cb71cfce6541e01e9dcb30fe8613ca0f89421596c533dc949a9cfba0d73f2bf",
     "cb15_e.offsets_on_grid": "e30016df12b63afb8f5a44d0697149171e81a299fae40c0e8650e4f9966520cc",
-    "cb15_e.out_of_frame_tokens": "c15d6dc62456bb65f0cac50c878d28f768294511694135b3881cec7167ca66de",
+    "cb15_e.out_of_frame_tokens": "d6a2f240c74bfc4106c73f3802a8b0d53577482524fd414b1b1c702670b2eb16",
     "cb15_e.parse_book": "25804d218e034af38ca07a7ac798fde84387b3378fb10f7e6196ef696c37593e",
     "cb15_e.parse_event": "074f32efb372f4eddd827bb92ed69f7d678283d537afb2a1f0f54503247b380b",
     "cb15_e.parse_market": "a1ecc60005be788925deb0055adf26e0f5e2ca41c53b0645e6626170cb98c7d1",
@@ -1279,25 +1302,26 @@
     "cb15_e.pregate_e": "66ac0a213e32b8b735008451be7c69926989e4f5804daa8b75296cdcdb8feddc",
     "cb15_e.race_id_of": "ea556304d1d1ffa42319a6db27d90c5aba4793b87028a54025da6df9057ed1ab",
     "cb15_e.race_share": "f8a5906db5c24439a66224e24a31a467d1b152fc8dc668d048bc652faee957bc",
-    "cb15_e.race_unit": "e268a976e809807cd1d1403c0a834d71f170e2feb7af711d46feaf379e4f83f0",
+    "cb15_e.race_unit": "1a8733c15874cff896e6c6acd23c5dc009089744c3e9d93803fc53ffdabb33c8",
+    "cb15_e.read_or_closed": "ef5590f980317d56ceb3fdcbe30af0a39618c647a3fe493f641d0bba68e77a3a",
     "cb15_e.read_race_map": "ff77aa42d28516c3612a4c3223228fec5915e9763545781bf43415cac3006912",
     "cb15_e.refresh_map": "0f71a73c4ab17b703c2e228b3541b092e606996e5557f0731fb87d165f98b3b1",
     "cb15_e.require_ge0_pin": "fbda8eafe987dd6124d512c5dfd7970af66ebb899aec0572223b68abe03d3580",
-    "cb15_e.run_pass": "520c160c6b70370ff5b4e111c925c89764a85f991614cbec717c4863d6b968d8",
+    "cb15_e.run_pass": "923a71e4d53a8ac39a4209adfb3cf1421ced32804030e9967577b11dbe241422",
     "cb15_e.scheduled_slots": "6bf5c0553dbed080849738d0b6a13771edb397b8b7fc7689671ce8046fb91f44",
     "cb15_e.screen_e": "2f553623f278bf3f480a814212b6c17571169ba62844afb2f3cd33b4897cc0c1",
     "cb15_e.search_all": "836997deaa8360e54812b0a8536f1b519f5bf1595088e4337760c767dfb7bdf7",
     "cb15_e.smoke_offline": "ee7e417fb589dbcc6fa73631682736226a6962a939ce281443c5e58d9a8970d5",
-    "cb15_e.smoke_online": "30bc89fa636f84762411b0717baae5f500a5c56269768c0cb349b526cf0a4d05",
+    "cb15_e.smoke_online": "a17628e13c79d5038eb0dea0621a646dbbf7e26d223cce0b16d5704ec0803ea4",
     "cb15_e.state_of": "55008a4714941c636e5e1e00ee5361bc3b24aa92e768f9566c22d8508fd52e21",
-    "cb15_e.state_table": "98db91d09045db1d57a103737a476b55bc9d771d2b2902327931202a8169862b",
+    "cb15_e.state_table": "21bffb92a1d715bc51e0496dd4696f5d1093b4730a53210790cfc53deeda23e4",
     "cb15_e.storage_decision": "82f8afcf9b9061a0eac56f6acf7092a3477679b78d9237701adeb7590754e604",
     "cb15_e.stratum_of": "ab86750f728675c1d7d8277289207a0d86091c927825961302225d1cc9a29c8e",
     "cb15_e.t_a_of": "c32e8477d9894b3d0f661d47a0dd21db78f534096764059845c1aa512e1a4e7f",
     "cb15_e.tier_filter": "5bb1a6ee8aedbcf0ca7278da7435658e2cfa73457984b558cc49f20ce2b0f85e",
-    "cb15_e.tier_snapshot": "8383eda1247d7baa06b7859a21be3e715665cd25af79a8e178cb7dd557c7e9bb",
+    "cb15_e.tier_snapshot": "aa93417d5faa70aa6a0e89f1f0537fb6d1ce31de6bcb64743c76bc9929923b5b",
     "cb15_e.tiers_of": "d5a7df506ceebcd667876184409a67d4265f07d1ad4c9bdd3b46dac22ef384d2",
-    "cb15_e.trade_market": "139bb5019e819c9e3ef7eb1371781ffa065516679507d9818c89195e574ad23a",
+    "cb15_e.trade_market": "3e7cb9cf3db5f458864e75a291e427a2c748f1916f8546430b486d3e881eca59",
     "cb15_e.two_party": "3e875fcdea71667a2038b83aee04fc65450886e08317b2a5450ccded90490ba9",
     "cb15_e.unstratified": "44b14f76c2b18409473c11505c8fcfa0966590b6c0a16affd3484ef7a8cf2ca9",
     "cb15_e.validate_manifest": "930708df819d19f4f6ba94a1e23c3ec181eec0cd1fb37b8c7a34e6e8f5b845ca",
@@ -1306,10 +1330,10 @@
     "cb15_e.walk_politics": "b709db8849cbbebce7d65718de02d2e9174adc8dfe6f11de3d3eca94fd139408",
     "cb15_e.walk_windows": "ab3c3195ff65f154bb682ebfdefa26c48b28f6b9ff418c7fa8cf907f0f5711e5"
    },
-   "funcs_sha256": "e7bcd6cfe85d67bebe680c72340450c26423ddeade0a117f53d7121db00f35c3",
+   "funcs_sha256": "ff0c3df0e24bb6804929fe637204819e81ced8ea81da8877679370936ac78639",
    "part": "E",
    "part_declared": true,
-   "rules_sha256": "a796280b16e1a79928cfdca0beee77e230f17498eb309f931ec85990a5a0723d",
+   "rules_sha256": "10ab88e7728e9956e84036f29bdb534d4b3359a04d78103f277d245e00e8dcf6",
    "rules_version": "cb15-rules-v1",
    "shared_helper_sources_sha256": {
     "bk.seal_copy_ids_audited": "32cb7d6a72748799474f853a829c6860672fba51d5fd736c0b8f3fd81e7d84de",

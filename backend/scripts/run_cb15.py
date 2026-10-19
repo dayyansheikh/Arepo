@@ -104,11 +104,11 @@ def _hist(a) -> Path:
     return c15.refuse_path(Path(a.history_root) if getattr(a, "history_root", None) else c15.HIST_ROOT)
 
 
-def _transport():
+def _transport(timeout: float = 60.0):
     import httpx  # noqa: PLC0415
 
     c15 = _c15()
-    client = httpx.Client(timeout=60.0, headers={"User-Agent": c15.USER_AGENT, "Accept-Encoding": "gzip"})
+    client = httpx.Client(timeout=timeout, headers={"User-Agent": c15.USER_AGENT, "Accept-Encoding": "gzip"})
 
     def fetch(url: str, params: dict) -> tuple[int, bytes, dict]:
         r = client.get(url, params=params)
@@ -146,11 +146,11 @@ def _net_kw(a) -> dict:
                 snapshot_root=None if standalone else Path(a.snapshot_root or cm.c4.SNAPSHOT_ROOT), budget_min=getattr(a, "budget_min", None))
 
 
-def _limiter(a, rps: float, *, yield_to_collector: bool = True):
+def _limiter(a, rps: float, *, yield_to_collector: bool = True, timeout: float = 60.0):
     from astrolabe.research_lab import history_backfill as hb  # noqa: PLC0415
 
     live = None if (getattr(a, "standalone", False) or not yield_to_collector) else hb.live_pass_or_lock
-    return hb.Limiter(_transport(), rps=rps, live_check=live)
+    return hb.Limiter(_transport(timeout), rps=rps, live_check=live)
 
 
 def _committed(a) -> bool:
@@ -339,6 +339,9 @@ def cmd_smoke(a):
     out = c15.require_output_root(Path(a.out) if a.out else _smoke_path(a, part))
     if out.exists():
         raise c15.Refused(f"smoke result {out} already exists; it is write-once")
+    term = _terminal(a, part)
+    if term is not None:  # a family already terminal is never smoked again (CB14 F5)
+        return _terminal_payload(term)
     shas = _shas(a, part)
     now = time.time()
     lim = _limiter(a, min(a.rps, 1.0))
@@ -486,6 +489,9 @@ def cmd_pregate(a):
     out = root / "pregate_E.json"
     if out.exists():
         d = json.loads(out.read_text())
+        tmp = _hist(a) / e.RUN / (e.RACE_MAP_NAME + ".tmp")
+        if tmp.is_file() and not (_hist(a) / e.RUN / e.RACE_MAP_NAME).exists() and c15.sha256_file(tmp) == d.get("race_map_sha256"):
+            tmp.replace(_hist(a) / e.RUN / e.RACE_MAP_NAME)  # finish an interrupted rename (same bytes as recorded)
         return 0, {"status": "pregate_complete", "pass": d.get("pass"), "already_written": True}
     term = _terminal(a, "E")
     if term is not None:
@@ -505,6 +511,7 @@ def cmd_pregate(a):
     rm = c15.require_output_root(_hist(a) / e.RUN / e.RACE_MAP_NAME)
     if rm.exists():
         raise c15.Refused(f"{rm} exists without pregate_E.json; refusing to overwrite (resolve by hand)")
+    rm_tmp = rm.with_name(rm.name + ".tmp")
     c15.require_disk(_data_dumps(a), a.data_dumps_cap_gb, int(a.disk_cap_gb * 1024**3))
     lim = _limiter(a, a.rps)
     try:
@@ -518,16 +525,17 @@ def cmd_pregate(a):
     import csv  # noqa: PLC0415
 
     rm.parent.mkdir(parents=True, exist_ok=True)
-    with rm.open("w", newline="", encoding="utf-8") as fh:
+    with rm_tmp.open("w", newline="", encoding="utf-8") as fh:  # written to a temporary name; renamed only after pregate_E.json is written (round 2 fix 10)
         w = csv.writer(fh)
         w.writerow(e.RACE_MAP_COLUMNS)
         w.writerows(rows)
     g = rep["gates"]
     label = "" if (g["gei"]["pass"] and g["gep"]["pass"]) else (e.NOT_RUN_IDENT if not g["gei"]["pass"] else e.NOT_RUN_POWER)
     doc = {"version": "cb15-pregate-E-v1", "counts_only": True, "rules_sha256": shas, "ge0_sha256": ge0["sha256"], "ge0_bundle_sha256": ge0["bundle_sha256"],
-           "census_sha256": c15.sha256_file(cpath), "exclusion_keys": keys_meta, "race_map_sha256": c15.sha256_file(rm), "control_overrides": _control_overrides(a), "report": rep,
+           "census_sha256": c15.sha256_file(cpath), "exclusion_keys": keys_meta, "race_map_sha256": c15.sha256_file(rm_tmp), "control_overrides": _control_overrides(a), "report": rep,
            "pass": not label, "label": label or None, "run_utc": cm.iso(time.time())}
     psha = _write_json_once(out, doc)
+    rm_tmp.replace(rm)
     c15.log_descriptive("pregate_E", {"pregate_sha256": psha, "pass": not label, "gates": g, "race_map_races": rep["race_map_races"], "controls_mapped": rep["controls_mapped"]}, trials_path=_tp(a))
     t = c15.record_terminal(root, "E", label, f"pre-gate: {g}"[:300], trials_path=_tp(a), role=_role("E")) if label else None
     return 0, {"status": "pregate_complete", "pass": not label, "label": label or None, "gates": g, "race_map_sha256": doc["race_map_sha256"], "terminal": t}
@@ -547,8 +555,24 @@ def _e_cap(a, entry: dict) -> float:
     return got
 
 
+def cmd_e_live(a) -> int:
+    """Wraps the collector: a refusal is also written to ``last_refusal.json`` (the heartbeat is NOT refreshed, so the watchdog alerts)."""
+    code = _cmd_e_live(a)
+    if code == REFUSED:
+        try:
+            e = _e()
+            d = _hist(a) / e.RUN
+            d.mkdir(parents=True, exist_ok=True)
+            from astrolabe.research_lab import cb8_common as cm  # noqa: PLC0415
+
+            cm.write_json_atomic(d / "last_refusal.json", {"epoch": time.time(), "utc": cm.iso(time.time()), "note": "e-live refused (exit 2); see cb15-e-live.log"})
+        except Exception:  # noqa: BLE001  (diagnostics only)
+            pass
+    return code
+
+
 @_guarded
-def cmd_e_live(a):
+def _cmd_e_live(a):
     """ONE collector invocation (cron every minute under flock). Refuses before the part-E freeze; idles before T15_E_pre; closes at T15_E_end. No exit 75 inside the window."""
     c15, e = _c15(), _e()
     _test_only(a, "now")
@@ -567,9 +591,44 @@ def cmd_e_live(a):
     now = float(a.now) if getattr(a, "now", None) else time.time()
     if now < e.ep(e.T15_E_PRE):  # outside the window the usual headroom guard applies (exit 75 = pending)
         c15.require_disk(_data_dumps(a), a.data_dumps_cap_gb, int(cap * 1024**3))
-    lim = _limiter(a, min(a.rps, e.BOOKS_RPS), yield_to_collector=False)
+    lim = _limiter(a, min(a.rps, e.BOOKS_RPS), yield_to_collector=False, timeout=e.GAMMA_TIMEOUT_S)
     m = e.e_live(hist, race_map_path=rm, post=e.books_poster(), lim=lim, now=now, cap_gb=cap, rules_sha=shas["E"])
     return 0, m
+
+
+def cmd_e_watchdog(a) -> int:
+    """Every 5 min (cron): inside [T15_E_pre, T15_E_end), alert (notify 'breakage', deduped hourly) if the collector heartbeat is missing or older than 3 min, and inside the cpu
+    hold window if a cpu-lane queue job with mem_mb >= 500 is running. Never verifies rules (it must work when e-live refuses). Exit 0."""
+    from astrolabe.research_lab import cb8_common as cm  # noqa: PLC0415
+
+    e = _e()
+    now = float(a.now) if getattr(a, "now", None) else time.time()
+    out: dict = {"utc": cm.iso(now), "alerts": []}
+    if e.ep(e.T15_E_PRE) <= now < e.ep(e.T15_E_END):
+        hb = _hist(a) / e.RUN / e.LIVE_FILES["heartbeat"]
+        age = now - float(json.loads(hb.read_text()).get("epoch", 0)) if hb.is_file() else float("inf")
+        out["heartbeat_age_s"] = age
+        if age > e.WATCHDOG_MAX_AGE_S:
+            out["alerts"].append(f"CB15-E collector heartbeat stale ({age:.0f} s)")
+    if e.ep(e.T15_CPU_HOLD[0]) <= now < e.ep(e.T15_CPU_HOLD[1]):
+        qroot = Path(a.queue_root) if a.queue_root else Path("/home/opc/arepo/run/queue")
+        jobs = Path(a.jobs_dir) if a.jobs_dir else ROOT / "docs" / "research_lab" / "queue" / "jobs"
+        st = json.loads((qroot / "status.json").read_text()) if (qroot / "status.json").is_file() else {}
+        for row in st.get("jobs") or []:
+            if row.get("status") != "running":
+                continue
+            sp = jobs / f"{row['id']}.json"
+            spec = json.loads(sp.read_text()) if sp.is_file() else {}
+            res = spec.get("resources") or {}
+            if res.get("lane", "cpu") == "cpu" and int(res.get("mem_mb", 2048)) >= e.HOLD_MIN_MEM_MB:
+                out["alerts"].append(f"heavy cpu job {row['id']} running in the CB15-E hold window")
+    if out["alerts"] and not a.dry_run:
+        from astrolabe.research_lab import notify  # noqa: PLC0415
+
+        hour = cm.iso(now)[:13]
+        out["notify"] = notify.notify("breakage", "CB15-E election-night watchdog", out["alerts"], "high", f"cb15-e-watchdog-{hour}")
+    _emit(out)
+    return 0
 
 
 def cmd_e_cron(a) -> int:
@@ -606,12 +665,13 @@ def _books_digest(live_dir: Path) -> dict:
     return {"n_files": len(files), "sha256": h.hexdigest()}
 
 
-def _freeze_ts_e(a) -> float:
-    e = _e()
+def _freeze_ts_e(a, race_map: Path) -> float:
+    """The first commit of the freeze spec carrying the race map's sha256 VALUE (round 2 fix 8); ``--freeze-ts`` overrides (tests)."""
+    c15, e = _c15(), _e()
     if getattr(a, "freeze_ts", None) is not None:
         return float(a.freeze_ts)
-    spec = _freeze_spec(a) or (Path(_c15().__file__).resolve().parent / "model_specs" / "cb15_v1.json")
-    return e.e_freeze_commit_time(spec)
+    spec = _freeze_spec(a) or (Path(c15.__file__).resolve().parent / "model_specs" / "cb15_v1.json")
+    return e.e_freeze_commit_time(spec, c15.sha256_file(race_map) if Path(race_map).is_file() else "")
 
 
 def _screen_e(a) -> tuple[int, dict]:
@@ -622,12 +682,13 @@ def _screen_e(a) -> tuple[int, dict]:
     out = Path(a.out) if a.out else root / "results_E.json"
     if out.exists():
         raise c15.Refused(f"{out} exists; results are written once")
+    shas = _shas(a, "E")  # the hash gate first: a rules mismatch shows before 2026-11-06, not only after (round 2 fix 10)
     now = float(a.now) if getattr(a, "now", None) else time.time()
     c15.require_after(now, e.ep(e.T15_E_END), "q0346 (screen E)")
-    shas = _shas(a, "E")
     tids = c15.FAMILY_TESTS["E"]
     term = _terminal(a, "E")
-    if term is None and e.calendar_missed(_freeze_ts_e(a)):  # part E was not frozen by T15_E_FREEZE: E1, E2 "not run (calendar)", counted once
+    rm0 = Path(a.race_map) if a.race_map else _hist(a) / e.RUN / e.RACE_MAP_NAME
+    if term is None and e.calendar_missed(_freeze_ts_e(a, rm0)):  # part E was not frozen by T15_E_FREEZE: E1, E2 "not run (calendar)", counted once
         term = c15.record_terminal(root, "E", e.NOT_RUN_CALENDAR, f"part E not frozen by {e.T15_E_FREEZE}", trials_path=_tp(a), role=_role("E"))
     if term is not None:
         body = {t: {"testable": False, "p": 1.0, "advance": False, "verdict": term["label"], "est": None, "n": 0} for t in tids}
@@ -989,6 +1050,14 @@ def build_parser() -> argparse.ArgumentParser:
     q = sub.add_parser("e-cron", help="print / write scripts/oracle/cb15_e_crontab.txt")
     q.add_argument("--write", action="store_true")
     q.set_defaults(fn=cmd_e_cron)
+
+    q = sub.add_parser("e-watchdog", help="every 5 min (cron): heartbeat age + heavy cpu job alert")
+    q.add_argument("--history-root", default=None)
+    q.add_argument("--queue-root", default=None)
+    q.add_argument("--jobs-dir", default=None)
+    q.add_argument("--now", default=None, help="tests only")
+    q.add_argument("--dry-run", action="store_true", help="never notify")
+    q.set_defaults(fn=cmd_e_watchdog)
 
     q = sub.add_parser("e-disk-check", help="2026-11-02 pre-night disk check")
     q.add_argument("--data-dumps", default=None)

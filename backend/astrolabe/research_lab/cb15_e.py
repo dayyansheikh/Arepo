@@ -47,6 +47,10 @@ T15_E_OFF = "2026-11-04T21:00:00Z"  # ... to here
 T15_E_END = "2026-11-06T00:00:00Z"  # collector stops; q0346 runs
 T15_CPU_HOLD = ("2026-11-03T21:00:00Z", "2026-11-04T22:00:00Z")
 T15_CPU_DRY_RUN = ("2026-11-02T12:00:00Z", "2026-11-02T12:10:00Z")
+T15_CPU_HOLD_PLACE = "2026-11-03T15:00:00Z"  # the hold blocks promotion only: it is placed 6 h before T15_cpu_hold so a heavy job promoted late cannot run into the night (round 2)
+WATCHDOG_MAX_AGE_S = 180.0  # heartbeat older than 3 min inside [T15_E_pre, T15_E_end) -> alert
+DEPLOY_FREEZE = ("from the part-E freeze to 2026-11-06T00:00Z: no deploy that changes backend/astrolabe/research_lab/{cb15_common,cb15_e}.py or any SHARED_HELPERS module "
+                 "(cb2_weather, cb6_tail, cb8_books, cb8_common, cb9_common, cb10_common, cb12_common); e-live re-verifies these hashes every minute and refuses on a change")
 T15_DISK_CHECK_DAY = "2026-11-02"
 ELECTION_DAY = "2026-11-03"
 GRID_S = 600.0
@@ -157,6 +161,11 @@ BOOK_FIELDS = ("asset_id", "market", "timestamp", "bids", "asks", "tick_size", "
 LIVE_FILES = {"state": "state.json", "gaps": "gaps.jsonl", "storage": "storage.jsonl", "passes": "passes.jsonl", "tier": "tier.json", "refresh_dir": "refresh", "books_dir": "books",
               "manifest": "manifest.json", "heartbeat": "heartbeat.json"}
 LIVE_STATUS_CLOSED = "e_live_window_closed"
+ABSENT_WHY = "token absent from the response"
+GAMMA_TIMEOUT_S = 10.0  # the collector's Gamma calls: no retries, short timeout (round 2 fix 2)
+TIER_RETRY_S = 600.0
+CLOSED_STATUS = "closed before t_b (last read)"
+CLOSED_BEFORE_TA = "closed before t_a (pre-entry)"
 CENSUS_STATUS = "e_census_complete"
 RACE_MAP_NAME = "race_map.csv"
 RACE_MAP_COLUMNS = ["race_id", "kind", "state", "office", "district", "event_id", "market_id", "token_d_yes", "token_d_no", "party_source", "two_party", "band_q0344", "sign", "stratum",
@@ -353,8 +362,10 @@ def trade_market(pe: dict, race_id: str, party_map: dict | None) -> dict:
     members = pe["members"]
     parties = {m["market_id"]: member_party(m, race_id, party_map) for m in members}
     d_text = [m for m in members if parties[m["market_id"]] == ("D", "party_text")]
-    if d_text:
+    if len(d_text) == 1:
         return {"market": d_text[0], "source": "party_market" if len(members) == 1 else "party_member", "members_party": {k: v[0] for k, v in parties.items()}}
+    if len(d_text) > 1:  # several members name Democrat(ic): ambiguous, excluded and counted (round 2 fix 6)
+        return {"market": None, "source": "ambiguous D party members", "members_party": {k: v[0] for k, v in parties.items()}}
     d_map = [m for m in members if parties[m["market_id"]] == ("D", "party_map")]
     if len(d_map) == 1:
         return {"market": d_map[0], "source": "party_map", "members_party": {k: v[0] for k, v in parties.items()}}
@@ -778,7 +789,7 @@ def run_pass(post, tokens: list[str], slot: float, *, levels: int = BOOK_LEVELS,
                 recs.append({**r, "slot": slot, "receipt": receipt, "batch": i // BOOKS_BATCH})
         miss = [t for t in batch if t not in got]
         if miss:
-            gaps.append({"slot": slot, "batch": i // BOOKS_BATCH, "n_tokens": len(miss), "why": "token absent from the response", "receipt": receipt, "tokens": miss[:20]})
+            gaps.append({"slot": slot, "batch": i // BOOKS_BATCH, "n_tokens": len(miss), "why": ABSENT_WHY, "receipt": receipt, "tokens": miss})  # every token: closure evidence
     return recs, gaps
 
 
@@ -837,11 +848,13 @@ def cron_lines() -> list[str]:
     q = f"{HOST_PY} {QUEUE_WORKER}"
     log = f">> {LOG_DIR}/cb15-e-hold.log 2>&1"
     return [
-        "# --- CB15-E election night (docs/research_lab/CREATIVE_BATCH_15.md sections 1.2, 2.8; q0345). Install after the part-E freeze, by 2026-11-02T00:00Z; remove after 2026-11-06T00:00Z. ---",
+        "# --- CB15-E election night (docs/research_lab/CREATIVE_BATCH_15.md sections 1.2, 2.8, 11; q0345). Install after the part-E freeze, by 2026-11-02T00:00Z; remove after 2026-11-06T00:00Z. ---",
+        f"# DEPLOY FREEZE {DEPLOY_FREEZE}.",
         f"* * * * * cd /home/opc/arepo/backend && flock -n {COLLECTOR_LOCK} nice -n {COLLECTOR_NICE} {HOST_PY} scripts/run_cb15.py e-live --rules ../docs/research_lab/seals/cb15_rules.json --not-before {T15_E_PRE} --until {T15_E_END} --disk-cap-gb freeze --data-dumps-cap-gb 40 --no-exit75-in-window >> {LOG_DIR}/cb15-e-live.log 2>&1",
         f"{_cron_at(T15_CPU_DRY_RUN[0])} {guard} {q} hold-lane {HOLD_LANE} {HOLD_MIN_MEM_MB} {log}  # dry run (verify a held job is not promoted)",
         f"{_cron_at(T15_CPU_DRY_RUN[1])} {guard} {q} release-lane {log}  # dry run (verify promotion)",
-        f"{_cron_at(T15_CPU_HOLD[0])} {guard} {q} hold-lane {HOLD_LANE} {HOLD_MIN_MEM_MB} {log}",
+        f"{_cron_at(T15_CPU_HOLD_PLACE)} {guard} {q} hold-lane {HOLD_LANE} {HOLD_MIN_MEM_MB} {log}  # placed 6 h before {T15_CPU_HOLD[0]}",
+        f"*/5 * * * * cd /home/opc/arepo/backend && {HOST_PY} scripts/run_cb15.py e-watchdog >> {LOG_DIR}/cb15-e-watchdog.log 2>&1  # heartbeat age + heavy cpu job alert (notify)",
         f"{_cron_at(T15_CPU_HOLD[1])} {guard} {q} release-lane {log}",
         "# --- end CB15-E ---",
     ]
@@ -940,26 +953,34 @@ def e_live(hist_root: Path, *, race_map_path: Path, post, lim, now: float, cap_g
         state["done"] = sorted(set(state["done"]) | {slot})
         state["last_slot"] = slot
         out["slot"] = cm.iso(slot)
-    try:
-        tp = live_dir / LIVE_FILES["tier"]
-        if not tp.is_file() and lim is not None:
+    cm.write_json_atomic(sp, state)  # the pass is recorded before any Gamma call
+    tp = live_dir / LIVE_FILES["tier"]
+    if lim is not None and not tp.is_file() and now < ep(T15_E_ON) and (state.get("last_tier_try") is None or now - float(state["last_tier_try"]) >= TIER_RETRY_S):
+        state["last_tier_try"] = now  # the attempt is marked first (round 2 fix 2); tiers only in [T15_E_pre, T15_E_on) (fix 5)
+        cm.write_json_atomic(sp, state)
+        try:
             cm.write_json_atomic(tp, tier_snapshot(lim, races, now))
-        if lim is not None and (state.get("last_refresh") is None or now - float(state["last_refresh"]) >= MAP_REFRESH_S):
+        except (ApiError, RuntimeError) as exc:
+            c15.jsonl_append(gp, {"slot": slot, "why": f"tier snapshot failed: {str(exc)[:80]}", "receipt": now, "n_tokens": 0})
+    if lim is not None and (state.get("last_refresh") is None or now - float(state["last_refresh"]) >= MAP_REFRESH_S):
+        state["last_refresh"] = now  # marked before the attempt: a failed refresh waits 6 h, never retried every minute
+        cm.write_json_atomic(sp, state)
+        try:
             refresh_map(lim, races, live_dir, now)
-            state["last_refresh"] = now
-    except (ApiError, RuntimeError) as exc:
-        c15.jsonl_append(gp, {"slot": slot, "why": f"gamma snapshot / refresh failed: {str(exc)[:80]}", "receipt": now, "n_tokens": 0})
+        except (ApiError, RuntimeError) as exc:
+            c15.jsonl_append(gp, {"slot": slot, "why": f"map refresh failed: {str(exc)[:80]}", "receipt": now, "n_tokens": 0})
     cm.write_json_atomic(sp, state)
     cm.write_json_atomic(live_dir / LIVE_FILES["heartbeat"], {"epoch": now, "utc": cm.iso(now), "status": "collecting", "rules_sha256": rules_sha})
     out.update(degraded=state["degraded"], stopped=state["stopped"])
     return out
 
 
-def gamma_markets(lim, ids: list[str]) -> dict[str, dict]:
+def gamma_markets(lim, ids: list[str], *, max_retries: int = 0) -> dict[str, dict]:
+    """Gamma markets by id. The collector calls it with NO retries (a short-timeout transport is the runner's): an outage costs one failed call, never a stalled invocation."""
     out: dict[str, dict] = {}
     for i in range(0, len(ids), c15.LOOKUP_PER_REQUEST):
         chunk = ids[i:i + c15.LOOKUP_PER_REQUEST]
-        st, data = lim.get(c15.GAMMA_MARKETS, {"id": chunk, "limit": len(chunk)})
+        st, data = lim.get(c15.GAMMA_MARKETS, {"id": chunk, "limit": len(chunk)}, max_retries=max_retries)
         if st != 200 or not isinstance(data, list):
             raise ApiError(f"gamma markets status {st}")
         for m in data:
@@ -969,7 +990,10 @@ def gamma_markets(lim, ids: list[str]) -> dict[str, dict]:
 
 
 def tier_snapshot(lim, races: list[dict], now: float) -> dict:
-    """At the first pass (``T15_E_pre``): Gamma ``liquidity`` of every trade market (the only use of liquidity); the top third by liquidity is "liquid", the rest "second tier"."""
+    """At the first pass (``T15_E_pre``; retried every 10 min until ``T15_E_on``, never after): Gamma ``liquidity`` of every MAPPED trade market of the frozen race map (declared: the
+    tier is over all mapped trade markets, not over the races eligible on the night); the top third by liquidity is "liquid", the rest "second tier"."""
+    if now >= ep(T15_E_ON):
+        raise Refused("the tier snapshot is taken in [T15_E_pre, T15_E_on) only")
     ids = sorted({r["market_id"] for r in races if r["kind"] == "race"})
     got = gamma_markets(lim, ids)
     liq = {i: c15.num((got.get(i) or {}).get("liquidity")) for i in ids}
@@ -1143,12 +1167,30 @@ def pregate_e(lim, post, *, census_rows: list[dict], ge0: dict, keys_rows: list[
 class BookIndex:
     """Successful reads per token, sorted by receipt: arrays of (receipt, best bid, best ask, bid size, ask size). Built from the pass files only (no other store)."""
 
-    def __init__(self, recs: Iterable[dict]):
+    def __init__(self, recs: Iterable[dict], *, token_absent: dict[str, list[float]] | None = None, market_inactive: dict[str, list[float]] | None = None):
         per: dict[str, list[tuple[float, float, float, float, float]]] = {}
         for r in recs:
             bb, ba, bs, as_ = best_of(r)
             per.setdefault(r["asset_id"], []).append((float(r["receipt"]), bb, ba, bs, as_))
         self.idx = {k: np.array(sorted(v), float) for k, v in per.items()}
+        self.token_absent = {k: sorted(v) for k, v in (token_absent or {}).items()}  # receipts of successful batches that did NOT return the token
+        self.market_inactive = {k: sorted(v) for k, v in (market_inactive or {}).items()}  # map-refresh times showing the market unlisted or inactive
+
+    def last_before(self, token: str, lo: float, hi: float) -> dict | None:
+        """The last successful read with receipt in ``[lo, hi)``."""
+        a = self.idx.get(token)
+        if a is None or not len(a):
+            return None
+        i = int(np.searchsorted(a[:, 0], hi, side="left")) - 1
+        if i < 0 or a[i, 0] < lo:
+            return None
+        return {"receipt": float(a[i, 0]), "bb": float(a[i, 1]), "ba": float(a[i, 2]), "bs": float(a[i, 3]), "as": float(a[i, 4])}
+
+    def closed_after(self, token: str, market_id: str, after: float, by: float) -> float:
+        """Closure evidence (round 2 fix 1): the first time in ``(after, by]`` at which a SUCCESSFUL batch omitted the token, or a map refresh showed its market unlisted / inactive;
+        NaN if none (then a missing read is a collector gap, never a closure)."""
+        ts = [t for t in self.token_absent.get(token, []) if after < t <= by] + [t for t in self.market_inactive.get(str(market_id), []) if after < t <= by]
+        return float(min(ts)) if ts else math.nan
 
     def read_at(self, token: str, t: float, max_lag: float) -> dict | None:
         """The first successful read with receipt >= ``t`` and <= ``t + max_lag`` (2 min at ``t_a``, 5 min at ``t_b``; 2 min 1 s is too late)."""
@@ -1161,9 +1203,40 @@ class BookIndex:
         return {"receipt": float(a[i, 0]), "bb": float(a[i, 1]), "ba": float(a[i, 2]), "bs": float(a[i, 3]), "as": float(a[i, 4])}
 
 
+def closure_evidence(live_dir: Path) -> tuple[dict[str, list[float]], dict[str, list[float]]]:
+    """(token -> receipts of successful batches that omitted it, market id -> map-refresh times showing it unlisted or inactive), from the collector's own logs only."""
+    absent: dict[str, list[float]] = {}
+    for g in c15.jsonl_iter(Path(live_dir) / LIVE_FILES["gaps"]):
+        if g.get("why") == ABSENT_WHY:
+            for t in g.get("tokens") or []:
+                absent.setdefault(str(t), []).append(float(g["receipt"]))
+    inactive: dict[str, list[float]] = {}
+    for f in sorted((Path(live_dir) / LIVE_FILES["refresh_dir"]).glob("*.json")):
+        d = json.loads(f.read_text())
+        t = c15.parse_iso(d.get("as_of"))
+        for mid, v in (d.get("markets") or {}).items():
+            if not (v.get("listed") and v.get("active")):
+                inactive.setdefault(str(mid), []).append(t)
+    return absent, inactive
+
+
 def load_books(live_dir: Path, tokens: set[str] | None = None) -> BookIndex:
     files = sorted((Path(live_dir) / LIVE_FILES["books_dir"]).glob("*.jsonl.gz"))
-    return BookIndex(r for f in files for r in c15.jsonl_iter(f) if tokens is None or r.get("asset_id") in tokens)
+    absent, inactive = closure_evidence(live_dir)
+    return BookIndex((r for f in files for r in c15.jsonl_iter(f) if tokens is None or r.get("asset_id") in tokens), token_absent=absent, market_inactive=inactive)
+
+
+def read_or_closed(bi: BookIndex, token: str, market_id: str, t: float, lag: float, since: float) -> tuple[dict | None, bool]:
+    """The read at ``t`` (within ``lag``); if none, the last read in ``[since, t)`` when closure evidence follows it by ``t + lag`` (the market closed / was called: its last book
+    stands); else (None, False) = a collector gap."""
+    r = bi.read_at(token, t, lag)
+    if r is not None:
+        return r, False
+    last = bi.last_before(token, since, t)
+    if last is None:
+        return None, False
+    c = bi.closed_after(token, market_id, last["receipt"], t + lag)
+    return (last, True) if math.isfinite(c) else (None, False)
 
 
 def logit(p: float) -> float:
@@ -1175,9 +1248,15 @@ def race_unit(race: dict, bi: BookIndex, *, ta: float, tb: float) -> dict:
     """One race on one window: entry eligibility at ``t_a`` (two-sided, spread <= 10c, mid in [0.10, 0.90]; 'decided' / 'wide' are pre-entry exclusions), reads at ``t_a`` (<= 2
     min) and ``t_b`` (<= 5 min), the D-terms drift (mid at ``t_b`` by the one-sided rule; NO exclusion uses the state at ``t_b``), and the E2 nets of buying the D YES (s = +1)
     and the D NO (s = -1) token at the recorded best ask and selling at the recorded best bid (no bid -> w*)."""
+    mid_ = race.get("market_id", "")
     ya = bi.read_at(race["token_d_yes"], ta, READ_LAG_A_S)
-    yb = bi.read_at(race["token_d_yes"], tb, READ_LAG_B_S)
-    if ya is None or yb is None:
+    if ya is None:
+        last = bi.last_before(race["token_d_yes"], -math.inf, ta)
+        if last is not None and math.isfinite(bi.closed_after(race["token_d_yes"], mid_, last["receipt"], ta + READ_LAG_A_S)):
+            return {"status": CLOSED_BEFORE_TA}  # called / closed before entry: a pre-entry state, excluded and counted
+        return {"status": "unavailable (gap)"}
+    yb, closed_b = read_or_closed(bi, race["token_d_yes"], mid_, tb, READ_LAG_B_S, ya["receipt"])
+    if yb is None:
         return {"status": "unavailable (gap)"}
     lab = band_label(ya["bb"], ya["ba"])
     if lab != "in_band":
@@ -1188,7 +1267,7 @@ def race_unit(race: dict, bi: BookIndex, *, ta: float, tb: float) -> dict:
     nets = {}
     for side, tok in ((1, race["token_d_yes"]), (-1, race["token_d_no"])):
         ea = bi.read_at(tok, ta, READ_LAG_A_S)
-        eb = bi.read_at(tok, tb, READ_LAG_B_S)
+        eb, _cl = read_or_closed(bi, tok, mid_, tb, READ_LAG_B_S, ea["receipt"]) if ea is not None else (None, False)
         if ea is None or not math.isfinite(ea["ba"]) or eb is None:
             nets[side] = None
             continue
@@ -1197,7 +1276,7 @@ def race_unit(race: dict, bi: BookIndex, *, ta: float, tb: float) -> dict:
         nets[side] = {"net": net, "entry": ea["ba"], "size": min(c15.PAPER_SIZE, ea["as"]) if math.isfinite(ea["as"]) else math.nan, "no_bid": not math.isfinite(x),
                       "no_depth": not (math.isfinite(ea["as"]) and ea["as"] >= NO_DEPTH_SIZE), "rate": rate}
     return {"status": "ok", "mid_a": m_a, "mid_b": m_b, "drift": m_b - m_a, "one_sided_b": not (math.isfinite(yb["bb"]) and math.isfinite(yb["ba"])), "nets": nets,
-            "z_race": logit(m_b) - logit(m_a)}
+            "z_race": logit(m_b) - logit(m_a), "closed_b": bool(closed_b)}
 
 
 def control_drift(controls: dict[str, dict], bi: BookIndex, chamber: str, ta: float, tb: float) -> float:
@@ -1208,7 +1287,8 @@ def control_drift(controls: dict[str, dict], bi: BookIndex, chamber: str, ta: fl
         c = controls.get(ch)
         if c is None:
             return math.nan
-        a, b = bi.read_at(c["token_d_yes"], ta, READ_LAG_A_S), bi.read_at(c["token_d_yes"], tb, READ_LAG_B_S)
+        a = bi.read_at(c["token_d_yes"], ta, READ_LAG_A_S)
+        b = read_or_closed(bi, c["token_d_yes"], c.get("market_id", ""), tb, READ_LAG_B_S, a["receipt"])[0] if a is not None else None
         if a is None or b is None:
             return math.nan
         out.append(logit(mid_one_sided(b["bb"], b["ba"])) - logit(mid_one_sided(a["bb"], a["ba"])))
@@ -1233,6 +1313,8 @@ def state_table(races: list[dict], controls: dict[str, dict], bi: BookIndex, *, 
             u2 = race_unit(r, bi, ta=ta, tb=ta + net_exit_off)
             u["nets"] = u2.get("nets", {1: None, -1: None}) if u2["status"] == "ok" else {1: None, -1: None}
         statuses[u["status"]] = statuses.get(u["status"], 0) + 1
+        if u.get("closed_b"):
+            statuses[CLOSED_STATUS] = statuses.get(CLOSED_STATUS, 0) + 1
         s = per_state.setdefault(r["state"], {"state": r["state"], "sign": int(r["sign"]), "stratum": r["stratum"], "d": [], "z": [], "np": [], "nm": [], "races": [], "nd_p": [], "nd_m": []})
         if u["status"] != "ok":
             continue
@@ -1367,7 +1449,7 @@ def e1_test(races: list[dict], controls: dict[str, dict], bi: BookIndex, tiers: 
     floor_ok = bool(math.isfinite(main["T"]) and main["T"] >= E1_FLOOR)
     share_ok = bool(math.isfinite(main["share"]) and main["share"] >= E1_SIGN_SHARE_MIN)
     netc_ok = bool(netc.get("testable") and math.isfinite(netc["T"]) and netc["T"] > 0 and netc["p"] < NET_CONTROL_P)
-    pl_ok = not (pl.get("testable") and pl["p"] < PLACEBO_P_FAIL)
+    pl_ok = bool(pl.get("testable") and pl["p"] >= PLACEBO_P_FAIL)  # an untestable placebo is unknown and never counts as met (section 2.3; round 2 fix 7)
     rob_ok = all(v["holds"] for v in rob.values())
     checks = {"floor": floor_ok, "sign_share": share_ok, "net_of_control": netc_ok, "placebo": pl_ok, "robustness": rob_ok, "ge": ge["pass"], "availability": av["ok"]}
     checks_ok = all(checks.values())
@@ -1424,7 +1506,8 @@ def e2_test(races: list[dict], controls: dict[str, dict], bi: BookIndex, *, draw
     adv = c15.e_judged(p, checks_ok)
     return {"testable": bool(main.get("testable")), "p": float(p), "est": main["T"], "n": support, "advance": adv, "checks": checks, "checks_ok": checks_ok,
             "verdict": "advance (one-night case study)" if adv else "not detected at MDE", "robustness": rob, "ge": ge, "availability": av, "weights": main.get("weights"), "label": LABEL_E,
-            "reported": {"capacity_mean_size": capacity(races, bi), "statuses": base["statuses"]}}
+            "reported": {"capacity_mean_size": capacity(races, bi), "statuses": base["statuses"],
+                         "states_dropped_missing_side_net": sum(1 for s in states if not (math.isfinite(s["net_plus"]) and math.isfinite(s["net_minus"])))}}
 
 
 def capacity(races: list[dict], bi: BookIndex) -> float:
@@ -1446,7 +1529,9 @@ def load_screen_inputs(live_dir: Path, race_map_path: Path) -> tuple[list[dict],
     tokens = set(collector_tokens(rows))
     bi = load_books(live_dir, tokens)
     tp = Path(live_dir) / LIVE_FILES["tier"]
-    tiers = (json.loads(tp.read_text()).get("tiers") or {}) if tp.is_file() else {}
+    tdoc = json.loads(tp.read_text()) if tp.is_file() else {}
+    ok = bool(tdoc) and c15.parse_iso(tdoc.get("as_of")) < ep(T15_E_ON)  # a snapshot taken at or after T15_E_on is never used (round 2 fix 5)
+    tiers = (tdoc.get("tiers") or {}) if ok else {}
     return races, controls, bi, tiers
 
 
@@ -1462,8 +1547,8 @@ def screen_e(live_dir: Path, race_map_path: Path, *, draws: int = c15.PERM_DRAWS
 # =====================================================================================================================================================
 
 
-def e_freeze_commit_time(spec_path: Path, *, git: Callable[[list[str]], str | None] | None = None) -> float:
-    """The commit time of the first commit of ``model_specs/cb15_v1.json`` that carries a part-E entry (it alone pins ``race_map_sha256``); NaN if none."""
+def e_freeze_commit_time(spec_path: Path, race_map_sha256: str, *, git: Callable[[list[str]], str | None] | None = None) -> float:
+    """The commit time of the first commit of ``model_specs/cb15_v1.json`` that carries the PINNED race-map sha256 value (round 2 fix 8: the value, not the key name); NaN if none."""
     from . import provenance  # noqa: PLC0415
 
     run = git or (lambda args: provenance._git(args, provenance.REPO_ROOT))
@@ -1471,7 +1556,9 @@ def e_freeze_commit_time(spec_path: Path, *, git: Callable[[list[str]], str | No
         rel = str(Path(spec_path).resolve().relative_to(provenance.REPO_ROOT.resolve()))
     except ValueError:
         rel = str(spec_path)
-    out = run(["log", "--format=%ct", "--reverse", "-Srace_map_sha256", "--", rel])
+    if not race_map_sha256 or len(str(race_map_sha256)) != 64:
+        return math.nan
+    out = run(["log", "--format=%ct", "--reverse", f"-S{race_map_sha256}", "--", rel])
     times = [t for t in (out or "").split() if t.isdigit()]
     return float(times[0]) if times else math.nan
 
@@ -1561,6 +1648,11 @@ def smoke_offline(ctx: dict) -> dict:
     return res
 
 
+def is_transient(err: str) -> bool:
+    """A transport error, 408, 429 or 5xx (after the one quick retry) is transient: the smoke is pending, not failed."""
+    return bool(re.search(r"status (0|408|429|5\d\d)\b|unparseable|Error", str(err or "")))
+
+
 def out_of_frame_tokens(lim, n: int = SMOKE_FULL_PASS_TOKENS) -> list[str]:
     """YES and NO tokens of active binary markets that are not election races or control markets (out of frame), from Gamma ``/markets`` pages (<= 3 requests)."""
     toks: list[str] = []
@@ -1573,6 +1665,8 @@ def out_of_frame_tokens(lim, n: int = SMOKE_FULL_PASS_TOKENS) -> list[str]:
                 continue
             q = str(m.get("question") or "")
             if office_of(q) or CONTROL_RE.search(q) or GENERAL_DATE_RE.search(q):
+                continue
+            if not (m.get("enableOrderBook") and m.get("acceptingOrders")):  # order-book markets only (round 2 fix 3)
                 continue
             pm = parse_market(m)
             if pm is not None:
@@ -1596,11 +1690,15 @@ def smoke_online(lim, ctx: dict) -> dict:
     n_post = 0
     data, err = books_batch(post, toks[:BOOKS_BATCH])
     n_post += 1
+    if data is None and is_transient(err):
+        raise NotNow(f"smoke: POST /books transient failure ({err}); pending, nothing written")
     got = sum(1 for b in (data or []) if isinstance(b, dict) and b.get("asset_id") in set(toks[:BOOKS_BATCH]))
     res["e_books_100"] = _chk(got == BOOKS_BATCH, books=got, error=err)
     t0 = time.time()
     recs, gaps = run_pass(post, toks, t0)
     n_post += math.ceil(len(set(toks)) / BOOKS_BATCH)
+    if any(is_transient(g.get("why", "")) for g in gaps):
+        raise NotNow("smoke: a /books batch of the full pass failed transiently; pending, nothing written")
     nbytes = len(pass_bytes(recs))
     with tempfile.TemporaryDirectory() as td:  # the out-of-frame pass is measured, never kept
         (Path(td) / "pass.jsonl.gz").write_bytes(pass_bytes(recs))
@@ -1609,8 +1707,8 @@ def smoke_online(lim, ctx: dict) -> dict:
     try:
         off = (ctx.get("ntp") or ntp_offset)()
         res["e_ntp_offset"] = _chk(abs(off) <= NTP_MAX_OFFSET_S, offset_s=off)
-    except OSError as exc:
-        res["e_ntp_offset"] = _chk(False, error=type(exc).__name__)
+    except OSError as exc:  # an unreachable NTP server is a transient fault: pending, never a counted FAIL (round 2 fix 3)
+        raise NotNow(f"smoke: NTP query failed ({type(exc).__name__}); pending, nothing written") from None
     total = lim.requests - r0 + n_post
     res["_requests"] = {"pass": total <= SMOKE_MAX_REQUESTS, "requests": total}
     return res
@@ -1642,7 +1740,12 @@ def declared() -> dict:
             "collector": {"grid_s": GRID_S, "night_grid_s": NIGHT_GRID_S, "batch": BOOKS_BATCH, "levels": BOOK_LEVELS, "degraded_levels": BOOK_LEVELS_DEGRADED, "rps": BOOKS_RPS,
                           "map_refresh_s": MAP_REFRESH_S, "cap": {"margin": CAP_MARGIN, "min_gb": CAP_MIN_GB}, "host_protect_free_gb": HOST_PROTECT_FREE_GB, "no_exit75_in_window": True,
                           "pre_night_free_margin_gb": PRE_NIGHT_FREE_MARGIN_GB, "book_fields": list(BOOK_FIELDS), "hash": "discarded", "nice": COLLECTOR_NICE, "mem_mb": COLLECTOR_MEM_MB},
-            "cron": {"file": CRON_FILE_REL, "lines": cron_lines(), "hold": {"lane": HOLD_LANE, "min_mem_mb": HOLD_MIN_MEM_MB}},
+            "cron": {"file": CRON_FILE_REL, "lines": cron_lines(), "hold": {"lane": HOLD_LANE, "min_mem_mb": HOLD_MIN_MEM_MB, "placed": T15_CPU_HOLD_PLACE}, "watchdog_max_age_s": WATCHDOG_MAX_AGE_S,
+                     "deploy_freeze": DEPLOY_FREEZE},
+            "round2": {"closure": "a missing t_b read after closure evidence (token omitted by a successful batch, or the market unlisted / inactive in a map refresh) uses the last read before closure (mid by the one-sided rule; E2 exit at its best bid, none -> w*), counted as 'closed before t_b (last read)'; closure before t_a is a counted pre-entry state; without evidence a missing read is a gap",
+                       "gamma": "collector Gamma calls without retries, short timeout, attempt marked first; tier only in [T15_E_pre, T15_E_on); a snapshot at or after T15_E_on is never used",
+                       "trade_market": "several members naming Democrat(ic) -> ambiguous, excluded and counted", "placebo": "an untestable pre-night placebo is unknown: E1 cannot advance",
+                       "calendar": "first commit of model_specs/cb15_v1.json carrying the pinned race-map sha256 value", "smoke": "transient /books or NTP faults -> pending (exit 75), never a counted FAIL; out-of-frame tokens from order-book markets accepting orders"},
             "judgement": {"alpha": c15.E_JUDGE_ALPHA, "rule": "judged when it runs at p < min(0.01, alpha/k1), strict; never withdrawn; the final Holm only adds passes; no Stage 2 in CB15"},
             "smoke": {"needs": list(SMOKE_NEEDS), "max_requests": SMOKE_MAX_REQUESTS, "full_pass_tokens": SMOKE_FULL_PASS_TOKENS, "ntp_max_offset_s": NTP_MAX_OFFSET_S}}
 

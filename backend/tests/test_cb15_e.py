@@ -405,7 +405,8 @@ def test_storage_decision_and_cap_and_pre_night_check():
 def test_cron_lines_and_lane_hold_flag(tmp_path):
     lines = e.cron_lines()
     assert any("e-live" in x and "--no-exit75-in-window" in x and "flock -n" in x and f"--not-before {e.T15_E_PRE}" in x for x in lines)
-    assert any(x.startswith("0 21 3 11 *") and "hold-lane cpu 500" in x for x in lines)
+    assert any(x.startswith("0 15 3 11 *") and "hold-lane cpu 500" in x for x in lines)  # placed 6 h before the 21:00Z window
+    assert any("e-watchdog" in x for x in lines) and any("DEPLOY FREEZE" in x for x in lines)
     assert any(x.startswith("0 22 4 11 *") and "release-lane" in x for x in lines)
     assert any(x.startswith("0 12 2 11 *") for x in lines) and any(x.startswith("10 12 2 11 *") for x in lines)
     spec = importlib.util.spec_from_file_location("qw_test_cb15", ROOT / "scripts" / "oracle" / "queue_worker.py")
@@ -503,7 +504,7 @@ def _setup_screen(tmp_path: Path, drift: float = 0.15) -> tuple[Path, Path]:
     live.mkdir(parents=True)
     rm = _write_map(live / e.RACE_MAP_NAME, [*races, _control("senate"), _control("house")])
     _write_books(live, races, drift=drift)
-    (live / "tier.json").write_text(json.dumps({"tiers": {r["market_id"]: ("liquid" if int(r["state"][1:]) % 3 == 0 else "second tier") for r in races}}))
+    (live / "tier.json").write_text(json.dumps({"as_of": e.T15_E_PRE, "tiers": {r["market_id"]: ("liquid" if int(r["state"][1:]) % 3 == 0 else "second tier") for r in races}}))
     return live, rm
 
 
@@ -560,3 +561,109 @@ def test_rules_parts_declared_and_e_imports_no_p():
     assert c15.rules_part_file_doc("E")["part_declared"]
     src = Path(e.__file__).read_text()
     assert "cb15_p" not in src
+
+
+# ---- round-2 fixes -------------------------------------------------------------------------------------------------------------------------------------
+
+
+def _bi_closure(absent_at: float | None, inactive_at: float | None):
+    r = _race("OH", 1, "2026-11-04T00:00:00Z")
+    ta = e.t_a_of(e.ep(r["t_close"]))
+    tb = ta + e.T_B_OFFSET_S
+    recs = [{**e.parse_book(_book("OHY", 0.49, 0.51)), "receipt": ta + 1}, {**e.parse_book(_book("OHN", 0.49, 0.51)), "receipt": ta + 1},
+            {**e.parse_book(_book("OHY", 0.90, 0.95)), "receipt": ta + 3 * HOUR}, {**e.parse_book(_book("OHN", None, 0.08)), "receipt": ta + 3 * HOUR}]
+    absent = {"OHY": [absent_at], "OHN": [absent_at]} if absent_at else {}
+    inactive = {r["market_id"]: [inactive_at]} if inactive_at else {}
+    return r, ta, tb, e.BookIndex(recs, token_absent=absent, market_inactive=inactive)
+
+
+def test_called_race_uses_the_last_read_before_closure():
+    r, ta, tb, bi = _bi_closure(None, None)
+    assert e.race_unit(r, bi, ta=ta, tb=tb)["status"] == "unavailable (gap)"  # no evidence: a collector gap
+    r, ta, tb, bi = _bi_closure(e.t_a_of(e.ep("2026-11-04T00:00:00Z")) + 3 * HOUR + 600, None)
+    u = e.race_unit(r, bi, ta=ta, tb=tb)
+    assert u["status"] == "ok" and u["closed_b"] and abs(u["mid_b"] - 0.925) < 1e-12  # token omitted by a successful batch after the last read
+    assert u["nets"][-1]["no_bid"] and u["nets"][-1]["net"] == c15.W_STAR  # E2 exit at the last best bid; none -> w*
+    r, ta, tb, bi = _bi_closure(None, e.t_a_of(e.ep("2026-11-04T00:00:00Z")) + 4 * HOUR)
+    assert e.race_unit(r, bi, ta=ta, tb=tb)["closed_b"]  # map refresh shows the market inactive
+    late = tb + e.READ_LAG_B_S + 60
+    r, ta, tb, bi = _bi_closure(late, None)
+    assert e.race_unit(r, bi, ta=ta, tb=tb)["status"] == "unavailable (gap)"  # evidence after t_b + 5 min does not explain a missing read
+
+
+def test_closed_before_t_a_is_a_counted_pre_entry_state():
+    r = _race("OH", 1, "2026-11-04T00:00:00Z")
+    ta = e.t_a_of(e.ep(r["t_close"]))
+    bi = e.BookIndex([{**e.parse_book(_book("OHY", 0.49, 0.51)), "receipt": ta - 3600}], token_absent={"OHY": [ta - 1800]})
+    assert e.race_unit(r, bi, ta=ta, tb=ta + e.T_B_OFFSET_S)["status"] == e.CLOSED_BEFORE_TA
+
+
+def test_closure_evidence_read_from_collector_logs(tmp_path):
+    live = tmp_path / "live"
+    (live / "refresh").mkdir(parents=True)
+    c15.jsonl_append(live / "gaps.jsonl", {"why": e.ABSENT_WHY, "receipt": 5.0, "tokens": ["a", "b"]})
+    c15.jsonl_append(live / "gaps.jsonl", {"why": "status 503", "receipt": 6.0, "n_tokens": 2})
+    (live / "refresh" / "x.json").write_text(json.dumps({"as_of": "2026-11-04T05:00:00Z", "markets": {"m1": {"listed": True, "active": False}, "m2": {"listed": True, "active": True}}}))
+    absent, inactive = e.closure_evidence(live)
+    assert absent == {"a": [5.0], "b": [5.0]} and list(inactive) == ["m1"]
+    recs, gaps = e.run_pass(lambda body: (200, json.dumps([_book(f"t{i}", 0.4, 0.6) for i in range(1)]).encode(), {}), [f"t{i}" for i in range(30)], 1.0, sleep=lambda s: None)
+    assert len(gaps[0]["tokens"]) == 29  # every absent token is logged (no truncation)
+
+
+def test_tier_snapshot_after_t_e_on_is_never_used(tmp_path):
+    live, rm = _setup_screen(tmp_path)
+    (live / "tier.json").write_text(json.dumps({"as_of": e.T15_E_ON, "tiers": {"mS00": "liquid"}}))
+    assert e.load_screen_inputs(live, rm)[3] == {}
+    with pytest.raises(c15.Refused):
+        e.tier_snapshot(None, [], e.ep(e.T15_E_ON))
+
+
+def test_ambiguous_d_party_members_excluded():
+    pe = {"members": [_mk("1", "Democratic Party", "dy", "dn"), _mk("2", "Democrat (write-in)", "wy", "wn"), _mk("3", "Republican Party", "ry", "rn")]}
+    tr = e.trade_market(pe, "OH|senate|", None)
+    assert tr["market"] is None and tr["source"] == "ambiguous D party members"
+
+
+def test_untestable_placebo_blocks_e1(tmp_path):
+    live, rm = _setup_screen(tmp_path)
+    for f in (live / "books").glob("*.jsonl.gz"):  # delete every pass before the night: the pre-night placebo cannot be computed
+        if f.name < "20261103T0000":
+            f.unlink()
+    e1 = e.screen_e(live, rm, draws=99)["E1"]
+    assert not e1["checks"]["placebo"] and not e1["advance"]
+
+
+def test_smoke_transient_faults_are_pending():
+    class L:
+        requests = 0
+
+        def get(self, url, params, **kw):
+            self.requests += 1
+            if url == c15.GAMMA_SEARCH:
+                return 200, {"events": [], "pagination": {"hasMore": False, "totalResults": 0}}
+            return 200, [{"id": str(i), "question": "Will it rain", "outcomes": '["Yes","No"]', "clobTokenIds": json.dumps([f"y{i}", f"n{i}"]), "enableOrderBook": True,
+                          "acceptingOrders": i % 2 == 0} for i in range(1200)]
+
+    toks = e.out_of_frame_tokens(L())
+    assert toks and all(int(t[1:]) % 2 == 0 for t in toks)  # order-book markets accepting orders only
+    with pytest.raises(c15.NotNow):
+        e.smoke_online(L(), {"post": lambda body: (503, b"", {}), "ntp": lambda: 0.0})
+    good = lambda body: (200, json.dumps([_book(b["token_id"], 0.4, 0.6) for b in body]).encode(), {})  # noqa: E731
+
+    def ntp_fail():
+        raise OSError("timeout")
+
+    with pytest.raises(c15.NotNow):
+        e.smoke_online(L(), {"post": good, "ntp": ntp_fail})
+
+
+def test_calendar_searches_the_pinned_value():
+    calls = []
+
+    def git(args):
+        calls.append(args)
+        return "1761998400\n"
+
+    t = e.e_freeze_commit_time(Path("/x/cb15_v1.json"), "a" * 64, git=git)
+    assert t == 1761998400.0 and calls[0][3] == "-S" + "a" * 64
+    assert math.isnan(e.e_freeze_commit_time(Path("/x/cb15_v1.json"), "", git=git))
