@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-19T20:40:00Z",
+ "updated": "2026-10-19T20:55:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1142,18 +1142,18 @@
   {
    "id": "CB15",
    "title": "US election night; pairs listed first on Kalshi",
-   "plain": "Whether, on election night (3 Nov), markets in states whose late count usually moves one way drift that way after polls close, and whether pairs listed first on Kalshi are mispriced at birth on Polymarket. Two independent compilations of the state late-count table agreed on a direction for only 1 of 51 states, so the election-night part very likely cannot be tested.",
+   "plain": "Whether, on election night (3 Nov), markets in states whose late count usually moves one way drift that way after polls close, and whether pairs listed first on Kalshi are mispriced at birth on Polymarket. The election-night part could not be tested: the fixed market search found only 26 of 511 races (it missed district races), and an independent check confirmed this was not a code fault. The Kalshi-first part continues.",
    "batch": "CB15",
    "family": "mixed",
    "stage": "designed",
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Race count re-run (memory fix), then the pre-registered gate check records the election-night outcome; Kalshi-first pairs code under review",
-   "next_date": "2026-11-01",
+   "next": "Kalshi-first pairs: finish the review fixes, then the server smoke test",
+   "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB15-E GE0 committed (b7e1f0a) with archive audit"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB15-E completeness audit (q0341b terminal), 2026-10-19"
    },
    "stage_results": {
     "designed": "pending"

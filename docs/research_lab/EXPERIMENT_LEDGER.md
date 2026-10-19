@@ -1988,3 +1988,16 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   Round 8 creative hypotheses (CH144+, top 5 all host-only/cpu lane) committed 67df385; CB17 design drafting started.
 - Queue ops: smokes q0285b/q0300/q0301/q0348 priority 25/9 -> 27 so they run between q0227b's 80-min budget runs
   (q0227b CB11-A walk at 139 of 164 days, still progressing). Ops only, no design change.
+
+## CB15-E completeness audit (q0341b terminal), 2026-10-19 ~20:50Z (science-reviewer): FAITHFUL; counted 2 (E1, E2)
+- Frame and walk use the same `parse_event` / `classify_event`; the walk only narrows (tag 2, end in
+  [2026-11-03, 2027-01-31]); event ids are sets. All 26 frame races are in the walk; the 485 missing races were never
+  returned as races by the five frozen queries ("House 2026" returned 409 House events, all primary/runoff/other; the
+  frame has Senate 15, Governor 11 and no House general race). Even if all 93 "description lacks 3 Nov" frame rows were
+  artefacts, the share is <= 0.233 < 0.95. The gate is the frozen design (CREATIVE_BATCH_15.md:400-403), untouched by §11.
+- **Final: E1 and E2 "not testable (frame completeness)", counted once each** (2 lines locally and on the host; 0
+  identifiability lines). GE0 (MS +1 only) stays a descriptive note: identifiability would also have failed. The
+  write-once terminal means GEI is never counted a second time.
+- **q0343-q0346 retired: not run (family E terminal), not counted** (drafts marked RETIRED). A House-race design would
+  need a new registration (e.g. a tag-walk frame), not a CB15-E re-run. Could not verify: walk titles of the 485 were not
+  saved (House share is an inference).
