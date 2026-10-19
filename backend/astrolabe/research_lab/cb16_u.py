@@ -307,8 +307,8 @@ def u1_test(D: dict, *, n_draws: int = c16.PLACEBO_DRAWS, rep: bool = False, sd:
     sb = np.array([q.spread_band(s) for s in D["spread"]])
     sz = np.array([q.size_band(c) for c in D["cash"]])
     strata = q.stratum_keys(D["cid"], (D["block"].astype(int) % 4), sb, sz)
-    comp = q.permutation_placebo(D, idx, m, xs, strata, sign=-1.0, n_draws=n_draws, seed=c16.PLACEBO_SEEDS["U1_composition"],
-                                 note="U1 composition placebo (x permuted within market x UTC 6 h band of day x touch-spread band x size band)")
+    comp = q.strata_permutation_test(D, idx, m, xs, strata, est, sign=-1.0, n_draws=n_draws, seed=c16.PLACEBO_SEEDS["U1_composition"],
+                                     note="U1 composition placebo (x permuted within market x UTC 6 h band of day x touch-spread band x size band; coefficient permutation test)")
     comp["informative_share_reported"] = _informative_x(xs, strata, idx)  # reported, not binding for U (the design binds it for Q only)
     res["composition_placebo"] = comp
     res["calibration_placebo"] = q.permutation_placebo(D, idx, m, xs, np.asarray(D["cid"]).astype(str), sign=-1.0, n_draws=n_draws, seed=c16.PLACEBO_SEEDS["U1_calibration"],
@@ -481,11 +481,13 @@ def parse_data_api_page(body) -> list[dict]:
     return out
 
 
-def all_size_silence(get_page: Callable[[int], list[dict]], tau: float, *, max_pages: int = VALIDITY_PAGES) -> dict:
+def all_size_silence(get_page: Callable[[int], list[dict] | None], tau: float, *, max_pages: int = VALIDITY_PAGES) -> dict:
     """Newest-first paging until a print strictly before ``tau`` is found or ``max_pages`` pages are read; prints at or after ``tau`` are never stored. ``get_page(offset)`` returns the
-    parsed page."""
+    parsed page, or ``None`` for a failed read (a non-200 response): that is ``failed``, never ``exhausted`` (freeze-check amendment 4)."""
     for p in range(max_pages):
         page = get_page(p * VALIDITY_PAGE_SIZE)
+        if page is None:
+            return {"found": False, "silence_s": math.nan, "pages": p + 1, "exhausted": False, "failed": True}
         if not page:
             return {"found": False, "silence_s": math.nan, "pages": p + 1, "exhausted": True}
         before = [r["timestamp"] for r in page if r["timestamp"] < tau]
@@ -499,7 +501,7 @@ def all_size_silence(get_page: Callable[[int], list[dict]], tau: float, *, max_p
 def run_validity(sample: dict, lim, *, max_requests: int = 3600) -> dict:
     """The validity line: among sampled wake-ups, the share whose all-size silence is >= 1 h; among sampled non-wake-ups, the share under 1 h. ``lim`` is a ``Limiter``-like object with
     ``get(url, params) -> (status, parsed json)``. Reported only; below 50% on the first share every U line carries ``LABEL_U_LARGE_ONLY``."""
-    res = {"wake": {"n": 0, "silent_ge_1h": 0, "unresolved": 0}, "non_wake": {"n": 0, "silent_lt_1h": 0, "unresolved": 0}}
+    res = {"wake": {"n": 0, "silent_ge_1h": 0, "unresolved": 0, "failed": 0, "no_earlier_print": 0}, "non_wake": {"n": 0, "silent_lt_1h": 0, "unresolved": 0, "failed": 0, "no_earlier_print": 0}}
     for name in ("wake", "non_wake"):
         for u in sample.get(name, []):
             if getattr(lim, "requests", 0) >= max_requests:
@@ -508,13 +510,15 @@ def run_validity(sample: dict, lim, *, max_requests: int = 3600) -> dict:
 
             def page(off, cid=u["condition_id"]):
                 status, body = lim.get(DATA_TRADES, {"market": cid, "limit": VALIDITY_PAGE_SIZE, "offset": off})
-                return parse_data_api_page(body) if status == 200 else []
+                return parse_data_api_page(body) if status == 200 else None  # a non-200 read is a FAILED read, never "no more prints"
 
             r = all_size_silence(page, u["tau"])
             res[name]["n"] += 1
             if not r["found"]:
-                if name == "wake" and r["exhausted"]:  # no earlier print at all (a new market): silence is at least what was seen
-                    res[name]["silent_ge_1h"] += 1
+                if r.get("failed"):
+                    res[name]["failed"] += 1
+                elif r["exhausted"]:  # every U unit has >= 5 prior gaps in the monitor stream: no earlier print at all is inconsistent, so unresolved (never counted as silent)
+                    res[name]["no_earlier_print"] += 1
                 else:
                     res[name]["unresolved"] += 1
                 continue
@@ -523,8 +527,10 @@ def run_validity(sample: dict, lim, *, max_requests: int = 3600) -> dict:
             else:
                 res[name]["silent_lt_1h"] += int(r["silence_s"] < VALIDITY_SILENCE_S)
     w, nw = res["wake"], res["non_wake"]
-    res["wake_share_silent_ge_1h"] = (w["silent_ge_1h"] / (w["n"] - w["unresolved"])) if (w["n"] - w["unresolved"]) > 0 else None
-    res["non_wake_share_silent_lt_1h"] = (nw["silent_lt_1h"] / (nw["n"] - nw["unresolved"])) if (nw["n"] - nw["unresolved"]) > 0 else None
+    wd = w["n"] - w["unresolved"] - w["failed"] - w["no_earlier_print"]  # the share's denominator: resolved units only
+    nd = nw["n"] - nw["unresolved"] - nw["failed"] - nw["no_earlier_print"]
+    res["wake_share_silent_ge_1h"] = (w["silent_ge_1h"] / wd) if wd > 0 else None
+    res["non_wake_share_silent_lt_1h"] = (nw["silent_lt_1h"] / nd) if nd > 0 else None
     res["label"] = LABEL_U_LARGE_ONLY if (res["wake_share_silent_ge_1h"] is not None and res["wake_share_silent_ge_1h"] < VALIDITY_WAKE_MIN) else None
     res["reported_only"] = True
     return res
@@ -578,7 +584,7 @@ def declared() -> dict:
                         "wake": {"rule": "s >= max(1 h, 90th percentile of the prior gaps)", "min_s": WAKE_MIN_S, "pct": WAKE_PCT}},
             "units": {"min_units_per_market": MIN_UNITS_PER_MARKET, "p_band": list(q.U_P_BAND), "sports": "out of the primary (reported arm)"},
             "u1": {"statistic": "-(coefficient on x / SD(x)) in a market fixed-effect OLS of M_2-4h", "floor_cents_per_sd": U1_FLOOR,
-                   "placebos": {"composition": {"strata": "market x UTC 6 h band x spread band x size band", "seed": c16.PLACEBO_SEEDS["U1_composition"]}, "calibration": {"seed": c16.PLACEBO_SEEDS["U1_calibration"]},
+                   "placebos": {"composition": {"strata": "market x UTC 6 h band x spread band x size band", "rule": "within-strata permutation test: holds iff <= 3 of 200 permuted coefficients reach the observed one", "seed": c16.PLACEBO_SEEDS["U1_composition"]}, "calibration": {"seed": c16.PLACEBO_SEEDS["U1_calibration"]},
                                 "prefill": "x on the pre-fill proxy must not pass p < 0.01", "draws": c16.PLACEBO_DRAWS, "max_advance": c16.PLACEBO_MAX_ADVANCE},
                    "robustness": ["6-8 h", "age <= 20 min", "adverse-touch mark", "SCHEDULED-EVENT class out", "3-day lookback", "silence spanning 00:00-06:00Z out", "each side", "tx < $10k",
                                   "top-5 of every way", "leave-one-day-out"], "attribution": {"label": LABEL_ARRIVAL, "else": LABEL_U_COMPOSITION, "covariates": "Q's plus g (missing indicator)"}},
@@ -587,6 +593,7 @@ def declared() -> dict:
                    "primary": {"stat": "within-market difference of the CB13-T3 net, avoided minus other fills", "floor_cents": -U2_PRIMARY_FLOOR},
                    "level": {"stat": "avoided-fill net", "floor_cents": -U2_LEVEL_FLOOR}, "p": "max of the two one-sided p's", "exit_cost_check": "none (vacuous, round 1 item 11)"},
             "validity": {"seed": c16.SEED_U_VALIDITY, "n_each": VALIDITY_N, "pages": VALIDITY_PAGES, "wake_min_share": VALIDITY_WAKE_MIN, "silence_s": VALIDITY_SILENCE_S, "reported_only": True,
+                         "unresolved_rule": "a non-200 read = failed; no earlier print at all = no_earlier_print; each counted separately and never in the share or its denominator",
                          "fields": list(c16.DATA_API_FIELDS)},
             "labels": {"upper": LABEL_U_UPPER, "protect": LABEL_U_PROTECT, "arrival": LABEL_ARRIVAL, "composition": LABEL_U_COMPOSITION, "large_only": LABEL_U_LARGE_ONLY}}
 

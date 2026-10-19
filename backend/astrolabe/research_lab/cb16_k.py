@@ -55,7 +55,7 @@ KALSHI_KEEP = ("ticker", "title", "yes_sub", "close_time", "cat", "series", "vol
 MATCH_KEEP = ("p_market_id", "p_event_id", "k_ticker", "k_cat")
 FLAG_KEEP = ("rule",)  # audit_flags.json: only the rule-based conflicts; the resolution-disagreement list is outcome-based and is never parsed
 POLY_VOLUME_KEYS = ("volume", "volume_num", "volumeNum", "volume_total")
-CROSS_VENUE_PINS = {  # sha256 of the 2026-10-12 files (the CB12-X pins for the same bytes); matches_all.json is pinned by the coordinator before the rules commit
+CROSS_VENUE_PINS = {  # sha256 of the 2026-10-12 files (the CB12-X pins for the same bytes); matches_all.json pinned by the coordinator (size/mtime in MATCHES_ALL_PIN_META)
     "poly_markets.json": "749adfa6faf34c4948fec9dc9e6bac2485133713370893e489aa5bd6434a23b2",
     "audit_flags.json": "a7273ea747c8bb3162effe790363108fb820599c884a14d539b4ca464b6b7629",
     "kalshi_markets.jsonl": "703fda587da8581651c1f8500c20ed7388647ecbf9234c748cf5540f7b3c073c",
@@ -66,8 +66,10 @@ CROSS_VENUE_PINS = {  # sha256 of the 2026-10-12 files (the CB12-X pins for the 
     "kalshi_markets_s3.jsonl": "0e13ffcac5f97cd1c52cbed939a34fae8997dee6aefd5e68bab61113ebd23755",
     "kalshi_markets_s4.jsonl": "6a47c20aea5b1de400b6d3a620d688915a9af950c3c232a09fd577c24b254234",
     "kalshi_markets_s5.jsonl": "9479b4cc7a089fe6e96bc99da4815854d7b73d6440869c260eee6d7438934d15",
-    "matches_all.json": c16.PIN_UNSET,
+    "matches_all.json": "f4cde1e952d85fbe6bca8ac1d42620fcee4bc755468381ccaf5cd639d27ca326",  # measured read-only on the host by the coordinator (freeze-check amendment 5)
 }
+MATCHES_ALL_PIN_META = {"size_bytes": 603444, "mtime_utc": "2026-10-12T20:52:48Z", "host_path": "~/arepo/data-dumps/research_lab/cross_venue/matches_all.json",
+                        "limitation": "matches_all.json is not re-derived from the pinned inputs and its hindsight p_end is never parsed"}
 SMOKE_NEEDS = ("k_inputs_pinned", "k_counts_exact", "k_no_outcome_fields", "k_topic_rule")
 
 
@@ -186,9 +188,10 @@ def sha256_files(root: Path) -> dict[str, str]:
 
 def verify_pins(root: Path) -> dict:
     got = sha256_files(root)
-    bad = sorted(k for k, v in CROSS_VENUE_PINS.items() if v != c16.PIN_UNSET and got.get(k) != v)
+    unset = sorted(k for k, v in CROSS_VENUE_PINS.items() if not v or v == c16.PIN_UNSET)  # an unset pin is REFUSED, never skipped (freeze-check amendment 5)
+    bad = sorted(set(unset) | {k for k, v in CROSS_VENUE_PINS.items() if got.get(k) != v and k in got})
     missing = sorted(k for k in CROSS_VENUE_PINS if k not in got)
-    return {"ok": not bad and not missing, "mismatch": bad, "missing": missing, "sha256": got}
+    return {"ok": not bad and not missing, "mismatch": bad, "missing": missing, "unset": unset, "sha256": got}
 
 
 def count_files(root: Path) -> dict:
@@ -513,7 +516,7 @@ def smoke_offline(ctx: dict) -> dict:
 
 
 def declared() -> dict:
-    return {"family": "K (CH143): census only, k = 0", "inputs": sorted(CROSS_VENUE_PINS), "pins": {k: v for k, v in CROSS_VENUE_PINS.items()}, "expected_counts": dict(EXPECTED_COUNTS),
+    return {"family": "K (CH143): census only, k = 0", "inputs": sorted(CROSS_VENUE_PINS), "pins": {k: v for k, v in CROSS_VENUE_PINS.items()}, "matches_all_pin_meta": dict(MATCHES_ALL_PIN_META), "expected_counts": dict(EXPECTED_COUNTS),
             "frame": {"end": list(FRAME_END), "binary": "outcomes == ['Yes', 'No']", "selection": LABEL_SELECTED_ON_VOLUME},
             "fields": {"poly": list(POLY_KEEP), "kalshi": list(KALSHI_KEEP), "matches": list(MATCH_KEEP), "audit_flags": list(FLAG_KEEP)},
             "never_parsed": list(c16.FORBIDDEN_PARSE_FIELDS), "labels": {"present_strict": "market id in matches_all.json minus r1 audit-rule conflicts (counted)",

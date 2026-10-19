@@ -1037,3 +1037,30 @@ withdrawal. k1 stays 2. The Stage-2 early rule goes from α/5 to α/4, because t
 | 20 election calendar | **Adopted** | §1.2, Q Stage 2 | Event-disjoint REP_A binds even if thinned; the keep-variant is report-only; the politics share is reported per window |
 
 **Rejected:** none.
+
+## 11. Freeze-check amendments (science-reviewer ACCEPT_WITH_FIXES on code 5c3644f, drafts 1eeb1fa; 2026-10-19)
+
+No CB16 statistic exists (nothing has been run on SCREEN_A or REP_A; no CB16 mark, outcome or p-value has been computed), so every amendment below was made blind. None loosens any
+threshold, floor, gate, alpha, cap or the cumulative count. The affected code and the rules file are regenerated and re-hashed (parts `common`, `A`, `K`).
+
+1. **Q1 calibration placebo: shuffle within market only.** The grain was shuffled within market x UTC hour of day; most such cells hold one fill, so the shuffle reproduced the real statistic
+   and the placebo always failed. It now shuffles `g` within market only, as U1's calibration placebo already does (seed 16102 unchanged; each draw is still judged on p < 0.01 alone and the advance rate must be <= 1.5%).
+   *Justification:* a calibration placebo must produce a true null. The hour and 6-hour-block cluster ways and leave-one-day-out already cover time-of-day clustering.
+2. **Composition placebos (Q1, U1): a within-strata permutation test.** The same strata as before (Q: market x spread band x P band x size band; U: market x UTC 6 h band x spread band x size band).
+   `g` (Q) or `x` (U) is permuted within strata 200 times (seeds 16101 for Q, 16111 for U; the same estimator and sign as the observed coefficient). The placebo **holds iff at most 3 of the 200
+   permuted coefficients (1.5%) reach the observed coefficient**; a permuted coefficient that cannot be computed counts as reaching it. Q keeps its >= 50% informativeness rule (a Q1 below it fails
+   the placebo). *Justification:* shuffling within fine strata keeps the stratum-level share of the regressor tied to the outcome, so a real grain effect partly survives every draw and the old rule
+   (each permuted draw must fail p < 0.01) could not separate composition from grain. Under strata-only dependence the observed and permuted coefficients share a distribution, which the
+   permutation test measures directly.
+3. **Tests.** Fixtures with fine strata (`cb16_synth.synth(wide_by_g=..., beta_wide=...)`): the composition placebo holds under a pure grain effect and fails under pure composition (outcome driven by
+   the spread band, grain correlated with it); the calibration placebo holds under a real effect at the full 200 draws; the 3-of-200 rule is tested at its boundaries.
+4. **q0389 validity.** A non-200 HTTP response was read as an empty page ("exhausted"), and a wake-up unit then counted as silent >= 1 h; a market showing no earlier print although every U unit has at
+   least 5 prior gaps was also counted as silent. Both are now "failed" and "no_earlier_print", **counted separately and never in the share or its denominator** (the denominator is resolved units only).
+   The 50% label rule is unchanged; the result stays reported only.
+5. **K pins.** The pin check skipped unset pins; it now **refuses** an unset pin (`ok` false, listed under `unset` and `mismatch`). `matches_all.json` is pinned: sha256
+   `f4cde1e952d85fbe6bca8ac1d42620fcee4bc755468381ccaf5cd639d27ca326`, 603,444 bytes, mtime 2026-10-12T20:52:48Z (host path `~/arepo/data-dumps/research_lab/cross_venue/matches_all.json`, measured read-only by the
+   coordinator). **Limitation (declared):** `matches_all.json` is not re-derived from the pinned inputs, and its hindsight `p_end` is never parsed. Part K is therefore declared in the rules.
+6. **Declarations (part A).** (a) The wake-up threshold uses `np.percentile` with linear interpolation (the default method) of the prior gaps, 90th. (b) The tight-touch fill count uses only markets
+   holding both grains inside the tight subset. (c) Q2 and U2 also require the REP_A GQ / GU minimums (else "not run (power)"); this is what the code already did.
+
+**Rules hashes (`seals/cb16_rules.json`, written by `scripts/run_cb16.py rules`):** common `9a087b8c463ec40e51ea795887ddb5332fba03aef1b09780dffe6e317ac577cb` (unchanged), A `8f395a7db285bebade752bd898be0b03e472a54d833cd560b89acdaae4ff6320` (was `33420b93...`), K `cfe9bea5c1b97166dba84212d829a8ea31e57e3aa118891660702b8843909d01` (newly declared). The drafts' notes carry them.

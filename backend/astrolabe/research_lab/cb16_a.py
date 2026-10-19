@@ -331,4 +331,10 @@ def declared() -> dict:
     return {"jobs": {"q0382": "grain_census (CB13-T SCREEN raw files, features only)", "q0384": "a-frame screen", "q0385": "census", "q0386": "screen", "q0387": "a-frame rep (sealed)", "q0388": "rep"},
             "order": "gates (smoke, GQG, GQ/GU, GQP/GUP, GAI) -> Q1 / U1 -> batch Holm k1 = 2 -> Stage 2 (Q1-rep, Q2, U1-rep, U2) -> CB16-wide final Holm",
             "frame_dirs": dict(FRAME_DIRS), "statuses": {"complete": dict(FRAME_STATUS), "progress": dict(FRAME_PROGRESS)}, "rep_event_disjoint": "binding even if thinned (round 1 item 20)",
+            "freeze_check_declarations": {"wake_percentile": "np.percentile linear interpolation (default method) of the prior gaps, 90th",
+                                          "tight_touch_count": "the tight-touch fill count uses only markets holding BOTH grains inside the tight subset",
+                                          "q2_u2_rep_minimums": "Q2 and U2 also require the REP_A GQ / GU minimums (else 'not run (power)')",
+                                          "composition_placebo": "within-strata permutation test (200 draws; holds iff <= 3 of 200 permuted coefficients reach the observed one); Q keeps the >= 50% informativeness rule",
+                                          "calibration_placebo": "g / x shuffled within market only", "validity": "a non-200 read and a no-earlier-print result are failed / unresolved, counted separately, never in the share",
+                                          "k_pin": "an unset K pin is refused; matches_all.json is not re-derived from the pinned inputs and its hindsight p_end is never parsed"},
             "network": False, "mark_mode": "frames read the touch-mode index (no mark accessor); the screen and rep read the mark-mode index / sealed mark-quote table"}

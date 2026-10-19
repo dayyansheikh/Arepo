@@ -49,9 +49,9 @@ def write_world(d: Path, poly: list[dict], kal: list[dict], matches: list[dict],
         (d / "audit_flags.json").write_text(json.dumps(flags))
 
 
-def test_k_part_is_undeclared_until_the_matches_all_pin_is_set_and_is_a_census_with_no_test():
-    assert c16.rules_part_file_doc("K")["part_declared"] is False
-    assert k.CROSS_VENUE_PINS["matches_all.json"] == c16.PIN_UNSET and k.EXPECTED_COUNTS == {"poly_markets": 148384, "kalshi_markets": 326380, "matches": 958}
+def test_k_part_is_declared_once_the_matches_all_pin_is_set_and_is_a_census_with_no_test():
+    assert c16.rules_part_file_doc("K")["part_declared"] is True
+    assert k.CROSS_VENUE_PINS["matches_all.json"] != c16.PIN_UNSET and k.part_unready() is None and k.EXPECTED_COUNTS == {"poly_markets": 148384, "kalshi_markets": 326380, "matches": 958}
     d = k.declared()
     assert d["family"].endswith("k = 0") and "result" in d["never_parsed"] or "settlement_value" in d["never_parsed"]
     assert "K" not in c16.FREEZE_PARTS

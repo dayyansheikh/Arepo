@@ -62,7 +62,7 @@ def counted(env):
 
 def test_rules_freeze_part_and_declared_arguments(env, capsys, tmp_path):
     code, out = _run(["rules", "--path", str(tmp_path / "r2.json")], capsys)
-    assert code == 0 and set(out["parts"]) == {"common", "A", "K"} and out["parts"]["A"]["declared"] and out["parts"]["K"]["declared"] is False
+    assert code == 0 and set(out["parts"]) == {"common", "A", "K"} and out["parts"]["A"]["declared"] and out["parts"]["K"]["declared"] is True
     code, out = _run(["freeze-part", "--part", "A"], capsys)
     assert code == 0 and out["entry"]["rules_sha256"] and out["entry"]["common_rules_sha256"]
     a = base(env)
@@ -74,15 +74,15 @@ def test_rules_freeze_part_and_declared_arguments(env, capsys, tmp_path):
     assert code == 2 and "seed" in out["refused"]
     code, out = _run(["exclusion-keys", *a], capsys)  # the CB15 key file sha256 pin is mandatory
     assert code == 2 and "sha256" in out["refused"]
-    code, out = _run(["k-census", *a], capsys)  # part K is undeclared until the matches_all.json pin is set
-    assert code == 2 and "not declared" in out["refused"]
+    code, out = _run(["k-census", *a], capsys)  # part K is declared (pin set); the run is refused for a missing prerequisite instead
+    assert code == 2 and "not declared" not in out["refused"]
     code, out = _run(["a-frame", "--window", "screen", *a], capsys)  # no smoke yet
     assert code == 2 and "smoke" in out["refused"]
     with pytest.raises(c16.Refused, match="test hook"):
         run_cb16._test_only(type("A", (), {"now": 5.0, "allow_uncommitted_rules": False})(), "now")
 
 
-def test_smoke_a_passes_is_write_once_and_k_is_refused_while_undeclared(env, capsys):
+def test_smoke_a_passes_is_write_once_and_k_smoke_fails_without_the_host_files(env, capsys):
     a = base(env)
     code, out = _run(["smoke", "--parts", "A", *a, *smoke_args(env)], capsys)
     assert code == 0 and out["smoke"] is True and out["pass_by_part"] == {"A": True}, out
@@ -91,7 +91,7 @@ def test_smoke_a_passes_is_write_once_and_k_is_refused_while_undeclared(env, cap
     code, out = _run(["smoke", "--parts", "A", *a, *smoke_args(env)], capsys)
     assert code == 2 and "write-once" in out["refused"]
     code, out = _run(["smoke", "--parts", "K", "--out", str(env["root"] / "smoke_k.json"), *a], capsys)
-    assert code == 2 and "not declared" in out["refused"]
+    assert code == 0 and out["smoke"] is False and out["pass_by_part"] == {"K": False}  # declared, but the host's cross_venue files are absent here: the K smoke FAILS (counts nothing)
     assert counted(env) == 0 and {x["kind"] for x in trial_lines(env)} == {"cb16_descriptive"}
 
 

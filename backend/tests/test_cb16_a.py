@@ -40,15 +40,13 @@ def rules_file(tmp_path):
     return p
 
 
-def test_rules_parts_are_independent_and_k_is_undeclared_until_its_pins_are_set(rules_file):
+def test_rules_parts_are_independent_and_k_is_declared_with_all_pins_set(rules_file):
     doc = json.loads(rules_file.read_text())
     assert doc["rules_version"] == "cb16-rules-v1" and set(doc["parts"]) == {"common", "A", "K"}
     assert doc["parts"]["common"]["part_declared"] is True and doc["parts"]["A"]["part_declared"] is True
-    assert doc["parts"]["K"]["part_declared"] is False and "matches_all.json" in doc["parts"]["K"]["reason"]  # the coordinator pins matches_all.json from `sha256sum` on the host
-    for part in ("common", "A"):
+    assert doc["parts"]["K"]["part_declared"] is True  # the coordinator's matches_all.json pin is set (freeze-check amendment 5)
+    for part in ("common", "A", "K"):
         assert c16.verify_rules(rules_file, require_committed=False, part=part) == doc["parts"][part]["rules_sha256"]
-    with pytest.raises(c16.Refused, match="not declared"):
-        c16.verify_rules(rules_file, require_committed=False, part="K")
     assert doc["parts"]["common"]["rules_sha256"] != doc["parts"]["A"]["rules_sha256"]
 
 

@@ -774,6 +774,28 @@ def permutation_placebo(D: dict, idx: np.ndarray, y: np.ndarray, label: np.ndarr
     return {**rate, "note": note, "seed": seed, "holds": bool(rate.get("advance_rate") is not None and rate["advance_rate"] <= c16.PLACEBO_MAX_ADVANCE)}
 
 
+def strata_permutation_test(D: dict, idx: np.ndarray, y: np.ndarray, label: np.ndarray, strata: np.ndarray, observed: float, *, sign: float, n_draws: int, seed: int, note: str) -> dict:
+    """The composition placebo (freeze-check amendment 2): ``label`` permuted within ``strata`` over ``idx`` ``n_draws`` times; each draw's coefficient (the same estimator and sign as the
+    observed one) is compared with ``observed``. It HOLDS iff at most ``floor(1.5% x n_draws)`` (3 of 200) permuted coefficients reach the observed one; a non-finite permuted coefficient
+    counts as reaching it (never in the placebo's favour)."""
+    rng = np.random.default_rng(seed)
+    reach = 0
+    nonfinite = 0
+    for _ in range(int(n_draws)):
+        lab_ = label.astype(float).copy()
+        lab_[idx] = c16.permute_within(label[idx].astype(float), strata[idx], rng)
+        e = est_only(make_fe(y, lab_, D, sign=sign), idx)
+        if not math.isfinite(e):
+            nonfinite += 1
+            reach += 1
+        elif e >= observed:
+            reach += 1
+    max_reach = int(math.floor(c16.PLACEBO_MAX_ADVANCE * int(n_draws) + 1e-9))
+    return {"rule": "within-strata permutation: holds iff permuted coefficients reaching the observed one <= floor(1.5% x draws)", "observed": float(observed), "n_draws": int(n_draws),
+            "reached": int(reach), "max_reached": max_reach, "nonfinite_draws": int(nonfinite), "note": note, "seed": seed,
+            "holds": bool(math.isfinite(observed) and int(n_draws) > 0 and reach <= max_reach)}
+
+
 def prefill_placebo(D: dict, idx_pool: np.ndarray, reg: np.ndarray, *, sign: float) -> dict:
     """The binding pre-fill placebo: the same estimator with the outcome replaced by the pre-fill move (capture mid from the capture before the touch capture to the touch capture,
     signed by ``d``); it must NOT pass p < 0.01."""
@@ -841,15 +863,15 @@ def q1_test(D: dict, *, n_draws: int = c16.PLACEBO_DRAWS, rep: bool = False, x_f
     res["attribution"] = attribution(D, idx, m, g, est, extra={"x": xm, "x_missing": (~np.isfinite(D["x"])).astype(float)})
     strata = q_strata(D)
     share = informative_share(g, strata, idx)
-    comp = permutation_placebo(D, idx, m, g, strata, sign=1.0, n_draws=n_draws, seed=c16.PLACEBO_SEEDS["Q1_composition"],
-                               note="Q1 composition placebo (g permuted within market x spread band x P band x size band)")
+    comp = strata_permutation_test(D, idx, m, g, strata, est, sign=1.0, n_draws=n_draws, seed=c16.PLACEBO_SEEDS["Q1_composition"],
+                                   note="Q1 composition placebo (g permuted within market x spread band x P band x size band; coefficient permutation test)")
     comp["informative_share"] = share
     comp["informative"] = bool(math.isfinite(share) and share >= INFORMATIVE_SHARE)
     if not comp["informative"]:
         comp.update(holds=False, label=LABEL_UNINFORMATIVE)
     res["composition_placebo"] = comp
-    res["calibration_placebo"] = permutation_placebo(D, idx, m, g, stratum_keys(D["cid"], D["hour_s"]), sign=1.0, n_draws=n_draws, seed=c16.PLACEBO_SEEDS["Q1_calibration"],
-                                                     note="Q1 within-market calibration placebo (g permuted within market x UTC hour of day)")
+    res["calibration_placebo"] = permutation_placebo(D, idx, m, g, np.asarray(D["cid"]).astype(str), sign=1.0, n_draws=n_draws, seed=c16.PLACEBO_SEEDS["Q1_calibration"],
+                                                     note="Q1 within-market calibration placebo (g permuted within market)")
     res["prefill_placebo"] = prefill_placebo(D, np.where(elig)[0], g, sign=1.0)
     isf = np.where(elig & np.isfinite(D["sf_2-4h"]))[0]
     sf = analyse(make_fe(D["sf_2-4h"], g, D), isf, D, -math.inf, loo=False, top5=False, alpha=None)
@@ -1250,8 +1272,8 @@ def declared() -> dict:
             "statistic": "market fixed-effect OLS of M_2-4h on g, one unit per fill, unweighted; one-sided > 0; floor +0.5c", "floor_cents": Q1_FLOOR,
             "ways": ["event", "path key x 6 h block", "6 h block", "UTC hour of day"], "loo_day": {"p_max": c16.LOO_DAY_P, "sign": True},
             "bands": {"spread": list(Q_SPREAD_EDGES), "p": list(Q_P_EDGES), "size": list(Q_SIZE_EDGES), "age_s": AGE_EDGE_S, "tte_s": list(TTE_EDGES_S)},
-            "placebos": {"composition": {"strata": "market x spread band x P band x size band", "seed": c16.PLACEBO_SEEDS["Q1_composition"], "informative_share": INFORMATIVE_SHARE},
-                         "calibration": {"strata": "market x UTC hour of day", "seed": c16.PLACEBO_SEEDS["Q1_calibration"]}, "prefill": "pre-fill proxy must not pass p < 0.01",
+            "placebos": {"composition": {"strata": "market x spread band x P band x size band", "rule": "within-strata permutation test: holds iff <= 3 of 200 permuted coefficients reach the observed one", "seed": c16.PLACEBO_SEEDS["Q1_composition"], "informative_share": INFORMATIVE_SHARE},
+                         "calibration": {"strata": "market", "seed": c16.PLACEBO_SEEDS["Q1_calibration"]}, "prefill": "pre-fill proxy must not pass p < 0.01",
                          "draws": c16.PLACEBO_DRAWS, "max_advance": c16.PLACEBO_MAX_ADVANCE},
             "spread_free": {"mark": "100 d (mid_h - mid_0)", "rule": "sign, >= half of beta_Q, one-sided p < 0.05", "p": SPREAD_FREE_P},
             "tight_touch": {"age_s": TIGHT_AGE_S, "spread": TIGHT_SPREAD, "min_fills": TIGHT_MIN_FILLS, "consequence": "label only"},

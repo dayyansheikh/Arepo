@@ -27,10 +27,12 @@ def iso(t: float) -> str:
     return datetime.fromtimestamp(t, UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def synth(beta_g: float = 1.5, beta_x: float = 0.0, n_mkt: int = 140, per: int = 14, seed: int = 3, spread: float = 0.02, p_edge: bool = False, wake_p: float = 0.0, tau0: float = S_A):
+def synth(beta_g: float = 1.5, beta_x: float = 0.0, n_mkt: int = 140, per: int = 14, seed: int = 3, spread: float = 0.02, p_edge: bool = False, wake_p: float = 0.0, tau0: float = S_A,
+          wide_by_g: tuple[float, float] | None = None, beta_wide: float = 0.0):
     """Fill rows (``cb16_q.FILL_COLUMNS``) plus a ``MarkTable16``. ``M = beta_g g + beta_x x + u_market + noise`` (cents, maker view); ``U1`` measures ``-beta_x`` (positive = longer silence
     is worse for the maker)."""
     rng = np.random.default_rng(seed)
+    rng_w = np.random.default_rng(seed + 10_000)  # a separate stream: the default fixtures are unchanged when ``wide_by_g`` is None
     fills, marks = [], []
     i = 0
     for m in range(n_mkt):
@@ -41,11 +43,16 @@ def synth(beta_g: float = 1.5, beta_x: float = 0.0, n_mkt: int = 140, per: int =
             g = int(rng.random() < 0.4)
             x = float(rng.normal(0, 1.0))
             d = -1 if rng.random() < 0.5 else 1
-            M = beta_g * g + beta_x * x + u_m + rng.normal(0, 3.0)
+            sp = spread
+            wide = 0
+            if wide_by_g is not None:  # fine strata: a wide-spread state (band 2c-5c vs <= 1c) whose probability depends on g; ``beta_wide`` moves the outcome with it
+                wide = int(rng_w.random() < wide_by_g[g])
+                sp = 0.04 if wide else 0.01
+            M = beta_g * g + beta_x * x + beta_wide * wide + u_m + rng.normal(0, 3.0)
             P = round(0.5 + (0.007 if g else 0.0) * -d, 3)
             mid_h = P + d * M / 100.0
             row = dict(tx_id=i, condition_id=cid, market_id=str(m), event_id=ev, status="fill", label=lab.PATH if m % 3 else lab.SCHEDULED, underlying="", path_key=f"pk{m % 5}", tau=tau, tau_last=tau,
-                       p_vwap=P, p_min=P, p_max=P, size=5000.0, cash=float(rng.uniform(2600, 9000)), n_fills=1, d=d, P=P, bid0=0.5 - spread / 2, ask0=0.5 + spread / 2, spread0=spread, mid0=0.5,
+                       p_vwap=P, p_min=P, p_max=P, size=5000.0, cash=float(rng.uniform(2600, 9000)), n_fills=1, d=d, P=P, bid0=0.5 - sp / 2, ask0=0.5 + sp / 2, spread0=sp, mid0=0.5,
                        touch_recv=tau - 600, touch_age_s=float(rng.uniform(0, 3000)), touch_cap=1, liq=2000.0, end_epoch=tau + 5 * 86400.0, prev_mid=0.5 + rng.normal(0, 0.02), prev_recv=tau - 9000,
                        q_stale=math.nan, d_stale=0, fee_rate=0.04, clob_rewards=int(m % 2), fee_type="x", block=c16.block6(tau), day=c16.utc_day(tau), neg_risk_market_id="", tick_touch=0.001,
                        created_epoch=tau - 10 * 86400.0, token0="", hour=c16.hour_of_day(tau), g=g, grain_ok=1, u_ok=1, excl_P=math.nan, excl_g=-1, politics=0, s=3600.0, tau_prev=tau - 3600.0,
