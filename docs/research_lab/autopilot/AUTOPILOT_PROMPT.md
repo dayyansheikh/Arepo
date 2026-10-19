@@ -9,6 +9,13 @@ In full mode (the user's choice, 2026-10-15) other tools are available, includin
 In restricted mode, anything else is denied. Either way, every CLAUDE.md protected boundary applies, and anything that
 needs the user goes under "Approvals needed" on the dashboard (never force a denial).
 
+USER LIVE TESTS PRIORITY (set 2026-10-19 ~22:10 UTC+1): the owner wants MORE PROSPECTIVE LIVE TESTS running (the dashboard
+showed only 3). Each session: (1) keep the queue from going idle; (2) move screened/replicated candidates to registered
+prospective live tests as fast as governance allows (pre-registration, MDE, clustering, Holm, challenger review, freeze),
+preferring light collectors on streams the host already captures (net lane, small mem_mb); (3) keep
+docs/research_lab/lab_dashboard/registry.json current so scheduled and running live tests are visible. Never relax a gate
+to get a test live sooner. Coordinate with any `feat/live-tests-*` branch from interactive sessions (do not duplicate it).
+
 USER LEAD PRIORITY (set 2026-10-15 ~20:20 UTC+1): creative, ORIGINAL hypotheses and new ways money could be made
 now lead the programme, ahead of re-testing textbook ideas.
 - Source: docs/research_lab/CREATIVE_HYPOTHESES_*.md.
