@@ -2133,3 +2133,11 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
 - **P-28 done (066ffbe, 21:05Z):** stale-cache listings logged (no prices) and counted; `cache_cap_unavailable_upper_bound`;
   cap counters in `rep_p`; NO-404 units counted once as "ok (P1 only; NO book unavailable at 24 h)", label counts sum to
   the total. P `7d856416…` -> `1c6b7e95…` (common/E unchanged); 127 cb15 tests. Deployed to the host with HEAD 066ffbe.
+
+## CB12-E guard (3716711) and CB12-O (89fd546) confirmation, 2026-10-19 ~21:10Z (science-reviewer); not counted
+- (A) E: census tests ACCEPTED; guard called on every data path, but frame (q0244) and prices (q0245) share one
+  manifest whose `rules_sha256` is overwritten by the last writer -> MED: record frame/prices rules hashes in state and
+  refuse a mismatched q0245 start/resume (reseals E). q0244 held (not_before) until the reseal is deployed.
+- (B) O: ACCEPT; 89fd546 is freeze-ready code (causal: strictly earlier daily file plus `fetched_t_end < t`). Optional
+  LOW: `earnings_flag` checks `fetched_t_end` itself; report per-unit previous-file age (outage case). Taken now (O5,
+  reseals O) so the freeze uses final code. O freeze still needs q0260's iv_convention (2026-10-20).
