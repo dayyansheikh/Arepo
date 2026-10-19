@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import gzip
+import hashlib
 import io
 import json
 import math
@@ -1523,7 +1524,7 @@ def test_queue_drafts_match_runner_and_rules_hashes():
     if not files:
         pytest.skip("CB13 drafts are not generated yet")
     jobs = sorted((drafts.parent / "jobs").glob("q02[78]*_cb13_*.json"))  # q0270 / q0285 (the smokes) are promoted and carry no rules sha
-    ids = {json.loads(f.read_text())["id"].split("_")[0] for f in [*files, *jobs]}
+    ids = {json.loads(f.read_text())["id"].split("_")[0].rstrip("b") for f in [*files, *jobs]}  # q0270b / q0285b: smoke v2 drafts (section 11.y)
     assert ids == {f"q0{n}" for n in range(270, 286)}
     parser = run_cb13.build_parser()
     shas = {p: c13.rules_part_file_doc(p)["rules_sha256"] for p in c13.PARTS}
@@ -1951,3 +1952,109 @@ def test_r_smoke_walk_falls_back_to_out_of_window_days_when_search_finds_nothing
     w = res["r_walk_finds_search"]
     assert w["pass"] and w["search_found"] == 3 and w["days"] == ["2026-10-12"] and w["search_queries"] >= 2, w
     assert res["r_rule_parser"]["pass"] and res["r_request_cap"]["pass"]
+
+
+# =====================================================================================================================================================
+# Smoke v1 defects (2026-10-19, section 11.y): T capture pair before the print window; R undated pick queries and a walk window wider than the request cap; v2 supersede
+# =====================================================================================================================================================
+
+
+def _pre_window_world(tmp_path: Path) -> dict:
+    """make_world plus two complete captures starting 2026-10-11T20Z / 22Z (inside the SCREEN capture range, before the 2026-10-12T00Z print window), as on the host."""
+    w = make_world(tmp_path)
+    for st in ("2026-10-11T20:31:00Z", "2026-10-11T22:31:00Z"):
+        write_capture(w["snap"], st, {"0xA": ("1", "E1", "0.48", "0.50")})
+    return w
+
+
+def test_t_smoke_pair_skips_captures_before_the_print_window_v1_defect(tmp_path):
+    w = _pre_window_world(tmp_path)
+    caps = c13.list_captures(w["snap"], "screen", PIN)
+    assert caps[0]["start"] < ep("2026-10-12T00:00:00Z") and caps[1]["start"] < ep("2026-10-12T00:00:00Z")  # the v1 choice caps[0], caps[1]: no print between them
+    c0, c1 = t13.smoke_capture_pair(caps, PIN)
+    assert c0["start"] == ep("2026-10-12T00:00:00Z") and c1["start"] == ep("2026-10-12T02:00:00Z")
+    assert t13.smoke_capture_pair(caps[:2], PIN) is None
+    out = t13.smoke_offline({"pin": PIN, "trades_dir": str(w["trades"]), "snap_root": str(w["snap"]), "now": ep("2026-10-19T00:00:00Z")})
+    j = out["t_capture_print_join"]
+    assert j["pass"] and j["n_prints_between"] > 0 and j["captures"] == [c0["capture_id"], c1["capture_id"]], j
+    assert j["h8_age_by_position_via_index"] == j["h8_age_by_position_independent"]
+
+
+def test_r_smoke_dated_queries_and_narrow_walk_window_fit_the_cap_v1_defect():
+    """Public search answers only the dated query (v1's undated queries found nothing in range); the walk window is end +- 60 s, so 400 Up/Down events ending within the hour do not page."""
+    barrier = [_event(eid=f"9{i}", end="2026-10-12T04:00:00Z", title="What price will Bitcoin hit October 5-11?", q="Will Bitcoin reach $98,000 October 5-11?", n=2) for i in range(3)]
+    noise = [{"id": f"u{i}", "title": f"Bitcoin Up or Down {i}", "endDate": iso(ep("2026-10-12T03:00:00Z") + 9 * i), "markets": []} for i in range(400)]
+    evs = barrier + noise
+    base_tr = fake_transport(evs, {})
+    queries, walks = [], []
+
+    def tr(url, params):
+        if url.endswith("public-search"):
+            queries.append(params["q"])
+            hit = "october 5-11" in params["q"] and "bitcoin" in params["q"]
+            return 200, json.dumps({"events": [{"id": e["id"], "title": e["title"], "endDate": e["endDate"]} for e in barrier[:1]] if hit else []}).encode(), {}
+        if url == c13.GAMMA_EVENTS:
+            walks.append((params["end_date_min"], params["end_date_max"]))
+        return base_tr(url, params)
+    lim = hb.Limiter(tr, rps=1e6, sleep=lambda s: None)
+    res = r13.smoke_online(lim, {})
+    assert queries[0] == r13.SMOKE_QUERIES[0] and len(queries) == 4  # 10-05 never covered here: all four bounded queries are used
+    assert walks == [("2026-10-12T03:59:00Z", "2026-10-12T04:01:00Z")]
+    assert res["r_walk_finds_search"]["pass"] and res["r_request_cap"]["pass"] and res["r_request_cap"]["requests"] <= r13.SMOKE_MAX_REQUESTS
+    rp = res["r_rule_parser"]
+    assert rp["pass"] and rp["parsed"] == 3 and all(e["n_members_flags_ok"] == e["n_members"] == 2 and e["missing_flags"] == {} for e in rp["per_event"])
+    assert res["r_prices_history"]["pass"]
+
+
+def test_r_smoke_reports_missing_flags_of_creation_anchored_members_without_relaxing_the_rule():
+    """Counts only: an event with one member whose description has an unquoted High fails flags_ok (frozen rule unchanged) and the smoke reports which flag is missing."""
+    late = 'This market will resolve to "Yes" if any Binance 1 minute candle for BTC/USDT from the creation of this market through 11:59 PM ET has a final High price equal to or greater.'
+    evs = []
+    for i in range(3):
+        e = _event(eid=f"8{i}", end="2026-10-12T04:00:00Z", title="What price will Bitcoin hit October 5-11?", q="Will Bitcoin reach $98,000 October 5-11?", n=2)
+        e["markets"][1]["description"] = late
+        evs.append(e)
+    base_tr = fake_transport(evs, {})
+
+    def tr(url, params):
+        if url.endswith("public-search"):
+            return 200, json.dumps({"events": [{"id": e["id"], "title": e["title"], "endDate": e["endDate"]} for e in evs]}).encode(), {}
+        return base_tr(url, params)
+    res = r13.smoke_online(hb.Limiter(tr, rps=1e6, sleep=lambda s: None), {})
+    rp = res["r_rule_parser"]
+    assert rp["pass"] is False and rp["parsed"] == 3
+    assert all(e["parse_ok"] == 1 and e["flags_ok"] == 0 and e["n_members"] == 2 and e["n_members_flags_ok"] == 1 and e["missing_flags"] == {"hi_lo": 1} for e in rp["per_event"])
+    assert "creation of this market" not in json.dumps(res)  # no description text leaves the smoke
+
+
+def test_smoke_v2_supersedes_a_failed_v1_without_a_second_count_and_jobs_read_v2(tmp_path, capsys, rules_file, pin_file, monkeypatch):
+    v1 = tmp_path / "smoke_T.json"
+    monkeypatch.setattr(c13, "SMOKE_T_DEFAULT", v1)
+    a = base_args(tmp_path, rules_file, pin_file)
+    code, out = _run(["smoke", "--part", "T", *a, "--supersedes", "default"], capsys)
+    assert code == 2 and "not found" in out["refused"]  # nothing to supersede
+    (tmp_path / "live_trades").mkdir()
+    (tmp_path / "snapshots").mkdir()
+    code, out = _run(["smoke", "--part", "T", *a], capsys)  # v1 FAILS (no host files) and counts T1 + T2 once
+    assert code == 0 and out["smoke"] is False and v1.exists()
+    v1_bytes = v1.read_bytes()
+    tp = tmp_path / "trials.jsonl"
+    n_count = lambda: sum(json.loads(x)["n_tests"] for x in tp.read_text().splitlines() if '"ml_explain"' in x)  # noqa: E731
+    assert n_count() == 2
+    import shutil  # noqa: PLC0415
+
+    shutil.rmtree(tmp_path / "live_trades")
+    shutil.rmtree(tmp_path / "snapshots")
+    _pre_window_world(tmp_path)
+    code, out = _run(["smoke", "--part", "T", *a, "--supersedes", "default"], capsys)
+    assert code == 0 and out["smoke"] is True and out["supersedes"] == str(v1), out
+    v2 = tmp_path / "smoke_T_v2.json"
+    doc = json.loads(v2.read_text())
+    assert doc["supersedes"]["sha256"] == hashlib.sha256(v1_bytes).hexdigest() and "t_capture_print_join" in doc["supersedes"]["failed_criteria"]
+    assert v1.read_bytes() == v1_bytes and n_count() == 2  # v1 untouched; no new count line
+    code, out = _run(["smoke", "--part", "T", *a, "--supersedes", "default"], capsys)
+    assert code == 2 and "write-once" in out["refused"]
+    code, out = _run(["t-frame", *a], capsys)  # the default smoke path now resolves to v2 (passing): t-frame proceeds to its next gate (the labeller audit)
+    assert code == 2 and "labeller_audit.json" in out["refused"], out
+    code, out = _run(["smoke", "--part", "T", *a, "--supersedes", str(v2)], capsys)
+    assert code == 2 and "not a failed" in out["refused"]  # a passing smoke is never superseded

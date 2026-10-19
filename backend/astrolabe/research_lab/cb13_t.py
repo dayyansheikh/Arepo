@@ -1278,6 +1278,17 @@ def h8_counts(prints: list[dict], lookup) -> dict[str, int]:
     return dict(sorted(out.items()))
 
 
+def smoke_capture_pair(caps: list[dict], pin: dict) -> tuple[dict, dict] | None:
+    """The two SCREEN captures of the smoke join: the first CONSECUTIVE pair (oldest first) whose interval lies inside the SCREEN print window ``split_bounds('screen')``. The capture range
+    starts at ``T_SCREEN_CAPTURE_FROM`` (2026-10-11T20Z, touches for the first prints), before the print window opens (2026-10-12T00Z), so the first two captures hold no print between them
+    (smoke v1 defect, CREATIVE_BATCH_13.md section 11.y)."""
+    lo, hi = c13.split_bounds("screen", pin)
+    for a, b in zip(caps, caps[1:], strict=False):
+        if a["start"] >= lo and b["start"] <= hi:
+            return a, b
+    return None
+
+
 def smoke_offline(ctx: dict) -> dict:
     """Guard fixtures (no network), the capture-print join on two SCREEN captures of the host (counts only) and the labeller UNKNOWN share on all SCREEN titles. ``ctx``: ``pin`` (J4-R pin),
     ``trades_dir``, ``snap_root`` (host files; missing -> the host criteria fail), ``cb3_spec_dir`` (tests)."""
@@ -1330,16 +1341,17 @@ def smoke_offline(ctx: dict) -> dict:
     try:
         snap, trades = Path(ctx["snap_root"]), Path(ctx["trades_dir"])
         caps = c13.list_captures(snap, "screen", pin)
-        if len(caps) >= 2:
-            c0, c1 = caps[0], caps[1]
+        pair = smoke_capture_pair(caps, pin)
+        if pair is not None:
+            c0, c1 = pair
             prints, _ = screen_prints(trades, "screen", pin)
             between = [p for p in prints if c0["start"] < p["ts"] < c1["start"]]
             wanted = {p["condition_id"] for p in between}
-            qi = load_quote_index(caps[:2], wanted, "touch", "screen", pin)
+            qi = load_quote_index([c0, c1], wanted, "touch", "screen", pin)
             # (A) the join as the frame does it (QuoteIndex.touch, every print its own transaction) and (B) probe H8's rule recomputed independently from the raw capture rows
             via_index = h8_counts(between, lambda cid, ts: _first(qi.touch(cid, ts)[0]))
             raw: dict[str, list[tuple[float, float, float]]] = {}
-            for meta in caps[:2]:
+            for meta in (c0, c1):
                 for r in c13.iter_capture_rows(meta["dir"], wanted):
                     raw.setdefault(r["condition_id"], []).append((c13.parse_iso(r["received_utc"]), c13.num(r.get("best_bid")), c13.num(r.get("best_ask"))))
             via_raw = h8_counts(between, lambda cid, ts: max((x for x in raw.get(cid, []) if x[0] < ts), default=None, key=lambda x: x[0]))
@@ -1347,11 +1359,14 @@ def smoke_offline(ctx: dict) -> dict:
             fills, counts = make_fills(single, qi)
             band_counts = Counter(f["status"] for f in fills)
             join = {"pass": bool(len(between) > 0 and via_index == via_raw and sum(counts.values()) == len(single) == len(between)), "n_prints_between": len(between),
+                    "captures": [c0["capture_id"], c1["capture_id"]],
                     "h8_age_by_position_via_index": via_index, "h8_age_by_position_independent": via_raw, "status_counts": counts, "touch_consistency_bands": dict(band_counts),
                     "note": "the H8 rule (touch age <=20 / 20-60 / 60-120 / >120 min x crossing / inside / no row or one-sided) is recomputed independently of the quote index and must give identical counts; the "
                             "original H8 totals (44 captures, probe script not committed) are not reproduced numerically (declared in CREATIVE_BATCH_13.md, freeze-check fixes)"}
         elif not caps:
             join = {"pass": False, "reason": "no SCREEN captures found"}
+        else:
+            join = {"pass": False, "reason": "no two consecutive SCREEN captures inside the SCREEN print window"}
         txs, _ = screen_transactions(trades, "screen", pin)
         n = len(txs)
         unknown = sum(1 for t in txs if lab.classify(t["title"], t["slug"], t["ctx_fee_type"], "", "", t["ctx_category"])[0] == lab.UNKNOWN)

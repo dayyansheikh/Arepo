@@ -1,0 +1,38 @@
+{
+ "id": "q0285b_cb13_smoke_R_v2",
+ "title": "SMOKE v2 (supersedes the failed q0285 v1 by disclosure, CREATIVE_BATCH_13.md section 11.y). CB13-R smoke (R rules part hash; refusals: klines >= t and holdout/ in census mode, outcomePrices outside guarded files; tag-21 one-day walk on 2 out-of-window days; rule parser and flags on 3 out-of-window weekly barrier events; prices-history bounds on 2; Binance HEAD+CHECKSUM+parse for one 2024 and one 2025 month, ms->us timestamp change); counts only",
+ "family": "creative_batch_13",
+ "priority": 17,
+ "expected_value": "go/no-go for every CB13 source",
+ "data": [
+  "public Gamma, CLOB prices-history",
+  "data.binance.vision"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "net",
+  "network": "gamma-api, clob, data.binance.vision"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb13.py",
+  "smoke",
+  "--part",
+  "R",
+  "--rules",
+  "../docs/research_lab/seals/cb13_rules.json",
+  "--rps",
+  "1",
+  "--supersedes",
+  "default"
+ ],
+ "timeout_s": 1200,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch13/smoke_R_v2.json",
+  "trials.jsonl (cb13_descriptive; a FAILED v2 writes no second counted line, v1 already counted)"
+ ],
+ "next_action": "PASS: q0276; FAIL: R1 stays not testable (source) (counted once by v1)",
+ "notes": "CREATIVE_BATCH_13.md CB13-S and section 11.y. DRAFT, not in queue/jobs (needs the science-reviewer's acceptance of the 11.y disclosure, the committed rules file and the code deployed on the host). v1 defect: the four undated public-search queries returned no event ending in 2026-10-02..16 in their relevance-ranked top 20, so the walk never ran and r_walk_finds_search, r_rule_parser and r_prices_history failed vacuously (4 search requests only). v2: four DATED queries naming the weekly titles ending on the declared days (October 5-11, September 28-October 4) and a walk window of end +- 60 s (a +- 1 h window holds > 300 tag-21 events and would page past the 30-request cap). Expected about 10-12 requests. r_rule_parser keeps the frozen flag rule: probes show weekly events carry creation-anchored late members with an unquoted High, so flags_ok may genuinely fail (reported per event as counts). v1 file and its counted line are kept untouched; --supersedes refuses unless v1 exists and failed; the runner reads <v1>_v2.json when it exists. Rules part sha256 (seals/cb13_rules.json, resealed 2026-10-19 after the smoke v1 fixes): common 62e90149ba7e3f282d9876626d51667fd40a559da16b813e03c431f5084ef014, R 32bbd825843b43a93652d6d04e2a2c4a4fa3caabb9d9044ac8cb406dabf68cff."
+}

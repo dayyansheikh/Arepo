@@ -1108,3 +1108,48 @@ before any labeller audit sample was drawn: common `62e90149…`, LABELLER `1e51
 (the hashes above were updated in place). q0276 now depends on q0221b (CB11's amended exclusion-key job). A failed T smoke
 stops at `t-frame` (exit 2) after its counted line, so the census/screen terminal paths are reached only by direct calls;
 this is harmless (the count is already written and stage2-final skips the family).
+
+### 11.y Smoke v1 defects and smoke v2 (2026-10-19; engineering gate, outcome-blind, counts only)
+
+Both v1 smokes ran on the host and failed (`smoke_T.json` 05:32Z, `smoke_R.json` 07:30Z, git `4b2afbf`); each wrote its
+counted "not testable (source)" line (T1+T2, R1). Review of the failed criteria against the code and the host files
+found smoke code defects, not source limitations. Precedent for superseding an engineering FAIL by disclosure: CB7
+q0140b, CB8-H smoke v3, CB9 smoke v2, CB12 A6. No threshold, floor, alpha, gate, cap, test count or analysis rule
+changes.
+
+- **T, `t_capture_print_join` (defect).** The join took the first two SCREEN captures. The SCREEN capture range starts
+  at 2026-10-11T20Z (touches for the first prints), so these were 20261011T203106Z and 20261011T223104Z, both before
+  the 2026-10-12T00Z print window: 0 prints between them (`n_prints_between` 0, empty H8 tables), a vacuous failure.
+  The other T criteria passed (labeller UNKNOWN 0 of 37,106 transactions). **Fix:** the join uses the first consecutive
+  capture pair inside the SCREEN print window (`cb13_t.smoke_capture_pair`) and records the capture ids. A read-only
+  host dry run on 20261012T003103Z / 20261012T023105Z gave 422 prints between them, identical index and independent
+  H8 tables, and accounting 422 = 422.
+- **R, `r_walk_finds_search`, `r_rule_parser`, `r_prices_history` (defect).** The four undated public-search queries
+  ("what price will bitcoin hit", ...) are relevance-ranked; their top 20 held no event ending in 2026-10-02..16
+  (probe: the Bitcoin query returns monthly, yearly and current-week events). The walk, the parser and prices-history
+  never ran (4 requests in all): three vacuous failures. A latent second defect: the walk window of end +- 1 h holds
+  more than 300 tag-21 events (5- and 15-minute Up/Down) and would have paged past the 30-request cap. **Fix:** four
+  **dated** queries naming the weekly titles that end on the declared walk days ("October 5-11" for 10-12, "September
+  28-October 4" for 10-05; Bitcoin, then Ethereum) and a walk window of end +- 60 s (probe: 42 events, one request
+  per day, all four weekly barrier events present). The Binance and guard criteria passed in v1 and are re-run
+  unchanged.
+- **Disclosed expectation for `r_rule_parser` (not a fix).** Probing the 8 weekly events ending 10-05 and 10-12, every
+  event has 7-9 late-added members whose description reads "from the creation of this market through 11:59 PM ET"
+  with an unquoted High/Low, so the frozen `desc_flags` "High"/"Low" flag fails for them and the event-level
+  `flags_ok` is 0. The frozen flag rule is **not** changed here; v2 reports, per parsed event, the member count, members
+  passing every flag and the missing flags (counts only). If v2 fails on this criterion, it is a genuine source/rule
+  finding (creation-anchored member windows) that needs a science-reviewer ruling before any R design change; under
+  the current rules it would also fail gate GR's 95% flag share.
+- **Mechanics.** `run_cb13.py smoke --part T|R --supersedes default` refuses unless the v1 file exists and failed,
+  writes `smoke_<part>_v2.json` (write-once, with v1's path, sha256 and failed criteria) and leaves v1 untouched. A
+  failed v2 writes no second counted line (v1 already counted the family). Every job reads `smoke_<part>_v2.json` when
+  it exists (else v1). **The v1 counted lines stay in `trials.jsonl`**: if v2 passes and the family runs, its tests are
+  counted again by the screen (an over-count of 2 for T and 1 for R; conservative for multiplicity, never rewritten).
+  Drafts: `q0270b_cb13_smoke_T_v2`, `q0285b_cb13_smoke_R_v2`; q0271 depends on q0270b and q0276 on q0285b (q0276 also
+  pins the final CB11 key file from q0221b, sha256 `c8a1d64b1dd3f83d376b3809ba5db72b12e751fa825d6ad483854b8136b6d304`).
+
+**Rules part sha256 after the smoke v1 fixes (supersede the 11.x list; common and LABELLER unchanged):**
+- common `62e90149ba7e3f282d9876626d51667fd40a559da16b813e03c431f5084ef014`
+- LABELLER `1e515bb410598ed7ebc5f6f722b77554acd22d6d9a7548365ba74780c843c780`
+- T `f72683f5a5c315552fd6b8defc00613b6eb19c82224bb52477188bb4ddbd90d3`
+- R `32bbd825843b43a93652d6d04e2a2c4a4fa3caabb9d9044ac8cb406dabf68cff`

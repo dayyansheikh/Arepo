@@ -16,7 +16,7 @@
   "lane": "cpu"
  },
  "depends_on": [
-  "q0270_cb13_smoke_T"
+  "q0270b_cb13_smoke_T_v2"
  ],
  "argv": [
   "scripts/run_cb13.py",
@@ -38,7 +38,7 @@
   "research_lab/creative_batch13/t_screen/{fills.csv.gz,labels.csv.gz,t_exclusion_keys.csv.gz,manifest.json}"
  ],
  "next_action": "q0272",
- "notes": "DRAFT. Refuses any capture/print in the J4-R window or T HOLDOUT window, and any mark capture (no forward row is read). Restores archived captures byte-for-byte if deleted from the host. mem 800 justified (section 2.8). Rules part sha256 (seals/cb13_rules.json, code of 2026-10-19 after the freeze-check round 1 fixes (CREATIVE_BATCH_13.md section 11)): common 62e90149ba7e3f282d9876626d51667fd40a559da16b813e03c431f5084ef014, LABELLER 1e515bb410598ed7ebc5f6f722b77554acd22d6d9a7548365ba74780c843c780, T 05acfff64e218405c225296764b29ead071248753d171a86211582d21d707042. CB13 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes.",
+ "notes": "DRAFT. Refuses any capture/print in the J4-R window or T HOLDOUT window, and any mark capture (no forward row is read). Restores archived captures byte-for-byte if deleted from the host. mem 800 justified (section 2.8). Rules part sha256 (seals/cb13_rules.json, code of 2026-10-19 after the freeze-check round 1 fixes (CREATIVE_BATCH_13.md section 11)): common 62e90149ba7e3f282d9876626d51667fd40a559da16b813e03c431f5084ef014, LABELLER 1e515bb410598ed7ebc5f6f722b77554acd22d6d9a7548365ba74780c843c780, T f72683f5a5c315552fd6b8defc00613b6eb19c82224bb52477188bb4ddbd90d3. CB13 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes. | 2026-10-19 smoke v2 (CREATIVE_BATCH_13.md section 11.y): depends on q0270b (smoke_T_v2.json supersedes the failed v1 by disclosure; the runner reads v2 when it exists); T rules part resealed f72683f5 (smoke_offline capture-pair fix).",
  "repeat": {
   "max_runs": 20,
   "until_log_regex": "\"status\": \"(t_frame_complete)\""

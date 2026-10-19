@@ -5,6 +5,7 @@ Covers CB13-T (host files only, NO network: q0270-q0275) and CB13-R (keyless fet
     python scripts/run_cb13.py rules                         # write docs/research_lab/seals/cb13_rules.json (one sha256 per part: common, LABELLER, T, R); commit before q0270
     python scripts/run_cb13.py freeze-part --part T|R        # print a part of the CB13 freeze declaration (model_specs/cb13_v1.json: T carries the LABELLER sha too)
     python scripts/run_cb13.py smoke --part T|R              # q0270 (T, no network, cpu lane) / q0285 (R, net lane, <= 30 requests): counts only, WRITE-ONCE
+    python scripts/run_cb13.py smoke --part T|R --supersedes default   # q0270b / q0285b smoke v2 (section 11.y): supersedes a FAILED v1 by disclosure, writes smoke_<part>_v2.json
     python scripts/run_cb13.py audit-sample --round 1|2      # GL: seeded 200-title sample (reviewer view: title and slug only) + the key file with the labeller's labels
     python scripts/run_cb13.py audit-score --round 1|2 --reviewer-labels FILE   # GL: agreement; writes labeller_audit.json when final
     python scripts/run_cb13.py t-frame                       # q0271: T exclusion keys + SCREEN fill table (features only, labels applied, no mark)
@@ -194,10 +195,25 @@ def _result(m: dict) -> tuple[int, dict]:
     return 0, {"status": m.get("status"), "label": m.get("label"), "stopped": m.get("stopped"), "complete": m.get("complete"), "counts": m.get("counts"), "transient": m.get("transient")}
 
 
-def _smoke_path(a, part: str) -> Path:
+def _smoke_default(part: str) -> Path:
     c13 = _c13()
+    return Path(c13.SMOKE_T_DEFAULT if part == "T" else c13.SMOKE_R_DEFAULT)
+
+
+def _smoke_v2_of(p: Path) -> Path:
+    """The superseding smoke file of a v1 smoke file (``smoke_T.json`` -> ``smoke_T_v2.json``)."""
+    return Path(p).with_name(f"{Path(p).stem}_v2{Path(p).suffix}")
+
+
+def _smoke_path(a, part: str) -> Path:
+    """The smoke result a job reads: ``--smoke`` if given; else the superseding v2 file when it exists (written by ``smoke --supersedes``, CREATIVE_BATCH_13.md section 11.y: a v1 FAIL caused
+    by a smoke code defect is superseded by disclosure; v1 is kept untouched); else the v1 default."""
     p = getattr(a, "smoke", None)
-    return Path(p) if p else (c13.SMOKE_T_DEFAULT if part == "T" else c13.SMOKE_R_DEFAULT)
+    if p:
+        return Path(p)
+    v1 = _smoke_default(part)
+    v2 = _smoke_v2_of(v1)
+    return v2 if v2.exists() else v1
 
 
 def _require_smoke(a, part: str) -> None:
@@ -293,7 +309,19 @@ def cmd_smoke(a):
     if part == "T":
         _gap(a)
     _declared(a, "smoke")
-    out = c13.refuse_path(Path(a.out) if a.out else _smoke_path(a, part))
+    sup = None
+    if getattr(a, "supersedes", None):  # smoke v2 (section 11.y): only a written, failed v1 of the same part and version can be superseded; v1 is never touched
+        v1 = c13.refuse_path(_smoke_default(part) if a.supersedes == "default" else Path(a.supersedes))
+        if not v1.exists():
+            raise c13.Refused(f"--supersedes: v1 smoke {v1} not found (only a written v1 FAIL is superseded)")
+        d1 = json.loads(v1.read_text())
+        if d1.get("smoke_version") != c13.SMOKE_VERSION or d1.get("part") != part or d1.get("pass") is not False:
+            raise c13.Refused(f"--supersedes: {v1} is not a failed part-{part} smoke of version {c13.SMOKE_VERSION}")
+        sup = {"path": str(v1), "sha256": hashlib.sha256(v1.read_bytes()).hexdigest(), "failed_criteria": sorted(k for k, v in (d1.get("criteria") or {}).items() if not v),
+               "v1_counted": True, "amendment": "CREATIVE_BATCH_13.md section 11.y (smoke v2: v1 failures were smoke code defects; v1 kept untouched, its counted line stands)"}
+        out = c13.refuse_path(Path(a.out) if a.out else _smoke_v2_of(v1))
+    else:
+        out = c13.refuse_path(Path(a.out) if a.out else _smoke_default(part))
     if out.exists():
         raise c13.Refused(f"smoke result {out} already exists; it is write-once")
     shas = {"common": _rules(a, "common"), part: _rules(a, part)}
@@ -316,13 +344,16 @@ def cmd_smoke(a):
     res = {"smoke_version": c13.SMOKE_VERSION, "part": part, "rules_sha256": shas, "git_commit": hb._git_commit(), "run_utc": cm.iso(now), "counts_only": True,
            "requests": (lim.requests if lim else 0), "criteria": crit, "pass": all(crit.get(k, False) for k in (sm.family_needs(part))), "detail": detail,
            "consequences": {"a failed criterion": "the dependent family is not testable (source), counted", "rule": "no rule is re-fitted; jobs downstream stall (exit 0, label carried)"}}
+    if sup is not None:
+        res["supersedes"] = sup
     cm.write_once_json(out, res)
     role = c13.EVIDENCE_ROLE_DEV if part == "T" else c13.EVIDENCE_ROLE_HIST
     c13.log_descriptive(f"smoke_{part}", {"pass": res["pass"], "criteria": crit, "part": part, "smoke_path": str(out)}, trials_path=_tp(a), role=role)
-    if not res["pass"]:  # section 2.5: a failed smoke makes the dependent family "not testable (source)", COUNTED once (the smoke file is write-once): T 2 tests (T1, T2), R 1 test (R1)
+    if not res["pass"] and sup is None:  # section 2.5: a failed smoke makes the dependent family "not testable (source)", COUNTED once (the smoke file is write-once): T 2 tests (T1, T2), R 1 test (R1); a failed v2 is not counted again (its v1 already was)
         nt = {"p": 1.0, "testable": False, "advance": False, "verdict": c13.SOURCE_NOT_TESTABLE}
         c13.log_family(part, {t: nt for t in c13.FAMILY_TESTS[part]}, trials_path=_tp(a), results_sha256=hashlib.sha256(out.read_bytes()).hexdigest(), role=role)
-    return 0, {"smoke": res["pass"], "criteria": crit, "written": str(out), "requests": res["requests"], "counted_not_testable_source": not res["pass"]}
+    return 0, {"smoke": res["pass"], "criteria": crit, "written": str(out), "requests": res["requests"], "counted_not_testable_source": not res["pass"],
+               **({"supersedes": sup["path"], "counted_by_v1": True} if sup is not None else {})}
 
 
 # ---- labeller audit (GL) ---------------------------------------------------------------------------------------------------------------------
@@ -932,6 +963,7 @@ def build_parser() -> argparse.ArgumentParser:
     common(q, rps=1.0)
     q.add_argument("--part", required=True, choices=("T", "R"))
     q.add_argument("--out", default=None)
+    q.add_argument("--supersedes", default=None, help="smoke v2 (section 11.y): path of the failed v1 smoke file, or 'default'; writes <v1 stem>_v2.json unless --out")
     q.set_defaults(fn=cmd_smoke)
 
     q = sub.add_parser("audit-sample", help="GL: draw the blind 200-title sample")

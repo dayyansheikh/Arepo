@@ -106,7 +106,12 @@ FLAG_LOW_RE = re.compile(r"[\"“‘']Low[\"”’']")
 SMOKE_NEEDS = ("guards_fixture_R", "r_request_cap", "r_walk_finds_search", "r_rule_parser", "r_prices_history", "r_binance_units")
 SMOKE_WALK_DAYS = ("2026-10-05", "2026-10-12")
 SMOKE_RANGE = ("2026-10-02", "2026-10-16")  # inclusive: out-of-window days the smoke may use (fallback pick search when the declared days hold no search-found event)
-SMOKE_QUERIES = ("what price will bitcoin hit", "what price will ethereum hit", "what price will solana hit", "what price will xrp hit")
+# Dated pick queries (smoke v2, CREATIVE_BATCH_13.md section 11.y): public search ranks by relevance and the undated v1 queries returned no event ending in SMOKE_RANGE in their top 20, so
+# the walk never ran. Each query names the weekly title of an event ending on a declared walk day (end 04:00Z on 10-12 = "October 5-11", on 10-05 = "September 28-October 4").
+SMOKE_QUERIES = ("what price will bitcoin hit october 5-11", "what price will bitcoin hit september 28-october 4", "what price will ethereum hit october 5-11",
+                 "what price will ethereum hit september 28-october 4")
+SMOKE_WALK_PAD_S = 60.0  # the walk window is [min(end) - 60 s, max(end) + 60 s] around each day's search-found barrier ends: a +-1 h window holds > 300 tag-21 events (5- and 15-minute
+# Up/Down) and would page past the 30-request cap; the weekly barrier events end exactly at 04:00Z
 SMOKE_MAX_REQUESTS = 30
 SMOKE_BINANCE_RESERVE = 6  # requests kept back for the two Binance months (CHECKSUM + zip each, plus a retry)
 SMOKE_MAX_WALK_DAYS = 5
@@ -1883,7 +1888,7 @@ def smoke_online(lim, ctx: dict) -> dict:
         if lim.requests + SMOKE_BINANCE_RESERVE + 3 > SMOKE_MAX_REQUESTS:
             break
         ends = list(by_day[day].values())
-        for ev in walk_window(lim, min(ends) - HOUR, max(ends) + HOUR):
+        for ev in walk_window(lim, min(ends) - SMOKE_WALK_PAD_S, max(ends) + SMOKE_WALK_PAD_S):
             walked[str(ev.get("id"))] = ev
             pe = parse_event(ev)
             if pe and pe["kind"] == "barrier" and pe["row"]["template"] == "weekly" and len(parsed) < 3:
@@ -1893,6 +1898,20 @@ def smoke_online(lim, ctx: dict) -> dict:
             found.update(by_day[day])
     walk_ok = bool(found) and len(walked_days) >= 1 and all(i in walked for i in found)
     parser_ok = bool(len(parsed) >= 3 and all(p["row"]["parse_ok"] and p["row"]["flags_ok"] and p["row"]["win_lo"] < p["row"]["win_hi"] for p in parsed) and all(p["members"] for p in parsed))
+    flag_detail = []  # counts only: per parsed event, members and the frozen flags each failing member misses (booleans of desc_flags; no description text leaves this function)
+    for pe in parsed:
+        ev = walked.get(str(pe["row"]["event_id"])) or {}
+        miss: Counter = Counter()
+        n_mem = n_ok = 0
+        for m in (ev.get("markets") if isinstance(ev.get("markets"), list) else []):
+            q = parse_member_question(str((m or {}).get("question") or "")) if isinstance(m, dict) else None
+            if q is None:
+                continue
+            n_mem += 1
+            f = desc_flags(str(m.get("description") or ""), q["asset"], q["direction"])
+            n_ok += int(f["all"])
+            miss.update(k for k, v in f.items() if k != "all" and not v)
+        flag_detail.append({"parse_ok": int(pe["row"]["parse_ok"]), "flags_ok": int(pe["row"]["flags_ok"]), "n_members": n_mem, "n_members_flags_ok": n_ok, "missing_flags": dict(sorted(miss.items()))})
     ph = {}
     for i, pe in enumerate(parsed[:2]):
         r, m = pe["row"], pe["members"][0]
@@ -1908,7 +1927,7 @@ def smoke_online(lim, ctx: dict) -> dict:
     n_req = lim.requests + blim.requests
     return {"r_request_cap": {"pass": bool(n_req <= SMOKE_MAX_REQUESTS), "requests": n_req},
             "r_walk_finds_search": {"pass": bool(walk_ok and walked), "walked": len(walked), "search_found": len(found), "days": walked_days, "search_queries": n_queries},
-            "r_rule_parser": {"pass": parser_ok, "parsed": len(parsed), "windows": [(cm.iso(p["row"]["win_lo"]), cm.iso(p["row"]["win_hi"])) for p in parsed]},
+            "r_rule_parser": {"pass": parser_ok, "parsed": len(parsed), "windows": [(cm.iso(p["row"]["win_lo"]), cm.iso(p["row"]["win_hi"])) for p in parsed], "per_event": flag_detail},
             "r_prices_history": {"pass": bool(len(ph) >= 2 and all(v["ok"] for v in ph.values())), "per": ph},
             "r_binance_units": {"pass": bool(all(v["ok"] for v in bin_res.values())), "per": bin_res}}
 

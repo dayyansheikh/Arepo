@@ -1472,10 +1472,10 @@
       "r_binance_units"
      ],
      "SMOKE_QUERIES": [
-      "what price will bitcoin hit",
-      "what price will ethereum hit",
-      "what price will solana hit",
-      "what price will xrp hit"
+      "what price will bitcoin hit october 5-11",
+      "what price will bitcoin hit september 28-october 4",
+      "what price will ethereum hit october 5-11",
+      "what price will ethereum hit september 28-october 4"
      ],
      "SMOKE_RANGE": [
       "2026-10-02",
@@ -1485,6 +1485,7 @@
       "2026-10-05",
       "2026-10-12"
      ],
+     "SMOKE_WALK_PAD_S": 60.0,
      "SOURCE_LABEL": "not testable (source)",
      "SYMBOLS": [
       "BTC",
@@ -1775,7 +1776,7 @@
     "cb13_r.slope_p": "48c51ef7b795679c94eb90ca5bc01c9d6ad47e1c46b26b726b41c384fb6b45fc",
     "cb13_r.slope_stat": "b98ac3c751f600ad9d76b69a2bc69e3b17244435a7e7ff50ad026704e2a9877f",
     "cb13_r.smoke_offline": "afdf0fe1e752c96035370fd27b51c6534d01ad1e19c3a1ea720105f35f1a4b7e",
-    "cb13_r.smoke_online": "46454f5961cce2a780ad0fbeb1b347e14f3174970c6c7e0544312487a32d81a6",
+    "cb13_r.smoke_online": "829ce936e58d3cfc5713e3b195d59c27cba90f8f990f473a605aba899a4ac9e0",
     "cb13_r.split_of": "3b1e53e7df2d5297e2f03c157d91363c9395568342b98a75c6ea19181c714e0d",
     "cb13_r.template_of": "3323fd76821a5139ba2c4cbe63cafb6ad6f1a87bd49f1e15d96dfb9b87a052ab",
     "cb13_r.timestamp_unit": "904b59c2a4a1d53895a4926a9253d22bfa0937fbf628d78fc13ede3791bf09fd",
@@ -1789,10 +1790,10 @@
     "cb13_r.window_components_with_units": "eef83fef5042d38c449107c8121df1e11b14db45f44e4b9cbfba11fb3df61b9d",
     "cb13_r.window_is_weekly": "e824bf4bb65eeee7972877894b72f6032cb5a4e7008f968e8989a98c588e8e7b"
    },
-   "funcs_sha256": "aa896c2f8054d614db95596627f9d30a6cffa5097fd395f75f1990143d5a25d3",
+   "funcs_sha256": "43fb0943d6e4b052d64b12f07960ce92cb5f15e0663cd8ea1f462ac5cd39e41d",
    "part": "R",
    "part_declared": true,
-   "rules_sha256": "27ddbc2efa6a5ffdb1125baed9181b0026165491b1ce7b360b71ba8039d82802",
+   "rules_sha256": "32bbd825843b43a93652d6d04e2a2c4a4fa3caabb9d9044ac8cb406dabf68cff",
    "rules_version": "cb13-rules-v1",
    "wallet": {
     "note": "no CB13 job reads or stores a wallet field, a transaction hash (tx16 is aggregated in memory and discarded) or the monitor's side field",
@@ -2601,7 +2602,8 @@
     "cb13_t.screen_transactions": "968551d8fe79c9bf2b2ac0c686481affc62d98a5024332544f7e49438f6a0511",
     "cb13_t.signflip_placebo": "9286b3e55bc7e9a9cbae7e0353f3365b7de2c5627a76403dd9e21356ebf1fddc",
     "cb13_t.size_band": "5dbc73f331c84a0a64870033eb3ee7b60c38b0ac036a20b53cef6438c9a73473",
-    "cb13_t.smoke_offline": "4389f66fdebe5211d88687fe538f9956f56aa91e2c2881ffbabb74ab5e2178d4",
+    "cb13_t.smoke_capture_pair": "68dbefa8e755114f45267512d68980c512ad01d2005b951e9d894935cce482ee",
+    "cb13_t.smoke_offline": "c3be11cd47dc6db524fd4307aed2d307bfc2a1a65bab3e6a240f60ae455dea24",
     "cb13_t.stage2_t": "73b78de8a13f1bf230613cf9b0a27f939e9614f157e6b767548740ecaaab69f9",
     "cb13_t.stale_variant": "8e722a30cd3b2c7144b5581d5e9667050ad195a11968b4c99154ec9f94a2face",
     "cb13_t.t1_test": "d49a995d6e5db4ff2db76ae4d216558decf4f4974dcf7495040138c8d61dcac8",
@@ -2617,10 +2619,10 @@
     "cb13_t.write_frame_files": "d8e1a07f6e58c66446ece77145a2b6656e075c6f666c9a6bbe3f3c6f89d53b12",
     "cb13_t.yes_price": "2ce135e7489e799573c92668a400b8cf6895dfda7a8a0ab93a88407121b4362c"
    },
-   "funcs_sha256": "93e74cb0a6aaee8ed7bc46ff3a2c44ad2c1e8ff3c870b53762fcdd1689e846b5",
+   "funcs_sha256": "0cac8d2c4214142b5c1e88678aec85ac630796cb065b8187a49d7f0bf4196307",
    "part": "T",
    "part_declared": true,
-   "rules_sha256": "05acfff64e218405c225296764b29ead071248753d171a86211582d21d707042",
+   "rules_sha256": "f72683f5a5c315552fd6b8defc00613b6eb19c82224bb52477188bb4ddbd90d3",
    "rules_version": "cb13-rules-v1",
    "wallet": {
     "note": "no CB13 job reads or stores a wallet field, a transaction hash (tx16 is aggregated in memory and discarded) or the monitor's side field",
