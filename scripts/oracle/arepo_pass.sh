@@ -31,7 +31,7 @@ if echo "$out" | grep -q "state=complete"; then
   timeout 600 nice -n 10 $PY scripts/run_cb1_extract.py --all-new --rps 2 --max-requests 300 2>&1 | tail -1 || true   # CB1 extract (CREATIVE_BATCH_1.md §2.11)
   timeout 600 nice -n 10 $PY scripts/run_cb4.py closewin --all-new --data-dumps-max-gb 13 2>&1 | tail -1 || true   # CB4 closewin/departures (CREATIVE_BATCH_4.md §2.10)
   timeout 600 nice -n 10 $PY scripts/run_cb5.py extract --all-new --tables listings --data-dumps-max-gb 12 2>&1 | tail -1 || true   # CB5 listings (CREATIVE_BATCH_5.md §4.3)
-  timeout 600 nice -n 10 $PY scripts/run_cb3_quote_state.py --all-new --data-dumps-cap-gb 13 2>&1 | tail -1 || true   # CB3 quote_state (CREATIVE_BATCH_3.md §4.3.2)
+  timeout 600 nice -n 10 $PY scripts/run_cb3_quote_state.py --all-new --data-dumps-cap-gb 40 2>&1 | tail -1 || true   # CB3 quote_state (CREATIVE_BATCH_3.md §4.3.2)
 fi
 $PY scripts/run_research_e004.py score --status 2>&1 | grep -E '"qualifying"'
 $PY scripts/run_research_e007.py score --status 2>&1 | head -1

@@ -1627,3 +1627,12 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
 - Census (read-only on the host): pairs short 239 / long 56, events 154 / 25, availability 0.991, `label_X` null.
 - **Frozen:** `model_specs/cb12_v1.json` part X, rules `7485a272…`, X-part sha256 `b231830e…`. q0255 revived (one
   counted test, X1). Other CB12 parts (M, E, F, O) freeze later as separate keys, each committed before its screen.
+
+## Operational deviation: CB3 quote_state refused every pass since about 10-17 (found 2026-10-19 ~01:20Z; not counted)
+- `arepo_pass.sh` ran `run_cb3_quote_state.py --all-new --data-dumps-cap-gb 13`; the 10-17 guard raise to 40 GiB
+  (36d908f) covered the queue jobs but missed this collector-pass line, so once data-dumps passed 13 GiB every pass
+  logged `refused_no_headroom` (19 captures pending at 00:31Z on 10-19, 0 written). No row was written or altered.
+- Fix: the cap is now 40 GiB (the convention). The extraction is idempotent and oldest-first over complete captures
+  still on the host (the 8-day snapshot rule frees nothing before about 10-25), so the 19 captures are extracted
+  over the next passes (600 s timeout each). The effect is a delay only; if any capture is no longer on the host when
+  reached, it is recorded `missing`, never reconstructed.
