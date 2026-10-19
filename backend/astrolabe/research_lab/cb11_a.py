@@ -175,7 +175,9 @@ def attn_record(m: dict) -> dict | None:
 
 
 def walk_day(lim: hb.Limiter, a: int, b: int, acc: dict) -> None:
-    """One end-date window (no volume filter); a capped window is split down to one hour, a capped one-hour window is excluded and counted."""
+    """One end-date window (no volume filter); a capped window is split down to one hour, a capped one-hour window is excluded and counted.
+    Bounded memory (q0227b): each uncapped window's raw markets are reduced to their ``attn_record`` rows at once (same markets, same order) and only the rows
+    and the raw count are kept in ``acc``; a whole day of raw Gamma objects (~10-13k at ~10 KB each) is never held (q0227 MemoryError under the 2 x mem_mb cap)."""
     from . import cb4_data as c4  # noqa: PLC0415
 
     f = "%Y-%m-%dT%H:%M:%SZ"
@@ -185,6 +187,7 @@ def walk_day(lim: hb.Limiter, a: int, b: int, acc: dict) -> None:
         acc["failed_windows"] += 1
         return
     if capped and b - a > 3600:
+        del batch  # a capped window's rows are never used: release them before recursing (no raw batch held per recursion level)
         acc["splits"] += 1
         mid = a + (b - a) // 2
         walk_day(lim, a, mid, acc)
@@ -194,7 +197,10 @@ def walk_day(lim: hb.Limiter, a: int, b: int, acc: dict) -> None:
     if capped:
         acc["excluded_capped_window"] += 1
         return
-    acc["batches"].extend(batch)
+    raw = [m for m in batch if isinstance(m, dict)]
+    del batch
+    acc["n_raw"] += len(raw)
+    acc["rows"].extend(x for x in (attn_record(m) for m in raw) if x is not None)
 
 
 def accept_sequential(cands: list[dict], seed: str, n: int, event_count: Counter, resolve: Callable[[str], dict | None], stats: dict) -> tuple[list[dict], str | None]:
@@ -264,23 +270,26 @@ def attn_frame(hist_root: Path, transport, wiki_transport, *, rules_sha: str, sm
             if why:
                 return pa.in_progress(fr, why)
             a = int(cm.ep(d + "T00:00:00Z"))
-            acc = {"batches": [], "splits": 0, "windows": 0, "failed_windows": 0, "excluded_capped_window": 0}
+            acc = {"rows": [], "n_raw": 0, "splits": 0, "windows": 0, "failed_windows": 0, "excluded_capped_window": 0}
             walk_day(fr.lim, a, a + int(DAY), acc)
             if acc["failed_windows"]:
                 with pf.open("a") as fh:
                     fh.write(json.dumps({"day": d}) + "\n")
                 continue
-            raw = [m for m in acc["batches"] if isinstance(m, dict)]
-            rows = [x for x in (attn_record(m) for m in raw) if x is not None]
-            c7.append_member(fr, pp, {"day": d, "rows": rows, "n_raw": len(raw), "excluded_capped_window": acc["excluded_capped_window"], "splits": acc["splits"]})
+            c7.append_member(fr, pp, {"day": d, "rows": acc["rows"], "n_raw": acc["n_raw"], "excluded_capped_window": acc["excluded_capped_window"], "splits": acc["splits"]})
+            del acc
         fails = c7.walk_failed_days(pf)
-        recs = list(c6.iter_partial(pp))
-        if not all(d in {r["day"] for r in recs} or fails.get(d, 0) >= cm.MAX_ITEM_ATTEMPTS for d in dlist):
-            return pa.in_progress(fr, "frame_paused")
+        # one streaming pass over the per-day records (never a list of all of them): recorded days, capped-window count, first row per market id
+        rec_days: set[str] = set()
+        n_capped = 0
         uniq: dict[str, dict] = {}
-        for rec in recs:
+        for rec in c6.iter_partial(pp):
+            rec_days.add(rec["day"])
+            n_capped += int(rec["excluded_capped_window"])
             for r in rec["rows"]:
                 uniq.setdefault(str(r["market_id"]), r)
+        if not all(d in rec_days or fails.get(d, 0) >= cm.MAX_ITEM_ATTEMPTS for d in dlist):
+            return pa.in_progress(fr, "frame_paused")
         kept, drops = c10.drop_by_keys(list(uniq.values()), ids, keys)
         # entity cache (resumable) and the sequential acceptance
         ep_path = rdir / "entities_partial.jsonl"
@@ -366,7 +375,7 @@ def attn_frame(hist_root: Path, transport, wiki_transport, *, rules_sha: str, sm
                 w.writerow([r["market_id"], r["question"], r["title"], r["description"]])
         fr.record_file(ap)
         rep = {"drops": drops, "n_frame_rows": len(uniq), "strata": strata, "walk": {"days": len(dlist), "failed_days": sorted(d for d, k in fails.items() if k >= cm.MAX_ITEM_ATTEMPTS),
-                                                                                          "excluded_capped_window": sum(r["excluded_capped_window"] for r in recs), "wiki_requests": len(cache)},
+                                                                                          "excluded_capped_window": n_capped, "wiki_requests": len(cache)},
                "n_sample": len(rows_out), "n_audit": len(audit), "counts_by_split": dict(Counter(f"{r['stratum']}|{r['split']}" for r in rows_out)),
                "events": {sp: len({r["event_key"] for r in rows_out if r["split"] == sp}) for sp in ("screen", "holdout")}}
         fr.budget.write(rdir / "split.json", json.dumps({"seeds": {"sample": SEED_SAMPLE, "novol": SEED_NOVOL, "split": SEED_SPLIT, "audit": SEED_AUDIT}, "origin_lag_days": sm.smoke_origin_lag_days(smoke_path), "report": rep,

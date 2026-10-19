@@ -165,7 +165,7 @@ def test_census_refuses_incomplete_manifest(tmp_path, capsys, rules_file):
     (tmp_path / "creative_batch11" / "w" / "manifest.json").write_text(json.dumps({"complete": False, "status": "in_progress"}))
     code, out = _run(["census", "--family", "W", *base], capsys)
     assert code == 75 and "pending" in out["science"]
-    assert not (tmp_path / "creative_batch11" / "census_W.json").exists()
+    assert not (tmp_path / "creative_batch11" / run_cb11.CENSUS_W_NAME).exists()
 
 
 def test_refused_roots_and_output_roots(tmp_path):
@@ -583,8 +583,13 @@ def test_n5_census_verifies_the_rules_like_every_other_job(tmp_path, capsys):
 
 # q0220 finished (smoke PASS) and q0221 is parked and superseded by q0221b, both under rules W 2d2bb169 (before the 2026-10-19 q0221b amendment); a finished
 # spec is never edited (the worker ignores it and flags it), and q0221's spec stays as it ran.
+W_6D3F = "6d3f1613d74431eb53de888e5dec83bac8f8c0eb516348d05a33919bb8582a33"  # part W before the section 11.3 half-open window fix (2026-10-19)
 RAN_UNDER_PRIOR_W_RULES = {"q0220_cb11_smoke": "2d2bb1690aa0a5be4446466c0b617b5a31ece07db0d2f5eecf1b5aed1c7b8ae1",
-                           "q0221_cb11_exclusion_keys": "2d2bb1690aa0a5be4446466c0b617b5a31ece07db0d2f5eecf1b5aed1c7b8ae1"}
+                           "q0221_cb11_exclusion_keys": "2d2bb1690aa0a5be4446466c0b617b5a31ece07db0d2f5eecf1b5aed1c7b8ae1",
+                           # finished under 6d3f1613; q0222-q0231 are superseded by the W v2 drafts q0222b-q0231b (section 11.3)
+                           **{k: W_6D3F for k in ("q0221b_cb11_exclusion_keys", "q0222_cb11_w_frame", "q0223_cb11_w_prints", "q0224_cb11_w_censoring", "q0230_cb11_seal", "q0231_cb11_census_W")}}
+# finished (q0225, q0226) or terminal-failed and superseded (q0227 -> q0227b) under the P/A rules before the q0227b bounded-memory fix
+RAN_UNDER_PRIOR_PA_RULES = {k: "2d48bd73e455424b3f6fa16657b92b43461c9a82236fbec0e3a2c2eeb761afec" for k in ("q0225_cb11_pol_frame", "q0226_cb11_pol_prices", "q0227_cb11_attn_frame")}
 
 
 def test_declared_drafts_pin_the_rules_part_they_verify(rules_file):
@@ -606,6 +611,9 @@ def test_declared_drafts_pin_the_rules_part_they_verify(rules_file):
         if f.stem in RAN_UNDER_PRIOR_W_RULES:  # finished or superseded under the prior part-W rules: the spec keeps the sha it ran with
             assert RAN_UNDER_PRIOR_W_RULES[f.stem] in d["notes"] and uses_w, f.name
             continue
+        if f.stem in RAN_UNDER_PRIOR_PA_RULES:
+            assert RAN_UNDER_PRIOR_PA_RULES[f.stem] in d["notes"] and uses_pa, f.name
+            continue
         assert (w_sha in d["notes"]) == uses_w, f.name
         assert (pa_sha in d["notes"]) == uses_pa, f.name
         seen.add((uses_w, uses_pa))
@@ -618,20 +626,27 @@ def test_b2_c1_c2_draft_graph_and_repeats():
     import re
 
     d = {f.name.split("_")[0]: json.loads(f.read_text()) for f in _cb11_spec_files("q02[23]*_cb11_*.json")}
-    assert set(d) == {f"q02{n}" for n in (20, 21, 22, 23, 24, 25, 26, 27, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39)} | {"q0221b"}
+    assert set(d) == {f"q02{n}" for n in (20, 21, 22, 23, 24, 25, 26, 27, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39)} | {"q0221b", "q0227b", "q0222b", "q0223b", "q0224b", "q0230b", "q0231b"}
     deps = {k[1:]: {x.split("_")[0][1:] for x in v["depends_on"]} for k, v in d.items()}
     # q0221b supersedes the parked q0221 (2026-10-19 amendment): every job that needed the exclusion keys waits on q0221b, none on q0221
     assert d["q0221b"]["supersedes"] == "q0221_cb11_exclusion_keys" and deps["0221b"] == {"0220"}
-    assert deps["0222"] == deps["0225"] == deps["0227"] == {"0221b"} and not any("0221" in v for v in deps.values())
+    assert deps["0222"] == deps["0225"] == deps["0227"] == deps["0227b"] == deps["0222b"] == {"0221b"} and not any("0221" in v for v in deps.values())
     assert d["q0221b"]["argv"][d["q0221b"]["argv"].index("--disk-cap-gb") + 1] == "0.01" and d["q0221b"]["resources"]["lane"] == "net"
+    # q0227b replaces the terminal-failed q0227 (MemoryError); q0229 waits on q0227b only
+    assert deps["0229"] == {"0227b"} and d["q0227b"]["argv"] == d["q0227"]["argv"] and d["q0227b"]["resources"]["mem_mb"] <= 2500
     assert deps["0230"] == {"0223"} and deps["0238"] == {"0226", "0229"}
     assert deps["0231"] == {"0222", "0223", "0224", "0230"} and deps["0239"] == {"0226", "0229", "0238"}
+    # W chain v2 (section 11.3 half-open window defect): same graph on the b ids; the W screen waits on the v2 census
+    assert deps["0223b"] == deps["0224b"] == {"0222b"} and deps["0230b"] == {"0223b"} and deps["0231b"] == {"0222b", "0223b", "0224b", "0230b"} and deps["0232"] == {"0231b"}
+    for k in ("q0222b", "q0223b", "q0224b", "q0230b", "q0231b"):
+        assert d[k]["supersedes"] == d[k[:-1]]["id"] and d[k]["argv"] == d[k[:-1]]["argv"] and "11.3" in d[k]["notes"]
+        assert not any("/w/" in o or "h11_wprints/" in o or o.endswith("census_W.json") for o in d[k]["outputs"])
     assert "--family" in d["q0230"]["argv"] and d["q0230"]["argv"][d["q0230"]["argv"].index("--family") + 1] == "W" and "--pa-rules" not in d["q0230"]["argv"]
     assert d["q0238"]["argv"][d["q0238"]["argv"].index("--family") + 1] == "P,A" and "--rules" not in d["q0238"]["argv"]
     for k in ("q0230", "q0238"):
         assert d[k]["resources"]["lane"] == "net" and "gamma-api" in d[k]["resources"]["network"]
         assert re.search(d[k]["repeat"]["until_log_regex"], json.dumps({"status": "seal_all_complete"}))
-    for k, st in (("q0227", "attn_frame_complete"), ("q0229", "attn_data_complete")):
+    for k, st in (("q0227", "attn_frame_complete"), ("q0227b", "attn_frame_complete"), ("q0229", "attn_data_complete")):
         rx = d[k]["repeat"]["until_log_regex"]
         assert re.search(rx, json.dumps({"status": st})) and re.search(rx, json.dumps({"status": c11.STALL_NOT_RUN_SOURCE}))
         assert not re.search(rx, json.dumps({"status": "in_progress"}))

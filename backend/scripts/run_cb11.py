@@ -41,6 +41,7 @@ REFUSED, TEMPFAIL, DISK_BUDGET = 2, 75, 4
 DECLARED_DISK_CAP_GB = {"exclusion-keys": 0.01, "w-frame": 0.02, "w-prints": 0.03, "w-censoring": 0.001, "pol-frame": 0.01, "pol-prices": 0.03, "attn-frame": 0.01, "attn-data": 0.12}
 DECLARED_RPS_MAX = {"smoke": 1.0, "exclusion-keys": 2.0, "w-prints": 2.0, "w-censoring": 2.0, "seal": 2.0, "pol-frame": 2.0, "pol-prices": 2.0, "attn-frame": 2.0, "attn-data": 2.0}
 DECLARED_WIKI_RPS_MAX = 1.0
+CENSUS_W_NAME = "census_W_b.json"  # W chain v2 (q0231b); census_W.json holds the q0231 label from the half-open window defect (CREATIVE_BATCH_11.md 11.3), never rewritten
 
 
 def _emit(obj: dict) -> None:
@@ -526,7 +527,7 @@ def cmd_census(a):
     root = _root(a)
     fam = [x.strip() for x in a.family.split(",") if x.strip()]
     if fam == ["W"]:
-        out = Path(a.out) if a.out else root / "census_W.json"
+        out = Path(a.out) if a.out else root / CENSUS_W_NAME
         if out.exists():
             raise c11.Refused(f"{out} exists; the census is written once")
         sha = _rules(a)  # N5: the census verifies the W rules part like every other job
@@ -579,9 +580,9 @@ def cmd_screen(a):
     freeze_sha = c11.require_freeze("W", Path(a.freeze_spec) if a.freeze_spec else None, require_committed=not a.allow_uncommitted_rules)
     sha = _rules(a)
     root, hist = _root(a), _hist(a)
-    cpath = Path(a.census) if a.census else root / "census_W.json"
+    cpath = Path(a.census) if a.census else root / CENSUS_W_NAME
     if not cpath.exists():
-        raise c11.NotNow("census_W.json missing (q0231 first)")
+        raise c11.NotNow(f"{CENSUS_W_NAME} missing (q0231b first)")
     census = json.loads(cpath.read_text())
     wdir, cdir, pdir = root / w.FRAME_RUN, root / w.CENSOR_RUN, hist / c11.H11_WPRINTS
     if not c11.stall_of(wdir):
@@ -717,7 +718,7 @@ def cmd_rep(a):
         raise c11.Refused("--w-results-sha256 is required for the W replication (pin the committed Stage-1 results_W.json before W_hold is opened)")
     if hashlib.sha256((root / "results_W.json").read_bytes()).hexdigest() != a.w_results_sha256.lower():
         raise c11.Refused("results_W.json sha256 differs from --w-results-sha256: W_hold stays closed")
-    census = json.loads((root / "census_W.json").read_text())
+    census = json.loads((root / CENSUS_W_NAME).read_text())
     committed = not a.allow_uncommitted_rules
     c11.verify_fetch(root / w.FRAME_RUN, (w.FRAME_STATUS,), "w_frame")
     c11.verify_fetch(hist / c11.H11_WPRINTS, (w.PRINTS_STATUS,), "w_prints")

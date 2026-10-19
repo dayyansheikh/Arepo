@@ -540,7 +540,7 @@
   "cb11_a.accept_sequential": "03a3a6191ba198c865f64edbdfe887f5c62d9b8cc3b531863231365fa7d3e90c",
   "cb11_a.attach_targets": "1c086d3471929ed92090c47fe96aebc70cba60ac529440f155571beaa6a6f15f",
   "cb11_a.attn_data": "1273f4cb7cf9cc8f03ada01249d6285e9ad50e5c82d57fb477c05ffe88a42df6",
-  "cb11_a.attn_frame": "ae6a1444d400a6548847f7f43c1ae4f3e63d030793d16921bbb233cda1c2dd4a",
+  "cb11_a.attn_frame": "cb444960d0558d169043064e16b7e2d0315009ccbd42c7d6e8abfe7dbc3e9268",
   "cb11_a.attn_record": "8603571136e2c54b1ceaaa582fa115c0abd8128eb243f7c45119e24dc1424c6d",
   "cb11_a.audit_ids_of": "167b3d91ceaf51d31907a1349a827d33960833c1b4351c00a8a367957e468cf1",
   "cb11_a.block_of": "46a3b853017862be1298f705945eba9ede5b4a9cd05f5690e682e8acd6decd95",
@@ -569,7 +569,7 @@
   "cb11_a.seal_rows": "fdca5bdcb1cd7e8a3d59a95799b22b9d28a175ccc5dd696fb8e020d01c2cd3bc",
   "cb11_a.sel": "4c10e9c099147bdcba6cf6aa2056528dc677c0f6575135782ffbea675bbb9dc8",
   "cb11_a.tx_loader": "a9be544555d9a2f2a2a81b89d564b1feb8e61c2c16eb866d81b2b10b97d308e5",
-  "cb11_a.walk_day": "d487141c29d97433b53abd62e7ebab550354cdb0ec27a6f308dd105ca65d6020",
+  "cb11_a.walk_day": "c0ea5cd44594ca98eee70397c3c22b38f3949ae5f45628975c2fc1eaa6e179cc",
   "cb11_a.ways_of": "16066b74c658b1c7738666176c5853dffe8e5fe8a4ae5a88451ddcf22e1d1c8e",
   "cb11_a.wiki_summary": "a462a5b1f05539ed15cee671fc42e22e54e601f52b031b52292375729dd4a520",
   "cb11_a.wiki_title": "4824c0e7378a433b54a39aba3d42cc89e2944e3dd68bd7f11bfd8642b95dab79",
@@ -655,7 +655,7 @@
   "cb9_common.holm": "00f897abbb2444fa983bcb62be53639bfad2b04e5ff76737533c31eacfcd82d0",
   "cb9_common.top_k_drop_mask": "ca983a19b993ebcfc76179a5579602fdf85a722d3e3e59c4e5a34ae3753d209a"
  },
- "funcs_sha256": "d6a1c739e14ec74ea72ee57f4ffb7651191c96e1f982752cb95c94b7734ccfac",
- "rules_sha256": "2d48bd73e455424b3f6fa16657b92b43461c9a82236fbec0e3a2c2eeb761afec",
+ "funcs_sha256": "e7308b088cb656e41efce9953a7fdacb08df4f71fcccfb8e894c52558ecbd9a3",
+ "rules_sha256": "125386f2a25492010bdc24aad219ba7c8b7b5e1a99eae9b370042a29475b1c50",
  "rules_version": "cb11-pa-rules-v1"
 }

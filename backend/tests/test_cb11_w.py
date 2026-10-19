@@ -213,7 +213,7 @@ def test_w_frame_outputs_and_no_wait_outside_the_guarded_files(built):
         txt = gzip.decompress(raw).decode() if f.endswith(".gz") else raw.decode()
         for forbidden in ("outcome_prices", "uma_status", "disputed", "resolved"):
             assert forbidden not in txt, (f, forbidden)
-    out = built["hist"] / "h11_wprints" / "outcomes_guarded.csv.gz"
+    out = built["hist"] / w.H11 / "outcomes_guarded.csv.gz"
     assert "outcome_prices" in gzip.decompress(out.read_bytes()).decode().splitlines()[0]
     # idempotent
     again = w.w_frame(built["root"], built["hist"], rules_sha="r" * 64, smoke_path=_smoke(built["tmp"]), exclusion_keys_path=built["tmp"] / "creative_batch11" / "exclusion_keys.csv.gz",
@@ -456,7 +456,7 @@ def test_w_prints_run_resume_and_holdout_split(built):
     assert r1["status"] == "in_progress" and r1["stopped"] == "should_stop"
     r2 = w.w_prints(built["hist"], built["wdir"], tr, rules_sha="r" * 64, now=1.8e9, rps=1000.0, data_dumps=None, sleep=lambda s: None)
     assert r2["status"] == w.PRINTS_STATUS and r2["complete"] is True
-    pdir = built["hist"] / "h11_wprints"
+    pdir = built["hist"] / w.H11
     assert (pdir / "screen" / "tx.csv.gz").exists() and (pdir / "holdout" / "tx.csv.gz").exists() and (pdir / "holdout" / "markets.csv.gz").exists()
     import gzip
 
@@ -781,9 +781,9 @@ def full(built, monkeypatch):
 def test_census_counts_only_never_opens_guarded_files(full):
     wd, hist = full["wdir"], full["hist"]
     cens = json.loads((full["root"] / w.CENSOR_RUN / "censoring.json").read_text())
-    cov = w.coverage_audit(hist / "h11_wprints", wd)
+    cov = w.coverage_audit(hist / w.H11, wd)
     # delete every guarded file: the census must not need them
-    for p in (wd / "targets_guarded.csv.gz", wd / w.HOLD_DIR / "targets_guarded_hold.csv.gz", wd / w.HOLD_DIR / "outcomes_guarded_hold.csv.gz", hist / "h11_wprints" / "outcomes_guarded.csv.gz"):
+    for p in (wd / "targets_guarded.csv.gz", wd / w.HOLD_DIR / "targets_guarded_hold.csv.gz", wd / w.HOLD_DIR / "outcomes_guarded_hold.csv.gz", hist / w.H11 / "outcomes_guarded.csv.gz"):
         p.unlink()
     doc = w.census_w(wd, hist, cens, cov)
     assert doc["counts_only"] is True and doc["GWC"]["pass"] is True and doc["GW"]["pass"] is True, doc["GW"]
@@ -798,7 +798,7 @@ def test_census_counts_only_never_opens_guarded_files(full):
 def test_census_labels_for_failed_gates(full, monkeypatch):
     wd, hist = full["wdir"], full["hist"]
     cens = json.loads((full["root"] / w.CENSOR_RUN / "censoring.json").read_text())
-    cov = w.coverage_audit(hist / "h11_wprints", wd)
+    cov = w.coverage_audit(hist / w.H11, wd)
     monkeypatch.setattr(w, "GW", {"units": 10**6, "dates": 5, "categories": 3, "fit_min": 50})
     assert "GW" in w.census_w(wd, hist, cens, cov)["label_W1"]
     monkeypatch.setattr(w, "GW", {"units": 100, "dates": 5, "categories": 3, "fit_min": 50})
@@ -819,7 +819,7 @@ def test_census_labels_for_failed_gates(full, monkeypatch):
 def test_screen_and_rep_end_to_end_on_a_signal(full):
     wd, hist = full["wdir"], full["hist"]
     cens = json.loads((full["root"] / w.CENSOR_RUN / "censoring.json").read_text())
-    census = {"W": w.census_w(wd, hist, cens, w.coverage_audit(hist / "h11_wprints", wd))}
+    census = {"W": w.census_w(wd, hist, cens, w.coverage_audit(hist / w.H11, wd))}
     res = w.screen_w(wd, hist, census, n_boot=100, n_draws=20)
     w1, w2 = res["W1"], res["W2"]
     assert w1["testable"] and w1["R_B0"] > 0.2 and w1["R_B1"] > 0.05 and w1["p_B0"] < 0.01
@@ -840,14 +840,14 @@ def test_b1_rep_w_never_analyses_seal_time_drops_and_w2_decided_means_filled(ful
 
     wd, hist = full["wdir"], full["hist"]
     cens = json.loads((full["root"] / w.CENSOR_RUN / "censoring.json").read_text())
-    census = {"W": w.census_w(wd, hist, cens, w.coverage_audit(hist / "h11_wprints", wd))}
+    census = {"W": w.census_w(wd, hist, cens, w.coverage_audit(hist / w.H11, wd))}
     base = w.rep_w(wd, hist, census, ("W2",), 2, n_boot=50, n_draws=5, seals_dir=full["seals"], committed_seals=False)
     assert base["n_dropped_excluded"] == 0
     c0 = base["W2_rep"]["counts"]
     assert c0["decided"] == c0.get("filled", 0)
     hold_ids = sorted({str(r["market_id"]) for r in c11.read_csv_gz(wd / w.HOLD_DIR / "w2_sample_hold.csv.gz")})
     drop = hold_ids[: max(2, len(hold_ids) // 5)]
-    pdir = hist / "h11_wprints"
+    pdir = hist / w.H11
     from astrolabe.research_lab import history_backfill as hb_  # noqa: PLC0415
 
     (pdir / c11.DROPS_FILE).write_bytes(hb_._gz_csv_bytes(["market_id", "block", "reason"], [[m, "DROPPED_SEAL_COPIES", "id"] for m in drop] + [["999999", "KEPT", ""]]))
@@ -916,14 +916,14 @@ def test_b5_w2_not_testable_when_availability_below_60_percent():
 def test_b5_b6_census_excludes_uncovered_and_counts_only_filled_for_gw2(full, monkeypatch):
     wd, hist = full["wdir"], full["hist"]
     cens = json.loads((full["root"] / w.CENSOR_RUN / "censoring.json").read_text())
-    cov = w.coverage_audit(hist / "h11_wprints", wd)
+    cov = w.coverage_audit(hist / w.H11, wd)
     base = w.census_w(wd, hist, cens, cov)
     assert base["W2"]["availability"]["unavailable"] == 0 and base["W2"]["counts"]["S_decided"] == base["W2"]["GW2"]["S_decided"]
     sample = list(c11.read_csv_gz(wd / "w2_sample.csv.gz"))
-    mk_path = hist / "h11_wprints" / "screen" / "markets.csv.gz"
+    mk_path = hist / w.H11 / "screen" / "markets.csv.gz"
     drop = {r["market_id"] for r in sample[: len(sample) // 2]}
     _write_markets(mk_path, drop)
-    d = w.census_w(wd, hist, cens, w.coverage_audit(hist / "h11_wprints", wd))
+    d = w.census_w(wd, hist, cens, w.coverage_audit(hist / w.H11, wd))
     assert d["W2"]["availability"]["unavailable"] == len(drop) and d["W2"]["counts"]["status"]["unavailable"] == len(drop)
     assert d["label_W2"] == "not testable (availability)" and d["label_W1"] is None
     # B6: 'decided' for GW2 is the filled (entry rule satisfied) tally; no_room / unfilled are triggered, not decided
@@ -941,8 +941,8 @@ def test_b6_census_gw2_ignores_no_room_and_unfilled(full, monkeypatch):
     sample = list(c11.read_csv_gz(wd / "w2_sample.csv.gz"))
     by = {r["market_id"]: r for r in sample}
     rows = [[m, float(r["end_epoch"]) + 400 + 0.0, 0.996, 5.0] for m, r in by.items()]
-    (hist / "h11_wprints" / "screen" / "tx.csv.gz").write_bytes(hb._gz_csv_bytes(w.TX_COLUMNS, rows))
-    d = w.census_w(wd, hist, cens, w.coverage_audit(hist / "h11_wprints", wd))
+    (hist / w.H11 / "screen" / "tx.csv.gz").write_bytes(hb._gz_csv_bytes(w.TX_COLUMNS, rows))
+    d = w.census_w(wd, hist, cens, w.coverage_audit(hist / w.H11, wd))
     assert d["W2"]["counts"]["status"].get("no_room", 0) == len(sample) and d["W2"]["counts"]["S_decided"] == 0 and d["W2"]["counts"]["triggered"] == len(sample)
     assert "GW2" in d["label_W2"]
 
@@ -1030,6 +1030,56 @@ def test_n8_frame_stalls_when_censoring_windows_do_not_reproduce_the_frame(tmp_p
     assert w.CENSOR_MATCH_MIN == 0.99
 
 
+H2_MAN = {"params": {"seed": "arepo-h2", "lookback_days": 270}, "request_clock_now": "2026-10-11T12:00:00Z"}
+H3_MAN = {"params": {"seed": "arepo-h3-power", "lookback_days": 365}, "request_clock_now": "2026-10-11T12:00:00Z"}
+
+
+def test_n8_window_membership_is_closed_at_both_ends_like_the_gamma_walk():
+    """Section 11.3 (q0222 defect): Gamma's end_date_min / end_date_max are inclusive, so the frame walk kept markets ending exactly at a window's end b (round
+    quarter hours: on the host 81,574 of h2_main's and 94,273 of h3_power's unmatched closed rows, i.e. ALL of them, sat exactly on a b whose next quarter hour was
+    not drawn). Membership and the per-window frame counts use [a, b], like count_in_window."""
+    wins = w.frame_windows("h2_main", H2_MAN)
+    starts = {x["a"] for x in wins}
+    lone = [x for x in wins if x["b"] not in starts][:50]  # the next quarter hour was not drawn: b is reachable only through this window's inclusive end
+    assert len(lone) == 50
+    a, b = np.array([x["a"] for x in wins]), np.array([x["b"] for x in wins])
+    on_b = np.array([x["b"] for x in lone])
+    assert w.in_frame_windows(on_b, a, b).all()  # the half-open rule ([a, b)) matched none of these
+    assert w.in_frame_windows(np.array([x["a"] for x in lone] + [x["a"] + 450.0 for x in lone]), a, b).all()
+    assert not w.in_frame_windows(on_b + 1.0, a, b).any() and not w.in_frame_windows(np.array([x["a"] - 1.0 for x in wins if x["a"] - 900 not in starts][:20]), a, b).any()
+    rows = [(x["b"], 1) for x in lone[:3]] + [(lone[0]["a"], 1), (lone[0]["b"], 0), (lone[1]["b"] + 1.0, 1)]  # an open row and one second past b do not count
+    assert w.closed_rows_per_window(rows, lone[:3]) == [2, 1, 1]
+
+
+def _rows_on_window_edges(n, seed, source, man, id0):
+    """``make_rows`` rows moved onto the endpoints (a or b) of the frame's own reconstructed windows, as a real walk returns them."""
+    rng = random.Random(seed + 7)
+    wins = [x for x in w.frame_windows(source, man) if w.E_START <= x["a"] and x["b"] < w.E_HOLD[1]]
+    out = []
+    for r in make_rows(n, seed, id0=id0):
+        x = rng.choice(wins)
+        t = x["b"] if rng.random() < 0.5 else x["a"]
+        e = float(r["end_epoch"])
+        out.append({**r, "end_epoch": str(t), "start_epoch": str(t - (e - float(r["start_epoch"]))), "close_epoch": str(t + (float(r["close_epoch"]) - e))})
+    return out
+
+
+def test_n8_frame_completes_at_the_default_floor_when_rows_sit_on_window_ends(tmp_path):
+    """With rows on the windows' endpoints (half of them exactly on b), q0222 passes N8 at the frozen 0.99 floor and writes the v2 run dir ``w_b`` (the q0222 dir
+    ``w`` keeps its stall and is never rewritten)."""
+    hist = tmp_path / "history"
+    write_frame(hist, "h2_main", _rows_on_window_edges(1500, 1, "h2_main", H2_MAN, 1000), "arepo-h2", 270)
+    write_frame(hist, "h3_power", _rows_on_window_edges(3000, 2, "h3_power", H3_MAN, 100000), "arepo-h3-power", 365)
+    keys = _write_keys(tmp_path)
+    root = tmp_path / "creative_batch11"
+    m = w.w_frame(root, hist, rules_sha="r" * 64, smoke_path=_smoke(tmp_path), exclusion_keys_path=keys, seals_dir=tmp_path / "seals", now=1.8e9, data_dumps=None, h2_sha=None, h3_sha=None)
+    assert m["status"] == w.FRAME_STATUS, m
+    assert w.FRAME_RUN == "w_b" and w.CENSOR_RUN == "w_censoring_b" and w.H11 == c11.H11_WPRINTS == "h11_wprints_b" and set(w.SUPERSEDED_RUNS).isdisjoint({w.FRAME_RUN, w.CENSOR_RUN, w.H11})
+    assert (root / "w_b" / "censor_windows.csv.gz").exists() and not (root / "w").exists()
+    cw = list(c11.read_csv_gz(root / "w_b" / "censor_windows.csv.gz"))
+    assert sum(int(r["n_frame_closed"]) for r in cw) > 0
+
+
 def test_n7_stage2_k_for_w_does_not_wait_for_p_and_a(tmp_path):
     with pytest.raises(cm.NotNow):
         c11.stage2_k(tmp_path)
@@ -1055,7 +1105,7 @@ def _screen_env(full, monkeypatch, tmp_path):
     spec.write_text(json.dumps({"W": {"x": 1}, "PA": {}}))
     wd, hist, root = full["wdir"], full["hist"], full["root"]
     cens = json.loads((root / w.CENSOR_RUN / "censoring.json").read_text())
-    (root / "census_W.json").write_text(json.dumps({"W": w.census_w(wd, hist, cens, w.coverage_audit(hist / "h11_wprints", wd))}))
+    (root / run_cb11.CENSUS_W_NAME).write_text(json.dumps({"W": w.census_w(wd, hist, cens, w.coverage_audit(hist / w.H11, wd))}))
     trials = tmp_path / "trials.jsonl"
     trials.write_text(json.dumps({"kind": "ml_explain", "n_tests": 1156, "source": "x", "label": "EXPLORATORY"}) + "\n")
     orig = w.screen_w
@@ -1080,7 +1130,7 @@ def test_n5_n6_screen_records_freeze_hash_by_label_and_rechecks_the_fetches(full
     assert "non_primary_strata" in res["W1"] and res["W1"]["p_threshold"] == 0.01 and res["W1"]["p_threshold_inclusive"] is False
     assert {"sports", "crypto"} <= set(res["W1"]["non_primary_strata"])
     # a fetch file changed after the census: the screen refuses (exit 2) instead of reading it
-    tx = full["hist"] / "h11_wprints" / "screen" / "tx.csv.gz"
+    tx = full["hist"] / w.H11 / "screen" / "tx.csv.gz"
     tx.write_bytes(tx.read_bytes() + b"\x00")
     code2 = run_cb11.main(["screen", "--family", "W", *base, *seals, "--out", (tmp_path / "other.json").as_posix()])
     out2 = json.loads(capsys.readouterr().out.strip().splitlines()[-1])

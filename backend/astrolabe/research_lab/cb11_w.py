@@ -112,9 +112,12 @@ TAKER_ONLY = "true"
 WPRINTS_OUTPUT_CAP_GB = 0.03
 WFRAME_OUTPUT_CAP_GB = 0.02
 CENSOR_OUTPUT_CAP_GB = 0.001
-FRAME_RUN = "w"
-CENSOR_RUN = "w_censoring"
+# W chain v2 (q0222b-q0231b, 2026-10-19): the q0222 run dirs ("w", "w_censoring", "h11_wprints", census_W.json) hold the terminal stall caused by the half-open
+# window defect (section 11.3) and are never rewritten; the re-run writes new dirs.
+FRAME_RUN = "w_b"
+CENSOR_RUN = "w_censoring_b"
 PRINTS_RUN = H11 = c11.H11_WPRINTS
+SUPERSEDED_RUNS = ("w", "w_censoring", "h11_wprints")  # q0222-q0224 (stalled on the defect); read by nothing
 FRAME_STATUS = "w_frame_complete"
 PRINTS_STATUS = "w_prints_complete"
 CENSOR_STATUS = "w_censoring_complete"
@@ -420,11 +423,23 @@ def draw_censor_windows(windows: list[dict], n: int = N_CENSOR_WINDOWS) -> list[
 
 
 def closed_rows_per_window(rows_end_close: Iterable[tuple[float, int]], windows: list[dict]) -> list[int]:
-    """Number of frame rows with ``closed == 1`` and ``end_epoch in [a, b)`` per window (counts only)."""
+    """Number of frame rows with ``closed == 1`` and ``end_epoch in [a, b]`` per window (counts only). The window is CLOSED at both ends, as the Gamma query that
+    built the frame (``end_date_min`` / ``end_date_max`` are inclusive; ``hb.fetch_frame``) and the q0224 count (``count_in_window``) are (section 11.3)."""
     if not windows:
         return []
     ends = np.sort(np.array([e for e, c in rows_end_close if c], float))
-    return [int(np.searchsorted(ends, w["b"], side="left") - np.searchsorted(ends, w["a"], side="left")) for w in windows]
+    return [int(np.searchsorted(ends, w["b"], side="right") - np.searchsorted(ends, w["a"], side="left")) for w in windows]
+
+
+def in_frame_windows(ends: np.ndarray, a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    """Boolean per end: does it fall in some reconstructed window ``[a, b]`` (closed at both ends, the Gamma walk's own convention; section 11.3)? The windows of
+    one frame do not overlap (adjacent windows share only an endpoint)."""
+    ends, a, b = np.asarray(ends, float), np.asarray(a, float), np.asarray(b, float)
+    if not len(ends) or not len(a):
+        return np.zeros(len(ends), bool)
+    o = np.argsort(a)
+    j = np.searchsorted(a[o], ends, side="right") - 1
+    return (j >= 0) & (ends <= b[o][np.clip(j, 0, None)])
 
 
 def _wcsv(path: Path, header: list[str], rows: Iterable[list]) -> None:
@@ -494,10 +509,7 @@ def w_frame(root: Path, hist_root: Path, *, rules_sha: str, smoke_path: Path, ex
         a = np.array([w["a"] for w in allw[s]], float)
         b = np.array([w["b"] for w in allw[s]], float)
         if len(ends) and len(a):
-            o = np.argsort(a)
-            j = np.searchsorted(a[o], ends, side="right") - 1
-            ok = (j >= 0) & (ends < b[o][np.clip(j, 0, None)])
-            match[s] = float(ok.mean())
+            match[s] = float(in_frame_windows(ends, a, b).mean())
         else:
             match[s] = math.nan
     bad_match = {s: m for s, m in match.items() if not (m >= censor_match_min)}
@@ -1722,4 +1734,4 @@ def rule_funcs() -> tuple:
             fit_model, predict, w1_boot, w1_core, w1_floor_ok, permute_within_cells, w1_placebo, hours_view, w1_robustness, w1_stat, fee_rate, fetch_prints_until, decide_and_enter,
             outcome_y, load_markets, market_available, w2_units, r_ann_h, pool_simulation, _tail, _p_ok, _stat_w2, window_months, w2_stat, w2_robustness, w2_decide, load_nonprimary_units,
             non_primary_strata, screen_w, rep_w, gamma_window_params, count_in_window, count_open_in_window, censor_share, censor_upper, censoring_doc, mde_w1, mde_w2, census_w,
-            coverage_audit, w_frame, w_censoring, w_prints, declared)
+            coverage_audit, w_frame, w_censoring, w_prints, in_frame_windows, declared)

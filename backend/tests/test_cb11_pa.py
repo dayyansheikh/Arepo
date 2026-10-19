@@ -1068,6 +1068,67 @@ def test_attn_frame_smoke_stall_and_resume(tmp_path):
     assert m2["status"] == att.FRAME_STATUS
 
 
+class FatDayWorld(AttnWorld):
+    """One busy end-date day: ``n`` fat raw markets (``pad`` bytes of description each, as real Gamma objects carry ~10 KB), a few of which pass attn_record."""
+
+    def __init__(self, n=2000, pad=20000):
+        super().__init__(n=n)
+        for i, m in enumerate(self.markets):
+            m["endDate"] = iso(ep("2026-06-01") + (i * 43.0) % D)
+            m["description"] = "x" * pad
+            if i % 50:
+                m["outcomes"] = '["A","B","C"]'  # not binary: dropped by attn_record
+
+
+def test_walk_day_keeps_only_filtered_rows_with_bounded_memory(monkeypatch):
+    """q0227 MemoryError: walk_day used to hold every raw Gamma object of a day (~10-13k x ~10 KB) before filtering. It must now keep only the attn_record rows of
+    each uncapped window (identical rows, order and raw count) and never hold more than about one window of raw objects."""
+    import tracemalloc  # noqa: PLC0415
+
+    monkeypatch.setattr(hb, "GAMMA_OFFSET_CAP", 200)  # splits the day down to windows of <= 200 markets
+    w = FatDayWorld()
+    lim = hb.Limiter(w, rps=1e9, sleep=lambda s: None)
+    a = int(ep("2026-06-01"))
+    att.attn_record(w.markets[0])  # warm the lazy imports outside the measurement
+    att.walk_day(lim, a, a + 1, {"rows": [], "n_raw": 0, "splits": 0, "windows": 0, "failed_windows": 0, "excluded_capped_window": 0})
+    acc = {"rows": [], "n_raw": 0, "splits": 0, "windows": 0, "failed_windows": 0, "excluded_capped_window": 0}
+    tracemalloc.start()
+    try:
+        att.walk_day(lim, a, a + int(D), acc)
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert "batches" not in acc and acc["n_raw"] == len(w.markets) and acc["splits"] > 0 and acc["excluded_capped_window"] == 0
+    want = [x for x in (att.attn_record(m) for m in sorted(w.markets, key=lambda m: (cm.ep(m["endDate"]), int(m["id"])))) if x is not None]
+    assert sorted(r["market_id"] for r in acc["rows"]) == sorted(r["market_id"] for r in want) and len(acc["rows"]) == len(want) == 40
+    day_raw_bytes = len(w.markets) * 20000  # what the old code held at once (before Python object overhead)
+    assert peak < 0.35 * day_raw_bytes, (peak, day_raw_bytes)
+
+
+def test_attn_frame_resume_assembles_from_streamed_partial_days(tmp_path):
+    """The assembly pass streams the per-day records (no list of all days): a resumed run gives the same frame as an uninterrupted one."""
+    w1, w2 = AttnWorld(), AttnWorld()
+    h1, h2 = tmp_path / "h1", tmp_path / "h2"
+    m1 = att.attn_frame(h1, w1, w1.wiki, rules_sha="r" * 64, smoke_path=_smoke(tmp_path), exclusion_keys_path=_keys(tmp_path), now=1.8e9, days=["2026-06-01", "2026-06-02"], data_dumps=None, **NOSLEEP)
+    calls = {"n": 0}
+
+    def stop():
+        calls["n"] += 1
+        return calls["n"] == 2
+
+    r = att.attn_frame(h2, w2, w2.wiki, rules_sha="r" * 64, smoke_path=_smoke(tmp_path), exclusion_keys_path=_keys(tmp_path), now=1.8e9, days=["2026-06-01", "2026-06-02"], data_dumps=None, should_stop=stop, **NOSLEEP)
+    assert r["status"] == "in_progress"
+    m2 = att.attn_frame(h2, w2, w2.wiki, rules_sha="r" * 64, smoke_path=_smoke(tmp_path), exclusion_keys_path=_keys(tmp_path), now=1.8e9, days=["2026-06-01", "2026-06-02"], data_dumps=None, **NOSLEEP)
+    assert m1["status"] == m2["status"] == att.FRAME_STATUS
+    for rel in ("frame.csv.gz", "holdout/frame_hold.csv.gz", "audit_sample.csv"):
+        a_, b_ = h1 / att.RUN / rel, h2 / att.RUN / rel
+        rd = (lambda p: gzip.open(p, "rt").read()) if rel.endswith(".gz") else (lambda p: p.read_text())
+        assert rd(a_) == rd(b_)
+    rep1 = json.loads((h1 / att.RUN / "split.json").read_text())["report"]
+    rep2 = json.loads((h2 / att.RUN / "split.json").read_text())["report"]
+    assert rep1 == rep2 and rep1["walk"]["excluded_capped_window"] == 0 and rep1["n_frame_rows"] == 24
+
+
 def write_labels(path: Path, ids, ok_share=1.0):
     ids = sorted(ids)
     path.write_text("market_id,label\n" + "\n".join(f"{m},{1 if i < ok_share * len(ids) else 0}" for i, m in enumerate(ids)) + "\n")

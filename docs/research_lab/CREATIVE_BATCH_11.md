@@ -983,3 +983,43 @@ Review against §1.3 found the code did not match the design:
 - Rules part W regenerated: `6d3f1613d74431eb53de888e5dec83bac8f8c0eb516348d05a33919bb8582a33` (was `2d2bb169…`; an intermediate
   uncommitted `547ae308…` was never used); q0222-q0231 and the
   q0232/q0235 drafts carry the new sha and q0222 depends on q0221b. Tests: `tests/test_run_cb11.py` (q0221b block).
+
+### 11.3 W censoring-window reconstruction used half-open windows (q0222 defect, 2026-10-19; engineering, outcome-blind, counts only)
+
+q0222 stalled W as "not testable (censoring windows)" in 26 s: the N8 check found only 59.2% (h2_main) and 57.4% (h3_power) of
+the frames' closed rows inside the reconstructed 15-minute windows. A read-only host check showed this is a code defect, not a
+source limitation:
+
+- The frames were built by `hb.fetch_frame` with Gamma `end_date_min = a`, `end_date_max = b`, and Gamma treats both bounds as
+  inclusive; the q0224 count (`count_in_window`, "endDate in [a, b]") uses the same query. `cb11_w` instead tested the windows as
+  half-open `[a, b)` (N8 match and `closed_rows_per_window`).
+- Every unmatched closed row (h2_main 81,574 of 199,868; h3_power 94,273 of 221,169 in [W_fit start, W_hold end)) has `end_epoch`
+  exactly equal to a reconstructed window's end `b` whose following quarter hour was not drawn (minute % 15 = 0, second 0), in every
+  month and category (sports, crypto, unknown, weather, finance, ...). Markets end on round quarter hours, so the boundary carries
+  about 40% of the rows. With `[a, b]` both frames match 100%; the seeds, window draws, lookback and request clocks were right.
+- Fix: `cb11_w.in_frame_windows` and `closed_rows_per_window` use `[a, b]`, the walk's own convention (adjacent windows share only
+  an endpoint). The N8 floor (0.99), the GWC gate (2% upper bound), the 300-window sample and every other rule are unchanged. Tests:
+  `test_n8_window_membership_is_closed_at_both_ends_like_the_gamma_walk`, `test_n8_frame_completes_at_the_default_floor_when_rows_sit_on_window_ends`
+  (the old rule reproduces the host stall on the same fixture).
+- No W wait, outcome, print or net was ever read (q0222 stalled before writing any unit file; q0223/q0224/q0230/q0231 only copied
+  the label). The q0222-q0231 outputs (`creative_batch11/w`, `w_censoring`, `census_W.json`, `history/h11_wprints`) keep their
+  stall and are never rewritten; the v2 chain writes `w_b`, `w_censoring_b`, `census_W_b.json` and `history/h11_wprints_b`.
+  The earlier "not testable (censoring windows)" label is a defect outcome, not a counted W result.
+- Drafts (not promoted): q0222b, q0223b, q0224b, q0230b, q0231b (same argv and graph on the new ids); q0232/q0235 now wait on
+  q0231b. Rules part W regenerated: `7734729d70a3f681db8562c7706abfa73b522b683c561f3a6f6adcf896c64e9d` (was `6d3f1613…`;
+  changed sources: `w_frame`, `closed_rows_per_window`, new `in_frame_windows`; common `output_roots` now names `h11_wprints_b`).
+  Before q0223b runs, the CB12-CB15 exclusion and refusal lists that name `h11_wprints` must also name `h11_wprints_b`.
+
+### 11.4 q0227 MemoryError, replaced by q0227b (2026-10-19; engineering, no rule change)
+
+q0227 (A frame) failed three times with `MemoryError` after 269-664 s under the worker's address cap (2 x mem_mb = 800 MB).
+`walk_day` held every raw Gamma market of a day (about 8,000-13,000 objects of about 10 KB each in Python) before filtering, and a
+capped parent window's 2,000-row batch stayed referenced through the split recursion; the baseline address space was already about
+400 MB (imports about 264 MB plus the 525,227-id exclusion keys). Measured on 2026-04-29 (11,106 raw markets): traced peak 250 MB,
+RSS 480 MB. Fix: each uncapped window is reduced to its `attn_record` rows at once (same markets, order and raw count), a capped
+window's batch is released before recursing, and the assembly pass streams the per-day records (traced peak 64 MB, RSS 265 MB on
+the same day). mem_mb 400 -> 600 for the assembly step (honest worst case about 0.8 GB address space). The 9 walk days already in
+`h11_attn/frame_partial.jsonl.gz` are resumed (their rows are identical under the fix). The `repeat` block (re-check c1) is kept.
+P/A rules regenerated: `125386f2a25492010bdc24aad219ba7c8b7b5e1a99eae9b370042a29475b1c50` (was `2d48bd73…`; only `cb11_a.walk_day`
+and `cb11_a.attn_frame` changed). q0225/q0226 ran under `2d48bd73…` (their code paths are unchanged); q0229, q0238, q0239 and the
+q0233/q0234/q0236/q0237 drafts carry the new sha; q0229 depends on q0227b. Test: `test_walk_day_keeps_only_filtered_rows_with_bounded_memory`.
