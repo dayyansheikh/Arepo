@@ -1796,3 +1796,16 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   are CH132's object; U2 cost robustness vacuous; HB1 MS2 disclosure), K ACCEPT with fixes, **H WITHDRAWN uncounted**
   (MDE 12-20c vs the 4c gate; trigger depends on R1's outcome on the same units; no R result exists). Response in
   progress.
+
+## CB15-E code (dbb5db4) freeze check, 2026-10-19 ~09:55Z (science-reviewer): REVISE; q0341 promoted; not counted
+- Rules reproduce (common `13c70322…`, E `a796280b…`); 63 tests pass; strata, weights, within-stratum permutation, GEP,
+  k1 = 4, strict p < 0.01, outcome stripping, no spread exclusion at t_b and counted terminal records match the design.
+- Defects: (1, high, design amendment) a race called and resolved within 12 h loses its book and is dropped as a gap,
+  which excludes on post-entry state (the fastest-called races carry the largest drift): closure must be told apart
+  from gaps and use the last read before closure; (2) a Gamma outage can stall the minute collector; (3) transient
+  NTP/`/books` faults score as a terminal smoke FAIL, and out-of-frame tokens are unfiltered; (4) a deploy touching
+  hashed helpers before 11-06 would silently stop the collector (heartbeat watchdog and deploy freeze needed); (5) the
+  tier snapshot has no time bound; (6) the trade-market pick is arbitrary with several Democrat members; (7) an
+  untestable placebo counts as met; (8) a weak calendar check; (9, 10) undeclared rules and unhashed gate logic.
+  LANE_HOLD fail-safe accepted; the hold must start early enough that no heavy job runs into the night.
+- **q0341 (census, counts only) GO: promoted (6131cf4), priority 99.** q0343 smoke NO_GO until fix 3.
