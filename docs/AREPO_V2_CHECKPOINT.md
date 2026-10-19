@@ -220,26 +220,20 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-19 14:17Z
-0. **Autopilot session from 14:10Z 10-19** (the 09:03Z session stopped ~10:00Z on the usage limit with agents d/e/f
-   uncommitted; their WIP was cb12_e.py, cb16_common.py, cb16_q.py and seals/cb15_ge0/).
-   - **Queue:** q0227b (CB11 A frame, net, repeat) running; q0341 FAILED 3/3 (MemoryError: AS cap 600 MB, measured RSS
-     586 MB) -> **q0341b** (mem 1000, resource-only, e8c44f9, deployed; q0344 draft now depends on q0341b). Then
-     q0285b/q0300/q0301 smokes, q0230b seal, the CB12 M chain q0242-q0249, CB11 q0229/q0238/q0239. cpu lane idle.
-   - **Done since 09:40Z (host):** q0241 CB12 exclusion keys complete; CB11 W v2 q0222b/q0223b (4,788 markets, 16
-     truncated)/q0224b (300 windows) complete. Ledger entry still to write (with the GE0 result).
-   - **GE0 (CB15-E):** passes A and B finished; merged sign table: **MS +1 only, 50 x 0, kappa 0.0069** (13 states have
-     opposite 2022 and 2024 directions between passes). Archive verified locally (367 files) and present on the host
-     (`creative_batch15/ge0_sources/`). Uncommitted until the science-reviewer archive audit returns (running). Then:
-     set audit flags -> `ge0-cross-table --write` -> `ge0-check` -> commit -> pin bundle sha256 in q0344/q0346 drafts.
-     Expected consequence: GEI cannot pass (no -1 state) -> E1/E2 "not testable (identifiability)" at q0344, counted.
-   - **Done 14:20-14:35Z:** GE0 audit ACCEPT -> GE0 committed b7e1f0a (MS +1 only), bundle `a571f58b` pinned in q0344/q0346
-     (ba0ce3b); **CB13 GL round 2 PASS** (4cfb587; full and 164-new) -> q0271/q0272 promoted (cpu lane, deployed).
-   - **Agents running (re-run any without a commit):** CB12-E code (implementer; common/M/X hashes must not change);
-     CB16 code Q/U/K (implementer); creative round 8 (Fable xhigh, CH144+); freeze checks CB12-O (c79364a) and CB15-P
-     (e01ce12+49eba64) (science-reviewers). After q0341b: science-reviewer decides q0343->q0344 vs recording E1/E2
-     'not run (identifiability)' directly.
-   - **After the code agents:** science-reviewer freeze checks of CB12-E and CB16 -> promote drafts.
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-19 20:40Z
+0. **Autopilot session from 20:29Z 10-19** (the 14:10Z session stopped ~14:50Z; its uncommitted CB12-E and CB15-P fix
+   WIP failed tests and was handed to new implementers; round-8 hypotheses committed 67df385).
+   - **Queue:** q0227b (CB11-A frame, net, repeat, 139/164 days) running; smokes q0285b/q0300/q0301/q0348 raised to
+     priority 27 to run between its budget runs; q0273 (CB13-T screen, cpu) promoted to write the counted GT-fail lines.
+     Then CB12 M chain q0242-q0249, CB11 q0229/q0230b/q0238/q0231b/q0239.
+   - **Results written (ledger c9fbbdf):** q0267 CB12-E smoke PASS; CB13-T GT FAILED (LOW 163/NEWS 427 fills < 500) ->
+     T1/T2 "not testable (population)", counted 2; q0341b CB15-E completeness 0.051 < 0.95 -> E1/E2 terminal written
+     (counted) but **under audit** (science-reviewer: faithful or defect?).
+   - **Agents running (re-run any without a commit):** CB12-E fixes and CB15-P fixes (general-purpose Sonnet as
+     implementer; `implementer` type unavailable this session); CB12-O re-check (beadf81); CB16 freeze check (5c3644f,
+     drafts 1eeb1fa; K pin and placebo ruling); CB15-E completeness audit; CB17 design draft from round 8 (Opus).
+   - **After them:** promote what the reviews allow (CB12-O q0260+, CB16 smoke first), freeze checks for CB12-E/CB15-P
+     fixes, CB17 challenger review then cpu-lane census jobs (the cpu lane is otherwise idle).
 1. **CB8-H:** q0162/q0163 wait on spec `not_before` (10-21T06Z / 10-22T12Z). **CB8-B:** q0161/q0164 after T_seal; before
    promoting q0164 run the two `derive-exclusion-ids` commands in its draft notes on the host and fill both sha256 tokens.
 2. **CB9:** data jobs q0181+ only after T_seal 2026-10-22T00Z; q0182 needs the pinned q0164 hash. **CB10:** q0201 needs

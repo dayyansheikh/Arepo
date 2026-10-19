@@ -1,27 +1,27 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-19 15:23 UTC+1
+**Last updated:** 2026-10-19 21:39 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **Autopilot:** new session since 15:10 UTC+1 (19 Oct). The morning session stopped at about 11:00 UTC+1 (usage
-  limit) with three helpers' work unsaved; that work is being finished now.
-- **Server:** building batch 11's attention data (repeating step, about 80 min per round). Queued behind it: batch 13's
-  crypto check, batch 14's two checks, batch 12's "mentions" chain (about 7-9 h), batch 11's seals and censuses.
-- **Batch 15 (election night):** the race count job failed 3 times on a memory limit set too low (measured: it needs
-  about 0.6 GB, it had 0.6 GB of address space). Re-queued with a higher limit; nothing else changed.
-- **Batch 15 late-count table:** both independent helpers finished. They **agree on a direction for only 1 of 51 states**
-  (Mississippi), so by the pre-set rule the other 50 count as "no sign". With no state leaning the other way, the
-  election-night part almost certainly cannot be tested; an independent audit of the sources is running before this is
-  recorded.
-- **Batch 13 blind label check, round 2: PASSED** (97% agreement; both label groups above the 80% bar, also on the
-  164 titles not seen in round 1). The maker-loss data build and its count check are queued on the server's idle compute lane.
-- **Batch 12 (earthquakes) and batch 16 (quoter grain, wake-up prints):** code being finished, then independent review.
-- **New ideas (round 8):** being generated now, aimed at tests that use data already on the server, because the server's
-  download lane is booked for days while its compute lane is idle.
+- **Autopilot:** new session since 21:29 UTC+1 (19 Oct). The afternoon session stopped at about 15:50 UTC+1 with two
+  code fixes half-done (they failed their tests) and two reviews unfinished; all four were restarted.
+- **Server:** still building batch 11's attention data (139 of 164 days walked; about 80 min per round). Short check
+  jobs (batch 13 crypto, batch 14 x2, batch 15 Kalshi-first) now jump ahead between its rounds.
+- **Batch 13 maker-loss test: not testable.** The 4-day window gave 163 and 427 usable fills, against the 500 per class
+  fixed in advance. Recorded as "not testable" (counted, 2 tests); a server job writes the formal record.
+- **Batch 15 election night:** the race count finished, but found only 26 of 511 races inside its frame (5%, needs
+  95%), so it wrote "not testable". That share looks too low to be right, so an independent reviewer is checking for a
+  code fault before it is accepted.
+- **Batch 12 earthquake check:** the server smoke test passed.
+- **Reviews running:** batch 12 options fixes, batch 16 code, batch 15 count audit. **Code running:** batch 12
+  earthquake fixes, batch 15 Kalshi-first fixes.
+- **New ideas (round 8) saved:** CH144 onwards, top 5 all use data already on the server (opens vs closes, how old the
+  order book is at a fill, event open interest, depth moving under a still price, first-day trades). Batch 17 is being
+  designed from them for the server's idle compute lane.
 - **Second free server:** still "out of host capacity" at Oracle; it retries every 10 min.
 
 ## 2. Approvals needed from you
@@ -67,7 +67,7 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 ## 5. Infrastructure
 | Item | State |
 |---|---|
-| Server disk | 100 GB disk, 58 GB free (measured 18 Oct 20:49 UTC+1); collection cap 45 GB, 4 GB free-disk stop unchanged. |
+| Server disk | 100 GB disk, 56 GB free (measured 19 Oct 21:39 UTC+1); collection cap 45 GB, 4 GB free-disk stop unchanged. |
 | Server size | 1 CPU, about 5.6 GB RAM. A second free server (1 CPU, 6 GB, 100 GB) is being requested automatically every 10 min until Oracle has capacity. |
 | Mac | No background jobs. |
 
