@@ -1654,3 +1654,21 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
 - Next: an implementer fixes 1-22 with regression tests, then a verify round, then promotion in the reviewer's order
   (q0270 -> q0285 -> q0271/q0272 -> q0276-q0279, q0284 -> q0280; screens after the freezes; q0274/q0275 last; q0275
   also needs CB3's freeze).
+
+## CB12-X Stage 1 screen (q0255), 2026-10-19 01:00-~01:30Z: X1 NOT IDENTIFIABLE (placebo advanced); 1 counted test
+- Frozen part X `b231830e…`, census v2 bytes `340c72f5…`, results `creative_batch12/results_X.json` (file sha256
+  `5a3b88f3…` on the host). Label: L1, worn set, new moderator, hindsight end date. Evidence role exploratory_historical.
+- **X1** (does the cross-venue gap decay more slowly in long-horizon pairs?): pooled AR(1) rho short 0.868 / mid
+  0.905 / long 0.952, so the half-lives are 48.9 / 69.6 / 139.7 min. The contrast HL_long - HL_short is +90.8 min,
+  above the 60 min floor. Event-way cluster bootstrap p = 0.0030 (G 181; 2,000 draws). The month way (G 13) leaves
+  the maximum by the frozen branch; its leave-one-out sign holds. The early Holm (0.005) passes. Availability 0.991.
+- **The horizon-offset placebo advanced in 32 of 200 draws (16%, against the <= 1.5% allowed).** Permuting the
+  horizon within category reproduces a qualifying contrast far too often, so the contrast is not attributable to
+  horizon; pair or category composition explains it as well. Robustness also failed: the top-5 event drop, the top-5
+  resolution-month drop, and the strata sign (Elections is not evaluable in the long bin; Sports holds). Causal
+  demeaning, |g| >= 3c, the edit flag, fresh steps, thirds and volume terciles hold.
+- **Verdict: not identifiable; X1 does not advance.** CB12-X has no replication stage (L1), so CB12-X is closed.
+  Reported only (descriptive): the K->P lag cross-correlation at lag 2 (short bin) is 0.45, against P->K 0.001. This
+  is consistent with the sealed Kalshi-lead object (E009/E010) and is not re-tested here.
+- Count: the trials.jsonl line (n_tests 1, family cb12_X) was written on the host. `by_triage` cumulative is 1,231
+  (q 0.1, no survivors).

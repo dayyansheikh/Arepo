@@ -1021,24 +1021,53 @@
   {
    "id": "CB12",
    "title": "Mention baskets, stale horizons and other round-5 ideas",
-   "plain": "Word-mention baskets and stale cross-venue horizons. The stale-horizon part's rules are frozen and its single screen test is queued; the mention-basket part waits for batch 11's exclusion list.",
+   "plain": "Word-mention baskets, earthquake counts and other round-5 ideas. The stale-horizon part (CB12-X) was screened and closed with no finding; the mention-basket part waits for batch 11's exclusion list.",
    "batch": "CB12",
    "family": "mixed",
    "stage": "designed",
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Stale-horizon screen (one counted test), then mention baskets after batch 11's exclusion list",
+   "next": "Mention baskets after batch 11's exclusion list",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB12-X freeze, 2026-10-19 ~01:15Z"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB12-X Stage 1 screen (q0255), 2026-10-19"
    },
    "stage_results": {
     "designed": "pending"
    },
    "reached": [
     "designed"
+   ]
+  },
+  {
+   "id": "CB12-X",
+   "title": "Stale cross-venue horizons (X1)",
+   "plain": "Do price gaps between matching Polymarket and Kalshi markets take longer to close when resolution is far away? They appear to, but shuffling the horizons produced the same pattern far too often (16% against 1.5% allowed), so the pattern cannot be tied to the horizon. Not a finding.",
+   "batch": "CB12",
+   "family": "cross_venue",
+   "stage": "screened",
+   "status": "closed",
+   "verdict": "not_detected",
+   "effect": {
+    "label": "+91 min half-life gap",
+    "note": "development (historical); horizon-shuffle placebo reproduces it, so not attributable"
+   },
+   "next": "None (no replication stage for this family)",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "effect": "docs/research_lab/EXPERIMENT_LEDGER.md § CB12-X Stage 1 screen (q0255), 2026-10-19",
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB12-X Stage 1 screen (q0255), 2026-10-19"
+   },
+   "stage_results": {
+    "designed": "pass",
+    "screened": "fail"
+   },
+   "reached": [
+    "designed",
+    "screened"
    ]
   },
   {
