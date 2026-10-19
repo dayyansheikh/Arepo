@@ -1361,6 +1361,7 @@ def test_runner_rules_freeze_part_and_declared_arguments(tmp_path, capsys, rules
     assert code == 0 and set(out["parts"]) == {"common", "LABELLER", "T", "R"} and all(v["declared"] for v in out["parts"].values())
     code, out = _run(["freeze-part", "--part", "T"], capsys)
     assert code == 0 and out["rules_sha256"] and out["labeller_rules_sha256"] and out["part"] == "T"
+    assert out["common_rules_sha256"] == c13.rules_part_file_doc("common")["rules_sha256"] and out["census_sha256"] is None  # record-only fields
     code, out = _run(["freeze-part", "--part", "R"], capsys)
     assert code == 0 and "labeller_rules_sha256" not in out
     a = base_args(tmp_path, rules_file, pin_file)
@@ -1372,7 +1373,7 @@ def test_runner_rules_freeze_part_and_declared_arguments(tmp_path, capsys, rules
     assert code == 2
 
 
-def test_runner_smoke_T_write_once_and_chain_to_the_seal(tmp_path, capsys, rules_file, pin_file):
+def test_runner_smoke_T_write_once_and_chain_to_the_seal(tmp_path, capsys, rules_file, pin_file, monkeypatch):
     make_two_day_world(tmp_path)
     a = base_args(tmp_path, rules_file, pin_file)
     smoke = tmp_path / "smoke_T.json"
@@ -1411,10 +1412,20 @@ def test_runner_smoke_T_write_once_and_chain_to_the_seal(tmp_path, capsys, rules
     assert code == 2 and "freeze" in out["refused"]
     fz = tmp_path / "cb13_v1.json"
     fz.write_text(json.dumps(freeze_doc()))
-    code, out = _run(["screen", "--family", "T", *a, "--freeze-spec", str(fz)], capsys)
-    assert code == 0 and out["T1"]["verdict"] == "not testable (population)", out
+
+    def _never(*_a, **_k):  # the gate-fail amendment: GT failed in the counts-only census -> no mark quote, print or outcome dataset is opened
+        raise AssertionError("an outcome-bearing reader was called although no T test is testable")
+
+    with monkeypatch.context() as mp:
+        for name in ("_read_fills_verified", "_pin", "_trades", "_snaps"):  # the runner's only routes to fills, prints and mark captures (cb13_t itself is rule-hashed: not patched)
+            mp.setattr(run_cb13, name, _never)
+        code, out = _run(["screen", "--family", "T", *a, "--freeze-spec", str(fz)], capsys)
+    assert code == 0 and out["T1"]["verdict"] == "not testable (population)" and out["T2"]["verdict"] == "not testable (population)", out
     res = json.loads((root / "results_T.json").read_text())
     assert res["T1"]["testable"] is False and res["T2"]["testable"] is False and res["freeze_part"] == "T"
+    assert "reported" not in res and "gti" not in res and res["outcome_exposure"]["mark_index_opened"] is False
+    assert all(res[t]["p"] == 1.0 and res[t]["est"] is None and res[t]["effect"] is None and res[t]["n"] == 0 for t in ("T1", "T2"))
+    assert not any(k in json.dumps(res) for k in ("mean", "markout", "mark_out"))
     lines = [json.loads(x) for x in (tmp_path / "trials.jsonl").read_text().splitlines()]
     assert sum(x["n_tests"] for x in lines if x["kind"] == "ml_explain") == 2  # both counted with p = 1
     assert {x["kind"] for x in lines} == {"cb13_descriptive", "cb13_test", "ml_explain"}
@@ -2151,3 +2162,18 @@ def test_labeller_revision_1_keeps_precedence_and_declares_the_revision():
     assert lab.classify("Will the next Prime Minister of Sweden be a woman?", fee_type="sports_fees_v1")[0] == lab.SPORTS  # sports fee type first
     assert lab.classify("Will CPI YoY be 3%?")[0] == lab.PUBLIC
     assert lab.declared()["revision"]["n"] == 1 and lab.declared()["revision"]["of"] == 1
+
+
+def test_screen_t_gate_fail_opens_nothing_and_precedence():
+    ok = {"pass": True}
+    base = {"gt": {"t1_pass": False, "t2_pass": False}, "gl": ok, "gtp": {"T1": ok, "T2": ok}, "unknown_ok": True, "population_label": t13.LABEL_THIN}
+    out = t13.screen_t(None, None, None, base)  # fills / prints / mark index are None: touching any would raise
+    assert set(out) == {"labels", "T1", "T2", "outcome_exposure", "batch_holm_T", "advanced"} and out["advanced"] == []
+    assert out["T1"]["verdict"] == out["T2"]["verdict"] == "not testable (population)" and out["T1"]["p"] == out["T2"]["p"] == 1.0
+    assert t13.LABEL_THIN in out["labels"] and out["outcome_exposure"]["mark_index_opened"] is False
+    # precedence: GL (labeller) first, then GT (population), then GTP (power)
+    assert t13.census_gate_whys({**base, "gl": {"pass": False}}) == ("not testable (labeller)",) * 2
+    assert t13.census_gate_whys({**base, "unknown_ok": False}) == ("not testable (labeller)",) * 2
+    assert t13.census_gate_whys({**base, "gt": {"t1_pass": True, "t2_pass": True}, "gtp": {"T1": {"pass": False}, "T2": {"pass": False}}}) == ("not run (power)",) * 2
+    # LOW passes, NEWS fails: T2 stays testable, so the full screen (which needs outcomes) is not short-circuited
+    assert t13.screen_t_gate_fail({**base, "gt": {"t1_pass": False, "t2_pass": True}}) is None

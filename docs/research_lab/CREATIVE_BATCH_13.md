@@ -1267,3 +1267,31 @@ from the round 2 audit file onwards.
 
 **Rules part sha256 after 11.r:** LABELLER `95cde0ab70a3845977933a5a13ed2f65263eb903f86ca9da93a90924948d79b9`
 (was `1e515bb4…`). common `62e90149…`, T `f72683f5…` and R `91907024…` are unchanged.
+
+### 11.t T screen computes no outcome when no T test is testable (2026-10-19; pre-outcome amendment, before the T freeze)
+
+Before this amendment `screen` (q0273) loaded the post-fill mark quotes, built the outcome dataset, ran GTI and wrote the
+`reported` block (per-class mean mark-outs, size-weighted, reward-band and stale-touch means) even when the census gates
+had already made every T test untestable. That exposed outcome-bearing numbers for tests that are only counted with
+p = 1. **Change (information exposure only; no threshold, formula, gate or label text changed):**
+- `cb13_t.census_gate_whys` decides the T1 / T2 gate labels from the counts-only census alone, with the existing
+  precedence: GL (labeller) first, then GT ("not testable (population)"), then GTP ("not run (power)"), as §2.7 and
+  §CB13-T already state (GT is a census count; T2 also fails when LOW fails GT).
+- `cb13_t.screen_t_gate_fail`: when both T1 and T2 are untestable by those gates, the screen writes only the two counted
+  terminal lines (p = 1, the census-determined label, `est` null, `n` 0, `advanced` empty) and a descriptive
+  `outcome_exposure` record (`mark_index_opened`, `mark_quotes_read`, `outcome_dataset_built`, `gti_run`,
+  `reported_written` all false). It never opens fills, prints or the mark index, never builds the dataset, never runs
+  GTI (which needs outcome-adjacent prints) and never writes `reported`, `gti` or any mean or estimate field. The runner
+  logs one descriptive line `creative_batch_13:screen_T_no_mark_index` (counts 0).
+- When at least one test is testable (for example LOW passes and NEWS fails, so T2 only), the full screen runs as
+  before, including GTI and `reported`. A GTI cadence failure there still sets "not testable (cadence)" for the tests
+  that were testable; a labeller failure is always decided first.
+- `freeze-part --part T` also prints record-only `common_rules_sha256` and the T census sha256 (canonical object and file
+  bytes, when `census_T.json` exists). Neither is read for any decision.
+- Tests: GT-fail screen with the fills, print, pin and mark readers patched to raise (never called); no `reported`,
+  `gti`, mean or estimate field; exactly the two counted lines with the population label; precedence unit test.
+
+**Rules part sha256 after 11.t:** T `33bd165b490fb2233ef1fc892b0727a92c17462a88d48acd40af0d375840948b` (was `f72683f5…`).
+common `62e90149…`, LABELLER `95cde0ab…` and R `91907024…` are unchanged. q0273 (draft and job), q0274 and q0275 drafts
+re-pinned (hash tokens only). Jobs q0270b, q0271 and q0272 still carry the old T token in their notes; they verify the
+rules file against the code, not the note.

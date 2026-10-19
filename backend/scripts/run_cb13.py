@@ -274,6 +274,14 @@ def cmd_rules(a) -> int:
     return 0
 
 
+def _census_sha_record(a) -> dict | None:
+    """Record-only: the canonical (sha256 of the object) and file-byte sha256 of the committed T census, if present; never read for any decision."""
+    p = Path(a.census) if getattr(a, "census", None) else _root(a) / "census_T.json"
+    if not p.exists():
+        return None
+    return {"file": p.name, "sha256_canonical_obj": _c13().sha256_obj(json.loads(p.read_text())), "sha256_file_bytes": hashlib.sha256(p.read_bytes()).hexdigest()}
+
+
 def cmd_freeze_part(a) -> int:
     """Print one family part of the freeze declaration (what ``model_specs/cb13_v1.json`` carries under that part; T also pins the LABELLER sha); writes nothing."""
     c13 = _c13()
@@ -284,7 +292,8 @@ def cmd_freeze_part(a) -> int:
         extra = {}
         if a.part == "T":
             lab = c13.rules_part_file_doc("LABELLER")
-            extra = {"labeller_rules_sha256": lab.get("rules_sha256"), "labeller_declaration": lab.get("declared")}
+            extra = {"labeller_rules_sha256": lab.get("rules_sha256"), "labeller_declaration": lab.get("declared"),
+                     "common_rules_sha256": c13.rules_part_file_doc("common").get("rules_sha256"), "census_sha256": _census_sha_record(a)}
     except c13.Refused as exc:
         _emit({"refused": str(exc)})
         return REFUSED
@@ -575,12 +584,16 @@ def cmd_screen(a):
 
         _gap(a)
         shas = _t_rules(a)
-        pin = _pin(a)
-        fills = _read_fills_verified(a, root / "t_screen")
-        txs, _ = t13.screen_transactions(_trades(a), "screen", pin)
-        caps = c13.list_captures(_snaps(a), "screen", pin)
-        qi = t13.load_quote_index(caps, {f["condition_id"] for f in fills if f["status"] == t13.SCREEN_STATUS_FILL}, "mark", "screen", pin, boundary_epoch=pin["start"])
-        body = t13.screen_t(fills, txs, qi, census)
+        body = t13.screen_t_gate_fail(census)  # the counts-only census gates decide first: no test testable -> no fills, prints or mark quotes are even opened
+        if body is None:
+            pin = _pin(a)
+            fills = _read_fills_verified(a, root / "t_screen")
+            txs, _ = t13.screen_transactions(_trades(a), "screen", pin)
+            caps = c13.list_captures(_snaps(a), "screen", pin)
+            qi = t13.load_quote_index(caps, {f["condition_id"] for f in fills if f["status"] == t13.SCREEN_STATUS_FILL}, "mark", "screen", pin, boundary_epoch=pin["start"])
+            body = t13.screen_t(fills, txs, qi, census)
+        else:
+            c13.log_descriptive("screen_T_no_mark_index", {**body["outcome_exposure"], "census_sha256": hashlib.sha256(cpath.read_bytes()).hexdigest()}, trials_path=_tp(a), role=c13.EVIDENCE_ROLE_DEV)
         role, pmap = c13.EVIDENCE_ROLE_DEV, {"T1": "composition_placebo", "T2": "signflip_placebo"}
     else:
         from astrolabe.research_lab import cb13_r as r13  # noqa: PLC0415
@@ -957,6 +970,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     q = sub.add_parser("freeze-part")
     q.add_argument("--part", required=True, choices=c13.FREEZE_PARTS)
+    q.add_argument("--census", default=None, help="record-only: the T census file whose sha256 is printed")
+    q.add_argument("--root", default=None)
     q.set_defaults(fn=cmd_freeze_part)
 
     q = sub.add_parser("smoke", help="q0270 (T) / q0285 (R)")

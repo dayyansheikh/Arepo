@@ -1138,23 +1138,55 @@ def not_testable(label: str) -> dict:
     return {"testable": False, "p": 1.0, "advance": False, "verdict": label, "est": None, "n": 0}
 
 
-def screen_t(fills: list[dict], txs: list[dict], qi: QuoteIndex, census: dict, *, n_draws: int = c13.PLACEBO_DRAWS) -> dict:
-    """q0273. Gates (GT, GL, GTP, GTI) first; a failed or unknown gate counts the test with p = 1. Every line carries the labels. The qi must be a mark-mode index."""
-    D = build_dataset(fills, qi)
-    gti = gate_gti(fills, D, txs) if len(D["tx_id"]) else {"pairs": 0, "evaluable": False, "pass": False, "not_evaluable_label": LABEL_CADENCE}
+def census_gate_whys(census: dict) -> tuple[str | None, str | None]:
+    """The T1 / T2 gate labels the COUNTS-ONLY census alone decides (GL, GT, GTP; precedence: GL (labeller) > GT (population) > GTP (power)); None = testable so far. GTI (cadence) needs
+    outcome-adjacent prints and is only looked at when a test is testable here."""
     gt, gl, gtp = census["gt"], dict(census["gl"]), census["gtp"]
     if not census.get("unknown_ok", False):  # never "met" by default: UNKNOWN > 5% fails GL
         gl["pass"] = False
-    labels = [LABEL_T] + ([LABEL_THIN] if census.get("population_label") else []) + ([gti["not_evaluable_label"]] if gti.get("not_evaluable_label") else [])
+    if not gl["pass"]:
+        return "not testable (labeller)", "not testable (labeller)"
+    why1 = None if (gt["t1_pass"] and gtp["T1"]["pass"]) else ("not testable (population)" if not gt["t1_pass"] else "not run (power)")
+    why2 = None if (gt["t2_pass"] and gtp["T2"]["pass"]) else ("not testable (population)" if not gt["t2_pass"] else "not run (power)")
+    return why1, why2
+
+
+def _census_labels(census: dict) -> list[str]:
+    return [LABEL_T] + ([LABEL_THIN] if census.get("population_label") else [])
+
+
+def screen_t_gate_fail(census: dict) -> dict | None:
+    """q0273 when the census gates leave NO T test testable: only the counted terminal lines (p = 1, the census-determined label) and a descriptive record that no mark index was opened. No
+    outcome dataset, no GTI, no ``reported`` block, no mean or estimate field. None when at least one test is testable (the full screen runs)."""
+    why1, why2 = census_gate_whys(census)
+    if why1 is None or why2 is None:
+        return None
+    labels = _census_labels(census)
+    out: dict = {"labels": labels, "T1": not_testable(why1), "T2": not_testable(why2),
+                 "outcome_exposure": {"mark_index_opened": False, "mark_quotes_read": False, "outcome_dataset_built": False, "gti_run": False, "reported_written": False,
+                                      "reason": "census gates leave no T test testable (counts-only decision)"}}
+    out["batch_holm_T"] = c13.stage1_holm({"T1": 1.0, "T2": 1.0})
+    for t in ("T1", "T2"):
+        out[t]["labels"] = labels
+        out[t]["effect"] = None
+    out["advanced"] = []
+    return out
+
+
+def screen_t(fills: list[dict], txs: list[dict], qi: QuoteIndex, census: dict, *, n_draws: int = c13.PLACEBO_DRAWS) -> dict:
+    """q0273. Gates (GT, GL, GTP, GTI) first; a failed or unknown gate counts the test with p = 1. Every line carries the labels. The qi must be a mark-mode index. When the census gates
+    leave no test testable, ``screen_t_gate_fail`` answers first and nothing outcome-bearing is built (the runner does not even open the mark index)."""
+    early = screen_t_gate_fail(census)
+    if early is not None:
+        return early
+    D = build_dataset(fills, qi)
+    gti = gate_gti(fills, D, txs) if len(D["tx_id"]) else {"pairs": 0, "evaluable": False, "pass": False, "not_evaluable_label": LABEL_CADENCE}
+    why1, why2 = census_gate_whys(census)
+    labels = _census_labels(census) + ([gti["not_evaluable_label"]] if gti.get("not_evaluable_label") else [])
     cad_fail = bool(gti.get("evaluable") and not gti.get("pass"))
     out: dict = {"gti": gti, "labels": labels, "reported": reported_variants(D, fills) if len(D["tx_id"]) else {}}
-    if not gl["pass"]:
-        why1 = why2 = "not testable (labeller)"
-    elif cad_fail:
+    if cad_fail:
         why1 = why2 = "not testable (cadence)"
-    else:
-        why1 = None if (gt["t1_pass"] and gtp["T1"]["pass"]) else ("not testable (population)" if not gt["t1_pass"] else "not run (power)")
-        why2 = None if (gt["t2_pass"] and gtp["T2"]["pass"]) else ("not testable (population)" if not gt["t2_pass"] else "not run (power)")
     out["T1"] = not_testable(why1) if why1 else t1_test(D, n_draws=n_draws)
     out["T2"] = not_testable(why2) if why2 else t2_test(D, n_draws=n_draws)
     adv = {t: out[t].get("advance") is True for t in ("T1", "T2")}
