@@ -1923,3 +1923,19 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   Stage-2 outcome guard (opens only for `rep-E`). §11 row E1 lists the implementation choices. 162 CB12 tests pass.
 - Rules: E `9a60a4a5…`; common `f2f672c1…`, M `a2e420b0…`, X `7485a272…`, O `766eed85…` unchanged (recomputed).
 - Drafts: q0244, q0245, q0253, q0257 (cron collector), q0258, q0266 (E census), q0267 (E-only smoke; q0240 predates E).
+
+## CB12-E code (561647a) freeze check, 2026-10-19 ~15:00Z (science-reviewer): REVISE; q0267 smoke promoted; not counted
+- All five rules parts recomputed at 561647a and match the seal; 36 E tests pass. Stage-2 magnitudes are stored as
+  served (point-in-time); Stage 1 uses final revised magnitudes (disclosed), only events older than 72 h feed q.
+- Defects: (HIGH) E1-rep pass ignores the binding p_alt placebo credit; Stage-2 catalogue outcome can undercount (read
+  span starts at the earliest still-open window; > 10-day reads keep only M >= 5.5). (MED) 60% availability rule
+  inert in Stage 2 and loose in Stage 1; missed/failed passes leave no record; p_alt placebo fails open; halves split
+  at the median unit time, not calendar halves. (LOW) census reads events in [t-72 h, t) (disclose); trial-line role
+  labels; Stage-2 span < 30 days; unlabelled capped windows; E2 drops; GE parser-failure denominator; engineering:
+  q0245 holds ~1-1.7 M points in memory under a 600 MB cap, q0244 memory, `point_at` linear scans, q0244 request count.
+- Rulings: months non-regional faithful ("this month" still regional, fix pre-freeze on out-of-window text only); no
+  series key faithful; Stage-2 storage enough for lag/big-quake checks but not outcomes; n_tests = 2 faithful; 90-day
+  fallback faithful ("not run (power)" expected).
+- **Promoted q0267** (E smoke, cpu lane, mem 600). q0244 after confirming the census accepts a frame written under the
+  pre-fix E sha; q0245 after the memory fix; q0266/q0253/q0257/q0258 after fixes + freeze (q0258 committed only near
+  `T12_E2_end`).
