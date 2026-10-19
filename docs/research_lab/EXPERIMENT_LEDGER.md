@@ -1847,3 +1847,29 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
 - Process deviation: q0227b was committed straight into jobs/ by the implementer (9ede7dd) and started 09:40Z before
   this review; the review found no scientific change. Its 9 resumed walk days were fetched under P/A `2d48bd73…`.
 - **Promoted (8f1b4eb): q0222b, q0223b, q0224b, q0230b, q0231b.**
+
+## CB15-E GE0 committed (b7e1f0a) with archive audit; q0341 -> q0341b; CB11 W v2 and CB12 keys data done, 2026-10-19 ~14:20Z; not counted
+- **GE0 (two network-enabled compiler passes, all 51 jurisdictions, archived):** passes agree on a non-zero sign only for
+  **MS (+1)**; merged sign table MS +1, 50 x 0; **Cohen's kappa 0.0069** (pass A 6 x -1 / 1 x +1; pass B 12 x +1).
+  Poll-close tables agree on all 51. Bundle sha256 `a571f58b…` (pinned in drafts q0344/q0346, ba0ce3b). Cross-table: the
+  only non-zero effective sign is MS in the 01Z stratum.
+- **Archive audit (science-reviewer, read-only, ~14:20Z): ACCEPT, no sign changes.** MS supported (2024 President and
+  2022 House early-to-final D share recomputed from the cited NYT snapshots in both passes; NCSL counting-order cites).
+  The 50 s = 0 entries were not individually audited (effective s is 0 either way) and are marked `unsupported`
+  conservatively. **Two fetched files breach the no-2026-news rule** (`6aa6a304bac1…`, a May 2026 local news article;
+  `8fd30b184a9d…`, a 270toWin 2026 poll-closing page whose navigation links 2026 forecasts, polls and prediction
+  markets, no numbers); neither is cited and no entry changes; pass B's README claim that none was fetched is inaccurate.
+  `party_map.json` is empty/pending (must be audited before any freeze).
+- **Disclosure (compiler reliability):** both passes used NYT/AP results via Wayback, the same sign convention and
+  office rule, but different early points: pass A = first capture with >= 25% of the final vote (median ~30%, election
+  evening); pass B = first capture 10:00-13:00Z next morning (median ~96%). A measures the election-night swing toward R
+  as election-day votes arrive; B only the late tail toward D (opposite directions in 13 states in 2022 and 15 in 2024,
+  6 in both). The frozen rule (disagreement -> s = 0) was applied unchanged.
+- **Consequence:** with no -1 state, no closing-hour stratum is identified, so **E1/E2 will be "not run
+  (identifiability)", counted**, when GEI is evaluated (q0344 by design). Whether to run q0343 -> q0344 for the record or
+  record the terminal directly goes to a science-reviewer after q0341b.
+- **q0341 (CB15-E census) FAILED 3/3**, MemoryError ~20 s in, nothing written: address-space cap 2 x 300 MB; a local
+  outcome-blind probe (no outputs, counts not inspected) measured Python peak 289 MB, max RSS 586 MB. **q0341b** = same
+  argv/code/rules (common `13c70322…`, E `10ab88e7…`), mem_mb 1000 (e8c44f9, deployed).
+- **Host data steps complete (queue events, no test):** CB12 q0241 exclusion keys (`exclusion_keys_complete`); CB11 W v2
+  q0222b frame, q0223b prints (4,788 markets, 16 truncated, 0 unavailable), q0224b censoring (300 windows, 0 unavailable).
