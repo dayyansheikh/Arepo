@@ -1,0 +1,117 @@
+{
+ "X": {
+  "census": {
+   "census_rules_sha256": "7485a272bb57d7afd3b114b3382b79ffdb81c0bdf1e2c4cfbc1458280abf3a9f",
+   "counts": {
+    "GX_pass": true,
+    "availability_share": 0.9912,
+    "events": 183,
+    "label_X": null,
+    "long": {
+     "events": 25,
+     "fresh_step_pairs": 64192,
+     "months": 10,
+     "pairs": 56,
+     "step_pairs": 82969
+    },
+    "pairs": 316,
+    "resolution_months": 13,
+    "short": {
+     "events": 154,
+     "fresh_step_pairs": 94636,
+     "months": 13,
+     "pairs": 239,
+     "step_pairs": 125967
+    }
+   },
+   "file": "research_lab/creative_batch12/census_X_v2.json",
+   "sha256_canonical_obj": "f0c5d9f79c7ed1b159a9aa49f450c930d1a1d7610cf71e2e614a9c1853d5ba6b",
+   "sha256_file_bytes": "340c72f54d95841d2a64d307f4d5202896f20d61051a23090d31a8e8d680490b"
+  },
+  "decisions": [
+   "freshness (A7, 16870d6): Polymarket age measured from usability, stamp in [t-1200, t-600] s; Kalshi t - stamp <= 600 s; this replaces the declaration string 'fresh steps (both points <= 10 min)'",
+   "volume terciles from the Gamma `volume` key (500/500 matched rows carry it; no other declared volume key present)",
+   "cluster ways: resolution-month G = 13 overall (long bin 10) < 15, so the month way drops out of the p-value maximum (cb12_x.py:575) and only its leave-one-month-out sign rule binds; X1's p is the event-way p (G = 183; short 154, long 25)",
+   "strata: Elections has 6 pairs in the long bin (< the declared 10 per bin), so the elections-stratum robustness way is not evaluable in the long bin and is reported as such (Sports 27 long pairs is evaluable); nothing is substituted",
+   "decision rule as bound by the rules hash: one-sided p < 0.01 (GATE_P); early Holm at alpha/10 = 0.005 (k1 = 10), the fuller step-down later; horizon-offset placebo advance rate <= 1.5% (200 draws, seed 12108, within category); availability >= 60%; MIN_UNITS 100, MIN_CLUSTERS 30; no X replication stage (label L1)"
+  ],
+  "declaration": {
+   "cb12_x": {
+    "bins_s": {
+     "long_min": 2592000.0,
+     "short_max": 259200.0
+    },
+    "c1_expected": {
+     "events": 183,
+     "pairs": 316,
+     "steps": 517616
+    },
+    "estimator": "pooled AR(1) of the pair-demeaned gap on consecutive usable steps by horizon bin of the first step; HL = 10 min ln2 / (-ln rho); rho >= 1 -> inf (reported) and the 7 d cap in the contrast and bootstrap",
+    "gate_GX": {
+     "events": 20,
+     "pairs": 30,
+     "steps": 20000
+    },
+    "guards": "cross_venue_live refused; steps at or after T12_X_end refused; input mtime >= 2026-10-13 refused",
+    "horizon_source": "poly_markets.json 'end' (scheduled), streamed",
+    "inputs": [
+     "audit_flags.json",
+     "audit_sample100.json",
+     "kalshi_markets.jsonl",
+     "kalshi_markets_b.jsonl",
+     "kalshi_markets_s0.jsonl",
+     "kalshi_markets_s1.jsonl",
+     "kalshi_markets_s2.jsonl",
+     "kalshi_markets_s3.jsonl",
+     "kalshi_markets_s4.jsonl",
+     "kalshi_markets_s5.jsonl",
+     "matches.json",
+     "poly_markets.json"
+    ],
+    "label": "L1, worn set, new moderator, hindsight end date",
+    "placebo": {
+     "draws": 200,
+     "judged_on": "p < 0.01 under the same inference (floors off)",
+     "name": "horizon-offset",
+     "seed": 12108
+    },
+    "reads": "no outcome, no wallet, no side",
+    "robustness": [
+     "sports and elections strata (>= 10 pairs per bin each)",
+     "volume terciles (>= 2 of 3)",
+     "causal demeaning (3-day past mean) keeps sign and >= half",
+     "|g| >= 3c",
+     "edit-flag excluded",
+     "fresh steps (both points <= 10 min)",
+     "top-5 events",
+     "top-5 resolution months",
+     "sign in each third by step date",
+     "leave-one-cluster-out sign for any way with G < 15"
+    ],
+    "series_pin": {
+     "count": 493,
+     "listing_sha256": "f930d276d1f49509bb90be21d8cab6b2c4bbb2d883e60b2b0c9791691028d6fd"
+    },
+    "study_source_pins": {
+     "backend/astrolabe/research_lab/cross_venue.py": "5264083948a77679189f14471290c2f84bf71dac01fc9632cb0633fdb59ace99",
+     "backend/scripts/run_cross_venue.py": "cab073ab1caa66f41e9cfc543d60d64ac640738cfb2fce10f4cbbd021982f7b5"
+    },
+    "x1": {
+     "contrast": "HL_long - HL_short",
+     "floor_min": 60.0,
+     "inference": "2000-draw cluster bootstrap, seed 1212; CB10 small-G rule per way",
+     "one_sided": ">0",
+     "ways": [
+      "polymarket event",
+      "calendar month of the earlier resolution"
+     ]
+    }
+   }
+  },
+  "disclosure": "the screen records but does not cross-check these census and rules fields against the files; the cross-check is part of the post-run audit",
+  "frozen_utc": "2026-10-19T00:53:56Z",
+  "part": "X",
+  "review": "science-reviewer freeze confirmation 2026-10-19 (~01:10Z): ACCEPT_WITH_FIXES; fixes 1-4 applied here (census hashes both ways, month-way branch, A7 text, decision rule); census values read-only on the host by the orchestrator",
+  "rules_sha256": "7485a272bb57d7afd3b114b3382b79ffdb81c0bdf1e2c4cfbc1458280abf3a9f"
+ }
+}

@@ -1613,3 +1613,17 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   step pairs short 125,967 (fresh 94,636), mid 279,399 (181,042), long 82,969 (64,192); GX gate pass in both bins;
   G event 183, month 13 (long bin: 25 events, 10 months). Volume key `volume` (500/500). **Decision before the screen:**
   freshness as corrected (A7); volume terciles from `volume`. q0255 X screen promoted (X1, one counted test).
+
+## CB12-X freeze, 2026-10-19 ~01:15Z (science-reviewer ACCEPT_WITH_FIXES; not counted)
+- q0255 (X screen) refused twice on 10-18 (rc 2, "freeze spec not found"): it was promoted but `model_specs/cb12_v1.json`
+  had never been written. Those attempts read nothing and compute nothing.
+- Freeze confirmation (science-reviewer): the declaration matches the design (bins, floor, ways, seeds, placebo, GX,
+  label, robustness; nothing relaxed); the census was counts only (`census_x` never calls `gap_of`); no CB12-X test
+  line exists in trials.jsonl. Fixes applied in the file: census hashes both ways (canonical object `f0c5d9f7…`, which
+  reproduces on the host; file bytes `340c72f5…`), the A7 freshness text, the decision rule as bound by the rules hash,
+  and two branches the census forces: (i) the month way (G 13, long bin 10, < 15) drops out of the p maximum and only
+  its leave-one-month-out sign rule binds, so X1's p is the event-way p (G 183); (ii) Elections has 6 long-bin pairs
+  (< 10), so that stratum is reported as not evaluable in the long bin.
+- Census (read-only on the host): pairs short 239 / long 56, events 154 / 25, availability 0.991, `label_X` null.
+- **Frozen:** `model_specs/cb12_v1.json` part X, rules `7485a272…`, X-part sha256 `b231830e…`. q0255 revived (one
+  counted test, X1). Other CB12 parts (M, E, F, O) freeze later as separate keys, each committed before its screen.
