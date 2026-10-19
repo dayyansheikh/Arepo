@@ -2025,3 +2025,26 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   per-slot pass state; p_alt fails closed; calendar halves; LOW items; q0245 streams; bisect lookups.
 - Not fixed: q0244 memory/request count (draft at 400 MB); E2 drops only via counting unresolved trades. Rulings asked:
   stricter denominator, span-cap label for E-c windows, q0244 cap vs streaming.
+
+## CB12-O re-check fixes (89fd546), CB15-P fixes (7c33ef9), CB16 freeze check, 2026-10-19 ~20:45Z; not counted
+- **CB12-O (implementer, 89fd546):** all 4 items fixed (previous daily file = latest dated before the unit's day;
+  dividend smoke needs n_dates >= 1 for SPY and AAPL; earnings beyond `earnings_covered_end` -> None; timeout re-run
+  disclosed); amendment O4; O `13cb7b63…` -> `0899797a…`; 186 cb12 tests pass. **q0260 (O smoke) promoted**, cpu lane,
+  `not_before` 2026-10-20T14:05Z (inside a regular US session). Freeze confirmation of O (fixes 1, 3) before q0261.
+- **CB15-P (implementer, 7c33ef9):** P-16..P-22 (§11b-2): scheduled-end exclusion and "unavailable (no order book at
+  24 h)"; terminal "unavailable (source)" after 3 failures in 3 runs over >= 15 min; only-needed legs; Kalshi cache cap
+  0.25 GB counted in the total; read room under 3,500/day; Kalshi 0.5+0.5 rps; cron timeouts; atomic disk_check. P
+  `80db6dfa…` -> `6ac3b610…` (common/E unchanged); q0348 hash token updated; 121 cb15 tests pass. P-6 ruling open.
+  Re-check running (science-reviewer). Note: the implementer relaxed a draft-priority test (q0348 is now priority 27)
+  and padded a disk-cap test for the separate cache cap; the re-check judges both.
+- **CB16 freeze check (science-reviewer): ACCEPT_WITH_FIXES.** Causal guards, windows, REP_A drops, seeds, SE-only power
+  gates, Holm k1 = 2, terminal counting verified; 66 tests pass. Must fix before the rules commit: (1) Q1 calibration
+  placebo shuffles within market x hour (cells of ~1 fill: always fails) -> within market, as U1; (2) **ruling:**
+  composition placebos for Q1/U1 kept the stratum-level grain share tied to the outcome, so they cannot separate
+  composition from grain -> within-strata permutation test (same strata, 200 draws, seeds 16101/16111; holds iff <= 3
+  of 200 permuted coefficients reach the observed one); decided before any CB16 statistic exists; (3) fine-strata
+  synthetic fixtures; (4) U: failed HTTP / missing earlier print must be "failed/unresolved", never "silent"; (5) K pin
+  check must refuse unset pins; pin `matches_all.json` sha256 `f4cde1e9…ca326`, 603,444 B, mtime 2026-10-12T20:52:48Z
+  (measured read-only on the host; predates E009 registration), with the stated limitation that it is not re-derived;
+  (6) declare percentile interpolation, tight-touch subset and REP_A minimums for Q2/U2. Fix agent running. Then a short
+  re-check -> q0381 smoke first.
