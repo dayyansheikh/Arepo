@@ -1915,3 +1915,11 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   deviations need a §11 P amendment; census misses two counts. Drafts q0347/q0348 mem 600 unverified (set 900).
 - Next: implementer fixes all (common/E hashes unchanged) -> re-check -> promote q0347, q0348, then q0349, q0350;
   q0352 only after the Stage-2 fixes and a re-check (cannot start before 2026-11-04).
+
+## CB12-E code (561647a), 2026-10-19 ~14:50Z (implementer); freeze check running; not counted
+- Completed from the interrupted WIP: frame + USGS catalogue, 72 h accessor, negative-binomial model, E1 with both
+  binding placebos, GE/GEP census (outcome-blind), collector, rep; added the reported Poisson variant, negRiskMarketID in
+  the key drop, a month-name fix in the regional regex, the 7-day-lag and M >= 7.5 robustness for E1-rep, and a
+  Stage-2 outcome guard (opens only for `rep-E`). §11 row E1 lists the implementation choices. 162 CB12 tests pass.
+- Rules: E `9a60a4a5…`; common `f2f672c1…`, M `a2e420b0…`, X `7485a272…`, O `766eed85…` unchanged (recomputed).
+- Drafts: q0244, q0245, q0253, q0257 (cron collector), q0258, q0266 (E census), q0267 (E-only smoke; q0240 predates E).
