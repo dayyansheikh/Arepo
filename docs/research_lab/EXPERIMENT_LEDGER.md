@@ -2101,3 +2101,22 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   P-27: the P-6 ruling as written above. P `6ac3b610…` -> `7d856416…` (common/E unchanged); 126 cb15 tests.
 - **q0348 hold lifted** (runs after the next deploy). Confirmation re-check of 88f404a running for q0349/q0350 and the
   Stage-2 jobs.
+
+## CB16 fixes (cc82c5e) re-check, 2026-10-19 ~21:10Z (science-reviewer): ACCEPT_WITH_FIXES; part K signed off; q0381 promoted
+- Verified: 75 tests; committed rules common `9a087b8c…`, A `8f395a7d…`, K `cfe9bea5…`; items 1-6 as ruled
+  (`strata_permutation_test` exact; `--draws` refused without the uncommitted-rules flag); K content (10 non-matches pins
+  byte-identical to CB12-X, counts 148,384 / 326,380 / 958, cells, MDE 3.80·SD·√(1/G_p + 1/G_a), re-entry rule) matches
+  the design. Updated tests weaken nothing.
+- Fixed by the coordinator: q0381 note pin suffix (ca327 -> ca326). Optional: a U1 fine-strata fixture.
+- Host check (read-only, coordinator): all 11 cross_venue files match the K pins; CB13-T SCREEN captures present.
+  **q0381 (A+K smoke, cpu lane) promoted**, priority 20 (a failed A smoke counts Q1/U1 once each as not testable (source)).
+- Next: q0382 after q0381; q0380 after q0340 (`--base-sha256` = host sha256 of `creative_batch15/exclusion_keys.csv.gz`
+  after q0340); q0383 after q0380+q0381, alone (1,200 MB). q0384-q0389 after the part-A freeze (not_before = S_A + 14 d
+  + 8 h from the actual frozen_utc); q0386 also needs E011's analysis-commit and CB3's freeze/stop records; q0388 needs
+  the committed results_A.json sha256; q0392 only after Stage 2 triggers.
+
+## CB12-E census guard fixes (3716711), 2026-10-19 ~21:12Z (implementer); not counted
+- Test now compares q on units with magnitudes > 0.3 from every threshold (exact equality, >= 1 unit) plus a separate
+  near-threshold ambiguity test; `run_cb12.py` refuses a frame/prices manifest recorded under a different E part
+  (census, screen, rep). E hash unchanged (runner is unhashed); 189 cb12 tests. q0266 may follow q0244/q0245 after a
+  short confirmation.
