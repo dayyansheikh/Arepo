@@ -1939,3 +1939,15 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
 - **Promoted q0267** (E smoke, cpu lane, mem 600). q0244 after confirming the census accepts a frame written under the
   pre-fix E sha; q0245 after the memory fix; q0266/q0253/q0257/q0258 after fixes + freeze (q0258 committed only near
   `T12_E2_end`).
+
+## CB15-P fixes (1528f0d, §11b P-1..P-15) re-check, 2026-10-19 ~14:45Z (science-reviewer): ACCEPT_WITH_FIXES; q0348 promoted; not counted
+- Hashes: common `13c70322…`, E `10ab88e7…` unchanged; P `198b7fab…` -> `80db6dfa…` (matches seal and drafts).
+  `pytest -k cb15` 112 passed. All 14 earlier defects fixed or declared; no threshold loosened.
+- Remaining: (MED-HIGH) Stage 2 lacks the scheduled-end exclusion (a market closing before the 24-h read gives a 404
+  read as an empty book -> invented mid); (MED) q0349 never finishes if one pair always fails (needs a pre-declared
+  terminal "unavailable (source)" rule); live disk cap counts the Kalshi cache; (LOW-MED) 3,500/day cap can be
+  overshot; a failed unused Kalshi leg at 24 h drops the unit; (LOW) cron timeouts, combined Kalshi rps 1.5 vs stated
+  <= 1, non-atomic shared disk_check.json, small doc items. Ruling needed before q0350: P-6's Polymarket
+  `can_close_early = False` has a weak factual basis.
+- **Promoted q0348** (P smoke). q0347 waits for q0340 (draft, after CB14 q0302). q0349/q0350 after defect 2 (+ the
+  ruling); q0352/q0354 after a Stage-2 re-check.
