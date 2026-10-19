@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-19T14:35:00Z",
+ "updated": "2026-10-19T20:40:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1096,18 +1096,18 @@
   {
    "id": "CB13",
    "title": "Where makers lose money; touch versus end-above markets",
-   "plain": "Whether the losses of resting orders differ by type of market, and whether 'will it touch X' crypto markets are priced as if they were 'will it end above X'. The touch-market connection check passed after a fix, and the market labeller passed its second blind check (after one allowed correction).",
+   "plain": "Whether the losses of resting orders differ by type of market, and whether 'will it touch X' crypto markets are priced as if they were 'will it end above X'. The maker-loss part could not be tested: the 4-day window held too few usable fills (163 and 427 against 500 needed per class), so it is recorded as not testable. The touch-market part continues.",
    "batch": "CB13",
    "family": "mixed",
    "stage": "designed",
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Build the maker-loss data frame and its counts-only census on the server; crypto connection check",
+   "next": "Record the maker-loss result as not testable (counted); run the touch-market connection check again (v2) on the server",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB13 GL round 2 (blind labeller audit): PASS, 2026-10-19"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Session 2026-10-19 ~20:30Z (autopilot): finished jobs written up; WIP recovery"
    },
    "stage_results": {
     "designed": "pending"
