@@ -1,0 +1,33 @@
+{
+ "id": "q0461_lt2_analyze",
+ "title": "LT2 single registered analysis of E012, E013 (F4, F5) and E014 (DRAFT): Holm over 4 one-sided primaries, J4-R placebo for E012, within-market timing gates for E013/E014, paper taker economics; refuses before 2026-11-13T12:00Z",
+ "family": "live_tests_2",
+ "priority": 40,
+ "expected_value": "prospective verdicts for the replicated SB2 L1, F4, F5 and the C-TTE light proxy",
+ "data": [
+  "research_lab/live_tests2 (write-once lines of q0460)"
+ ],
+ "resources": {
+  "mem_mb": 2500,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0460_lt2_live_collect"
+ ],
+ "argv": [
+  "scripts/run_live_tests2.py",
+  "analyze",
+  "--out",
+  "../data-dumps/research_lab/live_tests2/analysis_v1.json"
+ ],
+ "timeout_s": 21600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests2/analysis_v1.json"
+ ],
+ "next_action": "ledger results entry (scored once), trials lines (counting rule: needs a battery2 count rule for kind live_tests2 before the run), registry update",
+ "notes": "DRAFT, not in queue/jobs. Runs once; --out refuses to overwrite. Memory estimate: E012 about 2 M origin rows plus the 2 h series of their markets (about 7 M rows) for the 20-draw placebo; E013 200 permutation draws x 2 tests on about 0.25 M rows; E014 1,000 cheap draws. Not measured on real window data (none exists yet); the synthetic end-to-end test passes locally.",
+ "not_before": "2026-11-13T12:00:00Z"
+}
