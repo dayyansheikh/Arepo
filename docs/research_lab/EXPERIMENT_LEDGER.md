@@ -2048,3 +2048,15 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   (measured read-only on the host; predates E009 registration), with the stated limitation that it is not re-derived;
   (6) declare percentile interpolation, tight-touch subset and REP_A minimums for Q2/U2. Fix agent running. Then a short
   re-check -> q0381 smoke first.
+
+## CB12-E fixes (38bef1a) re-check, 2026-10-19 ~20:50Z (science-reviewer): REVISE (one item); not counted
+- Verified: all part hashes recompute; 48 E tests pass; E1-rep needs the p_alt credit; Stage-2 outcomes only from a
+  read spanning the window start; p_alt fails closed; calendar halves; no pass back-filled.
+- (HIGH) 38bef1a moved the frozen ambiguous-quake exclusion from [t-72h, t) to [t-144h, t-72h) and labelled it a
+  disclosure; it changes a frozen point-in-time guard and is not clearly stricter -> revert (the earlier ruling only
+  asked to disclose the census read window). (LOW) q0257 cron fires once per slot, so the 3-try retry is 1 -> add :15/:25.
+  (LOW) disclose that synthetic "unavailable (collection)" units come only from the last pass's members.
+- Rulings: stricter availability denominator ACCEPTED (pre-data, makes 60% harder); "span cap" label not needed for
+  E-c (the span always covers an E-c start); q0244 cap -> 1,000 MB (engineering only; not alongside a multi-GB job).
+- Order after the revert + re-check: q0244 -> q0245 -> q0266 -> freeze -> q0253 -> q0257 -> q0258 (near T12_E2_end).
+  Fix agent running. Open: the census does not check the frame's E hash in `load_frame`.
