@@ -1688,3 +1688,13 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   alpha or the 2% rule changed; nothing outcome-dependent is read.
 - Rules part W `6d3f1613…` (was `2d2bb169…`); P/A rules `2d48bd73…` unchanged. q0222-q0231 and drafts q0232/q0235
   re-pinned; q0222/q0225/q0227 now depend on q0221b. The q0220 smoke PASS stays valid (smoke code unchanged).
+
+## CB13 verify round (fixes 39c85d9), 2026-10-19 ~04:35Z (science-reviewer): REVISE; not counted
+- 20 of 22 defects FIXED, #14 partial, #15/#19 declared; 74 CB13 tests pass; rules parts reproduce.
+- New defects: **A (high)** the CB13-wide Stage-2 Holm can never add a pass (`adv` already needs p < 0.01 = alpha/5;
+  design §2.3 says the final Holm "can only add passes"); **B (medium)** an R pregate fail writes no census, so screen-R
+  tempfails until `failed` and stage2-final waits forever (same for a failed smoke); **C** q0271/q0274 lack
+  `--budget-min` and `repeat`; **D** the T3 <= 100-share limit is not applied; **E** shared c12/c10 helpers are not
+  hashed in the rules.
+- Verdicts: T smoke GO; T census and R seal GO; the rest GO_WITH_FIXES. **Promoted now: q0270 (T smoke) and q0285
+  (R smoke).** Next: fix A-E, reseal, then q0271 -> q0272; R data after the CB11 exclusion keys (q0221b) are pinned.
