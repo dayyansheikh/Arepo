@@ -1969,3 +1969,22 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   handling. Smoke adds Yahoo, Gamma closed lookup and Nasdaq dividend checks; outcome guard checks dates; census reports
   missed checkpoints (their share multiplies availability, 60% unchanged); cron line in
   `scripts/oracle/cb12_o_crontab.txt` (flock, timeout 900). 37 O tests pass.
+
+## Session 2026-10-19 ~20:30Z (autopilot): finished jobs written up; WIP recovery
+- **q0341b CB15-E census (done 15:00Z):** completeness gate FAILED: 26 race events inside the frame of 511 walked race
+  events (share 0.051 < 0.95; 1,865 walk events, 61 requests). The job wrote the terminal **E1/E2 "not testable (frame
+  completeness)", counted** (newly counted). A 5% share is implausibly low for a correct frame, so a science-reviewer is
+  auditing whether the denominator/matching is faithful or a defect before anything further is recorded or retired.
+  q0343-q0346 stay drafts meanwhile.
+- **q0267 CB12-E smoke (done 15:04Z):** PASS (e_parser_out_of_window, e_usgs, guards_fixture_E all true; 4 requests).
+- **q0271 CB13-T frame (done 14:33Z):** complete, 2,931 fills (SCREEN, 2026-10-12..15).
+- **q0272 CB13-T census (done 15:06Z), counts only:** gate **GT FAILED**: SCREEN LOW 163 fills in 72 events, NEWS 427
+  fills in 104 events (each needs >= 500 fills in >= 60 events); GL passed (round 2); GTP MDE T1 1.71c (> 1.0c) and T2
+  1.66c (> 0.5c), so both would also be "not run (power)". The largest drop was "touch older than 60 min" (17,816).
+  By the frozen rule T1 and T2 are **"not testable (population)", counted (2)**; R1-rep/R2 untouched (R family separate).
+  **q0273 promoted** (cpu lane) to write the counted lines; it computes no estimate when a gate fails.
+- **Recovery:** the 14:10Z session ended mid-work. Its uncommitted CB12-E and CB15-P fix WIP failed tests; both were
+  handed to new implementers. The CB12-O re-check and CB16 freeze check (in flight at the stop) were relaunched.
+  Round 8 creative hypotheses (CH144+, top 5 all host-only/cpu lane) committed 67df385; CB17 design drafting started.
+- Queue ops: smokes q0285b/q0300/q0301/q0348 priority 25/9 -> 27 so they run between q0227b's 80-min budget runs
+  (q0227b CB11-A walk at 139 of 164 days, still progressing). Ops only, no design change.
