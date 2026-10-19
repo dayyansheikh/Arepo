@@ -1672,3 +1672,7 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   is consistent with the sealed Kalshi-lead object (E009/E010) and is not re-tested here.
 - Count: the trials.jsonl line (n_tests 1, family cb12_X) was written on the host. `by_triage` cumulative is 1,231
   (q 0.1, no survivors).
+
+## Ops: CB3 quote_state caught up (02:31Z pass, 2026-10-19); not counted
+- After the 2018cf6 guard fix, the 02:31Z collector pass extracted all 20 pending captures (written 20, missing 0,
+  remaining 0, max 16.4 s per capture). The deviation above was a delay only; no capture was lost.
