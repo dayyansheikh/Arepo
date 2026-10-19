@@ -220,20 +220,17 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-19 21:00Z
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-19 21:41Z
 0. **Autopilot session from 20:29Z 10-19.** All results/rulings are in the ledger (entries from "Session 2026-10-19
-   ~20:30Z" on).
-   - **Queue:** q0227b (CB11-A, net, repeat) running. Promoted this session: q0273 (CB13-T counted GT-fail lines, cpu),
-     q0260 (CB12-O smoke, not_before 10-20T14:05Z), q0244 (CB12-E quake frame, net, 1,000 MB), q0381 (CB16 A+K smoke,
-     cpu, priority 20). q0348 (CB15-P smoke) hold lifted. Smokes at priority 27. **Deploy HEAD** (a deploy of 7e36f35
-     was waiting for the 20:31Z collector pass; re-run `scripts/oracle/deploy.sh` afterwards so the host gets HEAD).
-   - **Verdicts:** CB15-E E1/E2 "not testable (frame completeness)" FAITHFUL (counted 2; q0343-q0346 retired); CB13-T
-     T1/T2 "not testable (population)" (counted 2, via q0273); CB12-O, CB12-E, CB15-P, CB16 code accepted with fixes,
-     all fixes committed except the CB15-P P-28 LOW items (agent running).
-   - **Next promotions:** CB12-E q0245 after q0244, then q0266 after a short confirmation of 3716711; CB12-O freeze
-     confirmation (fixes 1, 3 in 89fd546) after the q0260 smoke -> O freeze -> q0261 cron; CB16 q0382 after q0381,
-     q0380 after q0340, q0383 alone; CB15-P q0349/q0350 after q0347 (with q0340) and q0348 pass.
-   - **CB17:** design draft from round 8 (Opus agent) running -> challenger review -> cpu-lane census jobs.
+   ~20:30Z" on). Counted today: CB15-E E1/E2, CB13-T T1/T2, CB16-Q Q1 (all not testable).
+   - **Queue:** q0227b (CB11-A, net, repeat) running; then smokes q0285b/q0300/q0301/q0348 (priority 27), q0244
+     (CB12-E quake frame), CB12 M chain, CB11 seals/censuses; q0260 (CB12-O smoke) not_before 10-20T14:05Z.
+   - **Freezes:** CB13-T frozen (56d1088). CB12-O freeze after q0260's iv_convention (code freeze-ready, O 4e1dd759).
+   - **Next promotions:** CB12-E q0245 after q0244, q0266 after q0245 (guards in place; E bd512db4); CB16 q0380 after
+     q0340 (CB14 draft), q0383 alone after q0380; CB15-P q0347 with q0340, then q0349/q0350 after q0347 + q0348 pass.
+   - **CB17:** DRAFT-REVISED (b7374fc). Implementer writing part `pre` + q0400-q0403 census code -> science-reviewer
+     freeze check of part pre (also decide the live_trades 3 -> 8 GiB cap proposal before S_8 = 10-26) -> promote
+     q0400-q0403 (cpu lane). Then parts A/B/C code before S_8.
 1. **CB8-H:** q0162/q0163 wait on spec `not_before` (10-21T06Z / 10-22T12Z). **CB8-B:** q0161/q0164 after T_seal; before
    promoting q0164 run the two `derive-exclusion-ids` commands in its draft notes on the host and fill both sha256 tokens.
 2. **CB9:** data jobs q0181+ only after T_seal 2026-10-22T00Z; q0182 needs the pinned q0164 hash. **CB10:** q0201 needs

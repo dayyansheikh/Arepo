@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-19T21:30:00Z",
+ "updated": "2026-10-19T21:40:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1103,11 +1103,11 @@
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Record the maker-loss result as not testable (counted); run the touch-market connection check again (v2) on the server",
+   "next": "Maker-loss part recorded as not testable (2 tests counted); the touch-market part continues with its server check",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Session 2026-10-19 ~20:30Z (autopilot): finished jobs written up; WIP recovery"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § q0273 CB13-T screen and q0382 CB16-Q grain census, 2026-10-19"
    },
    "stage_results": {
     "designed": "pending"
@@ -1165,18 +1165,18 @@
   {
    "id": "CB16",
    "title": "Quoter price grain; large-print silence",
-   "plain": "Designed from round 7: whether fills at sub-cent prices (typical of automated quoters) lose less to informed traders than round-cent fills, and whether the first large trade after a long quiet spell in an active market carries information. A hedging-skew idea was withdrawn before any data was seen because it could never reach a detectable size.",
+   "plain": "Designed from round 7: whether fills at sub-cent prices (typical of automated quoters) lose less to informed traders than round-cent fills, and whether the first large trade after a long quiet spell in an active market carries information. The price-grain part could not be tested: only 7 markets had fills at both price grains. The quiet-spell part continues.",
    "batch": "CB16",
    "family": "mixed",
    "stage": "designed",
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Code reviewed and its server check passed; counting job running; new 14-day data windows from early November",
+   "next": "Quiet-spell part: new 14-day data windows from early November",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB16 smoke q0381 PASS; q0382 promoted; q0273 refused (no CB13 freeze), 2026-10-19"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § q0273 CB13-T screen and q0382 CB16-Q grain census, 2026-10-19"
    },
    "stage_results": {
     "designed": "pending"

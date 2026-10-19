@@ -2205,3 +2205,11 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
 - live_trades cap: designer recommends raising the 3 GiB total cap to 8 GiB before S_8 (one-line reviewed change; the
   300 MB/day guard stays; not in `config_hash`), after checking data-dumps stays under the 40 GB job guard. Decision
   pending (coordinator, with the part-pre freeze check); the fallback leaves it (cap projected after REP_8 ends).
+
+## q0273 CB13-T screen and q0382 CB16-Q grain census, 2026-10-19 21:16-21:22Z; counted 3
+- **q0273 (done 21:22:04Z): T1 and T2 "not testable (population)", p = 1, counted 2** (GT failed in the census). No
+  mark index opened (§11.t path). CB13-T is finished at Stage 1; q0274/q0275 never run. CB13-R continues (q0285b).
+- **q0382 (done 21:16:17Z), counts only: gate GQG FAILED** -> **Q1 "not testable (grain)", counted once** (newly
+  counted); Q2 stopped by design. Eligible fills 125; markets with both grains 7 (32 fills, share 0.256); sub-cent share
+  0.896 (112 of 125); touch tick 0.001: 225, 0.01: 812 prints. 37,598 prints read (lookback limited to the SCREEN window;
+  data before 2026-10-12 not on the host, disclosed in the output). CB16-U and K continue.

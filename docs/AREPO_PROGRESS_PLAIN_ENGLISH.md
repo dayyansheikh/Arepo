@@ -1,25 +1,24 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-19 21:56 UTC+1
+**Last updated:** 2026-10-19 22:41 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **Autopilot:** session running since 21:29 UTC+1 (19 Oct). It recovered the afternoon session's unfinished work.
-- **Server:** still building batch 11's attention data (139 of 164 days; about 80 min per round). Short checks now run
-  between its rounds. Newly queued: batch 12 earthquake data, batch 12 options check (Tuesday at the US market open),
-  batch 16 check, batch 13 record job.
-- **Two parts recorded as "not testable" (4 tests counted, no result either way):**
-  - Batch 13 maker losses: too few usable fills in the 4-day window (163 and 427, against 500 needed per class).
-  - Batch 15 election night: the fixed market search found only 26 of 511 races (it missed district races). An
-    independent check confirmed this is how the frozen design behaves, not a code fault.
-- **Independent reviews done (4 batches):** batch 12 options and earthquakes, batch 15 Kalshi-first pairs and batch 16
-  were accepted after fixes. Where a fix changed a frozen rule, it was put back. Batch 16's two "placebo" checks were
-  redesigned before any data exists, because as built they could never pass.
-- **Batch 17:** being designed from the round-8 ideas (they use data already on the server, so the idle compute lane gets
-  work).
+- **Autopilot:** session running since 21:29 UTC+1 (19 Oct).
+- **Server:** both lanes busy: batch 11 attention data (network; about 80 min per round) and short checks between its
+  rounds. Queued: batch 12 earthquake data, batch 12 options check (Tuesday at the US market open), batch 13/14/15 checks.
+- **Recorded today as "not testable" (7 tests counted, no result either way):**
+  - Batch 13 maker losses (2): too few usable fills in the 4-day window (163 and 427 vs 500 per class).
+  - Batch 15 election night (2): the fixed market search found only 26 of 511 races; an independent check confirmed
+    this is how the frozen design behaves, not a code fault.
+  - Batch 16 price grain (1): only 7 markets had fills at both price grains.
+  - Batch 13's record job was changed so it computes no outcome numbers when its tests cannot run.
+- **Independent reviews done:** batches 12, 13, 15 and 16 code accepted after fixes; batch 16's server check passed.
+- **Batch 17 (from round 8):** designed and challenged; the design was revised (one review round). Its first counting
+  jobs are being coded for the server's compute lane; the test window starts 26 Oct.
 - **Second free server:** still "out of host capacity" at Oracle; it retries every 10 min.
 
 ## 2. Approvals needed from you
