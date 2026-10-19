@@ -265,3 +265,19 @@ def test_e_drafts_exist_parse_and_are_drafts_not_jobs():
     live = by["q0345"]
     assert live["resources"]["lane"] == "cron" and "--no-exit75-in-window" in live["argv"] and live["argv"][live["argv"].index("--disk-cap-gb") + 1] == "freeze"
     assert by["q0346"]["not_before"] == e.T15_E_END
+
+
+# ---- part P (undeclared until Stage 2 exists) ----------------------------------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("argv", [["p-birth-census"], ["p-data"], ["census", "--family", "P"], ["screen", "--family", "P"], ["smoke", "--part", "P", "--rps", "1"]])
+def test_p_commands_refuse_while_part_p_is_undeclared(env, capsys, argv):
+    code, out = _run(capsys, [*argv, *env["base"]])
+    assert code == 2 and "not declared" in out["refused"], out
+
+
+def test_p_data_declared_arguments(env, capsys):
+    code, out = _run(capsys, ["p-data", *env["base"], "--kalshi-rps", "2"])
+    assert code == 2 and "kalshi_rps" in out["refused"]
+    code, out = _run(capsys, ["p-data", *env["base"], "--disk-cap-gb", "0.1"])
+    assert code == 2 and "disk_cap_gb" in out["refused"]

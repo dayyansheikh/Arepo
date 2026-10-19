@@ -1353,7 +1353,7 @@
   "P": {
    "part": "P",
    "part_declared": false,
-   "reason": "family module ('cb15_p',) not present yet",
+   "reason": "CB15-P Stage-2 watcher (q0352) and rep (q0353) not implemented yet: part P stays undeclared until the whole part is written (no P job runs before)",
    "rules_sha256": null,
    "rules_version": "cb15-rules-v1"
   },

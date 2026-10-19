@@ -15,6 +15,11 @@ CB15-E (election-night reporting-order drift, CH129; one-night case study, the n
     python scripts/run_cb15.py e-cron [--write]              # the committed crontab block (collector + cpu-lane hold / release + the 11-02 dry run)
     python scripts/run_cb15.py e-disk-check                  # the 2026-11-02 pre-night disk check (data-dumps + cap <= 40 GiB, root free >= cap + 10 GB)
     python scripts/run_cb15.py screen --family E             # q0346 (refuses before 2026-11-06T00:00Z and before the part-E freeze; "not run (calendar)" if part E froze late)
+    python scripts/run_cb15.py p-birth-census                # q0347: counts only, no network (C1 reproduction call, key drops by source, Kalshi-first proxy, GPB)
+    python scripts/run_cb15.py p-data                        # q0349: prints from the first transaction, Kalshi candles, prices-history after the first print (resumable, budgeted)
+    python scripts/run_cb15.py census --family P             # q0350: counts only; GP, GPP (SE-only proxy)
+    python scripts/run_cb15.py screen --family P             # q0351 (refuses before the part-P freeze)
+    Part P stays UNDECLARED in the rules file until the Stage-2 watcher (q0352) and rep (q0353) are written: every P command refuses (exit 2) until then.
 
 Exit codes: 0 ok / transient pause / declared stall or terminal (the label is carried, never exit 2) / declared end state; 1 error; 2 refusal (rules hash of the command's part, smoke
 result missing or failed, refused root, declared argument changed, GE0 pin unset or different, before the family's freeze for analysis and live jobs, results exist); 4 disk budget;
@@ -37,8 +42,9 @@ sys.path.insert(0, str(ROOT / "backend"))
 
 REFUSED, TEMPFAIL, DISK_BUDGET = 2, 75, 4
 FAMILIES = ("E", "P")
-DECLARED_DISK_CAP_GB = {"exclusion-keys": 0.01, "e-census": 0.005, "pregate-E": 0.002}
-DECLARED_RPS_MAX = {"smoke": 1.0, "exclusion-keys": 2.0, "e-census": 2.0, "pregate-E": 1.0, "e-live": 2.0}
+DECLARED_DISK_CAP_GB = {"exclusion-keys": 0.01, "e-census": 0.005, "pregate-E": 0.002, "p-data": 0.05}
+DECLARED_RPS_MAX = {"smoke": 1.0, "exclusion-keys": 2.0, "e-census": 2.0, "pregate-E": 1.0, "e-live": 2.0, "p-data": 2.0}
+DECLARED_KALSHI_RPS_MAX = 1.0
 _TRANSIENT_STATUS = re.compile(r"status (None|0|408|429|5\d\d)\b")
 
 
@@ -116,6 +122,8 @@ def _declared(a, cmd: str) -> None:
     cap = DECLARED_RPS_MAX.get(cmd)
     if cap is not None and float(getattr(a, "rps", cap)) > cap + 1e-9:
         raise c15.Refused(f"arguments differ from the declaration: rps={a.rps!r} > declared {cap!r}")
+    if float(getattr(a, "kalshi_rps", 0.0)) > DECLARED_KALSHI_RPS_MAX + 1e-9:
+        raise c15.Refused(f"arguments differ from the declaration: kalshi_rps={a.kalshi_rps!r} > declared {DECLARED_KALSHI_RPS_MAX!r}")
     if float(getattr(a, "data_dumps_cap_gb", c15.DATA_DUMPS_CAP_GB)) > c15.DATA_DUMPS_CAP_GB + 1e-9:
         raise c15.Refused(f"arguments differ from the declaration: data_dumps_cap_gb={a.data_dumps_cap_gb!r} > {c15.DATA_DUMPS_CAP_GB!r}")
 
@@ -330,6 +338,9 @@ def cmd_smoke(a):
     ctx: dict = {"now": now}
     if part == "E":
         ctx["post"] = _e().books_poster()
+    else:
+        ctx["c1_root"] = str(_c1_root(a))
+        ctx["klim"] = _limiter(a, DECLARED_KALSHI_RPS_MAX)
     try:
         crit, detail = sm.collect_checks(part, ctx, lim)
     except cm.ApiError as exc:
@@ -634,12 +645,176 @@ def _screen_e(a) -> tuple[int, dict]:
     return 0, {"status": "screen_E_complete", **{t: {k: (doc[t] or {}).get(k) for k in ("p", "advance", "verdict")} for t in tids}}
 
 
+# ---- CB15-P ------------------------------------------------------------------------------------------------------------------------------------
+
+
+def _p():
+    from astrolabe.research_lab import cb15_p as p  # noqa: PLC0415
+
+    return p
+
+
+def _c1_root(a) -> Path:
+    c15 = _c15()
+    return c15.refuse_path(Path(a.c1_root) if getattr(a, "c1_root", None) else c15.RESEARCH_ROOT / "cross_venue", allow=("cross_venue",))
+
+
+def _keys_for_p(a) -> tuple[list[dict], dict]:
+    """q0340's key file (complete, disjointness verified) with per-key sources; P applies the per-source key rule."""
+    c15 = _c15()
+    root = _root(a)
+    c15.require_complete(root / c15.KEYS_RUN, (c15.KEYS_STATUS,), "exclusion keys (q0340)")
+    rows, meta = c15.read_keys_with_sources(root / "exclusion_keys.csv.gz")
+    return rows, meta
+
+
+@_guarded
+def cmd_p_birth_census(a):
+    from astrolabe.research_lab import cb8_common as cm  # noqa: PLC0415
+
+    c15, p = _c15(), _p()
+    shas = _shas(a, "P")
+    root = _root(a)
+    out = root / "census_P_birth.json"
+    if out.exists():
+        d = json.loads(out.read_text())
+        return 0, {"status": "p_birth_census_complete", "already_written": True, "gpb": (d.get("report") or {}).get("gpb")}
+    term = _terminal(a, "P")
+    if term is not None:
+        return _terminal_payload(term)
+    rows_k, kmeta = _keys_for_p(a)
+    c1 = _c1_root(a)
+    pairs, c1rep = p.c1_frame(c1)
+    matches = p.read_matches(c1 / "matches.json")
+    frame_rows, rep = p.birth_census(pairs, matches, c15.ksrc_of(rows_k))
+    fp = p.write_birth_frame(root / p.BIRTH_FRAME_NAME, frame_rows)
+    doc = {"version": "cb15-census-P-birth-v1", "counts_only": True, "rules_sha256": shas, "c1": c1rep, "exclusion_keys": kmeta, "birth_frame_sha256": c15.sha256_file(fp), "report": rep,
+           "run_utc": cm.iso(time.time())}
+    csha = _write_json_once(out, doc)
+    c15.log_descriptive("census_P_birth", {"census_sha256": csha, "gpb": rep["gpb"], "proxy": rep["kalshi_first_proxy"]}, trials_path=_tp(a))
+    t = None
+    if not rep["gpb"]["pass"]:  # P1, P2 "not testable (population)", counted once; q0349 is never committed
+        t = c15.record_terminal(root, "P", p.NOT_TESTABLE_POP, f"GPB: {rep['kalshi_first_proxy']['pairs']} pairs in {rep['kalshi_first_proxy']['events']} events", trials_path=_tp(a))
+    return 0, {"status": "p_birth_census_complete", "gpb": rep["gpb"], "proxy": rep["kalshi_first_proxy"], "terminal": t}
+
+
+def _require_gpb(a) -> Path:
+    c15, p = _c15(), _p()
+    root = _root(a)
+    cp = root / "census_P_birth.json"
+    if not cp.exists():
+        raise c15.NotNow("census_P_birth.json missing (q0347 first); pending")
+    d = json.loads(cp.read_text())
+    if not (d.get("report") or {}).get("gpb", {}).get("pass"):
+        raise c15.Refused("GPB did not pass: q0349 is never run (P not testable (population), counted by q0347)")
+    fp = root / p.BIRTH_FRAME_NAME
+    if c15.sha256_file(fp) != d.get("birth_frame_sha256"):
+        raise c15.Refused("birth_frame.csv.gz differs from the sha256 recorded by q0347")
+    return fp
+
+
+@_guarded
+def cmd_p_data(a):
+    from astrolabe.research_lab import cb8_common as cm  # noqa: PLC0415
+
+    c15, p = _c15(), _p()
+    _declared(a, "p-data")
+    _shas(a, "P")
+    term = _terminal(a, "P")
+    if term is not None:
+        return _terminal_payload(term)
+    _require_smoke(a, "P")
+    fp = _require_gpb(a)
+    c15.require_disk(_data_dumps(a), a.data_dumps_cap_gb, int(a.disk_cap_gb * 1024**3))
+    frame = p.read_frame(fp)
+    kb = p.kalshi_bools_from_universe(_c1_root(a), {r["k_ticker"] for r in frame})
+    try:
+        m = p.p_data(_hist(a), _limiter(a, a.rps), _limiter(a, a.kalshi_rps), frame_path=fp, kalshi_bools=kb, budget_s=None if a.budget_min is None else a.budget_min * 60.0)
+    except cm.ApiError as exc:
+        if _TRANSIENT_STATUS.search(str(exc)):
+            raise cm.NotNow(f"p-data: a source returned a transient status ({str(exc)[:80]}); resumable") from None
+        raise
+    except RuntimeError:
+        raise cm.NotNow("p-data: a request failed (network); resumable") from None
+    return 0, m
+
+
+def _census_p(a) -> tuple[int, dict]:
+    from astrolabe.research_lab import cb8_common as cm  # noqa: PLC0415
+
+    c15, p = _c15(), _p()
+    shas = _shas(a, "P")
+    root = _root(a)
+    out = root / "census_P.json"
+    if out.exists():
+        raise c15.Refused(f"{out} exists; the census is written once")
+    term = _terminal(a, "P")
+    if term is not None:
+        return _terminal_payload(term)
+    ddir = _hist(a) / p.DATA_RUN
+    c15.verify_fetch(ddir, (p.P_DATA_STATUS,), "p_data (q0349)")
+    rep = p.census_p(p.load_data(ddir))
+    doc = {"version": "cb15-census-P-v1", "counts_only": True, "rules_sha256": shas, "data_manifest_sha256": c15.sha256_file(ddir / "manifest.json"), "report": rep, "run_utc": cm.iso(time.time())}
+    csha = _write_json_once(out, doc)
+    c15.log_descriptive("census_P", {"census_sha256": csha, "gp": rep["gp"], "gpp": rep["gpp"]}, trials_path=_tp(a))
+    labels = {t: (None if rep["gp"][t]["pass"] and rep["gpp"][t]["pass"] else (p.NOT_TESTABLE_POP if not rep["gp"][t]["pass"] else p.NOT_RUN_POWER)) for t in ("P1", "P2")}
+    t = None
+    if all(labels.values()):  # neither test can run: the family is terminal now, counted once (the P freeze will not come)
+        lab = labels["P1"] if labels["P1"] == labels["P2"] else f"P1 {labels['P1']}; P2 {labels['P2']}"
+        t = c15.record_terminal(root, "P", lab, "census gates GP / GPP", trials_path=_tp(a))
+    return 0, {"status": "census_P_complete", "gp": rep["gp"], "gpp": rep["gpp"], "labels": labels, "terminal": t}
+
+
+def _screen_p(a) -> tuple[int, dict]:
+    c15, p = _c15(), _p()
+    for name, default in (("draws", c15.PERM_DRAWS),):
+        _test_only(a, name, default)
+    root = _root(a)
+    out = Path(a.out) if a.out else root / "results_P.json"
+    if out.exists():
+        raise c15.Refused(f"{out} exists; results are written once")
+    shas = _shas(a, "P")
+    tids = c15.FAMILY_TESTS["P"]
+    term = _terminal(a, "P")
+    if term is not None:
+        body = {t: p.nt(term["label"]) for t in tids}
+        doc = {**body, "labels": [p.LABEL_P], "rules_sha256": shas, "terminal": {k: term.get(k) for k in ("label", "reason", "status")}, "written_epoch": time.time()}
+        doc["stage1_holm"] = _stage1_holm(root, "P", doc)
+        c15.write_results_once(out, doc)
+        return 0, {"status": "screen_P_complete", "terminal": True}
+    entry = _freeze(a, "P", shas)
+    cpath = root / "census_P.json"
+    if not cpath.exists():
+        raise c15.NotNow("census_P.json missing (q0350 first); pending")
+    ddir = _hist(a) / p.DATA_RUN
+    c15.verify_fetch(ddir, (p.P_DATA_STATUS,), "p_data (q0349)")
+    census = json.loads(cpath.read_text())["report"]
+    small = int(a.draws) != c15.PERM_DRAWS
+    body = p.screen_p(ddir, census, **({"draws_placebo": 5, "boot_draws": 50} if small else {}))
+    doc = {**body, "rules_sha256": shas, "freeze_part": "P", "freeze_sha256": entry["entry_sha256"], "census_sha256": c15.sha256_file(cpath), "written_epoch": time.time()}
+    doc["stage1_holm"] = _stage1_holm(root, "P", doc)
+    doc["by_triage"] = _by_triage({t: doc[t] for t in tids}, _tp(a))
+    rsha = c15.write_results_once(out, doc)
+    placebos = {t: {"note": doc[t]["placebo"].get("note"), "advance_rate": doc[t]["placebo"].get("advance_rate"), "n_draws": doc[t]["placebo"].get("n_draws")} for t in tids
+                if isinstance(doc[t].get("placebo"), dict)}
+    c15.log_family("P", _lines(doc, tids), trials_path=_tp(a), results_sha256=rsha, role=_role("P"), placebos=placebos)
+    return 0, {"status": "screen_P_complete", **{t: {k: (doc[t] or {}).get(k) for k in ("p", "advance", "verdict")} for t in tids}}
+
+
+@_guarded
+def cmd_census(a):
+    fam = _family(a)
+    if fam == "P":
+        return _census_p(a)
+    raise _c15().Refused("census --family E: E's counts-only steps are e-census (q0341) and pregate (q0344)")
+
+
 @_guarded
 def cmd_screen(a):
     fam = _family(a)
     if fam == "E":
         return _screen_e(a)
-    raise _c15().Refused("screen --family P is not implemented yet (P code follows E's freeze, section 8)")
+    return _screen_p(a)
 
 
 # ---- parser -------------------------------------------------------------------------------------------------------------------------------------
@@ -685,6 +860,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     q = sub.add_parser("smoke", help="q0343 (E) / q0348 (P)")
     common(q, rps=1.0)
+    q.add_argument("--c1-root", default=None, help="P: research_lab/cross_venue (the C1 reproduction call)")
     q.add_argument("--part", required=True, choices=FAMILIES)
     q.add_argument("--out", default=None)
     q.set_defaults(fn=cmd_smoke)
@@ -746,7 +922,25 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--disk-cap-gb", type=float, required=True)
     q.set_defaults(fn=cmd_e_disk_check)
 
-    q = sub.add_parser("screen", help="q0346 (E)")
+    q = sub.add_parser("p-birth-census", help="q0347 (no network)")
+    common(q)
+    q.add_argument("--c1-root", default=None, help="research_lab/cross_venue (pinned C1 files)")
+    q.set_defaults(fn=cmd_p_birth_census)
+
+    q = sub.add_parser("p-data", help="q0349")
+    common(q)
+    net(q, disk_cap=0.05)
+    q.add_argument("--kalshi-rps", type=float, default=DECLARED_KALSHI_RPS_MAX)
+    q.add_argument("--c1-root", default=None)
+    q.add_argument("--smoke", default=None)
+    q.set_defaults(fn=cmd_p_data)
+
+    q = sub.add_parser("census", help="q0350 (P)")
+    common(q)
+    q.add_argument("--family", required=True)
+    q.set_defaults(fn=cmd_census)
+
+    q = sub.add_parser("screen", help="q0346 (E) / q0351 (P)")
     common(q)
     ge0(q)
     q.add_argument("--family", required=True)
