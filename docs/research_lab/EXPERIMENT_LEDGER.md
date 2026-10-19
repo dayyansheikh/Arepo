@@ -2001,3 +2001,18 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
 - **q0343-q0346 retired: not run (family E terminal), not counted** (drafts marked RETIRED). A House-race design would
   need a new registration (e.g. a tag-walk frame), not a CB15-E re-run. Could not verify: walk titles of the 485 were not
   saved (House share is an inference).
+
+## CB12-O fixes (beadf81) re-check, 2026-10-19 ~20:55Z (science-reviewer): ACCEPT_WITH_FIXES; not counted
+- Verified from a `git archive HEAD` export: O `13cb7b63…` matches seal and q0260-q0264; common/M/X/E unchanged; 37/37
+  O tests pass; no floor, gate, alpha or threshold loosened (missed-checkpoint share makes the 60% rule stricter);
+  amendment O3 causal (previous-session Nasdaq file with `fetched_t_end < t`; missing -> "unknown", excluded; invalid
+  reply raises).
+- Must fix: (1, MED, before the O freeze/q0261, by 2026-11-27) the day after a half session finds no previous daily
+  file (half sessions have no checkpoints, so `run_daily` writes nothing) -> all equity units "ex-dividend unknown":
+  use the latest daily file with `fetched_t_end < t` or run the daily step on half sessions (changes O hash). (2, MED,
+  before q0260) `o_dividends_keyless` passes with zero ex-dates: require `n_dates >= 1` for SPY and AAPL. (3, LOW)
+  earnings flags beyond the previous file's covered settlement date must be None, not False. (4, LOW) disclose the
+  re-run of a timeout-killed checkpoint within a window.
+- Order: fix 2 -> promote q0260 smoke (run inside a regular session 10:00-15:45 ET) -> fixes 1 and 3 -> reseal -> freeze
+  confirmation -> O freeze commit -> install cron on the freeze day. q0262-q0264 after window 1 closes. Fix agent starts
+  after the concurrent CB12-E fix commit (shared seal file and design doc).
