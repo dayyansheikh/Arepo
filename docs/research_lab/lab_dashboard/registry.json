@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-18",
+ "updated": "2026-10-19",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1021,18 +1021,18 @@
   {
    "id": "CB12",
    "title": "Mention baskets, stale horizons and other round-5 ideas",
-   "plain": "Word-mention baskets and stale cross-venue horizons. The stale-horizon test download passed and a recount is queued; the mention-basket part has a disclosed second test download.",
+   "plain": "Word-mention baskets and stale cross-venue horizons. The stale-horizon part's rules are frozen and its single screen test is queued; the mention-basket part waits for batch 11's exclusion list.",
    "batch": "CB12",
    "family": "mixed",
    "stage": "designed",
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Recount, then the stale-horizon screen; mention baskets after batch 11's exclusion list",
+   "next": "Stale-horizon screen (one counted test), then mention baskets after batch 11's exclusion list",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Smoke events, 2026-10-18 ~21:00-21:30Z; § Smoke fixes and CB12-X freshness correction reviewed"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB12-X freeze, 2026-10-19 ~01:15Z"
    },
    "stage_results": {
     "designed": "pending"
