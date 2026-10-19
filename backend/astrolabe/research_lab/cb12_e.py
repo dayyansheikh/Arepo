@@ -659,6 +659,7 @@ def quake_frame(hist_root: Path, transport, *, rules_sha: str, smoke_paths, excl
         fr.counts.update(events=len(frame), q0245_request_sum=req_sum, usgs_requests=ulim.requests)
         fr.extra_state["frame_complete"] = True
         fr.extra_state["q0245_request_sum"] = req_sum
+        fr.extra_state["frame_rules_sha256"] = rules_sha  # amendment E3: the manifest's top-level rules_sha256 is overwritten by the last writer
     except OSError as exc:
         return cm.disk_budget_end(fr, exc)
     m = fr.manifest(None, {"complete": True, "status": FRAME_STATUS})
@@ -719,6 +720,11 @@ def quake_prices(hist_root: Path, transport, *, rules_sha: str, now: float, rps:
     req_sum = int((man.get("state") or {}).get("q0245_request_sum") or 0)
     if req_sum > PRICES_REQUEST_CAP:
         raise Refused(f"q0244 recorded {req_sum} prices-history requests > the declared bound {PRICES_REQUEST_CAP}")
+    st_ = man.get("state") or {}
+    if st_.get("frame_rules_sha256") != rules_sha:
+        raise Refused(f"q0244 frame was built under E rules {str(st_.get('frame_rules_sha256'))[:12]} but the current E part is {rules_sha[:12]}; refusing q0245 (amendment E3)")
+    if st_.get("prices_rules_sha256") not in (None, rules_sha):
+        raise Refused(f"an earlier q0245 chunk ran under E rules {str(st_.get('prices_rules_sha256'))[:12]} but the current E part is {rules_sha[:12]}; refusing (amendment E3)")
     term = cm.prior_terminal(rdir)
     if term:
         return term
@@ -726,6 +732,7 @@ def quake_prices(hist_root: Path, transport, *, rules_sha: str, now: float, rps:
     fr = cm.open_run(Path(hist_root), FRAME_RUN, transport, allowed_run_id=FRAME_RUN, kind="cb12_quake_prices", label="CB12-E prices",
                      params={"evidence_role": c12.EVIDENCE_ROLE_HIST, "fidelity": FIDELITY, "chunk_days": CHUNK_DAYS}, rules_sha=rules_sha, key_fp="", disk_cap=disk_cap, rps=min(rps, 2.0),
                      budget_min=budget_min, now=now, sleep=sleep, live_check=live_check, wall_clock=wall_clock, snapshot_root=snapshot_root, health_check=health_check)
+    fr.extra_state["prices_rules_sha256"] = rules_sha
     part = rdir / "prices_partial.jsonl"
     have = set(_scan_partial(part))
     try:

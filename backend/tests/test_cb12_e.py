@@ -1046,30 +1046,61 @@ def test_near_threshold_injected_quake_only_flips_available_units_to_ambiguous(w
             assert a[k] == b[k]
 
 
-def test_e_frame_rules_guard_refuses_other_rules_and_accepts_current(tmp_path):
+def test_e_frame_rules_guard_checks_both_recorded_hashes(tmp_path):
+    """Amendment E3: the frame and prices steps share one manifest, so each step's rules hash is recorded in state and both must equal the current E part."""
     r12 = run_cb12
-    cur = "a" * 64
+    cur, oth = "a" * 64, "b" * 64
     mp = tmp_path / "manifest.json"
-    for rec in (cur, {"E": cur, "common": "c" * 64}):
-        mp.write_text(json.dumps({"rules_sha256": rec}))
-        r12._e_frame_rules_guard(tmp_path, cur)
-    for rec in ("b" * 64, {"E": "b" * 64}, {"M": cur}, None):
-        mp.write_text(json.dumps({"rules_sha256": rec}))
+    mp.write_text(json.dumps({"rules_sha256": oth, "state": {"frame_rules_sha256": cur, "prices_rules_sha256": cur}}))
+    r12._e_frame_rules_guard(tmp_path, cur)  # the top-level (last writer) value is not what is checked
+    for st in ({"frame_rules_sha256": oth, "prices_rules_sha256": cur}, {"frame_rules_sha256": cur, "prices_rules_sha256": oth}, {"frame_rules_sha256": cur},
+               {"prices_rules_sha256": cur}, {}, None):
+        mp.write_text(json.dumps({"rules_sha256": cur, "state": st}))
         with pytest.raises(c12.Refused, match="current E part is " + cur[:12]):
             r12._e_frame_rules_guard(tmp_path, cur)
 
 
-def test_census_refuses_a_frame_fetched_under_other_e_rules(world, capsys):
+def test_frame_and_prices_record_their_own_rules_and_census_checks_both(world, capsys):
     w = world
     _run(["quake-frame", *w.common, *w.dd, *w.frame], capsys)
     _run(["quake-prices", *w.common, *w.dd], capsys)
     mp = w.rdir / "manifest.json"
     man = json.loads(mp.read_text())
-    assert isinstance(man["rules_sha256"], str) and man["rules_sha256"]
-    man["rules_sha256"] = "0" * 64
+    sha = man["rules_sha256"]
+    assert man["state"]["frame_rules_sha256"] == sha and man["state"]["prices_rules_sha256"] == sha
+    for key in ("frame_rules_sha256", "prices_rules_sha256"):
+        bad = json.loads(json.dumps(man))
+        bad["state"][key] = "0" * 64
+        mp.write_text(json.dumps(bad))
+        code, out = _run(["census", "--family", "E", *w.common], capsys)
+        assert code == 2 and "current E part" in out["refused"], (key, out)
     mp.write_text(json.dumps(man))
-    code, out = _run(["census", "--family", "E", *w.common], capsys)
-    assert code == 2 and "current E part" in out["refused"], out
+
+
+def test_prices_refuse_a_frame_or_an_earlier_chunk_under_other_e_rules(world, capsys):
+    w = world
+    _run(["quake-frame", *w.common, *w.dd, *w.frame], capsys)
+    mp = w.rdir / "manifest.json"
+    man = json.loads(mp.read_text())
+    assert man["state"]["frame_rules_sha256"] == man["rules_sha256"]
+    bad = json.loads(json.dumps(man))
+    bad["state"]["frame_rules_sha256"] = "0" * 64
+    mp.write_text(json.dumps(bad))
+    code, out = _run(["quake-prices", *w.common, *w.dd], capsys)
+    assert code == 2 and "frame was built under E rules" in out["refused"], out
+    bad = json.loads(json.dumps(man))
+    bad["state"]["frame_rules_sha256"] = None
+    mp.write_text(json.dumps(bad))
+    code, out = _run(["quake-prices", *w.common, *w.dd], capsys)
+    assert code == 2 and "frame was built under E rules" in out["refused"], out
+    bad = json.loads(json.dumps(man))
+    bad["state"]["prices_rules_sha256"] = "0" * 64
+    mp.write_text(json.dumps(bad))
+    code, out = _run(["quake-prices", *w.common, *w.dd], capsys)
+    assert code == 2 and "earlier q0245 chunk" in out["refused"], out
+    mp.write_text(json.dumps(man))  # matching hashes are accepted
+    code, out = _run(["quake-prices", *w.common, *w.dd], capsys)
+    assert code == 0 and out["status"] == e12.PRICES_STATUS, out
 
 
 # =====================================================================================================================================================

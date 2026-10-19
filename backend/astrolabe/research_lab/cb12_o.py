@@ -951,6 +951,13 @@ def previous_daily(daily: dict[str, dict], day: str) -> dict | None:
     return daily[max(earlier)] if earlier else None
 
 
+def daily_age_days(prev_day: str | None, day: str) -> int | None:
+    """Calendar days between the previous daily file's date and the unit's day (amendment O5: after a missed daily step an older file is used; None without one)."""
+    if prev_day is None:
+        return None
+    return (datetime.fromisoformat(day) - datetime.fromisoformat(prev_day)).days
+
+
 def exdiv_status(prev: dict | None, ticker: str, cboe: str, t: float, d: str) -> str:
     """Amended rule (section 11, O3): cash-settled indices (CBOE symbol ``_...``) are exempt (''); otherwise the ex-dividend dates are those of the PREVIOUS session's
     Nasdaq file (fetched and stored before t); a ticker without a valid entry there is unknown (excluded). An ex-date in (ET date of t, d] -> 'excluded: ex-dividend'.
@@ -973,11 +980,15 @@ def realised_vol(closes: list[tuple[str, float]], before: str, n: int = RV_DAYS)
     return float(np.std(r, ddof=1) * math.sqrt(252.0))
 
 
-def earnings_flag(rows: list[list] | None, ticker: str, t: float, d: str, covered_end: str | None) -> bool | None:
+def earnings_flag(rows: list[list] | None, ticker: str, t: float, d: str, covered_end: str | None, fetched_t_end: float | None = None) -> bool | None:
     """True if an earnings release of ``ticker`` falls in (t, close of d]. The unit's day is D = ET date of t (t is at or after 11:00 ET). A pre-market report dated
     dd counts iff D < dd <= d; an after-hours report iff D <= dd < d; a report of unknown time iff D <= dd <= d (conservative). None when the unit-day calendar was
-    not collected, or when the file's calendar does not reach the settlement date ``d`` (``covered_end`` < d or absent): unknown, never False (amendment O4)."""
+    not collected, or when the file's calendar does not reach the settlement date ``d`` (``covered_end`` < d or absent): unknown, never False (amendment O4); also None
+    unless the file's ``fetched_t_end`` is finite and before ``t`` (amendment O5: the function checks causality itself)."""
     if rows is None or covered_end is None or covered_end < d:
+        return None
+    f = c12.num(fetched_t_end)
+    if not (math.isfinite(f) and f < t):
         return None
     day = et_day(t)
     for dd, sym, tm in rows:
@@ -1078,6 +1089,7 @@ def build_units(root: Path, dates: list[str], convention: str | None) -> tuple[l
         ck["files"] += 1
         dly = daily.get(rec["day"]) or {}
         prev = previous_daily(daily, rec["day"])
+        prev_day = max((k for k in daily if k < rec["day"]), default=None)
         for m in rec.get("members") or []:
             if m["settle"] not in dset:
                 continue
@@ -1129,7 +1141,8 @@ def build_units(root: Path, dates: list[str], convention: str | None) -> tuple[l
             T = time_to_expiry(ch["ts_epoch"], m["settle"], convention) if convention in CONVENTIONS else time_to_expiry(ch["ts_epoch"], m["settle"], "act365")
             units.append({**u, "label": "available", "q": an["q"], "m2": m2_raw, "q_rv": phi_d2(S, m["K"], sig, T) if math.isfinite(sig) else math.nan,
                           "earnings": earnings_flag(prev.get("earnings") if prev and m["ticker"] in (prev.get("earnings_symbols") or []) else None, m["ticker"], t, m["settle"],
-                                                    prev.get("earnings_covered_end") if prev else None)})
+                                                    prev.get("earnings_covered_end") if prev else None, prev.get("fetched_t_end") if prev else None),
+                          "daily_file_age_days": daily_age_days(prev_day, rec["day"])})
     return units, dict(ck)
 
 
@@ -1471,7 +1484,8 @@ def census_o(root: Path, win: dict, convention: str | None) -> dict:
            "by_checkpoint": dict(Counter(u["ckpt"] for u in avail)), "by_template": dict(Counter(u["template"] for u in avail)), "by_anchor": dict(Counter(u.get("anchor_type") for u in avail)),
            "availability_share": availability(units), "availability_share_o2": availability(units, o2=True), "collection": coll,
            "availability_share_incl_missed_checkpoints": availability(units) * coll["share"], "availability_share_o2_incl_missed_checkpoints": availability(units, o2=True) * coll["share"],
-           "O2_eligible_units": sum(1 for u in units if u.get("o2_ok")), "GO": go, "cor_q_qrv": cor, "attribution_identifiable": bool(cor is not None and cor <= COR_MAX)}
+           "O2_eligible_units": sum(1 for u in units if u.get("o2_ok")),
+           "daily_file_age_days": dict(sorted(Counter(u.get("daily_file_age_days") for u in avail).items(), key=lambda kv: (kv[0] is None, kv[0] or 0))), "GO": go, "cor_q_qrv": cor, "attribution_identifiable": bool(cor is not None and cor <= COR_MAX)}
     if not win.get("power_ok", True) or go["dates"] < GO_MIN["dates"]:
         out["label_O"] = "not run (power)"
     elif not go["pass"]:

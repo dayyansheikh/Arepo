@@ -488,14 +488,15 @@ def census_o_block(a) -> dict:
 
 
 def _e_frame_rules_guard(rdir: Path, sha: str) -> None:
-    """Refuse an E frame / prices run whose manifest records a rules hash other than the current E part (a frame fetched under other code is not this code's frame)."""
+    """Refuse an E frame / prices run whose recorded rules differ from the current E part. The frame (q0244) and prices (q0245) steps share one manifest whose top-level
+    ``rules_sha256`` holds only the last writer, so each step's hash is recorded in ``state`` (``frame_rules_sha256``, ``prices_rules_sha256``; amendment E3); both must match."""
     c12 = _c12()
     mp = Path(rdir) / "manifest.json"
-    rec = (json.loads(mp.read_text()) if mp.exists() else {}).get("rules_sha256")
-    if isinstance(rec, dict):
-        rec = rec.get("E")
-    if rec != sha:
-        raise c12.Refused(f"frame/prices manifest {mp.name} in {Path(rdir).name} was fetched under E rules {str(rec)[:12]} but the current E part is {sha[:12]}; refusing")
+    st = (json.loads(mp.read_text()) if mp.exists() else {}).get("state") or {}
+    for key in ("frame_rules_sha256", "prices_rules_sha256"):
+        rec = st.get(key)
+        if rec != sha:
+            raise c12.Refused(f"E {key} in {Path(rdir).name}/{mp.name} is {str(rec)[:12]} but the current E part is {sha[:12]}; refusing")
 
 
 def census_e_block(a) -> dict:

@@ -38,7 +38,7 @@
   "history/h12_quake/manifest.json"
  ],
  "next_action": "q0266",
- "notes": "DRAFT. <= 15,000 requests = the sum recorded by q0244 (refuses if it exceeds 15,000). Resumable (prices_partial.jsonl); a member that keeps failing after 3 attempts is 'unavailable (network)', counted. No outcome read. Rules part sha256 (seals/cb12_rules.json, 2026-10-19 code): common f2f672c1dfa22ce1388fd85b42bebc23248f58c5bb4349f6745c4b2493dcc647, E a63672c985342131ed14a1794fec5b664928c551a942e84a615295b33c87dba2. CB12 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / E code changes.",
+ "notes": "DRAFT. <= 15,000 requests = the sum recorded by q0244 (refuses if it exceeds 15,000). Resumable (prices_partial.jsonl); a member that keeps failing after 3 attempts is 'unavailable (network)', counted. No outcome read. Rules part sha256 (seals/cb12_rules.json, 2026-10-19 code): common f2f672c1dfa22ce1388fd85b42bebc23248f58c5bb4349f6745c4b2493dcc647, E bd512db4ccbe9a790c732e7871b50d938a94b56a9e83105dde845f6c7c6b5edc. CB12 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / E code changes.",
  "repeat": {
   "max_runs": 3,
   "until_log_regex": "\"status\": \"(quake_prices_complete|not_run_source|disjointness_unverified|upstream_not_testable)\""

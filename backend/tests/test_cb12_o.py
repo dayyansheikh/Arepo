@@ -234,18 +234,31 @@ def test_dividend_fetch_asset_class_etf_list_and_fallback():
 
 def test_earnings_flag_window():
     t = o12.et_epoch("2026-10-20", 11, 0)
+    f = t - 60.0  # the file was fetched before t
     rows = [["2026-10-20", "NVDA", "time-pre-market"]]
-    assert o12.earnings_flag(rows, "NVDA", t, "2026-10-22", "2026-10-22") is False  # released before t
-    assert o12.earnings_flag([["2026-10-20", "NVDA", "time-after-hours"]], "NVDA", t, "2026-10-22", "2026-10-22") is True
-    assert o12.earnings_flag([["2026-10-22", "NVDA", "time-after-hours"]], "NVDA", t, "2026-10-22", "2026-10-22") is False  # after the settlement close
-    assert o12.earnings_flag([["2026-10-22", "NVDA", "time-pre-market"]], "NVDA", t, "2026-10-22", "2026-10-22") is True
-    assert o12.earnings_flag([["2026-10-21", "NVDA", "time-not-supplied"]], "NVDA", t, "2026-10-22", "2026-10-22") is True
-    assert o12.earnings_flag([["2026-10-21", "AMD", ""]], "NVDA", t, "2026-10-22", "2026-10-22") is False
-    assert o12.earnings_flag(None, "NVDA", t, "2026-10-22", "2026-10-22") is None
+    assert o12.earnings_flag(rows, "NVDA", t, "2026-10-22", "2026-10-22", f) is False  # released before t
+    assert o12.earnings_flag([["2026-10-20", "NVDA", "time-after-hours"]], "NVDA", t, "2026-10-22", "2026-10-22", f) is True
+    assert o12.earnings_flag([["2026-10-22", "NVDA", "time-after-hours"]], "NVDA", t, "2026-10-22", "2026-10-22", f) is False  # after the settlement close
+    assert o12.earnings_flag([["2026-10-22", "NVDA", "time-pre-market"]], "NVDA", t, "2026-10-22", "2026-10-22", f) is True
+    assert o12.earnings_flag([["2026-10-21", "NVDA", "time-not-supplied"]], "NVDA", t, "2026-10-22", "2026-10-22", f) is True
+    assert o12.earnings_flag([["2026-10-21", "AMD", ""]], "NVDA", t, "2026-10-22", "2026-10-22", f) is False
+    assert o12.earnings_flag(None, "NVDA", t, "2026-10-22", "2026-10-22", f) is None
     # amendment O4: the file's calendar must reach the settlement date, else unknown (never False)
-    assert o12.earnings_flag(rows, "NVDA", t, "2026-10-22", "2026-10-21") is None
-    assert o12.earnings_flag(rows, "NVDA", t, "2026-10-22", None) is None
-    assert o12.earnings_flag([["2026-10-21", "NVDA", ""]], "NVDA", t, "2026-10-22", "2026-10-30") is True
+    assert o12.earnings_flag(rows, "NVDA", t, "2026-10-22", "2026-10-21", f) is None
+    assert o12.earnings_flag(rows, "NVDA", t, "2026-10-22", None, f) is None
+    assert o12.earnings_flag([["2026-10-21", "NVDA", ""]], "NVDA", t, "2026-10-22", "2026-10-30", f) is True
+    # amendment O5: the function checks the file's causality itself
+    after = [["2026-10-21", "NVDA", ""]]
+    assert o12.earnings_flag(after, "NVDA", t, "2026-10-22", "2026-10-22", f) is True
+    for bad in (t, t + 5.0, None, math.nan):
+        assert o12.earnings_flag(after, "NVDA", t, "2026-10-22", "2026-10-22", bad) is None
+    assert o12.earnings_flag(after, "NVDA", t, "2026-10-22", "2026-10-22") is None
+
+
+def test_daily_file_age_days_disclosed_after_a_missed_daily_step():
+    assert o12.daily_age_days("2026-10-20", "2026-10-21") == 1
+    assert o12.daily_age_days("2026-10-20", "2026-10-23") == 3  # outage: an older file is used
+    assert o12.daily_age_days(None, "2026-10-23") is None
 
 
 def test_realised_vol_uses_only_bars_before_the_day():
