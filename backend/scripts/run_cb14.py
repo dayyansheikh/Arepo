@@ -15,6 +15,7 @@ CB14-W (Wikipedia edit bursts, CH123: q0300, q0302, q0303, q0305-q0311) and CB14
     python scripts/run_cb14.py census --family W|S           # q0308 / q0319: counts only; gates; MDEs
     python scripts/run_cb14.py screen --family W|S           # q0309 / q0320 (refuse before the family's freeze entry)
     python scripts/run_cb14.py rep --family W|S              # q0311 / q0322 (verify the pinned Stage-1 results first)
+    python scripts/run_cb14.py stage2-final                  # the final CB14-wide Stage-2 strict Holm over every triggered rep result (W and S); write-once; can only add passes
 
 Exit codes: 0 ok / transient pause / declared stall (the label is carried, never exit 2) / declared end state; 1 error; 2 refusal (rules hash of the command's part, smoke result missing or
 failed, refused root, declared argument changed, before the family's freeze for analysis jobs, guarded file, HOLDOUT window, an unpinned model, results exist); 4 disk budget; 75
@@ -139,8 +140,20 @@ def _rules(a, part: str) -> str:
     return _c14().verify_rules(Path(a.rules) if getattr(a, "rules", None) else None, require_committed=not getattr(a, "allow_uncommitted_rules", False), part=part)
 
 
-def _freeze(a, part: str) -> str:
-    return _c14().require_freeze(part, Path(a.freeze_spec) if getattr(a, "freeze_spec", None) else None, require_committed=not getattr(a, "allow_uncommitted_rules", False))
+def _model_pins(a) -> dict:
+    """The committed position-model pins (seals/cb14_s_model_pin.json; outside the part-S rules hash). ``--model-pin-file`` overrides the path (tests)."""
+    from astrolabe.research_lab import cb14_s as s  # noqa: PLC0415
+
+    return s.model_pins(Path(a.model_pin_file) if getattr(a, "model_pin_file", None) else None, require_committed=_committed(a))
+
+
+def _freeze(a, part: str, sha: str) -> str:
+    """The family's freeze entry must pin the rules sha this job has just verified (and, part S, the committed model pins)."""
+    shas = {part: sha}
+    if part == "S":
+        pins = _model_pins(a)
+        shas.update(S_MODEL=pins["model"], S_MODEL_REBASED=pins["model_rebased"])
+    return _c14().require_freeze(part, Path(a.freeze_spec) if getattr(a, "freeze_spec", None) else None, require_committed=_committed(a), rules_shas=shas)
 
 
 def _freeze_ts(a, part: str) -> float | None:
@@ -242,6 +255,47 @@ def _not_testable_lines(fam: str, verdict: str) -> dict:
     return {t: {"p": 1.0, "testable": False, "advance": False, "verdict": verdict} for t in c14.FAMILY_TESTS[fam]}
 
 
+def _family_run(fam: str) -> str:
+    if fam == "W":
+        from astrolabe.research_lab import cb14_w as w  # noqa: PLC0415
+
+        return w.RUN
+    from astrolabe.research_lab import cb14_s as s  # noqa: PLC0415
+
+    return s.FRAME_RUN
+
+
+def _terminal(a, fam: str) -> dict | None:
+    """A family whose counted "not testable" record exists is TERMINAL (section 2.5): every downstream job ends with exit 0 and counts nothing again. Sources, in order: the write-once
+    terminal record; a FAILED smoke (counted by ``smoke``); a FAILED pre-fetch gate (counted by ``pregate``); and, recorded and counted here once, exclusion keys whose disjointness is
+    unverified or a stall manifest of the family's history run (disjointness, source budget, an incomplete source walk)."""
+    c14 = _c14()
+    root = _root(a)
+    t = c14.read_terminal(root, fam)
+    if t:
+        return t
+    sm = _smoke_path(a, fam)
+    if sm.exists():
+        d = json.loads(sm.read_text())
+        if d.get("part") == fam and d.get("pass") is False:
+            return {"family": fam, "label": "not testable (source)", "reason": f"smoke {fam} failed", "counted_by": "smoke"}
+    pg = root / f"pregate_{fam}.json"
+    if pg.exists() and json.loads(pg.read_text()).get("pass") is False:
+        return {"family": fam, "label": json.loads(pg.read_text()).get("label") or "not testable (population)", "reason": f"pre-fetch gate {fam} failed", "counted_by": "pregate"}
+    kr = root / c14.c9.EXCLUSION_REPORT_NAME
+    if kr.exists() and json.loads(kr.read_text()).get("disjointness") == c14.UNVERIFIED:
+        return c14.record_terminal(root, fam, "not testable (disjointness unverified)", "exclusion keys: more than 2% of ids without metadata", trials_path=_tp(a))
+    st = c14.stall_of(_hist(a) / _family_run(fam))
+    if st:
+        return c14.record_terminal(root, fam, st.get("label") or "not testable (source)", st.get("reason") or st.get("status"), trials_path=_tp(a))
+    return None
+
+
+def _terminal_payload(term: dict) -> tuple[int, dict]:
+    c14 = _c14()
+    return 0, {"status": c14.TERMINAL_STATUS, "family": term.get("family"), "label": term.get("label"), "reason": term.get("reason"), "science": "terminal: counted once, nothing to wait for"}
+
+
 # ---- rules -------------------------------------------------------------------------------------------------------------------------------------
 
 
@@ -268,7 +322,14 @@ def cmd_freeze_part(a) -> int:
     except c14.Refused as exc:
         _emit({"refused": str(exc)})
         return REFUSED
-    _emit({"part": a.part, "rules_sha256": d["rules_sha256"], "declaration": d["declared"]})
+    entry = {"rules_sha256": d["rules_sha256"]}
+    if a.part == "S":  # the S freeze entry also pins the fitted position models (design section 1.4; outside the rules hash)
+        try:
+            pins = _model_pins(a)
+            entry.update(s_model_sha256=pins["model"], s_model_rebased_sha256=pins["model_rebased"])
+        except c14.Refused as exc:
+            entry.update(s_model_sha256=None, s_model_rebased_sha256=None, pins_note=str(exc)[:200])
+    _emit({"part": a.part, "rules_sha256": d["rules_sha256"], "freeze_entry": entry, "declaration": d["declared"]})
     return 0
 
 
@@ -325,7 +386,10 @@ def cmd_exclusion_keys(a):
     m = c14.exclusion_keys(_root(a), _transport(), rules_sha=sha, hist_root=_hist(a), base_path=Path(a.base_path) if a.base_path else c14.CB13_KEYS_DEFAULT,
                            base_sha256=a.base_sha256 or c14.PIN_UNSET, seals_dir=Path(a.seals_dir) if a.seals_dir else None,
                            is_committed=None if not _committed(a) else _spec_committed(), disk_cap=int(a.disk_cap_gb * 1024**3), now=time.time(), rps=a.rps, **_net_kw(a))
-    return _result(m)
+    code, payload = _result(m)
+    if m.get("status") == c14.UNVERIFIED:  # section 1.3: both families "not testable (disjointness)", COUNTED once, now
+        payload["terminal"] = {fam: _terminal(a, fam) for fam in FAMILIES}
+    return code, payload
 
 
 def _spec_committed():
@@ -358,11 +422,15 @@ def cmd_w_frame(a):
 
     _declared(a, "w-frame")
     sha = _rules(a, "W")
+    term = _terminal(a, "W")
+    if term:
+        return _terminal_payload(term)
     _require_smoke(a, "W")
     keys = Path(a.exclusion_keys) if a.exclusion_keys else _root(a) / "exclusion_keys.csv.gz"
     m = w.w_frame(_hist(a), _transport(), rules_sha=sha, keys_path=keys, smoke_path=_smoke_path(a, "W"), out_root=_root(a), now=time.time(), wiki_rps=a.wiki_rps,
                   disk_cap=int(a.disk_cap_gb * 1024**3), rps=a.rps, **_net_kw(a))
-    return _result(m)
+    term = _terminal(a, "W")  # a stall written by this run is recorded and counted once, now
+    return _terminal_payload(term) if term else _result(m)
 
 
 @_guarded
@@ -371,6 +439,9 @@ def cmd_w_revisions(a):
 
     _declared(a, "w-revisions")
     sha = _rules(a, "W")
+    term = _terminal(a, "W")
+    if term:
+        return _terminal_payload(term)
     _require_pregate(a, "W")
     m = w.w_revisions(_hist(a), _transport(), rules_sha=sha, audit=_w_audit(a), now=time.time(), wiki_rps=a.wiki_rps, disk_cap=int(a.disk_cap_gb * 1024**3), rps=a.rps, **_net_kw(a))
     return _result(m)
@@ -382,6 +453,9 @@ def cmd_w_prints(a):
 
     _declared(a, "w-prints")
     sha = _rules(a, "W")
+    term = _terminal(a, "W")
+    if term:
+        return _terminal_payload(term)
     _require_pregate(a, "W")
     m = w.w_prints(_hist(a), _transport(), rules_sha=sha, audit=_w_audit(a), now=time.time(), disk_cap=int(a.disk_cap_gb * 1024**3), rps=a.rps, **_net_kw(a))
     return _result(m)
@@ -394,7 +468,10 @@ def cmd_w_live(a):
 
     _declared(a, "w-live")
     sha = _rules(a, "W")
-    _freeze(a, "W")
+    term = _terminal(a, "W")
+    if term:  # a counted terminal "not testable" W: there is no W Stage 2, nothing to collect
+        return _terminal_payload(term)
+    _freeze(a, "W", sha)
     hist = _hist(a)
     kw = _net_kw(a)
     m = w.w_live(hist, _transport(), rules_sha=sha, now=time.time(), not_before=a.not_before, freeze_ts=_freeze_ts(a, "W"), bots_path=hist / w.RUN / "bots.csv.gz", rps=a.rps,
@@ -416,10 +493,14 @@ def cmd_s_frame(a):
 
     _declared(a, "s-frame")
     sha = _rules(a, "S")
+    term = _terminal(a, "S")
+    if term:
+        return _terminal_payload(term)
     _require_smoke(a, "S")
     keys = Path(a.exclusion_keys) if a.exclusion_keys else _root(a) / "exclusion_keys.csv.gz"
     m = s.s_frame(_hist(a), _transport(), rules_sha=sha, exclusion_keys_path=keys, now=time.time(), out_root=_root(a), disk_cap=int(a.disk_cap_gb * 1024**3), **_s_kw(a))
-    return _result(m)
+    term = _terminal(a, "S")  # a stall written by this run (disjointness, an incomplete Factbase walk) is recorded and counted once, now
+    return _terminal_payload(term) if term else _result(m)
 
 
 @_guarded
@@ -428,6 +509,9 @@ def cmd_s_fit_fetch(a):
 
     _declared(a, "s-fit-fetch")
     sha = _rules(a, "S")
+    term = _terminal(a, "S")
+    if term:
+        return _terminal_payload(term)
     m = s.s_fit_fetch(_hist(a), _transport(), rules_sha=sha, now=time.time(), disk_cap=int(a.disk_cap_gb * 1024**3), **_s_kw(a))
     return _result(m)
 
@@ -437,9 +521,13 @@ def cmd_s_fit(a):
     from astrolabe.research_lab import cb14_s as s  # noqa: PLC0415
 
     _rules(a, "S")
+    term = _terminal(a, "S")
+    if term:
+        return _terminal_payload(term)
     out = s.s_fit(_hist(a), out_root=_root(a))
     summary = {"status": out["status"], "complete": out["complete"], "n_fit_records": out["n_fit_records"], "model_sha256": out["model_sha256"], "model_rebased_sha256": out["model_rebased_sha256"],
-                 "files": out["files"], "next": "the coordinator pins both sha256 in part S (S_MODEL_SHA256, S_MODEL_REBASED_SHA256) and regenerates the rules file before q0317"}
+                 "files": out["files"], "next": f"the coordinator writes and commits {s.MODEL_PIN_REL} (version {s.MODEL_PIN_VERSION}, s_model_sha256, s_model_rebased_sha256) before q0317; "
+                                                "the rules file is NOT regenerated (the pins are outside the part-S hash) and the S freeze entry carries the same two sha256"}
     return 0, summary
 
 
@@ -454,9 +542,13 @@ def cmd_s_data(a):
         raise c14.Refused(f"the N fetch needs --require-open {REQUIRE_OPEN_TOKEN} (T14_S_open)")
     _declared(a, "s-data")
     sha = _rules(a, "S")
+    term = _terminal(a, "S")
+    if term:
+        return _terminal_payload(term)
     root = _root(a)
+    pins = _model_pins(a)
     m = s.s_data(_hist(a), _transport(), rules_sha=sha, now=time.time(), subset=a.subset, out_root=root, smoke_path=_smoke_path(a, "S"), pregate_path=root / "pregate_S.json",
-                 ledger_path=Path(a.ledger) if a.ledger else None, disk_cap=int(a.disk_cap_gb * 1024**3), **_s_kw(a))
+                 ledger_path=Path(a.ledger) if a.ledger else None, disk_cap=int(a.disk_cap_gb * 1024**3), model_pin=pins["model"], rebased_pin=pins["model_rebased"], **_s_kw(a))
     return _result(m)
 
 
@@ -466,10 +558,14 @@ def cmd_s_stage2_data(a):
 
     _declared(a, "s-stage2-data")
     sha = _rules(a, "S")
-    _freeze(a, "S")
+    term = _terminal(a, "S")
+    if term:  # a counted terminal "not testable" S: there is no S Stage 2, nothing to collect
+        return _terminal_payload(term)
+    _freeze(a, "S", sha)
+    pins = _model_pins(a)
     keys = Path(a.exclusion_keys) if a.exclusion_keys else _root(a) / "exclusion_keys.csv.gz"
     m = s.s_stage2_data(_hist(a), _transport(), rules_sha=sha, exclusion_keys_path=keys, now=time.time(), freeze_ts=_freeze_ts(a, "S"), out_root=_root(a),
-                        disk_cap=int(a.disk_cap_gb * 1024**3), **_s_kw(a))
+                        disk_cap=int(a.disk_cap_gb * 1024**3), model_pin=pins["model"], rebased_pin=pins["model_rebased"], **_s_kw(a))
     return _result(m)
 
 
@@ -492,6 +588,9 @@ def cmd_pregate(a):
     out = Path(a.out) if a.out else _root(a) / f"pregate_{fam}.json"
     if out.exists():
         raise c14.Refused(f"{out} exists; the pre-fetch gate is written once")
+    term = _terminal(a, fam)
+    if term:
+        return _terminal_payload(term)
     hist = _hist(a)
     if fam == "W":
         from astrolabe.research_lab import cb14_w as w  # noqa: PLC0415
@@ -530,9 +629,6 @@ def census_w_block(a) -> dict:
 
     c14 = _c14()
     rdir = _hist(a) / w.RUN
-    st = c14.stall_of(rdir)
-    if st:
-        return {"status": "stalled", "stall": st, "label_W": st.get("label")}
     _require_pregate(a, "W")
     if not w.prints_done(rdir):
         raise c14.NotNow("census W waits for q0307 (w_prints); pending")
@@ -541,18 +637,22 @@ def census_w_block(a) -> dict:
     return w.census_w(rdir, audit=_w_audit(a), attn_path=root / "attn_entities.csv.gz", keys_report=json.loads(kr.read_text()) if kr.exists() else None, hist_root=_hist(a))
 
 
+def _keys_report(a) -> dict | None:
+    c14 = _c14()
+    kr = _root(a) / c14.c9.EXCLUSION_REPORT_NAME
+    return json.loads(kr.read_text()) if kr.exists() else None
+
+
 def census_s_block(a) -> dict:
     from astrolabe.research_lab import cb14_s as s  # noqa: PLC0415
 
     c14 = _c14()
     rdir = _hist(a) / s.FRAME_RUN
-    st = c14.stall_of(rdir)
-    if st:
-        return {"status": "stalled", "stall": st, "label_S": st.get("label")}
     for sub in s.SUBSETS:
         if not s.manifest_done(s.subset_files(rdir, sub)["manifest"], s.DATA_STATUS_P if sub == "P" else s.DATA_STATUS_N):
             raise c14.NotNow(f"census S waits for the {sub} data fetch; pending")
-    return s.census_s(_hist(a), model_path=_root(a) / s.MODEL_FILE, ledger_path=Path(a.ledger) if a.ledger else None)
+    pins = _model_pins(a)
+    return s.census_s(_hist(a), model_path=_root(a) / s.MODEL_FILE, model_pin=pins["model"], ledger_path=Path(a.ledger) if a.ledger else None, keys_report=_keys_report(a))
 
 
 @_guarded
@@ -565,6 +665,9 @@ def cmd_census(a):
     out = Path(a.out) if a.out else _root(a) / f"census_{fam}{a.census_tag}.json"
     if out.exists():
         raise c14.Refused(f"{out} exists; the census is written once")
+    term = _terminal(a, fam)
+    if term:  # no census is written; the screen closes the family as terminal "not testable" (counted once, earlier)
+        return _terminal_payload(term)
     block = census_w_block(a) if fam == "W" else census_s_block(a)
     doc = {"version": f"cb14-census-{fam}-v1", "counts_only": True, "rules_sha256": sha, fam: block}
     cm.write_once_json(out, doc)
@@ -579,9 +682,17 @@ def cmd_census(a):
 def cmd_screen(a):
     c14 = _c14()
     fam = _family(a)
-    freeze_sha = _freeze(a, fam)
     sha = _rules(a, fam)
     root = _root(a)
+    tids = c14.FAMILY_TESTS[fam]
+    term = _terminal(a, fam)
+    if term is not None:  # a counted terminal "not testable" (smoke, pregate, disjointness, source stall): no census exists or will; the results record p = 1, nothing is counted again
+        body = {t: {"p": 1.0, "testable": False, "advance": False, "checks_ok": False, "effect": None, "n": 0, "verdict": term.get("label")} for t in tids}
+        doc = {**body, "rules_sha256": sha, "freeze_part": fam, "freeze_sha256": None, "census_sha256": None, "terminal": term, "written_epoch": time.time()}
+        doc["stage1_holm"] = _stage1_holm(root, fam, doc)
+        c14.write_results_once(Path(a.out) if a.out else root / f"results_{fam}.json", doc)
+        return 0, {"status": f"screen_{fam}_complete", "terminal": True, **{t: {k: doc[t].get(k) for k in ("p", "advance", "verdict")} for t in tids}}
+    freeze_sha = _freeze(a, fam, sha)
     cpath = Path(a.census) if a.census else root / f"census_{fam}{a.census_tag}.json"
     if not cpath.exists():
         raise c14.NotNow(f"{cpath.name} missing (the census first)")
@@ -589,17 +700,17 @@ def cmd_screen(a):
     if cdoc.get("rules_sha256") != sha:
         raise c14.Refused(f"{cpath.name} was written under rules {str(cdoc.get('rules_sha256'))[:12]} but the current {fam} part is {sha[:12]}; re-run the census")
     census = cdoc[fam]
-    tids = c14.FAMILY_TESTS[fam]
     hist = _hist(a)
     if fam == "W":
         from astrolabe.research_lab import cb14_w as w  # noqa: PLC0415
 
-        kr = root / c14.c9.EXCLUSION_REPORT_NAME
-        body = w.screen_w(hist / w.RUN, census, audit=_w_audit(a), attn_path=root / "attn_entities.csv.gz", hist_root=hist, keys_report=json.loads(kr.read_text()) if kr.exists() else None)
+        body = w.screen_w(hist / w.RUN, census, audit=_w_audit(a), attn_path=root / "attn_entities.csv.gz", hist_root=hist, keys_report=_keys_report(a))
     else:
         from astrolabe.research_lab import cb14_s as s  # noqa: PLC0415
 
-        body = s.screen_s(hist, census=census, out_root=root, rules_sha=sha, ledger_path=Path(a.ledger) if a.ledger else None)
+        pins = _model_pins(a)
+        body = s.screen_s(hist, census=census, out_root=root, rules_sha=sha, ledger_path=Path(a.ledger) if a.ledger else None, model_pin=pins["model"], rebased_pin=pins["model_rebased"],
+                          keys_report=_keys_report(a))
     doc = {**body, "rules_sha256": sha, "freeze_part": fam, "freeze_sha256": freeze_sha, "census_sha256": hashlib.sha256(cpath.read_bytes()).hexdigest(), "written_epoch": time.time()}
     doc["by_triage"] = _by_triage({t: doc[t] for t in tids}, _tp(a))
     doc["stage1_holm"] = _stage1_holm(root, fam, doc)
@@ -608,12 +719,31 @@ def cmd_screen(a):
     return 0, {"status": f"screen_{fam}_complete", **{t: {k: doc[t].get(k) for k in ("p", "advance", "verdict", "testable", "effect", "n")} for t in tids}, "placebo": _placebos(doc, tids)}
 
 
+def _stage2_k(a, fam: str, n_adv: int, root: Path) -> int | None:
+    """``--stage2-k``: the coordinator's Stage-2 count k2, or None (judged at alpha / 4). It must be an integer in [k_min, 4], k_min = this family's triggered tests plus the other family's
+    (all of the other family's tests while its Stage-1 results are not final): k2 can only be too large, never too small."""
+    c14 = _c14()
+    raw = getattr(a, "stage2_k", None)
+    if raw is None:
+        return None
+    if str(raw) == c14.PIN_UNSET or not str(raw).isdigit():
+        raise c14.Refused(f"--stage2-k {raw!r} is unset: the coordinator fills an integer (or drops the flag to judge at alpha / 4)")
+    k2 = int(raw)
+    other = "S" if fam == "W" else "W"
+    op = root / f"results_{other}.json"
+    od = json.loads(op.read_text()) if op.exists() else None
+    k_min = c14.stage2_k_min(n_adv, od, c14.FAMILY_TESTS[other])
+    if not (k_min <= k2 <= c14.STAGE2_K_MAX):
+        raise c14.Refused(f"--stage2-k {k2} outside [{k_min}, {c14.STAGE2_K_MAX}] (k_min counts this family's triggered tests and every possibly triggered test of the other family)")
+    return k2
+
+
 @_guarded
 def cmd_rep(a):
     c14 = _c14()
     fam = _family(a)
-    freeze_sha = _freeze(a, fam)
     sha = _rules(a, fam)
+    freeze_sha = _freeze(a, fam, sha)
     root = _root(a)
     rp = root / f"results_{fam}.json"
     if not rp.exists():
@@ -622,28 +752,78 @@ def cmd_rep(a):
     adv = tuple(t for t in c14.FAMILY_REP_TESTS[fam] if (res.get(t) or {}).get("advance") is True)
     if not adv:
         raise c14.Refused(f"no {fam} test advanced: there is no {fam} Stage 2")
-    if not a.results_sha256:
+    if not a.results_sha256 or a.results_sha256 == c14.PIN_UNSET:
         raise c14.Refused(f"--results-sha256 is required for the {fam} replication (pin the committed Stage-1 results_{fam}.json)")
     if hashlib.sha256(rp.read_bytes()).hexdigest() != a.results_sha256.lower():
         raise c14.Refused(f"results_{fam}.json sha256 differs from --results-sha256: Stage 2 stays closed")
+    k2 = _stage2_k(a, fam, len(adv), root)
     hist = _hist(a)
     now = time.time()
     if fam == "W":
         from astrolabe.research_lab import cb14_w as w  # noqa: PLC0415
 
         la = Path(a.live_audit) if a.live_audit else None
-        body = w.rep_w(hist / w.LIVE_RUN, adv, now=now, k2=a.stage2_k, live_audit=json.loads(la.read_text()) if la and la.exists() else None)
+        body = w.rep_w(hist / w.LIVE_RUN, adv, now=now, k2=k2, live_audit=json.loads(la.read_text()) if la and la.exists() else None)
     else:
         from astrolabe.research_lab import cb14_s as s  # noqa: PLC0415
 
-        body = s.rep_s(hist, out_root=root, tests=adv, now=now, k2=a.stage2_k)
+        pins = _model_pins(a)
+        body = s.rep_s(hist, out_root=root, tests=adv, now=now, k2=k2, model_pin=pins["model"], rebased_pin=pins["model_rebased"], keys_report=_keys_report(a))
     doc = {**body, "rules_sha256": sha, "freeze_sha256": freeze_sha, "stage1_results_sha256": a.results_sha256.lower()}
     rsha = c14.write_results_once(Path(a.out) if a.out else root / f"results_{fam}_rep.json", doc)
     lines = _lines({t: doc.get(f"{t}_rep") or {} for t in adv}, adv)
     for t in adv:
-        lines[t]["advance"] = (doc.get(f"{t}_rep") or {}).get("stage2_pass_alpha_over_k", (doc.get(f"{t}_rep") or {}).get("advance"))
+        lines[t]["advance"] = (doc.get(f"{t}_rep") or {}).get("stage2_pass_alpha_over_k", False)
     c14.log_family(fam, lines, replication=True, trials_path=_tp(a), results_sha256=rsha, n_triggered=len(adv), placebos=_placebos({t: doc.get(f"{t}_rep") or {} for t in adv}, adv))
     return 0, {"status": f"rep_{fam}_complete", "tests": list(adv)}
+
+
+@_guarded
+def cmd_stage2_final(a):
+    """The final CB14-wide Stage-2 step (section 2.3): once every TRIGGERED family's rep result exists (W iff W1 or W2 advanced at Stage 1, S iff S1 or S2 advanced), ONE strict Holm at
+    one-sided alpha 0.05 over every triggered Stage-2 test (a triggered test that could not run enters with p = 1). Write-once; it can only ADD passes to the early alpha / 4 decisions
+    (a pass also needs ``checks_ok``: every binding check except the primary p gate)."""
+    c14 = _c14()
+    root = _root(a)
+    out = Path(a.out) if a.out else root / "results_stage2_final.json"
+    if out.exists():
+        return 0, {"status": "stage2_final_complete", "already_written": True}
+    pvals: dict[str, float | None] = {}
+    early: dict[str, bool] = {}
+    checks: dict[str, bool] = {}
+    inputs: dict[str, str] = {}
+    triggered = []
+    for fam in FAMILIES:
+        s1 = root / f"results_{fam}.json"
+        if not s1.exists() and _terminal(a, fam) is not None:
+            continue  # a counted terminal "not testable": never triggered, nothing to wait for
+        if not s1.exists():
+            raise c14.NotNow(f"results_{fam}.json missing: Stage 1 of family {fam} first")
+        d1 = json.loads(s1.read_text())
+        tids = [t for t in c14.FAMILY_REP_TESTS[fam] if (d1.get(t) or {}).get("advance") is True]
+        if not tids:
+            continue
+        triggered.append(fam)
+        rp = root / f"results_{fam}_rep.json"
+        if not rp.exists():
+            raise c14.NotNow(f"results_{fam}_rep.json missing: family {fam} triggered Stage 2 and is not final yet (pending)")
+        inputs[rp.name] = hashlib.sha256(rp.read_bytes()).hexdigest()
+        doc = json.loads(rp.read_text())
+        for t in tids:
+            r = doc.get(f"{t}_rep") or {}
+            pvals[t] = r.get("p") if r.get("testable") else None
+            early[t] = bool(r.get("stage2_early_alpha_ok"))
+            checks[t] = bool(r.get("checks_ok"))
+    if not triggered:
+        raise c14.Refused("no CB14 family triggered Stage 2: there is nothing to finalise")
+    holm = c14.stage2_final(pvals)
+    verdict = {t: {"checks_ok": checks[t], "early_alpha_over_4": early[t], "final_holm_reject": bool(holm["tests"][c14.STAGE2_NAMES[t]]["reject"]),
+                   "pass": bool(checks[t] and (early[t] or holm["tests"][c14.STAGE2_NAMES[t]]["reject"]))} for t in pvals}
+    doc = {"version": "cb14-stage2-final-v1", "triggered_families": triggered, "k2": holm["k"], "alpha": holm["alpha"], "holm": holm, "verdict": verdict, "inputs_sha256": inputs,
+           "rule": "strict Holm over every triggered CB14 Stage-2 test; early alpha/4 passes are never withdrawn; the final step only adds passes"}
+    _write_json_once(out, doc)
+    c14.log_descriptive("stage2_final", {"k2": holm["k"], "verdict": verdict, "inputs_sha256": inputs}, trials_path=_tp(a), role=c14.EVIDENCE_ROLE_PROSPECTIVE)
+    return 0, {"status": "stage2_final_complete", "k2": holm["k"], "verdict": verdict, "written": str(out)}
 
 
 # ---- parser ------------------------------------------------------------------------------------------------------------------------------------
@@ -663,6 +843,7 @@ def build_parser() -> argparse.ArgumentParser:
         q.add_argument("--standalone", action="store_true", help="no collector yield / health check (tests, off-host)")
         q.add_argument("--allow-uncommitted-rules", action="store_true")
         q.add_argument("--trials-path", default=None)
+        q.add_argument("--model-pin-file", default=None, help="S: the position-model pin file (default seals/cb14_s_model_pin.json; committed)")
 
     def net(q: argparse.ArgumentParser, *, disk_cap: float, budget: bool = False) -> None:
         q.add_argument("--data-dumps", default=None)
@@ -683,6 +864,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     q = sub.add_parser("freeze-part", help="print one part of the CB14 freeze declaration")
     q.add_argument("--part", required=True, choices=FAMILIES)
+    q.add_argument("--model-pin-file", default=None)
+    q.add_argument("--allow-uncommitted-rules", action="store_true")
     q.set_defaults(fn=cmd_freeze_part)
 
     q = sub.add_parser("smoke", help="q0300 (W) / q0301 (S)")
@@ -749,6 +932,8 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--history-root", default=None)
     q.add_argument("--rules", default=None)
     q.add_argument("--allow-uncommitted-rules", action="store_true")
+    q.add_argument("--trials-path", default=None)
+    q.add_argument("--smoke", default=None)
     q.set_defaults(fn=cmd_s_fit)
 
     q = sub.add_parser("s-data", help="q0317 (P) / q0318 (N)")
@@ -803,10 +988,18 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--family", required=True, help="W | S")
     q.add_argument("--out", default=None)
     q.add_argument("--freeze-spec", default=None)
-    q.add_argument("--stage2-k", type=int, default=None)
+    q.add_argument("--stage2-k", default=None, help="Stage-2 count k2 filled by the coordinator (an integer in [k_min, 4]); absent -> alpha / 4")
     q.add_argument("--results-sha256", default=None, help="pinned sha256 of the committed Stage-1 results_<family>.json (required)")
     q.add_argument("--live-audit", default=None, help="W: the weekly live map-audit labels (optional)")
     q.set_defaults(fn=cmd_rep)
+
+    q = sub.add_parser("stage2-final", help="final CB14-wide Stage-2 strict Holm (after q0311 / q0322)")
+    q.add_argument("--root", default=None)
+    q.add_argument("--history-root", default=None)
+    q.add_argument("--smoke", default=None)
+    q.add_argument("--out", default=None)
+    q.add_argument("--trials-path", default=None)
+    q.set_defaults(fn=cmd_stage2_final)
     return ap
 
 

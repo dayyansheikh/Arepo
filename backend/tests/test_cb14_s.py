@@ -357,9 +357,19 @@ def test_s_fit_refuses_when_price_print_guarded_or_target_files_exist(tmp_path):
 
 
 def test_model_pin_unset_or_wrong_refuses(world, tmp_path):
-    assert s.S_MODEL_SHA256 == c14.PIN_UNSET  # pinned by the coordinator after q0314
+    consts = c14.rules_part_file_doc("S")["constants"]["cb14_s"]
+    assert not hasattr(s, "S_MODEL_SHA256") and not any("MODEL_SHA256" in k for k in consts)  # the pin lives outside the part-S rules hash (fix F10)
+    assert not (c14.provenance.REPO_ROOT / s.MODEL_PIN_REL).exists()  # written by the coordinator after q0314
     with pytest.raises(s.Refused, match="unset"):
         s.check_model_pin(world["model_path"])
+    pf = tmp_path / "pin.json"
+    pf.write_text(json.dumps({"version": s.MODEL_PIN_VERSION, "s_model_sha256": c14.PIN_UNSET, "s_model_rebased_sha256": "0" * 64}))
+    with pytest.raises(s.Refused, match="unset or malformed"):
+        s.model_pins(pf, require_committed=False)
+    pf.write_text(json.dumps({"version": s.MODEL_PIN_VERSION, "s_model_sha256": world["pins"]["model_pin"], "s_model_rebased_sha256": world["pins"]["rebased_pin"]}))
+    assert s.model_pins(pf, require_committed=False) == {"model": world["pins"]["model_pin"], "model_rebased": world["pins"]["rebased_pin"]}
+    with pytest.raises(s.Refused, match="not committed"):
+        s.model_pins(pf, require_committed=True)
     with pytest.raises(s.Refused, match="!="):
         s.check_model_pin(world["model_path"], "0" * 64)
     assert s.check_model_pin(world["model_path"], world["pins"]["model_pin"]) == world["pins"]["model_pin"]
@@ -901,3 +911,83 @@ def test_smoke_online_makes_at_most_30_requests_with_fake_sources():
                           "clock": staticmethod(lambda: 0.0), "sleep": staticmethod(lambda x: None), "transport": staticmethod(lambda url, params: (404, b"", {}))})()
     res = s.smoke_online(lim, {"now": 0.0, "factbase_lim": fb})
     assert res["_requests"]["pass"] and res["s_tag_walk"]["pass"] is False and res["s_availability_p_months"]["pass"] is False and res["s_factbase_transcript"]["pass"] is False
+
+
+# =====================================================================================================================================================
+# Freeze-check fixes (CREATIVE_BATCH_14.md section 11): regression tests
+# =====================================================================================================================================================
+
+
+def test_f13_stage2_is_weekly_and_closes_on_resolved_events_with_units(tmp_path):
+    cap = ep(s.T14_S2_CAP)
+    mp = tmp_path / "manifest_s2.json"
+    now = ep("2026-11-20T00:00:00Z")
+    assert s.stage2_weekly_gate(mp, now, cap) is None  # no pass yet: run now
+    mp.write_text(json.dumps({"status": s.STAGE2_STATUS_OPEN, "last_pass_epoch": now - 2 * D_}))
+    assert "weekly" in s.stage2_weekly_gate(mp, now, cap)  # 2 days after the last completed pass: idle
+    assert s.stage2_weekly_gate(mp, now + 4 * D_, cap) is not None and s.stage2_weekly_gate(mp, now + 5 * D_ - 1, cap) is not None
+    assert s.stage2_weekly_gate(mp, now - 2 * D_ + s.S2_PASS_EVERY_S, cap) is None  # 7 days later: the next pass
+    mp.write_text(json.dumps({"status": s.IN_PROGRESS, "last_pass_epoch": now - D_}))
+    assert s.stage2_weekly_gate(mp, now, cap) is None  # an interrupted pass resumes at once
+    mp.write_text(json.dumps({"status": s.STAGE2_STATUS_OPEN, "last_pass_epoch": cap - D_}))
+    assert s.stage2_weekly_gate(mp, cap + 60, cap) is None  # at the cap the closing pass runs at once
+    assert s.S2_STOP_EVENTS == s.REP_MIN_EVENTS == 100  # the design's stop: 100 resolved events with a unit (not 150 transcripts)
+
+
+def test_f13_unresolved_outcomes_are_refetched_and_only_a_flag_leaves_the_guarded_store(tmp_path):
+    rdir = tmp_path / "hist" / s.FRAME_RUN
+    (rdir / "guarded_s2").mkdir(parents=True)
+    part = rdir / "stage2" / "fetch_partial.jsonl"
+    part.parent.mkdir(parents=True)
+    oc_part = s.oc_partial(rdir, "S2")
+    items = [{"ev": {"event_id": "E1", "start_epoch": 0.0}, "map": {"record_url": "/x", "speaker_key": "trump"}, "members": [{"market_id": "m1", "event_id": "E1", "yes_index": "0"}]}]
+    with part.open("w") as fh:  # transcript and market already fetched: only outcomes remain
+        fh.write(json.dumps({"k": "tr", "event_id": "E1"}) + "\n" + json.dumps({"k": "mk", "market_id": "m1"}) + "\n")
+    answers = iter([[{"id": "m1", "outcomePrices": "[\"0.5\", \"0.5\"]", "umaResolutionStatus": "proposed"}], [], [{"id": "m1", "outcomePrices": "[\"1\", \"0\"]", "umaResolutionStatus": "resolved"}]])
+
+    class Lim:
+        n = 0
+
+        def get(self, url, params):
+            Lim.n += 1
+            return 200, next(answers)
+
+    class FR:
+        lim = Lim()
+        extra_state: dict = {}
+
+        def stop_reason(self, fn):
+            return None
+
+    assert s._fetch_targets(FR(), None, items, part, None, oc_part=oc_part, refetch_unresolved=True) is None
+    assert s.resolution_state(part) == {"m1": False}
+    assert s._fetch_targets(FR(), None, items, part, None, oc_part=oc_part, refetch_unresolved=True) is None  # the next weekly pass looks it up again
+    assert s.resolution_state(part) == {"m1": True}
+    assert s._store(oc_part, "oc")["m1"]["uma_status"] == "resolved"  # the latest lookup wins in the guarded outcome store
+    assert "outcome_prices" not in part.read_text() and "resolved\"" not in part.read_text().replace('"resolved": true', "").replace('"resolved": false', "")
+    n = Lim.n
+    assert s._fetch_targets(FR(), None, items, part, None, oc_part=oc_part, refetch_unresolved=True) is None and Lim.n == n  # resolved: never looked up again
+    assert s.resolved_flag({"outcome_prices": "", "uma_status": "unavailable (network)", "yes_index": 0}) is False
+
+
+def test_f11_screen_recomputes_the_gates_on_p_alone_when_n_is_reported_only(world, monkeypatch):
+    def boom(*a, **k):
+        raise AssertionError("an outcome file was opened although every P-only gate failed")
+
+    monkeypatch.setattr(c14, "open_guarded", boom)
+    out = s.screen_s(world["hist"], census={"label_S1": None, "label_S2": None}, out_root=world["out_root"], rules_sha="x", model_pin=world["pins"]["model_pin"],
+                     rebased_pin=world["pins"]["rebased_pin"], n_primary={"n_primary": False}, ledger_path=world["ledger"], gsp_draws=5)
+    assert out["gates_P_only"]["GS"]["pass"] is False and out["tags"] == ["P"]  # 33 P events < 100: the P-only test fails its population gate
+    assert out["S1"]["verdict"] == out["S2"]["verdict"] == "not testable (population)" and out["S1"]["p"] == 1.0
+
+
+def test_f15_s2_carries_the_half_and_leave_one_quarter_out_sign_checks(world, loose_gates):
+    rdir = world["rdir"]
+    models = s.make_models(world["out_root"], rdir / "fit", model_pin=world["pins"]["model_pin"], rebased_pin=world["pins"]["rebased_pin"])
+    data = s.load_dataset(rdir, ("P", "N"), job="screen")
+    outs = [o for tag in ("P", "N") for o in c14.open_guarded(s.subset_files(rdir, tag)["outcomes"], "screen", ("screen", "rep"))]
+    ymap = s.build_ymap(data, outs)
+    r = s.s2_screen(data, models, ymap, n_draws=2, n_wild=99, placebo=False)
+    assert r["testable"], r.get("verdict")
+    assert {"halves_sign", "leave_one_quarter_out_sign"} <= set(r["robustness"]) and "checks_ok" in r and "small_g_rules_hold" in r
+    assert r["advance"] == bool(r["p_ok"] and r["checks_ok"])

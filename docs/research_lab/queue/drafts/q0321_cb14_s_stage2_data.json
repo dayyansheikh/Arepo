@@ -36,9 +36,9 @@
   "history/h14_speech/guarded_s2/"
  ],
  "next_action": "q0322 if triggered",
- "notes": "DRAFT. Re-queued weekly by the coordinator until the stop rule; the stop counts events, never results. Rules part sha256 (seals/cb14_rules.json, code of 2026-10-19 after CB14 code completion): common 27e65215ec577c600168385da5ef6649573ae2c56f9f854559b9a943c40e75c1, S 0970b078f3c86b1f06d7c16c8537d86ae3ba8e644edc8acddb42586134e18938. CB14 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes.",
+ "notes": "DRAFT. Weekly by an internal 7-day gate (idle exit 75 between passes, an idle heartbeat exit 0 at least every 10 h); unresolved outcomes are re-fetched every pass; closes at >= 100 resolved Stage-2 events with a mapped transcript and >= 1 aligned unit or at the cap (the stop counts resolutions, never results). Rules part sha256 (seals/cb14_rules.json, resealed 2026-10-19 after the code-against-design freeze-check fixes, CREATIVE_BATCH_14.md section 11): common 0440b859b334695166bd664a226ad7478e1c838b0ec7ee3b05551a1e977c7c1f, S 8e448f1e147b9737eff92ec37bb3cb6457e2709ab5db8c58318428e4758a9633. CB14 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes.",
  "repeat": {
-  "max_runs": 20,
+  "max_runs": 600,
   "until_log_regex": "\"status\": \"s_stage2_window_closed\""
  }
 }

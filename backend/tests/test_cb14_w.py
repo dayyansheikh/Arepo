@@ -666,3 +666,172 @@ def test_live_window_start_is_max_of_floor_and_freeze_plus_one_day_and_stop_coun
     assert w.live_window(floor - 30 * D_)[0] == floor
     assert w.live_window(None)[1] == ep(w.T14_W2_CAP)
     assert w.live_stop_reached(tmp_path, floor, floor + 100 * D_) is False  # no bursts logged
+
+
+# =====================================================================================================================================================
+# Freeze-check fixes (CREATIVE_BATCH_14.md section 11): regression tests
+# =====================================================================================================================================================
+
+
+def test_f1_small_g_way_leaves_the_max_and_its_leave_one_out_sign_rule_binds():
+    rng = np.random.default_rng(1)
+    n = 400
+    subj = np.array([f"s{i % 40}" for i in range(n)])
+    week = np.array([f"w{i % 10}" for i in range(n)])  # G = 10 < 15
+    v = rng.normal(0.3, 1.0, n)
+    r = c14.cluster_p(v, {"subject": subj, "week": week}, min_units=40, min_first_clusters=30)
+    assert r["testable"] is True  # the whole test stays testable (the code had made it untestable)
+    assert r["ways"]["week"]["in_max"] is False and r["ways"]["week"]["p"] is None and r["ways"]["subject"]["in_max"] is True
+    assert r["p"] == r["ways"]["subject"]["p"] and r["small_g_rules_hold"] is True and c14.p_pass(r, 0.01)
+    # one week carries the whole effect: leaving it out flips the sign -> the binding sign rule fails, p_pass is false even though p is tiny
+    v2 = np.where(week == "w3", 20.0, -0.2) + rng.normal(0, 0.01, n)
+    r2 = c14.cluster_p(v2, {"subject": subj, "week": week}, min_units=40, min_first_clusters=30)
+    assert r2["testable"] and r2["small_g_rules_hold"] is False and not c14.p_pass(r2, 0.5)
+    # every way below 15 clusters: no p in the max -> not testable (a binding sub-check is then not met)
+    r3 = c14.cluster_p(v[:60], {"subject": subj[:60] == "s1", "week": week[:60]}, min_units=1, min_first_clusters=1)
+    assert r3["testable"] is False and r3["p"] == 1.0
+
+
+def test_f1_w1_class_and_half_checks_use_the_small_g_rule_not_a_blanket_untestable():
+    est = 0.4
+    units = [{"subject": f"s{i % 20}", "week": f"w{i % 8}"} for i in range(60)]
+    v = np.full(60, 0.4) + np.linspace(-0.01, 0.01, 60)
+    out = w.w1_subset(v, units, np.ones(60, bool), est)
+    assert out["testable"] is True and out["small_g_rules_hold"] is True and out["met"] is True  # subject G = 20 in the max, week G = 8 by its sign rule
+
+
+class FakeRevs:
+    """A MediaWiki stub returning a page of revisions in the LIVE window (after T14_W_end) and a first revision years earlier."""
+
+    def __init__(self, t0):
+        self.t0 = t0
+        self.calls = []
+
+    def get(self, url, params):
+        self.calls.append(dict(params))
+        if params.get("rvlimit") == 1:
+            return 200, {"query": {"pages": [{"pageid": 9, "revisions": [{"timestamp": "2015-01-01T00:00:00Z"}]}]}}
+        revs = [rev(self.t0 - k * 3600, user=f"U{k % 3}", size=1000 + 10 * k, revid=k + 1) for k in range(40, 0, -1)]
+        return 200, {"query": {"pages": [{"pageid": 9, "revisions": revs}]}}
+
+
+def test_f2_live_baseline_reads_live_revisions_and_the_historical_clamp_stays_for_q0306():
+    now = ep("2026-11-05T00:00:00Z")
+    fw = FakeRevs(now - 2 * D_)
+    rows_live, _ = w.fetch_page_revisions(fw, "X", now - 31 * D_, now, set(), historical=False)
+    rows_hist, _ = w.fetch_page_revisions(fw, "X", now - 31 * D_, now, set())
+    assert len(rows_live) == 40 and rows_hist == []  # the Stage-1 clamp drops every row at or after T14_W_end
+    assert fw.calls[0]["rvend"] == iso(now) and fw.calls[1]["rvend"] == iso(w.w_end() - 1)
+    base = w.bootstrap_baseline(FakeRevs(now - 2 * D_), "X", set(), now)
+    assert base["ok"] is True and base["n_eligible"] == 40 and base["threshold"] is not None
+
+
+def _mkt(mid, end, created=0.0):
+    return {"market_id": mid, "condition_id": f"c{mid}", "token_yes": f"t{mid}", "yes_index": 0, "created_epoch": created, "end_epoch": end, "fee_rate": 0.04, "question": "q"}
+
+
+def test_f3_markets_seen_is_a_union_and_w2rep_uses_the_burst_snapshot_not_the_latest_frame(tmp_path):
+    ld = tmp_path / "h14_wiki_live"
+    ld.mkdir()
+    t = ep("2026-11-01T00:00:00Z")
+    f1 = {"as_of": t, "subjects": {"7": {"entity": "A", "title": "A", "description": "", "country": "US", "markets": [_mkt("m1", t + 30 * D_), _mkt("m2", t + 60 * D_)]}}}
+    w.record_markets_seen(ld, f1, t)
+    f2 = {"as_of": t + D_, "subjects": {}}  # the subject's markets closed: it drops out of the next frame
+    w.record_markets_seen(ld, f2, t + D_)
+    assert [m["market_id"] for m in w.seen_markets(ld)] == ["m1", "m2"] and w.seen_markets(ld)[0]["subject"] == "7"
+
+    class Lim:
+        calls = []
+
+        def get(self, url, params):
+            Lim.calls.append(params.get("market"))
+            return 200, []
+
+    w.refresh_live_prints(Lim(), ld, w.seen_markets(ld))
+    assert sorted(Lim.calls) == ["cm1", "cm2"]  # prints of every market ever seen are refreshed (closed ones included)
+    b = t + 2 * D_
+    burst = {"status": "ok", "page_id": "7", "b": b, "receipt": b + 30, "entity": "A", "country": "US", "markets": f1["subjects"]["7"]["markets"]}
+    bid = f"7|{int(b)}"
+    books = {(bid, "m1", 60): {"best_bid": 0.30, "best_ask": 0.32, "ask_size": 500}, (bid, "m1", 7200): {"best_bid": 0.40, "best_ask": 0.42}}
+    L = {"bursts": [burst], "books": books, "txs": {}, "latency": [30.0], "seen": w.seen_markets(ld), "closed": None}
+    pk = w.w2rep_units(L, now=b + 3 * D_)
+    assert pk["labels"] == {"unit": 1} and pk["units"][0]["market_id"] == "m1" and pk["units"][0]["story"].endswith("|US")
+    nosnap = {k: v for k, v in burst.items() if k != "markets"}
+    assert w.w2rep_units({**L, "bursts": [nosnap]}, now=b + 3 * D_)["labels"] == {"no market snapshot": 1}
+
+
+def test_f7_rep_w_never_analyses_a_partial_window(tmp_path):
+    ld = tmp_path / "h14_wiki_live"
+    ld.mkdir()
+    end = ep("2027-02-01T00:00:00Z")
+    with pytest.raises(w.NotNow, match="not closed"):
+        w.rep_w(ld, ("W2",), now=end + 10 * D_)
+    (ld / w.LIVE_FILES["closed"]).write_text(json.dumps({"closed_at": end, "by": "cap"}))
+    with pytest.raises(w.NotNow, match=r"\+ 3 d"):
+        w.rep_w(ld, ("W2",), now=end + 2 * D_)
+    with pytest.raises(w.NotNow, match="final post-close print refresh"):
+        w.rep_w(ld, ("W2",), now=end + 4 * D_)
+    (ld / w.LIVE_FILES["prints_final"]).write_text(json.dumps({"refreshed_at": end + 3 * D_}))
+    out = w.rep_w(ld, ("W1", "W2"), now=end + 4 * D_)
+    for t in ("W1", "W2"):
+        r = out[f"{t}_rep"]
+        assert r["verdict"] == "not run (power)" and r["checks_ok"] is False and r["stage2_early_alpha_ok"] is False and r["stage2_pass_alpha_over_k"] is False
+
+
+def test_f7_post_close_refresh_writes_the_final_refresh_once_after_three_days(tmp_path):
+    ld = tmp_path / "h14_wiki_live"
+    ld.mkdir()
+    end = ep("2027-02-01T00:00:00Z")
+    closed = {"closed_at": end}
+    calls = []
+
+    def transport(url, params):
+        calls.append(url)
+        return 200, b"[]", {}
+
+    r1 = w.post_close_refresh(transport, ld, closed, end + D_, sleep=lambda s: None)
+    assert r1["prints_final"] is False and not (ld / w.LIVE_FILES["prints_final"]).exists()
+    r2 = w.post_close_refresh(transport, ld, closed, end + 3 * D_ + 60, sleep=lambda s: None)
+    assert r2["prints_final"] is True and (ld / w.LIVE_FILES["prints_final"]).exists()
+    n = len(calls)
+    assert w.post_close_refresh(transport, ld, closed, end + 5 * D_, sleep=lambda s: None)["prints_final"] is True and len(calls) == n  # nothing after the final refresh
+
+
+def test_f18_w1_rep_has_no_extra_week_minimum(monkeypatch):
+    seen = {}
+
+    def fake_cluster_p(v, clusters, **kw):
+        seen.update(kw)
+        return {"testable": True, "p": 0.5, "ways": {}, "small_g_rules_hold": True, "n": len(v), "mean": float(np.mean(v))}
+
+    monkeypatch.setattr(c14, "cluster_p", fake_cluster_p)
+    units = [{"subject": f"s{i}", "market_id": "m", "D0": 1e9 + i * D_, "D": 1e9 + i * D_, "V": 0.3, "created": 0.0, "week": f"w{i}"} for i in range(20)]
+    monkeypatch.setattr(w, "live_w1_units", lambda L, end: units)
+    monkeypatch.setattr(w, "w1_value", lambda u, b, tx: (0.1, {}))
+    out = w.w1_rep({"bursts": [], "txs": {"m": None}}, 2e9)
+    assert "min_clusters_by_way" not in seen and seen["min_units"] == w.W1REP_MIN_MOVES and seen["min_first_clusters"] == w.W1REP_MIN_SUBJECTS
+    assert out["testable"] and out["checks_ok"] is False  # mean 0.1 < the 0.25 floor
+
+
+def test_f14_events_with_missing_fields_are_looked_up_and_smoke_paging_is_robust():
+    ev = {"id": 5, "title": "Will X resign?", "markets": [mk_market("m1")]}
+    assert w.event_needs_lookup(ev, set()) is True  # no tags / series keys in the search payload
+    full = {**ev, "tags": [], "series": []}
+    assert w.event_needs_lookup(full, set()) is False
+    nocreated = {**full, "markets": [{k: v for k, v in mk_market("m1").items() if k != "createdAt"}]}
+    assert w.event_needs_lookup(nocreated, set()) is True
+    irrelevant = {"id": 6, "title": "x", "markets": [mk_market("m9", q="Will it rain?")]}
+    assert w.event_needs_lookup(irrelevant, set()) is False  # no W-candidate market: never looked up
+
+    class Lim:
+        def __init__(self):
+            self.calls = []
+
+        def get(self, url, params):
+            self.calls.append(dict(params))
+            return 200, ([full] if params.get("closed") == "true" else [])
+
+    lim = Lim()
+    got, used = w.lookup_events(lim, ["5", "8"])
+    assert set(got) == {"5"} and used == 2 and lim.calls[0]["id"] == ["5", "8"] and lim.calls[1]["id"] == ["8"]
+    assert w.SMOKE_RV_LIMIT == 1 and "w_search_fields" in w.SMOKE_NEEDS

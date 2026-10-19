@@ -153,8 +153,11 @@ SHRINK_ALT = (5, 20)
 MODEL_VERSION = "cb14-s-model-v1"
 MODEL_FILE = "s_model.json"
 MODEL_REBASED_FILE = "s_model_rebased.json"
-S_MODEL_SHA256 = c14.PIN_UNSET  # the coordinator pins the sha256 of s_model.json here (part S) after q0314; q0317 / q0318 / q0321 refuse while it is unset or differs
-S_MODEL_REBASED_SHA256 = c14.PIN_UNSET  # ... and of s_model_rebased.json (hashed together with the primary model before any S read; item 13)
+# The position-model pins live OUTSIDE the part-S rules hash (section 11 fix F10; design section 1.4 puts the pin in the freeze spec): a committed, write-once pin file that the coordinator
+# writes after q0314 and before any S price, print or target transcript is read. q0317 / q0318 / q0321 / the screen / the rep refuse while it is missing, uncommitted or differs from the
+# model files; the S freeze entry (model_specs/cb14_v1.json, part S) must carry the same two sha256. Pinning therefore never changes the part-S rules sha (the N timing rule of 1.3).
+MODEL_PIN_REL = "docs/research_lab/seals/cb14_s_model_pin.json"
+MODEL_PIN_VERSION = "cb14-s-model-pin-v1"
 S_SPORTS_REGISTRY_FILE_SHA256 = "b47b3d20c0bbf71a4e0dc912b0a32533fcd7e796e2c289a4b525774c8857bce6"  # evidence_cb12/sports_tag_registry_20261018.json
 S_SPORTS_IDS_SHA256 = "9485fe3595c9bf0db16ace97c60ca68eca9fdef0ef69f2883f3a313b85c76227"  # sha256 of json (compact) of the sorted CB12-M SPORTS_TAG_IDS
 S_SPORTS_SLUGS_SHA256 = "95edfe3c9dc42e788bf18ef4613a9689c32d0f2d1ee0941acfb5bd33921b70dd"  # ... of the CB12-M SPORTS_TAG_SLUGS tuple
@@ -182,8 +185,12 @@ GS_MIN = {"events": 100, "weeks": 30, "words": 1000, "align_share": 0.60}
 GSC_MIN = {"events": 100, "weeks": 30, "p_events": 25}
 REP_MIN_EVENTS = 100
 REP_CAP_MIN_EVENTS = 60
-S2_STOP_EVENTS = 150  # Stage-2 collection closes at the cap or once this many events have a complete transcript + price + print fetch (a margin over the 100 events with a unit)
-# availability rule on the P months (smoke): the 30-request cap of the smoke leaves room for one out-of-frame event x two members per month (declared reduction of 3 x 2)
+S2_STOP_EVENTS = 100  # T14_S2_end (section 1.2): Stage-2 collection closes at the cap or once this many Stage-2 events with a mapped transcript and >= 1 aligned unit have RESOLVED (every
+# member resolved on Gamma; counted from resolution flags, never from outcome values)
+S2_PASS_EVERY_S = 7 * DAY  # q0321 is weekly: a pass starts at most once per 7 days (idle exit 75 between, an idle heartbeat exit 0 at least every 10 h; CB8 q0162 pattern)
+# availability rule on the P months (smoke; section 11 fix F12, declared engineering gate, outcome-blind): the design's 3 events x 2 members per month over 7 months (7 lookups + 42 price
+# reads) cannot fit the smoke's 30 requests, so ONE out-of-frame event x 2 members per month (7 + 14 = 21 requests) and a month is usable iff BOTH members return rows (the design's
+# ">= 4 of 6" share, 2/3, rounded up to 2 of 2: stricter); a month with no out-of-frame event found is not usable; P keeps only usable months (the smoke criterion: >= 1 usable month)
 AVAIL_EVENTS_PER_MONTH = 1
 AVAIL_MEMBERS_PER_EVENT = 2
 AVAIL_MIN_FRACTION = 4.0 / 6.0
@@ -275,11 +282,31 @@ def is_sports_s(tags: Iterable[dict], title: str) -> tuple[bool, bool]:
     return by_tag, bool(m12.BROADCAST_RE.search(title or ""))
 
 
+def model_pins(path: Path | None = None, *, require_committed: bool = True) -> dict[str, str]:
+    """The committed position-model pins ``{"model", "model_rebased"}`` from ``MODEL_PIN_REL`` (outside the rules hash). Missing, uncommitted, foreign-version or unset -> refusal."""
+    p = Path(path) if path is not None else c14.provenance.REPO_ROOT / MODEL_PIN_REL
+    if not p.is_file():
+        raise Refused(f"the position-model pin file {p.name} is missing (pins unset, {c14.PIN_UNSET}): the coordinator writes and commits it after q0314, before any S price, print or target transcript is read")
+    if require_committed:
+        from . import cb1_history  # noqa: PLC0415
+
+        if not cb1_history.spec_committed(p):
+            raise Refused(f"the position-model pin file {p} is not committed (or differs from HEAD)")
+    doc = json.loads(p.read_text())
+    if doc.get("version") != MODEL_PIN_VERSION:
+        raise Refused(f"pin file version {doc.get('version')!r} != {MODEL_PIN_VERSION!r}")
+    out = {"model": str(doc.get("s_model_sha256") or ""), "model_rebased": str(doc.get("s_model_rebased_sha256") or "")}
+    if any(not re.fullmatch(r"[0-9a-f]{64}", v) for v in out.values()):
+        raise Refused(f"the position-model pin file {p.name} has an unset or malformed sha256")
+    return out
+
+
 def check_model_pin(model_path: Path, pin: str | None = None, *, what: str = "position model") -> str:
-    """The sha256 of a model file must equal the pin in part S (unset pin -> refuse, so the coordinator pins it; mismatch -> refuse)."""
-    pin = S_MODEL_SHA256 if pin is None else pin
+    """The sha256 of a model file must equal its pin (``pin`` given by the caller from the committed pin file; ``None`` reads that file; unset -> refuse; mismatch -> refuse)."""
+    if pin is None:
+        pin = model_pins()["model_rebased" if "re-based" in what else "model"]
     if not pin or pin == c14.PIN_UNSET:
-        raise Refused(f"the sha256 pin of the {what} (S_MODEL_SHA256 in part S) is unset ({c14.PIN_UNSET}); the coordinator pins it after q0314, before any S price, print or target transcript is read")
+        raise Refused(f"the sha256 pin of the {what} is unset ({c14.PIN_UNSET}); the coordinator pins it after q0314 (seals/cb14_s_model_pin.json), before any S price, print or target transcript is read")
     p = Path(model_path)
     if not p.exists():
         raise Refused(f"{what} file {p} not found")
@@ -1204,12 +1231,19 @@ def s1_fit(units: list[dict], ymap: dict, key: str = "y", extra: bool = False) -
     v, b = c14.wls_coef_pseudo(y - p, X, w, 0)
     if not math.isfinite(b):
         return None
-    return {"units": us, "y_minus_p": y - p, "x": x1, "w": w, "v": v, "b": b, "cl": unit_clusters(us), "n": len(us), "n_words": len({u["market_id"] for u in us}),
+    return {"units": us, "y_minus_p": y - p, "x": x1, "X": X, "w": w, "v": v, "b": b, "cl": unit_clusters(us), "n": len(us), "n_words": len({u["market_id"] for u in us}),
             "n_events": len({u["event_id"] for u in us})}
 
 
 def s1_cp(fit: dict, *, n_wild: int = c14.N_WILD, alpha: float | None = None) -> dict:
-    return c14.cluster_p(fit["v"], fit["cl"], n_wild=n_wild, alpha=alpha)
+    """The S1 p (max over the event, ISO-week and term ways; CB10 small-G rule: a way with G < 15 leaves the max and its leave-one-cluster-out sign rule binds on the RE-ESTIMATED
+    coefficient)."""
+    X = np.asarray(fit["X"], float)
+
+    def est(keep: np.ndarray) -> float:
+        return float(c14.wls_coef_pseudo(fit["y_minus_p"][keep], X[keep], fit["w"][keep], 0)[1]) if keep.sum() >= 5 else math.nan
+
+    return c14.cluster_p(fit["v"], fit["cl"], n_wild=n_wild, alpha=alpha, estimator=est)
 
 
 def s1_slope(units: list[dict], ymap: dict, key: str = "y") -> float:
@@ -1223,7 +1257,7 @@ def s1_holds(units: list[dict], ymap: dict, alpha_adv: float, *, key: str = "y",
     if f is None:
         return False
     cp = s1_cp(f, n_wild=n_wild)
-    return bool(cp["testable"] and cp["p"] < alpha_adv and f["b"] >= S1_FLOOR)
+    return bool(c14.p_pass(cp, alpha_adv) and f["b"] >= S1_FLOOR)
 
 
 def s1_signflip(units: list[dict], ymap: dict, *, n_draws: int = SIGNFLIP_DRAWS, seed: int = c14.PLACEBO_SEEDS["S1_signflip"], n_wild: int = c14.N_WILD) -> dict:
@@ -1246,7 +1280,7 @@ def s1_joint(units: list[dict], ymap: dict, solo_b: float, *, n_wild: int = c14.
     if f is None:
         return {"ok": False, "reason": "joint fit unavailable"}
     cp = s1_cp(f, n_wild=n_wild)
-    ok = bool(cp["testable"] and cp["p"] < JOINT_P and f["b"] >= JOINT_HALF * solo_b and f["b"] > 0)
+    ok = bool(c14.p_pass(cp, JOINT_P) and f["b"] >= JOINT_HALF * solo_b and f["b"] > 0)
     return {"ok": ok, "b_joint": f["b"], "b_solo": solo_b, "p": cp["p"], "testable": cp["testable"], "n": f["n"],
             "label": None if ok else "start-price drift or momentum, not the clock"}
 
@@ -1385,6 +1419,26 @@ def s2_stat(fills: list[dict], ymap: dict, key: str = "y", y_override: np.ndarra
     return {"v": v, "mean": float(v.mean()), "n_fills": len(fills), "n_events": len(tot), "cl": {"event": ev, "week": [f["week"] for f in fills], "term": [f["term"] for f in fills]}, "net": net, "w": w}
 
 
+def s2_cp(fills: list[dict], ymap: dict, *, key: str = "y", n_wild: int = c14.N_WILD, alpha: float | None = None) -> tuple[dict | None, dict | None]:
+    """(statistic, p) of S2 on ``fills``: the max over the event, ISO-week and term ways under the CB10 small-G rule (a way with G < 15 leaves the max and its leave-one-cluster-out
+    sign rule binds on the re-estimated event-mean net)."""
+    st = s2_stat(fills, ymap, key)
+    if st is None:
+        return None, None
+
+    def est(keep: np.ndarray) -> float:
+        sub = s2_stat([f for f, k in zip(fills, keep, strict=True) if k], ymap, key)
+        return math.nan if sub is None else float(sub["mean"])
+
+    return st, c14.cluster_p(st["v"], st["cl"], n_wild=n_wild, alpha=alpha, estimator=est)
+
+
+def s2_sign(fills: list[dict], ymap: dict, key: str = "y") -> bool:
+    """A sign-only S2 robustness check: the event-mean net on ``fills`` is positive (no fill = unknown = not met)."""
+    st = s2_stat(fills, ymap, key)
+    return bool(st is not None and math.isfinite(st["mean"]) and st["mean"] > 0)
+
+
 def s2_placebo(fills: list[dict], *, n_draws: int = c14.PLACEBO_DRAWS, seed: int = c14.PLACEBO_SEEDS["S2_calibrated"], n_wild: int = c14.N_WILD) -> dict:
     """Binding placebo: ``Y*`` calibrated to the FILL-TIME price with the GSP latents (one latent per word); same fills; judged on p < 0.01 alone."""
     if not fills:
@@ -1485,15 +1539,69 @@ def frame_report_counts(frame_rows: dict[str, list[dict]], maps: dict[str, dict]
     return out
 
 
+def late_overlap_s(hist_root: Path, keys_report: dict | None, data: dict) -> dict:
+    """The id sets that were 'absent at q0302' and exist now (field-restricted id readers only; section 1.3: re-read by the census): S events whose event id, a member's market id or a
+    member's ``negRiskMarketID`` they hold are dropped from the census, the screen and the rep (counted). CB12-M's SCREEN frame never drops an N event (the declared deviation)."""
+    absent = list((keys_report or {}).get("sets_absent_at_q0302") or [])
+    drop: set[str] = set()
+    by_set: dict[str, int] = {}
+    for rel in absent:
+        p = c14.id_source_path(rel, Path(hist_root))
+        if not p.is_file():
+            continue
+        cols = c14.read_id_columns(p)
+        m_ids, e_ids = cols.get("market_id", set()), cols.get("event_id", set())
+        n_ids = cols.get("neg_risk_market_id", set()) | cols.get("negRiskMarketID", set())
+        root = rel.split("/", 1)[0]
+        hit = set()
+        for eid, ev in data["events"].items():
+            if root == c14.S_EXEMPT_ROOT and ev.get("subset") == "N":
+                continue
+            if eid in e_ids or any(m["market_id"] in m_ids or (m.get("neg_risk_market_id") and m["neg_risk_market_id"] in n_ids) for m in data["members"].get(eid, [])):
+                hit.add(eid)
+        by_set[rel] = len(hit)
+        drop |= hit
+    for eid in drop:
+        for k in ("events", "members", "map", "ct", "ct_rebased", "transcripts"):
+            data[k].pop(eid, None)
+    return {"dropped_events": len(drop), "by_set": by_set, "absent_at_q0302": absent}
+
+
+def gates_s(data: dict, built: dict, *, n_draws: int = c14.GSP_DRAWS, seed: int = c14.SEED_GSP) -> dict:
+    """GS (population) and GSP / GSP2 (power, feature-only latents; no outcome) on a loaded dataset's units: the census gates, recomputed by the screen on P alone when N is reported-only."""
+    units, infos = built["units"], built["events"]
+    events_units = {e for e, i in infos.items() if i["n_units"] > 0}
+    aligned_events = sum(1 for i in infos.values() if i["aligned_checkpoints"] > 0)
+    weeks = {data["events"][e]["week"] for e in events_units}
+    words = {u["market_id"] for u in units}
+    fills = s2_fills(units, data)
+    gs_checks = {"events_with_unit": len(events_units) >= GS_MIN["events"], "iso_weeks": len(weeks) >= GS_MIN["weeks"], "words_with_units": len(words) >= GS_MIN["words"],
+                 "alignment_share": bool(infos) and aligned_events / len(infos) >= GS_MIN["align_share"]}
+    out: dict = {"GS": {"checks": gs_checks, "min": GS_MIN, "pass": all(gs_checks.values())}, "fills": fills, "events_units": events_units, "aligned_events": aligned_events, "weeks": weeks,
+                 "words": words}
+    if not out["GS"]["pass"]:
+        out["GSP"] = {"pass": False, "note": "not computed (GS failed)"}
+        out["GSP2"] = {"pass": False, "note": "not computed (GS failed)"}
+        out["label_S1"] = out["label_S2"] = "not testable (population)"
+        return out
+    out["GSP"] = gsp_s1(units, n_draws=n_draws, seed=seed)
+    out["GSP2"] = gsp_s2(fills["fills"], n_draws=n_draws, seed=seed)
+    out["label_S1"] = None if out["GSP"]["pass"] else "not run (power)"
+    out["label_S2"] = None if out["GSP2"]["pass"] else "not run (power)"
+    return out
+
+
 def census_s(hist_root: Path, *, model_path: Path, model_pin: str | None = None, subsets: tuple[str, ...] = SUBSETS, n_draws: int = c14.GSP_DRAWS, seed: int = c14.SEED_GSP,
-             ledger_path: Path | None = None, git=None) -> dict:
+             ledger_path: Path | None = None, git=None, keys_report: dict | None = None) -> dict:
     """q0319, counts only. N pieces refuse (NotNow) before ``T14_S_open``. No outcome file is opened (the loader never opens one and the census passes 'census' to every accessor); prices
-    enter only through the units' usable-before-``t`` rules and transcripts only through ``CausalTranscript``. Writes no Y, slope or net; fills are print mechanics."""
+    enter only through the units' usable-before-``t`` rules and transcripts only through ``CausalTranscript``. Writes no Y, slope or net; fills are print mechanics. Frames absent at
+    q0302 are re-read (ids only) and their events dropped."""
     rdir = refuse_if_other_root(Path(hist_root) / FRAME_RUN)
     model = load_model(model_path, model_pin)
     if "N" in subsets:
         c14.s_open_status(ledger_path, git=git)
     data = load_dataset(rdir, subsets, job="census")
+    late = late_overlap_s(Path(hist_root), keys_report, data)
     built = build_units(data, model)
     units, labels = built["units"], built["labels"]
     maps_all = {}
@@ -1505,36 +1613,21 @@ def census_s(hist_root: Path, *, model_path: Path, model_pin: str | None = None,
             trs_all.update({r["event_id"]: r for r in c14.read_csv_gz(f["guarded"] / "transcripts.csv.gz")})
     rep = frame_report_counts(data["frame_rows"], maps_all, trs_all)
     infos = built["events"]
-    events_units = {e for e, i in infos.items() if i["n_units"] > 0}
-    aligned_events = sum(1 for i in infos.values() if i["aligned_checkpoints"] > 0)
-    weeks = {data["events"][e]["week"] for e in events_units}
-    words = {u["market_id"] for u in units}
+    g = gates_s(data, built, n_draws=n_draws, seed=seed)
+    events_units, aligned_events, weeks, words, fills = g["events_units"], g["aligned_events"], g["weeks"], g["words"], g["fills"]
     anchor_hist = Counter(n for i in infos.values() for n in i["anchor_counts"])
     qd = np.array([u["q"] - u["p_lag"] for u in units], float)
     first_seg = [c14.num(t["first_seg_s"]) for t in data["transcripts"].values()]
     base_seg = [c14.num(t["base_s"]) for t in data["transcripts"].values()]
-    fills = s2_fills(units, data)
-    gs_checks = {"events_with_unit": len(events_units) >= GS_MIN["events"], "iso_weeks": len(weeks) >= GS_MIN["weeks"], "words_with_units": len(words) >= GS_MIN["words"],
-                 "alignment_share": bool(infos) and aligned_events / len(infos) >= GS_MIN["align_share"]}
-    gs_ok = all(gs_checks.values())
-    out: dict = {"version": "cb14-census-S-v1", "counts_only": True, "label": LABEL_S, "subsets": list(subsets), "frame": rep, "events_loaded": len(data["events"]), "events_with_unit": len(events_units),
+    out: dict = {"version": "cb14-census-S-v1", "counts_only": True, "label": LABEL_S, "subsets": list(subsets), "frame": rep, "late_overlap": late, "events_loaded": len(data["events"]),
+                 "events_with_unit": len(events_units),
                  "alignment": {"mapped_events_loaded": len(infos), "events_with_aligned_checkpoint": aligned_events, "success_share": (aligned_events / len(infos)) if infos else 0.0,
                                "anchor_count_distribution": {str(k): v for k, v in sorted(anchor_hist.items())}},
                  "units_by_label": dict(labels), "n_units": len(units), "n_words_with_units": len(words), "iso_weeks": len(weeks),
                  "q_minus_p_lag_quantiles": [float(x) for x in np.quantile(qd, [0.05, 0.25, 0.5, 0.75, 0.95])] if len(qd) else [],
                  "pre_roll": {"first_segment_offset_s_quantiles": _qs(first_seg), "first_speaker_offset_s_quantiles": _qs(base_seg)},
                  "s2": {"eligible_units": len(s2_eligible(units)), "eligible_words": fills["n_words"], "fills": len(fills["fills"]), "unreached_words": fills["n_unreached_words"]},
-                 "GS": {"checks": gs_checks, "min": GS_MIN, "pass": gs_ok}}
-    if not gs_ok:
-        out["GSP"] = {"pass": False, "note": "not computed (GS failed)"}
-        out["GSP2"] = {"pass": False, "note": "not computed (GS failed)"}
-        out["label_S1"] = out["label_S2"] = "not testable (population)"
-        return out
-    gsp = gsp_s1(units, n_draws=n_draws, seed=seed)
-    gsp2 = gsp_s2(fills["fills"], n_draws=n_draws, seed=seed)
-    out["GSP"], out["GSP2"] = gsp, gsp2
-    out["label_S1"] = None if gsp["pass"] else "not run (power)"
-    out["label_S2"] = None if gsp2["pass"] else "not run (power)"
+                 "GS": g["GS"], "GSP": g["GSP"], "GSP2": g["GSP2"], "label_S1": g["label_S1"], "label_S2": g["label_S2"]}
     return out
 
 
@@ -1575,9 +1668,9 @@ def s1_screen(data: dict, models: dict, ymap: dict, *, alpha_adv: float = c14.GA
         return {**res, "p": 1.0, "testable": False, "advance": False, "effect": None, "verdict": "not testable (units)"}
     cp = s1_cp(fit, n_wild=n_wild)
     floor_ok = bool(fit["b"] >= S1_FLOOR)
-    res.update(effect=fit["b"], p=cp["p"], testable=cp["testable"], ways=cp["ways"], floor_ok=floor_ok, n_words=fit["n_words"], n_events=fit["n_events"])
+    res.update(effect=fit["b"], p=cp["p"], testable=cp["testable"], ways=cp["ways"], floor_ok=floor_ok, n_words=fit["n_words"], n_events=fit["n_events"], small_g_rules_hold=cp["small_g_rules_hold"])
     if not cp["testable"]:
-        return {**res, "advance": False, "verdict": "not testable (units / clusters)"}
+        return {**res, "advance": False, "checks_ok": False, "verdict": "not testable (units / clusters)"}
     rob: dict = {}
     tags = set(data["tags"])
     if "P" in tags:
@@ -1595,7 +1688,7 @@ def s1_screen(data: dict, models: dict, ymap: dict, *, alpha_adv: float = c14.GA
     rob["unresolved_at_1"] = holds_sign(units, ymap, "y_wc")
     for way in ("event", "week", "term"):
         keep = c14.top_k_drop_mask(fit["v"], fit["cl"][way], c14.TOP_DROP)
-        rob[f"top5_{way}_drop"] = s1_holds([u for u, k in zip(fit["units"], keep, strict=True) if k], ymap, alpha_adv, n_wild=n_wild)
+        rob[f"top5_{way}_drop"] = s1_holds([u for u, k in zip(fit["units"], keep, strict=True) if k], ymap, c14.GATE_P, n_wild=n_wild)  # the p threshold 0.01 (as CB13 Stage 2)
     halves, quarters = c14.halves_and_quarters([u["t"] for u in units])
     rob["halves_sign"] = bool(halves) and all(holds_sign([u for u, h in zip(units, halves, strict=True) if h == k], ymap) for k in (0, 1))
     rob["leave_one_quarter_out_sign"] = bool(quarters) and all(holds_sign([u for u, q in zip(units, quarters, strict=True) if q != qq], ymap) for qq in sorted(set(quarters)))
@@ -1604,13 +1697,15 @@ def s1_screen(data: dict, models: dict, ymap: dict, *, alpha_adv: float = c14.GA
         us = B(f"shift_{name}", shift_s=s)["units"]
         f2 = s1_fit(us, ymap)
         c2 = s1_cp(f2, n_wild=n_wild) if f2 else None
-        shift[name] = {"n": len(us), "b": None if f2 is None else f2["b"], "p": None if c2 is None else c2["p"], "ok": bool(f2 is not None and c2["testable"] and f2["b"] > 0 and c2["p"] < SHIFT_P)}
+        shift[name] = {"n": len(us), "b": None if f2 is None else f2["b"], "p": None if c2 is None else c2["p"], "ok": bool(f2 is not None and c14.p_pass(c2, SHIFT_P) and f2["b"] > 0)}
     joint = s1_joint(units, ymap, fit["b"], n_wild=n_wild)
     plc = s1_signflip(units, ymap, n_draws=n_draws, n_wild=n_wild) if placebo else None
     rob_ok = all(v is True for v in rob.values())
     shift_ok = all(v["ok"] for v in shift.values())
-    adv = bool(cp["p"] < alpha_adv and floor_ok and rob_ok and shift_ok and joint["ok"] and (plc is None or plc["holds"]))
-    res.update(robustness=rob, robustness_ok=rob_ok, clock_shift=shift, clock_shift_ok=shift_ok, joint=joint, placebo=plc, advance=adv)
+    checks_ok = bool(floor_ok and cp["small_g_rules_hold"] and rob_ok and shift_ok and joint["ok"] and (plc is None or plc["holds"]))  # every binding check but the primary p gate
+    p_ok = bool(cp["testable"] and cp["p"] < alpha_adv)
+    adv = bool(p_ok and checks_ok)
+    res.update(robustness=rob, robustness_ok=rob_ok, clock_shift=shift, clock_shift_ok=shift_ok, joint=joint, placebo=plc, checks_ok=checks_ok, p_ok=p_ok, advance=adv)
     res["reported"] = {"by_band": band_slopes(units, ymap), "transcript_gamma_agreement": agreement(data, ymap),
                        "level_mean_y_minus_p_P": _level(units, ymap), "by_subset": {k: {"n": len(sub), "slope": s1_slope(sub, ymap) if len(sub) >= 30 else None}
                                                                                     for k in sorted(tags & set(SUBSETS)) for sub in [[u for u in units if u["subset"] == k]]}}
@@ -1644,21 +1739,19 @@ def s2_screen(data: dict, models: dict, ymap: dict, *, alpha_adv: float = c14.GA
     res["availability_share"] = avail
     if avail < c14.AVAIL_MIN:
         return {**res, "p": 1.0, "testable": False, "advance": False, "effect": None, "verdict": "not testable (availability)"}
-    st = s2_stat(fl["fills"], ymap)
+    st, cp = s2_cp(fl["fills"], ymap, n_wild=n_wild)
     if st is None:
-        return {**res, "p": 1.0, "testable": False, "advance": False, "effect": None, "verdict": "not testable (no fills)"}
-    cp = c14.cluster_p(st["v"], st["cl"], n_wild=n_wild)
+        return {**res, "p": 1.0, "testable": False, "advance": False, "checks_ok": False, "effect": None, "verdict": "not testable (no fills)"}
     floor_ok = bool(st["mean"] >= S2_FLOOR)
-    res.update(effect=st["mean"], p=cp["p"], testable=cp["testable"], ways=cp["ways"], floor_ok=floor_ok, n_events=st["n_events"])
+    res.update(effect=st["mean"], p=cp["p"], testable=cp["testable"], ways=cp["ways"], floor_ok=floor_ok, n_events=st["n_events"], small_g_rules_hold=cp["small_g_rules_hold"])
     if not cp["testable"]:
-        return {**res, "advance": False, "verdict": "not testable (units / clusters)"}
+        return {**res, "advance": False, "checks_ok": False, "verdict": "not testable (units / clusters)"}
 
     def holds(fills: list[dict], *, adv_p: float, need_floor: bool = True) -> bool:
-        s = s2_stat(fills, ymap)
+        s, c = s2_cp(fills, ymap, n_wild=n_wild)
         if s is None:
             return False
-        c = c14.cluster_p(s["v"], s["cl"], n_wild=n_wild)
-        return bool(c["testable"] and c["p"] < adv_p and (s["mean"] >= S2_FLOOR if need_floor else s["mean"] > 0))
+        return bool(c14.p_pass(c, adv_p) and (s["mean"] >= S2_FLOOR if need_floor else s["mean"] > 0))
 
     rob: dict = {}
     r_cost = s2_fills(base["units"], data, off_p=ASK_OFFSET_P_ROBUST, off_q=ASK_OFFSET_Q_ROBUST, ymap=ymap)["fills"]
@@ -1666,29 +1759,33 @@ def s2_screen(data: dict, models: dict, ymap: dict, *, alpha_adv: float = c14.GA
     rob["cost_ask_plus_0.5c_net_positive"] = bool(s_c and s_c["mean"] > 0)
     s_t = s2_stat(s2_fills(base["units"], data, through=TRADE_THROUGH_ROBUST, ymap=ymap)["fills"], ymap)
     rob["trade_through_2c_net_positive"] = bool(s_t and s_t["mean"] > 0)
-    rob["worst_case_reach"] = holds(s2_fills(base["units"], data, ymap=ymap, reach_worst=True)["fills"], adv_p=alpha_adv)
+    rob["worst_case_reach"] = holds(s2_fills(base["units"], data, ymap=ymap, reach_worst=True)["fills"], adv_p=c14.GATE_P)
     shift = {}
     for name, s in (("minus_2min", -SHIFT_S), ("plus_2min", SHIFT_S)):
         f2 = s2_fills(build_units(data, models["base"], shift_s=s)["units"], data, ymap=ymap)["fills"]
-        s2_ = s2_stat(f2, ymap)
-        c2 = c14.cluster_p(s2_["v"], s2_["cl"], n_wild=n_wild) if s2_ else None
-        shift[name] = {"n_fills": len(f2), "mean": None if s2_ is None else s2_["mean"], "p": None if c2 is None else c2["p"], "ok": bool(s2_ and c2["testable"] and s2_["mean"] > 0 and c2["p"] < SHIFT_P)}
+        s2_, c2 = s2_cp(f2, ymap, n_wild=n_wild)
+        shift[name] = {"n_fills": len(f2), "mean": None if s2_ is None else s2_["mean"], "p": None if c2 is None else c2["p"], "ok": bool(s2_ and c14.p_pass(c2, SHIFT_P) and s2_["mean"] > 0)}
     for k in sorted(set(data["tags"]) & set(SUBSETS)):
         sub = [f for f in fl["fills"] if f["subset"] == k]
         s_k = s2_stat(sub, ymap)
         rob[f"{k}_alone_sign"] = bool(len(sub) >= 30 and s_k and s_k["mean"] > 0)
     for way in ("event", "term", "week"):
         keep = c14.top_k_drop_mask(st["v"], st["cl"][way], c14.TOP_DROP)
-        rob[f"top5_{way}_drop"] = holds([f for f, k in zip(fl["fills"], keep, strict=True) if k], adv_p=alpha_adv)
+        rob[f"top5_{way}_drop"] = holds([f for f, k in zip(fl["fills"], keep, strict=True) if k], adv_p=c14.GATE_P)
+    halves, quarters = c14.halves_and_quarters([f["t"] for f in fl["fills"]])  # section 2.6 (iii): sign by calendar half and leave-one-quarter-out sign (fill time)
+    rob["halves_sign"] = bool(halves) and all(s2_sign([f for f, h in zip(fl["fills"], halves, strict=True) if h == k], ymap) for k in (0, 1))
+    rob["leave_one_quarter_out_sign"] = bool(quarters) and all(s2_sign([f for f, q in zip(fl["fills"], quarters, strict=True) if q != qq], ymap) for qq in sorted(set(quarters)))
     plc = s2_placebo(fl["fills"], n_draws=n_draws, n_wild=n_wild) if placebo else None
     rob_ok = all(v is True for v in rob.values())
     shift_ok = all(v["ok"] for v in shift.values())
-    adv = bool(cp["p"] < alpha_adv and floor_ok and rob_ok and shift_ok and (plc is None or plc["holds"]))
+    checks_ok = bool(floor_ok and cp["small_g_rules_hold"] and rob_ok and shift_ok and (plc is None or plc["holds"]))  # every binding check but the primary p gate
+    p_ok = bool(cp["testable"] and cp["p"] < alpha_adv)
+    adv = bool(p_ok and checks_ok)
     ev_vals: dict[str, list[float]] = {}
     for f, n, w in zip(fl["fills"], st["net"], st["w"], strict=True):
         ev_vals.setdefault(f["event_id"], []).append(float(n * w))
     evv = np.array([sum(v) for v in ev_vals.values()], float)
-    res.update(robustness=rob, robustness_ok=rob_ok, clock_shift=shift, clock_shift_ok=shift_ok, placebo=plc, advance=adv, verdict="advance" if adv else "no advance",
+    res.update(robustness=rob, robustness_ok=rob_ok, clock_shift=shift, clock_shift_ok=shift_ok, placebo=plc, checks_ok=checks_ok, p_ok=p_ok, advance=adv, verdict="advance" if adv else "no advance",
                reported={"capacity_filled_shares_per_event_mean": float(sum(f["size"] for f in fl["fills"]) / st["n_events"]), "event_net_quantiles": [float(x) for x in np.quantile(evv, [0.01, 0.05, 0.5])],
                          "taker_variant": taker_variant(base["units"], data, ymap), "events_without_fill": len({u["event_id"] for u in s2_eligible(base["units"])}) - st["n_events"]})
     return res
@@ -1717,15 +1814,17 @@ def make_models(out_root: Path, fit_dir: Path, *, model_pin: str | None = None, 
     """The primary model (pinned file), the shrinkage-5 / 20 variants (refit from the fit offsets) and the re-based model (pinned file)."""
     out_root = Path(out_root)
     base = load_model(out_root / MODEL_FILE, model_pin)
-    reb = load_model(out_root / MODEL_REBASED_FILE, S_MODEL_REBASED_SHA256 if rebased_pin is None else rebased_pin, what="re-based position model")
+    reb = load_model(out_root / MODEL_REBASED_FILE, rebased_pin, what="re-based position model")
     fit = load_fit_transcripts(fit_dir)
     return {"base": base, "rebased": reb, "shrink5": fit_model(fit, shrink=SHRINK_ALT[0]), "shrink20": fit_model(fit, shrink=SHRINK_ALT[1])}
 
 
 def screen_s(hist_root: Path, *, census: dict, out_root: Path, rules_sha: str = "", model_pin: str | None = None, rebased_pin: str | None = None, n_primary: dict | None = None,
-             ledger_path: Path | None = None, git=None, n_draws: int = SIGNFLIP_DRAWS, n_wild: int = c14.N_WILD, placebo: bool = True) -> dict:
+             ledger_path: Path | None = None, git=None, n_draws: int = SIGNFLIP_DRAWS, n_wild: int = c14.N_WILD, placebo: bool = True, keys_report: dict | None = None,
+             gsp_draws: int = c14.GSP_DRAWS) -> dict:
     """q0320: S1 and S2 on P (and N iff N is primary). N refuses before ``T14_S_open``; if the part-S rules commit post-dates the CB12-M Stage-1 result N is reported-only (descriptive lines,
-    outside the tests). Outcomes come only from the guarded files through ``open_guarded('screen')``."""
+    outside the tests) and the census gates GS / GSP / GSP2 are RECOMPUTED on P alone (feature-only; a test fails its gate if either reading fails it). Outcomes come only from the
+    guarded files through ``open_guarded('screen')``."""
     lab1, lab2 = census.get("label_S1"), census.get("label_S2")
     if lab1 and lab2:
         return {"S1": not_run_result(lab1, "S1"), "S2": not_run_result(lab2, "S2"), "label": LABEL_S, "census_labels": [lab1, lab2]}
@@ -1734,12 +1833,24 @@ def screen_s(hist_root: Path, *, census: dict, out_root: Path, rules_sha: str = 
     nprim = n_primary if n_primary is not None else c14.n_primary_status(ops, rules_sha, git=git)
     models = make_models(out_root, rdir / "fit", model_pin=model_pin, rebased_pin=rebased_pin)
     tags = ("P", "N") if nprim["n_primary"] else ("P",)
+    gates_p = None
+    if not nprim["n_primary"]:
+        dp = load_dataset(rdir, ("P",), job="census")
+        late_overlap_s(Path(hist_root), keys_report, dp)
+        gp = gates_s(dp, build_units(dp, models["base"]), n_draws=gsp_draws)
+        gates_p = {k: gp[k] for k in ("GS", "GSP", "GSP2", "label_S1", "label_S2")}
+        lab1, lab2 = lab1 or gp["label_S1"], lab2 or gp["label_S2"]
+        if lab1 and lab2:
+            out0 = {"S1": not_run_result(lab1, "S1"), "S2": not_run_result(lab2, "S2"), "label": LABEL_S, "census_labels": [census.get("label_S1"), census.get("label_S2")], "n_primary": nprim,
+                    "gates_P_only": gates_p, "tags": ["P"]}
+            return out0
     data = load_dataset(rdir, tags, job="screen")
+    late = late_overlap_s(Path(hist_root), keys_report, data)
     outs = []
     for tag in tags:
         outs += c14.open_guarded(subset_files(rdir, tag)["outcomes"], "screen", ("screen", "rep"))
     ymap = build_ymap(data, outs)
-    out: dict = {"label": LABEL_S, "n_primary": nprim, "tags": list(tags), "census_labels": [lab1, lab2]}
+    out: dict = {"label": LABEL_S, "n_primary": nprim, "tags": list(tags), "census_labels": [census.get("label_S1"), census.get("label_S2")], "gates_P_only": gates_p, "late_overlap": late}
     out["S1"] = not_run_result(lab1, "S1") if lab1 else s1_screen(data, models, ymap, n_draws=n_draws, n_wild=n_wild, placebo=placebo)
     out["S2"] = not_run_result(lab2, "S2") if lab2 else s2_screen(data, models, ymap, n_draws=n_draws, n_wild=n_wild, placebo=placebo)
     if not nprim["n_primary"]:
@@ -1751,18 +1862,20 @@ def screen_s(hist_root: Path, *, census: dict, out_root: Path, rules_sha: str = 
 
 
 def rep_s(hist_root: Path, *, out_root: Path, tests: tuple[str, ...] = ("S1", "S2"), now: float, k2: int | None = None, model_pin: str | None = None, rebased_pin: str | None = None,
-          n_draws: int = SIGNFLIP_DRAWS, n_wild: int = c14.N_WILD, placebo: bool = True) -> dict:
-    """q0322: S1-rep / S2-rep on the post-freeze Stage-2 events (same frame, map, pinned model without refit, alignment and rules). Needs >= 100 events with >= 1 unit by ``T14_S2_end``;
-    < 60 at the cap -> 'not run (power)'; between the two waits (NotNow) until the cap. Judged against alpha / 4 (``early_stage2_ok``, strict <) while k2 is unknown."""
+          n_draws: int = SIGNFLIP_DRAWS, n_wild: int = c14.N_WILD, placebo: bool = True, keys_report: dict | None = None) -> dict:
+    """q0322: S1-rep / S2-rep on the post-freeze Stage-2 events (same frame, map, pinned model without refit, alignment and rules), only once q0321 has CLOSED the window (>= 100 resolved
+    events with >= 1 aligned unit = ``T14_S2_end``, or the cap); < 60 such events at the cap -> 'not run (power)'. ``stage2_early_alpha_ok`` = p < alpha / 4 (strict);
+    ``stage2_pass_alpha_over_k`` = ``checks_ok`` and p < alpha / k2 (alpha / 4 while k2 is unknown); the CB14-wide ``stage2-final`` Holm can only add passes."""
     rdir = refuse_if_other_root(Path(hist_root) / FRAME_RUN)
     models = make_models(out_root, rdir / "fit", model_pin=model_pin, rebased_pin=rebased_pin)
+    closed = bool(manifest_done(subset_files(rdir, "S2")["manifest"], STAGE2_STATUS_CLOSED))
+    if not closed:
+        raise NotNow(f"S Stage 2: the collection window has not closed (q0321 closes it at >= {S2_STOP_EVENTS} resolved events with a unit or at the cap {T14_S2_CAP}); pending")
+    prog = stage2_progress(rdir, models["base"], rdir / "stage2" / "fetch_partial.jsonl")
+    n_ev = prog["resolved_events_with_unit"]
     data = load_dataset(rdir, ("S2",), job="rep")
-    built = build_units(data, models["base"])
-    n_ev = len({u["event_id"] for u in built["units"]})
-    closed = bool(manifest_done(subset_files(rdir, "S2")["manifest"], STAGE2_STATUS_CLOSED)) or now >= _ep(T14_S2_CAP)
-    if n_ev < REP_MIN_EVENTS and not closed:
-        raise NotNow(f"S Stage 2: {n_ev} events with a unit (< {REP_MIN_EVENTS}), collection has not closed and the cap {T14_S2_CAP} has not passed (pending)")
-    out: dict = {"label": LABEL_S2, "k2": k2, "n_events_with_unit": n_ev}
+    late = late_overlap_s(Path(hist_root), keys_report, data)
+    out: dict = {"label": LABEL_S2, "k2": k2, "n_events_with_unit": prog["events_with_unit"], "n_resolved_events_with_unit": n_ev, "late_overlap": late}
     if n_ev < REP_CAP_MIN_EVENTS:
         for t in tests:
             out[f"{t}_rep"] = {**not_run_result("not run (power)", f"{t}-rep"), "label": LABEL_S2, "n_events_with_unit": n_ev}
@@ -1771,8 +1884,8 @@ def rep_s(hist_root: Path, *, out_root: Path, tests: tuple[str, ...] = ("S1", "S
     for t in tests:
         r = (s1_screen(data, models, ymap, alpha_adv=c14.EARLY_ALPHA2, stage=2, n_draws=n_draws, n_wild=n_wild, placebo=placebo, label=LABEL_S2) if t == "S1"
              else s2_screen(data, models, ymap, alpha_adv=c14.EARLY_ALPHA2, stage=2, n_draws=n_draws, n_wild=n_wild, placebo=placebo, label=LABEL_S2))
-        r["stage2_early_alpha_over_4"] = c14.early_stage2_ok(r.get("p"))
-        r["stage2_pass_alpha_over_k"] = bool(r.get("advance") and r.get("p", 1.0) < (c14.STAGE_ALPHA / k2 if k2 else c14.EARLY_ALPHA2))
+        r["stage2_early_alpha_ok"] = c14.early_stage2_ok(r.get("p") if r.get("testable") else None)
+        r["stage2_pass_alpha_over_k"] = bool(r.get("checks_ok") and r.get("testable") and r.get("p", 1.0) < (c14.STAGE_ALPHA / k2 if k2 else c14.EARLY_ALPHA2))  # the CB14-wide stage2-final Holm can only add passes
         out[f"{t}_rep"] = r
     return out
 
@@ -1998,6 +2111,8 @@ def s_frame(hist_root: Path, transport, *, rules_sha: str, exclusion_keys_path: 
         return _stop_result(fr, f"fetch_failed: {exc}"[:200])
     if wk["stopped"]:
         return _stop_result(fr, wk["stopped"])
+    if not wk["reached"]:  # a declared source stall (counted "not testable (source)" by the runner), never a silently partial record list
+        return c14.write_stall(rdir, c14.c9.STALL_NOT_RUN_SOURCE, f"the Factbase search walk stopped after {wk['pages']} pages (cap {FACTBASE_MAX_PAGES}) before reaching the fit-window start {T14_FIT[0]}")
     records = wk["rows"]
     counts_fit = fit_window_counts(records)
     primary = set(primary_speakers(counts_fit))
@@ -2246,13 +2361,38 @@ def _fetch_market(fr, m: dict, start: float) -> dict:
             "oldest_ts": None if not math.isfinite(info["oldest_ts"]) else info["oldest_ts"], "truncated": int(bool(info["truncated"])), "reach_t0": int(ok)}
 
 
-def _fetch_targets(fr, fb, items: list[dict], part: Path, should_stop) -> str | None:
-    """Resumable fetch, one event / one member in memory at a time. Returns a stop reason (transient) or None when every item is complete. Record kinds in ``part``: 'tr' (reduced
-    transcript, numbers only), 'mk' (one member's points and transactions), 'oc' (Gamma outcomes of a batch; guarded file only)."""
-    _repair_tail(part)
-    have_tr, have_mk, have_oc = set(), set(), set()
+def resolved_flag(row: dict) -> bool:
+    """True iff Gamma's row is a resolved outcome (clean 1/0 or 50-50). Only this boolean leaves the guarded store (the Stage-2 stop rule counts resolutions, never values)."""
+    if not row.get("outcome_prices"):
+        return False
+    try:
+        return outcome_y(row["outcome_prices"], row.get("uma_status"), int(float(row.get("yes_index") or 0)))[1] != "unclean"
+    except (ValueError, TypeError, IndexError):
+        return False
+
+
+def resolution_state(part: Path) -> dict[str, bool]:
+    """The latest resolution flag per market from the fetch store's 'rs' records."""
+    out: dict[str, bool] = {}
     for rec in _partial_lines(part):
-        (have_tr if rec.get("k") == "tr" else have_mk if rec.get("k") == "mk" else have_oc).add(rec.get("event_id") if rec.get("k") == "tr" else rec.get("market_id"))
+        if rec.get("k") == "rs":
+            out[str(rec["market_id"])] = bool(rec.get("resolved"))
+    return out
+
+
+def _fetch_targets(fr, fb, items: list[dict], part: Path, should_stop, *, oc_part: Path, refetch_unresolved: bool = False) -> str | None:
+    """Resumable fetch, one event / one member in memory at a time. Returns a stop reason (transient) or None when every item is complete. Record kinds in ``part``: 'tr' (reduced
+    transcript, numbers only), 'mk' (one member's points and transactions), 'rs' (a market's resolution flag, no value). Gamma outcome rows ('oc') go ONLY to ``oc_part`` inside the
+    subset's guarded directory. With ``refetch_unresolved`` (Stage 2, weekly) every market whose last flag is unresolved is looked up again (an unresolved word is never frozen at 0.5)."""
+    _repair_tail(part)
+    _repair_tail(oc_part)
+    have_tr, have_mk = set(), set()
+    for rec in _partial_lines(part):
+        if rec.get("k") == "tr":
+            have_tr.add(rec.get("event_id"))
+        elif rec.get("k") == "mk":
+            have_mk.add(rec.get("market_id"))
+    rs_state = resolution_state(part)
     fails = fr.extra_state.setdefault("fails", {})
 
     def attempt(key: str, exc) -> bool:
@@ -2291,7 +2431,8 @@ def _fetch_targets(fr, fb, items: list[dict], part: Path, should_stop) -> str | 
             _append(part, rec)
             have_mk.add(mid)
             del rec
-    todo = [(m["market_id"], it["ev"]["event_id"], int(float(m["yes_index"]))) for it in items for m in it["members"] if m["market_id"] not in have_oc]
+    todo = [(m["market_id"], it["ev"]["event_id"], int(float(m["yes_index"]))) for it in items for m in it["members"]
+            if m["market_id"] not in rs_state or (refetch_unresolved and not rs_state[m["market_id"]])]
     for i in range(0, len(todo), GAMMA_LOOKUP_PER_REQUEST):
         batch = todo[i:i + GAMMA_LOOKUP_PER_REQUEST]
         why = fr.stop_reason(should_stop)
@@ -2303,8 +2444,10 @@ def _fetch_targets(fr, fb, items: list[dict], part: Path, should_stop) -> str | 
             if attempt(f"oc:{i}", exc):
                 return f"fetch_failed outcomes batch {i}: {exc}"[:200]
             rows = [{"market_id": a, "event_id": b, "yes_index": c, "outcome_prices": "", "uma_status": "unavailable (network)"} for a, b, c in batch]
+        oc_part.parent.mkdir(parents=True, exist_ok=True)
         for r in rows:
-            _append(part, {"k": "oc", **r})
+            _append(oc_part, {"k": "oc", **r})
+            _append(part, {"k": "rs", "market_id": r["market_id"], "resolved": resolved_flag(r)})
     return None
 
 
@@ -2313,10 +2456,15 @@ def _store(part: Path, kind: str) -> dict[str, dict]:
     return {r[key]: r for r in _partial_lines(part) if r.get("k") == kind}
 
 
+def oc_partial(rdir: Path, tag: str) -> Path:
+    """The outcome store of a subset: inside its guarded directory (never next to the clean files)."""
+    return subset_files(rdir, tag)["guarded"] / "outcomes_partial.jsonl"
+
+
 def _write_target_outputs(fr, rdir: Path, tag: str, items: list[dict], part: Path) -> dict:
-    """Write the subset's files from the partial store: prices / transactions / markets (clean columns), guarded transcripts + mentions, guarded outcomes."""
+    """Write the subset's files from the partial store: prices / transactions / markets (clean columns), guarded transcripts + mentions, guarded outcomes (the LATEST lookup per market)."""
     f = subset_files(rdir, tag)
-    trs, mks, ocs = _store(part, "tr"), _store(part, "mk"), _store(part, "oc")
+    trs, mks, ocs = _store(part, "tr"), _store(part, "mk"), _store(oc_partial(rdir, tag), "oc")
     mids = [m["market_id"] for it in items for m in it["members"]]
     _wcsv(fr, f["prices"], PRICE_COLUMNS, ([mid, a, b] for mid in mids if mid in mks for a, b in mks[mid]["points"]))
     _wcsv(fr, f["tx"], TX_COLUMNS, ([mid, *row] for mid in mids if mid in mks for row in mks[mid]["tx"]))
@@ -2339,7 +2487,7 @@ def _write_target_outputs(fr, rdir: Path, tag: str, items: list[dict], part: Pat
 
 def _check_pins(out_root: Path, model_pin: str | None, rebased_pin: str | None) -> dict:
     out_root = Path(out_root)
-    return {"model": check_model_pin(out_root / MODEL_FILE, model_pin), "model_rebased": check_model_pin(out_root / MODEL_REBASED_FILE, S_MODEL_REBASED_SHA256 if rebased_pin is None else rebased_pin,
+    return {"model": check_model_pin(out_root / MODEL_FILE, model_pin), "model_rebased": check_model_pin(out_root / MODEL_REBASED_FILE, rebased_pin,
                                                                                                          what="re-based position model")}
 
 
@@ -2392,7 +2540,7 @@ def s_data(hist_root: Path, transport, *, rules_sha: str, now: float, subset: st
                    live_check=live_check, wall_clock=wall_clock, snapshot_root=snapshot_root, health_check=health_check, manifest_name=f["manifest"].name)
     part = rdir / f"data_{subset.lower()}_partial.jsonl"
     try:
-        why = _fetch_targets(fr, fb, items, part, should_stop)
+        why = _fetch_targets(fr, fb, items, part, should_stop, oc_part=oc_partial(rdir, subset))
         fr.counts["factbase_requests_session"] = fb.requests
         if why:
             return _stop_result(fr, why)
@@ -2400,6 +2548,7 @@ def s_data(hist_root: Path, transport, *, rules_sha: str, now: float, subset: st
     except OSError as exc:
         return cm.disk_budget_end(fr, exc)
     part.unlink(missing_ok=True)
+    oc_partial(rdir, subset).unlink(missing_ok=True)
     extra = {"complete": True, "status": status, "n_primary": npr}
     m = fr.manifest(None, extra)
     m["status"] = status
@@ -2457,6 +2606,9 @@ def s_stage2_data(hist_root: Path, transport, *, rules_sha: str, exclusion_keys_
     term = cm.prior_terminal(rdir)
     if term:
         return term
+    gate = stage2_weekly_gate(f["manifest"], now, cap_ts)
+    if gate is not None:
+        return cm.idle(f["frame"].parent, gate, now)
     cap = int(DATA_OUTPUT_CAP_GB["S2"] * 1024**3) if disk_cap is None else disk_cap
     c14.require_disk(data_dumps, data_dumps_cap_gb, cap, free_fn=free_fn)
     pins = verify_pins()
@@ -2492,6 +2644,7 @@ def s_stage2_data(hist_root: Path, transport, *, rules_sha: str, exclusion_keys_
         return _stop_result(fr, f"fetch_failed: {exc}"[:200])
     if wk["stopped"]:
         return _stop_result(fr, wk["stopped"])
+    fr.counts["factbase_reached_window_start"] = int(bool(wk["reached"]))
     records = wk["rows"]
     cl = classify_events(parsed, {"S2": keys}, sd, primary, records)
     rows = sorted((r for r, _ in parsed), key=lambda r: r["event_id"])
@@ -2504,19 +2657,43 @@ def s_stage2_data(hist_root: Path, transport, *, rules_sha: str, exclusion_keys_
         _wcsv(fr, f["map"], MAP_COLUMNS, _rows(map_rows, MAP_COLUMNS))
         _wcsv(fr, s2dir / "records.csv.gz", RECORD_COLUMNS, _rows(sorted(records, key=lambda r: (r["date_epoch"], r["record_id"])), RECORD_COLUMNS))
         items = _target_items(rdir, "S2")
-        why = _fetch_targets(fr, fb, items, store, should_stop)
+        why = _fetch_targets(fr, fb, items, store, should_stop, oc_part=oc_partial(rdir, "S2"), refetch_unresolved=True)
         fr.counts.update(events=len(rows), kept=len(kept), mapped=sum(1 for m in map_rows if m["status"] == "mapped"), factbase_requests_session=fb.requests)
         if why:
             return _stop_result(fr, why)
         fr.counts.update(_write_target_outputs(fr, rdir, "S2", items, store))
     except OSError as exc:
         return cm.disk_budget_end(fr, exc)
-    n_complete = fr.counts.get("transcripts_ok", 0)
-    closed = bool(now >= cap_ts or n_complete >= S2_STOP_EVENTS)
+    prog = stage2_progress(rdir, load_model(Path(out_root) / MODEL_FILE, model_pin), store)
+    fr.counts.update(prog)
+    closed = bool(now >= cap_ts or prog["resolved_events_with_unit"] >= S2_STOP_EVENTS)
     status = STAGE2_STATUS_CLOSED if closed else STAGE2_STATUS_OPEN
-    m = fr.manifest(None, {"complete": closed, "status": status, "pins": pins, "window_start": c14.iso(start), "window_cap": c14.iso(cap_ts), "closed_by": ("cap" if now >= cap_ts else "events") if closed else None})
+    m = fr.manifest(None, {"complete": closed, "status": status, "pins": pins, "window_start": c14.iso(start), "window_cap": c14.iso(cap_ts), "last_pass_epoch": now,
+                           "closed_by": ("cap" if now >= cap_ts else "resolved events with a unit") if closed else None})
     m["status"] = status
     return m
+
+
+def stage2_weekly_gate(manifest_path: Path, now: float, cap_ts: float) -> str | None:
+    """None if a Stage-2 pass may run now; else the idle reason. A pass runs at most once per ``S2_PASS_EVERY_S`` (weekly) after the last COMPLETED pass; an interrupted pass
+    (``in_progress``) resumes at once; at or after the cap the closing pass runs at once."""
+    p = Path(manifest_path)
+    prior = json.loads(p.read_text()) if p.exists() else {}
+    last = c14.num(prior.get("last_pass_epoch"))
+    if prior.get("status") == STAGE2_STATUS_OPEN and math.isfinite(last) and now < cap_ts and now - last < S2_PASS_EVERY_S:
+        return f"S Stage 2 is weekly: the next pass is due at {c14.iso(last + S2_PASS_EVERY_S)}"
+    return None
+
+
+def stage2_progress(rdir: Path, model: dict, store: Path) -> dict:
+    """The stop-rule count (section 1.2 ``T14_S2_end``): Stage-2 events with a mapped, parsed transcript and >= 1 aligned unit (units need no outcome) whose members have ALL resolved
+    (resolution flags of the store; no outcome value is read)."""
+    data = load_dataset(Path(rdir), ("S2",), job="census")
+    built = build_units(data, model)
+    ev_units = sorted(e for e, i in built["events"].items() if i["n_units"] > 0)
+    rs = resolution_state(store)
+    resolved = [e for e in ev_units if all(rs.get(m["market_id"], False) for m in data["members"][e])]
+    return {"events_with_unit": len(ev_units), "resolved_events_with_unit": len(resolved)}
 
 
 # =====================================================================================================================================================
@@ -2640,7 +2817,7 @@ def declared() -> dict:
     return {"family": "S", "label": LABEL_S, "label_stage2": LABEL_S2, "tag_id": TAG_ID,
             "windows": {"P": list(T14_P), "N": list(T14_N), "HOLDOUT_never_touched": list(T14_HOLDOUT), "fit": list(T14_FIT), "stage2": [T14_S2_FLOOR, T14_S2_CAP], "stage2_stop_events": S2_STOP_EVENTS},
             "pins": {"registry_file": S_SPORTS_REGISTRY_FILE_SHA256, "ids": S_SPORTS_IDS_SHA256, "slugs": S_SPORTS_SLUGS_SHA256, "broadcast_regex": S_BROADCAST_RE_SHA256,
-                     "model": S_MODEL_SHA256, "model_rebased": S_MODEL_REBASED_SHA256},
+                     "model_pin_file": MODEL_PIN_REL, "model_pin_note": "outside the rules hash; the S freeze entry carries s_model_sha256 / s_model_rebased_sha256"},
             "population": {"min_members": MIN_MEMBERS, "occasion_max_s": OCCASION_MAX_S, "primary_min_fit": PRIMARY_MIN_FIT, "timestamped_min_stamps": TIMESTAMPED_MIN_STAMPS,
                            "speaker_keywords": [list(x) for x in SPEAKER_KEYWORDS], "type_rules": [[k, list(v)] for k, v in TYPE_RULES], "type_class": TYPE_CLASS,
                            "gs0": {"n": GS0_N, "seed": GS0_SEED, "min_precision": GS0_MIN_PRECISION}},

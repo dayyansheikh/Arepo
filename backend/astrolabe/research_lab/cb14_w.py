@@ -69,6 +69,8 @@ QUERIES = ("resign", "resigns", "resignation", "out as", "out by", "fired", "ste
 SEARCH_STATUSES = ("closed", "active")
 SEARCH_LIMIT = 100  # limit_per_type; paged by ``page`` until ``hasMore`` is false
 SEARCH_MAX_PAGES = 60
+EVENT_LOOKUP_MAX_REQ = 600  # section 2.8 (q0303 budget): event lookups for search events whose fields are missing; more is a declared source stall
+EVENT_LOOKUP_PER_REQUEST = 50
 TITLE_RE = re.compile(r"(?i)\b(resign(s|ed|ation)?|out as|out by|fired|steps? down|removed (as|from)|leaves? office|ousted|impeach(ed|ment)?|indicted|charged)\b")
 DEATH_RE = re.compile(r"(?i)\b(dies?|death|pass(es)? away)\b")  # a reported stratum only
 MENTION_RE = re.compile(r"(?i)\b(say|says|mention|mentions)\b")
@@ -201,7 +203,10 @@ LIVE_FRAME_REFRESH_S = DAY
 LIVE_MAX_BOOKS_PER_RUN = 40
 W2REP_MIN_BURSTS, W2REP_MIN_SUBJECTS = 300, 30
 W1REP_MIN_MOVES, W1REP_MIN_SUBJECTS = 20, 15
-SMOKE_NEEDS = ("guards_fixture_W", "w_part_hashes", "w_public_search_paging", "w_entity_summary", "w_revisions_bounds", "w_bot_list", "w_data_api_reach", "w_recentchanges")
+SMOKE_NEEDS = ("guards_fixture_W", "w_part_hashes", "w_public_search_paging", "w_search_fields", "w_entity_summary", "w_revisions_bounds", "w_bot_list", "w_data_api_reach", "w_recentchanges")
+SMOKE_RV_TITLE = "Donald Trump"
+SMOKE_RV_RANGE = ("2026-09-15T00:00:00Z", "2026-10-15T00:00:00Z")  # out of every W window
+SMOKE_RV_LIMIT = 1
 SMOKE_MAX_REQUESTS = 30
 SMOKE_SUBJECT_QUERY = "resign"
 SMOKE_SUBJECTS = 5
@@ -289,6 +294,38 @@ def search_all(lim, term: str, status: str, *, page_limit: int = SEARCH_LIMIT, m
         if not pg.get("hasMore"):
             return out, info
     raise Refused(f"public-search q={term!r} {status} still has more pages after {max_pages}")
+
+
+def event_needs_lookup(ev: dict, sports_ids: set[str]) -> bool:
+    """A ``public-search`` event with at least one W-candidate market (binary; title or death regex) that lacks a field the frame rules read: the event's ``tags`` or ``series`` key, a
+    market's ``createdAt``, or ``negRiskMarketID`` on a negRisk event. Such events are looked up on Gamma ``/events`` (section 6 budget: <= 600 requests) before parsing."""
+    ms = [m for m in (ev.get("markets") or []) if isinstance(m, dict) and parse_market(m, ev, fetched_as="", term="", sports_ids=sports_ids) is not None]
+    if not ms:
+        return False
+    if "tags" not in ev or "series" not in ev:
+        return True
+    return any("createdAt" not in m or (bool(ev.get("negRisk")) and "negRiskMarketID" not in m) for m in ms)
+
+
+def lookup_events(lim, ids: list[str], *, per_request: int = EVENT_LOOKUP_PER_REQUEST) -> tuple[dict[str, dict], int]:
+    """Full Gamma events by id (closed first, then without the filter; <= 50 ids per request). Returns ({id: event}, requests used)."""
+    found: dict[str, dict] = {}
+    n = 0
+    for closed in (True, False):
+        want = [str(i) for i in ids if str(i) not in found]
+        if not want:
+            break
+        params: dict = {"id": want, "limit": per_request}
+        if closed:
+            params["closed"] = "true"
+        st, data = lim.get(c14.GAMMA_EVENTS, params)
+        n += 1
+        if st != 200 or not isinstance(data, list):
+            raise ApiError(f"gamma events lookup status {st}")
+        for e in data:
+            if isinstance(e, dict) and str(e.get("id")) in want:
+                found[str(e["id"])] = e
+    return found, n
 
 
 def market_class(question: str) -> str:
@@ -942,8 +979,8 @@ def sub_check(v, clusters, ref_mean: float, *, mask=None, need_p: float | None =
     est = mean_or_nan(vv)
     out = {"n": int(len(vv)), "estimate": est, "sign_ok": bool(sign_pass(est, ref_mean))}
     if need_p is not None:
-        r = _p(vv, cl, min_units=1, min_first_clusters=1) if len(vv) >= 2 else {"p": 1.0, "testable": False}
-        out.update(p=r["p"], testable=bool(r["testable"]), p_ok=bool(r["testable"] and r["p"] < need_p))
+        r = _p(vv, cl, min_units=1, min_first_clusters=1) if len(vv) >= 2 else {"p": 1.0, "testable": False, "small_g_rules_hold": False}
+        out.update(p=r["p"], testable=bool(r["testable"]), small_g_rules_hold=bool(r.get("small_g_rules_hold")), p_ok=c14.p_pass(r, need_p))
         out["met"] = bool(out["sign_ok"] and out["p_ok"])
     else:
         out["met"] = bool(out["sign_ok"])
@@ -951,12 +988,12 @@ def sub_check(v, clusters, ref_mean: float, *, mask=None, need_p: float | None =
 
 
 def top_drop_check(v, clusters: dict[str, np.ndarray], way: str, floor: float, alpha: float = c14.GATE_P, **kw) -> dict:
-    """Drop the 5 clusters of ``way`` with the largest absolute contribution; the p threshold and the floor must hold on what remains."""
+    """Drop the 5 clusters of ``way`` with the largest absolute contribution; the p threshold (small-G rule included) and the floor must hold on what remains."""
     v = np.asarray(v, float)
     keep = c14.top_k_drop_mask(v, clusters[way])
     r = _p(v[keep], sub_clusters(clusters, keep), **kw)
     est = mean_or_nan(v[keep])
-    return {"n": int(keep.sum()), "estimate": est, "p": r["p"], "met": bool(r["testable"] and r["p"] < alpha and est >= floor)}
+    return {"n": int(keep.sum()), "estimate": est, "p": r["p"], "met": bool(c14.p_pass(r, alpha) and est >= floor)}
 
 
 def loqo_check(v, quarters, ref_mean: float) -> dict:
@@ -991,7 +1028,8 @@ def w2_test(D: dict, *, with_checks: bool = True) -> dict:
     res = _p(v, cl)
     est = float(v.mean())
     floor_ok = bool(est >= W2_FLOOR)
-    out.update(testable=res["testable"], p=res["p"], effect=est, floor_ok=floor_ok, ways=res["ways"], size_weighted=float(np.average(v, weights=[u["size"] for u in units])))
+    out.update(testable=res["testable"], p=res["p"], effect=est, floor_ok=floor_ok, ways=res["ways"], small_g_rules_hold=res["small_g_rules_hold"],
+               size_weighted=float(np.average(v, weights=[u["size"] for u in units])))
     if not with_checks:
         return out
     checks: dict = {}
@@ -999,7 +1037,7 @@ def w2_test(D: dict, *, with_checks: bool = True) -> dict:
     if len(pre) >= 2:
         pv = np.array([u["net"] for u in pre])
         pr = _p(pv, w2_clusters(pre))
-        checks["pre_burst_placebo"] = {"n": len(pre), "p": pr["p"], "estimate": float(pv.mean()), "met": bool(not (pr["testable"] and pr["p"] < c14.GATE_P))}
+        checks["pre_burst_placebo"] = {"n": len(pre), "p": pr["p"], "estimate": float(pv.mean()), "met": bool(not c14.p_pass(pr, c14.GATE_P))}
     else:
         checks["pre_burst_placebo"] = {"n": len(pre), "met": True, "note": "too few shifted units to pass p < 0.01"}
     # before the move
@@ -1014,9 +1052,9 @@ def w2_test(D: dict, *, with_checks: bool = True) -> dict:
         v_all = np.concatenate([v, np.full(len(add), w_star)])
         cl_all = {k: np.concatenate([cl[k], np.array([a[k] for a in add])]) for k in cl}
         rw = _p(v_all, cl_all)
-        checks["worst_case_reach"] = {"w_star": w_star, "n_added": len(add), "p": rw["p"], "estimate": float(v_all.mean()), "met": bool(rw["testable"] and rw["p"] < c14.GATE_P and v_all.mean() >= W2_FLOOR)}
+        checks["worst_case_reach"] = {"w_star": w_star, "n_added": len(add), "p": rw["p"], "estimate": float(v_all.mean()), "met": bool(c14.p_pass(rw, c14.GATE_P) and v_all.mean() >= W2_FLOOR)}
     else:
-        checks["worst_case_reach"] = {"w_star": w_star, "n_added": 0, "p": res["p"], "met": bool(res["testable"] and res["p"] < c14.GATE_P and floor_ok)}
+        checks["worst_case_reach"] = {"w_star": w_star, "n_added": 0, "p": res["p"], "met": bool(c14.p_pass(res, c14.GATE_P) and floor_ok)}
     # cost and variants (each re-derived from the same bursts)
     cost = [net_of(u["e"], u["x"], market_rate(D["markets"][u["market_id"]]), COST_ROBUST_PER_SIDE) for u in units]
     checks["cost_plus_1c_per_side"] = {"estimate": mean_or_nan(cost), "met": bool(mean_or_nan(cost) > 0)}
@@ -1025,7 +1063,7 @@ def w2_test(D: dict, *, with_checks: bool = True) -> dict:
     bd = w2_units(D, band=W2_STATE_BAND_ROBUST)["units"]
     checks["band_05_40"] = sub_check([u["net"] for u in bd], w2_clusters(bd), est) if bd else {"met": False, "n": 0}
     ew = w2_units(D, entry_window=ENTRY_WINDOW_ROBUST)["units"]
-    checks["entry_window_3_15"] = sub_check([u["net"] for u in ew], w2_clusters(ew), est, need_p=0.05) if len(ew) >= 2 else {"met": False, "n": len(ew)}
+    checks["entry_window_3_15"] = sub_check([u["net"] for u in ew], w2_clusters(ew), est) if ew else {"met": False, "n": 0}  # W2: sign only (CB14-W W2 robustness; p < 0.05 is W1's rule)
     attn = np.array([D["subjects"][u["subject"]]["attn"] for u in units])
     checks["drop_cb11a_entities"] = {**sub_check(v, cl, est, mask=~attn), "n_dropped": int(attn.sum())}
     stale = np.array([u["stale"] for u in units])
@@ -1122,7 +1160,7 @@ def w1_variant(D: dict, units: list[dict], est: float, **kw) -> dict:
     uo = [u for u, k in zip(units, ok, strict=True) if k]
     r = w1_p(v[ok], uo)
     e = float(v[ok].mean())
-    return {"n": int(ok.sum()), "estimate": e, "p": r["p"], "testable": r["testable"], "met": bool(sign_pass(e, est) and r["testable"] and r["p"] < 0.05)}
+    return {"n": int(ok.sum()), "estimate": e, "p": r["p"], "testable": r["testable"], "met": bool(sign_pass(e, est) and c14.p_pass(r, 0.05))}
 
 
 def w1_subset(v: np.ndarray, units: list[dict], mask: np.ndarray, est: float) -> dict:
@@ -1133,7 +1171,7 @@ def w1_subset(v: np.ndarray, units: list[dict], mask: np.ndarray, est: float) ->
         return {"n": int(len(vv)), "met": False}
     r = c14.cluster_p(vv, w1_clusters(uo), min_units=1, min_first_clusters=1)
     e = float(vv.mean())
-    return {"n": int(len(vv)), "estimate": e, "p": r["p"], "testable": r["testable"], "met": bool(sign_pass(e, est) and r["testable"] and r["p"] < 0.05)}
+    return {"n": int(len(vv)), "estimate": e, "p": r["p"], "testable": r["testable"], "small_g_rules_hold": r["small_g_rules_hold"], "met": bool(sign_pass(e, est) and c14.p_pass(r, 0.05))}
 
 
 def lead_distribution(D: dict, units: list[dict]) -> dict:
@@ -1196,7 +1234,7 @@ def w1_test(D: dict, *, placebo: bool = True, n_draws: int = c14.PLACEBO_DRAWS) 
     vo = v[ok]
     res = w1_p(vo, units_ok)
     est = float(vo.mean())
-    out.update(testable=res["testable"], p=res["p"], effect=est, floor_ok=bool(est >= W1_FLOOR), ways=res["ways"], n=int(ok.sum()))
+    out.update(testable=res["testable"], p=res["p"], effect=est, floor_ok=bool(est >= W1_FLOOR), ways=res["ways"], small_g_rules_hold=res["small_g_rules_hold"], n=int(ok.sum()))
     checks: dict = {}
     checks["lead_window_60_5"] = w1_variant(D, units_ok, est, lead_window=W1_LEAD_WINDOW_ROBUST)
     checks["state_cap_2c"] = w1_variant(D, units_ok, est, state_cap=W1_STATE_CAP_ROBUST)
@@ -1212,6 +1250,7 @@ def w1_test(D: dict, *, placebo: bool = True, n_draws: int = c14.PLACEBO_DRAWS) 
     h = np.asarray(halves)
     checks["half_first"] = w1_subset(vo, units_ok, h == 0, est)
     checks["half_second"] = w1_subset(vo, units_ok, h == 1, est)
+    checks["loqo_sign"] = loqo_check(vo, [u["quarter"] for u in units_ok], est)  # section 2.6 (iii): leave-one-quarter-out sign
     cl = w1_clusters(units_ok)
     for way in ("subject", "week"):
         keep = c14.top_k_drop_mask(vo, cl[way])
@@ -1278,8 +1317,7 @@ def late_overlap(hist_root: Path, keys_report: dict | None, frame_rows: list[dic
     drop: set[str] = set()
     by_set: dict[str, int] = {}
     for rel in absent:
-        root, _, name = rel.partition("/")
-        p = Path(hist_root) / root / name
+        p = c14.id_source_path(rel, Path(hist_root))
         if not p.is_file():
             continue
         cols = c14.read_id_columns(p)
@@ -1498,10 +1536,13 @@ def screen_w(rdir: Path, census: dict, *, audit: dict | None, attn_path: Path | 
 
 
 def finish(r: dict, floor: float, *, placebo_key: str | None = None) -> dict:
-    """Attach the verdict: advance iff p < 0.01, the floor on the point estimate, every binding check and (W1) the calibration placebo."""
+    """Attach the verdict: advance iff p < 0.01 (``p_ok``) AND ``checks_ok`` = the floor on the point estimate, every small-G leave-one-cluster-out sign rule, every binding check and
+    (W1) the calibration placebo. ``checks_ok`` is every binding condition except the primary p gate (Stage 2 decides p by alpha / 4 early or the final Holm)."""
     floor_ok = r.get("effect") is not None and r["effect"] >= floor
     placebo_ok = True if placebo_key is None else bool(r.get(placebo_key))
-    adv = bool(r.get("testable") and c14.adv_label(r.get("p"), bool(floor_ok)) and r.get("checks_met") and placebo_ok)
+    r["checks_ok"] = bool(r.get("testable") and floor_ok and r.get("small_g_rules_hold", False) and r.get("checks_met") and placebo_ok)
+    r["p_ok"] = bool(r.get("testable") and c14.adv_label(r.get("p"), True))
+    adv = bool(r["p_ok"] and r["checks_ok"])
     r["advance"] = adv
     r["floor"] = floor
     r["verdict"] = "advance to Stage 2" if adv else ("not detected" if r.get("testable") else r.get("verdict", "not testable"))
@@ -1643,6 +1684,19 @@ def w_frame(hist_root: Path, transport, *, rules_sha: str, keys_path: Path, smok
     for p_ in (part, opart, spart, wpart):
         _repair_tail(p_)
     done_q = set(fr.extra_state.get("search_done") or [])
+    pending: dict[str, list[str]] = dict(fr.extra_state.get("lookup_pending") or {})
+
+    def _take(ev: dict, q: str, status: str, seen_before: set[str]) -> None:
+        for m in ev.get("markets") or []:
+            if not isinstance(m, dict):
+                continue
+            row = parse_market(m, ev, fetched_as=status, term=q, sports_ids=sports)
+            if row is None or row["market_id"] in seen_before:
+                continue
+            seen_before.add(row["market_id"])
+            _jsonl_append(part, row)
+            _jsonl_append(opart, parse_outcome(m, ev, row["yes_index"]))
+
     try:
         for q in queries:
             for status in SEARCH_STATUSES:
@@ -1655,18 +1709,34 @@ def w_frame(hist_root: Path, transport, *, rules_sha: str, keys_path: Path, smok
                 evs, info = search_all(fr.lim, q, status)
                 seen_before = {r["market_id"] for r in _jsonl_iter(part)}
                 for ev in evs:
-                    for m in ev.get("markets") or []:
-                        if not isinstance(m, dict):
-                            continue
-                        row = parse_market(m, ev, fetched_as=status, term=q, sports_ids=sports)
-                        if row is None or row["market_id"] in seen_before:
-                            continue
-                        seen_before.add(row["market_id"])
-                        _jsonl_append(part, row)
-                        _jsonl_append(opart, parse_outcome(m, ev, row["yes_index"]))
+                    if event_needs_lookup(ev, sports):  # a field the frame rules read is missing in the search payload: parse the full event after the lookup below
+                        pending.setdefault(str(ev.get("id")), [q, status])
+                        continue
+                    _take(ev, q, status, seen_before)
                 done_q.add(key)
                 fr.extra_state["search_done"] = sorted(done_q)
+                fr.extra_state["lookup_pending"] = pending
                 fr.extra_state.setdefault("search_info", {})[key] = info
+        done_l = set(fr.extra_state.get("lookup_done") or [])
+        n_req = int(fr.extra_state.get("lookup_requests", 0))
+        todo = sorted(e for e in pending if e not in done_l)
+        seen_before = {r["market_id"] for r in _jsonl_iter(part)}
+        for i in range(0, len(todo), EVENT_LOOKUP_PER_REQUEST):
+            batch = todo[i:i + EVENT_LOOKUP_PER_REQUEST]
+            if n_req + 2 > EVENT_LOOKUP_MAX_REQ:
+                return c14.write_stall(rdir, "not_run_source", f"Gamma event lookups for search events with missing fields exceed the {EVENT_LOOKUP_MAX_REQ}-request budget ({len(pending)} events)")
+            why = fr.stop_reason(should_stop)
+            if why:
+                return _transient(fr, why)
+            got, used = lookup_events(fr.lim, batch)
+            n_req += used
+            for eid in batch:
+                if eid in got:
+                    _take(got[eid], pending[eid][0], pending[eid][1], seen_before)
+            done_l.update(batch)
+            fr.extra_state["lookup_done"] = sorted(done_l)
+            fr.extra_state["lookup_requests"] = n_req
+            fr.extra_state["lookup_not_found"] = int(fr.extra_state.get("lookup_not_found", 0)) + sum(1 for e in batch if e not in got)
     except (ApiError, RuntimeError) as exc:
         return _transient(fr, f"gamma_failed: {exc}")
     rows = list(_jsonl_iter(part))
@@ -1725,7 +1795,8 @@ def w_frame(hist_root: Path, transport, *, rules_sha: str, keys_path: Path, smok
         frame_ids_all = {r["market_id"] for r in rows}
         found = len(walk_ids & frame_ids_all)
         comp = {"months": list(months), "walk_markets": len(walk_ids), "found_in_frame": found, "share": (found / len(walk_ids)) if walk_ids else 1.0, "min": COMPLETENESS_MIN,
-                "pass": bool((found / len(walk_ids) if walk_ids else 1.0) >= COMPLETENESS_MIN), "search_info": fr.extra_state.get("search_info", {})}
+                "pass": bool((found / len(walk_ids) if walk_ids else 1.0) >= COMPLETENESS_MIN), "search_info": fr.extra_state.get("search_info", {}),
+                "event_lookups": {"events": len(pending), "requests": int(fr.extra_state.get("lookup_requests", 0)), "not_found": int(fr.extra_state.get("lookup_not_found", 0))}}
         fr.budget.write_gz_csv(rdir / "frame.csv.gz", FRAME_COLUMNS, ([r[c] for c in FRAME_COLUMNS] for r in rows))
         fr.record_file(rdir / "frame.csv.gz")
         fr.budget.write_gz_csv(rdir / "subjects.csv.gz", SUBJECT_COLUMNS, ([s[c] for c in SUBJECT_COLUMNS] for s in subs))
@@ -1817,9 +1888,11 @@ def fetch_first_revision(limw, title: str) -> float:
     return parse_ts(revs[0].get("timestamp")) if revs else math.nan
 
 
-def fetch_page_revisions(limw, title: str, start: float, end: float, bot_keys: set[str], *, rv_limit: int = RV_LIMIT, max_batches: int = 400) -> tuple[list[dict], dict]:
-    """Chronological revision rows of one page over ``[start, end]`` (``rvdir=newer`` with ``rvcontinue``). ``end`` is clamped below ``T14_W_END``; rows at or after it are dropped."""
-    end = min(end, w_end() - 1)
+def fetch_page_revisions(limw, title: str, start: float, end: float, bot_keys: set[str], *, rv_limit: int = RV_LIMIT, max_batches: int = 400, historical: bool = True) -> tuple[list[dict], dict]:
+    """Chronological revision rows of one page over ``[start, end]`` (``rvdir=newer`` with ``rvcontinue``). Historical (Stage 1, q0306): ``end`` is clamped below ``T14_W_END`` and rows at
+    or after it are dropped. Live (``historical=False``, the Stage-2 baseline bootstrap after 2026-10-26): no clamp, the requested live window is kept."""
+    if historical:
+        end = min(end, w_end() - 1)
     params = {"action": "query", "format": "json", "formatversion": 2, "prop": "revisions", "titles": title, "rvprop": "ids|timestamp|user|userid|size|comment|tags|flags",
               "rvlimit": rv_limit, "rvdir": "newer", "rvstart": cm.iso(start), "rvend": cm.iso(end), "maxlag": MW_MAXLAG}
     rows: list[dict] = []
@@ -1843,7 +1916,8 @@ def fetch_page_revisions(limw, title: str, start: float, end: float, bot_keys: s
         if batches >= max_batches:
             raise Refused(f"revisions of {title!r} still continue after {max_batches} batches")
         cont = {k: v for k, v in data["continue"].items()}
-    rows = keep_before_w_end(rows)
+    if historical:
+        rows = keep_before_w_end(rows)
     return rows, {"status": "ok", "batches": batches, "page_id": page_id, "n_users": len(users)}
 
 
@@ -2020,7 +2094,9 @@ def w_prints(hist_root: Path, transport, *, rules_sha: str, audit: dict, now: fl
 RC_START_SLACK_S = 60.0  # a poll whose oldest change is more than 60 s newer than the requested start (overlap 120 s) left a hole in the overlap
 LIVE_DAY_SALT_BYTES = 16
 LIVE_FILES = {"frame": "frame_live.json", "state": "state.json", "baselines": "baselines.json", "bursts": "bursts.jsonl", "due": "books_due.jsonl", "books": "books.jsonl", "gaps": "gaps.jsonl",
-              "polls": "polls.jsonl", "audit_dir": "audit_batches"}
+              "polls": "polls.jsonl", "audit_dir": "audit_batches", "frames_dir": "frames", "seen": "markets_seen.json", "closed": "closed.json", "prints_final": "prints_final.json"}
+LIVE_POST_CLOSE_D = 3  # prints of every market seen are refreshed until the window end + 3 d; q0311 waits for that final refresh
+LIVE_PRINT_REFRESH_S = DAY
 LIVE_WINDOW_DIRS = ("changes", "tx")
 
 
@@ -2168,13 +2244,30 @@ def refresh_live_frame(lim, limw, live_dir: Path, sports: set[str], now: float, 
                     w_.writerow([e, s["canonical"], s["description"], next((r["question"] for r in rows.values() if r["entity"] == e), "")])
     doc = {"as_of": now, "subjects": subjects}
     cm.write_json_atomic(Path(live_dir) / LIVE_FILES["frame"], doc)
+    snap = ensure_dir(Path(live_dir) / LIVE_FILES["frames_dir"]) / f"{c14.utc_day(now)}.json"  # the daily frames are kept (never overwritten by a later day): no subject drops out of the record
+    if not snap.exists():
+        cm.write_json_atomic(snap, doc)
+    record_markets_seen(live_dir, doc, now)
     return doc
+
+
+def record_markets_seen(live_dir: Path, frame: dict, now: float) -> dict:
+    """The union of every mapped market ever seen by the live frame (with its subject, entity and country at first sight). Markets are never removed: a market that closes or resolves
+    stays in the registry, so its prints are refreshed and W1-rep sees it (no selection on whether the event happened)."""
+    p = Path(live_dir) / LIVE_FILES["seen"]
+    seen = json.loads(p.read_text()) if p.is_file() else {}
+    for sid, sub in (frame.get("subjects") or {}).items():
+        for m in sub.get("markets") or []:
+            if m["market_id"] not in seen:
+                seen[m["market_id"]] = {**m, "subject": sid, "entity": sub.get("entity"), "country": sub.get("country"), "first_seen": now}
+    cm.write_json_atomic(p, seen)
+    return seen
 
 
 def bootstrap_baseline(limw, title: str, bot_keys: set[str], now: float) -> dict:
     """A subject's 30-day causal baseline at entry (and daily): the percentile of its 10-minute window counts over the last 29 days from the revisions API, plus the first revision."""
     first = fetch_first_revision(limw, title)
-    rows, info = fetch_page_revisions(limw, title, now - 31 * DAY, now, bot_keys)
+    rows, info = fetch_page_revisions(limw, title, now - 31 * DAY, now, bot_keys, historical=False)  # live window: never clamped to T14_W_END
     el = eligible_revisions(rows)
     t = np.array([r["ts"] for r in el])
     ok = bool(info["status"] == "ok" and math.isfinite(first) and first <= now - BURST_BASELINE_D[0] * DAY and len(t) > 0)
@@ -2201,9 +2294,14 @@ def w_live(hist_root: Path, transport, *, rules_sha: str, now: float, not_before
     start, cap = live_window(freeze_ts, floor=not_before)
     if now < start:
         return c14.wait_or_idle(live_dir, f"before T14_W2_start {cm.iso(start)}", now)
-    if now >= cap or live_stop_reached(live_dir, start, now):
-        res = {"status": LIVE_STATUS_CLOSED, "complete": True, "stopped": None, "window": [cm.iso(start), cm.iso(cap)]}
-        return res
+    closed = read_json(live_dir / LIVE_FILES["closed"]) or None
+    stop = closed is None and live_stop_reached(live_dir, start, now)
+    if closed is None and (stop or now >= cap):
+        closed = {"closed_at": float(now if stop else cap), "by": "stop rule (bursts, never results)" if stop else "cap", "window": [cm.iso(start), cm.iso(cap)], "written_utc": cm.iso(now)}
+        ensure_dir(live_dir)
+        cm.write_once_json(live_dir / LIVE_FILES["closed"], closed)
+    if closed is not None:
+        return post_close_refresh(transport, live_dir, closed, now, rps=rps, sleep=sleep, live_check=live_check)
     c14.require_disk(data_dumps, data_dumps_cap_gb, disk_cap, free_fn=free_fn)
     ensure_dir(live_dir)
     lim = hb.Limiter(transport, rps=min(rps, 2.0), sleep=sleep, live_check=live_check)
@@ -2223,10 +2321,12 @@ def w_live(hist_root: Path, transport, *, rules_sha: str, now: float, not_before
     try:
         if frame is None or now - float(frame.get("as_of", 0)) >= refresh_s:
             frame = refresh_live_frame(lim, limw, live_dir, sports, now)
-            refresh_live_prints(lim, live_dir, frame)
             refreshed = True
     except (ApiError, RuntimeError):
         frame = frame or {"as_of": 0, "subjects": {}}
+    if now - float(state.get("last_print_refresh") or 0.0) >= LIVE_PRINT_REFRESH_S:  # every market EVER seen (closed / resolved ones included), daily
+        refresh_live_prints(lim, live_dir, seen_markets(live_dir))
+        state["last_print_refresh"] = now
     base = json.loads(bp.read_text()) if bp.is_file() else {}
     try:
         for sid, sub in frame["subjects"].items():
@@ -2280,12 +2380,14 @@ def w_live(hist_root: Path, transport, *, rules_sha: str, now: float, not_before
         res = live_burst_check(recent, ch, (base.get(ch["page_id"]) or {}).get("threshold"), last, gaps)
         if res is None:
             continue
-        rec = {**res, "page_id": ch["page_id"], "receipt": ch["receipt"], "poll_latency_s": ch["receipt"] - ch["rc_ts"]}
+        sub = tracked[ch["page_id"]]
+        rec = {**res, "page_id": ch["page_id"], "receipt": ch["receipt"], "poll_latency_s": ch["receipt"] - ch["rc_ts"], "entity": sub.get("entity"), "country": sub.get("country"),
+               "markets": [dict(m) for m in sub.get("markets") or []]}  # the subject's mapped markets AT the burst: W2-rep never depends on a later frame
         _jsonl_append(live_dir / LIVE_FILES["bursts"], rec)
         existing.append(rec)
         n_bursts += 1
         if rec["status"] == "ok":
-            for t in book_tasks(rec, tracked[ch["page_id"]]):
+            for t in book_tasks(rec, rec):
                 _jsonl_append(due_p, t)
     # execute due book reads
     done_tasks = {b["task"] for b in _jsonl_iter(live_dir / LIVE_FILES["books"])}
@@ -2308,25 +2410,54 @@ def w_live(hist_root: Path, transport, *, rules_sha: str, now: float, not_before
             "books": n_books, "frame_refreshed": refreshed, "requests": lim.requests + limw.requests}
 
 
-def refresh_live_prints(lim, live_dir: Path, frame: dict, *, page_limit: int = c14.DATA_PAGE_LIMIT, pages: int = c14.DATA_PAGES) -> int:
-    """The daily post-hoc Data API prints of every mapped open market (<= 2 pages), merged by (time, price, size) into ``tx/<market>.json`` for W1-rep. Nothing is written for a market
-    whose first page fails (it is retried the next day)."""
+def seen_markets(live_dir: Path) -> list[dict]:
+    """Every market of the ``markets_seen`` registry (market-id order)."""
+    p = Path(live_dir) / LIVE_FILES["seen"]
+    seen = json.loads(p.read_text()) if p.is_file() else {}
+    return [seen[k] for k in sorted(seen)]
+
+
+def refresh_live_prints(lim, live_dir: Path, markets: Iterable[dict], *, page_limit: int = c14.DATA_PAGE_LIMIT, pages: int = c14.DATA_PAGES) -> int:
+    """The daily post-hoc Data API prints (<= 2 pages) of every market EVER seen by the live frame (open, closed and resolved alike, until the window end + 3 d), merged by (time, price,
+    size) into ``tx/<market>.json`` for W1-rep. Nothing is written for a market whose first page fails (it is retried the next day)."""
     d = ensure_dir(Path(live_dir) / "tx")
     n = 0
-    for sub in frame.get("subjects", {}).values():
-        for m in sub["markets"]:
-            try:
-                prints, info = c14.c12.fetch_prints_paged(lim, m["condition_id"], 0.0, limit=page_limit, pages=pages)
-            except (ApiError, RuntimeError):
-                continue
-            rows = build_transactions(prints, int(m["yes_index"]))
-            p = d / f"{m['market_id']}.json"
-            old = json.loads(p.read_text()) if p.is_file() else {"tx": []}
-            merged = {(r["ts"], r["price"], r["size"]): r for r in [*old["tx"], *rows]}
-            cm.write_json_atomic(p, {"market_id": m["market_id"], "oldest_ts": info["oldest_ts"] if math.isfinite(info["oldest_ts"]) else None, "truncated": bool(info["truncated"]),
-                                     "tx": [merged[k] for k in sorted(merged)]})
-            n += 1
+    for m in markets:
+        try:
+            prints, info = c14.c12.fetch_prints_paged(lim, m["condition_id"], 0.0, limit=page_limit, pages=pages)
+        except (ApiError, RuntimeError):
+            continue
+        rows = build_transactions(prints, int(m["yes_index"]))
+        p = d / f"{m['market_id']}.json"
+        old = json.loads(p.read_text()) if p.is_file() else {"tx": []}
+        merged = {(r["ts"], r["price"], r["size"]): r for r in [*old["tx"], *rows]}
+        cm.write_json_atomic(p, {"market_id": m["market_id"], "oldest_ts": info["oldest_ts"] if math.isfinite(info["oldest_ts"]) else None, "truncated": bool(info["truncated"]),
+                                 "tx": [merged[k] for k in sorted(merged)]})
+        n += 1
     return n
+
+
+def post_close_refresh(transport, live_dir: Path, closed: dict, now: float, *, rps: float = 2.0, sleep=time.sleep, live_check=None) -> dict:
+    """After the live window closed (``closed.json``): no polling; the prints of every market seen are refreshed daily until ``closed_at + 3 d``, and the first refresh at or after that
+    time is the final one (``prints_final.json``, write-once): q0311 waits for it."""
+    ld = Path(live_dir)
+    end = float(closed["closed_at"]) + LIVE_POST_CLOSE_D * DAY
+    fin = ld / LIVE_FILES["prints_final"]
+    out = {"status": LIVE_STATUS_CLOSED, "complete": True, "stopped": None, "closed": closed, "prints_final": fin.exists()}
+    if fin.exists():
+        return out
+    sp = ld / LIVE_FILES["state"]
+    state = json.loads(sp.read_text()) if sp.is_file() else {}
+    if now >= end or now - float(state.get("last_print_refresh") or 0.0) >= LIVE_PRINT_REFRESH_S:
+        lim = hb.Limiter(transport, rps=min(rps, 2.0), sleep=sleep, live_check=live_check)
+        n = refresh_live_prints(lim, ld, seen_markets(ld))
+        state["last_print_refresh"] = now
+        cm.write_json_atomic(sp, state)
+        out["refreshed_markets"] = n
+        if now >= end:
+            cm.write_once_json(fin, {"refreshed_at": now, "closed_at": closed["closed_at"], "markets": n, "utc": cm.iso(now)})
+            out["prints_final"] = True
+    return out
 
 
 # =====================================================================================================================================================
@@ -2335,8 +2466,9 @@ def refresh_live_prints(lim, live_dir: Path, frame: dict, *, page_limit: int = c
 
 
 def load_live(live_dir: Path) -> dict:
+    """The live record for q0311: bursts (each carries its subject's market snapshot), books, the post-hoc transactions of every market seen, the markets-seen registry and the
+    closure record. The rolling ``frame_live.json`` is NOT used by any statistic (a subject whose markets closed would drop out of it)."""
     ld = Path(live_dir)
-    frame = read_json(ld / LIVE_FILES["frame"])
     bursts = [b for b in _jsonl_iter(ld / LIVE_FILES["bursts"])]
     books: dict[tuple[str, str, int], dict] = {}
     for b in _jsonl_iter(ld / LIVE_FILES["books"]):
@@ -2346,29 +2478,32 @@ def load_live(live_dir: Path) -> dict:
         doc = json.loads(p.read_text())
         txs[doc["market_id"]] = TxSeries(doc["tx"], oldest_ts=c14.num(doc.get("oldest_ts")), truncated=bool(doc.get("truncated")))
     latencies = [b.get("poll_latency_s") for b in bursts if b.get("poll_latency_s") is not None]
-    return {"frame": frame, "bursts": bursts, "books": books, "txs": txs, "latency": latencies}
+    return {"bursts": bursts, "books": books, "txs": txs, "latency": latencies, "seen": seen_markets(ld), "closed": read_json(ld / LIVE_FILES["closed"]) or None}
 
 
 def w2rep_units(L: dict, *, now: float, dropped_entities: set[str] | None = None, extra_per_side: float = 0.0) -> dict:
-    """W2-rep units: ok bursts whose 120-min read can exist; the market is the subject's open market with the nearest end at or after ``b + 3 h`` whose 60-s book mid is in [0.05, 0.60];
-    entry at the recorded best ask of that book (size <= the displayed ask size, capped at 100), exit at the recorded best bid of the 120-min book; fee as W2. Missing / one-sided
-    books are 'unavailable' (counted), never filled."""
+    """W2-rep units: ok bursts whose 120-min read can exist; the market is, among the subject's mapped markets SNAPSHOTTED IN THE BURST RECORD, the one with the nearest end at or after
+    ``b + 3 h`` whose 60-s book mid is in [0.05, 0.60]; entry at the recorded best ask of that book (size <= the displayed ask size, capped at 100), exit at the recorded best bid of the
+    120-min book; fee as W2. Missing / one-sided books are 'unavailable' (counted), never filled."""
     units: list[dict] = []
     labels: Counter = Counter()
     for bu in L["bursts"]:
         if bu.get("status") != "ok":
             labels["unavailable (gap)"] += 1
             continue
-        sub = L["frame"].get("subjects", {}).get(bu["page_id"])
-        if sub is None or (dropped_entities and sub["entity"] in dropped_entities):
-            labels["dropped (map audit)" if sub else "no subject"] += 1
+        mkts = bu.get("markets")
+        if mkts is None:
+            labels["no market snapshot"] += 1
+            continue
+        if dropped_entities and bu.get("entity") in dropped_entities:
+            labels["dropped (map audit)"] += 1
             continue
         if bu["receipt"] + BOOK_OFFSETS_S[-1] > now:
             labels["not matured"] += 1
             continue
         bid = f"{bu['page_id']}|{int(bu['b'])}"
         chosen = None
-        for m in sorted((m for m in sub["markets"] if m["end_epoch"] >= bu["b"] + W2_END_AHEAD_S and m["created_epoch"] <= bu["b"]), key=lambda x: (x["end_epoch"], x["market_id"])):
+        for m in sorted((m for m in mkts if m["end_epoch"] >= bu["b"] + W2_END_AHEAD_S and m["created_epoch"] <= bu["b"]), key=lambda x: (x["end_epoch"], x["market_id"])):
             b60 = L["books"].get((bid, m["market_id"], int(BOOK_OFFSETS_S[0])))
             if not b60 or not (math.isfinite(c14.num(b60.get("best_bid"))) and math.isfinite(c14.num(b60.get("best_ask")))):
                 continue
@@ -2386,25 +2521,26 @@ def w2rep_units(L: dict, *, now: float, dropped_entities: set[str] | None = None
             continue
         ask, bidp = float(b60["best_ask"]), float(b120["best_bid"])
         r = c14.taker_rate(m.get("fee_rate"))
-        units.append({"subject": bu["page_id"], "b": bu["b"], "week": iso_week(bu["b"]), "story": story_day(bu["b"], sub["country"]), "quarter": quarter_of(bu["b"]), "market_id": m["market_id"],
-                      "state": mid, "e": ask, "x": bidp, "size": min(PAPER_SIZE, c14.num(b60.get("ask_size"))), "net": net_of(ask, bidp, r, extra_per_side), "stale": False,
-                      "rise": False})
+        units.append({"subject": bu["page_id"], "b": bu["b"], "week": iso_week(bu["b"]), "story": story_day(bu["b"], bu.get("country") or country_of("", bu["page_id"])), "quarter": quarter_of(bu["b"]),
+                      "market_id": m["market_id"], "state": mid, "e": ask, "x": bidp, "size": min(PAPER_SIZE, c14.num(b60.get("ask_size"))), "net": net_of(ask, bidp, r, extra_per_side),
+                      "stale": False, "rise": False})
         labels["unit"] += 1
     return {"units": units, "labels": dict(labels)}
 
 
 def w2_rep(L: dict, *, now: float, dropped_entities: set[str] | None = None) -> dict:
-    """W2-rep on the live window (recorded books). 'Not run (power)' below 300 ok bursts in 30 subjects by the cap (the caller decides when the cap has passed)."""
+    """W2-rep on the closed live window (recorded books). 'Not run (power)' below 300 ok bursts in 30 subjects. ``checks_ok`` = floor, the +1c-per-side cost robustness and the small-G
+    sign rules (every binding condition but the primary p gate)."""
     pk = w2rep_units(L, now=now, dropped_entities=dropped_entities)
     units = pk["units"]
     ok_bursts = [b for b in L["bursts"] if b.get("status") == "ok"]
     out: dict = {"test": "W2-rep", "label": LABEL_W_REP, "labels": pk["labels"], "n_bursts_ok": len(ok_bursts), "n_subjects": len({b["page_id"] for b in ok_bursts}),
                  "poll_latency_s": {"median": float(np.median(L["latency"])) if L["latency"] else None, "p90": float(np.percentile(L["latency"], 90)) if L["latency"] else None}}
     if len(ok_bursts) < W2REP_MIN_BURSTS or out["n_subjects"] < W2REP_MIN_SUBJECTS:
-        out.update(not_run("not run (power)"), label=LABEL_W_REP)
+        out.update(not_run("not run (power)"), label=LABEL_W_REP, checks_ok=False)
         return out
     if len(units) < 2:
-        out.update(not_run("not testable (units)"), label=LABEL_W_REP)
+        out.update(not_run("not testable (units)"), label=LABEL_W_REP, checks_ok=False)
         return out
     v = np.array([u["net"] for u in units])
     cl = w2_clusters(units)
@@ -2413,38 +2549,40 @@ def w2_rep(L: dict, *, now: float, dropped_entities: set[str] | None = None) -> 
     cost = w2rep_units(L, now=now, dropped_entities=dropped_entities, extra_per_side=COST_ROBUST_PER_SIDE)["units"]
     cost_ok = bool(cost and np.mean([u["net"] for u in cost]) > 0)
     out.update(testable=res["testable"], p=res["p"], effect=est, n=len(units), floor_ok=bool(est >= W2_FLOOR), ways=res["ways"], cost_robust_ok=cost_ok,
-               size_weighted=float(np.average(v, weights=[u["size"] for u in units])))
+               small_g_rules_hold=res["small_g_rules_hold"], size_weighted=float(np.average(v, weights=[u["size"] for u in units])))
     out["robustness_ok"] = cost_ok
+    out["checks_ok"] = bool(res["testable"] and out["floor_ok"] and cost_ok and res["small_g_rules_hold"])
     return out
 
 
-def live_w1_units(L: dict) -> list[dict]:
-    """Decisive moves of the mapped markets in the live window from the post-hoc Data API prints (same rule as Stage 1, window = the live window)."""
+def live_w1_units(L: dict, window_end: float) -> list[dict]:
+    """Decisive moves in the live window (``D`` before the window end) of every market the live frame EVER mapped (the ``markets_seen`` registry: closed and resolved markets stay in),
+    from the post-hoc Data API prints (same rule as Stage 1)."""
     out = []
     bursts_ok = [b for b in L["bursts"] if b.get("status") == "ok"]
     if not bursts_ok:
         return out
     lo = min(b["b"] for b in bursts_ok) - 3 * DAY
-    for sid, sub in L["frame"].get("subjects", {}).items():
-        for m in sub["markets"]:
-            tx = L["txs"].get(m["market_id"])
-            if tx is None:
-                continue
-            mv = decisive_move(tx, (lo, math.inf))
-            if mv:
-                out.append({"subject": sid, "market_id": m["market_id"], "cls": "", "created": m["created_epoch"], "country": sub["country"], "head": False, "attn": False, **mv})
+    for m in L["seen"]:
+        tx = L["txs"].get(m["market_id"])
+        if tx is None:
+            continue
+        mv = decisive_move(tx, (lo, window_end))
+        if mv:
+            out.append({"subject": m["subject"], "market_id": m["market_id"], "cls": "", "created": m["created_epoch"], "country": m.get("country"), "head": False, "attn": False, **mv})
     kept = dedupe_moves(out)
     for u in kept:
         u["week"] = iso_week(u["D0"])
     return kept
 
 
-def w1_rep(L: dict) -> dict:
-    """W1-rep: the Stage-1 statistic on live decisive moves with the live burst log (receipt time) as the lead clock; >= 20 moves in >= 15 subjects, else 'not run (power)'."""
-    units = live_w1_units(L)
+def w1_rep(L: dict, window_end: float) -> dict:
+    """W1-rep: the Stage-1 statistic on live decisive moves with the live burst log (receipt time) as the lead clock; >= 20 moves in >= 15 subjects (the design's only minimum), else 'not
+    run (power)'."""
+    units = live_w1_units(L, window_end)
     out: dict = {"test": "W1-rep", "label": LABEL_W_REP, "n_moves": len(units)}
     if len(units) < W1REP_MIN_MOVES or len({u["subject"] for u in units}) < W1REP_MIN_SUBJECTS:
-        out.update(not_run("not run (power)"), label=LABEL_W_REP)
+        out.update(not_run("not run (power)"), label=LABEL_W_REP, checks_ok=False)
         return out
     bursts: dict[str, list[float]] = {}
     for b in L["bursts"]:
@@ -2455,30 +2593,46 @@ def w1_rep(L: dict) -> dict:
     v = np.array([w1_value(u, bursts.get(u["subject"], []), L["txs"][u["market_id"]])[0] for u in units])
     ok = np.isfinite(v)
     if ok.sum() < 2:
-        out.update(not_run("not testable (moves)"), label=LABEL_W_REP)
+        out.update(not_run("not testable (moves)"), label=LABEL_W_REP, checks_ok=False)
         return out
     uo = [u for u, k in zip(units, ok, strict=True) if k]
-    res = c14.cluster_p(v[ok], w1_clusters(uo), min_units=W1REP_MIN_MOVES, min_first_clusters=W1REP_MIN_SUBJECTS, min_clusters_by_way={"week": W1_MIN_WEEKS})
+    res = c14.cluster_p(v[ok], w1_clusters(uo), min_units=W1REP_MIN_MOVES, min_first_clusters=W1REP_MIN_SUBJECTS)
     est = float(v[ok].mean())
     out.update(testable=res["testable"], p=res["p"], effect=est, n=int(ok.sum()), floor_ok=bool(est >= W1_FLOOR), ways=res["ways"], robustness_ok=True,
-               note="the binding Stage-1 placebo is not repeated on the live window (too few moves); the point estimate and p carry the verdict")
+               small_g_rules_hold=res["small_g_rules_hold"], note="the binding Stage-1 placebo is not repeated on the live window (too few moves); the point estimate and p carry the verdict")
+    out["checks_ok"] = bool(res["testable"] and out["floor_ok"] and res["small_g_rules_hold"])
     return out
 
 
+def live_window_end(live_dir: Path, now: float, cap: str = T14_W2_CAP) -> float:
+    """The closed live window's end (``closed.json``, written by q0310 when the stop rule or the cap closed the window). q0311 never analyses a partial window: before the closure, before
+    the end + 3 d, or before the final post-close print refresh, it waits (``NotNow``, pending)."""
+    ld = Path(live_dir)
+    closed = read_json(ld / LIVE_FILES["closed"]) or None
+    if closed is None:
+        raise NotNow(f"the live window is not closed (no {LIVE_FILES['closed']}; cap {cap}): q0311 never analyses a partial window (pending)")
+    end = float(closed["closed_at"])
+    if now < end + LIVE_POST_CLOSE_D * DAY:
+        raise NotNow(f"q0311 waits until the window end + {LIVE_POST_CLOSE_D} d ({cm.iso(end + LIVE_POST_CLOSE_D * DAY)}) (pending)")
+    if not (ld / LIVE_FILES["prints_final"]).exists():
+        raise NotNow("the final post-close print refresh (window end + 3 d) has not run yet (pending)")
+    return end
+
+
 def rep_w(live_dir: Path, tests: tuple[str, ...], *, now: float, k2: int | None = None, live_audit: dict | None = None) -> dict:
-    """q0311: the triggered Stage-2 tests on the live window. A test is judged against alpha / k2 (alpha / 4 while k2 is unknown); the later full Holm can only add passes."""
+    """q0311: the triggered Stage-2 tests on the CLOSED live window. ``stage2_early_alpha_ok`` = p < alpha / 4 (strict); ``stage2_pass_alpha_over_k`` = ``checks_ok`` and p < alpha / k2
+    (alpha / 4 while k2 is unknown); the CB14-wide ``stage2-final`` Holm can only add passes."""
+    end = live_window_end(live_dir, now)
     L = load_live(live_dir)
     dropped = set((live_audit or {}).get("drop", [])) if live_audit else None
-    out: dict = {"label": LABEL_W_REP, "k2": k2, "poll_latency_s": None}
+    out: dict = {"label": LABEL_W_REP, "k2": k2, "window_end": end, "closed": L["closed"]}
     for t in tests:
-        r = w2_rep(L, now=now, dropped_entities=dropped) if t == "W2" else w1_rep(L)
-        r["stage2_early_alpha_over_4"] = c14.early_stage2_ok(r.get("p")) if r.get("testable") else False
+        r = w2_rep(L, now=now, dropped_entities=dropped) if t == "W2" else w1_rep(L, end)
+        r["stage2_early_alpha_ok"] = c14.early_stage2_ok(r.get("p") if r.get("testable") else None)
         alpha_k = c14.STAGE_ALPHA / k2 if k2 else c14.EARLY_ALPHA2
-        r["stage2_pass_alpha_over_k"] = bool(r.get("testable") and r.get("p", 1.0) < alpha_k and r.get("floor_ok") and r.get("robustness_ok"))
+        r["stage2_pass_alpha_over_k"] = bool(r.get("checks_ok") and r.get("testable") and r.get("p", 1.0) < alpha_k)
         out[f"{t}_rep"] = r
-    pv = {t: out[f"{t}_rep"].get("p") if out[f"{t}_rep"].get("testable") else None for t in tests}
-    if k2 is not None and k2 == len(tests):
-        out["stage2_holm"] = c14.stage2_holm(pv)
+    out["holm_family_partial"] = c14.stage2_holm({t: out[f"{t}_rep"].get("p") if out[f"{t}_rep"].get("testable") else None for t in tests})  # information only: stage2-final decides
     return out
 
 
@@ -2532,6 +2686,19 @@ def smoke_online(lim, ctx: dict) -> dict:
     # public-search paging on the thinnest query term
     evs, info = search_all(lim, "step down", "closed", max_pages=5)
     res["w_public_search_paging"] = _chk(info["pages"] >= 1 and info["total"] is not None, pages=info["pages"], events=len(evs), total=info["total"])
+    # do public-search events carry the fields the frame rules read (tags, series, market createdAt, negRiskMarketID)? Reported; the criterion is that the /events lookup fallback
+    # returns them (the frame looks up every event with a missing field, <= 600 requests)
+    n_ev = len(evs)
+    has = {"tags": sum(1 for e in evs if "tags" in e), "series": sum(1 for e in evs if "series" in e),
+           "created_at_all_markets": sum(1 for e in evs if e.get("markets") and all(isinstance(m, dict) and "createdAt" in m for m in e["markets"])),
+           "neg_risk_id_on_neg_risk": sum(1 for e in evs if e.get("negRisk") and all(isinstance(m, dict) and "negRiskMarketID" in m for m in e.get("markets") or []))}
+    lk_ok, lk_detail = False, {}
+    if evs:
+        got, used = lookup_events(lim, [str(evs[0].get("id"))])
+        full = got.get(str(evs[0].get("id")))
+        lk_ok = bool(full and "tags" in full and full.get("markets") and all(isinstance(m, dict) and "createdAt" in m for m in full["markets"]))
+        lk_detail = {"found": full is not None, "requests": used}
+    res["w_search_fields"] = _chk(lk_ok, events=n_ev, present=has, lookup=lk_detail)
     # entity rule + summary type on up to 5 out-of-frame subjects (markets listed after the W listing window)
     sports = set()
     evs2, _ = search_all(lim, "resign", "active", max_pages=2)
@@ -2550,19 +2717,21 @@ def smoke_online(lim, ctx: dict) -> dict:
     sums = [wiki_summary(lim, e) for e in ents]
     res["w_entity_summary"] = _chk(len(ents) >= 3 and sum(1 for s in sums if s["status"] == 200 and s["type"]) >= 3, candidates=len(ents), http200=sum(1 for s in sums if s["status"] == 200),
                                    standard=sum(1 for s in sums if subject_ok(s)))
-    # revisions bounds and continuation on one busy page (out-of-window week), the bot list
-    start, end = ep("2026-10-10T00:00:00Z"), ep("2026-10-17T00:00:00Z")
-    d1 = wiki_get(lim, {"action": "query", "format": "json", "formatversion": 2, "prop": "revisions", "titles": "Donald Trump", "rvprop": "ids|timestamp|size|comment|tags|flags|user|userid", "rvlimit": 25,
-                        "rvdir": "newer", "rvstart": cm.iso(start), "rvend": cm.iso(end), "maxlag": MW_MAXLAG})
+    # revisions bounds and continuation on one busy page (an out-of-window 30-day range): rvlimit = SMOKE_RV_LIMIT (1), so ANY second revision in the range forces a continuation; the
+    # criterion is robust to how busy the page was (a full first batch must continue, and the continued batch must be non-empty and in bounds)
+    start, end = ep(SMOKE_RV_RANGE[0]), ep(SMOKE_RV_RANGE[1])
+    d1 = wiki_get(lim, {"action": "query", "format": "json", "formatversion": 2, "prop": "revisions", "titles": SMOKE_RV_TITLE, "rvprop": "ids|timestamp|size|comment|tags|flags|user|userid",
+                        "rvlimit": SMOKE_RV_LIMIT, "rvdir": "newer", "rvstart": cm.iso(start), "rvend": cm.iso(end), "maxlag": MW_MAXLAG})
     pg = ((d1.get("query") or {}).get("pages") or [{}])[0]
     revs = pg.get("revisions") or []
     cont = d1.get("continue") or {}
-    d2 = wiki_get(lim, {"action": "query", "format": "json", "formatversion": 2, "prop": "revisions", "titles": "Donald Trump", "rvprop": "ids|timestamp|size|tags", "rvlimit": 25, "rvdir": "newer",
-                        "rvstart": cm.iso(start), "rvend": cm.iso(end), "maxlag": MW_MAXLAG, **cont}) if cont else {}
+    d2 = wiki_get(lim, {"action": "query", "format": "json", "formatversion": 2, "prop": "revisions", "titles": SMOKE_RV_TITLE, "rvprop": "ids|timestamp|size|tags", "rvlimit": SMOKE_RV_LIMIT,
+                        "rvdir": "newer", "rvstart": cm.iso(start), "rvend": cm.iso(end), "maxlag": MW_MAXLAG, **cont}) if cont else {}
     revs2 = (((d2.get("query") or {}).get("pages") or [{}])[0].get("revisions")) or []
     in_bounds = all(start <= parse_ts(r.get("timestamp")) <= end for r in [*revs, *revs2])
     keys_ok = bool(revs) and all(k in revs[0] for k in ("revid", "parentid", "timestamp", "size", "tags"))
-    res["w_revisions_bounds"] = _chk(keys_ok and in_bounds and bool(cont) and len(revs2) > 0, first_batch=len(revs), second_batch=len(revs2), continued=bool(cont))
+    paging_ok = bool(len(revs) == SMOKE_RV_LIMIT and cont and len(revs2) > 0)
+    res["w_revisions_bounds"] = _chk(keys_ok and in_bounds and paging_ok, first_batch=len(revs), second_batch=len(revs2), continued=bool(cont), rvlimit=SMOKE_RV_LIMIT)
     bots = fetch_bot_list(lim)
     res["w_bot_list"] = _chk(len(bots) >= 100, bots=len(bots))
     # Data API prints with 2-page reach on one 2024 and one 2025 out-of-frame market (row counts only)

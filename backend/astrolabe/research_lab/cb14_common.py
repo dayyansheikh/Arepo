@@ -106,11 +106,18 @@ ALWAYS_REFUSED_ROOTS = ("surprise_live", "cross_venue_live", "trade_samples", "f
 LIVE_ROOT_NAME = "cross_venue_live"
 EXTRACT_ROOT_RE = r"^cb\d+_extract$"
 EXPERIMENT_ROOT_RE = r"^e0\d\d$"
-# id-only readers (section 1.1 / q0302): the frame roots whose id columns feed the exclusion keys, and the one file each may open. Nothing else under them is opened.
-ID_READABLE = {"h11_attn": ("frame.csv.gz", "entities.csv.gz"), "h11_pol": ("frame.csv.gz",), "h11_wprints": ("markets.csv.gz",), "h12_say": ("events.csv.gz", "members.csv.gz"),
-               "h13_touch": ("events.csv.gz", "members.csv.gz"), "h12_quake": ("events.csv.gz", "members.csv.gz"), "h12_prints": ("markets.csv.gz",),
-               "h12_quake_live": ("markets.csv.gz",), "h12_opt_live": ("markets.csv.gz",)}
+# id-only readers (section 1.1 / q0302; section 11 fixes F16): the frame roots whose id columns feed the exclusion keys, and the files (paths relative to the root) each may open. Nothing
+# else under them is opened. A HOLDOUT file is opened ONLY when it is named here explicitly (CB11-A's HOLDOUT frame, CB13-R's HOLDOUT barrier events, CB13-T's HOLDOUT fills), and then
+# only its id columns leave the reader. ``creative_batch13`` lives under research_lab/, every other root under history/.
+ID_READABLE = {"h11_attn": ("frame.csv.gz", "entities.csv.gz", "holdout/frame_hold.csv.gz"), "h11_pol": ("frame.csv.gz",), "h11_wprints": ("markets.csv.gz",),
+               "h12_say": ("events.csv.gz", "members.csv.gz"), "h13_touch": ("events.csv.gz", "members.csv.gz", "holdout/events.csv.gz", "holdout/members.csv.gz"),
+               "h12_quake": ("events.csv.gz", "members.csv.gz"), "h12_prints": ("markets.csv.gz",), "h12_quake_live": ("markets.csv.gz",), "h12_opt_live": ("markets.csv.gz",),
+               "creative_batch13": ("t_screen/fills.csv.gz", "t_holdout/fills.csv.gz")}
+ID_RESEARCH_ROOTS = ("creative_batch13",)
+S_EXEMPT_ROOT = "h12_say"  # CB12-M's SCREEN frame (the root files; its HOLDOUT lives under holdout/ and is never opened): S keeps the ids that come ONLY from it for N
 ID_COLUMNS = ("market_id", "event_id", "condition_id", "neg_risk_market_id", "negRiskMarketID", "series_id")
+TERMINAL_NAME = "terminal_{family}.json"
+TERMINAL_STATUS = "terminal_not_testable"
 CB13_KEYS_FILE = "exclusion_keys.csv.gz"
 # Fields: forbidden in any written output (a guarded outcome file may carry the outcome columns, nothing else)
 FORBIDDEN_OUTPUT_COLUMNS = ("side", "wallet", "wallet_hash", "proxyWallet", "tx16", "transactionHash", "tx_hash", "name", "pseudonym", "user", "userid", "username", "user_name",
@@ -137,7 +144,14 @@ SMOKE_S_DEFAULT = CB14_DIR / "smoke_S.json"
 FEE_FLOOR = 0.04  # W2 / W2-rep taker fee floor (politics convention; the current, not the point-in-time, schedule)
 P90_ROUND_TRIP = -0.093  # EXECUTION_COSTS.md line 39
 
-RULES_MACHINERY = ("rules_part_doc", "rules_part_file_doc", "rules_file_doc", "write_rules", "verify_rules", "family_modules", "common_funcs", "part_funcs")
+RULES_MACHINERY = ("rules_part_doc", "rules_part_file_doc", "rules_file_doc", "write_rules", "verify_rules", "family_modules", "common_funcs", "part_funcs", "shared_helper_sources")
+# Cross-module helpers the CB14 rules call (section 11 fix F8): the sha256 of each one's source is part of EVERY part's rules doc, so a change to a shared CB2 / CB6 / CB8 / CB9 / CB10 /
+# CB12 helper changes the CB14 rules shas (as CB13 ``SHARED_HELPERS``).
+SHARED_HELPERS = (("cw", "small_g_pvalue"), ("c12", "holm"), ("c12", "cluster_se_mean"), ("c9", "top_k_drop_mask"), ("c10", "placebo_advance_rate"), ("c10", "leave_one_out_sign"),
+                  ("c12", "aggregate_transactions"), ("c12", "fetch_prints_paged"), ("c12", "reach_ok"), ("c12", "listish"), ("c12", "parse_iso"), ("c12", "iso_week_of"),
+                  ("c12", "ceil_tick"), ("c12", "read_csv_gz"), ("c12", "read_id_set"), ("c12", "load_exclusion_keys"), ("c12", "exclusion_stage"), ("c12", "lookup_keys_closed_first"),
+                  ("c12", "load_series_dates"), ("c12", "manifest_complete"), ("c12", "require_complete"), ("c12", "verify_fetch"), ("c10", "require_disk"), ("c9", "write_stall"),
+                  ("c9", "stall_of"), ("c9", "write_results_once"), ("c6", "load_key_sets"), ("bk", "seal_copy_ids_audited"))
 
 
 # ---- small helpers -----------------------------------------------------------------------------------------------------------------------------
@@ -235,15 +249,26 @@ def is_pageview_path(path: Path) -> bool:
 
 
 def guard_id_file(path: Path) -> Path:
-    """The ONLY way a CB14 job reads another batch's frame: an id-only reader of one whitelisted file (``ID_READABLE``) outside any ``holdout/`` path, outcome file or pageview file."""
+    """The ONLY way a CB14 job reads another batch's frame: an id-only reader of one whitelisted file (``ID_READABLE``, matched by its path relative to the root). Pageview, outcome and
+    guarded files are always refused; a ``holdout`` path only when ``ID_READABLE`` names it explicitly (ids only)."""
     p = Path(path)
-    if is_holdout_path(p) or is_pageview_path(p) or "guarded" in p.name or "outcome" in p.name.lower():
-        raise Refused(f"{p}: holdout, pageview and outcome files are never opened by CB14 (id-only readers touch the frame id columns only)")
-    root = next((x for x in p.parts if x in ID_READABLE), None)
-    if root is None or p.name not in ID_READABLE[root]:
+    if is_pageview_path(p) or "guarded" in p.name or "outcome" in p.name.lower():
+        raise Refused(f"{p}: pageview and outcome files are never opened by CB14 (id-only readers touch the frame id columns only)")
+    idx = next((i for i, x in enumerate(p.parts) if x in ID_READABLE), None)
+    if idx is None:
         raise Refused(f"{p}: not an id-only readable frame file {ID_READABLE}")
+    root, rel = p.parts[idx], "/".join(p.parts[idx + 1:])
+    if rel not in ID_READABLE[root]:
+        raise Refused(f"{p}: not an id-only readable frame file of {root} {ID_READABLE[root]} (holdout files only when named explicitly)")
     refuse_path(p, allow=(root,))
     return p
+
+
+def id_source_path(rel: str, hist_root: Path, research_root: Path | None = None) -> Path:
+    """The absolute path of an id source ``<root>/<file>``: ``creative_batch13`` under research_lab/ (``research_root``, default ``hist_root``'s parent), every other root under history/."""
+    root = rel.split("/", 1)[0]
+    base = (Path(research_root) if research_root is not None else Path(hist_root).parent) if root in ID_RESEARCH_ROOTS else Path(hist_root)
+    return base / rel
 
 
 def read_id_columns(path: Path) -> dict[str, set[str]]:
@@ -320,10 +345,19 @@ def wait_or_idle(rdir: Path, why: str, now: float) -> dict:
     return cm.idle(Path(rdir), why, now)
 
 
-def require_freeze(part: str, spec_path: Path | None = None, *, require_committed: bool = True) -> str:
-    """Analysis jobs (screen, rep) refuse before the CB14 declaration is committed (``model_specs/cb14_v1.json``). One entry per family part (W, S)."""
+FREEZE_PIN_KEYS = {"rules": "rules_sha256", "S_MODEL": "s_model_sha256", "S_MODEL_REBASED": "s_model_rebased_sha256"}
+
+
+def require_freeze(part: str, spec_path: Path | None = None, *, require_committed: bool = True, rules_shas: dict[str, str] | None = None) -> str:
+    """Analysis jobs (screen, rep, live, Stage-2 data) refuse before the CB14 declaration is committed (``model_specs/cb14_v1.json``). One entry per family part (W, S). The entry must PIN
+    the code the job has just verified: ``rules_sha256`` equals the part's currently verified sha (``rules_shas[part]``) and, part S, ``s_model_sha256`` / ``s_model_rebased_sha256``
+    equal the committed model pins (``rules_shas['S_MODEL']`` / ``['S_MODEL_REBASED']``) (``freeze-part`` prints exactly these). A freeze that pins other code is refused."""
     if part not in FREEZE_PARTS:
         raise Refused(f"unknown freeze part {part!r}")
+    if not rules_shas or not rules_shas.get(part):
+        raise Refused(f"require_freeze({part}) needs the currently verified rules sha of part {part}")
+    if part == "S" and not (rules_shas.get("S_MODEL") and rules_shas.get("S_MODEL_REBASED")):
+        raise Refused("require_freeze(S) needs the committed position-model pins")
     p = Path(spec_path or (Path(__file__).resolve().parent / "model_specs" / "cb14_v1.json"))
     if not p.exists():
         raise Refused(f"CB14 freeze spec {p} not found: the screens refuse before the CB14 freeze")
@@ -336,9 +370,17 @@ def require_freeze(part: str, spec_path: Path | None = None, *, require_committe
         doc = json.loads(p.read_text())
     except ValueError as exc:
         raise Refused(f"CB14 freeze spec {p} unreadable") from exc
-    if not isinstance(doc, dict) or part not in doc:
+    if not isinstance(doc, dict) or not isinstance(doc.get(part), dict):
         raise Refused(f"CB14 freeze spec {p} has no {part!r} part")
-    return hashlib.sha256(json.dumps(doc[part], sort_keys=True, default=str).encode()).hexdigest()
+    entry = doc[part]
+    need = {FREEZE_PIN_KEYS["rules"]: rules_shas[part]}
+    if part == "S":
+        need[FREEZE_PIN_KEYS["S_MODEL"]] = rules_shas["S_MODEL"]
+        need[FREEZE_PIN_KEYS["S_MODEL_REBASED"]] = rules_shas["S_MODEL_REBASED"]
+    for k, want in need.items():
+        if entry.get(k) != want:
+            raise Refused(f"CB14 freeze entry {part!r} pins {k} {str(entry.get(k))[:12]!r}, but the verified code / pin is {str(want)[:12]!r}: the freeze does not cover this code; refusing")
+    return hashlib.sha256(json.dumps(entry, sort_keys=True, default=str).encode()).hexdigest()
 
 
 # ---- text GET (Factbase HTML), T14_S_open --------------------------------------------------------------------------------------------------------
@@ -444,6 +486,31 @@ def write_results_once(path: Path, doc: dict) -> str:
     return c9.write_results_once(Path(path), doc)
 
 
+def terminal_path(root: Path, family: str) -> Path:
+    if family not in FAMILY_TESTS:
+        raise Refused(f"unknown CB14 family {family!r}")
+    return Path(root) / TERMINAL_NAME.format(family=family)
+
+
+def read_terminal(root: Path, family: str) -> dict | None:
+    p = terminal_path(root, family)
+    return json.loads(p.read_text()) if p.exists() else None
+
+
+def record_terminal(root: Path, family: str, label: str, reason: str, *, trials_path: Path | None = None) -> dict:
+    """A recorded stall (disjointness unverified, a source stall, an incomplete source walk) makes the family TERMINAL "not testable" (section 2.5): ONE write-once record
+    ``terminal_<family>.json`` and, at that moment, the family's counted lines (each test p = 1). A second call returns the record and counts nothing. Downstream jobs read the record
+    and end with exit 0 (never an endless exit 75)."""
+    p = terminal_path(require_output_root(Path(root)), family)
+    if p.exists():
+        return {**json.loads(p.read_text()), "newly_counted": False}
+    doc = {"family": family, "label": label, "reason": str(reason)[:300], "tests": list(FAMILY_TESTS[family]), "counted": True, "status": TERMINAL_STATUS, "written_utc": cm.iso(time.time())}
+    cm.write_once_json(p, doc)
+    sha = hashlib.sha256(p.read_bytes()).hexdigest()
+    log_family(family, {t: {"p": 1.0, "testable": False, "advance": False, "verdict": label} for t in FAMILY_TESTS[family]}, trials_path=trials_path, results_sha256=sha)
+    return {**doc, "newly_counted": True}
+
+
 def write_dir_manifest(rdir: Path, status: str, files: Iterable[Path], extra: dict | None = None) -> dict:
     """Manifest of a host-file job (no fetch): ``status``, ``complete`` true and the sha256 of every output file (relative paths); written once at the end of the job."""
     from . import h5_seal  # noqa: PLC0415
@@ -494,6 +561,27 @@ def stage2_holm(pvals: dict[str, float | None], alpha: float = STAGE_ALPHA) -> d
     return {"k": len(full), "alpha": alpha, "tests": holm(full, alpha) if full else {}}
 
 
+STAGE2_NAMES = {"W1": "W1-rep", "W2": "W2-rep", "S1": "S1-rep", "S2": "S2-rep"}
+
+
+def stage2_final(pvals: dict[str, float | None], alpha: float = STAGE_ALPHA) -> dict:
+    """The final CB14-wide Stage-2 step (section 2.3): ONE strict Holm over every CB14 Stage-2 test that was triggered (W1-rep, W2-rep, S1-rep, S2-rep; a triggered test that could not run
+    enters with p = 1) at one-sided ``alpha``. Applied once, after every triggered test is final; it can only ADD passes to the early alpha / 4 decisions. Other names are refused."""
+    extra = [k for k in pvals if k not in STAGE2_NAMES]
+    if extra:
+        raise Refused(f"stage-2 final Holm: {extra} are not CB14 Stage-2 tests {tuple(STAGE2_NAMES)}")
+    full = {STAGE2_NAMES[k]: (1.0 if v is None else float(v)) for k, v in pvals.items()}
+    return {"k": len(full), "alpha": alpha, "tests": holm(full, alpha) if full else {}}
+
+
+def stage2_k_min(own_triggered: int, other_results: dict | None, other_tests: tuple[str, ...]) -> int:
+    """The smallest admissible Stage-2 count k2 for a rep run: this family's triggered tests plus the other family's (a family whose Stage-1 results are not final yet is assumed to
+    trigger all its tests, so k2 can only be too large and alpha / k2 at least as strict as the final step)."""
+    if other_results is None:
+        return int(own_triggered + len(other_tests))
+    return int(own_triggered + sum(1 for t in other_tests if (other_results.get(t) or {}).get("advance") is True))
+
+
 def early_stage2_ok(p: float | None) -> bool:
     """A rep that finishes before k2 is known is judged against alpha / 4 (strict ``<``; Holm's first step, never withdrawn by the later full Holm)."""
     return p is not None and bool(p < EARLY_ALPHA2)
@@ -523,22 +611,46 @@ def top_k_drop_mask(v, cl, k: int = TOP_DROP) -> np.ndarray:
     return c9.top_k_drop_mask(v, cl, k)
 
 
+G_CR2 = 15  # CB10 section 2.3: a way with fewer clusters leaves the max and its leave-one-cluster-out sign rule binds
+
+
 def cluster_p(v, clusters: dict[str, Any], *, min_units: int = MIN_UNITS, min_first_clusters: int = MIN_CLUSTERS, seed: int = SEED_BOOT, n_wild: int = N_WILD, alpha: float | None = None,
-              min_clusters_by_way: dict[str, int] | None = None) -> dict:
-    """One-sided p of mean(v) > 0 as the MAX over the declared cluster ways (CB10 small-G rule per way: G >= 30 CR1; 15 <= G < 30 CR2 + t(G - 1) with the Webb wild bootstrap; G < 15 not
-    testable). Testable needs ``min_units`` units, every way testable, and ``min_first_clusters`` clusters in the first declared way (W1's declared deviation: 40 moves, 30 subjects,
-    and ``min_clusters_by_way`` adds the 15 ISO weeks)."""
+              min_clusters_by_way: dict[str, int] | None = None, estimator: Callable[[np.ndarray], float] | None = None, sign: float = 1.0) -> dict:
+    """One-sided p of mean(v) > 0 as the MAX over the declared cluster ways under the CB10 small-G rule (section 2.3, as CB10 ``cluster_p_d`` / CB13 ``cluster_p_block``), per way:
+    G >= 30 CR1; 15 <= G < 30 CR2 + t(G - 1) with the Webb wild bootstrap; G < 15 the way LEAVES the max and its leave-one-cluster-out sign rule binds (every leave-one-out estimate
+    keeps the tested sign; ``estimator`` re-estimates on a keep-mask, default the mean of ``v``). ``small_g_rules_hold`` carries those binding sign rules (an advance needs it; a
+    calibration placebo is judged on p alone). Testable needs ``min_units`` units, ``min_first_clusters`` clusters in the first declared way, ``min_clusters_by_way`` (W1's 15 ISO
+    weeks) and at least one way in the max."""
     from . import cb2_weather as w  # noqa: PLC0415
 
     v = np.asarray(v, float)
     if len(v) < 2:
-        return {"n": int(len(v)), "mean": float(v.mean()) if len(v) else math.nan, "testable": False, "p": 1.0, "ways": {}}
-    ways = {name: w.small_g_pvalue(v, np.asarray(cl).astype(str), sign=1, n_wild=n_wild, seed=seed, alpha=alpha) for name, cl in clusters.items()}
+        return {"n": int(len(v)), "mean": float(v.mean()) if len(v) else math.nan, "testable": False, "p": 1.0, "ways": {}, "small_g_rules_hold": False}
+    est = estimator or (lambda keep: float(v[keep].mean()) if keep.any() else math.nan)
+    ways: dict[str, dict] = {}
+    in_max: list[float] = []
+    rules_hold = True
+    for name, cl in clusters.items():
+        c = np.asarray(cl).astype(str)
+        G = len(set(c.tolist()))
+        if G >= G_CR2:
+            r = w.small_g_pvalue(v, c, sign=1, n_wild=n_wild, seed=seed, alpha=alpha)
+            ways[name] = {"G": int(r["G"]), "p": float(r["p"]), "method": r["method"], "in_max": True}
+            in_max.append(float(r["p"]))
+        else:
+            loo = c10.leave_one_out_sign(c, est, sign)
+            ways[name] = {"G": int(G), "p": None, "method": "leave_one_cluster_out_sign (G < 15)", "in_max": False, "leave_one_out": loo}
+            rules_hold = rules_hold and bool(loo.get("holds"))
     first = next(iter(ways.values()), None)
     by_way_ok = all(ways[k]["G"] >= g for k, g in (min_clusters_by_way or {}).items() if k in ways)
-    testable = bool(len(v) >= min_units and all(r["testable"] for r in ways.values()) and first is not None and first["G"] >= min_first_clusters and by_way_ok)
-    p = max((r["p"] for r in ways.values()), default=1.0) if testable else 1.0
-    return {"n": int(len(v)), "mean": float(v.mean()), "testable": testable, "p": float(p), "ways": {k: {"G": r["G"], "p": r["p"], "method": r["method"]} for k, r in ways.items()}}
+    testable = bool(len(v) >= min_units and first is not None and first["G"] >= min_first_clusters and by_way_ok and in_max)
+    p = max(in_max) if testable else 1.0
+    return {"n": int(len(v)), "mean": float(v.mean()), "testable": testable, "p": float(p), "ways": ways, "small_g_rules_hold": bool(rules_hold)}
+
+
+def p_pass(r: dict | None, alpha: float) -> bool:
+    """The p part of an advance / binding check: testable, every small-G leave-one-cluster-out sign rule holds, and one-sided p < ``alpha`` (strict)."""
+    return bool(r and r.get("testable") and r.get("small_g_rules_hold", True) and r.get("p") is not None and r["p"] < alpha)
 
 
 def wls_coef_pseudo(y, X, w, j: int) -> tuple[np.ndarray, float]:
@@ -641,14 +753,14 @@ def log_family(family: str, results: dict[str, dict], *, replication: bool = Fal
 # ---- shared exclusion-key job (q0302) -----------------------------------------------------------------------------------------------------------
 
 
-def frame_ids(hist_root: Path) -> tuple[dict[str, dict[str, set[str]]], list[str]]:
-    """Id columns (field restricted, ``ID_READABLE`` files only, never a holdout / outcome / pageview file) of every other batch's frame under ``hist_root``; a root or file that does not
-    exist yet is 'absent at q0302' (recorded, re-read by the census)."""
+def frame_ids(hist_root: Path, research_root: Path | None = None) -> tuple[dict[str, dict[str, set[str]]], list[str]]:
+    """Id columns (field restricted, ``ID_READABLE`` files only, never an outcome / pageview file; a holdout file only when named there) of every other batch's frame; a file that
+    does not exist yet is 'absent at q0302' (recorded, re-read by the census)."""
     found: dict[str, dict[str, set[str]]] = {}
     absent: list[str] = []
     for root, files in ID_READABLE.items():
         for name in files:
-            p = Path(hist_root) / root / name
+            p = id_source_path(f"{root}/{name}", hist_root, research_root)
             if p.is_file():
                 found.setdefault(root, {})
                 for col, ids in read_id_columns(p).items():
@@ -656,6 +768,37 @@ def frame_ids(hist_root: Path) -> tuple[dict[str, dict[str, set[str]]], list[str
             else:
                 absent.append(f"{root}/{name}")
     return found, absent
+
+
+def split_key_sets(found: dict[str, dict[str, set[str]]], seal_ids: set[str], base_ids: set[str]) -> dict:
+    """The q0302 id sets (section 1.3 and section 11 fix F4). ``s_exempt`` = the market ids of CB12-M's SCREEN frame (``S_EXEMPT_ROOT``) that come from NO other direct source (another
+    id-readable frame or a seal copy), REGARDLESS of whether the CB13 base key file already holds them (it does: q0276 unions the CB12 frames). ``lookup`` = every direct id not in
+    the base file plus every exempt id (their key rows are rebuilt by lookup so the exemption file can carry them)."""
+    other: set[str] = set(seal_ids)
+    say: set[str] = set()
+    per_root: dict[str, int] = {}
+    for root, cols in found.items():
+        ids = set(cols.get("market_id", set()))
+        per_root[root] = len(ids)
+        (say if root == S_EXEMPT_ROOT else other).update(ids)
+    s_exempt = say - other
+    lookup = ((other | say) - set(base_ids)) | s_exempt
+    return {"s_exempt": s_exempt, "lookup": lookup, "new_ids": (other | say) - set(base_ids), "sets": per_root}
+
+
+def exempt_rows(s_rows: list[list[str]], other_rows: list[list[str]]) -> list[list[str]]:
+    """The exemption file's rows (KEY_COLUMNS: market_id, found, event_ids, neg_risk_market_id, series_ids) with every event / neg-risk / series key that a NON-exempt row also carries
+    removed: an exempt market never lifts a key that another source requires (the stricter reading)."""
+    oe, on, os_ = set(), set(), set()
+    for r in other_rows:
+        oe.update(e for e in str(r[2]).split(";") if e)
+        if r[3]:
+            on.add(str(r[3]))
+        os_.update(s for s in str(r[4]).split(";") if s)
+    out = []
+    for r in s_rows:
+        out.append([r[0], r[1], ";".join(e for e in str(r[2]).split(";") if e and e not in oe), "" if str(r[3]) in on else r[3], ";".join(s for s in str(r[4]).split(";") if s and s not in os_)])
+    return out
 
 
 def exclusion_keys(out_root: Path, transport, *, rules_sha: str, hist_root: Path, base_path: Path, base_sha256: str, seals_dir: Path | None = None, is_committed=None, rps: float = 2.0,
@@ -681,24 +824,16 @@ def exclusion_keys(out_root: Path, transport, *, rules_sha: str, hist_root: Path
     base_ids = c12.read_id_set(base_path)
     require_disk(data_dumps, data_dumps_cap_gb, disk_cap, free_fn=free_fn)
     found, absent = frame_ids(Path(hist_root))
-    new_ids: set[str] = set()
-    s_only: set[str] = set()
-    set_ids: dict[str, int] = {}
-    for root, cols in found.items():
-        ids = set(cols.get("market_id", set()))
-        set_ids[root] = len(ids)
-        (s_only if root == "h12_say" else new_ids).update(ids)
     seal_ids, used, skipped, shas = bk.seal_copy_ids_audited(seals_dir, is_committed=is_committed, own=())
-    new_ids |= seal_ids
-    s_only = (s_only - new_ids) - base_ids
-    new_ids -= base_ids
+    ks = split_key_sets(found, seal_ids, base_ids)
+    s_only, lookup, set_ids = ks["s_exempt"], ks["lookup"], ks["sets"]
     titles = sorted(found.get("h11_attn", {}).get("canonical", set()) | found.get("h11_attn", {}).get("canonical_title", set()))
     fr = cm.open_run(out_root, KEYS_RUN, transport, allowed_run_id=KEYS_RUN, kind="cb14_exclusion_keys", label="CB14 exclusion keys",
-                     params={"base_keys_sha256": base_sha256, "n_base_ids": len(base_ids), "n_new_ids": len(new_ids), "n_s_exempt_ids": len(s_only), "sets": set_ids,
-                             "sets_absent_at_q0302": absent, "seal_copies_used": used, "seal_copies_skipped": skipped, "evidence_role": EVIDENCE_ROLE_HIST},
+                     params={"base_keys_sha256": base_sha256, "n_base_ids": len(base_ids), "n_new_ids": len(ks["new_ids"]), "n_s_exempt_ids": len(s_only), "n_lookup_ids": len(lookup),
+                             "sets": set_ids, "sets_absent_at_q0302": absent, "seal_copies_used": used, "seal_copies_skipped": skipped, "evidence_role": EVIDENCE_ROLE_HIST},
                      rules_sha=rules_sha, key_fp="", disk_cap=disk_cap, rps=rps, budget_min=budget_min, now=now, sleep=sleep or time.sleep, live_check=live_check,
                      wall_clock=wall_clock or time.time, snapshot_root=snapshot_root, health_check=health_check)
-    rep_new, stopped = c12.exclusion_stage(fr, new_ids | s_only, should_stop)
+    rep_new, stopped = c12.exclusion_stage(fr, lookup, should_stop)
     if stopped:
         m = fr.manifest(stopped, {"transient": True})
         m["status"] = "in_progress"
@@ -708,7 +843,7 @@ def exclusion_keys(out_root: Path, transport, *, rules_sha: str, hist_root: Path
 
     rows: list[list[str]] = []
     with gzip.open(base_path, "rt", encoding="utf-8", newline="") as fh:
-        rows += [[r[c] for c in c6.KEY_COLUMNS] for r in _csv.DictReader(fh)]
+        rows += [[r[c] for c in c6.KEY_COLUMNS] for r in _csv.DictReader(fh) if r[c6.KEY_COLUMNS[0]] not in s_only]  # exempt ids come back from the lookup rows below
     s_rows: list[list[str]] = []
     with gzip.open(fr.rdir / "exclusion_keys.csv.gz", "rt", encoding="utf-8", newline="") as fh:
         for r in _csv.DictReader(fh):
@@ -716,12 +851,12 @@ def exclusion_keys(out_root: Path, transport, *, rules_sha: str, hist_root: Path
     keys_out = out_root / "exclusion_keys.csv.gz"
     out_root.mkdir(parents=True, exist_ok=True)
     keys_out.write_bytes(hb._gz_csv_bytes(list(c6.KEY_COLUMNS), sorted(rows + s_rows)))
-    (out_root / "s_exempt_ids.csv.gz").write_bytes(hb._gz_csv_bytes(list(c6.KEY_COLUMNS), sorted(s_rows)))
+    (out_root / "s_exempt_ids.csv.gz").write_bytes(hb._gz_csv_bytes(list(c6.KEY_COLUMNS), sorted(exempt_rows(s_rows, rows))))
     (out_root / "attn_entities.csv.gz").write_bytes(hb._gz_csv_bytes(["canonical_title"], [[t] for t in titles]))
     base_rep_p = base_path.with_name(c9.EXCLUSION_REPORT_NAME)
     base_rep = json.loads(base_rep_p.read_text()) if base_rep_p.exists() else {}
-    n_all = int(base_rep.get("n_ids", len(base_ids))) + rep_new["n_ids"]
-    n_missing = int(base_rep.get("n_missing", 0)) + rep_new["n_missing"]
+    n_all = int(base_rep.get("n_ids", len(base_ids))) + len(lookup - base_ids)
+    n_missing = int(base_rep.get("n_missing", 0)) + rep_new["n_missing"]  # an exempt id missing in both counts twice (conservative)
     share = n_missing / n_all if n_all else 1.0
     rep = {"n_ids": n_all, "n_missing": n_missing, "missing_share": share, "max_unverified_key_share": MAX_UNVERIFIED_KEY_SHARE,
            "disjointness": UNVERIFIED if share > MAX_UNVERIFIED_KEY_SHARE else "verified", "base_keys_sha256": base_sha256, "new": rep_new, "sets": set_ids,
@@ -766,6 +901,16 @@ def part_funcs(part: str) -> list:
     return [f for f in funcs if not (id(f) in seen or seen.add(id(f)))]
 
 
+def shared_helper_sources() -> dict[str, str]:
+    """sha256 of the source of every shared helper the CB14 rules call (``SHARED_HELPERS``)."""
+    from . import cb2_weather as cw  # noqa: PLC0415  (small_g_pvalue: the p engine of cluster_p)
+    from . import cb6_tail as c6  # noqa: PLC0415
+    from . import cb8_books as bk  # noqa: PLC0415
+
+    mods = {"c12": c12, "c10": c10, "c9": c9, "cw": cw, "c6": c6, "bk": bk}
+    return {f"{m}.{n}": hashlib.sha256(inspect.getsource(getattr(mods[m], n)).encode()).hexdigest() for m, n in SHARED_HELPERS}
+
+
 def rules_part_doc(part: str) -> dict:
     if part not in PARTS:
         raise Refused(f"unknown rules part {part!r}")
@@ -792,13 +937,14 @@ def rules_part_doc(part: str) -> dict:
     src = {f"{f.__module__.rsplit('.', 1)[-1]}.{f.__qualname__}": hashlib.sha256(inspect.getsource(f).encode()).hexdigest() for f in funcs}
     return {"part": part, "part_declared": True, "rules_version": RULES_VERSION, "constants": consts, "declared": declared,
             "wallet": {"read": False, "note": "no CB14 job reads or stores a wallet field, a transaction hash (aggregated in memory and discarded), the Data API side field, or a Wikipedia user name"},
+            "shared_helper_sources_sha256": shared_helper_sources(),
             "funcs_sha256": hashlib.sha256("\n".join(src[k] for k in sorted(src)).encode()).hexdigest(), "func_sources_sha256": dict(sorted(src.items()))}
 
 
 def common_declared() -> dict:
     return {"refused_roots": list(EXTRA_REFUSED_ROOTS), "always_refused": list(ALWAYS_REFUSED_ROOTS), "id_readable": {k: list(v) for k, v in ID_READABLE.items()},
             "output_roots": list(ALLOWED_OUTPUT_ROOT_PARTS), "seeds": {"boot": SEED_BOOT, "placebo": PLACEBO_SEEDS, "gsp": SEED_GSP, "gs0": SEED_GS0},
-            "bootstrap": {"n_boot": N_BOOT, "n_wild": N_WILD, "small_g": "G>=30 CR1; 15<=G<30 CR2 t(G-1) + Webb wild; G<15 way not testable (CB10 2.3)"},
+            "bootstrap": {"n_boot": N_BOOT, "n_wild": N_WILD, "small_g": "G>=30 CR1; 15<=G<30 CR2 t(G-1) + Webb wild; G<15 the way leaves the max and its leave-one-cluster-out sign rule binds (CB10 2.3)"},
             "holm": {"k1": BATCH_HOLM_K1, "alpha": STAGE_ALPHA, "stage2_early_alpha": EARLY_ALPHA2, "strict": True}, "disk": {"data_dumps_cap_gb": DATA_DUMPS_CAP_GB, "free_min_gb": FREE_DISK_MIN_GB,
                                                                                                                                     "output_cap_gb": CB14_OUTPUT_CAP_GB},
             "field_whitelists": {"forbidden_output_columns": list(FORBIDDEN_OUTPUT_COLUMNS), "print_in_memory": list(PRINT_IN_MEMORY)},
