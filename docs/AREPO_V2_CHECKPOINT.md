@@ -8,6 +8,16 @@
 **PHASE 4 IN PROGRESS.** See `implementation/phases/PHASE_04_EDGE_EXPERIMENTS.md` and the ledger `research_lab/EXPERIMENT_LEDGER.md`.
 User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=Etc/GMT-1 date`.
 
+## Interactive usage push (owner: use all usage before Wed 21 Oct morning), started 2026-10-19 ~21:20Z
+Parallel worktrees: one branch per stream, each merged by the interactive orchestrator after review. The autopilot keeps the CB8–CB17 pipeline.
+- `feat/live-tests-2` (`../astrolabe-live-tests`): new prospective live tests E0xx. Designs, light collectors and drafts; challenger review, then freeze.
+- `feat/creative-r6` (`../astrolabe-creative-r6`): Fable xhigh creative round 6, CH118+.
+- `feat/prior-art` (`../astrolabe-prior-art`): literature map of PM anomalies against AREPO status, and gaps.
+- `feat/new-streams` (`../astrolabe-new-streams`): new keyless prospective collectors (drafts, dry runs).
+- `feat/live-audit` (`../astrolabe-live-audit`): readiness audit of registered live tests' analyses (counts only, no peeking).
+- `feat/cost-model` (`../astrolabe-cost-model`): a realistic taker/maker execution cost model (development).
+- Web: PR #20 (members admin) is waiting for the owner's merge. /lab is live (PR #19).
+
 ## Owner Lab dashboard (/lab), 2026-10-18 (interactive session, user-approved incl. production deploy)
 - **Spec:** `docs/lab/LAB_DASHBOARD_SPEC.md`. Web code: branch `feat/lab-dashboard`, NOT yet on production.
   - aa166b7: frontend /lab; 1053cd1: API + 2 additive tables, schema v14.
