@@ -1,0 +1,50 @@
+{
+ "id": "q0221b_cb11_exclusion_keys",
+ "title": "CB11: exclusion keys (q0221b, amended 2026-10-19) = h8_tail_b key file + market ids of every SAMPLED set on the host (h1/h2/h3/h5 samples, h5 ladders and h6 events, h7_cb4_era frame, h7_cb4_series unit frame units.jsonl.gz, h8 sets, CB8 frames) + committed seal copies + MANDATORY C1/T5 ids; keys taken from the sources that carry them, Gamma lookups only for the ids that lack them; run exclusion_run11b",
+ "family": "creative_batch_11",
+ "priority": 29,
+ "expected_value": "disjointness of W, P and A",
+ "data": [
+  "history/*/ (id columns only)",
+  "docs/research_lab/seals/*",
+  "arepo-data release: calibration-c1-20261011 sample_plan, resdev-t5-20261011b frame",
+  "public Gamma (ids)"
+ ],
+ "resources": {
+  "mem_mb": 1200,
+  "cpu": 1,
+  "lane": "net",
+  "network": "gamma-api"
+ },
+ "depends_on": [
+  "q0220_cb11_smoke"
+ ],
+ "argv": [
+  "scripts/run_cb11.py",
+  "exclusion-keys",
+  "--rules",
+  "../docs/research_lab/seals/cb11_rules.json",
+  "--rps",
+  "2",
+  "--disk-cap-gb",
+  "0.01",
+  "--data-dumps-cap-gb",
+  "40",
+  "--budget-min",
+  "34"
+ ],
+ "timeout_s": 2700,
+ "max_retries": 3,
+ "outputs": [
+  "research_lab/creative_batch11/exclusion_keys.csv.gz",
+  "research_lab/creative_batch11/exclusion_report.json",
+  "research_lab/creative_batch11/exclusion_run11b/ (manifest, exclusion_keys.csv.gz of the looked-up ids)"
+ ],
+ "next_action": "q0222, q0225, q0227",
+ "supersedes": "q0221_cb11_exclusion_keys",
+ "notes": "AMENDMENT 2026-10-19 (CREATIVE_BATCH_11.md section 11.2, 'q0221 id sources and key reuse'): supersedes q0221_cb11_exclusion_keys (parked on the host; its partial creative_batch11/exclusion_run11/ is kept untouched and is refused by the code: never read, modified or used). Defect: q0221 read h7_cb4_series/walk_events.jsonl.gz (the whole series event walk, 3,956,874 market ids) instead of the sampled unit frame, and looked up every id on Gamma even when a source already carried the keys (80,044 batches against the declared <= 400 requests; a 70 MB partial against the 0.01 GB cap). Fix (code now matches design section 1.3): the series source is units.jsonl.gz (13,657 market ids of the 1,922 sampled units); JSONL readers take market ids only from the top-level market lists; every id must be a Gamma market id (refusal otherwise); keys come from the base key file and from CSV sources carrying event_ids / neg_risk_market_id / series_ids (h8_tail, h8_tail_b samples; h8_text, h8_geo frames); only the remaining ids are looked up (closed-first, 50 per request). Read-only host count 2026-10-19: 504,314 new ids, 338,680 keyed from sources, 165,634 looked up = 3,313 batches (3,313 to at most 6,626 requests with the not-closed retry; about 30-60 min at 2 rps): a declared request deviation from <= 400 (the design's estimate assumed every source carried keys; the CB1-CB4 sets, seal copies and C1/T5 lists carry none or only event ids). Stored: the partial is one compact gzip member per batch charged to the cap (about 2.6 MB) plus about 2.4 MB of keys, inside the unchanged 0.01 GB cap. No gate, floor, alpha, population or 2% rule is changed. Repeat until exclusion_keys_complete / disjointness_unverified (about 2-4 runs of 34 min; max_runs 12). mem_mb 1200 kept (the walk no longer loads; not re-measured). rules sha256 6d3f1613d74431eb53de888e5dec83bac8f8c0eb516348d05a33919bb8582a33 (part W of cb11_rules.json v2, regenerated 2026-10-19 for this amendment; supersedes 2d2bb169...). The q0220 smoke PASS (run under 2d2bb169) stays valid: the smoke code is byte-identical and consumers check only the smoke version and criteria. C1/T5 lists are staged on the host (external_ids/); --allow-absent-c1-t5 is never set here. >2% missing metadata -> disjointness unverified (P and A not testable, counted; W proceeds). Exit 75 on headroom = pending.",
+ "repeat": {
+  "max_runs": 12,
+  "until_log_regex": "\"status\": \"(exclusion_keys_complete|disjointness_unverified)\""
+ }
+}

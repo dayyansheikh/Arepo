@@ -1676,3 +1676,15 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
 ## Ops: CB3 quote_state caught up (02:31Z pass, 2026-10-19); not counted
 - After the 2018cf6 guard fix, the 02:31Z collector pass extracted all 20 pending captures (written 20, missing 0,
   remaining 0, max 16.4 s per capture). The deviation above was a delay only; no capture was lost.
+
+## CB11 q0221 superseded by q0221b (exclusion-key id sources and key reuse), 2026-10-19; not counted
+- q0221 never completed (two 40-min timeouts, an error, a stop; parked on the host, its partial `exclusion_run11/` kept
+  and refused by the code). Cause: the code read the whole CB4 series walk (3.96M ids) instead of the sampled unit frame
+  that §1.3 names, and looked up every id on Gamma even where a source already carried keys.
+- Amendment `CREATIVE_BATCH_11.md` §11.2: series source `units.jsonl.gz` (13,657 ids), keys reused from sources,
+  Gamma lookups only for the remaining ids (about 3,300 batches against the declared <= 400: a declared engineering
+  deviation). science-reviewer: ACCEPT_WITH_FIXES; fix 1 applied (conflicting negRiskMarketIDs are looked up, not
+  reused), fix 2 recorded (source keys are snapshots; affects only the P/A series rule). No population, gate, floor,
+  alpha or the 2% rule changed; nothing outcome-dependent is read.
+- Rules part W `6d3f1613…` (was `2d2bb169…`); P/A rules `2d48bd73…` unchanged. q0222-q0231 and drafts q0232/q0235
+  re-pinned; q0222/q0225/q0227 now depend on q0221b. The q0220 smoke PASS stays valid (smoke code unchanged).

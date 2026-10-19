@@ -18,7 +18,10 @@ import importlib
 import inspect
 import json
 import math
+import os
+import re
 import time
+import zlib
 from collections.abc import Callable, Iterator
 from datetime import UTC, datetime
 from pathlib import Path
@@ -109,20 +112,30 @@ STAGE2_TESTS_PER_ADVANCE = {"W1": 1, "W2": 1, "P1": 1, "P2": 1, "A1": 1, "A2": 1
 # Inputs CB11 never reads (design 1.1 last three rows, 1.3). h2_main and h3_power are NOT in the plain refusal list of this module: their ``frame.csv.gz`` is the
 # W population (metadata columns, sha256 pinned) and is opened only by ``cb11_w.read_frame_rows``; every other file under them stays refused.
 REFUSED_RUN_IDS = tuple(r for r in c10.REFUSED_RUN_IDS if r not in ("h2_main", "h3_power")) + ("h10_dlad", "h10_brk", "dlad_frame", "brk_frame", "brk_prints", "deribit",
-                                                                                              "exclusion_run10", "halfday")
+                                                                                              "exclusion_run10", "halfday", "exclusion_run11")
 FRAME_RUN_IDS = ("h2_main", "h3_power")
 FRAME_ALLOWED_FILES = ("frame.csv.gz", "manifest.json", "frame_partial.jsonl", "frame_partial.jsonl.gz")
 REFUSED_ROOTS = tuple(c10.REFUSED_ROOTS) + ("creative_batch10", "snapshots", "book_sweeps", "cb10_extract", "cb11_extract")
 # Id-column readers (field-restricted, ids only) may open files under refused roots: the sampled / sealed sets named in design 1.3.
+# Amendment 2026-10-19 (q0221b): the h7_cb4_series source is its SAMPLED unit frame ``units.jsonl.gz`` (the markets of the 1,922 units whose prices / trades
+# were read), never ``walk_events.jsonl.gz`` (the whole series event walk, about 4 million market ids: the population CB4 sampled FROM, not a sampled set).
 ID_SOURCES = (("h1_first", "sample.csv.gz"), ("h2_main", "sample.csv.gz"), ("h3_power", "sample.csv.gz"), ("h5_cb1", "sample.csv.gz"),
-              ("h5_cb1_ladders", "events.jsonl.gz"), ("h6_weather", "events.jsonl.gz"), ("h7_cb4_era", "frame.csv.gz"), ("h7_cb4_series", "walk_events.jsonl.gz"),
+              ("h5_cb1_ladders", "events.jsonl.gz"), ("h6_weather", "events.jsonl.gz"), ("h7_cb4_era", "frame.csv.gz"), ("h7_cb4_series", "units.jsonl.gz"),
               ("h8_tail", "sample.csv.gz"), ("h8_tail_b", "sample.csv.gz"), ("h8_text", "frame.csv.gz"), ("h8_geo", "frame.csv.gz"))
+# JSONL id sources: market ids come ONLY from these top-level market lists of a record (field ``market_id``, or Gamma's ``id`` inside a markets list); nothing
+# nested deeper (event ids, series ids, token ids) is ever collected.
+JSONL_MARKET_LISTS = ("markets", "pred_markets", "succ_markets")
+MARKET_ID_PATTERN = r"^[0-9]{1,10}$"  # a Gamma market id; any other id (condition id, token id, file-name suffix) is a refusal
+# A CSV source carrying all three key columns (h8 samples and frames: the same Gamma parse as ``cb6_tail.key_fields``) supplies the keys of its rows with a
+# non-empty ``event_ids``; only the ids no source carries keys for are looked up on Gamma (design 1.3 "where a source lacks them").
+KEY_SOURCE_COLUMNS = ("event_ids", "neg_risk_market_id", "series_ids")
 CB8_FRAME_GLOB = "*/frame.csv.gz"  # creative_batch8/<run>/frame.csv.gz, if any exists at q0221
 EXTERNAL_ID_FILES = ("c1_sample_ids.csv.gz", "t5_frame_ids.csv.gz")
 ALLOWED_OUTPUT_ROOT_PARTS = ("creative_batch11", H11_WPRINTS, H11_POL, H11_ATTN)
 GUARDED_ALLOWED_JOBS = ("screen-W", "rep-W", "screen-P", "rep-P")
 LOOKUP_PER_REQUEST = 50
-EXCLUSION_RUN = "exclusion_run11"
+EXCLUSION_RUN = "exclusion_run11b"  # q0221b; the parked q0221 run ``exclusion_run11`` (walk ids) is refused, never read or modified
+EXCLUSION_PARTIAL = "exclusion_keys_partial.jsonl.gz"  # one gzip member per lookup batch, charged to the disk cap
 
 
 def _num(x) -> float:
@@ -344,29 +357,35 @@ def read_csv_gz(path: Path) -> Iterator[dict]:
 # ---- id-column readers (field-restricted: ids only) --------------------------------------------------------------------------------------------
 
 
-def _ids_from_json(obj: Any, out: set[str], depth: int = 0) -> None:
-    if depth > 6:
-        return
-    if isinstance(obj, dict):
-        if obj.get("market_id") is not None:
-            out.add(str(obj["market_id"]))
-        mk = obj.get("markets")
-        if isinstance(mk, list):
-            for m in mk:
-                if isinstance(m, dict) and m.get("id") is not None:
-                    out.add(str(m["id"]))
-        for v in obj.values():
-            if isinstance(v, (dict, list)):
-                _ids_from_json(v, out, depth + 1)
-    elif isinstance(obj, list):
-        for v in obj:
-            if isinstance(v, (dict, list)):
-                _ids_from_json(v, out, depth + 1)
+def _check_market_ids(ids, where: str) -> None:
+    bad = sorted(x for x in ids if not re.match(MARKET_ID_PATTERN, x))
+    if bad:
+        raise Refused(f"{where}: {len(bad)} id(s) are not Gamma market ids (e.g. {bad[0][:40]!r}); refusing")
+
+
+def _jsonl_market_ids(rec: Any, where: str) -> list[str]:
+    """Market ids of one JSONL record: the entries of the top-level lists ``JSONL_MARKET_LISTS`` only (``market_id``, else ``id``). No recursion."""
+    if not isinstance(rec, dict):
+        raise Refused(f"{where}: a JSONL record is not an object")
+    out: list[str] = []
+    for k in JSONL_MARKET_LISTS:
+        lst = rec.get(k)
+        if lst is None:
+            continue
+        if not isinstance(lst, list):
+            raise Refused(f"{where}: field {k!r} is not a list")
+        for m in lst:
+            mid = (m.get("market_id") if m.get("market_id") is not None else m.get("id")) if isinstance(m, dict) else None
+            if mid is None:
+                raise Refused(f"{where}: an entry of {k!r} carries no market id")
+            out.append(str(mid))
+    return out
 
 
 def read_id_set(path: Path) -> set[str]:
-    """Market ids (column ``market_id``, or the market ids nested in a JSONL record) of a sampled / sealed set; ONLY the ids leave this function. Opening a
-    file under a refused run id is allowed here and nowhere else (design 1.3: id-column readers use a field-restricted accessor)."""
+    """Market ids (column ``market_id``, or the entries of the top-level market lists of a JSONL record) of a sampled / sealed set; ONLY the ids leave this
+    function and every id must look like a Gamma market id. Opening a file under a refused run id is allowed here and nowhere else (design 1.3: id-column
+    readers use a field-restricted accessor)."""
     p = Path(path)
     opener = gzip.open if p.name.endswith(".gz") else open
     ids: set[str] = set()
@@ -375,13 +394,50 @@ def read_id_set(path: Path) -> set[str]:
         if ".jsonl" in p.name:
             for line in fh:
                 if line.strip():
-                    _ids_from_json(json.loads(line), ids)
+                    ids.update(_jsonl_market_ids(json.loads(line), str(p)))
         else:
             rd = csv.DictReader(fh)
             if "market_id" not in (rd.fieldnames or []):
                 raise Refused(f"{p} has no market_id column")
             ids = {str(r["market_id"]) for r in rd}
+    _check_market_ids(ids, str(p))
     return ids
+
+
+def read_source_keys(path: Path) -> dict[str, tuple[str, str, str]] | None:
+    """Keys a CSV source already carries: ``{market_id: (event_ids, neg_risk_market_id, series_ids)}`` for its rows with a non-empty ``event_ids``
+    (the ``cb6_tail.key_fields`` format, ';'-joined). ``None`` for a JSONL source or a CSV without all of ``KEY_SOURCE_COLUMNS`` (its ids are looked up)."""
+    p = Path(path)
+    if ".jsonl" in p.name:
+        return None
+    opener = gzip.open if p.name.endswith(".gz") else open
+    csv.field_size_limit(10**9)
+    with opener(p, "rt", encoding="utf-8", newline="") as fh:
+        rd = csv.DictReader(fh)
+        if not all(c in (rd.fieldnames or []) for c in ("market_id", *KEY_SOURCE_COLUMNS)):
+            return None
+        out: dict[str, tuple[str, str, str]] = {}
+        for r in rd:
+            if r["event_ids"]:
+                out[str(r["market_id"])] = (r["event_ids"], r["neg_risk_market_id"] or "", r["series_ids"] or "")
+    return out
+
+
+def _merge_keys(into: dict[str, tuple[str, str, str]], new: dict[str, tuple[str, str, str]]) -> set[str]:
+    """Union of event and series ids per market; the first non-empty ``negRiskMarketID`` is kept. Returns the market ids whose sources disagree on
+    ``negRiskMarketID`` (review fix 2026-10-19: the caller looks them up on Gamma instead of reusing the source keys, so no key is lost)."""
+    conflicts: set[str] = set()
+    for m, (ev, nr, sr) in new.items():
+        if m not in into:
+            into[m] = (ev, nr, sr)
+            continue
+        ev0, nr0, sr0 = into[m]
+        evs = ev0.split(";") + [e for e in ev.split(";") if e and e not in ev0.split(";")]
+        srs = [x for x in sr0.split(";") if x] + [x for x in sr.split(";") if x and x not in sr0.split(";")]
+        if nr0 and nr and nr0 != nr:
+            conflicts.add(m)
+        into[m] = (";".join(e for e in evs if e), nr0 or nr, ";".join(srs))
+    return conflicts
 
 
 # ---- Gamma key lookup, closed markets first (halves the requests of c6.lookup_keys for historical ids) ------------------------------------------
@@ -450,9 +506,37 @@ def load_exclusion_keys(keys_path: Path) -> tuple[set[str], dict[str, set[str]],
     return ids, c6.load_key_sets(keys_path), rep, sha
 
 
+def _batch_tag(batch: list[str]) -> str:
+    return hashlib.sha256(",".join(batch).encode()).hexdigest()[:16]
+
+
+def _read_partial(part: Path) -> list[dict]:
+    """Records of the gzip-member partial. A truncated last member (a chunk killed mid-append) is cut off so later appends stay readable."""
+    if not part.exists():
+        return []
+    data = part.read_bytes()
+    recs: list[dict] = []
+    pos = 0
+    while pos < len(data):
+        d = zlib.decompressobj(31)
+        try:
+            raw = d.decompress(data[pos:])
+        except zlib.error:
+            break
+        if not d.eof:
+            break
+        recs.append(json.loads(raw))
+        pos = len(data) - len(d.unused_data)
+    if pos < len(data):
+        os.truncate(part, pos)
+    return recs
+
+
 def _exclusion_stage(fr, ids: set[str], should_stop: Callable[[], bool] | None = None) -> tuple[dict | None, str | None]:
     """Resumable Gamma lookup of ``ids`` (closed-first, <= 50 per request) -> ``exclusion_keys.csv.gz`` (+ report) in the run dir. Like
-    ``cb6_tail.exclusion_stage`` with the closed-first lookup."""
+    ``cb6_tail.exclusion_stage`` with the closed-first lookup. Progress is ``exclusion_keys_partial.jsonl.gz``: one compact gzip member per batch
+    (``b`` batch, ``h`` tag of its ids, ``n``, ``r`` retried-found, ``f`` = [market_id, event_ids, negRiskMarketID, series_ids] rows), each charged to the run's
+    disk cap before it is appended (``OSError`` past the cap). A stored batch whose ids differ from the current batch is a refusal (the id set changed)."""
     from . import cb6_tail as c6  # noqa: PLC0415
     from . import h5_seal  # noqa: PLC0415
 
@@ -460,16 +544,16 @@ def _exclusion_stage(fr, ids: set[str], should_stop: Callable[[], bool] | None =
     rep_path, keys_path = rdir / "exclusion_report.json", rdir / "exclusion_keys.csv.gz"
     if rep_path.exists():
         return json.loads(rep_path.read_text()), None
-    part = rdir / "exclusion_keys_partial.jsonl"
+    part = rdir / EXCLUSION_PARTIAL
     todo = sorted(ids)
-    done: dict[int, dict] = {}
-    if part.exists():
-        for line in part.read_text().splitlines():
-            if line.strip():
-                rec = json.loads(line)
-                done[rec["batch"]] = rec
     per = LOOKUP_PER_REQUEST
     nb = math.ceil(len(todo) / per)
+    done: dict[int, dict] = {}
+    for rec in _read_partial(part):
+        b = rec["b"]
+        if b >= nb or rec["h"] != _batch_tag(todo[b * per:(b + 1) * per]):
+            raise Refused(f"{part}: stored batch {b} does not match the current id set (a source changed between chunks); refusing")
+        done[b] = rec
     for b in range(nb):
         if b in done:
             continue
@@ -478,23 +562,25 @@ def _exclusion_stage(fr, ids: set[str], should_stop: Callable[[], bool] | None =
             return None, why
         batch = todo[b * per:(b + 1) * per]
         found, retried = lookup_keys_closed_first(fr.lim, batch, per_request=per)
-        rec = {"batch": b, "ids": len(batch), "retried_found": retried, "found": [found[x] for x in batch if x in found]}
-        with part.open("a") as fh:
-            fh.write(json.dumps(rec, sort_keys=True) + "\n")
+        rec = {"b": b, "h": _batch_tag(batch), "n": len(batch), "r": retried,
+               "f": [[x, found[x]["event_ids"], found[x]["neg_risk_market_id"], found[x]["series_ids"]] for x in batch if x in found]}
+        member = gzip.compress((json.dumps(rec, separators=(",", ":"), sort_keys=True) + "\n").encode(), mtime=0)
+        fr.budget.charge(len(member))
+        with part.open("ab") as fh:
+            fh.write(member)
         done[b] = rec
-    rows: dict[str, dict] = {}
+    rows: dict[str, list[str]] = {}
     retried = 0
     for rec in done.values():
-        retried += rec["retried_found"]
-        for k in rec["found"]:
-            rows[k["market_id"]] = k
-    out = [[x, int(x in rows), rows[x]["event_ids"] if x in rows else "", rows[x]["neg_risk_market_id"] if x in rows else "", rows[x]["series_ids"] if x in rows else ""]
-           for x in todo]
+        retried += rec["r"]
+        for k in rec["f"]:
+            rows[k[0]] = k
+    out = [[x, int(x in rows), rows[x][1] if x in rows else "", rows[x][2] if x in rows else "", rows[x][3] if x in rows else ""] for x in todo]
     fr.budget.write_gz_csv(keys_path, c6.KEY_COLUMNS, out)
     n_missing = len(todo) - len(rows)
     share = n_missing / len(todo) if todo else 0.0
     rep = {"n_ids": len(todo), "n_found": len(rows), "n_missing": n_missing, "missing_share": share, "found_only_without_closed_filter": retried,
-           "keys_sha256": h5_seal.sha256_file(keys_path)}
+           "n_batches": nb, "keys_sha256": h5_seal.sha256_file(keys_path)}
     fr.budget.write(rep_path, json.dumps(rep, indent=1, sort_keys=True).encode())  # last: marks the stage
     part.unlink(missing_ok=True)
     return rep, None
@@ -513,8 +599,10 @@ def exclusion_keys(out_root: Path, transport, *, rules_sha: str, hist_root: Path
                    should_stop: Callable[[], bool] | None = None, wall_clock: Callable[[], float] | None = None, snapshot_root: Path | None = None, health_check=None,
                    data_dumps: Path | None = None, data_dumps_cap_gb: float = DATA_DUMPS_CAP_GB, free_fn=None, allow_absent_c1_t5: bool = False,
                    sample_pins: dict[str, str] | None = None) -> dict:
-    """q0221. The h8_tail_b key file (sha256 pinned) plus, by closed-first Gamma id lookup (<= 50 ids per request, resumable), every market id of every
-    sampled set on the host (``ID_SOURCES``), of every committed seal copy and of the staged C1 / T5 id lists (``external_dir``). The ``h2_main`` and
+    """q0221b (amended 2026-10-19). The h8_tail_b key file (sha256 pinned) plus every market id of every sampled set on the host (``ID_SOURCES``; the
+    h7_cb4_series set is its unit frame), of every committed seal copy and of the staged C1 / T5 id lists (``external_dir``). Keys come from the sources
+    that carry them (the base key file; CSV sources with ``KEY_SOURCE_COLUMNS``); only the remaining ids are looked up on Gamma (closed-first, <= 50 ids per
+    request, resumable, run ``exclusion_run11b``). The ``h2_main`` and
     ``h3_power`` ``sample.csv.gz`` are MANDATORY and sha256-pinned (``sample_pins``): absent, an unset pin or a mismatch is a refusal (exit 2); the other
     sampled sets are recorded 'absent' when missing. The staged C1 / T5 id lists are MANDATORY too (round 1 item 5): while either is missing the job is
     ``NotNow`` (exit 75, nothing written) unless ``allow_absent_c1_t5`` is set (an explicit, never-drafted flag), in which case ``c1_t5_status`` = absent is recorded
@@ -533,8 +621,11 @@ def exclusion_keys(out_root: Path, transport, *, rules_sha: str, hist_root: Path
     base_ids = read_id_set(base_path)
     require_disk(data_dumps, data_dumps_cap_gb, disk_cap, free_fn=free_fn)
     set_ids: dict[str, int] = {}
+    set_keys: dict[str, int] = {}
     absent: list[str] = []
     new_ids: set[str] = set()
+    src_keys: dict[str, tuple[str, str, str]] = {}
+    nr_conflicts: set[str] = set()
     pins = dict(MANDATORY_SAMPLE_PINS if sample_pins is None else sample_pins)
     for name, p in _source_files(Path(hist_root), cb8_root):
         if name in pins:
@@ -552,7 +643,12 @@ def exclusion_keys(out_root: Path, transport, *, rules_sha: str, hist_root: Path
         ids = read_id_set(p)
         set_ids[name] = len(ids)
         new_ids |= ids
+        keys = read_source_keys(p)
+        if keys is not None:
+            set_keys[name] = len(keys)
+            nr_conflicts |= _merge_keys(src_keys, keys)
     seal_ids, used, skipped, shas = bk.seal_copy_ids_audited(seals_dir, own=OWN_SEAL_COPIES, is_committed=is_committed)
+    _check_market_ids(seal_ids, "seal copies")
     new_ids |= seal_ids
     ext_status: dict[str, Any] = {}
     ext_dir = Path(external_dir or EXTERNAL_IDS_DIR)
@@ -569,13 +665,23 @@ def exclusion_keys(out_root: Path, transport, *, rules_sha: str, hist_root: Path
             ext_status[fn] = "absent"
     c1_t5 = "retrieved" if all(isinstance(v, dict) for v in ext_status.values()) else "absent"
     new_ids -= base_ids
+    from_sources = {m: src_keys[m] for m in new_ids if m in src_keys and m not in nr_conflicts}  # conflicting negRiskMarketIDs are looked up
+    lookup_ids = new_ids - set(from_sources)
+    key_info = {"n_new_ids": len(new_ids), "n_keys_from_sources": len(from_sources), "n_lookup_ids": len(lookup_ids), "key_sources": set_keys,
+                "neg_risk_market_id_conflicts": len(nr_conflicts)}
     fr = cm.open_run(out_root, EXCLUSION_RUN, transport, allowed_run_id=EXCLUSION_RUN, kind="cb11_exclusion_keys", label="CB11 exclusion keys",
-                     params={"base_keys_sha256": base_sha256, "n_base_ids": len(base_ids), "n_new_ids": len(new_ids), "sets": set_ids, "sets_absent": absent,
+                     params={"base_keys_sha256": base_sha256, "n_base_ids": len(base_ids), **key_info, "sets": set_ids, "sets_absent": absent,
                              "seal_copies_used": used, "seal_copies_sha256": shas, "seal_copies_skipped": skipped, "external": ext_status, "c1_t5_status": c1_t5,
                              "sample_pins": {k: v for k, v in sorted(pins.items())}, "allow_absent_c1_t5": bool(allow_absent_c1_t5), "evidence_role": EVIDENCE_ROLE_HIST},
                      rules_sha=rules_sha, key_fp="", disk_cap=disk_cap, rps=rps, budget_min=budget_min, now=now, sleep=sleep or time.sleep, live_check=live_check,
                      wall_clock=wall_clock or time.time, snapshot_root=snapshot_root, health_check=health_check)
-    rep_new, stopped = _exclusion_stage(fr, new_ids, should_stop)
+    sticky = cm.prior_terminal(fr.rdir)
+    if sticky:
+        return sticky
+    try:
+        rep_new, stopped = _exclusion_stage(fr, lookup_ids, should_stop)
+    except OSError as exc:
+        return cm.disk_budget_end(fr, exc)
     if stopped:
         m = fr.manifest(stopped, {"transient": True})
         m["status"] = "in_progress"
@@ -584,19 +690,20 @@ def exclusion_keys(out_root: Path, transport, *, rules_sha: str, hist_root: Path
     rows = []
     with gzip.open(base_path, "rt", encoding="utf-8", newline="") as fh:
         rows += [[r[c] for c in c6.KEY_COLUMNS] for r in csv.DictReader(fh)]
+    rows += [[m, "1", ev, nr, sr] for m, (ev, nr, sr) in from_sources.items()]
     with gzip.open(fr.rdir / "exclusion_keys.csv.gz", "rt", encoding="utf-8", newline="") as fh:
         rows += [[r[c] for c in c6.KEY_COLUMNS] for r in csv.DictReader(fh)]
     keys_out = out_root / "exclusion_keys.csv.gz"
     out_root.mkdir(parents=True, exist_ok=True)
     keys_out.write_bytes(hb._gz_csv_bytes(list(c6.KEY_COLUMNS), sorted(rows)))
     base_rep = json.loads((base_path.with_name(EXCLUSION_REPORT_NAME)).read_text()) if base_path.with_name(EXCLUSION_REPORT_NAME).exists() else {}
-    n_all = int(base_rep.get("n_ids", len(base_ids))) + rep_new["n_ids"]
+    n_all = int(base_rep.get("n_ids", len(base_ids))) + len(from_sources) + rep_new["n_ids"]
     n_missing = int(base_rep.get("n_missing", 0)) + rep_new["n_missing"]
     share = n_missing / n_all if n_all else 1.0
     rep = {"n_ids": n_all, "n_missing": n_missing, "missing_share": share, "max_unverified_key_share": MAX_UNVERIFIED_KEY_SHARE,
            "disjointness": UNVERIFIED if share > MAX_UNVERIFIED_KEY_SHARE else "verified", "base_keys_sha256": base_sha256,
-           "base_report": {k: base_rep.get(k) for k in ("n_ids", "n_missing", "disjointness")}, "new": rep_new, "sets": set_ids, "sets_absent": absent,
-           "seal_copies_used": used, "seal_copies_sha256": shas, "seal_copies_skipped": skipped, "external": ext_status, "c1_t5_status": c1_t5,
+           "base_report": {k: base_rep.get(k) for k in ("n_ids", "n_missing", "disjointness")}, "new": rep_new, **key_info, "run_id": EXCLUSION_RUN, "sets": set_ids,
+           "sets_absent": absent, "seal_copies_used": used, "seal_copies_sha256": shas, "seal_copies_skipped": skipped, "external": ext_status, "c1_t5_status": c1_t5,
            "sample_pins": {k: v for k, v in sorted(pins.items())}, "keys_sha256": h5_seal.sha256_file(keys_out), "built_utc": cm.iso(time.time())}
     (out_root / EXCLUSION_REPORT_NAME).write_text(json.dumps(rep, indent=1, sort_keys=True))
     status = UNVERIFIED if rep["disjointness"] == UNVERIFIED else EXCLUSION_KEYS_COMPLETE
@@ -750,7 +857,10 @@ def common_declared() -> dict:
             "exclusion": {"base": "h8_tail_b key file (sha256 pinned)", "id_sources": [list(x) for x in ID_SOURCES], "cb8_frame_glob": CB8_FRAME_GLOB,
                           "external_id_files": list(EXTERNAL_ID_FILES), "external_ids": "mandatory: exit 75 while missing unless --allow-absent-c1-t5 (never drafted)",
                           "mandatory_sampled_sets": sorted(MANDATORY_SAMPLE_PINS), "max_unverified_key_share": MAX_UNVERIFIED_KEY_SHARE, "own_seal_copies": list(OWN_SEAL_COPIES),
-                          "lookup": f"closed-first Gamma id lookup, {LOOKUP_PER_REQUEST} ids per request, resumable (deviation: about 14 requests per 1,000 new ids, not <= 400 total)",
+                          "lookup": f"closed-first Gamma id lookup, {LOOKUP_PER_REQUEST} ids per request, resumable, ONLY for ids no source carries keys for (deviation: about 3,300 batches estimated on 2026-10-19, not <= 400 total; amendment q0221b)",
+                          "keys_from_sources": {"base": "h8_tail_b key file rows", "csv_key_columns": list(KEY_SOURCE_COLUMNS), "rule": "rows with a non-empty event_ids; event and series ids united across sources, first non-empty negRiskMarketID kept"},
+                          "jsonl_market_lists": list(JSONL_MARKET_LISTS), "market_id_pattern": MARKET_ID_PATTERN, "run_id": EXCLUSION_RUN, "refused_superseded_run": "exclusion_run11",
+                          "partial": f"{EXCLUSION_PARTIAL}: one gzip member per batch, charged to the disk cap; a stored batch not matching the current ids is a refusal",
                           "w_key_rule": "market id and event id only (frames carry no negRiskMarketID and no series id; section 11 N2); unverified disjointness stalls P and A only"},
             "stall": {"statuses": list(STALL_STATUSES), "exit": 0, "census": "copies the label", "screens": "p = 1, testable false", "results": "write-once"},
             "disk": {"data_dumps_cap_gb": DATA_DUMPS_CAP_GB, "free_disk_min_gb": FREE_DISK_MIN_GB, "total_output_cap_gb": TOTAL_OUTPUT_CAP_GB,
@@ -761,7 +871,7 @@ def common_declared() -> dict:
 def common_rule_funcs() -> tuple:
     return (ny_clock, refuse_run_id, refuse_path, refuse_read, require_output_root, require_after, require_disk, upstream_stall, stage2_k, batch_holm_label, cluster_p,
             cluster_p_week, placebo_advance_rate, one_sided_boot_p, open_guarded, read_id_set, lookup_keys_closed_first, drop_by_keys_w, exclusion_keys,
-            _exclusion_stage, seal_holdout, verify_holdout_seal, common_declared, c10.leave_one_out_sign, c9.holm, c9.top_k_drop_mask, c9.cluster_bootstrap_means)
+            _exclusion_stage, _check_market_ids, _jsonl_market_ids, read_source_keys, _merge_keys, _batch_tag, _read_partial, seal_holdout, verify_holdout_seal, common_declared, c10.leave_one_out_sign, c9.holm, c9.top_k_drop_mask, c9.cluster_bootstrap_means)
 
 
 def rules_part_doc(part: str) -> dict:

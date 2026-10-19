@@ -379,7 +379,7 @@ def test_b3_c1_t5_ids_are_pending_until_staged_unless_explicitly_allowed(keys_en
     env = keys_env
     with pytest.raises(c11.NotNow, match="C1 / T5"):
         _ek(env, sample_pins=env["pins"])
-    assert not (env["tmp"] / "creative_batch11" / "exclusion_run11").exists()  # nothing written while pending
+    assert not (env["tmp"] / "creative_batch11" / c11.EXCLUSION_RUN).exists()  # nothing written while pending
     m = _ek(env, sample_pins=env["pins"], allow_absent_c1_t5=True)
     rep = json.loads((env["tmp"] / "creative_batch11" / "exclusion_report.json").read_text())
     assert rep["c1_t5_status"] == "absent" and set(rep["sets"]) == {"h2_main/sample.csv.gz", "h3_power/sample.csv.gz"} and m["status"] in (c11.EXCLUSION_KEYS_COMPLETE, c11.UNVERIFIED)
@@ -392,6 +392,154 @@ def test_b3_staged_c1_t5_lists_are_read_and_recorded(keys_env):
     _ek(env, sample_pins=env["pins"])
     rep = json.loads((env["tmp"] / "creative_batch11" / "exclusion_report.json").read_text())
     assert rep["c1_t5_status"] == "retrieved" and rep["external"]["t5_frame_ids.csv.gz"]["n_ids"] == 2
+
+
+# ---- q0221b amendment (2026-10-19): id sources are sampled sets only, keys reused from sources, Gamma lookup only where missing ---------------------
+
+
+def _gz_jsonl(path: Path, recs) -> None:
+    import gzip
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(gzip.compress("".join(json.dumps(r) + "\n" for r in recs).encode()))
+
+
+def _gamma_id_world(requested: list):
+    """A Gamma stub answering id lookups (closed-first); every id is found with event ``e<id>`` and series ``s<id>``; ids are recorded."""
+    def tr(url, params):
+        ids = list(params.get("id") or [])
+        requested.extend(ids)
+        return 200, json.dumps([{"id": x, "negRiskMarketID": "", "events": [{"id": f"e{x}", "series": [{"id": f"s{x}"}]}]} for x in ids]).encode(), {}
+
+    return tr
+
+
+def _ek_tr(env, tr, **kw):
+    return c11.exclusion_keys(env["tmp"] / "creative_batch11", tr, rules_sha="r" * 64, hist_root=env["hist"], base_sha256=env["base_sha"], seals_dir=env["seals"], external_dir=env["ext"],
+                              rps=1000.0, sleep=lambda s: None, data_dumps=None, sample_pins=env["pins"], allow_absent_c1_t5=True, **kw)
+
+
+def _read_keys(path: Path) -> dict:
+    import csv
+    import gzip
+
+    with gzip.open(path, "rt", encoding="utf-8", newline="") as fh:
+        return {r["market_id"]: r for r in csv.DictReader(fh)}
+
+
+WALK_REC = {"closed_mode": True, "event_id": "100000", "end_epoch": 1.7e9, "n_markets": 1, "series": [{"id": "10471", "slug": "cwbb"}], "weather_title": 0,
+            "markets": [{"condition_id": "0x02ee", "market_id": "895462", "neg_risk": 0, "token0": "41113676899602530408177395539852999864414424096397961499466716808226893315607", "token1": "8280"}]}
+UNIT_REC = {"unit_id": "s9:e1:e2", "series_id": "10007", "pred_event_id": "67280", "succ_event_id": "80636", "pred_market_ids": ["40"],
+            "pred_markets": [{"market_id": "40", "condition_id": "0xa", "token0": "1", "token1": "2"}], "succ_markets": [{"market_id": "41", "condition_id": "0xb", "token0": "3", "token1": "4"}]}
+
+
+def test_q0221b_series_source_is_the_sampled_unit_frame_never_the_walk(keys_env):
+    env = keys_env
+    assert ("h7_cb4_series", "units.jsonl.gz") in c11.ID_SOURCES and not any("walk" in fn for _, fn in c11.ID_SOURCES)
+    _gz_jsonl(env["hist"] / "h7_cb4_series" / "walk_events.jsonl.gz", [WALK_REC])
+    _gz_jsonl(env["hist"] / "h7_cb4_series" / "units.jsonl.gz", [UNIT_REC])
+    asked: list = []
+    m = _ek_tr(env, _gamma_id_world(asked))
+    assert m["status"] == c11.EXCLUSION_KEYS_COMPLETE
+    assert "895462" not in asked and {"40", "41"} <= set(asked)
+    rep = json.loads((env["tmp"] / "creative_batch11" / "exclusion_report.json").read_text())
+    assert rep["sets"]["h7_cb4_series/units.jsonl.gz"] == 2 and rep["run_id"] == "exclusion_run11b"
+    assert "895462" not in _read_keys(env["tmp"] / "creative_batch11" / "exclusion_keys.csv.gz")
+
+
+def test_q0221b_jsonl_readers_yield_market_ids_only(tmp_path):
+    gamma_event = {"id": "777", "negRisk": True, "title": "t", "markets": [{"id": "55", "negRisk": True, "conditionId": "0xc", "clobTokenIds": "[\"9\"]"}]}
+    weather_event = {"event_id": "888", "markets": [{"market_id": "66", "condition_id": "0xd", "token_yes": "123456789012345678901234567890"}]}
+    nested = {"event_id": "1", "markets": [{"market_id": "12"}], "extra": {"market_id": "999", "markets": [{"id": "998"}]}, "series": [{"id": "5"}]}
+    for rec, want in ((WALK_REC, {"895462"}), (UNIT_REC, {"40", "41"}), (gamma_event, {"55"}), (weather_event, {"66"}), (nested, {"12"})):
+        p = tmp_path / "x.jsonl.gz"
+        _gz_jsonl(p, [rec])
+        assert c11.read_id_set(p) == want  # no event, series, token or nested id ever leaves
+    for bad in ({"markets": [{"market_id": "0x02ee"}]}, {"markets": [{"market_id": "4111367689960253040817739553985299986441"}]}, {"markets": [{"condition_id": "0xa"}]},
+                {"markets": {"market_id": "1"}}):
+        _gz_jsonl(tmp_path / "bad.jsonl.gz", [bad])
+        with pytest.raises(c11.Refused):
+            c11.read_id_set(tmp_path / "bad.jsonl.gz")
+    (tmp_path / "ids.csv.gz").write_bytes(hb._gz_csv_bytes(["market_id"], [["12"], ["1002717__112005"]]))
+    with pytest.raises(c11.Refused, match="not Gamma market ids"):
+        c11.read_id_set(tmp_path / "ids.csv.gz")
+
+
+def test_q0221b_keys_come_from_sources_and_only_missing_ids_are_looked_up(keys_env):
+    from astrolabe.research_lab import cb6_tail as c6
+
+    env = keys_env
+    hdr = ["market_id", "event_id", "event_ids", "neg_risk_market_id", "series_ids", "question"]
+    (env["hist"] / "h8_text").mkdir(parents=True)
+    (env["hist"] / "h8_text" / "frame.csv.gz").write_bytes(hb._gz_csv_bytes(hdr, [["60", "e60", "e60", "0xn60", "s1", "q"], ["61", "", "", "", "", "q"]]))
+    (env["hist"] / "h8_geo").mkdir(parents=True)
+    (env["hist"] / "h8_geo" / "frame.csv.gz").write_bytes(hb._gz_csv_bytes(hdr, [["60", "e60", "e60;e61", "", "s2", "q"]]))
+    _gz_jsonl(env["hist"] / "h6_weather" / "events.jsonl.gz", [{"event_id": "e70", "markets": [{"market_id": "70"}]}])
+    (env["hist"] / "h7_cb4_era").mkdir(parents=True)
+    (env["hist"] / "h7_cb4_era" / "frame.csv.gz").write_bytes(hb._gz_csv_bytes(["market_id", "event_id", "neg_risk"], [["80", "e80", "0"]]))  # partial keys: looked up
+    asked: list = []
+    m = _ek_tr(env, _gamma_id_world(asked))
+    assert m["status"] == c11.EXCLUSION_KEYS_COMPLETE
+    assert set(asked) == {"10", "11", "20", "61", "70", "80"}  # 60 carries its keys; 1 and 2 are in the base key file
+    keys = _read_keys(env["tmp"] / "creative_batch11" / "exclusion_keys.csv.gz")
+    assert set(keys) == {"1", "2", "10", "11", "20", "60", "61", "70", "80"}
+    assert (keys["60"]["found"], keys["60"]["event_ids"], keys["60"]["neg_risk_market_id"], keys["60"]["series_ids"]) == ("1", "e60;e61", "0xn60", "s1;s2")
+    assert keys["70"]["event_ids"] == "e70" and keys["70"]["series_ids"] == "s70"
+    rep = json.loads((env["tmp"] / "creative_batch11" / "exclusion_report.json").read_text())
+    assert (rep["n_keys_from_sources"], rep["n_lookup_ids"], rep["n_ids"], rep["n_missing"]) == (1, 6, 2 + 1 + 6, 0)
+    assert rep["key_sources"] == {"h8_text/frame.csv.gz": 1, "h8_geo/frame.csv.gz": 1}
+    assert c6.load_key_sets(env["tmp"] / "creative_batch11" / "exclusion_keys.csv.gz")["neg_risk_market"] == {"0xn60"}
+
+
+def test_q0221b_partial_is_compact_gzip_charged_resumable_and_the_old_run_is_untouched(keys_env):
+    import gzip
+
+    env = keys_env
+    old = env["tmp"] / "creative_batch11" / "exclusion_run11" / "exclusion_keys_partial.jsonl"
+    old.parent.mkdir(parents=True)
+    old.write_text('{"batch": 0, "found": [], "ids": 50, "retried_found": 0}\n')
+    with pytest.raises(c11.Refused):
+        c11.refuse_path(old)
+    _gz_jsonl(env["hist"] / "h6_weather" / "events.jsonl.gz", [{"event_id": "e", "markets": [{"market_id": str(100 + i)} for i in range(120)]}])
+    calls = {"n": 0}
+
+    def stop_after_one():
+        calls["n"] += 1
+        return calls["n"] > 1
+
+    asked: list = []
+    m1 = _ek_tr(env, _gamma_id_world(asked), should_stop=stop_after_one)
+    assert m1["status"] == "in_progress"
+    rdir = env["tmp"] / "creative_batch11" / "exclusion_run11b"
+    part = rdir / c11.EXCLUSION_PARTIAL
+    recs = [json.loads(x) for x in gzip.decompress(part.read_bytes()).decode().splitlines()]
+    assert len(recs) == 1 and recs[0]["b"] == 0 and recs[0]["n"] == 50 and set(recs[0]) == {"b", "h", "n", "r", "f"}
+    part.write_bytes(part.read_bytes() + gzip.compress(b'{"b": 1}\n')[:12])  # a chunk killed mid-append
+    m2 = _ek_tr(env, _gamma_id_world(asked))
+    assert m2["status"] == c11.EXCLUSION_KEYS_COMPLETE and not part.exists()
+    assert len(asked) == len(set(asked)) == 123  # 120 weather + h2/h3 ids; batch 0 was not asked again
+    assert old.read_text() == '{"batch": 0, "found": [], "ids": 50, "retried_found": 0}\n' and sorted(p.name for p in old.parent.iterdir()) == ["exclusion_keys_partial.jsonl"]
+
+
+def test_q0221b_a_changed_id_set_between_chunks_is_refused_and_the_cap_binds(keys_env):
+    env = keys_env
+    _gz_jsonl(env["hist"] / "h6_weather" / "events.jsonl.gz", [{"event_id": "e", "markets": [{"market_id": str(100 + i)} for i in range(120)]}])
+    calls = {"n": 0}
+
+    def stop_after_one():
+        calls["n"] += 1
+        return calls["n"] > 1
+
+    assert _ek_tr(env, _gamma_id_world([]), should_stop=stop_after_one)["status"] == "in_progress"
+    _gz_jsonl(env["hist"] / "h6_weather" / "events.jsonl.gz", [{"event_id": "e", "markets": [{"market_id": str(101 + i)} for i in range(120)]}])  # "100" (in batch 0) left the set
+    with pytest.raises(c11.Refused, match="does not match the current id set"):
+        _ek_tr(env, _gamma_id_world([]))
+    import shutil
+
+    shutil.rmtree(env["tmp"] / "creative_batch11")
+    m = _ek_tr(env, _gamma_id_world([]), disk_cap=1500)
+    assert m["status"] == "disk_budget"
+    assert _ek_tr(env, _gamma_id_world([]), disk_cap=10**7)["status"] == "disk_budget"  # sticky
 
 
 def test_b3_cli_flag_exists_and_is_never_in_a_draft():
@@ -415,7 +563,7 @@ def _cb11_spec(name):
 def test_b2_resumable_net_drafts_repeat_until_their_completion_status():
     import re
 
-    q21 = _cb11_spec("q0221_cb11_exclusion_keys.json")["repeat"]
+    q21 = _cb11_spec("q0221b_cb11_exclusion_keys.json")["repeat"]
     q24 = _cb11_spec("q0224_cb11_w_censoring.json")["repeat"]
     q23 = _cb11_spec("q0223_cb11_w_prints.json")["repeat"]
     for rep, ok_statuses in ((q21, ("exclusion_keys_complete", "disjointness_unverified")), (q24, ("w_censoring_complete",)), (q23, ("w_prints_complete",))):
@@ -431,6 +579,12 @@ def test_b2_resumable_net_drafts_repeat_until_their_completion_status():
 def test_n5_census_verifies_the_rules_like_every_other_job(tmp_path, capsys):
     code, out = _run(["census", "--family", "W", "--rules", (tmp_path / "missing.json").as_posix(), "--standalone", "--root", (tmp_path / "creative_batch11").as_posix()], capsys)
     assert code == 2 and "rules file" in out["refused"]
+
+
+# q0220 finished (smoke PASS) and q0221 is parked and superseded by q0221b, both under rules W 2d2bb169 (before the 2026-10-19 q0221b amendment); a finished
+# spec is never edited (the worker ignores it and flags it), and q0221's spec stays as it ran.
+RAN_UNDER_PRIOR_W_RULES = {"q0220_cb11_smoke": "2d2bb1690aa0a5be4446466c0b617b5a31ece07db0d2f5eecf1b5aed1c7b8ae1",
+                           "q0221_cb11_exclusion_keys": "2d2bb1690aa0a5be4446466c0b617b5a31ece07db0d2f5eecf1b5aed1c7b8ae1"}
 
 
 def test_declared_drafts_pin_the_rules_part_they_verify(rules_file):
@@ -449,6 +603,9 @@ def test_declared_drafts_pin_the_rules_part_they_verify(rules_file):
         d = json.loads(f.read_text())
         uses_w, uses_pa = "--rules" in d["argv"], "--pa-rules" in d["argv"]
         assert uses_w or uses_pa, f.name
+        if f.stem in RAN_UNDER_PRIOR_W_RULES:  # finished or superseded under the prior part-W rules: the spec keeps the sha it ran with
+            assert RAN_UNDER_PRIOR_W_RULES[f.stem] in d["notes"] and uses_w, f.name
+            continue
         assert (w_sha in d["notes"]) == uses_w, f.name
         assert (pa_sha in d["notes"]) == uses_pa, f.name
         seen.add((uses_w, uses_pa))
@@ -461,8 +618,12 @@ def test_b2_c1_c2_draft_graph_and_repeats():
     import re
 
     d = {f.name.split("_")[0]: json.loads(f.read_text()) for f in _cb11_spec_files("q02[23]*_cb11_*.json")}
-    assert set(d) == {f"q02{n}" for n in (20, 21, 22, 23, 24, 25, 26, 27, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39)}
+    assert set(d) == {f"q02{n}" for n in (20, 21, 22, 23, 24, 25, 26, 27, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39)} | {"q0221b"}
     deps = {k[1:]: {x.split("_")[0][1:] for x in v["depends_on"]} for k, v in d.items()}
+    # q0221b supersedes the parked q0221 (2026-10-19 amendment): every job that needed the exclusion keys waits on q0221b, none on q0221
+    assert d["q0221b"]["supersedes"] == "q0221_cb11_exclusion_keys" and deps["0221b"] == {"0220"}
+    assert deps["0222"] == deps["0225"] == deps["0227"] == {"0221b"} and not any("0221" in v for v in deps.values())
+    assert d["q0221b"]["argv"][d["q0221b"]["argv"].index("--disk-cap-gb") + 1] == "0.01" and d["q0221b"]["resources"]["lane"] == "net"
     assert deps["0230"] == {"0223"} and deps["0238"] == {"0226", "0229"}
     assert deps["0231"] == {"0222", "0223", "0224", "0230"} and deps["0239"] == {"0226", "0229", "0238"}
     assert "--family" in d["q0230"]["argv"] and d["q0230"]["argv"][d["q0230"]["argv"].index("--family") + 1] == "W" and "--pa-rules" not in d["q0230"]["argv"]
@@ -476,3 +637,10 @@ def test_b2_c1_c2_draft_graph_and_repeats():
         assert not re.search(rx, json.dumps({"status": "in_progress"}))
     for k in ("q0236", "q0237"):
         assert "--results-sha256" in d[k]["argv"] and "--stage2-k" in d[k]["argv"]
+
+
+def test_q0221b_merge_keys_returns_conflicting_neg_risk_ids_for_lookup():
+    into = {"1": ("e1", "nrA", "s1"), "2": ("e2", "", "")}
+    conf = c11._merge_keys(into, {"1": ("e1;e9", "nrB", "s2"), "2": ("e2", "nrC", ""), "3": ("e3", "nrD", "")})
+    assert conf == {"1"}  # an empty value is not a conflict
+    assert into["1"] == ("e1;e9", "nrA", "s1;s2") and into["2"] == ("e2", "nrC", "") and into["3"] == ("e3", "nrD", "")

@@ -947,3 +947,39 @@ q0220 never wrote a result (parked on the host). Review of the smoke code agains
 - **wiki_lag.** Design section 2.2 says: if the last published pageviews day is more than 48 h old, "the lag moves to 72 h before the freeze (outcome-blind; recorded) and A's origin to `X + 4 d`". The code had `wiki_lag` inside A's needs (so a fail stalled A "not testable (source)") and in the overall `pass`. Now: A needs `wiki_summary`, `wiki_pageviews` (the endpoint returned a newest day at all) and `data_api_reach`; `wiki_lag` is recorded but not part of the overall pass; q0227 reads the smoke (`smoke_origin_lag_days`) and stores `origin_lag_days` (3, or 4 after a `wiki_lag` fail) in `split.json`; the census, screen and rep use it (`candidate_units(..., lag_days)`; usable at `X + 1 d + 72 h`). The live probe (last day 20261015, 69 h after the day end) therefore moves A to the 72 h lag and the `X + 4 d` origin, as designed.
 - Rules files `cb11_rules.json` (part W) and `cb11_pa_rules.json` were regenerated (no job had used them).
 - **wiki_lag ceiling (review fix).** The 72 h fallback is itself a rule that can be too short. A new criterion `wiki_lag_ceiling` (newest published day at most 72 h after its end) is in A's needs and in the overall pass: if the newest day is older than 72 h at the smoke, A is "not testable (source)", counted, and no origin lag is applied. The fallback lag (4 d) applies only when `wiki_lag` failed and the ceiling held. No later A data job re-measures the newest published day, so the smoke is the only check. (The live probe, 69 h, passes the ceiling.) Rules part W and `cb11_pa_rules.json` regenerated again.
+
+### 11.2 q0221 id sources and key reuse (amendment q0221b, 2026-10-19; engineering, outcome-blind, ids and keys only)
+
+q0221 (exclusion keys) never completed: two 40-min timeouts, then an error at 01:33Z on 10-19 and a stop; it is parked on the host.
+Review against §1.3 found the code did not match the design:
+
+- **Wrong series source.** The code read `h7_cb4_series/walk_events.jsonl.gz` (the whole series event walk: 3,956,874 market ids)
+  instead of the *sampled* unit frame. §1.3 excludes markets of every SAMPLED set; the walk is a discovery listing, not a sample.
+  The source is now `h7_cb4_series/units.jsonl.gz` (13,657 market ids of the 1,922 sampled units). JSONL readers take market ids
+  only from the top-level lists `markets`, `pred_markets`, `succ_markets`; every id must match `^[0-9]{1,10}$` (a Gamma market id),
+  otherwise the run refuses.
+- **Keys not reused.** The code looked up every id on Gamma even when a source already carried its keys (80,044 batches against the
+  declared <= 400 requests, and a 70 MB partial against the 0.01 GB cap). Keys now come first from the `h8_tail_b` base key file and
+  from CSV sources that carry `event_ids` / `neg_risk_market_id` / `series_ids` (rows with a non-empty `event_ids`; event and series
+  ids united across sources, the first non-empty negRiskMarketID kept). Only the remaining ids are looked up (closed-first, 50 per
+  request, resumable).
+- **Declared request deviation.** A read-only host count on 2026-10-19 gives 504,314 new ids: 338,680 keyed from sources and 165,634
+  looked up, i.e. 3,313 batches (3,313 to at most 6,626 requests with the not-closed retry; about 30-60 min at 2 rps). This exceeds the
+  design's <= 400 estimate, which assumed every source carried keys; the CB1-CB4 sets, the seal copies and the C1/T5 lists carry none
+  or only event ids. The request budget is an engineering limit, not a scientific gate.
+- **Storage.** The partial is one compact gzip member per batch, charged to the unchanged 0.01 GB cap (about 2.6 MB), plus about
+  2.4 MB of keys. A stored batch that does not match the current id list is a refusal.
+- **Superseded run.** The run id is `exclusion_run11b`. q0221's partial `creative_batch11/exclusion_run11/` is kept untouched, and the
+  code refuses to read, modify or use it (it is in the forbidden-run list).
+- Unchanged: the W key rule (market id and event id), the mandatory C1/T5 lists (B3, never `--allow-absent-c1-t5`), the mandatory
+  pinned h2/h3 samples (B4), the 2% missing-metadata rule (> 2% means disjointness unverified: P and A not testable, counted; W
+  proceeds), every gate, floor, alpha and population. The q0220 smoke PASS stays valid (smoke code byte-identical; consumers check
+  only the smoke version and criteria).
+- **Review (science-reviewer, 2026-10-19, ACCEPT_WITH_FIXES).** (1) Where two sources disagree on a market's `negRiskMarketID`, the
+  market is looked up on Gamma instead of reusing either source value (`_merge_keys` returns the conflicting ids; their count is
+  `neg_risk_market_id_conflicts` in the report). (2) Source keys are snapshots taken when each source was fetched: a series id added to
+  a market later would appear in a Gamma lookup but not in the reused keys. Event ids do not change, so the W rule (market and event id)
+  is unaffected; only the P/A series rule could miss such a late series link, a known and accepted limitation.
+- Rules part W regenerated: `6d3f1613d74431eb53de888e5dec83bac8f8c0eb516348d05a33919bb8582a33` (was `2d2bb169…`; an intermediate
+  uncommitted `547ae308…` was never used); q0222-q0231 and the
+  q0232/q0235 drafts carry the new sha and q0222 depends on q0221b. Tests: `tests/test_run_cb11.py` (q0221b block).

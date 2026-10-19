@@ -66,7 +66,7 @@
       ],
       [
        "h7_cb4_series",
-       "walk_events.jsonl.gz"
+       "units.jsonl.gz"
       ],
       [
        "h8_tail",
@@ -85,11 +85,26 @@
        "frame.csv.gz"
       ]
      ],
-     "lookup": "closed-first Gamma id lookup, 50 ids per request, resumable (deviation: about 14 requests per 1,000 new ids, not <= 400 total)",
+     "jsonl_market_lists": [
+      "markets",
+      "pred_markets",
+      "succ_markets"
+     ],
+     "keys_from_sources": {
+      "base": "h8_tail_b key file rows",
+      "csv_key_columns": [
+       "event_ids",
+       "neg_risk_market_id",
+       "series_ids"
+      ],
+      "rule": "rows with a non-empty event_ids; event and series ids united across sources, first non-empty negRiskMarketID kept"
+     },
+     "lookup": "closed-first Gamma id lookup, 50 ids per request, resumable, ONLY for ids no source carries keys for (deviation: about 3,300 batches estimated on 2026-10-19, not <= 400 total; amendment q0221b)",
      "mandatory_sampled_sets": [
       "h2_main/sample.csv.gz",
       "h3_power/sample.csv.gz"
      ],
+     "market_id_pattern": "^[0-9]{1,10}$",
      "max_unverified_key_share": 0.02,
      "own_seal_copies": [
       "cb11_w_hold_SEAL.json",
@@ -97,6 +112,9 @@
       "cb11_pol_holdout_SEAL.json",
       "cb11_attn_holdout_SEAL.json"
      ],
+     "partial": "exclusion_keys_partial.jsonl.gz: one gzip member per batch, charged to the disk cap; a stored batch not matching the current ids is a refusal",
+     "refused_superseded_run": "exclusion_run11",
+     "run_id": "exclusion_run11b",
      "w_key_rule": "market id and event id only (frames carry no negRiskMarketID and no series id; section 11 N2); unverified disjointness stalls P and A only"
     },
     "frame_allowed_files": [
@@ -219,7 +237,8 @@
      "brk_prints",
      "deribit",
      "exclusion_run10",
-     "halfday"
+     "halfday",
+     "exclusion_run11"
     ],
     "stage1": {
      "batch_holm_alpha": 0.01,
@@ -594,19 +613,25 @@
    },
    "func_sources_sha256": {
     "cb10_common.leave_one_out_sign": "9111c0aad2192e6661156b015421e86dd20a91d8099a0aca630f11ba30a06eea",
-    "cb11_common._exclusion_stage": "e011d6a158080773f5916007dd8673cc70cd396fdda3dcbe06236c8c11ce7573",
+    "cb11_common._batch_tag": "68109dda0fbc1a18b3d9b0ed2ac1aa1034809f4baf58f6d4d83d8766f2ef0ca5",
+    "cb11_common._check_market_ids": "ec716f9ccc8c0010ba017f993e222a33eb46199f535ae12135a513bf2ab94a2b",
+    "cb11_common._exclusion_stage": "d995726f9bc6d6abb7777101634bcf77d22acdfe99688c7cc77b423bbe7bfbf0",
+    "cb11_common._jsonl_market_ids": "5a9f4e5989db8a0b52a470e973e3ca6a572aa61e6e6d3a5b1c70760840beaefc",
+    "cb11_common._merge_keys": "17723194c0193b1afbeb33e9c0cf660303607d6ffb8ee7b0b681b557a54fe1e9",
+    "cb11_common._read_partial": "2722934b6896db9a12d52d0a7e15fadc113b3d5ed3e2b98fe89c2760191ee063",
     "cb11_common.batch_holm_label": "ba2cfe17455e84c7b0ed5813dbddc06be76ae17fe3a17a9a9458817ffe65cd7d",
     "cb11_common.cluster_p": "52515b9b501b71011fc54af742ac7254de20c88b72fd59dc8bb49ff7ec261925",
     "cb11_common.cluster_p_week": "a8adc561d466084f79a9382a958644e853f733808ec31bdbb031e85ab0c81cbe",
-    "cb11_common.common_declared": "20ff4e1f542223287f135f2d58aa9c6640773efef836aa31b722c582154dbf10",
+    "cb11_common.common_declared": "13842fcf67c3704cdd642ffce984b93090c7f2a30bfa20de917144c3c8b0f4b7",
     "cb11_common.drop_by_keys_w": "4b04c5b376789c8e6cd0edac11d18e304fad5adbaa99ac77fd5262add4203d02",
-    "cb11_common.exclusion_keys": "6f9a778d2ac9a386884181d6b617ad0920ad0e804d40aef61f5b375621638268",
+    "cb11_common.exclusion_keys": "2b549f635b2286046fb099f95ab11f7cd30a53e2ee9444865cc03185b412c26f",
     "cb11_common.lookup_keys_closed_first": "3251f3f2a07c27fd020dc870488f511a0c1031f058478cb639b8b39d709a20ea",
     "cb11_common.ny_clock": "6b2a6a4a62e6d4be321daff8e908c205aea23ab6bd7e40445bd6cd3a450946f8",
     "cb11_common.one_sided_boot_p": "a5b8904a965800a09ce44cfcb23ed4c2c5dca15ad2b532fc5b219d27591c419f",
     "cb11_common.open_guarded": "545bc94b2d512440b2212b3aa64b4af4d70886f115e7fbaaeb4e8a8c864add09",
     "cb11_common.placebo_advance_rate": "dddafa6653cc29c6d9cfaac9f5cbf9b45bb978e4249f3b54b1f0854c7dcbe0ea",
-    "cb11_common.read_id_set": "d7c02981901bb20a375dfa02f6526eb1ad37ad2ba87ef49ff1b44ed406643c11",
+    "cb11_common.read_id_set": "da851a6e2ae2690e01d48890a98d7e36b9affd883314ae809e69f1e2a636ca42",
+    "cb11_common.read_source_keys": "d43c12e9622384f364214e16f011e09b347f4ef1f8dd17ab2ae9c4e6411078ac",
     "cb11_common.refuse_path": "6cecc3631f4fae9c66151429dbe26d48e8a62ee5ce9e038d8312b229228a2e37",
     "cb11_common.refuse_read": "a54d9134e18db9be35377b43a15d00663c7e31deef9c061c54019b870b753e75",
     "cb11_common.refuse_run_id": "e704411052155d57ad413516ef1e3c4717ccc6f7edb766dd5c1b3e96bbee7376",
@@ -701,10 +726,10 @@
     "cb9_common.holm": "00f897abbb2444fa983bcb62be53639bfad2b04e5ff76737533c31eacfcd82d0",
     "cb9_common.top_k_drop_mask": "ca983a19b993ebcfc76179a5579602fdf85a722d3e3e59c4e5a34ae3753d209a"
    },
-   "funcs_sha256": "7629a07d1cd18f37a2ae38514e06738052c798d203f9f57319027e8991e1bd0b",
+   "funcs_sha256": "0bb8a04f1ffaa49e822253253abea4a89dbf8106a1d6b5ed7f41c7210e4f1123",
    "part": "W",
    "part_declared": true,
-   "rules_sha256": "2d2bb1690aa0a5be4446466c0b617b5a31ece07db0d2f5eecf1b5aed1c7b8ae1",
+   "rules_sha256": "6d3f1613d74431eb53de888e5dec83bac8f8c0eb516348d05a33919bb8582a33",
    "rules_version": "cb11-rules-v2",
    "wallet": {
     "note": "no CB11 job reads or stores a wallet field (no HMAC key needed) or the side field",
