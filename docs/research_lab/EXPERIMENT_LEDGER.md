@@ -2120,3 +2120,13 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   near-threshold ambiguity test; `run_cb12.py` refuses a frame/prices manifest recorded under a different E part
   (census, screen, rep). E hash unchanged (runner is unhashed); 189 cb12 tests. q0266 may follow q0244/q0245 after a
   short confirmation.
+
+## CB15-P fixes (88f404a) confirmation, 2026-10-19 ~21:15Z (science-reviewer): ACCEPT_WITH_FIXES (LOW); not counted
+- Verified: P `7d856416…`; 126 cb15 tests; run gap holds (stamp at both failed-pair exits, exit 75 not counted, failed
+  pairs retried first; terminal reachable in 8 runs at <= 150 pairs); P-24, P-26, P-27 as ruled; relaxed test harmless.
+- LOW fixes before q0352/q0354 are installed (reseal): log listings while the stale cache skips matching; rename the
+  cache-cap count as an upper bound and state that a binding cap ends enrolment (time-, not outcome-dependent); report
+  the cap counters in `rep_p`; make NO-404 labels exclusive. Fix agent running.
+- Order: q0347 with q0340 (CB14 draft); q0348 in jobs; q0349 + q0350 only after q0347 and q0348 pass; then P freeze
+  check and `freeze-part --part P`; q0351 after the freeze; q0354 (>= 2026-11-03) and q0352 (>= max(freeze + 1 d,
+  2026-11-04)) as cron after the freeze; q0353 only if q0351 advances P1 or P2.
