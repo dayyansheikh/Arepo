@@ -220,23 +220,26 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-18 21:29Z
-0. **Autopilot session from 19:49Z 10-18.**
-   - **CB11:** data path promoted (582ae05); smoke fixes a5b86e0 + 6daf67e reviewed (bounded out-of-window long-life
-     picks; wiki_lag drives the declared 72 h / X + 4 d fallback; new `wiki_lag_ceiling`: > 72 h -> A not testable).
-     Rules W `2d2bb169…`, PA `2d48bd73…`. **q0220 revived ~21:27Z** (`retry`). On PASS the chain q0221-q0239 runs
-     unattended (net lane ~10-15 h). On a FAIL: read `creative_batch11/smoke.json` and the consequences table;
-     do not re-run a written smoke without a disclosed v2.
-   - **CB12:** v1 smoke (X pass; record common f2f672c1…, M 8b72053c…, X 24e3444b…) kept. Promoted: q0240b M smoke v2,
-     q0251b X census v2 (freshness measured from usability, 16870d6; screen now checks the census rules sha). Rules now
-     common `f2f672c1…`, M `a2e420b0…`, X `7485a272…`. Next: write up census_X_v2 (fresh_step_pairs per bin), then
-     promote q0255 X screen. M chain: after CB11 q0221 finishes, fill q0241 `--base-sha256` (sha256 of CB11's
-     `creative_batch11/exclusion_keys.csv.gz`) and promote q0241-q0249/q0252 (q0256 needs results sha).
-   - **CB13:** code agent running (cb13_*.py, run_cb13.py, drafts q0270-q0285) -> code-against-design freeze check.
-   - **CB14:** DRAFT 03f7200 (CH123 W edit bursts, CH121 S intra-speech decay; k 4 + <= 4); challenger round 1
-     running -> drafter response (the drafter's context is gone after this session: start a new drafter with the
-     challenger text). Cumulative count is 1,221 (host union added 40 flow_screen lines), not 1,181.
-   If the session stops, re-run any agent that has no commit.
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-19 00:58Z
+0. **Autopilot session from 00:45Z 10-19.**
+   - **Done (ebd81ca, 31b7e93, 2018cf6; all deployed):**
+     - Queue worker: a spec-level `not_before` field. q0162 starts no earlier than 10-21T06Z and q0163 no earlier than
+       10-22T12Z, so they no longer burn the 48-tempfail cap (both were retried).
+     - q0221: `--budget-min 34`, timeout 2700, repeat 60. The timeouts came from budget-less runs; the chunked
+       resume is intact (8,911 chunks of 50 ids at 23:42Z). Retried.
+     - **CB12-X FROZEN:** `model_specs/cb12_v1.json` part X, part sha `b231830e…`, after science-reviewer
+       ACCEPT_WITH_FIXES (ledger). q0255 retried; it is one counted test (X1). When it finishes, write it up.
+     - The collector-pass CB3 quote_state guard went 13 -> 40 GiB. It had refused since about 10-17 with 19 captures
+       pending; this is a delay only (ledger deviation).
+   - **Running agents (re-run any that has no commit):**
+     - CB13 code-against-design freeze check (science-reviewer). Then apply the fixes and promote the q0270-q0285
+       drafts. CB13-T is host-only on the cpu lane.
+     - CB14 code (implementer), continuing the untracked `cb14_common.py`. Then a code-against-design freeze check.
+     - CB15 design drafter (CH129 election night, freeze before 11-01; CH125; CH130 census-gated). Then challenger
+       round 1.
+     - Fable xhigh round 7 (`CREATIVE_HYPOTHESES_2026-10-21.md`, CH131+).
+   - **CB12 M chain:** after q0221 finishes, fill q0241 `--base-sha256` (sha256 of CB11 `exclusion_keys.csv.gz`)
+     and promote q0241-q0249/q0252.
 1. **Next:** CB11 code-against-design freeze check -> promote q0220 + W chain -> deploy. q0160c result: PASS -> promote
    q0162/q0163; written FAIL of a/b/f/h/i -> CB8-H "not run (source)", counted, no smoke v4.
 2. **CB9:** data jobs q0181+ only after T_seal 2026-10-22T00Z and a smoke-v2 PASS; q0182 needs the pinned q0164 hash.

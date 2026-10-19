@@ -1,25 +1,29 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-18 22:29 UTC+1
+**Last updated:** 2026-10-19 01:57 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **Autopilot:** session running since about 20:49 UTC+1 (18 Oct).
-- **Server:** batch 11's small test download has just been restarted. If it passes, about 10-15 hours of batch 11
-  downloads follow automatically, then counts-only checks. Batch 12's second test download and a recount are queued too.
-- **Caught before they could mislead (this session):**
-  - Batch 11's test download would have marked three families "not testable" for a sampling reason (it looked at
-    two weeks with no suitable markets), and it would have stopped one family on a rule the design never had. It was
-    paused before it wrote anything, fixed, and checked independently.
-  - Batch 12's freshness check could never be met (a timing detail made it require an exact second). Corrected
-    before any result was computed; only counts had been seen. One of its test downloads failed because a sampled
-    market simply had no trading before the event; a second, disclosed version replaces it (the first stays on record).
-- **Done this session:** round 6 of original ideas saved; batch 11 checked twice and queued; batch 13 and batch 14
-  designed (13 also challenged and revised).
-- **In progress:** batch 13 code; batch 14 challenger review.
+- **Autopilot:** session running since about 01:45 UTC+1 (19 Oct).
+- **Server:** batch 11's ID check is now set to resume cleanly in 34-minute pieces. Earlier pieces kept hitting
+  the 40-minute limit, but none of the work was lost (about 445,000 IDs were already saved). It needs roughly 10 more
+  hours; then about 10-15 hours of batch 11 downloads follow automatically. Batch 12's first counted test (X1: do price gaps
+  between matching Polymarket and Kalshi markets take longer to close when the resolution date is far away?) is queued, now that its rules are
+  frozen.
+- **Caught and fixed this session (nothing lost, nothing changed scientifically):**
+  - Batch 12's test had been queued before its rules file was written, so it correctly refused to run. The rules
+    were checked independently and then frozen.
+  - One collector step (batch 3's quote extraction) had been refusing to run since about 17 Oct, because its disk
+    limit was missed when the others were raised. Fixed; it catches up on the 19 waiting captures, since their
+    source files are still on the server.
+  - Two batch 8 jobs that wait for their declared start on 21 Oct would have been marked "failed" by the queue's
+    patience limit tonight. The queue now understands a declared start date.
+- **In progress:** a check of batch 13's code against its design; batch 14 code; batch 15 design (US election
+  night on 3 Nov, an AI-leaderboard idea, and Kalshi-listed-first pairs); and a new round of original ideas
+  (round 7, by the Fable model as you asked).
 - **Second free server:** still "out of host capacity" at Oracle; it retries every 10 min.
 
 ## 2. Approvals needed from you
