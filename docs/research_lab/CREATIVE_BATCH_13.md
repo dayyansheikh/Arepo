@@ -1295,3 +1295,7 @@ p = 1. **Change (information exposure only; no threshold, formula, gate or label
 common `62e90149…`, LABELLER `95cde0ab…` and R `91907024…` are unchanged. q0273 (draft and job), q0274 and q0275 drafts
 re-pinned (hash tokens only). Jobs q0270b, q0271 and q0272 still carry the old T token in their notes; they verify the
 rules file against the code, not the note.
+
+**11.t disclosure (2026-10-19, coordinator, from the FREEZE_OK re-check).** Before 11.t the screen checked GTI (cadence)
+before population, so a GTI failure would have labelled the T tests "not testable (cadence)"; §11.t's "no label
+changed" is accurate only for this census (GTI never ran). p = 1 either way.
