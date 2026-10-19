@@ -2183,3 +2183,12 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   `outcome_exposure` record (all false). Precedence GL -> GT -> GTP. T `f72683f5…` -> `33bd165b…` (common, LABELLER,
   R unchanged); 124 CB13 tests; q0273/q0274/q0275 re-pinned. Re-check + freeze decision running (incl. whether the
   census written under the old T hash is accepted or needs a counts-only q0272b).
+
+## CB13-T freeze (56d1088), 2026-10-19 21:19Z, after science-reviewer FREEZE_OK; q0273 retried
+- Re-check of a198f5a: gate-fail path opens nothing (readers replaced by raising stubs in the test), GL > GT > GTP
+  faithful; label "not testable (population)" for T1 and T2. The census written under T `f72683f5` is accepted: the
+  §11.t reseal changed only screen functions (`census_t` hash unchanged); host census canonical sha `530ab15a…`, file
+  bytes `5408b1f5…`. Disclosure added (pre-11.t cadence-before-population order).
+- `model_specs/cb13_v1.json` part T committed: rules `33bd165b…`, LABELLER `95cde0ab…`, common `62e90149…` (record
+  only), census pins and counts, decisions, frozen_utc 2026-10-19T21:18:57Z; `require_freeze` verified locally; 124
+  CB13 tests. Deployed; `queue_worker.py retry q0273_cb13_screen_T` on the host (cpu lane, after q0382).
