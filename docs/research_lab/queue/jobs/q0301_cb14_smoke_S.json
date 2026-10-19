@@ -2,7 +2,7 @@
  "id": "q0301_cb14_smoke_S",
  "title": "CB14-S smoke (S part hash; refusals: N paths before T14_S_open, causal accessor after e_t, prices after t in census mode; tag 100343 walk on one out-of-window week; Factbase search + one out-of-window transcript parsed to >= 100 stamps; term parser/matcher on 3 out-of-window events; 1-minute availability rule on P months, row counts only)",
  "family": "creative_batch_14",
- "priority": 14,
+ "priority": 25,
  "expected_value": "go/no-go for every S source",
  "data": [
   "public Gamma, CLOB prices-history",
@@ -32,5 +32,5 @@
   "trials.jsonl (cb14_descriptive)"
  ],
  "next_action": "PASS: q0312; FAIL: S not testable (source), counted",
- "notes": "DRAFT. <= 30 requests; Factbase <= 0.5 rps. Rules part sha256 (seals/cb14_rules.json, resealed 2026-10-19 after the code-against-design freeze-check fixes, CREATIVE_BATCH_14.md section 11): common 0440b859b334695166bd664a226ad7478e1c838b0ec7ee3b05551a1e977c7c1f, S 8e448f1e147b9737eff92ec37bb3cb6457e2709ab5db8c58318428e4758a9633. CB14 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes."
+ "notes": "<= 30 requests; Factbase <= 0.5 rps. Rules part sha256 (seals/cb14_rules.json, resealed 2026-10-19 after the code-against-design freeze-check fixes, CREATIVE_BATCH_14.md section 11): common 0440b859b334695166bd664a226ad7478e1c838b0ec7ee3b05551a1e977c7c1f, S 8e448f1e147b9737eff92ec37bb3cb6457e2709ab5db8c58318428e4758a9633. CB14 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes. PROMOTED 2026-10-19 (autopilot) after science-reviewer re-check of 515d68d: smoke GO (overall ACCEPT_WITH_FIXES; open fixes do not affect smokes). Priority 25 so the short smoke runs before the CB12 M chain resumes."
 }
