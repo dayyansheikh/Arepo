@@ -862,7 +862,9 @@ def test_no_side_404_at_24h_drops_the_unit_from_p2_only(tmp_path):
     units, labels = p.rep_units(live, audits)
     bad = [u for u in units if u.get("unavailable_24h_p2")]
     want = [u for u in units if u["g_d"] <= -p.GAP_MIN and int(u["pair_id"].split("|")[0][1:]) < 20]  # only NO-side (g_d <= -5c) units use the NO book
-    assert bad and {u["pair_id"] for u in bad} == {u["pair_id"] for u in want} and labels[p.NO_BOOK_24H_P2] == len(bad) and labels["ok"] == 70
+    assert bad and {u["pair_id"] for u in bad} == {u["pair_id"] for u in want} and labels[p.NO_BOOK_24H_P2] == len(bad) and labels["ok"] == 70 - len(bad)
+    elig = labels["eligible for availability"]
+    assert labels["ok"] + labels[p.NO_BOOK_24H_P2] + labels.get("unavailable (read)", 0) + labels.get("no two-sided quote at t_d", 0) + labels.get(p.NO_BOOK_24H, 0) == elig == len(units) + labels.get("unavailable (read)", 0) + labels.get("no two-sided quote at t_d", 0)
     assert all(math.isfinite(u["delta"]) for u in bad) and all(p.rep_p2_net(u) is None for u in bad) and not labels.get(p.NO_BOOK_24H)
 
 
@@ -904,4 +906,22 @@ def test_cache_cap_binds_and_unmatched_new_listings_are_counted(tmp_path, monkey
     t = NOW + 60
     p.p_live(hist, lim2, lim2, now=t, rules_sha="x", freeze_ts=None, clock=lambda: t, cap_bytes=10**9)
     st = json.loads((hist / p.LIVE_RUN / p.LIVE_FILES["state"]).read_text())
-    assert st.get("cache_cap_unavailable", 0) == 1
+    assert st.get("cache_cap_unavailable_upper_bound", 0) == 1
+
+
+def test_stale_cache_under_cap_logs_listings_and_rep_reports_cap_counters(tmp_path, monkeypatch):
+    """P-28: while the cache is stale and the cap binds, new Polymarket listings are logged (no prices) and counted; rep_p reports the cap counters."""
+    hist = tmp_path / "research_lab" / "history"
+    q = "Will the Federal Reserve cut rates at the December 2026 meeting"
+    lim = LiveLim([_gm(2, NOW - 600, q)], [_km("FED-26DEC", q, NOW - 3 * DAY)], {})
+    p.p_cache(hist, lim, now=NOW, freeze_ts=None, clock=lambda: NOW)
+    monkeypatch.setattr(p, "CACHE_DIR_CAP_BYTES", 10)
+    t = NOW + 5 * 3600  # cache older than 4 h
+    lim2 = LiveLim([_gm(3, t - 600, "Will something entirely unrelated happen by Friday")], [_km("FED-26DEC", q, NOW - 3 * DAY)], {})
+    p.p_live(hist, lim2, lim2, now=t, rules_sha="x", freeze_ts=None, clock=lambda: t, cap_bytes=10**9)
+    live = hist / p.LIVE_RUN
+    st = json.loads((live / p.LIVE_FILES["state"]).read_text())
+    ls = list(c15.jsonl_iter(live / p.LIVE_FILES["listings"]))
+    assert st.get("cache_cap_scans_skipped") == 1 and st.get("cache_cap_listings_unmatched") == 1 and len(ls) == 1 and "price" not in json.dumps(ls[0])
+    r = p.rep_p(live, {}, [])
+    assert r["cache_cap"] == {"cache_cap_scans_skipped": 1, "cache_cap_listings_unmatched": 1, "cache_cap_unavailable_upper_bound": 0}

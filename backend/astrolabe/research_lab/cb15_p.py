@@ -1348,7 +1348,7 @@ def declared() -> dict:
                        "eligible": "Kalshi-first (open_time <= listing - 24 h), no audit-conflict flag, no rule-boolean difference, Kalshi series category known and not Sports; only eligible pairs are polled",
                        "scheduled_end": "P-16: endDate stored at the match; at the first-print detection a pair with endDate < t_d + 25 h is 'ends early (scheduled)' (no reads, counted, outside the availability denominators); a missing endDate is not an exclusion (counted); a Polymarket 404 at the 24-h read is 'unavailable (no order book at 24 h)': never read as an empty book, counted in the availability denominators, in no estimate",
                        "legs": "P-18: only the legs the analysis uses are required (t_d: Polymarket YES + Kalshi, NO when g_d <= -5c; 24 h: YES, NO when the t_d read put P2 on NO; Kalshi is not read at 24 h)",
-                       "cache_cap_rule": "P-25: the 0.25 GB cache cap is NOT changed after any size is seen (the smoke's within_cap projection is informative only). If the projection or the folder exceeds the cap, the cap binds: the cache stops adding pages (stale), this is logged, scans skipped for a stale cache are counted (cache_cap_scans_skipped), new listings with no cached match are counted as '" + UNAVAILABLE_CACHE_CAP + "' (cache_cap_unavailable) and are never read",
+                       "cache_cap_rule": "P-25: the 0.25 GB cache cap is NOT changed after any size is seen (the smoke's within_cap projection is informative only). If the projection or the folder exceeds the cap, the cap binds: the cache stops adding pages (stale), this is logged, scans skipped for a stale cache are counted (cache_cap_scans_skipped), new listings with no cached match are counted as '" + UNAVAILABLE_CACHE_CAP + "' (cache_cap_unavailable_upper_bound: an UPPER bound, it also counts listings with no Kalshi counterpart; P-28: listings seen while the cache is stale under the cap are logged without prices, cache_cap_listings_unmatched; when the cap binds it ends enrolment of new pairs, a time-dependent rule, never outcome-dependent) and are never read",
                        "run_gap": "P-23: p-data exits 75 if the previous run that left failed pairs ended < PAIR_FAIL_SPAN_S ago (the queue worker re-starts a repeat run at once); q0349 repeat.max_runs 8 so the terminal rule (3 failing runs + a labelling run) is always reachable",
                        "candle_fallback": "P-24: the other-endpoint fallback needs a NON-EMPTY candlesticks reply with the parser's fields; else the chunk fails (pair pending -> unavailable (source))",
                        "no_side_404": "P-26: a NO-book 404 at 24 h drops the unit from P2 only (P1 uses the YES side only)",
@@ -1411,7 +1411,7 @@ RUN_STAMP = "run_stamp.json"  # P-23: end time of the last p-data run that left 
 UNAVAILABLE_CACHE_CAP = "unavailable (source: cache cap)"  # P-25
 POLY_RULE_BOOLEANS = "unknown"  # P-20: Polymarket exposes no is_provisional / can_close_early flag at listing; declared unknown, not False
 NO_BOOK_24H = "unavailable (no order book at 24 h)"  # P-16
-NO_BOOK_24H_P2 = "unavailable (no NO order book at 24 h; P2 only)"  # P-26
+NO_BOOK_24H_P2 = "ok (P1 only; NO book unavailable at 24 h)"  # P-26 / P-28: exclusive of "ok" (one label per unit; P1-usable, dropped from P2 only)
 KALSHI_FLAG_LABEL = "Kalshi early-close/provisional flag (excluded)"  # P-27 (renamed from "rule booleans differ (excluded)")
 LISTING_LOOKBACK_S = 2 * HOUR
 LISTING_SCAN_EVERY_S = HOUR
@@ -1956,6 +1956,18 @@ def p_live(hist_root: Path, lim, klim, *, now: float, rules_sha: str, freeze_ts:
             elif not cache_p.is_file() or cs.get("last_incr") is None or now - cs["last_incr"] > CACHE_MAX_AGE_S:
                 if _dir_bytes(cdir) > CACHE_DIR_CAP_BYTES:  # P-25: the cap binds (never changed after seeing a size); the cache stopped adding pairs and is stale: counted
                     st["cache_cap_scans_skipped"] = st.get("cache_cap_scans_skipped", 0) + 1
+                    # P-28: matching is skipped, but the Polymarket new listings (ids + listing time, no price) are still logged so the affected count is known
+                    try:
+                        listings_s, _ = scan_listings(lim, now)
+                        seen_s = {p["p_market_id"] for p in pairs.values()}
+                        logged_s = {x["market_id"] for x in c15.jsonl_iter(live / LIVE_FILES["listings"])}
+                        for x in listings_s:
+                            if x["market_id"] not in seen_s and x["market_id"] not in logged_s:
+                                c15.jsonl_append(live / LIVE_FILES["listings"], {"t": now, "market_id": x["market_id"], "created": x["created"], "cache_cap_stale": True})
+                                logged_s.add(x["market_id"])
+                                st["cache_cap_listings_unmatched"] = st.get("cache_cap_listings_unmatched", 0) + 1
+                    except (ApiError, RuntimeError):
+                        pass
                 log_hourly("cache_stale", {"why": "kalshi cache missing or older than 4 h: listing scan skipped (the 2-h lookback re-covers the listings)"})
             else:
                 cache = _load_cache(cache_p)
@@ -1973,7 +1985,7 @@ def p_live(hist_root: Path, lim, klim, *, now: float, rules_sha: str, freeze_ts:
                 cats = _read_json(live / LIVE_FILES["series_cat"], {})
                 if _dir_bytes(cdir) > CACHE_DIR_CAP_BYTES:  # P-25: over the cache cap the cache no longer grows: a new listing with no match needs an uncached Kalshi read
                     matched_ids = {m_["p_market_id"] for m_ in match_new(cache, new)}
-                    st["cache_cap_unavailable"] = st.get("cache_cap_unavailable", 0) + sum(1 for x in new if x["market_id"] not in matched_ids and x["market_id"] not in logged_before)
+                    st["cache_cap_unavailable_upper_bound"] = st.get("cache_cap_unavailable_upper_bound", 0) + sum(1 for x in new if x["market_id"] not in matched_ids and x["market_id"] not in logged_before)
                     c15.jsonl_append(gp, {"t": now, "why": f"{UNAVAILABLE_CACHE_CAP}: kalshi cache folder over its cap, listings with no cached match are counted, not read"})
                 for mrec in match_new(cache, new):
                     cat = series_category(klim, mrec["k_series"], cats)
@@ -2095,9 +2107,10 @@ def rep_units(live_dir: Path, audits: dict[str, str]) -> tuple[list[dict], dict]
         if p2_side(a) == "no" and zs.get("no") == POLY_NO_BOOK_STATUS:
             # P-26: the NO book is used by P2 only; its 404 at 24 h drops the unit from P2 (denominator kept, no estimate) and leaves P1 (YES side only, P-18) untouched
             u["unavailable_24h_p2"] = True
-            labels[NO_BOOK_24H_P2] += 1
+            labels[NO_BOOK_24H_P2] += 1  # P-28: exclusive labels (a unit is counted once)
+        else:
+            labels["ok"] += 1
         units.append(u)
-        labels["ok"] += 1
     return units, dict(labels)
 
 
@@ -2124,6 +2137,8 @@ def rep_p(live_dir: Path, audits: dict[str, str], triggered: list[str]) -> dict:
     binding +1c per side); each with the availability gate (< 60% of eligible -> "not testable (availability)"), the top-5 event / week drops (p < 0.01 AND the floor on the kept units)
     and the halves as sign checks; one Stage-2 Holm over the triggered tests (early alpha / 2 rule; the Holm only adds)."""
     units, labels = rep_units(live_dir, audits)
+    cap_st = _read_json(Path(live_dir) / LIVE_FILES["state"], {})  # P-28: the cache-cap counters (state.json) are part of the report
+    cache_cap = {k: int(cap_st.get(k, 0)) for k in ("cache_cap_scans_skipped", "cache_cap_listings_unmatched", "cache_cap_unavailable_upper_bound")}
     res: dict[str, dict] = {}
     n_elig = int(labels.get("eligible for availability", 0))
     if "P1" in triggered:
@@ -2190,4 +2205,4 @@ def rep_p(live_dir: Path, audits: dict[str, str], triggered: list[str]) -> dict:
         r["advance"] = c15.stage2_pass(ok, r.get("p") if r.get("testable") else None, rej)
         r.setdefault("verdict", "advance (Stage 2, recorded books, causal selection)" if r["advance"] else "not replicated at MDE")
         r.pop("pv", None)
-    return {**res, "stage2_holm": holm, "labels": labels, "evidence": "L2 prospective, causal selection, recorded books"}
+    return {**res, "stage2_holm": holm, "labels": labels, "cache_cap": cache_cap, "evidence": "L2 prospective, causal selection, recorded books"}
