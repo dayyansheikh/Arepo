@@ -2072,3 +2072,13 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   renamed "Kalshi early-close/provisional flag"; never select on the actual Polymarket close time (post-t0,
   outcome-linked); early closers stay in denominators; disclose that Stage 1 reads Gamma endDate after the fact.
 - q0348 stays on hold (not_before) until fix 3 is committed; fix agent running.
+
+## CB12-E revert (59aa91d) and CB16 fixes (cc82c5e), 2026-10-19 ~21:00Z (implementers); re-checks running; not counted
+- **CB12-E 59aa91d:** ambiguous-quake guard back to [t-72h, t), E2(viii) corrected, (x) outage disclosure; q0257 cron
+  `5,15,25 10,16 * * *` (per-slot retries, an ok slot is a no-op); q0244 mem 1,000 MB. E `eb086757…` -> `a63672c9…`;
+  common/M/X/O unchanged; 186 cb12 tests. A census test was narrowed (q must never change; the only allowed label change
+  is available -> "ambiguous recent quake"); the re-check judges it.
+- **CB16 cc82c5e:** items 1-6 done; new `strata_permutation_test` (200 draws, seeds 16101/16111, holds iff <= 3 reach
+  the observed; uncomputable draws count against holding); fine-strata fixtures; U failed / no-earlier-print excluded
+  and counted; K refuses unset pins, `matches_all.json` pinned; rules file `seals/cb16_rules.json` created: common
+  `9a087b8c…`, A `8f395a7d…`, K `cfe9bea5…`; 75 tests. Four tests updated because K is now declared.
