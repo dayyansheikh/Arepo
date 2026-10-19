@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-19T20:37:00Z",
+ "updated": "2026-10-19T21:30:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1172,11 +1172,34 @@
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Code, review, then new 14-day data windows from early November",
+   "next": "Code reviewed and its server check passed; counting job running; new 14-day data windows from early November",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/CREATIVE_BATCH_16.md § 9-10 (challenger round 1 and response)"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB16 smoke q0381 PASS; q0382 promoted; q0273 refused (no CB13 freeze), 2026-10-19"
+   },
+   "stage_results": {
+    "designed": "pending"
+   },
+   "reached": [
+    "designed"
+   ]
+  },
+  {
+   "id": "CB17",
+   "title": "Opens versus closes; book age; event open interest",
+   "plain": "Designed from round 8, using data already on the server: whether trades that open a position carry more information than trades that close one, whether resting orders on a book that has not been updated for a while lose more, whether depth shifting under an unchanged price predicts the next move, and whether new money entering an event (rising open interest) predicts continuation. A first-day-trades idea was kept as counts only because too few trades exist.",
+   "batch": "CB17",
+   "family": "mixed",
+   "stage": "designed",
+   "status": "running",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Independent challenge of the design, then counting jobs on the server's idle compute lane; test windows from 26 Oct",
+   "next_date": "2026-10-26",
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/CREATIVE_BATCH_17.md (draft, commit a00c4ef)"
    },
    "stage_results": {
     "designed": "pending"
