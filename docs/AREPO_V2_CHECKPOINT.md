@@ -220,32 +220,28 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-19 04:55Z
-0. **Autopilot session 04:05Z-~04:55Z 10-19 (stopped by the usage limit; resets 09:00Z).**
-   - **Committed and deployed:** CB11 q0221b (22418a8; queued, runs after the 05:30Z blackout); CB13 fixes A-E + E
-     completion (7fb59a3, 5891bec; rules common `62e90149…`, LABELLER `1e515bb4…`, T `05acfff6…`, R `27ddbc2e…`);
-     q0270/q0285 CB13 smokes promoted; CB14 code (d50a2ed); CB15 draft + challenger + response (2920504, 316e509; L
-     withdrawn uncounted; k1 = 4; **part E freeze deadline 2026-11-01T12:00Z**); round 7 hypotheses (40f85db, CH131-CH143).
-   - **Agents that were running and are probably lost (check the working tree; re-run any without a result):**
-     a. **CB14 fixes 1-18** (implementer, opus): the working tree may hold partial edits to `cb14_*.py`, `run_cb14.py`,
-        tests, drafts and `CREATIVE_BATCH_14.md` §11. Run the CB14 tests; finish the 18 items listed in the ledger entry
-        "CB14 code (d50a2ed) freeze check" (full list in that reviewer's report: small-G rule, W live clamp, W Stage-2 frame
-        snapshot, N exemption, counted stalls, stage2-final, rep window checks, shared helper hashes, freeze-vs-rules check,
-        model pin outside S hash, P-only gates, S smoke amendment, S Stage-2 wiring/weekly repeat, W smoke robustness +
-        event lookups, missing robustness checks, CB11-A holdout and CB13-T ids, drafts repeat/base-sha, drop W1-rep
-        15-week rule); then a focused re-check; then promote q0300/q0301.
-     b. **CB15 code** (implementer, opus): partial untracked `cb15_*.py`, `run_cb15.py`, tests, drafts may exist. Finish
-        per `CREATIVE_BATCH_15.md` §5 (E first: rules parts by 10-21, q0341 census at priority 99, q0343 smoke, collector).
-     c. **GE0 compilers** (CB15-E sign table): outputs under `/Users/DayyanSheikh/arepo_ge0/pass_A|pass_B/` (outside the
-        repo). Pass B's first attempt was shallow (1 of 51 signed); its deeper per-state pass was cut by the limit. Re-run
-        both passes independently (network-enabled general-purpose agents; recipe in `CREATIVE_BATCH_15.md` "GE0"),
-        then the science-reviewer archive audit, then commit the tables (archive to the host).
-     d. **CB16 design draft** (opus): `CREATIVE_BATCH_16.md` from round 7 host-only ideas (CH131, CH143, CH132;
-        CH138 nested behind CB13-R). Re-run if the file is absent; then challenger round 1.
-   - **CB13 next:** GL labeller audit (`run_cb13.py audit-sample --round 1` on the host after the q0270 PASS; give only
-     the sample to an independent reviewer for labels; `audit-score`), then q0271 -> q0272; T freeze via `freeze-part`.
-   - **After q0221b completes:** q0222+ start automatically; fill q0241 `--base-sha256` (sha256 of CB11
-     `exclusion_keys.csv.gz`) and promote the CB12 M chain; fill q0276's `--base-sha256` and promote the CB13 R chain.
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-19 09:10Z
+0. **Autopilot session from 09:03Z 10-19.**
+   - **Done:** a7736e3 CB12 M chain promoted (q0241 pin `c8a1d64b…` = q0221b key file; q0242/q0243/q0248/q0249);
+     deployed; q0241 started 09:08Z (net lane; M chain ~7-9 h). c0e5f22 ledger entry (CB11 W provisional not-testable,
+     q0227 MemoryError, CB13 smokes FAIL, checks pending).
+   - **Agents running (re-run any without a commit; each commits only its own files, none deploys):**
+     a. CB14 fixes 1-18 (finishing the uncommitted working-tree edits; battery2.py is theirs) -> then a science-reviewer
+        re-check -> promote q0300/q0301.
+     b. CB15 code (E first; `cb15_common.py`/`cb15_e.py` untracked partials) -> freeze check -> promote q0341 (priority
+        99, 2-h hold) / q0343.
+     c. CB11 debug: q0227 MemoryError -> q0227b (+ re-point q0229 etc.); W coverage 0.59/0.57 < 0.99: genuine vs
+        defect. If genuine, W is counted "not testable (censoring windows)"; if a defect, new-id W chain drafts.
+     d. CB13 smoke failures (T: capture_print_join; R: prices_history, rule_parser, walk_finds_search): genuine vs
+        defect; v2 smoke drafts q0270b/q0285b; q0276 pin `c8a1d64b…` + dep q0221b.
+     e. CB16 design draft (`CREATIVE_BATCH_16.md`) -> challenger round 1.
+     f. GE0 pass A and pass B (independent; `~/arepo_ge0/pass_A|pass_B/`, outside the repo) -> science-reviewer
+        archive audit -> commit tables under `research_lab/creative_batch15/` (archive to the host).
+     g. CB12 E/O/F code (new modules; common/M/X hashes must stay identical) -> freeze checks; O collector first.
+   - **After results:** deploy; promote reviewed drafts; ledger + registry; keep >= 12 h queued (cpu lane is idle until
+     T_seal 10-22 unless CB11-W/CB13/CB14 smokes come back).
+   - **CB13 next (after a smoke PASS):** GL labeller audit (`run_cb13.py audit-sample --round 1`, independent labels,
+     `audit-score`), then q0271 -> q0272; T freeze via `freeze-part`.
 1. **CB8-H:** q0162/q0163 wait on spec `not_before` (10-21T06Z / 10-22T12Z). **CB8-B:** q0161/q0164 after T_seal; before
    promoting q0164 run the two `derive-exclusion-ids` commands in its draft notes on the host and fill both sha256 tokens.
 2. **CB9:** data jobs q0181+ only after T_seal 2026-10-22T00Z; q0182 needs the pinned q0164 hash. **CB10:** q0201 needs
