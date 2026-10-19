@@ -2,8 +2,10 @@
 
 `evidence_role: prospective` (CB17-A, CB17-B, CB17-C: every counted stage runs on live host windows that start after
 the rules freeze) / `exploratory_historical` (pre-freeze censuses on the worn CB13-T SCREEN window, counts only) |
-status: **DRAFT, design only, not yet reviewed by a challenger. Nothing frozen, nothing queued, no code.** Drafted
-2026-10-19 22:03 UTC+1 (2026-10-19T21:03Z) on parent `2ee87bea`.
+status: **DRAFT-REVISED after challenger round 1 (the batch's one challenge and one response, §10). Nothing frozen,
+nothing queued, no code.** Drafted 2026-10-19 22:03 UTC+1 (2026-10-19T21:03Z) on parent `2ee87bea`; revised the same
+day after the challenger's verdicts (A, B1, B2, C REVISE; E census and q0400-q0403 PROCEED once part `pre` holds the
+findings 2 and 7 additions). The revision used no CB17 data and no outcome data.
 **No CB17 quantity has been computed:** no mark-out, slope, contrast, continuation, pick-off loss, net or proxy
 standard error. Three read-only, counts-only host probes were run for this draft (§0.3; scripts verbatim with sha256 in
 §9). Nothing was fetched, written, moved or deleted on the host.
@@ -38,14 +40,18 @@ small-G rule govern clusters.
 
 | Rank | Family | Hypothesis | Counted tests | Stage 1 data | Stage 2 data | Queue ids |
 |---|---|---|---|---|---|---|
-| 1 | **CB17-A** open versus close (CH144) | A taker buy of a token opens a position and a taker sell closes one (a sell needs a held token). Within a market and a YES-terms direction, the maker's 2-4 h mark-out on fills against **openers** is worse than on fills against **closers** by ≥ 0.5c per filled share (A1) | A1 (within market × direction) | monitor transactions and complete-universe captures in **SCREEN_8** (14 days from `S_8`, not before 2026-10-26) | **REP_8** (next 14 days), events with a SCREEN_8 unit dropped: A1-rep; A2 (recorded-touch maker round trip on close fills, an upper bound) | q0400, q0404, q0405, q0407-q0412 |
-| 2 | **CB17-B** book age (CH146) and breathing book (CH147) | B1: the paper maker's 2 h pick-off loss at the touch is larger in books whose CLOB last-update stamp is ≥ 10 min old than in books updated < 60 s ago, within token, by ≥ 0.5c. B2: with the touch unchanged across a pass's two sweeps, the 2-minute shift of depth 1-5c beneath the touch predicts the signed 2 h mid change, ≥ 0.5c per SD, within token | B1, B2 | book sweeps of **arm-0 events** in SCREEN_8 | sweeps of **arm-1 events** in REP_8 (event-disjoint by a seeded event hash): B1-rep, B2-rep; B1-econ, B2-econ (fill-level within-market differences at recorded prices) | q0401, q0403-q0406, q0408-q0412 |
+| 1 | **CB17-A** open versus close (CH144) | A taker buy of a token opens a position and a taker sell closes one (a sell needs a held token). Within a market and a YES-terms direction, the maker's 2-4 h mark-out on fills against **openers** is worse than on fills against **closers** by ≥ 0.5c per filled share (A1). **Runs only under branch S; under branch T the family is withdrawn uncounted before its part commit (§CB17-A)** | A1 (within market × direction) | monitor transactions and complete-universe captures in **SCREEN_8** (14 days from `S_8`, not before 2026-10-26) | **REP_8** (next 14 days), events with a SCREEN_8 unit dropped: A1-rep; A2 (recorded-touch maker round trip on close fills, an upper bound) | q0400, q0404, q0405, q0407-q0412 |
+| 2 | **CB17-B** book age (CH146) and breathing book (CH147) | B1: the 2 h excursion beyond the touch (adverse movement only, not a maker net) is larger in books whose CLOB last-update stamp is ≥ 10 min old than in books updated < 60 s ago, within token, by ≥ 0.5c. B2: with the touch unchanged across a pass's two sweeps, the 2-minute shift of depth 1-5c beneath the touch predicts the signed 2 h mid change, ≥ 0.5c per SD, within token | B1, B2 | book sweeps of **arm-0 events** in SCREEN_8 | sweeps of **arm-1 events** in REP_8 (event-disjoint by a seeded event hash): B1-rep, B2-rep; B1-econ, B2-econ (fill-level within-market differences at recorded prices) | q0401, q0403-q0406, q0408-q0412 |
 | 3 | **CB17-C** mint share (CH150) | In a 2 h interval where an event traded, the ratio of its open-interest change to its volume change separates mint, transfer and merge. Within event, a member's interval move continues more after a transfer-heavy interval than after a mint-heavy one, by ≥ 0.5c over the next 2 h (C1) | C1 | captures (rows and sidecar) of arm-0 events in SCREEN_8 | arm-1 events in REP_8: C1-rep; C1-econ (fill-level within-event difference at recorded prices) | q0402, q0404-q0406, q0408-q0412 |
 | - | **CB17-E** first-day prints (CH154) | **Census only (k = 0).** Counts first-day transactions and markets with first-day and later prints, and a feature-proxy SE. A declared re-entry rule decides whether a later batch may register a counted test on a fresh window | none | features of SCREEN_8 transactions | none | q0400, q0408 |
 
-**Counted: 4 fixed (A1, B1, B2, C1) + up to 8 conditional (A1-rep, A2, B1-rep, B1-econ, B2-rep, B2-econ, C1-rep,
-C1-econ) = 4-12** (§2.5). **k1 = 4.** The budget is fixed now; no CB17 test is added after any CB17 read. E adds
-nothing (no counted test is declared).
+**Counted (§2.5), fixed by q0400's outcome-blind branch result before any part commit:**
+- **Branch S:** 4 fixed (A1, B1, B2, C1) + up to 8 conditional (A1-rep, A2, B1-rep, B1-econ, B2-rep, B2-econ, C1-rep,
+  C1-econ) = **4-12, k1 = 4**.
+- **Branch T:** family A withdrawn uncounted before its part commit (CB15-L precedent; §CB17-A): 3 fixed (B1, B2, C1) +
+  up to 6 conditional (B1-rep, B1-econ, B2-rep, B2-econ, C1-rep, C1-econ) = **3-9, k1 = 3**.
+
+No CB17 test is added after any CB17 read. E adds nothing (no counted test is declared).
 
 **Honest expectation.**
 - **B1, B2 and C1 are powered far below their floors** (planning MDE about 0.05-0.2c against 0.5c). For them the floor
@@ -54,10 +60,12 @@ nothing (no counted test is declared).
   own kill (22% of touch-unchanged pairs have a shifted book beneath, against a 20% kill; P2).
 - **A1 depends on how fills are signed** (§CB17-A, branch rule). On the CB13-T touch-consistent rule alone, P1 found 364
   non-sports fills in 44 market × direction cells with both labels in four days; the planning MDE is 1.1-1.7c against
-  the 1.0c power gate, so **A1 would most likely be "not run (power)", counted**. If the pre-freeze census q0400 shows
-  the Data API `side` agrees with the touch-derived side in at least 97% of resolved non-sports fills (a declared,
-  outcome-blind rule), A1 is signed by `side` on every non-sports transaction and its planning MDE falls to about
-  0.6-0.9c.
+  the 1.0c power gate, so A1 would most likely be "not run (power)". **Under branch T, A is therefore withdrawn
+  uncounted before its part commit** (challenger finding 7). If the pre-freeze census q0400 shows the Data API `side`
+  agrees with the touch-derived side in at least 97% of resolved non-sports fills overall **and in every touch-age band,
+  price band and class with n ≥ 100** (a declared, outcome-blind rule in part `pre`), A1 is signed by `side` on every
+  non-sports transaction and its planning MDE falls to about 0.6-0.9c. **Even then, power at a true effect equal to the
+  0.5c floor is only about 40%** (disclosed; the floor, not 80% power, is the design target).
 - **Every economic test is a maker-protection or upper-bound check.** No taker route in this batch is expected to clear
   the 4.5c median round trip (1.8c in markets with liquidity ≥ $100k) or the monitor's 9-minute median receipt lag;
   taker lines are reported only.
@@ -66,16 +74,16 @@ nothing (no counted test is declared).
 
 | Id | Job | Family | Earliest commit |
 |---|---|---|---|
-| q0400 | `cb17_pre_census_A` (worn CB13-T SCREEN fills + prints: open/close label counts, both-label cells, **side-agreement branch measurement**, first-day counts, planning SE on the pre-fill proxy) | A, E | once part `pre`, its code and tests exist |
-| q0401 | `cb17_pre_census_B` (worn sweeps `[10-12, 10-16)`: stamp-semantics gate, age histogram, touch-unchanged and shifted-beneath shares, CH149 dormancy map, planning SEs on pre-sweep proxies) | B | as q0400 |
-| q0402 | `cb17_pre_census_C` (worn captures `[10-12, 10-16)`: OI update rate, events with ≥ 6 traded intervals, within-event IQR of `r`, single / neg-risk splits, planning SE on the pre-interval proxy) | C | as q0400 |
+| q0400 | `cb17_pre_census_A` (worn CB13-T SCREEN fills + prints: open/close label counts, both-label cells, **side-agreement branch measurement with per-band agreement**, **strata-ladder informativeness shares**, first-day counts, planning SE on the pre-fill proxy) | A, E | once part `pre`, its code and tests exist |
+| q0401 | `cb17_pre_census_B` (worn sweeps `[10-12, 10-16)`: stamp-semantics gate, age histogram, touch-unchanged and shifted-beneath shares, next-pass no-mark share by age bin, **global activity cut points**, **strata-ladder informativeness shares**, CH149 dormancy map, planning SEs on pre-sweep proxies) | B | as q0400 |
+| q0402 | `cb17_pre_census_C` (worn captures `[10-12, 10-16)`: OI update rate, units with ≥ 6 prior traded intervals (trailing terciles), within-event IQR of `r`, single / neg-risk splits, **strata-ladder informativeness shares (3-class rule)**, planning SE on the pre-interval proxy) | C | as q0400 |
 | q0403 | `cb17_cost_lag_map` (CH155 part: cost at $1,000 and $5,000 from sweep depth bands by class × price band × liquidity; monitor receipt-lag table; enrichment coverage) | all (cost hurdles) | as q0400 |
 | q0404 | `cb17_smoke` (part hashes, refusals, parsers, event-arm hash, reproduction of P1-P3 counts on worn files) | all | after rules parts `common`, `A`, `B`, `C`, `E` are committed |
 | q0405 | `cb17_exclusion_keys` (`cpu`, no network: CB16 q0380 key file pinned + seal copies; overlap counts) | all | after q0404 PASS and CB16 q0380 (or its stop record) |
 | q0406 | `cb17_frame_screen_BC` (SCREEN_8 arm-0 sweep units and event intervals, features only) | B, C | not before `S_8 + 14 d + 8 h` |
-| q0407 | `cb17_frame_screen_A` (SCREEN_8 transactions, fill source per branch, labels, E features; no mark) | A, E | not before `S_8 + 14 d + 8 h` |
-| q0408 | `cb17_census_8` (gates; power gates on proxies, SEs only; E census and re-entry verdict) | all | after q0406 and q0407 |
-| q0409 | `cb17_screen_8` (A1, B1, B2, C1; Holm k1 = 4) | A, B, C | after q0408, E011's analysis commit, CB3's freeze commit (or stop record) and the code-against-design freeze check |
+| q0407 | `cb17_frame_screen_A` (SCREEN_8 transactions, fill source per branch, labels, E features; no mark; E features only if A was withdrawn) | A, E | not before `S_8 + 14 d + 8 h` |
+| q0408 | `cb17_census_8` (gates, incl. the SCREEN_8 signing check GAS under branch S; power gates on proxies, SEs only; E census and re-entry verdict) | all | after q0406 and q0407 |
+| q0409 | `cb17_screen_8` (A1, B1, B2, C1 under branch S, Holm k1 = 4; B1, B2, C1 under branch T, Holm k1 = 3) | A, B, C | after q0408, E011's analysis commit, CB3's freeze commit (or stop record) and the code-against-design freeze check |
 | q0410 | `cb17_frame_rep` (REP_8 frames, raw mark-quote tables, sha256 seal) | A, B, C | not before `S_8 + 28 d + 8 h`, after q0409 |
 | q0411 | `cb17_rep_8` (triggered Stage-2 tests) | A, B, C | only if A1, B1, B2 or C1 advanced; after q0410 |
 | q0412 | `cb17_stage2_final` (one CB17-wide strict Holm over triggered Stage-2 tests; write-once) | all | after every triggered Stage-2 test is final |
@@ -202,7 +210,7 @@ uncounted, for the sports arm, and A by LABELLER class.
 
 | Dataset | Prior use | Role in CB17 | Evidence ceiling |
 |---|---|---|---|
-| `live_trades/trades-YYYYMMDD.jsonl` for `[S_8 − 7 d, S_8 + 28 d + 8 h)` (lookback floor 2026-10-26T00:00Z) | CB13-T, CB16-Q/U | **A units** (transactions), the fill source of every econ test, E's census. Whitelisted fields only (§1.4) | L2 (post-freeze live window) |
+| `live_trades/trades-YYYYMMDD.jsonl` for `[max(lookback floor, S_8 − 7 d), S_8 + 28 d + 8 h)` (lookback floor 2026-10-26T00:00Z; **no row before the floor is ever read**, challenger finding 5) | CB13-T, CB16-Q/U | **A units** (transactions), the fill source of every econ test, E's census. Whitelisted fields only (§1.4) | L2 (post-freeze live window) |
 | `snapshots/<capture>/rows.csv.gz`, `rows_ext.csv.gz`, same span | E001-E011, CB1-CB16 | A's touch and marks; **C's units** (event OI, event volume, member mids); B's sports rule and end dates | L2 |
 | `book_sweeps/<sweep>/rows.csv.gz`, same span | E003, CB3, CB13, CB16 (reported shape) | **B's units** (both sweeps of each pass) and B's marks | L2 |
 | CB13-T SCREEN fill table (`creative_batch13/t_screen/`), monitor files, sweeps and captures of `[2026-10-12, 2026-10-16)` | CB13-T Stage 1 (worn); round-8 and CB17 probes | **pre-freeze censuses only** (q0400-q0403): counts and planning SEs on pre-outcome proxies. Never a counted statistic | counts |
@@ -210,23 +218,26 @@ uncounted, for the sports arm, and A by LABELLER class.
 
 **Reuse disclosure.** SCREEN_8 and REP_8 do not exist at drafting. They overlap CB16's SCREEN_A/REP_A (from about
 2026-11-02), CB3's Stage 2 (from 2026-10-27), CB14-W live (from 2026-10-26), E011 (to 2026-11-10) and other live
-stages: collection overlap only (§1.3). **A1's units overlap CB16-Q/U's units on the overlapping days** (the same
-monitor fills under branch T; a superset under branch S), so A1 and CB16-Q/U are correlated tests; each is counted.
+stages: collection overlap only (§1.3). **REP_8 overlaps CB16's SCREEN_A and REP_A in time** (disclosed; ruling 8).
+**A1's units overlap CB16-Q/U's units on the overlapping days** (a superset of the touch-signed monitor fills under
+branch S), so A1 and CB16-Q/U are correlated tests; each is counted in its own batch's Holm family (separate families
+per batch, ruling 8). **A1 and CB16-Q/U are never cited as corroborating each other**, whatever their verdicts.
 
 ### 1.2 Dates (declared; UTC)
 
 | Name | Value | Meaning |
 |---|---|---|
 | `T17_draft` | 2026-10-19T21:03Z | this draft; no CB17 quantity computed |
-| `T17_rules` | target **2026-10-24T12:00Z** (soft) | commit of `seals/cb17_rules.json` parts `common`, `A`, `B`, `C`, `E` after an accepting challenger round. Part A records the branch (§CB17-A) |
+| `T17_rules` | target **2026-10-24T12:00Z** (soft) | commit of `seals/cb17_rules.json` parts `common`, `A` (branch S only; under branch T A is withdrawn uncounted and part A is never committed), `B`, `C`, `E` after the round-1 response is accepted and q0400-q0402 have selected the strata levels. Part A records the branch (§CB17-A) |
 | `S_8` | `max(2026-10-26T00:00Z, the first 00:00Z at or after T17_rules + 24 h)` | start of SCREEN_8; depends only on the rules commit time, never on data |
 | SCREEN_8 | decision times in `[S_8, S_8 + 14 d)` | Stage 1, all families |
 | REP_8 | decision times in `[S_8 + 14 d, S_8 + 28 d)` | Stage 2. B and C: arm-1 events only. A: every Gamma event with a SCREEN_8 unit dropped, **binding even if thinned** (label "REP_8 thinned by event overlap" above 40%) |
 | event arm (B, C) | `arm(e) = int(sha256("cb17-arm-v1|" + event_id).hexdigest()[0], 16) mod 2`; `event_id` = Gamma event id, else the market id | arm 0 → SCREEN_8 units, arm 1 → REP_8 units. Disjoint by construction; fixed before data |
-| `T17_code` | before the first read of any SCREEN_8 row (q0406/q0407), and not before a code-against-design freeze check | **Declared deviation from CB16** (whose part A was frozen with code before `S_A`): CB17's *rules* bind before the window exists; its *code* is pinned before the first read. Rationale: no window row can be read before `S_8 + 14 d + 8 h` (runner refusal), so code written meanwhile cannot see window data; the freeze check verifies code against the committed rules. For the challenger to rule (§7 risk 9) |
+| `T17_code` | **target: before `S_8`** (preferred, ruling 6); at the latest before the first read of any SCREEN_8 row (q0406/q0407); never before an accepting code-against-design freeze check | **Declared deviation from CB16** (whose part A was frozen with code before `S_A`), **accepted by the challenger with conditions (ruling 6):** (i) no agent working on CB17 (designer, implementer, reviewer, or the orchestrator acting for CB17) opens any SCREEN_8 or REP_8 raw file before q0406 runs; other registered jobs' automated reads under their own rules are not CB17 reads; the ledger carries a signed attestation at the code freeze and again with q0406's commit; (ii) the freeze check re-runs q0404's exact reproduction of P1-P3 against the frozen code (a different count fails the freeze); (iii) if the code is frozen after `S_8`, the ledger records the gap and the attestation covers it. Rationale: runner refusals make window rows unreadable before `S_8 + 14 d + 8 h`; the conditions close the human-read route |
 | election-night exclusion | decision time or mark time in `[2026-11-03T18:00Z, 2026-11-05T00:00Z)` | excluded and counted (CB15-E's night) |
-| marks | A: as CB13 §2.2 (first complete capture with `received_utc ≥ τ + h`, usable iff `≤ τ + h + 2 h`; "2-4 h", "6-8 h"). B: the token's first sweep of the first pass with receipt in `[t + 110 min, t + 130 min]` ("2 h"), and `[t + 350, t + 370 min]` ("6 h", robustness). C: the next consecutive complete capture `k + 1` (gap 100-140 min) | realised horizons stated in every table |
-| lookback floor | 2026-10-26T00:00Z | no CB17 window path reads a row timed before it (keeps J4-R `[10-16, 10-21)` and CB13-T HOLDOUT `[t_j4r_end, 10-26)` untouched) |
+| marks | A: as CB13 §2.2 (first complete capture with `received_utc ≥ τ + h`, usable iff `≤ τ + h + 2 h`; "2-4 h", "6-8 h"). B: the token's first sweep of the first pass with receipt in `[t + 110 min, t + 130 min]` ("2 h"), and `[t + 350, t + 370 min]` ("6 h", robustness); a missing mark is "no mark", counted by state bin, bounded in a binding worst case (§CB17-B). C: the next consecutive complete capture `k + 1` (gap 100-140 min); a missing or ineligible `k + 1` quote is "unavailable (mark)", never an eligibility condition (§CB17-C) | realised horizons stated in every table |
+| capture time | a capture's `received_utc` is stamped per page (`ext_sidecar.py` `ext_row`); **a capture's time is the `received_utc` of its last page** (the maximum), for every CB17 use (A's touch age and marks, C's decision time and gaps, E's market age) | finding 8 |
+| lookback floor | 2026-10-26T00:00Z | no CB17 window path reads a row timed before it (keeps J4-R `[10-16, 10-21)` and CB13-T HOLDOUT `[t_j4r_end, 10-26)` untouched). **Every window reader refuses pre-floor rows**, including the lookbacks of q0406 (sweeps from `S_8 − 2 h`, captures from `S_8 − 6 h`), q0407 (captures from `S_8 − 3 h`) and q0410; a unit whose rule needs a pre-floor row (A's touch capture or pre-fill capture; B's previous-pass activity, `L_pre`, `Δm_pre`; C's `k − 1`, `k − 2` or trailing intervals) is **"unavailable (lookback floor)", counted by family and label/state**, never back-filled (finding 5). With `S_8` = the floor, this affects only the first hours of SCREEN_8 |
 | E011 | registered to 2026-11-10; analysed once after 2026-11-11T13:00Z | q0409 refuses before E011's analysis commit (SCREEN_8 ends 2026-11-09, so this costs about two days) |
 | CB3 Stage 2 | `[T3_rep_start ≥ 2026-10-27, …)` | q0409 and q0411 require CB3's freeze commit or its ledger stop record |
 
@@ -264,16 +275,25 @@ and REP_8 ends 2026-11-23.
 ### 1.4 Rules files and whitelists
 
 - `seals/cb17_rules.json`, hashed per part:
-  - **`pre`** (committed with q0400-q0403's code): worn-window paths and dates, field whitelists for the censuses, the
-    side-agreement branch rule, the planning-SE recipe (SEs only), the cost-map size grid.
+  - **`pre`** (committed with q0400-q0403's code, **before q0400 runs**; required by the challenger before any
+    pre-census code): worn-window paths and dates and the census paths' refusal of any row at or after 2026-10-16T00:00Z;
+    field whitelists for the censuses; **the side-agreement branch rule with its per-band criteria and the A-withdrawal
+    rule under branch T** (§CB17-A; finding 7); **the strata ladders of A, B1, B2 and C, the informativeness definitions
+    (including C's three-class rule) and the level-selection rule** (§2.6; finding 2); **B's global activity cut-point
+    recipe and C's trailing-tercile rule** (finding 6); the planning-SE recipe (SEs only); the cost-map size grid.
   - **`common`**: refused roots, the lookback floor, the J4-R pin, seeds, cluster ways, the small-G rule, Holm/BY
     settings, disk guards, whitelists, smoke criteria, the key rule, the event-arm hash, the composition-check rule
     (§2.6), pinned sha256 of the CB13 and CB16 functions called.
-  - **`A`**: the branch outcome, fill source, label rule, eligibility, marks, ways, strata, covariates, gates, A2.
-  - **`B`**: eligibility, age bins, the pick-off loss, the shift state and its frozen SD, marks, strata, gates, econ
-    rules.
-  - **`C`**: interval rule, `r`, tercile classes, continuation, strata, gates, econ rule.
+  - **`A`** (branch S only): the branch outcome, fill source, label rule, eligibility, marks, ways, the selected strata
+    level, covariates, gates (incl. GAS), the d-balanced estimate, A2.
+  - **`B`**: eligibility, age bins, the 2 h excursion beyond the touch, the shift state and its frozen SD, the frozen
+    activity cut points, marks and the no-mark worst case, the selected strata levels, gates, econ rules.
+  - **`C`**: interval rule (k − 1 and k only), `r`, trailing tercile classes, continuation and the unavailable-mark worst
+    case, the selected strata level, gates, econ rule.
   - **`E`**: first-day rule, census counts, re-entry rule.
+- **Order.** Part `pre` is committed first; q0400-q0403 run; then parts `common`, `A` (branch S only), `B`, `C`, `E`
+  are committed with the branch and the selected strata levels written in. Nothing in a later part is chosen from a
+  mark, an outcome or a statistic; the strata levels and the branch are chosen from features by rules fixed in `pre`.
 - Jobs refuse (exit 2) on a hash mismatch. **No rule is computed from, or revised after, any CB17 mark, outcome or
   statistic.**
 - **Whitelists.** *Monitor prints:* as CB16 §1.4 (`ts, condition_id, token_id, outcome_index, price, size, cash, title,
@@ -308,8 +328,10 @@ and REP_8 ends 2026-11-23.
   the first sweep's (B1). Book age `a = batch_receipt_utc − book_timestamp/1000` (seconds); `a < −5 s` is "clock
   anomaly", excluded and counted. A pass's two sweeps are the two consecutive sweep directories whose start stamps are
   < 30 min apart; a token pair more than 5 min apart is "split pass", excluded.
-- **Event intervals (C).** Consecutive complete captures `k − 1`, `k` with `received_utc` gap in [100, 140] min; the
-  decision time is capture `k`'s `received_utc`; everything used is in captures `≤ k`.
+- **Event intervals (C).** Consecutive complete captures `k − 1`, `k` with gap in [100, 140] min between their last-page
+  `received_utc` values; the decision time is **the `received_utc` of capture `k`'s last page** (finding 8); every
+  eligibility rule, state and stratum uses captures `≤ k` only. Capture `k + 1` is read only for the target (the mark)
+  and its availability.
 - `closedTime` is never a population condition, origin or feature.
 
 ### 2.3 Uncertainty and decision rule
@@ -324,11 +346,13 @@ binds). "Unknown" never counts as met. The 60% availability rule applies.
   is a live threat). **UTC day** (G = 14) never enters the max; **leave-one-day-out must keep one-sided p < 0.05 and
   the sign.**
 - **Stage 1 (A1, B1, B2, C1).** A test advances iff: one-sided p < 0.01 (strict); the §2.4 floor; every binding
-  composition check, placebo, robustness and gate; and a batch Holm step-down at one-sided α = 0.05 over **k1 = 4**
-  (fixed; first step 0.0125, so any p < 0.01 passes). BY (q = 0.10 over the cumulative count at the run) is triage
+  composition check, placebo, robustness and gate; and a batch Holm step-down at one-sided α = 0.05 over **k1 = 4
+  under branch S, k1 = 3 under branch T** (fixed at the part commits; first step 0.0125 or 0.0167, so any p < 0.01
+  passes). BY (q = 0.10 over the cumulative count at the run) is triage
   only.
-- **Stage 2.** One CB17-wide strict Holm at one-sided α = 0.05 over every triggered Stage-2 test (≤ 8), each in its
-  declared direction. A test finishing before k2 is known is judged at **α/8** (strict). Two-component econ tests
+- **Stage 2.** One CB17-wide strict Holm at one-sided α = 0.05 over every triggered Stage-2 test (≤ 8 under branch S,
+  ≤ 6 under branch T), each in its declared direction. A test finishing before k2 is known is judged at **α/8** (strict;
+  kept at α/8 under branch T too, which is stricter than α/6). Two-component econ tests
   enter with the max of their component p's. `checks_ok` is recorded per test (CB13 fix A). The final Holm (q0412) is
   applied once and can only add passes. Labels: reps "later live window replication, event-disjoint (L2)"; econ
   "recorded-touch round trip (L2)".
@@ -338,7 +362,7 @@ binds). "Unknown" never counts as met. The 60% availability rule applies.
 | Test | Type | Floor on the point estimate (with the sign) |
 |---|---|---|
 | A1 | mechanism contrast | `β_A ≥ +0.5c` per filled share: close fills better for the maker than open fills |
-| B1 | mechanism contrast | `β_B1 ≥ +0.5c` of 2 h pick-off loss per touch quote pair: old books worse |
+| B1 | mechanism contrast (adverse movement only) | `β_B1 ≥ +0.5c` of 2 h excursion beyond the touch per touch quote pair: old books worse |
 | B2 | mechanism slope | `β_B2 ≥ +0.5c` of signed 2 h mid change per SD of the shift state |
 | C1 | mechanism contrast | `β_C ≥ +0.5c` of 2 h continuation: transfer-heavy intervals continue more than mint-heavy |
 | A2 | economic level | close-fill net ≥ **+0.5c** per filled share after the exit fee |
@@ -355,40 +379,78 @@ liquid-market round trip (1.8c). Below it, no protection or quoting rule changes
   `battery2.KIND_RULES` entries; unknown kinds raise. Descriptive lines: the pre-censuses (q0400-q0403), the smoke,
   censuses, gates, the branch decision, the E census and re-entry verdict, class strata, sports arms, reported variants,
   the CH149 and CH155 maps, taker lines.
-- **Count lines (`ml_explain` `n_tests`):** `creative_batch_17:A` **1**, `creative_batch_17:B` **2**,
+- **Count lines (`ml_explain` `n_tests`):** `creative_batch_17:A` **1** (branch S only), `creative_batch_17:B` **2**,
   `creative_batch_17:C` **1**. Replication lines `creative_batch_17:<family>:rep` carry triggered tests (A ≤ 2, B ≤ 4,
   C ≤ 2).
 - **Triggers.** A1-rep and A2 iff A1 advanced. B1-rep and B1-econ iff B1 advanced; B2-rep and B2-econ iff B2 advanced.
   C1-rep and C1-econ iff C1 advanced.
-- **Budget: 4 fixed + ≤ 8 conditional = 4-12.** Tests behind a failed or unknown gate are "not testable (...)" or "not
-  run (...)" with p = 1 and **still counted**. Gates: the smoke, disjointness, GBT, GBA, GBS, GCU, GC, GA, the power
-  gates GAP, GB1P, GB2P, GCP, GAI, availability and the Stage-2 minimums. A job waiting on exit 75 is "pending" and
-  writes no line.
+- **Budget: branch S 4 fixed + ≤ 8 conditional = 4-12 (k1 = 4); branch T 3 fixed + ≤ 6 conditional = 3-9 (k1 = 3).**
+  Tests behind a failed or unknown gate are "not testable (...)" or "not run (...)" with p = 1 and **still counted**.
+  Gates: the smoke, disjointness, GBT, GBA, GBS, GCU, GC, GA, **GAS (signing)**, the power gates GAP, GB1P, GB2P, GCP,
+  GAI, availability, **composition-check informativeness** and the Stage-2 minimums. A job waiting on exit 75 is
+  "pending" and writes no line.
 - **Withdrawals that stay uncounted.** A family may be withdrawn uncounted only before its rules part is committed and
   only on reasons that use no CB17 window data (CB15-L precedent). After the commit, every declared test is counted.
+  **Declared withdrawal (finding 7):** if q0400 selects branch T, family A is withdrawn uncounted at that point (the
+  reason is q0400's worn-data agreement measurement and the branch-T planning MDE, both outcome-blind); part A is never
+  committed, q0407 builds E's features only, and the ledger records the withdrawal before any other part is committed.
 
 ### 2.6 Composition checks, placebos and robustness (common; a declared change from CB16)
 
-**The change and its justification.** CB16 made a stratified permutation placebo primary: permute the label within
-fine strata and require the permuted test to advance in ≤ 1.5% of draws. The CB16 implementer flagged (ledger, CB16
-code entry) that this placebo **retains part of a true effect** and advanced on synthetic data with a genuine effect
-unless strata were coarse. The reason is structural: when strata are finer than the fixed effects, single-label strata
-keep their labels under permutation, so the permuted estimator still carries the effect's between-stratum component.
-The placebo then fails exactly when the label matters, which makes it a test of label concentration rather than of
-composition. CB17 therefore splits the job in two, each with a valid null:
-1. **Composition-conditional estimator (binding; primary composition guard).** Re-estimate the family's statistic with
-   fixed effects for (unit × stratum), so the label is compared only within strata. It must keep the sign and at least
-   half of the primary point estimate, with one-sided p < 0.05 (max over ways), **and** a randomisation p < 0.05 from
-   200 within-(unit × stratum) permutations (seed per family). **Informativeness:** at least 50% of units must lie in
-   (unit × stratum) cells holding both labels (for continuous states: ≥ 2 units with nonzero within-cell variance);
-   otherwise the check is "uninformative" and the test cannot advance (counted with its p). *Alternative guarded:* the
-   contrast comes from the strata's composition (spread, price, hour, activity, size) rather than the label.
-2. **Calibration placebo (binding).** Permute the label within the unit (no finer strata), 200 draws: the permuted
-   statistic has expectation zero under any true effect, so its advance rate (p < 0.01 and the floor) must be ≤ 1.5%.
+**The change and its justification.** CB16 as drafted made a stratified permutation placebo primary: permute the label
+within fine strata and require each permuted test to fail p < 0.01, with an advance rate ≤ 1.5%. The CB16 implementer
+flagged (ledger, CB16 code entry) that this placebo **retains part of a true effect**: when strata are finer than the
+fixed effects, single-label strata keep their labels under permutation, so the permuted estimator still carries part of
+the effect, and the placebo failed exactly when the label mattered. **CB16 §11 (freeze-check amendment, 2026-10-19)
+amended it** into a within-strata permutation test on the coefficient: the placebo holds iff at most 3 of 200 permuted
+coefficients (1.5%) reach the observed coefficient (a permuted coefficient that cannot be computed counts as reaching
+it), with Q's ≥ 50% informativeness rule kept; and CB16's calibration placebo is judged on p < 0.01 alone. CB17 adopts
+CB16 §11 as amended and adds an estimator-based guard (ruling 1 keeps both):
+1. **Composition guard (binding; two parts, both must hold).**
+   (a) *Composition-conditional estimator.* Re-estimate the family's statistic with fixed effects for (unit × stratum),
+   so the label is compared only within strata. It must keep the sign and at least half of the primary point estimate,
+   with one-sided p < 0.05 (max over ways).
+   (b) *Within-strata permutation test (CB16 §11 item 2's rule).* The label (or continuous state) is permuted within
+   (unit × stratum) cells, 200 draws (seed per family), the same estimator and sign as the primary; the guard **holds
+   iff at most 3 of the 200 permuted coefficients reach the observed coefficient**; a permuted coefficient that cannot be
+   computed counts as reaching it.
+   **Informativeness** (both parts): at least 50% of the units in the denominator must lie in informative (unit ×
+   stratum) cells; otherwise the guard is "uninformative" and the test cannot advance (counted with its p). Definitions,
+   fixed in part `pre`: *binary labels (A, B1):* numerator = units in cells holding both labels, denominator = all units
+   of the test; *continuous state (B2):* numerator = units in cells with ≥ 2 units and `x` not constant in the cell,
+   denominator = all B2 units; *C's three classes:* the tested contrast is transfer versus mint-heavy, so numerator =
+   transfer and mint-heavy units in cells holding at least one transfer and one mint-heavy unit, denominator = all
+   transfer and mint-heavy units (merge-heavy units stay in the estimator and are reported, not in the share).
+   *Alternative guarded:* the contrast comes from the strata's composition (spread, price, hour, activity, size) rather
+   than the label.
+2. **Calibration placebo (binding).** The label (or state) is **circularly shifted within the unit** (A: market × d;
+   B: token; C: event), with units ordered by decision time and the offset drawn uniformly from {1, …, n − 1} (n the
+   unit's count; units with n < 2 are left as they are), 200 draws (seed per family). The circular shift keeps the
+   label's own autocorrelation (one-at-a-time shuffles destroy it; finding 3). **Each draw is judged on one-sided p <
+   0.01 alone** (no floor; CB16 §11 item 1's rule), and the advance rate must be ≤ 1.5% (at most 3 of 200).
    *Alternative guarded:* within-unit dependence makes the clustered p anti-conservative.
 
-This tightens rather than relaxes: the composition guard is now an estimator that must keep half the effect, not a
-placebo that can be passed by default. It is a design change and is flagged for the challenger (§7 risk 1).
+**Strata ladders and level selection (fixed in part `pre`; finding 2).** The draft strata (level 0) give 72-144 cells per
+unit against about 12 units per unit for A, so the 50% rule would fail by construction. Each family declares a ladder of
+coarser levels, defined now, without data:
+
+| Family | Level 0 (draft) | Level 1 | Level 2 (coarsest) |
+|---|---|---|---|
+| A (per market × d) | `P` band (3) × size band (3) × UTC 6 h band (4) × spread band (4) = 144 | `P` band (3) × spread {≤ 2c, > 2c} = 6 | `P` band (3) |
+| B1 (per token) | UTC 6 h band × spread band (4) × activity tercile × reward programme = 96 | activity tercile × UTC 12 h band {00-12, 12-24} × spread {≤ 2c, > 2c} = 12 | activity tercile (3) |
+| B2 (per token) | UTC 6 h band × spread band (4) × activity tercile × imbalance tercile = 144 | activity tercile × imbalance tercile = 9 | imbalance tercile (3) |
+| C (per event) | UTC 6 h band × `|Δm_int|` band (3) × trailing `dV` tercile × moving members {1, ≥ 2} = 72 | `|Δm_int|` band (3) × trailing `dV` 2-band (below / above the event's trailing median) = 6 | `|Δm_int|` {0.5-1c, > 1c} = 2 |
+
+**Selection rule.** q0400 (A, on the population of the branch it selects), q0401 (B1, B2) and q0402 (C) compute the
+informativeness share at every level on worn data (features only: labels, states and strata; no mark). The **finest
+level whose worn-data share is ≥ 60%** is written into the family's part (the 10-point margin over the window's 50% rule
+covers window differences; 14 window days accumulate more within-unit variety than 4 worn days). If no level reaches
+60%, level 2 is written and the window's 50% rule binds as declared. The selected level never changes after the part
+commit; q0408 reports the window share at the selected level. Coarsening is outcome-blind and is not a loosening of
+any threshold: the 50% rule, the half-effect rule and the 3-of-200 rule are unchanged.
+
+This tightens rather than relaxes: the composition guard is an estimator that must keep half the effect **and** a
+permutation test with CB16's amended rule, not a placebo that can be passed by default.
 
 Also binding for every advance, as CB16 §2.6: (i) §2.1 cost robustness; (ii) p and the floor hold without the top 5
 clusters of each way; (iii) leave-one-day-out (p < 0.05 and the sign); (iv) unavailable units excluded and counted,
@@ -400,8 +462,9 @@ Outcome guards come first, with field-restricted accessors; a unit test asserts 
 a capture or sweep received after a unit's decision time, an outcome, or a later price used as a target.
 - **Pre-freeze (worn `[2026-10-12, 2026-10-16)`; q0400-q0403):** counts and **planning SEs** on the declared pre-outcome
   proxies (§3), SEs only. They inform the challenger; **they can never change a floor, window, threshold or gate**,
-  with one declared exception: q0400's side-agreement measurement selects A's fill source by the rule fixed in part
-  `pre` (§CB17-A).
+  with three declared exceptions, each a feature-only rule fixed in part `pre` before q0400 runs: q0400's side-agreement
+  measurement selects A's fill source, or withdraws A uncounted under branch T (§CB17-A); q0400-q0402 select each
+  family's strata level (§2.6); q0401 fixes B's global activity cut points (§CB17-B).
 - **Window gates (q0408):** per family (§3). Power gates run each test's own estimator and ways on its pre-outcome proxy
   and write **only the clustered SE** (max over ways); no proxy point estimate is written (unit-tested).
 - `MDE = (z_0.99 + z_0.80) × 1.2 × SE = 3.80 × SE`. **Power rule (every Stage-1 test): MDE > 1.0c (2 × floor) → "not
@@ -418,11 +481,13 @@ a capture or sweep received after a unit's decision time, an outcome, or a later
   job is ≤ 1.2 GB**, under the 1.5 GB guidance; q0409 and q0411 are heavy under the memory rule and run alone.
 - **Network:** none. **Disk guard:** as CB16 (`--disk-cap-gb`, `--data-dumps-cap-gb 40`, exit 75); CB17 output caps
   total **≤ 0.3 GB**. CB17 never deletes or moves host data. Archived sources are restored byte for byte, hash-checked.
-- **Monitor storage cap (disclosed risk).** `live_trades/` held about 380 MB on 2026-10-19 and grew 50-68 MB a day on
-  10-17/10-18 (trades plus `scores-*` files) against the monitor's 3 GB stop cap: at the recent rate the cap binds
-  **between late November and early December**, which threatens REP_8 (to 2026-11-23 + 8 h) and CB16's REP_A (to about
-  2026-11-30). Missing days are "unavailable (monitor stopped)", counted, never back-filled. CB17 changes no collector
-  setting; **the orchestrator should decide on the cap before 2026-11-15** (disk has 56 GB free).
+- **Monitor storage cap (disclosed risk; ruling 7).** `live_trades/` held 372 MB on 2026-10-19 and grows about 65 MB a
+  day (`scores-*` files are 76% of it) against the monitor's 3 GB total stop cap (`TOTAL_CAP_BYTES` in
+  `live_trade_monitor.py`, measured as `du` of the whole `live_trades/` root): the cap binds **about 2026-11-25 to
+  11-29**, two to six days after REP_8's last needed row (2026-11-23T08:00Z) and inside CB16's REP_A (to about
+  11-30). Missing days are "unavailable (monitor stopped)", counted, never back-filled. CB17 changes no collector
+  setting; **the orchestrator decides before `S_8`** (§10, ruling 7 response: raise the cap as an ops change; REP_8 is
+  not shortened).
 - **Stop rules.** 3 CPU-hours per family; a job failing twice for the same non-transient reason stops and is recorded.
   A null is "not detected at MDE x". **No re-screen of a failed CB17 test** with altered windows, arms, bins, labels,
   strata, horizons or populations, on any data.
@@ -457,21 +522,28 @@ size and hour; and within a cell the label is the traded token, so any token-spe
 liquidity difference) is confounded with it (the composition-conditional strata include the capture spread band, and
 "each direction" is a binding robustness).
 
-**Fill source and the branch rule (declared now, outcome-blind; decided in q0400 before the part-A commit).**
+**Fill source and the branch rule (fixed in part `pre` before q0400 runs; outcome-blind; decided by q0400 before any
+part A commit; finding 7 and ruling 2).**
 - **Branch T (default).** CB13-T's frozen touch-consistent rule by pin: a transaction is a unit iff consistent with a
   latest complete capture touch of age ≤ 60 min, two-sided, spread ≤ 10c, touch mid in [0.03, 0.97], capture
   `end_date ≥ τ + 3 h`. `d` and `P` as CB13-T. The taker bought the traded token iff (`outcome_index = 0` and `d = −1`)
-  or (`outcome_index = 1` and `d = +1`).
+  or (`outcome_index = 1` and `d = +1`). **Under branch T, family A is withdrawn uncounted before its part commit**
+  (planning MDE 1.1-1.7c against the 1.0c power gate; CB15-L precedent; §2.5). A's definitions here stay on record.
 - **Branch S.** Taken **iff** q0400 shows, on the worn CB13-T SCREEN non-sports fills that resolve to one token and one
-  transaction (P1: 971), that the Data API `side` (taker side) agrees with the touch-derived taker side in at least 97%
-  of fills **and** the Wilson 95% lower bound is ≥ 0.95, with n ≥ 800 (0.97 is CH79's own "near-truth" band). Then every
-  non-sports transaction with a single token and a single `side` is a unit: `side = BUY` → open; YES-terms taker
-  direction from `side` and the token; `d` its negative; `P` the maker-adverse price within the transaction; touch
-  eligibility as branch T except touch age ≤ 135 min (the touch is used for eligibility and the spread-free mark only,
-  not for signing). The touch-consistent subset is a **binding robustness** (sign kept). Agreement is also reported by
-  price band and LABELLER class.
-- If q0400 has not run when part A is committed, branch T binds. The branch is written into part A; it cannot change
-  afterwards. CB9-S's later S0 verdict is reported next to every A line and changes nothing.
+  transaction (P1: 971), that the Data API `side` (taker side) agrees with the touch-derived taker side (i) in at least
+  97% of fills overall with a Wilson 95% lower bound ≥ 0.95 and n ≥ 800 (0.97 is CH79's own "near-truth" band), **and
+  (ii) in at least 97% within every one of the following cells that holds n ≥ 100 fills: touch-age band {0-20 min,
+  20-60 min}; `P` band {[0.03, 0.20), [0.20, 0.80], (0.80, 0.97]}; LABELLER class** (cells with n < 100 are reported
+  only). Then every non-sports transaction with a single token and a single `side` is a unit: `side = BUY` → open;
+  YES-terms taker direction from `side` and the token; `d` its negative; `P` the maker-adverse price within the
+  transaction; touch eligibility as branch T except touch age ≤ 135 min (the touch is used for eligibility and the
+  spread-free mark only, not for signing). The touch-consistent subset is a **binding robustness** (sign kept).
+- **GAS (signing gate, binding, branch S only; q0408).** On SCREEN_8's touch-consistent subset (CB13-T's rule by pin),
+  the same agreement rule as (i) and (ii) must hold (`side` and the touch-derived side are both features; no mark is
+  read); else A1 "not testable (signing)", counted.
+- If q0400 has not run when the other parts are committed, branch T binds (A withdrawn). The branch is written into the
+  ledger and, under S, into part A; it cannot change afterwards. CB9-S's later S0 verdict is reported next to every A
+  line and changes nothing.
 
 **Population (q0407; frozen in part A).** Fill-source units with `τ` in SCREEN_8, minus the election-night exclusion and
 key drops; binary markets; LABELLER class not SPORTS-FEED; single token; `P ∈ [0.03, 0.97]`. Mixed-token,
@@ -484,9 +556,14 @@ reported for every A line: spread-free `d·(mid_h − mid_0)` plus realised half
 
 **A1.** `β_A = −(coefficient on open)` in an OLS of `M_2-4h` on `open` with **(market × d) fixed effects**, one unit per
 transaction. One-sided > 0, floor +0.5c; p = max over the event, path key × 6 h block, 6 h block ways; leave-one-day-out.
-- **Composition-conditional estimator (binding; §2.6).** Strata: `P` band {[0.03, 0.20), [0.20, 0.80], (0.80, 0.97]} ×
-  size band {< $2.5k, $2.5-10k, ≥ $10k} × UTC 6 h band × capture spread band {≤ 1c, 1-2c, 2-5c, > 5c}; seed 17101.
-- **Calibration placebo (binding).** Permute `open` within (market × d); 200 draws, seed 17102; advance rate ≤ 1.5%.
+- **Composition guard (binding; §2.6, both parts).** Strata at the level selected by q0400 from the ladder: level 0 `P`
+  band {[0.03, 0.20), [0.20, 0.80], (0.80, 0.97]} × size band {< $2.5k, $2.5-10k, ≥ $10k} × UTC 6 h band × capture
+  spread band {≤ 1c, 1-2c, 2-5c, > 5c}; level 1 `P` band × spread {≤ 2c, > 2c}; level 2 `P` band; seed 17101.
+- **Calibration placebo (binding; §2.6).** Circular shift of `open` within (market × d), units ordered by `τ`; 200
+  draws, seed 17102; each draw judged on p < 0.01 alone; advance rate ≤ 1.5%.
+- **d-balanced estimate (binding; ruling 3).** `β_A^bal = (β_A,d=+1 + β_A,d=−1) / 2`, the equal-weight average of the
+  coefficients estimated separately on the d = +1 and d = −1 cells; it must keep the sign of `β_A` (and is reported with
+  its CR1 p). *Guards:* one direction (for example YES bid up near resolution) carrying the whole contrast.
 - **Pre-fill placebo (binding).** `M` replaced by the pre-fill move (capture before the touch capture → touch capture,
   signed by `d`); must not pass p < 0.01. *Guards:* closes and opens arrive in different trends.
 - **Spread-free mark (binding; CB16 round 1 item 1).** The estimator on `d·(mid_h − mid_0)` keeps the sign and at least
@@ -501,18 +578,19 @@ transaction. One-sided > 0, floor +0.5c; p = max over the event, path key × 6 h
 - **Reported (uncounted):** `β_A` by LABELLER class and in the sports arm; label shares by class and price band; the
   exclusion-by-label table; the taker fade of large closes (§2.1).
 
-**Gates.** **GA:** ≥ 1,000 units in both-label (market, d) cells, in ≥ 100 such cells and ≥ 60 events; else "not
-testable (population)". **GAP (power):** A1's estimator and ways on the pre-fill proxy, SEs only; MDE > 1.0c → "not run
+**Gates.** **GAS (signing; above).** **GA:** ≥ 1,000 units in both-label (market, d) cells, in ≥ 100 such cells and ≥
+60 events; else "not testable (population)". **GAP (power):** A1's estimator and ways on the pre-fill proxy, SEs only; MDE > 1.0c → "not run
 (power)". **GAI** (cadence; as CB16 GAI, measured from `P`): with ≥ 200 pairs, sign agreement ≤ 70% → "not testable
 (cadence)"; with < 200, every A line carries "cadence informativeness unverified".
 
 **Power (planning; GAP decides).** σ_eff per unit ≈ 4.9c, implied by CB13-T's GTP (SE 0.45c at 163 vs 427 fills).
 - *Branch T:* P1 gives 364 both-cell fills in four days; cells accumulate over 14 days, so about 1,200-1,800 both-cell
-  fills (30% close) in about 60-100 events: `SE ≈ 0.3-0.45c`, **MDE ≈ 1.1-1.7c > 1.0c gate → "not run (power)" is
-  likely**.
+  fills (30% close) in about 60-100 events: `SE ≈ 0.3-0.45c`, **MDE ≈ 1.1-1.7c > 1.0c gate → A is withdrawn
+  uncounted under branch T** (§2.5).
 - *Branch S:* CB13-T's census counts 7,045 non-sports transactions in four days (37,106 minus 30,061 sports-fee); after
   eligibility about 4,000-4,500, so about 14,000-16,000 in 14 days, of which perhaps 50-60% in both-label cells: `SE ≈
-  0.16-0.24c`, **MDE ≈ 0.6-0.9c**.
+  0.16-0.24c`, **MDE ≈ 0.6-0.9c**. **Power at a true effect equal to the 0.5c floor is about 40%** (finding 8;
+  disclosed): a "not detected" verdict at the floor is weak evidence of absence.
 
 **Stage 2 (q0410, q0411; triggered by A1).** REP_8 with SCREEN_8 events dropped (binding even if thinned). Minimum: the
 GA counts on REP_8, else "not run (power)", counted.
@@ -529,6 +607,19 @@ eligibility: two-sided books at the decision sweep and the mark sweep; decision 
 0.97]; `tick_size` equal at decision and mark (else "tick change", counted); sidecar `end_date ≥ t + 4 h`; the mark sweep
 exists (else "no mark"); mark spread ≤ 10c (else "wide mark", counted, worst case in robustness). Exclusions are counted
 by state bin.
+- **No-mark handling (finding 4).** Eligibility uses the decision sweep and earlier rows only; a token absent from the
+  mark pass, or one-sided there, is "no mark" (an availability outcome, not an eligibility rule). q0401 reports the
+  next-pass no-mark share by age bin on worn data and q0408 by age bin (B1) and by `x` sign and `|x|` quintile (B2) on
+  SCREEN_8; no mark value is read for either. **Binding worst-case bound:** each test is re-estimated with no-mark and
+  wide-mark units filled first by the capture mark (CB13 rule, first complete capture with last-page `received_utc ≥
+  t + 2 h`, usable iff ≤ `t + 4 h`) and, where none exists, at the bound adverse to the hypothesis: B1 old units `L = 0`
+  (the minimum, since `L ≥ 0`) and fresh units the 95th percentile of available fresh-bin `L`; B2 units with `x > 0`
+  get the 5th percentile and `x < 0` the 95th percentile of available `Δm` (`x = 0` units get 0). The estimate must
+  keep the sign.
+- **Activity (finding 6).** A unit's activity is the pre-decision `|Δm|` from the previous pass's first sweep to the
+  decision sweep. Its tercile cut points are **global and frozen in part B from q0401's worn non-sports units**, never
+  recomputed on SCREEN_8 or REP_8 (the window terciles would pool later units' pre-decision moves, which overlap earlier
+  units' targets).
 
 #### B1: book age (CH146)
 
@@ -543,25 +634,27 @@ attribution regression address these; the composition bias runs against the hypo
 
 **State.** First sweep of the pass: `old` iff `a ≥ 600 s`; `fresh` iff `a < 60 s`; `60 s ≤ a < 600 s` is reported only.
 
-**Target: the paper maker's 2 h pick-off loss.** With `b0, a0` the decision touch and `m_h` the 2 h mark-sweep mid:
-`L = 100·[max(0, m_h − a0) + max(0, b0 − m_h)]` cents. This is the adverse component of a paper maker resting one share
-at each side of the touch, filled only when the mark crosses it; the unfilled quote and any spread earned on uninformed
-fills are not observable. **L is an adverse-selection measure, not a maker net**, and is labelled so.
+**Target: the 2 h excursion beyond the touch** (renamed from "pick-off loss"; finding 8 and ruling 4). With `b0, a0`
+the decision touch and `m_h` the 2 h mark-sweep mid: `L = 100·[max(0, m_h − a0) + max(0, b0 − m_h)]` cents. It is the
+adverse movement a paper quote resting at each side of the touch would face if filled only when the mark crosses it; the
+unfilled quote and any spread earned on uninformed fills are not observable. **B1 is labelled "adverse movement only";
+it is not a maker net and not a maker loss. B1-econ is the only maker-relevant line of B1.**
 
 **B1.** `β_B1` = coefficient on `old` in an OLS of `L` on `old` with **token FE**, on units in the old or fresh bins.
 One-sided > 0, floor +0.5c; ways event, path key × 6 h block, 6 h block, UTC hour; leave-one-day-out.
-- **Composition-conditional (binding; §2.6).** Strata: UTC 6 h band × decision spread band {≤ 1c, 1-2c, 2-5c, > 5c} ×
-  activity tercile (the token's own SCREEN_8 terciles of the pre-decision `|Δm|` from the previous pass's first sweep)
-  × reward programme present; seed 17111.
-- **Calibration placebo (binding).** Permute old/fresh within token; 200 draws, seed 17112; advance rate ≤ 1.5%.
+- **Composition guard (binding; §2.6, both parts).** Strata at the level selected by q0401: level 0 UTC 6 h band ×
+  decision spread band {≤ 1c, 1-2c, 2-5c, > 5c} × activity tercile (global frozen cut points, above) × reward programme
+  present; level 1 activity tercile × UTC 12 h band × spread {≤ 2c, > 2c}; level 2 activity tercile; seed 17111.
+- **Calibration placebo (binding; §2.6).** Circular shift of old/fresh within token over its passes in time order; 200
+  draws, seed 17112; each draw judged on p < 0.01 alone; advance rate ≤ 1.5%.
 - **Pre-period placebo (binding).** `L_pre` from the touch two passes earlier and the mid one pass earlier, regressed
   on today's `old`; must not pass p < 0.01 in the hypothesised direction. *Guards:* persistent volatility states that
   coincide with old books.
 - **Attribution (binding for the label "book age").** Token-FE OLS with `old` plus spread band, activity, log
   liquidity, `volume24hr` band, reward programme present, `n_*_levels` band, UTC 6 h band, decision mid band, "hash
   changed since the previous pass", and the touch quotes' grain (sub-cent or not). `old` keeps at least half of `β_B1`.
-- **Robustness (binding; each keeps the sign):** the capture mark (CB13 rule) instead of the sweep mark; the old cut at
-  300 s and at 1,800 s (fresh fixed); excluding `a > 3,600 s`; the ask-crossing and bid-crossing components separately;
+- **Robustness (binding; each keeps the sign):** the no-mark worst-case bound (above); the capture mark (CB13 rule)
+  instead of the sweep mark; the old cut at 300 s and at 1,800 s (fresh fixed); excluding `a > 3,600 s`; the ask-crossing and bid-crossing components separately;
   the relative loss `L / (a0 − b0)`; decision mid in [0.10, 0.90]; the 6 h mark; top-5 drops; leave-one-day-out.
 - **Reported (uncounted):** the full age-bin table by class, hour and liquidity; the cross-tab of age by touch grain and
   touch-size roundness (CH148's inputs); the sports arm.
@@ -577,8 +670,8 @@ only 7% of tokens mix both bins in one day (more over 14 days). Arm 0 over 14 da
 mixing tokens across several thousand events. With SD(L) ≈ 1-3c and heavy within-token dependence, `SE ≈ 0.02-0.05c`,
 **MDE ≈ 0.1-0.2c**. The floor binds, not power.
 
-**Stage 2 (triggered by B1).** Arm-1 events in REP_8, same frozen rules (the activity terciles recomputed on REP_8
-arm-1 units, a feature).
+**Stage 2 (triggered by B1).** Arm-1 events in REP_8, same frozen rules (the same global activity cut points frozen
+in part B; nothing is recomputed on REP_8).
 - **B1-rep:** the Stage-1 statistic and every binding check.
 - **B1-econ (fill-level protection value).** REP_8 fills from the fill source in arm-1 non-sports markets whose token
   had a sweep with receipt in `[τ − 30 min, τ)`: within-market difference of the CB13-T3 round-trip net between fills
@@ -607,15 +700,20 @@ mark-sweep mid.
 
 **B2.** `β_B2` = coefficient on `x / SD_x` in an OLS of `Δm` with **token FE**. One-sided > 0, floor +0.5c per SD; ways
 and leave-one-day-out as B1.
-- **Composition-conditional (binding).** Strata: UTC 6 h band × spread band × activity tercile × E003 imbalance-level
-  tercile `(B5 − A5)/D1` at sweep 2; seed 17121.
-- **Calibration placebo (binding).** Permute `x` within token; 200 draws, seed 17122.
-- **Pre-sweep placebo (binding).** `Δm_pre` (previous pass's first-sweep mid → `m_0`) on `x`: must not pass p < 0.01 in
-  the hypothesised direction. *Guards:* re-quoting follows a move already under way and momentum does the rest. (This
-  may be over-strict if bots react to past moves; §7 risk 5.)
+- **Composition guard (binding; §2.6, both parts).** Strata at the level selected by q0401: level 0 UTC 6 h band ×
+  spread band × activity tercile × E003 imbalance-level tercile `(B5 − A5)/D1` at sweep 2; level 1 activity tercile ×
+  imbalance tercile; level 2 imbalance tercile. The imbalance tercile cut points are global, frozen in part B from
+  q0401's worn units (as activity); seed 17121.
+- **Calibration placebo (binding; §2.6).** Circular shift of `x` within token over its passes in time order; 200 draws,
+  seed 17122; each draw judged on p < 0.01 alone; advance rate ≤ 1.5%.
+- **Pre-sweep placebo (binding; kept binding by ruling 5).** `Δm_pre` (previous pass's first-sweep mid → `m_0`) on `x`:
+  must not pass p < 0.01 in the hypothesised direction. *Guards:* re-quoting follows a move already under way and
+  momentum does the rest. If bots react to past moves, B2 fails here by design: a state explained by the past move is
+  not a forward signal.
 - **Attribution (binding for the label "breathing book").** Token-FE OLS with `x` plus `Δm_pre`, the imbalance level,
   spread band, `n_*_levels` change, touch-size change, activity and UTC 6 h band; `x` keeps at least half of `β_B2`.
-- **Robustness (binding; each keeps the sign):** units with `s ≠ 0` only; units with no monitor print in the market
+- **Robustness (binding; each keeps the sign):** the no-mark worst-case bound (shared frame, above); units with `s ≠ 0`
+  only; units with no monitor print in the market
   between the two sweeps; units with unchanged touch sizes; the capture mark; the 6 h mark; top-5 drops;
   leave-one-day-out. **Concentration label:** if the top 5 events carry > 30% of `Σ x²`, every B2 line carries
   "concentrated".
@@ -651,44 +749,59 @@ predict returns (Hong and Yogo 2012). A transfer-heavy move is one informed side
 a mint-heavy move is two new opinions (no net information). **Against it:** OI is in shares and volume in dollars (only
 within-event ranks are meaningful); neg-risk conversions move OI without trades; OI may lag volume; 2 h cadence.
 
-**Units (q0406).** (event, interval `k`) for non-sports **arm-0** events in SCREEN_8: captures `k − 1`, `k` consecutive
-and complete (§2.2); `event_open_interest` and `event_volume` present in both; `dV = vol_k − vol_{k−1} > 0`; no member
-with `closed` true, or with `end_date ≤` capture `k + 1`'s time + 1 h, in captures `k − 1..k + 1` ("member closing",
-excluded and counted); at least one member with eligible mids (two-sided, spread ≤ 10c, mid in [0.03, 0.97]) at
-`k − 1`, `k` and `k + 1` and `|Δm_int| = |m_k − m_{k−1}| ≥ 0.5c`.
+**Units (q0406). Eligibility uses captures `k − 1` and `k` only (finding 1).** (event, interval `k`) for non-sports
+**arm-0** events in SCREEN_8: captures `k − 1`, `k` consecutive and complete (§2.2); `event_open_interest` and
+`event_volume` present in both; `dV = vol_k − vol_{k−1} > 0`; no member with `closed` true in captures `k − 1` or `k`,
+and no member with `end_date ≤` (capture `k`'s time + 3 h) ("member closing", excluded and counted; `end_date` is known
+at `k`); at least one **qualifying member**: eligible mids (two-sided, spread ≤ 10c, mid in [0.03, 0.97]) at `k − 1` and
+`k`, and `|Δm_int| = |m_k − m_{k−1}| ≥ 0.5c`. Nothing about capture `k + 1` enters eligibility.
 
-**State.** `r = (OI_k − OI_{k−1}) / dV`. Classes by the event's own terciles of `r` over its SCREEN_8 traded intervals
-(events need ≥ 6; fewer → "thin event", excluded and counted): **mint-heavy** = top tercile, **transfer** = middle,
-**merge-heavy** = bottom. Tercile cut points are features (no outcome) and are recomputed on arm-1 events for REP_8.
+**State.** `r = (OI_k − OI_{k−1}) / dV`. **Classes by trailing terciles (primary; finding 6):** the cut points are the
+event's terciles of `r` over its own traded intervals with decision time in `[lookback floor, k)` (earlier SCREEN_8
+intervals; for REP_8, the arm-1 event's earlier intervals inside q0410's read window `[S_8 + 7 d, k)`, read as
+features), at least 6 prior (fewer → "thin history", excluded and counted): **mint-heavy** = above the upper cut,
+**transfer** = between, **merge-heavy** = below the lower cut. `r_k` itself, `r_{k+1}` and later intervals never enter
+the cut points. The event's trailing `dV` tercile (a stratum) uses the same prior intervals.
 
-**Target.** For each qualifying member `j`: `C_j = sign(Δm_int,j) × 100 × (m_{j,k+1} − m_{j,k})` cents; the unit value is
-the mean over qualifying members.
+**Target and its availability.** For each qualifying member `j`: `C_j = sign(Δm_int,j) × 100 × (m_{j,k+1} − m_{j,k})`
+cents, with `m_{j,k+1}` the mid at capture `k + 1` (consecutive, gap 100-140 min). The mark is **available** iff capture
+`k + 1` exists in that gap and member `j`'s row there is two-sided with spread ≤ 10c, mid in [0.03, 0.97] and
+`closed` false. Otherwise member `j` is **"unavailable (mark)"**, counted by class and by reason (capture missing,
+member closed, one-sided, wide, extreme mid); it is never an exclusion rule. The unit value is the mean over qualifying
+members with an available mark; a unit with none is "unavailable (mark)", counted by class; the 60% availability rule
+applies. **Binding worst-case robustness:** every unavailable member is filled at the bound adverse to the hypothesis
+(transfer units the 5th percentile of available member `C`, mint-heavy and merge-heavy units the 95th percentile;
+where a one-sided `k + 1` quote exists, the touch adverse to continuation is used instead, if more adverse), and the
+estimate must keep the sign.
 
 **C1.** `β_C` = coefficient on `transfer` in an OLS of `C` on `transfer` and `merge` indicators (mint-heavy baseline)
 with **event FE**. One-sided > 0, floor +0.5c; ways event, path key × 6 h block, 6 h block, UTC hour; leave-one-day-out.
-- **Composition-conditional (binding).** Strata: UTC 6 h band × `|Δm_int|` band {0.5-1c, 1-3c, > 3c} × the event's own
-  `dV` tercile × moving members {1, ≥ 2}; seed 17131.
-- **Calibration placebo (binding).** Permute the class within event; 200 draws, seed 17132.
+- **Composition guard (binding; §2.6, both parts; three-class informativeness rule).** Strata at the level selected by
+  q0402: level 0 UTC 6 h band × `|Δm_int|` band {0.5-1c, 1-3c, > 3c} × the event's trailing `dV` tercile × moving
+  members {1, ≥ 2}; level 1 `|Δm_int|` band × trailing `dV` 2-band; level 2 `|Δm_int|` {0.5-1c, > 1c}; seed 17131.
+- **Calibration placebo (binding; §2.6).** Circular shift of the class within event over its intervals in time order;
+  200 draws, seed 17132; each draw judged on p < 0.01 alone; advance rate ≤ 1.5%.
 - **Pre-interval placebo (binding).** `C_pre = sign(Δm_int) × (m_{k−1} − m_{k−2})` on the classes; must not pass p < 0.01
   in the hypothesised direction. *Guards:* transfer intervals occurring inside trends.
 - **Attribution (binding for the label "mint share").** Event-FE OLS with the classes plus `C_pre`, `|Δm_int|` band,
   `dV` tercile, mean member spread, log event liquidity, moving members, UTC 6 h band; `transfer` keeps at least half
   of `β_C`.
-- **Robustness (binding; each keeps the sign):** the OI-lag variant `r_lag = (OI_k − OI_{k−1}) / (vol_{k−1} −
-  vol_{k−2})` (both known at `k`); trailing terciles (the event's prior SCREEN_8 intervals only, ≥ 6 prior); single-market
-  events alone; non-neg-risk events alone; the 4 h continuation (`k + 2`); excluding the top 1% of `dV`; top-5 drops;
-  leave-one-day-out.
+- **Robustness (binding; each keeps the sign):** the unavailable-mark worst case (above); the OI-lag variant `r_lag =
+  (OI_k − OI_{k−1}) / (vol_{k−1} − vol_{k−2})` (both known at `k`); whole-window terciles **leaving intervals `k` and
+  `k + 1` out** (features only; the former primary, now a robustness); single-market events alone; non-neg-risk events
+  alone; the 4 h continuation (`k + 2`); excluding the top 1% of `dV`; top-5 drops; leave-one-day-out.
 - **Reported:** merge-heavy minus mint-heavy; the sign-only class (`dOI = 0` vs `> 0`); neg-risk events alone; the
   taker follow of transfer-interval moves (§2.1).
 
 **Gates.** **GCU (field liveness):** OI changed in ≥ 70% of traded non-sports event-intervals in SCREEN_8 (P3: 87% on
-worn data); else "not testable (field)". **GC (population):** ≥ 600 arm-0 events with ≥ 6 traded intervals and ≥ 10,000
-units; else "not testable (population)". **GCP (power):** C1's estimator on `C_pre`, SEs only; MDE > 1.0c → "not run
+worn data); else "not testable (field)". **GC (population):** ≥ 600 arm-0 events with at least one unit that has ≥ 6
+prior traded intervals, and ≥ 10,000 such units; else "not testable (population)". **GCP (power):** C1's estimator on `C_pre`, SEs only; MDE > 1.0c → "not run
 (power)".
 
 **Power (planning).** P3: about 1,500 traded non-sports event-intervals per 2 h, 61% with a member move ≥ 0.5c; arm 0
-over 14 days ≈ 75,000 units in perhaps 1,500-2,500 events. With SD(C) ≈ 2-3c and design effect about 3, `SE(β_C) ≈
-0.03-0.05c`, **MDE ≈ 0.15-0.2c**. The floor binds.
+over 14 days ≈ 75,000 units in perhaps 1,500-2,500 events; trailing terciles drop each event's first six traded
+intervals (perhaps 10-20% of units; q0402 counts it on worn data). With SD(C) ≈ 2-3c and design effect about 3,
+`SE(β_C) ≈ 0.03-0.06c`, **MDE ≈ 0.15-0.25c**. The floor binds.
 
 **Stage 2 (triggered by C1).** Arm-1 REP_8 units, same frozen rules.
 - **C1-rep:** the Stage-1 statistic and every binding check.
@@ -719,13 +832,19 @@ host data".
 ### CB17-SM: smoke and audits
 
 - **q0404 smoke** (`cpu`, no network). PASS needs: the part hashes and the pinned CB13 and CB16 function sha256s;
-  refusals on fixtures (rows before the lookback floor outside the census paths; J4-R and CB13-T HOLDOUT rows; REP_8 rows
-  before the seal; every refused root of §1.1; every forbidden field, including `side` outside q0400 and branch-S A
-  frames and `recv_ts` outside q0403); the event-arm hash on fixed fixture ids (both arms present, deterministic); the
-  open/close label on the four token × direction fixtures; the age parser (epoch ms; −5 s clock-anomaly edge; 60 s
-  and 600 s edges); the shift state on fixtures (touch change → not a unit; `s = 0` kept); the interval rule (gap 99
-  versus 100 min; `dV = 0` not traded; member closing excluded); **reproduction of P1, P2 and P3's printed counts
-  exactly from the worn files** (a different count is a FAIL and is investigated, not adjusted).
+  refusals on fixtures (rows before the lookback floor outside the census paths, **including the q0406/q0407/q0410
+  lookback reads at `S_8 − 2 h`, `S_8 − 3 h` and `S_8 − 6 h` when `S_8` = the floor, with the dependent unit labelled
+  "unavailable (lookback floor)" and counted** (finding 5); J4-R and CB13-T HOLDOUT rows; census-path rows at or after
+  2026-10-16T00:00Z; REP_8 rows before the seal; every refused root of §1.1; every forbidden field, including `side`
+  outside q0400 and branch-S A frames and `recv_ts` outside q0403); the event-arm hash on fixed fixture ids (both arms
+  present, deterministic); the open/close label on the four token × direction fixtures; the age parser (epoch ms; −5 s
+  clock-anomaly edge; 60 s and 600 s edges); the shift state on fixtures (touch change → not a unit; `s = 0` kept); the
+  interval rule (gap 99 versus 100 min; `dV = 0` not traded; member closed at `k` excluded; **member closed or
+  one-sided at `k + 1` → "unavailable (mark)", not excluded**; capture time = last page's `received_utc`); the
+  trailing-tercile rule (cut points never include `r_k` or later; 5 versus 6 prior intervals); the B no-mark label;
+  the strata-level selection on fixtures (60% edge); **reproduction of P1, P2 and P3's printed counts exactly from the
+  worn files** (a different count is a FAIL and is investigated, not adjusted). The code-against-design freeze check
+  re-runs this reproduction against the frozen code (ruling 6).
 - A failed smoke makes the dependent part terminal "not testable (source)", counted once per declared test.
 - Every data job writes a manifest (file sha256s, counts, failures, data-dumps size and margin, free disk) and a
   `*_complete` status.
@@ -739,14 +858,14 @@ decision that changes no design.
 
 | Id | Lane | Priority | Size / time | Depends on | Commit when |
 |---|---|---|---|---|---|
-| q0400 | cpu | 9 | ≤ 15 min, mem 600 | - | part `pre` + code + tests reviewed; **can run now** |
-| q0401 | cpu | 9 | ≤ 30 min, mem 800 | - | as q0400; **can run now** |
-| q0402 | cpu | 9 | ≤ 45 min, mem 600 | - | as q0400; **can run now** |
-| q0403 | cpu | 9 | ≤ 30 min, mem 500 | - | as q0400; **can run now** |
-| q0404 | cpu | 9 | ≤ 15 min, mem 500 | - | rules parts `common`, `A`, `B`, `C`, `E` committed |
+| q0400 | cpu | 9 | ≤ 20 min, mem 600 | - | part `pre` (with the finding 2 and 7 additions) + code + tests reviewed; **can run then** |
+| q0401 | cpu | 9 | ≤ 35 min, mem 800 | - | as q0400 |
+| q0402 | cpu | 9 | ≤ 45 min, mem 600 | - | as q0400 |
+| q0403 | cpu | 9 | ≤ 30 min, mem 500 | - | as q0400 |
+| q0404 | cpu | 9 | ≤ 15 min, mem 500 | - | rules parts `common`, `A` (branch S only), `B`, `C`, `E` committed |
 | q0405 | cpu | 9 | ≤ 5 min, mem 300 | q0404, CB16 q0380 | after both (or q0380's stop record) |
-| q0406 | cpu | 9 | ≤ 60 min per run (budgeted), mem 1000 | q0404, q0405 | not before `S_8 + 14 d + 8 h` |
-| q0407 | cpu | 9 | ≤ 40 min, mem 800 | q0404, q0405 | not before `S_8 + 14 d + 8 h` |
+| q0406 | cpu | 9 | ≤ 60 min per run (budgeted), mem 1000 | q0404, q0405 | not before `S_8 + 14 d + 8 h`; with the ledger attestation (ruling 6) |
+| q0407 | cpu | 9 | ≤ 40 min, mem 800 | q0404, q0405 | not before `S_8 + 14 d + 8 h`; E features only if A was withdrawn |
 | q0408 | cpu | 9 | ≤ 30 min, mem 600 | q0406, q0407 | with them |
 | q0409 | cpu | 9 | ≤ 120 min per run (budgeted), mem 1200, alone | q0408, E011 analysis commit, CB3 freeze or stop record, freeze check | after all |
 | q0410 | cpu | 9 | ≤ 60 min per run, mem 1000 | q0409 result committed | not before `S_8 + 28 d + 8 h` |
@@ -754,19 +873,19 @@ decision that changes no design.
 | q0412 | cpu | 9 | < 5 min, mem 300 | every triggered Stage-2 test final | once |
 
 ```json
-{"id": "q0400_cb17_pre_census_A", "title": "CB17 pre-census A/E (counts only, worn CB13-T SCREEN [2026-10-12,10-16)): open/close label from token x d on CB13-T fills; both-label (market,d) cells, markets, events; label by class and price band; side-agreement branch measurement (Data API side vs touch-derived taker side, Wilson bound) -> branch S or T per part pre; non-sports transactions eligible under branch S; first-day counts (E); planning SE of A1 on the pre-fill proxy under both branches (SEs only)", "family": "creative_batch_17", "priority": 9, "expected_value": "A's fill source and planning MDE; E population", "data": ["creative_batch13/t_screen/{fills,labels}.csv.gz (features)", "live_trades/trades-2026101{2..5}.jsonl (whitelist + side)", "snapshots/ [2026-10-11T22Z, 2026-10-16) (whitelist; no capture after a unit's tau except created_at)"], "resources": {"mem_mb": 600, "cpu": 1, "lane": "cpu"}, "depends_on": [], "argv": ["scripts/run_cb17.py", "pre-census", "--family", "A", "--rules", "../docs/research_lab/seals/cb17_rules.json", "--part", "pre", "--disk-cap-gb", "0.01", "--data-dumps-cap-gb", "40"], "timeout_s": 1800, "max_retries": 1, "outputs": ["research_lab/creative_batch17/pre_census_A.json", "trials.jsonl (cb17_descriptive)"], "next_action": "record the branch in rules part A before its commit", "notes": "DRAFT. Counts and SEs only; no M, no mark capture opened (unit-tested). side read for the agreement count only."}
-{"id": "q0401_cb17_pre_census_B", "title": "CB17 pre-census B (counts only, worn sweeps [2026-10-12,10-16)): GBT stamp semantics; age bins by class/hour/liquidity; tokens and events mixing old and fresh; touch-unchanged, hash-changed-beneath and shifted-1-5c shares (GBS inputs); CH149 dormancy map (hash unchanged 2/4/6 h by levels, hour, reward programme); age x grain x size-roundness cross-tab (CH148 inputs); planning SEs of B1 on L_pre and B2 on dm_pre (SEs only)", "family": "creative_batch_17", "priority": 9, "expected_value": "B gates and planning MDEs before the freeze", "data": ["book_sweeps/ [2026-10-12, 2026-10-16) (whitelist)", "snapshots/ rows_ext [same] (sports rule, end_date)"], "resources": {"mem_mb": 800, "cpu": 1, "lane": "cpu"}, "depends_on": [], "argv": ["scripts/run_cb17.py", "pre-census", "--family", "B", "--rules", "../docs/research_lab/seals/cb17_rules.json", "--part", "pre", "--disk-cap-gb", "0.01", "--data-dumps-cap-gb", "40"], "timeout_s": 2400, "max_retries": 1, "outputs": ["research_lab/creative_batch17/pre_census_B.json", "trials.jsonl (cb17_descriptive)"], "next_action": "challenger round 1 input", "notes": "DRAFT. Pre-decision quantities only; no sweep or capture after a unit's decision time is used as a target."}
-{"id": "q0402_cb17_pre_census_C", "title": "CB17 pre-census C (counts only, worn captures [2026-10-12,10-16)): traded non-sports event-intervals; OI-changed share (GCU input); events with >= 6 traded intervals; within-event IQR of r; single / neg-risk / other splits; member-move share; member-closing exclusions; planning SE of C1 on C_pre (SEs only)", "family": "creative_batch_17", "priority": 9, "expected_value": "C gates and planning MDE before the freeze", "data": ["snapshots/ [2026-10-12, 2026-10-16) rows + rows_ext (whitelist)"], "resources": {"mem_mb": 600, "cpu": 1, "lane": "cpu"}, "depends_on": [], "argv": ["scripts/run_cb17.py", "pre-census", "--family", "C", "--rules", "../docs/research_lab/seals/cb17_rules.json", "--part", "pre", "--disk-cap-gb", "0.01", "--data-dumps-cap-gb", "40"], "timeout_s": 3000, "max_retries": 1, "outputs": ["research_lab/creative_batch17/pre_census_C.json", "trials.jsonl (cb17_descriptive)"], "next_action": "challenger round 1 input", "notes": "DRAFT. C_pre uses captures k-2..k only."}
+{"id": "q0400_cb17_pre_census_A", "title": "CB17 pre-census A/E (counts only, worn CB13-T SCREEN [2026-10-12,10-16)): open/close label from token x d on CB13-T fills; both-label (market,d) cells, markets, events; label by class and price band; side-agreement branch measurement (Data API side vs touch-derived taker side: overall share, Wilson bound, and per touch-age band {0-20, 20-60 min}, P band and LABELLER class with n >= 100) -> branch S, or branch T and A withdrawn uncounted, per part pre; composition-guard informativeness share at strata levels 0/1/2 on the selected branch population (features only) -> selected level; non-sports transactions eligible under branch S; first-day counts (E); planning SE of A1 on the pre-fill proxy under both branches (SEs only)", "family": "creative_batch_17", "priority": 9, "expected_value": "A's fill source and planning MDE; E population", "data": ["creative_batch13/t_screen/{fills,labels}.csv.gz (features)", "live_trades/trades-2026101{2..5}.jsonl (whitelist + side)", "snapshots/ [2026-10-11T22Z, 2026-10-16) (whitelist; no capture after a unit's tau except created_at)"], "resources": {"mem_mb": 600, "cpu": 1, "lane": "cpu"}, "depends_on": [], "argv": ["scripts/run_cb17.py", "pre-census", "--family", "A", "--rules", "../docs/research_lab/seals/cb17_rules.json", "--part", "pre", "--disk-cap-gb", "0.01", "--data-dumps-cap-gb", "40"], "timeout_s": 1800, "max_retries": 1, "outputs": ["research_lab/creative_batch17/pre_census_A.json", "trials.jsonl (cb17_descriptive)"], "next_action": "branch S: record the branch and strata level in rules part A before its commit; branch T: ledger withdrawal of A (uncounted)", "notes": "DRAFT. Counts and SEs only; no M, no mark capture opened (unit-tested). side read for the agreement count only."}
+{"id": "q0401_cb17_pre_census_B", "title": "CB17 pre-census B (counts only, worn sweeps [2026-10-12,10-16)): GBT stamp semantics; age bins by class/hour/liquidity; tokens and events mixing old and fresh; touch-unchanged, hash-changed-beneath and shifted-1-5c shares (GBS inputs); next-pass no-mark share by age bin; global activity and imbalance tercile cut points (features; frozen into part B); composition-guard informativeness shares at strata levels 0/1/2 for B1 and B2 -> selected levels; CH149 dormancy map (hash unchanged 2/4/6 h by levels, hour, reward programme); age x grain x size-roundness cross-tab (CH148 inputs); planning SEs of B1 on L_pre and B2 on dm_pre (SEs only)", "family": "creative_batch_17", "priority": 9, "expected_value": "B gates and planning MDEs before the freeze", "data": ["book_sweeps/ [2026-10-12, 2026-10-16) (whitelist)", "snapshots/ rows_ext [same] (sports rule, end_date)"], "resources": {"mem_mb": 800, "cpu": 1, "lane": "cpu"}, "depends_on": [], "argv": ["scripts/run_cb17.py", "pre-census", "--family", "B", "--rules", "../docs/research_lab/seals/cb17_rules.json", "--part", "pre", "--disk-cap-gb", "0.01", "--data-dumps-cap-gb", "40"], "timeout_s": 2400, "max_retries": 1, "outputs": ["research_lab/creative_batch17/pre_census_B.json", "trials.jsonl (cb17_descriptive)"], "next_action": "write cut points and selected levels into part B before its commit", "notes": "DRAFT. Pre-decision quantities only; no sweep or capture after a unit's decision time is used as a target; the no-mark share is a presence count only (no mark value read)."}
+{"id": "q0402_cb17_pre_census_C", "title": "CB17 pre-census C (counts only, worn captures [2026-10-12,10-16)): traded non-sports event-intervals; OI-changed share (GCU input); units with >= 6 prior traded intervals (trailing terciles) and events holding them; within-event IQR of r; single / neg-risk / other splits; member-move share; member-closing exclusions (k-1, k only); composition-guard informativeness shares at strata levels 0/1/2 (3-class rule: transfer and mint-heavy units in cells holding both) -> selected level; planning SE of C1 on C_pre (SEs only)", "family": "creative_batch_17", "priority": 9, "expected_value": "C gates and planning MDE before the freeze", "data": ["snapshots/ [2026-10-12, 2026-10-16) rows + rows_ext (whitelist)"], "resources": {"mem_mb": 600, "cpu": 1, "lane": "cpu"}, "depends_on": [], "argv": ["scripts/run_cb17.py", "pre-census", "--family", "C", "--rules", "../docs/research_lab/seals/cb17_rules.json", "--part", "pre", "--disk-cap-gb", "0.01", "--data-dumps-cap-gb", "40"], "timeout_s": 3000, "max_retries": 1, "outputs": ["research_lab/creative_batch17/pre_census_C.json", "trials.jsonl (cb17_descriptive)"], "next_action": "write the selected level into part C before its commit", "notes": "DRAFT. Eligibility, classes, strata and C_pre use captures <= k only; no k+1 row is read."}
 {"id": "q0403_cb17_cost_lag_map", "title": "CB17 cost and lag map (CH155 part; descriptive): executable round trip at $1,000 and $5,000 from depth_*_1c/5c bands and the sidecar fee by fee category x price band x liquidity band on worn sweeps; monitor receipt lag (recv_ts - ts) by class, hour and day with the 5-min polling component; share of prints with lag > 2 h; enrichment coverage", "family": "creative_batch_17", "priority": 9, "expected_value": "the cost hurdle every CB17 econ and taker line cites", "data": ["book_sweeps/ [2026-10-12, 2026-10-16)", "snapshots/ rows_ext [same] (fee fields)", "live_trades/trades-2026101{2..5}.jsonl (whitelist + recv_ts)"], "resources": {"mem_mb": 500, "cpu": 1, "lane": "cpu"}, "depends_on": [], "argv": ["scripts/run_cb17.py", "cost-lag-map", "--rules", "../docs/research_lab/seals/cb17_rules.json", "--part", "pre"], "timeout_s": 2400, "max_retries": 1, "outputs": ["research_lab/creative_batch17/cost_lag_map.json", "trials.jsonl (cb17_descriptive)"], "next_action": "cite in sections 2.1 and 3", "notes": "DRAFT. Depth-band walk is an upper bound on cost (EXECUTION_COSTS execution model)."}
 {"id": "q0404_cb17_smoke", "title": "CB17 smoke (cpu, no network): part hashes and CB13/CB16 pins; refusals on fixtures; arm hash; open/close label fixtures; age, shift and interval parsers; exact reproduction of probes P1-P3 counts on worn files", "family": "creative_batch_17", "priority": 9, "expected_value": "go/no-go for every CB17 window job", "data": ["fixtures", "worn files of probes P1-P3"], "resources": {"mem_mb": 500, "cpu": 1, "lane": "cpu"}, "depends_on": [], "argv": ["scripts/run_cb17.py", "smoke", "--rules", "../docs/research_lab/seals/cb17_rules.json"], "timeout_s": 1200, "max_retries": 1, "outputs": ["research_lab/creative_batch17/smoke.json", "trials.jsonl (cb17_descriptive, or counted not-testable lines once)"], "next_action": "PASS: q0405; window jobs after S_8 + 14 d + 8 h", "notes": "DRAFT. Write-once."}
 {"id": "q0405_cb17_exclusion_keys", "title": "CB17 exclusion keys (cpu, no network): CB16 q0380 key file (sha256 pinned, source-attributed) + seal copies; overlap counts with CB16 frame ids when they exist", "family": "creative_batch_17", "priority": 9, "expected_value": "window key check", "data": ["creative_batch16/exclusion_keys.csv.gz (ids only)", "docs/research_lab/seals/*"], "resources": {"mem_mb": 300, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0404_cb17_smoke", "q0380_cb16_exclusion_keys"], "argv": ["scripts/run_cb17.py", "exclusion-keys", "--rules", "../docs/research_lab/seals/cb17_rules.json"], "timeout_s": 600, "max_retries": 1, "outputs": ["research_lab/creative_batch17/{exclusion_keys.csv.gz,manifest.json}"], "next_action": "q0406, q0407", "notes": "DRAFT. Reads only id and timestamp columns of the CB16 key file (the one exception to the creative_batch16/ refusal, field-restricted). A stopped dependency is recorded as absent."}
-{"id": "q0406_cb17_frame_screen_BC", "title": "CB17 SCREEN_8 frames (features only): B token-pass units of arm-0 non-sports events (age, shift state x, touch, eligibility labels, mark-sweep availability flag; no mark value) and C event-interval units (r, classes, member moves k-1->k, eligibility; no k+1 value)", "family": "creative_batch_17", "priority": 9, "expected_value": "B and C Stage-1 units", "data": ["book_sweeps/ [S_8 - 2 h, S_8 + 14 d)", "snapshots/ [S_8 - 6 h, S_8 + 14 d)", "creative_batch17/exclusion_keys.csv.gz"], "resources": {"mem_mb": 1000, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0404_cb17_smoke", "q0405_cb17_exclusion_keys"], "argv": ["scripts/run_cb17.py", "frame", "--families", "B,C", "--window", "screen", "--rules", "../docs/research_lab/seals/cb17_rules.json", "--disk-cap-gb", "0.1", "--data-dumps-cap-gb", "40", "--budget-min", "55"], "timeout_s": 3600, "max_retries": 2, "outputs": ["research_lab/creative_batch17/screen/{b_units.parquet,c_units.parquet,manifest.json}"], "next_action": "q0408", "notes": "DRAFT. Refuses before S_8 + 14 d + 8 h, without the part hashes and the code pin; restores archived sources byte for byte.", "repeat": {"max_runs": 20, "until_log_regex": "\"status\": \"frame_bc_complete\""}}
-{"id": "q0407_cb17_frame_screen_A", "title": "CB17 SCREEN_8 transaction frame (features only): fill source per the part-A branch, open/close label, d, P, eligibility and exclusion labels by label, CB16 g and x via pinned functions, E first-day features; no mark", "family": "creative_batch_17", "priority": 9, "expected_value": "A Stage-1 units; E census input; econ fill-source definition", "data": ["live_trades/trades-*.jsonl [2026-10-26, S_8 + 14 d) (whitelist; side only under branch S)", "snapshots/ [S_8 - 3 h, S_8 + 14 d)", "creative_batch17/exclusion_keys.csv.gz"], "resources": {"mem_mb": 800, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0404_cb17_smoke", "q0405_cb17_exclusion_keys"], "argv": ["scripts/run_cb17.py", "frame", "--families", "A,E", "--window", "screen", "--rules", "../docs/research_lab/seals/cb17_rules.json", "--disk-cap-gb", "0.05", "--data-dumps-cap-gb", "40", "--budget-min", "35"], "timeout_s": 2700, "max_retries": 2, "outputs": ["research_lab/creative_batch17/screen/{a_units.csv.gz,manifest.json}"], "next_action": "q0408", "notes": "DRAFT. Refuses before S_8 + 14 d + 8 h.", "repeat": {"max_runs": 20, "until_log_regex": "\"status\": \"frame_a_complete\""}}
-{"id": "q0408_cb17_census_8", "title": "CB17 SCREEN_8 census (counts only): units by label and exclusion; gates GA, GBT, GBA, GBS, GCU, GC; power gates GAP, GB1P, GB2P, GCP on pre-outcome proxies (SEs only); GAI pair count; composition-check informativeness shares; E census and re-entry verdict; politics share; overlap counts", "family": "creative_batch_17", "priority": 9, "expected_value": "gates and MDEs", "data": ["creative_batch17/screen/"], "resources": {"mem_mb": 600, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0406_cb17_frame_screen_BC", "q0407_cb17_frame_screen_A"], "argv": ["scripts/run_cb17.py", "census", "--window", "screen"], "timeout_s": 1800, "max_retries": 1, "outputs": ["research_lab/creative_batch17/census_8.json", "trials.jsonl (cb17_descriptive or counted not-testable / not-run lines)"], "next_action": "q0409", "notes": "DRAFT. No proxy point estimate written (unit-tested)."}
-{"id": "q0409_cb17_screen_8", "title": "CB17 Stage 1: A1 (market x d FE open/close contrast), B1 (token FE old-vs-fresh pick-off loss), B2 (token FE slope on the breathing-book shift), C1 (event FE transfer-vs-mint continuation); composition-conditional estimators, calibration and pre-period placebos, attribution, robustness; GAI; Holm k1 = 4", "family": "creative_batch_17", "priority": 9, "expected_value": "A1, B1, B2, C1 verdicts", "data": ["creative_batch17/screen/", "snapshots/ and book_sweeps/ (mark rows only, SCREEN_8 + 8 h)"], "resources": {"mem_mb": 1200, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0408_cb17_census_8"], "argv": ["scripts/run_cb17.py", "screen", "--budget-min", "110"], "timeout_s": 7200, "max_retries": 1, "outputs": ["research_lab/creative_batch17/results_8.json", "trials.jsonl (cb17_test + creative_batch_17:A n_tests=1, :B n_tests=2, :C n_tests=1)"], "next_action": "advanced: q0410/q0411; ledger", "notes": "DRAFT. Heavy: run alone. Refuses without the code pin, before E011's analysis commit and before CB3's freeze commit or stop record.", "repeat": {"max_runs": 6, "until_log_regex": "\"status\": \"screen_complete\""}}
+{"id": "q0406_cb17_frame_screen_BC", "title": "CB17 SCREEN_8 frames (features only): B token-pass units of arm-0 non-sports events (age, shift state x, touch, eligibility labels, mark-sweep availability flag; no mark value) and C event-interval units (r, classes, member moves k-1->k, eligibility; no k+1 value)", "family": "creative_batch_17", "priority": 9, "expected_value": "B and C Stage-1 units", "data": ["book_sweeps/ [max(2026-10-26T00:00Z, S_8 - 2 h), S_8 + 14 d)", "snapshots/ [max(2026-10-26T00:00Z, S_8 - 6 h), S_8 + 14 d)", "creative_batch17/exclusion_keys.csv.gz"], "resources": {"mem_mb": 1000, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0404_cb17_smoke", "q0405_cb17_exclusion_keys"], "argv": ["scripts/run_cb17.py", "frame", "--families", "B,C", "--window", "screen", "--rules", "../docs/research_lab/seals/cb17_rules.json", "--disk-cap-gb", "0.1", "--data-dumps-cap-gb", "40", "--budget-min", "55"], "timeout_s": 3600, "max_retries": 2, "outputs": ["research_lab/creative_batch17/screen/{b_units.parquet,c_units.parquet,manifest.json}"], "next_action": "q0408", "notes": "DRAFT. Refuses before S_8 + 14 d + 8 h, without the part hashes, the code pin and the ledger attestation; refuses any row before the lookback floor (dependent units unavailable (lookback floor), counted); restores archived sources byte for byte.", "repeat": {"max_runs": 20, "until_log_regex": "\"status\": \"frame_bc_complete\""}}
+{"id": "q0407_cb17_frame_screen_A", "title": "CB17 SCREEN_8 transaction frame (features only; under branch T, E features only): fill source per the part-A branch, open/close label, d, P, eligibility and exclusion labels by label, CB16 g and x via pinned functions, E first-day features; no mark", "family": "creative_batch_17", "priority": 9, "expected_value": "A Stage-1 units; E census input; econ fill-source definition", "data": ["live_trades/trades-*.jsonl [2026-10-26, S_8 + 14 d) (whitelist; side only under branch S)", "snapshots/ [max(2026-10-26T00:00Z, S_8 - 3 h), S_8 + 14 d)", "creative_batch17/exclusion_keys.csv.gz"], "resources": {"mem_mb": 800, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0404_cb17_smoke", "q0405_cb17_exclusion_keys"], "argv": ["scripts/run_cb17.py", "frame", "--families", "A,E", "--window", "screen", "--rules", "../docs/research_lab/seals/cb17_rules.json", "--disk-cap-gb", "0.05", "--data-dumps-cap-gb", "40", "--budget-min", "35"], "timeout_s": 2700, "max_retries": 2, "outputs": ["research_lab/creative_batch17/screen/{a_units.csv.gz,manifest.json}"], "next_action": "q0408", "notes": "DRAFT. Refuses before S_8 + 14 d + 8 h and any row before the lookback floor (dependent units unavailable (lookback floor), counted).", "repeat": {"max_runs": 20, "until_log_regex": "\"status\": \"frame_a_complete\""}}
+{"id": "q0408_cb17_census_8", "title": "CB17 SCREEN_8 census (counts only): units by label and exclusion; gates GA, GAS (branch S: side vs touch agreement on the touch-consistent subset, overall and per band), GBT, GBA, GBS, GCU, GC; power gates GAP, GB1P, GB2P, GCP on pre-outcome proxies (SEs only); GAI pair count; composition-guard informativeness shares at the selected levels; B no-mark shares by age bin and x band; C unavailable-mark shares by class; lookback-floor unavailability counts; E census and re-entry verdict; politics share; overlap counts", "family": "creative_batch_17", "priority": 9, "expected_value": "gates and MDEs", "data": ["creative_batch17/screen/"], "resources": {"mem_mb": 600, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0406_cb17_frame_screen_BC", "q0407_cb17_frame_screen_A"], "argv": ["scripts/run_cb17.py", "census", "--window", "screen"], "timeout_s": 1800, "max_retries": 1, "outputs": ["research_lab/creative_batch17/census_8.json", "trials.jsonl (cb17_descriptive or counted not-testable / not-run lines)"], "next_action": "q0409", "notes": "DRAFT. No proxy point estimate written (unit-tested)."}
+{"id": "q0409_cb17_screen_8", "title": "CB17 Stage 1: A1 (market x d FE open/close contrast; branch S only), B1 (token FE old-vs-fresh 2 h excursion beyond the touch, adverse movement only), B2 (token FE slope on the breathing-book shift), C1 (event FE transfer-vs-mint continuation); composition guards (conditional estimator + 3-of-200 within-strata permutation), circular-shift calibration placebos (p < 0.01 alone), pre-period placebos, attribution, d-balanced estimate (A), worst-case mark bounds, robustness; GAI; Holm k1 = 4 (branch S) or 3 (branch T)", "family": "creative_batch_17", "priority": 9, "expected_value": "A1, B1, B2, C1 verdicts", "data": ["creative_batch17/screen/", "snapshots/ and book_sweeps/ (mark rows only, SCREEN_8 + 8 h)"], "resources": {"mem_mb": 1200, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0408_cb17_census_8"], "argv": ["scripts/run_cb17.py", "screen", "--budget-min", "110"], "timeout_s": 7200, "max_retries": 1, "outputs": ["research_lab/creative_batch17/results_8.json", "trials.jsonl (cb17_test + creative_batch_17:A n_tests=1 under branch S only, :B n_tests=2, :C n_tests=1)"], "next_action": "advanced: q0410/q0411; ledger", "notes": "DRAFT. Heavy: run alone. Refuses without the code pin, before E011's analysis commit and before CB3's freeze commit or stop record.", "repeat": {"max_runs": 6, "until_log_regex": "\"status\": \"screen_complete\""}}
 {"id": "q0410_cb17_frame_rep", "title": "CB17 REP_8 frames (features) and raw mark-quote tables (no mark-out computed): B/C arm-1 units; A units with SCREEN_8 events dropped (counted); econ fill-source tables; source sha256 seal", "family": "creative_batch_17", "priority": 9, "expected_value": "Stage-2 inputs, sealed", "data": ["live_trades/, snapshots/, book_sweeps/ for [S_8 + 7 d, S_8 + 28 d + 8 h)"], "resources": {"mem_mb": 1000, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0409_cb17_screen_8"], "argv": ["scripts/run_cb17.py", "frame", "--families", "A,B,C", "--window", "rep", "--rules", "../docs/research_lab/seals/cb17_rules.json", "--disk-cap-gb", "0.15", "--data-dumps-cap-gb", "40", "--budget-min", "55"], "timeout_s": 3600, "max_retries": 2, "outputs": ["research_lab/creative_batch17/rep/", "docs/research_lab/seals/cb17_rep_SEAL.json (committed by the coordinator)"], "next_action": "q0411 if triggered", "notes": "DRAFT. Runs whatever Stage 1 found (sealing is outcome-blind).", "repeat": {"max_runs": 20, "until_log_regex": "\"status\": \"frame_rep_complete\""}}
 {"id": "q0411_cb17_rep_8", "title": "CB17 Stage 2 (triggered only): A1-rep, A2; B1-rep, B1-econ; B2-rep (SCREEN_8 frozen SD_x), B2-econ; C1-rep, C1-econ; pooled GAI; early alpha/8", "family": "creative_batch_17", "priority": 9, "expected_value": "Stage-2 verdicts (L2)", "data": ["creative_batch17/rep/"], "resources": {"mem_mb": 1200, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0410_cb17_frame_rep"], "argv": ["scripts/run_cb17.py", "rep", "--budget-min", "110"], "timeout_s": 7200, "max_retries": 1, "outputs": ["research_lab/creative_batch17/results_rep.json", "trials.jsonl (cb17_replication + creative_batch_17:<family>:rep)"], "next_action": "q0412", "notes": "DRAFT. Verifies the REP seal first. Heavy: run alone.", "repeat": {"max_runs": 6, "until_log_regex": "\"status\": \"rep_complete\""}}
-{"id": "q0412_cb17_stage2_final", "title": "CB17 Stage-2 final: one strict Holm (one-sided alpha 0.05) over every triggered CB17 Stage-2 test (<= 8; econ tests enter with the max of their component p's); adds passes only; write-once", "family": "creative_batch_17", "priority": 9, "expected_value": "final Stage-2 decisions", "data": ["creative_batch17/results_rep.json"], "resources": {"mem_mb": 300, "cpu": 1, "lane": "cpu"}, "depends_on": [], "argv": ["scripts/run_cb17.py", "stage2-final"], "timeout_s": 600, "max_retries": 1, "outputs": ["research_lab/creative_batch17/stage2_final.json"], "next_action": "Stage P registration drafts for survivors", "notes": "DRAFT. Refuses with 'nothing to finalise' if no family triggered."}
+{"id": "q0412_cb17_stage2_final", "title": "CB17 Stage-2 final: one strict Holm (one-sided alpha 0.05) over every triggered CB17 Stage-2 test (<= 8 under branch S, <= 6 under branch T; econ tests enter with the max of their component p's); adds passes only; write-once", "family": "creative_batch_17", "priority": 9, "expected_value": "final Stage-2 decisions", "data": ["creative_batch17/results_rep.json"], "resources": {"mem_mb": 300, "cpu": 1, "lane": "cpu"}, "depends_on": [], "argv": ["scripts/run_cb17.py", "stage2-final"], "timeout_s": 600, "max_retries": 1, "outputs": ["research_lab/creative_batch17/stage2_final.json"], "next_action": "Stage P registration drafts for survivors", "notes": "DRAFT. Refuses with 'nothing to finalise' if no family triggered."}
 ```
 
 ## 5. Code needed (not written by this document)
@@ -778,24 +897,30 @@ decision that changes no design.
 - `cb17_pre.py`: the four pre-censuses (q0400-q0403), including the side-agreement measurement and the branch writer.
 - `cb17_a.py`: fill source by branch (CB13-T functions by pin; the side-signed alternative), the label, eligibility,
   marks and decomposition, A1 and its checks, A2.
-- `cb17_b.py`: sweep pairing, age, the pick-off loss, the shift state, marks, B1/B2 and checks, B1-econ/B2-econ.
-- `cb17_c.py`: interval construction, `r`, terciles (window and trailing), continuation, C1 and checks, C1-econ.
+- `cb17_b.py`: sweep pairing, age, the 2 h excursion beyond the touch, global activity and imbalance cut points, the shift state, marks and the no-mark worst case, B1/B2 and checks, B1-econ/B2-econ.
+- `cb17_c.py`: interval construction (k − 1, k only), `r`, terciles (trailing primary; whole-window leave-k,k+1-out robustness), continuation and the unavailable-mark worst case, C1 and checks, C1-econ.
 - `cb17_e.py`: first-day features, census, re-entry verdict.
 - `backend/scripts/run_cb17.py` with the §4 subcommands; tests `test_cb17_*.py` covering: forbidden fields and refused
   roots; window and lookback edges; the arm hash; the label truth table; age edges; touch-change exclusion; `s = 0` kept;
-  interval gap edges, `dV = 0`, member closing; tercile cut points from features only; FE estimators cancelling a
-  per-unit constant; the composition-conditional estimator returning 0 on a pure-composition fixture and recovering a
-  planted within-stratum effect (the case CB16's placebo mishandled); the calibration placebo's null mean; power gates
-  writing SEs only; GAI at 199/200 pairs; econ minimums; `SD_x` frozen for REP; battery2 kinds; k1 = 4.
+  interval gap edges, `dV = 0`, member closing at `k` versus unavailable mark at `k + 1`; trailing tercile cut points
+  from prior features only; global activity cut points frozen; the lookback-floor refusal and its unavailability label;
+  FE estimators cancelling a per-unit constant; the composition-conditional estimator returning 0 on a
+  pure-composition fixture and recovering a planted within-stratum effect (the case CB16's original placebo
+  mishandled); the 3-of-200 permutation rule at its boundaries (CB16 §11 item 3's fixtures); the informativeness share
+  per family including C's three-class rule; the strata-level selection at the 60% edge; the circular-shift calibration
+  placebo's null mean under an autocorrelated label and a planted effect; the side-agreement rule with a failing band at
+  n = 100 and a band at n = 99 (reported only); the d-balanced estimate; the no-mark and unavailable-mark worst cases;
+  power gates writing SEs only; GAI at 199/200 pairs; econ minimums; `SD_x` frozen for REP; battery2 kinds; k1 = 4 or
+  3 by branch.
 
 ## 6. Test budget and compute
 
 | Job | Tests counted | Kind(s) | Decision |
 |---|---|---|---|
-| Stage 1: A1, B1, B2, C1 | **4** | `cb17_test` + `:A` (1), `:B` (2), `:C` (1) | p < 0.01 strict, floor, binding checks, Holm (one-sided α 0.05, k1 = 4); counted with p = 1 if a gate fails |
-| Stage 2: A1-rep, A2, B1-rep, B1-econ, B2-rep, B2-econ, C1-rep, C1-econ (each only if triggered) | ≤ 8 | `cb17_replication` + `:<family>:rep` | one CB17-wide strict Holm (early finishers at α/8; econ tests enter with the max of their component p's) |
-| Pre-censuses, smoke, census, gates, E census, CH149/CH155 maps, strata, sports arms, taker lines | 0 | `cb17_descriptive` | - |
-| **Total** | **4 fixed + ≤ 8 conditional = 4-12** | | cumulative count recorded at each run (1,282 on the working tree at drafting) |
+| Stage 1: A1 (branch S only), B1, B2, C1 | **4 (S) / 3 (T)** | `cb17_test` + `:A` (1, S only), `:B` (2), `:C` (1) | p < 0.01 strict, floor, binding checks, Holm (one-sided α 0.05, k1 = 4 or 3); counted with p = 1 if a gate fails |
+| Stage 2: A1-rep, A2 (S only), B1-rep, B1-econ, B2-rep, B2-econ, C1-rep, C1-econ (each only if triggered) | ≤ 8 (S) / ≤ 6 (T) | `cb17_replication` + `:<family>:rep` | one CB17-wide strict Holm (early finishers at α/8; econ tests enter with the max of their component p's) |
+| Pre-censuses, smoke, census, gates, E census, CH149/CH155 maps, strata, sports arms, taker lines; A withdrawn under T | 0 | `cb17_descriptive` | - |
+| **Total** | **branch S: 4 fixed + ≤ 8 conditional = 4-12; branch T: 3 fixed + ≤ 6 conditional = 3-9** | | cumulative count recorded at each run (1,282 on the working tree at drafting) |
 
 **Host compute.** About 6-8 CPU-hours in all at nice 19, inside 3 CPU-hours per family: pre-censuses about 2 h (four
 worn days of sweeps and captures); SCREEN and REP frames about 1 h each; the screen about 2 h (B's permutations on
@@ -805,15 +930,19 @@ worn days of sweeps and captures); SCREEN and REP frames about 1 h each; the scr
 
 | By | Deliverable | Owner |
 |---|---|---|
-| 2026-10-20 | challenger round 1 on this draft | `science-reviewer` |
-| 2026-10-22 | part `pre` + q0400-q0403 code and tests; the four pre-censuses run on the idle `cpu` lane | implementer, queue |
-| **2026-10-24 12:00** | **rules parts `common`, `A` (with the branch), `B`, `C`, `E` committed** (target) → `S_8` = 2026-10-26 | orchestrator |
-| 2026-11-08 | window code with tests; code-against-design freeze check; q0404 PASS; q0405 | implementer, `science-reviewer` |
+| 2026-10-19 | challenger round 1 and this response (§10); done | `science-reviewer`, designer |
+| 2026-10-22 | part `pre` (with the finding 2 and 7 additions) committed, then q0400-q0403 code and tests; the four pre-censuses run on the idle `cpu` lane | implementer, queue |
+| **2026-10-24 12:00** | **branch recorded (A withdrawn under T); strata levels and cut points written; rules parts `common`, `A` (S only), `B`, `C`, `E` committed** (target) → `S_8` = 2026-10-26 | orchestrator |
+| **before `S_8`** | **monitor cap decision (ruling 7; §10)** | orchestrator / owner |
+| before `S_8` (preferred), 2026-11-08 at the latest | window code with tests; code-against-design freeze check re-running P1-P3; q0404 PASS; q0405; ledger attestation | implementer, `science-reviewer` |
 | `S_8` + 14 d + 8 h (2026-11-09T08:00Z) | q0406, q0407 → q0408 | queue |
 | after 2026-11-11T13:00Z and CB3's freeze | q0409 (Stage 1) | queue |
 | `S_8` + 28 d + 8 h (2026-11-23T08:00Z) | q0410 (seal), q0411 if triggered, q0412 | queue |
 
 ## 7. Main scientific risks (for the challenger)
+
+*Kept as drafted for the record. The challenger's findings and rulings on these risks, and the responses, are in §10;
+where §10 and this list differ, §10 and the revised design text govern.*
 
 1. **The composition-check change (§2.6).** CB17 replaces CB16's "stratified permutation placebo must stay quiet" with
    a composition-conditional estimator (unit × stratum FE, keep ≥ half, randomisation p < 0.05) plus a within-unit
@@ -850,12 +979,15 @@ worn days of sweeps and captures); SCREEN and REP frames about 1 h each; the scr
 
 ## 8. Next actions
 
-1. `science-reviewer` challenger round 1 on this draft (items of §7 first, especially 1, 2 and 9).
-2. Implementer: part `pre` and q0400-q0403 (they need no freeze and no window; the `cpu` lane is idle). Then the
-   window code by 2026-11-08 with tests, and a code-against-design freeze check.
-3. Orchestrator: commit rules parts by 2026-10-24T12:00Z after an accepting round (else `S_8` slides); record the A
-   branch from q0400; decide the monitor storage cap before 2026-11-15 (§2.8); ledger lines for this draft (design
-   only, not counted) and for each pre-census.
+1. Challenger round 1 is done and answered (§10). Under the programme rule (one challenge, one response), the
+   orchestrator now decides proceed / revise / reject on this revision; no second challenge round.
+2. Implementer: **part `pre` first** (contents in §10, "Part `pre` before q0400-q0403 code"), then q0400-q0403 code and
+   tests (they need no freeze and no window; the `cpu` lane is idle). Then the window code, frozen before `S_8` if
+   possible and by 2026-11-08 at the latest, with a code-against-design freeze check that re-runs P1-P3.
+3. Orchestrator: after q0400, record the branch (under T, ledger the uncounted withdrawal of A); write the selected
+   strata levels and cut points into parts A (S only), B and C; commit rules parts by 2026-10-24T12:00Z (else `S_8`
+   slides); **decide the monitor cap before `S_8`** (§10, ruling 7); ledger lines for this revision (design only, not
+   counted), for each pre-census and for the ruling-6 attestations.
 4. CB16's reservation is narrowed to q0393-q0399 by this draft (§0.1); the CB16 document is not edited here.
 
 ## 9. Probe scripts (verbatim; the bytes that ran)
@@ -1052,3 +1184,99 @@ print("non-sports event-intervals", dict(c))
 print("non-sports events traded in >= 6 intervals", sum(1 for v in traded.values() if v >= 6),
       ">= 3", sum(1 for v in traded.values() if v >= 3), "any", len(traded))
 ```
+
+## 10. Challenger round 1 and response
+
+The batch's one challenge (`science-reviewer`, 2026-10-19, on `a00c4ef`) and the designer's one response (programme
+rule: one challenge, one response, then the orchestrator decides proceed / revise / reject). Line numbers in the
+findings refer to `a00c4ef`. **Verdicts:** A, B1, B2 and C REVISE; E census and q0400-q0403 PROCEED once part `pre`
+holds the finding 2 and 7 additions. **The response used no CB17 window data and no outcome data**; every change is
+outcome-blind, and none loosens a floor, alpha, gate, threshold or the cumulative count (the coarser strata are chosen by
+a feature-only rule fixed before q0400; the 50%, half-effect and 3-of-200 rules are unchanged or stricter).
+
+### 10.1 Findings
+
+| # | Sev. | Finding (summary) | Response | Where applied |
+|---|---|---|---|---|
+| 1 | HIGH | C eligibility required two-sided `k + 1` mids in [0.03, 0.97] and no member closed through `k + 1`: selection on the outcome | **Adopted.** Eligibility uses `k − 1` and `k` only (closed flag at `k − 1`, `k`; `end_date` known at `k`, ≤ `k` + 3 h excluded). A missing, closed, one-sided, wide or extreme `k + 1` quote is "unavailable (mark)", counted by class and reason, under the 60% availability rule, with a **binding worst-case robustness** (unavailable members at the bound adverse to the hypothesis; sign kept) | §1.2 marks; §2.2; §CB17-C units, target, robustness; q0402/q0406 notes; smoke; §5 |
+| 2 | HIGH | Composition strata far too fine (A 144 per market × d cell against about 12 units; B 96; C 72): the 50% both-label rule fails by construction; C's three-class "both labels" undefined | **Adopted.** Each family declares a three-level strata ladder now (§2.6 table). q0400-q0402 report the informativeness share at every level on worn data (features only) and the **finest level with ≥ 60%** is written into the family's part before its commit (else level 2, with the window's 50% rule binding). Denominators declared: binary labels, all units; B2, units in cells with ≥ 2 units and non-constant `x`; **C: transfer and mint-heavy units in cells holding at least one of each, over all transfer and mint-heavy units** (merge-heavy reported) | §1.4 `pre`; §2.6; §2.7; §CB17-A/B/C composition guards; q0400-q0402, q0408 |
+| 3 | HIGH/MED | Calibration placebo judged on "p < 0.01 and the floor" is vacuous at SE 0.02-0.05c against a 0.5c floor; CB16 §11 judges p alone; one-at-a-time within-unit shuffles destroy the label's autocorrelation | **Adopted.** Each draw is judged on one-sided p < 0.01 alone (CB16 §11 item 1); advance rate ≤ 1.5% (≤ 3 of 200). The label is **circularly shifted within the unit** in time order (offset uniform on {1, …, n − 1}), one of the challenger's two options; chosen over whole-day blocks because it also works for units observed on one or two days | §2.6 item 2; §CB17-A/B/C calibration placebos; §5 |
+| 4 | MED | B's 2 h mark: 93% of tokens swept next pass; drop-outs become "no mark" | **Modified.** No-mark share reported by age bin (q0401 worn; q0408 window) and by `x` sign and `|x|` quintile for B2; **binding worst-case bound** for B1 and B2. *Modification:* a no-mark unit first takes the recorded capture mark (CB13 rule) where one exists, and only units with no recorded price take the adverse bound (B1: old `L = 0`, fresh the 95th percentile; B2: 5th / 95th percentile of `Δm` against the sign of `x`). *Reason:* a recorded capture mid is an observed price, not an imputation; bounding observed prices would discard data without guarding anything. The pure capture-mark variant stays a separate binding robustness | §CB17-B shared frame, B1/B2 robustness; q0401, q0408 |
+| 5 | MED | q0406 (from `S_8 − 2 h`), q0407 (from `S_8 − 3 h`) and §1.1 (from `S_8 − 7 d`) read inside CB13-T's sealed HOLDOUT `[t_j4r_end, 10-26)` | **Adopted.** Every window reader refuses pre-floor rows; read windows start at `max(floor, ·)`; units needing a pre-floor row are "unavailable (lookback floor)", counted by family and label/state; smoke fixtures at `S_8 − 2/3/6 h` | §1.1; §1.2 lookback floor; q0406/q0407 specs; smoke |
+| 6 | MED (B: LOW) | C's whole-window tercile cut points include `r_{k+1}` (and later); B1's activity terciles pool later units' pre-decision moves, which overlap earlier units' targets | **Adopted.** C: **trailing terciles primary** (prior intervals in `[floor, k)`, ≥ 6 prior, else "thin history"); the trailing `dV` stratum likewise; whole-window terciles **leaving `k` and `k + 1` out** become a binding robustness. GC re-stated on units with ≥ 6 prior intervals; power restated (MDE 0.15-0.25c). B: activity and imbalance tercile cut points are **global, frozen in part B from q0401's worn units**, never recomputed on SCREEN_8 or REP_8 | §CB17-B; §CB17-C state, strata, robustness, gates, power; q0401/q0402 |
+| 7 | MED | Branch S gate too coarse; no window check of signing; spending a counted test under branch T | **Adopted.** Branch S also needs ≥ 97% agreement in every touch-age band {0-20, 20-60 min}, `P` band and LABELLER class with n ≥ 100; **GAS** re-checks the same rule on SCREEN_8's touch-consistent subset at q0408 (else A1 "not testable (signing)", counted); **under branch T, A is withdrawn uncounted before its part commit** (CB15-L precedent). The rule is fixed in part `pre` before q0400 (ruling 2) | §0; §1.4; §2.5; §CB17-A; q0400, q0407-q0409 |
+| 8 | LOW | (a) C decision time should be the capture's last page `received_utc` (`ext_sidecar.py` `ext_row` stamps per page); (b) rename B1's target; (c) branch-S power at the 0.5c floor about 40% | **Adopted.** (a) capture time = last page's `received_utc` for every CB17 use; (b) "2 h excursion beyond the touch", labelled adverse movement only; (c) disclosed in §0 and §CB17-A power | §1.2; §2.2; §2.4; §CB17-B; §0; §CB17-A |
+
+**Count: 7 adopted, 1 modified (finding 4), 0 rejected.**
+
+### 10.2 Rulings
+
+| # | Ruling | Response | Where applied |
+|---|---|---|---|
+| 1 | Keep the composition-conditional estimator **and** add CB16 §11's rule (holds only if ≤ 3 of 200 permuted coefficients reach the observed); describe CB16 as amended | **Adopted.** The composition guard has two binding parts: the conditional estimator (sign, half, p < 0.05) and the within-strata permutation test with CB16 §11's 3-of-200 rule, which replaces the draft's weaker "randomisation p < 0.05". §2.6 now describes CB16 as drafted and as amended by §11 | §2.6; §CB17-A/B/C; q0409 |
+| 2 | Side-rule switch acceptable if fixed in part `pre` before q0400 | **Adopted** | §1.4; §CB17-A |
+| 3 | Add a binding d-balanced estimate (equal-weight average of the two d coefficients) keeping the sign | **Adopted** | §CB17-A |
+| 4 | B1 labelled adverse movement only; B1-econ the only maker-relevant line | **Adopted** | §0; §2.4; §CB17-B; q0409 |
+| 5 | Keep B2's pre-sweep placebo binding | **Adopted** (unchanged; text now says a state explained by the past move is not a forward signal) | §CB17-B B2 |
+| 6 | Code frozen before first read accepted with conditions: no agent opens SCREEN_8/REP_8 files before q0406 (ledger attestation); the freeze check re-runs P1-P3 reproduction against frozen code; preferably freeze code before `S_8` | **Adopted.** Target code freeze before `S_8`; attestations at the code freeze and with q0406's commit (q0406 refuses without it); P1-P3 reproduction in the freeze check | §1.2 `T17_code`; smoke; §6 calendar; q0406 |
+| 7 | `live_trades/` holds 372 MB, grows about 65 MB/day (`scores-*` 76%); the 3 GB cap is reached about 11-25 to 11-29 against REP_8's end 11-23T08:00Z: decide before `S_8` | **Answered with a proposal for the orchestrator** (10.3). No host or collector setting is changed by this document | §2.8; §6 calendar; §8 |
+| 8 | Separate Holm families per batch OK; A1 and CB16-Q/U never cited as corroborating; REP_8 overlaps CB16 SCREEN_A/REP_A (disclose) | **Adopted** | §1.1 reuse disclosure |
+
+### 10.3 Monitor cap: proposal for the orchestrator (ruling 7; outcome-blind)
+
+**What the cap is.** `TOTAL_CAP_BYTES = 3 GiB` in `live_trade_monitor.py`, checked as `du` of the whole `live_trades/`
+root each cycle; at the cap the monitor raises `CapReached` and stops (exit 3). A separate **300 MB per-day cap**
+pauses writing for the rest of a UTC day. The total cap is a storage budget set when the monitor ran on the Mac; the
+per-day cap is the runaway guard. `total_cap_bytes` is **not** in `MonitorConfig.config_hash()`, so changing it does not
+change the monitor's scientific configuration identity.
+
+**Options.**
+- **(a) Recommended: raise the total cap to 8 GiB before `S_8`**, as a reviewed one-line code change to the default
+  deployed by the usual `COLLECTION_HOST.md` deploy and rollback path. The 300 MB/day runaway guard stays. With about
+  56 GB free on the host, this uses at most about 5 GB more and moves the cap to roughly February 2027 at 65-75 MB/day,
+  covering REP_8 and CB16's REP_A with wide margin. It is an ops change on the collection host (not production, no
+  data deleted); the orchestrator should confirm, before deploying, that the extra growth keeps `data-dumps/` under the
+  40 GB `--data-dumps-cap-gb` guard used by CB jobs (else those jobs would exit 75), and should treat it as an owner
+  decision if it judges the change to be an infrastructure change under CLAUDE.md. The decision uses byte counts only.
+- **(b) Fallback if (a) is not taken: change nothing and keep REP_8 at 14 days.** The projected cap date falls after
+  REP_8's last needed row (2026-11-23T08:00Z) by about two to six days; any stopped day is "unavailable (monitor
+  stopped)", counted, never back-filled; A2 and the econ minimums decide availability as declared. CB16's REP_A tail
+  would be lost (CB16's disclosure). The orchestrator re-measures `du` weekly and records it in the ledger.
+- **(c) Not recommended: shorten REP_8.** It is a design change with no scientific reason, costs Stage-2 power and is
+  unnecessary at the projected rate.
+- **(d) Not recommended: compress or move `scores-*` files.** The monitor's trailing-percentile alert rule reads
+  `scores-*.jsonl` from `live_trades/`, so this alters a running collector's inputs, and it touches the retention
+  policy.
+
+CB17 never reads `scores-*` (refused root), so (a) and (b) leave every CB17 rule unchanged.
+
+### 10.4 Part `pre` before q0400-q0403 code (exact content)
+
+Part `pre` of `seals/cb17_rules.json` must hold, before any q0400-q0403 code is written:
+1. **Worn inputs:** the paths and dates of q0400-q0403 (CB13-T SCREEN `fills.csv.gz`/`labels.csv.gz`; monitor
+   `trades-2026101{2..5}.jsonl`; sweeps and captures of `[2026-10-12, 2026-10-16)` plus the `created_at` captures of P1)
+   and the census paths' refusal of any row at or after 2026-10-16T00:00Z; the census field whitelists (`side` for
+   q0400's agreement count only; `recv_ts` for q0403 only).
+2. **Branch rule (finding 7):** overall agreement ≥ 97% with Wilson 95% lower bound ≥ 0.95 and n ≥ 800, and ≥ 97% in
+   every touch-age band {0-20, 20-60 min}, `P` band {[0.03, 0.20), [0.20, 0.80], (0.80, 0.97]} and LABELLER class with
+   n ≥ 100 (others reported); pass → branch S; fail or not run → branch T and **A withdrawn uncounted** before any
+   part commit; the GAS rule (same criteria on SCREEN_8's touch-consistent subset).
+3. **Strata ladders and selection (finding 2):** the §2.6 ladder table for A, B1, B2 and C; the informativeness
+   definitions (binary; continuous; C's three-class numerator and denominator); the selection rule (finest level with
+   worn-data share ≥ 60%, else level 2); A's share computed on the selected branch's population.
+4. **Feature cut points (finding 6):** B's global activity and imbalance tercile recipe on q0401's worn non-sports
+   units (pre-decision quantities only); C's trailing-tercile rule (≥ 6 prior traded intervals, `r_k` and later
+   excluded) and the trailing `dV` stratum, as q0402 computes them.
+5. **Planning SEs:** the SE-only recipe on the pre-outcome proxies (A pre-fill move; B `L_pre`, `Δm_pre`; C `C_pre`),
+   `MDE = 3.80 × SE`, no proxy point estimate written.
+6. **Cost map:** q0403's size grid ($1,000, $5,000), depth bands and fee rule.
+
+With these six items committed, E's census and q0400-q0403 PROCEED per the challenger's verdict.
+
+### 10.5 New k
+
+- **Branch S:** 4 fixed (A1, B1, B2, C1) + ≤ 8 conditional = **4-12; k1 = 4**.
+- **Branch T:** A withdrawn uncounted; 3 fixed (B1, B2, C1) + ≤ 6 conditional = **3-9; k1 = 3**.
+- The branch is decided by q0400 (features only) before any part commit; Stage-2 early finishers stay at α/8 in both.
+
+**Status after this response: DRAFT-REVISED. Nothing frozen, nothing queued, no code.**
