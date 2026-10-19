@@ -1951,3 +1951,13 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   `can_close_early = False` has a weak factual basis.
 - **Promoted q0348** (P smoke). q0347 waits for q0340 (draft, after CB14 q0302). q0349/q0350 after defect 2 (+ the
   ruling); q0352/q0354 after a Stage-2 re-check.
+
+## CB16 code (5c3644f, drafts 1eeb1fa), 2026-10-19 ~15:00Z (implementer); freeze check running; not counted
+- Implemented: cb16_common, cb16_smoke, Q (cb16_q), U (cb16_u, incl. the q0389 Data API client), K (cb16_k), part-A
+  orchestration (cb16_a), run_cb16.py, tests (65 pass; CB13-CB15 + battery2 suites 259 pass), battery2 kinds
+  cb16_test / cb16_replication / cb16_descriptive. H not implemented (withdrawn). Drafts q0380-q0389, q0392.
+- No rules file yet: K's `matches_all.json` pin was unset; the host file's sha256 is `f4cde1e9…` (603,444 B,
+  2026-10-12 20:52); the other K pins match the host files. Provisional hashes common `9a087b8c…`, A `33420b93…`.
+- Implementer's flag for the freeze check: the stratified composition placebo (permutation within fine strata)
+  retains part of a true effect and advanced in synthetic data unless strata were coarse; it may be near-unpassable at
+  ~4 fills per stratum. Ruling pending (a design change needs a written justification and review).
