@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-19 01:57 UTC+1
+**Last updated:** 2026-10-19 02:03 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -10,9 +10,10 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 - **Autopilot:** session running since about 01:45 UTC+1 (19 Oct).
 - **Server:** batch 11's ID check is now set to resume cleanly in 34-minute pieces. Earlier pieces kept hitting
   the 40-minute limit, but none of the work was lost (about 445,000 IDs were already saved). It needs roughly 10 more
-  hours; then about 10-15 hours of batch 11 downloads follow automatically. Batch 12's first counted test (X1: do price gaps
-  between matching Polymarket and Kalshi markets take longer to close when the resolution date is far away?) is queued, now that its rules are
-  frozen.
+  hours; then about 10-15 hours of batch 11 downloads follow automatically. **Batch 12's stale-horizon test ran (one counted test): no finding.** Gaps between
+  matching Polymarket and Kalshi markets do close more slowly when resolution is far away (about 140 vs 49 minutes),
+  but randomly shuffling the horizons produced the same pattern in 16% of tries (1.5% allowed), and it leans on a few
+  events. So it cannot be tied to the horizon. That part of batch 12 is closed.
 - **Caught and fixed this session (nothing lost, nothing changed scientifically):**
   - Batch 12's test had been queued before its rules file was written, so it correctly refused to run. The rules
     were checked independently and then frozen.
@@ -59,6 +60,7 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 - **Hypothesis battery:** 18 of 72 survived; 16 replicate on fresh markets. None covers costs.
 - **Wallet freshness:** null in 3 analyses.
 - **Surprise detector:** beats chance, but is volatility-driven; live test (E011) is analysed after 11 Nov.
+- **Stale cross-venue horizons (batch 12):** no finding; a shuffled-horizon check reproduced the pattern.
 - **Kalshi lead:** the strongest historical predictor; live test (E009/E010) is analysed after 3 Nov.
 
 | Leading candidates | Awaiting confirmation | Confirmed edge |
