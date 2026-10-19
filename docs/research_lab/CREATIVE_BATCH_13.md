@@ -1181,9 +1181,22 @@ are the v1 smoke counts and the 11.y probes of 8 out-of-window event description
   reports GR's flag share both ways: the **binding** `flags_share` over the members that are not creation-anchored,
   and `flags_share_incl_creation_anchored` (flags as evaluated on all parsed members), with `creation_anchored_members`
   and `creation_anchored_share`. The GR threshold (0.95), every other gate, floor and alpha are unchanged.
+- **This amendment decides gate GR's basis check.** In the probe every creation-anchored member also fails the flags
+  (unquoted High/Low), so the flag share including them is 112 / 168 = 0.667 < 0.95: without the exclusion R would
+  fail GR ("not testable (basis)"). The exclusion is justified independently of that outcome by the window argument in
+  (B): a creation-anchored member's rule window is `[createdAt, T]`, so the title-derived window would compute "not
+  decided" and Y over the wrong interval whatever its flags say.
+- **Scope of R1.** Because late strikes are excluded, **R1's conclusions apply only to strikes listed when the rule
+  window opens** (the members whose rule window is the title window), not to strikes added during the window.
+- **Known residual (reported, counts only).** The census reports KEPT members whose `created_epoch` is after their
+  event's parsed window start (`late_kept_members`: all kept events and the primary; also counted at more than 1 h
+  after it). This catches creation-anchored wording the fixed rule may miss. It is reported only and never used to
+  select. The census also sums the member counters of the HOLDOUT events (`holdout_counts.member_flags`, counts only).
 - **Smoke v2 criterion `r_rule_parser`.** Every parsed weekly event parses (window, B, direction, asset) and keeps at
   least one member. Across the parsed events, the non-anchored member flag share must be at least `GR_FLAGS_MIN` (0.95);
-  this is the gate's threshold applied early, not weaker than the v1 wording. The smoke reports per event the parsed,
+  this is the gate's threshold applied early. **It is a stated relaxation of the v1 criterion**, which required 100% of
+  all members of every event to pass; it now follows the design's GR basis (≥ 95% of the members that are not
+  creation-anchored). The smoke reports per event the parsed,
   creation-anchored, flag-failing and kept members and the missing flags (counts only).
 - **If this amendment is rejected,** R stays "not testable (source)", counted (v1's line already stands).
 
@@ -1197,3 +1210,6 @@ unaffected):**
 - LABELLER `1e515bb410598ed7ebc5f6f722b77554acd22d6d9a7548365ba74780c843c780`
 - T `f72683f5a5c315552fd6b8defc00613b6eb19c82224bb52477188bb4ddbd90d3`
 - R `7d05b00d276e52097f637939202d79178b3e87c5490d65cbe1a8dcf76009304f`
+
+**After the 11.z review fixes (2026-10-19; `member_flag_counts`, `late_kept_members`, HOLDOUT member counters; the promoted q0285b was built on R `7d05b00d…`, whose smoke code is unchanged):**
+R `919070246add0ef76100a9d375c1c16b18c15fa817e2be9492bd9fc03f1775f7` (common, LABELLER, T unchanged).

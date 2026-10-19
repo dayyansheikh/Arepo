@@ -1650,6 +1650,7 @@ def test_r_pipeline_frame_klines_pregate_prices_seal_census_screen_rep(tmp_path,
     assert "y" not in json.dumps(cen["gr"]) and math.isfinite(cen["grp"]["mde"])
     g = cen["gr"]  # section 11.z: member-level shares travel through the frame's event counters
     assert g["members_parsed"] > 0 and g["creation_anchored_members"] == 0 and g["flags_share"] == g["flags_share_incl_creation_anchored"] == 1.0 and g["pass_basis"]
+    assert cen["holdout_counts"]["member_flags"]["members_parsed"] > 0 and cen["late_kept_members"]["kept_events"]["kept_members"] > 0
     # seal, then verify (copy equal, listing combined over the frame and Binance HOLDOUT)
     seals = tmp_path / "seals"
     sealed = r13.seal_r(fdir, bdir, rules_sha="x", transport=transport, seals_dir=seals, is_committed=lambda p: True, sleep=nosleep)
@@ -2085,3 +2086,18 @@ def test_smoke_v2_supersedes_a_failed_v1_without_a_second_count_and_jobs_read_v2
     assert code == 2 and "labeller_audit.json" in out["refused"], out
     code, out = _run(["smoke", "--part", "T", *a, "--supersedes", str(v2)], capsys)
     assert code == 2 and "not a failed" in out["refused"]  # a passing smoke is never superseded
+
+
+def test_member_flag_counts_both_ways_and_late_kept_members_report_section_11z_fixes():
+    # the 11.z probe: 168 members, 56 anchored (all failing the flags), 0 non-anchored failures -> binding 1.0, including anchored 112/168
+    rows = [{"n_members_parsed": 21, "n_creation_anchored": 7, "n_flag_fail": 0, "n_flags_pass_all": 14} for _ in range(8)]
+    c = r13.member_flag_counts(rows)
+    assert c["members_parsed"] == 168 and c["creation_anchored_members"] == 56 and c["flags_share"] == 1.0 and abs(c["flags_share_incl_creation_anchored"] - 112 / 168) < 1e-12
+    assert c["flags_share_incl_creation_anchored"] < r13.GR_FLAGS_MIN  # without the exclusion GR's basis would fail
+    assert math.isnan(r13.member_flag_counts([])["flags_share"])
+    ev = {**_row("w1"), "status": "kept"}
+    lo = ev["win_lo"]
+    mem = {"w1": [_member("a", "w1", created=lo - 86400, start=lo - 86400), _member("b", "w1", created=lo + 600, start=lo + 600), _member("c", "w1", created=lo + 7200, start=lo + 7200)]}
+    late = r13.late_kept_members([ev, {**_row("x"), "status": "dropped:key"}], {**mem, "x": [_member("d", "x", created=lo + 9e5, start=lo + 9e5)]})
+    k = late["kept_events"]
+    assert (k["kept_members"], k["created_after_window_start"], k["created_after_window_start_plus_1h"], k["events_with_any"]) == (3, 2, 1, 1) and late["primary"]["kept_members"] == 3

@@ -1554,6 +1554,33 @@ def load_prices(path: Path) -> dict[str, list[tuple[float, float]]]:
     return out
 
 
+def member_flag_counts(rows: list[dict]) -> dict:
+    """Section 11.z, counts only: the per-event member counters summed over ``rows``. ``flags_share`` (binding for GR) = members passing every flag among the members that are not
+    creation-anchored; ``flags_share_incl_creation_anchored`` = flags as evaluated on all parsed members (anchored included)."""
+    n_parsed = sum(int(float(r.get("n_members_parsed") or 0)) for r in rows)
+    n_anchor = sum(int(float(r.get("n_creation_anchored") or 0)) for r in rows)
+    n_fail = sum(int(float(r.get("n_flag_fail") or 0)) for r in rows)
+    n_pass_all = sum(int(float(r.get("n_flags_pass_all") or 0)) for r in rows)
+    flags_all = n_parsed - n_anchor
+    return {"members_parsed": n_parsed, "creation_anchored_members": n_anchor, "flag_fail_members": n_fail,
+            "flags_share": ((flags_all - n_fail) / flags_all) if flags_all else math.nan,
+            "flags_share_incl_creation_anchored": (n_pass_all / n_parsed) if n_parsed else math.nan,
+            "creation_anchored_share": (n_anchor / n_parsed) if n_parsed else math.nan}
+
+
+def late_kept_members(rows: list[dict], mem: dict[str, list[dict]]) -> dict:
+    """Section 11.z fix 3, counts only: KEPT members created after their event's rule-window start (``created_epoch > win_lo``): anchored wording the description rule may miss. Reported,
+    never used to select."""
+    def tally(sel):
+        ms = [(r, m) for r in sel for m in mem.get(r["event_id"], [])]
+        late = [(r, m) for r, m in ms if math.isfinite(c13.num(m.get("created_epoch"))) and math.isfinite(c13.num(r.get("win_lo"))) and c13.num(m["created_epoch"]) > c13.num(r["win_lo"])]
+        return {"kept_members": len(ms), "created_after_window_start": len(late), "share": (len(late) / len(ms)) if ms else math.nan,
+                "created_after_window_start_plus_1h": sum(1 for r, m in late if c13.num(m["created_epoch"]) > c13.num(r["win_lo"]) + HOUR), "events_with_any": len({r["event_id"] for r, _ in late})}
+    kept = [r for r in rows if r.get("status") == "kept"]
+    return {"kept_events": tally(kept), "primary": tally([r for r in kept if is_primary(r)]),
+            "note": "counts only: kept members with createdAt after the parsed window start (possible creation-anchored rules the description rule missed); not a selection rule"}
+
+
 def census_r(frame_dir: Path, bin_dir: Path, *, n_draws: int = c13.GRP_DRAWS) -> dict:
     """q0281, counts only: events / markets by template (weekly primary; monthly, yearly, by census-only), asset, direction, end month; components; parser / flag failures; key and overlap drops (plus
     the full-series counterfactual); the poly_markets completeness; units by label; the distribution of ``q_touch - p_reg`` (features, klines before ``t`` only); HOLDOUT counts only; gates GR and
@@ -1576,19 +1603,13 @@ def census_r(frame_dir: Path, bin_dir: Path, *, n_draws: int = c13.GRP_DRAWS) ->
     n_weekly = sum(1 for r in rows if r["template"] == "weekly")
     # section 11.z: member-level flag shares. BINDING (gate GR basis): members passing every flag among the members that are not creation-anchored; reported too: the share over ALL parsed
     # members (creation-anchored included, flags as evaluated on their own descriptions) and the creation-anchored share
-    n_parsed = sum(int(r.get("n_members_parsed") or 0) for r in rows)
-    n_anchor = sum(int(r.get("n_creation_anchored") or 0) for r in rows)
-    flags_all = n_parsed - n_anchor
-    flags_have = flags_all - sum(int(r.get("n_flag_fail") or 0) for r in rows)
-    flags_pass_incl = sum(int(r.get("n_flags_pass_all") or 0) for r in rows)
+    mfc = member_flag_counts(rows)
     dropped = sum(1 for r in rows if r["status"] in ("dropped:key", "dropped:overlap"))
     kept_or_dropped = sum(1 for r in rows if r["status"] in ("kept", "dropped:key", "dropped:overlap") and r["template"] == "weekly")
     pc = fr_rep.get("poly_markets_cross_check")
     xs = [u["q_touch"] - u["p_reg"] for u in units]
     gr = {"markets_with_units": len(markets_with_units), "events_with_units": len(events_with_units), "weeks": len(weeks), "components": len(comps),
-          "parser_fail_share": (parser_fail / n_weekly) if n_weekly else math.nan, "flags_share": (flags_have / flags_all) if flags_all else math.nan,
-          "flags_share_incl_creation_anchored": (flags_pass_incl / n_parsed) if n_parsed else math.nan, "members_parsed": n_parsed, "creation_anchored_members": n_anchor,
-          "creation_anchored_share": (n_anchor / n_parsed) if n_parsed else math.nan, "flag_fail_members": flags_all - flags_have,
+          "parser_fail_share": (parser_fail / n_weekly) if n_weekly else math.nan, **mfc,
           "frame_found_share": (pc or {}).get("share"), "min": GR_MIN}
     gr["pass_population"] = bool(len(markets_with_units) >= GR_MIN["markets"] and len(events_with_units) >= GR_MIN["events"] and len(weeks) >= GR_MIN["weeks"] and len(comps) >= GR_MIN["components"])
     gr["pass_parser"] = bool(math.isfinite(gr["parser_fail_share"]) and gr["parser_fail_share"] <= GR_PARSER_FAIL_MAX)
@@ -1603,13 +1624,14 @@ def census_r(frame_dir: Path, bin_dir: Path, *, n_draws: int = c13.GRP_DRAWS) ->
     hp = Path(frame_dir) / "holdout" / "events.csv.gz"
     if hp.exists():  # counts only (event and market counts from frame fields)
         hr = list(c13.read_csv_gz(hp))
-        hold_counts = {"events": len(hr), "primary_events": sum(1 for r in hr if r["status"] == "kept" and r["template"] == "weekly"), "by_status": dict(Counter(r["status"] for r in hr))}
+        hold_counts = {"events": len(hr), "primary_events": sum(1 for r in hr if r["status"] == "kept" and r["template"] == "weekly"), "by_status": dict(Counter(r["status"] for r in hr)),
+                       "member_flags": member_flag_counts(hr)}
     return {"counts_only": True, "events_by_template": dict(Counter(r["template"] for r in rows)), "events_by_status": dict(Counter(r["status"] for r in rows)),
             "primary": {"events": len(prim), "markets": n_markets, "by_asset": dict(Counter(r["asset"] for r in prim)), "components": len({r["component"] for r in prim})},
             "direction_counts": dict(Counter(m["direction"] for r in prim for m in mem.get(r["event_id"], []))), "unit_counts": dict(cnt),
             "drops": {"key_or_overlap": dropped, "share": (dropped / kept_or_dropped) if kept_or_dropped else math.nan, "full_series_counterfactual": fr_rep.get("full_series_counterfactual_drops"),
                       "population_label": LABEL_THIN if (kept_or_dropped and dropped / kept_or_dropped > R_EXCL_THIN_SHARE) else None},
-            "poly_markets_cross_check": pc, "q_minus_preg": q, "holdout_counts": hold_counts, "gr": gr, "grp": grp, "frame_request_sum": fr_rep.get("prices_request_sum")}
+            "poly_markets_cross_check": pc, "q_minus_preg": q, "holdout_counts": hold_counts, "late_kept_members": late_kept_members(rows, mem), "gr": gr, "grp": grp, "frame_request_sum": fr_rep.get("prices_request_sum")}
 
 
 def screen_r(frame_dir: Path, bin_dir: Path, census: dict, gamma_rows: list[dict], *, n_draws: int = c13.PLACEBO_DRAWS) -> dict:
