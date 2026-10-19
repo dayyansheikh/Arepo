@@ -233,7 +233,10 @@ def test_outcome_rule_ambiguous_band_and_day_maxima():
     assert e12.round_mag(5.25) == 5.3 and e12.round_mag(5.249) == 5.2
     t = 1e6
     amb = {"klass": "E-a", "threshold": 6.5, "t": t}
-    assert e12.ambiguous(amb, _cat([(t - 3600, 6.8)])) and not e12.ambiguous(amb, _cat([(t - 3600, 6.81)])) and not e12.ambiguous(amb, _cat([(t - 73 * 3600, 6.5)])) and not e12.ambiguous({**amb, "klass": "E-c"}, _cat([(t - 3600, 6.5)]))
+    # the check sees only [t - 144 h, t - 72 h): an event inside the last 72 h is invisible (sections 1.3 / 2.7)
+    h = 3600
+    assert e12.ambiguous(amb, _cat([(t - 73 * h, 6.8)])) and not e12.ambiguous(amb, _cat([(t - 73 * h, 6.81)])) and not e12.ambiguous(amb, _cat([(t - 145 * h, 6.5)]))
+    assert not e12.ambiguous(amb, _cat([(t - 3600, 6.5)])) and not e12.ambiguous(amb, _cat([(t - 72 * h, 6.5)])) and not e12.ambiguous({**amb, "klass": "E-c"}, _cat([(t - 73 * h, 6.5)]))
     mx = e12.day_maxima(_cat([(ep("2000-01-02T03:00:00Z"), 4.74), (ep("2000-01-02T04:00:00Z"), 5.0)]), "UTC", "2000-01-01", "2000-01-04")
     assert list(mx) == [-math.inf, 5.0, -math.inf]
     mx_et = e12.day_maxima(_cat([(ep("2000-01-02T03:00:00Z"), 4.74)]), "ET", "2000-01-01", "2000-01-04")  # 03:00Z is Jan 1 22:00 ET
@@ -242,9 +245,11 @@ def test_outcome_rule_ambiguous_band_and_day_maxima():
 
 def test_price_point_rule_and_checkpoint_calendar():
     t = ep("2025-03-10T16:00:00Z")
-    pts = [(t - 3600, 0.4), (t - 3601, 0.3), (t - 25 * 3600, 0.2)]
+    pts = [(t - 25 * 3600, 0.2), (t - 3601, 0.3), (t - 3600, 0.4)]  # ascending by stamp
     assert e12.point_at(pts, t) == (t - 3601, 0.3)  # stamp + 3600 < t strictly; a point at exactly t - 3600 is not usable
     assert e12.point_at([(t - 25 * 3600, 0.2)], t) is None  # older than 24 h
+    assert e12.point_at([(t - 7200, math.nan), (t - 7200, 0.35), (t - 5000, 0.5)], t) == (t - 5000, 0.5) and e12.point_at([(t - 7200, math.nan), (t - 7200, 0.35), (t - 3601, math.nan)], t) == (t - 7200, 0.35)
+    assert e12.point_at([], t) is None and e12.point_at([(t - 3600, 0.4)], t) is None
     m = {"klass": "E-a", "created_epoch": ep("2024-09-01T00:00:00Z"), "end_epoch": ep("2024-09-10T00:00:00Z"), "win_start": ep("2024-09-01T04:00:00Z"), "win_end": ep("2024-09-09T04:00:00Z")}
     ck = e12.checkpoints_for(m)
     assert ck[0] == ep("2024-09-01T16:00:00Z") and ck[-1] == ep("2024-09-08T16:00:00Z") and all(b - a == DAY for a, b in zip(ck, ck[1:], strict=False))  # last >= 6 h before the end
@@ -272,6 +277,9 @@ def _units(n_events=60, per=4, seed=3, signal=1.0, noise=0.05):
                 out.append({"market_id": f"m{e}_{j}", "event_id": f"e{e}", "klass": ("E-a", "E-b", "E-c")[j % 3], "t": wk + k * DAY, "week": c12.iso_week_of(wk + k * DAY), "component": f"C{e}",
                             "label": "available", "p_t": p, "p_reg": preg, "p_alt": float(np.clip(p + rng.normal(0, 0.1), 0.01, 0.99)), "q": q, "y": y, "y_gamma": y})
     return out
+
+
+WIN = (ep("2024-10-01T00:00:00Z"), ep("2025-08-20T00:00:00Z"))  # the synthetic units' calendar window (two halves)
 
 
 def test_slope_pseudo_matches_weighted_least_squares_and_mean_pseudo_is_the_slope():
@@ -302,13 +310,13 @@ def test_e1_advances_on_a_strong_catalogue_signal_and_not_on_noise(monkeypatch):
 
     monkeypatch.setattr(e12, "e1_signflip", fake_flip)
     strong = _units(n_events=140, signal=1.0)
-    sig = e12.e1_test(strong, placebo=True, cat=_cat([(ep("2024-11-01T00:00:00Z"), 7.6)]))
+    sig = e12.e1_test(strong, placebo=True, cat=_cat([(ep("2024-11-01T00:00:00Z"), 7.6)]), window=WIN)
     assert sig["floor_ok"] and sig["p"] < c12.GATE_P and sig["independent_price_placebo"]["credit"] and sig["placebo"]["holds"], {k: sig.get(k) for k in ("beta", "p", "robustness", "placebo", "independent_price_placebo")}
     assert sig["robustness_ok"] is True and sig["stage1_pass"] and "ways" in sig and calls == [len(strong)]
     assert sig["advance"] is c12.early_stage1_ok(sig["p"]) and sig["agreement"]["share"] == 1.0 and sig["agreement"]["label"] is None
     # a failed binding sign-flip calibration blocks the advance whatever the slope
     monkeypatch.setattr(e12, "e1_signflip", lambda us, **k: {"ways": {}, "holds": False, "advance_rate": 0.2, "n_draws": 1, "note": "stub"})
-    blocked = e12.e1_test(strong, placebo=True)
+    blocked = e12.e1_test(strong, placebo=True, window=WIN)
     assert blocked["stage1_pass"] is False and blocked["advance"] is False
     flat = e12.e1_test(_units(n_events=70, signal=0.0, seed=9), placebo=False)
     assert flat["advance"] is False and flat["verdict"] != "advance (early Holm)"
@@ -318,7 +326,7 @@ def test_a_failed_robustness_blocks_the_advance():
     us = _units(n_events=140, signal=1.0)
     for u in us:
         u["y_gamma"] = None  # the venue's outcome is unavailable: the Gamma-outcome sign check cannot pass (it is a binding robustness, never skipped)
-    r = e12.e1_test(us, placebo=False)
+    r = e12.e1_test(us, placebo=False, window=WIN)
     assert r["robustness"]["gamma_outcome_sign_half"] is False and r["robustness_ok"] is False and r["advance"] is False and r["agreement"]["share"] is None
 
 
@@ -773,13 +781,249 @@ def test_live_outcomes_are_written_only_to_the_guarded_file_after_72h(tmp_path):
     state: dict = {}
     assert e12.live_outcomes(root, ep("2026-11-03T00:00:00Z"), src, state) == 0 and src.gamma_calls == 0  # window ends 2026-11-02T04:00Z: not yet 72 h
     n = e12.live_outcomes(root, ep("2026-11-06T00:00:00Z"), src, state)
-    rows = list(c12.read_csv_gz(root / "outcomes_guarded.csv.gz"))
-    assert n == 3 == len(rows) and state["outcomes"]["n_due"] == 3 and gamma_ok(rows)
+    rows = list(c12.read_csv_gz(root / e12.LIVE_OUTCOMES_FILE))
+    assert n == 3 and e12.LIVE_OUTCOMES_FILE not in c12.GUARDED_NAMES and not (root / "outcomes_guarded.csv.gz").exists() == len(rows) and state["outcomes"]["n_due"] == 3 and gamma_ok(rows)
     assert e12.gamma_yes(rows[0]) == 1.0 and e12.gamma_yes({"outcome_prices": '["0.5","0.5"]', "yes_index": 0, "uma_status": "resolved"}) == 0.5 and e12.gamma_yes({"outcome_prices": '["1","0"]', "yes_index": 0, "uma_status": "proposed"}) is None
 
 
 def gamma_ok(rows):
     return all(set(r) == set(e12.OUTCOME_COLUMNS) for r in rows)
+
+
+# =====================================================================================================================================================
+# Freeze-check fixes (2026-10-19 ~15:00Z): placebo credit in the rep, outcome reads, availability, missed passes, halves, ambiguity window
+# =====================================================================================================================================================
+
+
+def test_this_month_is_not_regional_and_regions_still_are():
+    assert e12.classify("How many 6.5 or above earthquakes this month?", "Will there be 2 earthquakes of 6.5 or above magnitude worldwide this month?") == "E-a"
+    assert e12.classify("x", "Will there be 2 earthquakes of 6.5 or above in California this month?") == "regional"
+    assert e12.classify("x", "Where will the next 7.0+ earthquake be this month?") == "regional"
+    assert "this month" not in e12.REGIONAL_RE.pattern
+
+
+def test_key_excluded_events_without_a_window_are_counted():
+    def e(i, a, b):
+        return {"event_id": i, "win_start": a, "win_end": b, "status": "", "src": "", "nr_id": ""}
+
+    evs = [e("k1", math.nan, math.nan), e("k2", 0, 7), e("o", 3, 5), e("f", 50, 60)]
+    c = e12.apply_exclusions(evs, {x["event_id"]: [{"market_id": "m" + x["event_id"]}] for x in evs}, set(), {"event": {"k1", "k2"}, "neg_risk_market": set()})
+    assert c == {"key_excluded": 2, "key_excluded_no_window": 1} and {x["event_id"]: x["status"] for x in evs} == {"k1": "dropped:key", "k2": "dropped:key", "o": "dropped:overlap", "f": "kept"}
+
+
+def test_e1_availability_counts_no_separate_earlier_point_and_units_without_an_outcome():
+    us = _units(n_events=70)
+    n = len(us)
+    for u in us[: int(0.5 * n)]:
+        u["label"] = "no separate earlier point"
+    r = e12.e1_test(us, placebo=False, window=WIN)
+    assert r["verdict"] == "not testable (availability)" and r["availability_share"] < c12.AVAIL_MIN
+    us2 = _units(n_events=70)
+    for u in us2[: int(0.5 * n)]:
+        u["y"] = None  # an available unit with no outcome is a labelled unavailable unit, not a silent drop
+    r2 = e12.e1_test(us2, placebo=False, window=WIN)
+    assert r2["verdict"] == "not testable (availability)" and r2["unit_labels"]["unavailable (outcome read)"] == int(0.5 * n)
+    ex = _units(n_events=70)
+    for u in ex[: int(0.5 * n)]:
+        u["label"] = "ambiguous recent quake"  # excluded from the denominator by design, counted by label
+    assert e12.e1_test(ex, placebo=False, window=WIN)["availability_share"] == 1.0
+
+
+def test_independent_price_placebo_unknown_never_counts_as_met():
+    us = _units(n_events=70, signal=1.0)
+    for u in us:
+        u["p_alt"] = None
+    r = e12.e1_test(us, placebo=False, window=WIN)
+    assert r["independent_price_placebo"]["credit"] is False and r["independent_price_placebo"]["known"] is False and r["advance"] is False
+    ok = e12.e1_test(_units(n_events=140, signal=1.0), placebo=False, window=WIN)
+    assert ok["independent_price_placebo"]["known"] is True and ok["independent_price_placebo"]["credit"] is True
+
+
+def test_halves_are_the_calendar_halves_of_the_window_not_the_median_unit_time():
+    us = _units(n_events=140, signal=1.0)
+    lo, hi = min(u["t"] for u in us), max(u["t"] for u in us)
+    good = e12.e1_test(us, placebo=False, window=(lo - DAY, hi + DAY))
+    assert good["robustness"]["halves_sign"] is True
+    # the same units against a window whose second half holds none of them: the half check cannot pass
+    bad = e12.e1_test(us, placebo=False, window=(lo - DAY, hi + 400 * DAY))
+    assert bad["robustness"]["halves_sign"] is False and bad["robustness_ok"] is False and bad["advance"] is False
+
+
+def test_labels_reach_the_verdict_text_the_trial_line_keeps():
+    r = e12.add_labels({"verdict": "no advance"}, ["rule ambiguity", None])
+    assert r["verdict"] == "no advance [rule ambiguity]" and r["labels"] == ["rule ambiguity"]
+    e12.add_labels(r, ["population thinned by exclusions"])
+    assert r["verdict"] == "no advance [population thinned by exclusions; rule ambiguity]"
+    us = _units(n_events=140, signal=1.0)
+    for u in us:
+        u["y_gamma"] = 1.0 - u["y"]  # the venue disagrees with the catalogue on every unit
+    assert "rule ambiguity" in e12.e1_test(us, placebo=False, window=WIN)["verdict"]
+    assert "population thinned" in e12.screen_e(Path("/nonexistent"), {"label_E": "not testable (dependence)", "label_thinned": "population thinned by exclusions"})["E1"]["verdict"]
+
+
+def _rep_world(tmp_path, monkeypatch, *, alt_is_q: bool):
+    root = tmp_path / "h12_quake_live"
+    frozen = ep("2026-10-19T12:00:00Z")
+    src = FakeLive(0.0, [_live_event(created="2026-10-20T12:00:00Z")])
+    _two_passes(root, "2026-10-27", src)
+    start = ep("2026-10-20T12:00:00Z")
+    units, gam = [], []
+    for u in _units(n_events=140, signal=1.0):
+        if u["market_id"].endswith("_0") or u["t"] != u["t"] or True:
+            k = int(u["event_id"][1:])
+            ws = start + k * 0.6 * DAY  # disjoint half-day windows: one component per event
+            units.append({**u, "t": ws + 16 * 3600, "win_start": ws, "win_end": ws + 0.5 * DAY, "p_alt": u["q"] if alt_is_q else u["p_alt"], "a_yes": u["p_t"], "b_yes": u["p_t"]})
+    for m in {u["market_id"]: u for u in units}.values():
+        gam.append({"market_id": m["market_id"], "outcome_prices": '["1","0"]' if m["y"] == 1.0 else '["0","1"]', "yes_index": 0, "uma_status": "resolved"})
+    monkeypatch.setattr(e12, "live_units", lambda *a, **k: ([dict(x) for x in units], {}))
+    monkeypatch.setattr(e12, "e1_signflip", lambda us, **k: {"ways": {}, "holds": True, "advance_rate": 0.0, "n_draws": 0, "note": "stub"})
+    model = {k: {"lambda_per_day": 0.03, "k_month": 4.0} for k in ("6.0", "6.5", "7.0", "7.5", "8.0")}
+    return e12.rep_e(root, ("E1",), frozen_epoch=frozen, now=start + 95 * DAY, model=model, maxima={}, gamma_rows=gam, k2=2)
+
+
+def test_e1_rep_pass_needs_the_independent_price_placebo_credit(tmp_path, monkeypatch):
+    good = _rep_world(tmp_path / "a", monkeypatch, alt_is_q=False)["E1_rep"]
+    assert good["independent_price_placebo"]["credit"] is True and good["p"] < c12.GATE_P and good["robustness_ok"] is True and good["stage2_pass_alpha_over_k"] is True, \
+        {k: good.get(k) for k in ("verdict", "p", "robustness", "independent_price_placebo", "placebo")}
+    bad = _rep_world(tmp_path / "b", monkeypatch, alt_is_q=True)["E1_rep"]  # the 48 h price carries the signal: no credit, so no pass whatever the slope
+    assert bad["independent_price_placebo"]["credit"] is False and bad["stage2_pass_alpha_over_k"] is False
+
+
+def _pass_file(root, day, hh, t_start, members, events, frm, ok=True):
+    rec = {"version": "cb12-quake-pass-v1", "rules_sha256": "r" * 64, "day": day, "pass": f"{hh:02d}00", "t_start": t_start, "members": members, "member_parse": {},
+           "books": {m["market_id"]: [e12.book_state({"bids": [{"price": "0.40", "size": "100"}], "asks": [{"price": "0.44", "size": "80"}]}, t_start + 1.0)] * 2 for m in members},
+           "usgs": {"ok": True, "receipt_t": t_start, "from": frm, "n_served": len(events), "events": events} if ok else {"ok": False}}
+    e12._wjson_gz(root / f"{day}_{hh:02d}00.json.gz", rec)
+
+
+def _mem(mid, ws, we, klass="E-a", created=0.0):
+    return {"event_id": "EV", "market_id": mid, "klass": klass, "threshold": 6.5, "lo": 0.0, "hi": 0.0, "win_start": ws, "win_end": we, "tz": "ET", "yes_index": 0, "fee_rate": 0.0,
+            "created_epoch": created, "token_yes": "t" + mid}
+
+
+def test_stage2_outcome_read_must_cover_the_window_start_and_missing_days_are_unavailable_collection(tmp_path):
+    root = tmp_path / "live"
+    root.mkdir()
+    ws, we = ep("2026-11-01T04:00:00Z"), ep("2026-11-08T04:00:00Z")
+    m = _mem("m1", ws, we, created=ws - 10 * DAY)
+    ev = [[int((ws + DAY) * 1000), 0.0, 0.0, 6.7, "mww", "reviewed", None]]
+    # 11-05 pass covers the window; the first read >= 72 h after the end (11-11 16:00Z) starts at 11-09 (a later start would undercount): unavailable (outcome read)
+    for d in ("2026-11-04", "2026-11-05", "2026-11-06"):
+        t = ep(f"{d}T16:00:00Z")
+        _pass_file(root, d, 10, t - 6 * 3600, [m], ev, ws - 5 * DAY)
+        _pass_file(root, d, 16, t, [m], ev, ws - 5 * DAY)
+    t = ep("2026-11-11T16:00:00Z")
+    _pass_file(root, "2026-11-11", 10, t - 6 * 3600, [m], ev, ep("2026-11-09T00:00:00Z"))
+    _pass_file(root, "2026-11-11", 16, t, [m], ev, ep("2026-11-09T00:00:00Z"))
+    model = {k: {"lambda_per_day": 0.03, "k_month": 4.0} for k in ("6.0", "6.5", "7.0", "7.5", "8.0")}
+    units, _ = e12.live_units(root, ws - 30 * DAY, we + 30 * DAY, model, {}, now=ep("2026-11-06T20:00:00Z"))
+    av = [u for u in units if u["label"] == "available"]
+    assert av and all(u["y"] is None and u["outcome_label"] == "unavailable (outcome read)" and e12.effective_label(u) == "unavailable (outcome read)" for u in av)
+    miss = [u for u in units if u["label"] == "unavailable (collection)"]
+    assert not miss  # 11-04..11-06 all collected; nothing missing so far
+    # remove the 11-05 16:00Z pass: that day's member is 'unavailable (collection)', counted
+    (root / "2026-11-05_1600.json.gz").unlink()
+    units, _ = e12.live_units(root, ws - 30 * DAY, we + 30 * DAY, model, {}, now=ep("2026-11-06T20:00:00Z"))
+    miss = [u for u in units if u["label"] == "unavailable (collection)"]
+    assert len(miss) == 1 and miss[0]["market_id"] == "m1" and miss[0]["t"] == ep("2026-11-05T16:00:00Z")
+    # the reading of a covering span is used: same pass set with the final read covering the window start gives a catalogue outcome
+    _pass_file(root, "2026-11-11", 10, t - 6 * 3600, [m], ev, ws - DAY)
+    _pass_file(root, "2026-11-11", 16, t, [m], ev, ws - DAY)
+    units, _ = e12.live_units(root, ws - 30 * DAY, we + 30 * DAY, model, {}, now=ep("2026-11-06T20:00:00Z"))
+    assert any(u["label"] == "available" and u["y"] is not None for u in units)
+    # a window start cut off by the span cap: the unit is labelled, not silently undercounted
+    _pass_file(root, "2026-11-06", 16, ep("2026-11-06T16:00:00Z"), [m], ev, ws + DAY)
+    units, _ = e12.live_units(root, ws - 30 * DAY, we + 30 * DAY, model, {}, now=ep("2026-11-06T20:00:00Z"))
+    assert any(u["label"] == "unavailable (span cap)" for u in units)
+
+
+def test_failed_pass_is_recorded_retried_in_the_window_then_adopted_and_missed_slots_are_counted(tmp_path):
+    root = tmp_path / "h12_quake_live"
+    frozen = ep("2026-10-19T12:00:00Z")
+    now = ep("2026-10-26T16:05:00Z")
+    src = FakeLive(now, [_live_event()])
+    calls = {"n": 0}
+    real = src.open_events
+
+    def flaky(tag):
+        calls["n"] += 1
+        if calls["n"] <= 1:
+            raise e12.cm.ApiError("gamma 503")
+        return real(tag)
+
+    src.open_events = flaky
+    out = e12.quake_live_tick(root, now=now, src=src, rules_sha="r" * 64, frozen_epoch=frozen, sleep=NOSLEEP)
+    st = json.loads((root / "state.json").read_text())
+    assert out["status"] == "pass_failed" and st["passes"]["2026-10-26_1600"]["status"] == "failed" and st["passes"]["2026-10-26_1600"]["attempts"] == 1
+    out = e12.quake_live_tick(root, now=now + 300, src=src, rules_sha="r" * 64, frozen_epoch=frozen, sleep=NOSLEEP)
+    assert out["status"] == "pass" and json.loads((root / "state.json").read_text())["passes"]["2026-10-26_1600"]["status"] == "ok"
+    n_files = len(list(root.glob("*_1600.json.gz")))
+    again = e12.quake_live_tick(root, now=now + 600, src=src, rules_sha="r" * 64, frozen_epoch=frozen, sleep=NOSLEEP)
+    assert again["status"] != "pass" and len(list(root.glob("*_1600.json.gz"))) == n_files == 1
+    # a crash after the pass file was written but before the state record: the file is adopted, never re-read
+    (root / "state.json").write_text(json.dumps({"passes": {}}))
+    reads = src.usgs_calls
+    adopted = e12.quake_live_tick(root, now=now + 900, src=src, rules_sha="r" * 64, frozen_epoch=frozen, sleep=NOSLEEP)
+    assert adopted["status"] == "pass" and src.usgs_calls == reads and json.loads((root / "state.json").read_text())["passes"]["2026-10-26_1600"].get("adopted") is True
+    # slots between the freeze and now without a record are 'unavailable (collection)'
+    sts = json.loads((root / "state.json").read_text())["passes"]
+    assert sts["2026-10-19_1600"]["status"] == "unavailable (collection)" and sts["2026-10-26_1000"]["status"] == "unavailable (collection)" and "2026-10-19_1000" not in sts  # 10:00Z on the freeze day precedes the freeze
+    # three failed tries end the slot
+    root2 = tmp_path / "x2" / "h12_quake_live"
+    src2 = FakeLive(now, [_live_event()])
+    src2.open_events = lambda tag: (_ for _ in ()).throw(e12.cm.ApiError("down"))
+    for i in range(4):
+        e12.quake_live_tick(root2, now=now + 60 * i, src=src2, rules_sha="r" * 64, frozen_epoch=frozen, sleep=NOSLEEP)
+    assert json.loads((root2 / "state.json").read_text())["passes"]["2026-10-26_1600"]["attempts"] == e12.LIVE_PASS_MAX_ATTEMPTS
+
+
+def test_usgs_span_reaches_back_30_days_and_pending_windows_and_reports_the_cap(tmp_path):
+    root = tmp_path / "live"
+    now = ep("2026-10-26T16:05:00Z")
+    src = FakeLive(now, [_live_event(ws="October 20", we="November 1")])
+    e12.live_pass(root, now, src, rules_sha="r" * 64, sleep=NOSLEEP)
+    rec = e12._rjson_gz(root / "2026-10-26_1600.json.gz")
+    assert rec["usgs"]["from"] == pytest.approx(now - 30 * DAY)  # open windows start after now - 30 d: the span still reaches 30 days back
+    root2 = tmp_path / "live2"
+    pend = [now - 500 * DAY]
+    e12.live_pass(root2, now, FakeLive(now, [_live_event()]), rules_sha="r" * 64, sleep=NOSLEEP, pending_starts=pend)
+    rec2 = e12._rjson_gz(root2 / "2026-10-26_1600.json.gz")
+    assert rec2["usgs"]["from"] == pytest.approx(now - 400 * DAY) and rec2["usgs"]["n_window_starts_cut_by_cap"] == 1
+    root3 = tmp_path / "live3"
+    e12.live_pass(root3, now, FakeLive(now, [_live_event()]), rules_sha="r" * 64, sleep=NOSLEEP, pending_starts=[ep("2026-09-01T00:00:00Z")])
+    assert e12._rjson_gz(root3 / "2026-10-26_1600.json.gz")["usgs"]["from"] == pytest.approx(ep("2026-09-01T00:00:00Z"))
+
+
+def test_unresolved_e2_trades_are_counted(tmp_path, monkeypatch):
+    res = _rep_world(tmp_path, monkeypatch, alt_is_q=False)
+    assert "collection_passes" in res and res["unit_labels"]["available"] > 0
+    u = {"label": "available", "market_id": "m", "t": 1.0, "fee_rate": 0.0, "y_gamma": None, "q": 0.60, "a_yes": 0.50, "b_yes": 0.48}
+    trades = e12.e2_trades([u])
+    assert len(trades) == 1 and trades[0]["net"] is None
+
+
+def test_census_never_sees_catalogue_events_at_or_after_t_minus_72h_in_any_unit_feature(world, capsys):
+    w = world
+    _run(["quake-frame", *w.common, *w.dd, *w.frame], capsys)
+    _run(["quake-prices", *w.common, *w.dd], capsys)
+    data = e12.load_frame(w.rdir)
+    units, _ = e12.build_units(data)
+    av = [u for u in units if u["label"] == "available"]
+    # for a spread of units, inject events of every modelled magnitude into [t - 72 h, t) of ALL units at once: no label and no q changes anywhere
+    rng = np.random.default_rng(5)
+    ts = sorted({u["t"] for u in av})
+    pick = [ts[i] for i in rng.integers(0, len(ts), size=12)]
+    inj = [[t - h, mg] for t in pick for h in (3600.0, 40 * 3600.0, 72 * 3600.0 - 1.0) for mg in (6.0, 6.5, 7.0, 7.5, 8.0)]
+    cat = np.vstack([data["cat45"], inj])
+    data2 = {**data, "cat45": cat[np.argsort(cat[:, 0])]}
+    units2, _ = e12.build_units(data2)
+    # an injected event is old enough (>= 72 h before t) for the checkpoint t + 3 d; compare only the picked checkpoints t, whose own window [t-72h, t) is untouched by
+    # injections placed for t itself but not by injections for other picks, so restrict the comparison to picks at least 4 days from every other pick
+    iso_pick = [t for t in pick if all(abs(t - o) > 4 * DAY for o in pick if o != t)]
+    assert iso_pick
+    a = {(u["market_id"], u["t"]): (u["label"], u.get("q")) for u in units if u["t"] in iso_pick}
+    b = {(u["market_id"], u["t"]): (u["label"], u.get("q")) for u in units2 if u["t"] in iso_pick}
+    assert a == b
 
 
 # =====================================================================================================================================================

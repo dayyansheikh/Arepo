@@ -666,7 +666,7 @@ def cmd_rep(a):
     rsha = c12.write_results_once(Path(a.out) if a.out else root / f"results_{fam}_rep.json", doc)
     lines = {t: _line(doc[f"{t}_rep"], advance_key="stage2_pass_alpha_over_k") for t in adv}
     c12.log_family(fam, lines, replication=True, trials_path=_tp(a), results_sha256=rsha, n_triggered=len(adv), placebos=_placebos({t: doc[f"{t}_rep"] for t in adv}, adv),
-                   role="prospective" if fam == "O" else c12.EVIDENCE_ROLE_HIST)
+                   role="prospective" if fam in ("O", "E") else c12.EVIDENCE_ROLE_HIST)
     return 0, {"status": f"rep_{fam}_complete", "tests": list(adv)}
 
 
