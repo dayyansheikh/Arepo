@@ -2146,3 +2146,11 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   `daily_file_age_days` in the census. E `a63672c9…` -> `bd512db4…`, O `0899797a…` -> `4e1dd759…`; common/M/X
   unchanged; 191 cb12 tests. q0244 hold lifted; q0244/q0260 and drafts re-pinned. A short confirmation precedes q0266
   and the O freeze.
+
+## CB16 smoke q0381 PASS; q0382 promoted; q0273 refused (no CB13 freeze), 2026-10-19 ~21:25Z; not counted
+- **q0381 (done 21:00:45Z): PASS** for parts A and K (all 11 criteria true incl. CB13 pins and reproduction, K counts
+  exact, inputs pinned, no outcome fields); nothing counted. **q0382 (Q grain census, cpu, 800 MB) promoted**.
+- **q0273 refused** (rc 2): `model_specs/cb13_v1.json` does not exist; the CB13 screens refuse before the family's
+  freeze entry. Promoting q0273 before the T freeze was a coordinator error (no data read, nothing counted). A
+  science-reviewer is checking whether the T freeze may be committed now; then `queue_worker.py retry q0273` on the
+  host.

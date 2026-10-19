@@ -2,7 +2,7 @@
  "id": "q0382_cb16_q_grain_census",
  "title": "CB16-Q grain census, counts only, features only: eligible non-sports CB13-T SCREEN fills by tick, P band, grain; both-grain market share; gate GQG; count of >= 12 h large-print silences the >= 5 prior-gap rule would drop (round 1 item 9)",
  "family": "creative_batch_16",
- "priority": 9,
+ "priority": 20,
  "expected_value": "decides whether the grain arm is informative before the A freeze",
  "data": [
   "CB13-T SCREEN raw files: live_trades + snapshots [2026-10-12, 2026-10-16) via the pinned CB13 readers (features only)"
@@ -28,5 +28,5 @@
   "trials.jsonl (cb16_descriptive or the counted Q1 not-testable line)"
  ],
  "next_action": "PASS: A freeze check",
- "notes": "CREATIVE_BATCH_16.md section 4, CB16 code. DRAFT. No network; reads the CB13-T SCREEN raw files [2026-10-12, 2026-10-16) through the pinned CB13 readers (features only; no mark quote; the independent raw-file path replaces any dependence on q0271 output). A GQG FAIL counts Q1 once (terminal 'not testable (grain)') and stops Q2. Rules part sha256 (seals/cb16_rules.json, written 2026-10-19 after the freeze-check fixes): common 9a087b8c463ec40e51ea795887ddb5332fba03aef1b09780dffe6e317ac577cb, A 8f395a7db285bebade752bd898be0b03e472a54d833cd560b89acdaae4ff6320, K cfe9bea5c1b97166dba84212d829a8ea31e57e3aa118891660702b8843909d01. CB16 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer, part A first) and the committed rules file; the coordinator regenerates the rules and these shas if any common / A / K code changes."
+ "notes": "CREATIVE_BATCH_16.md section 4, CB16 code. No network; reads the CB13-T SCREEN raw files [2026-10-12, 2026-10-16) through the pinned CB13 readers (features only; no mark quote; the independent raw-file path replaces any dependence on q0271 output). A GQG FAIL counts Q1 once (terminal 'not testable (grain)') and stops Q2. Rules part sha256 (seals/cb16_rules.json, written 2026-10-19 after the freeze-check fixes): common 9a087b8c463ec40e51ea795887ddb5332fba03aef1b09780dffe6e317ac577cb, A 8f395a7db285bebade752bd898be0b03e472a54d833cd560b89acdaae4ff6320, K cfe9bea5c1b97166dba84212d829a8ea31e57e3aa118891660702b8843909d01. PROMOTED 2026-10-19 ~21:25Z (autopilot): q0381 smoke PASS (A and K, 21:00Z); CB16 re-check allowed q0382 after q0381. Priority 20 so it reads the 2026-10-12 captures before they age out."
 }
