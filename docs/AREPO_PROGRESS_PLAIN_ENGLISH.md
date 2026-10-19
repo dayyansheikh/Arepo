@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-19 15:17 UTC+1
+**Last updated:** 2026-10-19 15:23 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -17,8 +17,8 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
   (Mississippi), so by the pre-set rule the other 50 count as "no sign". With no state leaning the other way, the
   election-night part almost certainly cannot be tested; an independent audit of the sources is running before this is
   recorded.
-- **Batch 13 blind label check, round 2:** a new blind reviewer is labelling 200 fresh titles now. A second failure records
-  the part as "not testable".
+- **Batch 13 blind label check, round 2: PASSED** (97% agreement; both label groups above the 80% bar, also on the
+  164 titles not seen in round 1). The maker-loss data build and its count check are queued on the server's idle compute lane.
 - **Batch 12 (earthquakes) and batch 16 (quoter grain, wake-up prints):** code being finished, then independent review.
 - **New ideas (round 8):** being generated now, aimed at tests that use data already on the server, because the server's
   download lane is booked for days while its compute lane is idle.

@@ -233,11 +233,12 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
      (`creative_batch15/ge0_sources/`). Uncommitted until the science-reviewer archive audit returns (running). Then:
      set audit flags -> `ge0-cross-table --write` -> `ge0-check` -> commit -> pin bundle sha256 in q0344/q0346 drafts.
      Expected consequence: GEI cannot pass (no -1 state) -> E1/E2 "not testable (identifiability)" at q0344, counted.
-   - **Agents running (re-run any without a commit):** GE0 audit (science-reviewer); CB13 GL round 2 blind labels
-     (science-reviewer, sees only /tmp/gl_r2_blind/{DEFINITIONS.md, labeller_audit_sample_r2.json}) -> save as
-     audits/cb13_gl/reviewer_labels_r2.json -> host `run_cb13.py audit-score --round 2 --reviewer-labels ...`
-     (binding: full 200; 164-new sensitivity; differing verdicts = FAIL); CB12-E code (implementer; common/M/X hashes
-     must not change); CB16 code Q/U/K (implementer); creative round 8 (Fable xhigh, CH144+, host-only/CPU-lane brief).
+   - **Done 14:20-14:35Z:** GE0 audit ACCEPT -> GE0 committed b7e1f0a (MS +1 only), bundle `a571f58b` pinned in q0344/q0346
+     (ba0ce3b); **CB13 GL round 2 PASS** (4cfb587; full and 164-new) -> q0271/q0272 promoted (cpu lane, deployed).
+   - **Agents running (re-run any without a commit):** CB12-E code (implementer; common/M/X hashes must not change);
+     CB16 code Q/U/K (implementer); creative round 8 (Fable xhigh, CH144+); freeze checks CB12-O (c79364a) and CB15-P
+     (e01ce12+49eba64) (science-reviewers). After q0341b: science-reviewer decides q0343->q0344 vs recording E1/E2
+     'not run (identifiability)' directly.
    - **After the code agents:** science-reviewer freeze checks of CB12-E and CB16 -> promote drafts.
 1. **CB8-H:** q0162/q0163 wait on spec `not_before` (10-21T06Z / 10-22T12Z). **CB8-B:** q0161/q0164 after T_seal; before
    promoting q0164 run the two `derive-exclusion-ids` commands in its draft notes on the host and fill both sha256 tokens.
