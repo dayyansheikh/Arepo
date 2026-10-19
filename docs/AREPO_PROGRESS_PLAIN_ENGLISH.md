@@ -1,30 +1,27 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-19 10:38 UTC+1
+**Last updated:** 2026-10-19 15:17 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **Autopilot:** session running since about 10:03 UTC+1 (19 Oct). Up to 9 helpers work in parallel; each result is
-  reviewed independently before anything runs on the server.
-- **Server:** downloading batch 12's "mentions" data (about 7-9 hours). Three short connection checks run next.
-- **Batch 11:** the "not testable" label on the Wikipedia part was a **code fault**, not a data gap. The code treated a
-  time window's end as open, while the data treats it as closed. With the fix, 100% of markets are covered, so the
-  label is withdrawn and the part will re-run. The memory fault in the attention step is also fixed and waiting to
-  re-run.
-- **Batch 13:** the touch-market connection check **passed** on re-run (the first run picked two snapshots from before
-  the data window). The crypto part needed a rule fix, reviewed and accepted, and its check is queued. **Blind label
-  check, round 1: failed** (the labeller filed too many scheduled events, such as elections and central-bank meetings, as
-  "news"). The design allows one correction and one fresh blind round; a second failure records the part as
-  "not testable".
-- **Batch 14:** all review fixes done and re-checked; its two connection checks are queued.
-- **Batch 15 (election night, freeze by 1 Nov):** code for the election part is written and under review. Two
-  independent helpers are compiling the state-by-state "late count" table from saved 2022/2024 sources.
-- **Batch 16 (new, from round-7 ideas):** designed and challenged. One part (the hedging skew) was withdrawn before
-  any data, because it could never reach the detectable size. Code is being written.
-- **Batch 12 (earthquakes, stock options, trade footprints):** code being written.
+- **Autopilot:** new session since 15:10 UTC+1 (19 Oct). The morning session stopped at about 11:00 UTC+1 (usage
+  limit) with three helpers' work unsaved; that work is being finished now.
+- **Server:** building batch 11's attention data (repeating step, about 80 min per round). Queued behind it: batch 13's
+  crypto check, batch 14's two checks, batch 12's "mentions" chain (about 7-9 h), batch 11's seals and censuses.
+- **Batch 15 (election night):** the race count job failed 3 times on a memory limit set too low (measured: it needs
+  about 0.6 GB, it had 0.6 GB of address space). Re-queued with a higher limit; nothing else changed.
+- **Batch 15 late-count table:** both independent helpers finished. They **agree on a direction for only 1 of 51 states**
+  (Mississippi), so by the pre-set rule the other 50 count as "no sign". With no state leaning the other way, the
+  election-night part almost certainly cannot be tested; an independent audit of the sources is running before this is
+  recorded.
+- **Batch 13 blind label check, round 2:** a new blind reviewer is labelling 200 fresh titles now. A second failure records
+  the part as "not testable".
+- **Batch 12 (earthquakes) and batch 16 (quoter grain, wake-up prints):** code being finished, then independent review.
+- **New ideas (round 8):** being generated now, aimed at tests that use data already on the server, because the server's
+  download lane is booked for days while its compute lane is idle.
 - **Second free server:** still "out of host capacity" at Oracle; it retries every 10 min.
 
 ## 2. Approvals needed from you
