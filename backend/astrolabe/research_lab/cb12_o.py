@@ -675,13 +675,17 @@ def run_daily(root: Path, day: str, src: Sources) -> dict:
     last = max((m["settle"] for m in mems), default=day)
     last = min(last, day_add(day, EARNINGS_MAX_DAYS))
     d = day
+    covered = last  # last date whose calendar was read, contiguous from ``day`` (amendment O4: beyond it a unit's earnings flag is unknown, never False)
     while d <= last:
         if is_session(d):
             try:
                 out["earnings"] += earnings_rows(src.earnings(d), d, symbols)
             except (cm.ApiError, RuntimeError) as exc:
                 out["errors"].append(f"earnings {d}: {exc}"[:120])
+                if covered == last:
+                    covered = day_add(d, -1)
         d = day_add(d, 1)
+    out["earnings_covered_end"] = covered
     for _ysym, tk, cb in sorted(unds):
         if cb.startswith("_"):
             continue
@@ -941,8 +945,10 @@ def anchor(chain: dict, K: float, d: str, convention: str | None) -> dict:
 
 
 def previous_daily(daily: dict[str, dict], day: str) -> dict | None:
-    """The daily file of the session before ``day`` (None if absent)."""
-    return daily.get(prev_session(day))
+    """The most recent daily file dated strictly before ``day`` (None if there is none). Half sessions have no checkpoints and so write no daily file; the day after one
+    reads the last file before it (amendment O4). Whether the file was fetched before a unit's t is checked per unit (``fetched_t_end < t``)."""
+    earlier = [k for k in daily if k < day]
+    return daily[max(earlier)] if earlier else None
 
 
 def exdiv_status(prev: dict | None, ticker: str, cboe: str, t: float, d: str) -> str:
@@ -967,11 +973,11 @@ def realised_vol(closes: list[tuple[str, float]], before: str, n: int = RV_DAYS)
     return float(np.std(r, ddof=1) * math.sqrt(252.0))
 
 
-def earnings_flag(rows: list[list] | None, ticker: str, t: float, d: str) -> bool | None:
+def earnings_flag(rows: list[list] | None, ticker: str, t: float, d: str, covered_end: str | None) -> bool | None:
     """True if an earnings release of ``ticker`` falls in (t, close of d]. The unit's day is D = ET date of t (t is at or after 11:00 ET). A pre-market report dated
     dd counts iff D < dd <= d; an after-hours report iff D <= dd < d; a report of unknown time iff D <= dd <= d (conservative). None when the unit-day calendar was
-    not collected."""
-    if rows is None:
+    not collected, or when the file's calendar does not reach the settlement date ``d`` (``covered_end`` < d or absent): unknown, never False (amendment O4)."""
+    if rows is None or covered_end is None or covered_end < d:
         return None
     day = et_day(t)
     for dd, sym, tm in rows:
@@ -1122,7 +1128,8 @@ def build_units(root: Path, dates: list[str], convention: str | None) -> tuple[l
             sig = realised_vol([tuple(x) for x in (dly.get("yahoo") or {}).get(m["yahoo"], [])], rec["day"])
             T = time_to_expiry(ch["ts_epoch"], m["settle"], convention) if convention in CONVENTIONS else time_to_expiry(ch["ts_epoch"], m["settle"], "act365")
             units.append({**u, "label": "available", "q": an["q"], "m2": m2_raw, "q_rv": phi_d2(S, m["K"], sig, T) if math.isfinite(sig) else math.nan,
-                          "earnings": earnings_flag(prev.get("earnings") if prev and m["ticker"] in (prev.get("earnings_symbols") or []) else None, m["ticker"], t, m["settle"])})
+                          "earnings": earnings_flag(prev.get("earnings") if prev and m["ticker"] in (prev.get("earnings_symbols") or []) else None, m["ticker"], t, m["settle"],
+                                                    prev.get("earnings_covered_end") if prev else None)})
     return units, dict(ck)
 
 
@@ -1649,7 +1656,8 @@ def smoke_online(lim, ctx: dict) -> dict:
     dv = {}
     for sym in DIV_PROBES:
         try:
-            dv[sym] = {"n_dates": len(fetch_dividends(src, sym)), "ok": True}
+            nd = len(fetch_dividends(src, sym))
+            dv[sym] = {"n_dates": nd, "ok": nd >= 1}
         except (cm.ApiError, RuntimeError):
             dv[sym] = {"ok": False}
     try:
@@ -1665,7 +1673,7 @@ def smoke_online(lim, ctx: dict) -> dict:
             "o_iv_convention_checked": {"pass": bool(conv["n_options"] >= CONVENTION_N), **conv},
             "o_yahoo_keyless": {"pass": bool(yh and all(v["ok"] for v in yh.values())), "per": yh, "rule": "daily bars keyless: >= 21 bars before today and the latest bar >= the previous session (O1 outcome and q_RV source)"},
             "o_gamma_closed_lookup": {"pass": gm_ok, "rule": "the Gamma /markets?id=...&closed=true outcome lookup is accepted (status 200, a list); open markets are not returned by design"},
-            "o_dividends_keyless": {"pass": bool(dv and all(v["ok"] for v in dv.values())), "per": dv, "rule": "Nasdaq ex-dividend list keyless with a dividend section for an ETF (assetclass etf) and a stock (stocks); the amended ex-dividend rule reads it"},
+            "o_dividends_keyless": {"pass": bool(dv and all(v["ok"] for v in dv.values())), "per": dv, "rule": "Nasdaq ex-dividend list keyless with a dividend section and >= 1 ex-date for an ETF (assetclass etf) and a stock (stocks); the amended ex-dividend rule reads it"},
             "o_books": {"pass": bool(bk and all(v["ok"] for v in bk.values())), "per": bk},
             "o_earnings_keyless": {"pass": earn_ok, "note": "informational: earnings flagged only if this is true, else 'earnings not identified'"},
             "o_chain_dividend_field": {"pass": bool(chk and any(v.get("dividend_field") for v in chk.values() if v["ok"])),

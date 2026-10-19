@@ -235,13 +235,17 @@ def test_dividend_fetch_asset_class_etf_list_and_fallback():
 def test_earnings_flag_window():
     t = o12.et_epoch("2026-10-20", 11, 0)
     rows = [["2026-10-20", "NVDA", "time-pre-market"]]
-    assert o12.earnings_flag(rows, "NVDA", t, "2026-10-22") is False  # released before t
-    assert o12.earnings_flag([["2026-10-20", "NVDA", "time-after-hours"]], "NVDA", t, "2026-10-22") is True
-    assert o12.earnings_flag([["2026-10-22", "NVDA", "time-after-hours"]], "NVDA", t, "2026-10-22") is False  # after the settlement close
-    assert o12.earnings_flag([["2026-10-22", "NVDA", "time-pre-market"]], "NVDA", t, "2026-10-22") is True
-    assert o12.earnings_flag([["2026-10-21", "NVDA", "time-not-supplied"]], "NVDA", t, "2026-10-22") is True
-    assert o12.earnings_flag([["2026-10-21", "AMD", ""]], "NVDA", t, "2026-10-22") is False
-    assert o12.earnings_flag(None, "NVDA", t, "2026-10-22") is None
+    assert o12.earnings_flag(rows, "NVDA", t, "2026-10-22", "2026-10-22") is False  # released before t
+    assert o12.earnings_flag([["2026-10-20", "NVDA", "time-after-hours"]], "NVDA", t, "2026-10-22", "2026-10-22") is True
+    assert o12.earnings_flag([["2026-10-22", "NVDA", "time-after-hours"]], "NVDA", t, "2026-10-22", "2026-10-22") is False  # after the settlement close
+    assert o12.earnings_flag([["2026-10-22", "NVDA", "time-pre-market"]], "NVDA", t, "2026-10-22", "2026-10-22") is True
+    assert o12.earnings_flag([["2026-10-21", "NVDA", "time-not-supplied"]], "NVDA", t, "2026-10-22", "2026-10-22") is True
+    assert o12.earnings_flag([["2026-10-21", "AMD", ""]], "NVDA", t, "2026-10-22", "2026-10-22") is False
+    assert o12.earnings_flag(None, "NVDA", t, "2026-10-22", "2026-10-22") is None
+    # amendment O4: the file's calendar must reach the settlement date, else unknown (never False)
+    assert o12.earnings_flag(rows, "NVDA", t, "2026-10-22", "2026-10-21") is None
+    assert o12.earnings_flag(rows, "NVDA", t, "2026-10-22", None) is None
+    assert o12.earnings_flag([["2026-10-21", "NVDA", ""]], "NVDA", t, "2026-10-22", "2026-10-30") is True
 
 
 def test_realised_vol_uses_only_bars_before_the_day():
@@ -414,8 +418,8 @@ def test_collector_refuses_before_freeze_disk_refusal_is_a_counted_unit_and_busy
         o12.opt_live_tick(Path("/tmp/creative_batch11/h12_opt_live"), now=t, src=FakeSrc(t), rules_sha="r", frozen_epoch=FROZEN)
 
 
-def _prev_daily(oroot, *, nvda_divs, symbols=("NVDA",), day="2026-10-19"):
-    o12._wjson_gz(oroot / "daily" / f"{day}.json.gz", {"day": day, "yahoo": {}, "earnings": [["2026-10-21", "NVDA", "time-after-hours"]], "earnings_symbols": list(symbols),
+def _prev_daily(oroot, *, nvda_divs, symbols=("NVDA",), day="2026-10-19", covered_end="2026-10-30"):
+    o12._wjson_gz(oroot / "daily" / f"{day}.json.gz", {"day": day, "earnings_covered_end": covered_end, "yahoo": {}, "earnings": [["2026-10-21", "NVDA", "time-after-hours"]], "earnings_symbols": list(symbols),
                                                      "dividends": {"NVDA": nvda_divs}, "errors": [], "fetched_t_start": ep("2026-10-19T15:00:00Z"), "fetched_t_end": ep("2026-10-19T15:05:00Z")})
 
 
@@ -438,6 +442,41 @@ def test_build_units_labels_and_exdiv_from_the_previous_session_file(oroot):
     _prev_daily(oroot, nvda_divs=["2026-10-21"])
     units, _ = o12.build_units(oroot, ["2026-10-21"], None)
     assert {u["label"] for u in units} == {"excluded: ex-dividend"}
+
+
+def test_earnings_beyond_the_previous_files_covered_end_is_unknown(oroot):
+    t = o12.et_epoch("2026-10-20", 11, 0) + 30
+    src = FakeSrc(t)
+    o12.opt_live_tick(oroot, now=t, src=src, rules_sha="r", frozen_epoch=FROZEN, sleep=src.sleep)
+    _prev_daily(oroot, nvda_divs=[], covered_end="2026-10-21")  # calendar read only up to Oct 21
+    units, _ = o12.build_units(oroot, ["2026-10-21"], None)
+    assert next(x for x in units if x["market_id"] == "m180")["earnings"] is False
+    _prev_daily(oroot, nvda_divs=[], covered_end="2026-10-20")  # a member settling Oct 21 is beyond it
+    units, _ = o12.build_units(oroot, ["2026-10-21"], None)
+    assert next(x for x in units if x["market_id"] == "m180")["earnings"] is None
+
+
+def test_run_daily_records_the_earnings_covered_end(oroot):
+    t = o12.et_epoch("2026-10-20", 11, 0) + 30
+    src = FakeSrc(t)
+    o12.opt_live_tick(oroot, now=t, src=src, rules_sha="r", frozen_epoch=FROZEN, sleep=src.sleep)
+    o12.opt_live_tick(oroot, now=t + 300, src=src, rules_sha="r", frozen_epoch=FROZEN, sleep=src.sleep)
+    daily = json.loads(_gz_text(oroot / "daily" / "2026-10-20.json.gz"))
+    assert daily["earnings_covered_end"] == "2026-10-30"  # the last settlement date of the day's members (no fetch failed)
+
+
+def test_day_after_a_half_session_reads_the_latest_earlier_daily_file():
+    # 2026-11-27 is a half session (no checkpoints, no daily file): Mon 2026-11-30 must read the last file before it (Wed 2026-11-25)
+    assert o12.prev_session("2026-11-30") == "2026-11-27"
+    daily = {"2026-11-24": {"day": "2026-11-24"}, "2026-11-25": {"day": "2026-11-25"}}
+    assert o12.previous_daily(daily, "2026-11-30")["day"] == "2026-11-25"
+    assert o12.previous_daily(daily, "2026-11-25")["day"] == "2026-11-24"  # strictly before the day
+    assert o12.previous_daily(daily, "2026-11-24") is None
+    assert o12.previous_daily({"2026-12-01": {"day": "x"}}, "2026-11-30") is None  # never a later file
+    # the status of a 2026-11-30 unit: a real answer from the 2026-11-25 file, not 'unknown'
+    full = {"2026-11-25": {"fetched_t_end": ep("2026-11-25T21:00:00Z"), "dividends": {"NVDA": []}}}
+    t = o12.et_epoch("2026-11-30", 11, 0)
+    assert o12.exdiv_status(o12.previous_daily(full, "2026-11-30"), "NVDA", "NVDA", t, "2026-12-02") == ""
 
 
 def test_census_opens_no_outcome_and_waits_for_window_and_outcomes(oroot, monkeypatch):
@@ -690,6 +729,11 @@ def test_smoke_offline_and_online_with_fake_sources():
     assert crit["guards_fixture_O"] and crit["o_frame_regex"] and crit["o_chain"] and crit["o_chain_timestamp"] and crit["o_books"]
     assert detail["O"]["o_frame_regex"]["templates"]["daily"] == 2 and detail["O"]["o_frame_regex"]["templates"]["weekly"] == 1
     assert crit["o_chain_dividend_field"] is True and crit["o_earnings_keyless"] is True
+    assert crit["o_dividends_keyless"] is True and all(v["n_dates"] >= 1 for v in detail["O"]["o_dividends_keyless"]["per"].values())
+    src0 = FakeSrc(t)  # a valid reply with zero ex-dates for every probe must FAIL (amendment O4)
+    src0.dividends = lambda sym, kind: {"data": {"dividends": {"rows": []}}}
+    crit0, detail0 = sm.collect_checks(("O",), {"o_sources": src0}, src0.pm)
+    assert crit0["o_dividends_keyless"] is False and all(v["n_dates"] == 0 and not v["ok"] for v in detail0["O"]["o_dividends_keyless"]["per"].values())
     assert crit["o_iv_convention_checked"] is False and detail["O"]["o_iv_convention_checked"]["choice"] == "none"  # too few near-the-money options in the fixture
     assert sm.family_needs("O") == o12.SMOKE_NEEDS
     assert o12.in_smoke_session(t) and not o12.in_smoke_session(o12.et_epoch("2026-10-20", 9, 0)) and not o12.in_smoke_session(o12.et_epoch("2026-10-24", 12, 0))
