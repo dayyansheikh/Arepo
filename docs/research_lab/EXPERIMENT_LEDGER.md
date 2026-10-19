@@ -1809,3 +1809,20 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   untestable placebo counts as met; (8) a weak calendar check; (9, 10) undeclared rules and unhashed gate logic.
   LANE_HOLD fail-safe accepted; the hold must start early enough that no heavy job runs into the night.
 - **q0341 (census, counts only) GO: promoted (6131cf4), priority 99.** q0343 smoke NO_GO until fix 3.
+
+## CB13 GL round 1 FAIL and labeller revision 1 of 1 (551cdc4), 2026-10-19 ~09:35-10:05Z; not counted
+- Round 1 (seed 13121, 200 SCREEN markets, 30 sports-adjacent; blind science-reviewer saw titles and slugs plus the
+  written definitions only): overall 0.91; LOW 0.98 of the labeller's / 0.90 of the reviewer's; **NEWS 0.75 / 0.94 ->
+  FAIL** (>= 0.80 both ways needed). Records `docs/research_lab/audits/cb13_gl/` (33a8b17). The reviewer's prose
+  totals were mis-stated; the scored JSON (sha256 `2dba4619…`) has 62 LOW / 48 NEWS / 90 other.
+- Revision 1 of 1 (`CREATIVE_BATCH_13.md` §11.r), general rules from the class definitions, not title memorisation:
+  PUBLIC-STATISTIC gains more macro releases (PPI, JOLTS, ADP, claims, trade balance, YoY/MoM forms), post/tweet counts,
+  box-office "grossing" forms and chart ranks; SCHEDULED-EVENT gains award shows, central-bank policy rates and named
+  central banks, and "next <elected office>" unless the title has "by"/"before" or a removal word. Known flaw:
+  appointed offices (e.g. France's PM) also match. Unchanged: fee-type PATH labels, the Senate-odds title (Polymarket's
+  own odds, not a published statistic), sidecar sports labels. On 130k historical questions the rules move
+  291/157/167 titles. LABELLER `1e515bb4…` -> `95cde0ab…` (T does not hash the labeller; it is pinned by the freeze
+  and the audit file). Round 2: fresh 200 (seed 13122), new blind reviewer; a second FAIL makes T1/T2
+  "not testable (labeller)", counted.
+- CB13 q0276 draft now also depends on CB11 q0223b (the h11_wprints directory exists with only the stalled manifest,
+  so an earlier run would read 0 ids and never re-read them).
