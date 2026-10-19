@@ -220,37 +220,28 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-19 00:58Z
-0. **Autopilot session from 00:45Z 10-19.**
-   - **Done (ebd81ca, 31b7e93, 2018cf6; all deployed):**
-     - Queue worker: a spec-level `not_before` field. q0162 starts no earlier than 10-21T06Z and q0163 no earlier than
-       10-22T12Z, so they no longer burn the 48-tempfail cap (both were retried).
-     - q0221: `--budget-min 34`, timeout 2700, repeat 60. The timeouts came from budget-less runs; the chunked
-       resume is intact (8,911 chunks of 50 ids at 23:42Z). Retried.
-     - **CB12-X FROZEN:** `model_specs/cb12_v1.json` part X, part sha `b231830e…`, after science-reviewer
-       ACCEPT_WITH_FIXES (ledger). q0255 retried; it is one counted test (X1). When it finishes, write it up.
-     - The collector-pass CB3 quote_state guard went 13 -> 40 GiB. It had refused since about 10-17 with 19 captures
-       pending; this is a delay only (ledger deviation).
-   - **Running agents (re-run any that has no commit):**
-     - CB13 code-against-design freeze check (science-reviewer). Then apply the fixes and promote the q0270-q0285
-       drafts. CB13-T is host-only on the cpu lane.
-     - CB14 code (implementer), continuing the untracked `cb14_common.py`. Then a code-against-design freeze check.
-     - CB15 design drafter (CH129 election night, freeze before 11-01; CH125; CH130 census-gated). Then challenger
-       round 1.
-     - Fable xhigh round 7 (`CREATIVE_HYPOTHESES_2026-10-21.md`, CH131+).
-   - **CB12 M chain:** after q0221 finishes, fill q0241 `--base-sha256` (sha256 of CB11 `exclusion_keys.csv.gz`)
-     and promote q0241-q0249/q0252.
-1. **Next:** CB11 code-against-design freeze check -> promote q0220 + W chain -> deploy. q0160c result: PASS -> promote
-   q0162/q0163; written FAIL of a/b/f/h/i -> CB8-H "not run (source)", counted, no smoke v4.
-2. **CB9:** data jobs q0181+ only after T_seal 2026-10-22T00Z and a smoke-v2 PASS; q0182 needs the pinned q0164 hash.
-3. **CB7/CB6 before T_seal:** q0120b (net lane, after q0082g) must finish by 10-21T09Z. Seals q0144/q0145/q0121 only
-   after T_seal. Never retry q0141.
-4. **CB8-H:** after q0160c PASS promote q0162/q0163 (drafts pinned to v6). **CB8-B:** q0161/q0164 after T_seal; before promoting q0164 run the two `derive-exclusion-ids` commands in its draft
-   notes on the host (as late as possible, once) and replace both TODO-COORDINATOR sha256 tokens.
-5. **h7 (T_seal):** seal + q0081g done. q0083b only on/after 2026-10-22T00:00Z (promote the draft then), then q0083 seal.
-6. **CB4:** q0085 no earlier than ~10-24T12Z. **CB5:** q0103b on/after 10-27 -> q0106 census. **MC1:** q0116b.
-   **CB3:** freeze after q0064 (after 10-25). Standing: after 10-21T03Z gate q0036 -> q0035; B3 at 10-19 (q0029).
-7. **Creative lead:** after round 5 lands, pick CB12 from it (prefer screens runnable on existing host data).
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-19 04:20Z
+0. **Autopilot session from 04:05Z 10-19** (the 00:45Z session stopped about 02:05Z with CB11/CB14 work uncommitted;
+   this session picked it up).
+   - **Done:** ed1adfe (battery2 CB14 kind rules); 22418a8 **CB11 q0221b** (exclusion keys from sampled sets only,
+     source keys reused, Gamma lookups only for the rest; science-reviewer ACCEPT_WITH_FIXES, fix 1 applied; design
+     §11.2; rules W `6d3f1613…`; deployed, q0221b queued, runs after the 05:30Z blackout, 2-4 x 34 min on net);
+     e8a195c CB13 verify round REVISE (new defects A-E) and **q0270/q0285 (CB13 smokes) promoted and deployed**;
+     d50a2ed **CB14 code** committed (102 tests; rules common `27e65215…`, W `b90f46e7…`, S `0970b078…`; drafts q0300-q0322).
+   - **Running agents (re-run any that has no commit):** CB13 fixes A-E (implementer; then reseal, commit, promote
+     q0271 -> q0272); CB14 code-against-design freeze check (science-reviewer; then fixes, promote smokes q0300/q0301);
+     CB15 design draft (`CREATIVE_BATCH_15.md`: CH129 election night, freeze by 11-01; CH125; CH130), then challenger
+     round 1; Fable xhigh round 7 (`CREATIVE_HYPOTHESES_2026-10-21.md`, CH131+).
+   - **After q0221b completes:** q0222+ (CB11 W chain) start automatically. Then fill q0241 `--base-sha256` (sha256 of
+     CB11 `exclusion_keys.csv.gz`) and promote the CB12 M chain (q0241-q0249/q0252); CB13 q0276 also needs that pin.
+1. **CB8-H:** q0162/q0163 wait on spec `not_before` (10-21T06Z / 10-22T12Z). **CB8-B:** q0161/q0164 after T_seal; before
+   promoting q0164 run the two `derive-exclusion-ids` commands in its draft notes on the host and fill both sha256 tokens.
+2. **CB9:** data jobs q0181+ only after T_seal 2026-10-22T00Z; q0182 needs the pinned q0164 hash. **CB10:** q0201 needs
+   the CB9 frame pins after T_seal.
+3. **CB7/CB6 after T_seal:** seals q0144/q0145/q0121. Never retry q0141.
+4. **h7 (T_seal):** q0083b only on/after 2026-10-22T00:00Z (promote the draft then), then q0083 seal.
+5. **CB4:** q0085 no earlier than ~10-24T12Z. **CB5:** q0103b on/after 10-27 -> q0106 census. **MC1:** q0116b parked.
+   **CB3:** freeze after q0064 (after 10-25). Standing: after 10-21T03Z gate q0036 -> q0035.
 
 ## Learned surprise-move detector (2026-10-12 evening)
 `docs/research_lab/SURPRISE_MOVE_DETECTOR.md`. Labels fixed and logged before features (`surprise-labels-v1`,
