@@ -2092,3 +2092,12 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   must refuse a frame or prices manifest whose rules hash differs from the current E part.
 - **q0244 (quake frame, net lane, 1,000 MB) promoted**: the frame never calls `ambiguous`. Then q0245; q0266 after the
   two fixes and a re-check.
+
+## CB15-P re-check 2 fixes (88f404a), 2026-10-19 ~21:10Z (implementer); q0348 hold lifted; confirmation running
+- P-23: q0349 max_runs 8; a run starting < 15 min after a run that left failed pairs exits 75 (not a run or attempt),
+  so the P-17 terminal is reachable. P-24: the fallback candle reply must be non-empty with parser fields. P-25 (declared
+  before any q0348 output): the 0.25 GB cache cap is fixed; when it binds, skipped scans and listings needing an
+  uncached Kalshi read are counted ("unavailable (source: cache cap)"), never read. P-26: NO-side 24-h 404 drops P2 only.
+  P-27: the P-6 ruling as written above. P `6ac3b610…` -> `7d856416…` (common/E unchanged); 126 cb15 tests.
+- **q0348 hold lifted** (runs after the next deploy). Confirmation re-check of 88f404a running for q0349/q0350 and the
+  Stage-2 jobs.
