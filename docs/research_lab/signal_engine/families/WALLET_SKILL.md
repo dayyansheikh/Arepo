@@ -108,7 +108,75 @@ before the LT2-LT4 sealed windows from 2026-10-22T00:00Z; no E009-E024 input or 
 
 ## 6. Development results
 
-Pending (filled in after the single run of `run_wallet_skill.py dev`).
+**DEVELOPMENT, exploratory_historical. Not a confirmation, not an edge claim.** Single run, 2026-10-20 23:31-23:34Z,
+at commit `319bcd2c` (the declaration commit). No code or parameter changed after the run. Full output:
+`wallet_skill_dev_results_2026-10-20.json` (next to this file; no wallet hashes). Mac, 202 s, 0.96 GB peak RSS.
+
+**Coverage.** 3,215,468 taker trades, 324,385 wallets, 9,995 markets with trades, 12,698 markets with a final outcome
+(trades 2025-04-03 to 2026-10-12; outcomes known 2025-09-30 to 2026-10-13). Profiles: 2,586,655 trades (125 truncated
+markets excluded), 824,112 resolved positions (632,041 known before SPLIT). Daily skilled set from about 600 wallets
+(median of origin days; about 6,100 eligible) growing to 3,462 by late September 2026. **Only 6.0% of 24 h origins
+(6.4% of 6 h origins) had any skilled-wallet trade in the prior 24 h**, against about 50% with any trade at all.
+
+**P1 persistence (Holm p 0.002, passes).** Skilled set chosen on positions known before 2026-07-01 (2,795 skilled of
+27,950 eligible); 3,194 wallets are eligible in both periods.
+
+| quantity | value |
+|---|---|
+| S1 top-decile skilled with `skill_z > 0` in S2 | **71.2%** (459 wallets) vs 59.7% of all eligible-in-both; permutation null 59.6%, p 0.0005 |
+| Spearman of `skill_z` S1 vs S2 | 0.109 [0.073, 0.146] |
+| S2 P&L per dollar at risk, S1-skilled | +21.7c [+1.4, +39.6] (wallet bootstrap) vs others +3.6c [-1.7, +8.5] |
+| sign-flip significant (one-sided p < 0.05) in S1 | 16.8% of eligible wallets (4,685; the null rate is 5%) |
+| significant in S2 given significant in S1 | **44.4%** (554 wallets) vs 21.1% base; p 0.0005 (cf. Gómez-Cram 44%) |
+| P&L-ranked winners (top decile of S1 `ppd`) with `skill_z > 0` in S2 | 52.6% (247 wallets), below the 59.7% base; p 0.99. P&L-ranked winners do not persist (WA6-style ranking fails, as in the literature) |
+| event-level flips (sensitivity) | same picture: 70.9% vs 59.6%, Spearman 0.102, S2 ppd +22.3c |
+
+**P2 / P3 / P4: null (Holm-adjusted p 1.0 for all three).** Walk-forward monthly folds (Dec 2025 / Jan 2026 to Oct 2026).
+
+| target | rows (event clusters) | generic flow M0 -> M1 | skilled flow M1 -> M2 (primary) | M1 -> M2z (`ws_zflow24`) | M1 -> M3 (all family columns) |
+|---|---|---|---|---|---|
+| 24 h mid change (MSE gain x 1e6) | 51,171 (2,399) | +27 [+18, +36] | **-5 [-9, -1]**, p 0.998 | -3 [-4, -1] | -39 [-91, -5] |
+| 6 h mid change (MSE gain x 1e6) | 53,724 (3,343) | +23 [+14, +33] | **-2 [-7, +4]**, p 0.74 | 0 [-3, +4] | -59 [-129, -8] |
+| resolution (log-loss gain x 1e4) | 25,719 (1,957) | -9.6 [-16.5, -3.3] | **-2.5 [-5.4, +0.4]**, p 0.95 | -9.9 [-20.0, 0.0] | +2.0 [-21.7, +28.6] |
+
+Descriptive only: pooled per-SD coefficient of `ws_net24h` (with C0 and generic flow) +0.03c [-0.07, +0.12] on the 24 h
+change and +0.10c [+0.04, +0.17] on the 6 h change (in sample, not walk-forward; it does not survive out of sample).
+Sports vs non-sports: M1 -> M2 is negative in both (-43 and -5 x 1e-6).
+
+**Reading.**
+- Taker skill measured by sign randomisation is real and persistent in this sample, at about the size reported by
+  Gómez-Cram et al. P&L rank is not skill. This settles the HB1 WA6 question in the direction the literature predicts:
+  ranking by P&L picks lucky wallets.
+- Persistent wallet skill does **not** become a better market forecast at 6 h, 24 h or resolution once generic flow is
+  in the model. Skilled wallets touch only about 6% of market-days, and where they trade, their flow carries nothing
+  out of sample beyond what generic flow and the price already carry. The extra columns overfit (M3 is worse).
+- Caveats:
+  - Skill is relative to the trade price. A wallet that systematically exploits a price-level bias (for example
+    selling long shots, or NO carry) counts as skilled. That is real P&L, but not private information.
+  - Taker trades only.
+  - Wallet records cover AREPO's sampled markets only (12.7k markets), so the profiles are thin; many truly skilled
+    wallets are never eligible.
+  - The 48 h outcome lag is conservative.
+  - The panels' price series are "mid-like" (HB1 price-semantics caveat).
+  - Market selection was made at fetch time from closed/active status, without outcomes.
+- For the engine: keep `wallet_skill` as a **low-priority challenger**. The prospective leaderboard is the right judge,
+  and the development prior is a null. A more promising use of P1 is wallet-level (follow the specific skilled wallets'
+  positions to resolution, with copy latency). That needs its own registered design (gap 1 H1b-style copy-latency test)
+  and is not built here.
+- **Count:** 4 counted development tests (P1-P4, Holm). Descriptive lines are not counted.
+
+**Host dry run (2026-10-20 ~23:40Z, read-only, `/tmp/wskill`, deleted afterwards).**
+- Inputs: seeded from `h1_first` (196,866 profile trades, 345 outcomes), then ingested the 12 newest trade samples
+  (2026-10-20, 2,892,119 rows read, 1,357,476 new after dedup over 12,270 markets).
+- Result: snapshot of 33,873 wallets (759 eligible, 76 skilled); family features for all 2,000 markets of the newest
+  sample (1,999 non-null; 228 with skilled flow; mean `ws_cov24` 0.35).
+- Cost: **41 s wall, 439 MB peak RSS**, measured while two other jobs (LT3 census, engine refit) were running.
+- State after one day: `pending.parquet` 43 MB (568k open wallet-market rows), `sums.parquet` 3.5 MB, snapshot 65 kB.
+  Pending grows with open markets, so the live job should drop pending rows of markets unresolved 30 days after their
+  end (engine `RES_GIVEUP_S`).
+- 20.4% of the sample wallets also appear in the 500-market `h1_first` history, which confirms that the sidecar and the
+  history backfill use the same HMAC key. History-built profiles can therefore seed the live builder; this is an
+  optional, causal warm start, since every history outcome was known before go-live.
 
 ## 7. Signal-engine integration (adapter)
 
@@ -129,6 +197,9 @@ built, so the family lives in `research_lab` and plugs in with these steps (no e
    sealed flow-continuation tests (E013, E016, E018; LT4 E024 concentration). Add
    `{"token": "wallet_skill", "until": "2026-11-18T00:00:00Z", "tests": ["E013", "E014", "E016", "E018"], ...}` to
    `config.EMBARGO` (the later of the `flow` and `wallet` embargoes). Prospective prediction writing can start at once.
-5. Warm start: the live builder starts empty (the HB1 profiles were built on other markets and are not used live, to
-   keep one clean causal record). Skilled sets need weeks of resolved positions before they are meaningful; until a
-   snapshot has at least 200 eligible wallets the family should be NaN (to be added in the engine adapter).
+5. Warm start: the live builder starts empty by default. A live-only builder needs weeks of resolved positions before
+   it is meaningful, and `family_features` returns NaN while a snapshot has fewer than 200 eligible wallets
+   (`MIN_ELIGIBLE_SNAPSHOT`). Optional, still causal: seed it with the HB1 history positions (same HMAC key, every
+   outcome known before go-live) via `wallet_skill_dev.profile_trades` + `ProfileBuilder.add_trades/add_resolutions`.
+6. Pruning: drop pending rows of markets still unresolved 30 days after their scheduled end (`RES_GIVEUP_S`), so the
+   pending table stays bounded (one day of samples gives about 568k rows / 43 MB).
