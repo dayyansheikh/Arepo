@@ -22,6 +22,7 @@ dependencies = [
     "pwdlib[argon2]>=0.2",
     "pyjwt>=2.8",
     "cryptography>=42.0",
+    "webauthn>=2.7,<3.0",  # py_webauthn: security-key / passkey step-up for the owner
 ]
 
 [project.optional-dependencies]

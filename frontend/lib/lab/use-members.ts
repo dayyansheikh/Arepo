@@ -18,6 +18,8 @@ export interface MembersState {
   loading: boolean;
   error: string | null;
   notFound: boolean;
+  /** Set when a security-key unlock is needed (403 hardware_key_required). */
+  locked: { keys: number } | null;
   isFixture: boolean;
 }
 
@@ -33,6 +35,7 @@ export function useMembers() {
     loading: true,
     error: null,
     notFound: false,
+    locked: null,
     isFixture: false,
   });
   const fixtureMode = useRef(false);
@@ -48,6 +51,10 @@ export function useMembers() {
       router.replace(MEMBERS_SIGNIN_REDIRECT);
       return;
     }
+    if (result.kind === "locked") {
+      setState((s) => ({ ...s, loading: false, locked: { keys: result.keys } }));
+      return;
+    }
     if (result.kind === "not_found") {
       setState((s) => ({ ...s, loading: false, notFound: true }));
       return;
@@ -56,7 +63,7 @@ export function useMembers() {
       setState((s) => ({ ...s, loading: false, error: result.message }));
       return;
     }
-    setState({ data: result.data, loading: false, error: null, notFound: false, isFixture: false });
+    setState({ data: result.data, loading: false, error: null, notFound: false, locked: null, isFixture: false });
   }, [router]);
 
   useEffect(() => {
@@ -66,7 +73,7 @@ export function useMembers() {
       if (fixtureAllowed(process.env.NODE_ENV, window.location.search)) {
         fixtureMode.current = true;
         void import("./members-fixture").then((m) => {
-          setState({ data: m.buildMembersFixture(Date.now()), loading: false, error: null, notFound: false, isFixture: true });
+          setState({ data: m.buildMembersFixture(Date.now()), loading: false, error: null, notFound: false, locked: null, isFixture: true });
         });
         return;
       }

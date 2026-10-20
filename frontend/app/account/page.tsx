@@ -18,6 +18,7 @@ import type {
   DigestSummary,
 } from "@/lib/types";
 import { PageHeader } from "@/components/ui";
+import { Revealed, UnlockScreen } from "@/components/security/UnlockScreen";
 import { FormMessage, TextLink } from "@/components/account/AuthUI";
 import { CATEGORY_FILTERS } from "@/lib/categories";
 
@@ -35,9 +36,10 @@ const FREQUENCIES: Array<{
 ];
 
 export default function AccountPage() {
-  const { user, loading, signOut } = useAuth();
+  const { user, locked, loading, signOut, refresh } = useAuth();
   const router = useRouter();
   const [tab, setTab] = useState<AccountTab>("digests");
+  const [revealed, setRevealed] = useState(false);
 
   useEffect(() => {
     const requested = new URLSearchParams(window.location.search).get("tab");
@@ -51,6 +53,17 @@ export default function AccountPage() {
   }
 
   if (loading) return <p className="text-arepo-muted">Loading…</p>;
+  if (locked) {
+    return (
+      <UnlockScreen
+        keys={locked.keys}
+        onUnlocked={() => {
+          setRevealed(true);
+          void refresh();
+        }}
+      />
+    );
+  }
   if (!user) {
     return (
       <div className="mx-auto max-w-md text-center">
@@ -63,14 +76,20 @@ export default function AccountPage() {
 
   const name = [user.first_name, user.last_name].filter(Boolean).join(" ");
   return (
+    <Revealed active={revealed}>
     <div className="mx-auto max-w-3xl space-y-7">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <PageHeader title={name || "Your account"} lead={user.email} />
         <div className="flex items-center gap-3 text-[13px]">
           {user.is_superuser ? (
-            <Link href="/lab" className="focus-ring text-arepo-muted underline hover:text-arepo-ink">
-              Lab
-            </Link>
+            <>
+              <Link href="/lab" className="focus-ring text-arepo-muted underline hover:text-arepo-ink">
+                Lab
+              </Link>
+              <Link href="/lab/security" className="focus-ring text-arepo-muted underline hover:text-arepo-ink">
+                Security keys
+              </Link>
+            </>
           ) : null}
           <Link href="/forgot" className="focus-ring text-arepo-muted underline hover:text-arepo-ink">
             Reset password
@@ -102,6 +121,7 @@ export default function AccountPage() {
 
       {tab === "digests" ? <DigestsTab /> : <PreferencesTab onDeleted={() => router.push("/")} />}
     </div>
+    </Revealed>
   );
 }
 

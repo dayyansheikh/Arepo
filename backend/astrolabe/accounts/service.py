@@ -120,5 +120,15 @@ async def delete_account(session: AsyncSession, user: User, reason: str = "user_
     await session.execute(delete(DigestEntry).where(DigestEntry.digest_id.in_(digest_ids)))
     for model in (DigestDelivery, AlertPreference, SavedMarket, AlertDelivery):
         await session.execute(delete(model).where(model.user_id == user.id))
+    # Security-key rows (local import: the lab package imports account models).
+    from ..lab.security_models import (
+        AdminRecoveryCode,
+        AdminStepUpSession,
+        AdminWebAuthnChallenge,
+        AdminWebAuthnCredential,
+    )
+    for model in (AdminWebAuthnCredential, AdminWebAuthnChallenge, AdminStepUpSession,
+                  AdminRecoveryCode):
+        await session.execute(delete(model).where(model.user_id == user.id))
     await session.execute(delete(User).where(User.id == user.id))
     await session.commit()

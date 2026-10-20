@@ -24,6 +24,7 @@ import type {
   ReplayScenarioResponse,
   SignalsResponse,
 } from "./types";
+import { announceLocked, lockedDetail, type LockedDetail } from "./stepup-events";
 
 // Production traffic stays first-party: Next proxies /api/* to the Render service, so the
 // secure HttpOnly auth cookie belongs to www.arepolabs.com and is sent on refresh/navigation.
@@ -43,10 +44,15 @@ export class ApiError extends Error {
    * the UI treats it as a restrained "Connecting to Arepo data…" state, not an error (spec §13).
    */
   coldStart: boolean;
+  /** Machine-readable reason from a structured `detail` (e.g. "hardware_key_required"). */
+  code?: string;
+  /** Present when the account must be unlocked with a security key first (403). */
+  locked?: LockedDetail;
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, code?: string) {
     super(message);
     this.name = "ApiError";
+    this.code = code;
     this.status = status;
     this.notFound = status === 404;
     this.coldStart = status === 0 || status === 502 || status === 503 || status === 504;
@@ -102,6 +108,9 @@ async function apiFetch<T>(
 /** FastAPI `detail` may be a string or an array of validation objects — render it readably. */
 function normalizeDetail(detail: unknown): string {
   if (typeof detail === "string") return detail;
+  if (detail && typeof detail === "object" && "message" in detail) {
+    return String((detail as { message: unknown }).message);
+  }
   if (Array.isArray(detail)) {
     return detail
       .map((d) =>
@@ -678,13 +687,20 @@ async function accountFetch<T>(
   }
   if (!res.ok) {
     let detail = res.statusText;
+    let locked: LockedDetail | null = null;
     try {
       const body = (await res.json()) as { detail?: unknown };
       if (body?.detail) detail = normalizeDetail(body.detail);
+      locked = res.status === 403 ? lockedDetail(body) : null;
     } catch {
       // not JSON
     }
-    throw new ApiError(detail || `Request failed with status ${res.status}`, res.status);
+    const error = new ApiError(detail || `Request failed with status ${res.status}`, res.status, locked?.code);
+    if (locked) {
+      error.locked = locked;
+      announceLocked(locked);
+    }
+    throw error;
   }
   if (res.status === 204) return undefined as T;
   const text = await res.text();

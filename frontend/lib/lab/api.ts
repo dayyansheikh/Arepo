@@ -4,6 +4,7 @@
 // production traffic stays first-party through the Next /api rewrite (API_BASE is "").
 
 import { API_BASE } from "../api";
+import { announceLocked, lockedDetail } from "../stepup-events";
 import type { CommandAction, CommandTarget, LabCommand, LabDashboardResponse } from "./types";
 
 export const SIGNIN_REDIRECT = "/signin?next=/lab";
@@ -12,11 +13,13 @@ export type LabLoadResult =
   | { kind: "ok"; data: LabDashboardResponse }
   | { kind: "unauthorized" }
   | { kind: "not_found" }
+  | { kind: "locked"; keys: number }
   | { kind: "error"; message: string; status: number };
 
 export type LabAction =
   | { type: "redirect"; to: string }
   | { type: "not_found" }
+  | { type: "locked"; keys: number }
   | { type: "data"; data: LabDashboardResponse }
   | { type: "error"; message: string };
 
@@ -27,6 +30,8 @@ export function actionForResult(result: LabLoadResult): LabAction {
       return { type: "redirect", to: SIGNIN_REDIRECT };
     case "not_found":
       return { type: "not_found" };
+    case "locked":
+      return { type: "locked", keys: result.keys };
     case "ok":
       return { type: "data", data: result.data };
     default:
@@ -75,6 +80,13 @@ export async function loadLabDashboard(
   if (res.status === 401) return { kind: "unauthorized" };
   // A signed-in non-owner gets 404 from the API by design: the page does not reveal it exists.
   if (res.status === 404) return { kind: "not_found" };
+  if (res.status === 403) {
+    // Security-key step-up needed (or expired): the page shows the unlock screen.
+    const body = await res.json().catch(() => null);
+    const locked = lockedDetail(body);
+    if (locked) return { kind: "locked", keys: locked.keys };
+    return { kind: "error", status: 403, message: "Not allowed." };
+  }
   if (!res.ok) return { kind: "error", status: res.status, message: await detailOf(res) };
   try {
     const data = (await res.json()) as LabDashboardResponse;
@@ -106,6 +118,13 @@ export async function postLabCommand(
     return { ok: false, status: 0, message: "Unable to reach the Arepo API." };
   }
   if (!res.ok) {
+    if (res.status === 403) {
+      const locked = lockedDetail(await res.json().catch(() => null));
+      if (locked) {
+        announceLocked(locked);
+        return { ok: false, status: 403, message: "Unlock with your security key first." };
+      }
+    }
     const message =
       res.status === 429 ? "Too many commands this hour. Try again later." : await detailOf(res);
     return { ok: false, status: res.status, message };

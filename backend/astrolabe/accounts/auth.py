@@ -17,6 +17,7 @@ from fastapi_users.authentication import (
 from ..config import get_settings
 from .manager import get_user_manager
 from .models import User
+from .stepup_gate import StepUpJWTStrategy
 
 
 def _cookie_transport() -> CookieTransport:
@@ -31,8 +32,9 @@ def _cookie_transport() -> CookieTransport:
 
 
 def _jwt_strategy() -> JWTStrategy:
+    # Also enforces the security-key step-up for accounts with a registered key (stepup_gate).
     s = get_settings()
-    return JWTStrategy(secret=s.auth_secret, lifetime_seconds=s.auth_token_lifetime_seconds)
+    return StepUpJWTStrategy(secret=s.auth_secret, lifetime_seconds=s.auth_token_lifetime_seconds)
 
 
 auth_backend = AuthenticationBackend(

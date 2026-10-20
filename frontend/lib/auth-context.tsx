@@ -10,9 +10,15 @@ import {
 } from "react";
 import type { AccountUser } from "./types";
 import { ApiError, getMe, logoutAccount } from "./api";
+import { LOCKED_EVENT, type LockedDetail } from "./stepup-events";
 
 interface AuthContextValue {
   user: AccountUser | null;
+  /**
+   * Set when the session is valid but the account has a security key and this browser has not
+   * been unlocked with it yet (API 403 hardware_key_required). Pages show the unlock screen.
+   */
+  locked: LockedDetail | null;
   loading: boolean;
   refresh: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -27,18 +33,17 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
  */
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AccountUser | null>(null);
+  const [locked, setLocked] = useState<LockedDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
     try {
       const me = await getMe();
       setUser(me);
+      setLocked(null);
     } catch (err) {
-      if (err instanceof ApiError && (err.status === 401 || err.status === 0)) {
-        setUser(null);
-      } else {
-        setUser(null);
-      }
+      setUser(null);
+      setLocked(err instanceof ApiError && err.locked ? err.locked : null);
     } finally {
       setLoading(false);
     }
@@ -49,6 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await logoutAccount();
     } finally {
       setUser(null);
+      setLocked(null);
     }
   }, []);
 
@@ -56,9 +62,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     void refresh();
   }, [refresh]);
 
+  // Any account call that answers 403 hardware_key_required (e.g. after the unlock expires)
+  // flips the whole site to the locked state.
+  useEffect(() => {
+    const onLocked = (e: Event) => {
+      const detail = (e as CustomEvent<LockedDetail>).detail;
+      setUser(null);
+      setLocked(detail ?? { code: "hardware_key_required", message: "", keys: 1 });
+    };
+    window.addEventListener(LOCKED_EVENT, onLocked);
+    return () => window.removeEventListener(LOCKED_EVENT, onLocked);
+  }, []);
+
   const value = useMemo(
-    () => ({ user, loading, refresh, signOut }),
-    [user, loading, refresh, signOut]
+    () => ({ user, locked, loading, refresh, signOut }),
+    [user, locked, loading, refresh, signOut]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

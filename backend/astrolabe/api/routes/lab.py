@@ -10,9 +10,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ...accounts.auth import current_optional_user
 from ...accounts.db import get_async_session
 from ...accounts.models import User
+from ...accounts.stepup_gate import locked_body
 from ...config import get_settings
 from ...domain.models import utcnow
-from ...lab import service
+from ...lab import security_keys, service
 from ...lab.signing import MAX_BODY_BYTES, SignatureError, verify_signature
 
 router = APIRouter(prefix="/api/lab", tags=["lab"])
@@ -47,9 +48,14 @@ async def signed_source(request: Request) -> tuple[str, bytes]:
     return source, body
 
 
-async def owner(
+async def owner_password(
     request: Request, user: User | None = Depends(current_optional_user)
 ) -> User:
+    """Owner with a password session only (no security-key step-up check).
+
+    Used directly ONLY by the step-up ceremony endpoints themselves (status, key sign-in,
+    recovery, first-key registration). Everything else depends on :func:`owner`.
+    """
     if user is None:
         raise HTTPException(401, "Not authenticated")
     if not (user.is_active and user.is_verified and user.is_superuser):
@@ -59,6 +65,30 @@ async def owner(
         origin = request.headers.get("origin")
         if origin and origin not in get_settings().cors_origin_list:
             raise HTTPException(403, "origin not allowed")
+    return user
+
+
+def hardware_key_required(keys: int) -> HTTPException:
+    return HTTPException(403, detail=locked_body(keys)["detail"])
+
+
+async def owner(
+    request: Request,
+    user: User = Depends(owner_password),
+    session: AsyncSession = Depends(get_async_session),
+) -> User:
+    """Owner-only gate for every Lab dashboard / command / admin / key-management endpoint.
+
+    401 signed out, 404 for anyone but an owner, and, when security keys are enforced
+    (``LAB_REQUIRE_HARDWARE_KEY``), 403 ``hardware_key_required`` until a valid step-up cookie is
+    presented. The site-wide gate (accounts/stepup_gate.py) already enforces this for non-exempt
+    paths; this explicit check also covers the exempt ``/api/lab/webauthn/*`` management routes.
+    Machine-signed ``/api/lab/agent/*`` endpoints never use this dependency.
+    """
+    token = request.cookies.get(security_keys.STEPUP_COOKIE)
+    keys = await security_keys.user_locked(session, user, token, utcnow())
+    if keys is not None:
+        raise hardware_key_required(keys)
     return user
 
 
