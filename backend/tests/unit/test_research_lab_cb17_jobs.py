@@ -85,7 +85,9 @@ def test_exclusion_keys_checks_the_pinned_sha_of_the_cb16_file(env, capsys, tmp_
 
 def test_smoke_refuses_when_a_worn_source_is_missing_and_writes_nothing(env, capsys, tmp_path):
     fresh = JobEnv(tmp_path / "s", with_smoke=False)
-    code, out = _run(fresh.argv("smoke", "--fills-dir", str(tmp_path / "no_such_screen")), capsys)
+    pins = tmp_path / "pins.json"
+    pins.write_text(json.dumps({"live_trades/trades-20261012.jsonl": "0" * 64}))
+    code, out = _run(fresh.argv("smoke", extra=("--fills-dir", str(tmp_path / "no_such_screen"), "--worn-sha256", str(pins))), capsys)
     assert code == 2 and "refused" in out and not (fresh.root / "smoke.json").exists()
 
 

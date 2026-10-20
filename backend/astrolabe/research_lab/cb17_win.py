@@ -148,7 +148,7 @@ def require_t17(path: Path | None, *, rules_shas: dict, require_committed: bool 
     p = Path(path) if path else c17.SEALS_DIR / w.T17_RECORD_NAME
     doc = _read_record(p, "T17_rules record", require_committed)
     parts = doc.get("parts") or {}
-    bad = [k for k in ("common", "B", "C", "E") if k in rules_shas and parts.get(k) != rules_shas[k]]
+    bad = [k for k in ("pre", "common", "B", "C", "E") if k in rules_shas and parts.get(k) != rules_shas[k]]
     if bad:
         raise Refused(f"T17_rules record covers other rules parts: {bad}")
     t = c17.ep(str(doc.get("t17_rules_utc") or "")) if doc.get("t17_rules_utc") else math.nan
@@ -207,6 +207,8 @@ def iter_rows(path: Path, fields: tuple[str, ...], allowed: tuple[str, ...], tim
     """Whitelisted columns of a capture / sweep file with the row time parsed and appended; a row timed before the lookback floor is a refusal (it can only be a corrupt file)."""
     floor = c17.ep(c17.LOOKBACK_FLOOR)
     n = len(fields)
+    if not Path(path).is_file():
+        raise NotNow(f"{Path(path).parent.name}/{Path(path).name} is missing: {RESTORE_MSG}")
     for row in cen.iter_cols(Path(path), (*fields, time_field), (*allowed, time_field)):
         t = cen.ep_cached(row[n])
         if not math.isfinite(t):
@@ -236,7 +238,7 @@ def list_captures(snap_root: Path, lo: float, hi: float, stats: Counter, *, only
     return out
 
 
-MONITOR_STOPPED_NAME = "cb17_monitor_stopped.json"  # seals/: {"stopped_days": ["YYYYMMDD", ...]} (committed by the coordinator)
+MONITOR_STOPPED_NAME = "cb17_monitor_stopped.json"  # seals/: {"stopped_days": [{"day": "YYYYMMDD", "reason": "...", "evidence": "..."}, ...]} (committed by the coordinator)
 MONITOR_STOPPED: set[str] = set()  # days (YYYYMMDD) a committed 'monitor stopped' record covers (set by the job gate; empty by default)
 RESTORE_MSG = "restore the file byte for byte, hash-checked (scripts restore_from_archive.py), then re-run (pending)"
 
@@ -247,15 +249,26 @@ def set_monitor_stopped(days) -> None:
 
 
 def read_monitor_stopped(seals_dir: Path | None, *, require_committed: bool = True) -> list[str]:
-    """Days covered by the committed ``seals/cb17_monitor_stopped.json`` (``{"stopped_days": ["YYYYMMDD", ...]}``); no record = no day is covered."""
+    """Days covered by the committed ``seals/cb17_monitor_stopped.json`` (``{"stopped_days": [{"day": "YYYYMMDD", "reason": ..., "evidence": ...}, ...]}``); every day needs a non-empty reason and
+    evidence (a record without them is refused); no record = no day is covered."""
     p = Path(seals_dir or c17.SEALS_DIR) / MONITOR_STOPPED_NAME
     if not p.exists():
         return []
     doc = _read_record(p, "monitor-stopped record", require_committed)
     days = doc.get("stopped_days") or []
-    if not isinstance(days, list) or not all(re.fullmatch(r"\d{8}", str(d)) for d in days):
-        raise Refused(f"monitor-stopped record {p.name}: stopped_days must be a list of YYYYMMDD")
-    return [str(d) for d in days]
+    ok = isinstance(days, list) and all(isinstance(d, dict) and re.fullmatch(r"\d{8}", str(d.get("day"))) and str(d.get("reason") or "").strip() and str(d.get("evidence") or "").strip() for d in days)
+    if not ok:
+        raise Refused(f"monitor-stopped record {p.name}: stopped_days must be a list of {{day: YYYYMMDD, reason, evidence}} (reason and evidence are mandatory per day)")
+    return [str(d["day"]) for d in days]
+
+
+def touches_stopped(t_from: float, t_to: float) -> bool:
+    """True if the interval [t_from, t_to] (plus the following day, where late prints arrive) touches a UTC day the monitor-stopped record covers: values derived from monitor prints are UNKNOWN there."""
+    if not MONITOR_STOPPED or not (math.isfinite(t_from) and math.isfinite(t_to)):
+        return False
+    lo = int(t_from // 86400.0)
+    hi = int((t_to + 86400.0) // 86400.0)
+    return any(lo <= datetime.strptime(d, "%Y%m%d").replace(tzinfo=UTC).timestamp() // 86400.0 <= hi for d in MONITOR_STOPPED)
 
 
 def missing_monitor_day(path: Path, stats: Counter) -> None:
@@ -267,11 +280,24 @@ def missing_monitor_day(path: Path, stats: Counter) -> None:
     raise NotNow(f"monitor day file {Path(path).name} is missing and no committed monitor-stopped record covers {day}: {RESTORE_MSG}")
 
 
+def ext_expected(capdir: Path) -> bool:
+    """False only when the capture's ``ext_manifest.json`` says the sidecar was not written (``sidecar_status`` other than "complete"): then no ``rows_ext.csv.gz`` is expected."""
+    mp = Path(capdir) / "ext_manifest.json"
+    if not mp.exists():
+        return True
+    try:
+        return json.loads(mp.read_text()).get("sidecar_status") == "complete"
+    except ValueError:
+        return True
+
+
 def require_capture_files(caps, names: tuple[str, ...] = ("rows.csv.gz", "rows_ext.csv.gz")) -> None:
     """A complete capture in the read window whose row files are gone (8-day retention) is pending: restore byte for byte; never skipped."""
     for cap in caps:
         d = Path(cap["dir"] if isinstance(cap, dict) else getattr(cap, "dir", cap))
         for nm in names:
+            if nm == "rows_ext.csv.gz" and not ext_expected(d):
+                continue
             if not (d / nm).is_file():
                 raise NotNow(f"snapshot file {d.name}/{nm} is missing: {RESTORE_MSG}")
 

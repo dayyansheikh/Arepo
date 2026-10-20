@@ -105,7 +105,7 @@ def write_records(tmp: Path, *, rules: Path, code_sha: str, shas: dict, t17_utc:
     cf = Path(tmp) / "cb17_code_freeze.json"
     cf.write_text(json.dumps({"code_sha256": code_sha, "rules_sha256": shas, "frozen_utc": frozen_utc, "attestation_code_freeze": attestation}))
     t17 = Path(tmp) / "cb17_t17_rules.json"
-    t17.write_text(json.dumps({"t17_rules_utc": t17_utc, "parts": {k: v for k, v in shas.items() if k in ("common", "B", "C", "E")}}))
+    t17.write_text(json.dumps({"t17_rules_utc": t17_utc, "parts": {k: v for k, v in shas.items() if k in ("pre", "common", "B", "C", "E")}}))
     return {"freeze": cf, "t17": t17}
 
 

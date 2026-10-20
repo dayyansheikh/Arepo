@@ -333,6 +333,9 @@ def _restore_roots(a, env):
 def cmd_worn_manifest(a):
     """Prints ``{archive-relative path: sha256}`` of the smoke's worn input files; writes nothing."""
     c17 = _c17()
+    if getattr(a, "from_files_sha256", None):
+        r = _jobs().sm.release_map([Path(x) for x in a.from_files_sha256])
+        return 0, {**r, "n_files": len(r["worn_sha256"]), "source": "archive files.sha256"}
     env = _restore_roots(a, jobs_env_paths(a))
     fills = Path(a.fills_dir) if getattr(a, "fills_dir", None) else c17.CB13_T_SCREEN_DIR
     m = _jobs().sm.worn_manifest(fills, env.trades, env.snaps, env.sweeps)
@@ -471,7 +474,7 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--fills-dir", default=None, help="CB13-T SCREEN table directory (worn files of probe P1)")
     q.add_argument("--snapshot-root", default=None, help="byte-for-byte restore tree 'snapshots' dir instead of the live one (restore_from_archive.py)")
     q.add_argument("--live-trades-root", default=None, help="byte-for-byte restore tree 'live_trades' dir instead of the live one")
-    q.add_argument("--worn-sha256", default=None, help="JSON {archive-relative path: sha256} of the worn files (from worn-manifest); refuse (exit 2) on any mismatch")
+    q.add_argument("--worn-sha256", required=True, help="MANDATORY JSON {archive-relative path: sha256} copied from the archive releases' files.sha256 (worn-manifest --from-files-sha256 prints it); exit 2 on any mismatch, unpinned or missing pinned file")
     q.set_defaults(fn=cmd_smoke)
 
     q = sub.add_parser("worn-manifest", help="print the sha256 map of the smoke's worn input files (the coordinator pins it on the host)")
@@ -482,6 +485,7 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--trades-dir", default=None)
     q.add_argument("--sweep-dir", default=None)
     q.add_argument("--data-dumps", default=None)
+    q.add_argument("--from-files-sha256", nargs="+", default=None, help="print the release-derived map from archive files.sha256 file(s) instead of hashing the files on disk")
     q.set_defaults(fn=cmd_worn_manifest)
 
     q = sub.add_parser("exclusion-keys", help="q0405")

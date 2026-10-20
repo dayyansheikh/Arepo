@@ -194,9 +194,12 @@ def run_smoke(env: Env, *, fills_dir: Path, out: Path | None = None, worn_sha256
         raise Refused(f"smoke result {out} already exists; it is write-once")
     g = gate(env, attest=False)  # parts, pins, and the COMMITTED code-freeze record that pins THIS code (the ruling-6 attestation is needed from q0406 on)
     shas = g["rules_sha256"]
-    worn = sm.check_worn_pins(worn_sha256, fills_dir, env.trades, env.snaps, env.sweeps) if worn_sha256 else None
+    if not worn_sha256:
+        raise Refused("--worn-sha256 is mandatory for the smoke: pins copied from the archive releases' files.sha256 (never from the files on disk)")
+    worn = sm.check_worn_pins(worn_sha256, fills_dir, env.trades, env.snaps, env.sweeps)
     now = time.time()
-    ctx = {"rules": env.rules, "require_committed": env.committed, "fills_dir": Path(fills_dir), "trades_dir": env.trades, "snapshot_dir": env.snaps, "sweep_dir": env.sweeps}
+    ctx = {"rules": env.rules, "require_committed": env.committed, "fills_dir": Path(fills_dir), "trades_dir": env.trades, "snapshot_dir": env.snaps, "sweep_dir": env.sweeps,
+           "pinned_sweeps": worn["sweeps"], "pinned_captures": worn["captures"]}
     crit, detail = sm.collect_checks(ctx)
     pf = sm.per_family(crit)
     res = {"smoke_version": sm.SMOKE_VERSION, "rules_sha256": shas, "code_sha256": g["freeze"]["code_sha256"], "worn_pins": worn, "git_commit": _git_commit(), "run_utc": c17.iso(now), "counts_only": True, "requests": 0, "criteria": crit,
@@ -263,6 +266,8 @@ def frame_screen_bc(env: Env) -> tuple[int, dict]:
     drops, _ov = win.load_drop_keys(env.root)
     _disk(env, "frame-screen-BC")
     bdone = c16.manifest_complete(out_dir, (B_STATUS,)) if "B" in fams else None
+    if bdone and (bdone.get("code_sha256") != g["freeze"]["code_sha256"] or bdone.get("rules_sha256") != g["rules_sha256"]):
+        raise Refused("the partial B stage was built under other code or rules (manifest code_sha256 / rules_sha256 differ from the current gate): it is never resumed")
     if bdone:  # a budget stop after the B stage resumes at C: B's files are manifested and kept; anything else unmanifested is cleared
         keep = set((bdone.get("file_sha256") or {}).keys()) | {"manifest.json"}
         for p in sorted(out_dir.iterdir()):
@@ -472,6 +477,9 @@ def source_files(env: Env, lo: float, hi: float) -> list[tuple[str, Path]]:
     for cap in win.list_captures(env.snaps, lo, hi, stats, only_complete=False):
         for nm in ("rows.csv.gz", "rows_ext.csv.gz"):
             p = Path(cap["dir"]) / nm
+            if nm == "rows_ext.csv.gz" and not p.is_file() and not win.ext_expected(cap["dir"]):
+                stats["captures_without_ext_per_manifest"] += 1  # the capture's manifest says the sidecar was not written: nothing to seal
+                continue
             if not p.is_file():
                 raise NotNow(f"declared source file snapshots/{cap['dir'].name}/{nm} is missing: {win.RESTORE_MSG}")
             files.append(("snapshots", p))
