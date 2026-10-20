@@ -235,17 +235,21 @@ def perm_gate(df: pd.DataFrame, y: np.ndarray, term: str, controls: list[str], *
     c_ok = codes[ok]
     pr_ok = perm_rows[ok]
     by_code = np.argsort(c_ok, kind="mergesort")
-    ge = 0
+    ge, done = 0, 0
     for _ in range(draws):
         shuf = np.lexsort((rng.random(len(c_ok)), c_ok))  # within-stratum random order, strata in the same order
         yp = yt.copy()
         yp[by_code] = yt[shuf]
         yp[~pr_ok] = yt[~pr_ok]
         b = fast_beta(xr[ok], Xc[ok], yp)
-        ge += int(np.isfinite(b) and sign * b >= sign * real)
-    p = (1 + ge) / (1 + draws)
-    return {"testable": True, "real": real, "p_perm": p, "passes": bool(p < 0.05), "draws": draws,
-            "share_rows_permuted": float(perm_rows[ok].mean())}
+        if not np.isfinite(b):
+            continue  # a skipped draw is not a completed draw (section 13.13, fail closed)
+        done += 1
+        ge += int(sign * b >= sign * real)
+    p = (1 + ge) / (1 + done)
+    # fail closed: fewer completed draws than declared -> the gate fails (a skipped draw never shrinks the denominator)
+    return {"testable": True, "real": real, "p_perm": p, "passes": bool(done == draws and p < 0.05), "draws": draws,
+            "draws_completed": done, "share_rows_permuted": float(perm_rows[ok].mean())}
 
 
 def donor_plan(codes: np.ndarray, t: np.ndarray, min_sep_s: float) -> dict:
@@ -288,7 +292,8 @@ def donor_gate(df: pd.DataFrame, y: np.ndarray, flow: str, mod: str, others: lis
                min_units: int, min_sep_s: float, min_donors: int) -> dict:
     """Distant-donor gate (section 1.8, LT2 finding 1): only markets with >= ``min_units`` usable units; in each draw
     every unit's moderator is replaced by a distant donor's (same market, >= ``min_sep_s`` away) in both the
-    interaction and the main effect; everything else unchanged; the estimator is re-run. The statistic is the studentised partialled score (``fast_score``), real and donor draws alike."""
+    interaction and the main effect; everything else unchanged; the estimator is re-run. NON-BINDING since the donor
+    ruling 2 (section 13.13): reported as a label only, never changes the Holm p or the verdict. The statistic is the studentised partialled score (``fast_score``), real and donor draws alike."""
     d = df.reset_index(drop=True)
     yv = np.asarray(y, float)
     use = np.isfinite(yv) & np.isfinite(d[flow].to_numpy(float)) & np.isfinite(d[mod].to_numpy(float))
@@ -309,7 +314,7 @@ def donor_gate(df: pd.DataFrame, y: np.ndarray, flow: str, mod: str, others: lis
     codes = pd.factorize(d["market_id"])[0]
     tt = d["t_row"].to_numpy(float)
     rng = np.random.default_rng(seed)
-    ge, kept = 0, 0
+    ge, kept, done = 0, 0, 0
     fl, mv = d[flow].to_numpy(float), d[mod].to_numpy(float)
     plan = donor_plan(codes, tt, min_sep_s)
     for _ in range(draws):
@@ -321,13 +326,17 @@ def donor_gate(df: pd.DataFrame, y: np.ndarray, flow: str, mod: str, others: lis
         Xd = demean(dd, ["__i", "__m"], "market_id", "t_row", "expanding").to_numpy()
         okd = ok & np.all(np.isfinite(Xd), axis=1)
         if okd.sum() != ok.sum():
-            continue
+            continue  # skipped draw: not completed (section 13.13, fail closed)
         Zd = np.column_stack([Xd[ok, 1], rest])
         ytd = _partial(Zd, yv[ok])
         b = fast_score(Xd[ok, 0], Zd, ytd)
-        ge += int(np.isfinite(b) and sign * b >= sign * real)
-    p = (1 + ge) / (1 + draws)
-    return {"testable": True, "real": real, "p_perm": p, "passes": bool(p < 0.05), "draws": draws, "rows": int(ok.sum()),
+        if not np.isfinite(b):
+            continue
+        done += 1
+        ge += int(sign * b >= sign * real)
+    p = (1 + ge) / (1 + done)
+    return {"testable": True, "real": real, "p_perm": p, "passes": bool(done == draws and p < 0.05), "draws": draws,
+            "draws_completed": done, "rows": int(ok.sum()),
             "markets": int(d["market_id"].nunique()), "units_without_donors": kept}
 
 
@@ -765,8 +774,14 @@ def flow_test(df: pd.DataFrame, acc: dict, spec: dict, name: str, mod: str) -> d
     res["counts"]["by_category"] = {str(k): int(v) for k, v in pop.loc[ok, "sports"].value_counts().items()} if len(ok) else {}
     res["available"] = floors_ok(cnt, spec[name.lower()]["floors"])
     res["primary"] = strip(prim)
-    res["gate"] = donor_gate(pop, y, x, m, ctrl, sign=sign, draws=g["draws"], seed=sd[f"{name}_gate"] if f"{name}_gate" in sd else sd[name] + 100,
-                             min_units=g["donor_min_units"], min_sep_s=g["donor_min_sep_s"], min_donors=g["donor_min_donors"]) if prim.get("testable") else {"testable": False, "passes": False}
+    gseed = sd[f"{name}_gate"] if f"{name}_gate" in sd else sd[name] + 100
+    # binding gate (section 13.13): Freedman-Lane permutation, strata market x UTC day, as E015 / E019
+    res["gate"] = perm_gate(pop, y, term, [m, *ctrl], sign=sign, group="market_id", order="t_row",
+                            strata=(pop["market_id"].astype(str) + "|" + pop["day"].astype(str)).to_numpy(),
+                            draws=g["draws"], seed=gseed, min_stratum=g["perm_min_stratum"]) if prim.get("testable") else {"testable": False, "passes": False}
+    # non-binding label only (section 13.13): never enters verdict() or the Holm p
+    res["donor_gate_reported"] = donor_gate(pop, y, x, m, ctrl, sign=sign, draws=g["draws"], seed=gseed,
+                                            min_units=g["donor_min_units"], min_sep_s=g["donor_min_sep_s"], min_donors=g["donor_min_donors"]) if prim.get("testable") else {"testable": False, "passes": False}
     xl, ml, cl = flow_controls(f"z{mod}", lag=True)
     pl = add_products(pop.copy(), [f"{xl}*{ml}", *cl])
     res["M1_lag30"] = strip(fit(pl, y, f"{xl}*{ml}", [ml, *cl], sign=sign, seed=sd[name] + 1, n_boot=200))
@@ -854,8 +869,8 @@ def analyze(root: Path = lt.OUT_ROOT, *, start_utc: str = lt.REGISTERED_UTC, end
     fl, facc = flow_frame(root, s, e, roles, spec)
     res = {"E015": e015(mv, macc, spec, k), "E019": e019(mv, root, s, e, roles, spec), "E017": e017(root, s, e, roles, spec),
            "E016": flow_test(fl, facc, spec, "E016", "W"), "E018": flow_test(fl, facc, spec, "E018", "H")}
-    gate_label = {"E015": "SE check failed", "E019": "SE check failed", "E016": "within-unit timing not shown",
-                  "E018": "within-unit timing not shown", "E017": "placebo"}
+    gate_label = {"E015": "SE check failed", "E019": "SE check failed", "E016": "SE check failed",
+                  "E018": "SE check failed", "E017": "placebo"}
     pv = {}
     for t in ktests:
         r = res[t]
@@ -884,6 +899,7 @@ def analyze(root: Path = lt.OUT_ROOT, *, start_utc: str = lt.REGISTERED_UTC, end
         if t in floors and prim.get("beta") is not None and DIRECTION[t] * prim["beta"] >= floors[t]:
             labels.append("material")
         if t in ("E016", "E018"):
+            labels.append("within-unit timing shown" if (r.get("donor_gate_reported") or {}).get("passes") else "within-unit timing not shown")
             gm = ((r.get("economics") or {}).get("gross_cell") or {}).get("mean")
             if gm is not None and gm >= spec[t.lower()]["floor_gross_c"]:
                 labels.append("material")
@@ -938,6 +954,7 @@ def sim_flow_world(rng: np.random.Generator, *, n_mkt: int = 40, n_t: int = 30, 
         + za_effect * df["x6"].to_numpy() * df["zA"].to_numpy() + rng.normal(0, 0.01, len(df))
     df["x6*zHTE"] = df["x6"] * df["zHTE"]
     df["x6*zA"] = df["x6"] * df["zA"]
+    df["x6*zM"] = df["x6"] * df["zM"]
     others = ["x6", "c1"] + (["x6*zHTE", "zHTE"] if lifecycle else []) + (["x6*zA", "zA"] if collinear is not None else [])
     return df, y, others
 
@@ -976,7 +993,7 @@ def size_check(*, worlds: int, draws: int, seed: int, nominal: float = 0.05) -> 
             g = donor_gate(df, y, "x6", "zM", others, sign=+1, draws=draws, seed=int(rng.integers(1 << 31)), min_units=4,
                            min_sep_s=43200.0, min_donors=2)
             rej += int(bool(g.get("passes")))
-        out["scenarios"][name] = {"rate": rej / worlds, "ok": rej / worlds <= lim}
+        out["scenarios"][name] = {"rate": rej / worlds, "ok": rej / worlds <= lim, "binding": False}  # reported only (13.13)
     for name, kw in (("perm_iid", {}), ("perm_persistent", {"persistent": True}),
                      ("perm_corr_control", {"corr_control": True})):
         rej = 0
@@ -986,7 +1003,18 @@ def size_check(*, worlds: int, draws: int, seed: int, nominal: float = 0.05) -> 
             g = perm_gate(df, y, "P", ["c1"], sign=+1, group="market_id", order="t_row", strata=strata, draws=draws,
                           seed=int(rng.integers(1 << 31)), min_stratum=4)
             rej += int(bool(g.get("passes")))
-        out["scenarios"][name] = {"rate": rej / worlds, "ok": rej / worlds <= lim}
-    out["pass"] = all(v["ok"] for v in out["scenarios"].values())
+        out["scenarios"][name] = {"rate": rej / worlds, "ok": rej / worlds <= lim, "binding": True}
+    # flow-world permutation scenarios: the gate E016 / E018 now use (13.13), strata market x UTC day
+    for name, kw in (("flowperm_iid", {}), ("flowperm_ar0.6", {"ar": 0.6}),
+                     ("flowperm_collinear_0.7", {"collinear": 0.7, "za_effect": 0.004})):
+        rej = 0
+        for _ in range(worlds):
+            df, y, others = sim_flow_world(rng, **kw)
+            strata = (df["market_id"] + "|" + df["day"]).to_numpy()
+            g = perm_gate(df, y, "x6*zM", ["zM", *others], sign=+1, group="market_id", order="t_row", strata=strata, draws=draws,
+                          seed=int(rng.integers(1 << 31)), min_stratum=4)
+            rej += int(bool(g.get("passes")))
+        out["scenarios"][name] = {"rate": rej / worlds, "ok": rej / worlds <= lim, "binding": True}
+    out["pass"] = all(v["ok"] for v in out["scenarios"].values() if v["binding"])
     out["code_sha256"] = lt.code_hashes()
     return out

@@ -561,7 +561,12 @@ def test_size_check_small_runs_and_planted_effects_pass():
     sc = la.size_check(worlds=6, draws=19, seed=3)
     assert set(sc["scenarios"]) == {"donor_iid", "donor_ar0.6", "donor_lifecycle", "perm_iid", "perm_persistent",
                                   "donor_corr_control", "perm_corr_control",
-                                  "donor_collinear_control_0.5", "donor_collinear_control_0.7"}
+                                  "donor_collinear_control_0.5", "donor_collinear_control_0.7",
+                                  "flowperm_iid", "flowperm_ar0.6", "flowperm_collinear_0.7"}
+    binding = {n for n, v in sc["scenarios"].items() if v["binding"]}
+    assert binding == {"perm_iid", "perm_persistent", "perm_corr_control", "flowperm_iid", "flowperm_ar0.6", "flowperm_collinear_0.7"}
+    assert all(not v["binding"] for n, v in sc["scenarios"].items() if n.startswith("donor_"))
+    assert sc["pass"] == all(sc["scenarios"][n]["ok"] for n in binding)
     assert all(0.0 <= v["rate"] <= 1.0 for v in sc["scenarios"].values()) and sc["limit"] > 0.05
     rng = np.random.default_rng(7)
     df, y, others = la.sim_flow_world(rng, effect=0.004)
@@ -697,3 +702,68 @@ def test_within_market_r2_and_abs_corr_helper():
     d["zW"] = d["zN"]  # x6*zW exactly a controlled interaction
     assert lt.within_market_r2(d, "zW") > 0.999
     assert lt.within_market_r2(d.head(5), "zW") is None
+
+
+def test_flow_gate_is_freedman_lane_and_donor_gate_is_non_binding(tmp_path, monkeypatch):
+    spec = _spec(tmp_path, k_tests=["E015", "E016", "E017", "E018", "E019"])
+    spec["gates"]["draws"] = 5
+    w = _world(tmp_path, 0, 40)
+    root = tmp_path / "r"
+    for k in range(14, 41):
+        _run(w, root, spec, 14, 26, _t(k, 40))
+    _run(w, root, spec, 14, 26, _t(44, 0))
+    kw = dict(start_utc=_iso(G0 + timedelta(hours=28, minutes=-31)), end_utc=_iso(G0 + timedelta(hours=52, minutes=-31)),
+              spec=spec, roles=(lt.ROLE_UNREG,), force=True)
+    terms = []
+    real_perm = la.perm_gate
+
+    def spy(df, y, term, *a, **k):
+        terms.append(term)
+        return real_perm(df, y, term, *a, **k)
+
+    monkeypatch.setattr(la, "perm_gate", spy)
+    out = {}
+    for flag in (True, False):
+        monkeypatch.setattr(la, "donor_gate", lambda *a, _f=flag, **k: {"testable": True, "passes": _f, "draws": 5})
+        out[flag] = la.analyze(root, **kw)
+    assert "x6*zW" in terms and "x6*zH" in terms  # E016 / E018 use the permutation gate
+    for t in ("E016", "E018"):
+        a, b = out[True][t], out[False][t]
+        assert a["gate"] == b["gate"] and "donor_gate_reported" in a
+        assert a["holm_p"] == b["holm_p"] and out[True]["holm"]["p_raw"][t] == out[False]["holm"]["p_raw"][t]
+        va, vb = dict(a["verdict"]), dict(b["verdict"])
+        assert a["donor_gate_reported"]["passes"] and not b["donor_gate_reported"]["passes"]
+        if "labels" in va:  # labels are not attached to Unavailable verdicts
+            assert "within-unit timing shown" in va["labels"] and "within-unit timing not shown" in vb["labels"]
+        assert va["verdict"].split(";")[0] == vb["verdict"].split(";")[0] and va.get("p_for_holm") == vb.get("p_for_holm")
+
+
+def test_skipped_draws_fail_closed_in_both_gates(monkeypatch):
+    rng = np.random.default_rng(11)
+    dm, ym = la.sim_move_world(rng, persistent=True, effect=0.05)
+    strata = (dm["market_id"] + "|" + dm["day"]).to_numpy()
+    kw = dict(sign=+1, group="market_id", order="t_row", strata=strata, draws=39, seed=1, min_stratum=4)
+    g = la.perm_gate(dm, ym, "P", ["c1"], **kw)
+    assert g["passes"] and g["draws_completed"] == 39
+    real = la.fast_beta
+    calls = {"n": 0}
+
+    def flaky(x, Zt, yt):
+        calls["n"] += 1
+        return float("nan") if calls["n"] % 3 == 0 and calls["n"] > 1 else real(x, Zt, yt)
+
+    monkeypatch.setattr(la, "fast_beta", flaky)
+    g2 = la.perm_gate(dm, ym, "P", ["c1"], **kw)
+    assert g2["draws_completed"] < 39 and not g2["passes"]
+    monkeypatch.undo()
+    df, y, others = la.sim_flow_world(rng, effect=0.004)
+    real_s = la.fast_score
+    c2 = {"n": 0}
+
+    def flaky_s(x, Zt, yt):
+        c2["n"] += 1
+        return float("nan") if c2["n"] > 1 and c2["n"] % 4 == 0 else real_s(x, Zt, yt)
+
+    monkeypatch.setattr(la, "fast_score", flaky_s)
+    g3 = la.donor_gate(df, y, "x6", "zM", others, sign=+1, draws=39, seed=1, min_units=4, min_sep_s=43200.0, min_donors=2)
+    assert g3["draws_completed"] < 39 and not g3["passes"]

@@ -1504,7 +1504,11 @@ def census_flow(*, seal: Path, sample_roots: list[Path], snapshot_root: Path = S
 def within_market_r2(cov: pd.DataFrame, mod: str) -> float | None:
     """Within-market R^2 of the tested interaction ``x6 * mod`` on the interactions (with main effects) and ``x6`` that
     the E016 / E018 model controls for (x6*zN, zN, x6*zSPR, zSPR, x6*zSize, zSize, x6*zHTE, zHTE, x6*zRV, zRV, x6): all
-    variables demeaned by market first (donor ruling 2026-10-20, c). None if fewer than 20 finite rows."""
+    variables demeaned by market first (donor ruling 2026-10-20, c). None if fewer than 20 finite rows.
+
+    Disclosure (section 13.13, reported only): this demeans by the FULL-sample market mean, whereas the model uses
+    expanding-past demeaning; and it runs on the census sample, not on the gate sample. It is a descriptive collinearity
+    figure, not a gate input."""
     d = cov.reset_index(drop=True)
     x6 = d["x6"].to_numpy(float)
     ctl = {"x6": x6}
