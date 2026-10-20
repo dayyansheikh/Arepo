@@ -140,3 +140,22 @@ Experiment ids:
 - `T5-DEV`: Resolution forecasting vs recalibrated price (development)
 
 <!-- END RELEASES -->
+
+## Signal engine (2026-10-21)
+
+`data-dumps/research_lab/signal_engine/`, written by `backend/scripts/run_signal_engine.py` (design, sizes and deploy steps:
+`../signal_engine/DESIGN_V1.md`). Catalogue label `SIGNAL-ENGINE`. Derived, small per file, independent of the 8-day snapshot rule.
+Retention class: **write-once, archive nightly, never rewrite**; proposed host rules (`deferred_rules`, not active): `predictions/` 35 days,
+`features/` and `quotes/` 45 days; `meta/`, `models/`, `leaderboard/`, `dev/`, `champion/`, `logs/` never deleted; `state/` is excluded
+from archives (rebuildable caches).
+
+| path | content |
+|---|---|
+| `quotes/<capture>.parquet` | every binary market of a complete capture: market_id, receipt offset, bid/ask (open two-sided only), status code |
+| `features/<capture>.parquet` | eligible markets: keys + float32 feature families (`se-features-v1`) |
+| `meta/<capture>.json` | slot, clocks, eligibility counts, family sources, file sha256 (the engine's capture index) |
+| `predictions/<capture>/<model>.parquet` | write-once uint16 probabilities per target, aligned with the features file |
+| `models/<model>/<stamp>/` | fit artifacts (`<target>.json`) and `fit.json` (written last) |
+| `leaderboard/<stamp>.json`, `dev/walkforward_<stamp>.json` | prospective leaderboard / development walk-forward (kept apart) |
+| `champion/history.jsonl` | promotions (append-only) |
+| `logs/{predictions,fits,resolutions,promotions,runs}-YYYYMMDD.jsonl` | append-only day logs (receipt times, resolution labels) |
