@@ -1,39 +1,30 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-20 20:08 UTC+1
+**Last updated:** 2026-10-21 00:00 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **Autopilot:** a new session started at 18:38 UTC+1 (20 Oct). The 13:25 session had stopped at about 14:01 UTC+1.
-- **Server queue was idle at 18:38 again.** Cause: the server's copy of the code was 15 commits behind, so the jobs
-  promoted this afternoon never reached it (most likely a deploy from a side branch overwrote the newer one). Fixed:
-  the current code was sent at 18:40 and the work restarted. From now on, deploys go only from the main research branch.
-  Two smaller server faults were fixed too: a restore job could not find the GitHub tool, and one price job needed more memory.
-- **Live tests: E012-E014 are now REGISTERED** (18:51 UTC+1). The last server dry run passed (memory 584 MB of
-  960 MB allowed) and the independent check passed, with one correction to the wording: the server only lists open
-  markets, so a market that closes or resolves shows up as "gone from the list", which the attrition rule already counts.
-  Collection starts **22 Oct 01:00 UTC+1** and runs to 12 Nov; the single analysis comes after 13 Nov.
-  That makes **4 registered live-test groups** (E009/E010, E011, E012-E014), 3 of them collecting now.
-- **Next live tests:**
-  - LT3 (E015-E019): E015 passed its counting check; E017 and E019 were dropped before registration (too few cases;
-    not counted). A review of the LT4 design found that one of LT3's safety checks could pass too easily when the compared
-    groups differ in size or activity. It was fixed this evening (verified), and its size check is re-running on the
-    server. E016/E018 still wait for one more counting check (before 23 Oct). Target start 24 Oct.
-  - LT4 (E020-E024, new from round 10 of ideas): designed and coded. The independent challenger asked for changes to three
-    of the five tests (one could be distorted by the minimum price step, one would mostly measure bid/ask bounce, one needs
-    a better comparison within each market); the other two were accepted with small changes. The revisions are being made.
-    Target start 26 Oct, after LT3 is registered.
-- **Round 10 of ideas** (11 new ideas, CH169 onward) is saved. They cover order arrivals versus cancellations, how old a
-  price move is, and liquidity that is displayed but cannot actually be traded against.
-- **Batch 12, options part (CB12-O): closed, not testable.** Its readiness check needed dividend dates for an index fund
-  (SPY), and the free source has none. By the rule written in advance, it counts as 2 tests that found nothing. We did
-  not swap in another source after the check failed, because that would mean changing the rules to get a pass.
-- **Batch 17:** rules final (fixed 19:27 UTC+1; test window starts **26 Oct**). The code is frozen after three rounds of
-  independent checks and fixes. A reproduction run on the server (it must re-create three earlier counts exactly) is queued
-  behind a restore of the archived input files.
+- **Autopilot:** a new session started at 23:39 UTC+1 (20 Oct). The 18:38 session stopped at about 21:40 UTC+1.
+- **Two archive restores were failing; fixed.** They need an index of what each nightly backup holds, and that index
+  had not been refreshed since 15 Oct. It is now refreshed for every backup up to 20 Oct, and both restores are back in
+  the queue (the LT3 input restore and the batch 17 reproduction inputs). The LT3 counting check that follows still has
+  time before its 23 Oct deadline.
+- **Live tests:** 4 registered groups (E009/E010, E011, E012-E014); E012-E014 start collecting **22 Oct 01:00 UTC+1**.
+  - **LT3 (E015, E016, E018):** an independent ruling found that one safety check still passes too easily when two
+    measured effects move together. The requested fix (a standardised version of the check, plus two extra test
+    scenarios) is being made now; then a fresh size check runs on the server before LT3 can be frozen. Target start 24 Oct.
+  - **LT4 (now E020-E022):** the second review accepted three tests with changes and dropped two whose safety check could
+    not be shown to work. A re-check tonight accepted the changes with four small fixes, which are being made. Its first
+    input restore is queued; the counting checks follow. It registers after LT3.
+- **Batches 12-15, data steps finished this evening:** batch 13's price frame, batch 14's Wikipedia frame (94 usable
+  cases out of 1,119) and batch 14's exclusion list are done, so three next steps were queued. Batch 12's two remaining
+  parts (speech mentions, earthquake markets) failed their pre-declared readiness checks (too little power; too few
+  independent events). By the rules written in advance they count as 3 tests that found nothing; their closing records
+  are under independent review.
+- **Batch 17:** code frozen; its reproduction run waits for the restore above. Test window starts **26 Oct**.
 - **Second free server:** still "out of host capacity" at Oracle; it retries every 10 min.
 
 ## 2. Approvals needed from you

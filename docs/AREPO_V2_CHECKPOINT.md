@@ -230,30 +230,30 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-20 17:55Z
-0. **Autopilot session from 17:38Z 10-20.** Ledger: "Session 2026-10-20 ~17:38Z" and "LT2 (E012-E014) REGISTERED".
-   - **Deploy only from `chore/arepo-claude-setup`** (`scripts/oracle/deploy.sh chore/arepo-claude-setup`). A worktree deploy
-     regressed the host 15 commits on 10-20 and idled the queue. Check `ssh oracle 'cd ~/arepo && git log --oneline -1'` = local tip.
-   - **LT2 (E012-E014) REGISTERED** at a4127bb9 (SPEC_SHA256 010a7ba1…, window 10-22T00Z to 11-12T00Z). q0460 starts
-     10-21T00Z (net lane, repeat). q0461 analysis after 11-13T12Z. No interim outcome looks.
-   - **CB12-O TERMINAL not testable (source)** (28fca027): O freeze entry committed; q0262 -> q0263 write 2 p = 1 lines.
-     q0261 never installed, q0264 never run.
-   - **LT3 (E015, E016, E018; E017/E019 dropped uncounted at q0470):** Freedman-Lane gate merged b57a5cf5 (verified OK);
-     analysis sha d0a4a3b5…; q0473 cancelled; q0473b size check (2,000 worlds, priority 20) queued. q0471 C2 restore
-     (retry; gh PATH fixed) -> q0472 census-flow (**deadline 10-23T03:30Z**). Then counts write-up, freeze review, pin,
-     register (REGISTERED_UTC >= 10-23, proposed 10-24), install the reader as a 20-min host cron.
-   - **CB17:** T17 = merge 2d6d3aa9 (S_8 2026-10-26T00Z). Code frozen: `seals/cb17_code_freeze.json` (code 529e7de5…,
-     2026-10-20T19:05:50Z, attestation). Worn pins `seals/cb17_worn_sha256.json` (release-derived). q0413 restore -> q0404
-     smoke (must reproduce P1-P3 exactly; a refusal is not a FAIL). After q0404 PASS: record acceptance in the ledger;
-     q0405 needs q0380's manifest sha verbatim; q0406/q0407 not before 2026-11-09T08Z (attest again at q0406's commit).
-   - **LT4 (E020-E024)** on `feat/live-tests-4` (../astrolabe-live-tests-4): design 6290d93c, code c08383a5; challenger R1
-     REVISE (reviews/LT4_CHALLENGER_R1_2026-10-20.md, 8a968295); designer writing the R1 response. Registers only after
-     LT3. Finding 7 (permutation gate anti-conservative with correlated controls) may affect LT3's shared gate: a
-     science-reviewer check is running; resolve before LT3's pin.
-   - **Queue (17:52Z):** q0470 + q0277 running; queued q0239/q0249 (censuses; write up PA A1/A2 "not testable (entity map)";
-     M census -> M freeze entry in `model_specs/cb12_v1.json` after a science-reviewer check -> promote q0252), q0245
-     (mem 600) -> q0266, q0279 -> q0284, q0302 -> q0303. cpu lane: q0260 done 15:06Z -> O freeze entry with its
-     iv_convention -> install q0261 cron. After q0302: fill q0340's base pin -> q0380 / q0347.
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-20 23:00Z
+0. **Autopilot session from 22:39Z 10-20.** Ledger: "Session 2026-10-20 ~22:39Z".
+   - **Deploy only from `chore/arepo-claude-setup`**; two sessions deploying at once can land an older tip (happened
+     22:58Z; redeployed e4d7ac7). Check `ssh oracle 'cd ~/arepo && git log --oneline -1'` = local tip after deploying.
+   - **Archive catalogues** must exist for every release a restore names (`backend/scripts/archive_catalogue.py --tag ...`
+     with `PATH=~/.local/bin:$PATH`); generated through data-20261020-dsheikh (d79db323). Regenerate after new releases.
+   - **LT2 (E012-E014) REGISTERED** (a4127bb9): q0460 starts 10-21T00Z (net, repeat); q0461 after 11-13T12Z. No interim looks.
+   - **LT3 (E015, E016, E018):** donor-gate ruling (reviews/LT3_DONOR_GATE_RULING_2026-10-20.md) being implemented on
+     `fix/lt3-donor` (../astrolabe-lt3-donor): studentised statistic, `donor_collinear_control` 0.5/0.7, C2 R^2 + |corr|.
+     Then: science-reviewer verification -> merge -> queue a >= 2,000-world size check on the fixed code -> q0471 restore
+     (retried) -> q0472 census-flow (**deadline 10-23T03:30Z**) -> freeze review, pin, register (REGISTERED_UTC >= 10-23).
+   - **LT4 (E020-E022; E023/E024 dropped, k = 3):** R2 re-check ACCEPT_WITH_CHANGES (reviews/LT4_CHALLENGER_R2_RECHECK_2026-10-20.md
+     on feat/live-tests-4, fac87cf8). Fixes (q0484 gating, even-offset block anchor, bounce_decomp in CODE_FILES, stale
+     text) in progress on feat/live-tests-4. Then merge into chore and promote q0482/q0483 (q0481 may fold into q0471).
+     q0480 (capture restore) already promoted. q0484 size check only after LT3's registration commit is merged and the LT4
+     code freeze is recorded.
+   - **CB12 M/E:** freeze entries on `freeze/cb12-me` (7181778c; M "not run (power)" 2 tests, E "not testable
+     (dependence)" 1 test, p = 1). After science-reviewer FREEZE_OK: merge, promote q0252/q0253; never q0256/q0257/q0258.
+   - **Promoted this session:** q0278 (CB13 touch prices) -> q0280 seal R -> q0281 census R (freeze check on R) -> q0282;
+     q0305 (CB14 W pregate) -> q0306..q0309 (W freeze check at q0308); q0340 (CB15 exclusion keys, pin d91bfacc) ->
+     q0347; then q0380 needs its base pin = sha256 of creative_batch15/exclusion_keys.csv.gz.
+   - **CB17:** q0413 restore (retried; 10-15 tag dropped, already restored) -> q0404 smoke (exact P1-P3). After PASS:
+     record acceptance; q0405 needs q0380's manifest sha; q0406/q0407 not before 2026-11-09T08Z.
+   - **q0116c** (MC1 dev run, exclusive) belongs to the interactive session.
 1. **CB8-H:** q0162/q0163 wait on spec `not_before` (10-21T06Z / 10-22T12Z). **CB8-B:** q0161/q0164 after T_seal; before
    promoting q0164 run the two `derive-exclusion-ids` commands in its draft notes on the host and fill both sha256 tokens.
 2. **CB9:** data jobs q0181+ only after T_seal 2026-10-22T00Z; q0182 needs the pinned q0164 hash. **CB10:** q0201 needs
