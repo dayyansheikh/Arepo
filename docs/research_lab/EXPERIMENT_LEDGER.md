@@ -2637,3 +2637,46 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   files of data-20261015-dsheikh (report passed, 79,926,435 B); later attempts refused because those files existed, so
   its argv drops that tag (selection globs unchanged). Both `retry` with fresh budgets after deploy. q0472's deadline
   (10-23T03:30Z) still holds.
+
+## Operational deviation: canonical E009/E010 gaps on 2026-10-13 before the 10-14 outage (recorded 2026-10-20; facts only, not counted)
+
+Found by the live-tests readiness audit (`LIVE_TESTS_READINESS_2026-10-19.md`) from prediction-line timestamps only. No
+outcome was read.
+- **Gaps:** the canonical E009 stream (the Mac poller) has no prediction cycles strictly between 2026-10-13 21:24Z and
+  22:22Z, nor strictly between 22:28Z and 23:12Z. The bounding cycles at 21:24Z, 22:22Z, 22:28Z and 23:12Z are present.
+  Hourly cycle counts out of 30 are 21:00Z 13, 22:00Z 4 and 23:00Z 24. E010 has no 22:00Z or 23:00Z origin.
+- **Cause:** unknown. This is separate from the documented 2026-10-14 00:02Z–10:44Z outage.
+- **Coverage:** the validation copy started at 23:33Z and covers neither gap. The 2026-10-15 gap-fill decision covers only
+  the open interval (00:02Z, 10:44Z) on 10-14 (rule `gapfill-v2`, `E009_E010_GAPFILL_RULE_V2.md`). Missing stays missing,
+  and neither window is extended.
+- **E011 is unaffected:** its passes at 20:31Z and 22:31Z on 10-13 are present.
+
+## E010 verdict rule declared: Holm when a horizon is Unavailable (2026-10-21 00:12 UTC+1; pre-outcome, not counted)
+
+This entry is declared before any E010 outcome analysis. It follows the science-reviewer's ACCEPT_WITH_CHANGES on the
+readiness audit. It clarifies the registered sentence "Holm always uses m = 2: a horizon without a test enters with p = 1"
+together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 evaluated origins at that horizon".
+- **Rule.** A horizon that is Unavailable by the registered minimum counts as "a horizon without a test" and enters Holm
+  with p = 1. The other horizon's adjusted p is then min(1, 2·p_raw), where p_raw is its frozen `p_one_sided_m1`. When
+  neither horizon is Unavailable, the Holm adjustment is the frozen `holm_m1`, unchanged.
+- **Why.** The frozen `cross_venue_live_e010.analyze` assigns p = 1 only to a horizon with fewer than 2 clusters. A
+  horizon with 2–19 clusters, or with fewer than 2,000 origins, would otherwise enter Holm with its own p, although the
+  registration gives it no test.
+- **Reporting.** `backend/scripts/live_verdicts.py e010` applies this rule. It also reports the frozen `holm_m1` and the
+  verdicts that `holm_m1` would give. If the two sets of verdicts differ, both are shown and the declared rule is the
+  registered verdict. No statistic is recomputed: p_raw is read from the frozen output.
+
+## Deviation: fix to frozen E011 analysis code, `_cluster_id` (2026-10-21 00:12 UTC+1; pre-outcome, not counted)
+
+- **What changed.** In `surprise_snapshot.analyze` (commit `ed7dea22`, branch `feat/live-audit`), the episode cluster
+  `a.get("event_id") or a["market_id"]` became `_cluster_id(a)`. It treats `"nan"`, `"None"`, empty and null event ids
+  as absent and falls back to the market id.
+- **Why.** The E011 registration says "cluster = Gamma event id (market id when absent)". Alert lines store
+  `str(row["event_id"])`, so a capture row without an event id arrives as the string `"nan"`. The old expression treated
+  that string as present and would have pooled every such market into one `"nan"` cluster. The fix restores the
+  registered definition exactly.
+- **Effect on collected data:** none so far. 0 of the 4,200 window alert lines (as of 2026-10-19 21:44Z) carry a
+  missing-like event id. The latest capture had 1 market without an event id among 246,961 rows, so the case can occur.
+  The primary statistic, the episode rule, the window and the verdict thresholds are unchanged.
+- **Found and checked by:** the live-tests readiness audit, reviewed by the science-reviewer (ACCEPT_WITH_CHANGES). Test:
+  `test_e011_missing_event_id_falls_back_to_market_id`. The E011 analysis must run from a commit that contains this fix.
