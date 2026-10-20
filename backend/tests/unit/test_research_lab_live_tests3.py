@@ -429,6 +429,9 @@ def test_census_flow_verifies_seal(tmp_path):
     res = lt.census_flow(seal=seal, sample_roots=[w["samples"]], snapshot_root=w["snap"], work=tmp_path / "work", spec=spec)
     assert not res["bad"] and res["totals"]["signed"] > 0
     assert res["ge4dec_on_grid_share"] is not None and "pass" in res["gate_E016"] and "pass" in res["gate_E018"]
+    assert res["gate_E016"]["vol24_cap_defined"] and res["agreement"]["min_rows_per_arm"] == 500
+    if not res["agreement"]["enough_rows"]:  # fewer than 500 rows per arm: both agreement gates fail closed
+        assert not res["gate_E016"]["agreement_gap"] and not res["gate_E018"]["agreement_gap"]
     # a tampered input is refused
     p = w["samples"] / sids[0] / "plan.json"
     p.write_text(p.read_text() + " ")
@@ -490,10 +493,10 @@ def test_mechanism_and_composition_label_rules():
     assert la.e015_labels({**res, "M1_sweep": insig}, sup, spec, 5) == ["Gamma-quote mechanics"]
     assert la.e015_labels({**res, "M3_traded_parallel": weak}, sup, spec, 5) == ["impact/anatomy mechanics"]
     assert la.e015_labels({**res, "M1_sweep": weak}, {"verdict": "Inconclusive"}, spec, 5) == []  # labels qualify a Supported result only
-    r19 = {"primary": {"beta": 0.006}, "anatomy_par_ss": good, "M1_sweep": good, "counts": {"top_family_share_high": 0.3}}
+    r19 = {"primary": {"beta": 0.006}, "anatomy_par": good, "M1_sweep": good, "counts": {"top_family_share_high": 0.3}}
     assert la.e019_labels(r19, sup, spec) == []
-    assert la.e019_labels({**r19, "anatomy_par_ss": weak}, sup, spec) == ["quote-anatomy composition"]
-    assert la.e019_labels({**r19, "anatomy_par_ss": insig}, sup, spec) == ["quote-anatomy composition"]
+    assert la.e019_labels({**r19, "anatomy_par": weak}, sup, spec) == ["quote-anatomy composition"]
+    assert la.e019_labels({**r19, "anatomy_par": insig}, sup, spec) == ["quote-anatomy composition"]
     assert la.e019_labels({**r19, "counts": {"top_family_share_high": 0.6}}, {"verdict": "Inconclusive"}, spec)[0].startswith("series-concentrated")
     r17 = {"primary": {"beta": 0.01}, "pretrend": {"testable": True, "beta": 0.006, "p": 0.01},
            "SM_coefficient": {"testable": True, "beta": 0.012, "ci95_cons": [0.005, 0.02]}}
@@ -548,7 +551,8 @@ def test_census_c4_gate_includes_cluster_floor(tmp_path):
     spec = _spec(tmp_path)
     w = _world(tmp_path, 0, 26, samples=False)
     res = lt.census_captures(snapshot_root=w["snap"], work=tmp_path / "work", days=["2027-01-02", "2027-01-03"], spec=spec)
-    assert set(res["C4"]["gate_E019"]) == {"high_21d", "events_both_21d", "clusters_high_census", "pass"}
+    assert set(res["C4"]["gate_E019"]) == {"high_21d", "events_both_21d", "clusters_high_census", "mde_plan", "pass"}
+    assert "mde_plan" in res["C3"]["gate_E017"] and res["C4"]["mde_plan_c"] > 0
     assert "empty_slug_event_share" in res["C4"] and "top_family_high_share" in res["C4"]
     assert "mde_eff_c" in res["C1"] and "perm_strata_share_permuted" in res["C1"]
 
@@ -563,3 +567,70 @@ def test_size_check_small_runs_and_planted_effects_pass():
     dm, ym = la.sim_move_world(rng, persistent=True, effect=0.02)
     strata = (dm["market_id"] + "|" + dm["day"]).to_numpy()
     assert la.perm_gate(dm, ym, "P", ["c1"], sign=+1, group="market_id", order="t_row", strata=strata, draws=39, seed=1, min_stratum=4)["passes"]
+
+
+# --- freeze-check fixes (LIVE_TESTS_3.md 13.9) ------------------------------------------------------------------------------
+
+
+def test_write_once_round_trips_epochs_and_volumes_exactly(tmp_path):
+    df = pd.DataFrame({"t_row": [1792800661.123456, 1792807861.5], "capture_t": [1792800661.932437, 1792807862.0],
+                       "vol24": [123456.789012, 1000.005], "end_ts": [1793578261.0, np.nan], "s_t": [1792801012.65273, 1.0]})
+    p = tmp_path / "x.csv.gz"
+    assert lt.write_once_csv(p, df)
+    back = pd.read_csv(p)
+    for c in df.columns:
+        np.testing.assert_array_equal(back[c].to_numpy(float), df[c].to_numpy(float))
+    # the V+ / V0 rule needs volume differences of 0.01 to survive
+    assert back["vol24"].iloc[1] - 1000.0 == pytest.approx(0.005, abs=1e-9)
+
+
+def test_run_lock_prevents_two_readers(tmp_path):
+    import fcntl
+
+    spec = _spec(tmp_path)
+    w = _world(tmp_path, 0, 15)
+    root = tmp_path / "r"
+    root.mkdir()
+    with open(root / "run.lock", "a") as fh:
+        fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
+        st = _run(w, root, spec, 14, 15, _t(14, 40))
+        assert st["status"] == "locked" and st["written"] == 0
+    assert _run(w, root, spec, 14, 15, _t(14, 40))["written"] > 0
+
+
+def test_nan_vol24_cap_refused_and_c2_gate_fails_closed(tmp_path):
+    spec = _spec(tmp_path, k_tests=["E016"])
+    spec["_pinned"] = True
+    spec["code_sha256"] = lt.code_hashes()
+    spec["flow"]["vol24_cap"] = float("nan")
+    with pytest.raises(RuntimeError):
+        la.code_check(spec)
+
+
+def test_spec_dates_must_equal_module_constants(tmp_path):
+    spec = json.loads(lt.SPEC_PATH.read_text())
+    spec["registered_utc"] = "2026-10-25T00:00:00Z"
+    p = tmp_path / "s.json"
+    p.write_text(json.dumps(spec))
+    with pytest.raises(RuntimeError):
+        lt.load_spec(p, sha=None)
+
+
+def test_crypto_regex_rulings():
+    import re
+
+    rx = re.compile(json.loads(lt.SPEC_PATH.read_text())["crypto_rule"]["slug_regex"])
+    for slug in ("bitcoin-up-or-down-daily", "eth-price-weekly", "dogecoin-above", "solana-price", "btc-15m"):
+        assert rx.search(slug), slug
+    for slug in ("doge-government-cuts", "ethiopia-election", "ethics-committee", "us-politics"):
+        assert not rx.search(slug), slug
+
+
+def test_c3_c4_planning_mde_gates():
+    spec = json.loads(lt.SPEC_PATH.read_text())
+    a3 = spec["census_gates"]["C3_E017"]["mde_assumptions"]
+    m3 = a3["t_sum"] * a3["sd_c"] / np.sqrt(1500) * a3["within"] * a3["block_factor"]
+    assert m3 > 0.01  # at the old 1,500-event gate the pessimistic MDE exceeds the 1.0c floor: the new gate binds
+    a4 = spec["census_gates"]["C4_E019"]["mde_assumptions"]
+    m4 = a4["t_sum"] * a4["sd_c"] / np.sqrt(3000) * a4["within"] * np.sqrt(a4["deff_series"]) * a4["day_factor"]
+    assert m4 > 0.005

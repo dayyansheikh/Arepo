@@ -1,6 +1,6 @@
 {
  "id": "q0473_lt3_size_check",
- "title": "LT3 simulated-null size of the distant-donor and label-permutation gates on the code to be pinned (DRAFT): 5 scenarios x 400 worlds x 99 draws, criterion rate <= 0.068",
+ "title": "LT3 simulated-null size of the distant-donor and label-permutation gates on the code to be pinned (DRAFT): 5 scenarios x 2,000 worlds x 99 draws, criterion rate <= 0.05 + 1.645 sqrt(0.0475 / 2000) = 0.058",
  "family": "live_tests_3",
  "priority": 42,
  "expected_value": "LIVE_TESTS_3.md 13.5 size statement at the pinned code",
@@ -20,11 +20,11 @@
   "--out",
   "../data-dumps/research_lab/live_tests3_census/size_check.json"
  ],
- "timeout_s": 7200,
+ "timeout_s": 28800,
  "max_retries": 1,
  "outputs": [
   "data-dumps/research_lab/live_tests3_census/size_check.json (with code_sha256 of both modules)"
  ],
  "next_action": "record the rates in 13.5; a failing scenario blocks the pin (a gate whose null size is above 5% is not used)",
- "notes": "DRAFT. Optional: the same command may run locally on the code to be pinned (no data needed); the output carries the module hashes, which must equal the spec code_sha256 map. Local run 2026-10-20 on the R1 code: see 13.5. Counts 0."
+ "notes": "DRAFT. Freeze check 13.9 item 3: >= 2,000 worlds (spec size_check.worlds). The criterion is a stated Monte-Carlo tolerance (disclosed change from 'rejection <= 0.05'). Estimate about 2-4 h on the host (400 worlds took about 20 min on the Mac). The same command may run locally on the code to be pinned; the output carries the module hashes, which must equal the spec code_sha256 map. A failing scenario blocks the pin. Counts 0."
 }

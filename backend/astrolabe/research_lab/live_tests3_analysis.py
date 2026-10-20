@@ -54,7 +54,8 @@ def code_check(spec: dict) -> dict:
             raise RuntimeError("live_tests3 spec pinned with null k_tests")
         if any(t in spec["k_tests"] for t in ("E016", "E018")):
             f = spec["flow"]
-            if f.get("vol24_cap") is None or any(f[z].get("scale") is None for z in ("zW", "zH", "zN", "zSize", "zSPR", "zRV", "zHTE")):
+            cap = f.get("vol24_cap")
+            if cap is None or (isinstance(cap, float) and np.isnan(cap)) or any(f[z].get("scale") is None for z in ("zW", "zH", "zN", "zSize", "zSPR", "zRV", "zHTE")):
                 raise RuntimeError("live_tests3 spec pinned with unfilled flow census values")
         if "E019" in spec["k_tests"] and spec["e019"].get("exclude_crypto") is None:
             raise RuntimeError("live_tests3 spec pinned with unfilled e019.exclude_crypto")
@@ -556,10 +557,13 @@ def e019(df_mv: pd.DataFrame, root: Path, start: float, end: float, roles, spec:
         return {"available": False, "reason": "no lines", "load": acc}
     sd, e = spec["seeds"], spec["e019"]
     mv = df_mv[(df_mv["cls"] == "quote_only") & (df_mv["sports"] == 0) & (df_mv["neg_risk"] == 1)].copy()
+    mv["par"] = (mv["geom"] == "parallel").astype(int)
     mv["par_ss"] = mv["geom"].isin(["parallel", "same_side_unequal"]).astype(int)
     agg = mv.groupby(["capture_id", "event_id"]).agg(C=("c", "mean"), C_sw=("c_sw", "mean"), n_c=("c", "count"), n_mv=("c", "size"))
-    ps = mv[mv["par_ss"] == 1].groupby(["capture_id", "event_id"])["c"].mean().rename("C_par")
-    ev = ev.merge(agg.reset_index(), on=["capture_id", "event_id"], how="left").merge(ps.reset_index(), on=["capture_id", "event_id"], how="left")
+    ps = mv[mv["par"] == 1].groupby(["capture_id", "event_id"])["c"].mean().rename("C_par")  # binding: parallel only (freeze ruling 1)
+    pss = mv[mv["par_ss"] == 1].groupby(["capture_id", "event_id"])["c"].mean().rename("C_par_ss")  # reported only
+    ev = (ev.merge(agg.reset_index(), on=["capture_id", "event_id"], how="left").merge(ps.reset_index(), on=["capture_id", "event_id"], how="left")
+          .merge(pss.reset_index(), on=["capture_id", "event_id"], how="left"))
     ev["day"] = day_of(ev["t_row"])
     un = ev[(ev["untraded"] == 1) & (ev["n_qo_mov"] > 0)].copy()
     un["high"] = np.where(un["b"] >= e["high_b"] - 1e-12, 1, np.where(un["b"] < e["low_b"], 0, -1))
@@ -592,7 +596,8 @@ def e019(df_mv: pd.DataFrame, root: Path, start: float, end: float, roles, spec:
                             draws=g["draws"], seed=sd["E019_gate"], min_stratum=g["perm_min_stratum"]) if prim.get("testable") else {"testable": False, "passes": False}
     res["attrition"] = attrition(np.where(pop_x["n_c"].fillna(0).to_numpy() > 0, "two_sided", "lost"), pop_x["high"].to_numpy(), (1, 0),
                                  spec["labels"]["attrition_pp"])
-    res["anatomy_par_ss"] = strip(fit(pop_x, pop_x["C_par"].to_numpy(float), "high", CONTROLS_E019, sign=+1, group="event_id", ev="skey", ev_t_ref=True, seed=sd["E019"] + 1, n_boot=200))
+    res["anatomy_par"] = strip(fit(pop_x, pop_x["C_par"].to_numpy(float), "high", CONTROLS_E019, sign=+1, group="event_id", ev="skey", ev_t_ref=True, seed=sd["E019"] + 1, n_boot=200))
+    res["anatomy_par_ss_reported"] = strip(fit(pop_x, pop_x["C_par_ss"].to_numpy(float), "high", CONTROLS_E019, sign=+1, group="event_id", ev="skey", ev_t_ref=True, seed=sd["E019"] + 9, n_boot=200))
     res["M1_sweep"] = strip(fit(pop_x, pop_x["C_sw"].to_numpy(float), "high", CONTROLS_E019, sign=+1, group="event_id", ev="skey", ev_t_ref=True, seed=sd["E019"] + 2, n_boot=200))
     cr = pop[pop["crypto"] == 1].reset_index(drop=True)
     res["M2_crypto"] = strip(fit(cr, cr["C"].to_numpy(float), "high", CONTROLS_E019, sign=+1, group="event_id", ev="skey", ev_t_ref=True, seed=sd["E019"] + 3, n_boot=200))
@@ -617,7 +622,7 @@ def e019_labels(res: dict, verdict_: dict, spec: dict) -> list:
     b = (res.get("primary") or {}).get("beta")
     out = []
     if str(verdict_.get("verdict", "")).startswith("Supported"):
-        if not check_fraction(b, res.get("anatomy_par_ss"), +1, True, lab["fraction"]):
+        if not check_fraction(b, res.get("anatomy_par"), +1, True, lab["fraction"]):
             out.append("quote-anatomy composition")
         if not check_fraction(b, res.get("M1_sweep"), +1, True, lab["fraction"]):
             out.append("Gamma-quote mechanics")

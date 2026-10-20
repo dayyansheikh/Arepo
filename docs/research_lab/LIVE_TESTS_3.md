@@ -449,6 +449,8 @@ CH156's one-sided minus traded is E015's secondary S1 (2).
   - E016: grid and agreement gates;
   - E018: agreement gate;
   - E019: cluster gate and ex-crypto rule.
+- Freeze check (13.9): planning-MDE gates added to C3 (E017) and C4 (E019), and a 500-row minimum per arm for the C2
+  agreement gates (E016, E018).
 - Census drops will be recorded here, with their counts, before the pin.
 
 ## 8. Pre-registration censuses (counts only; before registration; worn pre-window data; no target read)
@@ -589,9 +591,11 @@ before the pin.
 
 ## 13. Response to challenger R1 (2026-10-20; `reviews/LT3_CHALLENGER_R1_2026-10-20.md`; E015 ACCEPT_WITH_CHANGES, E016-E019 REVISE)
 
-Design and code only. No outcome of the window was read for any change below; the window has not started. No threshold,
-floor, alpha, direction or Holm rule was loosened. Every change makes a test harder to pass, narrows a population, adds a
-label, adds a drop gate or adds accounting. This section amends sections 1-9; where they differ, this section governs. Code:
+Design and code only. No outcome of the window was read for any change below; the window has not started. No test
+threshold, floor, alpha, direction or Holm rule was loosened. Every change makes a test harder to pass, narrows a
+population, adds a label, adds a drop gate or adds accounting. **One exception, disclosed (freeze check, 13.9 item 3):** the
+acceptance criterion of the gate size check. Sections 1.8 and 9.3 said "rejection <= 0.05". Section 13.5 replaces that with
+a stated Monte-Carlo tolerance: not significantly above 5%. The reviewer ruled this acceptable with >= 2,000 worlds. This section amends sections 1-9; where they differ, this section governs. Code:
 `live_tests3.py`, `live_tests3_analysis.py`, `run_live_tests3.py`, spec `model_specs/live_tests3_v1.json`, tests
 `test_research_lab_live_tests3.py` (26 tests).
 
@@ -665,8 +669,12 @@ stays dropped.
 - label permutation with iid labels;
 - label permutation with persistent market class rates and target levels.
 
-Each scenario runs 400 worlds x 99 draws, seed 20261020. The criterion is that the pass rate is not significantly above 5%:
-rate <= 0.05 + 1.645 · sqrt(0.0475 / 400) = 0.068. Result (code at this commit; re-run on the code to be pinned, draft q0473):
+**Criterion change (disclosed).** Sections 1.8 and 9.3 required "rejection <= 0.05". A finite simulation cannot show that
+exactly, so the criterion is a stated Monte-Carlo tolerance: the pass rate must not be significantly above 5%, that is
+rate <= 0.05 + 1.645 · sqrt(0.0475 / worlds). The freeze check accepted this and required **>= 2,000 worlds** for the
+registered run (spec `size_check.worlds` = 2,000, limit 0.058; draft q0473). The preliminary run below used 400 worlds
+(limit 0.068) on the pre-freeze-fix code. It is not the registered size statement. Preliminary result (99 draws, seed
+20261020):
 run locally 2026-10-20 on the code of commit 63d89b5e (module sha256 `live_tests3.py` f8a1d7b7..., `live_tests3_analysis.py` 99f8282d...): donor iid **0.045**, donor AR(1) **0.025**, donor life-cycle **0.055**, permutation iid **0.0475**, permutation persistent **0.040**; all within 0.068, PASS. Planted effects (moderation 0.004 per SD; class effect 2c) pass both gates (unit test). The size check must be re-run if either module changes before the pin.
 
 ### 13.6 Census gates (final) and how k is fixed
@@ -677,10 +685,10 @@ is recorded in 7.6 and the ledger with its counts, uncounted.
 | Test | Census (inputs) | Gate (all must hold) | Values fixed into the spec |
 |---|---|---|---|
 | E015 | C1 (complete captures of UTC 2026-10-15 and 10-16 with their k − 13 look-back; draft q0470) | projected parallel >= 20,000 and traded >= 50,000; traded share of non-sports movers in [15%, 60%]; `last_trade_price` absent at both ends for <= 60% of non-sports movers; effective-count MDE <= 0.5c (finding 10) | none |
-| E016 | C2 (the 23 sealed samples of 10-16 and 10-17, restored; q0471, q0472) | projected covered units with W in (0, 1) >= 60,000; walked share of tick-known signed rows >= 10%; ">= 4 decimal" rows within 1e-4 of grid <= 20%; walked-minus-on-grid agreement gap <= 5 pp | `vol24_cap` (V*, <= 2% truncated), centres and scales of zW, zH, zN, zSize, zSPR, zRV, zHTE, `econ.W_upper_cut` (upper W tercile) |
-| E018 | C2 | H in (0, 1) for >= 40% of covered units; corr(W, H) <= 0.5; agreement gap <= 5 pp | `econ.H_lower_cut` (lower H tercile) |
-| E017 | C3 (C1 captures) | projected neg-risk non-sports A >= 2,000 in >= 1,500 events | none |
-| E019 | C4 (C1 captures) | on the primary population after the ex-crypto rule: projected high-breadth untraded >= 3,000; projected events with both classes >= 300; >= 50 clusters holding high units in the census days | `exclude_crypto`, `exclude_family` |
+| E016 | C2 (the 23 sealed samples of 10-16 and 10-17, restored; q0471, q0472) | V* defined (NaN fails); projected covered units with W in (0, 1) >= 60,000; walked share of tick-known signed rows >= 10%; ">= 4 decimal" rows within 1e-4 of grid <= 20%; walked-minus-on-grid agreement gap <= 5 pp with **>= 500 rows in each arm** (fewer: fails) | `vol24_cap` (V*, <= 2% truncated), centres and scales of zW, zH, zN, zSize, zSPR, zRV, zHTE, `econ.W_upper_cut` (upper W tercile) |
+| E018 | C2 | H in (0, 1) for >= 40% of covered units; corr(W, H) <= 0.5; agreement gap <= 5 pp with >= 500 rows in each arm | `econ.H_lower_cut` (lower H tercile) |
+| E017 | C3 (C1 captures) | projected neg-risk non-sports A >= 2,000 in >= 1,500 events; **pessimistic planning MDE <= 1.0c** (3.643 x 6c / sqrt(projected A events) x 1.1 x 1.8; binds below about 1,870 events) | none |
+| E019 | C4 (C1 captures) | on the primary population after the ex-crypto rule: projected high-breadth untraded >= 3,000; projected events with both classes >= 300; >= 50 clusters holding high units in the census days; **pessimistic planning MDE <= 0.5c** (3.388 x 3c / sqrt(projected high) x sqrt(1.25) x sqrt(3) x 2.0; binds below about 6,200 high units) | `exclude_crypto`, `exclude_family` |
 
 **Deadline (data retention, not design).** Host captures are kept 8 days. C1/C3/C4 need captures from 2026-10-14T00:31Z
 (look-back), which the 2026-10-22T03:30Z archive run removes. C2's look-back needs captures from 10-15T12:31Z, removed on
@@ -712,11 +720,30 @@ restored from the releases (`--snapshot-root` takes a restored tree), and a miss
 7. The effective-count MDE gate (finding 10) uses the pessimistic end of the planning assumptions. Should it use the
    midpoint?
 
-### 13.9 What remains before the pin
+### 13.9 Freeze-check fixes (science-reviewer, FREEZE_READY_WITH_FIXES, 2026-10-20)
+
+| # | Finding or ruling | Fix | Where |
+|---|---|---|---|
+| 1 | HIGH: `write_once_csv` wrote floats with `%.7g`. Epoch columns (`t_row`, `end_ts`, `created_ts`, `capture_t`, `s_t`) rounded to about 1,000 s and `vol24` lost precision. That broke the V+/V0 class rule, the C2 300 s agreement window, window membership and the analysis late check | No `float_format`: pandas writes the shortest round-trip repr, so values survive exactly. Round-trip unit test on epoch seconds with microseconds and on a 0.005 volume difference. Files are slightly larger (the 1.5 GB cap is unchanged) | `write_once_csv`; `test_write_once_round_trips_epochs_and_volumes_exactly` |
+| 2 | MED: NaN `vol24_cap` not refused; the C2 E016 gate passed with NaN V* | `code_check` refuses a pinned spec with a null **or NaN** `vol24_cap` (as LT2 fix B). The C2 gate has a `vol24_cap_defined` item, so NaN fails closed | `code_check`, `census_flow`; tests |
+| 3 | MED disclosure: the size criterion moved from "<= 0.05" (1.8, 9.3) to 0.068 without saying so | Disclosed in the section 13 preamble and in 13.5. The criterion is now a stated Monte-Carlo tolerance with >= 2,000 worlds (limit 0.058). Spec `size_check.worlds` = 2,000; q0473 updated | 13, 13.5; spec; q0473 |
+| 4 | MED: C3 and C4 lacked E015's pessimistic "planning MDE <= floor" gate | Added before q0470 runs. E017: 3.643 x 6c / sqrt(projected A events) x 1.1 x 1.8 <= 1.0c. E019: 3.388 x 3c / sqrt(projected high) x sqrt(1.25) x sqrt(3) x 2.0 <= 0.5c (the pessimistic ends of sections 4 and 6). A failing gate drops the test, uncounted, with the reason in 7.6. On the round-0 gate counts both bind (E017 about 1.12c at 1,500 events; E019 about 0.72c at 3,000 high units), so either test may well drop | spec `census_gates.C3_E017/C4_E019`; `census_c3`, `census_c4`; 13.6 |
+| 5 | LOW: dry run into the live root; module dates versus spec | `run --dry-run-start` refuses when `--root` is the live `OUT_ROOT` (exit 2). `load_spec` refuses a spec whose `registered_utc`, `end_utc` or `analysis_not_before` differs from the module constants | `run_live_tests3.py`, `load_spec`; test |
+| R1 | `C_par` | The binding *quote-anatomy composition* label now uses **parallel-only** movers. The parallel plus same-side-unequal version is reported only (`anatomy_par_ss_reported`) | `e019`, `e019_labels` |
+| R2 | crypto regex | `dogecoin` kept and `^doge` removed (government-DOGE slugs); `^eth` became `^eth-` (Ethiopia, ethics). Excluding a dominant non-crypto family as well is accepted | spec `crypto_rule`; test |
+| R3 | C2 agreement minimum | >= 500 rows per arm (walked, on-grid). Below that the agreement gates of E016 and E018 fail closed (both dropped) | `census_flow`; spec `agreement_min_rows` |
+| R4, R5, R7 | own volatility measure; flow underpowered reference; pessimistic assumptions | Accepted unchanged | — |
+| R6 | install | Cron every 20 min (13.4), q0474 as fallback only. `run_once` also takes an **internal non-blocking `flock`** on `live_tests3/run.lock`. A second reader (cron and queue at once) returns `locked` and exits 75, so they can never race | `run_once`; runner; test |
+
+Code hashes after these fixes (normalised module sha256, `SPEC_SHA256` line excluded): `live_tests3.py`
+202c0d638d76d028df55923732ef7ccea01e5979e657f2a9ee7c3d516b7fa43c, `live_tests3_analysis.py`
+b03c632134d04240149b394c3d8ef65ab688c2c15d7079c9e475220f6d37fe25. They change if the code changes before the pin.
+
+### 13.10 What remains before the pin
 - Censuses q0470-q0472 (deadlines in 13.6).
 - Fill `k_tests`, V*, the scales, the cuts and `exclude_crypto` / `exclude_family` in the spec, and record drops in 7.6.
 - `science-reviewer` freeze check of code against design.
-- Size check on the code to be pinned (q0473 or locally; 13.5).
+- Size check, >= 2,000 worlds, on the code to be pinned (q0473 or locally; 13.5). Any failing scenario blocks the pin.
 - Host dry run on past captures (13.4).
 - `code_sha256` map, `SPEC_SHA256`, ledger entry, cron install.
 

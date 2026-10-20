@@ -37,6 +37,7 @@ the registered pins. ``ops_stats`` counts files, lines, roles and statuses and n
 
 from __future__ import annotations
 
+import fcntl
 import hashlib
 import json
 import math
@@ -140,6 +141,9 @@ def load_spec(path: Path = SPEC_PATH, sha: str | None = SPEC_SHA256) -> dict:
         raise RuntimeError(f"live_tests3 spec sha256 mismatch: {got} != pinned {sha}")
     spec["_sha256"] = got
     spec["_pinned"] = sha is not None
+    for key, val in (("registered_utc", REGISTERED_UTC), ("end_utc", END_UTC), ("analysis_not_before", ANALYSIS_NOT_BEFORE)):
+        if spec.get(key) != val:
+            raise RuntimeError(f"live_tests3 spec {key} {spec.get(key)!r} != module constant {val!r} (freeze fix 5)")
     return spec
 
 
@@ -175,7 +179,7 @@ def write_once_csv(path: Path, df: pd.DataFrame) -> bool:
         return False
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
-    df.to_csv(tmp, index=False, compression="gzip", float_format="%.7g")
+    df.to_csv(tmp, index=False, compression="gzip")  # shortest round-trip repr: epoch seconds and volumes survive exactly (freeze fix 1)
     with open(tmp, "rb") as fh:
         os.fsync(fh.fileno())
     try:
@@ -950,6 +954,19 @@ def run_once(*, snapshot_root: Path = SNAPSHOT_ROOT, sample_root: Path = SAMPLE_
     such lines are never confirmation lines and the analysis excludes late lines anyway."""
     if allow_late and spec is not None and spec.get("_pinned"):
         raise ValueError("allow_late is for dry runs with an unpinned spec only")
+    root = Path(root)
+    root.mkdir(parents=True, exist_ok=True)
+    with open(root / "run.lock", "a") as lk:
+        try:
+            fcntl.flock(lk.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:  # another reader (cron or queue) holds the root: never race (freeze ruling 6)
+            return {"status": "locked", "written": 0, "run_utc": iso(now_ts() if now is None else now)}
+        return _run_locked(snapshot_root=snapshot_root, sample_root=sample_root, sweep_root=sweep_root, root=root, spec=spec,
+                           registered_utc=registered_utc, end_utc=end_utc, now=now, max_items=max_items, allow_late=allow_late)
+
+
+def _run_locked(*, snapshot_root: Path, sample_root: Path, sweep_root: Path, root: Path, spec: dict | None, registered_utc: str,
+                end_utc: str, now: float | None, max_items: int, allow_late: bool) -> dict:
     spec = spec or load_spec()
     now = now_ts() if now is None else now
     root = Path(root)
@@ -1275,7 +1292,11 @@ def census_c3(S: pd.DataFrame, spec: dict, scale: float, days: list[str]) -> dic
            "neg_risk_share_of_non_sports_A": float(pop["A"].sum() / max(int(S[(S["sports"] == 0)]["A"].sum()), 1))}
     res["A_21d"] = float(pop["A"].sum() * scale)
     res["A_events_21d"] = project_events(ev1, set(a["event_id"]), len(days))
-    res["gate_E017"] = {"A_21d": res["A_21d"] >= g["A_21d"], "events_21d": res["A_events_21d"] >= g["events_21d"]}
+    a_ = g["mde_assumptions"]
+    ne = res["A_events_21d"]
+    res["mde_plan_c"] = (a_["t_sum"] * a_["sd_c"] / math.sqrt(ne) * a_["within"] * a_["block_factor"] * 100.0) if ne > 0 else float("inf")
+    res["gate_E017"] = {"A_21d": res["A_21d"] >= g["A_21d"], "events_21d": res["A_events_21d"] >= g["events_21d"],
+                        "mde_plan": bool(res["mde_plan_c"] <= g["mde_max"] * 100.0)}  # pessimistic planning MDE <= floor (freeze fix 4)
     res["gate_E017"]["pass"] = all(res["gate_E017"].values())
     return res
 
@@ -1315,6 +1336,10 @@ def census_c4(E: pd.DataFrame, spec: dict, scale: float, days: list[str]) -> dic
     p = res["primary"]
     res["gate_E019"] = {"high_21d": p["high_21d"] >= g["high_21d"], "events_both_21d": p["events_both_21d"] >= g["events_both_21d"],
                         "clusters_high_census": p["clusters_high"] >= g["clusters_high_census"]}  # the analysis floor, unprojected
+    a_ = g["mde_assumptions"]
+    nh = p["high_21d"]
+    res["mde_plan_c"] = (a_["t_sum"] * a_["sd_c"] / math.sqrt(nh) * a_["within"] * math.sqrt(a_["deff_series"]) * a_["day_factor"] * 100.0) if nh > 0 else float("inf")
+    res["gate_E019"]["mde_plan"] = bool(res["mde_plan_c"] <= g["mde_max"] * 100.0)  # pessimistic planning MDE <= floor (freeze fix 4)
     res["gate_E019"]["pass"] = all(res["gate_E019"].values())
     return res
 
@@ -1459,14 +1484,18 @@ def census_flow(*, seal: Path, sample_roots: list[Path], snapshot_root: Path = S
            "vol24_cap": vstar, "covered_units": len(cov), "covered_units_21d": float(len(cov) * scale21),
            "W_interior_units_21d": float(w_int.sum() * scale21), "H_interior_share": float(h_int.mean()) if len(cov) else None,
            "corr_W_H": corr, "scales": scales, "events": int(cov["event_id"].nunique())}
-    res["gate_E016"] = {"covered_W_interior_21d": res["W_interior_units_21d"] >= g6["covered_W_interior_21d"],
+    n_min = int(g6["agreement_min_rows"])
+    ag_ok = agree["walked"][1] >= n_min and agree["on_grid"][1] >= n_min  # fail closed below 500 rows per arm (freeze ruling 3)
+    res["agreement"]["min_rows_per_arm"], res["agreement"]["enough_rows"] = n_min, bool(ag_ok)
+    res["gate_E016"] = {"vol24_cap_defined": bool(not math.isnan(vstar)),  # NaN V* fails closed (freeze fix 2)
+                        "covered_W_interior_21d": res["W_interior_units_21d"] >= g6["covered_W_interior_21d"],
                         "walked_share": bool(walked_share is not None and walked_share >= g6["walked_share_min"]),
                         "ge4dec_on_grid": bool(ge4_on is not None and ge4_on <= g6["ge4dec_on_grid_max"]),
-                        "agreement_gap": bool(gap is not None and gap <= g6["agreement_gap_max"])}
+                        "agreement_gap": bool(ag_ok and gap is not None and gap <= g6["agreement_gap_max"])}
     res["gate_E016"]["pass"] = all(res["gate_E016"].values())
     res["gate_E018"] = {"H_interior": bool(res["H_interior_share"] is not None and res["H_interior_share"] >= g8["H_interior_share_min"]),
                         "corr": bool(np.isfinite(corr) and corr <= g8["corr_zW_zH_max"]),
-                        "agreement_gap": bool(gap is not None and gap <= g8["agreement_gap_max"])}
+                        "agreement_gap": bool(ag_ok and gap is not None and gap <= g8["agreement_gap_max"])}
     res["gate_E018"]["pass"] = all(res["gate_E018"].values())
     return res
 

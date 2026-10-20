@@ -82,6 +82,9 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"data-dumps above {args.data_dumps_cap_gb} GiB: not now")
                 return lt.TEMPFAIL
         dry = args.dry_run_start is not None
+        if dry and args.root.resolve() == lt.OUT_ROOT.resolve():
+            print("refusing a dry run into the live root: pass --root <scratch dir>")
+            return 2
         spec = lt.load_spec(sha=None) if dry else lt.load_spec()
         if dry:
             spec["_pinned"] = False  # a dry run never writes confirmation lines
@@ -89,6 +92,9 @@ def main(argv: list[str] | None = None) -> int:
                          spec=spec, registered_utc=args.dry_run_start or lt.REGISTERED_UTC, end_utc=args.dry_run_end or lt.END_UTC,
                          max_items=args.max_items, allow_late=dry)
         print(json.dumps(st, sort_keys=True))
+        if st.get("status") == "locked":
+            print("another live_tests3 reader holds the lock: not now")
+            return lt.TEMPFAIL
         if st.get("status") == "disk_cap":
             print("live_tests3 disk cap reached: collection stopped (window not extended)")
             return lt.TEMPFAIL

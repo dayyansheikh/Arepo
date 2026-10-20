@@ -17,7 +17,7 @@
  "sports_rule": "cb17_census.is_sports_sidecar(fee_type, fee_category, series_slugs) on the sidecar of the capture; sidecar missing -> sports = -1 (unknown; excluded wherever the category is needed)",
  "crypto_rule": {
   "fee_type_prefix": "crypto",
-  "slug_regex": "(?i)(bitcoin|ethereum|solana|xrp|dogecoin|crypto|^btc|^eth|^sol-|^doge|^bnb|^hype)",
+  "slug_regex": "(?i)(bitcoin|ethereum|solana|xrp|dogecoin|crypto|^btc|^eth-|^sol-|^bnb|^hype)",
   "rule": "crypto = fee_type starts with 'crypto' or the first series slug matches slug_regex (section 13, finding 2)"
  },
  "series_key_rule": "first series slug if present, else 'event:' + event_id; crypto rows without a slug -> 'crypto:noslug' (one family: one spot driver)",
@@ -71,17 +71,19 @@
           "underpowered_ref_rule": "a slope has no cent floor; the underpowered label uses the top of the planning MDE range per SD (0.0029, section 3) as the reference (section 13, item U)"},
  "seeds": {"E015": 20261024, "E015_gate": 20261124, "E016": 20261025, "E016_gate": 20261125, "E017": 20261026,
            "E018": 20261027, "E018_gate": 20261127, "E019": 20261028, "E019_gate": 20261128},
- "size_check": {"worlds": 400, "draws": 99, "seed": 20261020, "nominal": 0.05,
+ "size_check": {"worlds": 2000, "draws": 99, "seed": 20261020, "nominal": 0.05,
                 "rule": "rejection rate of each gate under each simulated null must not exceed 0.05 + 1.645 * sqrt(0.05 * 0.95 / worlds) (not significantly above 5%); run on the code to be pinned, result recorded in section 13 and the spec before the pin"},
  "gates": {"draws": 200, "alpha": 0.05, "perm_min_stratum": 4, "donor_min_units": 4, "donor_min_sep_s": 43200, "donor_min_donors": 2},
  "labels": {"fraction": 0.5, "attrition_pp": 0.02, "late_loss_share": 0.02, "series_concentration": 0.5},
  "census_gates": {
   "C1_E015": {"parallel_21d": 20000, "traded_21d": 50000, "traded_share": [0.15, 0.60], "ltp_absent_max": 0.60, "mde_eff_max_c": 0.005,
               "mde_assumptions": {"sd_c": 0.04, "deff_event": 3.0, "day_factor": 1.5, "t_sum": 3.388}},
-  "C2_E016": {"covered_W_interior_21d": 60000, "walked_share_min": 0.10, "ge4dec_on_grid_max": 0.20, "agreement_gap_max": 0.05},
+  "C2_E016": {"covered_W_interior_21d": 60000, "walked_share_min": 0.10, "ge4dec_on_grid_max": 0.20, "agreement_gap_max": 0.05, "agreement_min_rows": 500},
   "C2_E018": {"H_interior_share_min": 0.40, "corr_zW_zH_max": 0.5, "agreement_gap_max": 0.05},
-  "C3_E017": {"A_21d": 2000, "events_21d": 1500},
-  "C4_E019": {"high_21d": 3000, "events_both_21d": 300, "clusters_high_census": 50}
+  "C3_E017": {"A_21d": 2000, "events_21d": 1500, "mde_max": 0.01,
+              "mde_assumptions": {"sd_c": 0.06, "within": 1.1, "block_factor": 1.8, "t_sum": 3.643, "rule": "section 4 pessimistic end: t_sum * sd / sqrt(projected A events) * within * block (freeze fix 4)"}},
+  "C4_E019": {"high_21d": 3000, "events_both_21d": 300, "clusters_high_census": 50, "mde_max": 0.005,
+              "mde_assumptions": {"sd_c": 0.03, "within": 1.118034, "deff_series": 3.0, "day_factor": 2.0, "t_sum": 3.388, "rule": "section 6 pessimistic end: t_sum * sd / sqrt(projected high) * sqrt(1.25) * sqrt(deff) * day (freeze fix 4)"}}
  },
  "census_inputs": {
   "C1_C3_C4_days_utc": ["2026-10-15", "2026-10-16"],
