@@ -2612,3 +2612,28 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   that has a real effect; LT4's residualised donor gate + census cap |corr| <= 0.5 gives ~0.068 (limit 0.075 at 200
   worlds); the designer stopped tuning; E023/E024 blocked at the pin unless q0484 passes. Challenger R2 and an LT3
   donor-gate ruling (science-reviewer) running; LT3's pin waits for that ruling.
+
+## Session 2026-10-20 ~22:39Z (autopilot): restore root cause fixed; gap 19:30-22:39Z written up (nothing counted)
+- **Recorded late (previous session stopped ~20:40Z):**
+  - **LT3 donor-gate ruling** (c5920dd2, `reviews/LT3_DONOR_GATE_RULING_2026-10-20.md`): revise. Studentise the donor
+    statistic, add binding `donor_collinear_control` scenarios (0.5, 0.7; effect 0.004), census C2 reports within-market
+    R^2 of x6 zW / x6 zH on the controlled interactions and uses |corr|. q0473b stopped (cancelled on the host; no
+    output used). Fix running on `fix/lt3-donor` (implementer, this session); a new >= 2,000-world size check on the
+    fixed code follows a science-reviewer pass, before the pin.
+  - **LT4 challenger R2** (6ce45313): E020-E022 ACCEPT_WITH_CHANGES; E023/E024 dropped before any census (k = 3).
+    R2 code + response 99c4c2eb / ebda78b8 (`feat/live-tests-4`): CH depth from the chosen definition, MA(2) overlapping-
+    target size scenario, DE gate floor 3.0, `abs_dev` in the correlation cap, joint late1|late3 skip mask, n2h by band.
+    Re-check (science-reviewer) running this session.
+  - **CB18 DRAFT design** (9ea4f371, `feat/cb18`): round-10 remainder (CH172, CH175-CH177, CH179; CH178 excluded as a
+    double count of E015). Design only.
+- **Jobs finished (data preparation, no outcome read, nothing counted):** q0266 CB12-E census `not testable
+  (dependence)` (19:40Z; freeze entry per the CB12-O precedent pending); q0277 CB13 touch frame complete (screen 374 /
+  holdout 861 events); q0279 CB13 Binance 64 files, 0 unavailable; q0284 CB13-R pregate pass (58 components); q0302
+  CB14 exclusion keys complete; q0303 CB14 W frame complete (94 of 1,119 rows kept; dropped: key 411, window 409,
+  sports 180, summary 14, mention 9, entity 1). Follow-up promotions: audit running.
+- **Restore failures, root cause:** q0471 (LT3 C2) and q0413 (CB17 worn inputs) failed with `no catalogue for
+  data-20261016/17-dsheikh`: the repo catalogue stopped at 10-15. `archive_catalogue.py` run for 10-15-active and
+  10-16..10-20 (incl. -2, -active) and committed (d79db323). q0413 attempt 1 had already restored and verified the 6
+  files of data-20261015-dsheikh (report passed, 79,926,435 B); later attempts refused because those files existed, so
+  its argv drops that tag (selection globs unchanged). Both `retry` with fresh budgets after deploy. q0472's deadline
+  (10-23T03:30Z) still holds.
