@@ -2545,3 +2545,14 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   Planning MDEs vs floors in `LIVE_TESTS_4.md` §0 (E021 borderline, E023/E024 census-gated).
 - Branch `feat/live-tests-4` (6290d93c design, c08383a5 code: reader reuses LT3 by import, 20 synthetic tests).
   Challenger R1 (science-reviewer) running.
+
+## CB17 T17_rules: final rules parts landed, 2026-10-20 18:27:58Z (merge 2d6d3aa9); S_8 = 2026-10-26T00:00Z
+- O-rulings applied (f0ef434d; 152 CB17 tests): O9 tick change as availability status (placebo/guard/attribution index
+  sets unchanged, test-asserted); O11 symmetric one-sided worst case by class; O1 re-entry counts bind on the signable
+  population; O12 q0405 pin note; B1 pre-registered as expected "uninformative" (O3/O7).
+- **Re-hash chain:** pre `ddc0249b…` and common `23437440…` unchanged; B `fd9ce656…` -> `64e61091…`; C `68bd50a2…` ->
+  `3e24af26…`; E `337382d6…` -> `9b1eba65…` (design §11.6). Part A never declared (branch T, withdrawn uncounted).
+- **T17_rules** = committer time of merge 2d6d3aa9 on `chore/arepo-claude-setup` = 2026-10-20T18:27:58Z (ruling O2);
+  record `seals/cb17_t17_rules.json`; `s8_from_rules` gives **S_8 = 2026-10-26T00:00:00Z**. Post-merge: 178 CB17 +
+  battery2 tests pass. Next: delta freeze check (fixes 1-7 + O-rulings), code pin + ruling-6 attestation record, q0413
+  restore, worn-manifest pins, q0404 smoke on the host (exact P1-P3).
