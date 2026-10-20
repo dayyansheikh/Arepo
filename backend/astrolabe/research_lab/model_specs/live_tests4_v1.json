@@ -16,7 +16,8 @@
   "live_tests4.py": null,
   "live_tests4_analysis.py": null,
   "live_tests3.py": null,
-  "live_tests3_analysis.py": null
+  "live_tests3_analysis.py": null,
+  "bounce_decomp.py": null
  },
  "code_sha_rule": "normalised module sha256 (the SPEC_SHA256 line excluded); frozen lines carry code_sha = first 16 hex of sha256(h(live_tests4.py) + h(live_tests3.py)) (LIVE_TESTS_4.md 1.0 L7)",
  "grid": {
@@ -119,7 +120,7 @@
    null
   ],
   "gap": null,
-  "rule": "D = depth_bid_5c * sbid + depth_ask_5c * sask (sweep 1 of pass k, outcome-0 token); L = Gamma liquidity at capture k; h = clip(1 - D / L, 0, 1); zh = (h - centre) / scale (census)",
+  "rule": "D = depth_bid_5c * sbid + depth_ask_5c * sask (sweep 1 of pass k, outcome-0 token); L = Gamma liquidity at capture k; h = clip(1 - D / L, 0, 1); zh = (h - centre) / scale (census). D is the depth of the chosen depth_def (R1 finding 6: 'both' = outcome-0 + outcome-1 token, or 'token0' = outcome-0 token only), and the depth control log1p D(k-1) uses the same definition",
   "depth_def": null,
   "depth_def_rule": "fixed by census CH before the pin (R1 finding 6): 'both' (outcome-0 + outcome-1 token 5c depth) if L >= D_both in >= 90% of covered non-sports books, else 'token0' if L >= D_token0 in >= 90%, else E022 is dropped"
  },

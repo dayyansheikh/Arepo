@@ -59,7 +59,8 @@ GRID_S = l3.GRID_S
 SERIES_LOOKBACK_S = 4 * 3600.0  # the earliest state input is slot k - 1 (and its sweep 1)
 MISSING_AFTER_S = l3.MISSING_AFTER_S
 ROLE_CONF, ROLE_UNREG = l3.ROLE_CONF, l3.ROLE_UNREG
-CODE_FILES = ("live_tests4.py", "live_tests4_analysis.py", "live_tests3.py", "live_tests3_analysis.py")
+CODE_FILES = ("live_tests4.py", "live_tests4_analysis.py", "live_tests3.py", "live_tests3_analysis.py",
+              "bounce_decomp.py")
 MARKERS = (".late.csv.gz", ".noprev.csv.gz", ".nosweep.csv.gz")
 
 SNAP_COLS = [*l3.SNAP_COLS, "liquidity"]
@@ -82,7 +83,7 @@ append_jsonl, dir_bytes, du_bytes, _json = l3.append_jsonl, l3.dir_bytes, l3.du_
 
 
 def code_hashes() -> dict:
-    """Normalised sha256 (``SPEC_SHA256`` line excluded) of the four modules LT4 runs: its own two and LT3's two."""
+    """Normalised sha256 (``SPEC_SHA256`` line excluded) of the five modules LT4 runs: its own two, LT3's two and bounce_decomp (holm, expanding_demean, _clean)."""
     here = Path(__file__).resolve().parent
     return {n: l3.code_sha256(here / n) for n in CODE_FILES}
 
@@ -761,8 +762,8 @@ def census_captures(*, seal: Path, snapshot_root: Path = SNAPSHOT_ROOT, sweep_ro
 def perm_share(df: pd.DataFrame, t0: float, min_stratum: int) -> dict:
     """Share of units in permutable strata (>= ``min_stratum`` units) for market x UTC day and the pre-declared fallback
     market x two-day block, and the stratum the rule picks (R1 finding 2): day if its share >= 50%, else block2 if its
-    share >= 50%, else none (the test is dropped). ``t0`` is the block anchor, REGISTERED_UTC (a UTC midnight), the same
-    anchor the analysis uses (R2 finding 10); census days before it get negative block indices."""
+    share >= 50%, else none (the test is dropped). ``t0`` is the block anchor from :func:`block_anchor` (a UTC midnight;
+    the census's first day, the analysis's REGISTERED_UTC); days before it get negative block indices."""
     if df.empty:
         return {"day": 0.0, "block2": 0.0, "stratum": None}
     t = df["t_row"].to_numpy(float)
@@ -785,10 +786,18 @@ def design_effect(ev: pd.Series, scale: float, rho: float) -> dict:
     return {"m_census": m, "m_21d": m21, "rho": rho, "DE": 1.0 + (m21 - 1.0) * rho if np.isfinite(m21) else float("nan")}
 
 
-def block_anchor(spec: dict) -> float:
-    """REGISTERED_UTC, a UTC midnight: the anchor of two-day blocks in the census and the analysis (R2 finding 10)."""
-    t = epoch(spec["registered_utc"])
-    assert t % 86400.0 == 0.0, "REGISTERED_UTC must be a UTC midnight"
+def block_anchor(spec: dict, census_days: list[str] | None = None) -> float:
+    """UTC-midnight anchor of two-day blocks (R2 finding 10 and re-check finding 2), one rule for census and analysis.
+    Analysis (``census_days`` None): REGISTERED_UTC, asserted to be a UTC midnight. Census: the first of that census's own
+    UTC days (``YYYY-MM-DD`` or ``YYYYMMDD``), a UTC midnight at an even (zero) offset from itself, so that consecutive
+    census days pair into one block (CQ/CH 10-15/10-16 and CF 10-16/10-17 each form one block). Both are even-offset UTC
+    midnights: block = floor(day offset / 2) in ``perm_share`` and ``analysis.block_of``."""
+    if census_days:
+        d = min(str(x).replace("-", "") for x in census_days)
+        t = epoch(f"{d[:4]}-{d[4:6]}-{d[6:8]}T00:00:00Z")
+    else:
+        t = epoch(spec["registered_utc"])
+        assert t % 86400.0 == 0.0, "REGISTERED_UTC must be a UTC midnight"
     return t
 
 
@@ -824,7 +833,7 @@ def census_cq(U: pd.DataFrame, spec: dict, scale: float, days: list[str] | None 
     de["DE_gate"] = de_gate(de, float(g["de_floor"]))
     a = {**g["mde_assumptions"], "deff_event": de["DE_gate"]}
     mde = l3.mde_eff(a_eff, c_eff, a) * 100.0 if np.isfinite(de["DE_gate"]) else float("inf")
-    ps = perm_share(pop, block_anchor(spec), int(spec["gates"]["perm_min_stratum"]))
+    ps = perm_share(pop, block_anchor(spec, days), int(spec["gates"]["perm_min_stratum"]))
     # R2 finding 8: units whose |r| could sit at the no-crossing bound (qs_k - one tick), by class (counts only; no target
     # is read in the census): the share of units whose post-move spread leaves at most 3 ticks of room
     room = np.round(pop["qs_k"].to_numpy(float) / pop["tick_k"].to_numpy(float)) if len(pop) else np.zeros(0)
@@ -899,7 +908,7 @@ def census_ch(H: pd.DataFrame, U: pd.DataFrame, spec: dict, scale: float, days: 
     ok = n_eff > 0 and np.isfinite(vif_within) and np.isfinite(de["DE_gate"])
     mde_sd = (a["t_sum"] * a["sd_c"] / math.sqrt(n_eff) * math.sqrt(de["DE_gate"]) * a["day_factor"] * math.sqrt(vif_within)) if ok else float("inf")
     mde_t = mde_sd * gap if np.isfinite(gap) else float("inf")
-    ps = perm_share(cov, block_anchor(spec), int(spec["gates"]["perm_min_stratum"]))
+    ps = perm_share(cov, block_anchor(spec, days), int(spec["gates"]["perm_min_stratum"]))
     res.update({"covered": len(cov0), "covered_share": cov_share, "exclude_family": excl, "top_family_share": top, "population": len(cov),
                 "markets_ge_min_units": len(iqrs), "resid_iqr_share": iqr_share, "h_scale": sc, "h_tercile_cuts": cuts, "gap_sd": gap,
                 "vif_zh_within": vif_within, "vif_zh_pooled": vif_pooled, "design_effect": de, "covered_eff_21d": n_eff,
@@ -986,7 +995,7 @@ def census_clock(K: pd.DataFrame, spec: dict, scale: float, day1: str, tot: dict
     ss = float((ok["band"] == "settled").mean()) if len(ok) else float("nan")
     trunc = float((tm["clock"] == "unclocked_truncated").mean()) if len(tm) else float("nan")
     n2t = float(band["n2h_truncated"].mean()) if len(band) else float("nan")
-    ps = perm_share(pop, block_anchor(spec), int(spec["gates"]["perm_min_stratum"]))
+    ps = perm_share(pop, block_anchor(spec, [day1]), int(spec["gates"]["perm_min_stratum"]))
     dec = pd.qcut(band["n2h"].rank(method="first"), 10, labels=False) if len(band) >= 10 else pd.Series(dtype=int)
     res = {"traded_sampled_movers": len(tm), "clock_status": {str(a_): int(b) for a_, b in tm["clock"].value_counts().items()},
            "band": {str(a_): int(b) for a_, b in ok["band"].value_counts().items()}, "fresh_share": fs, "settled_share": ss,

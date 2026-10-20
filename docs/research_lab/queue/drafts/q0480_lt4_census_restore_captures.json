@@ -8,7 +8,7 @@
   "arepo-data GitHub releases data-20261016-dsheikh .. data-20261019-dsheikh (read-only; tags to be confirmed against the release list before promotion)"
  ],
  "resources": {
-  "mem_mb": 600,
+  "mem_mb": 1200,
   "cpu": 1,
   "lane": "net",
   "network": "github releases (private data repo, read-only)"
@@ -44,5 +44,5 @@
   "data-dumps/research_lab/live_tests4_census/restore/RESTORE_REPORT_<tag>.json"
  ],
  "next_action": "write seals/lt4_census_inputs_captures.json (capture and sweep ids of LIVE_TESTS_4.md section 8 with their sha256 copied from each release's files.sha256), commit it, then q0482",
- "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_4.md, design not yet reviewed). Counts-only inputs, pre-window (all start before 2026-10-22T00:00Z, before the LT2/LT3/LT4 windows). The globs restore more than the census needs (all captures of those days); the census opens only the files named in the seal and refuses any sha256 mismatch. Tags are an assumption (the catalogue lists releases only to 10-15): confirm which releases hold these captures and sweeps first. Clear the restore tree after the LT4 registration commit. R1: sweeps of 2026-10-14 added (E022's depth control reads sweep 1 of pass k - 1)."
+ "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_4.md, design not yet reviewed). Counts-only inputs, pre-window (all start before 2026-10-22T00:00Z, before the LT2/LT3/LT4 windows). The globs restore more than the census needs (all captures of those days); the census opens only the files named in the seal and refuses any sha256 mismatch. OPS: mem_mb 1200 (gh aborts under the 2x address-space cap at 600 MB, as measured for q0471; resource only). Tags are an assumption (the catalogue lists releases only to 10-15): confirm which releases hold these captures and sweeps first. Clear the restore tree after the LT4 registration commit. R1: sweeps of 2026-10-14 added (E022's depth control reads sweep 1 of pass k - 1)."
 }

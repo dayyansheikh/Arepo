@@ -350,7 +350,7 @@ def test_ops_stats_reads_no_price_column(tmp_path, monkeypatch):
 
 def test_code_hashes_cover_lt3_modules_and_lines_carry_joint_sha():
     h = lt.code_hashes()
-    assert set(h) == set(lt.CODE_FILES) and len(h) == 4
+    assert set(h) == set(lt.CODE_FILES) and len(h) == 5 and "bounce_decomp.py" in h
     assert lt.reader_sha() == lt.joint_sha(h["live_tests4.py"], h["live_tests3.py"]) and len(lt.reader_sha()) == 16
 
 
@@ -550,6 +550,26 @@ def test_perm_share_rule_and_design_effect():
     assert lt.perm_share(sparse, t0, 4)["stratum"] is None
     de = lt.design_effect(pd.Series(["a"] * 4 + ["b"] * 2), 10.5, 0.02)
     assert de["m_census"] == pytest.approx((16 + 4) / 6) and de["DE"] == pytest.approx(1 + (de["m_census"] * 10.5 - 1) * 0.02)
+
+
+def test_block_anchor_pairs_census_days_like_analysis_blocks():
+    spec = {"registered_utc": lt.REGISTERED_UTC}
+    d = lambda s_: lt.epoch(f"{s_}T12:00:00Z")  # noqa: E731
+    reg = lt.block_anchor(spec)
+    assert reg % 86400.0 == 0.0 and reg == lt.epoch(lt.REGISTERED_UTC)
+    blk = lambda t, a: int(np.floor((t - a) / 86400.0)) // 2  # noqa: E731
+    # analysis anchor (REGISTERED_UTC, even offset): 10-16 and 10-17 share a block, 10-26/10-27 share a block
+    assert blk(d("2026-10-16"), reg) == blk(d("2026-10-17"), reg) and blk(d("2026-10-26"), reg) == blk(d("2026-10-27"), reg)
+    b = la.block_of(np.array([d("2026-10-16"), d("2026-10-17"), d("2026-10-18")]), reg)
+    assert b[0] == b[1] != b[2]  # the analysis's own block function, same anchor
+    # census anchors: each census pairs its own consecutive days (CQ/CH 10-15/16, CF 10-16/17), and the analysis uses the same function
+    for days in (["2026-10-15", "2026-10-16"], ["20261016", "20261017"]):
+        a = lt.block_anchor(spec, days)
+        assert a % 86400.0 == 0.0 and blk(d(f"{days[0][:4]}-{days[0][-4:-2]}-{days[0][-2:]}" if "-" not in days[0] else days[0]), a) == blk(
+            d(f"{days[1][:4]}-{days[1][-4:-2]}-{days[1][-2:]}" if "-" not in days[1] else days[1]), a)
+    assert (lt.block_anchor(spec, ["2026-10-16"]) - reg) % (2 * 86400.0) == 0.0
+    import inspect
+    assert "lt.block_anchor(spec)" in inspect.getsource(la)
 
 
 def test_code_check_requires_census_fixed_strata_family_and_depth(tmp_path):

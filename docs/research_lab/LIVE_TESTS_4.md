@@ -37,7 +37,7 @@ it never opens the LT2 or LT3 stores.
 | **E024 (DROPPED, R2; section 15)** | CH173 | 6 h taker flow continues more when it is **concentrated** in one order: slope of `x6 · zC` > 0, `C` = largest row's notional share | all categories, >= 3 signed rows | as E023, with `x6·zW`, `x6·zH` held fixed | **about 0.0022-0.0046 per SD** (VIF-adjusted; census-gated, may drop) | gross 0.5c |
 
 - **Family:** one Holm family over the k primaries, one-sided, familywise alpha 0.05, separate from E009-E011, LT2
-  (E012-E014) and LT3 (E015-E019). **k = 5** if every census gate in section 8 passes; a test whose gate fails is dropped
+  (E012-E014) and LT3 (E015-E019). **k = 3** (E020, E021, E022; E023 and E024 were dropped in R2, section 15) if every census gate in section 8 passes; a test whose gate fails is dropped
   *before* registration, uncounted, and k is the number that survive. k is fixed in the spec (`k_tests`) at registration
   and never changes. A primary that is unavailable or fails its gate enters Holm with p = 1.
 - **Dropped or narrowed at design (uncounted; section 7):** CH171's two-leg slope difference narrowed to the open-share
@@ -57,7 +57,7 @@ it never opens the LT2 or LT3 stores.
 | L2 | NaN refusals (LT3 fix 2) | a pinned spec with a null **or NaN** census value (`vol24_cap`, any scale, any cut, `k_tests`) is refused; every census gate item that depends on a NaN fails closed |
 | L3 | Census input identity (LT3 R1 finding 3) | every census input file is named in a seal with its sha256 (captures and sweeps: `seals/lt4_census_inputs_captures.json`; samples: the LT3 C2 seal, the same 23 samples); the census re-hashes each file and **refuses** a mismatch or an unsealed file |
 | L4 | Planning-MDE <= floor gate in every census (LT3 fix 4) | each test's census gate includes its pessimistic planning MDE, recomputed on the census-projected effective counts, at or below the floor (section 8) |
-| L5 | Simulated-null gate size (LT3 13.5, fix 3) | `size-check` on the code to be pinned, >= 2,000 worlds per scenario, criterion rate <= 0.05 + 1.645 sqrt(0.0475 / worlds) = 0.058; seven scenarios including the two new ones (continuous-label permutation; donor gate with a correlated true moderator held as a control) |
+| L5 | Simulated-null gate size (LT3 13.5, fix 3) | `size-check` on the code to be pinned, >= 2,000 worlds per scenario, criterion rate <= 0.05 + 1.645 sqrt(0.0475 / worlds) = 0.058; six binding Freedman-Lane scenarios (binary iid, binary persistent, binary control corr 0.7, continuous persistent, continuous control corr 0.7, MA(2) overlapping target; section 15); the donor scenarios left with E023/E024 |
 | L6 | Dry-run guards (LT3 fix 5) | `run --dry-run-start` refuses the live root (exit 2); `allow_late` is refused with a pinned spec; `load_spec` refuses a spec whose dates differ from the module constants |
 | L7 | Spec and code pins (LT2 fault 6) | the spec pins `code_sha256` of `live_tests4.py`, `live_tests4_analysis.py` **and the imported `live_tests3.py`, `live_tests3_analysis.py`** (normalised: the `SPEC_SHA256` line excluded); every frozen line carries `spec_sha` and `code_sha` (16 hex of the joint reader hash); the analysis keeps only matching lines and refuses a pinned spec with an unfilled or mismatched map |
 | L8 | Per-capture status files (LT2 fault 3, LT3 1.5) | the reader writes its own `series/` and `status/` per capture and a status for every unit at every target, write-once, online; the analysis never needs raw captures, sweeps or samples |
@@ -165,10 +165,9 @@ Applied in this order, each exclusion counted (LT3's `move_join` and `classify`,
   units with < 2 donors keep their own (counted).
 - A failed gate gives p = 1 in Holm and the label "SE check failed" (E020-E022) or "within-unit timing not shown"
   (E023, E024).
-- **Size check (L5):** `size-check` runs seven scenarios with no effect: binary permutation (iid; persistent market rates),
-  continuous permutation (persistent moderator level and AR(1) within market), donor (iid; AR(1) 0.6; life cycle) and donor
-  with a correlated true moderator (a control moderator `zA` with a real `x6·zA` effect, the tested moderator correlated 0.4
-  with it, `x6·zA` and `zA` in the controls). Criterion: rate <= 0.058 at 2,000 worlds; a failing scenario blocks the pin.
+- **Size check (L5):** `size-check` runs **six binding Freedman-Lane scenarios** with no effect (R2, section 15): binary iid,
+  binary persistent market rates, binary with a control at correlation 0.7, continuous persistent, continuous with a control at
+  correlation 0.7, and the MA(2) overlapping-target scenario. Criterion: rate <= 0.058 at 2,000 worlds; a failing scenario blocks the pin.
 
 ### 1.9 Verdicts and labels (per primary, after Holm over k)
 - **Supported (exploratory, prospective):** Holm-adjusted one-sided p < 0.05, estimate in the predicted direction, gate passed.
@@ -773,3 +772,27 @@ conservative for k = 3; the gates are unchanged.
 - q0485/q0486: E020-E022 only, no flow lines.
 No preliminary run of the MA(2) scenario was made: the binding statement is q0484's single run, so no variant can be chosen
 by its simulated rate.
+
+## 16. R2 re-check response (2026-10-21; `reviews/LT4_CHALLENGER_R2_RECHECK_2026-10-20.md`, ACCEPT_WITH_CHANGES)
+
+No threshold, alpha, floor, seed, draw count or test definition changed; only the items below.
+
+1. **Finding 1 (q0484 ordering).** q0484 may be promoted only after LT3's registration commit is merged into
+   `feat/live-tests-4` and the LT4 code freeze is recorded, because `live_tests3_analysis.py` (hashed in `CODE_FILES`) moved
+   with the Freedman-Lane commits and `sim_move_world` draws in a different RNG order across LT3 versions (same seed, different
+   worlds). `max_retries: 1` covers infrastructure failures only (host, network, OOM), with the same code and the same seed;
+   a failing scenario is never rerun, reseeded or varied. q0483 (counts only, no `live_tests3_analysis` import) may run now;
+   q0482 after finding 2's code (this commit).
+2. **Finding 2 (block anchor).** One function, `live_tests4.block_anchor(spec, census_days=None)`, returns an even-offset
+   UTC-midnight anchor for two-day blocks (block = floor(day offset / 2)). Analysis: `REGISTERED_UTC`, asserted to be a UTC
+   midnight, used by every `block_of` call in `live_tests4_analysis.py`. Census: the first UTC day of that census's own days,
+   so its consecutive days pair into one block (CQ/CH 2026-10-15/16; CF 2026-10-16/17). Because the 2026-10-16 .. 17 pair
+   is also an even offset from `REGISTERED_UTC`, CF's blocks and the analysis's coincide in phase. Test:
+   `test_block_anchor_pairs_census_days_like_analysis_blocks`.
+3. **Finding 3.** `bounce_decomp.py` (`bd.holm`, `bd.expanding_demean`, `bd._clean`) is now in `CODE_FILES` (five modules) and
+   in the spec `code_sha256` map; the joint reader hash is unchanged in form.
+4. **Finding 4.** Stale text fixed: section 0 k = 3, L5 and section 8.x size-check list = six scenarios, spec `hollow.rule`
+   describes the chosen-definition depth control.
+5. **Efficiency.** q0481 folded into LT3's q0471 (identical globs, tags and files; the census re-hashes against the same
+   seal `lt3_census_inputs_C2.json`): q0483 depends on `q0471_lt3_c2_restore` and reads
+   `live_tests3_census/restore`. The q0481 draft is deleted.
