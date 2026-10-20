@@ -489,6 +489,7 @@ def check_rules_fixtures(tmp: Path) -> dict:
     return out
 
 
+PINNED_COUNTS = {"captures": P3_EXPECTED["captures"], "sweeps": P2_EXPECTED["sweeps"]}  # the section 9 sets (the design lists no ids; the probes glob 20261015T*): a pinned run needs exactly these many
 FILLS_KEY = "creative_batch13/t_screen/fills.csv.gz"
 _KEY_RE = re.compile(r"^(?:creative_batch13/t_screen/fills\.csv\.gz|live_trades/trades-\d{8}\.jsonl|snapshots/[^/]+/rows(?:_ext)?\.csv\.gz|book_sweeps/[^/]+/rows\.csv\.gz)$")
 
@@ -516,8 +517,14 @@ def worn_files(fills_dir: Path, trades_dir: Path, snap_dir: Path, sweep_dir: Pat
         missing_fixed = [k for k in required_fixed_keys() if k not in pins]
         caps = sorted({k.split("/")[1] for k in pins if k.startswith("snapshots/") and k.split("/")[1].startswith(P2_DAY)})
         sws = sorted({k.split("/")[1] for k in pins if k.startswith("book_sweeps/")})
-        if missing_fixed or not caps or not sws:
-            raise Refused(f"required worn files are unpinned: fixed={missing_fixed[:5]} (n={len(missing_fixed)}), P3 captures={len(caps)}, P2 sweeps={len(sws)}")
+        no_both = [c for c in caps if not all(f"snapshots/{c}/{nm}" in pins for nm in ("rows.csv.gz", "rows_ext.csv.gz"))]  # P3 reads both files of every 2026-10-15 capture
+        bad_sets = []
+        if len(caps) != PINNED_COUNTS["captures"] or P2_SPORTS_CAPTURE not in caps:
+            bad_sets.append(f"P3 captures {len(caps)} != {PINNED_COUNTS['captures']} (incl. {P2_SPORTS_CAPTURE})")
+        if len(sws) != PINNED_COUNTS["sweeps"]:
+            bad_sets.append(f"P2 sweeps {len(sws)} != {PINNED_COUNTS['sweeps']}")
+        if missing_fixed or no_both or bad_sets:
+            raise Refused(f"required worn files are unpinned or the pinned sets are incomplete: fixed={missing_fixed[:5]} (n={len(missing_fixed)}), captures without both rows files={no_both[:3]} (n={len(no_both)}), {bad_sets}")
         out = [(k, _need(_path_of(k, fills_dir, trades_dir, snap_dir, sweep_dir))) for k in sorted(pins)]
         return out
     out = [(FILLS_KEY, _need(Path(fills_dir) / "fills.csv.gz"))]
@@ -557,7 +564,7 @@ def release_map(files_sha256_paths: list[Path]) -> dict:
                 continue
             h, rel = ln.rstrip("\n").split("  ", 1)
             rel = rel.strip().lstrip("./")
-            m = re.search(r"(creative_batch13/t_screen/fills\.csv\.gz|live_trades/trades-\d{8}\.jsonl|snapshots/[^/]+/rows(?:_ext)?\.csv\.gz|book_sweeps/[^/]+/rows\.csv\.gz)$", rel)
+            m = re.search(r"(?:^|/)(creative_batch13/t_screen/fills\.csv\.gz|live_trades/trades-\d{8}\.jsonl|snapshots/[^/]+/rows(?:_ext)?\.csv\.gz|book_sweeps/[^/]+/rows\.csv\.gz)$", rel)
             if not m or not re.fullmatch(r"[0-9a-f]{64}", h):
                 continue
             key = m.group(1)
