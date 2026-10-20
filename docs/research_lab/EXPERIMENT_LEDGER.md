@@ -2568,3 +2568,18 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   weakens the backstop rather than opening a direct false-Supported path. Fix before the pin: Freedman-Lane gate,
   correlated-control scenarios for both gates, size-check draws 200; q0473 (old code) becomes information only; a q0473b
   size check re-runs on the fixed code. Implementer on `fix/lt3-freedman-lane` (../astrolabe-lt3-fl).
+
+## LT3 Freedman-Lane gate merged; q0473 cancelled, q0473b promoted; CB17 D-fixes merged (2026-10-20 18:40-19:00Z; nothing counted)
+- **LT3:** `perm_gate` now Freedman-Lane (61e501b5, merged b57a5cf5): the control-residualised target is shuffled within
+  strata, tested term and controls fixed; seeds, 200 draws, strata and pass rule unchanged; new null scenarios
+  `perm_corr_control` (corr ~0.62) and `donor_corr_control`; size-check draws 99 -> 200; `donor_gate` unchanged.
+  `live_tests3_analysis.py` sha `b03c6321…` -> `d0a4a3b5…` (`live_tests3.py` unchanged `202c0d63…`); no pin existed.
+  Local size check (300 worlds, not the registered statement): perm_corr_control 0.053, donor_corr_control 0.030 (limit
+  0.0707 at 300). Verification (science-reviewer): **OK**; doc nits (stratum size counted over all rows incl. missing;
+  §13.5 preamble names q0473) to fix before the pin. 34 LT3 tests pass.
+- **q0473** (size check on the old gate) stopped on the host at ~18:40Z (runner SIGTERM, re-queued, then `cancel`; no
+  output written; attempt recorded); superseded, information-only had it finished. **q0473b** promoted (same argv, output
+  `size_check_fl.json`, 2,000 worlds, priority 20 so short census/screen jobs go first).
+- **CB17:** delta-check D1/D2 + lows (31cca03e, merged 8defe614; 158 tests; rules part shas unchanged so T17 stands).
+  Verification: one remaining D1 gap (an incomplete pin set could still yield a counted P2/P3 FAIL); final fix in
+  progress before the code pin. Host deployed at 8defe614.
