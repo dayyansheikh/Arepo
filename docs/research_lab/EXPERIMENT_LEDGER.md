@@ -2266,3 +2266,18 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   (`C_ABS_DM_RULE`); rows >= 2026-10-16 skipped and counted, later directories never opened.
 - Science-reviewer freeze check of part pre (with the §10.3 cap ruling on measured bytes: live_trades 378 MiB,
   60.2 MB in the last 24 h, cap 3 GiB) running.
+- **Freeze check of part pre (science-reviewer, ~02:25Z): FREEZE_OK_WITH_FIXES.** pre verifies at HEAD (`c186fdcd…`),
+  51 tests pass, no outcome/mark/Y/slope/net reaches any census output, C uses k-2..k only, branch thresholds and
+  per-band gates match §10.4. Must-fix (q0400, irreversible branch): (1) A informativeness shares must use units in
+  both-label (market x d) cells, else level 2 is chosen by construction; (2) missing/mixed side counts as
+  non-agreement (§2.3), overall and per cell; (3) q0400 must reproduce P1's counts (2,931 / 2,715 / 216 / 1,006 / 971 /
+  676 / 295) before the branch is recorded; a mismatch is investigated, never adjusted. LOWs taken with the re-seal
+  (path-key SE, E "later" bins, clock-anomaly exclusion in B, touch fixture, disclosures, q0401 timeout 3600).
+  Rulings: freezing cb17_common under pre is consistent with §1.4 (later window jobs verify pre too); internal OLS in
+  `fe_cluster_se` acceptable (SE only); `created_at` from the pinned captures permitted (disclose the unknown bias).
+  Re-seal supersedes `c186fdcd` (nothing has run).
+- **Monitor cap (§10.3): option (a) adopted** (reviewer: acceptable ops change; not production; `total_cap_bytes` not in
+  `config_hash`, no protocol pins it). Measured 2026-10-20 01:40Z: live_trades 378 MiB, 60.2 MB written in the last
+  24 h, data-dumps 17 of 40 GiB. Under (b) the 3 GiB cap would land ~11-27..12-06, 4-13 days after REP_8's last row and
+  inside CB16 REP_A. TOTAL_CAP_BYTES 3 -> 8 GiB, 300 MB/day guard kept; deploy before S_8 via COLLECTION_HOST.md;
+  `du` before/after recorded at deploy; data-dumps checked against 40 GiB weekly.
