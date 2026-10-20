@@ -230,14 +230,14 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-20 05:20Z
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-20 05:45Z
 0. **Autopilot session 01:27-~06:25Z 10-20.** Results/rulings in the ledger from "Session 2026-10-20 ~01:27Z" on.
    Counted this session: CB14-S S1/S2 not testable (source) (smoke q0301 failed). CB17-A withdrawn uncounted (branch T).
-   - **Queue:** net lane: q0227b (CB11-A, repeat, run 10 of 12 from 05:30Z; 1,649 of the 3,000 Wikipedia cap cached;
-     check it ends on a terminal status by run 12, else a new id, never an edited spec) -> q0229, q0242, q0244 -> q0276
-     (CB13 keys, promoted, waits for q0227b/q0242/q0244 by design of `read_ids_generic`) -> q0302 (fill its base pin
-     from the host sha256 of `creative_batch13/exclusion_keys.csv.gz`) -> q0340 -> q0380 / q0347. cpu lane idle until
-     q0260 (10-20T14:05Z): fill it with CB17 B/C work or LT3 code once reviewed.
+   - **Queue:** net lane: q0227b DONE 05:39Z (`attn_frame_complete`, sample 1,693 = SCREEN 812 + HOLDOUT 881) ->
+     q0229 running (attention data, repeat) -> q0242, q0244 -> q0276 (CB13 keys, waits for q0242/q0244 by design of
+     `read_ids_generic`) -> q0302 (fill its base pin from the host sha256 of `creative_batch13/exclusion_keys.csv.gz`)
+     -> q0340 -> q0380 / q0347. cpu lane idle until q0260 (10-20T14:05Z): fill it with CB17 B/C work or LT3 code once
+     reviewed.
    - **CB17:** pre-censuses q0400-q0403 DONE 02:04-02:27Z (pre `ddc0249b`). q0400 P1 REPRODUCED; side agreement
      906/971 = 93.3% < 97% -> **branch T, CB17-A withdrawn uncounted** (k = 3 + up to 6). B levels B1 = 2, B2 = 1; C
      level 2; cost-lag map written. Next: record branch T / cut points / levels in parts B and C (+ cost-lag map in

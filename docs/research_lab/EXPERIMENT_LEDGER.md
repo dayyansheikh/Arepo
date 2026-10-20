@@ -2320,3 +2320,8 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
 - Next: write branch T into the record (A withdrawn), cut points and levels into parts B and C, the cost-lag map into
   §2.1/§3; parts B/C (and E census) code, freeze checks and commits before S_8 = 2026-10-26. Round 9's CH160 (walked
   prints, needs branch S) therefore is not live-ready; LT3 must not use it.
+
+## q0227b CB11-A attention frame COMPLETE, 2026-10-20 05:39Z (run 10 of 12); not counted
+- Status `attn_frame_complete`: n_sample 1,693 (SCREEN 812, HOLDOUT 881); split and audit written before any pageview
+  or print request (design 2.8). q0229 (attention data, net) started 05:4xZ. q0276 (CB13 keys) and q0302 (CB14 keys)
+  no longer wait on q0227b (q0276 still waits on q0242 and q0244).
