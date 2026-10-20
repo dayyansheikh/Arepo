@@ -58,6 +58,10 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"data-dumps above {args.data_dumps_cap_gb} GiB: not now")
                 return lt.TEMPFAIL
         dry = args.dry_run_start is not None
+        if dry and Path(args.root).resolve() == Path(lt.OUT_ROOT).resolve():
+            # write-once files written by a dry run in the live root would block the real lines
+            print(json.dumps({"refused": "--dry-run-start needs a --root other than the live output root"}))
+            return 2
         spec = lt.load_spec(sha=None) if dry else lt.load_spec()
         if dry:
             spec["_pinned"] = False  # a dry run never writes confirmation lines

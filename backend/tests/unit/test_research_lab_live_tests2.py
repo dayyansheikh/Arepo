@@ -792,3 +792,14 @@ def test_pinned_analysis_keeps_only_registered_lines_and_refuses_mismatch(world,
     nocap["flow"]["vol24_cap"] = None
     with pytest.raises(RuntimeError, match="vol24_cap"):
         la.analyze(out, start_utc=REG, end_utc=END, spec=nocap, force=True)
+
+
+def test_runner_refuses_dry_run_into_the_live_root(capsys):
+    import importlib.util
+
+    path = Path(__file__).resolve().parents[2] / "scripts" / "run_live_tests2.py"
+    spec = importlib.util.spec_from_file_location("run_live_tests2_cli", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    rc = mod.main(["run", "--dry-run-start", "2026-10-20T00:00:00Z", "--root", str(lt.OUT_ROOT)])
+    assert rc == 2 and "refused" in capsys.readouterr().out
