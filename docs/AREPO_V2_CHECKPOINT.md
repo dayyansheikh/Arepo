@@ -230,17 +230,18 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-19 21:24Z
-0. **Autopilot session from 20:29Z 10-19.** All results/rulings are in the ledger (entries from "Session 2026-10-19
-   ~20:30Z" on). Counted today: CB15-E E1/E2, CB13-T T1/T2, CB16-Q Q1 (all not testable).
-   - **Queue:** q0227b (CB11-A, net, repeat) running; then smokes q0285b/q0300/q0301/q0348 (priority 27), q0244
-     (CB12-E quake frame), CB12 M chain, CB11 seals/censuses; q0260 (CB12-O smoke) not_before 10-20T14:05Z.
-   - **Freezes:** CB13-T frozen (56d1088). CB12-O freeze after q0260's iv_convention (code freeze-ready, O 4e1dd759).
-   - **Next promotions:** CB12-E q0245 after q0244, q0266 after q0245 (guards in place; E bd512db4); CB16 q0380 after
-     q0340 (CB14 draft), q0383 alone after q0380; CB15-P q0347 with q0340, then q0349/q0350 after q0347 + q0348 pass.
-   - **CB17:** DRAFT-REVISED (b7374fc). Implementer writing part `pre` + q0400-q0403 census code -> science-reviewer
-     freeze check of part pre (also decide the live_trades 3 -> 8 GiB cap proposal before S_8 = 10-26) -> promote
-     q0400-q0403 (cpu lane). Then parts A/B/C code before S_8.
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-20 01:33Z
+0. **Autopilot session from 01:27Z 10-20.** Results/rulings in the ledger from "Session 2026-10-20 ~01:27Z" on. Counted
+   this session so far: CB14-S S1/S2 not testable (source) (smoke q0301 failed).
+   - **Queue:** net lane: q0227b (CB11-A, repeat, run 9/12, Wikipedia entity phase) -> q0229, q0242, q0244 -> q0276
+     (CB13 keys, promoted, waits for q0227b/q0242/q0244 by design of `read_ids_generic`) -> q0302 (fill its base pin
+     from the host sha256 of `creative_batch13/exclusion_keys.csv.gz`) -> q0340 -> q0380 / q0347. cpu lane idle until
+     q0260 (10-20T14:05Z) and CB17 q0400-q0403.
+   - **CB17:** implementer finishing part `pre` + q0400-q0403 code (from the untracked drafts) -> science-reviewer freeze
+     check of part pre (+ decide the live_trades 3 -> 8 GiB cap before S_8 = 10-26) -> promote q0400-q0403.
+   - **Freezes:** CB12-O after q0260's iv_convention (O 4e1dd759). **Promotions:** CB12-E q0245 after q0244, q0266
+     after q0245; CB16 q0380 after q0340; q0383 alone after q0380; CB15-P q0347 after q0340, then q0349/q0350.
+   - **Live tests:** E012-E014 drafts live on `feat/live-tests-2` (interactive); do not duplicate.
 1. **CB8-H:** q0162/q0163 wait on spec `not_before` (10-21T06Z / 10-22T12Z). **CB8-B:** q0161/q0164 after T_seal; before
    promoting q0164 run the two `derive-exclusion-ids` commands in its draft notes on the host and fill both sha256 tokens.
 2. **CB9:** data jobs q0181+ only after T_seal 2026-10-22T00Z; q0182 needs the pinned q0164 hash. **CB10:** q0201 needs

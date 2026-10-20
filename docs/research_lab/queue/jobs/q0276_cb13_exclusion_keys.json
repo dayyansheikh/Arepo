@@ -1,0 +1,55 @@
+{
+ "id": "q0276_cb13_exclusion_keys",
+ "title": "CB13-R: exclusion keys = CB11 q0221b key file + id columns of h9_flow, h10_*, h11_*, every CB12 frame (h12_say, h12_quake, h12_prints, live frames), CB8/CB9 frames + seal copies; Gamma lookups for missing event/negRisk/series keys; barrier-overlap list by asset and window",
+ "family": "creative_batch_13",
+ "priority": 17,
+ "expected_value": "disjointness of R",
+ "data": [
+  "creative_batch11/exclusion_keys.csv.gz",
+  "history/*/ (id columns only)",
+  "docs/research_lab/seals/*",
+  "public Gamma (ids)"
+ ],
+ "resources": {
+  "mem_mb": 1200,
+  "cpu": 1,
+  "lane": "net",
+  "network": "gamma-api"
+ },
+ "depends_on": [
+  "q0285b_cb13_smoke_R_v2",
+  "q0221b_cb11_exclusion_keys",
+  "q0223b_cb11_w_prints",
+  "q0227b_cb11_attn_frame",
+  "q0242_cb12_say_frame",
+  "q0244_cb12_quake_frame"
+ ],
+ "argv": [
+  "scripts/run_cb13.py",
+  "exclusion-keys",
+  "--rules",
+  "../docs/research_lab/seals/cb13_rules.json",
+  "--rps",
+  "2",
+  "--disk-cap-gb",
+  "0.01",
+  "--data-dumps-cap-gb",
+  "40",
+  "--base-sha256",
+  "c8a1d64b1dd3f83d376b3809ba5db72b12e751fa825d6ad483854b8136b6d304",
+  "--budget-min",
+  "34"
+ ],
+ "timeout_s": 2700,
+ "max_retries": 2,
+ "outputs": [
+  "research_lab/creative_batch13/exclusion_keys.csv.gz",
+  "manifest.json (absent_at_q0276 list)"
+ ],
+ "next_action": "q0277",
+ "notes": "DRAFT. >2% missing metadata -> disjointness unverified (R1 not testable, counted). Exit 75 on headroom = pending. The coordinator replaces --base-sha256 TODO-COORDINATOR with sha256sum of the host's creative_batch11/exclusion_keys.csv.gz after CB11 q0221 completes (exit 2 while unset). Rules part sha256 (seals/cb13_rules.json, code of 2026-10-19 after the freeze-check round 1 fixes (CREATIVE_BATCH_13.md section 11)): common 62e90149ba7e3f282d9876626d51667fd40a559da16b813e03c431f5084ef014, R 919070246add0ef76100a9d375c1c16b18c15fa817e2be9492bd9fc03f1775f7. CB13 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes. FREEZE-CHECK R1 (2026-10-19): mem_mb 500 -> 1200 and --budget-min 34 with timeout 2700 s and repeat max_runs 60 (resumable; precedent q0221). Refuses (exit 2) while --base-sha256 is TODO-COORDINATOR. | 2026-10-19: --base-sha256 pinned to the FINAL CB11 key file (host creative_batch11/exclusion_keys.csv.gz from q0221b; q0221 superseded) c8a1d64b1dd3f83d376b3809ba5db72b12e751fa825d6ad483854b8136b6d304; depends on q0221b_cb11_exclusion_keys and on q0285b (smoke_R_v2.json supersedes the failed v1 by disclosure, CREATIVE_BATCH_13.md section 11.y); R rules part resealed 91907024 (smoke_online pick-query and walk-window fix). COORDINATOR 2026-10-19: also depends on q0223b (CB11 W v2 prints): history/h11_wprints/ exists (stalled q0223 manifest only), so a run before q0223b would read it as a present source with 0 ids and never re-read it at seal. | PROMOTED 2026-10-20 ~01:45Z by the autopilot after q0285b PASS (smoke_R_v2, 22:22Z) with q0221b and q0223b done. Ops-only dependency addition (no rule, threshold or hash changed): also depends on q0227b, q0242 and q0244, because read_ids_generic records any EXISTING run directory as present and reads only its csv(.gz) files; history/h11_attn/ exists with only frame_partial.jsonl.gz (q0227b mid-run), so a run now would record h11_attn as present with 0 ids and never re-read it at seal (same reasoning as the q0223b dependency). h12_say / h12_quake are absent now but would be partial if q0242/q0244 were between repeat runs when q0276 starts; depending on them makes every listed frame either complete or absent at q0276.",
+ "repeat": {
+  "max_runs": 60,
+  "until_log_regex": "\"status\": \"(exclusion_keys_complete|disjointness_unverified)\""
+ }
+}

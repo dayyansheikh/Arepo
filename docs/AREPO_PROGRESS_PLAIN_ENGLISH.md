@@ -1,24 +1,25 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-19 22:24 UTC+1
+**Last updated:** 2026-10-20 02:33 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **Autopilot:** session running since 21:29 UTC+1 (19 Oct).
-- **Server:** both lanes busy: batch 11 attention data (network; about 80 min per round) and short checks between its
-  rounds. Queued: batch 12 earthquake data, batch 12 options check (Tuesday at the US market open), batch 13/14/15 checks.
-- **Recorded today as "not testable" (7 tests counted, no result either way):**
-  - Batch 13 maker losses (2): too few usable fills in the 4-day window (163 and 427 vs 500 per class).
-  - Batch 15 election night (2): the fixed market search found only 26 of 511 races; an independent check confirmed
-    this is how the frozen design behaves, not a code fault.
-  - Batch 16 price grain (1): only 7 markets had fills at both price grains.
-  - Batch 13's record job was changed so it computes no outcome numbers when its tests cannot run.
-- **Independent reviews done:** batches 12, 13, 15 and 16 code accepted after fixes; batch 16's server check passed.
-- **Batch 17 (from round 8):** designed and challenged; the design was revised (one review round). Its first counting
-  jobs are being coded for the server's compute lane; the test window starts 26 Oct.
+- **Autopilot:** session running since 02:27 UTC+1 (20 Oct).
+- **Server:** the network lane runs batch 11 attention data (round 9 of 12; it is now looking up Wikipedia pages,
+  815 of at most 3,000 done). The compute lane is idle until batch 17's counting jobs are ready (being coded now) and
+  the batch 12 options check (Tuesday 15:05 UTC+1).
+- **Connection checks finished overnight:** batch 13 touch markets PASS, batch 14 Wikipedia edits PASS, batch 15
+  Kalshi-first pairs PASS. Batch 14 speech clock FAILED (the speech-transcript site returned nothing), so its 2 tests
+  are recorded as "not testable" (counted, no result either way).
+- **Also recorded "not testable" on 19 Oct:** batch 13 maker losses (2), batch 15 election night (2), batch 16
+  price grain (1).
+- **Queued next on the network lane:** batch 12 speech and earthquake data, then the shared exclusion-key jobs that
+  unlock batches 13-16 (one after another).
+- **Live tests:** 3 running (Kalshi lead E009/E010, surprise detector E011). More live tests (E012-E014) are being drafted
+  in a separate session.
 - **Second free server:** still "out of host capacity" at Oracle; it retries every 10 min.
 
 ## 2. Approvals needed from you

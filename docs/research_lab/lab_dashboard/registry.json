@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-19T21:24:00Z",
+ "updated": "2026-10-20T01:31:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1103,11 +1103,11 @@
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Maker-loss part recorded as not testable (2 tests counted); the touch-market part continues with its server check",
+   "next": "Maker-loss part recorded as not testable (2 tests counted); the touch-market part passed its connection check and its exclusion-key job is queued",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § q0273 CB13-T screen and q0382 CB16-Q grain census, 2026-10-19"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Session 2026-10-20 ~01:27Z (autopilot): smokes q0285b / q0300 / q0301 / q0348"
    },
    "stage_results": {
     "designed": "pending"
@@ -1119,18 +1119,18 @@
   {
    "id": "CB14",
    "title": "Wikipedia edit bursts; the speech clock",
-   "plain": "Whether bursts of Wikipedia edits come before the market moves on resignations and similar news, and whether unsaid words in a speech become less likely as the speech runs on. All review faults are fixed and re-checked; its connection checks are queued.",
+   "plain": "Whether bursts of Wikipedia edits come before the market moves on resignations and similar news, and whether unsaid words in a speech become less likely as the speech runs on. The speech part could not be tested: its connection check found no usable speech transcripts or events, so it is recorded as not testable (2 tests counted). The Wikipedia part passed its connection check.",
    "batch": "CB14",
    "family": "mixed",
    "stage": "designed",
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Connection checks, then data jobs",
+   "next": "Wikipedia part: data jobs after the shared exclusion-key jobs",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Hour 10:00-11:00 UTC+1, 2026-10-19"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Session 2026-10-20 ~01:27Z (autopilot): smokes q0285b / q0300 / q0301 / q0348"
    },
    "stage_results": {
     "designed": "pending"
@@ -1149,11 +1149,11 @@
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Kalshi-first pairs: finish the review fixes, then the server smoke test",
+   "next": "Kalshi-first pairs: connection check passed; data jobs after the shared exclusion-key jobs",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB15-E completeness audit (q0341b terminal), 2026-10-19"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Session 2026-10-20 ~01:27Z (autopilot): smokes q0285b / q0300 / q0301 / q0348"
    },
    "stage_results": {
     "designed": "pending"

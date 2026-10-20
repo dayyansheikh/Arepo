@@ -2213,3 +2213,29 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   counted); Q2 stopped by design. Eligible fills 125; markets with both grains 7 (32 fills, share 0.256); sub-cent share
   0.896 (112 of 125); touch tick 0.001: 225, 0.01: 812 prints. 37,598 prints read (lookback limited to the SCREEN window;
   data before 2026-10-12 not on the host, disclosed in the output). CB16-U and K continue.
+
+## Session 2026-10-20 ~01:27Z (autopilot): smokes q0285b / q0300 / q0301 / q0348 written up; q0276 promoted; counted 2
+- **q0285b CB13-R smoke v2 (done 22:22:14Z): PASS** (guards_fixture_R, binance units, prices-history, request cap, rule
+  parser, walk finds search all true; 6 requests). Not counted. R continues: q0276 promoted (below).
+- **q0300 CB14-W smoke (done 22:24:20Z): PASS** (all 9 criteria true; 16 requests). Not counted. W continues at q0302
+  (behind q0276, whose key file is q0302's base pin).
+- **q0301 CB14-S smoke (done 22:26:11Z): FAIL -> S1 and S2 "not testable (source)", p = 1, counted 2** (CB14 §CB14-SM:
+  "any failure -> the dependent family is not testable (source), counted; no rule is re-fitted"; `run_cb14.cmd_smoke`
+  wrote the counted lines once; smoke file write-once). Failed criteria: `s_factbase_transcript` (Factbase search
+  returned 0 records, 0 stamps) and `s_availability_p_months` (no primary-speaker event found in any of the 7 P months
+  2024-11..2025-05). Passing: guards, pins, causal accessor, alignment fixture, tag walk (7 events, HTTP 200), term
+  matcher (3 events, 46 terms). 9 requests. Cause (source change vs code) not diagnosed; no re-run, by design. Only
+  CB14-S uses Factbase (grep), so no other family is affected. S drafts q0312-q0322 are never committed; S's part of
+  q0323 sees S terminal.
+- **q0348 CB15-P smoke (done 22:28:24Z): PASS** (all 9 criteria true; 10 requests). Not counted. P continues: q0347
+  after q0340; q0349/q0350 after q0347.
+- **q0276 promoted** (CB13-R exclusion keys, net, priority 17): deps q0285b, q0221b, q0223b all done; base pin
+  `c8a1d64b…` as drafted. **Ops-only addition** (no rule, hash or threshold change): it also depends on q0227b, q0242
+  and q0244, because `cb13_r.read_ids_generic` records any existing run directory as present and reads only its
+  csv(.gz) files. `history/h11_attn/` exists now with only `frame_partial.jsonl.gz` (q0227b at run 9 of 12, entity
+  phase: 815 Wikipedia summaries cached of the 3,000 cap), so a run now would record h11_attn present with 0 ids and
+  never re-read it at the seal (the same reasoning as the earlier q0223b dependency).
+- **Queue shape:** the net lane is serial behind q0227b (then q0229, q0242, q0244, q0276 -> q0302 -> q0340 -> q0380 /
+  q0347). The cpu lane is idle until q0260 (not_before 14:05Z) and the CB17 pre-censuses q0400-q0403 (code being
+  finished by an implementer from the untracked drafts of 10-19 22:31Z; science-reviewer freeze check of part `pre`
+  before promotion).
