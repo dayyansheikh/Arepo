@@ -2488,3 +2488,20 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
 - **Jobs promoted:** q0460 (collector, net lane, mem_mb 480, not_before 2026-10-21T00:00Z, repeat until
   `LIVE_TESTS2_WINDOW_CLOSED`), q0461 (analysis, not_before 2026-11-13T12:00Z). Registry: E012-E014 and LT2 -> `live_test`,
   status `queued`.
+
+## LT3 censuses C1/C3/C4 (q0470), done 2026-10-20 17:53Z (counts only, worn captures 2026-10-15/16); E017 and E019 dropped uncounted
+- **Output** `live_tests3_census/C134.json` sha256 `ed18ed1473f1465a88920649b52867e35e7f827931f2ec9aeb69e425eec80484`
+  (code_sha256 live_tests3.py `202c0d63…`, live_tests3_analysis.py `b03c6321…`; 24 captures of 2026-10-15/16; runtime 758 s).
+  Origin-side fields only; no target, no later-capture price, no P&L read.
+- **C1 (E015): gate PASS.** Non-sports movers 50,417 (sports 78,787; sidecar missing 0); traded 18,536 (share 0.368, in
+  [15%, 60%]); parallel quote-only 2,504; projected 21 d traded 194,628 (eff 40,814), parallel 26,292 (eff 19,467);
+  `last_trade_price` absent 6.5% (<= 60%); planning MDE_eff 0.31c; `V−` share 0.103; markets with both classes 1,316;
+  permuted-strata share 0.449; up-share per pass 0.438-0.549 (n 24).
+- **C3 (E017 surges): gate FAIL -> E017 dropped before registration, uncounted** (§8 and §13.6 rule; planning-MDE gate added
+  in 76778698 before any census ran). A 79 units / 63 events in the census days (projected 21 d 829.5 / 557 against
+  >= 2,000 / >= 1,500); planning MDE 1.83c against the 1.0c floor. Neg-risk share of non-sports A 0.52.
+- **C4 (E019 ladder breadth): gate FAIL -> E019 dropped before registration, uncounted.** High 18 (projected 189 against
+  >= 3,000), events with both 13 (projected 127 against >= 300), high clusters 18; planning MDE 2.86c against 0.5c;
+  crypto share of high 0.17; top family share 0.056.
+- **Remaining LT3 primaries:** E015 (passed C1), E016 and E018 (await C2: q0471 restore, retrying after the gh PATH fix,
+  -> q0472 census-flow, deadline before 2026-10-23T03:30Z) and q0473 size check. k is set after C2. Nothing registered.

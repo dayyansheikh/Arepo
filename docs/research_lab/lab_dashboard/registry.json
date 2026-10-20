@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-20T17:51:17Z",
+ "updated": "2026-10-20T17:55:38Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1337,18 +1337,18 @@
   {
    "id": "LT3",
    "title": "Live tests E015-E019 (planned)",
-   "plain": "Five planned live tests from the round 9 ideas: quote-only versus traded price moves, trades that walked the book or came in bursts, volume surges without a price move, and moves across whole ladders of related markets. Review fixes are done; counting checks are queued, and two tests may drop if too small to detect the minimum effect.",
+   "plain": "Planned live tests from the round 9 ideas. The counting checks dropped two of the five (volume surges without a price move, and ladder breadth) because they were too small to detect the minimum effect; quote-only versus traded moves passed; two order-flow tests wait for one more check.",
    "batch": "LT3",
    "family": "mixed",
    "stage": "designed",
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Counting checks on the server (before 22 Oct), then pin and register (proposed start 24 Oct)",
+   "next": "Order-flow counting check on the server (before 23 Oct), then freeze review, pin and register (proposed start 24 Oct)",
    "next_date": "2026-10-24",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Session 2026-10-20 ~12:25Z (LT3 freeze check)"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT3 censuses C1/C3/C4 (q0470), 2026-10-20"
    },
    "stage_results": {
     "designed": "pending"
