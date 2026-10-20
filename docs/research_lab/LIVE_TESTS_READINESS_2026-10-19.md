@@ -268,13 +268,128 @@ report it with the result.
 | R9 | **Oracle Always Free idle reclamation** (instances below the published CPU, network and memory utilisation thresholds for 7 days may be reclaimed). | 1 OCPU, load about 1.0 | Load is high enough in practice. Keep the off-host archive current (R6). |
 | R10 | **Analysis run from the wrong tree.** | F1 lives only on this branch | Merge F1 and the B1 merge step before the dates. Record the commit in each result. |
 
-## 6. Exact next actions
+## 6. Next actions as first written (all done; see the addendum)
 
-1. Decide B1 option (a) or (b) in writing, then implement the merge step and its test, and have it reviewed
-   (`science-reviewer`), all before 11-03. Do not look at results first.
-2. Confirm in writing that the N1 "dk1 slope" means `slope_dp_on_dk1`.
-3. Add the D1 deviation line to the ledger.
-4. Draft and commit the S1 E011 descriptive supplement before 11-11.
-5. Merge this branch (F1 + tests), and add the R8 watchdog check.
-6. On 11-03 after 08:00Z: take an active snapshot, copy the files to a machine with at least 8 GB, then run E009 and E010
-   once each (primary on the merged root and sensitivity on the canonical root). On 11-11 after 13:00Z: E011.
+Steps 1–5 (gap-fill rule and merge, the dk1 reading, the D1 ledger line, the E011 supplement, the watchdog) are done on
+this branch. Step 6, running the analyses, is now addendum A7.
+
+## Addendum (2026-10-21 00:02 UTC+1): actions 1–6 done, before any result was seen
+
+Throughout, only counts, timestamps and ids were used, as before. Nothing here was run on the real E009, E010 or E011
+outcome files.
+
+### A1. Gap fill (B1): rule declared first, then code
+- **Rule:** `docs/research_lab/E009_E010_GAPFILL_RULE.md` (`gapfill-v1`). It was committed in `4870bc6c` **before** any
+  merge code or merged output existed (sha256 `28064e33d78db0438b3d73fec261bdb4cf5c0bbd62109c1a4c9f94113d8c4da2`).
+  - Window `W` = the open interval (2026-10-14 00:02Z, 10:44Z).
+  - Canonical is primary and copied byte for byte.
+  - Copy predictions are added only for origins in `W` that have no canonical id, together with their own outcome lines.
+  - A straddling outcome (origin outside `W`, due inside `W`) is taken from the copy only if all hold: the canonical record
+    is missing or not `evaluated`; the copy has the outcome line; the copy has the prediction; that prediction equals the
+    canonical one on every field `analyze` uses. If the prediction differs, the record is refused and counted, never
+    mixed.
+  - Copy lines are tagged `source=validation_copy`. The merged root is new, and neither source is edited.
+  - Primary = merged root; sensitivity = canonical only.
+- **Code:** `backend/astrolabe/research_lab/cross_venue_gapfill.py`, CLI `backend/scripts/run_cross_venue_gapfill.py`
+  (commit `6218e274`).
+  - `MERGE_MANIFEST.json` records the rule sha, the code commit, the sha256 and line count of each of the 8 inputs and 4
+    outputs, and the counts per rule branch (R2 added, R3 per horizon, R4 substituted and refused per reason). It never
+    records outcome values.
+  - It refuses an existing target folder, or one inside a source.
+  - It re-hashes the inputs after the merge and fails if they changed. **It must therefore run on frozen copies, not on
+    the live folder the poller is still appending to.**
+- **Tests:** `backend/tests/test_cross_venue_gapfill.py`, on synthetic straddling cases:
+  - substituted at 20 and 60 min;
+  - refused because canonical is `evaluated`, the copy outcome is missing, the copy prediction is missing, or the
+    prediction differs;
+  - receipt-only differences are allowed;
+  - the window endpoint and copy rows outside `W` are ignored;
+  - a pre-existing canonical duplicate is kept;
+  - an E010 6h substitution, and the copy's unwritten 6h line counted as `missing_line`;
+  - output sha256s match;
+  - `analyze` reads the merged root;
+  - an empty copy gives a merged root byte-identical to canonical.
+- **For the science-reviewer:** whether (b) the straddle substitution is the right reading of "where the canonical stream
+  has no valid quotes" (rule §5 gives the reasons).
+
+### A2. "dk1 slope" and mechanical verdicts
+- **Reading.** `EXPERIMENT_LEDGER.md` line 829–830 (E009 secondaries) names two slopes: "the slope of dP(20 min) on dk1"
+  and "the partial slope on dk1 given the frozen M0 prediction". Line 863 (Supported) says "the dk1 slope point
+  estimate > 0" without qualification. Line 865 (Contradicted) says "partial-slope CI" explicitly. The registration names
+  the partial slope wherever it means it, so the unqualified "dk1 slope" is **the simple slope at the primary horizon**:
+  the frozen output `horizons["20"]["slope_dp_on_dk1"]`. The code's names match the two registered quantities one to one:
+  `slope_dp_on_dk1` and `partial_slope_dk1_given_m0`.
+- **Verdict script.** `backend/astrolabe/research_lab/live_verdicts.py`, CLI
+  `backend/scripts/live_verdicts.py {e009,e010,e011} <saved analysis JSON>` (commit `b3b54f93`).
+  - It only reads the frozen output and applies the ledger thresholds. It prints the fields used and the input's sha256.
+  - E009: Unavailable (< 20 clusters or < 5,000 origins at 20 min) → Supported → Contradicted (with the "frozen scale
+    miscalibrated" label) → Inconclusive, plus the economics label.
+  - E010: per horizon on `holm_m1`, minimum 2,000 origins.
+  - E011: re-derives the verdict and checks it equals the frozen code's.
+  - Tests: `backend/tests/test_live_verdicts.py`.
+- **One flag for the reviewer (E010).** The frozen code gives Holm p = 1 only to a horizon with fewer than 2 clusters. A
+  horizon that is Unavailable by the registered minimum (fewer than 20 clusters or fewer than 2,000 origins) still enters
+  Holm with its own p. The script reports the frozen `holm_m1` as is and adds a note in that case. The reviewer states
+  before reporting whether "a horizon without a test" includes it. Given the projected counts (about 43,000 origins, 51+
+  events), the case is unlikely to arise.
+
+### A3. Ledger
+An operational-deviation entry for the canonical gaps on 2026-10-13 (21:24–22:22Z and 22:28–23:12Z) is appended at the
+end of `EXPERIMENT_LEDGER.md` (commit `88d60792`, facts only). The main branch's ledger has moved, so the coordinator
+merges it.
+
+### A4. E011 descriptive supplement (S1)
+`backend/astrolabe/research_lab/surprise_supplement.py`, CLI `backend/scripts/run_surprise_supplement.py` (commit
+`711a9107`). It outputs:
+- (c) 2h-label rates and matched excess;
+- (d) |move| >= 0.15 rates at 6h and 24h for alerts **and** controls;
+- (e) sports vs non-sports (`fee_category == "sports"`);
+- (f) the `control_match` line composition and control shortfalls;
+- (g) slots on the 2h pass grid, missed slots, passes logged, statuses, and request/time/eligible medians and maxima.
+
+It forms episodes exactly as `analyze` does; a test pins the equality of `n_episodes` and `n_episodes_analysed`. It is
+descriptive only: there is no verdict key, nothing enters the multiplicity count, and its CIs use seed 20261015. Run it
+once, straight after `run_surprise_snapshot.py analyze`. Test: `backend/tests/test_surprise_supplement.py`.
+
+### A5. Watchdog (R8)
+`backend/scripts/live_tests_watchdog.py` (commit `eac5a4f9`) runs every 15 min and alerts through `arepo_notify.py send
+--type breakage` (deduplicated per key). It never acts. It checks:
+- E009 has no new prediction origin for more than 30 min;
+- E010 has none for more than 2h15m;
+- the poller exit marker is 3 (cap);
+- `cross_venue_live` is at 85% or more of 2 GB;
+- E011 has no scored capture for more than 2 intervals (+30 min);
+- E011 outcomes have not been written for the same time;
+- data-dumps is at 85% or more of the 45 GiB collector cap (hourly);
+- free disk is below 8 GB.
+
+It stops watching E009/E010 after 2026-11-03T08:00Z and E011 after 2026-11-11T13:00Z. It reads only tails, mtimes and
+sizes. The cron line is in `scripts/oracle/crontab.txt`, commented and **not installed** (no deploy). Test:
+`backend/tests/test_live_tests_watchdog.py`. A local `--dry-run` with no data correctly reports every stream as stale.
+
+### A6. Memory plan for E009 (R1), with a dry run at final size
+- **Dry run.** The probe used 1,400,000 synthetic prediction lines (1.00 GB) and 420,000 outcome lines (0.35 GB), the same
+  schema as the real files, generated from a seed, on this Mac (8 GB). It ran the frozen `cvl.analyze` with `n_boot=50`.
+  It **completed in 148 s**. Peak resident set was 1.16 GB, because macOS compressed and swapped the rest: swap in use was
+  5.1 GB, with editor and agent processes also running.
+  - The true heap is about 2.7 KB per line. That figure is linear from earlier unpressured runs (100k lines: 0.61 GB;
+    300k: 1.15 GB), which puts the final run at about **4 GB**.
+  - The 4,000-resample bootstrap works on per-event sums (about 60 rows), so it adds seconds, not memory.
+  - E010 (about 45k lines), the gap-fill merge (streams, keeps only about 6 h of straddle candidates) and E011 are small.
+- **Plan.**
+  1. After 2026-11-03T08:00Z, take an active snapshot (R6). Then copy `cross_venue_live/{predictions,outcomes}*.jsonl`
+     from the host and `/home/opc/arepo_val/data-dumps/research_lab/cross_venue_live/` to a new folder on the Mac, and
+     record the sha256 of every file on both ends (they must match).
+  2. Close other heavy apps. Run nothing else multi-GB at the same time (memory rule).
+  3. Run `run_cross_venue_gapfill.py` into a new folder, then `--analyze` and `--analyze-e010` on the merged root
+     (primary), then on the canonical copy (sensitivity). Save each stdout to a file and run `live_verdicts.py` on it.
+  4. The host (5.6 GB, 3.9 GB available, live trade monitor running) is not used for E009.
+
+  E011 can run on the host (small), after 2026-11-11T13:00Z, from a tree containing F1, followed by the supplement.
+
+### A7. Remaining actions
+1. `science-reviewer`: check the `gapfill-v1` rule, the dk1 reading, the E010 Holm note and F1. Any change becomes
+   `gapfill-v2` and is recorded before any merge on real data.
+2. Coordinator: merge `feat/live-audit` (ledger append included). Deploy the watchdog and uncomment its cron line when
+   deploying is allowed.
+3. 11-03 after 08:00Z: E009/E010 per A6. 11-11 after 13:00Z: E011, then the supplement.
