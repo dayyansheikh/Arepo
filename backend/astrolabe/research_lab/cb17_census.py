@@ -2,7 +2,7 @@
 """CB17 counts-only pre-censuses q0400-q0403 (docs/research_lab/CREATIVE_BATCH_17.md sections 0.1, 2.7, 4, 10.4). Rules part ``pre`` (with ``cb17_pre``).
 
 Streaming, field-restricted readers of the host's WORN window ``[2026-10-12, 2026-10-16)`` and nothing else:
-- q0400 ``pre_census_A``: the CB13-T SCREEN fill table (worn), the monitor prints (``side`` is read HERE ONLY, for an agreement count) and capture touches at or before a transaction (plus the
+- q0400 ``pre_census_A``: the CB13-T SCREEN fill table (worn), the monitor prints (``side`` is read HERE ONLY: for the agreement count and to sign the side-signed population) and capture touches at or before a transaction (plus the
   static ``created_at`` of two pinned captures). No mark, no later capture, no outcome.
 - q0401 ``pre_census_B``: sweeps and static sidecar attributes; the next-pass check reads token presence and the two-sided state only, never a price.
 - q0402 ``pre_census_C``: captures ``k - 2 .. k`` only for every interval ``k``; no ``k + 1`` row is ever used.
@@ -140,9 +140,11 @@ def iter_monitor(trades_dir: Path, stats: Counter, *, side: bool = False, lag: b
                 except (TypeError, ValueError):
                     stats["monitor_unusable"] += 1
                     continue
-                if not (math.isfinite(ts) and math.isfinite(px) and math.isfinite(sz)) or sz <= 0 or oi not in (0, 1) or not rec.get("condition_id"):
+                if not math.isfinite(ts) or oi not in (0, 1) or not rec.get("condition_id"):
                     stats["monitor_unusable"] += 1
                     continue
+                if not (math.isfinite(px) and math.isfinite(sz)) or sz <= 0:
+                    stats["monitor_prints_without_usable_price_or_size"] += 1  # kept: probe P1 resolved fills from condition_id, ts, tx16, outcome_index alone; consumers that need a price skip these
                 if ts >= cut:
                     stats["prints_at_or_after_cutoff_skipped"] += 1
                     continue
@@ -220,7 +222,7 @@ def token_open(oi: int, d: int) -> bool:
 
 
 def age_bin_first_day(h: float) -> str:
-    return "neg" if h < 0 else "lt6h" if h < 6 else "6-24h" if h < 24 else "1-7d" if h < 168 else "gt7d"
+    return "unknown" if h < 0 else "lt6h" if h < 6 else "6-24h" if h < 24 else "1-7d" if h < 168 else "gt7d"
 
 
 def read_created_at(snap_dir: Path, names: tuple[str, ...], stats: Counter) -> dict[str, float]:
@@ -244,8 +246,14 @@ def read_created_at(snap_dir: Path, names: tuple[str, ...], stats: Counter) -> d
 
 
 def pop_report(family: str, units: list[dict]) -> dict:
-    """Strata-level informativeness (features only) for a population of A units: cell = (market, d), label = open."""
-    return pre.level_report(family, units, lambda u: (u["market"], u["d"]), lambda u: u["open"])
+    """Strata-level informativeness (features only) for a population of A units: cell = (market, d), label = open. The test is A1, which uses (market, d) cells holding BOTH labels
+    (section CB17-A), so the units of the test, the denominator of the share, are the units in those cells (INFORMATIVENESS['binary'], item 3)."""
+    cells: dict = defaultdict(int)
+    for u in units:
+        cells[(u["market"], u["d"])] |= 2 if u["open"] else 1
+    test_units = [u for u in units if cells[(u["market"], u["d"])] == 3]
+    rep = pre.level_report(family, test_units, lambda u: (u["market"], u["d"]), lambda u: u["open"])
+    return {**rep, "units_eligible": len(units), "units_in_both_label_cells": len(test_units)}
 
 
 def a1_se(units: list[dict], way_names: tuple[str, str]) -> dict:
@@ -292,17 +300,21 @@ def pre_census_A(fills_dir: Path, trades_dir: Path, snap_dir: Path) -> dict:
             pr[(c, int(p["ts"]))].add((p["tx16"], oi, p["side"]))
         k = cls_cache.get(c)
         if k is None:
-            k = cls_cache[c] = lab.classify(p["title"], p["slug"], p["ctx_fee_type"] or "", "", "", p["ctx_category"] or "")[0]
-        if k == lab.SPORTS:
+            k = cls_cache[c] = lab.classify(p["title"], p["slug"], p["ctx_fee_type"] or "", "", "", p["ctx_category"] or "")
+        if k[0] == lab.SPORTS:
             stats["prints_sports_not_stored"] += 1
             continue
+        if not (math.isfinite(p["price"]) and math.isfinite(p["size"]) and p["size"] > 0):
+            stats["prints_without_price_or_size_not_in_s_population"] += 1
+            continue
+        k, under = k
         n_single += 0 if p["tx16"] else 1
         key = (p["tx16"], c) if p["tx16"] else (f"single:{n_single}", c)
         yes = p["price"] if oi == 0 else 1.0 - p["price"]
         cash = p["cash"] if math.isfinite(p["cash"]) else p["size"] * p["price"]
         g = groups.get(key)
         if g is None:
-            groups[key] = [p["ts"], p["ts"], yes, yes, cash, {oi}, {p["side"]}, k, str(p["ctx_market_id"] or ""), str(p["ctx_event_id"] or "")]
+            groups[key] = [p["ts"], p["ts"], yes, yes, cash, {oi}, {p["side"]}, k, str(p["ctx_market_id"] or ""), str(p["ctx_event_id"] or ""), under or ""]
         else:
             g[0], g[1] = min(g[0], p["ts"]), max(g[1], p["ts"])
             g[2], g[3], g[4] = min(g[2], yes), max(g[3], yes), g[4] + cash
@@ -347,10 +359,9 @@ def pre_census_A(fills_dir: Path, trades_dir: Path, snap_dir: Path) -> dict:
     for i in ns_res:
         kind, _oi, sd = lab_by_i[i]
         if not sd:
-            res["resolved_without_one_side"] += 1
-            continue
+            res["resolved_without_one_side"] += 1  # a missing or mixed side is NON-agreement, overall and in every cell (section 2.3: unknown never counts as met)
         f = fills[i]
-        ok = int(sd == (pre.SIDE_BUY if kind == "open" else pre.SIDE_SELL))
+        ok = int(sd == (pre.SIDE_BUY if kind == "open" else pre.SIDE_SELL)) if sd else 0
         ab, pb = pre.touch_age_band(f["touch_age_s"]), pre.p_band(f["P"])
         ag_all["n"] += 1
         ag_all["k"] += ok
@@ -385,7 +396,7 @@ def pre_census_A(fills_dir: Path, trades_dir: Path, snap_dir: Path) -> dict:
     ns_tx = first_day_tx = 0
     fd_unsignable = Counter()
     for (_tx, cond), g in groups.items():
-        tau, _tl, pmin, pmax, cash, ois, sides, klass, mkt, ev = g
+        tau, _tl, pmin, pmax, cash, ois, sides, klass, mkt, ev, under = g
         ns_tx += 1
         h = (tau - created[mkt]) / 3600.0 if mkt in created else math.nan
         is_fd = math.isfinite(h) and 0 <= h < 24
@@ -425,7 +436,7 @@ def pre_census_A(fills_dir: Path, trades_dir: Path, snap_dir: Path) -> dict:
             b0, a0, *_ = ent[j - 1]
             if t13.two_sided(b0, a0):
                 a_pre = d * (mid - (b0 + a0) / 2.0) * 100.0
-        s_units.append({"market": mkt or cond, "event": ev or mkt or cond, "d": d, "open": 1 if side == pre.SIDE_BUY else 0, "p": p, "size_usd": cash, "ts": tau, "spread": ask - bid,
+        s_units.append({"market": mkt or cond, "event": ev or mkt or cond, "path": under if (klass == lab.PATH and under) else f"event:{ev or mkt or cond}", "d": d, "open": 1 if side == pre.SIDE_BUY else 0, "p": p, "size_usd": cash, "ts": tau, "spread": ask - bid,
                         "a_pre": a_pre, "created_h": h})
     fd_bins_t, fd_bins_s = Counter(), Counter()
     mk_t, mk_s = defaultdict(set), defaultdict(set)
@@ -433,14 +444,18 @@ def pre_census_A(fills_dir: Path, trades_dir: Path, snap_dir: Path) -> dict:
         hh = (u["ts"] - created[u["market"]]) / 3600.0 if u["market"] in created else math.nan
         b = age_bin_first_day(hh) if math.isfinite(hh) else "unknown"
         fd_bins_t[b] += 1
-        mk_t[u["market"]].add("first" if b in ("neg", "lt6h", "6-24h") and b != "neg" else "later")
+        if b in ("lt6h", "6-24h", "1-7d"):  # first day (< 24 h) versus later = 1-7 d; older and unknown ages are in neither (section CB17-E)
+            mk_t[u["market"]].add("first" if b != "1-7d" else "later")
     for u in s_units:
         hh = u["created_h"]
         b = age_bin_first_day(hh) if math.isfinite(hh) else "unknown"
         fd_bins_s[b] += 1
-        mk_s[u["market"]].add("first" if b in ("lt6h", "6-24h") else "later")
+        if b in ("lt6h", "6-24h", "1-7d"):
+            mk_s[u["market"]].add("first" if b != "1-7d" else "later")
     first_later = lambda m: sorted(k for k, s in m.items() if s == {"first", "later"})  # noqa: E731
 
+    p1 = pre.p1_reproduction({"fills": len(fills), "token_resolved": res["resolved"], "ambiguous_transaction": res["ambiguous_tx"], "non_sports": len(ns), "non_sports_resolved": len(ns_res),
+                              "open": label_counts["open"], "close": label_counts["close"]})
     sel_pop = "S" if branch["branch"] == pre.BRANCH_S else "T"
     rep_t, rep_s = pop_report("A", t_units), pop_report("A", s_units)
     return {
@@ -450,14 +465,14 @@ def pre_census_A(fills_dir: Path, trades_dir: Path, snap_dir: Path) -> dict:
                    "by_p_band": {f"{pre.P_BAND_NAMES[k[0]] if k[0] is not None else 'outside'}|{k[1]}": v for k, v in sorted(by_pband.items(), key=lambda kv: str(kv[0]))}},
         "both_label_cells": {"cells": len(cell), "with_both": len(both), "fills": len(both_fills), "markets": len({k[0] for k in both}), "events": len({fills[i]["event_id"] for i in both_fills})},
         "side_agreement": {"overall": dict(ag_all), "cells": ag_cells_d, "rule": branch},
-        "branch": branch["branch"], "a_withdrawn_uncounted": branch["branch"] == pre.BRANCH_T,
+        "p1_reproduction": p1, "branch_recorded": p1["matches"], "branch": branch["branch"], "a_withdrawn_uncounted": branch["branch"] == pre.BRANCH_T,
         "strata": {"selected_population": sel_pop, "selected_level": (rep_s if sel_pop == "S" else rep_t)["selected_level"], "touch_consistent_T": rep_t, "side_signed_S": rep_s},
         "side_signed_population": {"non_sports_transactions": ns_tx, "eligible_units": len(s_units), "open": sum(u["open"] for u in s_units), "excluded_by_reason": band_counts(s_reasons)},
         "first_day": {"pinned_captures": list(CREATED_AT_CAPTURES), "markets_with_created_at": len(created),
                       "T_units_by_age": band_counts(fd_bins_t), "S_units_by_age": band_counts(fd_bins_s), "T_markets_first_and_later": len(first_later(mk_t)), "S_markets_first_and_later": len(first_later(mk_s)),
                       "non_sports_transactions_first_day": first_day_tx, "first_day_unsignable_by_reason": band_counts(fd_unsignable)},
-        "planning_se": {"A1_T_pre_fill_proxy": a1_se(t_units, ("path_x_block", "path")), "A1_S_pre_fill_proxy": a1_se(s_units, ("event_x_block", "event")),
-                        "E_T_first_day_proxy": first_day_se(t_units, created, ("path_x_block", "path")), "E_S_first_day_proxy": first_day_se(s_units, created, ("event_x_block", "event")),
+        "planning_se": {"A1_T_pre_fill_proxy": a1_se(t_units, ("path_x_block", "path")), "A1_S_pre_fill_proxy": a1_se(s_units, ("path_x_block", "path")),
+                        "E_T_first_day_proxy": first_day_se(t_units, created, ("path_x_block", "path")), "E_S_first_day_proxy": first_day_se(s_units, created, ("path_x_block", "path")),
                         "recipe": pre.SE_RECIPE, "proxy": pre.PROXIES["A"]},
     }
 
@@ -585,6 +600,9 @@ def pre_census_B(sweep_dir: Path, snap_dir: Path) -> dict:
                     for tab, key in (("levels", f"{h}h|lv{lvb}"), ("hour", f"{h}h|{hour6_name(recv)}"), ("reward", f"{h}h|rw{st[4] if st else 'na'}")):
                         dorm[tab][key + "|n"] += 1
                         dorm[tab][key + "|unchanged"] += same
+            if ab <= 0:  # clock anomaly (a < -5 s) or no usable stamp: excluded from every unit, cut point and B2 (section 2.2), counted
+                c["unit_clock_anomaly_or_no_stamp"] += 1
+                continue
             # the shared B frame: decision unit eligibility (two-sided, spread <= 10c, mid in range, end known-near excluded)
             if not two or not t13.two_sided(bid, ask):
                 c["unit_not_two_sided"] += 1

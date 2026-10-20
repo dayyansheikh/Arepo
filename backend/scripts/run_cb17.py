@@ -167,7 +167,7 @@ def cmd_rules(a) -> int:
 def _summary(family: str, res: dict) -> dict:
     """The small, clean payload of the trials line (counts and decisions only)."""
     if family == "A":
-        return {"branch": res["branch"], "a_withdrawn_uncounted": res["a_withdrawn_uncounted"], "selected_level": res["strata"]["selected_level"], "selected_population": res["strata"]["selected_population"],
+        return {"p1_matches": res["p1_reproduction"]["matches"], "branch_recorded": res["branch_recorded"], "branch": res["branch"], "a_withdrawn_uncounted": res["a_withdrawn_uncounted"], "selected_level": res["strata"]["selected_level"], "selected_population": res["strata"]["selected_population"],
                 "agreement_n": res["side_agreement"]["overall"].get("n"), "both_label_cells": res["both_label_cells"]["with_both"]}
     if family == "B":
         return {"selected_level_B1": (res["strata"]["B1"] or {}).get("selected_level"), "selected_level_B2": (res["strata"]["B2"] or {}).get("selected_level"),

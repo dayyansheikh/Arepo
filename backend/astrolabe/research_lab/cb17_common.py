@@ -384,7 +384,7 @@ def rules_part_doc(part: str) -> dict:
     funcs = part_funcs(part)
     src = {f"{f.__module__.rsplit('.', 1)[-1]}.{f.__qualname__}": hashlib.sha256(inspect.getsource(f).encode()).hexdigest() for f in funcs}
     return {"part": part, "part_declared": True, "rules_version": RULES_VERSION, "modules": ["cb17_common", *_family_modules.get(part, ())], "constants": consts, "declared": declared,
-            "wallet": {"read": False, "note": "no CB17 job reads or stores a wallet field or a transaction hash (tx16 is aggregated in memory and discarded); the Data API side field is read by q0400 only (an agreement count)"},
+            "wallet": {"read": False, "note": "no CB17 job reads or stores a wallet field or a transaction hash (tx16 is aggregated in memory and discarded); the Data API side field is read by q0400 only (the agreement count and the sign of its side-signed population)"},
             "shared_helper_sources_sha256": shared_helper_sources(part),
             "funcs_sha256": hashlib.sha256("\n".join(src[k] for k in sorted(src)).encode()).hexdigest(), "func_sources_sha256": dict(sorted(src.items()))}
 

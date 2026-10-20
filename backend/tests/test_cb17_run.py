@@ -68,6 +68,7 @@ def test_pre_census_a_runs_write_once_and_logs_a_non_test_line(env, capsys):
     w = a_world(env["tmp"])
     code, out = _run(["pre-census", "--family", "A", *args(env, w)], capsys)
     assert code == 0 and out["status"] == "pre_census_A_complete" and out["branch"] == "T" and out["a_withdrawn_uncounted"] is True
+    assert out["p1_matches"] is False and out["branch_recorded"] is False  # the synthetic world is not probe P1's
     doc = json.loads((env["root"] / "pre_census_A.json").read_text())
     assert doc["rules_sha256"]["pre"] == c17.rules_part_file_doc("pre")["rules_sha256"] and doc["counts_only"] is True
     c17.assert_clean_result(doc)

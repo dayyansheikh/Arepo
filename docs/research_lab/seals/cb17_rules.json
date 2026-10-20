@@ -416,6 +416,7 @@
       600.0,
       3600.0
      ],
+     "AGREEMENT_BASE": "the base of the agreement rule is every non-sports CB13-T SCREEN fill that resolves to one traded token and one transaction (probe P1: 971); a fill whose resolved prints carry no single BUY/SELL side counts as NON-agreement overall and in every cell (section 2.3: unknown never counts as met)",
      "AGREE_MIN_PCT": 97,
      "AGREE_N_MIN": 800,
      "BRANCH_S": "S",
@@ -457,7 +458,7 @@
      "GAS_RULE_TEXT": "GAS (signing gate; binding under branch S; window job q0408, NOT implemented in part pre): on SCREEN_8's touch-consistent subset (CB13-T's rule by pin) the same agreement rule must hold (overall >= 97% with Wilson 95% lower bound >= 0.95 and n >= 800, and >= 97% in every touch-age band, price band and class with n >= 100); both the Data API side and the touch-derived side are features, no mark is read; otherwise A1 is 'not testable (signing)', counted",
      "IMBALANCE_AT": "second sweep",
      "INFORMATIVENESS": {
-      "binary": "numerator = units in (unit x stratum) cells holding both labels; denominator = all units of the test",
+      "binary": "numerator = units in (unit x stratum) cells holding both labels; denominator = all units of the test (A: the units of A1, i.e. units in (market x d) cells holding both labels; B1: all old / fresh units)",
       "continuous": "numerator = units in (unit x stratum) cells with >= 2 units and x not constant in the cell; denominator = all B2 units",
       "selection": "the finest level (0 finest) whose worn-data share >= 60%; if none, level 2 and the window's 50% rule binds; A's share is computed on the selected branch's population",
       "three_class": "numerator = transfer and mint-heavy units in cells holding at least one transfer and one mint-heavy unit; denominator = all transfer and mint-heavy units (merge-heavy units are reported, not in the share)"
@@ -535,6 +536,16 @@
       2
      ],
      "OLD_AGE_S": 600.0,
+     "P1_EXPECTED": {
+      "ambiguous_transaction": 216,
+      "close": 295,
+      "fills": 2931,
+      "non_sports": 1006,
+      "non_sports_resolved": 971,
+      "open": 676,
+      "token_resolved": 2715
+     },
+     "P1_NEXT_ACTION": "a mismatch is investigated, never adjusted; the branch is not recorded until it matches or the difference is explained",
      "PASS_GAP_S": 1800.0,
      "POWER_MDE_MAX_C": 1.0,
      "PREV_PASS_MAX_GAP_S": 9000.0,
@@ -562,6 +573,7 @@
      "SE_RECIPE": "fixed-effect OLS of the pre-outcome proxy on the family's label/state, demeaned within the declared unit; cluster-robust CR1 sandwich per way; the written number is the SE of the tested coefficient, the max over ways with G >= 15 (CR2 / wild bootstrap belong to the window part); no point estimate of any proxy is returned or written; MDE = 3.80 x SE",
      "SIDE_BUY": "BUY",
      "SIDE_SELL": "SELL",
+     "SIDE_USE": "q0400 reads the Data API side for two things only: the agreement count of the branch rule and the sign of the side-signed (S) population it builds for the strata shares and planning SEs; no other CB17 job reads it (section 1.4 whitelists)",
      "SIZE_BAND_EDGES_USD": [
       2500.0,
       10000.0
@@ -574,6 +586,9 @@
       0.02,
       0.05
      ],
+     "SUPERSEDES": {
+      "c186fdcdf0b48fc073f19d2912adf2c29aa7de5af58a1bb0f37cdf0dbda27f8d": "first part-pre seal (cadaaf19), replaced before any CB17 census ran, after the freeze check: A informativeness on both-label cells, side-agreement base including unsigned fills, P1 reproduction flag, P1-faithful print reader, E later = 1-7 d, B clock-anomaly exclusion, path-key ways for S, disclosures"
+     },
      "TERCILE_QUANTILES": [
       0.3333333333333333,
       0.6666666666666666
@@ -637,6 +652,14 @@
     },
     "cb17_pre": {
      "counts_only": true,
+     "disclosures": {
+      "b_clock_anomaly": "B units with a book age < -5 s or no stamp are excluded from the units, the cut points and B2 and counted (section 2.2)",
+      "created_at_unknown": "first-day age uses created_at of two pinned captures (2026-10-12T00:31:03Z and 2026-10-15T22:31:02Z); a market created after the first and gone before the second has no created_at and is counted 'unknown' (a bias against newly created, short-lived markets)",
+      "first_day_bins": "first day = age < 24 h; later = 1-7 d; > 7 d, negative and unknown ages are in neither group",
+      "s_planning_se_path_key": "S units carry CB13's path key where derivable from the print alone (the underlying of a PATH-SETTLED title, else 'event:<event id>'); the sidecar first-series-slug branch of CB13's key is not read by q0400 (series_slugs is not loaded), a declared deviation; SEs only",
+      "s_pre_fill_gap": "the S pre-fill proxy uses the capture before the touch capture whatever its age (no gap limit), as CB13-T's prev_mid does; SEs only",
+      "static_index": "end_date, liquidity, sports flag, reward, fee fields and series slug come from the FIRST worn capture carrying the market (CB13 load_quote_index precedent), not the capture at the decision"
+     },
      "item_1_worn_inputs": {
       "captures": "snapshots/<stamp> with start in [2026-10-11T22Z, 2026-10-16) (q0400 touch lookback) / [2026-10-12, 2026-10-16)",
       "cb13_t_screen": [
@@ -673,10 +696,24 @@
       "pass": "S",
       "wilson_lower_min": 0.95
      },
+     "item_2_wording": {
+      "agreement_base": "the base of the agreement rule is every non-sports CB13-T SCREEN fill that resolves to one traded token and one transaction (probe P1: 971); a fill whose resolved prints carry no single BUY/SELL side counts as NON-agreement overall and in every cell (section 2.3: unknown never counts as met)",
+      "p1_expected": {
+       "ambiguous_transaction": 216,
+       "close": 295,
+       "fills": 2931,
+       "non_sports": 1006,
+       "non_sports_resolved": 971,
+       "open": 676,
+       "token_resolved": 2715
+      },
+      "p1_next_action": "a mismatch is investigated, never adjusted; the branch is not recorded until it matches or the difference is explained",
+      "side_use": "q0400 reads the Data API side for two things only: the agreement count of the branch rule and the sign of the side-signed (S) population it builds for the strata shares and planning SEs; no other CB17 job reads it (section 1.4 whitelists)"
+     },
      "item_3_strata": {
       "c_abs_dm_rule": "section 2.6 leaves open which member's |dm_int| places a multi-member event-interval in a band: part pre declares the MEAN of |dm_int| over the unit's qualifying members (|dm_int| >= 0.5c), the same quantity at every level; the window part C may restate it but not change it",
       "informativeness": {
-       "binary": "numerator = units in (unit x stratum) cells holding both labels; denominator = all units of the test",
+       "binary": "numerator = units in (unit x stratum) cells holding both labels; denominator = all units of the test (A: the units of A1, i.e. units in (market x d) cells holding both labels; B1: all old / fresh units)",
        "continuous": "numerator = units in (unit x stratum) cells with >= 2 units and x not constant in the cell; denominator = all B2 units",
        "selection": "the finest level (0 finest) whose worn-data share >= 60%; if none, level 2 and the window's 50% rule binds; A's share is computed on the selected branch's population",
        "three_class": "numerator = transfer and mint-heavy units in cells holding at least one transfer and one mint-heavy unit; denominator = all transfer and mint-heavy units (merge-heavy units are reported, not in the share)"
@@ -745,7 +782,10 @@
       "q0402": "pre-census C",
       "q0403": "cost and lag map"
      },
-     "no_outcome": "no mark, outcome, resolution, wallet or later capture is read; the only post-decision field is static created_at"
+     "no_outcome": "no mark, outcome, resolution, wallet or later capture is read; the only post-decision field is static created_at",
+     "supersedes": {
+      "c186fdcdf0b48fc073f19d2912adf2c29aa7de5af58a1bb0f37cdf0dbda27f8d": "first part-pre seal (cadaaf19), replaced before any CB17 census ran, after the freeze check: A informativeness on both-label cells, side-agreement base including unsigned fills, P1 reproduction flag, P1-faithful print reader, E later = 1-7 d, B clock-anomaly exclusion, path-key ways for S, disclosures"
+     }
     },
     "common": {
      "census": {
@@ -937,7 +977,7 @@
    "func_sources_sha256": {
     "cb17_census.a1_se": "34cfbe6f2bee18c3ecc05f3a398ea60f749c5802939bb14632596c19fb6f8e9f",
     "cb17_census.age_bin": "5b8f613d8a2518e024e6728542ebadf083ad40f899ba2c4c942dcaa1c5fe389e",
-    "cb17_census.age_bin_first_day": "e25a25f9b2a5d080991c10ce4b5a4ca4fae5d46be5f6a857e1c6f2475be6e83e",
+    "cb17_census.age_bin_first_day": "224a15cf7ad0b44a48df50884e076e95525524f9cf74353386c6e1df268853fb",
     "cb17_census.band_counts": "2283e8b298e501f92616fa27a42b874eccaf748a8396270d6b1bedfe8b5e5b4f",
     "cb17_census.build_static": "64cc8413c57ecf381bf17eb40a8e592bd86c748530fec2131b83a521d515e6c1",
     "cb17_census.cost_lag_map": "bc5eab29bee718ba2c32c48a07b6f1150b2839ee5d679f33842a44ab57b8a62c",
@@ -949,14 +989,14 @@
     "cb17_census.is_true": "29827678ff97bc43e2f7044a0dbe6b59b17a4346e773565dc136a44e9f6b1eb0",
     "cb17_census.iter_cols": "493f8f76c09107631687d60d0062b1346813ff8acbc947560526cffb9ab388d2",
     "cb17_census.iter_dir_cols": "df64446d2921b8a37d0a299bccc447052dc8ce9bce495a788ffe69c59fa7aa69",
-    "cb17_census.iter_monitor": "21399ac8156eb85edec222bf2de3c4ebca27b995f0309b7d369dcb6b71b60a16",
+    "cb17_census.iter_monitor": "f475f56e881defd1903dbcffc90d4f4f0440ac2bc7da3cbfc5563b01d531425b",
     "cb17_census.list_stamped": "34b286f8383082a04a42e233b034d40a6fd8830b69302030e634ed068df5aa12",
     "cb17_census.load_capture_state": "ff4d3afb79c8559135857a5664148bf35b6dd1a31fa55156fb5e635577150fc8",
     "cb17_census.load_sweep": "5ea807190fb12e6db2e50858b627d4646bff83cdd281d9b1d1da9aca5db76242",
     "cb17_census.pair_passes": "715a6267f44bcc703c965f03a01044c81a6a3bc38953ff08eb082df88fe7f3dc",
-    "cb17_census.pop_report": "87344fdbaf67fc29abc89443b27102cbad3883db53f6a5545c1e14a31e111041",
-    "cb17_census.pre_census_A": "0ca2030dedab31845c3960607c0c0b96ec2e5afb9a61ba1fec6da025575d25a4",
-    "cb17_census.pre_census_B": "66cb5f8eb479b00d571d56e947812015be78d95039ce5f6625109e5279e9eba1",
+    "cb17_census.pop_report": "b1790c727b68f14b405a44b3eea30a32d73d89b59d2d2a49108e050f0f14590f",
+    "cb17_census.pre_census_A": "5214a38f98737cabb03acfb04f4062c23183cf44e829d238a8331d093826feb7",
+    "cb17_census.pre_census_B": "06767a710d5eb9d600814df9007baa55704ecebd75989293f792497e8be0770f",
     "cb17_census.pre_census_C": "a18f400d129a833b06aeaccac8942c21198e5994fe03e3c39931ed767c02623d",
     "cb17_census.read_created_at": "f66edf35886baf26cf651d1d24f8653790df73c0b9b1dfab8c197aecf13893e1",
     "cb17_census.read_fills": "bc8897f2f4883658a9fa6fa214a27371e136b42cadd719616e1e35b2c7759744",
@@ -993,7 +1033,7 @@
     "cb17_pre.agreement_rule": "4c0687a2f7b92b24cca13cc03559be2415ea1f19f2d95d695fc0c2661d2552bf",
     "cb17_pre.branch_decision": "22161a9065c82c233590555cd55671fa51de9d728e8d34ae00f6715a59660ecb",
     "cb17_pre.c_class": "b825731d6842b4b4bc61d062143e833b67f3fcfe7a97ea48724ecbab83df5c9b",
-    "cb17_pre.declared": "c67e257bd83d5a361463f211f05a20cb353ae7ac711d5e6ad4798b1eec8888a4",
+    "cb17_pre.declared": "8e64d363217a4d8185349fd0a737c77463c8582163bc42dcc28fb75b4c5cc439",
     "cb17_pre.fe_cluster_se": "a2c90a6ad95b0be4fc0a057a8d6b8e32121889b3c09f9f272b601871ba1f3682",
     "cb17_pre.informativeness": "9f09aa1e0277483648e8156f4918e562678ef538ed43db8d22ddf127b1083267",
     "cb17_pre.informativeness_binary": "12d228680d6c830c5f750cf8df6efe247927feeee2b993c0d0c99c0198c71105",
@@ -1001,6 +1041,7 @@
     "cb17_pre.informativeness_three_class": "bf464fc50c968997f2cebc1381f7dc1a44aaa13c3ae5aea599b215e6c1f0a774",
     "cb17_pre.level_report": "7a488c98448c609857651d62d2b5bff0609e37ee769a75e4eee5aa6918dbf496",
     "cb17_pre.liq_band": "5e9f40cd3668450601ae6da2f03367ca27db90003a3f0d428334872b0495e7cf",
+    "cb17_pre.p1_reproduction": "f374834f25922b03ff1137d4f77d4af95aa6ce448afd62e97ec266722e4bfb65",
     "cb17_pre.p_band": "6541a1facf39080523c2ecf36cc6561df5a6179c826f2b516ff42b931b46527c",
     "cb17_pre.round_trip_cost_c": "4f679d8053bb6349154e26e1e1e1e748ca35b8348bfc49bccd5cb7ea444d014c",
     "cb17_pre.select_level": "a529a560d656ad0703ca6a658a408b60331c969277680e469c201742da8ca10e",
@@ -1016,7 +1057,7 @@
     "cb17_pre.walk_edge": "1f4acf01a01a05155e2aaad76ea45f49ba00858b1b762ab19cb69814ed7708b2",
     "cb17_pre.wilson_lower": "ac3bcb688497e812f6337d150701cf3e6d3fc81c54f877fccd1fcc0e1eb5016d"
    },
-   "funcs_sha256": "b5efc09346ec6e7592c5afadfb762efb4843e8fa5c4423cc9937f5c6f1a4cb82",
+   "funcs_sha256": "50971a51cf3fa0d1c985e65c7e339811ca9e095be01fad0baecf9e7e4c02c6d3",
    "modules": [
     "cb17_common",
     "cb17_pre",
@@ -1024,7 +1065,7 @@
    ],
    "part": "pre",
    "part_declared": true,
-   "rules_sha256": "c186fdcdf0b48fc073f19d2912adf2c29aa7de5af58a1bb0f37cdf0dbda27f8d",
+   "rules_sha256": "31656d5d388bf1df34358dfa7eec8e197ee5c39ce84ebc97d558be27615f6e0f",
    "rules_version": "cb17-rules-v1",
    "shared_helper_sources_sha256": {
     "cb10_common.require_disk": "1e0e4e4682fa9a16fa71df384f5163983fa5cfa675b15a9b7f009dbbf3d81370",
@@ -1054,7 +1095,7 @@
     "provenance.validate_evidence_role": "42b61e7d9e401ab2dd6b098a5012cfa82f776576e3f1a12ba492f71ca82d2522"
    },
    "wallet": {
-    "note": "no CB17 job reads or stores a wallet field or a transaction hash (tx16 is aggregated in memory and discarded); the Data API side field is read by q0400 only (an agreement count)",
+    "note": "no CB17 job reads or stores a wallet field or a transaction hash (tx16 is aggregated in memory and discarded); the Data API side field is read by q0400 only (the agreement count and the sign of its side-signed population)",
     "read": false
    }
   }

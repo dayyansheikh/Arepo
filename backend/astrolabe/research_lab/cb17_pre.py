@@ -39,6 +39,15 @@ GAS_RULE_TEXT = ("GAS (signing gate; binding under branch S; window job q0408, N
                  "(overall >= 97% with Wilson 95% lower bound >= 0.95 and n >= 800, and >= 97% in every touch-age band, price band and class with n >= 100); both the Data API side and the "
                  "touch-derived side are features, no mark is read; otherwise A1 is 'not testable (signing)', counted")
 SIDE_BUY, SIDE_SELL = "BUY", "SELL"
+SIDE_USE = ("q0400 reads the Data API side for two things only: the agreement count of the branch rule and the sign of the side-signed (S) population it builds for the strata shares and "
+            "planning SEs; no other CB17 job reads it (section 1.4 whitelists)")
+AGREEMENT_BASE = ("the base of the agreement rule is every non-sports CB13-T SCREEN fill that resolves to one traded token and one transaction (probe P1: 971); a fill whose resolved prints carry no "
+                  "single BUY/SELL side counts as NON-agreement overall and in every cell (section 2.3: unknown never counts as met)")
+# probe P1 (section 0.3): q0400 must reproduce these counts on the worn files before the branch is recorded
+P1_EXPECTED = {"fills": 2931, "token_resolved": 2715, "ambiguous_transaction": 216, "non_sports": 1006, "non_sports_resolved": 971, "open": 676, "close": 295}
+P1_NEXT_ACTION = "a mismatch is investigated, never adjusted; the branch is not recorded until it matches or the difference is explained"
+SUPERSEDES = {"c186fdcdf0b48fc073f19d2912adf2c29aa7de5af58a1bb0f37cdf0dbda27f8d": "first part-pre seal (cadaaf19), replaced before any CB17 census ran, after the freeze check: A informativeness on both-label cells, "
+              "side-agreement base including unsigned fills, P1 reproduction flag, P1-faithful print reader, E later = 1-7 d, B clock-anomaly exclusion, path-key ways for S, disclosures"}
 
 # ---- item 3: strata ladders, informativeness, level selection (section 2.6; finding 2) ----------------------------------------------------------------
 SELECT_SHARE_MIN = 0.60  # finest level whose worn-data informativeness share is >= 60%, else level 2
@@ -60,7 +69,7 @@ LADDERS = {
           "levels": {0: "UTC 6h band(4) x |dm_int| band(3) x trailing dV tercile(3) x moving members {1, >=2}(2) = 72", 1: "|dm_int| band(3) x trailing dV 2-band(2) = 6", 2: "|dm_int| {0.5-1c, >1c} = 2"}},
 }
 INFORMATIVENESS = {
-    "binary": "numerator = units in (unit x stratum) cells holding both labels; denominator = all units of the test",
+    "binary": "numerator = units in (unit x stratum) cells holding both labels; denominator = all units of the test (A: the units of A1, i.e. units in (market x d) cells holding both labels; B1: all old / fresh units)",
     "continuous": "numerator = units in (unit x stratum) cells with >= 2 units and x not constant in the cell; denominator = all B2 units",
     "three_class": "numerator = transfer and mint-heavy units in cells holding at least one transfer and one mint-heavy unit; denominator = all transfer and mint-heavy units (merge-heavy units are reported, not in the share)",
     "selection": "the finest level (0 finest) whose worn-data share >= 60%; if none, level 2 and the window's 50% rule binds; A's share is computed on the selected branch's population",
@@ -180,6 +189,13 @@ def liq_band(liq: float) -> int | None:
 # =====================================================================================================================================================
 # item 2: the branch rule
 # =====================================================================================================================================================
+
+
+def p1_reproduction(observed: dict) -> dict:
+    """Compare q0400's fill-resolution counts with probe P1's (section 0.3). ``matches`` is the flag the branch depends on: the branch is recorded only when it is True (or the difference is explained)."""
+    diffs = {k: {"expected": v, "observed": observed.get(k)} for k, v in P1_EXPECTED.items() if observed.get(k) != v}
+    return {"expected": dict(P1_EXPECTED), "observed": dict(observed), "matches": not diffs, "differences": diffs, "next_action": P1_NEXT_ACTION,
+            "flag": "P1 REPRODUCED" if not diffs else "P1 MISMATCH: investigate, do not adjust; the branch is not recorded"}
 
 
 def wilson_lower(k: int, n: int, z: float = WILSON_Z) -> float:
@@ -494,6 +510,14 @@ def declared() -> dict:
                                    "created_at_captures": ["20261012T003103Z_2df48d64", "20261015T223102Z_2eae9aa6"], "cutoff": c17.CENSUS_CUTOFF},
             "item_2_branch_rule": {"agree_min_pct": AGREE_MIN_PCT, "wilson_lower_min": WILSON_LOWER_MIN, "n_min": AGREE_N_MIN, "cell_n_min": CELL_N_MIN, "bands": {"touch_age": list(TOUCH_AGE_BAND_NAMES), "p": list(P_BAND_NAMES), "class": "LABELLER class"},
                                    "pass": BRANCH_S, "fail_or_not_run": BRANCH_T, "consequence_T": BRANCH_T_CONSEQUENCE, "gas": GAS_RULE_TEXT},
+            "item_2_wording": {"side_use": SIDE_USE, "agreement_base": AGREEMENT_BASE, "p1_expected": P1_EXPECTED, "p1_next_action": P1_NEXT_ACTION},
+            "disclosures": {"static_index": "end_date, liquidity, sports flag, reward, fee fields and series slug come from the FIRST worn capture carrying the market (CB13 load_quote_index precedent), not the capture at the decision",
+                            "created_at_unknown": "first-day age uses created_at of two pinned captures (2026-10-12T00:31:03Z and 2026-10-15T22:31:02Z); a market created after the first and gone before the second has no created_at and is counted 'unknown' (a bias against newly created, short-lived markets)",
+                            "s_planning_se_path_key": "S units carry CB13's path key where derivable from the print alone (the underlying of a PATH-SETTLED title, else 'event:<event id>'); the sidecar first-series-slug branch of CB13's key is not read by q0400 (series_slugs is not loaded), a declared deviation; SEs only",
+                            "s_pre_fill_gap": "the S pre-fill proxy uses the capture before the touch capture whatever its age (no gap limit), as CB13-T's prev_mid does; SEs only",
+                            "first_day_bins": "first day = age < 24 h; later = 1-7 d; > 7 d, negative and unknown ages are in neither group",
+                            "b_clock_anomaly": "B units with a book age < -5 s or no stamp are excluded from the units, the cut points and B2 and counted (section 2.2)"},
+            "supersedes": SUPERSEDES,
             "item_3_strata": {"ladders": {k: v["levels"] for k, v in LADDERS.items()}, "informativeness": INFORMATIVENESS, "c_abs_dm_rule": C_ABS_DM_RULE, "select_share_min": SELECT_SHARE_MIN, "window_share_min": WINDOW_SHARE_MIN},
             "item_4_cut_points": {"b_activity": B_ACTIVITY_RECIPE, "b_imbalance": B_IMBALANCE_RECIPE, "c_trailing": C_TRAILING_RECIPE, "min_prior": TRAILING_MIN_PRIOR},
             "item_5_planning_se": {"recipe": SE_RECIPE, "proxies": PROXIES, "ways": "A/E: event, path key x 6h block, 6h block; B/C: event, first series slug (else event) x 6h block, 6h block, UTC hour"},

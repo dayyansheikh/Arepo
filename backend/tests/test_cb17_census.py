@@ -106,7 +106,7 @@ def test_read_fills_refuses_holdout_paths_and_fills_at_or_after_the_cutoff(tmp_p
 # ---- q0400: pre-census A / E --------------------------------------------------------------------------------------------------------------------
 
 
-def a_world(tmp_path, *, side_flip=0, late_wide_capture=True):
+def a_world(tmp_path, *, side_flip=0, late_wide_capture=True, straddling_wide_capture=False, blank_side_first=False, zero_size_first=False):
     """Market 1 (6 x [open YES-buy, close YES-sell, open NO-buy]) and market 2 (4 open YES-buy) plus one sports fill; captures 00:00, 00:31:03 (pinned), 02:00, 04:00 (and a wide later one)."""
     root = tmp_path / "w"
     snap, tr = root / "snapshots", root / "live_trades"
@@ -115,6 +115,8 @@ def a_world(tmp_path, *, side_flip=0, late_wide_capture=True):
     q3 = {"mid": "3", "cid": "c3", "eid": "E3", "bid": "0.48", "ask": "0.50", "fee_type": "sports_fees", "fee_category": "sports", "series": '["nfl-2026"]'}
     for st, nm in (("2026-10-12T00:00:00Z", None), ("2026-10-12T00:31:03Z", "20261012T003103Z_2df48d64"), ("2026-10-12T02:00:00Z", None), ("2026-10-12T04:00:00Z", None), ("2026-10-15T22:31:02Z", "20261015T222102Z_2eae9aa6")):
         write_capture(snap, st, [q1, q2, q3], name=nm)
+    if straddling_wide_capture:  # starts before every transaction but its LAST page is after them: its time is that last page, so it can never be a touch
+        write_capture(snap, "2026-10-12T02:09:00Z", [{**q1, "bid": "0.10", "ask": "0.90"}, {**q2, "bid": "0.10", "ask": "0.90"}], last_page_offset=3600.0)
     if late_wide_capture:  # received AFTER every transaction: must never be the touch of any of them
         write_capture(snap, "2026-10-12T05:00:00Z", [{**q1, "bid": "0.10", "ask": "0.90"}, {**q2, "bid": "0.10", "ask": "0.90"}])
     fills, prints = [], []
@@ -137,6 +139,10 @@ def a_world(tmp_path, *, side_flip=0, late_wide_capture=True):
     ts = t + 40.0 * i
     prints.append(print_(ts, "c3", 0.50, oi=0, side="BUY", tx="txS", fee="sports_fees", title="Chiefs vs Bills", mkt="3", ev="E3"))
     fills.append(fill_row(i, "c3", ts, -1, mkt="3", ev="E3", label=lab.SPORTS))
+    if blank_side_first:
+        prints[0]["side"] = ""
+    if zero_size_first:
+        prints[0]["size"] = 0
     write_day(tr, "20261012", prints)
     write_day(tr, "20261015", [print_(ep("2026-10-16T00:00:30Z"), "c1", 0.5, tx="txLATE")])  # after the cut-off: skipped and counted
     screen = write_screen(root, fills)
@@ -197,7 +203,7 @@ def test_pre_census_a_without_a_monitor_day_or_capture_does_not_invent_counts(tm
 # ---- q0401: pre-census B -----------------------------------------------------------------------------------------------------------------------
 
 
-def b_world(tmp_path, passes=8):
+def b_world(tmp_path, passes=8, anomaly=False):
     root = tmp_path / "w"
     snap, sw = root / "snapshots", root / "book_sweeps"
     write_capture(snap, D12 - 60, [{"mid": str(m), "cid": f"c{m}", "eid": f"E{m}", "bid": "0.48", "ask": "0.50"} for m in (1, 2, 3)]
@@ -210,7 +216,7 @@ def b_world(tmp_path, passes=8):
             ts_a = int((recv - (1200.0 if old else 30.0) - (0.0 if j == 0 else off)) * 1000)  # token A: same stamp in both sweeps
             books = [
                 {"tok": "A", "mid": "1", "bid": "0.48", "ask": "0.50", "ts": ts_a, "hash": "hA"},
-                {"tok": "B", "mid": "2", "bid": "0.48", "ask": "0.50", "ts": int((recv - 30.0) * 1000), "hash": f"hB{j}"},
+                {"tok": "B", "mid": "2", "bid": "0.48", "ask": "0.50", "ts": int((recv + (100.0 if anomaly else -30.0)) * 1000), "hash": f"hB{j}"},
                 {"tok": "C", "mid": "3", "bid": "0.48", "ask": "0.50", "ts": int((recv - 30.0) * 1000), "hash": f"hC{j}", "d5b": 2000 + 300 * j, "d5a": 2000 - 300 * j},
                 {"tok": "D", "mid": "4", "bid": "0.48", "ask": "0.50", "ts": int((recv - 30.0) * 1000), "hash": "hD"},
             ]
@@ -367,3 +373,44 @@ def test_cost_lag_map_reads_recv_ts_and_pre_census_a_does_not(tmp_path):
     for p in cen.iter_monitor(w["tr"], Counter(), side=True):
         assert "recv_ts" not in p
     assert "recv_ts" not in json.dumps(run_a(w))
+
+
+# ---- freeze-check fixes (2026-10-20) ------------------------------------------------------------------------------------------------------------
+
+
+def test_a_informativeness_is_computed_on_units_in_both_label_cells(tmp_path):
+    res = run_a(a_world(tmp_path))
+    t = res["strata"]["touch_consistent_T"]
+    assert t["units_eligible"] == 22 and t["units_in_both_label_cells"] == 12 and t["levels"]["level2"]["denominator"] == 12 and t["levels"]["level2"]["share"] == 1.0
+    assert "units in (market x d) cells holding both labels" in pre.INFORMATIVENESS["binary"]
+
+
+def test_a_unit_with_a_missing_side_is_non_agreement_in_every_cell(tmp_path):
+    res = run_a(a_world(tmp_path, blank_side_first=True))
+    assert res["side_agreement"]["overall"] == {"n": 22, "k": 21} and res["fills"]["token_resolution"]["resolved_without_one_side"] == 1
+    assert sum(c["n"] - c["k"] for c in res["side_agreement"]["cells"]["class"].values()) == 1
+
+
+def test_p1_reproduction_flag_and_the_unsigned_print_reader(tmp_path):
+    assert pre.p1_reproduction(dict(pre.P1_EXPECTED))["matches"] is True and pre.p1_reproduction(dict(pre.P1_EXPECTED))["flag"] == "P1 REPRODUCED"
+    off = pre.p1_reproduction({**pre.P1_EXPECTED, "open": 675})
+    assert off["matches"] is False and off["differences"] == {"open": {"expected": 676, "observed": 675}} and "investigate" in off["flag"]
+    res = run_a(a_world(tmp_path, zero_size_first=True))
+    # a zero-size print still resolves its fill (P1 used condition_id, ts, tx16, outcome_index only) but is not in the side-signed population
+    assert res["fills"]["token_resolution"]["resolved"] == 23 and res["input_stats"]["monitor_prints_without_usable_price_or_size"] == 1
+    assert res["side_signed_population"]["eligible_units"] == 21 and res["p1_reproduction"]["matches"] is False and res["branch_recorded"] is False
+
+
+def test_s_touch_never_uses_a_capture_whose_last_page_is_at_or_after_tau(tmp_path):
+    res = run_a(a_world(tmp_path, late_wide_capture=False, straddling_wide_capture=True))
+    assert res["side_signed_population"]["eligible_units"] == 22 and "touch_wide" not in res["side_signed_population"]["excluded_by_reason"]
+
+
+def test_first_day_later_group_is_1_to_7_days_only():
+    assert [cen.age_bin_first_day(h) for h in (-1.0, 5.9, 23.9, 24.0, 167.9, 168.0)] == ["unknown", "lt6h", "6-24h", "1-7d", "1-7d", "gt7d"]
+
+
+def test_b_clock_anomaly_units_leave_the_units_and_the_cut_points(tmp_path):
+    base = cen.pre_census_B(*[b_world(tmp_path / "ok")[k] for k in ("sw", "snap")])
+    an = cen.pre_census_B(*[b_world(tmp_path / "an", anomaly=True)[k] for k in ("sw", "snap")])
+    assert an["counts"]["unit_clock_anomaly_or_no_stamp"] == 8 and base["cut_points"]["units"] == 21 and an["cut_points"]["units"] == 14
