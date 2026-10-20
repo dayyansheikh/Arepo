@@ -445,6 +445,13 @@ primary, pooled a sensitivity; (3) E012 kept with the E006 disclosure and the 6 
 
 **R1 re-check fixes (`reviews/LT2_RECHECK_R1_2026-10-20.md`, PROCEED_WITH_FIXES; mechanical, no design change).** A: `census()` refuses unless the selected captures and samples equal the spec's `census.captures` / `census.samples` (`live_tests2.py:832` `check_census_inputs`, called at `:851` and `:871`; tests `test_research_lab_live_tests2.py` `test_census_inputs_must_equal_the_registered_ids`). B: `code_check` also refuses a NaN `flow.vol24_cap`, +inf stays allowed (`live_tests2_analysis.py:73-75`; `test_pinned_spec_refuses_nan_vol24_cap_but_allows_inf`). C: the 1,500-world null-size run is reproducible (`test_research_lab_live_tests2.py:570` `LT2_N_SIM`, `_dump_size_rates`; output `seals/lt2_gate_null_size_1500.json`); §1.5 and finding 1 now quote its figures. D: `flow.vol24_cap` = +inf (JSON token `Infinity`) from the census re-run (`seals/lt2_census_r1_2026-10-20.json`, sha256 4656490bc02132c1fb3bce5c6cc504a77a0e7b830019075cdd2a69a89864c2aa; truncation 5 / 4,147 = 0.12% < 1%). E: `code_sha256` map refreshed after the last code change; `SPEC_SHA256` itself is not pinned here.
 
+**Write precision fix F (2026-10-20 ~13:05Z; found by the LT3 freeze check, which reviewed the shared write pattern).**
+`write_once_csv` wrote every float with `float_format="%.6g"` (`live_tests2.py:163` at a14f3efb): epoch-second columns
+rounded to about 10,000 s (an origin at 00:31Z could fall on the previous UTC day, the clustering unit) and volumes to six
+digits. Now `"%.17g"` (exact round trip), unit test `test_write_once_round_trips_epochs_and_floats_exactly`. No line had
+been frozen (nothing registered; the 10-19 dry run wrote to `/tmp` and was deleted). `code_sha256` of `live_tests2.py`
+refreshed to `88ee00b2…`. Mechanical; no rule, threshold or design change.
+
 **Registration timing.** All R1 code and spec changes are in this revision. Still needed before the pin: the R1 re-check, the
 census re-run (fills `vol24_cap`), a short host dry run, the `dev_fit.json` sha check and the `code_sha256` refresh (§6.2). If
 the registration commit (pin + ledger) is not made before **2026-10-22T00:00Z**, section 1.1 applies unchanged: `REGISTERED_UTC`

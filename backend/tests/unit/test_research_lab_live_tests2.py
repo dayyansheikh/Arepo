@@ -112,6 +112,18 @@ def world(tmp_path):
     return snap, samp, out, _spec(tmp_path)
 
 
+def test_write_once_round_trips_epochs_and_floats_exactly(tmp_path):
+    # freeze-check finding (2026-10-20): "%.6g" rounded epoch seconds to ~10,000 s (00:31 origins could move to the
+    # previous UTC day) and volumes to 6 digits; every float must survive the write-once file exactly
+    df = pd.DataFrame({"t": [1792456260.0, 1792456261.5, np.nan], "vol24": [123456.789012, 0.1, 9.87654321e7],
+                       "mid": [0.123456789, 0.5, 0.999]})
+    p = tmp_path / "f.csv.gz"
+    assert lt.write_once_csv(p, df)
+    back = pd.read_csv(p)
+    for c in df.columns:
+        np.testing.assert_array_equal(back[c].to_numpy(float), df[c].to_numpy(float))
+
+
 def test_write_once_never_overwrites(tmp_path):
     p = tmp_path / "a.csv.gz"
     assert lt.write_once_csv(p, pd.DataFrame({"a": [1]}))

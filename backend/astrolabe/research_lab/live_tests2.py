@@ -160,7 +160,7 @@ def write_once_csv(path: Path, df: pd.DataFrame) -> bool:
         return False
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
-    df.to_csv(tmp, index=False, compression="gzip", float_format="%.6g")
+    df.to_csv(tmp, index=False, compression="gzip", float_format="%.17g")
     with open(tmp, "rb") as fh:
         os.fsync(fh.fileno())
     try:

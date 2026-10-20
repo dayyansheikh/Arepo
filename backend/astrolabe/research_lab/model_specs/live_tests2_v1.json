@@ -141,7 +141,7 @@
   "ids_note": "capture and sample ids of the 2026-10-19 census (all started before 2026-10-19T21:00Z) are listed above; vol24_cap and the truncation shares come from the re-run of `run_live_tests2.py census --until 2026-10-19T21:00:00Z` on these same inputs (2026-10-20; seals/lt2_census_r1_2026-10-20.json); census() refuses unless the selected captures and samples equal these lists"
  },
  "code_sha256": {
-  "live_tests2.py": "ec07e16b62601e2f0af946fc88dc06194c91444ebc4254db8b5d584e6816292f",
+  "live_tests2.py": "88ee00b20fbe8241659dcadd209c69b1aad63563188c9115443eeedec5f58053",
   "live_tests2_analysis.py": "a7b5c781444c6d3599abe2ebc6db7d3aea5c1c4a48481a08616f34357b211ab0",
   "rule": "normalised sha256 (the SPEC_SHA256 line replaced by 'SPEC_SHA256 = <pin>'; live_tests2.code_sha256); kept equal to the modules by a unit test after every code change (first filled 2026-10-20, challenger R1) and re-verified in the SPEC_SHA256 pin commit. Frozen lines carry code_sha (first 16 hex digits of the collector hash); the analysis keeps only lines whose spec_sha and code_sha equal the pins and refuses to run a pinned spec if either module's hash differs"
  }
