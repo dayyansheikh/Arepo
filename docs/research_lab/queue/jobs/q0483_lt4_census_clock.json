@@ -1,0 +1,44 @@
+{
+ "id": "q0483_lt4_census_clock",
+ "title": "LT4 census CF (E021 trade clock only; E023/E024 dropped before any census, R2) on the 23 sealed trade samples of 2026-10-16/17 and their captures k-1, k (DRAFT): counts only, pre-origin rows only; refuses unsealed or mismatched inputs",
+ "family": "live_tests_4",
+ "priority": 29,
+ "expected_value": "E021 census gate (LIVE_TESTS_4.md sections 8 and 15): ts granularity, fresh/settled shares, n2h-truncated share by band, permuted share, DE_gate = max(3.0, computed), effective-count MDE; fixes e021.perm_stratum",
+ "data": [
+  "data-dumps/research_lab/live_tests4_census/restore (q0480; read-only)",
+  "data-dumps/research_lab/live_tests3_census/restore (LT3 q0471; read-only)"
+ ],
+ "resources": {
+  "mem_mb": 1200,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0480_lt4_census_restore_captures",
+  "q0471_lt3_c2_restore"
+ ],
+ "argv": [
+  "scripts/run_live_tests4.py",
+  "census-clock",
+  "--seal",
+  "../docs/research_lab/seals/lt3_census_inputs_C2.json",
+  "--capture-seal",
+  "../docs/research_lab/seals/lt4_census_inputs_captures.json",
+  "--sample-root",
+  "../data-dumps/research_lab/live_tests3_census/restore/data-dumps/research_lab/trade_samples",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests4_census/restore/data-dumps/research_lab/snapshots",
+  "--work",
+  "../data-dumps/research_lab/live_tests4_census/work_cf",
+  "--out",
+  "../data-dumps/research_lab/live_tests4_census/CF.json"
+ ],
+ "timeout_s": 7200,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests4_census/CF.json (counts only)"
+ ],
+ "next_action": "commit CF.json and its sha256, fill e021.perm_stratum and E021's k_tests entry, record a drop in 7.3",
+ "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_4.md). Counts 0. The sample seal is LT3's (same 92 files). Captures k-1 and k are re-hashed against the LT4 capture seal. R2: renamed from q0483_lt4_census_flow; E023/E024 (open share, concentration) were dropped before any census (k = 3), so no flow values are fixed. R2 re-check: q0481 (a second restore of the same 23 samples) folded into LT3's q0471, which uses the same tags and globs; the census re-hashes every sample file against seals/lt3_census_inputs_C2.json, so a differing tree is refused. Clear the LT3 restore tree only after both LT3 and LT4 registration commits. PROMOTED 2026-10-20 ~23:55Z (autopilot): R2 re-check ACCEPT_WITH_CHANGES and its verification OK_WITH_FIXES (fixes applied 99618c95); capture seal written from the releases' files.sha256 (lt4_census_inputs_captures.json, 211 files) before any LT4 census; counts only."
+}

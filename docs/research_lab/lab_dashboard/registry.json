@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-20T18:23:14Z",
+ "updated": "2026-10-20T22:54:15Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1367,11 +1367,11 @@
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Order-flow counting check on the server (before 23 Oct), then freeze review, pin and register (proposed start 24 Oct)",
+   "next": "Fix to one safety check (requested by the independent review), its size check on the server, the order-flow counting check (before 23 Oct), then freeze review, pin and register",
    "next_date": "2026-10-24",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT3 censuses C1/C3/C4 (q0470), 2026-10-20"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Session 2026-10-20 ~22:39Z (LT3 donor-gate ruling)"
    },
    "stage_results": {
     "designed": "pending"
@@ -1382,19 +1382,19 @@
   },
   {
    "id": "LT4",
-   "title": "Live tests E020-E024 (planned)",
-   "plain": "Five planned live tests from the round 10 ideas: whether a quote move made by a new order behaves differently from one made by a cancellation, whether very recent trades carry on less, whether displayed liquidity that cannot actually be traded against matters, and whether opening trades or one big order carry more information. Drafted; independent review under way.",
+   "title": "Live tests E020-E022 (planned)",
+   "plain": "Three planned live tests from the round 10 ideas: quote moves made by new orders versus cancellations, whether very recent trades carry on less, and displayed liquidity that cannot actually be traded against. The second review accepted these with changes and dropped two others whose safety check did not hold. Re-check under way.",
    "batch": "LT4",
    "family": "mixed",
    "stage": "designed",
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Independent review, counting checks, then pin and register (proposed start 26 Oct)",
+   "next": "Re-check of the changes, counting checks on the server, then pin and register (after LT3)",
    "next_date": "2026-10-26",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT4 (E020-E024) DRAFT, 2026-10-20"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Session 2026-10-20 ~22:39Z (LT4 challenger R2)"
    },
    "stage_results": {
     "designed": "pending"

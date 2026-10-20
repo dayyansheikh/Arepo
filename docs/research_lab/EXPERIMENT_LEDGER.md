@@ -2612,3 +2612,71 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   that has a real effect; LT4's residualised donor gate + census cap |corr| <= 0.5 gives ~0.068 (limit 0.075 at 200
   worlds); the designer stopped tuning; E023/E024 blocked at the pin unless q0484 passes. Challenger R2 and an LT3
   donor-gate ruling (science-reviewer) running; LT3's pin waits for that ruling.
+
+## Session 2026-10-20 ~22:39Z (autopilot): restore root cause fixed; gap 19:30-22:39Z written up (nothing counted)
+- **Recorded late (previous session stopped ~20:40Z):**
+  - **LT3 donor-gate ruling** (c5920dd2, `reviews/LT3_DONOR_GATE_RULING_2026-10-20.md`): revise. Studentise the donor
+    statistic, add binding `donor_collinear_control` scenarios (0.5, 0.7; effect 0.004), census C2 reports within-market
+    R^2 of x6 zW / x6 zH on the controlled interactions and uses |corr|. q0473b stopped (cancelled on the host; no
+    output used). Fix running on `fix/lt3-donor` (implementer, this session); a new >= 2,000-world size check on the
+    fixed code follows a science-reviewer pass, before the pin.
+  - **LT4 challenger R2** (6ce45313): E020-E022 ACCEPT_WITH_CHANGES; E023/E024 dropped before any census (k = 3).
+    R2 code + response 99c4c2eb / ebda78b8 (`feat/live-tests-4`): CH depth from the chosen definition, MA(2) overlapping-
+    target size scenario, DE gate floor 3.0, `abs_dev` in the correlation cap, joint late1|late3 skip mask, n2h by band.
+    Re-check (science-reviewer) running this session.
+  - **CB18 DRAFT design** (9ea4f371, `feat/cb18`): round-10 remainder (CH172, CH175-CH177, CH179; CH178 excluded as a
+    double count of E015). Design only.
+- **Jobs finished (data preparation, no outcome read, nothing counted):** q0266 CB12-E census `not testable
+  (dependence)` (19:40Z; freeze entry per the CB12-O precedent pending); q0277 CB13 touch frame complete (screen 374 /
+  holdout 861 events); q0279 CB13 Binance 64 files, 0 unavailable; q0284 CB13-R pregate pass (58 components); q0302
+  CB14 exclusion keys complete; q0303 CB14 W frame complete (94 of 1,119 rows kept; dropped: key 411, window 409,
+  sports 180, summary 14, mention 9, entity 1). Follow-up promotions: audit running.
+- **Restore failures, root cause:** q0471 (LT3 C2) and q0413 (CB17 worn inputs) failed with `no catalogue for
+  data-20261016/17-dsheikh`: the repo catalogue stopped at 10-15. `archive_catalogue.py` run for 10-15-active and
+  10-16..10-20 (incl. -2, -active) and committed (d79db323). q0413 attempt 1 had already restored and verified the 6
+  files of data-20261015-dsheikh (report passed, 79,926,435 B); later attempts refused because those files existed, so
+  its argv drops that tag (selection globs unchanged). Both `retry` with fresh budgets after deploy. q0472's deadline
+  (10-23T03:30Z) still holds.
+
+## Operational deviation: canonical E009/E010 gaps on 2026-10-13 before the 10-14 outage (recorded 2026-10-20; facts only, not counted)
+
+Found by the live-tests readiness audit (`LIVE_TESTS_READINESS_2026-10-19.md`) from prediction-line timestamps only. No
+outcome was read.
+- **Gaps:** the canonical E009 stream (the Mac poller) has no prediction cycles strictly between 2026-10-13 21:24Z and
+  22:22Z, nor strictly between 22:28Z and 23:12Z. The bounding cycles at 21:24Z, 22:22Z, 22:28Z and 23:12Z are present.
+  Hourly cycle counts out of 30 are 21:00Z 13, 22:00Z 4 and 23:00Z 24. E010 has no 22:00Z or 23:00Z origin.
+- **Cause:** unknown. This is separate from the documented 2026-10-14 00:02Z–10:44Z outage.
+- **Coverage:** the validation copy started at 23:33Z and covers neither gap. The 2026-10-15 gap-fill decision covers only
+  the open interval (00:02Z, 10:44Z) on 10-14 (rule `gapfill-v2`, `E009_E010_GAPFILL_RULE_V2.md`). Missing stays missing,
+  and neither window is extended.
+- **E011 is unaffected:** its passes at 20:31Z and 22:31Z on 10-13 are present.
+
+## E010 verdict rule declared: Holm when a horizon is Unavailable (2026-10-21 00:12 UTC+1; pre-outcome, not counted)
+
+This entry is declared before any E010 outcome analysis. It follows the science-reviewer's ACCEPT_WITH_CHANGES on the
+readiness audit. It clarifies the registered sentence "Holm always uses m = 2: a horizon without a test enters with p = 1"
+together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 evaluated origins at that horizon".
+- **Rule.** A horizon that is Unavailable by the registered minimum counts as "a horizon without a test" and enters Holm
+  with p = 1. The other horizon's adjusted p is then min(1, 2·p_raw), where p_raw is its frozen `p_one_sided_m1`. When
+  neither horizon is Unavailable, the Holm adjustment is the frozen `holm_m1`, unchanged.
+- **Why.** The frozen `cross_venue_live_e010.analyze` assigns p = 1 only to a horizon with fewer than 2 clusters. A
+  horizon with 2–19 clusters, or with fewer than 2,000 origins, would otherwise enter Holm with its own p, although the
+  registration gives it no test.
+- **Reporting.** `backend/scripts/live_verdicts.py e010` applies this rule. It also reports the frozen `holm_m1` and the
+  verdicts that `holm_m1` would give. If the two sets of verdicts differ, both are shown and the declared rule is the
+  registered verdict. No statistic is recomputed: p_raw is read from the frozen output.
+
+## Deviation: fix to frozen E011 analysis code, `_cluster_id` (2026-10-21 00:12 UTC+1; pre-outcome, not counted)
+
+- **What changed.** In `surprise_snapshot.analyze` (commit `ed7dea22`, branch `feat/live-audit`), the episode cluster
+  `a.get("event_id") or a["market_id"]` became `_cluster_id(a)`. It treats `"nan"`, `"None"`, empty and null event ids
+  as absent and falls back to the market id.
+- **Why.** The E011 registration says "cluster = Gamma event id (market id when absent)". Alert lines store
+  `str(row["event_id"])`, so a capture row without an event id arrives as the string `"nan"`. The old expression treated
+  that string as present and would have pooled every such market into one `"nan"` cluster. The fix restores the
+  registered definition exactly.
+- **Effect on collected data:** none so far. 0 of the 4,200 window alert lines (as of 2026-10-19 21:44Z) carry a
+  missing-like event id. The latest capture had 1 market without an event id among 246,961 rows, so the case can occur.
+  The primary statistic, the episode rule, the window and the verdict thresholds are unchanged.
+- **Found and checked by:** the live-tests readiness audit, reviewed by the science-reviewer (ACCEPT_WITH_CHANGES). Test:
+  `test_e011_missing_event_id_falls_back_to_market_id`. The E011 analysis must run from a commit that contains this fix.
