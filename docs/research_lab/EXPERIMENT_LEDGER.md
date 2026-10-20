@@ -2385,3 +2385,19 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   Relaunched one agent per worktree (same scope, told to inspect and keep only correct partial work). Creative round 10
   (Fable xhigh, live-ready readers for an LT4 family) started; ideas only, not counted.
 - **Queue (07:19Z):** net lane q0243 running; cpu lane idle until q0260 `not_before` 14:05Z. No new failures.
+
+## LT2 (E012-E014) R1 response and re-check, 2026-10-20 07:20-08:10Z; design only, nothing registered or counted
+- **Response (e37578dc, merged a4c2585c):** all 9 R1 findings mapped in LIVE_TESTS_2.md §9. Timing gate replaced by a
+  far-future control (sources >= flow window + horizon later, >= 4 per row, p = max(CR1, jackknife) under t(G-1));
+  E006 H1 disclosed + frozen 6 h skip-slot bounce label; per-capture status files + 5 pp attrition label; E013
+  population cut on origin `volume24hr` <= `vol24_cap`; primary p = max(event, two-way, t G-1); counting 8 lines-tests,
+  Holm k = 4; spec/code sha pins per line. 41 unit tests pass. Planning MDEs: E012 0.037, F4 0.0017, F5 0.0028, E014 0.0030.
+- **Re-check (science-reviewer): PROCEED_WITH_FIXES** (`reviews/LT2_RECHECK_R1_2026-10-20.md`): no new leakage, no
+  threshold loosened, nothing reads window data. Must-fix: A census ids checked against the spec; B NaN cap refused;
+  C provenance of the 1,500-world size figures. Disclosures: gate rows selected on future presence (necessary, not
+  sufficient); E014 truncation only labelled; skip-slot controls conservative.
+- **Census re-run on the host (07:54-07:57Z, /tmp, 684 MB RSS):** exactly the spec ids; n reproduce (zL 153,711, zRV
+  3,891, zSPR 4,142); 6 h truncated 5/4,147 = 0.12% (< 1%) so `vol24_cap` = +inf (no cut binds); 1 h 1/8,000. Output
+  `seals/lt2_census_r1_2026-10-20.json` (sha256 `4656490b…`). E007 `dev_fit.json` on the host sha256 `7e2c4f79…` = §4.
+- Next: A-C + cap fill + code_sha refresh (implementer running) -> host dry run -> SPEC_SHA256 pin -> registration
+  entry -> promote q0460 (not_before 10-21T00Z) before REGISTERED_UTC 10-22T00:00Z.
