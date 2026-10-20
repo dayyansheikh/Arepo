@@ -2401,3 +2401,32 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   `seals/lt2_census_r1_2026-10-20.json` (sha256 `4656490b…`). E007 `dev_fit.json` on the host sha256 `7e2c4f79…` = §4.
 - Next: A-C + cap fill + code_sha refresh (implementer running) -> host dry run -> SPEC_SHA256 pin -> registration
   entry -> promote q0460 (not_before 10-21T00Z) before REGISTERED_UTC 10-22T00:00Z.
+
+## Session 2026-10-20 ~12:25Z (autopilot): queue idle; seal copies committed; 6 jobs promoted; streams relaunched
+- **Queue at 12:24Z: idle ("no ready jobs").** q0239 (CB11-PA census) and q0249 (CB12-M census) each failed twice in
+  ~2 s (rc 2) with the designed refusal "seal copy … is not committed (or differs from HEAD)": the seal jobs q0238
+  (10:17Z) and q0248 (12:12Z) had written `cb11_attn_holdout_SEAL.json`, `cb11_pol_holdout_SEAL.json` and
+  `cb12_say_holdout_SEAL.json` on the host. Copied, sha256 byte-identical to the host (`46c27032…`, `242240104…`,
+  `20c7660b…`), committed, deployed, both jobs `retry`. No rule, hash or threshold changed;
+  the failed attempts are recorded in `attempts.jsonl` and nothing was counted. `h6_weather_SEAL.json` (6.3 MB, 10-17)
+  stays uncommitted on the host as before (no job refuses on it).
+- **Promoted (dffc11c0):** q0245 (CB12-E quake prices, after q0244 done); q0302 (CB14 exclusion keys; `--base-sha256`
+  = host sha256 of `creative_batch13/exclusion_keys.csv.gz` after q0276 `exclusion_keys_complete` at 12:20Z,
+  `b0f54329…5f79`); q0277 -> q0279 -> q0284 (CB13-R touch frame, Binance klines, pregate); q0303 (CB14-W frame, after
+  q0302). All deps-ordered; code freeze-checked and rules sealed on 10-19; argv unchanged except the base pin.
+- **Interrupted streams (files last changed ~08:46Z, no process):** LT2 must-fix A-C (not started in any worktree; the
+  uncommitted edits in `../astrolabe-live-tests` are the pre-R1 drafts of 10-19 22:58 and are superseded), LT3 R1
+  response + code (`../astrolabe-live-tests-3`, uncommitted), CB17 window code (agent worktree, uncommitted), creative
+  round 10 (file never written). Relaunched: LT2 A-E implementer (isolated worktree), LT3 response + code, CB17 window
+  code, creative round 10 (Fable xhigh). CB12-E/O pre-q0266 confirmation (science-reviewer) started.
+- **CB12-E/O pre-q0266 confirmation (science-reviewer, ~12:55Z): ACCEPT.** Both fixes present and tested
+  (`tests/test_cb12_e.py:1027-1046`, hash refusal `run_cb12.py:490-500` in census/screen/rep, q0245 at
+  `cb12_e.py:724-727`); 191 cb12 tests pass; all six rules parts recomputed byte-identical to `seals/cb12_rules.json`
+  (E `bd512db4…`, O `4e1dd759…`, common `f2f672c1…`) and every draft pin matches; census counts-only. **q0266 promoted**
+  (after q0245). O is freeze-ready pending only q0260's `iv_convention` (enforced at `run_cb12.py:185-195`).
+- **LT2 fixes A-E merged (a14f3efb):** A census refuses unless its captures/samples equal the spec's ids
+  (`live_tests2.py:832-871`); B `code_check` refuses NaN `vol24_cap` (+inf allowed); C the 1,500-world null-size run is
+  now reproducible (seeded tests, `LT2_N_SIM=1500`, output `seals/lt2_gate_null_size_1500.json`): pooled 566/12,000 =
+  0.047, scenarios 0.042-0.054; the figures quoted before differed and are relabelled "unreproduced" in §1.5; D
+  `flow.vol24_cap` = Infinity citing census `4656490b…`; E `code_sha256` refreshed (`ec07e16b…`, `a7b5c781…`).
+  41 tests pass. Next: host dry run (R1 collector) -> short reviewer verification -> SPEC_SHA256 pin -> registration.
