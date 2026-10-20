@@ -1,0 +1,33 @@
+{
+ "categories": {
+  "culture": 134,
+  "economics": 55,
+  "finance": 883,
+  "mentions": 28,
+  "politics": 65,
+  "unknown": 59,
+  "weather": 547
+ },
+ "exclusion_keys_sha256": "c8a1d64b1dd3f83d376b3809ba5db72b12e751fa825d6ad483854b8136b6d304",
+ "files": {
+  "hold/outcomes_guarded_hold.csv.gz": "715b89d5a6c4769d3c553c5721c5b82ee1e74b2f9cd136283f92bef9b23d01ba",
+  "hold/targets_guarded_hold.csv.gz": "5478dba2b486467d9e67a4b18e15c7462b117cf62bdf00411393b6f9b8aba1de",
+  "hold/units_hold.csv.gz": "83392b59f7055f5dab7649928ea7b910a04b66563a2beab685abed5cd20da45d",
+  "hold/w2_sample_hold.csv.gz": "95b0ab5dcc866a1d965a00cf961ae1fb9c47041f8375f01d0c5c073ddf68c462"
+ },
+ "listing_sha256": "90b7b979ba260334c0600144e8ec83b135f9b4be2cf4f20d62272d2059768b3f",
+ "n_end_dates": 39,
+ "n_events": 426,
+ "n_hold_files": 4,
+ "n_sample_hold": 788,
+ "n_units_hold": 1771,
+ "read_rules": "units_hold / targets / outcomes are opened only by rep-W after the listing hash is verified; the census reads this listing's counts only",
+ "rules_sha256": "a3a16f987f7478143c9210e22ef7edddcaca7902f8ada55191d53f21755af0aa",
+ "seal_version": "cb11-w-hold-seal-v1",
+ "windows": {
+  "hold": [
+   "2026-07-01",
+   "2026-09-10"
+  ]
+ }
+}
