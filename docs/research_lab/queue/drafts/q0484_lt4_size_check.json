@@ -1,6 +1,6 @@
 {
  "id": "q0484_lt4_size_check",
- "title": "LT4 simulated-null size of the label-permutation (binary, continuous) and distant-donor gates on the code to be pinned (DRAFT): 7 scenarios x 2,000 worlds x 99 draws, criterion rate <= 0.05 + 1.645 sqrt(0.0475 / 2000) = 0.058",
+ "title": "LT4 simulated-null size of the Freedman-Lane permutation gates (binary, continuous, label-control correlation 0.7) and the distant-donor gates (iid, AR(1), life cycle, moderator correlation 0.4 and 0.7) on the code to be pinned (DRAFT): 10 scenarios x 2,000 worlds x 200 draws, criterion rate <= 0.058",
  "family": "live_tests_4",
  "priority": 28,
  "expected_value": "LIVE_TESTS_4.md 1.8 size statement at the pinned code",
@@ -20,11 +20,11 @@
   "--out",
   "../data-dumps/research_lab/live_tests4_census/size_check.json"
  ],
- "timeout_s": 36000,
+ "timeout_s": 72000,
  "max_retries": 1,
  "outputs": [
   "data-dumps/research_lab/live_tests4_census/size_check.json (with code_sha256 of the four modules)"
  ],
  "next_action": "record the rates in LIVE_TESTS_4.md; a failing scenario blocks the pin",
- "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_4.md, design not yet reviewed). Run on the code to be pinned (after the freeze-check fixes); the output's code_sha256 must equal the spec map. Estimate 3-5 h on the host. Counts 0."
+ "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_4.md, design not yet reviewed). Run on the code to be pinned (after the freeze-check fixes); the output's code_sha256 must equal the spec map. Estimate 3-5 h on the host. Counts 0. R1: 200 draws (the gates' own), ten scenarios; estimate 8-14 h on the host."
 }

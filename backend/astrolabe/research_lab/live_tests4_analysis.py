@@ -26,9 +26,7 @@ from . import live_tests4 as lt
 
 TESTS = ("E020", "E021", "E022", "E023", "E024")
 DIRECTION = {"E020": +1, "E021": -1, "E022": -1, "E023": +1, "E024": +1}
-CONTROLS_E020 = ["spread_p", "log_abs_x", "logit_mid", "abs_dev", "log1p_vol", "log_hte", "hte_missing", "rew"]
-CONTROLS_E021 = ["g_par", "g_os", "g_sc", "log_abs_x", "spread_k", "logit_mid", "abs_dev", "log1p_vol_p", "log_hte", "hte_missing", "log1p_n2h"]
-CONTROLS_E022 = ["log1p_D", "sw_spread0", "g_par", "g_os", "g_sc", "log_abs_x", "logit_mid", "abs_dev", "log1p_vol"]
+CONTROLS_E020, CONTROLS_E021, CONTROLS_E022 = lt.CONTROLS_E020, lt.CONTROLS_E021, lt.CONTROLS_E022
 GATE_LABEL = {"E020": "SE check failed", "E021": "SE check failed", "E022": "SE check failed",
               "E023": "within-unit timing not shown", "E024": "within-unit timing not shown"}
 TRIAL_KIND = "live_tests4"
@@ -69,8 +67,15 @@ def code_check(spec: dict) -> dict:
                 raise RuntimeError("live_tests4 spec pinned with unfilled (null or NaN) flow census values")
         if "E022" in k:
             h = spec["hollow"]
-            if any(_nanlike(v) for v in (h["zh"].get("centre"), h["zh"].get("scale"), *h["h_cuts"], h.get("gap"))):
+            if any(_nanlike(v) for v in (h["zh"].get("centre"), h["zh"].get("scale"), *h["h_cuts"], h.get("gap"), h.get("depth_def"))):
                 raise RuntimeError("live_tests4 spec pinned with unfilled (null or NaN) hollow census values")
+        for t in ("E020", "E021", "E022"):  # R1 findings 2 and answer 9: census-fixed stratum and family exclusion
+            if t in k and (spec[t.lower()].get("perm_stratum") not in ("day", "block2") or spec[t.lower()].get("exclude_family") is None):
+                raise RuntimeError(f"live_tests4 spec pinned with unfilled {t.lower()}.perm_stratum / exclude_family")
+        lt3_pins = (lt.l3.load_spec(sha=None).get("code_sha256") or {})
+        for n in ("live_tests3.py", "live_tests3_analysis.py"):  # R1 finding 12: LT4 pins the LT3 code LT3 registered
+            if lt3_pins.get(n) is not None and lt3_pins[n] != pins.get(n):
+                raise RuntimeError(f"live_tests4 pin of {n} differs from LT3's registered pin")
     return {"current": cur, "pinned": {n: pins.get(n) for n in cur}, "status": status,
             "label": None if all(s == "match" for s in status.values()) else "DRAFT: code hashes not verified"}
 
@@ -148,11 +153,12 @@ def move_frame(root: Path, start: float, end: float, roles, spec) -> tuple[pd.Da
     df["c"] = np.where(late1, np.nan, sx * (mid_at(df, "h1") - df["mid_k"].to_numpy(float)))
     df["status_h1"] = np.where(late1, "late", df["status_h1"].astype(str))
     df["day"] = day_of(df["t_row"])
+    df["block"] = block_of(df["t_row"], start)
     return df, acc
 
 
 def clock_frame(root: Path, start: float, end: float, roles, spec) -> tuple[pd.DataFrame, dict]:
-    df, acc = load_kind(root, "clock", start, end, roles, spec, ("h1", "h3", "s0", "s1"))
+    df, acc = load_kind(root, "clock", start, end, roles, spec, ("h1", "h3", *(f"s{j}" for j in spec["clock"]["sweep_tags"])))
     if df.empty:
         return df, acc
     sx = np.sign(df["x"].to_numpy(float))
@@ -163,10 +169,12 @@ def clock_frame(root: Path, start: float, end: float, roles, spec) -> tuple[pd.D
     df["c6"] = np.where(late3, np.nan, sx * (m3 - df["mid_k"].to_numpy(float)))
     df["c_skip"] = np.where(late3, np.nan, sx * (m3 - m1))
     df["c_sw"] = np.where(late1, np.nan, sx * (mid_at(df, "s1") - mid_at(df, "s0")))
+    df["c_skip_sw"] = np.where(late3, np.nan, sx * (mid_at(df, "s3") - mid_at(df, "s1"))) if "status_s3" in df else np.nan
     with np.errstate(divide="ignore", invalid="ignore"):
         df["log_age"] = np.log(np.clip(df["age"].to_numpy(float), 1.0, None))
     df["status_h1"] = np.where(late1, "late", df["status_h1"].astype(str))
     df["day"] = day_of(df["t_row"])
+    df["block"] = block_of(df["t_row"], start)
     return df, acc
 
 
@@ -183,6 +191,7 @@ def hollow_frame(root: Path, start: float, end: float, roles, spec) -> tuple[pd.
     df["c_gamma"] = np.where(late1, np.nan, sx * (m1 - df["mid_k"].to_numpy(float)))
     df["status_s1"] = np.where(late1, "late", df["status_s1"].astype(str))
     df["day"] = day_of(df["t_row"])
+    df["block"] = block_of(df["t_row"], start)
     return df, acc
 
 
@@ -238,6 +247,67 @@ def _common(res: dict, pop: pd.DataFrame, prim: dict, acc: dict) -> None:
     res["late_loss_share"] = acc.get("late_loss_share", 0.0)
 
 
+# --- Freedman-Lane permutation gate (R1 finding 7) -------------------------------------------------------------------------
+
+
+def fl_perm_gate(df: pd.DataFrame, y: np.ndarray, term: str, controls: list[str], *, sign: int, strata: np.ndarray, draws: int,
+                 seed: int, min_stratum: int, group: str = "market_id", order: str = "t_row") -> dict:
+    """Freedman-Lane permutation gate (LIVE_TESTS_4.md 13.R1 finding 7). After expanding-past demeaning of the term and the
+    controls (once, on the real labels), the target's residuals from the REDUCED model (target on the controls) are
+    permuted within strata with >= ``min_stratum`` rows and added back to the reduced fit; the full model is refitted.
+    Unlike LT3's ``perm_gate`` (which permutes the label and so breaks its correlation with the controls), the null keeps the
+    label-control correlation. p_perm = (1 + #{sign * draw >= sign * real}) / (1 + draws) < 0.05 passes."""
+    X = la3.demean(df, [term, *controls], group, order, "expanding")
+    yv = np.asarray(y, float)
+    ok = np.isfinite(yv) & np.all(np.isfinite(X.to_numpy()), axis=1)
+    if ok.sum() < 10:
+        return {"testable": False, "passes": False, "reason": "fewer than 10 rows"}
+    Z = X[controls].to_numpy()[ok] if controls else np.zeros((int(ok.sum()), 0))
+    xt = la3._partial(Z, X[term].to_numpy()[ok])
+    e = la3._partial(Z, yv[ok])  # reduced-model residuals
+    sxx = float(xt @ xt)
+    if sxx <= 1e-18:
+        return {"testable": False, "passes": False, "reason": "no residual variation in the term"}
+    real = float(xt @ e / sxx)
+    codes = pd.factorize(pd.Series(np.asarray(strata)[ok]).astype(str))[0]
+    perm_rows = np.bincount(codes)[codes] >= min_stratum
+    by_code = np.argsort(codes, kind="mergesort")
+    rng = np.random.default_rng(seed)
+    ge = 0
+    for _ in range(draws):
+        shuf = np.lexsort((rng.random(len(codes)), codes))
+        ep = e.copy()
+        ep[by_code] = e[shuf]
+        ep[~perm_rows] = e[~perm_rows]
+        b = float(xt @ ep / sxx)
+        ge += int(sign * b >= sign * real)
+    p = (1 + ge) / (1 + draws)
+    return {"testable": True, "real": real, "p_perm": p, "passes": bool(p < 0.05), "draws": draws, "method": "Freedman-Lane",
+            "share_rows_permuted": float(perm_rows.mean())}
+
+
+def strata_of(df: pd.DataFrame, stratum: str | None) -> np.ndarray:
+    """Market x UTC day, or the pre-declared fallback market x two-day block (spec ``perm_stratum``, fixed by the census)."""
+    key = df["block"] if stratum == "block2" else df["day"]
+    return (df["market_id"].astype(str) + "|" + key.astype(str)).to_numpy()
+
+
+def _gate_fl(pop: pd.DataFrame, y, term: str, ctrl: list[str], sign: int, spec: dict, name: str, prim: dict) -> dict:
+    if not prim.get("testable"):
+        return {"testable": False, "passes": False}
+    g = spec["gates"]
+    st = spec[name.lower()].get("perm_stratum") or "day"
+    r = fl_perm_gate(pop, y, term, ctrl, sign=sign, strata=strata_of(pop, st), draws=g["draws"], seed=spec["seeds"][f"{name}_gate"],
+                     min_stratum=g["perm_min_stratum"])
+    r["stratum"] = st
+    return r
+
+
+def _excl(df: pd.DataFrame, spec_t: dict) -> pd.DataFrame:
+    fam = spec_t.get("exclude_family") or ""
+    return df[df["skey"].astype(str) != fam] if fam else df
+
+
 # --- E020 ----------------------------------------------------------------------------------------------------------------
 
 
@@ -248,8 +318,10 @@ def e020(df: pd.DataFrame, acc: dict, spec: dict) -> dict:
     os_ = df[(df["cls"] == "quote_only") & (df["geom"] == "one_sided")]
     res: dict = {"load": acc, "counts": {"lines": len(df), "one_sided_quote_only": len(os_), "sidecar_missing": int((os_["sports"] == -1).sum()),
                                          "tick_flip_or_unknown": int((os_["tick_ok"] != 1).sum()), "neither": int((~os_["arrival"].isin([0, 1])).sum())}}
-    pop = _pop(os_[(os_["tick_ok"] == 1) & os_["arrival"].isin([0, 1])], e["population"]).reset_index(drop=True)
-    pop["AR"] = pop["arrival"].astype(int)
+    full = _pop(os_[(os_["tick_ok"] == 1) & os_["arrival"].isin([0, 1])], e["population"]).reset_index(drop=True)
+    full["AR"] = full["arrival"].astype(int)
+    res["counts"]["off_common_support"] = int((full["common"] != 1).sum())
+    pop = _excl(full[full["common"] == 1], e).reset_index(drop=True)  # R1 finding 1: common-support primary
     y = pop["r"].to_numpy(float)
     res["attrition"] = attrition(pop["status_h1"].to_numpy(), pop["AR"].to_numpy(), (1, 0), lab["attrition_pp"])
     prim = fit(pop, y, "AR", CONTROLS_E020, sign=+1, seed=sd["E020"])
@@ -259,10 +331,9 @@ def e020(df: pd.DataFrame, acc: dict, spec: dict) -> dict:
     res["counts"]["fit"] = cnt
     res["available"] = floors_ok(cnt, e["floors"])
     res["primary"] = strip(prim)
-    g = spec["gates"]
-    res["gate"] = la3.perm_gate(pop, y, "AR", CONTROLS_E020, sign=+1, group="market_id", order="t_row",
-                                strata=(pop["market_id"].astype(str) + "|" + pop["day"].astype(str)).to_numpy(), draws=g["draws"],
-                                seed=sd["E020_gate"], min_stratum=g["perm_min_stratum"]) if prim.get("testable") else {"testable": False, "passes": False}
+    res["gate"] = _gate_fl(pop, y, "AR", CONTROLS_E020, +1, spec, "E020", prim)
+    res["sensitivity_full_population"] = strip(fit(full, full["r"].to_numpy(float), "AR", CONTROLS_E020, sign=+1, seed=sd["E020"] + 10, n_boot=200))
+    res["sensitivity_series_family_clusters"] = strip(fit(pop, y, "AR", CONTROLS_E020, sign=+1, ev="skey", seed=sd["E020"] + 11, n_boot=200))
     res["M1_sweep"] = strip(fit(pop, pop["r_sw"].to_numpy(float), "AR", CONTROLS_E020, sign=+1, seed=sd["E020"] + 1, n_boot=200))
     res["M2_skip"] = strip(fit(pop, pop["r_skip"].to_numpy(float), "AR", CONTROLS_E020, sign=-1, seed=sd["E020"] + 2, n_boot=200))
     res["S1_mid_target"] = strip(fit(pop, pop["c"].to_numpy(float), "AR", CONTROLS_E020, sign=+1, seed=sd["E020"] + 3, n_boot=200))
@@ -271,11 +342,11 @@ def e020(df: pd.DataFrame, acc: dict, spec: dict) -> dict:
         real = sz >= 2.0 * pop["minord_s0"].to_numpy(float)
         res["S2_sized"] = {f"{n}_{w}": gross(pop["r"][(pop["AR"] == a).to_numpy() & m], pop["event_id"][(pop["AR"] == a).to_numpy() & m])
                            for n, a in (("arrival", 1), ("cancellation", 0)) for w, m in (("real", real), ("dust", ~real))}
-    res["S3_reward"] = {f"rew_{v}": _sub_fit(pop[pop["rew"] == v], "r", "AR", CONTROLS_E020[:-1], +1, sd["E020"] + 4) for v in (0, 1)}
+    res["S3_reward"] = {f"rew_{v}": _sub_fit(pop[pop["rew"] == v], "r", "AR", [c for c in CONTROLS_E020 if c != "rew"], +1, sd["E020"] + 4) for v in (0, 1)}
     ax = pop["x"].abs()
     res["S4_dose"] = {n: _sub_fit(pop[m.to_numpy()], "r", "AR", CONTROLS_E020, +1, sd["E020"] + 5)
                       for n, m in (("absx_1_2c", ax < 0.02), ("absx_2_5c", (ax >= 0.02) & (ax < 0.05)), ("absx_ge_5c", ax >= 0.05))}
-    sp = os_[(os_["tick_ok"] == 1) & os_["arrival"].isin([0, 1]) & (os_["sports"] == 1)].reset_index(drop=True)
+    sp = os_[(os_["tick_ok"] == 1) & (os_["common"] == 1) & os_["arrival"].isin([0, 1]) & (os_["sports"] == 1)].reset_index(drop=True)
     sp["AR"] = sp["arrival"].astype(int)
     res["S5_sports_arm"] = _sub_fit(sp, "r", "AR", CONTROLS_E020, +1, sd["E020"] + 6)
     res["S6_counts"] = {f"{a}|{s}": int(v) for (a, s), v in pop.groupby(["AR", "side_moved"]).size().items()}
@@ -312,6 +383,9 @@ def e020_labels(res: dict, v: dict, spec: dict) -> list:
 
 
 def e021(df: pd.DataFrame, acc: dict, spec: dict) -> dict:
+    """E021 after R1 (finding 3): the counted primary is the persistence beyond the first pass, ``c_skip = sign(x)
+    (mid_{k+3} - mid_{k+1})``; the 2 h ``c`` (the bounce clock) is the mechanism reading M2. Units whose 2 h trade count
+    is truncated by a full page are excluded and counted."""
     if df.empty:
         return {"available": False, "reason": "no lines", "load": acc}
     sd, e, lab = spec["seeds"], spec["e021"], spec["labels"]
@@ -321,10 +395,12 @@ def e021(df: pd.DataFrame, acc: dict, spec: dict) -> dict:
                                          "band": {str(a): int(b) for a, b in tm["band"].value_counts().items()}}}
     res["unclocked_truncated_share"] = float((tm["clock"] == "unclocked_truncated").mean()) if len(tm) else 0.0
     clocked = _pop(tm[tm["clock"] == "ok"], e["population"])
-    pop = clocked[clocked["band"].isin(["fresh", "settled"])].reset_index(drop=True)
+    banded = clocked[clocked["band"].isin(["fresh", "settled"])]
+    res["n2h_truncated_share"] = float((banded["n2h_truncated"] == 1).mean()) if len(banded) else 0.0
+    pop = _excl(banded[banded["n2h_truncated"] == 0], e).reset_index(drop=True)
     pop["F"] = (pop["band"] == "fresh").astype(int)
-    y = pop["c"].to_numpy(float)
-    res["attrition"] = attrition(pop["status_h1"].to_numpy(), pop["F"].to_numpy(), (1, 0), lab["attrition_pp"])
+    y = pop["c_skip"].to_numpy(float)
+    res["attrition"] = attrition(pop["status_h3"].to_numpy(), pop["F"].to_numpy(), (1, 0), lab["attrition_pp"])
     prim = fit(pop, y, "F", CONTROLS_E021, sign=-1, seed=sd["E021"])
     ok = prim.get("_mask", np.zeros(len(pop), bool))
     cnt = {"fresh": int((pop["F"].to_numpy()[ok] == 1).sum()) if len(ok) else 0, "settled": int((pop["F"].to_numpy()[ok] == 0).sum()) if len(ok) else 0,
@@ -332,17 +408,17 @@ def e021(df: pd.DataFrame, acc: dict, spec: dict) -> dict:
     res["counts"]["fit"] = cnt
     res["available"] = floors_ok(cnt, e["floors"])
     res["primary"] = strip(prim)
-    g = spec["gates"]
-    res["gate"] = la3.perm_gate(pop, y, "F", CONTROLS_E021, sign=-1, group="market_id", order="t_row",
-                                strata=(pop["market_id"].astype(str) + "|" + pop["day"].astype(str)).to_numpy(), draws=g["draws"],
-                                seed=sd["E021_gate"], min_stratum=g["perm_min_stratum"]) if prim.get("testable") else {"testable": False, "passes": False}
-    res["M1_sweep"] = strip(fit(pop, pop["c_sw"].to_numpy(float), "F", CONTROLS_E021, sign=-1, seed=sd["E021"] + 1, n_boot=200))
-    res["M2_skip"] = strip(fit(pop, pop["c_skip"].to_numpy(float), "F", CONTROLS_E021, sign=-1, seed=sd["E021"] + 2, n_boot=200))
-    cl = clocked.reset_index(drop=True)
-    res["S1_log_age_dose"] = strip(fit(cl, cl["c"].to_numpy(float), "log_age", CONTROLS_E021, sign=+1, seed=sd["E021"] + 3, n_boot=200))
-    res["S2_parallel_only"] = _sub_fit(pop[pop["g_par"] == 1], "c", "F", CONTROLS_E021[3:], -1, sd["E021"] + 4)
-    res["S3_arms"] = {n: _sub_fit(pop[pop["sports"] == v], "c", "F", CONTROLS_E021, -1, sd["E021"] + 5) for n, v in (("non_sports", 0), ("sports", 1))}
-    res["S4_6h"] = strip(fit(pop, pop["c6"].to_numpy(float), "F", CONTROLS_E021, sign=-1, seed=sd["E021"] + 6, n_boot=200))
+    res["gate"] = _gate_fl(pop, y, "F", CONTROLS_E021, -1, spec, "E021", prim)
+    res["M1_sweep_skip"] = strip(fit(pop, pop["c_skip_sw"].to_numpy(float) if "c_skip_sw" in pop else np.full(len(pop), np.nan), "F", CONTROLS_E021,
+                                     sign=-1, seed=sd["E021"] + 1, n_boot=200))
+    res["M2_two_hour_bounce_clock"] = strip(fit(pop, pop["c"].to_numpy(float), "F", CONTROLS_E021, sign=-1, seed=sd["E021"] + 2, n_boot=200))
+    res["M3_two_hour_sweep"] = strip(fit(pop, pop["c_sw"].to_numpy(float), "F", CONTROLS_E021, sign=-1, seed=sd["E021"] + 3, n_boot=200))
+    cl = clocked[clocked["n2h_truncated"] == 0].reset_index(drop=True)
+    res["S1_log_age_dose"] = strip(fit(cl, cl["c_skip"].to_numpy(float), "log_age", CONTROLS_E021, sign=+1, seed=sd["E021"] + 4, n_boot=200))
+    res["S2_parallel_only"] = _sub_fit(pop[pop["g_par"] == 1], "c_skip", "F", CONTROLS_E021[3:], -1, sd["E021"] + 5)
+    res["S3_arms"] = {n: _sub_fit(pop[pop["sports"] == v], "c_skip", "F", CONTROLS_E021, -1, sd["E021"] + 6) for n, v in (("non_sports", 0), ("sports", 1))}
+    res["S4_6h_from_origin"] = strip(fit(pop, pop["c6"].to_numpy(float), "F", CONTROLS_E021, sign=-1, seed=sd["E021"] + 7, n_boot=200))
+    res["S5_series_family_clusters"] = strip(fit(pop, y, "F", CONTROLS_E021, sign=-1, ev="skey", seed=sd["E021"] + 9, n_boot=200))
     if res["attrition"]["triggered"]:
         res["attrition"]["bounds"] = lee_bounds(pop, y, pop["F"].to_numpy(), (1, 0), res["attrition"],
                                                 lambda d, yy: fit(d, yy, "F", CONTROLS_E021, sign=-1, seed=sd["E021"], n_boot=200))
@@ -350,7 +426,7 @@ def e021(df: pd.DataFrame, acc: dict, spec: dict) -> dict:
     res["economics"] = {"fade_fresh_reported": econ(paper_taker(fr["sbid_s0"], fr["sask_s0"], fr["sbid_s1"], fr["sask_s1"], fr["fee_rate"], fr["fee_exp"],
                                                                 -np.sign(fr["x"])), fr["event_id"].to_numpy(), fr["day"].to_numpy(), sd["E021"] + 8),
                         "note": "entry at the sweep-1 touch of pass k (before the sample receipt): optimistic, disclosed",
-                        "maker_gross_c_by_band": {str(a): gross(g_["c"], g_["event_id"]) for a, g_ in clocked.groupby("band")}}
+                        "maker_gross_c_skip_by_band": {str(a): gross(g_["c_skip"], g_["event_id"]) for a, g_ in clocked.groupby("band")}}
     _common(res, pop, prim, acc)
     return res
 
@@ -359,17 +435,14 @@ def e021_labels(res: dict, v: dict, spec: dict) -> list:
     out = []
     if str(v.get("verdict", "")).startswith("Supported"):
         b = (res.get("primary") or {}).get("beta")
-        if not check_fraction(b, res.get("M1_sweep"), -1, True, spec["labels"]["fraction"]):
+        if not check_fraction(b, res.get("M1_sweep_skip"), -1, True, spec["labels"]["fraction"]):
             out.append("Gamma-quote mechanics")
-        m2 = res.get("M2_skip") or {}
-        if not (m2.get("testable") and m2.get("beta") is not None and m2["beta"] < 0 and (m2.get("p") or 1.0) < 0.05):
-            out.append("bounce timing (reverses within one pass)")
-    if (res.get("unclocked_truncated_share") or 0.0) > spec["labels"]["unclocked_truncated_share"]:
+    cap = spec["labels"]["unclocked_truncated_share"]
+    if (res.get("unclocked_truncated_share") or 0.0) > cap:
         out.append(f"coverage-limited ({res['unclocked_truncated_share']:.1%} unclocked-truncated)")
+    if (res.get("n2h_truncated_share") or 0.0) > cap:
+        out.append(f"coverage-limited ({res['n2h_truncated_share']:.1%} n2h-truncated, excluded)")
     return out
-
-
-# --- E022 ----------------------------------------------------------------------------------------------------------------
 
 
 def e022(df: pd.DataFrame, acc: dict, spec: dict) -> dict:
@@ -378,7 +451,7 @@ def e022(df: pd.DataFrame, acc: dict, spec: dict) -> dict:
     sd, e, hs, lab = spec["seeds"], spec["e022"], spec["hollow"], spec["labels"]
     res: dict = {"load": acc, "counts": {"lines": len(df), "sweep_not_two_sided": int((df["s_two0"] != 1).sum()),
                                          "h_undefined": int((~np.isfinite(df["h"].to_numpy(float))).sum())}}
-    pop = _pop(df[(df["s_two0"] == 1) & np.isfinite(df["zh"].to_numpy(float))], e["population"]).reset_index(drop=True)
+    pop = _excl(_pop(df[(df["s_two0"] == 1) & np.isfinite(df["zh"].to_numpy(float))], e["population"]), e).reset_index(drop=True)
     y = pop["c_sw"].to_numpy(float)
     prim = fit(pop, y, "zh", CONTROLS_E022, sign=-1, seed=sd["E022"])
     ok = prim.get("_mask", np.zeros(len(pop), bool))
@@ -386,11 +459,12 @@ def e022(df: pd.DataFrame, acc: dict, spec: dict) -> dict:
     res["counts"]["fit"] = cnt
     res["available"] = floors_ok(cnt, e["floors"])
     res["primary"] = strip(prim)
-    g = spec["gates"]
-    res["gate"] = la3.perm_gate(pop, y, "zh", CONTROLS_E022, sign=-1, group="market_id", order="t_row",
-                                strata=(pop["market_id"].astype(str) + "|" + pop["day"].astype(str)).to_numpy(), draws=g["draws"],
-                                seed=sd["E022_gate"], min_stratum=g["perm_min_stratum"]) if prim.get("testable") else {"testable": False, "passes": False}
-    m1c = ["log_L", *CONTROLS_E022[1:]]
+    res["gate"] = _gate_fl(pop, y, "zh", CONTROLS_E022, -1, spec, "E022", prim)
+    m1c = ["log_L", *CONTROLS_E022[2:]]
+    res["sensitivity_depth_pass_k"] = strip(fit(pop, y, "zh", ["log1p_D", *CONTROLS_E022[2:]], sign=-1, seed=sd["E022"] + 8, n_boot=200))
+    res["sensitivity_series_family_clusters"] = strip(fit(pop, y, "zh", CONTROLS_E022, sign=-1, ev="skey", seed=sd["E022"] + 9, n_boot=200))
+    nos, fil = acc.get("nosweep_files", 0), acc.get("files", 0)
+    res["sweep_missing_share"] = nos / (nos + fil) if (nos + fil) else 0.0
     res["M1_thin_book"] = strip(fit(pop, y, "zh", m1c, sign=-1, seed=sd["E022"] + 1, n_boot=200))
     res["M2_skip"] = strip(fit(pop, pop["c_skip"].to_numpy(float), "zh", CONTROLS_E022, sign=-1, seed=sd["E022"] + 2, n_boot=200))
     lo_cut, hi_cut = (hs.get("h_cuts") or [None, None])[:2]
@@ -425,15 +499,20 @@ def e022(df: pd.DataFrame, acc: dict, spec: dict) -> dict:
 
 
 def e022_labels(res: dict, v: dict, spec: dict) -> list:
-    return []
-
-
-# --- E023 / E024 -----------------------------------------------------------------------------------------------------------
+    out = []
+    if str(v.get("verdict", "")).startswith("Supported"):
+        b = (res.get("primary") or {}).get("beta")
+        if not check_fraction(b, res.get("M2_skip"), -1, True, spec["labels"]["fraction"]):  # R1 finding 5: binding
+            out.append("transient impact (no persistence beyond one pass)")
+    if (res.get("sweep_missing_share") or 0.0) > spec["labels"]["sweep_missing_share"]:  # R1 finding 11
+        out.append(f"sweep-missing ({res['sweep_missing_share']:.1%} of origin passes)")
+    return out
 
 
 def flow_controls(name: str, lag: bool = False) -> tuple[str, str, list[str]]:
     mod = {"E023": "zOP", "E024": "zC"}[name]
     x, m, ctrl = la3.flow_controls(mod, lag)
+    ctrl = [f"{x}*abs_dev", *ctrl]  # R1 finding 9: longshot buying (x6 x |mid - 0.5|)
     if name == "E024":
         s = "_l30" if lag else ""
         ctrl = [f"{x}*zW{s}", f"zW{s}", f"{x}*zH{s}", f"zH{s}", *ctrl]
@@ -631,15 +710,33 @@ def sim_cont_world(rng: np.random.Generator, *, n_mkt: int = 60, n_t: int = 40, 
     return df, df["y"].to_numpy(float)
 
 
-def sim_corr_flow_world(rng: np.random.Generator, *, n_mkt: int = 40, n_t: int = 30, effect: float = 0.0) -> tuple[pd.DataFrame, np.ndarray, list[str]]:
+def sim_corr_label_world(rng: np.random.Generator, *, corr: float = 0.7, binary: bool = False, n_mkt: int = 60, n_t: int = 40,
+                         effect: float = 0.0) -> tuple[pd.DataFrame, np.ndarray]:
+    """A label correlated ``corr`` with a control ``c1`` that has a REAL effect on the target, and no label effect
+    (``effect`` = 0): the case where permuting the raw label breaks the label-control correlation (R1 finding 7)."""
+    rows = []
+    for m in range(n_mkt):
+        lvl = rng.normal(0, 0.01)
+        for i in range(n_t):
+            c1 = rng.normal()
+            z = corr * c1 + math.sqrt(1 - corr**2) * rng.normal()
+            lab = float(z > 0) if binary else z
+            rows.append({"market_id": f"m{m}", "event_id": f"e{m // 3}", "t_row": i * 7200.0, "day": str(i // 12), "L": lab, "c1": c1,
+                         "y": lvl + 0.02 * c1 + effect * lab + rng.normal(0, 0.04)})
+    df = pd.DataFrame(rows)
+    return df, df["y"].to_numpy(float)
+
+
+def sim_corr_flow_world(rng: np.random.Generator, *, n_mkt: int = 40, n_t: int = 30, corr: float = 0.4, effect: float = 0.0
+                        ) -> tuple[pd.DataFrame, np.ndarray, list[str]]:
     """A flow panel where a control moderator zA has a REAL moderation (0.004 per SD) and the tested moderator zM is
-    correlated 0.4 with zA but has none (``effect`` = 0); x6*zA and zA are controls, as W and H are for E024."""
+    correlated ``corr`` with zA but has none (``effect`` = 0); x6*zA and zA are controls, as W and H are for E024."""
     rows = []
     for m in range(n_mkt):
         la_, lm = rng.normal(0, 0.5), rng.normal(0, 0.5)
         for i in range(n_t):
             za = la_ + rng.normal(0, 1)
-            zm = lm + 0.4 * za + math.sqrt(1 - 0.16) * rng.normal(0, 1)
+            zm = lm + corr * za + math.sqrt(1 - corr**2) * rng.normal(0, 1)
             rows.append({"market_id": f"m{m}", "event_id": f"e{m // 2}", "t_row": i * 7200.0, "day": str(i // 12),
                          "x6": rng.normal(0, 1), "zM": zm, "zA": za, "c1": rng.normal()})
     df = pd.DataFrame(rows)
@@ -650,8 +747,8 @@ def sim_corr_flow_world(rng: np.random.Generator, *, n_mkt: int = 40, n_t: int =
 
 
 def size_check(*, worlds: int, draws: int, seed: int, nominal: float = 0.05) -> dict:
-    """Pass rate of each gate under its simulated null (six scenarios), criterion rate <= nominal + 1.645 sqrt(nominal
-    (1 - nominal) / worlds)."""
+    """Pass rate of each gate under its simulated null (ten scenarios; R1 findings 7 and 10), criterion rate <= nominal +
+    1.645 sqrt(nominal (1 - nominal) / worlds). The permutation scenarios use the Freedman-Lane gate LT4 registers."""
     rng = np.random.default_rng(seed)
     lim = nominal + 1.645 * float(np.sqrt(nominal * (1 - nominal) / worlds))
     out: dict = {"worlds": worlds, "draws": draws, "seed": seed, "limit": lim, "scenarios": {}}
@@ -661,17 +758,20 @@ def size_check(*, worlds: int, draws: int, seed: int, nominal: float = 0.05) -> 
                                    min_sep_s=43200.0, min_donors=2).get("passes"))
 
     def perm(df, y, term) -> bool:
-        return bool(la3.perm_gate(df, y, term, ["c1"], sign=+1, group="market_id", order="t_row", strata=(df["market_id"] + "|" + df["day"]).to_numpy(),
-                                  draws=draws, seed=int(rng.integers(1 << 31)), min_stratum=4).get("passes"))
+        return bool(fl_perm_gate(df, y, term, ["c1"], sign=+1, strata=(df["market_id"] + "|" + df["day"]).to_numpy(), draws=draws,
+                                 seed=int(rng.integers(1 << 31)), min_stratum=4).get("passes"))
 
     scen = {
-        "perm_binary_iid": lambda: perm(*la3.sim_move_world(rng), "P"),
-        "perm_binary_persistent": lambda: perm(*la3.sim_move_world(rng, persistent=True), "P"),
-        "perm_continuous_persistent": lambda: perm(*sim_cont_world(rng), "zh"),
+        "fl_binary_iid": lambda: perm(*la3.sim_move_world(rng), "P"),
+        "fl_binary_persistent": lambda: perm(*la3.sim_move_world(rng, persistent=True), "P"),
+        "fl_binary_control_corr0.7": lambda: perm(*sim_corr_label_world(rng, corr=0.7, binary=True), "L"),
+        "fl_continuous_persistent": lambda: perm(*sim_cont_world(rng), "zh"),
+        "fl_continuous_control_corr0.7": lambda: perm(*sim_corr_label_world(rng, corr=0.7), "L"),
         "donor_iid": lambda: donor(*la3.sim_flow_world(rng)),
         "donor_ar0.6": lambda: donor(*la3.sim_flow_world(rng, ar=0.6)),
         "donor_lifecycle": lambda: donor(*la3.sim_flow_world(rng, lifecycle=True)),
-        "donor_correlated_moderator": lambda: donor(*sim_corr_flow_world(rng)),
+        "donor_correlated_moderator0.4": lambda: donor(*sim_corr_flow_world(rng, corr=0.4)),
+        "donor_correlated_moderator0.7": lambda: donor(*sim_corr_flow_world(rng, corr=0.7)),
     }
     for name, fn in scen.items():
         rej = sum(int(fn()) for _ in range(worlds))

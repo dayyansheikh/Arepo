@@ -1,6 +1,6 @@
 {
  "id": "q0480_lt4_census_restore_captures",
- "title": "LT4 census inputs CQ/CH/CF (DRAFT): restore the complete captures (rows, sidecar, manifest) of 2026-10-14T22:31Z .. 2026-10-17T22:31Z and sweep 1 of the 2026-10-15/16 passes byte for byte from the data releases into a scratch tree (sha256 re-checked; nothing outside --dest written)",
+ "title": "LT4 census inputs CQ/CH/CF (DRAFT): restore the complete captures (rows, sidecar, manifest) of 2026-10-14T22:31Z .. 2026-10-17T22:31Z and sweep 1 of the 2026-10-14 (last pass, E022 k - 1 depth) to 2026-10-16 passes byte for byte from the data releases into a scratch tree (sha256 re-checked; nothing outside --dest written)",
  "family": "live_tests_4",
  "priority": 30,
  "expected_value": "the LT4 capture-census input set, proven identical to the released copies, for seals/lt4_census_inputs_captures.json",
@@ -31,9 +31,9 @@
   "--path-glob",
   "data-dumps/research_lab/snapshots/2026101[4567]T*/manifest.json",
   "--path-glob",
-  "data-dumps/research_lab/book_sweeps/2026101[56]T*/rows.csv.gz",
+  "data-dumps/research_lab/book_sweeps/2026101[456]T*/rows.csv.gz",
   "--path-glob",
-  "data-dumps/research_lab/book_sweeps/2026101[56]T*/manifest.json",
+  "data-dumps/research_lab/book_sweeps/2026101[456]T*/manifest.json",
   "--dest",
   "../data-dumps/research_lab/live_tests4_census/restore"
  ],
@@ -44,5 +44,5 @@
   "data-dumps/research_lab/live_tests4_census/restore/RESTORE_REPORT_<tag>.json"
  ],
  "next_action": "write seals/lt4_census_inputs_captures.json (capture and sweep ids of LIVE_TESTS_4.md section 8 with their sha256 copied from each release's files.sha256), commit it, then q0482",
- "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_4.md, design not yet reviewed). Counts-only inputs, pre-window (all start before 2026-10-22T00:00Z, before the LT2/LT3/LT4 windows). The globs restore more than the census needs (all captures of those days); the census opens only the files named in the seal and refuses any sha256 mismatch. Tags are an assumption (the catalogue lists releases only to 10-15): confirm which releases hold these captures and sweeps first. Clear the restore tree after the LT4 registration commit."
+ "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_4.md, design not yet reviewed). Counts-only inputs, pre-window (all start before 2026-10-22T00:00Z, before the LT2/LT3/LT4 windows). The globs restore more than the census needs (all captures of those days); the census opens only the files named in the seal and refuses any sha256 mismatch. Tags are an assumption (the catalogue lists releases only to 10-15): confirm which releases hold these captures and sweeps first. Clear the restore tree after the LT4 registration commit. R1: sweeps of 2026-10-14 added (E022's depth control reads sweep 1 of pass k - 1)."
 }

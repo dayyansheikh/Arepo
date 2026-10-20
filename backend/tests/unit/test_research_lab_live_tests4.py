@@ -34,7 +34,9 @@ def _spec(tmp_path: Path, **over) -> dict:
         f[z] = {"centre": c, "scale": s}
     f["vol24_cap"] = 1e9
     f["econ"]["OP_upper_cut"], f["econ"]["C_upper_cut"] = 0.6, 0.35
-    spec["hollow"].update(zh={"centre": 0.93, "scale": 0.01}, h_cuts=[0.925, 0.935], gap=2.2)
+    spec["hollow"].update(zh={"centre": 0.93, "scale": 0.01}, h_cuts=[0.925, 0.935], gap=2.2, depth_def="token0")
+    for t in ("e020", "e021", "e022"):
+        spec[t].update(perm_stratum="day", exclude_family="")
     for k, v in over.items():
         spec[k] = v
     p = tmp_path / "spec.json"
@@ -98,7 +100,8 @@ def write_sweep(sweep_root: Path, cid: str, k: int, wild: bool = False) -> str:
                      "depth_ask_1c": 90.0, "depth_bid_5c": 200.0 + 50 * ((m + k) % 5), "depth_ask_5c": 300.0, "min_order_size": 5.0,
                      "state": "two_sided"})
         rows.append({"sweep_id": sid, "token_id": f"tokB{m}", "market_id": str(100 + m), "batch_index": 0, "batch_receipt_utc": _iso(start),
-                     "best_bid": 0.1, "best_ask": 0.2, "state": "two_sided"})
+                     "best_bid": round(1 - ask, 3), "best_ask": round(1 - bid, 3), "depth_bid_5c": 300.0, "depth_ask_5c": 200.0 + 50 * ((m + k) % 5),
+                     "state": "two_sided"})
     pd.DataFrame(rows).to_csv(d / "rows.csv.gz", index=False, compression="gzip")
     (d / "manifest.json").write_text(json.dumps({"sweep_id": sid, "state": "complete", "series_index": 0, "snapshot_id": cid}))
     return sid
@@ -189,6 +192,15 @@ def test_arrival_cancellation_labels_and_unmoved_side(tmp_path):
     assert list(u.loc[["a", "b", "c", "d"], "U_k"]) == [0.60, 0.60, 0.40, 0.40]
     assert u.loc["e", "arrival"] == -1 and u.loc["e", "cls"] == "traded" and np.isnan(u.loc["e", "U_k"])
     assert u.loc["f", "tick_ok"] == 0 and u.loc["a", "tick_ok"] == 1
+    # common support (R1 finding 1): both quoted spreads >= 3 ticks and <= 0.10; d's post-move spread is 0.04 at tick 0.01
+    assert list(u.loc[["a", "b", "c", "d"], "common"]) == [1, 1, 1, 1]
+    tight = _ser([("g", 0.50, 0.53, 0.55, 10.0, 0.01)])
+    after = _ser([("g", 0.51, 0.53, 0.55, 10.0, 0.01)])  # wait: |x| = 0.005 < 1c, not a mover
+    assert lt.freeze_move(after, tight, {"id": "c2", "start": 1.0e9}, 5, spec, lt.ROLE_UNREG, "t")[0].empty
+    narrow_p = _ser([("h", 0.50, 0.55, 0.55, 10.0, 0.01)])
+    narrow_k = _ser([("h", 0.53, 0.55, 0.55, 10.0, 0.01)])  # arrival leaves a 2-tick spread: off common support
+    uh = lt.freeze_move(narrow_k, narrow_p, {"id": "c3", "start": 1.0e9}, 5, spec, lt.ROLE_UNREG, "t")[0]
+    assert uh["arrival"].iloc[0] == 1 and uh["common"].iloc[0] == 0
     assert cnt["arrivals"] == 3 and cnt["cancellations"] == 2 and cnt["tick_flip_or_unknown"] == 1  # f is an arrival too, but flipped
 
 
@@ -208,6 +220,7 @@ def test_clock_fields_newest_pre_origin_row_and_statuses(tmp_path):
     assert cf["clock"][3] == "clock_inconsistent"
     assert cf["clock"][4] == "unclocked_no_prior"
     assert cf["n2h"][0] == 2 and cf["n2h"][1] == 1
+    assert list(cf["n2h_truncated"]) == [0, 0, 1, 0, 0]  # c: full page whose oldest row is after t - 2 h (R1 finding 3)
 
 
 def test_composition_open_share_concentration_hhi():
@@ -226,13 +239,18 @@ def test_hollow_state_and_superset(tmp_path):
     cur = _ser([("a", 0.45, 0.47, 0.46, 12.0, 0.01), ("b", 0.45, 0.47, 0.46, 12.0, 0.01), ("c", 0.45, 0.47, 0.46, 12.0, 0.01)])
     cur.loc["c", "liq"] = 0.0
     sw = pd.DataFrame({"sbid": [0.45, 0.45, 0.45], "sask": [0.47, np.nan, 0.47], "s_t": [1.0e9 + 300] * 3, "s_two": [1, 0, 1],
-                       "dbid5": [100.0, 100.0, 100.0], "dask5": [200.0, 200.0, 200.0], "dbid1": [50.0] * 3, "dask1": [60.0] * 3},
+                       "dbid5": [100.0, 100.0, 100.0], "dask5": [200.0, 200.0, 200.0], "dbid1": [50.0] * 3, "dask1": [60.0] * 3,
+                       "sbid_t1": [0.53] * 3, "sask_t1": [0.55] * 3, "dbid5_t1": [200.0] * 3, "dask5_t1": [100.0] * 3},
                       index=pd.Index(["a", "b", "c"], name="market_id"))
-    h, cnt = lt.freeze_hollow(cur, prev, sw, {"id": "c1", "start": 1.0e9}, 5, spec, lt.ROLE_UNREG, "t")
+    swp = sw.assign(dbid5=[300.0, 300.0, 300.0])
+    h, cnt = lt.freeze_hollow(cur, prev, sw, {"id": "c1", "start": 1.0e9}, 5, spec, lt.ROLE_UNREG, "t", swp)
     h = h.set_index("market_id")
     D = 100 * 0.45 + 200 * 0.47
     assert h.loc["a", "D"] == pytest.approx(D) and h.loc["a", "h"] == pytest.approx(1 - D / 1000.0) and h.loc["a", "superset"] == 1
     assert np.isnan(h.loc["b", "h"]) and np.isnan(h.loc["c", "h"])  # sweep one-sided; liquidity not positive
+    assert h.loc["a", "D2"] == pytest.approx(D + 200 * 0.53 + 100 * 0.55) and h.loc["a", "h2"] == pytest.approx(1 - h.loc["a", "D2"] / 1000.0)
+    assert h.loc["a", "dimb"] == pytest.approx((200 - 100) / 300)  # sign(x) = + (R1 finding 5)
+    assert h.loc["a", "log1p_Dp"] == pytest.approx(np.log1p(300 * 0.45 + 200 * 0.47)) and h.loc["a", "Dp_missing"] == 0
     assert cnt["hollow"]["h_defined"] == 1
 
 
@@ -425,7 +443,9 @@ def test_census_captures_sealed_counts_only_and_refuses_tampering(tmp_path):
     assert "error" not in res and res["inputs_verified"]
     cq, ch = res["CQ"], res["CH"]
     assert cq["arrivals"] > 0 and cq["cancellations"] > 0 and "pass" in cq["gate_E020"]
-    assert ch["covered"] > 0 and ch["superset_share"] == 1.0 and "pass" in ch["gate_E022"]
+    assert ch["covered"] > 0 and ch["superset_share"]["both"] == 1.0 and ch["depth_def"] == "both" and "pass" in ch["gate_E022"]
+    assert ch["design_effect"]["DE"] >= 1.0 and ch["perm_share"]["stratum"] in ("day", "block2", None) and np.isfinite(ch["vif_zh_within"])
+    assert cq["common_support"] > 0 and "perm_share" in cq["gate_E020"] and cq["design_effect"]["rho"] == 0.02
     assert not list((tmp_path / "work").glob("**/outcomes/*"))  # no target is ever written
     p = w["snap"] / w["ids"][13] / "rows_ext.csv.gz"
     with open(p, "ab") as fh:
@@ -459,17 +479,20 @@ def test_census_flow_sealed_and_gates(tmp_path):
 
 def test_census_planning_mde_gates_bind():
     spec = json.loads(lt.SPEC_PATH.read_text())
-    a = spec["census_gates"]["CQ_E020"]["mde_assumptions"]
+    a = {**spec["census_gates"]["CQ_E020"]["mde_assumptions"], "deff_event": 3.0}
     # 3.388 x 4c x sqrt(2 / 9,500) x sqrt(3) x 1.5 is about 0.5c: the E020/E021 gate binds near 9,500 effective units per class
     assert lt.l3.mde_eff(9500, 9500, a) == pytest.approx(0.005, rel=0.03)
     assert lt.l3.mde_eff(40000, 60000, a) < 0.005 < lt.l3.mde_eff(5000, 5000, a)
     g = spec["census_gates"]["CF_E023"]
     assert g["mde_base"] * np.sqrt(5000 / 5000) * np.sqrt(1.5) <= g["mde_max"] < g["mde_base"] * np.sqrt(1.6)
-    rows = pd.DataFrame({"market_id": ["a"] * 4 + ["b"] * 3, "event_id": ["e"] * 7, "skey": ["s"] * 7, "sports": [0] * 7,
+    rows = pd.DataFrame({"market_id": ["a"] * 4 + ["b"] * 3, "event_id": ["e"] * 7, "skey": [f"event:{i % 3}" for i in range(7)], "sports": [0] * 7,
                          "cls": ["quote_only"] * 7, "geom": ["one_sided"] * 7, "tick_k": [0.01] * 7, "tick_p": [0.01] * 7,
-                         "tick_ok": [1] * 7, "arrival": [1, 0, 1, 0, 1, 0, -1], "side_moved": ["bid"] * 7})
+                         "tick_ok": [1] * 7, "arrival": [1, 0, 1, 0, 1, 0, -1], "side_moved": ["bid"] * 7, "common": [1] * 7,
+                         "t_row": [1.0e9 + 7200 * i for i in range(7)]})
     cq = lt.census_cq(rows, spec, 21.0)
     assert cq["arrivals"] == 3 and cq["cancellations"] == 3 and not cq["gate_E020"]["pass"]  # far too few: MDE gate fails
+    one = lt.census_cq(rows.assign(skey="crypto:noslug"), spec, 21.0)  # one family > 40%: excluded (R1 answer 9)
+    assert one["exclude_family"] == "crypto:noslug" and one["population"] == 0 and not one["gate_E020"]["pass"]
 
 
 # --- gates, size check, end-to-end ------------------------------------------------------------------------------------------
@@ -477,13 +500,14 @@ def test_census_planning_mde_gates_bind():
 
 def test_size_check_small_runs_and_new_scenarios():
     sc = la.size_check(worlds=4, draws=19, seed=3)
-    assert set(sc["scenarios"]) == {"perm_binary_iid", "perm_binary_persistent", "perm_continuous_persistent", "donor_iid", "donor_ar0.6",
-                                    "donor_lifecycle", "donor_correlated_moderator"}
+    assert set(sc["scenarios"]) == {"fl_binary_iid", "fl_binary_persistent", "fl_binary_control_corr0.7", "fl_continuous_persistent",
+                                    "fl_continuous_control_corr0.7", "donor_iid", "donor_ar0.6", "donor_lifecycle",
+                                    "donor_correlated_moderator0.4", "donor_correlated_moderator0.7"}
     assert all(0.0 <= v["rate"] <= 1.0 for v in sc["scenarios"].values()) and sc["limit"] > 0.05
     rng = np.random.default_rng(11)
     df, y = la.sim_cont_world(rng, effect=0.01)
     strata = (df["market_id"] + "|" + df["day"]).to_numpy()
-    assert la.la3.perm_gate(df, y, "zh", ["c1"], sign=+1, group="market_id", order="t_row", strata=strata, draws=39, seed=1, min_stratum=4)["passes"]
+    assert la.fl_perm_gate(df, y, "zh", ["c1"], sign=+1, strata=strata, draws=39, seed=1, min_stratum=4)["passes"]
     df2, y2, others = la.sim_corr_flow_world(rng, effect=0.006)
     assert la.la3.donor_gate(df2, y2, "x6", "zM", others, sign=+1, draws=39, seed=1, min_units=4, min_sep_s=43200.0, min_donors=2)["passes"]
 
@@ -507,3 +531,52 @@ def test_end_to_end_synthetic_analysis(tmp_path):
     res2 = la.analyze(root, start_utc=start, end_utc=end, spec={**spec, "k_tests": ["E020", "E023"]}, roles=(lt.ROLE_UNREG,), force=True)
     assert res2["holm"]["m"] == 2 and res2["E021"]["verdict"]["verdict"].startswith("dropped")
     assert la.trial_record(res2)["n_tests"] == 2
+
+
+# --- R1 additions ----------------------------------------------------------------------------------------------------------------
+
+
+def test_freedman_lane_gate_keeps_label_control_correlation():
+    """Under a label correlated 0.7 with a control that has a real effect, the Freedman-Lane gate rejects at about the
+    nominal rate; its real slope equals the full-model OLS slope; a planted label effect passes."""
+    rng = np.random.default_rng(2026)
+    passes = 0
+    for _ in range(40):
+        df, y = la.sim_corr_label_world(rng, corr=0.7, n_mkt=30, n_t=30)
+        st = (df["market_id"] + "|" + df["day"]).to_numpy()
+        passes += int(la.fl_perm_gate(df, y, "L", ["c1"], sign=+1, strata=st, draws=39, seed=int(rng.integers(1 << 30)), min_stratum=4)["passes"])
+    assert passes <= 6  # 40 worlds at nominal 5%: expected 2, binomial upper tail P(>= 7) < 0.01
+    df, y = la.sim_corr_label_world(rng, corr=0.7, effect=0.03)
+    st = (df["market_id"] + "|" + df["day"]).to_numpy()
+    g = la.fl_perm_gate(df, y, "L", ["c1"], sign=+1, strata=st, draws=39, seed=1, min_stratum=4)
+    r = la.fit(df, y, "L", ["c1"], sign=+1, n_boot=20)
+    assert g["passes"] and g["real"] == pytest.approx(r["beta"], rel=1e-9)
+
+
+def test_perm_share_rule_and_design_effect():
+    t0 = 0.0
+    rows = []
+    for m in range(10):  # 3 units per market per day over 2 days: no market x day stratum reaches 4; two-day blocks do
+        for d in range(2):
+            rows += [{"market_id": f"m{m}", "t_row": t0 + d * 86400.0 + 3600.0 * i} for i in range(3)]
+    ps = lt.perm_share(pd.DataFrame(rows), t0, 4)
+    assert ps["day"] == 0.0 and ps["block2"] == 1.0 and ps["stratum"] == "block2"
+    sparse = pd.DataFrame([{"market_id": f"m{i}", "t_row": 0.0} for i in range(20)])
+    assert lt.perm_share(sparse, t0, 4)["stratum"] is None
+    de = lt.design_effect(pd.Series(["a"] * 4 + ["b"] * 2), 10.5, 0.02)
+    assert de["m_census"] == pytest.approx((16 + 4) / 6) and de["DE"] == pytest.approx(1 + (de["m_census"] * 10.5 - 1) * 0.02)
+
+
+def test_code_check_requires_census_fixed_strata_family_and_depth(tmp_path):
+    spec = _spec(tmp_path, k_tests=["E020", "E022"])
+    spec["_pinned"], spec["code_sha256"] = True, lt.code_hashes()
+    assert la.code_check(spec)["label"] is None
+    for t, key, bad in (("e020", "perm_stratum", None), ("e022", "exclude_family", None)):
+        s2 = json.loads(json.dumps({k: v for k, v in spec.items()}))
+        s2[t][key] = bad
+        with pytest.raises(RuntimeError):
+            la.code_check(s2)
+    s3 = json.loads(json.dumps(spec))
+    s3["hollow"]["depth_def"] = None
+    with pytest.raises(RuntimeError):
+        la.code_check(s3)

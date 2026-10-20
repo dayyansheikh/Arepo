@@ -1,6 +1,6 @@
 {
  "spec_id": "live_tests4_v1",
- "status": "DRAFT (not registered; sha256 not pinned in live_tests4.py; census scales, cuts and k not filled)",
+ "status": "DRAFT after challenger R1 (not registered; sha256 not pinned; census values, strata, family exclusions and k not filled)",
  "design": "docs/research_lab/LIVE_TESTS_4.md",
  "experiments": [
   "E020",
@@ -69,7 +69,10 @@
    "days": 10
   },
   "econ_min_abs_x": 0.03,
-  "rule": "one-sided quote-only |x| >= 1c movers, tick known and equal at k-1 and k; arrival = quoted spread (ask - bid) narrowed by > 1e-9, cancellation = widened by > 1e-9; U = the unmoved side; r = sign(x) (U_{k+1} - U_k)"
+  "rule": "one-sided quote-only |x| >= 1c movers, tick known and equal at k-1 and k; arrival = quoted spread narrowed by > 1e-9, cancellation = widened by > 1e-9; U = the unmoved side; r = sign(x)(U_{k+1} - U_k); primary on common support: both quoted spreads >= 3 ticks and <= 0.10 (R1 finding 1); full population a sensitivity",
+  "support_min_ticks": 3,
+  "perm_stratum": null,
+  "exclude_family": null
  },
  "e021": {
   "population": "all",
@@ -85,7 +88,10 @@
    "days": 10
   },
   "econ_min_abs_x": 0.03,
-  "rule": "traded |x| >= 1c movers in the pass's active sample; age = t_k - newest page row with ts < t_k; fresh <= 900 s, settled >= 3600 s; age > 9000 s -> clock_inconsistent; no pre-origin row -> unclocked_truncated (page full) or unclocked_no_prior"
+  "rule": "traded |x| >= 1c movers in the pass's active sample; age = t_k - newest page row with ts < t_k; fresh <= 900 s, settled >= 3600 s; age > 9000 s -> clock_inconsistent; no pre-origin row -> unclocked_truncated (page full) or unclocked_no_prior",
+  "perm_stratum": null,
+  "exclude_family": "",
+  "target": "c_skip = sign(x)(mid_{k+3} - mid_{k+1}) (R1 finding 3); the 2 h c is mechanism reading M2; n2h_truncated units excluded"
  },
  "clock": {
   "horizons": [
@@ -94,7 +100,8 @@
   ],
   "sweep_tags": [
    0,
-   1
+   1,
+   3
   ]
  },
  "hollow": {
@@ -114,7 +121,9 @@
    null
   ],
   "gap": null,
-  "rule": "D = depth_bid_5c * sbid + depth_ask_5c * sask (sweep 1 of pass k, outcome-0 token); L = Gamma liquidity at capture k; h = clip(1 - D / L, 0, 1); zh = (h - centre) / scale (census)"
+  "rule": "D = depth_bid_5c * sbid + depth_ask_5c * sask (sweep 1 of pass k, outcome-0 token); L = Gamma liquidity at capture k; h = clip(1 - D / L, 0, 1); zh = (h - centre) / scale (census)",
+  "depth_def": null,
+  "depth_def_rule": "fixed by census CH before the pin (R1 finding 6): 'both' (outcome-0 + outcome-1 token 5c depth) if L >= D_both in >= 90% of covered non-sports books, else 'token0' if L >= D_token0 in >= 90%, else E022 is dropped"
  },
  "e022": {
   "population": "non_sports",
@@ -124,7 +133,9 @@
    "events": 300,
    "days": 10
   },
-  "econ_min_abs_x": 0.03
+  "econ_min_abs_x": 0.03,
+  "perm_stratum": null,
+  "exclude_family": null
  },
  "flow": {
   "window_s": 21600,
@@ -221,10 +232,10 @@
  },
  "size_check": {
   "worlds": 2000,
-  "draws": 99,
+  "draws": 200,
   "seed": 20261026,
   "nominal": 0.05,
-  "rule": "rejection rate of each gate under each simulated null <= 0.05 + 1.645 sqrt(0.05 x 0.95 / worlds); six scenarios (LIVE_TESTS_4.md 1.8); run on the code to be pinned"
+  "rule": "rejection rate of each gate under each simulated null <= 0.05 + 1.645 sqrt(0.05 x 0.95 / worlds); ten scenarios (LIVE_TESTS_4.md 14); permutation scenarios use the Freedman-Lane gate; run on the code to be pinned"
  },
  "gates": {
   "draws": 200,
@@ -232,14 +243,17 @@
   "perm_min_stratum": 4,
   "donor_min_units": 4,
   "donor_min_sep_s": 43200,
-  "donor_min_donors": 2
+  "donor_min_donors": 2,
+  "perm_method": "Freedman-Lane (reduced-model residuals permuted within strata) for E020-E022; LT3 distant-donor gate for E023/E024",
+  "perm_stratum_rule": "market x UTC day if the census share of units in strata with >= 4 units is >= 50%, else market x two-day block if that share is >= 50%, else the test is dropped (R1 finding 2)"
  },
  "labels": {
   "fraction": 0.5,
   "attrition_pp": 0.02,
   "late_loss_share": 0.02,
   "series_concentration": 0.5,
-  "unclocked_truncated_share": 0.02
+  "unclocked_truncated_share": 0.02,
+  "sweep_missing_share": 0.02
  },
  "census_gates": {
   "CQ_E020": {
@@ -253,10 +267,13 @@
    "mde_max": 0.005,
    "mde_assumptions": {
     "sd_c": 0.04,
-    "deff_event": 3.0,
+    "deff_event": null,
     "day_factor": 1.5,
     "t_sum": 3.388
-   }
+   },
+   "rho": 0.02,
+   "de_rule": "DE = 1 + (m_21 - 1) x rho, m = sum n_e^2 / sum n_e of the census population by event, m_21 = m x 21 / census days (R1 finding 8)",
+   "family_cap": 0.4
   },
   "CF_E021": {
    "ts_not_minute_min": 0.5,
@@ -265,27 +282,33 @@
    "unclocked_truncated_max": 0.05,
    "mde_max": 0.005,
    "mde_assumptions": {
-    "sd_c": 0.04,
-    "deff_event": 3.0,
+    "sd_c": 0.05,
+    "deff_event": null,
     "day_factor": 1.5,
     "t_sum": 3.388
-   }
+   },
+   "rho": 0.02,
+   "de_rule": "DE = 1 + (m_21 - 1) x rho, m = sum n_e^2 / sum n_e of the census population by event, m_21 = m x 21 / census days (R1 finding 8)"
   },
   "CH_E022": {
    "covered_share_min": 0.8,
    "superset_min": 0.9,
-   "iqr_min": 0.1,
    "iqr_min_units": 10,
    "iqr_min_markets": 30,
    "iqr_share_min": 0.5,
    "mde_max": 0.005,
    "mde_assumptions": {
     "sd_c": 0.04,
-    "deff_event": 3.0,
+    "deff_event": null,
     "day_factor": 1.5,
     "t_sum": 3.388,
-    "rule": "t_sum x sd / sqrt(projected effective units) x sqrt(deff) x day x sqrt(VIF of zh on its controls) x tercile gap <= 0.5c"
-   }
+    "rule": "t_sum x sd / sqrt(projected effective units) x sqrt(census DE) x day x sqrt(within-market VIF of zh) x tercile gap <= 0.5c"
+   },
+   "rho": 0.02,
+   "de_rule": "DE = 1 + (m_21 - 1) x rho, m = sum n_e^2 / sum n_e of the census population by event, m_21 = m x 21 / census days (R1 finding 8)",
+   "family_cap": 0.4,
+   "resid_iqr_min": 0.05,
+   "rule_resid_iqr": "within each market with >= 10 covered units, IQR of the residual of h after an OLS on log1p D_{k-1} >= 0.05 in >= 50% of such markets, and >= 30 such markets (R1 finding 4)"
   },
   "CF_E023": {
    "sell_share": [
@@ -300,7 +323,7 @@
    "agreement_min_rows": 500,
    "mde_base": 0.002873,
    "mde_max": 0.0036,
-   "mde_rule": "0.002873 (= 3.388 x 0.00053 x 1.6, LT3 E016 pessimistic per-SD MDE at 5,000 events) x sqrt(5,000 / projected events) x sqrt(VIF) <= 0.0036 (E007's whole 1 h effect)"
+   "mde_rule": "0.002873 x sqrt(5,000 / projected events) x sqrt(VIF of x6*zOP on the model's other x6 terms after expanding-past demeaning) <= 0.0036 (R1 finding 9)"
   },
   "CF_E024": {
    "C_interior_21d": 40000,
@@ -317,6 +340,7 @@
   ],
   "CQ_CH_seal": "docs/research_lab/seals/lt4_census_inputs_captures.json (to be written from the releases' files.sha256 before any LT4 census runs)",
   "CF_sample_seal": "docs/research_lab/seals/lt3_census_inputs_C2.json",
-  "projection": "counts x 21 / census days (estimate); distinct events: E_2d + (E_2d - E_day1) x 19; effective = units in markets with >= 2 units of the population"
+  "projection": "counts x 21 / census days (estimate); distinct events: E_2d + (E_2d - E_day1) x 19; effective = units in markets with >= 2 units of the population",
+  "CQ_CH_sweeps": "sweep 1 of every census pass and of slot k - 1 (E022's depth control)"
  }
 }

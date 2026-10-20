@@ -7,6 +7,11 @@ review (`science-reviewer`) of this file and later of the code, the fixes, the s
 `SPEC_SHA256` and code-hash pin, the ledger entry (section 12) and the reader's installation. Until the pin exists, every
 line the reader writes is `prospective_unregistered` by construction.
 
+**R1 (2026-10-20):** challenger round 1 (`reviews/LT4_CHALLENGER_R1_2026-10-20.md`: E020-E022 REVISE, E023/E024
+ACCEPT_WITH_CHANGES, no leakage) is answered in **section 14**, which amends sections 0-13; where they differ, section 14
+governs. E021's counted primary is now the skip-slot persistence; E020 runs on common support; E020-E022 gates are
+Freedman-Lane; E022's depth definition and identification are census-fixed.
+
 This is research tooling. No edge, calibration, profitability or tradability claim exists or is implied. Every count
 quoted from round 9/10 probes is a **counts-only development figure on worn data**. Every MDE here is a **planning
 estimate** built on stated assumptions, not a measurement.
@@ -561,6 +566,9 @@ the first-unit drop and carry within-market variation).
 > - **Status:** DRAFT awaiting the capture/sweep seal, censuses CQ/CH/CF (q0480-q0483), the challenger review, the size check
 >   (q0484), the pin and the ledger entry; no line is `prospective_confirmation` until the pin. Code, spec and 20 synthetic
 >   tests on `feat/live-tests-4` (section 13).
+> - **R1 (2026-10-20):** REVISE (E020-E022), ACCEPT_WITH_CHANGES (E023/E024), no leakage; answered in section 14: E020 common
+>   support; E021 primary = skip-slot persistence (likely to drop at census); Freedman-Lane gates for E020-E022; census
+>   permuted share, DE, within-market VIF and depth-definition rules; registration only after LT3's.
 
 ## 13. Code pass (2026-10-20): what exists, and what the code taught the design
 
@@ -615,3 +623,62 @@ AR(1) 0.6 **0.065**, life cycle **0.035**, **correlated true moderator 0.075 (at
 - Size check at >= 2,000 worlds on the code to be pinned (q0484); any failing scenario blocks the pin.
 - A host dry run on past captures into a scratch root (`run --dry-run-start ... --root <scratch>`), memory measured.
 - `code_sha256` map, `SPEC_SHA256`, ledger entry, cron install (9.2), at least 24 h before `REGISTERED_UTC` (1.1).
+
+## 14. Response to challenger R1 (2026-10-20; `reviews/LT4_CHALLENGER_R1_2026-10-20.md`)
+
+Design and code only, before any census or window data. No floor, alpha, direction, Holm rule or count was loosened. Every
+change narrows a population, replaces a target with a harder one, adds a control, a gate, a label or accounting. One
+direction is newly *declared* rather than changed: E021's skip-slot primary keeps D_FS < 0 (14.2, item 3). This section
+amends sections 0-13; where they differ, it governs. Code: `live_tests4.py`, `live_tests4_analysis.py`, spec
+`live_tests4_v1.json`, tests `test_research_lab_live_tests4.py` (23 tests). LT3 code is not edited.
+
+### 14.1 Findings mapped to changes
+
+| # | Finding | Change | Where | Justification |
+|---|---|---|---|---|
+| 1 | HIGH: E020 tick-floor censoring, no common support | **Primary restricted to common support:** both quoted spreads (`ask − bid` at k − 1 and k) >= 3 ticks (sidecar tick at k) and <= 0.10, for both classes; frozen flag `common`. The full population is `sensitivity_full_population`; CQ gates are counted on the common-support population and print the full-population split | 2; `freeze_move` (`common`, `qs_k`, `qs_p`), `e020`, `census_cq`; spec `e020.support_min_ticks` = 3 | With >= 3 ticks after the move the unmoved side can move against `s` by 2 ticks without crossing in both classes, so `r` is not censored for arrivals only; both classes then share the same spread range |
+| 2 | HIGH: permutation gates may be unpassable | Each census (CQ, CH, CF-E021) prints the share of units in permutable strata (>= 4 units) for market x UTC day and for the **pre-declared fallback market x two-day block**. Rule: day if its share >= 50%, else block2 if >= 50%, else the test fails its gate (dropped). The chosen stratum is fixed in the spec (`e020/e021/e022.perm_stratum`); a pinned spec with it unfilled is refused | 1.8, 8; `perm_share`, `strata_of`, `_gate_fl`, `code_check` | The gate's power depends on the permuted share; checking it on counts before registration prevents a gate that can only fail. The fallback is fixed in advance, chosen by counts only |
+| 3 | HIGH: E021 primary is the bounce by design | **Counted primary: `c_skip = sign(x)(mid_{k+3} − mid_{k+1})`** (persistence from the first pass to the third), D_FS < 0 (settled moves persist more beyond the first pass). The 2 h `c` is mechanism reading M2 (bounce clock), the sweep 2 h target M3; M1 is the sweep skip target (sweep 1 of passes k + 1 and k + 3; clock `sweep_tags` [0, 1, 3]) with the *Gamma-quote mechanics* label. **`n2h_truncated`** (page full and its oldest row after `t − 2 h`) is frozen; such units are excluded from the primary and counted; > 2% → *coverage-limited*. CF prints the n2h-truncated share and the band split by n2h decile | 3; `clock_fields`, `freeze_clock`, `e021`, `e021_labels`, `census_clock` | The challenger's alternative (E021 to a map, k = 4) is not needed: the skip target excludes the displaced touch. The direction follows the hypothesis (a settled move is the makers' revised level, a fresh one partly a transient); no outcome was seen. The n2h control is otherwise post-origin-dependent through the page fill |
+| 4 | HIGH: E022 identification checked pooled | CH computes the **VIF of `zh` on its controls after expanding-past demeaning** (the estimator's own variation; pooled VIF printed) and uses it in the planning MDE; new gate: **within-market IQR of the residual of `h` after an OLS on `log1p D_{k−1}`** >= 0.05 in >= 50% of markets with >= 10 covered units (and >= 30 such markets) | 8; `census_ch`; spec `CH_E022.resid_iqr_min` | Gamma `L` is near-constant within market, so after a depth control the identifying variation can vanish; the gate tests it where the estimator looks. 0.05 is half the raw-`h` threshold of round 10, declared before CH runs (question R2-1) |
+| 5 | MED: E022 state and target from the same sweep | Controls now: **signed depth imbalance** `dimb = sign(x)(dask5 − dbid5)/(dask5 + dbid5)` (shares, outcome-0 book, pass k; missing → 0 with a flag) and **`log1p D` from sweep 1 of pass k − 1** (`log1p_Dp`, missing → 0 with a flag); `log1p D_k` moves to `sensitivity_depth_pass_k`. **Binding label:** a Supported E022 whose M2 (`sign(x)(mid_{k+3} − mid_{k+1})`) is below 50% of the primary or not one-sided significant carries **transient impact (no persistence beyond one pass)** | 4; `freeze_hollow`, `e022`, `e022_labels` | One-sided depletion at the sweep both raises `h` and displaces `smid_k`; the imbalance control holds the depletion's direction, and depth from the previous pass is not contaminated by it. The imbalance is in shares (not dollars as written in the review) so it is unit-free |
+| 6 | MED: D and L units | The reader stores the outcome-1 token's quote and 5c depths (the other token of the market in the sweep). `D0` (outcome 0) and `D2` = `D0` + outcome 1 are both frozen. **Pre-declared counts rule (before CH runs):** `depth_def = both` if `L >= D2` in >= 90% of covered non-sports books, else `token0` if `L >= D0` in >= 90%, else E022 dropped; CH prints the L/D quantiles of both. The primary keeps a depth control (`log1p D_{k−1}` of the chosen definition) | 4, 8; `sweep_frame`, `freeze_hollow`, `census_ch`; spec `hollow.depth_def` | If Gamma counts both books, `D2` is the like-for-like quantity; preferring it whenever it is a superset can only make `h` smaller and more conservative. The rule reads counts only |
+| 7 | MED: permutation gates test the raw slope | **E020-E022 gates are Freedman-Lane** (`fl_perm_gate`, LT4's own module): after expanding-past demeaning, the target's residuals from the reduced model (target on the controls) are permuted within strata and the full model is refitted, so the null keeps the label-control correlation. The size check adds label-control correlation 0.7 scenarios (binary and continuous) and a donor scenario at moderator correlation 0.7 | 1.8; `fl_perm_gate`, `size_check` (10 scenarios) | Freedman-Lane is the standard permutation test of a partial coefficient with correlated nuisance regressors. **Note for the orchestrator:** LT3's `perm_gate` (`live_tests3_analysis.py`, E015/E019) permutes the raw label and shares the issue; its size check has no correlated-control scenario. Not changed here (LT3 code is frozen for its own pin) |
+| 8 | MED: design effect fixed at 3 | CQ, CH and CF-E021 compute `m = Σ n_e² / Σ n_e` by event on the census population, project `m_21 = m × 21 / census days` (pessimistic: every event recurs through the window) and use **DE = 1 + (m_21 − 1) × 0.02** in the MDE gates (`design_effect`) | 8; spec `census_gates.*.rho` = 0.02 | The design effect is now measured from the population's own cluster sizes with a stated intra-cluster correlation |
+| 9 | MED: E023/E024 VIF on the wrong term | CF computes the VIF of **`x6·zOP` (resp. `x6·zC`) on the model's other `x6` terms after expanding-past demeaning** (`x6`, `x6·|mid − 0.5|`, `x6·zN`, `x6·zSize`, `x6·zSPR`, `x6·zRV`, `x6·zHTE`; E024 plus `x6·zW`, `x6·zH`) and gates on it. **`x6·|mid − 0.5|` added as a control** to E023 and E024 (longshot buying) | 5, 6, 8; `census_comp`, `flow_controls` | The VIF of the tested interaction is what governs its standard error |
+| 10 | LOW: size-check draws, text, q0485 | Size check uses **200 draws** (the gate's own; spec `size_check.draws`); ten scenarios, named in the spec and here. q0485 stays on the `net` lane (LT3's reasoning: a 21-day `cpu` job would block every cpu job), `mem_mb` 480 kept below the 500 MB blackout exemption; memory is measured in the host dry run before the pin and the draft is revised if it exceeds 400 MB | 1.8, 9.2; spec; q0484, q0485 | Partly refused (lane), with reason |
+| 11 | LOW: `.nosweep` versus late; no label | `.nosweep` is written only when no complete sweep of the pass existed at the deadline; a sweep that existed but was not yet copied by this reader yields `.late`. New label **sweep-missing (x%)** when `.nosweep` exceeds 2% of E022's origin passes | 1.5; `_run_locked`, `e022_labels`; spec `labels.sweep_missing_share` | Separates collector loss from reader lateness |
+| 12 | LOW: registration ordering | **LT4 registers only after LT3's registration commit**, with LT4's `code_sha256` entries for `live_tests3*.py` equal to LT3's registered pins (`code_check` refuses otherwise). `REGISTERED_UTC` is computed once, at LT4's registration commit, by 1.1. **Pre-declared consequence:** any change to LT3's modules after LT4's pin makes every LT4 line unmatchable; LT4 is then *void* (all primaries Unavailable, recorded in the ledger), never re-pinned on the same window | 1.1; `code_check` | Makes the dependency explicit and fail-closed |
+
+### 14.2 Answers to the review's section-11 rulings, adopted
+(1) Common support, not bins (finding 1). (2) Skip-slot primary (finding 3). (3) All categories kept; the census prints the
+sports share and the analysis reports the sports arm and a series-family-cluster sensitivity. (4) n2h truncation as an
+exclusion with a 2% label, reported by n2h decile. (5)-(6) Findings 5-6; `D_{k−1}` added. (7) Narrowing and by-leg
+agreement kept. (8) W and H stay controls; VIF on the interaction (finding 9). (9) **Pre-declared family rule:** if the
+census top series family holds > 40% of E020's (resp. E022's) primary population, that family is excluded from the primary
+(`e020/e022.exclude_family`, census-fixed; `""` = none); CR1 on the series family is a sensitivity for E020-E022.
+(10) Two-day blocks kept as a sensitivity. (11) Memory measured in the dry run. (12) Finding 7.
+
+### 14.3 Planning MDEs after R1 (estimates; the census recomputes each with its own DE, VIF and counts)
+
+| ID | Change driving the MDE | Planning MDE | Floor |
+|---|---|---|---|
+| E020 | common support keeps an assumed 30% of the one-sided population (unprobed): about 11,600 arrivals, 17,500 cancellations | **about 0.22-0.32c** (0.31-0.45c if only 15% is on common support) | 0.5c |
+| E021 | skip target (4 h change, SD assumed 5c, not 4c); n2h-truncated units out | **about 0.36-0.68c**: above the floor at the pessimistic end; **E021 is likely to drop at CF** | 0.5c |
+| E022 | within-market VIF assumed 3-10 (was pooled 1.5-3) | **about 0.11-0.29c per SD; tercile 0.25-0.63c**: borderline, census-gated | 0.5c (tercile) |
+| E023 | interaction VIF and the `x6·|mid − 0.5|` control | about 0.0020-0.0036 per SD (census) | 0.0036 gate |
+| E024 | as E023 with W and H interactions | about 0.0022-0.0046 per SD; may drop | 0.0036 gate |
+
+### 14.4 Not done or refused
+- **q0485 lane change (finding 10):** kept on `net` (reason in 14.1); memory to be measured.
+- **E021 as a map (k = 4):** not taken; the skip-slot primary answers finding 3. If CF drops E021, k = 4 by the census rule.
+- **LT3's permutation gate:** shares finding 7; not edited (frozen LT3 code). Flagged for the orchestrator (14.1, item 7).
+
+### 14.5 Preliminary size check after R1
+Placeholder until the local run (200 worlds x 200 draws, ten scenarios, the R1 code) finishes; the registered statement
+needs >= 2,000 worlds (q0484).
+
+### 14.6 Questions for R2
+1. The residual-IQR threshold 0.05 (finding 4): acceptable as declared, or tie it to the MDE gate only?
+2. The E021 direction on the skip target (D_FS < 0): acceptable?
+3. `dimb` in shares rather than dollars (finding 5).
+4. The DE projection `m × 21 / days` is pessimistic for short-lived events; acceptable as the gate's convention?
