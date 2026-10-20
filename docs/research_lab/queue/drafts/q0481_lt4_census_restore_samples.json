@@ -1,0 +1,43 @@
+{
+ "id": "q0481_lt4_census_restore_samples",
+ "title": "LT4 census CF inputs (DRAFT): restore the 23 sealed active-frame trade samples of 2026-10-16/17 (seals/lt3_census_inputs_C2.json) byte for byte from releases data-20261017/18/19-dsheikh; skip if the LT3 q0471 restore tree is still present and unmodified",
+ "family": "live_tests_4",
+ "priority": 30,
+ "expected_value": "the CF sample set (the same 92 files LT3's C2 read), proven identical to the released copies",
+ "data": [
+  "arepo-data GitHub releases data-20261017-dsheikh, data-20261018-dsheikh, data-20261019-dsheikh (read-only)"
+ ],
+ "resources": {
+  "mem_mb": 600,
+  "cpu": 1,
+  "lane": "net",
+  "network": "github releases (private data repo, read-only)"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/restore_from_archive.py",
+  "--tag",
+  "data-20261017-dsheikh",
+  "--tag",
+  "data-20261018-dsheikh",
+  "--tag",
+  "data-20261019-dsheikh",
+  "--path-glob",
+  "data-dumps/research_lab/trade_samples/2026101[67]T*/trades.csv.gz",
+  "--path-glob",
+  "data-dumps/research_lab/trade_samples/2026101[67]T*/features.csv.gz",
+  "--path-glob",
+  "data-dumps/research_lab/trade_samples/2026101[67]T*/manifest.json",
+  "--path-glob",
+  "data-dumps/research_lab/trade_samples/2026101[67]T*/plan.json",
+  "--dest",
+  "../data-dumps/research_lab/live_tests4_census/restore"
+ ],
+ "timeout_s": 10800,
+ "max_retries": 2,
+ "outputs": [
+  "data-dumps/research_lab/live_tests4_census/restore/data-dumps/research_lab/trade_samples/<sample>/"
+ ],
+ "next_action": "q0483 (census-flow re-verifies every sealed sample file against the LT3 C2 seal)",
+ "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_4.md, design not yet reviewed). Wallet files are not selected. If LT3's q0471 tree (live_tests3_census/restore) still exists, q0483 may take it as --sample-root instead and this job is not needed: the census re-hashes against the seal either way."
+}

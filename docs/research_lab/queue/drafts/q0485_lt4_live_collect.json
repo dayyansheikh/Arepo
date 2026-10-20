@@ -1,0 +1,41 @@
+{
+ "id": "q0485_lt4_live_collect",
+ "title": "LT4 live reader for E020-E024 (DRAFT, FALLBACK install only): write-once series/status/sweep files per complete capture, frozen move/hollow/clock/flow lines, target statuses and quotes; no network request; exit 75 when nothing is new",
+ "family": "live_tests_4",
+ "priority": 27,
+ "expected_value": "prospective lines for E020-E024; single analysis after 2026-11-17T12:00Z (q0486)",
+ "data": [
+  "research_lab/snapshots (complete captures + rows_ext sidecar, read-only)",
+  "research_lab/book_sweeps (sweep 1, read-only)",
+  "research_lab/trade_samples (active frame, read-only)"
+ ],
+ "resources": {
+  "mem_mb": 480,
+  "cpu": 1,
+  "lane": "net",
+  "network": "none"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_live_tests4.py",
+  "run",
+  "--max-items",
+  "40",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 3,
+ "repeat": {
+  "max_runs": 3000,
+  "until_log_regex": "LIVE_TESTS4_WINDOW_CLOSED"
+ },
+ "outputs": [
+  "data-dumps/research_lab/live_tests4/{series,status,sweeps}/",
+  "data-dumps/research_lab/live_tests4/{move,hollow,clock,flow}/frozen/",
+  "data-dumps/research_lab/live_tests4/{move,hollow,clock,flow}/outcomes/",
+  "data-dumps/research_lab/live_tests4/passes.jsonl"
+ ],
+ "next_action": "runs until END + 30 h (2026-11-17T06:00Z for the proposed window), then q0486",
+ "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_4.md, design not yet reviewed). The RECOMMENDED install is the host cron entry of LIVE_TESTS_4.md 9.2 (10-59/20, own flock, offset from LT3's reader); promote this ONLY if that entry is not installed, never both (the internal run lock makes a race impossible either way). Promote only after the censuses, the challenger review and freeze check, the spec fill, the SPEC_SHA256/code_sha256 pin and the ledger registration commit (>= 24 h before REGISTERED_UTC). Disk: stops at 1.5 GB in live_tests4/. No retention rule may cover live_tests4/ before the analysis is committed."
+}
