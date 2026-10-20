@@ -1,27 +1,27 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-20 08:23 UTC+1
+**Last updated:** 2026-10-20 13:38 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **Autopilot:** a new session started at 08:18 UTC+1 (20 Oct). The previous one stopped early at about 07:48, so its
-  three unfinished work streams were restarted (nothing was lost; partial work is kept and checked).
-- **Batch 11 results (counted as "not testable", no result either way):**
-  - Departure-clock tests (W1, W2): final. Only 1 of 6 required market categories had enough history; an independent
-    reviewer ruled it a real data gap (old markets carry no category label), not a code bug.
-  - Attention tests (A1, A2): only 145 of 200 market-to-Wikipedia matches (72.5%) were right, below the 80% bar set in
-    advance, so both are recorded as "not testable" when their census runs.
-- **Server:** the network lane runs batch 12's speech data, then the jobs that unlock batches 13-16. The compute lane is
-  idle until the batch 12 options check (15:05 UTC+1); most other work waits for dates (the 22 Oct seal, 26 Oct starts).
-- **Live tests:** 3 running (Kalshi lead E009/E010, surprise detector E011). Being prepared in parallel:
-  - E012-E014: the reviewer's fixes are being finished, aiming to register before 22 Oct 01:00 UTC+1.
-  - LT3 (E015-E019): the independent review accepted E015 with changes and asked for revisions to E016-E019 (nothing
-    fatal). The answers and the code are being written; target start 24 Oct.
+- **Autopilot:** a new session started at 13:25 UTC+1 (20 Oct). The morning session's four work streams had stopped at
+  about 09:46 UTC+1 without finishing; all four were restarted (partial work kept only where it was correct).
+- **Server queue was idle at 13:24.** Two batch 11/12 counting jobs were correctly refusing to run because the sealed
+  hold-out lists the server had just written were not yet saved in the repo. They are now saved (byte-for-byte copies),
+  and both jobs were restarted. Nothing was counted from the failed attempts.
+- **New server work queued (7 jobs):** batch 12 earthquake prices and census, batch 13 crypto-ladder frame and price
+  history, batch 14 market lists and the Wikipedia-edit frame. That is roughly 10+ hours of network-lane work.
+- **Live tests:** 3 running (Kalshi lead E009/E010, surprise detector E011). Being prepared:
+  - E012-E014: the reviewer's last mechanical fixes are done (one size check was re-run reproducibly: false-alarm rate
+    4.7%, within the 5% limit). Next: a short server dry run, a final check, then registration before 22 Oct 01:00 UTC+1.
+  - LT3 (E015-E019): answers to the review and the code are being written; target start 24 Oct.
   - A new round of ideas (round 10) is being written, aimed at more live tests on data the server already collects.
-- **Batch 17:** its rules are written; the code for its test windows is being built (deadline 24 Oct, start 26 Oct).
+- **Batch 12 earthquake/options tests:** an independent check accepted the fixes, so the earthquake census is queued.
+  The options part is ready to freeze once today's options check runs (15:05 UTC+1).
+- **Batch 17:** the code for its test windows is being built (deadline 24 Oct, start 26 Oct).
 - **Second free server:** still "out of host capacity" at Oracle; it retries every 10 min.
 
 ## 2. Approvals needed from you

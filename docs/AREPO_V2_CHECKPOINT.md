@@ -230,22 +230,22 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-20 07:25Z
-0. **Autopilot session from 07:18Z 10-20** (the 06:14Z session stopped at ~06:48Z). Ledger: "Session 2026-10-20 ~07:18Z".
-   - **Agents running (background) — if this session ended, check their worktrees for commits/uncommitted work:**
-     (a) LT2 R1 fixes in `../astrolabe-live-tests-r1` (feat/live-tests-2-r1) -> short science-reviewer re-check -> pin
-     SPEC/code sha -> merge into this branch -> ledger registration -> promote q0460 -> deploy; deadline REGISTERED_UTC
-     10-22T00:00Z (else the window slides per LIVE_TESTS_2.md §1.1).
-     (b) LT3 response to challenger R1 + code + queue drafts in `../astrolabe-live-tests-3` (feat/live-tests-3) ->
-     science-reviewer freeze check -> census -> freeze (REGISTERED_UTC >= 10-23, window 10-24..11-14).
-     (c) CB17 window code q0404-q0412 in `.claude/worktrees/agent-ae42d4cfea66b78af` (rules common/B/C/E at e37643f3,
-     deadline 10-24T12:00Z) -> science-reviewer freeze check -> merge -> promote.
-     (d) Creative round 10 (Fable xhigh) -> `CREATIVE_HYPOTHESES_2026-10-24.md` (uncommitted until reviewed) -> LT4 draft.
-   - **Queue:** net lane q0243 -> q0248 -> q0249; q0229 (A data, repeat); q0276 -> q0302 (fill base pin from host sha256
-     of `creative_batch13/exclusion_keys.csv.gz`) -> q0340 -> q0380 / q0347. cpu lane idle until q0260 (10-20T14:05Z).
-     Freezes/promotions: CB12-O after q0260; CB12-E q0245 after q0244 (done), q0266 after q0245; CB16 q0380 after q0340,
-     q0383 after q0380; CB15-P q0347 after q0340, then q0349/q0350. CB11-PA: q0238 -> q0239 (A1/A2 "not testable
-     (entity map)", GA0 0.725).
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-20 12:40Z
+0. **Autopilot session from 12:25Z 10-20** (the 07:18Z session's streams stopped ~08:46Z). Ledger: "Session 2026-10-20 ~12:25Z".
+   - **Agents (background) — if this session ended, check their worktrees for commits/uncommitted work:**
+     (a) LT2: fixes A-E merged (a14f3efb). Remaining: host dry run of the R1 collector in /tmp (RSS < 960 MB) -> short
+     science-reviewer verification -> pin SPEC_SHA256 -> registration ledger entry + registry -> promote q0460 (not_before
+     10-21T00Z) — all before REGISTERED_UTC 10-22T00:00Z (else the window slides, LIVE_TESTS_2.md §1.1).
+     (b) LT3 R1 response + code in `../astrolabe-live-tests-3` (feat/live-tests-3; drafts q0470-q0479) -> science-reviewer
+     freeze check -> censuses -> freeze (REGISTERED_UTC >= 10-23, proposed 10-24).
+     (c) CB17 window code q0404-q0412 in `.claude/worktrees/agent-ae42d4cfea66b78af` -> freeze check (incl. P1-P3
+     reproduction) -> merge -> promote (T17_code before S_8 = 10-26; target 10-24T12Z).
+     (d) Creative round 10 (Fable xhigh) -> `CREATIVE_HYPOTHESES_2026-10-24.md` (CH169+) -> commit -> LT4 draft.
+   - **Queue (12:40Z):** q0239 (CB11-PA census) and q0249 (CB12-M census) retried after the seal copies were committed
+     (write up: PA A1/A2 "not testable (entity map)"; M census -> M freeze entry in `model_specs/cb12_v1.json` after a
+     science-reviewer check -> promote q0252). Net lane: q0245 -> q0266 (CPU) ; q0302 -> q0303 ; q0277 -> q0279 -> q0284.
+     cpu lane: q0260 (not_before 14:05Z) -> O freeze entry with its iv_convention -> install q0261 cron; q0262+ after w1.
+     After q0302: fill q0340's base pin (host sha256 of `creative_batch14/exclusion_keys.csv.gz`) -> q0380 / q0347.
 1. **CB8-H:** q0162/q0163 wait on spec `not_before` (10-21T06Z / 10-22T12Z). **CB8-B:** q0161/q0164 after T_seal; before
    promoting q0164 run the two `derive-exclusion-ids` commands in its draft notes on the host and fill both sha256 tokens.
 2. **CB9:** data jobs q0181+ only after T_seal 2026-10-22T00Z; q0182 needs the pinned q0164 hash. **CB10:** q0201 needs
