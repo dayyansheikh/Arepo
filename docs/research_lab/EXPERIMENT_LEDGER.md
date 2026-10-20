@@ -2556,3 +2556,15 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   record `seals/cb17_t17_rules.json`; `s8_from_rules` gives **S_8 = 2026-10-26T00:00:00Z**. Post-merge: 178 CB17 +
   battery2 tests pass. Next: delta freeze check (fixes 1-7 + O-rulings), code pin + ruling-6 attestation record, q0413
   restore, worn-manifest pins, q0404 smoke on the host (exact P1-P3).
+
+## Reviews 2026-10-20 ~19:05Z: CB17 delta freeze check FIXES; LT3 permutation gate revise (design/code; nothing counted)
+- **CB17 delta check: FIXES** (`reviews/CB17_DELTA_FREEZE_CHECK_2026-10-20.md`): re-hash reproduces byte for byte, no rule
+  value moved, T17 record valid (S_8 2026-10-26T00Z). Before the code pin: worn-pin check must refuse missing pinned files
+  (a partial restore could otherwise become a counted P2 FAIL); monitor-stopped days must give unknown `prt`, not 0;
+  lows. Implementer applying; it reports whether any rules part sha moves (T17 would then be re-landed before 10-25T00Z).
+- **LT3 permutation gate: revise** (`reviews/LT3_PERM_GATE_CHECK_2026-10-20.md`; raised by LT4 R1 finding 7). E015's
+  `perm_gate` permutes the raw label although it correlates with the controls by design; local simulation (300 worlds)
+  pass rate 0.127 vs the 0.058 limit at corr ~0.63 (0.040 uncorrelated). The primary p is cluster-robust OLS, so this
+  weakens the backstop rather than opening a direct false-Supported path. Fix before the pin: Freedman-Lane gate,
+  correlated-control scenarios for both gates, size-check draws 200; q0473 (old code) becomes information only; a q0473b
+  size check re-runs on the fixed code. Implementer on `fix/lt3-freedman-lane` (../astrolabe-lt3-fl).
