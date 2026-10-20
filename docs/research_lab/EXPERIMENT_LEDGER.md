@@ -2213,3 +2213,16 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   counted); Q2 stopped by design. Eligible fills 125; markets with both grains 7 (32 fills, share 0.256); sub-cent share
   0.896 (112 of 125); touch tick 0.001: 225, 0.01: 812 prints. 37,598 prints read (lookback limited to the SCREEN window;
   data before 2026-10-12 not on the host, disclosed in the output). CB16-U and K continue.
+
+## Operational deviation: canonical E009/E010 gaps on 2026-10-13 before the 10-14 outage (recorded 2026-10-20; facts only, not counted)
+
+Found by the live-tests readiness audit (`LIVE_TESTS_READINESS_2026-10-19.md`) from prediction-line timestamps only. No
+outcome was read.
+- **Gaps:** the canonical E009 stream (the Mac poller) has no prediction cycles from 2026-10-13 21:24Z to 22:22Z, nor from
+  22:28Z to 23:12Z. Hourly cycle counts out of 30 are 21:00Z 13, 22:00Z 4 and 23:00Z 24. E010 has no 22:00Z or 23:00Z
+  origin.
+- **Cause:** not recorded. The Mac poller was the only collector, so the Mac was probably asleep or offline. This is
+  separate from the documented 2026-10-14 00:02Z–10:44Z outage.
+- **Coverage:** the validation copy started at 23:33Z and covers neither gap. The 2026-10-15 gap-fill decision covers only
+  00:02Z–10:44Z (rule `gapfill-v1`, `E009_E010_GAPFILL_RULE.md`). Missing stays missing, and neither window is extended.
+- **E011 is unaffected:** its passes at 20:31Z and 22:31Z on 10-13 are present.
