@@ -56,32 +56,61 @@ def verdict_e009(res: dict) -> dict:
             "economics": economics(res.get("executable_pnl")), "fields_used": used}
 
 
-def verdict_e010(res: dict) -> dict:
-    out = {"experiment": "E010", "horizons": {}, "holm_m1": res.get("holm_m1"), "notes": []}
-    unavailable = []
+def _unavailable_e010(h: dict) -> bool:
+    return (h.get("status") != "ok" or _f(h.get("n_clusters")) < E010_MIN_CLUSTERS
+            or _f(h.get("n_origins")) < E010_MIN_ORIGINS)
+
+
+def _holm(pvals: dict[str, float]) -> dict[str, float]:
+    """Holm step-down (the frozen cross_venue_live_e010.holm), on p-values read from the output."""
+    from .cross_venue_live_e010 import holm
+
+    return holm(pvals)
+
+
+def _e010_table(res: dict, padj: dict[str, float]) -> dict[str, str]:
+    out = {}
     for hk in ("60", "360"):
         h = res.get("horizons", {}).get(hk, {})
-        padj = _f((res.get("holm_m1") or {}).get(hk, 1.0))
-        if (h.get("status") != "ok" or _f(h.get("n_clusters")) < E010_MIN_CLUSTERS
-                or _f(h.get("n_origins")) < E010_MIN_ORIGINS):
-            v = "Unavailable"
-            unavailable.append(hk)
-        elif padj < ALPHA and _f(h["rel_mse_gain_m1"]) > 0:
-            v = SUPPORTED
+        if _unavailable_e010(h):
+            out[hk] = "Unavailable"
+        elif _f(padj.get(hk, 1.0)) < ALPHA and _f(h["rel_mse_gain_m1"]) > 0:
+            out[hk] = SUPPORTED
         elif _f(h["ci_m1"][1]) < 0:
-            v = "Contradicted"
+            out[hk] = "Contradicted"
         else:
-            v = "Inconclusive"
+            out[hk] = "Inconclusive"
+    return out
+
+
+def verdict_e010(res: dict) -> dict:
+    """Per-horizon verdicts under the rule declared in EXPERIMENT_LEDGER ("E010 verdict rule
+    declared", 2026-10-21): a horizon Unavailable by the registered minimum enters Holm with
+    p = 1, so the other's adjusted p is min(1, 2 p_raw); otherwise the frozen ``holm_m1``. Both
+    are reported; if the verdicts differ, both sets are shown and the declared rule gives the
+    registered verdict."""
+    hz = res.get("horizons", {})
+    frozen = {k: _f(v) for k, v in (res.get("holm_m1") or {"60": 1.0, "360": 1.0}).items()}
+    unavailable = [hk for hk in ("60", "360") if _unavailable_e010(hz.get(hk, {}))]
+    if unavailable:
+        raw = {hk: (1.0 if hk in unavailable else _f(hz[hk].get("p_one_sided_m1")))
+               for hk in ("60", "360")}
+        declared = _holm(raw)
+    else:
+        declared = dict(frozen)
+    v_decl, v_frozen = _e010_table(res, declared), _e010_table(res, frozen)
+    out = {"experiment": "E010", "rule": "declared 2026-10-21 (Unavailable horizon -> p = 1)",
+           "holm_declared": declared, "holm_m1_frozen": frozen, "horizons": {},
+           "verdicts_differ": v_decl != v_frozen}
+    if out["verdicts_differ"]:
+        out["verdicts_with_frozen_holm"] = v_frozen
+    for hk in ("60", "360"):
+        h = hz.get(hk, {})
         out["horizons"][hk] = {
-            "verdict": v, "holm_p": padj, "economics": economics(h.get("executable_pnl")),
+            "verdict": v_decl[hk], "holm_p": declared.get(hk),
+            "economics": economics(h.get("executable_pnl")),
             "fields_used": {k: h.get(k) for k in ("status", "n_clusters", "n_origins",
                                                    "rel_mse_gain_m1", "p_one_sided_m1", "ci_m1")}}
-    for hk in unavailable:
-        if res.get("horizons", {}).get(hk, {}).get("status") == "ok":
-            out["notes"].append(
-                f"horizon {hk} is Unavailable by the registered minimum but entered the frozen "
-                "Holm with its own p (the code gives p = 1 only below 2 clusters); the reviewer "
-                "states which reading of 'a horizon without a test' applies before reporting")
     return out
 
 

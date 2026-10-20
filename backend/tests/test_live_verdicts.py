@@ -48,14 +48,30 @@ def test_e010_decision_table_uses_holm_adjusted_p():
     v = lv.verdict_e010(e10())
     assert {h: x["verdict"] for h, x in v["horizons"].items()} == {"60": lv.SUPPORTED,
                                                                   "360": lv.SUPPORTED}
+    assert not v["verdicts_differ"] and v["holm_declared"] == v["holm_m1_frozen"]
     v = lv.verdict_e010(e10(holm={"60": 0.06, "360": 0.02}))
     assert v["horizons"]["60"]["verdict"] == "Inconclusive"  # raw p 0.01, Holm 0.06
     v = lv.verdict_e010(e10(h360={"rel_mse_gain_m1": -0.1, "ci_m1": [-0.2, -0.01]},
                             holm={"60": 0.02, "360": 1.0}))
     assert v["horizons"]["360"]["verdict"] == "Contradicted"
-    v = lv.verdict_e010(e10(h60={"n_origins": 1999}))
-    assert v["horizons"]["60"]["verdict"] == "Unavailable" and v["notes"]
     assert v["horizons"]["360"]["economics"] == "not shown"
+
+
+def test_e010_unavailable_horizon_enters_holm_with_p_one():
+    # 360 has 15 clusters (Unavailable) but status ok, so the frozen Holm used its own p (0.01):
+    # frozen adjusted p for 60 = max(2 * 0.01, 0.03) = 0.03; declared = min(1, 2 * 0.03) = 0.06
+    r = e10(h60={"p_one_sided_m1": 0.03}, h360={"n_clusters": 15, "p_one_sided_m1": 0.01},
+            holm={"60": 0.03, "360": 0.02})
+    v = lv.verdict_e010(r)
+    assert v["horizons"]["360"]["verdict"] == "Unavailable"
+    assert v["holm_declared"] == {"60": 0.06, "360": 1.0}
+    assert v["horizons"]["60"]["verdict"] == "Inconclusive"  # declared rule
+    assert v["verdicts_differ"] and v["verdicts_with_frozen_holm"]["60"] == lv.SUPPORTED
+    # no difference when the available horizon's p is small enough either way
+    r = e10(h60={"p_one_sided_m1": 0.001}, h360={"n_origins": 10},
+            holm={"60": 0.002, "360": 0.01})
+    v = lv.verdict_e010(r)
+    assert v["holm_declared"]["60"] == 0.002 and not v["verdicts_differ"]
 
 
 def test_e011_rederivation_matches_frozen_verdict():
