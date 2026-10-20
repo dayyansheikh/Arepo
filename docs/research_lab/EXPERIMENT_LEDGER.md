@@ -2680,3 +2680,40 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   The primary statistic, the episode rule, the window and the verdict thresholds are unchanged.
 - **Found and checked by:** the live-tests readiness audit, reviewed by the science-reviewer (ACCEPT_WITH_CHANGES). Test:
   `test_e011_missing_event_id_falls_back_to_market_id`. The E011 analysis must run from a commit that contains this fix.
+
+## CB12-M and CB12-E freeze (gate-failure path) and screens, 2026-10-20 22:56-23:10Z; 3 tests counted with p = 1
+- **Freeze entries** (`model_specs/cb12_v1.json`, merge ae175bec of `freeze/cb12-me` 7181778c + 48964e20): M
+  `rules_sha256` a2e420b0…, census `census_M.json` sha256 6229816e… (q0249, 19:04Z); E `rules_sha256` bd512db4…, census
+  `census_E.json` sha256 caabaadd… (q0266, 19:40Z); common f2f672c1…; both census shas re-checked on the host by the
+  orchestrator. Science-reviewer freeze check: **FREEZE_OK_WITH_FIXES**, applied: `git_commit` labelled as inferred from
+  host log time (binding pin is `census_rules_sha256`; CB12 code identical across 8defe614..7181778c); E's q0257
+  collector not installed recorded as a **disclosed deviation** (design :78/:768/:948/:1087 install it unconditionally;
+  harmless because E1 is fixed at p = 1 by the outcome-blind census, so Stage 2 can never open, :785-786); M's
+  verify_fetch/holdout-listing calls on this path noted.
+- **Census gates (counts only):** M: GM pass (159 events, 79 speaker keys, 36 weeks), GMP fail (MDE_M1 3.19 words > 1.0)
+  -> M1, M2 "not run (power)". E: parser gate pass; dependence minima unmet (183/300 markets, 28/60 events, 30/40 weeks,
+  27/30 components) -> E1 "not testable (dependence)"; GEP not computed.
+- **Screens (counted):** q0252 (23:08Z) M1, M2 p = 1, advance false; q0253 (23:10Z) E1 p = 1, advance false. No outcome
+  file opened (the screens return before any guarded open). **CB12 counted so far at p = 1: O 2, M 2, E 1 = 5 of k1 = 10.**
+  Never run: q0256, q0257, q0258 (and q0261, q0264 for O).
+
+## LT4 (E020-E022) R2 re-check and censuses promoted; LT3 donor-gate ruling 2, 2026-10-20 23:00-23:59Z (nothing counted)
+- **LT4 R2 re-check** (science-reviewer, `reviews/LT4_CHALLENGER_R2_RECHECK_2026-10-20.md`): **ACCEPT_WITH_CHANGES**. New
+  HIGH: q0484 (size check) cannot run until LT3's registration commit is merged and the LT4 code freeze is recorded
+  (LT4 hashes `live_tests3_analysis.py`; `sim_move_world` RNG order changed with the Freedman-Lane commit). MEDIUM: block
+  anchor split census days. LOW: `bounce_decomp` not hashed; stale text. Fixes 4b6cc7e1 (per-census anchor at its first
+  UTC day, analysis at REGISTERED_UTC; `bounce_decomp` in CODE_FILES; q0484 gating; q0481 folded into LT3's q0471
+  restore) and 99618c95; verification **OK_WITH_FIXES** (capture seal missing before q0482/q0483; one-day final block
+  disclosed). Capture/sweep seal `seals/lt4_census_inputs_captures.json` written from the releases' `files.sha256`
+  (211 files, 2026-10-14T22Z .. 10-17, manifests checked) before any LT4 census. feat/live-tests-4 merged; **q0482 (CQ/CH)
+  and q0483 (CF clock) promoted**, counts only, after q0480 (restore; mem 1200; adds release -2 for 10-17T04:31Z) and q0471.
+- **LT3 donor-gate ruling 1 implemented** (`fix/lt3-donor` d0196387: studentised score, `donor_collinear_control`
+  0.5/0.7, C2 within-market R^2, |corr| cap; 38 tests). Local informational size check (300 worlds; limit 0.0707):
+  donor_iid 0.073, donor_corr_control 0.100, donor_collinear_control_0.7 0.073; perm scenarios within the limit.
+- **Ruling 2** (`reviews/LT3_DONOR_GATE_RULING2_2026-10-21.md`): implementation correct; the donor gate is structurally
+  invalid (real and donor statistics not exchangeable: direction correlation real-donor 0.210 vs donor-donor 0.243 iid,
+  0.131 vs 0.183 corr_mod). **Option (ii):** the donor gate becomes a reported, non-binding label; E016/E018 use the
+  Freedman-Lane permutation gate as E015/E019; binding size scenarios = perm scenarios + flow-world perm (iid, AR 0.6,
+  collinear 0.7); skipped draws fail closed; thresholds, alpha, draws, seeds, limit 0.058 unchanged; written as §13.13
+  before any 2,000-world run, then a science-reviewer pass, then the run; any binding failure blocks the pin with no
+  further redesign. The decision does not depend on any later size result. Implementer running. q0471/q0472 unaffected.
