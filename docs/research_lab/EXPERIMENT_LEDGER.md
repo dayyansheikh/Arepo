@@ -2430,3 +2430,18 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   0.047, scenarios 0.042-0.054; the figures quoted before differed and are relabelled "unreproduced" in §1.5; D
   `flow.vol24_cap` = Infinity citing census `4656490b…`; E `code_sha256` refreshed (`ec07e16b…`, `a7b5c781…`).
   41 tests pass. Next: host dry run (R1 collector) -> short reviewer verification -> SPEC_SHA256 pin -> registration.
+- **LT3 (E015-E019) R1 response + code (63d89b5e, ee7627d4) and freeze check (science-reviewer, ~12:50Z):
+  FREEZE_READY_WITH_FIXES; CENSUS_OK_TO_RUN after fixes 1, 2, 4 + rulings.** All 12 R1 findings implemented; no
+  loosening of floors, alpha, Holm or counting, except one undisclosed change (simulated gate-size criterion "<= 0.05"
+  -> 0.068), ruled acceptable as a stated Monte-Carlo tolerance once disclosed, with q0473 at >= 2,000 worlds (limit now
+  0.058). Fixes (76778698, §13.9): (1, HIGH) `write_once_csv` "%.7g" rounded epochs to ~1,000 s and vol24 -> exact
+  "%.17g" + round-trip test; (2) NaN `vol24_cap` refused, C2 E016 gate fails on NaN V*; (3) disclosure; (4) the
+  E015-style pessimistic planning-MDE <= floor gate added to censuses C3/C4 (E017, E019) **before** any census ran
+  (at the old counts both currently fail: E017 ~1.12c vs 1.0c, E019 ~0.72c vs 0.5c, so either may drop uncounted at
+  q0470); (5) dry-run into live root refused, spec/module REGISTERED_UTC equality. Rulings: C_par parallel-only;
+  crypto regex `dogecoin`/`^eth-`; C2 agreement >= 500 rows per arm (else drop); install as host cron every 20 min with
+  an internal flock, q0474 fallback only. 32 LT3 tests pass. Merged 2993a5df. **Promoted:** q0470 (C1/C3/C4 censuses,
+  deadline 10-22T03:30Z retention), q0471 (C2 restore from releases) -> q0472 (C2 flow census), q0473 (size check).
+- **LT2 fix F (b756fcbc):** the same precision bug in LT2 (`%.6g`, epochs ~10,000 s) found by the LT3 reviewer; now
+  "%.17g" with a round-trip test; `code_sha256` `live_tests2.py` -> `88ee00b2…`. No line had been frozen. No other
+  module uses a reduced `float_format` (grep).

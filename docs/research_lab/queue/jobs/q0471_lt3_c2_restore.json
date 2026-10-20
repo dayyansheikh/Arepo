@@ -40,5 +40,5 @@
   "data-dumps/research_lab/live_tests3_census/restore/RESTORE_REPORT_<tag>.json"
  ],
  "next_action": "q0472 (census-flow re-verifies every sealed file against the seal)",
- "notes": "DRAFT, not in queue/jobs. The host keeps only manifest.json and plan.json of these samples (3-day trade_samples retention; checked 2026-10-20). A restore streams each whole release (about 20 min per release on the host). The globs may also restore unsealed samples of those days; census-flow uses only the 23 sealed ids and refuses any file whose sha256 differs from the seal. Wallet files are not selected. The restore tree is a copy of released data; clear it after the registration commit."
+ "notes": "PROMOTED 2026-10-20 ~13:05Z after the LT3 freeze check (FREEZE_READY_WITH_FIXES, CENSUS_OK_TO_RUN after fixes 1, 2, 4 + rulings; fixes in 76778698, merged 2993a5df). Counts only, pre-window, no target read. The host keeps only manifest.json and plan.json of these samples (3-day trade_samples retention; checked 2026-10-20). A restore streams each whole release (about 20 min per release on the host). The globs may also restore unsealed samples of those days; census-flow uses only the 23 sealed ids and refuses any file whose sha256 differs from the seal. Wallet files are not selected. The restore tree is a copy of released data; clear it after the registration commit."
 }

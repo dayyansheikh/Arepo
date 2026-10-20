@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-20T07:45:00Z",
+ "updated": "2026-10-20T13:00:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1313,7 +1313,7 @@
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Review fixes, a short re-check, then registration (planned start 22 Oct)",
+   "next": "Server dry run, final check, then pin and register before 22 Oct",
    "next_date": "2026-10-22",
    "candidate": false,
    "sources": {
@@ -1329,18 +1329,18 @@
   {
    "id": "LT3",
    "title": "Live tests E015-E019 (planned)",
-   "plain": "Five planned live tests from the round 9 ideas: whether price moves made only by quotes behave differently from traded moves, whether trades that walked the order book or arrived in bursts carry on differently, whether a volume surge without a price move is followed by drift, and whether moves across a whole ladder of related markets persist. The independent review asked for fixes (nothing fatal); they are being applied.",
+   "plain": "Five planned live tests from the round 9 ideas: quote-only versus traded price moves, trades that walked the book or came in bursts, volume surges without a price move, and moves across whole ladders of related markets. Review fixes are done; counting checks are queued, and two tests may drop if too small to detect the minimum effect.",
    "batch": "LT3",
    "family": "mixed",
    "stage": "designed",
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Apply review fixes and write the reader code, then counting checks and registration (proposed start 24 Oct)",
+   "next": "Counting checks on the server (before 22 Oct), then pin and register (proposed start 24 Oct)",
    "next_date": "2026-10-24",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT3 (E015-E019) pre-registration draft, 2026-10-20"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Session 2026-10-20 ~12:25Z (LT3 freeze check)"
    },
    "stage_results": {
     "designed": "pending"
