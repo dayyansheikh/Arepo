@@ -1,0 +1,1063 @@
+{
+ "parts": {
+  "A": {
+   "part": "A",
+   "part_declared": false,
+   "reason": "part not declared yet: committed after q0400-q0403 have chosen the branch, the strata levels and the cut points (CREATIVE_BATCH_17.md section 1.4 Order)",
+   "rules_sha256": null,
+   "rules_version": "cb17-rules-v1"
+  },
+  "B": {
+   "part": "B",
+   "part_declared": false,
+   "reason": "part not declared yet: committed after q0400-q0403 have chosen the branch, the strata levels and the cut points (CREATIVE_BATCH_17.md section 1.4 Order)",
+   "rules_sha256": null,
+   "rules_version": "cb17-rules-v1"
+  },
+  "C": {
+   "part": "C",
+   "part_declared": false,
+   "reason": "part not declared yet: committed after q0400-q0403 have chosen the branch, the strata levels and the cut points (CREATIVE_BATCH_17.md section 1.4 Order)",
+   "rules_sha256": null,
+   "rules_version": "cb17-rules-v1"
+  },
+  "E": {
+   "part": "E",
+   "part_declared": false,
+   "reason": "part not declared yet: committed after q0400-q0403 have chosen the branch, the strata levels and the cut points (CREATIVE_BATCH_17.md section 1.4 Order)",
+   "rules_sha256": null,
+   "rules_version": "cb17-rules-v1"
+  },
+  "common": {
+   "part": "common",
+   "part_declared": false,
+   "reason": "part not declared yet: committed after q0400-q0403 have chosen the branch, the strata levels and the cut points (CREATIVE_BATCH_17.md section 1.4 Order)",
+   "rules_sha256": null,
+   "rules_version": "cb17-rules-v1"
+  },
+  "pre": {
+   "constants": {
+    "cb17_census": {
+     "AGE_BIN_NAMES": [
+      "clock_anomaly",
+      "lt60s",
+      "60-600s",
+      "600-3600s",
+      "gt3600s"
+     ],
+     "CAP_ROW_FIELDS": [
+      "market_id",
+      "closed",
+      "best_bid",
+      "best_ask",
+      "end_date"
+     ],
+     "COST_LOAD_FIELDS": [
+      "market_id",
+      "best_bid",
+      "best_ask",
+      "depth_bid_1c",
+      "depth_ask_1c",
+      "depth_bid_5c",
+      "depth_ask_5c",
+      "state"
+     ],
+     "CREATED_AT_CAPTURES": [
+      "20261012T003103Z_2df48d64",
+      "20261015T223102Z_2eae9aa6"
+     ],
+     "EXT_ROW_FIELDS": [
+      "market_id",
+      "event_id",
+      "fee_type",
+      "fee_category",
+      "series_slugs",
+      "neg_risk_market_id",
+      "event_open_interest",
+      "event_volume"
+     ],
+     "FIRST_DAY_BINS": [
+      "neg",
+      "lt6h",
+      "6-24h",
+      "1-7d",
+      "gt7d",
+      "unknown"
+     ],
+     "OLD_BINS": [
+      3,
+      4
+     ],
+     "RESULT_NAMES": {
+      "A": "pre_census_A.json",
+      "B": "pre_census_B.json",
+      "C": "pre_census_C.json",
+      "cost": "cost_lag_map.json"
+     },
+     "STATE_TWO_SIDED": "two_sided",
+     "STATIC_FIELDS": [
+      "event",
+      "end",
+      "liq",
+      "sports",
+      "reward",
+      "slug",
+      "fee_cat",
+      "fee_rate",
+      "nrm"
+     ],
+     "SWEEP_LOAD_FIELDS": [
+      "token_id",
+      "market_id",
+      "book_timestamp",
+      "book_hash",
+      "best_bid",
+      "best_ask",
+      "bid_size_1",
+      "ask_size_1",
+      "depth_bid_1c",
+      "depth_ask_1c",
+      "depth_bid_5c",
+      "depth_ask_5c",
+      "n_bid_levels",
+      "n_ask_levels",
+      "state"
+     ],
+     "VERSIONS": {
+      "A": "cb17-pre-census-A-v1",
+      "B": "cb17-pre-census-B-v1",
+      "C": "cb17-pre-census-C-v1",
+      "cost": "cb17-cost-lag-map-v1"
+     }
+    },
+    "cb17_common": {
+     "ALLOWED_OUTPUT_ROOT_PARTS": [
+      "creative_batch17"
+     ],
+     "CAPTURE_DIR_RE": "^(\\d{8}T\\d{6}Z)_[0-9a-f]+$",
+     "CAPTURE_FIELDS": [
+      "capture_id",
+      "received_utc",
+      "market_id",
+      "condition_id",
+      "event_id",
+      "closed",
+      "active",
+      "binary",
+      "best_bid",
+      "best_ask",
+      "liquidity",
+      "volume24hr",
+      "end_date",
+      "clob_token_id_0",
+      "neg_risk",
+      "neg_risk_market_id"
+     ],
+     "CAPTURE_LOOKBACK_START": "2026-10-11T22:00:00Z",
+     "CB13_T_SCREEN_FILES": [
+      "fills.csv.gz",
+      "labels.csv.gz"
+     ],
+     "CB17_SPORTS_IN_PRIMARY": false,
+     "CENSUS_CUTOFF": "2026-10-16T00:00:00Z",
+     "CENSUS_DAYS": [
+      "20261012",
+      "20261013",
+      "20261014",
+      "20261015"
+     ],
+     "CENSUS_START": "2026-10-12T00:00:00Z",
+     "DATA_DUMPS_CAP_GB": 40.0,
+     "DISK_CAP_GB": 0.01,
+     "ELECTION_NIGHT": [
+      "2026-11-03T18:00:00Z",
+      "2026-11-05T00:00:00Z"
+     ],
+     "EVIDENCE_ROLE_DEV": "exploratory_dev",
+     "EVIDENCE_ROLE_HIST": "exploratory_historical",
+     "EXTRA_REFUSED_ROOTS": [
+      "creative_batch16"
+     ],
+     "FILLS_FIELDS": [
+      "status",
+      "condition_id",
+      "market_id",
+      "event_id",
+      "label",
+      "path_key",
+      "tau",
+      "tau_last",
+      "d",
+      "P",
+      "size",
+      "cash",
+      "spread0",
+      "mid0",
+      "prev_mid",
+      "touch_age_s",
+      "block",
+      "day"
+     ],
+     "FORBIDDEN_CAPTURE_FIELDS": [
+      "chg_1h",
+      "chg_1d",
+      "chg_1w",
+      "last_trade_price",
+      "open_interest",
+      "volume_num",
+      "uma_resolution_statuses",
+      "outcome_prices",
+      "closed_time"
+     ],
+     "FORBIDDEN_OUTPUT_COLUMNS": [
+      "side",
+      "wallet",
+      "wallet_hash",
+      "proxyWallet",
+      "tx16",
+      "transactionHash",
+      "tx_hash",
+      "hash",
+      "name",
+      "pseudonym",
+      "recv_ts",
+      "chg_1h",
+      "chg_1d",
+      "chg_1w",
+      "ctx_chg_1h",
+      "uma_resolution_statuses",
+      "outcome_prices",
+      "outcomePrices",
+      "umaResolutionStatus",
+      "closedTime",
+      "closed_time",
+      "result",
+      "settlement_value",
+      "p_end",
+      "mark",
+      "mark_out",
+      "m_h",
+      "beta",
+      "est",
+      "estimate",
+      "coef",
+      "effect",
+      "pnl",
+      "net"
+     ],
+     "FORBIDDEN_PRINT_FIELDS": [
+      "key",
+      "wallet_hash",
+      "wallet",
+      "proxyWallet",
+      "ctx_chg_1h",
+      "ctx_status",
+      "chg_1h"
+     ],
+     "HOLDOUT_PARTS": [
+      "holdout",
+      "t_holdout"
+     ],
+     "LABELS_FIELDS": [
+      "condition_id",
+      "label"
+     ],
+     "LOOKBACK_FLOOR": "2026-10-26T00:00:00Z",
+     "MDE_FACTOR": 3.8,
+     "MONITOR_FORBIDDEN_FILES": [
+      "alerts.jsonl",
+      "outcomes.jsonl",
+      "wallets.jsonl",
+      "stats.jsonl",
+      "state.json"
+     ],
+     "MONITOR_FORBIDDEN_RE": "^scores-\\d{8}\\.jsonl$",
+     "MONITOR_TRADES_RE": "^trades-(\\d{8})\\.jsonl$",
+     "OUTCOME_KEY_TOKENS": [
+      "beta",
+      "est",
+      "estimate",
+      "mark",
+      "marks",
+      "pnl",
+      "net",
+      "outcome",
+      "outcomes",
+      "coef",
+      "effect",
+      "slope"
+     ],
+     "PARTS": [
+      "common",
+      "pre",
+      "A",
+      "B",
+      "C",
+      "E"
+     ],
+     "PRINT_FIELDS": [
+      "ts",
+      "condition_id",
+      "token_id",
+      "outcome_index",
+      "price",
+      "size",
+      "cash",
+      "title",
+      "slug",
+      "ctx_event_id",
+      "ctx_market_id",
+      "ctx_category",
+      "ctx_fee_type"
+     ],
+     "PRINT_LAG_FIELDS": [
+      "recv_ts"
+     ],
+     "PRINT_MEMORY_ONLY": [
+      "tx16"
+     ],
+     "PRINT_SIDE_FIELDS": [
+      "side"
+     ],
+     "RULES_MACHINERY": [
+      "rules_part_doc",
+      "rules_part_file_doc",
+      "rules_file_doc",
+      "write_rules",
+      "verify_rules",
+      "family_modules",
+      "common_funcs",
+      "part_funcs",
+      "shared_helper_sources",
+      "external_closure",
+      "_code_names",
+      "_helper_key",
+      "common_declared"
+     ],
+     "RULES_VERSION": "cb17-rules-v1",
+     "SHARED_HELPERS": [
+      [
+       "cm",
+       "write_once_json"
+      ],
+      [
+       "cm",
+       "sha_obj"
+      ],
+      [
+       "cm",
+       "iso"
+      ],
+      [
+       "c12",
+       "parse_iso"
+      ],
+      [
+       "c12",
+       "read_csv_gz"
+      ],
+      [
+       "c16",
+       "refuse_path"
+      ],
+      [
+       "c16",
+       "num"
+      ]
+     ],
+     "SIDECAR_FIELDS": [
+      "market_id",
+      "event_id",
+      "fee_type",
+      "fee_category",
+      "fee_schedule",
+      "order_price_min_tick_size",
+      "clob_rewards",
+      "created_at",
+      "event_open_interest",
+      "event_volume",
+      "series_slugs",
+      "neg_risk_market_id",
+      "accepting_orders"
+     ],
+     "STOP_RULE": "3 CPU-hours per family; a job failing twice for the same non-transient reason stops and is recorded; no re-screen of a failed CB17 test",
+     "SWEEP_DIR_RE": "^(\\d{8}T\\d{6}Z)_?[0-9a-f]*$",
+     "SWEEP_FIELDS": [
+      "sweep_id",
+      "token_id",
+      "market_id",
+      "batch_receipt_utc",
+      "book_timestamp",
+      "book_hash",
+      "best_bid",
+      "best_ask",
+      "bid_size_1",
+      "ask_size_1",
+      "depth_bid_1c",
+      "depth_ask_1c",
+      "depth_bid_5c",
+      "depth_ask_5c",
+      "n_bid_levels",
+      "n_ask_levels",
+      "tick_size",
+      "min_order_size",
+      "state"
+     ]
+    },
+    "cb17_pre": {
+     "ABS_DM_2BAND_EDGE_C": 1.0,
+     "ABS_DM_BAND_EDGES_C": [
+      1.0,
+      3.0
+     ],
+     "AGE_BIN_EDGES_S": [
+      -5.0,
+      60.0,
+      600.0,
+      3600.0
+     ],
+     "AGREE_MIN_PCT": 97,
+     "AGREE_N_MIN": 800,
+     "BRANCH_S": "S",
+     "BRANCH_T": "T",
+     "BRANCH_T_CONSEQUENCE": "family A is withdrawn uncounted before its part commit (CB15-L precedent); part A is never committed; q0407 builds E features only",
+     "B_ACTIVITY_RECIPE": "activity = pre-decision |dm| (cents) from the previous pass's first sweep to the decision sweep; global cut points (terciles) over worn non-sports eligible units; frozen in part B; never recomputed",
+     "B_END_BUFFER_S": 14400.0,
+     "B_IMBALANCE_RECIPE": "imbalance = (B5 - A5) / D1 at the second sweep, D1 = depth_bid_5c + depth_ask_5c of the first sweep; global tercile cut points over worn non-sports touch-unchanged units; frozen in part B",
+     "CAP_GAP_S": [
+      6000.0,
+      8400.0
+     ],
+     "CELL_N_MIN": 100,
+     "CENSUS_JOBS": {
+      "q0400": "pre-census A/E",
+      "q0401": "pre-census B",
+      "q0402": "pre-census C",
+      "q0403": "cost and lag map"
+     },
+     "CLASS_MERGE": "merge",
+     "CLASS_MINT": "mint",
+     "CLASS_TRANSFER": "transfer",
+     "COST_DEPTH_BANDS_C": [
+      1,
+      5
+     ],
+     "COST_HIST_MAX_C": 100.0,
+     "COST_HIST_STEP_C": 0.1,
+     "COST_RECIPE": "entry at the ask walked to the far edge of the lowest depth band that holds the position (1c band: ask + 1c; 5c band: ask + 5c; otherwise not executable within 5c), exit at the bid walked the same way; round-trip cost per share = (entry - exit) in cents plus the taker fee r x p x (1 - p) on both legs; an upper bound (EXECUTION_COSTS execution model)",
+     "COST_SIZES_USD": [
+      1000.0,
+      5000.0
+     ],
+     "C_ABS_DM_RULE": "section 2.6 leaves open which member's |dm_int| places a multi-member event-interval in a band: part pre declares the MEAN of |dm_int| over the unit's qualifying members (|dm_int| >= 0.5c), the same quantity at every level; the window part C may restate it but not change it",
+     "C_TRAILING_RECIPE": "cut points are the event's own terciles of r (and of dV) over its earlier traded intervals in the window; r_k, r_(k+1) and later never enter; fewer than 6 prior -> thin history, excluded and counted",
+     "FEE_UNKNOWN_RATE": 0.07,
+     "FIRST_DAY_S": 86400.0,
+     "FRESH_AGE_S": 60.0,
+     "GAS_RULE_TEXT": "GAS (signing gate; binding under branch S; window job q0408, NOT implemented in part pre): on SCREEN_8's touch-consistent subset (CB13-T's rule by pin) the same agreement rule must hold (overall >= 97% with Wilson 95% lower bound >= 0.95 and n >= 800, and >= 97% in every touch-age band, price band and class with n >= 100); both the Data API side and the touch-derived side are features, no mark is read; otherwise A1 is 'not testable (signing)', counted",
+     "IMBALANCE_AT": "second sweep",
+     "INFORMATIVENESS": {
+      "binary": "numerator = units in (unit x stratum) cells holding both labels; denominator = all units of the test",
+      "continuous": "numerator = units in (unit x stratum) cells with >= 2 units and x not constant in the cell; denominator = all B2 units",
+      "selection": "the finest level (0 finest) whose worn-data share >= 60%; if none, level 2 and the window's 50% rule binds; A's share is computed on the selected branch's population",
+      "three_class": "numerator = transfer and mint-heavy units in cells holding at least one transfer and one mint-heavy unit; denominator = all transfer and mint-heavy units (merge-heavy units are reported, not in the share)"
+     },
+     "LADDERS": {
+      "A": {
+       "kind": "binary",
+       "label": "open",
+       "levels": {
+        "0": "P band(3) x size band(3) x UTC 6h band(4) x spread band(4) = 144",
+        "1": "P band(3) x spread {<=2c, >2c} = 6",
+        "2": "P band(3)"
+       },
+       "unit": "market x d"
+      },
+      "B1": {
+       "kind": "binary",
+       "label": "old vs fresh",
+       "levels": {
+        "0": "UTC 6h band(4) x spread band(4) x activity tercile(3) x reward programme(2) = 96",
+        "1": "activity tercile(3) x UTC 12h band(2) x spread {<=2c, >2c} = 12",
+        "2": "activity tercile(3)"
+       },
+       "unit": "token"
+      },
+      "B2": {
+       "kind": "continuous",
+       "label": "x (continuous)",
+       "levels": {
+        "0": "UTC 6h band(4) x spread band(4) x activity tercile(3) x imbalance tercile(3) = 144",
+        "1": "activity tercile(3) x imbalance tercile(3) = 9",
+        "2": "imbalance tercile(3)"
+       },
+       "unit": "token"
+      },
+      "C": {
+       "kind": "three_class",
+       "label": "transfer / mint-heavy / merge-heavy",
+       "levels": {
+        "0": "UTC 6h band(4) x |dm_int| band(3) x trailing dV tercile(3) x moving members {1, >=2}(2) = 72",
+        "1": "|dm_int| band(3) x trailing dV 2-band(2) = 6",
+        "2": "|dm_int| {0.5-1c, >1c} = 2"
+       },
+       "unit": "event"
+      }
+     },
+     "LAG_HIST_MAX_S": 86400.0,
+     "LAG_HIST_STEP_S": 60.0,
+     "LAG_THRESHOLDS_S": [
+      300.0,
+      540.0,
+      7200.0
+     ],
+     "LEVEL_BAND_EDGES": [
+      4,
+      10
+     ],
+     "LIQ_BAND_EDGES_USD": [
+      10000.0,
+      100000.0
+     ],
+     "MARK_WINDOW_S": [
+      6600.0,
+      7800.0
+     ],
+     "MAX_SPREAD": 0.1,
+     "MEMBER_END_BUFFER_S": 10800.0,
+     "MID_RANGE": [
+      0.03,
+      0.97
+     ],
+     "MIN_MOVE_C": 0.5,
+     "MOVING_BANDS": [
+      1,
+      2
+     ],
+     "OLD_AGE_S": 600.0,
+     "PASS_GAP_S": 1800.0,
+     "POWER_MDE_MAX_C": 1.0,
+     "PREV_PASS_MAX_GAP_S": 9000.0,
+     "PROXIES": {
+      "A": "pre-fill move d x (touch-capture mid - mid of the capture before it), cents",
+      "B1": "L_pre: excursion beyond the touch of two passes earlier, evaluated at the mid one pass earlier, on old vs fresh today",
+      "B2": "dm_pre: previous pass's first-sweep mid to the decision mid, cents, on x / SD_x",
+      "C": "C_pre = sign(dm_int) x (m_(k-1) - m_(k-2)), cents, on the transfer and merge indicators",
+      "E": "same, first-day versus later within market"
+     },
+     "P_BAND_EDGES": [
+      0.03,
+      0.2,
+      0.8,
+      0.97
+     ],
+     "P_BAND_NAMES": [
+      "P[0.03,0.20)",
+      "P[0.20,0.80]",
+      "P(0.80,0.97]"
+     ],
+     "ROUND_SIZE_MULTIPLE": 10.0,
+     "SELECT_SHARE_MIN": 0.6,
+     "SE_G_MIN": 15,
+     "SE_RECIPE": "fixed-effect OLS of the pre-outcome proxy on the family's label/state, demeaned within the declared unit; cluster-robust CR1 sandwich per way; the written number is the SE of the tested coefficient, the max over ways with G >= 15 (CR2 / wild bootstrap belong to the window part); no point estimate of any proxy is returned or written; MDE = 3.80 x SE",
+     "SIDE_BUY": "BUY",
+     "SIDE_SELL": "SELL",
+     "SIZE_BAND_EDGES_USD": [
+      2500.0,
+      10000.0
+     ],
+     "SMOKE_NEEDS": [],
+     "SPLIT_PASS_S": 300.0,
+     "SPREAD_2BAND_EDGE": 0.02,
+     "SPREAD_BAND_EDGES": [
+      0.01,
+      0.02,
+      0.05
+     ],
+     "TERCILE_QUANTILES": [
+      0.3333333333333333,
+      0.6666666666666666
+     ],
+     "TOUCH_AGE_BANDS_S": [
+      [
+       0.0,
+       1200.0
+      ],
+      [
+       1200.0,
+       3600.0
+      ]
+     ],
+     "TOUCH_AGE_BAND_NAMES": [
+      "0-20min",
+      "20-60min"
+     ],
+     "TOUCH_AGE_MAX_S": {
+      "S": 8100.0,
+      "T": 3600.0
+     },
+     "TRAILING_MIN_PRIOR": 6,
+     "WILSON_LOWER_MIN": 0.95,
+     "WILSON_Z": 1.959964,
+     "WINDOW_SHARE_MIN": 0.5
+    }
+   },
+   "declared": {
+    "cb17_census": {
+     "created_at_captures": [
+      "20261012T003103Z_2df48d64",
+      "20261015T223102Z_2eae9aa6"
+     ],
+     "jobs": {
+      "q0400": "pre_census_A",
+      "q0401": "pre_census_B",
+      "q0402": "pre_census_C",
+      "q0403": "cost_lag_map"
+     },
+     "memory": "streaming: one capture, sweep or day file at a time; compact arrays for the B frame (q0401 <= 800 MB)",
+     "never_read": [
+      "mark or outcome fields",
+      "any capture or sweep after a unit's decision time (the next-pass check reads presence and the two-sided state only)",
+      "wallet fields",
+      "the k+1 capture (C)"
+     ],
+     "results": {
+      "A": "pre_census_A.json",
+      "B": "pre_census_B.json",
+      "C": "pre_census_C.json",
+      "cost": "cost_lag_map.json"
+     },
+     "static_rule": "static sidecar attributes are taken from the first worn capture carrying the market (CB13 load_quote_index precedent)",
+     "versions": {
+      "A": "cb17-pre-census-A-v1",
+      "B": "cb17-pre-census-B-v1",
+      "C": "cb17-pre-census-C-v1",
+      "cost": "cb17-cost-lag-map-v1"
+     }
+    },
+    "cb17_pre": {
+     "counts_only": true,
+     "item_1_worn_inputs": {
+      "captures": "snapshots/<stamp> with start in [2026-10-11T22Z, 2026-10-16) (q0400 touch lookback) / [2026-10-12, 2026-10-16)",
+      "cb13_t_screen": [
+       "creative_batch13/t_screen/fills.csv.gz",
+       "creative_batch13/t_screen/labels.csv.gz"
+      ],
+      "created_at_captures": [
+       "20261012T003103Z_2df48d64",
+       "20261015T223102Z_2eae9aa6"
+      ],
+      "cutoff": "2026-10-16T00:00:00Z",
+      "monitor": "live_trades/trades-2026101{2..5}.jsonl",
+      "sweeps": "book_sweeps/<stamp> with start in [2026-10-12, 2026-10-16)"
+     },
+     "item_2_branch_rule": {
+      "agree_min_pct": 97,
+      "bands": {
+       "class": "LABELLER class",
+       "p": [
+        "P[0.03,0.20)",
+        "P[0.20,0.80]",
+        "P(0.80,0.97]"
+       ],
+       "touch_age": [
+        "0-20min",
+        "20-60min"
+       ]
+      },
+      "cell_n_min": 100,
+      "consequence_T": "family A is withdrawn uncounted before its part commit (CB15-L precedent); part A is never committed; q0407 builds E features only",
+      "fail_or_not_run": "T",
+      "gas": "GAS (signing gate; binding under branch S; window job q0408, NOT implemented in part pre): on SCREEN_8's touch-consistent subset (CB13-T's rule by pin) the same agreement rule must hold (overall >= 97% with Wilson 95% lower bound >= 0.95 and n >= 800, and >= 97% in every touch-age band, price band and class with n >= 100); both the Data API side and the touch-derived side are features, no mark is read; otherwise A1 is 'not testable (signing)', counted",
+      "n_min": 800,
+      "pass": "S",
+      "wilson_lower_min": 0.95
+     },
+     "item_3_strata": {
+      "c_abs_dm_rule": "section 2.6 leaves open which member's |dm_int| places a multi-member event-interval in a band: part pre declares the MEAN of |dm_int| over the unit's qualifying members (|dm_int| >= 0.5c), the same quantity at every level; the window part C may restate it but not change it",
+      "informativeness": {
+       "binary": "numerator = units in (unit x stratum) cells holding both labels; denominator = all units of the test",
+       "continuous": "numerator = units in (unit x stratum) cells with >= 2 units and x not constant in the cell; denominator = all B2 units",
+       "selection": "the finest level (0 finest) whose worn-data share >= 60%; if none, level 2 and the window's 50% rule binds; A's share is computed on the selected branch's population",
+       "three_class": "numerator = transfer and mint-heavy units in cells holding at least one transfer and one mint-heavy unit; denominator = all transfer and mint-heavy units (merge-heavy units are reported, not in the share)"
+      },
+      "ladders": {
+       "A": {
+        "0": "P band(3) x size band(3) x UTC 6h band(4) x spread band(4) = 144",
+        "1": "P band(3) x spread {<=2c, >2c} = 6",
+        "2": "P band(3)"
+       },
+       "B1": {
+        "0": "UTC 6h band(4) x spread band(4) x activity tercile(3) x reward programme(2) = 96",
+        "1": "activity tercile(3) x UTC 12h band(2) x spread {<=2c, >2c} = 12",
+        "2": "activity tercile(3)"
+       },
+       "B2": {
+        "0": "UTC 6h band(4) x spread band(4) x activity tercile(3) x imbalance tercile(3) = 144",
+        "1": "activity tercile(3) x imbalance tercile(3) = 9",
+        "2": "imbalance tercile(3)"
+       },
+       "C": {
+        "0": "UTC 6h band(4) x |dm_int| band(3) x trailing dV tercile(3) x moving members {1, >=2}(2) = 72",
+        "1": "|dm_int| band(3) x trailing dV 2-band(2) = 6",
+        "2": "|dm_int| {0.5-1c, >1c} = 2"
+       }
+      },
+      "select_share_min": 0.6,
+      "window_share_min": 0.5
+     },
+     "item_4_cut_points": {
+      "b_activity": "activity = pre-decision |dm| (cents) from the previous pass's first sweep to the decision sweep; global cut points (terciles) over worn non-sports eligible units; frozen in part B; never recomputed",
+      "b_imbalance": "imbalance = (B5 - A5) / D1 at the second sweep, D1 = depth_bid_5c + depth_ask_5c of the first sweep; global tercile cut points over worn non-sports touch-unchanged units; frozen in part B",
+      "c_trailing": "cut points are the event's own terciles of r (and of dV) over its earlier traded intervals in the window; r_k, r_(k+1) and later never enter; fewer than 6 prior -> thin history, excluded and counted",
+      "min_prior": 6
+     },
+     "item_5_planning_se": {
+      "proxies": {
+       "A": "pre-fill move d x (touch-capture mid - mid of the capture before it), cents",
+       "B1": "L_pre: excursion beyond the touch of two passes earlier, evaluated at the mid one pass earlier, on old vs fresh today",
+       "B2": "dm_pre: previous pass's first-sweep mid to the decision mid, cents, on x / SD_x",
+       "C": "C_pre = sign(dm_int) x (m_(k-1) - m_(k-2)), cents, on the transfer and merge indicators",
+       "E": "same, first-day versus later within market"
+      },
+      "recipe": "fixed-effect OLS of the pre-outcome proxy on the family's label/state, demeaned within the declared unit; cluster-robust CR1 sandwich per way; the written number is the SE of the tested coefficient, the max over ways with G >= 15 (CR2 / wild bootstrap belong to the window part); no point estimate of any proxy is returned or written; MDE = 3.80 x SE",
+      "ways": "A/E: event, path key x 6h block, 6h block; B/C: event, first series slug (else event) x 6h block, 6h block, UTC hour"
+     },
+     "item_6_cost_map": {
+      "depth_bands_c": [
+       1,
+       5
+      ],
+      "fee_unknown_rate": 0.07,
+      "liq_band_edges_usd": [
+       10000.0,
+       100000.0
+      ],
+      "recipe": "entry at the ask walked to the far edge of the lowest depth band that holds the position (1c band: ask + 1c; 5c band: ask + 5c; otherwise not executable within 5c), exit at the bid walked the same way; round-trip cost per share = (entry - exit) in cents plus the taker fee r x p x (1 - p) on both legs; an upper bound (EXECUTION_COSTS execution model)",
+      "sizes_usd": [
+       1000.0,
+       5000.0
+      ]
+     },
+     "jobs": {
+      "q0400": "pre-census A/E",
+      "q0401": "pre-census B",
+      "q0402": "pre-census C",
+      "q0403": "cost and lag map"
+     },
+     "no_outcome": "no mark, outcome, resolution, wallet or later capture is read; the only post-decision field is static created_at"
+    },
+    "common": {
+     "census": {
+      "cutoff": "2026-10-16T00:00:00Z",
+      "days": [
+       "20261012",
+       "20261013",
+       "20261014",
+       "20261015"
+      ],
+      "rule": "no census path reads a row at or after the cut-off; a file or directory outside the window is refused",
+      "start": "2026-10-12T00:00:00Z"
+     },
+     "election_night": [
+      "2026-11-03T18:00:00Z",
+      "2026-11-05T00:00:00Z"
+     ],
+     "field_whitelists": {
+      "captures": [
+       "capture_id",
+       "received_utc",
+       "market_id",
+       "condition_id",
+       "event_id",
+       "closed",
+       "active",
+       "binary",
+       "best_bid",
+       "best_ask",
+       "liquidity",
+       "volume24hr",
+       "end_date",
+       "clob_token_id_0",
+       "neg_risk",
+       "neg_risk_market_id"
+      ],
+      "fills": [
+       "status",
+       "condition_id",
+       "market_id",
+       "event_id",
+       "label",
+       "path_key",
+       "tau",
+       "tau_last",
+       "d",
+       "P",
+       "size",
+       "cash",
+       "spread0",
+       "mid0",
+       "prev_mid",
+       "touch_age_s",
+       "block",
+       "day"
+      ],
+      "forbidden_captures": [
+       "chg_1h",
+       "chg_1d",
+       "chg_1w",
+       "last_trade_price",
+       "open_interest",
+       "volume_num",
+       "uma_resolution_statuses",
+       "outcome_prices",
+       "closed_time"
+      ],
+      "forbidden_output": [
+       "side",
+       "wallet",
+       "wallet_hash",
+       "proxyWallet",
+       "tx16",
+       "transactionHash",
+       "tx_hash",
+       "hash",
+       "name",
+       "pseudonym",
+       "recv_ts",
+       "chg_1h",
+       "chg_1d",
+       "chg_1w",
+       "ctx_chg_1h",
+       "uma_resolution_statuses",
+       "outcome_prices",
+       "outcomePrices",
+       "umaResolutionStatus",
+       "closedTime",
+       "closed_time",
+       "result",
+       "settlement_value",
+       "p_end",
+       "mark",
+       "mark_out",
+       "m_h",
+       "beta",
+       "est",
+       "estimate",
+       "coef",
+       "effect",
+       "pnl",
+       "net"
+      ],
+      "forbidden_prints": [
+       "key",
+       "wallet_hash",
+       "wallet",
+       "proxyWallet",
+       "ctx_chg_1h",
+       "ctx_status",
+       "chg_1h"
+      ],
+      "labels": [
+       "condition_id",
+       "label"
+      ],
+      "prints": [
+       "ts",
+       "condition_id",
+       "token_id",
+       "outcome_index",
+       "price",
+       "size",
+       "cash",
+       "title",
+       "slug",
+       "ctx_event_id",
+       "ctx_market_id",
+       "ctx_category",
+       "ctx_fee_type"
+      ],
+      "recv_ts_q0403_only": [
+       "recv_ts"
+      ],
+      "side_q0400_only": [
+       "side"
+      ],
+      "sidecar": [
+       "market_id",
+       "event_id",
+       "fee_type",
+       "fee_category",
+       "fee_schedule",
+       "order_price_min_tick_size",
+       "clob_rewards",
+       "created_at",
+       "event_open_interest",
+       "event_volume",
+       "series_slugs",
+       "neg_risk_market_id",
+       "accepting_orders"
+      ],
+      "sweeps": [
+       "sweep_id",
+       "token_id",
+       "market_id",
+       "batch_receipt_utc",
+       "book_timestamp",
+       "book_hash",
+       "best_bid",
+       "best_ask",
+       "bid_size_1",
+       "ask_size_1",
+       "depth_bid_1c",
+       "depth_ask_1c",
+       "depth_bid_5c",
+       "depth_ask_5c",
+       "n_bid_levels",
+       "n_ask_levels",
+       "tick_size",
+       "min_order_size",
+       "state"
+      ]
+     },
+     "holdout": "CB13-T HOLDOUT paths are refused; only creative_batch13/t_screen/{fills,labels}.csv.gz may be opened by a census",
+     "lookback_floor": "2026-10-26T00:00:00Z",
+     "mde": "3.8 x SE",
+     "output_roots": [
+      "creative_batch17"
+     ],
+     "refused_extra": [
+      "creative_batch16"
+     ],
+     "result_rule": "counts, shares and standard errors only; a result with a key naming an outcome, a mark, a point estimate or a forbidden column is refused",
+     "sports_in_primary": false,
+     "stop_rule": "3 CPU-hours per family; a job failing twice for the same non-transient reason stops and is recorded; no re-screen of a failed CB17 test"
+    }
+   },
+   "func_sources_sha256": {
+    "cb17_census.a1_se": "34cfbe6f2bee18c3ecc05f3a398ea60f749c5802939bb14632596c19fb6f8e9f",
+    "cb17_census.age_bin": "5b8f613d8a2518e024e6728542ebadf083ad40f899ba2c4c942dcaa1c5fe389e",
+    "cb17_census.age_bin_first_day": "e25a25f9b2a5d080991c10ce4b5a4ca4fae5d46be5f6a857e1c6f2475be6e83e",
+    "cb17_census.band_counts": "2283e8b298e501f92616fa27a42b874eccaf748a8396270d6b1bedfe8b5e5b4f",
+    "cb17_census.build_static": "64cc8413c57ecf381bf17eb40a8e592bd86c748530fec2131b83a521d515e6c1",
+    "cb17_census.cost_lag_map": "bc5eab29bee718ba2c32c48a07b6f1150b2839ee5d679f33842a44ab57b8a62c",
+    "cb17_census.declared": "936a1a0a5bbbdab1f580fe355cc92ee1601599d77e2e8212ce09922caadba23a",
+    "cb17_census.ep_cached": "3d0ec33f7be8abc5b6eb02b255efdb7154ab004952d6feb77a27969b338fb889",
+    "cb17_census.first_day_se": "49a562b088bb05a63c6c233009a76c19096b0f4ffb7c2916298434c2e7cb467b",
+    "cb17_census.hour6_name": "34d0c7740878c1380de80ce8d7e3bc1fcd1b30428827cbd324c89415609e4b22",
+    "cb17_census.is_sports_sidecar": "76fc0cd4ae9e4294d26ff567968959c4c118c6e78be87a179d494cf4daa8cb61",
+    "cb17_census.is_true": "29827678ff97bc43e2f7044a0dbe6b59b17a4346e773565dc136a44e9f6b1eb0",
+    "cb17_census.iter_cols": "493f8f76c09107631687d60d0062b1346813ff8acbc947560526cffb9ab388d2",
+    "cb17_census.iter_dir_cols": "df64446d2921b8a37d0a299bccc447052dc8ce9bce495a788ffe69c59fa7aa69",
+    "cb17_census.iter_monitor": "21399ac8156eb85edec222bf2de3c4ebca27b995f0309b7d369dcb6b71b60a16",
+    "cb17_census.list_stamped": "34b286f8383082a04a42e233b034d40a6fd8830b69302030e634ed068df5aa12",
+    "cb17_census.load_capture_state": "ff4d3afb79c8559135857a5664148bf35b6dd1a31fa55156fb5e635577150fc8",
+    "cb17_census.load_sweep": "5ea807190fb12e6db2e50858b627d4646bff83cdd281d9b1d1da9aca5db76242",
+    "cb17_census.pair_passes": "715a6267f44bcc703c965f03a01044c81a6a3bc38953ff08eb082df88fe7f3dc",
+    "cb17_census.pop_report": "87344fdbaf67fc29abc89443b27102cbad3883db53f6a5545c1e14a31e111041",
+    "cb17_census.pre_census_A": "0ca2030dedab31845c3960607c0c0b96ec2e5afb9a61ba1fec6da025575d25a4",
+    "cb17_census.pre_census_B": "66cb5f8eb479b00d571d56e947812015be78d95039ce5f6625109e5279e9eba1",
+    "cb17_census.pre_census_C": "a18f400d129a833b06aeaccac8942c21198e5994fe03e3c39931ed767c02623d",
+    "cb17_census.read_created_at": "f66edf35886baf26cf651d1d24f8653790df73c0b9b1dfab8c197aecf13893e1",
+    "cb17_census.read_fills": "bc8897f2f4883658a9fa6fa214a27371e136b42cadd719616e1e35b2c7759744",
+    "cb17_census.token_open": "951f3c90457b3eb4665f0ee4862a73c7b77cc1224fef02fdd61d552a9efd4cb2",
+    "cb17_census.touch_ok": "7bdf731041c4f9522b792bb5b0f1d21598341d87ed79c088cc2cd996c5b1dd8a",
+    "cb17_common.assert_clean_result": "3a865ae06f010f749f0bae909cb887c834a3b60f0e1d89f1b8a271a762c7d211",
+    "cb17_common.band6": "81afd606517581d6995ce0c1669b16aad572039800d5fc4f7061ef351be66097",
+    "cb17_common.block6": "2131576674fc52a567f06a2061131fdaaa0a97e9dcb7a44f00b08e5485aedef9",
+    "cb17_common.census_cutoff": "a13aaeeae162f7598379c7023fde465f4aa0d132b35162169995175532e7b346",
+    "cb17_common.ep": "a546e4f0ed5bdf4883cff3d6cc7bf23bbba9306934f9954682127542e84cb790",
+    "cb17_common.guard_capture_dir": "1d7f5ad01347e1d2430cc128827194550e08cc4f5a14cbf556f71f44f298ba6f",
+    "cb17_common.guard_cb13_t_screen_file": "a7a64ac6b57849012750657fd558e55557b26cc0b16526341f7b9e1f0dd380ad",
+    "cb17_common.guard_census_time": "3815f6e806925496c8a442311f54bab84ba80a348c41b82268c19d103f7ba68c",
+    "cb17_common.guard_monitor_file": "7f7436b0b2ec1bbac4a8e275c4630f610e52f3c9c7863153b2997bafe8ae1f61",
+    "cb17_common.guard_not_window": "1642b57ad0d491ac4c20dc8fb2c3f331a5c098f61410821430e7e7e8e27a4f73",
+    "cb17_common.guard_stamped_dir": "688757abe49ec21d00441e7a616258c00f32fbeedd04fe1aa2e8e1bfa2678ee1",
+    "cb17_common.guard_sweep_dir": "d55536a6d85ead4985036ab73e7c70afa445f2bdaedf42e6d9dfd39507199928",
+    "cb17_common.iso": "96298691e53e2392f937e45ce36464ac77a5f4d7df98a50591b9fe003faf8488",
+    "cb17_common.log_descriptive": "4615b3ac23b46a28554e1cb1d6c3314800e15a4e88b0f550ae674d9292be4315",
+    "cb17_common.num": "6b0d39403e1916672eadc55c8241ff0c3cdfb233983e5e8b36b400140ab6f068",
+    "cb17_common.refuse_path": "f9e1f9bbe6c8d24b4e8ffce00039daf50642c9e19bf495e93f96dd436e7cfd2d",
+    "cb17_common.require_disk": "a8c2fc48de1b4187b9d0515147212dffdca1fbaad9894aa676e4c7825b2fa58c",
+    "cb17_common.require_output_root": "0c63b0d653f4735e287c72adaedbf2d01904c505684097207f5c664414d3aff3",
+    "cb17_common.sha256_file": "9b9e433786c3b739ebdf2370926158a2e42a946e90aae266587c550a4a08ee8b",
+    "cb17_common.sha256_obj": "29f7a73c2109e9902f07d1b4343c0975871e392d9e53aea23bc0b4e5d4ca548f",
+    "cb17_common.stamp_epoch": "032feaa1cc3be4e5e8c47210b56738e599bbc15ccbb3019068edab55d2838aab",
+    "cb17_common.utc_hour": "ea6422f9fe7208fa7aa19a5478016e8413e3742cb1d51927ffc98f7020dbff4a",
+    "cb17_common.write_result_once": "91c8c5fa4a6103a5f0213a8f2101d6e383c8679779192684521e58262aa32de4",
+    "cb17_pre.Hist": "3ec59c15fc96fb7f70215bb73b5e6c5b9f2dd497d8e9c914c0ba938caf696e83",
+    "cb17_pre._codes": "df40c0455d0dba00d39a32e70e614f290840776ffc287fce81680c327a6f3115",
+    "cb17_pre._demean": "cedd32d423e5defb499fb5022f589bb1a50169ea6c0fbc8b79412281c472076a",
+    "cb17_pre.abs_dm_2band": "3c0f248d0a14df8b14f758205d97c49fac886018737dce136387b6ff85fc4baa",
+    "cb17_pre.abs_dm_band": "a4133989e05acaf87037f0ae2de615cc1f3a4b8799bdf7fe72cc6dfbacedb426",
+    "cb17_pre.agreement_rule": "4c0687a2f7b92b24cca13cc03559be2415ea1f19f2d95d695fc0c2661d2552bf",
+    "cb17_pre.branch_decision": "22161a9065c82c233590555cd55671fa51de9d728e8d34ae00f6715a59660ecb",
+    "cb17_pre.c_class": "b825731d6842b4b4bc61d062143e833b67f3fcfe7a97ea48724ecbab83df5c9b",
+    "cb17_pre.declared": "c67e257bd83d5a361463f211f05a20cb353ae7ac711d5e6ad4798b1eec8888a4",
+    "cb17_pre.fe_cluster_se": "a2c90a6ad95b0be4fc0a057a8d6b8e32121889b3c09f9f272b601871ba1f3682",
+    "cb17_pre.informativeness": "9f09aa1e0277483648e8156f4918e562678ef538ed43db8d22ddf127b1083267",
+    "cb17_pre.informativeness_binary": "12d228680d6c830c5f750cf8df6efe247927feeee2b993c0d0c99c0198c71105",
+    "cb17_pre.informativeness_continuous": "71cfac865dd1d4bf797f5ce487e806c948a25a50c8c46ebb13df438e3d33b4fa",
+    "cb17_pre.informativeness_three_class": "bf464fc50c968997f2cebc1381f7dc1a44aaa13c3ae5aea599b215e6c1f0a774",
+    "cb17_pre.level_report": "7a488c98448c609857651d62d2b5bff0609e37ee769a75e4eee5aa6918dbf496",
+    "cb17_pre.liq_band": "5e9f40cd3668450601ae6da2f03367ca27db90003a3f0d428334872b0495e7cf",
+    "cb17_pre.p_band": "6541a1facf39080523c2ecf36cc6561df5a6179c826f2b516ff42b931b46527c",
+    "cb17_pre.round_trip_cost_c": "4f679d8053bb6349154e26e1e1e1e748ca35b8348bfc49bccd5cb7ea444d014c",
+    "cb17_pre.select_level": "a529a560d656ad0703ca6a658a408b60331c969277680e469c201742da8ca10e",
+    "cb17_pre.size_band": "1b359febf9f101c19752e6c7570af09fe9df5eccd3c2dc2135fedfefb03b074c",
+    "cb17_pre.spread_2band": "ae022dc654bf869a8a072547b8d2c603d296737cb3e6cc8de728a2a06b318a9d",
+    "cb17_pre.spread_band": "9d271520024ac084fed3df342424ac0b4af17a5b50b548e22894820687007579",
+    "cb17_pre.stratum": "f8a20f5a50451e273935607e869af59c17a43c8bf1fb1429ed4502e8528c6155",
+    "cb17_pre.tercile_cuts": "f30b56c70d7132fc5b261205688ac0e1b78e822df736a7e3968b5d6ab3aa1255",
+    "cb17_pre.tercile_of": "98007c7113870ec27762a6439f0e5eac818780b9a49594702c7558639585381b",
+    "cb17_pre.touch_age_band": "5c091379d974b5d5574969bcd81d2272939099e179ce59b3f6b169e0297275c4",
+    "cb17_pre.trailing_cuts": "b553d5a26ffea8139e629e20a86a258db97cc8340ab6615b79eb7bb86bc95d89",
+    "cb17_pre.trailing_dv": "c5871fb975c713d66afedb43c22774919b16b83e7677b025629b72fd62464833",
+    "cb17_pre.walk_edge": "1f4acf01a01a05155e2aaad76ea45f49ba00858b1b762ab19cb69814ed7708b2",
+    "cb17_pre.wilson_lower": "ac3bcb688497e812f6337d150701cf3e6d3fc81c54f877fccd1fcc0e1eb5016d"
+   },
+   "funcs_sha256": "b5efc09346ec6e7592c5afadfb762efb4843e8fa5c4423cc9937f5c6f1a4cb82",
+   "modules": [
+    "cb17_common",
+    "cb17_pre",
+    "cb17_census"
+   ],
+   "part": "pre",
+   "part_declared": true,
+   "rules_sha256": "c186fdcdf0b48fc073f19d2912adf2c29aa7de5af58a1bb0f37cdf0dbda27f8d",
+   "rules_version": "cb17-rules-v1",
+   "shared_helper_sources_sha256": {
+    "cb10_common.require_disk": "1e0e4e4682fa9a16fa71df384f5163983fa5cfa675b15a9b7f009dbbf3d81370",
+    "cb12_common.parse_iso": "f56a746aac64f2456a69e6ad81c952e3b4ebff1aa8a167e5ab567d2182477da3",
+    "cb12_common.read_csv_gz": "0de78d753f9c22f4985ca862de9e64db28b0333f859376b5d38ce4eb9aedc535",
+    "cb13_common.num": "6b0d39403e1916672eadc55c8241ff0c3cdfb233983e5e8b36b400140ab6f068",
+    "cb13_common.read_csv_gz": "dd1530f10901a596b85fc5801beee783bf19c890fc0578930899b4afcab28176",
+    "cb13_label._norm": "284192491e6c3ecddba702e0ed4e24ebdbd8282155414e07b4613d888c1ce709",
+    "cb13_label.classify": "d94d6645e05e07032fa0d73f63375849acbf3b92f1f83e64524e636d0203a0dc",
+    "cb13_label.first_series_slug": "7bfcc9ce328d1f75f82774a57ad26aa933fbfb7085a9887ca003101f69e171d2",
+    "cb13_label.underlying_of": "89d25064c2b8d141dbb60f5c95297a6ea0bf72ee629b5e90dda79cec2e5956a9",
+    "cb13_t.fee_rate_of": "97e6304d1acb5621d7f94485c43620097a47ccd8722b1b458c90e711f59968a0",
+    "cb13_t.read_fills": "ffd50d580b802894e264276ace7905b2dd299a57c1b9982b87c9f3ec7344d002",
+    "cb13_t.two_sided": "72495426a00ebbe012e8c1c798b804944ff9ab9d1fa61b59226f122f3b97ce48",
+    "cb16_common.num": "6b0d39403e1916672eadc55c8241ff0c3cdfb233983e5e8b36b400140ab6f068",
+    "cb16_common.refuse_path": "984c7b1020d07266c5a5d749572ed0d4042dbcd377bc2f1a3323cf608fbebbd9",
+    "cb16_common.refused_names": "32b50ab79443589af19374c0cc7519d67f852856b04b43f23c510ec76c27b790",
+    "cb16_common.require_disk": "66681a0d33bf0192436c44a5e343dfbc775a355bfe24fdfdfd809fb2c08f1ada",
+    "cb6_tail.NotNow": "08b9fb3b8355ad01e3b1dd27581ebae1e1efaf463f20232f3c0c91fbb18dab8f",
+    "cb6_tail.Refused": "60c0f89a153d7221261fbcf72fab5c3575768e044ebe16651a7179da8abbb6ed",
+    "cb8_common.iso": "ac272e28c92099a676a96b2c020c11350330df755b773770371939d966fa80ab",
+    "cb8_common.sha_obj": "cafbecf98cedc4dfb52e87251e7a10fac6b4cb9acebcdc0085e5620305953a1e",
+    "cb8_common.write_once_json": "96de340201f4213c580706a6c2f57a3addda7abf3019daa2f1868cd49c4eadb9",
+    "provenance.EvidenceRoleError": "7b336a992c69d6d56ec45da927dce137014fe0b34fbfd0a21ab0c30a79e0ec35",
+    "provenance.append_trial": "fb9994b0432e034eae414186f16cd95ff59f1158dc0d028d7e41375d9e19353f",
+    "provenance.role_required": "85cad103453f602808701521edb26f5d0474b9269f33325c3861367be2004220",
+    "provenance.validate_evidence_role": "42b61e7d9e401ab2dd6b098a5012cfa82f776576e3f1a12ba492f71ca82d2522"
+   },
+   "wallet": {
+    "note": "no CB17 job reads or stores a wallet field or a transaction hash (tx16 is aggregated in memory and discarded); the Data API side field is read by q0400 only (an agreement count)",
+    "read": false
+   }
+  }
+ },
+ "rules_version": "cb17-rules-v1"
+}

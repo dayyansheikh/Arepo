@@ -1,0 +1,40 @@
+{
+ "id": "q0400_cb17_pre_census_A",
+ "title": "CB17 pre-census A/E (counts only, worn CB13-T SCREEN [2026-10-12,10-16)): open/close label from token x d on CB13-T fills; both-label (market,d) cells, markets, events; label by class and price band; side-agreement branch measurement (Data API side vs touch-derived taker side: overall share, Wilson bound, and per touch-age band {0-20, 20-60 min}, P band and LABELLER class with n >= 100) -> branch S, or branch T and A withdrawn uncounted, per part pre; composition-guard informativeness share at strata levels 0/1/2 on the selected branch population (features only) -> selected level; non-sports transactions eligible under branch S; first-day counts (E); planning SE of A1 on the pre-fill proxy under both branches (SEs only)",
+ "family": "creative_batch_17",
+ "priority": 9,
+ "expected_value": "A's fill source and planning MDE; E population",
+ "data": [
+  "creative_batch13/t_screen/{fills,labels}.csv.gz (features)",
+  "live_trades/trades-2026101{2..5}.jsonl (whitelist + side)",
+  "snapshots/ [2026-10-11T22Z, 2026-10-16) (whitelist; no capture after a unit's tau except created_at)"
+ ],
+ "resources": {
+  "mem_mb": 600,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb17.py",
+  "pre-census",
+  "--family",
+  "A",
+  "--rules",
+  "../docs/research_lab/seals/cb17_rules.json",
+  "--part",
+  "pre",
+  "--disk-cap-gb",
+  "0.01",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch17/pre_census_A.json",
+  "trials.jsonl (cb17_descriptive)"
+ ],
+ "next_action": "branch S: record the branch and strata level in rules part A before its commit; branch T: ledger withdrawal of A (uncounted)",
+ "notes": "DRAFT. Counts and SEs only; no M, no mark capture opened (unit-tested). side read for the agreement count only. Rules part pre sha256 (seals/cb17_rules.json, written 2026-10-20; common/A/B/C/E undeclared until their commits per section 1.4 Order): pre c186fdcdf0b48fc073f19d2912adf2c29aa7de5af58a1bb0f37cdf0dbda27f8d. Code: backend/astrolabe/research_lab/cb17_common.py, cb17_pre.py, cb17_census.py and backend/scripts/run_cb17.py; frozen by part pre after its commit (later parts add new modules). CB17 DRAFT, not in queue/jobs: needs the committed rules file and the science-reviewer freeze check of the code against section 10.4; the coordinator regenerates the rules and this sha if any pre module changes. cpu lane, no network, counts and planning SEs only; the first run is on the host (worn files)."
+}

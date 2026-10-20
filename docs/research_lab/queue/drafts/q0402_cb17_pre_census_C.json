@@ -1,0 +1,38 @@
+{
+ "id": "q0402_cb17_pre_census_C",
+ "title": "CB17 pre-census C (counts only, worn captures [2026-10-12,10-16)): traded non-sports event-intervals; OI-changed share (GCU input); units with >= 6 prior traded intervals (trailing terciles) and events holding them; within-event IQR of r; single / neg-risk / other splits; member-move share; member-closing exclusions (k-1, k only); composition-guard informativeness shares at strata levels 0/1/2 (3-class rule: transfer and mint-heavy units in cells holding both) -> selected level; planning SE of C1 on C_pre (SEs only)",
+ "family": "creative_batch_17",
+ "priority": 9,
+ "expected_value": "C gates and planning MDE before the freeze",
+ "data": [
+  "snapshots/ [2026-10-12, 2026-10-16) rows + rows_ext (whitelist)"
+ ],
+ "resources": {
+  "mem_mb": 600,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb17.py",
+  "pre-census",
+  "--family",
+  "C",
+  "--rules",
+  "../docs/research_lab/seals/cb17_rules.json",
+  "--part",
+  "pre",
+  "--disk-cap-gb",
+  "0.01",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 3000,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch17/pre_census_C.json",
+  "trials.jsonl (cb17_descriptive)"
+ ],
+ "next_action": "write the selected level into part C before its commit",
+ "notes": "DRAFT. Eligibility, classes, strata and C_pre use captures <= k only; no k+1 row is read. Rules part pre sha256 (seals/cb17_rules.json, written 2026-10-20; common/A/B/C/E undeclared until their commits per section 1.4 Order): pre c186fdcdf0b48fc073f19d2912adf2c29aa7de5af58a1bb0f37cdf0dbda27f8d. Code: backend/astrolabe/research_lab/cb17_common.py, cb17_pre.py, cb17_census.py and backend/scripts/run_cb17.py; frozen by part pre after its commit (later parts add new modules). CB17 DRAFT, not in queue/jobs: needs the committed rules file and the science-reviewer freeze check of the code against section 10.4; the coordinator regenerates the rules and this sha if any pre module changes. cpu lane, no network, counts and planning SEs only; the first run is on the host (worn files)."
+}
