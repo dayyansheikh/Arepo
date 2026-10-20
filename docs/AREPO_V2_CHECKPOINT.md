@@ -230,31 +230,25 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-20 05:45Z
-0. **Autopilot session 01:27-~06:25Z 10-20.** Results/rulings in the ledger from "Session 2026-10-20 ~01:27Z" on.
-   Counted this session: CB14-S S1/S2 not testable (source) (smoke q0301 failed). CB17-A withdrawn uncounted (branch T).
-   - **Queue:** net lane: q0227b DONE 05:39Z (`attn_frame_complete`, sample 1,693 = SCREEN 812 + HOLDOUT 881) ->
-     q0229 running (attention data, repeat) -> q0242, q0244 -> q0276 (CB13 keys, waits for q0242/q0244 by design of
-     `read_ids_generic`) -> q0302 (fill its base pin from the host sha256 of `creative_batch13/exclusion_keys.csv.gz`)
-     -> q0340 -> q0380 / q0347. cpu lane idle until q0260 (10-20T14:05Z): fill it with CB17 B/C work or LT3 code once
-     reviewed.
-   - **CB17:** pre-censuses q0400-q0403 DONE 02:04-02:27Z (pre `ddc0249b`). q0400 P1 REPRODUCED; side agreement
-     906/971 = 93.3% < 97% -> **branch T, CB17-A withdrawn uncounted** (k = 3 + up to 6). B levels B1 = 2, B2 = 1; C
-     level 2; cost-lag map written. Next: record branch T / cut points / levels in parts B and C (+ cost-lag map in
-     §2.1/§3), write parts B/C/E code, freeze checks and part commits before S_8 = 10-26. Monitor cap 8 GiB is deployed
-     but active only after a restart of `live-trade-monitor` alone (before ~11-20; never bounce the cross-venue poller).
-     Round 9 CH160 is out (needs branch S).
-   - **Freezes:** CB12-O after q0260's iv_convention (O 4e1dd759). **Promotions:** CB12-E q0245 after q0244, q0266
-     after q0245; CB16 q0380 after q0340; q0383 alone after q0380; CB15-P q0347 after q0340, then q0349/q0350.
-   - **Live tests (deadline 10-22T00:00Z):** LT2 E012-E014 challenger R1 = REVISE (`research_lab/reviews/LT2_CHALLENGER_R1_2026-10-20.md`).
-     Fixes on `feat/live-tests-2-r1` (`../astrolabe-live-tests-r1`; carries the stalled feat/live-tests-2 edits as
-     cdafeef8; the original worktree is untouched; continue from -r1, do not redo). As of 05:20Z a designer-implementer
-     agent was still editing there (uncommitted: live_tests2.py, live_tests2_analysis.py, model_specs/live_tests2_v1.json,
-     tests). If this session ended first: review that diff against the R1 findings, finish, commit on -r1. Then a short
-     re-check -> pin SPEC/code sha -> merge -r1 into this branch -> ledger registration -> promote q0460 -> deploy.
-   - **LT3 (E015+, from round 9 CH156/CH157/CH161/CH162):** designer drafting `research_lab/LIVE_TESTS_3.md` (two-stage
-     prospective screen + replication; must avoid every LT2 R1 fault). If absent/uncommitted at session start,
-     re-launch. Then challenger -> code -> freeze.
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-20 06:25Z
+0. **Autopilot session from 06:14Z 10-20.** Ledger: "Session 2026-10-20 ~06:15Z" on.
+   - **Done:** CB11-W seal copies committed (q0231b then ran: W1/W2 "not testable (GW)", only 1 of 6 fee categories with
+     >= 200 W_fit units; fit rows are almost all `unknown`). A science-reviewer is ruling TERMINAL vs DEFECT on that
+     (if DEFECT: new v3 chain, never rewrite v2; if TERMINAL: ledger it, then promote q0232 so the counted p = 1 lines are
+     written, after the W freeze part exists). q0242 mem 300 -> 1000 (MemoryError), retried, running.
+     CB11-A GA0 labels committed (`seals/cb11_attn_audit_labels.csv`, 145/200 = 0.725 < 0.80): q0239 will label A1/A2
+     "not testable (entity map)". q0229 continues as designed.
+   - **Agents running (background) — if this session ended, check their worktrees for commits/uncommitted work:**
+     (a) LT2 R1 fixes in `../astrolabe-live-tests-r1` (feat/live-tests-2-r1): then short re-check -> pin SPEC/code sha ->
+     merge into this branch -> ledger registration -> promote q0460 -> deploy; deadline REGISTERED_UTC 10-22T00:00Z.
+     (b) LT3 designer in `../astrolabe-live-tests-3` (feat/live-tests-3): `LIVE_TESTS_3.md` (CH156/157/161/162, plus
+     CH159/CH158 if testable) -> science-reviewer challenger -> code -> freeze (REGISTERED_UTC >= 10-23).
+     (c) CB17 implementer in an isolated agent worktree (`.claude/worktrees/agent-*`): post-pre-census record, rules parts
+     common/B/C/E (deadline 10-24T12:00Z), then window code q0404-q0412; merge after review.
+   - **Queue:** net lane q0242 -> q0243 -> q0248 -> q0249; q0229 (A data, repeat); q0276 (waits q0242/q0244) -> q0302
+     (fill base pin from host sha256 of `creative_batch13/exclusion_keys.csv.gz`) -> q0340 -> q0380 / q0347. cpu lane idle
+     until q0260 (10-20T14:05Z). Freezes/promotions as before: CB12-O after q0260; CB12-E q0245 after q0244, q0266 after
+     q0245; CB16 q0380 after q0340, q0383 after q0380; CB15-P q0347 after q0340, then q0349/q0350.
 1. **CB8-H:** q0162/q0163 wait on spec `not_before` (10-21T06Z / 10-22T12Z). **CB8-B:** q0161/q0164 after T_seal; before
    promoting q0164 run the two `derive-exclusion-ids` commands in its draft notes on the host and fill both sha256 tokens.
 2. **CB9:** data jobs q0181+ only after T_seal 2026-10-22T00Z; q0182 needs the pinned q0164 hash. **CB10:** q0201 needs

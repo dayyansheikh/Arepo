@@ -1,31 +1,30 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-20 06:11 UTC+1
+**Last updated:** 2026-10-20 07:22 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **Autopilot:** session running since 02:27 UTC+1 (20 Oct).
-- **Server:** the network lane runs batch 11 attention data (round 10 of at most 12; Wikipedia look-ups, about
-  1,650 of at most 3,000 done). Batch 17's four counting jobs on older data finished at 03:04-03:27 UTC+1. Its
-  open-versus-close part was withdrawn before testing, as planned: trade direction could be inferred for only 93% of
-  trades against the 97% required. The other batch 17 parts go ahead from 26 Oct. The compute lane is idle until the
-  batch 12 options check (15:05 UTC+1). The live-trade monitor's storage limit was raised from 3 to 8 GB (reviewed),
-  effective at its next restart.
-- **Connection checks finished overnight:** batch 13 touch markets PASS, batch 14 Wikipedia edits PASS, batch 15
-  Kalshi-first pairs PASS. Batch 14 speech clock FAILED (the speech-transcript site returned nothing), so its 2 tests
-  are recorded as "not testable" (counted, no result either way).
-- **Also recorded "not testable" on 19 Oct:** batch 13 maker losses (2), batch 15 election night (2), batch 16
-  price grain (1).
-- **Queued next on the network lane:** batch 12 speech and earthquake data, then the shared exclusion-key jobs that
-  unlock batches 13-16 (one after another).
-- **Live tests:** 3 running (Kalshi lead E009/E010, surprise detector E011). Four more (E012-E014) were drafted by a
-  separate session that stopped last night; the autopilot ran their independent review (verdict: revise, all fixable)
-  and is applying the fixes, aiming to register them before their planned start on 22 Oct 01:00 UTC+1.
-- **New ideas:** round 9 is done (13 ideas, Fable). Its top ideas are being drafted as a new group of live tests (LT3,
-  E015 onward), each with a fresh screening window and then a separate confirmation window.
+- **Autopilot:** a new session started at 07:14 UTC+1 (20 Oct).
+- **Fixed this morning:** two overnight job failures. Batch 11's departure-clock census was waiting for two sealed
+  file records to be saved in the repo (done, identical to the server copies), and a batch 12 data job had too little
+  memory (raised). Both restarted.
+- **Batch 11 results (counted as "not testable", no result either way):**
+  - The departure-clock tests (W1, W2): the census found enough markets and dates, but only 1 of the 6 required
+    market categories had enough history. An independent reviewer is checking whether that is a real data gap or a
+    code bug before it is final.
+  - The attention tests (A1, A2): an independent reviewer blind-checked 200 market-to-Wikipedia matches. Only 145
+    (72.5%) were right, below the 80% bar set in advance, so both are recorded as "not testable" when the census runs.
+- **Server:** the network lane runs batch 12's speech data, then batch 11 attention data and the exclusion-key jobs that
+  unlock batches 13-16. The compute lane is idle until the batch 12 options check (15:05 UTC+1); most other work is
+  waiting for dates (the 22 Oct seal, 26 Oct starts).
+- **Live tests:** 3 running (Kalshi lead E009/E010, surprise detector E011). Being prepared in parallel:
+  - E012-E014: the reviewer's 9 fixes are being finished, aiming to register before 22 Oct 01:00 UTC+1.
+  - LT3 (E015 onward): a new group drafted from the round 9 ideas (quoted vs traded moves, volume surges without a
+    move, walked trades, trade trains, ladder breadth). Next it goes to independent review.
+- **Batch 17:** the measured settings are being written into its rules (deadline 24 Oct), so its tests can start 26 Oct.
 - **Second free server:** still "out of host capacity" at Oracle; it retries every 10 min.
 
 ## 2. Approvals needed from you
