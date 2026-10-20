@@ -463,6 +463,9 @@ def freeze_flow(sample: dict, cap: dict, k: int, by_slot: dict, root: Path, spec
     s6l, n6l, _ = window(W + lag, lag)
     s6, n6, c6 = (np.where(cov6, v, np.nan) for v in (s6, n6, c6))
     s6l, n6l = (np.where(cov6l, v, np.nan) for v in (s6l, n6l))
+    # trades stamped at or after the origin that sit on the page (the sample requests up to ~20 min after the origin;
+    # they never enter a feature but they fill the 500-trade page, so coverage depends on them: counts only)
+    n_post = tr[tr["ts"] >= tr["o"]].groupby("market_id").size().reindex(mkt).fillna(0).to_numpy(float)
     with np.errstate(invalid="ignore", divide="ignore"):
         imb6 = np.where(n6 > 0, s6 / n6, np.nan)
         imb6l = np.where(n6l > 0, s6l / n6l, np.nan)
@@ -495,7 +498,8 @@ def freeze_flow(sample: dict, cap: dict, k: int, by_slot: dict, root: Path, spec
         "bid_i": o["best_bid"].to_numpy(float), "ask_i": o["best_ask"].to_numpy(float), "mid_i": mid,
         "spread_i": spr, "tight_i": tight_i.astype(int),
         "end_ok_6h": (np.isnan(end_ts) | (end_ts > cap["start"] + f["end_margin_h"] * 3600.0)).astype(int),
-        "imb6": imb6, "n6": c6, "N6": n6, "imb6_lag30": imb6l,
+        "imb6": imb6, "n6": c6, "N6": n6, "imb6_lag30": imb6l, "cov6": cov6.astype(int),
+        "n_returned": n_ret, "n_post_origin": n_post,
         "x6": np.clip(imb6, -f["x6_clip"], f["x6_clip"]) / f["x6_sd"],
         "x6_lag30": np.clip(imb6l, -f["x6_clip"], f["x6_clip"]) / f["x6_sd"],
         "rv": rv, "zRV": (lrv - f["zRV"]["centre"]) / f["zRV"]["scale"],
@@ -624,7 +628,9 @@ def run_once(*, snapshot_root: Path = SNAPSHOT_ROOT, sample_root: Path = SAMPLE_
         late_p = p.with_name(p.name.replace(".csv.gz", ".late.csv.gz"))
         if p.exists() or late_p.exists() or budget <= 0:
             continue
-        if not allow_late and is_late(k + spec["e014"]["horizon_slots"], now, spec):
+        # refused only once the LAST target (6 h, E013) may have started; E014 rows frozen after their 2 h target
+        # started are excluded per test at analysis (frozen_utc vs the target capture start)
+        if not allow_late and is_late(k + spec["flow"]["horizon_slots"], now, spec):
             stats["refused_late"] += 1
             log.append({"kind": "flow_refused_late", "id": sid, "written_utc": iso(now_ts())})
             write_once_csv(late_p, pd.DataFrame({"late": [1], "checked_utc": [iso(now)]}))

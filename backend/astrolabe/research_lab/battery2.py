@@ -376,6 +376,12 @@ KIND_RULES: dict[str, tuple[str, str]] = {
     "surprise_labels": (EXCLUDE, "label specification fixed before features; no test"),
     "design_change": (EXCLUDE, "recorded design amendment (e.g. CB6 A-T1 top-up, 2026-10-17), n_tests 0; no test"),
     "history_replication_declaration": (EXCLUDE, "pre-declaration of a replication; no test (tests counted when run)"),
+    "live_tests2": (
+        N_TESTS,
+        "LT2 single analysis (E012, E013-F4, E013-F5, E014; LIVE_TESTS_2.md): one line, n_tests = 8 = the 4 Holm "
+        "primaries + the 4 declared paper-economics tests (precedent: economics lines are counted); descriptive "
+        "companions and placebo/gate draws are not tests.",
+    ),
 }
 
 

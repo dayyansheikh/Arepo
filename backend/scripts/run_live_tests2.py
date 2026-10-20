@@ -48,6 +48,7 @@ def main(argv: list[str] | None = None) -> int:
     a = sub.add_parser("analyze")
     a.add_argument("--root", type=Path, default=lt.OUT_ROOT)
     a.add_argument("--out", type=Path, default=None)
+    a.add_argument("--no-trials", action="store_true", help="do not append the counted trials line (tests only)")
     args = ap.parse_args(argv)
 
     if args.cmd == "run":
@@ -66,7 +67,7 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(st, sort_keys=True))
         if st.get("status") == "disk_cap":
             print("live_tests2 disk cap reached: collection stopped (window not extended)")
-            return 0
+            return lt.TEMPFAIL
         if lt.now_ts() >= lt.epoch(lt.END_UTC) + 30 * 3600 and st["written"] == 0:
             print("LIVE_TESTS2_WINDOW_CLOSED")
             return 0
@@ -82,13 +83,17 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "analyze":
         from astrolabe.research_lab import live_tests2_analysis as la
 
+        if args.out and args.out.exists():
+            print(f"refusing to overwrite {args.out}")
+            return 1
         res = la.analyze(args.root)
         txt = json.dumps(res, sort_keys=True, indent=1, default=str)
         if args.out:
-            if args.out.exists():
-                print(f"refusing to overwrite {args.out}")
-                return 1
             args.out.write_text(txt)
+        if not args.no_trials:
+            from astrolabe.research_lab import provenance
+
+            provenance.append_trial(la.trial_record(res))
         print(txt)
         return 0
     return 1

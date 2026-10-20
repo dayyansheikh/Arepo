@@ -16,10 +16,12 @@ placebo.
 
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from scipy.stats import t as t_dist
 
 from . import battery, economics
 from . import bounce_decomp as bd
@@ -108,9 +110,20 @@ def demeaned_fit(df: pd.DataFrame, y: np.ndarray, term: str, controls: list[str]
         return {"testable": False, "reason": r.get("reason"), "n": int(ok.sum()), "p": 1.0}
     r["se"] = max(r["se_event"], r["se_twoway"])
     r["mde_80"] = 2.8 * r["se"]
+    _t_day(r)
     r["n_market"] = int(pd.unique(df["market_id"].to_numpy()[ok]).size)
     r["estimator"] = estimator
     r["_mask"] = ok
+    return r
+
+
+def _t_day(r: dict) -> dict:
+    """Reported alongside (never the primary p): the two-way z referred to t with G_day - 1 degrees of freedom
+    (few UTC days), and max(p_event, that p)."""
+    g = int(r.get("n_day") or 0)
+    if g >= 2 and r.get("z_twoway") is not None:
+        r["p_t_day"] = float(t_dist.sf(r["z_twoway"], df=g - 1))
+        r["p_t_day_max"] = max(float(r.get("p_event", 1.0)), r["p_t_day"])
     return r
 
 
@@ -244,9 +257,14 @@ def paper_taker(df: pd.DataFrame, direction: np.ndarray, tag: str) -> np.ndarray
     return gross - fee(p_in) - fee(p_out)
 
 
-def econ_summary(pnl: np.ndarray, ev: np.ndarray, day: np.ndarray, seed: int) -> dict:
+def econ_summary(pnl: np.ndarray, ev: np.ndarray, day: np.ndarray, seed: int, descriptive: bool = False) -> dict:
+    """Declared economics test (counted, battery2 KIND_RULES 'live_tests2'), or, with ``descriptive``, the mean and
+    counts only (no p-value, not counted)."""
     ok = np.isfinite(pnl)
     n, ne = int(ok.sum()), int(pd.unique(ev[ok]).size) if ok.any() else 0
+    if descriptive:
+        return {"trades": n, "events": ne, "mean": float(pnl[ok].mean()) if n else None,
+                "note": "descriptive companion: mean only, no test"}
     if n < economics.MIN_TRADES or ne < economics.MIN_CLUSTERS:
         return {"trades": n, "events": ne, "verdict": "not shown (below 30 trades / 10 events)"}
     r = battery.mean_test(pnl[ok], ev[ok], day[ok], sign=+1, n_boot=N_BOOT, seed=seed)
@@ -262,8 +280,10 @@ def e012(root: Path, start: float, end: float, roles: tuple[str, ...], spec: dic
     df = _load_pairs(root, "e012", start, end, roles, spec["_sha256"][:16] if spec.get("_pinned") else None)
     if df.empty:
         return {"available": False, "reason": "no lines"}
-    acc = {"lines": len(df), "pending": int(df.get("pending", pd.Series(0, index=df.index)).fillna(0).sum())}
-    df = df[df.get("status_j", pd.Series(index=df.index, dtype=object)).notna()].copy()
+    if "status_j" not in df:
+        df["status_j"] = np.nan
+    acc = {"lines": len(df), "pending": int(df["status_j"].isna().sum())}
+    df = df[df["status_j"].notna()].copy()
     df["late"] = _late(df, "j")
     acc.update(late=int(df["late"].sum()), missing_capture=int((df["status_j"] == "missing_capture").sum()),
                unavailable=int((df["status_j"] == "unavailable").sum()), h_not_tight=int((df["tight_h"] != 1).sum()))
@@ -304,7 +324,24 @@ def e012(root: Path, start: float, end: float, roles: tuple[str, ...], spec: dic
         g["ixg"] = g["chg_1d_g"] * g["zL"]
         sens["gamma_chg_1d"] = _strip(demeaned_fit(g, y, "ixg", ["chg_1d_g", "chg_1d_missing", "zL",
                                                                    *CONTROLS_E012], "capture_t", seed=seed, n_boot=200))
+        b2 = df.copy()
+        dnum = pd.to_datetime(b2["day"]).map(pd.Timestamp.toordinal).to_numpy()
+        b2["day"] = ((dnum - dnum.min()) // 2).astype(str)
+        sens["two_day_blocks"] = _strip(demeaned_fit(b2, y, "ix", ["x", "zL", *CONTROLS_E012], "capture_t", seed=seed,
+                                                     n_boot=200))
         out["sensitivities"] = bd._clean(sens)
+        # declared skip-slot secondary (mechanism): x_skip = x - dprev = mid_{i-1} - mid_h never contains mid_i, so the
+        # bid/ask bounce at i that the target shares with x is absent from the tested term (dprev is not a control)
+        sk = df[(df["dprev_missing"] == 0).to_numpy()].copy()
+        sk["x_skip"] = sk["x"] - sk["dprev"]
+        sk["ix_skip"] = sk["x_skip"] * sk["zL"]
+        ysk = y[(df["dprev_missing"] == 0).to_numpy()]
+        rs = demeaned_fit(sk, ysk, "ix_skip", ["x_skip", "zL", *[c for c in CONTROLS_E012 if not c.startswith("dprev")]],
+                          "capture_t", seed=seed, n_boot=N_BOOT)
+        if rs.get("testable"):
+            ci = rs.get("ci_event_boot") or [rs["beta"], rs["beta"]]
+            rs["ci95_cons"] = [min(ci[0], rs["beta"] - bd.Z95 * rs["se"]), max(ci[1], rs["beta"] + bd.Z95 * rs["se"])]
+        out["skip_slot"] = _strip(rs)
         fire = (df["L"] == 0) & (df["x"].abs() >= spec["e012"]["econ"]["min_abs_x"])
         f = df[fire.to_numpy()]
         pnl = paper_taker(f, -np.sign(f["x"].to_numpy(float)), "j")
@@ -313,7 +350,7 @@ def e012(root: Path, start: float, end: float, roles: tuple[str, ...], spec: dic
         t = df[top.to_numpy()]
         out["economics_descriptive_follow_liquid"] = econ_summary(
             paper_taker(t, np.sign(t["x"].to_numpy(float)), "j"), t["event_id"].to_numpy(), t["day"].to_numpy(),
-            seed + 8)
+            seed + 8, descriptive=True)
     return out
 
 
@@ -375,15 +412,28 @@ def flow(root: Path, start: float, end: float, roles: tuple[str, ...], spec: dic
     if df.empty:
         return {"E013_F4": {"available": False, "reason": "no lines"}, "E013_F5": {"available": False},
                 "E014": {"available": False, "reason": "no lines"}}
-    df = df[df.get("status_j2", pd.Series(index=df.index, dtype=object)).notna()].copy()
+    for c in ("status_j2", "status_j6"):
+        df[c] = df[c].fillna("pending") if c in df else "pending"
+    for c in ("bid_j2", "ask_j2", "bid_j6", "ask_j6", "cap_start_j2", "cap_start_j6", "tight_j6"):
+        if c not in df:
+            df[c] = np.nan
     df["day"] = _day(df["capture_t"])
     df["dprev0"] = df["dprev"].fillna(0.0)
     out = {}
-    # E013 (F4, F5)
+    # E013 (F4, F5): late is judged against the 6 h target only, so rows whose 2 h target had started stay in
     d = df.copy()
     d["late"] = _late(d, "j6")
-    acc = {"lines": len(d), "late": int(d["late"].sum()), "unavailable_j6": int((d["status_j6"] != "evaluated").sum()),
-           "not_tight": int((d["tight_i"] != 1).sum()), "no_6h_flow_or_truncated": int((~np.isfinite(d["x6"])).sum())}
+    n6 = d["n6"].to_numpy(float)
+    post = d["n_post_origin"].to_numpy(float) if "n_post_origin" in d else np.full(len(d), np.nan)
+    trunc = ~np.isfinite(n6)
+    acc = {"lines": len(d), "late": int(d["late"].sum()),
+           "status_j6": {k: int(v) for k, v in d["status_j6"].value_counts().items()},
+           "not_tight": int((d["tight_i"] != 1).sum()), "end_within_7h": int((d["end_ok_6h"] != 1).sum()),
+           "flow_window_truncated": int(trunc.sum()), "flow_window_no_trades": int((n6 == 0).sum()),
+           "post_origin_trades_on_page": {
+               "rows_with_any": int(np.nansum(post > 0)), "trades_total": float(np.nansum(post)),
+               "truncated_rows_with_any": int(np.nansum((post > 0) & trunc)),
+               "note": "counts only; post-origin trades never enter a feature but fill the 500-trade page"}}
     d = d[(~d["late"]) & (d["status_j6"] == "evaluated") & (d["tight_i"] == 1) & (d["end_ok_6h"] == 1)
           & (d["n6"] > 0) & np.isfinite(d["x6"])].reset_index(drop=True)
     y6 = _mid(d, "j6") - d["mid_i"].to_numpy(float)
@@ -444,8 +494,12 @@ def flow(root: Path, start: float, end: float, roles: tuple[str, ...], spec: dic
     # E014
     e = df.copy()
     e["late"] = _late(e, "j2")
-    acc14 = {"lines": len(e), "late": int(e["late"].sum()), "unavailable_j2": int((e["status_j2"] != "evaluated").sum()),
-             "regime_counts_flow_rows": e.loc[e["ss"] != 0, "regime"].value_counts().to_dict()}
+    fr = e[(e["ss"] != 0) & (e["tight_i"] == 1)]
+    acc14 = {"lines": len(e), "late": int(e["late"].sum()),
+             "status_j2": {k: int(v) for k, v in e["status_j2"].value_counts().items()},
+             "regime_counts_flow_rows": fr["regime"].value_counts().to_dict(),
+             "status_j2_by_regime_flow_rows": {str(k): {str(c): int(v) for c, v in row.items() if v}
+                                               for k, row in pd.crosstab(fr["regime"], fr["status_j2"]).iterrows()}}
     e = e[(~e["late"]) & (e["status_j2"] == "evaluated") & (e["tight_i"] == 1) & (e["ss"] != 0)
           & e["regime"].isin(["A", "B"])].reset_index(drop=True)
     out["E014"] = e014_tests(e, acc14, spec, placebo_draws)
@@ -469,6 +523,7 @@ def e014_tests(e: pd.DataFrame, acc: dict, spec: dict, placebo_draws: int | None
     if r.get("testable"):
         r["se"] = max(r["se_event"], r["se_twoway"])
         r["mde_80"] = 2.8 * r["se"]
+        _t_day(r)
     fl = FLOORS["E014"]
     nA, nB = int(A.sum()), int((1 - A).sum())
     evA, evB = int(pd.unique(ev[A == 1]).size), int(pd.unique(ev[A == 0]).size)
@@ -515,6 +570,37 @@ def e014_tests(e: pd.DataFrame, acc: dict, spec: dict, placebo_draws: int | None
     return res
 
 
+def e012_label(v: dict, skip: dict | None) -> dict:
+    """Declared mechanism label: a Supported E012 whose skip-slot conservative 95% CI includes 0 (or whose skip-slot
+    fit is untestable) reads "consistent with quote noise; mechanical not excluded"."""
+    if not str(v.get("verdict", "")).startswith("Supported"):
+        return v
+    ci = (skip or {}).get("ci95_cons")
+    if not (skip or {}).get("testable") or ci is None or ci[0] <= 0 <= ci[1]:
+        return {**v, "verdict": v["verdict"] + "; consistent with quote noise; mechanical not excluded"}
+    return v
+
+
+def code_hashes() -> dict:
+    """sha256 of the collector and analysis modules as run (recorded in the output and the ledger block)."""
+    here = Path(__file__).resolve().parent
+    return {n: hashlib.sha256((here / n).read_bytes()).hexdigest() for n in ("live_tests2.py", "live_tests2_analysis.py")}
+
+
+TRIAL_KIND = "live_tests2"
+
+
+def trial_record(res: dict) -> dict:
+    """The single counted trials line (battery2 KIND_RULES 'live_tests2', rule n_tests): 4 primaries + the 4
+    declared economics tests = 8 (precedent: economics lines are counted). Descriptive companions are not tests."""
+    econ = {k: (res.get(k) or {}).get("economics", {}).get("p") for k in ("E012", "E013_F4", "E013_F5", "E014")}
+    return {"kind": TRIAL_KIND, "label": "PROSPECTIVE", "evidence_role": lt.ROLE_CONF, "experiments": ["E012", "E013", "E014"],
+            "n_tests": 8, "n_primary": 4, "n_economics": 4, "holm": res.get("holm"),
+            "verdicts": {k: (res.get(k) or {}).get("verdict") for k in ("E012", "E013_F4", "E013_F5", "E014")},
+            "economics_p": econ, "spec_sha256": res.get("spec_sha"), "code_sha256": res.get("code_sha256"),
+            "window": res.get("window")}
+
+
 def analyze(root: Path = lt.OUT_ROOT, *, start_utc: str = lt.REGISTERED_UTC, end_utc: str = lt.END_UTC,
             spec: dict | None = None, roles: tuple[str, ...] = (lt.ROLE_CONF,), placebo_draws: int = PLACEBO_DRAWS,
             perm_draws: int | None = None, force: bool = False) -> dict:
@@ -535,8 +621,10 @@ def analyze(root: Path = lt.OUT_ROOT, *, start_utc: str = lt.REGISTERED_UTC, end
         r = res[k]
         res[k]["holm_p"] = hp[k]
         res[k]["verdict"] = verdict(k, r.get("primary", {}), r.get("placebo"), r.get("available", False), hp[k])
+    res["E012"]["verdict"] = e012_label(res["E012"]["verdict"], res["E012"].get("skip_slot"))
     res["holm"] = {"m": 4, "p_raw": pv, "p_holm": hp, "alpha": 0.05, "one_sided": True}
     res["spec_sha"] = spec["_sha256"]
+    res["code_sha256"] = code_hashes()
     res["window"] = [start_utc, end_utc]
     res["roles"] = list(roles)
     return bd._clean(res) if isinstance(res, dict) else res

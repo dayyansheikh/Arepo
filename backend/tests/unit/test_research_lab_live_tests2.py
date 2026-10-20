@@ -187,15 +187,38 @@ def test_freeze_is_causal_future_captures_do_not_change_lines(world, tmp_path):
     pd.testing.assert_frame_equal(a[cols], b[cols])
 
 
-def test_late_freeze_refused(world):
+def test_late_freeze_refused(world, tmp_path):
     snap, samp, out, spec = world
     cids = {k: write_capture(snap, k) for k in range(0, 13)}
     write_sample(samp, snap, cids[12], 12)
-    st = _run(snap, samp, out, spec, ts(13, 0))  # the 2 h target slot has begun: flow refused, E012 fine
-    assert st["flow"] == 0 and st["refused_late"] == 1 and st["e012"] == 1
-    assert list((out / "flow" / "frozen").glob("*.late.csv.gz"))
-    st2 = _run(snap, samp, out, spec, ts(13, 10))
+    st = _run(snap, samp, out, spec, ts(13, 0))  # 2 h target started, 6 h target future: frozen (E014 rows late)
+    assert st["flow"] == 1 and st["refused_late"] == 0 and st["e012"] == 1
+    snap2, samp2, out2 = tmp_path / "s2", tmp_path / "p2", tmp_path / "o2"
+    snap2.mkdir(), samp2.mkdir()
+    c2 = {k: write_capture(snap2, k) for k in range(0, 13)}
+    write_sample(samp2, snap2, c2[12], 12)
+    st = lt.run_once(snapshot_root=snap2, sample_root=samp2, root=out2, spec=spec, registered_utc=REG, end_utc=END,
+                     now=ts(15, 0), max_items=200)  # the 6 h target slot has begun: refused
+    assert st["flow"] == 0 and st["refused_late"] == 1
+    assert list((out2 / "flow" / "frozen").glob("*.late.csv.gz"))
+    st2 = lt.run_once(snapshot_root=snap2, sample_root=samp2, root=out2, spec=spec, registered_utc=REG, end_utc=END,
+                      now=ts(15, 10), max_items=200)
     assert st2["refused_late"] == 0 and st2["flow"] == 0  # the marker is final
+
+
+def test_trial_record_counts_eight():
+    from astrolabe.research_lab import battery2
+
+    rec = la.trial_record({"holm": {}, "E012": {"economics": {"p": 0.5}}})
+    assert battery2.count_line(rec) == ("live_tests2", 8)
+    assert battery2.count_line({**rec, "evidence_role": "placebo"}) == ("live_tests2", 0)
+
+
+def test_e012_label_rule():
+    sup = {"verdict": "Supported (exploratory, prospective)"}
+    assert "mechanical not excluded" in la.e012_label(sup, {"testable": True, "ci95_cons": [-0.01, 0.05]})["verdict"]
+    assert "mechanical" not in la.e012_label(sup, {"testable": True, "ci95_cons": [0.01, 0.05]})["verdict"]
+    assert la.e012_label({"verdict": "Inconclusive"}, None)["verdict"] == "Inconclusive"
 
 
 def test_missing_target_capture(world):
@@ -230,6 +253,8 @@ def test_flow_window_sign_and_truncation(world):
     assert fr.loc["100", "n6"] == 3
     assert fr.loc["101", "imb6"] == pytest.approx(-1.0)
     assert np.isnan(fr.loc["102", "imb6"])  # no trades in the window -> NaN, never 0
+    assert fr.loc["100", "n_post_origin"] == 1 and fr.loc["101", "n_post_origin"] == 0
+    assert fr.loc["102", "n6"] == 0 and fr.loc["102", "cov6"] == 1  # covered, no trades (not truncated)
 
 
 def test_truncated_window_is_nan(world):
@@ -365,6 +390,9 @@ def test_analyze_runs_end_to_end_and_refuses_early(world):
     assert res["holm"]["m"] == 4 and set(res["holm"]["p_raw"]) == {"E012", "E013_F4", "E013_F5", "E014"}
     for k in ("E012", "E013_F4", "E013_F5", "E014"):
         assert res[k]["verdict"]["verdict"].startswith("Unavailable")  # synthetic world is far below the floors
+    assert set(res["code_sha256"]) == {"live_tests2.py", "live_tests2_analysis.py"}
+    assert "post_origin_trades_on_page" in res["E013_F4"]["accounting"]
+    assert "status_j2_by_regime_flow_rows" in res["E014"]["accounting"]
     ops = lt.ops_stats(out)
     assert ops["flow/frozen"]["files"] == 8 and ops["e012/frozen"]["files"] == 3
 
