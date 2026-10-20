@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-20 19:30 UTC+1
+**Last updated:** 2026-10-20 20:08 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -18,9 +18,10 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
   Collection starts **22 Oct 01:00 UTC+1** and runs to 12 Nov; the single analysis comes after 13 Nov.
   That makes **4 registered live-test groups** (E009/E010, E011, E012-E014), 3 of them collecting now.
 - **Next live tests:**
-  - LT3 (E015-E019): the first counting check is done. E015 (quote-only versus traded moves) passed. E017 (volume surges
-    without a price move) and E019 (ladder breadth) were dropped before registration: too few cases in 21 days to detect
-    the minimum effect. Dropped tests are not counted. E016/E018 wait for one more check (before 23 Oct); target start 24 Oct.
+  - LT3 (E015-E019): E015 passed its counting check; E017 and E019 were dropped before registration (too few cases;
+    not counted). A review of the LT4 design found that one of LT3's safety checks could pass too easily when the compared
+    groups differ in size or activity. It was fixed this evening (verified), and its size check is re-running on the
+    server. E016/E018 still wait for one more counting check (before 23 Oct). Target start 24 Oct.
   - LT4 (E020-E024, new from round 10 of ideas): designed and coded. The independent challenger asked for changes to three
     of the five tests (one could be distorted by the minimum price step, one would mostly measure bid/ask bounce, one needs
     a better comparison within each market); the other two were accepted with small changes. The revisions are being made.
@@ -30,9 +31,9 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 - **Batch 12, options part (CB12-O): closed, not testable.** Its readiness check needed dividend dates for an index fund
   (SPY), and the free source has none. By the rule written in advance, it counts as 2 tests that found nothing. We did
   not swap in another source after the check failed, because that would mean changing the rules to get a pass.
-- **Batch 17:** its rules are final (an independent check made three of them stricter before any data exist). The rules
-  were fixed at 19:27 UTC+1 today, so its test window starts on **26 Oct**. The code passed its main check with 7 fixes,
-  all applied; a last check on those fixes is running. Then a reproduction run on the server.
+- **Batch 17:** rules final (fixed 19:27 UTC+1; test window starts **26 Oct**). The code is frozen after three rounds of
+  independent checks and fixes. A reproduction run on the server (it must re-create three earlier counts exactly) is queued
+  behind a restore of the archived input files.
 - **Second free server:** still "out of host capacity" at Oracle; it retries every 10 min.
 
 ## 2. Approvals needed from you

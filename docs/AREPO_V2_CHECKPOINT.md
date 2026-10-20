@@ -238,15 +238,14 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
      10-21T00Z (net lane, repeat). q0461 analysis after 11-13T12Z. No interim outcome looks.
    - **CB12-O TERMINAL not testable (source)** (28fca027): O freeze entry committed; q0262 -> q0263 write 2 p = 1 lines.
      q0261 never installed, q0264 never run.
-   - **LT3 (E015-E019):** q0470 done (E015 PASS; E017, E019 dropped uncounted; ledger); q0471 (C2 restore; failed once on missing gh in PATH, now fixed) -> q0472
-     -> q0473 size check. Then write up counts (drop rules), science-reviewer freeze, pin, register (REGISTERED_UTC >= 10-23,
-     proposed 10-24), install the reader as host cron every 20 min (q0474 fallback). **q0472 deadline: before 10-23T03:30Z.**
-   - **CB17:** merged 2d6d3aa9 = T17_rules (2026-10-20T18:27:58Z; `seals/cb17_t17_rules.json`; S_8 = 2026-10-26T00Z).
-     Fixes 1-7 (9b335fec) and O-rulings (f0ef434d; B/C/E re-hashed) done; delta freeze check (science-reviewer) running.
-     Then: `run_cb17.py code-pin` -> commit `seals/cb17_code_freeze.json` (code pin + ruling-6 attestation); q0413 restore
-     (queued) -> `run_cb17.py worn-manifest --snapshot-root <restore>/.../snapshots --live-trades-root ...` on the host ->
-     commit the worn sha256 map -> promote q0404 with `--worn-sha256` and the restore roots; fill q0405's base pin verbatim
-     from q0380's manifest.
+   - **LT3 (E015, E016, E018; E017/E019 dropped uncounted at q0470):** Freedman-Lane gate merged b57a5cf5 (verified OK);
+     analysis sha d0a4a3b5…; q0473 cancelled; q0473b size check (2,000 worlds, priority 20) queued. q0471 C2 restore
+     (retry; gh PATH fixed) -> q0472 census-flow (**deadline 10-23T03:30Z**). Then counts write-up, freeze review, pin,
+     register (REGISTERED_UTC >= 10-23, proposed 10-24), install the reader as a 20-min host cron.
+   - **CB17:** T17 = merge 2d6d3aa9 (S_8 2026-10-26T00Z). Code frozen: `seals/cb17_code_freeze.json` (code 529e7de5…,
+     2026-10-20T19:05:50Z, attestation). Worn pins `seals/cb17_worn_sha256.json` (release-derived). q0413 restore -> q0404
+     smoke (must reproduce P1-P3 exactly; a refusal is not a FAIL). After q0404 PASS: record acceptance in the ledger;
+     q0405 needs q0380's manifest sha verbatim; q0406/q0407 not before 2026-11-09T08Z (attest again at q0406's commit).
    - **LT4 (E020-E024)** on `feat/live-tests-4` (../astrolabe-live-tests-4): design 6290d93c, code c08383a5; challenger R1
      REVISE (reviews/LT4_CHALLENGER_R1_2026-10-20.md, 8a968295); designer writing the R1 response. Registers only after
      LT3. Finding 7 (permutation gate anti-conservative with correlated controls) may affect LT3's shared gate: a
