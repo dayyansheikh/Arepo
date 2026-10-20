@@ -19,7 +19,9 @@
   "scripts/run_cb12.py",
   "screen",
   "--family",
-  "O"
+  "O",
+  "--rules",
+  "../docs/research_lab/seals/cb12_rules.json"
  ],
  "timeout_s": 1800,
  "max_retries": 1,
@@ -28,5 +30,6 @@
   "trials.jsonl (cb12_test + creative_batch_12:O n_tests=2)"
  ],
  "next_action": "full batch Holm over the ten Stage-1 p-values; advanced: q0264 after window 2 closes",
- "notes": "DRAFT. Refuses before the O freeze entry; counted with p = 1 if GO failed. O1 on the Yahoo close, O2 on the Gamma resolution. Rules part sha256 (seals/cb12_rules.json, 2026-10-19 code): common f2f672c1dfa22ce1388fd85b42bebc23248f58c5bb4349f6745c4b2493dcc647, O 4e1dd759f6ce96bd2ebb75c86f9d4e0686ea1a52fa428e62d6d8e4f826df21e2. Disclosed deviation: the design's seals/cb12_opt_rules.json is part O of seals/cb12_rules.json (per-part hashing). CB12 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / O code changes."
+ "notes": "PROMOTED 2026-10-20 at the O freeze entry (TERMINAL not testable (source)). On the label path screen_o returns not_run_result for O1 and O2: counted 2 cb12_test lines with p = 1 (testable false, prospective role) and one ml_explain line; opens no outcome or guarded file. Earlier draft notes (superseded where they conflict): DRAFT. Refuses before the O freeze entry; counted with p = 1 if GO failed. O1 on the Yahoo close, O2 on the Gamma resolution. Rules part sha256 (seals/cb12_rules.json, 2026-10-19 code): common f2f672c1dfa22ce1388fd85b42bebc23248f58c5bb4349f6745c4b2493dcc647, O 4e1dd759f6ce96bd2ebb75c86f9d4e0686ea1a52fa428e62d6d8e4f826df21e2. Disclosed deviation: the design's seals/cb12_opt_rules.json is part O of ",
+ "not_before": null
 }

@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-20T17:55:38Z",
+ "updated": "2026-10-20T17:59:01Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1169,6 +1169,29 @@
    "reached": [
     "designed",
     "screened"
+   ]
+  },
+  {
+   "id": "CB12-O",
+   "title": "Option-chain anchor for 'close above' stock markets (O1, O2)",
+   "plain": "Would the stock-options market's own price for a 'closes above $K' outcome predict these Polymarket markets? The free dividend-date source has no data for index funds, so the pre-declared readiness check failed and the test cannot run. Counted as two tests that found nothing.",
+   "batch": "CB12",
+   "family": "cross_venue",
+   "stage": "designed",
+   "status": "closed",
+   "verdict": "not_testable",
+   "effect": null,
+   "next": "Closed (source unavailable); a new design would be needed",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB12-O smoke and freeze (not testable), 2026-10-20"
+   },
+   "stage_results": {
+    "designed": "fail"
+   },
+   "reached": [
+    "designed"
    ]
   },
   {

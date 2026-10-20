@@ -1,0 +1,33 @@
+{
+ "id": "q0262_cb12_census_O",
+ "title": "CB12-O census (window 1), counts only: units by ticker/settlement/checkpoint/template/anchor type/tightness/exclusion label, GO (>= 1,000 tight analysable units, >= 40 (ticker, settlement) clusters, >= 30 distinct settlement dates, >= 10 per session), cor(q - m1, q_RV - m1) for the attribution label",
+ "family": "creative_batch_12",
+ "priority": 20,
+ "expected_value": "O gate",
+ "data": [
+  "history/h12_opt_live/raw, daily (no outcome file opened)"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb12.py",
+  "census",
+  "--family",
+  "O",
+  "--rules",
+  "../docs/research_lab/seals/cb12_rules.json"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch12/census_O.json",
+  "trials.jsonl (cb12_descriptive)"
+ ],
+ "next_action": "q0263",
+ "notes": "PROMOTED 2026-10-20 at the O freeze entry (model_specs/cb12_v1.json part O; science-reviewer ruling: TERMINAL not testable (source)). Runs immediately on the smoke-failure path (q0260 opt_smoke.json pass=false, failed needed criterion o_dividends_keyless: SPY 0 ex-dates); returns label_O before any window logic; opens nothing under h12_opt_live; no collector. Earlier draft notes (superseded where they conflict): DRAFT. Commit only after windows.json shows w1 closed and the outcome step final for its dates (else it waits, exit 75). Needs the O freeze entry (frozen_utc; iv_convention equal to opt_smoke.json's choice). A failed smoke criterion writes the counted label 'not testable (source)'. Fewer than 30 settlement dates -> 'not run (power)', counted. Rules part sha256 (seals/cb12_rules.json, 2026-10-19 co",
+ "not_before": null
+}

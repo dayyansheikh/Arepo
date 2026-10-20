@@ -2505,3 +2505,19 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   crypto share of high 0.17; top family share 0.056.
 - **Remaining LT3 primaries:** E015 (passed C1), E016 and E018 (await C2: q0471 restore, retrying after the gh PATH fix,
   -> q0472 census-flow, deadline before 2026-10-23T03:30Z) and q0473 size check. k is set after C2. Nothing registered.
+
+## CB12-O smoke and freeze (not testable), 2026-10-20; 2 tests counted with p = 1 (at q0263)
+- **q0260 opt-smoke (15:06Z, code a4c2585c, rules O `4e1dd759…`, common `f2f672c1…`):** `opt_smoke.json` sha256
+  `fcb6e89e…30e6c3`, pass **false**. Every needed criterion true except **`o_dividends_keyless`** (amendment O4(ii): >= 1
+  ex-date for both SPY (assetclass etf) and AAPL): AAPL 83, **SPY 0**. `iv_convention` choice "none" (act365 match 0.25,
+  trading hours 0.15 < 0.8). `o_chain_dividend_field` false is informational (O3).
+- **Source check (orchestrator, one keyless request each, ~18:05Z):** `api.nasdaq.com/api/quote/SPY/dividends?assetclass=etf`
+  rCode 200, `data.dividends.rows` null and every dividend field "N/A"; `assetclass=stocks` rCode 400. Source limitation,
+  not a parsing defect (`cb12_o.py:540-570`).
+- **science-reviewer ruling: TERMINAL "not testable (source)".** No re-smoke (`opt_smoke.json` is write-once; the stop rule
+  covers failed jobs, not a smoke that ran), no amendment: another dividend source or dropping the ETF probe would change a
+  gate after it failed (a new registered design would be needed, as for CB11-W).
+- **O freeze entry** committed in `model_specs/cb12_v1.json` part O (`frozen_utc` 2026-10-20T17:57:26Z, `iv_convention`
+  "none", rules shas, smoke record, `label_O`). **Promoted:** q0262 (census O; returns the label before any window logic)
+  -> q0263 (screen O; 2 `cb12_test` lines O1, O2 with p = 1, testable false, in the k1 = 10 Holm, plus one `ml_explain`
+  line). **q0261 collector never installed; q0264 never run.** 191 cb12 tests pass.
