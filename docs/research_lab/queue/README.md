@@ -31,6 +31,9 @@ and session ends; nothing here calls Claude or any paid API.
   - exiting **75** (`EX_TEMPFAIL`, e.g. the CB5 data-dumps headroom refusal) means "not now": the job waits in
     `retry_wait` for 30 min (`not_before`), the attempt is not counted, `attempts.jsonl` records outcome `tempfail`,
     and after 48 consecutive tempfails (about a day) the job becomes `failed`.
+- **Heavy jobs (2026-10-20):** `resources.exclusive: true` makes a job run alone. When it is the top ready job the queue
+  drains (nothing new starts), and while it runs nothing else starts. `resources.as_cap_mb` overrides the 2 x `mem_mb`
+  address-space cap: virtual memory, not RAM. The start gate still uses `mem_mb`.
 - **Idempotency:** a job id is terminal once `done`. A spec changed after completion is ignored; use a new id.
 - **Concurrency (lanes, 2026-10-16):** at most one job per lane, so at most two at once.
   - `cpu` is the default lane, for compute-bound jobs.
