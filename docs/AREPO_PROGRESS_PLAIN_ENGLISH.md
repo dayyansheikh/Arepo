@@ -1,27 +1,28 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-20 13:38 UTC+1
+**Last updated:** 2026-10-20 18:53 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **Autopilot:** a new session started at 13:25 UTC+1 (20 Oct). The morning session's four work streams had stopped at
-  about 09:46 UTC+1 without finishing; all four were restarted (partial work kept only where it was correct).
-- **Server queue was idle at 13:24.** Two batch 11/12 counting jobs were correctly refusing to run because the sealed
-  hold-out lists the server had just written were not yet saved in the repo. They are now saved (byte-for-byte copies),
-  and both jobs were restarted. Nothing was counted from the failed attempts.
-- **New server work queued (7 jobs):** batch 12 earthquake prices and census, batch 13 crypto-ladder frame and price
-  history, batch 14 market lists and the Wikipedia-edit frame. That is roughly 10+ hours of network-lane work.
-- **Live tests:** 3 running (Kalshi lead E009/E010, surprise detector E011). Being prepared:
-  - E012-E014: the reviewer's last mechanical fixes are done (one size check was re-run reproducibly: false-alarm rate
-    4.7%, within the 5% limit). Next: a short server dry run, a final check, then registration before 22 Oct 01:00 UTC+1.
-  - LT3 (E015-E019): answers to the review and the code are being written; target start 24 Oct.
-  - A new round of ideas (round 10) is being written, aimed at more live tests on data the server already collects.
-- **Batch 12 earthquake/options tests:** an independent check accepted the fixes, so the earthquake census is queued.
-  The options part is ready to freeze once today's options check runs (15:05 UTC+1).
-- **Batch 17:** the code for its test windows is being built (deadline 24 Oct, start 26 Oct).
+- **Autopilot:** a new session started at 18:38 UTC+1 (20 Oct). The 13:25 session had stopped at about 14:01 UTC+1.
+- **Server queue was idle at 18:38 again.** Cause: the server's copy of the code was 15 commits behind, so the jobs
+  promoted this afternoon never reached it (most likely a deploy from a side branch overwrote the newer one). Fixed:
+  the current code was sent at 18:40 and the work restarted. From now on, deploys go only from the main research branch.
+  Two smaller server faults were fixed too: a restore job could not find the GitHub tool, and one price job needed more memory.
+- **Live tests: E012-E014 are now REGISTERED** (18:51 UTC+1). The last server dry run passed (memory 584 MB of
+  960 MB allowed) and the independent check passed, with one correction to the wording: the server only lists open
+  markets, so a market that closes or resolves shows up as "gone from the list", which the attrition rule already counts.
+  Collection starts **22 Oct 01:00 UTC+1** and runs to 12 Nov; the single analysis comes after 13 Nov.
+  That makes **4 registered live-test groups** (E009/E010, E011, E012-E014), 3 of them collecting now.
+- **Next live tests:**
+  - LT3 (E015-E019): the counting checks needed before the freeze are running on the server now; target start 24 Oct.
+  - LT4 (new, from round 10 of ideas): the design is being drafted (5 candidates on data the server already collects).
+- **Round 10 of ideas** (11 new ideas, CH169 onward) is saved. They cover order arrivals versus cancellations, how old a
+  price move is, and liquidity that is displayed but cannot actually be traded against.
+- **Batch 17:** its test-window code is finished and tested. An independent freeze check is running (deadline 24 Oct, start 26 Oct).
 - **Second free server:** still "out of host capacity" at Oracle; it retries every 10 min.
 
 ## 2. Approvals needed from you
@@ -62,7 +63,7 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 
 | Leading candidates | Awaiting confirmation | Confirmed edge |
 |---|---|---|
-| Kalshi lead; order flow; book/liquidity interactions (being tested) | E009/E010 (3 Nov), E011 (11 Nov) | **None** |
+| Kalshi lead; order flow; book/liquidity interactions (being tested) | E009/E010 (3 Nov), E011 (11 Nov), E012-E014 (13 Nov) | **None** |
 
 ## 5. Infrastructure
 | Item | State |

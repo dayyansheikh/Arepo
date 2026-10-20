@@ -474,7 +474,7 @@ moves to the first 00:00Z at least 2 h after the commit (for a commit on 2026-10
 `[2026-10-23T00:00Z, 2026-11-13T00:00Z)`, analysis not before 2026-11-14T12:00Z), recorded in the ledger; no data are inspected
 for that decision.
 
-**REGISTERED (2026-10-20 ~18:00Z).** Pre-pin verification PIN_OK_WITH_DISCLOSURE (`reviews/LT2_PREPIN_VERIFY_2026-10-20.md`;
+**REGISTERED (2026-10-20 17:51Z).** Pre-pin verification PIN_OK_WITH_DISCLOSURE (`reviews/LT2_PREPIN_VERIFY_2026-10-20.md`;
 disclosure applied in §1.2, §1.3, §6.2 and §9 row 3; no code change). `SPEC_SHA256` pinned in `live_tests2.py` =
 `010a7ba131936e8ffda243a1858f5be8864562f2b036d5863af7b785f5d6584c` (sha256 of `model_specs/live_tests2_v1.json`);
 `code_sha256` unchanged (`88ee00b2…`, `a7b5c781…`). The pin commit precedes 2026-10-21T22:00Z, so §1.1 leaves

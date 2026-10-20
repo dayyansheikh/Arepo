@@ -2467,7 +2467,7 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   runner, tests; f0d710ba drafts and §12). 39 CB17 tests pass, synthetic data only; no SCREEN_8/REP_8 file opened (none
   exists; S_8 not before 2026-10-26). Next: freeze check (science-reviewer, incl. P1-P3 reproduction), merge, pins.
 
-## LT2 (E012-E014) REGISTERED, 2026-10-20 ~18:00Z (registration; nothing analysed; counting per LIVE_TESTS_2.md)
+## LT2 (E012-E014) REGISTERED, 2026-10-20 17:51Z (commit a4127bb9; registration; nothing analysed; counting per LIVE_TESTS_2.md)
 - **Last owed item, the R1 host dry run** (17:41-17:47Z, `/tmp/lt2dry`, nothing under `~/arepo`, code a532ee33, 20 runs
   of `run --max-items 4` over 2026-10-19 under `ulimit -v` 960 MB until exit 75): peak RSS 584 MB; exits 0/75, <= 32 s;
   34 series, 34 status, 7 E012 and 24 flow files, 55 MB; R1 columns present (`x_skip6`, `trunc1h`, `vol24_i`, `spec_sha`,
