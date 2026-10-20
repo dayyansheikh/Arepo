@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-20T02:05:00Z",
+ "updated": "2026-10-20T05:14:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1188,18 +1188,18 @@
   {
    "id": "CB17",
    "title": "Opens versus closes; book age; event open interest",
-   "plain": "Designed from round 8, using data already on the server: whether trades that open a position carry more information than closing trades, whether orders on a long-unchanged book lose more, whether depth shifting under a still price predicts the next move, and whether new money entering an event predicts continuation. First-day trades: counts only (too few).",
+   "plain": "Designed from round 8, using data already on the server: whether orders on a long-unchanged book lose more, whether depth shifting under a still price predicts the next move, and whether new money entering an event predicts continuation. The open-versus-close part was withdrawn before testing, as planned, because trade direction could not be inferred reliably enough (93% agreement against 97% needed). First-day trades: counts only.",
    "batch": "CB17",
    "family": "mixed",
    "stage": "designed",
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Its four counting jobs on older data passed review and are queued on the server; the test window starts 26 Oct",
+   "next": "Counting jobs done; the remaining parts get their final code and review before the test window starts on 26 Oct",
    "next_date": "2026-10-26",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB17 part `pre` code (cadaaf19), 2026-10-20"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB17 pre-censuses q0400-q0403, done 2026-10-20"
    },
    "stage_results": {
     "designed": "pending"

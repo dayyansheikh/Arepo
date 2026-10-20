@@ -2305,3 +2305,18 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   leave the listing; resolution arms need a light Gamma fetch); trade-sample CSVs on the host only from 10-16.
 - Next: LT3 draft pre-registration (designer running, `LIVE_TESTS_3.md`, E015+, two-stage prospective screen +
   replication) -> challenger -> code -> freeze.
+
+## CB17 pre-censuses q0400-q0403, done 2026-10-20 02:04-02:27Z (counts only); A withdrawn uncounted (branch T)
+- Ran under part pre `ddc0249b` before the 02:45Z blackout (cpu lane), all rc 0.
+- **q0400 (A, 123 s): P1 REPRODUCED** (all 7 counts equal: fills 2,931, token-resolved 2,715, ambiguous 216,
+  non-sports 1,006, non-sports resolved 971, open 676, close 295). **Side agreement 906 / 971 = 93.3%** < the 97%
+  overall bar of §10.4 (every binding cell also fails: PATH-SETTLED 121/135, SCHEDULED-EVENT 362/392,
+  UNSCHEDULED-NEWS 397/417, p bands 159/165, 347/361, 386/431, touch age 0-20 min 367/382), so **branch T**:
+  **CB17-A withdrawn uncounted** before its part commit, as pre-declared (§10.5: k = 3 fixed + up to 6 conditional,
+  k1 = 3). Strata: selected population T, level 1; 44 both-label cells. Result sha256 `9deedcf5…`.
+- **q0401 (B, 352 s):** 545,355 units; 4,828 tokens with both fresh and old books; selected level B1 = 2, B2 = 1.
+  sha256 `c3b8ae1b…`. **q0402 (C, 400 s):** 2,419 events with units having >= 6 prior intervals; selected level 2.
+  sha256 `442e99da…`. **q0403 (cost-lag map, 303 s):** 37,598 prints, 42 sweeps. sha256 `43f28e02…`.
+- Next: write branch T into the record (A withdrawn), cut points and levels into parts B and C, the cost-lag map into
+  §2.1/§3; parts B/C (and E census) code, freeze checks and commits before S_8 = 2026-10-26. Round 9's CH160 (walked
+  prints, needs branch S) therefore is not live-ready; LT3 must not use it.
