@@ -1413,11 +1413,14 @@ O1.
 | Part | Status | Modules hashed | sha256 |
 |---|---|---|---|
 | `pre` | declared (committed before q0400) | `cb17_common`, `cb17_pre`, `cb17_census` | `ddc0249b23eedf8cfe50b2b60e94378264804ca4791c82c01cf3993df54df6a7` |
-| `common` | pending (rules commit) | | |
+| `common` | declared (this rules commit) | `cb17_common`, `cb17_wcommon` | `2343744082bcb664ac06f18f967c166aae09c216e9437045d7aa07aa77ef8c9f` |
 | `A` | **withdrawn uncounted (branch T); never declared** | - | - |
-| `B` | pending (rules commit) | | |
-| `C` | pending (rules commit) | | |
-| `E` | pending (rules commit) | | |
+| `B` | declared (this rules commit) | `cb17_common`, `cb17_rules_b` | `fd9ce65606ed94d90ecc9a364bf6f6ad99754ae3a8f77e1aa778f723ef28c4aa` |
+| `C` | declared (this rules commit) | `cb17_common`, `cb17_rules_c` | `68bd50a2c33db7a50ae2a3efb411a629d7b251355784de50ed5433e59e4bf632` |
+| `E` | declared (this rules commit) | `cb17_common`, `cb17_rules_e` | `337382d63da11f724743b1969dff878ff6e92f536f245953a455bb2037301418` |
+
+The parts bind once they land on the working branch after the orchestrator's acceptance (O2). Every window job
+verifies `pre`, `common` and its family part (exit 2 on a mismatch).
 
 ### 11.7 Implementation notes that bear on the record
 
@@ -1453,3 +1456,19 @@ O1.
   reproduce q0401's classification exactly.
 - **O7 (B2 level margin).** B2's level 1 share is 0.6030, 0.3 points over the 60% selection margin. Informational; the
   rule is mechanical and the window's 50% rule binds as declared.
+- **O8 (wild-bootstrap seed).** §2.3 names seed 1717 for A's cluster bootstrap and no seed for the Webb wild bootstrap
+  of the small-G rule (the UTC-hour way, G = 24, is CR2 + wild). Part `common` declares 1717 for it (CB16 used its 1616
+  for both).
+- **O9 (B tick change).** §CB17-B lists "`tick_size` equal at decision and mark (else 'tick change', counted)" as
+  eligibility, but the mark sweep is post-decision, the kind of selection finding 1 removed from C; a tick change
+  happens when the price crosses into the extremes. Implemented as declared (excluded, counted by state bin). Should
+  tick-change units instead join the no-mark / wide-mark worst-case bound?
+- **O10 (econ tie rules).** B1-econ: the token's latest sweep in `[τ − 30 min, τ)` gives the book age (the design says
+  "a sweep"). B2-econ: the most recent pass with `t < τ ≤ t + 2 h` and `|x| ≥ SD_x` defines the abandoned side (the
+  design says "after a pass"). Declared in part `B`.
+- **O11 (C one-sided worst case).** §CB17-C uses "the touch adverse to continuation" for every class. For transfer units
+  that is hypothesis-adverse; for mint- and merge-heavy units (where high continuation is hypothesis-adverse) it is
+  rarely "more adverse" than the 95th percentile. Implemented literally; confirm or name the favourable touch for them.
+- **O12 (CB16 key file).** CB16 q0380 has not run (no `exclusion_keys.csv.gz` on the host), so its sha256 cannot be
+  pinned in part `common`. Part `common` declares the pin as the sha256 in q0380's manifest, set in q0405's job spec
+  (CB16's q0380 `--base-sha256` precedent); q0405 refuses while unset and records a q0380 stop record as "keys absent".

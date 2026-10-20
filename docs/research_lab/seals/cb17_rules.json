@@ -3,37 +3,3484 @@
   "A": {
    "part": "A",
    "part_declared": false,
-   "reason": "part not declared yet: committed after q0400-q0403 have chosen the branch, the strata levels and the cut points (CREATIVE_BATCH_17.md section 1.4 Order)",
+   "reason": "withdrawn uncounted (branch T): q0400 side agreement 906/971 = 93.3% < 97% (pre_census_A.json 9deedcf5...); part A is never committed (CREATIVE_BATCH_17.md sections 2.5, 10.5, 11.1)",
    "rules_sha256": null,
    "rules_version": "cb17-rules-v1"
   },
   "B": {
+   "constants": {
+    "cb17_common": {
+     "ALLOWED_OUTPUT_ROOT_PARTS": [
+      "creative_batch17"
+     ],
+     "CAPTURE_DIR_RE": "^(\\d{8}T\\d{6}Z)_[0-9a-f]+$",
+     "CAPTURE_FIELDS": [
+      "capture_id",
+      "received_utc",
+      "market_id",
+      "condition_id",
+      "event_id",
+      "closed",
+      "active",
+      "binary",
+      "best_bid",
+      "best_ask",
+      "liquidity",
+      "volume24hr",
+      "end_date",
+      "clob_token_id_0",
+      "neg_risk",
+      "neg_risk_market_id"
+     ],
+     "CAPTURE_LOOKBACK_START": "2026-10-11T22:00:00Z",
+     "CB13_T_SCREEN_FILES": [
+      "fills.csv.gz",
+      "labels.csv.gz"
+     ],
+     "CB17_SPORTS_IN_PRIMARY": false,
+     "CENSUS_CUTOFF": "2026-10-16T00:00:00Z",
+     "CENSUS_DAYS": [
+      "20261012",
+      "20261013",
+      "20261014",
+      "20261015"
+     ],
+     "CENSUS_START": "2026-10-12T00:00:00Z",
+     "DATA_DUMPS_CAP_GB": 40.0,
+     "DISK_CAP_GB": 0.01,
+     "ELECTION_NIGHT": [
+      "2026-11-03T18:00:00Z",
+      "2026-11-05T00:00:00Z"
+     ],
+     "EVIDENCE_ROLE_DEV": "exploratory_dev",
+     "EVIDENCE_ROLE_HIST": "exploratory_historical",
+     "EXTRA_REFUSED_ROOTS": [
+      "creative_batch16"
+     ],
+     "FILLS_FIELDS": [
+      "status",
+      "condition_id",
+      "market_id",
+      "event_id",
+      "label",
+      "path_key",
+      "tau",
+      "tau_last",
+      "d",
+      "P",
+      "size",
+      "cash",
+      "spread0",
+      "mid0",
+      "prev_mid",
+      "touch_age_s",
+      "block",
+      "day"
+     ],
+     "FORBIDDEN_CAPTURE_FIELDS": [
+      "chg_1h",
+      "chg_1d",
+      "chg_1w",
+      "last_trade_price",
+      "open_interest",
+      "volume_num",
+      "uma_resolution_statuses",
+      "outcome_prices",
+      "closed_time"
+     ],
+     "FORBIDDEN_OUTPUT_COLUMNS": [
+      "side",
+      "wallet",
+      "wallet_hash",
+      "proxyWallet",
+      "tx16",
+      "transactionHash",
+      "tx_hash",
+      "hash",
+      "name",
+      "pseudonym",
+      "recv_ts",
+      "chg_1h",
+      "chg_1d",
+      "chg_1w",
+      "ctx_chg_1h",
+      "uma_resolution_statuses",
+      "outcome_prices",
+      "outcomePrices",
+      "umaResolutionStatus",
+      "closedTime",
+      "closed_time",
+      "result",
+      "settlement_value",
+      "p_end",
+      "mark",
+      "mark_out",
+      "m_h",
+      "beta",
+      "est",
+      "estimate",
+      "coef",
+      "effect",
+      "pnl",
+      "net"
+     ],
+     "FORBIDDEN_PRINT_FIELDS": [
+      "key",
+      "wallet_hash",
+      "wallet",
+      "proxyWallet",
+      "ctx_chg_1h",
+      "ctx_status",
+      "chg_1h"
+     ],
+     "HOLDOUT_PARTS": [
+      "holdout",
+      "t_holdout"
+     ],
+     "LABELS_FIELDS": [
+      "condition_id",
+      "label"
+     ],
+     "LOOKBACK_FLOOR": "2026-10-26T00:00:00Z",
+     "MDE_FACTOR": 3.8,
+     "MONITOR_FORBIDDEN_FILES": [
+      "alerts.jsonl",
+      "outcomes.jsonl",
+      "wallets.jsonl",
+      "stats.jsonl",
+      "state.json"
+     ],
+     "MONITOR_FORBIDDEN_RE": "^scores-\\d{8}\\.jsonl$",
+     "MONITOR_TRADES_RE": "^trades-(\\d{8})\\.jsonl$",
+     "OUTCOME_KEY_TOKENS": [
+      "beta",
+      "est",
+      "estimate",
+      "mark",
+      "marks",
+      "pnl",
+      "net",
+      "outcome",
+      "outcomes",
+      "coef",
+      "effect",
+      "slope"
+     ],
+     "PARTS": [
+      "common",
+      "pre",
+      "A",
+      "B",
+      "C",
+      "E"
+     ],
+     "PRINT_FIELDS": [
+      "ts",
+      "condition_id",
+      "token_id",
+      "outcome_index",
+      "price",
+      "size",
+      "cash",
+      "title",
+      "slug",
+      "ctx_event_id",
+      "ctx_market_id",
+      "ctx_category",
+      "ctx_fee_type"
+     ],
+     "PRINT_LAG_FIELDS": [
+      "recv_ts"
+     ],
+     "PRINT_MEMORY_ONLY": [
+      "tx16"
+     ],
+     "PRINT_SIDE_FIELDS": [
+      "side"
+     ],
+     "RULES_MACHINERY": [
+      "rules_part_doc",
+      "rules_part_file_doc",
+      "rules_file_doc",
+      "write_rules",
+      "verify_rules",
+      "family_modules",
+      "common_funcs",
+      "part_funcs",
+      "shared_helper_sources",
+      "external_closure",
+      "_code_names",
+      "_helper_key",
+      "common_declared"
+     ],
+     "RULES_VERSION": "cb17-rules-v1",
+     "SHARED_HELPERS": [
+      [
+       "cm",
+       "write_once_json"
+      ],
+      [
+       "cm",
+       "sha_obj"
+      ],
+      [
+       "cm",
+       "iso"
+      ],
+      [
+       "c12",
+       "parse_iso"
+      ],
+      [
+       "c12",
+       "read_csv_gz"
+      ],
+      [
+       "c16",
+       "refuse_path"
+      ],
+      [
+       "c16",
+       "num"
+      ]
+     ],
+     "SIDECAR_FIELDS": [
+      "market_id",
+      "event_id",
+      "fee_type",
+      "fee_category",
+      "fee_schedule",
+      "order_price_min_tick_size",
+      "clob_rewards",
+      "created_at",
+      "event_open_interest",
+      "event_volume",
+      "series_slugs",
+      "neg_risk_market_id",
+      "accepting_orders"
+     ],
+     "STOP_RULE": "3 CPU-hours per family; a job failing twice for the same non-transient reason stops and is recorded; no re-screen of a failed CB17 test",
+     "SWEEP_DIR_RE": "^(\\d{8}T\\d{6}Z)_?[0-9a-f]*$",
+     "SWEEP_FIELDS": [
+      "sweep_id",
+      "token_id",
+      "market_id",
+      "batch_receipt_utc",
+      "book_timestamp",
+      "book_hash",
+      "best_bid",
+      "best_ask",
+      "bid_size_1",
+      "ask_size_1",
+      "depth_bid_1c",
+      "depth_ask_1c",
+      "depth_bid_5c",
+      "depth_ask_5c",
+      "n_bid_levels",
+      "n_ask_levels",
+      "tick_size",
+      "min_order_size",
+      "state"
+     ]
+    },
+    "cb17_rules_b": {
+     "ACTIVITY_CUTS_C": [
+      0.0,
+      0.10000000149011612
+     ],
+     "AGE_EXCLUDE_ABOVE_S": 3600.0,
+     "B1_ATTRIBUTION": [
+      "spread band",
+      "activity",
+      "log liquidity",
+      "volume24hr band",
+      "reward programme present",
+      "n_levels band",
+      "UTC 6 h band",
+      "decision mid band",
+      "hash changed since the previous pass",
+      "touch grain (sub-cent or not)"
+     ],
+     "B1_ROBUSTNESS": [
+      "no-mark worst case",
+      "capture mark",
+      "old cut 300 s",
+      "old cut 1800 s",
+      "exclude a > 3600 s",
+      "ask-crossing component",
+      "bid-crossing component",
+      "relative L / (a0 - b0)",
+      "decision mid in [0.10, 0.90]",
+      "6 h mark",
+      "top-5 drops",
+      "leave-one-day-out"
+     ],
+     "B2_ATTRIBUTION": [
+      "dm_pre",
+      "imbalance level",
+      "spread band",
+      "n_levels change",
+      "touch-size change",
+      "activity",
+      "UTC 6 h band"
+     ],
+     "B2_ROBUSTNESS": [
+      "no-mark worst case",
+      "s != 0 only",
+      "no monitor print in the market between the two sweeps",
+      "unchanged touch sizes",
+      "capture mark",
+      "6 h mark",
+      "top-5 drops",
+      "leave-one-day-out"
+     ],
+     "B_VERSION": "cb17-B-v1",
+     "CAPTURE_MARK_S": [
+      7200.0,
+      14400.0
+     ],
+     "CONCENTRATION_SHARE": 0.3,
+     "CONCENTRATION_TOP": 5,
+     "CUTS_SOURCE": {
+      "b2_units": 481657,
+      "file": "creative_batch17/pre_census_B.json",
+      "job": "q0401",
+      "recipe": [
+       "activity = pre-decision |dm| (cents) from the previous pass's first sweep to the decision sweep; global cut points (terciles) over worn non-sports eligible units; frozen in part B; never recomputed",
+       "imbalance = (B5 - A5) / D1 at the second sweep, D1 = depth_bid_5c + depth_ask_5c of the first sweep; global tercile cut points over worn non-sports touch-unchanged units; frozen in part B"
+      ],
+      "sha256": "c3b8ae1b0f8d0bb7b54126193371e479c9175078591ebd46bb990d36ef063a1a",
+      "units": 545355
+     },
+     "ECON_B1_SWEEP_LOOKBACK_S": 1800.0,
+     "ECON_B2_HORIZON_S": 7200.0,
+     "ECON_MIN_EVENTS": 60,
+     "ECON_MIN_FILLS": 300,
+     "EXCLUSIONS": [
+      "clock anomaly",
+      "not two-sided",
+      "wide or extreme",
+      "end too near",
+      "no previous pass",
+      "split pass",
+      "sports",
+      "arm 1 (REP)",
+      "election night",
+      "dropped: key",
+      "unavailable (lookback floor)",
+      "touch changed (B2)",
+      "no depth (B2)"
+     ],
+     "FEATURE_DTYPE": "float32",
+     "GBA_BIN_SHARE_MIN": 0.05,
+     "GBA_EVENTS_MIN": 300,
+     "GBA_TOKENS_MIN": 1000,
+     "GBS_EVENTS_MIN": 300,
+     "GBS_SHIFT_SHARE_MIN": 0.2,
+     "GBS_UNITS_MIN": 50000,
+     "GBT_CHANGED_MIN": 0.95,
+     "GBT_SAME_MIN": 0.99,
+     "IMBALANCE_CUTS": [
+      -0.021718762814998627,
+      0.4006465971469879
+     ],
+     "LABEL_B1": "adverse movement only; not a maker net and not a maker loss",
+     "LABEL_CONCENTRATED": "concentrated",
+     "MARK_2H_S": [
+      6600.0,
+      7800.0
+     ],
+     "MARK_6H_S": [
+      21000.0,
+      22200.0
+     ],
+     "MARK_OK": "ok",
+     "MID_ROBUST": [
+      0.1,
+      0.9
+     ],
+     "NO_MARK": "no mark",
+     "NO_MARK_RULE": "eligibility uses the decision sweep and earlier rows only; a token absent from the mark pass or one-sided there is 'no mark' (availability, counted by state bin); a mark spread > 10c is 'wide mark' (counted; worst case); a tick size different at the mark is 'tick change' (excluded and counted, as declared; O9)",
+     "OLD_CUT_ALTS_S": [
+      300.0,
+      1800.0
+     ],
+     "SD_X_WORN_REPORTED": 0.08671511,
+     "STATE_ANOMALY": "clock anomaly",
+     "STATE_FRESH": "fresh",
+     "STATE_MID": "mid",
+     "STATE_OLD": "old",
+     "STRATA_LEVEL": {
+      "B1": 2,
+      "B2": 1
+     },
+     "STRATA_WORN_SHARES": {
+      "B1": {
+       "fallback": true,
+       "level0": 0.02970675244228269,
+       "level1": 0.052776312733728785,
+       "level2": 0.08632473623781028
+      },
+      "B2": {
+       "fallback": false,
+       "level0": 0.3341880217665268,
+       "level1": 0.6029747309807602,
+       "level2": 0.6733505378308631
+      }
+     },
+     "TICK_CHANGE": "tick change",
+     "WIDE_MARK": "wide mark",
+     "WORST_B2_Q": {
+      "neg": 95.0,
+      "pos": 5.0
+     },
+     "WORST_FRESH_Q": 95.0
+    }
+   },
+   "declared": {
+    "cb17_rules_b": {
+     "B1": {
+      "attribution": [
+       "spread band",
+       "activity",
+       "log liquidity",
+       "volume24hr band",
+       "reward programme present",
+       "n_levels band",
+       "UTC 6 h band",
+       "decision mid band",
+       "hash changed since the previous pass",
+       "touch grain (sub-cent or not)"
+      ],
+      "estimator": "OLS of L on old with token FE; one-sided > 0; floor +0.5c",
+      "label": "adverse movement only; not a maker net and not a maker loss",
+      "old_cut_alts_s": [
+       300.0,
+       1800.0
+      ],
+      "pre_period": "L_pre from the touch two passes earlier and the mid one pass earlier, on today's old; must not pass p < 0.01 in the hypothesised direction",
+      "robustness": [
+       "no-mark worst case",
+       "capture mark",
+       "old cut 300 s",
+       "old cut 1800 s",
+       "exclude a > 3600 s",
+       "ask-crossing component",
+       "bid-crossing component",
+       "relative L / (a0 - b0)",
+       "decision mid in [0.10, 0.90]",
+       "6 h mark",
+       "top-5 drops",
+       "leave-one-day-out"
+      ],
+      "seeds": {
+       "calibration": 17112,
+       "composition": 17111
+      },
+      "state": "old iff a >= 600 s; fresh iff a < 60 s; 60-600 s reported only",
+      "target": "L = 100 [max(0, m_h - a0) + max(0, b0 - m_h)] cents"
+     },
+     "B2": {
+      "attribution": [
+       "dm_pre",
+       "imbalance level",
+       "spread band",
+       "n_levels change",
+       "touch-size change",
+       "activity",
+       "UTC 6 h band"
+      ],
+      "concentration": "top 5 events > 0.3 of sum x^2 -> 'concentrated'",
+      "estimator": "OLS of dm on x / SD_x with token FE; one-sided > 0; floor +0.5c per SD",
+      "pre_sweep": "dm_pre (previous pass's first-sweep mid -> m_0) on x: must not pass p < 0.01 in the hypothesised direction (binding, ruling 5)",
+      "robustness": [
+       "no-mark worst case",
+       "s != 0 only",
+       "no monitor print in the market between the two sweeps",
+       "unchanged touch sizes",
+       "capture mark",
+       "6 h mark",
+       "top-5 drops",
+       "leave-one-day-out"
+      ],
+      "sd_x": "pooled SD over SCREEN_8 units, written to the SCREEN_8 result, frozen for REP_8",
+      "seeds": {
+       "calibration": 17122,
+       "composition": 17121
+      },
+      "state": "x = -s / D1 clipped to [-1, 1]; units with identical best_bid and best_ask in both sweeps; s = 0 kept",
+      "target": "dm = 100 (m_h - m_0) cents"
+     },
+     "cut_points": {
+      "activity_c": [
+       0.0,
+       0.10000000149011612
+      ],
+      "assignment": "value <= lower -> 0; <= upper -> 1; else 2 (part pre tercile_of)",
+      "dtype": "float32",
+      "frozen": "never recomputed on SCREEN_8 or REP_8",
+      "imbalance": [
+       -0.021718762814998627,
+       0.4006465971469879
+      ],
+      "source": {
+       "b2_units": 481657,
+       "file": "creative_batch17/pre_census_B.json",
+       "job": "q0401",
+       "recipe": [
+        "activity = pre-decision |dm| (cents) from the previous pass's first sweep to the decision sweep; global cut points (terciles) over worn non-sports eligible units; frozen in part B; never recomputed",
+        "imbalance = (B5 - A5) / D1 at the second sweep, D1 = depth_bid_5c + depth_ask_5c of the first sweep; global tercile cut points over worn non-sports touch-unchanged units; frozen in part B"
+       ],
+       "sha256": "c3b8ae1b0f8d0bb7b54126193371e479c9175078591ebd46bb990d36ef063a1a",
+       "units": 545355
+      }
+     },
+     "econ": {
+      "B1-econ": "within-market difference of the CB13-T3 round-trip net, old minus fresh, at the token's latest sweep in [tau - 30 min, tau); primary <= -0.5c, old-book net <= -1.0c; p = max",
+      "B2-econ": "fills with tau in (t, t + 2 h] after the most recent pass with |x| >= SD_x; abandoned-side minus the market's other REP_8 fills; primary <= -0.5c, abandoned net <= -1.0c; p = max",
+      "fill_source": "branch T: CB13-T touch-consistent fills (pins)",
+      "minimum": ">= 300 fills per bin in >= 60 events, else not run (power)"
+     },
+     "eligibility": {
+      "clock": "a < -5 s clock anomaly, excluded and counted",
+      "decision": "two-sided, spread <= 10c, mid in [0.03, 0.97], sidecar end_date >= t + 4 h, a previous pass within 150 min (activity), decision sweep and earlier rows only",
+      "exclusions": [
+       "clock anomaly",
+       "not two-sided",
+       "wide or extreme",
+       "end too near",
+       "no previous pass",
+       "split pass",
+       "sports",
+       "arm 1 (REP)",
+       "election night",
+       "dropped: key",
+       "unavailable (lookback floor)",
+       "touch changed (B2)",
+       "no depth (B2)"
+      ],
+      "pass": "two consecutive sweep directories < 30 min apart; a token pair > 5 min apart is split pass",
+      "t": {
+       "B1": "first sweep's batch_receipt_utc",
+       "B2": "second sweep's batch_receipt_utc"
+      }
+     },
+     "gates": {
+      "GB1P": "B1's estimator on L_pre, SEs only; MDE > 1.0c -> not run (power)",
+      "GB2P": "B2's estimator on dm_pre, SEs only; MDE > 1.0c per SD -> not run (power)",
+      "GBA": {
+       "bin_share_min": 0.05,
+       "events_min": 300,
+       "tokens_min": 1000
+      },
+      "GBS": {
+       "events_min": 300,
+       "shift_share_min": 0.2,
+       "units_min": 50000
+      },
+      "GBT": {
+       "changed_min": 0.95,
+       "same_min": 0.99
+      }
+     },
+     "marks": {
+      "2h_s": [
+       6600.0,
+       7800.0
+      ],
+      "6h_s": [
+       21000.0,
+       22200.0
+      ],
+      "capture_s": [
+       7200.0,
+       14400.0
+      ],
+      "no_mark": "eligibility uses the decision sweep and earlier rows only; a token absent from the mark pass or one-sided there is 'no mark' (availability, counted by state bin); a mark spread > 10c is 'wide mark' (counted; worst case); a tick size different at the mark is 'tick change' (excluded and counted, as declared; O9)",
+      "worst_case": {
+       "B1": "capture mark first; else old L = 0, fresh p95 of available fresh L",
+       "B2": "capture mark first; else x > 0 p5, x < 0 p95 of available dm, x = 0 -> 0"
+      }
+     },
+     "strata": {
+      "informativeness": {
+       "B1": "numerator = units in (unit x stratum) cells holding both labels; denominator = all units of the test (A: the units of A1, i.e. units in (market x d) cells holding both labels; B1: all old / fresh units)",
+       "B2": "numerator = units in (unit x stratum) cells with >= 2 units and x not constant in the cell; denominator = all B2 units"
+      },
+      "ladders": {
+       "B1": {
+        "0": "UTC 6h band(4) x spread band(4) x activity tercile(3) x reward programme(2) = 96",
+        "1": "activity tercile(3) x UTC 12h band(2) x spread {<=2c, >2c} = 12",
+        "2": "activity tercile(3)"
+       },
+       "B2": {
+        "0": "UTC 6h band(4) x spread band(4) x activity tercile(3) x imbalance tercile(3) = 144",
+        "1": "activity tercile(3) x imbalance tercile(3) = 9",
+        "2": "imbalance tercile(3)"
+       }
+      },
+      "levels": {
+       "B1": 2,
+       "B2": 1
+      },
+      "window_rule": 0.5,
+      "worn_shares": {
+       "B1": {
+        "fallback": true,
+        "level0": 0.02970675244228269,
+        "level1": 0.052776312733728785,
+        "level2": 0.08632473623781028
+       },
+       "B2": {
+        "fallback": false,
+        "level0": 0.3341880217665268,
+        "level1": 0.6029747309807602,
+        "level2": 0.6733505378308631
+       }
+      }
+     },
+     "taker_line": "B2 follow at the decision ask/bid, exit at the adverse touch 2-4 h later; reported with the q0403 cell; never counted",
+     "units": "(token, pass) for outcome-0 tokens in the sweep universe of arm-0 events (SCREEN_8) / arm-1 events (REP_8), non-sports by the sidecar rule; binary; end unknown or > 3 h",
+     "version": "cb17-B-v1"
+    },
+    "common": {
+     "census": {
+      "cutoff": "2026-10-16T00:00:00Z",
+      "days": [
+       "20261012",
+       "20261013",
+       "20261014",
+       "20261015"
+      ],
+      "rule": "no census path reads a row at or after the cut-off; a file or directory outside the window is refused",
+      "start": "2026-10-12T00:00:00Z"
+     },
+     "election_night": [
+      "2026-11-03T18:00:00Z",
+      "2026-11-05T00:00:00Z"
+     ],
+     "field_whitelists": {
+      "captures": [
+       "capture_id",
+       "received_utc",
+       "market_id",
+       "condition_id",
+       "event_id",
+       "closed",
+       "active",
+       "binary",
+       "best_bid",
+       "best_ask",
+       "liquidity",
+       "volume24hr",
+       "end_date",
+       "clob_token_id_0",
+       "neg_risk",
+       "neg_risk_market_id"
+      ],
+      "fills": [
+       "status",
+       "condition_id",
+       "market_id",
+       "event_id",
+       "label",
+       "path_key",
+       "tau",
+       "tau_last",
+       "d",
+       "P",
+       "size",
+       "cash",
+       "spread0",
+       "mid0",
+       "prev_mid",
+       "touch_age_s",
+       "block",
+       "day"
+      ],
+      "forbidden_captures": [
+       "chg_1h",
+       "chg_1d",
+       "chg_1w",
+       "last_trade_price",
+       "open_interest",
+       "volume_num",
+       "uma_resolution_statuses",
+       "outcome_prices",
+       "closed_time"
+      ],
+      "forbidden_output": [
+       "side",
+       "wallet",
+       "wallet_hash",
+       "proxyWallet",
+       "tx16",
+       "transactionHash",
+       "tx_hash",
+       "hash",
+       "name",
+       "pseudonym",
+       "recv_ts",
+       "chg_1h",
+       "chg_1d",
+       "chg_1w",
+       "ctx_chg_1h",
+       "uma_resolution_statuses",
+       "outcome_prices",
+       "outcomePrices",
+       "umaResolutionStatus",
+       "closedTime",
+       "closed_time",
+       "result",
+       "settlement_value",
+       "p_end",
+       "mark",
+       "mark_out",
+       "m_h",
+       "beta",
+       "est",
+       "estimate",
+       "coef",
+       "effect",
+       "pnl",
+       "net"
+      ],
+      "forbidden_prints": [
+       "key",
+       "wallet_hash",
+       "wallet",
+       "proxyWallet",
+       "ctx_chg_1h",
+       "ctx_status",
+       "chg_1h"
+      ],
+      "labels": [
+       "condition_id",
+       "label"
+      ],
+      "prints": [
+       "ts",
+       "condition_id",
+       "token_id",
+       "outcome_index",
+       "price",
+       "size",
+       "cash",
+       "title",
+       "slug",
+       "ctx_event_id",
+       "ctx_market_id",
+       "ctx_category",
+       "ctx_fee_type"
+      ],
+      "recv_ts_q0403_only": [
+       "recv_ts"
+      ],
+      "side_q0400_only": [
+       "side"
+      ],
+      "sidecar": [
+       "market_id",
+       "event_id",
+       "fee_type",
+       "fee_category",
+       "fee_schedule",
+       "order_price_min_tick_size",
+       "clob_rewards",
+       "created_at",
+       "event_open_interest",
+       "event_volume",
+       "series_slugs",
+       "neg_risk_market_id",
+       "accepting_orders"
+      ],
+      "sweeps": [
+       "sweep_id",
+       "token_id",
+       "market_id",
+       "batch_receipt_utc",
+       "book_timestamp",
+       "book_hash",
+       "best_bid",
+       "best_ask",
+       "bid_size_1",
+       "ask_size_1",
+       "depth_bid_1c",
+       "depth_ask_1c",
+       "depth_bid_5c",
+       "depth_ask_5c",
+       "n_bid_levels",
+       "n_ask_levels",
+       "tick_size",
+       "min_order_size",
+       "state"
+      ]
+     },
+     "holdout": "CB13-T HOLDOUT paths are refused; only creative_batch13/t_screen/{fills,labels}.csv.gz may be opened by a census",
+     "lookback_floor": "2026-10-26T00:00:00Z",
+     "mde": "3.8 x SE",
+     "output_roots": [
+      "creative_batch17"
+     ],
+     "refused_extra": [
+      "creative_batch16"
+     ],
+     "result_rule": "counts, shares and standard errors only; a result with a key naming an outcome, a mark, a point estimate or a forbidden column is refused",
+     "sports_in_primary": false,
+     "stop_rule": "3 CPU-hours per family; a job failing twice for the same non-transient reason stops and is recorded; no re-screen of a failed CB17 test"
+    }
+   },
+   "func_sources_sha256": {
+    "cb17_common.assert_clean_result": "3a865ae06f010f749f0bae909cb887c834a3b60f0e1d89f1b8a271a762c7d211",
+    "cb17_common.band6": "81afd606517581d6995ce0c1669b16aad572039800d5fc4f7061ef351be66097",
+    "cb17_common.block6": "2131576674fc52a567f06a2061131fdaaa0a97e9dcb7a44f00b08e5485aedef9",
+    "cb17_common.census_cutoff": "a13aaeeae162f7598379c7023fde465f4aa0d132b35162169995175532e7b346",
+    "cb17_common.ep": "a546e4f0ed5bdf4883cff3d6cc7bf23bbba9306934f9954682127542e84cb790",
+    "cb17_common.guard_capture_dir": "1d7f5ad01347e1d2430cc128827194550e08cc4f5a14cbf556f71f44f298ba6f",
+    "cb17_common.guard_cb13_t_screen_file": "a7a64ac6b57849012750657fd558e55557b26cc0b16526341f7b9e1f0dd380ad",
+    "cb17_common.guard_census_time": "3815f6e806925496c8a442311f54bab84ba80a348c41b82268c19d103f7ba68c",
+    "cb17_common.guard_monitor_file": "7f7436b0b2ec1bbac4a8e275c4630f610e52f3c9c7863153b2997bafe8ae1f61",
+    "cb17_common.guard_not_window": "1642b57ad0d491ac4c20dc8fb2c3f331a5c098f61410821430e7e7e8e27a4f73",
+    "cb17_common.guard_stamped_dir": "688757abe49ec21d00441e7a616258c00f32fbeedd04fe1aa2e8e1bfa2678ee1",
+    "cb17_common.guard_sweep_dir": "d55536a6d85ead4985036ab73e7c70afa445f2bdaedf42e6d9dfd39507199928",
+    "cb17_common.iso": "96298691e53e2392f937e45ce36464ac77a5f4d7df98a50591b9fe003faf8488",
+    "cb17_common.log_descriptive": "4615b3ac23b46a28554e1cb1d6c3314800e15a4e88b0f550ae674d9292be4315",
+    "cb17_common.num": "6b0d39403e1916672eadc55c8241ff0c3cdfb233983e5e8b36b400140ab6f068",
+    "cb17_common.refuse_path": "f9e1f9bbe6c8d24b4e8ffce00039daf50642c9e19bf495e93f96dd436e7cfd2d",
+    "cb17_common.require_disk": "a8c2fc48de1b4187b9d0515147212dffdca1fbaad9894aa676e4c7825b2fa58c",
+    "cb17_common.require_output_root": "0c63b0d653f4735e287c72adaedbf2d01904c505684097207f5c664414d3aff3",
+    "cb17_common.sha256_file": "9b9e433786c3b739ebdf2370926158a2e42a946e90aae266587c550a4a08ee8b",
+    "cb17_common.sha256_obj": "29f7a73c2109e9902f07d1b4343c0975871e392d9e53aea23bc0b4e5d4ca548f",
+    "cb17_common.stamp_epoch": "032feaa1cc3be4e5e8c47210b56738e599bbc15ccbb3019068edab55d2838aab",
+    "cb17_common.utc_hour": "ea6422f9fe7208fa7aa19a5478016e8413e3742cb1d51927ffc98f7020dbff4a",
+    "cb17_common.write_result_once": "91c8c5fa4a6103a5f0213a8f2101d6e383c8679779192684521e58262aa32de4",
+    "cb17_rules_b.activity_c": "3f5be9f245eedadeefcad0c8bb40d4582af8ae9fcaf4d6354407eb5e8659c7ec",
+    "cb17_rules_b.activity_tercile": "11abb7b1849ccd12ca3b58290bd0548a6bcf4fb266e4dd92bebcbdeda5e52b49",
+    "cb17_rules_b.age_state": "2cd142106e4a909edeafbf0df4d3094770a1e280e3a869ad1bc29df0683e78a7",
+    "cb17_rules_b.book_age_s": "032428ddd792a390afba280e690ca2b6de7436a144d60e1ad868daa5e25af1a4",
+    "cb17_rules_b.concentration_share": "d19f3742d9f1bc106e8a6be772189927603a267822d0cf44aea120da61ffabf3",
+    "cb17_rules_b.declared": "3d438c57ebe0b9955be9e748c55e8cf30a76f11172e991a146b012a30345e863",
+    "cb17_rules_b.econ_b1_bin": "f272041fb3a14d564238537a1b6d58ee93b6da2305b9abba045962fa9e592284",
+    "cb17_rules_b.econ_b2_abandoned": "51069aac297815ec6c9af1e4f53da8bd2ca966fe7eecdd6a0d000b805e921dd7",
+    "cb17_rules_b.excursion_L": "cd9d93ef147745f21cc438674fe625805d6e5f8d59f4a40327b8b13251c5bc6f",
+    "cb17_rules_b.f32": "9d43b8fb387aa28b53db304f8243e1a7fa8c3c427104321e9a35f16dc5375cba",
+    "cb17_rules_b.gate_gba": "546b7dfde6ca5f0fbb9c21e04fc95e06fc9c29eca8b78a73c346a3f1aa009173",
+    "cb17_rules_b.gate_gbs": "cf0362ca255eb8578a2a3be6e00dfecd5a979f92ed68e2d5c56660dc7cd812e4",
+    "cb17_rules_b.gate_gbt": "e8d9ca8c1c8c42fc24a2e17d5bcf63fe41582479a4b96e8d9df50afa82aea8e8",
+    "cb17_rules_b.imbalance_tercile": "5ff513b1ab568f69d6fddce4d237094db1d2fd8154dedf3232984c718a66976b",
+    "cb17_rules_b.mark_status": "8b58b3d5b6aa883a7ee6fb914569d1853c652723db64c11e788cb99cf6602f18",
+    "cb17_rules_b.shift_state": "1b3b44141fd34b59d56ea56169bb683b034f6865b0c88f46ed739c30d4af81fe",
+    "cb17_rules_b.stratum_b": "b0be8beb2298a28411ccfdb8b34f0ab4bbf153bf85f59506c09b05b84abf0aac",
+    "cb17_rules_b.worst_b1": "7a5458f8c944aef54f491b23c3b058de71c075de62f03ce1f1d5f7124f61205e",
+    "cb17_rules_b.worst_b2": "98a70d8d315c8a5e271e879368068d3fa137b1bdfbcb38bae14f4d973d3d0677"
+   },
+   "funcs_sha256": "83fe9f5be04b8ad809244bfbf867c459520252bb3e3c11a1110639fd89c77fc5",
+   "modules": [
+    "cb17_common",
+    "cb17_rules_b"
+   ],
    "part": "B",
-   "part_declared": false,
-   "reason": "part not declared yet: committed after q0400-q0403 have chosen the branch, the strata levels and the cut points (CREATIVE_BATCH_17.md section 1.4 Order)",
-   "rules_sha256": null,
-   "rules_version": "cb17-rules-v1"
+   "part_declared": true,
+   "rules_sha256": "fd9ce65606ed94d90ecc9a364bf6f6ad99754ae3a8f77e1aa778f723ef28c4aa",
+   "rules_version": "cb17-rules-v1",
+   "shared_helper_sources_sha256": {
+    "cb10_common.require_disk": "1e0e4e4682fa9a16fa71df384f5163983fa5cfa675b15a9b7f009dbbf3d81370",
+    "cb12_common.parse_iso": "f56a746aac64f2456a69e6ad81c952e3b4ebff1aa8a167e5ab567d2182477da3",
+    "cb12_common.read_csv_gz": "0de78d753f9c22f4985ca862de9e64db28b0333f859376b5d38ce4eb9aedc535",
+    "cb16_common.num": "6b0d39403e1916672eadc55c8241ff0c3cdfb233983e5e8b36b400140ab6f068",
+    "cb16_common.refuse_path": "984c7b1020d07266c5a5d749572ed0d4042dbcd377bc2f1a3323cf608fbebbd9",
+    "cb16_common.refused_names": "32b50ab79443589af19374c0cc7519d67f852856b04b43f23c510ec76c27b790",
+    "cb16_common.require_disk": "66681a0d33bf0192436c44a5e343dfbc775a355bfe24fdfdfd809fb2c08f1ada",
+    "cb6_tail.NotNow": "08b9fb3b8355ad01e3b1dd27581ebae1e1efaf463f20232f3c0c91fbb18dab8f",
+    "cb6_tail.Refused": "60c0f89a153d7221261fbcf72fab5c3575768e044ebe16651a7179da8abbb6ed",
+    "cb8_common.iso": "ac272e28c92099a676a96b2c020c11350330df755b773770371939d966fa80ab",
+    "cb8_common.sha_obj": "cafbecf98cedc4dfb52e87251e7a10fac6b4cb9acebcdc0085e5620305953a1e",
+    "cb8_common.write_once_json": "96de340201f4213c580706a6c2f57a3addda7abf3019daa2f1868cd49c4eadb9",
+    "provenance.EvidenceRoleError": "7b336a992c69d6d56ec45da927dce137014fe0b34fbfd0a21ab0c30a79e0ec35",
+    "provenance.append_trial": "fb9994b0432e034eae414186f16cd95ff59f1158dc0d028d7e41375d9e19353f",
+    "provenance.role_required": "85cad103453f602808701521edb26f5d0474b9269f33325c3861367be2004220",
+    "provenance.validate_evidence_role": "42b61e7d9e401ab2dd6b098a5012cfa82f776576e3f1a12ba492f71ca82d2522"
+   },
+   "wallet": {
+    "note": "no CB17 job reads or stores a wallet field or a transaction hash (tx16 is aggregated in memory and discarded); the Data API side field is read by q0400 only (the agreement count and the sign of its side-signed population)",
+    "read": false
+   }
   },
   "C": {
+   "constants": {
+    "cb17_common": {
+     "ALLOWED_OUTPUT_ROOT_PARTS": [
+      "creative_batch17"
+     ],
+     "CAPTURE_DIR_RE": "^(\\d{8}T\\d{6}Z)_[0-9a-f]+$",
+     "CAPTURE_FIELDS": [
+      "capture_id",
+      "received_utc",
+      "market_id",
+      "condition_id",
+      "event_id",
+      "closed",
+      "active",
+      "binary",
+      "best_bid",
+      "best_ask",
+      "liquidity",
+      "volume24hr",
+      "end_date",
+      "clob_token_id_0",
+      "neg_risk",
+      "neg_risk_market_id"
+     ],
+     "CAPTURE_LOOKBACK_START": "2026-10-11T22:00:00Z",
+     "CB13_T_SCREEN_FILES": [
+      "fills.csv.gz",
+      "labels.csv.gz"
+     ],
+     "CB17_SPORTS_IN_PRIMARY": false,
+     "CENSUS_CUTOFF": "2026-10-16T00:00:00Z",
+     "CENSUS_DAYS": [
+      "20261012",
+      "20261013",
+      "20261014",
+      "20261015"
+     ],
+     "CENSUS_START": "2026-10-12T00:00:00Z",
+     "DATA_DUMPS_CAP_GB": 40.0,
+     "DISK_CAP_GB": 0.01,
+     "ELECTION_NIGHT": [
+      "2026-11-03T18:00:00Z",
+      "2026-11-05T00:00:00Z"
+     ],
+     "EVIDENCE_ROLE_DEV": "exploratory_dev",
+     "EVIDENCE_ROLE_HIST": "exploratory_historical",
+     "EXTRA_REFUSED_ROOTS": [
+      "creative_batch16"
+     ],
+     "FILLS_FIELDS": [
+      "status",
+      "condition_id",
+      "market_id",
+      "event_id",
+      "label",
+      "path_key",
+      "tau",
+      "tau_last",
+      "d",
+      "P",
+      "size",
+      "cash",
+      "spread0",
+      "mid0",
+      "prev_mid",
+      "touch_age_s",
+      "block",
+      "day"
+     ],
+     "FORBIDDEN_CAPTURE_FIELDS": [
+      "chg_1h",
+      "chg_1d",
+      "chg_1w",
+      "last_trade_price",
+      "open_interest",
+      "volume_num",
+      "uma_resolution_statuses",
+      "outcome_prices",
+      "closed_time"
+     ],
+     "FORBIDDEN_OUTPUT_COLUMNS": [
+      "side",
+      "wallet",
+      "wallet_hash",
+      "proxyWallet",
+      "tx16",
+      "transactionHash",
+      "tx_hash",
+      "hash",
+      "name",
+      "pseudonym",
+      "recv_ts",
+      "chg_1h",
+      "chg_1d",
+      "chg_1w",
+      "ctx_chg_1h",
+      "uma_resolution_statuses",
+      "outcome_prices",
+      "outcomePrices",
+      "umaResolutionStatus",
+      "closedTime",
+      "closed_time",
+      "result",
+      "settlement_value",
+      "p_end",
+      "mark",
+      "mark_out",
+      "m_h",
+      "beta",
+      "est",
+      "estimate",
+      "coef",
+      "effect",
+      "pnl",
+      "net"
+     ],
+     "FORBIDDEN_PRINT_FIELDS": [
+      "key",
+      "wallet_hash",
+      "wallet",
+      "proxyWallet",
+      "ctx_chg_1h",
+      "ctx_status",
+      "chg_1h"
+     ],
+     "HOLDOUT_PARTS": [
+      "holdout",
+      "t_holdout"
+     ],
+     "LABELS_FIELDS": [
+      "condition_id",
+      "label"
+     ],
+     "LOOKBACK_FLOOR": "2026-10-26T00:00:00Z",
+     "MDE_FACTOR": 3.8,
+     "MONITOR_FORBIDDEN_FILES": [
+      "alerts.jsonl",
+      "outcomes.jsonl",
+      "wallets.jsonl",
+      "stats.jsonl",
+      "state.json"
+     ],
+     "MONITOR_FORBIDDEN_RE": "^scores-\\d{8}\\.jsonl$",
+     "MONITOR_TRADES_RE": "^trades-(\\d{8})\\.jsonl$",
+     "OUTCOME_KEY_TOKENS": [
+      "beta",
+      "est",
+      "estimate",
+      "mark",
+      "marks",
+      "pnl",
+      "net",
+      "outcome",
+      "outcomes",
+      "coef",
+      "effect",
+      "slope"
+     ],
+     "PARTS": [
+      "common",
+      "pre",
+      "A",
+      "B",
+      "C",
+      "E"
+     ],
+     "PRINT_FIELDS": [
+      "ts",
+      "condition_id",
+      "token_id",
+      "outcome_index",
+      "price",
+      "size",
+      "cash",
+      "title",
+      "slug",
+      "ctx_event_id",
+      "ctx_market_id",
+      "ctx_category",
+      "ctx_fee_type"
+     ],
+     "PRINT_LAG_FIELDS": [
+      "recv_ts"
+     ],
+     "PRINT_MEMORY_ONLY": [
+      "tx16"
+     ],
+     "PRINT_SIDE_FIELDS": [
+      "side"
+     ],
+     "RULES_MACHINERY": [
+      "rules_part_doc",
+      "rules_part_file_doc",
+      "rules_file_doc",
+      "write_rules",
+      "verify_rules",
+      "family_modules",
+      "common_funcs",
+      "part_funcs",
+      "shared_helper_sources",
+      "external_closure",
+      "_code_names",
+      "_helper_key",
+      "common_declared"
+     ],
+     "RULES_VERSION": "cb17-rules-v1",
+     "SHARED_HELPERS": [
+      [
+       "cm",
+       "write_once_json"
+      ],
+      [
+       "cm",
+       "sha_obj"
+      ],
+      [
+       "cm",
+       "iso"
+      ],
+      [
+       "c12",
+       "parse_iso"
+      ],
+      [
+       "c12",
+       "read_csv_gz"
+      ],
+      [
+       "c16",
+       "refuse_path"
+      ],
+      [
+       "c16",
+       "num"
+      ]
+     ],
+     "SIDECAR_FIELDS": [
+      "market_id",
+      "event_id",
+      "fee_type",
+      "fee_category",
+      "fee_schedule",
+      "order_price_min_tick_size",
+      "clob_rewards",
+      "created_at",
+      "event_open_interest",
+      "event_volume",
+      "series_slugs",
+      "neg_risk_market_id",
+      "accepting_orders"
+     ],
+     "STOP_RULE": "3 CPU-hours per family; a job failing twice for the same non-transient reason stops and is recorded; no re-screen of a failed CB17 test",
+     "SWEEP_DIR_RE": "^(\\d{8}T\\d{6}Z)_?[0-9a-f]*$",
+     "SWEEP_FIELDS": [
+      "sweep_id",
+      "token_id",
+      "market_id",
+      "batch_receipt_utc",
+      "book_timestamp",
+      "book_hash",
+      "best_bid",
+      "best_ask",
+      "bid_size_1",
+      "ask_size_1",
+      "depth_bid_1c",
+      "depth_ask_1c",
+      "depth_bid_5c",
+      "depth_ask_5c",
+      "n_bid_levels",
+      "n_ask_levels",
+      "tick_size",
+      "min_order_size",
+      "state"
+     ]
+    },
+    "cb17_rules_c": {
+     "C1_ATTRIBUTION": [
+      "C_pre",
+      "|dm_int| band",
+      "dV tercile",
+      "mean member spread",
+      "log event liquidity",
+      "moving members",
+      "UTC 6 h band"
+     ],
+     "C1_ROBUSTNESS": [
+      "unavailable-mark worst case",
+      "OI-lag variant r_lag = (OI_k - OI_k-1) / (vol_k-1 - vol_k-2)",
+      "whole-window terciles leaving k and k + 1 out",
+      "single-market events alone",
+      "non-neg-risk events alone",
+      "4 h continuation (k + 2)",
+      "exclude the top 1% of dV",
+      "top-5 drops",
+      "leave-one-day-out"
+     ],
+     "CLASS_MERGE": "merge",
+     "CLASS_MINT": "mint",
+     "CLASS_TRANSFER": "transfer",
+     "C_VERSION": "cb17-C-v1",
+     "ECON_MIN_EVENTS": 60,
+     "ECON_MIN_FILLS": 300,
+     "EXCLUSIONS": [
+      "sports",
+      "arm 1 (REP)",
+      "interval gap outside 100-140 min",
+      "OI or volume missing",
+      "not traded (dV <= 0)",
+      "member closed at k-1 or k",
+      "member closing within 3 h of k",
+      "no qualifying member",
+      "thin history",
+      "election night",
+      "dropped: key",
+      "unavailable (lookback floor)"
+     ],
+     "GCU_MIN": 0.7,
+     "GC_EVENTS_MIN": 600,
+     "GC_UNITS_MIN": 10000,
+     "LEVEL_SOURCE": {
+      "file": "creative_batch17/pre_census_C.json",
+      "job": "q0402",
+      "sha256": "442e99da3a7f806b05a76fa9de4e6a52bb8ded5516ff1ae2c67092a46812797d"
+     },
+     "MARK_GAP_S": [
+      6000.0,
+      8400.0
+     ],
+     "MARK_OK": "ok",
+     "MARK_REASONS": [
+      "capture missing",
+      "member closed",
+      "one-sided",
+      "wide",
+      "extreme mid"
+     ],
+     "STRATA_LEVEL_C": 2,
+     "STRATA_WORN_SHARES": {
+      "denominator": 12420,
+      "fallback": false,
+      "level0": 0.11602254428341385,
+      "level1": 0.5000805152979066,
+      "level2": 0.7772946859903381,
+      "merge_reported": 7470
+     },
+     "THIN_HISTORY": "thin history",
+     "TOP_DV_EXCLUDE_SHARE": 0.01,
+     "UNAVAILABLE_MARK": "unavailable (mark)",
+     "WORST_Q": {
+      "merge": 95.0,
+      "mint": 95.0,
+      "transfer": 5.0
+     }
+    }
+   },
+   "declared": {
+    "cb17_rules_c": {
+     "C1": {
+      "attribution": [
+       "C_pre",
+       "|dm_int| band",
+       "dV tercile",
+       "mean member spread",
+       "log event liquidity",
+       "moving members",
+       "UTC 6 h band"
+      ],
+      "calibration": "circular shift of the class within event over its intervals in time order",
+      "estimator": "OLS of C on transfer and merge indicators (mint-heavy baseline) with event FE; coefficient on transfer; one-sided > 0; floor +0.5c",
+      "pre_interval": "C_pre = sign(dm_int) x (m_k-1 - m_k-2) on the classes; must not pass p < 0.01",
+      "robustness": [
+       "unavailable-mark worst case",
+       "OI-lag variant r_lag = (OI_k - OI_k-1) / (vol_k-1 - vol_k-2)",
+       "whole-window terciles leaving k and k + 1 out",
+       "single-market events alone",
+       "non-neg-risk events alone",
+       "4 h continuation (k + 2)",
+       "exclude the top 1% of dV",
+       "top-5 drops",
+       "leave-one-day-out"
+      ],
+      "seeds": {
+       "calibration": 17132,
+       "composition": 17131
+      },
+      "top_dv_exclude": 0.01
+     },
+     "econ": {
+      "C1-econ": "REP_8 fills (CB13-T touch-consistent, pins) in arm-1 events with tau in (capture k, capture k + 1] after a classified interval: within-event difference of the CB13-T3 round-trip net, after-transfer minus after-mint-heavy; primary <= -0.5c, after-transfer net <= -1.0c; p = max",
+      "minimum": ">= 300 fills per class in >= 60 events, else not run (power)"
+     },
+     "eligibility": "captures k - 1, k consecutive and complete (gap 100-140 min); event OI and volume present in both; dV > 0; no member closed at k - 1 or k; no member end_date <= k + 3 h; >= 1 qualifying member (eligible mids at k - 1 and k, |dm_int| >= 0.5c); nothing about k + 1",
+     "gates": {
+      "GC": {
+       "events": 600,
+       "units": 10000
+      },
+      "GCP": "C1's estimator on C_pre, SEs only; MDE > 1.0c -> not run (power)",
+      "GCU": 0.7
+     },
+     "state": {
+      "classes": "cut points are the event's own terciles of r (and of dV) over its earlier traded intervals in the window; r_k, r_(k+1) and later never enter; fewer than 6 prior -> thin history, excluded and counted",
+      "dv_stratum": "the same prior intervals",
+      "min_prior": 6,
+      "r": "(OI_k - OI_k-1) / dV",
+      "trailing_window": {
+       "rep": "[S_8 + 7 d, k) of the arm-1 event, read as features",
+       "screen": "[lookback floor, k)"
+      }
+     },
+     "strata": {
+      "abs_dm_rule": "section 2.6 leaves open which member's |dm_int| places a multi-member event-interval in a band: part pre declares the MEAN of |dm_int| over the unit's qualifying members (|dm_int| >= 0.5c), the same quantity at every level; the window part C may restate it but not change it",
+      "informativeness": "numerator = transfer and mint-heavy units in cells holding at least one transfer and one mint-heavy unit; denominator = all transfer and mint-heavy units (merge-heavy units are reported, not in the share)",
+      "ladder": {
+       "0": "UTC 6h band(4) x |dm_int| band(3) x trailing dV tercile(3) x moving members {1, >=2}(2) = 72",
+       "1": "|dm_int| band(3) x trailing dV 2-band(2) = 6",
+       "2": "|dm_int| {0.5-1c, >1c} = 2"
+      },
+      "level": 2,
+      "source": {
+       "file": "creative_batch17/pre_census_C.json",
+       "job": "q0402",
+       "sha256": "442e99da3a7f806b05a76fa9de4e6a52bb8ded5516ff1ae2c67092a46812797d"
+      },
+      "window_rule": 0.5,
+      "worn_shares": {
+       "denominator": 12420,
+       "fallback": false,
+       "level0": 0.11602254428341385,
+       "level1": 0.5000805152979066,
+       "level2": 0.7772946859903381,
+       "merge_reported": 7470
+      }
+     },
+     "taker_line": "C1 follow of transfer-interval moves at the decision capture ask/bid, exit at the adverse touch 2-4 h later; reported with the q0403 cell; never counted",
+     "target": {
+      "C": "sign(dm_int) x 100 x (m_k+1 - m_k) cents per qualifying member; unit value = mean over members with an available mark",
+      "available": "capture k + 1 consecutive (gap 100-140 min) and the member row two-sided, spread <= 10c, mid in [0.03, 0.97], closed false",
+      "unavailable": "'unavailable (mark)' by class and reason ['capture missing', 'member closed', 'one-sided', 'wide', 'extreme mid']; never an exclusion; 60% availability rule",
+      "worst_case": "every unavailable member at the adverse bound (transfer p5, mint-heavy and merge-heavy p95 of available member C; a one-sided k + 1 touch adverse to continuation where more adverse); sign kept"
+     },
+     "units": "(event, interval k) for non-sports arm-0 events in SCREEN_8 (arm-1 in REP_8); decision time = capture k's last-page received_utc",
+     "version": "cb17-C-v1"
+    },
+    "common": {
+     "census": {
+      "cutoff": "2026-10-16T00:00:00Z",
+      "days": [
+       "20261012",
+       "20261013",
+       "20261014",
+       "20261015"
+      ],
+      "rule": "no census path reads a row at or after the cut-off; a file or directory outside the window is refused",
+      "start": "2026-10-12T00:00:00Z"
+     },
+     "election_night": [
+      "2026-11-03T18:00:00Z",
+      "2026-11-05T00:00:00Z"
+     ],
+     "field_whitelists": {
+      "captures": [
+       "capture_id",
+       "received_utc",
+       "market_id",
+       "condition_id",
+       "event_id",
+       "closed",
+       "active",
+       "binary",
+       "best_bid",
+       "best_ask",
+       "liquidity",
+       "volume24hr",
+       "end_date",
+       "clob_token_id_0",
+       "neg_risk",
+       "neg_risk_market_id"
+      ],
+      "fills": [
+       "status",
+       "condition_id",
+       "market_id",
+       "event_id",
+       "label",
+       "path_key",
+       "tau",
+       "tau_last",
+       "d",
+       "P",
+       "size",
+       "cash",
+       "spread0",
+       "mid0",
+       "prev_mid",
+       "touch_age_s",
+       "block",
+       "day"
+      ],
+      "forbidden_captures": [
+       "chg_1h",
+       "chg_1d",
+       "chg_1w",
+       "last_trade_price",
+       "open_interest",
+       "volume_num",
+       "uma_resolution_statuses",
+       "outcome_prices",
+       "closed_time"
+      ],
+      "forbidden_output": [
+       "side",
+       "wallet",
+       "wallet_hash",
+       "proxyWallet",
+       "tx16",
+       "transactionHash",
+       "tx_hash",
+       "hash",
+       "name",
+       "pseudonym",
+       "recv_ts",
+       "chg_1h",
+       "chg_1d",
+       "chg_1w",
+       "ctx_chg_1h",
+       "uma_resolution_statuses",
+       "outcome_prices",
+       "outcomePrices",
+       "umaResolutionStatus",
+       "closedTime",
+       "closed_time",
+       "result",
+       "settlement_value",
+       "p_end",
+       "mark",
+       "mark_out",
+       "m_h",
+       "beta",
+       "est",
+       "estimate",
+       "coef",
+       "effect",
+       "pnl",
+       "net"
+      ],
+      "forbidden_prints": [
+       "key",
+       "wallet_hash",
+       "wallet",
+       "proxyWallet",
+       "ctx_chg_1h",
+       "ctx_status",
+       "chg_1h"
+      ],
+      "labels": [
+       "condition_id",
+       "label"
+      ],
+      "prints": [
+       "ts",
+       "condition_id",
+       "token_id",
+       "outcome_index",
+       "price",
+       "size",
+       "cash",
+       "title",
+       "slug",
+       "ctx_event_id",
+       "ctx_market_id",
+       "ctx_category",
+       "ctx_fee_type"
+      ],
+      "recv_ts_q0403_only": [
+       "recv_ts"
+      ],
+      "side_q0400_only": [
+       "side"
+      ],
+      "sidecar": [
+       "market_id",
+       "event_id",
+       "fee_type",
+       "fee_category",
+       "fee_schedule",
+       "order_price_min_tick_size",
+       "clob_rewards",
+       "created_at",
+       "event_open_interest",
+       "event_volume",
+       "series_slugs",
+       "neg_risk_market_id",
+       "accepting_orders"
+      ],
+      "sweeps": [
+       "sweep_id",
+       "token_id",
+       "market_id",
+       "batch_receipt_utc",
+       "book_timestamp",
+       "book_hash",
+       "best_bid",
+       "best_ask",
+       "bid_size_1",
+       "ask_size_1",
+       "depth_bid_1c",
+       "depth_ask_1c",
+       "depth_bid_5c",
+       "depth_ask_5c",
+       "n_bid_levels",
+       "n_ask_levels",
+       "tick_size",
+       "min_order_size",
+       "state"
+      ]
+     },
+     "holdout": "CB13-T HOLDOUT paths are refused; only creative_batch13/t_screen/{fills,labels}.csv.gz may be opened by a census",
+     "lookback_floor": "2026-10-26T00:00:00Z",
+     "mde": "3.8 x SE",
+     "output_roots": [
+      "creative_batch17"
+     ],
+     "refused_extra": [
+      "creative_batch16"
+     ],
+     "result_rule": "counts, shares and standard errors only; a result with a key naming an outcome, a mark, a point estimate or a forbidden column is refused",
+     "sports_in_primary": false,
+     "stop_rule": "3 CPU-hours per family; a job failing twice for the same non-transient reason stops and is recorded; no re-screen of a failed CB17 test"
+    }
+   },
+   "func_sources_sha256": {
+    "cb17_common.assert_clean_result": "3a865ae06f010f749f0bae909cb887c834a3b60f0e1d89f1b8a271a762c7d211",
+    "cb17_common.band6": "81afd606517581d6995ce0c1669b16aad572039800d5fc4f7061ef351be66097",
+    "cb17_common.block6": "2131576674fc52a567f06a2061131fdaaa0a97e9dcb7a44f00b08e5485aedef9",
+    "cb17_common.census_cutoff": "a13aaeeae162f7598379c7023fde465f4aa0d132b35162169995175532e7b346",
+    "cb17_common.ep": "a546e4f0ed5bdf4883cff3d6cc7bf23bbba9306934f9954682127542e84cb790",
+    "cb17_common.guard_capture_dir": "1d7f5ad01347e1d2430cc128827194550e08cc4f5a14cbf556f71f44f298ba6f",
+    "cb17_common.guard_cb13_t_screen_file": "a7a64ac6b57849012750657fd558e55557b26cc0b16526341f7b9e1f0dd380ad",
+    "cb17_common.guard_census_time": "3815f6e806925496c8a442311f54bab84ba80a348c41b82268c19d103f7ba68c",
+    "cb17_common.guard_monitor_file": "7f7436b0b2ec1bbac4a8e275c4630f610e52f3c9c7863153b2997bafe8ae1f61",
+    "cb17_common.guard_not_window": "1642b57ad0d491ac4c20dc8fb2c3f331a5c098f61410821430e7e7e8e27a4f73",
+    "cb17_common.guard_stamped_dir": "688757abe49ec21d00441e7a616258c00f32fbeedd04fe1aa2e8e1bfa2678ee1",
+    "cb17_common.guard_sweep_dir": "d55536a6d85ead4985036ab73e7c70afa445f2bdaedf42e6d9dfd39507199928",
+    "cb17_common.iso": "96298691e53e2392f937e45ce36464ac77a5f4d7df98a50591b9fe003faf8488",
+    "cb17_common.log_descriptive": "4615b3ac23b46a28554e1cb1d6c3314800e15a4e88b0f550ae674d9292be4315",
+    "cb17_common.num": "6b0d39403e1916672eadc55c8241ff0c3cdfb233983e5e8b36b400140ab6f068",
+    "cb17_common.refuse_path": "f9e1f9bbe6c8d24b4e8ffce00039daf50642c9e19bf495e93f96dd436e7cfd2d",
+    "cb17_common.require_disk": "a8c2fc48de1b4187b9d0515147212dffdca1fbaad9894aa676e4c7825b2fa58c",
+    "cb17_common.require_output_root": "0c63b0d653f4735e287c72adaedbf2d01904c505684097207f5c664414d3aff3",
+    "cb17_common.sha256_file": "9b9e433786c3b739ebdf2370926158a2e42a946e90aae266587c550a4a08ee8b",
+    "cb17_common.sha256_obj": "29f7a73c2109e9902f07d1b4343c0975871e392d9e53aea23bc0b4e5d4ca548f",
+    "cb17_common.stamp_epoch": "032feaa1cc3be4e5e8c47210b56738e599bbc15ccbb3019068edab55d2838aab",
+    "cb17_common.utc_hour": "ea6422f9fe7208fa7aa19a5478016e8413e3742cb1d51927ffc98f7020dbff4a",
+    "cb17_common.write_result_once": "91c8c5fa4a6103a5f0213a8f2101d6e383c8679779192684521e58262aa32de4",
+    "cb17_rules_c.classify": "535db0ace7427278cf14c4d9034a9ce739d2e5278aaba19941d68e6e4458b4b9",
+    "cb17_rules_c.continuation": "ab72b54890071008bf69e38e577e36fe2b96172e25de5051876eecb33e54c83c",
+    "cb17_rules_c.declared": "baf3d47294f76744f922513b268ac07c34c8e2839cfbd2355bc7d7c097e839ed",
+    "cb17_rules_c.gate_gc": "a50069150a367fc866311ebad5602f20d01ac8f398dba6b2777a7a3c57d8b996",
+    "cb17_rules_c.gate_gcu": "b7321896a4578a13450949da2c0e3c3537e2715840cb2ebfcf56719c7725ac95",
+    "cb17_rules_c.interval_ok": "4d12cf3f9e2d0b3ae1ca2ba8a3eb01e945043a1cf30bb7f6ddc9c4faff1d0bd1",
+    "cb17_rules_c.mark_reason": "f605796bbf3f9acffa8ae87b118933219d4a88f4846fb1706ef90d8bd156980f",
+    "cb17_rules_c.member_mid": "f4293352d88171b83cbb96f84361a6d484e69da06bee5e9ce641e4ec92408f12",
+    "cb17_rules_c.onesided_adverse": "109f01ac4b31e0a0d65d272fb89e67872512e21cf344366ee3d54c2a56caac0e",
+    "cb17_rules_c.qualifying_moves": "3622232188912c4703a4b807df18934cc2394ba8d871b1f0c6f94f461c8a82b7",
+    "cb17_rules_c.r_lag": "3e23d7f04cbb97c3d9331b99d66d5bba23fa13a5632b08276946def849f92d98",
+    "cb17_rules_c.r_state": "5fa56849f287947f12e726c5d2da6d3ecbaae7079f2de94f75ccbaa594db31fc",
+    "cb17_rules_c.stratum_c": "8f779d6165f28502bfdb9443da82ee0b660462b0690f6fd3c3756fb6f9853db5",
+    "cb17_rules_c.whole_window_class": "a2cc61245debadf439527f4c60f07d021908a56c40bac898b450f9f9e47c228e",
+    "cb17_rules_c.worst_member": "95ebeb483279325213f7793429ee0d96191b5aaf984db507c76e22ec8eea1f74"
+   },
+   "funcs_sha256": "d40f8218c52473ff0fd9209b96a9f31d6ef93207e292a63882d054b69e99b336",
+   "modules": [
+    "cb17_common",
+    "cb17_rules_c"
+   ],
    "part": "C",
-   "part_declared": false,
-   "reason": "part not declared yet: committed after q0400-q0403 have chosen the branch, the strata levels and the cut points (CREATIVE_BATCH_17.md section 1.4 Order)",
-   "rules_sha256": null,
-   "rules_version": "cb17-rules-v1"
+   "part_declared": true,
+   "rules_sha256": "68bd50a2c33db7a50ae2a3efb411a629d7b251355784de50ed5433e59e4bf632",
+   "rules_version": "cb17-rules-v1",
+   "shared_helper_sources_sha256": {
+    "cb10_common.require_disk": "1e0e4e4682fa9a16fa71df384f5163983fa5cfa675b15a9b7f009dbbf3d81370",
+    "cb12_common.parse_iso": "f56a746aac64f2456a69e6ad81c952e3b4ebff1aa8a167e5ab567d2182477da3",
+    "cb12_common.read_csv_gz": "0de78d753f9c22f4985ca862de9e64db28b0333f859376b5d38ce4eb9aedc535",
+    "cb13_t.two_sided": "72495426a00ebbe012e8c1c798b804944ff9ab9d1fa61b59226f122f3b97ce48",
+    "cb16_common.num": "6b0d39403e1916672eadc55c8241ff0c3cdfb233983e5e8b36b400140ab6f068",
+    "cb16_common.refuse_path": "984c7b1020d07266c5a5d749572ed0d4042dbcd377bc2f1a3323cf608fbebbd9",
+    "cb16_common.refused_names": "32b50ab79443589af19374c0cc7519d67f852856b04b43f23c510ec76c27b790",
+    "cb16_common.require_disk": "66681a0d33bf0192436c44a5e343dfbc775a355bfe24fdfdfd809fb2c08f1ada",
+    "cb6_tail.NotNow": "08b9fb3b8355ad01e3b1dd27581ebae1e1efaf463f20232f3c0c91fbb18dab8f",
+    "cb6_tail.Refused": "60c0f89a153d7221261fbcf72fab5c3575768e044ebe16651a7179da8abbb6ed",
+    "cb8_common.iso": "ac272e28c92099a676a96b2c020c11350330df755b773770371939d966fa80ab",
+    "cb8_common.sha_obj": "cafbecf98cedc4dfb52e87251e7a10fac6b4cb9acebcdc0085e5620305953a1e",
+    "cb8_common.write_once_json": "96de340201f4213c580706a6c2f57a3addda7abf3019daa2f1868cd49c4eadb9",
+    "provenance.EvidenceRoleError": "7b336a992c69d6d56ec45da927dce137014fe0b34fbfd0a21ab0c30a79e0ec35",
+    "provenance.append_trial": "fb9994b0432e034eae414186f16cd95ff59f1158dc0d028d7e41375d9e19353f",
+    "provenance.role_required": "85cad103453f602808701521edb26f5d0474b9269f33325c3861367be2004220",
+    "provenance.validate_evidence_role": "42b61e7d9e401ab2dd6b098a5012cfa82f776576e3f1a12ba492f71ca82d2522"
+   },
+   "wallet": {
+    "note": "no CB17 job reads or stores a wallet field or a transaction hash (tx16 is aggregated in memory and discarded); the Data API side field is read by q0400 only (the agreement count and the sign of its side-signed population)",
+    "read": false
+   }
   },
   "E": {
+   "constants": {
+    "cb17_common": {
+     "ALLOWED_OUTPUT_ROOT_PARTS": [
+      "creative_batch17"
+     ],
+     "CAPTURE_DIR_RE": "^(\\d{8}T\\d{6}Z)_[0-9a-f]+$",
+     "CAPTURE_FIELDS": [
+      "capture_id",
+      "received_utc",
+      "market_id",
+      "condition_id",
+      "event_id",
+      "closed",
+      "active",
+      "binary",
+      "best_bid",
+      "best_ask",
+      "liquidity",
+      "volume24hr",
+      "end_date",
+      "clob_token_id_0",
+      "neg_risk",
+      "neg_risk_market_id"
+     ],
+     "CAPTURE_LOOKBACK_START": "2026-10-11T22:00:00Z",
+     "CB13_T_SCREEN_FILES": [
+      "fills.csv.gz",
+      "labels.csv.gz"
+     ],
+     "CB17_SPORTS_IN_PRIMARY": false,
+     "CENSUS_CUTOFF": "2026-10-16T00:00:00Z",
+     "CENSUS_DAYS": [
+      "20261012",
+      "20261013",
+      "20261014",
+      "20261015"
+     ],
+     "CENSUS_START": "2026-10-12T00:00:00Z",
+     "DATA_DUMPS_CAP_GB": 40.0,
+     "DISK_CAP_GB": 0.01,
+     "ELECTION_NIGHT": [
+      "2026-11-03T18:00:00Z",
+      "2026-11-05T00:00:00Z"
+     ],
+     "EVIDENCE_ROLE_DEV": "exploratory_dev",
+     "EVIDENCE_ROLE_HIST": "exploratory_historical",
+     "EXTRA_REFUSED_ROOTS": [
+      "creative_batch16"
+     ],
+     "FILLS_FIELDS": [
+      "status",
+      "condition_id",
+      "market_id",
+      "event_id",
+      "label",
+      "path_key",
+      "tau",
+      "tau_last",
+      "d",
+      "P",
+      "size",
+      "cash",
+      "spread0",
+      "mid0",
+      "prev_mid",
+      "touch_age_s",
+      "block",
+      "day"
+     ],
+     "FORBIDDEN_CAPTURE_FIELDS": [
+      "chg_1h",
+      "chg_1d",
+      "chg_1w",
+      "last_trade_price",
+      "open_interest",
+      "volume_num",
+      "uma_resolution_statuses",
+      "outcome_prices",
+      "closed_time"
+     ],
+     "FORBIDDEN_OUTPUT_COLUMNS": [
+      "side",
+      "wallet",
+      "wallet_hash",
+      "proxyWallet",
+      "tx16",
+      "transactionHash",
+      "tx_hash",
+      "hash",
+      "name",
+      "pseudonym",
+      "recv_ts",
+      "chg_1h",
+      "chg_1d",
+      "chg_1w",
+      "ctx_chg_1h",
+      "uma_resolution_statuses",
+      "outcome_prices",
+      "outcomePrices",
+      "umaResolutionStatus",
+      "closedTime",
+      "closed_time",
+      "result",
+      "settlement_value",
+      "p_end",
+      "mark",
+      "mark_out",
+      "m_h",
+      "beta",
+      "est",
+      "estimate",
+      "coef",
+      "effect",
+      "pnl",
+      "net"
+     ],
+     "FORBIDDEN_PRINT_FIELDS": [
+      "key",
+      "wallet_hash",
+      "wallet",
+      "proxyWallet",
+      "ctx_chg_1h",
+      "ctx_status",
+      "chg_1h"
+     ],
+     "HOLDOUT_PARTS": [
+      "holdout",
+      "t_holdout"
+     ],
+     "LABELS_FIELDS": [
+      "condition_id",
+      "label"
+     ],
+     "LOOKBACK_FLOOR": "2026-10-26T00:00:00Z",
+     "MDE_FACTOR": 3.8,
+     "MONITOR_FORBIDDEN_FILES": [
+      "alerts.jsonl",
+      "outcomes.jsonl",
+      "wallets.jsonl",
+      "stats.jsonl",
+      "state.json"
+     ],
+     "MONITOR_FORBIDDEN_RE": "^scores-\\d{8}\\.jsonl$",
+     "MONITOR_TRADES_RE": "^trades-(\\d{8})\\.jsonl$",
+     "OUTCOME_KEY_TOKENS": [
+      "beta",
+      "est",
+      "estimate",
+      "mark",
+      "marks",
+      "pnl",
+      "net",
+      "outcome",
+      "outcomes",
+      "coef",
+      "effect",
+      "slope"
+     ],
+     "PARTS": [
+      "common",
+      "pre",
+      "A",
+      "B",
+      "C",
+      "E"
+     ],
+     "PRINT_FIELDS": [
+      "ts",
+      "condition_id",
+      "token_id",
+      "outcome_index",
+      "price",
+      "size",
+      "cash",
+      "title",
+      "slug",
+      "ctx_event_id",
+      "ctx_market_id",
+      "ctx_category",
+      "ctx_fee_type"
+     ],
+     "PRINT_LAG_FIELDS": [
+      "recv_ts"
+     ],
+     "PRINT_MEMORY_ONLY": [
+      "tx16"
+     ],
+     "PRINT_SIDE_FIELDS": [
+      "side"
+     ],
+     "RULES_MACHINERY": [
+      "rules_part_doc",
+      "rules_part_file_doc",
+      "rules_file_doc",
+      "write_rules",
+      "verify_rules",
+      "family_modules",
+      "common_funcs",
+      "part_funcs",
+      "shared_helper_sources",
+      "external_closure",
+      "_code_names",
+      "_helper_key",
+      "common_declared"
+     ],
+     "RULES_VERSION": "cb17-rules-v1",
+     "SHARED_HELPERS": [
+      [
+       "cm",
+       "write_once_json"
+      ],
+      [
+       "cm",
+       "sha_obj"
+      ],
+      [
+       "cm",
+       "iso"
+      ],
+      [
+       "c12",
+       "parse_iso"
+      ],
+      [
+       "c12",
+       "read_csv_gz"
+      ],
+      [
+       "c16",
+       "refuse_path"
+      ],
+      [
+       "c16",
+       "num"
+      ]
+     ],
+     "SIDECAR_FIELDS": [
+      "market_id",
+      "event_id",
+      "fee_type",
+      "fee_category",
+      "fee_schedule",
+      "order_price_min_tick_size",
+      "clob_rewards",
+      "created_at",
+      "event_open_interest",
+      "event_volume",
+      "series_slugs",
+      "neg_risk_market_id",
+      "accepting_orders"
+     ],
+     "STOP_RULE": "3 CPU-hours per family; a job failing twice for the same non-transient reason stops and is recorded; no re-screen of a failed CB17 test",
+     "SWEEP_DIR_RE": "^(\\d{8}T\\d{6}Z)_?[0-9a-f]*$",
+     "SWEEP_FIELDS": [
+      "sweep_id",
+      "token_id",
+      "market_id",
+      "batch_receipt_utc",
+      "book_timestamp",
+      "book_hash",
+      "best_bid",
+      "best_ask",
+      "bid_size_1",
+      "ask_size_1",
+      "depth_bid_1c",
+      "depth_ask_1c",
+      "depth_bid_5c",
+      "depth_ask_5c",
+      "n_bid_levels",
+      "n_ask_levels",
+      "tick_size",
+      "min_order_size",
+      "state"
+     ]
+    },
+    "cb17_rules_e": {
+     "CENSUS_COUNTS": [
+      "first-day transactions by fill source, class, sports and hour",
+      "markets and events with both first-day and later (1-7 d) transactions",
+      "the share unsignable for lack of a touch",
+      "a feature-proxy SE of the within-market contrast on the pre-fill proxy (SE only)"
+     ],
+     "CREATED_RULE": "sidecar created_at of the latest capture before tau or, for a market not yet captured, the first capture after tau (a static attribute)",
+     "E_VERSION": "cb17-E-v1",
+     "FIRST_DAY_H": 24.0,
+     "LATER_H": [
+      24.0,
+      168.0
+     ],
+     "POPULATION_COUNTS": "all non-sports monitor transactions with a single condition id (unsigned; branch T reads no side)",
+     "POPULATION_MDE": "the CB13-T touch-consistent fills (the signable population under branch T)",
+     "POPULATION_RULE": "O1 literal reading: re-entry counts on POPULATION_COUNTS, the proxy MDE on POPULATION_MDE; both populations reported",
+     "REENTRY_MDE_MAX_C": 1.0,
+     "REENTRY_MIN_MARKETS": 150,
+     "REENTRY_MIN_TX": 400,
+     "REENTRY_SPREAD_FREE": "the later design must make the spread-free mark binding",
+     "VERDICT_ALLOWED": "re-entry allowed on a fresh window",
+     "VERDICT_DENIED": "not testable at the floor with host data"
+    }
+   },
+   "declared": {
+    "cb17_rules_e": {
+     "census": [
+      "first-day transactions by fill source, class, sports and hour",
+      "markets and events with both first-day and later (1-7 d) transactions",
+      "the share unsignable for lack of a touch",
+      "a feature-proxy SE of the within-market contrast on the pre-fill proxy (SE only)"
+     ],
+     "first_day": {
+      "created_at": "sidecar created_at of the latest capture before tau or, for a market not yet captured, the first capture after tau (a static attribute)",
+      "later": "24-168 h",
+      "rule": "market age at tau < 24 h"
+     },
+     "k": 0,
+     "populations": {
+      "counts": "all non-sports monitor transactions with a single condition id (unsigned; branch T reads no side)",
+      "mde": "the CB13-T touch-consistent fills (the signable population under branch T)",
+      "rule": "O1 literal reading: re-entry counts on POPULATION_COUNTS, the proxy MDE on POPULATION_MDE; both populations reported"
+     },
+     "reentry": {
+      "condition": "the later design must make the spread-free mark binding",
+      "fail": "not testable at the floor with host data",
+      "min_first_day_transactions": 400,
+      "min_markets_first_and_later": 150,
+      "pass": "re-entry allowed on a fresh window",
+      "proxy_mde_max_c": 1.0
+     },
+     "version": "cb17-E-v1",
+     "worn_inputs_q0400": {
+      "E_T_proxy_mde_c": 0.392125,
+      "T_markets_first_and_later": 7,
+      "T_units_by_age": {
+       "1-7d": 106,
+       "6-24h": 26,
+       "gt7d": 811,
+       "lt6h": 2,
+       "unknown": 12
+      },
+      "non_sports_transactions_first_day": 200,
+      "result_sha256": "9deedcf5a1aeb0e370796457cab3f933d8e4c6b59e6a5de302c9a70e82ec38cf"
+     }
+    },
+    "common": {
+     "census": {
+      "cutoff": "2026-10-16T00:00:00Z",
+      "days": [
+       "20261012",
+       "20261013",
+       "20261014",
+       "20261015"
+      ],
+      "rule": "no census path reads a row at or after the cut-off; a file or directory outside the window is refused",
+      "start": "2026-10-12T00:00:00Z"
+     },
+     "election_night": [
+      "2026-11-03T18:00:00Z",
+      "2026-11-05T00:00:00Z"
+     ],
+     "field_whitelists": {
+      "captures": [
+       "capture_id",
+       "received_utc",
+       "market_id",
+       "condition_id",
+       "event_id",
+       "closed",
+       "active",
+       "binary",
+       "best_bid",
+       "best_ask",
+       "liquidity",
+       "volume24hr",
+       "end_date",
+       "clob_token_id_0",
+       "neg_risk",
+       "neg_risk_market_id"
+      ],
+      "fills": [
+       "status",
+       "condition_id",
+       "market_id",
+       "event_id",
+       "label",
+       "path_key",
+       "tau",
+       "tau_last",
+       "d",
+       "P",
+       "size",
+       "cash",
+       "spread0",
+       "mid0",
+       "prev_mid",
+       "touch_age_s",
+       "block",
+       "day"
+      ],
+      "forbidden_captures": [
+       "chg_1h",
+       "chg_1d",
+       "chg_1w",
+       "last_trade_price",
+       "open_interest",
+       "volume_num",
+       "uma_resolution_statuses",
+       "outcome_prices",
+       "closed_time"
+      ],
+      "forbidden_output": [
+       "side",
+       "wallet",
+       "wallet_hash",
+       "proxyWallet",
+       "tx16",
+       "transactionHash",
+       "tx_hash",
+       "hash",
+       "name",
+       "pseudonym",
+       "recv_ts",
+       "chg_1h",
+       "chg_1d",
+       "chg_1w",
+       "ctx_chg_1h",
+       "uma_resolution_statuses",
+       "outcome_prices",
+       "outcomePrices",
+       "umaResolutionStatus",
+       "closedTime",
+       "closed_time",
+       "result",
+       "settlement_value",
+       "p_end",
+       "mark",
+       "mark_out",
+       "m_h",
+       "beta",
+       "est",
+       "estimate",
+       "coef",
+       "effect",
+       "pnl",
+       "net"
+      ],
+      "forbidden_prints": [
+       "key",
+       "wallet_hash",
+       "wallet",
+       "proxyWallet",
+       "ctx_chg_1h",
+       "ctx_status",
+       "chg_1h"
+      ],
+      "labels": [
+       "condition_id",
+       "label"
+      ],
+      "prints": [
+       "ts",
+       "condition_id",
+       "token_id",
+       "outcome_index",
+       "price",
+       "size",
+       "cash",
+       "title",
+       "slug",
+       "ctx_event_id",
+       "ctx_market_id",
+       "ctx_category",
+       "ctx_fee_type"
+      ],
+      "recv_ts_q0403_only": [
+       "recv_ts"
+      ],
+      "side_q0400_only": [
+       "side"
+      ],
+      "sidecar": [
+       "market_id",
+       "event_id",
+       "fee_type",
+       "fee_category",
+       "fee_schedule",
+       "order_price_min_tick_size",
+       "clob_rewards",
+       "created_at",
+       "event_open_interest",
+       "event_volume",
+       "series_slugs",
+       "neg_risk_market_id",
+       "accepting_orders"
+      ],
+      "sweeps": [
+       "sweep_id",
+       "token_id",
+       "market_id",
+       "batch_receipt_utc",
+       "book_timestamp",
+       "book_hash",
+       "best_bid",
+       "best_ask",
+       "bid_size_1",
+       "ask_size_1",
+       "depth_bid_1c",
+       "depth_ask_1c",
+       "depth_bid_5c",
+       "depth_ask_5c",
+       "n_bid_levels",
+       "n_ask_levels",
+       "tick_size",
+       "min_order_size",
+       "state"
+      ]
+     },
+     "holdout": "CB13-T HOLDOUT paths are refused; only creative_batch13/t_screen/{fills,labels}.csv.gz may be opened by a census",
+     "lookback_floor": "2026-10-26T00:00:00Z",
+     "mde": "3.8 x SE",
+     "output_roots": [
+      "creative_batch17"
+     ],
+     "refused_extra": [
+      "creative_batch16"
+     ],
+     "result_rule": "counts, shares and standard errors only; a result with a key naming an outcome, a mark, a point estimate or a forbidden column is refused",
+     "sports_in_primary": false,
+     "stop_rule": "3 CPU-hours per family; a job failing twice for the same non-transient reason stops and is recorded; no re-screen of a failed CB17 test"
+    }
+   },
+   "func_sources_sha256": {
+    "cb17_common.assert_clean_result": "3a865ae06f010f749f0bae909cb887c834a3b60f0e1d89f1b8a271a762c7d211",
+    "cb17_common.band6": "81afd606517581d6995ce0c1669b16aad572039800d5fc4f7061ef351be66097",
+    "cb17_common.block6": "2131576674fc52a567f06a2061131fdaaa0a97e9dcb7a44f00b08e5485aedef9",
+    "cb17_common.census_cutoff": "a13aaeeae162f7598379c7023fde465f4aa0d132b35162169995175532e7b346",
+    "cb17_common.ep": "a546e4f0ed5bdf4883cff3d6cc7bf23bbba9306934f9954682127542e84cb790",
+    "cb17_common.guard_capture_dir": "1d7f5ad01347e1d2430cc128827194550e08cc4f5a14cbf556f71f44f298ba6f",
+    "cb17_common.guard_cb13_t_screen_file": "a7a64ac6b57849012750657fd558e55557b26cc0b16526341f7b9e1f0dd380ad",
+    "cb17_common.guard_census_time": "3815f6e806925496c8a442311f54bab84ba80a348c41b82268c19d103f7ba68c",
+    "cb17_common.guard_monitor_file": "7f7436b0b2ec1bbac4a8e275c4630f610e52f3c9c7863153b2997bafe8ae1f61",
+    "cb17_common.guard_not_window": "1642b57ad0d491ac4c20dc8fb2c3f331a5c098f61410821430e7e7e8e27a4f73",
+    "cb17_common.guard_stamped_dir": "688757abe49ec21d00441e7a616258c00f32fbeedd04fe1aa2e8e1bfa2678ee1",
+    "cb17_common.guard_sweep_dir": "d55536a6d85ead4985036ab73e7c70afa445f2bdaedf42e6d9dfd39507199928",
+    "cb17_common.iso": "96298691e53e2392f937e45ce36464ac77a5f4d7df98a50591b9fe003faf8488",
+    "cb17_common.log_descriptive": "4615b3ac23b46a28554e1cb1d6c3314800e15a4e88b0f550ae674d9292be4315",
+    "cb17_common.num": "6b0d39403e1916672eadc55c8241ff0c3cdfb233983e5e8b36b400140ab6f068",
+    "cb17_common.refuse_path": "f9e1f9bbe6c8d24b4e8ffce00039daf50642c9e19bf495e93f96dd436e7cfd2d",
+    "cb17_common.require_disk": "a8c2fc48de1b4187b9d0515147212dffdca1fbaad9894aa676e4c7825b2fa58c",
+    "cb17_common.require_output_root": "0c63b0d653f4735e287c72adaedbf2d01904c505684097207f5c664414d3aff3",
+    "cb17_common.sha256_file": "9b9e433786c3b739ebdf2370926158a2e42a946e90aae266587c550a4a08ee8b",
+    "cb17_common.sha256_obj": "29f7a73c2109e9902f07d1b4343c0975871e392d9e53aea23bc0b4e5d4ca548f",
+    "cb17_common.stamp_epoch": "032feaa1cc3be4e5e8c47210b56738e599bbc15ccbb3019068edab55d2838aab",
+    "cb17_common.utc_hour": "ea6422f9fe7208fa7aa19a5478016e8413e3742cb1d51927ffc98f7020dbff4a",
+    "cb17_common.write_result_once": "91c8c5fa4a6103a5f0213a8f2101d6e383c8679779192684521e58262aa32de4",
+    "cb17_rules_e.age_group": "174079b8326b80fa95769c1094c811a084a9f49fd475eb03aed954ceb645e566",
+    "cb17_rules_e.declared": "3712532d2557808f8e978960e01fab90a609c0b1a03f1d439cc24da2d55cf66e",
+    "cb17_rules_e.market_age_h": "34f312ef3eebe8070485cbd26fca5b6784bad754a1d1a6d0ed1c610249c3c173",
+    "cb17_rules_e.reentry_verdict": "1b6e253ea0b8fc8c08360180aefca7eee462a0279367dbbd132034c196bcfb97"
+   },
+   "funcs_sha256": "814a52d8d0a0d0d6d1d0c79af6b426ee8345b08a55a8d16208a63b02bc3ffceb",
+   "modules": [
+    "cb17_common",
+    "cb17_rules_e"
+   ],
    "part": "E",
-   "part_declared": false,
-   "reason": "part not declared yet: committed after q0400-q0403 have chosen the branch, the strata levels and the cut points (CREATIVE_BATCH_17.md section 1.4 Order)",
-   "rules_sha256": null,
-   "rules_version": "cb17-rules-v1"
+   "part_declared": true,
+   "rules_sha256": "337382d63da11f724743b1969dff878ff6e92f536f245953a455bb2037301418",
+   "rules_version": "cb17-rules-v1",
+   "shared_helper_sources_sha256": {
+    "cb10_common.require_disk": "1e0e4e4682fa9a16fa71df384f5163983fa5cfa675b15a9b7f009dbbf3d81370",
+    "cb12_common.parse_iso": "f56a746aac64f2456a69e6ad81c952e3b4ebff1aa8a167e5ab567d2182477da3",
+    "cb12_common.read_csv_gz": "0de78d753f9c22f4985ca862de9e64db28b0333f859376b5d38ce4eb9aedc535",
+    "cb16_common.num": "6b0d39403e1916672eadc55c8241ff0c3cdfb233983e5e8b36b400140ab6f068",
+    "cb16_common.refuse_path": "984c7b1020d07266c5a5d749572ed0d4042dbcd377bc2f1a3323cf608fbebbd9",
+    "cb16_common.refused_names": "32b50ab79443589af19374c0cc7519d67f852856b04b43f23c510ec76c27b790",
+    "cb16_common.require_disk": "66681a0d33bf0192436c44a5e343dfbc775a355bfe24fdfdfd809fb2c08f1ada",
+    "cb6_tail.NotNow": "08b9fb3b8355ad01e3b1dd27581ebae1e1efaf463f20232f3c0c91fbb18dab8f",
+    "cb6_tail.Refused": "60c0f89a153d7221261fbcf72fab5c3575768e044ebe16651a7179da8abbb6ed",
+    "cb8_common.iso": "ac272e28c92099a676a96b2c020c11350330df755b773770371939d966fa80ab",
+    "cb8_common.sha_obj": "cafbecf98cedc4dfb52e87251e7a10fac6b4cb9acebcdc0085e5620305953a1e",
+    "cb8_common.write_once_json": "96de340201f4213c580706a6c2f57a3addda7abf3019daa2f1868cd49c4eadb9",
+    "provenance.EvidenceRoleError": "7b336a992c69d6d56ec45da927dce137014fe0b34fbfd0a21ab0c30a79e0ec35",
+    "provenance.append_trial": "fb9994b0432e034eae414186f16cd95ff59f1158dc0d028d7e41375d9e19353f",
+    "provenance.role_required": "85cad103453f602808701521edb26f5d0474b9269f33325c3861367be2004220",
+    "provenance.validate_evidence_role": "42b61e7d9e401ab2dd6b098a5012cfa82f776576e3f1a12ba492f71ca82d2522"
+   },
+   "wallet": {
+    "note": "no CB17 job reads or stores a wallet field or a transaction hash (tx16 is aggregated in memory and discarded); the Data API side field is read by q0400 only (the agreement count and the sign of its side-signed population)",
+    "read": false
+   }
   },
   "common": {
+   "constants": {
+    "cb17_common": {
+     "ALLOWED_OUTPUT_ROOT_PARTS": [
+      "creative_batch17"
+     ],
+     "CAPTURE_DIR_RE": "^(\\d{8}T\\d{6}Z)_[0-9a-f]+$",
+     "CAPTURE_FIELDS": [
+      "capture_id",
+      "received_utc",
+      "market_id",
+      "condition_id",
+      "event_id",
+      "closed",
+      "active",
+      "binary",
+      "best_bid",
+      "best_ask",
+      "liquidity",
+      "volume24hr",
+      "end_date",
+      "clob_token_id_0",
+      "neg_risk",
+      "neg_risk_market_id"
+     ],
+     "CAPTURE_LOOKBACK_START": "2026-10-11T22:00:00Z",
+     "CB13_T_SCREEN_FILES": [
+      "fills.csv.gz",
+      "labels.csv.gz"
+     ],
+     "CB17_SPORTS_IN_PRIMARY": false,
+     "CENSUS_CUTOFF": "2026-10-16T00:00:00Z",
+     "CENSUS_DAYS": [
+      "20261012",
+      "20261013",
+      "20261014",
+      "20261015"
+     ],
+     "CENSUS_START": "2026-10-12T00:00:00Z",
+     "DATA_DUMPS_CAP_GB": 40.0,
+     "DISK_CAP_GB": 0.01,
+     "ELECTION_NIGHT": [
+      "2026-11-03T18:00:00Z",
+      "2026-11-05T00:00:00Z"
+     ],
+     "EVIDENCE_ROLE_DEV": "exploratory_dev",
+     "EVIDENCE_ROLE_HIST": "exploratory_historical",
+     "EXTRA_REFUSED_ROOTS": [
+      "creative_batch16"
+     ],
+     "FILLS_FIELDS": [
+      "status",
+      "condition_id",
+      "market_id",
+      "event_id",
+      "label",
+      "path_key",
+      "tau",
+      "tau_last",
+      "d",
+      "P",
+      "size",
+      "cash",
+      "spread0",
+      "mid0",
+      "prev_mid",
+      "touch_age_s",
+      "block",
+      "day"
+     ],
+     "FORBIDDEN_CAPTURE_FIELDS": [
+      "chg_1h",
+      "chg_1d",
+      "chg_1w",
+      "last_trade_price",
+      "open_interest",
+      "volume_num",
+      "uma_resolution_statuses",
+      "outcome_prices",
+      "closed_time"
+     ],
+     "FORBIDDEN_OUTPUT_COLUMNS": [
+      "side",
+      "wallet",
+      "wallet_hash",
+      "proxyWallet",
+      "tx16",
+      "transactionHash",
+      "tx_hash",
+      "hash",
+      "name",
+      "pseudonym",
+      "recv_ts",
+      "chg_1h",
+      "chg_1d",
+      "chg_1w",
+      "ctx_chg_1h",
+      "uma_resolution_statuses",
+      "outcome_prices",
+      "outcomePrices",
+      "umaResolutionStatus",
+      "closedTime",
+      "closed_time",
+      "result",
+      "settlement_value",
+      "p_end",
+      "mark",
+      "mark_out",
+      "m_h",
+      "beta",
+      "est",
+      "estimate",
+      "coef",
+      "effect",
+      "pnl",
+      "net"
+     ],
+     "FORBIDDEN_PRINT_FIELDS": [
+      "key",
+      "wallet_hash",
+      "wallet",
+      "proxyWallet",
+      "ctx_chg_1h",
+      "ctx_status",
+      "chg_1h"
+     ],
+     "HOLDOUT_PARTS": [
+      "holdout",
+      "t_holdout"
+     ],
+     "LABELS_FIELDS": [
+      "condition_id",
+      "label"
+     ],
+     "LOOKBACK_FLOOR": "2026-10-26T00:00:00Z",
+     "MDE_FACTOR": 3.8,
+     "MONITOR_FORBIDDEN_FILES": [
+      "alerts.jsonl",
+      "outcomes.jsonl",
+      "wallets.jsonl",
+      "stats.jsonl",
+      "state.json"
+     ],
+     "MONITOR_FORBIDDEN_RE": "^scores-\\d{8}\\.jsonl$",
+     "MONITOR_TRADES_RE": "^trades-(\\d{8})\\.jsonl$",
+     "OUTCOME_KEY_TOKENS": [
+      "beta",
+      "est",
+      "estimate",
+      "mark",
+      "marks",
+      "pnl",
+      "net",
+      "outcome",
+      "outcomes",
+      "coef",
+      "effect",
+      "slope"
+     ],
+     "PARTS": [
+      "common",
+      "pre",
+      "A",
+      "B",
+      "C",
+      "E"
+     ],
+     "PRINT_FIELDS": [
+      "ts",
+      "condition_id",
+      "token_id",
+      "outcome_index",
+      "price",
+      "size",
+      "cash",
+      "title",
+      "slug",
+      "ctx_event_id",
+      "ctx_market_id",
+      "ctx_category",
+      "ctx_fee_type"
+     ],
+     "PRINT_LAG_FIELDS": [
+      "recv_ts"
+     ],
+     "PRINT_MEMORY_ONLY": [
+      "tx16"
+     ],
+     "PRINT_SIDE_FIELDS": [
+      "side"
+     ],
+     "RULES_MACHINERY": [
+      "rules_part_doc",
+      "rules_part_file_doc",
+      "rules_file_doc",
+      "write_rules",
+      "verify_rules",
+      "family_modules",
+      "common_funcs",
+      "part_funcs",
+      "shared_helper_sources",
+      "external_closure",
+      "_code_names",
+      "_helper_key",
+      "common_declared"
+     ],
+     "RULES_VERSION": "cb17-rules-v1",
+     "SHARED_HELPERS": [
+      [
+       "cm",
+       "write_once_json"
+      ],
+      [
+       "cm",
+       "sha_obj"
+      ],
+      [
+       "cm",
+       "iso"
+      ],
+      [
+       "c12",
+       "parse_iso"
+      ],
+      [
+       "c12",
+       "read_csv_gz"
+      ],
+      [
+       "c16",
+       "refuse_path"
+      ],
+      [
+       "c16",
+       "num"
+      ]
+     ],
+     "SIDECAR_FIELDS": [
+      "market_id",
+      "event_id",
+      "fee_type",
+      "fee_category",
+      "fee_schedule",
+      "order_price_min_tick_size",
+      "clob_rewards",
+      "created_at",
+      "event_open_interest",
+      "event_volume",
+      "series_slugs",
+      "neg_risk_market_id",
+      "accepting_orders"
+     ],
+     "STOP_RULE": "3 CPU-hours per family; a job failing twice for the same non-transient reason stops and is recorded; no re-screen of a failed CB17 test",
+     "SWEEP_DIR_RE": "^(\\d{8}T\\d{6}Z)_?[0-9a-f]*$",
+     "SWEEP_FIELDS": [
+      "sweep_id",
+      "token_id",
+      "market_id",
+      "batch_receipt_utc",
+      "book_timestamp",
+      "book_hash",
+      "best_bid",
+      "best_ask",
+      "bid_size_1",
+      "ask_size_1",
+      "depth_bid_1c",
+      "depth_ask_1c",
+      "depth_bid_5c",
+      "depth_ask_5c",
+      "n_bid_levels",
+      "n_ask_levels",
+      "tick_size",
+      "min_order_size",
+      "state"
+     ]
+    },
+    "cb17_wcommon": {
+     "ARM_REP": 1,
+     "ARM_SALT": "cb17-arm-v1|",
+     "ARM_SCREEN": 0,
+     "ATTESTATION_RULE": "no agent working on CB17 (designer, implementer, reviewer, or the orchestrator acting for CB17) opened any SCREEN_8 or REP_8 raw file before q0406 ran; other registered jobs' automated reads under their own rules are not CB17 reads; attested at the code freeze and again with q0406's commit (ruling 6)",
+     "ATTRIBUTION_HALF": 0.5,
+     "AVAIL_MIN": 0.6,
+     "A_WITHDRAWAL": "family A (CH144, open versus close) withdrawn uncounted before its part commit, as pre-declared (sections 2.5, 10.5): q0400 measured side agreement 906/971 = 93.3% (Wilson lower 0.915571) < 97% overall and in every binding cell, so branch T binds; part A is never committed; A1, A1-rep, A2 and GAS never run; no window job parses side",
+     "A_WITHDRAWN": true,
+     "BRANCH": "T",
+     "BRANCH_RECORD": {
+      "agreement_k": 906,
+      "agreement_n": 971,
+      "failed_binding_cells": [
+       "touch_age:0-20min",
+       "touch_age:20-60min",
+       "p_band:P[0.03,0.20)",
+       "p_band:P[0.20,0.80]",
+       "p_band:P(0.80,0.97]",
+       "class:PATH-SETTLED",
+       "class:SCHEDULED-EVENT",
+       "class:UNSCHEDULED-NEWS"
+      ],
+      "job": "q0400",
+      "p1_reproduced": true,
+      "result": "creative_batch17/pre_census_A.json",
+      "result_sha256": "9deedcf5a1aeb0e370796457cab3f933d8e4c6b59e6a5de302c9a70e82ec38cf",
+      "rule_pass": false,
+      "wilson_lower": 0.915571
+     },
+     "BY_Q": 0.1,
+     "CB13_PINS": {
+      "cb13_common.capture_meta": "866e8e1d120f2dfcb0619d62073ed4bf734fbe168b48ed6781b669a3fe12b061",
+      "cb13_common.iter_capture_rows": "12b4e6b6cb5d7b109e91349add37f2d9fa7f1975a5e2059e16b0b1966d5e4fd5",
+      "cb13_common.iter_sidecar_rows": "0f402eeae1be954e5ad009a58bf80d01d6b193e896d44137c7366713c8633d81",
+      "cb13_common.whitelist_print": "12950339a9210bc46d5f24cb466638570539229141148ad21ceb1a6295bf7c8f",
+      "cb13_label.audit_group": "86deaf8f1768141659b9a20308ff13d6c59dedea1aab4ad338048f5567366b24",
+      "cb13_label.classify": "d94d6645e05e07032fa0d73f63375849acbf3b92f1f83e64524e636d0203a0dc",
+      "cb13_label.first_series_slug": "7bfcc9ce328d1f75f82774a57ad26aa933fbfb7085a9887ca003101f69e171d2",
+      "cb13_label.underlying_of": "89d25064c2b8d141dbb60f5c95297a6ea0bf72ee629b5e90dda79cec2e5956a9",
+      "cb13_t.MarkTable": "40a28befff88bf3cd30cf22f4ba2ea6429d6ac768da3080ab538639dee438ab9",
+      "cb13_t.Q": "31bffc647a65f33892aec10cd87a2dbeb4e66f3f846ccfdf16f0a90dba20108e",
+      "cb13_t.QuoteIndex": "8c6da5ba6632d22f9872936bf8fc8e27eecce1b761f0be20cf72d1e89cff752e",
+      "cb13_t.adverse_value": "8868091f8f3776d2f3c7816606705f526758a4a62b1398ff06038ae4e98c5c68",
+      "cb13_t.build_dataset": "32d69ce3e99b40ba723e59bbebd5fad7a173e3bd01a82a442ef8fff6fd5f8960",
+      "cb13_t.build_transactions": "464be3b04fdf08db8d49fcc200b6181284594b33e54a947b2dd5d870489f286e",
+      "cb13_t.classify_position": "d0ece510d787ea67aa1e6d6fea9a7a86fdc3897abb6f5f38432878ac0a51586a",
+      "cb13_t.drop_screen_events": "c34aa82c838a1c92d9e438739304458c0acb2796f23125d719933ac3c096cbb9",
+      "cb13_t.fee_rate_of": "97e6304d1acb5621d7f94485c43620097a47ccd8722b1b458c90e711f59968a0",
+      "cb13_t.gate_gti": "e5c7a389658b6bf6da34109f2da9a7e3eb574c4142b190a208ed06afce37b6de",
+      "cb13_t.make_fills": "00da3417fd0f2d863e15ea8b96013518dbcb8c418060d22b096052d4d79863a6",
+      "cb13_t.stale_variant": "8e722a30cd3b2c7144b5581d5e9667050ad195a11968b4c99154ec9f94a2face",
+      "cb13_t.t3_values": "dea5843f46215c00f9d0a5bf5b3e447afd0b5f29d1fab61aef276f94d0a2d878",
+      "cb13_t.two_sided": "72495426a00ebbe012e8c1c798b804944ff9ab9d1fa61b59226f122f3b97ce48",
+      "cb13_t.worst_value": "354deceb6a1936977c88368701fd4e369f4a7cd3caedc5e7f1975f3be72ba0a1",
+      "cb13_t.yes_price": "2ce135e7489e799573c92668a400b8cf6895dfda7a8a0ab93a88407121b4362c"
+     },
+     "CB16_KEYS": {
+      "columns": [
+       "market_id",
+       "found",
+       "event_ids",
+       "neg_risk_market_id",
+       "series_ids",
+       "sources"
+      ],
+      "file": "creative_batch16/exclusion_keys.csv.gz",
+      "job": "q0380",
+      "pin": "the sha256 recorded by q0380's manifest, set in q0405's job spec (CB16's q0380 --base-sha256 precedent); unset refuses; a q0380 stop record = keys absent (recorded)"
+     },
+     "CB16_PINS": {
+      "cb16_common.availability": "5705ff910d9cede83871105c320022f7c599502a2bdaff946eb765a1d9948018",
+      "cb16_common.cb3_hold_lifted": "05b88d5f9f9272854cb6bb18f4c0f16f3e45fdbf050f822ee4c36d5dc957967e",
+      "cb16_common.cluster_p": "cf516bf7efd20c42ffa1da353fecde2d499ee84c6eaf63432ac11ca5e937ccb7",
+      "cb16_common.collector_gap_ok": "a2024df3b0b73f7178e8583fb64c6250e11e05c5f6ca2b3511a56bd0f6a895ba",
+      "cb16_common.committed_record": "5371a19751afa3afdf3988971e6853a04ad58d7fc3354f7bdb84c48e6263b26f",
+      "cb16_common.e011_hold_lifted": "063f6342e70c49e908a76d1461dba30f1fd84c957a67eebddeb8fced413a9459",
+      "cb16_common.ensure_source_file": "5c02368fdb2dc28cbee40f487524fbe6da0afa5730b74e6148a5ff790cd12fe6",
+      "cb16_common.fe_coef_pseudo": "ae3c618fbe67d32123d48fd1c2756fafd4afb90d6f5b2da3d9702ddbc659d13d",
+      "cb16_common.fe_demean": "9a8d6c47058f1e143f381841b7ea27819ed2ec1f98d51d14a9f1beb4076a1117",
+      "cb16_common.guard_capture_dir": "efdacc0d5c09767dced2c9c0cbe281bcc41b2f2ab24e05edee2e5b792ff9f925",
+      "cb16_common.guard_floor": "ae1b4cda7945f8aca5725ff019490cb4bbb1c4a91230476bca9562b2477afb59",
+      "cb16_common.guard_monitor_file": "db3b6039e74fe64a25830389561f44fe746d3fc6133d75ed217ef502c0de7fc4",
+      "cb16_common.holm": "bc13d2e3180f887c3d592f02f5ddf23f33ac4ee417378f6e610f5aa298b65d69",
+      "cb16_common.in_election_night": "d78b3cf4eb2c08fe48494793d9d1435f398168ec43f1da3467d5758d1ac022a4",
+      "cb16_common.leave_one_out_p": "2a41193ffc93eee725fb14e03d8dc1785e89c0c262b7158c515517da30d6b8e5",
+      "cb16_common.p_pass": "4e029dd2fbfab1d14d9119aa8778fa559702d0086f17a8d1bf6c84455191e3ea",
+      "cb16_common.permute_within": "c1c908c40f5c91e1172067fd6fc5f6a141e2339327f19669f615efff961b76a6",
+      "cb16_common.placebo_advance_rate": "dddafa6653cc29c6d9cfaac9f5cbf9b45bb978e4249f3b54b1f0854c7dcbe0ea",
+      "cb16_common.read_keys_with_sources": "8fc3844432b94d96dd8e50df233960f88b0818bf1258dc9667b4857d64caa5b8",
+      "cb16_common.refuse_path": "984c7b1020d07266c5a5d749572ed0d4042dbcd377bc2f1a3323cf608fbebbd9",
+      "cb16_common.require_disk": "66681a0d33bf0192436c44a5e343dfbc775a355bfe24fdfdfd809fb2c08f1ada",
+      "cb16_common.sign_ok": "4215d155c50e056ad88483e383f2757581a6876f0446baffbe26179cf23d2a26",
+      "cb16_common.top_k_drop_mask": "6582a115058255fc43f961c9c4e156af75be744d0ddbc3806df9af0d4a175d6b",
+      "cb16_common.write_dir_manifest": "9b435366ccfe2c7c633a98dc5fa0ddba16e1589934bbb0508f2456c4b2c31504",
+      "cb16_q.QuoteIndex16": "bc9049facfb96465cac5a33a9336dd87562f495687cce8f6d80952dc3231242c",
+      "cb16_q.iter_prints": "9c495a96b3953f443d1d235757ca4b30b3877c4cd38587b72603398a039891fe",
+      "cb16_q.list_captures": "0f101a92ea11d4284e8615a130a2445900e2c9445b6a581e349de51a99140878",
+      "cb16_q.load_quote_index": "f627df5db45bd33143aae7d210289eb722729fb46e2307d4fbae0d7b38bd9687",
+      "cb16_q.make_fills": "0c2098b01948d24777d9e92413de68b9c01014161f32c1d1364cfc294422b767",
+      "cb16_q.trade_files": "4db22673cc0538736f5e3b677c5f8845675439449fb55acab4b2b3baf229df8a"
+     },
+     "CODE_FREEZE_NAME": "cb17_code_freeze.json",
+     "COMMON_VERSION": "cb17-common-v1",
+     "COMPOSITION_HALF": 0.5,
+     "COMPOSITION_P": 0.05,
+     "COST_MAP": {
+      "cell": "sidecar fee category x decision-mid P band x liquidity band (part pre p_band / liq_band)",
+      "file": "creative_batch17/cost_lag_map.json",
+      "hurdles_c": [
+       4.5,
+       1.8
+      ],
+      "job": "q0403",
+      "median_receipt_lag_s": 480.0,
+      "printed": [
+       "median",
+       "p75",
+       "not_executable_share"
+      ],
+      "sha256": "43f28e02068094c9b7e45903f04525e44a30e4d1864c9077ccdbf5540eb629bf",
+      "sizes_usd": [
+       1000,
+       5000
+      ],
+      "use": "reported next to each taker line and each econ line; never enters a decision"
+     },
+     "COUNT_FAMILIES": [
+      "B",
+      "C"
+     ],
+     "DISK_CAP_GB": {
+      "census": 0.01,
+      "exclusion-keys": 0.01,
+      "frame-rep": 0.15,
+      "frame-screen-AE": 0.05,
+      "frame-screen-BC": 0.1,
+      "rep": 0.01,
+      "screen": 0.01,
+      "smoke": 0.01,
+      "stage2-final": 0.01
+     },
+     "EARLY_ALPHA2_DIVISOR": 8,
+     "ECON_DIFF_FLOOR_C": -0.5,
+     "ECON_LEVEL_FLOOR_C": -1.0,
+     "FAMILY_REP_TESTS": {
+      "B": [
+       "B1-rep",
+       "B1-econ",
+       "B2-rep",
+       "B2-econ"
+      ],
+      "C": [
+       "C1-rep",
+       "C1-econ"
+      ]
+     },
+     "FAMILY_TESTS": {
+      "B": [
+       "B1",
+       "B2"
+      ],
+      "C": [
+       "C1"
+      ]
+     },
+     "FLOOR_C": 0.5,
+     "FRAME_DELAY_S": 28800.0,
+     "FREE_DISK_MIN_GB": 4.5,
+     "GATE_P": 0.01,
+     "INFORMATIVE_MIN": 0.5,
+     "K1": 3,
+     "K2_MAX": 6,
+     "KEY_RULE": "a market or event is dropped only if it appears in a sealed historical set with a stored timestamp inside SCREEN_8 or REP_8 (none expected); drops are counted by source; CB16 frame ids are overlap counts once CB16 q0384 exists; live frames are collection overlap, never drops",
+     "LABEL_ECON": "recorded-touch round trip (L2)",
+     "LABEL_REP": "later live window replication, event-disjoint (L2)",
+     "LABEL_SCREEN": "L2 live window (SCREEN_8, post-rules), Stage-1 screen",
+     "LEAD_S": {
+      "captures_bc": 21600.0,
+      "captures_e": 10800.0,
+      "sweeps_bc": 7200.0
+     },
+     "LOO_DAY_P": 0.05,
+     "MARK_TAIL_S": 28800.0,
+     "NOT_RUN_POWER": "not run (power)",
+     "NOT_TESTABLE_AVAIL": "not testable (availability)",
+     "NOT_TESTABLE_FIELD": "not testable (field)",
+     "NOT_TESTABLE_POP": "not testable (population)",
+     "NOT_TESTABLE_SEMANTICS": "not testable (field semantics)",
+     "NOT_TESTABLE_SOURCE": "not testable (source)",
+     "N_WILD": 9999,
+     "PERM_MAX_REACH": 3,
+     "PLACEBO_DRAWS": 200,
+     "PLACEBO_MAX_ADVANCE": 3,
+     "POWER_MDE_MAX_C": 1.0,
+     "PRE_RESULTS_SHA256": {
+      "q0400": "9deedcf5a1aeb0e370796457cab3f933d8e4c6b59e6a5de302c9a70e82ec38cf",
+      "q0401": "c3b8ae1b0f8d0bb7b54126193371e479c9175078591ebd46bb990d36ef063a1a",
+      "q0402": "442e99da3a7f806b05a76fa9de4e6a52bb8ded5516ff1ae2c67092a46812797d",
+      "q0403": "43f28e02068094c9b7e45903f04525e44a30e4d1864c9077ccdbf5540eb629bf"
+     },
+     "PRE_RULES_SHA256": "ddc0249b23eedf8cfe50b2b60e94378264804ca4791c82c01cf3993df54df6a7",
+     "REP_READ_LEAD_S": 604800.0,
+     "REP_SEAL_NAME": "cb17_rep_SEAL.json",
+     "REP_THIN_LABEL": "REP_8 thinned by event overlap",
+     "S8_AFTER_RULES_S": 86400.0,
+     "S8_EARLIEST": "2026-10-26T00:00:00Z",
+     "SEEDS": {
+      "B1_calibration": 17112,
+      "B1_composition": 17111,
+      "B2_calibration": 17122,
+      "B2_composition": 17121,
+      "C1_calibration": 17132,
+      "C1_composition": 17131
+     },
+     "SEED_RANGE": [
+      17101,
+      17140
+     ],
+     "SEED_WILD": 1717,
+     "SMALL_G": {
+      "below": "the way leaves the max; its leave-one-cluster-out sign rule binds",
+      "cr1_min_G": 30,
+      "cr2": "CR2 + t(G - 1) and the Webb wild bootstrap (larger p)",
+      "cr2_min_G": 15
+     },
+     "SMOKE_CRITERIA": [
+      "parts_verify",
+      "pins_cb13",
+      "pins_cb16",
+      "refusals_roots",
+      "refusals_lookback_floor",
+      "refusals_rep_before_seal",
+      "refusals_census_cutoff",
+      "forbidden_fields",
+      "arm_hash",
+      "age_parser",
+      "shift_state",
+      "interval_rule",
+      "trailing_tercile",
+      "b_no_mark_label",
+      "strata_selection_60",
+      "reproduce_P1",
+      "reproduce_P2",
+      "reproduce_P3"
+     ],
+     "SMOKE_NEEDS": {
+      "B": [
+       "parts_verify",
+       "pins_cb13",
+       "pins_cb16",
+       "refusals_roots",
+       "refusals_lookback_floor",
+       "refusals_rep_before_seal",
+       "refusals_census_cutoff",
+       "forbidden_fields",
+       "arm_hash",
+       "age_parser",
+       "shift_state",
+       "b_no_mark_label",
+       "strata_selection_60",
+       "reproduce_P2"
+      ],
+      "C": [
+       "parts_verify",
+       "pins_cb13",
+       "pins_cb16",
+       "refusals_roots",
+       "refusals_lookback_floor",
+       "refusals_rep_before_seal",
+       "refusals_census_cutoff",
+       "forbidden_fields",
+       "arm_hash",
+       "interval_rule",
+       "trailing_tercile",
+       "strata_selection_60",
+       "reproduce_P3"
+      ],
+      "E": [
+       "parts_verify",
+       "pins_cb13",
+       "refusals_roots",
+       "refusals_lookback_floor",
+       "refusals_census_cutoff",
+       "forbidden_fields",
+       "reproduce_P1"
+      ]
+     },
+     "SPREAD_FREE_P": 0.05,
+     "STAGE_ALPHA": 0.05,
+     "T17_RECORD_NAME": "cb17_t17_rules.json",
+     "TOP_DROP": 5,
+     "TOTAL_OUTPUT_CAP_GB": 0.3,
+     "TRIAL_KINDS": [
+      "cb17_test",
+      "cb17_replication",
+      "cb17_descriptive"
+     ],
+     "TRIGGERS": {
+      "B1": [
+       "B1-rep",
+       "B1-econ"
+      ],
+      "B2": [
+       "B2-rep",
+       "B2-econ"
+      ],
+      "C1": [
+       "C1-rep",
+       "C1-econ"
+      ]
+     },
+     "UNAVAILABLE_LOOKBACK": "unavailable (lookback floor)",
+     "UNINFORMATIVE": "composition guard uninformative",
+     "WAYS": [
+      "event",
+      "path_x_block",
+      "block6",
+      "utc_hour"
+     ],
+     "WINDOW_FORBIDDEN_PRINT_FIELDS": [
+      "side",
+      "recv_ts",
+      "key",
+      "wallet_hash",
+      "wallet",
+      "proxyWallet",
+      "ctx_chg_1h",
+      "ctx_status",
+      "chg_1h"
+     ],
+     "WINDOW_PRINT_FIELDS": [
+      "ts",
+      "condition_id",
+      "token_id",
+      "outcome_index",
+      "price",
+      "size",
+      "cash",
+      "title",
+      "slug",
+      "ctx_event_id",
+      "ctx_market_id",
+      "ctx_category",
+      "ctx_fee_type"
+     ],
+     "WINDOW_REFUSED_ROOTS": [
+      "surprise_live",
+      "cross_venue_live",
+      "cross_venue",
+      "forecasts",
+      "flow_screen",
+      "trade_samples",
+      "cb3_extract",
+      "cb3_followup",
+      "creative_batch16",
+      "t_holdout"
+     ],
+     "WINDOW_S": 1209600.0
+    }
+   },
+   "declared": {
+    "cb17_wcommon": {
+     "a_withdrawal": "family A (CH144, open versus close) withdrawn uncounted before its part commit, as pre-declared (sections 2.5, 10.5): q0400 measured side agreement 906/971 = 93.3% (Wilson lower 0.915571) < 97% overall and in every binding cell, so branch T binds; part A is never committed; A1, A1-rep, A2 and GAS never run; no window job parses side",
+     "a_withdrawn": true,
+     "arm": {
+      "rep": 1,
+      "rule": "int(sha256('cb17-arm-v1|' + event_id).hexdigest()[0], 16) mod 2; event_id = Gamma event id else market id",
+      "screen": 0
+     },
+     "branch": "T",
+     "branch_record": {
+      "agreement_k": 906,
+      "agreement_n": 971,
+      "failed_binding_cells": [
+       "touch_age:0-20min",
+       "touch_age:20-60min",
+       "p_band:P[0.03,0.20)",
+       "p_band:P[0.20,0.80]",
+       "p_band:P(0.80,0.97]",
+       "class:PATH-SETTLED",
+       "class:SCHEDULED-EVENT",
+       "class:UNSCHEDULED-NEWS"
+      ],
+      "job": "q0400",
+      "p1_reproduced": true,
+      "result": "creative_batch17/pre_census_A.json",
+      "result_sha256": "9deedcf5a1aeb0e370796457cab3f933d8e4c6b59e6a5de302c9a70e82ec38cf",
+      "rule_pass": false,
+      "wilson_lower": 0.915571
+     },
+     "cost_map": {
+      "cell": "sidecar fee category x decision-mid P band x liquidity band (part pre p_band / liq_band)",
+      "file": "creative_batch17/cost_lag_map.json",
+      "hurdles_c": [
+       4.5,
+       1.8
+      ],
+      "job": "q0403",
+      "median_receipt_lag_s": 480.0,
+      "printed": [
+       "median",
+       "p75",
+       "not_executable_share"
+      ],
+      "sha256": "43f28e02068094c9b7e45903f04525e44a30e4d1864c9077ccdbf5540eb629bf",
+      "sizes_usd": [
+       1000,
+       5000
+      ],
+      "use": "reported next to each taker line and each econ line; never enters a decision"
+     },
+     "counting": {
+      "count_lines": {
+       "creative_batch_17:B": 2,
+       "creative_batch_17:C": 1
+      },
+      "families": {
+       "B": [
+        "B1",
+        "B2"
+       ],
+       "C": [
+        "C1"
+       ]
+      },
+      "k1": 3,
+      "k2_max": 6,
+      "kinds": [
+       "cb17_test",
+       "cb17_replication",
+       "cb17_descriptive"
+      ],
+      "rep": {
+       "B": [
+        "B1-rep",
+        "B1-econ",
+        "B2-rep",
+        "B2-econ"
+       ],
+       "C": [
+        "C1-rep",
+        "C1-econ"
+       ]
+      },
+      "stage1": "p < 0.01 strict, the floor, every binding check, batch Holm one-sided 0.05 over k1 = 3",
+      "stage2": "one CB17-wide strict Holm; early finishers alpha / 8",
+      "triggers": {
+       "B1": [
+        "B1-rep",
+        "B1-econ"
+       ],
+       "B2": [
+        "B2-rep",
+        "B2-econ"
+       ],
+       "C1": [
+        "C1-rep",
+        "C1-econ"
+       ]
+      },
+      "withdrawal": "A withdrawn uncounted (branch T) before any part commit; after a part commit every declared test is counted"
+     },
+     "dates": {
+      "S_8": "max(2026-10-26T00:00:00Z, the first 00:00Z at or after T17_rules + 24 h)",
+      "election_night": [
+       "2026-11-03T18:00:00Z",
+       "2026-11-05T00:00:00Z"
+      ],
+      "frame_delay_h": 8,
+      "leads_h": {
+       "captures_bc": 6.0,
+       "captures_e": 3.0,
+       "sweeps_bc": 2.0
+      },
+      "lookback_floor": "2026-10-26T00:00:00Z",
+      "rep_read_lead_d": 7,
+      "t17_record": "cb17_t17_rules.json",
+      "window_days": 14
+     },
+     "disk": {
+      "caps_gb": {
+       "census": 0.01,
+       "exclusion-keys": 0.01,
+       "frame-rep": 0.15,
+       "frame-screen-AE": 0.05,
+       "frame-screen-BC": 0.1,
+       "rep": 0.01,
+       "screen": 0.01,
+       "smoke": 0.01,
+       "stage2-final": 0.01
+      },
+      "data_dumps_cap_gb": 40.0,
+      "free_min_gb": 4.5,
+      "total_gb": 0.3
+     },
+     "floors_c": {
+      "econ_diff": -0.5,
+      "econ_level": -1.0,
+      "stage1": 0.5
+     },
+     "guards": {
+      "availability": "available < 0.6 of eligible -> not testable (availability)",
+      "calibration": "circular shift within unit in time order, offset uniform on {1..n-1}; each draw judged on p < 0.01 alone; <= 3 of 200 advance",
+      "composition": "(a) unit x stratum FE estimate keeps sign and >= half, p < 0.05; (b) within-strata permutation, <= 3 of 200 reach; informativeness >= 50% else uninformative",
+      "power": "MDE = 3.8 x SE > 1.0c -> not run (power)",
+      "robust": "p and the floor without the top 5 clusters of each way; leave-one-day-out"
+     },
+     "inference": {
+      "draws": 200,
+      "loo_day_p": 0.05,
+      "n_wild": 9999,
+      "seed_range": [
+       17101,
+       17140
+      ],
+      "seed_wild": 1717,
+      "seeds": {
+       "B1_calibration": 17112,
+       "B1_composition": 17111,
+       "B2_calibration": 17122,
+       "B2_composition": 17121,
+       "C1_calibration": 17132,
+       "C1_composition": 17131
+      },
+      "small_g": {
+       "below": "the way leaves the max; its leave-one-cluster-out sign rule binds",
+       "cr1_min_G": 30,
+       "cr2": "CR2 + t(G - 1) and the Webb wild bootstrap (larger p)",
+       "cr2_min_G": 15
+      },
+      "top_drop": 5,
+      "utc_day": "never in the max; leave-one-day-out keeps p < 0.05 and the sign",
+      "ways": [
+       "event",
+       "path_x_block",
+       "block6",
+       "utc_hour"
+      ]
+     },
+     "keys": {
+      "cb16": {
+       "columns": [
+        "market_id",
+        "found",
+        "event_ids",
+        "neg_risk_market_id",
+        "series_ids",
+        "sources"
+       ],
+       "file": "creative_batch16/exclusion_keys.csv.gz",
+       "job": "q0380",
+       "pin": "the sha256 recorded by q0380's manifest, set in q0405's job spec (CB16's q0380 --base-sha256 precedent); unset refuses; a q0380 stop record = keys absent (recorded)"
+      },
+      "rule": "a market or event is dropped only if it appears in a sealed historical set with a stored timestamp inside SCREEN_8 or REP_8 (none expected); drops are counted by source; CB16 frame ids are overlap counts once CB16 q0384 exists; live frames are collection overlap, never drops"
+     },
+     "labels": {
+      "econ": "recorded-touch round trip (L2)",
+      "rep": "later live window replication, event-disjoint (L2)",
+      "screen": "L2 live window (SCREEN_8, post-rules), Stage-1 screen"
+     },
+     "pins": {
+      "cb13": {
+       "cb13_common.capture_meta": "866e8e1d120f2dfcb0619d62073ed4bf734fbe168b48ed6781b669a3fe12b061",
+       "cb13_common.iter_capture_rows": "12b4e6b6cb5d7b109e91349add37f2d9fa7f1975a5e2059e16b0b1966d5e4fd5",
+       "cb13_common.iter_sidecar_rows": "0f402eeae1be954e5ad009a58bf80d01d6b193e896d44137c7366713c8633d81",
+       "cb13_common.whitelist_print": "12950339a9210bc46d5f24cb466638570539229141148ad21ceb1a6295bf7c8f",
+       "cb13_label.audit_group": "86deaf8f1768141659b9a20308ff13d6c59dedea1aab4ad338048f5567366b24",
+       "cb13_label.classify": "d94d6645e05e07032fa0d73f63375849acbf3b92f1f83e64524e636d0203a0dc",
+       "cb13_label.first_series_slug": "7bfcc9ce328d1f75f82774a57ad26aa933fbfb7085a9887ca003101f69e171d2",
+       "cb13_label.underlying_of": "89d25064c2b8d141dbb60f5c95297a6ea0bf72ee629b5e90dda79cec2e5956a9",
+       "cb13_t.MarkTable": "40a28befff88bf3cd30cf22f4ba2ea6429d6ac768da3080ab538639dee438ab9",
+       "cb13_t.Q": "31bffc647a65f33892aec10cd87a2dbeb4e66f3f846ccfdf16f0a90dba20108e",
+       "cb13_t.QuoteIndex": "8c6da5ba6632d22f9872936bf8fc8e27eecce1b761f0be20cf72d1e89cff752e",
+       "cb13_t.adverse_value": "8868091f8f3776d2f3c7816606705f526758a4a62b1398ff06038ae4e98c5c68",
+       "cb13_t.build_dataset": "32d69ce3e99b40ba723e59bbebd5fad7a173e3bd01a82a442ef8fff6fd5f8960",
+       "cb13_t.build_transactions": "464be3b04fdf08db8d49fcc200b6181284594b33e54a947b2dd5d870489f286e",
+       "cb13_t.classify_position": "d0ece510d787ea67aa1e6d6fea9a7a86fdc3897abb6f5f38432878ac0a51586a",
+       "cb13_t.drop_screen_events": "c34aa82c838a1c92d9e438739304458c0acb2796f23125d719933ac3c096cbb9",
+       "cb13_t.fee_rate_of": "97e6304d1acb5621d7f94485c43620097a47ccd8722b1b458c90e711f59968a0",
+       "cb13_t.gate_gti": "e5c7a389658b6bf6da34109f2da9a7e3eb574c4142b190a208ed06afce37b6de",
+       "cb13_t.make_fills": "00da3417fd0f2d863e15ea8b96013518dbcb8c418060d22b096052d4d79863a6",
+       "cb13_t.stale_variant": "8e722a30cd3b2c7144b5581d5e9667050ad195a11968b4c99154ec9f94a2face",
+       "cb13_t.t3_values": "dea5843f46215c00f9d0a5bf5b3e447afd0b5f29d1fab61aef276f94d0a2d878",
+       "cb13_t.two_sided": "72495426a00ebbe012e8c1c798b804944ff9ab9d1fa61b59226f122f3b97ce48",
+       "cb13_t.worst_value": "354deceb6a1936977c88368701fd4e369f4a7cd3caedc5e7f1975f3be72ba0a1",
+       "cb13_t.yes_price": "2ce135e7489e799573c92668a400b8cf6895dfda7a8a0ab93a88407121b4362c"
+      },
+      "cb16": {
+       "cb16_common.availability": "5705ff910d9cede83871105c320022f7c599502a2bdaff946eb765a1d9948018",
+       "cb16_common.cb3_hold_lifted": "05b88d5f9f9272854cb6bb18f4c0f16f3e45fdbf050f822ee4c36d5dc957967e",
+       "cb16_common.cluster_p": "cf516bf7efd20c42ffa1da353fecde2d499ee84c6eaf63432ac11ca5e937ccb7",
+       "cb16_common.collector_gap_ok": "a2024df3b0b73f7178e8583fb64c6250e11e05c5f6ca2b3511a56bd0f6a895ba",
+       "cb16_common.committed_record": "5371a19751afa3afdf3988971e6853a04ad58d7fc3354f7bdb84c48e6263b26f",
+       "cb16_common.e011_hold_lifted": "063f6342e70c49e908a76d1461dba30f1fd84c957a67eebddeb8fced413a9459",
+       "cb16_common.ensure_source_file": "5c02368fdb2dc28cbee40f487524fbe6da0afa5730b74e6148a5ff790cd12fe6",
+       "cb16_common.fe_coef_pseudo": "ae3c618fbe67d32123d48fd1c2756fafd4afb90d6f5b2da3d9702ddbc659d13d",
+       "cb16_common.fe_demean": "9a8d6c47058f1e143f381841b7ea27819ed2ec1f98d51d14a9f1beb4076a1117",
+       "cb16_common.guard_capture_dir": "efdacc0d5c09767dced2c9c0cbe281bcc41b2f2ab24e05edee2e5b792ff9f925",
+       "cb16_common.guard_floor": "ae1b4cda7945f8aca5725ff019490cb4bbb1c4a91230476bca9562b2477afb59",
+       "cb16_common.guard_monitor_file": "db3b6039e74fe64a25830389561f44fe746d3fc6133d75ed217ef502c0de7fc4",
+       "cb16_common.holm": "bc13d2e3180f887c3d592f02f5ddf23f33ac4ee417378f6e610f5aa298b65d69",
+       "cb16_common.in_election_night": "d78b3cf4eb2c08fe48494793d9d1435f398168ec43f1da3467d5758d1ac022a4",
+       "cb16_common.leave_one_out_p": "2a41193ffc93eee725fb14e03d8dc1785e89c0c262b7158c515517da30d6b8e5",
+       "cb16_common.p_pass": "4e029dd2fbfab1d14d9119aa8778fa559702d0086f17a8d1bf6c84455191e3ea",
+       "cb16_common.permute_within": "c1c908c40f5c91e1172067fd6fc5f6a141e2339327f19669f615efff961b76a6",
+       "cb16_common.placebo_advance_rate": "dddafa6653cc29c6d9cfaac9f5cbf9b45bb978e4249f3b54b1f0854c7dcbe0ea",
+       "cb16_common.read_keys_with_sources": "8fc3844432b94d96dd8e50df233960f88b0818bf1258dc9667b4857d64caa5b8",
+       "cb16_common.refuse_path": "984c7b1020d07266c5a5d749572ed0d4042dbcd377bc2f1a3323cf608fbebbd9",
+       "cb16_common.require_disk": "66681a0d33bf0192436c44a5e343dfbc775a355bfe24fdfdfd809fb2c08f1ada",
+       "cb16_common.sign_ok": "4215d155c50e056ad88483e383f2757581a6876f0446baffbe26179cf23d2a26",
+       "cb16_common.top_k_drop_mask": "6582a115058255fc43f961c9c4e156af75be744d0ddbc3806df9af0d4a175d6b",
+       "cb16_common.write_dir_manifest": "9b435366ccfe2c7c633a98dc5fa0ddba16e1589934bbb0508f2456c4b2c31504",
+       "cb16_q.QuoteIndex16": "bc9049facfb96465cac5a33a9336dd87562f495687cce8f6d80952dc3231242c",
+       "cb16_q.iter_prints": "9c495a96b3953f443d1d235757ca4b30b3877c4cd38587b72603398a039891fe",
+       "cb16_q.list_captures": "0f101a92ea11d4284e8615a130a2445900e2c9445b6a581e349de51a99140878",
+       "cb16_q.load_quote_index": "f627df5db45bd33143aae7d210289eb722729fb46e2307d4fbae0d7b38bd9687",
+       "cb16_q.make_fills": "0c2098b01948d24777d9e92413de68b9c01014161f32c1d1364cfc294422b767",
+       "cb16_q.trade_files": "4db22673cc0538736f5e3b677c5f8845675439449fb55acab4b2b3baf229df8a"
+      }
+     },
+     "pre": {
+      "results_sha256": {
+       "q0400": "9deedcf5a1aeb0e370796457cab3f933d8e4c6b59e6a5de302c9a70e82ec38cf",
+       "q0401": "c3b8ae1b0f8d0bb7b54126193371e479c9175078591ebd46bb990d36ef063a1a",
+       "q0402": "442e99da3a7f806b05a76fa9de4e6a52bb8ded5516ff1ae2c67092a46812797d",
+       "q0403": "43f28e02068094c9b7e45903f04525e44a30e4d1864c9077ccdbf5540eb629bf"
+      },
+      "rules_sha256": "ddc0249b23eedf8cfe50b2b60e94378264804ca4791c82c01cf3993df54df6a7"
+     },
+     "records": {
+      "attestation": "no agent working on CB17 (designer, implementer, reviewer, or the orchestrator acting for CB17) opened any SCREEN_8 or REP_8 raw file before q0406 ran; other registered jobs' automated reads under their own rules are not CB17 reads; attested at the code freeze and again with q0406's commit (ruling 6)",
+      "code_freeze": "cb17_code_freeze.json",
+      "rep_seal": "cb17_rep_SEAL.json",
+      "t17": "cb17_t17_rules.json"
+     },
+     "refusals": {
+      "prints_forbidden": [
+       "side",
+       "recv_ts",
+       "key",
+       "wallet_hash",
+       "wallet",
+       "proxyWallet",
+       "ctx_chg_1h",
+       "ctx_status",
+       "chg_1h"
+      ],
+      "rep": "REP_8 units refused before the SCREEN_8 result and the REP seal",
+      "roots": [
+       "surprise_live",
+       "cross_venue_live",
+       "cross_venue",
+       "forecasts",
+       "flow_screen",
+       "trade_samples",
+       "cb3_extract",
+       "cb3_followup",
+       "creative_batch16",
+       "t_holdout"
+      ]
+     },
+     "smoke": {
+      "consequence": "a failed criterion makes the dependent family terminal: not testable (source), counted once per declared test",
+      "criteria": [
+       "parts_verify",
+       "pins_cb13",
+       "pins_cb16",
+       "refusals_roots",
+       "refusals_lookback_floor",
+       "refusals_rep_before_seal",
+       "refusals_census_cutoff",
+       "forbidden_fields",
+       "arm_hash",
+       "age_parser",
+       "shift_state",
+       "interval_rule",
+       "trailing_tercile",
+       "b_no_mark_label",
+       "strata_selection_60",
+       "reproduce_P1",
+       "reproduce_P2",
+       "reproduce_P3"
+      ],
+      "needs": {
+       "B": [
+        "parts_verify",
+        "pins_cb13",
+        "pins_cb16",
+        "refusals_roots",
+        "refusals_lookback_floor",
+        "refusals_rep_before_seal",
+        "refusals_census_cutoff",
+        "forbidden_fields",
+        "arm_hash",
+        "age_parser",
+        "shift_state",
+        "b_no_mark_label",
+        "strata_selection_60",
+        "reproduce_P2"
+       ],
+       "C": [
+        "parts_verify",
+        "pins_cb13",
+        "pins_cb16",
+        "refusals_roots",
+        "refusals_lookback_floor",
+        "refusals_rep_before_seal",
+        "refusals_census_cutoff",
+        "forbidden_fields",
+        "arm_hash",
+        "interval_rule",
+        "trailing_tercile",
+        "strata_selection_60",
+        "reproduce_P3"
+       ],
+       "E": [
+        "parts_verify",
+        "pins_cb13",
+        "refusals_roots",
+        "refusals_lookback_floor",
+        "refusals_census_cutoff",
+        "forbidden_fields",
+        "reproduce_P1"
+       ]
+      }
+     },
+     "version": "cb17-common-v1"
+    },
+    "common": {
+     "census": {
+      "cutoff": "2026-10-16T00:00:00Z",
+      "days": [
+       "20261012",
+       "20261013",
+       "20261014",
+       "20261015"
+      ],
+      "rule": "no census path reads a row at or after the cut-off; a file or directory outside the window is refused",
+      "start": "2026-10-12T00:00:00Z"
+     },
+     "election_night": [
+      "2026-11-03T18:00:00Z",
+      "2026-11-05T00:00:00Z"
+     ],
+     "field_whitelists": {
+      "captures": [
+       "capture_id",
+       "received_utc",
+       "market_id",
+       "condition_id",
+       "event_id",
+       "closed",
+       "active",
+       "binary",
+       "best_bid",
+       "best_ask",
+       "liquidity",
+       "volume24hr",
+       "end_date",
+       "clob_token_id_0",
+       "neg_risk",
+       "neg_risk_market_id"
+      ],
+      "fills": [
+       "status",
+       "condition_id",
+       "market_id",
+       "event_id",
+       "label",
+       "path_key",
+       "tau",
+       "tau_last",
+       "d",
+       "P",
+       "size",
+       "cash",
+       "spread0",
+       "mid0",
+       "prev_mid",
+       "touch_age_s",
+       "block",
+       "day"
+      ],
+      "forbidden_captures": [
+       "chg_1h",
+       "chg_1d",
+       "chg_1w",
+       "last_trade_price",
+       "open_interest",
+       "volume_num",
+       "uma_resolution_statuses",
+       "outcome_prices",
+       "closed_time"
+      ],
+      "forbidden_output": [
+       "side",
+       "wallet",
+       "wallet_hash",
+       "proxyWallet",
+       "tx16",
+       "transactionHash",
+       "tx_hash",
+       "hash",
+       "name",
+       "pseudonym",
+       "recv_ts",
+       "chg_1h",
+       "chg_1d",
+       "chg_1w",
+       "ctx_chg_1h",
+       "uma_resolution_statuses",
+       "outcome_prices",
+       "outcomePrices",
+       "umaResolutionStatus",
+       "closedTime",
+       "closed_time",
+       "result",
+       "settlement_value",
+       "p_end",
+       "mark",
+       "mark_out",
+       "m_h",
+       "beta",
+       "est",
+       "estimate",
+       "coef",
+       "effect",
+       "pnl",
+       "net"
+      ],
+      "forbidden_prints": [
+       "key",
+       "wallet_hash",
+       "wallet",
+       "proxyWallet",
+       "ctx_chg_1h",
+       "ctx_status",
+       "chg_1h"
+      ],
+      "labels": [
+       "condition_id",
+       "label"
+      ],
+      "prints": [
+       "ts",
+       "condition_id",
+       "token_id",
+       "outcome_index",
+       "price",
+       "size",
+       "cash",
+       "title",
+       "slug",
+       "ctx_event_id",
+       "ctx_market_id",
+       "ctx_category",
+       "ctx_fee_type"
+      ],
+      "recv_ts_q0403_only": [
+       "recv_ts"
+      ],
+      "side_q0400_only": [
+       "side"
+      ],
+      "sidecar": [
+       "market_id",
+       "event_id",
+       "fee_type",
+       "fee_category",
+       "fee_schedule",
+       "order_price_min_tick_size",
+       "clob_rewards",
+       "created_at",
+       "event_open_interest",
+       "event_volume",
+       "series_slugs",
+       "neg_risk_market_id",
+       "accepting_orders"
+      ],
+      "sweeps": [
+       "sweep_id",
+       "token_id",
+       "market_id",
+       "batch_receipt_utc",
+       "book_timestamp",
+       "book_hash",
+       "best_bid",
+       "best_ask",
+       "bid_size_1",
+       "ask_size_1",
+       "depth_bid_1c",
+       "depth_ask_1c",
+       "depth_bid_5c",
+       "depth_ask_5c",
+       "n_bid_levels",
+       "n_ask_levels",
+       "tick_size",
+       "min_order_size",
+       "state"
+      ]
+     },
+     "holdout": "CB13-T HOLDOUT paths are refused; only creative_batch13/t_screen/{fills,labels}.csv.gz may be opened by a census",
+     "lookback_floor": "2026-10-26T00:00:00Z",
+     "mde": "3.8 x SE",
+     "output_roots": [
+      "creative_batch17"
+     ],
+     "refused_extra": [
+      "creative_batch16"
+     ],
+     "result_rule": "counts, shares and standard errors only; a result with a key naming an outcome, a mark, a point estimate or a forbidden column is refused",
+     "sports_in_primary": false,
+     "stop_rule": "3 CPU-hours per family; a job failing twice for the same non-transient reason stops and is recorded; no re-screen of a failed CB17 test"
+    }
+   },
+   "func_sources_sha256": {
+    "cb17_common.assert_clean_result": "3a865ae06f010f749f0bae909cb887c834a3b60f0e1d89f1b8a271a762c7d211",
+    "cb17_common.band6": "81afd606517581d6995ce0c1669b16aad572039800d5fc4f7061ef351be66097",
+    "cb17_common.block6": "2131576674fc52a567f06a2061131fdaaa0a97e9dcb7a44f00b08e5485aedef9",
+    "cb17_common.census_cutoff": "a13aaeeae162f7598379c7023fde465f4aa0d132b35162169995175532e7b346",
+    "cb17_common.ep": "a546e4f0ed5bdf4883cff3d6cc7bf23bbba9306934f9954682127542e84cb790",
+    "cb17_common.guard_capture_dir": "1d7f5ad01347e1d2430cc128827194550e08cc4f5a14cbf556f71f44f298ba6f",
+    "cb17_common.guard_cb13_t_screen_file": "a7a64ac6b57849012750657fd558e55557b26cc0b16526341f7b9e1f0dd380ad",
+    "cb17_common.guard_census_time": "3815f6e806925496c8a442311f54bab84ba80a348c41b82268c19d103f7ba68c",
+    "cb17_common.guard_monitor_file": "7f7436b0b2ec1bbac4a8e275c4630f610e52f3c9c7863153b2997bafe8ae1f61",
+    "cb17_common.guard_not_window": "1642b57ad0d491ac4c20dc8fb2c3f331a5c098f61410821430e7e7e8e27a4f73",
+    "cb17_common.guard_stamped_dir": "688757abe49ec21d00441e7a616258c00f32fbeedd04fe1aa2e8e1bfa2678ee1",
+    "cb17_common.guard_sweep_dir": "d55536a6d85ead4985036ab73e7c70afa445f2bdaedf42e6d9dfd39507199928",
+    "cb17_common.iso": "96298691e53e2392f937e45ce36464ac77a5f4d7df98a50591b9fe003faf8488",
+    "cb17_common.log_descriptive": "4615b3ac23b46a28554e1cb1d6c3314800e15a4e88b0f550ae674d9292be4315",
+    "cb17_common.num": "6b0d39403e1916672eadc55c8241ff0c3cdfb233983e5e8b36b400140ab6f068",
+    "cb17_common.refuse_path": "f9e1f9bbe6c8d24b4e8ffce00039daf50642c9e19bf495e93f96dd436e7cfd2d",
+    "cb17_common.require_disk": "a8c2fc48de1b4187b9d0515147212dffdca1fbaad9894aa676e4c7825b2fa58c",
+    "cb17_common.require_output_root": "0c63b0d653f4735e287c72adaedbf2d01904c505684097207f5c664414d3aff3",
+    "cb17_common.sha256_file": "9b9e433786c3b739ebdf2370926158a2e42a946e90aae266587c550a4a08ee8b",
+    "cb17_common.sha256_obj": "29f7a73c2109e9902f07d1b4343c0975871e392d9e53aea23bc0b4e5d4ca548f",
+    "cb17_common.stamp_epoch": "032feaa1cc3be4e5e8c47210b56738e599bbc15ccbb3019068edab55d2838aab",
+    "cb17_common.utc_hour": "ea6422f9fe7208fa7aa19a5478016e8413e3742cb1d51927ffc98f7020dbff4a",
+    "cb17_common.write_result_once": "91c8c5fa4a6103a5f0213a8f2101d6e383c8679779192684521e58262aa32de4",
+    "cb17_wcommon.arm": "a75c97922015385b3480b5bdd5dc4850f77c44374050934a486b91d5d1700735",
+    "cb17_wcommon.availability": "62e19a7502624883a0b3ae012ef789bc49d3c89471702bff752870059d9b2ec0",
+    "cb17_wcommon.calibration_placebo": "62eff34d5d14d7728836b96d0eb5e4c7bc94cd57782bef80e00ab39d6101d686",
+    "cb17_wcommon.circular_shift": "24308493cddc954d47085f1f97aaa1054f130d35ef87fb78a7003b07ee2c450a",
+    "cb17_wcommon.composition_guard": "9e253beda29af9461192f4d3c787758798838dc97538d2bbe5487aedaf8cead6",
+    "cb17_wcommon.declared": "9fe6c41ea092946262469feecd99f47f03a9998bd473717318b00f31379888cc",
+    "cb17_wcommon.early_stage2_ok": "5865853b45ad7b4cb16c5db1f99112b59443d3b6ecaf75f584408e2c500a812a",
+    "cb17_wcommon.econ_decision": "947a58153319bae3b3c99b6fabe7cb7a68a62076e9a53158587541de01a6d160",
+    "cb17_wcommon.event_key": "8117bf7a6bd41eb73ccd52cd48b14d3feb2450b31f9ba8a0936982f38d196c06",
+    "cb17_wcommon.guard_rep_unit": "4be3d4e97d968c833b5c9f1cea0ea58d5ee79a7e4f9c441b979aa322670520f6",
+    "cb17_wcommon.guard_window_row": "cc133f1295fd5dbd6b79e61fb8e01919a6011b1721c53b472eb6042308ff6a3b",
+    "cb17_wcommon.in_election_night": "8b40b1eecca020fc587c7578df9efd4b7a3e28e62fa4aca7cdf1155a2ac392db",
+    "cb17_wcommon.informative_ok": "757934a12df121006f59887a02a30321129a11bc011748e7dc6cea087faf5d12",
+    "cb17_wcommon.lookback_available": "a5a858ed45b750b88a2274669ebb4541cbb795de956f60f6d331989e0ecd381c",
+    "cb17_wcommon.path_key": "1fb5f47b88eb8f2ee9e2e238b5a810eff4f9c4e65c92824f4fdaa32721af1fc3",
+    "cb17_wcommon.permutation_reach": "069c6539995d8884dcd82359f7c844137bf5dcc5f4f44c0a9e0a5fdebececc3b",
+    "cb17_wcommon.pins_current": "61a67aaa3cf042d4a60c38bfb3aad2f290ec556d310cdc441ec9f391ab3774ba",
+    "cb17_wcommon.pins_ok": "75dc9b182424b2b001953c56e6b576330c656d402832ef4815fb2c60863f33a5",
+    "cb17_wcommon.power_gate": "20a7affd8d9673ed71cf2bbc141bb3a8551d4d30a0cbd5d4a4df597e4fb58c0f",
+    "cb17_wcommon.require_after": "aaea3fda3c5bc3d7a19fd3b3e23e952d98b107ea4bf59b77155830fc24407426",
+    "cb17_wcommon.s8_from_rules": "87a2168d66ab98ec2b77738944cf8d53478d4e7dc55c91ca47a6b7462531ea66",
+    "cb17_wcommon.stage1_advance": "0557f78dbcbdf115bdeb0476bea0a2a7890adc931b93be2e26f8535b2d176a92",
+    "cb17_wcommon.stage1_holm": "d46faaab779bc888713f7198b4ca6b1875d8b93a8fa2d6b44b7071b62ae5f25a",
+    "cb17_wcommon.stage2_final": "54a30a4a842b4cdac6a6f7a7a7bf90cf2e04c3189ecc30e0287fbdc3bb711209",
+    "cb17_wcommon.stage2_pass": "6e6da34b6b7965b2c2f6adc96c51122493fbc39aa402aca19103d353465466c8",
+    "cb17_wcommon.windows8": "de2aa00b31a56ec1613223394f3efc4a285b953dd50f822d35d0a23f44e555dd"
+   },
+   "funcs_sha256": "543c4e5770a2dba8910cc8399ad4d41e2b5de909ff269a4e6a1efbccebf313a1",
+   "modules": [
+    "cb17_common",
+    "cb17_wcommon"
+   ],
    "part": "common",
-   "part_declared": false,
-   "reason": "part not declared yet: committed after q0400-q0403 have chosen the branch, the strata levels and the cut points (CREATIVE_BATCH_17.md section 1.4 Order)",
-   "rules_sha256": null,
-   "rules_version": "cb17-rules-v1"
+   "part_declared": true,
+   "rules_sha256": "2343744082bcb664ac06f18f967c166aae09c216e9437045d7aa07aa77ef8c9f",
+   "rules_version": "cb17-rules-v1",
+   "shared_helper_sources_sha256": {
+    "cb10_common.require_disk": "1e0e4e4682fa9a16fa71df384f5163983fa5cfa675b15a9b7f009dbbf3d81370",
+    "cb12_common.holm": "7831f9b32b4876f0450ed05cb8050f4c22ce84e78e12430e8d5efd3aee861803",
+    "cb12_common.parse_iso": "f56a746aac64f2456a69e6ad81c952e3b4ebff1aa8a167e5ab567d2182477da3",
+    "cb12_common.read_csv_gz": "0de78d753f9c22f4985ca862de9e64db28b0333f859376b5d38ce4eb9aedc535",
+    "cb16_common.availability": "5705ff910d9cede83871105c320022f7c599502a2bdaff946eb765a1d9948018",
+    "cb16_common.ep": "3a9fd8059b8d56d7572e9e9a04d0c83e2aeef94fb27ca9badb6318501b40be1b",
+    "cb16_common.holm": "bc13d2e3180f887c3d592f02f5ddf23f33ac4ee417378f6e610f5aa298b65d69",
+    "cb16_common.in_election_night": "d78b3cf4eb2c08fe48494793d9d1435f398168ec43f1da3467d5758d1ac022a4",
+    "cb16_common.num": "6b0d39403e1916672eadc55c8241ff0c3cdfb233983e5e8b36b400140ab6f068",
+    "cb16_common.refuse_path": "984c7b1020d07266c5a5d749572ed0d4042dbcd377bc2f1a3323cf608fbebbd9",
+    "cb16_common.refused_names": "32b50ab79443589af19374c0cc7519d67f852856b04b43f23c510ec76c27b790",
+    "cb16_common.require_disk": "66681a0d33bf0192436c44a5e343dfbc775a355bfe24fdfdfd809fb2c08f1ada",
+    "cb6_tail.NotNow": "08b9fb3b8355ad01e3b1dd27581ebae1e1efaf463f20232f3c0c91fbb18dab8f",
+    "cb6_tail.Refused": "60c0f89a153d7221261fbcf72fab5c3575768e044ebe16651a7179da8abbb6ed",
+    "cb8_common.iso": "ac272e28c92099a676a96b2c020c11350330df755b773770371939d966fa80ab",
+    "cb8_common.sha_obj": "cafbecf98cedc4dfb52e87251e7a10fac6b4cb9acebcdc0085e5620305953a1e",
+    "cb8_common.write_once_json": "96de340201f4213c580706a6c2f57a3addda7abf3019daa2f1868cd49c4eadb9",
+    "provenance.EvidenceRoleError": "7b336a992c69d6d56ec45da927dce137014fe0b34fbfd0a21ab0c30a79e0ec35",
+    "provenance.append_trial": "fb9994b0432e034eae414186f16cd95ff59f1158dc0d028d7e41375d9e19353f",
+    "provenance.role_required": "85cad103453f602808701521edb26f5d0474b9269f33325c3861367be2004220",
+    "provenance.validate_evidence_role": "42b61e7d9e401ab2dd6b098a5012cfa82f776576e3f1a12ba492f71ca82d2522"
+   },
+   "wallet": {
+    "note": "no CB17 job reads or stores a wallet field or a transaction hash (tx16 is aggregated in memory and discarded); the Data API side field is read by q0400 only (the agreement count and the sign of its side-signed population)",
+    "read": false
+   }
   },
   "pre": {
    "constants": {

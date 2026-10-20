@@ -89,10 +89,11 @@ SWEEP_DIR = RESEARCH_ROOT / "book_sweeps"
 SEALS_DIR = cm.SEALS_DIR
 
 # staging switches: lower-case = not part of any rules hash (see the module docstring). Declaring a later part edits these lines only.
-_declared_parts = ("pre",)
-_family_parts = ("pre",)
-_family_modules = {"pre": ("cb17_pre", "cb17_census")}
+_declared_parts = ("pre", "common", "B", "C", "E")
+_family_parts = ("pre", "common", "B", "C", "E")
+_family_modules = {"pre": ("cb17_pre", "cb17_census"), "common": ("cb17_wcommon",), "B": ("cb17_rules_b",), "C": ("cb17_rules_c",), "E": ("cb17_rules_e",)}
 _undeclared_reason = "part not declared yet: committed after q0400-q0403 have chosen the branch, the strata levels and the cut points (CREATIVE_BATCH_17.md section 1.4 Order)"
+_undeclared_reasons = {"A": "withdrawn uncounted (branch T): q0400 side agreement 906/971 = 93.3% < 97% (pre_census_A.json 9deedcf5...); part A is never committed (CREATIVE_BATCH_17.md sections 2.5, 10.5, 11.1)"}
 
 RULES_MACHINERY = ("rules_part_doc", "rules_part_file_doc", "rules_file_doc", "write_rules", "verify_rules", "family_modules", "common_funcs", "part_funcs", "shared_helper_sources",
                    "external_closure", "_code_names", "_helper_key", "common_declared")
@@ -289,7 +290,7 @@ def family_modules(part: str) -> list:
 def part_funcs(part: str) -> list:
     """The functions hashed for ``part``: the common ones, plus (part ``pre``) the pre modules' own."""
     funcs = list(common_funcs())
-    if part != "common":
+    if part in _family_modules:
         for mod in family_modules(part):
             funcs += c12.module_funcs(mod)
     seen: set[int] = set()
@@ -369,11 +370,11 @@ def rules_part_doc(part: str) -> dict:
     if part not in PARTS:
         raise Refused(f"unknown rules part {part!r}")
     if part not in _declared_parts:
-        return {"part": part, "part_declared": False, "rules_version": RULES_VERSION, "reason": _undeclared_reason}
+        return {"part": part, "part_declared": False, "rules_version": RULES_VERSION, "reason": _undeclared_reasons.get(part, _undeclared_reason)}
     this = importlib.import_module(__name__)
     consts = {"cb17_common": c12.module_constants(this)}
     declared: dict[str, Any] = {"common": common_declared()}
-    if part != "common":
+    if part in _family_modules:
         mods = family_modules(part)
         if len(mods) != len(_family_modules[part]):
             return {"part": part, "part_declared": False, "rules_version": RULES_VERSION, "reason": f"family modules {_family_modules[part]} not all present yet"}
