@@ -9,7 +9,7 @@
   "history/h12_quake/members.csv.gz"
  ],
  "resources": {
-  "mem_mb": 300,
+  "mem_mb": 600,
   "cpu": 1,
   "lane": "net",
   "network": "clob"
@@ -38,7 +38,7 @@
   "history/h12_quake/manifest.json"
  ],
  "next_action": "q0266",
- "notes": "PROMOTED 2026-10-20 ~12:35Z after q0244 done (05:51Z). <= 15,000 requests = the sum recorded by q0244 (refuses if it exceeds 15,000). Resumable (prices_partial.jsonl); a member that keeps failing after 3 attempts is 'unavailable (network)', counted. No outcome read. Rules part sha256 (seals/cb12_rules.json, 2026-10-19 code): common f2f672c1dfa22ce1388fd85b42bebc23248f58c5bb4349f6745c4b2493dcc647, E bd512db4ccbe9a790c732e7871b50d938a94b56a9e83105dde845f6c7c6b5edc. CB12 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / E code changes.",
+ "notes": "PROMOTED 2026-10-20 ~12:35Z after q0244 done (05:51Z). <= 15,000 requests = the sum recorded by q0244 (refuses if it exceeds 15,000). Resumable (prices_partial.jsonl); a member that keeps failing after 3 attempts is 'unavailable (network)', counted. No outcome read. Rules part sha256 (seals/cb12_rules.json, 2026-10-19 code): common f2f672c1dfa22ce1388fd85b42bebc23248f58c5bb4349f6745c4b2493dcc647, E bd512db4ccbe9a790c732e7871b50d938a94b56a9e83105dde845f6c7c6b5edc. CB12 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / E code changes. OPS 2026-10-20 ~17:55Z: attempt 1 died at start with MemoryError under the 600 MB address-space cap (2 x mem_mb 300); mem_mb 300 -> 600 (resource only; argv, rules and caps unchanged).",
  "repeat": {
   "max_runs": 3,
   "until_log_regex": "\"status\": \"(quake_prices_complete|not_run_source|disjointness_unverified|upstream_not_testable)\""

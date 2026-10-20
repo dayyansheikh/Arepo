@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-20T13:00:00Z",
+ "updated": "2026-10-20T17:51:17Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -134,74 +134,80 @@
   },
   {
    "id": "E012",
-   "title": "1-day change x liquidity (live test, draft)",
-   "plain": "A live check of a replicated pattern: yesterday's price move carries forward more in liquid markets. Drafted from data the server already collects; it starts only after review.",
+   "title": "1-day change x liquidity (live test)",
+   "plain": "A live check of a replicated pattern: yesterday's price move carries forward more in liquid markets. Registered on 20 Oct 2026 after independent review; it uses data the server already collects.",
    "batch": "LT2",
    "family": "microstructure",
-   "stage": "designed",
-   "status": "waiting",
+   "stage": "live_test",
+   "status": "queued",
    "verdict": "pending",
    "effect": null,
-   "next": "Live from 22 Oct 2026 after the challenger review and registration; single analysis after 13 Nov 2026",
+   "next": "Collection starts 22 Oct 2026 00:00 UTC and ends 12 Nov 2026; single analysis after 13 Nov 2026",
    "next_date": "2026-10-22",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/LIVE_TESTS_2.md § 2 (E012) (DRAFT pre-registration, not registered)",
-    "next": "docs/research_lab/LIVE_TESTS_2.md § 1.1 and queue/drafts/q0460_lt2_live_collect.json"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT2 registration (E012-E014), 2026-10-20; docs/research_lab/LIVE_TESTS_2.md (REGISTERED paragraph)",
+    "next": "docs/research_lab/LIVE_TESTS_2.md § 1.1; docs/research_lab/queue/jobs/q0460_lt2_live_collect.json"
    },
    "stage_results": {
-    "designed": "pending"
+    "designed": "pass",
+    "live_test": "pending"
    },
    "reached": [
-    "designed"
+    "designed",
+    "live_test"
    ]
   },
   {
    "id": "E013",
-   "title": "Order flow x volatility and spread (live test, draft)",
-   "plain": "A live check of two replicated patterns: recent buying or selling predicts the next 6 hours more in volatile markets and where the spread is wide. Drafted; starts after review.",
+   "title": "Order flow x volatility and spread (live test)",
+   "plain": "A live check of two replicated patterns: recent buying or selling predicts the next 6 hours more in volatile markets and where the spread is wide. Registered on 20 Oct 2026 after independent review.",
    "batch": "LT2",
    "family": "order_flow",
-   "stage": "designed",
-   "status": "waiting",
+   "stage": "live_test",
+   "status": "queued",
    "verdict": "pending",
    "effect": null,
-   "next": "Live from 22 Oct 2026 after the challenger review and registration; single analysis after 13 Nov 2026",
+   "next": "Collection starts 22 Oct 2026 00:00 UTC and ends 12 Nov 2026; single analysis after 13 Nov 2026",
    "next_date": "2026-10-22",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/LIVE_TESTS_2.md § 3 (E013) (DRAFT pre-registration, not registered)",
-    "next": "docs/research_lab/LIVE_TESTS_2.md § 1.1 and queue/drafts/q0460_lt2_live_collect.json"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT2 registration (E012-E014), 2026-10-20; docs/research_lab/LIVE_TESTS_2.md (REGISTERED paragraph)",
+    "next": "docs/research_lab/LIVE_TESTS_2.md § 1.1; docs/research_lab/queue/jobs/q0460_lt2_live_collect.json"
    },
    "stage_results": {
-    "designed": "pending"
+    "designed": "pass",
+    "live_test": "pending"
    },
    "reached": [
-    "designed"
+    "designed",
+    "live_test"
    ]
   },
   {
    "id": "E014",
-   "title": "Near-close forecasting gain (live test, draft)",
-   "plain": "A light live version of the near-close result: does a frozen trade-flow forecast help more in a market's last day than a month out, using the end date known at the time? Drafted; starts after review.",
+   "title": "Near-close forecasting gain (live test)",
+   "plain": "A light live version of the near-close result: does a frozen trade-flow forecast help more in a market's last day than a month out, using the end date known at the time? Registered on 20 Oct 2026 after independent review.",
    "batch": "LT2",
    "family": "ml",
-   "stage": "designed",
-   "status": "waiting",
+   "stage": "live_test",
+   "status": "queued",
    "verdict": "pending",
    "effect": null,
-   "next": "Live from 22 Oct 2026 after the challenger review and registration; single analysis after 13 Nov 2026",
+   "next": "Collection starts 22 Oct 2026 00:00 UTC and ends 12 Nov 2026; single analysis after 13 Nov 2026",
    "next_date": "2026-10-22",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/LIVE_TESTS_2.md § 4 (E014) (DRAFT pre-registration, not registered)",
-    "next": "docs/research_lab/LIVE_TESTS_2.md § 1.1 and queue/drafts/q0460_lt2_live_collect.json"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT2 registration (E012-E014), 2026-10-20; docs/research_lab/LIVE_TESTS_2.md (REGISTERED paragraph)",
+    "next": "docs/research_lab/LIVE_TESTS_2.md § 1.1; docs/research_lab/queue/jobs/q0460_lt2_live_collect.json"
    },
    "stage_results": {
-    "designed": "pending"
+    "designed": "pass",
+    "live_test": "pending"
    },
    "reached": [
-    "designed"
+    "designed",
+    "live_test"
    ]
   },
   {
@@ -1305,25 +1311,27 @@
   },
   {
    "id": "LT2",
-   "title": "Live tests E012-E014 (planned)",
-   "plain": "Four planned live tests of ideas that held up on two historical datasets: whether 1-day price changes carry on more in liquid markets, whether order flow carries on more in volatile or wide-spread markets, and whether the order-flow model does better just before a market's end date. The independent review asked for fixes before registration.",
+   "title": "Live tests E012-E014 (registered)",
+   "plain": "Four registered live tests of ideas that held up on two historical datasets: whether 1-day price changes carry on more in liquid markets, whether order flow carries on more in volatile or wide-spread markets, and whether the order-flow model does better just before a market's end date. Registered on 20 Oct 2026 after independent review; results only after the single analysis.",
    "batch": "LT2",
    "family": "mixed",
-   "stage": "designed",
-   "status": "running",
+   "stage": "live_test",
+   "status": "queued",
    "verdict": "pending",
    "effect": null,
-   "next": "Server dry run, final check, then pin and register before 22 Oct",
+   "next": "Collection 22 Oct to 12 Nov 2026; single analysis after 13 Nov 2026",
    "next_date": "2026-10-22",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT2 (E012-E014 drafts) challenger round 1, 2026-10-20"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT2 registration (E012-E014), 2026-10-20; docs/research_lab/LIVE_TESTS_2.md (REGISTERED paragraph)"
    },
    "stage_results": {
-    "designed": "pending"
+    "designed": "pass",
+    "live_test": "pending"
    },
    "reached": [
-    "designed"
+    "designed",
+    "live_test"
    ]
   },
   {

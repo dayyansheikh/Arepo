@@ -6,8 +6,8 @@
 */5 * * * * /home/opc/arepo/scripts/oracle/supervise.sh
 10 2,14 * * * cd /home/opc/arepo/backend && /home/opc/arepo/.venv/bin/python scripts/run_live_trade_monitor.py --outcomes >> /home/opc/arepo_collector/logs/live-trade-outcomes.out 2>> /home/opc/arepo_collector/logs/live-trade-outcomes.err
 */15 * * * * cd /home/opc/arepo/backend && /home/opc/arepo/.venv/bin/python scripts/arepo_notify.py check >> /home/opc/arepo_collector/logs/notify.out 2>> /home/opc/arepo_collector/logs/notify.err
-# Research queue worker (scripts/oracle/queue_worker.py; pause: queue_worker.py pause)
-*/2 * * * * /home/opc/arepo/.venv/bin/python /home/opc/arepo/scripts/oracle/queue_worker.py tick >> /home/opc/arepo_collector/logs/queue.log 2>&1
+# Research queue worker (scripts/oracle/queue_worker.py; pause: queue_worker.py pause). PATH includes ~/.local/bin for gh (restore_from_archive jobs), 2026-10-20.
+*/2 * * * * PATH=/home/opc/.local/bin:/usr/bin:/bin; /home/opc/arepo/.venv/bin/python /home/opc/arepo/scripts/oracle/queue_worker.py tick >> /home/opc/arepo_collector/logs/queue.log 2>&1
 # Second Always Free A1 instance: retry until capacity (scripts/oracle/oci_retry_create.py; stops itself once created;
 # stop manually: touch ~/.arepo/oci_retry/DONE)
 */10 * * * * flock -n /home/opc/.arepo/oci_retry/lock /home/opc/oci_venv/bin/python /home/opc/arepo/scripts/oracle/oci_retry_create.py >> /home/opc/arepo_collector/logs/oci-retry.log 2>&1

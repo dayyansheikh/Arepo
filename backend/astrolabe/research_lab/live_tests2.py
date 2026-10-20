@@ -54,7 +54,7 @@ SNAPSHOT_ROOT = forecast.SNAPSHOT_ROOT
 SAMPLE_ROOT = ROOT / "data-dumps" / "research_lab" / "trade_samples"
 OUT_ROOT = ROOT / "data-dumps" / "research_lab" / "live_tests2"
 SPEC_PATH = Path(__file__).resolve().parent / "model_specs" / "live_tests2_v1.json"
-SPEC_SHA256 = None  # pinned at registration (LIVE_TESTS_2.md); None = DRAFT, every line is prospective_unregistered
+SPEC_SHA256 = "010a7ba131936e8ffda243a1858f5be8864562f2b036d5863af7b785f5d6584c"  # pinned at registration 2026-10-20 (LIVE_TESTS_2.md)
 
 REGISTERED_UTC = "2026-10-22T00:00:00Z"
 END_UTC = "2026-11-12T00:00:00Z"

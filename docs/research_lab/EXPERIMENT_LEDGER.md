@@ -2445,3 +2445,46 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
 - **LT2 fix F (b756fcbc):** the same precision bug in LT2 (`%.6g`, epochs ~10,000 s) found by the LT3 reviewer; now
   "%.17g" with a round-trip test; `code_sha256` `live_tests2.py` -> `88ee00b2…`. No line had been frozen. No other
   module uses a reduced `float_format` (grep).
+
+## Session 2026-10-20 ~17:38Z (autopilot): host was 15 commits behind; LT2 REGISTERED; queue PATH and q0245 memory fixed
+- **Queue idle at 17:38Z** ("no ready jobs"); q0239 and q0249 had failed twice more (15:02Z, 15:10Z) with the same refusal
+  "seal copy … is not committed (or differs from HEAD)". Cause: the host checkout was at a4c2585c, 15 commits behind
+  `chore/arepo-claude-setup` (a532ee33). The seal-copy commit a972959c and the promotions of dffc11c0 and c97f63eb had never
+  reached the host (most likely a deploy from a worktree branch during the 12:25Z session's host dry-run step overwrote the
+  tip; deploy.sh deploys whatever branch it is given). Deployed a532ee33 at 17:40Z; `retry` q0239 and q0249. q0470 (LT3 C1/C3/C4
+  censuses) started at once. **Rule from now on: deploy only from `chore/arepo-claude-setup`, never from a worktree.**
+  No rule, hash or threshold changed; the refused attempts are in `attempts.jsonl`; nothing counted.
+- **q0471 (LT3 C2 restore) failed (rc 1):** `FileNotFoundError: 'gh'`. The queue cron line had no PATH, and gh lives in
+  `~/.local/bin` (authenticated; the archive cron lines already set this PATH). Queue cron line now sets
+  `PATH=/home/opc/.local/bin:/usr/bin:/bin` (host crontab edited, backup `~/crontab.bak.20261020`; `crontab.txt` updated).
+  q0471 will retry on its own backoff (attempt 1 of 3 used).
+- **q0245 (CB12-E quake prices) failed at start with `MemoryError`** under the 600 MB address-space cap (mem_mb 300).
+  mem_mb -> 600 (resource only; argv, rules, caps unchanged). In `retry_wait`.
+- **Creative round 10 committed (fe54ef20)**: `CREATIVE_HYPOTHESES_2026-10-24.md` (CH169-CH179+; written 12:57Z by the Fable
+  xhigh pass of the 12:25Z session, left uncommitted when it stopped). Ideas only; top 5 (CH169, CH170, CH174, CH171, CH173)
+  are live-ready LT4 candidates. LT4 designer started (worktree `../astrolabe-live-tests-4`, branch `feat/live-tests-4`).
+- **CB17 window code (q0404-q0412) committed on its worktree branch** (`worktree-agent-ae42d4cfea66b78af`: cdab2fd5 code,
+  runner, tests; f0d710ba drafts and §12). 39 CB17 tests pass, synthetic data only; no SCREEN_8/REP_8 file opened (none
+  exists; S_8 not before 2026-10-26). Next: freeze check (science-reviewer, incl. P1-P3 reproduction), merge, pins.
+
+## LT2 (E012-E014) REGISTERED, 2026-10-20 ~18:00Z (registration; nothing analysed; counting per LIVE_TESTS_2.md)
+- **Last owed item, the R1 host dry run** (17:41-17:47Z, `/tmp/lt2dry`, nothing under `~/arepo`, code a532ee33, 20 runs
+  of `run --max-items 4` over 2026-10-19 under `ulimit -v` 960 MB until exit 75): peak RSS 584 MB; exits 0/75, <= 32 s;
+  34 series, 34 status, 7 E012 and 24 flow files, 55 MB; R1 columns present (`x_skip6`, `trunc1h`, `vol24_i`, `spec_sha`,
+  `code_sha`); `pinned=false`; no statistic on any target computed. All 3,918,532 status rows `one_sided`.
+- **Pre-pin verification (science-reviewer): PIN_OK_WITH_DISCLOSURE** (`reviews/LT2_PREPIN_VERIFY_2026-10-20.md`).
+  Complete captures query Gamma with `closed=false` (`collector.py:38`), so `unavailable_closed` cannot occur and closure or
+  resolution is recorded as `unavailable_absent` (also covers removal from the listing); the attrition rule uses the
+  unavailable share regardless of reason, so labels, bounds and Holm are unaffected. Disclosure text applied to
+  `LIVE_TESTS_2.md` §1.2, §1.3, §6.2 (owed items closed) and the §9 finding-3 row. No code change.
+- **Pins:** `SPEC_SHA256` = `010a7ba131936e8ffda243a1858f5be8864562f2b036d5863af7b785f5d6584c` (sha256 of
+  `model_specs/live_tests2_v1.json`) in `live_tests2.py`; `code_sha256` unchanged (`live_tests2.py` 88ee00b2…8053,
+  `live_tests2_analysis.py` a7b5c781…1ab0; normalised pin line). 43 LT2 tests pass.
+- **Window:** `REGISTERED_UTC` 2026-10-22T00:00:00Z (commit before 2026-10-21T22:00Z, so §1.1 does not slide);
+  `END_UTC` 2026-11-12T00:00:00Z; effective start = max(REGISTERED_UTC, first capture processed by q0460 with this code);
+  single analysis q0461 not before 2026-11-13T12:00:00Z; no interim outcome look.
+- **Counting (as declared, R1 response):** 8 line-tests, Holm k = 4 over the primaries (E012; E013 F4, F5; E014), economics
+  separate. Counted at the single analysis, not now.
+- **Jobs promoted:** q0460 (collector, net lane, mem_mb 480, not_before 2026-10-21T00:00Z, repeat until
+  `LIVE_TESTS2_WINDOW_CLOSED`), q0461 (analysis, not_before 2026-11-13T12:00Z). Registry: E012-E014 and LT2 -> `live_test`,
+  status `queued`.
