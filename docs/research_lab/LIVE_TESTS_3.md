@@ -6,6 +6,10 @@ pre-registration censuses (section 8, counts only, worn pre-window data), a chal
 this file and later of the code, the fixes, the `SPEC_SHA256` and code-hash pin, the ledger entry (section 12) and the
 reader's installation. Until the pin exists, every line the reader writes is `prospective_unregistered` by construction.
 
+**R1 (2026-10-20):** the challenger round 1 is answered in **section 13**, which amends sections 1-9 (E017 narrowed to
+non-sports neg-risk members; E016 "walked" redefined by grid distance; E019 anatomy controls, t on G_series − 1 and a
+pre-declared ex-crypto rule; new census drop gates; cron install). Code, spec and tests exist (DRAFT, spec not pinned).
+
 This is research tooling. No edge, calibration, profitability or tradability claim exists or is implied. Every number
 quoted from the round-9 probes is a **counts-only development figure on worn data**. Every MDE here is a **planning
 estimate** built on stated assumptions, not a measurement.
@@ -36,6 +40,8 @@ fault to the rule that answers it.
   (parallel minus traded); one-sided minus traded becomes a mechanism secondary (section 2).
 - **Window:** whole captures with start in `[REGISTERED_UTC, END_UTC)`, 21 days. Proposed `REGISTERED_UTC =
   2026-10-24T00:00:00Z`, `END_UTC = 2026-11-14T00:00:00Z`. Single analysis on or after `2026-11-15T12:00:00Z`.
+
+Section 13 amends this table: see 13.7 for the post-R1 primaries, populations and MDEs, and 13.6 for the final census gates.
 
 ## 1. Common rules
 
@@ -436,7 +442,18 @@ CH156's one-sided minus traded is E015's secondary S1 (2).
   from later units (fault 4).
 - `ctx_*` monitor fields as states: post-print, a leak (round 9 section 4).
 
+### 7.6 R1 narrowings and census drops (uncounted)
+- R1 dropped no test. It narrowed E017's primary to non-sports neg-risk members (standalone binaries become secondary S2,
+  finding 7) and redefined E016's walked construct (finding 4). It also added the drop gates and population rules of 13.6:
+  - E015: effective-count MDE gate;
+  - E016: grid and agreement gates;
+  - E018: agreement gate;
+  - E019: cluster gate and ex-crypto rule.
+- Census drops will be recorded here, with their counts, before the pin.
+
 ## 8. Pre-registration censuses (counts only; before registration; worn pre-window data; no target read)
+
+**Superseded in part by 13.6** (final gates, inputs, deadlines). The table below is the round-0 proposal.
 
 Each runs once, on captures and samples that **started before 2026-10-22T00:00Z** (before LT2's and LT3's windows), reads
 origin-side fields only (no mid at any later capture, no target, no P&L), prints counts, and is committed with its sha256
@@ -477,6 +494,7 @@ before the pin.
   and code stay separate; E013's `x6` is copied as a constant definition).
 
 ### 9.2 Resources
+(Install amended by 13.4: host cron every 20 min, queue draft q0474 as the fallback.)
 - **Memory:** per pass, two captures' selected columns (about 150-200k rows each, `usecols` and categorical ids), one sidecar,
   one sweep and one trade sample (about 220k rows, five columns). Target peak < 350 MB (P1 streamed 12 captures at 311 MB),
   hard cap `mem_mb 480`, below the queue's 500 MB blackout exemption (02:45-05:30Z), so the 04:31 slot is never lost.
@@ -563,4 +581,145 @@ before the pin.
 >   two-day blocks for 24 h). Window: captures starting in `[REGISTERED_UTC, +21 d)`, proposed `[2026-10-24T00:00Z,
 >   2026-11-14T00:00Z)`; single analysis on or after 2026-11-15T12:00Z. Economics: paper taker round trips, expected "not shown".
 > - **Dropped:** CH158 (underpowered: 252 passes, about 21 independent days), CH160 and CH162 arm 1 (branch T), CH157 carry (needs a fetch).
-> - **Status:** DRAFT awaiting censuses C1-C4 and the challenger; no line is `prospective_confirmation` until the pin.
+> - **R1 (2026-10-20):** challenger R1 answered in section 13. E017 narrowed to non-sports neg-risk members; E016 walked = grid
+>   distance >= 1e-4; E019 anatomy controls + label, t on G_series − 1, ex-crypto rule from C4; extra drop gates (13.6). Code
+>   and tests on `feat/live-tests-3`; queue drafts q0470-q0475.
+> - **Status:** DRAFT awaiting censuses C1-C4 (q0470-q0472; deadlines 2026-10-22T03:30Z / 10-23T03:30Z), the freeze check
+>   and the pin; no line is `prospective_confirmation` until the pin.
+
+## 13. Response to challenger R1 (2026-10-20; `reviews/LT3_CHALLENGER_R1_2026-10-20.md`; E015 ACCEPT_WITH_CHANGES, E016-E019 REVISE)
+
+Design and code only. No outcome of the window was read for any change below; the window has not started. No threshold,
+floor, alpha, direction or Holm rule was loosened. Every change makes a test harder to pass, narrows a population, adds a
+label, adds a drop gate or adds accounting. This section amends sections 1-9; where they differ, this section governs. Code:
+`live_tests3.py`, `live_tests3_analysis.py`, `run_live_tests3.py`, spec `model_specs/live_tests3_v1.json`, tests
+`test_research_lab_live_tests3.py` (26 tests).
+
+### 13.1 Findings mapped to changes
+
+| # | Finding | Change | Where | Scientific justification |
+|---|---|---|---|---|
+| 1 | HIGH: E019 contrast predicted by quote anatomy (lone one-sided movers bounce; high breadth = parallel shifts) | (a) Demeaned controls `sh_os` and `sh_sc`, the interval's share of one-sided and spread-change quote-only movers, added to the primary. (b) **Binding label *quote-anatomy composition*:** a Supported E019 carries it if the same estimator on `C_par` (mean `c` over the interval's **parallel and same-side-unequal** movers only) is below 50% of D_HL, or its one-sided p >= 0.05 | 6; spec `e019`; `freeze_move` (`sh_os`, `sh_sc`), `e019` (`anatomy_par_ss`), `e019_labels` | Holding anatomy fixed removes the mechanical channel the reviewer named. The anatomy-restricted target is the part bounce cannot produce, so a breadth effect that lives only in lone one-sided quotes cannot be read as a program update. The sweep target (M1) stays as the second, independent mechanism label |
+| 2 | HIGH: E019 clusters dominated by crypto ladders; CR1 with a normal reference over few series is anti-conservative | (a) p_series uses **t on G_series − 1 df**, and the conservative CI uses the same t. (b) Floor: **>= 50 series-or-event clusters holding high-breadth units** (not all clusters). (c) C4 prints the top-family share of high units, the 20 largest families with a crypto flag, and the share of neg-risk events with empty `series_slugs`. (d) **Pre-declared population rule, fixed from C4 before the pin:** if one series family holds > 50% of high-breadth untraded non-sports units, the primary is **ex-crypto** (`exclude_crypto = true`; crypto = `fee_type` starting `crypto` or a first slug matching the spec regex), crypto becomes M2, and if the dominant family is not crypto it is excluded as well (`exclude_family`). (e) At analysis, a realised top-family share > 50% adds the label *series-concentrated*. (f) Crypto rows without a slug share one cluster key `crypto:noslug` (one spot driver) | 1.7, 6, 8; spec `crypto_rule`, `series_key_rule`, `e019`; `category_cols`, `census_c4`, `fit(ev_t_ref=True)`, `e019`, `e019_labels` | t on G − 1 is the standard small-G reference for cluster-robust tests. Counting only clusters that hold high units measures the information that identifies D_HL. The exclusion is decided from counts before registration, so it uses no outcome. Excluding the dominant non-crypto family too is stricter than the ruling, never looser. Pooling slug-less crypto into one key can only enlarge clusters (conservative) |
+| 3 | HIGH: C2 inputs probably deleted (3-day trade-sample retention); census inputs not named | (a) C2 inputs are **sealed**: `seals/lt3_census_inputs_C2.json` lists the 23 active-frame samples of UTC 2026-10-16 and 10-17 and the sha256 of all 92 files, copied from the `files.sha256` of releases `data-20261017/18/19-dsheikh` (each file list's own sha256 recorded). Confirmed on the host 2026-10-20: these sample dirs now keep only `manifest.json` and `plan.json`. They are restored byte for byte by `restore_from_archive.py` (draft q0471), and `census-flow` re-hashes every file against the seal and refuses a mismatch. (b) **Retention:** `scripts/oracle/archive_retention.json` has no rule for `live_tests3/`, and directories without a rule are never deleted, so the reader's output stays. No rule may be added for it before the analysis is committed. (c) The reader consumes each sample online: on the host, sample inputs are complete by about :45 (10-19/10-20 manifests) and the reader runs every 20 min, far inside 3 days. The analysis reads only the reader's own write-once series and outcome files, so it never depends on capture (8-day) or sample (3-day) retention | 1.2, 8, 9.2; `census_flow`, seal file, q0471/q0472 | Inputs fixed by hash before any census runs; restored copies are proven identical; nothing the analysis needs can be rotated away |
+| 4 | HIGH/MED: "walked" (>= 4 decimals) unvalidated; float repr or micro-unit prices could fake it | **Walked is redefined:** a signed row is walked if the sidecar tick `order_price_min_tick_size` of the sample's capture is known and `|p − tick · round(p / tick)| >= 1e-4`. If the tick is unknown, the row is left out of W (numerator and denominator). C2 prints the distance-to-grid histogram of ">= 4 decimal" rows (bins 0, 1e-9, 1e-6, 1e-5, 1e-4, 1e-3, 1; counts only), the walked share of tick-known rows and the share of rows with size < 0.02. **Drop rule:** E016 is dropped before registration if more than 20% of ">= 4 decimal" rows lie within 1e-4 of the grid | 3; spec `flow.walk_rule`; `grid_distance`, `flow_rows`, `census_flow` | A float artefact sits within about 1e-6 of the grid and is no longer walked. A genuine multi-level VWAP is at least a fraction of a tick off-grid. The drop rule tests whether the old construct was an artefact on the very data it was built from, counts only |
+| 5 | MED: E016 moderator confounded with order size and life cycle | Controls added to E016 and E018, all expanding-past demeaned: `x6·zSize`, `zSize` (log mean notional per signed row in the window); `x6·zHTE`, `zHTE` (log hours-to-end at the origin; unknown → 0 with a flag); `x6·zRV`, `zRV` (F4's volatility moderator, here log rms of 2 h grid mid changes over the previous 24 h from the reader's own series, >= 6 differences, else 0 with a flag). Scales come from C2 | 3, 5; spec `flow`; `freeze_flow`, `flow_controls` | Separates walking from size and from a life-cycle trend, as the reviewer asked. The simulated life-cycle null in 13.5 (moderator and flow continuation both trending towards the end, with the `x6·zHTE` control) checks the gate under exactly this confound. zRV is computed from the LT3 reader's series, not LT2's code, because the stores stay separate |
+| 6 | MED: E015 has no binding label for temporary impact | **M3:** the primary estimator on quote-only parallel units versus traded units whose quotes **also moved in parallel** (same geometry; the geometry is frozen for every unit, traded ones included). A Supported E015 carries *impact/anatomy mechanics* if M3 is below 50% of D_PT | 2; `classify` (geometry for all classes), `e015`, `e015_labels` | Comparing like-shaped moves isolates the trade/no-trade difference from the quote-shape difference. A traded move whose touch shifts in parallel has the same anatomy, so what remains is the trade |
+| 7 | MED: E017 outcome 0 is not YES outside neg-risk | **Primary population is non-sports neg-risk members only** (outcome 0 is always Yes there). Standalone non-sports binaries are secondary S2, and the sports arm S6 is reported. The C3 gate is counted on the primary population | 4, 8; spec `e017.population`; `e017`, `census_c3` | Removes the direction ambiguity at the cost of about 8% of eligible pairs (CREATIVE:277). The population is narrowed, never widened |
+| 8 | MED: `volume24hr` refresh lag can make a move look attention-only | (a) `x_{k−1} = mid_{k−1} − mid_{k−2}` is a control, with a missing flag. (b) Labels use `max(|x_k|, |x_{k−1}|)`: A needs it < 1c, SM needs it >= 1c. (c) A surge whose `x_{k−1}` is unknown is `lag_unknown`: excluded and counted. (d) C3 prints S, A, SM, `lag_unknown`, baseline and the share of missing `x_{k−1}` | 4; spec `surge.rule`; `freeze_surge`, `census_c3` | A surge that belongs to a move one interval earlier can no longer be labelled attention-only. All inputs are pre-origin |
+| 9 | MED: a cron at :10 is exposed to the late rule; one miss loses a pass | (a) Install (13.4): **host cron every 20 min** under the reader's own `flock`, idempotent. (b) The reader processes only manifests with `state=complete` and its data file present. It does not cache an incomplete one; it re-checks it next run. Unit test. (c) **Pre-declared label:** if late-refused origin files exceed 2% of a test's origin files, the result carries *late-loss (x%)*. (d) Host fact (10-19/10-20): captures complete at about :36-:37, sweep 1 by about :39, the active sample by about :45. The tightest deadline (move and E019, target k + 1) is the next :31 minus 60 s, so slack is about 1 h 45 min | 1.3, 9.2, 13.4; `scan_captures`, `run_once`, `load_kind` (`late_loss_share`), `analyze` | A 20-minute cadence independent of queue lanes bounds the delay at about 20 min plus run time. The label makes any residual loss visible without changing a verdict |
+| 10 | LOW: E015 MDE counts units that do not identify D_PT | C1 prints the parallel and traded counts in **markets holding both classes** (the identifying units under demeaning, projected to 21 days) and an effective-count planning MDE (SD 4c, event design effect 3, day factor 1.5, t-sum 3.388: the pessimistic end of section 2's assumptions). **New gate:** E015 is dropped if that MDE exceeds the 0.5c floor | 2, 8; spec `census_gates.C1_E015`; `mde_eff`, `census_c1` | The power statement now rests on the units that carry the contrast. The gate can only drop E015, never relax it |
+| 11 | LOW: E016/E018 sign under 93.3% agreement | (a) C2 counts `side` agreement with the touch-implied direction (fill price on outcome 0 at or above the ask = +, at or below the bid = −) for signed fills within 300 s after a capture row in the window, **walked versus on-grid** (tick-known rows). (b) **Drop rule:** E016 and E018 are both dropped if walked agreement is more than 5 pp below on-grid. (c) E018 M3 (unsigned trains, `Hu`) is reported | 3, 5, 8; `census_flow`, `flow_test` (`M3_unsigned_trains`) | Random mis-signing only attenuates a flow slope. Walked-specific mis-signing could bias the interaction, and the count check tests that directly, counts only |
+| 12 | LOW: look-back, permutation strata and category not stated | (a) **Look-back:** the expanding-past means use in-window lines only. The reader writes no frozen line for a capture before `REGISTERED_UTC`, the analysis loads only origins in `[REGISTERED_UTC, END_UTC)`, and each market's (E019: event's) first in-window unit drops. Series files from 28 h before the window are written only for look-back features (`x_{k−1}`, `pre24`, RV) and never form units. All of this comes from the pinned code. (b) C1 prints the share of contrasted units in permutable strata (market x UTC day with >= 4 units), and the gate output repeats the realised share. (c) **Category is a parameter** (`sports_rule` in the spec): E015, E017 and E019 primaries are non-sports, and E016 and E018 are all categories with sports reported split (comparability with E007/E013). The user's sports decision stays open | 1.4, 1.7, 1.8; `run_once`, `load_kind`, `census_c1`, `perm_gate` | Makes the estimator's information set explicit and removes any pre-window influence |
+| — | LT2 faults 6 and 9 (design-only at R1) | Every frozen line carries `spec_sha` and `code_sha` (16 hex digits of the normalised module sha256; the `SPEC_SHA256` line is excluded from the code hash). The analysis keeps only lines matching the pins and refuses a pinned spec whose `code_sha256` map mismatches or is unfilled, with null `k_tests`, unfilled flow census values or unfilled `e019.exclude_crypto` (unit tests). Filters are applied in order, each counted (`move_join`, `freeze_*` counts in `passes.jsonl`). Counting: one trials line, kind `live_tests3`, `n_tests = k` (battery2 rule added; unit test) | 1.11, 9.3; `code_check`, `load_kind`, `trial_record`, `battery2.KIND_RULES` | Spec and code now agree by test |
+
+**Additional change, not from a finding (item U).** A slope has no cent floor, so the *underpowered* label for E016 and E018
+uses the top of the planning MDE range, 0.0029 per SD (section 3), as its reference (spec `e016/e018.underpowered_ref`). The
+label never changes a verdict. **C4 cluster gate:** E019 is also dropped if the census days hold fewer than 50 series-or-event
+clusters with high-breadth units in the primary population. This is the analysis floor itself, unprojected, so a test that
+could only end Unavailable is not registered.
+
+### 13.2 Rulings on section 11 adopted
+(1) Parallel minus traded stays the single E015 primary, with M3 added. (2) Mixed estimators kept: expanding-past for
+E015/E016/E018/E019, full-sample FE for E017 with expanding-past as S5. (3) The distant-donor gate is kept, with p = 1 on
+failure, after the finding-5 controls; size checked in 13.5. (4) Day clusters kept for 2 h and 6 h targets, and two-day
+blocks are reported for 6 h as a sensitivity (`sensitivity_two_day_blocks`). (5) Finding 11. (6) E018 kept only through the C2
+degeneracy, correlation and agreement gates; corr <= 0.5. (7) Census drops are recorded with their counts (13.6, 7.6).
+(8) Grid-distance rule (finding 4). (9) 2 pp kept; for the 24 h target (E017) the Lee bounds are **always** reported.
+(10) Finding 8. (11) Neg-risk-only primary (finding 7). (12) Checked by C4 (finding 2c). (13) Cron every 20 min (13.4). (14) CH158
+stays dropped.
+
+### 13.3 Items the reviewer could not verify
+- **q0400's 93.3% figure and P1/P2 counts:** not re-derived. They motivate the design only; the C2 agreement gate replaces
+  reliance on them.
+- **Pass duration since the CB steps:** checked on the host (read-only, 10-19/10-20 manifests). Capture complete at about
+  :36-:37; sweeps 1 and 2 by about :39-:40; active sample by about :45.
+- **10-16 trade samples on the host:** gone (manifest and plan only), so they are restored (finding 3).
+- **Sidecar presence:** present on all 14 most recent captures (host check). A missing sidecar sets `sports = −1` (excluded
+  wherever the category is needed) and is counted per capture (`sidecar` in `passes.jsonl`; `sidecar_missing` in each test).
+- **Crypto ladders carrying `series_slugs`:** C4 prints the empty-slug share and the top families. Slug-less crypto rows
+  share one cluster key.
+- **Data API price encoding:** answered empirically by C2's distance-to-grid histogram and the finding-4 drop rule.
+
+### 13.4 Install and timing (finding 9)
+- **Recommended:** host cron `*/20 * * * *`:
+  `cd ~/arepo/backend && flock -n ~/arepo/run/live_tests3.lock nice -n 19 sh -c 'echo 1000 > /proc/self/oom_score_adj; ulimit -v 983040; ../.venv/bin/python scripts/run_live_tests3.py run --max-items 40 --data-dumps-cap-gb 40' >> ~/arepo/run/live_tests3.log 2>&1`.
+  - It uses its own lock, never the collector's. It is killed before the collector under memory pressure, has a 960 MB
+    address-space cap and makes no network request.
+  - It runs from the registration commit (lines before `REGISTERED_UTC` are never written) until `LIVE_TESTS3_WINDOW_CLOSED`
+    (END + 30 h). Remove the entry after that.
+  - A host cron entry is a host change under the standing collection authorisation. The orchestrator installs it; this
+    branch does not.
+- **Fallback:** queue draft q0474 (lane `net`, `mem_mb` 480, repeat), only if the cron entry is not installed. **Never both.**
+  - Its exit-75 re-check is 30 min, and a long `net` job can hold the lane. That is why it is the fallback.
+- **Measured locally:** none on real data yet. LT2's comparable reader measured 458-471 MB RSS per productive run on the host.
+  A host dry run on past captures (`run --dry-run-start ...` into a scratch root, lines `prospective_unregistered`) is owed
+  before the pin.
+
+### 13.5 Simulated-null size of the two gates (section 1.8; `size-check`)
+`la.size_check` (pinned code) simulates panels with **no** moderation or class effect: 40 markets x 30 two-hour units (flow), or
+60 markets x 40 units (class contrast). There are five scenarios:
+- donor gate with iid flow;
+- donor gate with AR(1) flow (0.6);
+- donor gate in a life-cycle world (moderator and flow continuation both trend towards the end, `x6·zHTE` control included);
+- label permutation with iid labels;
+- label permutation with persistent market class rates and target levels.
+
+Each scenario runs 400 worlds x 99 draws, seed 20261020. The criterion is that the pass rate is not significantly above 5%:
+rate <= 0.05 + 1.645 · sqrt(0.0475 / 400) = 0.068. Result (code at this commit; re-run on the code to be pinned, draft q0473):
+run locally 2026-10-20 on the code of commit 63d89b5e (module sha256 `live_tests3.py` f8a1d7b7..., `live_tests3_analysis.py` 99f8282d...): donor iid **0.045**, donor AR(1) **0.025**, donor life-cycle **0.055**, permutation iid **0.0475**, permutation persistent **0.040**; all within 0.068, PASS. Planted effects (moderation 0.004 per SD; class effect 2c) pass both gates (unit test). The size check must be re-run if either module changes before the pin.
+
+### 13.6 Census gates (final) and how k is fixed
+Each census runs once on pre-window data, reads origin-side fields only, prints counts, and is committed with its sha256 before the
+registration commit. The spec field `k_tests` lists the primaries whose gate passes; Holm m = len(`k_tests`). A dropped test
+is recorded in 7.6 and the ledger with its counts, uncounted.
+
+| Test | Census (inputs) | Gate (all must hold) | Values fixed into the spec |
+|---|---|---|---|
+| E015 | C1 (complete captures of UTC 2026-10-15 and 10-16 with their k − 13 look-back; draft q0470) | projected parallel >= 20,000 and traded >= 50,000; traded share of non-sports movers in [15%, 60%]; `last_trade_price` absent at both ends for <= 60% of non-sports movers; effective-count MDE <= 0.5c (finding 10) | none |
+| E016 | C2 (the 23 sealed samples of 10-16 and 10-17, restored; q0471, q0472) | projected covered units with W in (0, 1) >= 60,000; walked share of tick-known signed rows >= 10%; ">= 4 decimal" rows within 1e-4 of grid <= 20%; walked-minus-on-grid agreement gap <= 5 pp | `vol24_cap` (V*, <= 2% truncated), centres and scales of zW, zH, zN, zSize, zSPR, zRV, zHTE, `econ.W_upper_cut` (upper W tercile) |
+| E018 | C2 | H in (0, 1) for >= 40% of covered units; corr(W, H) <= 0.5; agreement gap <= 5 pp | `econ.H_lower_cut` (lower H tercile) |
+| E017 | C3 (C1 captures) | projected neg-risk non-sports A >= 2,000 in >= 1,500 events | none |
+| E019 | C4 (C1 captures) | on the primary population after the ex-crypto rule: projected high-breadth untraded >= 3,000; projected events with both classes >= 300; >= 50 clusters holding high units in the census days | `exclude_crypto`, `exclude_family` |
+
+**Deadline (data retention, not design).** Host captures are kept 8 days. C1/C3/C4 need captures from 2026-10-14T00:31Z
+(look-back), which the 2026-10-22T03:30Z archive run removes. C2's look-back needs captures from 10-15T12:31Z, removed on
+10-23. **q0470 must run before 2026-10-22T03:30Z, and q0472 before 2026-10-23T03:30Z.** Otherwise those captures must be
+restored from the releases (`--snapshot-root` takes a restored tree), and a missing capture stays missing.
+
+### 13.7 The tests after R1 (all still census-gated; none dropped at R1)
+
+| ID | Primary (one-sided) | Population change at R1 | Planning MDE (estimate) | Floor |
+|---|---|---|---|---|
+| E015 | D_PT > 0: coefficient on 1[parallel quote-only] vs traded, 2 h continuation, expanding-past demeaned | none; M3 label added | 0.16-0.23c on the planning counts; C1 recomputes it on the effective counts (gate <= 0.5c) | 0.5c |
+| E016 | beta(x6·zW) > 0, 6 h, walked = grid distance | walked redefined; 6 more controls | about 0.0020-0.0032 per SD (x 1.1 for the added controls); Inconclusive likely | gross 0.5c |
+| E017 | D_A > 0, 24 h outcome-0 (Yes) change after an attention-only surge, market FE, two-day blocks | **narrowed to non-sports neg-risk members**; `x_{k−1}` control; A/SM on max of two intervals | about 0.6-1.3c (about 92% of the pairs kept) | 1.0c |
+| E018 | beta(x6·zH) < 0, 6 h | as E016 | about 0.0020-0.0032 per SD | gross 0.5c |
+| E019 | D_HL > 0, high- minus low-breadth untraded ladder intervals, 2 h, within event | anatomy controls; t on G_series − 1; **ex-crypto if C4 shows > 50% concentration** | about 0.45-1.1c (borderline; the anatomy controls and the t reference cost power) | 0.5c |
+
+### 13.8 Open questions for the freeze check (code against design)
+1. E019 anatomy label: is the parallel-plus-same-side-unequal target (`C_par`) the right "not bounce" restriction? Or should
+   it be parallel only, at a further power cost?
+2. Crypto rule: is the `fee_type` prefix plus first-slug regex (spec `crypto_rule`) an acceptable fixed definition? Is
+   excluding a dominant **non-crypto** family as well acceptable as stricter than the ruling?
+3. C2 agreement check: the touch-implied direction comes from capture rows (every 2 h) within 300 s before the fill. That
+   gives a small, time-of-pass-biased subset. Is that enough for a 5 pp drop rule, or should the gate require a minimum
+   count per arm (for example 500)?
+4. zRV is LT3's own analogue of F4's volatility moderator (grid RV from the reader's series), not LT2's code. Is that
+   acceptable?
+5. The *underpowered* reference for flow slopes (0.0029 per SD, item U).
+6. Install: is cron with the queue as fallback acceptable, given the orchestrator's preference for queue `net` lanes?
+7. The effective-count MDE gate (finding 10) uses the pessimistic end of the planning assumptions. Should it use the
+   midpoint?
+
+### 13.9 What remains before the pin
+- Censuses q0470-q0472 (deadlines in 13.6).
+- Fill `k_tests`, V*, the scales, the cuts and `exclude_crypto` / `exclude_family` in the spec, and record drops in 7.6.
+- `science-reviewer` freeze check of code against design.
+- Size check on the code to be pinned (q0473 or locally; 13.5).
+- Host dry run on past captures (13.4).
+- `code_sha256` map, `SPEC_SHA256`, ledger entry, cron install.
+
+`REGISTERED_UTC` follows 1.1 unchanged: 2026-10-24T00:00Z if the registration commit lands by 2026-10-23T00:00Z, else
+the next qualifying 00:00Z. Window: 21 days. Analysis: END + 36 h. The move is recorded in the ledger, and no data are
+inspected for it.
