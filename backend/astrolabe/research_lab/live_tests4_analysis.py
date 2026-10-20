@@ -30,6 +30,7 @@ CONTROLS_E020, CONTROLS_E021, CONTROLS_E022 = lt.CONTROLS_E020, lt.CONTROLS_E021
 GATE_LABEL = {"E020": "SE check failed", "E021": "SE check failed", "E022": "SE check failed",
               "E023": "within-unit timing not shown", "E024": "within-unit timing not shown"}
 TRIAL_KIND = "live_tests4"
+REPORTED_ONLY = frozenset({"donor_correlated_moderator0.7"})
 
 strip, gross, econ, paper_taker, attrition, lee_bounds = la3.strip, la3.gross, la3.econ, la3.paper_taker, la3.attrition, la3.lee_bounds
 floors_ok, check_fraction, attach, underpowered, verdict = la3.floors_ok, la3.check_fraction, la3.attach, la3.underpowered, la3.verdict
@@ -284,6 +285,67 @@ def fl_perm_gate(df: pd.DataFrame, y: np.ndarray, term: str, controls: list[str]
     p = (1 + ge) / (1 + draws)
     return {"testable": True, "real": real, "p_perm": p, "passes": bool(p < 0.05), "draws": draws, "method": "Freedman-Lane",
             "share_rows_permuted": float(perm_rows.mean())}
+
+
+def donor_gate_resid(df: pd.DataFrame, y: np.ndarray, flow: str, mod: str, others: list[str], *, sign: int, draws: int, seed: int,
+                     min_units: int, min_sep_s: float, min_donors: int) -> dict:
+    """Distant-donor gate with a residualised moderator (R1 finding 7, LT4 only). LT3's ``donor_gate`` replaces the whole
+    moderator by a distant donor's, which breaks its correlation with the other moderators whose ``flow x z`` terms are
+    controls; with a real effect on a correlated control moderator the gate then passes too often (size check: 0.115 at
+    correlation 0.7). Here the moderator is split into its projection on those control moderators (market fixed effects
+    plus common slopes) and a residual;
+    only the within-market residual is donated (same market, >= ``min_sep_s`` away), so donor draws keep the moderator's correlation
+    with the controls. Market filter, donor plan and decision rule are LT3's, imported unmodified."""
+    d = df.reset_index(drop=True)
+    yv = np.asarray(y, float)
+    use = np.isfinite(yv) & np.isfinite(d[flow].to_numpy(float)) & np.isfinite(d[mod].to_numpy(float))
+    nmk = d.loc[use].groupby("market_id").size()
+    keep = use & d["market_id"].isin(nmk[nmk >= min_units].index).to_numpy()
+    d, yv = d[keep].reset_index(drop=True), yv[keep]
+    if len(d) < 10:
+        return {"testable": False, "passes": False, "reason": "fewer than 10 gate rows", "rows": len(d)}
+    zc = [c.split("*", 1)[1] for c in others if c.startswith(f"{flow}*") and c.split("*", 1)[1] in d.columns]
+    mv = d[mod].to_numpy(float)
+    # projection on the control moderators with market fixed effects (market means plus common within-market slopes): the
+    # moderators carry market-level components, so a pooled projection leaves part of the correlation in the residual
+    gm = d["market_id"].to_numpy()
+    Zr = np.column_stack([np.nan_to_num(d[c].to_numpy(float)) for c in zc]) if zc else np.zeros((len(d), 0))
+    mbar = pd.Series(mv).groupby(gm).transform("mean").to_numpy()
+    Zbar = pd.DataFrame(Zr).groupby(gm).transform("mean").to_numpy() if zc else Zr
+    if zc:
+        coef, *_ = np.linalg.lstsq(Zr - Zbar, mv - mbar, rcond=None)
+        hat = mbar + (Zr - Zbar) @ coef
+    else:
+        hat = mbar
+    res_m = mv - hat
+    term = "__int"
+    d[term] = d[flow].to_numpy(float) * mv
+    X = la3.demean(d, [term, mod, *others], "market_id", "t_row", "expanding")
+    ok = np.all(np.isfinite(X.to_numpy()), axis=1)
+    rest = X[others].to_numpy()[ok] if others else np.zeros((int(ok.sum()), 0))
+    Z = np.column_stack([X[mod].to_numpy()[ok], rest])
+    yt = la3._partial(Z, yv[ok])
+    real = la3.fast_beta(X[term].to_numpy()[ok], Z, yt)
+    codes = pd.factorize(d["market_id"])[0]
+    plan = la3.donor_plan(codes, d["t_row"].to_numpy(float), min_sep_s)
+    rng = np.random.default_rng(seed)
+    fl = d[flow].to_numpy(float)
+    ge, kept = 0, 0
+    for _ in range(draws):
+        idx, has = la3.donor_indices(plan, rng, min_donors)
+        kept = int((~has).sum())
+        m2 = hat + res_m[idx]
+        dd = d[["market_id", "t_row"]].copy()
+        dd["__m"], dd["__i"] = m2, fl * m2
+        Xd = la3.demean(dd, ["__i", "__m"], "market_id", "t_row", "expanding").to_numpy()
+        if not np.all(np.isfinite(Xd[ok])):
+            continue
+        Zd = np.column_stack([Xd[ok, 1], rest])
+        b = la3.fast_beta(Xd[ok, 0], Zd, la3._partial(Zd, yv[ok]))
+        ge += int(np.isfinite(b) and sign * b >= sign * real)
+    p = (1 + ge) / (1 + draws)
+    return {"testable": True, "real": real, "p_perm": p, "passes": bool(p < 0.05), "draws": draws, "rows": int(ok.sum()),
+            "markets": int(d["market_id"].nunique()), "units_without_donors": kept, "residualised_on": zc, "method": "donor, residualised moderator"}
 
 
 def strata_of(df: pd.DataFrame, stratum: str | None) -> np.ndarray:
@@ -548,7 +610,7 @@ def flow_test(df: pd.DataFrame, acc: dict, spec: dict, name: str) -> dict:
     res["counts"]["by_category"] = {str(k): int(v) for k, v in pop.loc[ok, "sports"].value_counts().items()} if len(ok) else {}
     res["available"] = floors_ok(cnt, spec[name.lower()]["floors"])
     res["primary"] = strip(prim)
-    res["gate"] = la3.donor_gate(pop, y, x, m, ctrl, sign=sign, draws=g["draws"], seed=sd[f"{name}_gate"], min_units=g["donor_min_units"],
+    res["gate"] = donor_gate_resid(pop, y, x, m, ctrl, sign=sign, draws=g["draws"], seed=sd[f"{name}_gate"], min_units=g["donor_min_units"],
                                  min_sep_s=g["donor_min_sep_s"], min_donors=g["donor_min_donors"]) if prim.get("testable") else {"testable": False, "passes": False}
     xl, ml, cl = flow_controls(name, lag=True)
     pl = add_products(pop.copy(), [f"{xl}*{ml}", *cl])
@@ -748,13 +810,14 @@ def sim_corr_flow_world(rng: np.random.Generator, *, n_mkt: int = 40, n_t: int =
 
 def size_check(*, worlds: int, draws: int, seed: int, nominal: float = 0.05) -> dict:
     """Pass rate of each gate under its simulated null (ten scenarios; R1 findings 7 and 10), criterion rate <= nominal +
-    1.645 sqrt(nominal (1 - nominal) / worlds). The permutation scenarios use the Freedman-Lane gate LT4 registers."""
+    1.645 sqrt(nominal (1 - nominal) / worlds). The scenarios use the gates LT4 registers: Freedman-Lane permutation and the
+    residualised-moderator donor gate."""
     rng = np.random.default_rng(seed)
     lim = nominal + 1.645 * float(np.sqrt(nominal * (1 - nominal) / worlds))
     out: dict = {"worlds": worlds, "draws": draws, "seed": seed, "limit": lim, "scenarios": {}}
 
     def donor(df, y, others) -> bool:
-        return bool(la3.donor_gate(df, y, "x6", "zM", others, sign=+1, draws=draws, seed=int(rng.integers(1 << 31)), min_units=4,
+        return bool(donor_gate_resid(df, y, "x6", "zM", others, sign=+1, draws=draws, seed=int(rng.integers(1 << 31)), min_units=4,
                                    min_sep_s=43200.0, min_donors=2).get("passes"))
 
     def perm(df, y, term) -> bool:
@@ -771,11 +834,14 @@ def size_check(*, worlds: int, draws: int, seed: int, nominal: float = 0.05) -> 
         "donor_ar0.6": lambda: donor(*la3.sim_flow_world(rng, ar=0.6)),
         "donor_lifecycle": lambda: donor(*la3.sim_flow_world(rng, lifecycle=True)),
         "donor_correlated_moderator0.4": lambda: donor(*sim_corr_flow_world(rng, corr=0.4)),
+        "donor_correlated_moderator0.5": lambda: donor(*sim_corr_flow_world(rng, corr=0.5)),
         "donor_correlated_moderator0.7": lambda: donor(*sim_corr_flow_world(rng, corr=0.7)),
     }
     for name, fn in scen.items():
         rej = sum(int(fn()) for _ in range(worlds))
-        out["scenarios"][name] = {"rate": rej / worlds, "ok": rej / worlds <= lim}
-    out["pass"] = all(v["ok"] for v in out["scenarios"].values())
+        out["scenarios"][name] = {"rate": rej / worlds, "ok": rej / worlds <= lim, "binding": name not in REPORTED_ONLY}
+    # the census caps |corr| of the tested flow moderator with every controlled moderator at 0.5 (LIVE_TESTS_4.md 14.5),
+    # so the 0.7 world lies outside the registered population: reported, not binding
+    out["pass"] = all(v["ok"] for v in out["scenarios"].values() if v["binding"])
     out["code_sha256"] = lt.code_hashes()
     return out

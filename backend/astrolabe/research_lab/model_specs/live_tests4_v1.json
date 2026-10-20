@@ -235,7 +235,7 @@
   "draws": 200,
   "seed": 20261026,
   "nominal": 0.05,
-  "rule": "rejection rate of each gate under each simulated null <= 0.05 + 1.645 sqrt(0.05 x 0.95 / worlds); ten scenarios (LIVE_TESTS_4.md 14); permutation scenarios use the Freedman-Lane gate; run on the code to be pinned"
+  "rule": "rejection rate of each binding gate scenario under its simulated null <= 0.05 + 1.645 sqrt(0.05 x 0.95 / worlds); eleven scenarios, ten binding (donor_correlated_moderator0.7 reported only: the census caps the correlation at 0.5); the scenarios use the registered gates (Freedman-Lane; residualised donor) (LIVE_TESTS_4.md 14.5); run on the code to be pinned"
  },
  "gates": {
   "draws": 200,
@@ -244,7 +244,7 @@
   "donor_min_units": 4,
   "donor_min_sep_s": 43200,
   "donor_min_donors": 2,
-  "perm_method": "Freedman-Lane (reduced-model residuals permuted within strata) for E020-E022; LT3 distant-donor gate for E023/E024",
+  "perm_method": "Freedman-Lane (reduced-model residuals permuted within strata) for E020-E022; residualised-moderator distant-donor gate (LT4 donor_gate_resid) for E023/E024",
   "perm_stratum_rule": "market x UTC day if the census share of units in strata with >= 4 units is >= 50%, else market x two-day block if that share is >= 50%, else the test is dropped (R1 finding 2)"
  },
  "labels": {
@@ -323,14 +323,16 @@
    "agreement_min_rows": 500,
    "mde_base": 0.002873,
    "mde_max": 0.0036,
-   "mde_rule": "0.002873 x sqrt(5,000 / projected events) x sqrt(VIF of x6*zOP on the model's other x6 terms after expanding-past demeaning) <= 0.0036 (R1 finding 9)"
+   "mde_rule": "0.002873 x sqrt(5,000 / projected events) x sqrt(VIF of x6*zOP on the model's other x6 terms after expanding-past demeaning) <= 0.0036 (R1 finding 9)",
+   "corr_controlled_rule": "max |corr| of the tested moderator with W, H, log N, log Size, spread, log RV, log hours-to-end <= corr_max (0.5): the donor gate is size-checked only up to 0.5 (R1 finding 7)"
   },
   "CF_E024": {
    "C_interior_21d": 40000,
    "corr_max": 0.5,
    "agreement_gap_max": 0.05,
    "agreement_min_rows": 500,
-   "mde_max": 0.0036
+   "mde_max": 0.0036,
+   "corr_controlled_rule": "max |corr| of the tested moderator with W, H, log N, log Size, spread, log RV, log hours-to-end <= corr_max (0.5): the donor gate is size-checked only up to 0.5 (R1 finding 7)"
   }
  },
  "census_inputs": {

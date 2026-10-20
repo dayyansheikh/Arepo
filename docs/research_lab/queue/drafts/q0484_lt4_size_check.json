@@ -1,6 +1,6 @@
 {
  "id": "q0484_lt4_size_check",
- "title": "LT4 simulated-null size of the Freedman-Lane permutation gates (binary, continuous, label-control correlation 0.7) and the distant-donor gates (iid, AR(1), life cycle, moderator correlation 0.4 and 0.7) on the code to be pinned (DRAFT): 10 scenarios x 2,000 worlds x 200 draws, criterion rate <= 0.058",
+ "title": "LT4 simulated-null size of the Freedman-Lane permutation gates (binary, continuous, label-control correlation 0.7) and the residualised distant-donor gate (iid, AR(1), life cycle, moderator correlation 0.4 and 0.5 binding; 0.7 reported) on the code to be pinned (DRAFT): 11 scenarios (10 binding) x 2,000 worlds x 200 draws, criterion rate <= 0.058",
  "family": "live_tests_4",
  "priority": 28,
  "expected_value": "LIVE_TESTS_4.md 1.8 size statement at the pinned code",

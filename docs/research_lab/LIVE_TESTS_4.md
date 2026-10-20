@@ -630,7 +630,7 @@ Design and code only, before any census or window data. No floor, alpha, directi
 change narrows a population, replaces a target with a harder one, adds a control, a gate, a label or accounting. One
 direction is newly *declared* rather than changed: E021's skip-slot primary keeps D_FS < 0 (14.2, item 3). This section
 amends sections 0-13; where they differ, it governs. Code: `live_tests4.py`, `live_tests4_analysis.py`, spec
-`live_tests4_v1.json`, tests `test_research_lab_live_tests4.py` (23 tests). LT3 code is not edited.
+`live_tests4_v1.json`, tests `test_research_lab_live_tests4.py` (24 tests). LT3 code is not edited.
 
 ### 14.1 Findings mapped to changes
 
@@ -642,10 +642,10 @@ amends sections 0-13; where they differ, it governs. Code: `live_tests4.py`, `li
 | 4 | HIGH: E022 identification checked pooled | CH computes the **VIF of `zh` on its controls after expanding-past demeaning** (the estimator's own variation; pooled VIF printed) and uses it in the planning MDE; new gate: **within-market IQR of the residual of `h` after an OLS on `log1p D_{k−1}`** >= 0.05 in >= 50% of markets with >= 10 covered units (and >= 30 such markets) | 8; `census_ch`; spec `CH_E022.resid_iqr_min` | Gamma `L` is near-constant within market, so after a depth control the identifying variation can vanish; the gate tests it where the estimator looks. 0.05 is half the raw-`h` threshold of round 10, declared before CH runs (question R2-1) |
 | 5 | MED: E022 state and target from the same sweep | Controls now: **signed depth imbalance** `dimb = sign(x)(dask5 − dbid5)/(dask5 + dbid5)` (shares, outcome-0 book, pass k; missing → 0 with a flag) and **`log1p D` from sweep 1 of pass k − 1** (`log1p_Dp`, missing → 0 with a flag); `log1p D_k` moves to `sensitivity_depth_pass_k`. **Binding label:** a Supported E022 whose M2 (`sign(x)(mid_{k+3} − mid_{k+1})`) is below 50% of the primary or not one-sided significant carries **transient impact (no persistence beyond one pass)** | 4; `freeze_hollow`, `e022`, `e022_labels` | One-sided depletion at the sweep both raises `h` and displaces `smid_k`; the imbalance control holds the depletion's direction, and depth from the previous pass is not contaminated by it. The imbalance is in shares (not dollars as written in the review) so it is unit-free |
 | 6 | MED: D and L units | The reader stores the outcome-1 token's quote and 5c depths (the other token of the market in the sweep). `D0` (outcome 0) and `D2` = `D0` + outcome 1 are both frozen. **Pre-declared counts rule (before CH runs):** `depth_def = both` if `L >= D2` in >= 90% of covered non-sports books, else `token0` if `L >= D0` in >= 90%, else E022 dropped; CH prints the L/D quantiles of both. The primary keeps a depth control (`log1p D_{k−1}` of the chosen definition) | 4, 8; `sweep_frame`, `freeze_hollow`, `census_ch`; spec `hollow.depth_def` | If Gamma counts both books, `D2` is the like-for-like quantity; preferring it whenever it is a superset can only make `h` smaller and more conservative. The rule reads counts only |
-| 7 | MED: permutation gates test the raw slope | **E020-E022 gates are Freedman-Lane** (`fl_perm_gate`, LT4's own module): after expanding-past demeaning, the target's residuals from the reduced model (target on the controls) are permuted within strata and the full model is refitted, so the null keeps the label-control correlation. The size check adds label-control correlation 0.7 scenarios (binary and continuous) and a donor scenario at moderator correlation 0.7 | 1.8; `fl_perm_gate`, `size_check` (10 scenarios) | Freedman-Lane is the standard permutation test of a partial coefficient with correlated nuisance regressors. **Note for the orchestrator:** LT3's `perm_gate` (`live_tests3_analysis.py`, E015/E019) permutes the raw label and shares the issue; its size check has no correlated-control scenario. Not changed here (LT3 code is frozen for its own pin) |
+| 7 | MED: permutation gates test the raw slope | **E020-E022 gates are Freedman-Lane** (`fl_perm_gate`, LT4's own module): after expanding-past demeaning, the target's residuals from the reduced model (target on the controls) are permuted within strata and the full model is refitted, so the null keeps the label-control correlation. The size check adds label-control correlation 0.7 scenarios (binary and continuous). **The same issue was found in the donor gate (E023/E024) by the size check** (LT3's `donor_gate` at moderator correlation 0.7: 0.115 against a 0.075 limit): LT4 now uses **`donor_gate_resid`**, which donates only the moderator's within-market residual after its projection on the controlled moderators (market fixed effects plus common slopes), and the census adds **`corr_controlled`: max |corr| of the tested moderator with every controlled moderator <= 0.5** (E023 and E024; it was W and H only for E024). Size-check scenarios at 0.4 and 0.5 are binding; 0.7 is reported only (14.5) | 1.8, 8; `fl_perm_gate`, `donor_gate_resid`, `census_comp`, `size_check` (11 scenarios, 10 binding) | Freedman-Lane is the standard permutation test of a partial coefficient with correlated nuisance regressors. **Note for the orchestrator:** LT3's `perm_gate` (E015/E019) permutes the raw label and LT3's `donor_gate` (E016/E018) donates the whole moderator; both share the issue, and LT3's size check has no correlated-control scenario (LT4's measured LT3's donor gate at 0.115 with correlation 0.7; LT3's C2 caps only corr(W, H) at 0.5, not W or H against zN, zSize, zSPR, zRV or zHTE). Not changed here: LT3 code is frozen for its own pin |
 | 8 | MED: design effect fixed at 3 | CQ, CH and CF-E021 compute `m = Σ n_e² / Σ n_e` by event on the census population, project `m_21 = m × 21 / census days` (pessimistic: every event recurs through the window) and use **DE = 1 + (m_21 − 1) × 0.02** in the MDE gates (`design_effect`) | 8; spec `census_gates.*.rho` = 0.02 | The design effect is now measured from the population's own cluster sizes with a stated intra-cluster correlation |
 | 9 | MED: E023/E024 VIF on the wrong term | CF computes the VIF of **`x6·zOP` (resp. `x6·zC`) on the model's other `x6` terms after expanding-past demeaning** (`x6`, `x6·|mid − 0.5|`, `x6·zN`, `x6·zSize`, `x6·zSPR`, `x6·zRV`, `x6·zHTE`; E024 plus `x6·zW`, `x6·zH`) and gates on it. **`x6·|mid − 0.5|` added as a control** to E023 and E024 (longshot buying) | 5, 6, 8; `census_comp`, `flow_controls` | The VIF of the tested interaction is what governs its standard error |
-| 10 | LOW: size-check draws, text, q0485 | Size check uses **200 draws** (the gate's own; spec `size_check.draws`); ten scenarios, named in the spec and here. q0485 stays on the `net` lane (LT3's reasoning: a 21-day `cpu` job would block every cpu job), `mem_mb` 480 kept below the 500 MB blackout exemption; memory is measured in the host dry run before the pin and the draft is revised if it exceeds 400 MB | 1.8, 9.2; spec; q0484, q0485 | Partly refused (lane), with reason |
+| 10 | LOW: size-check draws, text, q0485 | Size check uses **200 draws** (the gate's own; spec `size_check.draws`); eleven scenarios (ten binding), named in 14.5. q0485 stays on the `net` lane (LT3's reasoning: a 21-day `cpu` job would block every cpu job), `mem_mb` 480 kept below the 500 MB blackout exemption; memory is measured in the host dry run before the pin and the draft is revised if it exceeds 400 MB | 1.8, 9.2; spec; q0484, q0485 | Partly refused (lane), with reason |
 | 11 | LOW: `.nosweep` versus late; no label | `.nosweep` is written only when no complete sweep of the pass existed at the deadline; a sweep that existed but was not yet copied by this reader yields `.late`. New label **sweep-missing (x%)** when `.nosweep` exceeds 2% of E022's origin passes | 1.5; `_run_locked`, `e022_labels`; spec `labels.sweep_missing_share` | Separates collector loss from reader lateness |
 | 12 | LOW: registration ordering | **LT4 registers only after LT3's registration commit**, with LT4's `code_sha256` entries for `live_tests3*.py` equal to LT3's registered pins (`code_check` refuses otherwise). `REGISTERED_UTC` is computed once, at LT4's registration commit, by 1.1. **Pre-declared consequence:** any change to LT3's modules after LT4's pin makes every LT4 line unmatchable; LT4 is then *void* (all primaries Unavailable, recorded in the ledger), never re-pinned on the same window | 1.1; `code_check` | Makes the dependency explicit and fail-closed |
 
@@ -674,11 +674,42 @@ census top series family holds > 40% of E020's (resp. E022's) primary population
 - **LT3's permutation gate:** shares finding 7; not edited (frozen LT3 code). Flagged for the orchestrator (14.1, item 7).
 
 ### 14.5 Preliminary size check after R1
-Placeholder until the local run (200 worlds x 200 draws, ten scenarios, the R1 code) finishes; the registered statement
-needs >= 2,000 worlds (q0484).
+Local runs, 2026-10-20, 200 worlds x 200 draws (the gates' own), seed 20261026, limit 0.05 + 1.645 sqrt(0.0475 / 200) =
+0.075. Not the registered statement (that needs >= 2,000 worlds on the code to be pinned, q0484). Outputs are not committed.
+
+| Scenario | Run A: R1 code, LT3 donor gate | Run B: pooled residualised donor | Run C: market-FE residualised donor | Run D: final code |
+|---|---|---|---|---|
+| Freedman-Lane binary iid / persistent | 0.045 / 0.045 | same | same | 0.045 / 0.045 |
+| Freedman-Lane binary, control corr 0.7 | 0.040 | same | same | 0.040 |
+| Freedman-Lane continuous persistent / control corr 0.7 | 0.070 / 0.045 | same | same | 0.070 / 0.045 |
+| donor iid / AR(1) 0.6 / life cycle | 0.045 / 0.045 / 0.070 | 0.045 / 0.045 / 0.070 | 0.045 / 0.045 / 0.070 | 0.045 / 0.045 / 0.070 |
+| donor, correlated true moderator 0.4 | 0.075 | 0.055 | 0.060 | 0.060 |
+| donor, correlated true moderator 0.5 | — | — | — | **0.085 (fails)** |
+| donor, correlated true moderator 0.7 | **0.115 (fails)** | **0.080 (fails)** | **0.080 (fails)** | 0.055 (reported only) |
+
+(Run C's hashes: `live_tests4_analysis.py` `53afe263…`; run D's: `live_tests4.py` `788db6a4…`, `live_tests4_analysis.py` `6af80508…`.
+A separate targeted run of run C's gate gave 0.075 at 0.4 and 0.055 at 0.7.)
+
+**Reading (stated plainly).**
+- **All five Freedman-Lane scenarios hold**, including label-control correlation 0.7. This answers finding 7 for E020-E022.
+- **The donor gate (E023/E024) is not shown to hold size when the tested moderator is correlated with a controlled moderator
+  that has a real effect.** LT3's version is clearly oversized (0.115 at 0.7). The residualised version is better, but its
+  correlated-scenario rates over all runs (0.055-0.085, about 1,200 worlds in total) average about 0.068, about 2.5 Monte
+  Carlo SEs above 5%. The 0.5 cap reduces the exposure but does not remove it.
+- **No further tuning was done.** Choosing among gate variants by their simulated pass rate until one passes would be the
+  same degree of freedom the size check exists to prevent.
+- **Consequence, pre-declared:** the binding statement is q0484 (2,000 worlds, all ten binding scenarios). **If any binding
+  donor scenario fails there, E023 and E024 cannot register with this gate.** They then need an R2 design decision
+  (question R2-5: a Freedman-Lane flow gate on market x two-day-block strata, which would need its own serial-dependence
+  scenarios, or drop to k = 3), never a looser criterion. The 0.7 world stays reported only, because the census caps
+  correlation at 0.5. Its run-D rate (0.055) is noise around the same value and is not evidence of validity.
+- An oversized gate is a weaker *check*. It does not change the Holm p of a primary that passes it, but it can let a
+  timing artefact through. That is why it blocks.
 
 ### 14.6 Questions for R2
 1. The residual-IQR threshold 0.05 (finding 4): acceptable as declared, or tie it to the MDE gate only?
 2. The E021 direction on the skip target (D_FS < 0): acceptable?
 3. `dimb` in shares rather than dollars (finding 5).
 4. The DE projection `m × 21 / days` is pessimistic for short-lived events; acceptable as the gate's convention?
+5. The residualised donor gate plus the 0.5 correlation cap (14.5): an acceptable answer to finding 7 for E023/E024, or
+   should the flow tests also move to a Freedman-Lane gate despite the serial dependence the donor design was built for?

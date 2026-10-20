@@ -469,7 +469,8 @@ def test_census_flow_sealed_and_gates(tmp_path):
     assert res["CF_E021"]["ts_not_minute_share"] > 0.5 and "pass" in res["CF_E021"]["gate_E021"]
     assert 0 < res["sell_share"] < 1 and res["covered_units"] > 0
     for g in ("CF_E023", "CF_E024"):
-        assert "pass" in res[g][f"gate_{g[-4:]}"]
+        assert "pass" in res[g][f"gate_{g[-4:]}"] and "corr_controlled" in res[g][f"gate_{g[-4:]}"]
+    assert set(res["max_abs_corr_controlled"]) == {"OP", "C"}
     assert not res["CF_E023"]["gate_E023"]["agreement_gap"] or min(res["agreement"]["n"]["buy"], res["agreement"]["n"]["sell"]) >= 500
     p = w["samples"] / sids[0] / "plan.json"
     p.write_text(p.read_text() + " ")
@@ -502,14 +503,29 @@ def test_size_check_small_runs_and_new_scenarios():
     sc = la.size_check(worlds=4, draws=19, seed=3)
     assert set(sc["scenarios"]) == {"fl_binary_iid", "fl_binary_persistent", "fl_binary_control_corr0.7", "fl_continuous_persistent",
                                     "fl_continuous_control_corr0.7", "donor_iid", "donor_ar0.6", "donor_lifecycle",
-                                    "donor_correlated_moderator0.4", "donor_correlated_moderator0.7"}
+                                    "donor_correlated_moderator0.4", "donor_correlated_moderator0.5", "donor_correlated_moderator0.7"}
+    assert not sc["scenarios"]["donor_correlated_moderator0.7"]["binding"] and sc["scenarios"]["donor_correlated_moderator0.5"]["binding"]
     assert all(0.0 <= v["rate"] <= 1.0 for v in sc["scenarios"].values()) and sc["limit"] > 0.05
     rng = np.random.default_rng(11)
     df, y = la.sim_cont_world(rng, effect=0.01)
     strata = (df["market_id"] + "|" + df["day"]).to_numpy()
     assert la.fl_perm_gate(df, y, "zh", ["c1"], sign=+1, strata=strata, draws=39, seed=1, min_stratum=4)["passes"]
     df2, y2, others = la.sim_corr_flow_world(rng, effect=0.006)
-    assert la.la3.donor_gate(df2, y2, "x6", "zM", others, sign=+1, draws=39, seed=1, min_units=4, min_sep_s=43200.0, min_donors=2)["passes"]
+    assert la.donor_gate_resid(df2, y2, "x6", "zM", others, sign=+1, draws=39, seed=1, min_units=4, min_sep_s=43200.0, min_donors=2)["passes"]
+
+
+def test_residualised_donor_gate_holds_size_under_correlated_moderator():
+    """At moderator correlation 0.5 (the census cap) with a controlled moderator that has a real effect, the residualised
+    donor gate stays near nominal (LT3's gate: 0.115 at correlation 0.7, 200 worlds)."""
+    rng = np.random.default_rng(77)
+    passes = 0
+    for _ in range(40):
+        df, y, others = la.sim_corr_flow_world(rng, corr=0.5)
+        g = la.donor_gate_resid(df, y, "x6", "zM", others, sign=+1, draws=39, seed=int(rng.integers(1 << 30)), min_units=4,
+                                min_sep_s=43200.0, min_donors=2)
+        assert g["residualised_on"] == ["zA"]
+        passes += int(g["passes"])
+    assert passes <= 6
 
 
 def test_end_to_end_synthetic_analysis(tmp_path):

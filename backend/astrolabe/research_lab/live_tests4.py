@@ -1170,6 +1170,8 @@ def census_comp(F: pd.DataFrame, spec: dict, scale: float, day1: str, agree: dic
            "OP_interior_share": float(op_int.mean()) if len(z) else None, "OP_interior_21d": float(op_int.sum() * scale),
            "C_interior_21d": float(c_int.sum() * scale),
            "corr": {"OP_W": corr("OP", "W"), "OP_H": corr("OP", "H"), "C_W": corr("C", "W"), "C_H": corr("C", "H"), "C_lN": corr("C", "lN")},
+           "max_abs_corr_controlled": {m: _max_corr(z, m, ctl) for m, ctl in (("OP", ["W", "H", "lN", "lS", "SPR", "lRV", "lHTE"]),
+                                                                              ("C", ["W", "H", "lN", "lS", "SPR", "lRV", "lHTE"]))},
            "vif": {"x6_zOP_within": vif_op, "x6_zC_within": vif_c, "pooled_main_effects": res_vif_pooled}, "mde_plan": mde,
            "agreement": {"rates": ag, "n": {k: v[1] for k, v in agree.items()}, "gap_buy_minus_sell": gap3, "gap_other_minus_largest": gap4,
                          "min_rows_per_arm": n_min},
@@ -1183,13 +1185,25 @@ def census_comp(F: pd.DataFrame, spec: dict, scale: float, day1: str, agree: dic
         "OP_interior": bool((res["OP_interior_share"] or 0.0) >= g3["OP_interior_share_min"] and res["OP_interior_21d"] >= g3["OP_interior_21d"]),
         "corr": bool(np.isfinite(c["OP_W"]) and np.isfinite(c["OP_H"]) and abs(c["OP_W"]) <= g3["corr_max"] and abs(c["OP_H"]) <= g3["corr_max"]),
         "agreement_gap": bool(ok3 and gap3 is not None and gap3 <= g3["agreement_gap_max"]),
+        "corr_controlled": bool(res["max_abs_corr_controlled"]["OP"] <= g3["corr_max"]),
         "mde_plan": bool(mde["OP"] <= g3["mde_max"])})}
     res["CF_E024"] = {"gate_E024": _gate({
         "vol24_cap_defined": bool(not math.isnan(vstar)), "C_interior_21d": res["C_interior_21d"] >= g4["C_interior_21d"],
         "corr": bool(np.isfinite(c["C_W"]) and np.isfinite(c["C_H"]) and abs(c["C_W"]) <= g4["corr_max"] and abs(c["C_H"]) <= g4["corr_max"]),
         "agreement_gap": bool(ok4 and gap4 is not None and gap4 <= g4["agreement_gap_max"]),
+        "corr_controlled": bool(res["max_abs_corr_controlled"]["C"] <= g4["corr_max"]),
         "mde_plan": bool(mde["C"] <= g4["mde_max"])})}
     return res
+
+
+def _max_corr(z: pd.DataFrame, m: str, others: list[str]) -> float:
+    """Largest |corr| of moderator ``m`` with the moderators whose x6 interactions are controls (NaN fails the gate):
+    the donor gate is size-checked only up to 0.5 (LIVE_TESTS_4.md 14.5)."""
+    vals = []
+    for o in others:
+        d = z[[m, o]].dropna()
+        vals.append(abs(float(np.corrcoef(d[m], d[o])[0, 1])) if len(d) > 2 else float("nan"))
+    return float("nan") if not vals or any(not np.isfinite(v) for v in vals) else max(vals)
 
 
 def cleanup_census(work: Path) -> None:
