@@ -606,8 +606,12 @@ GA counts on REP_8, else "not run (power)", counted.
 **Shared frame (q0406).** Units are (token, pass) for outcome-0 tokens in the sweep universe (binary markets, end
 unknown or > 3 h away), in **arm-0 events**, non-sports by the sidecar rule, with decision time in SCREEN_8. Common
 eligibility: two-sided books at the decision sweep and the mark sweep; decision spread ≤ 10c; decision mid in [0.03,
-0.97]; `tick_size` equal at decision and mark (else "tick change", counted); sidecar `end_date ≥ t + 4 h`; the mark sweep
-exists (else "no mark"); mark spread ≤ 10c (else "wide mark", counted, worst case in robustness). Exclusions are counted
+0.97]; sidecar `end_date ≥ t + 4 h`. Mark availability (statuses, not eligibility; O9 ruling 2026-10-20): the mark sweep
+exists (else "no mark"); mark spread ≤ 10c (else "wide mark"); `tick_size` equal at decision and mark (else "tick
+change", the same treatment as "wide mark": counted in the availability denominator, never in the primary sample, and in
+the binding worst case, which takes the capture mark first, else the adverse bound). Placebos, the composition guard,
+attribution, the census and the 6 h / capture-mark robustness keep exactly their previous index sets (units without a
+tick change). Exclusions are counted
 by state bin.
 - **No-mark handling (finding 4).** Eligibility uses the decision sweep and earlier rows only; a token absent from the
   mark pass, or one-sided there, is "no mark" (an availability outcome, not an eligibility rule). q0401 reports the
@@ -773,8 +777,9 @@ cents, with `m_{j,k+1}` the mid at capture `k + 1` (consecutive, gap 100-140 min
 member closed, one-sided, wide, extreme mid); it is never an exclusion rule. The unit value is the mean over qualifying
 members with an available mark; a unit with none is "unavailable (mark)", counted by class; the 60% availability rule
 applies. **Binding worst-case robustness:** every unavailable member is filled at the bound adverse to the hypothesis
-(transfer units the 5th percentile of available member `C`, mint-heavy and merge-heavy units the 95th percentile;
-where a one-sided `k + 1` quote exists, the touch adverse to continuation is used instead, if more adverse), and the
+(transfer units `min(p5 of available member C, touch-C)`; mint-heavy and merge-heavy units `max(p95, touch-C)`, where
+touch-C is the continuation at the one-sided `k + 1` touch adverse to the hypothesis: adverse to continuation for
+transfer, favourable to continuation for mint and merge; O11 ruling 2026-10-20), and the
 estimate must keep the sign.
 
 **C1.** `β_C` = coefficient on `transfer` in an OLS of `C` on `transfer` and `merge` indicators (mint-heavy baseline)
@@ -830,7 +835,8 @@ within-market contrast on the pre-fill proxy (SE only).
 **Re-entry rule (declared).** A later batch may register a counted CH154 test on a **fresh** window only if the SCREEN_8
 census shows ≥ 400 non-sports first-day transactions in ≥ 150 markets that also print on days 2-7, and a proxy MDE ≤
 1.0c, and the design makes the spread-free mark binding. Otherwise CH154 is recorded as "not testable at the floor with
-host data".
+host data". **O1 ruling (2026-10-20):** the counts bind on the signable (touch-consistent) population a CH154 test would
+use, as does the MDE; the counts on all non-sports transactions are reported only.
 
 ### CB17-SM: smoke and audits
 
@@ -1405,8 +1411,8 @@ markets** with first-day and later fills. All non-sports transactions with marke
 Side-signed population (not selected): 17 / 85 / 364 / 2,262 / 430 and 15 markets. Proxy SE on the pre-fill move: T
 0.103191 (MDE 0.3921c, n 944, carried by the 7 both-period markets), S 0.57255 (MDE 2.1757c). Under the re-entry rule
 (§CB17-E) a later CH154 test needs ≥ 400 first-day transactions in ≥ 150 markets that also print on days 2-7; four worn
-days had 200 transactions and, among signable fills, 7 such markets. Which population the counts use under branch T is
-O1.
+days had 200 transactions and, among signable fills, 7 such markets. The counts bind on the signable population (O1
+ruling, §11.8).
 
 ### 11.6 Rules parts
 
@@ -1415,9 +1421,15 @@ O1.
 | `pre` | declared (committed before q0400) | `cb17_common`, `cb17_pre`, `cb17_census` | `ddc0249b23eedf8cfe50b2b60e94378264804ca4791c82c01cf3993df54df6a7` |
 | `common` | declared (this rules commit) | `cb17_common`, `cb17_wcommon` | `2343744082bcb664ac06f18f967c166aae09c216e9437045d7aa07aa77ef8c9f` |
 | `A` | **withdrawn uncounted (branch T); never declared** | - | - |
-| `B` | declared (this rules commit) | `cb17_common`, `cb17_rules_b` | `fd9ce65606ed94d90ecc9a364bf6f6ad99754ae3a8f77e1aa778f723ef28c4aa` |
-| `C` | declared (this rules commit) | `cb17_common`, `cb17_rules_c` | `68bd50a2c33db7a50ae2a3efb411a629d7b251355784de50ed5433e59e4bf632` |
-| `E` | declared (this rules commit) | `cb17_common`, `cb17_rules_e` | `337382d63da11f724743b1969dff878ff6e92f536f245953a455bb2037301418` |
+| `B` | declared (this rules commit) | `cb17_common`, `cb17_rules_b` | `64e61091574ec4406b6f235f48f37ab2d0bf8b41bf89bfbeace9153186c96a10` |
+| `C` | declared (this rules commit) | `cb17_common`, `cb17_rules_c` | `3e24af26db1c827b6ff8dadc5bc63743a4cd03280d510211edf0ad87137b2647` |
+| `E` | declared (this rules commit) | `cb17_common`, `cb17_rules_e` | `9b1eba65e5de9de0f67e31f9d7dccf6f012ef8ee37895a603aaa5a6103067412` |
+
+| **O-rulings re-hash** (2026-10-20) | `pre` unchanged; `common` unchanged | `B`: `fd9ce65606ed94d90ecc9a364bf6f6ad99754ae3a8f77e1aa778f723ef28c4aa` -> `64e61091574ec4406b6f235f48f37ab2d0bf8b41bf89bfbeace9153186c96a10` (O9); `C`: `68bd50a2c33db7a50ae2a3efb411a629d7b251355784de50ed5433e59e4bf632` -> `3e24af26db1c827b6ff8dadc5bc63743a4cd03280d510211edf0ad87137b2647` (O11); `E`: `337382d63da11f724743b1969dff878ff6e92f536f245953a455bb2037301418` -> `9b1eba65e5de9de0f67e31f9d7dccf6f012ef8ee37895a603aaa5a6103067412` (O1 amended) | `seals/cb17_rules.json` regenerated with `run_cb17.py rules` (`c17.write_rules`, the tool that sealed it in e37643f3) after removing the unbound file; the table above shows the new shas |
+
+**Pre-registered expectation (O3, O7; stated before any SCREEN_8 row exists).** B1's composition guard is expected to come out "uninformative"
+(worn informativeness 8.6% against the 50% window rule); B1 is counted as declared and the verdict is expected in the ledger. B2's level-1 informativeness
+margin (60.3% against the 60% selection margin) is informational. No rule changes in either case.
 
 The parts bind once they land on the working branch after the orchestrator's acceptance (O2). Every window job
 verifies `pre`, `common` and its family part (exit 2 on a mismatch).
@@ -1439,6 +1451,14 @@ verifies `pre`, `common` and its family part (exit 2 on a mismatch).
 
 ### 11.8 Open questions for the orchestrator (nothing below was chosen silently)
 
+- **Rulings 2026-10-20 (science-reviewer `CB17_OPEN_QUESTION_RULINGS_2026-10-20.md`, accepted by the orchestrator; outcome-blind and
+  stricter, so rules-before-data; parts re-hashed, see the "O-rulings re-hash" row in §11.6):** O1 amended (re-entry counts bind on the signable
+  population, all-transaction counts reported only); O9 (tick change is an availability status handled like "wide mark", primary sample ST_OK only, binding
+  worst case takes the capture mark first, else the adverse bound; placebos, composition guard and attribution keep their exact index sets); O11
+  (symmetric by class: transfer `min(p5, touch-C)`, mint-heavy and merge-heavy `max(p95, touch-C)`); O12 (the CB16 key pin is the sha256 copied verbatim from
+  q0380's write-once manifest into q0405's spec and the ledger, never hashed from disk; without it q0405/q0406 stay pending (keys); "keys absent" only with a
+  committed q0380 stop record under CB16's rules); O4, O5, O6, O8, O10 accepted; O3 and O7 informational. O2 is decided by the orchestrator (T17_rules = committer
+  time of the commit that lands the final re-hashed parts on the working branch). The questions below keep their original text.
 - **O1 (E re-entry population under branch T).** §CB17-E counts "first-day transactions" and "markets that also print on
   days 2-7" and asks for "a proxy MDE ≤ 1.0c". Read literally, the counts use all non-sports monitor transactions (no
   sign needed) and the MDE the signable (touch-consistent) fills (a sign is needed). Part E declares that literal

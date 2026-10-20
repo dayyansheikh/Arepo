@@ -125,20 +125,25 @@ def mark_reason(capture_ok: bool, row: dict | None) -> str | None:
     return None
 
 
-def onesided_adverse(dm_int_c: float, m_k: float, row: dict | None) -> float:
-    """Where a one-sided k + 1 quote exists, the continuation at the touch adverse to continuation: an up move (dm > 0) at the bid, a down move at the ask; nan otherwise."""
+def onesided_adverse(dm_int_c: float, m_k: float, row: dict | None, cls: str = CLASS_TRANSFER) -> float:
+    """Where a one-sided k + 1 quote exists, the continuation at the touch adverse to the HYPOTHESIS (O11 ruling, symmetric by class): transfer units (high continuation is the hypothesis)
+    take the touch adverse to continuation (an up move, dm > 0, at the bid; a down move at the ask); mint-heavy and merge-heavy units (high continuation is hypothesis-adverse) take the touch
+    favourable to continuation (an up move at the ask, a down move at the bid); nan where that side is absent."""
     if row is None or not math.isfinite(dm_int_c) or dm_int_c == 0:
         return math.nan
     b, a = row.get("bid", math.nan), row.get("ask", math.nan)
-    px = b if dm_int_c > 0 else a
+    if cls == CLASS_TRANSFER:
+        px = b if dm_int_c > 0 else a
+    else:
+        px = a if dm_int_c > 0 else b
     if not (math.isfinite(px) and 0 < px < 1):
         return math.nan
     return continuation(dm_int_c, m_k, px)
 
 
 def worst_member(cls: str, available_C: np.ndarray, onesided_value: float = math.nan) -> float:
-    """The bound adverse to the hypothesis for an unavailable member: transfer units the 5th percentile of available member C, mint-heavy and merge-heavy the 95th; a one-sided k + 1
-    touch value replaces it where it is more adverse."""
+    """The bound adverse to the hypothesis for an unavailable member: transfer units min(5th percentile of available member C, touch C), mint-heavy and merge-heavy max(95th percentile,
+    touch C), where touch C is ``onesided_adverse`` for the class (a one-sided k + 1 quote; nan otherwise)."""
     v = np.asarray(available_C, float)
     v = v[np.isfinite(v)]
     if not v.size:
@@ -189,7 +194,7 @@ def declared() -> dict:
             "target": {"C": "sign(dm_int) x 100 x (m_k+1 - m_k) cents per qualifying member; unit value = mean over members with an available mark",
                        "available": "capture k + 1 consecutive (gap 100-140 min) and the member row two-sided, spread <= 10c, mid in [0.03, 0.97], closed false",
                        "unavailable": f"'{UNAVAILABLE_MARK}' by class and reason {list(MARK_REASONS)}; never an exclusion; 60% availability rule",
-                       "worst_case": "every unavailable member at the adverse bound (transfer p5, mint-heavy and merge-heavy p95 of available member C; a one-sided k + 1 touch adverse to continuation where more adverse); sign kept"},
+                       "worst_case": "every unavailable member at the adverse bound (transfer min(p5, touch-C); mint-heavy and merge-heavy max(p95, touch-C), of available member C; touch-C is the one-sided k + 1 touch adverse to the hypothesis by class: adverse to continuation for transfer, favourable to continuation for mint / merge); sign kept"},
             "C1": {"estimator": "OLS of C on transfer and merge indicators (mint-heavy baseline) with event FE; coefficient on transfer; one-sided > 0; floor +0.5c",
                    "seeds": {"composition": w.SEEDS["C1_composition"], "calibration": w.SEEDS["C1_calibration"]},
                    "calibration": "circular shift of the class within event over its intervals in time order", "pre_interval": "C_pre = sign(dm_int) x (m_k-1 - m_k-2) on the classes; must not pass p < 0.01",

@@ -300,7 +300,7 @@ def unit_means(F: dict, cvals: np.ndarray) -> np.ndarray:
 
 def worst_case_values(F: dict, MV: dict, cvals: np.ndarray) -> np.ndarray:
     """Binding worst case (rules C ``worst_member``): every unavailable member at the bound adverse to the hypothesis (transfer p5, mint / merge p95 of the available member C), or the
-    one-sided k + 1 touch adverse to continuation where more adverse; unit value = mean over ALL qualifying members."""
+    one-sided k + 1 touch adverse to the hypothesis by class (O11) where more adverse; unit value = mean over ALL qualifying members."""
     U, M = F["U"], F["M"]
     avail = cvals[np.isfinite(cvals)]
     out = np.array(cvals, copy=True)
@@ -309,7 +309,7 @@ def worst_case_values(F: dict, MV: dict, cvals: np.ndarray) -> np.ndarray:
         cls = CLS_NAME[int(U["cls"][unit[mi]])]
         one = math.nan
         if int(M["st1"][mi]) == REASON_CODE["one-sided"]:
-            one = rc.onesided_adverse(float(M["dm"][mi]), float(M["m_k"][mi]), {"bid": MV["b1"][mi], "ask": MV["a1"][mi]})
+            one = rc.onesided_adverse(float(M["dm"][mi]), float(M["m_k"][mi]), {"bid": MV["b1"][mi], "ask": MV["a1"][mi]}, cls)
         out[mi] = rc.worst_member(cls, avail, one)
     n = len(U["ev"])
     ok = np.isfinite(out)

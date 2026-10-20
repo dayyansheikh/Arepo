@@ -3,7 +3,7 @@
 
 q0407 (branch T: E features only) builds one row per SCREEN_8 monitor transaction (CB13's pinned ``build_transactions``; the print reader keeps the whitelisted fields only, so ``side``,
 ``recv_ts`` and wallet fields never reach a dict) with CB13-T's touch-consistent status by pin (``cb16_q.make_fills`` on a touch-mode quote index: no mark accessor), the LABELLER class,
-the static ``created_at`` (first capture carrying the market) and the pre-fill proxy inputs. q0408 counts both populations (O1's literal reading, part E) and writes the re-entry verdict;
+the static ``created_at`` (first capture carrying the market) and the pre-fill proxy inputs. q0408 counts both populations (O1 amended: the signable population binds, all transactions are reported only; part E) and writes the re-entry verdict;
 the proxy SE is written alone (no point estimate).
 """
 
@@ -87,7 +87,7 @@ def load_frame(rdir: Path) -> dict:
 
 
 def census(fr: dict) -> dict:
-    """The E census (counts; the proxy SE alone) and the declared re-entry verdict (O1 literal reading: counts on all non-sports transactions, the MDE on the signable fills)."""
+    """The E census (counts; the proxy SE alone) and the declared re-entry verdict (O1 amended: counts and MDE bind on the signable fills; the all-transactions counts are reported only)."""
     rows = fr["rows"]
     by: dict[str, Counter] = {"all": Counter(), "signable": Counter()}
     mk_groups: dict[str, dict[str, set]] = {"all": {}, "signable": {}}
@@ -123,12 +123,13 @@ def census(fr: dict) -> dict:
     both_ev = {pop: len([e for e, s in ev_groups[pop].items() if s == {"first", "later"}]) for pop in ev_groups}
     ways = {"event": [x[3] for x in proxy_rows], "path_x_block": [(x[4], c17.block6(x[5])) for x in proxy_rows], "block6": [c17.block6(x[5]) for x in proxy_rows]}
     se = pre.fe_cluster_se([x[0] for x in proxy_rows], [x[1] for x in proxy_rows], [x[2] for x in proxy_rows], ways) if proxy_rows else {"n": 0, "se": None, "mde": None}
-    verdict = re_.reentry_verdict(n_first["all"], len(both["all"]), se.get("mde"))
+    verdict = re_.reentry_verdict(n_first["signable"], len(both["signable"]), se.get("mde"))  # binding: the signable population
+    verdict_all = re_.reentry_verdict(n_first["all"], len(both["all"]), se.get("mde"))  # reported only
     first_total = n_first["all"]
-    return {"populations": {"counts": re_.POPULATION_COUNTS, "mde": re_.POPULATION_MDE, "rule": re_.POPULATION_RULE},
+    return {"populations": {"counts": re_.POPULATION_COUNTS, "mde": re_.POPULATION_MDE, "reported_only": re_.POPULATION_REPORTED, "rule": re_.POPULATION_RULE},
             "first_day_transactions_non_sports": n_first, "markets_first_and_later": {k: len(v) for k, v in both.items()}, "events_first_and_later": both_ev,
             "first_day_tables": {k: dict(sorted(v.items())) for k, v in by.items()}, "first_day_unsignable_by_status": dict(sorted(unsignable.items())),
-            "first_day_unsignable_share": (sum(unsignable.values()) / first_total) if first_total else None, "proxy_se": se, "reentry": verdict, "k": 0,
+            "first_day_unsignable_share": (sum(unsignable.values()) / first_total) if first_total else None, "proxy_se": se, "reentry": verdict, "reentry_all_transactions_reported_only": {**verdict_all, "binding": False}, "k": 0,
             "status_counts": fr.get("status_counts"), "transactions": fr.get("transactions")}
 
 

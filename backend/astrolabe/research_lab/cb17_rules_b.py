@@ -42,7 +42,7 @@ MARK_OK, NO_MARK, WIDE_MARK, TICK_CHANGE = "ok", "no mark", "wide mark", "tick c
 EXCLUSIONS = ("clock anomaly", "not two-sided", "wide or extreme", "end too near", "no previous pass", "split pass", "sports", "arm 1 (REP)", "election night", "dropped: key",
               "unavailable (lookback floor)", "touch changed (B2)", "no depth (B2)")
 NO_MARK_RULE = ("eligibility uses the decision sweep and earlier rows only; a token absent from the mark pass or one-sided there is 'no mark' (availability, counted by state bin); "
-                "a mark spread > 10c is 'wide mark' (counted; worst case); a tick size different at the mark is 'tick change' (excluded and counted, as declared; O9)")
+                "a mark spread > 10c is 'wide mark' (counted; worst case); a tick size different at the mark is 'tick change' (an availability status like 'wide mark': in the availability denominator, counted, never in the primary sample, and in the binding worst case; O9 ruling)")
 
 # ---- worst case (finding 4, binding robustness) ------------------------------------------------------------------------------------------------------
 WORST_FRESH_Q = 95.0  # B1: no-mark / wide-mark units with no capture mark: old L = 0, fresh the 95th percentile of available fresh-bin L

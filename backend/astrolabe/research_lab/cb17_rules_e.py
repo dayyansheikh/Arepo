@@ -3,8 +3,8 @@
 
 The first-day rule, the census counts (q0408 on SCREEN_8 features; q0400 on worn data) and the declared re-entry rule that decides whether a LATER batch may register a counted CH154
 test on a fresh window. Under branch T (section 11.1) q0407 builds E's features only: every non-sports monitor transaction (no sign needed) and the CB13-T touch-consistent fills (the
-signable population, pins). Which population the re-entry COUNTS use is open question O1; this part declares the literal reading (counts on all non-sports transactions, the proxy MDE on
-the signable fills) and reports both populations.
+signable population, pins). O1 ruling (amended): the re-entry COUNTS bind on the signable (touch-consistent) population a CH154 test would use, as does the proxy MDE; the counts on all
+non-sports transactions are reported only (a stricter, non-binding view).
 """
 
 from __future__ import annotations
@@ -24,9 +24,10 @@ REENTRY_MIN_TX = 400
 REENTRY_MIN_MARKETS = 150
 REENTRY_MDE_MAX_C = 1.0
 REENTRY_SPREAD_FREE = "the later design must make the spread-free mark binding"
-POPULATION_COUNTS = "all non-sports monitor transactions with a single condition id (unsigned; branch T reads no side)"
+POPULATION_COUNTS = "the CB13-T touch-consistent fills (the signable population under branch T): non-sports first-day transactions and markets with first-day and later transactions"
 POPULATION_MDE = "the CB13-T touch-consistent fills (the signable population under branch T)"
-POPULATION_RULE = "O1 literal reading: re-entry counts on POPULATION_COUNTS, the proxy MDE on POPULATION_MDE; both populations reported"
+POPULATION_REPORTED = "all non-sports monitor transactions with a single condition id (unsigned; branch T reads no side): the same counts, REPORTED ONLY (never decide the verdict)"
+POPULATION_RULE = "O1 amended: re-entry counts and the proxy MDE bind on the signable (touch-consistent) population; the counts on all transactions are reported only"
 CREATED_RULE = "sidecar created_at of the latest capture before tau or, for a market not yet captured, the first capture after tau (a static attribute)"
 CENSUS_COUNTS = ("first-day transactions by fill source, class, sports and hour", "markets and events with both first-day and later (1-7 d) transactions", "the share unsignable for lack of a touch",
                  "a feature-proxy SE of the within-market contrast on the pre-fill proxy (SE only)")
@@ -57,7 +58,7 @@ def reentry_verdict(n_first_tx: int, n_markets_first_and_later: int, proxy_mde_c
 
 def declared() -> dict:
     return {"version": E_VERSION, "k": 0, "first_day": {"rule": f"market age at tau < {FIRST_DAY_H:g} h", "later": f"{LATER_H[0]:g}-{LATER_H[1]:g} h", "created_at": CREATED_RULE},
-            "census": list(CENSUS_COUNTS), "populations": {"counts": POPULATION_COUNTS, "mde": POPULATION_MDE, "rule": POPULATION_RULE},
+            "census": list(CENSUS_COUNTS), "populations": {"counts": POPULATION_COUNTS, "mde": POPULATION_MDE, "reported_only": POPULATION_REPORTED, "rule": POPULATION_RULE},
             "reentry": {"min_first_day_transactions": REENTRY_MIN_TX, "min_markets_first_and_later": REENTRY_MIN_MARKETS, "proxy_mde_max_c": REENTRY_MDE_MAX_C, "condition": REENTRY_SPREAD_FREE,
                         "pass": VERDICT_ALLOWED, "fail": VERDICT_DENIED},
             "worn_inputs_q0400": {"T_units_by_age": {"lt6h": 2, "6-24h": 26, "1-7d": 106, "gt7d": 811, "unknown": 12}, "T_markets_first_and_later": 7, "non_sports_transactions_first_day": 200,

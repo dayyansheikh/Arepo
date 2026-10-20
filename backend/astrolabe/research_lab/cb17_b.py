@@ -492,11 +492,21 @@ def sd_x_of(D: dict) -> float:
 
 
 def b1_sample(D: dict) -> np.ndarray:
-    return (D["state"] <= 1) & (D["st2_1"] != ST_TICK)
+    """B1 availability denominator: old / fresh units whose decision is eligible; 'tick change' is an availability status (like 'wide mark'), not an eligibility exclusion (O9 ruling)."""
+    return D["state"] <= 1
 
 
 def b2_sample(D: dict) -> np.ndarray:
-    return (D["excl2"] == B2_OK) & np.isfinite(D["x"]) & (D["st2_2"] != ST_TICK)
+    return (D["excl2"] == B2_OK) & np.isfinite(D["x"])
+
+
+def b1_core(D: dict) -> np.ndarray:
+    """The index set every placebo, composition guard, attribution and non-worst-case robustness variant keeps EXACTLY (units without a tick change): the pre-O9 sample."""
+    return b1_sample(D) & (D["st2_1"] != ST_TICK)
+
+
+def b2_core(D: dict) -> np.ndarray:
+    return b2_sample(D) & (D["st2_2"] != ST_TICK)
 
 
 def census(F: dict) -> dict:
@@ -514,11 +524,11 @@ def census(F: dict) -> dict:
     shifted = tu & np.isfinite(D["s"]) & (D["s"] != 0)
     gbs = rb.gate_gbs(int(tu.sum()), int(shifted.sum()), len(set(D["ev"][shifted].tolist())))
     sd_x = sd_x_of(D)
-    s1 = b1_sample(D)
+    s1 = b1_core(D)  # census, planning SE and informativeness keep the pre-O9 index set
     D1 = with_ways(D, D["t1"])
     i1 = np.nonzero(s1 & np.isfinite(D["lpre"]))[0]
     se1 = pre.fe_cluster_se(D["lpre"][i1].astype(float).tolist(), old[i1].astype(float).tolist(), D["tok"][i1].tolist(), {k: D1[f"way_{k}"][i1].tolist() for k in w.WAYS}) if len(i1) else {"n": 0, "se": None}
-    s2 = b2_sample(D)
+    s2 = b2_core(D)
     D2 = with_ways(D, np.where(np.isfinite(D["t2"]), D["t2"], D["t1"]))
     i2 = np.nonzero(s2 & np.isfinite(D["dmpre"]))[0] if math.isfinite(sd_x) and sd_x > 0 else np.array([], dtype=int)
     se2 = pre.fe_cluster_se(D["dmpre"][i2].astype(float).tolist(), (D["x"][i2].astype(float) / sd_x).tolist(), D["tok"][i2].tolist(), {k: D2[f"way_{k}"][i2].tolist() for k in w.WAYS}) if len(i2) else {"n": 0, "se": None}
@@ -569,9 +579,10 @@ def b1_test(F: dict, MV: dict, census_b: dict | None, *, n_draws: int = w.PLACEB
         if not rep and not gates["GB1P"]["run"]:
             return win.not_testable(w.NOT_RUN_POWER, labels=labels, power=gates["GB1P"])
     elig = b1_sample(D)
+    core = b1_core(D)
     ok = elig & (D["st2_1"] == ST_OK) & np.isfinite(MV["2h_b1_bid"])
     av = w.availability(int(ok.sum()), int(elig.sum()))
-    info = {"availability": av, "tick_change": int(((D["state"] <= 1) & (D["st2_1"] == ST_TICK)).sum()), "rep": rep, "labels": labels}
+    info = {"availability": av, "tick_change": int((elig & (D["st2_1"] == ST_TICK)).sum()), "rep": rep, "labels": labels}
     if not av["ok"]:
         return {**win.not_testable(w.NOT_TESTABLE_AVAIL), **info}
     L = np.full(len(D["tok"]), np.nan)
@@ -593,7 +604,7 @@ def b1_test(F: dict, MV: dict, census_b: dict | None, *, n_draws: int = w.PLACEB
     res["composition_guard"] = comp
     res["calibration_placebo"] = {**win.calibration(D, idx, L, old, lambda lab_: lab_, tok, D["t1"], seed=w.SEEDS["B1_calibration"], n_draws=n_draws),
                                   "note": "B1 calibration: old / fresh circularly shifted within token over its passes"}
-    ip = np.nonzero(elig & np.isfinite(D["lpre"]))[0]
+    ip = np.nonzero(core & np.isfinite(D["lpre"]))[0]
     pp = win.p_of(win.make_fe(D["lpre"].astype(float), old, tok), ip, D, alpha=w.GATE_P)
     res["pre_period_placebo"] = {"p": pp["p"], "n": pp["n"], "holds": win.placebo_holds(pp), "unknown_is_not_met": True}
     cov, names = [], []
@@ -610,7 +621,7 @@ def b1_test(F: dict, MV: dict, census_b: dict | None, *, n_draws: int = w.PLACEB
     # no-mark worst case (binding): ok -> L; no / wide mark -> the capture mark, else the bound adverse to the hypothesis (old 0, fresh p95 of available fresh L)
     wc = np.full(len(L), np.nan)
     wc[idx] = L[idx]
-    nm = elig & np.isin(D["st2_1"], (ST_NO, ST_WIDE))
+    nm = elig & np.isin(D["st2_1"], (ST_NO, ST_WIDE, ST_TICK))
     capm = MV["cap_b1"]
     has_c = nm & np.isfinite(capm)
     wc[has_c] = l_from_mid(b0[has_c], a0[has_c], capm[has_c])
@@ -621,7 +632,7 @@ def b1_test(F: dict, MV: dict, census_b: dict | None, *, n_draws: int = w.PLACEB
     iw = np.nonzero(elig & np.isfinite(wc))[0]
     rob["no_mark_worst_case"] = _keep_sign(win.make_fe(wc, old, tok), iw)
     Lc = np.full(len(L), np.nan)
-    hc = elig & np.isfinite(capm)
+    hc = core & np.isfinite(capm)
     Lc[hc] = l_from_mid(b0[hc], a0[hc], capm[hc])
     rob["capture_mark"] = _keep_sign(win.make_fe(Lc, old, tok), np.nonzero(hc & np.isfinite(Lc))[0])
     okm = (D["st2_1"] == ST_OK) & np.isfinite(MV["2h_b1_bid"]) & (D["state"] >= 0)
@@ -641,7 +652,7 @@ def b1_test(F: dict, MV: dict, census_b: dict | None, *, n_draws: int = w.PLACEB
     rob["relative_L"] = _keep_sign(win.make_fe(L / np.where(D["spread"] > 0, D["spread"], np.nan), old, tok), idx)
     mid = D["mid0"]
     rob["mid_10_90"] = _keep_sign(mk, idx[(mid[idx] >= rb.MID_ROBUST[0] - 1e-12) & (mid[idx] <= rb.MID_ROBUST[1] + 1e-12)])
-    ok6 = elig & (D["st6_1"] == ST_OK) & np.isfinite(MV["6h_b1_bid"])
+    ok6 = core & (D["st6_1"] == ST_OK) & np.isfinite(MV["6h_b1_bid"])
     L6 = np.full(len(L), np.nan)
     L6[ok6] = l_of(b0[ok6], a0[ok6], MV["6h_b1_bid"][ok6], MV["6h_b1_ask"][ok6])
     rob["mark_6h"] = _keep_sign(win.make_fe(L6, old, tok), np.nonzero(ok6 & np.isfinite(L6))[0])
@@ -670,6 +681,7 @@ def b2_test(F: dict, MV: dict, census_b: dict | None, *, sd_x: float, n_draws: i
     if not (math.isfinite(sd_x) and sd_x > 0):
         return win.not_testable(w.NOT_TESTABLE_POP, labels=labels, reason="SD_x undefined")
     elig = b2_sample(D)
+    core = b2_core(D)
     ok = elig & (D["st2_2"] == ST_OK) & np.isfinite(MV["2h_b2_bid"])
     av = w.availability(int(ok.sum()), int(elig.sum()))
     info = {"availability": av, "tick_change": int(((D["excl2"] == B2_OK) & (D["st2_2"] == ST_TICK)).sum()), "rep": rep, "sd_x": sd_x, "labels": labels}
@@ -694,7 +706,7 @@ def b2_test(F: dict, MV: dict, census_b: dict | None, *, sd_x: float, n_draws: i
     res["composition_guard"] = comp
     res["calibration_placebo"] = {**win.calibration(D, idx, dm, xs, lambda lab_: lab_, tok, t2, seed=w.SEEDS["B2_calibration"], n_draws=n_draws),
                                   "note": "B2 calibration: x circularly shifted within token over its passes"}
-    ip = np.nonzero(elig & np.isfinite(D["dmpre"]))[0]
+    ip = np.nonzero(core & np.isfinite(D["dmpre"]))[0]
     pp = win.p_of(win.make_fe(D["dmpre"].astype(float), xs, tok), ip, D, alpha=w.GATE_P)
     res["pre_sweep_placebo"] = {"p": pp["p"], "n": pp["n"], "holds": win.placebo_holds(pp), "unknown_is_not_met": True}
     cov, names = [D["dmpre"].astype(float), D["imb"].astype(float), D["dnlev"].astype(float), np.nan_to_num(D["tsz_chg"].astype(float), nan=0.0), D["act"].astype(float)], \
@@ -707,7 +719,7 @@ def b2_test(F: dict, MV: dict, census_b: dict | None, *, sd_x: float, n_draws: i
     rob: dict[str, bool | None] = {}
     wc = np.full(len(dm), np.nan)
     wc[idx] = dm[idx]
-    nm_ = elig & np.isin(D["st2_2"], (ST_NO, ST_WIDE))
+    nm_ = elig & np.isin(D["st2_2"], (ST_NO, ST_WIDE, ST_TICK))
     capm = MV["cap_b2"]
     hc = nm_ & np.isfinite(capm)
     wc[hc] = 100.0 * (capm[hc] - m0[hc])
@@ -720,9 +732,9 @@ def b2_test(F: dict, MV: dict, census_b: dict | None, *, sd_x: float, n_draws: i
     rob["s_nonzero_only"] = _keep_sign(mk, idx[D["s"][idx] != 0])
     rob["no_print_between_sweeps"] = _keep_sign(mk, idx[D["prt"][idx] == 0])
     rob["unchanged_touch_sizes"] = _keep_sign(mk, idx[D["tsz_same"][idx] == 1])
-    dmc = np.where(elig & np.isfinite(capm), 100.0 * (capm - m0), np.nan)
+    dmc = np.where(core & np.isfinite(capm), 100.0 * (capm - m0), np.nan)
     rob["capture_mark"] = _keep_sign(win.make_fe(dmc, xs, tok), np.nonzero(np.isfinite(dmc))[0])
-    ok6 = elig & (D["st6_2"] == ST_OK) & np.isfinite(MV["6h_b2_bid"])
+    ok6 = core & (D["st6_2"] == ST_OK) & np.isfinite(MV["6h_b2_bid"])
     dm6 = np.where(ok6, 100.0 * ((MV["6h_b2_bid"] + MV["6h_b2_ask"]) / 2.0 - m0), np.nan)
     rob["mark_6h"] = _keep_sign(win.make_fe(dm6, xs, tok), np.nonzero(np.isfinite(dm6))[0])
     res["robustness"] = rob

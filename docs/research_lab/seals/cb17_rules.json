@@ -400,7 +400,7 @@
       0.9
      ],
      "NO_MARK": "no mark",
-     "NO_MARK_RULE": "eligibility uses the decision sweep and earlier rows only; a token absent from the mark pass or one-sided there is 'no mark' (availability, counted by state bin); a mark spread > 10c is 'wide mark' (counted; worst case); a tick size different at the mark is 'tick change' (excluded and counted, as declared; O9)",
+     "NO_MARK_RULE": "eligibility uses the decision sweep and earlier rows only; a token absent from the mark pass or one-sided there is 'no mark' (availability, counted by state bin); a mark spread > 10c is 'wide mark' (counted; worst case); a tick size different at the mark is 'tick change' (an availability status like 'wide mark': in the availability denominator, counted, never in the primary sample, and in the binding worst case; O9 ruling)",
      "OLD_CUT_ALTS_S": [
       300.0,
       1800.0
@@ -596,7 +596,7 @@
        7200.0,
        14400.0
       ],
-      "no_mark": "eligibility uses the decision sweep and earlier rows only; a token absent from the mark pass or one-sided there is 'no mark' (availability, counted by state bin); a mark spread > 10c is 'wide mark' (counted; worst case); a tick size different at the mark is 'tick change' (excluded and counted, as declared; O9)",
+      "no_mark": "eligibility uses the decision sweep and earlier rows only; a token absent from the mark pass or one-sided there is 'no mark' (availability, counted by state bin); a mark spread > 10c is 'wide mark' (counted; worst case); a tick size different at the mark is 'tick change' (an availability status like 'wide mark': in the availability denominator, counted, never in the primary sample, and in the binding worst case; O9 ruling)",
       "worst_case": {
        "B1": "capture mark first; else old L = 0, fresh p95 of available fresh L",
        "B2": "capture mark first; else x > 0 p5, x < 0 p95 of available dm, x = 0 -> 0"
@@ -881,7 +881,7 @@
    ],
    "part": "B",
    "part_declared": true,
-   "rules_sha256": "fd9ce65606ed94d90ecc9a364bf6f6ad99754ae3a8f77e1aa778f723ef28c4aa",
+   "rules_sha256": "64e61091574ec4406b6f235f48f37ab2d0bf8b41bf89bfbeace9153186c96a10",
    "rules_version": "cb17-rules-v1",
    "shared_helper_sources_sha256": {
     "cb10_common.require_disk": "1e0e4e4682fa9a16fa71df384f5163983fa5cfa675b15a9b7f009dbbf3d81370",
@@ -1346,7 +1346,7 @@
       "C": "sign(dm_int) x 100 x (m_k+1 - m_k) cents per qualifying member; unit value = mean over members with an available mark",
       "available": "capture k + 1 consecutive (gap 100-140 min) and the member row two-sided, spread <= 10c, mid in [0.03, 0.97], closed false",
       "unavailable": "'unavailable (mark)' by class and reason ['capture missing', 'member closed', 'one-sided', 'wide', 'extreme mid']; never an exclusion; 60% availability rule",
-      "worst_case": "every unavailable member at the adverse bound (transfer p5, mint-heavy and merge-heavy p95 of available member C; a one-sided k + 1 touch adverse to continuation where more adverse); sign kept"
+      "worst_case": "every unavailable member at the adverse bound (transfer min(p5, touch-C); mint-heavy and merge-heavy max(p95, touch-C), of available member C; touch-C is the one-sided k + 1 touch adverse to the hypothesis by class: adverse to continuation for transfer, favourable to continuation for mint / merge); sign kept"
      },
      "units": "(event, interval k) for non-sports arm-0 events in SCREEN_8 (arm-1 in REP_8); decision time = capture k's last-page received_utc",
      "version": "cb17-C-v1"
@@ -1564,28 +1564,28 @@
     "cb17_common.write_result_once": "91c8c5fa4a6103a5f0213a8f2101d6e383c8679779192684521e58262aa32de4",
     "cb17_rules_c.classify": "535db0ace7427278cf14c4d9034a9ce739d2e5278aaba19941d68e6e4458b4b9",
     "cb17_rules_c.continuation": "ab72b54890071008bf69e38e577e36fe2b96172e25de5051876eecb33e54c83c",
-    "cb17_rules_c.declared": "baf3d47294f76744f922513b268ac07c34c8e2839cfbd2355bc7d7c097e839ed",
+    "cb17_rules_c.declared": "68e351253914ca513fe5fe7a2e4c24bd5e8794104f83b82a986586182b6f755d",
     "cb17_rules_c.gate_gc": "a50069150a367fc866311ebad5602f20d01ac8f398dba6b2777a7a3c57d8b996",
     "cb17_rules_c.gate_gcu": "b7321896a4578a13450949da2c0e3c3537e2715840cb2ebfcf56719c7725ac95",
     "cb17_rules_c.interval_ok": "4d12cf3f9e2d0b3ae1ca2ba8a3eb01e945043a1cf30bb7f6ddc9c4faff1d0bd1",
     "cb17_rules_c.mark_reason": "f605796bbf3f9acffa8ae87b118933219d4a88f4846fb1706ef90d8bd156980f",
     "cb17_rules_c.member_mid": "f4293352d88171b83cbb96f84361a6d484e69da06bee5e9ce641e4ec92408f12",
-    "cb17_rules_c.onesided_adverse": "109f01ac4b31e0a0d65d272fb89e67872512e21cf344366ee3d54c2a56caac0e",
+    "cb17_rules_c.onesided_adverse": "d6266df1ed79fec8ce3653e14ead91fd8b9af95b5fde1fca8304674046a4540c",
     "cb17_rules_c.qualifying_moves": "3622232188912c4703a4b807df18934cc2394ba8d871b1f0c6f94f461c8a82b7",
     "cb17_rules_c.r_lag": "3e23d7f04cbb97c3d9331b99d66d5bba23fa13a5632b08276946def849f92d98",
     "cb17_rules_c.r_state": "5fa56849f287947f12e726c5d2da6d3ecbaae7079f2de94f75ccbaa594db31fc",
     "cb17_rules_c.stratum_c": "8f779d6165f28502bfdb9443da82ee0b660462b0690f6fd3c3756fb6f9853db5",
     "cb17_rules_c.whole_window_class": "a2cc61245debadf439527f4c60f07d021908a56c40bac898b450f9f9e47c228e",
-    "cb17_rules_c.worst_member": "95ebeb483279325213f7793429ee0d96191b5aaf984db507c76e22ec8eea1f74"
+    "cb17_rules_c.worst_member": "2a84cbf5a72e28adaf9a0385a3e679ec6fff11ac8ecf8ec13fd5f3e0c37c2df5"
    },
-   "funcs_sha256": "d40f8218c52473ff0fd9209b96a9f31d6ef93207e292a63882d054b69e99b336",
+   "funcs_sha256": "10a4b0d74701a4cbdfbe244981fd2413c3e5362e58b0f4bf59258a8dca8f0380",
    "modules": [
     "cb17_common",
     "cb17_rules_c"
    ],
    "part": "C",
    "part_declared": true,
-   "rules_sha256": "68bd50a2c33db7a50ae2a3efb411a629d7b251355784de50ed5433e59e4bf632",
+   "rules_sha256": "3e24af26db1c827b6ff8dadc5bc63743a4cd03280d510211edf0ad87137b2647",
    "rules_version": "cb17-rules-v1",
    "shared_helper_sources_sha256": {
     "cb10_common.require_disk": "1e0e4e4682fa9a16fa71df384f5163983fa5cfa675b15a9b7f009dbbf3d81370",
@@ -1901,9 +1901,10 @@
       24.0,
       168.0
      ],
-     "POPULATION_COUNTS": "all non-sports monitor transactions with a single condition id (unsigned; branch T reads no side)",
+     "POPULATION_COUNTS": "the CB13-T touch-consistent fills (the signable population under branch T): non-sports first-day transactions and markets with first-day and later transactions",
      "POPULATION_MDE": "the CB13-T touch-consistent fills (the signable population under branch T)",
-     "POPULATION_RULE": "O1 literal reading: re-entry counts on POPULATION_COUNTS, the proxy MDE on POPULATION_MDE; both populations reported",
+     "POPULATION_REPORTED": "all non-sports monitor transactions with a single condition id (unsigned; branch T reads no side): the same counts, REPORTED ONLY (never decide the verdict)",
+     "POPULATION_RULE": "O1 amended: re-entry counts and the proxy MDE bind on the signable (touch-consistent) population; the counts on all transactions are reported only",
      "REENTRY_MDE_MAX_C": 1.0,
      "REENTRY_MIN_MARKETS": 150,
      "REENTRY_MIN_TX": 400,
@@ -1927,9 +1928,10 @@
      },
      "k": 0,
      "populations": {
-      "counts": "all non-sports monitor transactions with a single condition id (unsigned; branch T reads no side)",
+      "counts": "the CB13-T touch-consistent fills (the signable population under branch T): non-sports first-day transactions and markets with first-day and later transactions",
       "mde": "the CB13-T touch-consistent fills (the signable population under branch T)",
-      "rule": "O1 literal reading: re-entry counts on POPULATION_COUNTS, the proxy MDE on POPULATION_MDE; both populations reported"
+      "reported_only": "all non-sports monitor transactions with a single condition id (unsigned; branch T reads no side): the same counts, REPORTED ONLY (never decide the verdict)",
+      "rule": "O1 amended: re-entry counts and the proxy MDE bind on the signable (touch-consistent) population; the counts on all transactions are reported only"
      },
      "reentry": {
       "condition": "the later design must make the spread-free mark binding",
@@ -2166,18 +2168,18 @@
     "cb17_common.utc_hour": "ea6422f9fe7208fa7aa19a5478016e8413e3742cb1d51927ffc98f7020dbff4a",
     "cb17_common.write_result_once": "91c8c5fa4a6103a5f0213a8f2101d6e383c8679779192684521e58262aa32de4",
     "cb17_rules_e.age_group": "174079b8326b80fa95769c1094c811a084a9f49fd475eb03aed954ceb645e566",
-    "cb17_rules_e.declared": "3712532d2557808f8e978960e01fab90a609c0b1a03f1d439cc24da2d55cf66e",
+    "cb17_rules_e.declared": "31964b55f9b1d9155f6b9e05c5b89ce485e0d926b25160f55d641d9137193f6f",
     "cb17_rules_e.market_age_h": "34f312ef3eebe8070485cbd26fca5b6784bad754a1d1a6d0ed1c610249c3c173",
     "cb17_rules_e.reentry_verdict": "1b6e253ea0b8fc8c08360180aefca7eee462a0279367dbbd132034c196bcfb97"
    },
-   "funcs_sha256": "814a52d8d0a0d0d6d1d0c79af6b426ee8345b08a55a8d16208a63b02bc3ffceb",
+   "funcs_sha256": "a86d2b284e70f73700bfc5ab6eee9d364e8b6224d16d6d404630e9ce62231d13",
    "modules": [
     "cb17_common",
     "cb17_rules_e"
    ],
    "part": "E",
    "part_declared": true,
-   "rules_sha256": "337382d63da11f724743b1969dff878ff6e92f536f245953a455bb2037301418",
+   "rules_sha256": "9b1eba65e5de9de0f67e31f9d7dccf6f012ef8ee37895a603aaa5a6103067412",
    "rules_version": "cb17-rules-v1",
    "shared_helper_sources_sha256": {
     "cb10_common.require_disk": "1e0e4e4682fa9a16fa71df384f5163983fa5cfa675b15a9b7f009dbbf3d81370",

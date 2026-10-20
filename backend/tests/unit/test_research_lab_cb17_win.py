@@ -253,7 +253,7 @@ def test_e_frame_has_no_side_and_the_census_reports_both_populations_with_k_zero
     fr = fe.build_frame(W["tr"], W["snap"], units=(FLOOR, FLOOR + 14 * DAY), cap_lo=FLOOR)
     assert fr["transactions"] > 0 and all("side" not in r and "recv_ts" not in r for r in fr["rows"])
     cen = fe.census(fr)
-    assert cen["k"] == 0 and set(cen["populations"]) == {"counts", "mde", "rule"} and "reentry" in cen
+    assert cen["k"] == 0 and set(cen["populations"]) == {"counts", "mde", "reported_only", "rule"} and "reentry" in cen
     c17.assert_clean_result(cen)
 
 
