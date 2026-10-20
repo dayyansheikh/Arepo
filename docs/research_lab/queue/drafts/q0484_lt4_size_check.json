@@ -1,6 +1,6 @@
 {
  "id": "q0484_lt4_size_check",
- "title": "LT4 simulated-null size of the label-permutation (binary, continuous) and distant-donor gates on the code to be pinned (DRAFT): 6 scenarios x 2,000 worlds x 99 draws, criterion rate <= 0.05 + 1.645 sqrt(0.0475 / 2000) = 0.058",
+ "title": "LT4 simulated-null size of the label-permutation (binary, continuous) and distant-donor gates on the code to be pinned (DRAFT): 7 scenarios x 2,000 worlds x 99 draws, criterion rate <= 0.05 + 1.645 sqrt(0.0475 / 2000) = 0.058",
  "family": "live_tests_4",
  "priority": 28,
  "expected_value": "LIVE_TESTS_4.md 1.8 size statement at the pinned code",

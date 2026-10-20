@@ -48,6 +48,11 @@ KIND_RULES: dict[str, tuple[str, str]] = {
         "LT3 single analysis (E015-E019; LIVE_TESTS_3.md 1.11): one line, n_tests = k = the Holm primaries that "
         "survived their census gates; gate draws, secondaries, mechanism readings, economics and censuses are 0.",
     ),
+    "live_tests4": (
+        N_TESTS,
+        "LT4 single analysis (E020-E024; LIVE_TESTS_4.md 1.11): one line, n_tests = k = the Holm primaries that "
+        "survived their census gates; gate draws, secondaries, mechanism readings, economics and censuses are 0.",
+    ),
     "econ_conditions_taker": (
         N_TESTS,
         "n_tests=95: BY was applied across 95 testable cells of BOTH parts (taker and maker), so the "

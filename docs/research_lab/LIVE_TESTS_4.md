@@ -43,11 +43,11 @@ it never opens the LT2 or LT3 stores.
 
 | # | Lesson (source) | LT4 rule |
 |---|---|---|
-| L1 | Exact float writes (LT3 freeze fix 1; LT2 fix F: `%.7g`/`%.6g` rounded epochs by 1,000-10,000 s) | `write_once_csv` writes `float_format="%.17g"`; a unit test round-trips epoch seconds with microseconds and a 0.005 volume difference |
+| L1 | Exact float writes (LT3 freeze fix 1; LT2 fix F: `%.7g`/`%.6g` rounded epochs by 1,000-10,000 s) | `write_once_csv` writes `float_format="%.17g"`; the analysis reads frozen and outcome files with `float_precision="round_trip"`, so values come back exactly (unit test). Reads inside the imported LT3 helpers use pandas' default parser, which can differ by 1 ulp (13.2) |
 | L2 | NaN refusals (LT3 fix 2) | a pinned spec with a null **or NaN** census value (`vol24_cap`, any scale, any cut, `k_tests`) is refused; every census gate item that depends on a NaN fails closed |
 | L3 | Census input identity (LT3 R1 finding 3) | every census input file is named in a seal with its sha256 (captures and sweeps: `seals/lt4_census_inputs_captures.json`; samples: the LT3 C2 seal, the same 23 samples); the census re-hashes each file and **refuses** a mismatch or an unsealed file |
 | L4 | Planning-MDE <= floor gate in every census (LT3 fix 4) | each test's census gate includes its pessimistic planning MDE, recomputed on the census-projected effective counts, at or below the floor (section 8) |
-| L5 | Simulated-null gate size (LT3 13.5, fix 3) | `size-check` on the code to be pinned, >= 2,000 worlds per scenario, criterion rate <= 0.05 + 1.645 sqrt(0.0475 / worlds) = 0.058; six scenarios including the two new ones (continuous-label permutation; donor gate with a correlated true moderator held as a control) |
+| L5 | Simulated-null gate size (LT3 13.5, fix 3) | `size-check` on the code to be pinned, >= 2,000 worlds per scenario, criterion rate <= 0.05 + 1.645 sqrt(0.0475 / worlds) = 0.058; seven scenarios including the two new ones (continuous-label permutation; donor gate with a correlated true moderator held as a control) |
 | L6 | Dry-run guards (LT3 fix 5) | `run --dry-run-start` refuses the live root (exit 2); `allow_late` is refused with a pinned spec; `load_spec` refuses a spec whose dates differ from the module constants |
 | L7 | Spec and code pins (LT2 fault 6) | the spec pins `code_sha256` of `live_tests4.py`, `live_tests4_analysis.py` **and the imported `live_tests3.py`, `live_tests3_analysis.py`** (normalised: the `SPEC_SHA256` line excluded); every frozen line carries `spec_sha` and `code_sha` (16 hex of the joint reader hash); the analysis keeps only matching lines and refuses a pinned spec with an unfilled or mismatched map |
 | L8 | Per-capture status files (LT2 fault 3, LT3 1.5) | the reader writes its own `series/` and `status/` per capture and a status for every unit at every target, write-once, online; the analysis never needs raw captures, sweeps or samples |
@@ -152,7 +152,7 @@ Applied in this order, each exclusion counted (LT3's `move_join` and `classify`,
   units with < 2 donors keep their own (counted).
 - A failed gate gives p = 1 in Holm and the label "SE check failed" (E020-E022) or "within-unit timing not shown"
   (E023, E024).
-- **Size check (L5):** `size-check` runs six scenarios with no effect: binary permutation (iid; persistent market rates),
+- **Size check (L5):** `size-check` runs seven scenarios with no effect: binary permutation (iid; persistent market rates),
   continuous permutation (persistent moderator level and AR(1) within market), donor (iid; AR(1) 0.6; life cycle) and donor
   with a correlated true moderator (a control moderator `zA` with a real `x6·zA` effect, the tested moderator correlated 0.4
   with it, `x6·zA` and `zA` in the controls). Criterion: rate <= 0.058 at 2,000 worlds; a failing scenario blocks the pin.
@@ -212,10 +212,16 @@ Applied in this order, each exclusion counted (LT3's `move_join` and `classify`,
   status `two_sided` at k + 1; tightness at k + 1 not required, j-tight a sensitivity). Horizon 2 h. The moving side's own
   return (the bounce) cannot enter `r`.
 - **Primary statistic.** Expanding-past demeaned OLS of `r` on `AR = 1[arrival]` over arrivals and cancellations, ordered by
-  origin within market, controls: `spread_k`, `spread_{k−1}` (spread mean reversion moves the unmoved side mechanically in
-  both classes; holding both spreads isolates the order event), `log |x|`, logit `mid_k`, `|mid_k − 0.5|`, `log1p
-  volume24hr_k`, log hours-to-end (unknown → 0 with a flag), reward flag (`rewards_max_spread > 0`). Inference 1.7; seed
-  20261030. Gate: label permutation (1.8), seed 20261130.
+  origin within market, controls: `spread_{k−1}` (the pre-move spread, demeaned within market: how far the book already
+  was from its own norm), `log |x|`, logit `mid_k`, `|mid_k − 0.5|`, `log1p volume24hr_k`, log hours-to-end (unknown → 0
+  with a flag), reward flag (`rewards_max_spread > 0`). Inference 1.7; seed 20261030. Gate: label permutation (1.8), seed
+  20261130.
+- **Why `spread_k` is not a control (found in the synthetic test).** For a one-sided move `spread_k − spread_{k−1} = ∓2|x|`
+  exactly: the spread change *is* the label. With both spreads (and `|x|`) controlled, the label is nearly collinear with
+  the controls (exactly so when `|x|` is constant). The both-spreads model is a reported sensitivity
+  (`sensitivity_spread_k_control`). The mechanical spread-reversion channel (an arrival leaves the spread below its norm,
+  a cancellation above it, and either can be undone by the unmoved side) is therefore *not* removed by a control; it is
+  read by M2 (below) and is question 1 for the challenger.
 - **Mechanism readings (pre-declared label rules).** M1: the same estimator with the sweep target `r_sw = s · (U^sw_{k+1} −
   U^sw_k)` (sweep 1 of passes k and k + 1, the CLOB book). If E020 is Supported and M1 is below 50% of D_AC or its one-sided
   p >= 0.05: label **Gamma-quote mechanics**. M2: the skip-slot persistence `r_skip = s · (U_{k+3} − U_{k+1})`. If E020 is
@@ -349,7 +355,7 @@ Applied in this order, each exclusion counted (LT3's `move_join` and `classify`,
 - **Mechanism reading (label rule).** M1: `x6` and `OP` on a window ending 30 min before `t`; if Supported and M1 below 50% or
   p >= 0.05: **possibly mechanical (stale-mid catch-up)**.
 - **Secondaries.** S1 the two-leg regression (`y6` on `o6` with `x6` controlled: the coefficient is `beta_open − beta_close`);
-  S2 within opens, BUY outcome 1 versus BUY outcome 0 (the "bet-against" opener); S3 OP on row counts; S4 by category.
+  S2 within opens, the share of BUY notional on outcome 1 (the "bet-against" opener) as a moderator; S3 by category.
 - **Planning MDE (estimate).** As E016 (LT3 3): about 250,000 market-samples in 21 days before the `V*` cut in an assumed
   5,000-8,000 events; per-SD interaction SE about 0.00053 (SB2-J2 h3 scaled, x 1.5 for proxy noise and attenuation) x
   1.0-1.6 for day clustering: MDE 0.0018-0.0029 per SD before the controls' cost; with a census VIF of `zOP` on the other
@@ -376,8 +382,7 @@ Applied in this order, each exclusion counted (LT3's `move_join` and `classify`,
   `x6·zW`, `zW`, `x6·zH`, `zH` (LT3's walked and train measures, recomputed by LT4 with LT4's census scales), so the
   coefficient is the concentration effect net of walking and trains; `x6·zN`, `zN` and `x6·zSize`, `zSize` hold the row count
   and the mean order size (C >= 1/N mechanically). Seeds 20261103 / 20261203.
-- **Mechanism reading:** as E023's M1. **Secondaries:** HHI in place of C; C on row counts; by category; the worked-order
-  fingerprint (the share of rows of equal size, CH69) reported.
+- **Mechanism reading:** as E023's M1. **Secondaries:** HHI in place of C; by category.
 - **Planning MDE (estimate).** As E023's base (0.0018-0.0029 per SD) times `sqrt(VIF)`, the VIF of `zC` on `zN`, `zSize`,
   `zW`, `zH`, `zSPR`, `zRV`, `zHTE` (C is tied to the row count): assumed 1.5-2.5, **about 0.0022-0.0046 per SD**; the census
   computes it and gates at 0.0036. **Declared in advance: E024 may be dropped at the census.**
@@ -397,8 +402,8 @@ Applied in this order, each exclusion counted (LT3's `move_join` and `classify`,
   category (the population is non-sports only).
 - **CH170 → E021:** all categories on the trade-sample stream (power and the family convention), with the trade-intensity
   control `log1p n2h` (age is mechanically shorter in busy markets) and an explicit clock-validity rule.
-- **CH169 → E020:** tick-flip exclusion and both spreads as controls (spread mean reversion moves the unmoved side
-  mechanically); the M2 skip-slot label.
+- **CH169 → E020:** tick-flip exclusion; the pre-move spread as a control (round 10's `spread_{k−1}`; the post-move spread
+  would be the label itself); the M2 skip-slot label.
 - **CH173 → E024:** the correlation gates are on absolute values (stricter than round 10's > 0.5), and a VIF-adjusted MDE gate
   is added.
 
@@ -482,12 +487,14 @@ the first-unit drop and carry within-market variation).
   **never both**. Installing is a host change under the standing collection authorisation, done by the orchestrator.
 
 ### 9.3 Tests and pins
-- `backend/tests/unit/test_research_lab_live_tests4.py` (synthetic only): arrival/cancellation labels and the unmoved side;
-  tick-flip exclusion; the clock (age from the newest pre-origin row, truncation, inconsistency); `h` and the superset;
-  `OP`, `C`, `HHI`; causality (future captures with wild prices leave frozen lines byte-identical); late refusal and
-  write-once; `%.17g` round trip; the `.nosweep` marker; dry-run and lock guards; ops-stats reads no price column; the
-  counting rule equals k; the analysis refuses before the date and refuses an unpinned or NaN-filled spec; census seal
-  refusal; the planning-MDE gates; the p = max rule; the size check on small runs; an end-to-end synthetic analysis.
+- `backend/tests/unit/test_research_lab_live_tests4.py` (20 tests, synthetic only): arrival/cancellation labels and the
+  unmoved side; tick-flip exclusion; the clock (age from the newest pre-origin row, post-origin rows ignored, truncation,
+  no prior, inconsistency); `h` and the superset; `OP`, `C`, `HHI`, the legs; causality (future captures and sweeps with
+  wild prices leave every frozen line identical); late refusal, write-once and the dry-run guard; the `.nosweep` marker and
+  sweep statuses; `%.17g` round trip; the run lock; ops-stats reads no price column; the four-module hashes and the joint
+  reader sha; the counting rule equals k; the analysis refuses before the date and refuses an unpinned, null or NaN-filled
+  spec; the p = max rule; the sealed censuses (counts only, tampering refused); the planning-MDE gates; the size check on
+  small runs with planted effects; an end-to-end synthetic analysis (all five tests fitted; a reduced `k_tests`).
 - At registration: `SPEC_SHA256` and the four module hashes are pinned together.
 
 ## 10. Disclosures
@@ -501,15 +508,18 @@ the first-unit drop and carry within-market variation).
 - **Closest prior AREPO tests.** E020: E015 (S1 one-sided minus traded), E004/E006 (pooled reversal, consistent with bounce),
   SB2-J4, CB3, CH80/CB-dust. E021: E004, SB2-J3 (could not run), J4, CH132. E022: E015 M1, CB3 (quote vacuum), CH35, CH133.
   E023: E007, E013, CH144/CB17-A (withdrawn, branch T, a different sign source). E024: E016, E018, HB1 size features.
-- **Mechanics stated up front.** E020: spread mean reversion moves the unmoved side in both classes (controls, M2). E021:
+- **Mechanics stated up front.** E020: spread mean reversion can move the unmoved side in both classes (M2 label; the
+  spread change is the label, so it cannot be a control). E021:
   the fresh class is the bounce (M2 is the reading). E022: hollowness is partly thinness (depth control, M1). E023: closing
   flow is larger near the end (`x6·zHTE`). E024: C is tied to the row count and to walking/trains (controls, gates).
 - **Shared data.** LT2, LT3, E011, CB-batch windows read the same captures, sweeps and samples. Overlap only.
 
 ## 11. Questions for the challenger
 
-1. E020: is the unmoved side's 2 h change, with both spreads controlled, a target that bounce and spread mean reversion
-   cannot produce in the arrival-minus-cancellation contrast? Is the M2 "transient" label the right binding check?
+1. E020: the unmoved side's 2 h change excludes the bounce, but spread mean reversion can still move the unmoved side, and
+   the post-move spread cannot be a control (it is the label). Is the M2 "transient" label (skip-slot give-back) a
+   sufficient binding check, or should the primary condition on the post-move spread's deviation from the market's
+   expanding-past norm in a non-linear way (for example bins)?
 2. E021: is the bounce-as-object framing acceptable as a counted primary, given that the expected Supported result carries
    both mechanism labels? Or should the primary be the skip-slot target (testing persistence instead of timing)?
 3. E021: all categories on the trade-sample stream (power and family convention) versus the capture family's non-sports
@@ -547,4 +557,50 @@ the first-unit drop and carry within-market variation).
 >   2026-11-16T00:00Z)`; single analysis on or after 2026-11-17T12:00Z. Economics: paper taker round trips, expected "not shown".
 > - **Not taken:** CH172 (smallest population; LT5 candidate), CH178 (would double-count E015), CH177/CH179 (maps first), CH175 (map), CH176 (needs ~60 days).
 > - **Status:** DRAFT awaiting the capture/sweep seal, censuses CQ/CH/CF (q0480-q0483), the challenger review, the size check
->   (q0484), the pin and the ledger entry; no line is `prospective_confirmation` until the pin.
+>   (q0484), the pin and the ledger entry; no line is `prospective_confirmation` until the pin. Code, spec and 20 synthetic
+>   tests on `feat/live-tests-4` (section 13).
+
+## 13. Code pass (2026-10-20): what exists, and what the code taught the design
+
+Code: `live_tests4.py`, `live_tests4_analysis.py`, `scripts/run_live_tests4.py`, spec `model_specs/live_tests4_v1.json`
+(DRAFT: `SPEC_SHA256 = None`, `k_tests`, scales and cuts null), tests `tests/unit/test_research_lab_live_tests4.py` (20 tests,
+synthetic only), `battery2.KIND_RULES["live_tests4"]`. No real target, capture, sweep or sample was read. No threshold, floor,
+alpha, direction or Holm rule was changed to obtain a pass.
+
+### 13.1 Design changes made during the code pass (all before any data; disclosed)
+1. **E020 controls (section 2).** The synthetic end-to-end test returned "no residual variation" for E020: for a one-sided
+   move `spread_k − spread_{k−1} = ∓2|x|`, so `spread_k`, `spread_{k−1}` and `log |x|` together reproduce the label. The
+   primary keeps `spread_{k−1}` only; the both-spreads model is `sensitivity_spread_k_control`. Consequence: spread mean
+   reversion is not controlled in E020's primary; M2 is the binding reading (question 1).
+2. **`.nosweep` versus `.late` (section 1.5).** A sweep is "missing" 3 h after its slot, but E022's freeze deadline is the next
+   slot (2 h). As first written, every missing sweep would have become a `.late` marker and inflated the late-loss label. Now:
+   if the deadline passes with no sweep file, the reader writes `.nosweep` (missing data for E022, counted), not `.late`.
+3. **Secondaries not implemented, removed from the text:** E023 "OP on row counts", E024 "C on row counts" and the
+   worked-order fingerprint. Added: E022 S2 reward split (it was in the text, not the code).
+
+### 13.2 Findings for the challenger (code against design)
+- **Float read-back (affects LT2 and LT3 too).** `%.17g` writes are exact, but pandas' default C parser reads a 17-digit
+  value back with up to 1 ulp of error (unit test: `0.30000000000000004` read as `0.3`). LT4's analysis reads with
+  `float_precision="round_trip"` (exact). LT4's imported LT3 helpers (`read_series`, `read_sweep`, `outcome_h`) use the
+  default parser, so series quotes and epochs used in freezing can differ from the written value by <= 1 ulp. Every class
+  rule has a tolerance of 1e-12 or wider (`classify`, the spread rule 1e-9, the tight rule), far above 1 ulp, so no label
+  can flip except at an exact tie within 1e-16. LT2's and LT3's analyses read with the default parser as well; the same
+  argument applies. Recorded, not fixed in LT3 (its code is frozen for its own pin).
+- **LT3 code reuse and pins.** LT4 imports the LT3 reader and analysis functions listed in 9.1 (and LT3 utilities) unmodified; the hashes of `live_tests3.py`
+  (`202c0d63…`) and `live_tests3_analysis.py` (`b03c6321…`) equal the values in `LIVE_TESTS_3.md` 13.9. Any LT3 change before
+  LT4's pin changes LT4's `code_sha256` map; after the pin it would make LT4 lines unmatchable (intended).
+- **Current module hashes (DRAFT; change with any edit):** `live_tests4.py` `e54aaff3b750e031…`,
+  `live_tests4_analysis.py` `499e5b69214abe6e…`; joint reader sha `d8e1978008b669e9`.
+
+### 13.3 Preliminary size check (not the registered statement)
+Placeholder: filled below when the local 200-world run finishes. The registered statement needs >= 2,000 worlds on the
+code to be pinned (q0484).
+
+### 13.4 What remains before the pin
+- `seals/lt4_census_inputs_captures.json` from the releases' `files.sha256` (q0480 restores the files; tags to confirm).
+- Challenger review of this file (`science-reviewer`), then the freeze check of code against design.
+- Censuses q0482 (CQ, CH) and q0483 (CF); fill `k_tests`, `vol24_cap`, the flow scales, the `zh` scale, `h` cuts, the gap
+  and the OP/C cuts; record drops in 7.3.
+- Size check at >= 2,000 worlds on the code to be pinned (q0484); any failing scenario blocks the pin.
+- A host dry run on past captures into a scratch root (`run --dry-run-start ... --root <scratch>`), memory measured.
+- `code_sha256` map, `SPEC_SHA256`, ledger entry, cron install (9.2), at least 24 h before `REGISTERED_UTC` (1.1).

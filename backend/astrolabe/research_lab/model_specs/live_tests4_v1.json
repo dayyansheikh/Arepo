@@ -1,0 +1,322 @@
+{
+ "spec_id": "live_tests4_v1",
+ "status": "DRAFT (not registered; sha256 not pinned in live_tests4.py; census scales, cuts and k not filled)",
+ "design": "docs/research_lab/LIVE_TESTS_4.md",
+ "experiments": [
+  "E020",
+  "E021",
+  "E022",
+  "E023",
+  "E024"
+ ],
+ "registered_utc": "2026-10-26T00:00:00Z",
+ "end_utc": "2026-11-16T00:00:00Z",
+ "analysis_not_before": "2026-11-17T12:00:00Z",
+ "k_tests": null,
+ "k_tests_rule": "list of the primaries that survived their census gates (LIVE_TESTS_4.md section 8), fixed before the pin; Holm m = len(k_tests); null = not filled (a pinned spec with null k_tests is refused)",
+ "code_sha256": {
+  "live_tests4.py": null,
+  "live_tests4_analysis.py": null,
+  "live_tests3.py": null,
+  "live_tests3_analysis.py": null
+ },
+ "code_sha_rule": "normalised module sha256 (the SPEC_SHA256 line excluded); frozen lines carry code_sha = first 16 hex of sha256(h(live_tests4.py) + h(live_tests3.py)) (LIVE_TESTS_4.md 1.0 L7)",
+ "grid": {
+  "grid0_utc": "2026-10-01T00:31:00Z",
+  "grid_s": 7200,
+  "slot_tol_s": 1800
+ },
+ "eligibility": {
+  "spread_max": 0.1,
+  "rule": "section 1.4: binary, not closed, active, two-sided (0 < bid < ask <= 1) and spread <= 0.10 (Gamma spread, else ask - bid) at k-1 and k; one row per market_id and per condition_id (first in page order)"
+ },
+ "sports_rule": "cb17_census.is_sports_sidecar(fee_type, fee_category, series_slugs) on the sidecar of the capture; sidecar missing -> sports = -1 (unknown; excluded wherever the category is needed)",
+ "crypto_rule": {
+  "fee_type_prefix": "crypto",
+  "slug_regex": "(?i)(bitcoin|ethereum|solana|xrp|dogecoin|crypto|^btc|^eth-|^sol-|^bnb|^hype)",
+  "rule": "crypto = fee_type starts with 'crypto' or the first series slug matches slug_regex (section 13, finding 2)"
+ },
+ "series_key_rule": "first series slug if present, else 'event:' + event_id; crypto rows without a slug -> 'crypto:noslug' (one family: one spot driver)",
+ "move": {
+  "mid_lo": 0.02,
+  "mid_hi": 0.98,
+  "end_margin_h": 3,
+  "min_abs_x": 0.01,
+  "ltp_tol": 1e-09,
+  "vol_tol": 0.01,
+  "parallel_min": 0.005,
+  "parallel_max_diff": 0.005,
+  "one_sided_max": 0.0005,
+  "class_rule": "never_traded (ltp absent at k-1 and k) > traded (L or V+) > ambiguous (V-, ltp present at k-1 and absent at k, or volume24hr unknown) > quote_only (not L, V0); geometry for every unit: parallel (sign db = sign da = sign x, both >= 0.005, |db - da| <= 0.005), one_sided (min(|db|,|da|) <= 0.0005), spread_change (opposite signs, both > 0.0005), same_side_unequal (rest)",
+  "horizons": [
+   1,
+   3
+  ],
+  "sweep_tags": [
+   0,
+   1
+  ]
+ },
+ "e020": {
+  "population": "non_sports",
+  "spread_eps": 1e-09,
+  "tick_eq_tol": 1e-12,
+  "floor_c": 0.005,
+  "floors": {
+   "arrivals": 5000,
+   "cancellations": 5000,
+   "events": 300,
+   "days": 10
+  },
+  "econ_min_abs_x": 0.03,
+  "rule": "one-sided quote-only |x| >= 1c movers, tick known and equal at k-1 and k; arrival = quoted spread (ask - bid) narrowed by > 1e-9, cancellation = widened by > 1e-9; U = the unmoved side; r = sign(x) (U_{k+1} - U_k)"
+ },
+ "e021": {
+  "population": "all",
+  "fresh_max_s": 900,
+  "settled_min_s": 3600,
+  "max_age_s": 9000,
+  "n2h_s": 7200,
+  "floor_c": 0.005,
+  "floors": {
+   "fresh": 2000,
+   "settled": 2000,
+   "events": 200,
+   "days": 10
+  },
+  "econ_min_abs_x": 0.03,
+  "rule": "traded |x| >= 1c movers in the pass's active sample; age = t_k - newest page row with ts < t_k; fresh <= 900 s, settled >= 3600 s; age > 9000 s -> clock_inconsistent; no pre-origin row -> unclocked_truncated (page full) or unclocked_no_prior"
+ },
+ "clock": {
+  "horizons": [
+   1,
+   3
+  ],
+  "sweep_tags": [
+   0,
+   1
+  ]
+ },
+ "hollow": {
+  "horizons": [
+   1,
+   3
+  ],
+  "sweep_tags": [
+   1
+  ],
+  "zh": {
+   "centre": null,
+   "scale": null
+  },
+  "h_cuts": [
+   null,
+   null
+  ],
+  "gap": null,
+  "rule": "D = depth_bid_5c * sbid + depth_ask_5c * sask (sweep 1 of pass k, outcome-0 token); L = Gamma liquidity at capture k; h = clip(1 - D / L, 0, 1); zh = (h - centre) / scale (census)"
+ },
+ "e022": {
+  "population": "non_sports",
+  "floor_c": 0.005,
+  "floors": {
+   "units": 20000,
+   "events": 300,
+   "days": 10
+  },
+  "econ_min_abs_x": 0.03
+ },
+ "flow": {
+  "window_s": 21600,
+  "lag_s": 1800,
+  "train_s": 300,
+  "x6_clip": 1.0,
+  "x6_sd": 0.8578247852488129,
+  "end_margin_h": 7,
+  "horizon_slots": 3,
+  "sweep_tags": [
+   0,
+   3
+  ],
+  "rv_steps": 12,
+  "rv_min_diffs": 6,
+  "walk_min_dist": 0.0001,
+  "walk_rule": "a signed row is walked if the sidecar tick at the sample's capture is known and |p - tick * round(p / tick)| >= 1e-4 (section 13, finding 4); tick unknown -> the row is left out of W (numerator and denominator)",
+  "vol24_cap": null,
+  "vol24_cap_max_trunc_share": 0.02,
+  "trunc_label_share": 0.03,
+  "zW": {
+   "centre": null,
+   "scale": null
+  },
+  "zH": {
+   "centre": null,
+   "scale": null
+  },
+  "zN": {
+   "centre": null,
+   "scale": null
+  },
+  "zSize": {
+   "centre": null,
+   "scale": null
+  },
+  "zSPR": {
+   "centre": null,
+   "scale": null
+  },
+  "zRV": {
+   "centre": null,
+   "scale": null
+  },
+  "zHTE": {
+   "centre": null,
+   "scale": null
+  },
+  "econ": {
+   "OP_upper_cut": null,
+   "C_upper_cut": null,
+   "min_abs_imb": 0.5
+  },
+  "categories": "all (sports reported split; category is a parameter)",
+  "zOP": {
+   "centre": null,
+   "scale": null
+  },
+  "zC": {
+   "centre": null,
+   "scale": null
+  },
+  "min_rows_C": 3
+ },
+ "e023": {
+  "floors": {
+   "units": 20000,
+   "events": 500,
+   "days": 10
+  },
+  "floor_gross_c": 0.005,
+  "underpowered_ref": 0.0029
+ },
+ "e024": {
+  "floors": {
+   "units": 20000,
+   "events": 500,
+   "days": 10
+  },
+  "floor_gross_c": 0.005,
+  "underpowered_ref": 0.0029
+ },
+ "seeds": {
+  "E020": 20261030,
+  "E020_gate": 20261130,
+  "E021": 20261031,
+  "E021_gate": 20261131,
+  "E022": 20261101,
+  "E022_gate": 20261201,
+  "E023": 20261102,
+  "E023_gate": 20261202,
+  "E024": 20261103,
+  "E024_gate": 20261203
+ },
+ "size_check": {
+  "worlds": 2000,
+  "draws": 99,
+  "seed": 20261026,
+  "nominal": 0.05,
+  "rule": "rejection rate of each gate under each simulated null <= 0.05 + 1.645 sqrt(0.05 x 0.95 / worlds); six scenarios (LIVE_TESTS_4.md 1.8); run on the code to be pinned"
+ },
+ "gates": {
+  "draws": 200,
+  "alpha": 0.05,
+  "perm_min_stratum": 4,
+  "donor_min_units": 4,
+  "donor_min_sep_s": 43200,
+  "donor_min_donors": 2
+ },
+ "labels": {
+  "fraction": 0.5,
+  "attrition_pp": 0.02,
+  "late_loss_share": 0.02,
+  "series_concentration": 0.5,
+  "unclocked_truncated_share": 0.02
+ },
+ "census_gates": {
+  "CQ_E020": {
+   "tick_known_min": 0.9,
+   "arrival_share": [
+    0.15,
+    0.85
+   ],
+   "arrivals_21d": 15000,
+   "cancellations_21d": 15000,
+   "mde_max": 0.005,
+   "mde_assumptions": {
+    "sd_c": 0.04,
+    "deff_event": 3.0,
+    "day_factor": 1.5,
+    "t_sum": 3.388
+   }
+  },
+  "CF_E021": {
+   "ts_not_minute_min": 0.5,
+   "band_share_min": 0.1,
+   "clocked_21d": 40000,
+   "unclocked_truncated_max": 0.05,
+   "mde_max": 0.005,
+   "mde_assumptions": {
+    "sd_c": 0.04,
+    "deff_event": 3.0,
+    "day_factor": 1.5,
+    "t_sum": 3.388
+   }
+  },
+  "CH_E022": {
+   "covered_share_min": 0.8,
+   "superset_min": 0.9,
+   "iqr_min": 0.1,
+   "iqr_min_units": 10,
+   "iqr_min_markets": 30,
+   "iqr_share_min": 0.5,
+   "mde_max": 0.005,
+   "mde_assumptions": {
+    "sd_c": 0.04,
+    "deff_event": 3.0,
+    "day_factor": 1.5,
+    "t_sum": 3.388,
+    "rule": "t_sum x sd / sqrt(projected effective units) x sqrt(deff) x day x sqrt(VIF of zh on its controls) x tercile gap <= 0.5c"
+   }
+  },
+  "CF_E023": {
+   "sell_share": [
+    0.15,
+    0.85
+   ],
+   "side_unusable_max": 0.1,
+   "OP_interior_share_min": 0.4,
+   "OP_interior_21d": 30000,
+   "corr_max": 0.5,
+   "agreement_gap_max": 0.05,
+   "agreement_min_rows": 500,
+   "mde_base": 0.002873,
+   "mde_max": 0.0036,
+   "mde_rule": "0.002873 (= 3.388 x 0.00053 x 1.6, LT3 E016 pessimistic per-SD MDE at 5,000 events) x sqrt(5,000 / projected events) x sqrt(VIF) <= 0.0036 (E007's whole 1 h effect)"
+  },
+  "CF_E024": {
+   "C_interior_21d": 40000,
+   "corr_max": 0.5,
+   "agreement_gap_max": 0.05,
+   "agreement_min_rows": 500,
+   "mde_max": 0.0036
+  }
+ },
+ "census_inputs": {
+  "CQ_CH_days_utc": [
+   "2026-10-15",
+   "2026-10-16"
+  ],
+  "CQ_CH_seal": "docs/research_lab/seals/lt4_census_inputs_captures.json (to be written from the releases' files.sha256 before any LT4 census runs)",
+  "CF_sample_seal": "docs/research_lab/seals/lt3_census_inputs_C2.json",
+  "projection": "counts x 21 / census days (estimate); distinct events: E_2d + (E_2d - E_day1) x 19; effective = units in markets with >= 2 units of the population"
+ }
+}
