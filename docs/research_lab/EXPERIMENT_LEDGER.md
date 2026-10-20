@@ -2757,3 +2757,17 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   pinned as the max of two routes, P look-back label, E012 wait for q0512). Recommendation: run the counts-only censuses
   (RS-2 is powered on paper; GS1/GS2 are a cheap kill); cut P first if coding time is short. Implementation of the
   changes, part `pre` and the censuses running on feat/cb18.
+
+## Development study WS1: wallet skill family (feat/wallet-skill, merged 2026-10-20T23:37Z; interactive session): 4 tests counted
+- **Status:** counted (4 tests P1–P4, Holm family of 4). Development (exploratory_historical) on HB1 history sets
+  h1_first/h2_main/h3_power, trades 2025-04 to 2026-10-12 only, outcomes known at closedTime + 48 h. No live-test,
+  sealed or holdout data read. The declaration was committed before any result (319bcd2c); results are in 56377f0f.
+- **P1 skill persistence: PASS (Holm p 0.002).**
+  - Top-decile sign-randomisation-skilled wallets ranked on outcomes before 2026-07-01: 71.2% stayed positive afterwards
+    vs 59.7% base. Re-significance 44.4% vs 21.1%. Out-of-sample +21.7c per dollar at risk [+1.4, +39.6] vs +3.6c.
+  - P&L-ranked wallets do not persist.
+- **P2/P3/P4: null (Holm p 1.0).** Skilled-wallet flow adds nothing over generic flow for 24 h and 6 h mid change or for resolution.
+- **Reading:** skill is measured against trade price and may reflect bias exploitation, not private information. The
+  family goes to the signal engine as a low-priority challenger, embargoed until 2026-11-18 (signed flow overlaps
+  E013/E014/E016/E018).
+- **Next:** a wallet-level copy-latency test (prior-art gap 1 H1b) needs its own registration and challenger review.
