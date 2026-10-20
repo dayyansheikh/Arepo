@@ -144,8 +144,9 @@ is counted.
 ### 1.8 Placebos and gates (valid within-unit nulls)
 - **E015, E019: permutation gate (Freedman-Lane).** 200 draws; in each, the control-residualised target is permuted within
   market (E019: event) x UTC day, the demeaned tested term and controls staying fixed; the slope is re-estimated. Gate:
-  `p_perm = (1 + #{draw >= real}) / (1 + draws) < 0.05`. Strata with fewer than 4 contrasted units are left unpermuted
-  (counted). This is a check on the clustered SEs, **not** a mechanism control: a permutation null cannot tell bounce from
+  `p_perm = (1 + #{draw >= real}) / (1 + draws) < 0.05`. Strata with fewer than 4 rows (counted over all rows of
+  the stratum, including rows later dropped as non-finite; behaviour unchanged by the Freedman-Lane fix, a power matter
+  only) are left unpermuted (counted). This is a check on the clustered SEs, **not** a mechanism control: a permutation null cannot tell bounce from
   information. The mechanism controls are the readings in each test.
 - **E016, E018: distant-donor gate** (LT2 finding 1 fixed by design). Only markets with **>= 4 usable units** enter the gate.
   In each of 200 draws, every unit's moderator (`W` or `H`) is replaced by the moderator of a donor unit of the same market
@@ -674,7 +675,8 @@ stays dropped.
 **Criterion change (disclosed).** Sections 1.8 and 9.3 required "rejection <= 0.05". A finite simulation cannot show that
 exactly, so the criterion is a stated Monte-Carlo tolerance: the pass rate must not be significantly above 5%, that is
 rate <= 0.05 + 1.645 · sqrt(0.0475 / worlds). The freeze check accepted this and required **>= 2,000 worlds** for the
-registered run (spec `size_check.worlds` = 2,000, limit 0.058; draft q0473). The preliminary run below used 400 worlds
+registered run (spec `size_check.worlds` = 2,000, limit 0.058; q0473 was cancelled on 2026-10-20 after the Freedman-Lane fix and q0473b runs the registered statement on
+the fixed code, see 13.10). The preliminary run below used 400 worlds
 (limit 0.068) on the pre-freeze-fix code. It is not the registered size statement. Preliminary result (99 draws, seed
 20261020):
 run locally 2026-10-20 on the code of commit 63d89b5e (module sha256 `live_tests3.py` f8a1d7b7..., `live_tests3_analysis.py` 99f8282d...): donor iid **0.045**, donor AR(1) **0.025**, donor life-cycle **0.055**, permutation iid **0.0475**, permutation persistent **0.040**; all within 0.068, PASS. Planted effects (moderation 0.004 per SD; class effect 2c) pass both gates (unit test). The size check must be re-run if either module changes before the pin.
@@ -761,7 +763,7 @@ d0a4a3b5704973d4bbff83fa2954108d0772831b1674daff731de1e96ad0683d (supersede 13.9
 - Censuses q0470-q0472 (deadlines in 13.6).
 - Fill `k_tests`, V*, the scales, the cuts and `exclude_crypto` / `exclude_family` in the spec, and record drops in 7.6.
 - `science-reviewer` freeze check of code against design.
-- Size check, >= 2,000 worlds, on the code to be pinned (q0473 or locally; 13.5). Any failing scenario blocks the pin.
+- Size check, >= 2,000 worlds, on the code to be pinned (q0473b or locally; 13.5, 13.10). Any failing scenario blocks the pin.
 - Host dry run on past captures (13.4).
 - `code_sha256` map, `SPEC_SHA256`, ledger entry, cron install.
 
