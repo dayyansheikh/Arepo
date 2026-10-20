@@ -230,15 +230,17 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-20 01:33Z
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-20 02:03Z
 0. **Autopilot session from 01:27Z 10-20.** Results/rulings in the ledger from "Session 2026-10-20 ~01:27Z" on. Counted
    this session so far: CB14-S S1/S2 not testable (source) (smoke q0301 failed).
    - **Queue:** net lane: q0227b (CB11-A, repeat, run 9/12, Wikipedia entity phase) -> q0229, q0242, q0244 -> q0276
      (CB13 keys, promoted, waits for q0227b/q0242/q0244 by design of `read_ids_generic`) -> q0302 (fill its base pin
      from the host sha256 of `creative_batch13/exclusion_keys.csv.gz`) -> q0340 -> q0380 / q0347. cpu lane idle until
      q0260 (10-20T14:05Z) and CB17 q0400-q0403.
-   - **CB17:** implementer finishing part `pre` + q0400-q0403 code (from the untracked drafts) -> science-reviewer freeze
-     check of part pre (+ decide the live_trades 3 -> 8 GiB cap before S_8 = 10-26) -> promote q0400-q0403.
+   - **CB17:** part pre frozen at `ddc0249b` (80ff3858) after freeze check + re-check; q0400-q0403 PROMOTED (cpu, after
+     05:30Z). Read q0400 status/`p1_reproduction` FIRST (exit 2 = P1 mismatch: investigate, never adjust; rerun only to a
+     new path with `--supersedes`). Then branch S/T -> part A; cut points/levels -> parts B/C; parts A/B/C code before
+     S_8 = 10-26. Monitor cap 8 GiB is deployed but active only after a restart of `live-trade-monitor` alone (before ~11-20).
    - **Freezes:** CB12-O after q0260's iv_convention (O 4e1dd759). **Promotions:** CB12-E q0245 after q0244, q0266
      after q0245; CB16 q0380 after q0340; q0383 alone after q0380; CB15-P q0347 after q0340, then q0349/q0350.
    - **Live tests (deadline 10-22T00:00Z):** LT2 E012-E014 challenger R1 = REVISE (`research_lab/reviews/LT2_CHALLENGER_R1_2026-10-20.md`).

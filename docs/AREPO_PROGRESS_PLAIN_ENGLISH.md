@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-20 02:33 UTC+1
+**Last updated:** 2026-10-20 03:03 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -8,9 +8,10 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 
 ## 1. Right now
 - **Autopilot:** session running since 02:27 UTC+1 (20 Oct).
-- **Server:** the network lane runs batch 11 attention data (round 9 of 12; it is now looking up Wikipedia pages,
-  815 of at most 3,000 done). The compute lane is idle until batch 17's counting jobs are ready (being coded now) and
-  the batch 12 options check (Tuesday 15:05 UTC+1).
+- **Server:** the network lane runs batch 11 attention data (round 9 of 12; Wikipedia look-ups). Batch 17's four
+  counting jobs on older data passed two independent reviews and are queued on the compute lane (they start after the
+  nightly 03:45-06:30 UTC+1 pause). The live-trade monitor's storage limit was raised from 3 to 8 GB (reviewed; it
+  would otherwise have stopped in late November), effective at its next restart.
 - **Connection checks finished overnight:** batch 13 touch markets PASS, batch 14 Wikipedia edits PASS, batch 15
   Kalshi-first pairs PASS. Batch 14 speech clock FAILED (the speech-transcript site returned nothing), so its 2 tests
   are recorded as "not testable" (counted, no result either way).
@@ -18,8 +19,11 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
   price grain (1).
 - **Queued next on the network lane:** batch 12 speech and earthquake data, then the shared exclusion-key jobs that
   unlock batches 13-16 (one after another).
-- **Live tests:** 3 running (Kalshi lead E009/E010, surprise detector E011). More live tests (E012-E014) are being drafted
-  in a separate session.
+- **Live tests:** 3 running (Kalshi lead E009/E010, surprise detector E011). Four more (E012-E014) were drafted by a
+  separate session that stopped last night; the autopilot ran their independent review (verdict: revise, all fixable)
+  and is applying the fixes, aiming to register them before their planned start on 22 Oct 01:00 UTC+1.
+- **New ideas:** round 9 of original hypotheses is being written (Fable), focused on ideas that can become live tests
+  quickly on data the server already collects.
 - **Second free server:** still "out of host capacity" at Oracle; it retries every 10 min.
 
 ## 2. Approvals needed from you

@@ -2281,3 +2281,15 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   24 h, data-dumps 17 of 40 GiB. Under (b) the 3 GiB cap would land ~11-27..12-06, 4-13 days after REP_8's last row and
   inside CB16 REP_A. TOTAL_CAP_BYTES 3 -> 8 GiB, 300 MB/day guard kept; deploy before S_8 via COLLECTION_HOST.md;
   `du` before/after recorded at deploy; data-dumps checked against 40 GiB weekly.
+- **Fixes and re-check (~02:40-03:00 UTC+1):** de5c553a applied all three must-fixes and the LOWs (pre `c186fdcd` ->
+  `31656d5d`); monitor cap 3 -> 8 GiB in 8853f9cc (deployed; a running monitor keeps the code it started with, so the
+  8 GiB cap takes effect at the next restart of `live-trade-monitor`, needed before ~11-20; restart only that service at
+  a quiet moment, never the cross-venue poller). Re-check (science-reviewer): NOT_YET, one must-fix: on a P1 mismatch the
+  write-once result and trials line still carried the branch. Fixed in 80ff3858 (branch / withdrawal / selected
+  population and level null, candidate only under `branch_unrecorded_candidate` labelled NOT_A_BRANCH, status
+  `pre_census_A_p1_mismatch`, exit 2; rerun only to a new path with `--supersedes`; any blank side in a fill = missing).
+  pre `31656d5d` -> **`ddc0249b…`**; 60 CB17 tests. Coordinator verified the diff and tests (no further review round:
+  programme rule, one challenge and one response).
+- **Promoted q0400-q0403** (cpu lane, mem 500-800, priority 9; they start after the 02:45-05:30Z blackout). Next: read
+  q0400's status and `p1_reproduction` FIRST (exit 2 = mismatch, investigated, never adjusted); then branch S/T into
+  part A, cut points and levels into parts B/C, cost-lag map into §2.1/§3; parts A/B/C code before S_8 = 10-26.

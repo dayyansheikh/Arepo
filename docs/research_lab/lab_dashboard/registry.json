@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-20T01:58:00Z",
+ "updated": "2026-10-20T02:05:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1195,11 +1195,11 @@
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Independent challenge of the design, then counting jobs on the server's idle compute lane; test windows from 26 Oct",
+   "next": "Its four counting jobs on older data passed review and are queued on the server; the test window starts 26 Oct",
    "next_date": "2026-10-26",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/CREATIVE_BATCH_17.md (draft, commit a00c4ef)"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB17 part `pre` code (cadaaf19), 2026-10-20"
    },
    "stage_results": {
     "designed": "pending"
