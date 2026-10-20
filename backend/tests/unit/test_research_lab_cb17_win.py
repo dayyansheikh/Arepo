@@ -142,6 +142,7 @@ def test_window_readers_refuse_roots_and_never_decode_forbidden_fields(tmp_path)
     ts = FLOOR + 100.0
     write_day(tr, "20261026", [print_(ts, "c1", 0.4, side="BUY", tx="t1", mkt="m1"), print_(FLOOR - 50.0, "c9", 0.4, tx="t2")])
     (tr / "scores-20261026.jsonl").write_text("{}\n")
+    write_day(tr, "20261027", [])
     got = list(win.iter_monitor(tr, FLOOR, FLOOR + H, Counter()))
     assert got == [(ts, "c1", "m1")]  # side, recv_ts, key, wallet never reach the tuple; the pre-floor print is outside [lo, hi)
     pr = list(fe.iter_prints(tr, FLOOR, FLOOR + H, Counter()))

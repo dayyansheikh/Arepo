@@ -85,7 +85,19 @@ def world(root: Path, s: float, *, n_events: int = 12, members: int = 2, n_passe
     if with_prints:
         for day, lines in prints_by_day.items():
             write_day(tr, day, lines)
+    if with_prints:
+        fill_days(tr, s - 86400.0, s + 16 * 86400.0)
     return {"snap": snap, "sw": sw, "tr": tr, "markets": markets, "events": evs, "end": s + n_passes * cadence}
+
+
+def fill_days(tr: Path, lo: float, hi: float) -> None:
+    """The collector writes a day file every day: an empty one where nothing printed (a MISSING file is a pending restore, never a skip)."""
+    tr = Path(tr)
+    tr.mkdir(parents=True, exist_ok=True)
+    for o in range(int(lo // 86400), int(hi // 86400) + 1):
+        f = tr / f"trades-{datetime.fromtimestamp(o * 86400, UTC):%Y%m%d}.jsonl"
+        if not f.exists():
+            f.write_text("")
 
 
 def write_records(tmp: Path, *, rules: Path, code_sha: str, shas: dict, t17_utc: str = "2026-10-24T12:00:00Z", frozen_utc: str = "2026-10-25T00:00:00Z", attestation: str = "attested (test)") -> dict:
@@ -134,6 +146,7 @@ class JobEnv:
         self.cb3.mkdir()
         (self.cb3 / "cb3_v1.json").write_text("{}")
         self.late = ep("2026-11-24T00:00:00Z")
+        fill_days(self.host / "live_trades", self.s8 - 86400.0, self.late + 2 * 86400.0)
         if with_smoke:
             self.write_smoke()
 
@@ -145,7 +158,9 @@ class JobEnv:
         self.root.mkdir(parents=True, exist_ok=True)
         p = self.root / "smoke.json"
         pf = {f: all(crit.get(k) is True for k in need) for f, need in w.SMOKE_NEEDS.items()}
-        p.write_text(json.dumps({"criteria": crit, "pass": all(crit.values()), "pass_by_family": pf}))
+        from astrolabe.research_lab import cb17_win as win
+
+        p.write_text(json.dumps({"code_sha256": win.code_sha256(), "criteria": crit, "pass": all(crit.values()), "pass_by_family": pf}))
         return p
 
     def argv(self, *cmd: str, now: float | None = None, extra: tuple = ()) -> list[str]:

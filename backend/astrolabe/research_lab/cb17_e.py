@@ -45,7 +45,7 @@ def iter_prints(trades_dir: Path, lo: float, hi: float, stats: Counter) -> Itera
         p = Path(trades_dir) / f"trades-{datetime.fromordinal(o):%Y%m%d}.jsonl"
         win.refuse_window_path(p, ("live_trades",))
         if not p.exists():
-            stats["monitor_days_missing"] += 1
+            win.missing_monitor_day(p, stats)
             continue
         with p.open("r", encoding="utf-8") as fh:
             for line in fh:
@@ -66,6 +66,7 @@ def build_frame(trades_dir: Path, snap_root: Path, *, units: tuple[float, float]
     txs, info = t13.build_transactions(prints)
     prints = None
     caps = q16.list_captures(snap_root, cap_lo, units[1])
+    win.require_capture_files(caps)
     qi = q16.load_quote_index(caps, {t["condition_id"] for t in txs}, "touch")
     rows: list[dict] = []
     counts: Counter = Counter()

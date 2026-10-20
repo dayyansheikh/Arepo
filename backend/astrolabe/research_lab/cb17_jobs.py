@@ -41,6 +41,7 @@ NotNow = c17.NotNow
 
 JOBS_VERSION = "cb17-jobs-v1"
 BC_DIR, E_DIR, REP_DIR = "screen/bc", "screen/e", "rep"
+B_STATUS = "frame_b_complete"  # the B stage of q0406, written (own manifest) before C starts so a budget stop resumes at C
 BC_STATUS, E_STATUS, REP_STATUS = win.FRAME_STATUS["BC"], win.FRAME_STATUS["E"], win.FRAME_STATUS["rep"]
 REP_FILLS_NAME = q16.FILLS_NAME
 REP_MARKS_NAME = q16.MARKS_NAME
@@ -110,6 +111,7 @@ def gate(env: Env, *, attest: bool = True, code: bool = True, t17: bool = True) 
     if not pins["ok"]:
         raise Refused(f"pinned CB13 / CB16 function sources diverge: {pins['diverged']}")
     out: dict = {"rules_sha256": shas}
+    win.set_monitor_stopped(win.read_monitor_stopped(env.sdir(), require_committed=env.committed))
     if code:
         out["freeze"] = win.require_code_freeze(env.freeze, rules_shas=shas, require_committed=env.committed, need_attestation=attest)
     if t17:
@@ -128,6 +130,13 @@ def _terminal_payload(terms: dict) -> tuple[int, dict]:
 
 
 def require_smoke(env: Env, family: str) -> None:
+    sp = env.root / win.SMOKE_NAME
+    try:
+        sc = json.loads(sp.read_text())
+    except (OSError, ValueError):
+        sc = None
+    if isinstance(sc, dict) and sc.get("code_sha256") != win.code_sha256():
+        raise Refused(f"smoke.json was produced by other code ({str(sc.get('code_sha256'))[:12]!r} != {win.code_sha256()[:12]!r}): re-run q0404 against the frozen code")
     bad = win.smoke_failures(env.root / win.SMOKE_NAME, family)
     if bad:
         raise Refused(f"smoke criteria for family {family} not met: {bad}")
@@ -143,9 +152,22 @@ def _clear_partial(d: Path) -> None:
             p.unlink()
 
 
+def _tree_bytes(d: Path) -> int:
+    return sum(p.stat().st_size for p in Path(d).rglob("*") if p.is_file()) if Path(d).exists() else 0
+
+
 def _disk(env: Env, cmd: str) -> None:
+    """Every job: the 40 GiB data-dumps cap with the job's declared allowance (exit 75), and creative_batch17's own total (0.3 GB) with the job's allowance (refusal)."""
     cap = w.DISK_CAP_GB[cmd]
     c17.require_disk(env.data_dumps, env.data_dumps_cap_gb, int(cap * 1024**3))
+    if _tree_bytes(env.root) + int(cap * 1024**3) > int(w.TOTAL_OUTPUT_CAP_GB * 1024**3):
+        raise Refused(f"creative_batch17 would exceed its {w.TOTAL_OUTPUT_CAP_GB} GB total cap with this job's {cap} GB allowance")
+
+
+def _cap_out(cmd: str, d: Path) -> None:
+    """A frame job's output directory may not exceed its declared cap (checked before the manifest is written)."""
+    if _tree_bytes(d) > int(w.DISK_CAP_GB[cmd] * 1024**3):
+        raise Refused(f"{cmd}: output {Path(d).name} exceeds its declared {w.DISK_CAP_GB[cmd]} GB cap (no manifest written)")
 
 
 def _manifest(d: Path, status: str, files, extra: dict) -> dict:
@@ -163,19 +185,21 @@ def _git_commit() -> str:
 # =====================================================================================================================================================
 
 
-def run_smoke(env: Env, *, fills_dir: Path, out: Path | None = None) -> tuple[int, dict]:
+def run_smoke(env: Env, *, fills_dir: Path, out: Path | None = None, worn_sha256: Path | None = None) -> tuple[int, dict]:
     """PASS needs the rules parts, the pins, the fixture checks and the EXACT reproduction of probes P1-P3 on the worn files (a different count is a FAIL, investigated, never adjusted; a
     missing worn file is a refusal). A failed family smoke makes that family terminal "not testable (source)", counted once per declared test."""
     root = c17.require_output_root(env.root)
     out = Path(out) if out else root / win.SMOKE_NAME
     if out.exists():
         raise Refused(f"smoke result {out} already exists; it is write-once")
-    shas = win.verify_parts(env.rules, require_committed=env.committed)
+    g = gate(env, attest=False)  # parts, pins, and the COMMITTED code-freeze record that pins THIS code (the ruling-6 attestation is needed from q0406 on)
+    shas = g["rules_sha256"]
+    worn = sm.check_worn_pins(worn_sha256, fills_dir, env.trades, env.snaps, env.sweeps) if worn_sha256 else None
     now = time.time()
     ctx = {"rules": env.rules, "require_committed": env.committed, "fills_dir": Path(fills_dir), "trades_dir": env.trades, "snapshot_dir": env.snaps, "sweep_dir": env.sweeps}
     crit, detail = sm.collect_checks(ctx)
     pf = sm.per_family(crit)
-    res = {"smoke_version": sm.SMOKE_VERSION, "rules_sha256": shas, "git_commit": _git_commit(), "run_utc": c17.iso(now), "counts_only": True, "requests": 0, "criteria": crit,
+    res = {"smoke_version": sm.SMOKE_VERSION, "rules_sha256": shas, "code_sha256": g["freeze"]["code_sha256"], "worn_pins": worn, "git_commit": _git_commit(), "run_utc": c17.iso(now), "counts_only": True, "requests": 0, "criteria": crit,
            "needs": {f: list(v) for f, v in w.SMOKE_NEEDS.items()}, "pass_by_family": pf, "pass": all(pf.values()), "detail": _plain(detail),
            "consequences": {"a failed B or C criterion": "the family is terminal 'not testable (source)', counted once per declared test", "a failed E criterion": "E is a census (k = 0): a descriptive line",
                             "rule": "no rule is re-fitted"}}
@@ -238,29 +262,41 @@ def frame_screen_bc(env: Env) -> tuple[int, dict]:
         return 0, {"status": BC_STATUS, "complete": True, "already_complete": True}
     drops, _ov = win.load_drop_keys(env.root)
     _disk(env, "frame-screen-BC")
-    _clear_partial(out_dir)
-    frames: dict = {}
+    bdone = c16.manifest_complete(out_dir, (B_STATUS,)) if "B" in fams else None
+    if bdone:  # a budget stop after the B stage resumes at C: B's files are manifested and kept; anything else unmanifested is cleared
+        keep = set((bdone.get("file_sha256") or {}).keys()) | {"manifest.json"}
+        for p in sorted(out_dir.iterdir()):
+            if p.is_file() and p.name not in keep:
+                p.unlink()
+    else:
+        _clear_partial(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    files: list[Path] = []
+    report: dict = {}
     t0 = time.monotonic()
     try:
-        if "B" in fams:
-            frames["B"] = fb.build_frame(env.sweeps, env.snaps, env.trades, units=W["units"], read_lo=W["sweeps"][0], marks_hi=W["marks"][1], arm=w.ARM_SCREEN, drops=drops, budget_s=env.budget_s)
+        if "B" in fams and not bdone:
+            frb = fb.build_frame(env.sweeps, env.snaps, env.trades, units=W["units"], read_lo=W["sweeps"][0], marks_hi=W["marks"][1], arm=w.ARM_SCREEN, drops=drops, budget_s=env.budget_s)
+            bfiles = fb.write_frame(out_dir, frb)
+            a = frb["arrays"]
+            breport = {"units": int(len(a["tok"])), "passes": frb["n_passes"], "exclusions": frb["exclusions"], "stats": frb["stats"]}
+            _manifest(out_dir, B_STATUS, bfiles, {"rules_sha256": g["rules_sha256"], "code_sha256": g["freeze"]["code_sha256"], "s8": g["t17"]["s8_utc"], "families": ["B"], "report": _plain({"B": breport})})
+            bdone = c16.manifest_complete(out_dir, (B_STATUS,))
+            del frb, a
+        if bdone:
+            files += [out_dir / k for k in sorted(bdone["file_sha256"])]
+            report["B"] = (bdone.get("report") or {}).get("B", {})
         if "C" in fams:
             left = None if env.budget_s is None else max(1.0, env.budget_s - (time.monotonic() - t0))
-            frames["C"] = fc.build_frame(env.snaps, units=W["units"], read_lo=W["captures_bc"][0], marks_hi=W["marks"][1], arm=w.ARM_SCREEN, drops=drops, budget_s=left)
+            frc = fc.build_frame(env.snaps, units=W["units"], read_lo=W["captures_bc"][0], marks_hi=W["marks"][1], arm=w.ARM_SCREEN, drops=drops, budget_s=left)
+            files += fc.write_frame(out_dir, frc)
+            report["C"] = {"units": int(len(frc["units"]["ev"])), "members": int(len(frc["members"]["unit"])), "exclusions": frc["exclusions"], "stats": frc["stats"]}
     except NotNow as exc:
         r = _budget_progress(exc, "frame_bc_progress")
         if r:
             return r
         raise
-    out_dir.mkdir(parents=True, exist_ok=True)
-    files, report = [], {}
-    if "B" in frames:
-        files += fb.write_frame(out_dir, frames["B"])
-        a = frames["B"]["arrays"]
-        report["B"] = {"units": int(len(a["tok"])), "passes": frames["B"]["n_passes"], "exclusions": frames["B"]["exclusions"], "stats": frames["B"]["stats"]}
-    if "C" in frames:
-        files += fc.write_frame(out_dir, frames["C"])
-        report["C"] = {"units": int(len(frames["C"]["units"]["ev"])), "members": int(len(frames["C"]["members"]["unit"])), "exclusions": frames["C"]["exclusions"], "stats": frames["C"]["stats"]}
+    _cap_out("frame-screen-BC", out_dir)
     _manifest(out_dir, BC_STATUS, files, {"rules_sha256": g["rules_sha256"], "code_sha256": g["freeze"]["code_sha256"], "s8": g["t17"]["s8_utc"], "families": fams, "report": _plain(report)})
     win.log_descriptive("frame_screen_BC", {"families": fams, "units": {f: r.get("units") for f, r in report.items()}}, trials_path=env.trials)
     return 0, {"status": BC_STATUS, "complete": True, "units": {f: r.get("units") for f, r in report.items()}}
@@ -281,6 +317,7 @@ def frame_screen_e(env: Env) -> tuple[int, dict]:
     fr = fe.build_frame(env.trades, env.snaps, units=W["units"], cap_lo=W["captures_e"][0], drops=drops)
     out_dir.mkdir(parents=True, exist_ok=True)
     files = fe.write_frame(out_dir, fr)
+    _cap_out("frame-screen-AE", out_dir)
     _manifest(out_dir, E_STATUS, files, {"rules_sha256": g["rules_sha256"], "code_sha256": g["freeze"]["code_sha256"], "s8": g["t17"]["s8_utc"], "report": _plain({"transactions": fr["transactions"], "status_counts": fr["status_counts"], "stats": fr["stats"]})})
     win.log_descriptive("frame_screen_A_E_features", {"transactions": fr["transactions"], "status_counts": fr["status_counts"]}, trials_path=env.trials)
     return 0, {"status": E_STATUS, "complete": True, "transactions": fr["transactions"]}
@@ -426,15 +463,22 @@ def _day_files(trades: Path, lo: float, hi: float) -> list[Path]:
 def source_files(env: Env, lo: float, hi: float) -> list[tuple[str, Path]]:
     """The host files a REP_8 frame reads: monitor day files, capture row files and sweep row files in the rep read window (for the seal's source sha256 table)."""
     stats: Counter = Counter()
-    files: list[tuple[str, Path]] = [("live_trades", p) for p in _day_files(env.trades, lo, hi) if p.exists()]
+    files: list[tuple[str, Path]] = []
+    for p in _day_files(env.trades, lo, hi):
+        if p.exists():
+            files.append(("live_trades", p))
+        else:
+            win.missing_monitor_day(p, stats)  # NotNow unless a committed monitor-stopped record covers the day
     for cap in win.list_captures(env.snaps, lo, hi, stats, only_complete=False):
         for nm in ("rows.csv.gz", "rows_ext.csv.gz"):
             p = Path(cap["dir"]) / nm
-            if p.exists():
-                files.append(("snapshots", p))
+            if not p.is_file():
+                raise NotNow(f"declared source file snapshots/{cap['dir'].name}/{nm} is missing: {win.RESTORE_MSG}")
+            files.append(("snapshots", p))
     for d, _t in win.list_window_dirs(env.sweeps, "book_sweeps", c17.SWEEP_DIR_RE, lo, hi, stats):
-        if (d / "rows.csv.gz").is_file():
-            files.append(("book_sweeps", d / "rows.csv.gz"))
+        if not (d / "rows.csv.gz").is_file():
+            raise NotNow(f"declared source file book_sweeps/{d.name}/rows.csv.gz is missing: {win.RESTORE_MSG}")
+        files.append(("book_sweeps", d / "rows.csv.gz"))
     return files
 
 
@@ -449,6 +493,7 @@ def rep_fill_table(env: Env, W: dict, drops: dict[str, str]) -> tuple[list[dict]
     txs, info = t13.build_transactions(prints)
     prints = None
     caps = q16.list_captures(env.snaps, W["read"][0], W["units"][1])
+    win.require_capture_files(caps)
     qi = q16.load_quote_index(caps, {t["condition_id"] for t in txs}, "touch")
     keep: list[dict] = []
     counts: Counter = Counter()
@@ -558,6 +603,7 @@ def run_frame_rep(env: Env) -> tuple[int, dict]:
         if need_econ:
             files.append(write_fills(out_dir / REP_FILLS_NAME, fills))
             mcaps = q16.list_captures(env.snaps, lo, hi)
+            win.require_capture_files(mcaps)
             mqi = q16.load_quote_index(mcaps, {r["condition_id"] for r in fills}, "mark", boundary_epoch=hi)
             files.append(write_marks(out_dir / REP_MARKS_NAME, a16.mark_rows16(fills, mqi)))
     except NotNow as exc:
@@ -566,6 +612,7 @@ def run_frame_rep(env: Env) -> tuple[int, dict]:
         if r:
             return r
         raise
+    _cap_out("frame-rep", out_dir)
     _manifest(out_dir, REP_STATUS, files, {"rules_sha256": g["rules_sha256"], "code_sha256": g["freeze"]["code_sha256"], "s8": g["t17"]["s8_utc"], "report": _plain(report)})
     from . import h5_seal  # noqa: PLC0415
 
@@ -704,6 +751,7 @@ def run_rep(env: Env, *, results_sha256: str | None) -> tuple[int, dict]:
 
 
 def run_stage2_final(env: Env) -> tuple[int, dict]:
+    gate(env)  # rules parts, code pin (with the attestation) and the T17 record: the final Holm is code too
     out = env.root / win.STAGE2_NAME
     if out.exists():
         return 0, {"status": "stage2_final_complete", "already_written": True}

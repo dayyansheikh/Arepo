@@ -46,11 +46,11 @@ CAP_EXT = ("market_id", "fee_type", "fee_category", "clob_rewards", "series_slug
 VOL_BAND_EDGES = (1000.0, 10000.0, 100000.0)  # attribution's volume24hr band (code choice, declared here): < $1k, $1-10k, $10-100k, >= $100k
 MARK2 = rb.MARK_2H_S
 MARK6 = rb.MARK_6H_S
-FLOAT_COLS = ("age", "b0", "a0", "tick1", "tick2", "act", "liq", "vol24", "lpre", "dmpre", "s", "x", "imb", "tsz_chg")
+FLOAT_COLS = ("age", "tick1", "tick2", "act", "liq", "vol24", "lpre", "dmpre", "s", "x", "imb", "tsz_chg")
 INT8_COLS = ("state", "act_t", "imb_t", "reward", "hchg", "grain", "tsz_same", "prt", "excl2", "st2_1", "st6_1", "st2_2", "st6_2")
 INT16_COLS = ("nlev", "dnlev", "mk2_1", "mk6_1", "mk2_2", "mk6_2")
 INT32_COLS = ("tok", "mkt", "ev", "path")
-F64_COLS = ("t1", "t2")
+F64_COLS = ("t1", "t2", "b0", "a0")  # b0 / a0 (exact 1c / 2c / 5c spreads and their bands) are never cast to float32
 READ_BACK_F64 = ("tick1", "tick2")  # read back while the frame is built (the tick-change comparison against the mark sweep's float64 tick): kept float64 until ``to_arrays`` casts them
 
 
@@ -595,7 +595,7 @@ def b1_test(F: dict, MV: dict, census_b: dict | None, *, n_draws: int = w.PLACEB
                                   "note": "B1 calibration: old / fresh circularly shifted within token over its passes"}
     ip = np.nonzero(elig & np.isfinite(D["lpre"]))[0]
     pp = win.p_of(win.make_fe(D["lpre"].astype(float), old, tok), ip, D, alpha=w.GATE_P)
-    res["pre_period_placebo"] = {"p": pp["p"], "n": pp["n"], "holds": bool((not pp["testable"]) or pp["p"] >= w.GATE_P)}
+    res["pre_period_placebo"] = {"p": pp["p"], "n": pp["n"], "holds": win.placebo_holds(pp), "unknown_is_not_met": True}
     cov, names = [], []
     for arr, nm in ((bands_spread(D["spread"]), "spread_band"), (np.array([vol_band(float(v)) for v in D["vol24"]]), "vol24_band"), (np.array([lev_band(float(v)) for v in D["nlev"]]), "levels_band"),
                     (np.array([c17.band6(float(t)) for t in D["t1"]]), "utc6"), (np.array([pre.p_band(float(m)) if pre.p_band(float(m)) is not None else -1 for m in D["mid0"]]), "mid_band"),
@@ -646,7 +646,7 @@ def b1_test(F: dict, MV: dict, census_b: dict | None, *, n_draws: int = w.PLACEB
     L6[ok6] = l_of(b0[ok6], a0[ok6], MV["6h_b1_bid"][ok6], MV["6h_b1_ask"][ok6])
     rob["mark_6h"] = _keep_sign(win.make_fe(L6, old, tok), np.nonzero(ok6 & np.isfinite(L6))[0])
     res["robustness"] = rob
-    res["robust_ok"] = bool(all(v for v in rob.values() if v is not None) and all(v is not None for v in (rob["no_mark_worst_case"],)) and res["loo_day"]["holds"] and all(res["top5"].values()))
+    res["robust_ok"] = win.robust_met(rob, res["loo_day"]["holds"], res["top5"])
     res["checks_ok"] = bool(res["floor_ok"] and res["small_g_rules_hold"] and comp["holds"] and res["calibration_placebo"]["holds"] and res["pre_period_placebo"]["holds"] and res["robust_ok"])
     res["advance"] = w.stage1_advance(res["p"] if res["testable"] else None, res["checks_ok"])
     if not comp["informative"]:
@@ -696,7 +696,7 @@ def b2_test(F: dict, MV: dict, census_b: dict | None, *, sd_x: float, n_draws: i
                                   "note": "B2 calibration: x circularly shifted within token over its passes"}
     ip = np.nonzero(elig & np.isfinite(D["dmpre"]))[0]
     pp = win.p_of(win.make_fe(D["dmpre"].astype(float), xs, tok), ip, D, alpha=w.GATE_P)
-    res["pre_sweep_placebo"] = {"p": pp["p"], "n": pp["n"], "holds": bool((not pp["testable"]) or pp["p"] >= w.GATE_P)}
+    res["pre_sweep_placebo"] = {"p": pp["p"], "n": pp["n"], "holds": win.placebo_holds(pp), "unknown_is_not_met": True}
     cov, names = [D["dmpre"].astype(float), D["imb"].astype(float), D["dnlev"].astype(float), np.nan_to_num(D["tsz_chg"].astype(float), nan=0.0), D["act"].astype(float)], \
         ["dm_pre", "imbalance", "levels_change", "touch_size_change", "activity"]
     for arr, nm in ((bands_spread(D["spread"]), "spread_band"), (np.array([c17.band6(float(t)) for t in t2]), "utc6")):
@@ -726,7 +726,7 @@ def b2_test(F: dict, MV: dict, census_b: dict | None, *, sd_x: float, n_draws: i
     dm6 = np.where(ok6, 100.0 * ((MV["6h_b2_bid"] + MV["6h_b2_ask"]) / 2.0 - m0), np.nan)
     rob["mark_6h"] = _keep_sign(win.make_fe(dm6, xs, tok), np.nonzero(np.isfinite(dm6))[0])
     res["robustness"] = rob
-    res["robust_ok"] = bool(all(v for v in rob.values() if v is not None) and rob["no_mark_worst_case"] is not None and res["loo_day"]["holds"] and all(res["top5"].values()))
+    res["robust_ok"] = win.robust_met(rob, res["loo_day"]["holds"], res["top5"])
     res["checks_ok"] = bool(res["floor_ok"] and res["small_g_rules_hold"] and comp["holds"] and res["calibration_placebo"]["holds"] and res["pre_sweep_placebo"]["holds"] and res["robust_ok"])
     res["advance"] = w.stage1_advance(res["p"] if res["testable"] else None, res["checks_ok"])
     conc = rb.concentration_share(D["x"][idx].astype(float), D["ev"][idx])

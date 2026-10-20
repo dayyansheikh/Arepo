@@ -231,7 +231,49 @@ def list_captures(snap_root: Path, lo: float, hi: float, stats: Counter, *, only
             stats["captures_not_complete_skipped"] += 1
             continue
         out.append({"dir": d, "stamp": t, "capture_id": d.name})
+    if only_complete:
+        require_capture_files(out)
     return out
+
+
+MONITOR_STOPPED_NAME = "cb17_monitor_stopped.json"  # seals/: {"stopped_days": ["YYYYMMDD", ...]} (committed by the coordinator)
+MONITOR_STOPPED: set[str] = set()  # days (YYYYMMDD) a committed 'monitor stopped' record covers (set by the job gate; empty by default)
+RESTORE_MSG = "restore the file byte for byte, hash-checked (scripts restore_from_archive.py), then re-run (pending)"
+
+
+def set_monitor_stopped(days) -> None:
+    MONITOR_STOPPED.clear()
+    MONITOR_STOPPED.update(str(d) for d in days)
+
+
+def read_monitor_stopped(seals_dir: Path | None, *, require_committed: bool = True) -> list[str]:
+    """Days covered by the committed ``seals/cb17_monitor_stopped.json`` (``{"stopped_days": ["YYYYMMDD", ...]}``); no record = no day is covered."""
+    p = Path(seals_dir or c17.SEALS_DIR) / MONITOR_STOPPED_NAME
+    if not p.exists():
+        return []
+    doc = _read_record(p, "monitor-stopped record", require_committed)
+    days = doc.get("stopped_days") or []
+    if not isinstance(days, list) or not all(re.fullmatch(r"\d{8}", str(d)) for d in days):
+        raise Refused(f"monitor-stopped record {p.name}: stopped_days must be a list of YYYYMMDD")
+    return [str(d) for d in days]
+
+
+def missing_monitor_day(path: Path, stats: Counter) -> None:
+    """A missing monitor day file is never silently skipped: exit 75 (restore) unless a committed 'monitor stopped' record covers that day."""
+    day = re.sub(r"\D", "", Path(path).name)
+    if day in MONITOR_STOPPED:
+        stats["monitor_days_stopped_recorded"] += 1
+        return
+    raise NotNow(f"monitor day file {Path(path).name} is missing and no committed monitor-stopped record covers {day}: {RESTORE_MSG}")
+
+
+def require_capture_files(caps, names: tuple[str, ...] = ("rows.csv.gz", "rows_ext.csv.gz")) -> None:
+    """A complete capture in the read window whose row files are gone (8-day retention) is pending: restore byte for byte; never skipped."""
+    for cap in caps:
+        d = Path(cap["dir"] if isinstance(cap, dict) else getattr(cap, "dir", cap))
+        for nm in names:
+            if not (d / nm).is_file():
+                raise NotNow(f"snapshot file {d.name}/{nm} is missing: {RESTORE_MSG}")
 
 
 def iter_monitor(trades_dir: Path, lo: float, hi: float, stats: Counter) -> Iterator[tuple[float, str, str]]:
@@ -248,7 +290,7 @@ def iter_monitor(trades_dir: Path, lo: float, hi: float, stats: Counter) -> Iter
             raise Refused(f"{p.name}: never opened")
         refuse_window_path(p, ("live_trades",))
         if not p.exists():
-            stats["monitor_days_missing"] += 1
+            missing_monitor_day(p, stats)
             continue
         with p.open("r", encoding="utf-8") as fh:
             for line in fh:
@@ -393,6 +435,16 @@ def p_of(make_v, idx: np.ndarray, D: dict, *, alpha: float | None = None) -> dic
 
 def est_only(make_v, idx: np.ndarray) -> float:
     return make_v(idx)[1] if len(idx) >= 2 else math.nan
+
+
+def placebo_holds(pp: dict) -> bool:
+    """A pre-period placebo holds only if it was TESTABLE and did not reach p < the gate: unknown is never met (section 2.3)."""
+    return bool(pp.get("testable") and pp.get("p") is not None and float(pp["p"]) >= w.GATE_P)
+
+
+def robust_met(rob: dict, loo_holds: bool, top5: dict) -> bool:
+    """Every named robustness variant must be True (a variant that could not be computed, None, is not met), plus leave-one-day-out and top-5."""
+    return bool(all(v is True for v in rob.values()) and loo_holds and all(top5.values()))
 
 
 def p_pass(r: dict | None, alpha: float) -> bool:
@@ -701,7 +753,7 @@ def econ_test(net: np.ndarray, flag: np.ndarray, rest: np.ndarray, groups: np.nd
     declared bin) in >= ``min_events`` events, else "not run (power)", counted with p = 1. Cost-neutral to any exit cost common to both groups; labelled an upper bound."""
     use = (flag | rest) & np.isfinite(net)
     nf, nr = int((flag & use).sum()), int((rest & use).sum())
-    n_ev = len(set(np.asarray(events)[use].tolist()))
+    n_ev = len(set(np.asarray(events)[flag & use].tolist()))  # events among the FLAGGED fills only
     base = {"n_flagged": nf, "n_rest": nr, "events": n_ev, "label": w.LABEL_ECON}
     if nf < min_fills or (rest_min is not None and nr < rest_min) or n_ev < min_events:
         return {**not_testable(w.NOT_RUN_POWER), **base, "minimum": {"fills": min_fills, "rest": rest_min, "events": min_events}}

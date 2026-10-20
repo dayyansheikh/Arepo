@@ -277,7 +277,7 @@ def _env(a, cmd: str, *, gap: bool = True):
         _gap(a)
     root = _root(a)
     budget = getattr(a, "budget_min", None)
-    return jobs.Env(
+    env = jobs.Env(
         root=root,
         trades=_dir(a, "trades_dir", c17.LIVE_TRADES_DIR, ("live_trades",)),
         snaps=_dir(a, "snapshot_dir", c17.SNAPSHOT_DIR, ("snapshots",)),
@@ -298,14 +298,53 @@ def _env(a, cmd: str, *, gap: bool = True):
         data_dumps_cap_gb=float(a.data_dumps_cap_gb),
         standalone=bool(getattr(a, "standalone", False)),
     )
+    jobs._disk(env, cmd)  # the declared --disk-cap-gb allowance and the 0.3 GB creative_batch17 total, every job
+    return env
 
 
 @_guarded
 def cmd_smoke(a):
     c17 = _c17()
     env = _env(a, "smoke", gap=False)
+    env = _restore_roots(a, env)
     fills = Path(a.fills_dir) if getattr(a, "fills_dir", None) else c17.CB13_T_SCREEN_DIR
-    return _jobs().run_smoke(env, fills_dir=fills, out=Path(a.out) if getattr(a, "out", None) else None)
+    worn = Path(a.worn_sha256) if getattr(a, "worn_sha256", None) else None
+    return _jobs().run_smoke(env, fills_dir=fills, out=Path(a.out) if getattr(a, "out", None) else None, worn_sha256=worn)
+
+
+def _restore_roots(a, env):
+    """``--snapshot-root`` / ``--live-trades-root`` (smoke and worn-manifest only): a byte-for-byte restore tree in place of the live dirs. The probes' guards need the archive layout, so
+    the directories must be named ``snapshots`` / ``live_trades``; the pins are keyed by the archive-relative path whatever the root."""
+    import dataclasses  # noqa: PLC0415
+
+    c17 = _c17()
+    upd = {}
+    for attr, field, name in (("snapshot_root", "snaps", "snapshots"), ("live_trades_root", "trades", "live_trades")):
+        v = getattr(a, attr, None)
+        if v:
+            p = Path(v)
+            if p.name != name:
+                raise c17.Refused(f"--{attr.replace('_', '-')} must be a directory named {name!r} (the archive layout), not {p.name!r}")
+            upd[field] = c17.refuse_path(p, allow=(name,))
+    return dataclasses.replace(env, **upd) if upd else env
+
+
+@_guarded
+def cmd_worn_manifest(a):
+    """Prints ``{archive-relative path: sha256}`` of the smoke's worn input files; writes nothing."""
+    c17 = _c17()
+    env = _restore_roots(a, jobs_env_paths(a))
+    fills = Path(a.fills_dir) if getattr(a, "fills_dir", None) else c17.CB13_T_SCREEN_DIR
+    m = _jobs().sm.worn_manifest(fills, env.trades, env.snaps, env.sweeps)
+    return 0, {"worn_sha256": m, "n_files": len(m)}
+
+
+def jobs_env_paths(a):
+    """A minimal environment (paths only) for ``worn-manifest``."""
+    c17 = _c17()
+    jobs = _jobs()
+    return jobs.Env(root=Path("."), trades=_dir(a, "trades_dir", c17.LIVE_TRADES_DIR, ("live_trades",)), snaps=_dir(a, "snapshot_dir", c17.SNAPSHOT_DIR, ("snapshots",)),
+                    sweeps=_dir(a, "sweep_dir", c17.SWEEP_DIR, ("book_sweeps",)), data_dumps=_data_dumps(a))
 
 
 @_guarded
@@ -430,7 +469,20 @@ def build_parser() -> argparse.ArgumentParser:
     q = sub.add_parser("smoke", help="q0404")
     wcommon(q)
     q.add_argument("--fills-dir", default=None, help="CB13-T SCREEN table directory (worn files of probe P1)")
+    q.add_argument("--snapshot-root", default=None, help="byte-for-byte restore tree 'snapshots' dir instead of the live one (restore_from_archive.py)")
+    q.add_argument("--live-trades-root", default=None, help="byte-for-byte restore tree 'live_trades' dir instead of the live one")
+    q.add_argument("--worn-sha256", default=None, help="JSON {archive-relative path: sha256} of the worn files (from worn-manifest); refuse (exit 2) on any mismatch")
     q.set_defaults(fn=cmd_smoke)
+
+    q = sub.add_parser("worn-manifest", help="print the sha256 map of the smoke's worn input files (the coordinator pins it on the host)")
+    q.add_argument("--fills-dir", default=None)
+    q.add_argument("--snapshot-root", default=None)
+    q.add_argument("--live-trades-root", default=None)
+    q.add_argument("--snapshot-dir", default=None)
+    q.add_argument("--trades-dir", default=None)
+    q.add_argument("--sweep-dir", default=None)
+    q.add_argument("--data-dumps", default=None)
+    q.set_defaults(fn=cmd_worn_manifest)
 
     q = sub.add_parser("exclusion-keys", help="q0405")
     wcommon(q)

@@ -397,7 +397,7 @@ def c1_test(F: dict, MV: dict, census_c: dict | None, *, n_draws: int = w.PLACEB
                                   "note": "C1 calibration: class circularly shifted within event over its intervals"}
     ip = np.nonzero(np.isfinite(U["c_pre"]))[0]
     pp = win.p_of(win.make_fe(U["c_pre"].astype(float), X, ev), ip, D, alpha=w.GATE_P)
-    res["pre_interval_placebo"] = {"p": pp["p"], "n": pp["n"], "holds": bool((not pp["testable"]) or pp["p"] >= w.GATE_P)}
+    res["pre_interval_placebo"] = {"p": pp["p"], "n": pp["n"], "holds": win.placebo_holds(pp), "unknown_is_not_met": True}
     cpre = U["c_pre"].astype(float)
     cov = [np.nan_to_num(cpre, nan=0.0), (~np.isfinite(cpre)).astype(float), U["spread"].astype(float), np.nan_to_num(U["log_liq"].astype(float), nan=0.0),
            (~np.isfinite(U["log_liq"])).astype(float), U["n_moving"].astype(float)]
@@ -421,7 +421,7 @@ def c1_test(F: dict, MV: dict, census_c: dict | None, *, n_draws: int = w.PLACEB
     q99 = float(np.quantile(U["dv"][idx], 1.0 - rc.TOP_DV_EXCLUDE_SHARE)) if len(idx) else math.inf
     rob["exclude_top_1pct_dv"] = _keep_sign(mk, idx[U["dv"][idx] <= q99])
     res["robustness"] = rob
-    res["robust_ok"] = bool(all(v for v in rob.values() if v is not None) and rob["unavailable_mark_worst_case"] is not None and res["loo_day"]["holds"] and all(res["top5"].values()))
+    res["robust_ok"] = win.robust_met(rob, res["loo_day"]["holds"], res["top5"])
     res["checks_ok"] = bool(res["floor_ok"] and res["small_g_rules_hold"] and comp["holds"] and res["calibration_placebo"]["holds"] and res["pre_interval_placebo"]["holds"] and res["robust_ok"])
     res["advance"] = w.stage1_advance(res["p"] if res["testable"] else None, res["checks_ok"])
     rep_ = {"merge_minus_mint": win.est_only(win.make_fe(y, X, ev, j=1), idx)}

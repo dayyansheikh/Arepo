@@ -420,6 +420,7 @@ def check_refusals(tmp: Path) -> dict:
     day = datetime.fromtimestamp(floor + 100, UTC).strftime("%Y%m%d")
     (tr / f"trades-{day}.jsonl").write_text(json.dumps({"ts": floor + 100, "condition_id": "c1", "ctx_market_id": "m1", "side": "BUY", "wallet_hash": "W", "recv_ts": floor + 500,
                                                         "key": "K", "outcome_index": 0, "price": 0.4, "size": 10}) + "\n")
+    (tr / f"trades-{datetime.fromtimestamp(floor + 100 + 86400.0, UTC):%Y%m%d}.jsonl").write_text("")  # readers also open the day after the window: a missing file is a pending restore
     got = list(win.iter_monitor(tr, floor, floor + 3600.0, Counter()))
     from . import cb17_e as fe  # noqa: PLC0415
 
@@ -486,6 +487,52 @@ def check_rules_fixtures(tmp: Path) -> dict:
     out["strata_selection_60"] = bool(pre.select_level({0: 0.59, 1: 0.60, 2: 0.9})["selected_level"] == 1 and pre.select_level({0: 0.1, 1: 0.2, 2: 0.3})["selected_level"] == 2
                                       and pre.select_level({0: 0.1, 1: 0.2, 2: 0.3})["fallback"] is True and pre.select_level({0: 0.6, 1: 0.9, 2: 0.9})["selected_level"] == 0)
     return out
+
+
+def worn_files(fills_dir: Path, trades_dir: Path, snap_dir: Path, sweep_dir: Path) -> list[tuple[str, Path]]:
+    """Every worn input file the probes read, keyed by its ARCHIVE-RELATIVE path (``live_trades/trades-YYYYMMDD.jsonl``, ``snapshots/<capture>/rows[_ext].csv.gz``,
+    ``book_sweeps/<sweep>/rows.csv.gz``, ``creative_batch13/t_screen/fills.csv.gz``), wherever the tree is rooted (the live paths or a byte-for-byte restore tree). A missing file is a refusal."""
+    out: list[tuple[str, Path]] = [("creative_batch13/t_screen/fills.csv.gz", _need(Path(fills_dir) / "fills.csv.gz"))]
+    for day in P1_DAYS:
+        out.append((f"live_trades/trades-202610{day}.jsonl", _need(Path(trades_dir) / f"trades-202610{day}.jsonl")))
+    snap = Path(snap_dir)
+    for cap in sorted({*P1_CAPTURES, P2_SPORTS_CAPTURE}):
+        out.append((f"snapshots/{cap}/rows_ext.csv.gz", _need(snap / cap / "rows_ext.csv.gz")))
+    caps = sorted(d for d in os.listdir(_need(snap)) if d.startswith(P2_DAY) and (snap / d).is_dir())
+    for cap in caps:
+        for nm in ("rows.csv.gz", "rows_ext.csv.gz"):
+            out.append((f"snapshots/{cap}/{nm}", _need(snap / cap / nm)))
+    sw = Path(sweep_dir)
+    for d in sorted(x for x in os.listdir(_need(sw)) if x.startswith(P2_DAY)):
+        out.append((f"book_sweeps/{d}/rows.csv.gz", _need(sw / d / "rows.csv.gz")))
+    seen: dict[str, Path] = {}
+    for k, p in out:
+        seen.setdefault(k, p)
+    return sorted(seen.items())
+
+
+def worn_manifest(fills_dir: Path, trades_dir: Path, snap_dir: Path, sweep_dir: Path) -> dict[str, str]:
+    """``{archive-relative path: sha256}`` of the worn input files (the coordinator pins this on the host; ``smoke --worn-sha256`` checks it)."""
+    return {k: c17.sha256_file(p) for k, p in worn_files(fills_dir, trades_dir, snap_dir, sweep_dir)}
+
+
+def check_worn_pins(pin_path: Path, fills_dir: Path, trades_dir: Path, snap_dir: Path, sweep_dir: Path) -> dict:
+    """Refuse (exit 2) unless every worn file is pinned and hashes to its pin (a wrong restore would otherwise be a counted FAIL). Returns ``{"n_files", "pins_sha256"}``."""
+    pp = Path(pin_path)
+    if not pp.is_file():
+        raise Refused(f"--worn-sha256 file {pp} not found")
+    try:
+        pins = json.loads(pp.read_text())
+    except ValueError as exc:
+        raise Refused(f"--worn-sha256 file {pp.name} is not JSON") from exc
+    if not isinstance(pins, dict):
+        raise Refused("--worn-sha256 file must be a JSON object {archive-relative path: sha256}")
+    got = worn_manifest(fills_dir, trades_dir, snap_dir, sweep_dir)
+    unpinned = sorted(k for k in got if k not in pins)
+    bad = sorted(k for k, v in got.items() if k in pins and str(pins[k]).lower() != v)
+    if unpinned or bad:
+        raise Refused(f"worn files differ from the pins: unpinned={unpinned[:5]} (n={len(unpinned)}), sha256 mismatch={bad[:5]} (n={len(bad)}); restore byte for byte")
+    return {"n_files": len(got), "pins_sha256": c17.sha256_file(pp)}
 
 
 def collect_checks(ctx: dict) -> tuple[dict, dict]:

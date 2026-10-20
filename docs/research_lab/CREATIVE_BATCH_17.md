@@ -1490,3 +1490,21 @@ point, alpha, Holm family or count was changed; all window code is pinned by the
   q0410 2026-11-23T08:00Z (recompute if S_8 slides). q0407's file name keeps "A" but the job is the E screen frame.
 - **Open questions for the freeze check:** the pin tokens `TODO-COORDINATOR` (q0405 base sha, q0411 results sha) are refused until pinned; the code-freeze
   and T17 records must be committed by the coordinator; the q0407 draft id naming; O1-O8 above stand unchanged.
+
+### 12.1 Freeze-check fixes (2026-10-20, `CB17_WINDOW_FREEZE_CHECK_2026-10-20.md`, fixes 1-7)
+
+Mechanical only; no rule, threshold, cut point or count changed (`cb17_wcommon` and the rules parts are untouched, so the part shas stand; only the code pin moves).
+
+1. A missing monitor day file, or a complete capture / declared sweep whose row files are gone, is exit 75 ("restore byte for byte, hash-checked, restore_from_archive.py"), never skipped, unless a
+   committed `seals/cb17_monitor_stopped.json` (`{"stopped_days": ["YYYYMMDD", ...]}`) covers that day (monitor days only). The REP seal's source table covers every declared day / capture / sweep file.
+2. q0404 is gated on the committed code-freeze record (`gate(attest=False)`) and stores `code_sha256`; every later frame job refuses a `smoke.json` of other code.
+3. `b0`, `a0` are float64. 4. Unknown is never met: a robustness variant that is `None` and an untestable pre-period placebo are "not met" (`win.robust_met`, `win.placebo_holds`).
+5. The econ event minimum counts events among flagged fills only. 6. q0406 writes the B frame with its own manifest status (`frame_b_complete`) before C; a budget stop resumes at C.
+7. Every job enforces `--disk-cap-gb` allowance and the 0.3 GB `creative_batch17` total (frame outputs are checked against their cap before the manifest); q0412 verifies the rules parts, the code pin and the T17 record.
+   Disclosure: a calibration draw that cannot be computed counts as "not advancing" (p = 1, CB16's `placebo_advance_rate` precedent, `cb17_wcommon.calibration_placebo`); this is the declared rule and is unchanged.
+
+Smoke inputs: `smoke --worn-sha256 FILE` refuses (exit 2) unless every worn file is pinned and matches (keys are archive-relative: `live_trades/trades-YYYYMMDD.jsonl`, `snapshots/<capture>/rows[_ext].csv.gz`,
+`book_sweeps/<sweep>/rows.csv.gz`, `creative_batch13/t_screen/fills.csv.gz`); `worn-manifest` prints that map; `--snapshot-root` / `--live-trades-root` point the smoke and `worn-manifest` at a byte-for-byte
+restore tree (directories must be named `snapshots` / `live_trades`; the pin check applies to whatever root is used). Tests: `tests/unit/test_research_lab_cb17_fixes.py`.
+
+Open, unchanged and not decided here: O2, O9, O11, O12 and the monitor storage cap (ruling 7); O1, O4, O5, O6, O8, O10 await explicit acceptance.
