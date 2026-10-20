@@ -24,7 +24,7 @@ fault to the rule that answers it.
 | ID | Idea | Hypothesis (direction) | Stream | Primary | Planning MDE (estimate; Holm worst case, k = 5) | Floor |
 |---|---|---|---|---|---|---|
 | **E015** | CH156 | Within a market, the 2 h continuation after a **parallel** quote-only re-centering is higher than after a **traded** move (one-sided, > 0) | complete-universe captures (+ sidecar, + sweep 1 for the mechanism reading) | expanding-past demeaned OLS of `c` on 1[parallel] over parallel and traded units | **about 0.16-0.23c** (range 0.1-0.4c) | 0.5c |
-| **E016** | CH161 | 6 h taker flow continues more when more of it was **walked** (off-grid aggregated prices): slope of `x6 · zW` > 0 | trade samples + captures | E013-form expanding-past demeaned OLS plus a distant-donor gate | **about 0.0018-0.0029 per SD of zW** | gross 0.5c in the favourable cell |
+| **E016** | CH161 | 6 h taker flow continues more when more of it was **walked** (off-grid aggregated prices): slope of `x6 · zW` > 0 | trade samples + captures | E013-form expanding-past demeaned OLS plus a Freedman-Lane permutation gate (13.13; the distant-donor gate is a non-binding label) | **about 0.0018-0.0029 per SD of zW** | gross 0.5c in the favourable cell |
 | **E017** | CH157 | The 24 h outcome-0 (YES) mid change after an **attention-only volume surge** (`volume24hr` >= 3x and >= +$500, \|x\| < 1c) is higher than after the same market's non-surge intervals (> 0) | captures + sidecar | market-FE OLS of the 24 h change on 1[attention-only], two-day-block inference | **about 0.6-1.25c** (power at the floor) | 1.0c |
 | **E018** | CH162 arm 2 | 6 h taker flow continues less when more of it arrived in same-signed **trains** (rows with a same-signed neighbour within 300 s): slope of `x6 · zH` < 0 | trade samples + captures | as E016 (sign reversed) | **about 0.0018-0.0029 per SD of zH** | gross 0.5c |
 | **E019** | CH159 | Within a non-sports neg-risk event, the members' 2 h continuation after a **high-breadth** untraded interval (>= 80% of members re-quoted) is higher than after a **low-breadth** one (< 50%) (> 0) | captures + sidecar | expanding-past demeaned OLS of `C` on 1[high] within event | **about 0.4-1.0c** (borderline; census-gated) | 0.5c |
@@ -144,11 +144,11 @@ is counted.
 ### 1.8 Placebos and gates (valid within-unit nulls)
 - **E015, E019: permutation gate (Freedman-Lane).** 200 draws; in each, the control-residualised target is permuted within
   market (E019: event) x UTC day, the demeaned tested term and controls staying fixed; the slope is re-estimated. Gate:
-  `p_perm = (1 + #{draw >= real}) / (1 + draws) < 0.05`. Strata with fewer than 4 rows (counted over all rows of
-  the stratum, including rows later dropped as non-finite; behaviour unchanged by the Freedman-Lane fix, a power matter
-  only) are left unpermuted (counted). This is a check on the clustered SEs, **not** a mechanism control: a permutation null cannot tell bounce from
+  `p_perm = (1 + #{draw >= real}) / (1 + draws) < 0.05`. Strata with fewer than 4 rows are left unpermuted (counted); the
+  stratum size is counted over all rows of the stratum, including rows with a missing target or regressor, but only
+  rows that are finite and in a stratum with >= 4 rows are permuted (a power matter only, not a size one). This is a check on the clustered SEs, **not** a mechanism control: a permutation null cannot tell bounce from
   information. The mechanism controls are the readings in each test.
-- **E016, E018: distant-donor gate** (LT2 finding 1 fixed by design). Only markets with **>= 4 usable units** enter the gate.
+- **E016, E018: distant-donor gate (SUPERSEDED as a binding gate by 13.13: now a reported, non-binding label; the binding gate is the Freedman-Lane permutation gate above, strata market x UTC day).** (LT2 finding 1 fixed by design.) Only markets with **>= 4 usable units** enter the gate.
   In each of 200 draws, every unit's moderator (`W` or `H`) is replaced by the moderator of a donor unit of the same market
   drawn uniformly with replacement from units whose origin is **at least 12 h away** (6 h flow window + 6 h horizon, so a
   donor's flow window cannot overlap the recipient's flow window or its target). A unit with fewer than 2 eligible donors
@@ -287,7 +287,7 @@ is counted.
   zSPR`, `zSPR`, logit mid, `|mid − 0.5|`, Gamma `chg_1h`, `chg_1d`, `chg_1w` with missing flags, `dprev = mid_t −
   mid(slot k − 1)` with its flag. The `x6 · zN` and `x6 · zSPR` controls separate walking from thin books and activity (a
   walked order is more likely in a thin book, and LT2's F5 already tests the spread moderator). SEs, p, CI as 1.7; seed
-  20261025. Gate: distant donors (1.8), seed 20261125.
+  20261025. Binding gate: Freedman-Lane permutation (13.13), seed 20261125; the distant-donor gate (1.8) is reported only.
 - **Mechanism reading (label rule).** M1: `x6` and `W` recomputed on a window ending 30 min before `t`. A walked order moves
   the touch, so if the Gamma mid at `t` lags the book, part of `y6` is mechanical catch-up. If E016 is Supported and M1's
   interaction is below 50% of the primary or its one-sided p >= 0.05, the label is **possibly mechanical (stale-mid
@@ -626,8 +626,8 @@ could only end Unavailable is not registered.
 
 ### 13.2 Rulings on section 11 adopted
 (1) Parallel minus traded stays the single E015 primary, with M3 added. (2) Mixed estimators kept: expanding-past for
-E015/E016/E018/E019, full-sample FE for E017 with expanding-past as S5. (3) The distant-donor gate is kept, with p = 1 on
-failure, after the finding-5 controls; size checked in 13.5. (4) Day clusters kept for 2 h and 6 h targets, and two-day
+E015/E016/E018/E019, full-sample FE for E017 with expanding-past as S5. (3) The distant-donor gate was kept, with p = 1 on
+failure, after the finding-5 controls (superseded as a binding gate by 13.13). (4) Day clusters kept for 2 h and 6 h targets, and two-day
 blocks are reported for 6 h as a sensitivity (`sensitivity_two_day_blocks`). (5) Finding 11. (6) E018 kept only through the C2
 degeneracy, correlation and agreement gates; corr <= 0.5. (7) Census drops are recorded with their counts (13.6, 7.6).
 (8) Grid-distance rule (finding 4). (9) 2 pp kept; for the 24 h target (E017) the Lee bounds are **always** reported.
@@ -663,7 +663,7 @@ stays dropped.
 
 ### 13.5 Simulated-null size of the two gates (section 1.8; `size-check`)
 `la.size_check` (pinned code) simulates panels with **no** moderation or class effect: 40 markets x 30 two-hour units (flow), or
-60 markets x 40 units (class contrast). There are seven scenarios (five at the freeze check, two added in 13.10):
+60 markets x 40 units (class contrast). There are nine scenarios (five at the freeze check, two added in 13.10, two in 13.12):
 - donor gate with iid flow;
 - donor gate with AR(1) flow (0.6);
 - donor gate in a life-cycle world (moderator and flow continuation both trend towards the end, `x6·zHTE` control included);
@@ -671,12 +671,14 @@ stays dropped.
 - Freedman-Lane permutation with persistent market class rates and target levels;
 - donor gate with a moderator correlated with the flow within each market over time (`donor_corr_control`, 13.10);
 - Freedman-Lane permutation with the class label and the target both depending on a control (`perm_corr_control`, 13.10).
+- donor gate with the tested moderator correlated (0.5 and 0.7) with a controlled moderator whose interaction has a real effect 0.004 (`donor_collinear_control_0.5` / `_0.7`, 13.12).
 
 **Criterion change (disclosed).** Sections 1.8 and 9.3 required "rejection <= 0.05". A finite simulation cannot show that
 exactly, so the criterion is a stated Monte-Carlo tolerance: the pass rate must not be significantly above 5%, that is
 rate <= 0.05 + 1.645 · sqrt(0.0475 / worlds). The freeze check accepted this and required **>= 2,000 worlds** for the
-registered run (spec `size_check.worlds` = 2,000, limit 0.058; q0473 was cancelled on 2026-10-20 after the Freedman-Lane fix and q0473b runs the registered statement on
-the fixed code, see 13.10). The preliminary run below used 400 worlds
+registered run (spec `size_check.worlds` = 2,000, limit 0.058). Runs q0473 and q0473b were made on code that has since changed
+(Freedman-Lane fix 13.10, donor-gate fix 13.12) and are information only: a new >= 2,000-world size check on the final, fixed
+code is required before the pin. The preliminary run below used 400 worlds
 (limit 0.068) on the pre-freeze-fix code. It is not the registered size statement. Preliminary result (99 draws, seed
 20261020):
 run locally 2026-10-20 on the code of commit 63d89b5e (module sha256 `live_tests3.py` f8a1d7b7..., `live_tests3_analysis.py` 99f8282d...): donor iid **0.045**, donor AR(1) **0.025**, donor life-cycle **0.055**, permutation iid **0.0475**, permutation persistent **0.040**; all within 0.068, PASS. Planted effects (moderation 0.004 per SD; class effect 2c) pass both gates (unit test). The size check must be re-run if either module changes before the pin.
@@ -759,14 +761,68 @@ Local simulation on the fixed code (not the registered statement): 300 worlds x 
 `live_tests3.py` 202c0d638d76d028df55923732ef7ccea01e5979e657f2a9ee7c3d516b7fa43c, `live_tests3_analysis.py`
 d0a4a3b5704973d4bbff83fa2954108d0772831b1674daff731de1e96ad0683d (supersede 13.9; the spec map stays null until the pin).
 
+### 13.12 Donor-gate amendment (2026-10-20; `reviews/LT3_DONOR_GATE_RULING_2026-10-20.md`)
+Design and code only; no outcome data read. Reason: E016 (tests zW) and E018 (tests zH) both control `x6*zN, x6*zSPR, x6*zSize,
+x6*zHTE, x6*zRV`. When the tested moderator correlates with a controlled one, a donor at least 12 h away breaks the short-term
+link, so donor betas spread less than the real beta (by about sqrt(1 - R^2)) and the raw-beta gate is oversized (reviewer's local
+reproduction at 300 worlds: 0.117 at corr 0.7, 0.067 at corr 0.5, limit 0.058). Changes, nothing else (seeds, 200 draws, strata,
+pass rule, alpha, thresholds and formulas are unchanged):
+- (a) The donor-gate statistic is the studentised partialled score `xt . yt / sqrt(xt . xt)` (`la.fast_score`) instead of the raw
+  partialled beta, for the real statistic and each donor draw alike. Size under this form is unverified until the new size check.
+- (b) Two binding size scenarios, `donor_collinear_control_0.5` and `donor_collinear_control_0.7`: zM correlated (0.5, 0.7) with a
+  controlled moderator zA whose interaction `x6*zA` (and zA) is in the controls and has a real effect 0.004; the null for zM
+  holds. They count in `size_check["pass"]` like every other scenario (any failure blocks the pin).
+- (c) Census C2 reports `r2_x6zW_on_controlled` and `r2_x6zH_on_controlled` (within-market R^2 of `x6*zW`, `x6*zH` on the
+  controlled interactions with main effects and `x6`; reported, not a gate), and the existing E018 cap `corr(zW, zH) <= 0.5`
+  uses the absolute value.
+Code hashes after this amendment: `live_tests3.py` f7d242fdc0969b2f1482081496c128d952169dcf4ffca631a7f2f33efd9acc71, `live_tests3_analysis.py` 60e4fdff4aab112a343caab751830afbe42ca7dded65f973e46c3acb8bb25a3c (supersede 13.10). The size check from 13.5
+must be re-run (>= 2,000 worlds) on this code before the pin, after a `science-reviewer` pass.
+
 ### 13.11 What remains before the pin
 - Censuses q0470-q0472 (deadlines in 13.6).
 - Fill `k_tests`, V*, the scales, the cuts and `exclude_crypto` / `exclude_family` in the spec, and record drops in 7.6.
 - `science-reviewer` freeze check of code against design.
-- Size check, >= 2,000 worlds, on the code to be pinned (q0473b or locally; 13.5, 13.10). Any failing scenario blocks the pin.
+- Size check, >= 2,000 worlds, on the code to be pinned, binding scenarios as in 13.13 (donor scenarios reported only). Any failing binding scenario blocks the pin (13.13 item 7).
 - Host dry run on past captures (13.4).
 - `code_sha256` map, `SPEC_SHA256`, ledger entry, cron install.
 
 `REGISTERED_UTC` follows 1.1 unchanged: 2026-10-24T00:00Z if the registration commit lands by 2026-10-23T00:00Z, else
 the next qualifying 00:00Z. Window: 21 days. Analysis: END + 36 h. The move is recorded in the ledger, and no data are
 inspected for it.
+
+### 13.13 Donor gate becomes non-binding; E016/E018 use the Freedman-Lane gate (2026-10-21; `reviews/LT3_DONOR_GATE_RULING2_2026-10-21.md`)
+Design and code only; no outcome data read. Supersedes the binding role of the donor gate in 1.8, 13.2 (3), 13.5 and 13.12.
+1. **Reason.** The reviewer's local informational size check of the 13.12 studentised-score form (300 worlds x 200 draws, limit
+   0.0707) gave `donor_iid` 0.073 (SE 0.015), `donor_corr_control` 0.100 (SE 0.017; the raw beta had given 0.030),
+   `donor_collinear_control_0.7` 0.073. Cause: the real statistic loads less on the donors' shared component than donors do on
+   each other's (mean correlation of the real-donor direction 0.210 vs donor-donor 0.243 in the iid world; 0.131 vs 0.183 in
+   `corr_mod`, where the real interaction also contains 0.7 x6^2 that no donor has), so donor scores spread less than the real
+   score and the gate rejects too often; the raw beta missed in the opposite direction (too strict, 0.030; too permissive at
+   collinearity 0.7, 0.117). Real and donor statistics are not exchangeable, so the gate cannot give a valid null: a structural
+   flaw, not a scaling choice. **This decision does not depend on any later size result.** A failed gate only forces p to 1 (1.8),
+   so removing it as a binding gate cannot raise the false-positive rate above the cluster-robust primary's.
+2. **E016/E018 binding gate** = the Freedman-Lane permutation gate (`la.perm_gate`; strata market x UTC day, >= 4 rows per
+   stratum, 200 draws, p_perm < 0.05, seeds `E016_gate` / `E018_gate` unchanged), the same rule as E015/E019 and LT4. Tested term
+   `x6*zW` / `x6*zH`, controls the main effect plus the registered interaction controls.
+3. **The donor gate is still computed** (`res["donor_gate_reported"]`, same seed and form as 13.12) but only as a label:
+   "within-unit timing shown" / "within-unit timing not shown". It never changes the Holm p or the verdict. A failed binding gate
+   now carries the label "SE check failed" (as E015/E019).
+4. **Size scenarios.** Binding: `perm_iid`, `perm_persistent`, `perm_corr_control` and the new flow-world permutation scenarios
+   `flowperm_iid`, `flowperm_ar0.6`, `flowperm_collinear_0.7` (the gate E016/E018 use, applied to `sim_flow_world`; collinear
+   world as 13.12). The six donor scenarios stay in the output with `binding: false` and do not affect `pass`. Seeds, 200 draws,
+   2,000 worlds, limit 0.058, alpha and thresholds unchanged. The RNG stream of the permutation scenarios shifts (donor scenarios
+   run first, unchanged); only the 2,000-world run counts.
+5. **Fail closed.** A skipped (non-finite or row-mismatched) draw no longer counts in the `1 + draws` denominator: p = (1 + ge) /
+   (1 + completed), and the gate fails unless all declared draws completed (`draws_completed` is reported). Applies to
+   `perm_gate` and `donor_gate`.
+6. **Disclosure, `within_market_r2`** (census `r2_x6zW_on_controlled`, `r2_x6zH_on_controlled`): demeans by the full-sample market
+   mean whereas the model uses expanding-past demeaning, and runs on the census sample, not the gate sample; descriptive, reported
+   only, unchanged.
+7. **Process.** New code hashes (below); the spec only changes description text (nothing pinned). `science-reviewer` pass, then the
+   2,000-world size check on this code. If any binding scenario fails, the pin is blocked and no further redesign may follow from
+   that run.
+Code hashes after this amendment (supersede 13.12): `live_tests3.py` 2dff0621bbefe9186102ee888bb70484839808e58955e799343c9d4eb62b2410,
+`live_tests3_analysis.py` 62ef3375266eb663c2d1bb541720bc77015edfad0a2b065df45523b17f96fedb (was 5e242c76… at the
+verification, 2026-10-21 ~00:45 UTC+1: OK to run; its optional fix applied before the size check: the donor label reads
+"within-unit timing untestable" when the verdict is Unavailable, the donor gate could not run, or draws were skipped, so an
+untestable gate is never reported as "not shown"; label only, no gate, p or verdict path changed).
