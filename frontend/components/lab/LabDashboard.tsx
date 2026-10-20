@@ -12,6 +12,8 @@ import { EdgePipeline } from "./EdgePipeline";
 import { ExperimentExplorer } from "./ExperimentExplorer";
 import { MachineLearning } from "./MachineLearning";
 import { AutopilotCard, Controls, HostCard } from "./Machines";
+import { useAuth } from "@/lib/auth-context";
+import { Revealed, UnlockScreen } from "@/components/security/UnlockScreen";
 import { LabTabs } from "./LabTabs";
 import { Dot, fmtCount, LabNotFound, LabSection, Pill, Quiet } from "./primitives";
 
@@ -68,7 +70,10 @@ function LoadingView() {
 }
 
 export function LabDashboard() {
-  const { data, fetchedAt, loading, error, notFound: missing, isFixture, refresh } = useLabDashboard();
+  const { data, fetchedAt, loading, error, notFound: missing, isFixture, locked, refresh } = useLabDashboard();
+  const auth = useAuth();
+  const [revealed, setRevealed] = useState(false);
+  const lockedState = locked ?? auth.locked;
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [sent, setSent] = useState<LabCommand[]>([]);
 
@@ -90,6 +95,18 @@ export function LabDashboard() {
     return [...sent.filter((c) => !ids.has(c.id)), ...server];
   }, [data, sent]);
 
+  if (lockedState) {
+    return (
+      <UnlockScreen
+        keys={lockedState.keys}
+        onUnlocked={() => {
+          setRevealed(true);
+          void auth.refresh();
+          void refresh();
+        }}
+      />
+    );
+  }
   if (missing) return <LabNotFound />;
   if (loading && !data) return <LoadingView />;
   if (!data) return <ErrorState title="Couldn't load the lab" message={error ?? "Something went wrong."} />;
@@ -100,6 +117,7 @@ export function LabDashboard() {
   const confirmed = pipeline[pipeline.length - 1]?.count;
 
   return (
+    <Revealed active={revealed}>
     <div className="mx-auto max-w-6xl space-y-16 pb-10 sm:space-y-20">
       {isFixture ? (
         <div
@@ -241,5 +259,6 @@ export function LabDashboard() {
         </div>
       </LabSection>
     </div>
+    </Revealed>
   );
 }

@@ -9,8 +9,25 @@ import { StatusChip } from "./StatusChip";
 
 /** Right-hand auth affordance: initials when signed in, Sign in otherwise. */
 function AuthLink({ pathname }: { pathname: string }) {
-  const { user, loading } = useAuth();
+  const { user, locked, loading } = useAuth();
   if (loading) return null;
+  if (locked) {
+    // Signed in, but this account needs its security key: a quiet padlock that opens the unlock.
+    return (
+      <Link
+        href="/account"
+        aria-label="Unlock your account"
+        title="Unlock your account"
+        className="focus-ring inline-flex h-9 w-9 items-center justify-center rounded-full border border-arepo-border text-arepo-ink hover:bg-arepo-surface2"
+      >
+        <svg aria-hidden="true" width="14" height="16" viewBox="0 0 48 56" fill="none">
+          <path d="M15 25V17.5a9 9 0 0 1 18 0V25" stroke="currentColor" strokeWidth="4.5" strokeLinecap="round" />
+          <rect x="7" y="24" width="34" height="27" rx="7" fill="currentColor" />
+          <circle cx="24" cy="36" r="4" fill="#E50C0E" />
+        </svg>
+      </Link>
+    );
+  }
   const href = user ? "/account" : "/signin";
   const label = user ? initialsForUser(user) : "Sign in";
   const active = pathname.startsWith(href);

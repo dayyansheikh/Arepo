@@ -21,6 +21,7 @@ from .routes import health as health_routes
 from .routes import historical as historical_routes
 from .routes import lab as lab_routes
 from .routes import lab_admin as lab_admin_routes
+from .routes import lab_webauthn as lab_webauthn_routes
 from .routes import markets, meta, opportunity, overview, replay, signals
 from .routes import research as research_routes
 from .routes import signals_scan as signals_scan_routes
@@ -49,6 +50,12 @@ def create_app() -> FastAPI:
         summary="Read-only prediction-market intelligence over public Polymarket data.",
         lifespan=lifespan,
     )
+
+    # Security-key step-up gate (innermost, so CORS headers still wrap its 403). See
+    # accounts/stepup_gate.py.
+    from ..accounts.stepup_gate import StepUpMiddleware
+
+    app.add_middleware(StepUpMiddleware)
 
     # Credentials (auth cookie) are allowed, so origins must be an explicit allow-list, never
     # "*". Account endpoints need POST / PATCH / DELETE in addition to the read-only GETs.
@@ -114,6 +121,7 @@ def create_app() -> FastAPI:
     app.include_router(opportunity.router)
     app.include_router(lab_routes.router)
     app.include_router(lab_admin_routes.router)
+    app.include_router(lab_webauthn_routes.router)
 
     # Account system (native fastapi-users auth + preferences/saved/history). See DECISIONS P3.
     from ..accounts.router import account_router, auth_router

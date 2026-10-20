@@ -3,6 +3,7 @@
 // bodies, 401 -> sign-in with ?next=, 404 -> the page renders the standard not-found UI.
 
 import { API_BASE } from "../api";
+import { announceLocked, lockedDetail } from "../stepup-events";
 
 export const MEMBERS_PATH = "/lab/members";
 export const MEMBERS_SIGNIN_REDIRECT = `/signin?next=${MEMBERS_PATH}`;
@@ -48,6 +49,7 @@ export type MembersLoadResult =
   | { kind: "ok"; data: MembersSnapshot }
   | { kind: "unauthorized" }
   | { kind: "not_found" }
+  | { kind: "locked"; keys: number }
   | { kind: "error"; status: number; message: string };
 
 export type MemberActionKind =
@@ -103,6 +105,12 @@ export async function loadMembers(fetchImpl: FetchLike = defaultFetch): Promise<
   for (const res of [usersRes, auditRes]) {
     // A signed-in non-owner gets 404 by design: the area must not reveal that it exists.
     if (res.status === 404) return { kind: "not_found" };
+  }
+  for (const res of [usersRes, auditRes]) {
+    if (res.status === 403) {
+      const locked = lockedDetail(await res.clone().json().catch(() => null));
+      if (locked) return { kind: "locked", keys: locked.keys };
+    }
   }
   for (const res of [usersRes, auditRes]) {
     if (!res.ok) return { kind: "error", status: res.status, message: unreachable(res.status, await detailOf(res)) };
@@ -176,6 +184,13 @@ export async function runMemberAction(
   if (res.ok) return { ok: true };
   if (res.status === 401) {
     return { ok: false, status: 401, message: "Your session has ended. Sign in again.", unauthorized: true };
+  }
+  if (res.status === 403) {
+    const locked = lockedDetail(await res.clone().json().catch(() => null));
+    if (locked) {
+      announceLocked(locked);
+      return { ok: false, status: 403, message: "Unlock with your security key first." };
+    }
   }
   if (res.status === 429) {
     return { ok: false, status: 429, message: await detailOf(res) };
@@ -360,7 +375,28 @@ const AUDIT_VERBS: Record<string, string> = {
   delete: "deleted",
 };
 
+/** Actions an owner takes on their own account (security keys); phrased without a target. */
+const SELF_AUDIT: Record<string, string> = {
+  security_key_registered: "added a security key",
+  security_key_removed: "removed a security key",
+  security_key_renamed: "renamed a security key",
+  recovery_code_used: "unlocked with a recovery code",
+  recovery_code_failed: "entered a wrong recovery code",
+  recovery_codes_regenerated: "made new recovery codes",
+};
+
+function auditNickname(detail: string | null): string {
+  try {
+    const d = JSON.parse(detail ?? "") as { nickname?: unknown; to?: unknown };
+    const name = typeof d.nickname === "string" ? d.nickname : typeof d.to === "string" ? d.to : "";
+    return name ? ` (${name})` : "";
+  } catch {
+    return "";
+  }
+}
+
 export function auditSentence(e: AuditEntry): string {
+  if (SELF_AUDIT[e.action]) return `${e.actor_email} ${SELF_AUDIT[e.action]}${auditNickname(e.detail)}`;
   const verb = AUDIT_VERBS[e.action] ?? e.action.replace(/_/g, " ");
   return `${e.actor_email} ${verb} ${e.target_email ?? "a member"}`;
 }

@@ -3,9 +3,10 @@ import Link from "next/link";
 const TABS = [
   { href: "/lab", label: "Research", key: "research" },
   { href: "/lab/members", label: "Members", key: "members" },
+  { href: "/lab/security", label: "Security", key: "security" },
 ] as const;
 
-/** Quiet two-tab switcher shown at the top of the owner-only Lab pages (never in public nav). */
+/** Quiet tab switcher shown at the top of the owner-only Lab pages (never in public nav). */
 export function LabTabs({ current }: { current: (typeof TABS)[number]["key"] }) {
   return (
     <nav aria-label="Lab sections" className="flex">

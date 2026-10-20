@@ -18,6 +18,8 @@ export interface LabDashboardState {
   /** Message for the latest failed refresh (data, if any, is kept). */
   error: string | null;
   notFound: boolean;
+  /** Set when a security-key unlock is needed (403 hardware_key_required); polling pauses. */
+  locked: { keys: number } | null;
   isFixture: boolean;
 }
 
@@ -34,8 +36,10 @@ export function useLabDashboard(): LabDashboardState & { refresh: () => void } {
     loading: true,
     error: null,
     notFound: false,
+    locked: null,
     isFixture: false,
   });
+  const lockedRef = useRef(false);
   const inFlight = useRef<AbortController | null>(null);
   const lastStart = useRef(0);
   const fixtureMode = useRef(false);
@@ -43,7 +47,7 @@ export function useLabDashboard(): LabDashboardState & { refresh: () => void } {
 
   const load = useCallback(
     async (force = false) => {
-      if (fixtureMode.current || stopped.current) return;
+      if (fixtureMode.current || stopped.current || (lockedRef.current && !force)) return;
       const now = Date.now();
       if (!force && now - lastStart.current < MIN_REFETCH_GAP_MS) return;
       lastStart.current = now;
@@ -63,6 +67,12 @@ export function useLabDashboard(): LabDashboardState & { refresh: () => void } {
         router.replace(action.to);
         return;
       }
+      if (action.type === "locked") {
+        lockedRef.current = true;
+        setState((s) => ({ ...s, loading: false, locked: { keys: action.keys } }));
+        return;
+      }
+      lockedRef.current = false;
       if (action.type === "not_found") {
         stopped.current = true;
         setState((s) => ({ ...s, loading: false, notFound: true }));
@@ -75,6 +85,7 @@ export function useLabDashboard(): LabDashboardState & { refresh: () => void } {
           loading: false,
           error: null,
           notFound: false,
+          locked: null,
           isFixture: false,
         });
         return;
@@ -97,6 +108,7 @@ export function useLabDashboard(): LabDashboardState & { refresh: () => void } {
             loading: false,
             error: null,
             notFound: false,
+            locked: null,
             isFixture: true,
           });
         });

@@ -12,6 +12,8 @@ import {
   type MemberFilter,
 } from "@/lib/lab/members";
 import { useMembers } from "@/lib/lab/use-members";
+import { useAuth } from "@/lib/auth-context";
+import { Revealed, UnlockScreen } from "@/components/security/UnlockScreen";
 import { LabTabs } from "./LabTabs";
 import { MemberRow, ROW_GRID } from "./MemberRow";
 import { fmtCount, LabNotFound, LabSection, Quiet } from "./primitives";
@@ -119,7 +121,10 @@ function LoadingView() {
 }
 
 export function MembersAdmin() {
-  const { data, loading, error, notFound, isFixture, refresh, act } = useMembers();
+  const { data, loading, error, notFound, isFixture, locked, refresh, act } = useMembers();
+  const auth = useAuth();
+  const [revealed, setRevealed] = useState(false);
+  const lockedState = locked ?? auth.locked;
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<MemberFilter>("all");
   const [openId, setOpenId] = useState<string | null>(null);
@@ -146,6 +151,18 @@ export function MembersAdmin() {
   const counts = useMemo(() => filterCounts(users), [users]);
   const shown = useMemo(() => filterMembers(users, query, filter), [users, query, filter]);
 
+  if (lockedState) {
+    return (
+      <UnlockScreen
+        keys={lockedState.keys}
+        onUnlocked={() => {
+          setRevealed(true);
+          void auth.refresh();
+          void refresh();
+        }}
+      />
+    );
+  }
   if (notFound) return <LabNotFound />;
   if (loading && !data) return <LoadingView />;
   if (!data) return <ErrorState title="Couldn't load members" message={error ?? "Something went wrong."} />;
@@ -153,6 +170,7 @@ export function MembersAdmin() {
   const verified = users.filter((u) => u.is_verified).length;
 
   return (
+    <Revealed active={revealed}>
     <div className="mx-auto max-w-6xl space-y-14 pb-10 sm:space-y-16">
       {isFixture ? (
         <div
@@ -273,5 +291,6 @@ export function MembersAdmin() {
 
       <ToastRegion toast={toast} onClose={() => setToast(null)} />
     </div>
+    </Revealed>
   );
 }

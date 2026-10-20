@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from functools import lru_cache
+from urllib.parse import urlparse
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -72,6 +73,53 @@ class Settings(BaseSettings):
     digest_max_users_per_run: int = 100
     digest_max_retries: int = 2
     digest_lease_seconds: int = 900
+
+    # --- Lab hardware security keys (WebAuthn step-up; see docs/lab/SECURITY_KEYS.md) ---
+    # LAB_REQUIRE_HARDWARE_KEY: "auto" (default) = any account with at least one registered key
+    # needs a security-key unlock (step-up) for EVERY signed-in endpoint (account, alerts, saved
+    # markets, /api/users, the Lab and member admin), so nobody is locked out before registering;
+    # "always" = additionally every superuser needs one even before registering (they can still
+    # register a first key); "off" = operator escape hatch (password session alone suffices).
+    lab_require_hardware_key: str = "auto"
+    # WebAuthn relying-party ID. Empty = "arepolabs.com" in production (valid on www and the apex),
+    # otherwise the host of APP_BASE_URL (localhost in development).
+    lab_webauthn_rp_id: str = ""
+    lab_webauthn_rp_name: str = "Arepo Lab"
+    # Comma-separated page origins accepted in WebAuthn clientDataJSON. Empty = the production
+    # site origins in production, plus every CORS/APP_BASE_URL origin on the RP ID's domain.
+    lab_webauthn_origins: str = ""
+    lab_stepup_hours: float = 4.0  # LAB_STEPUP_HOURS: how long one unlock lasts
+
+    @property
+    def lab_hardware_key_mode(self) -> str:
+        mode = (self.lab_require_hardware_key or "").strip().lower()
+        # Anything unrecognised fails safe to "auto" (never silently to "off").
+        return mode if mode in ("auto", "always", "off") else "auto"
+
+    @property
+    def webauthn_rp_id(self) -> str:
+        if self.lab_webauthn_rp_id.strip():
+            return self.lab_webauthn_rp_id.strip().lower()
+        if self.environment == "production":
+            return "arepolabs.com"
+        return (urlparse(self.app_base_url).hostname or "localhost").lower()
+
+    @property
+    def webauthn_origin_list(self) -> list[str]:
+        explicit = [o.strip().rstrip("/") for o in self.lab_webauthn_origins.split(",")
+                    if o.strip()]
+        if explicit:
+            return explicit
+        rp = self.webauthn_rp_id
+        out: list[str] = []
+        if self.environment == "production" and rp == "arepolabs.com":
+            out += ["https://www.arepolabs.com", "https://arepolabs.com"]
+        for o in [*self.cors_origin_list, self.app_base_url]:
+            o = o.strip().rstrip("/")
+            host = (urlparse(o).hostname or "").lower()
+            if host and (host == rp or host.endswith("." + rp)) and o not in out:
+                out.append(o)
+        return out
 
     @property
     def auth_is_production_insecure(self) -> bool:
