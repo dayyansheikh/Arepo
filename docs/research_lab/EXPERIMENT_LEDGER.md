@@ -2594,3 +2594,21 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
 - **`seals/cb17_worn_sha256.json`** (54 keys): 53 from the releases' `files.sha256` (10-15..10-20), none from disk;
   `fills.csv.gz` `bd896882…` from q0273's write-once manifest (the file is in no release).
 - **q0404 promoted** (after q0413 restore; snapshots/trades from the restore tree, sweeps/fills live).
+
+## Queue and LT4 R1 response, 2026-10-20 19:10-19:30Z (nothing counted)
+- **q0245 (CB12-E quake prices) done** (attempt 2, 19:17Z, 115 s, mem_mb 600): `quake_prices_complete`, 108 events,
+  215 markets priced, 217 requests (<= the 15,000 recorded by q0244), 0 unavailable (network), 33 USGS requests. No
+  outcome read. Unblocks q0266 (CB12-E census).
+- **Restore jobs q0471 / q0413 failed in < 1 s** (q0471 attempt 3, q0413 attempt 1): `gh` (Go) aborts with "runtime:
+  out of memory" under the 2 x mem_mb address-space cap (1.2 GB); measured on the host: fails at 1.2 GB, works at
+  1.6 GB. mem_mb -> 1200 (cap 2.4 GB), deployed b002d48d, both `retry` (fresh budgets). Resource only.
+- **LT4 R1 response** (`feat/live-tests-4` 708949c3, ee82f45d; LIVE_TESTS_4.md §14; 24 LT4 tests): all 12 findings
+  addressed (E020 common support; permuted-share census + pre-declared fallback stratum; E021 skip-slot primary +
+  n2h_truncated; E022 within-market VIF / residual-IQR gate / D_{k-1} / imbalance / binding transient label; both-token
+  depth rule; Freedman-Lane gates; census DE with rho 0.02; interaction VIF + `x6|mid-0.5|`; 200 draws, 11 scenarios;
+  sweep-missing label; LT3-first ordering); q0485 kept on the net lane (refusal with reason). New planning MDEs: E020
+  0.22-0.32c, E021 0.36-0.68c (likely to drop), E022 0.25-0.63c (borderline) vs 0.5c floors. **New finding:** a donor
+  gate is oversized (~0.115 for LT3's `donor_gate`) when the tested moderator correlates 0.7 with a controlled moderator
+  that has a real effect; LT4's residualised donor gate + census cap |corr| <= 0.5 gives ~0.068 (limit 0.075 at 200
+  worlds); the designer stopped tuning; E023/E024 blocked at the pin unless q0484 passes. Challenger R2 and an LT3
+  donor-gate ruling (science-reviewer) running; LT3's pin waits for that ruling.
