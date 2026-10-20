@@ -2254,3 +2254,15 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   cdafeef8 carrying the uncommitted edits unchanged (the original worktree is untouched). A designer-implementer is
   applying the fixes there; then a short reviewer re-check, the SPEC/code pins, the registration ledger entry and the
   promotion of q0460 (all before 10-22T00:00Z).
+
+## CB17 part `pre` code (cadaaf19), 2026-10-20 ~02:10Z (implementer); not counted
+- From the untracked drafts of 10-19: `cb17_common.py`, `cb17_pre.py`, `cb17_census.py`, `scripts/run_cb17.py`
+  (`rules`, `pre-census --family A|B|C`, `cost-lag-map`), 51 tests (cb16 suites unchanged and passing), seal
+  `seals/cb17_rules.json` part pre `c186fdcd…` (only `pre` declared; common/A/B/C/E undeclared so later edits cannot
+  break the frozen pre hash). Drafts q0400-q0403 (cpu lane), not promoted.
+- Defects fixed in the drafts before any run: trailing-tercile list aliasing (r_k leaked into its own cut points);
+  B2 imbalance read at the first sweep (design: second); spread-band tolerance sign; result-guard prefix match;
+  `volume24hr` whitelisted per §1.4. Declared: C multi-member |Δm_int| = mean over qualifying members
+  (`C_ABS_DM_RULE`); rows >= 2026-10-16 skipped and counted, later directories never opened.
+- Science-reviewer freeze check of part pre (with the §10.3 cap ruling on measured bytes: live_trades 378 MiB,
+  60.2 MB in the last 24 h, cap 3 GiB) running.
