@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-20T13:00:00Z",
+ "updated": "2026-10-20T22:54:15Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -134,74 +134,80 @@
   },
   {
    "id": "E012",
-   "title": "1-day change x liquidity (live test, draft)",
-   "plain": "A live check of a replicated pattern: yesterday's price move carries forward more in liquid markets. Drafted from data the server already collects; it starts only after review.",
+   "title": "1-day change x liquidity (live test)",
+   "plain": "A live check of a replicated pattern: yesterday's price move carries forward more in liquid markets. Registered on 20 Oct 2026 after independent review; it uses data the server already collects.",
    "batch": "LT2",
    "family": "microstructure",
-   "stage": "designed",
-   "status": "waiting",
+   "stage": "live_test",
+   "status": "queued",
    "verdict": "pending",
    "effect": null,
-   "next": "Live from 22 Oct 2026 after the challenger review and registration; single analysis after 13 Nov 2026",
+   "next": "Collection starts 22 Oct 2026 00:00 UTC and ends 12 Nov 2026; single analysis after 13 Nov 2026",
    "next_date": "2026-10-22",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/LIVE_TESTS_2.md § 2 (E012) (DRAFT pre-registration, not registered)",
-    "next": "docs/research_lab/LIVE_TESTS_2.md § 1.1 and queue/drafts/q0460_lt2_live_collect.json"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT2 registration (E012-E014), 2026-10-20; docs/research_lab/LIVE_TESTS_2.md (REGISTERED paragraph)",
+    "next": "docs/research_lab/LIVE_TESTS_2.md § 1.1; docs/research_lab/queue/jobs/q0460_lt2_live_collect.json"
    },
    "stage_results": {
-    "designed": "pending"
+    "designed": "pass",
+    "live_test": "pending"
    },
    "reached": [
-    "designed"
+    "designed",
+    "live_test"
    ]
   },
   {
    "id": "E013",
-   "title": "Order flow x volatility and spread (live test, draft)",
-   "plain": "A live check of two replicated patterns: recent buying or selling predicts the next 6 hours more in volatile markets and where the spread is wide. Drafted; starts after review.",
+   "title": "Order flow x volatility and spread (live test)",
+   "plain": "A live check of two replicated patterns: recent buying or selling predicts the next 6 hours more in volatile markets and where the spread is wide. Registered on 20 Oct 2026 after independent review.",
    "batch": "LT2",
    "family": "order_flow",
-   "stage": "designed",
-   "status": "waiting",
+   "stage": "live_test",
+   "status": "queued",
    "verdict": "pending",
    "effect": null,
-   "next": "Live from 22 Oct 2026 after the challenger review and registration; single analysis after 13 Nov 2026",
+   "next": "Collection starts 22 Oct 2026 00:00 UTC and ends 12 Nov 2026; single analysis after 13 Nov 2026",
    "next_date": "2026-10-22",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/LIVE_TESTS_2.md § 3 (E013) (DRAFT pre-registration, not registered)",
-    "next": "docs/research_lab/LIVE_TESTS_2.md § 1.1 and queue/drafts/q0460_lt2_live_collect.json"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT2 registration (E012-E014), 2026-10-20; docs/research_lab/LIVE_TESTS_2.md (REGISTERED paragraph)",
+    "next": "docs/research_lab/LIVE_TESTS_2.md § 1.1; docs/research_lab/queue/jobs/q0460_lt2_live_collect.json"
    },
    "stage_results": {
-    "designed": "pending"
+    "designed": "pass",
+    "live_test": "pending"
    },
    "reached": [
-    "designed"
+    "designed",
+    "live_test"
    ]
   },
   {
    "id": "E014",
-   "title": "Near-close forecasting gain (live test, draft)",
-   "plain": "A light live version of the near-close result: does a frozen trade-flow forecast help more in a market's last day than a month out, using the end date known at the time? Drafted; starts after review.",
+   "title": "Near-close forecasting gain (live test)",
+   "plain": "A light live version of the near-close result: does a frozen trade-flow forecast help more in a market's last day than a month out, using the end date known at the time? Registered on 20 Oct 2026 after independent review.",
    "batch": "LT2",
    "family": "ml",
-   "stage": "designed",
-   "status": "waiting",
+   "stage": "live_test",
+   "status": "queued",
    "verdict": "pending",
    "effect": null,
-   "next": "Live from 22 Oct 2026 after the challenger review and registration; single analysis after 13 Nov 2026",
+   "next": "Collection starts 22 Oct 2026 00:00 UTC and ends 12 Nov 2026; single analysis after 13 Nov 2026",
    "next_date": "2026-10-22",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/LIVE_TESTS_2.md § 4 (E014) (DRAFT pre-registration, not registered)",
-    "next": "docs/research_lab/LIVE_TESTS_2.md § 1.1 and queue/drafts/q0460_lt2_live_collect.json"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT2 registration (E012-E014), 2026-10-20; docs/research_lab/LIVE_TESTS_2.md (REGISTERED paragraph)",
+    "next": "docs/research_lab/LIVE_TESTS_2.md § 1.1; docs/research_lab/queue/jobs/q0460_lt2_live_collect.json"
    },
    "stage_results": {
-    "designed": "pending"
+    "designed": "pass",
+    "live_test": "pending"
    },
    "reached": [
-    "designed"
+    "designed",
+    "live_test"
    ]
   },
   {
@@ -1166,6 +1172,29 @@
    ]
   },
   {
+   "id": "CB12-O",
+   "title": "Option-chain anchor for 'close above' stock markets (O1, O2)",
+   "plain": "Would the stock-options market's own price for a 'closes above $K' outcome predict these Polymarket markets? The free dividend-date source has no data for index funds, so the pre-declared readiness check failed and the test cannot run. Counted as two tests that found nothing.",
+   "batch": "CB12",
+   "family": "cross_venue",
+   "stage": "designed",
+   "status": "closed",
+   "verdict": "not_testable",
+   "effect": null,
+   "next": "Closed (source unavailable); a new design would be needed",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB12-O smoke and freeze (not testable), 2026-10-20"
+   },
+   "stage_results": {
+    "designed": "fail"
+   },
+   "reached": [
+    "designed"
+   ]
+  },
+  {
    "id": "MC1",
    "title": "Full ML development run",
    "plain": "The big machine-learning run with many signal families. It ran out of memory on the current server and was parked by the owner as a backup until the second server exists.",
@@ -1305,19 +1334,44 @@
   },
   {
    "id": "LT2",
-   "title": "Live tests E012-E014 (planned)",
-   "plain": "Four planned live tests of ideas that held up on two historical datasets: whether 1-day price changes carry on more in liquid markets, whether order flow carries on more in volatile or wide-spread markets, and whether the order-flow model does better just before a market's end date. The independent review asked for fixes before registration.",
+   "title": "Live tests E012-E014 (registered)",
+   "plain": "Four registered live tests of ideas that held up on two historical datasets: whether 1-day price changes carry on more in liquid markets, whether order flow carries on more in volatile or wide-spread markets, and whether the order-flow model does better just before a market's end date. Registered on 20 Oct 2026 after independent review; results only after the single analysis.",
    "batch": "LT2",
+   "family": "mixed",
+   "stage": "live_test",
+   "status": "queued",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Collection 22 Oct to 12 Nov 2026; single analysis after 13 Nov 2026",
+   "next_date": "2026-10-22",
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT2 registration (E012-E014), 2026-10-20; docs/research_lab/LIVE_TESTS_2.md (REGISTERED paragraph)"
+   },
+   "stage_results": {
+    "designed": "pass",
+    "live_test": "pending"
+   },
+   "reached": [
+    "designed",
+    "live_test"
+   ]
+  },
+  {
+   "id": "LT3",
+   "title": "Live tests E015-E019 (planned)",
+   "plain": "Planned live tests from the round 9 ideas. The counting checks dropped two of the five (volume surges without a price move, and ladder breadth) because they were too small to detect the minimum effect; quote-only versus traded moves passed; two order-flow tests wait for one more check.",
+   "batch": "LT3",
    "family": "mixed",
    "stage": "designed",
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Server dry run, final check, then pin and register before 22 Oct",
-   "next_date": "2026-10-22",
+   "next": "Fix to one safety check (requested by the independent review), its size check on the server, the order-flow counting check (before 23 Oct), then freeze review, pin and register",
+   "next_date": "2026-10-24",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT2 (E012-E014 drafts) challenger round 1, 2026-10-20"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Session 2026-10-20 ~22:39Z (LT3 donor-gate ruling)"
    },
    "stage_results": {
     "designed": "pending"
@@ -1327,20 +1381,20 @@
    ]
   },
   {
-   "id": "LT3",
-   "title": "Live tests E015-E019 (planned)",
-   "plain": "Five planned live tests from the round 9 ideas: quote-only versus traded price moves, trades that walked the book or came in bursts, volume surges without a price move, and moves across whole ladders of related markets. Review fixes are done; counting checks are queued, and two tests may drop if too small to detect the minimum effect.",
-   "batch": "LT3",
+   "id": "LT4",
+   "title": "Live tests E020-E022 (planned)",
+   "plain": "Three planned live tests from the round 10 ideas: quote moves made by new orders versus cancellations, whether very recent trades carry on less, and displayed liquidity that cannot actually be traded against. The second review accepted these with changes and dropped two others whose safety check did not hold. Re-check under way.",
+   "batch": "LT4",
    "family": "mixed",
    "stage": "designed",
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Counting checks on the server (before 22 Oct), then pin and register (proposed start 24 Oct)",
-   "next_date": "2026-10-24",
+   "next": "Re-check of the changes, counting checks on the server, then pin and register (after LT3)",
+   "next_date": "2026-10-26",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Session 2026-10-20 ~12:25Z (LT3 freeze check)"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Session 2026-10-20 ~22:39Z (LT4 challenger R2)"
    },
    "stage_results": {
     "designed": "pending"

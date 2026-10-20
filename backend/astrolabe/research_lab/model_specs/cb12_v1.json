@@ -113,5 +113,40 @@
   "part": "X",
   "review": "science-reviewer freeze confirmation 2026-10-19 (~01:10Z): ACCEPT_WITH_FIXES; fixes 1-4 applied here (census hashes both ways, month-way branch, A7 text, decision rule); census values read-only on the host by the orchestrator",
   "rules_sha256": "7485a272bb57d7afd3b114b3382b79ffdb81c0bdf1e2c4cfbc1458280abf3a9f"
+ },
+ "O": {
+  "part": "O",
+  "frozen_utc": "2026-10-20T17:57:26Z",
+  "iv_convention": "none",
+  "rules_sha256": "4e1dd759f6ce96bd2ebb75c86f9d4e0686ea1a52fa428e62d6d8e4f826df21e2",
+  "rules_common_sha256": "f2f672c1dfa22ce1388fd85b42bebc23248f58c5bb4349f6745c4b2493dcc647",
+  "smoke": {
+   "file": "research_lab/creative_batch12/opt_smoke.json",
+   "job": "q0260_cb12_opt_smoke",
+   "git_commit": "a4c2585c",
+   "run_utc": "2026-10-20T15:06:03Z",
+   "sha256_file_bytes": "fcb6e89e4e7a667ecb1c4c56cdb7e39cd5320993c379c2d58a30d35abc30e6c3",
+   "pass": false,
+   "failed_needed": [
+    "o_dividends_keyless"
+   ],
+   "per": {
+    "AAPL": {
+     "n_dates": 83,
+     "ok": true
+    },
+    "SPY": {
+     "n_dates": 0,
+     "ok": false
+    }
+   }
+  },
+  "label_O": "not testable (source)",
+  "decisions": [
+   "TERMINAL source limitation: Nasdaq assetclass=etf returns data.dividends.rows null for SPY (all dividend fields 'N/A'; orchestrator probe 2026-10-20 ~18:05Z; assetclass=stocks rCode 400); no alternative source substituted (that would change a gate after it failed; a new registered design would be needed, as for CB11-W)",
+   "q0261 collector NOT installed; windows 1/2 never open; q0264 not run",
+   "q0262 census and q0263 screen run on the smoke-failure path only: 2 cb12_test lines (O1, O2) with p = 1, testable false, in the k1 = 10 Holm; one ml_explain line"
+  ],
+  "review": "science-reviewer ruling 2026-10-20 (~18:15Z): accept; terminal not testable (source); no re-smoke, no amendment"
  }
 }

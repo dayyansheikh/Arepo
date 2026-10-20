@@ -559,7 +559,8 @@ def test_census_c4_gate_includes_cluster_floor(tmp_path):
 
 def test_size_check_small_runs_and_planted_effects_pass():
     sc = la.size_check(worlds=6, draws=19, seed=3)
-    assert set(sc["scenarios"]) == {"donor_iid", "donor_ar0.6", "donor_lifecycle", "perm_iid", "perm_persistent"}
+    assert set(sc["scenarios"]) == {"donor_iid", "donor_ar0.6", "donor_lifecycle", "perm_iid", "perm_persistent",
+                                  "donor_corr_control", "perm_corr_control"}
     assert all(0.0 <= v["rate"] <= 1.0 for v in sc["scenarios"].values()) and sc["limit"] > 0.05
     rng = np.random.default_rng(7)
     df, y, others = la.sim_flow_world(rng, effect=0.004)
@@ -567,6 +568,24 @@ def test_size_check_small_runs_and_planted_effects_pass():
     dm, ym = la.sim_move_world(rng, persistent=True, effect=0.02)
     strata = (dm["market_id"] + "|" + dm["day"]).to_numpy()
     assert la.perm_gate(dm, ym, "P", ["c1"], sign=+1, group="market_id", order="t_row", strata=strata, draws=39, seed=1, min_stratum=4)["passes"]
+
+
+def test_spec_size_check_draws_match_gate_draws():
+    spec = lt.load_spec(sha=None)
+    assert spec["size_check"]["draws"] == spec["gates"]["draws"] == 200
+
+
+def test_freedman_lane_gate_size_on_correlated_world():
+    rng = np.random.default_rng(11)
+    worlds, rej = 60, 0
+    for _ in range(worlds):
+        df, y = la.sim_move_world(rng, n_mkt=30, n_t=24, corr_control=True)
+        assert abs(np.corrcoef(df["P"], df["c1"])[0, 1]) > 0.5
+        strata = (df["market_id"] + "|" + df["day"]).to_numpy()
+        g = la.perm_gate(df, y, "P", ["c1"], sign=+1, group="market_id", order="t_row", strata=strata, draws=49,
+                         seed=int(rng.integers(1 << 31)), min_stratum=4)
+        rej += int(bool(g["passes"]))
+    assert rej / worlds <= 0.05 + 3 * np.sqrt(0.0475 / worlds)  # old raw-label gate sat near 0.13
 
 
 # --- freeze-check fixes (LIVE_TESTS_3.md 13.9) ------------------------------------------------------------------------------

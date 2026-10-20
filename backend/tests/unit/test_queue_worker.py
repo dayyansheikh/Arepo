@@ -59,3 +59,8 @@ def test_spec_not_before_blocks_start_until_then():
     assert not qw.ready({"max_retries": 1, "depends_on": [], "not_before": "2999-01-01T00:00:00Z"}, st)
     assert qw.ready({"max_retries": 1, "depends_on": [], "not_before": "2000-01-01T00:00:00Z"}, st)
     assert not qw.ready({"max_retries": 1, "depends_on": [], "not_before": "2000-01-01T00:00:00Z"}, {"status": "retry_wait", "attempts": 0, "not_before": "2999-01-01T00:00:00Z"})
+
+
+def test_exclusive_flag():
+    assert qw.exclusive({"resources": {"exclusive": True}})
+    assert not qw.exclusive({"resources": {}})

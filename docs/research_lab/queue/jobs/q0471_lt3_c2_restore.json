@@ -8,7 +8,7 @@
   "arepo-data GitHub releases data-20261017-dsheikh, data-20261018-dsheikh, data-20261019-dsheikh (read-only)"
  ],
  "resources": {
-  "mem_mb": 600,
+  "mem_mb": 1200,
   "cpu": 1,
   "lane": "net",
   "network": "github releases (private data repo, read-only)"
@@ -40,5 +40,5 @@
   "data-dumps/research_lab/live_tests3_census/restore/RESTORE_REPORT_<tag>.json"
  ],
  "next_action": "q0472 (census-flow re-verifies every sealed file against the seal)",
- "notes": "PROMOTED 2026-10-20 ~13:05Z after the LT3 freeze check (FREEZE_READY_WITH_FIXES, CENSUS_OK_TO_RUN after fixes 1, 2, 4 + rulings; fixes in 76778698, merged 2993a5df). Counts only, pre-window, no target read. The host keeps only manifest.json and plan.json of these samples (3-day trade_samples retention; checked 2026-10-20). A restore streams each whole release (about 20 min per release on the host). The globs may also restore unsealed samples of those days; census-flow uses only the 23 sealed ids and refuses any file whose sha256 differs from the seal. Wallet files are not selected. The restore tree is a copy of released data; clear it after the registration commit."
+ "notes": "PROMOTED 2026-10-20 ~13:05Z after the LT3 freeze check (FREEZE_READY_WITH_FIXES, CENSUS_OK_TO_RUN after fixes 1, 2, 4 + rulings; fixes in 76778698, merged 2993a5df). Counts only, pre-window, no target read. The host keeps only manifest.json and plan.json of these samples (3-day trade_samples retention; checked 2026-10-20). A restore streams each whole release (about 20 min per release on the host). The globs may also restore unsealed samples of those days; census-flow uses only the 23 sealed ids and refuses any file whose sha256 differs from the seal. Wallet files are not selected. The restore tree is a copy of released data; clear it after the registration commit. OPS 2026-10-20 ~19:25Z: gh (a Go binary) aborts with 'runtime: out of memory' under the 2 x mem_mb address-space cap at 1.2 GB (measured on the host: --version fails at 1.2 GB, works at 1.6 GB); mem_mb -> 1200 (cap 2.4 GB). Resource only; argv unchanged. OPS 2026-10-20 ~22:50Z (autopilot): attempts after the gh memory fix failed with 'no catalogue for data-20261017-dsheikh'; catalogues for the 10-16 .. 10-20 releases generated (archive_catalogue.py) and committed; --list on the Mac selects 8 + 48 + 36 files. argv unchanged; retry with a fresh budget."
 }

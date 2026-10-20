@@ -22,15 +22,17 @@ def rules_file(tmp_path):
     return p
 
 
-def test_only_part_pre_is_declared_and_later_parts_are_undeclared(rules_file):
+def test_part_pre_unchanged_later_parts_declared_and_a_withdrawn(rules_file):
+    """After q0400-q0403 (section 11): pre keeps its hash, common / B / C / E are declared, A is withdrawn uncounted (branch T) and never declared."""
     doc = json.loads(rules_file.read_text())
     assert doc["rules_version"] == "cb17-rules-v1" and set(doc["parts"]) == {"common", "pre", "A", "B", "C", "E"}
-    assert doc["parts"]["pre"]["part_declared"] is True and doc["parts"]["pre"]["rules_sha256"]
+    assert doc["parts"]["pre"]["part_declared"] is True and doc["parts"]["pre"]["rules_sha256"] == "ddc0249b23eedf8cfe50b2b60e94378264804ca4791c82c01cf3993df54df6a7"
     assert doc["parts"]["pre"]["modules"] == ["cb17_common", "cb17_pre", "cb17_census"]
-    for p in ("common", "A", "B", "C", "E"):
-        assert doc["parts"][p]["part_declared"] is False and doc["parts"][p]["rules_sha256"] is None
-        with pytest.raises(c17.Refused, match="not declared"):
-            c17.verify_rules(rules_file, require_committed=False, part=p)
+    for p in ("common", "B", "C", "E"):
+        assert doc["parts"][p]["part_declared"] is True and c17.verify_rules(rules_file, require_committed=False, part=p) == doc["parts"][p]["rules_sha256"]
+    assert doc["parts"]["A"]["part_declared"] is False and doc["parts"]["A"]["rules_sha256"] is None
+    with pytest.raises(c17.Refused, match="not declared"):
+        c17.verify_rules(rules_file, require_committed=False, part="A")
     assert c17.verify_rules(rules_file, require_committed=False, part="pre") == doc["parts"]["pre"]["rules_sha256"]
 
 

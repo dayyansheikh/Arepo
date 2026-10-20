@@ -2445,3 +2445,195 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
 - **LT2 fix F (b756fcbc):** the same precision bug in LT2 (`%.6g`, epochs ~10,000 s) found by the LT3 reviewer; now
   "%.17g" with a round-trip test; `code_sha256` `live_tests2.py` -> `88ee00b2…`. No line had been frozen. No other
   module uses a reduced `float_format` (grep).
+
+## Session 2026-10-20 ~17:38Z (autopilot): host was 15 commits behind; LT2 REGISTERED; queue PATH and q0245 memory fixed
+- **Queue idle at 17:38Z** ("no ready jobs"); q0239 and q0249 had failed twice more (15:02Z, 15:10Z) with the same refusal
+  "seal copy … is not committed (or differs from HEAD)". Cause: the host checkout was at a4c2585c, 15 commits behind
+  `chore/arepo-claude-setup` (a532ee33). The seal-copy commit a972959c and the promotions of dffc11c0 and c97f63eb had never
+  reached the host (most likely a deploy from a worktree branch during the 12:25Z session's host dry-run step overwrote the
+  tip; deploy.sh deploys whatever branch it is given). Deployed a532ee33 at 17:40Z; `retry` q0239 and q0249. q0470 (LT3 C1/C3/C4
+  censuses) started at once. **Rule from now on: deploy only from `chore/arepo-claude-setup`, never from a worktree.**
+  No rule, hash or threshold changed; the refused attempts are in `attempts.jsonl`; nothing counted.
+- **q0471 (LT3 C2 restore) failed (rc 1):** `FileNotFoundError: 'gh'`. The queue cron line had no PATH, and gh lives in
+  `~/.local/bin` (authenticated; the archive cron lines already set this PATH). Queue cron line now sets
+  `PATH=/home/opc/.local/bin:/usr/bin:/bin` (host crontab edited, backup `~/crontab.bak.20261020`; `crontab.txt` updated).
+  q0471 will retry on its own backoff (attempt 1 of 3 used).
+- **q0245 (CB12-E quake prices) failed at start with `MemoryError`** under the 600 MB address-space cap (mem_mb 300).
+  mem_mb -> 600 (resource only; argv, rules, caps unchanged). In `retry_wait`.
+- **Creative round 10 committed (fe54ef20)**: `CREATIVE_HYPOTHESES_2026-10-24.md` (CH169-CH179+; written 12:57Z by the Fable
+  xhigh pass of the 12:25Z session, left uncommitted when it stopped). Ideas only; top 5 (CH169, CH170, CH174, CH171, CH173)
+  are live-ready LT4 candidates. LT4 designer started (worktree `../astrolabe-live-tests-4`, branch `feat/live-tests-4`).
+- **CB17 window code (q0404-q0412) committed on its worktree branch** (`worktree-agent-ae42d4cfea66b78af`: cdab2fd5 code,
+  runner, tests; f0d710ba drafts and §12). 39 CB17 tests pass, synthetic data only; no SCREEN_8/REP_8 file opened (none
+  exists; S_8 not before 2026-10-26). Next: freeze check (science-reviewer, incl. P1-P3 reproduction), merge, pins.
+
+## LT2 (E012-E014) REGISTERED, 2026-10-20 17:51Z (commit a4127bb9; registration; nothing analysed; counting per LIVE_TESTS_2.md)
+- **Last owed item, the R1 host dry run** (17:41-17:47Z, `/tmp/lt2dry`, nothing under `~/arepo`, code a532ee33, 20 runs
+  of `run --max-items 4` over 2026-10-19 under `ulimit -v` 960 MB until exit 75): peak RSS 584 MB; exits 0/75, <= 32 s;
+  34 series, 34 status, 7 E012 and 24 flow files, 55 MB; R1 columns present (`x_skip6`, `trunc1h`, `vol24_i`, `spec_sha`,
+  `code_sha`); `pinned=false`; no statistic on any target computed. All 3,918,532 status rows `one_sided`.
+- **Pre-pin verification (science-reviewer): PIN_OK_WITH_DISCLOSURE** (`reviews/LT2_PREPIN_VERIFY_2026-10-20.md`).
+  Complete captures query Gamma with `closed=false` (`collector.py:38`), so `unavailable_closed` cannot occur and closure or
+  resolution is recorded as `unavailable_absent` (also covers removal from the listing); the attrition rule uses the
+  unavailable share regardless of reason, so labels, bounds and Holm are unaffected. Disclosure text applied to
+  `LIVE_TESTS_2.md` §1.2, §1.3, §6.2 (owed items closed) and the §9 finding-3 row. No code change.
+- **Pins:** `SPEC_SHA256` = `010a7ba131936e8ffda243a1858f5be8864562f2b036d5863af7b785f5d6584c` (sha256 of
+  `model_specs/live_tests2_v1.json`) in `live_tests2.py`; `code_sha256` unchanged (`live_tests2.py` 88ee00b2…8053,
+  `live_tests2_analysis.py` a7b5c781…1ab0; normalised pin line). 43 LT2 tests pass.
+- **Window:** `REGISTERED_UTC` 2026-10-22T00:00:00Z (commit before 2026-10-21T22:00Z, so §1.1 does not slide);
+  `END_UTC` 2026-11-12T00:00:00Z; effective start = max(REGISTERED_UTC, first capture processed by q0460 with this code);
+  single analysis q0461 not before 2026-11-13T12:00:00Z; no interim outcome look.
+- **Counting (as declared, R1 response):** 8 line-tests, Holm k = 4 over the primaries (E012; E013 F4, F5; E014), economics
+  separate. Counted at the single analysis, not now.
+- **Jobs promoted:** q0460 (collector, net lane, mem_mb 480, not_before 2026-10-21T00:00Z, repeat until
+  `LIVE_TESTS2_WINDOW_CLOSED`), q0461 (analysis, not_before 2026-11-13T12:00Z). Registry: E012-E014 and LT2 -> `live_test`,
+  status `queued`.
+
+## LT3 censuses C1/C3/C4 (q0470), done 2026-10-20 17:53Z (counts only, worn captures 2026-10-15/16); E017 and E019 dropped uncounted
+- **Output** `live_tests3_census/C134.json` sha256 `ed18ed1473f1465a88920649b52867e35e7f827931f2ec9aeb69e425eec80484`
+  (code_sha256 live_tests3.py `202c0d63…`, live_tests3_analysis.py `b03c6321…`; 24 captures of 2026-10-15/16; runtime 758 s).
+  Origin-side fields only; no target, no later-capture price, no P&L read.
+- **C1 (E015): gate PASS.** Non-sports movers 50,417 (sports 78,787; sidecar missing 0); traded 18,536 (share 0.368, in
+  [15%, 60%]); parallel quote-only 2,504; projected 21 d traded 194,628 (eff 40,814), parallel 26,292 (eff 19,467);
+  `last_trade_price` absent 6.5% (<= 60%); planning MDE_eff 0.31c; `V−` share 0.103; markets with both classes 1,316;
+  permuted-strata share 0.449; up-share per pass 0.438-0.549 (n 24).
+- **C3 (E017 surges): gate FAIL -> E017 dropped before registration, uncounted** (§8 and §13.6 rule; planning-MDE gate added
+  in 76778698 before any census ran). A 79 units / 63 events in the census days (projected 21 d 829.5 / 557 against
+  >= 2,000 / >= 1,500); planning MDE 1.83c against the 1.0c floor. Neg-risk share of non-sports A 0.52.
+- **C4 (E019 ladder breadth): gate FAIL -> E019 dropped before registration, uncounted.** High 18 (projected 189 against
+  >= 3,000), events with both 13 (projected 127 against >= 300), high clusters 18; planning MDE 2.86c against 0.5c;
+  crypto share of high 0.17; top family share 0.056.
+- **Remaining LT3 primaries:** E015 (passed C1), E016 and E018 (await C2: q0471 restore, retrying after the gh PATH fix,
+  -> q0472 census-flow, deadline before 2026-10-23T03:30Z) and q0473 size check. k is set after C2. Nothing registered.
+
+## CB12-O smoke and freeze (not testable), 2026-10-20; 2 tests counted with p = 1 (at q0263)
+- **q0260 opt-smoke (15:06Z, code a4c2585c, rules O `4e1dd759…`, common `f2f672c1…`):** `opt_smoke.json` sha256
+  `fcb6e89e…30e6c3`, pass **false**. Every needed criterion true except **`o_dividends_keyless`** (amendment O4(ii): >= 1
+  ex-date for both SPY (assetclass etf) and AAPL): AAPL 83, **SPY 0**. `iv_convention` choice "none" (act365 match 0.25,
+  trading hours 0.15 < 0.8). `o_chain_dividend_field` false is informational (O3).
+- **Source check (orchestrator, one keyless request each, ~18:05Z):** `api.nasdaq.com/api/quote/SPY/dividends?assetclass=etf`
+  rCode 200, `data.dividends.rows` null and every dividend field "N/A"; `assetclass=stocks` rCode 400. Source limitation,
+  not a parsing defect (`cb12_o.py:540-570`).
+- **science-reviewer ruling: TERMINAL "not testable (source)".** No re-smoke (`opt_smoke.json` is write-once; the stop rule
+  covers failed jobs, not a smoke that ran), no amendment: another dividend source or dropping the ETF probe would change a
+  gate after it failed (a new registered design would be needed, as for CB11-W).
+- **O freeze entry** committed in `model_specs/cb12_v1.json` part O (`frozen_utc` 2026-10-20T17:57:26Z, `iv_convention`
+  "none", rules shas, smoke record, `label_O`). **Promoted:** q0262 (census O; returns the label before any window logic)
+  -> q0263 (screen O; 2 `cb12_test` lines O1, O2 with p = 1, testable false, in the k1 = 10 Holm, plus one `ml_explain`
+  line). **q0261 collector never installed; q0264 never run.** 191 cb12 tests pass.
+
+## CB17 window code: freeze check, fixes, open-question rulings, 2026-10-20 18:20-18:50Z (design and code; nothing counted)
+- **Freeze check (science-reviewer): FREEZE_READY_WITH_FIXES** (`reviews/CB17_WINDOW_FREEZE_CHECK_2026-10-20.md`); design
+  logic faithful (Holm k1 = 3 over B1, B2, C1; family A refused everywhere, branch T). Fixes 1-7 applied (9b335fec on
+  `worktree-agent-ae42d4cfea66b78af`; 52 CB17 tests): missing monitor/snapshot days exit 75 with a restore instruction;
+  smoke gated on the code-freeze record and stores `code_sha256`; `b0`/`a0` float64; unknown never counts as met; econ
+  event minimum among flagged fills; q0406 B frame resumable; disk caps in every job; stage-2 verifies pins. Added smoke
+  `--worn-sha256`, `--snapshot-root`, `--live-trades-root`, `worn-manifest`.
+- **Open-question rulings: REVISE, accepted** (`reviews/CB17_OPEN_QUESTION_RULINGS_2026-10-20.md`): O9 tick change ->
+  availability status (was eligibility on a post-decision mark: selection on the outcome); O11 symmetric one-sided worst
+  case by class; O1 re-entry counts on the signable population. All stricter and outcome-blind; parts B, C, E re-hash
+  before they bind (e37643f3 never reached the working branch). O2: T17_rules = commit time landing the final parts on
+  `chore/arepo-claude-setup`; by 2026-10-25T00:00Z -> S_8 = 2026-10-26T00:00Z. O12: q0405 pin copied verbatim from
+  q0380's manifest. O4, O5, O6, O8, O10 accepted. Implementer applying O1/O9/O11 + re-hash.
+- **q0413 queued** (net lane): byte-for-byte restore of the smoke's worn inputs from releases 10-15..10-17 (the
+  10-12 capture's `rows_ext` is already rotated off the host).
+
+## LT4 (E020-E024) DRAFT, 2026-10-20 ~18:10-18:50Z (design + code; nothing registered or counted)
+- From creative round 10's top five: E020 arrivals vs cancellations (CH169), E021 age of the move (CH170), E022 hollow
+  liquidity (CH174), E023 opens vs closes (CH171), E024 flow concentration (CH173). One Holm family, k <= 5 after census
+  gates (q0480-q0486 drafts). Proposed window 2026-10-26T00:00Z to 2026-11-16T00:00Z; analysis after 2026-11-17T12:00Z.
+  Planning MDEs vs floors in `LIVE_TESTS_4.md` §0 (E021 borderline, E023/E024 census-gated).
+- Branch `feat/live-tests-4` (6290d93c design, c08383a5 code: reader reuses LT3 by import, 20 synthetic tests).
+  Challenger R1 (science-reviewer) running.
+
+## CB17 T17_rules: final rules parts landed, 2026-10-20 18:27:58Z (merge 2d6d3aa9); S_8 = 2026-10-26T00:00Z
+- O-rulings applied (f0ef434d; 152 CB17 tests): O9 tick change as availability status (placebo/guard/attribution index
+  sets unchanged, test-asserted); O11 symmetric one-sided worst case by class; O1 re-entry counts bind on the signable
+  population; O12 q0405 pin note; B1 pre-registered as expected "uninformative" (O3/O7).
+- **Re-hash chain:** pre `ddc0249b…` and common `23437440…` unchanged; B `fd9ce656…` -> `64e61091…`; C `68bd50a2…` ->
+  `3e24af26…`; E `337382d6…` -> `9b1eba65…` (design §11.6). Part A never declared (branch T, withdrawn uncounted).
+- **T17_rules** = committer time of merge 2d6d3aa9 on `chore/arepo-claude-setup` = 2026-10-20T18:27:58Z (ruling O2);
+  record `seals/cb17_t17_rules.json`; `s8_from_rules` gives **S_8 = 2026-10-26T00:00:00Z**. Post-merge: 178 CB17 +
+  battery2 tests pass. Next: delta freeze check (fixes 1-7 + O-rulings), code pin + ruling-6 attestation record, q0413
+  restore, worn-manifest pins, q0404 smoke on the host (exact P1-P3).
+
+## Reviews 2026-10-20 ~19:05Z: CB17 delta freeze check FIXES; LT3 permutation gate revise (design/code; nothing counted)
+- **CB17 delta check: FIXES** (`reviews/CB17_DELTA_FREEZE_CHECK_2026-10-20.md`): re-hash reproduces byte for byte, no rule
+  value moved, T17 record valid (S_8 2026-10-26T00Z). Before the code pin: worn-pin check must refuse missing pinned files
+  (a partial restore could otherwise become a counted P2 FAIL); monitor-stopped days must give unknown `prt`, not 0;
+  lows. Implementer applying; it reports whether any rules part sha moves (T17 would then be re-landed before 10-25T00Z).
+- **LT3 permutation gate: revise** (`reviews/LT3_PERM_GATE_CHECK_2026-10-20.md`; raised by LT4 R1 finding 7). E015's
+  `perm_gate` permutes the raw label although it correlates with the controls by design; local simulation (300 worlds)
+  pass rate 0.127 vs the 0.058 limit at corr ~0.63 (0.040 uncorrelated). The primary p is cluster-robust OLS, so this
+  weakens the backstop rather than opening a direct false-Supported path. Fix before the pin: Freedman-Lane gate,
+  correlated-control scenarios for both gates, size-check draws 200; q0473 (old code) becomes information only; a q0473b
+  size check re-runs on the fixed code. Implementer on `fix/lt3-freedman-lane` (../astrolabe-lt3-fl).
+
+## LT3 Freedman-Lane gate merged; q0473 cancelled, q0473b promoted; CB17 D-fixes merged (2026-10-20 18:40-19:00Z; nothing counted)
+- **LT3:** `perm_gate` now Freedman-Lane (61e501b5, merged b57a5cf5): the control-residualised target is shuffled within
+  strata, tested term and controls fixed; seeds, 200 draws, strata and pass rule unchanged; new null scenarios
+  `perm_corr_control` (corr ~0.62) and `donor_corr_control`; size-check draws 99 -> 200; `donor_gate` unchanged.
+  `live_tests3_analysis.py` sha `b03c6321…` -> `d0a4a3b5…` (`live_tests3.py` unchanged `202c0d63…`); no pin existed.
+  Local size check (300 worlds, not the registered statement): perm_corr_control 0.053, donor_corr_control 0.030 (limit
+  0.0707 at 300). Verification (science-reviewer): **OK**; doc nits (stratum size counted over all rows incl. missing;
+  §13.5 preamble names q0473) to fix before the pin. 34 LT3 tests pass.
+- **q0473** (size check on the old gate) stopped on the host at ~18:40Z (runner SIGTERM, re-queued, then `cancel`; no
+  output written; attempt recorded); superseded, information-only had it finished. **q0473b** promoted (same argv, output
+  `size_check_fl.json`, 2,000 worlds, priority 20 so short census/screen jobs go first).
+- **CB17:** delta-check D1/D2 + lows (31cca03e, merged 8defe614; 158 tests; rules part shas unchanged so T17 stands).
+  Verification: one remaining D1 gap (an incomplete pin set could still yield a counted P2/P3 FAIL); final fix in
+  progress before the code pin. Host deployed at 8defe614.
+
+## CB17 code freeze recorded, q0404 smoke promoted, 2026-10-20 19:05-19:15Z (acceptance pending P1-P3 on the host)
+- Final D1 completeness fix (04fa3e12, merged 10838876; 160 tests; rules part shas unchanged): pinned mode refuses unless
+  exactly 12 P3 captures (incl. sports `20261015T063101Z_9c518015`, both rows files each) and 24 P2 sweeps are pinned;
+  `release_map` anchored on a path boundary.
+- **`seals/cb17_code_freeze.json`**: `code_sha256` `529e7de5…6267` (7 modules), rules parts pre/common/B/C/E as T17,
+  `frozen_utc` 2026-10-20T19:05:50Z, ruling-6 attestation (no SCREEN_8/REP_8 file opened; none exists). Validated by
+  `require_code_freeze`. Acceptance (ruling 6 (ii)) only when q0404 reproduces P1-P3 exactly with this code.
+- **`seals/cb17_worn_sha256.json`** (54 keys): 53 from the releases' `files.sha256` (10-15..10-20), none from disk;
+  `fills.csv.gz` `bd896882…` from q0273's write-once manifest (the file is in no release).
+- **q0404 promoted** (after q0413 restore; snapshots/trades from the restore tree, sweeps/fills live).
+
+## Queue and LT4 R1 response, 2026-10-20 19:10-19:30Z (nothing counted)
+- **q0245 (CB12-E quake prices) done** (attempt 2, 19:17Z, 115 s, mem_mb 600): `quake_prices_complete`, 108 events,
+  215 markets priced, 217 requests (<= the 15,000 recorded by q0244), 0 unavailable (network), 33 USGS requests. No
+  outcome read. Unblocks q0266 (CB12-E census).
+- **Restore jobs q0471 / q0413 failed in < 1 s** (q0471 attempt 3, q0413 attempt 1): `gh` (Go) aborts with "runtime:
+  out of memory" under the 2 x mem_mb address-space cap (1.2 GB); measured on the host: fails at 1.2 GB, works at
+  1.6 GB. mem_mb -> 1200 (cap 2.4 GB), deployed b002d48d, both `retry` (fresh budgets). Resource only.
+- **LT4 R1 response** (`feat/live-tests-4` 708949c3, ee82f45d; LIVE_TESTS_4.md §14; 24 LT4 tests): all 12 findings
+  addressed (E020 common support; permuted-share census + pre-declared fallback stratum; E021 skip-slot primary +
+  n2h_truncated; E022 within-market VIF / residual-IQR gate / D_{k-1} / imbalance / binding transient label; both-token
+  depth rule; Freedman-Lane gates; census DE with rho 0.02; interaction VIF + `x6|mid-0.5|`; 200 draws, 11 scenarios;
+  sweep-missing label; LT3-first ordering); q0485 kept on the net lane (refusal with reason). New planning MDEs: E020
+  0.22-0.32c, E021 0.36-0.68c (likely to drop), E022 0.25-0.63c (borderline) vs 0.5c floors. **New finding:** a donor
+  gate is oversized (~0.115 for LT3's `donor_gate`) when the tested moderator correlates 0.7 with a controlled moderator
+  that has a real effect; LT4's residualised donor gate + census cap |corr| <= 0.5 gives ~0.068 (limit 0.075 at 200
+  worlds); the designer stopped tuning; E023/E024 blocked at the pin unless q0484 passes. Challenger R2 and an LT3
+  donor-gate ruling (science-reviewer) running; LT3's pin waits for that ruling.
+
+## Session 2026-10-20 ~22:39Z (autopilot): restore root cause fixed; gap 19:30-22:39Z written up (nothing counted)
+- **Recorded late (previous session stopped ~20:40Z):**
+  - **LT3 donor-gate ruling** (c5920dd2, `reviews/LT3_DONOR_GATE_RULING_2026-10-20.md`): revise. Studentise the donor
+    statistic, add binding `donor_collinear_control` scenarios (0.5, 0.7; effect 0.004), census C2 reports within-market
+    R^2 of x6 zW / x6 zH on the controlled interactions and uses |corr|. q0473b stopped (cancelled on the host; no
+    output used). Fix running on `fix/lt3-donor` (implementer, this session); a new >= 2,000-world size check on the
+    fixed code follows a science-reviewer pass, before the pin.
+  - **LT4 challenger R2** (6ce45313): E020-E022 ACCEPT_WITH_CHANGES; E023/E024 dropped before any census (k = 3).
+    R2 code + response 99c4c2eb / ebda78b8 (`feat/live-tests-4`): CH depth from the chosen definition, MA(2) overlapping-
+    target size scenario, DE gate floor 3.0, `abs_dev` in the correlation cap, joint late1|late3 skip mask, n2h by band.
+    Re-check (science-reviewer) running this session.
+  - **CB18 DRAFT design** (9ea4f371, `feat/cb18`): round-10 remainder (CH172, CH175-CH177, CH179; CH178 excluded as a
+    double count of E015). Design only.
+- **Jobs finished (data preparation, no outcome read, nothing counted):** q0266 CB12-E census `not testable
+  (dependence)` (19:40Z; freeze entry per the CB12-O precedent pending); q0277 CB13 touch frame complete (screen 374 /
+  holdout 861 events); q0279 CB13 Binance 64 files, 0 unavailable; q0284 CB13-R pregate pass (58 components); q0302
+  CB14 exclusion keys complete; q0303 CB14 W frame complete (94 of 1,119 rows kept; dropped: key 411, window 409,
+  sports 180, summary 14, mention 9, entity 1). Follow-up promotions: audit running.
+- **Restore failures, root cause:** q0471 (LT3 C2) and q0413 (CB17 worn inputs) failed with `no catalogue for
+  data-20261016/17-dsheikh`: the repo catalogue stopped at 10-15. `archive_catalogue.py` run for 10-15-active and
+  10-16..10-20 (incl. -2, -active) and committed (d79db323). q0413 attempt 1 had already restored and verified the 6
+  files of data-20261015-dsheikh (report passed, 79,926,435 B); later attempts refused because those files existed, so
+  its argv drops that tag (selection globs unchanged). Both `retry` with fresh budgets after deploy. q0472's deadline
+  (10-23T03:30Z) still holds.

@@ -210,9 +210,9 @@ def fast_beta(x: np.ndarray, Zt: np.ndarray, yt: np.ndarray) -> float:
 
 def perm_gate(df: pd.DataFrame, y: np.ndarray, term: str, controls: list[str], *, sign: int, group: str, order: str,
               strata: np.ndarray, draws: int, seed: int, min_stratum: int) -> dict:
-    """Label-permutation gate (section 1.8): the class label is permuted within strata (market or event x UTC day)
-    with >= ``min_stratum`` contrasted units, target and controls attached; the estimator (demeaning included) is re-run.
-    p_perm = (1 + #{sign * draw >= sign * real}) / (1 + draws) < alpha passes."""
+    """Freedman-Lane permutation gate (section 1.8): the target residualised on the controls is permuted within strata
+    (market or event x UTC day) with >= ``min_stratum`` contrasted units; the demeaned tested term and controls stay
+    fixed and the slope is re-estimated. p_perm = (1 + #{sign * draw >= sign * real}) / (1 + draws) < alpha passes."""
     Xc = demean(df, controls, group, order, "expanding").to_numpy() if controls else np.zeros((len(df), 0))
     xr = demean(df, [term], group, order, "expanding")[term].to_numpy()
     ok = np.isfinite(y) & np.isfinite(xr) & np.all(np.isfinite(Xc), axis=1)
@@ -224,18 +224,16 @@ def perm_gate(df: pd.DataFrame, y: np.ndarray, term: str, controls: list[str], *
     sz = np.bincount(codes)
     perm_rows = sz[codes] >= min_stratum
     rng = np.random.default_rng(seed)
-    raw = df[term].to_numpy(float)
-    by_code = np.argsort(codes, kind="mergesort")
+    c_ok = codes[ok]
+    pr_ok = perm_rows[ok]
+    by_code = np.argsort(c_ok, kind="mergesort")
     ge = 0
     for _ in range(draws):
-        shuf = np.lexsort((rng.random(len(codes)), codes))  # within-stratum random order, strata in the same order
-        lab = raw.copy()
-        lab[by_code] = raw[shuf]
-        lab[~perm_rows] = raw[~perm_rows]
-        d = df[[group, order]].copy()
-        d[term] = lab
-        xd = demean(d, [term], group, order, "expanding")[term].to_numpy()
-        b = fast_beta(xd[ok], Xc[ok], yt)
+        shuf = np.lexsort((rng.random(len(c_ok)), c_ok))  # within-stratum random order, strata in the same order
+        yp = yt.copy()
+        yp[by_code] = yt[shuf]
+        yp[~pr_ok] = yt[~pr_ok]
+        b = fast_beta(xr[ok], Xc[ok], yp)
         ge += int(np.isfinite(b) and sign * b >= sign * real)
     p = (1 + ge) / (1 + draws)
     return {"testable": True, "real": real, "p_perm": p, "passes": bool(p < 0.05), "draws": draws,
@@ -904,8 +902,9 @@ def analyze(root: Path = lt.OUT_ROOT, *, start_utc: str = lt.REGISTERED_UTC, end
 
 
 def sim_flow_world(rng: np.random.Generator, *, n_mkt: int = 40, n_t: int = 30, ar: float = 0.0, lifecycle: bool = False,
-                   effect: float = 0.0) -> tuple[pd.DataFrame, np.ndarray, list[str]]:
+                   effect: float = 0.0, corr_mod: bool = False) -> tuple[pd.DataFrame, np.ndarray, list[str]]:
     """A flow panel with NO moderation (``effect`` = 0): persistent market level of the moderator, iid or AR(1) flow,
+    ``corr_mod``: the moderator is correlated with the flow within each market over time (null still true);
     optionally a life-cycle world (moderator and flow continuation both rise towards the end; the x6 * zHTE control is
     then included, as in the registered model)."""
     rows = []
@@ -914,7 +913,7 @@ def sim_flow_world(rng: np.random.Generator, *, n_mkt: int = 40, n_t: int = 30, 
         for i in range(n_t):
             x = ar * x + rng.normal(0, 1)
             tau = i / max(n_t - 1, 1)
-            z = lvl + (1.5 * tau if lifecycle else 0.0) + rng.normal(0, 1)
+            z = lvl + (1.5 * tau if lifecycle else 0.0) + (0.7 * x if corr_mod else 0.0) + rng.normal(0, 1)
             rows.append({"market_id": f"m{m}", "event_id": f"e{m // 2}", "t_row": i * 7200.0, "day": str(i // 12), "x6": x,
                          "zM": z, "zHTE": (tau - 0.5) * 2.0, "c1": rng.normal()})
     df = pd.DataFrame(rows)
@@ -926,28 +925,31 @@ def sim_flow_world(rng: np.random.Generator, *, n_mkt: int = 40, n_t: int = 30, 
 
 
 def sim_move_world(rng: np.random.Generator, *, n_mkt: int = 60, n_t: int = 40, persistent: bool = False,
-                   effect: float = 0.0) -> tuple[pd.DataFrame, np.ndarray]:
+                   effect: float = 0.0, corr_control: bool = False) -> tuple[pd.DataFrame, np.ndarray]:
     """A class-contrast panel with NO class effect (``effect`` = 0): market-specific class rates and target levels when
-    ``persistent`` (the case expanding-past demeaning must absorb)."""
+    ``persistent`` (the case expanding-past demeaning must absorb). ``corr_control``: P and y both depend on c1
+    (corr(P, c1) about 0.6-0.8), the null still true."""
     rows = []
     for m in range(n_mkt):
         pr = rng.uniform(0.1, 0.6) if persistent else 0.3
         lvl = rng.normal(0, 0.01) if persistent else 0.0
         for i in range(n_t):
-            P = int(rng.random() < pr)
+            c1 = rng.normal()
+            P = int(c1 + rng.normal(0, 0.8) > 0) if corr_control else int(rng.random() < pr)
             rows.append({"market_id": f"m{m}", "event_id": f"e{m // 3}", "t_row": i * 7200.0, "day": str(i // 12), "P": P,
-                         "c1": rng.normal(), "y": lvl + effect * P + rng.normal(0, 0.04)})
+                         "c1": c1, "y": lvl + effect * P + (0.03 * c1 if corr_control else 0.0) + rng.normal(0, 0.04)})
     df = pd.DataFrame(rows)
     return df, df["y"].to_numpy(float)
 
 
 def size_check(*, worlds: int, draws: int, seed: int, nominal: float = 0.05) -> dict:
-    """Pass rate of the distant-donor gate (iid, AR(1), life-cycle) and of the label-permutation gate (iid, persistent)
+    """Pass rate of the distant-donor gate (iid, AR(1), life-cycle) and of the Freedman-Lane permutation gate (iid, persistent, label correlated with a control)
     under simulated nulls, with the declared criterion rate <= nominal + 1.645 * sqrt(nominal (1 - nominal) / worlds)."""
     rng = np.random.default_rng(seed)
     lim = nominal + 1.645 * float(np.sqrt(nominal * (1 - nominal) / worlds))
     out: dict = {"worlds": worlds, "draws": draws, "seed": seed, "limit": lim, "scenarios": {}}
-    for name, kw in (("donor_iid", {}), ("donor_ar0.6", {"ar": 0.6}), ("donor_lifecycle", {"lifecycle": True})):
+    for name, kw in (("donor_iid", {}), ("donor_ar0.6", {"ar": 0.6}), ("donor_lifecycle", {"lifecycle": True}),
+                     ("donor_corr_control", {"corr_mod": True})):
         rej = 0
         for _ in range(worlds):
             df, y, others = sim_flow_world(rng, **kw)
@@ -955,7 +957,8 @@ def size_check(*, worlds: int, draws: int, seed: int, nominal: float = 0.05) -> 
                            min_sep_s=43200.0, min_donors=2)
             rej += int(bool(g.get("passes")))
         out["scenarios"][name] = {"rate": rej / worlds, "ok": rej / worlds <= lim}
-    for name, kw in (("perm_iid", {}), ("perm_persistent", {"persistent": True})):
+    for name, kw in (("perm_iid", {}), ("perm_persistent", {"persistent": True}),
+                     ("perm_corr_control", {"corr_control": True})):
         rej = 0
         for _ in range(worlds):
             df, y = sim_move_world(rng, **kw)

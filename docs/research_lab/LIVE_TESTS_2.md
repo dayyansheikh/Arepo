@@ -55,7 +55,9 @@ quoted here are **development (historical)** evidence and are labelled as such.
 - **Outputs** (`research_lab/live_tests2/`), every data file **write-once** (atomic hard-link; an existing file is never touched):
   `series/<capture>.csv.gz` (two-sided quotes of open binary markets per capture, from REGISTERED_UTC − 26 h),
   `status/<capture>.csv.gz` (written with the series file: every binary market of the listing that is not in the series, with
-  status `closed`, `inactive` or `one_sided`; a market in neither file was absent from the listing),
+  status `closed`, `inactive` or `one_sided`; a market in neither file was absent from the listing; complete captures query
+  Gamma with `closed=false` (`collector.py:38`), so `closed` cannot occur in practice and a closed, resolved or removed market
+  is `absent`; pre-pin verification 2026-10-20),
   `e012/frozen/`, `flow/frozen/`, `e012/outcomes/`, `flow/outcomes/`, `passes.jsonl` (append-only log), `state.json` (cache only).
 - **Origin features** use the origin capture, earlier captures (series) and, for flow, trades strictly before the origin row's
   receipt time. Targets come only from the target capture's series file.
@@ -70,8 +72,12 @@ quoted here are **development (historical)** evidence and are labelled as such.
 - Origin capture or trade sample missing (collector outage, failed pass, skipped for disk): no lines; counted from slot gaps.
 - Target capture missing 3 h after its slot: `missing_capture`. Market without a two-sided quote at the target:
   `unavailable_closed`, `unavailable_inactive`, `unavailable_one_sided` (from the target capture's status file) or
-  `unavailable_absent` (in neither file; plain `unavailable` only if a status file is missing). Resolution and closure are
-  therefore measurable (challenger R1 finding 3). **Attrition rule (declared):** for each test the unavailable share among rows
+  `unavailable_absent` (in neither file; plain `unavailable` only if a status file is missing). Complete captures query Gamma with `closed=false`
+  (`collector.py:38`), so `unavailable_closed` can never occur; in the 2026-10-20 host dry run all 3,918,532 status rows across
+  34 captures were `one_sided`. A market that closes or resolves between origin and target is recorded as `unavailable_absent`,
+  which also covers markets removed from the open listing. The attrition rule uses the unavailable share regardless of reason
+  (`live_tests2_analysis.py:546`), so labels and bounds are unaffected; `absent` is reported as "closed, resolved or removed"
+  (pre-pin verification, `reviews/LT2_PREPIN_VERIFY_2026-10-20.md`; challenger R1 finding 3). **Attrition rule (declared):** for each test the unavailable share among rows
   whose target capture exists is compared between two pre-declared origin-side groups (E012: L = 0 vs L > 0; E013: upper vs lower
   census tercile of the moderator; E014: regime A vs B). If the absolute difference exceeds **5 percentage points**, the verdict
   carries "differential attrition (+d pp)" and a declared bound is computed: E012/E013 refit the primary with every unavailable
@@ -382,6 +388,15 @@ quoted here are **development (historical)** evidence and are labelled as such.
   `research_lab/e007/dev_fit.json` against the value in section 4 (not verified by the challenger); (d) refresh `code_sha256` in
   the spec after the last code change, then pin `SPEC_SHA256`. Trade `ts` is in epoch seconds, the unit `trade_sample` itself
   compares with the origin epoch (`trade_sample.py:301`).
+- **Owed items closed (2026-10-20):** (a) census re-run 07:54-07:57Z (`seals/lt2_census_r1_2026-10-20.json`, `vol24_cap` = +inf;
+  §9 R1 re-check paragraph); (c) `dev_fit.json` sha verified (`reviews/LT2_RECHECK_R1_2026-10-20.md`); (d) `code_sha256` refreshed
+  after fix F (`88ee00b2…`, `a7b5c781…`). (b) **R1 host dry run, 2026-10-20 17:41-17:47Z** (root `/tmp/lt2dry`, nothing under
+  `~/arepo`; code a532ee33; `run --max-items 4 --dry-run-start 2026-10-19T00:00:00Z --dry-run-end 2026-10-20T00:00:00Z` repeated
+  20 times under `ulimit -v` 960 MB until exit 75): peak RSS 584 MB, every exit 0 or 75, at most 32 s a run; 34 series, 34 status,
+  7 E012 and 24 flow files (frozen + outcomes), 55 MB; E012 lines carry `x_skip6`, flow lines `trunc1h` and `vol24_i`, every line
+  `spec_sha` 010a7ba131936e8f and `code_sha` 88ee00b20fbe8241; `pinned=false`. All 3,918,532 status rows were `one_sided` (open
+  listing only; §1.3 note). No statistic on any target was computed. Pre-pin verification (science-reviewer):
+  **PIN_OK_WITH_DISCLOSURE** (`reviews/LT2_PREPIN_VERIFY_2026-10-20.md`), disclosure applied in §1.2/§1.3/§9; no code change.
 
 ## 7. Open questions for the challenger (round 0; answered by R1, see section 9)
 1. Is the regressor-rotation **timing gate** (E013, E014) the right matched placebo, and is "fails the gate -> p = 1 in Holm" the
@@ -429,7 +444,7 @@ direction was loosened. Every change makes a test harder to pass, adds a label, 
 |---|---|---|---|---|
 | 1 | HIGH: the ±1 cyclic-shift gate is not a valid null (rotated flow overlaps the real window / target; too few distinct shuffles) | Gate replaced by a **far-future control target**: sources = later rows of the same market (E014: and regime) >= flow window + horizon later (E013 12 h, E014 3 h), >= 4 sources per gate row; statistic on `y − y_far` (E013 slope) / `gain(y) − gain(y_far)` (E014 A − B); p_gate = max(CR1, delete-one-event jackknife) under t(G − 1); gate floors. Simulated null size 0.042-0.054 in 8 scenarios incl. AR(1) and overlapping windows (reproducible 1,500-world run, `seals/lt2_gate_null_size_1500.json`; unit tests 300) | §1.5; `slope_gate`, `contrast_gate`, `forward_sources`; size and power tests | A market-level flow-drift link affects y and y_far alike and cancels; the separation rule guarantees no overlap of windows or targets, the reviewer's mechanism (a); the gate no longer depends on a permutation count, so (b) is gone; the source rows are later only because earlier rows already enter the expanding-past demeaned regressors. Autocorrelated flow attenuates the statistic (conservative), shown not to inflate size |
 | 2 | HIGH/MED: E012 predicted by bid/ask bounce; E006 H1 not cited; one-slot skip | E006 H1 disclosed as the closest prior prospective test; bounce stated as an expected positive channel; **6 h skip-slot check** `x_skip6 = mid_{i−3} − mid_h` frozen in each line, with a declared label rule (Supported E012 labelled "possibly bounce" unless the check passes with slope > 0, >= 0.5 x primary, p < 0.05, CI above 0) | §2; `freeze_e012`, `e012_label`, `check_slope_label` | Ruling 3: keep E012 with the disclosure and the 6 h label. The 6 h gap removes shared quote noise at i; a label (not a new primary) keeps the registered hypothesis unchanged and avoids adding a Holm slot |
-| 3 | MED: attrition by resolution not measurable | Per-capture **status files** (closed / inactive / one-sided; absent = in neither file), detailed `unavailable_*` reasons in outcomes; declared rule: unavailable share differs by > 5 pp between pre-declared groups (E012 L = 0 vs L > 0; E013 moderator terciles; E014 A vs B) -> "differential attrition" label + declared pessimistic bound (E014 also Manski worst case); bound <= 0 -> "attrition-sensitive" | §1.2, §1.3; `status_frame`, `unavailable_status`, `attrition_summary`, `pessimistic_refit`, `e014_attrition_bounds` | Must be written at collection time because files are write-once and snapshots may be retired; the groups are origin-side, fixed now |
+| 3 | MED: attrition by resolution not measurable | Per-capture **status files** (closed / inactive / one-sided; absent = in neither file; pre-pin note: captures list open markets only, so closure/resolution appears as `absent`, reported as "closed, resolved or removed"), detailed `unavailable_*` reasons in outcomes; declared rule: unavailable share differs by > 5 pp between pre-declared groups (E012 L = 0 vs L > 0; E013 moderator terciles; E014 A vs B) -> "differential attrition" label + declared pessimistic bound (E014 also Manski worst case); bound <= 0 -> "attrition-sensitive" | §1.2, §1.3; `status_frame`, `unavailable_status`, `attrition_summary`, `pessimistic_refit`, `e014_attrition_bounds` | Must be written at collection time because files are write-once and snapshots may be retired; the groups are origin-side, fixed now |
 | 4 | MED: 6 h coverage selects on post-origin trades; E014 ignores truncation | E013 population cut on origin `volume24hr` <= `vol24_cap` (cap fixed once from the pre-window census at <= 1% truncated); residual truncation counted, label above 2%; E014 `ss` = NaN when `trades_truncated`, counted per regime, label above 2% | §1.3, §3, §4; `vol24_cap_rule`, `truncation_census`, `freeze_flow`; analysis refuses a pinned spec with a null cap | Eligibility is fixed at the origin; the cut is causal and outcome-blind. It narrows the population (disclosed) for validity, not performance. The 2% label threshold is fixed before any window data exist |
 | 5 | MED: day-level inference optimistic (21 clusters; 24 h overlap across midnight; normal reference) | Primary p = max(p_event, p_twoway, p_t with G − 1 df); E012 time clusters = **two-day blocks** (11), E013/E014 UTC days (21); conservative CI includes beta ± t(0.975, G − 1) se_twoway; MDEs recomputed (E012 0.037, F4 0.0017, F5 0.0028, E014 0.0030) | §1.5, §2-4, §0; `p_primary`, `_tblock` | t(G − 1) is the standard small-G reference for cluster-robust tests; two-day blocks halve the cross-boundary target overlap for E012; taking the max of three p values can only raise p |
 | 6 | MED: code/spec mismatches | Late rule restated per test (E012 24 h target; flow refused at the 6 h target; per-test lateness at analysis); counting stated as **8** (4 primaries + 4 economics; Holm k = 4), `battery2` rule present; E013 "possibly mechanical" label implemented with "null" defined; effective start enforced by `spec_sha` + `code_sha` per line and pinned module hashes (`code_sha256` map, refuse on mismatch) | §0, §1.1, §1.2, §1.9, §3; `code_check`, `_load_pairs`, `trial_record`, `analyze` | Spec and code now say the same thing; the pins are checked by unit tests |
@@ -458,3 +473,10 @@ the registration commit (pin + ledger) is not made before **2026-10-22T00:00Z**,
 moves to the first 00:00Z at least 2 h after the commit (for a commit on 2026-10-22 before 22:00Z: 2026-10-23T00:00Z, window
 `[2026-10-23T00:00Z, 2026-11-13T00:00Z)`, analysis not before 2026-11-14T12:00Z), recorded in the ledger; no data are inspected
 for that decision.
+
+**REGISTERED (2026-10-20 17:51Z).** Pre-pin verification PIN_OK_WITH_DISCLOSURE (`reviews/LT2_PREPIN_VERIFY_2026-10-20.md`;
+disclosure applied in §1.2, §1.3, §6.2 and §9 row 3; no code change). `SPEC_SHA256` pinned in `live_tests2.py` =
+`010a7ba131936e8ffda243a1858f5be8864562f2b036d5863af7b785f5d6584c` (sha256 of `model_specs/live_tests2_v1.json`);
+`code_sha256` unchanged (`88ee00b2…`, `a7b5c781…`). The pin commit precedes 2026-10-21T22:00Z, so §1.1 leaves
+`REGISTERED_UTC` = 2026-10-22T00:00:00Z, `END_UTC` = 2026-11-12T00:00:00Z, single analysis (q0461) not before
+2026-11-13T12:00:00Z. q0460 promoted (not_before 2026-10-21T00:00Z, series from REGISTERED_UTC − 26 h).

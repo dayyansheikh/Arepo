@@ -1,0 +1,34 @@
+{
+ "id": "q0412_cb17_stage2_final",
+ "title": "CB17 Stage-2 final: one strict Holm (one-sided alpha 0.05) over every triggered CB17 Stage-2 test (<= 6 under branch T; econ tests enter with the max of their component p's); adds passes only; write-once",
+ "family": "creative_batch_17",
+ "priority": 9,
+ "expected_value": "final Stage-2 decisions",
+ "data": [
+  "creative_batch17/results_8.json",
+  "creative_batch17/results_rep.json"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0411_cb17_rep_8"
+ ],
+ "argv": [
+  "scripts/run_cb17.py",
+  "stage2-final",
+  "--rules",
+  "../docs/research_lab/seals/cb17_rules.json",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 600,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch17/stage2_final.json"
+ ],
+ "next_action": "Stage P registration drafts for survivors",
+ "notes": "Refuses with 'nothing to finalise' if no Stage-1 test advanced. CREATIVE_BATCH_17.md section 4, CB17 window code (branch T: family A withdrawn uncounted; B, C and the E census live; Holm k1 = 3). DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer), the committed code-freeze record seals/cb17_code_freeze.json (code_sha256 from `run_cb17.py code-pin`, ruling-6 attestation) and seals/cb17_t17_rules.json. Rules part sha256 (seals/cb17_rules.json; part A is never declared): pre ddc0249b23eedf8cfe50b2b60e94378264804ca4791c82c01cf3993df54df6a7, common 2343744082bcb664ac06f18f967c166aae09c216e9437045d7aa07aa77ef8c9f, B 64e61091574ec4406b6f235f48f37ab2d0bf8b41bf89bfbeace9153186c96a10, C 3e24af26db1c827b6ff8dadc5bc63743a4cd03280d510211edf0ad87137b2647, E 9b1eba65e5de9de0f67e31f9d7dccf6f012ef8ee37895a603aaa5a6103067412. The coordinator regenerates the rules and these shas if any hashed module changes (window code changes only the code pin)."
+}
