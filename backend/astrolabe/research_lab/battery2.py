@@ -43,6 +43,11 @@ KIND_RULES: dict[str, tuple[str, str]] = {
         "replication lines) contributes n_tests, else multiple_testing.m_tests; this is the BY family size "
         "per run. Fixes the battery.prior_test_count skip of hypothesis_battery_1 (72 tests).",
     ),
+    "live_tests3": (
+        N_TESTS,
+        "LT3 single analysis (E015-E019; LIVE_TESTS_3.md 1.11): one line, n_tests = k = the Holm primaries that "
+        "survived their census gates; gate draws, secondaries, mechanism readings, economics and censuses are 0.",
+    ),
     "econ_conditions_taker": (
         N_TESTS,
         "n_tests=95: BY was applied across 95 testable cells of BOTH parts (taker and maker), so the "
