@@ -14,6 +14,9 @@ Outputs (``research_lab/live_tests2/``; every data file is WRITE-ONCE, written a
   binary market of each complete capture from ``REGISTERED_UTC - 26 h`` on. Feature look-backs (24 h change, 2 h
   previous change, 24 h realised volatility) and every outcome mid come from these files, so the analysis does not
   depend on snapshot retention on the host.
+* ``status/<capture>.csv.gz`` - written with the series file: every binary market of the listing that is not in the
+  series, with its status (closed / inactive / one_sided); a market in neither file was absent. Outcome files carry
+  the detailed reason (``unavailable_closed`` ...), so attrition by resolution can be measured (section 1.3).
 * ``e012/frozen/<capture>.csv.gz`` - E012 origin lines (6-hourly grid captures), written before the 24 h target exists.
 * ``flow/frozen/<sample>.csv.gz`` - E013 and E014 origin lines (one per trade-sample market), written before the 2 h
   and 6 h targets exist; E014's two frozen E007 predictions are in the line.
@@ -23,7 +26,8 @@ Outputs (``research_lab/live_tests2/``; every data file is WRITE-ONCE, written a
 
 Causality: every origin feature uses only the origin capture and earlier captures (or trades strictly before the
 origin row's receipt time). A frozen file whose write time is not strictly before the start of its target capture is
-excluded at analysis (``late_freeze``) and counted. ``analyze`` runs the registered tests once, after
+excluded at analysis (``late``) and counted. Every frozen line carries ``spec_sha`` and ``code_sha`` (normalised
+sha256 of this module); the analysis keeps only lines whose both values equal the registered pins. ``analyze`` runs the registered tests once, after
 ``ANALYSIS_NOT_BEFORE``; ``ops_stats`` only counts files, lines and statuses and never reads a mid.
 """
 
@@ -33,6 +37,7 @@ import hashlib
 import json
 import math
 import os
+import re
 import shutil
 import subprocess
 from datetime import UTC, datetime
@@ -61,6 +66,8 @@ SLOT_TOL_S = 1800.0
 SERIES_LOOKBACK_S = 26 * 3600.0
 MISSING_AFTER_S = 3 * 3600.0  # a target capture absent 3 h after its slot is "missing_capture"
 ROLE_CONF, ROLE_UNREG = "prospective_confirmation", "prospective_unregistered"
+CODE_FILES = ("live_tests2.py", "live_tests2_analysis.py")
+_PIN_LINE = re.compile(r"^SPEC_SHA256 = .*$", re.M)
 
 SNAP_COLS = ["market_id", "event_id", "clob_token_id_0", "received_utc", "closed", "active", "binary", "best_bid", "best_ask",
              "spread", "last_trade_price", "chg_1h", "chg_1d", "chg_1w", "liquidity", "volume24hr", "end_date"]
@@ -96,6 +103,19 @@ def git_commit() -> str:
         return out.stdout.strip()[:12] or "unknown"
     except (OSError, subprocess.SubprocessError):
         return "unknown"
+
+
+def code_sha256(path: Path) -> str:
+    """sha256 of a code file with its ``SPEC_SHA256 = ...`` line normalised (LIVE_TESTS_2.md section 1.1): the spec JSON
+    pins the code hashes and the code pins the spec hash, so the pin line itself is kept outside the code hash."""
+    txt = Path(path).read_bytes().decode("utf-8")
+    return hashlib.sha256(_PIN_LINE.sub("SPEC_SHA256 = <pin>", txt).encode("utf-8")).hexdigest()
+
+
+def code_hashes() -> dict:
+    """Normalised sha256 of the collector and analysis modules as present on disk."""
+    here = Path(__file__).resolve().parent
+    return {n: code_sha256(here / n) for n in CODE_FILES}
 
 
 def load_spec(path: Path = SPEC_PATH, sha: str | None = SPEC_SHA256) -> dict:
@@ -310,6 +330,27 @@ def series_frame(rows: pd.DataFrame) -> pd.DataFrame:
                          "end_ts": panel._epoch(s["end_date"])})
 
 
+def status_frame(rows: pd.DataFrame) -> pd.DataFrame:
+    """Per-capture status of every binary market of the listing that is NOT in the series (challenger R1 finding 3):
+    ``closed`` (closed flag true), ``inactive`` (not closed, active false) or ``one_sided`` (open and active but not
+    two-sided). A market in neither the series nor this file was absent from the listing (``absent``)."""
+    b = rows[rows["binary"] == 1]
+    closed = b["closed"].astype(str).str.lower().eq("true").to_numpy()
+    active = b["active"].astype(str).str.lower().eq("true").to_numpy()
+    present = panel.target_valid(b) & active
+    st = np.where(closed, "closed", np.where(~active, "inactive", "one_sided"))
+    return pd.DataFrame({"market_id": b["market_id"].astype(str).to_numpy()[~present], "st": st[~present]})
+
+
+def read_status(root: Path, cap_id: str | None) -> pd.DataFrame | None:
+    if cap_id is None:
+        return None
+    p = Path(root) / "status" / f"{cap_id}.csv.gz"
+    if not p.exists():
+        return None
+    return pd.read_csv(p, dtype={"market_id": str, "st": str}).drop_duplicates("market_id").set_index("market_id")
+
+
 def read_series(root: Path, cap_id: str | None) -> pd.DataFrame | None:
     if cap_id is None:
         return None
@@ -385,10 +426,15 @@ def freeze_e012(cap: dict, k: int, by_slot: dict, root: Path, spec: dict, role: 
     mids = o["market_id"].astype(str)
     ser_h = read_series(root, by_slot.get(k - e["horizon_slots"], {}).get("id"))
     ser_p = read_series(root, by_slot.get(k - 1, {}).get("id"))
+    ser_s = read_series(root, by_slot.get(k - e["skip_slots"], {}).get("id"))
     bid_h, ask_h, spr_h = (_lookup(ser_h, mids, c) for c in ("bid", "ask", "spread"))
     tight_h = tight(bid_h, ask_h, spr_h, spec)
     mid_h = np.where(tight_h, (bid_h + ask_h) / 2.0, np.nan)
     mid_p = (_lookup(ser_p, mids, "bid") + _lookup(ser_p, mids, "ask")) / 2.0
+    # 6 h skip slot (challenger R1 finding 2): x_skip6 = mid_{i-3} - mid_h never contains mid_i
+    bid_s, ask_s, spr_s = (_lookup(ser_s, mids, c) for c in ("bid", "ask", "spread"))
+    tight_s = tight(bid_s, ask_s, spr_s, spec)
+    mid_s = np.where(tight_s, (bid_s + ask_s) / 2.0, np.nan)
     mid = feats["mid"].to_numpy(float)
     L = np.log1p(np.nan_to_num(o["volume24hr"].to_numpy(float), nan=0.0).clip(min=0))
     zc = e["zL"]
@@ -398,6 +444,7 @@ def freeze_e012(cap: dict, k: int, by_slot: dict, root: Path, spec: dict, role: 
         "bid_i": o["best_bid"].to_numpy(float), "ask_i": o["best_ask"].to_numpy(float), "mid_i": mid,
         "spread_i": feats["spread"].to_numpy(float), "h_capture_id": by_slot.get(k - e["horizon_slots"], {}).get("id"),
         "tight_h": tight_h.astype(int), "mid_h": mid_h, "x": mid - mid_h,
+        "tight_s3": tight_s.astype(int), "mid_s3": mid_s, "x_skip6": mid_s - mid_h,
         "dprev": mid - mid_p, "dprev_missing": np.isnan(mid_p).astype(int),
         "L": L, "zL": (L - zc["centre"]) / zc["scale"],
         **_base_controls(o, feats),
@@ -405,8 +452,17 @@ def freeze_e012(cap: dict, k: int, by_slot: dict, root: Path, spec: dict, role: 
     })
     df["fee_rate"], df["fee_exp"] = load_fee_rates(cap["dir"], mids)
     df["frozen_utc"] = iso(now_ts())
-    df["code_commit"], df["spec_sha"] = commit, spec["_sha256"][:16]
+    df["code_commit"], df["spec_sha"], df["code_sha"] = commit, spec["_sha256"][:16], collector_sha()
     return df
+
+
+def collector_sha() -> str:
+    """First 16 hex digits of the normalised sha256 of this module, written into every frozen line (section 1.1)."""
+    return code_sha256(Path(__file__).resolve())[:16]
+
+
+def _truthy(v: pd.Series) -> np.ndarray:
+    return v.astype(str).str.strip().str.lower().isin(["true", "1", "1.0"]).to_numpy()
 
 
 def _signs(tr: pd.DataFrame, token0: pd.Series | None) -> np.ndarray:
@@ -466,11 +522,18 @@ def freeze_flow(sample: dict, cap: dict, k: int, by_slot: dict, root: Path, spec
     # trades stamped at or after the origin that sit on the page (the sample requests up to ~20 min after the origin;
     # they never enter a feature but they fill the 500-trade page, so coverage depends on them: counts only)
     n_post = tr[tr["ts"] >= tr["o"]].groupby("market_id").size().reindex(mkt).fillna(0).to_numpy(float)
+    # E014's 1 h window: trade_sample's own flag (full page whose oldest trade is after origin - 1 h); a truncated
+    # 1 h window makes ss NaN, never a partial value (challenger R1 finding 4); an absent flag column is unknown (NaN)
+    if "trades_truncated" in feat:
+        trunc1h = _truthy(feat["trades_truncated"]).astype(float)
+    else:
+        trunc1h = np.full(len(feat), np.nan)
     with np.errstate(invalid="ignore", divide="ignore"):
         imb6 = np.where(n6 > 0, s6 / n6, np.nan)
         imb6l = np.where(n6l > 0, s6l / n6l, np.nan)
         vol1 = feat["volume_1h"].to_numpy(float)
         ss = np.where(vol1 > 0, feat["signed_volume_1h"].to_numpy(float) / vol1, 0.0)
+        ss = np.where(trunc1h == 1, np.nan, ss)
     feats = panel.compute_features(o, origin)
     mids = feat["market_id"].astype(str)
     ser_p = read_series(root, by_slot.get(k - 1, {}).get("id"))
@@ -499,7 +562,9 @@ def freeze_flow(sample: dict, cap: dict, k: int, by_slot: dict, root: Path, spec
         "spread_i": spr, "tight_i": tight_i.astype(int),
         "end_ok_6h": (np.isnan(end_ts) | (end_ts > cap["start"] + f["end_margin_h"] * 3600.0)).astype(int),
         "imb6": imb6, "n6": c6, "N6": n6, "imb6_lag30": imb6l, "cov6": cov6.astype(int),
-        "n_returned": n_ret, "n_post_origin": n_post,
+        "n_returned": n_ret, "n_post_origin": n_post, "trunc1h": trunc1h,
+        # origin-side activity (Gamma volume24hr of the origin capture): the E013 population cut (section 3)
+        "vol24_i": o["volume24hr"].to_numpy(float),
         "x6": np.clip(imb6, -f["x6_clip"], f["x6_clip"]) / f["x6_sd"],
         "x6_lag30": np.clip(imb6l, -f["x6_clip"], f["x6_clip"]) / f["x6_sd"],
         "rv": rv, "zRV": (lrv - f["zRV"]["centre"]) / f["zRV"]["scale"],
@@ -511,15 +576,25 @@ def freeze_flow(sample: dict, cap: dict, k: int, by_slot: dict, root: Path, spec
     })
     df["fee_rate"], df["fee_exp"] = load_fee_rates(cap["dir"], mids)
     df["frozen_utc"] = iso(now_ts())
-    df["code_commit"], df["spec_sha"] = commit, spec["_sha256"][:16]
+    df["code_commit"], df["spec_sha"], df["code_sha"] = commit, spec["_sha256"][:16], collector_sha()
     return df
 
 
 # --- outcomes -----------------------------------------------------------------------------------------------------
 
 
+def unavailable_status(st: pd.DataFrame | None, mids: pd.Series) -> np.ndarray:
+    """Detailed reason for a market with no two-sided quote at the target capture (challenger R1 finding 3):
+    ``unavailable_closed`` / ``unavailable_inactive`` / ``unavailable_one_sided`` from the capture's status file,
+    ``unavailable_absent`` if the market is in neither file, plain ``unavailable`` if no status file exists."""
+    if st is None:
+        return np.full(len(mids), "unavailable", dtype=object)
+    code = st["st"].reindex(mids.astype(str)).to_numpy(object)
+    return np.array(["unavailable_absent" if pd.isna(c) else f"unavailable_{c}" for c in code], dtype=object)
+
+
 def outcome_cols(fr: pd.DataFrame, ser: pd.DataFrame | None, tag: str, cap: dict | None, status_missing: str,
-                 spec: dict) -> dict:
+                 spec: dict, st: pd.DataFrame | None = None) -> dict:
     mids = fr["market_id"].astype(str)
     if ser is None:
         nan = np.full(len(fr), np.nan)
@@ -528,7 +603,7 @@ def outcome_cols(fr: pd.DataFrame, ser: pd.DataFrame | None, tag: str, cap: dict
     bid, ask, spr, t = (_lookup(ser, mids, c) for c in ("bid", "ask", "spread", "t_row"))
     return {f"bid_{tag}": bid, f"ask_{tag}": ask, f"t_{tag}": t, f"tight_{tag}": tight(bid, ask, spr, spec).astype(int),
             f"cap_{tag}": cap["id"], f"cap_start_{tag}": cap["start"],
-            f"status_{tag}": np.where(np.isfinite(bid) & np.isfinite(ask), "evaluated", "unavailable")}
+            f"status_{tag}": np.where(np.isfinite(bid) & np.isfinite(ask), "evaluated", unavailable_status(st, mids))}
 
 
 def series_ready(root: Path, by_slot: dict, slots) -> bool:
@@ -584,13 +659,27 @@ def run_once(*, snapshot_root: Path = SNAPSHOT_ROOT, sample_root: Path = SAMPLE_
         if not (t_reg - SERIES_LOOKBACK_S <= c["start"] < t_end + SERIES_LOOKBACK_S + 2 * GRID_S):
             continue
         p = root / "series" / f"{c['id']}.csv.gz"
-        if p.exists() or budget <= 0:
+        ps = root / "status" / f"{c['id']}.csv.gz"
+        if (p.exists() and ps.exists()) or budget <= 0:
             continue
-        ser = series_frame(load_rows(c["dir"]))
-        if write_once_csv(p, ser):
+        rows = load_rows(c["dir"])
+        wrote = False
+        if not p.exists():
+            ser = series_frame(rows)
+            if write_once_csv(p, ser):
+                wrote = True
+                log.append({"kind": "series", "id": c["id"], "slot": k, "rows": len(ser), "written_utc": iso(now_ts())})
+        if not ps.exists():
+            sf = status_frame(rows)
+            if write_once_csv(ps, sf):
+                wrote = True
+                log.append({"kind": "status", "id": c["id"], "slot": k, "rows": len(sf),
+                            "counts": {str(a): int(b) for a, b in sf["st"].value_counts().items()},
+                            "written_utc": iso(now_ts())})
+        del rows
+        if wrote:
             stats["series"] += 1
             budget -= 1
-            log.append({"kind": "series", "id": c["id"], "slot": k, "rows": len(ser), "written_utc": iso(now_ts())})
     # 2. freezes (origins in [registered, end); unregistered dry runs pass explicit dates)
     pinned = spec["_pinned"]
     for k in sorted(by_slot):
@@ -606,7 +695,7 @@ def run_once(*, snapshot_root: Path = SNAPSHOT_ROOT, sample_root: Path = SAMPLE_
             log.append({"kind": "e012_refused_late", "id": c["id"], "written_utc": iso(now_ts())})
             write_once_csv(late_p, pd.DataFrame({"late": [1], "checked_utc": [iso(now)]}))
             continue
-        if not series_ready(root, by_slot, (k - spec["e012"]["horizon_slots"], k - 1)):
+        if not series_ready(root, by_slot, (k - spec["e012"]["horizon_slots"], k - spec["e012"]["skip_slots"], k - 1)):
             continue
         fr = freeze_e012(c, k, by_slot, root, spec, role_of(c["start"], registered_utc, end_utc, pinned), commit)
         if write_once_csv(p, fr):
@@ -662,8 +751,9 @@ def run_once(*, snapshot_root: Path = SNAPSHOT_ROOT, sample_root: Path = SAMPLE_
         ser = read_series(root, by_slot[j]["id"]) if ts == "ready" else None
         if ts == "ready" and ser is None:
             continue  # target series not written yet (next run)
+        stj = read_status(root, by_slot[j]["id"]) if ts == "ready" else None
         out = pd.DataFrame({"market_id": fr["market_id"],
-                            **outcome_cols(fr, ser, "j", by_slot.get(j), "missing_capture", spec)})
+                            **outcome_cols(fr, ser, "j", by_slot.get(j), "missing_capture", spec, stj)})
         if write_once_csv(op, out):
             stats["e012_out"] += 1
             budget -= 1
@@ -686,9 +776,10 @@ def run_once(*, snapshot_root: Path = SNAPSHOT_ROOT, sample_root: Path = SAMPLE_
         sers = [read_series(root, by_slot[j]["id"]) if s == "ready" else None for j, s in zip(hs, states, strict=True)]
         if any(s == "ready" and ser is None for s, ser in zip(states, sers, strict=True)):
             continue
+        sts = [read_status(root, by_slot[j]["id"]) if s == "ready" else None for j, s in zip(hs, states, strict=True)]
         out = pd.DataFrame({"market_id": fr["market_id"],
-                            **outcome_cols(fr, sers[0], "j2", by_slot.get(hs[0]), "missing_capture", spec),
-                            **outcome_cols(fr, sers[1], "j6", by_slot.get(hs[1]), "missing_capture", spec)})
+                            **outcome_cols(fr, sers[0], "j2", by_slot.get(hs[0]), "missing_capture", spec, sts[0]),
+                            **outcome_cols(fr, sers[1], "j6", by_slot.get(hs[1]), "missing_capture", spec, sts[1])})
         if write_once_csv(op, out):
             stats["flow_out"] += 1
             budget -= 1
@@ -708,7 +799,7 @@ def run_once(*, snapshot_root: Path = SNAPSHOT_ROOT, sample_root: Path = SAMPLE_
 def ops_stats(root: Path = OUT_ROOT) -> dict:
     root = Path(root)
     out: dict = {"root": str(root), "bytes": dir_bytes(root) if root.exists() else 0}
-    for sub in ("series", "e012/frozen", "e012/outcomes", "flow/frozen", "flow/outcomes"):
+    for sub in ("series", "status", "e012/frozen", "e012/outcomes", "flow/frozen", "flow/outcomes"):
         d = root / sub
         files = sorted(d.glob("*.csv.gz")) if d.exists() else []
         out[sub] = {"files": len([f for f in files if not f.name.endswith(".late.csv.gz")]),
@@ -779,7 +870,7 @@ def census(*, snapshot_root: Path = SNAPSHOT_ROOT, sample_root: Path = SAMPLE_RO
         fr = freeze_flow(samples[sid], by_slot[k], k, by_slot, work, spec_c, ROLE_UNREG, "census", cache)
         frames.append(fr)
         f6 = fr[(fr["tight_i"] == 1) & (fr["n6"] > 0) & np.isfinite(fr["x6"])]
-        ss = fr[(fr["tight_i"] == 1) & (fr["ss"] != 0)]
+        ss = fr[(fr["tight_i"] == 1) & np.isfinite(fr["ss"]) & (fr["ss"] != 0)]
         cnt.append({"sample": sid, "rows": len(fr), "tight": int(fr["tight_i"].sum()), "flow6_rows": len(f6),
                     "flow6_events": int(f6["event_id"].nunique()), "flow6_rv_finite": int(np.isfinite(f6["zRV"]).sum()),
                     "ss_rows": len(ss), "ss_A": int((ss["regime"] == "A").sum()),
@@ -797,7 +888,7 @@ def census(*, snapshot_root: Path = SNAPSHOT_ROOT, sample_root: Path = SAMPLE_RO
         return {"centre": float(np.mean(v)), "scale": float(np.std(v, ddof=1)), "n": int(len(v))}
 
     return {"until_utc": until_utc, "captures": [by_slot[k]["id"] for k in ks[-n_caps:]], "samples": use,
-            "zL": ms(L), "zRV": ms(lrv), "zSPR": ms(spr),
+            "zL": ms(L), "zRV": ms(lrv), "zSPR": ms(spr), **truncation_census(F, spec),
             "L_tercile_cuts": [float(x) for x in np.quantile(L, [1 / 3, 2 / 3])],
             "L_zero_share": float((L == 0).mean()),
             "L_pos_tercile_cuts": [float(x) for x in np.quantile(L[L > 0], [1 / 3, 2 / 3])],
@@ -806,6 +897,46 @@ def census(*, snapshot_root: Path = SNAPSHOT_ROOT, sample_root: Path = SAMPLE_RO
             "e012_counts": nel, "flow_counts": cnt,
             "bytes": {"series_per_capture": int(np.mean([(work / "series" / f"{by_slot[k]['id']}.csv.gz").stat().st_size
                                                            for k in need]))}}
+
+
+def flow_trunc_frame(F: pd.DataFrame) -> pd.DataFrame:
+    """Rows that would carry 6 h flow if covered (tight, at least one trade in the window or a truncated window),
+    with ``trunc6`` = 1 for a truncated window. Origin-side and page fields only (no target)."""
+    cov = F["cov6"].to_numpy(int) == 1
+    n6 = F["n6"].to_numpy(float)
+    cand = (F["tight_i"].to_numpy(int) == 1) & ((~cov) | (np.nan_to_num(n6) > 0))
+    out = F.loc[cand, ["vol24_i"]].copy()
+    out["trunc6"] = (~cov[cand]).astype(int)
+    return out
+
+
+def vol24_cap_rule(F: pd.DataFrame, max_share: float) -> float:
+    """E013 population cut (challenger R1 finding 4), fixed once from the pre-window census: the largest origin
+    ``volume24hr`` value v such that, among census flow rows with volume24hr <= v, the share of truncated 6 h windows
+    is <= ``max_share``. +inf if the whole census meets it. Rows with unknown volume24hr are not used."""
+    t = flow_trunc_frame(F)
+    t = t[np.isfinite(t["vol24_i"])].sort_values("vol24_i", kind="mergesort")
+    if t.empty:
+        return float("nan")
+    v = t["vol24_i"].to_numpy(float)
+    share = np.cumsum(t["trunc6"].to_numpy(float)) / np.arange(1, len(t) + 1)
+    last = np.r_[v[1:] != v[:-1], True]  # evaluate each distinct value once (all its ties included)
+    ok = last & (share <= max_share)
+    if ok[-1]:
+        return float("inf")
+    return float(v[ok].max()) if ok.any() else float("nan")
+
+
+def truncation_census(F: pd.DataFrame, spec: dict) -> dict:
+    t = flow_trunc_frame(F)
+    cap = vol24_cap_rule(F, float(spec["flow"]["vol24_cap_max_trunc_share"]))
+    under = t[t["vol24_i"] <= cap] if np.isfinite(cap) else t[np.isfinite(t["vol24_i"])]
+    tr1 = F["trunc1h"].to_numpy(float)
+    return {"trunc6": {"rows": len(t), "truncated": int(t["trunc6"].sum()),
+                       "share": float(t["trunc6"].mean()) if len(t) else None},
+            "vol24_cap": cap, "vol24_cap_rows_kept_share": float(len(under) / len(t)) if len(t) else None,
+            "trunc6_share_under_cap": float(under["trunc6"].mean()) if len(under) else None,
+            "trunc1h": {"rows": int(np.isfinite(tr1).sum()), "truncated": int(np.nansum(tr1 == 1))}}
 
 
 def cleanup_census(work: Path) -> None:

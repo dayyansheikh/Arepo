@@ -42,7 +42,9 @@
    "liquid_cut": 5.337665835963216,
    "min_abs_x": 0.05,
    "rule": "primary paper rule: L == 0 and |x| >= 0.05: take the side against x at the origin touch, exit at the j touch, taker fee both legs. Descriptive companion: L >= liquid_cut (upper tercile of L > 0) and |x| >= 0.05, follow x"
-  }
+  },
+  "skip_slots": 3,
+  "x_skip6": "mid_{i-3} - mid_h (both tight; the 6 h skip slot, never contains mid_i); mechanism label only (LIVE_TESTS_2.md section 2)"
  },
  "flow": {
   "window_s": 21600,
@@ -68,7 +70,11 @@
    "spr_upper_tercile_cut": 0.03,
    "min_abs_imb": 0.5,
    "rule": "favourable (upper) moderator tercile (log rv >= cut for F4; spread >= 0.03 - 1e-9 for F5) and |imb6| >= 0.5: follow sign(imb6) at the origin touch, exit at the 6 h target touch, taker fee both legs"
-  }
+  },
+  "vol24_cap": null,
+  "vol24_cap_max_trunc_share": 0.01,
+  "vol24_cap_rule": "E013 population: origin-capture Gamma volume24hr <= vol24_cap. vol24_cap = the largest volume24hr v such that, among the pre-window census flow rows (tight; >= 1 trade in the 6 h window or a truncated window) with volume24hr <= v, the share of truncated 6 h windows is <= 0.01 (live_tests2.vol24_cap_rule). Filled from the census before the pin; null = not yet filled (the analysis refuses a pinned spec with a null cap)",
+  "trunc_label_share": 0.02
  },
  "e014": {
   "source": "data-dumps/research_lab/e007/dev_fit.json (E007 frozen development fit; host copy read 2026-10-19)",
@@ -94,7 +100,9 @@
    "abs_ss": 1.0,
    "min_trades_1h": 3,
    "rule": "regime A, |signed_share| = 1 and n_trades_1h >= 3: follow sign(signed_share) at the origin touch, exit at the 2 h target touch, taker fee both legs"
-  }
+  },
+  "trunc_label_share": 0.02,
+  "ss_truncated": "ss = NaN when the trade sample flags the 1 h window truncated (trades_truncated); NaN rows are excluded and counted"
  },
  "census": {
   "until_utc": "2026-10-19T21:00:00Z",
@@ -128,6 +136,12 @@
   "spr_tercile_cuts": [
    0.01,
    0.03
-  ]
+  ],
+  "ids_note": "capture and sample ids of the 2026-10-19 census (all started before 2026-10-19T21:00Z) are listed above; vol24_cap and the truncation shares need one re-run of `run_live_tests2.py census --until 2026-10-19T21:00:00Z` on these same inputs (the 2026-10-19 run predates the vol24_i and trunc1h columns)"
+ },
+ "code_sha256": {
+  "live_tests2.py": "b73ade230d14014463b94939e0b5db53b5f2ef158c90d76f3b1bd61067028459",
+  "live_tests2_analysis.py": "65d385af94427d263acb9932d6c5ee8f3e59f96b9a7702db967c1e8df4f2c8a4",
+  "rule": "normalised sha256 (the SPEC_SHA256 line replaced by 'SPEC_SHA256 = <pin>'; live_tests2.code_sha256); kept equal to the modules by a unit test after every code change (first filled 2026-10-20, challenger R1) and re-verified in the SPEC_SHA256 pin commit. Frozen lines carry code_sha (first 16 hex digits of the collector hash); the analysis keeps only lines whose spec_sha and code_sha equal the pins and refuses to run a pinned spec if either module's hash differs"
  }
 }
