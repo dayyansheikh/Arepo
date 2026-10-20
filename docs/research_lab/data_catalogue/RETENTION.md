@@ -92,6 +92,7 @@ and it is older than the rule's cut-off. Directories without a rule are never de
 | `book_sweeps/` | **GATED: no rule now** (deferred: 3 days, keep manifests) | all | q0005/q0006a/q0006 are done (2026-10-15); still deferred because q0035 (from 10-21T03Z) and MC1 panel rebuilds read older sweeps (see "Gate release") |
 | `live_trades/scores-*`, `live_trades/trades-*` | **10 days** | the 7-day score history the monitor reloads, plus margin | `trailing_days` = 7; `trades-` only needs today and yesterday |
 | `cb1_extract/` and everything else | **never deleted** | all | read by open experiments or small |
+| `stream_predictit/`, `stream_smarkets/`, `stream_espn_odds/`, `stream_gamma_rules/` (2026-10-19) | **PROPOSED, not active** (`deferred_rules`: 14 days) | 14 days of day files; `state.json`, `du_state.json`, `stream.lock` are never archived or deleted | append-only day files are final once their UTC day ends; no registered reader yet (`NEW_STREAMS_2026-10-19.md`) |
 
 **Capacity consequence of the gate:** with snapshots not deletable the data grows about 0.75 GB a day from snapshots alone; deleting samples (3 d) and live_trades frees little. The 12 GB cap (about 22 October) is then NOT avoided unless the queue jobs finish or accept a root argument first. Decision needed from the user/other session before about 20 October.
 

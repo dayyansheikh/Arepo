@@ -69,6 +69,12 @@ DIR_EXPERIMENTS = {
     "columnar_trial": ["STORAGE-TRIAL"],
     "phase3_evidence_capsules": ["PHASE3-FS2"],
     "_ops": ["OPS"],
+    # streams/ (run_stream.py; docs/research_lab/NEW_STREAMS_2026-10-19.md): prospective public-data streams,
+    # data only (no registered experiment reads them yet); labelled by stream and the hypotheses they serve.
+    "stream_predictit": ["STREAM-PREDICTIT"],
+    "stream_smarkets": ["STREAM-SMARKETS"],
+    "stream_espn_odds": ["STREAM-ESPN-ODDS"],
+    "stream_gamma_rules": ["STREAM-GAMMA-RULES"],
 }
 
 # Top-level data-dumps/fs2_* directories are Phase 3 (D082-D120) pilots; they keep their original outcomes.
@@ -107,6 +113,10 @@ EXPERIMENT_LABELS = {
     "STORAGE-TRIAL": "Columnar snapshot storage trial (not evidence)",
     "OPS": "Operational files (not evidence)",
     "PHASE3-FS2": "Phase 3 fs2 pilot runs D082-D120 (closed; original outcomes kept)",
+    "STREAM-PREDICTIT": "PredictIt all-markets quotes, 1-min, change-only (CH114; data only)",
+    "STREAM-SMARKETS": "Smarkets politics/current-affairs books, 5-min, change-only (cross-venue; data only)",
+    "STREAM-ESPN-ODDS": "ESPN-published sportsbook lines, 10-min, change-only (CH29; data only)",
+    "STREAM-GAMMA-RULES": "Polymarket rule-text change log, hourly (CH08/CH63/CH64; data only)",
 }
 
 _CAP = re.compile(r"(\d{8}T\d{6}Z)_([0-9a-f]{8})")
