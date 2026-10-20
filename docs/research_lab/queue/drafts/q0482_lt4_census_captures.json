@@ -1,0 +1,40 @@
+{
+ "id": "q0482_lt4_census_captures",
+ "title": "LT4 censuses CQ (E020 arrivals/cancellations) and CH (E022 hollowness) on the complete captures of UTC 2026-10-15/16 and sweep 1 of those passes (DRAFT): counts only, origin-side fields only, no capture or sweep after the one classified, no target, no P&L; refuses unsealed or mismatched inputs",
+ "family": "live_tests_4",
+ "priority": 29,
+ "expected_value": "E020 and E022 census gates (LIVE_TESTS_4.md section 8), zh centre/scale, h terciles and gap; decides part of k before the pin",
+ "data": [
+  "data-dumps/research_lab/live_tests4_census/restore (q0480; read-only)"
+ ],
+ "resources": {
+  "mem_mb": 1200,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0480_lt4_census_restore_captures"
+ ],
+ "argv": [
+  "scripts/run_live_tests4.py",
+  "census-captures",
+  "--seal",
+  "../docs/research_lab/seals/lt4_census_inputs_captures.json",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests4_census/restore/data-dumps/research_lab/snapshots",
+  "--sweep-root",
+  "../data-dumps/research_lab/live_tests4_census/restore/data-dumps/research_lab/book_sweeps",
+  "--work",
+  "../data-dumps/research_lab/live_tests4_census/work_cqch",
+  "--out",
+  "../data-dumps/research_lab/live_tests4_census/CQCH.json"
+ ],
+ "timeout_s": 7200,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests4_census/CQCH.json (counts only; the work dir is cleaned up at exit)"
+ ],
+ "next_action": "commit CQCH.json and its sha256 (seals/), fill the E022 scale, cuts and gap and the E020/E022 entries of k_tests in the spec, record any drop in LIVE_TESTS_4.md 7.3",
+ "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_4.md, design not yet reviewed). Promote only after the challenger review of LIVE_TESTS_4.md and the seal file. Counts 0 (descriptive; no trials line). Reads the DRAFT spec unpinned; code_sha256 of all four modules is written into the output. mem_mb is an estimate (LT3's comparable census was set at 1,200)."
+}
