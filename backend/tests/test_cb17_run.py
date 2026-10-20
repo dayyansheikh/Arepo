@@ -55,10 +55,11 @@ def trial_lines(env):
     return [json.loads(x) for x in env["trials"].read_text().splitlines()] if env["trials"].exists() else []
 
 
-def test_rules_command_declares_only_part_pre(env, capsys, tmp_path):
+def test_rules_command_declares_pre_common_b_c_e_and_not_a(env, capsys, tmp_path):
     code, out = _run(["rules", "--path", str(tmp_path / "r2.json")], capsys)
     assert code == 0 and out["parts"]["pre"]["declared"] is True and out["parts"]["pre"]["rules_sha256"]
-    assert all(out["parts"][p]["declared"] is False for p in ("common", "A", "B", "C", "E"))
+    assert all(out["parts"][p]["declared"] is True for p in ("common", "B", "C", "E"))
+    assert out["parts"]["A"]["declared"] is False and "withdrawn uncounted" in out["parts"]["A"]["reason"]
     assert json.loads((tmp_path / "r2.json").read_text()) == json.loads(env["rules"].read_text())
     code, out = _run(["rules", "--path", str(tmp_path / "r2.json")], capsys)  # idempotent for an identical file
     assert code == 0

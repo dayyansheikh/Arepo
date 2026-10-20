@@ -1,0 +1,39 @@
+{
+ "id": "q0408_cb17_census_8",
+ "title": "CB17 SCREEN_8 census (counts only): gates GBT, GBA, GBS, GCU, GC; power gates GB1P, GB2P, GCP on pre-outcome proxies (SEs only); informativeness shares at the selected levels; B no-mark shares by age bin and x band; C unavailable-mark shares by class; lookback-floor unavailability counts; E census and re-entry verdict",
+ "family": "creative_batch_17",
+ "priority": 9,
+ "expected_value": "gates and MDEs",
+ "data": [
+  "creative_batch17/screen/"
+ ],
+ "resources": {
+  "mem_mb": 600,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0406_cb17_frame_screen_BC",
+  "q0407_cb17_frame_screen_A"
+ ],
+ "argv": [
+  "scripts/run_cb17.py",
+  "census",
+  "--window",
+  "screen",
+  "--rules",
+  "../docs/research_lab/seals/cb17_rules.json",
+  "--disk-cap-gb",
+  "0.01",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch17/census_8.json",
+  "trials.jsonl (cb17_descriptive)"
+ ],
+ "next_action": "q0409",
+ "notes": "No proxy point estimate written (unit-tested). Reads only the frames written by q0406 / q0407. CREATIVE_BATCH_17.md section 4, CB17 window code (branch T: family A withdrawn uncounted; B, C and the E census live; Holm k1 = 3). DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer), the committed code-freeze record seals/cb17_code_freeze.json (code_sha256 from `run_cb17.py code-pin`, ruling-6 attestation) and seals/cb17_t17_rules.json. Rules part sha256 (seals/cb17_rules.json; part A is never declared): pre ddc0249b23eedf8cfe50b2b60e94378264804ca4791c82c01cf3993df54df6a7, common 2343744082bcb664ac06f18f967c166aae09c216e9437045d7aa07aa77ef8c9f, B 64e61091574ec4406b6f235f48f37ab2d0bf8b41bf89bfbeace9153186c96a10, C 3e24af26db1c827b6ff8dadc5bc63743a4cd03280d510211edf0ad87137b2647, E 9b1eba65e5de9de0f67e31f9d7dccf6f012ef8ee37895a603aaa5a6103067412. The coordinator regenerates the rules and these shas if any hashed module changes (window code changes only the code pin)."
+}

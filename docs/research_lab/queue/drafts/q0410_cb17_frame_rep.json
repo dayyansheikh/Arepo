@@ -1,0 +1,47 @@
+{
+ "id": "q0410_cb17_frame_rep",
+ "title": "CB17 REP_8 frames (features), raw mark tables (B sweep and capture marks, C k + 1 / k + 2 quotes, econ fill-source marks; no mark-out computed) and the source sha256 seal, for the Stage-1 tests that advanced (arm-1 events)",
+ "family": "creative_batch_17",
+ "priority": 9,
+ "expected_value": "Stage-2 inputs, sealed",
+ "data": [
+  "live_trades/, snapshots/, book_sweeps/ for [S_8 + 7 d, S_8 + 28 d + 8 h)"
+ ],
+ "resources": {
+  "mem_mb": 1000,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0409_cb17_screen_8"
+ ],
+ "argv": [
+  "scripts/run_cb17.py",
+  "frame",
+  "--families",
+  "B,C",
+  "--window",
+  "rep",
+  "--rules",
+  "../docs/research_lab/seals/cb17_rules.json",
+  "--disk-cap-gb",
+  "0.15",
+  "--data-dumps-cap-gb",
+  "40",
+  "--budget-min",
+  "55"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 2,
+ "outputs": [
+  "research_lab/creative_batch17/rep/",
+  "research_lab/creative_batch17/rep_SEAL.json (the coordinator commits the byte-identical copy as docs/research_lab/seals/cb17_rep_SEAL.json)"
+ ],
+ "next_action": "q0411 if triggered",
+ "notes": "Waits (exit 75) until seals/cb17_results_8.json is committed and identical to results_8.json; writes status rep_not_triggered (nothing counted) if no Stage-1 test advanced. TODO-COORDINATOR: not_before = S_8 + 28 d + 8 h (2026-11-23T08:00:00Z for S_8 = 2026-10-26). CREATIVE_BATCH_17.md section 4, CB17 window code (branch T: family A withdrawn uncounted; B, C and the E census live; Holm k1 = 3). DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer), the committed code-freeze record seals/cb17_code_freeze.json (code_sha256 from `run_cb17.py code-pin`, ruling-6 attestation) and seals/cb17_t17_rules.json. Rules part sha256 (seals/cb17_rules.json; part A is never declared): pre ddc0249b23eedf8cfe50b2b60e94378264804ca4791c82c01cf3993df54df6a7, common 2343744082bcb664ac06f18f967c166aae09c216e9437045d7aa07aa77ef8c9f, B 64e61091574ec4406b6f235f48f37ab2d0bf8b41bf89bfbeace9153186c96a10, C 3e24af26db1c827b6ff8dadc5bc63743a4cd03280d510211edf0ad87137b2647, E 9b1eba65e5de9de0f67e31f9d7dccf6f012ef8ee37895a603aaa5a6103067412. The coordinator regenerates the rules and these shas if any hashed module changes (window code changes only the code pin).",
+ "repeat": {
+  "max_runs": 20,
+  "until_log_regex": "\"status\": \"(frame_rep_complete|rep_not_triggered)\""
+ },
+ "not_before": "2026-11-23T08:00:00Z"
+}
