@@ -127,6 +127,38 @@ def build_queue(repo: Path, now: datetime) -> dict | None:
             "counts": counts, "running": running, "recent": recent[-25:], "upcoming": upcoming}
 
 
+ACTIVITY_WINDOW_H = 48
+
+
+def build_queue_activity(repo: Path, now: datetime, window_h: int = ACTIVITY_WINDOW_H) -> dict | None:
+    """Compact 48 h tally of queue attempts for the Claude activity board. The individual events are NOT repeated here:
+    the board reuses `queue.recent` (latest finished jobs) and `queue.running` for the event feed."""
+    path = repo / "run" / "queue" / "attempts.jsonl"
+    if not path.exists():
+        return None
+    since = iso(now - timedelta(hours=window_h))
+    outcomes: Counter = Counter()
+    jobs: set = set()
+    runtime = 0.0
+    first = last = None
+    for line in tail_lines(path, 5000, chunk=2 * 1024 * 1024):
+        try:
+            a = json.loads(line)
+        except ValueError:
+            continue
+        at = a.get("at") if isinstance(a, dict) else None
+        if not isinstance(at, str) or at < since:
+            continue
+        outcomes[str(a.get("outcome"))] += 1
+        jobs.add(a.get("id"))
+        if isinstance(a.get("runtime_s"), (int, float)):
+            runtime += a["runtime_s"]
+        first = at if first is None or at < first else first
+        last = at if last is None or at > last else last
+    return {"window_h": window_h, "since": since, "attempts": sum(outcomes.values()), "outcomes": dict(outcomes),
+            "distinct_jobs": len(jobs), "runtime_h": round(runtime / 3600, 1), "first_at": first, "last_at": last}
+
+
 # ---------------------------------------------------------------- infra
 def read_meminfo() -> tuple[int | None, int | None]:
     try:
@@ -397,6 +429,12 @@ def build_snapshot(repo: Path, registry_path: Path, logs: Path, state_dir: Path,
         errors.append(f"queue: {type(exc).__name__}")
     if queue is not None:
         snap["queue"] = queue
+    try:
+        qa = build_queue_activity(repo, now)
+        if qa is not None:
+            snap["activity"] = {"queue": qa}
+    except Exception as exc:  # noqa: BLE001
+        errors.append(f"activity: {type(exc).__name__}")
     try:
         snap["infra"] = build_infra(repo, logs, state_dir, cache, now, write)
     except Exception as exc:  # noqa: BLE001
