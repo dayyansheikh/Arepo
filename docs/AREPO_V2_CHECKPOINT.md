@@ -241,13 +241,16 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
    - **LT3 (E015-E019):** q0470 done (E015 PASS; E017, E019 dropped uncounted; ledger); q0471 (C2 restore; failed once on missing gh in PATH, now fixed) -> q0472
      -> q0473 size check. Then write up counts (drop rules), science-reviewer freeze, pin, register (REGISTERED_UTC >= 10-23,
      proposed 10-24), install the reader as host cron every 20 min (q0474 fallback). **q0472 deadline: before 10-23T03:30Z.**
-   - **CB17 window code:** committed on `worktree-agent-ae42d4cfea66b78af` (cdab2fd5, f0d710ba); science-reviewer freeze
-     check running. Then: merge to main, `run_cb17.py code-pin` -> commit `seals/cb17_code_freeze.json` with the ruling-6
-     attestation, promote q0404 smoke (P1-P3 reproduction on worn [10-12,10-16) files; 8-day retention may remove the 10-13
-     captures from 10-21T03:30Z, so restore byte-for-byte if q0404 refuses), seals/cb17_t17_rules.json at S_8 (10-26), fill
-     q0405 base pin from q0380.
-   - **LT4 (E020-E024)** designer running in `../astrolabe-live-tests-4` (feat/live-tests-4) from round 10 top 5
-     (CH169, CH170, CH174, CH171, CH173). Then challenger R1 (science-reviewer).
+   - **CB17:** merged 2d6d3aa9 = T17_rules (2026-10-20T18:27:58Z; `seals/cb17_t17_rules.json`; S_8 = 2026-10-26T00Z).
+     Fixes 1-7 (9b335fec) and O-rulings (f0ef434d; B/C/E re-hashed) done; delta freeze check (science-reviewer) running.
+     Then: `run_cb17.py code-pin` -> commit `seals/cb17_code_freeze.json` (code pin + ruling-6 attestation); q0413 restore
+     (queued) -> `run_cb17.py worn-manifest --snapshot-root <restore>/.../snapshots --live-trades-root ...` on the host ->
+     commit the worn sha256 map -> promote q0404 with `--worn-sha256` and the restore roots; fill q0405's base pin verbatim
+     from q0380's manifest.
+   - **LT4 (E020-E024)** on `feat/live-tests-4` (../astrolabe-live-tests-4): design 6290d93c, code c08383a5; challenger R1
+     REVISE (reviews/LT4_CHALLENGER_R1_2026-10-20.md, 8a968295); designer writing the R1 response. Registers only after
+     LT3. Finding 7 (permutation gate anti-conservative with correlated controls) may affect LT3's shared gate: a
+     science-reviewer check is running; resolve before LT3's pin.
    - **Queue (17:52Z):** q0470 + q0277 running; queued q0239/q0249 (censuses; write up PA A1/A2 "not testable (entity map)";
      M census -> M freeze entry in `model_specs/cb12_v1.json` after a science-reviewer check -> promote q0252), q0245
      (mem 600) -> q0266, q0279 -> q0284, q0302 -> q0303. cpu lane: q0260 done 15:06Z -> O freeze entry with its
