@@ -236,7 +236,9 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
      regressed the host 15 commits on 10-20 and idled the queue. Check `ssh oracle 'cd ~/arepo && git log --oneline -1'` = local tip.
    - **LT2 (E012-E014) REGISTERED** at a4127bb9 (SPEC_SHA256 010a7ba1…, window 10-22T00Z to 11-12T00Z). q0460 starts
      10-21T00Z (net lane, repeat). q0461 analysis after 11-13T12Z. No interim outcome looks.
-   - **LT3 (E015-E019):** q0470 censuses running; q0471 (C2 restore; failed once on missing gh in PATH, now fixed) -> q0472
+   - **CB12-O TERMINAL not testable (source)** (28fca027): O freeze entry committed; q0262 -> q0263 write 2 p = 1 lines.
+     q0261 never installed, q0264 never run.
+   - **LT3 (E015-E019):** q0470 done (E015 PASS; E017, E019 dropped uncounted; ledger); q0471 (C2 restore; failed once on missing gh in PATH, now fixed) -> q0472
      -> q0473 size check. Then write up counts (drop rules), science-reviewer freeze, pin, register (REGISTERED_UTC >= 10-23,
      proposed 10-24), install the reader as host cron every 20 min (q0474 fallback). **q0472 deadline: before 10-23T03:30Z.**
    - **CB17 window code:** committed on `worktree-agent-ae42d4cfea66b78af` (cdab2fd5, f0d710ba); science-reviewer freeze

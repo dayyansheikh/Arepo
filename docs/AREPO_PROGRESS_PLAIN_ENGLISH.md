@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-20 18:53 UTC+1
+**Last updated:** 2026-10-20 19:00 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -18,10 +18,15 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
   Collection starts **22 Oct 01:00 UTC+1** and runs to 12 Nov; the single analysis comes after 13 Nov.
   That makes **4 registered live-test groups** (E009/E010, E011, E012-E014), 3 of them collecting now.
 - **Next live tests:**
-  - LT3 (E015-E019): the counting checks needed before the freeze are running on the server now; target start 24 Oct.
+  - LT3 (E015-E019): the first counting check is done. E015 (quote-only versus traded moves) passed. E017 (volume surges
+    without a price move) and E019 (ladder breadth) were dropped before registration: too few cases in 21 days to detect
+    the minimum effect. Dropped tests are not counted. E016/E018 wait for one more check (before 23 Oct); target start 24 Oct.
   - LT4 (new, from round 10 of ideas): the design is being drafted (5 candidates on data the server already collects).
 - **Round 10 of ideas** (11 new ideas, CH169 onward) is saved. They cover order arrivals versus cancellations, how old a
   price move is, and liquidity that is displayed but cannot actually be traded against.
+- **Batch 12, options part (CB12-O): closed, not testable.** Its readiness check needed dividend dates for an index fund
+  (SPY), and the free source has none. By the rule written in advance, it counts as 2 tests that found nothing. We did
+  not swap in another source after the check failed, because that would mean changing the rules to get a pass.
 - **Batch 17:** its test-window code is finished and tested. An independent freeze check is running (deadline 24 Oct, start 26 Oct).
 - **Second free server:** still "out of host capacity" at Oracle; it retries every 10 min.
 
