@@ -25,6 +25,7 @@ from tests.cb17_synth import (
 
 H = 3600.0
 D12 = ep("2026-10-12T00:00:00Z")
+REAL_P1 = dict(pre.P1_EXPECTED)
 SECRETS = ("WALLET-SECRET", "k-secret", "SECRET-MARK", "RESOLVED_SECRET")
 
 
@@ -106,7 +107,7 @@ def test_read_fills_refuses_holdout_paths_and_fills_at_or_after_the_cutoff(tmp_p
 # ---- q0400: pre-census A / E --------------------------------------------------------------------------------------------------------------------
 
 
-def a_world(tmp_path, *, side_flip=0, late_wide_capture=True, straddling_wide_capture=False, blank_side_first=False, zero_size_first=False):
+def a_world(tmp_path, *, side_flip=0, late_wide_capture=True, straddling_wide_capture=False, blank_side_first=False, zero_size_first=False, partial_blank=False):
     """Market 1 (6 x [open YES-buy, close YES-sell, open NO-buy]) and market 2 (4 open YES-buy) plus one sports fill; captures 00:00, 00:31:03 (pinned), 02:00, 04:00 (and a wide later one)."""
     root = tmp_path / "w"
     snap, tr = root / "snapshots", root / "live_trades"
@@ -141,12 +142,20 @@ def a_world(tmp_path, *, side_flip=0, late_wide_capture=True, straddling_wide_ca
     fills.append(fill_row(i, "c3", ts, -1, mkt="3", ev="E3", label=lab.SPORTS))
     if blank_side_first:
         prints[0]["side"] = ""
+    if partial_blank:  # one transaction whose prints carry BUY and a blank side
+        prints.append({**prints[0], "side": ""})
     if zero_size_first:
         prints[0]["size"] = 0
     write_day(tr, "20261012", prints)
     write_day(tr, "20261015", [print_(ep("2026-10-16T00:00:30Z"), "c1", 0.5, tx="txLATE")])  # after the cut-off: skipped and counted
     screen = write_screen(root, fills)
     return {"screen": screen, "tr": tr, "snap": snap}
+
+
+@pytest.fixture(autouse=True)
+def synthetic_world_reproduces_p1(monkeypatch):
+    """The synthetic A world stands in for probe P1's (23 fills ... 16 open, 6 close); tests of the mismatch path restore the real P1 counts."""
+    monkeypatch.setattr(pre, "P1_EXPECTED", {"fills": 23, "token_resolved": 23, "ambiguous_transaction": 0, "non_sports": 22, "non_sports_resolved": 22, "open": 16, "close": 6})
 
 
 def run_a(w):
@@ -197,7 +206,7 @@ def test_pre_census_a_without_a_monitor_day_or_capture_does_not_invent_counts(tm
     (root / "snapshots").mkdir(parents=True)
     screen = write_screen(root, [fill_row(1, "c1", D12 + 7200, -1)])
     res = cen.pre_census_A(screen, root / "live_trades", root / "snapshots")
-    assert res["fills"]["token_resolution"] == {"no_print": 1} and res["branch"] == "T" and res["side_signed_population"]["eligible_units"] == 0 and res["input_stats"]["monitor_days_missing"] == 4
+    assert res["fills"]["token_resolution"] == {"no_print": 1} and res["branch"] is None and res["branch_unrecorded_candidate"]["branch"] == "T" and res["side_signed_population"]["eligible_units"] == 0 and res["input_stats"]["monitor_days_missing"] == 4
 
 
 # ---- q0401: pre-census B -----------------------------------------------------------------------------------------------------------------------
@@ -391,10 +400,13 @@ def test_a_unit_with_a_missing_side_is_non_agreement_in_every_cell(tmp_path):
     assert sum(c["n"] - c["k"] for c in res["side_agreement"]["cells"]["class"].values()) == 1
 
 
-def test_p1_reproduction_flag_and_the_unsigned_print_reader(tmp_path):
+def test_p1_reproduction_flag_and_the_unsigned_print_reader(tmp_path, monkeypatch):
+    monkeypatch.setattr(pre, "P1_EXPECTED", dict(REAL_P1))
+    assert REAL_P1 == {"fills": 2931, "token_resolved": 2715, "ambiguous_transaction": 216, "non_sports": 1006, "non_sports_resolved": 971, "open": 676, "close": 295}
     assert pre.p1_reproduction(dict(pre.P1_EXPECTED))["matches"] is True and pre.p1_reproduction(dict(pre.P1_EXPECTED))["flag"] == "P1 REPRODUCED"
     off = pre.p1_reproduction({**pre.P1_EXPECTED, "open": 675})
     assert off["matches"] is False and off["differences"] == {"open": {"expected": 676, "observed": 675}} and "investigate" in off["flag"]
+    monkeypatch.setattr(pre, "P1_EXPECTED", {**REAL_P1, "fills": 23})  # a deliberate mismatch
     res = run_a(a_world(tmp_path, zero_size_first=True))
     # a zero-size print still resolves its fill (P1 used condition_id, ts, tx16, outcome_index only) but is not in the side-signed population
     assert res["fills"]["token_resolution"]["resolved"] == 23 and res["input_stats"]["monitor_prints_without_usable_price_or_size"] == 1
@@ -414,3 +426,19 @@ def test_b_clock_anomaly_units_leave_the_units_and_the_cut_points(tmp_path):
     base = cen.pre_census_B(*[b_world(tmp_path / "ok")[k] for k in ("sw", "snap")])
     an = cen.pre_census_B(*[b_world(tmp_path / "an", anomaly=True)[k] for k in ("sw", "snap")])
     assert an["counts"]["unit_clock_anomaly_or_no_stamp"] == 8 and base["cut_points"]["units"] == 21 and an["cut_points"]["units"] == 14
+
+
+def test_a_partly_missing_side_is_missing_not_signed(tmp_path):
+    res = run_a(a_world(tmp_path, partial_blank=True))
+    assert res["side_agreement"]["overall"] == {"n": 22, "k": 21} and res["fills"]["token_resolution"]["resolved_without_one_side"] == 1
+    assert res["side_signed_population"]["eligible_units"] == 21 and res["side_signed_population"]["excluded_by_reason"]["no_or_mixed_side"] == 1
+
+
+def test_a_p1_mismatch_nulls_every_branch_field(tmp_path, monkeypatch):
+    monkeypatch.setattr(pre, "P1_EXPECTED", dict(REAL_P1))
+    res = run_a(a_world(tmp_path))
+    assert res["p1_reproduction"]["matches"] is False and res["branch_recorded"] is False
+    assert res["branch"] is None and res["a_withdrawn_uncounted"] is None and res["strata"]["selected_population"] is None and res["strata"]["selected_level"] is None
+    cand = res["branch_unrecorded_candidate"]
+    assert "NOT_A_BRANCH" in cand and cand["branch"] == "T" and res["side_agreement"]["rule"]["unrecorded"] is True and "branch" not in res["side_agreement"]["rule"]
+    assert res["side_agreement"]["overall"] == {"n": 22, "k": 22}  # counts are kept

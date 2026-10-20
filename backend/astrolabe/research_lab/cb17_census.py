@@ -340,7 +340,8 @@ def pre_census_A(fills_dir: Path, trades_dir: Path, snap_dir: Path) -> dict:
             res["mixed_or_unknown_token"] += 1
             continue
         oi = next(iter(ois))
-        sides = {c for _, _, c in s if c in (pre.SIDE_BUY, pre.SIDE_SELL)}
+        all_sides = {c for _, _, c in s}
+        sides = all_sides if all_sides <= {pre.SIDE_BUY, pre.SIDE_SELL} else set()  # any blank / unknown side among a fill's prints = missing (section 2.3): non-agreement, not signed
         res["resolved"] += 1
         lab_by_i[i] = ("open" if token_open(oi, int(f["d"])) else "close", oi, next(iter(sides)) if len(sides) == 1 else "")
     ns = [i for i, f in enumerate(fills) if f["label"] != lab.SPORTS]
@@ -404,7 +405,7 @@ def pre_census_A(fills_dir: Path, trades_dir: Path, snap_dir: Path) -> dict:
         if len(ois) != 1:
             s_reasons["mixed_token"] += 1
             continue
-        sd = {x for x in sides if x in (pre.SIDE_BUY, pre.SIDE_SELL)}
+        sd = sides if sides <= {pre.SIDE_BUY, pre.SIDE_SELL} else set()  # a blank side among the transaction's prints = missing, not signed
         if len(sd) != 1:
             s_reasons["no_or_mixed_side"] += 1
             continue
@@ -458,7 +459,7 @@ def pre_census_A(fills_dir: Path, trades_dir: Path, snap_dir: Path) -> dict:
                               "open": label_counts["open"], "close": label_counts["close"]})
     sel_pop = "S" if branch["branch"] == pre.BRANCH_S else "T"
     rep_t, rep_s = pop_report("A", t_units), pop_report("A", s_units)
-    return {
+    out = {
         "version": VERSIONS["A"], "counts_only": True, "window": [c17.CENSUS_START, c17.CENSUS_CUTOFF],
         "input_stats": band_counts(stats), "fills": {"n": len(fills), "token_resolution": band_counts(res), "non_sports": len(ns), "non_sports_resolved": len(ns_res)},
         "labels": {"non_sports": band_counts(label_counts), "by_class": {f"{k[0]}|{k[1]}": v for k, v in sorted(by_class.items())},
@@ -475,6 +476,14 @@ def pre_census_A(fills_dir: Path, trades_dir: Path, snap_dir: Path) -> dict:
                         "E_T_first_day_proxy": first_day_se(t_units, created, ("path_x_block", "path")), "E_S_first_day_proxy": first_day_se(s_units, created, ("path_x_block", "path")),
                         "recipe": pre.SE_RECIPE, "proxy": pre.PROXIES["A"]},
     }
+    if not p1["matches"]:
+        # P1 mismatch: nothing in the result may read as a recorded branch. The computed rule survives only under an explicitly unrecorded key (to be investigated, never adjusted).
+        out["branch_unrecorded_candidate"] = {"NOT_A_BRANCH": "P1 mismatch: " + pre.P1_NEXT_ACTION, "branch": out["branch"], "a_withdrawn_uncounted": out["a_withdrawn_uncounted"],
+                                              "selected_population": out["strata"]["selected_population"], "selected_level": out["strata"]["selected_level"], "rule": branch}
+        out["branch"], out["a_withdrawn_uncounted"] = None, None
+        out["strata"]["selected_population"] = out["strata"]["selected_level"] = None
+        out["side_agreement"]["rule"] = {"unrecorded": True, "overall": branch.get("overall"), "cells": branch.get("cells")}
+    return out
 
 
 # =====================================================================================================================================================

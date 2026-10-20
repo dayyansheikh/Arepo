@@ -64,13 +64,22 @@ def test_rules_command_declares_only_part_pre(env, capsys, tmp_path):
     assert code == 0
 
 
-def test_pre_census_a_runs_write_once_and_logs_a_non_test_line(env, capsys):
+def as_p1(monkeypatch, env):
+    """Make the synthetic world 'reproduce P1' (23 fills, 23 resolved, 0 ambiguous, 22 non-sports, 22 resolved, 16 open, 6 close)."""
+    from astrolabe.research_lab import cb17_pre as pre  # noqa: PLC0415
+
+    monkeypatch.setattr(pre, "P1_EXPECTED", {"fills": 23, "token_resolved": 23, "ambiguous_transaction": 0, "non_sports": 22, "non_sports_resolved": 22, "open": 16, "close": 6})
+    env["rules"].unlink()
+    c17.write_rules(env["rules"])  # P1_EXPECTED is a hashed constant: the tmp rules file is re-sealed for the patched code
+
+
+def test_pre_census_a_runs_write_once_and_logs_a_non_test_line(env, capsys, monkeypatch):
+    as_p1(monkeypatch, env)
     w = a_world(env["tmp"])
     code, out = _run(["pre-census", "--family", "A", *args(env, w)], capsys)
-    assert code == 0 and out["status"] == "pre_census_A_complete" and out["branch"] == "T" and out["a_withdrawn_uncounted"] is True
-    assert out["p1_matches"] is False and out["branch_recorded"] is False  # the synthetic world is not probe P1's
+    assert code == 0 and out["status"] == "pre_census_A_complete" and out["branch"] == "T" and out["a_withdrawn_uncounted"] is True and out["branch_recorded"] is True
     doc = json.loads((env["root"] / "pre_census_A.json").read_text())
-    assert doc["rules_sha256"]["pre"] == c17.rules_part_file_doc("pre")["rules_sha256"] and doc["counts_only"] is True
+    assert doc["p1_reproduction"]["matches"] is True and doc["rules_sha256"]["pre"] == c17.rules_part_file_doc("pre")["rules_sha256"] and doc["counts_only"] is True
     c17.assert_clean_result(doc)
     txt = json.dumps(doc)
     assert "WALLET-SECRET" not in txt and "SECRET-MARK" not in txt and "k-secret" not in txt
@@ -80,7 +89,8 @@ def test_pre_census_a_runs_write_once_and_logs_a_non_test_line(env, capsys):
     assert code == 2 and "exists" in out["refused"]
 
 
-def test_the_same_inputs_give_the_same_result_hash(env, capsys):
+def test_the_same_inputs_give_the_same_result_hash(env, capsys, monkeypatch):
+    as_p1(monkeypatch, env)
     w = a_world(env["tmp"])
     c1, o1 = _run(["pre-census", "--family", "A", *args(env, w)], capsys)
     other = {**env, "root": env["tmp"] / "other" / "creative_batch17"}
@@ -159,3 +169,29 @@ def test_disk_guard_is_a_pending_exit_75(env, capsys):
     code, out = _run(["pre-census", "--family", "A", *args(env, w), "--data-dumps-cap-gb", "0.001"], capsys)
     assert code == 75, out
     assert "pending" in out["science"] and trial_lines(env) == [] and not (env["root"] / "pre_census_A.json").exists()
+
+
+def test_a_p1_mismatch_fails_the_job_and_records_no_branch(env, capsys, monkeypatch):
+    w = a_world(env["tmp"])
+    code, out = _run(["pre-census", "--family", "A", *args(env, w)], capsys)  # the synthetic world is not probe P1's
+    assert code == 2 and out["status"] == "pre_census_A_p1_mismatch" and "P1 mismatch" in out["refused"]
+    assert out["p1_matches"] is False and out["branch_recorded"] is False and out["branch"] is None and out["a_withdrawn_uncounted"] is None and out["selected_level"] is None and out["selected_population"] is None
+    first = env["root"] / "pre_census_A.json"
+    doc = json.loads(first.read_text())
+    assert doc["branch"] is None and doc["strata"]["selected_level"] is None and "branch_unrecorded_candidate" in doc
+    (line,) = trial_lines(env)
+    assert line["status"] == "pre_census_A_p1_mismatch" and line["branch"] is None and line["a_withdrawn_uncounted"] is None and line["selected_level"] is None and line["n_tests"] == 0
+    # a rerun: the same path is refused (write-once); a NEW path needs --supersedes, which keeps and hashes the earlier file
+    code, out = _run(["pre-census", "--family", "A", *args(env, w)], capsys)
+    assert code == 2 and "exists" in out["refused"]
+    v2 = env["root"] / "pre_census_A_v2.json"
+    code, out = _run(["pre-census", "--family", "A", *args(env, w), "--out", str(v2), "--supersedes", str(env["root"] / "missing.json")], capsys)
+    assert code == 2 and "must exist" in out["refused"] and not v2.exists()
+    code, out = _run(["pre-census", "--family", "A", *args(env, w), "--out", str(v2), "--supersedes", str(first)], capsys)
+    assert code == 2 and out["status"] == "pre_census_A_p1_mismatch"  # still not P1: failed again
+    as_p1(monkeypatch, env)
+    v3 = env["root"] / "pre_census_A_v3.json"
+    code, out = _run(["pre-census", "--family", "A", *args(env, w), "--out", str(v3), "--supersedes", str(v2)], capsys)
+    assert code == 0 and out["branch_recorded"] is True and out["branch"] == "T"
+    d3 = json.loads(v3.read_text())
+    assert d3["supersedes"]["path"] == str(v2) and len(d3["supersedes"]["sha256"]) == 64 and first.exists() and v2.exists()

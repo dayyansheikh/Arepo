@@ -46,7 +46,8 @@ AGREEMENT_BASE = ("the base of the agreement rule is every non-sports CB13-T SCR
 # probe P1 (section 0.3): q0400 must reproduce these counts on the worn files before the branch is recorded
 P1_EXPECTED = {"fills": 2931, "token_resolved": 2715, "ambiguous_transaction": 216, "non_sports": 1006, "non_sports_resolved": 971, "open": 676, "close": 295}
 P1_NEXT_ACTION = "a mismatch is investigated, never adjusted; the branch is not recorded until it matches or the difference is explained"
-SUPERSEDES = {"c186fdcdf0b48fc073f19d2912adf2c29aa7de5af58a1bb0f37cdf0dbda27f8d": "first part-pre seal (cadaaf19), replaced before any CB17 census ran, after the freeze check: A informativeness on both-label cells, "
+SUPERSEDES = {"31656d5d388bf1df34358dfa7eec8e197ee5c39ce84ebc97d558be27615f6e0f": "second part-pre seal (de5c553a), replaced before any CB17 census ran, after the re-check: a P1 mismatch now nulls the branch fields and fails the job (exit 2); a blank side among a fill's prints is missing; rerun rule and q0403 lag disclosure",
+              "c186fdcdf0b48fc073f19d2912adf2c29aa7de5af58a1bb0f37cdf0dbda27f8d": "first part-pre seal (cadaaf19), replaced before any CB17 census ran, after the freeze check: A informativeness on both-label cells, "
               "side-agreement base including unsigned fills, P1 reproduction flag, P1-faithful print reader, E later = 1-7 d, B clock-anomaly exclusion, path-key ways for S, disclosures"}
 
 # ---- item 3: strata ladders, informativeness, level selection (section 2.6; finding 2) ----------------------------------------------------------------
@@ -517,6 +518,10 @@ def declared() -> dict:
                             "s_pre_fill_gap": "the S pre-fill proxy uses the capture before the touch capture whatever its age (no gap limit), as CB13-T's prev_mid does; SEs only",
                             "first_day_bins": "first day = age < 24 h; later = 1-7 d; > 7 d, negative and unknown ages are in neither group",
                             "b_clock_anomaly": "B units with a book age < -5 s or no stamp are excluded from the units, the cut points and B2 and counted (section 2.2)"},
+            "rerun_rule": ("after a P1 mismatch the result is written with branch fields null and the job exits 2 (failed, investigated, never retried blindly); once the difference is explained a rerun writes "
+                           "to a NEW declared output path (e.g. pre_census_A_v2.json) with --supersedes <earlier file>; the earlier file is kept and its sha256 recorded (CB13 smoke_R_v2 precedent)"),
+            "q0403_lag_population": "the receipt-lag population includes prints with no usable price or size (the reader keeps them since the P1 fix); lag needs only ts and recv_ts, so this adds counts and no bias",
+            "partly_missing_side": "a fill (or transaction) with any blank or unknown side among its prints is 'missing': non-agreement, and not signed in the S population (section 2.3, the conservative reading)",
             "supersedes": SUPERSEDES,
             "item_3_strata": {"ladders": {k: v["levels"] for k, v in LADDERS.items()}, "informativeness": INFORMATIVENESS, "c_abs_dm_rule": C_ABS_DM_RULE, "select_share_min": SELECT_SHARE_MIN, "window_share_min": WINDOW_SHARE_MIN},
             "item_4_cut_points": {"b_activity": B_ACTIVITY_RECIPE, "b_imbalance": B_IMBALANCE_RECIPE, "c_trailing": C_TRAILING_RECIPE, "min_prior": TRAILING_MIN_PRIOR},

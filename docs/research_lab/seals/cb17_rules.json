@@ -587,6 +587,7 @@
       0.05
      ],
      "SUPERSEDES": {
+      "31656d5d388bf1df34358dfa7eec8e197ee5c39ce84ebc97d558be27615f6e0f": "second part-pre seal (de5c553a), replaced before any CB17 census ran, after the re-check: a P1 mismatch now nulls the branch fields and fails the job (exit 2); a blank side among a fill's prints is missing; rerun rule and q0403 lag disclosure",
       "c186fdcdf0b48fc073f19d2912adf2c29aa7de5af58a1bb0f37cdf0dbda27f8d": "first part-pre seal (cadaaf19), replaced before any CB17 census ran, after the freeze check: A informativeness on both-label cells, side-agreement base including unsigned fills, P1 reproduction flag, P1-faithful print reader, E later = 1-7 d, B clock-anomaly exclusion, path-key ways for S, disclosures"
      },
      "TERCILE_QUANTILES": [
@@ -783,7 +784,11 @@
       "q0403": "cost and lag map"
      },
      "no_outcome": "no mark, outcome, resolution, wallet or later capture is read; the only post-decision field is static created_at",
+     "partly_missing_side": "a fill (or transaction) with any blank or unknown side among its prints is 'missing': non-agreement, and not signed in the S population (section 2.3, the conservative reading)",
+     "q0403_lag_population": "the receipt-lag population includes prints with no usable price or size (the reader keeps them since the P1 fix); lag needs only ts and recv_ts, so this adds counts and no bias",
+     "rerun_rule": "after a P1 mismatch the result is written with branch fields null and the job exits 2 (failed, investigated, never retried blindly); once the difference is explained a rerun writes to a NEW declared output path (e.g. pre_census_A_v2.json) with --supersedes <earlier file>; the earlier file is kept and its sha256 recorded (CB13 smoke_R_v2 precedent)",
      "supersedes": {
+      "31656d5d388bf1df34358dfa7eec8e197ee5c39ce84ebc97d558be27615f6e0f": "second part-pre seal (de5c553a), replaced before any CB17 census ran, after the re-check: a P1 mismatch now nulls the branch fields and fails the job (exit 2); a blank side among a fill's prints is missing; rerun rule and q0403 lag disclosure",
       "c186fdcdf0b48fc073f19d2912adf2c29aa7de5af58a1bb0f37cdf0dbda27f8d": "first part-pre seal (cadaaf19), replaced before any CB17 census ran, after the freeze check: A informativeness on both-label cells, side-agreement base including unsigned fills, P1 reproduction flag, P1-faithful print reader, E later = 1-7 d, B clock-anomaly exclusion, path-key ways for S, disclosures"
      }
     },
@@ -995,7 +1000,7 @@
     "cb17_census.load_sweep": "5ea807190fb12e6db2e50858b627d4646bff83cdd281d9b1d1da9aca5db76242",
     "cb17_census.pair_passes": "715a6267f44bcc703c965f03a01044c81a6a3bc38953ff08eb082df88fe7f3dc",
     "cb17_census.pop_report": "b1790c727b68f14b405a44b3eea30a32d73d89b59d2d2a49108e050f0f14590f",
-    "cb17_census.pre_census_A": "5214a38f98737cabb03acfb04f4062c23183cf44e829d238a8331d093826feb7",
+    "cb17_census.pre_census_A": "8beeae3d9a74e545179d3e306b139693ba2bcb650b78492010bb311db309b688",
     "cb17_census.pre_census_B": "06767a710d5eb9d600814df9007baa55704ecebd75989293f792497e8be0770f",
     "cb17_census.pre_census_C": "a18f400d129a833b06aeaccac8942c21198e5994fe03e3c39931ed767c02623d",
     "cb17_census.read_created_at": "f66edf35886baf26cf651d1d24f8653790df73c0b9b1dfab8c197aecf13893e1",
@@ -1033,7 +1038,7 @@
     "cb17_pre.agreement_rule": "4c0687a2f7b92b24cca13cc03559be2415ea1f19f2d95d695fc0c2661d2552bf",
     "cb17_pre.branch_decision": "22161a9065c82c233590555cd55671fa51de9d728e8d34ae00f6715a59660ecb",
     "cb17_pre.c_class": "b825731d6842b4b4bc61d062143e833b67f3fcfe7a97ea48724ecbab83df5c9b",
-    "cb17_pre.declared": "8e64d363217a4d8185349fd0a737c77463c8582163bc42dcc28fb75b4c5cc439",
+    "cb17_pre.declared": "c42df6d9b89fad6ff994597161b21914347283a94474f1839e77b842eb57f0e6",
     "cb17_pre.fe_cluster_se": "a2c90a6ad95b0be4fc0a057a8d6b8e32121889b3c09f9f272b601871ba1f3682",
     "cb17_pre.informativeness": "9f09aa1e0277483648e8156f4918e562678ef538ed43db8d22ddf127b1083267",
     "cb17_pre.informativeness_binary": "12d228680d6c830c5f750cf8df6efe247927feeee2b993c0d0c99c0198c71105",
@@ -1057,7 +1062,7 @@
     "cb17_pre.walk_edge": "1f4acf01a01a05155e2aaad76ea45f49ba00858b1b762ab19cb69814ed7708b2",
     "cb17_pre.wilson_lower": "ac3bcb688497e812f6337d150701cf3e6d3fc81c54f877fccd1fcc0e1eb5016d"
    },
-   "funcs_sha256": "50971a51cf3fa0d1c985e65c7e339811ca9e095be01fad0baecf9e7e4c02c6d3",
+   "funcs_sha256": "6ccf85fd23501598b5d89c8be7470cd28eb81fbf7de0f624075380e666fad5fa",
    "modules": [
     "cb17_common",
     "cb17_pre",
@@ -1065,7 +1070,7 @@
    ],
    "part": "pre",
    "part_declared": true,
-   "rules_sha256": "31656d5d388bf1df34358dfa7eec8e197ee5c39ce84ebc97d558be27615f6e0f",
+   "rules_sha256": "ddc0249b23eedf8cfe50b2b60e94378264804ca4791c82c01cf3993df54df6a7",
    "rules_version": "cb17-rules-v1",
    "shared_helper_sources_sha256": {
     "cb10_common.require_disk": "1e0e4e4682fa9a16fa71df384f5163983fa5cfa675b15a9b7f009dbbf3d81370",

@@ -167,7 +167,8 @@ def cmd_rules(a) -> int:
 def _summary(family: str, res: dict) -> dict:
     """The small, clean payload of the trials line (counts and decisions only)."""
     if family == "A":
-        return {"p1_matches": res["p1_reproduction"]["matches"], "branch_recorded": res["branch_recorded"], "branch": res["branch"], "a_withdrawn_uncounted": res["a_withdrawn_uncounted"], "selected_level": res["strata"]["selected_level"], "selected_population": res["strata"]["selected_population"],
+        return {"p1_matches": res["p1_reproduction"]["matches"], "branch_recorded": res["branch_recorded"], "branch": res["branch"], "a_withdrawn_uncounted": res["a_withdrawn_uncounted"],
+                "selected_level": res["strata"]["selected_level"], "selected_population": res["strata"]["selected_population"],
                 "agreement_n": res["side_agreement"]["overall"].get("n"), "both_label_cells": res["both_label_cells"]["with_both"]}
     if family == "B":
         return {"selected_level_B1": (res["strata"]["B1"] or {}).get("selected_level"), "selected_level_B2": (res["strata"]["B2"] or {}).get("selected_level"),
@@ -180,9 +181,25 @@ def _summary(family: str, res: dict) -> dict:
 def _finish(a, family: str, label: str, sha: str, out: Path, res: dict) -> tuple[int, dict]:
     c17 = _c17()
     doc = {**res, "rules_sha256": {"pre": sha}}
+    sup = getattr(a, "supersedes", None)
+    if sup:
+        sp = Path(sup)
+        if not sp.exists() or sp.resolve() == out.resolve():
+            raise c17.Refused(f"--supersedes {sup}: the earlier result must exist and differ from the new output path (it is kept, never overwritten)")
+        doc["supersedes"] = {"path": str(sp), "sha256": c17.sha256_file(sp)}
+    mismatch = family == "A" and not res["p1_reproduction"]["matches"]
     file_sha = c17.write_result_once(out, doc)
-    c17.log_descriptive(label, {"result_sha256": file_sha, "path": str(out), **_summary(family, res)}, trials_path=_tp(a), role=c17.EVIDENCE_ROLE_HIST)
-    return 0, {"status": f"{label}_complete", "written": str(out), "sha256": file_sha, **_summary(family, res)}
+    status = f"{label}_p1_mismatch" if mismatch else f"{label}_complete"
+    c17.log_descriptive(label, {"status": status, "result_sha256": file_sha, "path": str(out), **_summary(family, res)}, trials_path=_tp(a), role=c17.EVIDENCE_ROLE_HIST)
+    # exit 2 on a P1 mismatch: failed (not done), investigated and never retried blindly; a rerun writes a NEW declared path with --supersedes (the earlier file is kept)
+    return (REFUSED if mismatch else 0), {"status": status, "written": str(out), "sha256": file_sha, **_summary(family, res),
+                                          **({"refused": "P1 mismatch: " + _pre_next_action()} if mismatch else {})}
+
+
+def _pre_next_action() -> str:
+    from astrolabe.research_lab import cb17_pre as pre  # noqa: PLC0415
+
+    return pre.P1_NEXT_ACTION
 
 
 @_guarded
@@ -232,6 +249,7 @@ def build_parser() -> argparse.ArgumentParser:
         q.add_argument("--standalone", action="store_true", help="no collector yield (tests, off-host)")
         q.add_argument("--allow-uncommitted-rules", action="store_true", help="tests only")
         q.add_argument("--trials-path", default=None)
+        q.add_argument("--supersedes", default=None, help="rerun after an investigated P1 mismatch: --out must be a NEW path; the earlier result file is kept and hashed into this one")
 
     q = sub.add_parser("rules")
     q.add_argument("--path", default=None)
