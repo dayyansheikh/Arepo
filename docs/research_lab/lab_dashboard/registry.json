@@ -133,6 +133,78 @@
    ]
   },
   {
+   "id": "E012",
+   "title": "1-day change x liquidity (live test, draft)",
+   "plain": "A live check of a replicated pattern: yesterday's price move carries forward more in liquid markets. Drafted from data the server already collects; it starts only after review.",
+   "batch": "LT2",
+   "family": "microstructure",
+   "stage": "designed",
+   "status": "waiting",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Live from 22 Oct 2026 after the challenger review and registration; single analysis after 13 Nov 2026",
+   "next_date": "2026-10-22",
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/LIVE_TESTS_2.md § 2 (E012) (DRAFT pre-registration, not registered)",
+    "next": "docs/research_lab/LIVE_TESTS_2.md § 1.1 and queue/drafts/q0460_lt2_live_collect.json"
+   },
+   "stage_results": {
+    "designed": "pending"
+   },
+   "reached": [
+    "designed"
+   ]
+  },
+  {
+   "id": "E013",
+   "title": "Order flow x volatility and spread (live test, draft)",
+   "plain": "A live check of two replicated patterns: recent buying or selling predicts the next 6 hours more in volatile markets and where the spread is wide. Drafted; starts after review.",
+   "batch": "LT2",
+   "family": "order_flow",
+   "stage": "designed",
+   "status": "waiting",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Live from 22 Oct 2026 after the challenger review and registration; single analysis after 13 Nov 2026",
+   "next_date": "2026-10-22",
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/LIVE_TESTS_2.md § 3 (E013) (DRAFT pre-registration, not registered)",
+    "next": "docs/research_lab/LIVE_TESTS_2.md § 1.1 and queue/drafts/q0460_lt2_live_collect.json"
+   },
+   "stage_results": {
+    "designed": "pending"
+   },
+   "reached": [
+    "designed"
+   ]
+  },
+  {
+   "id": "E014",
+   "title": "Near-close forecasting gain (live test, draft)",
+   "plain": "A light live version of the near-close result: does a frozen trade-flow forecast help more in a market's last day than a month out, using the end date known at the time? Drafted; starts after review.",
+   "batch": "LT2",
+   "family": "ml",
+   "stage": "designed",
+   "status": "waiting",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Live from 22 Oct 2026 after the challenger review and registration; single analysis after 13 Nov 2026",
+   "next_date": "2026-10-22",
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/LIVE_TESTS_2.md § 4 (E014) (DRAFT pre-registration, not registered)",
+    "next": "docs/research_lab/LIVE_TESTS_2.md § 1.1 and queue/drafts/q0460_lt2_live_collect.json"
+   },
+   "stage_results": {
+    "designed": "pending"
+   },
+   "reached": [
+    "designed"
+   ]
+  },
+  {
    "id": "E007",
    "title": "Order flow continuation",
    "plain": "When trades in a market lean one way for an hour, the price keeps drifting that way. It was statistically supported in one ~22-hour prospective test (called flow-quote continuation, not proof of informed trading), and it is tiny.",

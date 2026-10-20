@@ -1,0 +1,39 @@
+{
+ "id": "q0460_lt2_live_collect",
+ "title": "LT2 live collector for E012-E014 (DRAFT): write-once series of two-sided quotes and a per-capture status file (closed / inactive / one-sided) per complete capture, frozen E012 origin lines (6-hourly grid captures) and E013/E014 origin lines (every active trade sample), then target quotes once the 2 h / 6 h / 24 h target captures exist; no network request; exit 75 when nothing is new",
+ "family": "live_tests_2",
+ "priority": 30,
+ "expected_value": "prospective lines for E012 (1-day change x liquidity), E013 (6 h flow x volatility / spread) and E014 (near-end gain of the frozen E007 flow model); single analysis after 2026-11-13T12:00Z (q0461)",
+ "data": [
+  "research_lab/snapshots (complete captures, read-only)",
+  "research_lab/trade_samples (active frame, read-only)"
+ ],
+ "resources": {
+  "mem_mb": 480,
+  "cpu": 1,
+  "lane": "net",
+  "network": "none"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_live_tests2.py",
+  "run",
+  "--max-items",
+  "4",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 900,
+ "max_retries": 3,
+ "repeat": {
+  "max_runs": 3000,
+  "until_log_regex": "LIVE_TESTS2_WINDOW_CLOSED"
+ },
+ "outputs": [
+  "data-dumps/research_lab/live_tests2/{series,status,e012,flow}/",
+  "data-dumps/research_lab/live_tests2/passes.jsonl"
+ ],
+ "next_action": "runs until 2026-11-13T06:00Z (END + 30 h), then q0461",
+ "notes": "DRAFT, not in queue/jobs. Promote only after the challenger review of docs/research_lab/LIVE_TESTS_2.md, the fixes, the SPEC_SHA256 pin in live_tests2.py and the ledger registration commit (all before 2026-10-22T00:00Z; otherwise REGISTERED_UTC moves per LIVE_TESTS_2.md section 1). Measured on the host 2026-10-19 (dry run in /tmp, deleted): idle run 1.5 s / 117 MB RSS (exit 75: the queue waits 30 min, attempt not counted); one capture + one sample 12.6 s / 458 MB; a 4-item run 35 s / 471 MB RSS under a 960 MB address-space cap (= 2 x mem_mb); mem_mb 480 keeps the job outside the 02:45-05:30 start blackout, which would otherwise make the 02:31 sample's freeze late every day. Each productive run writes at most 4 files (--max-items) and exits 0 (re-queued at once). Disk: about 0.84 MB per series file and 0.95 MB per E012 frozen file, about 0.35 GB over the window; the module stops writing at 1.5 GB (live_tests2 dir). 48 consecutive idle runs (a collector outage of about a day) mark the job failed: revive with `queue_worker.py retry q0460_lt2_live_collect` (missing captures stay missing; the window is never extended). Challenger R1 (2026-10-20): status/ files (attrition by resolution), x_skip6 (E012 6 h skip slot), trunc1h and vol24_i in the flow lines, and code_sha in every frozen line; promote only after the census re-run fills flow.vol24_cap and the code_sha256 map in the spec.",
+ "not_before": "2026-10-21T00:00:00Z"
+}
