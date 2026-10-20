@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-20T01:31:00Z",
+ "updated": "2026-10-20T01:58:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1200,6 +1200,29 @@
    "candidate": false,
    "sources": {
     "verdict": "docs/research_lab/CREATIVE_BATCH_17.md (draft, commit a00c4ef)"
+   },
+   "stage_results": {
+    "designed": "pending"
+   },
+   "reached": [
+    "designed"
+   ]
+  },
+  {
+   "id": "LT2",
+   "title": "Live tests E012-E014 (planned)",
+   "plain": "Four planned live tests of ideas that held up on two historical datasets: whether 1-day price changes carry on more in liquid markets, whether order flow carries on more in volatile or wide-spread markets, and whether the order-flow model does better just before a market's end date. The independent review asked for fixes before registration.",
+   "batch": "LT2",
+   "family": "mixed",
+   "stage": "designed",
+   "status": "running",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Review fixes, a short re-check, then registration (planned start 22 Oct)",
+   "next_date": "2026-10-22",
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT2 (E012-E014 drafts) challenger round 1, 2026-10-20"
    },
    "stage_results": {
     "designed": "pending"
