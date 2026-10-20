@@ -51,6 +51,26 @@ with `BASE/<path>` byte for byte. `--list` shows the selection without downloadi
 - A file that is still being appended (for example `cross_venue_live/predictions.jsonl`) is skipped until it has been idle for the
   cut-off age; see `RETENTION.md`, "Open risks".
 
+## Prospective streams (2026-10-19)
+
+`data-dumps/research_lab/stream_<name>/YYYYMMDD.jsonl`, written by `backend/scripts/run_stream.py` (code:
+`backend/astrolabe/research_lab/streams/`; design, sizes and deploy steps: `../NEW_STREAMS_2026-10-19.md`). One file per UTC day,
+append-only, change-only, every line canonical JSON. Retention class: **archive nightly (day files are idle after their day), keep 14 days
+on the host (proposed `deferred_rules`, not active), never rewrite**. Catalogue labels: `STREAM-PREDICTIT`, `STREAM-SMARKETS`,
+`STREAM-ESPN-ODDS`, `STREAM-GAMMA-RULES` (`data_catalogue.DIR_EXPERIMENTS`).
+
+| line `kind` | fields | meaning |
+|---|---|---|
+| `row` | `slot`, `key`, `reason` (`new` / `changed` / `checkpoint`), `sha` (sha256 of canonical `data`), `data`, `src_ts`? | value of one key; `src_ts` is the source's own clock, never hashed |
+| `hash` | `slot`, `key`, `sha` | `gamma_rules` daily checkpoint: unchanged, equal to the last `row` with that `sha` |
+| `gone` | `slot`, `key` | absent from a complete view of its scope (`scopes` in the poll line) |
+| `poll` | `schema`, `stream`, `slot`, `ok`, `started_utc`, `finished_utc` (receipt clock, UTC), `requests`, `fetches` (`status`, `sent_utc`, `recv_utc`, `bytes`, `sha256` of each response body), `n_*`, `new_file`, `state_reset`, `scopes`, `guard`, `meta` | COMMIT line written after its rows in one write + fsync; `ok: false` + `error` = a gap (missing stays missing). Rows without a following `ok` poll line of their slot are torn and ignored |
+
+The value of a key at time `t` is its last `row` at or before `t` in that day's file (each file starts with a full view of the keys seen
+that day; keys unchanged since are not repeated). Keys: `predictit` `m:<market>`, `c:<contract>`; `smarkets` `ev:`, `mk:`, `ct:`
+(catalogue, hourly) and `q:<contract>` (top 3 levels per side, last trade); `espn_odds` `g:<league>:<event>`; `gamma_rules`
+`m:<market>` (rule fields), `e:<event>` (event rule fields).
+
 ## Round-trip test (2026-10-15, on the collection host)
 
 Restore of a sample from `data-20261015-dsheikh` with `restore_from_archive.py` into a scratch directory, compared with the live

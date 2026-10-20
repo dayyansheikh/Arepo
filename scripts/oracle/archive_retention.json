@@ -37,6 +37,26 @@
       "keep": [
         "*/manifest.json"
       ]
+    },
+    {
+      "prefix": "data-dumps/research_lab/stream_predictit/",
+      "older_than_days": 14,
+      "why": "PROPOSED (NEW_STREAMS_2026-10-19.md): day files are complete once the UTC day ends; keep 14 days on the host for quick reads, older files only in verified releases. state.json/du_state.json/stream.lock are never archived and never deleted. Activate by moving to rules after the first verified releases contain these dirs."
+    },
+    {
+      "prefix": "data-dumps/research_lab/stream_smarkets/",
+      "older_than_days": 14,
+      "why": "PROPOSED (NEW_STREAMS_2026-10-19.md): day files are complete once the UTC day ends; keep 14 days on the host for quick reads, older files only in verified releases. state.json/du_state.json/stream.lock are never archived and never deleted. Activate by moving to rules after the first verified releases contain these dirs."
+    },
+    {
+      "prefix": "data-dumps/research_lab/stream_espn_odds/",
+      "older_than_days": 14,
+      "why": "PROPOSED (NEW_STREAMS_2026-10-19.md): day files are complete once the UTC day ends; keep 14 days on the host for quick reads, older files only in verified releases. state.json/du_state.json/stream.lock are never archived and never deleted. Activate by moving to rules after the first verified releases contain these dirs."
+    },
+    {
+      "prefix": "data-dumps/research_lab/stream_gamma_rules/",
+      "older_than_days": 14,
+      "why": "PROPOSED (NEW_STREAMS_2026-10-19.md): day files are complete once the UTC day ends; keep 14 days on the host for quick reads, older files only in verified releases. state.json/du_state.json/stream.lock are never archived and never deleted. Activate by moving to rules after the first verified releases contain these dirs."
     }
   ]
 }
