@@ -241,7 +241,10 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
      check of part pre (+ decide the live_trades 3 -> 8 GiB cap before S_8 = 10-26) -> promote q0400-q0403.
    - **Freezes:** CB12-O after q0260's iv_convention (O 4e1dd759). **Promotions:** CB12-E q0245 after q0244, q0266
      after q0245; CB16 q0380 after q0340; q0383 alone after q0380; CB15-P q0347 after q0340, then q0349/q0350.
-   - **Live tests:** E012-E014 drafts live on `feat/live-tests-2` (interactive); do not duplicate.
+   - **Live tests (deadline 10-22T00:00Z):** LT2 E012-E014 challenger R1 = REVISE (`research_lab/reviews/LT2_CHALLENGER_R1_2026-10-20.md`).
+     Fixes on `feat/live-tests-2-r1` (`../astrolabe-live-tests-r1`; carries the stalled feat/live-tests-2 edits as cdafeef8;
+     the original worktree is untouched — an interactive session should continue from -r1, not redo). Next: re-check ->
+     pin SPEC/code sha -> merge into this branch -> ledger registration -> promote q0460 -> deploy.
 1. **CB8-H:** q0162/q0163 wait on spec `not_before` (10-21T06Z / 10-22T12Z). **CB8-B:** q0161/q0164 after T_seal; before
    promoting q0164 run the two `derive-exclusion-ids` commands in its draft notes on the host and fill both sha256 tokens.
 2. **CB9:** data jobs q0181+ only after T_seal 2026-10-22T00Z; q0182 needs the pinned q0164 hash. **CB10:** q0201 needs

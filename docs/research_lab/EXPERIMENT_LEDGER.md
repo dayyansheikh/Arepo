@@ -2239,3 +2239,18 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   q0347). The cpu lane is idle until q0260 (not_before 14:05Z) and the CB17 pre-censuses q0400-q0403 (code being
   finished by an implementer from the untracked drafts of 10-19 22:31Z; science-reviewer freeze check of part `pre`
   before promotion).
+
+## LT2 (E012-E014 drafts) challenger round 1, 2026-10-20 ~01:50Z (autopilot; design only, not counted)
+- The interactive `feat/live-tests-2` stream stopped at about 2026-10-19 23:00 UTC+1 with the draft at ef16f9b1 plus
+  uncommitted edits, before its challenger review. Registration must be committed before `REGISTERED_UTC`
+  2026-10-22T00:00Z or the window slides (LIVE_TESTS_2.md §1.1). The autopilot ran the review read-only on that state.
+- **Verdict REVISE for all four** (E012, E013-F4, E013-F5, E014): `docs/research_lab/reviews/LT2_CHALLENGER_R1_2026-10-20.md`.
+  HIGH: the cyclic-shift timing gate is not a valid null (neighbour flow overlaps the window/target; 2-3-row markets
+  give too few distinct shuffles). HIGH/MED: E012 is predicted by bid/ask bounce and E006 H1 (1 h version, "consistent
+  with bounce") is not cited. MED: resolution attrition is unmeasurable; 6 h coverage depends on post-origin trades
+  (selection on the future); day-level inference optimistic (21 clusters); code/spec mismatches incl. 8 vs 4 counted
+  tests and unpinned code. LOW: F4 likely underpowered; E014 gain decomposition; `tight_i` mismatch.
+- **Response:** new worktree `../astrolabe-live-tests-r1` on branch `feat/live-tests-2-r1` = feat/live-tests-2 + commit
+  cdafeef8 carrying the uncommitted edits unchanged (the original worktree is untouched). A designer-implementer is
+  applying the fixes there; then a short reviewer re-check, the SPEC/code pins, the registration ledger entry and the
+  promotion of q0460 (all before 10-22T00:00Z).
