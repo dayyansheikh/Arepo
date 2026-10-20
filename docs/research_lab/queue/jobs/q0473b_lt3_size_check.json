@@ -18,12 +18,12 @@
   "scripts/run_live_tests3.py",
   "size-check",
   "--out",
-  "../data-dumps/research_lab/live_tests3_census/size_check.json"
+  "../data-dumps/research_lab/live_tests3_census/size_check_fl.json"
  ],
  "timeout_s": 28800,
  "max_retries": 1,
  "outputs": [
-  "data-dumps/research_lab/live_tests3_census/size_check.json (with code_sha256 of both modules)"
+  "data-dumps/research_lab/live_tests3_census/size_check_fl.json"
  ],
  "next_action": "record the rates in 13.5; a failing scenario blocks the pin (a gate whose null size is above 5% is not used)",
  "notes": "PROMOTED 2026-10-20 ~18:50Z after the Freedman-Lane merge (reviews/LT3_PERM_GATE_CHECK_2026-10-20.md); priority 20 so the short census/screen jobs on the cpu lane go first. Re-runs the size check on the Freedman-Lane permutation gate code (LIVE_TESTS_3.md 13.10; mechanical fix, no threshold change), with the added scenarios perm_corr_control and donor_corr_control and 200 draws (spec size_check.draws). >= 2,000 worlds as before. Supersedes q0473, whose run on the old code is information only. Output hashes must equal the code to be pinned. A failing scenario blocks the pin. Counts 0."
