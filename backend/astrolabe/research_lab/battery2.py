@@ -296,6 +296,21 @@ KIND_RULES: dict[str, tuple[str, str]] = {
         "CB16 descriptive lines (smoke, exclusion keys, the grain census, the K census, gates, strata, sports arms, shape descriptor, "
         "U validity sample, exclusion tables, decomposition, the H withdrawal record); no inference, not a test.",
     ),
+    "cb17_test": (
+        EXCLUDE,
+        "CB17 Stage-1 per-test lines (B1, B2, C1; A1 only under branch S, withdrawn under branch T); the tests are the n_tests of the "
+        "'creative_batch_17:B|C' ml_explain count lines, counted there. Placebo lines count 0.",
+    ),
+    "cb17_replication": (
+        EXCLUDE,
+        "CB17 Stage-2 per-test lines (B1-rep, B1-econ, B2-rep, B2-econ, C1-rep, C1-econ); counted by the n_tests of the "
+        "'creative_batch_17:<B|C>:rep' ml_explain lines. Placebo lines count 0.",
+    ),
+    "cb17_descriptive": (
+        EXCLUDE,
+        "CB17 descriptive lines (pre-censuses q0400-q0403, the branch decision and the A withdrawal, smoke, exclusion keys, censuses, gates, "
+        "strata, sports arms, the E census and re-entry verdict, the CH149 / CH155 maps, taker lines); no inference, not a test.",
+    ),
     "history_cross_venue": (
         ONE,
         "each line is one analysis x subset/revision result with its own p / BY entry (82 lines); "
