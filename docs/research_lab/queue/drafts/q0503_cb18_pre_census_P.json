@@ -1,0 +1,49 @@
+{
+ "id": "q0503_cb18_pre_census_P",
+ "title": "CB18 pre-census P (CH172 program vs human; DRAFT): counts only on the 23 sealed samples of 2026-10-16/17 and captures 10-15T12:31Z..10-17T22:31Z: parallel quote-only re-centerings at k in pass k+1's sample, coverage of (t_k, t_k+1], fade/follow/none/balanced, side unusable, DE, series share, permutable shares (GP1-GP6), proxy SE on s*(mid_{k-2}-mid_{k-4}) (SE only)",
+ "family": "creative_batch_18",
+ "priority": 28,
+ "expected_value": "CB18-P gates and route (LT5 member or dropped, uncounted)",
+ "data": [
+  "data-dumps/research_lab/cb18_census/restore/data-dumps/research_lab (q0500/q0501; read-only)"
+ ],
+ "resources": {
+  "mem_mb": 380,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0500_cb18_census_restore_captures",
+  "q0501_cb18_census_restore_samples"
+ ],
+ "argv": [
+  "scripts/run_cb18.py",
+  "census-p",
+  "--rules",
+  "../docs/research_lab/seals/cb18_rules.json",
+  "--part",
+  "pre",
+  "--seal",
+  "../docs/research_lab/seals/cb18_census_inputs.json",
+  "--snapshot-root",
+  "../data-dumps/research_lab/cb18_census/restore/data-dumps/research_lab/snapshots",
+  "--sweep-root",
+  "../data-dumps/research_lab/cb18_census/restore/data-dumps/research_lab/book_sweeps",
+  "--sample-root",
+  "../data-dumps/research_lab/cb18_census/restore/data-dumps/research_lab/trade_samples",
+  "--out",
+  "../data-dumps/research_lab/cb18_census/P.json",
+  "--disk-cap-gb",
+  "20",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 5400,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/cb18_census/P.json (counts only; write-once)"
+ ],
+ "next_action": "add P.json's sha256 to seals/; routing record; if routed, hand the values to LIVE_TESTS_5.md",
+ "notes": "DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md, design not yet reviewed). scripts/run_cb18.py DOES NOT EXIST YET (code needed, CREATIVE_BATCH_18.md section 6). Counts 0 (kind cb18_descriptive). Refuses unless part pre is committed and every pinned input is present and matches (L4); refuses any file or row after its cut-off. Reads only receipt times of capture k+1 (no price at k+1 or later)."
+}

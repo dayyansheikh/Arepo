@@ -1,0 +1,48 @@
+{
+ "id": "q0502_cb18_pre_census_S",
+ "title": "CB18 pre-census S (CH177 silent edits; DRAFT): counts only on complete captures of UTC 2026-10-15/16 (k-1 from 10-14T22:31Z) and sweep 1 of each pass: numerically unchanged and book-untouched intervals, silent vs quiet, updated_at change rates (GS1/GS2), unusable updated_at (GS3), burst captures, silent per day after burst exclusion (GS4), permutable and informativeness shares by ladder level (GS5), DE inputs, quiet:silent ratio, proxy SE on |mid_k - mid_{k-12}| (SE only)",
+ "family": "creative_batch_18",
+ "priority": 28,
+ "expected_value": "CB18-S gates GS1-GS5 and routing RS-0..RS-3; strata level, thinning rate, dormancy cut points for part S",
+ "data": [
+  "data-dumps/research_lab/cb18_census/restore/data-dumps/research_lab (q0500/q0501; read-only)"
+ ],
+ "resources": {
+  "mem_mb": 380,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0500_cb18_census_restore_captures"
+ ],
+ "argv": [
+  "scripts/run_cb18.py",
+  "census-s",
+  "--rules",
+  "../docs/research_lab/seals/cb18_rules.json",
+  "--part",
+  "pre",
+  "--seal",
+  "../docs/research_lab/seals/cb18_census_inputs.json",
+  "--snapshot-root",
+  "../data-dumps/research_lab/cb18_census/restore/data-dumps/research_lab/snapshots",
+  "--sweep-root",
+  "../data-dumps/research_lab/cb18_census/restore/data-dumps/research_lab/book_sweeps",
+  "--sample-root",
+  "../data-dumps/research_lab/cb18_census/restore/data-dumps/research_lab/trade_samples",
+  "--out",
+  "../data-dumps/research_lab/cb18_census/S.json",
+  "--disk-cap-gb",
+  "20",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 5400,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/cb18_census/S.json (counts only; write-once)"
+ ],
+ "next_action": "add S.json's sha256 to seals/, then the routing record (seals/cb18_routing.json) by section 3.1's rules only",
+ "notes": "DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md, design not yet reviewed). scripts/run_cb18.py DOES NOT EXIST YET (code needed, CREATIVE_BATCH_18.md section 6). Counts 0 (kind cb18_descriptive). Refuses unless part pre is committed and every pinned input is present and matches (L4); refuses any file or row after its cut-off. Reads no capture after the unit's own (k-12..k only; k+12 never). uma_resolution_statuses and event_comment_count as byte-equality flags only."
+}

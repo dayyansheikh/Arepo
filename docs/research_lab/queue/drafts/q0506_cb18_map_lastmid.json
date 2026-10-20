@@ -1,0 +1,48 @@
+{
+ "id": "q0506_cb18_map_lastmid",
+ "title": "CB18 map M (CH175 last-mid outcome proxy; DRAFT, descriptive): exits on worn captures [2026-10-12T00:31Z, 2026-10-16T00:00Z) by last two-sided mid band, sports/non-sports, structure, as-of horizon; end-to-exit lag; re-appearance and ladder self-consistency; middle-band fetch count; window arithmetic for CH163/CH164/E017 carry/CH62 at 21/60/90 days",
+ "family": "creative_batch_18",
+ "priority": 28,
+ "expected_value": "the map every resolution arm of rounds 1-9 cites (k = 0)",
+ "data": [
+  "data-dumps/research_lab/cb18_census/restore/data-dumps/research_lab (q0500/q0501; read-only)"
+ ],
+ "resources": {
+  "mem_mb": 350,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0500_cb18_census_restore_captures"
+ ],
+ "argv": [
+  "scripts/run_cb18.py",
+  "map-lastmid",
+  "--rules",
+  "../docs/research_lab/seals/cb18_rules.json",
+  "--part",
+  "pre",
+  "--seal",
+  "../docs/research_lab/seals/cb18_census_inputs.json",
+  "--snapshot-root",
+  "../data-dumps/research_lab/cb18_census/restore/data-dumps/research_lab/snapshots",
+  "--sweep-root",
+  "../data-dumps/research_lab/cb18_census/restore/data-dumps/research_lab/book_sweeps",
+  "--sample-root",
+  "../data-dumps/research_lab/cb18_census/restore/data-dumps/research_lab/trade_samples",
+  "--out",
+  "../data-dumps/research_lab/cb18_census/M.json",
+  "--disk-cap-gb",
+  "20",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 5400,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/cb18_census/M.json (counts only; write-once)"
+ ],
+ "next_action": "add M.json's sha256 to seals/; record the map's consequence (its days are worn for every resolution arm) in the ledger",
+ "notes": "DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md, design not yet reviewed). scripts/run_cb18.py DOES NOT EXIST YET (code needed, CREATIVE_BATCH_18.md section 6). Counts 0 (kind cb18_descriptive). Refuses unless part pre is committed and every pinned input is present and matches (L4); refuses any file or row after its cut-off. Forbidden and unit-tested: any comparison of an earlier price with the last mid, any return or P&L."
+}

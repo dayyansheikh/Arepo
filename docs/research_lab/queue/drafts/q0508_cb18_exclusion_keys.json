@@ -1,0 +1,39 @@
+{
+ "id": "q0508_cb18_exclusion_keys",
+ "title": "CB18 exclusion keys (cpu, no network; DRAFT): CB16 q0380 key file (sha256 copied from its write-once manifest) + seal copies; drop counts by source for SCREEN_18/REP_18 (none expected)",
+ "family": "creative_batch_18",
+ "priority": 9,
+ "expected_value": "window key check",
+ "data": [
+  "creative_batch16/exclusion_keys.csv.gz (ids only)",
+  "docs/research_lab/seals/*"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0507_cb18_smoke"
+ ],
+ "argv": [
+  "scripts/run_cb18.py",
+  "keys",
+  "--rules",
+  "../docs/research_lab/seals/cb18_rules.json",
+  "--out",
+  "../data-dumps/research_lab/creative_batch18/keys.json",
+  "--disk-cap-gb",
+  "20",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 900,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch18/keys.json"
+ ],
+ "next_action": "q0509",
+ "notes": "DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md, design not yet reviewed). scripts/run_cb18.py DOES NOT EXIST YET (code needed, CREATIVE_BATCH_18.md section 6). Window job: promote only after parts common and S are committed (CB route RS-1), the code freeze record and an accepting code-against-design freeze check."
+}

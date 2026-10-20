@@ -1,0 +1,44 @@
+{
+ "id": "q0512_cb18_screen_18",
+ "title": "CB18 Stage 1 (DRAFT): S1 expanding-past market-demeaned OLS of 24 h |move| on 1[silent]; Freedman-Lane gate (3 of 200), composition guard, circular-shift calibration placebo, top-5-cluster and leave-one-day-out robustness, availability, binding Lee lower bound; Holm k1 = 1; one trials line",
+ "family": "creative_batch_18",
+ "priority": 9,
+ "expected_value": "S1 verdict (counted, kind cb18_test)",
+ "data": [
+  "data-dumps/research_lab/creative_batch18/screen/",
+  "data-dumps/research_lab/creative_batch18/census_18.json"
+ ],
+ "resources": {
+  "mem_mb": 900,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0511_cb18_census_18"
+ ],
+ "argv": [
+  "scripts/run_cb18.py",
+  "screen",
+  "--rules",
+  "../docs/research_lab/seals/cb18_rules.json",
+  "--frame",
+  "../data-dumps/research_lab/creative_batch18/screen",
+  "--census",
+  "../data-dumps/research_lab/creative_batch18/census_18.json",
+  "--require-e011-analysis",
+  "--out",
+  "../data-dumps/research_lab/creative_batch18/results_screen.json",
+  "--disk-cap-gb",
+  "20",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 10800,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch18/results_screen.json (write-once)"
+ ],
+ "next_action": "commit the result; if S1 advanced, q0513",
+ "notes": "DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md, design not yet reviewed). scripts/run_cb18.py DOES NOT EXIST YET (code needed, CREATIVE_BATCH_18.md section 6). Window job: promote only after parts common and S are committed (CB route RS-1), the code freeze record and an accepting code-against-design freeze check. Runs alone (memory rule). Refuses before E011's analysis commit (after 2026-11-11T13:00Z)."
+}

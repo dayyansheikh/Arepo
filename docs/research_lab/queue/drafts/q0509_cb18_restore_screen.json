@@ -1,0 +1,40 @@
+{
+ "id": "q0509_cb18_restore_screen",
+ "title": "CB18 SCREEN_18 inputs (DRAFT): restore byte for byte the captures (rows, sidecar, manifest) and sweep 1 dirs of [S_18 - 24 h, S_18 + 15 d + 2 h) that have rotated off the host, hash-checked against the release manifests",
+ "family": "creative_batch_18",
+ "priority": 9,
+ "expected_value": "complete S frame inputs (host copies where present)",
+ "data": [
+  "arepo-data releases covering 2026-10-26 .. 2026-11-11 (tags fixed when known)"
+ ],
+ "resources": {
+  "mem_mb": 600,
+  "cpu": 1,
+  "lane": "net",
+  "network": "github releases (private data repo, read-only)"
+ },
+ "depends_on": [
+  "q0508_cb18_exclusion_keys"
+ ],
+ "argv": [
+  "scripts/restore_from_archive.py",
+  "--tag",
+  "<data-2026102[7-9]..data-20261112 tags, fixed before promotion>",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/2026*/rows.csv.gz",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/2026*/rows_ext.csv.gz",
+  "--path-glob",
+  "data-dumps/research_lab/book_sweeps/2026*/rows.csv.gz",
+  "--dest",
+  "../data-dumps/research_lab/cb18_window/restore_screen"
+ ],
+ "timeout_s": 21600,
+ "max_retries": 2,
+ "outputs": [
+  "data-dumps/research_lab/cb18_window/restore_screen/"
+ ],
+ "next_action": "q0510",
+ "notes": "DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md, design not yet reviewed). scripts/run_cb18.py DOES NOT EXIST YET (code needed, CREATIVE_BATCH_18.md section 6). Window job: promote only after parts common and S are committed (CB route RS-1), the code freeze record and an accepting code-against-design freeze check. Placeholder tags: fill from the release list; the frame job refuses any file whose sha256 differs from its release manifest.",
+ "not_before": "2026-11-11T08:00:00Z"
+}

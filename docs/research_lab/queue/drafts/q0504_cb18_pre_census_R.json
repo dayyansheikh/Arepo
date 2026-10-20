@@ -1,0 +1,49 @@
+{
+ "id": "q0504_cb18_pre_census_R",
+ "title": "CB18 pre-census R and race map (CH179; DRAFT): counts and origin-side features on the 23 sealed samples with captures from 10-15T12:31Z: raced rows (same market, same ts, different tx_hash), R distribution, ts resolution and gap histogram, fingerprint-identical and same-side shares, zR centre/scale, |corr| with zW, zH, zN, zSize, zSPR, zRV, zHTE, VIF of x6*zR, projected events (GR1-GR6); race map by category, hour, row-count decile, price band",
+ "family": "creative_batch_18",
+ "priority": 28,
+ "expected_value": "CB18-R gates and route (LT5 member or dropped); the race map (k = 0) published either way",
+ "data": [
+  "data-dumps/research_lab/cb18_census/restore/data-dumps/research_lab (q0500/q0501; read-only)"
+ ],
+ "resources": {
+  "mem_mb": 390,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0500_cb18_census_restore_captures",
+  "q0501_cb18_census_restore_samples"
+ ],
+ "argv": [
+  "scripts/run_cb18.py",
+  "census-r",
+  "--rules",
+  "../docs/research_lab/seals/cb18_rules.json",
+  "--part",
+  "pre",
+  "--seal",
+  "../docs/research_lab/seals/cb18_census_inputs.json",
+  "--snapshot-root",
+  "../data-dumps/research_lab/cb18_census/restore/data-dumps/research_lab/snapshots",
+  "--sweep-root",
+  "../data-dumps/research_lab/cb18_census/restore/data-dumps/research_lab/book_sweeps",
+  "--sample-root",
+  "../data-dumps/research_lab/cb18_census/restore/data-dumps/research_lab/trade_samples",
+  "--out",
+  "../data-dumps/research_lab/cb18_census/R.json",
+  "--disk-cap-gb",
+  "20",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 5400,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/cb18_census/R.json (counts only; write-once)"
+ ],
+ "next_action": "add R.json's sha256 to seals/; routing record; publish the race map in CREATIVE_BATCH_18.md",
+ "notes": "DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md, design not yet reviewed). scripts/run_cb18.py DOES NOT EXIST YET (code needed, CREATIVE_BATCH_18.md section 6). Counts 0 (kind cb18_descriptive). Refuses unless part pre is committed and every pinned input is present and matches (L4); refuses any file or row after its cut-off. No y6 or any target read. Wallet fields never read."
+}
