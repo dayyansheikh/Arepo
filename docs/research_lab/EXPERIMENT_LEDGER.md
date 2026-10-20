@@ -2368,3 +2368,10 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   CH162's print arm (need print direction; CB17 branch T); CH157's resolution arm (needs a fetch).
   MDEs are planning estimates from one worn probe day. Proposed window 2026-10-24..2026-11-14, single analysis on or
   after 2026-11-15T12:00Z. Next: challenger round 1 (running) -> response -> code -> censuses -> freeze.
+- **LT3 challenger round 1 (07:40Z, `reviews/LT3_CHALLENGER_R1_2026-10-20.md`):** E015 ACCEPT_WITH_CHANGES; E016,
+  E017, E018, E019 REVISE; nothing fatal. Main findings: E019 contrast mechanically predicted by quote anatomy (binding
+  "quote-anatomy composition" label) and crypto-series cluster dominance (t on G_series-1, ex-crypto primary if one
+  family > 50%); trade samples older than 3 days are retired by archive retention (C2 needs a byte restore); "walked"
+  (>= 4 decimals) may be a float/micro-unit artefact (grid-distance rule, drop E016 if > 20% within 1e-4 of grid);
+  E016 size/life-cycle controls; E015 impact/anatomy label (M3); E017 neg-risk-only primary and lagged-volume control;
+  reader cron every 20 min with flock and a late-loss label. Response + code by the designer-implementer (running).
