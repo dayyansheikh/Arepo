@@ -214,11 +214,13 @@ def test_funnel_counts_only_stages_reached():
     reg = json.loads(REGISTRY.read_text())
     f = {x["stage"]: x for x in lab_host.build_funnel(reg, 117, 83)}
     assert (f["idea"]["count"], f["designed"]["count"], f["confirmed"]["count"]) == (117, 83, 0)
-    assert f["replicated"]["count"] == f["live_test"]["count"] == f["cost_check"]["count"] == 6
     ids = lambda s: {e["id"] for e in reg["experiments"] if s in e["reached"]}  # noqa: E731
-    assert ids("replicated") == {"HB1", "SB2-F4", "SB2-F5", "SB2-L1", "SB2-CTTE", "SB2-CACT"}
-    assert ids("live_test") == {"E004", "E005", "E007", "E009", "E010", "E011"}
-    assert ids("cost_check") == {"E004", "E007", "ECON-95", "HB1", "SB2-F4", "SB2-F5"}
+    for s in ("screened", "replicated", "live_test", "cost_check"):  # counts = entries that actually reached s
+        assert f[s]["count"] == len(ids(s))
+    # The science-reviewed 2026-10-18 sets must stay (entries are added as experiments advance, never dropped).
+    assert {"HB1", "SB2-F4", "SB2-F5", "SB2-L1", "SB2-CTTE", "SB2-CACT"} <= ids("replicated")
+    assert {"E004", "E005", "E007", "E009", "E010", "E011"} <= ids("live_test")
+    assert {"E004", "E007", "ECON-95", "HB1", "SB2-F4", "SB2-F5"} <= ids("cost_check")
     assert f["screened"]["unit"] == "registry entries"
 
 
