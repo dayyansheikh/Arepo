@@ -1,0 +1,38 @@
+{
+ "id": "qcm1_cost_model_calibration",
+ "title": "Cost model v1 development calibration refresh: spread / depth / taker walk by liquidity tier and fee category; back-of-queue maker fill rates, Lomax fill-probability fit and 2h mark-out adverse selection (descriptive, not a test)",
+ "family": "cost_model",
+ "priority": 5,
+ "expected_value": "keeps costs.MAKER_DEFAULTS and the COST_MODEL.md tables current; a material drift (tier p_fill or adverse selection outside the v1 95% CI) is a reason to version the model (cost-model-v2), never to re-label a past verdict",
+ "data": [
+  "book_sweeps/<sweep>/rows.csv.gz + manifest.json, first sweep of each 2-hourly pair, in [--start, --end)",
+  "snapshots/<snapshot_id>/rows.csv.gz + rows_ext.csv.gz (liquidity, event, fee category, fee schedule, rewards fields only)",
+  "trade_samples/<sample>/trades.csv.gz (first sample starting >= origin + 1h + 60s; only samples whose trades file is still on the host: >= 2026-10-16T04:40Z at 2026-10-20)"
+ ],
+ "resources": {
+  "mem_mb": 1500,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/cost_model_calibration.py",
+  "--data-root",
+  "../data-dumps/research_lab",
+  "--start",
+  "<window start, e.g. 2026-10-16T04:00:00Z>",
+  "--end",
+  "<window end, e.g. 2026-10-19T00:00:00Z>",
+  "--out",
+  "/tmp/costmodel_qcm1/out",
+  "--book-every",
+  "2"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 1,
+ "outputs": [
+  "/tmp/costmodel_qcm1/out/summary.json (copied by a session into backend/astrolabe/research_lab/model_specs/cost_model_calibration_v<N>.json; the temp dir is then deleted)"
+ ],
+ "next_action": "DRAFT: promote only to refresh the calibration on a new development window; the window must not contain any registered live test's outcome data (the calibration reads only unconditional microstructure, but keep windows disjoint anyway).",
+ "notes": "Read-only, no network, refuses to write inside --data-root. Measured on the host 2026-10-19/20 (manual run in /tmp/costmodel, deleted after): 34 origins over 2026-10-16T04Z..2026-10-19T00Z took 305 s wall at nice 19 with peak RSS 1.46 GB (book rows for 17 origins x ~41k tokens dominate; --book-every 3 lowers it). A books-only check on 2026-10-12T00Z..2026-10-14T00Z (24 origins, no trade files remain) took 133 s. Results: model_specs/cost_model_calibration_v1.json; doc: docs/research_lab/COST_MODEL.md."
+}
