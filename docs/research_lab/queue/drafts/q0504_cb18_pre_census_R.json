@@ -14,6 +14,7 @@
   "network": "none"
  },
  "depends_on": [
+  "q0500_cb18_census_restore_captures",
   "q0501_cb18_census_restore_samples"
  ],
  "argv": [
@@ -44,5 +45,5 @@
   "data-dumps/research_lab/cb18_census/R_map.json (counts only; write-once)"
  ],
  "next_action": "add R_map.json's sha256 to seals/; publish the race map in CREATIVE_BATCH_18.md section 4.3",
- "notes": "DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md, R1 response written, awaiting the R1 re-check). scripts/run_cb18.py DOES NOT EXIST YET (code needed, CREATIVE_BATCH_18.md section 6). Counts 0 (kind cb18_descriptive). Refuses unless part pre is committed and every pinned input is present and matches (L4); refuses any file or row after its cut-off. No x6, y6 or any target read; no zR correlations or VIF (they served the dropped test). Wallet fields never read. R1 response (CREATIVE_BATCH_18.md section 11, 2026-10-21): finding 1: the counted LT5 moderator test is dropped (its residualised donor gate failed a binding size scenario in LT4 R2 and is structurally invalid per LT3 donor-gate ruling 2); no replacement null is declared, so this map cannot revive it. Depends only on the samples (captures are not read)."
+ "notes": "DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md, R1 response written, awaiting the R1 re-check). scripts/run_cb18.py DOES NOT EXIST YET (code needed, CREATIVE_BATCH_18.md section 6). Counts 0 (kind cb18_descriptive). Refuses unless part pre is committed and every pinned input is present and matches (L4); refuses any file or row after its cut-off. No x6, y6 or any target read; no zR correlations or VIF (they served the dropped test). Wallet fields never read. R1 response (CREATIVE_BATCH_18.md section 11, 2026-10-21): finding 1: the counted LT5 moderator test is dropped (its residualised donor gate failed a binding size scenario in LT4 R2 and is structurally invalid per LT3 donor-gate ruling 2); no replacement null is declared, so this map cannot revive it. R2 response (CREATIVE_BATCH_18.md section 12, finding 4): the race map's category comes from the sidecar of each sample's own capture k (fee_type, fee_category, series_slugs only; no price), so q0504 also depends on q0500. Reads inside J4-R (finding 1, disclosed); no census object is a mark-out."
 }

@@ -3,7 +3,8 @@
 `evidence_role: none` at drafting (design only) | planned roles: `exploratory_historical` (pre-censuses and the CH175
 map on worn pre-window host data, counts and descriptives only), `prospective` (CB18-S's SCREEN_18 and REP_18 windows,
 which start at least 24 h after the rules commit) | status: **DRAFT, challenger R1 = REVISE (2026-10-20), R1 response
-written 2026-10-21 (§11), awaiting the R1 re-check; nothing frozen, nothing queued, no code.** Drafted 2026-10-20 20:19
+written 2026-10-21 (§11), R2 = ACCEPT_WITH_CHANGES (2026-10-21), R2 response written 2026-10-21 (§12); part `pre` and the
+census code implemented as a candidate (not frozen, not run); nothing queued.** Drafted 2026-10-20 20:19
 UTC+1 (2026-10-20T19:19Z) on branch `feat/cb18` from `9a68ea2f`
 (`chore/arepo-claude-setup`). No host probe, no network request and no window data were used. Every count quoted is a
 round-9/10 probe, LT3/LT4 census or CB17 pre-census figure on worn data, named as such; everything else is **unprobed**.
@@ -86,7 +87,7 @@ does not exist yet**, except the restores, which use the existing `scripts/resto
 | q0509 | `cb18_restore_screen` (SCREEN_18 captures, sidecars, sweep 1 rotated off the host) | S | net / 600 | `not_before` S_18 + 15 d + 8 h |
 | q0510 | `cb18_frame_screen_S` (arm-0 units, features only, raw target-mid table, no target computed) | S | cpu / 390 | after q0509, q0508 |
 | q0511 | `cb18_census_18` (window gates, SE-only power gate, informativeness at the selected level) | S | cpu / 390 | after q0510 |
-| q0512 | `cb18_screen_18` (Stage 1: S1) | S | cpu / 900 | after q0511, E011's analysis commit, code-against-design freeze check |
+| q0512 | `cb18_screen_18` (Stage 1: S1) | S | cpu / 900 | after q0511, E011's **and E012's** analysis commits (E012: on or after 2026-11-13T12:00Z; R2 finding 5), code-against-design freeze check |
 | q0513 | `cb18_restore_rep` (REP_18 inputs) | S | net / 600 | `not_before` S_18 + 29 d + 8 h; only if S1 advanced |
 | q0514 | `cb18_frame_rep_S` (arm-1 units; sealed) | S | cpu / 390 | after q0513 and the SCREEN result commit |
 | q0515 | `cb18_rep_18` (Stage 2: S1-rep, triggered) | S | cpu / 900 | after q0514 |
@@ -125,7 +126,7 @@ these four columns only through a `bytes_equal(a, b)` / `is_empty_literal(x)` he
 | census cut-off | 2026-10-17T22:31Z (captures, samples); map: 2026-10-16T00:00Z | census paths refuse any file or row timed after it |
 | routing record | target 2026-10-24T12:00Z | after q0502-q0506; `seals/cb18_routing.json` (counts and the route of each idea, by the §3 rules only) and a ledger line, before any part other than `pre` |
 | `T18_rules` | target **2026-10-25T18:00Z** (soft) | committer time of the commit that lands parts `common` and `S` (CB route only) on `chore/arepo-claude-setup`, with the census-fixed values written in (CB17 ruling O2's definition) |
-| lookback floor | 2026-10-26T00:00Z | no CB18 window path reads a row timed before it (keeps J4-R `[10-16, 10-21)`, CB13-T HOLDOUT `[10-21, 10-26)` and the census days untouched). **CB18-S's longest lookback is capture k − 12** (R1 finding 5: the prior-quiet count is capped at **11**, so it reads intervals back to (k − 12, k − 11); the `|mid_k − mid_{k−12}|` control reads k − 12; dormancy reads only the book stamp of sweep 1 of pass k, a value capped at 24 h, never a row). The first SCREEN_18 origin capture is 2026-10-27T00:31Z, so k − 12 = 2026-10-26T00:31Z, inside the floor. The runner refuses any capture, sweep or row timed before the floor (unit-tested at 2026-10-25T22:31Z, the old k − 13) |
+| lookback floor | 2026-10-26T00:00Z | no CB18 **window** path reads a row timed before it (keeps J4-R `[10-16, 10-21)`, CB13-T HOLDOUT `[10-21, 10-26)` and the census days untouched **by window paths**; the pre-censuses do read inside J4-R, disclosed in §1.3 (R2 finding 1)). **CB18-S's longest lookback is capture k − 12** (R1 finding 5: the prior-quiet count is capped at **11**, so it reads intervals back to (k − 12, k − 11); the `|mid_k − mid_{k−12}|` control reads k − 12; dormancy reads only the book stamp of sweep 1 of pass k, a value capped at 24 h, never a row). The first SCREEN_18 origin capture is 2026-10-27T00:31Z, so k − 12 = 2026-10-26T00:31Z, inside the floor. The runner refuses any capture, sweep or row timed before the floor (unit-tested at 2026-10-25T22:31Z, the old k − 13) |
 | `S_18` | `max(2026-10-27T00:00Z, the first 00:00Z at or after T18_rules + 24 h)` | start of SCREEN_18; depends only on the rules commit time. With `T18_rules` by 2026-10-26T00:00Z, **S_18 = 2026-10-27T00:00Z** |
 | SCREEN_18 | origin (decision) times in `[S_18, S_18 + 14 d)` = **[2026-10-27, 2026-11-10)** | Stage 1, arm-0 events only |
 | REP_18 | origin times in `[S_18 + 14 d, S_18 + 28 d)` = **[2026-11-10, 2026-11-24)** | Stage 2, arm-1 events only |
@@ -133,12 +134,23 @@ these four columns only through a `bytes_equal(a, b)` / `is_empty_literal(x)` he
 | election-night exclusion | origin or target capture in `[2026-11-03T18:00Z, 2026-11-05T00:00Z)` | excluded and counted (as CB17) |
 | `T18_code` | target: before `S_18`; at the latest before the first read of any SCREEN_18 file (q0510, 2026-11-11T08:00Z); never before an accepting code-against-design freeze check | as CB17 §1.2 `T17_code` and ruling 6: no agent opens a SCREEN_18 or REP_18 file before the freeze record exists; ledger attestation |
 | E011 | analysed once after 2026-11-11T13:00Z | q0512 refuses before E011's analysis commit (S's target is a 24 h movement, close to E011's object; costs about one day) |
+| E012 | analysed once on or after 2026-11-13T12:00Z (`LIVE_TESTS_2.md`:27) | q0512 also refuses before E012's analysis commit (R2 finding 5: E012's population contains S's units and its target is a 24 h change, §1.3; waiting costs about two more days and keeps S1 from being read before the overlapping registered primary) |
 | LT5 (proposed) | `REGISTERED_UTC` = the first 00:00Z at least 24 h after the LT5 registration commit, at least 48 h after LT4's `REGISTERED_UTC`, and **not before 2026-10-30T00:00Z**; 28 days; analysis once at `END_UTC + 36 h` | proposed **2026-10-30T00:00Z to 2026-11-27T00:00Z**, analysis on or after 2026-11-28T12:00Z; fixed end, no extension (as LT4 §1.1) |
 
 If `S_18` slides, both windows slide; lengths are fixed. Frames run after each window and its 24 h targets close:
 q0510 not before `S_18 + 15 d + 8 h` (2026-11-11T08:00Z); q0514 not before `S_18 + 29 d + 8 h` (2026-11-25T08:00Z).
 
 ### 1.3 Overlaps and sealed data
+- **J4-R disclosure (R2 finding 1).** The pre-censuses read **inside J4-R `[2026-10-16, 2026-10-21)`**: census S and F read
+  the complete captures of 2026-10-16 and sweep 1 of its passes; census P and the race map read the 23 trade samples of
+  2026-10-16/17 and the captures of 2026-10-16/17. CB17 refused census rows at or after 10-16 (`CREATIVE_BATCH_17.md`:253,
+  281); LT3 refuses J4-R only for maker mark-out objects (`LIVE_TESTS_3.md`:529), and CB18 follows LT3's rule. **No census
+  object is a mark-out**: every census reads origin-side fields at or before each unit's decision time (captures k − 12 ..
+  k, sweep 1 of pass k, trade rows with `ts` at or before the pass k + 1 origin) and writes counts, shares and standard
+  errors only; no forward price, no target, no mark and no outcome is read or written (unit-tested: the result writer
+  refuses such keys). The statement "J4-R untouched" in §1.2 holds for window paths only. The CB13-T **HOLDOUT
+  `[2026-10-21, 2026-10-26)` is untouched** by every CB18 path: the census cut-off is 2026-10-17T22:31Z and the window floor
+  2026-10-26T00:00Z.
 - **CB18-S units are disjoint by construction from every change-conditioned live primary's units**: an S unit is a
   market-interval in which no capture numeric field (nor a `chg_*` byte flag) changed and the book was untouched (§4.1).
   E015/E020 (quote-only moves), E017 (volume surges), E021/E022 (traded moves), E019 (re-quoted ladders), CB17-B (sweep
@@ -233,6 +245,17 @@ only. Verdict labels as CB17: "not detected at MDE x", "not testable (...)", "no
   nominal 4/201 ≈ 0.0199 plus 1.645 sqrt(0.02 x 0.98 / 2,000)); LT-route gates at most 0.058 (LT4 L5). Scenarios: iid
   labels; persistent market label rates; AR(1) labels; label-control correlation 0.4 and 0.5 (binding) and 0.7
   (reported); heavy-tailed targets (CB18-S's |move| has a point mass at 0).
+- **Latent-volatility label scenario (CB18-S; R2 finding 2; reported, not binding).** The binding scenario below keeps the
+  label independent of the innovations; this one does not. Null world as the binding scenario (same layout, MA(11)
+  target, selected level and level 2), plus a per-market latent log-volatility `v_t` in slot steps (AR(1), persistence
+  0.95, stationary SD 0.5) that scales the slot innovations (`e_t x exp(v_t)`) **and** raises the silent probability
+  (logit coupling γ in {0.5, 1.0} per SD of `v_t`); the two `|mid|` controls are computed from the simulated mid path, so
+  they capture `v_t` only imperfectly. There is no silent-edit effect in this world, so any advance is confounding the
+  controls leave. **Reported at minimum and not binding**, because its rejection rate measures the bias left at an
+  assumed coupling γ, which no worn count identifies (making it binding would let an arbitrary γ decide S1); the rates of
+  the Freedman-Lane gate and the Stage-1 rule are printed in the size-check output and the S1 result. If either exceeds
+  the route's limit (0.0251 CB, 0.058 LT) at γ = 0.5, the S1 result carries the label *latent-volatility sensitive* (a
+  label; it never changes a verdict), and the limitation is stated with any advance.
 - **Binding overlapping-target scenario (CB18-S; R1 finding 4, Q9).** CB18-S's target spans 12 slots, so consecutive
   units of one market share 11 of their 12 slot steps. Null world: per market, iid heavy-tailed slot innovations (with a
   point mass at 0); unit target `Y_k = |Σ_{j=1..12} e_{k+j}|`, i.e. an **MA(11) process in slot steps** before the
@@ -261,7 +284,9 @@ only. Verdict labels as CB17: "not detected at MDE x", "not testable (...)", "no
 - **SD sources (assumptions, round 9/10, LT3/LT4):** 24 h move SD about 6c (round 9); 24 h absolute move about 5c (round
   10, CH177); 4 h skip-slot change about 5c (LT4 §14.3, E021); log event volume change 0.5 (round 10, CH176). Where a
   census can compute the estimator's own clustered SE on a **pre-origin proxy target** (SE only; no point estimate
-  written; CB17 §2.7), that SE replaces the formula.
+  written; CB17 §2.7), that SE replaces the formula **for CB18-S** (RS-1/RS-2; the formula only as the NaN fallback).
+  **For CB18-P (R2 finding 3) GP5 binds on the larger of the two routes**: `MDE_GP5 = max(MDE_formula, MDE_proxy)` (§3.2);
+  the formula alone binds if the proxy SE is NaN.
 
 ### 2.5 Counting (M3)
 - Kinds `cb18_test`, `cb18_replication` (counted) and `cb18_descriptive` (EXCLUDE), added to `battery2.KIND_RULES`
@@ -314,8 +339,11 @@ counts, and is committed with its sha256 before the routing record. "Projected" 
 (NaN fails; L2). Census SEs use the event and 6 h block ways only (§2.4; no UTC-day way at G = 2). Census days: **S, F:
 the complete captures of UTC 2026-10-15 and 2026-10-16** with slot k − 1 from 2026-10-14T22:31Z, look-back captures
 from 2026-10-14T12:31Z (S: k − 12), and sweep 1 of each pass (the days LT3 C1 and LT4 CQ/CH wore; the 10-15 files are
-also CB17's pinned P2/P3 set). **P, R: the 23 sealed samples of 2026-10-16/17** with captures from 2026-10-15T12:31Z
-(look-back k − 12, k − 4) to 2026-10-17T22:31Z. **M: captures `[2026-10-12T00:31Z, 2026-10-16T00:00Z)`** (CB17's worn
+also CB17's pinned P2/P3 set). **P, R: the 23 sealed samples of 2026-10-16/17** with captures from 2026-10-15T16:31Z
+(P's longest look-back is k − 4, the proxy `mid_{k−4}`; k − 4 of the first pass 10-16T00:31Z is 10-15T16:31Z; R2
+finding 4: the earlier label "k − 12 from 10-15T12:31Z" was wrong, P reads no k − 12; the q0500 restore range is
+unchanged and already covers it) to 2026-10-17T22:31Z; R reads only the sidecar of each sample's own capture k (for
+the category; no price). **M: captures `[2026-10-12T00:31Z, 2026-10-16T00:00Z)`** (CB17's worn
 span).
 
 **Unavailable captures (declared; R1 finding 5).** The six complete captures of slots 2026-10-14T00:31Z, 02:31Z, 04:31Z,
@@ -387,7 +415,7 @@ proxy SE on `c_pre = s x (mid_{k−2} − mid_{k−4})` (SE only).
 | GP2 split | fades between 20% and 80% of reacted (fade + follow) units |
 | GP3 sign usable | `side` unusable (not BUY/SELL or outcome unknown) <= 10% of rows in the state windows |
 | GP4 coverage | truncated <= 5% of otherwise eligible units |
-| GP5 power | pessimistic two-class MDE (M = 3.388, SD 5c, effective fades against effective none units, `DE_gate = max(3.0, computed)`, the 1.5 factor) <= 0.5c |
+| GP5 power | `MDE_GP5 = max(MDE_formula, MDE_proxy)` <= 0.5c (R2 finding 3). `MDE_formula`: pessimistic two-class MDE (M = 3.388, SD 5c, projected effective fades against projected effective none units, `DE_gate = max(3.0, computed)`, the 1.5 factor). `MDE_proxy = 3.388 x SE_proxy x sqrt(21 / (28 x 12)) x sqrt(max(3, DE_W28 / DE_census)) x 1.5`, `SE_proxy` = the fade coefficient's census SE on `c_pre` (max over the event and 6 h block ways); NaN proxy SE → `MDE_formula` alone; NaN formula → fails |
 | GP6 null usable | permutable share >= 60% at some ladder level |
 
 **Routing:** non-sports primary if GP1-GP6 hold on non-sports units; else all categories (sports split reported, as
@@ -711,7 +739,7 @@ reader and census < 400 MB. Network: restores only (net lane). Disk <= 0.2 GB of
 | **2026-10-25 18:00** | parts `common`, `S` landed (CB route only) = `T18_rules` → **S_18 = 2026-10-27T00:00Z** | orchestrator |
 | before 2026-10-27 (preferred), 2026-11-11 08:00 at the latest | S window code, size check, code-against-design freeze check, freeze record, q0507 PASS, q0508 | implementer, `science-reviewer` |
 | by about 2026-10-28 | LT5 registration commit (challenger, size check, pins) → **LT5 `REGISTERED_UTC` 2026-10-30T00:00Z** (rule in §1.2) | orchestrator |
-| 2026-11-11 08:00 → after E011's analysis commit | q0509 → q0510 → q0511 → q0512 (Stage 1) | queue |
+| 2026-11-11 08:00 → after E011's and E012's analysis commits (E012 on or after 2026-11-13T12:00Z) | q0509 → q0510 → q0511 → q0512 (Stage 1) | queue |
 | 2026-11-25 08:00 | q0513 → q0514 → q0515 → q0516 (only if S1 advanced) | queue |
 | 2026-11-28 12:00 | LT5 single analysis (if registered) | LT5 |
 
@@ -823,3 +851,18 @@ decide; nothing assumed).
 SE, which the pessimistic planning numbers do not expect (expected k = 0 in CB18; S then goes to LT5 under RS-2 or is
 dropped). LT5 candidates: CB18-S (RS-2), CB18-P (drop expected). Not counted: CB18-R (map), CB18-F (census), CB18-M
 (map).
+
+## 12. R2 response (2026-10-21)
+
+Response to `reviews/CB18_CHALLENGER_R2_2026-10-21.md` (ACCEPT_WITH_CHANGES), written 2026-10-21 on `feat/cb18` before part
+`pre` is frozen and before any census ran. No floor, alpha, threshold, gate or MDE requirement was changed except as listed;
+finding 3 makes P's power gate the stricter of its two readings.
+
+| # | Finding | Change | Where |
+|---|---|---|---|
+| 1 | MEDIUM: censuses read inside J4-R `[10-16, 10-21)` without saying so | disclosure added: S, F read the 10-16 captures and sweeps, P and the race map the 10-16/17 samples and captures; CB18 follows LT3's rule (J4-R refused only for maker mark-out objects); **no census object is a mark-out** (origin-side fields at or before each unit's decision time; counts, shares and SEs only; the writer refuses outcome keys); "J4-R untouched" restricted to window paths; HOLDOUT `[10-21, 10-26)` untouched (cut-off 10-17T22:31Z, floor 10-26T00:00Z) | §1.2 lookback floor row, §1.3 first bullet; part `pre` (`J4R_DISCLOSURE`) |
+| 2 | MEDIUM-LOW: no size scenario with the label tracking latent volatility | new scenario: per-market AR(1) latent log-volatility scaling the innovations and raising the silent probability (γ in {0.5, 1.0}), `|mid|` controls from the simulated path; **reported, not binding** (its rate measures confounding at an assumed γ, which no count identifies); above the route's limit at γ = 0.5 → label *latent-volatility sensitive* on S1, never a verdict change | §2.3; part `S` size check (CB route) or LT5 (RS-2) |
+| 3 | LOW: P's power gate ambiguous (proxy SE vs formula) | GP5 pinned as `max(MDE_formula, MDE_proxy) <= 0.5c`, both written; proxy NaN → formula alone; the S routing (proxy SE replaces the formula) unchanged | §2.4, §3.2 GP5; part `pre` (`GP5_RULE`); q0503 |
+| 4 | LOW: P's look-back label "k − 12 from 10-15T12:31Z" wrong | label fixed: P reads back to k − 4 (from 10-15T16:31Z); no restore change (q0500 covers it); R reads only each sample's capture-k sidecar (category), so q0504 now depends on q0500 | §3 intro; q0503, q0504 |
+| 5 | LOW: q0512 waits for E011 but not E012 | q0512 also refuses before E012's analysis commit (on or after 2026-11-13T12:00Z; overlapping population and 24 h target) | §0.3 table, §1.2 date table, §7 calendar; q0512 (`--require-e012-analysis`) |
+
