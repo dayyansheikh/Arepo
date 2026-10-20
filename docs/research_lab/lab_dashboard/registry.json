@@ -1383,7 +1383,7 @@
   {
    "id": "LT4",
    "title": "Live tests E020-E022 (planned)",
-   "plain": "Three planned live tests from the round 10 ideas: whether a quote move made by a new order behaves differently from one made by a cancellation, whether very recent trades carry on less, and whether displayed liquidity that cannot actually be traded against matters. The second independent review accepted these three with changes and dropped two others (opening trades, one big order) because their safety check could not be shown to hold. Changes made; re-check under way.",
+   "plain": "Three planned live tests from the round 10 ideas: quote moves made by new orders versus cancellations, whether very recent trades carry on less, and displayed liquidity that cannot actually be traded against. The second review accepted these with changes and dropped two others whose safety check did not hold. Re-check under way.",
    "batch": "LT4",
    "family": "mixed",
    "stage": "designed",
