@@ -71,3 +71,29 @@
     display: none;
   }
 }
+
+/* Claude board: a live session's timeline bar carries slow diagonal stripes. */
+@keyframes lab-stripe {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 24px 0;
+  }
+}
+
+.lab-stripe {
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.28) 0 6px,
+    transparent 6px 12px
+  ) !important;
+  background-size: 24px 100%;
+  animation: lab-stripe 1.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lab-stripe {
+    animation: none !important;
+  }
+}

@@ -3,7 +3,7 @@
 // fixtureAllowed() refuses production. The screen labels it "FIXTURE". Values are illustrative
 // stand-ins shaped like the real programme, not evidence.
 
-import type { Experiment, LabDashboardResponse } from "./types";
+import type { ClaudeActivity, ClaudeSession, Experiment, LabDashboardResponse } from "./types";
 
 /** Grepped for in the production build output to prove the fixture is not shipped. */
 export const FIXTURE_SENTINEL = "arepo-lab-fixture-sentinel-7f3c";
@@ -58,6 +58,88 @@ const EXPERIMENTS: Experiment[] = [
   { id: "CB12-B", title: "Bot cadence", batch: "CB12", family: "flow", stage: "idea", status: "queued", verdict: null, effect: null, next: "Design in progress", candidate: false,
     plain: "Do regular, machine-like trade rhythms reveal anything about the next move?" },
 ];
+
+
+/** Illustrative autopilot sessions: [hours ago it ended, runtime hours, outcome, done line, summary]. */
+const SESSION_SPECS: Array<[number, number, string, string | null, string | null]> = [
+  [3, 4.9, "ok", "CB17 censuses done; E012–E014 reviewed (revise); checkpoint rewritten",
+    "This session got **CB17** through its counting jobs and recorded four overnight server checks.\n\n**Results**\n- Server checks: batches 13 and 15 passed; batch 14 was not testable (source returned nothing), counted 2.\n- CB17: two independent reviews caught real defects; both fixed before any job ran.\n\n**Queue:** the network lane has many hours of work lined up; the compute lane is idle until `q0305` at 14:05Z."],
+  [9, 2.1, "usage_limit", null, "You've hit your session limit · resets 11:30pm (Europe/London)"],
+  [14, 0.05, "error", null, "API Error: Can't reach the API server — check your internet or DNS (ENOTFOUND)"],
+  [15, 0.05, "error", null, "API Error: Can't reach the API server — check your internet or DNS (ENOTFOUND)"],
+  [21, 5, "timeout", null, null],
+  [29, 3.6, "ok", "Round 9 creative hypotheses written (CH156–CH168); LT3 draft started",
+    "Round 9 produced 13 new hypotheses, each with a plain-English mechanism and a falsification test.\n\n1. Three are cheap to screen on data we already hold.\n2. Two need the second server.\n\nNothing here is a result yet."],
+  [36, 1.2, "interrupted", null, null],
+  [44, 4.2, "ok", "LT2 challenger fixes applied; queue promoted q0480/q0471", "Applied the challenger's round-1 fixes and promoted two census jobs. No outcome statistics were computed."],
+];
+
+export function buildActivityFixture(nowMs: number): ClaudeActivity {
+  const HOUR = 3_600_000;
+  const at = (hAgo: number) => new Date(nowMs - hAgo * HOUR).toISOString().replace(/\.\d{3}Z$/, "Z");
+  const mk = ([endH, runH, outcome, done, summary]: (typeof SESSION_SPECS)[number], i: number): ClaudeSession => ({
+    started_at: at(endH + runH),
+    ended_at: at(endH),
+    runtime_s: Math.round(runH * 3600),
+    outcome,
+    ...(outcome === "ok" || outcome === "usage_limit" || outcome === "timeout" ? { cost_usd: 18 + ((i * 17) % 60), turns: 40 + i * 23 } : {}),
+    ...(done ? { done } : {}),
+    ...(summary ? { summary, summary_truncated: i === 0 } : {}),
+    log_state: outcome === "interrupted" ? "missing" : outcome === "timeout" ? "empty" : "ok",
+    ...(outcome === "interrupted" ? { note: "ended without a record (sleep, crash or kill); end time is when this was noticed" } : {}),
+  });
+  const signal: ClaudeSession[] = [
+    [6, 1.5, "usage_limit", null, "You've hit your session limit · resets 2:20am (Europe/London)"],
+    [19, 3.2, "ok", "Signal desk: order-flow feature audit complete; 3 features dropped as leaky", "Audited 41 order-flow features for look-ahead. Three used post-decision fields and were dropped; the remaining 38 are point-in-time safe."],
+    [40, 2.4, "ok", "Signal desk: SHAP stability check across 5 seeds", null],
+  ].map((x, i) => mk(x as (typeof SESSION_SPECS)[number], i + 3));
+  const subjects = [
+    "CB14-W GW0 blind audit (38/56, precision 0.679, FAIL); registry CB12-M/E closed",
+    "ledger: CB12 M/E freeze + screens (3 tests p = 1), LT4 censuses promoted",
+    "Merge feat/live-audit: live-test readiness (E009/E010 gapfill-v2 + merge step)",
+    "review: LT3 donor-gate ruling 2 (donor gate non-binding)",
+    "queue: promote LT4 censuses q0482 (CQ/CH) and q0483 (CF clock), counts only",
+    "test: q0082 depends on q0082g, stale expectation",
+    "creative round 9: CH156–CH168 written up with falsification tests",
+    "checkpoint: rewrite live section after CB17 censuses",
+    "registry: E012–E014 marked revise after challenger review",
+    "docs: plain-English dashboard refreshed",
+  ];
+  const shas = ["14377914", "48d64d11", "0dcdaa0e", "6d78f940", "d397f98b", "ad73f51e", "8a840291", "4a3824ec", "9b1e22c4", "3c7f0a51"];
+  return {
+    generated_at: at(0.2),
+    branch: "chore/arepo-claude-setup",
+    instances: [
+      {
+        name: "experiments",
+        home: "~/.arepo/autopilot",
+        paused: false,
+        pause_reason: null,
+        session_alive: true,
+        started_at: at(1.4),
+        last_outcome: "ok",
+        last_finished_at: at(3),
+        next_allowed: null,
+        sessions_total: 59,
+        sessions: SESSION_SPECS.map(mk),
+      },
+      {
+        name: "signal",
+        home: "~/.arepo/autopilot-signal",
+        paused: false,
+        pause_reason: null,
+        session_alive: false,
+        started_at: null,
+        last_outcome: "usage_limit",
+        last_finished_at: at(6),
+        next_allowed: at(-2.5),
+        sessions_total: 3,
+        sessions: signal,
+      },
+    ],
+    commits: subjects.map((subject, i) => ({ at: at(0.3 + i * i * 0.45), sha: shas[i], subject })),
+  };
+}
 
 export function buildLabFixture(nowMs: number): LabDashboardResponse {
   const iso = (msAgo: number) => new Date(nowMs - msAgo).toISOString();
@@ -166,6 +248,18 @@ export function buildLabFixture(nowMs: number): LabDashboardResponse {
           second_server: { status: "retrying", attempts: 275, last_try: iso(9 * MIN) },
           history,
         },
+        activity: {
+          queue: {
+            window_h: 48,
+            since: iso(48 * HOUR),
+            attempts: 61,
+            outcomes: { done: 38, tempfail: 19, error: 3, interrupted: 1 },
+            distinct_jobs: 27,
+            runtime_h: 71.4,
+            first_at: iso(47 * HOUR),
+            last_at: iso(4 * MIN),
+          },
+        },
       },
     },
     mac: {
@@ -188,6 +282,7 @@ export function buildLabFixture(nowMs: number): LabDashboardResponse {
             { at: iso(26 * HOUR), outcome: "done", runtime_s: 17600 },
           ],
         },
+        activity: buildActivityFixture(nowMs),
       },
     },
     commands: [
