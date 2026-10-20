@@ -139,3 +139,20 @@ export const nf = new Intl.NumberFormat("en-GB");
 export function fmtCount(n: number | null | undefined): string {
   return typeof n === "number" && Number.isFinite(n) ? nf.format(n) : "–";
 }
+
+/**
+ * The API answers 404 to anyone signed in who is not the owner, so the page must look exactly like
+ * any other missing page. Rendered inline (same words and layout as Next's default 404) because
+ * calling notFound() from a client component after hydration has no boundary on this route and
+ * crashes the page in production.
+ */
+export function LabNotFound() {
+  return (
+    <div className="flex min-h-[50vh] items-center justify-center" data-testid="not-found">
+      <div className="flex items-center gap-5 text-arepo-ink">
+        <h1 className="border-r border-arepo-borderStrong pr-5 text-2xl font-medium">404</h1>
+        <h2 className="text-sm font-normal">This page could not be found.</h2>
+      </div>
+    </div>
+  );
+}
