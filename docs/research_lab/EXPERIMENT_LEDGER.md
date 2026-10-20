@@ -2375,3 +2375,13 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   (>= 4 decimals) may be a float/micro-unit artefact (grid-distance rule, drop E016 if > 20% within 1e-4 of grid);
   E016 size/life-cycle controls; E015 impact/anatomy label (M3); E017 neg-risk-only primary and lagged-volume control;
   reader cron every 20 min with flock and a late-loss label. Response + code by the designer-implementer (running).
+
+## Session 2026-10-20 ~07:18Z (autopilot): the 06:14Z session stopped at ~06:48Z; its agent streams resumed
+- **q0232 (CB11-W screen, done 06:28:03Z, rc 0):** `results_W.json` written on the labelled path: W1, W2
+  "not testable (GW: units, dates or categories)", p = 1, as recorded in the CB11-W entry above. Nothing else changed.
+- **Interrupted streams (no process left; their files stopped changing at ~06:48Z):** LT2 R1 fixes (uncommitted edits in
+  `../astrolabe-live-tests-r1`), LT3 challenger response (untracked `seals/lt3_census_inputs_C2.json` in
+  `../astrolabe-live-tests-3`), CB17 (rules parts common/B/C/E committed e37643f3 in the agent worktree, not merged).
+  Relaunched one agent per worktree (same scope, told to inspect and keep only correct partial work). Creative round 10
+  (Fable xhigh, live-ready readers for an LT4 family) started; ideas only, not counted.
+- **Queue (07:19Z):** net lane q0243 running; cpu lane idle until q0260 `not_before` 14:05Z. No new failures.

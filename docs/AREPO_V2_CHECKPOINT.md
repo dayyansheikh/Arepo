@@ -230,25 +230,22 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-20 06:25Z
-0. **Autopilot session from 06:14Z 10-20.** Ledger: "Session 2026-10-20 ~06:15Z" on.
-   - **Done:** CB11-W seal copies committed (q0231b then ran: W1/W2 "not testable (GW)", only 1 of 6 fee categories with
-     >= 200 W_fit units; fit rows are almost all `unknown`). A science-reviewer is ruling TERMINAL vs DEFECT on that
-     (if DEFECT: new v3 chain, never rewrite v2; if TERMINAL: ledger it, then promote q0232 so the counted p = 1 lines are
-     written, after the W freeze part exists). q0242 mem 300 -> 1000 (MemoryError), retried, running.
-     CB11-A GA0 labels committed (`seals/cb11_attn_audit_labels.csv`, 145/200 = 0.725 < 0.80): q0239 will label A1/A2
-     "not testable (entity map)". q0229 continues as designed.
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-20 07:25Z
+0. **Autopilot session from 07:18Z 10-20** (the 06:14Z session stopped at ~06:48Z). Ledger: "Session 2026-10-20 ~07:18Z".
    - **Agents running (background) — if this session ended, check their worktrees for commits/uncommitted work:**
-     (a) LT2 R1 fixes in `../astrolabe-live-tests-r1` (feat/live-tests-2-r1): then short re-check -> pin SPEC/code sha ->
-     merge into this branch -> ledger registration -> promote q0460 -> deploy; deadline REGISTERED_UTC 10-22T00:00Z.
-     (b) LT3 designer in `../astrolabe-live-tests-3` (feat/live-tests-3): `LIVE_TESTS_3.md` (CH156/157/161/162, plus
-     CH159/CH158 if testable) -> science-reviewer challenger -> code -> freeze (REGISTERED_UTC >= 10-23).
-     (c) CB17 implementer in an isolated agent worktree (`.claude/worktrees/agent-*`): post-pre-census record, rules parts
-     common/B/C/E (deadline 10-24T12:00Z), then window code q0404-q0412; merge after review.
-   - **Queue:** net lane q0242 -> q0243 -> q0248 -> q0249; q0229 (A data, repeat); q0276 (waits q0242/q0244) -> q0302
-     (fill base pin from host sha256 of `creative_batch13/exclusion_keys.csv.gz`) -> q0340 -> q0380 / q0347. cpu lane idle
-     until q0260 (10-20T14:05Z). Freezes/promotions as before: CB12-O after q0260; CB12-E q0245 after q0244, q0266 after
-     q0245; CB16 q0380 after q0340, q0383 after q0380; CB15-P q0347 after q0340, then q0349/q0350.
+     (a) LT2 R1 fixes in `../astrolabe-live-tests-r1` (feat/live-tests-2-r1) -> short science-reviewer re-check -> pin
+     SPEC/code sha -> merge into this branch -> ledger registration -> promote q0460 -> deploy; deadline REGISTERED_UTC
+     10-22T00:00Z (else the window slides per LIVE_TESTS_2.md §1.1).
+     (b) LT3 response to challenger R1 + code + queue drafts in `../astrolabe-live-tests-3` (feat/live-tests-3) ->
+     science-reviewer freeze check -> census -> freeze (REGISTERED_UTC >= 10-23, window 10-24..11-14).
+     (c) CB17 window code q0404-q0412 in `.claude/worktrees/agent-ae42d4cfea66b78af` (rules common/B/C/E at e37643f3,
+     deadline 10-24T12:00Z) -> science-reviewer freeze check -> merge -> promote.
+     (d) Creative round 10 (Fable xhigh) -> `CREATIVE_HYPOTHESES_2026-10-24.md` (uncommitted until reviewed) -> LT4 draft.
+   - **Queue:** net lane q0243 -> q0248 -> q0249; q0229 (A data, repeat); q0276 -> q0302 (fill base pin from host sha256
+     of `creative_batch13/exclusion_keys.csv.gz`) -> q0340 -> q0380 / q0347. cpu lane idle until q0260 (10-20T14:05Z).
+     Freezes/promotions: CB12-O after q0260; CB12-E q0245 after q0244 (done), q0266 after q0245; CB16 q0380 after q0340,
+     q0383 after q0380; CB15-P q0347 after q0340, then q0349/q0350. CB11-PA: q0238 -> q0239 (A1/A2 "not testable
+     (entity map)", GA0 0.725).
 1. **CB8-H:** q0162/q0163 wait on spec `not_before` (10-21T06Z / 10-22T12Z). **CB8-B:** q0161/q0164 after T_seal; before
    promoting q0164 run the two `derive-exclusion-ids` commands in its draft notes on the host and fill both sha256 tokens.
 2. **CB9:** data jobs q0181+ only after T_seal 2026-10-22T00Z; q0182 needs the pinned q0164 hash. **CB10:** q0201 needs
