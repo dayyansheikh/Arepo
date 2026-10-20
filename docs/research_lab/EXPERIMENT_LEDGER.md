@@ -2583,3 +2583,14 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
 - **CB17:** delta-check D1/D2 + lows (31cca03e, merged 8defe614; 158 tests; rules part shas unchanged so T17 stands).
   Verification: one remaining D1 gap (an incomplete pin set could still yield a counted P2/P3 FAIL); final fix in
   progress before the code pin. Host deployed at 8defe614.
+
+## CB17 code freeze recorded, q0404 smoke promoted, 2026-10-20 19:05-19:15Z (acceptance pending P1-P3 on the host)
+- Final D1 completeness fix (04fa3e12, merged 10838876; 160 tests; rules part shas unchanged): pinned mode refuses unless
+  exactly 12 P3 captures (incl. sports `20261015T063101Z_9c518015`, both rows files each) and 24 P2 sweeps are pinned;
+  `release_map` anchored on a path boundary.
+- **`seals/cb17_code_freeze.json`**: `code_sha256` `529e7de5…6267` (7 modules), rules parts pre/common/B/C/E as T17,
+  `frozen_utc` 2026-10-20T19:05:50Z, ruling-6 attestation (no SCREEN_8/REP_8 file opened; none exists). Validated by
+  `require_code_freeze`. Acceptance (ruling 6 (ii)) only when q0404 reproduces P1-P3 exactly with this code.
+- **`seals/cb17_worn_sha256.json`** (54 keys): 53 from the releases' `files.sha256` (10-15..10-20), none from disk;
+  `fills.csv.gz` `bd896882…` from q0273's write-once manifest (the file is in no release).
+- **q0404 promoted** (after q0413 restore; snapshots/trades from the restore tree, sweeps/fills live).
