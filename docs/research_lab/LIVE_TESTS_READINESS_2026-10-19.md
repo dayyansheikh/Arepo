@@ -393,3 +393,30 @@ sizes. The cron line is in `scripts/oracle/crontab.txt`, commented and **not ins
 2. Coordinator: merge `feat/live-audit` (ledger append included). Deploy the watchdog and uncomment its cron line when
    deploying is allowed.
 3. 11-03 after 08:00Z: E009/E010 per A6. 11-11 after 13:00Z: E011, then the supplement.
+
+## Addendum 2 (2026-10-21): science-reviewer ACCEPT_WITH_CHANGES applied, before any merge on real data
+
+1. **Gap fill is now `gapfill-v2`.** The rule is in `E009_E010_GAPFILL_RULE_V2.md` (commit `b225ac39`, declared before the
+   code change); v1 is kept. The code is in commit `4751a46d`.
+   - §1 now gives the straddling counts per outcome-line grid and per analysed grid. E009: 74, 148 and 368 lines at
+     10/20/60 min on the line grid, but only 74 per horizon on the analysed grid (origin 00:00Z). E010: 74 lines at 1 h
+     and 299 at 6 h, all analysed.
+   - The §5 bound is restated to match: at most 74 E009 analysed origins per horizon, and 74 / 299 for E010.
+   - New refusal `canonical_pred_duplicate`, checked after `canonical_evaluated`. `analyze` keeps the last line of a
+     duplicated id. There are 0 such ids today.
+   - Disclosure added: refusals under R4(d) are a non-random subset (the two hosts' books differed at `t`). This is not a
+     leak.
+   - The manifest adds `r4_*_analysed_grid` counts.
+   - The CLI records HEAD and refuses a dirty tree; `--allow-dirty` records `tree_dirty: true`.
+2. **E010 verdict rule** (ledger entry "E010 verdict rule declared", commit `084b16bc`; code in `e5f6ca7f`). A horizon that
+   is Unavailable by the registered minimum enters Holm with p = 1, so the other horizon's adjusted p is
+   min(1, 2·p_raw). `live_verdicts.py e010` reports the declared and the frozen `holm_m1` side by side, and shows both
+   verdict sets when they differ.
+3. **Ledger deviation entry for F1** (`_cluster_id`): the facts, the reason, and the effect, which is 0 of 4,200 current
+   window alert lines.
+4. **E011 supplement disclosures** (module header):
+   - the frozen `analyze` counts a missing `fwd_move` as a non-hit, while the supplement excludes it;
+   - the (d) denominators differ from `n_episodes_analysed`;
+   - a missing `fee_category` falls into non-sports.
+5. **D1 ledger entry reworded:** "strictly between" the bounding cycles, which are present, and "cause unknown". This
+   entry was amended in place because it had not been merged yet. The other ledger edits are appended entries.

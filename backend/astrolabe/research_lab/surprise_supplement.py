@@ -7,6 +7,16 @@ Pre-declared 2026-10-20, before any E011 outcome was looked at (readiness audit)
 only: no p-value here enters a verdict, nothing is added to the multiplicity count, and the
 primary and verdict come only from ``surprise_snapshot.analyze``. Episodes are formed exactly as
 ``analyze`` forms them (same window filter, same head rule, same drops); a test pins the equality.
+
+Disclosures (science-reviewer, 2026-10-21):
+* |move| >= 0.15 rates differ in definition from the frozen ``analyze`` secondaries
+  ``abs_move_6h_ge_0.15`` / ``abs_move_24h_ge_0.15``: there ``np.nanmean(df["abs6"] >= 0.15)``
+  turns a missing ``fwd_move`` (NaN) into False, i.e. counts it as a non-hit; here a missing move
+  is excluded (NaN, ``np.nanmean``). The two numbers can differ; report both, labelled.
+* (d) denominators are not ``n_episodes_analysed``: an alert or control with a missing move is
+  dropped from its rate, and the matched difference uses only episodes where both sides are finite
+  (``n`` in each (d) block is that count).
+* (e) an alert line with a missing ``fee_category`` (None/absent) falls into ``non_sports``.
 """
 
 from __future__ import annotations
