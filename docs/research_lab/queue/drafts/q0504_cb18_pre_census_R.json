@@ -1,9 +1,9 @@
 {
  "id": "q0504_cb18_pre_census_R",
- "title": "CB18 pre-census R and race map (CH179; DRAFT): counts and origin-side features on the 23 sealed samples with captures from 10-15T12:31Z: raced rows (same market, same ts, different tx_hash), R distribution, ts resolution and gap histogram, fingerprint-identical and same-side shares, zR centre/scale, |corr| with zW, zH, zN, zSize, zSPR, zRV, zHTE, VIF of x6*zR, projected events (GR1-GR6); race map by category, hour, row-count decile, price band",
+ "title": "CB18 race map (CH179; DRAFT, descriptive only): counts on the 23 sealed samples: raced rows (same market, same ts, different tx_hash), R distribution, ts resolution and gap histogram (same-block label if ts is quantised), fingerprint-identical and same-side shares; race map by category, hour, row-count decile, price band. No gates, no route, no target",
  "family": "creative_batch_18",
  "priority": 28,
- "expected_value": "CB18-R gates and route (LT5 member or dropped); the race map (k = 0) published either way",
+ "expected_value": "the race map (k = 0); CB18-R's counted moderator test is dropped (R1 finding 1)",
  "data": [
   "data-dumps/research_lab/cb18_census/restore/data-dumps/research_lab (q0500/q0501; read-only)"
  ],
@@ -14,12 +14,11 @@
   "network": "none"
  },
  "depends_on": [
-  "q0500_cb18_census_restore_captures",
   "q0501_cb18_census_restore_samples"
  ],
  "argv": [
   "scripts/run_cb18.py",
-  "census-r",
+  "map-race",
   "--rules",
   "../docs/research_lab/seals/cb18_rules.json",
   "--part",
@@ -33,7 +32,7 @@
   "--sample-root",
   "../data-dumps/research_lab/cb18_census/restore/data-dumps/research_lab/trade_samples",
   "--out",
-  "../data-dumps/research_lab/cb18_census/R.json",
+  "../data-dumps/research_lab/cb18_census/R_map.json",
   "--disk-cap-gb",
   "20",
   "--data-dumps-cap-gb",
@@ -42,8 +41,8 @@
  "timeout_s": 5400,
  "max_retries": 1,
  "outputs": [
-  "data-dumps/research_lab/cb18_census/R.json (counts only; write-once)"
+  "data-dumps/research_lab/cb18_census/R_map.json (counts only; write-once)"
  ],
- "next_action": "add R.json's sha256 to seals/; routing record; publish the race map in CREATIVE_BATCH_18.md",
- "notes": "DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md, design not yet reviewed). scripts/run_cb18.py DOES NOT EXIST YET (code needed, CREATIVE_BATCH_18.md section 6). Counts 0 (kind cb18_descriptive). Refuses unless part pre is committed and every pinned input is present and matches (L4); refuses any file or row after its cut-off. No y6 or any target read. Wallet fields never read."
+ "next_action": "add R_map.json's sha256 to seals/; publish the race map in CREATIVE_BATCH_18.md section 4.3",
+ "notes": "DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md, R1 response written, awaiting the R1 re-check). scripts/run_cb18.py DOES NOT EXIST YET (code needed, CREATIVE_BATCH_18.md section 6). Counts 0 (kind cb18_descriptive). Refuses unless part pre is committed and every pinned input is present and matches (L4); refuses any file or row after its cut-off. No x6, y6 or any target read; no zR correlations or VIF (they served the dropped test). Wallet fields never read. R1 response (CREATIVE_BATCH_18.md section 11, 2026-10-21): finding 1: the counted LT5 moderator test is dropped (its residualised donor gate failed a binding size scenario in LT4 R2 and is structurally invalid per LT3 donor-gate ruling 2); no replacement null is declared, so this map cannot revive it. Depends only on the samples (captures are not read)."
 }
