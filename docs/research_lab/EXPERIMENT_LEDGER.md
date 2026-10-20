@@ -2594,3 +2594,138 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
 - **`seals/cb17_worn_sha256.json`** (54 keys): 53 from the releases' `files.sha256` (10-15..10-20), none from disk;
   `fills.csv.gz` `bd896882…` from q0273's write-once manifest (the file is in no release).
 - **q0404 promoted** (after q0413 restore; snapshots/trades from the restore tree, sweeps/fills live).
+
+## Queue and LT4 R1 response, 2026-10-20 19:10-19:30Z (nothing counted)
+- **q0245 (CB12-E quake prices) done** (attempt 2, 19:17Z, 115 s, mem_mb 600): `quake_prices_complete`, 108 events,
+  215 markets priced, 217 requests (<= the 15,000 recorded by q0244), 0 unavailable (network), 33 USGS requests. No
+  outcome read. Unblocks q0266 (CB12-E census).
+- **Restore jobs q0471 / q0413 failed in < 1 s** (q0471 attempt 3, q0413 attempt 1): `gh` (Go) aborts with "runtime:
+  out of memory" under the 2 x mem_mb address-space cap (1.2 GB); measured on the host: fails at 1.2 GB, works at
+  1.6 GB. mem_mb -> 1200 (cap 2.4 GB), deployed b002d48d, both `retry` (fresh budgets). Resource only.
+- **LT4 R1 response** (`feat/live-tests-4` 708949c3, ee82f45d; LIVE_TESTS_4.md §14; 24 LT4 tests): all 12 findings
+  addressed (E020 common support; permuted-share census + pre-declared fallback stratum; E021 skip-slot primary +
+  n2h_truncated; E022 within-market VIF / residual-IQR gate / D_{k-1} / imbalance / binding transient label; both-token
+  depth rule; Freedman-Lane gates; census DE with rho 0.02; interaction VIF + `x6|mid-0.5|`; 200 draws, 11 scenarios;
+  sweep-missing label; LT3-first ordering); q0485 kept on the net lane (refusal with reason). New planning MDEs: E020
+  0.22-0.32c, E021 0.36-0.68c (likely to drop), E022 0.25-0.63c (borderline) vs 0.5c floors. **New finding:** a donor
+  gate is oversized (~0.115 for LT3's `donor_gate`) when the tested moderator correlates 0.7 with a controlled moderator
+  that has a real effect; LT4's residualised donor gate + census cap |corr| <= 0.5 gives ~0.068 (limit 0.075 at 200
+  worlds); the designer stopped tuning; E023/E024 blocked at the pin unless q0484 passes. Challenger R2 and an LT3
+  donor-gate ruling (science-reviewer) running; LT3's pin waits for that ruling.
+
+## Session 2026-10-20 ~22:39Z (autopilot): restore root cause fixed; gap 19:30-22:39Z written up (nothing counted)
+- **Recorded late (previous session stopped ~20:40Z):**
+  - **LT3 donor-gate ruling** (c5920dd2, `reviews/LT3_DONOR_GATE_RULING_2026-10-20.md`): revise. Studentise the donor
+    statistic, add binding `donor_collinear_control` scenarios (0.5, 0.7; effect 0.004), census C2 reports within-market
+    R^2 of x6 zW / x6 zH on the controlled interactions and uses |corr|. q0473b stopped (cancelled on the host; no
+    output used). Fix running on `fix/lt3-donor` (implementer, this session); a new >= 2,000-world size check on the
+    fixed code follows a science-reviewer pass, before the pin.
+  - **LT4 challenger R2** (6ce45313): E020-E022 ACCEPT_WITH_CHANGES; E023/E024 dropped before any census (k = 3).
+    R2 code + response 99c4c2eb / ebda78b8 (`feat/live-tests-4`): CH depth from the chosen definition, MA(2) overlapping-
+    target size scenario, DE gate floor 3.0, `abs_dev` in the correlation cap, joint late1|late3 skip mask, n2h by band.
+    Re-check (science-reviewer) running this session.
+  - **CB18 DRAFT design** (9ea4f371, `feat/cb18`): round-10 remainder (CH172, CH175-CH177, CH179; CH178 excluded as a
+    double count of E015). Design only.
+- **Jobs finished (data preparation, no outcome read, nothing counted):** q0266 CB12-E census `not testable
+  (dependence)` (19:40Z; freeze entry per the CB12-O precedent pending); q0277 CB13 touch frame complete (screen 374 /
+  holdout 861 events); q0279 CB13 Binance 64 files, 0 unavailable; q0284 CB13-R pregate pass (58 components); q0302
+  CB14 exclusion keys complete; q0303 CB14 W frame complete (94 of 1,119 rows kept; dropped: key 411, window 409,
+  sports 180, summary 14, mention 9, entity 1). Follow-up promotions: audit running.
+- **Restore failures, root cause:** q0471 (LT3 C2) and q0413 (CB17 worn inputs) failed with `no catalogue for
+  data-20261016/17-dsheikh`: the repo catalogue stopped at 10-15. `archive_catalogue.py` run for 10-15-active and
+  10-16..10-20 (incl. -2, -active) and committed (d79db323). q0413 attempt 1 had already restored and verified the 6
+  files of data-20261015-dsheikh (report passed, 79,926,435 B); later attempts refused because those files existed, so
+  its argv drops that tag (selection globs unchanged). Both `retry` with fresh budgets after deploy. q0472's deadline
+  (10-23T03:30Z) still holds.
+
+## Operational deviation: canonical E009/E010 gaps on 2026-10-13 before the 10-14 outage (recorded 2026-10-20; facts only, not counted)
+
+Found by the live-tests readiness audit (`LIVE_TESTS_READINESS_2026-10-19.md`) from prediction-line timestamps only. No
+outcome was read.
+- **Gaps:** the canonical E009 stream (the Mac poller) has no prediction cycles strictly between 2026-10-13 21:24Z and
+  22:22Z, nor strictly between 22:28Z and 23:12Z. The bounding cycles at 21:24Z, 22:22Z, 22:28Z and 23:12Z are present.
+  Hourly cycle counts out of 30 are 21:00Z 13, 22:00Z 4 and 23:00Z 24. E010 has no 22:00Z or 23:00Z origin.
+- **Cause:** unknown. This is separate from the documented 2026-10-14 00:02Z–10:44Z outage.
+- **Coverage:** the validation copy started at 23:33Z and covers neither gap. The 2026-10-15 gap-fill decision covers only
+  the open interval (00:02Z, 10:44Z) on 10-14 (rule `gapfill-v2`, `E009_E010_GAPFILL_RULE_V2.md`). Missing stays missing,
+  and neither window is extended.
+- **E011 is unaffected:** its passes at 20:31Z and 22:31Z on 10-13 are present.
+
+## E010 verdict rule declared: Holm when a horizon is Unavailable (2026-10-21 00:12 UTC+1; pre-outcome, not counted)
+
+This entry is declared before any E010 outcome analysis. It follows the science-reviewer's ACCEPT_WITH_CHANGES on the
+readiness audit. It clarifies the registered sentence "Holm always uses m = 2: a horizon without a test enters with p = 1"
+together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 evaluated origins at that horizon".
+- **Rule.** A horizon that is Unavailable by the registered minimum counts as "a horizon without a test" and enters Holm
+  with p = 1. The other horizon's adjusted p is then min(1, 2·p_raw), where p_raw is its frozen `p_one_sided_m1`. When
+  neither horizon is Unavailable, the Holm adjustment is the frozen `holm_m1`, unchanged.
+- **Why.** The frozen `cross_venue_live_e010.analyze` assigns p = 1 only to a horizon with fewer than 2 clusters. A
+  horizon with 2–19 clusters, or with fewer than 2,000 origins, would otherwise enter Holm with its own p, although the
+  registration gives it no test.
+- **Reporting.** `backend/scripts/live_verdicts.py e010` applies this rule. It also reports the frozen `holm_m1` and the
+  verdicts that `holm_m1` would give. If the two sets of verdicts differ, both are shown and the declared rule is the
+  registered verdict. No statistic is recomputed: p_raw is read from the frozen output.
+
+## Deviation: fix to frozen E011 analysis code, `_cluster_id` (2026-10-21 00:12 UTC+1; pre-outcome, not counted)
+
+- **What changed.** In `surprise_snapshot.analyze` (commit `ed7dea22`, branch `feat/live-audit`), the episode cluster
+  `a.get("event_id") or a["market_id"]` became `_cluster_id(a)`. It treats `"nan"`, `"None"`, empty and null event ids
+  as absent and falls back to the market id.
+- **Why.** The E011 registration says "cluster = Gamma event id (market id when absent)". Alert lines store
+  `str(row["event_id"])`, so a capture row without an event id arrives as the string `"nan"`. The old expression treated
+  that string as present and would have pooled every such market into one `"nan"` cluster. The fix restores the
+  registered definition exactly.
+- **Effect on collected data:** none so far. 0 of the 4,200 window alert lines (as of 2026-10-19 21:44Z) carry a
+  missing-like event id. The latest capture had 1 market without an event id among 246,961 rows, so the case can occur.
+  The primary statistic, the episode rule, the window and the verdict thresholds are unchanged.
+- **Found and checked by:** the live-tests readiness audit, reviewed by the science-reviewer (ACCEPT_WITH_CHANGES). Test:
+  `test_e011_missing_event_id_falls_back_to_market_id`. The E011 analysis must run from a commit that contains this fix.
+
+## CB12-M and CB12-E freeze (gate-failure path) and screens, 2026-10-20 22:56-23:10Z; 3 tests counted with p = 1
+- **Freeze entries** (`model_specs/cb12_v1.json`, merge ae175bec of `freeze/cb12-me` 7181778c + 48964e20): M
+  `rules_sha256` a2e420b0…, census `census_M.json` sha256 6229816e… (q0249, 19:04Z); E `rules_sha256` bd512db4…, census
+  `census_E.json` sha256 caabaadd… (q0266, 19:40Z); common f2f672c1…; both census shas re-checked on the host by the
+  orchestrator. Science-reviewer freeze check: **FREEZE_OK_WITH_FIXES**, applied: `git_commit` labelled as inferred from
+  host log time (binding pin is `census_rules_sha256`; CB12 code identical across 8defe614..7181778c); E's q0257
+  collector not installed recorded as a **disclosed deviation** (design :78/:768/:948/:1087 install it unconditionally;
+  harmless because E1 is fixed at p = 1 by the outcome-blind census, so Stage 2 can never open, :785-786); M's
+  verify_fetch/holdout-listing calls on this path noted.
+- **Census gates (counts only):** M: GM pass (159 events, 79 speaker keys, 36 weeks), GMP fail (MDE_M1 3.19 words > 1.0)
+  -> M1, M2 "not run (power)". E: parser gate pass; dependence minima unmet (183/300 markets, 28/60 events, 30/40 weeks,
+  27/30 components) -> E1 "not testable (dependence)"; GEP not computed.
+- **Screens (counted):** q0252 (23:08Z) M1, M2 p = 1, advance false; q0253 (23:10Z) E1 p = 1, advance false. No outcome
+  file opened (the screens return before any guarded open). **CB12 counted so far at p = 1: O 2, M 2, E 1 = 5 of k1 = 10.**
+  Never run: q0256, q0257, q0258 (and q0261, q0264 for O).
+
+## LT4 (E020-E022) R2 re-check and censuses promoted; LT3 donor-gate ruling 2, 2026-10-20 23:00-23:59Z (nothing counted)
+- **LT4 R2 re-check** (science-reviewer, `reviews/LT4_CHALLENGER_R2_RECHECK_2026-10-20.md`): **ACCEPT_WITH_CHANGES**. New
+  HIGH: q0484 (size check) cannot run until LT3's registration commit is merged and the LT4 code freeze is recorded
+  (LT4 hashes `live_tests3_analysis.py`; `sim_move_world` RNG order changed with the Freedman-Lane commit). MEDIUM: block
+  anchor split census days. LOW: `bounce_decomp` not hashed; stale text. Fixes 4b6cc7e1 (per-census anchor at its first
+  UTC day, analysis at REGISTERED_UTC; `bounce_decomp` in CODE_FILES; q0484 gating; q0481 folded into LT3's q0471
+  restore) and 99618c95; verification **OK_WITH_FIXES** (capture seal missing before q0482/q0483; one-day final block
+  disclosed). Capture/sweep seal `seals/lt4_census_inputs_captures.json` written from the releases' `files.sha256`
+  (211 files, 2026-10-14T22Z .. 10-17, manifests checked) before any LT4 census. feat/live-tests-4 merged; **q0482 (CQ/CH)
+  and q0483 (CF clock) promoted**, counts only, after q0480 (restore; mem 1200; adds release -2 for 10-17T04:31Z) and q0471.
+- **LT3 donor-gate ruling 1 implemented** (`fix/lt3-donor` d0196387: studentised score, `donor_collinear_control`
+  0.5/0.7, C2 within-market R^2, |corr| cap; 38 tests). Local informational size check (300 worlds; limit 0.0707):
+  donor_iid 0.073, donor_corr_control 0.100, donor_collinear_control_0.7 0.073; perm scenarios within the limit.
+- **Ruling 2** (`reviews/LT3_DONOR_GATE_RULING2_2026-10-21.md`): implementation correct; the donor gate is structurally
+  invalid (real and donor statistics not exchangeable: direction correlation real-donor 0.210 vs donor-donor 0.243 iid,
+  0.131 vs 0.183 corr_mod). **Option (ii):** the donor gate becomes a reported, non-binding label; E016/E018 use the
+  Freedman-Lane permutation gate as E015/E019; binding size scenarios = perm scenarios + flow-world perm (iid, AR 0.6,
+  collinear 0.7); skipped draws fail closed; thresholds, alpha, draws, seeds, limit 0.058 unchanged; written as §13.13
+  before any 2,000-world run, then a science-reviewer pass, then the run; any binding failure blocks the pin with no
+  further redesign. The decision does not depend on any later size result. Implementer running. q0471/q0472 unaffected.
+
+## CB14-W gate GW0 blind audit, 2026-10-20 ~23:25Z (repo step; nothing counted yet)
+- q0303's `w_map_audit_sample.csv` (every mapped pair, 56 rows, sha256 3875e69b…) blind-labelled by one science-reviewer
+  agent that read only that file and CREATIVE_BATCH_14.md:575-592: **38 match / 18 not, precision 0.679 < 0.90 (GW0
+  FAIL)**. Misses: surname lists (Epstein, Menendez, Nguesso, Trudeau, Tshisekedi), companies/apps (ChatGPT, OpenAI,
+  TikTok, Tea App, Tinder), wrong pages (a Coldplay tour for Andy Byron / Kristin Cabot; Tony Gonzalez vs Gonzales; "Von";
+  Japan; ICE; University Presidents; Trump as a modifier). Committed as `seals/cb14_w_map_audit.json`; q0305 gets
+  `--audit` pointing there (the default path under data-dumps is not in git).
+- The design allows one blind revision of the entity rule after a GW0 failure. **Not used:** the frame keeps 94
+  markets after key drops (q0303 counts), below GWC's 150-market minimum regardless of the map, so a revision cannot
+  change the GWC result (decided from counts only, no outcome). q0305 will record GWC FAIL -> W1, W2 not testable,
+  counted with p = 1 per the design; q0306/q0307 are never committed.

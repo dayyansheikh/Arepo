@@ -9,6 +9,12 @@ In full mode (the user's choice, 2026-10-15) other tools are available, includin
 In restricted mode, anything else is denied. Either way, every CLAUDE.md protected boundary applies, and anything that
 needs the user goes under "Approvals needed" on the dashboard (never force a denial).
 
+USER NORTH STAR (set 2026-10-21, permanent, overrides nothing else): the continuously improving SIGNAL ENGINE,
+docs/research_lab/signal_engine/NORTH_STAR.md. It is a champion (momentum + market state) plus challengers (each adds
+signal families), scored prospectively at every capture, with promotion only by a pre-declared rule. EVERY session spends
+at least one unit on it, and the queue always has signal-engine work scheduled or running. It is about honest forecast
+accuracy, not edge claims; the confirmation programme continues unchanged.
+
 USER LIVE TESTS PRIORITY (set 2026-10-19 ~22:10 UTC+1): the owner wants MORE PROSPECTIVE LIVE TESTS running (the dashboard
 showed only 3). Each session: (1) keep the queue from going idle; (2) move screened/replicated candidates to registered
 prospective live tests as fast as governance allows (pre-registration, MDE, clustering, Holm, challenger review, freeze),

@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-20T18:23:14Z",
+ "updated": "2026-10-20T23:15:40Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1122,18 +1122,18 @@
   {
    "id": "CB12",
    "title": "Mention baskets, stale horizons and other round-5 ideas",
-   "plain": "Word-mention baskets, earthquake counts, stock-option prices and large-trade footprints. The stale-horizon part (CB12-X) was screened and closed with no finding; the mention-basket downloads started on 19 Oct; code for the earthquake, option and footprint parts is being written.",
+   "plain": "Word-mention baskets, earthquake counts, stock-option prices and large-trade footprints. Four parts are now closed with no finding: stale horizons (screened), option prices (no data source), mention baskets (too little power) and earthquakes (too few independent events).",
    "batch": "CB12",
    "family": "mixed",
    "stage": "designed",
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Mention baskets after batch 11's exclusion list",
+   "next": "Footprint part only, if its code passes review",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB12-X Stage 1 screen (q0255), 2026-10-19"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB12-M and CB12-E freeze (gate-failure path) and screens, 2026-10-20"
    },
    "stage_results": {
     "designed": "pending"
@@ -1186,6 +1186,52 @@
    "candidate": false,
    "sources": {
     "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB12-O smoke and freeze (not testable), 2026-10-20"
+   },
+   "stage_results": {
+    "designed": "fail"
+   },
+   "reached": [
+    "designed"
+   ]
+  },
+  {
+   "id": "CB12-M",
+   "title": "Word-mention baskets in speeches (M1, M2)",
+   "plain": "Do markets on whether a speaker will say certain words misprice them? The data were collected, but the pre-declared power check showed the test could only detect an effect far larger than the one that matters, so it was not run. Counted as two tests that found nothing.",
+   "batch": "CB12",
+   "family": "text",
+   "stage": "designed",
+   "status": "closed",
+   "verdict": "not_testable",
+   "effect": null,
+   "next": "Closed (too little power); a new design would be needed",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB12-M and CB12-E freeze (gate-failure path) and screens, 2026-10-20"
+   },
+   "stage_results": {
+    "designed": "fail"
+   },
+   "reached": [
+    "designed"
+   ]
+  },
+  {
+   "id": "CB12-E",
+   "title": "Earthquake-count markets (E1)",
+   "plain": "Do earthquake-count markets lag the public seismic feed? Too few independent events, weeks and markets were available for the pre-declared dependence check, so the test cannot run. Counted as one test that found nothing.",
+   "batch": "CB12",
+   "family": "external_data",
+   "stage": "designed",
+   "status": "closed",
+   "verdict": "not_testable",
+   "effect": null,
+   "next": "Closed (too few independent events)",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB12-M and CB12-E freeze (gate-failure path) and screens, 2026-10-20"
    },
    "stage_results": {
     "designed": "fail"
@@ -1367,11 +1413,11 @@
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Order-flow counting check on the server (before 23 Oct), then freeze review, pin and register (proposed start 24 Oct)",
+   "next": "Fix to one safety check (requested by the independent review), its size check on the server, the order-flow counting check (before 23 Oct), then freeze review, pin and register",
    "next_date": "2026-10-24",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT3 censuses C1/C3/C4 (q0470), 2026-10-20"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Session 2026-10-20 ~22:39Z (LT3 donor-gate ruling)"
    },
    "stage_results": {
     "designed": "pending"
@@ -1382,19 +1428,19 @@
   },
   {
    "id": "LT4",
-   "title": "Live tests E020-E024 (planned)",
-   "plain": "Five planned live tests from the round 10 ideas: whether a quote move made by a new order behaves differently from one made by a cancellation, whether very recent trades carry on less, whether displayed liquidity that cannot actually be traded against matters, and whether opening trades or one big order carry more information. Drafted; independent review under way.",
+   "title": "Live tests E020-E022 (planned)",
+   "plain": "Three planned live tests from the round 10 ideas: quote moves made by new orders versus cancellations, whether very recent trades carry on less, and displayed liquidity that cannot actually be traded against. The second review accepted these with changes and dropped two others whose safety check did not hold. Re-check under way.",
    "batch": "LT4",
    "family": "mixed",
    "stage": "designed",
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Independent review, counting checks, then pin and register (proposed start 26 Oct)",
+   "next": "Re-check of the changes, counting checks on the server, then pin and register (after LT3)",
    "next_date": "2026-10-26",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT4 (E020-E024) DRAFT, 2026-10-20"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Session 2026-10-20 ~22:39Z (LT4 challenger R2)"
    },
    "stage_results": {
     "designed": "pending"

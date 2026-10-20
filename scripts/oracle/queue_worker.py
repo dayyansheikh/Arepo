@@ -202,6 +202,10 @@ def release_lane() -> None:
     (QROOT / "LANE_HOLD").unlink(missing_ok=True)
 
 
+def exclusive(spec: dict) -> bool:
+    return bool(spec.get("resources", {}).get("exclusive"))
+
+
 def lane_held(spec: dict) -> bool:
     """True if a lane hold is in place and covers this spec (same lane, mem_mb >= the hold's minimum). An unreadable hold file holds every job of every lane (fail safe)."""
     p = QROOT / "LANE_HOLD"
@@ -272,11 +276,14 @@ def run_job(jid: str) -> int:
     spec = load_specs()[jid]
     st = load_state(jid)
     mem = int(spec.get("resources", {}).get("mem_mb", 2048))
+    # Address-space cap: 2 x mem_mb by default. numpy/Arrow reserve far more virtual memory than they touch, so a
+    # job may declare resources.as_cap_mb (e.g. q0116c died at the 6.4 GB virtual cap with ~4 GB physically free).
+    as_cap = int(spec.get("resources", {}).get("as_cap_mb", mem * 2)) * 1024 * 1024
 
     def limits():
         os.nice(19)
         if sys.platform != "darwin":
-            resource.setrlimit(resource.RLIMIT_AS, (mem * 1024 * 1024 * 2, mem * 1024 * 1024 * 2))
+            resource.setrlimit(resource.RLIMIT_AS, (as_cap, as_cap))
             try:  # under memory pressure the kernel kills research jobs before the collector/monitors
                 with open("/proc/self/oom_score_adj", "w") as f:
                     f.write("1000")
@@ -375,6 +382,20 @@ def tick() -> int:
             cands = [(s, st) for s, st in cands if st["status"] != "invalid" and ready(s, st)
                      and lane(s) not in busy_lanes and not lane_held(s)]
             cands.sort(key=lambda x: (-x[0]["priority"], x[0]["id"]))
+            if any(exclusive(specs[j]) for j in running):
+                cands = []  # an exclusive job runs alone
+                parts.append("exclusive job running")
+            # An exclusive job (resources.exclusive) that is the top ready job drains the queue: nothing else starts
+            # until the running jobs finish, then it starts alone (heavy-job rule on a 5.6 GB host).
+            top = sorted([(s, load_state(j)) for j, s in specs.items() if "_invalid" not in s
+                          and load_state(j)["status"] != "invalid" and ready(s, load_state(j))],
+                         key=lambda x: (-x[0]["priority"], x[0]["id"]))
+            if top and exclusive(top[0][0]) and not any(exclusive(specs[j]) for j in running):
+                if running:
+                    cands = []
+                    parts.append(f"draining for exclusive {top[0][0]['id']}")
+                else:
+                    cands = [top[0]]
             if cands:
                 spec, st = cands[0]
                 mem_mb = int(spec.get("resources", {}).get("mem_mb", 2048))

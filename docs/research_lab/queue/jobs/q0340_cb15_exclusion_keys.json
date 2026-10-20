@@ -26,7 +26,7 @@
   "--rules",
   "../docs/research_lab/seals/cb15_rules.json",
   "--base-sha256",
-  "TODO-COORDINATOR",
+  "d91bfacc9def0f0d07aa4f195dec58de759748f384ad0803ebce5f168a78c878",
   "--rps",
   "2",
   "--disk-cap-gb",
@@ -43,7 +43,7 @@
   "research_lab/creative_batch15/exclusion_run15/"
  ],
  "next_action": "q0347",
- "notes": "CREATIVE_BATCH_15.md section 1.3. DRAFT. TODO-COORDINATOR: --base-sha256 = sha256sum of creative_batch14/exclusion_keys.csv.gz on the host after CB14 q0302 completes (the job refuses while the pin is unset). Never opens any holdout/ path except the named id-only files. >2% missing metadata -> P not testable (disjointness), counted once; E keeps calendar disjointness. Resumable (in_progress exit 0). Rules part sha256 (seals/cb15_rules.json, written 2026-10-19): common 13c703222500e502cd29acb94cdec497c43ff68cfc9415bd0efbfd4699718f3a. CB15 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file; the coordinator regenerates the rules and this sha if any common code changes.",
+ "notes": "CREATIVE_BATCH_15.md section 1.3. DRAFT. TODO-COORDINATOR: --base-sha256 = sha256sum of creative_batch14/exclusion_keys.csv.gz on the host after CB14 q0302 completes (the job refuses while the pin is unset). Never opens any holdout/ path except the named id-only files. >2% missing metadata -> P not testable (disjointness), counted once; E keeps calendar disjointness. Resumable (in_progress exit 0). Rules part sha256 (seals/cb15_rules.json, written 2026-10-19): common 13c703222500e502cd29acb94cdec497c43ff68cfc9415bd0efbfd4699718f3a. CB15 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file; the coordinator regenerates the rules and this sha if any common code changes. PROMOTED 2026-10-20 ~23:20Z (autopilot): base pin = sha256sum of creative_batch14/exclusion_keys.csv.gz on the host after q0302 done (21:16Z).",
  "repeat": {
   "max_runs": 4,
   "until_log_regex": "\"status\": \"(exclusion_keys_complete|disjointness_unverified)\""

@@ -21,6 +21,12 @@ value on Polymarket data. It is research tooling: no alpha, calibration, profita
 
 ## Protected boundaries
 No production merge/deploy/migration/infra/env change, no remote branch deletion, no force-push, no secrets in output.
+**Owner exception (2026-10-21):** Claude may merge its OWN pull requests into `arepo-free-production-v1`. Conditions:
+- Only after the full frontend/backend validation passes and a self-review of the diff.
+- Through GitHub (`~/.local/bin/gh pr merge`), never a direct push to the production branch.
+- Right after merging, tell the owner in plain English what changed and give the PR link, so they can review.
+- Verify the Render and Vercel deploys afterwards.
+- This exception does not cover destructive migrations, env/secret changes, infra changes or data deletion. Those still need explicit owner approval.
 Never edit `docs/implementation/*EVIDENCE*.json`, frozen `*_PROTOCOL.md`, or canonical runs in `data-dumps/`.
 Data retirement only via the capsule-first policy in `docs/implementation/PHASE_03_BOUNDED_RETENTION.md`, with explicit
 user approval for that session.
