@@ -1,6 +1,6 @@
 # ruff: noqa: E501
-"""Live tests E020-E024 (LIVE_TESTS_4.md): order-event labels and the unmoved side, the tick-flip rule, the trade clock,
-hollowness, the flow composition, causality, late refusal, write-once (%.17g), markers, guards, ops-stats whitelist,
+"""Live tests E020-E022 (LIVE_TESTS_4.md; E023/E024 dropped before any census): order-event labels and the unmoved side,
+the tick-flip rule and common support, the trade clock, hollowness, causality, late refusal, write-once (%.17g), markers, guards, ops-stats whitelist,
 pins, the p rule, the census seals and gates, the size check and an end-to-end synthetic analysis. Synthetic data only;
 no network."""
 
@@ -28,12 +28,6 @@ def _iso(dt: datetime) -> str:
 
 def _spec(tmp_path: Path, **over) -> dict:
     spec = json.loads(lt.SPEC_PATH.read_text())
-    f = spec["flow"]
-    for z, (c, s) in {"zW": (0.2, 0.2), "zH": (0.5, 0.3), "zN": (2.0, 1.0), "zSize": (3.0, 1.0), "zSPR": (0.02, 0.01),
-                      "zRV": (-4.0, 1.0), "zHTE": (4.0, 1.5), "zOP": (0.5, 0.2), "zC": (0.3, 0.15)}.items():
-        f[z] = {"centre": c, "scale": s}
-    f["vol24_cap"] = 1e9
-    f["econ"]["OP_upper_cut"], f["econ"]["C_upper_cut"] = 0.6, 0.35
     spec["hollow"].update(zh={"centre": 0.93, "scale": 0.01}, h_cuts=[0.925, 0.935], gap=2.2, depth_def="token0")
     for t in ("e020", "e021", "e022"):
         spec[t].update(perm_stratum="day", exclude_family="")
@@ -204,7 +198,7 @@ def test_arrival_cancellation_labels_and_unmoved_side(tmp_path):
     assert cnt["arrivals"] == 3 and cnt["cancellations"] == 2 and cnt["tick_flip_or_unknown"] == 1  # f is an arrival too, but flipped
 
 
-# --- the clock, composition, hollowness ---------------------------------------------------------------------------------
+# --- the clock, hollowness ---------------------------------------------------------------------------------
 
 
 def test_clock_fields_newest_pre_origin_row_and_statuses(tmp_path):
@@ -221,16 +215,6 @@ def test_clock_fields_newest_pre_origin_row_and_statuses(tmp_path):
     assert cf["clock"][4] == "unclocked_no_prior"
     assert cf["n2h"][0] == 2 and cf["n2h"][1] == 1
     assert list(cf["n2h_truncated"]) == [0, 0, 1, 0, 0]  # c: full page whose oldest row is after t - 2 h (R1 finding 3)
-
-
-def test_composition_open_share_concentration_hhi():
-    rows = pd.DataFrame({"market_id": ["a"] * 5, "ts": [1.0, 2.0, 3.0, 4.0, 200.0], "o": [100.0] * 5, "sg": [1.0, 1.0, -1.0, 0.0, 1.0],
-                         "nt": [10.0, 30.0, 60.0, 99.0, 50.0], "side": ["BUY", "BUY", "SELL", "BUY", "BUY"], "outcome_index": [0, 1, 0, 0, 0]})
-    c = lt.composition(rows, pd.Series(["a", "z"]), 1000.0, 0.0)
-    assert c["Nsig"][0] == 3 and c["OP"][0] == pytest.approx(0.4) and c["C"][0] == pytest.approx(0.6)
-    assert c["HHI"][0] == pytest.approx((100 + 900 + 3600) / 100**2)
-    assert c["o_leg"][0] == pytest.approx(0.4) and c["s_leg"][0] == pytest.approx(-0.6) and c["OPno"][0] == pytest.approx(0.75)
-    assert np.isnan(c["OP"][1]) and c["Nsig"][1] == 0
 
 
 def test_hollow_state_and_superset(tmp_path):
@@ -277,13 +261,13 @@ def test_causality_future_captures_do_not_change_frozen_lines(tmp_path):
     now = _t(14, 40)
     for w, r in ((a, tmp_path / "ra"), (b, tmp_path / "rb")):
         st = _run(w, r, spec, 14, 15, now)
-        assert st["move"] == 1 and st["hollow"] == 1 and st["clock"] == 1 and st["flow"] == 1
+        assert st["move"] == 1 and st["hollow"] == 1 and st["clock"] == 1 and "flow" not in st
     drop = ["frozen_utc", "code_commit", "capture_id", "sample_id"]
     for kind, fid in (("move", a["ids"][14]), ("hollow", a["ids"][14])):
         fa = pd.read_csv(tmp_path / "ra" / kind / "frozen" / f"{fid}.csv.gz").drop(columns=drop, errors="ignore")
         fb = pd.read_csv(tmp_path / "rb" / kind / "frozen" / f"{b['ids'][14]}.csv.gz").drop(columns=drop, errors="ignore")
         pd.testing.assert_frame_equal(fa, fb)
-    for kind in ("clock", "flow"):
+    for kind in ("clock",):
         sa = sorted((tmp_path / "ra" / kind / "frozen").glob("*.csv.gz"))[0]
         sb = sorted((tmp_path / "rb" / kind / "frozen").glob("*.csv.gz"))[0]
         pd.testing.assert_frame_equal(pd.read_csv(sa).drop(columns=drop, errors="ignore"), pd.read_csv(sb).drop(columns=drop, errors="ignore"))
@@ -293,13 +277,12 @@ def test_late_refusal_write_once_and_dry_run_guard(tmp_path):
     spec = _spec(tmp_path)
     w = _world(tmp_path, 0, 16)
     root = tmp_path / "r"
-    st = _run(w, root, spec, 14, 15, _t(15, -0.5))  # 30 s before slot 15: move / hollow / clock late, flow (k + 3) not
-    assert st["refused_late"] == 3 and st["flow"] == 1
-    assert (root / "move" / "frozen" / f"{w['ids'][14]}.late.csv.gz").exists()
-    p = [f for f in (root / "flow" / "frozen").glob("*.csv.gz") if not f.name.endswith(lt.MARKERS)][0]
+    st = _run(w, root, spec, 14, 15, _t(15, -0.5))  # 30 s before slot 15: move / hollow / clock are late
+    assert st["refused_late"] == 3
+    p = root / "move" / "frozen" / f"{w['ids'][14]}.late.csv.gz"
     before = (p.read_bytes(), p.stat().st_mtime_ns)
     st2 = _run(w, root, spec, 14, 15, _t(15, -0.4))
-    assert st2["flow"] == 0 and st2["move"] == 0 and (p.read_bytes(), p.stat().st_mtime_ns) == before
+    assert st2["move"] == 0 and st2["refused_late"] == 0 and (p.read_bytes(), p.stat().st_mtime_ns) == before
     with pytest.raises(ValueError):
         lt.run_once(root=root, spec={**spec, "_pinned": True}, allow_late=True)
     import importlib.util
@@ -372,7 +355,7 @@ def test_code_hashes_cover_lt3_modules_and_lines_carry_joint_sha():
 
 
 def test_counting_rule_equals_k():
-    res = {"holm": {"tests": ["E020", "E022", "E023"]}, "E020": {"verdict": {}}, "E022": {"verdict": {}}, "E023": {"verdict": {}}}
+    res = {"holm": {"tests": ["E020", "E021", "E022"]}, "E020": {"verdict": {}}, "E021": {"verdict": {}}, "E022": {"verdict": {}}}
     rec = la.trial_record(res)
     assert rec["kind"] == "live_tests4" and rec["n_tests"] == 3
     assert battery2.count_line(rec) == ("live_tests4", 3)
@@ -389,11 +372,13 @@ def test_analysis_refusals_and_nan_census_values(tmp_path):
     with pytest.raises(RuntimeError):
         la.code_check(spec)  # null k_tests
     spec["k_tests"] = ["E020", "E022", "E023"]
+    with pytest.raises(RuntimeError):
+        la.code_check(spec)  # E023 / E024 were dropped (R2 finding 1)
+    spec["k_tests"] = ["E020", "E021", "E022"]
     assert la.code_check(spec)["label"] is None
-    spec["flow"]["vol24_cap"] = float("nan")
+    spec["hollow"]["gap"] = float("nan")
     with pytest.raises(RuntimeError):
         la.code_check(spec)
-    spec["flow"]["vol24_cap"] = 1e9
     spec["hollow"]["gap"] = None
     with pytest.raises(RuntimeError):
         la.code_check(spec)
@@ -454,7 +439,7 @@ def test_census_captures_sealed_counts_only_and_refuses_tampering(tmp_path):
     assert "error" in res2 and any(b["file"].endswith(f"{w['ids'][13]}/rows_ext.csv.gz") for b in res2["bad"])
 
 
-def test_census_flow_sealed_and_gates(tmp_path):
+def test_census_clock_sealed_and_gates(tmp_path):
     spec = _spec(tmp_path)
     w = _world(tmp_path, 0, 24)
     cseal = _capture_seal(w, tmp_path / "cseal.json")
@@ -463,18 +448,15 @@ def test_census_flow_sealed_and_gates(tmp_path):
              for s in sids for fn in ("features.csv.gz", "manifest.json", "plan.json", "trades.csv.gz")}
     seal = tmp_path / "seal.json"
     seal.write_text(json.dumps({"samples": sids, "files": files}))
-    res = lt.census_flow(seal=seal, capture_seal=cseal, sample_roots=[w["samples"]], snapshot_root=w["snap"], work=tmp_path / "work", spec=spec)
+    res = lt.census_cf(seal=seal, capture_seal=cseal, sample_roots=[w["samples"]], snapshot_root=w["snap"], work=tmp_path / "work", spec=spec)
     assert "error" not in res, res.get("bad")
-    assert res["CF_E021"]["band"]["fresh"] > 0 and res["CF_E021"]["band"]["settled"] > 0
-    assert res["CF_E021"]["ts_not_minute_share"] > 0.5 and "pass" in res["CF_E021"]["gate_E021"]
-    assert 0 < res["sell_share"] < 1 and res["covered_units"] > 0
-    for g in ("CF_E023", "CF_E024"):
-        assert "pass" in res[g][f"gate_{g[-4:]}"] and "corr_controlled" in res[g][f"gate_{g[-4:]}"]
-    assert set(res["max_abs_corr_controlled"]) == {"OP", "C"}
-    assert not res["CF_E023"]["gate_E023"]["agreement_gap"] or min(res["agreement"]["n"]["buy"], res["agreement"]["n"]["sell"]) >= 500
+    cf = res["CF_E021"]
+    assert cf["band"]["fresh"] > 0 and cf["band"]["settled"] > 0 and set(cf["n2h_truncated_share_by_band"]) == {"fresh", "settled"}
+    assert cf["ts_not_minute_share"] > 0.5 and "pass" in cf["gate_E021"] and cf["design_effect"]["DE_gate"] >= 3.0
+    assert set(res) >= {"CF_E021"} and not any(k.startswith("CF_E02") and k != "CF_E021" for k in res)
     p = w["samples"] / sids[0] / "plan.json"
     p.write_text(p.read_text() + " ")
-    res2 = lt.census_flow(seal=seal, capture_seal=cseal, sample_roots=[w["samples"]], snapshot_root=w["snap"], work=tmp_path / "work2", spec=spec)
+    res2 = lt.census_cf(seal=seal, capture_seal=cseal, sample_roots=[w["samples"]], snapshot_root=w["snap"], work=tmp_path / "work2", spec=spec)
     assert "error" in res2
 
 
@@ -484,11 +466,10 @@ def test_census_planning_mde_gates_bind():
     # 3.388 x 4c x sqrt(2 / 9,500) x sqrt(3) x 1.5 is about 0.5c: the E020/E021 gate binds near 9,500 effective units per class
     assert lt.l3.mde_eff(9500, 9500, a) == pytest.approx(0.005, rel=0.03)
     assert lt.l3.mde_eff(40000, 60000, a) < 0.005 < lt.l3.mde_eff(5000, 5000, a)
-    g = spec["census_gates"]["CF_E023"]
-    assert g["mde_base"] * np.sqrt(5000 / 5000) * np.sqrt(1.5) <= g["mde_max"] < g["mde_base"] * np.sqrt(1.6)
+    assert lt.de_gate({"DE": 1.4}, 3.0) == 3.0 and lt.de_gate({"DE": 4.2}, 3.0) == 4.2  # R2 finding 4: never below 3.0
     rows = pd.DataFrame({"market_id": ["a"] * 4 + ["b"] * 3, "event_id": ["e"] * 7, "skey": [f"event:{i % 3}" for i in range(7)], "sports": [0] * 7,
                          "cls": ["quote_only"] * 7, "geom": ["one_sided"] * 7, "tick_k": [0.01] * 7, "tick_p": [0.01] * 7,
-                         "tick_ok": [1] * 7, "arrival": [1, 0, 1, 0, 1, 0, -1], "side_moved": ["bid"] * 7, "common": [1] * 7,
+                         "tick_ok": [1] * 7, "qs_k": [0.04] * 7, "arrival": [1, 0, 1, 0, 1, 0, -1], "side_moved": ["bid"] * 7, "common": [1] * 7,
                          "t_row": [1.0e9 + 7200 * i for i in range(7)]})
     cq = lt.census_cq(rows, spec, 21.0)
     assert cq["arrivals"] == 3 and cq["cancellations"] == 3 and not cq["gate_E020"]["pass"]  # far too few: MDE gate fails
@@ -499,33 +480,20 @@ def test_census_planning_mde_gates_bind():
 # --- gates, size check, end-to-end ------------------------------------------------------------------------------------------
 
 
-def test_size_check_small_runs_and_new_scenarios():
+def test_size_check_small_runs_and_scenarios():
     sc = la.size_check(worlds=4, draws=19, seed=3)
     assert set(sc["scenarios"]) == {"fl_binary_iid", "fl_binary_persistent", "fl_binary_control_corr0.7", "fl_continuous_persistent",
-                                    "fl_continuous_control_corr0.7", "donor_iid", "donor_ar0.6", "donor_lifecycle",
-                                    "donor_correlated_moderator0.4", "donor_correlated_moderator0.5", "donor_correlated_moderator0.7"}
-    assert not sc["scenarios"]["donor_correlated_moderator0.7"]["binding"] and sc["scenarios"]["donor_correlated_moderator0.5"]["binding"]
-    assert all(0.0 <= v["rate"] <= 1.0 for v in sc["scenarios"].values()) and sc["limit"] > 0.05
+                                    "fl_continuous_control_corr0.7", "fl_binary_persistent_ma2_target"}
+    assert all(v["binding"] for v in sc["scenarios"].values()) and sc["limit"] > 0.05
     rng = np.random.default_rng(11)
     df, y = la.sim_cont_world(rng, effect=0.01)
     strata = (df["market_id"] + "|" + df["day"]).to_numpy()
     assert la.fl_perm_gate(df, y, "zh", ["c1"], sign=+1, strata=strata, draws=39, seed=1, min_stratum=4)["passes"]
-    df2, y2, others = la.sim_corr_flow_world(rng, effect=0.006)
-    assert la.donor_gate_resid(df2, y2, "x6", "zM", others, sign=+1, draws=39, seed=1, min_units=4, min_sep_s=43200.0, min_donors=2)["passes"]
-
-
-def test_residualised_donor_gate_holds_size_under_correlated_moderator():
-    """At moderator correlation 0.5 (the census cap) with a controlled moderator that has a real effect, the residualised
-    donor gate stays near nominal (LT3's gate: 0.115 at correlation 0.7, 200 worlds)."""
-    rng = np.random.default_rng(77)
-    passes = 0
-    for _ in range(40):
-        df, y, others = la.sim_corr_flow_world(rng, corr=0.5)
-        g = la.donor_gate_resid(df, y, "x6", "zM", others, sign=+1, draws=39, seed=int(rng.integers(1 << 30)), min_units=4,
-                                min_sep_s=43200.0, min_donors=2)
-        assert g["residualised_on"] == ["zA"]
-        passes += int(g["passes"])
-    assert passes <= 6
+    dm, ym = la.sim_ma2_world(rng, effect=0.05)
+    st = (dm["market_id"] + "|" + dm["day"]).to_numpy()
+    assert la.fl_perm_gate(dm, ym, "P", ["c1"], sign=+1, strata=st, draws=39, seed=1, min_stratum=4)["passes"]
+    spec = json.loads(lt.SPEC_PATH.read_text())
+    assert spec["size_check"]["seed"] != 20261026 and spec["size_check"]["draws"] == 200  # R2 finding 1: new seed declared
 
 
 def test_end_to_end_synthetic_analysis(tmp_path):
@@ -538,13 +506,14 @@ def test_end_to_end_synthetic_analysis(tmp_path):
     _run(w, root, spec, 14, 26, _t(36, 0))
     start, end = _iso(G0 + timedelta(hours=28, minutes=-31)), _iso(G0 + timedelta(hours=52, minutes=-31))
     res = la.analyze(root, start_utc=start, end_utc=end, spec=spec, roles=(lt.ROLE_UNREG,), force=True)
-    assert res["holm"]["m"] == 5
+    assert res["holm"]["m"] == 3 and res["E023"]["verdict"]["verdict"].startswith("dropped before any census")
     for t in la.TESTS:
         assert "verdict" in res[t]["verdict"]
     assert res["E020"]["counts"]["fit"]["arrivals"] > 0 and res["E020"]["counts"]["fit"]["cancellations"] > 0
     assert res["E021"]["counts"]["fit"]["fresh"] > 0 and res["E021"]["counts"]["fit"]["settled"] > 0
-    assert res["E022"]["counts"]["fit"]["units"] > 0 and res["E023"]["counts"]["fit"]["units"] > 0 and res["E024"]["counts"]["fit"]["units"] > 0
-    res2 = la.analyze(root, start_utc=start, end_utc=end, spec={**spec, "k_tests": ["E020", "E023"]}, roles=(lt.ROLE_UNREG,), force=True)
+    assert res["E022"]["counts"]["fit"]["units"] > 0 and "bound_share_by_class" in res["E020"] and "sensitivity_qs_k_matched" in res["E020"]
+    assert "n2h_truncated_share_by_band" in res["E021"]
+    res2 = la.analyze(root, start_utc=start, end_utc=end, spec={**spec, "k_tests": ["E020", "E022"]}, roles=(lt.ROLE_UNREG,), force=True)
     assert res2["holm"]["m"] == 2 and res2["E021"]["verdict"]["verdict"].startswith("dropped")
     assert la.trial_record(res2)["n_tests"] == 2
 
@@ -596,3 +565,42 @@ def test_code_check_requires_census_fixed_strata_family_and_depth(tmp_path):
     s3["hollow"]["depth_def"] = None
     with pytest.raises(RuntimeError):
         la.code_check(s3)
+
+
+# --- R2 additions ----------------------------------------------------------------------------------------------------------------
+
+
+def test_skip_targets_masked_when_either_end_is_late_and_joint_status():
+    df = pd.DataFrame({"frozen_utc": ["2027-01-01T03:00:00.000000Z"] * 3, "cap_start_h1": [4.0e9, 0.0, 4.0e9], "cap_start_h3": [4.0e9, 4.0e9, 0.0],
+                       "status_h1": ["two_sided", "two_sided", "absent"], "status_h3": ["two_sided", "two_sided", "two_sided"]})
+    l1, l3_ = la.late_mask(df, "h1"), la.late_mask(df, "h3")
+    assert list(l1 | l3_) == [False, True, True]  # R2 finding 6: a skip target is lost if either end was not frozen in time
+
+
+def test_census_ch_uses_the_chosen_depth_definition_for_d_prev(tmp_path):
+    spec = _spec(tmp_path)
+    n = 40
+    H = pd.DataFrame({"market_id": [f"m{i % 4}" for i in range(n)], "event_id": [f"e{i % 4}" for i in range(n)], "skey": [f"event:{i % 4}" for i in range(n)],
+                      "sports": 0, "day": "2027-01-02", "t_row": 1.0e9 + 7200.0 * np.arange(n), "geom": "parallel", "x": 0.02, "s_two0": 1,
+                      "D0": 100.0, "D2": 200.0, "L": 1000.0, "h0": 0.9 + 0.001 * np.arange(n), "h2": 0.8 + 0.001 * np.arange(n),
+                      "superset0": 1.0, "superset2": 1.0, "log1p_Dp0_raw": np.log1p(100.0), "log1p_Dp2_raw": np.log1p(250.0),
+                      **{c: 0.0 for c in lt.CONTROLS_E022}})
+    U = pd.DataFrame({"sports": [0] * n, "cls": ["traded"] * n})
+    ch = lt.census_ch(H, U, spec, 21.0)
+    assert ch["depth_def"] == "both" and ch["h_scale"]["centre"] == pytest.approx(0.8 + 0.001 * (n - 1) / 2)
+    # the depth control used for the within-market VIF and residual IQR is the chosen (both-token) D_{k-1}; with a constant
+    # D_{k-1} the residual IQR equals the IQR of h itself
+    assert ch["resid_iqr_share"] == 0.0 and ch["design_effect"]["DE_gate"] >= 3.0
+
+
+def test_e020_bound_share_and_qs_matched_sensitivity():
+    rng = np.random.default_rng(3)
+    n = 300
+    pop = pd.DataFrame({"market_id": [f"m{i % 20}" for i in range(n)], "event_id": [f"e{i % 10}" for i in range(n)], "t_row": 7200.0 * np.arange(n),
+                        "day": [str(i // 50) for i in range(n)], "AR": rng.integers(0, 2, n), "tick_k": 0.01,
+                        "qs_k": rng.choice([0.03, 0.04, 0.05], n), **{c: rng.normal(size=n) for c in lt.CONTROLS_E020}})
+    y = rng.normal(0, 0.01, n)
+    y[:10] = -(pop["qs_k"].to_numpy()[:10] - 0.01)
+    share, matched = la.qs_bound_and_matched(pop, y, seed=1)
+    assert set(share) == {"arrival", "cancellation"} and max(share.values()) > 0
+    assert matched.get("testable") and len(matched["cells"]) == 3

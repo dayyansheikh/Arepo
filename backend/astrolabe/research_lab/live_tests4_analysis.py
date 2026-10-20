@@ -1,15 +1,15 @@
 # ruff: noqa: E501
-"""Single registered analysis of the live tests E020-E024 (docs/research_lab/LIVE_TESTS_4.md). DRAFT until registered.
+"""Single registered analysis of the live tests E020-E022 (docs/research_lab/LIVE_TESTS_4.md; E023 / E024 dropped before
+any census, section 15). DRAFT until registered.
 
 Runs ONCE, after ``live_tests4.ANALYSIS_NOT_BEFORE``, on the write-once files of ``live_tests4``. One Holm family over the
-k primaries that survived their census gates (spec ``k_tests``), one-sided, familywise alpha 0.05. A primary that is
-unavailable or fails its gate enters Holm with p = 1. Mechanism readings, secondaries, labels and economics never change
-a verdict and count 0.
+k primaries that survived their census gates (spec ``k_tests``, a subset of E020-E022), one-sided, familywise alpha 0.05.
+A primary that is unavailable or fails its gate enters Holm with p = 1. Mechanism readings, secondaries, labels and
+economics never change a verdict and count 0.
 
-Estimator: expanding-past demeaning (J4-R) for all five primaries (LT3's ``fit``, imported). Inference (LIVE_TESTS_4.md
-1.7, rule L10): CR1 on the event, two-way event x UTC day, and UTC day; one-sided p = max(p_event on t with G_event - 1
-df, p_two-way, p_day on t with G_day - 1 df). Gates: LT3's label-permutation gate (E020, E021; E022 with a continuous
-label) and distant-donor gate (E023, E024), imported unmodified.
+Estimator: expanding-past demeaning (J4-R; LT3's ``fit``, imported). Inference (LIVE_TESTS_4.md 1.7, rule L10): CR1 on
+the event, two-way event x UTC day, and UTC day; one-sided p = max(p_event on t with G_event - 1 df, p_two-way, p_day on
+t with G_day - 1 df). Gate: Freedman-Lane permutation within the census-fixed strata (R1 finding 7).
 """
 
 from __future__ import annotations
@@ -24,13 +24,12 @@ from . import bounce_decomp as bd
 from . import live_tests3_analysis as la3
 from . import live_tests4 as lt
 
-TESTS = ("E020", "E021", "E022", "E023", "E024")
-DIRECTION = {"E020": +1, "E021": -1, "E022": -1, "E023": +1, "E024": +1}
+TESTS = ("E020", "E021", "E022")
+DROPPED = ("E023", "E024")  # dropped before any census, uncounted (LIVE_TESTS_4.md 15, R2 finding 1)
+DIRECTION = {"E020": +1, "E021": -1, "E022": -1}
 CONTROLS_E020, CONTROLS_E021, CONTROLS_E022 = lt.CONTROLS_E020, lt.CONTROLS_E021, lt.CONTROLS_E022
-GATE_LABEL = {"E020": "SE check failed", "E021": "SE check failed", "E022": "SE check failed",
-              "E023": "within-unit timing not shown", "E024": "within-unit timing not shown"}
+GATE_LABEL = {"E020": "SE check failed", "E021": "SE check failed", "E022": "SE check failed"}
 TRIAL_KIND = "live_tests4"
-REPORTED_ONLY = frozenset({"donor_correlated_moderator0.7"})
 
 strip, gross, econ, paper_taker, attrition, lee_bounds = la3.strip, la3.gross, la3.econ, la3.paper_taker, la3.attrition, la3.lee_bounds
 floors_ok, check_fraction, attach, underpowered, verdict = la3.floors_ok, la3.check_fraction, la3.attach, la3.underpowered, la3.verdict
@@ -57,15 +56,8 @@ def code_check(spec: dict) -> dict:
         k = spec.get("k_tests")
         if k is None:
             raise RuntimeError("live_tests4 spec pinned with null k_tests")
-        f = spec["flow"]
-        if any(t in k for t in ("E023", "E024")):
-            vals = [f.get("vol24_cap")] + [f[z].get(q) for z in ("zW", "zH", "zN", "zSize", "zSPR", "zRV", "zHTE", "zOP", "zC") for q in ("centre", "scale")]
-            if "E023" in k:
-                vals.append(f["econ"].get("OP_upper_cut"))
-            if "E024" in k:
-                vals.append(f["econ"].get("C_upper_cut"))
-            if any(_nanlike(v) for v in vals):
-                raise RuntimeError("live_tests4 spec pinned with unfilled (null or NaN) flow census values")
+        if any(t not in TESTS for t in k):
+            raise RuntimeError(f"live_tests4 k_tests may hold only {TESTS} (E023 / E024 dropped, LIVE_TESTS_4.md 15): {k}")
         if "E022" in k:
             h = spec["hollow"]
             if any(_nanlike(v) for v in (h["zh"].get("centre"), h["zh"].get("scale"), *h["h_cuts"], h.get("gap"), h.get("depth_def"))):
@@ -149,12 +141,12 @@ def move_frame(root: Path, start: float, end: float, roles, spec) -> tuple[pd.Da
     Us0 = np.where(_two(df, "s0"), np.where(bid_side, _col(df, "sask_s0"), _col(df, "sbid_s0")), np.nan)
     Us1 = np.where(_two(df, "s1"), np.where(bid_side, _col(df, "sask_s1"), _col(df, "sbid_s1")), np.nan)
     df["r"] = np.where(late1, np.nan, sx * (U1 - df["U_k"].to_numpy(float)))
-    df["r_skip"] = np.where(late3, np.nan, sx * (U3 - U1))
+    df["r_skip"] = np.where(late1 | late3, np.nan, sx * (U3 - U1))  # R2 finding 6: both ends
     df["r_sw"] = np.where(late1, np.nan, sx * (Us1 - Us0))
     df["c"] = np.where(late1, np.nan, sx * (mid_at(df, "h1") - df["mid_k"].to_numpy(float)))
     df["status_h1"] = np.where(late1, "late", df["status_h1"].astype(str))
     df["day"] = day_of(df["t_row"])
-    df["block"] = block_of(df["t_row"], start)
+    df["block"] = block_of(df["t_row"], lt.block_anchor(spec))  # R2 finding 10: the census anchor
     return df, acc
 
 
@@ -168,14 +160,17 @@ def clock_frame(root: Path, start: float, end: float, roles, spec) -> tuple[pd.D
     m1, m3 = mid_at(df, "h1"), mid_at(df, "h3")
     df["c"] = np.where(late1, np.nan, sx * (m1 - df["mid_k"].to_numpy(float)))
     df["c6"] = np.where(late3, np.nan, sx * (m3 - df["mid_k"].to_numpy(float)))
-    df["c_skip"] = np.where(late3, np.nan, sx * (m3 - m1))
+    df["c_skip"] = np.where(late1 | late3, np.nan, sx * (m3 - m1))  # R2 finding 6: both ends
     df["c_sw"] = np.where(late1, np.nan, sx * (mid_at(df, "s1") - mid_at(df, "s0")))
-    df["c_skip_sw"] = np.where(late3, np.nan, sx * (mid_at(df, "s3") - mid_at(df, "s1"))) if "status_s3" in df else np.nan
+    df["c_skip_sw"] = np.where(late1 | late3, np.nan, sx * (mid_at(df, "s3") - mid_at(df, "s1"))) if "status_s3" in df else np.nan
+    # joint attrition status of the skip target (R2 finding 6): two_sided only if two-sided at k + 1 and at k + 3
+    st1 = np.where(late1, "late", df["status_h1"].astype(str))
+    df["status_skip"] = np.where(st1 != "two_sided", st1, np.where(late3, "late", df["status_h3"].astype(str)))
     with np.errstate(divide="ignore", invalid="ignore"):
         df["log_age"] = np.log(np.clip(df["age"].to_numpy(float), 1.0, None))
     df["status_h1"] = np.where(late1, "late", df["status_h1"].astype(str))
     df["day"] = day_of(df["t_row"])
-    df["block"] = block_of(df["t_row"], start)
+    df["block"] = block_of(df["t_row"], lt.block_anchor(spec))  # R2 finding 10: the census anchor
     return df, acc
 
 
@@ -188,31 +183,12 @@ def hollow_frame(root: Path, start: float, end: float, roles, spec) -> tuple[pd.
     smid0 = np.where(df["s_two0"].to_numpy(int) == 1, (df["sbid0"].to_numpy(float) + df["sask0"].to_numpy(float)) / 2.0, np.nan)
     m1, m3 = mid_at(df, "h1"), mid_at(df, "h3")
     df["c_sw"] = np.where(late1, np.nan, sx * (mid_at(df, "s1") - smid0))
-    df["c_skip"] = np.where(late3, np.nan, sx * (m3 - m1))
+    df["c_skip"] = np.where(late1 | late3, np.nan, sx * (m3 - m1))  # R2 finding 6: both ends
     df["c_gamma"] = np.where(late1, np.nan, sx * (m1 - df["mid_k"].to_numpy(float)))
     df["status_s1"] = np.where(late1, "late", df["status_s1"].astype(str))
     df["day"] = day_of(df["t_row"])
-    df["block"] = block_of(df["t_row"], start)
+    df["block"] = block_of(df["t_row"], lt.block_anchor(spec))  # R2 finding 10: the census anchor
     return df, acc
-
-
-def flow_frame(root: Path, start: float, end: float, roles, spec: dict) -> tuple[pd.DataFrame, dict]:
-    df, acc = load_kind(root, "flow", start, end, roles, spec, ("h3", "s0", "s3"))
-    if df.empty:
-        return df, acc
-    late = late_mask(df, "h3")
-    acc["late_lines_h3"] = int(late.sum())
-    df["y6"] = np.where(late, np.nan, mid_at(df, "h3") - df["mid_i"].to_numpy(float))
-    df["y6_sw"] = np.where(late, np.nan, mid_at(df, "s3") - mid_at(df, "s0"))
-    df["status_h3"] = np.where(late, "late", df["status_h3"].astype(str))
-    df["day"] = day_of(df["t_row"])
-    df["block"] = block_of(df["t_row"], start)
-    df["rv_missing"] = (~np.isfinite(df["zRV"].to_numpy(float))).astype(int)
-    df["zRV"] = np.nan_to_num(df["zRV"].to_numpy(float))
-    return df, acc
-
-
-# --- estimator wrapper (rule L10) ----------------------------------------------------------------------------------------
 
 
 def fit(df: pd.DataFrame, y: np.ndarray, term: str, controls: list[str], *, sign: int, **kw) -> dict:
@@ -287,67 +263,6 @@ def fl_perm_gate(df: pd.DataFrame, y: np.ndarray, term: str, controls: list[str]
             "share_rows_permuted": float(perm_rows.mean())}
 
 
-def donor_gate_resid(df: pd.DataFrame, y: np.ndarray, flow: str, mod: str, others: list[str], *, sign: int, draws: int, seed: int,
-                     min_units: int, min_sep_s: float, min_donors: int) -> dict:
-    """Distant-donor gate with a residualised moderator (R1 finding 7, LT4 only). LT3's ``donor_gate`` replaces the whole
-    moderator by a distant donor's, which breaks its correlation with the other moderators whose ``flow x z`` terms are
-    controls; with a real effect on a correlated control moderator the gate then passes too often (size check: 0.115 at
-    correlation 0.7). Here the moderator is split into its projection on those control moderators (market fixed effects
-    plus common slopes) and a residual;
-    only the within-market residual is donated (same market, >= ``min_sep_s`` away), so donor draws keep the moderator's correlation
-    with the controls. Market filter, donor plan and decision rule are LT3's, imported unmodified."""
-    d = df.reset_index(drop=True)
-    yv = np.asarray(y, float)
-    use = np.isfinite(yv) & np.isfinite(d[flow].to_numpy(float)) & np.isfinite(d[mod].to_numpy(float))
-    nmk = d.loc[use].groupby("market_id").size()
-    keep = use & d["market_id"].isin(nmk[nmk >= min_units].index).to_numpy()
-    d, yv = d[keep].reset_index(drop=True), yv[keep]
-    if len(d) < 10:
-        return {"testable": False, "passes": False, "reason": "fewer than 10 gate rows", "rows": len(d)}
-    zc = [c.split("*", 1)[1] for c in others if c.startswith(f"{flow}*") and c.split("*", 1)[1] in d.columns]
-    mv = d[mod].to_numpy(float)
-    # projection on the control moderators with market fixed effects (market means plus common within-market slopes): the
-    # moderators carry market-level components, so a pooled projection leaves part of the correlation in the residual
-    gm = d["market_id"].to_numpy()
-    Zr = np.column_stack([np.nan_to_num(d[c].to_numpy(float)) for c in zc]) if zc else np.zeros((len(d), 0))
-    mbar = pd.Series(mv).groupby(gm).transform("mean").to_numpy()
-    Zbar = pd.DataFrame(Zr).groupby(gm).transform("mean").to_numpy() if zc else Zr
-    if zc:
-        coef, *_ = np.linalg.lstsq(Zr - Zbar, mv - mbar, rcond=None)
-        hat = mbar + (Zr - Zbar) @ coef
-    else:
-        hat = mbar
-    res_m = mv - hat
-    term = "__int"
-    d[term] = d[flow].to_numpy(float) * mv
-    X = la3.demean(d, [term, mod, *others], "market_id", "t_row", "expanding")
-    ok = np.all(np.isfinite(X.to_numpy()), axis=1)
-    rest = X[others].to_numpy()[ok] if others else np.zeros((int(ok.sum()), 0))
-    Z = np.column_stack([X[mod].to_numpy()[ok], rest])
-    yt = la3._partial(Z, yv[ok])
-    real = la3.fast_beta(X[term].to_numpy()[ok], Z, yt)
-    codes = pd.factorize(d["market_id"])[0]
-    plan = la3.donor_plan(codes, d["t_row"].to_numpy(float), min_sep_s)
-    rng = np.random.default_rng(seed)
-    fl = d[flow].to_numpy(float)
-    ge, kept = 0, 0
-    for _ in range(draws):
-        idx, has = la3.donor_indices(plan, rng, min_donors)
-        kept = int((~has).sum())
-        m2 = hat + res_m[idx]
-        dd = d[["market_id", "t_row"]].copy()
-        dd["__m"], dd["__i"] = m2, fl * m2
-        Xd = la3.demean(dd, ["__i", "__m"], "market_id", "t_row", "expanding").to_numpy()
-        if not np.all(np.isfinite(Xd[ok])):
-            continue
-        Zd = np.column_stack([Xd[ok, 1], rest])
-        b = la3.fast_beta(Xd[ok, 0], Zd, la3._partial(Zd, yv[ok]))
-        ge += int(np.isfinite(b) and sign * b >= sign * real)
-    p = (1 + ge) / (1 + draws)
-    return {"testable": True, "real": real, "p_perm": p, "passes": bool(p < 0.05), "draws": draws, "rows": int(ok.sum()),
-            "markets": int(d["market_id"].nunique()), "units_without_donors": kept, "residualised_on": zc, "method": "donor, residualised moderator"}
-
-
 def strata_of(df: pd.DataFrame, stratum: str | None) -> np.ndarray:
     """Market x UTC day, or the pre-declared fallback market x two-day block (spec ``perm_stratum``, fixed by the census)."""
     key = df["block"] if stratum == "block2" else df["day"]
@@ -396,6 +311,7 @@ def e020(df: pd.DataFrame, acc: dict, spec: dict) -> dict:
     res["gate"] = _gate_fl(pop, y, "AR", CONTROLS_E020, +1, spec, "E020", prim)
     res["sensitivity_full_population"] = strip(fit(full, full["r"].to_numpy(float), "AR", CONTROLS_E020, sign=+1, seed=sd["E020"] + 10, n_boot=200))
     res["sensitivity_series_family_clusters"] = strip(fit(pop, y, "AR", CONTROLS_E020, sign=+1, ev="skey", seed=sd["E020"] + 11, n_boot=200))
+    res["bound_share_by_class"], res["sensitivity_qs_k_matched"] = qs_bound_and_matched(pop, y, sd["E020"] + 12)
     res["M1_sweep"] = strip(fit(pop, pop["r_sw"].to_numpy(float), "AR", CONTROLS_E020, sign=+1, seed=sd["E020"] + 1, n_boot=200))
     res["M2_skip"] = strip(fit(pop, pop["r_skip"].to_numpy(float), "AR", CONTROLS_E020, sign=-1, seed=sd["E020"] + 2, n_boot=200))
     res["S1_mid_target"] = strip(fit(pop, pop["c"].to_numpy(float), "AR", CONTROLS_E020, sign=+1, seed=sd["E020"] + 3, n_boot=200))
@@ -427,6 +343,34 @@ def e020(df: pd.DataFrame, acc: dict, spec: dict) -> dict:
                         "maker_gross_r_by_class": {str(a): gross(g_["r"], g_["event_id"]) for a, g_ in pop.groupby("AR")}}
     _common(res, pop, prim, acc)
     return res
+
+
+def qs_bound_and_matched(pop: pd.DataFrame, y: np.ndarray, seed: int, min_cell: int = 5) -> tuple[dict, dict | None]:
+    """R2 finding 8: (a) by class, the share of units whose |r| sits at the no-crossing room left by the post-move
+    spread (|r| >= qs_k - one tick); (b) the primary re-estimated on the post-move spread cells (qs_k in ticks) that hold
+    >= ``min_cell`` units of both classes, with cell indicators as extra controls (reported, never a verdict)."""
+    if pop.empty:
+        return {}, None
+    room = pop["qs_k"].to_numpy(float) - pop["tick_k"].to_numpy(float)
+    with np.errstate(invalid="ignore"):
+        at = np.isfinite(y) & (np.abs(y) >= room - 1e-9)
+    ok = np.isfinite(y)
+    share = {("arrival" if c else "cancellation"): (float(at[(pop["AR"].to_numpy() == c) & ok].mean()) if ((pop["AR"].to_numpy() == c) & ok).any() else None)
+             for c in (1, 0)}
+    ratio = np.round(pop["qs_k"].to_numpy(float) / pop["tick_k"].to_numpy(float))
+    cell = np.array([str(int(v)) if np.isfinite(v) else "na" for v in ratio])
+    ct = pd.crosstab(cell, pop["AR"].to_numpy())
+    keep = [c for c in ct.index if all(ct.loc[c].get(v, 0) >= min_cell for v in (0, 1))]
+    sub = pop[np.isin(cell, keep)].reset_index(drop=True)
+    if len(keep) < 1 or len(sub) < 20:
+        return share, {"testable": False, "reason": "no common qs_k cells", "cells": len(keep)}
+    cs = cell[np.isin(cell, keep)]
+    dums = []
+    for c in keep[1:]:
+        sub[f"qs_cell_{c}"] = (cs == c).astype(int)
+        dums.append(f"qs_cell_{c}")
+    r = strip(fit(sub, y[np.isin(cell, keep)], "AR", [*CONTROLS_E020, *dums], sign=+1, seed=seed, n_boot=200))
+    return share, {**(r or {}), "cells": keep}
 
 
 def e020_labels(res: dict, v: dict, spec: dict) -> list:
@@ -462,7 +406,9 @@ def e021(df: pd.DataFrame, acc: dict, spec: dict) -> dict:
     pop = _excl(banded[banded["n2h_truncated"] == 0], e).reset_index(drop=True)
     pop["F"] = (pop["band"] == "fresh").astype(int)
     y = pop["c_skip"].to_numpy(float)
-    res["attrition"] = attrition(pop["status_h3"].to_numpy(), pop["F"].to_numpy(), (1, 0), lab["attrition_pp"])
+    res["attrition"] = attrition(pop["status_skip"].to_numpy(), pop["F"].to_numpy(), (1, 0), lab["attrition_pp"])  # h1 and h3 jointly
+    res["n2h_truncated_share_by_band"] = {b: float(banded.loc[banded["band"] == b, "n2h_truncated"].mean()) for b in ("fresh", "settled")
+                                          if (banded["band"] == b).any()}  # R2 finding 7
     prim = fit(pop, y, "F", CONTROLS_E021, sign=-1, seed=sd["E021"])
     ok = prim.get("_mask", np.zeros(len(pop), bool))
     cnt = {"fresh": int((pop["F"].to_numpy()[ok] == 1).sum()) if len(ok) else 0, "settled": int((pop["F"].to_numpy()[ok] == 0).sum()) if len(ok) else 0,
@@ -571,104 +517,6 @@ def e022_labels(res: dict, v: dict, spec: dict) -> list:
     return out
 
 
-def flow_controls(name: str, lag: bool = False) -> tuple[str, str, list[str]]:
-    mod = {"E023": "zOP", "E024": "zC"}[name]
-    x, m, ctrl = la3.flow_controls(mod, lag)
-    ctrl = [f"{x}*abs_dev", *ctrl]  # R1 finding 9: longshot buying (x6 x |mid - 0.5|)
-    if name == "E024":
-        s = "_l30" if lag else ""
-        ctrl = [f"{x}*zW{s}", f"zW{s}", f"{x}*zH{s}", f"zH{s}", *ctrl]
-    return x, m, ctrl
-
-
-def flow_test(df: pd.DataFrame, acc: dict, spec: dict, name: str) -> dict:
-    if df.empty:
-        return {"available": False, "reason": "no lines", "load": acc}
-    sd, f, g = spec["seeds"], spec["flow"], spec["gates"]
-    sign = DIRECTION[name]
-    mod = {"E023": "OP", "E024": "C"}[name]
-    cap = f.get("vol24_cap")
-    cap = float("inf") if _nanlike(cap) else float(cap)
-    base = df[(df["tight_i"] == 1) & (df["end_ok_7h"] == 1)]
-    vpop = base[np.isfinite(base["vol24_i"].to_numpy(float)) & (base["vol24_i"].to_numpy(float) <= cap)]
-    trunc = vpop["cov6"] == 0
-    res: dict = {"load": acc, "counts": {"lines": len(df), "V*_population": len(vpop), "truncated": int(trunc.sum()),
-                                         "truncated_share": float(trunc.mean()) if len(vpop) else None}}
-    cov = vpop[(vpop["cov6"] == 1) & (np.nan_to_num(vpop["N6"].to_numpy(float)) > 0)]
-    if name == "E024":
-        cov = cov[np.nan_to_num(cov["Nsig"].to_numpy(float)) >= f["min_rows_C"]]
-    pop = cov[np.isfinite(cov[f"z{mod}"].to_numpy(float))].copy()
-    res["counts"]["moderator_missing"] = len(cov) - len(pop)
-    x, m, ctrl = flow_controls(name)
-    term = f"{x}*{m}"
-    pop = add_products(pop, [term, *ctrl]).reset_index(drop=True)
-    y = pop["y6"].to_numpy(float)
-    prim = fit(pop, y, term, [m, *ctrl], sign=sign, seed=sd[name])
-    ok = prim.get("_mask", np.zeros(len(pop), bool))
-    cnt = {"units": int(ok.sum()), "events": int(pop.loc[ok, "event_id"].nunique()) if len(ok) else 0, "days": int(prim.get("n_day") or 0)}
-    res["counts"]["fit"] = cnt
-    res["counts"]["by_category"] = {str(k): int(v) for k, v in pop.loc[ok, "sports"].value_counts().items()} if len(ok) else {}
-    res["available"] = floors_ok(cnt, spec[name.lower()]["floors"])
-    res["primary"] = strip(prim)
-    res["gate"] = donor_gate_resid(pop, y, x, m, ctrl, sign=sign, draws=g["draws"], seed=sd[f"{name}_gate"], min_units=g["donor_min_units"],
-                                 min_sep_s=g["donor_min_sep_s"], min_donors=g["donor_min_donors"]) if prim.get("testable") else {"testable": False, "passes": False}
-    xl, ml, cl = flow_controls(name, lag=True)
-    pl = add_products(pop.copy(), [f"{xl}*{ml}", *cl])
-    res["M1_lag30"] = strip(fit(pl, y, f"{xl}*{ml}", [ml, *cl], sign=sign, seed=sd[name] + 1, n_boot=200))
-    res["M2_sweep"] = strip(fit(pop, pop["y6_sw"].to_numpy(float), term, [m, *ctrl], sign=sign, seed=sd[name] + 2, n_boot=200))
-    res["sensitivity_two_day_blocks"] = strip(fit(pop, y, term, [m, *ctrl], sign=sign, time="block", seed=sd[name] + 3, n_boot=200))
-    res["S_fe"] = strip(fit(pop, y, term, [m, *ctrl], sign=sign, estimator="fe", seed=sd[name] + 4, n_boot=200))
-    if name == "E023":
-        res["S1_two_leg_open_minus_close"] = strip(fit(pop, y, "o6s", ctrl, sign=+1, seed=sd[name] + 5, n_boot=200))
-        p2 = pop.copy()
-        p2["OPno_c"] = p2["OPno"] - np.nanmean(p2["OPno"].to_numpy(float)) if len(p2) else np.nan
-        p2 = add_products(p2, ["x6*OPno_c"])
-        res["S2_bet_against_opener"] = strip(fit(p2, y, "x6*OPno_c", ["OPno_c", m, *ctrl], sign=+1, seed=sd[name] + 6, n_boot=200))
-    else:
-        p2 = pop.copy()
-        hh = p2["HHI"].to_numpy(float)
-        p2["zHHI"] = (hh - np.nanmean(hh)) / (np.nanstd(hh) or 1.0) if len(p2) else np.nan
-        p2 = add_products(p2, ["x6*zHHI"])
-        res["S1_hhi"] = strip(fit(p2, y, "x6*zHHI", ["zHHI", *ctrl], sign=+1, seed=sd[name] + 5, n_boot=200))
-    res["by_category"] = {("sports" if c else "non_sports"): _sub_fit(pop[pop["sports"] == c], "y6", term, [m, *ctrl], sign, sd[name] + 7) for c in (0, 1)}
-    if res["counts"]["truncated_share"] is not None and res["counts"]["truncated_share"] > f["trunc_label_share"]:
-        half = pop[pop["vol24_i"] <= cap / 2.0].reset_index(drop=True)
-        res["sensitivity_half_cap"] = strip(fit(half, half["y6"].to_numpy(float), term, [m, *ctrl], sign=sign, seed=sd[name] + 8, n_boot=200))
-    med = np.nanmedian(pop[m].to_numpy(float)) if len(pop) else np.nan
-    hc = np.where(pop[m].to_numpy(float) >= med, "upper", "lower")
-    res["attrition"] = attrition(pop["status_h3"].to_numpy(), hc, ("upper", "lower"), spec["labels"]["attrition_pp"])
-    if res["attrition"]["triggered"]:
-        res["attrition"]["bounds"] = lee_bounds(pop, y, hc, ("upper", "lower"), res["attrition"],
-                                                lambda d, yy: fit(d, yy, term, [m, *ctrl], sign=sign, seed=sd[name], n_boot=200))
-    ec = f["econ"]
-    cut = ec.get(f"{mod}_upper_cut")
-    if not _nanlike(cut):
-        cell = pop[(pop[mod] >= cut) & (pop["imb6"].abs() >= ec["min_abs_imb"])]
-        d = np.sign(cell["imb6"].to_numpy(float))
-        gm = d * (mid_at(cell, "h3") - cell["mid_i"].to_numpy(float))
-        res["economics"] = {"follow_cell": econ(paper_taker(cell["bid_i"], cell["ask_i"], cell["bid_h3"], cell["ask_h3"], cell["fee_rate"], cell["fee_exp"], d),
-                                                cell["event_id"].to_numpy(), cell["day"].to_numpy(), sd[name] + 9),
-                            "gross_cell": gross(gm, cell["event_id"])}
-    else:
-        res["economics"] = {"verdict": "not computed (census cut not filled)"}
-    res["late_loss_share"] = acc.get("late_loss_share", 0.0)
-    return res
-
-
-def flow_labels(res: dict, v: dict, spec: dict, name: str) -> list:
-    out = []
-    b = (res.get("primary") or {}).get("beta")
-    if str(v.get("verdict", "")).startswith("Supported") and not check_fraction(b, res.get("M1_lag30"), DIRECTION[name], True, spec["labels"]["fraction"]):
-        out.append("possibly mechanical (stale-mid catch-up)")
-    ts = (res.get("counts") or {}).get("truncated_share")
-    if ts is not None and ts > spec["flow"]["trunc_label_share"]:
-        out.append("coverage-limited")
-    return out
-
-
-# --- the single analysis -------------------------------------------------------------------------------------------------
-
-
 def trial_record(res: dict) -> dict:
     """The single counted trials line (battery2 KIND_RULES 'live_tests4', n_tests = k). Gate draws, secondaries,
     mechanism readings, economics and censuses are not counted (LIVE_TESTS_4.md 1.11)."""
@@ -682,21 +530,16 @@ def trial_record(res: dict) -> dict:
 def underpowered_ref(t: str, spec: dict) -> float:
     if t in ("E020", "E021"):
         return float(spec[t.lower()]["floor_c"])
-    if t == "E022":
-        gap = spec["hollow"].get("gap")
-        return float(spec["e022"]["floor_c"]) / (float(gap) if not _nanlike(gap) and gap else 2.2)
-    return float(spec[t.lower()]["underpowered_ref"])
+    gap = spec["hollow"].get("gap")
+    return float(spec["e022"]["floor_c"]) / (float(gap) if not _nanlike(gap) and gap else 2.2)
 
 
 def is_material(t: str, r: dict, spec: dict) -> bool:
     if t in ("E020", "E021"):
         b = (r.get("primary") or {}).get("beta")
         return b is not None and DIRECTION[t] * b >= spec[t.lower()]["floor_c"]
-    if t == "E022":
-        b = (r.get("T_tercile") or {}).get("beta")
-        return b is not None and DIRECTION[t] * b >= spec["e022"]["floor_c"]
-    gm = ((r.get("economics") or {}).get("gross_cell") or {}).get("mean")
-    return gm is not None and gm >= spec[t.lower()]["floor_gross_c"]
+    b = (r.get("T_tercile") or {}).get("beta")
+    return b is not None and DIRECTION[t] * b >= spec["e022"]["floor_c"]
 
 
 def analyze(root: Path = lt.OUT_ROOT, *, start_utc: str = lt.REGISTERED_UTC, end_utc: str = lt.END_UTC, spec: dict | None = None,
@@ -713,9 +556,9 @@ def analyze(root: Path = lt.OUT_ROOT, *, start_utc: str = lt.REGISTERED_UTC, end
     mv, macc = move_frame(root, s, e, roles, spec)
     ck, cacc = clock_frame(root, s, e, roles, spec)
     hl, hacc = hollow_frame(root, s, e, roles, spec)
-    fl, facc = flow_frame(root, s, e, roles, spec)
-    res = {"E020": e020(mv, macc, spec), "E021": e021(ck, cacc, spec), "E022": e022(hl, hacc, spec),
-           "E023": flow_test(fl, facc, spec, "E023"), "E024": flow_test(fl, facc, spec, "E024")}
+    res = {"E020": e020(mv, macc, spec), "E021": e021(ck, cacc, spec), "E022": e022(hl, hacc, spec)}
+    for t in DROPPED:
+        res[t] = {"verdict": {"verdict": "dropped before any census (R2: gate size not shown); not in the Holm family, uncounted"}}
     pv = {t: verdict(res[t].get("primary") or {}, res[t].get("gate"), res[t].get("available", False), None, DIRECTION[t], GATE_LABEL[t])["p_for_holm"]
           for t in ktests}
     hp = bd.holm(pv)
@@ -727,10 +570,7 @@ def analyze(root: Path = lt.OUT_ROOT, *, start_utc: str = lt.REGISTERED_UTC, end
             continue
         v = verdict(r.get("primary") or {}, r.get("gate"), r.get("available", False), hp[t], DIRECTION[t], GATE_LABEL[t])
         r["holm_p"] = hp[t]
-        if t in ("E023", "E024"):
-            labels: list = flow_labels(r, v, spec, t)
-        else:
-            labels = {"E020": e020_labels, "E021": e021_labels, "E022": e022_labels}[t](r, v, spec)
+        labels: list = {"E020": e020_labels, "E021": e021_labels, "E022": e022_labels}[t](r, v, spec)
         if is_material(t, r, spec):
             labels.append("material")
         prim = r.get("primary") or {}
@@ -789,36 +629,30 @@ def sim_corr_label_world(rng: np.random.Generator, *, corr: float = 0.7, binary:
     return df, df["y"].to_numpy(float)
 
 
-def sim_corr_flow_world(rng: np.random.Generator, *, n_mkt: int = 40, n_t: int = 30, corr: float = 0.4, effect: float = 0.0
-                        ) -> tuple[pd.DataFrame, np.ndarray, list[str]]:
-    """A flow panel where a control moderator zA has a REAL moderation (0.004 per SD) and the tested moderator zM is
-    correlated ``corr`` with zA but has none (``effect`` = 0); x6*zA and zA are controls, as W and H are for E024."""
+def sim_ma2_world(rng: np.random.Generator, *, n_mkt: int = 60, n_t: int = 40, effect: float = 0.0) -> tuple[pd.DataFrame, np.ndarray]:
+    """R2 finding 3: overlapping skip targets. The target of unit i sums the pass shocks of passes i + 1 and i + 2 plus
+    part of i + 3 (an MA(2) in pass steps, like c_skip from k + 1 to k + 3 at consecutive origins), with a persistent binary
+    label (market-specific rate and first-order persistence) and NO label effect (``effect`` = 0)."""
     rows = []
     for m in range(n_mkt):
-        la_, lm = rng.normal(0, 0.5), rng.normal(0, 0.5)
+        pr, lvl = rng.uniform(0.15, 0.6), rng.normal(0, 0.01)
+        u = rng.normal(0, 0.03, n_t + 3)
+        lab = int(rng.random() < pr)
         for i in range(n_t):
-            za = la_ + rng.normal(0, 1)
-            zm = lm + corr * za + math.sqrt(1 - corr**2) * rng.normal(0, 1)
-            rows.append({"market_id": f"m{m}", "event_id": f"e{m // 2}", "t_row": i * 7200.0, "day": str(i // 12),
-                         "x6": rng.normal(0, 1), "zM": zm, "zA": za, "c1": rng.normal()})
+            lab = lab if rng.random() < 0.7 else int(rng.random() < pr)
+            y = lvl + u[i + 1] + u[i + 2] + 0.5 * u[i + 3] + effect * lab
+            rows.append({"market_id": f"m{m}", "event_id": f"e{m // 3}", "t_row": i * 7200.0, "day": str(i // 12), "P": lab,
+                         "c1": rng.normal(), "y": y})
     df = pd.DataFrame(rows)
-    x = df["x6"].to_numpy()
-    y = 0.003 * x + 0.004 * x * df["zA"].to_numpy() + effect * x * df["zM"].to_numpy() + rng.normal(0, 0.01, len(df))
-    df["x6*zA"] = df["x6"] * df["zA"]
-    return df, y, ["x6", "x6*zA", "zA", "c1"]
+    return df, df["y"].to_numpy(float)
 
 
 def size_check(*, worlds: int, draws: int, seed: int, nominal: float = 0.05) -> dict:
-    """Pass rate of each gate under its simulated null (ten scenarios; R1 findings 7 and 10), criterion rate <= nominal +
-    1.645 sqrt(nominal (1 - nominal) / worlds). The scenarios use the gates LT4 registers: Freedman-Lane permutation and the
-    residualised-moderator donor gate."""
+    """Pass rate of the registered Freedman-Lane gate under six simulated nulls (all binding; LIVE_TESTS_4.md 14-15),
+    criterion rate <= nominal + 1.645 sqrt(nominal (1 - nominal) / worlds). The donor scenarios left with E023 / E024."""
     rng = np.random.default_rng(seed)
     lim = nominal + 1.645 * float(np.sqrt(nominal * (1 - nominal) / worlds))
     out: dict = {"worlds": worlds, "draws": draws, "seed": seed, "limit": lim, "scenarios": {}}
-
-    def donor(df, y, others) -> bool:
-        return bool(donor_gate_resid(df, y, "x6", "zM", others, sign=+1, draws=draws, seed=int(rng.integers(1 << 31)), min_units=4,
-                                   min_sep_s=43200.0, min_donors=2).get("passes"))
 
     def perm(df, y, term) -> bool:
         return bool(fl_perm_gate(df, y, term, ["c1"], sign=+1, strata=(df["market_id"] + "|" + df["day"]).to_numpy(), draws=draws,
@@ -830,18 +664,11 @@ def size_check(*, worlds: int, draws: int, seed: int, nominal: float = 0.05) -> 
         "fl_binary_control_corr0.7": lambda: perm(*sim_corr_label_world(rng, corr=0.7, binary=True), "L"),
         "fl_continuous_persistent": lambda: perm(*sim_cont_world(rng), "zh"),
         "fl_continuous_control_corr0.7": lambda: perm(*sim_corr_label_world(rng, corr=0.7), "L"),
-        "donor_iid": lambda: donor(*la3.sim_flow_world(rng)),
-        "donor_ar0.6": lambda: donor(*la3.sim_flow_world(rng, ar=0.6)),
-        "donor_lifecycle": lambda: donor(*la3.sim_flow_world(rng, lifecycle=True)),
-        "donor_correlated_moderator0.4": lambda: donor(*sim_corr_flow_world(rng, corr=0.4)),
-        "donor_correlated_moderator0.5": lambda: donor(*sim_corr_flow_world(rng, corr=0.5)),
-        "donor_correlated_moderator0.7": lambda: donor(*sim_corr_flow_world(rng, corr=0.7)),
+        "fl_binary_persistent_ma2_target": lambda: perm(*sim_ma2_world(rng), "P"),
     }
     for name, fn in scen.items():
         rej = sum(int(fn()) for _ in range(worlds))
-        out["scenarios"][name] = {"rate": rej / worlds, "ok": rej / worlds <= lim, "binding": name not in REPORTED_ONLY}
-    # the census caps |corr| of the tested flow moderator with every controlled moderator at 0.5 (LIVE_TESTS_4.md 14.5),
-    # so the 0.7 world lies outside the registered population: reported, not binding
-    out["pass"] = all(v["ok"] for v in out["scenarios"].values() if v["binding"])
+        out["scenarios"][name] = {"rate": rej / worlds, "ok": rej / worlds <= lim, "binding": True}
+    out["pass"] = all(v["ok"] for v in out["scenarios"].values())
     out["code_sha256"] = lt.code_hashes()
     return out

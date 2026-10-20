@@ -1,11 +1,11 @@
 # ruff: noqa: E501
-"""Live tests E020-E024 (docs/research_lab/LIVE_TESTS_4.md; DRAFT until registered). Research only; never trades; makes
+"""Live tests E020-E022 (docs/research_lab/LIVE_TESTS_4.md; E023/E024 dropped; DRAFT until registered). Research only; never trades; makes
 no network request (a pure reader of the collector's captures, sweeps and trade samples).
 
     python scripts/run_live_tests4.py run                    # series + sweeps + freezes + due outcomes; exit 75 if nothing new
     python scripts/run_live_tests4.py ops-stats              # counts only (never reads a price or an outcome value)
     python scripts/run_live_tests4.py census-captures --seal S --work /tmp/x --out cqch.json            # CQ, CH (counts only)
-    python scripts/run_live_tests4.py census-flow --capture-seal S --sample-root R --work /tmp/y --out cf.json   # CF
+    python scripts/run_live_tests4.py census-clock --capture-seal S --sample-root R --work /tmp/y --out cf.json  # CF (E021)
     python scripts/run_live_tests4.py size-check --out size.json   # simulated-null size of the gates (code to be pinned)
     python scripts/run_live_tests4.py analyze --out res.json # the single registered analysis (refused before the date)
 
@@ -62,7 +62,7 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("--day", action="append", default=None, help="UTC day (default: the spec census days)")
     c.add_argument("--out", type=Path, default=None)
     c.add_argument("--keep-work", action="store_true")
-    f = sub.add_parser("census-flow")
+    f = sub.add_parser("census-clock")
     f.add_argument("--seal", type=Path, default=SEALS / "lt3_census_inputs_C2.json")
     f.add_argument("--capture-seal", type=Path, default=SEALS / "lt4_census_inputs_captures.json")
     f.add_argument("--sample-root", type=Path, action="append", required=True, help="restored trade_samples dir(s), searched in order")
@@ -110,7 +110,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "ops-stats":
         print(json.dumps(lt.ops_stats(args.root), sort_keys=True, indent=1))
         return 0
-    if args.cmd in ("census-captures", "census-flow", "size-check", "analyze") and args.out is not None and args.out.exists():
+    if args.cmd in ("census-captures", "census-clock", "size-check", "analyze") and args.out is not None and args.out.exists():
         print(f"refusing to overwrite {args.out}")
         return 1
     if args.cmd == "census-captures":
@@ -120,8 +120,8 @@ def main(argv: list[str] | None = None) -> int:
             lt.cleanup_census(args.work)
         rc = _write_out(args.out, json.dumps(res, sort_keys=True, indent=1, default=lt._json))
         return 3 if "error" in res else rc
-    if args.cmd == "census-flow":
-        res = lt.census_flow(seal=args.seal, capture_seal=args.capture_seal, sample_roots=args.sample_root, snapshot_root=args.snapshot_root,
+    if args.cmd == "census-clock":
+        res = lt.census_cf(seal=args.seal, capture_seal=args.capture_seal, sample_roots=args.sample_root, snapshot_root=args.snapshot_root,
                              work=args.work)
         res["code_sha256"] = lt.code_hashes()
         if not args.keep_work:

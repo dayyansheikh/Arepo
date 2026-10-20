@@ -1,19 +1,17 @@
 {
  "spec_id": "live_tests4_v1",
- "status": "DRAFT after challenger R1 (not registered; sha256 not pinned; census values, strata, family exclusions and k not filled)",
+ "status": "DRAFT after challenger R2 (k <= 3: E020-E022; E023/E024 dropped before any census; not registered; census values, strata, family exclusions and k not filled)",
  "design": "docs/research_lab/LIVE_TESTS_4.md",
  "experiments": [
   "E020",
   "E021",
-  "E022",
-  "E023",
-  "E024"
+  "E022"
  ],
  "registered_utc": "2026-10-26T00:00:00Z",
  "end_utc": "2026-11-16T00:00:00Z",
  "analysis_not_before": "2026-11-17T12:00:00Z",
  "k_tests": null,
- "k_tests_rule": "list of the primaries that survived their census gates (LIVE_TESTS_4.md section 8), fixed before the pin; Holm m = len(k_tests); null = not filled (a pinned spec with null k_tests is refused)",
+ "k_tests_rule": "list of the primaries among E020-E022 that survived their census gates, fixed before the pin; Holm m = len(k_tests); null = not filled (refused when pinned); E023/E024 refused",
  "code_sha256": {
   "live_tests4.py": null,
   "live_tests4_analysis.py": null,
@@ -137,87 +135,6 @@
   "perm_stratum": null,
   "exclude_family": null
  },
- "flow": {
-  "window_s": 21600,
-  "lag_s": 1800,
-  "train_s": 300,
-  "x6_clip": 1.0,
-  "x6_sd": 0.8578247852488129,
-  "end_margin_h": 7,
-  "horizon_slots": 3,
-  "sweep_tags": [
-   0,
-   3
-  ],
-  "rv_steps": 12,
-  "rv_min_diffs": 6,
-  "walk_min_dist": 0.0001,
-  "walk_rule": "a signed row is walked if the sidecar tick at the sample's capture is known and |p - tick * round(p / tick)| >= 1e-4 (section 13, finding 4); tick unknown -> the row is left out of W (numerator and denominator)",
-  "vol24_cap": null,
-  "vol24_cap_max_trunc_share": 0.02,
-  "trunc_label_share": 0.03,
-  "zW": {
-   "centre": null,
-   "scale": null
-  },
-  "zH": {
-   "centre": null,
-   "scale": null
-  },
-  "zN": {
-   "centre": null,
-   "scale": null
-  },
-  "zSize": {
-   "centre": null,
-   "scale": null
-  },
-  "zSPR": {
-   "centre": null,
-   "scale": null
-  },
-  "zRV": {
-   "centre": null,
-   "scale": null
-  },
-  "zHTE": {
-   "centre": null,
-   "scale": null
-  },
-  "econ": {
-   "OP_upper_cut": null,
-   "C_upper_cut": null,
-   "min_abs_imb": 0.5
-  },
-  "categories": "all (sports reported split; category is a parameter)",
-  "zOP": {
-   "centre": null,
-   "scale": null
-  },
-  "zC": {
-   "centre": null,
-   "scale": null
-  },
-  "min_rows_C": 3
- },
- "e023": {
-  "floors": {
-   "units": 20000,
-   "events": 500,
-   "days": 10
-  },
-  "floor_gross_c": 0.005,
-  "underpowered_ref": 0.0029
- },
- "e024": {
-  "floors": {
-   "units": 20000,
-   "events": 500,
-   "days": 10
-  },
-  "floor_gross_c": 0.005,
-  "underpowered_ref": 0.0029
- },
  "seeds": {
   "E020": 20261030,
   "E020_gate": 20261130,
@@ -233,19 +150,18 @@
  "size_check": {
   "worlds": 2000,
   "draws": 200,
-  "seed": 20261026,
+  "seed": 20261107,
   "nominal": 0.05,
-  "rule": "rejection rate of each binding gate scenario under its simulated null <= 0.05 + 1.645 sqrt(0.05 x 0.95 / worlds); eleven scenarios, ten binding (donor_correlated_moderator0.7 reported only: the census caps the correlation at 0.5); the scenarios use the registered gates (Freedman-Lane; residualised donor) (LIVE_TESTS_4.md 14.5); run on the code to be pinned"
+  "rule": "rejection rate of the Freedman-Lane gate under each of six simulated nulls (all binding, incl. the MA(2) overlapping-target scenario) <= 0.05 + 1.645 sqrt(0.05 x 0.95 / worlds); one run at the pinned code; no rerun or variant after a failure",
+  "seed_rule": "declared 2026-10-20 before any q0484 run; differs from the preliminary seed 20261026 (R2 finding 1)"
  },
  "gates": {
   "draws": 200,
   "alpha": 0.05,
   "perm_min_stratum": 4,
-  "donor_min_units": 4,
-  "donor_min_sep_s": 43200,
-  "donor_min_donors": 2,
-  "perm_method": "Freedman-Lane (reduced-model residuals permuted within strata) for E020-E022; residualised-moderator distant-donor gate (LT4 donor_gate_resid) for E023/E024",
-  "perm_stratum_rule": "market x UTC day if the census share of units in strata with >= 4 units is >= 50%, else market x two-day block if that share is >= 50%, else the test is dropped (R1 finding 2)"
+  "perm_method": "Freedman-Lane (reduced-model residuals permuted within the census-fixed strata) for E020-E022",
+  "perm_stratum_rule": "market x UTC day if the census share of units in strata with >= 4 units is >= 50%, else market x two-day block if that share is >= 50%, else the test is dropped (R1 finding 2)",
+  "block_anchor": "REGISTERED_UTC (a UTC midnight) in both the census and the analysis (R2 finding 10)"
  },
  "labels": {
   "fraction": 0.5,
@@ -272,8 +188,9 @@
     "t_sum": 3.388
    },
    "rho": 0.02,
-   "de_rule": "DE = 1 + (m_21 - 1) x rho, m = sum n_e^2 / sum n_e of the census population by event, m_21 = m x 21 / census days (R1 finding 8)",
-   "family_cap": 0.4
+   "de_rule": "DE_gate = max(3.0, 1 + (m_21 - 1) x rho), m = sum n_e^2 / sum n_e by event, m_21 = m x 21 / census days, rho = 0.02 an example value (R2 finding 4: the computed DE may only tighten R0's 3.0)",
+   "family_cap": 0.4,
+   "de_floor": 3.0
   },
   "CF_E021": {
    "ts_not_minute_min": 0.5,
@@ -288,7 +205,8 @@
     "t_sum": 3.388
    },
    "rho": 0.02,
-   "de_rule": "DE = 1 + (m_21 - 1) x rho, m = sum n_e^2 / sum n_e of the census population by event, m_21 = m x 21 / census days (R1 finding 8)"
+   "de_rule": "DE_gate = max(3.0, 1 + (m_21 - 1) x rho), m = sum n_e^2 / sum n_e by event, m_21 = m x 21 / census days, rho = 0.02 an example value (R2 finding 4: the computed DE may only tighten R0's 3.0)",
+   "de_floor": 3.0
   },
   "CH_E022": {
    "covered_share_min": 0.8,
@@ -305,34 +223,12 @@
     "rule": "t_sum x sd / sqrt(projected effective units) x sqrt(census DE) x day x sqrt(within-market VIF of zh) x tercile gap <= 0.5c"
    },
    "rho": 0.02,
-   "de_rule": "DE = 1 + (m_21 - 1) x rho, m = sum n_e^2 / sum n_e of the census population by event, m_21 = m x 21 / census days (R1 finding 8)",
+   "de_rule": "DE_gate = max(3.0, 1 + (m_21 - 1) x rho), m = sum n_e^2 / sum n_e by event, m_21 = m x 21 / census days, rho = 0.02 an example value (R2 finding 4: the computed DE may only tighten R0's 3.0)",
    "family_cap": 0.4,
    "resid_iqr_min": 0.05,
-   "rule_resid_iqr": "within each market with >= 10 covered units, IQR of the residual of h after an OLS on log1p D_{k-1} >= 0.05 in >= 50% of such markets, and >= 30 such markets (R1 finding 4)"
-  },
-  "CF_E023": {
-   "sell_share": [
-    0.15,
-    0.85
-   ],
-   "side_unusable_max": 0.1,
-   "OP_interior_share_min": 0.4,
-   "OP_interior_21d": 30000,
-   "corr_max": 0.5,
-   "agreement_gap_max": 0.05,
-   "agreement_min_rows": 500,
-   "mde_base": 0.002873,
-   "mde_max": 0.0036,
-   "mde_rule": "0.002873 x sqrt(5,000 / projected events) x sqrt(VIF of x6*zOP on the model's other x6 terms after expanding-past demeaning) <= 0.0036 (R1 finding 9)",
-   "corr_controlled_rule": "max |corr| of the tested moderator with W, H, log N, log Size, spread, log RV, log hours-to-end <= corr_max (0.5): the donor gate is size-checked only up to 0.5 (R1 finding 7)"
-  },
-  "CF_E024": {
-   "C_interior_21d": 40000,
-   "corr_max": 0.5,
-   "agreement_gap_max": 0.05,
-   "agreement_min_rows": 500,
-   "mde_max": 0.0036,
-   "corr_controlled_rule": "max |corr| of the tested moderator with W, H, log N, log Size, spread, log RV, log hours-to-end <= corr_max (0.5): the donor gate is size-checked only up to 0.5 (R1 finding 7)"
+   "rule_resid_iqr": "within each market with >= 10 covered units, IQR of the residual of h after an OLS on log1p D_{k-1} >= 0.05 in >= 50% of such markets, and >= 30 such markets (R1 finding 4)",
+   "de_floor": 3.0,
+   "resid_iqr_floor_note": "0.05 kept as declared before CH runs; a drop floor only (R2 finding 9)"
   }
  },
  "census_inputs": {
@@ -343,6 +239,11 @@
   "CQ_CH_seal": "docs/research_lab/seals/lt4_census_inputs_captures.json (to be written from the releases' files.sha256 before any LT4 census runs)",
   "CF_sample_seal": "docs/research_lab/seals/lt3_census_inputs_C2.json",
   "projection": "counts x 21 / census days (estimate); distinct events: E_2d + (E_2d - E_day1) x 19; effective = units in markets with >= 2 units of the population",
-  "CQ_CH_sweeps": "sweep 1 of every census pass and of slot k - 1 (E022's depth control)"
+  "CQ_CH_sweeps": "sweep 1 of every census pass and of slot k - 1 (E022's depth control)",
+  "CF_scope": "E021 only (sealed samples of 2026-10-16/17 and their captures k - 1, k)"
+ },
+ "dropped_before_census": {
+  "E023": "R2 finding 1: the donor gate did not hold size in a binding scenario (run D, same hash: corr 0.5, 0.085 > 0.075); dropped uncounted, no redraw",
+  "E024": "as E023"
  }
 }

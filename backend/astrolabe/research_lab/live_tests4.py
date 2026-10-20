@@ -16,7 +16,6 @@ Outputs (``research_lab/live_tests4/``; every data file WRITE-ONCE, atomic, floa
 * ``hollow/frozen/<capture>.csv.gz``: E022 traded movers with the sweep-1 state (``.nosweep`` marker if the sweep never
   arrives).
 * ``clock/frozen/<sample>.csv.gz``: E021 sampled movers with the last-trade clock.
-* ``flow/frozen/<sample>.csv.gz``: E023 / E024 lines (LT3's flow line plus the open share, the concentration and HHI).
 * ``<kind>/outcomes/<id>.h<j>.csv.gz`` (status and quote at slot k + j) and ``.s<j>.csv.gz`` (sweep-1 quote of pass k + j).
 * ``passes.jsonl`` (append-only log) and ``state.json`` (processed-id cache only).
 
@@ -57,7 +56,7 @@ ANALYSIS_NOT_BEFORE = "2026-11-17T12:00:00Z"
 TEMPFAIL = 75
 DISK_CAP_BYTES = int(1.5e9)
 GRID_S = l3.GRID_S
-SERIES_LOOKBACK_S = 26 * 3600.0  # flow RV needs slots k - 12 .. k
+SERIES_LOOKBACK_S = 4 * 3600.0  # the earliest state input is slot k - 1 (and its sweep 1)
 MISSING_AFTER_S = l3.MISSING_AFTER_S
 ROLE_CONF, ROLE_UNREG = l3.ROLE_CONF, l3.ROLE_UNREG
 CODE_FILES = ("live_tests4.py", "live_tests4_analysis.py", "live_tests3.py", "live_tests3_analysis.py")
@@ -67,9 +66,9 @@ SNAP_COLS = [*l3.SNAP_COLS, "liquidity"]
 EXT_COLS = [*l3.EXT_COLS, "rewards_min_size", "rewards_max_spread"]
 SWEEP_COLS = [*l3.SWEEP_COLS, "bid_size_1", "ask_size_1", "depth_bid_1c", "depth_ask_1c", "depth_bid_5c", "depth_ask_5c", "min_order_size"]
 # columns ops_stats may read (never a price, a move, a state value or a target; enforced by a unit test)
-OPS_COLS = frozenset({"role", "cls", "geom", "sports", "arrival", "side_moved", "band", "clock", "tick_ok", "common", "n2h_truncated", "cov6", "status",
+OPS_COLS = frozenset({"role", "cls", "geom", "sports", "arrival", "side_moved", "band", "clock", "tick_ok", "common", "n2h_truncated", "status",
                       "late", "checked_utc", "noprev", "nosweep"})
-KINDS = ("move", "hollow", "clock", "flow")
+KINDS = ("move", "hollow", "clock")  # E023 / E024 (flow) dropped before any census (LIVE_TESTS_4.md 15)
 CONTROLS_E020 = ["spread_p", "log_abs_x", "logit_mid", "abs_dev", "log1p_vol", "log_hte", "hte_missing", "rew"]
 CONTROLS_E021 = ["g_par", "g_os", "g_sc", "log_abs_x", "spread_k", "logit_mid", "abs_dev", "log1p_vol_p", "log_hte", "hte_missing", "log1p_n2h"]
 CONTROLS_E022 = ["log1p_Dp", "Dp_missing", "dimb", "dimb_missing", "sw_spread0", "g_par", "g_os", "g_sc", "log_abs_x", "logit_mid",
@@ -324,10 +323,11 @@ def freeze_hollow(ser_k: pd.DataFrame, ser_p: pd.DataFrame, sw_k: pd.DataFrame, 
         swp = sw_p.reindex(mids)
         Dp_raw = _depth_usd(swp["sbid"], swp["sask"], swp["dbid5"], swp["dask5"]) if "dbid5" in swp else np.full(len(t), np.nan)
         Dp2 = Dp_raw + (_depth_usd(swp["sbid_t1"], swp["sask_t1"], swp["dbid5_t1"], swp["dask5_t1"]) if "dbid5_t1" in swp else np.nan)
-        Dp = Dp2 if dd == "both" else Dp_raw
-        Dp = np.where(np.nan_to_num(swp["s_two"].to_numpy(float), nan=0.0) == 1, Dp, np.nan) if "s_two" in swp else np.full(len(t), np.nan)
+        two_p = (np.nan_to_num(swp["s_two"].to_numpy(float), nan=0.0) == 1) if "s_two" in swp else np.zeros(len(t), bool)
+        Dp0, Dp2 = np.where(two_p, Dp_raw, np.nan), np.where(two_p, Dp2, np.nan)
     else:
-        Dp = np.full(len(t), np.nan)
+        Dp0 = Dp2 = np.full(len(t), np.nan)
+    Dp = Dp2 if dd == "both" else Dp0
     with np.errstate(invalid="ignore", divide="ignore"):
         okL = np.isfinite(L) & (L > 0)
         Lsafe = np.where(okL, L, 1.0)
@@ -345,7 +345,7 @@ def freeze_hollow(ser_k: pd.DataFrame, ser_p: pd.DataFrame, sw_k: pd.DataFrame, 
                  h1c=h1, zh=l3._z(h, spec["hollow"]["zh"]), superset=np.where(ok, (L >= D).astype(float), np.nan), superset0=sup0,
                  superset2=sup2, log1p_D=np.log1p(np.where(ok, D, np.nan)), log_L=np.log(np.where(okL, L, np.nan)),
                  sw_spread0=np.where(two, sa - sb, np.nan), dimb=np.nan_to_num(dimb, nan=0.0), dimb_missing=(~np.isfinite(dimb)).astype(int),
-                 log1p_Dp=np.where(Dp_ok, lDp, 0.0), Dp_missing=(~Dp_ok).astype(int))
+                 log1p_Dp=np.where(Dp_ok, lDp, 0.0), Dp_missing=(~Dp_ok).astype(int), log1p_Dp0_raw=np.log1p(Dp0), log1p_Dp2_raw=np.log1p(Dp2))
     hc = {"traded": len(t), "sweep_two_sided": int(two.sum()), "L_positive": int(okL.sum()), "h_defined": int(np.isfinite(h).sum()),
           "Dp_missing": int((~Dp_ok).sum()), "depth_def": dd}
     return _stamp(t, spec, commit), {**cnt, "hollow": hc}
@@ -402,72 +402,6 @@ def freeze_clock(sample: dict, cap: dict, k: int, by_slot: dict, root: Path, spe
            "clock": {str(a): int(b) for a, b in u.loc[tm, "clock"].value_counts().items()},
            "band": {str(a): int(b) for a, b in u.loc[tm, "band"].value_counts().items()}}
     return _stamp(u, spec, commit), cnt
-
-
-# --- E023 / E024: flow composition ----------------------------------------------------------------------------------
-
-
-def composition(rows: pd.DataFrame, mkt: pd.Series, lo_s: float, hi_s: float) -> dict:
-    """Per market over signed rows with o - lo_s <= ts < o - hi_s: OP (BUY notional share), C (largest row's notional
-    share), HHI (Herfindahl of row notionals), o_leg / s_leg (signed opening / closing notional over total notional),
-    OPno (share of BUY notional on outcome 1), Nsig (rows)."""
-    ts, o, sg = rows["ts"].to_numpy(float), rows["o"].to_numpy(float), rows["sg"].to_numpy(float)
-    with np.errstate(invalid="ignore"):
-        m = (ts >= o - lo_s) & (ts < o - hi_s) & (sg != 0)
-    w = rows[m]
-    nt = w["nt"].to_numpy(float)
-    buy = w["side"].astype(str).to_numpy() == "BUY"
-    oi = pd.to_numeric(w["outcome_index"], errors="coerce").to_numpy(float)
-    d = pd.DataFrame({"m": w["market_id"].astype(str).to_numpy(), "nt": nt, "nt2": nt * nt, "bn": np.where(buy, nt, 0.0),
-                      "bno": np.where(buy & (oi == 1), nt, 0.0), "on": np.where(buy, w["sg"].to_numpy(float) * nt, 0.0),
-                      "sn": np.where(~buy, w["sg"].to_numpy(float) * nt, 0.0), "one": 1.0})
-    g = d.groupby("m").agg(nt=("nt", "sum"), nt2=("nt2", "sum"), mx=("nt", "max"), bn=("bn", "sum"), bno=("bno", "sum"),
-                           on=("on", "sum"), sn=("sn", "sum"), n=("one", "sum")).reindex(mkt.astype(str))
-    NT = g["nt"].fillna(0.0).to_numpy(float)
-    pos = NT > 0
-    with np.errstate(invalid="ignore", divide="ignore"):
-        return {"OP": np.where(pos, g["bn"].to_numpy(float) / NT, np.nan), "C": np.where(pos, g["mx"].to_numpy(float) / NT, np.nan),
-                "HHI": np.where(pos, g["nt2"].to_numpy(float) / NT**2, np.nan),
-                "o_leg": np.where(pos, g["on"].to_numpy(float) / NT, np.nan), "s_leg": np.where(pos, g["sn"].to_numpy(float) / NT, np.nan),
-                "OPno": np.where(g["bn"].fillna(0.0).to_numpy(float) > 0, g["bno"].to_numpy(float) / g["bn"].to_numpy(float), np.nan),
-                "Nsig": g["n"].fillna(0.0).to_numpy(float)}
-
-
-def flow_inputs(sample: dict, cap: dict, root: Path, spec: dict, feat_tr: tuple) -> tuple[pd.Series, pd.DataFrame]:
-    """(market ids in LT3 freeze_flow order, trade rows with sign / origin / notional): the same inputs LT3 uses."""
-    feat, tr = feat_tr
-    ser = l3.read_series(root, cap["id"])
-    feat = feat[feat["market_id"].astype(str).isin(ser.index)].reset_index(drop=True)
-    mkt = feat["market_id"].astype(str)
-    s = ser.reindex(mkt)
-    origin = panel._epoch(feat["origin_utc"])
-    token0 = l3.token0_map(cap["dir"], mkt)
-    token0.index = mkt.to_numpy()
-    rows = l3.flow_rows(tr, pd.Series(origin, index=mkt.to_numpy()), pd.Series(s["tick"].to_numpy(float), index=mkt.to_numpy()), token0, spec)
-    return mkt, rows
-
-
-def freeze_flow(sample: dict, cap: dict, k: int, by_slot: dict, root: Path, spec: dict, role: str, commit: str,
-                cache: dict | None = None, feat_tr: tuple | None = None) -> tuple[pd.DataFrame, dict]:
-    """E023 / E024 lines: LT3's flow line (``live_tests3.freeze_flow``, unchanged: x6, W, H, N6, Size, coverage, controls,
-    30-min-early versions) plus OP, C, HHI, the two legs and their standardised and early versions."""
-    f = spec["flow"]
-    feat_tr = feat_tr if feat_tr is not None else l3.load_sample(Path(sample["dir"]))
-    fr, cnt = l3.freeze_flow(sample, cap, k, by_slot, root, spec, role, commit, cache, feat_tr)
-    mkt, rows = flow_inputs(sample, cap, root, spec, feat_tr)
-    assert len(mkt) == len(fr) and (mkt.to_numpy() == fr["market_id"].astype(str).to_numpy()).all()
-    W6, lag = float(f["window_s"]), float(f["lag_s"])
-    c6, cl = composition(rows, mkt, W6, 0.0), composition(rows, mkt, W6 + lag, lag)
-    cov6, cov6l = fr["cov6"].to_numpy(int) == 1, fr["cov6_l30"].to_numpy(int) == 1
-    out = {}
-    for name in ("OP", "C", "HHI", "o_leg", "s_leg", "OPno", "Nsig"):
-        out[name] = np.where(cov6, c6[name], np.nan)
-        out[f"{name}_l30"] = np.where(cov6l, cl[name], np.nan)
-    fr = fr.assign(**out)
-    fr["zOP"], fr["zOP_l30"] = l3._z(fr["OP"], f["zOP"]), l3._z(fr["OP_l30"], f["zOP"])
-    fr["zC"], fr["zC_l30"] = l3._z(fr["C"], f["zC"]), l3._z(fr["C_l30"], f["zC"])
-    fr["o6s"] = np.clip(fr["o_leg"].to_numpy(float), -f["x6_clip"], f["x6_clip"]) / f["x6_sd"]
-    return _stamp(fr, spec, commit), cnt
 
 
 # --- outcomes ---------------------------------------------------------------------------------------------------------
@@ -591,9 +525,8 @@ def _run_locked(*, snapshot_root: Path, sample_root: Path, sweep_root: Path, roo
                 stats[kind] += 1
                 budget -= 1
                 log.append({"kind": f"{kind}_frozen", "id": c["id"], "slot": k, "counts": cnt, "written_utc": iso(now_ts())})
-    # 4. sample freezes: clock (E021, first target k + 1) and flow (E023 / E024, target k + 3)
+    # 4. sample freezes: clock (E021, first target k + 1)
     slot_by_id = {c["id"]: k for k, c in by_slot.items()}
-    rv_cache: dict = {}
     for sid in sorted(samples):
         k = slot_by_id.get(samples[sid]["snapshot_id"])
         if k is None:
@@ -603,36 +536,29 @@ def _run_locked(*, snapshot_root: Path, sample_root: Path, sweep_root: Path, roo
             continue
         role = l3.role_of(c["start"], registered_utc, end_utc, pinned)
         feat_tr = None
-        for kind, first in (("clock", 1), ("flow", int(spec["flow"]["horizon_slots"]))):
+        for kind, first in (("clock", 1),):
             p = root / kind / "frozen" / f"{sid}.csv.gz"
             if p.exists() or any(_marker(p, s).exists() for s in MARKERS) or budget <= 0:
                 continue
             if not allow_late and l3.is_late(k + first, now, spec):
                 _refuse_late(p, now, stats, log, kind, sid, k)
                 continue
-            if kind == "clock":
-                if k - 1 not in by_slot:
-                    if l3.target_state(by_slot, k - 1, now, spec) == "pending":
-                        continue
-                    write_once_csv(_marker(p, ".noprev.csv.gz"), pd.DataFrame({"noprev": [1]}))
+            if k - 1 not in by_slot:
+                if l3.target_state(by_slot, k - 1, now, spec) == "pending":
                     continue
-                if not l3.series_ready(root, by_slot, (k - 1, k)):
-                    continue
-            elif not l3.series_ready(root, by_slot, range(k - int(spec["flow"]["rv_steps"]), k + 1)) or not (root / "series" / f"{c['id']}.csv.gz").exists():
+                write_once_csv(_marker(p, ".noprev.csv.gz"), pd.DataFrame({"noprev": [1]}))
+                continue
+            if not l3.series_ready(root, by_slot, (k - 1, k)):
                 continue
             if feat_tr is None:
                 feat_tr = l3.load_sample(Path(samples[sid]["dir"]))
-            if kind == "clock":
-                fr, cnt = freeze_clock(samples[sid], c, k, by_slot, root, spec, role, commit, feat_tr)
-            else:
-                fr, cnt = freeze_flow(samples[sid], c, k, by_slot, root, spec, role, commit, rv_cache, feat_tr)
+            fr, cnt = freeze_clock(samples[sid], c, k, by_slot, root, spec, role, commit, feat_tr)
             if write_once_csv(p, fr):
                 stats[kind] += 1
                 budget -= 1
                 log.append({"kind": f"{kind}_frozen", "id": sid, "capture_id": c["id"], "slot": k, "counts": cnt, "written_utc": iso(now_ts())})
     # 5. outcomes: status + quote at k + h (series files) and the sweep-1 quote at k + s
-    plan = {kind: (spec[kind]["horizons"], spec[kind]["sweep_tags"]) for kind in ("move", "hollow", "clock")}
-    plan["flow"] = ([spec["flow"]["horizon_slots"]], spec["flow"]["sweep_tags"])
+    plan = {kind: (spec[kind]["horizons"], spec[kind]["sweep_tags"]) for kind in KINDS}
     for kind, (hs, ss) in plan.items():
         fdir = root / kind / "frozen"
         for p in sorted(fdir.glob("*.csv.gz")) if fdir.exists() else []:
@@ -695,7 +621,7 @@ def ops_stats(root: Path = OUT_ROOT) -> dict:
                     **{s.split(".")[1]: len([f for f in files if f.name.endswith(s)]) for s in MARKERS}}
     counts, status = {}, {}
     cols = {"move": ["role", "cls", "geom", "sports", "arrival", "tick_ok"], "hollow": ["role", "sports"],
-            "clock": ["role", "cls", "clock", "band", "sports"], "flow": ["role", "sports", "cov6"]}
+            "clock": ["role", "cls", "clock", "band", "sports", "n2h_truncated"]}
     for kind, cl in cols.items():
         d = root / kind / "frozen"
         for f in sorted(d.glob("*.csv.gz")) if d.exists() else []:
@@ -821,7 +747,7 @@ def census_captures(*, seal: Path, snapshot_root: Path = SNAPSHOT_ROOT, sweep_ro
             h, ch = freeze_hollow(ser_k, ser_p, sw, c, k, spec, ROLE_UNREG, "census", swp)
             h["day"] = _day([c["start"]] * len(h)) if len(h) else []
             H.append(h[["market_id", "event_id", "skey", "sports", "day", "t_row", "geom", "x", "s_two0", "D0", "D2", "L", "h0", "h2",
-                        "superset0", "superset2", *CONTROLS_E022]])
+                        "superset0", "superset2", "log1p_Dp0_raw", "log1p_Dp2_raw", *CONTROLS_E022]])
         else:
             ch = {"sweep": "missing"}
         per_cap.append({"capture": c["id"], "move": cm, "hollow": ch.get("hollow", ch)})
@@ -834,12 +760,13 @@ def census_captures(*, seal: Path, snapshot_root: Path = SNAPSHOT_ROOT, sweep_ro
 
 def perm_share(df: pd.DataFrame, t0: float, min_stratum: int) -> dict:
     """Share of units in permutable strata (>= ``min_stratum`` units) for market x UTC day and the pre-declared fallback
-    market x two-day block (blocks from ``t0``), and the stratum the rule picks (R1 finding 2): day if its share >= 50%,
-    else block2 if its share >= 50%, else none (the test is dropped)."""
+    market x two-day block, and the stratum the rule picks (R1 finding 2): day if its share >= 50%, else block2 if its
+    share >= 50%, else none (the test is dropped). ``t0`` is the block anchor, REGISTERED_UTC (a UTC midnight), the same
+    anchor the analysis uses (R2 finding 10); census days before it get negative block indices."""
     if df.empty:
         return {"day": 0.0, "block2": 0.0, "stratum": None}
     t = df["t_row"].to_numpy(float)
-    day = np.floor((t - t0) / 86400.0).astype(int)
+    day = np.floor((t - t0) / 86400.0).astype(int)  # t0 is a UTC midnight, so these are UTC days
     out = {}
     for name, key in (("day", day), ("block2", day // 2)):
         st = df["market_id"].astype(str).to_numpy() + "|" + key.astype(str)
@@ -858,8 +785,17 @@ def design_effect(ev: pd.Series, scale: float, rho: float) -> dict:
     return {"m_census": m, "m_21d": m21, "rho": rho, "DE": 1.0 + (m21 - 1.0) * rho if np.isfinite(m21) else float("nan")}
 
 
-def _t0(days: list[str]) -> float:
-    return epoch(f"{sorted(days)[0]}T00:00:00Z")
+def block_anchor(spec: dict) -> float:
+    """REGISTERED_UTC, a UTC midnight: the anchor of two-day blocks in the census and the analysis (R2 finding 10)."""
+    t = epoch(spec["registered_utc"])
+    assert t % 86400.0 == 0.0, "REGISTERED_UTC must be a UTC midnight"
+    return t
+
+
+def de_gate(de: dict, floor: float) -> float:
+    """DE used by a census gate: max(floor, computed) (R2 finding 4: rho 0.02 is an example, not an estimate, so the
+    computed DE may not loosen R0's 3.0)."""
+    return float(max(floor, de["DE"])) if np.isfinite(de["DE"]) else float("nan")
 
 
 def _family_rule(pop: pd.DataFrame, cap: float) -> tuple[pd.DataFrame, str, float | None]:
@@ -885,9 +821,13 @@ def census_cq(U: pd.DataFrame, spec: dict, scale: float, days: list[str] | None 
     a_eff, c_eff = float(((pop["arrival"] == 1) & eff).sum() * scale), float(((pop["arrival"] == 0) & eff).sum() * scale)
     share = A / (A + C) if A + C else float("nan")
     de = design_effect(pop["event_id"], scale, float(g["rho"]))
-    a = {**g["mde_assumptions"], "deff_event": de["DE"]}
-    mde = l3.mde_eff(a_eff, c_eff, a) * 100.0 if np.isfinite(de["DE"]) else float("inf")
-    ps = perm_share(pop, _t0(days) if days else float(np.nanmin(pop["t_row"])) if len(pop) else 0.0, int(spec["gates"]["perm_min_stratum"]))
+    de["DE_gate"] = de_gate(de, float(g["de_floor"]))
+    a = {**g["mde_assumptions"], "deff_event": de["DE_gate"]}
+    mde = l3.mde_eff(a_eff, c_eff, a) * 100.0 if np.isfinite(de["DE_gate"]) else float("inf")
+    ps = perm_share(pop, block_anchor(spec), int(spec["gates"]["perm_min_stratum"]))
+    # R2 finding 8: units whose |r| could sit at the no-crossing bound (qs_k - one tick), by class (counts only; no target
+    # is read in the census): the share of units whose post-move spread leaves at most 3 ticks of room
+    room = np.round(pop["qs_k"].to_numpy(float) / pop["tick_k"].to_numpy(float)) if len(pop) else np.zeros(0)
     res = {"one_sided_quote_only_non_sports": len(os_), "tick_known_share": tick_known, "full_population": len(full),
            "common_support": len(cs), "common_support_share": len(cs) / len(full) if len(full) else None,
            "full_by_class": {str(k): int(v) for k, v in full["arrival"].value_counts().items()},
@@ -895,6 +835,8 @@ def census_cq(U: pd.DataFrame, spec: dict, scale: float, days: list[str] | None 
            "arrivals": A, "cancellations": C, "arrival_share": share, "arrivals_21d": A * scale, "cancellations_21d": C * scale,
            "arrivals_eff_21d": a_eff, "cancellations_eff_21d": c_eff, "design_effect": de, "mde_eff_c": mde,
            "perm_share": ps, "events": int(pop["event_id"].nunique()),
+           "qs_k_ticks_by_class": {str(c): {str(int(t)): int(n) for t, n in pd.Series(room[(pop["arrival"] == c).to_numpy()]).value_counts().sort_index().items()}
+                                   for c in (1, 0)} if len(pop) else {},
            "by_side": {str(k): int(v) for k, v in pop["side_moved"].value_counts().items()},
            "sports_one_sided": int(((U["sports"] == 1) & (U["cls"] == "quote_only") & (U["geom"] == "one_sided")).sum())}
     lo, hi = g["arrival_share"]
@@ -927,6 +869,8 @@ def census_ch(H: pd.DataFrame, U: pd.DataFrame, spec: dict, scale: float, days: 
     hc = "h2" if dd == "both" else "h0"
     cov0 = hn[np.isfinite(hn[hc])].copy()
     cov0["h"] = cov0[hc]
+    lp = cov0["log1p_Dp2_raw" if dd == "both" else "log1p_Dp0_raw"].to_numpy(float)  # R2 finding 2: the chosen definition
+    cov0["log1p_Dp"], cov0["Dp_missing"] = np.where(np.isfinite(lp), lp, 0.0), (~np.isfinite(lp)).astype(int)
     cov, excl, top = _family_rule(cov0, float(g["family_cap"]))
     cov = cov.sort_values(["market_id", "t_row"], kind="mergesort").reset_index(drop=True)
     cov_share = len(cov0) / len(trad)
@@ -949,12 +893,13 @@ def census_ch(H: pd.DataFrame, U: pd.DataFrame, spec: dict, scale: float, days: 
         iqrs.append(float(np.quantile(e, 0.75) - np.quantile(e, 0.25)))
     iqr_share = float(np.mean(np.asarray(iqrs) >= g["resid_iqr_min"])) if iqrs else float("nan")
     de = design_effect(cov["event_id"], scale, float(g["rho"]))
+    de["DE_gate"] = de_gate(de, float(g["de_floor"]))
     n_eff = float(_eff(cov).sum() * scale) if len(cov) else 0.0
     a = g["mde_assumptions"]
-    ok = n_eff > 0 and np.isfinite(vif_within) and np.isfinite(de["DE"])
-    mde_sd = (a["t_sum"] * a["sd_c"] / math.sqrt(n_eff) * math.sqrt(de["DE"]) * a["day_factor"] * math.sqrt(vif_within)) if ok else float("inf")
+    ok = n_eff > 0 and np.isfinite(vif_within) and np.isfinite(de["DE_gate"])
+    mde_sd = (a["t_sum"] * a["sd_c"] / math.sqrt(n_eff) * math.sqrt(de["DE_gate"]) * a["day_factor"] * math.sqrt(vif_within)) if ok else float("inf")
     mde_t = mde_sd * gap if np.isfinite(gap) else float("inf")
-    ps = perm_share(cov, _t0(days) if days else float(cov["t_row"].min()), int(spec["gates"]["perm_min_stratum"]))
+    ps = perm_share(cov, block_anchor(spec), int(spec["gates"]["perm_min_stratum"]))
     res.update({"covered": len(cov0), "covered_share": cov_share, "exclude_family": excl, "top_family_share": top, "population": len(cov),
                 "markets_ge_min_units": len(iqrs), "resid_iqr_share": iqr_share, "h_scale": sc, "h_tercile_cuts": cuts, "gap_sd": gap,
                 "vif_zh_within": vif_within, "vif_zh_pooled": vif_pooled, "design_effect": de, "covered_eff_21d": n_eff,
@@ -966,31 +911,11 @@ def census_ch(H: pd.DataFrame, U: pd.DataFrame, spec: dict, scale: float, days: 
     return res
 
 
-def touch_direction(sg: pd.DataFrame, by_slot: dict, k: int, work: Path) -> np.ndarray:
-    """Touch-implied direction of signed fills (LT3 C2 rule): the quote of the most recent capture row of slots k - 3 .. k
-    at most 300 s before the fill; outcome-0 price at or above the ask = +1, at or below the bid = -1, else 0."""
-    imp = np.zeros(len(sg))
-    mm = sg["market_id"].astype(str).to_numpy()
-    oi = pd.to_numeric(sg["outcome_index"], errors="coerce").to_numpy(float)
-    p0 = np.where(oi == 1, 1.0 - sg["p"].to_numpy(float), sg["p"].to_numpy(float))
-    ts = sg["ts"].to_numpy(float)
-    for jj in range(k - 3, k + 1):
-        sj = l3.read_series(work, by_slot.get(jj, {}).get("id"))
-        if sj is None:
-            continue
-        tq, bq, aq = l3._look(sj, mm, "t_row"), l3._look(sj, mm, "bid"), l3._look(sj, mm, "ask")
-        with np.errstate(invalid="ignore"):
-            near = np.isfinite(tq) & (ts >= tq) & (ts - tq <= 300.0) & np.isin(oi, (0.0, 1.0))
-            v = np.where(p0 >= aq - 1e-6, 1.0, np.where(p0 <= bq + 1e-6, -1.0, 0.0))
-        imp = np.where(near & (v != 0), v, imp)
-    return imp
-
-
-def census_flow(*, seal: Path, capture_seal: Path, sample_roots: list[Path], snapshot_root: Path = SNAPSHOT_ROOT, work: Path,
-                spec: dict | None = None, verify: bool = True) -> dict:
-    """CF (E021, E023, E024) on the sealed trade samples (LT3's C2 seal) and their captures k - 12 .. k (LT4's capture
-    seal): pre-origin rows only; prints the clock, the open share, the concentration, side-touch agreement by arm,
-    V*, scales, cuts, correlations, VIFs and the gates."""
+def census_cf(*, seal: Path, capture_seal: Path, sample_roots: list[Path], snapshot_root: Path = SNAPSHOT_ROOT, work: Path,
+              spec: dict | None = None, verify: bool = True) -> dict:
+    """CF (E021 only after R2): on the sealed trade samples (LT3's C2 seal) and their captures k - 1, k (LT4's capture
+    seal), refused on any mismatch: the clock, the ts granularity, the n2h truncation, the permuted share, the DE and the
+    gate. Pre-origin rows only; no target."""
     spec = spec or load_spec(sha=None)
     sl = json.loads(Path(seal).read_text())
     cseal = json.loads(Path(capture_seal).read_text()) if verify else {}
@@ -998,17 +923,8 @@ def census_flow(*, seal: Path, capture_seal: Path, sample_roots: list[Path], sna
     st = l3.State(work)
     by_slot = l3.scan_captures(snapshot_root, st, spec)
     slot_by_id = {c["id"]: k for k, c in by_slot.items()}
-    f = spec["flow"]
-    spec_c = json.loads(json.dumps({k: v for k, v in spec.items() if not k.startswith("_")}))
-    for z in ("zW", "zH", "zN", "zSize", "zSPR", "zRV", "zHTE", "zOP", "zC"):
-        spec_c["flow"][z] = {"centre": 0.0, "scale": 1.0}
-    spec_c["flow"]["vol24_cap"] = None
-    spec_c["hollow"]["zh"] = {"centre": 0.0, "scale": 1.0}
-    spec_c["_sha256"], spec_c["_pinned"] = spec["_sha256"], False
-    bad, frames, clocks = [], [], []
-    tot = {"rows_pre_origin": 0, "ts_not_minute": 0, "side_unusable": 0, "signed": 0, "sell": 0}
-    agree = {"buy": [0, 0], "sell": [0, 0], "largest": [0, 0], "other": [0, 0]}
-    cache: dict = {}
+    bad, clocks, found = [], [], {}
+    tot = {"rows_pre_origin": 0, "ts_not_minute": 0}
     for sid in sl["samples"]:
         sdir = next((Path(r) / sid for r in sample_roots if (Path(r) / sid / "trades.csv.gz").exists()), None)
         if sdir is None:
@@ -1017,57 +933,39 @@ def census_flow(*, seal: Path, capture_seal: Path, sample_roots: list[Path], sna
         if verify:
             bad += [{"sample": sid, **b} for b in verify_files(sl, [(f"data-dumps/research_lab/trade_samples/{sid}/{fn}", sdir / fn)
                                                                  for fn in ("features.csv.gz", "manifest.json", "plan.json", "trades.csv.gz")])]
-        m = l3._manifest(sdir / "manifest.json")
-        k = slot_by_id.get(m.get("snapshot_id"))
+        k = slot_by_id.get(l3._manifest(sdir / "manifest.json").get("snapshot_id"))
         if k is None:
             bad.append({"sample": sid, "error": "capture not found"})
             continue
-        slots = [j for j in range(k - int(f["rv_steps"]), k + 1) if j in by_slot]
+        found[sid] = (sdir, k)
         if verify:
-            bad += [{"sample": sid, **b} for j in slots for b in verify_files(cseal, capture_files(by_slot[j]["dir"]))]
+            bad += [{"sample": sid, **b} for j in (k - 1, k) if j in by_slot for b in verify_files(cseal, capture_files(by_slot[j]["dir"]))]
     if bad:
         return {"error": "input identity check failed (L3): census refused", "bad": bad[:50], "n_bad": len(bad)}
-    for sid in sl["samples"]:
-        sdir = next(Path(r) / sid for r in sample_roots if (Path(r) / sid / "trades.csv.gz").exists())
-        k = slot_by_id[l3._manifest(sdir / "manifest.json").get("snapshot_id")]
-        for j in range(k - int(f["rv_steps"]), k + 1):
+    for sid, (sdir, k) in found.items():
+        for j in (k - 1, k):
             if j in by_slot and not (work / "series" / f"{by_slot[j]['id']}.csv.gz").exists():
                 write_series(work, by_slot[j], spec)
+        if k - 1 not in by_slot:
+            continue
         feat_tr = l3.load_sample(sdir)
-        fr, _ = freeze_flow({"dir": sdir}, by_slot[k], k, by_slot, work, spec_c, ROLE_UNREG, "census", cache, feat_tr)
-        fr["day"] = sid[:8]
-        frames.append(fr)
-        if k - 1 in by_slot:
-            ck, _ = freeze_clock({"dir": sdir}, by_slot[k], k, by_slot, work, spec_c, ROLE_UNREG, "census", feat_tr)
-            ck["day"] = sid[:8]
-            clocks.append(ck[["market_id", "event_id", "sports", "day", "t_row", "cls", "clock", "band", "age", "n2h", "n2h_truncated"]])
-        # row-level checks (pre-origin rows; signed rows for the agreement arms)
-        mkt, rows = flow_inputs({"dir": sdir}, by_slot[k], work, spec, feat_tr)
-        pre = rows[rows["ts"].to_numpy(float) < rows["o"].to_numpy(float)]
-        tot["rows_pre_origin"] += len(pre)
-        tot["ts_not_minute"] += int((np.mod(pre["ts"].to_numpy(float), 60.0) != 0).sum())
-        tot["side_unusable"] += int((pre["sg"].to_numpy(float) == 0).sum())
-        sg = pre[(pre["sg"] != 0) & (pre["ts"].to_numpy(float) >= pre["o"].to_numpy(float) - float(f["window_s"]))].copy()
-        tot["signed"] += len(sg)
-        sell = sg["side"].astype(str).to_numpy() == "SELL"
-        tot["sell"] += int(sell.sum())
-        imp = touch_direction(sg, by_slot, k, work)
-        has = imp != 0
-        same = sg["sg"].to_numpy(float) == imp
-        rk = sg.groupby("market_id")["nt"].rank(method="first", ascending=False).to_numpy() == 1
-        for lab, msk in (("buy", has & ~sell), ("sell", has & sell), ("largest", has & rk), ("other", has & ~rk)):
-            agree[lab][0] += int((same & msk).sum())
-            agree[lab][1] += int(msk.sum())
-    F = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+        ck, _ = freeze_clock({"dir": sdir}, by_slot[k], k, by_slot, work, spec, ROLE_UNREG, "census", feat_tr)
+        ck["day"] = sid[:8]
+        clocks.append(ck[["market_id", "event_id", "sports", "day", "t_row", "cls", "clock", "band", "age", "n2h", "n2h_truncated"]])
+        feat, tr = feat_tr
+        o = tr["market_id"].astype(str).map(pd.Series(panel._epoch(feat["origin_utc"]), index=feat["market_id"].astype(str).to_numpy())).to_numpy(float)
+        ts = pd.to_numeric(tr["ts"], errors="coerce").to_numpy(float)
+        with np.errstate(invalid="ignore"):
+            pre = np.isfinite(o) & (ts < o)
+        tot["rows_pre_origin"] += int(pre.sum())
+        tot["ts_not_minute"] += int((np.mod(ts[pre], 60.0) != 0).sum())
     K = pd.concat(clocks, ignore_index=True) if clocks else pd.DataFrame()
-    if F.empty:
+    if K.empty:
         return {"error": "no usable sample"}
-    n_days = len({str(s)[:8] for s in sl["samples"]})
-    scale = 21.0 / max(n_days, 1)
-    day1 = sorted({str(s)[:8] for s in sl["samples"]})[0]
-    res = {"seal": str(seal), "capture_seal": str(capture_seal), "inputs_verified": bool(verify), "samples": len(frames), "totals": tot,
-           "CF_E021": census_clock(K, spec, scale, day1, tot), **census_comp(F, spec, scale, day1, agree, tot)}
-    return res
+    days = sorted({str(s_)[:8] for s_ in sl["samples"]})
+    scale = 21.0 / max(len(days), 1)
+    return {"seal": str(seal), "capture_seal": str(capture_seal), "inputs_verified": bool(verify), "samples": len(clocks), "totals": tot,
+            "CF_E021": census_clock(K, spec, scale, days[0], tot)}
 
 
 def census_clock(K: pd.DataFrame, spec: dict, scale: float, day1: str, tot: dict) -> dict:
@@ -1081,20 +979,22 @@ def census_clock(K: pd.DataFrame, spec: dict, scale: float, day1: str, tot: dict
     eff = _eff(pop) if len(pop) else pd.Series(dtype=bool)
     nf_eff, ns_eff = float(((pop["band"] == "fresh") & eff).sum() * scale), float(((pop["band"] == "settled") & eff).sum() * scale)
     de = design_effect(pop["event_id"], scale, float(g["rho"]))
-    a = {**g["mde_assumptions"], "deff_event": de["DE"]}
-    mde = l3.mde_eff(nf_eff, ns_eff, a) * 100.0 if np.isfinite(de["DE"]) else float("inf")
+    de["DE_gate"] = de_gate(de, float(g["de_floor"]))
+    a = {**g["mde_assumptions"], "deff_event": de["DE_gate"]}
+    mde = l3.mde_eff(nf_eff, ns_eff, a) * 100.0 if np.isfinite(de["DE_gate"]) else float("inf")
     fs = float((ok["band"] == "fresh").mean()) if len(ok) else float("nan")
     ss = float((ok["band"] == "settled").mean()) if len(ok) else float("nan")
     trunc = float((tm["clock"] == "unclocked_truncated").mean()) if len(tm) else float("nan")
     n2t = float(band["n2h_truncated"].mean()) if len(band) else float("nan")
-    t0 = epoch(f"{day1[:4]}-{day1[4:6]}-{day1[6:8]}T00:00:00Z")
-    ps = perm_share(pop, t0, int(spec["gates"]["perm_min_stratum"]))
+    ps = perm_share(pop, block_anchor(spec), int(spec["gates"]["perm_min_stratum"]))
     dec = pd.qcut(band["n2h"].rank(method="first"), 10, labels=False) if len(band) >= 10 else pd.Series(dtype=int)
     res = {"traded_sampled_movers": len(tm), "clock_status": {str(a_): int(b) for a_, b in tm["clock"].value_counts().items()},
            "band": {str(a_): int(b) for a_, b in ok["band"].value_counts().items()}, "fresh_share": fs, "settled_share": ss,
            "clocked_21d": float(len(ok) * scale), "unclocked_truncated_share": trunc, "n2h_truncated_share": n2t,
            "fresh_eff_21d": nf_eff, "settled_eff_21d": ns_eff, "design_effect": de, "mde_eff_c": mde, "perm_share": ps,
            "sports_share": float((pop["sports"] == 1).mean()) if len(pop) else None,
+           "n2h_truncated_share_by_band": {b: float(band.loc[band["band"] == b, "n2h_truncated"].mean()) for b in ("fresh", "settled")
+                                           if (band["band"] == b).any()},  # R2 finding 7
            "band_by_n2h_decile": {str(int(d)): {str(b): int(v) for b, v in band.loc[dec.index[dec == d], "band"].value_counts().items()}
                                   for d in sorted(dec.unique())} if len(dec) else {},
            "age_quantiles_s": [float(x) for x in np.quantile(ok["age"], [0.1, 0.25, 0.5, 0.75, 0.9])] if len(ok) else None}
@@ -1109,101 +1009,6 @@ def census_clock(K: pd.DataFrame, spec: dict, scale: float, day1: str, tot: dict
 def _gate(d: dict) -> dict:
     d["pass"] = all(d.values())
     return d
-
-
-def census_comp(F: pd.DataFrame, spec: dict, scale: float, day1: str, agree: dict, tot: dict) -> dict:
-    """E023 / E024 parts of CF: V*, the covered population, scales, cuts, correlations, VIFs, agreement and the gates."""
-    f = spec["flow"]
-    g3, g4 = spec["census_gates"]["CF_E023"], spec["census_gates"]["CF_E024"]
-    base = F[(F["tight_i"] == 1) & (F["end_ok_7h"] == 1)]
-    cand = base[(base["cov6"] == 0) | (np.nan_to_num(base["N6"].to_numpy(float)) > 0)]
-    trunc = pd.DataFrame({"vol24_i": cand["vol24_i"].to_numpy(float), "trunc6": (cand["cov6"].to_numpy(int) == 0).astype(int)})
-    vstar = l3.vol24_cap_rule(trunc, float(f["vol24_cap_max_trunc_share"]))
-    cov = base[(base["cov6"] == 1) & (np.nan_to_num(base["N6"].to_numpy(float)) > 0)]
-    cov = cov[cov["vol24_i"] <= vstar] if np.isfinite(vstar) else cov
-    with np.errstate(divide="ignore", invalid="ignore"):
-        z = pd.DataFrame({"W": cov["W"], "H": cov["H"], "OP": cov["OP"], "C": cov["C"].where(cov["Nsig"] >= f["min_rows_C"]),
-                          "lN": np.log(cov["N6"]), "lS": np.log(cov["Size"]), "SPR": cov["spread_i"], "lRV": np.log(cov["rv"] + 1e-4),
-                          "lHTE": np.where(cov["hte_missing"] == 0, cov["log_hte"], np.nan)})
-    scales = {"zW": _ms(z["W"]), "zH": _ms(z["H"]), "zN": _ms(z["lN"]), "zSize": _ms(z["lS"]), "zSPR": _ms(z["SPR"]),
-              "zRV": _ms(z["lRV"]), "zHTE": _ms(z["lHTE"]), "zOP": _ms(z["OP"]), "zC": _ms(z["C"])}
-    zs = pd.DataFrame({k: (z[c] - (scales[k]["centre"] or 0.0)) / (scales[k]["scale"] or 1.0)
-                       for k, c in (("zW", "W"), ("zH", "H"), ("zN", "lN"), ("zSize", "lS"), ("zSPR", "SPR"), ("zRV", "lRV"),
-                                    ("zHTE", "lHTE"), ("zOP", "OP"), ("zC", "C"))})
-
-    def corr(a: str, b: str) -> float:
-        d = z[[a, b]].dropna()
-        return float(np.corrcoef(d[a], d[b])[0, 1]) if len(d) > 2 else float("nan")
-
-    ev_all = set(cov["event_id"])
-    ev1 = set(cov.loc[cov["day"] == day1, "event_id"])
-    e21 = l3.project_events(ev1, ev_all, len({*cov["day"]}) or 1)
-    base_mde = float(g3["mde_base"])
-    # R1 finding 9: VIF of the tested interaction x6 * zM against the model's other x6 terms, after expanding-past demeaning
-    x6 = cov["x6"].to_numpy(float)
-    it = pd.DataFrame({"market_id": cov["market_id"].astype(str).to_numpy(), "t_row": cov["t_row"].to_numpy(float), "x6": x6,
-                       "x6_absdev": x6 * cov["abs_dev"].to_numpy(float)})
-    for zc in ("zW", "zH", "zN", "zSize", "zSPR", "zRV", "zHTE", "zOP", "zC"):
-        it[f"x6_{zc}"] = x6 * zs[zc].to_numpy(float)
-    it = it.sort_values(["market_id", "t_row"], kind="mergesort").reset_index(drop=True)
-    ints = [c for c in it.columns if c.startswith("x6")]
-    dm = bd.expanding_demean(it, ints, "market_id", "t_row")
-    base_terms = ["x6", "x6_absdev", "x6_zN", "x6_zSize", "x6_zSPR", "x6_zRV", "x6_zHTE"]
-    vif_op = _vif(dm, "x6_zOP", base_terms)
-    vif_c = _vif(dm, "x6_zC", [*base_terms, "x6_zW", "x6_zH"])
-    res_vif_pooled = {"zOP": _vif(zs, "zOP", ["zW", "zH", "zN", "zSize", "zSPR", "zRV", "zHTE"]),
-                      "zC": _vif(zs, "zC", ["zW", "zH", "zN", "zSize", "zSPR", "zRV", "zHTE"])}
-    mde = {n: (base_mde * math.sqrt(5000.0 / e21) * math.sqrt(v)) if e21 > 0 and np.isfinite(v) else float("inf") for n, v in (("OP", vif_op), ("C", vif_c))}
-    ag = {k: (v[0] / v[1] if v[1] else None) for k, v in agree.items()}
-    n_min = int(g3["agreement_min_rows"])
-    gap3 = (ag["buy"] - ag["sell"]) if None not in (ag["buy"], ag["sell"]) else None
-    gap4 = (ag["other"] - ag["largest"]) if None not in (ag["other"], ag["largest"]) else None
-    op_int = np.isfinite(z["OP"]) & (z["OP"] > 0) & (z["OP"] < 1)
-    c_int = np.isfinite(z["C"]) & (z["C"] < 1)
-    sell_share = tot["sell"] / tot["signed"] if tot["signed"] else float("nan")
-    unusable = tot["side_unusable"] / tot["rows_pre_origin"] if tot["rows_pre_origin"] else float("nan")
-    lo, hi = g3["sell_share"]
-    res = {"vol24_cap": vstar, "trunc6_share": float(trunc["trunc6"].mean()) if len(trunc) else None, "covered_units": len(cov),
-           "covered_21d": float(len(cov) * scale), "events": len(ev_all), "events_21d": e21, "scales": scales,
-           "ts_not_minute_share": tot["ts_not_minute"] / tot["rows_pre_origin"] if tot["rows_pre_origin"] else None,
-           "sell_share": sell_share, "side_unusable_share": unusable,
-           "OP_interior_share": float(op_int.mean()) if len(z) else None, "OP_interior_21d": float(op_int.sum() * scale),
-           "C_interior_21d": float(c_int.sum() * scale),
-           "corr": {"OP_W": corr("OP", "W"), "OP_H": corr("OP", "H"), "C_W": corr("C", "W"), "C_H": corr("C", "H"), "C_lN": corr("C", "lN")},
-           "max_abs_corr_controlled": {m: _max_corr(z, m, ctl) for m, ctl in (("OP", ["W", "H", "lN", "lS", "SPR", "lRV", "lHTE"]),
-                                                                              ("C", ["W", "H", "lN", "lS", "SPR", "lRV", "lHTE"]))},
-           "vif": {"x6_zOP_within": vif_op, "x6_zC_within": vif_c, "pooled_main_effects": res_vif_pooled}, "mde_plan": mde,
-           "agreement": {"rates": ag, "n": {k: v[1] for k, v in agree.items()}, "gap_buy_minus_sell": gap3, "gap_other_minus_largest": gap4,
-                         "min_rows_per_arm": n_min},
-           "econ_cuts": {"OP_upper_cut": (scales["zOP"].get("terciles") or [None, None])[1], "C_upper_cut": (scales["zC"].get("terciles") or [None, None])[1]}}
-    ok3 = agree["buy"][1] >= n_min and agree["sell"][1] >= n_min
-    ok4 = agree["largest"][1] >= n_min and agree["other"][1] >= n_min
-    c = res["corr"]
-    res["CF_E023"] = {"gate_E023": _gate({
-        "vol24_cap_defined": bool(not math.isnan(vstar)), "sell_share": bool(lo <= sell_share <= hi),
-        "side_unusable": bool(unusable <= g3["side_unusable_max"]),
-        "OP_interior": bool((res["OP_interior_share"] or 0.0) >= g3["OP_interior_share_min"] and res["OP_interior_21d"] >= g3["OP_interior_21d"]),
-        "corr": bool(np.isfinite(c["OP_W"]) and np.isfinite(c["OP_H"]) and abs(c["OP_W"]) <= g3["corr_max"] and abs(c["OP_H"]) <= g3["corr_max"]),
-        "agreement_gap": bool(ok3 and gap3 is not None and gap3 <= g3["agreement_gap_max"]),
-        "corr_controlled": bool(res["max_abs_corr_controlled"]["OP"] <= g3["corr_max"]),
-        "mde_plan": bool(mde["OP"] <= g3["mde_max"])})}
-    res["CF_E024"] = {"gate_E024": _gate({
-        "vol24_cap_defined": bool(not math.isnan(vstar)), "C_interior_21d": res["C_interior_21d"] >= g4["C_interior_21d"],
-        "corr": bool(np.isfinite(c["C_W"]) and np.isfinite(c["C_H"]) and abs(c["C_W"]) <= g4["corr_max"] and abs(c["C_H"]) <= g4["corr_max"]),
-        "agreement_gap": bool(ok4 and gap4 is not None and gap4 <= g4["agreement_gap_max"]),
-        "corr_controlled": bool(res["max_abs_corr_controlled"]["C"] <= g4["corr_max"]),
-        "mde_plan": bool(mde["C"] <= g4["mde_max"])})}
-    return res
-
-
-def _max_corr(z: pd.DataFrame, m: str, others: list[str]) -> float:
-    """Largest |corr| of moderator ``m`` with the moderators whose x6 interactions are controls (NaN fails the gate):
-    the donor gate is size-checked only up to 0.5 (LIVE_TESTS_4.md 14.5)."""
-    vals = []
-    for o in others:
-        d = z[[m, o]].dropna()
-        vals.append(abs(float(np.corrcoef(d[m], d[o])[0, 1])) if len(d) > 2 else float("nan"))
-    return float("nan") if not vals or any(not np.isfinite(v) for v in vals) else max(vals)
 
 
 def cleanup_census(work: Path) -> None:
