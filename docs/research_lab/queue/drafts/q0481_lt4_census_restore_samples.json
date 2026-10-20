@@ -38,6 +38,6 @@
  "outputs": [
   "data-dumps/research_lab/live_tests4_census/restore/data-dumps/research_lab/trade_samples/<sample>/"
  ],
- "next_action": "q0483 (census-flow re-verifies every sealed sample file against the LT3 C2 seal)",
+ "next_action": "q0483 (census-clock, E021 only after R2, re-verifies every sealed sample file against the LT3 C2 seal)",
  "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_4.md, design not yet reviewed). Wallet files are not selected. If LT3's q0471 tree (live_tests3_census/restore) still exists, q0483 may take it as --sample-root instead and this job is not needed: the census re-hashes against the seal either way."
 }

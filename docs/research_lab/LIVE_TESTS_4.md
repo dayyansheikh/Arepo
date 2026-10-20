@@ -1,4 +1,4 @@
-# Live tests 4 (LT4): E020-E024, DRAFT pre-registrations
+# Live tests 4 (LT4): E020-E022 (E023/E024 dropped before any census), DRAFT pre-registrations
 
 **Status: DRAFT, not registered, nothing counted.** Drafted 2026-10-20 on branch `feat/live-tests-4` from the research tip
 `fe54ef20`. E-numbers are provisional; they are assigned at registration. Before registration this needs: the input seal
@@ -11,6 +11,11 @@ line the reader writes is `prospective_unregistered` by construction.
 ACCEPT_WITH_CHANGES, no leakage) is answered in **section 14**, which amends sections 0-13; where they differ, section 14
 governs. E021's counted primary is now the skip-slot persistence; E020 runs on common support; E020-E022 gates are
 Freedman-Lane; E022's depth definition and identification are census-fixed.
+
+**R2 (2026-10-20):** challenger round 2 (`reviews/LT4_CHALLENGER_R2_2026-10-20.md`: E020-E022 ACCEPT_WITH_CHANGES, E023/E024
+REVISE -> drop) is answered in **section 15**, which amends sections 0-14; where they differ, section 15 governs.
+**E023 and E024 are dropped before any census, uncounted; k <= 3 (E020, E021, E022).** Their text in sections 0-14 is kept as
+the design record only. The size check is Freedman-Lane only (six binding scenarios, new seed 20261107).
 
 This is research tooling. No edge, calibration, profitability or tradability claim exists or is implied. Every count
 quoted from round 9/10 probes is a **counts-only development figure on worn data**. Every MDE here is a **planning
@@ -28,8 +33,8 @@ it never opens the LT2 or LT3 stores.
 | **E020** | CH169 | After a one-sided quote-only 2 h move, the **unmoved** side follows (ratifies) more when the move was an **arrival** (spread narrowed) than a **cancellation** (spread widened) (one-sided, > 0) | non-sports, complete captures | expanding-past demeaned OLS of `r = s · (U_{k+1} − U_k)` on 1[arrival] | **about 0.12-0.17c** (to about 0.3c) | 0.5c |
 | **E021** | CH170 | Within a market, a **fresh** traded move (last trade <= 15 min before the capture) continues less over 2 h than a **settled** one (last trade >= 60 min before) (one-sided, < 0) | all categories (sports split reported), active-frame trade samples + captures | expanding-past demeaned OLS of `c` on 1[fresh] | **about 0.29-0.54c** (borderline; census-gated) | 0.5c |
 | **E022** | CH174 | Within a market, a traded move made when the **displayed** liquidity is large relative to the executable near-touch depth (a **hollow** book) continues less over the next pass (one-sided, < 0) | non-sports, captures + sweep 1 | expanding-past demeaned OLS of the sweep-to-sweep continuation `c_sw` on `zh`, real depth held fixed | **about 0.08-0.16c per SD** (tercile-equivalent about 0.17-0.34c) | 0.5c (tercile) |
-| **E023** | CH171 | 6 h taker flow continues more when more of it was **opening** (BUY) rather than closing (SELL): slope of `x6 · zOP` > 0 | all categories, trade samples + captures | E016-form expanding-past demeaned OLS plus the distant-donor gate | **about 0.0020-0.0036 per SD** (VIF-adjusted; census-gated) | gross 0.5c in the favourable cell |
-| **E024** | CH173 | 6 h taker flow continues more when it is **concentrated** in one order: slope of `x6 · zC` > 0, `C` = largest row's notional share | all categories, >= 3 signed rows | as E023, with `x6·zW`, `x6·zH` held fixed | **about 0.0022-0.0046 per SD** (VIF-adjusted; census-gated, may drop) | gross 0.5c |
+| **E023 (DROPPED, R2; section 15)** | CH171 | 6 h taker flow continues more when more of it was **opening** (BUY) rather than closing (SELL): slope of `x6 · zOP` > 0 | all categories, trade samples + captures | E016-form expanding-past demeaned OLS plus the distant-donor gate | **about 0.0020-0.0036 per SD** (VIF-adjusted; census-gated) | gross 0.5c in the favourable cell |
+| **E024 (DROPPED, R2; section 15)** | CH173 | 6 h taker flow continues more when it is **concentrated** in one order: slope of `x6 · zC` > 0, `C` = largest row's notional share | all categories, >= 3 signed rows | as E023, with `x6·zW`, `x6·zH` held fixed | **about 0.0022-0.0046 per SD** (VIF-adjusted; census-gated, may drop) | gross 0.5c |
 
 - **Family:** one Holm family over the k primaries, one-sided, familywise alpha 0.05, separate from E009-E011, LT2
   (E012-E014) and LT3 (E015-E019). **k = 5** if every census gate in section 8 passes; a test whose gate fails is dropped
@@ -96,8 +101,11 @@ it never opens the LT2 or LT3 stores.
 - **Slots:** as LT3 (`grid0 = 2026-10-01T00:31Z`, 2 h, tolerance 30 min, first complete capture of a slot). "k − 1" and
   "k + h" are slots, not file order. Target slots: k + 1 (2 h), k + 3 (6 h, skip and flow targets).
 - **Decision time per test.** E020: capture k's row `received_utc` (states from captures k − 1, k). E021: the trade sample's
-  receipt (after capture k); the state uses capture rows k − 1, k and trade rows with `ts < t_k` only, so the state is
-  determined by information public at `t_k`. E022: sweep 1 of pass k (`batch_receipt_utc`, minutes after capture k); the
+  receipt (after capture k); the state uses capture rows k − 1, k and trade rows with `ts < t_k` only. **Amended (R2
+  finding 7):** the state's values are determined by information public at `t_k`, but the exclusion flag `n2h_truncated`
+  (a full page whose oldest row is after `t − 2 h`) also depends on trades between `t_k` and the sample receipt, which fill
+  the page. That information is public before the decision time (the receipt), so there is no leakage, but the excluded set
+  is not a function of `t_k` information alone; the analysis and CF report the excluded share by band (fresh, settled). E022: sweep 1 of pass k (`batch_receipt_utc`, minutes after capture k); the
   state uses capture k, k − 1 and sweep 1 of pass k only, **and the target starts at that sweep**. E023/E024: `origin_utc`
   of the sample (the capture row's receipt), trade rows `ts < t` only.
 - **Late rule:** a frozen file must be written before its earliest target slot can start (`now < slot time − 60 s`),
@@ -421,7 +429,13 @@ Applied in this order, each exclusion counted (LT3's `move_join` and `classify`,
 - **CH175 (last-mid outcome map):** a map (k = 0), not a test. **CH176 (front page):** its price target needs about 60 days.
 
 ### 7.3 Census drops
-Census drops will be recorded here, with their counts, before the pin.
+- **E023 (CH171) and E024 (CH173): dropped before any census, uncounted (R2 finding 1, orchestrator decision 2026-10-20).**
+  Reason: their only valid within-unit check, the residualised distant-donor gate, failed a binding size scenario on the
+  same code hash as the preliminary run (run D, `live_tests4_analysis.py` `6af80508…`: correlated true moderator 0.5,
+  rejection rate 0.085 against the 0.075 limit at 200 worlds; 14.5). Letting q0484 overturn that recorded failure with a
+  fresh draw would be selection on a simulation outcome, so there is **no redraw and no further gate variant**. No CF value
+  for them was ever computed; no window line for them is written. k = 3 if E020, E021 and E022 pass their census gates.
+- Census drops of E020-E022 will be recorded here, with their counts, before the pin.
 
 ## 8. Pre-registration censuses (counts only; before registration; worn pre-window data; no target read)
 
@@ -446,8 +460,8 @@ the first-unit drop and carry within-market variation).
 | E020 | CQ | tick known at k − 1 and k for >= 90% of one-sided non-sports movers; arrival share of one-sided units in [15%, 85%]; projected arrivals >= 15,000 and cancellations >= 15,000; **pessimistic effective-count MDE <= 0.5c** (3.388 x 4c x sqrt(1/A_eff + 1/C_eff) x sqrt(3) x 1.5) | none |
 | E021 | CF | `ts` second-level (share of pre-origin rows with `ts mod 60 != 0` >= 50%); fresh and settled each >= 10% of clocked traded sampled movers; projected clocked units >= 40,000; unclocked-truncated <= 5% of traded sampled movers; **pessimistic effective-count MDE <= 0.5c** (same formula on fresh/settled) | none |
 | E022 | CH | sweep-covered share (two-sided outcome-0 sweep with both depths, `L > 0`) >= 80% of traded non-sports movers; **superset share `L >= D` >= 90%**; within-market IQR of `h` >= 0.1 in >= 50% of markets with >= 10 traded movers (and >= 30 such markets; fewer fails); **pessimistic planning MDE per SD x tercile gap <= 0.5c** (3.388 x 4c / sqrt(n_eff) x sqrt(3) x 1.5 x sqrt(VIF) x gap) | `zh` centre/scale, `h` tercile cuts, gap |
-| E023 | CF | V* defined (NaN fails); SELL share of signed rows in [15%, 85%]; side unusable (not BUY/SELL or outcome unknown) <= 10% of pre-origin rows; `OP` strictly in (0, 1) for >= 40% of covered units and projected interior units >= 30,000; `|corr(zOP, zW)|` <= 0.5 and `|corr(zOP, zH)|` <= 0.5; side-touch agreement gap BUY − SELL <= 5 pp with >= 500 rows per arm; **planning MDE <= 0.0036** (0.002873 x sqrt(5,000 / projected events) x sqrt(VIF_OP)) | `vol24_cap` (V*), centres and scales of zOP, zC, zW, zH, zN, zSize, zSPR, zRV, zHTE; `econ.OP_upper_cut` |
-| E024 | CF | `C` < 1 (>= 3 signed rows) in projected >= 40,000 covered units; `|corr(zC, zW)|` <= 0.5 and `|corr(zC, zH)|` <= 0.5; agreement gap other − largest <= 5 pp with >= 500 rows per arm; **planning MDE <= 0.0036** (as E023 with VIF_C) | `econ.C_upper_cut` |
+| ~~E023~~ (dropped, R2) | CF | V* defined (NaN fails); SELL share of signed rows in [15%, 85%]; side unusable (not BUY/SELL or outcome unknown) <= 10% of pre-origin rows; `OP` strictly in (0, 1) for >= 40% of covered units and projected interior units >= 30,000; `|corr(zOP, zW)|` <= 0.5 and `|corr(zOP, zH)|` <= 0.5; side-touch agreement gap BUY − SELL <= 5 pp with >= 500 rows per arm; **planning MDE <= 0.0036** (0.002873 x sqrt(5,000 / projected events) x sqrt(VIF_OP)) | `vol24_cap` (V*), centres and scales of zOP, zC, zW, zH, zN, zSize, zSPR, zRV, zHTE; `econ.OP_upper_cut` |
+| ~~E024~~ (dropped, R2) | CF | `C` < 1 (>= 3 signed rows) in projected >= 40,000 covered units; `|corr(zC, zW)|` <= 0.5 and `|corr(zC, zH)|` <= 0.5; agreement gap other − largest <= 5 pp with >= 500 rows per arm; **planning MDE <= 0.0036** (as E023 with VIF_C) | `econ.C_upper_cut` |
 
 - The 0.0036 reference is E007's whole 1 h flow effect: a flow moderation test that cannot detect a per-SD moderation as
   large as the main effect is not worth a Holm slot. The 0.002873 base is 3.388 x 0.00053 x 1.6, LT3 E016's pessimistic
@@ -550,16 +564,16 @@ the first-unit drop and carry within-market variation).
 
 ## 12. Draft ledger block (DRAFT, not registered, not counted)
 
-> ## E020-E024 — Live tests 4 (LT4): DRAFT pre-registration (not registered, nothing counted)
+> ## E020-E022 — Live tests 4 (LT4): DRAFT pre-registration (not registered, nothing counted; E023/E024 dropped before any census)
 > - **Design:** `docs/research_lab/LIVE_TESTS_4.md`. Pure reader of streams the host already writes (complete captures,
 >   sidecar, sweep 1, active trade samples); cpu work, no network, < 400 MB target, `mem_mb 480`; reuses LT3 code by import
 >   (pinned), separate store `live_tests4/`.
 > - **E020** (CH169) arrival minus cancellation, unmoved-side 2 h ratification, non-sports, > 0; MDE about 0.12-0.17c, floor 0.5c.
 > - **E021** (CH170) fresh minus settled traded moves, 2 h continuation, all categories, < 0; MDE about 0.29-0.54c vs 0.5c; census-gated.
 > - **E022** (CH174) hollowness `zh` (display versus 5c depth, depth held fixed), sweep-to-sweep continuation, < 0; about 0.08-0.16c per SD.
-> - **E023** (CH171) open share moderates 6 h flow continuation, `x6·zOP` > 0; about 0.0020-0.0036 per SD; Inconclusive likely.
-> - **E024** (CH173) concentration moderates 6 h flow continuation, `x6·zC` > 0, W and H held fixed; about 0.0022-0.0046 per SD; may drop at census.
-> - **Family:** Holm over k (5 if every census gate passes), one-sided, alpha 0.05; p = max(event t on G − 1, two-way event x
+> - **E023** (CH171) open share: **dropped before any census, uncounted (R2)**; the donor gate failed a binding size scenario.
+> - **E024** (CH173) concentration: **dropped before any census, uncounted (R2)**, same reason.
+> - **Family:** Holm over k (3 if every census gate passes), one-sided, alpha 0.05; p = max(event t on G − 1, two-way event x
 >   UTC day, UTC day t on G − 1). Window: captures starting in `[REGISTERED_UTC, +21 d)`, proposed `[2026-10-26T00:00Z,
 >   2026-11-16T00:00Z)`; single analysis on or after 2026-11-17T12:00Z. Economics: paper taker round trips, expected "not shown".
 > - **Not taken:** CH172 (smallest population; LT5 candidate), CH178 (would double-count E015), CH177/CH179 (maps first), CH175 (map), CH176 (needs ~60 days).
@@ -569,6 +583,10 @@ the first-unit drop and carry within-market variation).
 > - **R1 (2026-10-20):** REVISE (E020-E022), ACCEPT_WITH_CHANGES (E023/E024), no leakage; answered in section 14: E020 common
 >   support; E021 primary = skip-slot persistence (likely to drop at census); Freedman-Lane gates for E020-E022; census
 >   permuted share, DE, within-market VIF and depth-definition rules; registration only after LT3's.
+> - **R2 (2026-10-20):** ACCEPT_WITH_CHANGES (E020-E022), E023/E024 dropped (k = 3); answered in section 15: CH depth control
+>   from the chosen definition, MA(2) overlapping-target size scenario, `DE_gate = max(3.0, computed)`, joint skip-target
+>   late mask and attrition, n2h exclusion reported by band, E020 bound share and `qs_k`-matched sensitivity, blocks
+>   anchored at UTC midnight, size-check seed 20261107 declared before any q0484 run.
 
 ## 13. Code pass (2026-10-20): what exists, and what the code taught the design
 
@@ -674,6 +692,7 @@ census top series family holds > 40% of E020's (resp. E022's) primary population
 - **LT3's permutation gate:** shares finding 7; not edited (frozen LT3 code). Flagged for the orchestrator (14.1, item 7).
 
 ### 14.5 Preliminary size check after R1
+*(Superseded by section 15: E023/E024 are dropped and the "blocked unless q0484 passes" consequence below is withdrawn.)*
 Local runs, 2026-10-20, 200 worlds x 200 draws (the gates' own), seed 20261026, limit 0.05 + 1.645 sqrt(0.0475 / 200) =
 0.075. Not the registered statement (that needs >= 2,000 worlds on the code to be pinned, q0484). Outputs are not committed.
 
@@ -713,3 +732,44 @@ A separate targeted run of run C's gate gave 0.075 at 0.4 and 0.055 at 0.7.)
 4. The DE projection `m × 21 / days` is pessimistic for short-lived events; acceptable as the gate's convention?
 5. The residualised donor gate plus the 0.5 correlation cap (14.5): an acceptable answer to finding 7 for E023/E024, or
    should the flow tests also move to a Freedman-Lane gate despite the serial dependence the donor design was built for?
+
+## 15. Response to challenger R2 (2026-10-20; `reviews/LT4_CHALLENGER_R2_2026-10-20.md`)
+
+Design and code only, before any census or window data; no statistic on real target data. No floor, alpha, direction,
+Holm rule or count was loosened: one item narrows the family (k 5 -> 3), the others add a mask, a floor, a scenario or a
+report. This section amends sections 0-14; where they differ, it governs. Code: `live_tests4.py`, `live_tests4_analysis.py`,
+spec `live_tests4_v1.json`, runner `run_live_tests4.py`, tests `test_research_lab_live_tests4.py` (25 tests). LT3 code is
+not edited.
+
+### 15.1 Findings mapped to changes
+
+| # | Finding | Change | Where |
+|---|---|---|---|
+| 1 | HIGH: donor gate not shown to hold size; the q0484 rule allowed a redraw | **E023 and E024 dropped now, before any census, uncounted; k = 3 (E020, E021, E022)**, recorded in 7.3 with the reason (run D, same hash, corr 0.5: 0.085 > 0.075; no redraw). Code paths **removed**, not left inert: the `flow` kind, `freeze_flow`, the composition fields, `census_comp`, `donor_gate_resid`, the flow frame and tests, the flow branches of the labels, and the donor size scenarios. `code_check` refuses a `k_tests` that names E023 or E024; `analyze` writes their verdict as "dropped before any census (R2), uncounted". The overstated test `test_residualised_donor_gate_holds_size_under_correlated_moderator` is **removed** with the gate it tested (no donor gate remains to rename it for). **New size-check seed 20261107**, declared in the spec (`size_check.seed`, `seed_rule`) before any q0484 run; the preliminary seed 20261026 is never reused | 7.3; spec `experiments`, `dropped_before_census`, `k_tests_rule`, `size_check`; `code_check`, `analyze`; q0483-q0486 |
+| 2 | MED: CH identification on outcome-0 depth | `freeze_hollow` freezes both `log1p_Dp0_raw` and `log1p_Dp2_raw` (sweep 1 of pass k − 1, token 0 and both tokens); `census_ch` **recomputes `log1p_Dp` / `Dp_missing` from the chosen `depth_def`** before the within-market VIF, the residual-IQR gate and the MDE; in the window the reader freezes `log1p_Dp` from the pinned `hollow.depth_def` | `freeze_hollow`, `census_ch`, `e022` |
+| 3 | MED: no overlapping-target scenario | New **binding** scenario `fl_binary_persistent_ma2_target`: per market a persistent binary label (market rate, 0.7 persistence) and a target that sums the pass shocks of k + 1, k + 2 and half of k + 3 (MA(2) in pass steps, as `c_skip` at consecutive origins), no label effect. q0484 now runs **six binding Freedman-Lane scenarios** (binary iid, binary persistent, binary control corr 0.7, continuous persistent, continuous control corr 0.7, MA(2)), 2,000 worlds x 200 draws, limit 0.058, **once**, at the pinned code; a failure blocks the pin with no rerun, seed change or variant | `sim_ma2_world`, `size_check`; spec; q0484 |
+| 4 | MED: computed DE could loosen R0 | **`DE_gate = max(3.0, computed)`** in CQ, CH and CF (`de_gate`, spec `de_floor` 3.0); the computed DE is printed beside it | `de_gate`, `census_cq/ch/clock` |
+| 5 | MED: correlation cap omits `abs_dev` | **Moot after finding 1:** the cap lists belonged to E023/E024's `census_comp`, removed with them. `abs_dev` remains a control of E022 | — |
+| 6 | MED: skip targets masked by `late3` only | `c_skip` and `c_skip_sw` are masked when **`late1 | late3`**; new joint status `status_skip` (two-sided only if two-sided and in time at k + 1 **and** k + 3); E021's attrition bound uses it | `clock_frame`, `e021` |
+| 7 | LOW: n2h wording | 1.3 amended (the exclusion flag uses trades between `t_k` and the receipt; public before the decision time; no leakage). CF prints and the analysis reports **`n2h_truncated_share_by_band`** (fresh, settled) | 1.3; `census_cf`, `e021` |
+| 8 | LOW: common support narrows, does not remove, the room difference | 14.1 item 1's "not censored" is withdrawn as an overclaim: common support guarantees 2 ticks of room, not equal room. CQ prints `qs_k_ticks_by_class` (counts only); the analysis reports **`bound_share_by_class`** (share of units with `|r| >= qs_k − tick`, by class) and **`sensitivity_qs_k_matched`** (the primary on the `qs_k`-in-ticks cells holding >= 5 units of both classes, cell indicators as controls). Reported only, never a verdict | `census_cq`, `qs_bound_and_matched`, `e020` |
+| 9 | LOW: residual-IQR floor | **Kept at 0.05**, as declared before CH (spec `CH_E022.resid_iqr_min`, `resid_iqr_floor_note`); it can only drop E022, never admit it | spec |
+| 10 | LOW: block anchors differ | Two-day blocks in the census and the analysis both start at **`REGISTERED_UTC`, asserted to be a UTC midnight** (`block_anchor`); census and analysis use the same function | `block_anchor`, `perm_share`, `strata_of` |
+| 11 | NOTE: LT3 shares the donor-gate defect | Not edited here (LT3 code is frozen for its own pin). For the orchestrator: fix LT3's `donor_gate` (and its raw-label `perm_gate`, 14.1 item 7) before LT3 registers; LT4 then pins LT3's corrected hashes (14.1 item 12) | — |
+
+### 15.2 Rulings adopted
+D_FS < 0 on the skip target stands (declared before outcomes). `dimb` stays in shares and is **outcome-0 only**
+(disclosed). The `21 / days` projection stays, under finding 4's floor. The 40% family rule applies to E020 and E022;
+**E021 has no family rule, intentionally** (all categories, sports split and series-family CR1 reported). The planning MDEs
+of 14.3 for E020-E022 are unchanged: they already assume DE = 3 and keep the k = 5 Holm multiplier 3.388, which is
+conservative for k = 3; the gates are unchanged.
+
+### 15.3 Census queue drafts after R2
+- q0480 (restore captures and sweeps, 2026-10-14T22:31Z .. 10-17) and q0481 (restore the 23 sealed samples): unchanged.
+- q0482 `census-captures` (CQ for E020, CH for E022): unchanged argv; prints the new DE floor, `qs_k_ticks_by_class` and
+  the chosen-definition depth control.
+- **q0483 renamed `q0483_lt4_census_clock`** (was `q0483_lt4_census_flow`): `census-clock`, CF for E021 only.
+- **q0484** size check: six binding Freedman-Lane scenarios, seed 20261107, run once at the pinned code.
+- q0485/q0486: E020-E022 only, no flow lines.
+No preliminary run of the MA(2) scenario was made: the binding statement is q0484's single run, so no variant can be chosen
+by its simulated rate.

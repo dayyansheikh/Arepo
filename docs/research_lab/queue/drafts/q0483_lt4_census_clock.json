@@ -1,9 +1,9 @@
 {
- "id": "q0483_lt4_census_flow",
- "title": "LT4 census CF (E021 clock, E023 open share, E024 concentration) on the 23 sealed trade samples of 2026-10-16/17 and their captures (DRAFT): counts only, pre-origin rows only; fixes V*, scales and cuts; refuses unsealed or mismatched inputs",
+ "id": "q0483_lt4_census_clock",
+ "title": "LT4 census CF (E021 trade clock only; E023/E024 dropped before any census, R2) on the 23 sealed trade samples of 2026-10-16/17 and their captures k-1, k (DRAFT): counts only, pre-origin rows only; refuses unsealed or mismatched inputs",
  "family": "live_tests_4",
  "priority": 29,
- "expected_value": "E021/E023/E024 census gates (LIVE_TESTS_4.md section 8); vol24_cap, zOP/zC/zW/zH/zN/zSize/zSPR/zRV/zHTE scales, OP and C upper terciles",
+ "expected_value": "E021 census gate (LIVE_TESTS_4.md sections 8 and 15): ts granularity, fresh/settled shares, n2h-truncated share by band, permuted share, DE_gate = max(3.0, computed), effective-count MDE; fixes e021.perm_stratum",
  "data": [
   "data-dumps/research_lab/live_tests4_census/restore (q0480, q0481; read-only)"
  ],
@@ -19,7 +19,7 @@
  ],
  "argv": [
   "scripts/run_live_tests4.py",
-  "census-flow",
+  "census-clock",
   "--seal",
   "../docs/research_lab/seals/lt3_census_inputs_C2.json",
   "--capture-seal",
@@ -38,6 +38,6 @@
  "outputs": [
   "data-dumps/research_lab/live_tests4_census/CF.json (counts only)"
  ],
- "next_action": "commit CF.json and its sha256, fill the flow census values and the E021/E023/E024 entries of k_tests, record drops in 7.3",
- "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_4.md, design not yet reviewed). Counts 0. The sample seal is LT3's (same 92 files). Captures from 2026-10-15T12:31Z (RV look-back) are re-hashed against the LT4 capture seal."
+ "next_action": "commit CF.json and its sha256, fill e021.perm_stratum and E021's k_tests entry, record a drop in 7.3",
+ "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_4.md). Counts 0. The sample seal is LT3's (same 92 files). Captures k-1 and k are re-hashed against the LT4 capture seal. R2: renamed from q0483_lt4_census_flow; E023/E024 (open share, concentration) were dropped before any census (k = 3), so no flow values are fixed."
 }
