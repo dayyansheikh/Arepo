@@ -72,7 +72,7 @@ GAMMA = "https://gamma-api.polymarket.com"
 CLOB = "https://clob.polymarket.com"
 HORIZONS_H = (1, 6, 24, 72)
 DAY_CAP_BYTES = 300 * 1024**2
-TOTAL_CAP_BYTES = 3 * 1024**3
+TOTAL_CAP_BYTES = 8 * 1024**3  # was 3 GiB (CB17 ruling 7a)
 EVIDENCE_ROLE = "prospective_unregistered"  # collection only; no registration exists yet
 NAN = float("nan")
 

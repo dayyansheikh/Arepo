@@ -4,7 +4,7 @@
   python scripts/run_live_trade_monitor.py --once     one cycle
   python scripts/run_live_trade_monitor.py --outcomes one outcome pass (separate later process)
 
-Writes under data-dumps/research_lab/live_trades/. Stops at the 3 GB total cap (exit 3).
+Writes under data-dumps/research_lab/live_trades/. Stops at the 8 GB total cap (exit 3).
 """
 
 from __future__ import annotations
