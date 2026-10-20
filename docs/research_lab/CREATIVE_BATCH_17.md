@@ -6,6 +6,8 @@ status: **DRAFT-REVISED after challenger round 1 (the batch's one challenge and 
 nothing queued, no code.** Drafted 2026-10-19 22:03 UTC+1 (2026-10-19T21:03Z) on parent `2ee87bea`; revised the same
 day after the challenger's verdicts (A, B1, B2, C REVISE; E census and q0400-q0403 PROCEED once part `pre` holds the
 findings 2 and 7 additions). The revision used no CB17 data and no outcome data.
+**2026-10-20: part `pre` committed and q0400-q0403 run (counts only); branch T, A withdrawn uncounted; the filled values
+and open questions are in §11 (no rule in §0-§10 changed).**
 **No CB17 quantity has been computed:** no mark-out, slope, contrast, continuation, pick-off loss, net or proxy
 standard error. Three read-only, counts-only host probes were run for this draft (§0.3; scripts verbatim with sha256 in
 §9). Nothing was fetched, written, moved or deleted on the host.
@@ -316,7 +318,7 @@ and REP_8 ends 2026-11-23.
 | A2 | CB13-T3's rule on REP_8 **close-labelled** fills: maker entry at the maker-adverse price `P` (fee 0, no rebate); exit as a taker at the adverse touch of the 2-4 h mark capture; taker fee `r·x(1 − x)` with `r` the sidecar rate, `max_if_unknown` (0.07); position `min(size, 100)` shares. **Label: "upper bound; the close label is known only after the fill, so this is not an implementable quoting rule"** |
 | B1-econ, B2-econ, C1-econ | the same round trip on REP_8 fills from the fill source (§CB17-A), as **within-market (B) or within-event (C) differences** between the flagged group and the rest, which are cost-neutral to any exit cost common to both groups (CB16 U2's rule). A second component is the flagged group's net level, reported |
 | Binding cost robustness | A2: +0.5c on the exit keeps net > 0. Differences: none (vacuous, CB16 round 1 item 11) |
-| Reported taker lines | taker follow (B2, C1) or fade (A) at the recorded ask/bid of the first capture after `decision + 9 min` (the monitor's median receipt lag; A) or of the decision capture (B, C), exit at the adverse touch 2-4 h later, fee as above; compared with q0403's cost at size and with the 4.5c / 1.8c hurdles. Never counted |
+| Reported taker lines | taker follow (B2, C1) or fade (A) at the recorded ask/bid of the first capture after `decision + 9 min` (the monitor's median receipt lag; A) or of the decision capture (B, C), exit at the adverse touch 2-4 h later, fee as above; compared with q0403's cost at size and with the 4.5c / 1.8c hurdles. Never counted. *q0403 cited in §11.4 (cell rule O4; measured median lag 8 min)* |
 
 ### 2.2 Clocks
 
@@ -677,7 +679,8 @@ in part B; nothing is recomputed on REP_8).
   had a sweep with receipt in `[τ − 30 min, τ)`: within-market difference of the CB13-T3 round-trip net between fills
   into old (`a ≥ 600 s` at that sweep) and fresh (`a < 60 s`) books; primary one-sided < 0, floor ≤ −0.5c; second
   component the old-book fills' net ≤ −1.0c; p = the max. Minimum ≥ 300 fills per bin in ≥ 60 events, else "not run
-  (power)", counted. Under branch T this minimum is very unlikely to be met (planning ~130 fills per bin).
+  (power)", counted. Under branch T this minimum is very unlikely to be met (planning ~130 fills per bin). *Hurdles and
+  the q0403 context: §11.4.*
 
 #### B2: the sticky touch and the breathing book (CH147)
 
@@ -734,7 +737,7 @@ days: about 1.2 M units, about 300,000 with `s ≠ 0`. With SD(Δm) ≈ 2c and e
   the token had `|x| ≥ SD_x`: "abandoned-side" fills are those where the maker sold YES when `x > 0` or bought YES when
   `x < 0`. Within-market difference of the round-trip net (abandoned minus the market's other REP_8 fills), one-sided
   < 0, floor ≤ −0.5c; second component the abandoned-side net ≤ −1.0c; p = the max. Minimum ≥ 300 abandoned-side fills
-  in ≥ 60 events, else "not run (power)".
+  in ≥ 60 events, else "not run (power)". *Hurdles and the q0403 context: §11.4.*
 
 ### CB17-C: Mint share (CH150)
 
@@ -808,7 +811,7 @@ intervals (perhaps 10-20% of units; q0402 counts it on worn data). With SD(C) �
 - **C1-econ.** REP_8 fills from the fill source in arm-1 events with `τ` in (capture `k`, capture `k + 1`] after a
   classified interval: within-event difference of the round-trip net (fills after transfer intervals minus fills
   after mint-heavy intervals), one-sided < 0, floor ≤ −0.5c; second component the after-transfer net ≤ −1.0c; p = the
-  max. Minimum ≥ 300 fills per class in ≥ 60 events, else "not run (power)".
+  max. Minimum ≥ 300 fills per class in ≥ 60 events, else "not run (power)". *Hurdles and the q0403 context: §11.4.*
 
 ### CB17-E: First-day prints (CH154). Census only, no counted test
 
@@ -1280,3 +1283,173 @@ With these six items committed, E's census and q0400-q0403 PROCEED per the chall
 - The branch is decided by q0400 (features only) before any part commit; Stage-2 early finishers stay at α/8 in both.
 
 **Status after this response: DRAFT-REVISED. Nothing frozen, nothing queued, no code.**
+
+## 11. Post-pre-census record (2026-10-20; values filled from q0400-q0403)
+
+Written 2026-10-20 07:30 UTC+1 (06:30Z) by the implementer from the four write-once pre-census results on the host
+(`research_lab/creative_batch17/`), copied off the host as counts-only JSON and read in full. No outcome, mark, guarded,
+SCREEN_8 or REP_8 file was opened (none exists). **Nothing in §0-§10 is changed:** no floor, alpha, gate, threshold,
+window or formula. This section fills only what the design said the pre-censuses would fill (the branch, the strata
+levels, B's frozen cut points, C's level and trailing-tercile inputs, the cost-lag map citations) and records, as open
+questions (§11.8), every point where the design left a choice open. Numbers are verbatim from the named files; derived
+shares are labelled "derived".
+
+| Job | Result file | sha256 | Part `pre` | Status |
+|---|---|---|---|---|
+| q0400 | `pre_census_A.json` | `9deedcf5a1aeb0e370796457cab3f933d8e4c6b59e6a5de302c9a70e82ec38cf` | `ddc0249b…` | `pre_census_A_complete`, P1 reproduced |
+| q0401 | `pre_census_B.json` | `c3b8ae1b0f8d0bb7b54126193371e479c9175078591ebd46bb990d36ef063a1a` | `ddc0249b…` | `pre_census_B_complete` |
+| q0402 | `pre_census_C.json` | `442e99da3a7f806b05a76fa9de4e6a52bb8ded5516ff1ae2c67092a46812797d` | `ddc0249b…` | `pre_census_C_complete` |
+| q0403 | `cost_lag_map.json` | `43f28e02068094c9b7e45903f04525e44a30e4d1864c9077ccdbf5540eb629bf` | `ddc0249b…` | `cost_lag_map_complete` |
+
+Part `pre` = `ddc0249b23eedf8cfe50b2b60e94378264804ca4791c82c01cf3993df54df6a7` in every file (verified against the code
+at this commit).
+
+### 11.1 Branch T; CB17-A withdrawn uncounted
+
+- **P1 reproduced** (every count equal): fills 2,931; token-resolved 2,715; ambiguous transaction 216; non-sports 1,006;
+  non-sports resolved 971; open 676; close 295. The both-label cells also match P1: 440 non-sports (market, d) cells, 44
+  with both labels, 364 fills, 34 markets, 26 events.
+- **Side agreement** (§CB17-A branch rule, part `pre`): overall **906 / 971 = 93.3%**, Wilson 95% lower bound
+  **0.915571** (n = 971 ≥ 800 holds; 97% and 0.95 fail). Every binding cell (n ≥ 100) also fails 97%: touch age 0-20 min
+  367/382, 20-60 min 539/589; `P` [0.03, 0.20) 347/361, [0.20, 0.80] 386/431, (0.80, 0.97] 159/165; PATH-SETTLED
+  121/135, SCHEDULED-EVENT 362/392, UNSCHEDULED-NEWS 397/417. Reported only (n < 100): PUBLIC-STATISTIC 26/27.
+- **Consequence, as pre-declared (§2.5, §10.5):** branch **T**. **Family A is withdrawn uncounted** before any part
+  commit. Part `A` is never committed: `seals/cb17_rules.json` keeps part `A` at `part_declared: false` with the reason
+  "withdrawn uncounted (branch T)". **k = 3 fixed (B1, B2, C1) + up to 6 conditional (B1-rep, B1-econ, B2-rep,
+  B2-econ, C1-rep, C1-econ) = 3-9; k1 = 3** (Holm first step 0.05/3 = 0.0167, so any p < 0.01 passes it). Stage-2
+  early finishers stay at α/8. Count lines: `creative_batch_17:B` (2) and `creative_batch_17:C` (1) only. GAS, A1,
+  A1-rep and A2 never run. **No window job parses `side`** (q0407 and q0410 read no `side` under branch T). q0407 builds
+  E's features only. The econ fill source (B1-econ, B2-econ, C1-econ; REP_8) is CB13-T's frozen touch-consistent rule
+  by pin.
+- Reported, not used: A1 planning MDE under T **2.197c** (SE 0.578245, n 954; over the 1.0c power gate, as §CB17-A
+  expected) and under S 0.888c (SE 0.233566, n 3,139); A's strata level on both populations would have been level 1
+  (T 0.9835, S 0.9734). The side-signed population held 3,158 eligible units of 7,368 non-sports transactions.
+
+### 11.2 CB17-B: frozen cut points and selected levels (q0401)
+
+| Quantity (written into part `B`) | Value (verbatim) | Source and rule |
+|---|---|---|
+| Activity tercile cut points (cents) | `[0.0, 0.10000000149011612]` | `cut_points.activity_terciles_c`; 545,355 worn non-sports eligible units (`B_ACTIVITY_RECIPE`) |
+| Imbalance tercile cut points | `[-0.021718762814998627, 0.4006465971469879]` | `cut_points.imbalance_terciles`; 481,657 touch-unchanged units (`B_IMBALANCE_RECIPE`) |
+| Tercile assignment | value ≤ lower cut → 0; ≤ upper cut → 1; else 2 | part `pre` `TERCILE_QUANTILES` / `tercile_of` |
+| **B1 strata level** | **2** (activity tercile) | fallback: shares level 0 0.0297, level 1 0.0528, level 2 0.0863 (denominator 460,737); no level reaches 60%, so level 2 is written and the window's 50% rule binds as declared |
+| **B2 strata level** | **1** (activity tercile × imbalance tercile) | shares level 0 0.3342, level 1 **0.6030**, level 2 0.6734 (denominator 481,657) |
+
+- **Float32 note.** q0401 stored both features as float32, so the cut points are float32 values: the upper activity
+  cut is float32(0.1) = 0.10000000149011612. Activity tercile 0 is therefore exactly "no mid change since the previous
+  pass", tercile 1 a change of at most 0.1c, tercile 2 more than 0.1c (the terciles are unequal because of ties at 0).
+  The window code casts both features to float32 before comparing, to classify exactly as the census did (open
+  question O6).
+- `SD_x` on worn data is 0.08671511, **reported only**: §CB17-B freezes `SD_x` from SCREEN_8 for REP_8 (unchanged).
+- Worn-data gate inputs (reported; the window gates q0408 decide): GBT hash unchanged ⇒ stamp unchanged 157,435 of
+  157,435, hash changed ⇒ stamp changed 387,912 of 387,912. GBS: shifted beneath an unchanged touch 139,716 of 481,657
+  (29.0% ≥ 20%). GBA inputs: age bins `< 60 s` 443,397, `60-600 s` 112,176, `600-3600 s` 44,152, `> 3600 s` 87,477;
+  4,828 of 36,277 tokens and 3,191 events hold both a fresh and an old book.
+- Next-pass no-mark (presence only, no price read): absent at the 2 h pass, derived as absent / (present + absent):
+  `< 60 s` 6.0%, `60-600 s` 6.5%, `600-3600 s` 10.7%, `> 3600 s` 6.5%; plus "no pass in window" counts 21,119 / 4,782 /
+  2,697 / 3,961 (the census window's tail).
+- Planning SEs (SE only): B1 on `L_pre` **0.020547c** (MDE 0.0781c, n 413,693); B2 on `Δm_pre` **0.004544c per SD**
+  (MDE 0.0173c, n 481,657). Both are far under the 1.0c power gate; the floor binds, as §CB17-B said.
+- **Risk flag (no rule change).** B1's coarsest level reaches 8.6% on worn data against the window's 50%
+  informativeness rule. Unless 14 window days raise it about six-fold, B1's composition guard will be "uninformative"
+  and B1 cannot advance (still counted, with its p). A "not advanced" B1 for that reason says nothing about book age
+  (O3).
+
+### 11.3 CB17-C: selected level and trailing-tercile inputs (q0402)
+
+- **C strata level: 2** (`|Δm_int|` {0.5-1c, > 1c}); shares level 0 0.1160, level 1 0.5001, level 2 **0.7773**
+  (denominator 12,420 transfer and mint-heavy units; 7,470 merge-heavy units reported, outside the share).
+- **Trailing-tercile inputs** (the rule is part `pre`'s: event's own terciles of `r` over ≥ 6 earlier traded intervals,
+  `r_k` and later excluded): eligible units 32,365; thin history 12,475 (derived 38.5%); units with ≥ 6 prior
+  intervals **19,890** in **2,419** events; classes transfer 5,822, mint-heavy 6,598, merge-heavy 7,470; within-event IQR
+  of `r` quartiles `[0.416914, 0.69639397, 1.12773782]`. **No number from q0402 is carried into part C except the
+  level:** the trailing cut points are per event and in-window (`[lookback floor, k)`), as declared.
+- Worn-data gate inputs (reported): GCU OI changed in 49,841 of 57,425 traded non-sports event-intervals (86.8% ≥ 70%).
+  GC inputs 2,419 events (≥ 600) and 19,890 units (≥ 10,000) in four worn days. Eligible splits: single 2,038, neg-risk
+  multi 19,834, other multi 10,493.
+- Thin history was 38.5% on four days, against the planning guess of 10-20% on 14 days; trailing history in SCREEN_8
+  starts at the lookback floor, so the first SCREEN_8 days will be thinner than average (q0408 reports it).
+- Planning SE (SE only): C1 on `C_pre` **0.060217c** (MDE 0.2288c, n 18,613), under the 1.0c gate.
+
+### 11.4 Cost and lag map (q0403) cited in §2.1 and §3
+
+- **Recipe** (an upper bound, part `pre` `COST_RECIPE`): entry at the ask walked to the far edge of the lowest depth
+  band holding the position (ask + 1c or ask + 5c, else "not executable within 5c"), exit at the bid walked the same way,
+  plus the taker fee `r·p(1 − p)` on both legs; first sweep of each of 42 passes; 246 cells (fee category × `P` band ×
+  liquidity band {< $10k, $10-100k, ≥ $100k} × size {$1,000, $5,000}).
+- **Executable within 5c** (derived sums over non-sports cells): at $1,000, 3.7% of books with liquidity < $10k, 13.5%
+  at $10-100k, 92.5% at ≥ $100k; at $5,000, 0.4%, 3.8% and 64.4%.
+- **Median round trip at $1,000, mid in [0.20, 0.80]** (cents per share; executable books / books), by liquidity band
+  < $10k | $10-100k | ≥ $100k: politics 4.7 (385/15,456) | 4.9 (5,768/50,926) | 4.8 (2,101/2,152); crypto 6.4
+  (6,197/137,340) | 10.0 (1,931/6,007) | 6.3 (42/42); finance 12.7 | 8.5 | 12.0 (8/24); economics 9.4 | 8.6 | 5.0;
+  tech 8.7 | 4.9 | 4.5; culture 7.4 | 6.4 | -. Every cell is in the file; this table is a reading aid.
+- **Monitor receipt lag** (`recv_ts − ts`, 37,598 prints): median **480 s** (p25 360, p75 720, p90 14,160); share
+  > 300 s 77.6%, > 540 s 35.6%, > 2 h 13.1%; class medians 480-540 s; a 0-300 s polling component is included.
+- **§2.1 (reported taker lines).** Each reported taker line (B2's follow and C1's follow at the decision ask/bid; A's
+  fade is withdrawn) is printed next to the q0403 cell of its units (sidecar fee category × decision-mid `P` band ×
+  liquidity band) at $1,000 and $5,000 (median, p75, share of books not executable within 5c) and next to the 4.5c /
+  1.8c hurdles. Uncounted; no q0403 number enters any decision (O4). The "decision + 9 min" lag rule of §2.1 belongs to
+  A's withdrawn fade; q0403's measured median is 8 min. Nothing changes.
+- **§3 (econ hurdles).** B1-econ, B2-econ and C1-econ stay as declared: within-market (B) or within-event (C)
+  differences of CB13-T3's recorded-touch round trip (fee from the sidecar rate, `max_if_unknown` 0.07, position
+  `min(size, 100)`), cost-neutral to an exit cost common to both groups; hurdles are the §2.4 floors (difference
+  ≤ −0.5c; flagged net ≤ −1.0c; p = the max). q0403 does not enter them. For context, each econ line also prints the
+  q0403 cells of its fills: a 0.5c protection value is small against 4-13c executable round trips at $1,000 outside the
+  most liquid books. Under branch T the econ fills are CB13-T touch-consistent fills; B1-econ's 300-fill minimum is very
+  unlikely to be met (§CB17-B: planning about 130 per bin).
+
+### 11.5 CB17-E inputs (q0400; reported, the rule is unchanged)
+
+Touch-consistent (branch T) fills by market age: `< 6 h` 2, `6-24 h` 26, `1-7 d` 106, `> 7 d` 811, unknown 12; **7
+markets** with first-day and later fills. All non-sports transactions with market age < 24 h: **200** in four days.
+Side-signed population (not selected): 17 / 85 / 364 / 2,262 / 430 and 15 markets. Proxy SE on the pre-fill move: T
+0.103191 (MDE 0.3921c, n 944, carried by the 7 both-period markets), S 0.57255 (MDE 2.1757c). Under the re-entry rule
+(§CB17-E) a later CH154 test needs ≥ 400 first-day transactions in ≥ 150 markets that also print on days 2-7; four worn
+days had 200 transactions and, among signable fills, 7 such markets. Which population the counts use under branch T is
+O1.
+
+### 11.6 Rules parts
+
+| Part | Status | Modules hashed | sha256 |
+|---|---|---|---|
+| `pre` | declared (committed before q0400) | `cb17_common`, `cb17_pre`, `cb17_census` | `ddc0249b23eedf8cfe50b2b60e94378264804ca4791c82c01cf3993df54df6a7` |
+| `common` | pending (rules commit) | | |
+| `A` | **withdrawn uncounted (branch T); never declared** | - | - |
+| `B` | pending (rules commit) | | |
+| `C` | pending (rules commit) | | |
+| `E` | pending (rules commit) | | |
+
+### 11.7 Implementation notes that bear on the record
+
+- **`cb17_common.py` is frozen under part `pre`** (every UPPER_CASE constant and non-machinery function is hashed), so
+  §5's "cb17_common additions" live in a new module, `cb17_wcommon.py`, hashed by part `common` together with
+  `cb17_common` (unchanged). Only the part-staging switches and the unhashed rules machinery of `cb17_common.py` change;
+  a unit test asserts part `pre` still hashes to `ddc0249b…`.
+- **Rules before code (§1.2 `T17_rules` versus `T17_code`).** Parts `common`, `B`, `C`, `E` hash the declarations:
+  constants, the `declared()` text and small pure definition functions (event arm, age, state, target, class, worst-case
+  bounds, gates). The window code (readers, frames, estimators, runner) is pinned separately at the code freeze by a
+  code pin (`seals/cb17_code_freeze.json`), which q0406-q0412 require with the ruling-6 attestation. A code fix found in
+  the freeze check therefore never changes a rules part.
+- **`T17_rules`** is the time the parts become binding. `S_8 = max(2026-10-26T00:00Z, the first 00:00Z at or after
+  T17_rules + 24 h)`, so any `T17_rules` up to 2026-10-25T00:00Z gives `S_8 = 2026-10-26T00:00Z`. The orchestrator
+  records it in `seals/cb17_t17_rules.json` (O2).
+
+### 11.8 Open questions for the orchestrator (nothing below was chosen silently)
+
+- **O1 (E re-entry population under branch T).** §CB17-E counts "first-day transactions" and "markets that also print on
+  days 2-7" and asks for "a proxy MDE ≤ 1.0c". Read literally, the counts use all non-sports monitor transactions (no
+  sign needed) and the MDE the signable (touch-consistent) fills (a sign is needed). Part E declares that literal
+  reading and reports both counts on both populations; override before the part E commit if the touch-consistent
+  population should bind the counts too. k = 0 either way.
+- **O2 (`T17_rules`).** Is it the commit of the parts on the working branch (the merge), or this worktree commit? It
+  moves `S_8` only if the parts land after 2026-10-25T00:00Z.
+- **O3 (B1 informativeness).** 8.6% on worn data against the 50% window rule (§11.2). No change proposed; the rule
+  stands and B1 is counted. Flagged so the expected "uninformative" verdict is anticipated in the ledger.
+- **O4 (taker-line cost cell).** §2.1 says taker lines are "compared with q0403's cost at size" without naming the cell.
+  Part `common` declares the unit's sidecar fee category × decision-mid `P` band × liquidity band, at $1,000 and $5,000,
+  reported only.
+- **O5 (module split).** `cb17_wcommon` in place of edits to the frozen `cb17_common`, and the rules/code split above.
+- **O6 (float32 features).** B's activity and imbalance are cast to float32 before the frozen cut points are applied, to
+  reproduce q0401's classification exactly.
+- **O7 (B2 level margin).** B2's level 1 share is 0.6030, 0.3 points over the 60% selection margin. Informational; the
+  rule is mechanical and the window's 50% rule binds as declared.
