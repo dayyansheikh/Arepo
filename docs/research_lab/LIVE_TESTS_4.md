@@ -539,7 +539,9 @@ the first-unit drop and carry within-market variation).
 10. The p rule max(event t, two-way, day t): enough for 2 h and 6 h targets, given LT3 used max(event, day)?
 11. The 48 h stagger after LT3 and the offset cron: any interference between two readers of the same captures?
 12. The continuous-label permutation gate for E022 and the correlated-moderator donor scenario: are the new size-check
-    scenarios the right nulls?
+    scenarios the right nulls? The correlated-moderator rate was 0.075 at 200 worlds (limit 0.075; 13.3).
+13. Float read-back (13.2): is a <= 1 ulp parse difference in the imported LT3 readers acceptable given the class-rule
+    tolerances, or should LT4 own its series readers with `float_precision="round_trip"` (and LT2/LT3 be noted)?
 
 ## 12. Draft ledger block (DRAFT, not registered, not counted)
 
@@ -593,8 +595,17 @@ alpha, direction or Holm rule was changed to obtain a pass.
   `live_tests4_analysis.py` `499e5b69214abe6e…`; joint reader sha `d8e1978008b669e9`.
 
 ### 13.3 Preliminary size check (not the registered statement)
-Placeholder: filled below when the local 200-world run finishes. The registered statement needs >= 2,000 worlds on the
-code to be pinned (q0484).
+Run locally on 2026-10-20, 200 worlds x 99 draws, seed 20261026, on the code of commit `c08383a5` (module hashes as in 13.2;
+output sha256 `ec639342…`, not committed). Limit at 200 worlds: 0.05 + 1.645 sqrt(0.0475 / 200) = 0.075. Rates (all within the
+limit, PASS): permutation binary iid **0.035**, binary persistent **0.040**, continuous persistent **0.040**; donor iid **0.055**,
+AR(1) 0.6 **0.065**, life cycle **0.035**, **correlated true moderator 0.075 (at the limit)**.
+- **Flag for the challenger:** the new correlated-moderator scenario (the E024 situation: a tested moderator correlated 0.4
+  with a controlled moderator that has a real effect) sits exactly at the 200-world limit. A Monte Carlo SE at 200 worlds is
+  about 0.015, so this is not evidence of a size problem, but it is the scenario to watch at 2,000 worlds (limit 0.058). If it
+  fails there, the donor gate is not a valid null for E024 as specified and E024 must be redesigned or dropped before the pin
+  (no threshold is moved to pass it). A plausible mechanism: the donor replaces `zM` but not the correlated `zA` component it
+  carries, so donor draws break part of `zM`'s link to the real `x6·zA` effect that the real fit partials out only linearly.
+- This is a preliminary statement. The registered one needs >= 2,000 worlds on the code to be pinned (q0484).
 
 ### 13.4 What remains before the pin
 - `seals/lt4_census_inputs_captures.json` from the releases' `files.sha256` (q0480 restores the files; tags to confirm).
