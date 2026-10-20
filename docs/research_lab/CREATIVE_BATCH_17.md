@@ -1472,3 +1472,21 @@ verifies `pre`, `common` and its family part (exit 2 on a mismatch).
 - **O12 (CB16 key file).** CB16 q0380 has not run (no `exclusion_keys.csv.gz` on the host), so its sha256 cannot be
   pinned in part `common`. Part `common` declares the pin as the sha256 in q0380's manifest, set in q0405's job spec
   (CB16's q0380 `--base-sha256` precedent); q0405 refuses while unset and records a q0380 stop record as "keys absent".
+
+## 12. Window code record
+
+Window code for q0404-q0412 (branch T: family A withdrawn uncounted, no A frame; B, C and the E census live; Holm k1 = 3). No rule, threshold, cut
+point, alpha, Holm family or count was changed; all window code is pinned by the code freeze (`run_cb17.py code-pin`), not by a rules part.
+
+- **Modules:** `cb17_win.py` (readers with time floors, code pin, freeze/T17/results-copy gates, FE/cluster engine, guards, write-once outputs), `cb17_b.py`,
+  `cb17_c.py`, `cb17_e.py` (frames), `cb17_smoke.py` (q0404 fixture checks and exact P1-P3 reproduction), `cb17_jobs.py` (q0404-q0412 job logic),
+  `scripts/run_cb17.py` (subcommands `smoke`, `exclusion-keys`, `frame`, `census`, `screen`, `rep`, `stage2-final`, `code-pin`).
+- **Tests:** `tests/unit/test_research_lab_cb17_win.py`, `_jobs.py`, `_probe_ports.py`, with `tests/cb17_wsynth.py` (synthetic worlds only; no host,
+  SCREEN_8 or REP_8 file was opened or fetched).
+- **Refusals covered:** not-before gates (exit 75, nothing written), A withdrawn, unset pins (`TODO-COORDINATOR`), missing smoke, ruling-6 attestation,
+  stale code pin, rules-part mismatch, declared disk/data-dumps caps, test hooks outside `--allow-uncommitted-rules`, write-once results, REP rows closed
+  until the committed results copy exists, counts-only census.
+- **Queue drafts:** `queue/drafts/q0404-q0412_cb17_*.json`, argv parsed by the runner; DRAFT, not in `queue/jobs/`; q0406/q0407 `not_before` 2026-11-09T08:00Z,
+  q0410 2026-11-23T08:00Z (recompute if S_8 slides). q0407's file name keeps "A" but the job is the E screen frame.
+- **Open questions for the freeze check:** the pin tokens `TODO-COORDINATOR` (q0405 base sha, q0411 results sha) are refused until pinned; the code-freeze
+  and T17 records must be committed by the coordinator; the q0407 draft id naming; O1-O8 above stand unchanged.
