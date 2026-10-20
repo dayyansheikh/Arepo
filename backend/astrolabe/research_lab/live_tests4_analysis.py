@@ -146,7 +146,7 @@ def move_frame(root: Path, start: float, end: float, roles, spec) -> tuple[pd.Da
     df["c"] = np.where(late1, np.nan, sx * (mid_at(df, "h1") - df["mid_k"].to_numpy(float)))
     df["status_h1"] = np.where(late1, "late", df["status_h1"].astype(str))
     df["day"] = day_of(df["t_row"])
-    df["block"] = block_of(df["t_row"], lt.block_anchor(spec))  # R2 finding 10: the census anchor
+    df["block"] = block_of(df["t_row"], lt.block_anchor(spec))  # R2 finding 10: the analysis anchor (REGISTERED_UTC)
     return df, acc
 
 
@@ -170,7 +170,7 @@ def clock_frame(root: Path, start: float, end: float, roles, spec) -> tuple[pd.D
         df["log_age"] = np.log(np.clip(df["age"].to_numpy(float), 1.0, None))
     df["status_h1"] = np.where(late1, "late", df["status_h1"].astype(str))
     df["day"] = day_of(df["t_row"])
-    df["block"] = block_of(df["t_row"], lt.block_anchor(spec))  # R2 finding 10: the census anchor
+    df["block"] = block_of(df["t_row"], lt.block_anchor(spec))  # R2 finding 10: the analysis anchor (REGISTERED_UTC)
     return df, acc
 
 
@@ -187,7 +187,7 @@ def hollow_frame(root: Path, start: float, end: float, roles, spec) -> tuple[pd.
     df["c_gamma"] = np.where(late1, np.nan, sx * (m1 - df["mid_k"].to_numpy(float)))
     df["status_s1"] = np.where(late1, "late", df["status_s1"].astype(str))
     df["day"] = day_of(df["t_row"])
-    df["block"] = block_of(df["t_row"], lt.block_anchor(spec))  # R2 finding 10: the census anchor
+    df["block"] = block_of(df["t_row"], lt.block_anchor(spec))  # R2 finding 10: the analysis anchor (REGISTERED_UTC)
     return df, acc
 
 

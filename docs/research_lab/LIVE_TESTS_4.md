@@ -781,8 +781,10 @@ No threshold, alpha, floor, seed, draw count or test definition changed; only th
    `feat/live-tests-4` and the LT4 code freeze is recorded, because `live_tests3_analysis.py` (hashed in `CODE_FILES`) moved
    with the Freedman-Lane commits and `sim_move_world` draws in a different RNG order across LT3 versions (same seed, different
    worlds). `max_retries: 1` covers infrastructure failures only (host, network, OOM), with the same code and the same seed;
-   a failing scenario is never rerun, reseeded or varied. q0483 (counts only, no `live_tests3_analysis` import) may run now;
-   q0482 after finding 2's code (this commit).
+   a failing scenario is never rerun, reseeded or varied. q0482 and q0483 (counts only) run only after q0480
+   has completed and `seals/lt4_census_inputs_captures.json` is written from the releases' `files.sha256` and committed, and
+   this branch is merged into the branch the host runs; q0483 also needs q0471 complete with its tree intact (verification
+   2026-10-21: the earlier "q0483 may run now" missed the capture seal).
 2. **Finding 2 (block anchor).** One function, `live_tests4.block_anchor(spec, census_days=None)`, returns an even-offset
    UTC-midnight anchor for two-day blocks (block = floor(day offset / 2)). Analysis: `REGISTERED_UTC`, asserted to be a UTC
    midnight, used by every `block_of` call in `live_tests4_analysis.py`. Census: the first UTC day of that census's own days,
@@ -796,3 +798,5 @@ No threshold, alpha, floor, seed, draw count or test definition changed; only th
 5. **Efficiency.** q0481 folded into LT3's q0471 (identical globs, tags and files; the census re-hashes against the same
    seal `lt3_census_inputs_C2.json`): q0483 depends on `q0471_lt3_c2_restore` and reads
    `live_tests3_census/restore`. The q0481 draft is deleted.
+
+- **Verification of this section (science-reviewer, 2026-10-21): OK_WITH_FIXES**, applied: the capture-seal precondition above; analysis comments name the analysis anchor (REGISTERED_UTC). Disclosure: the analysis window 10-26..11-16 has 21 days, so its last day (11-15) is a one-day block; the census slightly overstates the block2 share (by at most 1/21 of rows). No code change.
