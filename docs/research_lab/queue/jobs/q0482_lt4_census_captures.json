@@ -36,5 +36,5 @@
   "data-dumps/research_lab/live_tests4_census/CQCH.json (counts only; the work dir is cleaned up at exit)"
  ],
  "next_action": "commit CQCH.json and its sha256 (seals/), fill the E022 scale, cuts and gap and the E020/E022 entries of k_tests in the spec, record any drop in LIVE_TESTS_4.md 7.3",
- "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_4.md, design not yet reviewed). Promote only after the challenger review of LIVE_TESTS_4.md and the seal file. Counts 0 (descriptive; no trials line). Reads the DRAFT spec unpinned; code_sha256 of all four modules is written into the output. mem_mb is an estimate (LT3's comparable census was set at 1,200)."
+ "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_4.md, design not yet reviewed). Promote only after the challenger review of LIVE_TESTS_4.md and the seal file. Counts 0 (descriptive; no trials line). Reads the DRAFT spec unpinned; code_sha256 of all four modules is written into the output. mem_mb is an estimate (LT3's comparable census was set at 1,200). PROMOTED 2026-10-20 ~23:55Z (autopilot): R2 re-check ACCEPT_WITH_CHANGES and its verification OK_WITH_FIXES (fixes applied 99618c95); capture seal written from the releases' files.sha256 (lt4_census_inputs_captures.json, 211 files) before any LT4 census; counts only."
 }
