@@ -248,7 +248,8 @@ def test_worn_manifest_keys_are_archive_relative_and_roots_do_not_change_them(wo
     assert code == 2 and "byte for byte" in out4["refused"]
 
 
-def test_smoke_worn_sha256_pin_applies_to_whatever_root_is_used(worn, tmp_path, capsys):
+def test_smoke_worn_sha256_pin_applies_to_whatever_root_is_used(worn, tmp_path, capsys, monkeypatch):
+    monkeypatch.setattr(sm, "PINNED_COUNTS", {"captures": 7, "sweeps": 8})  # the synthetic worn tree
     code, out = _run(["worn-manifest", *_worn_args(worn)], capsys)
     pins = out["worn_sha256"]
     pf = tmp_path / "pins.json"
@@ -279,14 +280,15 @@ def test_smoke_worn_sha256_pin_applies_to_whatever_root_is_used(worn, tmp_path, 
 # ---- delta freeze check D1 / D2 and lows --------------------------------------------------------------------------------------------------------------
 
 
-def test_d1_pinned_set_is_exact_a_pinned_key_missing_on_disk_is_a_refusal_and_the_pin_is_mandatory(worn, tmp_path, capsys):
+def test_d1_pinned_set_is_exact_a_pinned_key_missing_on_disk_is_a_refusal_and_the_pin_is_mandatory(worn, tmp_path, capsys, monkeypatch):
+    monkeypatch.setattr(sm, "PINNED_COUNTS", {"captures": 7, "sweeps": 8})  # the synthetic worn tree
     code, out = _run(["worn-manifest", *_worn_args(worn)], capsys)
     pins = out["worn_sha256"]
     snaps = tmp_path / "t" / "snapshots"
     shutil.copytree(worn / "snapshots", snaps)
     args = (worn / "creative_batch13" / "t_screen", worn / "live_trades", snaps, worn / "book_sweeps")
     pf = tmp_path / "p.json"
-    pf.write_text(json.dumps({**pins, "snapshots/20261015T999999Z_deadbeef/rows.csv.gz": "0" * 64}))
+    pf.write_text(json.dumps({**pins, "live_trades/trades-20261016.jsonl": "0" * 64}))
     with pytest.raises(Refused, match="worn source .* is missing"):
         sm.check_worn_pins(pf, *args)
     # an on-disk capture that is NOT pinned is never read: the P3 / P2 lists are the pinned ones
@@ -384,3 +386,34 @@ def test_b2_tick_change_reported_count_uses_the_b2_availability_mask():
 
     src = inspect.getsource(fb.b2_test)
     assert '"tick_change": int((elig & (D["st2_2"] == ST_TICK)).sum())' in src
+
+
+def test_d1_pinned_sets_must_be_complete_with_both_rows_files_per_capture(worn, tmp_path, capsys, monkeypatch):
+    code, out = _run(["worn-manifest", *_worn_args(worn)], capsys)
+    pins = out["worn_sha256"]
+    args = (worn / "creative_batch13" / "t_screen", worn / "live_trades", worn / "snapshots", worn / "book_sweeps")
+    pf = tmp_path / "p.json"
+    # the real section 9 sets are 12 captures / 24 sweeps: the synthetic tree (7 / 8) is incomplete under the declared counts
+    pf.write_text(json.dumps(pins))
+    with pytest.raises(Refused, match="incomplete.*P3 captures 7 != 12.*P2 sweeps 8 != 24"):
+        sm.check_worn_pins(pf, *args)
+    monkeypatch.setattr(sm, "PINNED_COUNTS", {"captures": 7, "sweeps": 8})
+    assert sm.check_worn_pins(pf, *args)["n_files"] == len(pins)
+    # a capture whose rows.csv.gz is not pinned (P3 would read an unhashed file)
+    victim = next(k for k in pins if k.startswith("snapshots/20261015T083101Z_aa000001/rows.csv.gz"))
+    pf.write_text(json.dumps({k: v for k, v in pins.items() if k != victim}))
+    with pytest.raises(Refused, match="without both rows files"):
+        sm.check_worn_pins(pf, *args)
+    # the sports capture must be among the pinned captures
+    pf.write_text(json.dumps({k: v for k, v in pins.items() if "20261015T063101Z_9c518015/rows.csv.gz" not in k}))
+    with pytest.raises(Refused, match="without both rows files"):
+        sm.check_worn_pins(pf, *args)
+
+
+def test_d1_release_map_anchors_on_a_path_boundary_and_reads_the_real_line_form(tmp_path):
+    h = "a" * 64
+    f = tmp_path / "files.sha256"
+    f.write_text("\n".join([f"{h}  data-dumps/research_lab/snapshots/20261015T063101Z_9c518015/rows_ext.csv.gz", f"{h}  data-dumps/research_lab/live_trades/trades-20261012.jsonl",
+                            f"{h}  data-dumps/research_lab/book_sweeps/20261015T000000Z_x/rows.csv.gz", f"{h}  xlive_trades/trades-20261013.jsonl", f"{h}  data-dumps/zsnapshots/20261015T063101Z_9c518015/rows.csv.gz"]) + "\n")
+    m = sm.release_map([f])["worn_sha256"]
+    assert set(m) == {"snapshots/20261015T063101Z_9c518015/rows_ext.csv.gz", "live_trades/trades-20261012.jsonl", "book_sweeps/20261015T000000Z_x/rows.csv.gz"}
