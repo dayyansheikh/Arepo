@@ -142,8 +142,8 @@ is counted.
 - **Controls** are listed per test. They are all origin-side and all demeaned the same way as the tested term.
 
 ### 1.8 Placebos and gates (valid within-unit nulls)
-- **E015, E019: label permutation gate.** 200 draws; in each, the class labels of the contrasted units are permuted within
-  market (E019: event) x UTC day, the target and controls staying attached to their unit; the estimator is re-run. Gate:
+- **E015, E019: permutation gate (Freedman-Lane).** 200 draws; in each, the control-residualised target is permuted within
+  market (E019: event) x UTC day, the demeaned tested term and controls staying fixed; the slope is re-estimated. Gate:
   `p_perm = (1 + #{draw >= real}) / (1 + draws) < 0.05`. Strata with fewer than 4 contrasted units are left unpermuted
   (counted). This is a check on the clustered SEs, **not** a mechanism control: a permutation null cannot tell bounce from
   information. The mechanism controls are the readings in each test.
@@ -662,12 +662,14 @@ stays dropped.
 
 ### 13.5 Simulated-null size of the two gates (section 1.8; `size-check`)
 `la.size_check` (pinned code) simulates panels with **no** moderation or class effect: 40 markets x 30 two-hour units (flow), or
-60 markets x 40 units (class contrast). There are five scenarios:
+60 markets x 40 units (class contrast). There are seven scenarios (five at the freeze check, two added in 13.10):
 - donor gate with iid flow;
 - donor gate with AR(1) flow (0.6);
 - donor gate in a life-cycle world (moderator and flow continuation both trend towards the end, `x6·zHTE` control included);
-- label permutation with iid labels;
-- label permutation with persistent market class rates and target levels.
+- Freedman-Lane permutation with iid labels;
+- Freedman-Lane permutation with persistent market class rates and target levels;
+- donor gate with a moderator correlated with the flow within each market over time (`donor_corr_control`, 13.10);
+- Freedman-Lane permutation with the class label and the target both depending on a control (`perm_corr_control`, 13.10).
 
 **Criterion change (disclosed).** Sections 1.8 and 9.3 required "rejection <= 0.05". A finite simulation cannot show that
 exactly, so the criterion is a stated Monte-Carlo tolerance: the pass rate must not be significantly above 5%, that is
@@ -739,7 +741,23 @@ Code hashes after these fixes (normalised module sha256, `SPEC_SHA256` line excl
 202c0d638d76d028df55923732ef7ccea01e5979e657f2a9ee7c3d516b7fa43c, `live_tests3_analysis.py`
 b03c632134d04240149b394c3d8ef65ab688c2c15d7079c9e475220f6d37fe25. They change if the code changes before the pin.
 
-### 13.10 What remains before the pin
+### 13.10 Freedman-Lane gate fix (2026-10-20; reviewer finding from LT4 R1 finding 7)
+The permutation gate permuted the raw class label within strata. That is anti-conservative when the label correlates with the
+controls (reviewer's local simulation: pass rate 0.127 against a 0.058 limit at corr about 0.63; 0.040 uncorrelated).
+`la.perm_gate` is now Freedman-Lane: the target residualised on the controls is shuffled within strata (rows that are finite
+and in strata with >= 4 units; others stay put), the demeaned tested term and controls stay fixed, and the slope is
+re-estimated. Seeds, draw count (200), strata, pass rule (`p_perm < 0.05`) and the permuted-row share are unchanged.
+This is **mechanical**: no threshold, alpha, Holm or count change. Also: the spec `size_check.draws` is 200 (was 99) to match the
+gate; `sim_move_world(corr_control=True)` adds scenario `perm_corr_control` (P = 1[c1 + N(0, 0.8) > 0], y = 0.03 c1 + noise, null
+true), and `sim_flow_world(corr_mod=True)` adds `donor_corr_control` (zM = ... + 0.7 x6, null true); `donor_gate` itself is unchanged.
+The size check must be **re-run on the fixed code** (>= 2,000 worlds, q0473b); q0473's run on the old code is information only.
+
+Local simulation on the fixed code (not the registered statement): 300 worlds x 200 draws, seed 20261020, limit 0.0707.
+`perm_corr_control` pass rate 0.053; `donor_corr_control` pass rate 0.030. Both within the limit. Code hashes after the fix:
+`live_tests3.py` 202c0d638d76d028df55923732ef7ccea01e5979e657f2a9ee7c3d516b7fa43c, `live_tests3_analysis.py`
+d0a4a3b5704973d4bbff83fa2954108d0772831b1674daff731de1e96ad0683d (supersede 13.9; the spec map stays null until the pin).
+
+### 13.11 What remains before the pin
 - Censuses q0470-q0472 (deadlines in 13.6).
 - Fill `k_tests`, V*, the scales, the cuts and `exclude_crypto` / `exclude_family` in the spec, and record drops in 7.6.
 - `science-reviewer` freeze check of code against design.
