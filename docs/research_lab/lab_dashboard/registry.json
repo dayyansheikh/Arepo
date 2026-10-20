@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-20T05:14:00Z",
+ "updated": "2026-10-20T06:55:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -997,22 +997,45 @@
   },
   {
    "id": "CB11",
-   "title": "Proposer clocks, political underconfidence, attention",
-   "plain": "How long markets wait to resolve, long-horizon political underconfidence and attention without news. The Wikipedia part's early stop turned out to be a code fault (a window end treated as open), so it will re-run; a memory fault in the attention step is fixed too.",
+   "title": "Political underconfidence, attention (CB11 P and A)",
+   "plain": "Long-horizon political underconfidence (P) and attention without news (A). For A, an independent blind check found only 145 of 200 market-to-Wikipedia matches right (80% needed), so A will be recorded as not testable at its census.",
    "batch": "CB11",
    "family": "resolution",
    "stage": "designed",
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Review of the two fixes, then the Wikipedia and attention steps re-run",
+   "next": "P and A data, then their census (A: not testable, entity map)",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Hour 10:00-11:00 UTC+1, 2026-10-19"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Session 2026-10-20 ~06:15Z (autopilot)"
    },
    "stage_results": {
     "designed": "pending"
+   },
+   "reached": [
+    "designed"
+   ]
+  },
+  {
+   "id": "CB11-W",
+   "title": "How long markets wait to resolve (W1, W2)",
+   "plain": "Can the wait between a market's scheduled end and its resolution be forecast, and traded? Not testable: the fee-category field these tests needed is empty for markets that ended before Polymarket's 2026 fee rollout, so only 1 of the 6 required categories had enough history. Counted, no result either way.",
+   "batch": "CB11",
+   "family": "resolution",
+   "stage": "designed",
+   "status": "closed",
+   "verdict": "not_testable",
+   "effect": null,
+   "next": "None (counted with p = 1)",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB11-W census and freeze (not testable), 2026-10-20"
+   },
+   "stage_results": {
+    "designed": "pass"
    },
    "reached": [
     "designed"

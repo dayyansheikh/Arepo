@@ -2340,3 +2340,20 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   price markets, homonyms. Per the frozen rule the census q0239 will record GA0 FAIL and label **A1, A2 "not testable
   (entity map)"**, counted with p = 1 (§Counting). Nothing re-labelled or re-drawn; one labeller, as designed. q0229
   continues as specified (data are still the census's descriptive input).
+
+## CB11-W census and freeze (not testable), 2026-10-20 06:18-06:55Z; 2 tests counted with p = 1
+- **q0231b census (v2 chain, rules W `a3a16f98…`), rc 0:** `census_W_b.json` sha256 `debb66ac…`. GW: units 11,774
+  (>= 5,000 ok), end-dates 98 (>= 90 ok), **fee categories with >= 200 W_fit units: 1 (need 6)**; W_fit categories
+  tech 1 / unknown 18,329. GWC passes (hold upper95 0.0076). GW2 375 decided S units in 296 events over 59 dates.
+  **W1, W2 "not testable (GW: units, dates or categories)".**
+- **science-reviewer ruling: TERMINAL** (source limitation, not a defect). `fee_category` comes from Gamma `feeType`
+  through the frozen v1 map (`history_backfill.py:397`, `pairing.py:55-63`); unknown share is 0.1-1.0% for May-Oct
+  2026 end-months but 100% for Oct-Dec 2025 (incl. crypto/sports), first politics/finance/culture labels in Mar 2026;
+  the W_fit window is 2025-10-01..2026-02-08. Known before the freeze (`CREATIVE_BATCH_4.md:1702`: `feeType` marks
+  later fee charging, not a listing-time attribute), so this is a **design weakness** of the frozen GW gate, recorded
+  here. No alternative category source is substituted (data-driven design change). Minor: `cats_ok` counts `unknown`
+  as a category (more lenient than design line 270); the gate fails either way.
+- **W freeze part** `model_specs/cb11_v1.json` W (part sha256 `fa5e97b2…`), science-reviewer GO (fixes applied). q0232
+  promoted: on the labelled path it opens no target/guarded/unit file (W_hold files only hashed for the seal check) and
+  writes `results_W.json` plus 2 `cb11_test` (p = 1) and 2 `ml_explain` count lines. The v1 `census_W.json`
+  (half-open window defect, §11.3) is superseded and never counted.
