@@ -2325,3 +2325,18 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
 - Status `attn_frame_complete`: n_sample 1,693 (SCREEN 812, HOLDOUT 881); split and audit written before any pageview
   or print request (design 2.8). q0229 (attention data, net) started 05:4xZ. q0276 (CB13 keys) and q0302 (CB14 keys)
   no longer wait on q0227b (q0276 still waits on q0242 and q0244).
+
+## Session 2026-10-20 ~06:15Z (autopilot): CB11 unblocks; CB11-A entity audit labels (GA0 will fail, pre-declared)
+- **q0231b (CB11-W census) failed twice (rc 2):** refused because the seal copies `seals/cb11_w_hold_SEAL.json` and
+  `seals/cb11_wprints_holdout_SEAL.json` (written on the host by q0224b/q0230b, rules W `a3a16f98…`) were not committed.
+  Committed byte-identical to the host (sha256 `58bbf0d7…`, `eaf08ff4…`), deployed, `retry`. Not a science event.
+- **q0242 (CB12-M say frame) failed twice (MemoryError in ~6 s):** the 2 x 300 MB address-space cap. mem_mb 300 -> 1000
+  (as q0244, which completed), resource only; `retry`.
+- **CB11-A gate GA0 audit (design §CB11-A, "labels committed before q0229"):** the 200-row seeded SCREEN audit file
+  (`creative_batch11_audit/attn_audit_sample.csv`, sha256 `3508d18b…`, host copy identical; question, canonical title,
+  description only) was blind-labelled by a `science-reviewer` agent that read only that file and the two design
+  passages (no outcomes, prices or censuses). Labels committed as `seals/cb11_attn_audit_labels.csv`: **145 subject /
+  55 not, precision 0.725 < 0.80**. Main misses: country articles for Eurovision entries, commodity/currency articles for
+  price markets, homonyms. Per the frozen rule the census q0239 will record GA0 FAIL and label **A1, A2 "not testable
+  (entity map)"**, counted with p = 1 (§Counting). Nothing re-labelled or re-drawn; one labeller, as designed. q0229
+  continues as specified (data are still the census's descriptive input).
