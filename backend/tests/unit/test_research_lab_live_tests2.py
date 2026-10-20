@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import gzip
 import json
+import os
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -562,8 +563,28 @@ def test_p_primary_uses_t_reference_with_g_minus_1_df():
 # N_SIM null worlds at the gate's alpha 0.05 and records the rejection rate (printed with -s). The assertion allows
 # Monte Carlo error only: it fails if the number of rejections exceeds the 99% binomial quantile at 0.05, so a
 # true size above 0.05 by a few points is detected while a size of exactly 0.05 fails with probability < 1%.
-N_SIM = 300
+# Reproducible larger run (LIVE_TESTS_2.md section 1.5): from backend/,
+#   LT2_N_SIM=1500 LT2_SIZE_OUT=../docs/research_lab/seals/lt2_gate_null_size_1500.json \
+#     pytest tests/unit/test_research_lab_live_tests2.py -k null_size -q
+# The seeds are fixed in the tests below, so the first 300 worlds of every scenario equal the unit-test worlds.
+N_SIM = int(os.environ.get("LT2_N_SIM", "300"))
 SIZE_RATES: dict = {}
+SIZE_COUNTS: dict = {}
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _dump_size_rates():
+    yield
+    out = os.environ.get("LT2_SIZE_OUT")
+    if out and SIZE_COUNTS:
+        tot_r = sum(r for r, _ in SIZE_COUNTS.values())
+        tot_n = sum(n for _, n in SIZE_COUNTS.values())
+        Path(out).write_text(json.dumps({
+            "n_sim_per_scenario": N_SIM, "alpha": 0.05,
+            "scenarios": {k: {"rejections": r, "worlds": n, "rate": r / n} for k, (r, n) in sorted(SIZE_COUNTS.items())},
+            "pooled": {"rejections": tot_r, "worlds": tot_n, "rate": tot_r / tot_n},
+            "command": "LT2_N_SIM=1500 LT2_SIZE_OUT=<path> pytest tests/unit/test_research_lab_live_tests2.py -k null_size",
+        }, indent=1, sort_keys=True) + "\n")
 
 
 def _null_tolerance(n: int) -> int:
@@ -627,6 +648,7 @@ def test_e013_gate_null_size(kind, keep):
         assert g["testable"] and g["gate_markets"] <= 250  # the 6-row markets never enter the gate
         rej += g["passes"]
     SIZE_RATES[f"E013 {kind} keep={keep}"] = rej / N_SIM
+    SIZE_COUNTS[f"E013 {kind} keep={keep}"] = (rej, N_SIM)
     print(f"E013 gate null size {kind} keep={keep}: {rej}/{N_SIM} = {rej / N_SIM:.3f}")
     assert rej <= _null_tolerance(N_SIM), (kind, rej)
 
@@ -690,6 +712,7 @@ def test_e014_gate_null_size(kind):
         assert g["testable"]
         rej += g["passes"]
     SIZE_RATES[f"E014 {kind}"] = rej / N_SIM
+    SIZE_COUNTS[f"E014 {kind}"] = (rej, N_SIM)
     print(f"E014 gate null size {kind}: {rej}/{N_SIM} = {rej / N_SIM:.3f}")
     assert rej <= _null_tolerance(N_SIM), (kind, rej)
 
