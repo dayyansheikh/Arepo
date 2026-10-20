@@ -2742,3 +2742,18 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   62ef3375…, reader 2dff0621…. Mac timing ~85 min; host estimate 3-5 h, ~150 MB.
 - **q0474** queued (2,000 worlds, 200 draws, seed 20261020, limit 0.058, priority 42, timeout 12 h, retries for
   infrastructure only). Any binding failure blocks LT3's pin with no further redesign.
+
+## CB18 R1 response and challenger R2, 2026-10-21 ~00:00-00:55 UTC+1 (design only; nothing counted)
+- R1 response (`feat/cb18` 067d368e, CREATIVE_BATCH_18.md §11): CB18-R counted test dropped (race map descriptive, no
+  revival in this census); DE_gate = max(3.0, computed) with SE inflation, 1.5 factor, 1/n0; chg_* byte flags + chg_only
+  class + |mid| controls; binding MA(11) overlapping-target scenario; lookback capped at 11 (first origin's furthest read
+  10-26T00:31Z); 10-14 00:31-10:31Z captures declared unavailable; updated_at prior use disclosed; q0500/q0501 tags and
+  globs fixed against the new catalogues; CB18-P both-sample membership + stratum dummies; whitelist for
+  uma_resolution_statuses; CB18-M folded bands; CB18-F breakpoint from the dated venue observation only. Pessimistic
+  planning MDEs: CB18-S 1.58c (batch route) vs 1.0c floor, RS-2 (LT5 28-day route) 0.71-1.00c; CB18-P 1.39c/0.98c vs
+  0.5c (expected to drop). Counted: CB18-S only, k = 0-2.
+- **Challenger R2** (`reviews/CB18_CHALLENGER_R2_2026-10-21.md`, 40adc91c): **ACCEPT_WITH_CHANGES**; all R1 findings
+  resolved; five changes before `pre` lands (J4-R census-read disclosure, latent-volatility label scenario, P power gate
+  pinned as the max of two routes, P look-back label, E012 wait for q0512). Recommendation: run the counts-only censuses
+  (RS-2 is powered on paper; GS1/GS2 are a cheap kill); cut P first if coding time is short. Implementation of the
+  changes, part `pre` and the censuses running on feat/cb18.
