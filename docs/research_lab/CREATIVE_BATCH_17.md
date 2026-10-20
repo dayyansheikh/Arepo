@@ -1527,4 +1527,18 @@ Smoke inputs: `smoke --worn-sha256 FILE` refuses (exit 2) unless every worn file
 `book_sweeps/<sweep>/rows.csv.gz`, `creative_batch13/t_screen/fills.csv.gz`); `worn-manifest` prints that map; `--snapshot-root` / `--live-trades-root` point the smoke and `worn-manifest` at a byte-for-byte
 restore tree (directories must be named `snapshots` / `live_trades`; the pin check applies to whatever root is used). Tests: `tests/unit/test_research_lab_cb17_fixes.py`.
 
-Open, unchanged and not decided here: O2, O9, O11, O12 and the monitor storage cap (ruling 7); O1, O4, O5, O6, O8, O10 await explicit acceptance.
+Resolved since: O2 (T17_rules = the merge 2d6d3aa9, S_8 = 2026-10-26T00:00Z), O9, O11 and O1 amended (parts B, C, E re-hashed; see §11.6); O4, O5, O6, O8, O10 accepted. Still open: O12 (the CB16 key pin
+comes from q0380's manifest) and the monitor storage cap (ruling 7).
+
+### 12.2 Delta freeze-check fixes (2026-10-20)
+
+No rules part sha changed (`pre`, `common`, `B`, `C`, `E` in `seals/cb17_rules.json` still equal `cb17_common.rules_file_doc()`); only the code pin moves.
+
+- **D1:** `--worn-sha256` is mandatory for q0404. With a pin file the worn set is EXACTLY the pinned keys (no glob-dependent P2 / P3 list; the probes read only the pinned captures and sweeps); a pinned key missing
+  on disk, a mismatch, or an unpinned required file is a refusal (exit 2). Pins are copied from the archive releases' `files.sha256` (`worn-manifest --from-files-sha256 PATH...` prints the map; the on-disk
+  `worn-manifest` is a convenience only).
+- **D2:** `seals/cb17_monitor_stopped.json` entries are `{day, reason, evidence}` (a record without reason and evidence is refused). A B2 unit whose sweep interval (plus the following day, where late prints arrive) touches a
+  stopped day has `prt = -1` (unknown, never invented) and is outside the `no_print_between_sweeps` subset (`prt == 0`).
+- **Lows:** a capture whose `ext_manifest.json` says the sidecar was not written does not need `rows_ext` (not required, not sealed); a missing sweep / capture `rows.csv.gz` is exit 75; a resumed B stage must carry the
+  current code and rules shas; `require_t17` also checks `pre`; the B2 reported `tick_change` count uses the B2 availability mask.
+

@@ -162,7 +162,7 @@ def probe_p1(fills_dir: Path, trades_dir: Path, snap_dir: Path) -> dict:
     return out
 
 
-def probe_p2(sweep_dir: Path, snap_dir: Path) -> dict:
+def probe_p2(sweep_dir: Path, snap_dir: Path, sweeps: list[str] | None = None) -> dict:
     """Probe P2 (section 9) on the 24 worn sweeps of 2026-10-15."""
     st_: Counter = Counter()
     sports: set[str] = set()
@@ -172,7 +172,7 @@ def probe_p2(sweep_dir: Path, snap_dir: Path) -> dict:
         if (ft or "").startswith("sports"):
             sports.add(mid)
     root = c17.refuse_path(Path(sweep_dir), allow=("book_sweeps",))
-    sw = sorted(d for d in os.listdir(_need(root)) if d.startswith(P2_DAY))
+    sw = sorted(sweeps) if sweeps is not None else sorted(d for d in os.listdir(_need(root)) if d.startswith(P2_DAY))  # a pinned run uses exactly the pinned list
     if not sw:
         raise Refused(f"no worn {P2_DAY} sweeps under {root}: restore them byte for byte before the smoke")
 
@@ -250,10 +250,10 @@ def _ep_iso(s: str) -> float:
     return datetime.fromisoformat(s.replace("Z", "+00:00")).timestamp()
 
 
-def probe_p3(snap_dir: Path) -> dict:
+def probe_p3(snap_dir: Path, captures: list[str] | None = None) -> dict:
     """Probe P3 (section 9) on the 12 worn captures of 2026-10-15 (captures k - 1 and k only per interval)."""
     root = c17.refuse_path(Path(snap_dir), allow=("snapshots",))
-    caps = sorted(d for d in os.listdir(_need(root)) if d.startswith(P2_DAY) and (Path(root) / d).is_dir())
+    caps = sorted(captures) if captures is not None else sorted(d for d in os.listdir(_need(root)) if d.startswith(P2_DAY) and (Path(root) / d).is_dir())
     if not caps:
         raise Refused(f"no worn {P2_DAY} captures under {root}: restore them byte for byte before the smoke")
     st_: Counter = Counter()
@@ -489,10 +489,38 @@ def check_rules_fixtures(tmp: Path) -> dict:
     return out
 
 
-def worn_files(fills_dir: Path, trades_dir: Path, snap_dir: Path, sweep_dir: Path) -> list[tuple[str, Path]]:
+FILLS_KEY = "creative_batch13/t_screen/fills.csv.gz"
+_KEY_RE = re.compile(r"^(?:creative_batch13/t_screen/fills\.csv\.gz|live_trades/trades-\d{8}\.jsonl|snapshots/[^/]+/rows(?:_ext)?\.csv\.gz|book_sweeps/[^/]+/rows\.csv\.gz)$")
+
+
+def required_fixed_keys() -> list[str]:
+    ks = [FILLS_KEY, *(f"live_trades/trades-202610{d}.jsonl" for d in P1_DAYS)]
+    ks += [f"snapshots/{c}/rows_ext.csv.gz" for c in sorted({*P1_CAPTURES, P2_SPORTS_CAPTURE})]
+    return ks
+
+
+def _path_of(key: str, fills_dir: Path, trades_dir: Path, snap_dir: Path, sweep_dir: Path) -> Path:
+    if not _KEY_RE.match(key):
+        raise Refused(f"pinned key {key!r} is not an archive-relative worn-file path")
+    if key == FILLS_KEY:
+        return Path(fills_dir) / "fills.csv.gz"
+    root, rest = key.split("/", 1)
+    return {"live_trades": Path(trades_dir), "snapshots": Path(snap_dir), "book_sweeps": Path(sweep_dir)}[root] / rest
+
+
+def worn_files(fills_dir: Path, trades_dir: Path, snap_dir: Path, sweep_dir: Path, pins: dict | None = None) -> list[tuple[str, Path]]:
     """Every worn input file the probes read, keyed by its ARCHIVE-RELATIVE path (``live_trades/trades-YYYYMMDD.jsonl``, ``snapshots/<capture>/rows[_ext].csv.gz``,
-    ``book_sweeps/<sweep>/rows.csv.gz``, ``creative_batch13/t_screen/fills.csv.gz``), wherever the tree is rooted (the live paths or a byte-for-byte restore tree). A missing file is a refusal."""
-    out: list[tuple[str, Path]] = [("creative_batch13/t_screen/fills.csv.gz", _need(Path(fills_dir) / "fills.csv.gz"))]
+    ``book_sweeps/<sweep>/rows.csv.gz``, ``creative_batch13/t_screen/fills.csv.gz``), wherever the tree is rooted. A missing file is a refusal. WITHOUT ``pins`` (the ``worn-manifest`` helper) the
+    P2 / P3 lists are found by glob; WITH ``pins`` the set is EXACTLY the pinned keys (nothing glob-dependent), each of which must exist on disk."""
+    if pins is not None:
+        missing_fixed = [k for k in required_fixed_keys() if k not in pins]
+        caps = sorted({k.split("/")[1] for k in pins if k.startswith("snapshots/") and k.split("/")[1].startswith(P2_DAY)})
+        sws = sorted({k.split("/")[1] for k in pins if k.startswith("book_sweeps/")})
+        if missing_fixed or not caps or not sws:
+            raise Refused(f"required worn files are unpinned: fixed={missing_fixed[:5]} (n={len(missing_fixed)}), P3 captures={len(caps)}, P2 sweeps={len(sws)}")
+        out = [(k, _need(_path_of(k, fills_dir, trades_dir, snap_dir, sweep_dir))) for k in sorted(pins)]
+        return out
+    out = [(FILLS_KEY, _need(Path(fills_dir) / "fills.csv.gz"))]
     for day in P1_DAYS:
         out.append((f"live_trades/trades-202610{day}.jsonl", _need(Path(trades_dir) / f"trades-202610{day}.jsonl")))
     snap = Path(snap_dir)
@@ -512,12 +540,45 @@ def worn_files(fills_dir: Path, trades_dir: Path, snap_dir: Path, sweep_dir: Pat
 
 
 def worn_manifest(fills_dir: Path, trades_dir: Path, snap_dir: Path, sweep_dir: Path) -> dict[str, str]:
-    """``{archive-relative path: sha256}`` of the worn input files (the coordinator pins this on the host; ``smoke --worn-sha256`` checks it)."""
+    """``{archive-relative path: sha256}`` of the worn input files ON DISK (a convenience helper only: the binding pins are copied from the archive releases' files.sha256)."""
     return {k: c17.sha256_file(p) for k, p in worn_files(fills_dir, trades_dir, snap_dir, sweep_dir)}
 
 
-def check_worn_pins(pin_path: Path, fills_dir: Path, trades_dir: Path, snap_dir: Path, sweep_dir: Path) -> dict:
-    """Refuse (exit 2) unless every worn file is pinned and hashes to its pin (a wrong restore would otherwise be a counted FAIL). Returns ``{"n_files", "pins_sha256"}``."""
+def release_map(files_sha256_paths: list[Path]) -> dict:
+    """The worn-file sha256 map derived from archive releases' ``files.sha256`` files (lines ``<sha256>  <archive-relative path>``): only the files the smoke reads (P1 days and captures,
+    the sports capture's ext, the 2026-10-15 P3 captures and P2 sweeps, the CB13-T SCREEN fills); a key listed twice with different hashes is a refusal. Returns ``{"worn_sha256", "missing_required"}``."""
+    out: dict[str, str] = {}
+    for fp in files_sha256_paths:
+        p = Path(fp)
+        if not p.is_file():
+            raise Refused(f"files.sha256 {p} not found")
+        for ln in p.read_text().splitlines():
+            if "  " not in ln:
+                continue
+            h, rel = ln.rstrip("\n").split("  ", 1)
+            rel = rel.strip().lstrip("./")
+            m = re.search(r"(creative_batch13/t_screen/fills\.csv\.gz|live_trades/trades-\d{8}\.jsonl|snapshots/[^/]+/rows(?:_ext)?\.csv\.gz|book_sweeps/[^/]+/rows\.csv\.gz)$", rel)
+            if not m or not re.fullmatch(r"[0-9a-f]{64}", h):
+                continue
+            key = m.group(1)
+            parts = key.split("/")
+            if key.startswith("live_trades/") and key[len("live_trades/trades-"):][:8] not in {f"202610{d}" for d in P1_DAYS}:
+                continue
+            if key.startswith("snapshots/"):
+                cap, nm = parts[1], parts[2]
+                if cap in {*P1_CAPTURES, P2_SPORTS_CAPTURE} and nm != "rows_ext.csv.gz" and not cap.startswith(P2_DAY):
+                    continue
+                if cap not in {*P1_CAPTURES, P2_SPORTS_CAPTURE} and not cap.startswith(P2_DAY):
+                    continue
+            if key.startswith("book_sweeps/") and not parts[1].startswith(P2_DAY):
+                continue
+            if key in out and out[key] != h:
+                raise Refused(f"{key}: two different sha256 in the given files.sha256 files")
+            out[key] = h
+    return {"worn_sha256": dict(sorted(out.items())), "missing_required": [k for k in required_fixed_keys() if k not in out]}
+
+
+def load_pins(pin_path: Path) -> dict:
     pp = Path(pin_path)
     if not pp.is_file():
         raise Refused(f"--worn-sha256 file {pp} not found")
@@ -525,14 +586,21 @@ def check_worn_pins(pin_path: Path, fills_dir: Path, trades_dir: Path, snap_dir:
         pins = json.loads(pp.read_text())
     except ValueError as exc:
         raise Refused(f"--worn-sha256 file {pp.name} is not JSON") from exc
-    if not isinstance(pins, dict):
+    if not isinstance(pins, dict) or not all(isinstance(v, str) and re.fullmatch(r"[0-9a-fA-F]{64}", v) for v in pins.values()):
         raise Refused("--worn-sha256 file must be a JSON object {archive-relative path: sha256}")
-    got = worn_manifest(fills_dir, trades_dir, snap_dir, sweep_dir)
-    unpinned = sorted(k for k in got if k not in pins)
-    bad = sorted(k for k, v in got.items() if k in pins and str(pins[k]).lower() != v)
-    if unpinned or bad:
-        raise Refused(f"worn files differ from the pins: unpinned={unpinned[:5]} (n={len(unpinned)}), sha256 mismatch={bad[:5]} (n={len(bad)}); restore byte for byte")
-    return {"n_files": len(got), "pins_sha256": c17.sha256_file(pp)}
+    return pins
+
+
+def check_worn_pins(pin_path: Path, fills_dir: Path, trades_dir: Path, snap_dir: Path, sweep_dir: Path) -> dict:
+    """Refuse (exit 2) unless the worn files are EXACTLY the pinned set (every pinned key exists on disk, nothing is found by glob) and each hashes to its pin (a wrong restore would otherwise be a
+    counted FAIL). Returns ``{"n_files", "pins_sha256", "captures", "sweeps"}``; the probes then read exactly those captures / sweeps."""
+    pins = load_pins(pin_path)
+    files = worn_files(fills_dir, trades_dir, snap_dir, sweep_dir, pins=pins)
+    bad = sorted(k for k, p in files if c17.sha256_file(p) != pins[k].lower())
+    if bad:
+        raise Refused(f"worn files differ from the pins: sha256 mismatch={bad[:5]} (n={len(bad)}); restore byte for byte")
+    return {"n_files": len(files), "pins_sha256": c17.sha256_file(Path(pin_path)), "captures": sorted({k.split("/")[1] for k, _ in files if k.startswith("snapshots/") and k.split("/")[1].startswith(P2_DAY)}),
+            "sweeps": sorted({k.split("/")[1] for k, _ in files if k.startswith("book_sweeps/")})}
 
 
 def collect_checks(ctx: dict) -> tuple[dict, dict]:
@@ -560,8 +628,8 @@ def collect_checks(ctx: dict) -> tuple[dict, dict]:
         if not k.startswith("reproduce_"):
             crit.setdefault(k, False)
     for key, fn, exp in (("reproduce_P1", lambda: probe_p1(ctx["fills_dir"], ctx["trades_dir"], ctx["snapshot_dir"]), P1_EXPECTED),
-                         ("reproduce_P2", lambda: probe_p2(ctx["sweep_dir"], ctx["snapshot_dir"]), P2_EXPECTED),
-                         ("reproduce_P3", lambda: probe_p3(ctx["snapshot_dir"]), P3_EXPECTED)):
+                         ("reproduce_P2", lambda: probe_p2(ctx["sweep_dir"], ctx["snapshot_dir"], ctx.get("pinned_sweeps")), P2_EXPECTED),
+                         ("reproduce_P3", lambda: probe_p3(ctx["snapshot_dir"], ctx.get("pinned_captures")), P3_EXPECTED)):
         r = compare(fn(), exp)  # a missing worn source raises Refused (exit 2): never a FAIL
         crit[key] = r["pass"]
         detail[key] = {"differences": r["differences"], "observed": r["observed"]}

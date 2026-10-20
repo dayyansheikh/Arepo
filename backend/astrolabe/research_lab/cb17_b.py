@@ -50,6 +50,7 @@ FLOAT_COLS = ("age", "tick1", "tick2", "act", "liq", "vol24", "lpre", "dmpre", "
 INT8_COLS = ("state", "act_t", "imb_t", "reward", "hchg", "grain", "tsz_same", "prt", "excl2", "st2_1", "st6_1", "st2_2", "st6_2")
 INT16_COLS = ("nlev", "dnlev", "mk2_1", "mk6_1", "mk2_2", "mk6_2")
 INT32_COLS = ("tok", "mkt", "ev", "path")
+PRT_UNKNOWN = -1  # prt: 0 no print between the sweeps, 1 a print, -1 unknown (the interval touches a monitor-stopped day)
 F64_COLS = ("t1", "t2", "b0", "a0")  # b0 / a0 (exact 1c / 2c / 5c spreads and their bands) are never cast to float32
 READ_BACK_F64 = ("tick1", "tick2")  # read back while the frame is built (the tick-change comparison against the mark sweep's float64 tick): kept float64 until ``to_arrays`` casts them
 
@@ -289,7 +290,7 @@ def build_frame(sweep_root: Path, snap_root: Path, trades_dir: Path | None, *, u
                 tsz_chg = abs(r2[8] - r[8]) + abs(r2[9] - r[9]) if all(math.isfinite(v) for v in (r2[8], r2[9], r[8], r[9])) else math.nan
                 tsz_same = int(math.isfinite(tsz_chg) and tsz_chg == 0)
                 cid = st[6]
-                prt = int(_any_between(pr_m.get(mk), t1, t2) or _any_between(pr_c.get(cid), t1, t2))
+                prt = PRT_UNKNOWN if win.touches_stopped(t1, t2) else int(_any_between(pr_m.get(mk), t1, t2) or _any_between(pr_c.get(cid), t1, t2))  # a stopped monitor day: unknown, never invented
                 if abs(t2 - t1) > pre.SPLIT_PASS_S:
                     ex2 = B2_SPLIT
                 elif not r2[17]:
@@ -684,7 +685,7 @@ def b2_test(F: dict, MV: dict, census_b: dict | None, *, sd_x: float, n_draws: i
     core = b2_core(D)
     ok = elig & (D["st2_2"] == ST_OK) & np.isfinite(MV["2h_b2_bid"])
     av = w.availability(int(ok.sum()), int(elig.sum()))
-    info = {"availability": av, "tick_change": int(((D["excl2"] == B2_OK) & (D["st2_2"] == ST_TICK)).sum()), "rep": rep, "sd_x": sd_x, "labels": labels}
+    info = {"availability": av, "tick_change": int((elig & (D["st2_2"] == ST_TICK)).sum()), "rep": rep, "sd_x": sd_x, "labels": labels}
     if not av["ok"]:
         return {**win.not_testable(w.NOT_TESTABLE_AVAIL), **info}
     m0 = D["mid0"]
