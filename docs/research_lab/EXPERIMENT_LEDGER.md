@@ -2293,3 +2293,15 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
 - **Promoted q0400-q0403** (cpu lane, mem 500-800, priority 9; they start after the 02:45-05:30Z blackout). Next: read
   q0400's status and `p1_reproduction` FIRST (exit 2 = mismatch, investigated, never adjusted); then branch S/T into
   part A, cut points and levels into parts B/C, cost-lag map into §2.1/§3; parts A/B/C code before S_8 = 10-26.
+
+## Creative round 9 (d72e1006), 2026-10-20 ~02:30Z (Fable xhigh; ideas only, not counted)
+- `CREATIVE_HYPOTHESES_2026-10-23.md`: CH156-CH168 (13 ideas), 6 counts-only host probes verbatim with sha256, ranked
+  top 10, top 5 all live-ready pure readers on existing streams: CH156 quoted vs traded moves (~77,700 movers/day),
+  CH161 walked-flow moderator of continuation, CH160 walked prints (needs CB17 branch S), CH157 volume surge without a
+  move, CH162 trains and herds. Pre-registration sketches as an "LT3" family separate from LT2.
+- Probe facts (counts only): every trade-sample row has a unique `tx_hash` (Data API aggregates per taker order);
+  23% of rows and 40% of non-sports large prints have >= 4 decimals (bears on CB16-Q's premise; CB16-Q is already
+  terminal, nothing changed); 85% of 2 h moves >= 1c have no trade behind them; 0 `closed` flips in snapshots (markets
+  leave the listing; resolution arms need a light Gamma fetch); trade-sample CSVs on the host only from 10-16.
+- Next: LT3 draft pre-registration (designer running, `LIVE_TESTS_3.md`, E015+, two-stage prospective screen +
+  replication) -> challenger -> code -> freeze.
