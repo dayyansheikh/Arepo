@@ -1,4 +1,5 @@
-"""E009/E010 outage gap fill, rule ``gapfill-v1`` (docs/research_lab/E009_E010_GAPFILL_RULE.md).
+"""E009/E010 outage gap fill, rule ``gapfill-v2`` (docs/research_lab/E009_E010_GAPFILL_RULE_V2.md;
+v1 in E009_E010_GAPFILL_RULE.md is superseded and kept).
 
 Builds a NEW analysis root from the canonical live stream plus the validation copy, for the
 documented 2026-10-14 outage only. Both sources are read-only; canonical lines are copied byte for
@@ -16,9 +17,9 @@ from collections.abc import Iterator
 from datetime import UTC, datetime
 from pathlib import Path
 
-RULE_ID = "gapfill-v1"
+RULE_ID = "gapfill-v2"
 RULE_DOC = (Path(__file__).resolve().parents[3] / "docs" / "research_lab"
-            / "E009_E010_GAPFILL_RULE.md")
+            / "E009_E010_GAPFILL_RULE_V2.md")
 SOURCE_TAG = "validation_copy"
 # open interval: the canonical stream has cycles exactly at both endpoints
 W_START_UTC = "2026-10-14T00:02:00Z"
@@ -28,11 +29,13 @@ _E009_FIELDS = ("t", "pid", "ev", "role", "pm", "pb", "pa", "side", "trade", "fe
                 "y0", "y1")
 STREAMS = {
     "E009": {"pred": "predictions.jsonl", "out": "outcomes.jsonl", "horizons": (10, 20, 60),
-             "grid": 600, "fields": _E009_FIELDS},
+             "grid": 600, "fields": _E009_FIELDS, "analysed_every_h": True},
     "E010": {"pred": "predictions_e010.jsonl", "out": "outcomes_e010.jsonl",
-             "horizons": (60, 360), "grid": 3600, "fields": (*_E009_FIELDS, "yg")},
+             "horizons": (60, 360), "grid": 3600, "fields": (*_E009_FIELDS, "yg"),
+             "analysed_every_h": False},
 }
-REFUSALS = ("canonical_evaluated", "no_copy_outcome", "no_copy_prediction", "prediction_differs")
+REFUSALS = ("canonical_evaluated", "canonical_pred_duplicate", "no_copy_outcome",
+            "no_copy_prediction", "prediction_differs")
 
 
 def _ep(s: str) -> float:
@@ -86,6 +89,7 @@ def merge_stream(canonical: Path, copy: Path, out: Path, stream: str,
     # canonical predictions: verbatim; remember ids in W and the straddling candidates
     canon_ids_w: set[str] = set()
     straddle: dict[str, dict] = {}
+    straddle_n: dict[str, int] = {}
     n_pred_canon = 0
     with (out / cfg["pred"]).open("w") as fp:
         for raw, r in _raw_lines(canonical / cfg["pred"]):
@@ -93,9 +97,10 @@ def merge_stream(canonical: Path, copy: Path, out: Path, stream: str,
             n_pred_canon += 1
             if in_w(r["t"]):
                 canon_ids_w.add(r["id"])
-            elif r["t"] <= w_start and r["t"] % cfg["grid"] == 0 and r["id"] not in straddle:
+            elif r["t"] <= w_start and r["t"] % cfg["grid"] == 0:
                 if any(in_w(r["t"] + h * 60) for h in cfg["horizons"]):
-                    straddle[r["id"]] = r
+                    straddle.setdefault(r["id"], r)
+                    straddle_n[r["id"]] = straddle_n.get(r["id"], 0) + 1
         # R2: copy predictions with origin in W and no canonical id
         added = sorted((r for i, r in copy_pred.items() if in_w(r["t"]) and i not in canon_ids_w),
                        key=lambda r: (r["t"], r["id"]))
@@ -111,16 +116,24 @@ def merge_stream(canonical: Path, copy: Path, out: Path, stream: str,
             canon_status[k] = o.get("status")
     subst: dict[tuple[str, int], dict] = {}
     refused = {h: dict.fromkeys(REFUSALS, 0) for h in cfg["horizons"]}
+    why: dict[tuple[str, int], str] = {}
     for k in sorted(keys):
         i, h = k
         if canon_status.get(k) == "evaluated":
             refused[h]["canonical_evaluated"] += 1
+            why[k] = "canonical_evaluated"
+        elif straddle_n[i] > 1:  # analyze keeps the LAST line of a duplicated id: refuse
+            refused[h]["canonical_pred_duplicate"] += 1
+            why[k] = "canonical_pred_duplicate"
         elif k not in copy_out:
             refused[h]["no_copy_outcome"] += 1
+            why[k] = "no_copy_outcome"
         elif i not in copy_pred:
             refused[h]["no_copy_prediction"] += 1
+            why[k] = "no_copy_prediction"
         elif any(copy_pred[i].get(f) != straddle[i].get(f) for f in cfg["fields"]):
             refused[h]["prediction_differs"] += 1
+            why[k] = "prediction_differs"
         else:
             subst[k] = copy_out[k]
     # outcomes: canonical verbatim except records replaced under R4; then copy lines (R4, R3)
@@ -138,6 +151,10 @@ def merge_stream(canonical: Path, copy: Path, out: Path, stream: str,
         for k in r3:
             fo.write(json.dumps({**copy_out[k], "source": SOURCE_TAG}) + "\n")
     hs = cfg["horizons"]
+
+    def analysed(k) -> bool:  # the records analyze reads at horizon h
+        return (not cfg["analysed_every_h"]) or straddle[k[0]]["t"] % (k[1] * 60) == 0
+
     return {
         "canonical_prediction_lines": n_pred_canon,
         "canonical_predictions_in_window": len(canon_ids_w),
@@ -146,12 +163,20 @@ def merge_stream(canonical: Path, copy: Path, out: Path, stream: str,
         "r4_candidates": {h: sum(1 for k in keys if k[1] == h) for h in hs},
         "r4_substituted": {h: sum(1 for k in subst if k[1] == h) for h in hs},
         "r4_refused": refused,
+        "r4_candidates_analysed_grid": {h: sum(1 for k in keys if k[1] == h and analysed(k))
+                                        for h in hs},
+        "r4_substituted_analysed_grid": {h: sum(1 for k in subst if k[1] == h and analysed(k))
+                                         for h in hs},
+        "r4_refused_analysed_grid": {h: {r: sum(1 for k, w in why.items()
+                                                if k[1] == h and w == r and analysed(k))
+                                         for r in REFUSALS} for h in hs},
         "canonical_lines_dropped_r4": dropped,
     }
 
 
 def merge(canonical: Path, copy: Path, out: Path, *, code_commit: str = "",
-          w_start_utc: str = W_START_UTC, w_end_utc: str = W_END_UTC) -> dict:
+          tree_dirty: bool | None = None, w_start_utc: str = W_START_UTC,
+          w_end_utc: str = W_END_UTC) -> dict:
     canonical, copy, out = Path(canonical), Path(copy), Path(out)
     if out.exists():
         raise FileExistsError(f"{out} exists; the merged root must be new")
@@ -172,6 +197,7 @@ def merge(canonical: Path, copy: Path, out: Path, *, code_commit: str = "",
         "rule_id": RULE_ID,
         "rule_doc_sha256": file_digest(RULE_DOC).get("sha256"),
         "code_commit": code_commit,
+        "tree_dirty": tree_dirty,
         "window_open_interval": [w_start_utc, w_end_utc],
         "merged_utc": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "inputs": inputs,

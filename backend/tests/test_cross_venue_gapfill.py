@@ -1,9 +1,10 @@
-"""gapfill-v1 (docs/research_lab/E009_E010_GAPFILL_RULE.md) on synthetic straddling cases."""
+"""gapfill-v2 (docs/research_lab/E009_E010_GAPFILL_RULE_V2.md) on synthetic straddling cases."""
 
 from __future__ import annotations
 
 import json
 from datetime import datetime
+from pathlib import Path
 
 import pytest
 
@@ -77,7 +78,7 @@ def roots(tmp_path):
     return can, cop, {"A": A, "B": B, "C": C, "X": X, "Y": Y, "H": H, "I": I_}
 
 
-def test_merge_follows_gapfill_v1(roots, tmp_path):
+def test_merge_follows_gapfill_v2(roots, tmp_path):
     can, cop, r = roots
     before = {p.name: p.read_bytes() for p in list(can.iterdir()) + list(cop.iterdir())}
     out = tmp_path / "merged"
@@ -104,8 +105,14 @@ def test_merge_follows_gapfill_v1(roots, tmp_path):
     c = m["counts"]["E009"]
     assert c["r4_substituted"] == {10: 0, 20: 1, 60: 2}
     assert c["r4_refused"][10]["prediction_differs"] == 1
-    assert c["r4_refused"][60] == {"canonical_evaluated": 1, "no_copy_outcome": 2,
-                                   "no_copy_prediction": 1, "prediction_differs": 0}
+    assert c["r4_refused"][60] == {"canonical_evaluated": 1, "canonical_pred_duplicate": 0,
+                                   "no_copy_outcome": 2, "no_copy_prediction": 1,
+                                   "prediction_differs": 0}
+    # analysed grid (t % (h*60) == 0): only origin 00:00Z (B) is read by analyze at 10/20/60
+    assert c["r4_candidates_analysed_grid"] == {10: 1, 20: 1, 60: 1}
+    assert c["r4_substituted_analysed_grid"] == {10: 0, 20: 0, 60: 0}
+    assert c["r4_refused_analysed_grid"][10]["prediction_differs"] == 1
+    assert c["r4_refused_analysed_grid"][60]["no_copy_outcome"] == 1
     assert c["r2_predictions_added"] == 2 and c["r3_outcomes_added"] == {10: 2, 20: 2, 60: 1}
     assert c["canonical_lines_dropped_r4"] == 2  # A 20 and A 60
     # every copy record appears once; the canonical duplicate (G, 20) stays as it was
@@ -115,11 +122,14 @@ def test_merge_follows_gapfill_v1(roots, tmp_path):
     e = m["counts"]["E010"]
     assert e["r4_substituted"] == {60: 0, 360: 1} and e["r2_predictions_added"] == 1
     assert e["r3_outcomes_added"] == {60: 1, 360: 0}
+    assert e["r4_substituted_analysed_grid"] == {60: 0, 360: 1}  # E010 reads every hourly origin
     # provenance: output sha256s match the files
     for name, d in m["outputs"].items():
         assert d["sha256"] == gf.file_digest(out / name)["sha256"]
     man = json.loads((out / "MERGE_MANIFEST.json").read_text())
-    assert man["rule_id"] == "gapfill-v1" and man["rule_doc_sha256"]
+    assert man["rule_id"] == "gapfill-v2" and man["rule_doc_sha256"]
+    assert man["rule_doc_sha256"] == gf.file_digest(gf.RULE_DOC)["sha256"]
+    assert gf.RULE_DOC.name == "E009_E010_GAPFILL_RULE_V2.md"
     # the registered analysis reads the merged root unchanged (extra key ignored)
     res = cvl.analyze(out, start_utc="2026-10-13T00:00:00Z", end_utc="2026-11-03T00:00:00Z",
                       n_boot=20, now=2e9)
@@ -148,3 +158,40 @@ def test_merge_without_copy_rows_is_canonical(roots, tmp_path):
     for name in ("predictions.jsonl", "outcomes.jsonl", e010.PRED_FILE, e010.OUT_FILE):
         assert (out / name).read_bytes() == (can / name).read_bytes()
     assert m["counts"]["E009"]["r4_substituted"] == {10: 0, 20: 0, 60: 0}
+
+
+def test_duplicated_canonical_prediction_id_is_refused(roots, tmp_path):
+    can, cop, r = roots
+    A = r["A"]
+    cvl.append_jsonl(can / "predictions.jsonl", [A])  # same id twice: analyze keeps the last
+    m = gf.merge(can, cop, tmp_path / "m3")
+    c = m["counts"]["E009"]
+    assert c["r4_refused"][20]["canonical_pred_duplicate"] == 1
+    assert c["r4_refused"][60]["canonical_pred_duplicate"] == 1
+    assert c["r4_substituted"] == {10: 0, 20: 0, 60: 1}  # only C remains substituted
+    outs = list(cvl.read_jsonl(tmp_path / "m3" / "outcomes.jsonl"))
+    assert not [o for o in outs if o["id"] == A["id"] and o.get("source")]
+
+
+def test_cli_records_head_and_refuses_dirty_tree(roots, tmp_path, monkeypatch, capsys):
+    import importlib.util
+
+    path = Path(__file__).resolve().parents[1] / "scripts" / "run_cross_venue_gapfill.py"
+    spec = importlib.util.spec_from_file_location("run_cross_venue_gapfill", path)
+    cli = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(cli)
+    can, cop, _ = roots
+    args = ["--canonical", str(can), "--copy", str(cop)]
+    real_git_state = cli.git_state
+    monkeypatch.setattr(cli, "git_state", lambda: ("abc123", True))
+    assert cli.main([*args, "--out", str(tmp_path / "d1")]) == 2
+    assert not (tmp_path / "d1").exists()
+    assert cli.main([*args, "--out", str(tmp_path / "d2"), "--allow-dirty"]) == 0
+    man = json.loads((tmp_path / "d2" / "MERGE_MANIFEST.json").read_text())
+    assert man["code_commit"] == "abc123" and man["tree_dirty"] is True
+    monkeypatch.setattr(cli, "git_state", lambda: ("def456", False))
+    assert cli.main([*args, "--out", str(tmp_path / "d3")]) == 0
+    man = json.loads((tmp_path / "d3" / "MERGE_MANIFEST.json").read_text())
+    assert man["code_commit"] == "def456" and man["tree_dirty"] is False
+    head, dirty = real_git_state()  # the real repository: a 40-hex commit
+    assert len(head) == 40 and isinstance(dirty, bool)
