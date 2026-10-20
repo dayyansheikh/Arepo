@@ -75,6 +75,9 @@ DIR_EXPERIMENTS = {
     "stream_smarkets": ["STREAM-SMARKETS"],
     "stream_espn_odds": ["STREAM-ESPN-ODDS"],
     "stream_gamma_rules": ["STREAM-GAMMA-RULES"],
+    # astrolabe/signal_engine (run_signal_engine.py; docs/research_lab/signal_engine/DESIGN_V1.md): derived quotes and
+    # feature files, write-once predictions, model fits, leaderboards and day logs of the champion / challenger engine.
+    "signal_engine": ["SIGNAL-ENGINE"],
 }
 
 # Top-level data-dumps/fs2_* directories are Phase 3 (D082-D120) pilots; they keep their original outcomes.

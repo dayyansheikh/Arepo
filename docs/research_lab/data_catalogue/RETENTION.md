@@ -61,6 +61,11 @@ and delete them." The user also approved the weekly backup of the live evidence 
     nightly line, run `tests/unit/test_archive_rotate.py`, deploy and install the crontab line, all before the 10-19 03:30Z
     run. `book_sweeps/` stays deferred until q0035 is done and the MC1 q0111 panel is cached.
 
+## Signal engine (proposed 2026-10-21; not active)
+`signal_engine/` (DESIGN_V1.md section 9): `predictions/` 35 days, `features/` and `quotes/` 45 days on the host after verified archiving
+(rules in `deferred_rules`). Its only readers are the engine's own jobs (training window <= 28 days, scorer 28 days + label lag).
+`meta/`, `models/`, `leaderboard/`, `dev/`, `champion/`, `logs/` have no rule (never deleted).
+
 Status 2026-10-15: the nightly rotation (`backend/scripts/archive_rotate.py`, cron 03:30 UTC) is **archive-only**. This file says
 what may be deleted from the host's own copy once `--delete` is switched on, and what had to change so that deleting never
 changes what a registered experiment sees. Nothing here is enabled. The rules are in `scripts/oracle/archive_retention.json`

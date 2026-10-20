@@ -1,0 +1,92 @@
+# ruff: noqa: E501
+"""Compact ``signal_engine/dashboard.json`` (schema ``se-dash-v1``, < 100 KB) that ``scripts/lab/lab_host.py`` embeds
+in the /lab snapshot as ``signal_engine``. Prospective rows and the development/historical block are kept apart, and
+embargoed models carry only ``embargoed_until`` (no numbers) until their date."""
+
+from __future__ import annotations
+
+import json
+
+from . import config as C
+from . import specs as SP
+from . import store as S
+
+KEEP = ("model_id", "role", "target", "window_days", "n", "log_loss", "brier", "cal_slope", "cal_intercept", "auc",
+        "coverage", "days")
+
+
+def _row(r: dict) -> dict:
+    out = {k: r[k] for k in KEEP if k in r}
+    g = r.get("gain_vs_champion")
+    if g:
+        out.update({"gain": g["mean"], "gain_lo": g["lo"], "gain_hi": g["hi"], "days_positive": g["days_positive"],
+                    "n_days": g["n_days"], "n_clusters": g["n_clusters"]})
+    return out
+
+
+def _family(spec: dict) -> str:
+    if spec.get("broad"):
+        return f"combination ({spec['learner']})"
+    iso = spec.get("isolates") or []
+    return "+".join(iso) if iso else ("baseline" if spec["learner"] == "logreg" else f"baseline ({spec['learner']})")
+
+
+def build(paths: S.Paths, reg: dict, champion: str, now: float, lb: dict | None, history_days: int = 28) -> dict:
+    models = reg["models"]
+    emb = {m: SP.embargo_of(s, now) for m, s in models.items()}
+    out = {"schema": "se-dash-v1", "generated_at": S.iso_s(now), "engine_version": C.ENGINE_VERSION,
+           "primary_target": C.PRIMARY_TARGET,
+           "champion": {"model_id": champion, "spec_sha256": models[champion]["_sha256"], "family": _family(models[champion])},
+           "models": [{"model_id": m, "family": _family(s), "learner": s["learner"], "status": s["_status"],
+                       "embargoed_until": emb[m]["until"] if emb[m] else None,
+                       "embargo_tests": emb[m]["tests"] if emb[m] else None} for m, s in models.items()],
+           "note": "Signal strength / forecast quality only; not probability of profit, not an edge claim."}
+    fits = S.read_logs(paths, "fits", now - 3 * 86400)
+    if fits:
+        last = max(S.epoch(f["fit_time"]) for f in fits)
+        lf = [f for f in fits if S.epoch(f["fit_time"]) == last]
+        out["last_refit"] = {"at": S.iso_s(last), "models": len(lf),
+                             "targets_ok": sum(1 for f in lf for t in f["targets"].values() if t.get("status") == "ok")}
+    preds = S.read_logs(paths, "predictions", now - 2 * 86400)
+    if preds:
+        lp = preds[-1]
+        out["last_prediction"] = {"capture_id": lp["capture_id"], "at": lp["written_utc"][:19] + "Z",
+                                  "models": len({p["model_id"] for p in preds if p["capture_id"] == lp["capture_id"]})}
+    if lb:
+        days = lb.get("days_scored", 0)
+        out["prospective"] = {"generated_at": lb["generated_utc"][:19] + "Z", "days_scored": days,
+                              "status": "bootstrapping" if days < 14 else "scoring",
+                              "rows": [_row(r) if not r.get("embargoed_until") else
+                                       {"model_id": r["model_id"], "embargoed_until": r["embargoed_until"]}
+                                       for r in lb["rows"] if r.get("embargoed_until") or r.get("window_days") == 14]}
+    else:
+        out["prospective"] = {"status": "bootstrapping", "days_scored": 0, "rows": []}
+    # family gains over time: the 14-day primary-target gain of each daily leaderboard
+    series = []
+    d = paths.sub("leaderboard")
+    for p in sorted(d.glob("2*.json"))[-history_days:] if d.exists() else []:
+        try:
+            old = json.loads(p.read_text())
+        except (OSError, ValueError):
+            continue
+        for r in old.get("rows", []):
+            g = r.get("gain_vs_champion")
+            if (r.get("window_days") == 14 and r.get("target") == C.PRIMARY_TARGET and g
+                    and r["model_id"] in models and not emb.get(r["model_id"])):
+                series.append({"date": old["generated_utc"][:10], "model_id": r["model_id"],
+                               "family": _family(models[r["model_id"]]), "gain": g["mean"], "lo": g["lo"], "hi": g["hi"]})
+    out["family_gains"] = series
+    dev_p = paths.sub("dev", "latest.json")
+    if dev_p.exists():
+        try:
+            dev = json.loads(dev_p.read_text())
+            out["development"] = {"label": "development/historical", "generated_at": dev["generated_utc"][:19] + "Z",
+                                  "test_days": dev.get("test_days"),
+                                  "rows": [_row(r) if not r.get("embargoed_until") or S.epoch(r["embargoed_until"]) <= now else
+                                           {"model_id": r["model_id"], "embargoed_until": r["embargoed_until"]}
+                                           for r in dev["rows"]]}
+        except (OSError, ValueError, KeyError):
+            pass
+    hist = SP.champion_history(paths)
+    out["promotions"] = hist[-10:]
+    return S.clean_json(out)

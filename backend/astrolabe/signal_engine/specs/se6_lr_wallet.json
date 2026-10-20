@@ -1,0 +1,41 @@
+{
+ "broad": false,
+ "derived": [
+  "base"
+ ],
+ "description": "Champion + wallet structure of sampled trades over 24 h (distinct wallets, top-1 notional share, HHI); hashed wallets only.",
+ "families": [
+  "market_state",
+  "momentum",
+  "wallet"
+ ],
+ "features_version": "se-features-v1",
+ "isolates": [
+  "wallet"
+ ],
+ "learner": "logreg",
+ "model_id": "se6_lr_wallet",
+ "params": {
+  "C": 1.0,
+  "max_iter": 300,
+  "tol": 0.0001
+ },
+ "targets": [
+  "dir_2h",
+  "dir_6h",
+  "dir_24h",
+  "res_7d"
+ ],
+ "train": {
+  "max_rows": 400000,
+  "min_days": 2,
+  "min_rows": 5000,
+  "refit": "daily",
+  "require_sources": [
+   "wallet"
+  ],
+  "res_window_days": 28,
+  "window_days": 14
+ },
+ "version": 1
+}
