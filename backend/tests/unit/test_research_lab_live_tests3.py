@@ -560,7 +560,8 @@ def test_census_c4_gate_includes_cluster_floor(tmp_path):
 def test_size_check_small_runs_and_planted_effects_pass():
     sc = la.size_check(worlds=6, draws=19, seed=3)
     assert set(sc["scenarios"]) == {"donor_iid", "donor_ar0.6", "donor_lifecycle", "perm_iid", "perm_persistent",
-                                  "donor_corr_control", "perm_corr_control"}
+                                  "donor_corr_control", "perm_corr_control",
+                                  "donor_collinear_control_0.5", "donor_collinear_control_0.7"}
     assert all(0.0 <= v["rate"] <= 1.0 for v in sc["scenarios"].values()) and sc["limit"] > 0.05
     rng = np.random.default_rng(7)
     df, y, others = la.sim_flow_world(rng, effect=0.004)
@@ -653,3 +654,46 @@ def test_c3_c4_planning_mde_gates():
     a4 = spec["census_gates"]["C4_E019"]["mde_assumptions"]
     m4 = a4["t_sum"] * a4["sd_c"] / np.sqrt(3000) * a4["within"] * np.sqrt(a4["deff_series"]) * a4["day_factor"]
     assert m4 > 0.005
+
+
+def test_donor_statistic_is_studentised_score_invariant_to_x_scale():
+    rng = np.random.default_rng(5)
+    Z = rng.normal(size=(200, 2))
+    x = Z[:, 0] + rng.normal(size=200)
+    y = 0.3 * x + rng.normal(size=200)
+    yt = la._partial(Z, y)
+    s1, s2 = la.fast_score(x, Z, yt), la.fast_score(10.0 * x, Z, yt)
+    assert np.isclose(s1, s2) and abs(la.fast_beta(10.0 * x, Z, yt) - la.fast_beta(x, Z, yt)) > 1e-6
+    xt = la._partial(Z, x)
+    assert np.isclose(s1, xt @ yt / np.sqrt(xt @ xt))
+
+
+def test_donor_gate_invariant_to_moderator_scale():
+    rng = np.random.default_rng(9)
+    df, y, others = la.sim_flow_world(rng, n_mkt=12, n_t=20)
+    a = la.donor_gate(df, y, "x6", "zM", others, sign=+1, draws=19, seed=2, min_units=4, min_sep_s=43200.0, min_donors=2)
+    d2 = df.copy()
+    d2["zM"] = 7.0 * d2["zM"]
+    b = la.donor_gate(d2, y, "x6", "zM", others, sign=+1, draws=19, seed=2, min_units=4, min_sep_s=43200.0, min_donors=2)
+    assert a["p_perm"] == b["p_perm"]
+
+
+def test_collinear_control_world_has_controlled_interaction_and_runs():
+    rng = np.random.default_rng(4)
+    df, y, others = la.sim_flow_world(rng, n_mkt=12, n_t=20, collinear=0.7, za_effect=0.004)
+    assert "x6*zA" in others and "zA" in others and {"x6*zA", "zA"} <= set(df.columns)
+    assert 0.5 < np.corrcoef(df["zM"], df["zA"])[0, 1] < 0.85
+    g = la.donor_gate(df, y, "x6", "zM", others, sign=+1, draws=19, seed=1, min_units=4, min_sep_s=43200.0, min_donors=2)
+    assert g["testable"]
+
+
+def test_within_market_r2_and_abs_corr_helper():
+    rng = np.random.default_rng(2)
+    n = 400
+    d = pd.DataFrame({"market_id": [f"m{i // 20}" for i in range(n)], "x6": rng.normal(size=n)})
+    for z in ("zN", "zSPR", "zSize", "zHTE", "zRV", "zW"):
+        d[z] = rng.normal(size=n)
+    assert lt.within_market_r2(d, "zW") < 0.1
+    d["zW"] = d["zN"]  # x6*zW exactly a controlled interaction
+    assert lt.within_market_r2(d, "zW") > 0.999
+    assert lt.within_market_r2(d.head(5), "zW") is None

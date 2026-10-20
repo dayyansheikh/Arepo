@@ -208,6 +208,14 @@ def fast_beta(x: np.ndarray, Zt: np.ndarray, yt: np.ndarray) -> float:
     return float(xt @ yt / s) if s > 1e-18 else float("nan")
 
 
+def fast_score(x: np.ndarray, Zt: np.ndarray, yt: np.ndarray) -> float:
+    """Studentised partialled score xt . yt / sqrt(xt . xt): the donor-gate statistic (donor ruling 2026-10-20, a). Unlike
+    the raw beta it does not shrink when a donor moderator is less well explained by the controls than the real one."""
+    xt = _partial(Zt, x)
+    s = float(xt @ xt)
+    return float(xt @ yt / np.sqrt(s)) if s > 1e-18 else float("nan")
+
+
 def perm_gate(df: pd.DataFrame, y: np.ndarray, term: str, controls: list[str], *, sign: int, group: str, order: str,
               strata: np.ndarray, draws: int, seed: int, min_stratum: int) -> dict:
     """Freedman-Lane permutation gate (section 1.8): the target residualised on the controls is permuted within strata
@@ -280,7 +288,7 @@ def donor_gate(df: pd.DataFrame, y: np.ndarray, flow: str, mod: str, others: lis
                min_units: int, min_sep_s: float, min_donors: int) -> dict:
     """Distant-donor gate (section 1.8, LT2 finding 1): only markets with >= ``min_units`` usable units; in each draw
     every unit's moderator is replaced by a distant donor's (same market, >= ``min_sep_s`` away) in both the
-    interaction and the main effect; everything else unchanged; the estimator is re-run."""
+    interaction and the main effect; everything else unchanged; the estimator is re-run. The statistic is the studentised partialled score (``fast_score``), real and donor draws alike."""
     d = df.reset_index(drop=True)
     yv = np.asarray(y, float)
     use = np.isfinite(yv) & np.isfinite(d[flow].to_numpy(float)) & np.isfinite(d[mod].to_numpy(float))
@@ -297,7 +305,7 @@ def donor_gate(df: pd.DataFrame, y: np.ndarray, flow: str, mod: str, others: lis
     rest = X[others].to_numpy()[ok] if others else np.zeros((int(ok.sum()), 0))
     Z = np.column_stack([X[mod].to_numpy()[ok], rest])
     yt = _partial(Z, yv[ok])
-    real = fast_beta(X[term].to_numpy()[ok], Z, yt)
+    real = fast_score(X[term].to_numpy()[ok], Z, yt)
     codes = pd.factorize(d["market_id"])[0]
     tt = d["t_row"].to_numpy(float)
     rng = np.random.default_rng(seed)
@@ -316,7 +324,7 @@ def donor_gate(df: pd.DataFrame, y: np.ndarray, flow: str, mod: str, others: lis
             continue
         Zd = np.column_stack([Xd[ok, 1], rest])
         ytd = _partial(Zd, yv[ok])
-        b = fast_beta(Xd[ok, 0], Zd, ytd)
+        b = fast_score(Xd[ok, 0], Zd, ytd)
         ge += int(np.isfinite(b) and sign * b >= sign * real)
     p = (1 + ge) / (1 + draws)
     return {"testable": True, "real": real, "p_perm": p, "passes": bool(p < 0.05), "draws": draws, "rows": int(ok.sum()),
@@ -902,25 +910,35 @@ def analyze(root: Path = lt.OUT_ROOT, *, start_utc: str = lt.REGISTERED_UTC, end
 
 
 def sim_flow_world(rng: np.random.Generator, *, n_mkt: int = 40, n_t: int = 30, ar: float = 0.0, lifecycle: bool = False,
-                   effect: float = 0.0, corr_mod: bool = False) -> tuple[pd.DataFrame, np.ndarray, list[str]]:
+                   effect: float = 0.0, corr_mod: bool = False, collinear: float | None = None,
+                   za_effect: float = 0.0) -> tuple[pd.DataFrame, np.ndarray, list[str]]:
     """A flow panel with NO moderation (``effect`` = 0): persistent market level of the moderator, iid or AR(1) flow,
     ``corr_mod``: the moderator is correlated with the flow within each market over time (null still true);
-    optionally a life-cycle world (moderator and flow continuation both rise towards the end; the x6 * zHTE control is
+    ``collinear`` = rho: the tested moderator zM is correlated (rho, level and noise alike) with a CONTROLLED moderator zA, whose
+    interaction x6 * zA (with main effect zA) is in the controls and has a real effect ``za_effect`` (the donor ruling's
+    ``donor_collinear_control``; the null for zM still holds); optionally a life-cycle world (moderator and flow continuation both rise towards the end; the x6 * zHTE control is
     then included, as in the registered model)."""
     rows = []
     for m in range(n_mkt):
         x, lvl = 0.0, rng.normal(0, 0.5)
+        lvl_a = rng.normal(0, 0.5) if collinear is not None else 0.0
         for i in range(n_t):
             x = ar * x + rng.normal(0, 1)
             tau = i / max(n_t - 1, 1)
             z = lvl + (1.5 * tau if lifecycle else 0.0) + (0.7 * x if corr_mod else 0.0) + rng.normal(0, 1)
+            za = 0.0
+            if collinear is not None:
+                za = lvl_a + rng.normal(0, 1)
+                z = collinear * za + float(np.sqrt(1.0 - collinear**2)) * (lvl + rng.normal(0, 1))
             rows.append({"market_id": f"m{m}", "event_id": f"e{m // 2}", "t_row": i * 7200.0, "day": str(i // 12), "x6": x,
-                         "zM": z, "zHTE": (tau - 0.5) * 2.0, "c1": rng.normal()})
+                         "zM": z, "zA": za, "zHTE": (tau - 0.5) * 2.0, "c1": rng.normal()})
     df = pd.DataFrame(rows)
     slope = 0.003 * (1.0 + (2.0 * df["zHTE"].to_numpy() if lifecycle else 0.0))
-    y = slope * df["x6"].to_numpy() + effect * df["x6"].to_numpy() * df["zM"].to_numpy() + rng.normal(0, 0.01, len(df))
+    y = slope * df["x6"].to_numpy() + effect * df["x6"].to_numpy() * df["zM"].to_numpy() \
+        + za_effect * df["x6"].to_numpy() * df["zA"].to_numpy() + rng.normal(0, 0.01, len(df))
     df["x6*zHTE"] = df["x6"] * df["zHTE"]
-    others = ["x6", "c1"] + (["x6*zHTE", "zHTE"] if lifecycle else [])
+    df["x6*zA"] = df["x6"] * df["zA"]
+    others = ["x6", "c1"] + (["x6*zHTE", "zHTE"] if lifecycle else []) + (["x6*zA", "zA"] if collinear is not None else [])
     return df, y, others
 
 
@@ -949,7 +967,9 @@ def size_check(*, worlds: int, draws: int, seed: int, nominal: float = 0.05) -> 
     lim = nominal + 1.645 * float(np.sqrt(nominal * (1 - nominal) / worlds))
     out: dict = {"worlds": worlds, "draws": draws, "seed": seed, "limit": lim, "scenarios": {}}
     for name, kw in (("donor_iid", {}), ("donor_ar0.6", {"ar": 0.6}), ("donor_lifecycle", {"lifecycle": True}),
-                     ("donor_corr_control", {"corr_mod": True})):
+                     ("donor_corr_control", {"corr_mod": True}),
+                     ("donor_collinear_control_0.5", {"collinear": 0.5, "za_effect": 0.004}),
+                     ("donor_collinear_control_0.7", {"collinear": 0.7, "za_effect": 0.004})):
         rej = 0
         for _ in range(worlds):
             df, y, others = sim_flow_world(rng, **kw)
