@@ -120,3 +120,22 @@ API `/api/lab/admin` (every endpoint uses the same `owner()` dependency: 401 sig
   to a mask (`d***@gmail.com`), and the delete row stores the mask plus the same SHA-256 as `account_deletions`.
 - Rate limits per owner per rolling hour, counted from the audit log: 20 email actions, 60 actions in total (429).
 - Table `lab_admin_audit` (SCHEMA_VERSION 15, RLS on Postgres). `lab_commands.created_by` is left as written.
+
+## Claude activity board (`/lab/claude`, view-only, added 2026-10-21)
+User request: see what the headless Claude autopilot sessions are doing. View only (no prompts from the web). No API,
+schema or table change: both additions travel inside the existing snapshots (2 MB limit unchanged).
+- Mac snapshot adds `activity` (built by `scripts/lab/lab_activity.py` on the research branch, kept ≤ 300 KB):
+  `{generated_at, branch, instances: [{name, home, paused, pause_reason, session_alive, started_at, last_outcome,
+  last_finished_at, next_allowed, sessions_total, sessions: [{started_at, ended_at, runtime_s, outcome, test?, note?,
+  cost_usd?, turns?, duration_ms?, duration_api_ms?, subtype?, terminal_reason?, stop_reason?, is_error?, done?,
+  summary?, summary_truncated?, log_state}]}], commits: [{at, sha, subject}], trimmed?, error?}`. Instances are
+  `~/.arepo/autopilot` (label `main`, or a one-line `label` file) plus every `~/.arepo/autopilot-<name>`; sessions are
+  newest first (last 30); `done` is the closing `AUTOPILOT_DONE` line (≤ 400 chars), `summary` the rest of the result
+  (≤ 1,500 chars). Every text field is sanitised on the Mac (secret shapes, credentials in URLs, `password=`-style
+  values, long high-entropy strings, literal values of the owner-only files in `~/.arepo`); log paths are never sent.
+  `cost_usd` is the CLI's API-equivalent figure; sessions run on the subscription.
+- Host snapshot adds `activity.queue` = 48 h tally of queue attempts `{window_h, since, attempts, outcomes,
+  distinct_jobs, runtime_h, first_at, last_at}`; the event feed itself reuses `queue.recent` / `queue.running`.
+- Page: instance status cards (working / paused / waiting for usage reset / idle), a 48 h session timeline coloured by
+  outcome, an expandable session log (markdown-lite rendered as React text, never HTML), the latest commits, and the
+  research server tally. Falls back to the legacy `autopilot` block when the Mac sends no `activity`.

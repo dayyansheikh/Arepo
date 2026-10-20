@@ -126,6 +126,18 @@ export interface InfraBlock {
   history?: Array<{ t: string; disk_free_gb?: number; mem_available_mb?: number }>;
 }
 
+/** Host-side 48 h tally of queue attempts (events themselves stay in `queue.recent`). */
+export interface QueueTally {
+  window_h?: number;
+  since?: string;
+  attempts?: number;
+  outcomes?: Record<string, number>;
+  distinct_jobs?: number;
+  runtime_h?: number;
+  first_at?: string | null;
+  last_at?: string | null;
+}
+
 export interface HostPayload {
   schema?: string;
   source?: "host";
@@ -145,6 +157,7 @@ export interface HostPayload {
   tests_over_time?: Array<{ date: string; cumulative: number }>;
   queue?: QueueBlock;
   infra?: InfraBlock;
+  activity?: { queue?: QueueTally };
 }
 
 export interface AutopilotBlock {
@@ -157,11 +170,67 @@ export interface AutopilotBlock {
   recent?: Array<{ at?: string; outcome?: string; runtime_s?: number }>;
 }
 
+/** One headless Claude autopilot session (`claude -p --output-format json`), sanitised on the Mac. */
+export interface ClaudeSession {
+  started_at?: string | null;
+  ended_at?: string | null;
+  runtime_s?: number;
+  outcome?: string | null;
+  test?: boolean;
+  note?: string;
+  cost_usd?: number;
+  turns?: number;
+  duration_ms?: number;
+  duration_api_ms?: number;
+  subtype?: string;
+  terminal_reason?: string;
+  stop_reason?: string;
+  is_error?: boolean;
+  /** Text of the closing `AUTOPILOT_DONE <summary>` line. */
+  done?: string;
+  /** The session's result text (without the DONE line), truncated on the Mac. */
+  summary?: string;
+  summary_truncated?: boolean;
+  log_state?: "ok" | "partial" | "empty" | "missing" | "unreadable" | string;
+}
+
+export interface ClaudeInstance {
+  name?: string;
+  home?: string;
+  paused?: boolean;
+  pause_reason?: string | null;
+  session_alive?: boolean;
+  started_at?: string | null;
+  last_outcome?: string | null;
+  last_finished_at?: string | null;
+  next_allowed?: string | null;
+  sessions_total?: number;
+  /** Newest first. */
+  sessions?: ClaudeSession[];
+  error?: string;
+}
+
+export interface CommitItem {
+  at?: string | null;
+  sha?: string;
+  subject?: string;
+}
+
+export interface ClaudeActivity {
+  generated_at?: string;
+  instances?: ClaudeInstance[];
+  commits?: CommitItem[];
+  branch?: string;
+  trimmed?: string;
+  error?: string;
+}
+
 export interface MacPayload {
   schema?: string;
   source?: "mac";
   generated_at?: string;
   autopilot?: AutopilotBlock;
+  activity?: ClaudeActivity;
 }
 
 export interface SnapshotEnvelope<P> {
