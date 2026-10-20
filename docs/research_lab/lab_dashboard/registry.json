@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-20T06:55:00Z",
+ "updated": "2026-10-20T07:20:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1246,6 +1246,29 @@
    "candidate": false,
    "sources": {
     "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT2 (E012-E014 drafts) challenger round 1, 2026-10-20"
+   },
+   "stage_results": {
+    "designed": "pending"
+   },
+   "reached": [
+    "designed"
+   ]
+  },
+  {
+   "id": "LT3",
+   "title": "Live tests E015-E019 (planned)",
+   "plain": "Five planned live tests from the round 9 ideas: whether price moves made only by quotes behave differently from traded moves, whether trades that walked the order book or arrived in bursts carry on differently, whether a volume surge without a price move is followed by drift, and whether moves across a whole ladder of related markets persist. Drafted; independent review next.",
+   "batch": "LT3",
+   "family": "mixed",
+   "stage": "designed",
+   "status": "running",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Independent review, counting checks, then registration (proposed start 24 Oct)",
+   "next_date": "2026-10-24",
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT3 (E015-E019) pre-registration draft, 2026-10-20"
    },
    "stage_results": {
     "designed": "pending"

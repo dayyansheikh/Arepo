@@ -2357,3 +2357,14 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   promoted: on the labelled path it opens no target/guarded/unit file (W_hold files only hashed for the seal check) and
   writes `results_W.json` plus 2 `cb11_test` (p = 1) and 2 `ml_explain` count lines. The v1 `census_W.json`
   (half-open window defect, §11.3) is superseded and never counted.
+
+## LT3 (E015-E019) pre-registration draft, 2026-10-20 ~07:15Z; design only, nothing registered or counted
+- `LIVE_TESTS_3.md` (1aa1500f, merged 733faf6b): pure reader of host streams; one Holm family, k <= 5 after counts-only
+  census gates C1-C4 (outcome-blind; a test dropped there is uncounted). E015 CH156 quoted (both quotes, no trade)
+  vs traded 2 h moves; E016 CH161 walked-flow share x 6 h flow continuation; E017 CH157 volume surge (>= 3x, >= +$500)
+  with < 1c move -> 24 h drift; E018 CH162 burst share x flow (dropped pre-registration if degenerate or corr > 0.5
+  with E016's measure); E019 CH159 ladder breadth (>= 80% members re-quoted without trade) continuation.
+  Dropped: CH158 (one tilt value per pass, ~20 effective df; MDE 0.6-4.6c vs 0.5c floor -> descriptive only); CH160 and
+  CH162's print arm (need print direction; CB17 branch T); CH157's resolution arm (needs a fetch).
+  MDEs are planning estimates from one worn probe day. Proposed window 2026-10-24..2026-11-14, single analysis on or
+  after 2026-11-15T12:00Z. Next: challenger round 1 (running) -> response -> code -> censuses -> freeze.
