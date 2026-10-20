@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-20T22:54:15Z",
+ "updated": "2026-10-20T23:15:40Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1122,18 +1122,18 @@
   {
    "id": "CB12",
    "title": "Mention baskets, stale horizons and other round-5 ideas",
-   "plain": "Word-mention baskets, earthquake counts, stock-option prices and large-trade footprints. The stale-horizon part (CB12-X) was screened and closed with no finding; the mention-basket downloads started on 19 Oct; code for the earthquake, option and footprint parts is being written.",
+   "plain": "Word-mention baskets, earthquake counts, stock-option prices and large-trade footprints. Four parts are now closed with no finding: stale horizons (screened), option prices (no data source), mention baskets (too little power) and earthquakes (too few independent events).",
    "batch": "CB12",
    "family": "mixed",
    "stage": "designed",
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Mention baskets after batch 11's exclusion list",
+   "next": "Footprint part only, if its code passes review",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB12-X Stage 1 screen (q0255), 2026-10-19"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB12-M and CB12-E freeze (gate-failure path) and screens, 2026-10-20"
    },
    "stage_results": {
     "designed": "pending"
@@ -1186,6 +1186,52 @@
    "candidate": false,
    "sources": {
     "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB12-O smoke and freeze (not testable), 2026-10-20"
+   },
+   "stage_results": {
+    "designed": "fail"
+   },
+   "reached": [
+    "designed"
+   ]
+  },
+  {
+   "id": "CB12-M",
+   "title": "Word-mention baskets in speeches (M1, M2)",
+   "plain": "Do markets on whether a speaker will say certain words misprice them? The data were collected, but the pre-declared power check showed the test could only detect an effect far larger than the one that matters, so it was not run. Counted as two tests that found nothing.",
+   "batch": "CB12",
+   "family": "text",
+   "stage": "designed",
+   "status": "closed",
+   "verdict": "not_testable",
+   "effect": null,
+   "next": "Closed (too little power); a new design would be needed",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB12-M and CB12-E freeze (gate-failure path) and screens, 2026-10-20"
+   },
+   "stage_results": {
+    "designed": "fail"
+   },
+   "reached": [
+    "designed"
+   ]
+  },
+  {
+   "id": "CB12-E",
+   "title": "Earthquake-count markets (E1)",
+   "plain": "Do earthquake-count markets lag the public seismic feed? Too few independent events, weeks and markets were available for the pre-declared dependence check, so the test cannot run. Counted as one test that found nothing.",
+   "batch": "CB12",
+   "family": "external_data",
+   "stage": "designed",
+   "status": "closed",
+   "verdict": "not_testable",
+   "effect": null,
+   "next": "Closed (too few independent events)",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB12-M and CB12-E freeze (gate-failure path) and screens, 2026-10-20"
    },
    "stage_results": {
     "designed": "fail"

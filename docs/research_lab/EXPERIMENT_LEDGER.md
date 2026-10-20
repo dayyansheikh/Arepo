@@ -2717,3 +2717,15 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   collinear 0.7); skipped draws fail closed; thresholds, alpha, draws, seeds, limit 0.058 unchanged; written as §13.13
   before any 2,000-world run, then a science-reviewer pass, then the run; any binding failure blocks the pin with no
   further redesign. The decision does not depend on any later size result. Implementer running. q0471/q0472 unaffected.
+
+## CB14-W gate GW0 blind audit, 2026-10-20 ~23:25Z (repo step; nothing counted yet)
+- q0303's `w_map_audit_sample.csv` (every mapped pair, 56 rows, sha256 3875e69b…) blind-labelled by one science-reviewer
+  agent that read only that file and CREATIVE_BATCH_14.md:575-592: **38 match / 18 not, precision 0.679 < 0.90 (GW0
+  FAIL)**. Misses: surname lists (Epstein, Menendez, Nguesso, Trudeau, Tshisekedi), companies/apps (ChatGPT, OpenAI,
+  TikTok, Tea App, Tinder), wrong pages (a Coldplay tour for Andy Byron / Kristin Cabot; Tony Gonzalez vs Gonzales; "Von";
+  Japan; ICE; University Presidents; Trump as a modifier). Committed as `seals/cb14_w_map_audit.json`; q0305 gets
+  `--audit` pointing there (the default path under data-dumps is not in git).
+- The design allows one blind revision of the entity rule after a GW0 failure. **Not used:** the frame keeps 94
+  markets after key drops (q0303 counts), below GWC's 150-market minimum regardless of the map, so a revision cannot
+  change the GWC result (decided from counts only, no outcome). q0305 will record GWC FAIL -> W1, W2 not testable,
+  counted with p = 1 per the design; q0306/q0307 are never committed.
