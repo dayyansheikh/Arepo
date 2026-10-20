@@ -822,4 +822,7 @@ Design and code only; no outcome data read. Supersedes the binding role of the d
    2,000-world size check on this code. If any binding scenario fails, the pin is blocked and no further redesign may follow from
    that run.
 Code hashes after this amendment (supersede 13.12): `live_tests3.py` 2dff0621bbefe9186102ee888bb70484839808e58955e799343c9d4eb62b2410,
-`live_tests3_analysis.py` 5e242c763d8278b9407760a9c559884c1e0b0a1c6e3564ef7a83d8ee870cb6a0.
+`live_tests3_analysis.py` 62ef3375266eb663c2d1bb541720bc77015edfad0a2b065df45523b17f96fedb (was 5e242c76… at the
+verification, 2026-10-21 ~00:45 UTC+1: OK to run; its optional fix applied before the size check: the donor label reads
+"within-unit timing untestable" when the verdict is Unavailable, the donor gate could not run, or draws were skipped, so an
+untestable gate is never reported as "not shown"; label only, no gate, p or verdict path changed).

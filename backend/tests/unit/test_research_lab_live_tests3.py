@@ -767,3 +767,15 @@ def test_skipped_draws_fail_closed_in_both_gates(monkeypatch):
     monkeypatch.setattr(la, "fast_score", flaky_s)
     g3 = la.donor_gate(df, y, "x6", "zM", others, sign=+1, draws=39, seed=1, min_units=4, min_sep_s=43200.0, min_donors=2)
     assert g3["draws_completed"] < 39 and not g3["passes"]
+
+
+def test_donor_label_distinguishes_untestable_from_not_shown():
+    from astrolabe.research_lab import live_tests3_analysis as la
+
+    ok = {"testable": True, "passes": True, "draws": 200, "draws_completed": 200}
+    assert la.donor_label(ok, {"verdict": "Supported"}) == "within-unit timing shown"
+    assert la.donor_label({**ok, "passes": False}, {"verdict": "Inconclusive"}) == "within-unit timing not shown"
+    assert la.donor_label({**ok, "draws_completed": 199, "passes": False}, {"verdict": "Inconclusive"}) == "within-unit timing untestable"
+    assert la.donor_label({"testable": False}, {"verdict": "Inconclusive"}) == "within-unit timing untestable"
+    assert la.donor_label(None, {"verdict": "Inconclusive"}) == "within-unit timing untestable"
+    assert la.donor_label(ok, {"verdict": "Unavailable"}) == "within-unit timing untestable"

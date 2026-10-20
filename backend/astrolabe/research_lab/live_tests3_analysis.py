@@ -340,6 +340,15 @@ def donor_gate(df: pd.DataFrame, y: np.ndarray, flow: str, mod: str, others: lis
             "markets": int(d["market_id"].nunique()), "units_without_donors": kept}
 
 
+def donor_label(dg: dict | None, v: dict) -> str:
+    """Non-binding donor label (section 13.13): 'shown' / 'not shown' only when the gate ran all its draws on an available
+    result; otherwise 'untestable' (an Unavailable verdict, a donor gate that could not run, or skipped draws), so an
+    untestable gate is never reported as a failed one."""
+    if str(v.get("verdict", "")) == "Unavailable" or not dg or not dg.get("testable") or dg.get("draws_completed") != dg.get("draws"):
+        return "within-unit timing untestable"
+    return "within-unit timing shown" if dg.get("passes") else "within-unit timing not shown"
+
+
 # --- verdicts, labels, attrition, economics --------------------------------------------------------------------------
 
 
@@ -899,7 +908,7 @@ def analyze(root: Path = lt.OUT_ROOT, *, start_utc: str = lt.REGISTERED_UTC, end
         if t in floors and prim.get("beta") is not None and DIRECTION[t] * prim["beta"] >= floors[t]:
             labels.append("material")
         if t in ("E016", "E018"):
-            labels.append("within-unit timing shown" if (r.get("donor_gate_reported") or {}).get("passes") else "within-unit timing not shown")
+            labels.append(donor_label(r.get("donor_gate_reported"), v))
             gm = ((r.get("economics") or {}).get("gross_cell") or {}).get("mean")
             if gm is not None and gm >= spec[t.lower()]["floor_gross_c"]:
                 labels.append("material")
