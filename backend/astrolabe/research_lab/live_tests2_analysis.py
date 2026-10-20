@@ -18,6 +18,7 @@ window + horizon away; challenger R1 finding 1). E014 is a difference of mean pe
 
 from __future__ import annotations
 
+import math
 from pathlib import Path
 
 import numpy as np
@@ -69,8 +70,9 @@ def code_check(spec: dict) -> dict:
         bad = {n: s for n, s in status.items() if s != "match"}
         if bad:
             raise RuntimeError(f"live_tests2 code sha256 does not match the registered pins: {bad}")
-        if spec["flow"].get("vol24_cap") is None:
-            raise RuntimeError("live_tests2 spec pinned with an unfilled flow.vol24_cap")
+        cap = spec["flow"].get("vol24_cap")
+        if cap is None or (isinstance(cap, float) and math.isnan(cap)):
+            raise RuntimeError("live_tests2 spec pinned with an unfilled (null or NaN) flow.vol24_cap")
     return {"current": cur, "pinned": {n: pins.get(n) for n in cur}, "status": status,
             "label": None if all(s == "match" for s in status.values()) else "DRAFT: code hashes not verified"}
 

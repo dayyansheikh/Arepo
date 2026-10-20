@@ -829,6 +829,14 @@ def ops_stats(root: Path = OUT_ROOT) -> dict:
 # --- census (pre-window moderator scales; reads no target and no capture after ``until``) ----------------------------
 
 
+def check_census_inputs(spec: dict, what: str, got: list[str]) -> None:
+    """Refuse unless the captures / samples the census selected are exactly the ids registered in the spec's
+    ``census.captures`` / ``census.samples`` (R1 re-check: "newest 4 before ``until``" is not an identity)."""
+    want = list((spec.get("census") or {}).get(what) or [])
+    if list(got) != want:
+        raise RuntimeError(f"live_tests2 census refused: selected {what} {list(got)} != the spec's census.{what} {want}")
+
+
 def census(*, snapshot_root: Path = SNAPSHOT_ROOT, sample_root: Path = SAMPLE_ROOT, until_utc: str,
            n_caps: int = 4, n_samples: int = 4, spec: dict | None = None, work: Path | None = None) -> dict:
     """Moderator distributions (log volume, log RV proxy, spread) and line counts on the newest ``n_caps`` captures
@@ -840,6 +848,7 @@ def census(*, snapshot_root: Path = SNAPSHOT_ROOT, sample_root: Path = SAMPLE_RO
     st = State(work)
     by_slot = {k: c for k, c in scan_captures(snapshot_root, st, spec).items() if c["start"] < epoch(until_utc)}
     ks = sorted(by_slot)
+    check_census_inputs(spec, "captures", [by_slot[k]["id"] for k in ks[-n_caps:]])
     # series for the newest n_caps + 12 captures (needed by the RV proxy), written under ``work`` only
     need = ks[-(n_caps + spec["flow"]["rv_steps"] + 1):]
     for k in need:
@@ -859,6 +868,7 @@ def census(*, snapshot_root: Path = SNAPSHOT_ROOT, sample_root: Path = SAMPLE_RO
     samples = scan_samples(sample_root, st)
     slot_by_id = {c["id"]: k for k, c in by_slot.items()}
     use = [s for s in sorted(samples) if samples[s]["snapshot_id"] in slot_by_id][-n_samples:]
+    check_census_inputs(spec, "samples", use)
     frames, cnt = [], []
     cache: dict = {}
     spec_c = json.loads(json.dumps({k: v for k, v in spec.items() if not k.startswith("_")}))

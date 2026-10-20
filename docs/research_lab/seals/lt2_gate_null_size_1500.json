@@ -1,0 +1,52 @@
+{
+ "alpha": 0.05,
+ "command": "LT2_N_SIM=1500 LT2_SIZE_OUT=<path> pytest tests/unit/test_research_lab_live_tests2.py -k null_size",
+ "n_sim_per_scenario": 1500,
+ "pooled": {
+  "rate": 0.04716666666666667,
+  "rejections": 566,
+  "worlds": 12000
+ },
+ "scenarios": {
+  "E013 ar1 keep=1.0": {
+   "rate": 0.042,
+   "rejections": 63,
+   "worlds": 1500
+  },
+  "E013 iid keep=1.0": {
+   "rate": 0.048,
+   "rejections": 72,
+   "worlds": 1500
+  },
+  "E013 overlap keep=0.6": {
+   "rate": 0.04466666666666667,
+   "rejections": 67,
+   "worlds": 1500
+  },
+  "E013 overlap keep=1.0": {
+   "rate": 0.04733333333333333,
+   "rejections": 71,
+   "worlds": 1500
+  },
+  "E014 ar1": {
+   "rate": 0.054,
+   "rejections": 81,
+   "worlds": 1500
+  },
+  "E014 const": {
+   "rate": 0.04733333333333333,
+   "rejections": 71,
+   "worlds": 1500
+  },
+  "E014 iid": {
+   "rate": 0.043333333333333335,
+   "rejections": 65,
+   "worlds": 1500
+  },
+  "E014 overlap": {
+   "rate": 0.050666666666666665,
+   "rejections": 76,
+   "worlds": 1500
+  }
+ }
+}
