@@ -2729,3 +2729,16 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   markets after key drops (q0303 counts), below GWC's 150-market minimum regardless of the map, so a revision cannot
   change the GWC result (decided from counts only, no outcome). q0305 will record GWC FAIL -> W1, W2 not testable,
   counted with p = 1 per the design; q0306/q0307 are never committed.
+
+## LT3 ruling 2 implemented, verified, size check queued, 2026-10-20 23:30-23:55Z (nothing counted)
+- `fix/lt3-donor` b43f6e1b (merged 50b7fbac with e29ead9c): E016/E018 binding gate = Freedman-Lane permutation gate
+  (market x UTC day, 200 draws, min stratum 4, seeds E016_gate/E018_gate unchanged); donor gate computed as a
+  non-binding label only; skipped draws fail closed in both gates (p = (1+ge)/(1+completed); pass needs all 200);
+  binding size scenarios perm_iid, perm_persistent, perm_corr_control, flowperm_iid, flowperm_ar0.6,
+  flowperm_collinear_0.7; donor_* reported with binding false; §13.13 items 1-7; 41 LT3 tests, 26 LT4 tests.
+- Verification (science-reviewer): **OK to run**. Optional fix applied (e29ead9c, label only): "within-unit timing
+  untestable" when the verdict is Unavailable, the donor gate could not run or draws were skipped. Noted gap: no binding
+  world has serially correlated residuals (not blocking: a failed gate can only force p to 1). Code: analysis
+  62ef3375…, reader 2dff0621…. Mac timing ~85 min; host estimate 3-5 h, ~150 MB.
+- **q0474** queued (2,000 worlds, 200 draws, seed 20261020, limit 0.058, priority 42, timeout 12 h, retries for
+  infrastructure only). Any binding failure blocks LT3's pin with no further redesign.
