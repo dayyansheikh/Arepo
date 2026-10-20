@@ -2521,3 +2521,27 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   "none", rules shas, smoke record, `label_O`). **Promoted:** q0262 (census O; returns the label before any window logic)
   -> q0263 (screen O; 2 `cb12_test` lines O1, O2 with p = 1, testable false, in the k1 = 10 Holm, plus one `ml_explain`
   line). **q0261 collector never installed; q0264 never run.** 191 cb12 tests pass.
+
+## CB17 window code: freeze check, fixes, open-question rulings, 2026-10-20 18:20-18:50Z (design and code; nothing counted)
+- **Freeze check (science-reviewer): FREEZE_READY_WITH_FIXES** (`reviews/CB17_WINDOW_FREEZE_CHECK_2026-10-20.md`); design
+  logic faithful (Holm k1 = 3 over B1, B2, C1; family A refused everywhere, branch T). Fixes 1-7 applied (9b335fec on
+  `worktree-agent-ae42d4cfea66b78af`; 52 CB17 tests): missing monitor/snapshot days exit 75 with a restore instruction;
+  smoke gated on the code-freeze record and stores `code_sha256`; `b0`/`a0` float64; unknown never counts as met; econ
+  event minimum among flagged fills; q0406 B frame resumable; disk caps in every job; stage-2 verifies pins. Added smoke
+  `--worn-sha256`, `--snapshot-root`, `--live-trades-root`, `worn-manifest`.
+- **Open-question rulings: REVISE, accepted** (`reviews/CB17_OPEN_QUESTION_RULINGS_2026-10-20.md`): O9 tick change ->
+  availability status (was eligibility on a post-decision mark: selection on the outcome); O11 symmetric one-sided worst
+  case by class; O1 re-entry counts on the signable population. All stricter and outcome-blind; parts B, C, E re-hash
+  before they bind (e37643f3 never reached the working branch). O2: T17_rules = commit time landing the final parts on
+  `chore/arepo-claude-setup`; by 2026-10-25T00:00Z -> S_8 = 2026-10-26T00:00Z. O12: q0405 pin copied verbatim from
+  q0380's manifest. O4, O5, O6, O8, O10 accepted. Implementer applying O1/O9/O11 + re-hash.
+- **q0413 queued** (net lane): byte-for-byte restore of the smoke's worn inputs from releases 10-15..10-17 (the
+  10-12 capture's `rows_ext` is already rotated off the host).
+
+## LT4 (E020-E024) DRAFT, 2026-10-20 ~18:10-18:50Z (design + code; nothing registered or counted)
+- From creative round 10's top five: E020 arrivals vs cancellations (CH169), E021 age of the move (CH170), E022 hollow
+  liquidity (CH174), E023 opens vs closes (CH171), E024 flow concentration (CH173). One Holm family, k <= 5 after census
+  gates (q0480-q0486 drafts). Proposed window 2026-10-26T00:00Z to 2026-11-16T00:00Z; analysis after 2026-11-17T12:00Z.
+  Planning MDEs vs floors in `LIVE_TESTS_4.md` §0 (E021 borderline, E023/E024 census-gated).
+- Branch `feat/live-tests-4` (6290d93c design, c08383a5 code: reader reuses LT3 by import, 20 synthetic tests).
+  Challenger R1 (science-reviewer) running.
