@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-21T03:52:00Z",
+ "updated": "2026-10-21T05:30:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -625,6 +625,35 @@
    "candidate": false,
    "sources": {
     "verdict": "docs/AREPO_PROGRESS_PLAIN_ENGLISH.md § 4 (null in 3 analyses); docs/research_lab/EXPERIMENT_LEDGER.md § HB1 (WA6 closest, BY 0.18); docs/research_lab/EXPERIMENT_LEDGER.md § HB1-R (WA2 Holm 0.030 unweighted, 0.10 weighted)"
+   },
+   "stage_results": {
+    "designed": "pass",
+    "screened": "fail"
+   },
+   "reached": [
+    "designed",
+    "screened"
+   ]
+  },
+  {
+   "id": "WS1",
+   "title": "Wallet skill (do skilled wallets stay skilled, and does their trading predict prices?)",
+   "plain": "Wallets that beat the trade price in the past mostly kept doing so later, but their trading added nothing over ordinary order flow for predicting price moves or outcomes. A copy-the-skilled-wallets live test (E026) is being designed.",
+   "batch": "WS1",
+   "family": "wallet",
+   "stage": "screened",
+   "status": "closed",
+   "verdict": "not_detected",
+   "effect": {
+    "label": "skill persists: +21.7c per $ vs +3.6c",
+    "note": "development (historical); persistence only (P1 pass); P2-P4 price and outcome prediction null"
+   },
+   "next": "Copy-skilled-wallets live test E026 (design in progress)",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Development study WS1: wallet skill family (2026-10-20)",
+    "effect": "docs/research_lab/EXPERIMENT_LEDGER.md § Development study WS1: wallet skill family (2026-10-20)"
    },
    "stage_results": {
     "designed": "pass",
