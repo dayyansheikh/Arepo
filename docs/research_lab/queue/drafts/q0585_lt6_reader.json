@@ -32,7 +32,7 @@
  },
  "outputs": [
   "data-dumps/research_lab/live_tests6/{series,status,sweeps}/",
-  "data-dumps/research_lab/live_tests6/{deadline,vote,...}/frozen/ and outcomes/",
+  "data-dumps/research_lab/live_tests6/{vote,clips,deadline,birth}/{frozen,outcomes}/",
   "data-dumps/research_lab/live_tests6/passes.jsonl"
  ],
  "next_action": "runs until the window closes, then q0586",
