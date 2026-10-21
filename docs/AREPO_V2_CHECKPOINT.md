@@ -300,10 +300,12 @@ change request applied or "partially seen", a `battery2.KIND_RULES["live_tests6"
 - **LT3 E015** registered 2026-10-21 (2580c58a). Host cron `*/20`; remove it after 2026-11-15T06:00Z. q0475 after 11-15T12Z.
 
 **Queued and in progress:**
-- CB18 censuses: q0503 P and q0504 R done; q0505 F running; q0502 S retried after OOM (mem 600, as_cap 2400); q0506 pending; then the routing record (`run_cb18.py routing`,
-  `seals/cb18_routing.json`, target 10-24T12Z). Later CB18 drafts are now q0590-q0599 (renumbered; ids clashed).
-- **CB13-R:** census done (gates fail); R freeze entry committed; **q0282 queued** (writes R1 "not testable (basis)" after the R freeze entry (the v1 R1 count line of 10-19 stays: conservative double count, ledger 10-19 ~09:45Z).
-- CB14-W GWC FAIL and CB15-P GPB FAIL recorded (counted 2 each); their later drafts (q0306-q0309, q0349-q0354) are moot.
+- **CB18 closed** (routing record `seals/cb18_routing.json`, fa856ec4): S and P dropped uncounted at census; R/F/M maps;
+  k = 0; drafts q0590-q0599 moot. **CB13 closed** (q0282: R1 "not testable (basis)", counted 1).
+- CB14 and CB15 closed (W GWC FAIL, P GPB FAIL, counted 2 each; S/E earlier); drafts q0306-q0309, q0349-q0354 moot.
+- **Creative round 12** (Fable xhigh, worktree branch `feat/creative-r12`, `CREATIVE_HYPOTHESES_2026-10-26.md`) launched
+  ~20:10Z after four batches closed at census: brief = population arithmetic, permutable strata and MDE vs floor up front;
+  top 6 for a future LT7 + engine-first families. Review and merge when it lands.
 - CB16-K q0383 (exclusive, not before 10-22T06Z). CB17 q0404 blocked (above), then q0405.
 
 **Waiting:**

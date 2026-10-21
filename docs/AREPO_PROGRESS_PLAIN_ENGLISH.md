@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-21 20:44 UTC+1
+**Last updated:** 2026-10-21 21:03 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -17,12 +17,16 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
     (the size check shuffled data differently from the real test) which is now fixed, and the code is frozen.
   - Next: the size check runs on the server from about 05:00 UTC+1 on 22 Oct (2-4 hours), then registration
     before 25 Oct so collection can start on 26 Oct.
-- **Three batch checks failed their population gates (recorded, nulls included):** batch 13-R (too few complete
-  frames and events), batch 14-W (58 markets where 150 were needed) and batch 15-P (37 pairs where 60 were needed).
-  Batch 14-W and 15-P count 2 tests each as "not testable"; 13-R will count 1 when its last job writes it.
-- **Fixed:** five batch 18 counting jobs were stuck in a retry loop because they asked for 20 GB of disk headroom for
-  tiny output files. They now ask for 0.25 GB and can run. Ten batch 18 job drafts were renumbered because their numbers
-  clashed with the signal engine's jobs.
+- **Four idea batches closed today, all at the counting stage (nulls recorded):**
+  - batch 13 (touch-versus-end-above crypto markets): too few complete frames and events; 1 test counted as "not testable";
+  - batch 14 (58 markets where 150 were needed) and batch 15 (37 pairs where 60 were needed): 2 tests each counted
+    as "not testable";
+  - batch 18: its two candidate tests (silent edits; program versus human trading) did not have enough usable cases or
+    power, so the pre-set rules dropped them before any test (not counted); its other three parts were maps only.
+  - Lesson: many ideas die because too few cases exist. A new ideas round (12) has started, told to show the case
+    counts and power up front.
+- **Fixed:** five batch 18 counting jobs were stuck (first asking for 20 GB of disk headroom for tiny files, then
+  running out of memory); both fixed and all five finished. Ten batch 18 job drafts were renumbered (clashing numbers).
 - **LT6 code, part 2 finished** (the recorder and the analysis entry point; 137 tests pass). Still waiting on E022's
   registration date, as planned.
 - **Copy-skilled wallets (E026):** registered; collection starts 25 Oct (phone note then).
