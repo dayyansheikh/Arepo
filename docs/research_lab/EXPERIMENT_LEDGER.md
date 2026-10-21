@@ -3292,3 +3292,10 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   `participation` until 2026-11-25T00:00Z (REP_8 ends no earlier than 11-23T08Z), wording corrected, spec re-pinned,
   previous-sidecar provenance in the aux metadata, prefix `pp_`. No score is computed or shown before 11-25; K for the
   non-embargoed challengers stays 2.
+- (16:42Z) **LT6 code phase 1** on `feat/live-tests-6` (71cdb2da, 23cf4665, 51664a39; pushed): draft spec
+  `live_tests6_v1.json` (E022-dependent dates and census-fixed values null), `live_tests6.py` (crypto classifier, K
+  greedy train algorithm with Decimal sizes, V state and both depletion gates, D classifier, B classes, washout, V/E022
+  freeze check refusing after either T_E022 time), sealed counts-only censuses CD/CB/CV/CK and seal builder, analysis
+  skeleton (G_treated - 1 event t, gates, Holm, verdicts), size-check scenarios 1-11 (seed 20261167); queue drafts
+  q0580-q0584 (DRAFT). 121 tests; only new files (no frozen or pinned file touched). Phase 2 (reader, analyze entry
+  point, reader / analysis drafts) running. Needed at registration: a `battery2.KIND_RULES["live_tests6"]` entry.
