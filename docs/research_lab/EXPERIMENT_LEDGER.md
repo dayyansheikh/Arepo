@@ -2995,6 +2995,29 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   q0500/q0501 crashed in gh's Go runtime at 600 MB, so they were raised to 1,200 MB, as the earlier restores q0413/q0480
   used. No scientific change.
 
+## LT5 census and size-check code merged; seal job q0564 promoted, 2026-10-21 ~10:10Z (nothing counted)
+- Code on `feat/live-tests-5`, merged into this branch after these reviews:
+  - code check CENSUS_READY_WITH_FIXES (3 MED: silent absence of sealed inputs, R depth-band population, CHW population;
+    7 LOW);
+  - fixes e8f0cd96;
+  - verification NOT_OK on one item: the H gap rule had been reworded into a looser check that never fired;
+  - re-fix f49bf94e (literal original rule, seal step `seal-captures`);
+  - re-verification **FIXES_OK_WITH_NOTES**.
+  Reviews: `reviews/LT5_CENSUS_CODE_CHECK_2026-10-21.md`. 41 LT5 tests pass.
+- The code-hash map covers 11 files (vendored LT3/LT4 base and imported dependencies). Size-check worlds are fixed in
+  §1.8.1 (12 binding scenarios incl. AR 0.6/0.9/0.95 for O), before any census.
+- **Queue:**
+  - q0560 (restore of 10-12 and 10-13T00/02 captures, which have left the host) promoted early;
+  - q0564 (input seal, after the 10-21T22:31Z pass; not before 23:20Z) promoted;
+  - q0561 (capture censuses F/H/R/CHW, exclusive), q0562 (flow censuses J/O, after q0561) and q0563 (size check, after
+    both) stay drafts.
+- **Hard timing:** q0561 must start before 2026-10-22T02:45Z (queue blackout) and read its captures before the 03:30Z
+  retention run, which removes the 10-13/10-14 captures inside H's look-back. Before that, the q0564 seal must be
+  byte-copied to `seals/lt5_census_inputs_captures.json`, committed and deployed (q0561 refuses an uncommitted seal).
+  If the window is missed, a new restore and seal are needed; nothing is backfilled.
+- Reviewer notes carried forward: `seal-captures` does not refuse when `--restore-report` is missing (q0564 passes the
+  one report it needs); the seal copy is a manual byte copy, so check its sha256 against the q0564 output.
+
 ## Signal engine: hidden learner-matched challengers se11-se13, 2026-10-21 ~10:15Z (signal-engine autopilot; nothing counted)
 - Added `se11_lgbm_flow`, `se12_lgbm_tte`, `se13_lgbm_xvenue`: LightGBM with `se1_lgbm_mm`'s params on the champion's
   features plus one family each (DESIGN_V1 §18). Each is embargoed under the same token as its logistic sibling
