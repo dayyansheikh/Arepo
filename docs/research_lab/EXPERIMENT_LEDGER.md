@@ -3252,3 +3252,9 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   clip trains, D CH187 deadline moves (census-first; likely to drop), B CH188 sibling birth. Provisional k <= 4, fixed
   by counts-only censuses; proposed window 2026-11-16 .. 12-07. All on streams the host already captures (no new
   collector). Challenger R1 (science-reviewer) running.
+- (~16:00Z) **LT6 challenger R1: REVISE** (V, K, D ACCEPT_WITH_CHANGES; B REVISE; review on the branch,
+  `reviews/LT6_CHALLENGER_R1_2026-10-21.md`, bfa5dcf0). 12 required: few-treated-cluster event t for D/B; B
+  volatility size scenario, control-class contamination, crypto exclusion; VIF in K/D/B MDE gates; V depletion
+  asymmetry gate and the E022 boundary keyed to E022's own END_UTC; CB18 must not show D's end-date class before the
+  pin; LT5 seal dependency plus minimum covered days; look-back timing; memory plan from LT3's 534 MB; K's train
+  algorithm. Response being written on the branch.
