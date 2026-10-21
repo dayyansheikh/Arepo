@@ -16,6 +16,10 @@ restrict training to captures that have the family (``train.require_sources``).
 
 from __future__ import annotations
 
+import json
+import math
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 
@@ -118,10 +122,92 @@ def event_features(rows: pd.DataFrame, f: pd.DataFrame, prev_mid: pd.Series | No
     return out.astype(np.float32)
 
 
+# ---------------------------------------------------------------------------------------------- rewards family
+# Liquidity-reward programme of each market from the same capture's Gamma sidecar (`rows_ext.csv.gz`): CLOB reward
+# settings and active daily rates. Embargo token `rewards` until 2026-11-18 (E020 draft uses the reward flag, LT4).
+REWARDS_COLUMNS = ["rw_has", "rw_log_rate", "rw_max_spread", "rw_log_min_size", "rw_in_band", "rw_new"]
+
+
+def _reward_rate(js, day: str) -> tuple[float, float]:
+    """(sum of active daily rates, 1 if a programme started within 2 days of ``day``) from a clob_rewards JSON."""
+    if not isinstance(js, str) or not js.startswith("["):
+        return math.nan, math.nan
+    try:
+        items = json.loads(js)
+    except ValueError:
+        return math.nan, math.nan
+    rate, new = 0.0, 0.0
+    d0 = pd.Timestamp(day)
+    for it in items if isinstance(items, list) else []:
+        try:
+            st, en = str(it.get("startDate") or "0000-01-01"), str(it.get("endDate") or "9999-12-31")
+            if st <= day <= en:
+                rate += float(it.get("rewardsDailyRate") or 0.0)
+                if (d0 - pd.Timestamp(st)).days <= 2:
+                    new = 1.0
+        except (TypeError, ValueError, AttributeError):
+            continue
+    return rate, new
+
+
+def rewards_features(ext: pd.DataFrame | None, f: pd.DataFrame, cap_start: float) -> pd.DataFrame:
+    """Per eligible market: has an active reward programme, log daily rate, max spread (cents), log min size, current
+    spread inside the reward band, programme started in the last 2 days. NaN when the sidecar lacks the market."""
+    n = len(f)
+    out = pd.DataFrame({c: np.full(n, np.nan, np.float32) for c in REWARDS_COLUMNS})
+    if ext is None or n == 0:
+        return out
+    e = ext.reindex(f["market_id"].to_numpy(np.int64))
+    day = pd.Timestamp(cap_start, unit="s", tz="UTC").strftime("%Y-%m-%d")
+    present = e["rewards_max_spread"].notna().to_numpy() if "rewards_max_spread" in e else np.zeros(n, bool)
+    rr = [_reward_rate(v, day) if ok else (math.nan, math.nan)
+          for v, ok in zip(e.get("clob_rewards", pd.Series([None] * n)).to_numpy(), present, strict=True)]
+    rate = np.array([r[0] for r in rr], float)
+    rate = np.where(present & np.isnan(rate), 0.0, rate)  # sidecar row present, no programme listed: rate 0
+    new = np.array([r[1] for r in rr], float)
+    new = np.where(present & np.isnan(new), 0.0, new)
+    ms = pd.to_numeric(e["rewards_max_spread"], errors="coerce").to_numpy(float)
+    mn = pd.to_numeric(e["rewards_min_size"], errors="coerce").to_numpy(float)
+    spread_c = f["ms_spread"].to_numpy(float) * 100.0 if "ms_spread" in f else np.full(n, np.nan)
+    with np.errstate(invalid="ignore"):
+        out["rw_has"] = np.where(present, (rate > 0).astype(float), np.nan)
+        out["rw_log_rate"] = np.where(present, np.log1p(np.clip(rate, 0, None)), np.nan)
+        out["rw_max_spread"] = np.where(present, ms, np.nan)
+        out["rw_log_min_size"] = np.where(present, np.log1p(np.clip(mn, 0, None)), np.nan)
+        out["rw_in_band"] = np.where(present & (rate > 0) & np.isfinite(spread_c) & np.isfinite(ms),
+                                     (spread_c <= ms).astype(float), np.where(present, 0.0, np.nan))
+        out["rw_new"] = np.where(present, new, np.nan)
+    return out.astype(np.float32)
+
+
+REWARD_EXT_COLS = ["market_id", "rewards_min_size", "rewards_max_spread", "clob_rewards"]
+
+
+def read_reward_ext(cap_dir) -> pd.DataFrame | None:
+    p = Path(cap_dir) / "rows_ext.csv.gz"
+    if not p.exists():
+        return None
+    import pyarrow as pa
+    import pyarrow.csv as pacsv
+
+    types = {"market_id": pa.int64(), "rewards_min_size": pa.float64(), "rewards_max_spread": pa.float64(),
+             "clob_rewards": pa.string()}
+    try:
+        t = pacsv.read_csv(p, convert_options=pacsv.ConvertOptions(include_columns=REWARD_EXT_COLS, column_types=types))
+    except (pa.ArrowInvalid, KeyError):
+        return None  # an older sidecar without the reward columns: the family is missing for this capture
+    return t.to_pandas().drop_duplicates("market_id").set_index("market_id")
+
+
 # ---------------------------------------------------------------------------------------------- registry
+# A builder takes a context dict: rows (snapshot rows), f (features key columns + ms_mid, ms_spread), prev_mid
+# (previous slot's mids or None), cap_dir, cap_start.
 
 AUX_FAMILIES: dict[str, dict] = {
-    "event": {"version": "se-aux-event-v1", "columns": EVENT_COLUMNS, "builder": event_features},
+    "event": {"version": "se-aux-event-v1", "columns": EVENT_COLUMNS,
+              "builder": lambda ctx: event_features(ctx["rows"], ctx["f"], ctx["prev_mid"])},
+    "rewards": {"version": "se-aux-rewards-v1", "columns": REWARDS_COLUMNS,
+                "builder": lambda ctx: rewards_features(read_reward_ext(ctx["cap_dir"]), ctx["f"], ctx["cap_start"])},
 }
 AUX_COLUMNS: dict[str, list[str]] = {k: v["columns"] for k, v in AUX_FAMILIES.items()}
 AUX_ALL: list[str] = [c for cols in AUX_COLUMNS.values() for c in cols]
@@ -139,14 +225,15 @@ def build_aux(paths: S.Paths, family: str, meta: dict, cap_dir, index: dict | No
     if out_p.exists() or not (cap_dir / "rows.csv.gz").exists():
         return None
     fp = paths.features(cid)
-    f = S.read_parquet(fp, KEY_COLUMNS + ["ms_mid"])
+    f = S.read_parquet(fp, KEY_COLUMNS + ["ms_mid", "ms_spread"])
     rows = read_rows(cap_dir)
     spec = AUX_FAMILIES[family]
     prev = (index or {}).get(meta["slot"] - 1)
     prev_mid = None
     if prev is not None and paths.quotes(prev["capture_id"]).exists():
         prev_mid = mid_series(S.read_parquet(paths.quotes(prev["capture_id"]), ["market_id", "bid", "ask", "st"]))
-    a = spec["builder"](rows, f, prev_mid)
+    a = spec["builder"]({"rows": rows, "f": f, "prev_mid": prev_mid, "cap_dir": cap_dir,
+                         "cap_start": S.epoch(meta["started_utc"])})
     tab = pd.concat([f[["market_id"]].reset_index(drop=True), a.reset_index(drop=True)], axis=1)
     md = {"capture_id": cid, "slot": meta["slot"], "aux_family": family, "aux_version": spec["version"],
           "features_sha256": S.sha256_file(fp), "rows_sha256": S.sha256_file(cap_dir / "rows.csv.gz"),
