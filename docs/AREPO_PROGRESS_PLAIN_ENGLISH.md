@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-21 20:15 UTC+1
+**Last updated:** 2026-10-21 20:44 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -13,8 +13,10 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
     pre-set counting check.
   - E020 (new orders versus cancellations) and E021 (how recent the last trade was) failed theirs: too few usable
     cases, and too little power to see a half-cent effect. They are dropped before registration and do not count.
-  - Next: a small code tidy-up for the one remaining test, an independent freeze check, a size check on the server
-    (5-9 hours), then registration before 25 Oct so collection can start on 26 Oct.
+  - Done tonight: the code was trimmed to the one remaining test, an independent freeze check found one real problem
+    (the size check shuffled data differently from the real test) which is now fixed, and the code is frozen.
+  - Next: the size check runs on the server from about 05:00 UTC+1 on 22 Oct (2-4 hours), then registration
+    before 25 Oct so collection can start on 26 Oct.
 - **Three batch checks failed their population gates (recorded, nulls included):** batch 13-R (too few complete
   frames and events), batch 14-W (58 markets where 150 were needed) and batch 15-P (37 pairs where 60 were needed).
   Batch 14-W and 15-P count 2 tests each as "not testable"; 13-R will count 1 when its last job writes it.

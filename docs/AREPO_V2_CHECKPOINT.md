@@ -247,7 +247,7 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-21 19:15Z
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-21 19:55Z
 Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && git log --oneline -1'` = local tip.
 
 **Tonight (time-critical, in order):**
@@ -272,14 +272,16 @@ Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && gi
    (exclusive, mem_mb 6000, as_cap_mb 14000) to `queue/jobs/` and deploy.
 
 **LT4 → E022 registration (deadline: registration commit by 2026-10-25T00:00Z, window 10-26..11-16):**
-censuses done 2026-10-21 (ledger "Finished-job write-ups"): k_tests = [E022]; E020/E021 dropped uncounted; spec filled
-(17ed89c6, unpinned). Steps: (a) pre-pin code fixes (analysis/size check over k_tests only; implementer running
-19:20Z, section 18 of LIVE_TESTS_4.md); (b) science-reviewer freeze check, incl. rulings on the residual-IQR reading
-of the section 8 `h` gate and the non-evaluable `both` depth branch; record the code freeze and that LT4 continues on
-`chore/arepo-claude-setup` (contains LT3's registration 2580c58a; section 16 finding 1); (c) deploy, promote q0484
-(size check, one run, 5-9 h, no rerun); (d) host dry run with memory measured; (e) registration commit (SPEC_SHA256 +
-module hashes, ledger, registry, q0486), install the reader cron `10-59/20` before 10-26T00Z (q0485 fallback, never
-both). Then LT6 (V's pin must precede T_E022).
+k_tests = [E022] (E020/E021 dropped at census, uncounted). Done 2026-10-21: pre-pin code (44a7e938), freeze check
+FREEZE_OK_WITH_FIXES and fixes (0e8bbe13), **freeze record** (`LIVE_TESTS_4.md` section 19, 7a245895; spec sha
+99899392… pre-pin; dry-run RSS 484-525 MB; cron route with `ulimit -v 1572864`). **q0484 size check queued**
+(not_before 10-22T04:00Z, priority 97, ~2-4 h). Next: (a) when q0484 is done, record both rates in section 19; any
+failing scenario blocks the pin (no rerun/reseed/variant; one infra retry only); (b) registration commit: set
+`REGISTERED_UTC` 2026-10-26T00:00Z, `SPEC_SHA256` and the `code_sha256` map (must equal section 19 and q0484's
+output), ledger "E022 REGISTERED", registry, battery2/trials kind if needed, promote q0486 (analysis, not before
+11-17T12Z); (c) install the host cron `10-59/20 * * * *` reader (flock, nice 19, oom_score_adj 1000, ulimit -v 1572864)
+before 10-26T00Z; never also q0485. Then LT6 (V's pin must precede T_E022).
+**Do NOT promote MC1 q0116f ahead of q0484** (q0484 has priority 97 > 95; both exclusive-ish: check).
 
 **Blocked on the owner (dashboard approval 8):** q0404 CB17 smoke refuses because q0413's restore tree (925 MB) sits in
 `creative_batch17/` (frozen 0.3 GB total cap counts it). Needs the tree moved out of `creative_batch17/` (or cleared);
@@ -298,9 +300,9 @@ change request applied or "partially seen", a `battery2.KIND_RULES["live_tests6"
 - **LT3 E015** registered 2026-10-21 (2580c58a). Host cron `*/20`; remove it after 2026-11-15T06:00Z. q0475 after 11-15T12Z.
 
 **Queued and in progress:**
-- CB18 censuses q0502-q0506 (unblocked 19:00Z: `--disk-cap-gb` 0.25); then the routing record (`run_cb18.py routing`,
+- CB18 censuses: q0503 P and q0504 R done; q0505 F running; q0502 S retried after OOM (mem 600, as_cap 2400); q0506 pending; then the routing record (`run_cb18.py routing`,
   `seals/cb18_routing.json`, target 10-24T12Z). Later CB18 drafts are now q0590-q0599 (renumbered; ids clashed).
-- **CB13-R:** census done (gates fail) → q0282 (draft) writes R1 "not testable (basis)" after the R freeze entry (the v1 R1 count line of 10-19 stays: conservative double count, ledger 10-19 ~09:45Z).
+- **CB13-R:** census done (gates fail); R freeze entry committed; **q0282 queued** (writes R1 "not testable (basis)" after the R freeze entry (the v1 R1 count line of 10-19 stays: conservative double count, ledger 10-19 ~09:45Z).
 - CB14-W GWC FAIL and CB15-P GPB FAIL recorded (counted 2 each); their later drafts (q0306-q0309, q0349-q0354) are moot.
 - CB16-K q0383 (exclusive, not before 10-22T06Z). CB17 q0404 blocked (above), then q0405.
 
