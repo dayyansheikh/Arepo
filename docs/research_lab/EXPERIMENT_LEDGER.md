@@ -3330,13 +3330,13 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   `live_tests4_v1.json` (design 13.4); `LIVE_TESTS_4.md` section 17. Nothing counted, nothing registered. Open for the
   freeze check: the raw-`h` IQR gate of section 8 was evaluated as the residual-IQR gate (the R1/R2 wording), and the
   `both` depth branch is not evaluable. Registration must be committed by 2026-10-25T00:00Z for the 10-26 window.
-- (~19:45Z) **CB13-R freeze entry and q0282 promoted** (6d441a9f, deployed). Narrow code-against-design check
+- (~19:25Z) **CB13-R freeze entry and q0282 promoted** (6d441a9f, deployed). Narrow code-against-design check
   (science-reviewer): FREEZE_OK_WITH_FIXES; the fixes were entry content and draft notes only (gate-fail order basis >
   frame > population/parser > GRP as sealed in `screen_r` on 10-19, before the census; the declared R1 double count;
   census `drops.share` 1.16 reporting defect disclosed, sealed code unchanged). Host checks: smoke_R_v2 and pregate_R
   pass, no results_R.json yet, census_R.json sha256 71483779…. q0282 writes R1 "not testable (basis)", p = 1, counted 1,
   and opens no outcome. q0283 (rep) moot.
-- (~19:50Z) **LT4 pre-pin code changes** (44a7e938; `LIVE_TESTS_4.md` section 18): analysis, reader and size check
+- (~19:28Z) **LT4 pre-pin code changes** (44a7e938; `LIVE_TESTS_4.md` section 18): analysis, reader and size check
   restricted to `k_tests` = [E022] (Holm m = 1; reader writes only E022's hollow lines; E022 line format unchanged);
   the size check runs only E022's two continuous scenarios (est. 2-4 h). 72 LT3/LT4 tests pass; LT3 module hashes
   unchanged. Code freeze check (science-reviewer) running. Nothing counted.
@@ -3359,3 +3359,15 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - Reviewer note for the promotion rule (not applied): the event-clustered CI ignores shocks common to all events
   within a capture. Criterion 3 (daily gains positive on >= 2/3 of days) partly covers it. A capture- or day-clustered
   reading would be a new rule version (`se-promotion-v2`), declared before any challenger is near promotion.
+- (~19:30Z) **LT4 code freeze check (science-reviewer): FREEZE_OK_WITH_FIXES.** Rulings: the residual-IQR gate is the
+  declared replacement of section 8's raw-`h` IQR gate (spec commit 708949c3, 2026-10-20, about 22 h before CH ran; the
+  raw gate must not be computed now); `token0` by the declared fallback (`both` all NaN: sweeps hold one token per
+  market); seed 20261107 kept with the shorter scenario stream; MA(2) dropped with E021; section 16 finding 1 met
+  (2580c58a is an ancestor; LT3 normalised hashes equal its pins). Required: (1, high) the size check permuted within
+  market-day while E022's registered gate uses `block2`: worlds get a two-day block and the size check uses the spec's
+  stratum; (2) host reader dry run with peak RSS; (3) stale text in spec / drafts / sections 0 and 15.3; (4) one install
+  route; (5) disclose the MA(1)-type overlap of consecutive-pass `c_sw` targets. Orchestrator check: spec values (zh
+  centre 0.72504 / scale 0.31414, h cuts 0.72963 / 0.93441, gap 1.98319, token0, block2, exclude "") equal CQCH.json
+  (sha256 2c9e2a9e… verified on the host; CF.json 55f01ced… verified). Fixes being applied. Nothing counted.
+- (~19:33Z, ops) q0502 CB18 census S died "out of memory" in the pandas tokenizer under the 2 x 380 MB address cap:
+  mem_mb 600, as_cap_mb 2400, retried (resource only). q0503 (P) and q0504 (R map) done; q0505 (F) running.
