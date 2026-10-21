@@ -250,11 +250,9 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 ## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-21 09:05Z
 0. **Autopilot session from 08:43Z 10-21.**
    - **Deploy only from `chore/arepo-claude-setup`**; check `ssh oracle 'cd ~/arepo && git log --oneline -1'` = local tip.
-   - **LT3 = E015 only, k = 1.** Host dry run (§13.4) DONE and recorded (§13.17, ledger; peak RSS 534 MB, max wall 13 min).
-     **q0475_lt3_size_check_r3** running (ETA ~10:40Z): its `perm_iid/perm_persistent/perm_corr_control` must equal
-     q0474's (`live_tests3_census/size_check_r2.json`) exactly (§13.15); any difference = investigate. Then a
-     science-reviewer freeze check, pins (`code_sha256` map, `SPEC_SHA256`), ledger registration commit **before
-     2026-10-23T00:00Z**, install the §13.4 cron (never also the fallback job q0474_lt3_live_collect draft).
+   - **LT3 (E015) REGISTERED** 2026-10-21 ~11:35Z (2580c58a; SPEC_SHA256 72a174eb…; q0475 size check byte-identical to
+     q0474). Host cron `*/20` installed (crontab backup `~/crontab.bak.*`); remove after 2026-11-15T06:00Z. Window
+     10-24..11-14; q0475_lt3_analyze queued (not before 11-15T12Z). No interim looks.
    - **MC1:** q0116e OOM-killed 07:10Z (4.93 GB). Not retried on this host; waits for the second instance or an
      owner-approved free resize (dashboard approval 7).
    - **LT5 (TIME-CRITICAL TONIGHT):** code merged (5c441957). q0560 restore and q0564 seal (not before 23:20Z) queued.
