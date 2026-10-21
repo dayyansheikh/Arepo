@@ -313,6 +313,17 @@ quotes and features files of capture k and of slot k - 1, so the tolerances are 
   - `mt_x_traded` and `mt_x_parallel`: move x class.
 - Only a LightGBM challenger is added (§18 rule), with se1's params. Read it against se1.
 - Refit cost: about +9-10 min on 1 OCPU. Per-capture build: under 2 s (4 small parquet reads).
+- Differences from E015 (recorded 2026-10-21 ~14:15Z, before any fit read the tables):
+  - A missing `volume24hr` (with the last trade unchanged) leaves every class indicator NaN (undecided). E015 calls
+    it `ambiguous`. Neither counts it as quote-only.
+  - A last trade price of 0 is read as present. E015 reads ltp <= 0 as absent. 0 of 49,569 rows had ltp 0 on
+    10-21 12:31Z.
+- Host coverage (10-21 12:31Z capture, 49,569 eligible):
+  - Gamma omits `last_trade_price` on 56% of rows and `volume24hr` on 78%.
+  - Hence `mt_never` covers 72% of markets; `mt_db` is defined for 92%.
+  - Among 2 h movers (|x| >= 0.01, 4,244), the shares are: traded 30%, ambiguous 4%, parallel 4.4%, one-sided 5.4%,
+    spread-change 1.5%. Counts only, no target read.
+- Backfill: 105 tables written on the host at 14:06Z in 40 s (`~/.arepo/signal_engine/aux_backfill_movetype.sh`).
 
 Embargo (event): token `event` until 2026-11-22 since 2026-10-21 (LT5 F draft; §8). Before that request: E005 (neg-risk band deviation) closed 2026-10-11 as not supported. E019 was dropped uncounted.
 SB2-J5 is development only. `ev_sib_*` resembles SB2-J5's L1 and `ev_norm_gap` resembles E005's band deviation, so
