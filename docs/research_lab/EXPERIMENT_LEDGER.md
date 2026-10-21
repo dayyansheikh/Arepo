@@ -3404,3 +3404,17 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   shift / interval / trailing-tercile / B no-mark / strata-selection fixtures, **exact reproduction of probes P1-P3**;
   pass by family B, C, E). Ruling 6 (ii) met: the CB17 code freeze is accepted. Not counted (descriptive line).
   **q0405 promoted** with `--base-sha256 56dc953e…` copied verbatim from q0380's write-once manifest (O12 ruling).
+- (~20:28Z) **q0405 CB17 exclusion keys: done** (attempt 2 after mem 300 -> 1200): universe 568,117 ids, 0 drop keys
+  (no overlap with CB16's key set 56dc953e…). Not counted. CB17 window jobs wait for S_8 (10-26T00Z) and their dates.
+- (~20:30Z) **LT6 code freeze check (science-reviewer): FREEZE_READY_WITH_FIXES for the census code, NOT_READY for
+  registration.** Verified: 137 tests; no reused/frozen module modified on the branch; V/K/D/B/crypto/washout/T_E022
+  definitions match the design; census causality and sealing. Required before the censuses: (1, high) `load_rows6` reads
+  `end_date` as category, which crashes `panel._epoch` on pandas 2.3.3 (the host's version) for captures of >= 50 rows;
+  (2) B admitted unknown-end incumbents; (3) NaN treated as "changed"; (4) LT5 seal pin check, CK per-market sums, two
+  undeclared counted exclusions to declare. Before q0584: (5, high) the size check permutes within market-day while the
+  gates use the census-fixed `perm_stratum` (LT4's bug repeated). Before registration: size-check result not passed to
+  the analysis; K placebo P1 / S3 never frozen (trade samples rotate in ~3 days); analysis still a skeleton; E022
+  safeguards fail open; reader memory unmeasured. Implementer applying on feat/live-tests-6. Nothing counted.
+- (~20:31Z, safety check prompted by item 1) **LT3's registered reader works on real captures:** host dry run into a
+  scratch root (captures 10-21 16:31Z/18:31Z, `--max-items 2`, cron's `ulimit -v 983040`): series written, peak RSS
+  464 MB, exit 0; scratch deleted. Its live log shows only "nothing_new" so far (window opens 10-24).
