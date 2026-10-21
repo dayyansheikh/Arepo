@@ -835,17 +835,19 @@ def _utc_day(t: float) -> str:
 # --- D units -------------------------------------------------------------------------------------------------------------
 
 
-def deadline_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, ser_12: pd.DataFrame | None, k: int, cap: dict, spec: dict) -> tuple[pd.DataFrame, dict]:
+def deadline_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, ser_12: pd.DataFrame | None, k: int, cap: dict, spec: dict,
+                   arm: str = "main") -> tuple[pd.DataFrame, dict]:
     """D's units at capture ``k`` (section 4): non-sports markets passing 1.4 items 1-3, 6, 7 at k - 1 and k with ``mid_k`` in
     [0.05, 0.95] whose OLD end date (k - 1) is on a by-date clock time, as-of NEW end more than 27 h after ``t_k``. Classes from
     :func:`end_change_class`. ``no_change`` units are kept only for by-date markets; changed units are kept whether or not by-date
     (the crypto / roll-over kill line counts every later-direction non-sports interior move; P1's placebo is the non-bydate
     arm). ``lookback_missing`` (no capture or no row at k - 12) leaves ``d24`` NaN. Uses captures k - 12, k - 1, k only."""
     d = spec["d"]
-    j, cnt = b.move_join(ser_k, ser_p, cap, spec, d["mid_lo"], d["mid_hi"], -1e9)
+    ap = arm_params(arm, "D", spec)
+    j, cnt = b.move_join(ser_k, ser_p, cap, spec, ap["lo"], ap["hi"], -1e9)
     cnt["sports_unknown"] = int((j["sports"] == -1).sum())
     cnt["sports"] = int((j["sports"] == 1).sum())
-    j = j[j["sports"] == 0].copy()
+    j = _arm_post(j[j["sports"] == ap["sports"]].copy(), ap["post"])
     mk = j["market_id"].astype(str)
     old = ser_p["end_raw"].reindex(mk).to_numpy(dtype=object)
     new = j["end_raw"].to_numpy(dtype=object)
@@ -904,6 +906,7 @@ def deadline_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, ser_12: pd.DataFram
     cnt["updated_at_missing"] = int(u["updated_changed"].isna().sum())
     u["old_end_days"] = [(parsed_old[str(o)].timestamp() - tk) / DAY_S if parsed_old[str(o)] else np.nan
                          for o, tk in zip(ser_p["end_raw"].reindex(um).to_numpy(dtype=object), u["t_row"].to_numpy(float), strict=False)]
+    u["arm"] = arm
     return u, cnt
 
 
@@ -928,7 +931,7 @@ def apply_washout(U: pd.DataFrame, class0: str, label_classes: tuple[str, ...], 
 
 
 def birth_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, mem_k: pd.DataFrame, mem_p: pd.DataFrame, ser_hist: dict[int, pd.DataFrame | None],
-                k: int, cap: dict, cap_prev: dict, spec: dict) -> tuple[pd.DataFrame, dict, pd.DataFrame]:
+                k: int, cap: dict, cap_prev: dict, spec: dict, arm: str = "main") -> tuple[pd.DataFrame, dict, pd.DataFrame]:
     """B's incumbent units at capture ``k`` and the table of newcomer kinds (section 5). A newcomer is a market in capture k and
     not in k - 1 (any status), with ``created_at`` in ``[t_{k-1}, t_k)`` where the bounds are the START times of captures k - 1 and
     k (stricter than a row receipt). The event is existing if k - 1 holds >= 2 markets with that ``event_id``; recurring if the
@@ -949,13 +952,14 @@ def birth_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, mem_k: pd.DataFrame, m
                   for c, mp, hs, es in zip(nk["created_ts"], nk["members_prev"], nk["has_slug"], nk["event_slug_prev"], strict=False)]
     cnt["newcomers"] = len(nk)
     cnt["newcomer_kinds"] = {str(a): int(c) for a, c in nk["kind"].value_counts().items()}
-    j, c0 = b.move_join(ser_k, ser_p, cap, spec, bcfg["mid_lo"], bcfg["mid_hi"], bcfg["end_margin_h"])
+    ap = arm_params(arm, "B", spec)
+    j, c0 = b.move_join(ser_k, ser_p, cap, spec, ap["lo"], ap["hi"], bcfg["end_margin_h"])
     cnt.update({f"join_{a}": v for a, v in c0.items()})
     # 1.4/1.5: B requires a KNOWN as-of end > t_k + 27 h; the unknown-end indicator is allowed only for V and K (counted exclusion)
     unk_end = j["end_ts"].isna().to_numpy()
     cnt["unknown_end_excluded"] = int(unk_end.sum())
     j = j[~unk_end].copy()
-    j = j[(j["sports"] == 0)].copy()
+    j = _arm_post(j[(j["sports"] == ap["sports"])].copy(), ap["post"])
     j["members_prev"] = j["event_id"].map(n_prev).fillna(0).astype(int)
     j = j[j["members_prev"] >= bcfg["min_members_prev"]].copy()
     cnt["multi_member"] = len(j)
@@ -991,26 +995,64 @@ def birth_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, mem_k: pd.DataFrame, m
         cr = nk[nk["kind"] == "birth"].groupby("event_id")["crypto6"].apply(list).to_dict()
         j.loc[j["cls"] == "birth", "crypto_birth"] = [("unknown" if "unknown" in cr.get(e, []) else ("crypto" if "crypto" in cr.get(e, []) else "non_crypto"))
                                                       for e in j.loc[j["cls"] == "birth", "event_id"]]
+    j["arm"] = arm
     return j, cnt, nk
+
+
+# --- reported arms (design: V S3, D P2 and S5, B S1 and S5) ---------------------------------------------------------------------
+#
+# The reader freezes, besides each test's primary population (arm ``main``), the reported arms whose units cannot be recovered later
+# (the capture frames rotate off): ``sports`` (V S3, D S5, B S5: the same definitions on sports markets), ``decided`` (D P2: later moves on
+# markets with ``mid_k`` > 0.97 or < 0.03) and ``tail`` (B S1: neg-risk incumbents with ``mid_k`` in [0.02, 0.10)). Each arm is a separate
+# pass of the same builder with its own population filter, labelled in the ``arm`` column; the primary analysis and the censuses read
+# ``arm == "main"`` only. Arms never change a verdict.
+ARMS = {"V": ("main", "sports"), "D": ("main", "sports", "decided"), "B": ("main", "sports", "tail")}
+
+
+def arm_params(arm: str, test: str, spec: dict) -> dict:
+    """The population filter of one arm: ``sports`` (the market flag wanted), ``lo`` / ``hi`` (the ``move_join`` mid band, inclusive) and
+    ``post`` (an extra mid / neg-risk filter on the joined rows). Constants from ``spec["arms"]`` (design text values)."""
+    if arm not in ARMS[test]:
+        raise ValueError(f"arm {arm!r} is not defined for {test}")
+    a = spec["arms"]
+    base = spec["move"] if test == "V" else spec[test.lower()]
+    lo, hi = base["mid_lo"], base["mid_hi"]
+    if arm == "decided":
+        return {"sports": 0, "lo": 0.0, "hi": 1.0, "post": ("decided", a["d_decided_lo"], a["d_decided_hi"])}
+    if arm == "tail":
+        return {"sports": 0, "lo": a["b_tail_lo"], "hi": a["b_tail_hi"], "post": ("tail", a["b_tail_lo"], a["b_tail_hi"])}
+    return {"sports": 1 if arm == "sports" else 0, "lo": lo, "hi": hi, "post": None}
+
+
+def _arm_post(j: pd.DataFrame, post, mid_col: str = "mid") -> pd.DataFrame:
+    """Apply an arm's extra filter (``decided``: mid < lo or > hi; ``tail``: neg-risk with lo <= mid < hi)."""
+    if post is None:
+        return j
+    mid = (j["bid"] + j["ask"]) / 2.0
+    if post[0] == "decided":
+        return j[(mid < post[1]) | (mid > post[2])].copy()
+    return j[(j["neg_risk"] == 1) & (mid >= post[1] - 1e-12) & (mid < post[2] - 1e-12)].copy()
 
 
 # --- V units -------------------------------------------------------------------------------------------------------------
 
 
-def vote_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, sw_k: pd.DataFrame | None, sw_p: pd.DataFrame | None, cap: dict, spec: dict) -> tuple[pd.DataFrame, dict]:
+def vote_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, sw_k: pd.DataFrame | None, sw_p: pd.DataFrame | None, cap: dict, spec: dict,
+               arm: str = "main") -> tuple[pd.DataFrame, dict]:
     """V's units of one pass (section 2): non-sports traded or quote-only movers at k (1.4 with ``|x| >= 0.01``) with sweep 1 of
     BOTH pass k - 1 and pass k two-sided on the outcome-0 token, tight (<= 0.10), both 5c depths present, ``D0 > 0`` at both and
     Gamma ``liquidity_k > 0``. ``sw_*`` are :func:`live_tests5_base.sweep_frame` outputs indexed by market_id (None = no sweep: ``.nosweep``
     / ``.noprevsweep`` counted). Origin-side only: no sweep after pass k is read."""
     v = spec["v"]
-    j, cnt = b.move_join(ser_k, ser_p, cap, spec, spec["move"]["mid_lo"], spec["move"]["mid_hi"], spec["move"]["end_margin_h"])
+    ap = arm_params(arm, "V", spec)
+    j, cnt = b.move_join(ser_k, ser_p, cap, spec, ap["lo"], ap["hi"], spec["move"]["end_margin_h"])
     j["x"] = (j["bid"] + j["ask"]) / 2.0 - (j["bid_p"] + j["ask_p"]) / 2.0
     j = j[np.abs(j["x"]) >= v["min_abs_x"] - 1e-12]
     cls, geom = b.classify(j["bid_p"], j["ask_p"], j["bid"], j["ask"], j["ltp_p"], j["ltp"], j["vol24_p"], j["vol24"], spec)
     j = j.assign(cls=cls, geom=geom)
     cnt["sports_unknown"] = int((j["sports"] == -1).sum())
-    j = j[(j["sports"] == 0) & j["cls"].isin(["traded", "quote_only"])].copy()
-    cnt["non_sports_movers"] = len(j)
+    j = j[(j["sports"] == ap["sports"]) & j["cls"].isin(["traded", "quote_only"])].copy()
+    cnt["non_sports_movers"] = len(j)  # the arm's movers (non-sports for ``main``)
     if sw_k is None:
         cnt["nosweep"] = 1
         return pd.DataFrame(), cnt
@@ -1037,6 +1079,7 @@ def vote_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, sw_k: pd.DataFrame | No
     u = v_fields(u)
     u["day"] = _utc_day(cap["start"])
     u["slot"] = b.slot_of(cap["start"], spec)
+    u["arm"] = arm
     cnt["units"] = len(u)
     return u, cnt
 
@@ -1820,7 +1863,7 @@ TEST_OF_KIND = {"vote": "V", "clips": "K", "deadline": "D", "birth": "B"}
 # kind -> (Gamma-capture horizons h, sweep-1 horizons s) of the outcome files (slots k + h; section 1.3)
 OUTCOME_PLAN = {"vote": ([1, 3], [1, 3]), "clips": ([1, 3], [1, 3]), "deadline": ([1, 3, 12], []), "birth": ([1, 3, 12], [])}
 READER_FILES = ("live_tests6.py", "live_tests5.py", "live_tests5_base.py", "live_tests3.py")
-OPS_COLS = frozenset({"role", "cls", "class_k", "geom", "sports", "reason", "status", "late", "checked_utc", "noprev", "nosweep", "crypto6", "crypto_birth", "slot"})
+OPS_COLS = frozenset({"role", "cls", "class_k", "geom", "sports", "reason", "status", "late", "checked_utc", "noprev", "nosweep", "crypto6", "crypto_birth", "slot", "arm"})
 DROP_FROZEN = ("end_raw", "fee_cat", "osz", "present")
 
 
@@ -2025,6 +2068,22 @@ def _run_locked(*, snapshot_root, sample_root, sweep_root, root: Path, spec: dic
     return stats
 
 
+def _with_arms(test: str, build, spec: dict) -> tuple[pd.DataFrame, dict]:
+    """The frozen unit frame of one origin: the ``main`` arm's units and counts (exactly what the censuses count) plus the reported arms
+    (:data:`ARMS`), concatenated with their ``arm`` label; ``cnt["arm_units"]`` holds the per-arm unit counts. ``build(arm)`` returns
+    ``(units, counts)``."""
+    parts, cnt, n_by = [], {}, {}
+    for arm in ARMS[test]:
+        u, c = build(arm)
+        if arm == "main":
+            cnt = dict(c)
+        n_by[arm] = len(u)
+        if len(u):
+            parts.append(u)
+    cnt["arm_units"] = n_by
+    return (pd.concat(parts, ignore_index=True) if parts else pd.DataFrame()), cnt
+
+
 def _freezes(root, by_slot, samples, sweeps, spec, t_reg, t_end, now, budget, allow_late, pinned, registered_utc, end_utc, commit, kinds, stats, log) -> int:
     e022_end = (spec.get("e022") or {}).get("end_utc")
     # a DRAFT (unpinned) spec has no E022 decision yet: dry runs (the 8.2 ladder, tests) keep the old permissive behaviour; a pinned one never does
@@ -2067,12 +2126,14 @@ def _freezes(root, by_slot, samples, sweeps, spec, t_reg, t_end, now, budget, al
                 if not v_first_origin_ok(iso(pc["start"]), iso(sw_start), e022_end, e022_dropped):
                     _refuse(p, ".e022boundary.csv.gz", now, stats, log, kind, c["id"], k, "e022_boundary")
                     continue
-                units, cnt = vote_units(ser_k, ser_p, l3.read_sweep(root, c["id"]), l3.read_sweep(root, pc["id"]), c, spec)
+                sw_k_, sw_p_ = l3.read_sweep(root, c["id"]), l3.read_sweep(root, pc["id"])
+                units, cnt = _with_arms("V", lambda a_: vote_units(ser_k, ser_p, sw_k_, sw_p_, c, spec, arm=a_), spec)
             elif kind == "deadline":
-                units, cnt = deadline_units(ser_k, ser_p, _ser(root, by_slot, k - 12), k, c, spec)
+                ser_12 = _ser(root, by_slot, k - 12)
+                units, cnt = _with_arms("D", lambda a_: deadline_units(ser_k, ser_p, ser_12, k, c, spec, arm=a_), spec)
             else:
-                units, cnt, _ = birth_units(ser_k, ser_p, _mem(root, by_slot, k), _mem(root, by_slot, k - 1),
-                                            {j: _ser(root, by_slot, j) for j in (k - 3, k - 12)}, k, c, pc, spec)
+                mem_k_, mem_p_, hist_ = _mem(root, by_slot, k), _mem(root, by_slot, k - 1), {j: _ser(root, by_slot, j) for j in (k - 3, k - 12)}
+                units, cnt = _with_arms("B", lambda a_: birth_units(ser_k, ser_p, mem_k_, mem_p_, hist_, k, c, pc, spec, arm=a_)[:2], spec)
             if len(units):
                 units = units.assign(capture_id=c["id"], k_slot=k)
             fr = _stamp(units, spec, commit, role, c["start"]) if len(units) else pd.DataFrame(

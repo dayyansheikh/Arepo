@@ -757,3 +757,53 @@ def test_v_anatomy_is_one_categorical_with_same_side_unequal_as_base():
     assert (d.sum(axis=1) <= 1).all()  # mutually exclusive: one categorical, not overlapping dummies
     assert d.iloc[0].tolist() == [1, 0, 0, 0] and d.iloc[1].tolist() == [1, 0, 0, 0]  # traded wins over its geometry
     assert d.iloc[5].tolist() == [0, 0, 0, 0] and d.iloc[2].tolist() == [0, 1, 0, 0]  # quote-only same-side-unequal is the base
+
+
+def test_reported_arms_are_built_beside_main_and_main_is_unchanged(frames):
+    """Freeze-check fix (HIGH): V S3 / D S5 / B S5 sports arms, D P2 decided arm and B S1 tail arm are frozen by the reader as separate
+    passes labelled ``arm``; the main arm (what the censuses count) is identical with or without arms."""
+    f = frames
+    spec = f["spec"]
+    # V sports arm
+    k = 20
+    c = f["by_slot"][k]
+    ser_k, _ = _fr(f, k)
+    ser_p, _ = _fr(f, k - 1)
+    sw = lambda kk: b.sweep_frame(f["sweeps"][f["by_slot"][kk]["id"]]["dir"], f["by_slot"][kk]["dir"]).set_index("market_id")  # noqa: E731
+    um, _ = lt.vote_units(ser_k, ser_p, sw(k), sw(k - 1), c, spec)
+    us, cs = lt.vote_units(ser_k, ser_p, sw(k), sw(k - 1), c, spec, arm="sports")
+    assert len(us) > 0 and (us["sports"] == 1).all() and (us["arm"] == "sports").all() and (um["arm"] == "main").all()
+    assert not set(us["market_id"]) & set(um["market_id"])
+    allu, cnt = lt._with_arms("V", lambda a_: lt.vote_units(ser_k, ser_p, sw(k), sw(k - 1), c, spec, arm=a_), spec)
+    assert cnt["arm_units"] == {"main": len(um), "sports": len(us)} and len(allu) == len(um) + len(us)
+    pd.testing.assert_frame_equal(allu[allu["arm"] == "main"].reset_index(drop=True), um)
+    # D: sports arm and the decided arm (mid_k < 0.03 or > 0.97)
+    kd = 15
+    sk, _ = _fr(f, kd)
+    sp, _ = _fr(f, kd - 1)
+    s12 = _fr(f, kd - 12)[0]
+    dm, _ = lt.deadline_units(sk, sp, s12, kd, f["by_slot"][kd], spec)
+    sk2, sp2 = sk.copy(), sp.copy()
+    for fr_ in (sk2, sp2):  # market 101 changes its end date at k = 15; make it a decided market in both captures
+        fr_.loc["101", ["bid", "ask", "spread"]] = [0.985, 0.995, 0.01]
+    dmain, _ = lt.deadline_units(sk2, sp2, s12, kd, f["by_slot"][kd], spec)
+    ddec, _ = lt.deadline_units(sk2, sp2, s12, kd, f["by_slot"][kd], spec, arm="decided")
+    assert "101" in set(dm["market_id"]) and "101" not in set(dmain["market_id"])
+    assert set(ddec["market_id"]) == {"101"} and (ddec["arm"] == "decided").all() and ddec["cls"].tolist() == ["later"]
+    dsp, _ = lt.deadline_units(sk, sp, s12, kd, f["by_slot"][kd], spec, arm="sports")
+    assert (dsp["sports"] == 1).all() and (dsp["arm"] == "sports").all() if len(dsp) else True
+    # B: the tail arm (neg-risk incumbents with mid_k in [0.02, 0.10)); main excludes mid < 0.05
+    kb = 20
+    sk, mk_ = _fr(f, kb)
+    sp, mp_ = _fr(f, kb - 1)
+    hist = {kb - 3: _fr(f, kb - 3)[0], kb - 12: _fr(f, kb - 12)[0]}
+    sk3, sp3 = sk.copy(), sp.copy()
+    for fr_ in (sk3, sp3):
+        fr_.loc[["100", "101", "102"], ["bid", "ask", "spread", "neg_risk"]] = [0.02, 0.04, 0.02, 1]
+    args = (mk_, mp_, hist, kb, f["by_slot"][kb], f["by_slot"][kb - 1], spec)
+    bmain, _, _ = lt.birth_units(sk3, sp3, *args)
+    btail, _, _ = lt.birth_units(sk3, sp3, *args, arm="tail")
+    assert not {"100", "101", "102"} & set(bmain["market_id"])
+    assert set(btail["market_id"]) <= {"100", "101", "102"} and len(btail) > 0 and (btail["arm"] == "tail").all()
+    with pytest.raises(ValueError):
+        lt.arm_params("tail", "D", spec)

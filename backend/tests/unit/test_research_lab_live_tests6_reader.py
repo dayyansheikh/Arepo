@@ -381,3 +381,14 @@ def test_analyze_cli_trials_flag_appends_one_counted_line(tmp_path, monkeypatch)
     assert len(lines) == 1 and lines[0]["kind"] == "live_tests6" and lines[0]["n_tests"] == 1
     assert mod.main(["analyze", "--root", str(tmp_path), "--out", str(tmp_path / "r2.json")]) == 1  # never overwrites
     assert np.isfinite(1.0) and datetime.now(UTC)
+
+
+def test_reader_freezes_reported_arms_and_the_analysis_reads_main_only(world, ran):
+    root, ids = ran["root"], world["ids"]
+    v = _frozen(root, "vote", ids[20])
+    assert {"main", "sports"} <= set(v["arm"].astype(str)) and (v.loc[v["arm"] == "sports", "sports"] == 1).all() and (v.loc[v["arm"] == "main", "sports"] == 0).all()
+    for kind in ("deadline", "birth"):
+        assert (_frozen(root, kind, ids[20])["arm"].astype(str).isin(["main", "sports", "decided", "tail"])).all()
+    df, _ = la.load_kind(root, "vote", lt.epoch(REG), lt.epoch(END), (lt.ROLE_UNREG,), None, ("h1", "h3", "s1", "s3"))
+    fr, cnt = la.build_frame("V", df, root, _spec(), mask_late=False)
+    assert cnt["arm_lines_not_main"] > 0 and (fr["sports"] == 0).all()

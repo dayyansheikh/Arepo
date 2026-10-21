@@ -152,6 +152,13 @@
   "floors": {"birth_units": 1500, "events": 100, "days": 10},
   "rule": "section 5 as amended by R1 items 3-4 and the re-check: clean no-birth class; crypto is a census gate only"
  },
+ "arms": {
+  "d_decided_lo": 0.03,
+  "d_decided_hi": 0.97,
+  "b_tail_lo": 0.02,
+  "b_tail_hi": 0.10,
+  "rule": "reported arms frozen by the reader beside each primary population (section 16): sports (V S3, D S5, B S5), decided (D P2: mid_k < 0.03 or > 0.97), tail (B S1: neg-risk incumbents with mid_k in [0.02, 0.10)); primaries and censuses read arm == main"
+ },
  "seeds": {
   "V": 20261161,
   "K": 20261162,

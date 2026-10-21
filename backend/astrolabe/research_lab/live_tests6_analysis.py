@@ -611,7 +611,7 @@ def load_kind(root: Path, kind: str, start: float, end: float, roles: tuple[str,
             acc[p.name.split(".")[-3] + "_files"] += 1
             continue
         fr = pd.read_csv(p, dtype={"market_id": str, "event_id": str, "spec_sha": str, "code_sha": str, "skey": str, "crypto6": str, "crypto_birth": str,
-                                   "cls": str, "reason": str, "class_k": str, "geom": str}, float_precision="round_trip")
+                                   "cls": str, "reason": str, "class_k": str, "geom": str, "arm": str}, float_precision="round_trip")
         if not len(fr) or not (start <= float(fr["capture_t"].iloc[0]) < end):
             continue
         acc["files"] += 1
@@ -650,9 +650,13 @@ def label_slots(root: Path, kind: str, classes: tuple[str, ...]) -> dict[str, li
             if f.name.endswith(lt.MARKERS):
                 continue
             try:
-                s = pd.read_csv(f, usecols=["market_id", "slot", "cls"], dtype={"market_id": str, "cls": str})
+                s = pd.read_csv(f, usecols=lambda c_: c_ in ("market_id", "slot", "cls", "arm"), dtype={"market_id": str, "cls": str, "arm": str})
             except ValueError:
                 continue
+            if not {"market_id", "slot", "cls"} <= set(s.columns):
+                continue
+            if "arm" in s:  # the washout belongs to the primary population: reported arms never label a unit of it
+                s = s[s["arm"].astype(str) == "main"]
             for m, sl in s[s["cls"].isin(classes)].groupby("market_id")["slot"]:
                 out.setdefault(str(m), []).extend(int(x) for x in sl)
     return out
@@ -672,6 +676,9 @@ def build_frame(test: str, df: pd.DataFrame, root: Path, spec: dict, mask_late: 
     cnt: dict = {"lines": len(df)}
     if df.empty:
         return pd.DataFrame(), cnt
+    if "arm" in df:  # the primaries read the main arm only; the reported arms (sports, decided, tail) are read by arm_frame
+        cnt["arm_lines_not_main"] = int((df["arm"].astype(str) != "main").sum())
+        df = df[df["arm"].astype(str) == "main"]
     df = df.copy()
     df["day"] = la3.day_of(df["capture_t"])
     sx = np.sign(df["x"].to_numpy(float)) if "x" in df else None
