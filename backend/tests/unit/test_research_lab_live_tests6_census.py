@@ -43,6 +43,12 @@ def _spec(**cd_cb) -> dict:
     return spec
 
 
+def _pinned(spec: dict, seal) -> dict:
+    """The spec with the LT5 capture-seal pin set to the sha256 of ``seal`` (the production value stays null until LT5's seal is committed)."""
+    spec["census_inputs"]["source_seals"]["lt5_capture_seal_sha256"] = lt.sha256_file(Path(seal))
+    return spec
+
+
 def _q(m: int, k: int) -> tuple[float, float, float, float]:
     mid = round(0.35 + 0.02 * (m % 10) + 0.1 * math.sin(k / 3.0 + m), 2)
     traded = (k + m) % 3 == 0
@@ -187,7 +193,7 @@ def world(tmp_path_factory):
 def sealed(world, tmp_path_factory):
     w = world
     wk = tmp_path_factory.mktemp("sealwork")
-    seal = lt.seal_inputs(snapshot_root=[w["snap"]], sweep_root=[w["sweeps"]], sample_root=[w["samples"]], work=wk, source_seals=[w["src"]], spec=_spec())
+    seal = lt.seal_inputs(snapshot_root=[w["snap"]], sweep_root=[w["sweeps"]], sample_root=[w["samples"]], work=wk, source_seals=[w["src"]], spec=_pinned(_spec(), w["src"]))
     assert "error" not in seal
     p = w["tmp"] / "lt6_seal.json"
     p.write_text(json.dumps(seal))
@@ -207,7 +213,7 @@ def test_seal_selects_only_files_named_in_source_seals(sealed, tmp_path):
     src["files"] = {k: v for k, v in src["files"].items() if not (cid in k and k.endswith("rows_ext.csv.gz"))}
     p = tmp_path / "s.json"
     p.write_text(json.dumps(src))
-    res = lt.seal_inputs(snapshot_root=[sealed["snap"]], sweep_root=[sealed["sweeps"]], sample_root=[sealed["samples"]], work=tmp_path / "w", source_seals=[p], spec=_spec())
+    res = lt.seal_inputs(snapshot_root=[sealed["snap"]], sweep_root=[sealed["sweeps"]], sample_root=[sealed["samples"]], work=tmp_path / "w", source_seals=[p], spec=_pinned(_spec(), p))
     assert cid not in res["slots"] and res["n_missing_slots"] == 1 and any("rows_ext" in x.get("file", "") for x in res["not_selected"])
 
 
@@ -217,19 +223,19 @@ def test_seal_refuses_a_hash_mismatch_and_two_hashes_for_one_file(sealed, tmp_pa
     src["files"][key]["sha256"] = "0" * 64
     p = tmp_path / "bad.json"
     p.write_text(json.dumps(src))
-    res = lt.seal_inputs(snapshot_root=[sealed["snap"]], sweep_root=[sealed["sweeps"]], sample_root=[sealed["samples"]], work=tmp_path / "w", source_seals=[p], spec=_spec())
+    res = lt.seal_inputs(snapshot_root=[sealed["snap"]], sweep_root=[sealed["sweeps"]], sample_root=[sealed["samples"]], work=tmp_path / "w", source_seals=[p], spec=_pinned(_spec(), p))
     assert "error" in res and res["n_mismatches"] >= 1
     p2 = tmp_path / "dup.json"
     p2.write_text(json.dumps({"files": {key: {"sha256": "1" * 64}}}))
     with pytest.raises(ValueError, match="two different hashes"):
-        lt.seal_inputs(snapshot_root=[sealed["snap"]], sweep_root=[sealed["sweeps"]], sample_root=[sealed["samples"]], work=tmp_path / "w2", source_seals=[sealed["src"], p2], spec=_spec())
+        lt.seal_inputs(snapshot_root=[sealed["snap"]], sweep_root=[sealed["sweeps"]], sample_root=[sealed["samples"]], work=tmp_path / "w2", source_seals=[sealed["src"], p2], spec=_pinned(_spec(), sealed["src"]))
 
 
 def test_seal_hashes_nothing_after_the_bound(sealed, tmp_path):
     spec = _spec()
     spec["census_inputs"]["refuse_at_or_after_utc"] = lt.iso(G0.timestamp() + 20 * 7200)  # a bound inside the span
     spec["census_inputs"]["cd_cb_span"]["last_slot_utc"] = lt.iso(G0.timestamp() + 19 * 7200)
-    res = lt.seal_inputs(snapshot_root=[sealed["snap"]], sweep_root=[sealed["sweeps"]], sample_root=[sealed["samples"]], work=tmp_path / "w", source_seals=[sealed["src"]], spec=spec)
+    res = lt.seal_inputs(snapshot_root=[sealed["snap"]], sweep_root=[sealed["sweeps"]], sample_root=[sealed["samples"]], work=tmp_path / "w", source_seals=[sealed["src"]], spec=_pinned(spec, sealed["src"]))
     assert sealed["ids"][20] not in res["slots"] and sealed["ids"][19] in res["slots"]
     assert not lt.bound_violations(res, spec)
 
@@ -599,7 +605,7 @@ def test_runner_refuses_overwrite_cap_and_uncommitted_seal(sealed, tmp_path, mon
 
 def test_runner_seal_subcommand_writes_the_seal(sealed, tmp_path, monkeypatch):
     mod = _runner()
-    spec_fixed = _spec()
+    spec_fixed = _pinned(_spec(), sealed["src"])
     monkeypatch.setattr(lt, "load_spec", lambda path=lt.SPEC_PATH, sha=None: spec_fixed)
     rc = mod.main(["seal", "--snapshot-root", str(sealed["snap"]), "--sweep-root", str(sealed["sweeps"]), "--sample-root", str(sealed["samples"]),
                    "--source-seal", str(sealed["src"]), "--work", str(tmp_path / "w"), "--out", str(tmp_path / "s.json")])
@@ -728,3 +734,11 @@ def test_b_excludes_unknown_end_incumbents_and_d_keeps_missing_updated_at_missin
     sp.loc["101", "upd_ts"] = np.nan
     u, cnt = lt.deadline_units(sk, sp, _fr(f, kd - 12)[0], kd, f["by_slot"][kd], f["spec"])
     assert np.isnan(u.set_index("market_id").loc["101", "updated_changed"]) and cnt["updated_at_missing"] >= 1
+
+
+def test_seal_refuses_while_the_lt5_seal_pin_is_null_or_unmatched(sealed, tmp_path):
+    kw = {"snapshot_root": [sealed["snap"]], "sweep_root": [sealed["sweeps"]], "sample_root": [sealed["samples"]], "source_seals": [sealed["src"]]}
+    assert "null" in lt.seal_inputs(work=tmp_path / "w", spec=_spec(), **kw)["error"]  # as committed: null
+    bad = _spec()
+    bad["census_inputs"]["source_seals"]["lt5_capture_seal_sha256"] = "0" * 64
+    assert "pinned" in lt.seal_inputs(work=tmp_path / "w2", spec=bad, **kw)["error"]

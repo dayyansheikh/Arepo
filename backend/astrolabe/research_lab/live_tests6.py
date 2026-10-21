@@ -1497,6 +1497,12 @@ def seal_inputs(*, snapshot_root, sweep_root, sample_root, work: Path, source_se
     slot, never substituted). Hashes bytes only; parses no rows; nothing at or after the sealed bound is hashed."""
     spec = spec or load_spec(sha=None)
     src, samples, shas = _src_hashes(list(source_seals))
+    # freeze-check fix: the LT5 capture seal's sha256 is pinned in the spec (filled after LT5's seal is committed); refuse while it is null
+    pin = (spec["census_inputs"].get("source_seals") or {}).get("lt5_capture_seal_sha256")
+    if not pin:
+        return {"error": "spec census_inputs.source_seals.lt5_capture_seal_sha256 is null: the LT6 seal is refused until the LT5 capture seal's sha256 is pinned"}
+    if pin not in shas.values():
+        return {"error": "no source seal given has the pinned lt5_capture_seal_sha256: LT6 seal refused", "pinned": pin, "given": shas}
     by_slot, sweeps = l5._scan(Path(work), snapshot_root, sweep_root, spec)
     span = census_span_slots(spec)
     bound = epoch(spec["census_inputs"]["refuse_at_or_after_utc"])
