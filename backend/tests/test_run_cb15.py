@@ -271,7 +271,8 @@ def test_e_drafts_exist_parse_and_are_drafts_not_jobs():
     for k in ("q0344", "q0346"):
         pin = by[k]["argv"][by[k]["argv"].index("--ge0-sha256") + 1]
         assert hex64.match(pin) and pin != c15.PIN_UNSET, k
-    assert c15.PIN_UNSET in by["q0340"]["argv"]
+    pin40 = by["q0340"]["argv"][by["q0340"]["argv"].index("--base-sha256") + 1]
+    assert pin40 == c15.PIN_UNSET or hex64.match(pin40)  # promoted 2026-10-21 with the pinned base-key sha
     live = by["q0345"]
     assert live["resources"]["lane"] == "cron" and "--no-exit75-in-window" in live["argv"] and live["argv"][live["argv"].index("--disk-cap-gb") + 1] == "freeze"
     assert by["q0346"]["not_before"] == e.T15_E_END

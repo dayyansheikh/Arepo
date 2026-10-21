@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -18,7 +19,7 @@ import run_cb14  # noqa: E402
 DRAFTS = ROOT / "docs" / "research_lab" / "queue" / "drafts"
 JOBS = ROOT / "docs" / "research_lab" / "queue" / "jobs"
 IDS = [300, 301, 302, 303, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 316, 317, 318, 319, 320, 321, 322, 323]
-PROMOTED = {300, 301}  # the smokes, promoted to queue/jobs by the coordinator after the re-check of 515d68d (their notes carry the shas at promotion)
+PROMOTED = {300, 301, 302, 303, 305}  # promoted to queue/jobs by the coordinator: the smokes after the re-check of 515d68d, then q0302 / q0303 / q0305 (their notes carry the shas at promotion)
 
 
 def _drafts() -> list[dict]:
@@ -270,7 +271,8 @@ def test_f16_id_only_readers_open_named_holdout_frames_ids_only(tmp_path):
 def test_f7_f13_f17_drafts_carry_the_pins_tokens_windows_and_repeats():
     by = {d["id"][:5]: d for d in _drafts()}
     q302 = by["q0302"]
-    assert q302["argv"][q302["argv"].index("--base-sha256") + 1] == c14.PIN_UNSET and "exclusion_keys_complete" in q302["repeat"]["until_log_regex"]
+    pin302 = q302["argv"][q302["argv"].index("--base-sha256") + 1]  # promoted with the pinned base-key sha (or still unset as a draft)
+    assert (pin302 == c14.PIN_UNSET or re.fullmatch(r"[0-9a-f]{64}", pin302)) and "exclusion_keys_complete" in q302["repeat"]["until_log_regex"]
     assert "never opens h12_say" not in q302["notes"] and "id columns" in q302["notes"]
     for q, tok in (("q0303", "w_frame_complete"), ("q0307", "w_prints_complete"), ("q0312", "s_frame_complete")):
         assert tok in by[q]["repeat"]["until_log_regex"], q
