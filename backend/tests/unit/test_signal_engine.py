@@ -324,14 +324,14 @@ def test_end_to_end_predict_score_and_embargo(env, monkeypatch):
     assert lg["gain_vs_champion"]["n_clusters"] > 1
     # EMBARGO: the flow challenger isolates "flow" -> no score row, only the date; predictions were still written
     emb = [x for x in lb["rows"] if x["model_id"] == "flowc"]
-    assert emb == [{"model_id": "flowc", "role": "embargoed", "embargoed_until": "2026-11-16T00:00:00Z",
-                    "tests": ["E013", "E014", "E016", "E018"]}]
+    assert emb == [{"model_id": "flowc", "role": "embargoed", "embargoed_until": "2026-11-22T00:00:00Z",
+                    "tests": ["E013", "E014", "E016", "E018", "LT5-J", "LT5-O"]}]
     assert paths.predictions(cap23, "flowc").exists()
     assert not any(k[1] == "flowc" for k in agg.m) and not any(k[1] == "flowc" for k in agg.pw)
     dash = D.build(paths, reg, "champ", now, lb)
     js = json.dumps(dash)
     fr = [x for x in dash["prospective"]["rows"] if x["model_id"] == "flowc"]
-    assert fr == [{"model_id": "flowc", "embargoed_until": "2026-11-16T00:00:00Z"}] and "NaN" not in js
+    assert fr == [{"model_id": "flowc", "embargoed_until": "2026-11-22T00:00:00Z"}] and "NaN" not in js
     # family attribution (LightGBM mean |SHAP|): the embargoed flow family has no value at all, only its name in hidden
     at = [x for x in dash["attribution"] if x["model_id"] == "lgb_all"]
     assert at and at[0]["hidden"] == ["flow", "tte"] and not {"flow", "tte"} & set(at[0]["families"])
@@ -340,7 +340,7 @@ def test_end_to_end_predict_score_and_embargo(env, monkeypatch):
     raw = json.loads((Path(fit["_dir"]) / "dir_2h.json").read_text())["attribution"]
     assert raw["families"]["flow"] >= 0 and raw["block"] == "inner_validation"
     # after the embargo date the same predictions are scored
-    later = S.epoch("2026-11-16T00:00:01Z")
+    later = S.epoch("2026-11-22T00:00:01Z")
     assert SP.embargo_of(reg["models"]["flowc"], later) is None
     # 24h target pending -> no 24h rows yet, counted as pending in label_states
     assert not [x for x in lb["rows"] if x.get("target") == "dir_24h" and x["model_id"] == "champ"]
@@ -498,8 +498,10 @@ def test_rewards_features_hand_example():
 def test_rewards_family_embargoed_until_lt4():
     reg = SP.load_registry()
     e = SP.embargo_of(reg["models"]["se9_lr_rewards"], S.epoch("2026-10-22T00:00:00Z"))
-    assert e and e["until"] == "2026-11-18T00:00:00Z" and "E020" in e["tests"]
-    assert SP.embargo_of(reg["models"]["se8_lr_event"], S.epoch("2026-10-22T00:00:00Z")) is None
+    assert e and e["until"] == "2026-11-22T00:00:00Z" and "E020" in e["tests"] and "LT5-R" in e["tests"]
+    ev = SP.embargo_of(reg["models"]["se8_lr_event"], S.epoch("2026-10-22T00:00:00Z"))
+    assert ev and ev["until"] == "2026-11-22T00:00:00Z" and ev["tokens"] == ["event"]
+    assert SP.embargo_of(reg["models"]["se8_lr_event"], S.epoch("2026-11-22T00:00:01Z")) is None
 
 
 def test_spec_aux_version_pin():
@@ -538,10 +540,14 @@ def test_repo_registry_loads_and_embargo_assignment():
     t = S.epoch("2026-10-22T00:00:00Z")
     emb = {m: (SP.embargo_of(s, t) or {}).get("until") for m, s in reg["models"].items()}
     assert emb["se0_champion_lr_mm"] is None and emb["se1_lgbm_mm"] is None and emb["se7_lgbm_all"] is None
+    assert reg["models"]["se10_lgbm_event"]["learner"] == "lgbm"
+    assert reg["models"]["se10_lgbm_event"]["train"]["require_full_coverage"] is True
     assert emb["se4_lr_xvenue"] == "2026-11-04T00:00:00Z"
-    assert emb["se2_lr_flow"] == "2026-11-16T00:00:00Z" and emb["se5_lr_tte"] == "2026-11-14T00:00:00Z"
-    assert emb["se3_lr_book"] == "2026-11-18T00:00:00Z" and emb["se6_lr_wallet"] == "2026-11-18T00:00:00Z"
-    assert all(v is None for v in ((SP.embargo_of(s, S.epoch("2026-11-19T00:00:00Z")) or {}).get("until") for s in reg["models"].values()))
+    assert emb["se2_lr_flow"] == "2026-11-22T00:00:00Z" and emb["se5_lr_tte"] == "2026-11-14T00:00:00Z"
+    assert emb["se3_lr_book"] == "2026-11-22T00:00:00Z" and emb["se6_lr_wallet"] == "2026-12-07T00:00:00Z"
+    assert emb["se8_lr_event"] == "2026-11-22T00:00:00Z" and emb["se10_lgbm_event"] == "2026-11-22T00:00:00Z"
+    assert emb["se9_lr_rewards"] == "2026-11-22T00:00:00Z"
+    assert all(v is None for v in ((SP.embargo_of(s, S.epoch("2026-12-08T00:00:00Z")) or {}).get("until") for s in reg["models"].values()))
 
 
 # ---------------------------------------------------------------------------------------------- promotion
@@ -665,7 +671,7 @@ def test_lab_host_signal_engine_section_strips_embargoed_numbers(tmp_path):
     dash["embargo_tokens"] = [{"token": "zz", "until": "2026-12-01T00:00:00Z"}]
     (d / "dashboard.json").write_text(json.dumps(dash))
     at = lab.build_signal_engine(tmp_path, now)["attribution"][0]
-    assert at["families"] == {"momentum": 0.2, "event": 0.05} and at["hidden"] == ["flow", "zz"]
+    assert at["families"] == {"momentum": 0.2} and at["hidden"] == ["event", "flow", "zz"]
     assert lab.build_signal_engine(tmp_path / "none", now) is None
 
 

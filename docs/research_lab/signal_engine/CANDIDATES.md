@@ -35,6 +35,8 @@ Rationale: `DESIGN_V1.md` §8 covers drafted tests too.
 
 LT5 dates are provisional: they move later, never earlier, if LT5 registers later than planned.
 
+**Applied by the builder 2026-10-21 ~10:20Z** (`config.EMBARGO`; DESIGN_V1 §8): all five rows, plus a separate `wallet_skill` token (12-07). No event score had been computed or shown before the `event` token was added (first refit not yet run on the host).
+
 ---
 
 ## C01. Taker order flow (family `flow`)
@@ -280,11 +282,11 @@ development look at the neg-risk / sibling family (ledger entry 2026-10-21).
 
 | # | family / model | inputs | evidence so far | embargo | status |
 |---|---|---|---|---|---|
-| 1 | `event` / `se8_lr_event` | aux family from the same capture's binary listing: event size, neg-risk overround and quoted share, normalisation gap, own rank, largest sibling, siblings' Gamma 1 h / 1 d changes | E005 band deviation not supported (closed 2026-10-11); SB2-J5 sibling reversal development only; never tested as a forecast-quality add-on | none (no live test isolates it; E019 dropped uncounted) | **active** (2026-10-21) |
-| 2 | `rewards` / `se9_lr_rewards` | aux family from the same capture's Gamma sidecar (`rows_ext`: rewards_min_size, rewards_max_spread, clob_rewards daily rates) | none; E020 draft uses the reward flag as a control / S3 (`LIVE_TESTS_4.md:90,229,243`) | token `rewards` until 2026-11-18 (added) | **active, embargoed** (2026-10-21): predictions written, scored after 2026-11-18. The separate `reward_params` stream (since 2026-10-20T23:20Z) is not needed |
+| 1 | `event` / `se8_lr_event` | aux family from the same capture's binary listing: event size, neg-risk overround and quoted share, normalisation gap, own rank, largest sibling, siblings' Gamma 1 h / 1 d changes | E005 band deviation not supported (closed 2026-10-11); SB2-J5 sibling reversal development only; never tested as a forecast-quality add-on | `event` until 2026-11-22 (LT5 F draft; applied 2026-10-21) | **active, embargoed** (2026-10-21) |
+| 2 | `rewards` / `se9_lr_rewards` | aux family from the same capture's Gamma sidecar (`rows_ext`: rewards_min_size, rewards_max_spread, clob_rewards daily rates) | none; E020 draft uses the reward flag as a control / S3 (`LIVE_TESTS_4.md:90,229,243`) | token `rewards` until 2026-11-22 (added; moved from 11-18) | **active, embargoed** (2026-10-21): predictions written, scored after 2026-11-22. The separate `reward_params` stream (since 2026-10-20T23:20Z) is not needed |
 | 3 | `rules` | `stream_gamma_rules` edits (rule/description changes before the origin) | none (stream proposal only, `NEW_STREAMS_2026-10-19.md:46`) | none | idea (sparse; check coverage first) |
 | 4 | `xvenue2` | PredictIt / Smarkets mid gaps (`stream_predictit`, `stream_smarkets`) | none (CH114 idea) | under `xvenue` until 2026-11-04 (same hypothesis class as E009/E010) | idea (coverage likely tiny) |
 | 5 | `crypto` | spot reference (Binance) distance to strike for crypto ladders | CB13-R (CH118) smoke PASS, analysis pending | check CB13-R status before any spec | blocked (no live spot stream on the host) |
-| 6 | learner: LightGBM on champion + event (broad) | base + aux | - | broad: none | idea (add after se8 shows whether the family carries signal; each challenger raises K in the Bonferroni rule) |
+| 6 | learner-matched event / `se10_lgbm_event` | base + aux `event`, LightGBM (se1's params) | development walk-forward 10-14..10-20: LightGBM alone beats the logistic champion by 0.04-0.05 nats on every direction target (learner effect), so family effects need a matched learner | `event` until 2026-11-22 (as se8) | **active, embargoed** (2026-10-21); read against se1, not only against the champion |
 | 7 | reversal x liquidity, trade-confirmed reversal (HB1-R, E002/E004/E006) | base | replicated historically | `chg1d_x_liq` until 2026-11-14, `flow` until 2026-11-16 | after the embargo dates |
-| 8 | SHAP family attribution for the LightGBM models | fits | - | display only for non-embargoed families | next (dashboard) |
+| 8 | SHAP family attribution for the LightGBM models | fits | - | display only for non-embargoed families | **built** (DESIGN_V1 §17, in `dashboard.json`); /lab display in PR (2026-10-21) |

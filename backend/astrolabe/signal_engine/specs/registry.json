@@ -72,6 +72,13 @@
    "spec_sha256": "09fadab8e652aa9eb420d2a180edb5dd56ed22e0af743de85d4a610502dc1917",
    "status": "active",
    "added_utc": "2026-10-21T05:00:00Z"
+  },
+  {
+   "model_id": "se10_lgbm_event",
+   "file": "se10_lgbm_event.json",
+   "spec_sha256": "4e79ec7b00d05df8a596057511713c2d1d37ee6b28c25d169c2a5c1700ae8bf8",
+   "status": "active",
+   "added_utc": "2026-10-21T10:00:00Z"
   }
  ]
 }

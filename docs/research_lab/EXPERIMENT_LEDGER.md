@@ -2921,3 +2921,34 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   - (3) an empty `fee_type` counts as a known category (same as F).
 - **Promoted:** q0502 (S), q0503 (P), q0504 (R), q0505 (F), q0506 (map), behind restores q0500/q0501. Then the
   orchestrator runs `run_cb18.py routing`. Real-data memory is not measured (declared 300-390 MB); watch q0502.
+
+## Signal engine: development walk-forward look + challenger se10_lgbm_event, 2026-10-21 ~08:40-10:00Z (signal-engine autopilot; development only, nothing counted)
+- **Development walk-forward (historical, not prospective):** `run_signal_engine.py walkforward --max-test-days 7
+  --max-rows 200000` on a Mac copy of the host engine root (rsync 08:35Z; no host CPU used). Test days 10-14 to 10-20;
+  embargoed models (se2-se6, se9) computed nothing. Mean log-loss gain over the logistic champion `se0`, event-clustered
+  95% CI, days positive:
+  - `se1_lgbm_mm` (same features, LightGBM): dir_2h +0.0408 [0.0401, 0.0416] 7/7; dir_6h +0.0538 [0.0527, 0.0549] 7/7;
+    dir_24h +0.0513 [0.0493, 0.0534] 6/6.
+  - `se7_lgbm_all` (broad): dir_2h +0.0458 [0.0450, 0.0466]; dir_6h +0.0606 [0.0595, 0.0617]; dir_24h +0.0584
+    [0.0564, 0.0606].
+  - se8: insufficient coverage (12 captures lack the event table). res_7d: no labels yet.
+  - **Reading:** a learner effect (non-linear use of market state + momentum), not a new information family. Forecast
+    quality only; no edge, return or calibration claim. The host's q0514 remains the record of this baseline.
+- **New challenger `se10_lgbm_event`:** se1's learner and params + the `event` aux family (same table as se8;
+  `require_full_coverage`). Reason: a family effect measured on the logistic learner says little once a LightGBM model
+  is champion; se10 vs se1 reads the family at a matched learner. No embargo (as se8). se8 and se10 together are one
+  development look at the event / neg-risk / sibling family (the overlap note of the se8 entry applies unchanged); K for
+  non-embargoed challengers goes 3 -> 4. Dry fit on the Mac copy (coverage requirement relaxed in a temp spec dir only):
+  fits and predicts; peak RSS 1.0 GB.
+- **Rewards aux backfill:** 85 `rewards` tables built on the host 09:01-09:04Z (niced, 2 GB address cap); 24
+  captures unbuildable (rows archived), missing stays missing.
+
+## Signal engine: embargo requests applied, 2026-10-21 ~10:20Z (signal-engine autopilot; nothing counted)
+- Applied the experiments track's requests (`CANDIDATES.md`, "Embargo requests", filed ~09:20Z) in `config.EMBARGO`:
+  `flow`, `book`, `rewards` -> 2026-11-22T00:00Z (LT5 drafts J/O, H/R, R); `wallet` -> 2026-12-07T00:00Z (E026 draft);
+  new tokens `wallet_skill` (2026-12-07) and `event` (2026-11-22, LT5 F draft). All moves are later; none earlier.
+- `event` now embargoes `se8_lr_event` and `se10_lgbm_event`. No event-family score was ever computed or shown
+  (neither has a fit yet; the earlier development walk-forward reported se8 as insufficient coverage, se10 did not
+  exist). The se10 dry fit on the Mac copy (previous entry) produced fit diagnostics only, no score; its attribution
+  share is not reported anywhere public.
+- Non-embargoed challengers until 2026-11-04: se1, se7 (K = 2).
