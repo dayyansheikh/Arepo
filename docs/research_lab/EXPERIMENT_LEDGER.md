@@ -3300,7 +3300,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   q0580-q0584 (DRAFT). 121 tests; only new files (no frozen or pinned file touched). Phase 2 (reader, analyze entry
   point, reader / analysis drafts) running. Needed at registration: a `battery2.KIND_RULES["live_tests6"]` entry.
 
-## Finished-job write-ups and queue fixes, 2026-10-21 ~19:00-20:15Z (experiments autopilot)
+## Finished-job write-ups and queue fixes, 2026-10-21 ~18:55-19:20Z (experiments autopilot)
 - **Ops (no science change):** CB18 censuses q0502-q0506 had `--disk-cap-gb 20` (the declared upper bound, `<= 20`);
   with data-dumps at 29.75 GB every attempt exited 75 against the 40 GB cap. Set to 0.25 (outputs are small JSON), cbe76887.
   CB18 drafts q0507-q0516 renumbered q0590-q0599 because q0510-q0515 were already signal-engine job ids (a5029dce).
@@ -3312,9 +3312,9 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   restore path (`queue_worker.py retry`). S_8 is 2026-10-26T00Z, so CB17 is not yet late.
 - **q0281 CB13-R census (18:02Z, counts only, nothing newly counted):** GR basis 0.915 (< 0.95), frame completeness
   0.782 (< 0.98) and events 58 (< 60) fail; markets 801, weeks 31, components 58 and the parser gate pass; GRP MDE 0.658
-  (> 0.60) fails. q0282 will write R1 "not testable (basis)", p = 1. **Reconcile before q0282:** the host trials file
-  already has a CB13 R1 count line (n_tests 1, 2026-10-19T07:30:16Z, probably the failed v1 smoke q0285); R1 must be
-  counted once.
+  (> 0.60) fails. q0282 will write R1 "not testable (basis)", p = 1. The v1 R1 count line of 2026-10-19T07:30:16Z
+  stays (ledger 2026-10-19 ~09:45Z: "v1 count lines (T 2, R 1) stay in trials.jsonl (conservative double count)"),
+  so R1 is counted twice by design; nothing to reconcile.
 - **q0305 CB14-W GWC (18:04Z): FAIL** (58 markets < 150, 46 events < 60, 38 subjects < 40; GW0 audit precision 0.679,
   38 of 56; frame completeness 1.0). W1 and W2 "not testable (population)", **counted 2** (trials line 18:04:03Z).
   Drafts q0306-q0309 are moot (never promoted).

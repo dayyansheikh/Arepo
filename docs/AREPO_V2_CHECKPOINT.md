@@ -300,8 +300,7 @@ change request applied or "partially seen", a `battery2.KIND_RULES["live_tests6"
 **Queued and in progress:**
 - CB18 censuses q0502-q0506 (unblocked 19:00Z: `--disk-cap-gb` 0.25); then the routing record (`run_cb18.py routing`,
   `seals/cb18_routing.json`, target 10-24T12Z). Later CB18 drafts are now q0590-q0599 (renumbered; ids clashed).
-- **CB13-R:** census done (gates fail) → q0282 (draft) writes R1 "not testable (basis)" after the R freeze entry; first
-  reconcile the existing host trials line for CB13 R1 (2026-10-19T07:30:16Z, n_tests 1) so R1 is counted once.
+- **CB13-R:** census done (gates fail) → q0282 (draft) writes R1 "not testable (basis)" after the R freeze entry (the v1 R1 count line of 10-19 stays: conservative double count, ledger 10-19 ~09:45Z).
 - CB14-W GWC FAIL and CB15-P GPB FAIL recorded (counted 2 each); their later drafts (q0306-q0309, q0349-q0354) are moot.
 - CB16-K q0383 (exclusive, not before 10-22T06Z). CB17 q0404 blocked (above), then q0405.
 
