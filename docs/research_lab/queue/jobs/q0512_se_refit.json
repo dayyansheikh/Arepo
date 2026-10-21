@@ -1,0 +1,38 @@
+{
+ "id": "q0512_se_refit",
+ "title": "Signal engine: daily walk-forward refit: every active model x target refitted on the rolling window (14 days direction, 28 days resolution, <= 400k rows per target, float32) using only labels available before the fit time; write-once artifacts + fit.json; exit 75 when the last fit is < 20 h old",
+ "family": "signal_engine",
+ "priority": 42,
+ "expected_value": "fresh champion / challenger fits every day (prediction always uses a fit made at or before the capture start)",
+ "data": [
+  "research_lab/signal_engine/{features,quotes,meta,logs/resolutions-*} (own files)"
+ ],
+ "resources": {
+  "mem_mb": 1500,
+  "as_cap_mb": 3500,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_signal_engine.py",
+  "refit",
+  "--min-interval-h",
+  "20",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 3,
+ "repeat": {
+  "max_runs": 3000,
+  "until_log_regex": "SIGNAL_ENGINE_RETIRED"
+ },
+ "outputs": [
+  "data-dumps/research_lab/signal_engine/models/<model_id>/<fit stamp>/{<target>.json,fit.json}",
+  "data-dumps/research_lab/signal_engine/logs/fits-YYYYMMDD.jsonl"
+ ],
+ "next_action": "daily; due-check every 30 min (<= 41 consecutive tempfails between productive runs, under the 48 cap)",
+ "notes": "Promoted 2026-10-21 by the signal-engine autopilot (signal engine v1, docs/research_lab/signal_engine/DESIGN_V1.md section 9). Measured on the host 2026-10-20 23:26-23:45Z in a read-only dry run (/tmp/sigeng, engine root outside ~/arepo, deleted afterwards). 27 captures (2.3 days), 385,190-row frame: 6.7-7.5 min, peak RSS 1.04-1.07 GB under a 3.0 GB address-space cap. The frame is capped by max_rows, so a full 14-day window keeps the same frame size (more captures read: ~+30 s) plus the 24 h LightGBM fits that need > 1 day of history (+~4 min): expect 10-15 min, ~1.1 GB. Not exclusive (< 1.5 GB). Never the MC1 failure mode: no full panel is materialised (one capture at a time, seeded per-capture subsample, float32). depends_on is empty on purpose: the other engine jobs are repeat jobs that never reach 'done'; missing inputs make this job exit 75 or report 'insufficient'/'no_fit' instead."
+}
