@@ -247,39 +247,44 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-21 09:05Z
-0. **Autopilot session from 08:43Z 10-21.**
-   - **Deploy only from `chore/arepo-claude-setup`**; check `ssh oracle 'cd ~/arepo && git log --oneline -1'` = local tip.
-   - **LT3 (E015) REGISTERED** 2026-10-21 ~11:35Z (2580c58a; SPEC_SHA256 72a174eb…; q0475 size check byte-identical to
-     q0474). Host cron `*/20` installed (crontab backup `~/crontab.bak.*`); remove after 2026-11-15T06:00Z. Window
-     10-24..11-14; q0475_lt3_analyze queued (not before 11-15T12Z). No interim looks.
-   - **MC1:** q0116e OOM-killed 07:10Z (4.93 GB). Not retried on this host; waits for the second instance or an
-     owner-approved free resize (dashboard approval 7).
-   - **LT5 (TIME-CRITICAL TONIGHT):** code merged (5c441957). q0560 restore and q0564 seal (not before 23:20Z) queued.
-     At ~23:30Z: when q0564 is done, `scp` its output `live_tests5_census/lt5_census_inputs_captures.json` to
-     `docs/research_lab/seals/lt5_census_inputs_captures.json` (byte copy; check sha256), commit, deploy, then promote
-     **q0561 before 2026-10-22T02:45Z** (it must read captures before the 03:30Z retention). After q0561: q0562, then q0563.
-     If missed: a new restore and seal, never a backfill.
-   - **This session also:** CB18 census code merged and checked (q0500-q0506 queued; restores raised to 1,200 MB after a gh
-     crash); q0280 done -> CB13 seal copy committed, q0281 promoted; q0347, q0380 (1,200 MB after MemoryError) promoted;
-     embargo requests applied by the signal engine (26f5f954).
-   - **E026 copy-skilled:** merged (579f25d0); census code checked -> FIXES_OK_WITH_NOTES; **q0544 census queued** (must
-     START before 2026-10-22T02:45Z). Owner note "design done" sent 10:15Z. Next: commit census.json, fill CENSUS-GATED values,
-     challenger review (+ the c4f3549b labeller end-date skip, §6), freeze q0540, pins, registration before 10-24T00:00Z.
-   - **Copy-skilled (E026):** owner phone notes at design done / review verdict / registration / collection start / weekly
-     counts / result (`scripts/arepo_notify.py send --type milestone`).
-   - **LT2 (E012-E014) REGISTERED:** q0460 running (repeat); q0461 after 11-13T12Z. No interim looks.
-   - **LT4 (E020-E022):** q0482 CQ/CH census; q0483 CF census. q0484 size check only after LT3's registration commit is
-     merged and the LT4 code freeze is recorded.
-   - **CB17:** q0404 smoke queued (q0413 done). After PASS: record acceptance; q0405 needs q0380's manifest sha.
-1. **CB8-H:** q0162/q0163 wait on spec `not_before` (10-21T06Z / 10-22T12Z). **CB8-B:** q0161/q0164 after T_seal; before
-   promoting q0164 run the two `derive-exclusion-ids` commands in its draft notes on the host and fill both sha256 tokens.
-2. **CB9:** data jobs q0181+ only after T_seal 2026-10-22T00Z; q0182 needs the pinned q0164 hash. **CB10:** q0201 needs
-   the CB9 frame pins after T_seal.
-3. **CB7/CB6 after T_seal:** seals q0144/q0145/q0121. Never retry q0141.
-4. **h7 (T_seal):** q0083b only on/after 2026-10-22T00:00Z (promote the draft then), then q0083 seal.
-5. **CB4:** q0085 no earlier than ~10-24T12Z. **CB5:** q0103b on/after 10-27 -> q0106 census. **MC1:** q0116b parked.
-   **CB3:** freeze after q0064 (after 10-25). Standing: after 10-21T03Z gate q0036 -> q0035.
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-21 12:25Z
+Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && git log --oneline -1'` = local tip.
+
+**Tonight (time-critical, in order):**
+1. **E026 census q0544** (priority 36, counts only) must START before 2026-10-22T02:45Z. When done: copy `census.json`
+   (counts only) into the repo as the design requires, fill the CENSUS-GATED values in `LIVE_TESTS_COPY.md`, then run the
+   challenger review (also covering the c4f3549b labeller end-date skip, §6). Then freeze q0540, pins, and the registration
+   commit before 2026-10-24T00:00Z. Owner phone notes go out at review verdict, registration and collection start
+   (`scripts/arepo_notify.py send --type milestone`, one per milestone).
+2. **LT5 seal → census:** q0564 (priority 45) runs from 23:20Z. When done:
+   - `scp` `live_tests5_census/lt5_census_inputs_captures.json` to `docs/research_lab/seals/lt5_census_inputs_captures.json`
+     (byte copy; sha256 equal);
+   - commit and deploy;
+   - promote **q0561** (exclusive) **before 02:45Z** (it must read captures before the 03:30Z retention run);
+   - then q0562, then q0563 (size check: a failing scenario fails only its own test, p = 1).
+   If the window is missed: a new restore and seal, never a backfill.
+3. **T_seal (2026-10-22T00:00Z):** q0083b (00:05Z) → q0083 h7 seal (queued). Commit the h7 seal / NOT_RUN copies, then
+   promote q0121, q0144, q0145 (CB6/CB7 seals; never retry q0141). q0161 CB8 smoke (net) from 00:00Z. Before promoting
+   q0164, run the two `derive-exclusion-ids` commands in its draft notes on the host and fill both sha256 tokens.
+   CB9 q0181+ and CB10 q0201 come after their pins.
+
+**Registered and running (no interim looks):**
+- E009/E010 (to 11-03), E011 (to 11-10), LT2 E012-E014 (q0460; analysis q0461 after 11-13T12Z).
+- **LT3 E015** registered 2026-10-21 (2580c58a; SPEC_SHA256 72a174eb…). Host cron `*/20` installed; remove it after
+  2026-11-15T06:00Z. q0475_lt3_analyze runs after 11-15T12Z.
+
+**Queued and in progress:**
+- CB18 censuses q0502-q0506 (restores done; then `run_cb18.py routing`).
+- LT4 censuses q0482/q0483. Then record the LT4 code freeze; q0484 (size check) only after that. LT3's registration is
+  now merged.
+- CB13-R census q0281. CB15-P q0347. CB16-K q0383 (exclusive, not before 10-22T06Z). CB17 q0404 smoke, then q0405
+  (base = CB16 q0380 key file sha256 56dc953e…).
+- CB14-W q0305 records GWC FAIL.
+
+**Waiting:**
+- MC1: needs more memory (dashboard approval 7).
+- CB4 q0085 not before ~10-24T12Z. CB5 q0103b on or after 10-27, then q0106. CB3 freeze after q0064 (after 10-25).
+- Signal engine: `signal_engine/CANDIDATES.md` (embargo requests applied, 26f5f954).
 
 ## Learned surprise-move detector (2026-10-12 evening)
 `docs/research_lab/SURPRISE_MOVE_DETECTOR.md`. Labels fixed and logged before features (`surprise-labels-v1`,
