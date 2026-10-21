@@ -673,9 +673,14 @@ def rebuild_last_sent(root: Path, sample_root: Path, t0: float, t_end: float) ->
 
 def run_once(*, root: Path = OUT_ROOT, snapshot_root: Path = SNAPSHOT_ROOT, sample_root: Path = SAMPLE_ROOT,
              prints_root: Path = LIVE_TRADES_ROOT, spec: dict | None = None, now: float | None = None,
-             max_items: int = 40, log: Callable[[str], None] = print) -> dict:
+             max_items: int = 40, log: Callable[[str], None] = print, capture_hi: float = math.inf,
+             exits: bool = True) -> dict:
     """One recorder pass (locked). Exit-code semantics for the runner: returns stats with ``tempfail`` when nothing is
-    new or the skill set is absent, and ``closed`` once the window and every pending entry/exit are done."""
+    new or the skill set is absent, and ``closed`` once the window and every pending entry/exit are done.
+
+    ``capture_hi`` and ``exits`` exist for the pre-window planning census only: no capture starting at or after
+    ``capture_hi`` is opened, and with ``exits=False`` no fixed-horizon exit quote is recorded (entries only). The
+    registered recorder uses the defaults."""
     root = Path(root)
     root.mkdir(parents=True, exist_ok=True)
     with open(root / ".lock", "w") as lk:
@@ -684,11 +689,12 @@ def run_once(*, root: Path = OUT_ROOT, snapshot_root: Path = SNAPSHOT_ROOT, samp
         except OSError:
             return {"tempfail": True, "reason": "locked"}
         return _run_locked(root=root, snapshot_root=snapshot_root, sample_root=sample_root, prints_root=prints_root,
-                           spec=spec or load_spec(), now=now if now is not None else now_ts(), max_items=max_items, log=log)
+                           spec=spec or load_spec(), now=now if now is not None else now_ts(), max_items=max_items, log=log,
+                           capture_hi=capture_hi, exits=exits)
 
 
 def _run_locked(*, root: Path, snapshot_root: Path, sample_root: Path, prints_root: Path, spec: dict, now: float,
-                max_items: int, log) -> dict:
+                max_items: int, log, capture_hi: float = math.inf, exits: bool = True) -> dict:
     stats: dict = {"started": iso(now), "samples": 0, "print_hours": 0, "captures": 0, "signals_skilled": 0,
                    "signals_control": 0, "entries": 0, "skipped_samples": 0}
     if dir_bytes(root) > DISK_CAP_BYTES:
@@ -784,9 +790,11 @@ def _run_locked(*, root: Path, snapshot_root: Path, sample_root: Path, prints_ro
             break
         if (root / "entries" / f"{cap['id']}.csv.gz").exists():
             continue
-        if cap["start"] >= blocked_from:
+        if cap["start"] >= blocked_from or cap["start"] >= capture_hi:
             break
         pend = pending_items(signals_all, entries, lat, exit_h, float(spec["primary_latency_s"]))
+        if not exits and len(pend):
+            pend = pend[pend["kind"] == "entry"]
         due = pend[pend["due_ts"].to_numpy(float) <= cap["start"]] if len(pend) else pend
         rows = load_capture(cap["dir"], due["market_id"].unique()) if len(due) else pd.DataFrame()
         ent = entries_for_capture(cap, rows, due) if len(due) else pd.DataFrame(columns=ENTRY_COLS[:-3])

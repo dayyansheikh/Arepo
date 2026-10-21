@@ -16,10 +16,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import resource
 import shutil
 import sys
 import time
+from datetime import UTC, datetime
 from pathlib import Path
 
 import numpy as np
@@ -91,6 +93,28 @@ def census_spec(t_start: float, t_end: float) -> dict:
     return spec
 
 
+def batch_start(batch_id: str) -> float:
+    """Start time of a batch from its id (sample dir name ``YYYYmmddTHHMMSSZ_...`` or ``lp_YYYYmmddTHH``)."""
+    if batch_id.startswith("lp_"):
+        return datetime.strptime(batch_id[3:14], "%Y%m%dT%H").replace(tzinfo=UTC).timestamp()
+    return datetime.strptime(batch_id[:16], "%Y%m%dT%H%M%SZ").replace(tzinfo=UTC).timestamp()
+
+
+def read_batches(passes: Path) -> dict[str, list[float]]:
+    """Start times of the batches the census actually read with a usable source, per arm (sidecar: sample with a
+    complete wallet sidecar; large prints: every processed hour). Missing / retired samples are not counted."""
+    out: dict[str, list[float]] = {"sidecar": [], "large_prints": []}
+    if not passes.exists():
+        return out
+    for line in passes.read_text().splitlines():
+        r = json.loads(line)
+        if r.get("kind") == "sample" and r.get("counts", {}).get("sidecar_status") == "complete":
+            out["sidecar"].append(batch_start(r["id"]))
+        elif r.get("kind") == "prints":
+            out["large_prints"].append(batch_start(r["id"]))
+    return out
+
+
 def cmd_census(a) -> int:
     from astrolabe.research_lab import wallet_skill_dev as wd
 
@@ -98,13 +122,20 @@ def cmd_census(a) -> int:
     if not (t_end <= SEALED_START) or not (t_start < t_end):
         print("refusing: census window must end at or before 2026-10-22T00:00Z", file=sys.stderr)
         return 2
+    out_path = Path(a.out) if a.out else None
+    if out_path is not None and out_path.exists():
+        print(f"refusing: {out_path} exists", file=sys.stderr)
+        return 2
     work = Path(a.work)
     if work.exists() and any(work.iterdir()):
         print(f"refusing: {work} is not empty", file=sys.stderr)
         return 2
     work.mkdir(parents=True, exist_ok=True)
-    rep: dict = {"label": "PRE-WINDOW planning census (counts and quote levels only; no payout, no price change read)",
-                 "window": [a.start, a.end]}
+    capture_hi = SEALED_START  # no quote at or after the LT2-LT4 / E026 windows is ever opened by a census
+    rep: dict = {"label": "PRE-WINDOW planning census (counts and entry-quote levels only; no payout, no exit quote, "
+                          "no price change read; no capture at or after 2026-10-22T00:00Z)",
+                 "window": [a.start, a.end], "capture_hi": cs.iso(capture_hi), "git_commit": cs.git_commit(),
+                 "code_sha256": cs.code_hashes(), "spec_file_sha256": cs.sha256_file(cs.SPEC_PATH)}
     t0 = time.time()
     try:
         spec = census_spec(t_start, t_end)
@@ -117,25 +148,30 @@ def cmd_census(a) -> int:
         rep["skillset"] = {"eligible": int(len(snap)), "skilled": int(snap["skilled"].sum()), "s": round(time.time() - t0, 1),
                            "peak_mb": round(peak_mb(), 1)}
         t1 = time.time()
-        # recorder over the census window, then entries from every capture available now
         st = cs.run_once(root=work, snapshot_root=Path(a.snapshots), sample_root=Path(a.samples), prints_root=Path(a.prints),
-                         spec=spec, now=cs.now_ts(), max_items=100000, log=lambda s: None)
+                         spec=spec, now=cs.now_ts(), max_items=100000, log=lambda s: None, capture_hi=capture_hi, exits=False)
         rep["recorder"] = {k: st.get(k) for k in ("samples", "print_hours", "captures", "signals_skilled", "signals_control",
                                                   "entries", "skipped_samples", "pending")}
         rep["recorder"]["s"] = round(time.time() - t1, 1)
         rep["recorder"]["peak_mb"] = round(peak_mb(), 1)
         rep["store_bytes"] = cs.dir_bytes(work) - cs.dir_bytes(work / "skillset")
+        caps = [c["start"] for c in cs.scan_captures(Path(a.snapshots), t_start) if c["start"] < capture_hi]
+        cap_last = max(caps) if caps else t_start
+        rep["last_capture_read"] = cs.iso(cap_last)
         sig = cs.read_store(work, "signals")
         ent = cs.read_store(work, "entries")
-        days = (t_end - t_start) / 86400.0
-        rep["counts"] = _census_counts(sig, ent, spec, days)
+        rep["counts"] = census_counts(sig, ent, spec, read_batches(work / "passes.jsonl"), cap_last)
         rep["passes_counts"] = _pass_counts(work / "passes.jsonl")
     finally:
         if not a.keep:
             shutil.rmtree(work, ignore_errors=True)
     rep["total_s"] = round(time.time() - t0, 1)
     rep["peak_mb"] = round(peak_mb(), 1)
-    print(json.dumps(_str_keys(rep), indent=1, default=str))
+    text = json.dumps(_str_keys(rep), indent=1, default=str)
+    if out_path is not None:
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(text + "\n")
+    print(text)
     return 0
 
 
@@ -149,7 +185,8 @@ def _str_keys(x):
 
 
 def _pass_counts(p: Path) -> dict:
-    agg = {"sample_rows": 0, "kept": 0, "seen_before": 0, "no_receipt": 0, "sidecar_not_complete": 0, "print_lines": 0}
+    agg = {"sample_rows": 0, "kept": 0, "seen_before": 0, "no_receipt": 0, "sidecar_not_complete": 0, "samples_missing": 0,
+           "print_lines": 0}
     if not p.exists():
         return agg
     for line in p.read_text().splitlines():
@@ -161,70 +198,116 @@ def _pass_counts(p: Path) -> dict:
             agg["seen_before"] += c.get("seen_before", 0)
             agg["no_receipt"] += c.get("no_receipt", 0)
             agg["sidecar_not_complete"] += int(c.get("sidecar_status") != "complete")
+        elif r.get("kind") == "sample_missing":
+            agg["samples_missing"] += 1
         elif r.get("kind") == "prints":
             agg["print_lines"] += r.get("lines", 0)
     return agg
 
 
-def _census_counts(sig: pd.DataFrame, ent: pd.DataFrame, spec: dict, days: float) -> dict:
-    """Counts, ages, availability and the entry-ask distribution (for the outcome SD under calibration). No payout."""
+BATCH_SPAN_S = {"sidecar": 7200.0, "large_prints": 3600.0}  # nominal span of one batch (2-hourly samples, print hours)
+BATCH_RECEIPT_SLACK_S = 3600.0  # receipt of a sample row is within about 1 h of the sample start
+
+
+def gate_eval(proj: dict, spec: dict) -> dict:
+    """The pre-declared census gates (spec ``census_gates``, fixed before any census number) on the 21-day projection."""
+    g = spec["census_gates"]
+    out = {"G1_copies_events": bool(proj["n"] >= g["g1_min_copies"] and proj["events"] >= g["g1_min_events"]),
+           "G2_pairs": bool(proj["pairs"] >= g["g2_min_pairs"] and proj["pair_events"] >= g["g2_min_pair_events"]),
+           "G3_mde_N_event": bool(proj["mde_N_event_icc1"] <= g["g3_max_mde_N_event_ppd"])}
+    out["decision"] = ("register_k2" if out["G1_copies_events"] and out["G2_pairs"] else
+                       "drop_E026C_register_k1" if out["G1_copies_events"] else "do_not_register_redesign")
+    if not out["G3_mde_N_event"]:
+        out["label"] = "low-power (a null is uninformative)"
+    return out
+
+
+def census_counts(sig: pd.DataFrame, ent: pd.DataFrame, spec: dict, batches: dict[str, list[float]], cap_last: float) -> dict:
+    """Counts, ages, entry availability and the entry-ask distribution (for the outcome SD under calibration). No payout.
+
+    Rates use only batches whose every entry could be recorded from captures read (batch start + 1 h + L + max entry
+    delay <= the last capture read), and divide by the nominal span of the usable batches actually read (missing or
+    retired samples are not counted as time)."""
     out: dict = {}
     if not len(sig):
         return {"signals": 0}
     impacts = ca.impact_table()
+    u_spec = spec["universe"]
+    max_delay = float(u_spec["max_entry_delay_s"])
+    window_days = (cs.epoch(spec["end_utc"]) - cs.epoch(spec["registered_utc"])) / 86400.0
+    proj_days = 21.0
+    sig = sig.assign(_bstart=[batch_start(b) for b in sig["batch_id"].astype(str)])
     for arm, g in sig.groupby("arm"):
+        span = BATCH_SPAN_S[arm]
+        starts = np.asarray(batches.get(arm, []), float)
         sk, ct = g[g["role"] == "skilled"], g[g["role"] == "control"]
-        o = {"skilled_signals": int(len(sk)), "per_day": round(len(sk) / days, 1), "wallets": int(sk["wallet"].nunique()),
-             "markets": int(sk["market_id"].nunique()), "controls": int(len(ct)),
+        days_read = len(starts) * span / 86400.0
+        o = {"batches_read": int(len(starts)), "days_read": round(days_read, 3), "window_days": round(window_days, 3),
+             "skilled_signals": int(len(sk)), "per_day": round(len(sk) / days_read, 2) if days_read else None,
+             "wallets": int(sk["wallet"].nunique()), "markets": int(sk["market_id"].nunique()), "controls": int(len(ct)),
              "controls_per_signal": {str(k): int(v) for k, v in sk["n_controls"].astype(float).value_counts().sort_index().items()},
              "age_h_quantiles": {str(q): round(float(sk["age_s"].quantile(q)) / 3600, 2) for q in (0.1, 0.25, 0.5, 0.75, 0.9)},
-             "side_buy_share": round(float((sk["side"].astype(int) > 0).mean()), 3),
+             "side_buy_share": round(float((sk["side"].astype(int) > 0).mean()), 3) if len(sk) else None,
              "trade_price_bands": {str(k): int(v) for k, v in pd.cut(sk["trade_price"].astype(float), [0, 0.05, 0.35, 0.65, 0.95, 1]).value_counts().sort_index().items()}}
-        if len(ent):
+        if len(ent) and len(sk):
             c = ca.build_copies(g, ent, pd.DataFrame(), spec, impacts)
+            c = c.merge(g[["signal_id", "_bstart"]], on="signal_id", how="left")
             for L in spec["latencies_s"]:
-                cl = c[(c["latency_s"].astype(float) == float(L)) & (c["role"] == "skilled")]
-                o[f"L{int(L)}"] = {"entries": int(len(cl)), "status": cl["status"].value_counts().to_dict(),
+                lim = cap_last - BATCH_RECEIPT_SLACK_S - float(L) - max_delay
+                ok_sig = sk[sk["_bstart"].to_numpy(float) <= lim]
+                cl = c[(c["latency_s"].astype(float) == float(L)) & (c["role"] == "skilled") & (c["_bstart"].to_numpy(float) <= lim)]
+                o[f"L{int(L)}"] = {"signals_complete": int(len(ok_sig)), "entries": int(len(cl)),
+                                   "status": cl["status"].value_counts().to_dict(),
                                    "entry_ok": int(cl["entry_ok"].sum()), "entry_and_price_ok": int((cl["entry_ok"] & cl["price_ok"]).sum()),
                                    "universe": int(cl["universe"].sum()),
                                    "entry_delay_h_median": round(float((cl["capture_start_ts"] - cl["due_ts"]).median()) / 3600, 2) if len(cl) else None,
                                    "realised_latency_h_quantiles": {str(q): round(float(cl["latency_real_s"].quantile(q)) / 3600, 2) for q in (0.1, 0.5, 0.9)} if len(cl) else {}}
-            L0 = (c["latency_s"].astype(float) == float(spec["primary_latency_s"]))
-            un = c[L0 & (c["role"] == "skilled") & c["universe"]]
-            u = c[L0 & (c["role"] == "skilled") & c["primary_set"]]
-            uc = c[L0 & (c["role"] == "control") & c["primary_set"]]
-            if len(u):
+            L0 = float(spec["primary_latency_s"])
+            lim0 = cap_last - BATCH_RECEIPT_SLACK_S - L0 - max_delay
+            days0 = int((starts <= lim0).sum()) * span / 86400.0
+            c0 = c[(c["latency_s"].astype(float) == L0) & (c["_bstart"].to_numpy(float) <= lim0)]
+            un = c0[(c0["role"] == "skilled") & c0["universe"]]
+            u = c0[(c0["role"] == "skilled") & c0["primary_set"]]
+            uc = c0[(c0["role"] == "control") & c0["primary_set"] & c0["parent_id"].isin(set(u["signal_id"]))]
+            if len(u) and days0 > 0:
                 p = u["ask_j"].astype(float).to_numpy()
                 sd_cal = float(np.sqrt(np.mean(p * (1 - p))))  # SD of (pay - ask) per share under calibration at entry
                 stake = float(u["stake_ps"].mean())
                 deff_ev = ca.deff_upper(u.groupby("cluster").size().to_numpy())
+                deff_w = ca.deff_upper(u.groupby("wallet").size().to_numpy())
                 deff_evw = ca.deff_upper(u.groupby(["cluster", "wallet"]).size().to_numpy())
+                deff_2w = deff_ev + deff_w - deff_evw  # two-way (event, wallet) with correlation 1 in each dimension
                 wm = u.groupby("wallet").size().sort_values(ascending=False).to_numpy()
                 cost = float(u["cost_ps"].mean())
-                pairs = int(u["signal_id"].isin(set(uc["parent_id"])).sum())
+                m_ctl = uc.groupby("parent_id").size()
+                pairs = int(len(m_ctl))
+                infl_c = float(np.sqrt(1.0 + np.mean(1.0 / m_ctl.to_numpy(float)))) if pairs else math.nan
+                ev_pairs = int(u.loc[u["signal_id"].isin(set(m_ctl.index)), "cluster"].nunique())
                 o["primary_set_L0"] = {
-                    "n": int(len(u)), "uncapped_universe_n": int(len(un)), "per_day": round(len(u) / days, 2),
-                    "events": int(u["cluster"].nunique()), "wallets": int(len(wm)),
+                    "days_used": round(days0, 3), "n": int(len(u)), "uncapped_universe_n": int(len(un)),
+                    "per_day": round(len(u) / days0, 2), "events": int(u["cluster"].nunique()), "wallets": int(len(wm)),
                     "top1_wallet_share": round(float(wm[0] / wm.sum()), 3), "top10_wallet_share": round(float(wm[:10].sum() / wm.sum()), 3),
-                    "deff_event_icc1": round(deff_ev, 2), "deff_event_x_wallet_icc1": round(deff_evw, 2),
+                    "deff_event_icc1": round(deff_ev, 2), "deff_wallet_icc1": round(deff_w, 2),
+                    "deff_event_x_wallet_icc1": round(deff_evw, 2), "deff_twoway_icc1": round(deff_2w, 2),
                     "mean_stake": round(stake, 4), "sd_per_share_calibrated": round(sd_cal, 4),
                     "mean_cost_ps": round(cost, 4), "mean_cost_per_dollar": round(cost / stake, 4),
                     "days_to_end_median": round(float(((u["end_ts"] - u["row_received_ts"]) / 86400).median()), 2),
                     "ask_bands": {str(k): int(v) for k, v in pd.cut(p, [0.05, 0.35, 0.65, 0.951], right=False, labels=["long_shot", "middle", "favourite"]).value_counts().items()},
                     "buy_share": round(float((u["side"].astype(int) > 0).mean()), 3),
                     "category": u["fee_category"].astype(str).str.split(":").str[0].value_counts().head(8).to_dict(),
-                    "controls_in_primary_set": int(len(uc)), "skilled_with_control": pairs}
-                o["primary_set_L0"]["mde_per_window"] = {}
-                for wd_days in (14, 21):
-                    n = len(u) / days * wd_days
-                    npair = pairs / days * wd_days
-                    o["primary_set_L0"]["mde_per_window"][f"{wd_days}d"] = {
-                        "n": round(n), "pairs": round(npair),
+                    "controls_in_primary_set": int(len(uc)), "pairs": pairs, "pair_events": ev_pairs,
+                    "control_sd_inflation": round(infl_c, 4) if pairs else None}
+                scale = proj_days / days0
+                n, npair = len(u) * scale, pairs * scale
+                proj = {"days": proj_days, "n": round(n), "events": round(u["cluster"].nunique() * scale),
+                        "pairs": round(npair), "pair_events": round(ev_pairs * scale),
                         "mde_N_deff1": round(ca.mde(n, sd_cal, stake, 1.0), 4),
                         "mde_N_event_icc1": round(ca.mde(n, sd_cal, stake, deff_ev), 4),
-                        "mde_N_event_x_wallet_icc1": round(ca.mde(n, sd_cal, stake, deff_evw), 4),
-                        "mde_N_wallet_icc1_n_eff_wallets": round(ca.mde(len(wm), sd_cal, stake, 1.0), 4),
-                        "mde_C_event_icc1_K3": round(ca.mde(npair, sd_cal * np.sqrt(1 + 1 / 3), stake, deff_ev), 4)}
+                        "mde_N_twoway_icc1": round(ca.mde(n, sd_cal, stake, deff_2w), 4),
+                        "mde_C_event_icc1": round(ca.mde(npair, sd_cal * infl_c, stake, deff_ev), 4) if pairs else None}
+                o["primary_set_L0"]["projection_21d"] = proj
+                if arm == spec["universe"]["arm"]:
+                    o["primary_set_L0"]["gates"] = gate_eval({**proj, "mde_C_event_icc1": proj["mde_C_event_icc1"] or math.inf}, spec)
         out[arm] = o
     return out
 
@@ -252,6 +335,7 @@ def main(argv=None) -> int:
     c.add_argument("--end", required=True)
     c.add_argument("--work", default="/tmp/copyskill/census")
     c.add_argument("--keep", action="store_true")
+    c.add_argument("--out", default=None, help="also write the census JSON here (refuses to overwrite)")
     a = ap.parse_args(argv)
     return {"freeze": cmd_freeze, "run": cmd_run, "label": cmd_label, "analyze": cmd_analyze, "status": cmd_status,
             "census": cmd_census}[a.cmd](a)

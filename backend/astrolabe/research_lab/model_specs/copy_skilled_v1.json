@@ -57,6 +57,15 @@
  "holm": {"k": 2, "alpha": 0.05, "tests": ["E026-N", "E026-C"], "direction": "> 0 (one-sided)"},
  "floors": {"min_copies": 200, "min_events": 40, "min_pairs": 150, "max_missing_sample_share": 0.2},
  "materiality_floor_ppd": 0.03,
+ "census_gates": {
+  "fixed": "2026-10-21, before any census number (LIVE_TESTS_COPY.md 7.6); counts and entry quotes only, sidecar arm, primary set at L = 0, projected linearly to 21 days from the usable batches read",
+  "g1_min_copies": 400,
+  "g1_min_events": 80,
+  "g2_min_pairs": 300,
+  "g2_min_pair_events": 80,
+  "g3_max_mde_N_event_ppd": 0.10,
+  "rule": "G1 = projected primary-set copies >= g1_min_copies and events >= g1_min_events; G2 = projected pairs >= g2_min_pairs and pair events >= g2_min_pair_events. G1 and G2 pass: register E026-N and E026-C (k = 2). G1 passes, G2 fails: E026-C is dropped before the pin (k = 1, recorded in the ledger). G1 fails: not registered as designed; a redesign needs a written justification and a new review. G3 (planning MDE of E026-N with event correlation 1 <= 0.10 $/$) does not block; a failure adds the label 'low-power (a null is uninformative)'. Gates are 2 x the analysis floors to leave room for censoring and rate drift; they are never changed after the census."
+ },
  "planning": null,
  "code_sha256": {}
 }

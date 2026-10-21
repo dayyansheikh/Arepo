@@ -592,3 +592,96 @@ def test_queue_drafts_valid():
         if j["resources"]["lane"] == "net":
             assert j["resources"]["mem_mb"] < 500  # blackout exemption, never blocks the cpu lane
     assert json.loads((repo / "docs/research_lab/queue/drafts/q0543_copy_analyze.json").read_text())["not_before"] == cs.ANALYSIS_NOT_BEFORE
+
+
+# --- fee exponent and the planning census ---------------------------------------------------------------------------------
+
+
+def test_fee_exponent_is_conservative():
+    imp = {"10k-100k": 0.0}
+    base = {"best_bid": [0.30, 0.30, 0.30], "best_ask": [0.32, 0.32, 0.32], "copy_token": [0, 0, 0], "fee_category": "politics",
+            "fee_schedule_rate": [0.04] * 3, "fees_enabled": "1", "liquidity": [50000.0] * 3}
+    c = ca.copy_economics(pd.DataFrame({**base, "fee_exponent": [1.0, 2.0, 0.5]}), imp)
+    p = 0.32
+    rate = c["rate"].iat[0]
+    assert c["fee_ps"].iat[0] == pytest.approx(rate * p * (1 - p))
+    assert c["fee_ps"].iat[1] == pytest.approx(rate * p * (1 - p))  # exponent > 1 never lowers the fee below linear
+    assert c["fee_ps"].iat[2] == pytest.approx(rate * (p * (1 - p)) ** 0.5)
+    c_missing = ca.copy_economics(pd.DataFrame(base), imp)
+    assert c_missing["fee_ps"].iat[0] == pytest.approx(c["fee_ps"].iat[0])
+
+
+def _runner():
+    import importlib.util
+    path = Path(__file__).resolve().parents[2] / "scripts" / "run_copy_skilled.py"
+    sp_ = importlib.util.spec_from_file_location("run_copy_skilled_t", path)
+    mod = importlib.util.module_from_spec(sp_)
+    sp_.loader.exec_module(mod)
+    return mod
+
+
+def test_census_bounds_no_exits_no_late_captures(tmp_path):
+    snaps, samples, prints, root, caps, _ = _tree(tmp_path)
+    hi = T0 + 0.5 * H + 2 * H * 5  # captures c0..c4 may be opened, c5 onwards never
+    cs.run_once(root=root, snapshot_root=snaps, sample_root=samples, prints_root=prints, spec=spec(), now=T0 + 40 * H,
+                max_items=1000, log=lambda s: None, capture_hi=hi, exits=False)
+    ent = cs.read_store(root, "entries")
+    assert (ent["kind"] == "entry").all()
+    opened = {p.name[:-7] for p in (root / "entries").glob("*.csv.gz")}
+    assert opened == set(caps[:5])
+    # the registered recorder (defaults) records exits from the same tree
+    root2 = tmp_path / "out2"
+    cs.write_once_csv(root2 / "skillset" / "skillset.csv.gz", skill_frame(["S1"], ["N1", "N2", "N3"]))
+    cs.run_once(root=root2, snapshot_root=snaps, sample_root=samples, prints_root=prints, spec=spec(), now=T0 + 40 * H,
+                max_items=1000, log=lambda s: None)
+    assert (cs.read_store(root2, "entries")["kind"] == "exit").any()
+
+
+def test_census_counts_rates_and_gates(tmp_path):
+    rc = _runner()
+    snaps, samples, prints, root, caps, (s1, s2) = _tree(tmp_path)
+    sp = spec()
+    cs.run_once(root=root, snapshot_root=snaps, sample_root=samples, prints_root=prints, spec=sp, now=T0 + 40 * H,
+                max_items=1000, log=lambda s: None, exits=False)
+    batches = rc.read_batches(root / "passes.jsonl")
+    assert batches["sidecar"] == [rc.batch_start(s1), rc.batch_start(s2)]
+    sig, ent = cs.read_store(root, "signals"), cs.read_store(root, "entries")
+    out = rc.census_counts(sig, ent, sp, batches, cap_last=T0 + 0.5 * H + 2 * H * 19)
+    sc = out["sidecar"]
+    assert sc["batches_read"] == 2 and sc["days_read"] == pytest.approx(4 / 24, abs=1e-3)
+    assert sc["skilled_signals"] == 2 and sc["per_day"] == pytest.approx(12.0)
+    assert sc["L0"]["signals_complete"] == 2 and sc["L86400"]["signals_complete"] == 2
+    ps = sc["primary_set_L0"]
+    assert ps["n"] == 2 and ps["events"] == 2 and ps["projection_21d"]["n"] == round(2 * 21 / (4 / 24))
+    assert set(ps["gates"]) >= {"G1_copies_events", "G2_pairs", "G3_mde_N_event", "decision"}
+    # a short capture horizon leaves the 24 h latency incomplete: those signals are not counted as unavailable entries
+    out2 = rc.census_counts(sig, ent, sp, batches, cap_last=T0 + 10 * H)
+    assert out2["sidecar"]["L86400"]["signals_complete"] == 0 and out2["sidecar"]["L0"]["signals_complete"] == 2
+    for k in ("best_bid", "pay0", "net_ps"):
+        assert k not in json.dumps(out)  # quote levels enter only through aggregates; no payout field
+
+
+def test_census_gate_rule():
+    rc = _runner()
+    sp = spec()
+    g = sp["census_gates"]
+    ok = {"n": g["g1_min_copies"], "events": g["g1_min_events"], "pairs": g["g2_min_pairs"],
+          "pair_events": g["g2_min_pair_events"], "mde_N_event_icc1": 0.05}
+    assert rc.gate_eval(ok, sp)["decision"] == "register_k2"
+    assert rc.gate_eval({**ok, "pairs": g["g2_min_pairs"] - 1}, sp)["decision"] == "drop_E026C_register_k1"
+    assert rc.gate_eval({**ok, "events": g["g1_min_events"] - 1}, sp)["decision"] == "do_not_register_redesign"
+    assert rc.gate_eval({**ok, "pair_events": g["g2_min_pair_events"] - 1}, sp)["decision"] == "drop_E026C_register_k1"
+    low = rc.gate_eval({**ok, "mde_N_event_icc1": 0.2}, sp)
+    assert low["decision"] == "register_k2" and low["label"].startswith("low-power")
+    assert g["g1_min_copies"] == 2 * sp["floors"]["min_copies"] and g["g2_min_pairs"] == 2 * sp["floors"]["min_pairs"]
+    assert g["g1_min_events"] == g["g2_min_pair_events"] == 2 * sp["floors"]["min_events"]
+
+
+def test_census_refuses_late_window_and_overwrite(tmp_path):
+    rc = _runner()
+    assert rc.main(["census", "--start", "2026-10-20T00:00:00Z", "--end", "2026-10-22T06:00:00Z", "--work", str(tmp_path / "w")]) == 2
+    out = tmp_path / "census.json"
+    out.write_text("{}")
+    assert rc.main(["census", "--start", "2026-10-18T04:00:00Z", "--end", "2026-10-21T04:00:00Z", "--work", str(tmp_path / "w2"),
+                    "--out", str(out)]) == 2
+    assert out.read_text() == "{}" and not (tmp_path / "w2").exists()
