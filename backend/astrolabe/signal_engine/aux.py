@@ -183,6 +183,90 @@ def rewards_features(ext: pd.DataFrame | None, f: pd.DataFrame, cap_start: float
 REWARD_EXT_COLS = ["market_id", "rewards_min_size", "rewards_max_spread", "clob_rewards"]
 
 
+# ---------------------------------------------------------------------------------------------- movetype family
+# How the last 2 h move happened (CANDIDATES.md C07, replicated in HB1-R; C12 move over spread): traded or quote-only,
+# and for quote-only moves whether both quotes moved together (parallel re-centering), one quote moved (bounce) or the
+# spread changed. Classes follow LIVE_TESTS_3.md section 2 (E015) on the engine's own float32 files, so the tolerances
+# are wider than E015's (the engine's own definition, not E015's frozen one). Inputs: the quotes and features files of
+# capture k and of the previous slot k - 1 only (engine-own files; no snapshot rows, so archived captures still get
+# a table). Embargo token `movetype` (+ `book`) until 2026-11-22: shadows E015 (LT3, analysis 2026-11-15T12Z).
+MOVETYPE_COLUMNS = ["mt_db", "mt_da", "mt_dltp", "mt_dlogvol", "mt_traded", "mt_never", "mt_ambig", "mt_q_still",
+                    "mt_q_parallel", "mt_q_onesided", "mt_q_spread", "mt_x_spread", "mt_x_traded", "mt_x_parallel"]
+MT_LTP_TOL = 1e-5  # ltp = (ltp - mid) + mid in float32: error ~1e-7, ticks >= 1e-4
+MT_VOL_ABS, MT_VOL_REL = 0.01, 4e-6  # V+ / V-: |d volume24hr| beyond $0.01 and ~4 float32 ulps of log1p(volume)
+MT_STILL, MT_PAR, MT_PAR_GAP = 0.0005, 0.005, 0.005  # E015 thresholds (quote unchanged, parallel size and gap)
+MT_EPS = 1e-6  # float32 slack on the thresholds above
+
+
+def movetype_features(f: pd.DataFrame, q: pd.DataFrame, prev_q: pd.DataFrame | None, prev_f: pd.DataFrame | None) -> pd.DataFrame:
+    """Per eligible market (rows of ``f``; ms_mid, ms_spread, ms_ltp_minus_mid, ms_log_vol24): class of the move from
+    k - 1 to k. ``q`` / ``prev_q``: quotes frames of k and k - 1 (market_id, bid, ask, st). ``prev_f``: features of
+    k - 1 (only markets eligible there). Everything is NaN when the market is not two-sided at k - 1 or not in
+    ``prev_f``; class indicators are 0/1 where the class is decidable and NaN where it is not."""
+    n = len(f)
+    out = pd.DataFrame({c: np.full(n, np.nan, np.float32) for c in MOVETYPE_COLUMNS})
+    if n == 0 or prev_q is None or prev_f is None:
+        return out
+    ids = f["market_id"].to_numpy(np.int64)
+    cur = q[q["st"] == 0].drop_duplicates("market_id").set_index("market_id").reindex(ids)
+    pq_ = prev_q[prev_q["st"] == 0].drop_duplicates("market_id").set_index("market_id").reindex(ids)
+    pf = prev_f.drop_duplicates("market_id").set_index("market_id").reindex(ids)
+    b1, a1 = cur["bid"].to_numpy(np.float64), cur["ask"].to_numpy(np.float64)
+    b0, a0 = pq_["bid"].to_numpy(np.float64), pq_["ask"].to_numpy(np.float64)
+    mid1, mid0 = f["ms_mid"].to_numpy(np.float64), pf["ms_mid"].to_numpy(np.float64)
+    ltp1 = f["ms_ltp_minus_mid"].to_numpy(np.float64) + mid1
+    ltp0 = pf["ms_ltp_minus_mid"].to_numpy(np.float64) + mid0
+    v1, v0 = np.expm1(f["ms_log_vol24"].to_numpy(np.float64)), np.expm1(pf["ms_log_vol24"].to_numpy(np.float64))
+    with np.errstate(invalid="ignore"):
+        ok = np.isfinite(b0) & np.isfinite(a0) & np.isfinite(b1) & np.isfinite(a1) & np.isfinite(mid0)
+        db, da = b1 - b0, a1 - a0
+        x = (b1 + a1) / 2.0 - (b0 + a0) / 2.0
+        h0, h1 = np.isfinite(ltp0), np.isfinite(ltp1)
+        dltp = ltp1 - ltp0
+        lchg = (h0 & h1 & (np.abs(dltp) > MT_LTP_TOL)) | (~h0 & h1)
+        dv = v1 - v0
+        tol = np.maximum(MT_VOL_ABS, MT_VOL_REL * np.fmax(np.abs(v1), np.abs(v0)))
+        vplus, vminus, vknown = dv > tol, dv < -tol, np.isfinite(dv)
+        never = ok & ~h0 & ~h1
+        traded = ok & ~never & (lchg | vplus)
+        ambig = ok & ~never & ~traded & ((h0 & ~h1) | vminus)
+        qonly = ok & ~never & ~traded & ~ambig & vknown
+        decided = never | traded | ambig | qonly
+        adb, ada = np.abs(db), np.abs(da)
+        still = qonly & (adb <= MT_STILL + MT_EPS) & (ada <= MT_STILL + MT_EPS)
+        par = (qonly & ~still & (np.sign(db) == np.sign(da)) & (np.sign(db) == np.sign(x)) & (adb >= MT_PAR - MT_EPS)
+               & (ada >= MT_PAR - MT_EPS) & (np.abs(db - da) <= MT_PAR_GAP + MT_EPS))
+        one = qonly & ~still & ~par & ((adb <= MT_STILL + MT_EPS) | (ada <= MT_STILL + MT_EPS))
+        sprd = qonly & ~still & ~par & ~one & (np.sign(db) != np.sign(da))
+        sp = f["ms_spread"].to_numpy(np.float64)
+        out["mt_db"] = np.where(ok, db, np.nan)
+        out["mt_da"] = np.where(ok, da, np.nan)
+        out["mt_dltp"] = np.where(ok & h0 & h1, dltp, np.nan)
+        out["mt_dlogvol"] = np.where(ok, f["ms_log_vol24"].to_numpy(np.float64) - pf["ms_log_vol24"].to_numpy(np.float64), np.nan)
+        for col, m in (("mt_traded", traded), ("mt_never", never), ("mt_ambig", ambig), ("mt_q_still", still),
+                       ("mt_q_parallel", par), ("mt_q_onesided", one), ("mt_q_spread", sprd)):
+            out[col] = np.where(decided, m.astype(float), np.nan)
+        out["mt_x_spread"] = np.where(ok & (sp > 0), x / np.where(sp > 0, sp, 1.0), np.nan)
+        out["mt_x_traded"] = np.where(decided, x * traded, np.nan)
+        out["mt_x_parallel"] = np.where(decided, x * par, np.nan)
+    return out.astype(np.float32)
+
+
+MT_FEATURE_COLS = ["market_id", "ms_mid", "ms_spread", "ms_ltp_minus_mid", "ms_log_vol24"]
+MT_QUOTE_COLS = ["market_id", "bid", "ask", "st"]
+
+
+def _movetype_builder(ctx: dict) -> pd.DataFrame:
+    paths, meta, prev = ctx["paths"], ctx["meta"], ctx["prev"]
+    f = S.read_parquet(paths.features(meta["capture_id"]), MT_FEATURE_COLS)
+    q = S.read_parquet(paths.quotes(meta["capture_id"]), MT_QUOTE_COLS)
+    prev_q = prev_f = None
+    if prev is not None and paths.quotes(prev["capture_id"]).exists() and paths.features(prev["capture_id"]).exists():
+        prev_q = S.read_parquet(paths.quotes(prev["capture_id"]), MT_QUOTE_COLS)
+        prev_f = S.read_parquet(paths.features(prev["capture_id"]), MT_FEATURE_COLS)
+    return movetype_features(f, q, prev_q, prev_f)
+
+
 def read_reward_ext(cap_dir) -> pd.DataFrame | None:
     p = Path(cap_dir) / "rows_ext.csv.gz"
     if not p.exists():
@@ -200,14 +284,17 @@ def read_reward_ext(cap_dir) -> pd.DataFrame | None:
 
 
 # ---------------------------------------------------------------------------------------------- registry
-# A builder takes a context dict: rows (snapshot rows), f (features key columns + ms_mid, ms_spread), prev_mid
-# (previous slot's mids or None), cap_dir, cap_start.
+# A builder takes a context dict: rows (snapshot rows; None for a family with needs_rows False), f (features key
+# columns + ms_mid, ms_spread), prev_mid (previous slot's mids or None), cap_dir, cap_start, paths, meta, prev (the
+# previous slot's index entry or None).
 
 AUX_FAMILIES: dict[str, dict] = {
     "event": {"version": "se-aux-event-v1", "columns": EVENT_COLUMNS,
               "builder": lambda ctx: event_features(ctx["rows"], ctx["f"], ctx["prev_mid"])},
     "rewards": {"version": "se-aux-rewards-v1", "columns": REWARDS_COLUMNS,
                 "builder": lambda ctx: rewards_features(read_reward_ext(ctx["cap_dir"]), ctx["f"], ctx["cap_start"])},
+    "movetype": {"version": "se-aux-movetype-v1", "columns": MOVETYPE_COLUMNS, "needs_rows": False,
+                 "builder": _movetype_builder},
 }
 AUX_COLUMNS: dict[str, list[str]] = {k: v["columns"] for k, v in AUX_FAMILIES.items()}
 AUX_ALL: list[str] = [c for cols in AUX_COLUMNS.values() for c in cols]
@@ -222,21 +309,22 @@ def build_aux(paths: S.Paths, family: str, meta: dict, cap_dir, index: dict | No
     """Write one capture's aux table (write-once). None if the inputs are gone or it already exists."""
     cid = meta["capture_id"]
     out_p = aux_path(paths, family, cid)
-    if out_p.exists() or not (cap_dir / "rows.csv.gz").exists():
+    spec = AUX_FAMILIES[family]
+    needs_rows = spec.get("needs_rows", True)
+    if out_p.exists() or (needs_rows and (cap_dir is None or not (cap_dir / "rows.csv.gz").exists())):
         return None
     fp = paths.features(cid)
     f = S.read_parquet(fp, KEY_COLUMNS + ["ms_mid", "ms_spread"])
-    rows = read_rows(cap_dir)
-    spec = AUX_FAMILIES[family]
+    rows = read_rows(cap_dir) if needs_rows else None
     prev = (index or {}).get(meta["slot"] - 1)
     prev_mid = None
     if prev is not None and paths.quotes(prev["capture_id"]).exists():
         prev_mid = mid_series(S.read_parquet(paths.quotes(prev["capture_id"]), ["market_id", "bid", "ask", "st"]))
     a = spec["builder"]({"rows": rows, "f": f, "prev_mid": prev_mid, "cap_dir": cap_dir,
-                         "cap_start": S.epoch(meta["started_utc"])})
+                         "cap_start": S.epoch(meta["started_utc"]), "paths": paths, "meta": meta, "prev": prev})
     tab = pd.concat([f[["market_id"]].reset_index(drop=True), a.reset_index(drop=True)], axis=1)
     md = {"capture_id": cid, "slot": meta["slot"], "aux_family": family, "aux_version": spec["version"],
-          "features_sha256": S.sha256_file(fp), "rows_sha256": S.sha256_file(cap_dir / "rows.csv.gz"),
+          "features_sha256": S.sha256_file(fp), "rows_sha256": S.sha256_file(cap_dir / "rows.csv.gz") if needs_rows else None,
           "prev_capture_id": prev["capture_id"] if prev_mid is not None else None, "written_utc": S.iso(S.now_ts()), "code_commit": S.git_commit()}
     if not S.write_once_parquet(out_p, tab, md):
         return None
@@ -259,12 +347,13 @@ def run_aux(paths: S.Paths, max_items: int = 4) -> dict:
             if aux_path(paths, fam, cid).exists():
                 continue
             cap = caps.get(cid)
-            if cap is None or not (cap["dir"] / "rows.csv.gz").exists():
+            has_rows = cap is not None and (cap["dir"] / "rows.csv.gz").exists()
+            if AUX_FAMILIES[fam].get("needs_rows", True) and not has_rows:
                 gone += 1
                 continue
             if len(written) >= max_items:
                 continue
-            r = build_aux(paths, fam, m, cap["dir"], index)
+            r = build_aux(paths, fam, m, cap["dir"] if cap is not None else None, index)
             if r:
                 written.append({k: r[k] for k in ("capture_id", "family", "n_rows")})
     S.save_state(paths, state)
@@ -320,4 +409,4 @@ def check_spec_aux(spec: dict) -> str | None:
 
 
 __all__ = ["AUX_FAMILIES", "AUX_COLUMNS", "AUX_ALL", "MODEL_FAMILY_COLUMNS", "aux_path", "build_aux", "run_aux",
-           "aux_sources", "read_features", "spec_aux_families", "check_spec_aux", "event_features"]
+           "aux_sources", "read_features", "spec_aux_families", "check_spec_aux", "event_features", "movetype_features"]

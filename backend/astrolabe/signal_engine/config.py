@@ -88,4 +88,6 @@ EMBARGO = (
      "why": "liquidity-reward flag used as control / S3 in the E020 draft (LT4 proposed 2026-11-17T12Z); added 2026-10-21; moved from 11-18 the same day for LT5 R (draft)"},
     {"token": "event", "until": "2026-11-22T00:00:00Z", "tests": ["LT5-F"],
      "why": "event-sibling moves in LT5 F (draft, CH184; challenger R1 ruling 2: before se8 shows any score); added 2026-10-21 before any event score was computed or shown"},
+    {"token": "movetype", "until": "2026-11-22T00:00:00Z", "tests": ["E015"],
+     "why": "traded versus quote-only 2 h moves (CANDIDATES C07) shadow E015 (LT3 registered 2026-10-21, analysis not before 2026-11-15T12Z); same date as book (E015's token); added 2026-10-21 with se14_lgbm_movetype before any movetype score was computed or shown"},
 )

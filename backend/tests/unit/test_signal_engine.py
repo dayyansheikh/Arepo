@@ -495,6 +495,63 @@ def test_rewards_features_hand_example():
     assert np.isnan(A.rewards_features(None, f, 0.0).to_numpy(float)).all()
 
 
+def test_movetype_features_hand_example():
+    # markets: 1 traded (ltp changed), 2 parallel quote-only, 3 one-sided quote-only, 4 never traded,
+    # 5 ambiguous (volume rolled off, no visible trade), 6 not two-sided at k - 1, 7 not eligible at k - 1, 8 still
+    f = pd.DataFrame({"market_id": [1, 2, 3, 4, 5, 6, 7, 8],
+                      "ms_mid": [0.53, 0.51, 0.505, 0.4, 0.3, 0.6, 0.7, 0.2],
+                      "ms_spread": [0.02, 0.02, 0.01, 0.02, 0.02, 0.02, 0.02, 0.02],
+                      "ms_ltp_minus_mid": [0.0, -0.01, -0.005, np.nan, 0.0, 0.0, 0.0, 0.0],
+                      "ms_log_vol24": np.log1p([1000.0, 500.0, 500.0, np.nan, 400.0, 10.0, 10.0, 50.0])}).astype(
+        {c: np.float32 for c in ("ms_mid", "ms_spread", "ms_ltp_minus_mid", "ms_log_vol24")})
+    q = pd.DataFrame({"market_id": [1, 2, 3, 4, 5, 6, 7, 8], "bid": [0.52, 0.50, 0.50, 0.39, 0.29, 0.59, 0.69, 0.19],
+                      "ask": [0.54, 0.52, 0.51, 0.41, 0.31, 0.61, 0.71, 0.21], "st": 0}).astype({"bid": np.float32, "ask": np.float32})
+    pq_ = pd.DataFrame({"market_id": [1, 2, 3, 4, 5, 6, 7, 8], "bid": [0.49, 0.48, 0.48, 0.38, 0.28, np.nan, 0.69, 0.19],
+                        "ask": [0.51, 0.50, 0.51, 0.40, 0.30, np.nan, 0.71, 0.21], "st": [0, 0, 0, 0, 0, 3, 0, 0]}).astype(
+        {"bid": np.float32, "ask": np.float32})
+    pf = f[f["market_id"] != 7].copy()
+    pf["ms_mid"] = np.float32([0.50, 0.49, 0.495, 0.39, 0.29, 0.6, 0.2])
+    pf["ms_ltp_minus_mid"] = np.float32([0.0, 0.01, 0.005, np.nan, 0.01, 0.0, 0.0])  # ltp 0.50, 0.50, 0.50, -, 0.30
+    pf["ms_log_vol24"] = np.log1p(np.float32([1000.0, 500.0, 500.0, np.nan, 450.0, 10.0, 50.0])).astype(np.float32)
+    a = A.movetype_features(f, q, pq_, pf)
+    cls = ["mt_traded", "mt_never", "mt_ambig", "mt_q_still", "mt_q_parallel", "mt_q_onesided", "mt_q_spread"]
+    got = a[cls].to_numpy(float)
+    np.testing.assert_array_equal(got[0], [1, 0, 0, 0, 0, 0, 0])
+    np.testing.assert_array_equal(got[1], [0, 0, 0, 0, 1, 0, 0])
+    np.testing.assert_array_equal(got[2], [0, 0, 0, 0, 0, 1, 0])
+    np.testing.assert_array_equal(got[3], [0, 1, 0, 0, 0, 0, 0])
+    np.testing.assert_array_equal(got[4], [0, 0, 1, 0, 0, 0, 0])
+    np.testing.assert_array_equal(got[7], [0, 0, 0, 1, 0, 0, 0])
+    assert np.isnan(a.iloc[5].to_numpy(float)).all() and np.isnan(a.iloc[6].to_numpy(float)).all()  # missing stays missing
+    np.testing.assert_allclose(a["mt_db"][:3], [0.03, 0.02, 0.02], atol=1e-6)
+    np.testing.assert_allclose(a["mt_da"][:3], [0.03, 0.02, 0.0], atol=1e-6)
+    np.testing.assert_allclose(a["mt_dltp"][:3], [0.03, 0.0, 0.0], atol=1e-5)
+    assert np.isnan(a["mt_dltp"].iat[3])
+    np.testing.assert_allclose(a["mt_x_spread"][:3], [1.5, 1.0, 1.0], rtol=1e-4)
+    np.testing.assert_allclose(a["mt_x_traded"][:3], [0.03, 0.0, 0.0], atol=1e-6)
+    np.testing.assert_allclose(a["mt_x_parallel"][:3], [0.0, 0.02, 0.0], atol=1e-6)
+    assert np.isnan(A.movetype_features(f, q, None, None).to_numpy(float)).all()  # first slot: no previous capture
+
+
+def test_movetype_family_builds_without_snapshot_rows(env):
+    w, paths = env
+    w.run(6)
+    build_all(paths)
+    idx = S.load_index(paths)
+    cap3 = idx[SLOT0 + 3]["capture_id"]
+    (w.root / "snapshots" / cap3 / "rows.csv.gz").unlink()  # archived: event / rewards gone, movetype still buildable
+    while A.run_aux(paths, max_items=50)["written"]:
+        pass
+    assert A.aux_path(paths, "movetype", cap3).exists() and not A.aux_path(paths, "event", cap3).exists()
+    f = A.read_features(paths, cap3)
+    assert f.attrs["aux_ok"]["movetype"] and np.isfinite(f["mt_db"].to_numpy(float)).any()
+    assert np.isnan(A.read_features(paths, idx[SLOT0]["capture_id"])["mt_db"].to_numpy(float)).all()  # no k - 1
+    import pyarrow.parquet as pq
+    md = json.loads(pq.read_schema(A.aux_path(paths, "movetype", cap3)).metadata[b"signal_engine"])
+    assert md["aux_version"] == "se-aux-movetype-v1" and md["rows_sha256"] is None
+    assert md["prev_capture_id"] == idx[SLOT0 + 2]["capture_id"]
+
+
 def test_rewards_family_embargoed_until_lt4():
     reg = SP.load_registry()
     e = SP.embargo_of(reg["models"]["se9_lr_rewards"], S.epoch("2026-10-22T00:00:00Z"))
@@ -548,8 +605,12 @@ def test_repo_registry_loads_and_embargo_assignment():
     assert emb["se8_lr_event"] == "2026-11-22T00:00:00Z" and emb["se10_lgbm_event"] == "2026-11-22T00:00:00Z"
     assert emb["se9_lr_rewards"] == "2026-11-22T00:00:00Z"
     assert emb["se11_lgbm_flow"] == "2026-11-22T00:00:00Z" and emb["se12_lgbm_tte"] == "2026-11-14T00:00:00Z"
-    assert emb["se13_lgbm_xvenue"] == "2026-11-04T00:00:00Z"
+    assert emb["se13_lgbm_xvenue"] == "2026-11-04T00:00:00Z" and emb["se14_lgbm_movetype"] == "2026-11-22T00:00:00Z"
+    assert "E015" in SP.embargo_of(reg["models"]["se14_lgbm_movetype"], t)["tests"]
     se1 = reg["models"]["se1_lgbm_mm"]
+    mt = reg["models"]["se14_lgbm_movetype"]
+    assert mt["learner"] == "lgbm" and mt["params"] == se1["params"] and mt["train"]["require_full_coverage"] is True
+    assert mt["families"] == ["market_state", "momentum", "movetype"] and set(mt["isolates"]) == {"movetype", "book"}
     for mid, lr in (("se11_lgbm_flow", "se2_lr_flow"), ("se12_lgbm_tte", "se5_lr_tte"), ("se13_lgbm_xvenue", "se4_lr_xvenue")):
         m, base = reg["models"][mid], reg["models"][lr]
         assert m["learner"] == "lgbm" and m["params"] == se1["params"] and m["train"]["window_days"] == se1["train"]["window_days"]
@@ -710,7 +771,7 @@ def test_cli_exit_codes_walkforward_and_dashboard(env, capsys):
     w.run(30)
     cli = _cli()
     base = ["--engine-root", str(paths.engine), "--dumps-root", str(w.root), "--spec-dir", str(paths.spec_dir)]
-    assert cli.main(["features", "--max-items", "40", *base]) == 0
+    assert cli.main(["features", "--max-items", "50", *base]) == 0  # aux budget 2 x 50 >= 30 captures x 3 families
     assert cli.main(["features", *base]) == C.TEMPFAIL  # nothing new
     assert cli.main(["predict", *base]) == C.TEMPFAIL  # no fit yet (and captures are old)
     assert cli.main(["refit", "--force", *base]) == 0

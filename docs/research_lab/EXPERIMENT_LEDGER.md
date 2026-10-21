@@ -3102,3 +3102,16 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   - mean conservative cost: 5.3c per dollar.
 - Next: fill the CENSUS-GATED values (`LIVE_TESTS_COPY.md` MDE table and the spec `planning` block), then challenger
   review, freeze q0540, pins, and registration before 2026-10-24T00:00Z.
+
+## Signal engine: hidden challenger se14_lgbm_movetype, 2026-10-21 ~14:30Z (signal-engine autopilot; nothing counted)
+- New aux family `movetype` (`se-aux-movetype-v1`; DESIGN_V1 §16) from CANDIDATES C07 + C12. It classifies the last
+  2 h move as traded, never-traded, ambiguous or quote-only (still / parallel / one-sided / spread-change), and adds
+  bid / ask / ltp / volume changes and move over spread. It reads only the engine's own quotes and features files of k
+  and k - 1.
+- Challenger `se14_lgbm_movetype`: LightGBM with se1's params. It is embargoed under the new token `movetype` (E015) and
+  under `book`, until 2026-11-22. E015's single analysis is not before 2026-11-15T12Z.
+- No movetype score has been computed or shown. Predictions are written once from its first fit. The walk-forward
+  skips it. No E015 file, pin or frozen artefact was touched.
+- Non-embargoed challenger count is unchanged (K = 2: se1, se7) until 11-04.
+- q0514 walk-forward: timeout 7200 -> 10800 s, plus a per-day progress line (host LightGBM fits are 8.5-10.5 min). No
+  change to fits or scoring.
