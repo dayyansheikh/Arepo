@@ -3400,3 +3400,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   It is declared with one prospective day scored, when 2b cannot be computed, and before any challenger could meet
   condition 1 (earliest 11-04). v1 never fired. Science review ACCEPT_WITH_FIXES (exact registry match, wording,
   edge-case tests), all applied. Forecast-quality rule only, no edge claim.
+- (20:12Z) **q0404 CB17 smoke: PASS** (all 18 criteria true: parts verify, CB13/CB16 pins, refusals, arm hash, age /
+  shift / interval / trailing-tercile / B no-mark / strata-selection fixtures, **exact reproduction of probes P1-P3**;
+  pass by family B, C, E). Ruling 6 (ii) met: the CB17 code freeze is accepted. Not counted (descriptive line).
+  **q0405 promoted** with `--base-sha256 56dc953e…` copied verbatim from q0380's write-once manifest (O12 ruling).
