@@ -552,6 +552,51 @@ def test_movetype_family_builds_without_snapshot_rows(env):
     assert md["prev_capture_id"] == idx[SLOT0 + 2]["capture_id"]
 
 
+def test_surprise_features_hand_example():
+    n_slots = A.SP_LOOKBACK + 1
+    H = np.full((3, n_slots), np.nan)
+    H[0] = 0.5  # never moves: every volatility 0, ratios undefined (0 / 0), never read as 1
+    steps = np.zeros(n_slots)
+    steps[-3:] = [0.01, -0.02, 0.02]  # three 2 h moves in the last 6 h, flat before
+    H[1] = 0.4 + np.cumsum(steps)
+    H[2, -2:] = [0.3, 0.31]  # only one diff: everything below its minimum count is missing
+    t = S.epoch("2026-10-21T12:31:00Z")  # a Wednesday
+    a = A.surprise_features(H, t)
+    np.testing.assert_allclose(a.loc[0, ["sp_rv6h", "sp_rv3d", "sp_rv7d"]].astype(float), [0, 0, 0])
+    assert np.isnan(a.loc[0, ["sp_r6h_24h", "sp_r24h_7d", "sp_r6h_7d"]].astype(float)).all()
+    rv6 = math.sqrt((0.01**2 + 0.02**2 + 0.02**2) / 3)
+    rv24 = math.sqrt((0.01**2 + 0.02**2 + 0.02**2) / 12)
+    rv7 = math.sqrt((0.01**2 + 0.02**2 + 0.02**2) / 84)
+    np.testing.assert_allclose(a.loc[1, ["sp_rv6h", "sp_rv7d"]].astype(float), [rv6, rv7], rtol=1e-4)
+    np.testing.assert_allclose(a.loc[1, ["sp_r6h_24h", "sp_r24h_7d", "sp_r6h_7d"]].astype(float), [rv6 / rv24, rv24 / rv7, rv6 / rv7], rtol=1e-4)
+    np.testing.assert_allclose(a.loc[1, "sp_maxabs24"], 0.02, rtol=1e-4)
+    assert np.isnan(a.loc[2, ["sp_rv6h", "sp_rv3d", "sp_rv7d", "sp_maxabs24"]].astype(float)).all()
+    assert (a["sp_dow"] == 2).all() and (a["sp_hour"] == 12).all()
+    # a mid older than the 7 d window (slot k - 85) does not enter any value
+    H2 = np.column_stack([np.full(3, 0.9), H])
+    np.testing.assert_array_equal(A.surprise_features(H2, t).to_numpy(), a.to_numpy())
+
+
+def test_surprise_family_reads_only_earlier_quotes(env):
+    w, paths = env
+    w.run(16)
+    build_all(paths)
+    idx = S.load_index(paths)
+    while A.run_aux(paths, max_items=50)["written"]:
+        pass
+    cap = idx[SLOT0 + 15]["capture_id"]
+    f = A.read_features(paths, cap)
+    assert f.attrs["aux_ok"]["surprise"]
+    # the 24 h ratio's denominator is the same quantity as the stored ms_rv24 (same quotes, same definition)
+    rv6, r = f["sp_rv6h"].to_numpy(float), f["sp_r6h_24h"].to_numpy(float)
+    ok = np.isfinite(r) & (r > 0)
+    assert ok.any()
+    np.testing.assert_allclose(rv6[ok] / r[ok], f["ms_rv24"].to_numpy(float)[ok], rtol=1e-4)
+    assert np.isnan(f["sp_rv7d"].to_numpy(float)).all()  # 15 earlier slots < 24 diffs: missing, never filled
+    first = A.read_features(paths, idx[SLOT0]["capture_id"])
+    assert np.isnan(first["sp_rv6h"].to_numpy(float)).all()
+
+
 def test_rewards_family_embargoed_until_lt4():
     reg = SP.load_registry()
     e = SP.embargo_of(reg["models"]["se9_lr_rewards"], S.epoch("2026-10-22T00:00:00Z"))
@@ -611,6 +656,9 @@ def test_repo_registry_loads_and_embargo_assignment():
     mt = reg["models"]["se14_lgbm_movetype"]
     assert mt["learner"] == "lgbm" and mt["params"] == se1["params"] and mt["train"]["require_full_coverage"] is True
     assert mt["families"] == ["market_state", "momentum", "movetype"] and set(mt["isolates"]) == {"movetype", "book"}
+    assert emb["se15_lgbm_surprise"] == "2026-11-12T00:00:00Z"
+    sp = reg["models"]["se15_lgbm_surprise"]
+    assert sp["learner"] == "lgbm" and sp["params"] == se1["params"] and sp["isolates"] == ["surprise"]
     for mid, lr in (("se11_lgbm_flow", "se2_lr_flow"), ("se12_lgbm_tte", "se5_lr_tte"), ("se13_lgbm_xvenue", "se4_lr_xvenue")):
         m, base = reg["models"][mid], reg["models"][lr]
         assert m["learner"] == "lgbm" and m["params"] == se1["params"] and m["train"]["window_days"] == se1["train"]["window_days"]
@@ -771,7 +819,7 @@ def test_cli_exit_codes_walkforward_and_dashboard(env, capsys):
     w.run(30)
     cli = _cli()
     base = ["--engine-root", str(paths.engine), "--dumps-root", str(w.root), "--spec-dir", str(paths.spec_dir)]
-    assert cli.main(["features", "--max-items", "50", *base]) == 0  # aux budget 2 x 50 >= 30 captures x 3 families
+    assert cli.main(["features", "--max-items", "60", *base]) == 0  # aux budget 2 x 60 >= 30 captures x 4 families
     assert cli.main(["features", *base]) == C.TEMPFAIL  # nothing new
     assert cli.main(["predict", *base]) == C.TEMPFAIL  # no fit yet (and captures are old)
     assert cli.main(["refit", "--force", *base]) == 0
