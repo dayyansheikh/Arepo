@@ -117,7 +117,10 @@ the MC1 failure (a 2.1M x 123 panel exhausted the 2 x 3.2 GB address-space cap):
 - **Output:** `leaderboard/<stamp>.json` (write-once, `evidence_role: prospective_engine`) with `rows`,
   `category_rows`, `label_states`, the promotion decision and `info`; `dashboard.json` for /lab.
 
-## 7. Promotion rule `se-promotion-v1` (pre-declared; `promotion.py`)
+## 7. Promotion rule `se-promotion-v1` (pre-declared; `promotion.py`; superseded by v2 on 2026-10-21, §20)
+
+v1 never fired: no challenger could meet condition 1 before 2026-11-04. The rule in force is v2 (§20), which is v1
+with a stricter condition 2.
 
 A challenger replaces the champion only if **all** hold on the day's prospective leaderboard:
 1. not embargoed; >= 14 distinct UTC days of paired primary-target scores in the 28-day window; first prospective
@@ -464,3 +467,38 @@ own row in the same capture, plus mean |2 h change| and |1 h change|. Science re
 event-clustered CI ignores). On the development walk-forward above it was **worse** than se1 on every direction target
 (dir_2h -0.0017, dir_6h -0.0022, dir_24h -0.0005 nats): about 12 distinct values a day are mostly capture-level noise
 the trees overfit. The code was removed; do not retry without a new argument (e.g. a much longer history of captures).
+
+## 20. Promotion rule `se-promotion-v2` (declared 2026-10-21 at its commit time, before any challenger can qualify)
+
+**Why.** The v1 CI (condition 2) clusters by Gamma event only. A shock shared by all markets on one day (a news day, a
+venue-wide move, a capture-level artefact) moves every event's gain together, so event clustering treats it as if it
+were independent evidence. The science review of the `regime` family (§19) flagged this. v2 fixes it before any
+challenger can be judged: the earliest possible v1 pass was 2026-11-04, and on 10-21 one day of scores exists.
+
+**What changes.** Only condition 2. It now needs BOTH of these, at the same level `1 - 0.05/K`:
+- **2a (v1, unchanged):** the event-clustered bootstrap percentile CI lower bound is > 0.
+- **2b (new):** `mean - t_{n_days-1} * sqrt(V_event + V_day) > 0` on dir_2h in the 28-day window, where:
+  - `V_g = G/(G-1) * sum_g (D_g - mean * N_g)^2 / N^2` is the linearised cluster-robust variance of the ratio mean over
+    G clusters (D_g = sum of the paired gains in cluster g, N_g = its rows, N = all rows);
+  - the event clusters are those of v1, and the day clusters are UTC origin days (the per-day sums the leaderboard
+    already keeps for `days_positive`);
+  - this is the Cameron-Gelbach-Miller (2011) two-way variance without its `- V_event x day` term. That term is a
+    cluster variance (>= 0), so leaving it out can only widen the interval relative to CGM, and the variance can never
+    come out negative. This is conservative relative to CGM, not a coverage guarantee (see Known limits);
+  - `t` uses `n_days - 1` degrees of freedom because the day clusters are few (14-28).
+- Ties: the largest 2b lower bound wins (v1 used 2a).
+- Unchanged: conditions 1 and 3-7 and every constant. Condition 5 (secondary-target loss veto) stays event-clustered
+  only. That is deliberate: the tighter interval makes the veto easier to trigger, which is the conservative direction.
+
+**Known limits.** Origin-day clusters do not fully separate overlapping labels: a dir_24h label from a late capture
+spans the next day. That is only a secondary target, and 2b is judged on dir_2h, where at most the last 2 h of a day
+cross midnight. Shocks that persist over several days are only partly covered. The day-level `days_positive` share
+(condition 3) is a second guard there.
+
+**Code.** `promotion.py` (`cluster_var`, `twoway_bound`, `RULE_VERSION = "se-promotion-v2"`). `registry.json`
+must declare exactly this rule: `evaluate` refuses to promote when the registry declares a different rule or none. The leaderboard
+metrics and `scoring_version` are unchanged. Tests: a day-shock case that v1 passes and v2 blocks; a steady gain
+passes both; one day and zero rows fail safe; a hand-computed `cluster_var`; the rule-mismatch refusal.
+Science review (2026-10-21): ACCEPT_WITH_FIXES (exact registry match, the "relative to CGM" wording, edge-case
+tests). All fixes are applied. It agrees that condition 5 stays event-only, and that the timing is legitimate
+because 2b cannot be computed with one day of scores.

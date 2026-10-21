@@ -3392,3 +3392,11 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   stays where it is as input. Window jobs read nothing from the old root. No code, rule, input or criterion changed
   (160 CB17 tests pass; argv parse-checked). q0404 retried. The dashboard approval is reduced to the general clearing of
   finished restore copies (data-dumps headroom).
+- (~20:40Z, signal engine) **Promotion rule `se-promotion-v2` declared** (DESIGN_V1 section 20; `promotion.py`;
+  `registry.json` `promotion_rule`). It is v1 plus condition 2b: the dir_2h gain also needs a two-way (event + UTC
+  origin day) lower bound `mean - t_{n_days-1} * sqrt(V_event + V_day) > 0`, using the CGM variance without the
+  intersection term (conservative relative to CGM), at the same Bonferroni level 1 - 0.05/K. Everything else is
+  unchanged; condition 5 stays event-only. Why: event clustering ignores shocks that every market shares within a day.
+  It is declared with one prospective day scored, when 2b cannot be computed, and before any challenger could meet
+  condition 1 (earliest 11-04). v1 never fired. Science review ACCEPT_WITH_FIXES (exact registry match, wording,
+  edge-case tests), all applied. Forecast-quality rule only, no edge claim.
