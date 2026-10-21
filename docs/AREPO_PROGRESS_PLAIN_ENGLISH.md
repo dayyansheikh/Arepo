@@ -1,38 +1,29 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-21 17:10 UTC+1
+**Last updated:** 2026-10-21 20:15 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **Autopilot:** a session has been running since about 15:00 UTC+1 (21 Oct).
-- **NEW: the copy-skilled-wallets test (E026) is REGISTERED (21 Oct; phone notes sent).**
-  - It asks whether copying wallets that were skilled in the past still pays on paper after AREPO's delay (a median
-    6.6 hours) and after trading costs (about 5 cents per dollar), and whether any gain comes from the wallets rather
-    than the kind of trade they make. Nothing is traded.
-  - Before registration, an independent challenger accepted it with 10 fixes; all were made and checked again. A memory
-    bug was found and fixed (the real recorder needs about 270 MB, not 1.4 GB). The list of 3,559 skilled wallets is now
-    frozen, and every code file is locked by a fingerprint.
-  - Collection runs 25 Oct to 15 Nov, with a single analysis after 6 Dec. No early looks. Expected result: most likely
-    "inconclusive" (the smallest effect it can detect, about 4 cents per dollar, is above the 3-cent bar it would need
-    to rule out).
-  - The test's code files are frozen until 7 Dec (noted in the project rules).
-- **NEW: a sixth group of planned live tests (LT6) passed its design review.** Four more ideas from the latest
-  new-ideas round:
-  - do quotes that refill after a move lean one way?
-  - do repeated same-size orders leave a footprint?
-  - do moves just after a market's deadline is extended behave differently?
-  - does a new sibling market wake up the older ones?
-
-  The independent challenger first asked for 12 changes. They were made and re-checked, and two last wording slips
-  were fixed. Next come the code and the counting checks; those decide which tests survive (probably 2 or 3).
-  Registration comes no earlier than 1 Nov, because one test must stay clear of LT4's data. Collection would run
-  about 16 Nov to 7 Dec.
-- **Bounce re-check (SB2-J4-R) finished: VOID.** Its own pre-set safety check (a shuffled-data placebo) failed for 2 of
-  its 5 tests, so by its rules no verdict is read. The 5 tests stay counted. No new run is planned; it is low priority.
-- **LT3 (E015) is registered.** Collection 24 Oct to 14 Nov, single analysis after 15 Nov.
+- **Autopilot:** a session has been running since about 19:55 UTC+1 (21 Oct).
+- **LT4 counting checks finished: one of three tests goes ahead (E022).**
+  - E022 asks whether displayed liquidity that cannot really be traded against tells us anything. It passed every
+    pre-set counting check.
+  - E020 (new orders versus cancellations) and E021 (how recent the last trade was) failed theirs: too few usable
+    cases, and too little power to see a half-cent effect. They are dropped before registration and do not count.
+  - Next: a small code tidy-up for the one remaining test, an independent freeze check, a size check on the server
+    (5-9 hours), then registration before 25 Oct so collection can start on 26 Oct.
+- **Three batch checks failed their population gates (recorded, nulls included):** batch 13-R (too few complete
+  frames and events), batch 14-W (58 markets where 150 were needed) and batch 15-P (37 pairs where 60 were needed).
+  Batch 14-W and 15-P count 2 tests each as "not testable"; 13-R will count 1 when its last job writes it.
+- **Fixed:** five batch 18 counting jobs were stuck in a retry loop because they asked for 20 GB of disk headroom for
+  tiny output files. They now ask for 0.25 GB and can run. Ten batch 18 job drafts were renumbered because their numbers
+  clashed with the signal engine's jobs.
+- **LT6 code, part 2 finished** (the recorder and the analysis entry point; 137 tests pass). Still waiting on E022's
+  registration date, as planned.
+- **Copy-skilled wallets (E026):** registered; collection starts 25 Oct (phone note then).
 - **Tonight (handled by later sessions):** LT5's counting jobs and seal (must run before 04:30 UTC+1), the batch 4/6/7/8
   seals after midnight UTC, and the **server resize to 2 CPU / 12 GB at about 03:40 UTC+1** (your approval). No
   deploys during 03:40-04:45 UTC+1. After the resize, the model run (MC1) is re-queued with the bigger memory.
@@ -60,6 +51,14 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 
 7. ~~More server memory for MC1~~ **APPROVED 21 Oct:** resize to 2 CPU / 12 GB (still free), scheduled automatically
    for 22 Oct about 03:40 UTC+1. MC1 is re-queued afterwards.
+
+8. **NEW (21 Oct): let Claude clear temporary restore copies on the server.** Batch 17's smoke check refuses to
+   run because a 925 MB restore copy (a hash-checked copy of data that is safe in the archive) sits inside batch 17's
+   folder, which has a 0.3 GB limit. The safety hook rightly stops Claude from moving or deleting anything in the data
+   folder. **Decision needed:** allow Claude to move that copy out of the batch 17 folder (nothing is lost), or to
+   delete it (it is in the archive). More generally, finished restore copies (about 9 GB now: batch 18 4.9 GB, LT4
+   3.0 GB, LT5 0.8 GB, batch 17 0.9 GB) will need clearing within about a week, because jobs stop at a 40 GB data
+   limit (now 30 GB). Batch 17 is not late yet (its window opens 26 Oct).
 
 ## 3. Usage plan (your schedule; reset times are your statement, not verified)
 | When | Plan |
