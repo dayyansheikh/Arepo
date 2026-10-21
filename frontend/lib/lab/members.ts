@@ -383,6 +383,9 @@ const SELF_AUDIT: Record<string, string> = {
   recovery_code_used: "unlocked with a recovery code",
   recovery_code_failed: "entered a wrong recovery code",
   recovery_codes_regenerated: "made new recovery codes",
+  claude_message_sent: "sent Claude a message",
+  claude_message_cancelled: "cancelled a message to Claude",
+  claude_command: "sent a Claude autopilot command",
 };
 
 function auditNickname(detail: string | null): string {

@@ -20,12 +20,24 @@ router = APIRouter(prefix="/api/lab", tags=["lab"])
 
 
 class CommandCreate(BaseModel):
-    target: Literal["queue", "autopilot"]
-    action: Literal["pause", "resume"]
+    # "queue" (research host) or an autopilot instance: "autopilot" (experiments, the original
+    # target) or "autopilot-<name>" (e.g. "autopilot-signal"). "start" is autopilot-only.
+    target: str = Field(pattern=r"^(queue|autopilot(-[a-z0-9]{1,24})?)$", max_length=40)
+    action: Literal["pause", "resume", "start"]
 
 
 class CommandResult(BaseModel):
     ok: bool
+    message: str = Field(default="", max_length=500)
+
+
+class MessageCreate(BaseModel):
+    target: str = Field(pattern=r"^autopilot(-[a-z0-9]{1,24})?$", max_length=40)
+    body: str = Field(min_length=1, max_length=service.MESSAGE_MAX_CHARS + 200)
+
+
+class MessageState(BaseModel):
+    state: Literal["delivered", "read", "failed"]
     message: str = Field(default="", max_length=500)
 
 
@@ -134,6 +146,34 @@ async def post_result(
     return Response(status_code=204)
 
 
+@router.get("/agent/messages")
+async def get_messages(
+    signed: tuple[str, bytes] = Depends(signed_source),
+    session: AsyncSession = Depends(get_async_session),
+) -> dict:
+    return await service.fetch_messages(session, signed[0], utcnow())
+
+
+@router.post("/agent/messages/{message_id}/status", status_code=204)
+async def post_message_status(
+    message_id: int,
+    signed: tuple[str, bytes] = Depends(signed_source),
+    session: AsyncSession = Depends(get_async_session),
+) -> Response:
+    try:
+        body = MessageState.model_validate_json(signed[1])
+    except ValueError as exc:
+        raise HTTPException(422, "invalid status body") from exc
+    try:
+        await service.record_message_state(session, signed[0], message_id, body.state,
+                                           body.message, utcnow())
+    except service.MessageNotFound as exc:
+        raise HTTPException(404, "message not found") from exc
+    except service.MessageConflict as exc:
+        raise HTTPException(409, str(exc)) from exc
+    return Response(status_code=204)
+
+
 @router.get("/dashboard")
 async def get_dashboard(
     _user: User = Depends(owner),
@@ -150,6 +190,38 @@ async def post_command(
 ) -> dict:
     try:
         return await service.create_command(session, body.target, body.action,
-                                            str(user.id), utcnow())
+                                            str(user.id), utcnow(), actor_email=user.email)
+    except service.CommandInvalid as exc:
+        raise HTTPException(422, str(exc)) from exc
     except service.RateLimited as exc:
         raise HTTPException(429, "too many commands") from exc
+
+
+@router.post("/messages", status_code=201)
+async def post_message(
+    body: MessageCreate,
+    user: User = Depends(owner),
+    session: AsyncSession = Depends(get_async_session),
+) -> dict:
+    try:
+        return await service.create_message(session, body.target, body.body, str(user.id),
+                                            user.email, utcnow())
+    except service.MessageInvalid as exc:
+        raise HTTPException(422, str(exc)) from exc
+    except service.RateLimited as exc:
+        raise HTTPException(429, "too many messages today") from exc
+
+
+@router.post("/messages/{message_id}/cancel")
+async def cancel_message(
+    message_id: int,
+    user: User = Depends(owner),
+    session: AsyncSession = Depends(get_async_session),
+) -> dict:
+    try:
+        return await service.cancel_message(session, message_id, str(user.id), user.email,
+                                            utcnow())
+    except service.MessageNotFound as exc:
+        raise HTTPException(404, "message not found") from exc
+    except service.MessageConflict as exc:
+        raise HTTPException(409, str(exc)) from exc

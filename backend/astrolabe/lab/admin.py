@@ -145,7 +145,10 @@ async def _check_rate(session: AsyncSession, actor: User, now: datetime, email: 
     base = (
         select(func.count())
         .select_from(LabAdminAudit)
-        .where(LabAdminAudit.actor_user_id == str(actor.id), LabAdminAudit.at >= since)
+        .where(LabAdminAudit.actor_user_id == str(actor.id), LabAdminAudit.at >= since,
+               # Claude board rows (messages/commands) have their own limits; they never use up
+               # the member-action budget.
+               LabAdminAudit.action.not_like("claude_%"))
     )
     if (await session.execute(base)).scalar_one() >= MAX_ACTIONS_PER_HOUR:
         raise AdminError(429, "Too many member actions this hour. Try again later.")

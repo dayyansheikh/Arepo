@@ -636,3 +636,18 @@ async def test_migration_creates_key_tables_with_rls():
         tables = await conn.run_sync(lambda c: set(inspect(c).get_table_names()))
     assert names <= tables
     await eng.dispose()
+
+
+async def test_claude_board_messages_and_commands_require_stepup(env):
+    client, sm, _ = await _owner(env)
+    key = SoftKey()
+    assert _register(client, key).status_code == 201
+    msg = {"target": "autopilot-signal", "body": "hello"}
+    assert client.post("/api/lab/messages", json=msg).status_code == 201  # unlocked
+    _drop_stepup(client)
+    assert _locked(client.post("/api/lab/messages", json=msg))
+    assert _locked(client.post("/api/lab/messages/1/cancel"))
+    assert _locked(client.post("/api/lab/commands", json={"target": "autopilot-signal",
+                                                          "action": "start"}))
+    assert _unlock(client, key).status_code == 200
+    assert client.post("/api/lab/messages/1/cancel").status_code == 200
