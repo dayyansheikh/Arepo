@@ -566,3 +566,56 @@ waits.
  "reached": []
 }
 ```
+
+## 14. Challenger R1 response (2026-10-21; governs where any earlier text differs)
+
+Review: `reviews/E026_CHALLENGER_R1_2026-10-21.md`, **ACCEPT_WITH_FIXES**. Code fixes in d11ba0a0 (52 tests pass,
+1 skipped while the spec is a draft). `register_k2` stands: every analysis threshold predates any census, and the gates
+pass by more than 20x. No floor, materiality floor, gate, alpha, latency, window date or wallet-day cap was changed.
+
+1. **Negative verdict (7.3).** "Not supported (effects >= 0.03 excluded)" now uses the widest upper bound, max(event
+   bootstrap 97.5%, R + t_0.975 x se_event, R + t_0.975 x se_twoway), plus for E026-C the combined-event bootstrap and t
+   of item 8. So the negative verdict is read at least as conservatively as the positive one.
+2. **Counting (7.3, 9).** q0543 runs with `--trials ../docs/research_lab/trials.jsonl`. With no data, the analysis
+   returns both tests **Unavailable** (p = 1) inside a Holm block with k = 2, so the counted trials line is always
+   well formed.
+3. **Pins (5, 9).** The cost-impact table (`cost_model_calibration_v1.json`) is pinned by sha256 in the spec
+   (`impact_table_sha256`), and the analysis refuses on mismatch. A pinned spec is refused if `skillset_sha256`, any
+   `code_sha256` entry or `impact_table_sha256` is missing. Entries and resolutions are filtered by `spec_sha` /
+   `code_sha` like signals.
+4. **Frozen shared modules.** `wallet_skill.py`, `wallet_skill_dev.py`, `costs.py` and the impact table are frozen
+   from the pin until 2026-12-07. A unit test asserts every pinned hash (skipped while DRAFT), so any edit fails the
+   suite. The analysis q0543 runs from a worktree at the pinned commit. The registration adds this note to the ledger
+   and to CLAUDE.md / AGENTS.md.
+5. **Memory (6, 8.2).** The labeller and analysis read only the columns they need. The recorder no longer rebuilds
+   every (signal, latency) pair per capture; only pending rows are materialised and the list is kept incrementally
+   (each due item always gets a line, `absent` if the market is missing). Measured on a synthetic store 7.3x the census
+   (188k signals, 738k entry / exit rows, 57k resolutions; Mac `ru_maxrss` in a fresh child): recorder 353 MB
+   (capture-only pass) to 448 MB (pass with one 240k-row sample) -> q0541 `mem_mb` 480, `as_cap_mb` 4000; labeller
+   302 MB -> q0542 `mem_mb` 400, `as_cap_mb` 4000; analysis (B = 10,000) 1,222 MB -> q0543 `mem_mb` 1500, `as_cap_mb`
+   6000. The q0541 margin is about 9%; q0545 measures the recorder on the host (VmHWM) before the pin, and a backlog
+   pass of up to 40 samples is not yet measured.
+6. **End-date gate (6).** The labeller's end-date gate is switched off from the label cutoff - 7 days (every due
+   market is asked). Each pass writes a `label_pass` line to `passes.jsonl` with due, gated, due-unasked and asked
+   counts, so throughput censoring can be audited.
+7. **Operations (10.1).** q0541 `not_before` = 2026-10-25T00:00Z and q0542 `not_before` = 2026-10-25T06:00Z, so
+   neither runs into 48 tempfails before the window opens. If either shows `failed`, it is re-promoted within 48 h
+   (sample retention is 3 days); the gap stays missing and is counted.
+8. **Control-side event dependence (7.2, Q12).** For E026-C each pair's linearised score is split into a skilled piece
+   (the skilled copy's event) and control pieces (each control's event, weight 1/m), summed by event regardless of
+   side. The cluster-robust t on those combined events (G - 1 df) and the matching event bootstrap join the max-p rule
+   and the upper bound of item 1.
+9. **Matching (4.x, Q1).** The control matching cell gains `prior_visible`: the wallet has a strictly earlier trade in
+   the same market among the sample's raw rows, computed before the seen-before filter (causal: only rows at or before
+   the receipt). A skilled first-seen open is matched to a control first-seen open, and an add / close to an add /
+   close. A control whose event id is empty is never accepted as "another event". These change control and pair counts
+   relative to the census (G2 passed by 29x; disclosed, no second census needed for the gates).
+10. **Document.** Corrected in fb65c56f (trade age, latency, census commit, ordering disclosure).
+
+Recommended items done: freeze checks (eligible / skilled = 35,587 / 3,559 and max known outcome ts before
+2026-10-18T04:00Z, from spec `skill.expected`; the freeze refuses before writing on a mismatch and records the checks in
+the manifest); `uma_status` counts in the analysis output; descriptive secondaries (E026-C censoring bounds,
+leave-top-skilled-wallet-out R, eligible-not-skilled control subset). Not done: the overlapping-capture guard (captures
+run under the collector lock and have not overlapped; to be re-checked by the R1 re-check). The primary is
+equal-share (copies weighted by price); the equal-dollar ($100 per copy) mean is a secondary. Disclosed: the
+receipt-order wallet-day cap removes 56% of universe copies and favours early-UTC samples for high-volume wallets.
