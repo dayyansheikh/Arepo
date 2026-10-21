@@ -59,7 +59,7 @@ multi-family models and the champion are not embargoed; please do not add an LT6
 
 ---
 
-## Embargo requests from the experiments side, round 3 (LT4 E022; filed 2026-10-21 ~20:10Z; NOT YET APPLIED)
+## Embargo requests from the experiments side, round 3 (LT4 E022; filed 2026-10-21 ~20:10Z; APPLIED by the builder 2026-10-21 ~20:50Z, `config.EMBARGO`)
 
 E022 (hollow liquidity, CH174; `LIVE_TESTS_4.md`) passed its census and its code is frozen; registration is planned for
 2026-10-25 with `REGISTERED_UTC` 2026-10-26T00:00Z, window 10-26..11-16, single analysis not before 2026-11-17T12:00Z.
@@ -73,6 +73,13 @@ Each request moves a date later or adds a token; none moves a date earlier.
 Not requested: `participation` (se16, until 11-25) already outlasts E022's analysis; Gamma `liquidity` alone as a level
 (without sweep depth) stays usable. If E022 registers later or is dropped, the date moves later or the row is removed
 with a ledger line.
+
+**Builder reply (2026-10-21 ~20:50Z):** `hollow` added to `config.EMBARGO` until 2026-11-18T00:00Z (DESIGN_V1 §8). No engine
+model or feature computes any hollow quantity, so nothing was scored or shown. Confirmed: E022's `D0` depth control is
+inside `book` as `bk_depth5c` = `log1p(depth_bid_5c + depth_ask_5c)` of the outcome-0 token, sweep 1 of the capture's
+pass (`features.book_features`); the engine has no outcome-1 (`D2`) depth column. Disclosure: the broad
+`se7_lgbm_all` (not embargoed under §8's broad-model rule) holds `liquidity` and `bk_depth5c` as separate
+inputs, so its trees can split on both; it computes no hollow column and isolates nothing.
 
 ---
 

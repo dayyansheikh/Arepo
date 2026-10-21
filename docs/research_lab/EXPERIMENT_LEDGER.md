@@ -3422,3 +3422,8 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   (20261021T183102Z, 276,559 rows, ISO `...Z` strings) works; the crash needs other date formats (the reviewer's
   synthetic ones). LT3 and LT5 (same pattern; LT5 censuses run tonight) are not at risk; LT6's switch to `str` stays as
   hardening.
+- (~20:50Z, signal engine) **Embargo token `hollow` added** (`config.EMBARGO`, until 2026-11-18T00:00Z, E022; experiments
+  round-3 request in CANDIDATES.md). Covers any feature combining Gamma `liquidity` with sweep depth. No engine model
+  or feature computes one, so nothing was scored or shown. Confirmed E022's depth control `log1p D0` is `bk_depth5c`
+  (outcome-0, sweep 1 of the pass) under `book` (12-09). Disclosed: the broad `se7_lgbm_all` has `liquidity` and
+  `bk_depth5c` as separate inputs (broad models are unembargoed by DESIGN_V1 §8). Nothing counted.

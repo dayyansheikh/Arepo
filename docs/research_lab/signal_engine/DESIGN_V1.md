@@ -162,6 +162,7 @@ champion (market state + momentum), the learner reference and broad multi-family
 | movetype | 2026-11-22T00:00Z | E015 (LT3 registered 2026-10-21, analysis not before 2026-11-15T12Z); same date as `book`; added 2026-10-21 ~14:30Z with `se14_lgbm_movetype` (which also isolates `book`), before any movetype score was computed or shown |
 | participation | 2026-11-25T00:00Z | CB17-C (CH150, drafted: event-volume change as eligibility, event liquidity as control; REP_8 ends no earlier than 11-23T08Z); added 2026-10-21 with `se16_lgbm_participation` before any table or score existed (science review REVISE) |
 | vote, clips, deadline, siblings (no models yet) | 2026-12-09T00:00Z | LT6 V, K, D, B (draft; experiments round-2 request 2026-10-21) |
+| hollow (no model yet) | 2026-11-18T00:00Z | E022 (LT4, CH174; registration planned 2026-10-25, analysis not before 2026-11-17T12Z; experiments round-3 request, added 2026-10-21 ~20:50Z): any feature combining Gamma `liquidity` with sweep depth (`h`, `L/D`, `log L - log D`, `zh`, h terciles). Liquidity alone stays usable. E022's depth control (`log1p D` of the outcome-0 5c depth) is `bk_depth5c`, already under `book` (12-09). Broad `se7_lgbm_all` holds `liquidity` and `bk_depth5c` as separate columns (no hollow column); as a broad model it stays unembargoed under this section's rule, disclosed here |
 
 LT3/LT4 dates are the proposed windows; when they register, move the dates **later** if needed (never earlier).
 

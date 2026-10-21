@@ -100,4 +100,6 @@ EMBARGO = (
      "why": "end-date-change features (dl_*) and any tte revision adding an end-date change column, LT6 D (draft, CH187); added 2026-10-21 (no model yet)"},
     {"token": "siblings", "until": "2026-12-09T00:00:00Z", "tests": ["LT6-B"],
      "why": "sibling-birth features (sb_*), LT6 B (draft, CH188); added 2026-10-21 (no model yet; the event family's levels stay under `event`)"},
+    {"token": "hollow", "until": "2026-11-18T00:00:00Z", "tests": ["E022"],
+     "why": "hollow liquidity: any feature combining Gamma liquidity with sweep depth (h = clip(1 - D/L, 0, 1), L/D, log L - log D, the zh scale, h terciles), any horizon; LT4 E022 (CH174, registration planned 2026-10-25, analysis not before 2026-11-17T12Z); experiments round-3 request, added 2026-10-21 ~20:50Z (no model yet). Liquidity alone as a level stays usable; sweep depths stay under `book`"},
 )
