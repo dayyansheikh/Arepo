@@ -3073,3 +3073,6 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
     `vendored_source_drift_accepted`. Its vendored functions are still checked equal to the source.
   - 110 LT3/LT4/LT5 tests pass.
 - No interim looks. Expected outcome per the design: likely partly explained by quote mechanics (disclosed in §10).
+- **Install verified (12:07Z):** the host cron ran at 11:40Z and 12:00Z on code 2580c58a, `pinned: true`, spec
+  72a174eb, `kinds_off` [flow, surge], status `nothing_new` (no line before REGISTERED_UTC). Crontab backup:
+  `~/crontab.bak.20261021T*`.
