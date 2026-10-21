@@ -15,6 +15,14 @@ in the order V, K, D, B for the tests that survive). Before registration this ne
    `code_sha256` pins, the ledger entry and the reader's installation (section 8.4).
 Until the pin exists, every line a reader writes is `prospective_unregistered` by construction.
 
+**R1 (2026-10-21):** challenger round 1 (`reviews/LT6_CHALLENGER_R1_2026-10-21.md`, REVISE: V, K, D ACCEPT_WITH_CHANGES, B REVISE;
+12 required changes) is answered in **section 14**. The changes are applied in sections 0-13 as well; **where any text differs,
+section 14 governs.** In short: D and B take the event t on `G_treated - 1` df; B gets a binding volatility-clustering size world,
+a clean no-birth class and a crypto gate; every class MDE gate carries `sqrt(max(1, VIF_w))`; V's depletion gate binds on the 1c
+touch with a toward-minus-away asymmetry; every E022 condition is keyed to E022's own registration and `END_UTC` (the family slides
+with it); D carries "partially seen" unless CB18 withholds its `end_date`-class print (request in the section 14 annex); the census
+seal, look-back, memory plan and K's train algorithm are made exact. A short re-check of section 14 is needed before any code.
+
 This is research tooling. AREPO never trades. No edge, calibration, profitability or tradability claim exists or is implied.
 Every count quoted from round 9/10 probes, LT3/LT4 censuses, the gamma-rules churn probe, the cost model, the maker-rewards
 snapshot or the signal-engine coverage note is a **counts-only development figure on worn data**. Every MDE here is a
@@ -50,8 +58,11 @@ changes justified in section 6.1:
   the host already writes). Removed arms: K's `rt_share` and monitor arms, D's earlier-move arm as a counted test (reported only),
   B's signed tail arm as a counted test (reported only). CH186 and CH189 stay engine-first.
 - **Window (proposed):** whole captures with start in `[REGISTERED_UTC, END_UTC)`, 21 days, `REGISTERED_UTC =
-  2026-11-16T00:00:00Z`, `END_UTC = 2026-12-07T00:00:00Z`; single analysis on or after `2026-12-08T12:00:00Z`. Registration
-  commit between 2026-11-01 and 2026-11-15T00:00Z (section 1.1 gives the reasons).
+  2026-11-16T00:00:00Z`, `END_UTC = 2026-12-07T00:00:00Z`; single analysis on or after `2026-12-08T12:00:00Z`. **These dates are
+  keyed to E022's own `END_UTC` (proposed 2026-11-16; LT4 is still DRAFT) and slide with it** (R1 item 7). V's first origin is the
+  first pass whose k - 1 capture and sweep start at or after E022's `END_UTC` (2026-11-16T02:31Z as proposed). Registration commit
+  on or after 2026-11-01, after E022's registration (or its recorded drop), at least 24 h before `REGISTERED_UTC` and before E022's
+  analysis runs (section 1.1 gives the reasons).
 - **Expected outcome, declared now:** V passes its counts (its risks are the correlation and depletion gates); K and B are
   borderline; **D is very likely to drop** (the round's own kill line is 150 later moves a day, and the gamma-rules churn probe
   saw no date change among the keys it polled twice in 25 h, section 4). Expected k is 2 or 3. Every taker check is expected
@@ -78,7 +89,7 @@ rulings are adopted as binding from the first draft:**
 | R1 finding 1, re-check finding 4: a failing size scenario sets only its own tests to p = 1, k unchanged; two separate labels | adopted (1.8) |
 | R1 finding 3: family clustering where the state is a family's | B's state is an event-level listing; its p already uses event clusters (1.7); D's co-labelled event edits likewise |
 | R1 ruling 11: liquidity-tier correlation gates | every LT6 test gates `|corr(tested term, log1p liquidity_k)| <= 0.5`, within and pooled |
-| R1 finding 8: memory from a measurement; dry-run acceptance | planning figures from LT3's measured run; acceptance <= 450 MB peak RSS (8.2) |
+| R1 finding 8: memory from a measurement; dry-run acceptance | planning from LT3's measured 534 MB peak; a declared three-step ladder, each step dry-run measured (8.2; LT6 R1 item 11) |
 | R1 ruling 13: one run a pass, staggered | one run a pass (8.2) |
 | census-code check 1, 12, 13: seal completeness, the seal's own slot assignment, the seal committed before any census | adopted (7) |
 | census-code check 3 (MDE gates take `max(declared, design)`) | adopted for V; K, D and B use the class formula as declared |
@@ -100,21 +111,29 @@ and this is disclosed rather than hidden:**
 
 ### 1.1 Registration, window, single analysis
 - `REGISTERED_UTC` is the first 00:00Z that is **(a)** at least 24 h after the LT6 registration commit (spec pin plus ledger
-  entry), **(b)** at least 48 h after LT5's `REGISTERED_UTC`, **(c)** at or after LT4's `END_UTC` if LT4 is registered (so
-  that no V origin shares a capture with an E022 origin), and **(d)** never earlier than 2026-11-16T00:00Z. LT6 registers only
-  after LT5's registration commit. The proposed value is **2026-11-16T00:00Z**, `END_UTC = REGISTERED_UTC + 21 d` =
-  2026-12-07T00:00Z, analysis date `END_UTC + 36 h` = 2026-12-08T12:00Z. If a commit slips, the dates move by the rule; the rule
-  uses no data; a move is recorded in the ledger.
-- **V's freeze condition (declared now).** V is registered only if the LT6 registration commit exists **before LT4's single
-  analysis runs** (LT4 proposes `2026-11-17T12:00Z`). Reason: E022's analysis estimates the coefficient of `dimb = -v` on 21 days
-  of the same population and target family; a V design pinned after that number can exist would have had a development look at
-  its own hypothesis. If the commit is later, **V is dropped uncounted** and k is reduced before the pin.
+  entry), **(b)** at least 48 h after LT5's `REGISTERED_UTC`, **(c)** at or after **E022's own `END_UTC`** if E022 is registered,
+  and **(d)** never earlier than 2026-11-16T00:00Z. LT6 registers only after LT5's registration commit **and** after E022's
+  registration commit or its recorded drop (LT4 census or review ruling in the ledger); while neither exists, LT6 cannot register,
+  because (c) is undefined. The proposed value is **2026-11-16T00:00Z** (E022's proposed `END_UTC`), `END_UTC = REGISTERED_UTC +
+  21 d` = 2026-12-07T00:00Z, analysis date `END_UTC + 36 h` = 2026-12-08T12:00Z. **The whole family slides if E022 slides**: a later
+  E022 `END_UTC` moves `REGISTERED_UTC`, `END_UTC`, the analysis date and every embargo date of section 9 by the rule. The rule uses
+  no data; a move is recorded in the ledger. (R1 item 7.)
+- **V's first origin (R1 item 7).** V's units read capture k - 1 and sweep 1 of pass k - 1. **V's first origin is the first pass
+  k whose k - 1 capture and k - 1 sweep both start at or after E022's `END_UTC`** (with the proposed dates, pass 2026-11-16T02:31Z;
+  the 00:31Z pass is not a V origin and is counted as `e022_boundary`). Disclosed: V's earliest states read raw stream files that
+  are E022 *target* inputs (sweep 1 of 11-16T00:31Z is E022's last `c_sw` exit); no E022 origin, state or control is read.
+- **V's freeze condition (declared now; keyed to E022).** If E022 is registered, V is registered only if the LT6 registration
+  commit exists **before E022's single analysis runs** (LT4 proposes `2026-11-17T12:00Z`; the condition follows E022's actual
+  analysis commit). Reason: E022's analysis estimates the coefficient of `dimb = -v` on 21 days of the same population and target
+  family; a V design pinned after that number can exist would have had a development look at its own hypothesis. If the commit is
+  later, **V is dropped uncounted** and k is reduced before the pin. If E022 is dropped before its registration, (c) and this
+  condition lapse (no shared estimate will exist) and rule (d) alone floors the window.
 - **Why registration not before about 2026-11-01, and why the window starts on 11-16.**
   1. LT6 registers after LT5's registration commit (LT5 proposes `REGISTERED_UTC` 2026-10-30), and its census, size-check and
      restore jobs must not compete with LT5's chain (q0560-q0564) for the cpu lane or memory (memory-heavy-jobs rule).
   2. Its own chain (challenger, code, freeze check, seal from releases, censuses, size check, dry run) took LT5 about eight days
      from draft to its planned registration; LT6 has one more restore step because its census days have rotated off the host.
-  3. **V's disjointness from E022** (rule (c)) puts V's first origin at LT4's `END_UTC` (2026-11-16 as proposed).
+  3. **V's disjointness from E022** (rule (c)) puts V's first origin just after E022's `END_UTC` (2026-11-16T02:31Z as proposed).
   4. **Host reader slots.** The host already runs LT3's (`*/20`, to 11-15), LT4's (to 11-16) and LT5's (to 11-20) readers. A
      window from 11-16 lets LT6's reader take LT3's and LT4's slots as they stop, instead of a fourth concurrent reader.
   5. **The US midterm election (2026-11-03)** and its night exclusion (`[2026-11-03T18:00Z, 2026-11-05T00:00Z)`, CB17/CB18)
@@ -123,7 +142,8 @@ and this is disclosed rather than hidden:**
   and analysis bookkeeping and put K, D and B on election week (open question 1).
 - **Window membership is by capture start**, whole captures in or out. A unit's origin is its own decision time (1.3).
 - **Fixed end, no extension** (LT4, LT5). Shortfalls are labelled (*underpowered*, Unavailable), never extended. US
-  Thanksgiving (2026-11-26) is inside the window; it is disclosed, not excluded (declared now).
+  Thanksgiving (2026-11-26) is inside the window; it is disclosed, not excluded (declared now); a sensitivity without origins in
+  `[2026-11-26T00:00Z, 2026-11-28T00:00Z)` is reported and never changes a verdict (R1 answer 15).
 - **One analysis**, once, on or after the analysis date (`run_live_tests6.py analyze` refuses before it; `--out` refuses to
   overwrite). No interim look at any outcome (1.6).
 - **Effective start** = max(`REGISTERED_UTC`, the first capture processed by the reader at the pinned commit). The analysis keeps
@@ -185,7 +205,10 @@ No mid, move, target, P&L, regression or plot from `live_tests6/` files, or from
 hypotheses. Only `run_live_tests6.py ops-stats` may run (file, line, role, class and status counts; reads no price column,
 enforced by a unit test). No change of thresholds, scales, populations, estimators or k after registration; operational fixes
 are logged as deviations. LT4's and LT5's analyses (11-17, 11-21) and CB17/CB18 results that arrive during LT6's window change
-nothing in LT6.
+nothing in LT6. **CB18 (R1 item 8):** CB18 reads SCREEN_18 files from 2026-11-11T08:00Z, possibly before LT6's pin, and reports an
+`end_date`-change class. No LT6 designer, coder or reviewer reads any CB18 output on that class (or CB18-S's results) before LT6's
+pin, and **D's text is frozen at the R1-accepted text**: after the R1 re-check accepts it, D changes only by census-fixed values
+named in section 7. Any breach is recorded in the ledger and D carries *partially seen*.
 
 ### 1.7 Estimators and inference
 - **Expanding-past demeaning** for all four primaries (J4-R; LT2-LT5): every regressor (the tested term and every control) minus
@@ -194,8 +217,20 @@ nothing in LT6.
   **p = max(p_event on t with G_event - 1 df, p_two-way normal, p_day on t with G_day - 1 df)**. Where the census top series
   family is not excluded (1.9), the event t also uses `G_series - 1` df if smaller. The conservative 95% CI is the hull of a
   2,000-draw event bootstrap and the three Wald intervals. Two-day blocks are a sensitivity for the 22 h targets (D, B).
+- **Few treated clusters (D, B; R1 item 1).** With about 150 events holding a labelled unit, CR1 over all `G_event` clusters
+  over-rejects (MacKinnon and Webb 2017: the reference distribution is governed by the treated clusters). For D and B:
+  **p = max(p_event on t with `G_treated - 1` df, p_two-way normal, p_day on t with `G_day - 1` df)**, `G_treated` = the number of
+  events with at least one labelled unit in the analysis sample (the series-family df rule applies if smaller). The conservative CI
+  uses the `G_treated - 1` t quantile for the event interval. The size check reports the analytic CR1 rejection rate of this rule
+  in scenarios 6, 7 and 11 at 0.0125 and 0.05 (1.8).
 - **Co-labelled units (D, B).** An `end_date` edit or a listing often labels several markets of one event in one capture; they
   share the news. The event cluster contains them; the census design effect adds a co-labelling term (7).
+- **Washout (D, B; R1 recommended).** A no-change (D) or no-birth (B) unit at slots k + 1 .. k + 11 after a labelled unit of the
+  same market is excluded (`washout`, counted): its 22 h target overlaps the labelled event's aftermath, so it is neither a clean
+  control nor treated.
+- **Both-demeaned sensitivity (R1 recommended).** Every primary is re-estimated with the target also expanding-past demeaned;
+  reported, never changes a verdict. The census prints per-market label sums (counts only) so the reliance on markets with one
+  labelled unit is visible before registration.
 - **Overlapping targets.** V's and K's skip targets (k + 1 to k + 3) at consecutive origins of a market overlap by one pass. D's
   and B's 22 h targets overlap at consecutive captures of a market by up to ten passes (baseline units). The clusters absorb
   within-day overlap; two-day blocks are reported; the size check carries binding MA(2) and MA(10) worlds (1.8).
@@ -229,6 +264,16 @@ nothing in LT6.
   | 8 | continuous state iid, control at correlation 0.5 with a real effect, MA(2) target, unbalanced markets | block FL | V |
   | 9 | as 8 with AR(1) state rho 0.6 | block FL | V |
   | 10 | as 8 with AR(1) state rho 0.9 | block FL | V |
+  | 11 | **(R1 item 2)** stochastic volatility, a birth hazard rising with current volatility, the prior-|move| controls in the model, absolute target, no birth effect | FL | B |
+  | 12 | *(non-binding, reported; R1 recommended)* label incidence correlated with the market's target level, raw target with demeaned regressors | FL | D, B (reported only) |
+
+  **Also reported, never binding (R1 item 1 and recommended):** in scenarios 6, 7 and 11, the rejection rate of the analytic p
+  rule of 1.7 (with `G_treated - 1` df) at nominal 0.0125 and 0.05; and a **planted-effect power run** for D and B (scenario 6 with
+  a planted later effect of 0.5c and 1.0c; scenario 7 with a planted birth effect of 0.5c and 1.0c; 500 worlds each), giving the
+  gate's and the analytic rule's power. A rate above its limit (0.0125 + 1.645 sqrt(0.0125 x 0.9875 / 2,000) = 0.0166; 0.058)
+  labels the test *analytic p oversized in simulation* in the analysis; it does not change k, p or a verdict, because the binding
+  size statement is the gate's (as in LT3-LT5). Power runs are information only and drop nothing (the census MDE gate is the
+  declared power gate).
 
 - **Consequence of a failure (declared now, as LT5 1.8):** a failing scenario makes **only the tests it is binding for** "SE
   check failed (size scenario)": p = 1 in Holm, **k unchanged**, no rerun, reseed, redesign or variant. Other tests and the pin
@@ -259,14 +304,27 @@ table's order.
   + AR(1) with rho 0 / 0.6 / 0.9, stationary SD 1; control `c1 = 0.5 z + sqrt(0.75) xi`, `xi` AR(1) with the same rho, stationary
   SD 1, real effect 0.02; target `y_i = level + 0.02 c1_i + u_{i+1} + u_{i+2} + 0.5 u_{i+3}`, `u ~ N(0, 0.03)` (MA(2), the skip
   target's overlap); no effect of `z`. Block FL as declared, minimum `n_m` 16.
-- **Criterion:** rate <= 0.05 + 1.645 sqrt(0.0475 / 2,000) = 0.058 per scenario at 2,000 worlds.
+- **Scenario 11 (B; R1 item 2):** as 7 (240 markets in events of four, `n_m` uniform on 24..120), with **stochastic volatility**:
+  per market log-volatility `s_t` AR(1), rho 0.95, stationary SD 0.5, plus an event component (half the variance shared by the
+  event's markets); market pass shocks `u_t = 0.0173 x exp(s_t - 0.125) x e_t`, `e_t ~ N(0, 1)` (the `- 0.125` keeps the mean
+  variance at the base); event shocks likewise; **birth hazard per event and unit `0.006 x exp(sbar_{e,t})`
+  truncated at 0.05**, `sbar` the event's mean `s_t`, so listings come when the event is volatile. The model includes the
+  primary's prior-|move| controls computed from the simulated mid path (own `|2 h|`, `|6 h|`, `|24 h|` moves and the event's
+  leave-one-out `|2 h|` move); target `|sum_{j=2..12} (u_{i+j} + w_{e,i+j})|`; **no birth effect**. FL, market x day strata,
+  min 4 (the permutation does not keep intra-day timing, which is why this world binds). If it fails, B is "SE check failed (size
+  scenario)", p = 1, k unchanged.
+- **Scenario 12 (non-binding):** as 6, with the market's label probability `0.004 x exp(25 x level_m)` (markets with higher
+  target levels are edited more), raw target; rate reported for the raw-target and both-demeaned estimators.
+- **Criterion:** rate <= 0.05 + 1.645 sqrt(0.0475 / 2,000) = 0.058 per binding scenario at 2,000 worlds.
 
 ### 1.9 Verdicts and labels (per primary, after Holm over k)
 - **Supported (exploratory, prospective):** Holm-adjusted one-sided p < 0.05, estimate in the predicted direction, gate passed.
 - **Contradicted:** the conservative 95% CI lies entirely on the other side of 0. **Inconclusive:** otherwise.
   **Unavailable:** below the test's floor counts, or fewer than 10 UTC days with units.
 - **Labels (never change a verdict):** *material* (V: the top-minus-bottom tercile contrast of `zv` >= 0.5c; K, D: point estimate
-  >= 0.5c; B: point estimate >= 0.5c on the absolute move); *underpowered*; *attrition-differential*; *late-loss*;
+  >= 0.5c; **B: point estimate >= 1.0c on the absolute move**, CB18-S's floor for the same kind of target, R1 answer 10; B's
+  census MDE gate stays at 0.5c); *partially seen* (D, unless the CB18 request of the section 14 annex is applied before the pin,
+  or if any breach of 1.6 is recorded); *analytic p oversized in simulation* (1.8); *underpowered*; *attrition-differential*; *late-loss*;
   *coverage-limited* (K: interval-truncated > 2% of sampled traded movers with >= 4 rows); *series-concentrated* (one series
   family > 50% of a primary's units after the census rule); *sweep-missing*; the per-test mechanism labels.
 - **Series-family rule (census-fixed):** if the census top series family holds > 40% of a test's primary population, that family is
@@ -295,7 +353,7 @@ table's order.
 
   | LT6 | Closest prior | Same data? | Same contrast? | Why not a double count |
   |---|---|---|---|---|
-  | V | **E022** (LT4; hollowness; `dimb = sign(x)(dask5 - dbid5)/(dask5 + dbid5) = -v` is a pinned control) | yes (traded non-sports movers, sweep 1 of pass k, sweep targets) | **the same coefficient if origins were shared** | V's origins start at or after LT4's `END_UTC` (1.1 (c)), so no origin is shared; V is pinned before E022's analysis or dropped (1.1); E022's `h` is a V control (`zh0`) |
+  | V | **E022** (LT4; hollowness; `dimb = sign(x)(dask5 - dbid5)/(dask5 + dbid5) = -v` is a pinned control) | yes (traded non-sports movers, sweep 1 of pass k, sweep targets) | **the same coefficient if origins were shared** | V's first origin is the first pass whose k - 1 capture and sweep start at or after **E022's** `END_UTC` (1.1), so no E022 origin, state or control is read (its last target sweep is read as a V k - 1 input, disclosed); V is pinned before E022's analysis or dropped; E022's `h` is a V control (`zh0`) |
   | V | E020 (LT4; unmoved side after one-sided quote-only moves), E015 (LT3), E021 (LT4) | captures | no | disjoint windows (all end by 11-16); E015's anatomy is a V control |
   | V | LT5 R (imbalance slope jump at the 0.90 reward cutoff) | sweeps | no | R's units are not conditioned on a move and its term is `imb x inside`; overlap 11-16..11-20 only, shares printed |
   | V | LT5 F (family) | captures | no | F's state is the family's simultaneous move; overlap 11-16..11-20 |
@@ -305,7 +363,7 @@ table's order.
   | K | E021 (LT4; fresh vs settled; to 11-16) | samples | no | disjoint windows; `fresh`, `log1p age` are K controls |
   | K | E018 (LT3; trains; dropped at census) | samples | no | never registered; its unsigned train share enters K only as a census gate |
   | K | CB18-R (races; map only) | samples | no | k = 0; K excludes gaps under 2 s |
-  | D | **CB18-S** (silent edits; SCREEN_18 10-27..11-10, REP_18 11-10..11-24) | captures | no (CB18-S's eligibility requires `end_date` unchanged) | CB18 reports an `end_date`-change class with its unsigned 24 h move, uncounted; REP_18 origins of arm-1 events overlap D's window on 11-16..11-24 (open question 13) |
+  | D | **CB18-S** (silent edits; SCREEN_18 10-27..11-10, REP_18 11-10..11-24) | captures | no (CB18-S's eligibility requires `end_date` unchanged) | CB18 reports an `end_date`-change class with its unsigned 24 h move, uncounted; REP_18 origins of arm-1 events overlap D's window on 11-16..11-24. LT6 does not read that output before its pin and freezes D's text (1.6); a withholding request to CB18's owner is the section 14 annex; unless applied before the pin, D carries *partially seen* |
   | D | CH189 (engine-first overdue family) | captures | no | overdue extensions are excluded from D's primary and reported (S7) |
   | D | E014 (LT2; flow gain by time to end), engine `tte` | captures | no | the time-to-end level is a D control; D's state is its change |
   | B | LT5 F | captures | no | F's state is siblings' simultaneous moves; B's is a listing; overlap 11-16..11-20 |
@@ -345,7 +403,8 @@ table's order.
   footprint (the hit side not yet refilled) and its predictive slope is microprice mechanics that ends within minutes.
 - **Unit.** Non-sports market x pass k that is a mover at capture k (1.4 with `|x| >= 0.01`; traded and quote-only), with sweep 1
   of **both** pass k - 1 and pass k two-sided on the outcome-0 token, tight (sweep spread <= 0.10), with both 5c depths present and
-  `D0 = depth_bid_5c + depth_ask_5c > 0` at both; Gamma `liquidity_k > 0`. Category is a spec parameter (`v.population`); the
+  `D0 = depth_bid_5c + depth_ask_5c > 0` at both; Gamma `liquidity_k > 0`; pass k at or after V's first origin (1.1, R1 item 7).
+  Category is a spec parameter (`v.population`); the
   sports arm is reported.
 - **State (frozen; decision time = sweep 1 of pass k).** `imb_j = (depth_bid_5c - depth_ask_5c) / (depth_bid_5c + depth_ask_5c)` on
   the outcome-0 book of pass j (shares; oriented to outcome 0 = YES); **`v = sign(x) x imb_k`** (aligned skew > 0); `v_prev =
@@ -406,20 +465,31 @@ table's order.
 - **Origin-side filters (in order, counted):** sample status ok; 1.4 items 1-5, 7, 8; class `traded`; sidecar `order_min_size`
   known at k; interval coverage (the page's oldest row of the market at or before `t_{k-1}`, or the page not full; else
   `interval_truncated`); `n_int >= 4` rows of the market with `t_{k-1} <= ts < t_k` and a known outcome.
-- **Clip trains (frozen; rows `t_{k-1} <= ts < t_k` only).** Group interval rows by `asset` (token) and exact `size` (parsed float64
-  equality). A **clip train** is a maximal time-ordered run of **>= 3** rows of one (asset, size) group with distinct `tx_hash`,
-  every gap `>= 2 s` (same-second rows are race fingerprints, CB18-R's object), every gap within `[0.5, 1.5] x` the run's median
-  gap, and first-to-last span `<= 30 min`; sizes `<= 2 x order_min_size` are excluded before grouping (min-size bots).
+- **Clip trains (frozen; rows `t_{k-1} <= ts < t_k` only; deterministic algorithm declared now, R1 item 12).** Rows with size
+  `<= 2 x order_min_size` are removed first (min-size bots). The rest are grouped by (`asset`, size key), where the **size key** is
+  the `size` field **as the API string**, normalised as a `Decimal` (`Decimal(s).normalize()`; so `"10"`, `"10.0"` and `"1E+1"`
+  are one key, and no float rounding can merge or split sizes). Within a group, rows are sorted by (`ts`, `tx_hash`). Then, greedy
+  left to right with no overlaps:
+  1. start a run at the first unassigned row `i`;
+  2. scan `j = i + 1, i + 2, ...`: skip (leave unassigned) a row whose gap to the run's last row is `< 2 s` or whose `tx_hash`
+     is already in the run; otherwise, with `g` the gap to the run's last row: if the run has one row, append `j` when the span
+     stays `<= 30 min`; if it has two or more rows, append `j` when `g` lies in `[0.5, 1.5] x` the median of the run's current gaps
+     **and** the span stays `<= 30 min`; else **close** the run;
+  3. a closed run with **>= 3** rows is a clip train and its rows are assigned; the next run starts at the first unassigned row
+     after the train's last row. A closed run with fewer rows assigns nothing and the next run starts at `i + 1`.
+  Same-second rows are race fingerprints (CB18-R's object). Unit tests cover each branch (8.3).
   `clip_share` = notional (size x token price) share of the interval's rows that lie in clip trains. **Clip:** `clip_share >=
   0.25`; **clip-free:** `clip_share = 0`; the interior is reported (S1). Also frozen: `round_share` (notional share of interval
   rows whose size is a multiple of 10 shares), `minsize_share` (notional share at `<= 2 x order_min_size`), `n_trains`,
-  `last_clip_age` (`t_k` minus the last clip row's `ts`), LT5 J's `g_path` and `maxstep_share` (vendored `path_units` on the same
+  `last_clip_age` (`t_k` minus the last clip row's `ts`), **`H_unsigned`** (E018's M3 unsigned train share on K's own 2 h
+  interval rows: notional share of rows with another row of the market within 300 s, any sign; vendored), LT5 J's `g_path` and `maxstep_share` (vendored `path_units` on the same
   rows, tick-snapped, NaN if `steps < 1`), E021's `age` and `fresh = 1[age <= 900 s]`, `n_int`.
 - **Target (exact).** `c_skip = sign(x) x (mid_{k+3} - mid_{k+1})` (Gamma mids; joint status `two_sided` and in time at k + 1 and
   k + 3; joint late mask `late1 | late3`). Horizon 4 h, starting at the first capture after the decision time (LT5 R1 finding 2).
 - **Primary statistic.** Expanding-past demeaned OLS of `c_skip` on `CL = 1[clip]` over clip and clip-free units, controls: `log1p
   n_int`, `log |x|`, `g_path` (never NaN here: `steps >= 1` because `|x| >= 0.01` and the tick is at most 0.01; a NaN would
-  exclude the unit, counted), `maxstep_share`, `fresh`, `log1p age`, `round_share`, geometry dummies, `spread_k`, logit `mid_k`,
+  exclude the unit, counted), `maxstep_share`, `fresh`, `log1p age`, `round_share`, **`H_unsigned`** (R1 recommended: a control, not only a census gate),
+  geometry dummies, `spread_k`, logit `mid_k`,
   `|mid_k - 0.5|`, `log1p volume24hr_{k-1}`, `log1p liquidity_k`, 1[tick = 0.001], log hours-to-end (+ flag). Inference 1.7; seed
   20261162. Gate: Freedman-Lane (scenarios 1-5), seed 20261262.
 - **Mechanism readings (binding label rules).** M1 the sweep skip target `sign(x)(smid_{k+3} - smid_{k+1})`: if Supported and M1 is
@@ -462,24 +532,32 @@ table's order.
   carries the new price) and the time-decay reading (below), which the control addresses.
 - **Template (declared now, no census choice).** `bydate = 1[the as-of end_date at k - 1, converted to America/New_York, has a
   clock time within 1 minute of 23:59:00 or 00:00:00]` (the venue's by-date convention; DST handled by `zoneinfo`). The census
-  prints the time-of-day histogram as a description only; it does not change the classifier.
+  prints the time-of-day histogram as a description only; it does not change the classifier. **Parse rules (pinned; R1 answer
+  9):** `end_date` is parsed with `datetime.fromisoformat` after a trailing `Z` is replaced by `+00:00`; a naive timestamp is UTC;
+  a date-only string or an unparseable value gives no template and no class (excluded, counted, never "unchanged"); two end dates
+  are equal when the parsed instants are equal to the second.
 - **Unit.** Non-sports market x capture k with 1.4 items 1-3, 6, 7 at k - 1 and k, `mid_k` in [0.05, 0.95], as-of end at k
   > `t_k + 27 h`, and **`bydate = 1`**. Classes: **later** = `end_date_k - end_date_{k-1} >= 1 h`; **no-change** = equal end dates
   (byte-equal after parse). Also excluded from the primary (counted, reported): earlier moves; changes under 1 h; **overdue
   extensions** (old end `<= t_k`, CH189's object, S7); **series roll-overs** (non-empty `series_slugs` and `|delta|` within 1 h of
-  1, 7, 30 or 31 days).
+  1, 7, 30 or 31 days). **Washout (1.7):** no-change units in slots k + 1 .. k + 11 after a later or earlier unit of the same
+  market are excluded (counted).
 - **State (frozen).** `later`, `delta_h`, the dose `r = delta / (end_old - t_k)` (S1), `updated_at` changed (flag), the change
   interval's move `x = mid_k - mid_{k-1}`, own 24 h change `mid_k - mid_{k-12}` (NaN if the slot is missing; unit excluded,
   counted), and the **time-decay control** `theta24 = 24 x (1 - mid_k) x ln(1 - mid_k) / T_k` (hours; `T_k` the as-of hours to
   end at k, the **new** end for later units). Under a constant hazard `lambda`, `P = 1 - exp(-lambda T)` and the YES drift per hour
   is `(1 - P) ln(1 - P) / T`: a later deadline slows the decay mechanically even when the price is fully updated, which would
-  make the contrast positive with no under-reaction. `log T_k` is a control as well.
+  make the contrast positive with no under-reaction. `log T_k` is a control as well. **Disclosed (R1 recommended): `theta24` is a
+  survivor-conditional drift.** It is the expected YES drift of a market that has not resolved YES; units whose market resolves or
+  closes before k + 12 have no `two_sided` target and leave the sample, so the control describes the drift of the survivors the
+  target can see, under an assumed constant hazard. It is a model-based control, not a measurement.
 - **Target (exact).** `y22 = mid_{k+12} - mid_{k+1}` (YES terms; joint status `two_sided` and in time at k + 1 and k + 12; joint
   late mask). Horizon 22 h, starting at the first capture after the decision time. The round's 24 h change from `mid_k` with the
   first 2 h move as a control would put a post-decision quantity in the controls; the skip start removes it.
 - **Primary statistic.** Expanding-past demeaned OLS of `y22` on `LT = 1[later]` over later and no-change units, controls:
   `theta24`, `log T_k`, `x`, own 24 h change, Gamma `chg_1d` and `chg_1w` (+ flags), logit `mid_k`, `|mid_k - 0.5|`, `spread_k`,
-  `log1p volume24hr_k`, `log1p liquidity_k`, 1[neg-risk], `updated_at`-changed flag. Inference 1.7; seed 20261163. Gate:
+  `log1p volume24hr_k`, `log1p liquidity_k`, 1[neg-risk], `updated_at`-changed flag. Inference 1.7 with the
+  `G_treated - 1` event t (R1 item 1); seed 20261163. Gate:
   Freedman-Lane (scenario 6), seed 20261263.
 - **Mechanism readings (binding label rules).** M1 the 6 h skip `mid_{k+3} - mid_{k+1}`: if Supported and M1 carries more than the
   whole 22 h effect with the remainder reversing (M1 one-sided significant and `y22 - M1` contradicted), label **transient**. M2
@@ -487,9 +565,11 @@ table's order.
 - **Placebos (reported, label rules).** P1 later moves on **non-bydate** templates (the same model on non-bydate markets): if
   one-sided significant and at least half of D_D, label **not template-specific**. P2 later moves on decided markets (mid > 0.97
   or < 0.03 at k), descriptive.
-- **Secondaries.** S1 the dose `r` among later units; S2 the earlier arm (descriptive, never counted, whatever its count; a
+- **Secondaries.** S0 (R1 answer 8) the primary on later units whose **old end was at least 7 days after `t_k`**, where decay is
+  small and `theta24` matters least (reported); S1 the dose `r` among later units; S2 the earlier arm (descriptive, never counted, whatever its count; a
   counts-triggered promotion would be a forking path); S3 maker protection: `|mid_{k+12} - mid_{k+1}|` and the spread change after
-  any `end_date` move; S4 the `updated_at` co-occurrence split; S5 the sports arm (postponements); S6 counts by class, template,
+  any `end_date` move, **with the maker's own horizon beside it: `|mid_{k+1} - mid_k|` over the widened pass** (R1 recommended;
+  it starts at the decision time and is reported only); S4 the `updated_at` co-occurrence split; S5 the sports arm (postponements); S6 counts by class, template,
   category and delta band; S7 overdue extensions (descriptive).
 - **Planning MDE (estimate).** Unprobed. At the round's kill line, 150 later by-date interior non-sports moves a day (3,150 in 21
   days), and at 600 a day (12,600); 90% with an earlier unit of the market in the window (2,835-11,340). SD of `y22` 6c; DE 3 (the
@@ -516,11 +596,15 @@ table's order.
   sidecar `created_at` in `[t_{k-1}, t_k)` (a market present earlier but newly visible is a **lagged appearance**, reported, not a
   birth). The newcomer's event is **existing** if capture k - 1 holds >= 2 markets with the same `event_id`. The event must be
   **non-recurring**: empty `series_slugs` on the newcomer and on every incumbent (crypto strike additions and dated series
-  listings are mechanical; the ex-crypto rule). Several newcomers in one event and capture are one birth (`n_born` frozen).
+  listings are mechanical). **Crypto (R1 item 4):** a birth's category is the newcomer's sidecar `fee_category` by D's census
+  category rule; the census gates crypto births at <= 70% of births after the non-recurring rule (section 7), and the series-family
+  rule (1.9) applies. Several newcomers in one event and capture are one birth (`n_born` frozen).
 - **Unit.** Non-sports incumbent x capture k: a market of a multi-member, non-recurring event (>= 2 members at k - 1) passing 1.4
   items 1-3, 6, 7 at k - 1 and k, `mid_k` in [0.05, 0.95], as-of end > `t_k + 27 h`, and not itself a newcomer. Classes:
-  **birth** = its event has a birth at k and the newcomer row's receipt is within 5 s of the incumbent's (1.3); **no-birth** = no
-  newcomer in its event at k. Guard losses counted.
+  **birth** = its event has a birth at k and the newcomer row's receipt is within 5 s of the incumbent's (1.3); **no-birth (R1
+  item 3)** = no newcomer **and no lagged appearance** in its event at k, **and** not in the washout (slots k + 1 .. k + 11 after a
+  birth unit of the same market, 1.7). Everything else (a lagged appearance only, a guard loss, a newcomer with unparseable
+  `created_at`, a recurring newcomer in the event, a washout unit) is **excluded and counted by reason**, never class 0.
 - **State (frozen).** `birth`, `n_born`, event size at k - 1, neg-risk flag, the incumbent's rank by mid in the event, own absolute
   moves `|mid_k - mid_{k-1}|`, `|mid_k - mid_{k-3}|`, `|mid_k - mid_{k-12}|` (NaN if a slot is missing; unit excluded, counted), the
   event's mean absolute 2 h move over its other incumbents at k (leave-one-out).
@@ -528,16 +612,18 @@ table's order.
   Horizon 22 h, starting at the first capture after the decision time.
 - **Primary statistic.** Expanding-past demeaned OLS of `a22` on `BR = 1[birth]` over birth and no-birth units, controls: the three
   own absolute moves, the event's leave-one-out mean absolute 2 h move, `log` event size, 1[neg-risk], logit `mid_k`, `|mid_k -
-  0.5|`, `spread_k`, `log1p volume24hr_k`, `log1p liquidity_k`, log hours-to-end, Gamma `chg_1d` (+ flag). Inference 1.7; seed
-  20261164. Gate: Freedman-Lane (scenario 7), seed 20261264.
+  0.5|`, `spread_k`, `log1p volume24hr_k`, `log1p liquidity_k`, log hours-to-end, Gamma `chg_1d` (+ flag). Inference 1.7 with the
+  `G_treated - 1` event t (R1 item 1); seed 20261164. Gate: Freedman-Lane (scenarios 7 and 11), seed 20261264.
 - **Mechanism readings (reported; no label rule).** M1 the 6 h `|mid_{k+3} - mid_{k+1}|`; M2 the first pass `|mid_{k+1} - mid_k|`
   by class (it starts at the decision time and is never a control). Neither changes the verdict.
 - **Placebo (reported, label rule).** A **fake birth** per real birth: one capture of the same event drawn (seed 20261364) uniformly
-  from the window's captures at least 12 slots from every real birth of that event; its incumbents are relabelled birth and the
+  from the window's captures at least 12 slots from every real birth of that event **and in the same tercile of the event's
+  leave-one-out `|2 h|` move as the real birth** (census cuts; R1 answer 11; if none qualifies, no fake birth, counted); its incumbents are relabelled birth and the
   primary is re-run. If one-sided significant and at least half of D_B, label **event-level volatility, not the listing**.
 - **Secondaries.** S1 the **signed tail arm** (round's secondary; neg-risk incumbents with `mid_k` in [0.02, 0.10)): YES change
   `mid_{k+12} - mid_{k+1}` on `BR`, predicted < 0, reported only; S2 the 24 h change in `log1p volume24hr` (the round's attention
-  arm; a venue field, reported only); S3 the spread change; S4 the neg-risk and non-neg-risk arms; S5 the sports arm; S6 the dose
+  arm; a venue field, reported only); S3 the spread change, **with the maker's own horizon beside `a22`: `|mid_{k+1} - mid_k|`
+  over the widened pass** (R1 recommended; reported only); S4 the neg-risk and non-neg-risk arms; S5 the sports arm; S6 the dose
   `n_born`; S7 counts of births by category, structure, lagged-appearance share and incumbents per birth.
 - **Planning MDE (estimate).** Unprobed. Round 11 guesses 50-200 non-recurring births a day in existing events; the kill line is 30
   a day. Assume 30-200 births a day and about 5 eligible incumbents each (150-1,000 incumbent units a day; 3,150-21,000 in 21 days),
@@ -545,8 +631,9 @@ table's order.
   (the floor; the census adds the co-labelling term, about 3 at 5 incumbents per birth); day 1.3-1.5: **MDE = 3.388 x SE = 0.33c at
   the high end, 0.99c at the kill line.** Census-gated; declared now: B may drop.
 - **Floors (Unavailable):** < 1,500 birth units, < 100 events with a birth, < 10 days.
-- **Economics.** (a) Maker (the route): widen on incumbents for one pass after a birth; gross `a22` and the spread change by class,
-  "gross, no fills", against the 0.39c adverse-selection figure. (b) Reported taker sale of tail members' YES at the sweep-1 bid of
+- **Material label at 1.0c (R1 answer 10)**, CB18-S's floor for the same kind of target; the census MDE gate stays at 0.5c.
+- **Economics.** (a) Maker (the route): widen on incumbents for one pass after a birth; gross `a22`, the widened pass's `|mid_{k+1}
+  - mid_k|` and the spread change by class, "gross, no fills", against the 0.39c adverse-selection figure. (b) Reported taker sale of tail members' YES at the sweep-1 bid of
   pass k + 1 after a birth in neg-risk events (S1), exit at pass k + 12, against the tier hurdles.
 - **Missing data.** `.noprev` counted; `created_at` missing or unparseable on a newcomer → the newcomer is not a birth and its
   event's incumbents at k are excluded (counted, never class 0); `lookback_missing` counted.
@@ -556,7 +643,7 @@ table's order.
 ### 6.1 Design changes to the round-11 sketches (made before any data; each needs the challenger's acceptance)
 - **V: the target is the sweep skip `c_vskip` (k + 1 to k + 3), not E022's `c_sw`.** The state and `smid_k` come from the same book;
   an imbalance predicts the next mid mechanically at short horizons. LT5 R1 required targets that start after the decision time.
-- **V: origins start at or after LT4's `END_UTC`; the design is pinned before E022's analysis, or V is dropped.** V's `v` equals
+- **V: first origin is the first pass whose k - 1 inputs start at or after E022's `END_UTC` (R1 item 7); the design is pinned before E022's analysis, or V is dropped.** V's `v` equals
   `-dimb`, E022's pinned control, on the same population, book and target family. On shared origins one coefficient would be both a
   nuisance term in E022 and a primary here (LT5 7.2's reason). Disjoint origins remove the shared data; pinning before E022's
   analysis removes the development look. LT5 deferred CH190 "to after E022's analysis"; this draft reads that deferral as a
@@ -606,10 +693,25 @@ refuses if a sealed file in a needed slot is absent.
 - **Flow census CK:** the **23 sealed active-frame samples of 2026-10-16 and 10-17** (`seals/lt3_census_inputs_C2.json`, the files
   LT3 C2, LT4 CF and LT5 CJ read) with their captures and sidecars from `seals/lt4_census_inputs_captures.json`.
 - **Capture and sweep censuses CV, CD, CB:** the complete captures (rows, sidecar, manifest) and sweep 1 sealed in
-  `seals/lt5_census_inputs_captures.json` (captures 2026-10-12T00:31Z .. 10-21T22:31Z; sweeps from 2026-10-19T22:31Z). CV uses the
+  `seals/lt5_census_inputs_captures.json` (**not yet committed at this response: q0564 writes it after 2026-10-21T23:20Z; its sha256
+  is to be filled here from the committed seal**, R1 item 9; captures 2026-10-12T00:31Z .. 10-21T22:31Z; sweeps from
+  2026-10-19T22:31Z). CV uses the
   passes of UTC 2026-10-20 and 10-21 (each with its pass k - 1 sweep); CD and CB use every pair of consecutive complete slots in the
   sealed span, with the known missing slots (10-14T00:31..10:31; 10-21T00:31 and 02:31) left missing; a pair across a gap is no pair
   (counted). CD's and CB's 12-slot look-back is inside the same span.
+- **Fallback if the LT5 seal differs (declared now; R1 item 9).** (i) If the committed LT5 seal covers fewer slots than named
+  above, LT6 uses exactly the slots it covers inside the named spans; the rest are genuinely missing (counted). (ii) If no LT5 seal
+  is committed (q0564 or its commit fails), LT6's restore job (q0580) hashes the same spans from the data releases' `files.sha256`
+  and that becomes the source of `seals/lt6_census_inputs.json`; no other day is substituted in either case. (iii) If the LT5 seal
+  covers slots outside the named spans, they are not read.
+- **Minimum covered days (R1 item 9; covered days = covered complete slots, or covered consecutive slot pairs for CD/CB, / 12):**
+  CV >= 1.5, CK >= 1.5 (sample passes / 12), CD >= 5, CB >= 5. Below its minimum, every gate of that census is NaN and fails (the
+  test drops, uncounted).
+- **Release coverage (orchestrator fact, recorded here because R1 could not verify it).** Host retention deletes only files that
+  are already in a verified data release with an identical sha256, and daily releases continue (`data-20261020` covers
+  2026-10-18T04 .. 10-19T02). So a sealed file that has left the host is in a release by construction, unless its archive step
+  failed. **Orchestrator action kept:** within 48 h of the LT5 seal commit, check that every file it names is in a release with an
+  equal sha256, and archive any that are not before they rotate off.
 - **The LT6 seal.** These files are off the host by the time LT6's censuses run. A restore job copies them byte for byte from the
   data releases and checks every sha256 against the source seals; `seals/lt6_census_inputs.json` then lists exactly the files
   restored with equal hashes (selection rule declared now: every file of the source seals in the spans above that a release holds).
@@ -625,18 +727,22 @@ refuses if a sealed file in a needed slot is absent.
 (LT3's rule); for CD and CB, distinct events over the covered days x 21 / days (pessimistic: no recurrence assumed beyond that).
 **Effective** counts = labelled units in markets with an earlier unit of the test's population in the census days (V, K: >= 2
 units). **Design effect:** `DE_gate = max(3.0, 1 + (m_21 - 1) x 0.02, 1 + (m_co - 1) x 0.5)`, with `m_21` the projected mean
-cluster size by event (LT4 14.1 item 8) and **`m_co` the mean number of labelled units per event x capture** (D, B; 1 for V and K).
-The co-labelling term (rho 0.5 for units labelled by the same edit or listing) is declared now (question 12). **MDE gate formula:**
-`3.388 x SD x sqrt(1/n1_eff + 1/n2_eff) x sqrt(DE_gate) x 1.5` for class contrasts (K, D, B); `3.388 x SD / sqrt(n_eff) x
-sqrt(DE_gate) x 1.5 x sqrt(VIF_w) x gap` for V, with `max(declared, design)` (LT5 census-code check 3). Correlations marked
+cluster size by event (LT4 14.1 item 8) and **`m_co` the size-weighted mean number of labelled units per event x capture,
+`sum m^2 / sum m`** over event x capture cells with at least one labelled unit (D, B; 1 for V and K; R1 answer 12). The co-labelling
+term (rho 0.5 for units labelled by the same edit or listing) and the 3.0 floor are declared now. **MDE gate formula (R1 item 5):**
+`3.388 x SD x sqrt(1/n1_eff + 1/n2_eff) x sqrt(DE_gate) x 1.5 x sqrt(max(1, VIF_w))` for class contrasts (K, D, B), with `VIF_w`
+the within-market (expanding-past demeaned) VIF of the class indicator on the test's controls, computed by the census (as LT5 R1
+finding 4); `3.388 x SD / sqrt(n_eff) x sqrt(DE_gate) x 1.5 x sqrt(VIF_w) x gap` for V, with `max(declared, design)` (LT5
+census-code check 3). A NaN `VIF_w` fails the gate. **Per-market label sums** (R1 recommended): CK, CD and CB print the
+distribution of labelled units per market and the share of labelled units in markets with exactly one (counts only, no gate). Correlations marked
 "within" are on expanding-past-demeaned values and bind; pooled values are printed.
 
 | Test | Census | Gate (all must hold; NaN fails) | Values fixed into the spec |
 |---|---|---|---|
-| V | CV | projected units (all section 2 filters) >= 42,000 (>= 2,000 a day); both-sweep coverage >= 70% of non-sports movers; **depletion: among traded units, the share whose toward-side 5c depth at sweep k is below half its level at sweep k - 1 <= 50%**; within `|corr(zv, z v_prev)|` <= 0.5; within `|corr(zv, zh0)|` <= 0.5; within `|corr(zv, 1[traded])|` <= 0.5; within `|corr(zv, z log|x|)|` <= 0.5; `|corr(zv, log1p liquidity_k)|` <= 0.5 within and pooled; within-market IQR of `v` >= 0.1 in >= 50% of markets with >= 6 units (and >= 30 such markets); block-gate share: >= 50% of units in markets with >= 2 units in the census days (LT5's proxy for `n_m >= 16` over 21 days); **pessimistic MDE per SD x tercile gap <= 0.5c** (SD 5c, VIF_w computed) | `c_v`, `s_v`, `zv` tercile cuts and gap, `exclude_family` |
-| K | CK | `ts` second-level (share of interval rows with `ts mod 60 != 0` >= 50%); `order_min_size` present in >= 90% of qualifying units; projected qualifying units >= 50,400 (>= 200 a pass); clip units >= 3% of qualifying and projected >= 8,400; clip-free projected >= 25,200; **min-size: <= 80% of would-be clip notional at <= 2 x `order_min_size`** (measured before the exclusion); round sizes: <= 70% of clip notional at multiples of 10 shares; `interval_truncated` <= 5% of sampled traded movers with >= 4 rows; within `|corr(1[clip], g_path)|`, `|corr(1[clip], fresh)|`, `|corr(1[clip], log1p n_int)|`, `|corr(1[clip], H_unsigned)|` each <= 0.5; `|corr(1[clip], log1p liquidity_k)|` <= 0.5 within and pooled; permutable share >= 50% (day, else block2); **pessimistic MDE <= 0.5c** (SD 5c) | `perm_stratum`, `exclude_family` |
-| D | CD | projected later by-date interior non-sports units (section 4 primary population) >= 3,150 (>= 150 a day; the round's kill line); series roll-overs plus crypto-category later moves <= 70% of all later non-sports interior moves (the round's second kill line); unparseable `end_date` <= 2% of captures; within `|corr(1[later], theta24)|` <= 0.5 and `|corr(1[later], x)|` <= 0.5; `|corr(1[later], log1p liquidity_k)|` <= 0.5 within and pooled; permutable share of later units >= 50%; **pessimistic MDE <= 0.5c** (SD 6c, `DE_gate` with `m_co`) | `perm_stratum`, `exclude_family` |
-| B | CB | projected non-recurring non-sports births in existing events >= 630 (>= 30 a day; the round's kill line) and birth units >= 3,150 (>= 150 a day); `created_at` parseable on >= 95% of newcomers; guard loss <= 20% of otherwise-formed birth units; within `|corr(1[birth], own |24 h move|)|` <= 0.5 and `|corr(1[birth], event leave-one-out |2 h move|)|` <= 0.5; `|corr(1[birth], log1p liquidity_k)|` <= 0.5 within and pooled; permutable share of birth units >= 50%; **pessimistic MDE <= 0.5c** (SD 6c, `DE_gate` with `m_co`) | `perm_stratum`, `exclude_family` |
+| V | CV | projected units (all section 2 filters) >= 42,000 (>= 2,000 a day); both-sweep coverage >= 70% of non-sports movers; **depletion at the touch (R1 item 6): among traded units, share(toward-side 1c depth at sweep k below half its level at sweep k - 1) minus share(away-side 1c depth likewise halved) <= 20 pp**, and (kept from the first draft, both bind) the toward-side 5c halving share <= 50%; the round's original share (toward-side 5c depth below its k - 1 level) is printed; within `|corr(zv, z v_prev)|` <= 0.5; within `|corr(zv, zh0)|` <= 0.5; within `|corr(zv, 1[traded])|` <= 0.5; within `|corr(zv, z log|x|)|` <= 0.5; `|corr(zv, log1p liquidity_k)|` <= 0.5 within and pooled; within-market IQR of `v` >= 0.1 in >= 50% of markets with >= 6 units (and >= 30 such markets); block-gate share: >= 50% of units in markets with >= 2 units in the census days (LT5's proxy for `n_m >= 16` over 21 days); **pessimistic MDE per SD x tercile gap <= 0.5c** (SD 5c, VIF_w computed) | `c_v`, `s_v`, `zv` tercile cuts and gap, `exclude_family` |
+| K | CK | `ts` second-level (share of interval rows with `ts mod 60 != 0` >= 50%); `order_min_size` present in >= 90% of qualifying units; projected qualifying units >= 50,400 (>= 200 a pass); clip units >= 3% of qualifying and projected >= 8,400; clip-free projected >= 25,200; **min-size: <= 80% of would-be clip notional at <= 2 x `order_min_size`** (measured before the exclusion); round sizes: <= 70% of clip notional at multiples of 10 shares; `interval_truncated` <= 5% of sampled traded movers with >= 4 rows; within `|corr(1[clip], g_path)|`, `|corr(1[clip], fresh)|`, `|corr(1[clip], log1p n_int)|`, `|corr(1[clip], H_unsigned)|` each <= 0.5; `|corr(1[clip], log1p liquidity_k)|` <= 0.5 within and pooled; permutable share >= 50% (day, else block2); **pessimistic MDE <= 0.5c** (SD 5c, `VIF_w` of `1[clip]` on K's controls including `H_unsigned` and `g_path`) | `perm_stratum`, `exclude_family` |
+| D | CD | projected later by-date interior non-sports units (section 4 primary population) >= 3,150 (>= 150 a day; the round's kill line); series roll-overs plus crypto-category later moves <= 70% of all later non-sports interior moves (the round's second kill line); unparseable `end_date` <= 2% of captures; within `|corr(1[later], theta24)|` <= 0.5 and `|corr(1[later], x)|` <= 0.5; `|corr(1[later], log1p liquidity_k)|` <= 0.5 within and pooled; permutable share of later units >= 50%; covered days >= 5; **pessimistic MDE <= 0.5c** (SD 6c, `DE_gate` with size-weighted `m_co`, `VIF_w` of `1[later]` on D's controls including `theta24`) | `perm_stratum`, `exclude_family` |
+| B | CB | projected non-recurring non-sports births in existing events >= 630 (>= 30 a day; the round's kill line) and birth units >= 3,150 (>= 150 a day); `created_at` parseable on >= 95% of newcomers; guard loss <= 20% of otherwise-formed birth units; within `|corr(1[birth], own |24 h move|)|` <= 0.5 and `|corr(1[birth], event leave-one-out |2 h move|)|` <= 0.5; `|corr(1[birth], log1p liquidity_k)|` <= 0.5 within and pooled; **crypto births (newcomer `fee_category` by D's rule) <= 70% of births after the non-recurring rule (R1 item 4)**; permutable share of birth units >= 50%; covered days >= 5; **pessimistic MDE <= 0.5c** (SD 6c, `DE_gate` with size-weighted `m_co`, `VIF_w` of `1[birth]` on B's controls) | `perm_stratum`, `exclude_family`, fake-birth tercile cuts |
 
 - **Descriptive (no gate):** every census prints the sports split, the top series family's share, the pairwise unit overlap with the
   other LT6 populations (and, for CK, with LT5 J's population definition on the same samples), and the class shares by liquidity
@@ -658,12 +764,13 @@ unused across `queue/` on every local and remote branch before drafting).**
 - `q0583_lt6_census_flow` (cpu, about 1,000 MB; depends on q0582): CK.
 - `q0584_lt6_size_check` (cpu, 400 MB; depends on q0582 and q0583, so k is fixed before any size result exists; `max_retries 1`
   deterministic-crash retry only).
-- `q0585_lt6_reader` (lane `net`, `mem_mb 480`, repeat; `not_before` `REGISTERED_UTC - 24 h`): the installed reader (8.2).
+- `q0585_lt6_reader` (lane `net`, `mem_mb 480` at ladder steps 1-2, 800 at step 3, repeat; `not_before` the install time `t` of
+  8.4 step 9): the installed reader (8.2).
 All are DRAFT and must not be promoted before the challenger review of this file, the code and its freeze check. Each counts 0.
-**Time-critical (for the orchestrator, not this branch):** confirm by 2026-10-27 that a data release holds the LT5-sealed captures
-and sweeps of 2026-10-19T22:31Z .. 10-21 (the catalogue lists tags only to 2026-10-20); if not, archive them byte for byte with a
-hash check against the LT5 seal before host retention removes them (about 8 days after capture). Otherwise CV loses its days and,
-by the rule above, V's gates are computed on what remains or fail.
+**Orchestrator action (not this branch; R1 recommended "seal archive within 48 h"):** within 48 h of the LT5 seal commit, confirm
+that every file it names is in a data release with an equal sha256 (retention deletes only files already in a verified release, so
+this checks the archive step, not retention), and archive byte for byte any that are not. A file found in no release is genuinely
+missing for LT6 (counted), never substituted.
 
 ## 8. Implementation plan (no code in this commit)
 
@@ -688,8 +795,13 @@ by the rule above, V's gates are computed on what remains or fail.
   4. `<kind>/outcomes/<id>.h<j>.csv.gz` and `.s<j>.csv.gz` (status and quote at slots k + 1, k + 3, k + 12; sweep-1 quote of passes
      k + 1, k + 3);
   5. `passes.jsonl`.
-  An install-time `backfill-series` writes `series/` and `sweeps/` for the 12 slots before `REGISTERED_UTC` (k - 12 look-back; all
-  still on the host) as `lookback` lines, never units. A kind not in `k_tests` is switched off.
+  **Look-back (R1 item 10).** The first origins need slots back to `REGISTERED_UTC - 26 h` (D's and B's k - 12; V's k - 1 sweep).
+  At install time `t` (within `[REGISTERED_UTC - 72 h, REGISTERED_UTC - 24 h]`, 8.4), `backfill-series` writes `series/` and
+  `sweeps/` as `lookback` lines for every needed slot that started before `t` (host originals; all at most 3 days old then); **the
+  installed reader writes `lookback` lines for every capture and sweep that arrives in `[t, REGISTERED_UTC)`, as it arrives**.
+  `lookback` lines are never units. A needed slot found by neither is `lookback_missing` (counted per slot and per affected unit),
+  never imputed or restored from a later file. Labelled events (edits, births) seen in `lookback` lines mark the washout of 1.7
+  for the first window units (stricter: a pre-window event can only remove units). A kind not in `k_tests` is switched off.
 - `backend/astrolabe/research_lab/live_tests6_analysis.py`: the single analysis (1.7-1.10, Holm over k, counting) and the size check
   (1.8, 1.8.1) with the scenario-to-test map (fail-closed on an unknown or missing scenario).
 - `backend/scripts/run_live_tests6.py`: `run`, `backfill-series`, `ops-stats`, `seal`, `census-captures`, `census-flow`,
@@ -702,14 +814,21 @@ by the rule above, V's gates are computed on what remains or fail.
 
 ### 8.2 Resources, collection plan and install
 - **No new collector and no network.** A pure reader of the pass's own outputs, once a pass.
-- **Memory.** Reference: LT3's host dry run (peak 534 MB in a 40-item backlog pass, 318-343 MB steady). LT6 reads per pass two
-  captures' selected columns, one sidecar, two sweeps' outcome-0 rows, one trade sample, and its targets' quotes; it has no 96-slot
-  look-back (LT5 H's cost) and no family join over all siblings. Planning **steady 300-420 MB, backlog bounded by `--max-items 4`**
-  (estimates). Address-space cap `ulimit -v 983040` (LT3's). **Acceptance: the host dry run with the exact command shows peak RSS
-  <= 450 MB**; else the reader is split into two jobs at the same cadence (sample-side K; capture/sweep-side V, D, B) that never
-  run concurrently, and the split is measured again before the pin.
-- **Install (recommended): queue job `q0585` on the `net` lane, `mem_mb 480`, repeat, once a pass**, keeping the queue's blackout
-  exemption (< 500 MB), so the 02:31 and 04:31 passes are read in time. Reason for the `net` lane: LT3's (a 21-day `cpu` job
+- **Memory (R1 item 11).** **The planning reference is LT3's measured host peak, 534 MB** (a 40-item backlog pass; 318-343 MB
+  steady), not a lighter estimate: LT6 reads per pass at least what LT3 reads (two captures' selected columns, a sidecar, two sweeps'
+  outcome-0 rows, one trade sample with the train search, and its targets' quotes). Planning: **peak 450-650 MB in a backlog pass,
+  330-450 MB steady** (estimates; the earlier "300-420 MB" is withdrawn). So `mem_mb 480` is **not** assumed to hold; a declared
+  ladder decides, each step measured by a host dry run with the exact command before the pin (no pin on an unmeasured reader):
+  1. one reader, `--max-items 2` (one pass plus one of catch-up per run, which bounds the backlog), column projection, `ulimit -v
+     983040`: accepted if peak RSS <= 450 MB, installed as `q0585` at `mem_mb 480` on the `net` lane;
+  2. else **two readers** at the same cadence (sample-side K; capture/sweep-side V, D, B), serialised by one shared `flock` so they
+     never run concurrently, each `--max-items 2`: accepted if each peaks <= 450 MB, both at `mem_mb 480`;
+  3. **final fallback:** one reader at `mem_mb 800`, `ulimit -v 1572864`, `net` lane. It loses the queue's blackout exemption
+     (starts blocked 02:45-05:30Z), so the 02:31Z pass is read after its freeze deadline (04:31Z) every day: about one pass in
+     twelve of V and K origins and of D and B captures is lost as `.late`, **counted, never re-read**, and the *late-loss* label
+     applies above 2%. This consequence is declared now, so choosing step 3 changes no rule.
+- **Install (steps 1-2 above): queue job `q0585` on the `net` lane, `mem_mb 480`, repeat, once a pass**, keeping the queue's
+  blackout exemption (< 500 MB), so the 02:31 and 04:31 passes are read in time. Reason for the `net` lane: LT3's (a 21-day `cpu` job
   would block every `cpu` job). Alternative: host cron `45 1-23/2 * * *` (74 min after the pass start; after LT5's `:35`), own
   `flock`, `nice -n 19`, `oom_score_adj 1000`. **Never both.** Every freeze deadline (the next slot's start) is then at least 45
   min away; a pass whose sweep or sample is not complete by its deadline loses its V or K units as `.late`.
@@ -721,19 +840,24 @@ by the rule above, V's gates are computed on what remains or fail.
 ### 8.3 Tests to be written (`backend/tests/unit/test_research_lab_live_tests6.py`, synthetic only)
 - V: orientation of `imb` and `v` for rises and falls; `v_prev` from the k - 1 sweep; toward/away sides; `h0`; both-sweep
   requirement and `.noprevsweep`; the skip target from passes k + 1 and k + 3 with the joint mask.
-- K: train rule (exact size, distinct `tx_hash`, gap >= 2 s, the [0.5, 1.5] median-gap rule, 30-minute span, maximal runs), min-size
+- K: the declared greedy train algorithm, one test per branch (skip a `< 2 s` row, skip a repeated `tx_hash`, append on the first
+  gap, append inside and close outside the running-median band, close on the 30-minute span, restart at `i + 1` after a short run,
+  restart after a train, no overlaps); size keys from API strings (`"10"`, `"10.0"`, `"1E+1"` equal; `"10.000001"` not), min-size
   exclusion from `order_min_size`, `clip_share`, rows at or after `t_k` ignored, interval coverage, the near-identical placebo
   grouping, `g_path` equal to LT5 J's on the same rows.
 - D: the ET template classifier across the 2026-11-01 DST change, later / no-change / earlier / under-1 h classes, roll-over and
-  overdue exclusions, `theta24`, an unparseable `end_date` never equal.
+  overdue exclusions, `theta24`, an unparseable or date-only `end_date` never equal, the washout, the old-end >= 7 d subset.
 - B: newcomer detection (present at k, absent at k - 1, `created_at` in the interval), lagged appearance, existing and
-  non-recurring rules, the 5 s guard, several newcomers as one birth, the fake-birth draw is seeded and at least 12 slots from a
-  real birth.
+  non-recurring rules, the 5 s guard, several newcomers as one birth, the no-birth class excluding lagged appearances and washout
+  units, the crypto category rule, the fake-birth draw is seeded, at least 12 slots from a real birth and in the real birth's
+  tercile.
 - Shared: causality (future captures, sweeps and samples with wild prices leave every frozen line byte-identical); late refusal,
   write-once; dry-run guard; `%.17g` round trip; run lock; `ops-stats` reads no price column; vendored provenance and drift;
-  counting equals k; Holm; the p = max rule; the analysis refuses before the date, an unpinned, null or NaN spec, or a `k_tests`
-  naming a dropped test; V's registration refused if the pin is after LT4's analysis date in the spec; sealed censuses (counts only,
-  tampering refused, completeness); each MDE gate formula with `m_co`; the size check on small runs with planted effects, the
+  counting equals k; Holm; the p = max rule and, for D and B, the `G_treated - 1` event t; the both-demeaned sensitivity; the
+  analysis refuses before the date, an unpinned, null or NaN spec, or a `k_tests` naming a dropped test; V's registration refused if
+  the pin is after E022's analysis commit, and V's first origin after E022's `END_UTC` (k - 1 inputs); sealed censuses (counts only,
+  tampering refused, completeness, minimum covered days); each MDE gate formula with size-weighted `m_co` and `VIF_w`; `lookback`
+  lines written by the running reader before `REGISTERED_UTC` never become units; the size check on small runs with planted effects, the
   scenario-to-test map and the rule that a failing scenario sets only its own tests to "SE check failed" with k unchanged; an
   end-to-end synthetic analysis with a reduced `k_tests`.
 
@@ -743,10 +867,14 @@ by the rule above, V's gates are computed on what remains or fail.
 3. Code (8.1, 8.3); a `science-reviewer` freeze check of the census and size-check code against sections 1.8, 1.8.1 and 7; fixes.
 4. Censuses q0582, q0583 (counts only); drops recorded in 6.3; `k_tests`, scales, cuts and `perm_stratum` values filled.
 5. Size check q0584 (2,000 worlds x 200 draws, seed 20261167, binding map of 1.8); results recorded per test.
-6. Reader freeze check; host dry run with the exact install command (peak RSS <= 450 MB).
-7. LT5's registration commit exists; the engine embargo entries of section 9 are applied in `config.EMBARGO` before acceptance.
+6. Reader freeze check; host dry run with the exact install command, following the memory ladder of 8.2 (the step used is
+   recorded).
+7. LT5's registration commit exists; **E022's registration commit or its recorded drop exists** (so `REGISTERED_UTC` and V's first
+   origin can be computed from E022's `END_UTC`); the engine embargo entries of section 9 are applied in `config.EMBARGO` before
+   acceptance; the CB18 request of the section 14 annex is filed with CB18's owner (applied or not, recorded).
 8. Pins: `SPEC_SHA256`, `code_sha256` map, `code_check` passing; E-numbers assigned from the ledger; the ledger entry is the
-   registration commit, **before LT4's analysis run** (V's condition) and at least 24 h before `REGISTERED_UTC`.
+   registration commit, **before E022's analysis commit** (V's condition; else V is dropped first) and at least 24 h before
+   `REGISTERED_UTC`.
 9. Install q0585 and run `backfill-series` within `[REGISTERED_UTC - 72 h, REGISTERED_UTC - 24 h]`; verify `pinned: true` and
    `nothing_new` before `REGISTERED_UTC`; queue the analysis job with `not_before` the analysis date.
 
@@ -771,6 +899,9 @@ accepted.
   disclosed:** the engine's `book` family stays hidden 17 days longer. LT6's acceptance is conditional on this entry.
 - New tokens `vote`, `clips`, `deadline`, `siblings` to 2026-12-09, entered by whoever first builds an isolating challenger, before
   it is scored.
+- **Also (R1 recommended):** any flow-family feature built from print sizes by count (for example repeated-size counts, size
+  mode shares) carries `clips` as well as `flow`; any revision of `se5_tte` (or another `tte` model) that adds an `end_date`-change
+  or revision column carries `deadline`. **All dates here slide with E022's `END_UTC` (1.1)**, later, never earlier.
 - The existing `event` token (2026-11-22, LT5 F) is **not** extended: se8/se10's event features are levels (event size, overround,
   sibling changes), not a membership change, and B's primary target (an absolute move) is not an engine target. B's signed
   secondary is covered by `siblings`.
@@ -803,12 +934,17 @@ primary makes its family a candidate; an engine gain never changes an LT6 verdic
   control, a model-based assumption of a constant hazard, disclosed as such), co-occurring text edits (`updated_at` flag; the
   gamma-rules stream is not read), event-wide edits (co-labelling DE). B: volatility clustering (prior-move controls, the fake birth),
   routine listings (non-recurring rule), co-labelling (DE).
-- **Rare events.** D and B depart from round 11's rule 1 (no rare events); they are kept only behind counts-only kill lines.
+- **Rare events.** D and B depart from round 11's rule 1 (no rare events); they are kept only behind counts-only kill lines, and
+  their inference uses the treated-cluster count (1.7) because few events carry a label.
+- **D's `theta24`** is a survivor-conditional, model-based drift (section 4). **D may be *partially seen*** through CB18-S's
+  `end_date`-class print (1.6, the section 14 annex).
 - **Shared data.** LT2-LT5, E011, CB17, CB18, E025, E026 and the engine read the same captures, sweeps and samples. Overlap only.
 - **Window.** LT6's results arrive about 2026-12-08, later than a window starting in early November would give; the reasons are in
   1.1 (V's disjointness, host reader slots, election week).
 
 ## 11. Open questions for the challenger review
+
+*(Answered by R1; see section 14.3. Kept as the record.)*
 
 1. **V and E022.** Is temporal disjointness (V's origins at or after LT4's `END_UTC`) plus a pin before E022's analysis (else V
    drops) an adequate reading of LT5's deferral, or must V wait for E022's analysis? Should the whole family wait for 11-16 (one
@@ -850,25 +986,30 @@ primary makes its family a candidate; an engine gain never changes an LT6 verdic
 
 > ## LT6 (four round-11 candidates, ranks 6-9) — DRAFT pre-registration (not registered, nothing counted, no code)
 > - **Design:** `docs/research_lab/LIVE_TESTS_6.md` on `feat/live-tests-6`. Pure reader of streams the host already writes
->   (complete captures, sidecar, sweep 1 of passes k - 1 .. k + 3, active trade samples); no network, no new collector; planned peak
->   300-420 MB steady, acceptance <= 450 MB; queue `net` lane `mem_mb 480`, once a pass; separate store `live_tests6/`; LT3-LT5
+>   (complete captures, sidecar, sweep 1 of passes k - 1 .. k + 3, active trade samples); no network, no new collector; memory
+>   planned from LT3's measured 534 MB peak with a declared three-step ladder (one reader <= 450 MB at `mem_mb 480`; two serialised
+>   readers; final fallback `mem_mb 800` with the 02:31Z pass lost as `.late`, counted); separate store `live_tests6/`; LT3-LT5
 >   functions vendored after LT5's pin.
 > - **V** (CH190) makers' vote: slope of the sweep skip continuation (k + 1 to k + 3) on the post-move aligned 5c skew, pre-move skew
->   held fixed, non-sports movers, > 0; block Freedman-Lane gate; tercile MDE 0.17-0.40c vs 0.5c; origins after LT4's END (E022's
->   `dimb` = -v), pinned before E022's analysis or dropped.
-> - **K** (CH185) clip trains by size identity: clip (share >= 0.25) minus clip-free, skip target, all categories, > 0; MDE
->   0.32-1.2c; may drop. Arm 2 (`side`) and the monitor arm removed.
-> - **D** (CH187) deadline moves: later `end_date` on by-date templates, 22 h YES change from k + 1, time decay held fixed, > 0; MDE
->   0.43-0.99c; very likely to drop at its census.
-> - **B** (CH188) sibling birth: incumbents' absolute 22 h move after a non-recurring listing in their event, > 0; MDE 0.33-0.99c;
->   may drop.
-> - **Family:** Holm over k <= 4 (census-fixed), one-sided, alpha 0.05; p = max(event t, two-way, day t); Freedman-Lane gates (V: block
->   circular-shift, minimum 16 units per market); size check 10 binding scenarios, a failure sets only its own tests to p = 1; window
->   proposed `[2026-11-16T00:00Z, 2026-12-07T00:00Z)`, single analysis on or after 2026-12-08T12:00Z; register after LT5, between
->   2026-11-01 and 2026-11-15.
-> - **Status:** DRAFT awaiting challenger R1, restore and seal (q0580-q0581), code and freeze check, censuses (q0582-q0583), size check
->   (q0584), dry run, engine embargo entries (`book` to 2026-12-09; new `vote`, `clips`, `deadline`, `siblings`), pins and
->   registration. E-numbers not assigned (E026 last used).
+>   held fixed, non-sports movers, > 0; block Freedman-Lane gate; tercile MDE 0.17-0.40c vs 0.5c; first origin after **E022's**
+>   `END_UTC` (k - 1 inputs; E022's `dimb` = -v), pinned before E022's analysis or dropped; depletion gate on the 1c touch
+>   (toward minus away halving <= 20 pp).
+> - **K** (CH185) clip trains by size identity (declared greedy algorithm, API-string sizes): clip (share >= 0.25) minus clip-free,
+>   skip target, all categories, > 0; `H_unsigned` a control; MDE 0.32-1.2c; may drop. Arm 2 (`side`) and the monitor arm removed.
+> - **D** (CH187) deadline moves: later `end_date` on by-date templates, 22 h YES change from k + 1, time decay held fixed, washout,
+>   > 0; MDE 0.43-0.99c; very likely to drop at its census; *partially seen* unless CB18 withholds its `end_date`-class print.
+> - **B** (CH188) sibling birth: incumbents' absolute 22 h move after a non-recurring listing in their event (clean no-birth class,
+>   crypto gate, washout), > 0; binding volatility-clustering size world; material label 1.0c; MDE 0.33-0.99c; may drop.
+> - **Family:** Holm over k <= 4 (census-fixed), one-sided, alpha 0.05; p = max(event t, two-way, day t), with the event t on
+>   `G_treated - 1` df for D and B; Freedman-Lane gates (V: block circular-shift, minimum 16 units per market); size check 11 binding
+>   scenarios (one non-binding, plus reported analytic-p rates and planted-effect power), a failure sets only its own tests to p = 1;
+>   class MDE gates carry `sqrt(max(1, VIF_w))`; window proposed `[2026-11-16T00:00Z, 2026-12-07T00:00Z)` keyed to E022's `END_UTC`
+>   (the family slides with E022), single analysis on or after 2026-12-08T12:00Z; register after LT5 and after E022's registration
+>   or drop, from 2026-11-01.
+> - **R1 (2026-10-21):** REVISE (V, K, D ACCEPT_WITH_CHANGES; B REVISE; 12 required); answered in section 14; re-check pending.
+> - **Status:** DRAFT awaiting the R1 re-check, restore and seal (q0580-q0581; LT5 seal sha256 to be filled), code and freeze check,
+>   censuses (q0582-q0583), size check (q0584), dry run, engine embargo entries (`book` to 2026-12-09; new `vote`, `clips`,
+>   `deadline`, `siblings`), the CB18 request, pins and registration. E-numbers not assigned (E026 last used).
 
 ## 13. Proposed registry entry (stage "designed"; `registry.json` is not edited here)
 
@@ -883,12 +1024,12 @@ primary makes its family a candidate; an engine gain never changes an LT6 verdic
  "status": "draft",
  "verdict": "pending",
  "effect": null,
- "next": "Challenger review of the design, then code, counting checks and a size check; registration between 1 and 15 Nov 2026; collection 16 Nov to 7 Dec 2026, single analysis after 8 Dec 2026",
+ "next": "Short re-check of the answers to the challenger review, then code, counting checks and a size check; registration from 1 Nov 2026; collection planned 16 Nov to 7 Dec 2026 (moves later if a linked earlier test slips), single analysis after 8 Dec 2026",
  "next_date": "2026-11-01",
  "candidate": false,
  "sources": {
   "verdict": "docs/research_lab/LIVE_TESTS_6.md (DRAFT)",
-  "next": "docs/research_lab/LIVE_TESTS_6.md sections 1.1, 7 and 8.4"
+  "next": "docs/research_lab/LIVE_TESTS_6.md sections 1.1, 7, 8.4 and 14"
  },
  "stage_results": {
   "designed": "pending"
@@ -896,3 +1037,99 @@ primary makes its family a candidate; an engine gain never changes an LT6 verdic
  "reached": []
 }
 ```
+
+## 14. Challenger R1 response (2026-10-21; `reviews/LT6_CHALLENGER_R1_2026-10-21.md`, REVISE; governs where any earlier text differs)
+
+Design only, before any census, size run, seal or window data; nothing was chosen from data. **No threshold, floor, alpha, seed or
+direction was loosened.** Every change narrows a population, adds a control, a cluster rule, a gate, a scenario, a label or a
+disclosure, or makes a rule exact. Where a finding left a choice, the stricter option was taken and the reason is given. The
+changes are applied in sections 0-13; where any text differs, this section governs.
+
+### 14.1 Required changes mapped to edits
+
+| # | Finding | Change | Where | Reason for the choice |
+|---|---|---|---|---|
+| 1 | Few treated clusters (D, B): CR1 over all `G_event` over-rejects with about 150 labelled events | For D and B, **p = max(p_event on t with `G_treated - 1` df, p_two-way, p_day t)**; the event CI uses the same df. The size check **reports** the analytic rule's rejection rate in scenarios 6, 7 and 11 at 0.0125 and 0.05; above its limit the result carries *analytic p oversized in simulation* | 1.7, 1.8, 1.9, 4, 5 | As required; the reported rate is a label, not a second binding size statement (14.3) |
+| 2 | B needs a volatility-clustering size world | **Scenario 11 (binding for B):** stochastic volatility (AR 0.95, event-shared component), birth hazard rising with the event's current volatility, the primary's prior-|move| controls in the model, absolute target, no birth effect; failure gives B "SE check failed (size scenario)", p = 1, k unchanged | 1.8, 1.8.1, 5 | The market x day permutation does not keep intra-day timing; the world tests the gate where B is most exposed |
+| 3 | B control-class contamination | **No-birth** = no newcomer **and no lagged appearance** in the event at k, and not in the washout; lagged-appearance-only, guard-loss, unparseable-`created_at`, recurring-newcomer and washout units are **excluded and counted by reason**, never class 0 | 5, 8.3 | As required |
+| 4 | B crypto exclusion | The newcomer's category by D's census category rule (sidecar `fee_category`) **and** a census gate: crypto births <= 70% of births after the non-recurring rule; the series-family rule still applies | 5, 7 | The finding offered either; both are applied (stricter than either alone) |
+| 5 | MDE gates omit VIF (K, D, B) | Class gates multiply by **`sqrt(max(1, VIF_w))`**, `VIF_w` the within-market VIF of the class indicator on the test's controls (K with `H_unsigned` and `g_path`; D with `theta24`); a NaN `VIF_w` fails | 7 | As LT5 R1 finding 4 |
+| 6 | V depletion kill line | **Binding:** share(toward-side **1c** depth halved, sweep k vs k - 1) minus share(away-side 1c depth halved), among traded movers, **<= 20 pp**. The first draft's toward-side 5c halving <= 50% is **kept as a second binding gate**; the round's original share is printed | 7 | The asymmetry is the mechanical channel; keeping the earlier gate as well can only remove V, never rescue it |
+| 7 | V / E022 boundary; LT4 unregistered | **Everything is keyed to E022's own registration and `END_UTC`:** `REGISTERED_UTC >=` E022's `END_UTC`; **V's first origin is the first pass whose k - 1 capture and k - 1 sweep start at or after E022's `END_UTC`** (11-16T02:31Z as proposed; the 00:31Z pass counted as `e022_boundary`); LT6 registers only after E022's registration or its recorded drop; V is pinned before **E022's analysis commit** or dropped; **the whole family (window, analysis, embargo dates) slides if E022 slides**; if E022 is dropped, the E022 conditions lapse and the 11-16 floor alone applies | 0, 1.1, 1.11, 2, 8.3, 8.4, 9 | LT4's censuses (q0482/q0483) are only queued; tying LT6 to E022's actual dates is the only rule that stays correct whatever LT4 does |
+| 8 | CB18 can look at D | (a) No LT6 designer, coder or reviewer reads CB18's `end_date`-class output (or CB18-S results) before LT6's pin, and **D's text is frozen at the R1-accepted text** (later changes only by census-fixed values); a breach is recorded and labels D. (b) A withholding **change request to CB18's owner** (annex 14.6), filed before the pin, not edited here; **unless it is applied before the pin, D carries *partially seen*** | 1.6, 1.9, 1.11, 8.4, 10, 14.6 | CB18 is another owner's design; LT6 can request, not edit. The label applies to D as a whole (stricter than S3 only) and never changes a verdict |
+| 9 | Seal dependency | `seals/lt5_census_inputs_captures.json` is not committed yet (q0564 writes it after 2026-10-21T23:20Z): **its sha256 is to be filled from the committed seal**. **Fallback:** (i) fewer slots: use exactly those inside the named spans; (ii) no LT5 seal: q0580 hashes the same spans from the releases' `files.sha256`; (iii) extra slots: not read; never another day. **Minimum covered days:** CV >= 1.5, CK >= 1.5, CD >= 5, CB >= 5, else that census's gates are NaN and fail. **Release coverage:** retention deletes only files already in a verified release with an identical sha256, and daily releases continue (`data-20261020` covers 10-18T04 .. 10-19T02); the 48 h archive check stays an orchestrator action | 7 | As required |
+| 10 | Look-back timing | `backfill-series` covers needed slots that started before the install time `t`; **the installed reader writes `lookback` lines for every capture and sweep arriving in `[t, REGISTERED_UTC)` as it arrives**; a slot found by neither is `lookback_missing` (counted); pre-window labelled events mark the washout | 8.1, 8.3 | As required; the washout use can only remove units |
+| 11 | Memory plan | Planning from **LT3's measured 534 MB peak** (450-650 MB backlog, 330-450 MB steady; the 300-420 MB figure withdrawn); a declared ladder, each step dry-run measured: one reader <= 450 MB at `mem_mb 480`; else two readers serialised by one `flock`, each <= 450 MB; **final fallback** one reader at `mem_mb 800`, losing the blackout exemption, so the 02:31Z pass is `.late` every day (about 1 in 12), **counted, never re-read**, *late-loss* above 2% | 8.2, 7 (q0585), 12 | Declaring the consequence now means the step finally used changes no rule |
+| 12 | K train rule ambiguous | A **declared deterministic greedy algorithm** (per (asset, size key) group, rows sorted by (`ts`, `tx_hash`); skip `< 2 s` rows and repeated `tx_hash`; the first gap any within the 30-minute span; later gaps within `[0.5, 1.5] x` the running median of the run's gaps; close on a band or span break; a closed run of >= 3 is a train and the next run starts after it; a shorter run restarts at `i + 1`; no overlaps); **sizes compared as `Decimal(API string).normalize()`**; unit tests for every branch | 3, 8.3 | As required |
+
+### 14.2 Recommended items adopted
+- **Washout** (D, B): class-0 units in slots k + 1 .. k + 11 after a labelled unit of the same market are excluded, counted (1.7,
+  4, 5); pre-window events seen in look-back lines count (8.1).
+- **Planted-effect power run** for D and B (0.5c and 1.0c, 500 worlds each), reported, **non-binding** (1.8).
+- **Both-demeaned sensitivity** in the analysis, never changes a verdict; **per-market label sums** printed by CK, CD and CB, counts
+  only (1.7, 7); **non-binding scenario 12** with label incidence correlated with the market's level (1.8, 1.8.1).
+- **`theta24` disclosed** as a survivor-conditional, model-based drift (4, 10).
+- **`H_unsigned` as a K control** on K's own 2 h interval rows, kept also as a census gate (3, 7).
+- **B's material label at 1.0c** (CB18-S's floor for an absolute 24 h move); the census MDE gate stays at 0.5c (1.9, 5).
+- **Size-weighted cluster size** `m_co = sum m^2 / sum m` in the co-labelling DE; the 3.0 floor kept (7).
+- **D's old-end >= 7 d reported subset** (S0) (4).
+- **Maker horizons:** `|mid_{k+1} - mid_k|` over the widened pass reported beside `y22` (D S3) and `a22` (B S3).
+- **Engine:** size-by-count flow features carry `clips`; a `tte` revision column carries `deadline` (9).
+- **Seal archive within 48 h** as an orchestrator action (7).
+- From the answers: the Thanksgiving-excluded sensitivity (1.1); fake births matched on the event's leave-one-out `|2 h|` tercile
+  (5); `end_date` parse rules pinned (4).
+
+### 14.3 Not adopted, or adopted differently, and why
+- **The analytic-p rejection rates and the power runs are not binding.** In LT3-LT5 the binding size statement is the gate's. A
+  simulated power run that could drop a test after the code exists would be a new power gate chosen late; the census MDE gate is
+  the declared one. The rates are reported and attach a label.
+- **V's earlier 5c halving gate is kept beside the new 1c asymmetry gate** (the review suggested replacing it). Keeping both is
+  stricter.
+- **B's crypto rule:** both the category rule and the gate, not either one (stricter).
+- **The 3.388 multiplier is kept** (`t_{20,0.99} + t_{20,0.8}`, LT4 section 2; the k = 5 worst case). For k <= 4 it overstates the
+  MDE against about 3.08, so it is conservative.
+- **A split window** is not adopted (the review agreed: one window from 11-16, now keyed to E022).
+- Nothing else in the review was refused.
+
+### 14.4 Rulings on section 11, adopted
+1 one window, keyed to E022 (item 7). 2 skip target kept; M3 stays a binding label; depletion gate per item 6. 3 block gate kept.
+4 K is distinct from E018; `H_unsigned` is a control and a gate. 5 `clip_share >= 0.25` kept, 0.5 as S2. 6 exact size by string
+(Decimal-normalised), 2 s minimum gap, distinct `tx_hash`, 30-minute span, band per item 12. 7 D and B stay census-first with items
+1-4 and 9. 8 `theta24` and `log T` kept; old-end >= 7 d subset added. 9 fixed classifier kept; parse rules pinned. 10 B's census
+gate stays 0.5c, its material label 1.0c. 11 adequate after items 3-4; fake births tercile-matched. 12 rho 0.5 kept with the
+size-weighted cluster size; floor 3.0 kept. 13 item 8. 14 acceptable with item 9. 15 21 days, no extension; Thanksgiving-excluded
+sensitivity only. 16 `net` lane, with the item 11 ladder. 17 k by census alone. 18 `book` extended to 2026-12-09 (slides with
+E022).
+
+### 14.5 Not resolved here (for the orchestrator)
+- **The LT5 seal's sha256** (q0564, after 2026-10-21T23:20Z) is to be written into section 7 when the seal is committed.
+- **E022's status.** LT4's censuses q0482/q0483 run today; E022's registration or drop, and its actual `END_UTC` and analysis
+  commit, set LT6's dates and V's freeze condition.
+- **The CB18 request** (14.6) must be filed with CB18's owner before LT6's pin; its outcome decides D's *partially seen* label.
+- **The engine embargo entries** of section 9 are outside this branch; LT6's acceptance waits for them.
+- **Release coverage** of the LT5-sealed files is an orchestrator check within 48 h of the seal commit.
+- **Whether scenario 11 holds size for B** is unknown until q0584 runs, after the censuses and the code freeze; no preliminary run
+  at seed 20261167 will be made.
+- **D remains very likely to drop** at its census, and **B is now harder to keep** (a clean no-birth class, a crypto gate, a VIF
+  term in its gate, a binding volatility world). Both are recorded now so that their drops, if they come, are not read as news.
+
+### 14.6 Annex: change request to CB18's owner (filed separately; not an edit of `CREATIVE_BATCH_18.md`)
+
+> **To:** the owner of CB18 (`CREATIVE_BATCH_18.md`, branch `feat/cb18`). **From:** LT6 design (`LIVE_TESTS_6.md`). **Date:**
+> 2026-10-21.
+>
+> **Request.** In CB18-S (section 4.1), the reported `end_date`-change class (any target, move, spread, exit or regression output
+> for units whose `end_date` changed between captures k - 1 and k) is **not computed or printed for REP_18 origins at or after
+> 2026-11-16T00:00Z** (or LT6's `REGISTERED_UTC`, if later) **until 2026-12-08T12:00Z** (LT6's analysis date, or later if LT6's
+> window slides with E022). Counts of such units may be printed. SCREEN_18's `end_date`-class output (origins before 11-10) is not
+> affected, but it is not shown to LT6's designer, coder or reviewers before LT6's pin.
+>
+> **Why.** LT6's D (CH187) tests the YES drift after a later `end_date` on by-date markets. REP_18's arm-1 origins of 11-16 .. 11-24
+> overlap D's window; CB18's print on that class would be a development look at D's object (its unsigned maker secondary) before
+> D's single analysis.
+>
+> **Cost to CB18.** One uncounted, reported secondary is delayed by about two weeks on part of REP_18. No CB18 counted test,
+> threshold, window, population or verdict changes.
+>
+> **Record.** CB18 records in its file and in the ledger whether the request was applied, before LT6's pin. **If it is not applied
+> before LT6's pin, LT6's D carries the label *partially seen (CB18 `end_date` class)* at analysis**; D's verdict rule is unchanged.
