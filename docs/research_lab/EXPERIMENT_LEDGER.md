@@ -2836,3 +2836,14 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   run repeats the dry run.
 - **q0475_lt3_size_check_r3 promoted** (cpu, 400 MB). Remaining: q0475 result vs §13.15, host dry run (13.4), pins,
   registration commit before 2026-10-23T00:00Z.
+
+## CB12-O q0263 bookkeeping note, 2026-10-21 ~05:15Z (nothing new counted)
+- q0263 (screen O, 10-20T19:08Z) shows `failed` in the queue. Checked on the host (read-only): `results_O.json` was
+  written once (sha256 `4d329a5d…`), and both counted `cb12_test` lines O1 and O2 (p = 1, testable false, label
+  "not testable (source)") are in `trials.jsonl` at 19:08:04Z. The count of 2 for O stands.
+- The error came after those lines: the family summary line (`kind` `ml_explain`, source `creative_batch_12:O`,
+  `n_tests` 2) was refused by `provenance.check_evidence_role`, because `run_cb12.py:622` passes the role "prospective",
+  which is not an allowed value. Attempt 2 refused correctly (results are write-once).
+- **Effect:** one descriptive summary line is missing; no test count, p-value or verdict changes. Not back-filled. O is
+  terminal (q0264 never runs), so the defect cannot recur on this path. The CB12 code stays frozen; any future
+  CB12-style runner must map "prospective" to an allowed role. The queue entry stays `failed` as the honest record.
