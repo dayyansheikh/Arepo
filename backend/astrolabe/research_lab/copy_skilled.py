@@ -58,10 +58,10 @@ OUT_ROOT = ROOT / "data-dumps" / "research_lab" / "copy_skilled"
 SPEC_PATH = Path(__file__).resolve().parent / "model_specs" / "copy_skilled_v1.json"
 SPEC_SHA256 = None  # pinned at registration (LIVE_TESTS_COPY.md 9); None = DRAFT, every line is prospective_unregistered
 
-REGISTERED_UTC = "2026-10-23T00:00:00Z"
-END_UTC = "2026-11-13T00:00:00Z"
-LABEL_CUTOFF_UTC = "2026-12-04T00:00:00Z"
-ANALYSIS_NOT_BEFORE = "2026-12-04T12:00:00Z"
+REGISTERED_UTC = "2026-10-24T00:00:00Z"
+END_UTC = "2026-11-14T00:00:00Z"
+LABEL_CUTOFF_UTC = "2026-12-05T00:00:00Z"
+ANALYSIS_NOT_BEFORE = "2026-12-05T12:00:00Z"
 TEMPFAIL = 75
 DISK_CAP_BYTES = int(1.0e9)
 ROLE_CONF, ROLE_UNREG = "prospective_confirmation", "prospective_unregistered"
@@ -71,7 +71,8 @@ _PIN_LINE = re.compile(r"^SPEC_SHA256 = .*$", re.M)
 ARMS = ("sidecar", "large_prints")
 SIGNAL_COLS = ["signal_id", "arm", "role", "parent_id", "batch_id", "market_id", "condition_id", "event_id", "wallet",
                "skill_score", "skill_n_pos", "trade_ts", "side", "outcome_index", "trade_price", "trade_size",
-               "trade_notional", "copy_token", "receipt_ts", "age_s", "price_bucket", "age_bucket", "n_controls",
+               "trade_notional", "copy_token", "receipt_ts", "age_s", "price_bucket", "age_bucket", "end_ts_origin",
+               "end_bucket", "n_controls",
                "evidence_role", "spec_sha", "code_sha", "code_commit", "frozen_utc"]
 ENTRY_COLS = ["signal_id", "kind", "latency_s", "due_ts", "capture_id", "capture_start_ts", "row_received_ts", "status",
               "best_bid", "best_ask", "spread", "last_trade_price", "liquidity", "volume24hr", "end_ts", "event_id",
@@ -270,9 +271,12 @@ def first_trades(tr: pd.DataFrame) -> pd.DataFrame:
 
 
 def signals_from_batch(tr: pd.DataFrame, *, arm: str, batch_id: str, skill: pd.DataFrame, t0: float,
-                       signalled: set, used_controls: set, event_of: dict, spec: dict) -> pd.DataFrame:
+                       signalled: set, used_controls: set, event_of: dict, spec: dict,
+                       end_of: dict | None = None) -> pd.DataFrame:
     """Skilled copy signals and their matched controls from one batch of received taker trades.
 
+    ``event_of`` / ``end_of``: market id -> event id / Gamma end time (epoch s) as known at the batch's origin (the
+    sample's origin capture, or the print line's Gamma context); a missing end gives end bucket -1 (no controls).
     ``tr``: normalised trades (``wallet_skill.normalise_trades`` columns) plus ``receipt_ts`` and ``condition_id``, all
     with ``ts <= receipt_ts``; already restricted to trades not visible in an earlier batch of the same market (the
     caller's ``last_sent`` rule). ``signalled`` (skilled (wallet, market) keys of this arm) and ``used_controls``
@@ -294,15 +298,19 @@ def signals_from_batch(tr: pd.DataFrame, *, arm: str, batch_id: str, skill: pd.D
     age = ft["receipt_ts"].to_numpy(float) - ft["ts"].to_numpy(float)
     pb = bucket(price, m["price_edges"])
     ab = bucket(age, m["age_edges_s"])
+    end_of = end_of or {}
+    end = np.array([float(end_of.get(int(x), math.nan)) for x in ft["market_id"].to_numpy(np.int64)], float)
+    eb = bucket(end - ft["receipt_ts"].to_numpy(float), m["end_edges_s"])
     ev = np.array([str(event_of.get(int(x), "")) for x in ft["market_id"].to_numpy(np.int64)], dtype=object)
     sig_id = np.array([signal_key(arm, w, mk, ts, d, k, p, s) for w, mk, ts, d, k, p, s in zip(
         ft["wallet"], ft["market_id"], ft["ts"], ft["d"], ft["k"], ft["price"], ft["size"], strict=True)], dtype=object)
-    pool = np.flatnonzero(~is_sk & np.array([k not in used_controls for k in keys], bool) & (pb >= 0) & (ab >= 0))
+    pool = np.flatnonzero(~is_sk & np.array([k not in used_controls for k in keys], bool) & (pb >= 0) & (ab >= 0)
+                          & (eb >= 0))
     dd = ft["d"].to_numpy(int)
     mk_arr = ft["market_id"].to_numpy(np.int64)
     cells: dict[tuple, list[int]] = {}
     for j in pool:
-        cells.setdefault((int(pb[j]), int(ab[j]), int(dd[j])), []).append(int(j))
+        cells.setdefault((int(pb[j]), int(ab[j]), int(eb[j]), int(dd[j])), []).append(int(j))
     rows: list[dict] = []
 
     def row(i: int, role: str, parent: str, n_ctrl: float) -> dict:
@@ -316,15 +324,16 @@ def signals_from_batch(tr: pd.DataFrame, *, arm: str, batch_id: str, skill: pd.D
                 "trade_ts": float(ft["ts"].iat[i]), "side": d, "outcome_index": k, "trade_price": float(price[i]),
                 "trade_size": float(ft["size"].iat[i]), "trade_notional": float(price[i] * ft["size"].iat[i]),
                 "copy_token": k if d > 0 else 1 - k, "receipt_ts": float(ft["receipt_ts"].iat[i]), "age_s": float(age[i]),
-                "price_bucket": int(pb[i]), "age_bucket": int(ab[i]), "n_controls": n_ctrl}
+                "price_bucket": int(pb[i]), "age_bucket": int(ab[i]), "end_ts_origin": float(end[i]),
+                "end_bucket": int(eb[i]), "n_controls": n_ctrl}
 
     taken: set[int] = set()
     for i in np.flatnonzero(new_sk):
         signalled.add(keys[i])
-        if pb[i] < 0 or ab[i] < 0:
+        if pb[i] < 0 or ab[i] < 0 or eb[i] < 0:
             rows.append(row(i, "skilled", "", 0.0))
             continue
-        cand = [j for j in cells.get((int(pb[i]), int(ab[i]), int(dd[i])), [])
+        cand = [j for j in cells.get((int(pb[i]), int(ab[i]), int(eb[i]), int(dd[i])), [])
                 if j not in taken and mk_arr[j] != mk_arr[i] and (ev[j] == "" or ev[j] != ev[i])]
         cand.sort(key=lambda j: _rank_key(sig_id[i], sig_id[j]))
         pick = cand[: int(m["n_controls"])]
@@ -383,7 +392,11 @@ def load_sample_batch(sdir: Path, last_sent: dict[int, float]) -> tuple[pd.DataF
     counts = {"sidecar_status": wman.get("sidecar_status", "missing"), "rows": 0, "kept": 0, "seen_before": 0,
               "no_receipt": 0}
     if wman.get("sidecar_status") != "complete" or not (sdir / "wallets.csv.gz").exists():
-        return pd.DataFrame(), sent, counts
+        # no wallet was observed in this sample: it does not count as an observation (last_sent is not advanced), so a
+        # later sample of the market is the first observation of these trades (with its own, later receipt)
+        if not (sdir / "wallets.csv.gz").exists():
+            counts["sidecar_status"] = f"{counts['sidecar_status']}|file_missing"
+        return pd.DataFrame(), {}, counts
     raw = pd.read_csv(sdir / "wallets.csv.gz", usecols=["market_id", "condition_id", "ts", "side", "outcome_index", "size",
                                                         "price", "wallet_hash"], dtype={"wallet_hash": str, "condition_id": str})
     counts["rows"] = int(len(raw))
@@ -421,6 +434,7 @@ def load_print_batch(lines: list[dict]) -> pd.DataFrame:
     tr["condition_id"] = df["condition_id"].astype(str).to_numpy()
     tr["receipt_ts"] = pd.to_numeric(df["recv_ts"], errors="coerce").to_numpy(float)
     tr["event_hint"] = df["ctx_event_id"].astype(str).to_numpy() if "ctx_event_id" in df else ""
+    tr["end_hint"] = pd.to_numeric(df["ctx_end_ts"], errors="coerce").to_numpy(float) if "ctx_end_ts" in df else math.nan
     return tr.reset_index(drop=True)
 
 
@@ -676,14 +690,23 @@ def _run_locked(*, root: Path, snapshot_root: Path, sample_root: Path, prints_ro
                 break  # still running: later samples wait (order matters for first observation)
             st.d["skipped"][s["id"]] = f"state={s['state']}"
             stats["skipped_samples"] += 1
+            append_jsonl(root / "passes.jsonl", [{"kind": "sample_missing", "id": s["id"], "reason": f"state={s['state']}",
+                                                  "at": iso(now)}])
             continue
         if s["frame"] != "active":
             st.d["skipped"][s["id"]] = f"frame={s['frame']}"
             continue
+        if not (s["dir"] / "features.csv.gz").exists():
+            # retired by the 3-day trade-sample retention before it was read (recorder outage): missing stays missing
+            st.d["skipped"][s["id"]] = "files_retired"
+            stats["skipped_samples"] += 1
+            append_jsonl(root / "passes.jsonl", [{"kind": "sample_missing", "id": s["id"], "reason": "files_retired",
+                                                  "at": iso(now)}])
+            continue
         tr, sent, cnt = load_sample_batch(s["dir"], last_sent)
-        event_of = _event_map(snapshot_root / str(s["snapshot_id"]), tr["market_id"].unique() if len(tr) else [])
+        event_of, end_of = _event_map(snapshot_root / str(s["snapshot_id"]), tr["market_id"].unique() if len(tr) else [])
         sig = signals_from_batch(tr, arm="sidecar", batch_id=s["id"], skill=skill, t0=t0, signalled=sig_keys["sidecar"],
-                                 used_controls=ctl_keys["sidecar"], event_of=event_of, spec=spec) if len(tr) else \
+                                 used_controls=ctl_keys["sidecar"], event_of=event_of, spec=spec, end_of=end_of) if len(tr) else \
             pd.DataFrame(columns=SIGNAL_COLS[:-5])
         write_once_csv(root / "signals" / f"{s['id']}.csv.gz", stamp(sig, spec, commit, now))
         for mk, t in sent.items():
@@ -704,9 +727,10 @@ def _run_locked(*, root: Path, snapshot_root: Path, sample_root: Path, prints_ro
             lines = read_print_lines(prints_root, h, h + 3600)
             tr = load_print_batch(lines)
             ev = {int(m): e for m, e in zip(tr.get("market_id", []), tr.get("event_hint", []), strict=False)} if len(tr) else {}
+            en = {int(m): e for m, e in zip(tr.get("market_id", []), tr.get("end_hint", []), strict=False)} if len(tr) else {}
             sig = signals_from_batch(tr, arm="large_prints", batch_id=bid, skill=skill, t0=t0,
                                      signalled=sig_keys["large_prints"], used_controls=ctl_keys["large_prints"],
-                                     event_of=ev, spec=spec) if len(tr) else pd.DataFrame(columns=SIGNAL_COLS[:-5])
+                                     event_of=ev, spec=spec, end_of=en) if len(tr) else pd.DataFrame(columns=SIGNAL_COLS[:-5])
             write_once_csv(root / "signals" / f"{bid}.csv.gz", stamp(sig, spec, commit, now))
             append_jsonl(root / "passes.jsonl", [{"kind": "prints", "id": bid, "lines": len(lines), "trades": int(len(tr)),
                                                   "skilled": int((sig["role"] == "skilled").sum()) if len(sig) else 0, "at": iso(now)}])
@@ -748,15 +772,17 @@ def _run_locked(*, root: Path, snapshot_root: Path, sample_root: Path, prints_ro
     return stats
 
 
-def _event_map(cap_dir: Path, market_ids) -> dict:
-    """market_id -> event_id from the sample's origin capture (empty if absent)."""
+def _event_map(cap_dir: Path, market_ids) -> tuple[dict, dict]:
+    """(market_id -> event_id, market_id -> Gamma end time) from the sample's origin capture (empty if absent)."""
     p = Path(cap_dir) / "rows.csv.gz"
     ids = {int(x) for x in market_ids}
     if not ids or not p.exists():
-        return {}
-    r = pd.read_csv(p, usecols=["market_id", "event_id"], dtype={"event_id": str})
+        return {}, {}
+    r = pd.read_csv(p, usecols=["market_id", "event_id", "end_date"], dtype={"event_id": str, "end_date": str})
     r = r[r["market_id"].isin(ids)].drop_duplicates("market_id")
-    return dict(zip(r["market_id"].astype(int), r["event_id"].fillna(""), strict=True))
+    mk = r["market_id"].astype(int).to_numpy()
+    end = [epoch(x) for x in r["end_date"].to_numpy()]
+    return dict(zip(mk, r["event_id"].fillna(""), strict=True)), dict(zip(mk, end, strict=True))
 
 
 def _first_unprocessed_batch(root: Path, sample_root: Path, t0: float, t_end: float, now: float, st: State) -> float:
@@ -874,6 +900,34 @@ def label_resolutions(*, root: Path = OUT_ROOT, spec: dict | None = None, transp
     out = {"asked": sum(1 for _ in todo[: n_req * batch]), "requests": n_req, "final_new": len(rows), "final_total": len(final) + len(rows)}
     log(json.dumps(out))
     return out
+
+
+def sample_coverage(root: Path, t0: float, t1: float, cadence_s: float = 7200.0) -> dict:
+    """Trade-sample coverage of the window from ``passes.jsonl``: samples read with a complete wallet sidecar vs samples
+    missing (not complete, retired before reading, or sidecar incomplete). Expected = window / cadence (2 h)."""
+    ok, bad = set(), set()
+    p = Path(root) / "passes.jsonl"
+    if p.exists():
+        for line in p.read_text().splitlines():
+            try:
+                r = json.loads(line)
+            except ValueError:
+                continue
+            sid = str(r.get("id", ""))
+            try:
+                t = datetime.strptime(sid[:16], "%Y%m%dT%H%M%SZ").replace(tzinfo=UTC).timestamp()
+            except ValueError:
+                continue
+            if not (t0 <= t < t1):
+                continue
+            if r.get("kind") == "sample" and (r.get("counts") or {}).get("sidecar_status") == "complete":
+                ok.add(sid)
+            elif r.get("kind") in ("sample", "sample_missing"):
+                bad.add(sid)
+    expected = (t1 - t0) / cadence_s
+    n_ok = len(ok)
+    return {"samples_ok": n_ok, "samples_missing": len(bad - ok), "expected": expected,
+            "missing_share": float(max(0.0, 1.0 - n_ok / max(expected, n_ok + len(bad - ok), 1.0)))}
 
 
 def gz_lines(path: Path) -> int:

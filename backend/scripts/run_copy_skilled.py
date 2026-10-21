@@ -135,8 +135,17 @@ def cmd_census(a) -> int:
             shutil.rmtree(work, ignore_errors=True)
     rep["total_s"] = round(time.time() - t0, 1)
     rep["peak_mb"] = round(peak_mb(), 1)
-    print(json.dumps(rep, indent=1, default=str))
+    print(json.dumps(_str_keys(rep), indent=1, default=str))
     return 0
+
+
+def _str_keys(x):
+    """JSON-safe copy (pandas value_counts can give Interval or numpy keys)."""
+    if isinstance(x, dict):
+        return {str(k): _str_keys(v) for k, v in x.items()}
+    if isinstance(x, (list, tuple)):
+        return [_str_keys(v) for v in x]
+    return x
 
 
 def _pass_counts(p: Path) -> dict:
@@ -167,10 +176,10 @@ def _census_counts(sig: pd.DataFrame, ent: pd.DataFrame, spec: dict, days: float
         sk, ct = g[g["role"] == "skilled"], g[g["role"] == "control"]
         o = {"skilled_signals": int(len(sk)), "per_day": round(len(sk) / days, 1), "wallets": int(sk["wallet"].nunique()),
              "markets": int(sk["market_id"].nunique()), "controls": int(len(ct)),
-             "controls_per_signal": sk["n_controls"].astype(float).value_counts().sort_index().to_dict(),
+             "controls_per_signal": {str(k): int(v) for k, v in sk["n_controls"].astype(float).value_counts().sort_index().items()},
              "age_h_quantiles": {str(q): round(float(sk["age_s"].quantile(q)) / 3600, 2) for q in (0.1, 0.25, 0.5, 0.75, 0.9)},
              "side_buy_share": round(float((sk["side"].astype(int) > 0).mean()), 3),
-             "trade_price_bands": pd.cut(sk["trade_price"].astype(float), [0, 0.05, 0.35, 0.65, 0.95, 1]).value_counts().sort_index().astype(int).to_dict()}
+             "trade_price_bands": {str(k): int(v) for k, v in pd.cut(sk["trade_price"].astype(float), [0, 0.05, 0.35, 0.65, 0.95, 1]).value_counts().sort_index().items()}}
         if len(ent):
             c = ca.build_copies(g, ent, pd.DataFrame(), spec, impacts)
             for L in spec["latencies_s"]:

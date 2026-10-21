@@ -124,6 +124,8 @@ def build_copies(signals: pd.DataFrame, entries: pd.DataFrame, res: pd.DataFrame
     c["price_ok"] = (c["ask_j"] >= float(u["ask_min"])) & (c["ask_j"] <= float(u["ask_max"])) & (c["spread_j"] <= float(u["spread_max"]))
     c["short_dated"] = np.isfinite(days) & (days <= float(u["max_days_to_end"]))
     c["universe"] = c["entry_ok"] & c["price_ok"] & c["short_dated"]
+    c["in_cap"] = wallet_day_cap(c, u.get("max_per_wallet_day"))
+    c["primary_set"] = c["universe"] & c["in_cap"]
     c["resolved"] = c["pay_j"].notna()
     ev = c["event_id"].astype(str)
     ev = ev.where(~ev.isin(["", "nan", "None"]), c["sig_event_id"].astype(str))
@@ -131,6 +133,24 @@ def build_copies(signals: pd.DataFrame, entries: pd.DataFrame, res: pd.DataFrame
     c["cluster"] = ev
     c["latency_real_s"] = c["row_received_ts"].astype(float) - c["trade_ts"].astype(float)
     return c
+
+
+def wallet_day_cap(c: pd.DataFrame, cap: int | None) -> pd.Series:
+    """True unless the row is a skilled in-universe copy beyond the first ``cap`` of its wallet in its UTC receipt day
+    (per arm and latency; order = receipt time, then signal id). Causal: entry order follows receipt order, and the
+    universe flags use entry-time fields only. Controls are never capped (their parent is)."""
+    out = pd.Series(True, index=c.index)
+    if cap is None or not len(c):
+        return out
+    m = (c["role"] == "skilled") & c["universe"]
+    if not m.any():
+        return out
+    s = c.loc[m, ["arm", "latency_s", "wallet", "receipt_ts", "signal_id"]].copy()
+    s["day"] = np.floor(s["receipt_ts"].astype(float) / 86400.0).astype(np.int64)
+    s = s.sort_values(["receipt_ts", "signal_id"], kind="stable")
+    rank = s.groupby(["arm", "latency_s", "wallet", "day"], sort=False).cumcount()
+    out.loc[rank.index] = rank.to_numpy() < int(cap)
+    return out
 
 
 def exit_frame(entries: pd.DataFrame, copies: pd.DataFrame, impacts: dict[str, float], spec: dict) -> pd.DataFrame:
@@ -203,8 +223,8 @@ def ratio_stats(net: np.ndarray, stake: np.ndarray, cl: np.ndarray, wallet: np.n
     return out
 
 
-def paired_frame(copies: pd.DataFrame, latency: float, arm: str, universe_col: str = "universe") -> pd.DataFrame:
-    """Skilled copies (in the universe, resolved) with the mean net/stake of their resolved in-universe controls."""
+def paired_frame(copies: pd.DataFrame, latency: float, arm: str, universe_col: str = "primary_set") -> pd.DataFrame:
+    """Skilled copies (in the primary set, resolved) with the mean net/stake of their resolved in-universe controls."""
     c = copies[(copies["latency_s"].astype(float) == float(latency)) & (copies["arm"] == arm)]
     sk = c[(c["role"] == "skilled") & c[universe_col] & c["resolved"]]
     ct = c[(c["role"] == "control") & c[universe_col] & c["resolved"]]
@@ -293,7 +313,7 @@ def _band_table(c: pd.DataFrame, arm: str, latency: float, B: int, seed: int) ->
     out = {}
     for lo, hi, name in PRICE_BANDS:
         sub = c[(c["ask_j"] >= lo) & (c["ask_j"] < hi)]
-        sk = sub[(sub["role"] == "skilled") & sub["universe"] & sub["resolved"] & (sub["arm"] == arm) & (sub["latency_s"].astype(float) == latency)]
+        sk = sub[(sub["role"] == "skilled") & sub["primary_set"] & sub["resolved"] & (sub["arm"] == arm) & (sub["latency_s"].astype(float) == latency)]
         r = ratio_stats(sk["net_ps"], sk["stake_ps"], sk["cluster"].astype(str).to_numpy(), B=B, seed=seed) if len(sk) else {"n": 0}
         pr = paired_frame(sub, latency, arm)
         out[name] = {"skilled": _slim(r), "vs_control": _slim(diff_stats(pr, B=B, seed=seed)) if len(pr) else {"n": 0}}
@@ -338,14 +358,15 @@ def analyze(root: Path = cs.OUT_ROOT, *, spec: dict | None = None, force: bool =
     prim = c[(c["latency_s"].astype(float) == L0) & (c["arm"] == arm)]
     sk = prim[prim["role"] == "skilled"]
     acc.update({"skilled_signals": int(len(sk)), "entry_ok": int(sk["entry_ok"].sum()), "price_ok": int((sk["entry_ok"] & sk["price_ok"]).sum()),
-                "universe": int(sk["universe"].sum()), "resolved_in_universe": int((sk["universe"] & sk["resolved"]).sum()),
-                "censored_in_universe": int((sk["universe"] & ~sk["resolved"]).sum()),
+                "universe": int(sk["universe"].sum()), "primary_set": int(sk["primary_set"].sum()),
+                "resolved_in_universe": int((sk["primary_set"] & sk["resolved"]).sum()),
+                "censored_in_universe": int((sk["primary_set"] & ~sk["resolved"]).sum()),
                 "entry_status": sk["status"].value_counts().to_dict()})
     ctl = prim[prim["role"] == "control"]
     acc["control_censored_share"] = float((ctl["universe"] & ~ctl["resolved"]).sum() / max(1, ctl["universe"].sum()))
-    acc["skilled_censored_share"] = float(acc["censored_in_universe"] / max(1, acc["universe"]))
+    acc["skilled_censored_share"] = float(acc["censored_in_universe"] / max(1, acc["primary_set"]))
     fl = spec["floors"]
-    a = sk[sk["universe"] & sk["resolved"]]
+    a = sk[sk["primary_set"] & sk["resolved"]]
     rN = ratio_stats(a["net_ps"], a["stake_ps"], a["cluster"].astype(str).to_numpy(), a["wallet"].astype(str).to_numpy(), B=B, seed=seed)
     availN = rN.get("n", 0) >= fl["min_copies"] and rN.get("clusters", 0) >= fl["min_events"]
     pr = paired_frame(prim, L0, arm)
@@ -362,20 +383,24 @@ def analyze(root: Path = cs.OUT_ROOT, *, spec: dict | None = None, force: bool =
     labels = []
     if out["E026-N"]["verdict"].startswith("Supported") and not out["E026-C"]["verdict"].startswith("Supported"):
         labels.append("bias-consistent: matched non-skilled copies in the same side x price x age cells earn similarly")
-    cens = sk[sk["universe"] & ~sk["resolved"]]
+    cens = sk[sk["primary_set"] & ~sk["resolved"]]
     if len(cens):
         worst = pd.concat([a, cens.assign(net_ps=-cens["cost_ps"] - cens["mid_j"])])
         rw = float(worst["net_ps"].sum() / worst["stake_ps"].sum())
         out["E026-N"]["censoring_pessimistic_R"] = rw
         if rw <= 0 < rN.get("est", 0):
             labels.append("censoring-sensitive: unresolved skilled copies set to pay 0 make R <= 0")
+    cov = cs.sample_coverage(root, t0, t1)
+    acc["sample_coverage"] = cov
+    if cov["missing_share"] > float(spec["floors"].get("max_missing_sample_share", 0.2)):
+        labels.append(f"coverage-reduced: {cov['missing_share']:.0%} of the window's trade samples were not read")
     if abs(acc["skilled_censored_share"] - acc["control_censored_share"]) > 0.05:
         labels.append("differential censoring (> 5 pp between skilled and control copies)")
     out["labels"] = labels
     # descriptive secondaries (not counted)
     sec: dict = {}
     for L in spec["latencies_s"]:
-        cc = c[(c["latency_s"].astype(float) == float(L)) & (c["arm"] == arm) & (c["role"] == "skilled") & c["universe"] & c["resolved"]]
+        cc = c[(c["latency_s"].astype(float) == float(L)) & (c["arm"] == arm) & (c["role"] == "skilled") & c["primary_set"] & c["resolved"]]
         sec[f"latency_{int(L)}s"] = {"skilled": _slim(ratio_stats(cc["net_ps"], cc["stake_ps"], cc["cluster"].astype(str).to_numpy(), B=B, seed=seed)) if len(cc) else {"n": 0},
                                      "vs_control": _slim(diff_stats(paired_frame(c, float(L), arm), B=B, seed=seed))}
     sec["price_bands"] = _band_table(c, arm, L0, B, seed)
@@ -387,13 +412,18 @@ def analyze(root: Path = cs.OUT_ROOT, *, spec: dict | None = None, force: bool =
                        for k, g in a.groupby(cat) if len(g) >= 30}
     if "large_prints" in set(c["arm"]):
         lp = c[(c["latency_s"].astype(float) == L0) & (c["arm"] == "large_prints")]
-        lps = lp[(lp["role"] == "skilled") & lp["universe"] & lp["resolved"]]
+        lps = lp[(lp["role"] == "skilled") & lp["primary_set"] & lp["resolved"]]
         sec["large_prints"] = {"skilled": _slim(ratio_stats(lps["net_ps"], lps["stake_ps"], lps["cluster"].astype(str).to_numpy(), B=B, seed=seed)) if len(lps) else {"n": 0},
                                "vs_control": _slim(diff_stats(paired_frame(c, L0, "large_prints"), B=B, seed=seed))}
+    unc = prim[(prim["role"] == "skilled") & prim["universe"] & prim["resolved"]]
+    pr_u = paired_frame(prim, L0, arm, universe_col="universe")
+    sec["uncapped"] = {"skilled": _slim(ratio_stats(unc["net_ps"], unc["stake_ps"], unc["cluster"].astype(str).to_numpy(),
+                                                    unc["wallet"].astype(str).to_numpy(), B=B, seed=seed)) if len(unc) else {"n": 0},
+                       "vs_control": _slim(diff_stats(pr_u, B=B, seed=seed))}
     ex = exit_frame(ent, c[(c["arm"] == arm) & (c["role"] == "skilled")], impacts, spec)
     sec["exit_24h_all_dated"] = _slim(ratio_stats(ex["net_ps"], ex["stake_ps"], ex["cluster"].astype(str).to_numpy(), B=B, seed=seed)) if len(ex) else {"n": 0}
     c_sched = build_copies(sig, ent, res, spec, impacts, policy="schedule")
-    s2 = c_sched[(c_sched["latency_s"].astype(float) == L0) & (c_sched["arm"] == arm) & (c_sched["role"] == "skilled") & c_sched["universe"] & c_sched["resolved"]]
+    s2 = c_sched[(c_sched["latency_s"].astype(float) == L0) & (c_sched["arm"] == arm) & (c_sched["role"] == "skilled") & c_sched["primary_set"] & c_sched["resolved"]]
     sec["fees_schedule_policy"] = _slim(ratio_stats(s2["net_ps"], s2["stake_ps"], s2["cluster"].astype(str).to_numpy(), B=B, seed=seed)) if len(s2) else {"n": 0}
     if len(a):
         sec["touch_only_R"] = float((a["net_ps"] + a["impact_ps"]).sum() / (a["stake_ps"] - a["impact_ps"]).sum())

@@ -3,14 +3,14 @@
  "status": "DRAFT (not registered; SPEC_SHA256 unpinned, skillset_sha256 and code_sha256 unfilled)",
  "doc": "docs/research_lab/LIVE_TESTS_COPY.md",
  "experiments": ["E026-N", "E026-C"],
- "registered_utc": "2026-10-23T00:00:00Z",
- "end_utc": "2026-11-13T00:00:00Z",
- "label_cutoff_utc": "2026-12-04T00:00:00Z",
- "analysis_not_before": "2026-12-04T12:00:00Z",
- "move_rule": "if the registration commit is not made at least 2 h before registered_utc, registered_utc moves to the first 00:00Z at least 2 h after that commit; end, cutoff and analysis dates move by the same amount; recorded in the ledger",
+ "registered_utc": "2026-10-24T00:00:00Z",
+ "end_utc": "2026-11-14T00:00:00Z",
+ "label_cutoff_utc": "2026-12-05T00:00:00Z",
+ "analysis_not_before": "2026-12-05T12:00:00Z",
+ "move_rule": "registered_utc is the first 00:00Z at least 24 h after the registration commit (spec pin + ledger entry), never earlier than 2026-10-24T00:00Z; if the commit slips, registered_utc and t_freeze_utc move to the next qualifying 00:00Z, end = registered + 21 d, label cutoff = end + 21 d, analysis = cutoff + 12 h; the move uses no data and is recorded in the ledger (the frozen set does not change: every HB1 outcome was known by 2026-10-15)",
  "skill": {
   "skill_version": "wallet-skill-v1",
-  "t_freeze_utc": "2026-10-23T00:00:00Z",
+  "t_freeze_utc": "2026-10-24T00:00:00Z",
   "history_panels": ["h1_first", "h2_main", "h3_power"],
   "res_lag_s": 172800,
   "min_pos": 5,
@@ -26,7 +26,8 @@
   "n_controls": 3,
   "price_edges": [0.0, 0.05, 0.15, 0.25, 0.35, 0.5, 0.65, 0.75, 0.85, 0.95, 1.0],
   "age_edges_s": [0, 3600, 10800, 21600, 43200, 86400, 1000000000000.0],
-  "rule": "same batch (same receipt clock), non-skilled wallet (any profile status), first trade of its (wallet, market) in the batch, not used as a control before, same side (BUY/SELL), same trade-price bucket, same trade-age bucket (receipt - trade ts), other market and other event; up to n_controls by sha256(parent signal id | candidate id) order"
+  "end_edges_s": [0, 86400, 259200, 1209600, 1000000000000.0],
+  "rule": "same batch (same receipt clock), non-skilled wallet (any profile status), first trade of its (wallet, market) in the batch, not used as a control before, same side (BUY/SELL), same trade-price bucket, same trade-age bucket (receipt - trade ts), same time-to-end bucket (origin Gamma end_date - receipt: <1 d, 1-3 d, 3-14 d, >14 d; missing or past end = no control), other market and other event; up to n_controls by sha256(parent signal id | candidate id) order"
  },
  "universe": {
   "arm": "sidecar",
@@ -35,7 +36,8 @@
   "spread_max": 0.10,
   "max_days_to_end": 14,
   "max_entry_delay_s": 21600,
-  "rule": "entry status two_sided; capture start - due <= max_entry_delay_s; copied-token ask in [ask_min, ask_max]; spread <= spread_max; Gamma end date of the entry row <= entry receipt + max_days_to_end days; final Gamma record (resolved or 50/50) fetched at or before label_cutoff_utc, else censored"
+  "max_per_wallet_day": 10,
+  "rule": "entry status two_sided; capture start - due <= max_entry_delay_s; copied-token ask in [ask_min, ask_max]; spread <= spread_max; Gamma end date of the entry row <= entry receipt + max_days_to_end days; final Gamma record (resolved or 50/50) fetched at or before label_cutoff_utc, else censored. Primary set = universe copies of skilled signals capped at the first max_per_wallet_day per wallet per UTC receipt day (receipt order; controls follow their parent); the uncapped universe is a secondary"
  },
  "costs": {
   "model": "cost-model-v1 (costs.py)",
@@ -53,7 +55,7 @@
   "p_rule": "one-sided p = max(cluster-bootstrap p by event, cluster-robust t p by event with G - 1 df, two-way event x wallet t p with min(G) - 1 df)"
  },
  "holm": {"k": 2, "alpha": 0.05, "tests": ["E026-N", "E026-C"], "direction": "> 0 (one-sided)"},
- "floors": {"min_copies": 200, "min_events": 40, "min_pairs": 150},
+ "floors": {"min_copies": 200, "min_events": 40, "min_pairs": 150, "max_missing_sample_share": 0.2},
  "materiality_floor_ppd": 0.03,
  "planning": null,
  "code_sha256": {}

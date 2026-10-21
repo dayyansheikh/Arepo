@@ -18,7 +18,7 @@ from astrolabe.research_lab import copy_skilled_analysis as ca
 from astrolabe.research_lab import costs
 from astrolabe.research_lab import wallet_skill as ws
 
-T0 = cs.epoch("2026-10-23T00:00:00Z")
+T0 = cs.epoch("2026-10-24T00:00:00Z")
 H = 3600.0
 
 
@@ -120,23 +120,26 @@ def _world_batch():
     rows.append(("C8", 30, T0 + 1 * H, -1, 1, 0.72, 5, r))      # SELL cell for S2
     rows.append(("C7", 31, T0 + 1 * H, -1, 1, 0.72, 5, r))      # same event as S2's market: excluded
     rows.append(("S2", 40, T0 + 1 * H, 1, 0, 0.42, 5, r))       # skilled wallet: never a control (it is a signal itself)
-    ev = {10: "e10", 12: "e12", 31: "e12", 30: "e30"} | {20 + i: f"e{20 + i}" for i in range(6)}
-    return sk, trades(rows), ev
+    rows.append(("C6", 50, T0 + 1 * H, 1, 0, 0.42, 5, r))       # BUY cell of S1 but its market ends in > 14 d: excluded
+    ev = {10: "e10", 12: "e12", 31: "e12", 30: "e30", 50: "e50"} | {20 + i: f"e{20 + i}" for i in range(6)}
+    end = {m: r + 2 * 86400 for m in (10, 12, 30, 31, 40)} | {20 + i: r + 2 * 86400 for i in range(6)} | {50: r + 30 * 86400}
+    return sk, trades(rows), ev, end
 
 
 def test_signals_first_trade_controls_and_dedupe():
-    sk, tr, ev = _world_batch()
+    sk, tr, ev, end = _world_batch()
     sp = spec()
     signalled, used = set(), set()
     s = cs.signals_from_batch(tr, arm="sidecar", batch_id="b1", skill=sk, t0=T0, signalled=signalled, used_controls=used,
-                              event_of=ev, spec=sp)
+                              event_of=ev, spec=sp, end_of=end)
     skl = s[s["role"] == "skilled"].set_index("market_id")
     assert set(skl.index) == {10, 12, 40}
     assert skl.loc[10, "trade_price"] == 0.40 and skl.loc[10, "copy_token"] == 0
     assert skl.loc[12, "copy_token"] == 0 and skl.loc[12, "side"] == -1  # SELL outcome 1 -> long outcome 0
     c10 = s[(s["role"] == "control") & (s["parent_id"] == skl.loc[10, "signal_id"])]
     assert len(c10) == 3 and skl.loc[10, "n_controls"] == 3
-    assert set(c10["market_id"]).isdisjoint({10}) and (c10["side"] == 1).all()
+    assert set(c10["market_id"]).isdisjoint({10, 50}) and (c10["side"] == 1).all()
+    assert (c10["end_bucket"] == skl.loc[10, "end_bucket"]).all() and skl.loc[10, "end_bucket"] == 1  # 1-3 d
     assert (c10["price_bucket"] == skl.loc[10, "price_bucket"]).all() and (c10["age_bucket"] == skl.loc[10, "age_bucket"]).all()
     c12 = s[(s["role"] == "control") & (s["parent_id"] == skl.loc[12, "signal_id"])]
     assert list(c12["market_id"]) == [30]  # market 31 shares S2's event
@@ -146,12 +149,25 @@ def test_signals_first_trade_controls_and_dedupe():
     assert allc["signal_id"].is_unique and len(used) == len(allc)
     # deterministic
     s2 = cs.signals_from_batch(tr, arm="sidecar", batch_id="b1", skill=sk, t0=T0, signalled=set(), used_controls=set(),
-                               event_of=ev, spec=sp)
+                               event_of=ev, spec=sp, end_of=end)
     pd.testing.assert_frame_equal(s.reset_index(drop=True), s2.reset_index(drop=True))
     # a later batch with the same (wallet, market) creates no new skilled signal; used controls are not reused
     s3 = cs.signals_from_batch(tr, arm="sidecar", batch_id="b2", skill=sk, t0=T0, signalled=signalled, used_controls=used,
-                               event_of=ev, spec=sp)
+                               event_of=ev, spec=sp, end_of=end)
     assert (s3["role"] == "skilled").sum() == 0
+
+
+def test_control_needs_same_end_bucket():
+    sk = skill_frame(["S1"], ["N1"])
+    r = T0 + 2 * H
+    tr = trades([("S1", 10, T0 + H, 1, 0, 0.40, 10, r), ("N1", 11, T0 + H, 1, 0, 0.40, 10, r)])
+    base = dict(arm="sidecar", batch_id="b", skill=sk, t0=T0, event_of={10: "a", 11: "b"}, spec=spec())
+    same = cs.signals_from_batch(tr, signalled=set(), used_controls=set(), end_of={10: r + 86400 * 2, 11: r + 86400 * 2.5}, **base)
+    assert list(same["role"]) == ["skilled", "control"]
+    far = cs.signals_from_batch(tr, signalled=set(), used_controls=set(), end_of={10: r + 86400 * 2, 11: r + 86400 * 20}, **base)
+    assert list(far["role"]) == ["skilled"] and far["n_controls"].iat[0] == 0
+    miss = cs.signals_from_batch(tr, signalled=set(), used_controls=set(), end_of={11: r + 86400 * 2}, **base)
+    assert list(miss["role"]) == ["skilled"] and miss["end_bucket"].iat[0] == -1
 
 
 def test_signal_with_no_matching_control():
@@ -208,6 +224,25 @@ def test_load_sample_batch_last_sent_rule(tmp_path):
     assert set(tr["wallet"]) == {"B", "C"} and cnt["seen_before"] == 1
     assert (tr["receipt_ts"] == T0 + 2 * H + 61).all()
     assert sent == {1: T0 + 2 * H + 60, 2: T0 + 2 * H + 60}
+    # a sample without a usable wallet sidecar is not an observation: no trades and no last_sent advance
+    sid2 = make_sample(tmp_path, T0 + 4 * H, "x", [("A", 1, T0 + 3 * H, "BUY", 0, 0.5, 1)], [1], tag="s2")
+    (tmp_path / sid2 / "wallets.csv.gz").unlink()
+    tr2, sent2, cnt2 = cs.load_sample_batch(tmp_path / sid2, {})
+    assert len(tr2) == 0 and sent2 == {} and cnt2["sidecar_status"].endswith("file_missing")
+
+
+def test_retired_sample_is_skipped_not_fatal(tmp_path):
+    snaps, samples, prints, root, caps, (s1, s2) = _tree(tmp_path)
+    (samples / s1 / "features.csv.gz").unlink()
+    (samples / s1 / "wallets.csv.gz").unlink()
+    st = cs.run_once(root=root, snapshot_root=snaps, sample_root=samples, prints_root=prints, spec=spec(), now=T0 + 40 * H,
+                     max_items=1000, log=lambda s: None)
+    assert st["samples"] == 1 and st["skipped_samples"] == 1
+    assert cs.State(root).d["skipped"][s1] == "files_retired"
+    assert not (root / "signals" / f"{s1}.csv.gz").exists()
+    sk = cs.read_store(root, "signals").query("role == 'skilled'")
+    # S1's trade in market 10 (first visible in s1, retired) is first observed in s2, with s2's receipt
+    assert set(sk["market_id"]) == {10, 13} and (sk["batch_id"] == s2).all()
 
 
 def test_entries_first_capture_at_or_after_due():
@@ -298,9 +333,9 @@ def test_large_print_hours(tmp_path):
     snaps, samples, prints, root, caps, _ = _tree(tmp_path)
     day = datetime.fromtimestamp(T0, UTC).strftime("%Y%m%d")
     lines = [{"recv_ts": T0 + 0.5 * H, "ts": T0 + 0.4 * H, "side": "BUY", "outcome_index": 0, "size": 3000, "price": 0.41,
-              "wallet_hash": "S1", "condition_id": "0x11", "ctx_market_id": "11", "ctx_event_id": "e11"},
+              "wallet_hash": "S1", "condition_id": "0x11", "ctx_market_id": "11", "ctx_event_id": "e11", "ctx_end_ts": T0 + 2 * 86400},
              {"recv_ts": T0 + 0.5 * H, "ts": T0 + 0.45 * H, "side": "BUY", "outcome_index": 0, "size": 3000, "price": 0.41,
-              "wallet_hash": "N9", "condition_id": "0x12", "ctx_market_id": "12", "ctx_event_id": "e12"}]
+              "wallet_hash": "N9", "condition_id": "0x12", "ctx_market_id": "12", "ctx_event_id": "e12", "ctx_end_ts": T0 + 2 * 86400}]
     (prints / f"trades-{day}.jsonl").write_text("\n".join(json.dumps(x) for x in lines) + "\n")
     cs.run_once(root=root, snapshot_root=snaps, sample_root=samples, prints_root=prints, spec=spec(), now=T0 + 10 * H,
                 max_items=1000, log=lambda s: None)
@@ -493,6 +528,34 @@ def test_analyze_end_to_end(tmp_path):
     assert tr["kind"] == "copy_skilled" and tr["n_tests"] == 2
     from astrolabe.research_lab import battery2
     assert battery2.count_line(tr) == ("copy_skilled", 2)
+    assert any(x.startswith("coverage-reduced") for x in out["labels"])  # no passes.jsonl in the synthetic store
+
+
+def test_wallet_day_cap():
+    n = 14
+    c = pd.DataFrame({"arm": "sidecar", "latency_s": 0.0, "role": ["skilled"] * n + ["control"],
+                      "wallet": ["A"] * 12 + ["B", "A", "A"], "signal_id": [f"s{i:02d}" for i in range(n + 1)],
+                      "receipt_ts": [T0 + 60 * i for i in range(12)] + [T0, T0 + 86400 + 5, T0 + 30],
+                      "universe": [True] * 3 + [False] + [True] * 11})
+    cap = ca.wallet_day_cap(c, 10)
+    # wallet A, day 0: universe rows s00-s02, s04-s11 (11 rows) -> the 11th by receipt (s11) is beyond the cap
+    assert not cap.iat[11] and cap.iloc[:11].all()
+    assert cap.iat[3]  # out of the universe: not ranked
+    assert cap.iat[12] and cap.iat[13]  # other wallet; next UTC day
+    assert cap.iat[14]  # controls are never capped
+    assert ca.wallet_day_cap(c, None).all()
+
+
+def test_sample_coverage(tmp_path):
+    t1 = T0 + 24 * H  # 12 expected samples
+    rows = [{"kind": "sample", "id": name(T0 + 2 * H * i + 600, "s"), "counts": {"sidecar_status": "complete"}} for i in range(9)]
+    rows += [{"kind": "sample", "id": name(T0 + 18 * H + 600, "s"), "counts": {"sidecar_status": "partial"}},
+             {"kind": "sample_missing", "id": name(T0 + 20 * H + 600, "s"), "reason": "files_retired"},
+             {"kind": "sample", "id": name(T0 - 2 * H, "s"), "counts": {"sidecar_status": "complete"}},  # before the window
+             {"kind": "pass", "samples": 3}]
+    cs.append_jsonl(tmp_path / "passes.jsonl", rows)
+    c = cs.sample_coverage(tmp_path, T0, t1)
+    assert c["samples_ok"] == 9 and c["samples_missing"] == 2 and c["missing_share"] == pytest.approx(0.25)
 
 
 def test_analyze_null_world_not_supported(tmp_path):
