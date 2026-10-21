@@ -1410,7 +1410,7 @@
   {
    "id": "CB18",
    "title": "Silent edits, program versus human, races, front page, last-mid map",
-   "plain": "Designed from round 10's remaining ideas, using data already on the server. It includes quiet book changes with no trade, whether orders look automated or human, races between markets, and the front-page listing. The counting code was checked by an independent reviewer and fixed. Its counting checks (counts only, no results) are now queued.",
+   "plain": "Round 10's remaining ideas, using data already on the server: program versus human trading, silent edits, races, the front page as a clock, and a map of last prices against outcomes. Counting checks come first (counts only). Pre-declared rules then send each idea to a batch test, a future live test, a map only, or drops it. The counting code was checked by an independent reviewer and fixed; the checks are now queued.",
    "batch": "CB18",
    "family": "mixed",
    "stage": "designed",
