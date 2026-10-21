@@ -597,6 +597,26 @@ def test_surprise_family_reads_only_earlier_quotes(env):
     assert np.isnan(first["sp_rv6h"].to_numpy(float)).all()
 
 
+def test_aux_builder_failure_is_isolated(env, monkeypatch):
+    w, paths = env
+    w.run(4)
+    build_all(paths)
+
+    def boom(ctx):
+        raise MemoryError("synthetic")
+
+    monkeypatch.setitem(A.AUX_FAMILIES, "surprise", {**A.AUX_FAMILIES["surprise"], "builder": boom})
+    r = A.run_aux(paths, max_items=50)
+    assert r["errors"] and {e["family"] for e in r["errors"]} == {"surprise"} and len(r["errors"]) == 1
+    idx = S.load_index(paths)
+    cap = idx[SLOT0 + 3]["capture_id"]
+    assert A.aux_path(paths, "movetype", cap).exists() and A.aux_path(paths, "event", cap).exists()
+    assert not A.aux_path(paths, "surprise", cap).exists()  # nothing partial; retried at the next run
+    monkeypatch.undo()
+    A.run_aux(paths, max_items=50)
+    assert A.aux_path(paths, "surprise", cap).exists()
+
+
 def test_rewards_family_embargoed_until_lt4():
     reg = SP.load_registry()
     e = SP.embargo_of(reg["models"]["se9_lr_rewards"], S.epoch("2026-10-22T00:00:00Z"))
