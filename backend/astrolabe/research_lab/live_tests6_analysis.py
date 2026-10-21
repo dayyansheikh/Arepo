@@ -16,6 +16,7 @@ The loaders that read the reader's write-once ``live_tests6/`` files and the fin
 
 from __future__ import annotations
 
+import json
 import math
 
 import numpy as np
@@ -589,6 +590,7 @@ def code_check(spec: dict) -> dict:
         miss = lt.unfilled(spec)
         if miss:
             raise RuntimeError(f"live_tests6 spec pinned with unfilled placeholders: {miss}")
+        lt.enforce_v_freeze(spec)  # V stays in k_tests only if its freeze condition holds (1.1); raises otherwise
     return {"current": cur, "pinned": {n: pins.get(n) for n in cur}, "status": status,
             "label": None if all(s_ == "match" for s_ in status.values()) else "DRAFT: code hashes not verified"}
 
@@ -725,6 +727,32 @@ def trial_line(res: dict) -> dict:
             "code_sha256": res.get("code_sha256"), "window": res.get("window")}
 
 
+def load_size_check(spec: dict, base: Path | None = None) -> dict:
+    """The committed binding size-check result named by the spec (``size_check.result_path`` relative to the repository root, or
+    ``base``), verified against ``size_check.result_sha256``. Refuses (RuntimeError) on a null pin, a missing or altered file, a dev
+    run, or a result not produced with the spec's worlds / draws / seed on the pinned code."""
+    sc = spec["size_check"]
+    path, want = sc.get("result_path"), sc.get("result_sha256")
+    if not path or not want:
+        raise RuntimeError("live_tests6 analysis refused: size_check.result_path / result_sha256 are null (the size check is part of the registration)")
+    p = Path(path) if Path(path).is_absolute() else (base or lt.ROOT) / path
+    if not p.exists():
+        raise RuntimeError(f"live_tests6 analysis refused: the size-check result {p} is missing")
+    got = lt.sha256_file(p)
+    if got != want:
+        raise RuntimeError(f"live_tests6 analysis refused: size-check result sha256 {got} != pinned {want}")
+    res = json.loads(p.read_text())
+    if res.get("dev"):
+        raise RuntimeError("live_tests6 analysis refused: the pinned size-check result is a dev run")
+    for key, spec_key in (("worlds", "worlds"), ("draws", "draws"), ("seed", "seed")):
+        if res.get(key) != sc[spec_key]:
+            raise RuntimeError(f"live_tests6 analysis refused: size-check {key} {res.get(key)!r} != spec {sc[spec_key]!r}")
+    pins = spec.get("code_sha256") or {}
+    if pins and res.get("code_sha256") != pins:
+        raise RuntimeError("live_tests6 analysis refused: the size check was not produced on the pinned code (code_sha256 differs)")
+    return res
+
+
 def analyze(root: Path = lt.OUT_ROOT, *, spec: dict | None = None, now: float | None = None, force: bool = False, require_pinned: bool = True,
             size_check: dict | None = None, n_boot: int | None = None, roles: tuple[str, ...] = (CONF,), mask_late: bool = True) -> dict:
     """The single registered analysis on the reader's write-once files. Refuses before ``analysis_not_before`` (``force`` is for
@@ -749,6 +777,8 @@ def analyze(root: Path = lt.OUT_ROOT, *, spec: dict | None = None, now: float | 
         df, acc = load_kind(root, kind, start, end, roles, spec, TAGS[t])
         fr, cnt = build_frame(t, df, root, spec, mask_late)
         frames[t], accounts[t] = fr, {**acc, **cnt}
+    if size_check is None and require_pinned:
+        size_check = load_size_check(spec)  # the size-check labels ("SE check failed (size scenario)", "analytic p oversized") are never optional
     res = analyze_frames(frames, spec, size_check=size_check, now=now, force=True, require_pinned=require_pinned, t0=start, n_boot=n_boot, accounts=accounts)
     res.update(code_sha256=cc["current"], code_check=cc, window=[spec["registered_utc"], spec["end_utc"]], roles=list(roles), accounts=accounts)
     return bd._clean(res)

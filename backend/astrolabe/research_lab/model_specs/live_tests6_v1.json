@@ -24,6 +24,7 @@
   "registered": null,
   "dropped": null,
   "end_utc": null,
+  "pin_commit_utc": null,
   "analysis_job_start_utc": null,
   "analysis_commit_utc": null,
   "t_e022_rule": "T_E022 = the earlier of E022's analysis job start (the queue log's start time) and E022's analysis commit; V is registered only if the LT6 registration commit is strictly before T_E022, else V is dropped uncounted (R1 re-check item 1)",
@@ -180,6 +181,9 @@
   "draws": 200,
   "seed": 20261167,
   "nominal": 0.05,
+  "result_path": null,
+  "result_sha256": null,
+  "result_rule": "the committed binding size-check result (run_live_tests6.py size-check, no --dev) and its sha256, filled at registration; the analysis refuses to run unless the file hashes to result_sha256 and was produced on the pinned code",
   "worlds_spec": "LIVE_TESTS_6.md 1.8.1",
   "scenarios": {
    "s01_fl_binary_iid": ["K"],

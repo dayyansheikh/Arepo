@@ -5,6 +5,7 @@ classifier and parse rules, B's birth classes, the washout. Synthetic data only;
 
 from __future__ import annotations
 
+import copy
 import math
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -79,7 +80,8 @@ def test_unfilled_lists_required_and_per_test_values():
     miss = lt.unfilled(s)
     assert {"registered_utc", "end_utc", "analysis_not_before", "k_tests", "code_sha256", "e022.registered|e022.dropped", "labels.partially_seen_d"} <= set(miss)
     s2 = {**s, "registered_utc": "x", "end_utc": "x", "analysis_not_before": "x", "k_tests": ["V", "B"], "code_sha256": {"a": "b"},
-          "e022": {**s["e022"], "dropped": True}, "labels": {**s["labels"], "partially_seen_d": False}}
+          "e022": {**s["e022"], "dropped": True}, "labels": {**s["labels"], "partially_seen_d": False},
+          "size_check": {**s["size_check"], "result_path": "docs/x.json", "result_sha256": "0" * 64}}
     miss = lt.unfilled(s2)
     assert "v.c_v" in miss and "b.fake_birth_terciles" in miss and "d.exclude_family" not in miss and "e022.registered|e022.dropped" not in miss
     s2["v"] = {**s["v"], "c_v": 0.1, "s_v": 0.3, "terciles": [0.0, 0.1], "tercile_gap": 2.2, "exclude_family": ""}
@@ -87,6 +89,26 @@ def test_unfilled_lists_required_and_per_test_values():
     assert lt.unfilled(s2) == []
     s2["v"]["c_v"] = float("nan")
     assert "v.c_v" in lt.unfilled(s2)
+    s2["v"]["c_v"] = 0.1
+    assert {"size_check.result_path", "size_check.result_sha256"} <= set(lt.unfilled({**s2, "size_check": s["size_check"]}))
+
+
+def test_freeze_check_fixes_e022_end_utc_pin_commit_and_v_freeze_enforced():
+    s = copy.deepcopy(_spec())
+    s.update(k_tests=["V"], registered_utc="x", end_utc="x", analysis_not_before="x", code_sha256={"a": "b"}, labels={**s["labels"], "partially_seen_d": False},
+             size_check={**s["size_check"], "result_path": "x", "result_sha256": "0" * 64})
+    s["v"] = {**s["v"], "c_v": 0.1, "s_v": 0.3, "terciles": [0.0, 0.1], "tercile_gap": 2.2, "exclude_family": ""}
+    s["e022"] = {**s["e022"], "registered": True, "dropped": None}  # registered but no END_UTC and no pin commit time: both are required
+    assert {"e022.end_utc", "e022.pin_commit_utc"} <= set(lt.unfilled(s))
+    s["e022"].update(end_utc="2026-11-16T00:00:00Z", pin_commit_utc="2026-11-17T09:00:00Z", analysis_job_start_utc="2026-11-17T05:00:00Z")
+    assert lt.unfilled(s) == []
+    with pytest.raises(RuntimeError, match="freeze condition"):  # pin after T_E022: V must be dropped before the pin
+        lt.enforce_v_freeze(s)
+    s["e022"]["pin_commit_utc"] = "2026-11-10T09:00:00Z"
+    assert lt.enforce_v_freeze(s)["ok"]
+    s["k_tests"] = ["K"]
+    s["e022"]["pin_commit_utc"] = "2026-11-17T09:00:00Z"
+    assert lt.enforce_v_freeze(s) is None  # V already dropped: nothing to enforce
 
 
 # --- registration dates and V's E022 freeze condition --------------------------------------------------------------------
@@ -144,7 +166,8 @@ def test_v_first_origin_needs_both_k_minus_1_inputs_after_e022_end():
     assert not lt.v_first_origin_ok("2026-11-15T22:31:00Z", "2026-11-15T22:31:20Z", end)  # k = 00:31 pass
     assert not lt.v_first_origin_ok("2026-11-16T00:31:00Z", "2026-11-15T23:59:00Z", end)  # sweep before the end
     assert lt.v_first_origin_ok("2026-11-16T00:31:00Z", "2026-11-16T00:33:00Z", end)  # k = 02:31 pass
-    assert lt.v_first_origin_ok("2020-01-01T00:00:00Z", "2020-01-01T00:00:00Z", None)  # E022 dropped
+    assert not lt.v_first_origin_ok("2020-01-01T00:00:00Z", "2020-01-01T00:00:00Z", None)  # unknown END_UTC fails closed
+    assert lt.v_first_origin_ok("2020-01-01T00:00:00Z", "2020-01-01T00:00:00Z", None, e022_dropped=True)  # E022 dropped
 
 
 # --- the pinned crypto classifier ----------------------------------------------------------------------------------------

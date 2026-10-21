@@ -95,6 +95,7 @@ def load_spec(path: Path = SPEC_PATH, sha: str | None = SPEC_SHA256) -> dict:
         miss = unfilled(spec)
         if miss:
             raise RuntimeError(f"live_tests6 pinned spec has null / NaN placeholders: {miss[:10]}")
+        enforce_v_freeze(spec)
     return spec
 
 
@@ -108,8 +109,8 @@ def _nanlike(v) -> bool:
 
 
 # Placeholders that must be filled at registration. Everything else that is null in a DRAFT spec is allowed to stay null.
-REQUIRED_AT_PIN = ("registered_utc", "end_utc", "analysis_not_before", "k_tests", "code_sha256", "e022.registered", "e022.dropped",
-                   "labels.partially_seen_d")
+REQUIRED_AT_PIN = ("registered_utc", "end_utc", "analysis_not_before", "k_tests", "code_sha256", "e022.registered", "e022.dropped", "e022.end_utc",
+                   "labels.partially_seen_d", "size_check.result_path", "size_check.result_sha256")
 
 
 def unfilled(spec: dict) -> list[str]:
@@ -129,6 +130,9 @@ def unfilled(spec: dict) -> list[str]:
                 out.append("e022.registered|e022.dropped")
         elif p == "e022.dropped":
             continue
+        elif p == "e022.end_utc":  # freeze-check fix: required unless E022 was recorded as dropped (then rule (d) alone floors the window)
+            if get("e022.end_utc") is None and not (get("e022.dropped") and not get("e022.registered")):
+                out.append(p)
         elif _nanlike(get(p)):
             out.append(p)
     needs = {"V": ("c_v", "s_v", "terciles", "tercile_gap", "exclude_family"), "K": ("exclude_family", "perm_stratum"),
@@ -137,7 +141,23 @@ def unfilled(spec: dict) -> list[str]:
         for f in needs.get(t, ()):
             if _nanlike(spec[t.lower()].get(f)):
                 out.append(f"{t.lower()}.{f}")
+    if "V" in (spec.get("k_tests") or []) and get("e022.registered") and _nanlike(get("e022.pin_commit_utc")):
+        out.append("e022.pin_commit_utc")  # V's freeze condition (1.1) needs the LT6 registration commit time
     return out
+
+
+def enforce_v_freeze(spec: dict) -> dict | None:
+    """Freeze-check fix: a pinned spec that keeps V in ``k_tests`` must satisfy :func:`v_freeze_check` (the LT6 registration commit
+    strictly before E022's ``T_E022``, or E022 dropped before registration). Raises RuntimeError otherwise; None if V is not in k_tests."""
+    if "V" not in (spec.get("k_tests") or []):
+        return None
+    e = spec.get("e022") or {}
+    chk = v_freeze_check(pin_commit_utc=e.get("pin_commit_utc") or "9999-12-31T00:00:00Z", e022_registered=bool(e.get("registered")),
+                         e022_dropped=bool(e.get("dropped")), analysis_job_start_utc=e.get("analysis_job_start_utc"),
+                         analysis_commit_utc=e.get("analysis_commit_utc"))
+    if not chk["ok"]:
+        raise RuntimeError(f"live_tests6 V freeze condition fails (1.1): {chk['reason']}; V must be dropped from k_tests before the pin")
+    return chk
 
 
 # --- registration dates and V's E022 freeze condition (1.1) ------------------------------------------------------------
@@ -197,11 +217,12 @@ def v_freeze_check(*, pin_commit_utc: str, e022_registered: bool, e022_dropped: 
             "reason": "pin before T_E022" if ok else "pin at or after T_E022 (the earlier of E022's analysis job start and commit): V dropped uncounted"}
 
 
-def v_first_origin_ok(cap_prev_start_utc: str, sweep_prev_start_utc: str, e022_end_utc: str | None) -> bool:
+def v_first_origin_ok(cap_prev_start_utc: str, sweep_prev_start_utc: str, e022_end_utc: str | None, e022_dropped: bool = False) -> bool:
     """V's first origin (1.1, R1 item 7): the k - 1 capture AND the k - 1 sweep both start at or after E022's ``END_UTC``.
-    A pass failing this is counted ``e022_boundary``. No E022 END_UTC (E022 dropped): rule (d) alone floors the window."""
+    A pass failing this is counted ``e022_boundary``. No E022 END_UTC is accepted only when E022 is recorded as dropped (``e022_dropped``);
+    otherwise it refuses (False): rule (d) alone floors the window only for a dropped E022."""
     if e022_end_utc is None:
-        return True
+        return bool(e022_dropped)  # freeze-check fix: an unknown END_UTC fails closed unless E022 is recorded as dropped
     e = _parse_utc(e022_end_utc)
     return bool(_parse_utc(cap_prev_start_utc) >= e and _parse_utc(sweep_prev_start_utc) >= e)
 
@@ -1983,6 +2004,8 @@ def _run_locked(*, snapshot_root, sample_root, sweep_root, root: Path, spec: dic
 
 def _freezes(root, by_slot, samples, sweeps, spec, t_reg, t_end, now, budget, allow_late, pinned, registered_utc, end_utc, commit, kinds, stats, log) -> int:
     e022_end = (spec.get("e022") or {}).get("end_utc")
+    # a DRAFT (unpinned) spec has no E022 decision yet: dry runs (the 8.2 ladder, tests) keep the old permissive behaviour; a pinned one never does
+    e022_dropped = bool((spec.get("e022") or {}).get("dropped")) or not pinned
     for k in sorted(by_slot):
         c = by_slot[k]
         if not (t_reg <= c["start"] < t_end):
@@ -2026,7 +2049,7 @@ def _freezes(root, by_slot, samples, sweeps, spec, t_reg, t_end, now, budget, al
                     continue
                 sdir_p = sweeps[pc["id"]]["dir"] if pc["id"] in sweeps else None
                 sw_start = l5._name_time(Path(sdir_p).name) if sdir_p else pc["start"]
-                if not v_first_origin_ok(iso(pc["start"]), iso(sw_start), e022_end):
+                if not v_first_origin_ok(iso(pc["start"]), iso(sw_start), e022_end, e022_dropped):
                     _refuse(p, ".e022boundary.csv.gz", now, stats, log, kind, c["id"], k, "e022_boundary")
                     continue
                 units, cnt = vote_units(ser_k, ser_p, l3.read_sweep(root, c["id"]), l3.read_sweep(root, pc["id"]), c, spec)

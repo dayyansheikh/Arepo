@@ -411,3 +411,26 @@ def test_size_check_and_the_gate_use_identical_strata_for_the_same_spec(monkeypa
     d2 = df.assign(PL=(np.arange(len(df)) % 5 == 0).astype(float))
     la.gate_for("K", d2.rename(columns={"P": "CL"}), y, spec, la.SIZE_T0)
     assert (gseen[0] == la.strata_of(df, "block2", la.SIZE_T0)).all()
+
+
+def test_load_size_check_verifies_the_pin_and_labels_flow_into_the_analysis(tmp_path):
+    spec = _sized_spec()
+    with pytest.raises(RuntimeError, match="null"):
+        la.load_size_check(spec)
+    res = {"dev": False, "worlds": 2000, "draws": 200, "seed": 20261167, "code_sha256": {"a": "1"}, "se_check_failed_size_scenario": ["K"], "scenarios": {}}
+    p = tmp_path / "size.json"
+    p.write_text(json.dumps(res))
+    spec["size_check"].update(result_path=str(p), result_sha256=lt.sha256_file(p))
+    spec["code_sha256"] = {"a": "1"}
+    assert la.load_size_check(spec)["se_check_failed_size_scenario"] == ["K"]
+    spec["size_check"]["result_sha256"] = "0" * 64
+    with pytest.raises(RuntimeError, match="!= pinned"):
+        la.load_size_check(spec)
+    spec["size_check"]["result_sha256"] = lt.sha256_file(p)
+    spec["code_sha256"] = {"a": "2"}
+    with pytest.raises(RuntimeError, match="pinned code"):
+        la.load_size_check(spec)
+    p.write_text(json.dumps({**res, "dev": True}))
+    spec["size_check"]["result_sha256"], spec["code_sha256"] = lt.sha256_file(p), {"a": "1"}
+    with pytest.raises(RuntimeError, match="dev run"):
+        la.load_size_check(spec)
