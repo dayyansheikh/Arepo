@@ -1,0 +1,244 @@
+# Signal-engine candidate feature families
+
+**Date:** 2026-10-21. **Maintained by:** the experiments autopilot. **Read by:** the signal-engine autopilot (builder).
+
+**Ideas only. Development evidence. No edge claim.** This list hands effects from the experiment programme to the signal
+engine as candidate feature families. A candidate is not a validated signal. The confirmation programme (E-tests, Holm,
+sealed windows) is unchanged and judges its own questions. The engine judges forecast quality only
+(`NORTH_STAR.md`, `DESIGN_V1.md` section 7). A gain in log loss is not a return. Nothing here covers fees or spread.
+
+How to use it: follow `DESIGN_V1.md` section 13. Check the embargo (section 8) before you add a spec. If a candidate
+needs a new token, add it to `config.EMBARGO` first. Move dates later, never earlier.
+
+Evidence labels: development = historical data only; replicated = held again on separate historical markets with frozen
+definitions; live test pending = registered or drafted, single analysis not yet run. Prospective means collected after
+registration.
+
+Priority key: high = build or keep first; medium = build when cheap; low = optional.
+
+Host key (1 OCPU, 5.6 GB): snapshots+sidecar every 2 h; book sweeps (2 per pass); trade samples (active-frame sample per
+pass, 2,000 markets in `LIVE_TESTS_2.md` section 3); live trade monitor; Kalshi poller (120 s); keyless streams
+(`NEW_STREAMS_2026-10-19.md`, not used below).
+
+---
+
+## C01. Taker order flow (family `flow`)
+
+- **Challenger:** exists, `se2_lr_flow`.
+- **Effect:** Signed taker flow in the last hour predicts a small continuation of the mid over the next 2 h to 24 h.
+- **Evidence:** replicated (development) and supported prospectively on a short window.
+  - E007 scored once: beta 0.003626, CI [0.001726, 0.005316], 4,703 event clusters, 11 of 12 periods positive
+    (`EXPERIMENT_LEDGER.md` section "E007 result"). Excluding the last 5 to 15 min of trades keeps 83-93% of beta
+    (same file, "E007 staleness check", development).
+  - HB1-R: 16 of 18 HB1 survivors replicated, including flow FL1, FL2, FL3, FL5, FL6, FL8, FL10; median ratio to HB1 1.20
+    (`HYPOTHESIS_BATTERY_1_REPLICATION.md` section 7.1).
+  - ML ablation, drop-one, direction 2 h: 0.0082 nats against the volatility-aware baseline, replicated 0.0081
+    (`lab_dashboard/registry.json` `ml.feature_weights`; `HISTORICAL_ML_DEV.md` ablation section).
+  - Limit: only 16% of pairs have nonzero flow (E007 result).
+- **Features:** already in `features.py`: log trades 1 h, log notional 1 h, signed share, largest trade over liquidity,
+  time since last trade. Clock: trades strictly before the origin receipt. Stream: trade samples.
+- **Target fit:** dir_2h first, dir_6h second. Weak at 24 h (ablation CI includes 0, `HISTORICAL_ML_DEV.md`).
+- **Embargo:** token `flow` until 2026-11-16 (E013, E014, E016, E018).
+- **Priority:** high. It is the only family with a stable positive development gain.
+- **Cost:** low. Coverage is 4.3% of eligible markets (a 2,000-market sample, `DESIGN_V1.md` section 3). A larger sample
+  costs more host time; do not raise it without a budget check.
+
+## C02. Flow x volatility and flow x spread
+
+- **Challenger:** new. Extension of C01 (derived interaction columns; token would be `flow`).
+- **Effect:** 6 h flow continues more in volatile markets and in wide-spread markets.
+- **Evidence:** replicated (development). SB2-F4 and SB2-F5 replicated at Holm 0.05, ratios 1.59 and 1.27; both weaker in
+  the later half by 40-55% (`EXPERIMENT_LEDGER.md` section SB2-J2; `LIVE_TESTS_2.md` section 3). Live test pending: E013.
+  Economics: gross about 1c a trade in the best tercile, net taker about -2.5c (SB2-J2). It is a forecasting
+  moderator, not a trade.
+- **Features:** signed share 6 h x z(realised volatility proxy) and x z(spread). Inputs: trade sample, own 24 h
+  volatility, spread. Clock: origin receipt.
+- **Target fit:** dir_6h.
+- **Embargo:** `flow` until 2026-11-16 (E013 analysis 2026-11-13). Shadows E013.
+- **Priority:** medium. The effect decays and E013 is likely underpowered (`LIVE_TESTS_2.md` section 0).
+- **Cost:** low. Two derived columns in `learners.py`. No new stream.
+
+## C03. 1-day change x liquidity (bounce-aware momentum)
+
+- **Challenger:** new. Derived set; token `chg1d_x_liq` already in the embargo table.
+- **Effect:** Yesterday's move carries forward more (reverses less) in liquid markets than in illiquid ones.
+- **Evidence:** replicated (development). SB2-L1 replicated at Holm 0.05, ratio 1.22 (`EXPERIMENT_LEDGER.md` section
+  SB2-J2). Prior prospective on a 1 h version: E006 H1 supported on sign only, "consistent with bounce" (E006 entry,
+  `EXPERIMENT_LEDGER.md` section "Results: E004, E005, E006"). Live test pending: E012. No cost check.
+- **Features:** Gamma 1 d change x log liquidity (both already in the store). Optional: move divided by spread.
+- **Target fit:** dir_24h; also dir_6h.
+- **Embargo:** `chg1d_x_liq` until 2026-11-14 (E012).
+- **Priority:** medium. Likely quote noise in thin markets. If the engine scores it on Gamma mids, the gain may be
+  mid noise, not information. Report that caveat with any result.
+- **Cost:** very low. Derived from stored columns.
+
+## C04. Time-to-end interactions (C-TTE)
+
+- **Challenger:** exists, `se5_lr_tte`.
+- **Effect:** Forecasts gain more in the last 24 h before a market ends than more than 30 days before.
+- **Evidence:** replicated (development). SB2-J8 C-TTE, direction 2 h, +0.0188 nats, CI [0.0094, 0.0292]
+  (`EXPERIMENT_LEDGER.md` section SB2-J8). Caveat: it used an end date read after the fact; the registry says it
+  "relies on an end date read after the fact" (`registry.json` SB2-CTTE). Conflicting: SB2 F3 (6 h flow x time to
+  end) did not replicate on h3 (`LIVE_TESTS_2.md` section 4). Live test pending: E014 (as-of end date, frozen E007 model).
+- **Features:** near-24 h and near-72 h indicators and products with momentum, from the as-of Gamma end date at the
+  origin (already in `se5`).
+- **Target fit:** dir_2h.
+- **Embargo:** `tte` until 2026-11-14 (E014).
+- **Priority:** high. Already built. Keep scoring; watch for end-date revisions.
+- **Cost:** very low.
+
+## C05. Kalshi cross-venue lead (family `xvenue`)
+
+- **Challenger:** exists, `se4_lr_xvenue`.
+- **Effect:** A recent move or gap in a matched Kalshi market leads Polymarket's next 20 min to 6 h.
+- **Evidence:** development only for now. Origin: lag correlation about 0.24 and +5.3% to +9.8% relative MSE gain at 10 min
+  (E009 origin, `EXPERIMENT_LEDGER.md` section E009); on the cleaned pair set +5.1% (1 h) and +7.5% (6 h) for the gap
+  (E010 origin, same file). The cleaned-set choice was made after seeing both sets (disclosed in E010). Live test
+  pending: E009 and E010, analysis after 2026-11-03.
+- **Features:** has-pair, Kalshi mid minus Gamma mid, Kalshi spread, quote age at most 30 min (already in `se4`).
+  Stream: Kalshi poller, quotes received before the capture start.
+- **Target fit:** dir_2h and dir_6h. Matched-pair population only.
+- **Embargo:** `xvenue` until 2026-11-04 (E009, E010).
+- **Priority:** medium. Real signal in development, but coverage is 0.25% (116 pairs, `DESIGN_V1.md` section 3), so the
+  leaderboard may stay underpowered.
+- **Cost:** low. The poller already runs. Pair matching quality is the limit, not host load.
+
+## C06. Price-path context for surprise moves (family `surprise`)
+
+- **Challenger:** new. Token `surprise` already in the embargo table (no model yet).
+- **Effect:** Markets whose recent volatility is high against their longer-run volatility, plus market age and weekday,
+  are more likely to make a sharp move in the next 6 h.
+- **Evidence:** development only. The ungated `sm_learned_v2` score replicated on disjoint h3 markets, +5.8 points at the
+  top 1% (secondary, post-hoc gate removal; `EXPERIMENT_LEDGER.md` section E011 origin). The detector's value is
+  price-path context, not flow or wallet terms (`SURPRISE_MOVE_DETECTOR.md` section 11). Deployed-configuration
+  precision 10.4% against 1.16% matched controls is an optimistic reference (`SURPRISE_MOVE_DETECTOR.md` section 11).
+  Live test pending: E011, analysis after 2026-11-11.
+- **Features:** realised volatility over 3, 12 and 84 grid steps and their ratios, market age, weekday. From earlier
+  captures only. The engine already has own 24 h volatility and age; the new part is the multi-horizon ratio.
+- **Target fit:** a magnitude signal. dir_2h and dir_6h use a 3-class target that includes flat, so it may help there.
+  Test it against `se1_lgbm_mm` first to separate it from a learner effect.
+- **Embargo:** `surprise` until 2026-11-12 (E011). Shadows E011.
+- **Priority:** medium. Volatility drove most of the ML lift (`registry.json` `ml.learned`), but the champion already
+  carries some of it.
+- **Cost:** low. Computed from earlier quotes files. Do not call the frozen detector itself; add primitives.
+
+## C07. Move type: traded versus quote-only moves
+
+- **Challenger:** new. Embargo token `book` (DESIGN_V1 §8 already lists E015 there, until 2026-11-18T00:00Z; E015's planned window
+  2026-10-24 to 11-14, analysis 11-15T12Z, so the existing date covers it).
+- **Effect:** A 2 h move with no trades reverses; a move confirmed by trades does not.
+- **Evidence:** replicated (development). HB1 MI1, MI2, MI3 and MI6 replicated in HB1-R (Holm p all below 1e-14);
+  MI5 did not (`HYPOTHESIS_BATTERY_1_REPLICATION.md` section 7.1). Related prospective result: E004 reversal
+  (R2_oos 0.0385, "consistent with quote noise / bid-ask bounce", `EXPERIMENT_LEDGER.md` "Results: E004, E005, E006").
+  Taker P&L negative (net -2.4c to -4.1c, HB1 economics in the ledger). Live test pending: LT3 E015 (draft).
+- **Features:** class of the last 2 h move (traded, never-traded, quote-only parallel or one-sided) from last trade price
+  and `volume24hr` deltas of captures k-1 and k (`LIVE_TESTS_3.md` section 2), crossed with the move size.
+- **Target fit:** dir_2h.
+- **Embargo:** `book` until 2026-11-18T00:00Z (existing token). If LT3 registers later than a 2026-10-24 start, move the
+  date later per DESIGN_V1 §8 (never earlier).
+- **Priority:** medium. Large effect sizes in development, but the reversal is largely a mid-quote effect. Scoring on Gamma
+  mids will reward it whether or not it is information.
+- **Cost:** very low. From stored snapshot columns.
+
+## C08. Flow strength at longshot prices and in quiet markets
+
+- **Challenger:** new. Interaction on C01; token `flow`.
+- **Effect:** Flow continues less at longshot prices and in quiet markets.
+- **Evidence:** replicated (development). PX6 and IX3 replicated, ratios 1.08 and 1.18 (`HYPOTHESIS_BATTERY_1_REPLICATION.md`
+  section 7.1). Taker costs not covered (section 7.2).
+- **Features:** signed share x |mid - 0.5| and x log 24 h volume. Both already in the store.
+- **Target fit:** dir_2h, dir_6h.
+- **Embargo:** `flow` until 2026-11-16.
+- **Priority:** low. A logistic learner with C01 plus `market_state` can partly learn it; the gain is probably small. Try
+  it inside `se7_lgbm_all` first.
+- **Cost:** very low.
+
+## C09. Walked flow (urgent orders)
+
+- **Challenger:** new. Token `flow`.
+- **Effect:** Flow from orders that paid through several price levels carries more continuation than other flow.
+- **Evidence:** none beyond ideas. LT3 E016 is a draft; its probe figures are counts-only (23% of sampled rows have 4 or
+  more decimals; `LIVE_TESTS_3.md` section 3). No development effect size exists.
+- **Features:** share of the window's signed notional printed off the tick grid (volume-weighted price), from trade rows.
+  Clock: trades before the origin receipt. Stream: trade samples.
+- **Target fit:** dir_6h.
+- **Embargo:** `flow` until 2026-11-16 (E016, shadow). Do not build before the E016 window closes unless as a hidden
+  prediction only.
+- **Priority:** low. No evidence yet.
+- **Cost:** low once trade rows are read, but the coverage cut in `LIVE_TESTS_3.md` section 3 limits it to quiet markets.
+
+## C10. Skilled-wallet flow (family `wallet_skill`) and wallet concentration (`se6_lr_wallet`)
+
+- **Challenger:** `se6_lr_wallet` exists (concentration and distinct wallets). `wallet_skill` is new
+  (`families/WALLET_SKILL.md`; token `wallet`).
+- **Effect:** A small set of wallets stays skilled out of sample. Whether their flow forecasts a market is the open question.
+- **Evidence:** mixed, mostly null for forecasting.
+  - Persistence passes: 71.2% of top-decile skilled wallets stay positive against 59.7% base, p 0.0005; 44.4% stay
+    significant against a 21.1% base (`WALLET_SKILL.md` P1).
+  - Forecasting is null: skilled flow adds nothing at 6 h, 24 h or resolution once generic flow is in
+    (`WALLET_SKILL.md` P2-P4, Holm p 1.0). Skilled wallets touch about 6% of market-days.
+  - Wallet concentration is descriptive only (ablation 0.0004 at 2 h, CI includes 0; `HISTORICAL_ML_DEV.md`).
+- **Features:** daily skilled-set snapshot, net signed skilled notional over 1, 6 and 24 h; hashed wallets only.
+  Stream: trade samples plus the wallet sidecar.
+- **Target fit:** dir_6h, res_7d (low expectation).
+- **Embargo:** `wallet` until 2026-11-18 (E024). It also shadows E026 copy-skilled (drafting). The wallet embargo already
+  covers it.
+- **Priority:** low. The better use of persistence is a wallet-level copy test (E026), not a market feature
+  (`WALLET_SKILL.md` section "For the engine").
+- **Cost:** moderate. Daily profile build; the dry run is in `WALLET_SKILL.md`.
+
+## C11. Order-book imbalance (family `book`)
+
+- **Challenger:** exists, `se3_lr_book`.
+- **Effect:** Imbalance and depth near the touch might lead the mid.
+- **Evidence:** development, null. Book was descriptive only in all 9 cells; 2 h direction -0.0042 nats [-0.0072, -0.0013]
+  (book hurts), on 12.7% coverage (`EXPERIMENT_LEDGER.md` section ML-r4_book). Bounce decomposition was not testable
+  (SB2-J3, 751 rows against a 2,000 floor).
+- **Features:** top, 1c and 5c imbalance, 5c depth, microprice minus sweep mid, book age. Stream: book sweeps (first
+  sweep of the pass).
+- **Target fit:** dir_2h.
+- **Embargo:** `book` until 2026-11-18 (E015 and others in the LT3/LT4 plan as proposed in `DESIGN_V1.md` section 8).
+- **Priority:** low. Keep the existing challenger; do not extend it. Live sweeps cover 98% of eligible markets
+  (`DESIGN_V1.md` section 3), so the live test of the family is cleaner than the historical one.
+- **Cost:** low. Already running.
+
+## C12. Bounce-aware momentum (move scaled by spread)
+
+- **Challenger:** new. Extension of `momentum`; no token needed unless built with C03.
+- **Effect:** A move smaller than the spread is mostly quote noise; one larger than the spread is more likely real.
+- **Evidence:** development only, indirect. E004 and E006 reversal findings (R2_oos 0.0385; reversal stronger in illiquid
+  markets, `EXPERIMENT_LEDGER.md` "Results: E004, E005, E006"). Magnitude of E006 models did not transfer.
+- **Features:** (own mid change 2 h and 6 h) divided by spread; absolute move over spread. From stored columns.
+- **Target fit:** dir_2h.
+- **Embargo:** none by itself. If combined with C03, use `chg1d_x_liq` (2026-11-14).
+- **Priority:** low. The champion's logistic with `market_state` can learn part of it.
+- **Cost:** very low.
+
+---
+
+## Not candidates (and why)
+
+Do not add these. They are nulls, failed screens, or fail the point-in-time rules.
+
+- **New-wallet freshness (WA1-WA8):** null in HB1, HB1-R and the h3 first-trade re-run; WA6 closest, BY 0.18
+  (`registry.json` WALLET-FRESH; `EXPERIMENT_LEDGER.md` HB1 section).
+- **P&L-ranked wallets ("winners"):** do not persist. 52.6% stayed positive against a 59.7% base, p 0.99
+  (`WALLET_SKILL.md` P1). Ranking by P&L picks lucky wallets.
+- **Skilled-wallet flow as a 6 h, 24 h or resolution forecast:** null (`WALLET_SKILL.md` P2-P4).
+- **Stale cross-venue horizons (CB12-X X1):** not identifiable. The horizon-offset placebo advanced in 32 of 200 draws,
+  against at most 1.5% allowed (`EXPERIMENT_LEDGER.md` section CB12-X Stage 1).
+- **Trade-active gain (C-ACT, SB2-CACT):** replicated but nearly mechanical, because flow features are empty without
+  trades. The registry rejected it as a candidate (`registry.json` SB2-CACT).
+- **Flow ideas F3, F7, F8:** not replicated (`EXPERIMENT_LEDGER.md` SB2-J2).
+- **MI5 (2 h reversal x time to end) and PX2 (favourite drift):** failed HB1-R replication (`HYPOTHESIS_BATTERY_1_REPLICATION.md`
+  section 7.1). PX1 replicated but is price-level drift that the champion's mid already carries; revisit only with a reason.
+- **VO4 (absolute-move filter):** replicates only on a small, refit-sensitive gain; halves when 66 shared events are
+  dropped (`HYPOTHESIS_BATTERY_1_REPLICATION.md` section 7.1).
+- **Neg-risk sums and sibling lead-lag:** null in HB1; E005 not supported (`EXPERIMENT_LEDGER.md`, HB1 and "Results: E004, E005, E006").
+- **Time of day, weekday and category as beta moderators:** null in HB1 (`EXPERIMENT_LEDGER.md` HB1 section). Category stays
+  in the engine as a one-hot control and breakdown, not as a candidate. Weekday inside C06 is a detector input.
+- **Resolution and ladder carry (CB1 A, C) and neg-risk asymmetry:** not detected after costs (`registry.json` CB1-AC, CB1-D1).
+- **Ladders, option-chain anchors, word-mention baskets, earthquake counts:** not testable (`registry.json` CB1-B, CB12-O,
+  CB12-M, CB12-E). No evidence either way; do not build features for them.
+- **Any taker-trade framing:** HB1 survivors lose net of costs (-1.2c to -4.1c) and 95 economic setups were not
+  profitable (`registry.json` HB1, ECON-95). These candidates are forecasting inputs only.
