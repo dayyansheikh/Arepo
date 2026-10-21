@@ -384,6 +384,15 @@ def test_analysis_refusals(tmp_path):
         la.code_check(spec)  # E016 kept but flow census values unfilled
     spec["k_tests"] = ["E015"]
     assert la.code_check(spec)["label"] is None  # E015 alone needs no census values (13.14)
+    spec["k_tests"] = []
+    with pytest.raises(RuntimeError, match="empty k_tests"):
+        la.code_check(spec)  # empty k_tests refused when pinned (pre-pin verification finding 1)
+    spec["k_tests"] = ["E015", "E099"]
+    with pytest.raises(RuntimeError, match="unknown k_tests"):
+        la.code_check(spec)
+    spec["_pinned"], spec["k_tests"] = False, []
+    with pytest.raises(RuntimeError, match="non-empty subset"):  # never a fallback to all five when k_tests is set
+        la.analyze(tmp_path / "none", spec=spec, roles=(lt.ROLE_UNREG,), force=True)
 
 
 def test_ops_stats_reads_no_price_column(tmp_path, monkeypatch):
@@ -461,7 +470,37 @@ def test_end_to_end_synthetic_analysis(tmp_path):
     assert res["E015"]["counts"]["lines"] > 0 and res["E017"]["counts"]["lines"] > 0 and res["E016"]["counts"]["lines"] > 0
     res2 = la.analyze(root, start_utc=_iso(G0 + timedelta(hours=28, minutes=-31)), end_utc=_iso(G0 + timedelta(hours=52, minutes=-31)),
                       spec={**spec, "k_tests": ["E015", "E017"]}, roles=(lt.ROLE_UNREG,), force=True)
-    assert res2["holm"]["m"] == 2 and res2["E016"]["verdict"]["verdict"].startswith("dropped")
+    assert res2["holm"]["m"] == 2 and res2["holm"]["tests"] == ["E015", "E017"]
+    assert res2["E015"]["primary"] == res["E015"]["primary"]  # E015's own path does not depend on the other tests
+    assert res2["dropped"] == {t: "dropped at census, uncounted" for t in ("E016", "E018", "E019")}
+
+
+def test_dropped_tests_produce_no_output(tmp_path, monkeypatch):
+    """Pre-pin verification finding 1: with k_tests = ["E015"] the dropped tests are never estimated (no primary, gate,
+    economics or secondary output anywhere in the result) and only E015 enters Holm (m = 1)."""
+    spec = _spec(tmp_path, k_tests=["E015"])
+    spec["gates"]["draws"] = 5
+    w = _world(tmp_path, 0, 40)
+    root = tmp_path / "r"
+    for k in range(14, 41):
+        _run(w, root, spec, 14, 26, _t(k, 40))
+    _run(w, root, spec, 14, 26, _t(44, 0))
+
+    def boom(*a, **k):
+        raise AssertionError("a dropped test was estimated")
+
+    for fn in ("e019", "e017", "flow_test", "flow_frame"):
+        monkeypatch.setattr(la, fn, boom)
+    res = la.analyze(root, start_utc=_iso(G0 + timedelta(hours=28, minutes=-31)), end_utc=_iso(G0 + timedelta(hours=52, minutes=-31)),
+                     spec=spec, roles=(lt.ROLE_UNREG,), force=True)
+    assert res["holm"]["m"] == 1 and res["holm"]["tests"] == ["E015"] and set(res["holm"]["p_raw"]) == {"E015"}
+    assert "primary" in res["E015"] and "verdict" in res["E015"]["verdict"]
+    for t in ("E016", "E017", "E018", "E019"):
+        assert t not in res  # no primary, gate, economics, secondary or verdict key for a dropped test
+        assert res["dropped"][t] == "dropped at census, uncounted"
+    assert "DRAFT: k_tests null" not in json.dumps(res, default=str)
+    rec = la.trial_record(res)
+    assert rec["experiments"] == ["E015"] and rec["n_tests"] == 1
 
 
 # --- R1 additions: manifests, V*, label rules, verdicts, attrition, pins, size check ------------------------------------
