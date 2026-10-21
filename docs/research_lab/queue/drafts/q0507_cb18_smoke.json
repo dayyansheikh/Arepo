@@ -1,0 +1,41 @@
+{
+ "id": "q0507_cb18_smoke",
+ "title": "CB18 smoke (cpu, no network; DRAFT): part hashes and import pins; refusals on fixtures (forbidden roots and fields, pre-floor rows, REP rows before the seal, missing pinned files exit 75); arm and thinning hashes; class truth tables; exact reproduction of q0502's printed counts with the frozen code (code_sha256 stored)",
+ "family": "creative_batch_18",
+ "priority": 9,
+ "expected_value": "go/no-go for every CB18-S window job",
+ "data": [
+  "fixtures",
+  "the q0502 census inputs (pinned)"
+ ],
+ "resources": {
+  "mem_mb": 390,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb18.py",
+  "smoke",
+  "--rules",
+  "../docs/research_lab/seals/cb18_rules.json",
+  "--seal",
+  "../docs/research_lab/seals/cb18_census_inputs.json",
+  "--code-freeze",
+  "../docs/research_lab/seals/cb18_code_freeze.json",
+  "--out",
+  "../data-dumps/research_lab/creative_batch18/smoke.json",
+  "--disk-cap-gb",
+  "20",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch18/smoke.json"
+ ],
+ "next_action": "q0508 if PASS; a FAIL makes S1 'not testable (source)', counted",
+ "notes": "DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md, design not yet reviewed). scripts/run_cb18.py DOES NOT EXIST YET (code needed, CREATIVE_BATCH_18.md section 6). Window job: promote only after parts common and S are committed (CB route RS-1), the code freeze record and an accepting code-against-design freeze check."
+}

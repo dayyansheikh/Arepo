@@ -157,14 +157,16 @@ pass, 2,000 markets in `LIVE_TESTS_2.md` section 3); live trade monitor; Kalshi 
 
 - **Challenger:** new. Token `flow`.
 - **Effect:** Flow from orders that paid through several price levels carries more continuation than other flow.
-- **Evidence:** none beyond ideas. LT3 E016 is a draft; its probe figures are counts-only (23% of sampled rows have 4 or
-  more decimals; `LIVE_TESTS_3.md` section 3). No development effect size exists.
+- **Evidence:** none beyond ideas. **E016 was dropped at the LT3 C2 census (2026-10-20, uncounted):** walked share 9.74%
+  against the 10% gate, and 59.6% of ">= 4-decimal" rows were within 1e-4 of the tick grid, so the walked label is
+  mostly noise in these data. The flow-moderation permutation gate also failed one simulated-null scenario (AR(1) flow,
+  rate 0.059 against 0.058; ledger, q0474), so no live test of flow moderation can use that gate until it is redesigned.
+  No development effect size exists.
 - **Features:** share of the window's signed notional printed off the tick grid (volume-weighted price), from trade rows.
   Clock: trades before the origin receipt. Stream: trade samples.
 - **Target fit:** dir_6h.
-- **Embargo:** `flow` until 2026-11-16 (E016, shadow). Do not build before the E016 window closes unless as a hidden
-  prediction only.
-- **Priority:** low. No evidence yet.
+- **Embargo:** `flow` (other live tests use it; check `config.EMBARGO`). E016 itself no longer holds an embargo.
+- **Priority:** very low. The census suggests the stream cannot measure "walked" reliably.
 - **Cost:** low once trade rows are read, but the coverage cut in `LIVE_TESTS_3.md` section 3 limits it to quiet markets.
 
 ## C10. Skilled-wallet flow (family `wallet_skill`) and wallet concentration (`se6_lr_wallet`)

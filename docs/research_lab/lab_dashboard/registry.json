@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-21T05:30:00Z",
+ "updated": "2026-10-21T09:05:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1272,18 +1272,18 @@
   {
    "id": "MC1",
    "title": "Full ML development run",
-   "plain": "The big machine-learning run with many signal families. It ran out of memory on the current server and was parked by the owner as a backup until the second server exists.",
+   "plain": "The big machine-learning run with many signal families. A memory fix was tried on 21 Oct, but the server's memory ran out again (about 4.9 GB used out of 5.6 GB). It now waits for more memory: the second free server, or a free resize of this one (your call).",
    "batch": "MC1",
    "family": "ml",
    "stage": "designed",
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Revive on the second server",
+   "next": "Run once the server has more memory (second server or free resize)",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/AREPO_V2_CHECKPOINT.md (q0116b PARKED on 2026-10-17)"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § MC1 q0116e (2026-10-21)"
    },
    "stage_results": {
     "designed": "pass"
@@ -1408,6 +1408,29 @@
    ]
   },
   {
+   "id": "CB18",
+   "title": "Silent edits, program versus human, races, front page, last-mid map",
+   "plain": "Round 10's remaining ideas, using data already on the server: program versus human trading, silent edits, races, the front page as a clock, and a map of last prices against outcomes. Counting checks come first (counts only). Pre-declared rules then send each idea to a batch test, a future live test, a map only, or drops it. The counting code was checked by an independent reviewer and fixed; the checks are now queued.",
+   "batch": "CB18",
+   "family": "mixed",
+   "stage": "designed",
+   "status": "queued",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Counting checks on the server, then the test window code and its review",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB18 census code: fixes verified (2026-10-21)"
+   },
+   "stage_results": {
+    "designed": "pending"
+   },
+   "reached": [
+    "designed"
+   ]
+  },
+  {
    "id": "LT2",
    "title": "Live tests E012-E014 (registered)",
    "plain": "Four registered live tests of ideas that held up on two historical datasets: whether 1-day price changes carry on more in liquid markets, whether order flow carries on more in volatile or wide-spread markets, and whether the order-flow model does better just before a market's end date. Registered on 20 Oct 2026 after independent review; results only after the single analysis.",
@@ -1442,7 +1465,7 @@
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Large size check on the server (running), then freeze review, pin and register (register by 23 Oct for a 24 Oct start)",
+   "next": "Server test run done (21 Oct, within memory and time limits); size-check re-run finishing; then freeze review, pin and register by 23 Oct for a 24 Oct start",
    "next_date": "2026-10-24",
    "candidate": false,
    "sources": {

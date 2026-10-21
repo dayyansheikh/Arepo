@@ -1,0 +1,48 @@
+{
+ "id": "q0505_cb18_pre_census_F",
+ "title": "CB18 census F (CH176 front page; DRAFT): counts only on captures of UTC 2026-10-15/16: event volume ranks within fee_type (non-sports), position churn in [B-10, B+10] for B in {10, 12, 20, 24, 50}, entries and exits per day, crossings with a same-capture surge label",
+ "family": "creative_batch_18",
+ "priority": 28,
+ "expected_value": "CB18-F re-entry input (k = 0)",
+ "data": [
+  "data-dumps/research_lab/cb18_census/restore/data-dumps/research_lab (q0500/q0501; read-only)"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0500_cb18_census_restore_captures"
+ ],
+ "argv": [
+  "scripts/run_cb18.py",
+  "census-f",
+  "--rules",
+  "../docs/research_lab/seals/cb18_rules.json",
+  "--part",
+  "pre",
+  "--seal",
+  "../docs/research_lab/seals/cb18_census_inputs.json",
+  "--snapshot-root",
+  "../data-dumps/research_lab/cb18_census/restore/data-dumps/research_lab/snapshots",
+  "--sweep-root",
+  "../data-dumps/research_lab/cb18_census/restore/data-dumps/research_lab/book_sweeps",
+  "--sample-root",
+  "../data-dumps/research_lab/cb18_census/restore/data-dumps/research_lab/trade_samples",
+  "--out",
+  "../data-dumps/research_lab/cb18_census/F.json",
+  "--disk-cap-gb",
+  "20",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 5400,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/cb18_census/F.json (counts only; write-once)"
+ ],
+ "next_action": "add F.json's sha256 to seals/; record in CREATIVE_BATCH_18.md section 4.4",
+ "notes": "PROMOTED 2026-10-21 (autopilot): code check CENSUS_READY_WITH_FIXES -> fixes 1442bb27 -> verification FIXES_OK_WITH_NOTES (reviews/CB18_CENSUS_CODE_CHECK_2026-10-21.md, ledger). | DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md). Code check CENSUS_READY_WITH_FIXES 2026-10-21, fixes applied in 1442bb27 (interpretation notes: CREATIVE_BATCH_18.md section 13). scripts/run_cb18.py exists (subcommand tested on a synthetic world, tests/unit/test_cb18_census.py; real-data peak RSS unmeasured, design estimate < 400 MB). Counts 0 (kind cb18_descriptive). Refuses unless part pre is committed and every pinned input is present and matches (L4); refuses any file or row after its cut-off. No price column read (volume24hr only). R2 response (CREATIVE_BATCH_18.md section 12, finding 1): reads the 2026-10-16 captures and sweeps, inside J4-R [10-16, 10-21), disclosed; no census object is a mark-out (origin-side fields only; counts, shares and SEs)."
+}

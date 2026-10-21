@@ -1,0 +1,42 @@
+{
+ "id": "q0515_cb18_rep_18",
+ "title": "CB18 Stage 2 (triggered only; DRAFT): S1-rep with SCREEN_18's frozen strata level and thinning rate; binding checks as Stage 1",
+ "family": "creative_batch_18",
+ "priority": 9,
+ "expected_value": "S1-rep verdict (counted, kind cb18_replication)",
+ "data": [
+  "data-dumps/research_lab/creative_batch18/rep/"
+ ],
+ "resources": {
+  "mem_mb": 900,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0514_cb18_frame_rep_S"
+ ],
+ "argv": [
+  "scripts/run_cb18.py",
+  "rep",
+  "--rules",
+  "../docs/research_lab/seals/cb18_rules.json",
+  "--frame",
+  "../data-dumps/research_lab/creative_batch18/rep",
+  "--seal",
+  "../docs/research_lab/seals/cb18_rep_SEAL.json",
+  "--out",
+  "../data-dumps/research_lab/creative_batch18/results_rep.json",
+  "--disk-cap-gb",
+  "20",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 10800,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch18/results_rep.json (write-once)"
+ ],
+ "next_action": "q0516",
+ "notes": "DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md, design not yet reviewed). scripts/run_cb18.py DOES NOT EXIST YET (code needed, CREATIVE_BATCH_18.md section 6). Window job: promote only after parts common and S are committed (CB route RS-1), the code freeze record and an accepting code-against-design freeze check. Runs alone."
+}

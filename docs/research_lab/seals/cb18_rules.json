@@ -1,0 +1,769 @@
+{
+ "parts": {
+  "S": {
+   "part": "S",
+   "part_declared": false,
+   "reason": "part not declared yet: landed after the routing record, only if CB18-S routes to the batch (CREATIVE_BATCH_18.md section 1.4 Order)",
+   "rules_sha256": null,
+   "rules_version": "cb18-rules-v1"
+  },
+  "common": {
+   "part": "common",
+   "part_declared": false,
+   "reason": "part not declared yet: landed after the routing record, only if CB18-S routes to the batch (CREATIVE_BATCH_18.md section 1.4 Order)",
+   "rules_sha256": null,
+   "rules_version": "cb18-rules-v1"
+  },
+  "pre": {
+   "constants": {
+    "cb18_rules_pre": {
+     "ALLOWED_INPUT_ROOTS": [
+      "snapshots",
+      "book_sweeps",
+      "trade_samples"
+     ],
+     "ALLOWED_OUTPUT_ROOT_PARTS": [
+      "cb18_census"
+     ],
+     "ARCHIVE_PREFIX": "data-dumps/research_lab/",
+     "ARM_PREFIX": "cb18-arm-v1|",
+     "ARM_PROJECTION_RULE": "projected arm-0 count = census units whose Gamma event (else market) id hashes to arm 0 x W / census days; unsplit = all census units x W / census days",
+     "BURST_RULE": "denominator: non-sports units of the capture passing (1)-(10) whose class is silent or quiet; numerator: the silent ones; burst iff numerator > 0.20 x denominator",
+     "BURST_SHARE": 0.2,
+     "BYTE_FLAG_CAPTURE_FIELDS": [
+      "chg_1h",
+      "chg_1d",
+      "chg_1w"
+     ],
+     "BYTE_FLAG_SIDECAR_FIELDS": [
+      "uma_resolution_statuses",
+      "event_comment_count"
+     ],
+     "CAPTURE_DIR_RE": "^(\\d{8}T\\d{6}Z)_[0-9a-f]+$",
+     "CAPTURE_FIELDS": [
+      "market_id",
+      "condition_id",
+      "event_id",
+      "received_utc",
+      "closed",
+      "active",
+      "binary",
+      "best_bid",
+      "best_ask",
+      "spread",
+      "last_trade_price",
+      "liquidity",
+      "volume24hr",
+      "end_date",
+      "updated_at",
+      "neg_risk",
+      "clob_token_id_0"
+     ],
+     "CAPTURE_TIME_RULE": "a capture's time is the received_utc of its last page (the maximum received_utc over its rows); its slot is the LT3 slot of its start stamp (first complete capture of a slot wins)",
+     "CENSUS_CUTOFF_SLOT": "2026-10-17T22:31:00Z",
+     "CENSUS_DAYS_SF": [
+      "2026-10-15",
+      "2026-10-16"
+     ],
+     "CENSUS_INPUTS_SEAL": "cb18_census_inputs.json",
+     "CENSUS_JOBS": {
+      "q0502": "census-s",
+      "q0503": "census-p",
+      "q0504": "map-race",
+      "q0505": "census-f",
+      "q0506": "map-lastmid"
+     },
+     "CENSUS_ROW_CUTOFF": "2026-10-17T23:01:00Z",
+     "CENSUS_TO_SPEC": {
+      "F": [],
+      "M": [],
+      "P": [
+       "routed population (non-sports / all categories)",
+       "selected permutation strata level"
+      ],
+      "R": [],
+      "S": [
+       "selected permutation strata level (at the route's q)",
+       "q_CB",
+       "q_LT",
+       "dormancy tercile cut points",
+       "composition strata level"
+      ]
+     },
+     "CHG_FLAG_STATUS": [
+      "none",
+      "1h_only",
+      "1d_or_1w_not_all",
+      "all_three"
+     ],
+     "CLOCK_ANOMALY_S": -5.0,
+     "COMP_INFORMATIVE_RULE": "share of silent + quiet units in composition strata holding both labels; the finest level with share >= 60% (none -> null, reported)",
+     "COMP_LADDER": {
+      "0": [
+       "band6",
+       "dormancy_tercile",
+       "spread_band"
+      ],
+      "1": [
+       "dormancy_tercile",
+       "spread_band"
+      ],
+      "2": [
+       "dormancy_tercile"
+      ]
+     },
+     "COMP_SPREAD_EDGE": 0.02,
+     "DATA_DUMPS_CAP_GB": 40.0,
+     "DESIGN_DOC": "docs/research_lab/CREATIVE_BATCH_18.md",
+     "DE_FLOOR": 3.0,
+     "DE_RULE": "DE_computed = 1 + (m_W - 1) x 0.02, m = sum n_e^2 / sum n_e by event, m_W = m x W / census days; DE_gate = max(3.0, DE_computed); NaN m -> NaN -> the gate fails",
+     "DISK_CAP_GB": 20.0,
+     "DORMANCY_CAP_S": 86400.0,
+     "DORMANCY_TERCILE_RULE": "global tercile cut points (numpy 'linear' quantiles 1/3, 2/3) of dormancy over the S frame population (features only); a value <= the lower cut is tercile 0, <= the upper cut 1, else 2",
+     "EQ_CAPTURE_NUMERIC": [
+      "best_bid",
+      "best_ask",
+      "spread",
+      "last_trade_price",
+      "volume24hr",
+      "liquidity"
+     ],
+     "EQ_CAPTURE_TEXT": [
+      "closed",
+      "active",
+      "neg_risk"
+     ],
+     "EQ_END_FIELD": "end_date",
+     "EQ_SIDECAR_NUMERIC": [
+      "taker_base_fee",
+      "order_price_min_tick_size",
+      "order_min_size",
+      "rewards_min_size",
+      "rewards_max_spread"
+     ],
+     "EQ_SIDECAR_TEXT": [
+      "fee_type",
+      "fee_category",
+      "fees_enabled",
+      "fee_schedule",
+      "clob_rewards"
+     ],
+     "EVIDENCE_ROLE_HIST": "exploratory_historical",
+     "EXPECTED_CAPTURES": 67,
+     "EXPECTED_CAPTURE_FILES": [
+      "rows.csv.gz",
+      "rows_ext.csv.gz",
+      "manifest.json",
+      "ext_manifest.json"
+     ],
+     "EXPECTED_FILES_Q0500": 364,
+     "EXPECTED_FILES_Q0501": 92,
+     "EXPECTED_SAMPLES": 23,
+     "EXPECTED_SAMPLE_FILES": [
+      "manifest.json",
+      "plan.json",
+      "features.csv.gz",
+      "trades.csv.gz"
+     ],
+     "EXPECTED_SWEEP_DIRS": 48,
+     "EXPECTED_SWEEP_FILES": [
+      "rows.csv.gz",
+      "manifest.json"
+     ],
+     "FEATURE_FIELDS": [
+      "market_id",
+      "status",
+      "origin_utc",
+      "n_returned",
+      "trades_truncated"
+     ],
+     "FLOOR_P_C": 0.5,
+     "FLOOR_S_C": 1.0,
+     "FORBIDDEN_OUTPUT_KEYS": [
+      "side",
+      "wallet",
+      "wallet_hash",
+      "proxyWallet",
+      "tx_hash",
+      "transactionHash",
+      "hash",
+      "chg_1h",
+      "chg_1d",
+      "chg_1w",
+      "uma_resolution_statuses",
+      "outcome_prices",
+      "outcomePrices",
+      "closed_time",
+      "closedTime",
+      "result",
+      "settlement_value",
+      "mark",
+      "mark_out",
+      "beta",
+      "est",
+      "estimate",
+      "coef",
+      "effect",
+      "pnl",
+      "net",
+      "target",
+      "y",
+      "y_post",
+      "mid_k12",
+      "last_mid",
+      "side_of_half",
+      "upper_tail",
+      "lower_tail"
+     ],
+     "FORBIDDEN_READ_FIELDS": [
+      "outcome_prices",
+      "outcomePrices",
+      "closed_time",
+      "closedTime",
+      "question",
+      "description",
+      "title",
+      "wallet",
+      "wallet_hash",
+      "proxyWallet",
+      "maker",
+      "taker",
+      "name",
+      "pseudonym",
+      "umaResolutionStatus",
+      "result",
+      "settlement_value",
+      "open_interest",
+      "volume_num"
+     ],
+     "FORBIDDEN_SAMPLE_FILES": [
+      "wallets.csv.gz",
+      "wallets.jsonl",
+      "raw"
+     ],
+     "FRAME_MAX_ROWS": 1500000,
+     "FRAME_POPULATION": "silent and quiet non-sports units passing (1)-(12) whose look-back status is not lookback_missing (lookback_unavailable units are counted in the frame: the gap is a census artefact)",
+     "F_BREAKPOINTS": [
+      10,
+      12,
+      20,
+      24,
+      50
+     ],
+     "F_HALF_WIDTH": 10,
+     "F_RULE": "per capture k (with slot k - 1 present) and fee_type: non-sports active open markets grouped by Gamma event id (else market id); events ranked by the sum of members' volume24hr (descending, ties by event id); a rank position p in [max(1, B - 10), B + 10] changes hands iff the event at p differs between k - 1 and k; an entry across B is an event with rank <= B at k and > B (or absent) at k - 1, an exit the reverse; a crossing carries the surge label iff any member market has E017's S label at k. No price is read.",
+     "F_SURGE": {
+      "min_abs": 500.0,
+      "ratio": 3.0
+     },
+     "GP1_MIN_28D": 2000.0,
+     "GP2_RANGE": [
+      0.2,
+      0.8
+     ],
+     "GP3_MAX": 0.1,
+     "GP4_MAX": 0.05,
+     "GP5_MAX_C": 0.5,
+     "GP5_RULE": "R2 finding 3: GP5 holds iff MDE_GP5 = max(MDE_formula, MDE_proxy) <= 0.5c. MDE_formula = 3.388 x 5c x sqrt(1/n_fade + 1/n_none) x sqrt(DE_gate) x 1.5 on projected effective fades and projected effective none units (projected = census x 28 x 12 / 21; effective = units in markets with >= 2 units of the population), DE_gate = max(3.0, DE_computed with W = 28). MDE_proxy = 3.388 x SE_proxy x sqrt(21 / (28 x 12)) x sqrt(max(3, DE_W28 / DE_census)) x 1.5, SE_proxy = the 1[fade] coefficient's census SE on c_pre (max over the event and 6 h block ways). Both values are written. NaN proxy -> MDE_formula alone; NaN formula -> GP5 fails.",
+     "GP6_SHARE_MIN": 0.6,
+     "GP_DEFINITIONS": {
+      "GP1": "projected 28-day fades >= 2,000 in the routed population",
+      "GP2": "fades between 20% and 80% of reacted (fade + follow) units",
+      "GP3": "side unusable (not BUY/SELL, or outcome unknown) <= 10% of rows in the state windows",
+      "GP4": "truncated <= 5% of otherwise eligible units",
+      "GP5": "R2 finding 3: GP5 holds iff MDE_GP5 = max(MDE_formula, MDE_proxy) <= 0.5c. MDE_formula = 3.388 x 5c x sqrt(1/n_fade + 1/n_none) x sqrt(DE_gate) x 1.5 on projected effective fades and projected effective none units (projected = census x 28 x 12 / 21; effective = units in markets with >= 2 units of the population), DE_gate = max(3.0, DE_computed with W = 28). MDE_proxy = 3.388 x SE_proxy x sqrt(21 / (28 x 12)) x sqrt(max(3, DE_W28 / DE_census)) x 1.5, SE_proxy = the 1[fade] coefficient's census SE on c_pre (max over the event and 6 h block ways). Both values are written. NaN proxy -> MDE_formula alone; NaN formula -> GP5 fails.",
+      "GP6": "permutable share (fade versus none) >= 60% at some ladder level"
+     },
+     "GRID0_UTC": "2026-10-01T00:31:00Z",
+     "GRID_S": 7200.0,
+     "GS1_MAX": 0.5,
+     "GS2_MAX": 0.5,
+     "GS3_MAX": 0.1,
+     "GS4_MIN_PER_DAY": 200.0,
+     "GS5_SHARE_MIN": 0.6,
+     "GS_DEFINITIONS": {
+      "GS1": "updated_at changed (epoch ms differ) in <= 50% of non-sports intervals passing (1)-(9) (numerically unchanged incl. the chg_* byte flags, book untouched) with updated_at parseable at both",
+      "GS2": "updated_at changed in <= 50% of non-sports intervals passing (1)-(7) with updated_at parseable at both",
+      "GS3": "updated_at missing / unparseable / after received_utc + 5 s at k - 1 or k in <= 10% of intervals passing (1)-(7) (sports and non-sports)",
+      "GS4": "silent non-sports units passing (1)-(11) (R1 definition: chg_* flags equal, uma empty literal at k) per census day >= 200 (count / 2 census days)",
+      "GS5": "permutable share >= 60% at some ladder level on silent and quiet units thinned at the route's own q (GS5_CB at q_CB for RS-1, GS5_LT at q_LT for RS-2); fails at both -> RS-0"
+     },
+     "HOLDOUT": [
+      "2026-10-21T00:00:00Z",
+      "2026-10-26T00:00:00Z"
+     ],
+     "HOURS_TO_END_CAP_H": 720.0,
+     "ICC_EXAMPLE": 0.02,
+     "J4R": [
+      "2026-10-16T00:00:00Z",
+      "2026-10-21T00:00:00Z"
+     ],
+     "J4R_DISCLOSURE": "R2 finding 1: the pre-censuses read inside J4-R [2026-10-16, 2026-10-21): census S and F read the complete captures of 2026-10-16 and sweep 1 of its passes; census P and the race map read the 23 trade samples of 2026-10-16/17 and the captures of 2026-10-16/17. CB18 follows LT3's rule (J4-R is refused only for maker mark-out objects; LIVE_TESTS_3.md:529). No census object is a mark-out: every census reads origin-side fields at or before each unit's decision time (captures k - 12 .. k, sweep 1 of pass k, trade rows with ts at or before the pass k + 1 origin) and writes counts, shares and standard errors only; no forward price, target, mark or outcome is read or written (the result writer refuses such keys). 'J4-R untouched' holds for window paths only. The CB13-T HOLDOUT [2026-10-21, 2026-10-26) is untouched by every CB18 path (census row cut-off 2026-10-17T23:01Z, window floor 2026-10-26T00:00Z).",
+     "LADDER_ANCHOR": "2026-10-01T00:00:00Z",
+     "LOOKBACK_FLOOR": "2026-10-26T00:00:00Z",
+     "LT3_C2_SEAL": "lt3_census_inputs_C2.json",
+     "MAP_CUTOFF": "2026-10-16T00:00:00Z",
+     "MAP_START": "2026-10-12T00:31:00Z",
+     "MAP_UNDETERMINED_AFTER": "2026-10-15T20:00:00Z",
+     "MEM_MB": {
+      "census-f": 300,
+      "census-p": 380,
+      "census-s": 380,
+      "map-lastmid": 350,
+      "map-race": 390
+     },
+     "M_ARM_CLASSES": {
+      "CH157_E017_carry": "non-sports, all structures",
+      "CH163": "non-sports standalone and neg-risk members",
+      "CH164": "non-sports, all structures",
+      "CH62": "all categories"
+     },
+     "M_BANDS": [
+      "d_gt_0.49",
+      "d_0.45_0.49",
+      "d_lt_0.45",
+      "no_two_sided"
+     ],
+     "M_BAND_NEAR": 0.45,
+     "M_BAND_TAIL": 0.49,
+     "M_CB": 3.8,
+     "M_EXIT_RULE": "exit = a market present in complete capture j and absent from the next two available complete captures of the map window; recorded at its last presence; last presence after 2026-10-15T20:00Z -> undetermined; exits recorded at 2026-10-13T22:31Z (the last capture before the declared gap) carry gap_adjacent; re-appearance after an exit counted",
+     "M_FALLBACK_WINDOWS_H": [
+      6.0,
+      24.0
+     ],
+     "M_FORBIDDEN": "no comparison of an earlier price with the last mid, no return, no P&L, no side of 0.5 (bands are folded d = |mid - 0.5|)",
+     "M_HORIZON_BINS": [
+      "past_end",
+      "0-2h",
+      "2-24h",
+      "gt24h",
+      "unknown"
+     ],
+     "M_LAG_EDGES_H": [
+      -24.0,
+      -2.0,
+      0.0,
+      2.0,
+      6.0,
+      24.0,
+      72.0
+     ],
+     "M_LT": 3.388,
+     "M_PROJECTION_DAYS": [
+      21,
+      60,
+      90
+     ],
+     "OUTCOME_KEY_TOKENS": [
+      "beta",
+      "est",
+      "estimate",
+      "mark",
+      "marks",
+      "pnl",
+      "net",
+      "outcome",
+      "outcomes",
+      "coef",
+      "effect",
+      "slope",
+      "target",
+      "targets",
+      "forward",
+      "return",
+      "returns",
+      "resolution",
+      "resolved",
+      "winner",
+      "payout"
+     ],
+     "PARTS": [
+      "pre",
+      "common",
+      "S"
+     ],
+     "PERMUTABLE_MIN_UNITS": 4,
+     "PERM_LADDER": {
+      "0": [
+       "market",
+       1
+      ],
+      "1": [
+       "market",
+       2
+      ],
+      "2": [
+       "market",
+       7
+      ]
+     },
+     "PESSIMISM": 1.5,
+     "PINNED_IMPORTS": {
+      "cb17_census.is_sports_sidecar": "76fc0cd4ae9e4294d26ff567968959c4c118c6e78be87a179d494cf4daa8cb61",
+      "cb17_pre._codes": "df40c0455d0dba00d39a32e70e614f290840776ffc287fce81680c327a6f3115",
+      "cb17_pre._demean": "cedd32d423e5defb499fb5022f589bb1a50169ea6c0fbc8b79412281c472076a",
+      "cb17_pre.fe_cluster_se": "a2c90a6ad95b0be4fc0a057a8d6b8e32121889b3c09f9f272b601871ba1f3682",
+      "live_tests3.classify": "e3162be24a254de2eb2194d46c1b871cd6029ea12b8aeb4b7d6dae6bfaea5997",
+      "live_tests3.grid0": "f62b78369e86b67024ff28177c6f5ef88f6192f17788010181f5851a33cc2752",
+      "live_tests3.signs": "5c0a6d57dbfe278fc02a04c367979223afca7237dcd8a019619b6c5d9c476aad",
+      "live_tests3.slot_of": "0f7a5b20e6c4b575f3bd805b31508ec14a8c96665e7b90e33a96fa4040c18ee3",
+      "live_tests3.slot_time": "c940afefbe8faeedcc9ab534e5989872cde0ec87084e4e9db4264ce59f1441cd"
+     },
+     "PIN_NOTE": "live_tests3.* pinned at this commit from the merged integration branch (LT3's spec has no code pin yet); the cb17_* pins equal the CB17 part-pre func_sources_sha256 frozen in seals/cb17_rules.json and verify_pins checks them against that file too; a divergence refuses (never re-pinned silently)",
+     "PRIOR_QUIET_CAP": 11,
+     "PRIOR_QUIET_RULE": "census control: consecutive prior intervals (k - j - 1, k - j), j = 1 .. 11, that are capture-quiet (both captures present and open, every (8) field incl. the chg_* byte flags equal, (10) met, updated_at present and equal); the book-untouched rule is NOT applied to prior intervals in the census (sweeps of 2026-10-14 are not pinned); a missing capture before the chain breaks or reaches 11 makes the count unknown -> lookback_unavailable (declared gap) or lookback_missing (other)",
+     "PROXY_SE_RECIPE": "SE only (no point estimate leaves the function): within-market fixed-effect OLS (cb17_pre.fe_cluster_se, pinned) of the pre-origin proxy on the tested label first plus the declared controls; CR1 per way; the census SE is the MAX over the event way and the UTC 6 h block way whatever their G (no UTC-day or two-way way at G = 2; section 2.4); units in cents. S: Y_pre = |mid_k - mid_{k-12}| x 100 on silent + quiet units thinned at q, controls = log1p volume24hr_k, spread_k, |mid_k - 0.5|, log hours to the as-of end (capped at 30 d; 0 and an unknown flag if unknown), dormancy, prior-quiet count (cap 11), the event_comment_count change flag, UTC 6 h band dummies (the two |mid| controls left out); lookback_unavailable and lookback_missing units are left out. P: c_pre = s x (mid_{k-2} - mid_{k-4}) x 100 on fade, follow and none units, regressors 1[fade], 1[follow], log |x|, spread_k, log1p volume24hr_k, pass k + 1 stratum dummies; the SE of the 1[fade] coefficient",
+     "PR_SAMPLE_DAYS": [
+      "2026-10-16",
+      "2026-10-17"
+     ],
+     "P_ACTIVITY_WINDOW_S": 21600.0,
+     "P_CLASSES": [
+      "fade",
+      "follow",
+      "none",
+      "balanced"
+     ],
+     "P_EFFECTIVE_RULE": "effective = units in markets with >= 2 units of the tested population (fade or none) over the 21 usable pass pairs",
+     "P_END_AFTER_NEXT_H": 9.0,
+     "P_LOOKBACK_START": "2026-10-15T16:31:00Z",
+     "P_MID_RANGE": [
+      0.02,
+      0.98
+     ],
+     "P_MOVE": {
+      "ltp_tol": 1e-09,
+      "min_abs_x": 0.01,
+      "one_sided_max": 0.0005,
+      "parallel_max_diff": 0.005,
+      "parallel_min": 0.005,
+      "vol_tol": 0.01
+     },
+     "P_PROJECTION_PAIRS": 336,
+     "P_ROUTE_RULE": "non-sports primary if GP1-GP6 hold on non-sports units; else all categories (sports split reported) if they hold on all categories; else dropped uncounted. A pass -> LT5 member. No 42-day branch.",
+     "P_SPREAD_MAX": 0.1,
+     "P_USABLE_PASS_PAIRS": 21,
+     "Q0500_RELEASES": [
+      "data-20261015-dsheikh",
+      "data-20261016-dsheikh",
+      "data-20261017-dsheikh",
+      "data-20261018-dsheikh",
+      "data-20261018-dsheikh-2",
+      "data-20261019-dsheikh"
+     ],
+     "Q0501_RELEASES": [
+      "data-20261017-dsheikh",
+      "data-20261018-dsheikh",
+      "data-20261019-dsheikh"
+     ],
+     "QUOTE_TOL": 1e-12,
+     "REFUSED_ROOTS": [
+      "live_trades",
+      "cross_venue_live",
+      "surprise_live",
+      "live_tests2",
+      "live_tests3",
+      "live_tests4",
+      "creative_batch16",
+      "creative_batch17",
+      "cb8_holders",
+      "holders",
+      "forecasts",
+      "flow_screen",
+      "history",
+      "wallets"
+     ],
+     "REFUSED_ROOT_RES": [
+      "^e00[1-7]",
+      "^h\\d+",
+      ".*holdout.*"
+     ],
+     "RESULT_NAMES": {
+      "F": "F.json",
+      "M": "M.json",
+      "P": "P.json",
+      "R": "R_map.json",
+      "S": "S.json"
+     },
+     "RS_RULES": {
+      "RS-0": "any of GS1-GS4 fails, or GS5 fails at both q_CB and q_LT -> CB18-S dropped uncounted (recorded with counts)",
+      "RS-1": "gates pass (GS5 at q_CB) and MDE_RS1 = 3.80 x SE_proxy(q_CB) x sqrt(census days / 14) x sqrt(2) x sqrt(max(3, DE_W14 / DE_census)) x 1.5 <= 1.0c -> CB route (parts common, S); NaN SE -> section 2.4 formula (M 3.80, SD 6c, projected arm-0 silent n1, projected thinned arm-0 quiet n0, DE_gate, 1.5)",
+      "RS-2": "else, gates pass (GS5 at q_LT) and MDE_RS2 = 3.388 x SE_proxy(q_LT) x sqrt(census days / 28) x sqrt(max(3, DE_W28 / DE_census)) x 1.5 <= 1.0c -> LT5 member; NaN SE -> formula with M 3.388 and unsplit 28-day counts",
+      "RS-3": "else dropped uncounted",
+      "both": "MDE_RS1 and MDE_RS2 are both written into the routing record whichever route is taken (Q5)"
+     },
+     "RULES_MACHINERY": [
+      "rules_part_doc",
+      "rules_part_file_doc",
+      "rules_file_doc",
+      "write_rules",
+      "verify_rules",
+      "part_funcs",
+      "declared",
+      "pinned_objects",
+      "verify_pins"
+     ],
+     "RULES_VERSION": "cb18-rules-v1",
+     "R_COVERAGE_RULE": "E016's rule: a sampled market (features status ok) is covered iff n_returned < 500 (trade_sample.TRADE_LIMIT) or its oldest row has ts <= origin - 6 h",
+     "R_DECILES": 10,
+     "R_GAP_HIST_S": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+     ],
+     "R_MIN_SIGNED_ROWS": 3,
+     "R_PRICE_BAND_EDGES": [
+      0.1,
+      0.3,
+      0.7,
+      0.9
+     ],
+     "R_QUANTISED_MIN_GAPS": 100,
+     "R_QUANTISED_ONE_S_MAX": 0.05,
+     "R_QUANTISED_RULE": "ts is read as quantised at 2 s or coarser iff the gap histogram holds >= 100 gaps of 1-10 s and 1-s gaps are < 5% of them; then every 'same second' in the map reads 'same block'",
+     "R_RACE_RULE": "a row is raced iff another row of the same market has the same ts and a different tx_hash (same ts and same tx_hash is not a race); a blank tx_hash never partners",
+     "R_WINDOW_S": 21600.0,
+     "SAMPLE_DIR_RE": "^(\\d{8}T\\d{6}Z)_[0-9a-f]+$",
+     "SD_P_C": 5.0,
+     "SD_S_FALLBACK_C": 6.0,
+     "SELECT_SHARE_MIN": 0.6,
+     "SE_WAYS": [
+      "event",
+      "block6"
+     ],
+     "SF_FIRST_PREV": "2026-10-14T22:31:00Z",
+     "SIDECAR_FIELDS": [
+      "market_id",
+      "clob_token_id_1",
+      "event_id",
+      "fee_type",
+      "fee_category",
+      "fees_enabled",
+      "fee_schedule",
+      "taker_base_fee",
+      "order_price_min_tick_size",
+      "order_min_size",
+      "rewards_min_size",
+      "rewards_max_spread",
+      "clob_rewards",
+      "series_slugs",
+      "neg_risk_market_id"
+     ],
+     "SLOT_TOL_S": 1800.0,
+     "SPREAD_RULE": "spread = the capture's Gamma spread field if finite, else ask - bid; a band or cap edge is compared with a 1e-12 tolerance (spread <= 0.10 + 1e-12; mid in [0.02 - 1e-12, 0.98 + 1e-12])",
+     "SWEEP1_RULE": "sweep 1 of pass k = the book_sweeps directory whose manifest has snapshot_id = capture k's id, series_index 0 and state complete; its time is the token row's batch_receipt_utc",
+     "SWEEP_DIR_RE": "^(\\d{8}T\\d{6}Z)_[0-9a-f]+$",
+     "SWEEP_FIELDS": [
+      "token_id",
+      "market_id",
+      "batch_receipt_utc",
+      "book_timestamp",
+      "state"
+     ],
+     "S_CLASSES": [
+      "silent",
+      "quiet",
+      "upd_earlier",
+      "upd_after_receipt",
+      "upd_missing"
+     ],
+     "S_DE_POPULATION": "silent non-sports units passing (1)-(11) (after the burst exclusion), by Gamma event id (else market id)",
+     "S_END_MIN_H": 27.0,
+     "S_LOOKBACK_SLOTS": [
+      3,
+      12
+     ],
+     "S_LOOKBACK_START": "2026-10-14T12:31:00Z",
+     "S_MID_RANGE": [
+      0.02,
+      0.98
+     ],
+     "S_SPREAD_MAX": 0.1,
+     "TEMPFAIL_MESSAGE": "restore byte for byte, hash-checked",
+     "THIN_PREFIX": "cb18-thin-v1|",
+     "THIN_RATES": [
+      1.0,
+      0.5,
+      0.25,
+      0.125
+     ],
+     "THIN_RULE": "quiet units kept iff int(sha256('cb18-thin-v1|' + market_id + '|' + slot_iso).hexdigest()[:8], 16) / 2^32 < q; q_CB = the largest of {1, 1/2, 1/4, 1/8} whose projected arm-0 14-day frame (silent + q x quiet, arm-0 share by the event-arm hash, x 14 / census days) is <= 1.5 M rows; q_LT the same on the unsplit 28-day frame; fixed from counts before its proxy SE; none qualifies -> q = null and the route's MDE is NaN (fails)",
+     "TRADE_FIELDS_P": [
+      "market_id",
+      "ts",
+      "side",
+      "price",
+      "size",
+      "outcome_index",
+      "asset"
+     ],
+     "TRADE_FIELDS_R": [
+      "market_id",
+      "ts",
+      "side",
+      "price",
+      "size",
+      "outcome_index",
+      "asset",
+      "tx_hash"
+     ],
+     "TRIAL_KIND": "cb18_descriptive",
+     "UMA_EMPTY_LITERAL": "[]",
+     "UMA_LITERAL_RULE": "(10) holds iff the raw bytes at k - 1 and k are equal AND the bytes at k equal UMA_EMPTY_LITERAL exactly; a missing value (empty field) is class 'missing' and fails (10) (unknown never counts as met, L2); any other bytes are 'non_empty' and fail (10)",
+     "UMA_MISSING_LITERAL": "",
+     "UNAVAILABLE_CAPTURE_SLOTS": [
+      "2026-10-14T00:31:00Z",
+      "2026-10-14T02:31:00Z",
+      "2026-10-14T04:31:00Z",
+      "2026-10-14T06:31:00Z",
+      "2026-10-14T08:31:00Z",
+      "2026-10-14T10:31:00Z"
+     ],
+     "UNAVAILABLE_RULE": "in no host copy and in no release (checked against the committed catalogues through data-20261020-dsheikh); never 0, never interpolated; the off-grid -val copy 20261013T231958Z_80e78ef1 is never used",
+     "UNSEALED_SAMPLE": "20261017T044014Z_4439c7c6",
+     "UPDATED_AT_RECEIPT_TOL_S": 5.0,
+     "WHITELIST_EXCEPTION_FIELDS": [
+      "chg_1h",
+      "chg_1d",
+      "chg_1w",
+      "uma_resolution_statuses"
+     ],
+     "W_ARM_DAYS": 14,
+     "W_LT_DAYS": 28
+    }
+   },
+   "declared": {
+    "arm_projection": "projected arm-0 count = census units whose Gamma event (else market) id hashes to arm 0 x W / census days; unsplit = all census units x W / census days",
+    "burst": "denominator: non-sports units of the capture passing (1)-(10) whose class is silent or quiet; numerator: the silent ones; burst iff numerator > 0.20 x denominator",
+    "capture_time": "a capture's time is the received_utc of its last page (the maximum received_utc over its rows); its slot is the LT3 slot of its start stamp (first complete capture of a slot wins)",
+    "composition": "share of silent + quiet units in composition strata holding both labels; the finest level with share >= 60% (none -> null, reported)",
+    "coverage": "E016's rule: a sampled market (features status ok) is covered iff n_returned < 500 (trade_sample.TRADE_LIMIT) or its oldest row has ts <= origin - 6 h",
+    "de": "DE_computed = 1 + (m_W - 1) x 0.02, m = sum n_e^2 / sum n_e by event, m_W = m x W / census days; DE_gate = max(3.0, DE_computed); NaN m -> NaN -> the gate fails",
+    "design": "docs/research_lab/CREATIVE_BATCH_18.md",
+    "dormancy_terciles": "global tercile cut points (numpy 'linear' quantiles 1/3, 2/3) of dormancy over the S frame population (features only); a value <= the lower cut is tercile 0, <= the upper cut 1, else 2",
+    "exit": "exit = a market present in complete capture j and absent from the next two available complete captures of the map window; recorded at its last presence; last presence after 2026-10-15T20:00Z -> undetermined; exits recorded at 2026-10-13T22:31Z (the last capture before the declared gap) carry gap_adjacent; re-appearance after an exit counted",
+    "frame_population": "silent and quiet non-sports units passing (1)-(12) whose look-back status is not lookback_missing (lookback_unavailable units are counted in the frame: the gap is a census artefact)",
+    "front_page": "per capture k (with slot k - 1 present) and fee_type: non-sports active open markets grouped by Gamma event id (else market id); events ranked by the sum of members' volume24hr (descending, ties by event id); a rank position p in [max(1, B - 10), B + 10] changes hands iff the event at p differs between k - 1 and k; an entry across B is an event with rank <= B at k and > B (or absent) at k - 1, an exit the reverse; a crossing carries the surge label iff any member market has E017's S label at k. No price is read.",
+    "gp": {
+     "GP1": "projected 28-day fades >= 2,000 in the routed population",
+     "GP2": "fades between 20% and 80% of reacted (fade + follow) units",
+     "GP3": "side unusable (not BUY/SELL, or outcome unknown) <= 10% of rows in the state windows",
+     "GP4": "truncated <= 5% of otherwise eligible units",
+     "GP5": "R2 finding 3: GP5 holds iff MDE_GP5 = max(MDE_formula, MDE_proxy) <= 0.5c. MDE_formula = 3.388 x 5c x sqrt(1/n_fade + 1/n_none) x sqrt(DE_gate) x 1.5 on projected effective fades and projected effective none units (projected = census x 28 x 12 / 21; effective = units in markets with >= 2 units of the population), DE_gate = max(3.0, DE_computed with W = 28). MDE_proxy = 3.388 x SE_proxy x sqrt(21 / (28 x 12)) x sqrt(max(3, DE_W28 / DE_census)) x 1.5, SE_proxy = the 1[fade] coefficient's census SE on c_pre (max over the event and 6 h block ways). Both values are written. NaN proxy -> MDE_formula alone; NaN formula -> GP5 fails.",
+     "GP6": "permutable share (fade versus none) >= 60% at some ladder level"
+    },
+    "gp5_rule": "R2 finding 3: GP5 holds iff MDE_GP5 = max(MDE_formula, MDE_proxy) <= 0.5c. MDE_formula = 3.388 x 5c x sqrt(1/n_fade + 1/n_none) x sqrt(DE_gate) x 1.5 on projected effective fades and projected effective none units (projected = census x 28 x 12 / 21; effective = units in markets with >= 2 units of the population), DE_gate = max(3.0, DE_computed with W = 28). MDE_proxy = 3.388 x SE_proxy x sqrt(21 / (28 x 12)) x sqrt(max(3, DE_W28 / DE_census)) x 1.5, SE_proxy = the 1[fade] coefficient's census SE on c_pre (max over the event and 6 h block ways). Both values are written. NaN proxy -> MDE_formula alone; NaN formula -> GP5 fails.",
+    "gs": {
+     "GS1": "updated_at changed (epoch ms differ) in <= 50% of non-sports intervals passing (1)-(9) (numerically unchanged incl. the chg_* byte flags, book untouched) with updated_at parseable at both",
+     "GS2": "updated_at changed in <= 50% of non-sports intervals passing (1)-(7) with updated_at parseable at both",
+     "GS3": "updated_at missing / unparseable / after received_utc + 5 s at k - 1 or k in <= 10% of intervals passing (1)-(7) (sports and non-sports)",
+     "GS4": "silent non-sports units passing (1)-(11) (R1 definition: chg_* flags equal, uma empty literal at k) per census day >= 200 (count / 2 census days)",
+     "GS5": "permutable share >= 60% at some ladder level on silent and quiet units thinned at the route's own q (GS5_CB at q_CB for RS-1, GS5_LT at q_LT for RS-2); fails at both -> RS-0"
+    },
+    "j4r_disclosure": "R2 finding 1: the pre-censuses read inside J4-R [2026-10-16, 2026-10-21): census S and F read the complete captures of 2026-10-16 and sweep 1 of its passes; census P and the race map read the 23 trade samples of 2026-10-16/17 and the captures of 2026-10-16/17. CB18 follows LT3's rule (J4-R is refused only for maker mark-out objects; LIVE_TESTS_3.md:529). No census object is a mark-out: every census reads origin-side fields at or before each unit's decision time (captures k - 12 .. k, sweep 1 of pass k, trade rows with ts at or before the pass k + 1 origin) and writes counts, shares and standard errors only; no forward price, target, mark or outcome is read or written (the result writer refuses such keys). 'J4-R untouched' holds for window paths only. The CB13-T HOLDOUT [2026-10-21, 2026-10-26) is untouched by every CB18 path (census row cut-off 2026-10-17T23:01Z, window floor 2026-10-26T00:00Z).",
+    "map_forbidden": "no comparison of an earlier price with the last mid, no return, no P&L, no side of 0.5 (bands are folded d = |mid - 0.5|)",
+    "order": "pre -> censuses q0502-q0506 -> routing record -> common, S (CB route only) -> T18_rules",
+    "p_effective": "effective = units in markets with >= 2 units of the tested population (fade or none) over the 21 usable pass pairs",
+    "p_route": "non-sports primary if GP1-GP6 hold on non-sports units; else all categories (sports split reported) if they hold on all categories; else dropped uncounted. A pass -> LT5 member. No 42-day branch.",
+    "pins": "live_tests3.* pinned at this commit from the merged integration branch (LT3's spec has no code pin yet); the cb17_* pins equal the CB17 part-pre func_sources_sha256 frozen in seals/cb17_rules.json and verify_pins checks them against that file too; a divergence refuses (never re-pinned silently)",
+    "prior_quiet": "census control: consecutive prior intervals (k - j - 1, k - j), j = 1 .. 11, that are capture-quiet (both captures present and open, every (8) field incl. the chg_* byte flags equal, (10) met, updated_at present and equal); the book-untouched rule is NOT applied to prior intervals in the census (sweeps of 2026-10-14 are not pinned); a missing capture before the chain breaks or reaches 11 makes the count unknown -> lookback_unavailable (declared gap) or lookback_missing (other)",
+    "proxy_se": "SE only (no point estimate leaves the function): within-market fixed-effect OLS (cb17_pre.fe_cluster_se, pinned) of the pre-origin proxy on the tested label first plus the declared controls; CR1 per way; the census SE is the MAX over the event way and the UTC 6 h block way whatever their G (no UTC-day or two-way way at G = 2; section 2.4); units in cents. S: Y_pre = |mid_k - mid_{k-12}| x 100 on silent + quiet units thinned at q, controls = log1p volume24hr_k, spread_k, |mid_k - 0.5|, log hours to the as-of end (capped at 30 d; 0 and an unknown flag if unknown), dormancy, prior-quiet count (cap 11), the event_comment_count change flag, UTC 6 h band dummies (the two |mid| controls left out); lookback_unavailable and lookback_missing units are left out. P: c_pre = s x (mid_{k-2} - mid_{k-4}) x 100 on fade, follow and none units, regressors 1[fade], 1[follow], log |x|, spread_k, log1p volume24hr_k, pass k + 1 stratum dummies; the SE of the 1[fade] coefficient",
+    "quantised": "ts is read as quantised at 2 s or coarser iff the gap histogram holds >= 100 gaps of 1-10 s and 1-s gaps are < 5% of them; then every 'same second' in the map reads 'same block'",
+    "race": "a row is raced iff another row of the same market has the same ts and a different tx_hash (same ts and same tx_hash is not a race); a blank tx_hash never partners",
+    "rs": {
+     "RS-0": "any of GS1-GS4 fails, or GS5 fails at both q_CB and q_LT -> CB18-S dropped uncounted (recorded with counts)",
+     "RS-1": "gates pass (GS5 at q_CB) and MDE_RS1 = 3.80 x SE_proxy(q_CB) x sqrt(census days / 14) x sqrt(2) x sqrt(max(3, DE_W14 / DE_census)) x 1.5 <= 1.0c -> CB route (parts common, S); NaN SE -> section 2.4 formula (M 3.80, SD 6c, projected arm-0 silent n1, projected thinned arm-0 quiet n0, DE_gate, 1.5)",
+     "RS-2": "else, gates pass (GS5 at q_LT) and MDE_RS2 = 3.388 x SE_proxy(q_LT) x sqrt(census days / 28) x sqrt(max(3, DE_W28 / DE_census)) x 1.5 <= 1.0c -> LT5 member; NaN SE -> formula with M 3.388 and unsplit 28-day counts",
+     "RS-3": "else dropped uncounted",
+     "both": "MDE_RS1 and MDE_RS2 are both written into the routing record whichever route is taken (Q5)"
+    },
+    "spread": "spread = the capture's Gamma spread field if finite, else ask - bid; a band or cap edge is compared with a 1e-12 tolerance (spread <= 0.10 + 1e-12; mid in [0.02 - 1e-12, 0.98 + 1e-12])",
+    "sweep1": "sweep 1 of pass k = the book_sweeps directory whose manifest has snapshot_id = capture k's id, series_index 0 and state complete; its time is the token row's batch_receipt_utc",
+    "thin": "quiet units kept iff int(sha256('cb18-thin-v1|' + market_id + '|' + slot_iso).hexdigest()[:8], 16) / 2^32 < q; q_CB = the largest of {1, 1/2, 1/4, 1/8} whose projected arm-0 14-day frame (silent + q x quiet, arm-0 share by the event-arm hash, x 14 / census days) is <= 1.5 M rows; q_LT the same on the unsplit 28-day frame; fixed from counts before its proxy SE; none qualifies -> q = null and the route's MDE is NaN (fails)",
+    "uma": "(10) holds iff the raw bytes at k - 1 and k are equal AND the bytes at k equal UMA_EMPTY_LITERAL exactly; a missing value (empty field) is class 'missing' and fails (10) (unknown never counts as met, L2); any other bytes are 'non_empty' and fail (10)",
+    "unavailable": "in no host copy and in no release (checked against the committed catalogues through data-20261020-dsheikh); never 0, never interpolated; the off-grid -val copy 20261013T231958Z_80e78ef1 is never used",
+    "wallet": "no CB18 census reads or writes a wallet field; tx_hash is used in memory by the race map only and never written"
+   },
+   "func_sources_sha256": {
+    "cb18_rules_pre._json_default": "e8441995a6f9b7ef8c17b534806f62d91d7fbfb95bdc49d7e01ed51ac44ec7d7",
+    "cb18_rules_pre.arm_of": "85db8923552f1fa1c63e9160c47d3038263df9e23a8ed54b8d982f61633d9f55",
+    "cb18_rules_pre.assert_clean_result": "b36d3bc512aa3df8218b2f24d035b7439ef60be719743bde6e109bdd549b5aa3",
+    "cb18_rules_pre.band6": "558df8c9add49023af8ece19b7c755e1602fe78a718b3bac4d20fd0f790d234d",
+    "cb18_rules_pre.block6": "5455cb097aab38fa57f207bab44fceac95e4705083b7e22ab52e6c629069bec6",
+    "cb18_rules_pre.block_index": "2cbae691d52b3d7cb42bf11335609b506cba9f211d9fc3ec4560d25342e5100c",
+    "cb18_rules_pre.book_untouched": "94dab7ca772a7c5bffa03ea2d1eb8c78c6664b1c451cae95c6f59a3c8c958686",
+    "cb18_rules_pre.chg_flag_status": "13dcc92802a3f3894833a200a01e11092aa79f77850e07590e79d4d45d3dd82f",
+    "cb18_rules_pre.comp_stratum": "ace68fd452bd26caf31a29fc844edd2bb16f09abe07d4b4da9971888d2049194",
+    "cb18_rules_pre.de_computed": "2aa65a391f143e15ae4586687cb773c0f6e7d8bca6ef246f85ad77d90aa73269",
+    "cb18_rules_pre.de_gate": "5e82ed009770fd3a4a4819298c9920e2129ff9f079bf254603974ef778d1e164",
+    "cb18_rules_pre.de_inflation": "378daaee9aaef5a0fb817f0ae62ea7367e94498436da195b2d5fb22879248098",
+    "cb18_rules_pre.ep": "a546e4f0ed5bdf4883cff3d6cc7bf23bbba9306934f9954682127542e84cb790",
+    "cb18_rules_pre.finite": "35752cc8e5134880873ae2e92284b30f5ee4fe2660b80515ea7b6231643d15cd",
+    "cb18_rules_pre.fnum": "7ed0533448a94b587305636058c722f678d3cf0b29a88da650648d6d5f12bec5",
+    "cb18_rules_pre.fold_band": "2aaec8b9a6aca3aabda3fcde2f6e4cff33adfb6a9f75aaa37189896219200ef4",
+    "cb18_rules_pre.gate_ge": "f2124d65eeed94addb1c075a68ce19bf9b21f5ba4164b592bc62ffe81051fbd1",
+    "cb18_rules_pre.gate_in": "1df148453ff36b86222bad26f3478bf2a4ebf9389790bd5ebf8f8ed8f4b050ca",
+    "cb18_rules_pre.gate_le": "b2cb284c94a19bbbc2595430e66851e8e5db484a96d306b2fab8a2f786011427",
+    "cb18_rules_pre.gp_gates": "fb812a48af4143a565dea459c086685b7b863fbf2edbb81d2ebfdc0dc1e112ff",
+    "cb18_rules_pre.gs_gates": "6fb66ff2dc92aaade55d29127235f44fa164e0ddfc4658a1c867251bbeafd547",
+    "cb18_rules_pre.guard_census_time": "13b1f1e308cdb7069b9352bef6852fae4ee088985aac150faa1defd4a2bc4235",
+    "cb18_rules_pre.guard_window_time": "f7d04a9e1195c591db95bd9d7cda6e7a8f7aa5d111b63ba14b7c356560f84585",
+    "cb18_rules_pre.informative_share": "9374d6ae1fd02b1c6d7bcf11f1b505c042d2af434011fdacacde85c3f81b6fc9",
+    "cb18_rules_pre.iso": "96298691e53e2392f937e45ce36464ac77a5f4d7df98a50591b9fe003faf8488",
+    "cb18_rules_pre.m_by_event": "266c11c6c22e77038d1d452074d43757ddb43ae474f3b2dbd97d400341098ab6",
+    "cb18_rules_pre.mde_formula": "3b5ea6c66d297658b1deba9c6872b53aeb16026bfcf8cc1ec30dcbf303c7c847",
+    "cb18_rules_pre.mde_gp5": "28e9b68357b3a70d9d05a7f31b5ee2cfc656160dfa024640036815c31fa19db9",
+    "cb18_rules_pre.mde_gp5_proxy": "55eac0bef9399391752ebe608d7466d21a5dafde0ea19b79807e9778e7469d62",
+    "cb18_rules_pre.mde_rs1": "a56fcd265e128c2fc1182b5f0cb7e9bcbce063063d2ee0d5747b719753fa6342",
+    "cb18_rules_pre.mde_rs2": "0c28ccfae2e4ba5e79447f8002e5ada261e49210443f0a85f04d330250a3be40",
+    "cb18_rules_pre.p_state": "334a0e1909c440fc5e933f3f200b2f1ac141799ce4fb35db41475532320de554",
+    "cb18_rules_pre.perm_stratum": "d55c3c487c13f5445f93e94be1dbda4f22d42b79a304b31b5cadadec52743023",
+    "cb18_rules_pre.permutable_share": "b29dba69a755575c7497712c59bda94c454533ea35ba6d031f5dc0524cba4dd3",
+    "cb18_rules_pre.refuse_path": "e05b31168cc1b17238c4647ceb950d2cebbcb7bc6f61c543362d0f8f044affb9",
+    "cb18_rules_pre.require_output_root": "0c0937f6d2901a6aa59efb6bc5bf817170982cd92ca9e33105cbcb56cf4723ac",
+    "cb18_rules_pre.route_p": "00fcd4b4d6a0e93e56a238009360fc154f6fe6683587c31a463186f0dd44958d",
+    "cb18_rules_pre.route_s": "ea07d568a72e15ee55498f20c726bd98896937247b25ee275dc0abf4164ae922",
+    "cb18_rules_pre.s_class": "fcdf84fe025db97bfc9ba7f54817b4c16ad6a90af1de68b03461163eb74cea24",
+    "cb18_rules_pre.select_level": "a93c20d9f89a717a646e0d21a83e8b5b92e6552625d641c0d88d7ac09d1ccbb9",
+    "cb18_rules_pre.spread_band": "fdb91c9b1559e787824eee609521a9b5709e249efd313c498ebce3cf5baa1d54",
+    "cb18_rules_pre.surge_label": "806422a8ee2eb992448eec03b28af9388899d943f6a01360d5683837d76df8bc",
+    "cb18_rules_pre.tercile_of": "98007c7113870ec27762a6439f0e5eac818780b9a49594702c7558639585381b",
+    "cb18_rules_pre.thin_keep": "37194e80e70bb874da20cbc50750152023b966049c4deca9069cdb9a7b394879",
+    "cb18_rules_pre.thin_rate": "e68a1d9ffd1f110d9682d200ece53357b2853b3ad7ed0959ee2be6fd942a3ea8",
+    "cb18_rules_pre.thin_u": "e3eeedd8f5044276b6d9b22d2935586d65d7d7b1f7f0d58a0458adbe03998d83",
+    "cb18_rules_pre.two_sided": "bfc5581ce7d25b14e351bf7d45f4e2206e44708bcc389440a8f0349401a44d4d",
+    "cb18_rules_pre.uma_class": "4f0924538f9003ceb0b8de38977ec5ab61bf1ea3e4bd94c1328c7c5076eb58af",
+    "cb18_rules_pre.utc_day": "a7a5071782bebce545b9dd4386cc9dabe1076d76ffe67861e03acc4ef90a4f19",
+    "cb18_rules_pre.write_result_once": "328a61ff83b5339496eaed1075c467192bba355ba7038a8d4bafb76da6e24244"
+   },
+   "funcs_sha256": "58bb4f210af1c7a8b035b6387f8ad5c2b2dd765587c7d0bbc4ccc658a59f233b",
+   "modules": [
+    "cb18_rules_pre"
+   ],
+   "part": "pre",
+   "part_declared": true,
+   "pinned_imports_sha256": {
+    "cb17_census.is_sports_sidecar": "76fc0cd4ae9e4294d26ff567968959c4c118c6e78be87a179d494cf4daa8cb61",
+    "cb17_pre._codes": "df40c0455d0dba00d39a32e70e614f290840776ffc287fce81680c327a6f3115",
+    "cb17_pre._demean": "cedd32d423e5defb499fb5022f589bb1a50169ea6c0fbc8b79412281c472076a",
+    "cb17_pre.fe_cluster_se": "a2c90a6ad95b0be4fc0a057a8d6b8e32121889b3c09f9f272b601871ba1f3682",
+    "live_tests3.classify": "e3162be24a254de2eb2194d46c1b871cd6029ea12b8aeb4b7d6dae6bfaea5997",
+    "live_tests3.grid0": "f62b78369e86b67024ff28177c6f5ef88f6192f17788010181f5851a33cc2752",
+    "live_tests3.signs": "5c0a6d57dbfe278fc02a04c367979223afca7237dcd8a019619b6c5d9c476aad",
+    "live_tests3.slot_of": "0f7a5b20e6c4b575f3bd805b31508ec14a8c96665e7b90e33a96fa4040c18ee3",
+    "live_tests3.slot_time": "c940afefbe8faeedcc9ab534e5989872cde0ec87084e4e9db4264ce59f1441cd"
+   },
+   "rules_sha256": "e5b9c6454ec9caf9aa17ad66c69b019222ba3aaf14b96f1bc0abdcd124364976",
+   "rules_version": "cb18-rules-v1"
+  }
+ },
+ "rules_version": "cb18-rules-v1"
+}
