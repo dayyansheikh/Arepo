@@ -273,6 +273,13 @@ Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && gi
    `resize_host.py --remove-cron`, update the 1 OCPU / 6 GB wording, then promote the prepared draft
    `queue/drafts/q0116f_mc1_dev_run.json` (exclusive, mem_mb 6000, as_cap_mb 14000) to `queue/jobs/` and deploy.
 
+5. **LT6 (`feat/live-tests-6` 04d9b603, pushed; worktree `.claude/worktrees/agent-a985b10db31086738`):** design
+   ACCEPTED for code (R1 REVISE -> response -> re-check -> 2 text fixes verified). Before code: fill the LT5 seal sha256
+   (after q0564), wait for E022's registration or drop (LT4 censuses q0482/q0483 queued; LT6 dates slide with E022's
+   END_UTC; V's pin must precede T_E022), CB18 request (ledger, 2026-10-21) applied or "partially seen", engine embargo
+   round 2 applied (CANDIDATES.md). Then code (implementer), freeze check, census seal + counts-only censuses (after
+   LT5's), size check. Archive check of the census inputs within 48 h of the seal (retention deletes only released files).
+
 **Registered and running (no interim looks):**
 - E009/E010 (to 11-03), E011 (to 11-10), LT2 E012-E014 (q0460; analysis q0461 after 11-13T12Z).
 - **E026** registered 2026-10-21 (7777ca66; SPEC_SHA256 06d117ed…); collection 10-25..11-15, analysis q0543 after 12-06T12Z.

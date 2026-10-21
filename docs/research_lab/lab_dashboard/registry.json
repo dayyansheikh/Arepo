@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-21T15:25:00Z",
+ "updated": "2026-10-21T16:09:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1518,6 +1518,29 @@
    "candidate": false,
    "sources": {
     "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT5 drafted, challenger R1 and re-check (2026-10-21)"
+   },
+   "stage_results": {
+    "designed": "pending"
+   },
+   "reached": [
+    "designed"
+   ]
+  },
+  {
+   "id": "LT6",
+   "title": "Live tests 6: four more ideas from round 11 (planned)",
+   "plain": "A sixth group of up to four planned live tests from the latest new-ideas round. It asks whether quotes that refill after a move lean one way, whether repeated same-size orders leave a footprint, whether moves near a market's deadline behave differently, and whether a new sibling market wakes up older ones. The design passed an independent challenger review after changes (21 Oct). Counting checks decide which tests go ahead.",
+   "batch": "LT6",
+   "family": "mixed",
+   "stage": "designed",
+   "status": "waiting",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Code and counting checks; registration only after LT4's test E022 is registered or dropped (not before 1 Nov 2026)",
+   "next_date": "2026-11-01",
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT6 design draft, 2026-10-21 (branch feat/live-tests-6, docs/research_lab/LIVE_TESTS_6.md)"
    },
    "stage_results": {
     "designed": "pending"

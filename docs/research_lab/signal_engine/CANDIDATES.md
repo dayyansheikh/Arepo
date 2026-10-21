@@ -39,6 +39,26 @@ LT5 dates are provisional: they move later, never earlier, if LT5 registers late
 
 ---
 
+## Embargo requests from the experiments side, round 2 (LT6 draft; filed 2026-10-21 ~16:20Z, NOT yet applied)
+
+Filed by the experiments autopilot for the LT6 draft (`feat/live-tests-6`, `docs/research_lab/LIVE_TESTS_6.md` section 9).
+Each request moves a date later or adds a token; none moves a date earlier. LT6's dates slide with E022's END_UTC, later
+only. Please apply before any isolating challenger for these families is scored.
+
+| Token | Until | Tests | Why |
+|---|---|---|---|
+| `book` | 2026-12-09T00:00Z (from 11-22) | LT6 V (draft, CH190) | A book-isolating model with the own 2 h change and the 5c imbalance can learn `sign(x) x imb` on `dir_2h`: a development look at V. **LT6's acceptance is conditional on this entry.** Cost: the `book` family stays hidden 17 days longer. |
+| `vote` (new) | 2026-12-09T00:00Z | LT6 V | Post-move imbalance skew features (`vt_*`). |
+| `clips` (new) | 2026-12-09T00:00Z | LT6 K (CH185) | Repeated-size clip-train features (`cl_*`); also any flow feature built from print sizes by count. |
+| `deadline` (new) | 2026-12-09T00:00Z | LT6 D (CH187) | End-date-change features (`dl_*`); also any `se5_tte` revision adding an end-date change column. |
+| `siblings` (new) | 2026-12-09T00:00Z | LT6 B (CH188) | Sibling-birth features (`sb_*`). |
+
+Not requested: the `event` token is not extended (se8/se10 event features are levels, not membership changes). Broad
+multi-family models and the champion are not embargoed; please do not add an LT6 family to a broad model before
+2026-12-09, or record such a model in the ledger as a development look.
+
+---
+
 ## C01. Taker order flow (family `flow`)
 
 - **Challenger:** exists, `se2_lr_flow`.

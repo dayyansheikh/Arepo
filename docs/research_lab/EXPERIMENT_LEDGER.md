@@ -3245,6 +3245,34 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   running cpu-lane job cannot delay it past the window for the seal commit and the q0561 start before 02:45Z. Nothing
   else changed. LT3 / LT4 restore trees checked present for q0562 (23 samples, 39 captures).
 
+## LT6 design draft, 2026-10-21 ~15:40Z (DRAFT; nothing registered, nothing counted)
+- `feat/live-tests-6` 5906c0b9 (pushed): `docs/research_lab/LIVE_TESTS_6.md`, four round-11 candidates (ranks 6-9, not
+  in LT5): V CH190 makers' vote (post-move skew once the touch refilled; overlaps E022's pinned `dimb` control, so V's
+  origins start after LT4's window and V must be pinned before E022's analysis or it is dropped uncounted), K CH185
+  clip trains, D CH187 deadline moves (census-first; likely to drop), B CH188 sibling birth. Provisional k <= 4, fixed
+  by counts-only censuses; proposed window 2026-11-16 .. 12-07. All on streams the host already captures (no new
+  collector). Challenger R1 (science-reviewer) running.
+- (~16:00Z) **LT6 challenger R1: REVISE** (V, K, D ACCEPT_WITH_CHANGES; B REVISE; review on the branch,
+  `reviews/LT6_CHALLENGER_R1_2026-10-21.md`, bfa5dcf0). 12 required: few-treated-cluster event t for D/B; B
+  volatility size scenario, control-class contamination, crypto exclusion; VIF in K/D/B MDE gates; V depletion
+  asymmetry gate and the E022 boundary keyed to E022's own END_UTC; CB18 must not show D's end-date class before the
+  pin; LT5 seal dependency plus minimum covered days; look-back timing; memory plan from LT3's 534 MB; K's train
+  algorithm. Response being written on the branch.
+- (~16:10-16:25Z) **LT6 R1 response** 3a973bcc (section 14), **R1 re-check: R1_RESPONSE_INCOMPLETE** (2 text-only
+  required: V's freeze condition had drifted from "before E022's analysis runs" to "before its commit", now "before
+  T_E022 = the earlier of E022's analysis job start and its analysis commit" in every place; the crypto classifier is
+  pinned) -> fixes 04d9b603 (section 15; `reviews/LT6_R1_RECHECK_2026-10-21.md`), verified by the orchestrator against
+  the commit (the re-check ruled no new round needed). **LT6 design accepted for code**, subject to: the LT5 seal sha256
+  (q0564 tonight), E022's registration or recorded drop with its END_UTC and analysis timing, the CB18 request below,
+  and the engine embargo entries (filed in `signal_engine/CANDIDATES.md` round 2, bf3225be; the signal autopilot
+  was told). Nothing counted.
+- **Change request to CB18's owner (from LT6, filed 2026-10-21):** in CB18-S, the reported `end_date`-change class is
+  not computed or printed for REP_18 origins at or after 2026-11-16T00:00Z (or LT6's REGISTERED_UTC if later) until
+  2026-12-08T12:00Z (later if LT6 slides); counts may be printed; SCREEN_18's `end_date`-class output is not shown to
+  LT6's designer, coder or reviewers before LT6's pin. Cost: one uncounted secondary delayed about two weeks on part of
+  REP_18; no counted test, threshold or verdict changes. CB18 records here whether it was applied before LT6's pin; if
+  not, LT6 D carries "partially seen (CB18 `end_date` class)". Text: `LIVE_TESTS_6.md` 14.6.
+
 ## Signal engine: first prospective leaderboard, 2026-10-21 15:38Z (signal-engine autopilot; development-scale, nothing counted)
 - One-off forced score `q0515_se_score_now` (same code as the daily q0513; owner Lab-board message 14:01Z "jump queue":
   signal-engine jobs q0512-q0515 now priority 50, above every ready experiment job except the time-bound recorders
