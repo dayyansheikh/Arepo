@@ -1,0 +1,41 @@
+{
+ "id": "q0562_lt5_census_flow",
+ "title": "LT5 censuses CJ (J, jump or grind) and CO (O, token-weighted overhang) on the 23 sealed active-frame samples of 2026-10-16/17 with their captures (look-back k - 12) from the LT4 capture seal (DRAFT): counts only, origin-side fields only (trade rows with ts < t_k), no target, no P&L; refuses unsealed or mismatched inputs",
+ "family": "live_tests_5",
+ "priority": 25,
+ "expected_value": "J and O census gates (LIVE_TESTS_5.md section 8): zO centre/scale, terciles and gap, VIF, perm strata, family exclusions; decides part of k before the pin",
+ "data": [
+  "data-dumps/research_lab/live_tests3_census/restore (q0471 tree, read-only; seals/lt3_census_inputs_C2.json)",
+  "data-dumps/research_lab/live_tests4_census/restore (q0480 tree, read-only; seals/lt4_census_inputs_captures.json)"
+ ],
+ "resources": {
+  "mem_mb": 1200,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_live_tests5.py",
+  "census-flow",
+  "--sample-seal",
+  "../docs/research_lab/seals/lt3_census_inputs_C2.json",
+  "--capture-seal",
+  "../docs/research_lab/seals/lt4_census_inputs_captures.json",
+  "--sample-root",
+  "../data-dumps/research_lab/live_tests3_census/restore/data-dumps/research_lab/trade_samples",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests4_census/restore/data-dumps/research_lab/snapshots",
+  "--work",
+  "../data-dumps/research_lab/live_tests5_census/work_flow",
+  "--out",
+  "../data-dumps/research_lab/live_tests5_census/CJ_CO.json"
+ ],
+ "timeout_s": 7200,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests5_census/CJ_CO.json (counts only; the work dir is cleaned up at exit)"
+ ],
+ "next_action": "commit CJ_CO.json and its sha256 (seals/), fill the O scale, cuts and gap, J/O perm_stratum and exclude_family and the J/O entries of k_tests in the spec, record any drop in LIVE_TESTS_5.md 7.3 and the ledger",
+ "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_5.md, design not yet reviewed; the script does not exist yet). No new seal: the same 23 samples LT3's C2 and LT4's CF read, and the LT4 capture seal (2026-10-14T22:31Z .. 10-17). CHECK BEFORE PROMOTION: whether the q0471 and q0480 restore trees still exist (both were to be cleared after their own registrations); if not, re-run identical restores into the same paths (same tags, globs and seals) and let the census re-hash every file. Every gate threshold is stated in LIVE_TESTS_5.md section 8 before this runs. Counts 0 (descriptive; no trials line)."
+}
