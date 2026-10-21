@@ -23,6 +23,19 @@ def raw_columns(spec: dict) -> list[str]:
     return [c for fam in spec["families"] for c in MODEL_FAMILY_COLUMNS[fam]]
 
 
+def name_families(spec: dict) -> dict[str, str]:
+    """Design-matrix column name -> feature family (derived sets map to their own token, e.g. ``tte``)."""
+    out = {}
+    for fam in spec["families"]:
+        for c in MODEL_FAMILY_COLUMNS[fam]:
+            for n in {"ms_hours_to_end": ("log_hours", "end_unknown"), "ms_mid": ("logit_mid", "abs_dev")}.get(c, (c,)):
+                out[n] = fam
+    if "tte" in spec["derived"]:
+        for n in ["near24", "near72", "mo_chg_1h_x_loghours"] + [f"{c}_x_near{h}" for c in TTE_BASE for h in (24, 72)]:
+            out[n] = "tte"
+    return out
+
+
 def _numeric_block(df: pd.DataFrame, spec: dict) -> tuple[np.ndarray, list[str]]:
     cols, names = [], []
     for c in raw_columns(spec):
@@ -189,8 +202,31 @@ def fit_lgbm(df: pd.DataFrame, y: np.ndarray, otime: np.ndarray, ltime: np.ndarr
     res = minimize_scalar(lambda T: _nll(_temp_probs(raw, T, n_classes), yv), bounds=(0.3, 5.0), method="bounded")
     art.update({"model": bst.model_to_string(num_iteration=bst.best_iteration), "best_iteration": int(bst.best_iteration),
                 "temperature": float(res.x), "n_train_inner": int(tr.sum()), "n_val_inner": int(val.sum()),
-                "val_nll": float(res.fun)})
+                "val_nll": float(res.fun), "attribution": family_attribution(bst, X[val], names, spec, n_classes)})
     return art
+
+
+ATTR_MAX_ROWS = 20000
+
+
+def family_attribution(bst, Xv: np.ndarray, names: list[str], spec: dict, n_classes: int) -> dict:
+    """Mean |SHAP| (LightGBM ``pred_contrib``, raw-score scale, summed over classes) per feature family on a seeded
+    subsample of the inner validation block (development diagnostic of the fit; never a score)."""
+    rng = np.random.default_rng(0)
+    if len(Xv) > ATTR_MAX_ROWS:
+        Xv = Xv[np.sort(rng.choice(len(Xv), ATTR_MAX_ROWS, replace=False))]
+    c = np.asarray(bst.predict(Xv, pred_contrib=True, num_iteration=bst.best_iteration))
+    width = len(names) + 2  # numeric columns + category code + bias
+    k = 1 if n_classes == 2 else n_classes
+    per = np.abs(c.reshape(len(Xv), k, width)).sum(axis=1).mean(axis=0)
+    fam_of = name_families(spec)
+    fams: dict[str, float] = {}
+    for i, n in enumerate(names):
+        f = fam_of.get(n, "other")
+        fams[f] = fams.get(f, 0.0) + float(per[i])
+    fams["category"] = float(per[len(names)])
+    return {"method": "lgbm_pred_contrib_mean_abs", "block": "inner_validation", "rows": int(len(Xv)),
+            "families": {f: round(v, 6) for f, v in sorted(fams.items())}}
 
 
 def predict_lgbm(art: dict, df: pd.DataFrame, spec: dict) -> np.ndarray:
