@@ -2789,3 +2789,16 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   any binding failure still blocks the pin), science-reviewer freeze check of code against design, host dry run,
   `code_sha256` map, `SPEC_SHA256`, registration commit. `REGISTERED_UTC` 2026-10-24T00:00Z if the commit lands by
   2026-10-23T00:00Z (§1.1, unchanged).
+
+## LT3 pre-pin verification, 2026-10-21 ~04:10Z: PIN_OK_WITH_FIXES (nothing counted; q0474 not read)
+- `reviews/LT3_PREPIN_VERIFY_2026-10-21.md` (science-reviewer, on 38aa5694): E015 path ready; fixes before the pin:
+  (1) HIGH analysis must compute only `k_tests` (dropped tests produced estimates); (2) MED-HIGH switch surge/flow
+  collection off by `k_tests` (a crash there could block E015's freezes/outcomes); (3) hash correction below; (4) date
+  constants rule; (5) ruling: binding for the E015 pin = `perm_iid`, `perm_persistent`, `perm_corr_control` only (a
+  `flowperm_*` failure is recorded and blocks future flow-moderation use of the gate, not this pin); written before q0474
+  is read; (6)-(7) dry-run procedure and stale text. Fixes 1-2 change module hashes, so the size check is re-run (draft
+  q0475) on the fixed code; its `perm_*` rates must equal q0474's exactly (size-check code byte-identical).
+- **Correction** to the entry "LT3 ruling 2 implemented, verified, size check queued": the reader hash there
+  (`2dff0621…`) is wrong; `live_tests3.py` at b43f6e1b / e29ead9c / 38aa5694 is `42663375…` (as C2.json records).
+- Implementation on `fix/lt3-prepin` (worktree ../astrolabe-lt3-prepin), then merge, promote q0475, dry run, pins,
+  registration commit before 2026-10-23T00:00Z.
