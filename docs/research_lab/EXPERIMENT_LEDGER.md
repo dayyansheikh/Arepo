@@ -3163,3 +3163,12 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - Challenger `se15_lgbm_surprise`: LightGBM with se1's params, embargoed under `surprise` until 2026-11-12 (E011,
   analysis after 11-11). No score has been computed or shown; the walk-forward skips it.
 - K for the non-embargoed challengers is unchanged (2) until 11-04.
+
+## E026 challenger review R1, 2026-10-21 ~14:35Z: **ACCEPT_WITH_FIXES** (nothing counted)
+- `reviews/E026_CHALLENGER_R1_2026-10-21.md`. Causally sound (no future information found). 10 required fixes before the
+  pin: conservative negative-verdict bound; counted trials line and Unavailable on no data; pins for the impact table,
+  null skillset / code hashes refused, entries and resolutions filtered by pin; pinned shared modules protected by a
+  hash test; labeller / recorder memory at 21-day scale; end-date gate off from cutoff - 7 d plus logged counts;
+  collectors `not_before` the window; control-side event pieces in the p rule; a causal "earlier visible trade" flag in
+  the control matching cell; document corrections. `register_k2` stands (gates passed by > 20x; the disclosure is
+  corrected). Owner phone note sent (review verdict). Fixes delegated; then a re-check, the freeze q0540 and the pins.
