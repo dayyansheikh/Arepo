@@ -54,7 +54,7 @@ _load_all_models()
 # Bump whenever the ORM gains tables/columns. This is a monotonic marker recorded in
 # ``schema_migrations``; the actual work is metadata-driven so the number is documentation, not a
 # script selector.
-SCHEMA_VERSION = 16
+SCHEMA_VERSION = 17
 SCHEMA_VERSION_NOTES = {
     1: "initial create_all schema",
     2: "research per-family directions (momentum/orderbook/tradeflow) + edge-research tables",
@@ -84,6 +84,9 @@ SCHEMA_VERSION_NOTES = {
     16: "admin_webauthn_credentials + admin_webauthn_challenges + admin_stepup_sessions + "
         "admin_recovery_codes (security-key step-up; additive new tables, RLS enabled on "
         "Postgres; no existing rows touched)",
+    17: "admin_trusted_devices (per-device trust for the security-key step-up: hashed device "
+        "cookie, nickname, first/last seen, trusted_until capped at 30 days; additive new table, "
+        "RLS enabled on Postgres; no existing rows touched)",
 }
 
 _VERSION_TABLE = "schema_migrations"
@@ -193,6 +196,7 @@ _PRIVATE_ACCOUNT_TABLES = (
     "admin_webauthn_challenges",
     "admin_stepup_sessions",
     "admin_recovery_codes",
+    "admin_trusted_devices",
 )
 
 

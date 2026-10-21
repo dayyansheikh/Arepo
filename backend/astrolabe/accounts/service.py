@@ -124,11 +124,12 @@ async def delete_account(session: AsyncSession, user: User, reason: str = "user_
     from ..lab.security_models import (
         AdminRecoveryCode,
         AdminStepUpSession,
+        AdminTrustedDevice,
         AdminWebAuthnChallenge,
         AdminWebAuthnCredential,
     )
     for model in (AdminWebAuthnCredential, AdminWebAuthnChallenge, AdminStepUpSession,
-                  AdminRecoveryCode):
+                  AdminRecoveryCode, AdminTrustedDevice):
         await session.execute(delete(model).where(model.user_id == user.id))
     await session.execute(delete(User).where(User.id == user.id))
     await session.commit()

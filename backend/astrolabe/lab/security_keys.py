@@ -9,6 +9,13 @@ Model
 * A step-up is granted by a verified WebAuthn assertion from one of the owner's registered keys,
   by registering the owner's FIRST key (which proves possession), or once per one-time recovery
   code.
+* Per-device trust: every browser a key holder uses gets an HttpOnly device cookie (random; only
+  its SHA-256 is stored in ``admin_trusted_devices``). The owner may mark the CURRENT device as
+  trusted ("don't ask for my key here") for at most ``LAB_TRUSTED_DEVICE_DAYS`` (cap 30) days,
+  which needs a fresh key assertion on that device; a trusted, unexpired device counts as unlocked.
+  Trust can be ended for any device at any time, and every change is audited.
+* Method steering: options endpoints take ``method`` (device | phone | security_key | any) and set
+  WebAuthn Level 3 ``hints`` plus credential transports / authenticator attachment accordingly.
 * Enforcement (``LAB_REQUIRE_HARDWARE_KEY``): ``auto`` = on for an owner as soon as they have a
   registered key; ``always`` = on even with none (a first key can still be registered); ``off`` =
   operator escape hatch.
@@ -40,6 +47,7 @@ from webauthn import (
 )
 from webauthn.helpers import base64url_to_bytes, bytes_to_base64url
 from webauthn.helpers.structs import (
+    AuthenticatorAttachment,
     AuthenticatorSelectionCriteria,
     AuthenticatorTransport,
     PublicKeyCredentialDescriptor,
@@ -53,6 +61,7 @@ from .models import LabAdminAudit
 from .security_models import (
     AdminRecoveryCode,
     AdminStepUpSession,
+    AdminTrustedDevice,
     AdminWebAuthnChallenge,
     AdminWebAuthnCredential,
 )
@@ -68,6 +77,33 @@ NICKNAME_MAX = 60
 # Unambiguous lowercase alphabet (no 0/o/1/l/i); 10 chars ~ 50 bits per code.
 _CODE_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789"
 _KNOWN_TRANSPORTS = {t.value for t in AuthenticatorTransport}
+
+# ---- method steering (WebAuthn Level 3 hints) -------------------------------------------------
+# "device": this computer/phone's own passkey (Touch ID, Face ID, Windows Hello);
+# "phone": another device over hybrid (QR code / nearby); "security_key": a roaming FIDO key.
+KEY_METHODS = ("device", "phone", "security_key", "any")
+METHOD_HINTS: dict[str, list[str]] = {
+    "device": ["client-device"],
+    "phone": ["hybrid"],
+    "security_key": ["security-key"],
+}
+METHOD_TRANSPORTS: dict[str, list[str]] = {
+    "device": ["internal"],
+    "phone": ["hybrid"],
+    "security_key": ["usb", "nfc", "ble"],
+}
+METHOD_ATTACHMENT = {
+    "device": AuthenticatorAttachment.PLATFORM,
+    "phone": AuthenticatorAttachment.CROSS_PLATFORM,
+    "security_key": AuthenticatorAttachment.CROSS_PLATFORM,
+}
+
+# ---- devices ----------------------------------------------------------------------------------
+DEVICE_COOKIE = "arepo_device"
+DEVICE_COOKIE_MAX_AGE = 400 * 24 * 3600  # browsers cap cookie lifetimes at 400 days
+MAX_DEVICES = 30
+DEVICE_TOUCH_EVERY = timedelta(minutes=15)  # last-seen write throttle
+USER_AGENT_MAX = 300
 
 _hasher = PasswordHash.recommended()  # Argon2id, same family as account passwords
 
@@ -111,6 +147,13 @@ def client_data_challenge(credential: dict) -> str | None:
         return challenge if isinstance(challenge, str) and challenge else None
     except (KeyError, TypeError, ValueError):
         return None
+
+
+def normalise_method(method: str | None) -> str:
+    method = (method or "any").strip().lower().replace("-", "_")
+    if method not in KEY_METHODS:
+        raise SecurityKeyError(422, "Unknown sign-in method.", "bad_method")
+    return method
 
 
 def clean_nickname(name: str | None, fallback: str) -> str:
@@ -179,11 +222,13 @@ async def stepup_required(session: AsyncSession, user: User,
 
 
 async def user_locked(session: AsyncSession, user: User, token: str | None, now: datetime,
-                      settings: Settings | None = None) -> int | None:
+                      settings: Settings | None = None,
+                      device_token: str | None = None) -> int | None:
     """None when this user may act now; otherwise their key count (they need to unlock first).
 
     Locked = enforcement applies to them (they have a key, or mode "always" and they are a
-    superuser) and the step-up token is not a live step-up of theirs.
+    superuser), the step-up token is not a live step-up of theirs, and this browser is not one of
+    their trusted, unexpired devices.
     """
     mode = (settings or get_settings()).lab_hardware_key_mode
     if mode == "off":
@@ -193,6 +238,11 @@ async def user_locked(session: AsyncSession, user: User, token: str | None, now:
         return None
     if await active_stepup(session, user, token, now) is not None:
         return None
+    if keys > 0 and device_token:
+        device = await trusted_device(session, user, device_token, now)
+        if device is not None:
+            await _touch_device(session, device, now)
+            return None
     return keys
 
 
@@ -307,8 +357,9 @@ def _descriptor(row: AdminWebAuthnCredential) -> PublicKeyCredentialDescriptor:
 
 
 async def registration_options(session: AsyncSession, user: User, now: datetime,
-                               settings: Settings | None = None) -> dict:
+                               settings: Settings | None = None, method: str = "any") -> dict:
     s = settings or get_settings()
+    method = normalise_method(method)
     existing = await _user_credentials(session, user)
     if len(existing) >= MAX_KEYS:
         raise SecurityKeyError(409, f"You already have {MAX_KEYS} keys. Remove one first.")
@@ -321,8 +372,10 @@ async def registration_options(session: AsyncSession, user: User, now: datetime,
         user_display_name=user.email,
         challenge=challenge,
         timeout=120_000,
-        # No authenticatorAttachment: USB/NFC keys AND platform passkeys (Touch ID, iPhone) work.
+        # method "any": no authenticatorAttachment, so USB/NFC keys AND platform passkeys
+        # (Touch ID, iPhone) work. Otherwise steer the browser to the chosen kind of key.
         authenticator_selection=AuthenticatorSelectionCriteria(
+            authenticator_attachment=METHOD_ATTACHMENT.get(method),
             resident_key=ResidentKeyRequirement.PREFERRED,
             user_verification=UserVerificationRequirement.PREFERRED,
         ),
@@ -330,7 +383,16 @@ async def registration_options(session: AsyncSession, user: User, now: datetime,
     )
     await _store_challenge(session, user, "register", challenge, now)
     await session.commit()
-    return {"publicKey": json.loads(options_to_json(opts))}
+    return {"publicKey": _with_hints(json.loads(options_to_json(opts)), method)}
+
+
+def _with_hints(public_key: dict, method: str) -> dict:
+    """Add WebAuthn L3 ``hints`` (a plain JSON member; browsers that predate it ignore it)."""
+    if method in METHOD_HINTS:
+        public_key["hints"] = list(METHOD_HINTS[method])
+    else:
+        public_key.pop("hints", None)
+    return public_key
 
 
 @dataclass
@@ -397,9 +459,25 @@ async def register_key(session: AsyncSession, user: User, credential: dict,
 
 
 # ---- authentication ---------------------------------------------------------------------------
+def _method_descriptor(row: AdminWebAuthnCredential, method: str) -> PublicKeyCredentialDescriptor:
+    """Descriptor for ``row`` with transports steered to ``method``.
+
+    Every credential id stays in the allow-list whatever the method: a synced iCloud/Google
+    passkey registered on a Mac (transports internal+hybrid) must still be usable from the phone
+    over hybrid when "phone" is chosen on a computer that does not hold the passkey.
+    """
+    if method not in METHOD_TRANSPORTS:
+        return _descriptor(row)
+    return PublicKeyCredentialDescriptor(
+        id=base64url_to_bytes(row.credential_id),
+        transports=[AuthenticatorTransport(t) for t in METHOD_TRANSPORTS[method]],
+    )
+
+
 async def authentication_options(session: AsyncSession, user: User, now: datetime,
-                                 settings: Settings | None = None) -> dict:
+                                 settings: Settings | None = None, method: str = "any") -> dict:
     s = settings or get_settings()
+    method = normalise_method(method)
     creds = await _user_credentials(session, user)
     if not creds:
         raise SecurityKeyError(409, "No security key is registered yet.", "no_keys")
@@ -408,16 +486,17 @@ async def authentication_options(session: AsyncSession, user: User, now: datetim
         rp_id=s.webauthn_rp_id,
         challenge=challenge,
         timeout=120_000,
-        allow_credentials=[_descriptor(r) for r in creds],
+        allow_credentials=[_method_descriptor(r, method) for r in creds],
         user_verification=UserVerificationRequirement.PREFERRED,
     )
     await _store_challenge(session, user, "authenticate", challenge, now)
     await session.commit()
-    return {"publicKey": json.loads(options_to_json(opts))}
+    return {"publicKey": _with_hints(json.loads(options_to_json(opts)), method)}
 
 
-async def authenticate(session: AsyncSession, user: User, credential: dict, now: datetime,
-                       settings: Settings | None = None) -> tuple[str, datetime]:
+async def _verify_assertion(session: AsyncSession, user: User, credential: dict, now: datetime,
+                            settings: Settings | None = None) -> AdminWebAuthnCredential:
+    """Verify one assertion against a single-use challenge; bump the sign count (no commit)."""
     s = settings or get_settings()
     expected = await _consume_challenge(session, user, "authenticate", credential, now)
     cred_id = credential.get("id") if isinstance(credential, dict) else None
@@ -458,6 +537,13 @@ async def authenticate(session: AsyncSession, user: User, credential: dict, now:
                                    "unknown_key") from exc
     row.sign_count = int(verified.new_sign_count)
     row.last_used_at = now
+    return row
+
+
+async def authenticate(session: AsyncSession, user: User, credential: dict, now: datetime,
+                       settings: Settings | None = None) -> tuple[str, datetime]:
+    s = settings or get_settings()
+    row = await _verify_assertion(session, user, credential, now, s)
     token, expires = await _new_stepup(session, user, "key", now, row.credential_id, s)
     await session.commit()
     return token, expires
@@ -567,12 +653,18 @@ async def delete_key(session: AsyncSession, user: User, key_id: int, now: dateti
 
 
 async def status(session: AsyncSession, user: User, token: str | None, now: datetime,
-                 settings: Settings | None = None) -> dict:
+                 settings: Settings | None = None,
+                 device: AdminTrustedDevice | None = None) -> dict:
+    """``device`` is this browser's device row (see :func:`ensure_device`), if known."""
     s = settings or get_settings()
     keys = await key_count(session, user.id)
     mode = s.lab_hardware_key_mode
     live = await active_stepup(session, user, token, now)
+    trusted = keys > 0 and device is not None and device_is_trusted(device, now)
     return {
+        "unlocked": (not stepup_required_for(mode, keys)) or live is not None or trusted,
+        "device": device_dict(device, device.id, now) if device is not None else None,
+        "trusted_device_days": s.trusted_device_days,
         "enforcement": mode,
         "required": stepup_required_for(mode, keys),
         "keys": keys,
@@ -585,3 +677,214 @@ async def status(session: AsyncSession, user: User, token: str | None, now: date
         "rp_id": s.webauthn_rp_id,
         "stepup_hours": s.lab_stepup_hours,
     }
+
+
+
+# ---- devices + per-device trust ---------------------------------------------------------------
+def device_label(user_agent: str | None) -> str:
+    """A short default nickname from a User-Agent, e.g. "Mac · Safari" or "iPhone · Chrome"."""
+    ua = user_agent or ""
+    if "iPhone" in ua:
+        system = "iPhone"
+    elif "iPad" in ua:
+        system = "iPad"
+    elif "Android" in ua:
+        system = "Android"
+    elif "Mac OS X" in ua or "Macintosh" in ua:
+        system = "Mac"
+    elif "Windows" in ua:
+        system = "Windows"
+    elif "CrOS" in ua:
+        system = "Chromebook"
+    elif "Linux" in ua:
+        system = "Linux"
+    else:
+        system = "Device"
+    if "Edg/" in ua or "EdgiOS" in ua or "EdgA" in ua:
+        browser = "Edge"
+    elif "Firefox/" in ua or "FxiOS" in ua:
+        browser = "Firefox"
+    elif "Chrome/" in ua or "CriOS" in ua:
+        browser = "Chrome"
+    elif "Safari/" in ua:
+        browser = "Safari"
+    else:
+        browser = "Browser"
+    return f"{system} · {browser}"
+
+
+def device_is_trusted(row: AdminTrustedDevice, now: datetime) -> bool:
+    """Trusted and unexpired. ``LAB_TRUSTED_DEVICE_DAYS=0`` switches the feature off, and then
+    existing trust stops counting at once."""
+    if get_settings().trusted_device_days <= 0:
+        return False
+    until = _aware(row.trusted_until)
+    return until is not None and until > now
+
+
+def device_dict(row: AdminTrustedDevice, current_id: int | None, now: datetime) -> dict:
+    trusted = device_is_trusted(row, now)
+    return {
+        "id": row.id,
+        "nickname": row.nickname,
+        "first_seen_at": _iso(row.first_seen_at),
+        "last_seen_at": _iso(row.last_seen_at),
+        "trusted": trusted,
+        "trusted_at": _iso(row.trusted_at) if trusted else None,
+        "trusted_until": _iso(row.trusted_until) if trusted else None,
+        "current": current_id is not None and row.id == current_id,
+    }
+
+
+def _valid_device_token(token: str | None) -> bool:
+    return bool(token) and 16 <= len(token) <= 256
+
+
+async def find_device(session: AsyncSession, user: User,
+                      device_token: str | None) -> AdminTrustedDevice | None:
+    if not _valid_device_token(device_token):
+        return None
+    return (await session.execute(
+        select(AdminTrustedDevice).where(
+            AdminTrustedDevice.user_id == user.id,
+            AdminTrustedDevice.device_sha256 == token_hash(device_token),
+        )
+    )).scalar_one_or_none()
+
+
+async def trusted_device(session: AsyncSession, user: User, device_token: str | None,
+                         now: datetime) -> AdminTrustedDevice | None:
+    """This browser's device row if it is one of ``user``'s trusted, unexpired devices."""
+    row = await find_device(session, user, device_token)
+    if row is None or not device_is_trusted(row, now):
+        return None
+    return row
+
+
+async def _touch_device(session: AsyncSession, row: AdminTrustedDevice, now: datetime) -> None:
+    """Record last-seen at most every DEVICE_TOUCH_EVERY (best effort, never blocks a request)."""
+    last = _aware(row.last_seen_at)
+    if last is not None and now - last < DEVICE_TOUCH_EVERY:
+        return
+    try:
+        row.last_seen_at = now
+        await session.commit()
+    except Exception:  # noqa: BLE001 - a last-seen write must never fail the request
+        await session.rollback()
+
+
+async def ensure_device(
+    session: AsyncSession, user: User, device_token: str | None, user_agent: str | None,
+    now: datetime,
+) -> tuple[AdminTrustedDevice, str | None]:
+    """This browser's device row for ``user`` (created on first sight) and, when the browser had
+    no usable device cookie, the new token to set. Commits."""
+    row = await find_device(session, user, device_token)
+    if row is not None:
+        last = _aware(row.last_seen_at)
+        if last is None or now - last >= timedelta(minutes=1):
+            row.last_seen_at = now
+            await session.commit()
+        return row, None
+    new_token = None
+    if not _valid_device_token(device_token):
+        new_token = secrets.token_urlsafe(32)
+        device_token = new_token
+    # Bounded table: forget this user's least recently seen UNTRUSTED devices beyond the cap.
+    rows = list((await session.execute(
+        select(AdminTrustedDevice).where(AdminTrustedDevice.user_id == user.id)
+    )).scalars())
+    spare = sorted((r for r in rows if not device_is_trusted(r, now)),
+                   key=lambda r: _aware(r.last_seen_at or r.first_seen_at))
+    excess = len(rows) - (MAX_DEVICES - 1)
+    for old in spare[:max(0, excess)]:
+        await session.delete(old)
+    ua = (user_agent or "")[:USER_AGENT_MAX] or None
+    row = AdminTrustedDevice(
+        user_id=user.id, device_sha256=token_hash(device_token), nickname=device_label(ua),
+        user_agent=ua, first_seen_at=now, last_seen_at=now,
+    )
+    session.add(row)
+    await session.commit()
+    await session.refresh(row)
+    return row, new_token
+
+
+async def list_devices(session: AsyncSession, user: User, current: AdminTrustedDevice | None,
+                       now: datetime) -> list[dict]:
+    rows = list((await session.execute(
+        select(AdminTrustedDevice).where(AdminTrustedDevice.user_id == user.id)
+    )).scalars())
+    rows.sort(key=lambda r: _aware(r.last_seen_at or r.first_seen_at), reverse=True)
+    cur = current.id if current is not None else None
+    return [device_dict(r, cur, now) for r in rows]
+
+
+async def trust_this_device(session: AsyncSession, user: User, credential: dict,
+                            device_token: str | None, user_agent: str | None, now: datetime,
+                            settings: Settings | None = None) -> tuple[dict, str | None]:
+    """Mark the CURRENT browser as trusted. Needs a fresh key assertion made on this device."""
+    s = settings or get_settings()
+    days = s.trusted_device_days
+    if days <= 0:
+        raise SecurityKeyError(409, "Trusted devices are switched off on the server.",
+                               "trust_disabled")
+    await _verify_assertion(session, user, credential, now, s)
+    await session.commit()  # keep the consumed challenge + new sign count even if below fails
+    row, new_token = await ensure_device(session, user, device_token, user_agent, now)
+    row.trusted_at = now
+    row.trusted_until = now + timedelta(days=days)
+    _audit(session, user, "device_trusted", now,
+           {"device": row.nickname, "device_id": row.id, "days": days,
+            "until": row.trusted_until.isoformat()})
+    await session.commit()
+    return device_dict(row, row.id, now), new_token
+
+
+async def _own_device(session: AsyncSession, user: User, device_id: int) -> AdminTrustedDevice:
+    row = await session.get(AdminTrustedDevice, device_id)
+    if row is None or str(row.user_id) != str(user.id):
+        raise SecurityKeyError(404, "Device not found.")
+    return row
+
+
+async def untrust_device(session: AsyncSession, user: User, device_id: int, now: datetime,
+                         reason: str = "owner") -> dict:
+    row = await _own_device(session, user, device_id)
+    was = device_is_trusted(row, now)
+    row.trusted_until = None
+    row.trusted_at = None
+    if was:
+        _audit(session, user, "device_trust_revoked", now,
+               {"device": row.nickname, "device_id": row.id, "reason": reason})
+    await session.commit()
+    return device_dict(row, None, now)
+
+
+async def rename_device(session: AsyncSession, user: User, device_id: int, nickname: str,
+                        now: datetime) -> dict:
+    row = await _own_device(session, user, device_id)
+    old = row.nickname
+    row.nickname = clean_nickname(nickname, old)
+    await session.commit()
+    return device_dict(row, None, now)
+
+
+async def forget_device(session: AsyncSession, user: User, device_id: int, now: datetime) -> dict:
+    row = await _own_device(session, user, device_id)
+    nickname, was = row.nickname, device_is_trusted(row, now)
+    await session.delete(row)
+    if was:
+        _audit(session, user, "device_trust_revoked", now,
+               {"device": nickname, "device_id": device_id, "reason": "forgotten"})
+    await session.commit()
+    return {"deleted": device_id}
+
+
+async def lock_this_browser(session: AsyncSession, user: User, stepup_token: str | None,
+                            device_token: str | None, now: datetime) -> None:
+    """"Lock now": revoke this browser's step-up AND end trust on this device, if any."""
+    row = await find_device(session, user, device_token)
+    if row is not None and device_is_trusted(row, now):
+        await untrust_device(session, user, row.id, now, reason="lock_now")
+    await revoke_stepup(session, user, stepup_token, now)
