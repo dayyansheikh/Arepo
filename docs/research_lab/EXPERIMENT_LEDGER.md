@@ -3258,3 +3258,17 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   asymmetry gate and the E022 boundary keyed to E022's own END_UTC; CB18 must not show D's end-date class before the
   pin; LT5 seal dependency plus minimum covered days; look-back timing; memory plan from LT3's 534 MB; K's train
   algorithm. Response being written on the branch.
+- (~16:10-16:25Z) **LT6 R1 response** 3a973bcc (section 14), **R1 re-check: R1_RESPONSE_INCOMPLETE** (2 text-only
+  required: V's freeze condition had drifted from "before E022's analysis runs" to "before its commit", now "before
+  T_E022 = the earlier of E022's analysis job start and its analysis commit" in every place; the crypto classifier is
+  pinned) -> fixes 04d9b603 (section 15; `reviews/LT6_R1_RECHECK_2026-10-21.md`), verified by the orchestrator against
+  the commit (the re-check ruled no new round needed). **LT6 design accepted for code**, subject to: the LT5 seal sha256
+  (q0564 tonight), E022's registration or recorded drop with its END_UTC and analysis timing, the CB18 request below,
+  and the engine embargo entries (filed in `signal_engine/CANDIDATES.md` round 2, bf3225be; the signal autopilot
+  was told). Nothing counted.
+- **Change request to CB18's owner (from LT6, filed 2026-10-21):** in CB18-S, the reported `end_date`-change class is
+  not computed or printed for REP_18 origins at or after 2026-11-16T00:00Z (or LT6's REGISTERED_UTC if later) until
+  2026-12-08T12:00Z (later if LT6 slides); counts may be printed; SCREEN_18's `end_date`-class output is not shown to
+  LT6's designer, coder or reviewers before LT6's pin. Cost: one uncounted secondary delayed about two weeks on part of
+  REP_18; no counted test, threshold or verdict changes. CB18 records here whether it was applied before LT6's pin; if
+  not, LT6 D carries "partially seen (CB18 `end_date` class)". Text: `LIVE_TESTS_6.md` 14.6.
