@@ -446,6 +446,9 @@ def build_signal_engine(repo: Path, now: datetime) -> dict | None:
                          for r in b["rows"] if isinstance(r, dict)]
     if isinstance(d.get("family_gains"), list):
         d["family_gains"] = [g for g in d["family_gains"] if isinstance(g, dict) and not embargoed(g)]
+    pr = d.get("promotion")
+    if isinstance(pr, dict) and isinstance(pr.get("candidates"), list):
+        pr["candidates"] = [c for c in pr["candidates"] if isinstance(c, dict) and not embargoed(c)]
     # family attribution: drop every family under an active embargo token (the file's list and the code's own)
     tokens = {e.get("token"): e.get("until") for e in d.get("embargo_tokens") or [] if isinstance(e, dict)}
     try:
