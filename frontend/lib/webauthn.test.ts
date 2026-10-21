@@ -7,10 +7,21 @@ import {
   keyKindLabel,
   lockedDetail,
   recoveryCodesText,
+  browserFamily,
+  forgetDevice,
+  listDevices,
+  methodTip,
+  primaryMethod,
   registerKey,
+  rememberMethod,
+  rememberedMethod,
+  renameDevice,
   toCreationOptions,
   toRequestOptions,
+  trustThisDevice,
   unlockWithKey,
+  untrustDevice,
+  withHints,
   type CredentialsLike,
 } from "./webauthn";
 import { actionForResult, loadLabDashboard } from "./lab/api";
@@ -185,6 +196,7 @@ describe("unlock flow", () => {
     const calls: Call[] = [];
     let passed: CredentialRequestOptions | null = null;
     const res = await unlockWithKey(
+      "any",
       router(
         {
           "/authentication/options": () => jsonResponse(200, authOptions),
@@ -212,6 +224,7 @@ describe("unlock flow", () => {
   it("a cancelled prompt never reaches verify", async () => {
     const calls: Call[] = [];
     const res = await unlockWithKey(
+      "any",
       router({ "/authentication/options": () => jsonResponse(200, authOptions) }, calls),
       creds({
         get: async () => {
@@ -226,6 +239,7 @@ describe("unlock flow", () => {
 
   it("surfaces the server's refusal", async () => {
     const res = await unlockWithKey(
+      "any",
       router(
         {
           "/authentication/options": () => jsonResponse(200, authOptions),
@@ -240,7 +254,7 @@ describe("unlock flow", () => {
   });
 
   it("reports an unsupported browser", async () => {
-    const res = await unlockWithKey(async () => jsonResponse(200, {}), null);
+    const res = await unlockWithKey("any", async () => jsonResponse(200, {}), null);
     expect(res.ok).toBe(false);
   });
 });
@@ -250,6 +264,7 @@ describe("registration flow", () => {
     const calls: Call[] = [];
     const res = await registerKey(
       "MacBook Touch ID",
+      "any",
       router(
         {
           "/registration/options": () => jsonResponse(200, regOptions),
@@ -272,6 +287,7 @@ describe("registration flow", () => {
   it("a key that needs a step-up first reports the locked code", async () => {
     const res = await registerKey(
       "YubiKey",
+      "any",
       router(
         {
           "/registration/options": () =>
@@ -311,5 +327,189 @@ describe("labels", () => {
     expect(auditSentence({ ...base, action: "recovery_code_used", detail: null })).toBe(
       "o@x.com unlocked with a recovery code",
     );
+  });
+});
+
+describe("method choice", () => {
+  const authOptions = {
+    publicKey: {
+      challenge: bufferToBase64url(bytes(5)),
+      rpId: "arepolabs.com",
+      allowCredentials: [{ id: bufferToBase64url(bytes(1)), type: "public-key", transports: ["hybrid"] }],
+      hints: ["hybrid"],
+    },
+  };
+  const expected: Array<[string, string[]]> = [
+    ["device", ["client-device"]],
+    ["phone", ["hybrid"]],
+    ["security_key", ["security-key"]],
+  ];
+
+  it.each(expected)("unlock with %s sends the method and passes hints to navigator.credentials.get", async (method, hints) => {
+    const calls: Call[] = [];
+    let passed: CredentialRequestOptions | null = null;
+    const res = await unlockWithKey(
+      method as "device",
+      router(
+        {
+          "/authentication/options": () => jsonResponse(200, authOptions),
+          "/authentication/verify": () => jsonResponse(200, { step_up: { active: true, expires_at: null } }),
+        },
+        calls,
+      ),
+      creds({
+        get: async (o) => {
+          passed = o;
+          return fakeAssertion();
+        },
+      }),
+    );
+    expect(res.ok).toBe(true);
+    expect(JSON.parse(String(calls[0].init!.body))).toEqual({ method });
+    const pk = passed!.publicKey as unknown as { hints: string[]; allowCredentials: PublicKeyCredentialDescriptor[] };
+    expect(pk.hints).toEqual(hints);
+    expect(pk.allowCredentials[0].transports).toEqual(["hybrid"]);
+  });
+
+  it("registration with a method sends it and sets hints on navigator.credentials.create", async () => {
+    const calls: Call[] = [];
+    let passed: CredentialCreationOptions | null = null;
+    await registerKey(
+      "YubiKey",
+      "security_key",
+      router(
+        {
+          "/registration/options": () => jsonResponse(200, regOptions),
+          "/registration/verify": () => jsonResponse(201, { key: { id: 2 }, recovery_codes: null }),
+        },
+        calls,
+      ),
+      creds({
+        create: async (o) => {
+          passed = o;
+          return fakeAttestation();
+        },
+      }),
+    );
+    expect(JSON.parse(String(calls[0].init!.body))).toEqual({ method: "security_key" });
+    expect((passed!.publicKey as unknown as { hints: string[] }).hints).toEqual(["security-key"]);
+  });
+
+  it("'any' removes hints (old behaviour)", () => {
+    const o = withHints({ publicKey: { challenge: bytes(1), hints: ["hybrid"] } } as unknown as CredentialRequestOptions, "any");
+    expect((o.publicKey as unknown as Record<string, unknown>).hints).toBeUndefined();
+  });
+
+  it("remembers the last method per browser and tolerates broken storage", () => {
+    const mem = new Map<string, string>();
+    const store = { getItem: (k: string) => mem.get(k) ?? null, setItem: (k: string, v: string) => void mem.set(k, v) };
+    expect(rememberedMethod(store)).toBeNull();
+    rememberMethod("phone", store);
+    expect(rememberedMethod(store)).toBe("phone");
+    mem.set("arepo.unlock.method", "carrier-pigeon");
+    expect(rememberedMethod(store)).toBeNull();
+    const broken = {
+      getItem: () => {
+        throw new Error("blocked");
+      },
+      setItem: () => {
+        throw new Error("blocked");
+      },
+    };
+    expect(rememberedMethod(broken)).toBeNull();
+    expect(() => rememberMethod("device", broken)).not.toThrow();
+    expect(rememberedMethod(null)).toBeNull();
+  });
+
+  it("picks the primary method: remembered, else this device, else the phone", () => {
+    expect(primaryMethod("security_key", true)).toBe("security_key");
+    expect(primaryMethod(null, true)).toBe("device");
+    expect(primaryMethod(null, false)).toBe("phone");
+  });
+
+  it("gives a browser-specific tip for each method", () => {
+    const safari = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15";
+    const chrome = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36";
+    const ios = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1";
+    expect(browserFamily(safari)).toBe("safari-mac");
+    expect(browserFamily(chrome)).toBe("chrome");
+    expect(browserFamily(ios)).toBe("ios");
+    expect(methodTip("phone", "safari-mac")).toMatch(/Other options.*iPhone, iPad or Android device/);
+    expect(methodTip("phone", "chrome")).toMatch(/Use a different device/);
+    expect(methodTip("security_key", "safari-mac")).toMatch(/Security key/);
+    expect(methodTip("security_key", "ios")).toMatch(/NFC/);
+  });
+});
+
+describe("devices", () => {
+  const device = {
+    id: 4,
+    nickname: "Mac · Safari",
+    first_seen_at: null,
+    last_seen_at: null,
+    trusted: true,
+    trusted_at: null,
+    trusted_until: "2026-11-20T10:00:00+00:00",
+    current: true,
+  };
+
+  it("trusting this device needs a fresh key assertion, sent to /devices/current/trust", async () => {
+    const calls: Call[] = [];
+    const res = await trustThisDevice(
+      "device",
+      router(
+        {
+          "/authentication/options": () =>
+            jsonResponse(200, { publicKey: { challenge: bufferToBase64url(bytes(5)), rpId: "x", allowCredentials: [] } }),
+          "/devices/current/trust": () => jsonResponse(200, { device }),
+        },
+        calls,
+      ),
+      creds(),
+    );
+    expect(res).toEqual({ ok: true, data: { device } });
+    expect(calls.map((c) => c.url.replace(/^.*webauthn/, ""))).toEqual(["/authentication/options", "/devices/current/trust"]);
+    expect(JSON.parse(String(calls[1].init!.body)).credential.response.signature).toBe("AwM");
+  });
+
+  it("a cancelled tap never marks the device trusted", async () => {
+    const calls: Call[] = [];
+    const res = await trustThisDevice(
+      "device",
+      router(
+        {
+          "/authentication/options": () =>
+            jsonResponse(200, { publicKey: { challenge: bufferToBase64url(bytes(5)), rpId: "x", allowCredentials: [] } }),
+        },
+        calls,
+      ),
+      creds({
+        get: async () => {
+          throw Object.assign(new Error("x"), { name: "NotAllowedError" });
+        },
+      }),
+    );
+    expect(res.ok).toBe(false);
+    expect(calls).toHaveLength(1);
+  });
+
+  it("lists, revokes, renames and forgets devices", async () => {
+    const calls: Call[] = [];
+    const fetchImpl = router(
+      {
+        "/devices": () => jsonResponse(200, { devices: [device], trusted_device_days: 30, stepup_hours: 4 }),
+        "/devices/4/trust": () => jsonResponse(200, { device: { ...device, trusted: false } }),
+        "/devices/4": () => jsonResponse(200, { device: { ...device, nickname: "MacBook" } }),
+      },
+      calls,
+    );
+    const list = await listDevices(fetchImpl);
+    expect(list.ok && list.data.devices[0].nickname).toBe("Mac · Safari");
+    const off = await untrustDevice(4, fetchImpl);
+    expect(off.ok && off.data.device.trusted).toBe(false);
+    await renameDevice(4, "MacBook", fetchImpl);
+    await forgetDevice(4, fetchImpl);
+    expect(calls.map((c) => c.init?.method)).toEqual(["GET", "DELETE", "PATCH", "DELETE"]);
+    expect(JSON.parse(String(calls[2].init!.body))).toEqual({ nickname: "MacBook" });
   });
 });

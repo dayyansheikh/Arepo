@@ -1,7 +1,8 @@
 """Site-wide security-key gate for accounts that have registered a hardware key / passkey.
 
 Once a user has a registered WebAuthn credential (see ``astrolabe.lab.security_keys``), every
-endpoint that acts as that user needs a live step-up in addition to the password session. This is
+endpoint that acts as that user needs a live step-up (or a device the owner has explicitly trusted,
+for at most 30 days) in addition to the password session. This is
 enforced at the single place every cookie session is resolved, so no route can forget it:
 
 * :class:`StepUpJWTStrategy` resolves the session cookie as usual and, for a locked user, returns
@@ -57,7 +58,9 @@ class StepUpJWTStrategy(JWTStrategy):
             return user
         stepup_token = ctx["stepup"] if ctx else None
         session = user_manager.user_db.session
-        keys = await security_keys.user_locked(session, user, stepup_token, utcnow())
+        device_token = ctx["device"] if ctx else None
+        keys = await security_keys.user_locked(session, user, stepup_token, utcnow(),
+                                               device_token=device_token)
         if keys is None:
             return user
         if ctx is not None:
@@ -75,16 +78,18 @@ class StepUpMiddleware:
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
-        from ..lab.security_keys import STEPUP_COOKIE
+        from ..lab.security_keys import DEVICE_COOKIE, STEPUP_COOKIE
 
         cookie_header = ""
         for k, v in scope.get("headers") or []:
             if k == b"cookie":
                 cookie_header = v.decode("latin-1")
                 break
+        cookies = cookie_parser(cookie_header) if cookie_header else {}
         ctx: dict[str, Any] = {
             "path": scope.get("path", ""),
-            "stepup": cookie_parser(cookie_header).get(STEPUP_COOKIE) if cookie_header else None,
+            "stepup": cookies.get(STEPUP_COOKIE),
+            "device": cookies.get(DEVICE_COOKIE),
             "locked": None,
         }
         reset = _request_ctx.set(ctx)

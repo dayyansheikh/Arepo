@@ -124,6 +124,100 @@ export function credentialToJSON(cred: Credential): Record<string, unknown> {
   };
 }
 
+// -- method steering ------------------------------------------------------------------------
+
+/** How the owner wants to prove it's them. "any" = let the browser decide (old behaviour). */
+export type KeyMethod = "device" | "phone" | "security_key";
+export type MethodChoice = KeyMethod | "any";
+export const KEY_METHODS: KeyMethod[] = ["device", "phone", "security_key"];
+
+/** WebAuthn Level 3 `hints` per method (the server sends the same; we set them here as well). */
+export const METHOD_HINTS: Record<KeyMethod, string[]> = {
+  device: ["client-device"],
+  phone: ["hybrid"],
+  security_key: ["security-key"],
+};
+
+export const METHOD_LABELS: Record<KeyMethod, { button: string; link: string; add: string }> = {
+  device: { button: "Use Touch ID / Face ID", link: "This device (Touch ID / Face ID)", add: "This device (Touch ID / Face ID)" },
+  phone: { button: "Use my phone", link: "My phone (QR code / nearby)", add: "My phone (scan a QR code)" },
+  security_key: { button: "Use my security key", link: "Security key (YubiKey)", add: "Security key (YubiKey)" },
+};
+
+/** Puts `hints` on the publicKey options for the chosen method (browsers that predate them ignore them). */
+export function withHints<T extends CredentialRequestOptions | CredentialCreationOptions>(opts: T, method: MethodChoice): T {
+  const pk = opts.publicKey as (Record<string, unknown> & { hints?: string[] }) | undefined;
+  if (!pk) return opts;
+  const next: Record<string, unknown> = { ...pk };
+  if (method === "any") delete next.hints;
+  else next.hints = [...METHOD_HINTS[method]];
+  return { ...opts, publicKey: next } as T;
+}
+
+const METHOD_STORAGE_KEY = "arepo.unlock.method";
+type StorageLike = Pick<Storage, "getItem" | "setItem">;
+
+function localStore(): StorageLike | null {
+  try {
+    return typeof window !== "undefined" ? window.localStorage : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The method that last worked on this browser (non-sensitive; just a UI preference). */
+export function rememberedMethod(store: StorageLike | null = localStore()): KeyMethod | null {
+  try {
+    const v = store?.getItem(METHOD_STORAGE_KEY);
+    return v && (KEY_METHODS as string[]).includes(v) ? (v as KeyMethod) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function rememberMethod(method: KeyMethod, store: StorageLike | null = localStore()): void {
+  try {
+    store?.setItem(METHOD_STORAGE_KEY, method);
+  } catch {
+    // private mode / blocked storage: the chooser simply falls back to its default
+  }
+}
+
+/** Primary method for the unlock screen: the remembered one, else this device if it has a
+ * built-in authenticator (Touch ID, Face ID, Windows Hello), else the phone. */
+export function primaryMethod(remembered: KeyMethod | null, platformAuthenticator: boolean): KeyMethod {
+  return remembered ?? (platformAuthenticator ? "device" : "phone");
+}
+
+export type BrowserFamily = "safari-mac" | "ios" | "chrome" | "firefox" | "other";
+
+export function browserFamily(ua: string): BrowserFamily {
+  if (/iPhone|iPad|iPod/.test(ua)) return "ios";
+  if (/Firefox\//.test(ua)) return "firefox";
+  if (/Chrome\/|Chromium\/|Edg\//.test(ua)) return "chrome";
+  if (/Macintosh/.test(ua) && /Safari\//.test(ua)) return "safari-mac";
+  return "other";
+}
+
+/** One short line on what to do when the browser doesn't follow the chosen method (some ignore
+ * hints and show Touch ID anyway). Shown only after a failed or cancelled attempt. */
+export function methodTip(method: KeyMethod, family: BrowserFamily): string {
+  if (method === "device") {
+    if (family === "ios") return "Use Face ID or Touch ID when asked. No passkey on this device? Try “My phone” from your computer instead.";
+    return "Touch the fingerprint sensor when asked. No passkey on this computer? Choose “My phone”.";
+  }
+  if (method === "phone") {
+    if (family === "safari-mac") return "If Safari shows Touch ID, choose “Other options” → “iPhone, iPad or Android device”, then scan the QR code with your phone.";
+    if (family === "chrome") return "If Chrome shows Touch ID, choose “Use a different device” or “Use a phone or tablet”, then scan the QR code.";
+    if (family === "ios") return "On the iPhone itself, “This device” is simpler. To use another phone, choose “Other options” and scan the QR code.";
+    return "Choose the phone / “other device” option in the browser prompt, then scan the QR code with your phone. Bluetooth must be on.";
+  }
+  if (family === "safari-mac") return "If Safari shows Touch ID, choose “Other options” → “Security key”, then plug in or tap your YubiKey.";
+  if (family === "chrome") return "If Chrome shows Touch ID, choose “Use a different device” → “USB security key”, then touch the key when it blinks.";
+  if (family === "ios") return "Hold the YubiKey to the top of the iPhone (NFC), or plug it in, when asked.";
+  return "Plug in your security key and touch it when it blinks (or hold an NFC key to the phone).";
+}
+
 // -- responses ------------------------------------------------------------------------------
 
 function messageOf(body: unknown, fallback: string): string {
@@ -174,9 +268,24 @@ async function call<T>(
 
 // -- API ------------------------------------------------------------------------------------
 
+export interface Device {
+  id: number;
+  nickname: string;
+  first_seen_at: string | null;
+  last_seen_at: string | null;
+  trusted: boolean;
+  trusted_at: string | null;
+  trusted_until: string | null;
+  current: boolean;
+}
+
 export interface StepUpStatus {
   enforcement: "auto" | "always" | "off";
   required: boolean;
+  /** True when this browser may act now: not required, a live unlock, or a trusted device. */
+  unlocked?: boolean;
+  device?: Device | null;
+  trusted_device_days?: number;
   keys: number;
   step_up: { active: boolean; expires_at: string | null; method: string | null };
   recovery_codes_remaining: number;
@@ -244,43 +353,99 @@ function browserCredentials(): CredentialsLike | null {
   return typeof navigator !== "undefined" && navigator.credentials ? navigator.credentials : null;
 }
 
-/** Full unlock ceremony: options -> navigator.credentials.get -> verify (sets the step-up cookie). */
-export async function unlockWithKey(
-  fetchImpl: FetchLike = defaultFetch,
-  creds: CredentialsLike | null = browserCredentials(),
-): Promise<Outcome<{ expires_at: string | null }>> {
+/** One assertion for `method`: options (steered by the server) -> navigator.credentials.get. */
+async function assertWith(
+  method: MethodChoice,
+  fetchImpl: FetchLike,
+  creds: CredentialsLike | null,
+): Promise<Outcome<Credential>> {
   if (!creds) return { ok: false, status: 0, message: "This browser can't use security keys or passkeys." };
-  const opts = await call<{ publicKey: Record<string, unknown> }>("/authentication/options", "POST", undefined, fetchImpl);
+  const opts = await call<{ publicKey: Record<string, unknown> }>(
+    "/authentication/options",
+    "POST",
+    { method },
+    fetchImpl,
+  );
   if (!opts.ok) return opts;
   let cred: Credential | null;
   try {
-    cred = await creds.get(toRequestOptions(opts.data));
+    cred = await creds.get(withHints(toRequestOptions(opts.data), method));
   } catch (err) {
     return { ok: false, status: 0, message: browserErrorMessage(err), code: "browser" };
   }
   if (!cred) return { ok: false, status: 0, message: "No key was used.", code: "browser" };
+  return { ok: true, data: cred };
+}
+
+/** Full unlock ceremony: options -> navigator.credentials.get -> verify (sets the step-up cookie). */
+export async function unlockWithKey(
+  method: MethodChoice = "any",
+  fetchImpl: FetchLike = defaultFetch,
+  creds: CredentialsLike | null = browserCredentials(),
+): Promise<Outcome<{ expires_at: string | null }>> {
+  const got = await assertWith(method, fetchImpl, creds);
+  if (!got.ok) return got;
   const res = await call<{ step_up: { expires_at: string | null } }>(
     "/authentication/verify",
     "POST",
-    { credential: credentialToJSON(cred) },
+    { credential: credentialToJSON(got.data) },
     fetchImpl,
   );
   if (!res.ok) return res;
   return { ok: true, data: { expires_at: res.data?.step_up?.expires_at ?? null } };
 }
 
+/** "Don't ask for my key on this device": a fresh key tap here, then the server marks it trusted. */
+export async function trustThisDevice(
+  method: MethodChoice = "any",
+  fetchImpl: FetchLike = defaultFetch,
+  creds: CredentialsLike | null = browserCredentials(),
+): Promise<Outcome<{ device: Device }>> {
+  const got = await assertWith(method, fetchImpl, creds);
+  if (!got.ok) return got;
+  return call("/devices/current/trust", "POST", { credential: credentialToJSON(got.data) }, fetchImpl);
+}
+
+export function listDevices(fetchImpl: FetchLike = defaultFetch) {
+  return call<{ devices: Device[]; trusted_device_days: number; stepup_hours: number }>(
+    "/devices",
+    "GET",
+    undefined,
+    fetchImpl,
+  );
+}
+
+/** Ask for the key again on that device (ends its trust now). */
+export function untrustDevice(id: number, fetchImpl: FetchLike = defaultFetch) {
+  return call<{ device: Device }>(`/devices/${id}/trust`, "DELETE", undefined, fetchImpl);
+}
+
+export function renameDevice(id: number, nickname: string, fetchImpl: FetchLike = defaultFetch) {
+  return call<{ device: Device }>(`/devices/${id}`, "PATCH", { nickname }, fetchImpl);
+}
+
+export function forgetDevice(id: number, fetchImpl: FetchLike = defaultFetch) {
+  return call<{ deleted: number }>(`/devices/${id}`, "DELETE", undefined, fetchImpl);
+}
+
 /** Full registration ceremony. Returns the new key and, for a first key, the recovery codes. */
 export async function registerKey(
   nickname: string,
+  method: MethodChoice = "any",
   fetchImpl: FetchLike = defaultFetch,
   creds: CredentialsLike | null = browserCredentials(),
 ): Promise<Outcome<{ key: SecurityKey; recovery_codes: string[] | null }>> {
   if (!creds) return { ok: false, status: 0, message: "This browser can't use security keys or passkeys." };
-  const opts = await call<{ publicKey: Record<string, unknown> }>("/registration/options", "POST", undefined, fetchImpl);
+  const opts = await call<{ publicKey: Record<string, unknown> }>(
+    "/registration/options",
+    "POST",
+    { method },
+    fetchImpl,
+  );
   if (!opts.ok) return opts;
   let cred: Credential | null;
   try {
-    cred = await creds.create(toCreationOptions(opts.data));
+    cred = await creds.create(withHints(toCreationOptions(opts.data), method));
   } catch (err) {
     return { ok: false, status: 0, message: browserErrorMessage(err), code: "browser" };
   }

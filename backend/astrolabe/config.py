@@ -89,12 +89,20 @@ class Settings(BaseSettings):
     # site origins in production, plus every CORS/APP_BASE_URL origin on the RP ID's domain.
     lab_webauthn_origins: str = ""
     lab_stepup_hours: float = 4.0  # LAB_STEPUP_HOURS: how long one unlock lasts
+    # LAB_TRUSTED_DEVICE_DAYS: how long a device the owner marks as trusted skips the key prompt.
+    # Capped at 30 days (see trusted_device_days); 0 disables device trust entirely.
+    lab_trusted_device_days: float = 30.0
 
     @property
     def lab_hardware_key_mode(self) -> str:
         mode = (self.lab_require_hardware_key or "").strip().lower()
         # Anything unrecognised fails safe to "auto" (never silently to "off").
         return mode if mode in ("auto", "always", "off") else "auto"
+
+    @property
+    def trusted_device_days(self) -> float:
+        """Trusted-device lifetime in days: never more than 30, 0 (or less) = trust disabled."""
+        return max(0.0, min(30.0, float(self.lab_trusted_device_days or 0)))
 
     @property
     def webauthn_rp_id(self) -> str:

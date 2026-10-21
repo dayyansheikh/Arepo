@@ -383,6 +383,8 @@ const SELF_AUDIT: Record<string, string> = {
   recovery_code_used: "unlocked with a recovery code",
   recovery_code_failed: "entered a wrong recovery code",
   recovery_codes_regenerated: "made new recovery codes",
+  device_trusted: "trusted a device (no key prompt there)",
+  device_trust_revoked: "asked for the key again on a device",
   claude_message_sent: "sent Claude a message",
   claude_message_cancelled: "cancelled a message to Claude",
   claude_command: "sent a Claude autopilot command",
@@ -390,8 +392,15 @@ const SELF_AUDIT: Record<string, string> = {
 
 function auditNickname(detail: string | null): string {
   try {
-    const d = JSON.parse(detail ?? "") as { nickname?: unknown; to?: unknown };
-    const name = typeof d.nickname === "string" ? d.nickname : typeof d.to === "string" ? d.to : "";
+    const d = JSON.parse(detail ?? "") as { nickname?: unknown; to?: unknown; device?: unknown };
+    const name =
+      typeof d.nickname === "string"
+        ? d.nickname
+        : typeof d.to === "string"
+          ? d.to
+          : typeof d.device === "string"
+            ? d.device
+            : "";
     return name ? ` (${name})` : "";
   } catch {
     return "";

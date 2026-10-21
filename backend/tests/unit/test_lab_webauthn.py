@@ -20,7 +20,7 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from fastapi.testclient import TestClient
 from fastapi_users.password import PasswordHelper
-from sqlalchemy import func, select, update
+from sqlalchemy import delete, func, select, update
 
 from astrolabe.accounts import db as accounts_db
 from astrolabe.accounts import email as account_email
@@ -38,6 +38,7 @@ from astrolabe.lab.models import LabAdminAudit
 from astrolabe.lab.security_models import (
     AdminRecoveryCode,
     AdminStepUpSession,
+    AdminTrustedDevice,
     AdminWebAuthnChallenge,
     AdminWebAuthnCredential,
 )
@@ -616,7 +617,7 @@ async def test_account_deletion_removes_key_rows(env):
         await delete_account(s, await s.get(User, oid))
     async with sm() as s:
         for model in (AdminWebAuthnCredential, AdminStepUpSession, AdminRecoveryCode,
-                      AdminWebAuthnChallenge):
+                      AdminWebAuthnChallenge, AdminTrustedDevice):
             n = (await s.execute(select(func.count()).select_from(model))).scalar_one()
             assert n == 0, model.__tablename__
 
@@ -626,8 +627,8 @@ async def test_migration_creates_key_tables_with_rls():
 
     from astrolabe.storage.migrate import _PRIVATE_ACCOUNT_TABLES, SCHEMA_VERSION, check, upgrade
     names = {"admin_webauthn_credentials", "admin_webauthn_challenges", "admin_stepup_sessions",
-             "admin_recovery_codes"}
-    assert SCHEMA_VERSION >= 16
+             "admin_recovery_codes", "admin_trusted_devices"}
+    assert SCHEMA_VERSION >= 18
     assert names <= set(_PRIVATE_ACCOUNT_TABLES)
     eng = make_engine("sqlite+aiosqlite:///:memory:")
     await upgrade(eng)
@@ -651,3 +652,286 @@ async def test_claude_board_messages_and_commands_require_stepup(env):
                                                           "action": "start"}))
     assert _unlock(client, key).status_code == 200
     assert client.post("/api/lab/messages/1/cancel").status_code == 200
+
+
+# ---- method steering (hints / transports / attachment) ----------------------------------------
+async def test_authentication_options_steer_by_method(env):
+    client, _, _ = await _owner(env)
+    passkey = SoftKey(transports=("hybrid", "internal"), backed_up=True)
+    yubikey = SoftKey(transports=("usb", "nfc"))
+    assert _register(client, passkey, "Dayyan's MacBook Touch ID").status_code == 201
+    assert _register(client, yubikey, "YubiKey").status_code == 201
+    ids = sorted([b64u(passkey.cred_id), b64u(yubikey.cred_id)])
+
+    def opts(body=None):
+        r = client.post(f"{W}/authentication/options", json=body)
+        assert r.status_code == 200, r.text
+        return r.json()["publicKey"]
+
+    # No body / "any": unchanged behaviour (stored transports, no hints).
+    for pk in (opts(), opts({"method": "any"})):
+        assert "hints" not in pk
+        assert {c["id"]: c.get("transports") for c in pk["allowCredentials"]} == {
+            b64u(passkey.cred_id): ["hybrid", "internal"], b64u(yubikey.cred_id): ["usb", "nfc"]}
+    expected = {
+        "device": (["client-device"], ["internal"]),
+        "phone": (["hybrid"], ["hybrid"]),
+        "security_key": (["security-key"], ["usb", "nfc", "ble"]),
+    }
+    for method, (hints, transports) in expected.items():
+        pk = opts({"method": method})
+        assert pk["hints"] == hints, method
+        # Every credential id is kept (a synced passkey must stay usable from the phone).
+        assert sorted(c["id"] for c in pk["allowCredentials"]) == ids, method
+        assert all(c["transports"] == transports for c in pk["allowCredentials"]), method
+        assert pk["userVerification"] == "preferred"
+    assert client.post(f"{W}/authentication/options",
+                       json={"method": "carrier-pigeon"}).status_code == 422
+
+    # A "phone" assertion from the synced passkey verifies like any other.
+    _drop_stepup(client)
+    phone_opts = {"publicKey": opts({"method": "phone"})}
+    r = client.post(f"{W}/authentication/verify",
+                    json={"credential": passkey.assertion(phone_opts)})
+    assert r.status_code == 200, r.text
+
+
+async def test_registration_options_steer_by_method(env):
+    client, _, _ = await _owner(env)
+    existing = SoftKey()
+    assert _register(client, existing).status_code == 201
+    expected = {
+        "device": ("platform", ["client-device"]),
+        "phone": ("cross-platform", ["hybrid"]),
+        "security_key": ("cross-platform", ["security-key"]),
+    }
+    for method, (attachment, hints) in expected.items():
+        r = client.post(f"{W}/registration/options", json={"method": method})
+        assert r.status_code == 200, r.text
+        pk = r.json()["publicKey"]
+        sel = pk["authenticatorSelection"]
+        assert sel["authenticatorAttachment"] == attachment, method
+        assert sel["residentKey"] == "preferred" and sel["userVerification"] == "preferred"
+        assert pk["hints"] == hints
+        assert [c["id"] for c in pk["excludeCredentials"]] == [b64u(existing.cred_id)]
+    pk = client.post(f"{W}/registration/options", json={"method": "any"}).json()["publicKey"]
+    assert "authenticatorAttachment" not in pk["authenticatorSelection"] and "hints" not in pk
+    # The steered options still register a working key.
+    r = client.post(f"{W}/registration/options", json={"method": "security_key"})
+    v = client.post(f"{W}/registration/verify",
+                    json={"credential": SoftKey(transports=("usb",)).register(r.json()),
+                          "nickname": "YubiKey"})
+    assert v.status_code == 201, v.text
+
+
+# ---- devices + per-device trust ---------------------------------------------------------------
+SAFARI_MAC = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 "
+              "(KHTML, like Gecko) Version/18.0 Safari/605.1.15")
+
+
+def _drop_device(client):
+    for c in list(client.cookies.jar):
+        if c.name == sk.DEVICE_COOKIE:
+            client.cookies.jar.clear(c.domain, c.path, c.name)
+
+
+def _trust(client, key: SoftKey, **kw):
+    opts = client.post(f"{W}/authentication/options", json={"method": "device"})
+    assert opts.status_code == 200, opts.text
+    return client.post(f"{W}/devices/current/trust",
+                       json={"credential": key.assertion(opts.json(), **kw)},
+                       headers={"User-Agent": SAFARI_MAC})
+
+
+async def _audit_actions(sm):
+    async with sm() as s:
+        return (await s.execute(select(LabAdminAudit.action))).scalars().all()
+
+
+def test_device_label_from_user_agent():
+    assert sk.device_label(SAFARI_MAC) == "Mac · Safari"
+    assert sk.device_label("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+                           "(KHTML, like Gecko) Chrome/130.0 Safari/537.36") == "Mac · Chrome"
+    assert sk.device_label("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) "
+                           "AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1"
+                           ) == "iPhone · Safari"
+    assert sk.device_label("Mozilla/5.0 (Windows NT 10.0) Chrome/130.0 Safari/537.36 Edg/130.0"
+                           ) == "Windows · Edge"
+    assert sk.device_label(None) == "Device · Browser"
+
+
+async def test_device_cookie_is_httponly_and_only_its_hash_is_stored(env):
+    client, sm, _ = await _owner(env)
+    assert _register(client, SoftKey()).status_code == 201
+    async with sm() as s:  # the registering browser was recorded already; start afresh
+        await s.execute(delete(AdminTrustedDevice))
+        await s.commit()
+    _drop_device(client)
+    r = client.get(f"{W}/status", headers={"User-Agent": SAFARI_MAC})
+    token = client.cookies.get(sk.DEVICE_COOKIE)
+    assert token
+    st = r.json()
+    assert st["device"]["nickname"] == "Mac · Safari"
+    assert st["device"]["trusted"] is False and st["device"]["current"] is True
+    assert st["trusted_device_days"] == 30
+    async with sm() as s:
+        rows = (await s.execute(select(AdminTrustedDevice))).scalars().all()
+    assert len(rows) == 1 and rows[0].device_sha256 == sk.token_hash(token)
+    assert token not in rows[0].device_sha256
+    # Seeing the same browser again does not create another row.
+    client.get(f"{W}/status")
+    devices = client.get(f"{W}/devices").json()["devices"]
+    assert len(devices) == 1 and devices[0]["current"] is True
+
+
+async def test_trusted_device_skips_key_until_expiry(env):
+    client, sm, _ = await _owner(env)
+    key = SoftKey()
+    assert _register(client, key).status_code == 201
+    r = _trust(client, key)
+    assert r.status_code == 200, r.text
+    dev = r.json()["device"]
+    assert dev["trusted"] is True and dev["current"] is True
+    _drop_stepup(client)
+    # No step-up cookie, but this device is trusted: everything is open.
+    for path in ("/api/lab/dashboard", "/api/users/me", "/api/account/preferences", f"{W}/keys"):
+        assert client.get(path).status_code == 200, path
+    st = client.get(f"{W}/status").json()
+    assert st["unlocked"] is True and st["step_up"]["active"] is False
+    assert st["device"]["trusted"] is True
+    async with sm() as s:
+        row = (await s.execute(select(AdminTrustedDevice))).scalar_one()
+        span = row.trusted_until.replace(tzinfo=None) - row.trusted_at.replace(tzinfo=None)
+    assert span == timedelta(days=30)
+    # Another browser (no device cookie) is still locked.
+    saved = client.cookies.get(sk.DEVICE_COOKIE)
+    _drop_device(client)
+    assert _locked(client.get("/api/lab/dashboard"))
+    client.cookies.set(sk.DEVICE_COOKIE, saved, path="/api")
+    assert client.get("/api/lab/dashboard").status_code == 200
+    # Expiry: after 30 days it asks again.
+    async with sm() as s:
+        await s.execute(update(AdminTrustedDevice).values(
+            trusted_until=utcnow() - timedelta(seconds=1)))
+        await s.commit()
+    assert _locked(client.get("/api/lab/dashboard"))
+    assert _locked(client.get("/api/users/me"))
+    assert client.get(f"{W}/status").json()["unlocked"] is False
+    assert "device_trusted" in await _audit_actions(sm)
+
+
+async def test_trust_needs_a_fresh_key_assertion(env):
+    client, sm, _ = await _owner(env)
+    key = SoftKey()
+    codes = _register(client, key).json()["recovery_codes"]
+    _drop_stepup(client)
+    # A recovery-code unlock is not a key tap; trust still needs an assertion.
+    assert client.post(f"{W}/recovery", json={"code": codes[0]}).status_code == 200
+    r = client.post(f"{W}/devices/current/trust", json={"credential": {}})
+    assert r.status_code == 400
+    # A replayed / foreign assertion is refused.
+    opts = client.post(f"{W}/authentication/options").json()
+    cred = key.assertion(opts)
+    assert client.post(f"{W}/authentication/verify", json={"credential": cred}).status_code == 200
+    replay = client.post(f"{W}/devices/current/trust", json={"credential": cred})
+    assert replay.status_code == 400 and replay.json()["detail"]["code"] == "challenge_invalid"
+    assert _trust(client, SoftKey()).json()["detail"]["code"] == "unknown_key"
+    assert _trust(client, key, origin="https://evil.example").status_code == 400
+    async with sm() as s:
+        assert (await s.execute(select(func.count()).select_from(AdminTrustedDevice).where(
+            AdminTrustedDevice.trusted_until.is_not(None)))).scalar_one() == 0
+    # A members-only account (no key, not owner) cannot reach it at all.
+    await _user(sm, "member@example.com")
+    _login(client, "member@example.com")
+    assert client.post(f"{W}/devices/current/trust", json={"credential": {}}).status_code == 404
+
+
+async def test_trust_lifetime_is_capped_and_can_be_disabled(env, monkeypatch):
+    client, sm, _ = await _owner(env)
+    key = SoftKey()
+    assert _register(client, key).status_code == 201
+    monkeypatch.setattr(get_settings(), "lab_trusted_device_days", 365)
+    assert _trust(client, key).status_code == 200
+    async with sm() as s:
+        row = (await s.execute(select(AdminTrustedDevice))).scalar_one()
+        span = row.trusted_until.replace(tzinfo=None) - row.trusted_at.replace(tzinfo=None)
+    assert span == timedelta(days=30)
+    _drop_stepup(client)
+    assert client.get("/api/lab/dashboard").status_code == 200
+    monkeypatch.setattr(get_settings(), "lab_trusted_device_days", 0)
+    # Switching the feature off ends existing trust at once.
+    assert _locked(client.get("/api/lab/dashboard"))
+    assert _unlock(client, key).status_code == 200
+    r = _trust(client, key)
+    assert r.status_code == 409 and r.json()["detail"]["code"] == "trust_disabled"
+    assert Settings(lab_trusted_device_days=7).trusted_device_days == 7
+
+
+async def test_revoking_trust_asks_for_the_key_again(env):
+    client, sm, _ = await _owner(env)
+    key = SoftKey()
+    assert _register(client, key).status_code == 201
+    dev = _trust(client, key).json()["device"]
+    devices = client.get(f"{W}/devices").json()["devices"]
+    assert devices[0]["trusted"] is True and devices[0]["trusted_until"]
+    r = client.delete(f"{W}/devices/{dev['id']}/trust")
+    assert r.status_code == 200 and r.json()["device"]["trusted"] is False
+    _drop_stepup(client)
+    assert _locked(client.get("/api/lab/dashboard"))
+    actions = await _audit_actions(sm)
+    assert "device_trusted" in actions and "device_trust_revoked" in actions
+    async with sm() as s:
+        detail = (await s.execute(select(LabAdminAudit.detail).where(
+            LabAdminAudit.action == "device_trust_revoked"))).scalar_one()
+    assert json.loads(detail)["reason"] == "owner"
+    # Trust management needs an unlock, and only touches the owner's own devices.
+    assert _locked(client.delete(f"{W}/devices/{dev['id']}/trust"))
+    assert _unlock(client, key).status_code == 200
+    assert client.delete(f"{W}/devices/999/trust").status_code == 404
+    r = client.patch(f"{W}/devices/{dev['id']}", json={"nickname": "Dayyan's MacBook"})
+    assert r.status_code == 200 and r.json()["device"]["nickname"] == "Dayyan's MacBook"
+    assert client.delete(f"{W}/devices/{dev['id']}").json() == {"deleted": dev["id"]}
+
+
+async def test_trust_is_bound_to_its_user(env):
+    client, sm, _ = await _owner(env)
+    key = SoftKey()
+    assert _register(client, key).status_code == 201
+    assert _trust(client, key).status_code == 200
+    device_token = client.cookies.get(sk.DEVICE_COOKIE)
+    other = await _user(sm, "o2@example.com", superuser=True)
+    async with sm() as s:
+        s.add(AdminWebAuthnCredential(user_id=other, credential_id="zz", public_key="y",
+                                      nickname="theirs"))
+        await s.commit()
+        o = await s.get(User, other)
+        assert await sk.trusted_device(s, o, device_token, utcnow()) is None
+        assert await sk.user_locked(s, o, None, utcnow(), device_token=device_token) == 1
+
+
+async def test_lock_now_ends_trust_on_this_device(env):
+    client, sm, _ = await _owner(env)
+    key = SoftKey()
+    assert _register(client, key).status_code == 201
+    assert _trust(client, key).status_code == 200
+    assert client.post(f"{W}/lock").status_code == 204
+    assert _locked(client.get("/api/lab/dashboard"))
+    async with sm() as s:
+        detail = (await s.execute(select(LabAdminAudit.detail).where(
+            LabAdminAudit.action == "device_trust_revoked"))).scalar_one()
+    assert json.loads(detail)["reason"] == "lock_now"
+
+
+async def test_trusted_device_alone_cannot_replace_keys(env):
+    client, _, _ = await _owner(env)
+    key = SoftKey()
+    assert _register(client, key).status_code == 201
+    assert _register(client, SoftKey(), "Spare").status_code == 201
+    assert _trust(client, key).status_code == 200
+    _drop_stepup(client)
+    keys = client.get(f"{W}/keys").json()["keys"]  # viewing is fine on a trusted device
+    assert _locked(client.delete(f"{W}/keys/{keys[1]['id']}"))
+    assert _locked(client.post(f"{W}/recovery-codes"))
+    assert _locked(client.post(f"{W}/registration/options"))
+    assert _unlock(client, key).status_code == 200
+    assert client.delete(f"{W}/keys/{keys[1]['id']}").status_code == 200

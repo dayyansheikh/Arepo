@@ -98,7 +98,10 @@ async def owner(
     Machine-signed ``/api/lab/agent/*`` endpoints never use this dependency.
     """
     token = request.cookies.get(security_keys.STEPUP_COOKIE)
-    keys = await security_keys.user_locked(session, user, token, utcnow())
+    keys = await security_keys.user_locked(
+        session, user, token, utcnow(),
+        device_token=request.cookies.get(security_keys.DEVICE_COOKIE),
+    )
     if keys is not None:
         raise hardware_key_required(keys)
     return user
