@@ -14,6 +14,7 @@ from pathlib import Path
 
 from . import config as C
 from . import store as S
+from .aux import AUX_FAMILIES, check_spec_aux
 from .features import FAMILIES
 
 LEARNERS = ("logreg", "lgbm")
@@ -36,7 +37,7 @@ def validate(spec: dict) -> None:
         raise SpecError(f"{spec.get('model_id')}: missing {miss}")
     if spec["learner"] not in LEARNERS:
         raise SpecError(f"{spec['model_id']}: learner {spec['learner']!r}")
-    bad = [f for f in spec["families"] if f not in FAMILIES]
+    bad = [f for f in spec["families"] if f not in FAMILIES and f not in AUX_FAMILIES]
     if bad or not {"market_state", "momentum"} <= set(spec["families"]):
         raise SpecError(f"{spec['model_id']}: families {spec['families']} (must include market_state + momentum)")
     if any(d not in DERIVED for d in spec["derived"]) or "base" not in spec["derived"]:
@@ -45,6 +46,9 @@ def validate(spec: dict) -> None:
         raise SpecError(f"{spec['model_id']}: targets {spec['targets']}")
     if spec["features_version"] != C.FEATURES_VERSION:
         raise SpecError(f"{spec['model_id']}: features_version {spec['features_version']} != {C.FEATURES_VERSION}")
+    why = check_spec_aux(spec)
+    if why:
+        raise SpecError(f"{spec['model_id']}: {why}")
     extra = (set(spec["families"]) - {"market_state", "momentum"}) | (set(spec["derived"]) - {"base"})
     if not spec["broad"] and not extra <= set(spec["isolates"]):
         raise SpecError(f"{spec['model_id']}: isolates {spec['isolates']} must list every added family/derived set {sorted(extra)}")

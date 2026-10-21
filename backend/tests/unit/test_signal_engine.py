@@ -17,6 +17,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from astrolabe.signal_engine import aux as A
 from astrolabe.signal_engine import config as C
 from astrolabe.signal_engine import dashboard as D
 from astrolabe.signal_engine import features as F
@@ -372,6 +373,115 @@ def test_predict_refuses_when_every_target_started(env, monkeypatch):
 
 
 # ---------------------------------------------------------------------------------------------- specs / embargo
+
+
+# ---------------------------------------------------------------------------------------------- aux families
+
+
+def test_event_features_hand_example():
+    rows = pd.DataFrame({"market_id": [1, 2, 3, 4, 5], "event_id": ["e", "e", "e", "s", "e"],
+                         "closed": ["False", "False", "False", "False", "True"], "active": ["True"] * 5, "binary": 1,
+                         "best_bid": [0.49, 0.29, np.nan, 0.6, 0.1], "best_ask": [0.51, 0.31, np.nan, 0.62, 0.2],
+                         "chg_1h": [0.01, -0.02, 0.03, 0.05, 0.5], "chg_1d": [0.0, 0.1, 0.0, 0.0, 0.0],
+                         "neg_risk": [1.0, 1.0, 1.0, 0.0, 1.0],
+                         "received_utc": pd.to_datetime([_iso(1e9 + x) for x in (0, 0.5, 1, 0, 2)])})
+    f = pd.DataFrame({"market_id": [1, 2, 4], "event_id": ["e", "e", "s"], "ms_mid": [0.5, 0.3, 0.61]})
+    a = A.event_features(rows, f)
+    # event e: 3 open markets (5 is closed), 2 quoted; sum of quoted mids 0.8
+    np.testing.assert_allclose(a["ev_log_n"], [math.log(3), math.log(3), 0.0], rtol=1e-6)
+    np.testing.assert_allclose(a["ev_sum_mid_m1"][:2], [-0.2, -0.2], atol=1e-6)
+    np.testing.assert_allclose(a["ev_quoted_share"][:2], [2 / 3, 2 / 3], atol=1e-6)
+    np.testing.assert_allclose(a["ev_norm_gap"][:2], [0.5 / 0.8 - 0.5, 0.3 / 0.8 - 0.3], atol=1e-6)
+    np.testing.assert_allclose(a["ev_rank"][:2], [1.0, 0.0])
+    np.testing.assert_allclose(a["ev_max_other"][:2], [0.3, 0.5], atol=1e-6)
+    np.testing.assert_allclose(a["ev_sib_chg1h"][:2], [0.005, 0.02], atol=1e-6)  # sibling means; own and closed 5 excluded
+    np.testing.assert_allclose(a["ev_sib_chg1d"][:2], [0.05, 0.0], atol=1e-6)
+    assert np.isnan(a["ev_sib_d2h"]).all()  # no previous quotes: undefined
+    # previous-slot mids: market 3 is unquoted now, so market 1's sibling mean has 1 of 2 siblings (enough)
+    a1 = A.event_features(rows, f, pd.Series([0.45, 0.32, 0.5], index=[1, 2, 3]))
+    np.testing.assert_allclose(a1["ev_sib_d2h"][:2], [-0.02, 0.05], atol=1e-6)
+    # absent values are skipped, never read as zero; below half of the siblings the mean is undefined
+    r3 = rows.copy()
+    r3.loc[r3["market_id"] == 3, "chg_1d"] = np.nan
+    np.testing.assert_allclose(A.event_features(r3, f)["ev_sib_chg1d"][:2], [0.1, 0.0], atol=1e-6)
+    r3.loc[r3["market_id"].isin([2, 3]), "chg_1h"] = np.nan
+    assert np.isnan(A.event_features(r3, f)["ev_sib_chg1h"][0])
+    # nothing quoted in a neg-risk event: the overround is undefined, not -1
+    r4 = rows.copy()
+    r4.loc[r4["event_id"] == "e", ["best_bid", "best_ask"]] = np.nan
+    a4 = A.event_features(r4, f)
+    assert np.isnan(a4["ev_sum_mid_m1"][:2]).all() and np.isnan(a4["ev_rank"][:2]).all()
+    np.testing.assert_allclose(a4["ev_quoted_share"][:2], [0.0, 0.0])
+    # singleton, not neg-risk: everything but the size is undefined (NaN, never filled)
+    assert np.isnan(a.iloc[2][["ev_sum_mid_m1", "ev_norm_gap", "ev_rank", "ev_max_other", "ev_sib_chg1h"]].astype(float)).all()
+    # a sibling received minutes after the own row (possible look-ahead inside the capture): the event is left missing
+    rows.loc[rows["market_id"] == 3, "received_utc"] = pd.Timestamp(_iso(1e9 + 200))
+    a2 = A.event_features(rows, f)
+    assert np.isnan(a2.iloc[:2].to_numpy(float)).all() and a2["ev_log_n"].iat[2] == 0.0
+
+
+def test_aux_family_end_to_end_write_once_and_missing(env, monkeypatch):
+    w, paths = env
+    w.run(24)
+    build_all(paths)
+    idx = S.load_index(paths)
+    old = idx[SLOT0]["capture_id"]
+    (w.root / "snapshots" / old / "rows.csv.gz").unlink()  # archived before its aux table was built
+    while A.run_aux(paths, max_items=50)["written"]:
+        pass
+    assert not A.aux_path(paths, "event", old).exists()
+    cap5 = idx[SLOT0 + 5]["capture_id"]
+    sha = S.sha256_file(A.aux_path(paths, "event", cap5))
+    assert A.run_aux(paths, max_items=50) == {"written": [], "unbuildable_no_rows": 1}
+    assert S.sha256_file(A.aux_path(paths, "event", cap5)) == sha
+    f = A.read_features(paths, cap5)
+    assert np.isfinite(f["ev_log_n"].to_numpy(float)).all() and np.isfinite(f["ev_rank"].to_numpy(float)).any()
+    assert np.isnan(f["ev_sum_mid_m1"].to_numpy(float)).all()  # synthetic world has no neg-risk events
+    assert np.isnan(A.read_features(paths, old)["ev_log_n"].to_numpy(float)).all()  # missing stays missing
+    # a challenger with the aux family trains only on captures that have it and predicts with its own provenance
+    ev = spec("evc", fams=("market_state", "momentum", "event"), isolates=("event",), require=("event",))
+    ev["aux_versions"] = {"event": A.AUX_FAMILIES["event"]["version"]}
+    write_specs(paths.spec_dir, [spec("champ"), ev], "champ")
+    reg = SP.load_registry(paths.spec_dir)
+    fit_time = S.slot_time(SLOT0 + 23) - 1800
+    fr = T.direction_frame(paths, idx, fit_time, 14, 100000, now=fit_time)
+    assert not fr.loc[fr["otime"] == S.epoch(idx[SLOT0]["started_utc"]), "src_event"].any()
+    out = T.refit_all(paths, reg, fit_time, now=fit_time)
+    ok = out["summary"]["models"]["evc"]["targets"]["dir_2h"]
+    assert ok["status"] == "ok" and ok["aux_coverage"]["event"]["with"] == ok["aux_coverage"]["event"]["captures"] - 1
+    # with require_full_coverage the archived capture in the window blocks the fit (comparability with the champion)
+    full = {**ev, "model_id": "evfull", "train": {**ev["train"], "require_full_coverage": True}}
+    write_specs(paths.spec_dir, [spec("champ"), ev, full], "champ")
+    reg = SP.load_registry(paths.spec_dir)
+    out = T.refit_all(paths, reg, fit_time, now=fit_time)
+    assert out["summary"]["models"]["evfull"]["targets"]["dir_2h"]["status"] == "insufficient_coverage"
+    assert out["summary"]["models"]["evc"]["targets"]["dir_2h"]["status"] == "ok"
+    # no prediction is written without the aux table; it is written once the table exists
+    cap23 = idx[SLOT0 + 23]["capture_id"]
+    A.aux_path(paths, "event", cap23).rename(paths.sub("held.parquet"))
+    t_pred = S.slot_time(SLOT0 + 23) + 900
+    _clock(monkeypatch, t_pred)
+    r = P.run_predict(paths, reg, now=t_pred, max_items=1)
+    assert r["skipped"].get("aux_pending") == 1 and paths.predictions(cap23, "champ").exists()
+    assert not paths.predictions(cap23, "evc").exists()
+    paths.sub("held.parquet").rename(A.aux_path(paths, "event", cap23))
+    P.run_predict(paths, reg, now=t_pred, max_items=1)
+    import pyarrow.parquet as pq
+    md = json.loads(pq.read_schema(paths.predictions(cap23, "evc")).metadata[b"signal_engine"])
+    assert md["aux_sha256"]["event"] == S.sha256_file(A.aux_path(paths, "event", cap23))
+
+
+def test_spec_aux_version_pin():
+    ev = spec("evc", fams=("market_state", "momentum", "event"), isolates=("event",))
+    with pytest.raises(SP.SpecError, match="aux family event"):
+        SP.validate(ev)
+    ev["aux_versions"] = {"event": "se-aux-event-v0"}
+    with pytest.raises(SP.SpecError, match="aux family event"):
+        SP.validate(ev)
+    ev["aux_versions"] = {"event": A.AUX_FAMILIES["event"]["version"]}
+    SP.validate(ev)
+    with pytest.raises(SP.SpecError, match="unused"):
+        SP.validate({**spec("c"), "aux_versions": {"event": "se-aux-event-v1"}})
 
 
 def test_spec_sha_pin_refuses_changed_spec(tmp_path):

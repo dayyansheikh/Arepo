@@ -47,10 +47,13 @@ def last_time(paths: S.Paths, kind: str, field: str, now: float) -> float:
 
 
 def cmd_features(paths, args) -> tuple[dict, int]:
+    from astrolabe.signal_engine import aux as A
     from astrolabe.signal_engine import features as F
 
     r = F.run_features(paths, max_items=args.max_items)
-    return r, 0 if r["written"] else C.TEMPFAIL
+    # auxiliary families (aux.py) for the captures just written and any backlog whose rows still exist
+    r["aux"] = A.run_aux(paths, max_items=max(2 * args.max_items, 4))
+    return r, 0 if (r["written"] or r["aux"]["written"]) else C.TEMPFAIL
 
 
 def cmd_predict(paths, args) -> tuple[dict, int]:
@@ -65,7 +68,7 @@ def cmd_predict(paths, args) -> tuple[dict, int]:
 def cmd_tick(paths, args) -> tuple[dict, int]:
     f, _ = cmd_features(paths, args)
     p, _ = cmd_predict(paths, args)
-    return {"features": f, "predict": p}, 0 if (f["written"] or p["written"]) else C.TEMPFAIL
+    return {"features": f, "predict": p}, 0 if (f["written"] or f["aux"]["written"] or p["written"]) else C.TEMPFAIL
 
 
 def cmd_refit(paths, args) -> tuple[dict, int]:

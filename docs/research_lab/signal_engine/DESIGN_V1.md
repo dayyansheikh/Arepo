@@ -1,7 +1,9 @@
 # Signal engine v1: design
 
-- **Status:** BUILT on `feat/signal-engine` (2026-10-21), tested (synthetic end-to-end), dry-run on the host (read-only,
-  `/tmp/sigeng`, deleted). **Not deployed; no queue job promoted.** Deploy steps: section 11.
+- **Status:** DEPLOYED on the host 2026-10-21 (signal-engine autopilot): per-pass `tick` is the last step of
+  `scripts/oracle/arepo_pass.sh`; queue jobs q0512 (refit), q0513 (score), q0514 (walkforward) promoted; q0510/q0511
+  stay drafts (the tick replaces them). Feature backfill of the captures still on the host ran once by hand. Auxiliary
+  families (section 16) added the same day. Live state: `STATUS.md`.
 - **Scope:** forecast quality only (North Star, `NORTH_STAR.md`). Outputs are labelled *signal strength*, never probability
   of profit or an edge. The E-test confirmation programme is separate and unchanged. The engine never reads any E-test
   outcome or prediction file (it reads the collector's raw inputs only).
@@ -229,3 +231,51 @@ Snapshot key `signal_engine` (optional; schema `se-dash-v1`; `arepo-lab-v1` stay
 - Resolution labels have a backlog at start (19k due after 2.3 days); 800 requests/day clears it in ~3 days.
 - Next: per-market signal feed for the website (owner-approved deploy), SHAP family attribution for LightGBM, more
   challengers from replicated effects after their embargoes, scored-capture caching to speed the daily scorer.
+
+## 16. Auxiliary feature families (2026-10-21, `aux.py`)
+
+The v1 store is write-once and pinned by every v1 spec, so new families do not go into `features/`. An auxiliary
+family writes its own write-once table `aux/<family>/<capture>.parquet`: one row per eligible market in the features
+file's row order. Parquet metadata: `aux_version`, the aligned `features_sha256`, `rows_sha256` of the snapshot rows
+read, `prev_capture_id`, write time and commit. A line also goes to `logs/aux-YYYYMMDD.jsonl`.
+- **Build:** `features` / `tick` run `aux.run_aux` after the base append, newest capture first, with a budget of
+  2 x max-items (minimum 4). So the newest capture has its aux tables before `predict`. A capture whose snapshot
+  rows were archived first never gets one (missing stays missing; counted as `unbuildable_no_rows`).
+- **Join:** `read_features` checks length and `market_id` order. A missing or misaligned table reads as NaN.
+  `attrs["aux_ok"]` (the join result, not the file's existence) sets `src_<family>` in training frames.
+- **Specs:** list the family in `families` and pin `aux_versions: {family: version}` (validated). v1 specs have no
+  pin and keep their sha.
+- **Comparability (science review 2026-10-21, finding 2):** `train.require_full_coverage: true` means a target is
+  fitted only when every labelled capture in its window joined the family (`insufficient_coverage` otherwise). The
+  aux challenger then never trains on a different, shorter or more recent, row set than the champion. Fits record
+  `aux_coverage`: captures, joined, and a sha256 of the joined capture list.
+- **Predictions:** an aux model's prediction is never written without its family (`aux_pending`, retried while the
+  capture is predictable). Predictions record `aux_sha256` per family. A missing prediction lowers that model's
+  coverage, which promotion check 6 sees.
+- **Causality:** a builder reads only the origin capture's own rows, the engine's own earlier quotes files, or
+  streams received before the capture start.
+- **Changing a family** means a new version string and new spec versions. Old tables are never rewritten.
+
+**First family `event` (`se-aux-event-v1`), challenger `se8_lr_event`.** Inputs: the capture's complete binary listing
+(open, active markets, including siblings that are not eligible themselves) and the previous slot's quotes file.
+- `ev_log_n`: log event size.
+- `ev_sum_mid_m1`: neg-risk events only; the sum of two-sided sibling mids minus 1. NaN if nothing is quoted.
+- `ev_quoted_share`: the share of the event's markets that are two-sided.
+- `ev_norm_gap`: own mid / sum minus own mid.
+- `ev_rank`: the own mid's rank among the quoted siblings.
+- `ev_max_other`: the largest quoted sibling mid.
+- `ev_sib_chg1h` / `ev_sib_chg1d`: the siblings' mean Gamma changes.
+- `ev_sib_d2h`: the siblings' mean own 2 h mid change, from the earlier quotes file.
+- Sibling means exclude the own market and skip missing values (never read as zero). Each needs a value for at
+  least half of the siblings.
+
+Events whose sibling rows were received more than 5 s apart are left NaN. On 2026-10-21 the intra-event receipt
+spread was median 0 s, p90 0.2 s and p99 201 s, and a sibling quote received minutes after a market's own row could
+carry part of that market's later move. This removes some large events selectively, so the score report should show
+coverage by event size (to do). Measured on a host capture (42,161 eligible): ev_log_n 90%, overround 44%, rank 79%,
+sib_chg1h 20%, sib_chg1d 56%, sib_d2h 71%. Build ~14 s per capture under load.
+
+Embargo: no token. E005 (neg-risk band deviation) closed 2026-10-11 as not supported. E019 was dropped uncounted.
+SB2-J5 is development only. `ev_sib_*` resembles SB2-J5's L1 and `ev_norm_gap` resembles E005's band deviation, so
+se8 is recorded in the ledger as a counted development look at both: any later live test of either must declare
+that it is not fresh.
