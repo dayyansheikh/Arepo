@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-21 16:21 UTC+1
+**Last updated:** 2026-10-21 17:10 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -19,6 +19,17 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
     "inconclusive" (the smallest effect it can detect, about 4 cents per dollar, is above the 3-cent bar it would need
     to rule out).
   - The test's code files are frozen until 7 Dec (noted in the project rules).
+- **NEW: a sixth group of planned live tests (LT6) passed its design review.** Four more ideas from the latest
+  new-ideas round:
+  - do quotes that refill after a move lean one way?
+  - do repeated same-size orders leave a footprint?
+  - do moves just after a market's deadline is extended behave differently?
+  - does a new sibling market wake up the older ones?
+
+  The independent challenger first asked for 12 changes. They were made and re-checked, and two last wording slips
+  were fixed. Next come the code and the counting checks; those decide which tests survive (probably 2 or 3).
+  Registration comes no earlier than 1 Nov, because one test must stay clear of LT4's data. Collection would run
+  about 16 Nov to 7 Dec.
 - **Bounce re-check (SB2-J4-R) finished: VOID.** Its own pre-set safety check (a shuffled-data placebo) failed for 2 of
   its 5 tests, so by its rules no verdict is read. The 5 tests stay counted. No new run is planned; it is low priority.
 - **LT3 (E015) is registered.** Collection 24 Oct to 14 Nov, single analysis after 15 Nov.
