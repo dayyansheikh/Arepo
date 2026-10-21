@@ -1,10 +1,11 @@
 {
  "id": "q0561_lt5_census_captures",
- "title": "LT5 censuses CF5 (F, alone or with the crowd), CHW (H, high-water mark) and CRW (R, the farmer's choice) on the complete captures of UTC 2026-10-20/21 (H look-back from 2026-10-13T00:31Z) and sweep 1 of those passes (DRAFT): counts only, origin-side fields only, no capture or sweep after the one classified, no target, no P&L; refuses unsealed or mismatched inputs",
+ "title": "LT5 censuses CF5 (F, alone or with the crowd), CHW (H, high-water mark) and CRW (R, the farmer's choice) on the complete captures of UTC 2026-10-20/21 (H's 96-slot look-back from 2026-10-12T00:31Z) and sweep 1 of those passes (DRAFT): counts only, origin-side fields only, no capture or sweep after the one classified, no target, no P&L; refuses unsealed or mismatched inputs",
  "family": "live_tests_5",
  "priority": 25,
  "expected_value": "F, H and R census gates (LIVE_TESTS_5.md section 8): perm strata, family exclusions, R's depth band; decides part of k before the pin",
  "data": [
+  "host originals ~/arepo/data-dumps/research_lab/{snapshots,book_sweeps} (read-only, under the seal)",
   "data-dumps/research_lab/live_tests5_census/restore (q0560; read-only)"
  ],
  "resources": {
@@ -23,9 +24,11 @@
   "--seal",
   "../docs/research_lab/seals/lt5_census_inputs_captures.json",
   "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--snapshot-root",
   "../data-dumps/research_lab/live_tests5_census/restore/data-dumps/research_lab/snapshots",
   "--sweep-root",
-  "../data-dumps/research_lab/live_tests5_census/restore/data-dumps/research_lab/book_sweeps",
+  "../data-dumps/research_lab/book_sweeps",
   "--work",
   "../data-dumps/research_lab/live_tests5_census/work_captures",
   "--out",
@@ -37,5 +40,5 @@
   "data-dumps/research_lab/live_tests5_census/CF5_CHW_CRW.json (counts only; the work dir is cleaned up at exit)"
  ],
  "next_action": "commit CF5_CHW_CRW.json and its sha256 (seals/), fill F/H/R perm_stratum, exclude_family, r.depth_band and the F/H/R entries of k_tests in the spec, record any drop in LIVE_TESTS_5.md 7.3 and the ledger",
- "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_5.md, design not yet reviewed; the script does not exist yet). Promote only after the challenger review of LIVE_TESTS_5.md, the code and its freeze check, and the committed seal. Every gate threshold is stated in LIVE_TESTS_5.md section 8 before this runs; nothing is re-tuned after it. Counts 0 (descriptive; no trials line). Reads the DRAFT spec unpinned; code_sha256 of the four LT5 hashed modules is written into the output. mem_mb is an estimate (one capture at a time plus H's 84-slot (market, mid) look-back as float32; LT3's comparable census was set at 1,200). R1 finding 9: at 1,500 MB this falls under the memory-heavy-jobs rule (never two multi-GB jobs at once), so it is exclusive (runs alone; the queue drains first). R1: H's units are one per market per UTC day (first complete capture); R's crossing-market gate and the renamed 'min-size depth present' gate; F's liquidity-tier gate and family DE. The seal must be committed before this runs."
+ "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_5.md, design not yet reviewed). Promote only after the challenger review of LIVE_TESTS_5.md, the code and its freeze check, and the committed seal. Every gate threshold is stated in LIVE_TESTS_5.md section 8 before this runs; nothing is re-tuned after it. Counts 0 (descriptive; no trials line). Reads the DRAFT spec unpinned; code_sha256 of the eleven hashed modules (LT5 plus imported dependencies) is written into the output. mem_mb is an estimate (one capture at a time plus H's 96-slot (market, mid) look-back as float32; LT3's comparable census was set at 1,200). R1 finding 9: at 1,500 MB this falls under the memory-heavy-jobs rule (never two multi-GB jobs at once), so it is exclusive (runs alone; the queue drains first). R1: H's units are one per market per UTC day (the 00:31Z slot's capture); R's crossing-market gate and the renamed 'min-size depth present' gate; F's liquidity-tier gate and family DE. The seal must be committed before this runs. Census code check: roots are repeatable (host originals first, then the q0560 restore tree); a sealed capture or sweep in a needed slot that is absent locally refuses the census; slots with no capture and nothing sealed are counted (missing_slots), never imputed. Must not overlap q0562 (q0562 depends on this)."
 }

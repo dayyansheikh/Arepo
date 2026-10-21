@@ -42,7 +42,9 @@ END_UTC = "2026-11-20T00:00:00Z"
 ANALYSIS_NOT_BEFORE = "2026-11-21T12:00:00Z"
 TEMPFAIL = 75
 DAY_S = 86400.0
-CODE_FILES = ("live_tests5.py", "live_tests5_analysis.py", "live_tests5_base.py", "bounce_decomp.py")
+CODE_FILES = ("live_tests5.py", "live_tests5_analysis.py", "live_tests5_base.py", "bounce_decomp.py",
+              # imported dependencies the censuses rely on (census code check finding 7)
+              "maker_rewards.py", "panel.py", "trade_sample.py", "cb17_census.py", "cb13_label.py", "economics.py", "forecast.py")
 _PIN_LINE = re.compile(r"^SPEC_SHA256 = .*$", re.M)
 X6_SCALE = 0.85782  # E013's x6 = clip(imb6, -1, 1) / 0.85782 (LIVE_TESTS_3.md 3, copied as a constant)
 
@@ -247,7 +249,7 @@ def path_fields(tr: pd.DataFrame, u: pd.DataFrame, n_returned: np.ndarray, token
     tr["t_p"] = tr["market_id"].astype(str).map(tk["t_p"]).astype(float)
     tr["tick"] = tr["market_id"].astype(str).map(tk["tick"]).astype(float)
     n = len(u)
-    out = {k: np.full(n, np.nan) for k in ("n_int", "levels", "g_path", "maxstep_share", "age", "oldest", "n_unknown_outcome")}
+    out = {k: np.full(n, np.nan) for k in ("n_int", "levels", "g_path", "maxstep_share", "age", "oldest", "n_unknown_outcome", "n_int_all", "n_int_not_minute")}
     grp = {m: g for m, g in tr.groupby(tr["market_id"].astype(str))}
     for i, m in enumerate(u["market_id"].astype(str)):
         g = grp.get(m)
@@ -260,6 +262,8 @@ def path_fields(tr: pd.DataFrame, u: pd.DataFrame, n_returned: np.ndarray, token
         pre = ts < tkk
         out["age"][i] = tkk - ts[pre].max() if pre.any() else np.nan
         inw = (ts >= tpp) & (ts < tkk)
+        out["n_int_all"][i] = float(inw.sum())
+        out["n_int_not_minute"][i] = float((np.mod(ts[inw], 60.0) != 0).sum())
         py = g["py"].to_numpy()[inw]
         out["n_unknown_outcome"][i] = float(np.isnan(py).sum())
         known = np.isfinite(py)
@@ -315,6 +319,8 @@ def path_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, feat: pd.DataFrame, tr:
     pf = path_fields(tr, j.reset_index(drop=True), nret, token0, spec)
     j = pd.concat([j.reset_index(drop=True), pf], axis=1)
     cnt["interval_truncated"] = int(j["interval_truncated"].sum())
+    cnt["interval_rows_all"] = int(np.nansum(j["n_int_all"]))
+    cnt["interval_rows_not_minute"] = int(np.nansum(j["n_int_not_minute"]))
     j = j[j["interval_truncated"] == 0]
     ok = j["n_int"] >= c["min_rows"]
     cnt["rows_below_min"] = int((~ok).sum())
@@ -353,7 +359,7 @@ def family_stats(units: pd.DataFrame, members: pd.DataFrame, spec: dict) -> pd.D
     rows = []
     for u in units.itertuples(index=False):
         res = {"level": "", "fam_id": "", "n_sib": 0, "xbar": np.nan, "share_moving": np.nan, "fam_abs": np.nan,
-               "t_dec": np.nan, "guard_loss": 0, "reason": ""}
+               "t_dec": np.nan, "guard_loss": 0, "reason": "", "n_negrisk_excluded": 0}
         cand = []
         if not int(u.neg_risk):
             ev = by_ev.get(str(u.event_id))
@@ -364,7 +370,9 @@ def family_stats(units: pd.DataFrame, members: pd.DataFrame, spec: dict) -> pd.D
             if se is not None:
                 s = se[se["market_id"] != str(u.market_id)]
                 if int(u.neg_risk):
-                    s = s[s["event_id"] != str(u.event_id)]
+                    same = s["event_id"] == str(u.event_id)
+                    res["n_negrisk_excluded"] = int(same.sum())
+                    s = s[~same]
                 cand.append(("series", "series:" + str(u.skey), s))
         any_pre_guard = False
         for level, fid, sib in cand:
@@ -524,8 +532,19 @@ def mid_matrix(series_by_slot: dict[int, pd.DataFrame | None], slots: list[int],
     return ids, M
 
 
+def max_gap(W: np.ndarray) -> np.ndarray:
+    """Longest run of consecutive non-qualifying (NaN) slots per row."""
+    out = np.zeros(W.shape[0], int)
+    run = np.zeros(W.shape[0], int)
+    for j in range(W.shape[1]):
+        run = np.where(np.isfinite(W[:, j]), 0, run + 1)
+        out = np.maximum(out, run)
+    return out
+
+
 def window_marks(M: np.ndarray, j_end: int, width: int) -> dict:
-    """hi, lo, age_hi, age_lo (slots before column ``j_end``) and the present count over columns j_end - width .. j_end - 1."""
+    """hi, lo, age_hi, age_lo (slots before column ``j_end``), the present count and the longest gap over columns
+    j_end - width .. j_end - 1."""
     W = M[:, j_end - width:j_end]
     present = np.isfinite(W).sum(axis=1)
     with np.errstate(all="ignore"):
@@ -537,7 +556,7 @@ def window_marks(M: np.ndarray, j_end: int, width: int) -> dict:
     age_hi = np.where(at_hi.any(axis=1), at_hi.argmax(axis=1) + 1, -1).astype(float)
     age_lo = np.where(at_lo.any(axis=1), at_lo.argmax(axis=1) + 1, -1).astype(float)
     age_hi[present == 0], age_lo[present == 0] = np.nan, np.nan
-    return {"hi": hi, "lo": lo, "age_hi": age_hi, "age_lo": age_lo, "present": present}
+    return {"hi": hi, "lo": lo, "age_hi": age_hi, "age_lo": age_lo, "present": present, "gap": max_gap(W)}
 
 
 def mark_classes(mid: np.ndarray, mk: dict, spec: dict) -> tuple[np.ndarray, np.ndarray]:
@@ -580,9 +599,12 @@ def mark_units(series_by_slot: dict, k: int, spec: dict) -> tuple[pd.DataFrame, 
     tprev = {k_: np.where(pos >= 0, v[np.clip(pos, 0, None)], np.nan) for k_, v in prev.items()}
     mid = ((j["bid"] + j["ask"]) / 2.0).to_numpy(float)
     mid_prev = np.where(pos >= 0, M[np.clip(pos, 0, None), len(slots) - 13], np.nan)
-    j = j.assign(mid=mid, hi=take["hi"], lo=take["lo"], age_hi=take["age_hi"], age_lo=take["age_lo"], present=take["present"])
-    ok_w = j["present"].to_numpy(float) >= c["min_present"]
-    cnt["hwm_incomplete"] = int((~ok_w).sum())
+    j = j.assign(mid=mid, hi=take["hi"], lo=take["lo"], age_hi=take["age_hi"], age_lo=take["age_lo"], present=take["present"], gap=take["gap"])
+    inc = ~(j["present"].to_numpy(float) >= c["min_present"])
+    gap = ~inc & (j["gap"].to_numpy(float) > c["max_gap_slots"])  # section 5: a gap of > 12 consecutive slots in the window
+    ok_w = ~inc & ~gap
+    cnt["hwm_incomplete"] = int(inc.sum())
+    cnt["hwm_gap"] = int(gap.sum())
     with np.errstate(invalid="ignore"):
         rng_ok = (j["hi"] - j["lo"]).to_numpy(float) >= c["min_range"] - 1e-12
         mid_known = np.isfinite(mid_prev)
@@ -606,16 +628,26 @@ def mark_units(series_by_slot: dict, k: int, spec: dict) -> tuple[pd.DataFrame, 
 
 
 def d_hi_panel(series_by_slot: dict, census_slots: list[int], spec: dict) -> pd.DataFrame:
-    """d_hi at every census slot (descriptive: the within-market SD gate of CHW) for non-sports tight markets."""
+    """d_hi at every census slot with a capture (the within-market SD gate of CHW), on H's population at that slot
+    (census code check finding 3): non-sports, two-sided and tight at k - 1 and k, end > t + 3 h, mid in [0.05, 0.95]."""
     c = spec["h"]
     w = int(c["window_slots"])
     slots = list(range(min(census_slots) - w, max(census_slots) + 1))
     ids, M = mid_matrix(series_by_slot, slots, spec["eligibility"]["spread_max"])
+    present_all = np.isfinite(M).sum(axis=1)
     out = []
     for k in census_slots:
+        ser_k, ser_p = series_by_slot.get(k), series_by_slot.get(k - 1)
+        if ser_k is None or ser_p is None:
+            continue
+        j, _ = b.move_join(ser_k, ser_p, {"id": "", "dir": None}, spec, c["mid_lo"], c["mid_hi"], spec["move"]["end_margin_h"])
+        keep = set(j.loc[j["sports"] == 0, "market_id"].astype(str))
         jj = slots.index(k)
         mk = window_marks(M, jj, w)
-        out.append(pd.DataFrame({"market_id": ids, "d_hi": mk["hi"] - M[:, jj], "present_all": np.isfinite(M).sum(axis=1)}))
+        d = pd.DataFrame({"market_id": ids, "d_hi": mk["hi"] - M[:, jj], "present_all": present_all})
+        out.append(d[d["market_id"].isin(keep)])
+    if not out:
+        return pd.DataFrame(columns=["market_id", "d_hi", "present_all"])
     P = pd.concat(out, ignore_index=True)
     return P[np.isfinite(P["d_hi"])]
 
@@ -691,11 +723,81 @@ def rule_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame | None, sw_k: pd.DataFra
 # --- census drivers (counts only; sealed inputs) ---------------------------------------------------------------------
 
 
-def _scan(work: Path, snapshot_root: Path, sweep_root: Path | None, spec: dict) -> tuple[dict, dict]:
-    st = b.State(Path(work))
-    by_slot = b.scan_captures(snapshot_root, st, spec)
-    sweeps = b.scan_sweeps(sweep_root, st) if sweep_root is not None else {}
+def _roots(r) -> list[Path]:
+    return [Path(x) for x in (r if isinstance(r, (list, tuple)) else [r])] if r is not None else []
+
+
+def _scan(work: Path, snapshot_roots, sweep_roots, spec: dict) -> tuple[dict, dict]:
+    """Complete captures by slot and sweep 1 by snapshot id over several roots (the host's originals and a restore tree,
+    census code check finding 1). Each root is scanned with its own cache; per slot the earliest-starting complete capture
+    wins (the vendored rule), per snapshot id the first root that holds a sweep 1."""
+    by_slot: dict[int, dict] = {}
+    sweeps: dict[str, dict] = {}
+    for i, r in enumerate(_roots(snapshot_roots)):
+        for k, c in b.scan_captures(r, b.State(Path(work) / f"scan_snap{i}"), spec).items():
+            if k not in by_slot or c["start"] < by_slot[k]["start"]:
+                by_slot[k] = c
+    for i, r in enumerate(_roots(sweep_roots)):
+        for sid, v in b.scan_sweeps(r, b.State(Path(work) / f"scan_sweep{i}")).items():
+            sweeps.setdefault(sid, v)
     return by_slot, sweeps
+
+
+def _name_time(name: str) -> float:
+    """Start time from a capture / sweep directory name ``YYYYMMDDTHHMMSSZ_...``; NaN if unparseable."""
+    m = re.match(r"^(\d{8})T(\d{6})Z", name)
+    if not m:
+        return float("nan")
+    d, t = m.groups()
+    return epoch(f"{d[:4]}-{d[4:6]}-{d[6:]}T{t[:2]}:{t[2:4]}:{t[4:]}Z")
+
+
+def sealed_dirs(seal: dict, sub: str) -> dict[str, list[str]]:
+    """{directory name: [sealed archive paths]} for ``data-dumps/research_lab/<sub>/<dir>/<file>`` entries of a seal."""
+    out: dict[str, list[str]] = {}
+    pre = f"data-dumps/research_lab/{sub}/"
+    for rel in seal.get("files", {}):
+        if rel.startswith(pre):
+            d = rel[len(pre):].split("/", 1)[0]
+            out.setdefault(d, []).append(rel)
+    return out
+
+
+def seal_completeness(seal: dict, by_slot: dict, sweeps: dict, cap_slots: set[int], sweep_slots: set[int], spec: dict,
+                      sweep_roots=None) -> dict:
+    """Census code check finding 1. (a) Every sealed capture or sweep whose start falls in a needed slot must be present
+    locally with every sealed file, else the census is refused ("sealed but absent"). (b) Every opened capture or sweep
+    file must itself be sealed with an equal sha256 (``verify_files``). (c) Needed slots with no local capture and no
+    sealed capture are genuinely missing: counted, never refused, never imputed."""
+    bad: list[dict] = []
+    local_caps = {c["id"]: c for c in by_slot.values()}
+    for d, rels in sealed_dirs(seal, "snapshots").items():
+        k = b.slot_of(_name_time(d), spec) if np.isfinite(_name_time(d)) else None
+        if k is None or k not in cap_slots:
+            continue
+        c = local_caps.get(d)
+        if c is None:
+            bad.append({"file": rels[0], "error": "sealed but absent locally (capture)"})
+            continue
+        for rel in rels:
+            if not (Path(c["dir"]) / rel.rsplit("/", 1)[1]).exists():
+                bad.append({"file": rel, "error": "sealed but absent locally"})
+    for d, rels in sealed_dirs(seal, "book_sweeps").items():
+        k = b.slot_of(_name_time(d), spec) if np.isfinite(_name_time(d)) else None
+        if k is None or k not in sweep_slots:
+            continue
+        home = next((Path(r) / d for r in _roots(sweep_roots) if (Path(r) / d).is_dir()), None)
+        for rel in rels:
+            if home is None or not (home / rel.rsplit("/", 1)[1]).exists():
+                bad.append({"file": rel, "error": "sealed but absent locally"})
+    files = [f for j in sorted(cap_slots) if j in by_slot for f in b.capture_files(by_slot[j]["dir"])]
+    files += [f for j in sorted(sweep_slots) if j in by_slot and by_slot[j]["id"] in sweeps
+              for f in b.sweep_files(sweeps[by_slot[j]["id"]]["dir"])]
+    bad += b.verify_files(seal, files)
+    sealed_slots = {b.slot_of(_name_time(d), spec) for d in sealed_dirs(seal, "snapshots") if np.isfinite(_name_time(d))}
+    missing = sorted(j for j in cap_slots if j not in by_slot and j not in sealed_slots)
+    return {"bad": bad, "missing_slots": [b.iso(b.slot_time(j, spec)) for j in missing], "n_missing_slots": len(missing),
+            "files_checked": len(files)}
 
 
 def _read(work: Path, by_slot: dict, j: int, cache: dict) -> pd.DataFrame | None:
@@ -706,29 +808,40 @@ def _read(work: Path, by_slot: dict, j: int, cache: dict) -> pd.DataFrame | None
     return cache[j]
 
 
-def census_captures(*, seal: Path, snapshot_root: Path = SNAPSHOT_ROOT, sweep_root: Path = SWEEP_ROOT, work: Path,
+def census_slots(days: list[str], spec: dict) -> list[int]:
+    """Every grid slot whose slot time falls on one of the UTC ``days`` (present or not)."""
+    out = []
+    for d in days:
+        t0 = epoch(f"{d}T00:00:00Z")
+        k0 = b.slot_of(t0 + 31 * 60, spec)
+        out += [k0 + i for i in range(12)]
+    return sorted(out)
+
+
+def census_captures(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, sweep_root=SWEEP_ROOT, work: Path,
                     days: list[str] | None = None, spec: dict | None = None, verify: bool = True) -> dict:
-    """CF5 (F), CHW (H) and CRW (R) on the complete captures of the census ``days`` (with H's 96-slot look-back) and
-    sweep 1 of the census passes and of slot k - 1. Every opened capture and sweep file is checked against the seal
-    first; any mismatch refuses the whole census (L3)."""
+    """CF5 (F), CHW (H) and CRW (R) on the grid slots of the census ``days`` with H's 96-slot look-back and sweep 1 of the
+    census passes and of the pass before the first. ``snapshot_root`` / ``sweep_root`` may be lists (the host originals
+    and a restore tree). Before anything is parsed, every sealed capture or sweep in the needed slot range must be
+    present locally and every file to be opened must be sealed with an equal sha256, else the census is refused; slots
+    with no capture and no sealed capture are counted as missing (census code check finding 1). Nothing after the last
+    census slot is opened."""
     spec = spec or load_spec(sha=None)
-    ci = spec["census_inputs"]
-    days = days or ci["capture_days_utc"]
+    days = days or spec["census_inputs"]["capture_days_utc"]
     work = Path(work)
     by_slot, sweeps = _scan(work, snapshot_root, sweep_root, spec)
-    ks = b._days_of(by_slot, days)
+    K = census_slots(days, spec)
+    ks = [k for k in K if k in by_slot]
     if not ks:
         return {"error": "no census captures", "days": days}
     w = int(spec["h"]["window_slots"])
-    need = sorted({j for k in ks for j in range(k - 1, k + 1) if j in by_slot}
-                  | {j for k in ks if is_day_origin(k, spec) for j in range(k - w - 12, k + 1) if j in by_slot})
-    files = [f for j in need for f in b.capture_files(by_slot[j]["dir"])]
-    sw_need = sorted({j for k in ks for j in (k - 1, k) if j in by_slot and by_slot[j]["id"] in sweeps})
-    files += [f for j in sw_need for f in b.sweep_files(sweeps[by_slot[j]["id"]]["dir"])]
-    if verify:
-        bad = b.verify_files(json.loads(Path(seal).read_text()), files)
-        if bad:
-            return {"error": "input identity check failed (L3): census refused", "bad": bad[:50], "n_bad": len(bad)}
+    origins = [k for k in K if is_day_origin(k, spec)]
+    cap_slots = set(range(min(K) - 1, max(K) + 1)) | set(range(min(K) - w, max(K) + 1)) | {j for k in origins for j in range(k - w - 12, k + 1)}
+    sweep_slots = set(range(min(K) - 1, max(K) + 1))
+    comp = seal_completeness(json.loads(Path(seal).read_text()), by_slot, sweeps, cap_slots, sweep_slots, spec, sweep_root) if verify else {}
+    if verify and comp["bad"]:
+        return {"error": "input identity check failed (L3): census refused", "bad": comp["bad"][:50], "n_bad": len(comp["bad"])}
+    need = sorted(j for j in cap_slots if j in by_slot)
     for j in need:
         write_series(work, by_slot[j], spec)
     cache: dict = {}
@@ -769,10 +882,12 @@ def census_captures(*, seal: Path, snapshot_root: Path = SNAPSHOT_ROOT, sweep_ro
     Fd = pd.concat(F, ignore_index=True) if F else pd.DataFrame()
     Hd = pd.concat(H, ignore_index=True) if H else pd.DataFrame()
     Rd = pd.concat(R, ignore_index=True) if R else pd.DataFrame()
-    census_ks = [k for k in ks]
-    sbs_all = {j: _read(work, by_slot, j, {}) for j in range(min(census_ks) - w, max(census_ks) + 1)}
-    P = d_hi_panel(sbs_all, census_ks, spec)
+    sbs_all = {j: _read(work, by_slot, j, {}) for j in range(min(K) - w, max(K) + 1)}
+    P = d_hi_panel(sbs_all, ks, spec)
+    h_missing = [b.iso(b.slot_time(k, spec)) for k in origins if k not in by_slot]
     return {"days": days, "captures": [by_slot[k]["id"] for k in ks], "per_capture": per_cap, "inputs_verified": bool(verify),
+            "missing_slots": comp.get("missing_slots"), "n_missing_slots": comp.get("n_missing_slots"), "h_origins_missing": h_missing,
+            "files_checked": comp.get("files_checked"),
             "CF5": census_f(Fd, spec, scale, days), "CHW": census_h(Hd, P, spec, scale, days, [r_["H"] for r_ in per_cap if "H" in r_]), "CRW": census_r(Rd, spec, scale, days)}
 
 
@@ -823,7 +938,7 @@ def census_f(U: pd.DataFrame, spec: dict, scale: float, days: list[str]) -> dict
            "mde_eff_c": mde, "perm_share": ps, "corr_common_parallel": cc, "corr_common_liq": cl, "crypto_share_common": crypto_common,
            "guard_loss_share": float(gl.sum() / max(int((U["level"] != "").sum() + gl.sum()), 1)),
            "formed_by_family_size": {str(k): int(v) for k, v in size_bucket.value_counts().items()},
-           "neg_risk_movers": int((U["neg_risk"] == 1).sum()), "events": int(pop["event_id"].nunique()), "families": int(pop["fam_id"].nunique())}
+           "neg_risk_movers": int((U["neg_risk"] == 1).sum()), "negrisk_siblings_excluded": int(U["n_negrisk_excluded"].sum()), "events": int(pop["event_id"].nunique()), "families": int(pop["fam_id"].nunique())}
     res["gate_F"] = b._gate({"idio_21d": res["idio_21d"] >= g["idio_21d"], "common_21d": res["common_21d"] >= g["common_21d"],
                              "corr_common_parallel": corr_ok(cc, g["corr_max"]), "crypto_common": bool(crypto_common <= g["crypto_common_max"]),
                              "guard_loss": bool(res["guard_loss_share"] <= g["guard_loss_max"]), "corr_liq": corr_ok(cl, g["corr_max"], both=True),
@@ -853,13 +968,14 @@ def census_h(U: pd.DataFrame, P: pd.DataFrame, spec: dict, scale: float, days: l
     hc = hc or []
     n_ns = sum(int(x.get("non_sports", 0)) for x in hc)
     inc_share = sum(int(x.get("hwm_incomplete", 0)) for x in hc) / n_ns if n_ns else float("nan")
+    gap_share = sum(int(x.get("hwm_gap", 0)) for x in hc) / n_ns if n_ns else float("nan")
     cr = wcorr(pop, "NR", "s_d24h")
     mshare = float(both_days.mean()) if len(pop) else float("nan")
     res = {"units": elig, "by_class": {str(k): int(v) for k, v in U["cls_h"].value_counts().items()}, "exclude_family": excl,
            "top_family_share": top, "near_21d": float(len(near) * scale), "far_21d": float(len(far) * scale), "near_eff_21d": n_eff,
            "far_eff_21d": f_eff, "design_effect": de, "mde_eff_c": mde, "crypto_share_near": crypto_near,
            "d_hi_sd_share": sd_share, "d_hi_sd_markets": len(sd_ok), "corr_near_sd24": cr, "market_strata_share": mshare,
-           "hwm_incomplete_share": inc_share}
+           "hwm_incomplete_share": inc_share, "hwm_gap_share": gap_share}
     res["gate_H"] = b._gate({"near_21d": res["near_21d"] >= g["near_21d"], "far_21d": res["far_21d"] >= g["far_21d"],
                              "crypto_near": bool(crypto_near <= g["crypto_near_max"]), "d_hi_sd": bool(sd_share >= g["sd_share_min"]),
                              "corr": corr_ok(cr, g["corr_max"]), "market_strata": bool(mshare >= g["perm_share_min"]),
@@ -874,7 +990,7 @@ def census_r(U: pd.DataFrame, spec: dict, scale: float, days: list[str]) -> dict
         return {"error": "no units", "gate_R": {"pass": False}}
     prim = U[U["primary_band"] == 1]
     rw, un = prim[prim["rewarded"] == 1], prim[prim["rewarded"] == 0]
-    ms = rw.loc[rw["inside"] == 1, "rew_maxspread"].dropna()
+    ms = rw["rew_maxspread"].dropna()  # all rewarded band units, both sides (census code check finding 2; section 6)
     band = "5c" if (len(ms) and float(ms.median()) >= g["band_rule_maxspread_c"]) else "1c"
     ic, dbc, dac = ("imb5", "dbid5", "dask5") if band == "5c" else ("imb1", "dbid1", "dask1")
     pop0 = rw[np.isfinite(rw[ic])].copy()
@@ -904,7 +1020,7 @@ def census_r(U: pd.DataFrame, spec: dict, scale: float, days: list[str]) -> dict
     minsize = ((ins[dbc] >= ins["rew_min"]) | (ins[dac] >= ins["rew_min"])) if len(ins) else pd.Series(dtype=bool)
     ms_share = float(minsize.mean()) if len(ins) else float("nan")
     ps = b.perm_share(pop, b.block_anchor(spec, days), int(spec["gates"]["perm_min_stratum"]))
-    res = {"units": len(U), "primary_band_units": len(prim), "depth_band": band, "rewards_max_spread_median_inside": float(ms.median()) if len(ms) else None,
+    res = {"units": len(U), "primary_band_units": len(prim), "depth_band": band, "rewards_max_spread_median_band": float(ms.median()) if len(ms) else None,
            "rewards_max_spread_quantiles": [float(x) for x in np.quantile(ms, [0.1, 0.25, 0.5, 0.75, 0.9])] if len(ms) else None,
            "exclude_family": excl, "top_family_share": top, "rewarded_inside_21d": nin * scale, "rewarded_outside_21d": nout * scale,
            "unrewarded_inside_21d": float((un["inside"] == 1).sum() * scale), "unrewarded_outside_21d": float((un["inside"] == 0).sum() * scale),
@@ -923,7 +1039,7 @@ def census_r(U: pd.DataFrame, spec: dict, scale: float, days: list[str]) -> dict
     return res
 
 
-def census_flow(*, seal: Path, capture_seal: Path, sample_roots: list[Path], snapshot_root: Path = SNAPSHOT_ROOT, work: Path,
+def census_flow(*, seal: Path, capture_seal: Path, sample_roots: list[Path], snapshot_root=SNAPSHOT_ROOT, work: Path,
                 spec: dict | None = None, verify: bool = True) -> dict:
     """CJ (J) and CO (O) on the sealed active-frame samples (LT3's C2 seal) with their captures k - 12 .. k (LT4's capture
     seal); refused on any mismatch. Trade rows with ts < the origin only; no target."""
@@ -947,18 +1063,20 @@ def census_flow(*, seal: Path, capture_seal: Path, sample_roots: list[Path], sna
             bad.append({"sample": sid, "error": "capture not found"})
             continue
         found[sid] = (sdir, k)
-        if verify:
-            bad += [{"sample": sid, **x} for j in range(k - 12, k + 1) if j in by_slot for x in b.verify_files(cseal, b.capture_files(by_slot[j]["dir"]))]
+    cap_slots = {j for _, k in found.values() for j in range(k - 12, k + 1)}
+    comp = seal_completeness(cseal, by_slot, {}, cap_slots, set(), spec) if verify else {}
+    bad += comp.get("bad", [])
     if bad:
         return {"error": "input identity check failed (L3): census refused", "bad": bad[:50], "n_bad": len(bad)}
     J, OV, per = [], [], []
-    tot = {"rows_interval": 0, "ts_not_minute": 0}
+    tot = {"rows_interval": 0, "ts_not_minute": 0, "samples_skipped": 0}
     for sid, (sdir, k) in found.items():
         for j in range(k - 12, k + 1):
             if j in by_slot:
                 write_series(work, by_slot[j], spec)
         if k - 1 not in by_slot:
             per.append({"sample": sid, "skipped": "no previous slot"})
+            tot["samples_skipped"] += 1
             continue
         sbs = {j: b.read_series(work, by_slot[j]["id"]) if j in by_slot else None for j in range(k - 12, k + 1)}
         feat, tr = b.load_sample(sdir)
@@ -969,17 +1087,15 @@ def census_flow(*, seal: Path, capture_seal: Path, sample_roots: list[Path], sna
         ou, oc = overhang_units(sbs[k], sbs, k, feat, tr, tok, by_slot[k], spec)
         ou["day"], ou["sample_id"] = sid[:8], sid
         OV.append(ou)
-        tot["rows_interval"] += int(ju["n_int"].sum()) if len(ju) else 0
+        tot["rows_interval"] += int(jc.get("interval_rows_all", 0))
+        tot["ts_not_minute"] += int(jc.get("interval_rows_not_minute", 0))
         per.append({"sample": sid, "J": jc, "O": oc})
-        ts = pd.to_numeric(tr["ts"], errors="coerce").to_numpy(float)
-        tot["ts_not_minute"] += int((np.mod(ts[np.isfinite(ts)], 60.0) != 0).sum())
-        tot["rows_all"] = tot.get("rows_all", 0) + int(np.isfinite(ts).sum())
     Jd = pd.concat(J, ignore_index=True) if J else pd.DataFrame()
     Od = pd.concat(OV, ignore_index=True) if OV else pd.DataFrame()
     days = sorted({str(s_)[:8] for s_ in sl["samples"]})
     scale = 21.0 / max(len(days), 1)
-    n_samples = len(found)
-    return {"seal": str(seal), "capture_seal": str(capture_seal), "inputs_verified": bool(verify), "samples": n_samples, "per_sample": per,
+    n_samples = len(found) - tot["samples_skipped"]  # samples actually used (census code check finding 1)
+    return {"missing_capture_slots": comp.get("missing_slots"), "seal": str(seal), "capture_seal": str(capture_seal), "inputs_verified": bool(verify), "samples": n_samples, "per_sample": per,
             "totals": tot, "CJ": census_j(Jd, spec, scale, days, n_samples, per, tot), "CO": census_o(Od, spec, scale, days, n_samples, trunc24_share(per))}
 
 
@@ -997,7 +1113,7 @@ def census_j(U: pd.DataFrame, spec: dict, scale: float, days: list[str], n_sampl
     js, gs = float((U["cls_j"] == "jump").mean()), float((U["cls_j"] == "grind").mean())
     jumps = U[U["cls_j"] == "jump"]
     j001 = float((np.abs(jumps["tick"] - 0.01) <= 1e-12).mean()) if len(jumps) else float("nan")
-    traded = sum(int(p_.get("J", {}).get("at_coverage", 0)) for p_ in per)
+    traded = sum(int(p_.get("J", {}).get("sampled_traded", 0)) for p_ in per)  # section 8: of traded sampled movers
     trunc = sum(int(p_.get("J", {}).get("interval_truncated", 0)) for p_ in per)
     trunc_share = trunc / traded if traded else float("nan")
     eff = b._eff(pop) if len(pop) else pd.Series(dtype=bool)
@@ -1006,7 +1122,7 @@ def census_j(U: pd.DataFrame, spec: dict, scale: float, days: list[str], n_sampl
     mde = mde_class(nj, ng, a["sd_J"], de["DE_gate"], a) * 100.0
     ps = b.perm_share(pop, b.block_anchor(spec, days), int(spec["gates"]["perm_min_stratum"]))
     cf, cn, cl = wcorr(pop, "JP", "fresh"), wcorr(pop, "JP", "log1p_n_int"), wcorr(pop, "JP", "log1p_liq")
-    tsn = tot["ts_not_minute"] / tot["rows_all"] if tot.get("rows_all") else float("nan")
+    tsn = tot["ts_not_minute"] / tot["rows_interval"] if tot.get("rows_interval") else float("nan")
     res = {"qualifying": len(U), "qualifying_per_pass": per_pass, "jump_share": js, "grind_share": gs, "jumps_tick_0.01_share": j001,
            "interval_truncated_share": trunc_share, "exclude_family": excl, "top_family_share": top, "jump_eff_21d": nj, "grind_eff_21d": ng,
            "design_effect": de, "mde_eff_c": mde, "perm_share": ps, "corr_jump_fresh": cf, "corr_jump_nint": cn, "corr_jump_liq": cl,

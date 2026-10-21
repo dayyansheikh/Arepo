@@ -52,8 +52,8 @@ def main(argv: list[str] | None = None) -> int:
     c = sub.add_parser("census-captures")
     c.add_argument("--seal", type=Path, default=SEALS / "lt5_census_inputs_captures.json")
     c.add_argument("--work", type=Path, required=True)
-    c.add_argument("--snapshot-root", type=Path, default=lt.SNAPSHOT_ROOT)
-    c.add_argument("--sweep-root", type=Path, default=lt.SWEEP_ROOT)
+    c.add_argument("--snapshot-root", type=Path, action="append", help="repeatable: host originals and a restore tree (default: the host root)")
+    c.add_argument("--sweep-root", type=Path, action="append", help="repeatable (default: the host root)")
     c.add_argument("--day", action="append", default=None, help="UTC day (default: the spec census days)")
     c.add_argument("--out", type=Path, default=None)
     c.add_argument("--keep-work", action="store_true")
@@ -62,12 +62,13 @@ def main(argv: list[str] | None = None) -> int:
     f.add_argument("--sample-seal", type=Path, default=SEALS / "lt3_census_inputs_C2.json")
     f.add_argument("--capture-seal", type=Path, default=SEALS / "lt4_census_inputs_captures.json")
     f.add_argument("--sample-root", type=Path, action="append", required=True, help="restored trade_samples dir(s), searched in order")
-    f.add_argument("--snapshot-root", type=Path, default=lt.SNAPSHOT_ROOT)
+    f.add_argument("--snapshot-root", type=Path, action="append", help="repeatable (default: the host root)")
     f.add_argument("--work", type=Path, required=True)
     f.add_argument("--out", type=Path, default=None)
     f.add_argument("--keep-work", action="store_true")
     f.add_argument("--data-dumps-cap-gb", type=float, default=None)
     z = sub.add_parser("size-check")
+    z.add_argument("--dev", action="store_true", help="DEVELOPMENT ONLY: allow --worlds/--draws overrides; the output is marked dev and is never the registered statement")
     z.add_argument("--worlds", type=int, default=None)
     z.add_argument("--draws", type=int, default=None)
     z.add_argument("--out", type=Path, default=None)
@@ -80,16 +81,21 @@ def main(argv: list[str] | None = None) -> int:
         print(f"data-dumps above {args.data_dumps_cap_gb} GiB: not now")
         return lt.TEMPFAIL
     if args.cmd == "census-captures":
-        res = lt.census_captures(seal=args.seal, snapshot_root=args.snapshot_root, sweep_root=args.sweep_root, work=args.work, days=args.day)
+        res = lt.census_captures(seal=args.seal, snapshot_root=args.snapshot_root or [lt.SNAPSHOT_ROOT],
+                                 sweep_root=args.sweep_root or [lt.SWEEP_ROOT], work=args.work, days=args.day)
     elif args.cmd == "census-flow":
         res = lt.census_flow(seal=args.sample_seal, capture_seal=args.capture_seal, sample_roots=args.sample_root,
-                             snapshot_root=args.snapshot_root, work=args.work)
+                             snapshot_root=args.snapshot_root or [lt.SNAPSHOT_ROOT], work=args.work)
     else:
         from astrolabe.research_lab import live_tests5_analysis as la
 
-        sc = lt.load_spec(sha=None)["size_check"]
+        spec = lt.load_spec(sha=None)
+        sc = spec["size_check"]
+        if (args.worlds is not None or args.draws is not None) and not args.dev:
+            print("refusing --worlds/--draws without --dev: the binding run uses the spec values (census code check finding 6)")
+            return 2
         res = la.size_check(worlds=args.worlds or sc["worlds"], draws=args.draws or sc["draws"], seed=sc["seed"], nominal=sc["nominal"],
-                            binding=sc["scenarios"])
+                            binding=sc["scenarios"], spec_sha256=spec["_sha256"], dev=args.dev)
         return _write_out(args.out, json.dumps(res, sort_keys=True, indent=1, default=lt._json))
     res["code_sha256"] = lt.code_hashes()
     if not args.keep_work:

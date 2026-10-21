@@ -15,7 +15,7 @@
  "k_tests": null,
  "k_tests_rule": "the tests whose census gate passes (section 8); fixed at registration, never changed; a size-scenario failure sets only its own tests to p = 1 (1.8)",
  "code_sha256": null,
- "code_sha_rule": "normalised sha256 (SPEC_SHA256 line excluded) of live_tests5.py, live_tests5_analysis.py, live_tests5_base.py, bounce_decomp.py",
+ "code_sha_rule": "normalised sha256 (SPEC_SHA256 line excluded) of live_tests5.py, live_tests5_analysis.py, live_tests5_base.py, bounce_decomp.py and the imported dependencies maker_rewards.py, panel.py, trade_sample.py, cb17_census.py, cb13_label.py, economics.py, forecast.py (census code check finding 7)",
  "grid": {
   "grid0_utc": "2026-10-01T00:31:00Z",
   "grid_s": 7200,
@@ -95,7 +95,8 @@
   "mid_hi": 0.95,
   "exclude_family": null,
   "perm_stratum": "market",
-  "rule": "origin = the 00:31Z slot of each UTC day only; mark over slots k-84..k-1 with spread <= 0.10; state change since k-12 (mid, hi or lo); unknown previous state excluded"
+  "rule": "origin = the 00:31Z slot of each UTC day only; mark over slots k-84..k-1 with spread <= 0.10; state change since k-12 (mid, hi or lo); unknown previous state excluded",
+  "max_gap_slots": 12
  },
  "r": {
   "population": "rewarded",
@@ -278,5 +279,7 @@
   "CH188": "map first",
   "CH186": "engine-first",
   "CH189": "engine-first"
- }
+ },
+ "vendored_source_drift_accepted": {},
+ "vendored_source_drift_rule": "a vendored source file whose sha256 differs from live_tests5_base.VENDORED fails the provenance test unless an entry {file: {sha256, reason, date}} is recorded here (an explicit re-vendor decision; census code check finding 10)"
 }

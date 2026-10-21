@@ -524,8 +524,10 @@ table's order, one generator).
 - **Economics.** (a) Reported taker buy within 1c below a >= 3-day high in >= $100k markets (sell within 1c above a low), 24 h hold,
   against the 2.9c hurdle. (b) Maker: near the high, no asks at the mark; near the low, no bids; gross `u` by class, "gross, no
   fills". (c) Hold-to-resolution passive entry is an engine (`res_7d`) question, not reported here.
-- **Missing data.** As 1.5; `hwm_incomplete` counted; a market whose look-back holds a gap of more than 12 consecutive slots is
-  excluded for 84 slots after the gap (counted).
+- **Missing data.** As 1.5; `hwm_incomplete` counted; a unit whose 84-slot window holds a run of more than 12 consecutive
+  missing slots is excluded as `hwm_gap` (counted separately from `hwm_incomplete`; section 17). This is the earlier wording
+  "excluded for 84 slots after the gap" stated on the window itself: the mark is a function of the window's slots only, so a gap
+  that ends before the window has no effect, and a gap straddling the window's start counts by its in-window part.
 
 ## 6. R: the farmer's choice (CH183)
 
@@ -710,16 +712,16 @@ scripts they name do not exist yet. Each counts 0.
   4. `<kind>/outcomes/<id>.h<j>.csv.gz` and `.s<j>.csv.gz` (status and quote at slots k + 1, k + 3, k + 12; sweep-1 quote of
      passes k + 1, k + 3);
   5. `passes.jsonl`.
-  An install-time `backfill-series` subcommand writes `series/` for the 84 slots before `REGISTERED_UTC` from raw captures still
-  on the host (lines marked `lookback`, never units). Collection of a kind is switched off when its test is not in `k_tests`
+  An install-time `backfill-series` subcommand writes `series/` for the 96 slots before the first H origin (k - 96 .. k - 1:
+  the day's 7-day mark and the previous day's, section 5; census code check finding 9) from raw captures still on the host (lines marked `lookback`, never units). Collection of a kind is switched off when its test is not in `k_tests`
   (LT3 13.16 fix 2).
 - `backend/astrolabe/research_lab/live_tests5_analysis.py`: the single analysis (1.7-1.10, Holm over k, counting), the size check
   (1.8).
 - `backend/scripts/run_live_tests5.py`: `run`, `backfill-series`, `ops-stats`, `census-captures`, `census-flow`, `size-check`,
   `analyze`.
 - Spec `backend/astrolabe/research_lab/model_specs/live_tests5_v1.json`: every constant, k, seeds (estimators 20261141-45, gates
-  20261241-45, F's fake family 20261342, size check 20261147), dates, census scales, cuts and rules, the four-module
-  `code_sha256` map (`live_tests5.py`, `live_tests5_analysis.py`, `live_tests5_base.py`, `bounce_decomp.py`; section 16) and the imported sports-rule hash.
+  20261241-45, F's fake family 20261342, size check 20261147), dates, census scales, cuts and rules, the
+  `code_sha256` map (the LT5 modules and every imported dependency the census and reader rely on; eleven files, section 17) and the imported sports-rule hash.
 - `battery2.KIND_RULES["live_tests5"]` (fail-closed counting entry).
 
 ### 9.2 Resources, collection plan and install
@@ -728,7 +730,7 @@ scripts they name do not exist yet. Each counts 0.
 - **Memory (amended by R1 finding 8).** The measured reference is LT3's host dry run (ledger 2026-10-21, same cron command,
   `ulimit -v 983040`): **peak RSS 534 MB** in a 40-item backlog pass (13 min), 343 MB and 318 MB in the next passes, seconds and
   123 MB when nothing was new. LT5 reads at least as much per pass as LT3 (two captures' selected columns, one sidecar, one sweep,
-  one trade sample) plus H's look-back (84 compact series files of (market code, mid) as float32, about 4 million rows) and F's
+  one trade sample) plus H's look-back (96 compact series files of (market code, mid) as float32, about 4 million rows) and F's
   family join, so the planning figures are **peak 550-750 MB in a backlog pass and 350-500 MB in a steady-state pass**
   (estimates). The earlier "under 480 MB" was wrong and is withdrawn. Measures: `--max-items 12` (one day of backlog per run,
   which bounds the backlog peak), an address-space cap `ulimit -v 1572864` (1.5 GB, about twice the planned peak, as LT3's
@@ -748,8 +750,15 @@ scripts they name do not exist yet. Each counts 0.
 - **Fallback:** a queue reader (lane `net`, `mem_mb 800`, repeat; id assigned at install) only if the cron entry is not
   installed, **never both**. At 800 MB it loses the queue's blackout exemption (02:45-05:30Z), so the 02:31 pass would be read
   after its freeze deadline every day (a predictable late-loss of one pass in twelve); that is why cron is the install.
-- **Look-back backfill.** `backfill-series` runs once at install, at least 24 h before `REGISTERED_UTC` and before slot
-  `REGISTERED_UTC - 7 d` rotates off the host (8-day retention: by `REGISTERED_UTC + 1 d`). Installing is a host change under
+- **Look-back backfill (amended, census code check finding 9).** The first H origin is the 00:31Z slot of `REGISTERED_UTC`'s
+  day; its look-back is the 96 slots from `REGISTERED_UTC - 8 d`. The host keeps captures about 8 days (rows of 2026-10-13T02:31Z
+  were retired by 2026-10-21T09:48Z, i.e. after 8 d 7 h), so the margin is under a day and a late install loses look-back.
+  Plan: the reader is installed and `backfill-series` runs once at install time `t` with `REGISTERED_UTC - 72 h <= t <=
+  REGISTERED_UTC - 24 h`; it writes `lookback` lines for every slot from `REGISTERED_UTC - 8 d` to `t` from the host originals
+  (all still on the host at `t`: at most 7 d old then), and the installed reader writes the slots from `t`
+  to `REGISTERED_UTC` from its own passes (also `lookback`, never units). `backfill-series` reports every look-back slot it did
+  not find; a slot already rotated off is restored byte for byte from its data release if the catalogue holds it, else it stays
+  missing (never imputed) and the affected units are `hwm_incomplete` or `hwm_gap` (counted). Installing is a host change under
   the standing collection authorisation, done by the orchestrator.
 
 ### 9.3 Tests to be written (`backend/tests/unit/test_research_lab_live_tests5.py`, synthetic only)
@@ -1013,3 +1022,58 @@ The size check now has **12 binding scenarios** (q0563's title updated). Plannin
 
 **Ready for:** a `science-reviewer` freeze check of the census and size-check code against sections 1.8, 1.8.1, 8 and 15
 (before q0560-q0563 are promoted).
+
+## 17. Census code freeze check (2026-10-21; `reviews/LT5_CENSUS_CODE_CHECK_2026-10-21.md`, CENSUS_READY_WITH_FIXES)
+
+Every finding is applied; none changes a threshold, formula or gate. Where a choice was needed the conservative option was taken.
+
+1. **Completeness (MED).** `seal_completeness` runs before anything is parsed: a sealed capture or sweep (or any sealed file of
+   it, e.g. `rows_ext`) whose start falls in a needed slot and is absent locally **refuses** the census; every opened file must
+   be sealed with an equal sha256; a needed slot with no capture and nothing sealed is **genuinely missing**, counted in
+   `missing_slots` / `n_missing_slots` (and `h_origins_missing`), never imputed. The flow census uses the same check on its
+   capture seal, and samples it skips are counted in `samples_skipped`, not in `n_samples`.
+2. **R depth band (MED).** The census median of the rewards max spread is over **all rewarded band units** (inside and outside),
+   as section 6 states (`rewards_max_spread_median_band`); the inside-only median is gone.
+3. **CHW `d_hi` panel (MED).** The panel applies H's population filters (non-sports, mid band) through the same `move_join`
+   classification as the units; slots with a missing capture are skipped.
+4. **H gap rule (LOW).** Coded separately: `max_gap` over the unit's 84-slot window, spec `h.max_gap_slots = 12`, excluded as
+   `hwm_gap` (counted beside `hwm_incomplete`, census share `hwm_gap_share`). Section 5's wording is restated on the window.
+5. **J truncation denominator (LOW).** `interval_truncated_share` = truncated / sampled traded movers (section 8).
+6. **Size check fail-closed (LOW).** A binding map that lacks a scenario or names an unknown one raises; the runner refuses
+   `--worlds/--draws` without `--dev` (exit 2), a `--dev` output is marked `dev: true` and is never the size statement, and the
+   output records `spec_sha256`.
+7. **Hashed dependencies (LOW).** `CODE_FILES` now holds eleven files: the three LT5 modules, `bounce_decomp.py`,
+   `maker_rewards.py` (`parse_daily_rate`), `panel.py`, `trade_sample.py` (`TRADE_LIMIT`), `cb17_census.py`, `cb13_label.py`,
+   `economics.py` and `forecast.py`.
+8. **Statements (LOW).**
+   - F counts the same-neg-risk siblings it excludes (`n_negrisk_excluded`).
+   - O's census design computation (`design_ss`) drops rows with any NaN control, including a NaN `chg_1d` (1.5). This is
+     conservative: fewer rows give a larger design MDE, and the gate uses `max(declared, design)`.
+   - O's block gate counts `n_m` after the expanding-past demeaning has dropped each market's first unit (only rows with a
+     finite term, controls and target are shifted). A market therefore needs 17 units to reach 16 shiftable rows.
+9. **Stale text and plan (LOW).**
+   - H's look-back is 96 slots (sections 9.1 and 9.2; q0560/q0561).
+   - q0561 reads from 2026-10-12T00:31Z, and H's unit is the 00:31Z slot's capture.
+   - "Script does not exist yet" is removed from the drafts.
+   - The backfill plan is fixed for 8-day retention (9.2).
+   - q0562 (1,200 MB) now `depends_on` q0561 (1,500 MB, exclusive), so the two never overlap (memory-heavy-jobs rule).
+10. **Provenance (LOW).** The vendored-provenance test now **fails** when a source file changed since vendoring, unless the spec's
+    `vendored_source_drift_accepted` records that file's new sha256 (an explicit re-vendor decision); it is empty.
+11. **Look-ahead.** A test places a corrupt capture after the last census slot and shows the census neither opens it nor
+    writes a series for it.
+
+**Host check (read-only `ssh oracle ls`, 2026-10-21T09:48Z, `~/arepo/data-dumps/research_lab`).**
+- 106 capture directories for 10-12..10-21.
+- `rows.csv.gz` has been retired for all twelve of 10-12 and for 10-13T00:31/02:31.
+- 10-14T00:31..10:31 are absent.
+- 10-21 has a capture at 01:01:20, outside the 30-minute tolerance, so the 00:31 slot is missing; 02:31 is absent.
+- 36 sweep directories from 10-19T20 onwards, which include R's 10-19T22:31 pass.
+
+q0560 now restores only the 14 retired captures from `data-20261015-dsheikh`. q0561 reads the roots [host originals, restore
+tree]: a host directory without `rows.csv.gz` is not a complete capture, so the restored copy is used.
+- Seal sha256 sources: the release `files.sha256` where archived, else the host original at seal time (the source is recorded
+  per file).
+- Before promotion: re-list the host and add any slot that rotated off since. Check whether any release holds 10-14T00..10
+  (none is catalogued); otherwise those slots are genuinely missing and counted.
+
+**Tests:** 37 LT5 unit tests (synthetic only).

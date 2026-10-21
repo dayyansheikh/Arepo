@@ -50,17 +50,21 @@ def _segment(text: str, name: str) -> str:
 
 
 def test_vendored_provenance():
-    """Every vendored name equals its source up to the module prefixes; when the source file is unchanged since the copy,
-    the current source still hashes to the recorded value (R1 ruling 9)."""
+    """Every vendored name equals its source up to the module prefixes, and the source file is unchanged since the copy.
+    A changed source FAILS (census code check finding 10) unless an explicit re-vendor decision for that file is recorded
+    in the spec (``vendored_source_drift_accepted``); even then the function itself must still match its source."""
     pre = re.compile(r"\b(?:l3|la3|lt|l4|la4)\.")
     base_text = (HERE / "live_tests5_base.py").read_text()
+    accepted = lt.load_spec(sha=None).get("vendored_source_drift_accepted", {})
     assert len(b.VENDORED) >= 50
     for name, pv in b.VENDORED.items():
         mine = _segment(base_text, name)
         assert hashlib.sha256(pre.sub("", mine).encode()).hexdigest() == pv["normalised_sha256"], name
         src_text = (HERE / pv["source"]).read_text()
-        if hashlib.sha256(src_text.encode()).hexdigest() == pv["source_sha256"]:
-            assert hashlib.sha256(pre.sub("", _segment(src_text, name)).encode()).hexdigest() == pv["normalised_sha256"], name
+        cur = hashlib.sha256(src_text.encode()).hexdigest()
+        if cur != pv["source_sha256"]:
+            assert accepted.get(pv["source"], {}).get("sha256") == cur, f"{pv['source']} changed since vendoring: re-vendor or record the drift"
+        assert hashlib.sha256(pre.sub("", _segment(src_text, name)).encode()).hexdigest() == pv["normalised_sha256"], name
 
 
 def test_vendored_constants_equal_sources():
@@ -80,7 +84,9 @@ def test_spec_dates_and_scenarios():
     assert spec["size_check"]["seed"] == 20261147 and spec["size_check"]["worlds"] == 2000
     names = list(la.scenario_table(np.random.default_rng(0), 9).keys())
     assert names == list(spec["size_check"]["scenarios"].keys()) and len(names) == 12
-    assert set(lt.CODE_FILES) == {"live_tests5.py", "live_tests5_analysis.py", "live_tests5_base.py", "bounce_decomp.py"}
+    assert {"live_tests5.py", "live_tests5_analysis.py", "live_tests5_base.py", "bounce_decomp.py", "maker_rewards.py", "panel.py",
+            "trade_sample.py", "cb17_census.py", "forecast.py"} <= set(lt.CODE_FILES)
+    assert all((HERE / f).exists() for f in lt.CODE_FILES)
     bad = dict(json.loads(lt.SPEC_PATH.read_text()), registered_utc="2026-10-31T00:00:00Z")
     p = Path(__import__("tempfile").mkdtemp()) / "s.json"
     p.write_text(json.dumps(bad))
@@ -487,3 +493,144 @@ def test_runner_refuses_overwrite_and_cap(tmp_path, monkeypatch):
     assert mod.main(["size-check", "--worlds", "1", "--draws", "3", "--out", str(out)]) == 1
     monkeypatch.setattr(mod, "_cap", lambda gb: True)
     assert mod.main(["census-flow", "--sample-root", str(tmp_path), "--work", str(tmp_path / "w"), "--data-dumps-cap-gb", "1"]) == lt.TEMPFAIL
+
+
+# --- census code check fixes (2026-10-21) -----------------------------------------------------------------------------------
+
+
+def _seal_with(w: dict, path: Path, extra: dict | None = None, drop: str | None = None) -> Path:
+    seal = json.loads((w["tmp"] / "cseal.json").read_text())
+    if drop:
+        seal["files"] = {k: v for k, v in seal["files"].items() if drop not in k}
+    seal["files"].update(extra or {})
+    path.write_text(json.dumps(seal))
+    return path
+
+
+def test_census_refuses_sealed_but_absent_and_counts_missing(world, tmp_path):
+    w = world
+    # a sealed capture in the look-back that is not on disk (e.g. rotated off the host): refused
+    ghost = (G0 + timedelta(hours=2 * 50, minutes=5)).strftime("%Y%m%dT%H%M%SZ") + "_ghost"
+    p = _seal_with(w, tmp_path / "g.json", {f"data-dumps/research_lab/snapshots/{ghost}/rows.csv.gz": {"sha256": "0" * 64}})
+    res = lt.census_captures(seal=p, snapshot_root=w["snap"], sweep_root=w["sweeps"], work=tmp_path / "w1", days=[CENSUS_DAY], spec=_spec())
+    assert "error" in res and any("absent" in x["error"] for x in res["bad"])
+    # a sealed rows_ext that is absent locally: refused, not silently dropped
+    cid = w["ids"][60]
+    extra = {f"data-dumps/research_lab/snapshots/{cid}/rows_ext_missing.csv.gz": {"sha256": "1" * 64}}
+    res2 = lt.census_captures(seal=_seal_with(w, tmp_path / "x.json", extra), snapshot_root=w["snap"], sweep_root=w["sweeps"],
+                              work=tmp_path / "w2", days=[CENSUS_DAY], spec=_spec())
+    assert "error" in res2
+    ok = lt.census_captures(seal=w["tmp"] / "cseal.json", snapshot_root=w["snap"], sweep_root=w["sweeps"], work=tmp_path / "w3", days=[CENSUS_DAY], spec=_spec())
+    assert ok["n_missing_slots"] == 0 and ok["h_origins_missing"] == [] and ok["files_checked"] > 0
+
+
+def test_census_genuinely_missing_slot_counted_and_multi_root(world, tmp_path):
+    """A slot with no capture and no sealed capture is counted, never refused; captures are found across two roots."""
+    import shutil
+
+    w = world
+    host, restore = tmp_path / "host", tmp_path / "restore"
+    host.mkdir()
+    restore.mkdir()
+    gone = w["ids"][30]
+    for k, cid in w["ids"].items():
+        if cid == gone:
+            continue
+        shutil.copytree(w["snap"] / cid, (restore if k < 40 else host) / cid)
+    seal = _seal_with(w, tmp_path / "s.json", drop=gone)
+    res = lt.census_captures(seal=seal, snapshot_root=[host, restore], sweep_root=w["sweeps"], work=tmp_path / "w", days=[CENSUS_DAY], spec=_spec())
+    assert "error" not in res and res["n_missing_slots"] == 1
+
+
+def test_census_opens_nothing_after_the_last_census_slot(world, tmp_path):
+    import shutil
+
+    w = world
+    snap = tmp_path / "snap"
+    shutil.copytree(w["snap"], snap)
+    late = (G0 + timedelta(hours=2 * 110)).strftime("%Y%m%dT%H%M%SZ") + "_late"
+    (snap / late).mkdir()
+    (snap / late / "rows.csv.gz").write_bytes(b"not a gzip file")
+    (snap / late / "manifest.json").write_text(json.dumps({"state": "complete", "started_utc": _iso(G0 + timedelta(hours=220))}))
+    res = lt.census_captures(seal=w["tmp"] / "cseal.json", snapshot_root=snap, sweep_root=w["sweeps"], work=tmp_path / "w", days=[CENSUS_DAY], spec=_spec())
+    assert "error" not in res
+    written = {p.name.split(".")[0] for p in (tmp_path / "w" / "series").glob("*.csv.gz")}
+    assert late not in written and w["ids"][107] in written
+    assert max(int(n.split("_")[1], 16) for n in written) == 107
+
+
+def test_r_depth_band_median_over_both_sides():
+    spec = _spec()
+    n = 40
+    U = pd.DataFrame({"market_id": [f"m{i % 8}" for i in range(n)], "event_id": [f"e{i % 8}" for i in range(n)], "skey": [f"event:e{i % 8}" for i in range(n)],
+                      "t_row": np.arange(n) * 7200.0, "primary_band": 1, "rewarded": 1.0, "inside": [i % 2 for i in range(n)],
+                      "rew_maxspread": [2.0 if i % 2 else 4.0 for i in range(n)], "imb1": np.linspace(-0.5, 0.5, n), "imb5": np.linspace(-0.5, 0.5, n),
+                      "dbid1": 10.0, "dask1": 10.0, "dbid5": 100.0, "dask5": 100.0, "rew_min": 50.0, "rf": np.linspace(-0.05, 0.05, n),
+                      "smid": 0.88, "sw_spread": 0.02, "sports": 0})
+    r = lt.census_r(U, spec, 10.5, [CENSUS_DAY])
+    assert r["rewards_max_spread_median_band"] == pytest.approx(3.0) and r["depth_band"] == "5c"  # inside-only median would be 2.0 -> 1c
+
+
+def test_h_gap_rule_counted_separately():
+    M = np.full((2, 90), 0.6)
+    M[1, 20:34] = np.nan  # 14 consecutive missing slots, still 70+ present? 84 - 14 = 70 < 72
+    M[0, 20:33] = np.nan  # 13 missing: 71 present -> incomplete
+    w = lt.window_marks(M, 89, 84)
+    assert w["gap"].tolist() == [13, 14]
+    M2 = np.full((1, 90), 0.6)
+    M2[0, 30:43] = np.nan  # 13 consecutive missing, 71 present: incomplete (counted as incomplete, not as a gap)
+    M3 = np.full((1, 120), 0.6)
+    M3[0, 60:72] = np.nan  # 12 consecutive missing in a long look-back: allowed (> 12 excludes)
+    assert lt.window_marks(M3, 119, 84)["gap"][0] == 12
+    assert lt.max_gap(np.array([[1.0, np.nan, np.nan, 1.0, np.nan]]))[0] == 2
+
+
+def test_family_negrisk_exclusion_counted():
+    spec = _spec()
+    mem = _members([("u", "N1", 0.04, 100.0, 1, "ser"), ("n1", "N1", -0.02, 100.0, 1, "ser"), ("n2", "N1", -0.02, 100.0, 1, "ser"),
+                    ("s1", "E7", 0.01, 100.0, 0, "ser"), ("s2", "E8", 0.0, 100.0, 0, "ser"), ("s3", "E9", 0.0, 100.0, 0, "ser")])
+    fs = lt.family_stats(mem.iloc[[0]].reset_index(drop=True), mem, spec)
+    assert fs.loc[0, "n_negrisk_excluded"] == 2 and fs.loc[0, "n_sib"] == 3
+
+
+def test_d_hi_panel_population_filters():
+    spec = _spec()
+    k = b.slot_of(lt.epoch("2026-10-20T00:31:00Z"), spec)
+    w = int(spec["h"]["window_slots"])
+    def ser(mid, sports):
+        return pd.DataFrame({"market_id": ["a", "s", "x"], "event_id": "e", "t_row": 0.0, "bid": [mid - 0.01, mid - 0.01, 0.97], "ask": [mid + 0.01, mid + 0.01, 0.99],
+                             "spread": 0.02, "ltp": np.nan, "vol24": 1.0, "end_ts": np.nan, "sports": [0, 1, 0], "skey": "event:e"}).set_index("market_id")
+    sbs = {j: ser(0.5, 1) for j in range(k - w, k + 1)}
+    P = lt.d_hi_panel(sbs, [k], spec)
+    assert set(P["market_id"]) == {"a"}  # the sports market and the mid-0.98 market are not in H's population
+
+
+def test_j_truncation_denominator_is_traded_sampled_movers():
+    per = [{"J": {"sampled_traded": 100, "at_coverage": 20, "interval_truncated": 4}}]
+    U = pd.DataFrame({"market_id": ["a"], "event_id": ["e"], "skey": ["event:e"], "t_row": [0.0], "cls_j": ["jump"], "tick": [0.01], "n_int": [3],
+                      "fresh": [1], "liq": [1e5], "sports": [0]})
+    r = lt.census_j(U, _spec(), 10.5, [CENSUS_DAY], 1, per, {"rows_interval": 3, "ts_not_minute": 3})
+    assert r["interval_truncated_share"] == pytest.approx(0.04)
+
+
+def test_size_check_fails_closed_on_binding_map():
+    with pytest.raises(ValueError):
+        la.size_check(worlds=1, draws=3, seed=1, binding={"s01_fl_binary_iid": ["J"]})
+    spec = lt.load_spec(sha=None)
+    bad = dict(spec["size_check"]["scenarios"])
+    bad.pop(sorted(bad)[0])
+    with pytest.raises(ValueError):
+        la.size_check(worlds=1, draws=3, seed=1, binding=bad)
+
+
+def test_runner_refuses_overrides_without_dev(tmp_path):
+    import importlib.util
+
+    spec_ = importlib.util.spec_from_file_location("run_lt5b", Path(lt.ROOT) / "backend" / "scripts" / "run_live_tests5.py")
+    mod = importlib.util.module_from_spec(spec_)
+    spec_.loader.exec_module(mod)
+    assert mod.main(["size-check", "--worlds", "1", "--draws", "3", "--out", str(tmp_path / "a.json")]) == 2
+    assert not (tmp_path / "a.json").exists()
+    assert mod.main(["size-check", "--dev", "--worlds", "1", "--draws", "3", "--out", str(tmp_path / "b.json")]) == 0
+    out = json.loads((tmp_path / "b.json").read_text())
+    assert out["dev"] is True and out["spec_sha256"] == lt.sha256_file(lt.SPEC_PATH)

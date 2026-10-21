@@ -14,7 +14,9 @@
   "lane": "cpu",
   "network": "none"
  },
- "depends_on": [],
+ "depends_on": [
+  "q0561_lt5_census_captures"
+ ],
  "argv": [
   "scripts/run_live_tests5.py",
   "census-flow",
@@ -37,5 +39,5 @@
   "data-dumps/research_lab/live_tests5_census/CJ_CO.json (counts only; the work dir is cleaned up at exit)"
  ],
  "next_action": "commit CJ_CO.json and its sha256 (seals/), fill the O scale, cuts and gap, J/O perm_stratum and exclude_family and the J/O entries of k_tests in the spec, record any drop in LIVE_TESTS_5.md 7.3 and the ledger",
- "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_5.md, design not yet reviewed; the script does not exist yet). No new seal: the same 23 samples LT3's C2 and LT4's CF read, and the LT4 capture seal (2026-10-14T22:31Z .. 10-17). CHECK BEFORE PROMOTION: whether the q0471 and q0480 restore trees still exist (both were to be cleared after their own registrations); if not, re-run identical restores into the same paths (same tags, globs and seals) and let the census re-hash every file. Every gate threshold is stated in LIVE_TESTS_5.md section 8 before this runs. Counts 0 (descriptive; no trials line). R1: J's MDE gate uses SD 5c (skip target k+1..k+3); J liquidity-tier gate; O's block-gate recurrence share (units in markets with >= 2 units in the census days >= 50%)."
+ "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_5.md, design not yet reviewed). No new seal: the same 23 samples LT3's C2 and LT4's CF read, and the LT4 capture seal (2026-10-14T22:31Z .. 10-17). CHECK BEFORE PROMOTION: whether the q0471 and q0480 restore trees still exist (both were to be cleared after their own registrations); if not, re-run identical restores into the same paths (same tags, globs and seals) and let the census re-hash every file. Every gate threshold is stated in LIVE_TESTS_5.md section 8 before this runs. Counts 0 (descriptive; no trials line). R1: J's MDE gate uses SD 5c (skip target k+1..k+3); J liquidity-tier gate; O's block-gate recurrence share (units in markets with >= 2 units in the census days >= 50%). Census code check finding 9: 1,200 MB, so it runs after q0561 (1,500 MB, exclusive), never alongside it (memory-heavy-jobs rule); depends_on q0561. Samples the census skips (missing capture or file) are counted in samples_skipped, not in n_samples."
 }

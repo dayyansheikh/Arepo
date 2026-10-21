@@ -228,20 +228,26 @@ def scenario_table(rng: np.random.Generator, draws: int) -> dict:
 
 
 def size_check(*, worlds: int, draws: int, seed: int, nominal: float = 0.05, binding: dict | None = None,
-               only: list[str] | None = None) -> dict:
+               only: list[str] | None = None, spec_sha256: str | None = None, dev: bool = False) -> dict:
     """Pass rate of each gate under its simulated nulls; limit nominal + 1.645 sqrt(nominal (1 - nominal) / worlds). The
     scenarios run in table order on one generator. ``binding`` maps scenario -> tests (spec ``size_check.scenarios``); a
     failing scenario sets only those tests to "SE check failed (size scenario)" (1.8). ``only`` (tests of the code) runs a
     subset and is never used for the registered statement."""
     binding = binding or lt.load_spec(sha=None)["size_check"]["scenarios"]
     rng = np.random.default_rng(seed)
+    table = scenario_table(rng, draws)
+    missing = [n for n in table if n not in binding or not binding[n]]
+    extra = [n for n in binding if n not in table]
+    if missing or extra:  # fail closed (census code check finding 6): every scenario maps to >= 1 test and vice versa
+        raise ValueError(f"size-check binding map mismatch: missing {missing}, unknown {extra}")
     lim = nominal + 1.645 * float(np.sqrt(nominal * (1 - nominal) / worlds))
-    out: dict = {"worlds": worlds, "draws": draws, "seed": seed, "limit": lim, "scenarios": {}}
-    for name, fn in scenario_table(rng, draws).items():
+    out: dict = {"worlds": worlds, "draws": draws, "seed": seed, "limit": lim, "scenarios": {}, "spec_sha256": spec_sha256,
+                 "dev": bool(dev or only is not None)}
+    for name, fn in table.items():
         if only is not None and name not in only:
             continue
         rej = sum(int(fn()) for _ in range(worlds))
-        out["scenarios"][name] = {"rate": rej / worlds, "ok": rej / worlds <= lim, "binding_for": binding.get(name, [])}
+        out["scenarios"][name] = {"rate": rej / worlds, "ok": rej / worlds <= lim, "binding_for": binding[name]}
     failed = sorted({t for v in out["scenarios"].values() if not v["ok"] for t in v["binding_for"]})
     out["se_check_failed_size_scenario"] = failed
     out["all_ok"] = not failed
