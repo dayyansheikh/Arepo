@@ -615,7 +615,19 @@ pass by more than 20x. No floor, materiality floor, gate, alpha, latency, window
 Recommended items done: freeze checks (eligible / skilled = 35,587 / 3,559 and max known outcome ts before
 2026-10-18T04:00Z, from spec `skill.expected`; the freeze refuses before writing on a mismatch and records the checks in
 the manifest); `uma_status` counts in the analysis output; descriptive secondaries (E026-C censoring bounds,
-leave-top-skilled-wallet-out R, eligible-not-skilled control subset). Not done: the overlapping-capture guard (captures
-run under the collector lock and have not overlapped; to be re-checked by the R1 re-check). The primary is
+leave-top-skilled-wallet-out R, eligible-not-skilled control subset). Not done: the overlapping-capture guard (whether captures
+can overlap is not yet verified; passed to the R1 re-check). The primary is
 equal-share (copies weighted by price); the equal-dollar ($100 per copy) mean is a secondary. Disclosed: the
 receipt-order wallet-day cap removes 56% of universe copies and favours early-UTC samples for high-volume wallets.
+
+**R1 re-check** (`reviews/E026_R1_RECHECK_2026-10-21.md`): **R1_FIXES_OK_WITH_NOTES**, no required item. Applied after it:
+- every recorder and labeller pass checks the running code against the pinned `code_sha256` and fails loudly
+  (`COPY_SKILLED_CODE_MISMATCH`, non-zero exit) instead of writing rows the analysis would drop;
+- a capture that is not complete yet and started less than 4 h ago blocks every later capture in the recorder, so an
+  entry always lands on the first capture starting at or after its due time even if captures ever overlapped (today
+  they cannot: `arepo_pass.sh` holds the collector `flock`);
+- the "frozen until 2026-12-07" note for the pinned shared modules goes into the ledger, CLAUDE.md and AGENTS.md with
+  the registration commit.
+Disclosed (not fixed): `prior_visible` sees only the current sample's rows, so a control wallet whose earlier trade in the
+market fell out of the sample can be matched as a first-seen open; rows dropped by trade normalisation do not count as
+prior trades.

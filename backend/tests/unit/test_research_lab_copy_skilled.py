@@ -992,3 +992,32 @@ def test_pending_items_exits_and_done_keys():
     assert got == {("b", "entry", 6 * H), ("a", "exit", 0.0)}  # b's one-sided entry has no exit; a's 6 h entry is done
     assert float(p[p["kind"] == "exit"]["due_ts"].iat[0]) == T0 + 100 + 24 * H
     assert int(p[p["kind"] == "exit"]["market_id"].iat[0]) == 1
+
+
+# --- R1 re-check notes: pinned-code check every pass; never skip past a capture still being written ---------------------
+def test_check_pinned_code_fails_loudly():
+    sp = spec()
+    cs.check_pinned_code(sp)  # draft: no check
+    good = {**sp, "_pinned": True, "code_sha256": cs.code_hashes()}
+    cs.check_pinned_code(good)
+    bad = {**good, "code_sha256": {**good["code_sha256"], "costs.py": "0" * 64}}
+    with pytest.raises(RuntimeError, match="COPY_SKILLED_CODE_MISMATCH"):
+        cs.check_pinned_code(bad)
+
+
+def test_running_capture_blocks_later_captures(tmp_path):
+    snaps, samples, prints, root, caps, _ = _tree(tmp_path)
+    now = T0 + 40 * H
+    # capture c3 is "still being written": its manifest is not complete and it started < 4 h before now
+    run_dir = next(p for p in snaps.iterdir() if p.name == caps[3])
+    m = json.loads((run_dir / "manifest.json").read_text())
+    (run_dir / "manifest.json").write_text(json.dumps({**m, "state": "running"}))
+    assert cs.running_capture_start(snaps, T0, now) == math.inf  # started long before now: a failed capture, ignored
+    t3 = cs.epoch(m["started_utc"])
+    now = t3 + 3 * 3600  # c4 (t3 + 2 h) is already complete while c3 is still being written
+    assert cs.running_capture_start(snaps, T0, now) == t3
+    cs.run_once(root=root, snapshot_root=snaps, sample_root=samples, prints_root=prints, spec=spec(), now=now,
+                max_items=1000, log=lambda s: None)
+    done = {p.name[:-7] for p in (root / "entries").glob("*.csv.gz")}
+    assert caps[3] not in done and caps[4] not in done  # c4 must wait for c3 (entries go to the FIRST capture after due)
+    assert set(caps[:3]) <= done

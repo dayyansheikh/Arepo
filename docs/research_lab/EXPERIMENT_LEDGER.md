@@ -3193,3 +3193,8 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   - Training subsamples are seeded by model id, so se1 and its learner-matched challengers draw different rows when
     the 300k cap binds. This existed before; a fix would change every model's fits, so it is left as a candidate for
     a v2 refit rule.
+- (~14:45Z) R1 fixes in d11ba0a0 (implementer) + R1 response `LIVE_TESTS_COPY.md` section 14. **R1 re-check:
+  R1_FIXES_OK_WITH_NOTES** (`reviews/E026_R1_RECHECK_2026-10-21.md`), no required item. Added before the pin: per-pass
+  pinned-code check (fails loudly) and a running-capture guard (test fails without it). Memory on a 7.3x synthetic
+  store: recorder <= 448 MB (q0541 mem_mb 480), labeller 302 MB (q0542 400), analysis 1,222 MB (q0543 1500); host
+  check by q0545. Next: q0545 result, then freeze q0540, pins, registration commit before 2026-10-24T00:00Z.

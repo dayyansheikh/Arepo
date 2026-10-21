@@ -133,6 +133,17 @@ def reader_sha() -> str:
     return hashlib.sha256((h["copy_skilled.py"] + h["wallet_skill.py"]).encode()).hexdigest()[:16]
 
 
+def check_pinned_code(spec: dict) -> None:
+    """Fail loudly (every pass) when a pinned spec's code hashes differ from the running code: rows written by other
+    code would be stamped with another ``code_sha`` and silently dropped at analysis."""
+    if not spec.get("_pinned"):
+        return
+    h, want = code_hashes(), spec.get("code_sha256") or {}
+    bad = [f for f in CODE_FILES if h.get(f) != want.get(f)]
+    if bad:
+        raise RuntimeError(f"COPY_SKILLED_CODE_MISMATCH: running code differs from the pinned hashes for {bad}")
+
+
 def load_spec(path: Path = SPEC_PATH, sha: str | None = SPEC_SHA256) -> dict:
     spec = json.loads(Path(path).read_text())
     got = sha256_file(path)
@@ -538,6 +549,29 @@ def scan_captures(snapshot_root: Path, lo: float) -> list[dict]:
     return sorted(caps, key=lambda c: c["start"])
 
 
+def running_capture_start(snapshot_root: Path, lo: float, now: float, max_age_s: float = 4 * 3600) -> float:
+    """Earliest start (>= lo) of a capture that is not complete yet but started less than ``max_age_s`` ago (still being
+    written). A later-starting complete capture must not take entries before it: the entry is the FIRST capture starting
+    at or after the due time. Older incomplete captures are failed ones and are ignored. ``inf`` if none."""
+    out = math.inf
+    for p in Path(snapshot_root).glob("*/manifest.json"):
+        try:
+            started = epoch(datetime.strptime(p.parent.name[:16], "%Y%m%dT%H%M%SZ").replace(tzinfo=UTC).isoformat())
+        except ValueError:
+            continue
+        if not math.isfinite(started) or started < lo - 3600 or now - started >= max_age_s:
+            continue
+        try:
+            m = json.loads(p.read_text())
+        except (OSError, ValueError):
+            m = {}
+        t = epoch(m.get("started_utc")) if m.get("started_utc") else started
+        t = t if math.isfinite(t) else started
+        if t >= lo and not (m.get("state") == "complete" and (p.parent / "rows.csv.gz").exists()):
+            out = min(out, t)
+    return out
+
+
 def scan_samples(sample_root: Path, lo: float, hi: float) -> list[dict]:
     """Active-frame trade samples with start in [lo, hi), in start order, with their manifest state."""
     out = []
@@ -730,6 +764,8 @@ def run_once(*, root: Path = OUT_ROOT, snapshot_root: Path = SNAPSHOT_ROOT, samp
     ``capture_hi`` and ``exits`` exist for the pre-window planning census only: no capture starting at or after
     ``capture_hi`` is opened, and with ``exits=False`` no fixed-horizon exit quote is recorded (entries only). The
     registered recorder uses the defaults."""
+    spec = spec or load_spec()
+    check_pinned_code(spec)
     root = Path(root)
     root.mkdir(parents=True, exist_ok=True)
     with open(root / ".lock", "w") as lk:
@@ -738,7 +774,7 @@ def run_once(*, root: Path = OUT_ROOT, snapshot_root: Path = SNAPSHOT_ROOT, samp
         except OSError:
             return {"tempfail": True, "reason": "locked"}
         return _run_locked(root=root, snapshot_root=snapshot_root, sample_root=sample_root, prints_root=prints_root,
-                           spec=spec or load_spec(), now=now if now is not None else now_ts(), max_items=max_items, log=log,
+                           spec=spec, now=now if now is not None else now_ts(), max_items=max_items, log=log,
                            capture_hi=capture_hi, exits=exits)
 
 
@@ -840,12 +876,13 @@ def _run_locked(*, root: Path, snapshot_root: Path, sample_root: Path, prints_ro
     if not exits and len(pend):
         pend = pend[pend["kind"] == "entry"]
     primary_l = float(spec["primary_latency_s"])
+    running_from = running_capture_start(snapshot_root, t0, now)  # never skip past a capture still being written
     for cap in scan_captures(snapshot_root, t0):
         if work >= max_items:
             break
         if (root / "entries" / f"{cap['id']}.csv.gz").exists():
             continue
-        if cap["start"] >= blocked_from or cap["start"] >= capture_hi:
+        if cap["start"] >= blocked_from or cap["start"] >= capture_hi or cap["start"] > running_from:
             break
         is_due = pend["due_ts"].to_numpy(float) <= cap["start"] if len(pend) else np.zeros(0, bool)
         due = pend[is_due] if len(pend) else pend
@@ -962,6 +999,7 @@ def label_resolutions(*, root: Path = OUT_ROOT, spec: dict | None = None, transp
     """Fetch Gamma records for signal markets without a final record (each market at most once per ``recheck_s``).
     Only rows with a final state are written (``resolutions/<pass>.csv.gz``, write-once). Stops after the cutoff."""
     spec = spec or load_spec()
+    check_pinned_code(spec)
     now = now_ts() if now is None else now
     root = Path(root)
     if now >= epoch(spec["label_cutoff_utc"]) + 86400:
