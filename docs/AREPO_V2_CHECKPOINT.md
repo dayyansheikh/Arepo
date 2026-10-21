@@ -257,9 +257,14 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
      2026-10-23T00:00Z**, install the §13.4 cron (never also the fallback job q0474_lt3_live_collect draft).
    - **MC1:** q0116e OOM-killed 07:10Z (4.93 GB). Not retried on this host; waits for the second instance or an
      owner-approved free resize (dashboard approval 7).
-   - **This session so far:** CB18 census code merged, checked (CENSUS_READY_WITH_FIXES -> FIXES_OK_WITH_NOTES) and
-     q0500-q0506 promoted (then `run_cb18.py routing`); q0280, q0347, q0380 promoted; deployed 1e8fcb35. LT5 draft on
-     `feat/live-tests-5` c4b09d73 (`LIVE_TESTS_5.md`, drafts q0560-q0563): challenger R1 running; merge after review.
+   - **LT5 (TIME-CRITICAL TONIGHT):** code merged (5c441957). q0560 restore and q0564 seal (not before 23:20Z) queued.
+     At ~23:30Z: when q0564 is done, `scp` its output `live_tests5_census/lt5_census_inputs_captures.json` to
+     `docs/research_lab/seals/lt5_census_inputs_captures.json` (byte copy; check sha256), commit, deploy, then promote
+     **q0561 before 2026-10-22T02:45Z** (it must read captures before the 03:30Z retention). After q0561: q0562, then q0563.
+     If missed: a new restore and seal, never a backfill.
+   - **This session also:** CB18 census code merged and checked (q0500-q0506 queued; restores raised to 1,200 MB after a gh
+     crash); q0280 done -> CB13 seal copy committed, q0281 promoted; q0347, q0380 (1,200 MB after MemoryError) promoted;
+     embargo requests applied by the signal engine (26f5f954).
    - **E026 copy-skilled:** another session is committing on feat/copy-skilled (c4f3549b, 09:56 +0100). Do not duplicate.
      Its census draft **q0544 must START before 2026-10-22T02:45Z** (10-18/19 samples retire 03:30Z). If nobody has
      promoted it by ~18:00Z, merge feat/copy-skilled and promote q0544.
