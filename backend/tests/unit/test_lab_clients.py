@@ -263,10 +263,11 @@ def test_host_whitelist_runs_exact_argv(monkeypatch, tmp_path):
     assert seen[0][1:] == [str(tmp_path / "scripts" / "oracle" / "queue_worker.py"), "resume"]
 
 
-def test_mac_whitelist(monkeypatch):
+def test_mac_whitelist(monkeypatch, tmp_path):
+    homes = {"autopilot": {"key": "autopilot", "label": "main", "home": tmp_path, "launch": None}}
     monkeypatch.setattr(lab_mac.subprocess, "run", lambda *a, **k: pytest.fail("subprocess must not run"))
     for target, action in [("autopilot", "stop"), ("queue", "pause"), ("autopilot", "tick"), ("autopilot", "pause --x")]:
-        ok, msg = lab_mac.run_whitelisted({"target": target, "action": action})
+        ok, msg = lab_mac.run_whitelisted({"target": target, "action": action}, homes)
         assert not ok and msg.startswith("rejected")
     seen = []
 
@@ -274,7 +275,7 @@ def test_mac_whitelist(monkeypatch):
         returncode, stdout, stderr = 0, "ok", ""
 
     monkeypatch.setattr(lab_mac.subprocess, "run", lambda argv, **k: seen.append(argv) or P())
-    assert lab_mac.run_whitelisted({"target": "autopilot", "action": "pause"})[0]
+    assert lab_mac.run_whitelisted({"target": "autopilot", "action": "pause"}, homes)[0]
     assert seen[0][1].endswith("scripts/autopilot/autopilot.py") and seen[0][2] == "pause"
 
 
