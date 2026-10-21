@@ -101,19 +101,39 @@ def batch_start(batch_id: str) -> float:
     return datetime.strptime(batch_id[:16], "%Y%m%dT%H%M%SZ").replace(tzinfo=UTC).timestamp()
 
 
-def read_batches(passes: Path) -> dict[str, list[float]]:
+def read_batches(passes: Path) -> dict:
     """Start times of the batches the census actually read with a usable source, per arm (sidecar: sample with a
-    complete wallet sidecar; large prints: every processed hour). Missing / retired samples are not counted."""
-    out: dict[str, list[float]] = {"sidecar": [], "large_prints": []}
+    complete wallet sidecar; large prints: every processed hour), plus the skipped-sample counts (``skipped``:
+    ``sidecar_incomplete`` = read but no usable sidecar, ``missing`` = never read: not complete or files retired)."""
+    out: dict = {"sidecar": [], "large_prints": [], "skipped": {"sidecar_incomplete": 0, "missing": 0}}
     if not passes.exists():
         return out
     for line in passes.read_text().splitlines():
         r = json.loads(line)
-        if r.get("kind") == "sample" and r.get("counts", {}).get("sidecar_status") == "complete":
-            out["sidecar"].append(batch_start(r["id"]))
+        if r.get("kind") == "sample":
+            if r.get("counts", {}).get("sidecar_status") == "complete":
+                out["sidecar"].append(batch_start(r["id"]))
+            else:
+                out["skipped"]["sidecar_incomplete"] += 1
+        elif r.get("kind") == "sample_missing":
+            out["skipped"]["missing"] += 1
         elif r.get("kind") == "prints":
             out["large_prints"].append(batch_start(r["id"]))
+    out["sidecar"].sort()
+    out["large_prints"].sort()
     return out
+
+
+def batch_credit_s(arm: str, starts: np.ndarray, t_start: float) -> np.ndarray:
+    """Time credited to each usable batch. Sidecar: the time back to the previous usable sample read (the census start
+    for the first). A skipped sample does not advance a market's last-sent time, so its trades are first observed, and
+    counted, in the next usable sample (the design's first-observation rule); crediting the gap to that sample keeps
+    the rate per covered day. Large prints: one hour per processed hour (every hour is read)."""
+    st = np.sort(np.asarray(starts, float))
+    if arm != "sidecar":
+        return np.full(len(st), BATCH_SPAN_S[arm])
+    prev = np.concatenate([[t_start], st[:-1]]) if len(st) else st
+    return np.maximum(st - prev, 0.0)
 
 
 _CHILD = """
@@ -144,6 +164,22 @@ def recorder_in_child(work: Path, spec: dict, a, capture_hi: float) -> tuple[dic
     return json.loads(line[len("CENSUS_RECORDER "):]), ru / (1024 * 1024) if sys.platform == "darwin" else ru / 1024
 
 
+WORK_MARKER = ".copy_skilled_census_work"
+
+
+def prepare_work(work: Path) -> bool:
+    """Create the census work dir with its marker file. A non-empty dir is removed only if it carries the marker (left
+    by an earlier census attempt that was killed, e.g. SIGKILL / OOM, so it may hold wallet hashes); any other non-empty
+    dir is refused and never touched."""
+    if work.exists() and any(work.iterdir()):
+        if not (work.is_dir() and (work / WORK_MARKER).is_file()):
+            return False
+        shutil.rmtree(work)
+    work.mkdir(parents=True, exist_ok=True)
+    (work / WORK_MARKER).write_text(json.dumps({"created_by": "run_copy_skilled.py census", "at": cs.iso(time.time())}))
+    return True
+
+
 def cmd_census(a) -> int:
     from astrolabe.research_lab import wallet_skill_dev as wd
 
@@ -156,10 +192,9 @@ def cmd_census(a) -> int:
         print(f"refusing: {out_path} exists", file=sys.stderr)
         return 2
     work = Path(a.work)
-    if work.exists() and any(work.iterdir()):
-        print(f"refusing: {work} is not empty", file=sys.stderr)
+    if not prepare_work(work):
+        print(f"refusing: {work} is not empty and was not created by a census run", file=sys.stderr)
         return 2
-    work.mkdir(parents=True, exist_ok=True)
     capture_hi = SEALED_START  # no quote at or after the LT2-LT4 / E026 windows is ever opened by a census
     rep: dict = {"label": "PRE-WINDOW planning census (counts and entry-quote levels only; no payout, no exit quote, "
                           "no price change read; no capture at or after 2026-10-22T00:00Z)",
@@ -235,11 +270,19 @@ def _pass_counts(p: Path) -> dict:
 
 
 BATCH_SPAN_S = {"sidecar": 7200.0, "large_prints": 3600.0}  # nominal span of one batch (2-hourly samples, print hours)
+NO_PROJECTION = "do_not_register_redesign"
 BATCH_RECEIPT_SLACK_S = 3600.0  # receipt of a sample row is within about 1 h of the sample start
 
 
+def no_gates(reason: str, skipped: dict | None = None) -> dict:
+    """Gate result when nothing can be projected: never a silent absence."""
+    return {"G1_copies_events": False, "G2_pairs": False, "G3_mde_N_event": False, "decision": NO_PROJECTION,
+            "reason": reason, "skipped_samples": skipped or {}}
+
+
 def gate_eval(proj: dict, spec: dict) -> dict:
-    """The pre-declared census gates (spec ``census_gates``, fixed before any census number) on the 21-day projection."""
+    """The pre-declared census gates (spec ``census_gates``, fixed before any census number) on the UNROUNDED 21-day
+    projection (rounding is for display only)."""
     g = spec["census_gates"]
     out = {"G1_copies_events": bool(proj["n"] >= g["g1_min_copies"] and proj["events"] >= g["g1_min_events"]),
            "G2_pairs": bool(proj["pairs"] >= g["g2_min_pairs"] and proj["pair_events"] >= g["g2_min_pair_events"]),
@@ -255,22 +298,26 @@ def census_counts(sig: pd.DataFrame, ent: pd.DataFrame, spec: dict, batches: dic
     """Counts, ages, entry availability and the entry-ask distribution (for the outcome SD under calibration). No payout.
 
     Rates use only batches whose every entry could be recorded from captures read (batch start + 1 h + L + max entry
-    delay <= the last capture read), and divide by the nominal span of the usable batches actually read (missing or
-    retired samples are not counted as time)."""
+    delay <= the last capture read), and divide by the time credited to those batches (``batch_credit_s``: a gap of
+    skipped samples is credited to the next usable sample, which carries the gap's trades). The gate result (spec arm)
+    is always written, with the skipped-sample counts next to it."""
     out: dict = {}
+    skipped = batches.get("skipped", {})
     if not len(sig):
-        return {"signals": 0}
+        return {"signals": 0, "gates": no_gates("no signals", skipped)}
     impacts = ca.impact_table()
     u_spec = spec["universe"]
     max_delay = float(u_spec["max_entry_delay_s"])
     window_days = (cs.epoch(spec["end_utc"]) - cs.epoch(spec["registered_utc"])) / 86400.0
     proj_days = 21.0
+    t_start = cs.epoch(spec["registered_utc"])
     sig = sig.assign(_bstart=[batch_start(b) for b in sig["batch_id"].astype(str)])
+    gates: dict | None = None
     for arm, g in sig.groupby("arm"):
-        span = BATCH_SPAN_S[arm]
-        starts = np.asarray(batches.get(arm, []), float)
+        starts = np.sort(np.asarray(batches.get(arm, []), float))
+        credit = batch_credit_s(arm, starts, t_start)
         sk, ct = g[g["role"] == "skilled"], g[g["role"] == "control"]
-        days_read = len(starts) * span / 86400.0
+        days_read = float(credit.sum()) / 86400.0
         o = {"batches_read": int(len(starts)), "days_read": round(days_read, 3), "window_days": round(window_days, 3),
              "skilled_signals": int(len(sk)), "per_day": round(len(sk) / days_read, 2) if days_read else None,
              "wallets": int(sk["wallet"].nunique()), "markets": int(sk["market_id"].nunique()), "controls": int(len(ct)),
@@ -293,7 +340,7 @@ def census_counts(sig: pd.DataFrame, ent: pd.DataFrame, spec: dict, batches: dic
                                    "realised_latency_h_quantiles": {str(q): round(float(cl["latency_real_s"].quantile(q)) / 3600, 2) for q in (0.1, 0.5, 0.9)} if len(cl) else {}}
             L0 = float(spec["primary_latency_s"])
             lim0 = cap_last - BATCH_RECEIPT_SLACK_S - L0 - max_delay
-            days0 = int((starts <= lim0).sum()) * span / 86400.0
+            days0 = float(credit[starts <= lim0].sum()) / 86400.0
             c0 = c[(c["latency_s"].astype(float) == L0) & (c["_bstart"].to_numpy(float) <= lim0)]
             un = c0[(c0["role"] == "skilled") & c0["universe"]]
             u = c0[(c0["role"] == "skilled") & c0["primary_set"]]
@@ -328,16 +375,23 @@ def census_counts(sig: pd.DataFrame, ent: pd.DataFrame, spec: dict, batches: dic
                     "control_sd_inflation": round(infl_c, 4) if pairs else None}
                 scale = proj_days / days0
                 n, npair = len(u) * scale, pairs * scale
-                proj = {"days": proj_days, "n": round(n), "events": round(u["cluster"].nunique() * scale),
-                        "pairs": round(npair), "pair_events": round(ev_pairs * scale),
-                        "mde_N_deff1": round(ca.mde(n, sd_cal, stake, 1.0), 4),
-                        "mde_N_event_icc1": round(ca.mde(n, sd_cal, stake, deff_ev), 4),
-                        "mde_N_twoway_icc1": round(ca.mde(n, sd_cal, stake, deff_2w), 4),
-                        "mde_C_event_icc1": round(ca.mde(npair, sd_cal * infl_c, stake, deff_ev), 4) if pairs else None}
-                o["primary_set_L0"]["projection_21d"] = proj
+                raw = {"days": proj_days, "n": n, "events": u["cluster"].nunique() * scale, "pairs": npair,
+                       "pair_events": ev_pairs * scale,
+                       "mde_N_deff1": ca.mde(n, sd_cal, stake, 1.0),
+                       "mde_N_event_icc1": ca.mde(n, sd_cal, stake, deff_ev),
+                       "mde_N_twoway_icc1": ca.mde(n, sd_cal, stake, deff_2w),
+                       "mde_C_event_icc1": ca.mde(npair, sd_cal * infl_c, stake, deff_ev) if pairs else math.inf}
+                o["primary_set_L0"]["projection_21d"] = {
+                    k: (round(v, 1) if k in ("n", "events", "pairs", "pair_events") else round(v, 4) if math.isfinite(v) else None)
+                    for k, v in raw.items()}
                 if arm == spec["universe"]["arm"]:
-                    o["primary_set_L0"]["gates"] = gate_eval({**proj, "mde_C_event_icc1": proj["mde_C_event_icc1"] or math.inf}, spec)
+                    gates = {**gate_eval(raw, spec), "skipped_samples": skipped}
+            elif arm == spec["universe"]["arm"]:
+                gates = no_gates("empty primary set or no usable days at L = 0", skipped)
+        elif arm == spec["universe"]["arm"]:
+            gates = no_gates("no skilled signal or no entry", skipped)
         out[arm] = o
+    out["gates"] = gates if gates is not None else no_gates(f"no {spec['universe']['arm']} signals", skipped)
     return out
 
 

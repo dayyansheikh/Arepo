@@ -653,12 +653,14 @@ def test_census_counts_rates_and_gates(tmp_path):
     sig, ent = cs.read_store(root, "signals"), cs.read_store(root, "entries")
     out = rc.census_counts(sig, ent, sp, batches, cap_last=T0 + 0.5 * H + 2 * H * 19)
     sc = out["sidecar"]
-    assert sc["batches_read"] == 2 and sc["days_read"] == pytest.approx(4 / 24, abs=1e-3)
-    assert sc["skilled_signals"] == 2 and sc["per_day"] == pytest.approx(12.0)
+    # credit: s1 back to the census start (0.65 h), s2 back to s1 (2 h)
+    assert sc["batches_read"] == 2 and sc["days_read"] == pytest.approx(2.65 / 24, abs=1e-3)
+    assert sc["skilled_signals"] == 2 and sc["per_day"] == pytest.approx(2 / (2.65 / 24), abs=0.01)
     assert sc["L0"]["signals_complete"] == 2 and sc["L86400"]["signals_complete"] == 2
     ps = sc["primary_set_L0"]
-    assert ps["n"] == 2 and ps["events"] == 2 and ps["projection_21d"]["n"] == round(2 * 21 / (4 / 24))
-    assert set(ps["gates"]) >= {"G1_copies_events", "G2_pairs", "G3_mde_N_event", "decision"}
+    assert ps["n"] == 2 and ps["events"] == 2 and ps["projection_21d"]["n"] == pytest.approx(2 * 21 / (2.65 / 24), abs=0.1)
+    assert set(out["gates"]) >= {"G1_copies_events", "G2_pairs", "G3_mde_N_event", "decision", "skipped_samples"}
+    assert out["gates"]["decision"] == "do_not_register_redesign" and out["gates"]["skipped_samples"] == {"sidecar_incomplete": 0, "missing": 0}
     # a short capture horizon leaves the 24 h latency incomplete: those signals are not counted as unavailable entries
     out2 = rc.census_counts(sig, ent, sp, batches, cap_last=T0 + 10 * H)
     assert out2["sidecar"]["L86400"]["signals_complete"] == 0 and out2["sidecar"]["L0"]["signals_complete"] == 2
@@ -678,6 +680,9 @@ def test_census_gate_rule():
     assert rc.gate_eval({**ok, "pair_events": g["g2_min_pair_events"] - 1}, sp)["decision"] == "drop_E026C_register_k1"
     low = rc.gate_eval({**ok, "mde_N_event_icc1": 0.2}, sp)
     assert low["decision"] == "register_k2" and low["label"].startswith("low-power")
+    # unrounded comparison: 399.6 copies would round to 400 but fails G1
+    assert rc.gate_eval({**ok, "n": g["g1_min_copies"] - 0.4}, sp)["decision"] == "do_not_register_redesign"
+    assert not rc.gate_eval({**ok, "mde_N_event_icc1": g["g3_max_mde_N_event_ppd"] + 4e-5}, sp)["G3_mde_N_event"]
     assert g["g1_min_copies"] == 2 * sp["floors"]["min_copies"] and g["g2_min_pairs"] == 2 * sp["floors"]["min_pairs"]
     assert g["g1_min_events"] == g["g2_min_pair_events"] == 2 * sp["floors"]["min_events"]
 
@@ -720,3 +725,45 @@ def test_label_asks_closed_and_skips_far_end_dates(tmp_path):
     cs.label_resolutions(root=root, spec=spec(), transport=fake, now=now, sleep=lambda s: None, log=lambda s: None)
     asked = {int(v) for k, v in calls[0] if k == "id"}
     assert asked == {10, 12} and ("closed", "true") in calls[0]  # 11 ends in 30 days; 12 has no recorded end date
+
+
+def test_census_gap_is_credited_to_next_usable_sample(tmp_path):
+    rc = _runner()
+    snaps, samples, prints, root, caps, (s1, s2) = _tree(tmp_path)
+    # s1 retired before it was read: its trade in market 10 is first observed in s2, so s2 is credited back to the start
+    (samples / s1 / "features.csv.gz").unlink()
+    (samples / s1 / "wallets.csv.gz").unlink()
+    sp = spec()
+    cs.run_once(root=root, snapshot_root=snaps, sample_root=samples, prints_root=prints, spec=sp, now=T0 + 40 * H,
+                max_items=1000, log=lambda s: None, exits=False)
+    b = rc.read_batches(root / "passes.jsonl")
+    assert b["sidecar"] == [rc.batch_start(s2)] and b["skipped"] == {"sidecar_incomplete": 0, "missing": 1}
+    out = rc.census_counts(cs.read_store(root, "signals"), cs.read_store(root, "entries"), sp, b, cap_last=T0 + 0.5 * H + 2 * H * 19)
+    assert out["sidecar"]["days_read"] == pytest.approx(2.65 / 24, abs=1e-3)  # not 2 h: the gap's trades are in s2
+    assert out["gates"]["skipped_samples"]["missing"] == 1
+    assert list(rc.batch_credit_s("sidecar", np.array([T0 + 2 * H, T0 + 8 * H, T0 + 10 * H]), T0)) == [2 * H, 6 * H, 2 * H]
+    assert list(rc.batch_credit_s("large_prints", np.array([T0, T0 + H]), T0)) == [H, H]
+
+
+def test_census_no_projection_writes_redesign_gate():
+    rc = _runner()
+    sp = spec()
+    out = rc.census_counts(pd.DataFrame(), pd.DataFrame(), sp, {"skipped": {"missing": 3}}, cap_last=T0)
+    assert out["gates"]["decision"] == "do_not_register_redesign" and out["gates"]["skipped_samples"] == {"missing": 3}
+    lp = pd.DataFrame({"signal_id": ["x"], "arm": ["large_prints"], "role": ["skilled"], "batch_id": ["lp_20261025T01"],
+                       "wallet": ["S1"], "market_id": [1], "n_controls": [0], "age_s": [60.0], "side": [1], "trade_price": [0.4]})
+    out2 = rc.census_counts(lp, pd.DataFrame(), sp, {"large_prints": [T0 + H]}, cap_last=T0 + 40 * H)
+    assert out2["gates"]["decision"] == "do_not_register_redesign" and "sidecar" in out2["gates"]["reason"]
+
+
+def test_census_work_dir_marker(tmp_path):
+    rc = _runner()
+    w = tmp_path / "work"
+    assert rc.prepare_work(w) and (w / rc.WORK_MARKER).is_file()
+    (w / "skillset").mkdir()
+    (w / "skillset" / "skillset.csv.gz").write_text("hashes")  # a killed attempt left wallet hashes behind
+    assert rc.prepare_work(w) and not (w / "skillset").exists() and (w / rc.WORK_MARKER).is_file()
+    other = tmp_path / "other"
+    other.mkdir()
+    (other / "keep.txt").write_text("x")
+    assert not rc.prepare_work(other) and (other / "keep.txt").read_text() == "x"

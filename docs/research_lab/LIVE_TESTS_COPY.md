@@ -208,6 +208,11 @@ all entry-ok, price-ok copies, also long-dated ones.
   ids leave the host), each market at most once per 20 h, <= 600 requests per pass at 1 request/s. Only final records
   are written (write-once): `resolved` (1/0) or `split_50_50` (pays 0.5). The earliest final record per market fetched
   at or before the label cutoff wins.
+- **Proposed change, not yet reviewed (commit c4f3549b, another session):** the labeller does not ask a market whose
+  latest recorded Gamma end date is more than one day after the pass (markets without a recorded end date are
+  asked), and asks markets in end-date order, ended ones first. It is load control only; it needs the challenger's
+  review before the pin (it could delay the first final record of a market that resolves early, before its end date).
+  It does not affect the census.
 - **Censoring.** A universe copy without a final record by the cutoff is censored. It is excluded from both primaries
   and counted. Sensitivity (not counted): unresolved skilled copies set to pay 0 (`censoring_pessimistic_R`). Labels:
   `censoring-sensitive` if that makes R <= 0 while R > 0; `differential censoring` if the skilled and control censored
@@ -274,9 +279,14 @@ pre-window wallet-sidecar samples of `[2026-10-18T04:00Z, 2026-10-21T04:00Z)` (t
 freeze: every HB1 outcome was known by 2026-10-15). It never opens a capture starting at or after 2026-10-22T00:00Z,
 records no exit quote and fetches no resolution.
 
-- **Rates.** Per day of usable batches actually read (2 h per sample with a complete sidecar; missing or retired
-  samples are not counted as time). Latency availability uses only batches whose entries are complete within the
-  captures read (batch start + 1 h + L + 6 h <= last capture read).
+- **Rates.** Per day of covered time. Each usable sample (complete sidecar) is credited with the time back to the
+  previous usable sample read (the census start for the first). A skipped sample (sidecar incomplete, never
+  complete, files retired) does not advance a market's last-sent time, so its trades are first observed, and counted,
+  in the next usable sample, exactly as in the window (section 4.1); crediting the gap to that sample keeps the rate
+  per covered day. Trailing skipped samples are not credited. Beyond 500 trades per market a long gap loses trades,
+  so a gap can only lower the rate. Skipped-sample counts are reported next to the gate result. Latency availability
+  uses only batches whose entries are complete within the captures read (batch start + 1 h + L + 6 h <= last capture
+  read).
 - **Projection.** Primary set at L = 0 (sidecar arm), scaled linearly to 21 days: copies `n`, events, pairs and pair
   events. The event projection is linear and so an upper estimate (repeat events grow more slowly).
 - **SD.** `SD = sqrt(mean(ask_j (1 - ask_j)))` over primary-set entries: the per-share outcome SD if prices are
@@ -319,6 +329,8 @@ drift between the census and the window. They are applied once, to the census ou
   is recorded in the ledger). G1 fails -> not registered as designed; any redesign (longer window, other arm) needs a
   written justification and a new review. G3 never blocks; a G3 failure adds the label
   `low-power (a null is uninformative)` to the registration and to every verdict.
+- The gate result is always written: when nothing can be projected (no signal, empty primary set, no covered day)
+  the decision is `do_not_register_redesign` with a reason. Gate checks compare unrounded projections.
 - The census output (`census.json`, counts and aggregates only, no wallet hash) is committed with its sha256 before the
   challenger review and copied into the spec's `planning` block before the pin.
 
@@ -390,7 +402,11 @@ it must stay below 500 MB), wall times and store bytes. Work dir `data-dumps/res
 
 Deadline (retention, not design): the 2026-10-18 and early 10-19 sample files are retired by the 2026-10-22T03:30Z
 archive run and jobs with `mem_mb` >= 500 cannot start 02:45-05:30Z, so q0544 must start before 2026-10-22T02:45Z. A
-later run is still valid: retired samples are recorded missing and rates use the usable batches actually read.
+later run is still valid: retired samples are recorded missing and are not credited unless a later usable sample
+carries their trades (section 7.5 Rates); the skipped counts are printed next to the gates. Promote by about 01:30Z
+so that the run (history load plus about 36 samples; wall time not yet measured on the host) finishes before 03:30Z.
+A killed attempt leaves a work dir marked by `.copy_skilled_census_work`; the retry removes only a dir carrying that
+marker and refuses any other non-empty dir.
 
 ## 9. Registration steps and pins
 
