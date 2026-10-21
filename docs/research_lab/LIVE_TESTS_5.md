@@ -18,8 +18,12 @@ Until the pin exists, every line a reader writes is `prospective_unregistered` b
 and O's targets now start at k + 1; O is treated as flow moderation and uses a declared block (circular-shift) Freedman-Lane
 gate; R and H get binding AR and Markov size scenarios; a failing size scenario makes only its own test "SE check failed"
 (p = 1, k unchanged); H takes one unit per market per UTC day; F clusters on the family; the LT5 reader runs once a pass.
-**Acceptance is conditional on the signal-engine embargo entries of section 10** (filed by the orchestrator; this branch
-does not edit engine code).
+The signal-engine embargo entries LT5 required (`event` new; `flow`, `book`, `rewards` to 2026-11-22) were applied in engine
+commit `26f5f954` (section 10).
+
+**R1 re-check (2026-10-21):** `reviews/LT5_R1_RECHECK_2026-10-21.md`, R1_RESPONSE_OK_WITH_NOTES, answered in **section 15**: the
+size-check worlds are fully specified (1.8.1), O's gate has a minimum market size of 16 units and a binding rho 0.95 scenario, the
+two "SE check failed" labels are separated, H's origin is the 00:31Z slot only, and stale text is fixed.
 
 This is research tooling. AREPO never trades. No edge, calibration, profitability or tradability claim exists or is implied.
 Every count quoted from round 9/10 probes, LT3/LT4 censuses, the cost model, the maker-rewards snapshot or the signal-engine
@@ -151,7 +155,10 @@ As LT4 1.5: every frozen unit receives exactly one status at every target (`two_
 `two_sided` has a target; the attrition rule (|a_1 - a_0| > 2 pp gives *attrition-differential* and Lee-type bounds; for O, H
 and R the classes are the upper and lower halves or the contrasted classes) never changes a verdict. A required input missing at
 the origin produces no unit and is counted (`sidecar_missing`, `.nosweep`, `.noprev`, sample absent, `hwm_incomplete`). A
-missing control or state is NaN (excluded, counted), never 0.
+missing control or state is NaN (excluded, counted), never 0. **Declared exceptions (indicator pairs, as LT3/LT4):** an unknown
+`end_date` enters log hours-to-end as 0 with the indicator `hte_unknown`, and a missing Gamma `chg_1d` / `chg_1w` as 0 with its
+indicator (`+ flag` in the control lists); these are venue fields that are legitimately absent, and the indicator absorbs the
+level. Nothing else is ever 0-filled; in particular the reader's own mid changes are NaN when a slot is missing.
 
 ### 1.6 What is not looked at before the analysis date
 No mid, move, target, P&L, regression or plot from `live_tests5/` files, or from in-window captures, sweeps or samples, for these
@@ -190,30 +197,76 @@ are logged as deviations.
   redesigned gate is declared now, with no variant:** within each market, the reduced-model residual series (ordered by origin)
   is **circularly shifted** by an offset drawn uniformly from `[s_m, n_m - s_m]`, `s_m = max(4, ceil(n_m / 4))`, and the full
   model is refitted; 200 draws; passes if `p_perm < 0.05`. A circular shift keeps the residuals' own serial dependence and moves
-  them against the state, which the label permutation does not. Markets with `n_m < 8` keep their residuals in place (counted);
-  O's census requires >= 50% of units in markets with `n_m >= 8` (projected) or O fails its census gate.
-- A failed gate gives p = 1 in Holm and the label "SE check failed".
+  them against the state, which the label permutation does not. **Minimum market size (re-check finding 1): markets with
+  `n_m < 16` are excluded from the gate** (their residuals stay in place, which is the same as leaving them out of the
+  comparison, because `xt` and `sxx` are fixed); counted. Reason: at `n_m = 16` the offset range is `[4, 12]`, so every
+  shifted market has at least 9 distinct shifts and every shift moves a residual at least 4 units (8 h at the pass cadence,
+  twice the target's 2-pass overlap); at `n_m = 8` the range is `[4, 4]`, a single shift, which gives no permutation
+  distribution. O's census requires >= 50% of units in markets that are projected to reach `n_m >= 16` (proxy: >= 2 units in
+  the 2 census days, projected x 21/2), or O fails its census gate.
+- A failed gate gives p = 1 in Holm and the label "SE check failed (gate on data)" (a failed size scenario has its own label, below).
 - **Size check (L5), after the censuses (k fixed first; q0563 depends on q0561 and q0562).** `size-check` runs once, on the
   code to be pinned, 2,000 worlds x 200 draws, seed **20261147**, limit 0.058. **Binding scenarios, each mapped to the tests it
   covers** (no effect in every world):
 
-  | # | Scenario | Gate | Binding for |
+  | # | Scenario (world fully specified in 1.8.1) | Gate | Binding for |
   |---|---|---|---|
   | 1 | binary iid label | FL | J, F |
   | 2 | binary label, persistent market rates | FL | J, F |
   | 3 | binary label, control at correlation 0.7 with a real effect | FL | J, F |
-  | 4 | binary Markov label (persistence 0.6) with an MA(2) overlapping target | FL | J |
-  | 5 | binary Markov label (persistence 0.6) with an MA(11) target, one unit per market per day | FL (market strata) | H |
-  | 6 | binary Markov label (persistence 0.9) with an MA(11) target, one unit per market per day | FL (market strata) | H |
-  | 7 | R interaction world: AR(1) `imb` with rho 0.6 and a real main effect, binary `inside` with a real level effect, no slope jump | FL | R |
+  | 4 | binary Markov label (per-unit persistence 0.6) with an MA(2) overlapping target, unbalanced markets | FL | J |
+  | 5 | binary Markov label (**per-day** persistence 0.6), daily targets built from 12 pass shocks, one unit per market per day | FL (market strata) | H |
+  | 6 | as 5 with per-day persistence 0.9 | FL (market strata) | H |
+  | 7 | R interaction world: AR(1) `imb` with rho 0.6 and a real main effect; `inside` near-constant within market (a slowly moving folded mid); real level effects of `inside` and `rf`; no slope jump | FL | R |
   | 8 | as 7 with rho 0.9 | FL | R |
-  | 9 | continuous state, iid, control at correlation 0.85 with a real effect | block FL | O |
-  | 10 | continuous AR(1) state rho 0.6, control at correlation 0.85 with a real effect, MA(2) target | block FL | O |
-  | 11 | continuous AR(1) state rho 0.9, control at correlation 0.85 with a real effect, MA(2) target | block FL | O |
+  | 9 | continuous state, iid (rho 0), control at correlation 0.85 with a real effect, MA(2) target, unbalanced markets | block FL | O |
+  | 10 | as 9 with AR(1) state rho 0.6 | block FL | O |
+  | 11 | as 9 with AR(1) state rho 0.9 | block FL | O |
+  | 12 | as 9 with AR(1) state rho **0.95** (added by the re-check, finding 2) | block FL | O |
+
+  **Why rho 0.95 is added (re-check finding 2, a design choice).** O's state is computed from a 24 h window refreshed every 2 h,
+  so two consecutive passes of a market share about 11/12 of their rows and the state's lag-1 persistence is likely >= 0.92,
+  above scenario 11's 0.9. A gate shown only at 0.9 would not cover the plausible value; 0.95 brackets it from above. Markets
+  are not sampled at every pass, which lowers the persistence between a market's consecutive units, so 0.95 is conservative.
 
 - **Consequence of a failure (declared now, as LT3 13.15):** a failing scenario makes **only the tests it is binding for** "SE
   check failed": p = 1 in Holm, **k unchanged**, no rerun, reseed, redesign or variant. Other tests and the pin are not
-  blocked. `max_retries 1` covers a deterministic crash only (same code, seed, worlds and draws, no output written).
+  blocked. **Two distinct labels (re-check finding 4):** "SE check failed (size scenario)" when a binding size scenario failed
+  before the window, and "SE check failed (gate on data)" when the test's own gate gives `p_perm >= 0.05` at analysis. Both give
+  p = 1; they are reported separately. `max_retries 1` covers a deterministic crash only (same code, seed, worlds and draws, no output written).
+
+### 1.8.1 Simulated worlds (declared now, re-check finding 1; no census input)
+Common to every world unless stated: no effect of the tested term (`effect = 0`); a market's target level `N(0, 0.01)`; event =
+market index // 3 (events of three markets); unit `i` of a market has `t_row = 7,200 i` s and `day = i // 12`; the gate is
+run with 200 draws at a fresh sub-seed per world drawn from the scenario's generator (seed 20261147, scenarios run in the
+table's order, one generator).
+- **Scenarios 1-3:** LT4's validated worlds, vendored unchanged: 60 markets x 40 units (balanced; no market below 8 units).
+  1 = `sim_move_world` (class rate 0.3, target noise SD 0.04); 2 = the same with market class rates `U(0.1, 0.6)` and market
+  target levels; 3 = `sim_corr_label_world` (binary label = 1[z > 0], z correlated 0.7 with control `c1 ~ N(0, 1)`; `c1`
+  effect 0.02 per unit; noise SD 0.04). Strata market x day, minimum 4.
+- **Unbalanced panels (scenarios 4 and 7-12):** `n_m` drawn uniformly from the integers 6..60 per market (so 2 of 55 values,
+  3.6%, are below 8 and 10 of 55, 18%, below 16). Scenario 4: 60 markets; 7-8: 100 markets; 9-12: 80 markets.
+- **Scenario 4 (J):** label rate `p_m ~ U(0.15, 0.6)`; at each unit the label keeps its previous value with probability 0.6, else
+  is redrawn as Bernoulli(`p_m`); pass shocks `u ~ N(0, 0.03)`; target `y_i = level + u_{i+1} + u_{i+2} + 0.5 u_{i+3}` (MA(2)
+  in unit steps with coefficients 1, 1, 0.5, LT4's form); control `c1 ~ N(0, 1)` with no effect. FL, market x day strata, min 4.
+- **Scenarios 5-6 (H):** 120 markets; days per market `n_m` uniform on 4..21 (22% below 8); label rate `p_m ~ U(0.1, 0.4)`;
+  **persistence per day** (one unit per market per day): the label keeps the previous day's value with probability 0.6 (5) or
+  0.9 (6), else is redrawn as Bernoulli(`p_m`); daily target `y_d = level + sum_{j=1..12} u_{12d+j}`, `u ~ N(0, 0.0173)` (24 h
+  SD about 6c; the pass-level MA(11) structure, non-overlapping across days); control `c1 = 0.5 zL + sqrt(0.75) xi` (`zL` the
+  standardised label, `xi ~ N(0, 1)`; correlation about 0.5, H's census cap) with a real effect 0.02 per unit. FL with
+  **market** strata, min 4.
+- **Scenarios 7-8 (R):** per market a base folded mid `f0 ~ U(0.845, 0.955)`, `f_i = clip(f0 + d_i, 0.840, 0.959)` with `d_i`
+  AR(1), rho 0.95, stationary SD 0.015, so `inside = 1[f_i <= 0.90]` is near-constant within most markets and switches only in
+  markets whose base sits near the cutoff (the census measures the real crossing share); `rf = f - 0.90`. `imb` = market level
+  `N(0, 0.3)` + AR(1) with rho 0.6 (7) or 0.9 (8), stationary SD 1. Target `y = level + 0.01 imb + 0.005 inside + 0.1 rf +
+  e`, `e ~ N(0, 0.035)` (real main effect 1c per SD of `imb`, real level effects 0.5c and 1c per 10c of `rf`, no slope jump and
+  no `imb x rf` terms). Model terms as section 6 (`imb`, `imb x inside`, `imb x rf`, `imb x rf x inside`, `inside`, `rf`,
+  `rf x inside`); the gate tests `imb x inside`. FL, market x day strata, min 4.
+- **Scenarios 9-12 (O):** state `z` = market level `N(0, 0.5)` + AR(1) with rho 0 / 0.6 / 0.9 / 0.95, stationary SD 1; control
+  `c1 = 0.85 z + sqrt(1 - 0.85^2) xi`, `xi` AR(1) with the same rho, stationary SD 1 (so the control is as persistent as the
+  state, correlation 0.85); target `y_i = level + 0.02 c1_i + u_{i+1} + u_{i+2} + 0.5 u_{i+3}`, `u ~ N(0, 0.03)` (MA(2), the
+  skip target's overlap); no effect of `z`. Block (circular-shift) FL as declared above, minimum `n_m` 16.
+- **Criterion:** rate <= 0.05 + 1.645 sqrt(0.0475 / 2,000) = 0.058 per scenario at 2,000 worlds.
 
 ### 1.9 Verdicts and labels (per primary, after Holm over k)
 - **Supported (exploratory, prospective):** Holm-adjusted one-sided p < 0.05, estimate in the predicted direction, gate passed.
@@ -261,9 +314,11 @@ are logged as deviations.
 
 - **Signal-engine shadows (disclosed; question 2).** The engine's `se8_lr_event` (not embargoed; scoring since 2026-10-21; first
   fit about 2026-10-27) carries `ev_sib_d2h`, the event siblings' mean own 2 h mid change, beside the champion's own 2 h change.
-  On `dir_2h` a logistic model with both terms is a development look at F's decomposition. **Required (R1 ruling 2):** an `event`
-  embargo token until 2026-11-22T00:00Z, entered before se8 shows any score; LT5's acceptance is conditional on it (section 10). The flow (to 2026-11-16), book and rewards (to 2026-11-18) tokens must move later to **2026-11-22T00:00Z**
-  if J, O or R columns join those families (section 10).
+  On `dir_2h` a logistic model with both terms is a development look at F's decomposition. A second event-isolating model,
+  **`se10_lgbm_event`** (se1's LightGBM learner plus the same `event` table, added 2026-10-21 by the signal-engine track), is the
+  same look with a different learner (re-check finding 6). **Applied:** signal-engine commit `26f5f954` (2026-10-21) put a new
+  `event` token and the `flow`, `book` and `rewards` tokens at **2026-11-22T00:00Z** in `config.EMBARGO`, before any event score
+  was computed or shown (DESIGN_V1 8), so se8 and se10 are both embargoed through LT5's proposed analysis date.
 - **Collection overlap (disclosed):** LT2 (to 2026-11-12), LT3 (to 2026-11-14), LT4 (to 2026-11-16), E011 (to 2026-11-10), CB18,
   E025, E026 and the signal engine read the same captures, sweeps and samples. Different hypotheses, no pooling, no store opened
   by another test.
@@ -390,7 +445,8 @@ are logged as deviations.
   and k + 3; joint late mask). Horizon 4 h, starting at the first capture after the decision time (the round's `y6` from `mid_k`
   started before the sample receipt and shared the interval in which page fullness, hence `trunc24`, is decided).
 - **Primary statistic.** Expanding-past demeaned OLS of `y_skip` on `zO`, controls: `g`, `|g|`, `m`, own mid changes over 2 h, 6 h and
-  24 h (`mid_k - mid_{k-1}`, `- mid_{k-3}`, `- mid_{k-12}`; missing → 0 with a flag), Gamma `chg_1d` (+ flag), `x6`, `m * |own 24 h
+  24 h (`mid_k - mid_{k-1}`, `- mid_{k-3}`, `- mid_{k-12}`; a missing slot makes the change NaN and the unit is excluded and counted
+  (re-check finding 7; 1.5's never-0 rule)), Gamma `chg_1d` (+ flag; the declared exception of 1.5), `x6`, `m * |own 24 h
   change|` (the token-mix-by-move-size term a flow continuation would load on), logit `mid_k`, `|mid_k - 0.5|`, `spread_k`, `log1p
   n24`. Inference 1.7; seed 20261143. **Gate: block (circular-shift) Freedman-Lane (1.8; O is flow moderation; scenarios
   9-11)**, seed 20261243.
@@ -431,8 +487,12 @@ are logged as deviations.
   0.10** (R1 finding 7: a wide-spread mid is not a price anyone traded or anchored on), with `age_hi`, `age_lo` = slots since the
   extreme was last attained. A unit needs >= 72 of those 84 slots present and qualifying for the market (else `hwm_incomplete`,
   counted).
-- **Unit (R1 ruling 7).** Non-sports market x **UTC day**, origin k = the **first complete capture of the UTC day** (normally the
-  00:31Z slot; if that slot is missing, the day has no units, counted), so consecutive daily 24 h targets do not overlap. Filters:
+- **Unit (R1 ruling 7; origin rule fixed by re-check finding 5).** Non-sports market x **UTC day**, origin k = **the 00:31Z slot
+  of the UTC day** (the day's first slot on the 2 h grid; its capture is the first complete capture in that slot's tolerance, 1.3).
+  If that slot has no complete capture, **the day has no units** (counted by day); a later slot is never substituted. Reason: a
+  fixed slot gives every unit the same time of day and guarantees that consecutive daily 24 h targets (00:31 to 00:31) never
+  overlap; substituting a later slot would make the origin's clock depend on collector failures and overlap the next day's
+  target, and missing data stays missing. Filters:
   1.4 items 1-3, 5-7 at k - 1 and k; `mid_k` in [0.05, 0.95]; range `hi_{k-1} - lo_{k-1} >= 0.05` (common support: a near unit in a
   flat market is not a retest); **state changed since the previous day's origin** (the mid changed, or `hi` or `lo` changed);
   not a new extreme (`lo_{k-1} <= mid_k <= hi_{k-1}`; new highs and lows are S2).
@@ -598,7 +658,7 @@ values and bind; pooled values are printed.
 |---|---|---|---|
 | J | CJ | `ts` second-level (share of interval rows with `ts mod 60 != 0` >= 50%); projected qualifying units (all filters of section 2) >= 120 a pass (>= 30,240 in 21 days); jump and grind each >= 20% of qualifying units; jumps from 0.01-tick books <= 80% of jumps; `interval_truncated` <= 5% of traded sampled movers; within `|corr(1[jump], fresh)|` <= 0.5 and `|corr(1[jump], log1p n_int)|` <= 0.5; **liquidity tier (R1 ruling 11): `|corr(1[jump], log1p liquidity_k)|` <= 0.5 both within and pooled**; permutable share >= 50% (day, else block2); **pessimistic MDE <= 0.5c** (SD 5c, skip target) | `perm_stratum`, `exclude_family` |
 | F | CF5 | projected idiosyncratic >= 6,300 and common >= 6,300 (>= 300 a day each, primary population after the family rule); within `|corr(1[common], 1[parallel quote-only])|` <= 0.5; common units in crypto series <= 90%; `guard_loss` <= 20% of otherwise-formed units (printed by event size, R1 ruling 3); **liquidity tier (R1 ruling 11): `|corr(1[common], log1p liquidity_k)|` <= 0.5 both within and pooled**; permutable share >= 50%; **pessimistic MDE <= 0.5c** (SD 4c, DE by family, times `sqrt(VIF_w)` of `ID` on its controls including `share_moving` and `fam_abs`) | `perm_stratum`, `exclude_family` |
-| O | CO | projected covered units >= 600 a pass (>= 151,200 in 21 days); `trunc24` <= 10% of units with >= 10 rows; `|m| > 0.9` in <= 80% of units (else `O` collapses to `|g|` times a constant); within-market IQR of `O` >= 1c in >= 50% of markets with >= 6 units (and >= 30 such markets); within `|corr(zO, z own 24 h change)|` <= 0.5 and within `|corr(zO, z(m * |own 24 h change|))|` <= 0.85 (valid only with size scenarios 9-11, R1 ruling 11); block-gate share: >= 50% of units in markets with >= 2 units in the census days (the recurrence proxy for `n_m >= 8` over 21 days); **pessimistic MDE per SD x tercile gap <= 0.5c** (SD 5c, VIF_w computed) | `c_O`, `s_O`, `zO` tercile cuts and gap, `perm_stratum`, `exclude_family` |
+| O | CO | projected covered units >= 600 a pass (>= 151,200 in 21 days); `trunc24` <= 10% of units with >= 10 rows; `|m| > 0.9` in <= 80% of units (else `O` collapses to `|g|` times a constant); within-market IQR of `O` >= 1c in >= 50% of markets with >= 6 units (and >= 30 such markets); within `|corr(zO, z own 24 h change)|` <= 0.5 and within `|corr(zO, z(m * |own 24 h change|))|` <= 0.85 (valid only with size scenarios 9-11, R1 ruling 11); block-gate share: >= 50% of units in markets with >= 2 units in the census days (the recurrence proxy for `n_m >= 16` over 21 days, the gate's minimum, 1.8); **pessimistic MDE per SD x tercile gap <= 0.5c** (SD 5c, VIF_w computed) | `c_O`, `s_O`, `zO` tercile cuts and gap, `perm_stratum`, `exclude_family` |
 | H | CHW | (restated for R1's daily unit, before any census) projected near units >= 3,150 (>= 150 a day) and far >= 15,750 (>= 750 a day), non-sports, daily first-capture origins, after the family rule; crypto-series share of near units <= 70%; within-market SD of `d_hi` >= 1c for >= 50% of markets with >= 50 present slots in the look-back and census days; `hwm_incomplete` <= 20% of otherwise-eligible units; within `|corr(1[near], s * own 24 h change)|` <= 0.5; market-strata share: >= 50% of units in markets with a unit on both census days (the recurrence proxy for >= 4 units over 21 days); **pessimistic MDE <= 0.5c** (SD 6c, DE floor 5.0) | `perm_stratum`, `exclude_family` |
 | R | CRW | projected rewarded units >= 12,600 inside and >= 12,600 outside (>= 600 a day each); unrewarded >= 6,300 each side (>= 300 a day); within-market IQR of `imb` >= 0.1 in >= 50% of rewarded markets with >= 10 units (and >= 30 such markets); **min-size depth present** (renamed, R1 ruling 8; it shows that quotes of programme size can be present, not that farmers are the marginal quoters): in >= 30% of rewarded inside units at least one side's depth in the chosen band is >= `rewards_min_size`; **crossing markets (R1 finding 6): >= 25% of rewarded units in markets with both inside and outside units in the census days, and >= 50 such markets**; permutable share >= 50%; **pessimistic MDE per SD x 2 <= 0.5c** (SD 3.5c, DE floor 5.0, VIF_w computed) | `r.depth_band`, `perm_stratum`, `exclude_family` |
 
@@ -734,10 +794,12 @@ hypothesis before its single analysis.
 | (CH186) | `provenance` (`se-aux-provenance-v1`) | `pv_q7` (quoted share of 7-day absolute moves, E015 labels), `pv_traded_share_24h`, `pv_n_moves_7d` | `quotes/` | `provenance` -> 2026-11-16 (E015's analysis plus a day) |
 | (CH189) | `overdue` (`se-aux-overdue-v1`) | `od_hours_overdue`, `od_bydate_template` | the origin row and sidecar | none (no live test) |
 
-**Acceptance of LT5 is conditional on these embargo entries (R1 finding 10, ruling 2).** Before LT5's design is accepted, the
-signal engine's `config.EMBARGO` must hold: `flow`, `book` and `rewards` moved to **2026-11-22T00:00Z**, and a **new `event`
-token until 2026-11-22T00:00Z**, entered **before se8 shows any score**. The engine code belongs to the signal-engine track; this
-branch does not edit it. The orchestrator files the request and records the entries' commit in section 14 before acceptance.
+**Embargo entries (R1 finding 10, ruling 2): applied.** LT5's acceptance was conditional on the signal engine's
+`config.EMBARGO` holding `flow`, `book` and `rewards` at **2026-11-22T00:00Z** and a **new `event` token until
+2026-11-22T00:00Z**, entered before se8 showed any score. Signal-engine commit **`26f5f954`** (2026-10-21) applied all four,
+before any event score was computed or shown; both event-isolating models, `se8_lr_event` and `se10_lgbm_event`, are covered
+(re-check findings 3 and 6). The engine code belongs to the signal-engine track; this branch did not edit it. If LT5's window
+moves later, the orchestrator requests a matching later date (never earlier).
 New LT5 family tokens (`tradepath`, `relmom`, `overhang`, `path`, `rewardbook`) are added by whoever first builds an isolating
 challenger, before that challenger is scored. **Disclosed:** under DESIGN_V1 8, broad multi-family combinations (for example
 `se7_lgbm_all`) and the champion are **not embargoed**; a broad model that includes an LT5 family would show its gain before
@@ -815,20 +877,21 @@ later unit, not part of this draft.
 > - **J** (CH180) jump minus grind, skip-slot persistence k + 1 to k + 3, all categories, > 0; MDE about 0.36-0.80c vs 0.5c; census-gated.
 > - **F** (CH184) idiosyncratic minus common (non-neg-risk event, else series), 2 h continuation, non-sports, > 0; family
 >   clusters; MDE 0.16-0.42c.
-> - **O** (CH182) active-side overhang `|g| x m`, 6 h YES change, all categories, > 0 (sign corrected from the round's `g x m`);
+> - **O** (CH182) active-side overhang `|g| x m`, YES mid change k + 1 to k + 3 (4 h skip target), all categories, > 0 (sign corrected from the round's `g x m`);
 >   skip target k + 1 to k + 3; block (circular-shift) Freedman-Lane gate (flow moderation); tercile MDE 0.32-0.86c; may drop.
 > - **H** (CH181) near minus far from a >= 3-day-old 7-day extreme, folded 24 h change, one unit per market per day, non-sports,
 >   > 0; MDE 0.61-1.8c; very likely to drop.
 > - **R** (CH183) jump of the imbalance slope at the 0.90 reward cutoff in rewarded markets, sweep-to-sweep, > 0; likely to drop.
 > - **Dropped/deferred:** CH185 (trains rule, `side`), CH190 (E022's `dimb` control; after 2026-11-17), CH187/CH188 (maps first),
 >   CH186/CH189 (engine-first).
-> - **Family:** Holm over k <= 5, one-sided, alpha 0.05; p = max(event t, two-way, day t); Freedman-Lane gates; window proposed
+> - **Family:** Holm over k <= 5, one-sided, alpha 0.05; p = max(event t, two-way, day t), and for F p_F (family t, family x day, event t, day t); Freedman-Lane gates (O: the block
+>   circular-shift gate, minimum 16 units per market); size check 12 binding scenarios, a failure sets only its own tests to p = 1; window proposed
 >   `[2026-10-30T00:00Z, 2026-11-20T00:00Z)`, single analysis on or after 2026-11-21T12:00Z; register after LT4.
 > - **R1 (2026-10-21):** ACCEPT_WITH_CHANGES; answered in section 14 (skip targets for J and O, O's block gate, AR and Markov
 >   size scenarios with per-test failure, F family clusters, H daily units, R crossing-market gate, resource plan). Acceptance
 >   conditional on the engine embargo entries (`event`, `flow`, `book`, `rewards` to 2026-11-22).
-> - **Status:** DRAFT awaiting the embargo entries, code, freeze check, censuses (q0560-q0562), size check (q0563), dry run,
->   pins and registration. Engine: embargo tokens for the LT5 families (and, recommended, `event`) to 2026-11-22 before any
+> - **Status:** DRAFT awaiting code, freeze check, censuses (q0560-q0562), size check (q0563), dry run,
+>   pins and registration. Engine: `event`, `flow`, `book`, `rewards` embargoed to 2026-11-22 (applied, engine commit 26f5f954); new LT5 family tokens before any
 >   isolating challenger shows a score.
 
 ## 14. Response to challenger R1 (2026-10-21; `reviews/LT5_CHALLENGER_R1_2026-10-21.md`, ACCEPT_WITH_CHANGES)
@@ -870,7 +933,7 @@ applied in sections 0-13; where any text differs, this section governs.
 9. Vendored code kept, with the provenance test (9.1, 9.3).
 10. Census inputs kept; `seals/lt5_census_inputs_captures.json` must be committed before any LT5 census; the missing
     2026-10-21 02:31 slot stays missing.
-11. O's 0.85 correlation gate kept only together with scenarios 9-11; liquidity-tier correlation gates added to J and F
+11. O's 0.85 correlation gate kept only together with scenarios 9-12; liquidity-tier correlation gates added to J and F
     (`|corr(class, log1p liquidity_k)|` <= 0.5, within and pooled).
 12. Fixed end kept.
 13. The LT5 reader runs once a pass, `35 1-23/2 * * *`, staggered from LT3 (:40) and LT4 (:30) (9.2).
@@ -880,6 +943,22 @@ applied in sections 0-13; where any text differs, this section governs.
 - **The embargo entries** (`event` new; `flow`, `book`, `rewards` moved to 2026-11-22T00:00Z) are outside this branch; LT5's
   acceptance waits for them.
 - **Whether O's block gate holds size** is unknown until q0563 runs, after the censuses and the code freeze. No preliminary run of
-  scenarios 9-11 will be made at seed 20261147, so no variant can be chosen by its simulated rate.
+  scenarios 9-12 will be made at seed 20261147, so no variant can be chosen by its simulated rate.
 - **H and R are expected to fail their censuses** on the planning figures; that is recorded now so that their drops, if they come,
   are not read as news.
+
+## 15. Response to the R1 re-check (2026-10-21; `reviews/LT5_R1_RECHECK_2026-10-21.md`, R1_RESPONSE_OK_WITH_NOTES)
+
+Design only; no census input; nothing chosen from data. Applied in sections 0-14; where any text differs, this section governs.
+
+| # | Note | Change | Where |
+|---|---|---|---|
+| 1 | MED: size-check worlds not fully specified; O's offset range collapses at `n_m = 8`; `inside` persistence; H's Markov clock | Every world is specified in **1.8.1** (markets, `n_m` distributions and the shares below 8 and 16, AR/MA coefficients, control correlations and effect sizes). **O's gate excludes markets with `n_m < 16`** (counted; at 16 every shifted market has >= 9 distinct shifts of >= 4 units); O's census proxy updated. R's worlds model `inside` as near-constant within market (a slowly moving folded mid, AR 0.95, SD 1.5c). H's Markov persistence is **per day** | 1.8, 1.8.1, 8 (O row) |
+| 2 | LOW: O's state persistence likely >= 0.92 | Disclosed; **scenario 12 (rho 0.95) added as binding** for O (k unchanged if it fails, as every scenario) | 1.8 |
+| 3 | LOW: stale text | Embargo now recorded as applied (engine commit `26f5f954`: `event` new, `flow`, `book`, `rewards` to 2026-11-22) in the header, 1.11, 10 and 13; `event` "required", not "recommended"; O's ledger line says the skip target; the ledger p rule names p_F and O's block gate | header, 1.11, 10, 13 |
+| 4 | LOW: one label for two failures | "SE check failed (size scenario)" and "SE check failed (gate on data)", both p = 1, reported separately | 1.8 |
+| 5 | LOW: H origin ambiguity | Origin = **the 00:31Z slot only**; no capture in that slot means no units that day (counted); never a later slot. Reason: a fixed clock, guaranteed non-overlapping daily targets, and missing data stays missing | 5 |
+| 6 | LOW: se10 not disclosed | `se10_lgbm_event` disclosed as the second event-isolating model, embargoed with se8 | 1.11, 10 |
+| 7 | LOW: O's "missing -> 0 with a flag" | O's own mid changes are NaN when a slot is missing (unit excluded, counted); 1.5 now lists the only declared indicator-pair exceptions (unknown end date; missing Gamma `chg_*`) | 1.5, 4 |
+
+The size check now has **12 binding scenarios** (q0563's title updated). Planning MDEs, floors, alphas and directions are unchanged.

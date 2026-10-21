@@ -1,6 +1,6 @@
 {
  "id": "q0563_lt5_size_check",
- "title": "LT5 simulated-null size of the gates on the code to be pinned (DRAFT): 11 binding scenarios mapped to tests (FL: binary iid / persistent / control corr 0.7 [J, F]; Markov 0.6 + MA(2) [J]; Markov 0.6 and 0.9 + MA(11), market strata [H]; AR(1) imb rho 0.6 and 0.9 interaction world [R]; block circular-shift FL: continuous iid, AR 0.6, AR 0.9 with a 0.85-correlated control and MA(2) target [O]) x 2,000 worlds x 200 draws, seed 20261147, criterion rate <= 0.058",
+ "title": "LT5 simulated-null size of the gates on the code to be pinned (DRAFT): 12 binding scenarios mapped to tests (LIVE_TESTS_5.md 1.8, worlds 1.8.1: FL binary iid / persistent / control corr 0.7 [J, F]; Markov 0.6 + MA(2) [J]; per-day Markov 0.6 and 0.9 with 12-shock daily targets, market strata [H]; AR(1) imb rho 0.6 and 0.9 with near-constant inside [R]; block circular-shift FL, min 16 units per market: rho 0, 0.6, 0.9, 0.95 with a 0.85-correlated control and MA(2) target [O]) x 2,000 worlds x 200 draws, seed 20261147, criterion rate <= 0.058",
  "family": "live_tests_5",
  "priority": 24,
  "expected_value": "LIVE_TESTS_5.md 1.8 size statement at the pinned code",
@@ -29,5 +29,5 @@
   "data-dumps/research_lab/live_tests5_census/size_check.json (with code_sha256 of the three LT5 modules)"
  ],
  "next_action": "DO NOT PROMOTE until the LT5 code freeze is recorded and q0561/q0562 have fixed k. Then record the rates in LIVE_TESTS_5.md; a failing scenario sets only the tests it is binding for to 'SE check failed' (p = 1 in Holm, k unchanged; LIVE_TESTS_5.md 1.8); no rerun, no new seed, no gate variant",
- "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_5.md; the script does not exist yet). Run once on the code to be pinned, after the censuses (R1 finding 9: k fixed before any size result exists); the output's code_sha256 must equal the spec map. Seed 20261147 is declared in LIVE_TESTS_5.md before any run; no preliminary run of the binding scenarios at this seed. max_retries 1 is a deterministic-crash retry only: the same code, seed, worlds and draws, allowed only when the attempt wrote no output; a written output is never rerun. Estimate 10-16 h on the host (11 scenarios; LT4's six were estimated at 5-9 h). Counts 0."
+ "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_5.md; the script does not exist yet). Run once on the code to be pinned, after the censuses (R1 finding 9: k fixed before any size result exists); the output's code_sha256 must equal the spec map. Seed 20261147 is declared in LIVE_TESTS_5.md before any run; no preliminary run of the binding scenarios at this seed. max_retries 1 is a deterministic-crash retry only: the same code, seed, worlds and draws, allowed only when the attempt wrote no output; a written output is never rerun. Estimate 10-18 h on the host (12 scenarios; LT4's six were estimated at 5-9 h). Counts 0."
 }
