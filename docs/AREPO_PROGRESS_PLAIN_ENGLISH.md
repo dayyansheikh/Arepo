@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-21 15:09 UTC+1
+**Last updated:** 2026-10-21 15:52 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -19,8 +19,14 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
     registration.
   - Also disclosed: an early, uncommitted count was seen before the pass/fail gates were written down. The gates sit far
     below those numbers, so they could not have been placed to pass narrowly, but they were not set blind.
-  - **Now:** the independent challenger review is running. Registration is still planned before 24 Oct, collection
-    25 Oct to 15 Nov. You get a phone note at the review verdict.
+  - **Review done (phone note sent):** the independent challenger accepted the design with 10 required fixes and
+    found no use of future information. All 10 are made: for example, a "no effect" verdict is now judged as strictly
+    as a "yes", every input file is locked by a fingerprint, and the 3-week collector was checked for memory on a
+    store 7 times the census size (below the light-job limit). A second check of the fixes passed, with notes. Two extra
+    safety locks were added on its advice.
+  - **Next:** the memory re-check (q0545) and then the one-time freeze of the skilled-wallet list (q0540) run on the
+    server shortly. Then the fingerprints are pinned and the test is registered (planned before 24 Oct), with a phone
+    note. Collection 25 Oct to 15 Nov.
 - **Bounce re-check (SB2-J4-R) finished: VOID.** Its own pre-set safety check (a shuffled-data placebo) failed for 2 of
   its 5 tests, so by its rules no verdict is read. The 5 tests stay counted. No new run is planned; it is low priority.
 - **LT3 (E015) is registered.** Collection 24 Oct to 14 Nov, single analysis after 15 Nov.

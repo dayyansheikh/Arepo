@@ -251,13 +251,18 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && git log --oneline -1'` = local tip.
 
 **Tonight (time-critical, in order):**
-1. **E026:** census q0544 DONE (register_k2); values filled in `LIVE_TESTS_COPY.md` 7.5/8.2 and spec `planning` (51663ed4).
-   Recorder peak-RSS defect fixed (VmHWM; q0544's 1,441.6 MB was the parent's peak). **q0545_copy_census_memcheck**
-   (priority 37, cpu, counts only) must START before 02:45Z; when done: copy `census_q0545_memcheck.json` into
-   `docs/research_lab/live_tests_copy/` with sha256, set spec `planning.recorder_peak_mb`, size q0541 `mem_mb`/`as_cap_mb`
-   (net lane needs < 500), diff counts vs q0544 (must be equal). Challenger review RUNNING (started ~13:58Z, this
-   session); then fixes, owner phone note (review verdict), freeze q0540, pins, registration commit before
-   2026-10-24T00:00Z (notes at registration and collection start).
+1. **E026:** census done (register_k2); challenger R1 ACCEPT_WITH_FIXES -> fixes d11ba0a0 + e68ff67a -> re-check
+   R1_FIXES_OK_WITH_NOTES (reviews/E026_*_2026-10-21.md; design section 14). Owner notified (review verdict).
+   Queued: **q0545** memcheck (37) then **q0540** freeze (36), both cpu, must start before 02:45Z. When done:
+   (a) copy `census_q0545_memcheck.json` into `live_tests_copy/` (sha256), check skill set / skilled signals / L=0
+   primary n, events, wallets equal q0544; recorder VmHWM < 480 MB or re-size q0541 (if >= 500 it loses the light-job
+   exemption: then STOP and redesign memory BEFORE the pin, never after); (b) read the freeze manifest on the host
+   (`copy_skilled/skillset/skillset_manifest.json`: sha256, checks); (c) fill spec `skillset_sha256`, `code_sha256`
+   (`cs.code_hashes()`), `impact_table_sha256`, status, `planning.recorder_peak_mb`; pin `SPEC_SHA256`; run the pinned
+   hash test (unskips); (d) registration commit before 2026-10-24T00:00Z: ledger block (section 12 updated), the
+   "frozen until 2026-12-07" note for copy_skilled*.py, wallet_skill*.py, costs.py, cost_model_calibration_v1.json in
+   ledger + CLAUDE.md + AGENTS.md, registry stage, promote q0541 / q0542 (not_before 10-25) and q0543 (12-06), deploy;
+   owner phone notes at registration and at collection start (10-25).
 2. **LT5 seal → census:** q0564 (priority 45) runs from 23:20Z. When done:
    - `scp` `live_tests5_census/lt5_census_inputs_captures.json` to `docs/research_lab/seals/lt5_census_inputs_captures.json`
      (byte copy; sha256 equal);
