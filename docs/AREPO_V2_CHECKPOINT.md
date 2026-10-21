@@ -283,10 +283,14 @@ output), ledger "E022 REGISTERED", registry, battery2/trials kind if needed, pro
 before 10-26T00Z; never also q0485. Then LT6 (V's pin must precede T_E022).
 **Do NOT promote MC1 q0116f ahead of q0484** (q0484 has priority 97 > 95; both exclusive-ish: check).
 
-**CB17 unblocked (1c9f604e):** all CB17 window jobs use `--root ../data-dumps/research_lab/cb17_window/creative_batch17`
-(the frozen 0.3 GB cap counted q0413's 925 MB input restore in the default root). q0404 retried 20:08Z; on PASS promote
-q0405 (with the same --root). S_8 = 10-26T00Z. **Owner approval 8 (not urgent):** a clearing session for finished
-restore trees (~9 GB; data-dumps ~30 / 40 GB).
+**CB17:** window jobs use `--root ../data-dumps/research_lab/cb17_window/creative_batch17` (1c9f604e; the frozen 0.3 GB
+cap had counted q0413's input restore). **q0404 smoke PASS 20:12Z (P1-P3 exact; freeze accepted).** q0405 promoted
+(f7e98170, base pin 56dc953e… from q0380's manifest). Next: q0406+ after S_8 (10-26T00Z) per the drafts' dates; ruling 6
+attestation again with q0406's commit. **Owner approval 8 (not urgent):** a clearing session for finished restore trees
+(~9 GB; data-dumps ~30 / 40 GB).
+
+**LT6 code freeze check** (science-reviewer) launched ~20:20Z on feat/live-tests-6; apply its fixes on that branch, then
+the LT6 census seal and counts-only censuses after LT5's.
 
 **LT6 (`feat/live-tests-6`, worktree `.claude/worktrees/agent-a985b10db31086738`):** design accepted; code phase 1 and
 phase 2 (reader, analyze entry point, RSS probe, drafts q0585/q0586; 137 tests) committed and pushed. Not merged. Open:
