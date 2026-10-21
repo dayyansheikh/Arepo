@@ -168,6 +168,19 @@ def test_features_write_once_lookbacks_and_no_lookahead(env, tmp_path):
     pd.testing.assert_frame_equal(f5.drop(columns=["t_row"]), f5b.drop(columns=["t_row"]))
 
 
+def test_archived_captures_do_not_starve_new_ones(env):
+    w, paths = env
+    w.run(8)
+    for cid in w.caps[:4]:
+        (w.root / "snapshots" / cid / "rows.csv.gz").unlink()  # rows archived and deleted on the host
+    r = F.run_features(paths, max_items=2)
+    assert [x["capture_id"] for x in r["written"]] == w.caps[4:6]
+    assert r["skipped_no_rows"] == 4 and r["pending"] == 2
+    r = F.run_features(paths, max_items=2)
+    assert [x["capture_id"] for x in r["written"]] == w.caps[6:8] and r["pending"] == 0
+    assert F.run_features(paths, max_items=2)["written"] == []
+
+
 def test_write_once_refuses_overwrite(tmp_path):
     p = tmp_path / "a.parquet"
     assert S.write_once_parquet(p, pd.DataFrame({"x": [1]}), {"k": 1})

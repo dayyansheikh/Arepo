@@ -494,12 +494,19 @@ def run_features(paths: S.Paths, max_items: int = 4, now: float | None = None) -
     done_ids = {m["capture_id"] for m in index.values()}
     todo = [c for c in caps if c["id"] not in done_ids and c["slot"] not in index]
     mids = MidCache(paths, index)
-    written = []
-    for cap in todo[:max_items]:
+    written, skipped = [], 0
+    for cap in todo:
+        if len(written) >= max_items:
+            break
         if not (cap["dir"] / "rows.csv.gz").exists():
-            continue  # rows archived and deleted: the capture is skipped, missing stays missing
+            # rows archived and deleted: the capture is skipped (missing stays missing) without using the budget,
+            # so a backlog of archived captures can never starve the newest ones
+            skipped += 1
+            continue
         meta = build_capture(paths, cap, index, mids, state)
         index[cap["slot"]] = meta
         written.append({"capture_id": cap["id"], "n_features": meta["n_features"], "sources": meta["sources"]})
     S.save_state(paths, state)
-    return {"pending": max(0, len(todo) - len(written)), "written": written}
+    unbuildable = sum(1 for c in todo if not (c["dir"] / "rows.csv.gz").exists())
+    return {"pending": max(0, len(todo) - len(written) - unbuildable), "skipped_no_rows": unbuildable,
+            "written": written}
