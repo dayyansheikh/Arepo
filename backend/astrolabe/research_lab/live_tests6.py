@@ -28,7 +28,7 @@ import math
 import re
 import statistics
 from datetime import UTC, datetime, timedelta
-from decimal import Decimal, InvalidOperation
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -417,6 +417,20 @@ def near_identical_keys(rows: pd.DataFrame, pct: float = 0.05) -> list:
     return keys
 
 
+def notional_cent_keys(rows: pd.DataFrame) -> list:
+    """S3's grouping key (section 3): ``size x price`` rounded to the cent (``Decimal``, half-up) in place of the size key, so identical
+    notionals group even when size and price differ. ``None`` (unparseable size or price) is counted as a bad row by :func:`clip_trains`."""
+    out: list = []
+    for sz, px in zip(rows["size"].tolist(), rows["price"].tolist(), strict=True):
+        d = size_key(sz)
+        try:
+            p_ = Decimal(str(px).strip())
+        except (InvalidOperation, ValueError):
+            p_ = None
+        out.append(None if d is None or p_ is None or not p_.is_finite() else (d * p_).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+    return out
+
+
 def clip_unit_features(rows: pd.DataFrame, order_min_size_text, t_k: float, spec: dict) -> dict:
     """K's frozen state for one unit from the interval rows (``t_{k-1} <= ts < t_k``, known outcome, TEXT sizes): ``clip_share``
     (notional = size x price share of the interval's rows that lie in clip trains), ``round_share`` (notional share of rows whose
@@ -443,12 +457,18 @@ def clip_unit_features(rows: pd.DataFrame, order_min_size_text, t_k: float, spec
     def share(mask) -> float:
         return float(np.nansum(notional[mask]) / tot) if tot > 0 else float("nan")
 
+    # Frozen now because trade samples rotate off after about 3 days (they cannot be recomputed at the analysis): the placebo P1 (the train
+    # rule on near-identical, never identical, sizes within +/-5%) and the secondary S3 (identical size x price to the cent), both with the same
+    # min-size removal, rows of the interval only.
+    p1 = clip_trains(rows, order_min_size_text, spec, keys=near_identical_keys(rows)) if n else {"train_id": np.zeros(0, int), "n_trains": 0}
+    s3 = clip_trains(rows, order_min_size_text, spec, keys=notional_cent_keys(rows)) if n else {"train_id": np.zeros(0, int), "n_trains": 0}
     a_in = all_["train_id"] >= 0
     clip_notional_all = float(np.nansum(notional[a_in]))
     a_small = np.array([(cutoff is not None and (d is not None) and d <= cutoff) for d in (size_key(s) for s in rows["size"].tolist())], bool)
     return {"n_int": n, "clip_share": share(in_train), "round_share": share(rnd), "minsize_share": share(small), "n_trains": res["n_trains"],
             "last_clip_age": float(t_k - np.nanmax(ts[in_train])) if in_train.any() else float("nan"), "H_unsigned": share(flags),
             "cutoff_unknown": res["cutoff_unknown"], "bad_size_rows": int(res["bad_size"].sum()),
+            "p1_clip_share": share(p1["train_id"] >= 0), "p1_n_trains": p1["n_trains"], "s3_clip_share": share(s3["train_id"] >= 0), "s3_n_trains": s3["n_trains"],
             "clip_notional": float(np.nansum(notional[in_train])), "clip_notional_round": float(np.nansum(notional[in_train & rnd])),
             "would_be_clip_notional": clip_notional_all,
             "would_be_clip_notional_minsize": float(np.nansum(notional[a_in & a_small])),

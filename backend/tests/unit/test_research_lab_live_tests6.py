@@ -611,3 +611,20 @@ def test_fake_birth_draw_is_seeded_distant_and_tercile_matched():
     assert a == lt.fake_birth_slot(real, window, terc, 2, np.random.default_rng(20261364))
     assert lt.fake_birth_slot([10], list(range(8, 14)), {s: 0 for s in range(8, 14)}, 0, np.random.default_rng(1)) is None  # none qualifies
     assert lt.fake_birth_slot([10], window, {s: 0 for s in window}, 1, np.random.default_rng(1)) is None  # none in the tercile
+
+
+def test_k_features_freeze_the_p1_placebo_and_s3_notional_clips():
+    """Freeze-check fix (HIGH): P1 and S3 cannot be recomputed after the trade samples rotate off, so the reader freezes them."""
+    # P1: near-identical (never identical) sizes 100, 103, 104 at a regular rhythm: a placebo train, and NOT a real clip train
+    rows = _rows([100, 110, 120], size=["100", "103", "104"], price="0.5")
+    f = lt.clip_unit_features(rows, "1", t_k=1000.0, spec=_spec())
+    assert f["clip_share"] == 0.0 and f["p1_n_trains"] == 1 and f["p1_clip_share"] == pytest.approx(1.0)
+    # identical sizes are a real clip train and give the placebo nothing
+    g = lt.clip_unit_features(_rows([100, 110, 120], size=["10", "10", "10"], price="0.5"), "1", t_k=1000.0, spec=_spec())
+    assert g["clip_share"] == pytest.approx(1.0) and g["p1_n_trains"] == 0 and g["p1_clip_share"] == 0.0
+    # S3: sizes and prices differ but size x price is identical to the cent (10 x 0.5 = 20 x 0.25 = 5)
+    r = _rows([100, 110, 120], size=["10", "20", "5"], price="0.5")
+    r["price"] = ["0.5", "0.25", "1"]
+    h = lt.clip_unit_features(r, "1", t_k=1000.0, spec=_spec())
+    assert h["clip_share"] == 0.0 and h["s3_n_trains"] == 1 and h["s3_clip_share"] == pytest.approx(1.0)
+    assert lt.notional_cent_keys(r) == [Decimal("5.00")] * 3
