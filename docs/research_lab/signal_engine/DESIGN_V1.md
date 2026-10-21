@@ -318,3 +318,15 @@ effect; the leaderboard's gain column stays "vs the current champion"). Logistic
 keep running unchanged. First: `se10_lgbm_event` (event family; embargoed with se8 under `event` until 2026-11-22). Embargoed families (flow, book, xvenue,
 tte, wallet, rewards) get LightGBM versions only after their embargo dates, or as hidden predictions under the same
 token if added earlier.
+
+2026-10-21 ~10:15Z: hidden LightGBM versions added under their tokens, with se1's params and the matching logistic
+spec's families / derived / isolates / require_sources: `se11_lgbm_flow` (flow, 11-22), `se12_lgbm_tte` (tte, 11-14),
+`se13_lgbm_xvenue` (xvenue, 11-04). Predictions are written from their first fit; no score (prospective or development)
+is computed or shown before the embargo date, and the walk-forward skips them until then. Not added yet: book, rewards,
+wallet (refit budget first). Measured on the Mac copy (development data, 10 days): each extra LightGBM model costs ~110 s
+of fit time (4 threads), the refit of 5 models peaked at 1.28 GB RSS (refit mem_mb 1500); host estimate ~3 min per LightGBM
+model, 6 LightGBM + 7 logistic models ~20 min against the 3600 s timeout.
+Known, self-healing: LightGBM `res_7d` fits fail with "inner split too small (train 0)" for every LightGBM model. A
+resolution label's availability time is its fetch receipt time, the whole backlog was first fetched on 2026-10-21, so no
+training row has its label before the validation cut. The split rule is causal and stays; the fits start once receipts
+precede the cut (~6 days of steady fetches, around 10-28). The logistic `res_7d` fits are unaffected (no inner split).
