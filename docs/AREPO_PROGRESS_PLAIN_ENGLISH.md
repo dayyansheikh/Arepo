@@ -1,32 +1,28 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-21 00:21 UTC+1
+**Last updated:** 2026-10-21 04:42 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **Autopilot:** a new session started at 23:39 UTC+1 (20 Oct). The 18:38 session stopped at about 21:40 UTC+1.
-- **Two archive restores were failing; fixed.** They need an index of what each nightly backup holds, and that index
-  had not been refreshed since 15 Oct. It is now refreshed for every backup up to 20 Oct, and both restores are back in
-  the queue (the LT3 input restore and the batch 17 reproduction inputs). The LT3 counting check that follows still has
-  time before its 23 Oct deadline.
-- **Live tests:** 4 registered groups (E009/E010, E011, E012-E014); E012-E014 start collecting **22 Oct 01:00 UTC+1**.
-  - **LT3 (E015, E016, E018):** the independent reviewer looked again and found that one safety check (comparing a
-    market with itself at other times) cannot work as designed, however it is scaled. Ruling: it stays as information only,
-    and these tests use the same reshuffling check as the others. That change is made and under final review; then a
-    large size check (2,000 simulated worlds) runs on the server. If any required scenario fails, LT3 is not registered
-    and is not redesigned again. Target start 24 Oct, or the next allowed day.
-  - **LT4 (now E020-E022):** review fixes done and checked; its counting checks are queued on the server behind two
-    archive restores. It registers after LT3.
-- **Batches 12-15 tonight:** batch 12's speech-mention and earthquake parts closed (failed their readiness checks set in
-  advance: too little power; too few independent events), counted as 3 tests that found nothing (batch 12 total: 5 of 10).
-  Batch 14's Wikipedia part failed its blind name-matching check (38 of 56 articles were the right person; 90% needed) and
-  has too few markets anyway (94; 150 needed), so it will close as "not testable", counted. Batch 13's price download and
-  batch 15's exclusion list are queued.
-- **Note:** an interactive session queued a 6-hour model run that runs alone on the server, so other jobs pause while it runs.
-- **Batch 17:** code frozen; its reproduction run waits for the restore above. Test window starts **26 Oct**.
+- **Autopilot:** a new session started at 04:32 UTC+1 (21 Oct), right after the usage limit reset. Your interactive
+  session hit the limit at about 01:00 UTC+1, so several of its helpers stopped mid-task; this session picks up the
+  research ones (not the website/board changes you asked for at 01:11).
+- **Fixed: the E012-E014 live collector was being held up.** During the server's nightly quiet window (03:45-06:30 UTC+1),
+  a bigger job waiting at the front of the queue blocked the small collector, which is allowed to run then. That would
+  have made its daily 03:31 freeze late. The queue now lets small allowed jobs pass; the collector started at 04:36.
+- **LT3 is down to one test (E015).** The last counting check (order-flow data, counts only) showed too little usable
+  data for E016 and E018 (for example 51,828 usable market-periods where 60,000 were required). By the rules set in
+  advance, both are dropped and not counted. With the earlier two drops, LT3 now registers E015 alone (quote-only
+  versus traded price moves). The large size check is running on the server; an independent pre-registration review is
+  running now. Target start 24 Oct if registered by the end of 22 Oct.
+- **Copy-skilled-wallets live test:** the design helper stopped at the usage limit with code written but no design
+  document. This session restarted it; you will get a phone note when the design is done.
+- **Model run (MC1):** the 6-hour model run was killed twice by the server running out of memory while it assembled its
+  data table. A memory fix is being written (it must give identical numbers); the run will be queued again after that.
+- **LT4 (E020-E022):** its counting checks are queued on the server. **Batch 17:** reproduction run queued; window 26 Oct.
 - **Second free server:** still "out of host capacity" at Oracle; it retries every 10 min.
 
 ## 2. Approvals needed from you
