@@ -9,7 +9,7 @@ makes no network request (a pure reader of the collector's captures, sweeps and 
     python scripts/run_live_tests3.py size-check --out size.json   # simulated-null size of both gates (code to be pinned)
     python scripts/run_live_tests3.py analyze --out res.json # the single registered analysis (refused before the date)
 
-Install (section 13, finding 9): every 20 min under its own flock (host cron) or as the queue draft q0474 (lane net);
+Install (section 13, finding 9): every 20 min under its own flock (host cron) or as a fallback reader queue job (id assigned at install; lane net);
 exit 0 after writing, exit 75 when nothing is new.
 """
 
