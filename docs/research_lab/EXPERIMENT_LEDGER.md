@@ -3241,3 +3241,6 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   host check: `load_spec` pinned (06d117ed…), `check_pinned_code` passes, reader_sha 2bae593a259b8945, the frozen
   skill set's sha256 equals the pin. Owner phone notes sent (review verdict, registration); next at collection start
   (2026-10-25) and weekly counts.
+- (15:30Z, ops) q0564 (LT5 capture seal, 23:20Z) moved from the cpu to the net lane (file hashing, mem_mb 300), so a
+  running cpu-lane job cannot delay it past the window for the seal commit and the q0561 start before 02:45Z. Nothing
+  else changed. LT3 / LT4 restore trees checked present for q0562 (23 samples, 39 captures).
