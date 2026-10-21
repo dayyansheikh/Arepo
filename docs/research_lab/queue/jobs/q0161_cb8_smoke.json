@@ -1,0 +1,37 @@
+{
+ "id": "q0161_cb8_smoke",
+ "title": "CB8: smoke (a) Data API daily paging on 20 worn 2026 markets drawn under the W frame rules; (b) Binance archive CHECKSUM for BTCUSDT spot and HYPEUSDT futures 2026-03 (outside the B window); (c) pmxt HEAD of 3 seeded B-window 15Z hours; counts only",
+ "family": "creative_batch_8",
+ "priority": 50,
+ "expected_value": "source checks for B and W",
+ "data": [
+  "h1/h2/h3 sample.csv.gz id lists (ids only)",
+  "public Gamma by id",
+  "public Data API trades",
+  "data.binance.vision",
+  "r2v2.pmxt.dev (HEAD only)"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "network": "gamma-api, data-api, data.binance.vision, r2v2.pmxt.dev",
+  "lane": "net"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb8.py",
+  "smoke",
+  "--rps",
+  "2",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 900,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch8/smoke.json"
+ ],
+ "next_action": "PASS: commit q0164, q0165-q0168. FAIL (a): W not run (source); FAIL (b)/(c): B not run (source); counted",
+ "notes": "PROMOTED 2026-10-21 ~12:20Z (autopilot) with not_before 2026-10-22T00:00:00Z (T_seal 2026-10-22T00:00Z), one-shot, as the draft instructs. | CREATIVE_BATCH_8.md CB8-F. DRAFT. Commit after T_seal (keeps the net lane free). Pool: closed, end_at 2026-05..09, volume >= $50k, life >= 10 d (the W frame's own rules; CB6 smoke lesson). PASS (a) iff rows in bounds, newest-first, no duplicate fingerprint across pages, >= 14/20 non-empty, <= 2/20 at the 10-page cap. No candle inside the B window is read. IMPLEMENTED 2026-10-17 (cb8_updown.run_smoke; runner subcommand 'smoke'). Needs the committed seals/cb8_rules_v2.json (B data rules v2, rules_sha256 33decb528bbafd46336296be57c91b76e6aaa0c69d7d3eecf92eaa83c4f12a6d; the v1 cb8_rules.json is superseded and refused; hash-checked) and the sha-pinned h1/h2/h3/h5/h5_ladders exclusion files on the host (exit 2 otherwise). WRITE-ONCE result creative_batch8/smoke.json with keys criterion_a_data_api_paging / criterion_b_binance_checksum / criterion_c_pmxt_heads (q0167 reads a; q0164-q0166 read b and c). Also probes trades paging at offset 4000 on the first pool market (400 = venue cap, accepted; 200 = deep paging works; other = criterion a fails). A network failure writes nothing and exits 75. | 2026-10-17 15:35Z autopilot: data-dumps headroom guard 12.5 -> 40 GiB (ops only, not a declared argument): the user grew the host boot volume to 100 GB (root 89 GB, 60 GB free); collector cap 45 GiB, 4 GB free-disk guard unchanged.",
+ "not_before": "2026-10-22T00:00:00Z"
+}

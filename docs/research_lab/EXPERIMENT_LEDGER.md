@@ -3083,3 +3083,6 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - Promoted q0383 (CB16-K census, counts only, exclusive). CB17 q0405 waits for the q0404 smoke; its base-key pin is
   q0380's key file above.
 - Ops priorities for tonight: q0544 36 (E026 census, must start before 02:45Z); q0564 45 (LT5 seal, from 23:20Z).
+- (12:11Z) Promoted ahead of T_seal with `not_before`: q0083b (h7 deadline recorder, one-shot, 10-22T00:05Z; q0083 seal
+  follows) and q0161 (CB8 smoke, 10-22T00:00Z). A session then commits the h7 seal / NOT_RUN copies before q0121, q0144
+  and q0145 are promoted.
