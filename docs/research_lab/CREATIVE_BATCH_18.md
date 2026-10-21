@@ -890,3 +890,23 @@ no threshold, gate or formula changed.
 
 **Later parts.** Parts `common` and `S` must be declared in their own module, never by adding constants to
 `cb18_rules_pre.py` (that would change the part `pre` hash).
+
+## 14. Routing record (2026-10-21 ~20:05Z; counts only; nothing counted)
+
+All five pre-censuses ran on the host (q0502 S, q0503 P, q0504 R map, q0505 F, q0506 M; q0502/q0505/q0506 needed a
+resource-only memory raise after a tokenizer out-of-memory under the address cap). Output sha256 (host = local copy):
+S 0908334b…, P 72f36381…, R_map 4a01cc29…, F ca006c55…, M 73ece56d…. The routing record
+`seals/cb18_routing.json` was written once by `run_cb18.py routing` (rules part `pre`), by the §3 rules only:
+
+| Family | Gates | Route |
+|---|---|---|
+| CB18-S (CH177) | GS1 pass, GS2 fail, GS3 pass, GS4 fail, GS5_CB fail, GS5_LT fail; planning MDE RS-1 3.64c, RS-2 1.37c | **RS-0: dropped uncounted at the census gates** |
+| CB18-P (CH172) | GP1 fail, GP2-GP4 pass, GP5 fail, GP6 fail (all categories and non-sports alike) | **dropped uncounted** (no LT5 member) |
+| CB18-R (CH179) | none (map) | map only (k = 0); quantised label false |
+| CB18-F (CH176) | none | census only (k = 0); re-entry only under §4.4 |
+| CB18-M (CH175) | none | map (k = 0); its days are worn for every resolution arm |
+
+**Consequences.** CB18 has no counted test (k = 0); the parts `common`, `S` and `T18_rules` are never written, and the
+drafts q0590-q0599 are moot (never promoted). LT5 is unaffected (its members come from round 11; CH172 and CH177 were
+conditional and are now dropped). The LT6 change request (no CB18-S `end_date`-change class shown before LT6's pin) is
+satisfied trivially: no SCREEN_18 or REP_18 exists; the routing printout above shows routes, gates and MDEs only.

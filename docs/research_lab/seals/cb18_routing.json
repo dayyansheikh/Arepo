@@ -1,0 +1,88 @@
+{
+ "inputs": {
+  "F": {
+   "file": "F.json",
+   "sha256": "ca006c55b556828316aefc0cec5145bb2d86d90ae2d412c9fe54fe645aa83cf4"
+  },
+  "M": {
+   "file": "M.json",
+   "sha256": "73ece56d9deaa9982714f36737729cfc90ee2b48b69e239d75f5b72cbd9dde84"
+  },
+  "P": {
+   "file": "P.json",
+   "sha256": "72f36381afc2e4e0ce81c8b571c8792d0d6792c06719ae9b2a557d7890b10d88"
+  },
+  "R": {
+   "file": "R_map.json",
+   "sha256": "4a01cc290246c472b53253ae2a577c3d04ac5616959f3081f7f141a2b3205c54"
+  },
+  "S": {
+   "file": "S.json",
+   "sha256": "0908334b6cae91db749c80fd4950f102c00847a00a35b66199c99c895979f453"
+  }
+ },
+ "routes": {
+  "F": {
+   "route": "census only (k = 0); re-entry rule section 4.4"
+  },
+  "M": {
+   "route": "map (k = 0); its days are worn for every resolution arm"
+  },
+  "P": {
+   "census_to_spec": {
+    "population": null,
+    "strata_level": null
+   },
+   "gates_all": {
+    "GP1": false,
+    "GP2": true,
+    "GP3": true,
+    "GP4": true,
+    "GP5": false,
+    "GP6": false
+   },
+   "gates_non_sports": {
+    "GP1": false,
+    "GP2": true,
+    "GP3": true,
+    "GP4": true,
+    "GP5": false,
+    "GP6": false
+   },
+   "mde_formula_c": null,
+   "mde_proxy_c": null,
+   "population": null,
+   "route": "dropped uncounted"
+  },
+  "R": {
+   "quantised_label": false,
+   "route": "map only (k = 0)"
+  },
+  "S": {
+   "census_to_spec": {
+    "composition_level": 0,
+    "dormancy_tercile_cuts_log1p_s": [
+     9.602549074032117,
+     10.355470191140713
+    ],
+    "q_cb": 1.0,
+    "q_lt": 1.0,
+    "strata_level": null
+   },
+   "gates": {
+    "GS1": true,
+    "GS2": false,
+    "GS3": true,
+    "GS4": false,
+    "GS5_CB": false,
+    "GS5_LT": false
+   },
+   "mde_rs1_c": 3.6383893776754412,
+   "mde_rs2_c": 1.365437447900487,
+   "meaning": "dropped uncounted at the census gates",
+   "route": "RS-0"
+  }
+ },
+ "rules_pre_sha256": "e5b9c6454ec9caf9aa17ad66c69b019222ba3aaf14b96f1bc0abdcd124364976",
+ "rules_version": "cb18-rules-v1"
+}

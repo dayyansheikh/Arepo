@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-21T20:20:00Z",
+ "updated": "2026-10-21T20:10:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1295,24 +1295,26 @@
   {
    "id": "CB13",
    "title": "Where makers lose money; touch versus end-above markets",
-   "plain": "Whether the losses of resting orders differ by type of market, and whether 'will it touch X' crypto markets are priced as if they were 'will it end above X'. The maker-loss part was not testable (too few fills). The touch-market part failed its pre-declared data checks on 21 Oct (counts only), so it is expected to be recorded as not testable.",
+   "plain": "Whether the losses of resting orders differ by type of market, and whether 'will it touch X' crypto markets are priced as if they were 'will it end above X'. Both parts were not testable: too few fills for the maker part, and the touch-market data failed its pre-declared checks (21 Oct). No CB13 test remains.",
    "batch": "CB13",
    "family": "mixed",
-   "stage": "designed",
-   "status": "running",
-   "verdict": "pending",
+   "stage": "screened",
+   "status": "closed",
+   "verdict": "not_testable",
    "effect": null,
-   "next": "Maker-loss part recorded as not testable (2 tests counted); touch-market data checks failed (counts only), screening job will record it as not testable",
+   "next": "Closed: recorded as not testable (maker part 2 tests, touch part 1 test counted)",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/CREATIVE_BATCH_13.md § 12 (CB13-R census results), and docs/research_lab/EXPERIMENT_LEDGER.md § Session 2026-10-20 ~01:27Z (autopilot): smokes q0285b / q0300 / q0301 / q0348"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Finished-job write-ups and queue fixes, 2026-10-21"
    },
    "stage_results": {
-    "designed": "pending"
+    "designed": "pass",
+    "screened": "fail"
    },
    "reached": [
-    "designed"
+    "designed",
+    "screened"
    ]
   },
   {
@@ -1321,21 +1323,23 @@
    "plain": "Whether bursts of Wikipedia edits come before market moves on resignations and similar news, and whether unsaid words in a speech become less likely as it runs on. Neither part could be tested: the speech part found no usable transcripts, and the Wikipedia part mapped too few markets (58 of 150 needed). Recorded as not testable (4 tests counted).",
    "batch": "CB14",
    "family": "mixed",
-   "stage": "designed",
-   "status": "running",
-   "verdict": "pending",
+   "stage": "screened",
+   "status": "closed",
+   "verdict": "not_testable",
    "effect": null,
-   "next": "Both parts recorded as not testable (4 tests counted); no CB14 test remains",
+   "next": "Closed: both parts recorded as not testable (4 tests counted)",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/CREATIVE_BATCH_14.md § 12 (CB14-W pre-fetch gate GWC result), and docs/research_lab/EXPERIMENT_LEDGER.md § Session 2026-10-20 ~01:27Z (autopilot): smokes q0285b / q0300 / q0301 / q0348"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Finished-job write-ups and queue fixes, 2026-10-21"
    },
    "stage_results": {
-    "designed": "pending"
+    "designed": "pass",
+    "screened": "fail"
    },
    "reached": [
-    "designed"
+    "designed",
+    "screened"
    ]
   },
   {
@@ -1344,21 +1348,23 @@
    "plain": "Whether markets in states whose late count usually moves one way drift that way after polls close on 3 Nov, and whether pairs listed first on Kalshi are mispriced at birth on Polymarket. Neither part could be tested: the search found 26 of 511 races, and only 37 Kalshi-first pairs in 12 events were found (60 and 30 needed). Recorded as not testable (4 tests counted).",
    "batch": "CB15",
    "family": "mixed",
-   "stage": "designed",
-   "status": "running",
-   "verdict": "pending",
+   "stage": "screened",
+   "status": "closed",
+   "verdict": "not_testable",
    "effect": null,
-   "next": "Both parts recorded as not testable (4 tests counted); no CB15 test remains",
+   "next": "Closed: both parts recorded as not testable (4 tests counted)",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/CREATIVE_BATCH_15.md § 12 (CB15-P birth-order census result), and docs/research_lab/EXPERIMENT_LEDGER.md § Session 2026-10-20 ~01:27Z (autopilot): smokes q0285b / q0300 / q0301 / q0348"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Finished-job write-ups and queue fixes, 2026-10-21"
    },
    "stage_results": {
-    "designed": "pending"
+    "designed": "pass",
+    "screened": "fail"
    },
    "reached": [
-    "designed"
+    "designed",
+    "screened"
    ]
   },
   {
@@ -1410,21 +1416,21 @@
   {
    "id": "CB18",
    "title": "Silent edits, program versus human, races, front page, last-mid map",
-   "plain": "Round 10's remaining ideas, using data already on the server: program versus human trading, silent edits, races, the front page as a clock, and a map of last prices against outcomes. Counting checks come first (counts only). Pre-declared rules then send each idea to a batch test, a future live test, a map only, or drops it. The counting code was checked by an independent reviewer and fixed; the checks are now queued.",
+   "plain": "Round 10's remaining ideas, using data already on the server: program versus human trading, silent edits, races, the front page as a clock, and a map of last prices against outcomes. The counting checks ran on 21 Oct. By the pre-declared rules, silent edits and program-versus-human did not have enough usable cases or power and were dropped before any test, so they are not counted. The other three were maps or counts only from the start.",
    "batch": "CB18",
    "family": "mixed",
    "stage": "designed",
-   "status": "queued",
-   "verdict": "pending",
+   "status": "closed",
+   "verdict": "not_testable",
    "effect": null,
-   "next": "Counting checks on the server, then the test window code and its review",
+   "next": "Closed: no counted CB18 test (the front-page idea can only come back under its declared re-entry rule)",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB18 census code: fixes verified (2026-10-21)"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Finished-job write-ups and queue fixes, 2026-10-21 (CB18 routing record, seals/cb18_routing.json)"
    },
    "stage_results": {
-    "designed": "pending"
+    "designed": "fail"
    },
    "reached": [
     "designed"

@@ -3378,3 +3378,11 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   `ulimit -v 1572864` for margin (operational). Install route: host cron `10-59/20` at registration; q0485 fallback only.
   **q0484 size check promoted** (not_before 2026-10-22T04:00Z, after the resize and LT5's q0561; priority 97; mem 800;
   one run, seed 20261107, E022's two scenarios with block2 strata, criterion <= 0.058). Nothing counted.
+- (~19:58Z) **q0282 CB13-R screen: R1 "not testable (basis)", p = 1, counted 1** (as the freeze entry said; no outcome
+  opened). With CB13-T finished at Stage 1, **CB13 is closed**. CB14 and CB15 are closed too (registry: not_testable).
+- (~20:05Z) **CB18 routing record** (`seals/cb18_routing.json`, counts only; `CREATIVE_BATCH_18.md` section 14):
+  censuses q0502-q0506 all done (q0505 and q0506 also needed mem 600 / as_cap 2400 after the same tokenizer OOM).
+  **CB18-S (CH177): RS-0, dropped uncounted** (GS2, GS4, GS5_CB and GS5_LT fail; planning MDE RS-1 3.64c, RS-2 1.37c).
+  **CB18-P (CH172): dropped uncounted** (GP1, GP5, GP6 fail). R map only, F census only (re-entry rule 4.4), M map.
+  CB18 has k = 0: nothing counted; drafts q0590-q0599 moot. LT6's change request is satisfied trivially (no SCREEN_18
+  or REP_18 exists). Registry: CB18 closed (not_testable at design stage).
