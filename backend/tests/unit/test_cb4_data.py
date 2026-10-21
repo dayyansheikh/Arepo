@@ -1138,13 +1138,15 @@ def test_queue_specs_valid_and_repeat_regexes_match_only_true_completion():
     assert q83["depends_on"] == ["q0083b_h7_deadline_recorder"] and "repeat" not in q83
     f81 = json.loads((jobs / "q0081f_h7_cb4_era_frame.json").read_text())
     f82 = json.loads((jobs / "q0082f_h7_cb4_series_frame.json").read_text())
-    rec = json.loads((jobs.parent / "drafts" / "q0083b_h7_deadline_recorder.json").read_text())  # one-shot draft, created at T_seal
+    rec_p = jobs / "q0083b_h7_deadline_recorder.json"  # one-shot; promoted 2026-10-21 (6b1d94c0) with not_before T_seal
+    rec = json.loads((rec_p if rec_p.exists() else jobs.parent / "drafts" / rec_p.name).read_text())
+    assert not rec_p.exists() or rec["not_before"] >= "2026-10-22T00:00"
     assert f81["argv"][1] == "era-frame" and f82["argv"][1] == "series-frame" and rec["depends_on"] == [] and rec["argv"][1] == "record-deadline"
     assert "q0081f_h7_cb4_era_frame" in q81["depends_on"] and "q0082g_h7_cb4_series_frame" in q82["depends_on"]  # e49ca18d: q0082g re-issues the frame
     assert "q0081a_h7_release_gate" in q81["depends_on"] and "q0081a_h7_release_gate" in q82["depends_on"]  # coordinator gate kept
     assert "q0080a_cb4_freezecheck_gate" in q80["depends_on"]
     assert (scripts_dir.parent / rec["argv"][0]).exists() and "--group-s-amendment" in q81["argv"] and "--group-s-amendment" in q82["argv"]
-    assert "repeat" not in rec and not (jobs / "q0083b_h7_deadline_recorder.json").exists()  # a polling repeat starves the cpu lane
+    assert "repeat" not in rec  # a polling repeat starves the cpu lane
     rxf = re.compile(f81["repeat"]["until_log_regex"])
     assert rxf.search(json.dumps({"status": "era_frame_complete"})) and not rxf.search(json.dumps({"status": None, "stopped": "frame_paused"}))
     # the repeat regexes match the real terminal output lines and nothing else

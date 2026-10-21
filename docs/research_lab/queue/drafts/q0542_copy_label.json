@@ -9,7 +9,8 @@
   "research_lab/copy_skilled/signals (market ids only)"
  ],
  "resources": {
-  "mem_mb": 300,
+  "mem_mb": 400,
+  "as_cap_mb": 4000,
   "cpu": 1,
   "lane": "net",
   "network": "gamma"
@@ -33,6 +34,7 @@
   "data-dumps/research_lab/copy_skilled/resolutions/",
   "data-dumps/research_lab/copy_skilled/state.json (label_checked cache)"
  ],
+ "not_before": "2026-10-25T06:00:00Z",
  "next_action": "runs until 2026-12-07T00:00Z (cutoff + 1 day), then q0543",
- "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_COPY.md, E026; design not yet reviewed). Promote only after the challenger review, the freeze job, the spec fill (skillset_sha256, code_sha256, SPEC_SHA256 pin) and the ledger registration commit (>= 24 h before REGISTERED_UTC, LIVE_TESTS_COPY.md 2). Exit 75 when nothing was asked (re-queued after 30 min); the 20 h recheck keeps the request count small. Only the market id leaves the host; no wallet field is sent."
+ "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_COPY.md, E026; design not yet reviewed). Promote only after the challenger review, the freeze job, the spec fill (skillset_sha256, code_sha256, SPEC_SHA256 pin) and the ledger registration commit (>= 24 h before REGISTERED_UTC, LIVE_TESTS_COPY.md 2). Exit 75 when nothing was asked (re-queued after 30 min); the 20 h recheck keeps the request count small. Only the market id leaves the host; no wallet field is sent. not_before = REGISTERED_UTC + 6 h (2026-10-25T06:00:00Z): the first signals exist only after the first samples of the window, so earlier tries would only burn tempfail attempts. RE-PROMOTION RULE: if the queue marks this job `failed`, re-promote it within 48 h (labels are fetched until the cutoff + 1 day, so a short gap only delays labels; a gap is logged, never backfilled with later information). End-date gate (challenger R1 fix 6): until LABEL_CUTOFF - 7 days a market whose latest recorded end date is more than a day ahead is not asked yet (load control only); from 2026-11-29T00:00Z every due market is asked. Each pass appends a `label_pass` line to passes.jsonl with the counts due / gated / due_unasked / asked. MEMORY (challenger R1 fix 5), measured 2026-10-21 on the Mac (macOS ru_maxrss, a FRESH child interpreter per target, Linux VmHWM not measurable there, so q0545 on the host should still be compared) on a synthetic store 7.3x the q0544 census (188,000 signal rows = 47,000 skilled + 141,000 controls over 250 files; 738,400 entry/exit rows over ~1,300 capture files; 57,393 resolutions; census: 2.88 d = 24,972 signals, 74,109 entries): labeller pass with every market due (57,393 markets, 50 requests, signals read with usecols signal_id/market_id, entries with signal_id/end_ts): 302 MB peak. mem_mb 300 -> 400 (still below the 500 MB exemption); as_cap_mb 4000 for the virtual cap (not measurable on the Mac)."
 }

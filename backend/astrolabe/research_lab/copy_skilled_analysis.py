@@ -32,9 +32,20 @@ TRIAL_KIND = "copy_skilled"
 TESTS = cs.EXPERIMENTS
 PRICE_BANDS = ((0.05, 0.35, "long_shot"), (0.35, 0.65, "middle"), (0.65, 0.951, "favourite"))
 CAL_PATH = Path(__file__).resolve().parent / "model_specs" / "cost_model_calibration_v1.json"
+# columns the analysis reads (the stores are read with usecols to keep the 21-day size flat in memory)
+SIG_USE = ["signal_id", "arm", "role", "parent_id", "batch_id", "market_id", "wallet", "skill_score", "trade_ts", "side",
+           "trade_price", "copy_token", "receipt_ts", "age_s", "event_id", "evidence_role", "spec_sha", "code_sha"]
+ENT_USE = ["signal_id", "kind", "latency_s", "due_ts", "capture_start_ts", "row_received_ts", "status", "best_bid", "best_ask",
+           "liquidity", "end_ts", "event_id", "fee_category", "fees_enabled", "fee_schedule_rate", "fee_exponent", "spec_sha",
+           "code_sha"]
+RES_USE = ["market_id", "fetched_ts", "state", "pay0", "uma_status", "spec_sha", "code_sha"]
 
 
 # --- costs ----------------------------------------------------------------------------------------------------------
+
+
+def impact_table_sha256() -> str:
+    return cs.sha256_file(CAL_PATH)
 
 
 def impact_table(path: Path = CAL_PATH) -> dict[str, float]:
@@ -175,11 +186,21 @@ def exit_frame(entries: pd.DataFrame, copies: pd.DataFrame, impacts: dict[str, f
 # --- inference ------------------------------------------------------------------------------------------------------
 
 
-def _cr_var(u: np.ndarray, cl: np.ndarray) -> tuple[float, int]:
+def _t975(df: float) -> float:
+    return float(sps.t.ppf(0.975, max(df, 1)))
+
+
+def _upper(parts: list[float]) -> float:
+    """Largest finite upper bound (NaN parts, e.g. a variance that could not be estimated, are skipped)."""
+    v = [x for x in parts if x == x]
+    return float(max(v)) if v else math.nan
+
+
+def _cr_var(u: np.ndarray, cl: np.ndarray, n: int | None = None) -> tuple[float, int]:
     codes, inv = np.unique(cl, return_inverse=True)
     G = len(codes)
     s = np.bincount(inv, weights=u, minlength=G)
-    n = len(u)
+    n = len(u) if n is None else n
     if G < 2:
         return math.nan, G
     return float((s @ s) / n ** 2 * G / (G - 1)), G
@@ -222,6 +243,9 @@ def ratio_stats(net: np.ndarray, stake: np.ndarray, cl: np.ndarray, wallet: np.n
                    p_t_twoway=float(sps.t.sf(R / se2, g2 - 1)) if se2 == se2 and g2 > 1 else 1.0)
         ps.append(out["p_t_twoway"])
     out["p"] = float(max(ps))
+    out["ci95_upper"] = _upper([out["ci95_boot"][1], R + _t975(G - 1) * se1 if se1 == se1 else math.nan,
+                                R + _t975(min(G, out["wallet_clusters"]) - 1) * out["se_twoway"]
+                                if wallet is not None and out["se_twoway"] == out["se_twoway"] else math.nan])
     out["ci95_conservative"] = [R - sps.t.ppf(0.975, max(G - 1, 1)) * (out.get("se_twoway") or se1),
                                 R + sps.t.ppf(0.975, max(G - 1, 1)) * (out.get("se_twoway") or se1)]
     return out
@@ -237,8 +261,24 @@ def paired_frame(copies: pd.DataFrame, latency: float, arm: str, universe_col: s
     return p
 
 
-def diff_stats(p: pd.DataFrame, B: int = 10000, seed: int = 20261023) -> dict:
-    """D = sum(net_s)/sum(stake_s) - sum(net_c)/sum(stake_c) over pairs; event-cluster bootstrap and CR t."""
+def paired_controls(copies: pd.DataFrame, latency: float, arm: str, universe_col: str = "primary_set") -> pd.DataFrame:
+    """The individual resolved in-universe controls behind ``paired_frame`` (one row per control, with its own event)."""
+    c = copies[(copies["latency_s"].astype(float) == float(latency)) & (copies["arm"] == arm)]
+    return c[(c["role"] == "control") & c[universe_col] & c["resolved"]][["parent_id", "cluster", "net_ps", "stake_ps"]]
+
+
+def diff_from_copies(copies: pd.DataFrame, latency: float, arm: str, B: int, seed: int, universe_col: str = "primary_set") -> dict:
+    p = paired_frame(copies, latency, arm, universe_col)
+    return diff_stats(p, B=B, seed=seed, ctl=paired_controls(copies, latency, arm, universe_col)) if len(p) else {"n": 0, "status": "empty"}
+
+
+def diff_stats(p: pd.DataFrame, B: int = 10000, seed: int = 20261023, ctl: pd.DataFrame | None = None) -> dict:
+    """D = sum(net_s)/sum(stake_s) - sum(net_c)/sum(stake_c) over pairs; event-cluster bootstrap and CR t.
+
+    With ``ctl`` (the individual controls of the pairs, ``paired_controls``) the event dependence of the control side is
+    also handled: each pair's linearised score is split into a skilled piece (the skilled copy's event) and one piece per
+    control (that control's event, weight 1/m), summed by event regardless of side; the cluster-robust t and a matching
+    event bootstrap on these combined clusters join the max-p rule and the upper bound of the negative verdict."""
     if not len(p):
         return {"n": 0, "status": "empty"}
     ns, ss = p["net_ps"].to_numpy(float), p["stake_ps"].to_numpy(float)
@@ -269,7 +309,40 @@ def diff_stats(p: pd.DataFrame, B: int = 10000, seed: int = 20261023) -> dict:
            "p_boot": float((np.sum(draws <= 0) + 1) / (B + 1)), "se_event": se1, "se_twoway": se2,
            "p_t_event": float(sps.t.sf(D / se1, G - 1)) if se1 == se1 and G > 1 else 1.0,
            "p_t_twoway": float(sps.t.sf(D / se2, min(G, Gw) - 1)) if se2 == se2 and min(G, Gw) > 1 else 1.0}
-    out["p"] = float(max(out["p_boot"], out["p_t_event"], out["p_t_twoway"]))
+    ps = [out["p_boot"], out["p_t_event"], out["p_t_twoway"]]
+    ups = [out["ci95_boot"][1], D + _t975(G - 1) * se1 if se1 == se1 else math.nan,
+           D + _t975(min(G, Gw) - 1) * se2 if se2 == se2 else math.nan]
+    if ctl is not None:
+        n = len(p)
+        m_i = p.set_index("signal_id")["n_c"]
+        c = ctl[ctl["parent_id"].isin(p["signal_id"])]
+        wt = 1.0 / c["parent_id"].map(m_i).to_numpy(float)
+        cn, cs_ = c["net_ps"].to_numpy(float) * wt, c["stake_ps"].to_numpy(float) * wt
+        uc = -(c["net_ps"].to_numpy(float) - Rc * c["stake_ps"].to_numpy(float)) * wt / sc.mean()
+        us = (ns - Rs * ss) / ss.mean()
+        cc = c["cluster"].astype(str).to_numpy()
+        allc = np.concatenate([cl, cc])
+        _, inv3 = np.unique(allc, return_inverse=True)
+        G3 = int(inv3.max()) + 1
+        v3, _ = _cr_var(np.concatenate([us, uc]), allc, n=n)
+        se3 = math.sqrt(v3) if v3 == v3 and v3 > 0 else math.nan
+        b3 = [np.bincount(inv3[:n], weights=ns, minlength=G3), np.bincount(inv3[:n], weights=ss, minlength=G3),
+              np.bincount(inv3[n:], weights=cn, minlength=G3), np.bincount(inv3[n:], weights=cs_, minlength=G3)]
+        rng3 = np.random.default_rng(seed)
+        d3 = np.empty(B)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            for b in range(B):
+                w3 = np.bincount(rng3.integers(0, G3, G3), minlength=G3)
+                d3[b] = (w3 @ b3[0]) / (w3 @ b3[1]) - (w3 @ b3[2]) / (w3 @ b3[3])
+        d3 = d3[np.isfinite(d3)]
+        out.update(se_event_ctl=se3, event_clusters_ctl=G3,
+                   ci95_boot_ctl=[float(np.quantile(d3, 0.025)), float(np.quantile(d3, 0.975))] if len(d3) else [math.nan, math.nan],
+                   p_boot_ctl=float((np.sum(d3 <= 0) + 1) / (len(d3) + 1)) if len(d3) else 1.0,
+                   p_t_event_ctl=float(sps.t.sf(D / se3, G3 - 1)) if se3 == se3 and G3 > 1 else 1.0)
+        ps += [out["p_boot_ctl"], out["p_t_event_ctl"]]
+        ups += [out["ci95_boot_ctl"][1], D + _t975(G3 - 1) * se3 if se3 == se3 else math.nan]
+    out["p"] = float(max(ps))
+    out["ci95_upper"] = _upper(ups)
     return out
 
 
@@ -307,7 +380,9 @@ def verdict(r: dict, p_holm: float, floor: float, available: bool) -> str:
         return "Unavailable"
     if p_holm < 0.05 and r.get("est", 0) > 0:
         return "Supported (exploratory, prospective)"
-    hi = (r.get("ci95_boot") or [math.nan, math.nan])[1]
+    # the negative verdict uses the widest interval of every inference the positive verdict needs (bootstrap, event t,
+    # two-way t and, for E026-C, the control-side event pieces): never less conservative than "Supported"
+    hi = r.get("ci95_upper", (r.get("ci95_boot") or [math.nan, math.nan])[1])
     if hi == hi and hi < floor:
         return f"Not supported (effects >= {floor:.2f} $/$ excluded)"
     return "Inconclusive"
@@ -319,8 +394,7 @@ def _band_table(c: pd.DataFrame, arm: str, latency: float, B: int, seed: int) ->
         sub = c[(c["ask_j"] >= lo) & (c["ask_j"] < hi)]
         sk = sub[(sub["role"] == "skilled") & sub["primary_set"] & sub["resolved"] & (sub["arm"] == arm) & (sub["latency_s"].astype(float) == latency)]
         r = ratio_stats(sk["net_ps"], sk["stake_ps"], sk["cluster"].astype(str).to_numpy(), B=B, seed=seed) if len(sk) else {"n": 0}
-        pr = paired_frame(sub, latency, arm)
-        out[name] = {"skilled": _slim(r), "vs_control": _slim(diff_stats(pr, B=B, seed=seed)) if len(pr) else {"n": 0}}
+        out[name] = {"skilled": _slim(r), "vs_control": _slim(diff_from_copies(sub, latency, arm, B, seed))}
     return out
 
 
@@ -336,24 +410,46 @@ def analyze(root: Path = cs.OUT_ROOT, *, spec: dict | None = None, force: bool =
     spec = spec or cs.load_spec()
     if not force and cs.now_ts() < cs.epoch(spec["analysis_not_before"]):
         raise RuntimeError(f"analysis refused before {spec['analysis_not_before']}")
-    if spec.get("_pinned"):
+    pinned = bool(spec.get("_pinned"))
+    if pinned:
         want, got = spec.get("code_sha256") or {}, cs.code_hashes()
         bad = [k for k in cs.CODE_FILES if want.get(k) != got.get(k)]
         if bad:
             raise RuntimeError(f"code hash mismatch for {bad}")
+        if spec.get("impact_table_sha256") != impact_table_sha256():
+            raise RuntimeError("impact table (cost_model_calibration_v1.json) hash mismatch")
+        impacts = impact_table()  # a pinned run always uses the pinned table
     B = int(B or spec["inference"]["B"])
     seed = int(spec["inference"]["seed"])
     impacts = impacts or impact_table()
-    sig, ent, res = cs.read_store(root, "signals"), cs.read_store(root, "entries"), cs.read_store(root, "resolutions")
+    sig = cs.read_store(root, "signals", SIG_USE)
+    ent = cs.read_store(root, "entries", ENT_USE)
+    res = cs.read_store(root, "resolutions", RES_USE)
     acc: dict = {"signals_read": int(len(sig)), "entries_read": int(len(ent)), "resolution_rows": int(len(res))}
+    pin = (spec["_sha256"][:16], cs.reader_sha())
     if len(sig):
         keep = sig["evidence_role"] == cs.ROLE_CONF
-        if spec.get("_pinned"):
-            keep &= (sig["spec_sha"] == spec["_sha256"][:16]) & (sig["code_sha"] == cs.reader_sha())
+        if pinned:
+            keep &= (sig["spec_sha"] == pin[0]) & (sig["code_sha"] == pin[1])
         acc["signals_dropped_role_or_pin"] = int((~keep).sum())
         sig = sig[keep]
+    if len(ent):  # entries follow the signals' role (via signal_id) and, pinned, carry the same spec / code stamp
+        keep = ent["signal_id"].isin(set(sig["signal_id"])) if len(sig) else pd.Series(False, index=ent.index)
+        if pinned:
+            keep &= (ent["spec_sha"] == pin[0]) & (ent["code_sha"] == pin[1])
+        acc["entries_dropped_role_or_pin"] = int((~keep).sum())
+        ent = ent[keep]
+    if len(res) and pinned:
+        keep = (res["spec_sha"] == pin[0]) & (res["code_sha"] == pin[1])
+        acc["resolutions_dropped_pin"] = int((~keep).sum())
+        res = res[keep]
     if not len(sig) or not len(ent):
-        return {"status": "no_data", "accounting": acc}
+        # nothing to analyse: both tests Unavailable with p = 1 (a well-formed Holm block and trials line, n_tests = 2)
+        ps = {k: 1.0 for k in TESTS}
+        return {"label": "PROSPECTIVE (E026; no data)", "status": "no_data", "spec_sha": spec["_sha256"],
+                "code_sha256": cs.code_hashes(), "window": [spec["registered_utc"], spec["end_utc"]], "accounting": acc,
+                "holm": {"tests": list(TESTS), "p_raw": ps, "p_holm": holm(ps), "k": 2},
+                "E026-N": {"verdict": "Unavailable", "n": 0}, "E026-C": {"verdict": "Unavailable", "n": 0}}
     t0, t1 = cs.epoch(spec["registered_utc"]), cs.epoch(spec["end_utc"])
     sig = sig[(sig["receipt_ts"].astype(float) >= t0) & (sig["receipt_ts"].astype(float) < t1)]
     c = build_copies(sig, ent, res, spec, impacts)
@@ -373,8 +469,7 @@ def analyze(root: Path = cs.OUT_ROOT, *, spec: dict | None = None, force: bool =
     a = sk[sk["primary_set"] & sk["resolved"]]
     rN = ratio_stats(a["net_ps"], a["stake_ps"], a["cluster"].astype(str).to_numpy(), a["wallet"].astype(str).to_numpy(), B=B, seed=seed)
     availN = rN.get("n", 0) >= fl["min_copies"] and rN.get("clusters", 0) >= fl["min_events"]
-    pr = paired_frame(prim, L0, arm)
-    rC = diff_stats(pr, B=B, seed=seed)
+    rC = diff_from_copies(prim, L0, arm, B, seed)
     availC = rC.get("n_pairs", 0) >= fl["min_pairs"] and rC.get("clusters", 0) >= fl["min_events"]
     ps = {"E026-N": rN["p"] if availN else 1.0, "E026-C": rC["p"] if availC else 1.0}
     hp = holm(ps)
@@ -406,7 +501,7 @@ def analyze(root: Path = cs.OUT_ROOT, *, spec: dict | None = None, force: bool =
     for L in spec["latencies_s"]:
         cc = c[(c["latency_s"].astype(float) == float(L)) & (c["arm"] == arm) & (c["role"] == "skilled") & c["primary_set"] & c["resolved"]]
         sec[f"latency_{int(L)}s"] = {"skilled": _slim(ratio_stats(cc["net_ps"], cc["stake_ps"], cc["cluster"].astype(str).to_numpy(), B=B, seed=seed)) if len(cc) else {"n": 0},
-                                     "vs_control": _slim(diff_stats(paired_frame(c, float(L), arm), B=B, seed=seed))}
+                                     "vs_control": _slim(diff_from_copies(c, float(L), arm, B, seed))}
     sec["price_bands"] = _band_table(c, arm, L0, B, seed)
     for side, name in ((1, "buy_signals"), (-1, "sell_signals")):
         cc = a[a["side"].astype(int) == side]
@@ -418,12 +513,11 @@ def analyze(root: Path = cs.OUT_ROOT, *, spec: dict | None = None, force: bool =
         lp = c[(c["latency_s"].astype(float) == L0) & (c["arm"] == "large_prints")]
         lps = lp[(lp["role"] == "skilled") & lp["primary_set"] & lp["resolved"]]
         sec["large_prints"] = {"skilled": _slim(ratio_stats(lps["net_ps"], lps["stake_ps"], lps["cluster"].astype(str).to_numpy(), B=B, seed=seed)) if len(lps) else {"n": 0},
-                               "vs_control": _slim(diff_stats(paired_frame(c, L0, "large_prints"), B=B, seed=seed))}
+                               "vs_control": _slim(diff_from_copies(c, L0, "large_prints", B, seed))}
     unc = prim[(prim["role"] == "skilled") & prim["universe"] & prim["resolved"]]
-    pr_u = paired_frame(prim, L0, arm, universe_col="universe")
     sec["uncapped"] = {"skilled": _slim(ratio_stats(unc["net_ps"], unc["stake_ps"], unc["cluster"].astype(str).to_numpy(),
                                                     unc["wallet"].astype(str).to_numpy(), B=B, seed=seed)) if len(unc) else {"n": 0},
-                       "vs_control": _slim(diff_stats(pr_u, B=B, seed=seed))}
+                       "vs_control": _slim(diff_from_copies(prim, L0, arm, B, seed, universe_col="universe"))}
     ex = exit_frame(ent, c[(c["arm"] == arm) & (c["role"] == "skilled")], impacts, spec)
     sec["exit_24h_all_dated"] = _slim(ratio_stats(ex["net_ps"], ex["stake_ps"], ex["cluster"].astype(str).to_numpy(), B=B, seed=seed)) if len(ex) else {"n": 0}
     c_sched = build_copies(sig, ent, res, spec, impacts, policy="schedule")
@@ -438,8 +532,37 @@ def analyze(root: Path = cs.OUT_ROOT, *, spec: dict | None = None, force: bool =
         if sc.notna().sum() >= 90:
             t = pd.qcut(sc.rank(method="first"), 3, labels=["low", "mid", "high"])
             sec["skill_terciles"] = {str(k): _slim(ratio_stats(g["net_ps"], g["stake_ps"], g["cluster"].astype(str).to_numpy(), B=min(B, 2000), seed=seed)) for k, g in a.groupby(t, observed=True)}
+    # descriptive, uncounted (design 7.x): E026-C censoring bounds, leave-top-wallet-out R, eligible-not-skilled controls
+    pc = prim[prim["primary_set"] & ~prim["resolved"] & prim["pay_j"].isna()]
+    if len(pc):
+        sec["E026_C_censoring_bounds"] = {k: _slim(diff_from_copies(_impute(prim, ps_, pc_), L0, arm, min(B, 2000), seed))
+                                          for k, (ps_, pc_) in (("pessimistic", (0.0, 1.0)), ("optimistic", (1.0, 0.0)))}
+    if len(a):
+        top = a["wallet"].astype(str).value_counts().index[0]
+        b = a[a["wallet"].astype(str) != top]
+        sec["leave_top_skilled_wallet_out"] = {"wallet_share_of_copies": float((a["wallet"].astype(str) == top).mean()),
+                                               "R": _slim(ratio_stats(b["net_ps"], b["stake_ps"], b["cluster"].astype(str).to_numpy(), b["wallet"].astype(str).to_numpy(), B=min(B, 2000), seed=seed)) if len(b) else {"n": 0}}
+    skp = Path(root) / "skillset" / "skillset.csv.gz"
+    if skp.exists():
+        elig = set(cs.load_skillset(skp.parent, spec.get("skillset_sha256") if pinned else None)["wallet"])
+        keep_c = (prim["role"] != "control") | prim["wallet"].isin(elig)
+        sec["vs_control_eligible_not_skilled"] = _slim(diff_from_copies(prim[keep_c], L0, arm, min(B, 2000), seed))
+    if len(res) and "uma_status" in res:
+        sec["uma_status_counts"] = res.drop_duplicates("market_id")["uma_status"].fillna("").astype(str).value_counts().to_dict()
     out["secondary"] = sec
     return out
+
+
+def _impute(c: pd.DataFrame, pay_skilled: float, pay_control: float) -> pd.DataFrame:
+    """Copy of ``c`` where unresolved in-universe rows get an assumed payout of the copied token (skilled / control) so
+    the censoring bounds of E026-C can be read off; descriptive only."""
+    d = c.copy()
+    m = ~d["resolved"] & d["universe"] & d["pay_j"].isna()
+    pay = np.where(d["role"] == "skilled", pay_skilled, pay_control)
+    d.loc[m, "pay_j"] = pay[m.to_numpy()]
+    d.loc[m, "net_ps"] = d.loc[m, "pay_j"] - d.loc[m, "mid_j"] - d.loc[m, "cost_ps"]
+    d.loc[m, "resolved"] = True
+    return d
 
 
 def trial_record(res: dict) -> dict:
