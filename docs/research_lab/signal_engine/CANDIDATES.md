@@ -83,6 +83,17 @@ inputs, so its trees can split on both; it computes no hollow column and isolate
 
 ---
 
+## Idea-level families from creative round 12 (2026-10-21; ideas only, no evidence; not candidates yet)
+
+`CREATIVE_HYPOTHESES_2026-10-26.md` (CH191-CH201) states one point-in-time feature family per idea, with a proposed
+embargo token and date: `capath` (CH191), `mm_fresh` derived set (CH194), `resist` (CH195), `deepbook` (CH197),
+`movetype` absorbed interactions (CH193), `ivr` derived (CH192), `theta` (CH198), `rulesrc` from gamma_rules (CH199),
+`sweep2` (CH200), `rewards-v2` yield (CH201). Its top 6 (CH195, CH191, CH194, CH197, CH193, CH192) are the planned LT7
+family: **do not build an isolating challenger for those six before LT7's design fixes its embargo dates** (requests
+will follow here). The engine-first rest may be built as development families under the usual rules.
+
+---
+
 ## C01. Taker order flow (family `flow`)
 
 - **Challenger:** exists, `se2_lr_flow`.
