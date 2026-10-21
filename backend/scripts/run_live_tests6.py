@@ -1,11 +1,12 @@
 # ruff: noqa: E501
 """Live tests LT6 (docs/research_lab/LIVE_TESTS_6.md; DRAFT until registered). Research only; never trades; makes no network
-request. This unit has the sealed counts-only censuses; the reader (``run``, ``backfill-series``, ``ops-stats``), the
-size check and ``analyze`` come in later units.
+request. This unit has the sealed counts-only censuses and the size check; the reader (``run``, ``backfill-series``,
+``ops-stats``) and ``analyze`` (which needs the reader's write-once files) come in later units.
 
     python scripts/run_live_tests6.py seal --snapshot-root R --sweep-root R --sample-root R --work W --out lt6_census_inputs.json  # q0581
     python scripts/run_live_tests6.py census-captures --seal S --work W --out cd_cb_cv.json   # CD (D), CB (B), CV (V)  # q0582
     python scripts/run_live_tests6.py census-flow --seal S --sample-root R --work W --out ck.json                    # CK (K)  # q0583
+    python scripts/run_live_tests6.py size-check --out size.json                                   # 11 binding scenarios  # q0584
 
 Every subcommand refuses to overwrite ``--out``; the censuses accept ``--data-dumps-cap-gb`` (exit 75 when data-dumps is above
 the cap, the queue's "not now") and run only on a seal that is tracked by git and identical to HEAD.
@@ -90,6 +91,12 @@ def build_parser() -> argparse.ArgumentParser:
     f.add_argument("--out", type=Path, default=None)
     f.add_argument("--keep-work", action="store_true")
     f.add_argument("--data-dumps-cap-gb", type=float, default=None)
+    z = sub.add_parser("size-check", help="the eleven binding size scenarios (1.8); the binding run uses the spec's worlds, draws and seed")
+    z.add_argument("--dev", action="store_true", help="DEVELOPMENT ONLY: allow --worlds/--draws overrides; the output is marked dev and is never the registered statement")
+    z.add_argument("--worlds", type=int, default=None)
+    z.add_argument("--draws", type=int, default=None)
+    z.add_argument("--nonbinding", action="store_true", help="also run scenario 12 and the planted-effect power runs on their own seeds (information only)")
+    z.add_argument("--out", type=Path, default=None)
     return ap
 
 
@@ -109,6 +116,17 @@ def main(argv: list[str] | None = None) -> int:
         if "error" in res:
             print(res["error"])
             return 3
+        return _write_out(args.out, json.dumps(res, sort_keys=True, indent=1, default=lt._json))
+    if args.cmd == "size-check":
+        from astrolabe.research_lab import live_tests6_analysis as la
+
+        spec = lt.load_spec(sha=None)
+        sc = spec["size_check"]
+        if (args.worlds is not None or args.draws is not None) and not args.dev:
+            print("refusing --worlds/--draws without --dev: the binding run uses the spec values")
+            return 2
+        res = la.size_check(worlds=args.worlds or sc["worlds"], draws=args.draws or sc["draws"], seed=sc["seed"], nominal=sc["nominal"], binding=sc["scenarios"],
+                            spec_sha256=spec["_sha256"], dev=args.dev, include_nonbinding=args.nonbinding, spec=spec)
         return _write_out(args.out, json.dumps(res, sort_keys=True, indent=1, default=lt._json))
     err, commit = _committed(args.seal)
     if err:

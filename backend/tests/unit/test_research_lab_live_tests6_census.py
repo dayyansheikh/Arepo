@@ -680,3 +680,12 @@ def test_k_census_gate_machinery(world, frames):
     r = lt.census_k(pd.concat(U, ignore_index=True), tot, spec, 10.5, 2.0, lt.epoch("2026-10-01T00:00:00Z"))
     assert r["clip_units"] >= 1 and r["clip_free_21d"] > 0
     assert r["gate_K"]["pass"] is True, json.dumps(r["gate_K"])
+
+
+def test_runner_size_check_guards(tmp_path):
+    mod = _runner()
+    assert mod.main(["size-check", "--worlds", "1", "--draws", "3", "--out", str(tmp_path / "a.json")]) == 2  # no --dev: refused
+    assert not (tmp_path / "a.json").exists()
+    out = tmp_path / "o.json"
+    out.write_text("x")
+    assert mod.main(["size-check", "--dev", "--worlds", "1", "--draws", "3", "--out", str(out)]) == 1  # never overwrites

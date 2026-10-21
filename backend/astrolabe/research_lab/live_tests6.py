@@ -1143,6 +1143,63 @@ def _gate_min_days(res: dict, key: str, covered_days: float, minimum: float) -> 
     return res
 
 
+CONTROLS_V = ["z_vprev", "a_traded", "a_parallel", "a_one_sided", "a_spread_change", "z_log_abs_x", "log1p_D0k", "log1p_D0p", "zh0", "spread_sw_k", "spread_sw_p",
+              "logit_mid", "abs_dev", "log1p_vol", "log1p_liq", "tick001", "log_hte", "hte_unknown"]
+CONTROLS_K = ["log1p_n_int", "log_abs_x", "g_path", "maxstep_share", "fresh", "log1p_age", "round_share", "H_unsigned", "a_parallel", "a_one_sided", "a_spread_change",
+              "spread", "logit_mid", "abs_dev", "log1p_vol", "log1p_liq", "tick001", "log_hte", "hte_unknown"]
+CONTROLS_D = ["theta24", "log_T", "x", "d24", "chg_1d", "chg_1w", "chg_1d_flag", "chg_1w_flag", "logit_mid", "abs_dev", "spread", "log1p_vol", "log1p_liq", "neg_risk", "updated_changed"]
+CONTROLS_B = ["a1", "a6", "a24", "loo_a1", "log_event_size", "neg_risk", "logit_mid", "abs_dev", "spread", "log1p_vol", "log1p_liq", "log_hte", "hte_unknown", "chg_1d", "chg_1d_flag"]
+
+
+def prepare_v(pop: pd.DataFrame, centre: float, scale: float) -> pd.DataFrame:
+    """V's regression columns (census and analysis share this): ``zv = (v - centre) / scale`` and ``z_vprev`` on the SAME centre and
+    scale, ``zh0``, the anatomy dummies (traded, parallel, one-sided, spread-change; same-side-unequal the base), ``z_log_abs_x``,
+    ``log1p`` depths, ``tick001`` and the common derived columns (``vol24_p`` = volume24hr at k - 1)."""
+    pop = _derived(pop, "vol24_p")
+    ok = scale is not None and np.isfinite(scale) and scale > 0
+    pop["zv"] = (pop["v"] - centre) / scale if ok else np.nan
+    pop["z_vprev"] = (pop["v_prev"] - centre) / scale if ok else np.nan
+    sh = pop["h0"].std()
+    pop["zh0"] = (pop["h0"] - pop["h0"].mean()) / sh if sh and np.isfinite(sh) and sh > 0 else np.nan
+    pop["traded"] = (pop["cls"] == "traded").astype(float)
+    la_ = np.log(np.abs(pop["x"]))
+    sd = la_.std()
+    pop["z_log_abs_x"] = (la_ - la_.mean()) / sd if sd and np.isfinite(sd) and sd > 0 else np.nan
+    pop["log1p_D0k"], pop["log1p_D0p"] = np.log1p(pop["D0_k"]), np.log1p(pop["D0_p"])
+    pop["a_traded"] = pop["cls"].eq("traded").astype(float)
+    for d_ in ("parallel", "one_sided", "spread_change"):
+        pop[f"a_{d_}"] = pop["geom"].eq(d_).astype(float)
+    pop["tick001"] = (np.abs(pop["tick"] - 0.001) <= 1e-12).astype(float)
+    return pop
+
+
+def prepare_k(pop: pd.DataFrame) -> pd.DataFrame:
+    """K's regression columns: ``CL = 1[clip]`` and the controls of section 3 (``vol24_p`` = volume24hr at k - 1)."""
+    pop = _derived(pop, "vol24_p")
+    pop["CL"] = (pop["class_k"] == "clip").astype(float)
+    pop["log1p_n_int"] = np.log1p(pop["n_int"])
+    pop["log_abs_x"] = np.log(np.abs(pop["x"]))
+    pop["log1p_age"] = np.log1p(pop["age"].clip(lower=0))
+    pop["tick001"] = (np.abs(pop["tick"] - 0.001) <= 1e-12).astype(float)
+    for d_ in ("parallel", "one_sided", "spread_change"):
+        pop[f"a_{d_}"] = pop["geom"].eq(d_).astype(float)
+    return pop
+
+
+def prepare_d(pop: pd.DataFrame) -> pd.DataFrame:
+    """D's regression columns: ``LT = 1[later]`` and the controls of section 4 (``vol24`` = volume24hr at k)."""
+    pop = _derived(pop)
+    pop["LT"] = (pop["cls"] == "later").astype(float)
+    return pop
+
+
+def prepare_b(pop: pd.DataFrame) -> pd.DataFrame:
+    """B's regression columns: ``BR = 1[birth]`` and the controls of section 5 (``vol24`` = volume24hr at k)."""
+    pop = _derived(pop)
+    pop["BR"] = (pop["cls"] == "birth").astype(float)
+    return pop
+
+
 def _fam(pop: pd.DataFrame, cap: float) -> tuple[pd.DataFrame, str, float | None]:
     return b._family_rule(pop, float(cap)) if len(pop) else (pop, "", None)
 
@@ -1166,16 +1223,13 @@ def census_d(U: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_days:
     lb = int(pop0["d24"].isna().sum())
     pop0 = pop0[pop0["d24"].notna()]
     pop, excl, top = _fam(pop0, g["family_cap"])
-    pop = _derived(pop.copy())
+    pop = prepare_d(pop.copy())
     if pop.empty or not (pop["cls"] == "later").any():
         res = {"error": "no later units", "units": len(U), "by_class": {str(k_): int(v) for k_, v in U["cls"].value_counts().items()}, "exclude_family": excl,
                "top_family_share": top, "washout_dropped": n_wash, "rollover_plus_crypto_share": kill_share, "crypto_failsafe": crypto_fs.get("classifier_shown_to_work"),
                "gate_D": {"pass": False}}
         return _gate_min_days(res, "gate_D", covered_days, mind)
-    pop["LT"] = (pop["cls"] == "later").astype(float)
-    pop["log_vol"] = pop["log1p_vol"]
-    ctrl = ["theta24", "log_T", "x", "d24", "chg_1d", "chg_1w", "chg_1d_flag", "chg_1w_flag", "logit_mid", "abs_dev", "spread", "log1p_vol", "log1p_liq",
-            "neg_risk", "updated_changed"]
+    ctrl = CONTROLS_D
     eff = b._eff(pop)
     n1, n2 = float(((pop["LT"] == 1) & eff).sum() * scale), float(((pop["LT"] == 0) & eff).sum() * scale)
     lab = pop[pop["LT"] == 1]
@@ -1220,15 +1274,13 @@ def census_b(U: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_days:
     lb = int(pop0[["a6", "a24"]].isna().any(axis=1).sum())
     pop0 = pop0.dropna(subset=["a6", "a24"])
     pop, excl, top = _fam(pop0, g["family_cap"])
-    pop = _derived(pop.copy())
+    pop = prepare_b(pop.copy())
     if pop.empty or not (pop["cls"] == "birth").any():
         res = {"error": "no birth units", "units": len(U), "by_class": {str(k_): int(v) for k_, v in U["cls"].value_counts().items()}, "excluded_by_reason": ex_all,
                "exclude_family": excl, "top_family_share": top, "washout_dropped": n_wash, "crypto_failsafe": crypto_fs.get("classifier_shown_to_work"),
                "gate_B": {"pass": False}}
         return _gate_min_days(res, "gate_B", covered_days, mind)
-    pop["BR"] = (pop["cls"] == "birth").astype(float)
-    ctrl = ["a1", "a6", "a24", "loo_a1", "log_event_size", "neg_risk", "logit_mid", "abs_dev", "spread", "log1p_vol", "log1p_liq", "log_hte", "hte_unknown",
-            "chg_1d", "chg_1d_flag"]
+    ctrl = CONTROLS_B
     pop2 = pop.dropna(subset=["loo_a1"])
     eff = b._eff(pop2)
     n1, n2 = float(((pop2["BR"] == 1) & eff).sum() * scale), float(((pop2["BR"] == 0) & eff).sum() * scale)
@@ -1272,22 +1324,11 @@ def census_v(U: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_days:
     if U.empty:
         return _gate_min_days({"error": "no units", "gate_V": {"pass": False}}, "gate_V", covered_days, mind)
     pop, excl, top = _fam(U, g["family_cap"])
-    pop = _derived(pop.copy(), "vol24_p")
     movers = tot.get("non_sports_movers", 0)
     cov = len(U) / movers if movers else float("nan")
     cv, sv = float(pop["v"].mean()), float(pop["v"].std())
-    pop["zv"] = (pop["v"] - cv) / sv if sv and np.isfinite(sv) else np.nan
-    pop["z_vprev"] = (pop["v_prev"] - cv) / sv if sv and np.isfinite(sv) else np.nan
-    pop["zh0"] = (pop["h0"] - pop["h0"].mean()) / pop["h0"].std() if pop["h0"].std() > 0 else np.nan
-    pop["traded"] = (pop["cls"] == "traded").astype(float)
-    pop["z_log_abs_x"] = np.log(np.abs(pop["x"]))
-    pop["z_log_abs_x"] = (pop["z_log_abs_x"] - pop["z_log_abs_x"].mean()) / pop["z_log_abs_x"].std()
-    pop["log1p_D0k"], pop["log1p_D0p"] = np.log1p(pop["D0_k"]), np.log1p(pop["D0_p"])
-    for d_ in ("traded", "parallel", "one_sided", "spread_change"):
-        pop[f"a_{d_}"] = (pop["geom"].eq(d_) if d_ != "traded" else pop["cls"].eq("traded")).astype(float)
-    pop["tick001"] = (np.abs(pop["tick"] - 0.001) <= 1e-12).astype(float)
-    ctrl = ["z_vprev", "a_traded", "a_parallel", "a_one_sided", "a_spread_change", "z_log_abs_x", "log1p_D0k", "log1p_D0p", "zh0", "spread_sw_k",
-            "spread_sw_p", "logit_mid", "abs_dev", "log1p_vol", "log1p_liq", "tick001", "log_hte", "hte_unknown"]
+    pop = prepare_v(pop.copy(), cv, sv)
+    ctrl = CONTROLS_V
     t1, t2 = np.quantile(pop["zv"].dropna(), [1 / 3, 2 / 3]) if pop["zv"].notna().sum() >= 3 else (np.nan, np.nan)
     gap = float(pop.loc[pop["zv"] >= t2, "zv"].mean() - pop.loc[pop["zv"] <= t1, "zv"].mean()) if np.isfinite(t1) else float("nan")
     eff = b._eff(pop)
@@ -1326,16 +1367,8 @@ def census_k(U: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_days:
         return _gate_min_days({"error": "no units", "gate_K": {"pass": False}}, "gate_K", covered_days, mind)
     pop0 = U[U["class_k"].isin(["clip", "clip_free"])]
     pop, excl, top = _fam(pop0, g["family_cap"])
-    pop = _derived(pop.copy(), "vol24_p")
-    pop["CL"] = (pop["class_k"] == "clip").astype(float)
-    pop["log1p_n_int"] = np.log1p(pop["n_int"])
-    pop["log_abs_x"] = np.log(np.abs(pop["x"]))
-    pop["log1p_age"] = np.log1p(pop["age"].clip(lower=0))
-    pop["tick001"] = (np.abs(pop["tick"] - 0.001) <= 1e-12).astype(float)
-    for d_ in ("parallel", "one_sided", "spread_change"):
-        pop[f"a_{d_}"] = pop["geom"].eq(d_).astype(float)
-    ctrl = ["log1p_n_int", "log_abs_x", "g_path", "maxstep_share", "fresh", "log1p_age", "round_share", "H_unsigned", "a_parallel", "a_one_sided", "a_spread_change",
-            "spread", "logit_mid", "abs_dev", "log1p_vol", "log1p_liq", "tick001", "log_hte", "hte_unknown"]
+    pop = prepare_k(pop.copy())
+    ctrl = CONTROLS_K
     eff = b._eff(pop)
     n1, n2 = float(((pop["CL"] == 1) & eff).sum() * scale), float(((pop["CL"] == 0) & eff).sum() * scale)
     de = de_gate6(pop, "event_id", scale, a, 1.0)
