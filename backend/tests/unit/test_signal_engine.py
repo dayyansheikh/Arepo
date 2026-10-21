@@ -827,10 +827,11 @@ def test_repo_registry_loads_and_embargo_assignment():
 # ---------------------------------------------------------------------------------------------- promotion
 
 
-def _agg_with(champ_ll: float, ch_ll: float, n_days: int, start_day="2026-11-20", end_day="2026-12-03") -> SC.Agg:
+def _agg_with(champ_ll: float, ch_ll: float, n_days: int, start_day="2026-11-20", end_day="2026-12-03",
+              day_gain=None) -> SC.Agg:
     agg = SC.Agg(end_day)
     rng = np.random.default_rng(0)
-    for d in pd.date_range(start_day, periods=n_days, freq="D"):
+    for i, d in enumerate(pd.date_range(start_day, periods=n_days, freq="D")):
         day = d.strftime("%Y-%m-%d")
         n = 400
         y = rng.integers(0, 3, n)
@@ -840,7 +841,8 @@ def _agg_with(champ_ll: float, ch_ll: float, n_days: int, start_day="2026-11-20"
             p[np.arange(n), y] = math.exp(-base)
             agg.add_model(C.PRIMARY_TARGET, mid, day, y, p, cats)
             agg.add_cov(C.PRIMARY_TARGET, mid, day, n, n, 0)
-        agg.add_pair(C.PRIMARY_TARGET, "ch", day, np.arange(n) % 80, cats, np.full(n, ch_ll - champ_ll) * -1 + rng.normal(0, 0.01, n))
+        g = champ_ll - ch_ll if day_gain is None else day_gain[i]
+        agg.add_pair(C.PRIMARY_TARGET, "ch", day, np.arange(n) % 80, cats, np.full(n, g) + rng.normal(0, 0.01, n))
     return agg
 
 
@@ -848,7 +850,7 @@ def _reg2():
     s0, s1 = spec("champ"), spec("ch", learner="lgbm")
     for s in (s0, s1):
         s["_sha256"], s["_status"] = SP.spec_sha256(s), "active"
-    return {"initial_champion": "champ", "models": {"champ": s0, "ch": s1}}
+    return {"initial_champion": "champ", "models": {"champ": s0, "ch": s1}, "rule": PR.RULE_VERSION}
 
 
 def test_promotion_rule_requires_days_ci_and_cooldown():
@@ -866,6 +868,51 @@ def test_promotion_rule_requires_days_ci_and_cooldown():
     # cool-down after a recent promotion
     hist = [{"event": "promotion", "at": S.iso(now - 2 * 86400), "champion": "champ"}]
     assert PR.evaluate(agg, reg, "champ", now, hist, first)["promote"] is None
+
+
+def test_promotion_v2_day_shocks_block_event_only_pass():
+    """A gain driven by shared day shocks: event clustering (v1) is tight and passes, the two-way bound does not."""
+    reg = _reg2()
+    now = S.epoch("2026-12-03T23:00:00Z")
+    first = {"ch": S.epoch("2026-11-19T00:00:00Z")}
+    shocks = [0.10] * 10 + [-0.15] * 4  # mean 0.029, 10/14 days positive
+    dec = PR.evaluate(_agg_with(0.70, 0.65, 14, day_gain=shocks), reg, "champ", now, [], first)
+    chk = dec["checks"]["ch"]
+    assert chk["gain"]["lo"] > 0 and chk["c3_days_positive"]
+    assert chk["gain_twoway"]["n_days"] == 14 and chk["gain_twoway"]["lo"] < 0
+    assert not chk["c2_ci"] and dec["promote"] is None
+    # the steady case still passes on both bounds
+    ok = PR.evaluate(_agg_with(0.70, 0.65, 14), reg, "champ", now, [], first)["checks"]["ch"]
+    assert ok["gain_twoway"]["lo"] > 0 and ok["pass"]
+
+
+def test_promotion_v2_one_day_and_zero_rows_fail_safe():
+    reg = _reg2()
+    now = S.epoch("2026-12-03T23:00:00Z")
+    first = {"ch": S.epoch("2026-11-19T00:00:00Z")}
+    one = PR.evaluate(_agg_with(0.70, 0.65, 1, "2026-12-03"), reg, "champ", now, [], first)["checks"]["ch"]
+    assert math.isnan(one["gain_twoway"]["lo"]) and not one["c2_ci"] and not one["pass"]
+    agg = _agg_with(0.70, 0.65, 14)
+    a = agg.pw[(C.PRIMARY_TARGET, "ch", PR.WINDOW_D)]
+    a[0][:], a[1][:] = 0.0, 0.0
+    assert PR.twoway_bound(agg, C.PRIMARY_TARGET, "ch", PR.WINDOW_D, 0.95) is None
+    assert PR.evaluate(agg, reg, "champ", now, [], first)["promote"] is None
+    del reg["rule"]
+    assert "reason" in PR.evaluate(_agg_with(0.70, 0.65, 14), reg, "champ", now, [], first)
+
+
+def test_promotion_cluster_var_hand_example():
+    # two clusters, sums (3, 1), rows (2, 2): mean 1, residuals (1, -1) -> 2 / 1 * 2 / 16 = 0.25
+    assert PR.cluster_var(np.array([3.0, 1.0]), np.array([2.0, 2.0]), 1.0) == 0.25
+    assert math.isnan(PR.cluster_var(np.array([3.0]), np.array([2.0]), 1.5))
+
+
+def test_promotion_refuses_registry_rule_mismatch():
+    reg = _reg2()
+    reg["rule"] = "se-promotion-v1"
+    dec = PR.evaluate(_agg_with(0.70, 0.65, 14), reg, "champ", S.epoch("2026-12-03T23:00:00Z"), [],
+                      {"ch": S.epoch("2026-11-19T00:00:00Z")})
+    assert dec["promote"] is None and "se-promotion-v1" in dec["reason"]
 
 
 def test_promotion_skips_embargoed_challenger():

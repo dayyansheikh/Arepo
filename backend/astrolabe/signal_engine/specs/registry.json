@@ -1,7 +1,7 @@
 {
  "schema": "se-registry-v1",
  "initial_champion": "se0_champion_lr_mm",
- "promotion_rule": "se-promotion-v1",
+ "promotion_rule": "se-promotion-v2",
  "models": [
   {
    "model_id": "se0_champion_lr_mm",
