@@ -37,20 +37,31 @@ from .features import (
 
 class SlotMids:
     """Bounded cache of quotes-file mids per slot for builders that walk captures newest first: it evicts the newest
-    slots (no longer needed), so a backfill reads each quotes file about once."""
+    slots (no longer needed), so a backfill reads each quotes file about once. Stored as sorted numpy arrays (no
+    pandas index hash tables, so ~1.6 MB per slot)."""
 
     def __init__(self, paths: S.Paths, index: dict[int, dict], keep: int) -> None:
         self.paths, self.index, self.keep, self.d = paths, index, keep, {}
 
-    def get(self, slot: int) -> pd.Series | None:
+    def get(self, slot: int, ids: np.ndarray) -> np.ndarray:
+        """float64 mids of ``ids`` at ``slot`` (NaN where the market is not open and two-sided or the file is absent)."""
         if slot not in self.d:
             m = self.index.get(slot)
             p = self.paths.quotes(m["capture_id"]) if m is not None else None
-            self.d[slot] = mid_series(S.read_parquet(p, ["market_id", "bid", "ask", "st"])) if p is not None and p.exists() else None
-        s = self.d[slot]
+            if p is not None and p.exists():
+                ser = mid_series(S.read_parquet(p, ["market_id", "bid", "ask", "st"]))
+                u, first = np.unique(ser.index.to_numpy(np.int64), return_index=True)  # first row per market
+                self.d[slot] = (u, ser.to_numpy(np.float64)[first])
+            else:
+                self.d[slot] = None
+        e = self.d[slot]
         while len(self.d) > self.keep:
             self.d.pop(max(self.d))
-        return s
+        if e is None or len(e[0]) == 0:
+            return np.full(len(ids), np.nan)
+        u, v = e
+        pos = np.minimum(np.searchsorted(u, ids), len(u) - 1)
+        return np.where(u[pos] == ids, v[pos], np.nan)
 
 # ---------------------------------------------------------------------------------------------- event family
 # Event-level context from the same capture's complete binary listing (every market of the event, including
@@ -335,8 +346,7 @@ def _surprise_builder(ctx: dict) -> pd.DataFrame:
     slot = meta["slot"]
     cols = []
     for j in range(slot - SP_LOOKBACK, slot + 1):  # the origin's own quotes file last (same float32 grain as the rest)
-        s = mids.get(j)
-        cols.append(np.full(len(ids), np.nan) if s is None else s.reindex(ids).to_numpy(float))
+        cols.append(mids.get(j, ids))
     return surprise_features(np.column_stack(cols), ctx["cap_start"])
 
 
@@ -416,7 +426,8 @@ def run_aux(paths: S.Paths, max_items: int = 4) -> dict:
     index = S.load_index(paths)
     state = S.load_state(paths)
     caps = {c["id"]: c for c in S.discover_captures(paths, state)}
-    written, gone = [], 0
+    written, gone, errors = [], 0, []
+    failed: set[str] = set()
     mids = SlotMids(paths, index, keep=SP_LOOKBACK + 4)  # shared across captures (newest first)
     for _slot, m in sorted(index.items(), reverse=True):
         cid = m["capture_id"]
@@ -428,13 +439,18 @@ def run_aux(paths: S.Paths, max_items: int = 4) -> dict:
             if AUX_FAMILIES[fam].get("needs_rows", True) and not has_rows:
                 gone += 1
                 continue
-            if len(written) >= max_items:
+            if len(written) >= max_items or fam in failed:
                 continue
-            r = build_aux(paths, fam, m, cap["dir"] if cap is not None else None, index, mids)
+            try:
+                r = build_aux(paths, fam, m, cap["dir"] if cap is not None else None, index, mids)
+            except Exception as e:  # noqa: BLE001 - one family's failure must not block the others or the predictions
+                failed.add(fam)  # no table is written (missing stays missing); retried at the next run
+                errors.append({"capture_id": cid, "family": fam, "error": f"{type(e).__name__}: {e}"[:300]})
+                continue
             if r:
                 written.append({k: r[k] for k in ("capture_id", "family", "n_rows")})
     S.save_state(paths, state)
-    return {"written": written, "unbuildable_no_rows": gone}
+    return {"written": written, "unbuildable_no_rows": gone, **({"errors": errors} if errors else {})}
 
 
 # ---------------------------------------------------------------------------------------------- readers
