@@ -177,7 +177,7 @@ describe("fixture and safety", () => {
     const list = claudeInstances(mac);
     expect(list.map((i) => i.name)).toEqual(["experiments", "signal"]);
     expect(buildActivityFixture(NOW).commits!.length).toBeGreaterThan(5);
-    expect(instanceState(list[1], NOW).key).toBe("waiting");
+    expect(instanceState(list[1], NOW).key).toBe("paused");
   });
 
   it("the board never renders HTML from snapshot text", () => {

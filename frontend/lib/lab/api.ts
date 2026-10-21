@@ -5,7 +5,7 @@
 
 import { API_BASE } from "../api";
 import { announceLocked, lockedDetail } from "../stepup-events";
-import type { CommandAction, CommandTarget, LabCommand, LabDashboardResponse } from "./types";
+import type { AnyCommandTarget, CommandAction, LabCommand, LabDashboardResponse, LabMessage } from "./types";
 
 export const SIGNIN_REDIRECT = "/signin?next=/lab";
 
@@ -49,6 +49,7 @@ type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
 
 export const DASHBOARD_PATH = "/api/lab/dashboard";
 export const COMMANDS_PATH = "/api/lab/commands";
+export const MESSAGES_PATH = "/api/lab/messages";
 
 async function detailOf(res: Response): Promise<string> {
   try {
@@ -96,23 +97,23 @@ export async function loadLabDashboard(
   }
 }
 
-export type CommandPostResult =
-  | { ok: true; command: LabCommand | null }
-  | { ok: false; status: number; message: string };
+export type PostResult<T> = { ok: true; value: T | null } | { ok: false; status: number; message: string };
 
-export async function postLabCommand(
-  target: CommandTarget,
-  action: CommandAction,
+/** POST JSON as the owner; maps 403 step-up, 429 and other failures to a readable message. */
+export async function postOwnerJson<T>(
+  path: string,
+  body: unknown,
   fetchImpl: FetchLike = (i, init) => fetch(i, init),
-): Promise<CommandPostResult> {
+  tooMany = "Too many requests. Try again later.",
+): Promise<PostResult<T>> {
   let res: Response;
   try {
-    res = await fetchImpl(`${API_BASE}${COMMANDS_PATH}`, {
+    res = await fetchImpl(`${API_BASE}${path}`, {
       method: "POST",
       credentials: "include",
       cache: "no-store",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ target, action }),
+      body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
     return { ok: false, status: 0, message: "Unable to reach the Arepo API." };
@@ -125,13 +126,47 @@ export async function postLabCommand(
         return { ok: false, status: 403, message: "Unlock with your security key first." };
       }
     }
-    const message =
-      res.status === 429 ? "Too many commands this hour. Try again later." : await detailOf(res);
+    const message = res.status === 429 ? tooMany : await detailOf(res);
     return { ok: false, status: res.status, message };
   }
   try {
-    return { ok: true, command: (await res.json()) as LabCommand };
+    return { ok: true, value: (await res.json()) as T };
   } catch {
-    return { ok: true, command: null };
+    return { ok: true, value: null };
   }
+}
+
+export type CommandPostResult =
+  | { ok: true; command: LabCommand | null }
+  | { ok: false; status: number; message: string };
+
+export async function postLabCommand(
+  target: AnyCommandTarget,
+  action: CommandAction,
+  fetchImpl: FetchLike = (i, init) => fetch(i, init),
+): Promise<CommandPostResult> {
+  const r = await postOwnerJson<LabCommand>(COMMANDS_PATH, { target, action }, fetchImpl, "Too many commands this hour. Try again later.");
+  return r.ok ? { ok: true, command: r.value } : r;
+}
+
+export type MessagePostResult =
+  | { ok: true; message: LabMessage | null }
+  | { ok: false; status: number; message: string };
+
+export async function postLabMessage(
+  target: string,
+  body: string,
+  fetchImpl: FetchLike = (i, init) => fetch(i, init),
+): Promise<MessagePostResult> {
+  const r = await postOwnerJson<LabMessage>(MESSAGES_PATH, { target, body }, fetchImpl, "Daily message limit reached (20 a day). Try again tomorrow.");
+  return r.ok ? { ok: true, message: r.value } : r;
+}
+
+export async function cancelLabMessage(
+  id: number,
+  fetchImpl: FetchLike = (i, init) => fetch(i, init),
+): Promise<MessagePostResult> {
+  const r = await postOwnerJson<LabMessage>(`${MESSAGES_PATH}/${id}/cancel`, undefined, fetchImpl);
+  if (!r.ok && r.status === 409) return { ok: false, status: 409, message: "Too late to cancel: the Mac already picked it up." };
+  return r.ok ? { ok: true, message: r.value } : r;
 }
