@@ -774,7 +774,7 @@ def test_reported_arms_are_built_beside_main_and_main_is_unchanged(frames):
     us, cs = lt.vote_units(ser_k, ser_p, sw(k), sw(k - 1), c, spec, arm="sports")
     assert len(us) > 0 and (us["sports"] == 1).all() and (us["arm"] == "sports").all() and (um["arm"] == "main").all()
     assert not set(us["market_id"]) & set(um["market_id"])
-    allu, cnt = lt._with_arms("V", lambda a_: lt.vote_units(ser_k, ser_p, sw(k), sw(k - 1), c, spec, arm=a_), spec)
+    allu, cnt = lt._with_arms("V", lt.vote_units, (ser_k, ser_p, sw(k), sw(k - 1), c, spec), spec)
     assert cnt["arm_units"] == {"main": len(um), "sports": len(us)} and len(allu) == len(um) + len(us)
     pd.testing.assert_frame_equal(allu[allu["arm"] == "main"].reset_index(drop=True), um)
     # D: sports arm and the decided arm (mid_k < 0.03 or > 0.97)

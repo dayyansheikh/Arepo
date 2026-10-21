@@ -2068,13 +2068,13 @@ def _run_locked(*, snapshot_root, sample_root, sweep_root, root: Path, spec: dic
     return stats
 
 
-def _with_arms(test: str, build, spec: dict) -> tuple[pd.DataFrame, dict]:
+def _with_arms(test: str, build, args: tuple, spec: dict) -> tuple[pd.DataFrame, dict]:
     """The frozen unit frame of one origin: the ``main`` arm's units and counts (exactly what the censuses count) plus the reported arms
-    (:data:`ARMS`), concatenated with their ``arm`` label; ``cnt["arm_units"]`` holds the per-arm unit counts. ``build(arm)`` returns
-    ``(units, counts)``."""
+    (:data:`ARMS`), concatenated with their ``arm`` label; ``cnt["arm_units"]`` holds the per-arm unit counts. ``build(*args, arm=arm)``
+    returns ``(units, counts, ...)``; only the first two are used."""
     parts, cnt, n_by = [], {}, {}
     for arm in ARMS[test]:
-        u, c = build(arm)
+        u, c = build(*args, arm=arm)[:2]
         if arm == "main":
             cnt = dict(c)
         n_by[arm] = len(u)
@@ -2127,13 +2127,13 @@ def _freezes(root, by_slot, samples, sweeps, spec, t_reg, t_end, now, budget, al
                     _refuse(p, ".e022boundary.csv.gz", now, stats, log, kind, c["id"], k, "e022_boundary")
                     continue
                 sw_k_, sw_p_ = l3.read_sweep(root, c["id"]), l3.read_sweep(root, pc["id"])
-                units, cnt = _with_arms("V", lambda a_: vote_units(ser_k, ser_p, sw_k_, sw_p_, c, spec, arm=a_), spec)
+                units, cnt = _with_arms("V", vote_units, (ser_k, ser_p, sw_k_, sw_p_, c, spec), spec)
             elif kind == "deadline":
                 ser_12 = _ser(root, by_slot, k - 12)
-                units, cnt = _with_arms("D", lambda a_: deadline_units(ser_k, ser_p, ser_12, k, c, spec, arm=a_), spec)
+                units, cnt = _with_arms("D", deadline_units, (ser_k, ser_p, ser_12, k, c, spec), spec)
             else:
                 mem_k_, mem_p_, hist_ = _mem(root, by_slot, k), _mem(root, by_slot, k - 1), {j: _ser(root, by_slot, j) for j in (k - 3, k - 12)}
-                units, cnt = _with_arms("B", lambda a_: birth_units(ser_k, ser_p, mem_k_, mem_p_, hist_, k, c, pc, spec, arm=a_)[:2], spec)
+                units, cnt = _with_arms("B", birth_units, (ser_k, ser_p, mem_k_, mem_p_, hist_, k, c, pc, spec), spec)
             if len(units):
                 units = units.assign(capture_id=c["id"], k_slot=k)
             fr = _stamp(units, spec, commit, role, c["start"]) if len(units) else pd.DataFrame(
