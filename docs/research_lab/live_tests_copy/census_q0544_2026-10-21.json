@@ -1,0 +1,330 @@
+{
+ "label": "PRE-WINDOW planning census (counts and entry-quote levels only; no payout, no exit quote, no price change read; no capture at or after 2026-10-22T00:00Z)",
+ "window": [
+  "2026-10-18T04:00:00Z",
+  "2026-10-21T04:00:00Z"
+ ],
+ "capture_hi": "2026-10-22T00:00:00.000000Z",
+ "git_commit": "7d2eac8b25eb",
+ "code_sha256": {
+  "copy_skilled.py": "74fbfc651f53cdff7d4f83f7555e9e195f8abfe3a0a6720d252156a60d486c76",
+  "copy_skilled_analysis.py": "c1f377ad0f8fb5c012283d35aeeac4a53e01b97f3a496d88b48d490f8ecf169c",
+  "wallet_skill.py": "7bd44743cfdf6718f4e9e2bacbdbf29be113659834f7138559a4b2b29e194b5f",
+  "wallet_skill_dev.py": "a31c0ad76e72e12718b0330eb53f69c5e8929b871df9a473fa1cd065ef766b34",
+  "costs.py": "258856fc360fbe70ce7a062a3f156b66d9d71fd50de56bf3669935c4227f844d"
+ },
+ "spec_file_sha256": "c5b000127d2e13f5f86f8e76fcc92a4445283f187ca60e305979f2102c72af6b",
+ "skillset": {
+  "eligible": 35587,
+  "skilled": 3559,
+  "s": 51.4,
+  "peak_mb": 1441.6
+ },
+ "recorder": {
+  "samples": 35,
+  "print_hours": 72,
+  "captures": 39,
+  "signals_skilled": 6429,
+  "signals_control": 18543,
+  "entries": 74109,
+  "skipped_samples": 0,
+  "pending": 31278,
+  "s": 236.5,
+  "peak_mb_child": 1441.6
+ },
+ "store_bytes": 7069695,
+ "last_capture_read": "2026-10-21T10:31:02.353716Z",
+ "counts": {
+  "large_prints": {
+   "batches_read": 72,
+   "days_read": 3.0,
+   "window_days": 3.0,
+   "skilled_signals": 849,
+   "per_day": 283.0,
+   "wallets": 90,
+   "markets": 710,
+   "controls": 1001,
+   "controls_per_signal": {
+    "0.0": 481,
+    "1.0": 30,
+    "2.0": 43,
+    "3.0": 295
+   },
+   "age_h_quantiles": {
+    "0.1": 0.07,
+    "0.25": 0.09,
+    "0.5": 0.12,
+    "0.75": 0.15,
+    "0.9": 0.18
+   },
+   "side_buy_share": 0.907,
+   "trade_price_bands": {
+    "(0.0, 0.05]": 1,
+    "(0.05, 0.35]": 23,
+    "(0.35, 0.65]": 300,
+    "(0.65, 0.95]": 171,
+    "(0.95, 1.0]": 354
+   },
+   "L0": {
+    "signals_complete": 849,
+    "entries": 849,
+    "status": {
+     "two_sided": 400,
+     "absent": 268,
+     "one_sided": 181
+    },
+    "entry_ok": 400,
+    "entry_and_price_ok": 314,
+    "universe": 280,
+    "entry_delay_h_median": 1.06,
+    "realised_latency_h_quantiles": {
+     "0.1": 0.38,
+     "0.5": 1.11,
+     "0.9": 1.92
+    }
+   },
+   "L21600": {
+    "signals_complete": 822,
+    "entries": 822,
+    "status": {
+     "absent": 668,
+     "two_sided": 134,
+     "one_sided": 20
+    },
+    "entry_ok": 134,
+    "entry_and_price_ok": 99,
+    "universe": 65,
+    "entry_delay_h_median": 1.06,
+    "realised_latency_h_quantiles": {
+     "0.1": 6.36,
+     "0.5": 7.34,
+     "0.9": 7.98
+    }
+   },
+   "L86400": {
+    "signals_complete": 631,
+    "entries": 631,
+    "status": {
+     "absent": 583,
+     "two_sided": 43,
+     "one_sided": 5
+    },
+    "entry_ok": 43,
+    "entry_and_price_ok": 27,
+    "universe": 4,
+    "entry_delay_h_median": 1.14,
+    "realised_latency_h_quantiles": {
+     "0.1": 24.36,
+     "0.5": 25.21,
+     "0.9": 25.79
+    }
+   },
+   "primary_set_L0": {
+    "days_used": 3.0,
+    "n": 117,
+    "uncapped_universe_n": 280,
+    "per_day": 39.0,
+    "events": 64,
+    "wallets": 21,
+    "top1_wallet_share": 0.265,
+    "top10_wallet_share": 0.906,
+    "deff_event_icc1": 6.95,
+    "deff_wallet_icc1": 20.23,
+    "deff_event_x_wallet_icc1": 3.26,
+    "deff_twoway_icc1": 23.92,
+    "mean_stake": 0.6197,
+    "sd_per_share_calibrated": 0.4167,
+    "mean_cost_ps": 0.0212,
+    "mean_cost_per_dollar": 0.0341,
+    "days_to_end_median": -0.06,
+    "ask_bands": {
+     "long_shot": 19,
+     "middle": 37,
+     "favourite": 61
+    },
+    "buy_share": 0.923,
+    "category": {
+     "sports": 100,
+     "politics": 5,
+     "other": 3,
+     "unknown": 2,
+     "crypto": 2,
+     "economics": 2,
+     "finance": 2,
+     "weather": 1
+    },
+    "controls_in_primary_set": 63,
+    "pairs": 31,
+    "pair_events": 30,
+    "control_sd_inflation": 1.2658,
+    "projection_21d": {
+     "days": 21.0,
+     "n": 819.0,
+     "events": 448.0,
+     "pairs": 217.0,
+     "pair_events": 210.0,
+     "mde_N_deff1": 0.0658,
+     "mde_N_event_icc1": 0.1735,
+     "mde_N_twoway_icc1": 0.3219,
+     "mde_C_event_icc1": 0.4266
+    }
+   }
+  },
+  "sidecar": {
+   "batches_read": 35,
+   "days_read": 2.882,
+   "window_days": 3.0,
+   "skilled_signals": 6429,
+   "per_day": 2230.49,
+   "wallets": 242,
+   "markets": 3769,
+   "controls": 18543,
+   "controls_per_signal": {
+    "0.0": 157,
+    "1.0": 78,
+    "2.0": 117,
+    "3.0": 6077
+   },
+   "age_h_quantiles": {
+    "0.1": 0.68,
+    "0.25": 1.81,
+    "0.5": 4.52,
+    "0.75": 9.45,
+    "0.9": 16.34
+   },
+   "side_buy_share": 0.848,
+   "trade_price_bands": {
+    "(0.0, 0.05]": 430,
+    "(0.05, 0.35]": 1652,
+    "(0.35, 0.65]": 1646,
+    "(0.65, 0.95]": 2051,
+    "(0.95, 1.0]": 650
+   },
+   "L0": {
+    "signals_complete": 6429,
+    "entries": 6429,
+    "status": {
+     "two_sided": 6120,
+     "absent": 159,
+     "one_sided": 150
+    },
+    "entry_ok": 6120,
+    "entry_and_price_ok": 4639,
+    "universe": 2946,
+    "entry_delay_h_median": 1.79,
+    "realised_latency_h_quantiles": {
+     "0.1": 2.59,
+     "0.5": 6.58,
+     "0.9": 18.35
+    }
+   },
+   "L21600": {
+    "signals_complete": 6040,
+    "entries": 6040,
+    "status": {
+     "two_sided": 5271,
+     "absent": 560,
+     "one_sided": 209
+    },
+    "entry_ok": 5271,
+    "entry_and_price_ok": 3875,
+    "universe": 2319,
+    "entry_delay_h_median": 1.79,
+    "realised_latency_h_quantiles": {
+     "0.1": 8.59,
+     "0.5": 12.64,
+     "0.9": 24.34
+    }
+   },
+   "L86400": {
+    "signals_complete": 4279,
+    "entries": 4279,
+    "status": {
+     "two_sided": 3041,
+     "absent": 928,
+     "one_sided": 310
+    },
+    "entry_ok": 3041,
+    "entry_and_price_ok": 2078,
+    "universe": 978,
+    "entry_delay_h_median": 1.79,
+    "realised_latency_h_quantiles": {
+     "0.1": 26.58,
+     "0.5": 30.54,
+     "0.9": 40.86
+    }
+   },
+   "primary_set_L0": {
+    "days_used": 2.882,
+    "n": 1294,
+    "uncapped_universe_n": 2946,
+    "per_day": 448.94,
+    "events": 650,
+    "wallets": 160,
+    "top1_wallet_share": 0.03,
+    "top10_wallet_share": 0.269,
+    "deff_event_icc1": 3.97,
+    "deff_wallet_icc1": 21.35,
+    "deff_event_x_wallet_icc1": 1.38,
+    "deff_twoway_icc1": 23.93,
+    "mean_stake": 0.5714,
+    "sd_per_share_calibrated": 0.4141,
+    "mean_cost_ps": 0.0304,
+    "mean_cost_per_dollar": 0.0531,
+    "days_to_end_median": 2.28,
+    "ask_bands": {
+     "long_shot": 312,
+     "middle": 417,
+     "favourite": 565
+    },
+    "buy_share": 0.889,
+    "category": {
+     "sports": 327,
+     "weather": 322,
+     "other": 123,
+     "culture": 104,
+     "politics": 102,
+     "unknown": 83,
+     "finance": 81,
+     "crypto": 63
+    },
+    "controls_in_primary_set": 3097,
+    "pairs": 1200,
+    "pair_events": 620,
+    "control_sd_inflation": 1.1992,
+    "projection_21d": {
+     "days": 21.0,
+     "n": 9427.8,
+     "events": 4735.8,
+     "pairs": 8742.9,
+     "pair_events": 4517.2,
+     "mde_N_deff1": 0.0209,
+     "mde_N_event_icc1": 0.0417,
+     "mde_N_twoway_icc1": 0.1023,
+     "mde_C_event_icc1": 0.0519
+    }
+   }
+  },
+  "gates": {
+   "G1_copies_events": true,
+   "G2_pairs": true,
+   "G3_mde_N_event": true,
+   "decision": "register_k2",
+   "skipped_samples": {
+    "sidecar_incomplete": 0,
+    "missing": 0
+   }
+  }
+ },
+ "passes_counts": {
+  "sample_rows": 8371566,
+  "kept": 1999958,
+  "seen_before": 6371608,
+  "no_receipt": 0,
+  "sidecar_not_complete": 0,
+  "samples_missing": 0,
+  "print_lines": 29434
+ },
+ "total_s": 290.5,
+ "peak_mb": 1441.6
+}

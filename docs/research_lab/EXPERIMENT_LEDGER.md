@@ -3086,3 +3086,19 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - (12:11Z) Promoted ahead of T_seal with `not_before`: q0083b (h7 deadline recorder, one-shot, 10-22T00:05Z; q0083 seal
   follows) and q0161 (CB8 smoke, 10-22T00:00Z). A session then commits the h7 seal / NOT_RUN copies before q0121, q0144
   and q0145 are promoted.
+
+## E026 census q0544 done, 2026-10-21 12:27Z (counts only; nothing counted as a test)
+- q0544 ran 292 s, peak 1.44 GB (child), on normalised code hashes equal to the reviewed afac80d4. It read samples in
+  [10-18T04:00Z, 10-21T04:00Z) and no capture at or after 10-22. Committed as
+  `live_tests_copy/census_q0544_2026-10-21.json`, sha256 90adaea6d9edfaf19f502e56513e8d7a2ca01c27fae90884c6e6163326ec58bf.
+  It holds counts and aggregates only and no wallet hash (checked: the only hex strings are the code and spec hashes).
+- **Gates (declared in aba32281 before the census):** G1, G2 and G3 all pass, decision **register_k2**. Skipped samples:
+  0 incomplete, 0 missing.
+- **Counts:**
+  - skilled set: 3,559 of 35,587 eligible wallets;
+  - skilled signals: 6,429 over 2.88 days (2,230 a day) from 242 wallets in 3,769 markets;
+  - primary set at L = 0: 1,294 signals (449 a day), 650 events, 160 wallets, top wallet share 3%;
+  - two-way design effect at ICC 1: 23.9;
+  - mean conservative cost: 5.3c per dollar.
+- Next: fill the CENSUS-GATED values (`LIVE_TESTS_COPY.md` MDE table and the spec `planning` block), then challenger
+  review, freeze q0540, pins, and registration before 2026-10-24T00:00Z.
