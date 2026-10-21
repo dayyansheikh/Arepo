@@ -151,12 +151,14 @@ champion (market state + momentum), the learner reference and broad multi-family
 | chg1d_x_liq (no model yet) | 2026-11-14T00:00Z | E012 |
 | tte | 2026-11-14T00:00Z | E014 |
 | flow | 2026-11-22T00:00Z (from 11-16, 2026-10-21) | E013, E014 (LT2, 2026-11-13T12Z), E016, E018 (LT3 proposed 2026-11-15T12Z), LT5 J/O (draft) |
-| book | 2026-11-22T00:00Z (from 11-18, 2026-10-21) | E015, E019 (LT3), E020, E022 (LT4 proposed 2026-11-17T12Z), LT5 H/R (draft) |
+| book | 2026-12-09T00:00Z (from 11-18, then 11-22, both 2026-10-21) | E015, E019 (LT3), E020, E022 (LT4 proposed 2026-11-17T12Z), LT5 H/R (draft), LT6 V (draft, CH190; experiments round-2 request) |
 | wallet | 2026-12-07T00:00Z (from 11-18, 2026-10-21) | E024 (LT4), E026 copy-skilled (draft, analysis on/after 2026-12-06T12Z) |
 | wallet_skill (no model yet) | 2026-12-07T00:00Z | E026 |
 | rewards | 2026-11-22T00:00Z (from 11-18, 2026-10-21) | E020 (LT4 draft: reward flag as control / S3), LT5 R (draft); added 2026-10-21 with `se9_lr_rewards` |
 | event | 2026-11-22T00:00Z | LT5 F (draft, CH184); added 2026-10-21 ~10:20Z on the experiments track's request, before any event score was computed or shown (`se8_lr_event`, `se10_lgbm_event`) |
 | movetype | 2026-11-22T00:00Z | E015 (LT3 registered 2026-10-21, analysis not before 2026-11-15T12Z); same date as `book`; added 2026-10-21 ~14:30Z with `se14_lgbm_movetype` (which also isolates `book`), before any movetype score was computed or shown |
+| participation | 2026-11-25T00:00Z | CB17-C (CH150, drafted: event-volume change as eligibility, event liquidity as control; REP_8 ends no earlier than 11-23T08Z); added 2026-10-21 with `se16_lgbm_participation` before any table or score existed (science review REVISE) |
+| vote, clips, deadline, siblings (no models yet) | 2026-12-09T00:00Z | LT6 V, K, D, B (draft; experiments round-2 request 2026-10-21) |
 
 LT3/LT4 dates are the proposed windows; when they register, move the dates **later** if needed (never earlier).
 
@@ -362,6 +364,39 @@ Embargo (event): token `event` until 2026-11-22 since 2026-10-21 (LT5 F draft; Â
 SB2-J5 is development only. `ev_sib_*` resembles SB2-J5's L1 and `ev_norm_gap` resembles E005's band deviation, so
 se8 is recorded in the ledger as a counted development look at both: any later live test of either must declare
 that it is not fresh.
+
+**Fifth family `participation` (`se-aux-participation-v1`), challenger `se16_lgbm_participation` (2026-10-21;
+embargoed until 2026-11-25 under `participation`, CB17-C).** Event-level participation and attention breadth (CANDIDATES row 14).
+- Inputs: the origin capture's own sidecar `rows_ext.csv.gz` (`event_volume`, `event_liquidity`, `competitive`,
+  `event_created_at`, `volume_num`) and its snapshot rows (`liquidity`). For the 2 h change only, the previous slot's
+  sidecar. Nothing after the origin is read. An absent previous sidecar leaves the change columns NaN; an older
+  sidecar missing a column leaves that column NaN. Nothing is filled.
+- Columns (float32, NaN = missing):
+  - `pp_log_ev_vol`, `pp_log_ev_liq`: log1p of the event's volume and liquidity.
+  - `pp_d_ev_vol`: log1p of the positive part of the event volume change since the previous slot, joined on
+    `market_id`. `pp_ev_vol_fell`: 1 if the event volume fell by more than 1e-6, else 0 (a data-quality flag).
+  - `pp_liq_share`: the market's own liquidity over the event liquidity, clipped to [0, 1]; NaN if the event
+    liquidity is 0 or missing.
+  - `pp_competitive`: Gamma's `competitive` score.
+  - `pp_log_ev_age_h`: log1p of the hours from the event's creation to the capture start (floored at 0).
+  - `pp_log_vol_num`: log1p of the market's lifetime volume (45% of eligible markets on the 10-21 14:31Z capture).
+- Clock: all of it comes from the same Gamma response as the origin row, received at the row's receipt time, before
+  the prediction.
+- **Embargo `participation` until 2026-11-25T00:00Z (science review 2026-10-21, REVISE applied before any table or
+  score existed).** CB17-C (CH150, drafted) uses the 2 h event-volume change as its eligibility rule (dV > 0), a
+  trailing-tercile stratum and a robustness trim, and log event liquidity as a control
+  (`CREATIVE_BATCH_17.md` 761-764, 791-793); its REP_8 frame runs to no earlier than 2026-11-23T08:00Z. Same
+  precedent as `rewards` (a control role in a draft). Move the date later if CB17-C slips, never earlier.
+- Excluded on purpose: `event_open_interest` (CB17-C's tested ratio), `open_interest`, `event_comment_count` (comment bursts died in the probes:
+  9 of 22,111 events changed in 2 h, CREATIVE_HYPOTHESES_2026-10-22.md section 3), `rewards_*` and `clob_rewards`
+  (the `rewards` family). E017 was dropped uncounted.
+- `se16_lgbm_participation` has se1's params, families market_state + momentum + participation, and trains only on
+  captures that have the table. It is read against se1 (learner-matched). It has no development evidence yet.
+- Host probe (read-only, 10-21 14:31Z capture, 51,790 eligible): 3.9 s, 317 MB; coverage event volume 73%, its 2 h
+  change 72% (positive in 14,795), liquidity share / competitive / event age 100%; the `fell` flag never fired.
+- Notes: slots may sit up to 30 min off the grid (`SLOT_TOL_S`), so the "2 h" change spans 1-3 h and is not
+  normalised for the gap. The aux metadata records the previous sidecar actually read (`prev_sidecar_capture_id`,
+  `prev_sidecar_sha256`). The liquidity share is clipped at 1 (market above event liquidity is hidden).
 
 ## 17. Family attribution (2026-10-21, `learners.family_attribution`)
 

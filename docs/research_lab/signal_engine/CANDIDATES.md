@@ -39,7 +39,7 @@ LT5 dates are provisional: they move later, never earlier, if LT5 registers late
 
 ---
 
-## Embargo requests from the experiments side, round 2 (LT6 draft; filed 2026-10-21 ~16:20Z, NOT yet applied)
+## Embargo requests from the experiments side, round 2 (LT6 draft; filed 2026-10-21 ~16:20Z; APPLIED by the builder 2026-10-21 ~16:40Z, `config.EMBARGO`)
 
 Filed by the experiments autopilot for the LT6 draft (`feat/live-tests-6`, `docs/research_lab/LIVE_TESTS_6.md` section 9).
 Each request moves a date later or adds a token; none moves a date earlier. LT6's dates slide with E022's END_UTC, later
@@ -315,3 +315,4 @@ development look at the neg-risk / sibling family (ledger entry 2026-10-21).
 | 11 | learner-matched cross-venue / `se13_lgbm_xvenue` | base + `xvenue`, LightGBM (se1's params) | as above | `xvenue` until 2026-11-04 (as se4) | **active, embargoed, hidden** (2026-10-21); read against se1 |
 | 12 | move type / `se14_lgbm_movetype` | base + aux `movetype` (C07 classes + C12 move over spread), LightGBM (se1's params) | C07 replicated (HB1-R); C12 development only | `movetype` + `book` until 2026-11-22 (E015) | **active, embargoed, hidden** (2026-10-21 ~14:30Z); read against se1 |
 | 13 | price-path context / `se15_lgbm_surprise` | base + aux `surprise` (rv 6 h / 3 d / 7 d, ratios to 24 h, max 2 h move, weekday, hour), LightGBM (se1's params) | C06 development only (sm_learned_v2 replicated on disjoint h3 markets) | `surprise` until 2026-11-19 (E011; moved later from 11-12 for margin) | **active, embargoed, hidden** (2026-10-21 ~15:00Z); read against se1 |
+| 14 | `participation` / `se16_lgbm_participation` | base + aux `participation` (event volume and liquidity, 2 h event volume change, own liquidity share, `competitive`, event age, lifetime market volume), LightGBM (se1's params); from the origin's and the previous slot's Gamma sidecar | none (development-only evidence so far: none) | `participation` until 2026-11-25 (CB17-C uses the event-volume change and event liquidity; science review REVISE applied); event open interest and comment counts excluded | **active, embargoed, hidden** (2026-10-21); read against se1 |

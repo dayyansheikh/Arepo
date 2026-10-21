@@ -66,8 +66,8 @@ class SlotMids:
 # ---------------------------------------------------------------------------------------------- event family
 # Event-level context from the same capture's complete binary listing (every market of the event, including
 # siblings that are not eligible themselves). Development history: E005 (neg-risk band deviation, closed 2026-10-11,
-# not supported) and SB2-J5 (sibling reversal, development only); no registered live test isolates it (checked
-# 2026-10-21), so no embargo token.
+# not supported) and SB2-J5 (sibling reversal, development only). Embargo token `event` until 2026-11-22 (LT5 F,
+# draft, CH184; added 2026-10-21 on the experiments track's request).
 EVENT_MAX_SPREAD_S = 5.0  # siblings must be received within 5 s of each other (median 0 s, p90 0.2 s, p99 201 s on
 # 2026-10-21): otherwise a sibling quote received minutes after a market's own row could carry part of that market's
 # later move into its features, so the whole event is left missing (counted by the NaN rate, never filled)
@@ -366,6 +366,92 @@ def read_reward_ext(cap_dir) -> pd.DataFrame | None:
     return t.to_pandas().drop_duplicates("market_id").set_index("market_id")
 
 
+# ---------------------------------------------------------------------------------------------- participation family
+# Event-level participation and attention breadth (CANDIDATES.md row 14): the event's lifetime volume and liquidity, the
+# 2 h change of the event volume, the market's share of the event liquidity, Gamma's `competitive` score, the event's
+# age and the market's lifetime volume. Not CB17-C's event open interest, not comment bursts (they died in the probes,
+# CREATIVE_HYPOTHESES_2026-10-22.md section 3: 9 of 22,111 events changed comment count in 2 h) and not E017 (dropped
+# uncounted). Inputs: the origin capture's own sidecar `rows_ext.csv.gz` and snapshot rows (the same Gamma response as
+# the origin row, received at the row's receipt time, before the prediction) plus, for the 2 h change only, the previous
+# slot's sidecar; nothing later is ever read, and an absent previous sidecar leaves the change columns NaN. Embargo
+# token `participation` until 2026-11-25 (science review 2026-10-21): CB17-C (CH150, drafted) uses the 2 h event-volume
+# change as its eligibility rule and log event liquidity as a control; REP_8 ends no earlier than 2026-11-23T08:00Z.
+# Open interest (CB17-C's tested ratio) and comment counts are excluded; rewards_* and clob_rewards belong to `rewards`.
+PARTICIPATION_COLUMNS = ["pp_log_ev_vol", "pp_d_ev_vol", "pp_ev_vol_fell", "pp_log_ev_liq", "pp_liq_share",
+                         "pp_competitive", "pp_log_ev_age_h", "pp_log_vol_num"]
+PA_EXT_COLS = ["market_id", "event_volume", "event_liquidity", "competitive", "event_created_at", "volume_num"]
+PA_FELL_EPS = 1e-6
+
+
+def read_participation_ext(cap_dir) -> pd.DataFrame | None:
+    """The sidecar columns of PA_EXT_COLS that exist (an older sidecar lacks some: that column is NaN), by market_id."""
+    if cap_dir is None:
+        return None
+    p = Path(cap_dir) / "rows_ext.csv.gz"
+    if not p.exists():
+        return None
+    import gzip
+
+    import pyarrow as pa
+    import pyarrow.csv as pacsv
+
+    try:
+        with gzip.open(p, "rt") as fh:
+            header = fh.readline().strip().split(",")
+        cols = [c for c in PA_EXT_COLS if c in header]
+        if "market_id" not in cols:
+            return None
+        types = {"market_id": pa.int64(), "event_volume": pa.float64(), "event_liquidity": pa.float64(),
+                 "competitive": pa.float64(), "event_created_at": pa.string(), "volume_num": pa.float64()}
+        t = pacsv.read_csv(p, convert_options=pacsv.ConvertOptions(include_columns=cols, column_types=types))
+    except (pa.ArrowInvalid, KeyError, OSError, EOFError):
+        return None
+    return t.to_pandas().drop_duplicates("market_id").set_index("market_id")
+
+
+def _pa_col(e: pd.DataFrame, name: str) -> np.ndarray:
+    return pd.to_numeric(e[name], errors="coerce").to_numpy(float) if name in e else np.full(len(e), np.nan)
+
+
+def participation_features(ext: pd.DataFrame | None, prev_ext: pd.DataFrame | None, rows: pd.DataFrame | None,
+                           f: pd.DataFrame, cap_start: float) -> pd.DataFrame:
+    """Per eligible market (``f`` row order); NaN where the sidecar, the column or the previous capture lacks it."""
+    n = len(f)
+    out = pd.DataFrame({c: np.full(n, np.nan, np.float32) for c in PARTICIPATION_COLUMNS})
+    if ext is None or n == 0:
+        return out
+    ids = f["market_id"].to_numpy(np.int64)
+    e = ext.reindex(ids)
+    ev_vol, ev_liq = _pa_col(e, "event_volume"), _pa_col(e, "event_liquidity")
+    with np.errstate(invalid="ignore", divide="ignore"):
+        out["pp_log_ev_vol"] = np.log1p(np.clip(ev_vol, 0, None))
+        out["pp_log_ev_liq"] = np.log1p(np.clip(ev_liq, 0, None))
+        out["pp_competitive"] = _pa_col(e, "competitive")
+        out["pp_log_vol_num"] = np.log1p(np.clip(_pa_col(e, "volume_num"), 0, None))
+        if rows is not None and "liquidity" in rows:
+            liq = pd.Series(pd.to_numeric(rows["liquidity"], errors="coerce").to_numpy(float),
+                            index=rows["market_id"].to_numpy(np.int64))
+            liq = liq[~liq.index.duplicated()].reindex(ids).to_numpy(float)
+            out["pp_liq_share"] = np.where(ev_liq > 0, np.clip(liq / ev_liq, 0.0, 1.0), np.nan)
+        if "event_created_at" in e:
+            ca = pd.to_datetime(e["event_created_at"], utc=True, errors="coerce", format="ISO8601")  # with or without fractions
+            sec = ca.astype("datetime64[ns, UTC]").astype("int64").to_numpy().astype(float) / 1e9
+            sec[ca.isna().to_numpy()] = np.nan
+            out["pp_log_ev_age_h"] = np.log1p(np.clip((cap_start - sec) / 3600.0, 0, None))
+        if prev_ext is not None:
+            pv = _pa_col(prev_ext.reindex(ids), "event_volume")
+            ok = np.isfinite(ev_vol) & np.isfinite(pv)
+            out["pp_d_ev_vol"] = np.where(ok, np.log1p(np.clip(ev_vol - pv, 0, None)), np.nan)
+            out["pp_ev_vol_fell"] = np.where(ok, (ev_vol < pv - PA_FELL_EPS).astype(float), np.nan)
+    return out.astype(np.float32)
+
+
+def _participation_builder(ctx: dict) -> pd.DataFrame:
+    prev, paths = ctx["prev"], ctx["paths"]
+    prev_ext = read_participation_ext(Path(paths.snapshots) / prev["capture_id"]) if prev is not None else None
+    return participation_features(read_participation_ext(ctx["cap_dir"]), prev_ext, ctx["rows"], ctx["f"], ctx["cap_start"])
+
+
 # ---------------------------------------------------------------------------------------------- registry
 # A builder takes a context dict: rows (snapshot rows; None for a family with needs_rows False), f (features key
 # columns + ms_mid, ms_spread), prev_mid (previous slot's mids or None), cap_dir, cap_start, paths, meta, prev (the
@@ -380,6 +466,8 @@ AUX_FAMILIES: dict[str, dict] = {
                  "builder": _movetype_builder},
     "surprise": {"version": "se-aux-surprise-v1", "columns": SURPRISE_COLUMNS, "needs_rows": False,
                  "builder": _surprise_builder},
+    "participation": {"version": "se-aux-participation-v1", "columns": PARTICIPATION_COLUMNS, "prev_sidecar": True,
+                      "builder": _participation_builder},
 }
 AUX_COLUMNS: dict[str, list[str]] = {k: v["columns"] for k, v in AUX_FAMILIES.items()}
 AUX_ALL: list[str] = [c for cols in AUX_COLUMNS.values() for c in cols]
@@ -412,6 +500,10 @@ def build_aux(paths: S.Paths, family: str, meta: dict, cap_dir, index: dict | No
     md = {"capture_id": cid, "slot": meta["slot"], "aux_family": family, "aux_version": spec["version"],
           "features_sha256": S.sha256_file(fp), "rows_sha256": S.sha256_file(cap_dir / "rows.csv.gz") if needs_rows else None,
           "prev_capture_id": prev["capture_id"] if prev_mid is not None else None, "written_utc": S.iso(S.now_ts()), "code_commit": S.git_commit()}
+    if spec.get("prev_sidecar"):  # provenance of the previous slot's sidecar the builder actually read (or None)
+        ps = Path(paths.snapshots) / prev["capture_id"] / "rows_ext.csv.gz" if prev is not None else None
+        md["prev_sidecar_capture_id"] = prev["capture_id"] if ps is not None and ps.exists() else None
+        md["prev_sidecar_sha256"] = S.sha256_file(ps) if ps is not None and ps.exists() else None
     if not S.write_once_parquet(out_p, tab, md):
         return None
     cov = {c: float(np.isfinite(a[c].to_numpy(float)).mean()) if len(a) else None for c in spec["columns"][:3]}
@@ -502,4 +594,4 @@ def check_spec_aux(spec: dict) -> str | None:
 
 __all__ = ["AUX_FAMILIES", "AUX_COLUMNS", "AUX_ALL", "MODEL_FAMILY_COLUMNS", "aux_path", "build_aux", "run_aux",
            "aux_sources", "read_features", "spec_aux_families", "check_spec_aux", "event_features", "movetype_features",
-           "surprise_features"]
+           "surprise_features", "participation_features"]
