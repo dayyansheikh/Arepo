@@ -1,0 +1,38 @@
+{
+ "id": "q0542_copy_label",
+ "title": "E026 resolution labeller: Gamma /markets?id=... GET (public, read-only) for signal markets without a final record, each market at most once per 20 h, <= 600 requests per pass at 1 req/s; write-once final records only; stops after LABEL_CUTOFF + 1 day",
+ "family": "copy_skilled",
+ "priority": 27,
+ "expected_value": "payouts for E026 copies (first final record per market fetched by 2026-12-04T00:00Z)",
+ "data": [
+  "Gamma API (public)",
+  "research_lab/copy_skilled/signals (market ids only)"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "lane": "net",
+  "network": "gamma"
+ },
+ "depends_on": [
+  "q0540_copy_freeze_skillset"
+ ],
+ "argv": [
+  "scripts/run_copy_skilled.py",
+  "label",
+  "--max-requests",
+  "600"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 3,
+ "repeat": {
+  "max_runs": 3000,
+  "until_log_regex": "COPY_SKILLED_LABELS_CLOSED"
+ },
+ "outputs": [
+  "data-dumps/research_lab/copy_skilled/resolutions/",
+  "data-dumps/research_lab/copy_skilled/state.json (label_checked cache)"
+ ],
+ "next_action": "runs until 2026-12-05T00:00Z, then q0543",
+ "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_COPY.md, E026; design not yet reviewed). Promote only after the challenger review, the freeze job, the spec fill (skillset_sha256, code_sha256, SPEC_SHA256 pin) and the ledger registration commit (>= 2 h before REGISTERED_UTC). Exit 75 when nothing was asked (re-queued after 30 min); the 20 h recheck keeps the request count small. Only the market id leaves the host; no wallet field is sent."
+}

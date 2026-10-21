@@ -1,0 +1,28 @@
+{
+ "id": "q0540_copy_freeze_skillset",
+ "title": "E026 freeze: build the frozen skilled-wallet set ONCE from the HB1 history panels (h1_first, h2_main, h3_power) with the frozen wallet-skill spec at t_freeze = REGISTERED_UTC; write-once skillset.csv.gz + manifest (sha256 goes into the spec pin); refuses at/after t_freeze or if a set exists",
+ "family": "copy_skilled",
+ "priority": 30,
+ "expected_value": "the fixed wallet list E026 copies; nothing is scored",
+ "data": [
+  "research_lab/history/{h1_first,h2_main,h3_power} (read-only)"
+ ],
+ "resources": {
+  "mem_mb": 1500,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_copy_skilled.py",
+  "freeze"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/copy_skilled/skillset/{skillset.csv.gz,skillset_manifest.json}"
+ ],
+ "next_action": "copy the manifest sha256 into model_specs/copy_skilled_v1.json skillset_sha256, then pin SPEC_SHA256 and register",
+ "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_COPY.md, E026; design not yet reviewed). Promote only after the challenger review, the freeze job, the spec fill (skillset_sha256, code_sha256, SPEC_SHA256 pin) and the ledger registration commit (>= 2 h before REGISTERED_UTC). Host dry run 2026-10-21: history load + profiles measured in the census (peak RSS in LIVE_TESTS_COPY.md 8). Wallet hashes only; the file is never committed. Must finish before REGISTERED_UTC (the code refuses afterwards)."
+}

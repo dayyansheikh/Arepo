@@ -1,0 +1,32 @@
+{
+ "id": "q0543_copy_analyze",
+ "title": "E026 single registered analysis: Holm over E026-N (net copy P&L per $ > 0) and E026-C (skilled minus matched controls > 0), one-sided, k = 2; event-cluster bootstrap and cluster-robust t; secondaries descriptive; refuses before 2026-12-04T12:00Z and on any pin mismatch",
+ "family": "copy_skilled",
+ "priority": 26,
+ "expected_value": "prospective verdicts for E026-N and E026-C (exploratory)",
+ "data": [
+  "research_lab/copy_skilled (write-once lines)"
+ ],
+ "resources": {
+  "mem_mb": 1500,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_copy_skilled.py",
+  "analyze",
+  "--out",
+  "../data-dumps/research_lab/copy_skilled/analysis_v1.json"
+ ],
+ "timeout_s": 21600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/copy_skilled/analysis_v1.json",
+  "trials.jsonl (one line, kind copy_skilled, n_tests = 2)"
+ ],
+ "next_action": "ledger results entry (scored once), registry update",
+ "not_before": "2026-12-04T12:00:00Z",
+ "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_COPY.md, E026; design not yet reviewed). Promote only after the challenger review, the freeze job, the spec fill (skillset_sha256, code_sha256, SPEC_SHA256 pin) and the ledger registration commit (>= 2 h before REGISTERED_UTC). Runs once; --out refuses to overwrite. Memory estimate (not measured): tens of thousands of copy rows, 10,000 bootstrap draws per statistic, well under 1 GB; never alongside another multi-GB job. Append the trials line with --trials ../docs/research_lab/trials.jsonl only in the registered run."
+}

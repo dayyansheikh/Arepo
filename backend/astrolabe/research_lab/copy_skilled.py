@@ -1,0 +1,881 @@
+# ruff: noqa: E501
+"""LIVE prospective test E026 "copy skilled wallets with latency" (docs/research_lab/LIVE_TESTS_COPY.md). DRAFT until
+the ledger registration.
+
+Research tooling only. Nothing here trades, holds credentials or labels a wallet as informed or insider. A "copy" is a
+PAPER position priced from quotes AREPO already captured; no order is ever sent. Wallets are HMAC hashes
+(``wallet_sidecar.hash_wallet``); no raw address is read, stored or printed.
+
+Pieces (each a pure function plus a thin I/O pass; every data file is WRITE-ONCE, atomic, floats ``%.17g``):
+
+* ``freeze_skillset``: the frozen skilled set, built ONCE from the HB1 history panels with the frozen wallet-skill spec
+  (``wallet_skill.build_profiles_batch`` at ``t_freeze`` = REGISTERED_UTC; only outcomes known strictly before it;
+  MIN_POS 5, N0 10, top 10% of eligible by ``skill_score`` with ``skill_z > 0``). Written to ``skillset/``; its sha256
+  is pinned in the spec at registration.
+* ``signals_from_batch``: from one batch of observed taker trades with receipt times (one trade sample's wallet
+  sidecar, or one UTC hour of the >= $1k live-print stream), the FIRST in-window trade of each (frozen-skilled wallet,
+  market) not signalled before becomes a skilled copy signal; up to ``n_controls`` matched control trades (non-skilled
+  wallets, same batch, same side, same trade-price bucket, same trade-age bucket, other event) are drawn by a
+  deterministic hash. Lines go to ``signals/<batch>.csv.gz``.
+* ``entries_for_capture``: a signal's paper entry for latency L is the quote of the FIRST complete-universe capture
+  whose start is >= receipt + L (never earlier; receipt-timed rows); the fixed-horizon exit is the first capture
+  starting >= entry row receipt + EXIT_H. Lines go to ``entries/<capture>.csv.gz``.
+* ``label_resolutions``: Gamma resolution records (network, read-only GET), ``resolutions/<pass>.csv.gz``; the first
+  final record per market wins at analysis.
+
+Causality: a signal uses only trades received by its batch's receipt; its entry quote is received at or after
+receipt + L; the skilled set is frozen before the window from outcomes known before it. Nothing is back-filled.
+"""
+
+from __future__ import annotations
+
+import fcntl
+import gzip
+import hashlib
+import json
+import math
+import os
+import re
+import subprocess
+import time
+from collections.abc import Callable, Iterable
+from datetime import UTC, datetime
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+from . import wallet_skill as ws
+
+VERSION = "copy-skilled-v1"
+EXPERIMENTS = ("E026-N", "E026-C")
+ROOT = Path(__file__).resolve().parents[3]
+SNAPSHOT_ROOT = ROOT / "data-dumps" / "research_lab" / "snapshots"
+SAMPLE_ROOT = ROOT / "data-dumps" / "research_lab" / "trade_samples"
+LIVE_TRADES_ROOT = ROOT / "data-dumps" / "research_lab" / "live_trades"
+HISTORY_ROOT = ROOT / "data-dumps" / "research_lab" / "history"
+OUT_ROOT = ROOT / "data-dumps" / "research_lab" / "copy_skilled"
+SPEC_PATH = Path(__file__).resolve().parent / "model_specs" / "copy_skilled_v1.json"
+SPEC_SHA256 = None  # pinned at registration (LIVE_TESTS_COPY.md 9); None = DRAFT, every line is prospective_unregistered
+
+REGISTERED_UTC = "2026-10-23T00:00:00Z"
+END_UTC = "2026-11-13T00:00:00Z"
+LABEL_CUTOFF_UTC = "2026-12-04T00:00:00Z"
+ANALYSIS_NOT_BEFORE = "2026-12-04T12:00:00Z"
+TEMPFAIL = 75
+DISK_CAP_BYTES = int(1.0e9)
+ROLE_CONF, ROLE_UNREG = "prospective_confirmation", "prospective_unregistered"
+CODE_FILES = ("copy_skilled.py", "copy_skilled_analysis.py", "wallet_skill.py", "wallet_skill_dev.py", "costs.py")
+_PIN_LINE = re.compile(r"^SPEC_SHA256 = .*$", re.M)
+
+ARMS = ("sidecar", "large_prints")
+SIGNAL_COLS = ["signal_id", "arm", "role", "parent_id", "batch_id", "market_id", "condition_id", "event_id", "wallet",
+               "skill_score", "skill_n_pos", "trade_ts", "side", "outcome_index", "trade_price", "trade_size",
+               "trade_notional", "copy_token", "receipt_ts", "age_s", "price_bucket", "age_bucket", "n_controls",
+               "evidence_role", "spec_sha", "code_sha", "code_commit", "frozen_utc"]
+ENTRY_COLS = ["signal_id", "kind", "latency_s", "due_ts", "capture_id", "capture_start_ts", "row_received_ts", "status",
+              "best_bid", "best_ask", "spread", "last_trade_price", "liquidity", "volume24hr", "end_ts", "event_id",
+              "fee_category", "fees_enabled", "fee_schedule_rate", "fee_exponent", "spec_sha", "code_sha", "frozen_utc"]
+RES_COLS = ["market_id", "fetched_ts", "http_status", "closed", "outcome_prices", "pay0", "state", "uma_status",
+            "spec_sha", "code_sha"]
+SNAP_COLS = ["market_id", "condition_id", "event_id", "received_utc", "capture_start_utc", "closed", "active", "best_bid",
+             "best_ask", "spread", "last_trade_price", "liquidity", "volume24hr", "end_date"]
+EXT_COLS = ["market_id", "fee_category", "fees_enabled", "fee_schedule"]
+
+
+# --- small utilities ------------------------------------------------------------------------------------------------
+
+
+def epoch(v) -> float:
+    try:
+        return float(datetime.fromisoformat(str(v).replace("Z", "+00:00")).timestamp())
+    except (TypeError, ValueError):
+        return math.nan
+
+
+def iso(ts: float) -> str:
+    return datetime.fromtimestamp(float(ts), UTC).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+
+
+def now_ts() -> float:
+    return datetime.now(UTC).timestamp()
+
+
+def sha256_file(path: Path) -> str:
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def git_commit() -> str:
+    try:
+        out = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True, timeout=15)
+        return out.stdout.strip()[:12] or "unknown"
+    except (OSError, subprocess.SubprocessError):
+        return "unknown"
+
+
+def code_sha256(path: Path) -> str:
+    """sha256 of a code file with its ``SPEC_SHA256 = ...`` line normalised (the spec pins the code hashes and the code
+    pins the spec hash, so the pin line itself stays outside the code hash)."""
+    txt = Path(path).read_bytes().decode("utf-8")
+    return hashlib.sha256(_PIN_LINE.sub("SPEC_SHA256 = <pin>", txt).encode("utf-8")).hexdigest()
+
+
+def code_hashes() -> dict:
+    here = Path(__file__).resolve().parent
+    return {n: code_sha256(here / n) for n in CODE_FILES}
+
+
+def reader_sha() -> str:
+    """16 hex digits identifying the recorder code (this module + wallet_skill, which defines the trade normalisation)."""
+    h = code_hashes()
+    return hashlib.sha256((h["copy_skilled.py"] + h["wallet_skill.py"]).encode()).hexdigest()[:16]
+
+
+def load_spec(path: Path = SPEC_PATH, sha: str | None = SPEC_SHA256) -> dict:
+    spec = json.loads(Path(path).read_text())
+    got = sha256_file(path)
+    if sha is not None and got != sha:
+        raise RuntimeError(f"copy_skilled spec sha256 mismatch: {got} != pinned {sha}")
+    spec["_sha256"] = got
+    spec["_pinned"] = sha is not None
+    for key, val in (("registered_utc", REGISTERED_UTC), ("end_utc", END_UTC), ("label_cutoff_utc", LABEL_CUTOFF_UTC),
+                     ("analysis_not_before", ANALYSIS_NOT_BEFORE)):
+        if spec.get(key) != val:
+            raise RuntimeError(f"copy_skilled spec {key} {spec.get(key)!r} != module constant {val!r}")
+    return spec
+
+
+def role_of(receipt_ts: float, spec: dict) -> str:
+    ok = bool(spec.get("_pinned")) and epoch(spec["registered_utc"]) <= receipt_ts < epoch(spec["end_utc"])
+    return ROLE_CONF if ok else ROLE_UNREG
+
+
+def write_once_csv(path: Path, df: pd.DataFrame) -> bool:
+    """Gzip CSV (floats ``%.17g``, exact round trip) written only if ``path`` does not exist; atomic (tmp + hard link)."""
+    path = Path(path)
+    if path.exists():
+        return False
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    df.to_csv(tmp, index=False, compression={"method": "gzip", "mtime": 0}, float_format="%.17g")
+    with open(tmp, "rb") as fh:
+        os.fsync(fh.fileno())
+    try:
+        os.link(tmp, path)
+    except FileExistsError:
+        return False
+    finally:
+        tmp.unlink(missing_ok=True)
+    return True
+
+
+def append_jsonl(path: Path, rows: list[dict]) -> None:
+    if not rows:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "a", encoding="utf-8") as fh:
+        for r in rows:
+            fh.write(json.dumps(r, sort_keys=True, default=str) + "\n")
+        fh.flush()
+        os.fsync(fh.fileno())
+
+
+def dir_bytes(path: Path) -> int:
+    return sum(p.stat().st_size for p in Path(path).rglob("*") if p.is_file()) if Path(path).exists() else 0
+
+
+def bucket(x: np.ndarray, edges: Iterable[float]) -> np.ndarray:
+    """Index of the half-open bucket [e_i, e_{i+1}) holding x (-1 if outside or NaN)."""
+    e = np.asarray(list(edges), float)
+    x = np.asarray(x, float)
+    i = np.searchsorted(e, x, side="right") - 1
+    bad = ~np.isfinite(x) | (i < 0) | (i >= len(e) - 1)
+    return np.where(bad, -1, i).astype(int)
+
+
+def signal_key(arm: str, wallet: str, market_id: int, ts: float, side: int, k: int, price: float, size: float) -> str:
+    raw = f"{arm}|{wallet}|{int(market_id)}|{float(ts):.3f}|{int(side)}|{int(k)}|{float(price):.8f}|{float(size):.8f}"
+    return hashlib.sha256(raw.encode()).hexdigest()[:16]
+
+
+def _rank_key(parent: str, cand: str) -> str:
+    return hashlib.sha256(f"{parent}|{cand}".encode()).hexdigest()
+
+
+# --- frozen skilled set -----------------------------------------------------------------------------------------------
+
+
+def skillset_frame(trades: pd.DataFrame, res: pd.DataFrame, t_freeze: float, skill: dict) -> pd.DataFrame:
+    """Eligible wallets as of ``t_freeze`` (positions in markets known strictly before it), with the frozen skilled flag.
+
+    Exactly the development construction (WALLET_SKILL.md 1-2): ``build_profiles_batch`` then ``snapshot_frame``."""
+    prof = ws.build_profiles_batch(trades, res, t_freeze, n0=float(skill["n0"]), min_pos=int(skill["min_pos"]))
+    snap = ws.snapshot_frame(prof, as_of=t_freeze, top_frac=float(skill["top_frac"]))
+    return snap.sort_values("wallet", kind="stable").reset_index(drop=True)
+
+
+def freeze_skillset(history_root: Path, out_dir: Path, spec: dict, *, now: float | None = None) -> dict:
+    """Build and write the frozen skilled set once (write-once ``skillset.csv.gz`` + ``skillset_manifest.json``)."""
+    from . import wallet_skill_dev as wd
+
+    out_dir = Path(out_dir)
+    path, man_path = out_dir / "skillset.csv.gz", out_dir / "skillset_manifest.json"
+    if path.exists() or man_path.exists():
+        raise RuntimeError(f"skillset already frozen at {out_dir}; it is never rebuilt")
+    now = now_ts() if now is None else now
+    t_freeze = epoch(spec["skill"]["t_freeze_utc"])
+    if now >= t_freeze:
+        raise RuntimeError("freeze refused at or after t_freeze (the set must exist before the window starts)")
+    panels = tuple(spec["skill"]["history_panels"])
+    h = wd.load_history(Path(history_root), panels=panels)
+    pt, res = wd.profile_trades(h)
+    snap = skillset_frame(pt, res, t_freeze, spec["skill"])
+    if not write_once_csv(path, snap):
+        raise RuntimeError("skillset write raced")
+    man = {"version": VERSION, "skill_version": ws.SKILL_VERSION, "t_freeze_utc": spec["skill"]["t_freeze_utc"],
+           "frozen_utc": iso(now), "history_panels": list(panels), "profile_trades": int(len(pt)),
+           "resolved_markets": int(len(res)), "max_known_ts": float(res["known_ts"].max()) if len(res) else None,
+           "max_trade_ts": float(pt["ts"].max()) if len(pt) else None, "eligible": int(len(snap)),
+           "skilled": int(snap["skilled"].sum()), "min_pos": spec["skill"]["min_pos"], "n0": spec["skill"]["n0"],
+           "top_frac": spec["skill"]["top_frac"], "sha256": sha256_file(path), "code_commit": git_commit(),
+           "code_sha": reader_sha(), "note": "wallet hashes only (HMAC); never committed to the repository"}
+    tmp = man_path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(man, indent=1, sort_keys=True))
+    os.link(tmp, man_path)
+    tmp.unlink()
+    return man
+
+
+def load_skillset(out_dir: Path, pinned_sha: str | None) -> pd.DataFrame:
+    path = Path(out_dir) / "skillset.csv.gz"
+    got = sha256_file(path)
+    if pinned_sha and got != pinned_sha:
+        raise RuntimeError(f"skillset sha256 {got} != pinned {pinned_sha}")
+    s = pd.read_csv(path, dtype={"wallet": str})
+    s["skilled"] = s["skilled"].astype(str).str.lower().isin(["true", "1"])
+    return s
+
+
+# --- signals ----------------------------------------------------------------------------------------------------------
+
+
+def first_trades(tr: pd.DataFrame) -> pd.DataFrame:
+    """Earliest trade of each (wallet, market) in a batch (ties: first in input order)."""
+    if not len(tr):
+        return tr
+    t = tr.reset_index(drop=True)
+    t["_o"] = np.arange(len(t))
+    t = t.sort_values(["ts", "_o"], kind="stable")
+    return t.drop_duplicates(["wallet", "market_id"], keep="first").drop(columns="_o").reset_index(drop=True)
+
+
+def signals_from_batch(tr: pd.DataFrame, *, arm: str, batch_id: str, skill: pd.DataFrame, t0: float,
+                       signalled: set, used_controls: set, event_of: dict, spec: dict) -> pd.DataFrame:
+    """Skilled copy signals and their matched controls from one batch of received taker trades.
+
+    ``tr``: normalised trades (``wallet_skill.normalise_trades`` columns) plus ``receipt_ts`` and ``condition_id``, all
+    with ``ts <= receipt_ts``; already restricted to trades not visible in an earlier batch of the same market (the
+    caller's ``last_sent`` rule). ``signalled`` (skilled (wallet, market) keys of this arm) and ``used_controls``
+    ((wallet, market) keys ever used as a control in this arm) are updated in place.
+    """
+    m = spec["matching"]
+    out_cols = SIGNAL_COLS
+    tr = tr[np.isfinite(tr["ts"].to_numpy(float)) & (tr["ts"].to_numpy(float) >= t0)
+            & (tr["ts"].to_numpy(float) <= tr["receipt_ts"].to_numpy(float))]
+    if not len(tr):
+        return pd.DataFrame(columns=out_cols)
+    ft = first_trades(tr)
+    sk = skill.set_index("wallet")
+    skilled_w = set(skill.loc[skill["skilled"], "wallet"])
+    is_sk = ft["wallet"].isin(skilled_w).to_numpy()
+    keys = list(zip(ft["wallet"], ft["market_id"].astype(np.int64), strict=True))
+    new_sk = is_sk & np.array([k not in signalled for k in keys], bool)
+    price = ft["price"].to_numpy(float)
+    age = ft["receipt_ts"].to_numpy(float) - ft["ts"].to_numpy(float)
+    pb = bucket(price, m["price_edges"])
+    ab = bucket(age, m["age_edges_s"])
+    ev = np.array([str(event_of.get(int(x), "")) for x in ft["market_id"].to_numpy(np.int64)], dtype=object)
+    sig_id = np.array([signal_key(arm, w, mk, ts, d, k, p, s) for w, mk, ts, d, k, p, s in zip(
+        ft["wallet"], ft["market_id"], ft["ts"], ft["d"], ft["k"], ft["price"], ft["size"], strict=True)], dtype=object)
+    pool = np.flatnonzero(~is_sk & np.array([k not in used_controls for k in keys], bool) & (pb >= 0) & (ab >= 0))
+    dd = ft["d"].to_numpy(int)
+    mk_arr = ft["market_id"].to_numpy(np.int64)
+    cells: dict[tuple, list[int]] = {}
+    for j in pool:
+        cells.setdefault((int(pb[j]), int(ab[j]), int(dd[j])), []).append(int(j))
+    rows: list[dict] = []
+
+    def row(i: int, role: str, parent: str, n_ctrl: float) -> dict:
+        d, k = int(ft["d"].iat[i]), int(ft["k"].iat[i])
+        w = ft["wallet"].iat[i]
+        return {"signal_id": sig_id[i], "arm": arm, "role": role, "parent_id": parent, "batch_id": batch_id,
+                "market_id": int(ft["market_id"].iat[i]), "condition_id": ft["condition_id"].iat[i] if "condition_id" in ft else "",
+                "event_id": ev[i], "wallet": w,
+                "skill_score": float(sk["skill_score"].get(w, math.nan)) if w in sk.index else math.nan,
+                "skill_n_pos": float(sk["n_pos"].get(w, math.nan)) if w in sk.index else math.nan,
+                "trade_ts": float(ft["ts"].iat[i]), "side": d, "outcome_index": k, "trade_price": float(price[i]),
+                "trade_size": float(ft["size"].iat[i]), "trade_notional": float(price[i] * ft["size"].iat[i]),
+                "copy_token": k if d > 0 else 1 - k, "receipt_ts": float(ft["receipt_ts"].iat[i]), "age_s": float(age[i]),
+                "price_bucket": int(pb[i]), "age_bucket": int(ab[i]), "n_controls": n_ctrl}
+
+    taken: set[int] = set()
+    for i in np.flatnonzero(new_sk):
+        signalled.add(keys[i])
+        if pb[i] < 0 or ab[i] < 0:
+            rows.append(row(i, "skilled", "", 0.0))
+            continue
+        cand = [j for j in cells.get((int(pb[i]), int(ab[i]), int(dd[i])), [])
+                if j not in taken and mk_arr[j] != mk_arr[i] and (ev[j] == "" or ev[j] != ev[i])]
+        cand.sort(key=lambda j: _rank_key(sig_id[i], sig_id[j]))
+        pick = cand[: int(m["n_controls"])]
+        rows.append(row(i, "skilled", "", float(len(pick))))
+        for j in pick:
+            taken.add(j)
+            used_controls.add(keys[j])
+            rows.append(row(j, "control", sig_id[i], math.nan))
+    return pd.DataFrame(rows, columns=[c for c in out_cols if c not in ("evidence_role", "spec_sha", "code_sha", "code_commit", "frozen_utc")])
+
+
+def stamp(df: pd.DataFrame, spec: dict, commit: str, now: float, role_col: str | None = "receipt_ts") -> pd.DataFrame:
+    df = df.copy()
+    if role_col is not None:
+        df["evidence_role"] = [role_of(t, spec) for t in df[role_col].to_numpy(float)] if len(df) else []
+    df["spec_sha"] = spec["_sha256"][:16]
+    df["code_sha"] = reader_sha()
+    if role_col is not None:
+        df["code_commit"] = commit
+    df["frozen_utc"] = iso(now)
+    return df
+
+
+# --- trade sources ------------------------------------------------------------------------------------------------------
+
+
+def sample_receipts(manifest: dict) -> dict[int, float]:
+    """market_id -> receipt (``received_utc``) of the successful request of a trade sample (last 200 attempt)."""
+    out: dict[int, float] = {}
+    for r in manifest.get("requests") or []:
+        if r.get("status") == 200:
+            t = epoch(r.get("received_utc"))
+            if math.isfinite(t):
+                out[int(r["market_id"])] = t
+    return out
+
+
+def sample_sent(features: pd.DataFrame) -> dict[int, float]:
+    """market_id -> request sent time of the ok rows (the sampler kept trades with ts <= sent)."""
+    f = features[features["status"] == "ok"]
+    t = pd.to_datetime(f["sent_utc"], utc=True, errors="coerce", format="ISO8601")
+    v = t.astype("int64").to_numpy() / 1e9
+    v[t.isna().to_numpy()] = np.nan
+    return {int(m): float(x) for m, x in zip(f["market_id"].to_numpy(np.int64), v, strict=True) if np.isfinite(x)}
+
+
+def load_sample_batch(sdir: Path, last_sent: dict[int, float]) -> tuple[pd.DataFrame, dict, dict]:
+    """Normalised sidecar trades of one sample with receipt times, keeping only trades not visible in an earlier
+    processed sample of the same market (``ts > last_sent[m]``). Returns (trades, new sent map, counts)."""
+    sdir = Path(sdir)
+    man = json.loads((sdir / "manifest.json").read_text())
+    feats = pd.read_csv(sdir / "features.csv.gz", usecols=["market_id", "status", "sent_utc"])
+    sent = sample_sent(feats)
+    rec = sample_receipts(man)
+    wman = json.loads((sdir / "wallets_manifest.json").read_text()) if (sdir / "wallets_manifest.json").exists() else {}
+    counts = {"sidecar_status": wman.get("sidecar_status", "missing"), "rows": 0, "kept": 0, "seen_before": 0,
+              "no_receipt": 0}
+    if wman.get("sidecar_status") != "complete" or not (sdir / "wallets.csv.gz").exists():
+        return pd.DataFrame(), sent, counts
+    raw = pd.read_csv(sdir / "wallets.csv.gz", usecols=["market_id", "condition_id", "ts", "side", "outcome_index", "size",
+                                                        "price", "wallet_hash"], dtype={"wallet_hash": str, "condition_id": str})
+    counts["rows"] = int(len(raw))
+    cond = raw[["market_id", "condition_id"]].drop_duplicates("market_id").set_index("market_id")["condition_id"]
+    tr = ws.normalise_trades(raw)
+    tr["condition_id"] = cond.reindex(tr["market_id"].to_numpy()).to_numpy()
+    tr["receipt_ts"] = tr["market_id"].map(rec).astype(float)
+    nr = ~np.isfinite(tr["receipt_ts"].to_numpy(float))
+    counts["no_receipt"] = int(nr.sum())
+    prev = tr["market_id"].map(last_sent).fillna(-np.inf).to_numpy(float)
+    seen = tr["ts"].to_numpy(float) <= prev
+    counts["seen_before"] = int((seen & ~nr).sum())
+    tr = tr[~nr & ~seen].reset_index(drop=True)
+    counts["kept"] = int(len(tr))
+    return tr, sent, counts
+
+
+def load_print_batch(lines: list[dict]) -> pd.DataFrame:
+    """>= $1k live prints (monitor lines) -> normalised trades with receipt = ``recv_ts`` (market from the line's Gamma
+    context; prints without a market id are dropped and counted by the caller)."""
+    if not lines:
+        return pd.DataFrame()
+    df = pd.DataFrame(lines)
+    df = df[df.get("ctx_market_id").notna()] if "ctx_market_id" in df else df.iloc[0:0]
+    if not len(df):
+        return pd.DataFrame()
+    raw = pd.DataFrame({"market_id": pd.to_numeric(df["ctx_market_id"], errors="coerce"), "ts": df["ts"], "side": df["side"],
+                        "outcome_index": df["outcome_index"], "size": df["size"], "price": df["price"],
+                        "wallet_hash": df["wallet_hash"]})
+    ok = raw["market_id"].notna().to_numpy()
+    raw, df = raw[ok], df[ok]
+    keep = _valid_mask(raw)
+    raw, df = raw[keep], df[keep]
+    tr = ws.normalise_trades(raw)  # drops nothing more: same mask
+    tr["condition_id"] = df["condition_id"].astype(str).to_numpy()
+    tr["receipt_ts"] = pd.to_numeric(df["recv_ts"], errors="coerce").to_numpy(float)
+    tr["event_hint"] = df["ctx_event_id"].astype(str).to_numpy() if "ctx_event_id" in df else ""
+    return tr.reset_index(drop=True)
+
+
+def _valid_mask(df: pd.DataFrame) -> np.ndarray:
+    """The row mask ``wallet_skill.normalise_trades`` applies (kept in step by a unit test)."""
+    side = df["side"].astype(str).str.upper()
+    d = np.where(side == "BUY", 1, np.where(side == "SELL", -1, 0))
+    k = pd.to_numeric(df["outcome_index"], errors="coerce").to_numpy(float)
+    p = pd.to_numeric(df["price"], errors="coerce").to_numpy(float)
+    s = pd.to_numeric(df["size"], errors="coerce").to_numpy(float)
+    ts = pd.to_numeric(df["ts"], errors="coerce").to_numpy(float)
+    with np.errstate(invalid="ignore"):
+        return (d != 0) & np.isin(k, (0.0, 1.0)) & (p > 0) & (p < 1) & (s > 0) & np.isfinite(ts) & df["wallet_hash"].notna().to_numpy()
+
+
+def read_print_lines(root: Path, lo: float, hi: float) -> list[dict]:
+    """Monitor print lines with ``lo <= recv_ts < hi`` (files of the UTC days touching the interval)."""
+    out: list[dict] = []
+    days = {datetime.fromtimestamp(t, UTC).strftime("%Y%m%d") for t in (lo, hi - 1e-6, hi + 3600)}
+    for day in sorted(days):
+        p = Path(root) / f"trades-{day}.jsonl"
+        if not p.exists():
+            continue
+        with open(p, encoding="utf-8") as fh:
+            for line in fh:
+                if '"recv_ts"' not in line:
+                    continue
+                try:
+                    r = json.loads(line)
+                except ValueError:
+                    continue
+                t = r.get("recv_ts")
+                if isinstance(t, (int, float)) and lo <= t < hi:
+                    out.append(r)
+    return out
+
+
+# --- captures and entries ---------------------------------------------------------------------------------------------
+
+
+def scan_captures(snapshot_root: Path, lo: float) -> list[dict]:
+    """Complete captures with start >= lo, in start order (manifest ``state=complete`` and rows present)."""
+    caps = []
+    for p in sorted(Path(snapshot_root).glob("*/manifest.json")):
+        try:
+            started = epoch(datetime.strptime(p.parent.name[:16], "%Y%m%dT%H%M%SZ").replace(tzinfo=UTC).isoformat())
+        except ValueError:
+            continue
+        if not math.isfinite(started) or started < lo - 3600:
+            continue
+        try:
+            m = json.loads(p.read_text())
+        except (OSError, ValueError):
+            continue
+        t = epoch(m.get("started_utc"))
+        if m.get("state") != "complete" or not (p.parent / "rows.csv.gz").exists() or not math.isfinite(t) or t < lo:
+            continue
+        caps.append({"id": p.parent.name, "start": t, "dir": p.parent})
+    return sorted(caps, key=lambda c: c["start"])
+
+
+def scan_samples(sample_root: Path, lo: float, hi: float) -> list[dict]:
+    """Active-frame trade samples with start in [lo, hi), in start order, with their manifest state."""
+    out = []
+    for p in sorted(Path(sample_root).glob("*/manifest.json")):
+        try:
+            started = datetime.strptime(p.parent.name[:16], "%Y%m%dT%H%M%SZ").replace(tzinfo=UTC).timestamp()
+        except ValueError:
+            continue
+        if not (lo <= started < hi):
+            continue
+        try:
+            m = json.loads(p.read_text())
+        except (OSError, ValueError):
+            m = {}
+        out.append({"id": p.parent.name, "start": started, "dir": p.parent, "state": m.get("state"),
+                    "frame": m.get("frame"), "snapshot_id": m.get("snapshot_id")})
+    return sorted(out, key=lambda s: s["start"])
+
+
+def _fee_rate(fs: object) -> tuple[float, float]:
+    try:
+        d = json.loads(str(fs))
+        return float(d.get("rate", math.nan)), float(d.get("exponent", 1.0) or 1.0)
+    except (TypeError, ValueError, AttributeError):
+        return math.nan, 1.0
+
+
+def load_capture(cap_dir: Path, market_ids: Iterable[int]) -> pd.DataFrame:
+    """Rows of a capture for the given markets (first row per market id) with fee fields from ``rows_ext``."""
+    ids = {int(x) for x in market_ids}
+    rows = pd.read_csv(Path(cap_dir) / "rows.csv.gz", usecols=SNAP_COLS, dtype={"condition_id": str, "event_id": str,
+                       "received_utc": str, "capture_start_utc": str, "end_date": str, "closed": str, "active": str})
+    rows = rows[rows["market_id"].isin(ids)].drop_duplicates("market_id").set_index("market_id")
+    p = Path(cap_dir) / "rows_ext.csv.gz"
+    if p.exists() and len(rows):
+        ext = pd.read_csv(p, usecols=EXT_COLS, dtype={c: str for c in EXT_COLS[1:]})
+        ext = ext[ext["market_id"].isin(ids)].drop_duplicates("market_id").set_index("market_id")
+    else:
+        ext = pd.DataFrame(index=pd.Index([], name="market_id"), columns=EXT_COLS[1:])
+    rows = rows.join(ext, how="left")
+    return rows
+
+
+def quote_status(closed, active, bid, ask) -> str:
+    if str(closed).strip().lower() in ("true", "1") or str(active).strip().lower() in ("false", "0"):
+        return "closed_flag"
+    b, a = float(bid) if bid == bid else math.nan, float(ask) if ask == ask else math.nan
+    if math.isfinite(b) and math.isfinite(a) and 0.0 < b < a < 1.0:
+        return "two_sided"
+    return "one_sided"
+
+
+def entries_for_capture(cap: dict, rows: pd.DataFrame, pending: pd.DataFrame) -> pd.DataFrame:
+    """Entry / exit lines of ``pending`` items (signal_id, kind, latency_s, due_ts, market_id) whose due time is at or
+    before the capture start: the capture's row for the market (``absent`` if the market is not in the capture)."""
+    p = pending[pending["due_ts"].to_numpy(float) <= cap["start"]]
+    out = []
+    for r in p.itertuples(index=False):
+        mid = int(r.market_id)
+        base = {"signal_id": r.signal_id, "kind": r.kind, "latency_s": float(r.latency_s), "due_ts": float(r.due_ts),
+                "capture_id": cap["id"], "capture_start_ts": float(cap["start"])}
+        if mid not in rows.index:
+            out.append({**base, "status": "absent"})
+            continue
+        x = rows.loc[mid]
+        rate, expo = _fee_rate(x.get("fee_schedule"))
+        out.append({**base, "row_received_ts": epoch(x["received_utc"]),
+                    "status": quote_status(x["closed"], x["active"], x["best_bid"], x["best_ask"]),
+                    "best_bid": x["best_bid"], "best_ask": x["best_ask"], "spread": x["spread"],
+                    "last_trade_price": x["last_trade_price"], "liquidity": x["liquidity"], "volume24hr": x["volume24hr"],
+                    "end_ts": epoch(x["end_date"]), "event_id": x["event_id"], "fee_category": x.get("fee_category"),
+                    "fees_enabled": x.get("fees_enabled"), "fee_schedule_rate": rate, "fee_exponent": expo})
+    return pd.DataFrame(out, columns=[c for c in ENTRY_COLS if c not in ("spec_sha", "code_sha", "frozen_utc")])
+
+
+def pending_items(signals: pd.DataFrame, entries: pd.DataFrame, latencies: Iterable[float], exit_h: float,
+                  primary_l: float) -> pd.DataFrame:
+    """Entries not yet recorded (every signal x latency) plus fixed-horizon exits of recorded two-sided primary entries."""
+    cols = ["signal_id", "kind", "latency_s", "due_ts", "market_id"]
+    if not len(signals):
+        return pd.DataFrame(columns=cols)
+    lat = [float(x) for x in latencies]
+    s = signals[["signal_id", "market_id", "receipt_ts"]].drop_duplicates("signal_id")
+    ent = pd.concat([s.assign(kind="entry", latency_s=L, due_ts=s["receipt_ts"].to_numpy(float) + L) for L in lat],
+                    ignore_index=True)
+    done = set()
+    ex_rows = []
+    if len(entries):
+        e = entries
+        done = set(zip(e["signal_id"], e["kind"], e["latency_s"].astype(float), strict=True))
+        pe = e[(e["kind"] == "entry") & (e["latency_s"].astype(float) == float(primary_l)) & (e["status"] == "two_sided")]
+        if len(pe):
+            mk = s.set_index("signal_id")["market_id"]
+            ex_rows = pd.DataFrame({"signal_id": pe["signal_id"].to_numpy(), "kind": "exit", "latency_s": float(primary_l),
+                                    "due_ts": pe["row_received_ts"].to_numpy(float) + exit_h,
+                                    "market_id": mk.reindex(pe["signal_id"].to_numpy()).to_numpy()})
+    allp = pd.concat([ent[cols], ex_rows] if len(ex_rows) else [ent[cols]], ignore_index=True)
+    if done:
+        key = list(zip(allp["signal_id"], allp["kind"], allp["latency_s"].astype(float), strict=True))
+        allp = allp[[k not in done for k in key]]
+    return allp.reset_index(drop=True)
+
+
+# --- stores -------------------------------------------------------------------------------------------------------------
+
+
+def read_store(root: Path, sub: str) -> pd.DataFrame:
+    files = sorted((Path(root) / sub).glob("*.csv.gz"))
+    frames = [pd.read_csv(f, dtype={"wallet": str, "event_id": str, "condition_id": str, "signal_id": str,
+                                    "parent_id": str, "capture_id": str, "batch_id": str, "fee_category": str},
+                          float_precision="round_trip")
+              for f in files if f.stat().st_size > 0]
+    frames = [f for f in frames if len(f)]
+    return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+
+
+class State:
+    """Cache only (``state.json``): processed batch/capture ids and the per-market last sent time of processed samples.
+    The write-once files are the ground truth; ``last_sent`` is rebuilt from processed samples if the cache is lost."""
+
+    def __init__(self, root: Path) -> None:
+        self.path = Path(root) / "state.json"
+        self.d = json.loads(self.path.read_text()) if self.path.exists() else {}
+        self.d.setdefault("last_sent", {})
+        self.d.setdefault("label_checked", {})
+
+    def save(self) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = self.path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(self.d, sort_keys=True))
+        os.replace(tmp, self.path)
+
+
+def _batch_done(root: Path, batch: str) -> bool:
+    return (Path(root) / "signals" / f"{batch}.csv.gz").exists()
+
+
+# --- the recorder pass --------------------------------------------------------------------------------------------------
+
+
+def run_once(*, root: Path = OUT_ROOT, snapshot_root: Path = SNAPSHOT_ROOT, sample_root: Path = SAMPLE_ROOT,
+             prints_root: Path = LIVE_TRADES_ROOT, spec: dict | None = None, now: float | None = None,
+             max_items: int = 40, log: Callable[[str], None] = print) -> dict:
+    """One recorder pass (locked). Exit-code semantics for the runner: returns stats with ``tempfail`` when nothing is
+    new or the skill set is absent, and ``closed`` once the window and every pending entry/exit are done."""
+    root = Path(root)
+    root.mkdir(parents=True, exist_ok=True)
+    with open(root / ".lock", "w") as lk:
+        try:
+            fcntl.flock(lk, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:
+            return {"tempfail": True, "reason": "locked"}
+        return _run_locked(root=root, snapshot_root=snapshot_root, sample_root=sample_root, prints_root=prints_root,
+                           spec=spec or load_spec(), now=now if now is not None else now_ts(), max_items=max_items, log=log)
+
+
+def _run_locked(*, root: Path, snapshot_root: Path, sample_root: Path, prints_root: Path, spec: dict, now: float,
+                max_items: int, log) -> dict:
+    stats: dict = {"started": iso(now), "samples": 0, "print_hours": 0, "captures": 0, "signals_skilled": 0,
+                   "signals_control": 0, "entries": 0, "skipped_samples": 0}
+    if dir_bytes(root) > DISK_CAP_BYTES:
+        log(f"COPY_SKILLED disk cap reached ({dir_bytes(root)} bytes); nothing written")
+        return {**stats, "tempfail": True, "reason": "disk_cap"}
+    skdir = root / "skillset"
+    if not (skdir / "skillset.csv.gz").exists():
+        log("COPY_SKILLED skill set not frozen yet; nothing to do")
+        return {**stats, "tempfail": True, "reason": "no_skillset"}
+    skill = load_skillset(skdir, spec.get("skillset_sha256"))
+    st = State(root)
+    t0 = epoch(spec["registered_utc"])
+    t_end = epoch(spec["end_utc"])
+    commit = git_commit()
+    lat = [float(x) for x in spec["latencies_s"]]
+    exit_h = float(spec["exit_horizon_s"])
+    work = 0
+    # 1. sidecar batches, strictly in start order; an in-progress sample blocks later ones
+    signals_all = read_store(root, "signals")
+    sig_keys = {a: set() for a in ARMS}
+    ctl_keys = {a: set() for a in ARMS}
+    if len(signals_all):
+        for a, r, w, mk in zip(signals_all["arm"], signals_all["role"], signals_all["wallet"],
+                               signals_all["market_id"].astype(np.int64), strict=True):
+            (sig_keys if r == "skilled" else ctl_keys)[a].add((w, int(mk)))
+    last_sent = {int(k): float(v) for k, v in st.d["last_sent"].items()}
+    for s in scan_samples(sample_root, t0, t_end):
+        if work >= max_items:
+            break
+        if _batch_done(root, s["id"]) or s["id"] in st.d.setdefault("skipped", {}):
+            continue
+        if s["state"] != "complete":
+            if now - s["start"] < 3600:
+                break  # still running: later samples wait (order matters for first observation)
+            st.d["skipped"][s["id"]] = f"state={s['state']}"
+            stats["skipped_samples"] += 1
+            continue
+        if s["frame"] != "active":
+            st.d["skipped"][s["id"]] = f"frame={s['frame']}"
+            continue
+        tr, sent, cnt = load_sample_batch(s["dir"], last_sent)
+        event_of = _event_map(snapshot_root / str(s["snapshot_id"]), tr["market_id"].unique() if len(tr) else [])
+        sig = signals_from_batch(tr, arm="sidecar", batch_id=s["id"], skill=skill, t0=t0, signalled=sig_keys["sidecar"],
+                                 used_controls=ctl_keys["sidecar"], event_of=event_of, spec=spec) if len(tr) else \
+            pd.DataFrame(columns=SIGNAL_COLS[:-5])
+        write_once_csv(root / "signals" / f"{s['id']}.csv.gz", stamp(sig, spec, commit, now))
+        for mk, t in sent.items():
+            last_sent[mk] = max(last_sent.get(mk, -math.inf), t)
+        st.d["last_sent"] = {str(k): v for k, v in last_sent.items()}
+        st.save()
+        append_jsonl(root / "passes.jsonl", [{"kind": "sample", "id": s["id"], "counts": cnt, "skilled": int((sig["role"] == "skilled").sum()) if len(sig) else 0,
+                                              "controls": int((sig["role"] == "control").sum()) if len(sig) else 0, "at": iso(now)}])
+        stats["samples"] += 1
+        stats["signals_skilled"] += int((sig["role"] == "skilled").sum()) if len(sig) else 0
+        stats["signals_control"] += int((sig["role"] == "control").sum()) if len(sig) else 0
+        work += 1
+    # 2. large-print hours (complete hours only, 10 min grace for the monitor's writes)
+    h = math.floor(t0 / 3600) * 3600
+    while h + 3600 + 600 <= now and h < t_end and work < max_items:
+        bid = "lp_" + datetime.fromtimestamp(h, UTC).strftime("%Y%m%dT%H")
+        if not _batch_done(root, bid):
+            lines = read_print_lines(prints_root, h, h + 3600)
+            tr = load_print_batch(lines)
+            ev = {int(m): e for m, e in zip(tr.get("market_id", []), tr.get("event_hint", []), strict=False)} if len(tr) else {}
+            sig = signals_from_batch(tr, arm="large_prints", batch_id=bid, skill=skill, t0=t0,
+                                     signalled=sig_keys["large_prints"], used_controls=ctl_keys["large_prints"],
+                                     event_of=ev, spec=spec) if len(tr) else pd.DataFrame(columns=SIGNAL_COLS[:-5])
+            write_once_csv(root / "signals" / f"{bid}.csv.gz", stamp(sig, spec, commit, now))
+            append_jsonl(root / "passes.jsonl", [{"kind": "prints", "id": bid, "lines": len(lines), "trades": int(len(tr)),
+                                                  "skilled": int((sig["role"] == "skilled").sum()) if len(sig) else 0, "at": iso(now)}])
+            stats["print_hours"] += 1
+            work += 1
+        h += 3600
+    # 3. entries / exits per complete capture, in order, once every batch that could feed it is processed
+    signals_all = read_store(root, "signals")
+    entries = read_store(root, "entries")
+    blocked_from = _first_unprocessed_batch(root, sample_root, t0, t_end, now, st)
+    for cap in scan_captures(snapshot_root, t0):
+        if work >= max_items:
+            break
+        if (root / "entries" / f"{cap['id']}.csv.gz").exists():
+            continue
+        if cap["start"] >= blocked_from:
+            break
+        pend = pending_items(signals_all, entries, lat, exit_h, float(spec["primary_latency_s"]))
+        due = pend[pend["due_ts"].to_numpy(float) <= cap["start"]] if len(pend) else pend
+        rows = load_capture(cap["dir"], due["market_id"].unique()) if len(due) else pd.DataFrame()
+        ent = entries_for_capture(cap, rows, due) if len(due) else pd.DataFrame(columns=ENTRY_COLS[:-3])
+        write_once_csv(root / "entries" / f"{cap['id']}.csv.gz", stamp(ent, spec, commit, now, role_col=None))
+        if len(ent):
+            entries = pd.concat([entries, ent], ignore_index=True) if len(entries) else ent
+        stats["captures"] += 1
+        stats["entries"] += int(len(ent))
+        work += 1
+    st.save()
+    pend = pending_items(signals_all, entries, lat, exit_h, float(spec["primary_latency_s"]))
+    closed = now >= t_end + max(lat) + exit_h + 6 * 3600 and len(pend) == 0
+    stats["pending"] = int(len(pend))
+    stats["closed"] = bool(closed)
+    append_jsonl(root / "passes.jsonl", [{"kind": "pass", **stats, "at": iso(now)}])
+    if closed:
+        log("COPY_SKILLED_WINDOW_CLOSED")
+    if work == 0 and not closed:
+        stats["tempfail"] = True
+    log(json.dumps(stats, sort_keys=True))
+    return stats
+
+
+def _event_map(cap_dir: Path, market_ids) -> dict:
+    """market_id -> event_id from the sample's origin capture (empty if absent)."""
+    p = Path(cap_dir) / "rows.csv.gz"
+    ids = {int(x) for x in market_ids}
+    if not ids or not p.exists():
+        return {}
+    r = pd.read_csv(p, usecols=["market_id", "event_id"], dtype={"event_id": str})
+    r = r[r["market_id"].isin(ids)].drop_duplicates("market_id")
+    return dict(zip(r["market_id"].astype(int), r["event_id"].fillna(""), strict=True))
+
+
+def _first_unprocessed_batch(root: Path, sample_root: Path, t0: float, t_end: float, now: float, st: State) -> float:
+    """Start time of the earliest batch that could still create a signal with receipt before a capture start: the
+    earliest unprocessed in-window sample, and the earliest unprocessed large-print hour (its start)."""
+    b = math.inf
+    for s in scan_samples(sample_root, t0, t_end):
+        if not _batch_done(root, s["id"]) and s["id"] not in st.d.get("skipped", {}):
+            b = min(b, s["start"])
+            break
+    h = math.floor(t0 / 3600) * 3600
+    while h < min(t_end, now):
+        bid = "lp_" + datetime.fromtimestamp(h, UTC).strftime("%Y%m%dT%H")
+        if not _batch_done(root, bid):
+            b = min(b, h)
+            break
+        h += 3600
+    return b
+
+
+# --- resolution labeller (network; read-only public GET) ---------------------------------------------------------------
+
+GAMMA = "https://gamma-api.polymarket.com"
+Transport = Callable[[str, list], tuple[int, object]]
+
+
+def httpx_transport(timeout: float = 30.0) -> Transport:
+    import httpx
+
+    client = httpx.Client(timeout=timeout, headers={"User-Agent": "arepo-research-lab/1", "Accept-Encoding": "gzip"})
+
+    def get(url: str, params: list) -> tuple[int, object]:
+        r = client.get(url, params=params)
+        try:
+            return r.status_code, r.json()
+        except ValueError:
+            return r.status_code, None
+
+    return get
+
+
+def resolution_rows(body: object, asked: Iterable[int], fetched: float, code: int) -> list[dict]:
+    """One row per asked market: final payouts (``wallet_skill.payouts_from_prices``) or a non-final state."""
+    by_id = {}
+    if isinstance(body, list):
+        for m in body:
+            try:
+                by_id[int(m.get("id"))] = m
+            except (TypeError, ValueError, AttributeError):
+                continue
+    out = []
+    for mid in asked:
+        m = by_id.get(int(mid))
+        if m is None:
+            out.append({"market_id": int(mid), "fetched_ts": fetched, "http_status": code, "state": "missing"})
+            continue
+        closed = bool(m.get("closed"))
+        pay = ws.payouts_from_prices(m.get("outcomePrices")) if closed else None
+        state = "open" if not closed else ("resolved" if pay is not None and pay[0] in (0.0, 1.0) else
+                                           "split_50_50" if pay is not None else "closed_not_final")
+        out.append({"market_id": int(mid), "fetched_ts": fetched, "http_status": code, "closed": closed,
+                    "outcome_prices": str(m.get("outcomePrices")), "pay0": pay[0] if pay else math.nan, "state": state,
+                    "uma_status": str(m.get("umaResolutionStatus") or "")})
+    return out
+
+
+def label_resolutions(*, root: Path = OUT_ROOT, spec: dict | None = None, transport: Transport | None = None,
+                      now: float | None = None, batch: int = 20, max_requests: int = 600, delay_s: float = 1.0,
+                      recheck_s: float = 20 * 3600, sleep: Callable[[float], None] = time.sleep,
+                      log: Callable[[str], None] = print) -> dict:
+    """Fetch Gamma records for signal markets without a final record (each market at most once per ``recheck_s``).
+    Only rows with a final state are written (``resolutions/<pass>.csv.gz``, write-once). Stops after the cutoff."""
+    spec = spec or load_spec()
+    now = now_ts() if now is None else now
+    root = Path(root)
+    if now >= epoch(spec["label_cutoff_utc"]) + 86400:
+        log("COPY_SKILLED_LABELS_CLOSED")
+        return {"closed": True}
+    sig = read_store(root, "signals")
+    if not len(sig):
+        return {"tempfail": True, "reason": "no_signals"}
+    res = read_store(root, "resolutions")
+    final = set(res.loc[res["state"].isin(["resolved", "split_50_50"]), "market_id"].astype(int)) if len(res) else set()
+    st = State(root)
+    chk = st.d["label_checked"]
+    todo = sorted({int(x) for x in sig["market_id"].astype(np.int64)} - final)
+    todo = [m for m in todo if now - float(chk.get(str(m), -math.inf)) >= recheck_s]
+    get = transport or httpx_transport()
+    rows, n_req = [], 0
+    wall0 = time.time()
+    for i in range(0, len(todo), batch):
+        if n_req >= max_requests:
+            break
+        ids = todo[i:i + batch]
+        params = [("id", str(x)) for x in ids] + [("limit", str(len(ids)))]
+        try:
+            code, body = get(f"{GAMMA}/markets", params)
+        except Exception as exc:  # network failure: retried next pass
+            log(f"label request failed ({type(exc).__name__})")
+            code, body = 0, None
+        n_req += 1
+        t = now + (time.time() - wall0)  # the pass clock (= wall clock in a live pass)
+        if code == 200:
+            rr = resolution_rows(body, ids, t, code)
+            rows += [r for r in rr if r["state"] in ("resolved", "split_50_50")]
+            for x in ids:
+                chk[str(x)] = t
+        sleep(delay_s)
+    st.save()
+    if rows:
+        df = pd.DataFrame(rows).reindex(columns=RES_COLS[:-2])
+        df["spec_sha"] = spec["_sha256"][:16]
+        df["code_sha"] = reader_sha()
+        write_once_csv(root / "resolutions" / f"{datetime.fromtimestamp(now, UTC).strftime('%Y%m%dT%H%M%S')}.csv.gz", df)
+    out = {"asked": sum(1 for _ in todo[: n_req * batch]), "requests": n_req, "final_new": len(rows), "final_total": len(final) + len(rows)}
+    log(json.dumps(out))
+    return out
+
+
+def gz_lines(path: Path) -> int:
+    with gzip.open(path, "rt") as fh:
+        return sum(1 for _ in fh) - 1

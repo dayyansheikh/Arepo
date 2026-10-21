@@ -53,6 +53,12 @@ KIND_RULES: dict[str, tuple[str, str]] = {
         "LT4 single analysis (E020-E024; LIVE_TESTS_4.md 1.11): one line, n_tests = k = the Holm primaries that "
         "survived their census gates; gate draws, secondaries, mechanism readings, economics and censuses are 0.",
     ),
+    "copy_skilled": (
+        N_TESTS,
+        "E026 single analysis (copy skilled wallets with latency; LIVE_TESTS_COPY.md): one line, n_tests = 2 (the "
+        "Holm primaries E026-N and E026-C; E026-N is itself net of costs, so no separate economics test); "
+        "secondaries, the large-print arm, sensitivities and the planning census are 0.",
+    ),
     "econ_conditions_taker": (
         N_TESTS,
         "n_tests=95: BY was applied across 95 testable cells of BOTH parts (taker and maker), so the "
