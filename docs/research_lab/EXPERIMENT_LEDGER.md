@@ -2980,3 +2980,17 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   before any census. It is being applied, then the census and size-check code. The embargo condition is met: the
   signal engine applied `event`, `flow`, `book` and `rewards` to 2026-11-22, and `wallet` / `wallet_skill` to
   2026-12-07 for E026 (26f5f954).
+
+## CB13-R seal (q0280) done; census q0281 promoted, 2026-10-21 ~09:45Z (nothing counted)
+- q0280 sealed R's HOLDOUT at 09:11Z (108 s). The seal copy is committed as `seals/cb13_touch_holdout_SEAL.json`, a byte copy
+  of `creative_batch13/holdout_SEAL_R.json`, sha256 98a5404a…. It holds hashes and counts only:
+  - 238 kept;
+  - 0 dropped absent;
+  - 0 dropped by seal copies;
+  - 7,219 drop ids;
+  - disjointness verified;
+  - 74 fetched files re-hashed.
+- q0281 (R census, counts only, gates GR/GRP and MDEs) promoted.
+- **Ops:** q0380 (CB16 keys) died twice with MemoryError at 500 MB, so it was raised to 1,200 MB. The CB18 restores
+  q0500/q0501 crashed in gh's Go runtime at 600 MB, so they were raised to 1,200 MB, as the earlier restores q0413/q0480
+  used. No scientific change.
