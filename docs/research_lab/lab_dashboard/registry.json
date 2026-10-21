@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-21T19:10:00Z",
+ "updated": "2026-10-21T20:20:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1482,19 +1482,19 @@
   },
   {
    "id": "LT4",
-   "title": "Live tests E020-E022 (planned)",
-   "plain": "Three planned live tests from the round 10 ideas: quote moves made by new orders versus cancellations, whether very recent trades carry on less, and displayed liquidity that cannot actually be traded against. The second review accepted these with changes and dropped two others whose safety check did not hold. Re-check under way.",
+   "title": "Live test E022 (planned; E020 and E021 dropped)",
+   "plain": "Planned live tests from the round 10 ideas. The counting checks on the server (21 Oct) left one: E022, whether displayed liquidity that cannot actually be traded against tells us anything. The other two (new orders versus cancellations; very recent trades) failed their pre-set counting checks and were dropped before registration, so they are not counted.",
    "batch": "LT4",
    "family": "mixed",
    "stage": "designed",
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Re-check of the changes, counting checks on the server, then pin and register (after LT3)",
+   "next": "Code freeze check, size check on the server, then pin and register E022 before 25 Oct",
    "next_date": "2026-10-26",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Session 2026-10-20 ~22:39Z (LT4 challenger R2)"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Finished-job write-ups and queue fixes, 2026-10-21 (LT4 censuses)"
    },
    "stage_results": {
     "designed": "pending"
