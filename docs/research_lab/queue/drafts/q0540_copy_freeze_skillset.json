@@ -8,7 +8,7 @@
   "research_lab/history/{h1_first,h2_main,h3_power} (read-only)"
  ],
  "resources": {
-  "mem_mb": 1500,
+  "mem_mb": 1800,
   "cpu": 1,
   "lane": "cpu",
   "network": "none"
@@ -24,5 +24,5 @@
   "data-dumps/research_lab/copy_skilled/skillset/{skillset.csv.gz,skillset_manifest.json}"
  ],
  "next_action": "copy the manifest sha256 into model_specs/copy_skilled_v1.json skillset_sha256, then pin SPEC_SHA256 and register",
- "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_COPY.md, E026; design not yet reviewed). Promote only after the challenger review, the freeze job, the spec fill (skillset_sha256, code_sha256, SPEC_SHA256 pin) and the ledger registration commit (>= 2 h before REGISTERED_UTC). Host dry run 2026-10-21: history load + profiles measured in the census (peak RSS in LIVE_TESTS_COPY.md 8). Wallet hashes only; the file is never committed. Must finish before REGISTERED_UTC (the code refuses afterwards)."
+ "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_COPY.md 3 and 9, E026; design not yet reviewed). Promote only after the census q0544 (gate decision recorded), the challenger review and its fixes; it runs BEFORE the spec fill and the pin (its manifest sha256 becomes skillset_sha256). Must finish before REGISTERED_UTC (the code refuses at or after t_freeze) and before the registration commit (>= 24 h before REGISTERED_UTC). History load + profiles: WS1 measured 0.96 GB peak on the Mac; q0544 measures the same load on the host (LIVE_TESTS_COPY.md 8.2). Wallet hashes only; the file is never committed. Host dry run 2026-10-21 (census, same code path): history load + profiles 127 s, peak RSS 1.44 GB; mem_mb 1800 leaves headroom. Never alongside another multi-GB job. Wallet hashes only; the file is never committed. Must finish before REGISTERED_UTC (the code refuses afterwards)."
 }

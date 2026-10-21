@@ -34,5 +34,5 @@
   "data-dumps/research_lab/copy_skilled/state.json (label_checked cache)"
  ],
  "next_action": "runs until 2026-12-07T00:00Z (cutoff + 1 day), then q0543",
- "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_COPY.md, E026; design not yet reviewed). Promote only after the challenger review, the freeze job, the spec fill (skillset_sha256, code_sha256, SPEC_SHA256 pin) and the ledger registration commit (>= 2 h before REGISTERED_UTC). Exit 75 when nothing was asked (re-queued after 30 min); the 20 h recheck keeps the request count small. Only the market id leaves the host; no wallet field is sent."
+ "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_COPY.md, E026; design not yet reviewed). Promote only after the challenger review, the freeze job, the spec fill (skillset_sha256, code_sha256, SPEC_SHA256 pin) and the ledger registration commit (>= 24 h before REGISTERED_UTC, LIVE_TESTS_COPY.md 2). Exit 75 when nothing was asked (re-queued after 30 min); the 20 h recheck keeps the request count small. Only the market id leaves the host; no wallet field is sent."
 }

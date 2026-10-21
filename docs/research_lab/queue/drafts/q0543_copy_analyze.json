@@ -28,5 +28,5 @@
  ],
  "next_action": "ledger results entry (scored once), registry update",
  "not_before": "2026-12-06T12:00:00Z",
- "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_COPY.md, E026; design not yet reviewed). Promote only after the challenger review, the freeze job, the spec fill (skillset_sha256, code_sha256, SPEC_SHA256 pin) and the ledger registration commit (>= 2 h before REGISTERED_UTC). Runs once; --out refuses to overwrite. Memory estimate (not measured): tens of thousands of copy rows, 10,000 bootstrap draws per statistic, well under 1 GB; never alongside another multi-GB job. Append the trials line with --trials ../docs/research_lab/trials.jsonl only in the registered run."
+ "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_COPY.md, E026; design not yet reviewed). Promote only after the challenger review, the freeze job, the spec fill (skillset_sha256, code_sha256, SPEC_SHA256 pin) and the ledger registration commit (>= 24 h before REGISTERED_UTC, LIVE_TESTS_COPY.md 2). Runs once; --out refuses to overwrite. Memory estimate (not measured): tens of thousands of copy rows, 10,000 bootstrap draws per statistic, well under 1 GB; never alongside another multi-GB job. Append the trials line with --trials ../docs/research_lab/trials.jsonl only in the registered run."
 }

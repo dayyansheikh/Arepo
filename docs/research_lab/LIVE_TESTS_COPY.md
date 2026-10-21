@@ -6,7 +6,9 @@ No order is sent, no wallet is called informed or an insider, and nothing here i
 holds hashes only and is never committed.
 
 **Status: DRAFT.** Not registered, nothing counted. Every line written before the spec pin is
-`prospective_unregistered` and is never analysed as a confirmation. The challenger review (section 11) comes first.
+`prospective_unregistered` and is never analysed as a confirmation. Order: the pre-window counts-only census (q0544,
+section 8.2) fills the numbers marked **CENSUS-GATED** and applies the pre-declared gates (section 7.6); then the
+challenger review (section 11); then the freeze and the pins (section 9).
 
 ## 0. Summary
 
@@ -26,6 +28,8 @@ holds hashes only and is never committed.
 - **Window (proposed):** signals with receipt in `[2026-10-25T00:00Z, 2026-11-15T00:00Z)` (21 days). Label cutoff
   2026-12-06T00:00Z. Single analysis on or after 2026-12-06T12:00Z.
 - **Latencies:** L = 0 (primary: the next capture after receipt, in practice about 1.5-2 h later), 6 h, 24 h.
+- **Census gates (fixed before any census number, section 7.6):** G1 copies/events and G2 pairs decide between
+  registering k = 2, dropping E026-C before the pin (k = 1), or not registering as designed. G3 (MDE) only labels.
 - **Expected outcome.** Probably Inconclusive or Not supported on E026-C. WS1 P2-P4 found that skilled flow adds
   nothing over generic flow, and skill may be bias exploitation (for example selling long shots). E026 tests the
   wallet-level route that WS1 recommended, with costs and latency.
@@ -67,6 +71,7 @@ real copy strategy would face worse latency, queue position and size limits than
 | `LABEL_CUTOFF_UTC` | 2026-12-06T00:00:00Z (END + 21 d) |
 | `ANALYSIS_NOT_BEFORE` | 2026-12-06T12:00:00Z |
 | registration commit | at least 24 h before `REGISTERED_UTC` (so before 2026-10-24T00:00Z) |
+| census q0544 | must start before 2026-10-22T02:45Z (retention of the 10-18 / 10-19 samples; start blackout) |
 
 **Why 10-25 and not 10-24.** On 2026-10-21 the design has not had a challenger pass. LT3 needed about three days from
 census to pin (review, fixes, verification, size check). A start of 10-24 would leave about one day for that. 10-25
@@ -111,8 +116,12 @@ recorded in the ledger.
   signal. Later trades of the same wallet in the same market are not copied again. One copy per (wallet, market).
 - **Copy direction.** BUY of outcome k -> buy token k. SELL of outcome k -> buy token 1 - k (the complement).
 - Samples are processed strictly in start order. An in-progress sample blocks later ones (order defines the first
-  observation). A sample that never completes, or whose files were retired before it was read, is recorded as
-  missing (write-once marker) and never back-filled.
+  observation) for at most 4 h after its start (`IN_PROGRESS_GRACE_S`). A sample still not complete after that, a
+  sample of another frame, or one whose files were retired before it was read, gets a write-once
+  `signals/<id>.missing.json` marker and is never back-filled. The marker (not the state cache) is the ground truth,
+  so a lost cache cannot let a late sample be read out of order. If `state.json` is lost, the per-market
+  "last sent" times are rebuilt from the processed samples still on disk (`rebuild_last_sent`, logged); a sample
+  whose files were already retired cannot contribute, which can only make a trade look new later (disclosed).
 - **Coverage limits (disclosed).** Only sampled markets (about 2,000 per sample). Only the newest 500 trades per
   market: in a busy market, trades between two samples can be missed. Trade age at receipt (receipt minus trade ts)
   ranges from minutes to about 2 h, more when trades are older than the previous sample.
@@ -141,6 +150,21 @@ signal with no matching candidate keeps 0 controls; it still counts in E026-N bu
 
 ## 5. Entries, latency and exits (`copy_skilled.entries_for_capture`)
 
+### 5.0 Clocks and latency definitions
+
+| name | definition |
+|---|---|
+| trade ts | the venue timestamp of the copied trade (sidecar `ts`) |
+| receipt | `received_utc` of the sample's successful request for that market (first observation, section 4.1) |
+| trade age | receipt minus trade ts (what AREPO could not see; matched in the controls) |
+| nominal latency L | fixed offset after receipt: 0, 6 h or 24 h; due time = receipt + L |
+| entry capture | the first complete capture whose start is `>=` the due time |
+| entry delay | entry capture start minus due time (> 6 h puts the copy out of the universe) |
+| entry time | the entry row's own `received_utc` (later than the capture start) |
+| realised latency | entry time minus trade ts = trade age + (entry time - receipt); reported as quantiles |
+
+No quote, payout or price change dated after the entry time enters the entry decision or the universe flags.
+
 ### 5.1 Entry
 
 - For latency L, the entry is the quote row of the FIRST complete capture whose start is `>= receipt + L`. Never an
@@ -158,9 +182,12 @@ signal with no matching candidate keeps 0 controls; it still counts in E026-N bu
 - Hold to resolution: one taker leg. Per share: half-spread `h`, impact = the tier MEAN of the $100 buy impact in
   `cost_model_calibration_v1.json` by the entry row's Gamma liquidity (`>=100k` 0.15c, `10k-100k` 0.72c, `1k-10k`
   1.37c, `<1k` 1.53c), taker fee `rate x max(pq, pq^exponent)` at `p = ask`, with the conservative fee policy
-  (`max(schedule, docs)`, unknown category 7%, fees off only if the market says so).
+  (`max(schedule, docs)`, unknown category 7%, fees off only if the market says so). The exponent is the capture's
+  `fee_schedule` exponent (1 if missing). For exponent >= 1 the fee is the linear `rate x pq`; for exponent < 1 it is
+  the larger scheduled value, never the smaller one.
 - `net per share = pay_j - ask_j - impact - fee`; `stake per share = ask_j + impact` (a $100 stake scale).
-  The cost term equals `costs.cost_check(...).taker_resolution_cost_ps` (pinned by a unit test).
+  For exponent >= 1 (or missing) the cost term equals `costs.cost_check(...).taker_resolution_cost_ps` (pinned by a
+  unit test); `test_fee_exponent_is_conservative` pins the exponent rule.
 
 ### 5.3 Universe (fixed before any data)
 
@@ -206,6 +233,21 @@ all entry-ok, price-ok copies, also long-dated ones.
   averaged within their parent.
 - Statistic: `D = R_skilled - R_control` over the pairs. Same p rule (event bootstrap, event t, two-way t).
 
+### 7.2a Dependence and clustering
+
+- **Unit of dependence: the event.** Markets of one Polymarket event resolve together (mutually exclusive outcomes,
+  shared news), and several skilled wallets often trade the same event. Every p value and interval is clustered by
+  the event of the entry row (fallback: the signal's event id, then the market id). The bootstrap resamples whole
+  events.
+- **Wallets.** One wallet's copies share its style and information. The two-way event x wallet cluster-robust t
+  (`V_event + V_wallet - V_event x wallet`, with `max(V_event, V_wallet)` if that is not positive) enters the p rule,
+  and the wallet-day cap (10 primary-set copies per wallet per UTC day) limits one wallet's weight.
+- **E026-C.** Pairs are clustered by the skilled copy's event. Controls are always in another event than their
+  parent, but two parents' controls can share a control event; that control-side dependence is not in the
+  clustering (open question 12). Because each pair's control mean averages up to 3 trades in up to 3 events, it is
+  diluted, but not removed.
+- **Not independent of LT2-LT4.** Same captures and samples (section 10.2); never pooled.
+
 ### 7.3 Family, floors and verdicts
 
 - Holm over {E026-N, E026-C}, k = 2, alpha 0.05, one-sided (> 0).
@@ -224,19 +266,96 @@ middle 0.35-0.65, favourite 0.65-0.95; copying a long-shot SELL lands in the fav
 fee category; the large-print arm; the uncapped universe; the 24 h exit; schedule fee policy; touch-only (no impact);
 equal-dollar mean; realised latency quantiles; skill-score terciles. None of them can change a verdict.
 
-### 7.5 Power and MDE (planning only; development and pre-window counts, no payout read)
+### 7.5 Power and MDE (planning only; pre-window counts and entry quotes, no payout read)
 
-The planning census (`run_copy_skilled.py census`, section 8) replays the recorder on pre-window trade samples and
-captures (window ending before 2026-10-22T00:00Z) with the same frozen set. It reads counts and entry quotes only.
-SD per share = `sqrt(mean(ask (1 - ask)))` over universe entries (the outcome SD if the price is calibrated).
-MDE = `(z_{1-0.05/2} + z_{0.8}) x SD x sqrt(deff / n) / mean stake` (Holm worst case alpha / 2, power 0.8). The design
-effect uses intra-event correlation 1 (upper bound, `sum m^2 / sum m`) and 1 (lower bound). For E026-C the SD is
-inflated by `sqrt(1 + 1/3)` for 3 averaged controls.
+The planning census (`run_copy_skilled.py census`, queue draft q0544, section 8.2) replays the recorder on the
+pre-window wallet-sidecar samples of `[2026-10-18T04:00Z, 2026-10-21T04:00Z)` (the sidecar exists from the
+2026-10-18T04:39Z sample on) with the skill set rebuilt from HB1 history at the census start (the same set q0540 will
+freeze: every HB1 outcome was known by 2026-10-15). It never opens a capture starting at or after 2026-10-22T00:00Z,
+records no exit quote and fetches no resolution.
 
-MDE table: **to be filled from the census (section 8.2)**.
+- **Rates.** Per day of usable batches actually read (2 h per sample with a complete sidecar; missing or retired
+  samples are not counted as time). Latency availability uses only batches whose entries are complete within the
+  captures read (batch start + 1 h + L + 6 h <= last capture read).
+- **Projection.** Primary set at L = 0 (sidecar arm), scaled linearly to 21 days: copies `n`, events, pairs and pair
+  events. The event projection is linear and so an upper estimate (repeat events grow more slowly).
+- **SD.** `SD = sqrt(mean(ask_j (1 - ask_j)))` over primary-set entries: the per-share outcome SD if prices are
+  calibrated at entry.
+- **MDE.** `MDE = (z_{1 - 0.05/2} + z_{0.8}) x SD x sqrt(deff / n) / mean stake` (Holm worst case alpha / 2,
+  one-sided, power 0.8), in $ per $ staked.
+- **Design effects (upper bounds, correlation 1 within a cluster):** `deff_event = sum m_e^2 / n` and the two-way
+  bound `deff_2w = deff_event + deff_wallet - deff_event x wallet`. `deff = 1` is the lower bound.
+- **E026-C.** `n = pairs`, SD inflated by `sqrt(1 + mean(1 / m))` (m = primary-set controls of the pair, at most 3),
+  event design effect.
+
+**MDE table: CENSUS-GATED** (to be filled from `census.json`; a row per quantity):
+
+| quantity (21-day projection, sidecar, L = 0, primary set) | census value |
+|---|---|
+| usable days read; skilled signals per day | CENSUS-GATED |
+| primary-set copies n; events; wallets; top-1 / top-10 wallet share | CENSUS-GATED |
+| pairs; pair events; control SD inflation | CENSUS-GATED |
+| SD per share; mean stake; mean cost per $ staked | CENSUS-GATED |
+| deff_event; deff_2w | CENSUS-GATED |
+| MDE E026-N at deff 1 / deff_event / deff_2w | CENSUS-GATED |
+| MDE E026-C at deff_event | CENSUS-GATED |
+| realised latency quantiles (L = 0, 6 h, 24 h); entry availability | CENSUS-GATED |
+| gate decision (section 7.6) | CENSUS-GATED |
 
 Benchmark: the WS1 S2 gap (+21.7c vs +3.6c, about 18c per dollar) is the wallets' own P&L at their own price,
-without latency or costs. A copy at L = 0 should keep only part of it.
+without latency or costs. A copy at L = 0 should keep only part of it. The mean conservative cost per dollar from the
+census is the hurdle E026-N must clear before any gross gain shows.
+
+### 7.6 Census gates (pre-declared 2026-10-21, before any census number; spec `census_gates`)
+
+Gates are twice the analysis floors (section 7.3), leaving room for censoring (unresolved by the cutoff) and for rate
+drift between the census and the window. They are applied once, to the census output, and are never changed after it.
+
+- **G1** projected primary-set copies >= 400 and events >= 80.
+- **G2** projected pairs >= 300 and pair events >= 80.
+- **G3** planning MDE of E026-N with `deff_event` <= 0.10 $ per $ staked.
+- Decision: G1 and G2 pass -> register E026-N and E026-C (k = 2). G1 passes, G2 fails -> E026-C is dropped before the
+  pin (k = 1; `TESTS`, Holm k and the trials `n_tests` are changed in the code before the pin and re-reviewed; the drop
+  is recorded in the ledger). G1 fails -> not registered as designed; any redesign (longer window, other arm) needs a
+  written justification and a new review. G3 never blocks; a G3 failure adds the label
+  `low-power (a null is uninformative)` to the registration and to every verdict.
+- The census output (`census.json`, counts and aggregates only, no wallet hash) is committed with its sha256 before the
+  challenger review and copied into the spec's `planning` block before the pin.
+
+### 7.7 Economic check
+
+E026-N is the economic check: it is already net of a conservative taker round trip at entry (half-spread, $100-tier
+impact, conservative fee) and holds to resolution, so no exit leg is paid. Not modelled, and so disclosed as
+optimistic: queue position, fills beyond the captured touch, fill failure between capture and order, stake sizes above
+$100, and any copy crowding. Secondaries (descriptive): schedule fee policy, touch-only (no impact), 24 h exit (two
+taker legs). A Supported E026-N would still be a paper result for one 21-day window; it is not a trading or profit
+claim and would need its own prospective replication with a realistic execution model.
+
+### 7.8 Causality and leakage controls
+
+- Skill set: HB1 history only, outcomes known strictly before `t_freeze` (closedTime + 48 h), frozen write-once before
+  the window, sha256 pinned; the recorder refuses another set.
+- Signals: first observation only, receipt from the sample manifest, processed in start order; no back-fill.
+- Controls: chosen inside the same batch from entry-time fields by a hash order; no outcome or later quote.
+- Entries: first capture at or after the due time; universe flags and the wallet-day cap use entry-time fields and
+  receipt order only.
+- Labels: the earliest final Gamma record fetched by the cutoff; censored copies are counted, not dropped silently.
+- Census: pre-window only (no capture at or after 2026-10-22T00:00Z, no exit, no payout); it reads nothing of the
+  window and nothing of LT2-LT4's windows.
+- No interim look: `status` prints counts only; the analysis refuses before `ANALYSIS_NOT_BEFORE` and on any pin
+  mismatch.
+
+### 7.9 Disclosures
+
+- Coverage: sampled markets only (about 2,000 per sample), newest 500 trades per market, 2-hourly cadence (section
+  4.1). Skilled wallets trading outside the sample are invisible.
+- Population shift: the primaries use markets ending within 14 days of entry; long-dated trades are only in the 24 h
+  exit secondary.
+- Skill is taker skill measured relative to the trade price; it can be a price-level bias (section 1.2).
+- Overlap with WS1 (same HB1 history; WS1 is development) and with LT2-LT4 (same data streams; never pooled).
+- The census period (Sunday 10-18 to Wednesday 10-21) is three days; rates may differ in the window. The gates
+  carry a factor-2 margin for this.
+- Multiple-testing: 2 counted tests in this family (1 if E026-C is dropped by G2); secondaries are never counted.
 
 ## 8. Engineering
 
@@ -249,17 +368,36 @@ without latency or costs. A copy at L = 0 should keep only part of it.
 - `backend/scripts/run_copy_skilled.py` (`freeze`, `run`, `label`, `analyze`, `status`, `census`).
 - `backend/tests/unit/test_research_lab_copy_skilled.py` (synthetic data only).
 - `battery2.KIND_RULES["copy_skilled"]`: one counted trials line, n_tests = 2.
-- Queue drafts (not in `queue/jobs/`): `q0540_copy_freeze_skillset`, `q0541_copy_collect`, `q0542_copy_label`,
-  `q0543_copy_analyze`.
+- Queue drafts (not in `queue/jobs/`): `q0544_copy_census` (first; counts only), `q0540_copy_freeze_skillset`,
+  `q0541_copy_collect`, `q0542_copy_label`, `q0543_copy_analyze`.
+- The census options `run_once(capture_hi=..., exits=False)` are used by the census only; the registered recorder
+  runs with the defaults (all captures, exits recorded).
 
-### 8.2 Planning census and host dry run
+### 8.2 Planning census and host dry run (q0544; CENSUS-GATED)
 
-To be filled from the read-only host dry run (`/tmp/copyskill`, deleted afterwards).
+The census job is also the host dry run of the recorder code: it reports the history-load peak RSS (the q0540
+memory), the recorder's own peak RSS measured in a child process (q0541 runs on the net lane with `mem_mb` 450, so
+it must stay below 500 MB), wall times and store bytes. Work dir `data-dumps/research_lab/copy_skilled_census/work`
+(deleted at exit), output `copy_skilled_census/census.json`; the real store `copy_skilled/` is never touched.
+
+| item | value |
+|---|---|
+| history load + profiles: peak RSS, wall | CENSUS-GATED |
+| recorder (child): peak RSS, wall, samples / captures read | CENSUS-GATED |
+| store bytes for the census period (scaled to 21 days vs the 1 GB cap) | CENSUS-GATED |
+| missing / retired samples in the census period | CENSUS-GATED |
+| eligible / skilled wallets in the set | CENSUS-GATED |
+
+Deadline (retention, not design): the 2026-10-18 and early 10-19 sample files are retired by the 2026-10-22T03:30Z
+archive run and jobs with `mem_mb` >= 500 cannot start 02:45-05:30Z, so q0544 must start before 2026-10-22T02:45Z. A
+later run is still valid: retired samples are recorded missing and rates use the usable batches actually read.
 
 ## 9. Registration steps and pins
 
-1. Challenger review of this document and the code; fixes; re-check.
-2. Host dry run of the final code (section 8.2).
+1. Census q0544 (section 8.2; counts only); commit `census.json` and its sha256; fill the CENSUS-GATED values;
+   apply the section 7.6 decision.
+2. Challenger review of this document and the code; fixes; re-check. A code fix after the census does not need a
+   second census unless it changes what the census measures.
 3. Freeze job q0540 (before `t_freeze`). Copy the manifest sha256 into `skillset_sha256`.
 4. Fill `code_sha256` (sha256 of each file in `CODE_FILES`, with the `SPEC_SHA256 = ...` line normalised).
 5. Pin `SPEC_SHA256` in `copy_skilled.py` to the spec file's sha256.
@@ -315,14 +453,21 @@ waits.
 6. **Frozen HB1-only set.** The set uses only HB1 history (12.7k markets, last trade 2026-10-12). Live sidecar outcomes
    since then are not used. Is a frozen, older set the right test of persistence, or should a set frozen from HB1 plus
    live outcomes known before `t_freeze` be used (more wallets, more engineering, more leakage surface)?
-7. **Floors and window.** Are the floors (200 copies / 150 pairs / 40 events) and the 21-day window adequate given
-   the census MDE (section 7.5)?
+7. **Floors, gates and window.** Are the floors (200 copies / 150 pairs / 40 events), the gates at twice the floors
+   (section 7.6) and the 21-day window adequate given the census MDE (section 7.5)? Should G3 (MDE <= 0.10) block
+   instead of only labelling?
 8. **p rule.** p = max(event bootstrap, event t, two-way t). Conservative; acceptable?
 9. **Wallet-day cap 10.** Does it control one-wallet domination enough, given the two-way clustering?
 10. **Fees.** Conservative policy (max of schedule and docs, 7% if unknown). Should the primary use the schedule
     policy, which is what a taker would pay?
 11. **Toxicity use of P1.** Creative round 11 noted skilled-wallet presence as a maker-toxicity signal. Not in scope
     here; should it be a separate design?
+12. **Control-side event dependence (E026-C).** Pairs are clustered by the skilled copy's event only. Two pairs whose
+    controls sit in the same event are dependent through it. Options: cluster on the connected components of the
+    (skilled event, control event) graph (may collapse into few large components), a three-way variance, or accept
+    the dilution argument (section 7.2a). Which?
+13. **Census representativeness.** Three days (Sunday to Wednesday) feed a linear 21-day projection. Is the factor-2
+    gate margin enough, or should the projection use the lowest single census day?
 
 ## 12. Draft ledger block (DRAFT, not registered, not counted)
 
@@ -338,7 +483,8 @@ waits.
 >   time-to-end cells, other event); > 0.
 > - **Family:** Holm k = 2, one-sided, alpha 0.05; p = max(event bootstrap, event t, two-way event x wallet t).
 >   Counted tests 2. Window: receipts `[2026-10-25T00:00Z, 2026-11-15T00:00Z)`; label cutoff 2026-12-06T00:00Z; single
->   analysis on or after 2026-12-06T12:00Z. Planning MDE: section 7.5.
+>   analysis on or after 2026-12-06T12:00Z. Planning MDE: section 7.5 (CENSUS-GATED); census gates section 7.6
+>   (fixed before the census; decision recorded here before the pin).
 > - **Status:** DRAFT; awaiting challenger review. No line is `prospective_confirmation` until the spec sha is pinned.
 
 ## 13. Proposed registry entry (stage "designed"; `registry.json` is not edited here)
