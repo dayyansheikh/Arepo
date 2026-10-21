@@ -24,3 +24,28 @@ Not verified by the reviewer: whether the release tags hold every capture of 10-
 data-20261015-dsheikh, only 3 captures of 10-14, and none of 10-20/21. The reviewer asked that q0560 restore only what the host
 lacks and that the census read the host originals for the rest, under the seal. The author's read-only host listing is in
 section 17.
+
+## Fix verification (2026-10-21): NOT_OK on one item, others verified OK
+
+- **BLOCKING: §5 gap rewording.** The first fix measured the gap inside the 84-slot window only. Such a gap already makes
+  the unit `hwm_incomplete`, so `hwm_gap` was always 0. It was also looser than the declared rule. Example: a gap of 20
+  missing slots at k-95..k-76 has 9 slots in the window and leaves 75 present. It now passes, but the original "excluded
+  for 84 slots after the gap" excludes it. The 96-slot read k-96..k-1 measures the full run.
+  Required: apply the literal original rule (measure the full length of any run ending inside the window over k-96..k-1;
+  exclude if longer than the declared gap length), revert the §5/§17 wording to state the original rule, and add a test
+  where `hwm_gap` > 0 (straddling gap).
+- **Also:**
+  - List the J `ts_not_minute` denominator change in §17.
+  - Sweep-to-slot tolerance: a sweep starting more than 30 min after its slot is left out of the absent check. Use the
+    seal's own slot assignment instead of the directory-name time, or refuse such sweeps.
+  - Correct the "nothing opened" wording: the `manifest.json` start times of later captures are read.
+- **SEAL (urgent).** `seals/lt5_census_inputs_captures.json` does not exist, and q0561 depends only on q0560.
+  Required:
+  - a seal step: a runner subcommand plus queue draft q0564_lt5_census_seal (light, after q0560) that hashes exactly the
+    needed inputs (host originals plus the restore tree);
+  - the orchestrator commits the seal copy;
+  - q0561 depends on q0564 and refuses without the COMMITTED seal.
+  Timing: the host deletes captures nightly at 03:30Z, and the queue start blackout begins 02:45Z. The chain q0560 -> q0564
+  -> seal commit -> q0561 must complete before 2026-10-22T02:45Z.
+
+Response: LIVE_TESTS_5.md §5 (original wording restored) and §17 items 4, 5, 11, 12 and 13.

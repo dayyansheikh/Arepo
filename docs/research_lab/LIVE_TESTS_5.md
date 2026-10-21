@@ -524,10 +524,10 @@ table's order, one generator).
 - **Economics.** (a) Reported taker buy within 1c below a >= 3-day high in >= $100k markets (sell within 1c above a low), 24 h hold,
   against the 2.9c hurdle. (b) Maker: near the high, no asks at the mark; near the low, no bids; gross `u` by class, "gross, no
   fills". (c) Hold-to-resolution passive entry is an engine (`res_7d`) question, not reported here.
-- **Missing data.** As 1.5; `hwm_incomplete` counted; a unit whose 84-slot window holds a run of more than 12 consecutive
-  missing slots is excluded as `hwm_gap` (counted separately from `hwm_incomplete`; section 17). This is the earlier wording
-  "excluded for 84 slots after the gap" stated on the window itself: the mark is a function of the window's slots only, so a gap
-  that ends before the window has no effect, and a gap straddling the window's start counts by its in-window part.
+- **Missing data.** As 1.5; `hwm_incomplete` counted; a market whose look-back holds a gap of more than 12 consecutive slots is
+  excluded for 84 slots after the gap (counted as `hwm_gap`, separately from `hwm_incomplete`). Operationally (section 17): a
+  run of non-qualifying slots that ends inside the unit's 84-slot window is measured in full over the 96-slot read k - 96 ..
+  k - 1, and the unit is excluded if the run is longer than 12.
 
 ## 6. R: the farmer's choice (CH183)
 
@@ -1036,9 +1036,16 @@ Every finding is applied; none changes a threshold, formula or gate. Where a cho
    as section 6 states (`rewards_max_spread_median_band`); the inside-only median is gone.
 3. **CHW `d_hi` panel (MED).** The panel applies H's population filters (non-sports, mid band) through the same `move_join`
    classification as the units; slots with a missing capture are skipped.
-4. **H gap rule (LOW).** Coded separately: `max_gap` over the unit's 84-slot window, spec `h.max_gap_slots = 12`, excluded as
-   `hwm_gap` (counted beside `hwm_incomplete`, census share `hwm_gap_share`). Section 5's wording is restated on the window.
-5. **J truncation denominator (LOW).** `interval_truncated_share` = truncated / sampled traded movers (section 8).
+4. **H gap rule (LOW; corrected at fix verification).** The original rule of section 5 applies literally: `gap_into_window`
+   measures the full length of every non-qualifying run that ends inside the unit's 84-slot window over the 96-slot read
+   k - 96 .. k - 1; a run longer than `h.max_gap_slots = 12` excludes the unit as `hwm_gap` (counted beside `hwm_incomplete`,
+   census share `hwm_gap_share`). A run starting at or before k - 96 is measured as at least 13 when it ends inside the window,
+   so the 96-slot read decides the rule exactly. The first fix (gap inside the window only) could never fire, because such a
+   gap already makes the unit `hwm_incomplete`, and it was looser than the declared rule; it is withdrawn and section 5 keeps its
+   original wording.
+5. **J denominators (LOW).** `interval_truncated_share` = truncated / sampled traded movers (section 8). The `ts_not_minute`
+   share is now taken over interval rows (`interval_rows_not_minute / interval_rows_all`), not over all trade rows (code pass
+   1); this is the denominator section 8's clock check refers to.
 6. **Size check fail-closed (LOW).** A binding map that lacks a scenario or names an unknown one raises; the runner refuses
    `--worlds/--draws` without `--dev` (exit 2), a `--dev` output is marked `dev: true` and is never the size statement, and the
    output records `spec_sha256`.
@@ -1059,8 +1066,22 @@ Every finding is applied; none changes a threshold, formula or gate. Where a cho
    - q0562 (1,200 MB) now `depends_on` q0561 (1,500 MB, exclusive), so the two never overlap (memory-heavy-jobs rule).
 10. **Provenance (LOW).** The vendored-provenance test now **fails** when a source file changed since vendoring, unless the spec's
     `vendored_source_drift_accepted` records that file's new sha256 (an explicit re-vendor decision); it is empty.
-11. **Look-ahead.** A test places a corrupt capture after the last census slot and shows the census neither opens it nor
-    writes a series for it.
+11. **Look-ahead.** A test places a corrupt capture after the last census slot and shows the census neither parses its rows
+    nor writes a series for it. The directory scan does read the `manifest.json` start time of every capture under a root,
+    including later ones (to assign slots); no row, sidecar or sweep file of a later capture is opened or hashed.
+12. **Sweep slot assignment (fix verification).** The completeness check uses the seal's own slot assignment
+    (`seal["slots"]`, written by `seal-captures`); without it, a sealed capture or sweep directory inside the needed span whose
+    name time maps to no slot (e.g. a sweep starting more than 30 min after its slot) refuses the census instead of being left
+    out of the absent check.
+13. **Seal step (fix verification).** `run_live_tests5.py seal-captures` (queue draft q0564, after q0560, about 300 MB) hashes
+    exactly the files `census-captures` opens (the same `capture_needs` rule and roots) from the host originals and the q0560
+    restore tree. It records per directory the slot, per file the root, the q0560 restore report (which must have passed, else it
+    refuses) and the genuinely missing slots. The orchestrator commits the output as `seals/lt5_census_inputs_captures.json` and
+    pulls it on the host. `census-captures` refuses (exit 2) a seal that is not tracked by git or differs from HEAD, and records
+    the seal's sha256 and commit. Order and timing: q0560, then q0564 (not before 2026-10-21T23:20Z, after the 22:31Z pass), then
+    the seal commit, then q0561. All must start before 2026-10-22T02:45Z (queue start blackout), and q0561 must have written its
+    series before the 03:30Z retention run, which deletes captures up to about 2026-10-14T03:30Z inside H's look-back. If the
+    window is missed, the sealed captures are gone and q0561 refuses: a new restore and seal are needed, never an unsealed run.
 
 **Host check (read-only `ssh oracle ls`, 2026-10-21T09:48Z, `~/arepo/data-dumps/research_lab`).**
 - 106 capture directories for 10-12..10-21.
@@ -1076,4 +1097,4 @@ tree]: a host directory without `rows.csv.gz` is not a complete capture, so the 
 - Before promotion: re-list the host and add any slot that rotated off since. Check whether any release holds 10-14T00..10
   (none is catalogued); otherwise those slots are genuinely missing and counted.
 
-**Tests:** 37 LT5 unit tests (synthetic only).
+**Tests:** 41 LT5 unit tests (synthetic only).

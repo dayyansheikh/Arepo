@@ -542,9 +542,24 @@ def max_gap(W: np.ndarray) -> np.ndarray:
     return out
 
 
+def gap_into_window(M: np.ndarray, j_end: int, width: int) -> np.ndarray:
+    """Section 5's gap rule, literally: the full length of the longest run of consecutive non-qualifying slots that ENDS
+    inside the window (columns j_end - width .. j_end - 1), measured over every column read before ``j_end`` (H reads
+    k - 96 .. k - 1, so a run starting before the window is measured in full; a run reaching back to column 0 is at least
+    as long as measured, which is already > 12 whenever it ends inside the window). A unit is excluded "for 84 slots after
+    the gap" exactly when such a run is longer than the declared gap length (census code fix verification)."""
+    run = np.zeros(M.shape[0], int)
+    out = np.zeros(M.shape[0], int)
+    for j in range(j_end):
+        run = np.where(np.isfinite(M[:, j]), 0, run + 1)
+        if j >= j_end - width:
+            out = np.maximum(out, run)
+    return out
+
+
 def window_marks(M: np.ndarray, j_end: int, width: int) -> dict:
-    """hi, lo, age_hi, age_lo (slots before column ``j_end``), the present count and the longest gap over columns
-    j_end - width .. j_end - 1."""
+    """hi, lo, age_hi, age_lo (slots before column ``j_end``), the present count over columns j_end - width .. j_end - 1
+    and ``gap`` (``gap_into_window``: the full length of the longest non-qualifying run ending inside the window)."""
     W = M[:, j_end - width:j_end]
     present = np.isfinite(W).sum(axis=1)
     with np.errstate(all="ignore"):
@@ -556,7 +571,7 @@ def window_marks(M: np.ndarray, j_end: int, width: int) -> dict:
     age_hi = np.where(at_hi.any(axis=1), at_hi.argmax(axis=1) + 1, -1).astype(float)
     age_lo = np.where(at_lo.any(axis=1), at_lo.argmax(axis=1) + 1, -1).astype(float)
     age_hi[present == 0], age_lo[present == 0] = np.nan, np.nan
-    return {"hi": hi, "lo": lo, "age_hi": age_hi, "age_lo": age_lo, "present": present, "gap": max_gap(W)}
+    return {"hi": hi, "lo": lo, "age_hi": age_hi, "age_lo": age_lo, "present": present, "gap": gap_into_window(M, j_end, width)}
 
 
 def mark_classes(mid: np.ndarray, mk: dict, spec: dict) -> tuple[np.ndarray, np.ndarray]:
@@ -601,7 +616,7 @@ def mark_units(series_by_slot: dict, k: int, spec: dict) -> tuple[pd.DataFrame, 
     mid_prev = np.where(pos >= 0, M[np.clip(pos, 0, None), len(slots) - 13], np.nan)
     j = j.assign(mid=mid, hi=take["hi"], lo=take["lo"], age_hi=take["age_hi"], age_lo=take["age_lo"], present=take["present"], gap=take["gap"])
     inc = ~(j["present"].to_numpy(float) >= c["min_present"])
-    gap = ~inc & (j["gap"].to_numpy(float) > c["max_gap_slots"])  # section 5: a gap of > 12 consecutive slots in the window
+    gap = ~inc & (j["gap"].to_numpy(float) > c["max_gap_slots"])  # section 5: a > 12-slot gap ending inside the window
     ok_w = ~inc & ~gap
     cnt["hwm_incomplete"] = int(inc.sum())
     cnt["hwm_gap"] = int(gap.sum())
@@ -771,8 +786,23 @@ def seal_completeness(seal: dict, by_slot: dict, sweeps: dict, cap_slots: set[in
     sealed capture are genuinely missing: counted, never refused, never imputed."""
     bad: list[dict] = []
     local_caps = {c["id"]: c for c in by_slot.values()}
+    allk = sorted(cap_slots | sweep_slots)
+    span = (b.slot_time(allk[0], spec) - 3600.0, b.slot_time(allk[-1], spec) + 7200.0)
+
+    def slot_for(d: str, rels: list[str]) -> int | None:
+        """The seal's own slot assignment (``seal['slots'][dir]``, written by ``seal_captures``) when present, else the
+        directory-name time on the grid. A sealed directory inside the needed span that maps to no slot (e.g. a sweep
+        starting > 30 min after its slot) refuses the census rather than being left out of the check."""
+        if d in seal.get("slots", {}):
+            return b.slot_of(epoch(seal["slots"][d]), spec)
+        t = _name_time(d)
+        k = b.slot_of(t, spec) if np.isfinite(t) else None
+        if k is None and np.isfinite(t) and span[0] <= t <= span[1]:
+            bad.append({"file": rels[0], "error": "sealed directory has no slot assignment (outside the 30-min tolerance)"})
+        return k
+
     for d, rels in sealed_dirs(seal, "snapshots").items():
-        k = b.slot_of(_name_time(d), spec) if np.isfinite(_name_time(d)) else None
+        k = slot_for(d, rels)
         if k is None or k not in cap_slots:
             continue
         c = local_caps.get(d)
@@ -783,7 +813,7 @@ def seal_completeness(seal: dict, by_slot: dict, sweeps: dict, cap_slots: set[in
             if not (Path(c["dir"]) / rel.rsplit("/", 1)[1]).exists():
                 bad.append({"file": rel, "error": "sealed but absent locally"})
     for d, rels in sealed_dirs(seal, "book_sweeps").items():
-        k = b.slot_of(_name_time(d), spec) if np.isfinite(_name_time(d)) else None
+        k = slot_for(d, rels)
         if k is None or k not in sweep_slots:
             continue
         home = next((Path(r) / d for r in _roots(sweep_roots) if (Path(r) / d).is_dir()), None)
@@ -794,7 +824,8 @@ def seal_completeness(seal: dict, by_slot: dict, sweeps: dict, cap_slots: set[in
     files += [f for j in sorted(sweep_slots) if j in by_slot and by_slot[j]["id"] in sweeps
               for f in b.sweep_files(sweeps[by_slot[j]["id"]]["dir"])]
     bad += b.verify_files(seal, files)
-    sealed_slots = {b.slot_of(_name_time(d), spec) for d in sealed_dirs(seal, "snapshots") if np.isfinite(_name_time(d))}
+    sealed_slots = {b.slot_of(epoch(seal["slots"][d]), spec) if d in seal.get("slots", {}) else
+                    (b.slot_of(_name_time(d), spec) if np.isfinite(_name_time(d)) else None) for d in sealed_dirs(seal, "snapshots")}
     missing = sorted(j for j in cap_slots if j not in by_slot and j not in sealed_slots)
     return {"bad": bad, "missing_slots": [b.iso(b.slot_time(j, spec)) for j in missing], "n_missing_slots": len(missing),
             "files_checked": len(files)}
@@ -808,6 +839,17 @@ def _read(work: Path, by_slot: dict, j: int, cache: dict) -> pd.DataFrame | None
     return cache[j]
 
 
+def capture_needs(days: list[str], spec: dict) -> dict:
+    """The slots the capture census needs (shared by the census and the seal builder): K (census slots), the H origins,
+    cap_slots (k - 1 of the first census slot, F's/R's k - 1, the d_hi panel's look-back and H's k - 96 .. k) and
+    sweep_slots (passes k - 1 .. last k)."""
+    K = census_slots(days, spec)
+    w = int(spec["h"]["window_slots"])
+    origins = [k for k in K if is_day_origin(k, spec)]
+    cap_slots = set(range(min(K) - 1, max(K) + 1)) | set(range(min(K) - w, max(K) + 1)) | {j for k in origins for j in range(k - w - 12, k + 1)}
+    return {"K": K, "origins": origins, "cap_slots": cap_slots, "sweep_slots": set(range(min(K) - 1, max(K) + 1))}
+
+
 def census_slots(days: list[str], spec: dict) -> list[int]:
     """Every grid slot whose slot time falls on one of the UTC ``days`` (present or not)."""
     out = []
@@ -818,26 +860,71 @@ def census_slots(days: list[str], spec: dict) -> list[int]:
     return sorted(out)
 
 
+def seal_captures(*, snapshot_root, sweep_root, work: Path, days: list[str] | None = None, spec: dict | None = None,
+                  restore_reports: list[Path] | None = None) -> dict:
+    """The LT5 capture-census seal (census code fix verification): sha256 of exactly the files the capture census will
+    open (each needed slot's chosen complete capture: rows, manifest, rows_ext if present; sweep 1 of each needed pass),
+    from the host originals and the q0560 restore tree, with the seal's own slot assignment per directory, the root each
+    file came from, the genuinely missing slots and every restore report (which must have passed). Reads manifests and
+    hashes bytes only; parses no rows. Nothing after the last census slot is hashed."""
+    spec = spec or load_spec(sha=None)
+    days = days or spec["census_inputs"]["capture_days_utc"]
+    reps = {}
+    for r in restore_reports or []:
+        rr = json.loads(Path(r).read_text())
+        if not rr.get("passed"):
+            return {"error": f"restore report not passed: {r}"}
+        reps[str(rr.get("tag"))] = {"file": Path(r).name, "sha256": sha256_file(Path(r)), "selected": rr.get("selected"),
+                                    "restored_ok": rr.get("restored_ok")}
+    by_slot, sweeps = _scan(Path(work), snapshot_root, sweep_root, spec)
+    nd = capture_needs(days, spec)
+    files: dict[str, dict] = {}
+    slots: dict[str, str] = {}
+    snap_roots = [str(x) for x in _roots(snapshot_root)]
+    for j in sorted(nd["cap_slots"]):
+        if j not in by_slot:
+            continue
+        c = by_slot[j]
+        slots[c["id"]] = b.iso(b.slot_time(j, spec))
+        for rel, pth in b.capture_files(c["dir"]):
+            files[rel] = {"sha256": sha256_file(pth), "root": str(Path(c["dir"]).parent)}
+    for j in sorted(nd["sweep_slots"]):
+        if j not in by_slot or by_slot[j]["id"] not in sweeps:
+            continue
+        sd = Path(sweeps[by_slot[j]["id"]]["dir"])
+        slots[sd.name] = b.iso(b.slot_time(j, spec))
+        for rel, pth in b.sweep_files(sd):
+            if not pth.exists():
+                return {"error": f"sweep file absent: {rel}"}
+            files[rel] = {"sha256": sha256_file(pth), "root": str(sd.parent), "capture": by_slot[j]["id"]}
+    missing = [b.iso(b.slot_time(j, spec)) for j in sorted(nd["cap_slots"]) if j not in by_slot]
+    return {"purpose": "LT5 capture-census inputs (LIVE_TESTS_5.md section 8): exactly the files census-captures opens; "
+                       "sha256 of the host originals and the q0560 restore tree at seal time; counts-only use",
+            "written_utc": iso(b.now_ts()), "days": days, "spec_sha256": sha256_file(SPEC_PATH),
+            "first_slot_utc": b.iso(b.slot_time(min(nd["cap_slots"]), spec)), "last_slot_utc": b.iso(b.slot_time(max(nd["cap_slots"]), spec)),
+            "snapshot_roots": snap_roots, "sweep_roots": [str(x) for x in _roots(sweep_root)], "restore_reports": reps,
+            "missing_slots": missing, "n_missing_slots": len(missing), "n_files": len(files), "slots": slots,
+            "files": dict(sorted(files.items()))}
+
+
 def census_captures(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, sweep_root=SWEEP_ROOT, work: Path,
                     days: list[str] | None = None, spec: dict | None = None, verify: bool = True) -> dict:
     """CF5 (F), CHW (H) and CRW (R) on the grid slots of the census ``days`` with H's 96-slot look-back and sweep 1 of the
     census passes and of the pass before the first. ``snapshot_root`` / ``sweep_root`` may be lists (the host originals
     and a restore tree). Before anything is parsed, every sealed capture or sweep in the needed slot range must be
     present locally and every file to be opened must be sealed with an equal sha256, else the census is refused; slots
-    with no capture and no sealed capture are counted as missing (census code check finding 1). Nothing after the last
-    census slot is opened."""
+    with no capture and no sealed capture are counted as missing (census code check finding 1). No row, sidecar or sweep
+    file after the last census slot is opened; the directory scan reads every capture's manifest start time."""
     spec = spec or load_spec(sha=None)
     days = days or spec["census_inputs"]["capture_days_utc"]
     work = Path(work)
     by_slot, sweeps = _scan(work, snapshot_root, sweep_root, spec)
-    K = census_slots(days, spec)
+    nd = capture_needs(days, spec)
+    K, origins, cap_slots, sweep_slots = nd["K"], nd["origins"], nd["cap_slots"], nd["sweep_slots"]
     ks = [k for k in K if k in by_slot]
     if not ks:
         return {"error": "no census captures", "days": days}
     w = int(spec["h"]["window_slots"])
-    origins = [k for k in K if is_day_origin(k, spec)]
-    cap_slots = set(range(min(K) - 1, max(K) + 1)) | set(range(min(K) - w, max(K) + 1)) | {j for k in origins for j in range(k - w - 12, k + 1)}
-    sweep_slots = set(range(min(K) - 1, max(K) + 1))
     comp = seal_completeness(json.loads(Path(seal).read_text()), by_slot, sweeps, cap_slots, sweep_slots, spec, sweep_root) if verify else {}
     if verify and comp["bad"]:
         return {"error": "input identity check failed (L3): census refused", "bad": comp["bad"][:50], "n_bad": len(comp["bad"])}

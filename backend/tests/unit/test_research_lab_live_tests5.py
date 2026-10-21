@@ -571,18 +571,39 @@ def test_r_depth_band_median_over_both_sides():
     assert r["rewards_max_spread_median_band"] == pytest.approx(3.0) and r["depth_band"] == "5c"  # inside-only median would be 2.0 -> 1c
 
 
-def test_h_gap_rule_counted_separately():
-    M = np.full((2, 90), 0.6)
-    M[1, 20:34] = np.nan  # 14 consecutive missing slots, still 70+ present? 84 - 14 = 70 < 72
-    M[0, 20:33] = np.nan  # 13 missing: 71 present -> incomplete
-    w = lt.window_marks(M, 89, 84)
-    assert w["gap"].tolist() == [13, 14]
-    M2 = np.full((1, 90), 0.6)
-    M2[0, 30:43] = np.nan  # 13 consecutive missing, 71 present: incomplete (counted as incomplete, not as a gap)
-    M3 = np.full((1, 120), 0.6)
-    M3[0, 60:72] = np.nan  # 12 consecutive missing in a long look-back: allowed (> 12 excludes)
-    assert lt.window_marks(M3, 119, 84)["gap"][0] == 12
+def test_h_gap_rule_literal_full_run_ending_in_window():
+    """Section 5: a > 12-slot gap ending inside the 84-slot window excludes the unit, its length measured over the whole
+    96-slot read (k - 96 .. k - 1), so a gap straddling the window's start is caught although only part of it is inside."""
+    M = np.full((4, 97), 0.6)  # columns = slots k - 96 .. k; the window for k is columns 12 .. 95
+    M[0, 1:21] = np.nan  # 20 missing (k - 95 .. k - 76): 9 in-window, 75 present -> gap 20
+    M[1, 0:11] = np.nan  # 11 missing ending before the window -> no in-window run
+    M[2, 5:15] = np.nan  # 10 missing straddling the start -> 10 (<= 12, kept)
+    M[3, 40:53] = np.nan  # 13 missing inside the window -> 13 (and present 71: hwm_incomplete first)
+    w = lt.window_marks(M, 96, 84)
+    assert w["gap"].tolist() == [20, 0, 10, 13]
+    assert w["present"].tolist() == [75, 84, 81, 71]
     assert lt.max_gap(np.array([[1.0, np.nan, np.nan, 1.0, np.nan]]))[0] == 2
+
+
+def test_h_gap_count_fires_for_a_straddling_gap():
+    spec = _spec()
+    k = b.slot_of(lt.epoch("2026-10-20T00:31:00Z"), spec)
+
+    def ser(markets):
+        n = len(markets)
+        return pd.DataFrame({"market_id": markets, "event_id": [f"e{m}" for m in markets], "t_row": 0.0, "bid": [0.59] * n, "ask": [0.61] * n,
+                             "spread": 0.02, "ltp": np.nan, "vol24": 1.0, "end_ts": np.nan, "sports": 0, "skey": [f"event:e{m}" for m in markets]}).set_index("market_id")
+
+    sbs = {}
+    for j in range(k - 96, k + 1):
+        mk = ["ok", "early"]
+        if not (k - 95 <= j <= k - 76):
+            mk.append("gap")  # 20 missing slots k - 95 .. k - 76: 9 inside the window, 75 of 84 present
+        if j >= k - 86:
+            mk.append("early")  # 'early' misses k - 96 .. k - 87 only (before the window)
+        sbs[j] = ser(sorted(set(mk)))
+    _, cnt = lt.mark_units(sbs, k, spec)
+    assert cnt["hwm_gap"] == 1 and cnt["hwm_incomplete"] == 0
 
 
 def test_family_negrisk_exclusion_counted():
@@ -634,3 +655,52 @@ def test_runner_refuses_overrides_without_dev(tmp_path):
     assert mod.main(["size-check", "--dev", "--worlds", "1", "--draws", "3", "--out", str(tmp_path / "b.json")]) == 0
     out = json.loads((tmp_path / "b.json").read_text())
     assert out["dev"] is True and out["spec_sha256"] == lt.sha256_file(lt.SPEC_PATH)
+
+
+def test_seal_captures_hashes_exactly_the_census_inputs(world, tmp_path):
+    w = world
+    seal = lt.seal_captures(snapshot_root=[w["snap"]], sweep_root=[w["sweeps"]], work=tmp_path / "ws", days=[CENSUS_DAY], spec=_spec())
+    assert "error" not in seal and seal["n_missing_slots"] == 0
+    assert w["ids"][108] not in seal["slots"] and not any(w["ids"][108] in f for f in seal["files"])  # nothing after the last slot
+    p = tmp_path / "seal.json"
+    p.write_text(json.dumps(seal))
+    res = lt.census_captures(seal=p, snapshot_root=w["snap"], sweep_root=w["sweeps"], work=tmp_path / "w", days=[CENSUS_DAY], spec=_spec())
+    assert "error" not in res and res["files_checked"] == seal["n_files"]
+
+
+def test_sweep_outside_slot_tolerance_is_not_left_out(world, tmp_path):
+    """A sealed sweep starting > 30 min after its slot maps to no slot by its name: without the seal's own slot assignment
+    the census refuses instead of leaving it out of the absent check; with the assignment it is checked like any other."""
+    w = world
+    late = (G0 + timedelta(hours=2 * 100, minutes=45)).strftime("%Y%m%dT%H%M%SZ") + "_slate"
+    extra = {f"data-dumps/research_lab/book_sweeps/{late}/rows.csv.gz": {"sha256": "2" * 64}}
+    r1 = lt.census_captures(seal=_seal_with(w, tmp_path / "a.json", extra), snapshot_root=w["snap"], sweep_root=w["sweeps"],
+                            work=tmp_path / "w1", days=[CENSUS_DAY], spec=_spec())
+    assert "error" in r1 and any("no slot assignment" in x["error"] for x in r1["bad"])
+    p = _seal_with(w, tmp_path / "b.json", extra)
+    sj = json.loads(p.read_text())
+    sj["slots"] = {late: lt.iso((G0 + timedelta(hours=2 * 100)).timestamp())}
+    p.write_text(json.dumps(sj))
+    r2 = lt.census_captures(seal=p, snapshot_root=w["snap"], sweep_root=w["sweeps"], work=tmp_path / "w2", days=[CENSUS_DAY], spec=_spec())
+    assert "error" in r2 and any("absent" in x["error"] for x in r2["bad"])
+
+
+def test_runner_census_refuses_uncommitted_seal_and_writes_seal(world, tmp_path):
+    import importlib.util
+
+    w = world
+    spec_ = importlib.util.spec_from_file_location("run_lt5c", Path(lt.ROOT) / "backend" / "scripts" / "run_live_tests5.py")
+    mod = importlib.util.module_from_spec(spec_)
+    spec_.loader.exec_module(mod)
+    assert mod.main(["census-captures", "--seal", str(w["tmp"] / "cseal.json"), "--work", str(tmp_path / "w"), "--day", CENSUS_DAY,
+                     "--snapshot-root", str(w["snap"]), "--sweep-root", str(w["sweeps"]), "--out", str(tmp_path / "c.json")]) == 2
+    assert not (tmp_path / "c.json").exists()
+    rr = tmp_path / "RESTORE_REPORT_x.json"
+    rr.write_text(json.dumps({"tag": "x", "passed": False}))
+    assert mod.main(["seal-captures", "--snapshot-root", str(w["snap"]), "--sweep-root", str(w["sweeps"]), "--restore-report", str(rr),
+                     "--day", CENSUS_DAY, "--work", str(tmp_path / "ws"), "--out", str(tmp_path / "s0.json")]) == 3
+    rr.write_text(json.dumps({"tag": "x", "passed": True, "selected": 3, "restored_ok": 3}))
+    assert mod.main(["seal-captures", "--snapshot-root", str(w["snap"]), "--sweep-root", str(w["sweeps"]), "--restore-report", str(rr),
+                     "--day", CENSUS_DAY, "--work", str(tmp_path / "ws"), "--out", str(tmp_path / "s.json")]) == 0
+    out = json.loads((tmp_path / "s.json").read_text())
+    assert out["restore_reports"]["x"]["sha256"] == lt.sha256_file(rr) and out["n_files"] > 0 and out["slots"]
