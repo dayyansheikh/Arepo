@@ -114,6 +114,13 @@
    "spec_sha256": "ead98d1ab41f1ec21be0ac64c4859734b059e3d971dcc8f7880d4c93bf33d692",
    "status": "active",
    "added_utc": "2026-10-21T15:00:00Z"
+  },
+  {
+   "model_id": "se16_lgbm_participation",
+   "file": "se16_lgbm_participation.json",
+   "spec_sha256": "5f458bc4b74c6b02efcd6022077211297c194ea49fc5214c4f052d2bd0bf2560",
+   "status": "active",
+   "added_utc": "2026-10-21T16:00:00Z"
   }
  ]
 }

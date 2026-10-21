@@ -3244,3 +3244,23 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - (15:30Z, ops) q0564 (LT5 capture seal, 23:20Z) moved from the cpu to the net lane (file hashing, mem_mb 300), so a
   running cpu-lane job cannot delay it past the window for the seal commit and the q0561 start before 02:45Z. Nothing
   else changed. LT3 / LT4 restore trees checked present for q0562 (23 samples, 39 captures).
+
+## Signal engine: first prospective leaderboard, 2026-10-21 15:38Z (signal-engine autopilot; development-scale, nothing counted)
+- One-off forced score `q0515_se_score_now` (same code as the daily q0513; owner Lab-board message 14:01Z "jump queue":
+  signal-engine jobs q0512-q0515 now priority 50, above every ready experiment job except the time-bound recorders
+  q0083b, q0162, q0163). Resolution fetch 800 requests: 39,792 resolved, 103 split, 105 not found.
+- `leaderboard/20261021T153806Z.json`: 1 scored day, one labelled origin capture (10-21 12:31Z), `dir_2h`, 49,154 rows,
+  coverage 1.0, 0 late. Mean log loss: se0 champion 0.4405, se1_lgbm_mm 0.391, se7_lgbm_all 0.387 (AUC 0.787 / 0.844
+  / 0.849). se1's paired gain 0.049 nats, event-clustered 97.5% CI [0.046, 0.053]. One capture, one day: a pipeline
+  check, not evidence; promotion needs >= 14 days (c1 false). Every embargoed model shows only `embargoed_until`.
+
+## Signal engine: hidden challenger se16_lgbm_participation, 2026-10-21 ~16:30Z (signal-engine autopilot; nothing counted)
+- New aux family `participation` (`se-aux-participation-v1`; DESIGN_V1 §16): event lifetime volume and liquidity, the
+  2 h event-volume change (+ a "fell" flag), own liquidity share of the event, Gamma `competitive`, event age, lifetime
+  market volume; from the origin's own Gamma sidecar and the previous slot's sidecar only. Open interest and comment
+  counts excluded. Challenger `se16_lgbm_participation` (LightGBM, se1's params; read against se1).
+- Science review: **REVISE** (no leak; values correct) because CB17-C (CH150, drafted) uses the event-volume change as
+  its eligibility rule and event liquidity as a control. Applied before any table or score existed: embargo token
+  `participation` until 2026-11-25T00:00Z (REP_8 ends no earlier than 11-23T08Z), wording corrected, spec re-pinned,
+  previous-sidecar provenance in the aux metadata, prefix `pp_`. No score is computed or shown before 11-25; K for the
+  non-embargoed challengers stays 2.

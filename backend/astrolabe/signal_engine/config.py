@@ -90,4 +90,6 @@ EMBARGO = (
      "why": "event-sibling moves in LT5 F (draft, CH184; challenger R1 ruling 2: before se8 shows any score); added 2026-10-21 before any event score was computed or shown"},
     {"token": "movetype", "until": "2026-11-22T00:00:00Z", "tests": ["E015"],
      "why": "traded versus quote-only 2 h moves (CANDIDATES C07) shadow E015 (LT3 registered 2026-10-21, analysis not before 2026-11-15T12Z); same date as book (E015's token); added 2026-10-21 with se14_lgbm_movetype before any movetype score was computed or shown"},
+    {"token": "participation", "until": "2026-11-25T00:00:00Z", "tests": ["CB17-C"],
+     "why": "event-volume 2 h change (CB17-C eligibility dV > 0, tercile stratum, trim) and log event liquidity (control) in CB17-C (CH150, drafted; REP_8 ends no earlier than 2026-11-23T08:00Z); added 2026-10-21 with se16_lgbm_participation before any table or score existed (science review REVISE)"},
 )

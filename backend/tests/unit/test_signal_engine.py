@@ -11,6 +11,7 @@ import gzip
 import importlib.util
 import json
 import math
+import shutil
 from pathlib import Path
 
 import numpy as np
@@ -439,7 +440,7 @@ def test_aux_family_end_to_end_write_once_and_missing(env, monkeypatch):
     assert not A.aux_path(paths, "event", old).exists()
     cap5 = idx[SLOT0 + 5]["capture_id"]
     sha = S.sha256_file(A.aux_path(paths, "event", cap5))
-    assert A.run_aux(paths, max_items=50) == {"written": [], "unbuildable_no_rows": 2}  # 2 families
+    assert A.run_aux(paths, max_items=50) == {"written": [], "unbuildable_no_rows": 3}  # 3 families need rows
     assert A.aux_path(paths, "rewards", cap5).exists()  # synthetic sidecar has no reward columns: an all-NaN table
     assert S.sha256_file(A.aux_path(paths, "event", cap5)) == sha
     f = A.read_features(paths, cap5)
@@ -644,6 +645,104 @@ def test_movetype_and_surprise_ignore_later_captures(env):
     assert not S.read_parquet(A.aux_path(paths, "movetype", nxt))["mt_db"].isna().all()  # k + 1 itself did change
 
 
+def _write_pa_ext(d: Path, rows: list[dict]) -> None:
+    d.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(rows).to_csv(d / "rows_ext.csv.gz", index=False, compression="gzip")
+
+
+def test_participation_features_hand_example(tmp_path):
+    t0 = S.epoch("2026-10-21T06:31:00Z")
+    created = "2026-10-20T06:31:00Z"  # 24 h before the capture
+    # event A (markets 1, 2): volume 150 -> 100 would be a fall; market 1 rose from 100 to 150; market 2 fell 200 -> 150
+    # market 3: absent at k - 1; market 4: event liquidity 0; market 5: no volume_num; market 6: all present, liq > event
+    cur = [
+        {"market_id": 1, "event_volume": 150.0, "event_liquidity": 1000.0, "competitive": 0.5, "event_created_at": created, "volume_num": 99.0},
+        {"market_id": 2, "event_volume": 150.0, "event_liquidity": 1000.0, "competitive": 0.25, "event_created_at": created, "volume_num": 10.0},
+        {"market_id": 3, "event_volume": 40.0, "event_liquidity": 500.0, "competitive": 1.0, "event_created_at": "2026-10-21T09:00:00Z", "volume_num": 5.0},
+        {"market_id": 4, "event_volume": 7.0, "event_liquidity": 0.0, "competitive": 0.0, "event_created_at": created, "volume_num": 1.0},
+        {"market_id": 5, "event_volume": 20.0, "event_liquidity": 100.0, "competitive": 0.75, "event_created_at": "", "volume_num": None},
+        {"market_id": 6, "event_volume": 20.0, "event_liquidity": 100.0, "competitive": None, "event_created_at": created, "volume_num": 0.0},
+    ]
+    prev = [{"market_id": 1, "event_volume": 100.0}, {"market_id": 2, "event_volume": 200.0},
+            {"market_id": 4, "event_volume": 7.0}, {"market_id": 5, "event_volume": 20.0}, {"market_id": 6, "event_volume": 20.0}]
+    _write_pa_ext(tmp_path / "k", cur)
+    _write_pa_ext(tmp_path / "k1", [{**r, "event_liquidity": 1.0, "competitive": 0.0, "event_created_at": created, "volume_num": 0.0}
+                                    for r in prev])
+    f = pd.DataFrame({"market_id": [1, 2, 3, 4, 5, 6, 7]})  # 7 is not in the sidecar at all
+    rows = pd.DataFrame({"market_id": [1, 2, 3, 4, 5, 6, 7], "liquidity": [250.0, 2000.0, 100.0, 50.0, 10.0, 400.0, 5.0]})
+    a = A.participation_features(A.read_participation_ext(tmp_path / "k"), A.read_participation_ext(tmp_path / "k1"), rows, f, t0)
+    assert list(a.columns) == A.PARTICIPATION_COLUMNS and a.dtypes.eq(np.float32).all()
+    nan = np.nan
+    np.testing.assert_allclose(a["pp_log_ev_vol"][:6], np.log1p([150, 150, 40, 7, 20, 20]), rtol=1e-6)
+    np.testing.assert_allclose(a["pp_d_ev_vol"][:6], [math.log1p(50), 0.0, nan, 0.0, 0.0, 0.0], rtol=1e-6)  # 2 fell -> 0; 3 absent
+    np.testing.assert_allclose(a["pp_ev_vol_fell"][:6], [0.0, 1.0, nan, 0.0, 0.0, 0.0])
+    np.testing.assert_allclose(a["pp_log_ev_liq"][:6], np.log1p([1000, 1000, 500, 0, 100, 100]), rtol=1e-6)
+    np.testing.assert_allclose(a["pp_liq_share"][:6], [0.25, 1.0, 0.2, nan, 0.1, 1.0], rtol=1e-6)  # clipped at 1; liq 0 -> NaN
+    np.testing.assert_allclose(a["pp_competitive"][:6], [0.5, 0.25, 1.0, 0.0, 0.75, nan])
+    np.testing.assert_allclose(a["pp_log_ev_age_h"][:6], [math.log1p(24), math.log1p(24), 0.0, math.log1p(24), nan, math.log1p(24)], rtol=1e-6)
+    np.testing.assert_allclose(a["pp_log_vol_num"][:6], np.log1p([99, 10, 5, 1, nan, 0]), rtol=1e-6)
+    assert np.isnan(a.iloc[6].to_numpy(float)).all()  # not in the sidecar: missing, never zero
+    # no previous capture dir: the levels stay, the change columns are NaN
+    b = A.participation_features(A.read_participation_ext(tmp_path / "k"), A.read_participation_ext(tmp_path / "gone"), rows, f, t0)
+    assert np.isnan(b[["pp_d_ev_vol", "pp_ev_vol_fell"]].to_numpy(float)).all()
+    pd.testing.assert_frame_equal(b.drop(columns=["pp_d_ev_vol", "pp_ev_vol_fell"]), a.drop(columns=["pp_d_ev_vol", "pp_ev_vol_fell"]))
+    # an older sidecar lacking columns: those columns NaN, the rest present; no sidecar at all: an all-NaN table
+    _write_pa_ext(tmp_path / "old", [{"market_id": 1, "event_volume": 5.0}])
+    c = A.participation_features(A.read_participation_ext(tmp_path / "old"), None, rows, f, t0)
+    assert np.isfinite(c["pp_log_ev_vol"].iloc[0]) and np.isnan(c["pp_log_ev_liq"].iloc[0]) and np.isnan(c["pp_liq_share"].iloc[0])
+    assert np.isnan(A.participation_features(None, None, rows, f, t0).to_numpy(float)).all()
+
+
+def test_participation_never_reads_forbidden_columns():
+    for bad in ("event_open_interest", "open_interest", "event_comment_count", "clob_rewards", "rewards_max_spread"):
+        assert bad not in A.PA_EXT_COLS
+    assert set(A.PA_EXT_COLS) == {"market_id", "event_volume", "event_liquidity", "competitive", "event_created_at", "volume_num"}
+
+
+def test_participation_family_ignores_later_captures(env):
+    """Causality: the table of capture k is identical whatever the sidecar of k + 1 holds; k - 1's feeds the change."""
+    w, paths = env
+    w.run(8)
+    build_all(paths)
+    idx = S.load_index(paths)
+    k, prv, nxt = (idx[SLOT0 + j]["capture_id"] for j in (6, 5, 7))
+    ids = np.arange(1000, 1000 + N_MKT)
+    for cid, vol in ((prv, 100.0), (k, 160.0), (nxt, 9999.0)):
+        d = w.root / "snapshots" / cid
+        e = pd.read_csv(d / "rows_ext.csv.gz")
+        e["event_volume"], e["event_liquidity"], e["competitive"], e["volume_num"] = vol, 500.0, 0.5, 7.0
+        e["event_created_at"] = "2026-10-01T00:00:00Z"
+        e.to_csv(d / "rows_ext.csv.gz", index=False, compression="gzip")
+    while A.run_aux(paths, max_items=80)["written"]:
+        pass
+    before = S.read_parquet(A.aux_path(paths, "participation", k))
+    np.testing.assert_allclose(before["pp_d_ev_vol"], math.log1p(60), rtol=1e-6)
+    assert len(before) == len(ids) and before["pp_ev_vol_fell"].eq(0).all()
+    e = pd.read_csv(w.root / "snapshots" / nxt / "rows_ext.csv.gz")
+    e["event_volume"] = 1.0  # scramble k + 1
+    e.to_csv(w.root / "snapshots" / nxt / "rows_ext.csv.gz", index=False, compression="gzip")
+    for cid in (k, nxt):
+        A.aux_path(paths, "participation", cid).unlink()
+    while A.run_aux(paths, max_items=80)["written"]:
+        pass
+    pd.testing.assert_frame_equal(S.read_parquet(A.aux_path(paths, "participation", k)), before)
+    md = S.parquet_meta(A.aux_path(paths, "participation", k))  # provenance: the previous sidecar actually read
+    assert md["prev_sidecar_capture_id"] == prv
+    assert md["prev_sidecar_sha256"] == S.sha256_file(w.root / "snapshots" / prv / "rows_ext.csv.gz")
+    f = A.read_features(paths, k)
+    assert f.attrs["aux_ok"]["participation"] and np.isfinite(f["pp_log_ev_vol"].to_numpy(float)).all()
+    # the synthetic sidecar of the first slot has no participation columns and no previous slot: an all-NaN table
+    first = S.read_parquet(A.aux_path(paths, "participation", idx[SLOT0]["capture_id"]))
+    assert first.drop(columns="market_id").isna().all().all()
+    # previous slot's sidecar gone: the change is NaN, the levels stay
+    shutil.rmtree(w.root / "snapshots" / prv)
+    A.aux_path(paths, "participation", k).unlink()
+    A.run_aux(paths, max_items=80)
+    gone = S.read_parquet(A.aux_path(paths, "participation", k))
+    assert gone["pp_d_ev_vol"].isna().all() and gone["pp_log_ev_vol"].notna().all()
+    assert S.parquet_meta(A.aux_path(paths, "participation", k))["prev_sidecar_capture_id"] is None
+
+
 def test_rewards_family_embargoed_until_lt4():
     reg = SP.load_registry()
     e = SP.embargo_of(reg["models"]["se9_lr_rewards"], S.epoch("2026-10-22T00:00:00Z"))
@@ -704,6 +803,13 @@ def test_repo_registry_loads_and_embargo_assignment():
     assert mt["learner"] == "lgbm" and mt["params"] == se1["params"] and mt["train"]["require_full_coverage"] is True
     assert mt["families"] == ["market_state", "momentum", "movetype"] and set(mt["isolates"]) == {"movetype", "book"}
     assert emb["se15_lgbm_surprise"] == "2026-11-19T00:00:00Z"
+    assert emb["se16_lgbm_participation"] == "2026-11-25T00:00:00Z"  # CB17-C (science review 2026-10-21)
+    pa16 = reg["models"]["se16_lgbm_participation"]
+    assert pa16["learner"] == "lgbm" and pa16["params"] == se1["params"] and pa16["isolates"] == ["participation"]
+    assert pa16["broad"] is False and pa16["families"] == ["market_state", "momentum", "participation"]
+    assert pa16["aux_versions"] == {"participation": "se-aux-participation-v1"} and pa16["train"]["require_sources"] == ["participation"]
+    assert pa16["train"] == reg["models"]["se15_lgbm_surprise"]["train"] | {"require_sources": ["participation"]}
+    assert "participation" not in reg["models"]["se7_lgbm_all"]["families"]
     sp = reg["models"]["se15_lgbm_surprise"]
     assert sp["learner"] == "lgbm" and sp["params"] == se1["params"] and sp["isolates"] == ["surprise"]
     for mid, lr in (("se11_lgbm_flow", "se2_lr_flow"), ("se12_lgbm_tte", "se5_lr_tte"), ("se13_lgbm_xvenue", "se4_lr_xvenue")):
@@ -866,7 +972,7 @@ def test_cli_exit_codes_walkforward_and_dashboard(env, capsys):
     w.run(30)
     cli = _cli()
     base = ["--engine-root", str(paths.engine), "--dumps-root", str(w.root), "--spec-dir", str(paths.spec_dir)]
-    assert cli.main(["features", "--max-items", "60", *base]) == 0  # aux budget 2 x 60 >= 30 captures x 4 families
+    assert cli.main(["features", "--max-items", "80", *base]) == 0  # aux budget 2 x 80 >= 30 captures x 5 families
     assert cli.main(["features", *base]) == C.TEMPFAIL  # nothing new
     assert cli.main(["predict", *base]) == C.TEMPFAIL  # no fit yet (and captures are old)
     assert cli.main(["refit", "--force", *base]) == 0
