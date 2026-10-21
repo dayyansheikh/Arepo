@@ -66,6 +66,29 @@
   "g3_max_mde_N_event_ppd": 0.10,
   "rule": "G1 = projected primary-set copies >= g1_min_copies and events >= g1_min_events; G2 = projected pairs >= g2_min_pairs and pair events >= g2_min_pair_events. G1 and G2 pass: register E026-N and E026-C (k = 2). G1 passes, G2 fails: E026-C is dropped before the pin (k = 1, recorded in the ledger). G1 fails: not registered as designed; a redesign needs a written justification and a new review. G3 (planning MDE of E026-N with event correlation 1 <= 0.10 $/$) does not block; a failure adds the label 'low-power (a null is uninformative)'. Gates are 2 x the analysis floors to leave room for censoring and rate drift; they are never changed after the census."
  },
- "planning": null,
+ "planning": {
+  "source": "docs/research_lab/live_tests_copy/census_q0544_2026-10-21.json",
+  "source_sha256": "90adaea6d9edfaf19f502e56513e8d7a2ca01c27fae90884c6e6163326ec58bf",
+  "census_window": ["2026-10-18T04:00:00Z", "2026-10-21T04:00:00Z"],
+  "arm": "sidecar",
+  "latency_s": 0,
+  "days_used": 2.882,
+  "skilled_signals_per_day": 2230.49,
+  "n": 1294,
+  "events": 650,
+  "wallets": 160,
+  "pairs": 1200,
+  "pair_events": 620,
+  "sd_per_share_calibrated": 0.4141,
+  "mean_stake": 0.5714,
+  "mean_cost_per_dollar": 0.0531,
+  "control_sd_inflation": 1.1992,
+  "deff_event_icc1": 3.97,
+  "deff_twoway_icc1": 23.93,
+  "projection_21d": {"days": 21.0, "n": 9427.8, "events": 4735.8, "pairs": 8742.9, "pair_events": 4517.2, "mde_N_deff1": 0.0209, "mde_N_event_icc1": 0.0417, "mde_N_twoway_icc1": 0.1023, "mde_C_event_icc1": 0.0519},
+  "gates": {"G1_copies_events": true, "G2_pairs": true, "G3_mde_N_event": true, "decision": "register_k2"},
+  "recorder_peak_mb": null,
+  "recorder_peak_note": "q0544 reported the parent peak (Linux ru_maxrss across exec); measured by q0545 (VmHWM) before the pin"
+ },
  "code_sha256": {}
 }

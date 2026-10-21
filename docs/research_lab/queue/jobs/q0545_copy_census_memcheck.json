@@ -1,0 +1,39 @@
+{
+ "id": "q0545_copy_census_memcheck",
+ "title": "E026 recorder memory re-measurement (DIAGNOSTIC; counts only): the q0544 census re-run unchanged on the same pre-window period [2026-10-18T04:00Z, 2026-10-21T04:00Z) with the recorder child peak read from /proc/self/status VmHWM (q0544 reported the parent peak: Linux ru_maxrss carries the forking parent peak across exec); counts must reproduce q0544 exactly",
+ "family": "copy_skilled",
+ "priority": 37,
+ "expected_value": "the recorder's own peak RSS for the q0541 mem_mb / as_cap_mb sizing (LIVE_TESTS_COPY.md 8.2); a reproducibility check of the q0544 counts. Gates are NOT re-applied: q0544 decided them (register_k2)",
+ "data": [
+  "research_lab/history/{h1_first,h2_main,h3_power} (read-only)",
+  "research_lab/trade_samples (active-frame samples with wallets.csv.gz, 2026-10-18T04:39Z onwards; read-only)",
+  "research_lab/snapshots (complete captures 2026-10-18T04:00Z .. before 2026-10-22T00:00Z; read-only)",
+  "research_lab/live_trades/trades-2026101[8-9].jsonl, trades-2026102[0-1].jsonl (read-only)"
+ ],
+ "resources": {
+  "mem_mb": 2000,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_copy_skilled.py",
+  "census",
+  "--start",
+  "2026-10-18T04:00:00Z",
+  "--end",
+  "2026-10-21T04:00:00Z",
+  "--work",
+  "../data-dumps/research_lab/copy_skilled_census/work",
+  "--out",
+  "../data-dumps/research_lab/copy_skilled_census/census_q0545_memcheck.json"
+ ],
+ "timeout_s": 7200,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/copy_skilled_census/census_q0545_memcheck.json (counts and aggregates only; no wallet hash; work dir deleted at exit)"
+ ],
+ "next_action": "copy census_q0545_memcheck.json into docs/research_lab/live_tests_copy/ with its sha256; record recorder peak_mb_child in LIVE_TESTS_COPY.md 8.2 and size q0541 mem_mb / as_cap_mb from it; diff the counts against q0544 (any difference is a finding)",
+ "notes": "DIAGNOSTIC 2026-10-21 (autopilot). Same pre-window guarantees as q0544 (refuses a window ending after 2026-10-22T00:00Z, never opens a capture at or after it, exits=False, no resolution). Not a second gate look: the q0544 gate decision stands whatever this prints. DEADLINE: start before 2026-10-22T02:45Z (blackout, mem_mb >= 500) and finish before the 03:30Z retention run (q0544 took 292 s). If missed, the recorder memory is measured instead by a dry run on later pre-window-free data; never a backfill."
+}

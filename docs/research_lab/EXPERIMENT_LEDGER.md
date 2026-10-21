@@ -3115,3 +3115,21 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - Non-embargoed challenger count is unchanged (K = 2: se1, se7) until 11-04.
 - q0514 walk-forward: timeout 7200 -> 10800 s, plus a per-day progress line (host LightGBM fits are 8.5-10.5 min). No
   change to fits or scoring.
+
+## E026 census values filled; recorder memory defect; q0545 queued, 2026-10-21 ~14:30Z (counts only; nothing counted)
+- `LIVE_TESTS_COPY.md` 7.5 / 8.2 and the spec `planning` block are filled from the committed q0544 census (sha256
+  90adaea6…). Decision stays **register_k2** (G1-G3 pass). New facts written into 7.5: the trade-to-entry latency at
+  L = 0 is a median 6.6 h (trades are first seen a median 4.5 h after printing), not the 1.5-2 h receipt-to-entry delay;
+  the two-way MDE is 0.102 $/$ and the event MDE 0.042, both above the 0.03 materiality floor (a null will most
+  likely read Inconclusive).
+- **Disclosure:** an earlier uncommitted census by the design session was seen before the gates were committed
+  (aba32281); its numbers (about 1,278 copies, MDE 0.042 / 0.051) were relayed to the owner. The gates sit far below
+  them, but they are informed, not blind. Written into 7.5 for the challenger.
+- **Defect:** q0544's "recorder child peak 1,441.6 MB" is the parent's history-load peak: Linux `ru_maxrss` carries the
+  forking parent's peak across exec (verified on the host: 811 MB by ru_maxrss vs 10 MB by VmHWM for a child of an
+  800 MB parent). The runner now reads `/proc/self/status` VmHWM in the child (test with a 600 MB parent ballast). The
+  census counts are unaffected.
+- **q0545_copy_census_memcheck** (priority 37, cpu, counts only, same pre-window period, separate output, gates NOT
+  re-applied) measures the recorder's own peak before the 10-22T03:30Z retention run; q0541 `mem_mb` 450 is confirmed
+  or re-sized from it before the pin. Any count difference from q0544 is a finding.
+- Test fix: `test_queue_drafts_valid` now finds q0544 in `queue/jobs/` (promoted), 41 / 41 pass.
