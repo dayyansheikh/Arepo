@@ -736,11 +736,11 @@ def _sidecar_cols(ext: pd.DataFrame | None, mids: pd.Index) -> dict:
     return {"present": present, "has_slug": slug, "fee_cat": fc, "osz": osz}
 
 
-def ser6_frame(rows: pd.DataFrame, ext: pd.DataFrame | None, spec: dict) -> pd.DataFrame:
+def ser6_frame(rows: pd.DataFrame, ext: pd.DataFrame | None, spec: dict, with_status: bool = False):
     """LT5's series (two-sided quotes of open active binary markets, the vendored LT3 builder) plus LT6's columns: Gamma
     ``liq``, the raw ``end_raw`` string (parsed by :func:`parse_end_date`, never by float), ``upd_ts`` (``updated_at``),
     ``has_slug``, ``fee_cat``, ``crypto6`` (the pinned classifier), ``osz`` (``order_min_size`` as text) and ``present``."""
-    ser, _ = b.series_frame(rows, ext, spec)
+    ser, status = b.series_frame(rows, ext, spec)
     mids = pd.Index(ser["market_id"].astype(str))
     rr = rows.set_index(rows["market_id"].astype(str))
     ser["liq"] = rr["liquidity"].reindex(mids).to_numpy(float)
@@ -752,7 +752,7 @@ def ser6_frame(rows: pd.DataFrame, ext: pd.DataFrame | None, spec: dict) -> pd.D
     ser["osz"] = sc["osz"]
     ser["present"] = sc["present"].astype(int)
     ser["crypto6"] = [crypto_class(fc, bool(p), int(sp)) for fc, p, sp in zip(sc["fee_cat"], sc["present"], ser["sports"].to_numpy(), strict=False)]
-    return ser
+    return (ser, status) if with_status else ser
 
 
 def members_frame(rows: pd.DataFrame, ext: pd.DataFrame | None, spec: dict) -> pd.DataFrame:
@@ -863,12 +863,16 @@ def deadline_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, ser_12: pd.DataFram
     return u, cnt
 
 
-def apply_washout(U: pd.DataFrame, class0: str, label_classes: tuple[str, ...], width: int) -> tuple[pd.DataFrame, int]:
-    """Drop class-0 units that are inside the washout of a labelled unit of the same market (1.7); returns (units, n dropped)."""
+def apply_washout(U: pd.DataFrame, class0: str, label_classes: tuple[str, ...], width: int, extra: dict | None = None) -> tuple[pd.DataFrame, int]:
+    """Drop class-0 units that are inside the washout of a labelled unit of the same market (1.7); returns (units, n dropped).
+    ``extra`` maps market -> labelled slots seen elsewhere (look-back lines before REGISTERED, or labelled units outside the
+    analysis sample): they can only remove units."""
     if U.empty:
         return U, 0
     keep = np.ones(len(U), bool)
-    lab = U[U["cls"].isin(label_classes)].groupby(U["market_id"].astype(str))["slot"].apply(list).to_dict()
+    lab = {m: list(v) for m, v in U[U["cls"].isin(label_classes)].groupby(U["market_id"].astype(str))["slot"].apply(list).to_dict().items()}
+    for m, v in (extra or {}).items():
+        lab.setdefault(str(m), []).extend(int(x) for x in v)
     for m, idx in U[U["cls"] == class0].groupby(U["market_id"].astype(str)).groups.items():
         if m in lab:
             pos = U.index.get_indexer(idx)
@@ -992,20 +996,32 @@ def vote_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, sw_k: pd.DataFrame | No
 # --- K units -------------------------------------------------------------------------------------------------------------
 
 
-def load_sample6(sdir: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """features (status ok) and the trade rows K reads: ``side`` and wallet fields are NEVER read; ``size``, ``price`` and ``ts`` stay TEXT."""
+def load_sample6(sdir: Path, markets=None, before: float | None = None, chunksize: int = 200_000) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """features (status ok) and the trade rows K reads: ``side`` and wallet fields are NEVER read; ``size``, ``price`` and ``ts`` stay TEXT.
+    With ``markets`` (the movers that can become units) and ``before`` (the latest decision time ``t_k``) the file is read in chunks and
+    only rows of those markets with ``ts < before`` are kept: a row at or after the decision time is never held, and the peak memory
+    of a 1M-row sample drops to the movers' rows (the reader's memory plan, 8.2)."""
     feat = pd.read_csv(Path(sdir) / "features.csv.gz", dtype={"market_id": str, "condition_id": str})
     feat = feat[feat["status"] == "ok"].drop_duplicates("market_id").reset_index(drop=True)
-    tr = pd.read_csv(Path(sdir) / "trades.csv.gz", usecols=["market_id", "ts", "price", "size", "outcome_index", "asset", "tx_hash"], dtype=str)
+    keep = None if markets is None else {str(m) for m in markets}
+    parts = []
+    for ch in pd.read_csv(Path(sdir) / "trades.csv.gz", usecols=["market_id", "ts", "price", "size", "outcome_index", "asset", "tx_hash"], dtype=str,
+                          chunksize=chunksize):
+        if keep is not None:
+            ch = ch[ch["market_id"].isin(keep)]
+        if before is not None and len(ch):
+            ch = ch[pd.to_numeric(ch["ts"], errors="coerce") < before]
+        if len(ch):
+            parts.append(ch)
+    cols = ["market_id", "ts", "price", "size", "outcome_index", "asset", "tx_hash"]
+    tr = pd.concat(parts, ignore_index=True) if parts else pd.DataFrame({c: pd.Series(dtype=str) for c in cols})
     return feat, tr
 
 
-def clip_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, feat: pd.DataFrame, tr: pd.DataFrame, token0: pd.Series | None, cap: dict, spec: dict) -> tuple[pd.DataFrame, dict]:
-    """K's units of one pass (section 3), origin-side filters in the declared order, each counted: sampled (status ok) traded
-    ``|x| >= 1c`` movers (1.4), tick known and equal at k - 1 and k with ``steps >= 1``, sidecar ``order_min_size`` known, interval
-    coverage (``interval_truncated``), ``n_int >= 4`` rows of known outcome with ``t_{k-1} <= ts < t_k``. Clip features from
-    :func:`clip_unit_features`; ``g_path``, ``maxstep_share``, ``age``, ``fresh`` from LT5 J's ``path_fields``. Reads trade rows
-    with ``ts < t_k`` only (the interval)."""
+def clip_movers(ser_k: pd.DataFrame, ser_p: pd.DataFrame, feat: pd.DataFrame, cap: dict, spec: dict) -> tuple[pd.DataFrame, dict]:
+    """The origin-side half of K's filters, before any trade row is read (so the reader can load only the movers' rows): sampled
+    (status ok) traded ``|x| >= 1c`` movers (1.4), tick known and equal at k - 1 and k with ``steps >= 1``, sidecar
+    ``order_min_size`` known. Adds ``t_k`` (the sample's ``origin_utc``), ``t_p`` (the market's row receipt at k - 1) and ``n_ret``."""
     c, m = spec["k"], spec["move"]
     j, cnt = b.move_join(ser_k, ser_p, cap, spec, m["mid_lo"], m["mid_hi"], m["end_margin_h"])
     j["x"] = (j["bid"] + j["ask"]) / 2.0 - (j["bid_p"] + j["ask_p"]) / 2.0
@@ -1037,8 +1053,22 @@ def clip_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, feat: pd.DataFrame, tr:
     mk = j["market_id"].astype(str)
     j["t_k"] = panel._epoch(f["origin_utc"].reindex(mk).astype(str))
     j["t_p"] = ser_p["t_row"].reindex(mk).to_numpy(float)
-    nret = pd.to_numeric(f["n_returned"], errors="coerce").reindex(mk).to_numpy(float)
-    j = j.reset_index(drop=True)
+    j["n_ret"] = pd.to_numeric(f["n_returned"], errors="coerce").reindex(mk).to_numpy(float)
+    return j.reset_index(drop=True), cnt
+
+
+def clip_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, feat: pd.DataFrame, tr: pd.DataFrame, token0: pd.Series | None, cap: dict, spec: dict) -> tuple[pd.DataFrame, dict]:
+    """K's units of one pass (section 3), origin-side filters in the declared order, each counted: :func:`clip_movers`, then interval
+    coverage (``interval_truncated``) and ``n_int >= 4`` rows of known outcome with ``t_{k-1} <= ts < t_k``. Clip features from
+    :func:`clip_unit_features`; ``g_path``, ``maxstep_share``, ``age``, ``fresh`` from LT5 J's ``path_fields``. Reads trade rows
+    with ``ts < t_k`` only (the interval)."""
+    j, cnt = clip_movers(ser_k, ser_p, feat, cap, spec)
+    return clip_finish(j, cnt, tr, token0, cap, spec)
+
+
+def clip_finish(j: pd.DataFrame, cnt: dict, tr: pd.DataFrame, token0: pd.Series | None, cap: dict, spec: dict) -> tuple[pd.DataFrame, dict]:
+    c = spec["k"]
+    nret = j["n_ret"].to_numpy(float)
     pf = l5.path_fields(tr, j, nret, token0, _J_SHIM)
     j = pd.concat([j, pf], axis=1)
     cnt["traded_ge4_rows"] = int((j["n_int_all"] >= c["n_int_min"]).sum())
@@ -1696,3 +1726,440 @@ def census_flow(*, seal: Path, sample_roots: list[Path], snapshot_root=SNAPSHOT_
 
 def cleanup_census(work: Path) -> None:
     b.cleanup_census(work)
+
+
+# =====================================================================================================================
+# Unit 4: the reader (sections 8.1-8.2 as amended by 14 and 15)
+# =====================================================================================================================
+#
+# One pass per host pass, write-once (``%.17g``, atomic hard link), in this order: (1) ``series/`` ``status/`` ``members/`` for
+# every capture in [REGISTERED - 26 h, END + 13 slots) and ``sweeps/`` for its sweep 1 -- ALWAYS, also on a pass whose freezes are
+# late, so the next pass's k - 1 inputs survive; look-back labels for captures before REGISTERED (never units); (2) the freezes of
+# captures / samples in [REGISTERED, END) that are not late; (3) the due outcomes. Markers (``.late`` ``.noprev`` ``.nosweep``
+# ``.noprevsweep`` ``.e022boundary``) record a unit file that was refused, never re-read. The reader never reads a target to decide
+# anything, and ``ops_stats`` reads no price column.
+
+import fcntl  # noqa: E402
+
+DISK_CAP_BYTES = int(1.5e9)
+GRID_S, SLOT_TOL_S = b.GRID_S, b.SLOT_TOL_S
+SERIES_LOOKBACK_S = 26 * 3600.0  # D's / B's k - 12 (24 h) plus the 2 h tolerance: the earliest input of the first origin
+LOOKBACK_SLOTS_BEFORE = 13  # captures after END_UTC still needed as k + 12 targets
+MISSING_AFTER_S = l3.MISSING_AFTER_S
+ROLE_CONF, ROLE_UNREG = l3.ROLE_CONF, l3.ROLE_UNREG
+MARKERS = (".late.csv.gz", ".noprev.csv.gz", ".nosweep.csv.gz", ".noprevsweep.csv.gz", ".e022boundary.csv.gz")
+KINDS = ("vote", "clips", "deadline", "birth")
+TEST_OF_KIND = {"vote": "V", "clips": "K", "deadline": "D", "birth": "B"}
+# kind -> (Gamma-capture horizons h, sweep-1 horizons s) of the outcome files (slots k + h; section 1.3)
+OUTCOME_PLAN = {"vote": ([1, 3], [1, 3]), "clips": ([1, 3], [1, 3]), "deadline": ([1, 3, 12], []), "birth": ([1, 3, 12], [])}
+READER_FILES = ("live_tests6.py", "live_tests5.py", "live_tests5_base.py", "live_tests3.py")
+OPS_COLS = frozenset({"role", "cls", "class_k", "geom", "sports", "reason", "status", "late", "checked_utc", "noprev", "nosweep", "crypto6", "crypto_birth", "slot"})
+DROP_FROZEN = ("end_raw", "fee_cat", "osz", "present")
+
+
+def reader_sha() -> str:
+    """16 hex digits identifying the reader code: the joint hash of the modules the reader runs (stamped on every frozen line)."""
+    import hashlib
+
+    h = code_hashes()
+    return hashlib.sha256("".join(str(h.get(n)) for n in READER_FILES).encode("utf-8")).hexdigest()[:16]
+
+
+def pinned_reader_sha(spec: dict) -> str | None:
+    """The same joint hash from the spec's ``code_sha256`` map (what a pinned analysis keeps)."""
+    import hashlib
+
+    pins = spec.get("code_sha256") or {}
+    if any(pins.get(n) is None for n in READER_FILES):
+        return None
+    return hashlib.sha256("".join(str(pins.get(n)) for n in READER_FILES).encode("utf-8")).hexdigest()[:16]
+
+
+def check_pinned_code(spec: dict) -> None:
+    """Fail loudly (every pass) when a pinned spec's code hashes differ from the running code: lines written by other code would carry
+    another ``code_sha`` and be silently dropped at analysis (as E026's ``check_pinned_code``)."""
+    if not spec.get("_pinned"):
+        return
+    h, want = code_hashes(), spec.get("code_sha256") or {}
+    bad = [f for f in CODE_FILES if h.get(f) != want.get(f)]
+    if bad:
+        raise RuntimeError(f"LIVE_TESTS6_CODE_MISMATCH: running code differs from the pinned hashes for {bad}")
+
+
+def running_capture_start(snapshot_root: Path, lo: float, now: float, max_age_s: float = 4 * 3600) -> float:
+    """Vendored from the E026 pattern (not imported). Earliest start (>= ``lo``) of a capture that is NOT complete yet but started less
+    than ``max_age_s`` ago (still being written). A later complete capture must not be processed before it: its k - 1 would look
+    missing and its units would be marked ``.noprev``. Older incomplete captures are failed ones and are ignored. ``inf`` if none."""
+    out = math.inf
+    for p in Path(snapshot_root).glob("*/manifest.json"):
+        try:
+            started = epoch(datetime.strptime(p.parent.name[:16], "%Y%m%dT%H%M%SZ").replace(tzinfo=UTC).isoformat())
+        except ValueError:
+            continue
+        if not math.isfinite(started) or started < lo - 3600 or now - started >= max_age_s:
+            continue
+        try:
+            m = json.loads(p.read_text())
+        except (OSError, ValueError):
+            m = {}
+        t = epoch(m.get("started_utc")) if m.get("started_utc") else started
+        t = t if math.isfinite(t) else started
+        if t >= lo and not (m.get("state") == "complete" and (p.parent / "rows.csv.gz").exists()):
+            out = min(out, t)
+    return out
+
+
+def enabled_kinds(spec: dict) -> dict[str, bool]:
+    """Which kinds the pass collects: a kind whose test is not in ``k_tests`` is switched off once ``k_tests`` is fixed (LT3 13.16 fix 2)."""
+    kt = spec.get("k_tests")
+    return {k: (kt is None or TEST_OF_KIND[k] in kt) for k in KINDS}
+
+
+def _marker(p: Path, suffix: str) -> Path:
+    return p.with_name(p.name.replace(".csv.gz", suffix))
+
+
+def _stamp(df: pd.DataFrame, spec: dict, commit: str, role: str, cap_start: float) -> pd.DataFrame:
+    df = df.drop(columns=[c for c in (*DROP_FROZEN, "frozen_utc", "code_commit", "spec_sha", "code_sha", "role", "capture_t") if c in df.columns])
+    df["role"], df["capture_t"], df["frozen_utc"] = role, cap_start, iso(b.now_ts())
+    df["code_commit"], df["spec_sha"], df["code_sha"] = commit, spec["_sha256"][:16], reader_sha()
+    return df
+
+
+def write_capture_files(root: Path, cap: dict, spec: dict) -> tuple[bool, dict]:
+    """Write-once ``series/`` (LT6's compact series), ``status/`` and ``members/`` of one capture."""
+    rows, ext = load_rows6(cap["dir"]), load_ext6(cap["dir"])
+    ser, sta = ser6_frame(rows, ext, spec, with_status=True)
+    w = [b.write_once_csv(Path(root) / "series" / f"{cap['id']}.csv.gz", ser), b.write_once_csv(Path(root) / "status" / f"{cap['id']}.csv.gz", sta),
+         b.write_once_csv(Path(root) / "members" / f"{cap['id']}.csv.gz", members_frame(rows, ext, spec))]
+    return any(w), {"rows": len(ser), "status_rows": len(sta), "sidecar": bool((ser["sports"] != -1).any()) if len(ser) else None}
+
+
+def _ser(root: Path, by_slot: dict, j: int) -> pd.DataFrame | None:
+    return read_ser6(root, by_slot[j]["id"], "series") if j in by_slot else None
+
+
+def _mem(root: Path, by_slot: dict, j: int) -> pd.DataFrame | None:
+    m = read_ser6(root, by_slot[j]["id"], "members") if j in by_slot else None
+    return None if m is None else m.reset_index()
+
+
+def write_lookback_labels(root: Path, by_slot: dict, k: int, spec: dict, kinds: dict | None = None) -> dict:
+    """Look-back labels of a capture BEFORE REGISTERED (never units): the later / earlier D changes and the B births seen at k, as
+    ``deadline/lookback/<capture>.csv.gz`` and ``birth/lookback/<capture>.csv.gz`` (market, slot, class). They only mark the washout of
+    the first window units (stricter: a pre-window event can only remove units)."""
+    root, c = Path(root), by_slot[k]
+    out = {"written": 0}
+    kinds = kinds or enabled_kinds(spec)
+    pd_, pb_ = root / "deadline" / "lookback" / f"{c['id']}.csv.gz", root / "birth" / "lookback" / f"{c['id']}.csv.gz"
+    if (pd_.exists() or not kinds["deadline"]) and (pb_.exists() or not kinds["birth"]):
+        return out
+    if not (_ser(root, by_slot, k) is not None and (k - 1) in by_slot and _ser(root, by_slot, k - 1) is not None):
+        out["no_previous"] = 1
+        return out
+    ser_k, ser_p = _ser(root, by_slot, k), _ser(root, by_slot, k - 1)
+    mem_k, mem_p = _mem(root, by_slot, k), _mem(root, by_slot, k - 1)
+    ud, _ = deadline_units(ser_k, ser_p, _ser(root, by_slot, k - 12), k, c, spec)
+    lab_d = ud[ud["cls"].isin(["later", "earlier"])][["market_id", "slot", "cls"]] if len(ud) else pd.DataFrame({"market_id": [], "slot": [], "cls": []})
+    hist = {j: _ser(root, by_slot, j) for j in (k - 3, k - 12)}
+    ub, _, _ = birth_units(ser_k, ser_p, mem_k, mem_p, hist, k, c, by_slot[k - 1], spec)
+    lab_b = ub[ub["cls"] == "birth"][["market_id", "slot", "cls"]] if len(ub) else pd.DataFrame({"market_id": [], "slot": [], "cls": []})
+    out["written"] = (int(b.write_once_csv(pd_, lab_d)) if kinds["deadline"] else 0) + (int(b.write_once_csv(pb_, lab_b)) if kinds["birth"] else 0)
+    return out
+
+
+def run_once(*, snapshot_root: Path = SNAPSHOT_ROOT, sample_root: Path = SAMPLE_ROOT, sweep_root: Path = SWEEP_ROOT, root: Path = OUT_ROOT,
+             spec: dict | None = None, registered_utc: str | None = None, end_utc: str | None = None, now: float | None = None,
+             max_items: int = 40, allow_late: bool = False, mode: str = "run") -> dict:
+    """Series, sweeps, look-back labels, freezes and due outcomes for everything new. Idempotent (write-once). ``mode='backfill'``
+    writes only the series / status / members / sweeps / look-back labels (``backfill-series``). ``allow_late`` is for DRY RUNS on past
+    captures with an unpinned spec only (L6). An internal non-blocking flock on ``run.lock`` serialises readers."""
+    spec = spec or load_spec()
+    if allow_late and spec.get("_pinned"):
+        raise ValueError("allow_late is for dry runs with an unpinned spec only")
+    registered_utc, end_utc = registered_utc or spec.get("registered_utc"), end_utc or spec.get("end_utc")
+    if registered_utc is None or end_utc is None:
+        raise ValueError("registered_utc / end_utc are null in the DRAFT spec: pass them explicitly for a dry run")
+    if mode not in ("run", "backfill"):
+        raise ValueError(f"unknown mode {mode!r}")
+    check_pinned_code(spec)
+    root = Path(root)
+    root.mkdir(parents=True, exist_ok=True)
+    with open(root / "run.lock", "a") as lk:
+        try:
+            fcntl.flock(lk.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            return {"status": "locked", "written": 0, "run_utc": iso(b.now_ts() if now is None else now)}
+        return _run_locked(snapshot_root=snapshot_root, sample_root=sample_root, sweep_root=sweep_root, root=root, spec=spec, registered_utc=registered_utc,
+                           end_utc=end_utc, now=b.now_ts() if now is None else now, max_items=max_items, allow_late=allow_late, mode=mode)
+
+
+def _refuse(p: Path, suffix: str, now: float, stats: dict, log: list, kind: str, fid: str, k: int, key: str = "refused_late") -> None:
+    stats[key] = stats.get(key, 0) + 1
+    b.write_once_csv(_marker(p, suffix), pd.DataFrame({suffix.split(".")[1]: [1], "checked_utc": [iso(now)]}))
+    log.append({"kind": f"{kind}_{suffix.split('.')[1]}", "id": fid, "slot": k, "written_utc": iso(b.now_ts())})
+
+
+def _run_locked(*, snapshot_root, sample_root, sweep_root, root: Path, spec: dict, registered_utc: str, end_utc: str, now: float, max_items: int,
+                allow_late: bool, mode: str) -> dict:
+    commit = b.git_commit()
+    stats: dict = {"run_utc": iso(now), "code_commit": commit, "spec_sha": spec["_sha256"][:16], "pinned": spec["_pinned"], "mode": mode, "written": 0,
+                   "series": 0, "sweeps": 0, "lookback_labels": 0, "outcomes": 0, "refused_late": 0, **{k: 0 for k in KINDS}}
+    if root.exists() and b.dir_bytes(root) > DISK_CAP_BYTES:
+        stats["status"] = "disk_cap"
+        b.append_jsonl(root / "passes.jsonl", [{"kind": "disk_cap", **stats}])
+        return stats
+    t_reg, t_end = epoch(registered_utc), epoch(end_utc)
+    st = b.State(root)
+    by_slot = b.scan_captures(snapshot_root, st, spec)
+    samples = b.scan_samples(sample_root, st) if mode == "run" else {}
+    sweeps = b.scan_sweeps(sweep_root, st)
+    st.save()
+    # running-capture guard: a capture still being written blocks every LATER capture (its k - 1 would look missing)
+    block = running_capture_start(snapshot_root, t_reg - SERIES_LOOKBACK_S - 3600.0, now)
+    if math.isfinite(block):
+        stats["blocked_by_running_capture"] = sum(1 for c in by_slot.values() if c["start"] > block)
+        by_slot = {k: c for k, c in by_slot.items() if c["start"] < block}
+    log: list[dict] = []
+    budget = max_items
+    pinned = spec["_pinned"]
+    hi = t_end + LOOKBACK_SLOTS_BEFORE * GRID_S + SLOT_TOL_S
+    kinds = enabled_kinds(spec)
+    # 1. series / status / members, sweep 1 (ALWAYS, also for passes whose freezes are late), look-back labels
+    for k in sorted(by_slot):
+        c = by_slot[k]
+        if not (t_reg - SERIES_LOOKBACK_S <= c["start"] < hi) or budget <= 0:
+            continue
+        if not all((root / sub / f"{c['id']}.csv.gz").exists() for sub in ("series", "status", "members")):
+            w, info = write_capture_files(root, c, spec)
+            if w:
+                stats["series"] += 1
+                budget -= 1
+                log.append({"kind": "lookback_series" if c["start"] < t_reg else "series", "id": c["id"], "slot": k, **info, "written_utc": iso(b.now_ts())})
+        p = root / "sweeps" / f"{c['id']}.csv.gz"
+        if c["id"] in sweeps and not p.exists() and budget > 0:
+            if b.write_once_csv(p, b.sweep_frame(sweeps[c["id"]]["dir"], c["dir"])):
+                stats["sweeps"] += 1
+                budget -= 1
+                log.append({"kind": "lookback_sweep" if c["start"] < t_reg else "sweep", "id": c["id"], "sweep_id": sweeps[c["id"]]["id"], "written_utc": iso(b.now_ts())})
+        if c["start"] < t_reg and budget > 0 and (root / "series" / f"{c['id']}.csv.gz").exists():
+            lb = write_lookback_labels(root, by_slot, k, spec, kinds)
+            if lb["written"]:
+                stats["lookback_labels"] += lb["written"]
+                log.append({"kind": "lookback_labels", "id": c["id"], "slot": k, "written_utc": iso(b.now_ts())})
+    if mode == "run":
+        budget = _freezes(root, by_slot, samples, sweeps, spec, t_reg, t_end, now, budget, allow_late, pinned, registered_utc, end_utc, commit, kinds, stats, log)
+        budget = _outcomes(root, by_slot, sweeps, spec, now, budget, kinds, stats, log)
+    stats["written"] = sum(stats[k] for k in ("series", "sweeps", "lookback_labels", "outcomes", *KINDS))
+    stats["status"] = "wrote" if stats["written"] else "nothing_new"
+    for r in log:
+        r.update(code_commit=commit, spec_sha=spec["_sha256"][:16])
+    b.append_jsonl(root / "passes.jsonl", log + [{"kind": "run", **stats}])
+    return stats
+
+
+def _freezes(root, by_slot, samples, sweeps, spec, t_reg, t_end, now, budget, allow_late, pinned, registered_utc, end_utc, commit, kinds, stats, log) -> int:
+    e022_end = (spec.get("e022") or {}).get("end_utc")
+    for k in sorted(by_slot):
+        c = by_slot[k]
+        if not (t_reg <= c["start"] < t_end):
+            continue
+        role = l3.role_of(c["start"], registered_utc, end_utc, pinned)
+        for kind in ("vote", "deadline", "birth"):
+            p = root / kind / "frozen" / f"{c['id']}.csv.gz"
+            if not kinds[kind] or p.exists() or any(_marker(p, s).exists() for s in MARKERS) or budget <= 0:
+                continue
+            late = not allow_late and l3.is_late(k + 1, now, spec)
+            sw_k_exists = (root / "sweeps" / f"{c['id']}.csv.gz").exists() or c["id"] in sweeps
+            pc = by_slot.get(k - 1)
+            sw_p_exists = pc is not None and ((root / "sweeps" / f"{pc['id']}.csv.gz").exists() or pc["id"] in sweeps)
+            if late and kind == "vote" and not sw_k_exists:
+                _refuse(p, ".nosweep.csv.gz", now, stats, log, kind, c["id"], k, "nosweep")
+                continue
+            if late and kind == "vote" and pc is not None and not sw_p_exists:
+                _refuse(p, ".noprevsweep.csv.gz", now, stats, log, kind, c["id"], k, "noprevsweep")
+                continue
+            if late:
+                _refuse(p, ".late.csv.gz", now, stats, log, kind, c["id"], k)
+                continue
+            if k - 1 not in by_slot:
+                if l3.target_state(by_slot, k - 1, now, spec) == "pending":
+                    continue
+                b.write_once_csv(_marker(p, ".noprev.csv.gz"), pd.DataFrame({"noprev": [1]}))
+                log.append({"kind": f"{kind}_no_previous_slot", "id": c["id"], "slot": k})
+                continue
+            if not l3.series_ready(root, by_slot, (k - 1, k)):
+                continue
+            ser_k, ser_p = _ser(root, by_slot, k), _ser(root, by_slot, k - 1)
+            if kind == "vote":
+                sk, sp = l3.sweep_state(by_slot, sweeps, k, root, now, spec), l3.sweep_state(by_slot, sweeps, k - 1, root, now, spec)
+                if "pending" in (sk, sp):
+                    continue
+                if sk == "missing":
+                    _refuse(p, ".nosweep.csv.gz", now, stats, log, kind, c["id"], k, "nosweep")
+                    continue
+                if sp == "missing":
+                    _refuse(p, ".noprevsweep.csv.gz", now, stats, log, kind, c["id"], k, "noprevsweep")
+                    continue
+                sdir_p = sweeps[pc["id"]]["dir"] if pc["id"] in sweeps else None
+                sw_start = l5._name_time(Path(sdir_p).name) if sdir_p else pc["start"]
+                if not v_first_origin_ok(iso(pc["start"]), iso(sw_start), e022_end):
+                    _refuse(p, ".e022boundary.csv.gz", now, stats, log, kind, c["id"], k, "e022_boundary")
+                    continue
+                units, cnt = vote_units(ser_k, ser_p, l3.read_sweep(root, c["id"]), l3.read_sweep(root, pc["id"]), c, spec)
+            elif kind == "deadline":
+                units, cnt = deadline_units(ser_k, ser_p, _ser(root, by_slot, k - 12), k, c, spec)
+            else:
+                units, cnt, _ = birth_units(ser_k, ser_p, _mem(root, by_slot, k), _mem(root, by_slot, k - 1),
+                                            {j: _ser(root, by_slot, j) for j in (k - 3, k - 12)}, k, c, pc, spec)
+            if len(units):
+                units = units.assign(capture_id=c["id"], k_slot=k)
+            fr = _stamp(units, spec, commit, role, c["start"]) if len(units) else pd.DataFrame(
+                {"capture_t": [], "role": [], "market_id": [], "slot": [], "frozen_utc": [], "code_commit": [], "spec_sha": [], "code_sha": []})
+            if b.write_once_csv(p, fr):
+                stats[kind] += 1
+                budget -= 1
+                log.append({"kind": f"{kind}_frozen", "id": c["id"], "slot": k, "counts": {a: v for a, v in cnt.items() if isinstance(v, (int, float, dict))}, "written_utc": iso(b.now_ts())})
+    # K: one freeze per complete active-frame sample
+    if not kinds["clips"]:
+        return budget
+    slot_by_id = {c["id"]: k for k, c in by_slot.items()}
+    for sid in sorted(samples):
+        k = slot_by_id.get(samples[sid]["snapshot_id"])
+        if k is None:
+            continue
+        c = by_slot[k]
+        if not (t_reg <= c["start"] < t_end):
+            continue
+        p = root / "clips" / "frozen" / f"{sid}.csv.gz"
+        if p.exists() or any(_marker(p, s).exists() for s in MARKERS) or budget <= 0:
+            continue
+        if not allow_late and l3.is_late(k + 1, now, spec):
+            _refuse(p, ".late.csv.gz", now, stats, log, "clips", sid, k)
+            continue
+        if k - 1 not in by_slot:
+            if l3.target_state(by_slot, k - 1, now, spec) == "pending":
+                continue
+            b.write_once_csv(_marker(p, ".noprev.csv.gz"), pd.DataFrame({"noprev": [1]}))
+            continue
+        if not l3.series_ready(root, by_slot, (k - 1, k)):
+            continue
+        role = l3.role_of(c["start"], registered_utc, end_utc, pinned)
+        ser_k, ser_p = _ser(root, by_slot, k), _ser(root, by_slot, k - 1)
+        sdir = Path(samples[sid]["dir"])
+        feat0, _ = load_sample6(sdir, markets=[])  # features only
+        j, cnt = clip_movers(ser_k, ser_p, feat0, c, spec)
+        feat, tr = load_sample6(sdir, markets=j["market_id"].astype(str), before=float(j["t_k"].max()) if len(j) else None)
+        tok = b.token0_map(c["dir"], j["market_id"].astype(str)) if len(j) else None
+        units, cnt2 = clip_finish(j, cnt, tr, tok, c, spec) if len(j) else (j, cnt)
+        del tr
+        if len(units):
+            units = units.assign(capture_id=c["id"], sample_id=sid, k_slot=k)
+        fr = _stamp(units, spec, commit, role, c["start"]) if len(units) else pd.DataFrame(
+            {"capture_t": [], "role": [], "market_id": [], "slot": [], "frozen_utc": [], "code_commit": [], "spec_sha": [], "code_sha": []})
+        if b.write_once_csv(p, fr):
+            stats["clips"] += 1
+            budget -= 1
+            log.append({"kind": "clips_frozen", "id": sid, "capture_id": c["id"], "slot": k, "counts": {a: v for a, v in cnt2.items() if isinstance(v, (int, float))},
+                        "written_utc": iso(b.now_ts())})
+    return budget
+
+
+def _outcomes(root, by_slot, sweeps, spec, now, budget, kinds, stats, log) -> int:
+    for kind, (hs, ss) in OUTCOME_PLAN.items():
+        if not kinds[kind]:
+            continue
+        fdir = root / kind / "frozen"
+        for p in sorted(fdir.glob("*.csv.gz")) if fdir.exists() else []:
+            if p.name.endswith(MARKERS) or budget <= 0:
+                continue
+            fid = p.name[:-7]
+            todo = [("h", h) for h in hs if not (root / kind / "outcomes" / f"{fid}.h{h}.csv.gz").exists()]
+            todo += [("s", s) for s in ss if not (root / kind / "outcomes" / f"{fid}.s{s}.csv.gz").exists()]
+            if not todo:
+                continue
+            k = l3._first_slot(p)
+            if k is None:
+                continue
+            mids = None
+            for typ, h in todo:
+                if budget <= 0:
+                    break
+                j = k + h
+                state = l3.target_state(by_slot, j, now, spec) if typ == "h" else l3.sweep_state(by_slot, sweeps, j, root, now, spec)
+                if state == "pending" or (typ == "h" and state == "ready" and not l3.series_ready(root, by_slot, (j,))):
+                    continue
+                if mids is None:
+                    mids = pd.read_csv(p, usecols=["market_id"], dtype={"market_id": str})["market_id"].to_numpy()
+                out = l3.outcome_h(mids, by_slot, j, root, state == "missing") if typ == "h" else l3.outcome_s(
+                    mids, None if state == "missing" else l3.read_sweep(root, by_slot[j]["id"]), state == "missing")
+                if b.write_once_csv(root / kind / "outcomes" / f"{fid}.{typ}{h}.csv.gz", out):
+                    stats["outcomes"] += 1
+                    budget -= 1
+                    log.append({"kind": f"{kind}_outcome", "id": fid, "tag": f"{typ}{h}", "target_slot": j, "target": state, "rows": len(out), "written_utc": iso(b.now_ts())})
+    return budget
+
+
+# --- operational counts (never reads a price, a move, a state value or a target) ----------------------------------------------
+
+
+def _read_ops(path: Path, cols: list[str]) -> pd.DataFrame:
+    bad = [c for c in cols if c not in OPS_COLS]
+    if bad:
+        raise ValueError(f"ops_stats may not read {bad}")
+    head = pd.read_csv(path, nrows=0).columns
+    use = [c for c in cols if c in head]
+    return pd.read_csv(path, usecols=use) if use else pd.DataFrame()
+
+
+def lookback_slots_missing(root: Path, spec: dict, registered_utc: str) -> list[str]:
+    """Slots in [REGISTERED - 26 h, REGISTERED) with no ``series/`` line (neither backfill nor arrival): ``lookback_missing`` (counted
+    per slot, never imputed or restored from a later file). Names are slot times; a slot is covered by any series file whose capture id
+    starts within the 30-minute tolerance."""
+    t_reg = epoch(registered_utc)
+    have = []
+    for f in (Path(root) / "series").glob("*.csv.gz") if (Path(root) / "series").exists() else []:
+        try:
+            have.append(epoch(datetime.strptime(f.name[:16], "%Y%m%dT%H%M%SZ").replace(tzinfo=UTC).isoformat()))
+        except ValueError:
+            continue
+    k_first = int(math.ceil((t_reg - b.grid0(spec)) / GRID_S))  # the first origin slot: the first capture starting at or after REGISTERED_UTC
+    out = []
+    for k in range(k_first - 12, k_first):  # its inputs reach back to slot k - 12 (24 h)
+        ts = b.slot_time(k, spec)
+        if not any(abs(h - ts) <= SLOT_TOL_S for h in have):
+            out.append(iso(ts))
+    return out
+
+
+def ops_stats(root: Path = OUT_ROOT, spec: dict | None = None, registered_utc: str | None = None) -> dict:
+    root = Path(root)
+    out: dict = {"root": str(root), "bytes": b.dir_bytes(root) if root.exists() else 0}
+    for sub in ("series", "status", "members", "sweeps", *(f"{k}/frozen" for k in KINDS), *(f"{k}/outcomes" for k in KINDS), "deadline/lookback", "birth/lookback"):
+        d = root / sub
+        files = sorted(d.glob("*.csv.gz")) if d.exists() else []
+        out[sub] = {"files": len([f for f in files if not f.name.endswith(MARKERS)]), **{s.split(".")[1]: len([f for f in files if f.name.endswith(s)]) for s in MARKERS}}
+    counts, status = {}, {}
+    cols = {"vote": ["role", "cls", "geom", "sports"], "clips": ["role", "class_k", "geom", "sports"], "deadline": ["role", "cls", "sports", "crypto6"],
+            "birth": ["role", "cls", "reason", "sports", "crypto_birth"]}
+    for kind, cl in cols.items():
+        d = root / kind / "frozen"
+        for f in sorted(d.glob("*.csv.gz")) if d.exists() else []:
+            if f.name.endswith(MARKERS):
+                continue
+            s = _read_ops(f, cl)
+            for c in s.columns:
+                for k_, v in s[c].value_counts().items():
+                    counts[f"{kind}:{c}:{k_}"] = counts.get(f"{kind}:{c}:{k_}", 0) + int(v)
+        d = root / kind / "outcomes"
+        for f in sorted(d.glob("*.csv.gz")) if d.exists() else []:
+            tag = f.name[:-7].rsplit(".", 1)[-1]
+            s = _read_ops(f, ["status"])
+            for k_, v in s["status"].value_counts().items():
+                status[f"{kind}:{tag}:{k_}"] = status.get(f"{kind}:{tag}:{k_}", 0) + int(v)
+    out.update(line_counts=counts, outcome_status_counts=status)
+    reg = registered_utc or (spec or {}).get("registered_utc")
+    if reg and spec:
+        miss = lookback_slots_missing(root, spec, reg)
+        out["lookback_missing"] = {"n": len(miss), "slots": miss}
+    return out

@@ -134,6 +134,10 @@ def gate_for(test: str, df: pd.DataFrame, y: np.ndarray, spec: dict, t0: float |
 def floors_status(test: str, df: pd.DataFrame, spec: dict) -> dict:
     """Floors (Unavailable below any of them, 1.9): the counts that matter per test and their floors."""
     f = spec[test.lower()]["floors"]
+    f0 = spec[test.lower()]["floors"]
+    if df.empty or "day" not in df:
+        n0 = {k_: 0 for k_ in f0}
+        return {"counts": n0, "floors": f0, "below": {k_: 0 for k_ in f0}, "available": False}
     days = int(df["day"].nunique()) if len(df) else 0
     ev = df["event_id"].astype(str)
     if test == "V":
@@ -194,7 +198,7 @@ def is_material(test: str, res: dict, spec: dict) -> bool:
 
 
 def analyze_frames(frames: dict[str, pd.DataFrame], spec: dict, *, size_check: dict | None = None, now: float | None = None, force: bool = False,
-                   require_pinned: bool = True, t0: float | None = None, n_boot: int | None = None) -> dict:
+                   require_pinned: bool = True, t0: float | None = None, n_boot: int | None = None, accounts: dict | None = None) -> dict:
     """The whole analysis on prepared per-test frames. Refuses before the analysis date (``force`` is for tests only), an unpinned
     spec when ``require_pinned``, null ``k_tests``, a test named in ``k_tests`` that LT6 does not have, and a frame missing for a
     surviving test. One Holm family over k, one-sided, alpha 0.05; a primary that is unavailable, fails its gate or is named by a
@@ -243,6 +247,10 @@ def analyze_frames(frames: dict[str, pd.DataFrame], spec: dict, *, size_check: d
             labels.append("underpowered")
         if (r.get("top_family_share") or 0.0) > lab["series_concentrated_share"]:
             labels.append(f"series-concentrated ({r['top_family_share']:.0%})")
+        acc = (accounts or {}).get(t) or {}
+        if (acc.get("late_loss_share") or 0.0) > lab["late_loss_share"]:
+            labels.append(f"late-loss ({acc['late_loss_share']:.1%} of origin files refused late)")
+        r["accounts"] = acc
         if t == "D" and (lab.get("partially_seen_d") is not False):
             labels.append("partially seen (CB18 end_date class)")
         sc = ((size_check or {}).get("scenarios") or {})
@@ -522,3 +530,193 @@ def size_check(*, worlds: int, draws: int, seed: int, nominal: float = 0.05, bin
     if include_nonbinding:
         out["nonbinding"] = nonbinding_runs(spec, draws)
     return out
+
+
+# =====================================================================================================================
+# Store loaders and the single analysis entry point (1.1, 1.6, 1.9)
+# =====================================================================================================================
+
+from pathlib import Path  # noqa: E402
+
+CONF = lt.ROLE_CONF
+TAGS = {"V": ("h1", "h3", "s1", "s3"), "K": ("h1", "h3", "s1", "s3"), "D": ("h1", "h3", "h12"), "B": ("h1", "h3", "h12")}
+KIND_OF = {v: k for k, v in lt.TEST_OF_KIND.items()}
+MARKER_NAMES = ("late", "noprev", "nosweep", "noprevsweep", "e022boundary")
+
+
+def code_check(spec: dict) -> dict:
+    """Compare the code on disk with the spec's ``code_sha256`` map. A pinned spec REFUSES on any mismatch, an unfilled map, null
+    ``k_tests`` or a null / NaN census value its tests need; a DRAFT spec only labels."""
+    pins = spec.get("code_sha256") or {}
+    cur = lt.code_hashes()
+    status = {n: ("not pinned" if pins.get(n) is None else ("match" if pins.get(n) == h else "MISMATCH")) for n, h in cur.items()}
+    if spec.get("_pinned"):
+        bad = {n: s_ for n, s_ in status.items() if s_ != "match"}
+        if bad:
+            raise RuntimeError(f"live_tests6 code sha256 does not match the registered pins: {bad}")
+        miss = lt.unfilled(spec)
+        if miss:
+            raise RuntimeError(f"live_tests6 spec pinned with unfilled placeholders: {miss}")
+    return {"current": cur, "pinned": {n: pins.get(n) for n in cur}, "status": status,
+            "label": None if all(s_ == "match" for s_ in status.values()) else "DRAFT: code hashes not verified"}
+
+
+def load_kind(root: Path, kind: str, start: float, end: float, roles: tuple[str, ...], spec: dict | None, tags: tuple[str, ...]) -> tuple[pd.DataFrame, dict]:
+    """Frozen lines of origins in ``[start, end)`` with an allowed role and, with a pinned spec, the pinned spec hash and the joint
+    reader hash, merged with their outcome files (columns suffixed ``_<tag>``). Counts dropped lines and refusal markers."""
+    fdir, odir = Path(root) / kind / "frozen", Path(root) / kind / "outcomes"
+    pinned = bool(spec and spec.get("_pinned"))
+    want_spec = spec["_sha256"][:16] if pinned else None
+    want_code = lt.pinned_reader_sha(spec) if pinned else None
+    if pinned and want_code is None:
+        raise RuntimeError("live_tests6 pinned spec lacks the reader code pins")
+    acc = {"files": 0, **{f"{m}_files": 0 for m in MARKER_NAMES}, "dropped_role": 0, "dropped_spec_sha": 0, "dropped_code_sha": 0}
+    parts = []
+    for p in sorted(fdir.glob("*.csv.gz")) if fdir.exists() else []:
+        if p.name.endswith(lt.MARKERS):
+            acc[p.name.split(".")[-3] + "_files"] += 1
+            continue
+        fr = pd.read_csv(p, dtype={"market_id": str, "event_id": str, "spec_sha": str, "code_sha": str, "skey": str, "crypto6": str, "crypto_birth": str,
+                                   "cls": str, "reason": str, "class_k": str, "geom": str}, float_precision="round_trip")
+        if not len(fr) or not (start <= float(fr["capture_t"].iloc[0]) < end):
+            continue
+        acc["files"] += 1
+        keep = fr["role"].isin(roles)
+        acc["dropped_role"] += int((~keep).sum())
+        fr = fr[keep]
+        if pinned:
+            for col, want, key in (("spec_sha", want_spec, "dropped_spec_sha"), ("code_sha", want_code, "dropped_code_sha")):
+                ok = fr[col].astype(str) == want
+                acc[key] += int((~ok).sum())
+                fr = fr[ok]
+        fid = p.name[:-7]
+        for tag in tags:
+            op = odir / f"{fid}.{tag}.csv.gz"
+            if op.exists():
+                out = pd.read_csv(op, dtype={"market_id": str, "status": str, "cap_id": str}, float_precision="round_trip").drop_duplicates("market_id")
+                out = out.rename(columns={c: f"{c}_{tag}" for c in out.columns if c != "market_id"})
+                fr = fr.merge(out, on="market_id", how="left")
+            else:
+                fr[f"status_{tag}"] = "pending"
+        fr["file"] = fid
+        parts.append(fr)
+    df = pd.concat(parts, ignore_index=True) if parts else pd.DataFrame()
+    tot = acc["files"] + acc["late_files"] + acc["nosweep_files"] + acc["noprevsweep_files"]
+    acc["late_loss_share"] = acc["late_files"] / tot if tot else 0.0
+    return df, acc
+
+
+def label_slots(root: Path, kind: str, classes: tuple[str, ...]) -> dict[str, list[int]]:
+    """Market -> slots of labelled units seen anywhere: the look-back lines before REGISTERED plus every frozen line (the washout of
+    1.7 uses both; look-back events can only remove units)."""
+    out: dict[str, list[int]] = {}
+    for sub in ("lookback", "frozen"):
+        d = Path(root) / kind / sub
+        for f in sorted(d.glob("*.csv.gz")) if d.exists() else []:
+            if f.name.endswith(lt.MARKERS):
+                continue
+            try:
+                s = pd.read_csv(f, usecols=["market_id", "slot", "cls"], dtype={"market_id": str, "cls": str})
+            except ValueError:
+                continue
+            for m, sl in s[s["cls"].isin(classes)].groupby("market_id")["slot"]:
+                out.setdefault(str(m), []).extend(int(x) for x in sl)
+    return out
+
+
+def _late_any(df: pd.DataFrame, tags: tuple[str, ...]) -> np.ndarray:
+    m = np.zeros(len(df), bool)
+    for tg in tags:
+        m |= la3.late_mask(df, tg)
+    return m
+
+
+def build_frame(test: str, df: pd.DataFrame, root: Path, spec: dict, mask_late: bool = True) -> tuple[pd.DataFrame, dict]:
+    """The prepared analysis frame of one test from its loaded lines: the target (joint status ``two_sided`` and in time at both
+    target slots; the joint late mask), the class population, the washout (D, B), ``day``, and the ``lt.prepare_*`` columns. Counts of
+    every exclusion are returned (nothing imputed)."""
+    cnt: dict = {"lines": len(df)}
+    if df.empty:
+        return pd.DataFrame(), cnt
+    df = df.copy()
+    df["day"] = la3.day_of(df["capture_t"])
+    sx = np.sign(df["x"].to_numpy(float)) if "x" in df else None
+    if test == "V":
+        y = sx * (la3.mid_at(df, "s3") - la3.mid_at(df, "s1"))
+        df["c_vskip"], df["c_skip_m1"] = y, sx * (la3.mid_at(df, "h3") - la3.mid_at(df, "h1"))
+        late = _late_any(df, ("h1", "h3"))
+        ycol = "c_vskip"
+    elif test == "K":
+        df = df[df["class_k"].isin(["clip", "clip_free"])].copy()
+        sx = np.sign(df["x"].to_numpy(float))
+        df["c_skip"] = sx * (la3.mid_at(df, "h3") - la3.mid_at(df, "h1"))
+        late = _late_any(df, ("h1", "h3"))
+        ycol = "c_skip"
+    elif test == "D":
+        df, cnt["washout_dropped"] = lt.apply_washout(df, "no_change", ("later", "earlier"), int(spec["d"]["washout_slots"]), label_slots(root, "deadline", ("later", "earlier")))
+        df = df[df["bydate"].astype(str).isin(["True", "true", "1"]) & df["cls"].isin(["later", "no_change"]) & df["d24"].notna()].copy()
+        df["y22"] = la3.mid_at(df, "h12") - la3.mid_at(df, "h1")
+        late = _late_any(df, ("h1", "h12"))
+        ycol = "y22"
+    else:
+        df, cnt["washout_dropped"] = lt.apply_washout(df, "nobirth", ("birth",), int(spec["b"]["washout_slots"]), label_slots(root, "birth", ("birth",)))
+        df = df[df["cls"].isin(["birth", "nobirth"]) & df["a6"].notna() & df["a24"].notna() & df["loo_a1"].notna()].copy()
+        df["a22"] = np.abs(la3.mid_at(df, "h12") - la3.mid_at(df, "h1"))
+        late = _late_any(df, ("h1", "h12"))
+        ycol = "a22"
+    late = late if mask_late else np.zeros(len(df), bool)  # mask_late=False is for dry runs on past captures only
+    cnt["late_masked"] = int(late.sum())
+    df = df[~late].copy()
+    cnt["target_unavailable"] = int(df[ycol].isna().sum())
+    df = df[df[ycol].notna()].reset_index(drop=True)
+    if df.empty:
+        return df, cnt
+    if test == "V":
+        v = spec["v"]
+        df = lt.prepare_v(df, v["c_v"], v["s_v"])
+    elif test == "K":
+        df = lt.prepare_k(df)
+    elif test == "D":
+        df = lt.prepare_d(df)
+    else:
+        df = lt.prepare_b(df)
+    df["event_id"] = df["event_id"].astype(str)
+    return df, cnt
+
+
+def trial_line(res: dict) -> dict:
+    """The single counted trials line (``battery2.KIND_RULES['live_tests6']``, ``n_tests`` = k). Gate draws, secondaries, mechanism
+    readings, placebos, economics, censuses and the size check are not counted (LIVE_TESTS_6.md 1.11)."""
+    ks = (res.get("holm") or {}).get("tests") or []
+    return {"kind": TRIAL_KIND, "label": "PROSPECTIVE", "evidence_role": CONF, "experiments": list(ks), "n_tests": len(ks), "n_primary": len(ks), "holm": res.get("holm"),
+            "verdicts": {t: ((res.get("tests") or {}).get(t) or {}).get("verdict") for t in ks}, "spec_sha256": res.get("spec_sha"),
+            "code_sha256": res.get("code_sha256"), "window": res.get("window")}
+
+
+def analyze(root: Path = lt.OUT_ROOT, *, spec: dict | None = None, now: float | None = None, force: bool = False, require_pinned: bool = True,
+            size_check: dict | None = None, n_boot: int | None = None, roles: tuple[str, ...] = (CONF,), mask_late: bool = True) -> dict:
+    """The single registered analysis on the reader's write-once files. Refuses before ``analysis_not_before`` (``force`` is for
+    tests only), on a code or spec pin mismatch, an unpinned spec, null ``k_tests`` and unfilled placeholders. Lines are kept only if their
+    role is ``prospective_confirmation`` and their ``spec_sha`` / ``code_sha`` equal the pins. With no data every surviving test is a
+    well-formed Unavailable (p = 1 in Holm, k unchanged)."""
+    spec = spec or lt.load_spec()
+    if not force:
+        nb = spec.get("analysis_not_before")
+        if nb is None:
+            raise RuntimeError("live_tests6 analysis refused: analysis_not_before is null (the spec is a DRAFT)")
+        if (b.now_ts() if now is None else now) < lt.epoch(nb):
+            raise RuntimeError(f"live_tests6 analysis refused before {nb}")
+    cc = code_check(spec)
+    if require_pinned and not spec.get("_pinned"):
+        raise RuntimeError("live_tests6 analysis refused: the spec is not pinned")
+    start, end = lt.epoch(spec["registered_utc"]), lt.epoch(spec["end_utc"])
+    ktests = list(spec.get("k_tests") or [])
+    frames, accounts = {}, {}
+    for t in ktests:
+        kind = KIND_OF[t]
+        df, acc = load_kind(root, kind, start, end, roles, spec, TAGS[t])
+        fr, cnt = build_frame(t, df, root, spec, mask_late)
+        frames[t], accounts[t] = fr, {**acc, **cnt}
+    res = analyze_frames(frames, spec, size_check=size_check, now=now, force=True, require_pinned=require_pinned, t0=start, n_boot=n_boot, accounts=accounts)
+    res.update(code_sha256=cc["current"], code_check=cc, window=[spec["registered_utc"], spec["end_utc"]], roles=list(roles), accounts=accounts)
+    return bd._clean(res)
