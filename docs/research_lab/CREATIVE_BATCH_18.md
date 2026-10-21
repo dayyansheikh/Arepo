@@ -866,3 +866,27 @@ finding 3 makes P's power gate the stricter of its two readings.
 | 4 | LOW: P's look-back label "k − 12 from 10-15T12:31Z" wrong | label fixed: P reads back to k − 4 (from 10-15T16:31Z); no restore change (q0500 covers it); R reads only each sample's capture-k sidecar (category), so q0504 now depends on q0500 | §3 intro; q0503, q0504 |
 | 5 | LOW: q0512 waits for E011 but not E012 | q0512 also refuses before E012's analysis commit (on or after 2026-11-13T12:00Z; overlapping population and 24 h target) | §0.3 table, §1.2 date table, §7 calendar; q0512 (`--require-e012-analysis`) |
 
+
+## 13. Census interpretation notes, 2026-10-21, written before any census run
+
+Written after the independent code check of the census code (`science-reviewer`, verdict CENSUS_READY_WITH_FIXES,
+2026-10-21) and before q0502-q0506 ran on real data. The sealed rules (`seals/cb18_rules.json`, part `pre`; its hash is
+unchanged by everything below) leave the following readings open. Each choice is the conservative or rule-faithful one;
+no threshold, gate or formula changed.
+
+| # | Point | Choice and reason |
+|---|---|---|
+| 1 | Capture time | The time of a capture is the maximum `received_utc` over **all** rows of its file, taken before any market filter or de-duplication (the sealed `CAPTURE_TIME_RULE`: the last page's receipt). Fixed in `cb18_common.read_capture`; it feeds P's state-window start, S's `t_{k-1}` in the book-untouched test and the cut-off check. |
+| 2 | P category | A unit whose category cannot be read (sidecar missing or incomplete, or the market absent from it) has an **unknown** category. It is excluded from the non-sports population, kept in the all-category population and counted (`category_unknown_units`). Reason: unknown never passes; treating it as non-sports would fail open. |
+| 3 | Book untouched, outcome 1 | If the outcome-1 book is in sweep 1 but its stamp is missing, the book is not untouched (`b1 = ~ok1 or (finite stamp and stamp <= t_{k-1})`). Reason: unknown never passes. |
+| 4 | Sweep receipt | An unparseable or missing sweep-1 receipt makes the age unknown: the unit is excluded and counted in the waterfall step `receipt_missing`. |
+| 5 | GP3 | The side-unusable share is computed over **all categories'** state-window rows and used for both gate sets (non-sports and all). Reason: the rule gives one share of "rows in the state windows"; the all-category share is the larger sample; the non-sports-only share is derivable from the counts and is not used. |
+| 6 | GP4 | The denominator of the truncated share is the units with status `ok` (non-ok units are reported separately as `status_not_ok`, not counted as truncated or as eligible). Reason: coverage is undefined without a returned trade page. |
+| 7 | P design effect | The design-effect population is the **fades**, by Gamma event id (else market id), as for S's silent units. |
+| 8 | GS4 (disclosure) | GS4 counts silent units whose look-back status is `lookback_missing`; the frame (and the proxy SE, features) leaves them out, counted. GS4 needs only k - 1, k and sweep 1. |
+| 9 | Eligibility step (6) (disclosure) | Step (6) requires the sidecar at k - 1 as well as at k (the (8) equalities need both). A missing sidecar at k - 1 therefore moves a unit out of GS2/GS3's denominators (both start at step (7)). Counted as `sidecar_missing`. |
+| 10 | Map M exits (disclosure and change) | The first code version undid an exit when the market re-appeared later, so the exit tables depended on later captures. M carries no gate and no route (it is descriptive; its window arithmetic is planning only), so no gate could be affected. It is nevertheless changed so that an exit is judged **only on information up to its own confirmation time**: a later re-appearance is counted once per market (`reappearances_after_exit`, the flicker measure of §4.5) and never removes the exit or overwrites its record. |
+| 11 | Routing record | `routing` refuses an output whose `rules_pre_sha256` is not the current one, and refuses if the five outputs do not share one `code_sha256`. |
+
+**Later parts.** Parts `common` and `S` must be declared in their own module, never by adding constants to
+`cb18_rules_pre.py` (that would change the part `pre` hash).

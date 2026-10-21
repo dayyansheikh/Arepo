@@ -114,9 +114,10 @@ def test_no_forbidden_keys_in_any_output(results):
 
 def test_m_exits_gap_adjacent_and_reappearance(results):
     M = results["M"]
-    assert M["exits"] == 2
+    assert M["exits"] == 3  # m6, m7 and m8: m8's exit stands although it re-appears later (an exit is judged on information up to its own time)
     assert M["all"]["gap_adjacent"] == 1  # m7 last present at the last capture before the gap
-    assert M["without_gap_adjacent"]["exits"] == 1
+    assert M["without_gap_adjacent"]["exits"] == 2
+    assert M["all"]["per_day_by_band"].get("2026-10-12|d_lt_0.45") == 1  # m8's record is not overwritten by its re-appearance
     assert M["reappearances_after_exit"] == 1  # m8
     assert len(M["gap_disclosure"]["gap_slots"]) == 6
 
@@ -218,3 +219,121 @@ def test_runner_missing_input_is_exit_75_without_output(world, tmp_path):
     out = world["out_dir"] / "S4.json"
     assert run.main(_args(world, "census-s", out, snaps)) == run.TEMPFAIL
     assert not out.exists()
+
+
+# ---- science-reviewer fixes (2026-10-21) ----------------------------------------------------------------------------------
+
+
+def _copy_world(world, tmp_path):
+    dst = tmp_path / "w"
+    shutil.copytree(world["base"], dst)
+    return c.PinnedTree(world["seal"], snapshot_root=dst / "snapshots", sweep_root=dst / "book_sweeps", sample_root=dst / "trade_samples", verify=False), dst
+
+
+def _edit_gz(path: Path, fn) -> None:
+    import pandas as pd
+
+    df = pd.read_csv(path, dtype=str, keep_default_na=False)
+    df = fn(df)
+    df.to_csv(path, index=False, compression="gzip")
+
+
+def test_capture_time_is_max_receipt_over_all_rows_before_filtering(world, tmp_path):
+    tree, dst = _copy_world(world, tmp_path)
+    cap = sorted(c.seal_inventory(world["seal"])["captures"])[20]
+
+    def late(df):
+        i = df.index[df["market_id"] == "m1"][0]
+        df.loc[i, "received_utc"] = "2026-10-17T22:55:00.000000Z"
+        return df
+
+    _edit_gz(dst / "snapshots" / cap / "rows.csv.gz", late)
+    _, _, meta_all = c.read_capture(tree, cap, ["market_id", "best_bid"])
+    _, _, meta_f = c.read_capture(tree, cap, ["market_id", "best_bid"], keep=lambda ch: (ch["market_id"] != "m1").to_numpy())  # the latest-page row is filtered out
+    assert meta_f["t"] == meta_all["t"] == c.epoch_s(["2026-10-17T22:55:00.000000Z"])[0]
+
+
+def test_capture_time_cutoff_applies_to_filtered_rows_too(world, tmp_path):
+    tree, dst = _copy_world(world, tmp_path)
+    cap = sorted(c.seal_inventory(world["seal"])["captures"])[20]
+
+    def late(df):
+        df.loc[df.index[df["market_id"] == "m1"][0], "received_utc"] = "2026-10-18T05:00:00.000000Z"
+        return df
+
+    _edit_gz(dst / "snapshots" / cap / "rows.csv.gz", late)
+    with pytest.raises(r.Refused):
+        c.read_capture(tree, cap, ["market_id"], keep=lambda ch: (ch["market_id"] != "m1").to_numpy())
+
+
+def test_p_unknown_category_is_excluded_and_counted(world, tmp_path):
+    tree, dst = _copy_world(world, tmp_path)
+    for cap in c.seal_inventory(world["seal"])["captures"]:
+        mp = dst / "snapshots" / cap / "ext_manifest.json"
+        d = json.loads(mp.read_text())
+        d["sidecar_status"] = "partial"
+        mp.write_text(json.dumps(d))
+    p = cp.census_p(tree)
+    assert p["category_unknown_units"] > 0
+    assert p["non_sports"]["units"] == 0  # none of them is treated as non-sports
+    assert p["all_categories"]["units"] == p["category_unknown_units"]
+
+
+def _edit_sweeps(dst: Path, fn) -> None:
+    for sd in (dst / "book_sweeps").iterdir():
+        _edit_gz(sd / "rows.csv.gz", fn)
+
+
+def _silent_ns(tree):
+    return cp.census_s(tree)["waterfall"]["non_sports"]
+
+
+def test_book_untouched_outcome1_missing_stamp_fails_closed(world, tmp_path):
+    base = _silent_ns(_tree(world))["silent_1_11"]
+    assert base == 8
+
+    def add_b(stamp):
+        def f(df):
+            import pandas as pd
+
+            b = df[df["market_id"] == "m1"].copy()
+            b["token_id"] = "t1b"
+            b["book_timestamp"] = stamp
+            return pd.concat([df, b], ignore_index=True)
+
+        return f
+
+    tree, dst = _copy_world(world, tmp_path / "a")
+    _edit_sweeps(dst, add_b(str(w.OLD_STAMP_MS)))  # outcome-1 book present, old stamp: untouched (control)
+    assert _silent_ns(tree)["silent_1_11"] == 8
+    tree, dst = _copy_world(world, tmp_path / "b")
+    _edit_sweeps(dst, add_b(""))  # outcome-1 book present, stamp missing: not untouched
+    wf = _silent_ns(tree)
+    assert wf["silent_1_11"] == 0 and wf["book_touched"] > 0
+
+
+def test_unparseable_sweep_receipt_is_excluded_and_counted(world, tmp_path):
+    tree, dst = _copy_world(world, tmp_path)
+
+    def bad(df):
+        df.loc[df["market_id"] == "m1", "batch_receipt_utc"] = "not-a-time"
+        return df
+
+    _edit_sweeps(dst, bad)
+    wf = _silent_ns(tree)
+    assert wf["receipt_missing"] > 0 and wf["silent_1_11"] == 0
+
+
+def test_routing_refuses_stale_rules_hash_and_mixed_code(tmp_path):
+    def doc(rules, code):
+        return {"rules_pre_sha256": rules, "code_sha256": code, "route": {"route": "x"}, "family": "F"}
+
+    f1, f2 = tmp_path / "F.json", tmp_path / "M.json"
+    f1.write_text(json.dumps(doc("aaa", {"cb18_pre.py": "1"})))
+    f2.write_text(json.dumps(doc("aaa", {"cb18_pre.py": "2"})))
+    with pytest.raises(r.Refused):
+        cp.routing_record({"F": f1, "M": f2}, "aaa")  # two code states
+    with pytest.raises(r.Refused):
+        cp.routing_record({"F": f1}, "bbb")  # stale rules hash
+    f2.write_text(json.dumps(doc("aaa", {"cb18_pre.py": "1"})))
+    assert cp.routing_record({"F": f1, "M": f2}, "aaa")["routes"]["F"]
