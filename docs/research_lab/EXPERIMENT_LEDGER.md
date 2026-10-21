@@ -3027,3 +3027,19 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - Mac refit timing (development data only, not a result): ~110 s per extra LightGBM model, peak 1.28 GB RSS.
 - Noted: LightGBM `res_7d` fits fail on the causal inner split until resolution receipts precede the validation cut
   (backlog first fetched 10-21; expected around 10-28). No rule changed.
+
+## E026 copy-skilled: census code checked, q0544 promoted, 2026-10-21 ~10:35Z (nothing counted; DRAFT design)
+- feat/copy-skilled merged (design `LIVE_TESTS_COPY.md` DRAFT, 41 tests). One commit, c4f3549b (labeller end-date
+  skip, store column subset), came from another session. It does not affect the census, and §6 now lists it as a
+  proposed change needing review before the pin.
+- Census code check: **CENSUS_READY_WITH_FIXES**, then fixes afac80d4, then verification **FIXES_OK_WITH_NOTES**
+  (`reviews/E026_CENSUS_CODE_CHECK_2026-10-21.md`).
+  - (MED) Skipped samples inflated rates; each usable sample is now credited with the time back to the previous one read.
+  - Gates are always written.
+  - Comparisons are unrounded.
+  - The work dir has a marker so a retry is safe.
+  - Verification note: the credit runs to the last sample's start, so the rate may be overstated by up to about 1.4%.
+    The census reports it as is, with this note.
+- **q0544 promoted** (counts only; sidecar samples [10-18T04:00Z, 10-21T04:00Z); never opens a capture at/after
+  10-22T00:00Z; gates G1-G3 declared in aba32281 before any census). Next: commit `census.json`, fill the
+  CENSUS-GATED values, challenger review, freeze q0540, pins, registration before 10-24T00:00Z.
