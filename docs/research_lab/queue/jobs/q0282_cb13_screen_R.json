@@ -1,0 +1,35 @@
+{
+ "id": "q0282_cb13_screen_R",
+ "title": "CB13-R: R1 (market-weighted slope of Y - p_t on q_touch - p_reg, weekly primary, Binance outcome in float64; event/ISO-week/asset-week/window-component ways; component sign-flip placebo; joint stale-price check; reflection-gap attribution; reach/dip, BTC, sigma x0.8/x1.2, drift, halves, active, Gamma-outcome, top-5 robustness; Binance-Gamma agreement audit; cross-horizon implied sigma reported)",
+ "family": "creative_batch_13",
+ "priority": 16,
+ "expected_value": "R1 verdict",
+ "data": [
+  "history/h13_touch/screen + outcomes_guarded_screen.csv.gz (not opened in this run: a gate failed, so run_cb13.py passes an empty list)",
+  "history/h13_binance/screen"
+ ],
+ "resources": {
+  "mem_mb": 800,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0281_cb13_census_R"
+ ],
+ "argv": [
+  "scripts/run_cb13.py",
+  "screen",
+  "--family",
+  "R",
+  "--rules",
+  "../docs/research_lab/seals/cb13_rules.json"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch13/results_R.json",
+  "trials.jsonl (cb13_test + creative_batch_13:R n_tests=1)"
+ ],
+ "next_action": "advanced: q0283",
+ "notes": "DRAFT. Refuses before the R freeze hash, on any holdout/ path, and unless GR and GRP passed (else counted lines). Rules part sha256 (seals/cb13_rules.json, code of 2026-10-19 after the freeze-check round 1 fixes (CREATIVE_BATCH_13.md section 11)): common 62e90149ba7e3f282d9876626d51667fd40a559da16b813e03c431f5084ef014, R 919070246add0ef76100a9d375c1c16b18c15fa817e2be9492bd9fc03f1775f7. CB13 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes. PROMOTED 2026-10-21 ~19:45Z (autopilot) after the R freeze entry in model_specs/cb13_v1.json (review FREEZE_OK_WITH_FIXES). Census q0281 failed GR (basis 0.915, frame 0.782, events 58) and GRP (0.658): this run writes R1 'not testable (basis)', p = 1, counted 1, no outcome opened."
+}

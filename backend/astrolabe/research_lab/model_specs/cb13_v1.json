@@ -187,5 +187,163 @@
   "part": "T",
   "review": "science-reviewer re-check 2026-10-19 (a198f5a): FREEZE_OK",
   "rules_sha256": "33bd165b490fb2233ef1fc892b0727a92c17462a88d48acd40af0d375840948b"
+ },
+ "R": {
+  "part": "R",
+  "rules_sha256": "919070246add0ef76100a9d375c1c16b18c15fa817e2be9492bd9fc03f1775f7",
+  "common_rules_sha256": "62e90149ba7e3f282d9876626d51667fd40a559da16b813e03c431f5084ef014",
+  "declaration": {
+   "cb13_r": {
+    "assets": {
+     "bitcoin": "BTC",
+     "bnb": "BNB",
+     "btc": "BTC",
+     "doge": "DOGE",
+     "dogecoin": "DOGE",
+     "eth": "ETH",
+     "ethereum": "ETH",
+     "sol": "SOL",
+     "solana": "SOL",
+     "xrp": "XRP"
+    },
+    "gates": {
+     "GR": {
+      "components": 30,
+      "events": 60,
+      "markets": 300,
+      "weeks": 30
+     },
+     "GRC": 30,
+     "GRP_mde_max": 0.6,
+     "flags_min": 0.95,
+     "frame_found_min": 0.98,
+     "grp_draws": 500,
+     "grp_latent": {
+      "idio": 0.3,
+      "path": 0.5,
+      "week": 0.2
+     },
+     "grp_seed": 13123,
+     "parser_fail_max": 0.1
+    },
+    "klines": {
+     "float64": true,
+     "ms_us_threshold": 100000000000000.0,
+     "range": "min(T0) - 30 d over primary events to 2026-09",
+     "symbols": [
+      "BTC",
+      "ETH",
+      "SOL",
+      "XRP",
+      "DOGE",
+      "BNB"
+     ],
+     "usable_lag_s": 65.0
+    },
+    "labels": {
+     "R": "L1, exploratory historical",
+     "R2": "modelled-cost economic check on the sealed window (L2)",
+     "rep": "out-of-time replication on a sealed later window (L2)"
+    },
+    "members": {
+     "creation_anchored": "excluded and counted before the flags (section 11.z B): description matches '(?i)\\\\bfrom\\\\s+the\\\\s+creation\\\\s+of\\\\s+this\\\\s+market\\\\b'; never rescued by relaxing the High/Low rule",
+     "flags": "per member (section 11.z A): a member failing a frozen flag is dropped and counted; an event is dropped for flags only if no member passes",
+     "gr_flag_share": "binding over non-anchored members; also reported over all parsed members (creation-anchored included) and the creation-anchored share"
+    },
+    "model": {
+     "drift": "trailing 30 d mean log return",
+     "q_touch": "min(1, 2 (1 - Phi(|ln(B/S)| / (sigma sqrt tau))))",
+     "sigma": "30 d of usable 5-minute log returns x sqrt(105120); >= 90% of bars"
+    },
+    "primary": "weekly template only (window <= 8 d); monthly, yearly and by are census-only (no prices)",
+    "r1": {
+     "attribution": "gap coefficient >= 0.30 and >= half of beta",
+     "floor": 0.3,
+     "placebo": {
+      "draws": 200,
+      "signflip_components": 13103
+     },
+     "stale_price_joint": "q_touch coefficient >= half of solo, one-sided p < 0.05",
+     "ways": [
+      "event",
+      "ISO week",
+      "asset-week",
+      "window component"
+     ]
+    },
+    "r2": {
+     "fee_min": 0.07,
+     "filter": 0.05,
+     "floor": 0.01,
+     "half_spreads": [
+      [
+       0.05,
+       0.0205
+      ],
+      [
+       0.2,
+       0.015
+      ],
+      [
+       0.8,
+       0.011
+      ],
+      [
+       0.95,
+       0.015
+      ],
+      [
+       1.01,
+       0.0125
+      ]
+     ],
+     "mde_max": 0.02
+    },
+    "tag_id": 21,
+    "templates": {
+     "event": "^What price will (Bitcoin|Ethereum|Solana|XRP|Dogecoin|BNB|BTC|ETH|SOL|DOGE) hit (.+)\\?$",
+     "member": "^Will (Bitcoin|Ethereum|Solana|XRP|Dogecoin|BNB|BTC|ETH|SOL|DOGE) (reach|hit|dip to) \\$([\\d,]+(?:\\.\\d+)?)(k?) (.+)\\?$",
+     "race_excluded": "(?i)\\bbefore\\b",
+     "terminal_excluded": "(?i)(\\b(?:above|below)\\b.*\\bon\\b|\\bup or down\\b|\\bclose[sd]? (?:at|above|below)\\b)"
+    },
+    "units": "daily 00:00Z checkpoints from max(T0, listing + 1 h) to T - 1 h; undecided on usable klines; p in [0.03, 0.97]; p_t age <= 6 h, p_reg age <= 24 h before t - 6 h",
+    "window": "12:00 AM ET on the first title date to 11:59 PM ET on the last; T = 00:00 ET of the next day (exclusive); ET via America/New_York (DST)",
+    "windows": {
+     "holdout": [
+      "2026-04-01",
+      "2026-10-01"
+     ],
+     "holdout_first_checkpoint": "2026-04-01T00:00:00Z",
+     "screen": [
+      "2024-11-01",
+      "2026-04-01"
+     ]
+    }
+   }
+  },
+  "census": {
+   "file": "research_lab/creative_batch13/census_R.json",
+   "sha256_file_bytes": "714837791729c49698b68a6d20c10a5717bccf09c53e4b73d641bffc932567c4",
+   "job": "q0281_cb13_census_R (2026-10-21T18:02Z, counts only)",
+   "counts": {
+    "GR_flags_share": 0.915,
+    "GR_frame_found": 0.782,
+    "GR_events": 58,
+    "GR_markets": 801,
+    "GR_weeks": 31,
+    "GR_components": 58,
+    "parser_pass": true,
+    "GRP_mde": 0.658
+   }
+  },
+  "decisions": [
+   "gate-fail order basis > frame > population/parser > GRP, as sealed in screen_r (cb13_r.py, R rules 91907024, commit 78608932, 2026-10-19, before the census); the design gives a label per gate but no precedence; p = 1 whichever label",
+   "with this census q0282 writes R1 'not testable (basis)', p = 1, counted 1, and opens no outcome, kline-after-t, price target or holdout/ file (run_cb13.py opens outcomes_guarded_screen only if every gate passed)",
+   "R1 is counted twice by design: the v1 smoke count line of 2026-10-19T07:30:16Z stays (ledger 2026-10-19 ~09:45Z, conservative double count) and q0282 adds one",
+   "q0283 (rep) is moot: it runs only if R1 advanced"
+  ],
+  "disclosure": "census drops.share is 1.16 (numerator counts drops across all templates, denominator weekly events only): a reporting defect in sealed census code, not changed; it does not affect q0282's gate-fail output. run_cb13.py is outside the rules hash; its outcome-opening guard is pinned by git history only",
+  "frozen_utc": "2026-10-21T19:19:38Z",
+  "review": "science-reviewer narrow code-against-design check 2026-10-21 ~19:40Z: FREEZE_OK_WITH_FIXES (fixes are entry content and draft notes only; applied)"
  }
 }
