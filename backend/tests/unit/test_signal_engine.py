@@ -980,6 +980,8 @@ def test_lab_host_signal_engine_section_strips_embargoed_numbers(tmp_path):
                 {"model_id": "c", "target": "dir_2h", "log_loss": 0.5},
                 {"model_id": "f", "embargoed_until": "2026-11-16T00:00:00Z", "log_loss": 0.4, "gain": 0.1}]},
             "family_gains": [{"model_id": "f", "gain": 0.1}, {"model_id": "c2", "gain": 0.0}],
+            "promotion": {"rule": "se-promotion-v2", "candidates": [{"model_id": "f", "gain": 0.1},
+                                                                     {"model_id": "c2", "gain": 0.0}]},
             "models": [{"model_id": "f", "embargoed_until": "2026-11-16T00:00:00Z"}]}
     (d / "dashboard.json").write_text(json.dumps(dash))
     now = pd.Timestamp("2026-10-25T07:00:00Z").to_pydatetime()
@@ -987,6 +989,7 @@ def test_lab_host_signal_engine_section_strips_embargoed_numbers(tmp_path):
     rows = se["prospective"]["rows"]
     assert rows[1] == {"model_id": "f", "embargoed_until": "2026-11-16T00:00:00Z"}
     assert se["family_gains"] == [{"model_id": "c2", "gain": 0.0}]
+    assert se["promotion"]["candidates"] == [{"model_id": "c2", "gain": 0.0}]
     # attribution: families under an embargo token (the code's EMBARGO, or the file's list) are dropped by lab_host
     dash["attribution"] = [{"model_id": "c2", "families": {"momentum": 0.2, "flow": 0.1, "zz": 0.3, "event": 0.05}}]
     dash["embargo_tokens"] = [{"token": "zz", "until": "2026-12-01T00:00:00Z"}]
@@ -1040,3 +1043,20 @@ def test_cli_exit_codes_walkforward_and_dashboard(env, capsys):
     assert dash["development"]["label"] == "development/historical"
     out = capsys.readouterr().out
     assert "SE_SCORE" in out and "SE_WALKFORWARD" in out
+
+
+def test_dashboard_promotion_block_compacts_checks_and_skips_embargoed():
+    tw = {"mean": 0.02, "lo": 0.004, "se_event": 0.003, "se_day": 0.006, "n_days": 15}
+    dec = {"rule": "se-promotion-v2", "at": "2026-11-05T11:40:00Z", "K": 2, "level": 0.975, "promote": None,
+           "checks": {"a": {"days": 15, "age_days": 15.2, "gain": {"mean": 0.02, "lo": 0.01}, "gain_twoway": tw,
+                            "c1_days": True, "c2_ci": True, "c3_days_positive": True, "c4_calibration": False,
+                            "c5_secondary": True, "c6_coverage": True, "c7_cooldown": True, "pass": False},
+                      "b": {"days": 3, "age_days": 3.5, "gain": None, "gain_twoway": None, "pass": False},
+                      "x": {"days": 15, "gain": {"mean": 0.777, "lo": 0.4}, "pass": True}}}
+    out = D._promotion(dec, {"x": {"until": "2026-12-09T00:00:00Z"}})
+    assert [c["model_id"] for c in out["candidates"]] == ["a", "b"] and "0.777" not in json.dumps(out)
+    a, b = out["candidates"]
+    assert a["lo_event"] == 0.01 and a["lo_twoway"] == 0.004 and a["se_day"] == 0.006 and a["days_to_min"] == 0.0
+    assert a["checks"]["c4_calibration"] is False and not a["pass"]
+    assert b["gain"] is None and b["lo_twoway"] is None and abs(b["days_to_min"] - 10.5) < 1e-9
+    assert out["min_days"] == 14 and D._promotion(None, {}) is None

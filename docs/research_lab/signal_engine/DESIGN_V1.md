@@ -503,3 +503,8 @@ passes both; one day and zero rows fail safe; a hand-computed `cluster_var`; the
 Science review (2026-10-21): ACCEPT_WITH_FIXES (exact registry match, the "relative to CGM" wording, edge-case
 tests). All fixes are applied. It agrees that condition 5 stays event-only, and that the timing is legitimate
 because 2b cannot be computed with one day of scores.
+
+**Dashboard view (2026-10-21 ~21:05Z, display only).** `dashboard.json` carries `promotion`: the rule, K, level and,
+per non-embargoed candidate, the seven checks, `days_to_min` (days until 14 days of age), the event-only lower bound
+`lo_event`, the two-way bound `lo_twoway` and its components `se_event` and `se_day`. It copies the leaderboard's
+decision and never recomputes it. Embargoed models are skipped in `dashboard._promotion` and again in `lab_host`.
