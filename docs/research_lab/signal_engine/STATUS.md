@@ -1,32 +1,25 @@
 # Signal engine: status (rewrite each session; do not append)
 
-**Last updated:** 2026-10-21 20:35 UTC+1 (19:35Z), signal-engine autopilot session 6
+**Last updated:** 2026-10-21 21:11 UTC+1 (20:11Z), signal-engine autopilot session 7
 
 ## In plain English
-- **The week-long development check finished.** It is a retrospective walk-forward over 10-14 to 10-20: each day's
-  models were fitted only on earlier data. It confirms what the first live day showed:
-  - The LightGBM models beat the logistic champion on every horizon, every day (7 of 7).
-  - At 2 h: `se1` (same inputs as the champion) +0.041 nats, `se7` (all families) +0.046 nats.
-  - This is development evidence. It never counts for promotion.
-- **New challenger `se17_lgbm_mm_900k` (visible, not embargoed).**
-  - It uses the champion's inputs and se1's tree settings, with 3x the training rows and up to 1000 boosting rounds.
-  - Why: se1's fits were stopping at their 300-round cap.
-  - I tested four learner budgets on development data. Bigger trees and more rounds did nothing. More rows helped a
-    little but steadily: +0.0027 nats over se1 at 2 h, and similar at 6 h and 24 h.
-  - It was the best of four, so that figure is optimistic. Only the live scores decide.
-  - It first fits at tomorrow's ~07:34Z refit, after the server resize.
-- **Tested and dropped: a "market activity" family (`regime`).** It measured how many markets were moving, market-wide
-  and per category, using only data received before each market's own row.
-  - The science review found no leak and no overlap with a live test.
-  - On development data it made forecasts slightly worse (-0.0017 nats at 2 h). It only has about 12 distinct values a
-    day, so the trees learn noise.
-  - The code is removed and nothing was deployed. The result is written down (DESIGN_V1 §19, CANDIDATES row 16) so
-    nobody retries it.
+- **The promotion rule is now stricter: `se-promotion-v2`.** It is deployed and is the rule in force.
+  - Before a challenger can replace the champion, its gain must now be convincing in two ways at once:
+    - across separate events (as before);
+    - across separate days (new).
+  - Why: one news-heavy day can move every market together. The old check would have counted that one day as
+    thousands of independent pieces of evidence.
+  - It was declared with one scored day. The new check cannot even be computed until there are two scored days.
+    No challenger can qualify before 11-04, so no result shaped it.
+  - The science review accepted it with small fixes, all applied. Everything else in the rule is unchanged.
+- Earlier today (session 6): new challenger `se17_lgbm_mm_900k` (first fit at the ~07:34Z refit on 10-22); the
+  `regime` family was tested and dropped; the week-long development walk-forward showed LightGBM ahead of the
+  champion every day (development only).
 - Nothing has been promoted; that is possible from about 11-04, at the earliest. No edge claims. The UI wording stays
   "signal strength".
 
 ## Live state (host)
-- **Code:** this session deploys the se17 spec and the q0512 job change (see the commit). The registry loads 18 models.
+- **Code:** deployed 2e6e66f (~20:09Z). Host check: `RULE_VERSION` and registry both `se-promotion-v2`, and 18 models load.
 
 | Model | Embargoed until |
 |---|---|
@@ -52,14 +45,14 @@
   predict, against the tick's 600 s limit.
 
 ## Changes this session
-1. New spec `se17_lgbm_mm_900k` (sha `6e27b8c6…`), pinned in `registry.json`, with a registry test.
-2. q0512: timeout 7200 -> 10800 s, mem_mb 1600 -> 2200, with a note. No other job changed.
-3. Docs:
-   - DESIGN_V1 §19: the learner-budget table and the regime dead end.
-   - CANDIDATES rows 15 and 16.
-   - A ledger entry: the q0514 result, the learner budgets, se17, the regime drop, and the reviewer's note on the
-     promotion CI.
-4. Tests: 37 engine tests pass; ruff is clean.
+1. `promotion.py`: `se-promotion-v2`. Condition 2 needs both the v1 event-bootstrap bound and the new two-way bound
+   (`cluster_var`, `twoway_bound`). Ties go to the larger two-way bound. `evaluate` refuses when the registry's
+   `promotion_rule` differs from the code's rule.
+2. `registry.json` `promotion_rule` -> `se-promotion-v2`. No spec changed, and the leaderboard metrics and
+   `scoring_version` are unchanged.
+3. DESIGN_V1 §7 (v1 superseded) and §20 (v2 declaration), plus a ledger entry. The science review was
+   ACCEPT_WITH_FIXES, all applied.
+4. Tests: 41 engine tests pass (4 new); ruff is clean.
 
 ## Next actions
 1. After the ~07:34Z refit on 10-22, read `logs/fits-20261022.jsonl`:
@@ -72,10 +65,8 @@
    - LightGBM `num_threads` 2 in the refit. That is a code change, and the scores differ slightly by thread count, so
      it needs new fits, not new specs.
    - A further rows step (for example 2M rows) if se17 shows a prospective gain over se1.
-4. Promotion rule: the science reviewer noted that the event-clustered CI ignores shocks shared by all markets within
-   a capture.
-   - Draft a `se-promotion-v2` with a day-clustered (or capture-clustered) CI.
-   - It must be declared before any challenger nears 14 days, so before ~11-03. Get a science-reviewer pass first.
+4. Done (v2 is in force). From day 2 on, `leaderboard/latest.json` `promotion.checks.<model>.gain_twoway` shows
+   `se_event` vs `se_day`. Note on the dashboard how large the day component is; that is informational only.
 5. Non-embargoed ideas left: a crypto spot reference is blocked (no stream, and it overlaps CB8 / CB13). Better
    learners on the base inputs are now partly done.
 6. Around 10-27, check that se8, se10 and se16 start fitting. Around 10-28, check the LightGBM `res_7d` fits.
