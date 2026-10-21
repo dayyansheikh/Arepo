@@ -641,7 +641,8 @@ census refuses unless every input file it opens is named in a seal with an equal
   q0480 are used if still present; otherwise the same files are restored from the same releases and re-hashed against the same
   seals.
 - **Capture censuses (F: CF5; H: CHW; R: CRW):** the complete captures of **UTC 2026-10-20 and 2026-10-21** (rows, sidecar,
-  manifest) with H's 84-slot look-back from **2026-10-13T00:31Z**, and sweep 1 of the census passes. New seal
+  manifest) with H's 96-slot look-back from **2026-10-12T00:31Z** (code pass, section 16), and sweep 1 of the census passes
+  and of the pass before the first (2026-10-19T22:31Z). New seal
   `seals/lt5_census_inputs_captures.json`, written from the releases' `files.sha256` before any LT5 census runs. These days carry
   the reward fields R needs; the 2026-10-21 02:31 pass never ran (host stall) and that slot stays missing. J4-R's
   `[2026-10-16, 2026-10-21)` refusal covers maker mark-out objects only; nothing here reads a mark-out.
@@ -669,10 +670,10 @@ values and bind; pooled values are printed.
 
 **Census jobs (drafts under `docs/research_lab/queue/drafts/`; README format; ids checked unused across `queue/` on every local
 and remote branch on 2026-10-21).**
-- `q0560_lt5_census_restore_captures` (lane `net`, 1,200 MB): restore captures 2026-10-13T00:31Z .. 2026-10-21T22:31Z (rows,
-  sidecar, manifest) and sweeps of 2026-10-20/21 (rows, manifest) byte for byte from the data releases into a scratch tree
+- `q0560_lt5_census_restore_captures` (lane `net`, 1,200 MB): restore captures 2026-10-12T00:31Z .. 2026-10-21T22:31Z (rows,
+  sidecar, manifest) and sweeps of 2026-10-19T22:31Z .. 2026-10-21 (rows, manifest) byte for byte from the data releases into a scratch tree
   (release tags to be confirmed against the release list before promotion; the catalogue lists tags only to 2026-10-20). Then
-  write and commit `seals/lt5_census_inputs_captures.json` from the releases' `files.sha256`. Disk about 2-3 GB (estimate).
+  write and commit `seals/lt5_census_inputs_captures.json` from the releases' `files.sha256`. Disk about 2.5-3.5 GB (estimate).
 - `q0561_lt5_census_captures` (cpu, 1,500 MB, **`exclusive: true`**): `census-captures` for CF5, CHW and CRW on the sealed
   captures and sweeps. At 1,500 MB it falls under the memory-heavy-jobs rule (never two multi-GB jobs at once), so it runs alone
   (R1 finding 9).
@@ -717,8 +718,8 @@ scripts they name do not exist yet. Each counts 0.
 - `backend/scripts/run_live_tests5.py`: `run`, `backfill-series`, `ops-stats`, `census-captures`, `census-flow`, `size-check`,
   `analyze`.
 - Spec `backend/astrolabe/research_lab/model_specs/live_tests5_v1.json`: every constant, k, seeds (estimators 20261141-45, gates
-  20261241-45, F's fake family 20261342, size check 20261147), dates, census scales, cuts and rules, the three-module
-  `code_sha256` map (`live_tests5.py`, `live_tests5_analysis.py`, `live_tests5_base.py`) and the imported sports-rule hash.
+  20261241-45, F's fake family 20261342, size check 20261147), dates, census scales, cuts and rules, the four-module
+  `code_sha256` map (`live_tests5.py`, `live_tests5_analysis.py`, `live_tests5_base.py`, `bounce_decomp.py`; section 16) and the imported sports-rule hash.
 - `battery2.KIND_RULES["live_tests5"]` (fail-closed counting entry).
 
 ### 9.2 Resources, collection plan and install
@@ -763,7 +764,7 @@ scripts they name do not exist yet. Each counts 0.
   older-sidecar case (no units).
 - Shared: causality (future captures, sweeps and samples with wild prices leave every frozen line byte-identical); late refusal,
   write-once, `.nosweep`; the dry-run guard; `%.17g` round trip; the run lock; `ops-stats` reads no price column; vendored-code
-  provenance; the three-module hash and the joint reader sha; the counting rule equals k; Holm; the p = max rule; the analysis
+  provenance; the four-module hash and the joint reader sha; the counting rule equals k; Holm; the p = max rule; the analysis
   refuses before the date, an unpinned, null or NaN spec, or a `k_tests` naming a dropped test; sealed censuses (counts only,
   tampering refused); each MDE gate formula; the size check on small runs with planted effects (each primary detects a planted
   effect, and the R interaction scenario holds size on a small run); an end-to-end synthetic analysis with a reduced `k_tests`.
@@ -773,7 +774,7 @@ scripts they name do not exist yet. Each counts 0.
   the **block (circular-shift) Freedman-Lane gate** for O (offset range, markets with `n_m < 8` kept in place and counted,
   serial dependence of residuals preserved); the size-check scenario-to-test map and the rule that a failing scenario sets only
   its own tests to "SE check failed" with k unchanged.
-- At registration: `SPEC_SHA256` and the three module hashes are pinned together.
+- At registration: `SPEC_SHA256` and the four module hashes are pinned together.
 
 ## 10. Signal-engine mapping (each test as a challenger feature family)
 
@@ -962,3 +963,53 @@ Design only; no census input; nothing chosen from data. Applied in sections 0-14
 | 7 | LOW: O's "missing -> 0 with a flag" | O's own mid changes are NaN when a slot is missing (unit excluded, counted); 1.5 now lists the only declared indicator-pair exceptions (unknown end date; missing Gamma `chg_*`) | 1.5, 4 |
 
 The size check now has **12 binding scenarios** (q0563's title updated). Planning MDEs, floors, alphas and directions are unchanged.
+
+## 16. Code pass 1 (2026-10-21): censuses and size check (DRAFT; spec not pinned)
+
+**What exists** (branch `feat/live-tests-5`; nothing run on real data; no size check at the declared seed):
+- `backend/astrolabe/research_lab/live_tests5_base.py`: **generated** by `backend/scripts/vendor_lt5_base.py` (54 names: the LT3/LT4
+  slot and capture scanners, series builder, `classify`, `move_join`, loaders, signs, seal checks, census helpers, `demean`,
+  `_partial`, `fl_perm_gate` and LT3/LT4's simulated worlds). Each copy is its source with only the module prefixes removed;
+  `VENDORED` records source file, source sha256 and normalised-source sha256; a unit test re-checks them, and another proves no
+  LT5 module imports LT3/LT4. LT3/LT4 constants used by the copies are copied by value and tested equal to their sources.
+- `backend/astrolabe/research_lab/live_tests5.py`: LT5's loaders (LT3's columns plus `liquidity`, `clob_token_id_0` and the
+  reward fields), the unit builders `path_units` (J), `family_units` / `family_stats` (F), `overhang_units` (O), `mark_units`
+  (H), `rule_units` (R), and the counts-only censuses `census_captures` (CF5, CHW, CRW) and `census_flow` (CJ, CO).
+- `backend/astrolabe/research_lab/live_tests5_analysis.py`: `block_fl_gate` (O), the worlds of 1.8.1 and `size_check` with the
+  scenario-to-test map. The single analysis is a later unit.
+- `backend/scripts/run_live_tests5.py`: `census-captures`, `census-flow`, `size-check` (refuses to overwrite `--out`; censuses
+  accept `--data-dumps-cap-gb` and exit 75 above it). `run`, `backfill-series`, `ops-stats` and `analyze` come with the reader.
+- `backend/astrolabe/research_lab/model_specs/live_tests5_v1.json`: DRAFT spec (thresholds of section 8, seeds, worlds map;
+  `k_tests`, census scales, cuts and `code_sha256` null).
+- `backend/tests/unit/test_research_lab_live_tests5.py`: 27 synthetic tests (provenance; J snapping, classes, causality and
+  truncation; F hierarchy, guard, neg-risk exclusion, guard loss; O's four sign quadrants, window and coverage; H marks, classes,
+  spread rule, 00:31Z origin; R fold, donut, `inside` at 0.90, reward parsing, dormancy; circular shift and offsets; the block
+  gate on a planted effect; worlds as declared; failure-to-test map; MDE helpers; both censuses end to end on a synthetic host
+  tree with refusal on a tampered seal; runner guards). LT3/LT4 tests still pass (96 together).
+- **Module hashes (DRAFT; change with any edit):** `live_tests5.py` `b0b99645…`, `live_tests5_analysis.py` `2414c443…`, `live_tests5_base.py` `43a9dd01…`, `bounce_decomp.py` `2caf0edc…`.
+
+**What the code taught the design (all before any data; for the freeze check):**
+1. **Four hashed modules, not three** (9.1): `bounce_decomp.py` (`expanding_demean`, used by the vendored `demean`) is in
+   `CODE_FILES`, as LT4's R2 re-check required for LT4.
+2. **H's look-back is 96 slots, not 84** (section 8, q0560): the state-change rule compares the mark at k with the previous
+   day's mark, which needs slots k - 96 .. k - 13. A unit whose previous-day state cannot be established (neither the previous
+   origin's mid nor a complete previous mark) is excluded and counted (`prev_state_unknown`), never assumed changed. q0560 now
+   restores captures from 2026-10-12T00:31Z and the 2026-10-19T22:31Z sweep (R's pass k - 1 for the first census pass).
+3. **MDE gates take the larger of two formulas.** Section 8's slope formula `SD / sqrt(n_eff) x sqrt(VIF_w)` assumes the
+   demeaned term has unit variance; expanding-past demeaning shrinks it. The census also computes the design-based SE (the
+   projected residual sum of squares of the demeaned term on the demeaned controls) and every gate uses `max(declared, design)`
+   (F, O, R), which can only make a gate stricter. J and H use the class formula as declared.
+4. **Effective counts for H** are units in markets with a unit on both census days (one unit per market per day).
+5. **J's clocks:** `t_k` is the sample's `origin_utc` (the capture row's receipt, as E021), `t_{k-1}` the market's row receipt
+   in capture k - 1. Prints with an unknown outcome are excluded from levels and counted (`n_unknown_outcome`).
+6. **O:** notional = size x token price; the outcome comes from `outcome_index`, else asset = token 0. A missing own-mid slot
+   leaves the change NaN (1.5).
+7. **R:** a missing or unparseable `clob_rewards` makes `rewarded` NaN and the unit is excluded (counted), never 0. A unit whose
+   pass k - 1 sweep is missing has no established state change and is excluded (counted).
+8. **Correlation gates** use the expanding-past-demeaned (within) correlation; a constant column yields no correlation, which
+   fails the gate (NaN fails).
+9. **Not yet written:** the reader (`run`, `backfill-series`, freezes, outcomes, `ops-stats`), the single analysis, the
+   `battery2.KIND_RULES["live_tests5"]` counting entry and the economics. These follow the freeze check of this unit.
+
+**Ready for:** a `science-reviewer` freeze check of the census and size-check code against sections 1.8, 1.8.1, 8 and 15
+(before q0560-q0563 are promoted).

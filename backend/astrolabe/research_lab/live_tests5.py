@@ -197,6 +197,13 @@ def mde_slope_design(ss_resid: float, scale: float, sd: float, de: float, a: dic
     return a["t_sum"] * sd / math.sqrt(ss_resid * scale) * math.sqrt(de) * a["day_factor"]
 
 
+def mde_slope_declared(n_eff: float, sd: float, de: float, a: dict, vif: float) -> float:
+    """Section 8's slope formula per SD of the term: t_sum x SD / sqrt(n_eff) x sqrt(DE) x day x sqrt(VIF_w)."""
+    if not (n_eff > 0 and np.isfinite(de) and np.isfinite(vif)):
+        return float("inf")
+    return a["t_sum"] * sd / math.sqrt(n_eff) * math.sqrt(de) * a["day_factor"] * math.sqrt(max(vif, 1.0))
+
+
 def _de(pop: pd.DataFrame, key: str, scale: float, g: dict) -> dict:
     de = b.design_effect(pop[key].astype(str), scale, float(g["rho"]))
     de["DE_gate"] = b.de_gate(de, float(g["de_floor"]))
@@ -885,7 +892,9 @@ def census_r(U: pd.DataFrame, spec: dict, scale: float, days: list[str]) -> dict
     de = _de(pop, "event_id", scale, g)
     eff = b._eff(pop) if len(pop) else pd.Series(dtype=bool)
     dsg = design_ss(pop[eff], "z_in", ctrl)
-    mde = mde_slope_design(dsg["ss_resid"], scale, a["sd_R"], de["DE_gate"], a) * g["gap_sd"] * 100.0
+    m_dsg = mde_slope_design(dsg["ss_resid"], scale, a["sd_R"], de["DE_gate"], a)
+    m_decl = mde_slope_declared(float(eff.sum()) * scale, a["sd_R"], de["DE_gate"], a, dsg["vif_w"])
+    mde = max(m_dsg, m_decl) * g["gap_sd"] * 100.0
     nin, nout = int((pop["inside"] == 1).sum()), int((pop["inside"] == 0).sum())
     cross = pop.groupby("market_id")["inside"].transform("nunique") >= 2
     cross_share, cross_mk = float(cross.mean()) if len(pop) else float("nan"), int(pop.loc[cross, "market_id"].nunique())
@@ -901,7 +910,8 @@ def census_r(U: pd.DataFrame, spec: dict, scale: float, days: list[str]) -> dict
            "unrewarded_inside_21d": float((un["inside"] == 1).sum() * scale), "unrewarded_outside_21d": float((un["inside"] == 0).sum() * scale),
            "rewarded_markets": int(rw["market_id"].nunique()), "crossing_unit_share": cross_share, "crossing_markets": cross_mk,
            "imb_iqr_share": iqr_share, "imb_iqr_markets": len(iq), "min_size_depth_present_share": ms_share, "imb_sd": sd_imb,
-           "design_effect": de, "design": dsg, "mde_2sd_c": mde, "perm_share": ps,
+           "design_effect": de, "design": dsg, "mde_2sd_design_c": m_dsg * g["gap_sd"] * 100.0, "mde_2sd_declared_c": m_decl * g["gap_sd"] * 100.0,
+           "mde_2sd_c": mde, "perm_share": ps,
            "fake_cutoff_band_units": int((U["primary_band"] == 0).sum())}
     res["gate_R"] = b._gate({"rewarded_inside": res["rewarded_inside_21d"] >= g["rewarded_side_21d"], "rewarded_outside": res["rewarded_outside_21d"] >= g["rewarded_side_21d"],
                              "unrewarded_inside": res["unrewarded_inside_21d"] >= g["unrewarded_side_21d"],
@@ -1031,7 +1041,8 @@ def census_o(U: pd.DataFrame, spec: dict, scale: float, days: list[str], n_sampl
     eff = b._eff(pop) if len(pop) else pd.Series(dtype=bool)
     de = _de(pop, "event_id", scale, g)
     dsg = design_ss(pop[eff], "zO", ctrl)
-    mde_sd = mde_slope_design(dsg["ss_resid"], scale, a["sd_O"], de["DE_gate"], a)
+    mde_sd = max(mde_slope_design(dsg["ss_resid"], scale, a["sd_O"], de["DE_gate"], a),
+                 mde_slope_declared(float(eff.sum()) * scale, a["sd_O"], de["DE_gate"], a, dsg["vif_w"]))
     mde = mde_sd * gap * 100.0 if np.isfinite(gap) else float("inf")
     per_pass = len(U) / max(n_samples, 1)
     deg = float((np.abs(U["m"]) > g["m_degenerate"]).mean())
