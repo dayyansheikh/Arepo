@@ -388,10 +388,6 @@ def sim_v_world(rng: np.random.Generator, *, rho: float, n_mkt: int = 80) -> tup
     return df, df["y"].to_numpy(float)
 
 
-def _strata_day(df: pd.DataFrame) -> np.ndarray:
-    return (df["market_id"].astype(str) + "|" + df["day"].astype(str)).to_numpy()
-
-
 def analytic_rates(df: pd.DataFrame, y: np.ndarray, term: str, controls: list[str], rates: dict) -> None:
     """Add this world's analytic-rule rejections to ``rates``: the p rule of 1.7 with t on ``G_treated - 1`` df and the plain CR1 rule
     (t on ``G_event - 1``), at nominal 0.0125 and 0.05, one-sided. Draws nothing from any generator (a fixed bootstrap seed, two
@@ -405,63 +401,94 @@ def analytic_rates(df: pd.DataFrame, y: np.ndarray, term: str, controls: list[st
 NOMINALS = (0.0125, 0.05)
 
 
-def scenario_table(rng: np.random.Generator, draws: int, rates: dict) -> dict:
+SIZE_T0 = 0.0  # the simulated worlds run from t_row = 0 (a UTC midnight): the block anchor of the size check, as the registered start is the gate's
+
+
+def size_strata(spec: dict, binding: dict) -> dict:
+    """Scenario name -> the census-fixed ``perm_stratum`` of its binding test (``None`` for V's block gate). REFUSES (ValueError) while
+    ``k_tests`` is null or the ``perm_stratum`` of any Freedman-Lane test in ``k_tests`` is null: the size check must use the strata
+    of the registered gate (``gate_for`` -> ``strata_of``), never a convenience stratum (the LT4 defect). A binding test outside
+    ``k_tests`` has no registered gate; its scenario still runs (it must, to keep the one generator's stream in table order) on the
+    ``day`` stratum and is marked informational by the caller."""
+    kt = spec.get("k_tests")
+    if kt is None:
+        raise ValueError("size check refused: spec k_tests is null (fixed at registration after the censuses)")
+    missing = sorted(t for t in kt if t != "V" and spec[t.lower()].get("perm_stratum") is None)
+    if missing:
+        raise ValueError(f"size check refused: perm_stratum is null for {missing} (census-fixed)")
+    out: dict = {}
+    for name, tests in binding.items():
+        t = tests[0]
+        out[name] = None if t == "V" else (spec[t.lower()]["perm_stratum"] or "day")
+    return out
+
+
+def scenario_table(rng: np.random.Generator, draws: int, rates: dict, *, strata: dict, min_stratum: int = 4, block_min_n: int = 16) -> dict:
     """The eleven binding scenarios of LIVE_TESTS_6.md 1.8 in table order: name -> callable returning whether the gate passes in one
     world (the world and the gate seed come from ``rng`` in that order). Scenarios 6, 7 and 11 also add the analytic rule's rejections
     to ``rates[name]`` (reported, never binding)."""
 
-    def fl(df, y, term, ctrl, strata) -> bool:
-        return bool(fl_perm_gate(df, y, term, ctrl, sign=+1, strata=strata, draws=draws, seed=int(rng.integers(1 << 31)), min_stratum=4).get("passes"))
+    def fl(name, df, y, term, ctrl) -> bool:
+        # the registered gate's strata: strata_of(df, perm_stratum, t0), the same function gate_for uses
+        return bool(fl_perm_gate(df, y, term, ctrl, sign=+1, strata=strata_of(df, strata[name], SIZE_T0), draws=draws, seed=int(rng.integers(1 << 31)),
+                                 min_stratum=min_stratum).get("passes"))
 
     def blk(df, y) -> bool:
-        return bool(block_fl_gate(df, y, "z", ["c1"], sign=+1, draws=draws, seed=int(rng.integers(1 << 31)), min_n=16).get("passes"))
+        return bool(block_fl_gate(df, y, "z", ["c1"], sign=+1, draws=draws, seed=int(rng.integers(1 << 31)), min_n=block_min_n).get("passes"))
 
-    def move(**kw):
+    def move(name, **kw):
         df, y = b.sim_move_world(rng, **kw)
-        return fl(df, y, "P", ["c1"], _strata_day(df))
+        return fl(name, df, y, "P", ["c1"])
 
-    def corr():
+    def corr(name):
         df, y = b.sim_corr_label_world(rng, corr=0.7, binary=True)
-        return fl(df, y, "L", ["c1"], _strata_day(df))
+        return fl(name, df, y, "L", ["c1"])
 
-    def mk(p):
+    def mk(name, p):
         df, y = sim_markov_ma2_world6(rng, persistence=p)
-        return fl(df, y, "P", ["c1"], _strata_day(df))
+        return fl(name, df, y, "P", ["c1"])
 
     def ev(name, label_p, absolute):
         df, y = sim_event_label_world(rng, label_p=label_p, absolute=absolute)
         analytic_rates(df, y, "L", ["c1"], rates.setdefault(name, {}))
-        return fl(df, y, "L", ["c1"], _strata_day(df))
+        return fl(name, df, y, "L", ["c1"])
 
     def sv(name):
         df, y = sim_stochvol_world(rng)
         analytic_rates(df, y, "L", ["a1", "a6", "a24", "loo_a1"], rates.setdefault(name, {}))
-        return fl(df, y, "L", ["a1", "a6", "a24", "loo_a1"], _strata_day(df))
+        return fl(name, df, y, "L", ["a1", "a6", "a24", "loo_a1"])
 
     def v(rho):
         df, y = sim_v_world(rng, rho=rho)
         return blk(df, y)
 
-    return {"s01_fl_binary_iid": lambda: move(), "s02_fl_binary_persistent": lambda: move(persistent=True), "s03_fl_binary_control_corr0.7": corr,
-            "s04_fl_markov0.6_ma2": lambda: mk(0.6), "s05_fl_markov0.9_ma2": lambda: mk(0.9),
+    return {"s01_fl_binary_iid": lambda: move("s01_fl_binary_iid"), "s02_fl_binary_persistent": lambda: move("s02_fl_binary_persistent", persistent=True),
+            "s03_fl_binary_control_corr0.7": lambda: corr("s03_fl_binary_control_corr0.7"),
+            "s04_fl_markov0.6_ma2": lambda: mk("s04_fl_markov0.6_ma2", 0.6), "s05_fl_markov0.9_ma2": lambda: mk("s05_fl_markov0.9_ma2", 0.9),
             "s06_fl_d_event_label_ma10": lambda: ev("s06_fl_d_event_label_ma10", 0.004, False), "s07_fl_b_abs_target": lambda: ev("s07_fl_b_abs_target", 0.006, True),
             "s08_block_v_rho0": lambda: v(0.0), "s09_block_v_rho0.6": lambda: v(0.6), "s10_block_v_rho0.9": lambda: v(0.9),
             "s11_fl_b_stochvol": lambda: sv("s11_fl_b_stochvol")}
 
 
-def nonbinding_runs(spec: dict, draws: int, worlds: int | None = None, only: list[str] | None = None) -> dict:
+def nonbinding_runs(spec: dict, draws: int, worlds: int | None = None, only: list[str] | None = None, *, strata: dict | None = None) -> dict:
     """The non-binding runs of 1.8, each on its OWN generator derived from 20261167 (scenario 12 seed 2026116712; the power runs
     2026116721-24), so they cannot perturb the binding worlds. Scenario 12 reports the gate's rate for the raw-target and the
     both-demeaned estimators; the power runs plant a later / birth effect of 0.5c and 1.0c and report the gate's and the analytic rule's
     power. Information only; they drop nothing."""
     nb = spec["size_check"]["nonbinding"]
     out: dict = {}
+    ms = int(spec["gates"]["perm_min_stratum"])
+    # the same registered strata as the gate (strata_of with the test's census-fixed perm_stratum); s12 is judged on D's, the power runs on their own test's
+    strata = strata or {"d": spec["d"]["perm_stratum"] or "day", "b": spec["b"]["perm_stratum"] or "day"}
+
+    def st(df, which):
+        return strata_of(df, strata[which], SIZE_T0)
 
     def gate_both(df, y, rng):
         seed = int(rng.integers(1 << 31))
-        a = fl_perm_gate(df, y, "L", ["c1"], sign=+1, strata=_strata_day(df), draws=draws, seed=seed, min_stratum=4)
+        a = fl_perm_gate(df, y, "L", ["c1"], sign=+1, strata=st(df, "d"), draws=draws, seed=seed, min_stratum=ms)
         yd = both_demeaned_y(df, y)
-        c = fl_perm_gate(df, yd, "L", ["c1"], sign=+1, strata=_strata_day(df), draws=draws, seed=seed, min_stratum=4)
+        c = fl_perm_gate(df, yd, "L", ["c1"], sign=+1, strata=st(df, "d"), draws=draws, seed=seed, min_stratum=ms)
         return bool(a.get("passes")), bool(c.get("passes"))
 
     s12 = nb["s12_label_correlated_with_level"]
@@ -483,7 +510,8 @@ def nonbinding_runs(spec: dict, draws: int, worlds: int | None = None, only: lis
         gp, ap = 0, {}
         for _ in range(n_w):
             df, y = sim_event_label_world(rng, label_p=label_p, absolute=absolute, effect=cfg["effect"])
-            gp += int(bool(fl_perm_gate(df, y, "L", ["c1"], sign=+1, strata=_strata_day(df), draws=draws, seed=int(rng.integers(1 << 31)), min_stratum=4).get("passes")))
+            gp += int(bool(fl_perm_gate(df, y, "L", ["c1"], sign=+1, strata=st(df, "b" if absolute else "d"), draws=draws, seed=int(rng.integers(1 << 31)),
+                                        min_stratum=ms).get("passes")))
             analytic_rates(df, y, "L", ["c1"], ap)
         out[key] = {"worlds": n_w, "effect": cfg["effect"], "gate_power": gp / n_w, "analytic_power_treated_0.05": ap.get("treated_0.05", 0) / n_w,
                     "analytic_power_plain_0.05": ap.get("plain_0.05", 0) / n_w, "seed": cfg["seed"], "binding": False}
@@ -500,9 +528,13 @@ def size_check(*, worlds: int, draws: int, seed: int, nominal: float = 0.05, bin
     binding map and the table disagree. ``only`` runs a subset and is never the registered statement."""
     spec = spec or lt.load_spec(sha=None)
     binding = binding or spec["size_check"]["scenarios"]
+    gates = spec["gates"]
+    if gates["draws"] != draws and not (dev or only is not None):
+        raise ValueError(f"size-check draws {draws} differ from the registered gate's {gates['draws']}: only a dev run may differ")
+    strata = size_strata(spec, binding)  # refuses while k_tests or a needed perm_stratum is null
     rng = np.random.default_rng(seed)
     rates: dict = {}
-    table = scenario_table(rng, draws, rates)
+    table = scenario_table(rng, draws, rates, strata=strata, min_stratum=int(gates["perm_min_stratum"]), block_min_n=int(gates["block_min_n"]))
     missing = [n for n in table if n not in binding or not binding[n]]
     extra = [n for n in binding if n not in table]
     if missing or extra:
@@ -514,7 +546,7 @@ def size_check(*, worlds: int, draws: int, seed: int, nominal: float = 0.05, bin
         if only is not None and name not in only:
             continue
         rej = sum(int(fn()) for _ in range(worlds))
-        row = {"rate": rej / worlds, "ok": rej / worlds <= lim, "binding_for": binding[name]}
+        row = {"rate": rej / worlds, "ok": rej / worlds <= lim, "binding_for": binding[name], "perm_stratum": strata[name]}
         if name in rates:
             rr = rates[name]
             ana = {f"{kind}_{nom}": rr.get(f"{kind}_{nom}", 0) / worlds for kind in ("treated", "plain") for nom in NOMINALS}
@@ -528,7 +560,7 @@ def size_check(*, worlds: int, draws: int, seed: int, nominal: float = 0.05, bin
     out["all_ok"] = not failed
     out["code_sha256"] = lt.code_hashes()
     if include_nonbinding:
-        out["nonbinding"] = nonbinding_runs(spec, draws)
+        out["nonbinding"] = nonbinding_runs(spec, draws)  # same registered strata
     return out
 
 

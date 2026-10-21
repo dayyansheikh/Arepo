@@ -119,14 +119,14 @@ def build_world(root: Path, n: int, n_rows: int, seed: int = 7) -> dict:
     return {"snap": str(snap), "sweeps": str(sw), "samples": str(smp), "rows": int(len(tr)), "markets": n}
 
 
-def child(snap: str, sweeps: str, samples: str, out: str, now: float) -> None:
+def child(snap: str, sweeps: str, samples: str, out: str, now: float, max_items: int = 2) -> None:
     from astrolabe.research_lab import live_tests6 as lt
 
     base = peak_rss_mb()
     spec = lt.load_spec(sha=None)
     spec["_pinned"] = False
     st = lt.run_once(snapshot_root=Path(snap), sample_root=Path(samples), sweep_root=Path(sweeps), root=Path(out), spec=spec, registered_utc=REG, end_utc=END,
-                     now=now, max_items=40, allow_late=True)
+                     now=now, max_items=max_items, allow_late=True)
     print(json.dumps({"baseline_peak_mb_after_imports": round(base, 1), "peak_mb": round(peak_rss_mb(), 1), "rss_end_mb": round(current_rss_mb(), 1),
                       "platform": sys.platform, "stats": {k: v for k, v in st.items() if isinstance(v, (int, str, bool))}}))
 
@@ -136,16 +136,17 @@ def main() -> int:
     ap.add_argument("--markets", type=int, default=30000)
     ap.add_argument("--rows", type=int, default=1_000_000)
     ap.add_argument("--keep", type=Path, default=None)
+    ap.add_argument("--max-items", type=int, default=2, help="reader --max-items: ladder step 1 is 2 (8.2); the old probe's 40 measured a different run")
     ap.add_argument("--child", nargs=5, metavar=("SNAP", "SWEEPS", "SAMPLES", "OUT", "NOW"), default=None)
     a = ap.parse_args()
     if a.child:
-        child(a.child[0], a.child[1], a.child[2], a.child[3], float(a.child[4]))
+        child(a.child[0], a.child[1], a.child[2], a.child[3], float(a.child[4]), a.max_items)
         return 0
     root = a.keep or Path(tempfile.mkdtemp(prefix="lt6_rss_"))
     root.mkdir(parents=True, exist_ok=True)
     w = build_world(root, a.markets, a.rows)
     now = (G0 + timedelta(hours=2 * (K + 2))).timestamp()
-    r = subprocess.run([sys.executable, "-I", str(Path(__file__).resolve()), "--child", w["snap"], w["sweeps"], w["samples"], str(root / "out"), str(now)],
+    r = subprocess.run([sys.executable, "-I", str(Path(__file__).resolve()), "--child", w["snap"], w["sweeps"], w["samples"], str(root / "out"), str(now), "--max-items", str(a.max_items)],
                        capture_output=True, text=True, cwd=str(Path(__file__).resolve().parents[1]), env={"PYTHONPATH": str(Path(__file__).resolve().parents[1]), "PATH": "/usr/bin:/bin"})
     print(r.stdout.strip() or r.stderr[-6000:])
     return r.returncode

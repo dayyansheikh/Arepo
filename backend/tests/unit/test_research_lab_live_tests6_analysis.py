@@ -296,9 +296,18 @@ def test_v_world_and_k_world_match_declaration():
 # --- size check -----------------------------------------------------------------------------------------------------------------------------
 
 
+def _sized_spec(k=("V", "K", "D", "B"), strata=("day", "block2", "day")) -> dict:
+    """A copy of the draft spec with k_tests and the census-fixed strata filled (TEST ONLY: the real values come from the censuses)."""
+    spec = copy.deepcopy(lt.load_spec(sha=None))
+    spec["k_tests"] = list(k)
+    for t_, st_ in zip(("k", "d", "b"), strata, strict=True):
+        spec[t_]["perm_stratum"] = st_
+    return spec
+
+
 def test_scenario_table_matches_the_specs_binding_map_and_order():
     spec = lt.load_spec(sha=None)
-    table = la.scenario_table(np.random.default_rng(1), 5, {})
+    table = la.scenario_table(np.random.default_rng(1), 5, {}, strata=la.size_strata(_sized_spec(), spec["size_check"]["scenarios"]))
     assert list(table) == list(spec["size_check"]["scenarios"])  # table order = the spec's order = the design's
     tests = sorted(t for v in spec["size_check"]["scenarios"].values() for t in v)
     assert tests == ["B", "B", "D", "K", "K", "K", "K", "K", "V", "V", "V"]
@@ -306,29 +315,29 @@ def test_scenario_table_matches_the_specs_binding_map_and_order():
 
 
 def test_size_check_fails_closed_on_binding_map():
-    spec = lt.load_spec(sha=None)
+    spec = _sized_spec()
     with pytest.raises(ValueError):
-        la.size_check(worlds=1, draws=3, seed=1, binding={"s01_fl_binary_iid": ["K"]}, spec=spec)
+        la.size_check(worlds=1, draws=3, seed=1, binding={"s01_fl_binary_iid": ["K"]}, spec=spec, dev=True)
     bad = dict(spec["size_check"]["scenarios"])
     bad.pop(sorted(bad)[0])
     with pytest.raises(ValueError):
-        la.size_check(worlds=1, draws=3, seed=1, binding=bad, spec=spec)
+        la.size_check(worlds=1, draws=3, seed=1, binding=bad, spec=spec, dev=True)
     bad2 = dict(spec["size_check"]["scenarios"], s99_unknown=["K"])
     with pytest.raises(ValueError):
-        la.size_check(worlds=1, draws=3, seed=1, binding=bad2, spec=spec)
+        la.size_check(worlds=1, draws=3, seed=1, binding=bad2, spec=spec, dev=True)
 
 
 def test_size_check_maps_failures_to_tests_only(monkeypatch):
     calls = {"s01_fl_binary_iid": lambda: True, "s08_block_v_rho0": lambda: False}
-    monkeypatch.setattr(la, "scenario_table", lambda rng, draws, rates: calls)
-    r = la.size_check(worlds=20, draws=9, seed=1, binding={"s01_fl_binary_iid": ["K"], "s08_block_v_rho0": ["V"]}, spec=lt.load_spec(sha=None))
+    monkeypatch.setattr(la, "scenario_table", lambda rng, draws, rates, **kw: calls)
+    r = la.size_check(worlds=20, draws=9, seed=1, binding={"s01_fl_binary_iid": ["K"], "s08_block_v_rho0": ["V"]}, spec=_sized_spec(), dev=True)
     assert r["se_check_failed_size_scenario"] == ["K"] and not r["all_ok"]
     assert r["scenarios"]["s08_block_v_rho0"]["ok"] and not r["scenarios"]["s01_fl_binary_iid"]["ok"]
     assert r["limit"] == pytest.approx(0.05 + 1.645 * math.sqrt(0.0475 / 20))
 
 
 def test_size_check_small_run_all_scenarios_with_analytic_rates():
-    r = la.size_check(worlds=2, draws=9, seed=11, spec=lt.load_spec(sha=None))
+    r = la.size_check(worlds=2, draws=9, seed=11, spec=_sized_spec(), dev=True)
     assert len(r["scenarios"]) == 11 and set(r["code_sha256"]) == set(lt.CODE_FILES)
     assert r["scenarios"]["s11_fl_b_stochvol"]["binding_for"] == ["B"] and r["scenarios"]["s06_fl_d_event_label_ma10"]["binding_for"] == ["D"]
     for name in ("s06_fl_d_event_label_ma10", "s07_fl_b_abs_target", "s11_fl_b_stochvol"):
@@ -336,12 +345,12 @@ def test_size_check_small_run_all_scenarios_with_analytic_rates():
         assert {"treated_0.0125", "treated_0.05", "plain_0.0125", "plain_0.05", "oversized", "limits"} <= set(a)
     assert "analytic_rates" not in r["scenarios"]["s01_fl_binary_iid"]
     # same seed, same code: identical result (one generator in table order; analytic rates draw nothing)
-    r2 = la.size_check(worlds=2, draws=9, seed=11, spec=lt.load_spec(sha=None))
+    r2 = la.size_check(worlds=2, draws=9, seed=11, spec=_sized_spec(), dev=True)
     assert {k: v["rate"] for k, v in r["scenarios"].items()} == {k: v["rate"] for k, v in r2["scenarios"].items()}
 
 
 def test_analytic_rates_do_not_perturb_the_binding_generator():
-    spec = lt.load_spec(sha=None)
+    spec = _sized_spec()
     only = ["s06_fl_d_event_label_ma10", "s08_block_v_rho0"]
     a = la.size_check(worlds=2, draws=9, seed=3, only=only, spec=spec)
     # the same two scenarios after other scenarios would shift; instead check determinism of the analytic block itself
@@ -350,7 +359,7 @@ def test_analytic_rates_do_not_perturb_the_binding_generator():
 
 
 def test_nonbinding_runs_use_their_own_seeds_and_do_not_touch_binding():
-    spec = lt.load_spec(sha=None)
+    spec = _sized_spec()
     out = la.nonbinding_runs(spec, draws=9, worlds=2, only=["s12", "power_d_0.5c", "power_b_1.0c"])
     assert out["s12_label_correlated_with_level"]["seed"] == 2026116712 and out["power_d_0.5c"]["seed"] == 2026116721 and out["power_b_1.0c"]["seed"] == 2026116724
     assert out["power_d_0.5c"]["effect"] == 0.005 and out["power_b_1.0c"]["effect"] == 0.01 and not out["power_d_0.5c"]["binding"]
@@ -364,3 +373,41 @@ def test_nonbinding_runs_use_their_own_seeds_and_do_not_touch_binding():
 def test_trial_record_counts_k_only():
     assert la.trial_record(3, "sha") == {"kind": "live_tests6", "n_tests": 3, "spec_sha256": "sha"}
     json.dumps(la.trial_record(2, None))
+
+
+def test_size_check_refuses_while_k_tests_or_a_needed_stratum_is_null():
+    with pytest.raises(ValueError, match="k_tests is null"):
+        la.size_check(worlds=1, draws=3, seed=1, spec=lt.load_spec(sha=None), dev=True)
+    spec = _sized_spec()
+    spec["d"]["perm_stratum"] = None
+    with pytest.raises(ValueError, match=r"perm_stratum is null for \['D'\]"):
+        la.size_check(worlds=1, draws=3, seed=1, spec=spec, dev=True)
+    spec["k_tests"] = ["V", "K", "B"]  # D dropped at the census: its null stratum no longer blocks, its scenario runs informationally on day
+    assert la.size_strata(spec, spec["size_check"]["scenarios"])["s06_fl_d_event_label_ma10"] == "day"
+
+
+def test_size_check_and_the_gate_use_identical_strata_for_the_same_spec(monkeypatch):
+    """The LT4 defect: every FL scenario permuted within market x day while the registered gate used the census-fixed stratum."""
+    spec = _sized_spec(strata=("block2", "block2", "block2"))
+    seen = []
+    real = la.fl_perm_gate
+
+    def spy(df, y, term, controls, **kw):
+        seen.append((df, kw["strata"], kw["min_stratum"], kw["draws"]))
+        return real(df, y, term, controls, **kw)
+
+    monkeypatch.setattr(la, "fl_perm_gate", spy)
+    la.size_check(worlds=1, draws=5, seed=2, spec=spec, only=["s01_fl_binary_iid", "s06_fl_d_event_label_ma10"])
+    assert len(seen) == 2
+    for df, strata, min_s, _ in seen:
+        want = la.strata_of(df, "block2", la.SIZE_T0)  # what gate_for computes for the same census-fixed stratum
+        assert (strata == want).all() and min_s == spec["gates"]["perm_min_stratum"]
+        assert len(set(strata)) < len(set(la.strata_of(df, "day", la.SIZE_T0)))  # not the day strata of the old code
+    # gate_for itself routes through strata_of with the spec's stratum
+    df = seen[0][0]
+    y = np.random.default_rng(0).normal(size=len(df))
+    gseen = []
+    monkeypatch.setattr(la, "fl_perm_gate", lambda *a, **kw: gseen.append(kw["strata"]) or {"passes": False})
+    d2 = df.assign(PL=(np.arange(len(df)) % 5 == 0).astype(float))
+    la.gate_for("K", d2.rename(columns={"P": "CL"}), y, spec, la.SIZE_T0)
+    assert (gseen[0] == la.strata_of(df, "block2", la.SIZE_T0)).all()

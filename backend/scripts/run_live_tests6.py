@@ -193,8 +193,12 @@ def main(argv: list[str] | None = None) -> int:
         if (args.worlds is not None or args.draws is not None) and not args.dev:
             print("refusing --worlds/--draws without --dev: the binding run uses the spec values")
             return 2
-        res = la.size_check(worlds=args.worlds or sc["worlds"], draws=args.draws or sc["draws"], seed=sc["seed"], nominal=sc["nominal"], binding=sc["scenarios"],
-                            spec_sha256=spec["_sha256"], dev=args.dev, include_nonbinding=args.nonbinding, spec=spec)
+        try:
+            res = la.size_check(worlds=args.worlds or sc["worlds"], draws=args.draws or sc["draws"], seed=sc["seed"], nominal=sc["nominal"], binding=sc["scenarios"],
+                                spec_sha256=spec["_sha256"], dev=args.dev, include_nonbinding=args.nonbinding, spec=spec)
+        except ValueError as e:  # k_tests or a needed perm_stratum still null, or a binding-map mismatch
+            print(f"refusing: {e}")
+            return 2
         return _write_out(args.out, json.dumps(res, sort_keys=True, indent=1, default=lt._json))
     err, commit = _committed(args.seal)
     if err:
