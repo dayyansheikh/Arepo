@@ -1,6 +1,6 @@
 # Signal engine: status (rewrite each session; do not append)
 
-**Last updated:** 2026-10-21 15:25 UTC+1 (14:25Z), signal-engine autopilot session 4
+**Last updated:** 2026-10-21 15:58 UTC+1 (14:58Z), signal-engine autopilot session 4
 
 ## In plain English
 - **The engine now runs end to end on the server, apart from the first score.**
@@ -27,12 +27,20 @@
 - Both write predictions from tomorrow's refit. No score is computed or shown before their dates.
 - **A robustness fix.** If one feature family fails to build, the others and the tick's predictions now carry on.
   Before, one error could stop that pass's predictions.
-- **Walk-forward (development baseline) is still running** on the server (started 12:28Z). It writes only at the
-  end, so I raised its timeout from 2 h to 3 h for any retry and added a progress line per day.
+- **Walk-forward (development baseline):** the first attempt was killed at its 2 h limit (12:28-14:28Z), with
+  nothing written.
+  - The retry (attempt 2 of 2) runs after the 14:31Z pass, with a 3 h limit and a progress line per day.
+  - It covers se0, se1 and se7 only.
+- **Science review of the two new families: ACCEPT_WITH_NOTES.**
+  - No look-ahead and no label use; the embargo is enforced on every display path.
+  - Applied: the surprise embargo moved later (11-12 -> 11-19); no SHAP attribution for embargoed fits; a failed
+    feature build skips only that capture; a new test shows the k+1 files cannot change k's tables.
+- **Checked live:** the 14:31Z pass built all four feature tables, and the 11 fitted models wrote their predictions
+  (51,790 markets, ~62 s).
 - Nothing has been promoted. No edge claims. The UI wording stays "signal strength".
 
 ## Live state (host)
-- **Code:** deployed `bf967fd3` (main checkout `chore/arepo-claude-setup`). The registry loads 16 models on the host.
+- **Code:** deployed `d9c54b20` (main checkout `chore/arepo-claude-setup`). The registry loads 16 models on the host.
 
 | Model | Embargoed until |
 |---|---|
@@ -57,8 +65,10 @@
   - `q0512` refit: next due 10-22 ~07:34Z.
   - `q0513` score: tempfails until 20 h after its 07:22Z run, so next ~03:30Z. That is inside the resize window
     (see below), and the queue handles it.
-  - `q0514` walk-forward: running since 12:28Z with se0, se1 and se7. Timeout 7200 s for this attempt, 10800 s for
-    any retry. Output goes to `dev/walkforward_*.json` and `dev/latest.json`.
+  - `q0514` walk-forward: attempt 1 timed out at 7200 s (14:28Z). Attempt 2 runs from about 15:00Z with 10800 s
+    and `SE_WALKFORWARD_DAY` progress lines in `run/queue/logs/q0514_se_walkforward.2.log`. Output goes to
+    `dev/walkforward_*.json` and `dev/latest.json`. If attempt 2 also fails, the job is `failed`: re-promote it with
+    `--max-test-days 5`.
 - **movetype tables:** 105 written at 14:06Z by a one-off backfill under the collector lock
   (`~/.arepo/signal_engine/aux_backfill_movetype.sh`, log next to it). New captures get theirs in the tick.
   - The family needs no snapshot rows, so se14 can fit at tomorrow's refit (full coverage).
