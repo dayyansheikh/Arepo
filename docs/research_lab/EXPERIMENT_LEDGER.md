@@ -2865,3 +2865,16 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   under the 20-min cron interval, and steady-state passes take seconds. 13.4's owed dry run is done. Remaining before
   registration: q0475 (`perm_*` must equal q0474 exactly, §13.15), pins, registration commit before 2026-10-23T00:00Z,
   then the cron install.
+
+## MC1 q0116e: killed by the kernel OOM killer again, 2026-10-21 07:10Z (nothing counted; development only)
+- q0116e (memory-fixed `run_ml_dev.py`, 9e6d5596; exclusive; max_retries 0) started 06:58Z and was killed at 07:10:49Z
+  after 771 s: global OOM, `anon-rss` 4,932,452 kB, total-vm 10.5 GB, `oom_score_adj` 1000 (the collector and monitors
+  were protected as designed; the collector pass and live collectors were unaffected). The job log holds only the argv
+  line, so the stage is not known; the peak is about the same as q0116d's (4.8 GB), so the column-wise read-back fix did
+  not lower the true peak enough, or the peak is in the model-fit stage the fix did not measure.
+- No trials lines, no outputs; the cached panel (hash c30de03b…) and period cache are unchanged and stay reusable.
+- **Decision:** no further attempt on this host (5.6 GB RAM; five OOM-type failures q0116..q0116e). Not retried and not
+  re-designed by shrinking the panel (that would be a design change needing a written justification and review).
+  MC1 waits for more memory: either the second free instance (auto-retry still "out of host capacity" at 08:40Z) or an
+  owner-approved free resize of this instance (Always Free A1 allows 4 OCPU / 24 GB in total). Dashboard approval item.
+  The signal engine (separate autopilot) covers prospective multi-family scoring meanwhile.
