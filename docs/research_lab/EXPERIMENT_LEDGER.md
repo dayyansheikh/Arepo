@@ -3299,3 +3299,34 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   skeleton (G_treated - 1 event t, gates, Holm, verdicts), size-check scenarios 1-11 (seed 20261167); queue drafts
   q0580-q0584 (DRAFT). 121 tests; only new files (no frozen or pinned file touched). Phase 2 (reader, analyze entry
   point, reader / analysis drafts) running. Needed at registration: a `battery2.KIND_RULES["live_tests6"]` entry.
+
+## Finished-job write-ups and queue fixes, 2026-10-21 ~19:00-20:15Z (experiments autopilot)
+- **Ops (no science change):** CB18 censuses q0502-q0506 had `--disk-cap-gb 20` (the declared upper bound, `<= 20`);
+  with data-dumps at 29.75 GB every attempt exited 75 against the 40 GB cap. Set to 0.25 (outputs are small JSON), cbe76887.
+  CB18 drafts q0507-q0516 renumbered q0590-q0599 because q0510-q0515 were already signal-engine job ids (a5029dce).
+- **q0404 CB17 smoke refused (exit 2, twice):** the frozen `cb17_jobs._disk` counts the whole `creative_batch17/` tree
+  against its 0.3 GB total cap, and q0413 restored the worn files (925 MB) inside it (`creative_batch17/worn_restore`).
+  Not a FAIL (a refusal; the P1-P3 reproduction never ran). The frozen code is not edited. The restore tree must be moved
+  out of `creative_batch17/` (or cleared, its notes say "clear the tree after q0404"), which the evidence hook blocks
+  without an owner-approved session; owner approval requested on the dashboard. Then q0404 is retried with the new
+  restore path (`queue_worker.py retry`). S_8 is 2026-10-26T00Z, so CB17 is not yet late.
+- **q0281 CB13-R census (18:02Z, counts only, nothing newly counted):** GR basis 0.915 (< 0.95), frame completeness
+  0.782 (< 0.98) and events 58 (< 60) fail; markets 801, weeks 31, components 58 and the parser gate pass; GRP MDE 0.658
+  (> 0.60) fails. q0282 will write R1 "not testable (basis)", p = 1. **Reconcile before q0282:** the host trials file
+  already has a CB13 R1 count line (n_tests 1, 2026-10-19T07:30:16Z, probably the failed v1 smoke q0285); R1 must be
+  counted once.
+- **q0305 CB14-W GWC (18:04Z): FAIL** (58 markets < 150, 46 events < 60, 38 subjects < 40; GW0 audit precision 0.679,
+  38 of 56; frame completeness 1.0). W1 and W2 "not testable (population)", **counted 2** (trials line 18:04:03Z).
+  Drafts q0306-q0309 are moot (never promoted).
+- **q0347 CB15-P GPB (18:06Z): FAIL** (37 pairs in 12 events; minimum 60 pairs in 30 events). P1 and P2 "not testable
+  (population)", **counted 2** (trials line 18:06:22Z). Drafts q0349-q0354 are moot.
+- **LT4 censuses (q0482 CQ/CH 17:26Z, q0483 CF 17:38Z), counts only.** `CQCH.json` 2c9e2a9e…, `CF.json` 55f01ced…
+  (sha256 checked on the host; inputs sealed and verified). **E020 FAIL** (projected cancellations 14,028 < 15,000;
+  permutable-strata share 0.055 by day / 0.132 by two-day block < 0.50; pessimistic MDE 0.526c > 0.5c): dropped before
+  registration, uncounted. **E021 FAIL** (strata 0.005 / 0.018; MDE 1.060c): dropped, uncounted. **E022 PASS** (depth
+  definition token0 0.913, `both` NaN because sweeps hold one token per market; coverage 0.9996; residual-IQR share 0.827
+  over 301 markets; stratum block2 0.599; tercile MDE 0.256c). Series concentration: top family 0.059 (E020), 0.024
+  (E022); nothing excluded. **k_tests = [E022], Holm m = 1.** Census-fixed values filled into the unpinned spec
+  `live_tests4_v1.json` (design 13.4); `LIVE_TESTS_4.md` section 17. Nothing counted, nothing registered. Open for the
+  freeze check: the raw-`h` IQR gate of section 8 was evaluated as the residual-IQR gate (the R1/R2 wording), and the
+  `both` depth branch is not evaluable. Registration must be committed by 2026-10-25T00:00Z for the 10-26 window.

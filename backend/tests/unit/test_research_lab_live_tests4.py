@@ -369,6 +369,7 @@ def test_analysis_refusals_and_nan_census_values(tmp_path):
     with pytest.raises(RuntimeError):
         la.code_check(spec)  # code hashes not pinned
     spec["code_sha256"] = lt.code_hashes()
+    spec["k_tests"] = None  # the committed spec carries the census survivors since 2026-10-21
     with pytest.raises(RuntimeError):
         la.code_check(spec)  # null k_tests
     spec["k_tests"] = ["E020", "E022", "E023"]

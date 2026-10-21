@@ -1,6 +1,6 @@
 {
  "spec_id": "live_tests4_v1",
- "status": "DRAFT after challenger R2 (k <= 3: E020-E022; E023/E024 dropped before any census; not registered; census values, strata, family exclusions and k not filled)",
+ "status": "DRAFT after challenger R2 and the censuses (2026-10-21, LIVE_TESTS_4.md 17: k_tests = [\"E022\"], Holm m = 1; E020 failed CQ and E021 failed CF, dropped uncounted, their census values left null on purpose; E023/E024 dropped before any census; E022 values from CH, CQCH.json sha256 2c9e2a9e...; not registered, code_sha256 and SPEC_SHA256 not pinned)",
  "design": "docs/research_lab/LIVE_TESTS_4.md",
  "experiments": [
   "E020",
@@ -10,7 +10,9 @@
  "registered_utc": "2026-10-26T00:00:00Z",
  "end_utc": "2026-11-16T00:00:00Z",
  "analysis_not_before": "2026-11-17T12:00:00Z",
- "k_tests": null,
+ "k_tests": [
+  "E022"
+ ],
  "k_tests_rule": "list of the primaries among E020-E022 that survived their census gates, fixed before the pin; Holm m = len(k_tests); null = not filled (refused when pinned); E023/E024 refused",
  "code_sha256": {
   "live_tests4.py": null,
@@ -112,16 +114,16 @@
    1
   ],
   "zh": {
-   "centre": null,
-   "scale": null
+   "centre": 0.7250371409466936,
+   "scale": 0.31414282818425204
   },
   "h_cuts": [
-   null,
-   null
+   0.7296332672950675,
+   0.9344107073259192
   ],
-  "gap": null,
+  "gap": 1.983187115889375,
   "rule": "D = depth_bid_5c * sbid + depth_ask_5c * sask (sweep 1 of pass k, outcome-0 token); L = Gamma liquidity at capture k; h = clip(1 - D / L, 0, 1); zh = (h - centre) / scale (census). D is the depth of the chosen depth_def (R1 finding 6: 'both' = outcome-0 + outcome-1 token, or 'token0' = outcome-0 token only), and the depth control log1p D(k-1) uses the same definition",
-  "depth_def": null,
+  "depth_def": "token0",
   "depth_def_rule": "fixed by census CH before the pin (R1 finding 6): 'both' (outcome-0 + outcome-1 token 5c depth) if L >= D_both in >= 90% of covered non-sports books, else 'token0' if L >= D_token0 in >= 90%, else E022 is dropped"
  },
  "e022": {
@@ -133,8 +135,8 @@
    "days": 10
   },
   "econ_min_abs_x": 0.03,
-  "perm_stratum": null,
-  "exclude_family": null
+  "perm_stratum": "block2",
+  "exclude_family": ""
  },
  "seeds": {
   "E020": 20261030,

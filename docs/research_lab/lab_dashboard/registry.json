@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-21T16:09:00Z",
+ "updated": "2026-10-21T19:10:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1295,18 +1295,18 @@
   {
    "id": "CB13",
    "title": "Where makers lose money; touch versus end-above markets",
-   "plain": "Whether the losses of resting orders differ by type of market, and whether 'will it touch X' crypto markets are priced as if they were 'will it end above X'. The maker-loss part could not be tested: the 4-day window held too few usable fills (163 and 427 against 500 needed per class), so it is recorded as not testable. The touch-market part continues.",
+   "plain": "Whether the losses of resting orders differ by type of market, and whether 'will it touch X' crypto markets are priced as if they were 'will it end above X'. The maker-loss part was not testable (too few fills). The touch-market part failed its pre-declared data checks on 21 Oct (counts only), so it is expected to be recorded as not testable.",
    "batch": "CB13",
    "family": "mixed",
    "stage": "designed",
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Maker-loss part recorded as not testable (2 tests counted); the touch-market part passed its connection check and its exclusion-key job is queued",
+   "next": "Maker-loss part recorded as not testable (2 tests counted); touch-market data checks failed (counts only), screening job will record it as not testable",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Session 2026-10-20 ~01:27Z (autopilot): smokes q0285b / q0300 / q0301 / q0348"
+    "verdict": "docs/research_lab/CREATIVE_BATCH_13.md § 12 (CB13-R census results), and docs/research_lab/EXPERIMENT_LEDGER.md § Session 2026-10-20 ~01:27Z (autopilot): smokes q0285b / q0300 / q0301 / q0348"
    },
    "stage_results": {
     "designed": "pending"
@@ -1318,18 +1318,18 @@
   {
    "id": "CB14",
    "title": "Wikipedia edit bursts; the speech clock",
-   "plain": "Whether bursts of Wikipedia edits come before the market moves on resignations and similar news, and whether unsaid words in a speech become less likely as the speech runs on. The speech part could not be tested: its connection check found no usable speech transcripts or events, so it is recorded as not testable (2 tests counted). The Wikipedia part passed its connection check.",
+   "plain": "Whether bursts of Wikipedia edits come before market moves on resignations and similar news, and whether unsaid words in a speech become less likely as it runs on. Neither part could be tested: the speech part found no usable transcripts, and the Wikipedia part mapped too few markets (58 of 150 needed). Recorded as not testable (4 tests counted).",
    "batch": "CB14",
    "family": "mixed",
    "stage": "designed",
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Wikipedia part: data jobs after the shared exclusion-key jobs",
+   "next": "Both parts recorded as not testable (4 tests counted); no CB14 test remains",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Session 2026-10-20 ~01:27Z (autopilot): smokes q0285b / q0300 / q0301 / q0348"
+    "verdict": "docs/research_lab/CREATIVE_BATCH_14.md § 12 (CB14-W pre-fetch gate GWC result), and docs/research_lab/EXPERIMENT_LEDGER.md § Session 2026-10-20 ~01:27Z (autopilot): smokes q0285b / q0300 / q0301 / q0348"
    },
    "stage_results": {
     "designed": "pending"
@@ -1341,18 +1341,18 @@
   {
    "id": "CB15",
    "title": "US election night; pairs listed first on Kalshi",
-   "plain": "Whether, on election night (3 Nov), markets in states whose late count usually moves one way drift that way after polls close, and whether pairs listed first on Kalshi are mispriced at birth on Polymarket. The election-night part could not be tested: the fixed market search found only 26 of 511 races (it missed district races), and an independent check confirmed this was not a code fault. The Kalshi-first part continues.",
+   "plain": "Whether markets in states whose late count usually moves one way drift that way after polls close on 3 Nov, and whether pairs listed first on Kalshi are mispriced at birth on Polymarket. Neither part could be tested: the search found 26 of 511 races, and only 37 Kalshi-first pairs in 12 events were found (60 and 30 needed). Recorded as not testable (4 tests counted).",
    "batch": "CB15",
    "family": "mixed",
    "stage": "designed",
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Kalshi-first pairs: connection check passed; data jobs after the shared exclusion-key jobs",
+   "next": "Both parts recorded as not testable (4 tests counted); no CB15 test remains",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Session 2026-10-20 ~01:27Z (autopilot): smokes q0285b / q0300 / q0301 / q0348"
+    "verdict": "docs/research_lab/CREATIVE_BATCH_15.md § 12 (CB15-P birth-order census result), and docs/research_lab/EXPERIMENT_LEDGER.md § Session 2026-10-20 ~01:27Z (autopilot): smokes q0285b / q0300 / q0301 / q0348"
    },
    "stage_results": {
     "designed": "pending"
