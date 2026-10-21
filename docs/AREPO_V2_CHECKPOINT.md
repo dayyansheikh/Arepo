@@ -307,9 +307,9 @@ change request applied or "partially seen", a `battery2.KIND_RULES["live_tests6"
 - **CB18 closed** (routing record `seals/cb18_routing.json`, fa856ec4): S and P dropped uncounted at census; R/F/M maps;
   k = 0; drafts q0590-q0599 moot. **CB13 closed** (q0282: R1 "not testable (basis)", counted 1).
 - CB14 and CB15 closed (W GWC FAIL, P GPB FAIL, counted 2 each; S/E earlier); drafts q0306-q0309, q0349-q0354 moot.
-- **Creative round 12** (Fable xhigh, worktree branch `feat/creative-r12`, `CREATIVE_HYPOTHESES_2026-10-26.md`) launched
-  ~20:10Z after four batches closed at census: brief = population arithmetic, permutable strata and MDE vs floor up front;
-  top 6 for a future LT7 + engine-first families. Review and merge when it lands.
+- **Creative round 12 merged** (042e883d; CH191-CH201). **LT7 design draft** from its top 6 (CH195, CH191, CH194, CH197,
+  CH193, CH192) being written ~20:50Z on `feat/live-tests-7` (`LIVE_TESTS_7.md`; window not before 12-08). Next: challenger
+  R1 (science-reviewer), response, re-check; registry entry; embargo requests in CANDIDATES.md.
 - CB16-K q0383 (exclusive, not before 10-22T06Z). CB17 q0404 blocked (above), then q0405.
 
 **Waiting:**
