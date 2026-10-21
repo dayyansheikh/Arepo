@@ -329,7 +329,7 @@ Census notes (facts, not design changes):
   share 26.5%), projected 819.
 - **Ordering disclosure (gates not blind).** The design session ran an earlier, uncommitted census of the same
   pre-window data. The gates entered the spec at 3dd2d7ef (2026-10-21 08:52Z) and this document at aba32281 (08:56Z).
-  The time of the earlier run was not recorded and no artefact of it was found on the host (checked 2026-10-21 ~14:40Z);
+  The time of the earlier run was not recorded and no artefact of it was found on the host (checked 2026-10-21 ~14:20Z);
   its numbers reached the owner by about 09:40Z (about 1,278 primary-set copies in 2.8 days, about 9,470 projected over
   21 days; MDE E026-N 0.042, E026-C 0.051 at the event bound), so it may have preceded the gates. The committed census
   q0544 ran later (12:22Z) at git commit 7d2eac8b, whose library code hashes equal the reviewed afac80d4 (only the

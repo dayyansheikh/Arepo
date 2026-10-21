@@ -255,7 +255,7 @@ Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && gi
    Recorder peak-RSS defect fixed (VmHWM; q0544's 1,441.6 MB was the parent's peak). **q0545_copy_census_memcheck**
    (priority 37, cpu, counts only) must START before 02:45Z; when done: copy `census_q0545_memcheck.json` into
    `docs/research_lab/live_tests_copy/` with sha256, set spec `planning.recorder_peak_mb`, size q0541 `mem_mb`/`as_cap_mb`
-   (net lane needs < 500), diff counts vs q0544 (must be equal). Challenger review RUNNING (started ~14:05Z, this
+   (net lane needs < 500), diff counts vs q0544 (must be equal). Challenger review RUNNING (started ~13:58Z, this
    session); then fixes, owner phone note (review verdict), freeze q0540, pins, registration commit before
    2026-10-24T00:00Z (notes at registration and collection start).
 2. **LT5 seal → census:** q0564 (priority 45) runs from 23:20Z. When done:
