@@ -3043,3 +3043,33 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **q0544 promoted** (counts only; sidecar samples [10-18T04:00Z, 10-21T04:00Z); never opens a capture at/after
   10-22T00:00Z; gates G1-G3 declared in aba32281 before any census). Next: commit `census.json`, fill the
   CENSUS-GATED values, challenger review, freeze q0540, pins, registration before 10-24T00:00Z.
+
+## LT3 (E015) REGISTERED, 2026-10-21 ~11:35Z (registration commit = the commit adding this entry)
+- **Test:** E015 only. Quote-only versus traded 2 h moves (LIVE_TESTS_3.md, as amended by §13). `k_tests = ["E015"]`,
+  Holm m = 1. E016, E017, E018 and E019 were dropped at the censuses (q0470, q0472); uncounted.
+- **Size statement (§13.15):**
+  - q0475_lt3_size_check_r3 finished 11:2xZ on the pinned code. Its output is byte-identical to q0474's (sha256 39d0978b…
+    for both files), as §13.15 item 6 requires.
+  - Binding `perm_iid` 0.0470, `perm_persistent` 0.0480, `perm_corr_control` 0.0435, against a limit of 0.058017: all ok.
+  - `flowperm_ar0.6` 0.0590 FAIL: non-binding for E015, recorded, and it blocks future flow-moderation use of the gate.
+- **Host dry run:** §13.17.
+- **Pins:**
+  - spec `live_tests3_v1.json` sha256 **72a174eb85a08ef68b279e67af224a7acced9535f9329dc8eb0d75853af22a26**, with
+    `SPEC_SHA256` set in `live_tests3.py`;
+  - `code_sha256` `live_tests3.py` 3ac52d7959e56c6a5472a34d112c61ca643c7f35ebe77b87388b5cba9c7b8c65 and
+    `live_tests3_analysis.py` 224b56036f98a2cfe3f92ffb6778e80c6b1131223cf20a0f548ca95fffaec955 (normalised);
+  - `code_check` passes on the pinned spec;
+  - the spec records the size result. Its other values are unchanged; the status text and `code_sha256` are filled.
+- **Dates:** `REGISTERED_UTC` 2026-10-24T00:00Z, `END_UTC` 2026-11-14T00:00Z, `ANALYSIS_NOT_BEFORE` 2026-11-15T12:00Z
+  (unchanged; the commit is before 2026-10-23T00:00Z).
+- **Reviews:** challenger R1, freeze check (FREEZE_READY_WITH_FIXES), donor-gate rulings, pre-pin verification
+  PIN_OK_WITH_FIXES, then fix verification FIXES_OK_WITH_NOTES (`reviews/LT3_*`).
+- **Install:** host cron `*/20` with the exact §13.4 command, after this commit is deployed. The fallback job
+  q0474_lt3_live_collect stays a draft. The analysis q0475_lt3_analyze is queued with not_before 2026-11-15T12:00Z.
+- **Test-only edits at the pin:**
+  - `test_analysis_refusals` now nulls `code_sha256` explicitly before its "hashes not pinned" refusal check, because
+    the registered spec has them filled;
+  - LT5's DRAFT spec records the raw-hash drift of `live_tests3.py` (the pin line only) in
+    `vendored_source_drift_accepted`. Its vendored functions are still checked equal to the source.
+  - 110 LT3/LT4/LT5 tests pass.
+- No interim looks. Expected outcome per the design: likely partly explained by quote mechanics (disclosed in §10).
