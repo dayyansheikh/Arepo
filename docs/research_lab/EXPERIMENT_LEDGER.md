@@ -2952,3 +2952,31 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   exist). The se10 dry fit on the Mac copy (previous entry) produced fit diagnostics only, no score; its attribution
   share is not reported anywhere public.
 - Non-embargoed challengers until 2026-11-04: se1, se7 (K = 2).
+
+## LT5 drafted, challenger R1 and re-check, 2026-10-21 ~08:50-09:40Z (design only; nothing counted or registered)
+- Draft `LIVE_TESTS_5.md` on `feat/live-tests-5` (c4b09d73) from round 11 (`CREATIVE_HYPOTHESES_2026-10-25.md`). Up to
+  5 tests, Holm k <= 5, k set by counts-only censuses alone:
+  - J (CH180, jump vs grind);
+  - F (CH184, alone vs with the family);
+  - O (CH182, overhang);
+  - H (CH181, 7-day high-water mark);
+  - R (CH183, rewarded-band jump).
+- Dropped or deferred: CH185 (trains, excluded by the round's rules); CH190 (after E022, which uses the same control);
+  CH187/CH188 (maps first); CH186/CH189 (engine first). Earliest window 2026-10-30.
+- **Challenger R1: ACCEPT_WITH_CHANGES** (`reviews/LT5_CHALLENGER_R1_2026-10-21.md`). The two HIGH findings:
+  - (1) the Freedman-Lane gate that failed `flowperm_ar0.6` (q0474) must not be reused for flow-moderation-like terms
+    without AR scenarios;
+  - (2) J's target overlapped the selection window and the bounce: skip-slot primary.
+- **Response** (ac6a29ef, §14):
+  - O is treated as flow moderation, with a new circular-shift gate;
+  - AR / Markov+MA binding scenarios for O, R, H and J;
+  - a failing scenario makes only its own test "SE check failed", p = 1, k unchanged;
+  - J and O targets start at k+1;
+  - F is clustered on the family, with a moving-share control;
+  - R gets a crossing-market gate (25%, 50 markets);
+  - H has a spread <= 0.10 mark and one unit per market-day;
+  - resources follow LT3's 534 MB.
+- **Re-check: R1_RESPONSE_OK_WITH_NOTES.** The open MED note is that the size-check world parameters must be fixed
+  before any census. It is being applied, then the census and size-check code. The embargo condition is met: the
+  signal engine applied `event`, `flow`, `book` and `rewards` to 2026-11-22, and `wallet` / `wallet_skill` to
+  2026-12-07 for E026 (26f5f954).
