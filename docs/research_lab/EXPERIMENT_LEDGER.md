@@ -3172,3 +3172,24 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   collectors `not_before` the window; control-side event pieces in the p rule; a causal "earlier visible trade" flag in
   the control matching cell; document corrections. `register_k2` stands (gates passed by > 20x; the disclosure is
   corrected). Owner phone note sent (review verdict). Fixes delegated; then a re-check, the freeze q0540 and the pins.
+
+## Signal engine: science review of the movetype / surprise families, 2026-10-21 ~14:40Z (signal-engine autopilot; nothing counted)
+- **Verdict: ACCEPT_WITH_NOTES** (independent `science-reviewer`).
+  - No path reads capture k+1 or later, or any label, at build, backfill, training or walk-forward time.
+  - No mechanical encoding of the target beyond the origin mid that every model already has.
+  - The embargo is enforced on every display path. se7 is unchanged.
+- **Applied:**
+  - The `surprise` embargo moved **later**, from 11-12 to 11-19. E011's window ends 11-10 and pending outcomes are
+    retried, so the margin was thin.
+  - The SHAP attribution is no longer computed for embargoed fits. The inner-split loss stays, because the fit needs
+    it, and is documented as exempt (DESIGN_V1 §8).
+  - An aux build failure now skips only that capture: it counts against the run budget and is retried next run, so
+    one bad capture cannot stall a backfill.
+  - New test: scrambling capture k+1's quotes and features leaves k's movetype and surprise tables identical.
+- **Noted, not changed:**
+  - `sp_hour` / `sp_dow` use the capture start rather than the slot time. This is noise only, and the tables are
+    write-once v1.
+  - The volume tolerance hides trades of about $4 on $1M markets. It is documented.
+  - Training subsamples are seeded by model id, so se1 and its learner-matched challengers draw different rows when
+    the 300k cap binds. This existed before; a fix would change every model's fits, so it is left as a candidate for
+    a v2 refit rule.

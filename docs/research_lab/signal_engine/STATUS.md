@@ -22,7 +22,8 @@
   helps the forecast.
   - It uses 6 h, 3 d and 7 d volatility, their ratios to the 24 h volatility, the largest recent 2 h jump, and the
     weekday and hour (C06).
-  - It is embargoed until 11-12 because it shadows E011.
+  - It is embargoed until 11-19 because it shadows E011. The date was moved from 11-12 for margin after the
+    science review.
 - Both write predictions from tomorrow's refit. No score is computed or shown before their dates.
 - **A robustness fix.** If one feature family fails to build, the others and the tick's predictions now carry on.
   Before, one error could stop that pass's predictions.
@@ -39,7 +40,7 @@
 | `se1_lgbm_mm` | not embargoed |
 | `se7_lgbm_all` (broad) | not embargoed |
 | `se4_lr_xvenue`, `se13_lgbm_xvenue` | 11-04 |
-| `se15_lgbm_surprise` | 11-12 |
+| `se15_lgbm_surprise` | 11-19 |
 | `se5_lr_tte`, `se12_lgbm_tte` | 11-14 |
 | `se2_lr_flow`, `se11_lgbm_flow` | 11-22 |
 | `se3_lr_book`, `se8_lr_event`, `se9_lr_rewards`, `se10_lgbm_event`, `se14_lgbm_movetype` | 11-22 |
@@ -75,7 +76,7 @@
    - New embargo token `movetype` (E015, until 11-22).
    - New spec `se14_lgbm_movetype` (isolates `movetype` and `book`), pinned in `registry.json`.
 2. `walkforward.py`: one `SE_WALKFORWARD_DAY` progress line per test day. `q0514` timeout raised 7200 -> 10800 s.
-3. New aux family `surprise` (`se-aux-surprise-v1`) and spec `se15_lgbm_surprise` (token `surprise`, E011, 11-12).
+3. New aux family `surprise` (`se-aux-surprise-v1`) and spec `se15_lgbm_surprise` (token `surprise`, E011, 11-19).
    - The shared `SlotMids` cache evicts the newest slots and stores numpy arrays.
    - `run_aux` isolates builder errors (`errors` in its result).
 4. Tests:
@@ -111,8 +112,6 @@
    pending approval).
 
 ## Notes for the other track
-- `tests/unit/test_lab_clients.py::test_registry_experiments_schema` fails on the main branch: the LT5 description in
-  the experiments registry is 474 characters, over the 450 limit. It is not from this track and was left untouched.
 - **Owner resize:** the server resizes to 2 OCPU / 12 GB at 2026-10-22 02:40Z. No deploy or crontab edits during
   02:40–03:45Z.
 - **E005 summary row:** the ledger summary row still says "REGISTERED, pending". Left for the experiments track.

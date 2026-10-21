@@ -147,7 +147,7 @@ champion (market state + momentum), the learner reference and broad multi-family
 | token | until | tests |
 |---|---|---|
 | xvenue | 2026-11-04T00:00Z | E009, E010 (fixed end 2026-11-03) |
-| surprise | 2026-11-12T00:00Z | E011; model `se15_lgbm_surprise` since 2026-10-21 ~15:00Z (no score computed or shown before) |
+| surprise | 2026-11-19T00:00Z (from 11-12, 2026-10-21) | E011 (window ends 11-10, analysis after 11-11; moved for margin on the science review's note, since pending outcomes are retried); model `se15_lgbm_surprise` since 2026-10-21 ~15:00Z (no score computed or shown before). Its spec description still says 11-12: the spec is pinned, and the date lives in `config.EMBARGO` |
 | chg1d_x_liq (no model yet) | 2026-11-14T00:00Z | E012 |
 | tte | 2026-11-14T00:00Z | E014 |
 | flow | 2026-11-22T00:00Z (from 11-16, 2026-10-21) | E013, E014 (LT2, 2026-11-13T12Z), E016, E018 (LT3 proposed 2026-11-15T12Z), LT5 J/O (draft) |
@@ -158,7 +158,18 @@ champion (market state + momentum), the learner reference and broad multi-family
 | event | 2026-11-22T00:00Z | LT5 F (draft, CH184); added 2026-10-21 ~10:20Z on the experiments track's request, before any event score was computed or shown (`se8_lr_event`, `se10_lgbm_event`) |
 | movetype | 2026-11-22T00:00Z | E015 (LT3 registered 2026-10-21, analysis not before 2026-11-15T12Z); same date as `book`; added 2026-10-21 ~14:30Z with `se14_lgbm_movetype` (which also isolates `book`), before any movetype score was computed or shown |
 
-LT3/LT4 dates are the proposed windows; when they register, move the dates **later** if needed (never earlier). A new
+LT3/LT4 dates are the proposed windows; when they register, move the dates **later** if needed (never earlier).
+
+**Fit diagnostics under an embargo (science review 2026-10-21).**
+- A LightGBM fit computes its inner-split validation loss, because early stopping and temperature calibration need it.
+  The loss is stored in the fit artifact.
+- Nothing reads it before the embargo date: not scoring, not promotion, not the dashboard, not /lab. It is a fitting
+  quantity, not a score.
+- The SHAP family attribution is a development diagnostic. Since 2026-10-21 it is **not computed** while the spec is
+  embargoed (`attribution: null`).
+  - Fits made before that by se10-se13 may hold an attribution in their artifacts. It was never displayed, and the
+    dashboard skips embargoed models.
+  - After the date, the next refit computes it. A new
 challenger that isolates any hypothesis under a live test must add its token here first.
 
 ## 9. Storage, retention class and catalogue
@@ -326,7 +337,7 @@ quotes and features files of capture k and of slot k - 1, so the tolerances are 
 - Backfill: 105 tables written on the host at 14:06Z in 40 s (`~/.arepo/signal_engine/aux_backfill_movetype.sh`).
 
 **Fourth family `surprise` (`se-aux-surprise-v1`), challenger `se15_lgbm_surprise` (2026-10-21; embargoed under
-`surprise` until 2026-11-12, E011).** CANDIDATES C06. These are price-path primitives from SURPRISE_MOVE_DETECTOR.md §3,
+`surprise` until 2026-11-19, E011).** CANDIDATES C06. These are price-path primitives from SURPRISE_MOVE_DETECTOR.md §3,
 not the frozen detector.
 - Inputs: the engine's own quotes files of slots k - 84 .. k (7 days of 2 h slots, the origin's own file last). No
   snapshot rows.
