@@ -82,19 +82,19 @@ does not exist yet**, except the restores, which use the existing `scripts/resto
 | q0504 | `cb18_pre_census_R` (CH179: the race map only, descriptive; no gates, no route) | R | cpu / 390 | as q0502 |
 | q0505 | `cb18_pre_census_F` (CH176) | F | cpu / 300 | as q0502 |
 | q0506 | `cb18_map_lastmid` (CH175 map) | M | cpu / 350 | as q0502 |
-| q0507 | `cb18_smoke` (part hashes, refusals, exact reproduction of q0502's counts with frozen code) | S | cpu / 390 | parts `common`, `S` committed + code freeze record |
-| q0508 | `cb18_exclusion_keys` (ids only; seal copies; overlap counts) | S | cpu / 300 | after q0507 PASS |
-| q0509 | `cb18_restore_screen` (SCREEN_18 captures, sidecars, sweep 1 rotated off the host) | S | net / 600 | `not_before` S_18 + 15 d + 8 h |
-| q0510 | `cb18_frame_screen_S` (arm-0 units, features only, raw target-mid table, no target computed) | S | cpu / 390 | after q0509, q0508 |
-| q0511 | `cb18_census_18` (window gates, SE-only power gate, informativeness at the selected level) | S | cpu / 390 | after q0510 |
-| q0512 | `cb18_screen_18` (Stage 1: S1) | S | cpu / 900 | after q0511, E011's **and E012's** analysis commits (E012: on or after 2026-11-13T12:00Z; R2 finding 5), code-against-design freeze check |
-| q0513 | `cb18_restore_rep` (REP_18 inputs) | S | net / 600 | `not_before` S_18 + 29 d + 8 h; only if S1 advanced |
-| q0514 | `cb18_frame_rep_S` (arm-1 units; sealed) | S | cpu / 390 | after q0513 and the SCREEN result commit |
-| q0515 | `cb18_rep_18` (Stage 2: S1-rep, triggered) | S | cpu / 900 | after q0514 |
-| q0516 | `cb18_stage2_final` (one strict Holm over triggered Stage-2 tests; write-once) | S | cpu / 300 | after q0515 |
+| q0590 | `cb18_smoke` (part hashes, refusals, exact reproduction of q0502's counts with frozen code) | S | cpu / 390 | parts `common`, `S` committed + code freeze record |
+| q0591 | `cb18_exclusion_keys` (ids only; seal copies; overlap counts) | S | cpu / 300 | after q0590 PASS |
+| q0592 | `cb18_restore_screen` (SCREEN_18 captures, sidecars, sweep 1 rotated off the host) | S | net / 600 | `not_before` S_18 + 15 d + 8 h |
+| q0593 | `cb18_frame_screen_S` (arm-0 units, features only, raw target-mid table, no target computed) | S | cpu / 390 | after q0592, q0591 |
+| q0594 | `cb18_census_18` (window gates, SE-only power gate, informativeness at the selected level) | S | cpu / 390 | after q0593 |
+| q0595 | `cb18_screen_18` (Stage 1: S1) | S | cpu / 900 | after q0594, E011's **and E012's** analysis commits (E012: on or after 2026-11-13T12:00Z; R2 finding 5), code-against-design freeze check |
+| q0596 | `cb18_restore_rep` (REP_18 inputs) | S | net / 600 | `not_before` S_18 + 29 d + 8 h; only if S1 advanced |
+| q0597 | `cb18_frame_rep_S` (arm-1 units; sealed) | S | cpu / 390 | after q0596 and the SCREEN result commit |
+| q0598 | `cb18_rep_18` (Stage 2: S1-rep, triggered) | S | cpu / 900 | after q0597 |
+| q0599 | `cb18_stage2_final` (one strict Holm over triggered Stage-2 tests; write-once) | S | cpu / 300 | after q0598 |
 | q0517-q0519 | reserved (LT5 jobs take their own ids in `LIVE_TESTS_5.md`) | - | - | - |
 
-If CB18-S does not route to the batch, q0507-q0516 are withdrawn (recorded in the ledger, never promoted).
+If CB18-S does not route to the batch, q0590-q0599 are withdrawn (recorded in the ledger, never promoted).
 
 ## 1. Data policy
 
@@ -132,13 +132,13 @@ these four columns only through a `bytes_equal(a, b)` / `is_empty_literal(x)` he
 | REP_18 | origin times in `[S_18 + 14 d, S_18 + 28 d)` = **[2026-11-10, 2026-11-24)** | Stage 2, arm-1 events only |
 | event arm | `arm(e) = int(sha256("cb18-arm-v1|" + event_id).hexdigest()[0], 16) mod 2`; `event_id` = Gamma event id, else the market id | arm 0 → SCREEN_18, arm 1 → REP_18; disjoint by construction; fixed before data. Targets of late SCREEN units read REP-window captures of arm-0 events only |
 | election-night exclusion | origin or target capture in `[2026-11-03T18:00Z, 2026-11-05T00:00Z)` | excluded and counted (as CB17) |
-| `T18_code` | target: before `S_18`; at the latest before the first read of any SCREEN_18 file (q0510, 2026-11-11T08:00Z); never before an accepting code-against-design freeze check | as CB17 §1.2 `T17_code` and ruling 6: no agent opens a SCREEN_18 or REP_18 file before the freeze record exists; ledger attestation |
-| E011 | analysed once after 2026-11-11T13:00Z | q0512 refuses before E011's analysis commit (S's target is a 24 h movement, close to E011's object; costs about one day) |
-| E012 | analysed once on or after 2026-11-13T12:00Z (`LIVE_TESTS_2.md`:27) | q0512 also refuses before E012's analysis commit (R2 finding 5: E012's population contains S's units and its target is a 24 h change, §1.3; waiting costs about two more days and keeps S1 from being read before the overlapping registered primary) |
+| `T18_code` | target: before `S_18`; at the latest before the first read of any SCREEN_18 file (q0593, 2026-11-11T08:00Z); never before an accepting code-against-design freeze check | as CB17 §1.2 `T17_code` and ruling 6: no agent opens a SCREEN_18 or REP_18 file before the freeze record exists; ledger attestation |
+| E011 | analysed once after 2026-11-11T13:00Z | q0595 refuses before E011's analysis commit (S's target is a 24 h movement, close to E011's object; costs about one day) |
+| E012 | analysed once on or after 2026-11-13T12:00Z (`LIVE_TESTS_2.md`:27) | q0595 also refuses before E012's analysis commit (R2 finding 5: E012's population contains S's units and its target is a 24 h change, §1.3; waiting costs about two more days and keeps S1 from being read before the overlapping registered primary) |
 | LT5 (proposed) | `REGISTERED_UTC` = the first 00:00Z at least 24 h after the LT5 registration commit, at least 48 h after LT4's `REGISTERED_UTC`, and **not before 2026-10-30T00:00Z**; 28 days; analysis once at `END_UTC + 36 h` | proposed **2026-10-30T00:00Z to 2026-11-27T00:00Z**, analysis on or after 2026-11-28T12:00Z; fixed end, no extension (as LT4 §1.1) |
 
 If `S_18` slides, both windows slide; lengths are fixed. Frames run after each window and its 24 h targets close:
-q0510 not before `S_18 + 15 d + 8 h` (2026-11-11T08:00Z); q0514 not before `S_18 + 29 d + 8 h` (2026-11-25T08:00Z).
+q0593 not before `S_18 + 15 d + 8 h` (2026-11-11T08:00Z); q0597 not before `S_18 + 29 d + 8 h` (2026-11-25T08:00Z).
 
 ### 1.3 Overlaps and sealed data
 - **J4-R disclosure (R2 finding 1).** The pre-censuses read **inside J4-R `[2026-10-16, 2026-10-21)`**: census S and F read
@@ -171,7 +171,7 @@ q0510 not before `S_18 + 15 d + 8 h` (2026-11-11T08:00Z); q0514 not before `S_18
   stamp between two consecutive captures with every numeric field and the book unchanged, not its age), on
   post-floor prospective windows, but the field family has been seen in development and is not a fresh variable. The
   ML-panel result is not evidence for or against CB18-S and is not cited as such.
-- **Exclusion keys (q0508, no network):** CB16 q0380's key file (sha256 copied from its write-once manifest, never
+- **Exclusion keys (q0591, no network):** CB16 q0380's key file (sha256 copied from its write-once manifest, never
   hashed from disk) and every seal copy; a market or event is dropped only if a sealed historical set stores a
   timestamp inside SCREEN_18 or REP_18 (none expected), counted by source.
 - **Outcome guards:** no CB18 path reads a resolution outcome. CB18-M's last mid is a price, and the map writes no
@@ -205,7 +205,7 @@ q0510 not before `S_18 + 15 d + 8 h` (2026-11-11T08:00Z); q0514 not before `S_18
 | L5 | Freedman-Lane gates (LT4 R1 finding 7; `LT3_PERM_GATE_CHECK`); no donor gates (LT4 R2 finding 1; LT3 donor-gate ruling 2, 2026-10-21) | where the tested label or moderator correlates with controls, the permutation gate shuffles the control-residualised target within strata with the label fixed (`fl_perm_gate`). **Donor gates are not used as binding gates anywhere in CB18**: the residualised donor gate failed a binding size scenario (LT4 R2) and real and donor statistics are not exchangeable (LT3 ruling 2) |
 | L6 | Size checks on the code to be pinned (LT3 13.5, LT4 L5; LT4 R2 finding 3; CB18 R1 finding 4) | every gate is size-checked at >= 2,000 worlds per scenario, including label-control correlation 0.4 and 0.5 (binding) and 0.7 (reported), and the **binding overlapping-target scenario** of §2.3 (MA(11) target in slot steps, persistent clustered label, at the selected strata level, level 2 included); a failing scenario blocks the pin, and no redesign, level change or second draw follows from that run |
 | L7 | No selection on post-decision marks (CB17 ruling O9) | eligibility uses only information at or before the decision time; target unavailability is a status in the availability denominator with a binding bound (§2.6), never an eligibility filter |
-| L8 | Smoke tied to frozen code (CB17 window fix 2) | q0507 stores `code_sha256` and refuses unless the code freeze record exists; it reproduces q0502's printed counts exactly (a different count is a FAIL and is investigated, not adjusted) |
+| L8 | Smoke tied to frozen code (CB17 window fix 2) | q0590 stores `code_sha256` and refuses unless the code freeze record exists; it reproduces q0502's printed counts exactly (a different count is a FAIL and is investigated, not adjusted) |
 | L9 | Skip-slot targets where bounce contaminates (round 10 lesson 5; LT4 L9) | CB18-P's target skips the slot holding the taker's trade; CB18-S has no quote event at the origin (by construction) and needs none; CB18-R has no target (map only) |
 | L10 | Clustering (LT4 L10; CB4 A-C1; CB10 §2.3 small-G) | ways: event, event x UTC day (two-way), and UTC day; p = max, with t on G − 1 df for the one-way ways; in 14-day CB windows UTC day (G = 14) is replaced in the max by the 6 h block (G = 56) and leave-one-day-out binds (as CB17 §2.3) |
 | L11 | Census drops are uncounted only before the rules bind (CB15-L, CB17 §2.5) | after a part commit every declared test is counted, with p = 1 if a gate fails |
@@ -323,7 +323,7 @@ cells positive); "not shown" is the expected economic outcome. Hurdles: taker 4.
 - Host: 1 OCPU, shared; queue rules as CB17 §2.8 (one job per lane, nice 19, `MemAvailable >= mem_mb + 1200`, address
   cap 2 x `mem_mb`, the 02:45-05:30 UTC blackout for `mem_mb >= 500`, yield to the collector pass).
 - **Readers stream one capture, sweep or sample at a time; every reader and census is on the `cpu` lane under 400 MB.**
-  Restores are `net` lane (data movement only). The only jobs above 400 MB are q0512 and q0515 (900 MB: demeaned OLS
+  Restores are `net` lane (data movement only). The only jobs above 400 MB are q0595 and q0598 (900 MB: demeaned OLS
   and 200 Freedman-Lane refits on at most 1.5 M thinned rows, §4.1); they run alone.
 - **Disk:** `--disk-cap-gb`, `--data-dumps-cap-gb 40` (exit 75) in **every** job (CB17 window fix 7); CB18 outputs <= 0.2
   GB; restore trees are cleared after the dependent job's result is committed. CB18 never deletes or moves host data.
@@ -539,7 +539,7 @@ line), an arm holds about 1,400 silent units in 14 days; the thinned quiet count
 the 1.5 factor): 1.58c with `n0` unlimited, 1.77c with `n0` = 4 `n1`, 2.24c with `n0` = `n1`** (the draft's 1.06c
 omitted the 1.5 factor and the `1/n0` term). At 500 a day: 1.00c / 1.12c / 1.42c. **The CB route does not meet the 1.0c
 floor at planning numbers**; it needs about 500 (unlimited quiet) to 1,000 (quiet = silent) silent units a day. Routing
-stays as declared (RS-1 on the census proxy SE, else RS-2, else RS-3). CB17's window power rule also binds at q0511: MDE
+stays as declared (RS-1 on the census proxy SE, else RS-2, else RS-3). CB17's window power rule also binds at q0594: MDE
 > 2 x floor → "not run (power)", counted.
 
 **Leakage and confounds.** The sweep is minutes after capture k; it is the decision time, so the stamp is not future
@@ -673,7 +673,7 @@ resolution or calibration arm; no counted test may later use `[2026-10-12, 2026-
 
 ## 5. Jobs (draft specs)
 
-The JSON specs are in `docs/research_lab/queue/drafts/q0500_*.json` .. `q0516_*.json` (status DRAFT in each `notes`).
+The JSON specs are in `docs/research_lab/queue/drafts/q0500_*.json` .. `q0599_*.json` (status DRAFT in each `notes`).
 None is promoted before: the R1 re-check on this file; part `pre`; census code with unit tests (forbidden fields and
 roots, cut-off refusals, pin completeness, exact float writes, the class truth tables). **q0500/q0501 release tags and
 globs are now fixed from the committed catalogues and checked with `restore_from_archive.py --list` (release metadata
@@ -682,7 +682,7 @@ only; §11, finding 7):** q0500 selects 364 files (67 captures x 4 files; 48 swe
 release (the Mac-era `data-20261013-research-lab` and `data-20261014-research-lab-tail` duplicate 10-11..10-13 captures
 and would clash, so they are not used); q0501 selects exactly the 92 files of `seals/lt3_census_inputs_C2.json` from
 `data-20261017-dsheikh` (8), `-18` (48), `-19` (36), and their `files.sha256` hashes equal the seal's
-`files_sha256_sha256` values and all 92 per-file hashes. Window jobs (q0507-q0516) also need parts `common` and `S`, the code
+`files_sha256_sha256` values and all 92 per-file hashes. Window jobs (q0590-q0599) also need parts `common` and `S`, the code
 freeze record and the code-against-design freeze check. Priorities: restores 30, censuses 28 (they decide LT5's
 membership; ahead of CB batch work, behind registered live tests), window jobs 9 (as CB17).
 
@@ -726,7 +726,7 @@ membership; ahead of CB batch work, behind registered live tests), window jobs 9
 | **Total in CB18** | **0-2** | cumulative count recorded at each counting run |
 
 **Compute.** Censuses about 2-3 CPU-hours in all on worn data (two capture days, 23 samples); the map under 1 h; S frames
-about 1 h per window; S screen about 1-2 h (200 Freedman-Lane refits). Peak RAM 900 MB (q0512, q0515, alone); every
+about 1 h per window; S screen about 1-2 h (200 Freedman-Lane refits). Peak RAM 900 MB (q0595, q0598, alone); every
 reader and census < 400 MB. Network: restores only (net lane). Disk <= 0.2 GB of outputs plus transient restore trees.
 
 | By (UTC) | Deliverable | Owner |
@@ -737,10 +737,10 @@ reader and census < 400 MB. Network: restores only (net lane). Disk <= 0.2 GB of
 | **2026-10-24 12:00** | **routing record** (`seals/cb18_routing.json`, ledger): each idea's route by §3's rules | orchestrator |
 | 2026-10-24 → | `LIVE_TESTS_5.md` drafted from the LT5-routed members (§4.2, §4.1 under RS-2), if any | designer |
 | **2026-10-25 18:00** | parts `common`, `S` landed (CB route only) = `T18_rules` → **S_18 = 2026-10-27T00:00Z** | orchestrator |
-| before 2026-10-27 (preferred), 2026-11-11 08:00 at the latest | S window code, size check, code-against-design freeze check, freeze record, q0507 PASS, q0508 | implementer, `science-reviewer` |
+| before 2026-10-27 (preferred), 2026-11-11 08:00 at the latest | S window code, size check, code-against-design freeze check, freeze record, q0590 PASS, q0591 | implementer, `science-reviewer` |
 | by about 2026-10-28 | LT5 registration commit (challenger, size check, pins) → **LT5 `REGISTERED_UTC` 2026-10-30T00:00Z** (rule in §1.2) | orchestrator |
-| 2026-11-11 08:00 → after E011's and E012's analysis commits (E012 on or after 2026-11-13T12:00Z) | q0509 → q0510 → q0511 → q0512 (Stage 1) | queue |
-| 2026-11-25 08:00 | q0513 → q0514 → q0515 → q0516 (only if S1 advanced) | queue |
+| 2026-11-11 08:00 → after E011's and E012's analysis commits (E012 on or after 2026-11-13T12:00Z) | q0592 → q0593 → q0594 → q0595 (Stage 1) | queue |
+| 2026-11-25 08:00 | q0596 → q0597 → q0598 → q0599 (only if S1 advanced) | queue |
 | 2026-11-28 12:00 | LT5 single analysis (if registered) | LT5 |
 
 ## 8. Open questions for the challenger (answered in R1; the answers and resulting changes are in §11)
@@ -796,7 +796,7 @@ reader and census < 400 MB. Network: restores only (net lane). Disk <= 0.2 GB of
 - Counted in CB18: 0-2 (S1; S1-rep if triggered), expected 0 at planning numbers. LT5 members counted by LT5 only.
 - Proposed dates: part `pre` 2026-10-22T12Z; routing 2026-10-24T12Z; T18_rules 2026-10-25T18Z → S_18 2026-10-27T00Z;
   SCREEN_18 [10-27, 11-10), REP_18 [11-10, 11-24); LT5 REGISTERED_UTC 2026-10-30T00Z, 28 days, analysis >= 11-28T12Z.
-- Queue drafts q0500-q0516 (`queue/drafts/`; argv `scripts/run_cb18.py`, not yet written); q0517-q0519 reserved.
+- Queue drafts q0500-q0599 (`queue/drafts/`; argv `scripts/run_cb18.py`, not yet written); q0517-q0519 reserved.
 - Branch `feat/cb18` (<commit>). Next: R1 re-check (science-reviewer) of §11.
 ```
 
@@ -842,8 +842,8 @@ CB17's small-G convention kept. Q15 = finding 8.
 **R1 "could not verify", now checked or still open.** Release tags for the 10-16/17 captures and sweeps: **checked**
 against the committed catalogues and `--list` (finding 7). Overlap with LT2: **E012's population contains CB18-S's units**
 (no change condition, 24 h target); disclosed in §1.3, not pooled; E014 reads samples. **Still open:** whether the host's
-3-day sweep deletion is enabled (q0509/q0513 restore byte for byte from releases either way, so the frames do not depend
-on it); the releases for 2026-10-26..11-24 (do not exist yet; q0509/q0513 tags stay placeholders, fixed before
+3-day sweep deletion is enabled (q0592/q0596 restore byte for byte from releases either way, so the frames do not depend
+on it); the releases for 2026-10-26..11-24 (do not exist yet; q0592/q0596 tags stay placeholders, fixed before
 promotion); LT4's `REGISTERED_UTC` (enters only LT5's date rule, §1.2); Gamma `updated_at` semantics (the census's GS1-GS3
 decide; nothing assumed).
 
@@ -864,7 +864,7 @@ finding 3 makes P's power gate the stricter of its two readings.
 | 2 | MEDIUM-LOW: no size scenario with the label tracking latent volatility | new scenario: per-market AR(1) latent log-volatility scaling the innovations and raising the silent probability (γ in {0.5, 1.0}), `|mid|` controls from the simulated path; **reported, not binding** (its rate measures confounding at an assumed γ, which no count identifies); above the route's limit at γ = 0.5 → label *latent-volatility sensitive* on S1, never a verdict change | §2.3; part `S` size check (CB route) or LT5 (RS-2) |
 | 3 | LOW: P's power gate ambiguous (proxy SE vs formula) | GP5 pinned as `max(MDE_formula, MDE_proxy) <= 0.5c`, both written; proxy NaN → formula alone; the S routing (proxy SE replaces the formula) unchanged | §2.4, §3.2 GP5; part `pre` (`GP5_RULE`); q0503 |
 | 4 | LOW: P's look-back label "k − 12 from 10-15T12:31Z" wrong | label fixed: P reads back to k − 4 (from 10-15T16:31Z); no restore change (q0500 covers it); R reads only each sample's capture-k sidecar (category), so q0504 now depends on q0500 | §3 intro; q0503, q0504 |
-| 5 | LOW: q0512 waits for E011 but not E012 | q0512 also refuses before E012's analysis commit (on or after 2026-11-13T12:00Z; overlapping population and 24 h target) | §0.3 table, §1.2 date table, §7 calendar; q0512 (`--require-e012-analysis`) |
+| 5 | LOW: q0595 waits for E011 but not E012 | q0595 also refuses before E012's analysis commit (on or after 2026-11-13T12:00Z; overlapping population and 24 h target) | §0.3 table, §1.2 date table, §7 calendar; q0595 (`--require-e012-analysis`) |
 
 
 ## 13. Census interpretation notes, 2026-10-21, written before any census run

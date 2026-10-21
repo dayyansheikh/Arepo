@@ -1,11 +1,11 @@
 {
- "id": "q0514_cb18_frame_rep_S",
+ "id": "q0597_cb18_frame_rep_S",
  "title": "CB18-S REP_18 frame (features + raw target-mid table; DRAFT): arm-1 units; sha256 seal seals/cb18_rep_SEAL.json; refuses before the SCREEN result commit",
  "family": "creative_batch_18",
  "priority": 9,
  "expected_value": "S Stage-2 units, sealed",
  "data": [
-  "snapshots/, book_sweeps/ (host) and q0513's restore tree"
+  "snapshots/, book_sweeps/ (host) and q0596's restore tree"
  ],
  "resources": {
   "mem_mb": 390,
@@ -14,7 +14,7 @@
   "network": "none"
  },
  "depends_on": [
-  "q0513_cb18_restore_rep"
+  "q0596_cb18_restore_rep"
  ],
  "argv": [
   "scripts/run_cb18.py",
@@ -41,7 +41,7 @@
  "outputs": [
   "data-dumps/research_lab/creative_batch18/rep/"
  ],
- "next_action": "commit the seal; q0515",
- "notes": "DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md, design not yet reviewed). scripts/run_cb18.py DOES NOT EXIST YET (code needed, CREATIVE_BATCH_18.md section 6). Window job: promote only after parts common and S are committed (CB route RS-1), the code freeze record and an accepting code-against-design freeze check.",
+ "next_action": "commit the seal; q0598",
+ "notes": "DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md, design not yet reviewed). scripts/run_cb18.py DOES NOT EXIST YET (code needed, CREATIVE_BATCH_18.md section 6). Window job: promote only after parts common and S are committed (CB route RS-1), the code freeze record and an accepting code-against-design freeze check. RENUMBERED 2026-10-21 ~19:40Z (autopilot): CB18 drafts q0507-q0516 -> q0590-q0599 (same order) because q0510-q0515 were already taken by signal-engine jobs; ids and depends_on only.",
  "not_before": "2026-11-25T08:00:00Z"
 }
