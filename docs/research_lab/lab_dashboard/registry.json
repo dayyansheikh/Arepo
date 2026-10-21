@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-21T09:05:00Z",
+ "updated": "2026-10-21T09:15:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1493,6 +1493,29 @@
    "candidate": false,
    "sources": {
     "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Session 2026-10-20 ~22:39Z (LT4 challenger R2)"
+   },
+   "stage_results": {
+    "designed": "pending"
+   },
+   "reached": [
+    "designed"
+   ]
+  },
+  {
+   "id": "LT5",
+   "title": "Live tests from round 11 (planned)",
+   "plain": "A fifth group of up to five live tests from the latest new-ideas round. It asks whether price jumps behave differently from slow grinds, whether a market moving alone differs from one moving with its family, whether holders sitting on gains slow a move, whether a recent 7-day high or low matters, and how markets react inside reward bands. An independent challenger accepted it with changes; the changes are made and re-checked. Counting checks decide which tests go ahead.",
+   "batch": "LT5",
+   "family": "mixed",
+   "stage": "designed",
+   "status": "running",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Counting-check and size-check code, its review, then the counts; earliest start 30 Oct",
+   "next_date": "2026-10-30",
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT5 drafted, challenger R1 and re-check (2026-10-21)"
    },
    "stage_results": {
     "designed": "pending"

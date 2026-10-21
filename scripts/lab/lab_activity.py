@@ -3,8 +3,12 @@
 
 Read-only. For every autopilot instance home (~/.arepo/autopilot and ~/.arepo/autopilot-<name>, each with state.json,
 runs.jsonl and logs/<ts>.json from `claude -p --output-format json`) it reports the instance status and the last
-sessions (times, outcome, cost/turns when present, the closing `AUTOPILOT_DONE <summary>` line and a truncated
-summary). It also lists the latest commits of the research repo (`git log`, read-only, no optional locks).
+sessions (times, outcome, cost/turns when present, the closing `AUTOPILOT_DONE <summary>` line, a plain first-sentences
+fallback for sessions without one, and a truncated summary). For a running session it adds the latest assistant text
+from that session's Claude Code transcript (~/.claude/projects/<repo slug>/<session>.jsonl, headless sessions only,
+<= 300 chars). Each instance carries its command `key` (home directory name: `autopilot`, `autopilot-<name>`) and
+whether it can be started from the board (a launchd job for it exists in ~/Library/LaunchAgents). It also lists the
+latest commits of the research repo (`git log`, read-only, no optional locks).
 
 Every free-text field passes through `sanitise()` before it leaves the machine: known secret shapes (API keys, GitHub
 tokens, JWTs, bearer tokens, PEM blocks, credentials in URLs, `password=...`-style assignments, long high-entropy
@@ -15,10 +19,11 @@ from __future__ import annotations
 
 import json
 import os
+import plistlib
 import re
 import stat
 import subprocess
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 SESSIONS_N = 30
@@ -27,6 +32,9 @@ SUMMARY_CHARS = 1500
 DONE_CHARS = 400
 DETAIL_CHARS = 300
 SUBJECT_CHARS = 160
+PLAIN_CHARS = 280
+CURRENT_CHARS = 300
+TRANSCRIPT_TAIL = 2_000_000
 ACTIVITY_MAX_BYTES = 300_000
 LOG_READ_MAX = 4_000_000
 LOG_TAIL = 1_000_000
@@ -179,10 +187,175 @@ def split_done(result: str) -> tuple[str, str | None]:
     return rest, done
 
 
+_MD_RE = re.compile(r"(\*\*|__|`|^#{1,6}\s+|^\s*[-*\u2022]\s+|^\s*\d+[.)]\s+)", re.M)
+
+
+def plain_summary(text: str | None, n: int = PLAIN_CHARS) -> str | None:
+    """First one or two sentences of a result text, without markdown markers (fallback when there is no
+    AUTOPILOT_DONE line)."""
+    if not text:
+        return None
+    # Heading lines ("## Summary", "**Results**") are labels, not sentences: drop them when other text exists.
+    body = [ln for ln in text.splitlines() if not re.fullmatch(r"\s*(#{1,6}\s+.*|\*\*[^*]+\*\*:?)\s*", ln)]
+    src = "\n".join(body) if any(ln.strip() for ln in body) else text
+    flat = re.sub(r"\s+", " ", _MD_RE.sub("", src)).strip()
+    if not flat:
+        return None
+    parts = re.split(r"(?<=[.!?])\s+(?=[A-Z0-9(\"'])", flat)
+    out = parts[0]
+    if len(out) < 120 and len(parts) > 1:
+        out = f"{out} {parts[1]}"
+    return clip(out, n)[0]
+
+
+# ------------------------------------------------------------------ launchd + transcripts
+def slug(path) -> str:
+    """Claude Code's ~/.claude/projects folder name for a working directory."""
+    return re.sub(r"[^A-Za-z0-9]", "-", str(path))
+
+
+def launchd_configs(launch_dir: Path | None) -> dict[str, dict]:
+    """{resolved instance home: {args, env, cwd, repo}} from the autopilot launchd jobs (com.arepo.autopilot*.plist).
+    Only jobs that run `.../scripts/autopilot/autopilot.py tick` are returned."""
+    out: dict[str, dict] = {}
+    if launch_dir is None:
+        return out
+    try:
+        plists = sorted(Path(launch_dir).glob("com.arepo.autopilot*.plist"))
+    except OSError:
+        return out
+    for p in plists:
+        try:
+            with open(p, "rb") as fh:
+                d = plistlib.load(fh)
+        except Exception:  # noqa: BLE001 - unreadable or malformed plist: ignore
+            continue
+        args = d.get("ProgramArguments") if isinstance(d, dict) else None
+        if not (isinstance(args, list) and len(args) == 3 and all(isinstance(a, str) for a in args)
+                and args[1].endswith("scripts/autopilot/autopilot.py") and args[2] == "tick"):
+            continue
+        env = {k: v for k, v in (d.get("EnvironmentVariables") or {}).items() if isinstance(k, str) and isinstance(v, str)}
+        home = Path(env.get("AREPO_AUTOPILOT_HOME") or Path.home() / ".arepo" / "autopilot").expanduser()
+        repo = env.get("AREPO_AUTOPILOT_REPO") or str(Path(args[1]).resolve().parents[2])
+        try:
+            key = str(home.resolve())
+        except OSError:
+            key = str(home)
+        out[key] = {"args": list(args), "env": env, "cwd": d.get("WorkingDirectory") if isinstance(d.get("WorkingDirectory"), str) else None,
+                    "repo": repo, "plist": p.name}
+    return out
+
+
+def instance_specs(primary: Path, launch_dir: Path | None = None) -> list[dict]:
+    """Every instance as {name (label), key (command target = home directory name), home, repo, launch}."""
+    configs = launchd_configs(launch_dir)
+    out = []
+    for name, home in discover_instances(primary):
+        try:
+            launch = configs.get(str(Path(home).resolve()))
+        except OSError:
+            launch = None
+        out.append({"name": name, "label": name, "key": Path(home).name, "home": Path(home),
+                    "repo": launch["repo"] if launch else None, "launch": launch})
+    return out
+
+
+def _first_fields(path: Path, max_lines: int = 50) -> tuple[str | None, str | None]:
+    entry = first_ts = None
+    try:
+        with open(path, "rb") as fh:
+            for i, raw in enumerate(fh):
+                if i >= max_lines or (entry and first_ts):
+                    break
+                if entry is None:
+                    m = re.search(rb'"entrypoint"\s*:\s*"([^"]{1,40})"', raw)
+                    if m:
+                        entry = m.group(1).decode("utf-8", "replace")
+                if first_ts is None:
+                    m = re.search(rb'"timestamp"\s*:\s*"([^"]{10,40})"', raw)
+                    if m:
+                        first_ts = m.group(1).decode("ascii", "replace")
+    except OSError:
+        pass
+    return entry, first_ts
+
+
+def _parse_iso(s) -> datetime | None:
+    if not isinstance(s, str) or not s:
+        return None
+    try:
+        t = datetime.fromisoformat(s.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return t if t.tzinfo else t.replace(tzinfo=UTC)
+
+
+def session_transcript(projects_root: Path, repo, started_at: str | None) -> Path | None:
+    """The running headless session's transcript: newest sdk-cli transcript in the repo's project folder that started
+    at or after the session start (2 min slack) and was written since."""
+    start = _parse_iso(started_at)
+    if projects_root is None or not repo or start is None:
+        return None
+    folder = Path(projects_root) / slug(repo)
+    try:
+        cands = [(p.stat().st_mtime, p) for p in folder.glob("*.jsonl")]
+    except OSError:
+        return None
+    lo = (start - timedelta(minutes=2)).timestamp()
+    for mtime, p in sorted(cands, reverse=True)[:8]:
+        if mtime < lo:
+            break
+        entry, first = _first_fields(p)
+        t = _parse_iso(first)
+        if entry == "sdk-cli" and t is not None and t.timestamp() >= lo:
+            return p
+    return None
+
+
+def latest_assistant_text(path: Path) -> tuple[str | None, str | None]:
+    """(text, timestamp) of the last assistant message with a non-empty text block in a transcript."""
+    try:
+        size = path.stat().st_size
+        with open(path, "rb") as fh:
+            if size > TRANSCRIPT_TAIL:
+                fh.seek(size - TRANSCRIPT_TAIL)
+            data = fh.read()
+    except OSError:
+        return None, None
+    for raw in reversed(data.split(b"\n")):
+        if b'"assistant"' not in raw or b'"text"' not in raw:
+            continue
+        try:
+            o = json.loads(raw)
+        except ValueError:
+            continue
+        if not isinstance(o, dict) or o.get("type") != "assistant" or o.get("isSidechain"):
+            continue
+        content = (o.get("message") or {}).get("content")
+        if not isinstance(content, list):
+            continue
+        texts = [c.get("text") for c in content if isinstance(c, dict) and c.get("type") == "text" and isinstance(c.get("text"), str)]
+        text = "\n".join(t for t in texts if t.strip())
+        if text.strip():
+            return text, o.get("timestamp") if isinstance(o.get("timestamp"), str) else None
+    return None, None
+
+
+def current_progress(projects_root, repo, started_at, literals) -> dict | None:
+    path = session_transcript(projects_root, repo, started_at)
+    if path is None:
+        return None
+    text, at = latest_assistant_text(path)
+    if not text:
+        return {"text": None, "at": None}
+    flat = re.sub(r"\s+", " ", sanitise(text, literals)).strip()
+    return {"text": clip(flat, CURRENT_CHARS)[0], "at": at}
+
+
 # ------------------------------------------------------------------ instances
 def discover_instances(primary: Path) -> list[tuple[str, Path]]:
-    """The primary home (label 'main') plus every sibling directory named `autopilot-<name>` (label '<name>').
-    A one-line `label` file inside a home overrides its label."""
+    """The primary home (label 'main') plus every sibling directory named `autopilot-<name>` (label '<name>') that has
+    a state.json, runs.jsonl, PAUSE or label file. A one-line `label` file inside a home overrides its label."""
     primary = Path(primary)
     prefix = "autopilot-"
     main_name = primary.name[len(prefix):] if primary.name.startswith(prefix) and len(primary.name) > len(prefix) else "main"
@@ -194,7 +367,7 @@ def discover_instances(primary: Path) -> list[tuple[str, Path]]:
     for p in siblings:
         if p.name == primary.name:
             continue
-        if not ((p / "state.json").exists() or (p / "runs.jsonl").exists()):
+        if not any((p / f).exists() for f in ("state.json", "runs.jsonl", "PAUSE", "label")):
             continue
         found.append((p.name[len(prefix):] or p.name, p))
     out = []
@@ -257,12 +430,15 @@ def build_session(home: Path, rec: dict, literals) -> dict:
         rest, done = split_done(sanitise(text, literals))
         if done:
             s["done"], _ = clip(done, DONE_CHARS)
+        elif rest:
+            s["plain"] = plain_summary(rest)
         if rest:
             s["summary"], s["summary_truncated"] = clip(rest, SUMMARY_CHARS)
     return s
 
 
-def build_instance(name: str, home: Path, now: datetime, literals, sessions_n: int = SESSIONS_N) -> dict:
+def build_instance(name: str, home: Path, now: datetime, literals, sessions_n: int = SESSIONS_N,
+                   spec: dict | None = None, projects_root: Path | None = None) -> dict:
     try:
         st = json.loads((home / "state.json").read_text())
         if not isinstance(st, dict):
@@ -303,10 +479,19 @@ def build_instance(name: str, home: Path, now: datetime, literals, sessions_n: i
         home_label = "~/" + str(home.resolve().relative_to(Path.home().resolve()))
     except (ValueError, OSError):
         pass
-    return {"name": name, "home": home_label, "paused": paused, "pause_reason": reason, "session_alive": alive,
-            "started_at": st.get("started_at") if alive else None, "last_outcome": st.get("last_outcome"),
-            "last_finished_at": st.get("last_finished_at"), "next_allowed": next_allowed,
-            "sessions_total": len(recs), "sessions": sessions}
+    out = {"name": name, "key": home.name, "home": home_label, "paused": paused, "pause_reason": reason,
+           "session_alive": alive, "started_at": st.get("started_at") if alive else None,
+           "last_outcome": st.get("last_outcome"), "last_finished_at": st.get("last_finished_at"),
+           "next_allowed": next_allowed, "startable": bool(spec and spec.get("launch")),
+           "sessions_total": len(recs), "sessions": sessions}
+    if alive and spec and projects_root is not None:
+        try:
+            cur = current_progress(projects_root, spec.get("repo"), st.get("started_at"), literals)
+        except Exception:  # noqa: BLE001 - progress text is optional
+            cur = None
+        if cur is not None:
+            out["current"] = cur
+    return out
 
 
 # ------------------------------------------------------------------ commits
@@ -369,16 +554,20 @@ def fit_activity(act: dict, max_bytes: int = ACTIVITY_MAX_BYTES) -> dict:
 
 
 def build_activity(primary_home: Path, now: datetime, repo: Path | None = None, literals=None,
-                   max_bytes: int = ACTIVITY_MAX_BYTES) -> dict:
+                   max_bytes: int = ACTIVITY_MAX_BYTES, projects_root: Path | None = None,
+                   specs: list[dict] | None = None) -> dict:
     primary_home = Path(primary_home)
     if literals is None:
         literals = load_literal_secrets(primary_home.parent)
+    if specs is None:
+        specs = instance_specs(primary_home, None)
     act: dict = {"generated_at": _iso(now), "instances": []}
-    for name, home in discover_instances(primary_home):
+    for spec in specs:
+        name, home = spec["name"], Path(spec["home"])
         try:
-            act["instances"].append(build_instance(name, home, now, literals))
+            act["instances"].append(build_instance(name, home, now, literals, spec=spec, projects_root=projects_root))
         except Exception as exc:  # noqa: BLE001 - one bad instance must not hide the others
-            act["instances"].append({"name": name, "error": type(exc).__name__})
+            act["instances"].append({"name": name, "key": home.name, "error": type(exc).__name__})
     if repo is not None:
         commits, branch = build_commits(repo, literals)
         act["commits"] = commits

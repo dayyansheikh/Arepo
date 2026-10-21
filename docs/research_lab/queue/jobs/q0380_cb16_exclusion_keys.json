@@ -11,7 +11,7 @@
   "public Gamma (ids)"
  ],
  "resources": {
-  "mem_mb": 500,
+  "mem_mb": 1200,
   "cpu": 1,
   "lane": "net",
   "network": "gamma-api"
@@ -34,10 +34,10 @@
   "40"
  ],
  "timeout_s": 1800,
- "max_retries": 2,
+ "max_retries": 4,
  "outputs": [
   "research_lab/creative_batch16/{exclusion_keys.csv.gz,manifest.json}"
  ],
  "next_action": "q0383",
- "notes": "PROMOTED 2026-10-21 (autopilot): q0340 done; --base-sha256 = host sha256sum of creative_batch15/exclusion_keys.csv.gz (10240ce7..., equals keys_sha256 in exclusion_report.json); CB16 freeze check and re-check ACCEPT_WITH_FIXES, q0381 smoke PASS; rules parts common/A/K reproduce from committed seals/cb16_rules.json. CREATIVE_BATCH_16.md section 4, CB16 code. DRAFT. Behind CB15 q0340 (the base key file). (filled) --base-sha256 = sha256sum of creative_batch15/exclusion_keys.csv.gz on the host once q0340 is done. Net lane, <= 400 Gamma requests. Rules part sha256 (seals/cb16_rules.json, written 2026-10-19 after the freeze-check fixes): common 9a087b8c463ec40e51ea795887ddb5332fba03aef1b09780dffe6e317ac577cb, A 8f395a7db285bebade752bd898be0b03e472a54d833cd560b89acdaae4ff6320, K cfe9bea5c1b97166dba84212d829a8ea31e57e3aa118891660702b8843909d01. CB16 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer, part A first) and the committed rules file; the coordinator regenerates the rules and these shas if any common / A / K code changes."
+ "notes": "OPS 2026-10-21 09:40Z: mem_mb 500 -> 1200, max_retries 4 (attempts 1-2 died with MemoryError under the address-space cap; no scientific change). | PROMOTED 2026-10-21 (autopilot): q0340 done; --base-sha256 = host sha256sum of creative_batch15/exclusion_keys.csv.gz (10240ce7..., equals keys_sha256 in exclusion_report.json); CB16 freeze check and re-check ACCEPT_WITH_FIXES, q0381 smoke PASS; rules parts common/A/K reproduce from committed seals/cb16_rules.json. CREATIVE_BATCH_16.md section 4, CB16 code. DRAFT. Behind CB15 q0340 (the base key file). (filled) --base-sha256 = sha256sum of creative_batch15/exclusion_keys.csv.gz on the host once q0340 is done. Net lane, <= 400 Gamma requests. Rules part sha256 (seals/cb16_rules.json, written 2026-10-19 after the freeze-check fixes): common 9a087b8c463ec40e51ea795887ddb5332fba03aef1b09780dffe6e317ac577cb, A 8f395a7db285bebade752bd898be0b03e472a54d833cd560b89acdaae4ff6320, K cfe9bea5c1b97166dba84212d829a8ea31e57e3aa118891660702b8843909d01. CB16 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer, part A first) and the committed rules file; the coordinator regenerates the rules and these shas if any common / A / K code changes."
 }

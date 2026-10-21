@@ -20,7 +20,7 @@ Host key (1 OCPU, 5.6 GB): snapshots+sidecar every 2 h; book sweeps (2 per pass)
 pass, 2,000 markets in `LIVE_TESTS_2.md` section 3); live trade monitor; Kalshi poller (120 s); keyless streams
 (`NEW_STREAMS_2026-10-19.md`, not used below).
 
-## Embargo requests from the experiments side (open; the builder applies them in `config.EMBARGO`)
+## Embargo requests from the experiments side (APPLIED by the builder in 26f5f954, 2026-10-21)
 
 Filed 2026-10-21 ~09:20Z by the experiments autopilot. Every request moves a date later or adds a token; none moves a date earlier.
 Rationale: `DESIGN_V1.md` §8 covers drafted tests too.
