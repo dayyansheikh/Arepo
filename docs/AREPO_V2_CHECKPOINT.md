@@ -260,7 +260,7 @@ Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && gi
    - `scp` `live_tests5_census/lt5_census_inputs_captures.json` to `docs/research_lab/seals/lt5_census_inputs_captures.json`
      (byte copy; sha256 equal);
    - commit and deploy;
-   - promote **q0561** (exclusive) **before 02:45Z** with priority >= 46 (top ready job, so the queue drains for it; q0564 now runs on the net lane) (it must read captures before the 03:30Z retention run);
+   - promote **q0561** (exclusive) **before 02:45Z** with priority 60 (must be the top ready job so the queue drains for it; signal-engine jobs now run at priority 50; q0564 now runs on the net lane) (it must read captures before the 03:30Z retention run);
    - then q0562, then q0563 (size check: a failing scenario fails only its own test, p = 1).
    If the window is missed: a new restore and seal, never a backfill.
 3. **T_seal (2026-10-22T00:00Z):** q0083b (00:05Z) → q0083 h7 seal (queued). Commit the h7 seal / NOT_RUN copies, then
