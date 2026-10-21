@@ -277,7 +277,8 @@ Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && gi
    ACCEPTED for code (R1 REVISE -> response -> re-check -> 2 text fixes verified). Before code: fill the LT5 seal sha256
    (after q0564), wait for E022's registration or drop (LT4 censuses q0482/q0483 queued; LT6 dates slide with E022's
    END_UTC; V's pin must precede T_E022), CB18 request (ledger, 2026-10-21) applied or "partially seen", engine embargo
-   round 2 applied (CANDIDATES.md). Then code (implementer), freeze check, census seal + counts-only censuses (after
+   round 2 applied (CANDIDATES.md). **Code phase 1 started 16:12Z (implementer, commits pushed step by step on
+   feat/live-tests-6: spec + live_tests6.py + tests, then censuses, then analysis skeleton).** Then freeze check, census seal + counts-only censuses (after
    LT5's), size check. Archive check of the census inputs within 48 h of the seal (retention deletes only released files).
 
 **Registered and running (no interim looks):**
