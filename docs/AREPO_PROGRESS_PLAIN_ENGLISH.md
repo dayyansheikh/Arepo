@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-21 21:08 UTC+1
+**Last updated:** 2026-10-21 21:33 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -27,8 +27,12 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
     counts and power up front.
 - **Fixed:** five batch 18 counting jobs were stuck (first asking for 20 GB of disk headroom for tiny files, then
   running out of memory); both fixed and all five finished. Ten batch 18 job drafts were renumbered (clashing numbers).
-- **LT6 code, part 2 finished** (the recorder and the analysis entry point; 137 tests pass). Still waiting on E022's
-  registration date, as planned.
+- **Batch 17 is moving again** without touching any data: its jobs now write to a fresh folder. Its safety run
+  passed every check (it reproduced three earlier counts exactly), and its key list is built. Its test window opens
+  26 Oct.
+- **LT6 (four more planned live tests):** code finished; an independent freeze check found fixes needed before its
+  counting checks (including the same size-check mistake LT4 had) and more work before registration. Being fixed now.
+  Registration stays planned for after E022's.
 - **Copy-skilled wallets (E026):** registered; collection starts 25 Oct (phone note then).
 - **Tonight (handled by later sessions):** LT5's counting jobs and seal (must run before 04:30 UTC+1), the batch 4/6/7/8
   seals after midnight UTC, and the **server resize to 2 CPU / 12 GB at about 03:40 UTC+1** (your approval). No
