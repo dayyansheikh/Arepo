@@ -23,3 +23,8 @@
 # NOT INSTALLED (added 2026-10-20, readiness audit); stops watching after 2026-11-11T13:00Z. Uncomment after deploy.
 # */15 * * * * cd /home/opc/arepo/backend && /home/opc/arepo/.venv/bin/python scripts/live_tests_watchdog.py >> /home/opc/arepo_collector/logs/live-watchdog.log 2>&1
 # --- end AREPO ---
+# --- AREPO host resize (scripts/oracle/resize_host.py; owner-approved 2026-10-21; one-shot: date guard + markers in ~/.arepo/resize; remove: resize_host.py --remove-cron) ---
+40 2 * * * /home/opc/oci_venv/bin/python /home/opc/arepo/scripts/oracle/resize_host.py --run >> /home/opc/arepo_collector/logs/resize.log 2>&1
+@reboot sleep 150 && /home/opc/arepo/.venv/bin/python /home/opc/arepo/scripts/oracle/post_resize_check.py >> /home/opc/arepo_collector/logs/resize.log 2>&1
+*/10 * * * * /home/opc/arepo/.venv/bin/python /home/opc/arepo/scripts/oracle/post_resize_check.py >> /home/opc/arepo_collector/logs/resize.log 2>&1
+# --- end host resize ---
