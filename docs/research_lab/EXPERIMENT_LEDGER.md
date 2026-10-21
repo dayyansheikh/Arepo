@@ -3330,3 +3330,13 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   `live_tests4_v1.json` (design 13.4); `LIVE_TESTS_4.md` section 17. Nothing counted, nothing registered. Open for the
   freeze check: the raw-`h` IQR gate of section 8 was evaluated as the residual-IQR gate (the R1/R2 wording), and the
   `both` depth branch is not evaluable. Registration must be committed by 2026-10-25T00:00Z for the 10-26 window.
+- (~19:45Z) **CB13-R freeze entry and q0282 promoted** (6d441a9f, deployed). Narrow code-against-design check
+  (science-reviewer): FREEZE_OK_WITH_FIXES; the fixes were entry content and draft notes only (gate-fail order basis >
+  frame > population/parser > GRP as sealed in `screen_r` on 10-19, before the census; the declared R1 double count;
+  census `drops.share` 1.16 reporting defect disclosed, sealed code unchanged). Host checks: smoke_R_v2 and pregate_R
+  pass, no results_R.json yet, census_R.json sha256 71483779…. q0282 writes R1 "not testable (basis)", p = 1, counted 1,
+  and opens no outcome. q0283 (rep) moot.
+- (~19:50Z) **LT4 pre-pin code changes** (44a7e938; `LIVE_TESTS_4.md` section 18): analysis, reader and size check
+  restricted to `k_tests` = [E022] (Holm m = 1; reader writes only E022's hollow lines; E022 line format unchanged);
+  the size check runs only E022's two continuous scenarios (est. 2-4 h). 72 LT3/LT4 tests pass; LT3 module hashes
+  unchanged. Code freeze check (science-reviewer) running. Nothing counted.
