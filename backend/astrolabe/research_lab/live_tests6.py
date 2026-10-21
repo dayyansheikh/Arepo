@@ -857,7 +857,10 @@ def deadline_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, ser_12: pd.DataFram
     u["slot"] = k
     u["day"] = _utc_day(cap["start"])
     u["mid"] = mid
-    u["updated_changed"] = (u["upd_ts"].to_numpy(float) != ser_p["upd_ts"].reindex(um).to_numpy(float)).astype(float)
+    uk, up = u["upd_ts"].to_numpy(float), ser_p["upd_ts"].reindex(um).to_numpy(float)
+    # a missing updated_at at k - 1 or k stays missing (NaN, 1.5): never "changed"; the unit is excluded from the regressions and counted
+    u["updated_changed"] = np.where(np.isnan(uk) | np.isnan(up), np.nan, (uk != up).astype(float))
+    cnt["updated_at_missing"] = int(u["updated_changed"].isna().sum())
     u["old_end_days"] = [(parsed_old[str(o)].timestamp() - tk) / DAY_S if parsed_old[str(o)] else np.nan
                          for o, tk in zip(ser_p["end_raw"].reindex(um).to_numpy(dtype=object), u["t_row"].to_numpy(float), strict=False)]
     return u, cnt
@@ -907,6 +910,10 @@ def birth_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, mem_k: pd.DataFrame, m
     cnt["newcomer_kinds"] = {str(a): int(c) for a, c in nk["kind"].value_counts().items()}
     j, c0 = b.move_join(ser_k, ser_p, cap, spec, bcfg["mid_lo"], bcfg["mid_hi"], bcfg["end_margin_h"])
     cnt.update({f"join_{a}": v for a, v in c0.items()})
+    # 1.4/1.5: B requires a KNOWN as-of end > t_k + 27 h; the unknown-end indicator is allowed only for V and K (counted exclusion)
+    unk_end = j["end_ts"].isna().to_numpy()
+    cnt["unknown_end_excluded"] = int(unk_end.sum())
+    j = j[~unk_end].copy()
     j = j[(j["sports"] == 0)].copy()
     j["members_prev"] = j["event_id"].map(n_prev).fillna(0).astype(int)
     j = j[j["members_prev"] >= bcfg["min_members_prev"]].copy()
@@ -1178,7 +1185,7 @@ CONTROLS_V = ["z_vprev", "a_traded", "a_parallel", "a_one_sided", "a_spread_chan
 CONTROLS_K = ["log1p_n_int", "log_abs_x", "g_path", "maxstep_share", "fresh", "log1p_age", "round_share", "H_unsigned", "a_parallel", "a_one_sided", "a_spread_change",
               "spread", "logit_mid", "abs_dev", "log1p_vol", "log1p_liq", "tick001", "log_hte", "hte_unknown"]
 CONTROLS_D = ["theta24", "log_T", "x", "d24", "chg_1d", "chg_1w", "chg_1d_flag", "chg_1w_flag", "logit_mid", "abs_dev", "spread", "log1p_vol", "log1p_liq", "neg_risk", "updated_changed"]
-CONTROLS_B = ["a1", "a6", "a24", "loo_a1", "log_event_size", "neg_risk", "logit_mid", "abs_dev", "spread", "log1p_vol", "log1p_liq", "log_hte", "hte_unknown", "chg_1d", "chg_1d_flag"]
+CONTROLS_B = ["a1", "a6", "a24", "loo_a1", "log_event_size", "neg_risk", "logit_mid", "abs_dev", "spread", "log1p_vol", "log1p_liq", "log_hte", "chg_1d", "chg_1d_flag"]
 
 
 def prepare_v(pop: pd.DataFrame, centre: float, scale: float) -> pd.DataFrame:
@@ -1252,6 +1259,8 @@ def census_d(U: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_days:
     pop0 = Uw[Uw["bydate"] & Uw["cls"].isin(["later", "no_change"])]
     lb = int(pop0["d24"].isna().sum())
     pop0 = pop0[pop0["d24"].notna()]
+    updated_missing = int(pop0["updated_changed"].isna().sum())  # 1.5: a missing control excludes the unit, counted
+    pop0 = pop0[pop0["updated_changed"].notna()]
     pop, excl, top = _fam(pop0, g["family_cap"])
     pop = prepare_d(pop.copy())
     if pop.empty or not (pop["cls"] == "later").any():
@@ -1271,7 +1280,7 @@ def census_d(U: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_days:
     unp = tot.get("unparseable_end_date", 0) / max(tot.get("candidates", 0), 1) if tot.get("candidates", 0) else float("nan")
     later_21d = float(len(lab) * scale)
     per_mkt = lab.groupby("market_id").size()
-    res = {"units": len(U), "by_class": {str(k_): int(v) for k_, v in U["cls"].value_counts().items()}, "washout_dropped": n_wash, "lookback_missing": lb,
+    res = {"units": len(U), "by_class": {str(k_): int(v) for k_, v in U["cls"].value_counts().items()}, "washout_dropped": n_wash, "lookback_missing": lb, "updated_at_missing_excluded": updated_missing,
            "exclude_family": excl, "top_family_share": top, "later_21d": later_21d, "later_eff_21d": n1, "nochange_eff_21d": n2,
            "later_direction_moves": len(dirm), "rollover_plus_crypto_share": kill_share, "crypto_failsafe": crypto_fs.get("classifier_shown_to_work"),
            "unparseable_end_date_share": unp, "design_effect": de, "design": dsg, "mde_eff_c": mde, "perm_share": ps, "corr_later_theta24": c_th,

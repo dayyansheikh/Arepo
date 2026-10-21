@@ -701,3 +701,30 @@ def test_load_rows6_end_date_is_text_so_epoch_works_with_many_rows(tmp_path):
     rows = lt.load_rows6(d)
     assert rows["end_date"].dtype != "category"
     assert np.isfinite(b.panel._epoch(rows["end_date"])).all()
+
+
+def test_b_excludes_unknown_end_incumbents_and_d_keeps_missing_updated_at_missing(frames):
+    """Freeze-check fixes (MED): B needs a KNOWN end > t_k + 27 h (counted); a missing updated_at is NaN, never 'changed'."""
+    f = frames
+    k = 20
+    ser_k, mem_k = _fr(f, k)
+    ser_p, mem_p = _fr(f, k - 1)
+    hist = {k - 3: _fr(f, k - 3)[0], k - 12: _fr(f, k - 12)[0]}
+    args = (mem_k, mem_p, hist, k, f["by_slot"][k], f["by_slot"][k - 1], f["spec"])
+    u0, c0, _ = lt.birth_units(ser_k, ser_p, *args)
+    assert c0["unknown_end_excluded"] == 0 and "100" in set(u0["market_id"])
+    bad = ser_k.copy()
+    bad["end_ts"] = bad["end_ts"].astype(float)
+    bad.loc["100", "end_ts"] = np.nan
+    u1, c1, _ = lt.birth_units(bad, ser_p, *args)
+    assert c1["unknown_end_excluded"] == 1 and "100" not in set(u1["market_id"])
+    assert "hte_unknown" not in lt.CONTROLS_B
+    # D: a NaN updated_at at k - 1 or k gives NaN (not 1.0)
+    kd = 15
+    sk, _ = _fr(f, kd)
+    sp, _ = _fr(f, kd - 1)
+    sp = sp.copy()
+    sp["upd_ts"] = sp["upd_ts"].astype(float)
+    sp.loc["101", "upd_ts"] = np.nan
+    u, cnt = lt.deadline_units(sk, sp, _fr(f, kd - 12)[0], kd, f["by_slot"][kd], f["spec"])
+    assert np.isnan(u.set_index("market_id").loc["101", "updated_changed"]) and cnt["updated_at_missing"] >= 1
