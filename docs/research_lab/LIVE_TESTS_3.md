@@ -453,6 +453,13 @@ CH156's one-sided minus traded is E015's secondary S1 (2).
 - Freeze check (13.9): planning-MDE gates added to C3 (E017) and C4 (E019), and a 500-row minimum per arm for the C2
   agreement gates (E016, E018).
 - Census drops will be recorded here, with their counts, before the pin.
+- **C1/C3/C4 (q0470, 2026-10-20, `C134.json` ed18ed14…):** E017 dropped (projected A 829.5 units / 557 events vs >= 2,000 /
+  >= 1,500; planning MDE 1.83c vs 1.0c). E019 dropped (projected high 189 vs >= 3,000; events with both 127 vs >= 300;
+  planning MDE 2.86c vs 0.5c). E015 passed.
+- **C2 (q0472, 2026-10-20 23:45Z, `C2.json` 77f6e512…):** E016 dropped (projected covered W-interior units 51,828 vs
+  >= 60,000; walked share 0.0974 vs >= 10%; >= 4-decimal rows on grid 0.596 vs <= 20%; agreement arm 473 rows vs >= 500).
+  E018 dropped (H-interior share 0.308 vs >= 40%; agreement arm 473 rows vs >= 500; corr(W, H) 0.136 passed).
+- **Result: `k_tests` = [E015], Holm m = 1.** All four drops are uncounted (§8).
 
 ## 8. Pre-registration censuses (counts only; before registration; worn pre-window data; no target read)
 

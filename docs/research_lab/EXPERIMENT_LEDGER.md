@@ -2771,3 +2771,21 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   family goes to the signal engine as a low-priority challenger, embargoed until 2026-11-18 (signed flow overlaps
   E013/E014/E016/E018).
 - **Next:** a wallet-level copy-latency test (prior-art gap 1 H1b) needs its own registration and challenger review.
+
+## LT3 census C2 (q0472), done 2026-10-20 23:45Z (counts only, sealed samples of 2026-10-16/17); E016 and E018 dropped uncounted (written up 2026-10-21 ~03:50Z, autopilot)
+- **Output** `live_tests3_census/C2.json` sha256 `77f6e512a4e3ba934103b0b628bfd35edfa9b35b9776f1a7870fdc6f16ac3032`
+  (code_sha256 live_tests3.py `42663375…`, live_tests3_analysis.py `62ef3375…` = the ruling-2 code; seal
+  `seals/lt3_census_inputs_C2.json`, 23 restored samples re-hashed, `bad` empty; runtime 1,284 s). Origin-side fields only;
+  no target, no later-capture price, no P&L read.
+- Counts: covered units 21,311 in 5,303 events (projected 21 d 223,766); signed rows 5,093,017 (all tick-known); walked
+  495,889; 6 h truncation 2 of 21,313 rows (`vol24_cap` = inf, defined).
+- **E016: gate FAIL** on four of five conditions: projected covered units with W in (0, 1) 51,828 (< 60,000); walked share
+  0.0974 (< 10%); ">= 4 decimal" rows within 1e-4 of grid 0.596 (> 20%); agreement arm n_walked 473 (< 500, so the gap
+  -2.9 pp cannot pass). V* defined (pass).
+- **E018: gate FAIL**: H in (0, 1) for 0.308 of covered units (< 40%); agreement arm < 500 rows; corr(W, H) 0.136 (pass).
+- **Rule (LIVE_TESTS_3.md §8, §13.6):** a failed census gate drops the test before registration, uncounted; recorded in
+  §7.6. Gates were fixed at the freeze check (13.9) before any census ran; nothing is re-tuned.
+- **LT3 now: E015 only, k_tests = [E015], Holm m = 1.** Remaining before the pin (§13.11): q0474 size check (running;
+  any binding failure still blocks the pin), science-reviewer freeze check of code against design, host dry run,
+  `code_sha256` map, `SPEC_SHA256`, registration commit. `REGISTERED_UTC` 2026-10-24T00:00Z if the commit lands by
+  2026-10-23T00:00Z (§1.1, unchanged).
