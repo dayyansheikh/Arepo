@@ -3155,3 +3155,11 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   estimator whose placebo is null by construction, frozen before the data exist. Not queued now: the bounce question
   is low priority against the live-test programme, and the signal engine's champion (momentum + market state)
   already uses recent mid changes, so a reversal slope would enter it there.
+
+## Signal engine: hidden challenger se15_lgbm_surprise, 2026-10-21 ~15:00Z (signal-engine autopilot; nothing counted)
+- New aux family `surprise` (`se-aux-surprise-v1`; DESIGN_V1 §16) from CANDIDATES C06. It holds own realised volatility
+  over 6 h / 3 d / 7 d, the ratios to 24 h, the largest 2 h move of the last 24 h, and UTC weekday and hour. It reads
+  only the engine's own earlier quotes files. It is not E011's frozen detector and reads none of E011's files.
+- Challenger `se15_lgbm_surprise`: LightGBM with se1's params, embargoed under `surprise` until 2026-11-12 (E011,
+  analysis after 11-11). No score has been computed or shown; the walk-forward skips it.
+- K for the non-embargoed challengers is unchanged (2) until 11-04.

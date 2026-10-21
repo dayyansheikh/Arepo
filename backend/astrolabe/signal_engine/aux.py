@@ -34,6 +34,24 @@ from .features import (
     read_rows,
 )
 
+
+class SlotMids:
+    """Bounded cache of quotes-file mids per slot for builders that walk captures newest first: it evicts the newest
+    slots (no longer needed), so a backfill reads each quotes file about once."""
+
+    def __init__(self, paths: S.Paths, index: dict[int, dict], keep: int) -> None:
+        self.paths, self.index, self.keep, self.d = paths, index, keep, {}
+
+    def get(self, slot: int) -> pd.Series | None:
+        if slot not in self.d:
+            m = self.index.get(slot)
+            p = self.paths.quotes(m["capture_id"]) if m is not None else None
+            self.d[slot] = mid_series(S.read_parquet(p, ["market_id", "bid", "ask", "st"])) if p is not None and p.exists() else None
+        s = self.d[slot]
+        while len(self.d) > self.keep:
+            self.d.pop(max(self.d))
+        return s
+
 # ---------------------------------------------------------------------------------------------- event family
 # Event-level context from the same capture's complete binary listing (every market of the event, including
 # siblings that are not eligible themselves). Development history: E005 (neg-risk band deviation, closed 2026-10-11,
@@ -267,6 +285,61 @@ def _movetype_builder(ctx: dict) -> pd.DataFrame:
     return movetype_features(f, q, prev_q, prev_f)
 
 
+# ---------------------------------------------------------------------------------------------- surprise family
+# Price-path context for sharp moves (CANDIDATES.md C06; SURPRISE_MOVE_DETECTOR.md section 3 primitives, not the frozen
+# detector): own realised volatility over 6 h / 3 d / 7 d and its ratios to the 24 h one, the largest 2 h move of the
+# last 24 h, UTC weekday and hour of the capture. Inputs: the engine's own quotes files of slots k - 84 .. k (earlier
+# captures plus the origin's own mid); no snapshot rows. Embargo token `surprise` until 2026-11-12 (E011).
+SURPRISE_COLUMNS = ["sp_rv6h", "sp_rv3d", "sp_rv7d", "sp_r6h_24h", "sp_r24h_7d", "sp_r6h_7d", "sp_maxabs24", "sp_dow",
+                    "sp_hour"]
+SP_WINDOWS = {"6h": (3, 2), "24h": (12, 3), "3d": (36, 12), "7d": (84, 24)}  # name: (2 h steps, min finite diffs)
+SP_LOOKBACK = max(w for w, _ in SP_WINDOWS.values())
+
+
+def _rv(d: np.ndarray, steps: int, min_n: int) -> np.ndarray:
+    """Root mean square of the last ``steps`` finite 2 h mid changes (same definition as ms_rv24); NaN below min_n."""
+    w = d[:, -steps:]
+    ok = np.isfinite(w)
+    n = ok.sum(axis=1)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        rv = np.sqrt((np.where(ok, w, 0.0) ** 2).sum(axis=1) / n)
+    return np.where(n >= min_n, rv, np.nan)
+
+
+def surprise_features(H: np.ndarray, cap_start: float) -> pd.DataFrame:
+    """``H``: per eligible market, mids of slots k - SP_LOOKBACK .. k (NaN where not quoted), last column the origin."""
+    n = H.shape[0]
+    out = pd.DataFrame({c: np.full(n, np.nan, np.float32) for c in SURPRISE_COLUMNS})
+    ts = pd.Timestamp(cap_start, unit="s", tz="UTC")
+    out["sp_dow"] = float(ts.dayofweek)
+    out["sp_hour"] = float(ts.hour)
+    if n == 0:
+        return out.astype(np.float32)
+    d = np.diff(H, axis=1)
+    rv = {k: _rv(d, s, m) for k, (s, m) in SP_WINDOWS.items()}
+    with np.errstate(invalid="ignore", divide="ignore"):
+        out["sp_rv6h"], out["sp_rv3d"], out["sp_rv7d"] = rv["6h"], rv["3d"], rv["7d"]
+        out["sp_r6h_24h"] = np.where(rv["24h"] > 0, rv["6h"] / rv["24h"], np.nan)
+        out["sp_r24h_7d"] = np.where(rv["7d"] > 0, rv["24h"] / rv["7d"], np.nan)
+        out["sp_r6h_7d"] = np.where(rv["7d"] > 0, rv["6h"] / rv["7d"], np.nan)
+        last = d[:, -12:]
+        out["sp_maxabs24"] = np.where(np.isfinite(last).sum(axis=1) >= 3, np.nanmax(np.where(np.isfinite(last), np.abs(last), -1.0), axis=1), np.nan)
+    return out.astype(np.float32)
+
+
+def _surprise_builder(ctx: dict) -> pd.DataFrame:
+    paths, meta, index = ctx["paths"], ctx["meta"], ctx["index"]
+    mids = ctx.get("mids") or SlotMids(paths, index, keep=SP_LOOKBACK + 4)
+    f = ctx["f"]
+    ids = f["market_id"].to_numpy(np.int64)
+    slot = meta["slot"]
+    cols = []
+    for j in range(slot - SP_LOOKBACK, slot + 1):  # the origin's own quotes file last (same float32 grain as the rest)
+        s = mids.get(j)
+        cols.append(np.full(len(ids), np.nan) if s is None else s.reindex(ids).to_numpy(float))
+    return surprise_features(np.column_stack(cols), ctx["cap_start"])
+
+
 def read_reward_ext(cap_dir) -> pd.DataFrame | None:
     p = Path(cap_dir) / "rows_ext.csv.gz"
     if not p.exists():
@@ -286,7 +359,7 @@ def read_reward_ext(cap_dir) -> pd.DataFrame | None:
 # ---------------------------------------------------------------------------------------------- registry
 # A builder takes a context dict: rows (snapshot rows; None for a family with needs_rows False), f (features key
 # columns + ms_mid, ms_spread), prev_mid (previous slot's mids or None), cap_dir, cap_start, paths, meta, prev (the
-# previous slot's index entry or None).
+# previous slot's index entry or None), index, mids (a shared SlotMids or None).
 
 AUX_FAMILIES: dict[str, dict] = {
     "event": {"version": "se-aux-event-v1", "columns": EVENT_COLUMNS,
@@ -295,6 +368,8 @@ AUX_FAMILIES: dict[str, dict] = {
                 "builder": lambda ctx: rewards_features(read_reward_ext(ctx["cap_dir"]), ctx["f"], ctx["cap_start"])},
     "movetype": {"version": "se-aux-movetype-v1", "columns": MOVETYPE_COLUMNS, "needs_rows": False,
                  "builder": _movetype_builder},
+    "surprise": {"version": "se-aux-surprise-v1", "columns": SURPRISE_COLUMNS, "needs_rows": False,
+                 "builder": _surprise_builder},
 }
 AUX_COLUMNS: dict[str, list[str]] = {k: v["columns"] for k, v in AUX_FAMILIES.items()}
 AUX_ALL: list[str] = [c for cols in AUX_COLUMNS.values() for c in cols]
@@ -305,7 +380,7 @@ def aux_path(paths: S.Paths, family: str, cap: str):
     return paths.sub("aux", family, f"{cap}.parquet")
 
 
-def build_aux(paths: S.Paths, family: str, meta: dict, cap_dir, index: dict | None = None) -> dict | None:
+def build_aux(paths: S.Paths, family: str, meta: dict, cap_dir, index: dict | None = None, mids=None) -> dict | None:
     """Write one capture's aux table (write-once). None if the inputs are gone or it already exists."""
     cid = meta["capture_id"]
     out_p = aux_path(paths, family, cid)
@@ -321,7 +396,8 @@ def build_aux(paths: S.Paths, family: str, meta: dict, cap_dir, index: dict | No
     if prev is not None and paths.quotes(prev["capture_id"]).exists():
         prev_mid = mid_series(S.read_parquet(paths.quotes(prev["capture_id"]), ["market_id", "bid", "ask", "st"]))
     a = spec["builder"]({"rows": rows, "f": f, "prev_mid": prev_mid, "cap_dir": cap_dir,
-                         "cap_start": S.epoch(meta["started_utc"]), "paths": paths, "meta": meta, "prev": prev})
+                         "cap_start": S.epoch(meta["started_utc"]), "paths": paths, "meta": meta, "prev": prev,
+                         "index": index or {}, "mids": mids})
     tab = pd.concat([f[["market_id"]].reset_index(drop=True), a.reset_index(drop=True)], axis=1)
     md = {"capture_id": cid, "slot": meta["slot"], "aux_family": family, "aux_version": spec["version"],
           "features_sha256": S.sha256_file(fp), "rows_sha256": S.sha256_file(cap_dir / "rows.csv.gz") if needs_rows else None,
@@ -341,6 +417,7 @@ def run_aux(paths: S.Paths, max_items: int = 4) -> dict:
     state = S.load_state(paths)
     caps = {c["id"]: c for c in S.discover_captures(paths, state)}
     written, gone = [], 0
+    mids = SlotMids(paths, index, keep=SP_LOOKBACK + 4)  # shared across captures (newest first)
     for _slot, m in sorted(index.items(), reverse=True):
         cid = m["capture_id"]
         for fam in AUX_FAMILIES:
@@ -353,7 +430,7 @@ def run_aux(paths: S.Paths, max_items: int = 4) -> dict:
                 continue
             if len(written) >= max_items:
                 continue
-            r = build_aux(paths, fam, m, cap["dir"] if cap is not None else None, index)
+            r = build_aux(paths, fam, m, cap["dir"] if cap is not None else None, index, mids)
             if r:
                 written.append({k: r[k] for k in ("capture_id", "family", "n_rows")})
     S.save_state(paths, state)
@@ -409,4 +486,5 @@ def check_spec_aux(spec: dict) -> str | None:
 
 
 __all__ = ["AUX_FAMILIES", "AUX_COLUMNS", "AUX_ALL", "MODEL_FAMILY_COLUMNS", "aux_path", "build_aux", "run_aux",
-           "aux_sources", "read_features", "spec_aux_families", "check_spec_aux", "event_features", "movetype_features"]
+           "aux_sources", "read_features", "spec_aux_families", "check_spec_aux", "event_features", "movetype_features",
+           "surprise_features"]

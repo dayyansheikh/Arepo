@@ -107,6 +107,13 @@
    "spec_sha256": "4ea00818f6211cc44ec164dbcd3d10d3ce0768c3a9494abb73591d7dddd6f1e4",
    "status": "active",
    "added_utc": "2026-10-21T14:30:00Z"
+  },
+  {
+   "model_id": "se15_lgbm_surprise",
+   "file": "se15_lgbm_surprise.json",
+   "spec_sha256": "ead98d1ab41f1ec21be0ac64c4859734b059e3d971dcc8f7880d4c93bf33d692",
+   "status": "active",
+   "added_utc": "2026-10-21T15:00:00Z"
   }
  ]
 }

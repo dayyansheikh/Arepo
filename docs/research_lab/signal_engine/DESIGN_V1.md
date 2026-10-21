@@ -147,7 +147,7 @@ champion (market state + momentum), the learner reference and broad multi-family
 | token | until | tests |
 |---|---|---|
 | xvenue | 2026-11-04T00:00Z | E009, E010 (fixed end 2026-11-03) |
-| surprise (no model yet) | 2026-11-12T00:00Z | E011 |
+| surprise | 2026-11-12T00:00Z | E011; model `se15_lgbm_surprise` since 2026-10-21 ~15:00Z (no score computed or shown before) |
 | chg1d_x_liq (no model yet) | 2026-11-14T00:00Z | E012 |
 | tte | 2026-11-14T00:00Z | E014 |
 | flow | 2026-11-22T00:00Z (from 11-16, 2026-10-21) | E013, E014 (LT2, 2026-11-13T12Z), E016, E018 (LT3 proposed 2026-11-15T12Z), LT5 J/O (draft) |
@@ -324,6 +324,22 @@ quotes and features files of capture k and of slot k - 1, so the tolerances are 
   - Among 2 h movers (|x| >= 0.01, 4,244), the shares are: traded 30%, ambiguous 4%, parallel 4.4%, one-sided 5.4%,
     spread-change 1.5%. Counts only, no target read.
 - Backfill: 105 tables written on the host at 14:06Z in 40 s (`~/.arepo/signal_engine/aux_backfill_movetype.sh`).
+
+**Fourth family `surprise` (`se-aux-surprise-v1`), challenger `se15_lgbm_surprise` (2026-10-21; embargoed under
+`surprise` until 2026-11-12, E011).** CANDIDATES C06. These are price-path primitives from SURPRISE_MOVE_DETECTOR.md §3,
+not the frozen detector.
+- Inputs: the engine's own quotes files of slots k - 84 .. k (7 days of 2 h slots, the origin's own file last). No
+  snapshot rows.
+- Columns:
+  - `sp_rv6h`, `sp_rv3d`, `sp_rv7d`: root mean square of the finite 2 h mid changes over the last 3, 36 and 84
+    steps. This is `ms_rv24`'s definition. Each needs at least 2, 12 and 24 finite changes.
+  - `sp_r6h_24h`, `sp_r24h_7d`, `sp_r6h_7d`: ratios. NaN when the denominator is 0.
+  - `sp_maxabs24`: the largest |2 h change| of the last 12 steps (at least 3 finite).
+  - `sp_dow`, `sp_hour`: UTC weekday and hour of the capture start.
+- Missing values stay missing. A market new to the listing has NaN long-window values until it has the history.
+- A test checks that the 24 h denominator equals the stored `ms_rv24`.
+- The builders share a `SlotMids` cache that evicts the newest slots (captures are built newest first), so a
+  backfill reads each quotes file about once. A live capture reads 85 small files.
 
 Embargo (event): token `event` until 2026-11-22 since 2026-10-21 (LT5 F draft; §8). Before that request: E005 (neg-risk band deviation) closed 2026-10-11 as not supported. E019 was dropped uncounted.
 SB2-J5 is development only. `ev_sib_*` resembles SB2-J5's L1 and `ev_norm_gap` resembles E005's band deviation, so
