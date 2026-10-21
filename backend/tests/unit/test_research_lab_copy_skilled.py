@@ -583,8 +583,9 @@ def test_floors_make_unavailable(tmp_path):
 def test_queue_drafts_valid():
     repo = Path(__file__).resolve().parents[3]
     q = repo / "docs" / "research_lab" / "queue"
-    drafts = sorted([*(q / "drafts").glob("q054[0-4]_copy_*.json"), *(q / "jobs").glob("q0544_copy_*.json")])
-    assert len(drafts) == 5  # q0544 (census) was promoted to jobs/ on 2026-10-21
+    drafts = sorted([*(q / "drafts").glob("q054[0-4]_copy_*.json"), *(q / "jobs").glob("q054[0-4]_copy_*.json")],
+                    key=lambda p: p.name)
+    assert len(drafts) == 5 and len({p.name for p in drafts}) == 5  # promoted ones move drafts/ -> jobs/ (q0544, q0540)
     for p in drafts:
         j = json.loads(p.read_text())
         assert j["id"] == p.stem

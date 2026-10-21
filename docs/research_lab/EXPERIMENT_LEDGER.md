@@ -3198,3 +3198,6 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   pinned-code check (fails loudly) and a running-capture guard (test fails without it). Memory on a 7.3x synthetic
   store: recorder <= 448 MB (q0541 mem_mb 480), labeller 302 MB (q0542 400), analysis 1,222 MB (q0543 1500); host
   check by q0545. Next: q0545 result, then freeze q0540, pins, registration commit before 2026-10-24T00:00Z.
+- (~14:55Z) **q0540 freeze promoted** (priority 36, after q0545). It refuses before writing if the built set differs
+  from spec `skill.expected` (35,587 / 3,559; outcomes before 10-18T04:00Z). Pins follow only after q0545 confirms the
+  recorder memory.
