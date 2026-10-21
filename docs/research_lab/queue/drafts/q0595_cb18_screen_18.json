@@ -1,5 +1,5 @@
 {
- "id": "q0512_cb18_screen_18",
+ "id": "q0595_cb18_screen_18",
  "title": "CB18 Stage 1 (DRAFT): S1 expanding-past market-demeaned OLS of 24 h |move| on 1[silent]; Freedman-Lane gate (3 of 200), composition guard, circular-shift calibration placebo, top-5-cluster and leave-one-day-out robustness, availability, binding Lee lower bound; Holm k1 = 1; one trials line",
  "family": "creative_batch_18",
  "priority": 9,
@@ -15,7 +15,7 @@
   "network": "none"
  },
  "depends_on": [
-  "q0511_cb18_census_18"
+  "q0594_cb18_census_18"
  ],
  "argv": [
   "scripts/run_cb18.py",
@@ -40,6 +40,6 @@
  "outputs": [
   "data-dumps/research_lab/creative_batch18/results_screen.json (write-once)"
  ],
- "next_action": "commit the result; if S1 advanced, q0513",
- "notes": "DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md, design not yet reviewed). scripts/run_cb18.py DOES NOT EXIST YET (code needed, CREATIVE_BATCH_18.md section 6). Window job: promote only after parts common and S are committed (CB route RS-1), the code freeze record and an accepting code-against-design freeze check. Runs alone (memory rule). Refuses before E011's analysis commit (after 2026-11-11T13:00Z). R2 response (CREATIVE_BATCH_18.md section 12, finding 5): also refuses before E012's analysis commit (E012 analysed on or after 2026-11-13T12:00Z, LIVE_TESTS_2.md:27; its population contains CB18-S's units and its target is a 24 h change)."
+ "next_action": "commit the result; if S1 advanced, q0596",
+ "notes": "DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md, design not yet reviewed). scripts/run_cb18.py DOES NOT EXIST YET (code needed, CREATIVE_BATCH_18.md section 6). Window job: promote only after parts common and S are committed (CB route RS-1), the code freeze record and an accepting code-against-design freeze check. Runs alone (memory rule). Refuses before E011's analysis commit (after 2026-11-11T13:00Z). R2 response (CREATIVE_BATCH_18.md section 12, finding 5): also refuses before E012's analysis commit (E012 analysed on or after 2026-11-13T12:00Z, LIVE_TESTS_2.md:27; its population contains CB18-S's units and its target is a 24 h change). RENUMBERED 2026-10-21 ~19:40Z (autopilot): CB18 drafts q0507-q0516 -> q0590-q0599 (same order) because q0510-q0515 were already taken by signal-engine jobs; ids and depends_on only."
 }

@@ -247,56 +247,65 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-21 14:10Z
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-21 19:15Z
 Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && git log --oneline -1'` = local tip.
 
 **Tonight (time-critical, in order):**
-1. **E026: REGISTERED** (7777ca66, 2026-10-21 15:20Z; ledger "E026 REGISTERED"; design 9.1 pins). Deployed and
-   host-verified. q0541 (net, not_before 10-25T00Z), q0542 (net, 10-25T06Z), q0543 (12-06T12Z) are in queue/jobs.
-   On/after 10-25: confirm q0541/q0542 start and stay healthy (counts only; `run_copy_skilled.py status`), send the
-   owner "collection started" note, then weekly counts notes. Re-promote a `failed` collector within 48 h. FROZEN until
-   12-07: copy_skilled*.py, wallet_skill*.py, costs.py, copy_skilled_v1.json, cost_model_calibration_v1.json.
-2. **LT5 seal → census:** q0564 (priority 45) runs from 23:20Z. When done:
+1. **E026: REGISTERED** (7777ca66, 2026-10-21 15:20Z). q0541 (net, not_before 10-25T00Z), q0542 (10-25T06Z), q0543
+   (12-06T12Z). On/after 10-25: confirm q0541/q0542 start and stay healthy (counts only; `run_copy_skilled.py status`),
+   send the owner "collection started" note, then weekly counts notes. Re-promote a `failed` collector within 48 h.
+   FROZEN until 12-07: copy_skilled*.py, wallet_skill*.py, costs.py, copy_skilled_v1.json, cost_model_calibration_v1.json.
+2. **LT5 seal → census:** q0564 (priority 45, net lane) runs from 23:20Z. When done:
    - `scp` `live_tests5_census/lt5_census_inputs_captures.json` to `docs/research_lab/seals/lt5_census_inputs_captures.json`
-     (byte copy; sha256 equal);
-   - commit and deploy;
-   - promote **q0561** (exclusive) **before 02:45Z** with priority 60 (must be the top ready job so the queue drains for it; signal-engine jobs now run at priority 50; q0564 now runs on the net lane) (it must read captures before the 03:30Z retention run);
+     (byte copy; sha256 equal); commit and deploy;
+   - promote **q0561** (exclusive) **before 02:45Z** with priority 60 (top ready job; signal-engine jobs are 50);
+     it must read captures before the 03:30Z retention run;
    - then q0562, then q0563 (size check: a failing scenario fails only its own test, p = 1).
    If the window is missed: a new restore and seal, never a backfill.
 3. **T_seal (2026-10-22T00:00Z):** q0083b (00:05Z) → q0083 h7 seal (queued). Commit the h7 seal / NOT_RUN copies, then
    promote q0121, q0144, q0145 (CB6/CB7 seals; never retry q0141). q0161 CB8 smoke (net) from 00:00Z. Before promoting
    q0164, run the two `derive-exclusion-ids` commands in its draft notes on the host and fill both sha256 tokens.
    CB9 q0181+ and CB10 q0201 come after their pins.
-
 4. **Host resize 2026-10-22 02:40Z** (owner-approved; no deploy / crontab edit / queue resume 02:40-03:45Z). After
-   `~/.arepo/resize/DONE` exists: append `~/.arepo/resize/ledger_deviation_draft.md` to the ledger (facts only), run
-   `resize_host.py --remove-cron`, update the 1 OCPU / 6 GB wording, then promote the prepared draft
-   `queue/drafts/q0116f_mc1_dev_run.json` (exclusive, mem_mb 6000, as_cap_mb 14000) to `queue/jobs/` and deploy.
+   `~/.arepo/resize/DONE`: append `~/.arepo/resize/ledger_deviation_draft.md` to the ledger (facts only), run
+   `resize_host.py --remove-cron`, update the 1 OCPU / 6 GB wording, then promote `queue/drafts/q0116f_mc1_dev_run.json`
+   (exclusive, mem_mb 6000, as_cap_mb 14000) to `queue/jobs/` and deploy.
 
-5. **LT6 (`feat/live-tests-6` 04d9b603, pushed; worktree `.claude/worktrees/agent-a985b10db31086738`):** design
-   ACCEPTED for code (R1 REVISE -> response -> re-check -> 2 text fixes verified). Before code: fill the LT5 seal sha256
-   (after q0564), wait for E022's registration or drop (LT4 censuses q0482/q0483 queued; LT6 dates slide with E022's
-   END_UTC; V's pin must precede T_E022), CB18 request (ledger, 2026-10-21) applied or "partially seen", engine embargo
-   round 2 applied (CANDIDATES.md). **Code phase 1 started 16:12Z (implementer, commits pushed step by step on
-   feat/live-tests-6: spec + live_tests6.py + tests, then censuses, then analysis skeleton).** Then freeze check, census seal + counts-only censuses (after
-   LT5's), size check. Archive check of the census inputs within 48 h of the seal (retention deletes only released files).
+**LT4 → E022 registration (deadline: registration commit by 2026-10-25T00:00Z, window 10-26..11-16):**
+censuses done 2026-10-21 (ledger "Finished-job write-ups"): k_tests = [E022]; E020/E021 dropped uncounted; spec filled
+(17ed89c6, unpinned). Steps: (a) pre-pin code fixes (analysis/size check over k_tests only; implementer running
+19:20Z, section 18 of LIVE_TESTS_4.md); (b) science-reviewer freeze check, incl. rulings on the residual-IQR reading
+of the section 8 `h` gate and the non-evaluable `both` depth branch; record the code freeze and that LT4 continues on
+`chore/arepo-claude-setup` (contains LT3's registration 2580c58a; section 16 finding 1); (c) deploy, promote q0484
+(size check, one run, 5-9 h, no rerun); (d) host dry run with memory measured; (e) registration commit (SPEC_SHA256 +
+module hashes, ledger, registry, q0486), install the reader cron `10-59/20` before 10-26T00Z (q0485 fallback, never
+both). Then LT6 (V's pin must precede T_E022).
+
+**Blocked on the owner (dashboard approval 8):** q0404 CB17 smoke refuses because q0413's restore tree (925 MB) sits in
+`creative_batch17/` (frozen 0.3 GB total cap counts it). Needs the tree moved out of `creative_batch17/` (or cleared);
+the evidence hook blocks it without an owner-approved session. Then re-restore/point q0404 at the new path and
+`queue_worker.py retry q0404_cb17_smoke`. S_8 = 10-26T00Z. Restore trees total ~9 GB; data-dumps 29.75 / 40 GB.
+
+**LT6 (`feat/live-tests-6`, worktree `.claude/worktrees/agent-a985b10db31086738`):** design accepted; code phase 1 and
+phase 2 (reader, analyze entry point, RSS probe, drafts q0585/q0586; 137 tests) committed and pushed. Not merged. Open:
+q0585/q0586 not_before (depend on E022), the RSS probe needs a host dry run, the `LIVE_TESTS6_WINDOW_CLOSED` log
+string is unverified against the design. Before registration: LT5 seal sha256, E022 registration (now planned), CB18
+change request applied or "partially seen", a `battery2.KIND_RULES["live_tests6"]` entry.
 
 **Registered and running (no interim looks):**
 - E009/E010 (to 11-03), E011 (to 11-10), LT2 E012-E014 (q0460; analysis q0461 after 11-13T12Z).
-- **E026** registered 2026-10-21 (7777ca66; SPEC_SHA256 06d117ed…); collection 10-25..11-15, analysis q0543 after 12-06T12Z.
-- **LT3 E015** registered 2026-10-21 (2580c58a; SPEC_SHA256 72a174eb…). Host cron `*/20` installed; remove it after
-  2026-11-15T06:00Z. q0475_lt3_analyze runs after 11-15T12Z.
+- **E026** registered 2026-10-21; collection 10-25..11-15, analysis q0543 after 12-06T12Z.
+- **LT3 E015** registered 2026-10-21 (2580c58a). Host cron `*/20`; remove it after 2026-11-15T06:00Z. q0475 after 11-15T12Z.
 
 **Queued and in progress:**
-- CB18 censuses q0502-q0506 (restores done; then `run_cb18.py routing`).
-- LT4 censuses q0482/q0483. Then record the LT4 code freeze; q0484 (size check) only after that. LT3's registration is
-  now merged.
-- CB13-R census q0281. CB15-P q0347. CB16-K q0383 (exclusive, not before 10-22T06Z). CB17 q0404 smoke, then q0405
-  (base = CB16 q0380 key file sha256 56dc953e…).
-- CB14-W q0305 records GWC FAIL.
+- CB18 censuses q0502-q0506 (unblocked 19:00Z: `--disk-cap-gb` 0.25); then the routing record (`run_cb18.py routing`,
+  `seals/cb18_routing.json`, target 10-24T12Z). Later CB18 drafts are now q0590-q0599 (renumbered; ids clashed).
+- **CB13-R:** census done (gates fail) → q0282 (draft) writes R1 "not testable (basis)" after the R freeze entry (the v1 R1 count line of 10-19 stays: conservative double count, ledger 10-19 ~09:45Z).
+- CB14-W GWC FAIL and CB15-P GPB FAIL recorded (counted 2 each); their later drafts (q0306-q0309, q0349-q0354) are moot.
+- CB16-K q0383 (exclusive, not before 10-22T06Z). CB17 q0404 blocked (above), then q0405.
 
 **Waiting:**
-- MC1: needs more memory (dashboard approval 7).
+- MC1: after the resize (item 4).
 - CB4 q0085 not before ~10-24T12Z. CB5 q0103b on or after 10-27, then q0106. CB3 freeze after q0064 (after 10-25).
 - Signal engine: live state in `signal_engine/STATUS.md` (10-21 19:35Z: se17_lgbm_mm_900k added, q0512 timeout 3 h; `regime` dropped in development); embargo requests applied (26f5f954).
 

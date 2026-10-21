@@ -1,11 +1,11 @@
 {
- "id": "q0510_cb18_frame_screen_S",
+ "id": "q0593_cb18_frame_screen_S",
  "title": "CB18-S SCREEN_18 frame (features only; DRAFT): arm-0 non-sports units of [S_18, S_18 + 14 d): eligibility, silent/quiet class, controls, thinning, statuses at k+12, raw target-mid table (no target computed); missing file exit 75",
  "family": "creative_batch_18",
  "priority": 9,
  "expected_value": "S Stage-1 units",
  "data": [
-  "snapshots/, book_sweeps/ (host) and q0509's restore tree"
+  "snapshots/, book_sweeps/ (host) and q0592's restore tree"
  ],
  "resources": {
   "mem_mb": 390,
@@ -14,7 +14,7 @@
   "network": "none"
  },
  "depends_on": [
-  "q0509_cb18_restore_screen"
+  "q0592_cb18_restore_screen"
  ],
  "argv": [
   "scripts/run_cb18.py",
@@ -41,7 +41,7 @@
  "outputs": [
   "data-dumps/research_lab/creative_batch18/screen/ (frame, mids, statuses, manifest with every file sha256)"
  ],
- "next_action": "q0511",
- "notes": "DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md, design not yet reviewed). scripts/run_cb18.py DOES NOT EXIST YET (code needed, CREATIVE_BATCH_18.md section 6). Window job: promote only after parts common and S are committed (CB route RS-1), the code freeze record and an accepting code-against-design freeze check.",
+ "next_action": "q0594",
+ "notes": "DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md, design not yet reviewed). scripts/run_cb18.py DOES NOT EXIST YET (code needed, CREATIVE_BATCH_18.md section 6). Window job: promote only after parts common and S are committed (CB route RS-1), the code freeze record and an accepting code-against-design freeze check. RENUMBERED 2026-10-21 ~19:40Z (autopilot): CB18 drafts q0507-q0516 -> q0590-q0599 (same order) because q0510-q0515 were already taken by signal-engine jobs; ids and depends_on only.",
  "not_before": "2026-11-11T08:00:00Z"
 }

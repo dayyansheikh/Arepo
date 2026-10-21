@@ -1,5 +1,5 @@
 {
- "id": "q0509_cb18_restore_screen",
+ "id": "q0592_cb18_restore_screen",
  "title": "CB18 SCREEN_18 inputs (DRAFT): restore byte for byte the captures (rows, sidecar, manifest) and sweep 1 dirs of [S_18 - 24 h, S_18 + 15 d + 2 h) that have rotated off the host, hash-checked against the release manifests",
  "family": "creative_batch_18",
  "priority": 9,
@@ -14,7 +14,7 @@
   "network": "github releases (private data repo, read-only)"
  },
  "depends_on": [
-  "q0508_cb18_exclusion_keys"
+  "q0591_cb18_exclusion_keys"
  ],
  "argv": [
   "scripts/restore_from_archive.py",
@@ -34,7 +34,7 @@
  "outputs": [
   "data-dumps/research_lab/cb18_window/restore_screen/"
  ],
- "next_action": "q0510",
- "notes": "DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md, design not yet reviewed). scripts/run_cb18.py DOES NOT EXIST YET (code needed, CREATIVE_BATCH_18.md section 6). Window job: promote only after parts common and S are committed (CB route RS-1), the code freeze record and an accepting code-against-design freeze check. Placeholder tags: fill from the release list; the frame job refuses any file whose sha256 differs from its release manifest.",
+ "next_action": "q0593",
+ "notes": "DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md, design not yet reviewed). scripts/run_cb18.py DOES NOT EXIST YET (code needed, CREATIVE_BATCH_18.md section 6). Window job: promote only after parts common and S are committed (CB route RS-1), the code freeze record and an accepting code-against-design freeze check. Placeholder tags: fill from the release list; the frame job refuses any file whose sha256 differs from its release manifest. RENUMBERED 2026-10-21 ~19:40Z (autopilot): CB18 drafts q0507-q0516 -> q0590-q0599 (same order) because q0510-q0515 were already taken by signal-engine jobs; ids and depends_on only.",
  "not_before": "2026-11-11T08:00:00Z"
 }

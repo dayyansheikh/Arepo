@@ -1129,3 +1129,21 @@ shas are in the queue drafts.
 
 **Scheduling (declared).** q0311 `not_before` = 2027-01-27T00:00Z (the earliest window end, `T14_W2_start` floor + 90 d, plus 3 d);
 q0322 `not_before` = 2026-12-01T00:00Z (a scheduling hint only). Both are gated in code by the closure records (F7, F13), which bind.
+
+## 12. CB14-W pre-fetch gate GWC result (q0305, done 2026-10-21 18:04Z; counts only, no network)
+
+Source: `creative_batch14/pregate_W.json` on the host (rules sha256 W `011abaf5…`, as pinned). **GWC: FAIL (`pass` false).**
+Counts against the pre-declared minimums (150 markets, 60 events, 40 subjects):
+
+| Check | Needed | Observed | Result |
+|---|---|---|---|
+| mapped markets | >= 150 | 58 | fail |
+| events | >= 60 | 46 | fail |
+| subjects | >= 40 | 38 | fail |
+| frame completeness | >= 95% | 1.0 (12 of 12 walk markets found) | pass |
+| GW0 audit | complete and passing | complete (56 of 56 labelled, 0 missing); precision 0.6786 (38 of 56 match, rule revision 1); `audit_pass` false | fail |
+
+**Consequence (design §GWC).** W1 and W2 are "not testable (population)", p = 1, **counted 2** (`creative_batch_14:W` count
+line, n_tests 2, written 2026-10-21T18:04:03Z, results sha256 `9577d5b7…`). q0306 and q0307 are never committed; q0308 and q0309
+have no data to read. No edit-burst, print or outcome data was fetched. CB14-S was already terminal (q0301); CB14 now has no
+testable family.

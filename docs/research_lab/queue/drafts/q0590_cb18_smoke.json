@@ -1,5 +1,5 @@
 {
- "id": "q0507_cb18_smoke",
+ "id": "q0590_cb18_smoke",
  "title": "CB18 smoke (cpu, no network; DRAFT): part hashes and import pins; refusals on fixtures (forbidden roots and fields, pre-floor rows, REP rows before the seal, missing pinned files exit 75); arm and thinning hashes; class truth tables; exact reproduction of q0502's printed counts with the frozen code (code_sha256 stored)",
  "family": "creative_batch_18",
  "priority": 9,
@@ -36,6 +36,6 @@
  "outputs": [
   "data-dumps/research_lab/creative_batch18/smoke.json"
  ],
- "next_action": "q0508 if PASS; a FAIL makes S1 'not testable (source)', counted",
- "notes": "DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md, design not yet reviewed). scripts/run_cb18.py DOES NOT EXIST YET (code needed, CREATIVE_BATCH_18.md section 6). Window job: promote only after parts common and S are committed (CB route RS-1), the code freeze record and an accepting code-against-design freeze check."
+ "next_action": "q0591 if PASS; a FAIL makes S1 'not testable (source)', counted",
+ "notes": "DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md, design not yet reviewed). scripts/run_cb18.py DOES NOT EXIST YET (code needed, CREATIVE_BATCH_18.md section 6). Window job: promote only after parts common and S are committed (CB route RS-1), the code freeze record and an accepting code-against-design freeze check. RENUMBERED 2026-10-21 ~19:40Z (autopilot): CB18 drafts q0507-q0516 -> q0590-q0599 (same order) because q0510-q0515 were already taken by signal-engine jobs; ids and depends_on only."
 }

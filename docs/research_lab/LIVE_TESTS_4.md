@@ -17,6 +17,9 @@ REVISE -> drop) is answered in **section 15**, which amends sections 0-14; where
 **E023 and E024 are dropped before any census, uncounted; k <= 3 (E020, E021, E022).** Their text in sections 0-14 is kept as
 the design record only. The size check is Freedman-Lane only (six binding scenarios, new seed 20261107).
 
+**Censuses (2026-10-21; section 17):** E020 failed CQ and E021 failed CF. Both are dropped before registration, uncounted.
+E022 passed CH. **`k_tests` = [E022], Holm m = 1.** Nothing is registered yet.
+
 This is research tooling. No edge, calibration, profitability or tradability claim exists or is implied. Every count
 quoted from round 9/10 probes is a **counts-only development figure on worn data**. Every MDE here is a **planning
 estimate** built on stated assumptions, not a measurement.
@@ -435,6 +438,11 @@ Applied in this order, each exclusion counted (LT3's `move_join` and `classify`,
   fresh draw would be selection on a simulation outcome, so there is **no redraw and no further gate variant**. No CF value
   for them was ever computed; no window line for them is written. k = 3 if E020, E021 and E022 pass their census gates.
 - Census drops of E020-E022 will be recorded here, with their counts, before the pin.
+- **CQ (q0482, 2026-10-21, `CQCH.json` 2c9e2a9e…):** E020 dropped, uncounted (projected cancellations 14,028 vs >= 15,000;
+  effective-count MDE 0.526c vs <= 0.5c; permuted-strata share day 0.055 / block2 0.132 vs >= 50%). Section 17.
+- **CF (q0483, 2026-10-21, `CF.json` 55f01ced…):** E021 dropped, uncounted (effective-count MDE 1.060c vs <= 0.5c;
+  permuted-strata share day 0.005 / block2 0.018 vs >= 50%). Section 17.
+- **CH (q0482):** E022 passed. **`k_tests` = [E022], Holm m = 1.**
 
 ## 8. Pre-registration censuses (counts only; before registration; worn pre-window data; no target read)
 
@@ -800,3 +808,117 @@ No threshold, alpha, floor, seed, draw count or test definition changed; only th
    `live_tests3_census/restore`. The q0481 draft is deleted.
 
 - **Verification of this section (science-reviewer, 2026-10-21): OK_WITH_FIXES**, applied: the capture-seal precondition above; analysis comments name the analysis anchor (REGISTERED_UTC). Disclosure: the analysis window 10-26..11-16 has 21 days, so its last day (11-15) is a one-day block; the census slightly overstates the block2 share (by at most 1/21 of rows). No code change.
+
+## 17. Census results (2026-10-21; counts only)
+
+Origin-side counts on worn pre-window data. No target, no later-capture or later-sweep price and no P&L was read. Every gate
+below is applied exactly as pre-declared (section 8 as amended by sections 14-16; spec `census_gates`; the code's `gate_E0xx`
+fields). No threshold, formula, floor or rule was changed. A NaN fails. Nothing is counted.
+
+**Outputs (host `data-dumps/research_lab/live_tests4_census/`; sha256 re-verified on the host 2026-10-21; the LT3 convention
+is followed: sha256 recorded here and in the ledger, no byte copy committed).**
+
+| Job | Output | sha256 | Inputs |
+|---|---|---|---|
+| q0482_lt4_census_captures (done 17:26Z) | `CQCH.json` | `2c9e2a9eaac48058e1ea5680bac8a4c9e8e790ca8eca75155d470fd9bc87e891` | 24 complete captures of UTC 2026-10-15/16, their slot k − 1 and sweep 1; `inputs_verified` true (`seals/lt4_census_inputs_captures.json`); no capture skipped, no sweep missing |
+| q0483_lt4_census_clock (done 17:38Z) | `CF.json` | `55f01ced1aac2bc1417b1869691f62545249ad6099b47ec6f63da1b94b4c847f` | the 23 sealed samples of 2026-10-16/17 (`seals/lt3_census_inputs_C2.json`) and their captures; `inputs_verified` true |
+
+Both ran on `live_tests4.py` `c4e8c921…`, `live_tests4_analysis.py` `f9fc428d…`, `bounce_decomp.py` `2caf0edc…`,
+`live_tests3.py` `3ac52d79…` and `live_tests3_analysis.py` `224b5603…`. These equal the working-tree hashes when this section
+was written, and the two LT3 hashes equal LT3's registered pins. Projection scale 21/2 = 10.5. `DE_gate` = max(3.0, computed).
+
+### 17.1 E020 (census CQ): FAIL, dropped before registration, uncounted
+
+| Gate item | Census value | Threshold | Result |
+|---|---|---|---|
+| tick known at k − 1 and k (one-sided non-sports quote-only movers, 4,571) | 1.000 | >= 0.90 | PASS |
+| arrival share (common-support population, 1,721 / 3,057) | 0.563 | in [0.15, 0.85] | PASS |
+| projected arrivals (21 d) | 18,070.5 | >= 15,000 | PASS |
+| projected cancellations (21 d) | 14,028 | >= 15,000 | **FAIL** |
+| permuted-strata share (R1 finding 2): market x day / market x two-day block | 0.055 / 0.132 | either >= 0.50 | **FAIL** (no stratum) |
+| pessimistic effective-count MDE (A_eff 9,712.5, C_eff 8,295; DE_gate 3.0, computed 1.90) | 0.526c | <= 0.5c | **FAIL** |
+
+Population: full one-sided 4,566 (tick ok, labelled), common support 3,057 (0.670), 1,206 events; sports one-sided 2,015
+(not in the population). Spec values for E020 (`perm_stratum`, `exclude_family`) stay null on purpose: the test is dropped.
+
+### 17.2 E021 (census CF): FAIL, dropped before registration, uncounted
+
+| Gate item | Census value | Threshold | Result |
+|---|---|---|---|
+| `ts` second-level (pre-origin rows with `ts mod 60 != 0`, 5,001,390 / 5,093,017) | 0.982 | >= 0.50 | PASS |
+| fresh share of clocked traded sampled movers (1,031 / 4,278) | 0.241 | >= 0.10 | PASS |
+| settled share (1,468 / 4,278) | 0.343 | >= 0.10 | PASS |
+| projected clocked units (21 d) | 44,919 | >= 40,000 | PASS |
+| unclocked-truncated share of traded sampled movers | 0.000 | <= 0.05 | PASS |
+| permuted-strata share: market x day / market x two-day block | 0.005 / 0.018 | either >= 0.50 | **FAIL** (no stratum) |
+| pessimistic effective-count MDE (fresh_eff 3,885, settled_eff 3,097.5; sd 5c; DE_gate 3.0, computed 1.51) | 1.060c | <= 0.5c | **FAIL** |
+
+Descriptives: n2h-truncated share 0.0032 (fresh 0.0078, settled 0.000); sports share 0.360. E021 has no family rule
+(15.2). Its `perm_stratum` stays null on purpose.
+
+### 17.3 E022 (census CH): PASS
+
+| Gate item | Census value | Threshold | Result |
+|---|---|---|---|
+| depth definition (R1 finding 6): superset share `L >= D` for `both` / `token0` | NaN / 0.913 | `both` if >= 0.90, else `token0` if >= 0.90, else drop | `both` fails (NaN); **`token0` PASS** -> `depth_def = token0` |
+| sweep-covered share of traded non-sports movers (18,517 / 18,524) | 0.9996 | >= 0.80 | PASS |
+| within-market residual-IQR of `h` after `log1p D_{k−1}` >= 0.05 (R1 finding 4), markets with >= 10 covered units | share 0.827 of 301 markets | share >= 0.50 and >= 30 markets | PASS |
+| permuted-strata share: market x day / market x two-day block | 0.446 / 0.599 | day if >= 0.50, else block2 if >= 0.50 | PASS -> `perm_stratum = block2` |
+| pessimistic planning MDE per SD x tercile gap (n_eff 164,766; DE_gate 6.196 = computed, m_21 260.8; within-market VIF of `zh` 1.071, pooled 1.607; gap 1.983) | 0.129c per SD; **0.256c** tercile | <= 0.5c | PASS |
+
+Population 18,517 covered units, 2,539 events; `Dp_missing` share 0.023. L/D quantiles (token0; 10/25/50/75/90%): 1.09, 2.56,
+7.39, 23.7, 74.4.
+
+**Disclosures for the freeze check (no gate changed).**
+1. **`both` was not evaluable.** Every covered book has NaN outcome-1 depth, so the `both` superset share is NaN and fails.
+   The pre-declared rule then picks `token0`. A structure-only look at one current host sweep found one token per market
+   (51,825 rows, 51,825 markets); no prices were read. The premise of R1 finding 6's response ("the reader stores the
+   outcome-1 token's quote and 5c depths") therefore does not hold in the sweep data. The `D2`, `h2`, `superset2` and
+   `log1p_Dp2_raw` fields will be NaN in the window. Under `token0` they are never used.
+2. **Raw-`h` IQR item.** The section 8 table still shows round 10's "within-market IQR of `h` >= 0.1". The R1 response
+   (14.1 item 4; spec commit `708949c3` removed `iqr_min` 0.1 and added `resid_iqr_min` 0.05, before any census) implemented
+   the residual-IQR gate in its place. CH computes only the residual version, and that is the gate applied above. The
+   reviewer should confirm this reading of "new gate" (replacement, not addition). The raw-`h` IQR was not computed, so it
+   cannot be evaluated from `CQCH.json`.
+
+### 17.4 Series concentration (descriptive; 14.2 answer 9 family rule, cap 0.40)
+- E020 (common-support population): top series family share **0.059**. Below 0.40, so `exclude_family` would be `""`
+  (moot, dropped).
+- E022 (covered population): top series family share **0.024**. Below 0.40, so `e022.exclude_family = ""`.
+- E021: no family rule. CF prints no family share; sports share 0.360.
+
+### 17.5 Result and values fixed into the spec
+- **`k_tests` = ["E022"], Holm m = 1.** E020 and E021 are dropped before registration, uncounted (7.3). E023 and E024 were
+  dropped before any census (R2).
+- Filled in `live_tests4_v1.json` (DRAFT, before the code freeze and q0484, as 13.4 orders, following LT3's precedent
+  `38aa5694`): `k_tests`; `hollow.zh` centre 0.7250371409466936 and scale 0.31414282818425204; `hollow.h_cuts`
+  [0.7296332672950675, 0.9344107073259192]; `hollow.gap` 1.983187115889375; `hollow.depth_def` "token0";
+  `e022.perm_stratum` "block2"; `e022.exclude_family` "". These are the exact census floats. E020's and E021's census fields
+  stay null on purpose.
+- The spec is not in `CODE_FILES`, so no `code_sha256` changed. `SPEC_SHA256` and the `code_sha256` map are still unpinned.
+  The spec file's sha256 after the fill is `5f6e7080…`; it changes again at the pin, when the hashes and status are filled.
+- **Test consequence:** `test_analysis_refusals_and_nan_census_values` assumes a null `k_tests` in the DRAFT spec, so it
+  needs a test-only edit (`spec["k_tests"] = None` before its "null k_tests" refusal check), as LT3 made at its pin.
+
+## 18. Pre-freeze code changes (2026-10-21)
+
+After the censuses (section 17) only E022 survives, so the code was narrowed to `k_tests` before the pin, as LT3 did
+(`b48e1909`, `f9c9566c`). No threshold, alpha, seed, draw count, date, test definition or frozen-line format changed.
+
+- **`analyze()`** (`live_tests4_analysis.py`): reads a frame and fits only the tests in the spec's `k_tests` (null = all three,
+  development only). A test dropped at its census gets no estimate, no p-value and no counts, only the note "dropped before
+  registration at census (uncounted)". Holm runs over `k_tests` (m = 1 now); `trial_record` counts `len(holm.tests)`, which equals
+  `len(k_tests)`.
+- **Reader** (`live_tests4.py`, `enabled_kinds`): the design does not require every kind to be frozen, and LT3 switched off
+  kinds whose tests were not in k. Same rule here: move lines only if E020 is in `k_tests`, clock lines (and trade-sample
+  scanning) only if E021 is, hollow lines only if E022 is. A switched-off kind writes no frozen file and no outcome; series,
+  status and sweeps are unchanged, and the hollow line format is untouched (a test shows hollow, series, status and sweep files
+  are identical to a run with all kinds on). The pass log records `kinds_off`.
+- **Size check** (`size_check`, `SCENARIO_TESTS`, `scripts/run_live_tests4.py`): scenarios of dropped tests are not run. With
+  `k_tests = [E022]` the run covers the two continuous Freedman-Lane scenarios (continuous persistent; continuous with a control at
+  correlation 0.7). The four binary scenarios (iid, persistent, control corr 0.7, MA(2) overlapping target) belong to the binary
+  labels of E020 and E021 and are not run. Scenario seeds come from one generator, so the two retained scenarios draw different
+  random numbers than they would in a six-scenario run; the seed (20261107) is unchanged and no run has used it. Criterion
+  (rate <= 0.058 at 2,000 worlds) unchanged. q0484 draft notes and runtime estimate updated.
+- Tests added (synthetic): k-only analysis and counting rule, kind switching, size-check scenario selection. Existing collector
+  tests now set all three tests in `k_tests`.

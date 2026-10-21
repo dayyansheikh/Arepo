@@ -1299,3 +1299,28 @@ rules file against the code, not the note.
 **11.t disclosure (2026-10-19, coordinator, from the FREEZE_OK re-check).** Before 11.t the screen checked GTI (cadence)
 before population, so a GTI failure would have labelled the T tests "not testable (cadence)"; §11.t's "no label
 changed" is accurate only for this census (GTI never ran). p = 1 either way.
+
+## 12. CB13-R census results (q0281, done 2026-10-21 18:02Z; counts only)
+
+Source: `creative_batch13/census_R.json` on the host (`cb13-census-R-v1`; rules sha256 common `62e90149…`, R `91907024…`, as
+pinned). The file holds the gate inputs; it carries no gate label and no test result. The labels below are the pre-declared
+rules of §4 (GR, GRP) applied to those counts, in the order `screen_r` applies them (basis, frame, population, power).
+Nothing is counted by the census itself.
+
+| Gate | Rule | Observed | Result |
+|---|---|---|---|
+| GR basis | >= 95% of markets carry the Binance 1-minute high/low flags | 0.9153 (352 flag-fail of 4,158 parsed members) | fail (`pass_basis` false) |
+| GR frame | frame finds >= 98% of poly_markets barrier ids in window | 0.7817 (2,875 of 3,678) | fail (`pass_frame` false) |
+| GR population | >= 300 markets, >= 60 events, >= 30 ISO weeks, >= 30 components | 801 primary markets (545 with units), 58 events, 31 weeks, 58 components | fail on events (58 < 60); `pass_population` false |
+| GR parser | parser failures <= 10% | 0.0 | pass |
+| GRP power | `MDE_R1` <= 0.60 | 0.6583 (SD of beta* 0.1484, mean max-way SE 0.1732, 500 draws, simulated outcomes only) | fail (`pass` false) |
+
+Other counts (as reported): SCREEN event statuses kept 58, census_only 97, dropped key 113, overlap 46, flags 60; primary by
+asset BTC 7, ETH 6, SOL 25, XRP 20; directions reach 402, dip 399; eligible units 1,610 (decided 654, outside [0.03, 0.97]
+3,152, no price 132); key/overlap drops 159 with the reported drop share 1.16 (population label "population thinned by
+exclusions"); HOLDOUT counts only: 861 events, 17 primary events.
+
+**Consequence (per the design and `cb13_r.screen_r`).** Every one of GR basis, GR frame, GR population and GRP fails, so q0282
+will label R1 "not testable (basis)" (the first failing gate in code order), p = 1, counted, and R1-rep / R2 (q0283) are not
+triggered. The census does not change a floor, window or threshold, and the failed gates are not revisited. R1 was already
+the subject of a CB13-R count line dated 2026-10-19 (see the ledger entry of this date for how it is reconciled).

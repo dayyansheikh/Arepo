@@ -1,5 +1,5 @@
 {
- "id": "q0508_cb18_exclusion_keys",
+ "id": "q0591_cb18_exclusion_keys",
  "title": "CB18 exclusion keys (cpu, no network; DRAFT): CB16 q0380 key file (sha256 copied from its write-once manifest) + seal copies; drop counts by source for SCREEN_18/REP_18 (none expected)",
  "family": "creative_batch_18",
  "priority": 9,
@@ -15,7 +15,7 @@
   "network": "none"
  },
  "depends_on": [
-  "q0507_cb18_smoke"
+  "q0590_cb18_smoke"
  ],
  "argv": [
   "scripts/run_cb18.py",
@@ -34,6 +34,6 @@
  "outputs": [
   "data-dumps/research_lab/creative_batch18/keys.json"
  ],
- "next_action": "q0509",
- "notes": "DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md, design not yet reviewed). scripts/run_cb18.py DOES NOT EXIST YET (code needed, CREATIVE_BATCH_18.md section 6). Window job: promote only after parts common and S are committed (CB route RS-1), the code freeze record and an accepting code-against-design freeze check."
+ "next_action": "q0592",
+ "notes": "DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md, design not yet reviewed). scripts/run_cb18.py DOES NOT EXIST YET (code needed, CREATIVE_BATCH_18.md section 6). Window job: promote only after parts common and S are committed (CB route RS-1), the code freeze record and an accepting code-against-design freeze check. RENUMBERED 2026-10-21 ~19:40Z (autopilot): CB18 drafts q0507-q0516 -> q0590-q0599 (same order) because q0510-q0515 were already taken by signal-engine jobs; ids and depends_on only."
 }
