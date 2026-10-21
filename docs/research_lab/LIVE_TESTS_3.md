@@ -850,3 +850,23 @@ untestable gate is never reported as "not shown"; label only, no gate, p or verd
    pre-pin verification, host dry run (13.4), `code_sha256` map, `SPEC_SHA256`, ledger registration commit, then the cron
    install. `REGISTERED_UTC` per 1.1.
 
+
+### 13.15 Size-check ruling for the E015 pin (2026-10-21; `reviews/LT3_PREPIN_VERIFY_2026-10-21.md` finding 5)
+Written and committed **before** the q0474 result (`size_check_r2.json`) was read by anyone; no size-check output was opened.
+Design only. Supersedes the use of the overall `pass` field in 13.13 item 4 and item 7 for this pin.
+1. **Binding for the E015 pin:** `perm_iid`, `perm_persistent` and `perm_corr_control` (the Freedman-Lane gate on the
+   class-contrast world, the gate E015 uses). Spec `size_check.binding_for_pin` lists exactly these three.
+2. **The overall `pass` field is ignored** for this pin: it also includes the flow-world scenarios, which no test in
+   `k_tests = ["E015"]` uses.
+3. **Any `perm_*` failure** (rate above the limit 0.058) **blocks the pin, with no redesign** following from that run (as 13.13
+   item 7).
+4. **A `flowperm_*` failure does not block the E015 pin**, because k was fixed by the censuses (13.14) before any size result.
+   It is recorded in this section and the ledger, and it blocks any future use of the same gate for flow moderation
+   (E016/E018 or a successor) until that gate is redesigned and passes its own size check.
+5. **`donor_*` scenarios are reported only** (13.13), as before.
+6. **Re-run after the pre-pin fixes.** The pre-pin fixes (findings 1 and 2) change both module hashes, so the size check is
+   re-run on the fixed code (draft `q0475_lt3_size_check_r3`). `size_check()` and everything it calls (`sim_flow_world`,
+   `sim_move_world`, `perm_gate`, `donor_gate`, `donor_plan`, `donor_indices`, `demean`, `_partial`, `fast_beta`,
+   `fast_score`) stay byte-identical, with the same spec seed, worlds and draws, so the re-run must reproduce q0474's
+   `perm_*` rates **exactly**. Any difference means investigate (environment, library versions, code), never re-roll or
+   reseed. The re-run's result, on the code to be pinned, is the registered size statement.
