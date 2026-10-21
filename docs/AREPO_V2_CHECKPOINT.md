@@ -265,9 +265,9 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
    - **This session also:** CB18 census code merged and checked (q0500-q0506 queued; restores raised to 1,200 MB after a gh
      crash); q0280 done -> CB13 seal copy committed, q0281 promoted; q0347, q0380 (1,200 MB after MemoryError) promoted;
      embargo requests applied by the signal engine (26f5f954).
-   - **E026 copy-skilled:** another session is committing on feat/copy-skilled (c4f3549b, 09:56 +0100). Do not duplicate.
-     Its census draft **q0544 must START before 2026-10-22T02:45Z** (10-18/19 samples retire 03:30Z). If nobody has
-     promoted it by ~18:00Z, merge feat/copy-skilled and promote q0544.
+   - **E026 copy-skilled:** merged (579f25d0); census code checked -> FIXES_OK_WITH_NOTES; **q0544 census queued** (must
+     START before 2026-10-22T02:45Z). Owner note "design done" sent 10:15Z. Next: commit census.json, fill CENSUS-GATED values,
+     challenger review (+ the c4f3549b labeller end-date skip, §6), freeze q0540, pins, registration before 10-24T00:00Z.
    - **Copy-skilled (E026):** owner phone notes at design done / review verdict / registration / collection start / weekly
      counts / result (`scripts/arepo_notify.py send --type milestone`).
    - **LT2 (E012-E014) REGISTERED:** q0460 running (repeat); q0461 after 11-13T12Z. No interim looks.
