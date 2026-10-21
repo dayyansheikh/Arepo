@@ -57,6 +57,21 @@
       "prefix": "data-dumps/research_lab/stream_gamma_rules/",
       "older_than_days": 14,
       "why": "PROPOSED (NEW_STREAMS_2026-10-19.md): day files are complete once the UTC day ends; keep 14 days on the host for quick reads, older files only in verified releases. state.json/du_state.json/stream.lock are never archived and never deleted. Activate by moving to rules after the first verified releases contain these dirs."
+    },
+    {
+      "prefix": "data-dumps/research_lab/signal_engine/predictions/",
+      "older_than_days": 35,
+      "why": "PROPOSED (signal_engine/DESIGN_V1.md section 8): write-once prediction files; the scorer reads 28 days (+2 days of label lag); older ones only in verified releases. meta/, models/, leaderboard/, dev/, champion/, logs/ and state/ are never deleted (no rule). Activate by moving to rules after the first verified releases contain these files."
+    },
+    {
+      "prefix": "data-dumps/research_lab/signal_engine/features/",
+      "older_than_days": 45,
+      "why": "PROPOSED (signal_engine/DESIGN_V1.md section 8): rolling training windows read <= 28 days (resolution) and the scorer 28 days; 45 keeps a margin. meta/, models/, leaderboard/, dev/, champion/, logs/ and state/ are never deleted (no rule). Activate by moving to rules after the first verified releases contain these files."
+    },
+    {
+      "prefix": "data-dumps/research_lab/signal_engine/quotes/",
+      "older_than_days": 45,
+      "why": "PROPOSED (signal_engine/DESIGN_V1.md section 8): labels and look-backs of the last 28 days + 24 h horizons; 45 keeps a margin. meta/, models/, leaderboard/, dev/, champion/, logs/ and state/ are never deleted (no rule). Activate by moving to rules after the first verified releases contain these files."
     }
   ]
 }

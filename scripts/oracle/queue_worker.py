@@ -73,6 +73,11 @@ def in_blackout(at: datetime | None = None) -> bool:
     at = at or datetime.now(timezone.utc)
     m = at.hour * 60 + at.minute
     return BLACKOUT_UTC_MIN[0] <= m < BLACKOUT_UTC_MIN[1]
+
+
+def blackout_blocked(spec: dict) -> bool:
+    """True if the start blackout applies to this job (mem_mb at or above the exemption threshold)."""
+    return int(spec.get("resources", {}).get("mem_mb", 2048)) >= BLACKOUT_EXEMPT_MB
 BACKOFF_S = (300, 1800, 7200)
 # Lanes: at most one running job per lane. "cpu" (default) is compute-bound; "net" is for network/IO-bound
 # jobs (e.g. range-reading a remote archive at ~25% CPU) that can share the single OCPU with one cpu job.
@@ -396,13 +401,16 @@ def tick() -> int:
                     parts.append(f"draining for exclusive {top[0][0]['id']}")
                 else:
                     cands = [top[0]]
+            if cands and in_blackout() and blackout_blocked(cands[0][0]):
+                # A job held by the blackout must not block a lower-priority exempt job (e.g. the LT2 live collector,
+                # whose daily 02:31 freeze would otherwise be late); the held job still starts first after 05:30.
+                parts.append(f"waiting: start blackout 02:45-05:30 UTC ({cands[0][0]['id']})")
+                cands = [c for c in cands if not blackout_blocked(c[0])]
             if cands:
                 spec, st = cands[0]
                 mem_mb = int(spec.get("resources", {}).get("mem_mb", 2048))
                 need = mem_mb + MEM_RESERVE_MB
-                if in_blackout() and mem_mb >= BLACKOUT_EXEMPT_MB:
-                    parts.append(f"waiting: start blackout 02:45-05:30 UTC ({spec['id']})")
-                elif mem_available_mb() < need:
+                if mem_available_mb() < need:
                     parts.append(f"waiting: {spec['id']} needs {need} MB available")
                 else:
                     start(spec, st)

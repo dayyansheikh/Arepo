@@ -127,6 +127,38 @@ def build_queue(repo: Path, now: datetime) -> dict | None:
             "counts": counts, "running": running, "recent": recent[-25:], "upcoming": upcoming}
 
 
+ACTIVITY_WINDOW_H = 48
+
+
+def build_queue_activity(repo: Path, now: datetime, window_h: int = ACTIVITY_WINDOW_H) -> dict | None:
+    """Compact 48 h tally of queue attempts for the Claude activity board. The individual events are NOT repeated here:
+    the board reuses `queue.recent` (latest finished jobs) and `queue.running` for the event feed."""
+    path = repo / "run" / "queue" / "attempts.jsonl"
+    if not path.exists():
+        return None
+    since = iso(now - timedelta(hours=window_h))
+    outcomes: Counter = Counter()
+    jobs: set = set()
+    runtime = 0.0
+    first = last = None
+    for line in tail_lines(path, 5000, chunk=2 * 1024 * 1024):
+        try:
+            a = json.loads(line)
+        except ValueError:
+            continue
+        at = a.get("at") if isinstance(a, dict) else None
+        if not isinstance(at, str) or at < since:
+            continue
+        outcomes[str(a.get("outcome"))] += 1
+        jobs.add(a.get("id"))
+        if isinstance(a.get("runtime_s"), (int, float)):
+            runtime += a["runtime_s"]
+        first = at if first is None or at < first else first
+        last = at if last is None or at > last else last
+    return {"window_h": window_h, "since": since, "attempts": sum(outcomes.values()), "outcomes": dict(outcomes),
+            "distinct_jobs": len(jobs), "runtime_h": round(runtime / 3600, 1), "first_at": first, "last_at": last}
+
+
 # ---------------------------------------------------------------- infra
 def read_meminfo() -> tuple[int | None, int | None]:
     try:
@@ -383,6 +415,45 @@ def build_funnel(registry: dict, hyp: int | None, designed: int | None) -> list[
     return out
 
 
+# ---------------------------------------------------------------- signal engine
+SE_MAX_BYTES = 200_000
+
+
+def _parse_utc(v) -> datetime | None:
+    try:
+        return datetime.fromisoformat(str(v).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return None
+
+
+def build_signal_engine(repo: Path, now: datetime) -> dict | None:
+    """The engine's compact dashboard (written by `run_signal_engine.py score`), re-checked here: any model under an
+    active embargo keeps only its id and `embargoed_until` (no numbers), whatever the file says."""
+    d = read_json(repo / "data-dumps" / "research_lab" / "signal_engine" / "dashboard.json")
+    if not isinstance(d, dict) or d.get("schema") != "se-dash-v1":
+        return None
+    emb = {m.get("model_id"): m.get("embargoed_until") for m in d.get("models") or [] if isinstance(m, dict)}
+
+    def embargoed(row: dict):
+        until = row.get("embargoed_until") or emb.get(row.get("model_id"))
+        t = _parse_utc(until) if until else None
+        return until if t is not None and t > now else None
+
+    for block in ("prospective", "development"):
+        b = d.get(block)
+        if isinstance(b, dict) and isinstance(b.get("rows"), list):
+            b["rows"] = [{"model_id": r.get("model_id"), "embargoed_until": embargoed(r)} if embargoed(r) else r
+                         for r in b["rows"] if isinstance(r, dict)]
+    if isinstance(d.get("family_gains"), list):
+        d["family_gains"] = [g for g in d["family_gains"] if isinstance(g, dict) and not embargoed(g)]
+    gen = _parse_utc(d.get("generated_at"))
+    d["stale"] = gen is None or (now - gen) > timedelta(days=2)
+    if len(json.dumps(d, separators=(",", ":"))) > SE_MAX_BYTES:
+        d["family_gains"] = (d.get("family_gains") or [])[-60:]
+        d.pop("development", None)
+    return d
+
+
 def build_snapshot(repo: Path, registry_path: Path, logs: Path, state_dir: Path, now: datetime, write: bool) -> dict:
     errors: list[str] = []
     cache = read_json(state_dir / "cache.json") or {}
@@ -397,6 +468,12 @@ def build_snapshot(repo: Path, registry_path: Path, logs: Path, state_dir: Path,
         errors.append(f"queue: {type(exc).__name__}")
     if queue is not None:
         snap["queue"] = queue
+    try:
+        qa = build_queue_activity(repo, now)
+        if qa is not None:
+            snap["activity"] = {"queue": qa}
+    except Exception as exc:  # noqa: BLE001
+        errors.append(f"activity: {type(exc).__name__}")
     try:
         snap["infra"] = build_infra(repo, logs, state_dir, cache, now, write)
     except Exception as exc:  # noqa: BLE001
@@ -426,6 +503,12 @@ def build_snapshot(repo: Path, registry_path: Path, logs: Path, state_dir: Path,
         if registry.get("ml"):
             snap["ml"] = registry["ml"]
         snap["registry_updated"] = registry.get("updated")
+    try:
+        se = build_signal_engine(repo, now)
+        if se is not None:
+            snap["signal_engine"] = se
+    except Exception as exc:  # noqa: BLE001
+        errors.append(f"signal_engine: {type(exc).__name__}")
     exps = snap.get("experiments") or []
     done = ((queue or {}).get("counts") or {}).get("done")
     head = {"confirmed_edges": sum(1 for e in exps if e.get("stage") == "confirmed"),
@@ -445,7 +528,7 @@ def build_snapshot(repo: Path, registry_path: Path, logs: Path, state_dir: Path,
 
 def fit_size(snap: dict) -> dict:
     """Keep the payload under the API limit by dropping the bulkiest optional series first."""
-    for key in ("history", "tests_over_time", "recent"):
+    for key in ("history", "tests_over_time", "recent", "signal_engine"):
         if len(json.dumps(snap, separators=(",", ":"))) <= MAX_BYTES:
             break
         if key == "history" and "infra" in snap:
@@ -454,6 +537,9 @@ def fit_size(snap: dict) -> dict:
             snap.pop("tests_over_time", None)
         elif key == "recent" and "queue" in snap:
             snap["queue"]["recent"] = snap["queue"]["recent"][-5:]
+        elif key == "signal_engine" and "signal_engine" in snap:
+            snap["signal_engine"].pop("family_gains", None)
+            snap["signal_engine"].pop("development", None)
     return snap
 
 

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 from pathlib import Path
 
 _P = Path(__file__).resolve().parents[3] / "scripts" / "oracle" / "queue_worker.py"
@@ -64,3 +65,42 @@ def test_spec_not_before_blocks_start_until_then():
 def test_exclusive_flag():
     assert qw.exclusive({"resources": {"exclusive": True}})
     assert not qw.exclusive({"resources": {}})
+
+
+def _tick_env(tmp_path, monkeypatch, specs):
+    home = tmp_path / "home"
+    (home / "backend/scripts").mkdir(parents=True)
+    (home / "backend/scripts/x.py").write_text("")
+    jobs, qroot = tmp_path / "jobs", tmp_path / "run"
+    jobs.mkdir()
+    for s in specs:
+        (jobs / f"{s['id']}.json").write_text(json.dumps(s))
+    for k, v in {"HOME": home, "JOBS": jobs, "QROOT": qroot, "STATE": qroot / "state", "LOGS": qroot / "logs"}.items():
+        monkeypatch.setattr(qw, k, v)
+    for d in (qroot / "state", qroot / "logs"):
+        d.mkdir(parents=True)
+    started = []
+    monkeypatch.setattr(qw, "in_blackout", lambda at=None: True)
+    monkeypatch.setattr(qw, "mem_available_mb", lambda: 5000)
+    monkeypatch.setattr(qw, "collector_busy", lambda: False)
+    monkeypatch.setattr(qw, "start", lambda spec, st: started.append(spec["id"]))
+    return started
+
+
+def _job(jid, priority, mem_mb, lane="net"):
+    return {"id": jid, "argv": ["scripts/x.py"], "timeout_s": 60, "max_retries": 1, "priority": priority,
+            "depends_on": [], "resources": {"mem_mb": mem_mb, "lane": lane}}
+
+
+def test_blackout_held_job_does_not_block_lower_priority_exempt_job(tmp_path, monkeypatch):
+    started = _tick_env(tmp_path, monkeypatch, [_job("a_big", 40, 2000), _job("b_small", 30, 480)])
+    qw.tick()
+    assert started == ["b_small"]
+    note = json.loads((qw.QROOT / "status.json").read_text())["note"]
+    assert "waiting: start blackout" in note and "a_big" in note and "started b_small" in note
+
+
+def test_blackout_holds_non_exempt_jobs(tmp_path, monkeypatch):
+    started = _tick_env(tmp_path, monkeypatch, [_job("a_big", 40, 2000), _job("c_big", 10, 900)])
+    qw.tick()
+    assert started == []

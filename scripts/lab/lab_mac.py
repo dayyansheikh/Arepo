@@ -1,7 +1,9 @@
 # ruff: noqa: E501
 """Arepo Lab client for the Mac (autopilot status), run every 10 min by launchd (scripts/lab/com.arepo.lab-mac.plist).
 
-Builds the `arepo-lab-v1` mac snapshot from ~/.arepo/autopilot/{state.json,PAUSE,runs.jsonl}, POSTs it (signed), then
+Builds the `arepo-lab-v1` mac snapshot from ~/.arepo/autopilot/{state.json,PAUSE,runs.jsonl} plus the Claude activity
+board section (`activity`: every autopilot instance's recent sessions and summaries, sanitised, and the research repo's
+latest commits; see lab_activity.py), POSTs it (signed), then
 GETs pending commands and executes ONLY the whitelist: autopilot pause / autopilot resume
 (`scripts/autopilot/autopilot.py pause|resume`). Flags: --dry-run (print JSON, no network), --no-commands.
 Never crashes its caller: one JSON log line per run.
@@ -18,6 +20,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import lab_activity  # noqa: E402
 import lab_sign  # noqa: E402
 
 SCHEMA = "arepo-lab-v1"
@@ -43,7 +46,7 @@ def pid_alive(pid) -> bool:
         return False
 
 
-def build_snapshot(ap_home: Path, now: datetime) -> dict:
+def build_snapshot(ap_home: Path, now: datetime, repo: Path | None = None, with_activity: bool = True) -> dict:
     try:
         st = json.loads((ap_home / "state.json").read_text())
     except (OSError, ValueError):
@@ -75,7 +78,13 @@ def build_snapshot(ap_home: Path, now: datetime) -> dict:
           "started_at": st.get("started_at") if alive else None, "last_outcome": st.get("last_outcome"),
           "last_finished_at": st.get("last_finished_at"), "next_allowed": next_allowed,
           "recent": recent[-RECENT_N:]}
-    return {"schema": SCHEMA, "source": "mac", "generated_at": iso(now), "autopilot": ap}
+    snap = {"schema": SCHEMA, "source": "mac", "generated_at": iso(now), "autopilot": ap}
+    if with_activity:
+        try:
+            snap["activity"] = lab_activity.build_activity(ap_home, now, repo=repo)
+        except Exception as exc:  # noqa: BLE001 - the status block must still be sent
+            snap["activity"] = {"error": type(exc).__name__}
+    return snap
 
 
 def run_whitelisted(cmd: dict) -> tuple[bool, str]:
@@ -121,11 +130,14 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--no-commands", action="store_true")
     ap.add_argument("--autopilot-home", default=str(AP_HOME))
+    ap.add_argument("--research-repo", default=os.environ.get("AREPO_RESEARCH_REPO", str(REPO)),
+                    help="repo whose latest commits feed the activity board (read-only git log)")
     args = ap.parse_args(argv)
     home = Path(args.autopilot_home)
+    research = Path(args.research_repo)
     log: dict = {"at": iso(utcnow()), "source": "mac", "dry_run": args.dry_run}
     try:
-        snap = build_snapshot(home, utcnow())
+        snap = build_snapshot(home, utcnow(), repo=research)
         payload = json.dumps(snap, separators=(",", ":"), sort_keys=True).encode("utf-8")
         log["snapshot_bytes"] = len(payload)
         if args.dry_run:
@@ -137,7 +149,7 @@ def main(argv: list[str] | None = None) -> int:
         if status not in (200, 204):
             log["snapshot_error"] = str(resp)[:200]
         if not args.no_commands and handle_commands(key, log):
-            body = json.dumps(build_snapshot(home, utcnow()), separators=(",", ":"), sort_keys=True).encode("utf-8")
+            body = json.dumps(build_snapshot(home, utcnow(), repo=research), separators=(",", ":"), sort_keys=True).encode("utf-8")
             log["resnapshot_status"], _ = lab_sign.request("POST", "/api/lab/agent/snapshot", "mac", key, body)
     except Exception as exc:  # noqa: BLE001
         log["error"] = f"{type(exc).__name__}: {exc}"[:300]

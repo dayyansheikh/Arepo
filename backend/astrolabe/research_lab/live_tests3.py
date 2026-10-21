@@ -1467,6 +1467,7 @@ def census_flow(*, seal: Path, sample_roots: list[Path], snapshot_root: Path = S
     h_int = np.isfinite(Hv) & (Hv > 0) & (Hv < 1)
     zz = np.isfinite(Wv) & np.isfinite(Hv)
     corr = float(np.corrcoef(Wv[zz], Hv[zz])[0, 1]) if zz.sum() > 2 else float("nan")
+    r2_w, r2_h = within_market_r2(cov, "zW"), within_market_r2(cov, "zH")  # donor ruling 2026-10-20 (c): reported, not a gate
     n_days = len({str(s)[:8] for s in sl["samples"]})
     scale21 = 21.0 / max(n_days, 1)
     ag = {k: (v[0] / v[1] if v[1] else None) for k, v in agree.items()}
@@ -1483,7 +1484,7 @@ def census_flow(*, seal: Path, sample_roots: list[Path], snapshot_root: Path = S
            "trunc6": {"rows": len(trunc), "truncated": int(trunc["trunc6"].sum()), "share": float(trunc["trunc6"].mean()) if len(trunc) else None},
            "vol24_cap": vstar, "covered_units": len(cov), "covered_units_21d": float(len(cov) * scale21),
            "W_interior_units_21d": float(w_int.sum() * scale21), "H_interior_share": float(h_int.mean()) if len(cov) else None,
-           "corr_W_H": corr, "scales": scales, "events": int(cov["event_id"].nunique())}
+           "corr_W_H": corr, "r2_x6zW_on_controlled": r2_w, "r2_x6zH_on_controlled": r2_h, "scales": scales, "events": int(cov["event_id"].nunique())}
     n_min = int(g6["agreement_min_rows"])
     ag_ok = agree["walked"][1] >= n_min and agree["on_grid"][1] >= n_min  # fail closed below 500 rows per arm (freeze ruling 3)
     res["agreement"]["min_rows_per_arm"], res["agreement"]["enough_rows"] = n_min, bool(ag_ok)
@@ -1494,10 +1495,40 @@ def census_flow(*, seal: Path, sample_roots: list[Path], snapshot_root: Path = S
                         "agreement_gap": bool(ag_ok and gap is not None and gap <= g6["agreement_gap_max"])}
     res["gate_E016"]["pass"] = all(res["gate_E016"].values())
     res["gate_E018"] = {"H_interior": bool(res["H_interior_share"] is not None and res["H_interior_share"] >= g8["H_interior_share_min"]),
-                        "corr": bool(np.isfinite(corr) and corr <= g8["corr_zW_zH_max"]),
+                        "corr": bool(np.isfinite(corr) and abs(corr) <= g8["corr_zW_zH_max"]),
                         "agreement_gap": bool(ag_ok and gap is not None and gap <= g8["agreement_gap_max"])}
     res["gate_E018"]["pass"] = all(res["gate_E018"].values())
     return res
+
+
+def within_market_r2(cov: pd.DataFrame, mod: str) -> float | None:
+    """Within-market R^2 of the tested interaction ``x6 * mod`` on the interactions (with main effects) and ``x6`` that
+    the E016 / E018 model controls for (x6*zN, zN, x6*zSPR, zSPR, x6*zSize, zSize, x6*zHTE, zHTE, x6*zRV, zRV, x6): all
+    variables demeaned by market first (donor ruling 2026-10-20, c). None if fewer than 20 finite rows.
+
+    Disclosure (section 13.13, reported only): this demeans by the FULL-sample market mean, whereas the model uses
+    expanding-past demeaning; and it runs on the census sample, not on the gate sample. It is a descriptive collinearity
+    figure, not a gate input."""
+    d = cov.reset_index(drop=True)
+    x6 = d["x6"].to_numpy(float)
+    ctl = {"x6": x6}
+    for z in ("zN", "zSPR", "zSize", "zHTE", "zRV"):
+        zv = d[z].to_numpy(float)
+        ctl[z], ctl[f"x6*{z}"] = zv, x6 * zv
+    cols = pd.DataFrame({**ctl, "_y": x6 * d[mod].to_numpy(float)})
+    cols = cols[np.all(np.isfinite(cols.to_numpy()), axis=1)]
+    if len(cols) < 20:
+        return None
+    mk = d.loc[cols.index, "market_id"].to_numpy()
+    c = cols - cols.groupby(mk).transform("mean")
+    y = c.pop("_y").to_numpy(float)
+    tss = float(y @ y)
+    if tss <= 1e-18:
+        return None
+    X = c.to_numpy(float)
+    b, *_ = np.linalg.lstsq(X, y, rcond=None)
+    r = y - X @ b
+    return float(1.0 - (r @ r) / tss)
 
 
 def vol24_cap_rule(trunc: pd.DataFrame, max_share: float) -> float:

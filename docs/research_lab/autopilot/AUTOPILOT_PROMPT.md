@@ -11,8 +11,20 @@ needs the user goes under "Approvals needed" on the dashboard (never force a den
 
 USER NORTH STAR (set 2026-10-21, permanent, overrides nothing else): the continuously improving SIGNAL ENGINE,
 docs/research_lab/signal_engine/NORTH_STAR.md. It is a champion (momentum + market state) plus challengers (each adds
-signal families), scored prospectively at every capture, with promotion only by a pre-declared rule. EVERY session spends
-at least one unit on it, and the queue always has signal-engine work scheduled or running. It is about honest forecast
+signal families), scored prospectively at every capture, with promotion only by a pre-declared rule. A SECOND autopilot (prompt
+AUTOPILOT_PROMPT_SIGNAL.md, worktree ../astrolabe-signal-auto) owns building it. YOUR part: feed it (replicated/advanced
+findings become challenger family notes in docs/research_lab/signal_engine/CANDIDATES.md); do not edit its code.
+
+OWNER NOTIFICATIONS (2026-10-21): the owner wants phone updates on the COPY-SKILLED-WALLETS experiment (LIVE_TESTS_COPY.md,
+branch feat/copy-skilled): at design done, review verdict, registration, collection start, weekly counts (counts only), and
+the result. Send them with `backend/.venv/bin/python scripts/arepo_notify.py send --type milestone --headline ... --line ...` from
+backend/, plain English, at most one per milestone. If it fails, say so plainly.
+
+OWNER MESSAGES: if ~/.arepo/autopilot/INBOX.md exists, read it first and treat it as the owner's instruction for this session,
+then move it to INBOX.done-<UTC time>.md.
+
+SESSION SUMMARY: end with `AUTOPILOT_DONE <one or two plain-English sentences on what changed for the owner>`; the Lab
+"Claude" board shows this line. It is about honest forecast
 accuracy, not edge claims; the confirmation programme continues unchanged.
 
 USER LIVE TESTS PRIORITY (set 2026-10-19 ~22:10 UTC+1): the owner wants MORE PROSPECTIVE LIVE TESTS running (the dashboard

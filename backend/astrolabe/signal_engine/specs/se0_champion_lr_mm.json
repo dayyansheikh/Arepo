@@ -1,0 +1,36 @@
+{
+ "broad": false,
+ "derived": [
+  "base"
+ ],
+ "description": "Champion v0: regularised logistic regression on market state + momentum (prices, spread, liquidity, volume, time to end, staleness, age, tick, neg-risk, own 24 h volatility, Gamma 1h/1d/1w changes, own 2h/6h/24h changes, category).",
+ "families": [
+  "market_state",
+  "momentum"
+ ],
+ "features_version": "se-features-v1",
+ "isolates": [],
+ "learner": "logreg",
+ "model_id": "se0_champion_lr_mm",
+ "params": {
+  "C": 1.0,
+  "max_iter": 300,
+  "tol": 0.0001
+ },
+ "targets": [
+  "dir_2h",
+  "dir_6h",
+  "dir_24h",
+  "res_7d"
+ ],
+ "train": {
+  "max_rows": 400000,
+  "min_days": 2,
+  "min_rows": 5000,
+  "refit": "daily",
+  "require_sources": [],
+  "res_window_days": 28,
+  "window_days": 14
+ },
+ "version": 1
+}

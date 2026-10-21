@@ -6,7 +6,9 @@
  "registered_utc": "2026-10-24T00:00:00Z",
  "end_utc": "2026-11-14T00:00:00Z",
  "analysis_not_before": "2026-11-15T12:00:00Z",
- "k_tests": null,
+ "k_tests": [
+  "E015"
+ ],
  "k_tests_rule": "list of the primaries that survived their census gates (section 13.6), fixed before the pin; Holm m = len(k_tests); null = not filled (a pinned spec with null k_tests is refused)",
  "code_sha256": {"live_tests3.py": null, "live_tests3_analysis.py": null},
  "grid": {"grid0_utc": "2026-10-01T00:31:00Z", "grid_s": 7200, "slot_tol_s": 1800},
@@ -72,7 +74,7 @@
  "seeds": {"E015": 20261024, "E015_gate": 20261124, "E016": 20261025, "E016_gate": 20261125, "E017": 20261026,
            "E018": 20261027, "E018_gate": 20261127, "E019": 20261028, "E019_gate": 20261128},
  "size_check": {"worlds": 2000, "draws": 200, "seed": 20261020, "nominal": 0.05,
-                "rule": "rejection rate of each gate under each simulated null must not exceed 0.05 + 1.645 * sqrt(0.05 * 0.95 / worlds) (not significantly above 5%); run on the code to be pinned, result recorded in section 13 and the spec before the pin"},
+                "rule": "rejection rate of each BINDING gate (Freedman-Lane permutation, incl. the flow-world scenarios; the distant-donor scenarios are reported only, LT3 13.13) under each simulated null must not exceed 0.05 + 1.645 * sqrt(0.05 * 0.95 / worlds) (not significantly above 5%); run on the code to be pinned, result recorded in section 13 and the spec before the pin"},
  "gates": {"draws": 200, "alpha": 0.05, "perm_min_stratum": 4, "donor_min_units": 4, "donor_min_sep_s": 43200, "donor_min_donors": 2},
  "labels": {"fraction": 0.5, "attrition_pp": 0.02, "late_loss_share": 0.02, "series_concentration": 0.5},
  "census_gates": {

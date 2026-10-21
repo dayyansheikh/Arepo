@@ -376,8 +376,14 @@ def test_analysis_refusals(tmp_path):
     with pytest.raises(RuntimeError):
         la.code_check(spec)  # code hashes not pinned
     spec["code_sha256"] = lt.code_hashes()
+    spec["k_tests"] = None
     with pytest.raises(RuntimeError):
         la.code_check(spec)  # null k_tests
+    spec["k_tests"], spec["flow"]["vol24_cap"] = ["E015", "E016"], None
+    with pytest.raises(RuntimeError):
+        la.code_check(spec)  # E016 kept but flow census values unfilled
+    spec["k_tests"] = ["E015"]
+    assert la.code_check(spec)["label"] is None  # E015 alone needs no census values (13.14)
 
 
 def test_ops_stats_reads_no_price_column(tmp_path, monkeypatch):
@@ -560,7 +566,13 @@ def test_census_c4_gate_includes_cluster_floor(tmp_path):
 def test_size_check_small_runs_and_planted_effects_pass():
     sc = la.size_check(worlds=6, draws=19, seed=3)
     assert set(sc["scenarios"]) == {"donor_iid", "donor_ar0.6", "donor_lifecycle", "perm_iid", "perm_persistent",
-                                  "donor_corr_control", "perm_corr_control"}
+                                  "donor_corr_control", "perm_corr_control",
+                                  "donor_collinear_control_0.5", "donor_collinear_control_0.7",
+                                  "flowperm_iid", "flowperm_ar0.6", "flowperm_collinear_0.7"}
+    binding = {n for n, v in sc["scenarios"].items() if v["binding"]}
+    assert binding == {"perm_iid", "perm_persistent", "perm_corr_control", "flowperm_iid", "flowperm_ar0.6", "flowperm_collinear_0.7"}
+    assert all(not v["binding"] for n, v in sc["scenarios"].items() if n.startswith("donor_"))
+    assert sc["pass"] == all(sc["scenarios"][n]["ok"] for n in binding)
     assert all(0.0 <= v["rate"] <= 1.0 for v in sc["scenarios"].values()) and sc["limit"] > 0.05
     rng = np.random.default_rng(7)
     df, y, others = la.sim_flow_world(rng, effect=0.004)
@@ -653,3 +665,123 @@ def test_c3_c4_planning_mde_gates():
     a4 = spec["census_gates"]["C4_E019"]["mde_assumptions"]
     m4 = a4["t_sum"] * a4["sd_c"] / np.sqrt(3000) * a4["within"] * np.sqrt(a4["deff_series"]) * a4["day_factor"]
     assert m4 > 0.005
+
+
+def test_donor_statistic_is_studentised_score_invariant_to_x_scale():
+    rng = np.random.default_rng(5)
+    Z = rng.normal(size=(200, 2))
+    x = Z[:, 0] + rng.normal(size=200)
+    y = 0.3 * x + rng.normal(size=200)
+    yt = la._partial(Z, y)
+    s1, s2 = la.fast_score(x, Z, yt), la.fast_score(10.0 * x, Z, yt)
+    assert np.isclose(s1, s2) and abs(la.fast_beta(10.0 * x, Z, yt) - la.fast_beta(x, Z, yt)) > 1e-6
+    xt = la._partial(Z, x)
+    assert np.isclose(s1, xt @ yt / np.sqrt(xt @ xt))
+
+
+def test_donor_gate_invariant_to_moderator_scale():
+    rng = np.random.default_rng(9)
+    df, y, others = la.sim_flow_world(rng, n_mkt=12, n_t=20)
+    a = la.donor_gate(df, y, "x6", "zM", others, sign=+1, draws=19, seed=2, min_units=4, min_sep_s=43200.0, min_donors=2)
+    d2 = df.copy()
+    d2["zM"] = 7.0 * d2["zM"]
+    b = la.donor_gate(d2, y, "x6", "zM", others, sign=+1, draws=19, seed=2, min_units=4, min_sep_s=43200.0, min_donors=2)
+    assert a["p_perm"] == b["p_perm"]
+
+
+def test_collinear_control_world_has_controlled_interaction_and_runs():
+    rng = np.random.default_rng(4)
+    df, y, others = la.sim_flow_world(rng, n_mkt=12, n_t=20, collinear=0.7, za_effect=0.004)
+    assert "x6*zA" in others and "zA" in others and {"x6*zA", "zA"} <= set(df.columns)
+    assert 0.5 < np.corrcoef(df["zM"], df["zA"])[0, 1] < 0.85
+    g = la.donor_gate(df, y, "x6", "zM", others, sign=+1, draws=19, seed=1, min_units=4, min_sep_s=43200.0, min_donors=2)
+    assert g["testable"]
+
+
+def test_within_market_r2_and_abs_corr_helper():
+    rng = np.random.default_rng(2)
+    n = 400
+    d = pd.DataFrame({"market_id": [f"m{i // 20}" for i in range(n)], "x6": rng.normal(size=n)})
+    for z in ("zN", "zSPR", "zSize", "zHTE", "zRV", "zW"):
+        d[z] = rng.normal(size=n)
+    assert lt.within_market_r2(d, "zW") < 0.1
+    d["zW"] = d["zN"]  # x6*zW exactly a controlled interaction
+    assert lt.within_market_r2(d, "zW") > 0.999
+    assert lt.within_market_r2(d.head(5), "zW") is None
+
+
+def test_flow_gate_is_freedman_lane_and_donor_gate_is_non_binding(tmp_path, monkeypatch):
+    spec = _spec(tmp_path, k_tests=["E015", "E016", "E017", "E018", "E019"])
+    spec["gates"]["draws"] = 5
+    w = _world(tmp_path, 0, 40)
+    root = tmp_path / "r"
+    for k in range(14, 41):
+        _run(w, root, spec, 14, 26, _t(k, 40))
+    _run(w, root, spec, 14, 26, _t(44, 0))
+    kw = dict(start_utc=_iso(G0 + timedelta(hours=28, minutes=-31)), end_utc=_iso(G0 + timedelta(hours=52, minutes=-31)),
+              spec=spec, roles=(lt.ROLE_UNREG,), force=True)
+    terms = []
+    real_perm = la.perm_gate
+
+    def spy(df, y, term, *a, **k):
+        terms.append(term)
+        return real_perm(df, y, term, *a, **k)
+
+    monkeypatch.setattr(la, "perm_gate", spy)
+    out = {}
+    for flag in (True, False):
+        monkeypatch.setattr(la, "donor_gate", lambda *a, _f=flag, **k: {"testable": True, "passes": _f, "draws": 5})
+        out[flag] = la.analyze(root, **kw)
+    assert "x6*zW" in terms and "x6*zH" in terms  # E016 / E018 use the permutation gate
+    for t in ("E016", "E018"):
+        a, b = out[True][t], out[False][t]
+        assert a["gate"] == b["gate"] and "donor_gate_reported" in a
+        assert a["holm_p"] == b["holm_p"] and out[True]["holm"]["p_raw"][t] == out[False]["holm"]["p_raw"][t]
+        va, vb = dict(a["verdict"]), dict(b["verdict"])
+        assert a["donor_gate_reported"]["passes"] and not b["donor_gate_reported"]["passes"]
+        if "labels" in va:  # labels are not attached to Unavailable verdicts
+            assert "within-unit timing shown" in va["labels"] and "within-unit timing not shown" in vb["labels"]
+        assert va["verdict"].split(";")[0] == vb["verdict"].split(";")[0] and va.get("p_for_holm") == vb.get("p_for_holm")
+
+
+def test_skipped_draws_fail_closed_in_both_gates(monkeypatch):
+    rng = np.random.default_rng(11)
+    dm, ym = la.sim_move_world(rng, persistent=True, effect=0.05)
+    strata = (dm["market_id"] + "|" + dm["day"]).to_numpy()
+    kw = dict(sign=+1, group="market_id", order="t_row", strata=strata, draws=39, seed=1, min_stratum=4)
+    g = la.perm_gate(dm, ym, "P", ["c1"], **kw)
+    assert g["passes"] and g["draws_completed"] == 39
+    real = la.fast_beta
+    calls = {"n": 0}
+
+    def flaky(x, Zt, yt):
+        calls["n"] += 1
+        return float("nan") if calls["n"] % 3 == 0 and calls["n"] > 1 else real(x, Zt, yt)
+
+    monkeypatch.setattr(la, "fast_beta", flaky)
+    g2 = la.perm_gate(dm, ym, "P", ["c1"], **kw)
+    assert g2["draws_completed"] < 39 and not g2["passes"]
+    monkeypatch.undo()
+    df, y, others = la.sim_flow_world(rng, effect=0.004)
+    real_s = la.fast_score
+    c2 = {"n": 0}
+
+    def flaky_s(x, Zt, yt):
+        c2["n"] += 1
+        return float("nan") if c2["n"] > 1 and c2["n"] % 4 == 0 else real_s(x, Zt, yt)
+
+    monkeypatch.setattr(la, "fast_score", flaky_s)
+    g3 = la.donor_gate(df, y, "x6", "zM", others, sign=+1, draws=39, seed=1, min_units=4, min_sep_s=43200.0, min_donors=2)
+    assert g3["draws_completed"] < 39 and not g3["passes"]
+
+
+def test_donor_label_distinguishes_untestable_from_not_shown():
+    from astrolabe.research_lab import live_tests3_analysis as la
+
+    ok = {"testable": True, "passes": True, "draws": 200, "draws_completed": 200}
+    assert la.donor_label(ok, {"verdict": "Supported"}) == "within-unit timing shown"
+    assert la.donor_label({**ok, "passes": False}, {"verdict": "Inconclusive"}) == "within-unit timing not shown"
+    assert la.donor_label({**ok, "draws_completed": 199, "passes": False}, {"verdict": "Inconclusive"}) == "within-unit timing untestable"
+    assert la.donor_label({"testable": False}, {"verdict": "Inconclusive"}) == "within-unit timing untestable"
+    assert la.donor_label(None, {"verdict": "Inconclusive"}) == "within-unit timing untestable"
+    assert la.donor_label(ok, {"verdict": "Unavailable"}) == "within-unit timing untestable"

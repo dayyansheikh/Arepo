@@ -35,7 +35,10 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
 HOME = Path(os.environ.get("AREPO_AUTOPILOT_HOME", Path.home() / ".arepo/autopilot"))
-PROMPT = REPO / "docs/research_lab/autopilot/AUTOPILOT_PROMPT.md"
+# A second instance (owner-approved 2026-10-21) sets AREPO_AUTOPILOT_HOME, AREPO_AUTOPILOT_REPO and AREPO_AUTOPILOT_PROMPT.
+MAIN_REPO = REPO  # where this script, the venv and the notifier live
+REPO = Path(os.environ.get("AREPO_AUTOPILOT_REPO", REPO))
+PROMPT = REPO / os.environ.get("AREPO_AUTOPILOT_PROMPT", "docs/research_lab/autopilot/AUTOPILOT_PROMPT.md")
 CLAUDE = os.environ.get("AREPO_CLAUDE_BIN", "/Users/DayyanSheikh/.nvm/versions/node/v20.20.0/bin/claude")
 MODEL = os.environ.get("AREPO_AUTOPILOT_MODEL", "opus")
 TIMEOUT_S = int(os.environ.get("AREPO_AUTOPILOT_TIMEOUT_S", str(5 * 3600)))
@@ -86,10 +89,10 @@ def record(rec: dict) -> None:
 
 def notify(title: str, msg: str) -> None:
     try:
-        subprocess.run([str(REPO / "backend/.venv/bin/python"), "scripts/arepo_notify.py", "send",
+        subprocess.run([str(MAIN_REPO / "backend/.venv/bin/python"), "scripts/arepo_notify.py", "send",
                         "--type", "breakage", "--severity", "high", "--headline", title, "--line", msg,
                         "--dedupe-key", f"autopilot:{title}"],
-                       cwd=str(REPO / "backend"), timeout=60, capture_output=True, check=False)
+                       cwd=str(MAIN_REPO / "backend"), timeout=60, capture_output=True, check=False)
     except Exception:  # noqa: BLE001, S110 - a failed alert must never stop the autopilot
         pass
 

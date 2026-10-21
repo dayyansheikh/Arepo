@@ -1,0 +1,38 @@
+{
+ "id": "q0510_se_features",
+ "title": "Signal engine: per-capture feature append (DRAFT): for every new complete capture write quotes/<capture>.parquet (slim status + bid/ask of every binary market), features/<capture>.parquet (eligible markets; market state, momentum, flow, book, Kalshi gap, wallet families; float32) and meta/<capture>.json, write-once; no network; exit 75 when nothing is new",
+ "family": "signal_engine",
+ "priority": 40,
+ "expected_value": "the engine's own durable feature store (independent of the 8-day snapshot retention); input to every refit, prediction and label",
+ "data": [
+  "research_lab/snapshots (complete captures, read-only)",
+  "research_lab/book_sweeps, trade_samples, cross_venue_live/quotes (read-only inputs; no outcome or prediction file of any E-test is read)"
+ ],
+ "resources": {
+  "mem_mb": 480,
+  "as_cap_mb": 1600,
+  "cpu": 1,
+  "lane": "net",
+  "network": "none"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_signal_engine.py",
+  "features",
+  "--max-items",
+  "2",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 900,
+ "max_retries": 3,
+ "repeat": {
+  "max_runs": 5000,
+  "until_log_regex": "SIGNAL_ENGINE_RETIRED"
+ },
+ "outputs": [
+  "data-dumps/research_lab/signal_engine/{quotes,features,meta}/<capture>.*"
+ ],
+ "next_action": "runs indefinitely (one productive run per capture; idle runs exit 75 and wait 30 min)",
+ "notes": "DRAFT (signal engine v1, docs/research_lab/signal_engine/DESIGN_V1.md section 9). Measured on the host 2026-10-20 23:26-23:45Z in a read-only dry run (/tmp/sigeng, engine root outside ~/arepo, deleted afterwards). One capture 6.8-10 s, peak RSS 359-408 MB (single capture) / 488 MB (24-capture backfill) under a 1.2 GB address-space cap; files 2.5 MB features + 0.85 MB quotes per capture (~40 MB/day). The first runs backfill every capture still on the host (oldest first, 2 per run, re-queued at once). mem_mb 480 keeps it outside the 02:45-05:30 start blackout (the 02:31 and 04:31 captures would otherwise lose their 2 h predictions). PREFERRED ALTERNATIVE (owner/coordinator decision): one `tick` line in scripts/oracle/arepo_pass.sh after sample_trades (adds ~40 s per pass), which guarantees timeliness independent of queue lanes; then this job and q0511 are not needed. depends_on is empty on purpose: the other engine jobs are repeat jobs that never reach 'done'; missing inputs make this job exit 75 or report 'insufficient'/'no_fit' instead."
+}

@@ -2729,3 +2729,63 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   markets after key drops (q0303 counts), below GWC's 150-market minimum regardless of the map, so a revision cannot
   change the GWC result (decided from counts only, no outcome). q0305 will record GWC FAIL -> W1, W2 not testable,
   counted with p = 1 per the design; q0306/q0307 are never committed.
+
+## LT3 ruling 2 implemented, verified, size check queued, 2026-10-20 23:30-23:55Z (nothing counted)
+- `fix/lt3-donor` b43f6e1b (merged 50b7fbac with e29ead9c): E016/E018 binding gate = Freedman-Lane permutation gate
+  (market x UTC day, 200 draws, min stratum 4, seeds E016_gate/E018_gate unchanged); donor gate computed as a
+  non-binding label only; skipped draws fail closed in both gates (p = (1+ge)/(1+completed); pass needs all 200);
+  binding size scenarios perm_iid, perm_persistent, perm_corr_control, flowperm_iid, flowperm_ar0.6,
+  flowperm_collinear_0.7; donor_* reported with binding false; §13.13 items 1-7; 41 LT3 tests, 26 LT4 tests.
+- Verification (science-reviewer): **OK to run**. Optional fix applied (e29ead9c, label only): "within-unit timing
+  untestable" when the verdict is Unavailable, the donor gate could not run or draws were skipped. Noted gap: no binding
+  world has serially correlated residuals (not blocking: a failed gate can only force p to 1). Code: analysis
+  62ef3375…, reader 2dff0621…. Mac timing ~85 min; host estimate 3-5 h, ~150 MB.
+- **q0474** queued (2,000 worlds, 200 draws, seed 20261020, limit 0.058, priority 42, timeout 12 h, retries for
+  infrastructure only). Any binding failure blocks LT3's pin with no further redesign.
+
+## CB18 R1 response and challenger R2, 2026-10-21 ~00:00-00:55 UTC+1 (design only; nothing counted)
+- R1 response (`feat/cb18` 067d368e, CREATIVE_BATCH_18.md §11): CB18-R counted test dropped (race map descriptive, no
+  revival in this census); DE_gate = max(3.0, computed) with SE inflation, 1.5 factor, 1/n0; chg_* byte flags + chg_only
+  class + |mid| controls; binding MA(11) overlapping-target scenario; lookback capped at 11 (first origin's furthest read
+  10-26T00:31Z); 10-14 00:31-10:31Z captures declared unavailable; updated_at prior use disclosed; q0500/q0501 tags and
+  globs fixed against the new catalogues; CB18-P both-sample membership + stratum dummies; whitelist for
+  uma_resolution_statuses; CB18-M folded bands; CB18-F breakpoint from the dated venue observation only. Pessimistic
+  planning MDEs: CB18-S 1.58c (batch route) vs 1.0c floor, RS-2 (LT5 28-day route) 0.71-1.00c; CB18-P 1.39c/0.98c vs
+  0.5c (expected to drop). Counted: CB18-S only, k = 0-2.
+- **Challenger R2** (`reviews/CB18_CHALLENGER_R2_2026-10-21.md`, 40adc91c): **ACCEPT_WITH_CHANGES**; all R1 findings
+  resolved; five changes before `pre` lands (J4-R census-read disclosure, latent-volatility label scenario, P power gate
+  pinned as the max of two routes, P look-back label, E012 wait for q0512). Recommendation: run the counts-only censuses
+  (RS-2 is powered on paper; GS1/GS2 are a cheap kill); cut P first if coding time is short. Implementation of the
+  changes, part `pre` and the censuses running on feat/cb18.
+
+## Development study WS1: wallet skill family (feat/wallet-skill, merged 2026-10-20T23:37Z; interactive session): 4 tests counted
+- **Status:** counted (4 tests P1–P4, Holm family of 4). Development (exploratory_historical) on HB1 history sets
+  h1_first/h2_main/h3_power, trades 2025-04 to 2026-10-12 only, outcomes known at closedTime + 48 h. No live-test,
+  sealed or holdout data read. The declaration was committed before any result (319bcd2c); results are in 56377f0f.
+- **P1 skill persistence: PASS (Holm p 0.002).**
+  - Top-decile sign-randomisation-skilled wallets ranked on outcomes before 2026-07-01: 71.2% stayed positive afterwards
+    vs 59.7% base. Re-significance 44.4% vs 21.1%. Out-of-sample +21.7c per dollar at risk [+1.4, +39.6] vs +3.6c.
+  - P&L-ranked wallets do not persist.
+- **P2/P3/P4: null (Holm p 1.0).** Skilled-wallet flow adds nothing over generic flow for 24 h and 6 h mid change or for resolution.
+- **Reading:** skill is measured against trade price and may reflect bias exploitation, not private information. The
+  family goes to the signal engine as a low-priority challenger, embargoed until 2026-11-18 (signed flow overlaps
+  E013/E014/E016/E018).
+- **Next:** a wallet-level copy-latency test (prior-art gap 1 H1b) needs its own registration and challenger review.
+
+## LT3 census C2 (q0472), done 2026-10-20 23:45Z (counts only, sealed samples of 2026-10-16/17); E016 and E018 dropped uncounted (written up 2026-10-21 ~03:50Z, autopilot)
+- **Output** `live_tests3_census/C2.json` sha256 `77f6e512a4e3ba934103b0b628bfd35edfa9b35b9776f1a7870fdc6f16ac3032`
+  (code_sha256 live_tests3.py `42663375…`, live_tests3_analysis.py `62ef3375…` = the ruling-2 code; seal
+  `seals/lt3_census_inputs_C2.json`, 23 restored samples re-hashed, `bad` empty; runtime 1,284 s). Origin-side fields only;
+  no target, no later-capture price, no P&L read.
+- Counts: covered units 21,311 in 5,303 events (projected 21 d 223,766); signed rows 5,093,017 (all tick-known); walked
+  495,889; 6 h truncation 2 of 21,313 rows (`vol24_cap` = inf, defined).
+- **E016: gate FAIL** on four of five conditions: projected covered units with W in (0, 1) 51,828 (< 60,000); walked share
+  0.0974 (< 10%); ">= 4 decimal" rows within 1e-4 of grid 0.596 (> 20%); agreement arm n_walked 473 (< 500, so the gap
+  -2.9 pp cannot pass). V* defined (pass).
+- **E018: gate FAIL**: H in (0, 1) for 0.308 of covered units (< 40%); agreement arm < 500 rows; corr(W, H) 0.136 (pass).
+- **Rule (LIVE_TESTS_3.md §8, §13.6):** a failed census gate drops the test before registration, uncounted; recorded in
+  §7.6. Gates were fixed at the freeze check (13.9) before any census ran; nothing is re-tuned.
+- **LT3 now: E015 only, k_tests = [E015], Holm m = 1.** Remaining before the pin (§13.11): q0474 size check (running;
+  any binding failure still blocks the pin), science-reviewer freeze check of code against design, host dry run,
+  `code_sha256` map, `SPEC_SHA256`, registration commit. `REGISTERED_UTC` 2026-10-24T00:00Z if the commit lands by
+  2026-10-23T00:00Z (§1.1, unchanged).

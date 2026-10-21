@@ -1,0 +1,38 @@
+{
+ "id": "q0511_se_predict",
+ "title": "Signal engine: per-capture prospective predictions (DRAFT): every active model (champion + challengers, frozen specs) writes write-once probabilities for every eligible market of each new capture using its newest fit made at or before the capture start; receipt-timed log line; exit 75 when nothing is due",
+ "family": "signal_engine",
+ "priority": 41,
+ "expected_value": "the prospective prediction record the daily leaderboard and the promotion rule score",
+ "data": [
+  "research_lab/signal_engine/{features,meta,models} (own files)"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "as_cap_mb": 1600,
+  "cpu": 1,
+  "lane": "net",
+  "network": "none"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_signal_engine.py",
+  "predict",
+  "--max-items",
+  "2",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 900,
+ "max_retries": 3,
+ "repeat": {
+  "max_runs": 5000,
+  "until_log_regex": "SIGNAL_ENGINE_RETIRED"
+ },
+ "outputs": [
+  "data-dumps/research_lab/signal_engine/predictions/<capture>/<model_id>.parquet",
+  "data-dumps/research_lab/signal_engine/logs/predictions-YYYYMMDD.jsonl"
+ ],
+ "next_action": "runs indefinitely; newest capture first; a prediction is valid for a target only if logged before that target's capture slot",
+ "notes": "DRAFT (signal engine v1, docs/research_lab/signal_engine/DESIGN_V1.md section 9). Measured on the host 2026-10-20 23:26-23:45Z in a read-only dry run (/tmp/sigeng, engine root outside ~/arepo, deleted afterwards). 8 models x 47,461 rows in 31 s (LightGBM 13-16 s each, logistic 0.3 s), peak RSS 295 MB; 5.2 MB per capture (~62 MB/day). Depends on q0510 only for ordering (it never blocks: no features -> exit 75). Embargoed challengers still write predictions (their scores are withheld until the embargo date). depends_on is empty on purpose: the other engine jobs are repeat jobs that never reach 'done'; missing inputs make this job exit 75 or report 'insufficient'/'no_fit' instead."
+}
