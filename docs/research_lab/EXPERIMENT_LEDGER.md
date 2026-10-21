@@ -2878,3 +2878,18 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   MC1 waits for more memory: either the second free instance (auto-retry still "out of host capacity" at 08:40Z) or an
   owner-approved free resize of this instance (Always Free A1 allows 4 OCPU / 24 GB in total). Dashboard approval item.
   The signal engine (separate autopilot) covers prospective multi-family scoring meanwhile.
+
+## LT3 size check q0474 (old code) read, 2026-10-21 ~09:00Z (information; the binding size statement is q0475's)
+- `live_tests3_census/size_check_r2.json` (sha256 39d0978b…), 2,000 worlds x 200 draws, seed 20261020, limit 0.058017.
+  Read after the §13.15 ruling was committed, as that section requires.
+- **Binding for the E015 pin (§13.15):** `perm_iid` 0.0470, `perm_persistent` 0.0480, `perm_corr_control` 0.0435, all ok.
+- **Flow scenarios (not binding for E015, §13.15 item 4):** `flowperm_iid` 0.0465 ok, `flowperm_collinear_0.7` 0.0495 ok,
+  **`flowperm_ar0.6` 0.0590 FAIL** (above 0.058). As pre-declared, this does not block the E015 pin. It blocks any future
+  use of the Freedman-Lane gate for flow moderation (E016/E018 or a successor) until that gate is redesigned and passes
+  its own size check. The overall `pass` field is false because of it and is ignored for this pin (§13.15 item 2).
+- **Donor (reported only, §13.13):** iid 0.0555 ok; ar0.6 0.0595, corr_control 0.0585, collinear 0.5 0.060 / 0.7 0.067,
+  lifecycle 0.0665 all above the limit, which confirms the donor gate's non-binding status.
+- **Provenance note:** the file's `code_sha256` shows the post-fix hashes (3ac52d79… / 224b5603…). The runner computes
+  them from the files on disk at write time (06:54Z), after the fixes were deployed (~05:00Z), while the process had
+  loaded the pre-fix modules at 03:12Z. The size-check functions are byte-identical across the fix (§13.16 item 3), so
+  this is a labelling caveat only. q0475, which loaded the fixed code, gives the registered statement.
