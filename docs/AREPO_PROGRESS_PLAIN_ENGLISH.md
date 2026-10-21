@@ -1,27 +1,34 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-21 13:30 UTC+1
+**Last updated:** 2026-10-21 15:09 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **Autopilot:** a session has been running since 09:43 UTC+1 (21 Oct).
-- **NEW: LT3 (E015) is REGISTERED (21 Oct).** It asks whether price moves made only by quotes (no trade) behave differently over the next hours from moves made by trades.
-  - The re-run of the safety (size) check gave exactly the same numbers as the first run, and the three binding rates passed (4.4-4.8% against a 5.8% limit).
-  - Collection runs 24 Oct to 14 Nov, with a single analysis after 15 Nov. No early looks.
-  - Registered live tests now waiting for their single analysis: E009/E010, E011, E012-E014 (LT2) and E015 (LT3).
-- **Batch 18 (CB18):** the counting code was finished, checked by an independent reviewer and fixed. Its 7 jobs are now on the server queue (restores, then five counting checks; counts only).
-- **Three more queued jobs:** batch 13's sealed holdout, batch 15's "listed on Kalshi first" count, and batch 16's exclusion list.
-- **LT5 (five possible new live tests) moved fast today.**
-  - The design passed an independent challenger review (accepted with changes, the changes re-checked).
-  - Its counting code was checked three times until clean. One fix had quietly loosened a rule; the reviewer caught it and it was put back as originally written.
-  - Its counting jobs are queued. They must run tonight, before the server's routine deletion of 8-day-old data at 04:30 UTC+1, which would remove some of the history they need. Tonight's session handles that.
-  - Earliest start is 30 Oct.
-- **Copy-skilled-wallets test (E026):** the design is done (phone note sent). Its counting check passed all three pre-set gates: about 450 usable copy signals a day from 160 wallets across 650 events, in three days of data. These are counts only, no results. Next come the challenger review and registration (planned before 24 Oct), then collection from 25 Oct to 15 Nov.
-- **Model run (MC1) ran out of memory again** (about 4.9 GB of 5.6 GB). It won't be retried on this server; see approval 7.
-- **Live:** the E012-E014 collector is running. LT4's counting checks and batch 17's reproduction check are queued. Oracle still says "out of host capacity" for the second server.
+- **Autopilot:** a session has been running since about 15:00 UTC+1 (21 Oct).
+- **Copy-skilled-wallets test (E026):** the counting results are now written into the design (counts only, no results).
+  - About 450 usable copy signals a day from 160 wallets across 650 events. Over the 21-day window that comes to about
+    9,400 copies, far above the pre-set minimum of 400. The smallest effect it can reliably detect is about 4 cents per
+    dollar. Average trading costs are about 5 cents per dollar, so a copy would have to earn more than that to show anything.
+  - An honest caveat: AREPO first sees a skilled wallet's trade a median 4.5 hours after it happens, so "copy at once"
+    really means about 6.6 hours late.
+  - **A measurement bug was found and fixed:** the memory figure for the live recorder was really the memory of its
+    parent process. A short re-check (q0545, counts only) is queued for tonight to measure the true figure before
+    registration.
+  - Also disclosed: an early, uncommitted count was seen before the pass/fail gates were written down. The gates sit far
+    below those numbers, so they could not have been placed to pass narrowly, but they were not set blind.
+  - **Now:** the independent challenger review is running. Registration is still planned before 24 Oct, collection
+    25 Oct to 15 Nov. You get a phone note at the review verdict.
+- **Bounce re-check (SB2-J4-R) finished: VOID.** Its own pre-set safety check (a shuffled-data placebo) failed for 2 of
+  its 5 tests, so by its rules no verdict is read. The 5 tests stay counted. No new run is planned; it is low priority.
+- **LT3 (E015) is registered.** Collection 24 Oct to 14 Nov, single analysis after 15 Nov.
+- **Tonight (handled by later sessions):** LT5's counting jobs and seal (must run before 04:30 UTC+1), the batch 4/6/7/8
+  seals after midnight UTC, and the **server resize to 2 CPU / 12 GB at about 03:40 UTC+1** (your approval). No
+  deploys during 03:40-04:45 UTC+1. After the resize, the model run (MC1) is re-queued with the bigger memory.
+- **Live:** the E012-E014 collector is running; LT3's collector is installed. Registered live tests waiting for their
+  single analysis: E009/E010 (3 Nov), E011 (11 Nov), E012-E014 (13 Nov), E015 (15 Nov).
 
 ## 2. Approvals needed from you
 1. ~~Automatic Claude sessions~~ **APPROVED and installed 15 Oct** (full power, your call).
@@ -42,12 +49,8 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 
 6. ~~Server disk~~ **DONE 17 Oct** (you enlarged it to 100 GB, free).
 
-7. **NEW: more server memory for the model run (MC1).** The run needs more than the server's 5.6 GB. The second free
-   server still can't be created ("out of host capacity"). Another option: in the Oracle console, resize this server
-   from 1 CPU / 6 GB to 2 CPU / 12 GB. That stays inside the free allowance (4 CPU / 24 GB in total, even with the
-   planned second server). A resize means a reboot of a few minutes. Do it right after a collection pass (passes start
-   at :31 past every even hour). **Your decision:** resize now, or keep waiting for the second server. Until then, MC1
-   waits.
+7. ~~More server memory for MC1~~ **APPROVED 21 Oct:** resize to 2 CPU / 12 GB (still free), scheduled automatically
+   for 22 Oct about 03:40 UTC+1. MC1 is re-queued afterwards.
 
 ## 3. Usage plan (your schedule; reset times are your statement, not verified)
 | When | Plan |
