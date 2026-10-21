@@ -2953,7 +2953,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   share is not reported anywhere public.
 - Non-embargoed challengers until 2026-11-04: se1, se7 (K = 2).
 
-## LT5 drafted, challenger R1 and re-check, 2026-10-21 ~08:50-09:40Z (design only; nothing counted or registered)
+## LT5 drafted, challenger R1 and re-check, 2026-10-21 ~08:50-09:15Z (design only; nothing counted or registered)
 - Draft `LIVE_TESTS_5.md` on `feat/live-tests-5` (c4b09d73) from round 11 (`CREATIVE_HYPOTHESES_2026-10-25.md`). Up to
   5 tests, Holm k <= 5, k set by counts-only censuses alone:
   - J (CH180, jump vs grind);
