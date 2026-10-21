@@ -3244,3 +3244,11 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - (15:30Z, ops) q0564 (LT5 capture seal, 23:20Z) moved from the cpu to the net lane (file hashing, mem_mb 300), so a
   running cpu-lane job cannot delay it past the window for the seal commit and the q0561 start before 02:45Z. Nothing
   else changed. LT3 / LT4 restore trees checked present for q0562 (23 samples, 39 captures).
+
+## LT6 design draft, 2026-10-21 ~15:40Z (DRAFT; nothing registered, nothing counted)
+- `feat/live-tests-6` 5906c0b9 (pushed): `docs/research_lab/LIVE_TESTS_6.md`, four round-11 candidates (ranks 6-9, not
+  in LT5): V CH190 makers' vote (post-move skew once the touch refilled; overlaps E022's pinned `dimb` control, so V's
+  origins start after LT4's window and V must be pinned before E022's analysis or it is dropped uncounted), K CH185
+  clip trains, D CH187 deadline moves (census-first; likely to drop), B CH188 sibling birth. Provisional k <= 4, fixed
+  by counts-only censuses; proposed window 2026-11-16 .. 12-07. All on streams the host already captures (no new
+  collector). Challenger R1 (science-reviewer) running.

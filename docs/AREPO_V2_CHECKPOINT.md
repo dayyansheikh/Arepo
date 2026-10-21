@@ -273,6 +273,11 @@ Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && gi
    `resize_host.py --remove-cron`, update the 1 OCPU / 6 GB wording, then promote the prepared draft
    `queue/drafts/q0116f_mc1_dev_run.json` (exclusive, mem_mb 6000, as_cap_mb 14000) to `queue/jobs/` and deploy.
 
+5. **LT6 (draft, `feat/live-tests-6` 5906c0b9):** challenger R1 started ~15:45Z (this session). Next: write the review
+   to `reviews/LT6_CHALLENGER_R1_2026-10-21.md`, answer it in a section 14 on the branch, re-check, then code, census
+   seal and counts-only censuses (after LT5's). Census inputs 10-19T22:31..10-21 must stay available (archive-before-
+   delete; confirm the release by ~10-27).
+
 **Registered and running (no interim looks):**
 - E009/E010 (to 11-03), E011 (to 11-10), LT2 E012-E014 (q0460; analysis q0461 after 11-13T12Z).
 - **E026** registered 2026-10-21 (7777ca66; SPEC_SHA256 06d117ed…); collection 10-25..11-15, analysis q0543 after 12-06T12Z.
