@@ -8,10 +8,11 @@
   "data-dumps/research_lab/cb18_census/restore/data-dumps/research_lab (q0500/q0501; read-only)"
  ],
  "resources": {
-  "mem_mb": 350,
+  "mem_mb": 600,
   "cpu": 1,
   "lane": "cpu",
-  "network": "none"
+  "network": "none",
+  "as_cap_mb": 2400
  },
  "depends_on": [
   "q0500_cb18_census_restore_captures"
@@ -44,5 +45,5 @@
   "data-dumps/research_lab/cb18_census/M.json (counts only; write-once)"
  ],
  "next_action": "add M.json's sha256 to seals/; record the map's consequence (its days are worn for every resolution arm) in the ledger",
- "notes": "PROMOTED 2026-10-21 (autopilot): code check CENSUS_READY_WITH_FIXES -> fixes 1442bb27 -> verification FIXES_OK_WITH_NOTES (reviews/CB18_CENSUS_CODE_CHECK_2026-10-21.md, ledger). | DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md). Code check CENSUS_READY_WITH_FIXES 2026-10-21, fixes applied in 1442bb27 (interpretation notes: CREATIVE_BATCH_18.md section 13). scripts/run_cb18.py exists (subcommand tested on a synthetic world, tests/unit/test_cb18_census.py; real-data peak RSS unmeasured, design estimate < 400 MB). Counts 0 (kind cb18_descriptive). Refuses unless part pre is committed and every pinned input is present and matches (L4); refuses any file or row after its cut-off. Forbidden and unit-tested: any comparison of an earlier price with the last mid, any return or P&L, any output that records the side of 0.5 of a last mid. R1 response (CREATIVE_BATCH_18.md section 11, 2026-10-21): finding 10 (tails folded into symmetric |mid - 0.5| bands; the 2026-10-14T00:31Z-10:31Z captures are unavailable, exits recorded at 10-13T22:31Z carry gap_adjacent and lags are reported with and without them). OPS 2026-10-21 ~19:10Z (autopilot): --disk-cap-gb 20 -> 0.25 (the declaration is an upper bound, `<= 20`; outputs are small JSON files). With data-dumps at 29.75 GB, 20 GB of headroom passed the 40 GB cap and every attempt exited 75. Resource only; rules, inputs and outputs unchanged."
+ "notes": "PROMOTED 2026-10-21 (autopilot): code check CENSUS_READY_WITH_FIXES -> fixes 1442bb27 -> verification FIXES_OK_WITH_NOTES (reviews/CB18_CENSUS_CODE_CHECK_2026-10-21.md, ledger). | DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md). Code check CENSUS_READY_WITH_FIXES 2026-10-21, fixes applied in 1442bb27 (interpretation notes: CREATIVE_BATCH_18.md section 13). scripts/run_cb18.py exists (subcommand tested on a synthetic world, tests/unit/test_cb18_census.py; real-data peak RSS unmeasured, design estimate < 400 MB). Counts 0 (kind cb18_descriptive). Refuses unless part pre is committed and every pinned input is present and matches (L4); refuses any file or row after its cut-off. Forbidden and unit-tested: any comparison of an earlier price with the last mid, any return or P&L, any output that records the side of 0.5 of a last mid. R1 response (CREATIVE_BATCH_18.md section 11, 2026-10-21): finding 10 (tails folded into symmetric |mid - 0.5| bands; the 2026-10-14T00:31Z-10:31Z captures are unavailable, exits recorded at 10-13T22:31Z carry gap_adjacent and lags are reported with and without them). OPS 2026-10-21 ~19:10Z (autopilot): --disk-cap-gb 20 -> 0.25 (the declaration is an upper bound, `<= 20`; outputs are small JSON files). With data-dumps at 29.75 GB, 20 GB of headroom passed the 40 GB cap and every attempt exited 75. Resource only; rules, inputs and outputs unchanged. OPS 2026-10-21 ~19:50Z (autopilot): q0502 and q0505 died 'ParserError ... C error: out of memory' in the pandas tokenizer under the 2 x mem_mb address cap; mem_mb 350 -> 600, as_cap_mb 2400 (q0502 then completed). Resource only; argv, rules and inputs unchanged."
 }
