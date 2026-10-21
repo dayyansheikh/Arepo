@@ -3152,5 +3152,5 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   the reversal terms (P1, P1x) but not for P4 (and partly P3), whose regressors are built from levels; the placebo
   shows a mechanical slope there. Any further re-read would be a new declared family on new captures with a P3/P4
   estimator whose placebo is null by construction, frozen before the data exist. Not queued now: the bounce question
-  is low priority against the live-test programme, and the signal engine's champion already carries short-horizon
-  mid reversal as market state.
+  is low priority against the live-test programme, and the signal engine's champion (momentum + market state)
+  already uses recent mid changes, so a reversal slope would enter it there.
