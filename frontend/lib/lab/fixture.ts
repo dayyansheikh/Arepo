@@ -186,6 +186,19 @@ export function buildSignalEngineFixture(nowMs: number): SignalEngineBlock {
         { model_id: "se8_lr_event", embargoed_until: until },
       ],
     },
+    attribution: [
+      {
+        model_id: "se5_lgbm_all",
+        fit_time: new Date(nowMs - 5 * 3_600_000).toISOString().slice(0, 19) + "Z",
+        target: "dir_2h",
+        method: "mean_abs_shap",
+        rows: 20000,
+        families: { market_state: 0.42, momentum: 0.31, flow: 0.12, tte: 0.08, category: 0.03 },
+        hidden: ["event"],
+        label: "development diagnostic (mean |SHAP| on the fit's validation block), not a score",
+      },
+    ],
+    embargo_tokens: [{ token: "event", until }],
     promotions: [],
     stale: false,
   };

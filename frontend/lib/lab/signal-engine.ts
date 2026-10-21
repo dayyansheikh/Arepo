@@ -3,7 +3,15 @@
 // throws, and an embargoed row (a model under an active live test) never yields a number.
 // Vocabulary: signal strength / forecast quality only; no probability of profit, no edge claim.
 
-import type { SeFamilyGain, SeModel, SePromotion, SeRow, SignalEngineBlock } from "./types";
+import type {
+  SeAttribution,
+  SeEmbargoToken,
+  SeFamilyGain,
+  SeModel,
+  SePromotion,
+  SeRow,
+  SignalEngineBlock,
+} from "./types";
 
 export const SE_SCHEMA = "se-dash-v1";
 /** Leaderboard window shown in the prospective table (DESIGN_V1 section 14). */
@@ -20,9 +28,47 @@ export function parseSignalEngine(raw: unknown): SignalEngineBlock | null {
   return raw as SignalEngineBlock;
 }
 
-/** A row is embargoed whenever it names an embargo date; the host already strips its numbers. */
-export function isEmbargoed(row: SeRow | SeFamilyGain | null | undefined): boolean {
-  return !!row && isObj(row) && !!str((row as SeRow).embargoed_until);
+/**
+ * Client-side embargo rule (defence in depth; the host already strips numbers). A date counts as an
+ * active embargo when it is in the future or cannot be parsed (fail closed). The row's own date and
+ * the model list's date are both checked, so a row that carries numbers but no date of its own is
+ * still hidden while its model is under a live test.
+ */
+export function activeUntil(until: unknown, nowMs: number): string | null {
+  const u = str(until);
+  if (!u) return null;
+  const t = Date.parse(u);
+  return Number.isNaN(t) || t > nowMs ? u : null;
+}
+
+/** model_id -> embargoed_until from the model list. */
+export function modelEmbargoes(se: SignalEngineBlock): Map<string, string> {
+  const m = new Map<string, string>();
+  for (const x of arr<SeModel>(se.models)) {
+    const id = str(x.model_id);
+    const u = str(x.embargoed_until);
+    if (id && u) m.set(id, u);
+  }
+  return m;
+}
+
+/** The active embargo date for a row (its own, else its model's), or null when it may show numbers. */
+export function rowEmbargo(
+  row: { model_id?: unknown; embargoed_until?: unknown } | null | undefined,
+  nowMs: number,
+  models?: Map<string, string>,
+): string | null {
+  if (!row || !isObj(row)) return null;
+  const id = str(row.model_id);
+  return activeUntil(row.embargoed_until, nowMs) ?? (id && models ? activeUntil(models.get(id), nowMs) : null);
+}
+
+export function isEmbargoed(
+  row: { model_id?: unknown; embargoed_until?: unknown } | null | undefined,
+  nowMs: number,
+  models?: Map<string, string>,
+): boolean {
+  return rowEmbargo(row, nowMs, models) !== null;
 }
 
 export type SeCells =
@@ -47,9 +93,10 @@ export type SeCells =
     };
 
 /** Display cells for one row. Embargoed rows return only the id and date, never a number. */
-export function rowCells(row: SeRow): SeCells {
+export function rowCells(row: SeRow, nowMs: number, models?: Map<string, string>): SeCells {
   const modelId = str(row.model_id) ?? "unknown model";
-  if (isEmbargoed(row)) return { kind: "embargoed", modelId, until: String(row.embargoed_until) };
+  const until = rowEmbargo(row, nowMs, models);
+  if (until) return { kind: "embargoed", modelId, until };
   return {
     kind: "scored",
     modelId,
@@ -83,22 +130,30 @@ export function sortRows(rows: SeCells[], primaryTarget?: string): SeCells[] {
   });
 }
 
-export function prospectiveRows(se: SignalEngineBlock): SeCells[] {
+export function prospectiveRows(se: SignalEngineBlock, nowMs: number): SeCells[] {
+  const models = modelEmbargoes(se);
   const rows = arr<SeRow>(se.prospective?.rows).filter(
-    (r) => isEmbargoed(r) || r.window_days === undefined || r.window_days === SE_WINDOW_DAYS,
+    (r) => isEmbargoed(r, nowMs, models) || r.window_days === undefined || r.window_days === SE_WINDOW_DAYS,
   );
-  return sortRows(rows.map(rowCells), str(se.primary_target));
+  return sortRows(
+    rows.map((r) => rowCells(r, nowMs, models)),
+    str(se.primary_target),
+  );
 }
 
-export function developmentRows(se: SignalEngineBlock): SeCells[] {
-  return sortRows(arr<SeRow>(se.development?.rows).map(rowCells), str(se.primary_target));
+export function developmentRows(se: SignalEngineBlock, nowMs: number): SeCells[] {
+  const models = modelEmbargoes(se);
+  return sortRows(
+    arr<SeRow>(se.development?.rows).map((r) => rowCells(r, nowMs, models)),
+    str(se.primary_target),
+  );
 }
 
 export type SeStatus = "bootstrapping" | "scoring";
 
 /** Bootstrapping unless the engine says it is scoring and there is at least one scored row. */
-export function engineStatus(se: SignalEngineBlock): SeStatus {
-  const scored = prospectiveRows(se).some((r) => r.kind === "scored");
+export function engineStatus(se: SignalEngineBlock, nowMs: number): SeStatus {
+  const scored = prospectiveRows(se, nowMs).some((r) => r.kind === "scored");
   return se.prospective?.status === "scoring" && scored ? "scoring" : "bootstrapping";
 }
 
@@ -111,17 +166,6 @@ export function familyOf(se: SignalEngineBlock): Map<string, string> {
   return m;
 }
 
-/** Models currently embargoed according to the model list (defence in depth for the chart). */
-function embargoedModels(se: SignalEngineBlock, nowMs: number): Set<string> {
-  const out = new Set<string>();
-  for (const x of arr<SeModel>(se.models)) {
-    const id = str(x.model_id);
-    const t = str(x.embargoed_until) ? Date.parse(x.embargoed_until as string) : NaN;
-    if (id && (Number.isNaN(t) ? !!str(x.embargoed_until) : t > nowMs)) out.add(id);
-  }
-  return out;
-}
-
 export interface GainSeries {
   key: string;
   label: string;
@@ -130,13 +174,13 @@ export interface GainSeries {
 
 /** One series per challenger (labelled by family), dropping embargoed models and non-finite gains. */
 export function familySeries(se: SignalEngineBlock, nowMs: number): GainSeries[] {
-  const blocked = embargoedModels(se, nowMs);
+  const models = modelEmbargoes(se);
   const byKey = new Map<string, GainSeries>();
   for (const g of arr<SeFamilyGain>(se.family_gains)) {
     const id = str(g.model_id);
     const date = str(g.date);
     const gain = num(g.gain);
-    if (!id || !date || gain === null || blocked.has(id) || isEmbargoed(g)) continue;
+    if (!id || !date || gain === null || isEmbargoed(g, nowMs, models)) continue;
     let s = byKey.get(id);
     if (!s) {
       s = { key: id, label: str(g.family) ?? id, points: [] };
@@ -156,8 +200,59 @@ export function familySeries(se: SignalEngineBlock, nowMs: number): GainSeries[]
 
 export function promotions(se: SignalEngineBlock): SePromotion[] {
   return arr<SePromotion>(se.promotions)
-    .filter((p) => str(p.champion))
+    .filter((p) => str(p.champion) && (p.event === undefined || p.event === "promotion"))
     .sort((a, b) => (str(b.at) ?? "").localeCompare(str(a.at) ?? ""));
+}
+
+export interface AttributionView {
+  modelId: string;
+  target: string;
+  fitTime: string | null;
+  rows: number | null;
+  label: string;
+  /** Visible families, largest first; `share` is of the visible total only, so hidden families leak nothing. */
+  families: Array<{ family: string; value: number; share: number }>;
+  /** Families withheld under an active live-test embargo: names only, never a value. */
+  hidden: string[];
+}
+
+/**
+ * Family attribution (development diagnostic of the newest primary-target LightGBM fit, never a score).
+ * Re-applies the embargo client-side: entries of embargoed models are dropped, and any family named by an
+ * active embargo token moves to `hidden` without its value.
+ */
+export function attributionViews(se: SignalEngineBlock, nowMs: number): AttributionView[] {
+  const models = modelEmbargoes(se);
+  const tokens = new Set<string>();
+  for (const e of arr<SeEmbargoToken>(se.embargo_tokens)) {
+    const t = str(e.token);
+    // A token with a missing or unparseable date counts as active (fail closed).
+    if (t && (activeUntil(e.until, nowMs) !== null || !str(e.until))) tokens.add(t);
+  }
+  const out: AttributionView[] = [];
+  for (const a of arr<SeAttribution>(se.attribution)) {
+    const modelId = str(a.model_id);
+    if (!modelId || isEmbargoed(a, nowMs, models)) continue;
+    const hidden = new Set<string>(Array.isArray(a.hidden) ? a.hidden.filter((h): h is string => !!str(h)) : []);
+    const visible: Array<{ family: string; value: number }> = [];
+    for (const [family, v] of Object.entries(isObj(a.families) ? a.families : {})) {
+      if (tokens.has(family)) hidden.add(family);
+      else if (typeof v === "number" && Number.isFinite(v) && v >= 0) visible.push({ family, value: v });
+    }
+    const total = visible.reduce((s, f) => s + f.value, 0);
+    out.push({
+      modelId,
+      target: str(a.target) ?? "",
+      fitTime: str(a.fit_time) ?? null,
+      rows: num(a.rows),
+      label: str(a.label) ?? "Development diagnostic (mean |SHAP| on the fit's validation block), not a score",
+      families: visible
+        .map((f) => ({ ...f, share: total > 0 ? f.value / total : 0 }))
+        .sort((x, y) => y.value - x.value || x.family.localeCompare(y.family)),
+      hidden: Array.from(hidden).sort(),
+    });
+  }
+  return out.sort((x, y) => x.modelId.localeCompare(y.modelId));
 }
 
 // ---- formatting --------------------------------------------------------------------------------

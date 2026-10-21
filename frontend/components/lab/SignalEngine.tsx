@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { Area, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import {
+  attributionViews,
   developmentRows,
   embargoLabel,
   engineStatus,
@@ -18,6 +19,7 @@ import {
   promotions,
   prospectiveRows,
   SE_WINDOW_DAYS,
+  type AttributionView,
   type GainSeries,
   type SeCells,
 } from "@/lib/lab/signal-engine";
@@ -155,6 +157,44 @@ function GainsChart({ series }: { series: GainSeries[] }) {
   );
 }
 
+function Attribution({ views }: { views: AttributionView[] }) {
+  return (
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-2" data-testid="se-attribution">
+      {views.map((v) => (
+        <div key={v.modelId} className="min-w-0">
+          <p className="text-[13.5px] font-medium text-arepo-ink">{v.modelId}</p>
+          <p className="mb-3 text-[12px] text-arepo-muted">
+            {v.target || "–"}
+            {v.fitTime ? <> · fit {fmtUtc(v.fitTime)}</> : null}
+            {v.rows !== null ? <> · {fmtCount(v.rows)} rows</> : null}
+          </p>
+          {v.families.length ? (
+            <ul className="space-y-1.5">
+              {v.families.map((f) => (
+                <li key={f.family} className="grid grid-cols-[minmax(0,8rem)_1fr_3rem] items-center gap-2 text-[12.5px]">
+                  <span className="truncate text-arepo-ink2">{f.family}</span>
+                  <span aria-hidden="true" className="h-2 rounded-full bg-arepo-border/60">
+                    <span className="block h-2 rounded-full bg-arepo-ink2/70" style={{ width: `${Math.max(1, Math.round(f.share * 100))}%` }} />
+                  </span>
+                  <span className="font-tabular text-right text-arepo-ink2">{fmtPct(f.share)}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <Quiet>No visible families.</Quiet>
+          )}
+          {v.hidden.length ? (
+            <p className="mt-2 text-[12px] text-arepo-muted" data-testid="se-attribution-hidden">
+              Hidden while under a live test: {v.hidden.join(", ")}
+            </p>
+          ) : null}
+          <p className="mt-2 text-[11.5px] text-arepo-muted">{v.label}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="min-w-0">
@@ -167,11 +207,13 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
 export function SignalEngine({ block, nowMs }: { block: unknown; nowMs: number }) {
   const se = parseSignalEngine(block);
   if (!se) return <Quiet>The latest snapshot has no signal-engine block.</Quiet>;
-  const status = engineStatus(se);
+  const status = engineStatus(se, nowMs);
   const families = familyOf(se);
-  const prospective = prospectiveRows(se);
-  const dev = developmentRows(se);
+  const prospective = prospectiveRows(se, nowMs);
+  const scored = prospective.some((r) => r.kind === "scored");
+  const dev = developmentRows(se, nowMs);
   const series = familySeries(se, nowMs);
+  const attribution = attributionViews(se, nowMs);
   const promos = promotions(se);
   const days = typeof se.prospective?.days_scored === "number" ? se.prospective.days_scored : 0;
   const champ = se.champion?.model_id;
@@ -182,13 +224,18 @@ export function SignalEngine({ block, nowMs }: { block: unknown; nowMs: number }
           <Pill tone={status === "scoring" ? "pos" : "neutral"}>{status === "scoring" ? "Scoring" : "Bootstrapping"}</Pill>
           {se.stale ? <Pill tone="warn">Stale: engine report over 2 days old</Pill> : null}
         </div>
-        <dl className="mt-4 grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
+        <dl className="mt-4 grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
           <Fact label="Champion">
             {champ ?? "–"}
             {se.champion?.family ? <span className="block text-[12px] text-arepo-muted">{se.champion.family}</span> : null}
           </Fact>
           <Fact label="Days scored">
-            {fmtCount(days)} of {SE_WINDOW_DAYS}
+            {fmtCount(days)}
+            <span className="block text-[12px] text-arepo-muted">promotion needs at least {SE_WINDOW_DAYS}</span>
+          </Fact>
+          <Fact label="Engine report">
+            {fmtUtc(se.generated_at)}
+            {se.engine_version ? <span className="block text-[12px] text-arepo-muted">{se.engine_version}</span> : null}
           </Fact>
           <Fact label="Last refit">
             {fmtUtc(se.last_refit?.at)}
@@ -214,25 +261,32 @@ export function SignalEngine({ block, nowMs }: { block: unknown; nowMs: number }
           Last {SE_WINDOW_DAYS} days of predictions made before outcomes were known. Sorted by target, then gain.
         </p>
         {status === "bootstrapping" ? (
-          <div data-testid="se-bootstrapping">
-            <Quiet>
-              Bootstrapping: no prospective scores yet ({fmtCount(days)} of {SE_WINDOW_DAYS} days scored).
-            </Quiet>
-            {prospective.some((r) => r.kind === "embargoed") ? (
-              <ul className="mt-3 flex flex-wrap gap-2">
-                {prospective
-                  .filter((r) => r.kind === "embargoed")
-                  .map((r) => (
-                    <li key={r.modelId} className="text-[12px] text-arepo-ink2">
-                      <span className="font-medium">{r.modelId}</span>{" "}
-                      <Pill tone="muted">{r.kind === "embargoed" ? embargoLabel(r.until) : null}</Pill>
-                    </li>
-                  ))}
-              </ul>
+          <div data-testid="se-bootstrapping" className="mb-4 rounded-control border border-arepo-border bg-arepo-surface2/60 px-4 py-3">
+            <p className="text-[13px] leading-relaxed text-arepo-ink2">
+              <span className="font-semibold text-arepo-ink">Bootstrapping.</span> Every model is writing a prediction for
+              each new market capture now, before the outcome is known. A prediction can only be scored once its outcome
+              arrives, so scores build up over the coming days. A challenger can replace the champion only after at least{" "}
+              {SE_WINDOW_DAYS} days of prospective scores. Days scored so far: {fmtCount(days)}.
+            </p>
+            {scored ? (
+              <p className="mt-1.5 text-[12px] text-arepo-muted">Early scores below are too few days to judge.</p>
             ) : null}
           </div>
-        ) : (
+        ) : null}
+        {scored ? (
           <ScoreTable rows={prospective} families={families} caption="Prospective leaderboard, 14-day window" />
+        ) : prospective.length ? (
+          <ul className="flex flex-wrap gap-x-4 gap-y-2" data-testid="se-embargo-list">
+            {prospective.map((r) => (
+              <li key={r.modelId} className="text-[12px] text-arepo-ink2">
+                <span className="font-medium">{r.modelId}</span>
+                {families.get(r.modelId) ? <span className="text-arepo-muted"> · {families.get(r.modelId)}</span> : null}{" "}
+                {r.kind === "embargoed" ? <Pill tone="muted">{embargoLabel(r.until)}</Pill> : null}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <Quiet>No prospective rows yet.</Quiet>
         )}
       </Card>
 
@@ -257,6 +311,20 @@ export function SignalEngine({ block, nowMs }: { block: unknown; nowMs: number }
           <Quiet>No development scores in this snapshot.</Quiet>
         )}
       </Card>
+
+      {attribution.length ? (
+        <Card>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-[15px] font-semibold text-arepo-ink">Family attribution</h3>
+            <Pill tone="warn">Development diagnostic, not a score</Pill>
+          </div>
+          <p className="mb-4 mt-0.5 text-[12.5px] text-arepo-muted">
+            Share of each feature family in the newest primary-target fit (mean |SHAP| on the fit&apos;s validation block).
+            It describes what a model leans on, not how well it forecasts, and plays no part in promotion.
+          </p>
+          <Attribution views={attribution} />
+        </Card>
+      ) : null}
 
       <Card>
         <h3 className="text-[15px] font-semibold text-arepo-ink">Promotions</h3>

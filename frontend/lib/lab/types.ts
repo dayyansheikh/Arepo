@@ -201,6 +201,7 @@ export interface SeModel {
 export interface SeFamilyGain {
   date?: string;
   model_id?: string;
+  embargoed_until?: string | null;
   family?: string;
   gain?: number | null;
   lo?: number | null;
@@ -214,6 +215,26 @@ export interface SePromotion {
   previous?: string;
   rule?: string;
   evidence?: { gain?: { mean?: number | null; lo?: number | null; hi?: number | null } | null; level?: number; K?: number };
+}
+
+/** Family attribution of one LightGBM fit: development diagnostic (mean |SHAP|), never a score. */
+export interface SeAttribution {
+  model_id?: string;
+  fit_time?: string;
+  target?: string;
+  method?: string;
+  block?: unknown;
+  rows?: number;
+  /** Family -> mean |SHAP|. Families under an active embargo are absent here and named in `hidden`. */
+  families?: Record<string, unknown>;
+  hidden?: string[];
+  label?: string;
+  embargoed_until?: string | null;
+}
+
+export interface SeEmbargoToken {
+  token?: string;
+  until?: string;
 }
 
 export interface SignalEngineBlock {
@@ -230,6 +251,8 @@ export interface SignalEngineBlock {
   family_gains?: SeFamilyGain[];
   development?: { label?: string; generated_at?: string; test_days?: number | null; rows?: SeRow[] };
   promotions?: SePromotion[];
+  attribution?: SeAttribution[];
+  embargo_tokens?: SeEmbargoToken[];
   /** Set by the host: the engine's dashboard is more than 2 days old. */
   stale?: boolean;
 }
