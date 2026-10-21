@@ -1,0 +1,38 @@
+{
+ "id": "q0515_se_score_now",
+ "title": "Signal engine: one-off early daily score (--force): first leaderboard with prospective predictions (10-21 12:31Z/14:31Z captures onward); same code and inputs as q0513",
+ "family": "signal_engine",
+ "priority": 50,
+ "expected_value": "end-to-end check of prospective scoring on real predictions today, before the 10-22 02:40-03:45Z resize window",
+ "data": [
+  "gamma-api.polymarket.com /markets by id (public, read-only)",
+  "research_lab/signal_engine (own files)"
+ ],
+ "resources": {
+  "mem_mb": 700,
+  "as_cap_mb": 2000,
+  "cpu": 1,
+  "lane": "net",
+  "network": "gamma public api, <= 800 requests per run"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_signal_engine.py",
+  "score",
+  "--force",
+  "--max-requests",
+  "800",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/signal_engine/leaderboard/<stamp>.json",
+  "data-dumps/research_lab/signal_engine/dashboard.json",
+  "data-dumps/research_lab/signal_engine/logs/{resolutions,promotions}-YYYYMMDD.jsonl",
+  "data-dumps/research_lab/signal_engine/champion/history.jsonl"
+ ],
+ "next_action": "read leaderboard/latest.json and dashboard.json; q0513 then runs 20 h after this leaderboard (min-interval gate)",
+ "notes": "One-off (no repeat), signal-engine autopilot 2026-10-21. The daily q0513 last scored at 07:22Z, before any prediction existed (empty leaderboard), and is gated to ~03:30Z on 10-22, inside the resize window. This forced run writes one extra write-once leaderboard stamp (a derived rolling summary, not a frozen cohort); promotion cannot fire (< 14 days of scoring). Net lane like q0513; ~700 MB."
+}
