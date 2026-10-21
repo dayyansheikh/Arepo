@@ -911,3 +911,5 @@ Design and code only; no outcome data and no size-check output read.
    record's `code_sha256` will differ from the pin for that one file: the registration commit records both hashes and the
    `git diff` showing that only those three lines changed. Any other change to either module still needs a new size check
    (13.5). The move is recorded in the ledger; no data are inspected for it.
+   **Dry run after a date move (fix verification note, 2026-10-21):** if the constants are edited after the host dry run
+   (13.4), the dry run is repeated on the pinned commit before the cron install; the earlier dry run's record is kept.
