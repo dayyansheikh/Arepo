@@ -70,8 +70,8 @@ AUC_BINS = 1000  # p bins for streaming AUC
 EMBARGO = (
     {"token": "xvenue", "until": "2026-11-04T00:00:00Z", "tests": ["E009", "E010"],
      "why": "Kalshi / cross-venue lead; fixed end 2026-11-03T00:00Z, single analysis after it"},
-    {"token": "surprise", "until": "2026-11-12T00:00:00Z", "tests": ["E011"],
-     "why": "learned surprise score; analysis after 2026-11-11"},
+    {"token": "surprise", "until": "2026-11-19T00:00:00Z", "tests": ["E011"],
+     "why": "learned surprise score; analysis after 2026-11-11; moved from 11-12 on 2026-10-21 with se15_lgbm_surprise (science review: E011's window ends 11-10 and pending outcomes are retried, so the analysis may slip past 11-12)"},
     {"token": "chg1d_x_liq", "until": "2026-11-14T00:00:00Z", "tests": ["E012"],
      "why": "24 h change x liquidity; LT2 analysis not before 2026-11-13T12:00Z"},
     {"token": "tte", "until": "2026-11-14T00:00:00Z", "tests": ["E014"],

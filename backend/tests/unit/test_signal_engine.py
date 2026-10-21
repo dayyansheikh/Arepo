@@ -607,7 +607,7 @@ def test_aux_builder_failure_is_isolated(env, monkeypatch):
 
     monkeypatch.setitem(A.AUX_FAMILIES, "surprise", {**A.AUX_FAMILIES["surprise"], "builder": boom})
     r = A.run_aux(paths, max_items=50)
-    assert r["errors"] and {e["family"] for e in r["errors"]} == {"surprise"} and len(r["errors"]) == 1
+    assert r["errors"] and {e["family"] for e in r["errors"]} == {"surprise"} and len(r["errors"]) == 4  # each capture
     idx = S.load_index(paths)
     cap = idx[SLOT0 + 3]["capture_id"]
     assert A.aux_path(paths, "movetype", cap).exists() and A.aux_path(paths, "event", cap).exists()
@@ -615,6 +615,33 @@ def test_aux_builder_failure_is_isolated(env, monkeypatch):
     monkeypatch.undo()
     A.run_aux(paths, max_items=50)
     assert A.aux_path(paths, "surprise", cap).exists()
+
+
+def test_movetype_and_surprise_ignore_later_captures(env):
+    """Causality: the tables of capture k are identical whatever the quotes / features files of k + 1 hold."""
+    w, paths = env
+    w.run(8)
+    build_all(paths)
+    idx = S.load_index(paths)
+    k, nxt = idx[SLOT0 + 6]["capture_id"], idx[SLOT0 + 7]["capture_id"]
+    while A.run_aux(paths, max_items=50)["written"]:
+        pass
+    before = {fam: S.read_parquet(A.aux_path(paths, fam, k)) for fam in ("movetype", "surprise")}
+    for p in (paths.quotes(nxt), paths.features(nxt)):  # scramble capture k + 1
+        d = S.read_parquet(p)
+        for c in ("bid", "ask", "ms_mid", "ms_ltp_minus_mid", "ms_log_vol24"):
+            if c in d:
+                d[c] = (d[c].to_numpy(np.float32) * np.float32(0.5)).astype(np.float32)
+        p.unlink()
+        S.write_once_parquet(p, d)
+    for fam in before:
+        A.aux_path(paths, fam, k).unlink()
+        A.aux_path(paths, fam, nxt).unlink()
+    while A.run_aux(paths, max_items=50)["written"]:
+        pass
+    for fam, b in before.items():
+        pd.testing.assert_frame_equal(S.read_parquet(A.aux_path(paths, fam, k)), b)
+    assert not S.read_parquet(A.aux_path(paths, "movetype", nxt))["mt_db"].isna().all()  # k + 1 itself did change
 
 
 def test_rewards_family_embargoed_until_lt4():
@@ -676,7 +703,7 @@ def test_repo_registry_loads_and_embargo_assignment():
     mt = reg["models"]["se14_lgbm_movetype"]
     assert mt["learner"] == "lgbm" and mt["params"] == se1["params"] and mt["train"]["require_full_coverage"] is True
     assert mt["families"] == ["market_state", "momentum", "movetype"] and set(mt["isolates"]) == {"movetype", "book"}
-    assert emb["se15_lgbm_surprise"] == "2026-11-12T00:00:00Z"
+    assert emb["se15_lgbm_surprise"] == "2026-11-19T00:00:00Z"
     sp = reg["models"]["se15_lgbm_surprise"]
     assert sp["learner"] == "lgbm" and sp["params"] == se1["params"] and sp["isolates"] == ["surprise"]
     for mid, lr in (("se11_lgbm_flow", "se2_lr_flow"), ("se12_lgbm_tte", "se5_lr_tte"), ("se13_lgbm_xvenue", "se4_lr_xvenue")):

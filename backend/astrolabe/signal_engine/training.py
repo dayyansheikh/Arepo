@@ -203,7 +203,8 @@ def refit_all(paths: S.Paths, reg: dict, fit_time: float, now: float, models: di
             k = 2 if target == C.RES_TARGET else 3
             y = sub[f"y_{target}"].to_numpy(np.int64)
             try:
-                art = learners.fit(spec, sub, y, sub["otime"].to_numpy(float), sub[f"lt_{target}"].to_numpy(float), k)
+                art = learners.fit(spec, sub, y, sub["otime"].to_numpy(float), sub[f"lt_{target}"].to_numpy(float), k,
+                                   attribution=SP.embargo_of(spec, fit_time) is None)
             except Exception as exc:  # noqa: BLE001 - one failed fit never stops the others
                 rec["targets"][target] = {"status": "error", "error": f"{type(exc).__name__}: {exc}"[:300],
                                           "trace": traceback.format_exc().splitlines()[-1][:200]}

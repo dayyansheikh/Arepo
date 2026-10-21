@@ -177,7 +177,8 @@ def _temp_probs(raw: np.ndarray, T: float, k: int) -> np.ndarray:
     return _softmax(raw / T)
 
 
-def fit_lgbm(df: pd.DataFrame, y: np.ndarray, otime: np.ndarray, ltime: np.ndarray, spec: dict, n_classes: int) -> dict:
+def fit_lgbm(df: pd.DataFrame, y: np.ndarray, otime: np.ndarray, ltime: np.ndarray, spec: dict, n_classes: int,
+             attribution: bool = True) -> dict:
     import lightgbm as lgb
     from scipy.optimize import minimize_scalar
 
@@ -202,7 +203,9 @@ def fit_lgbm(df: pd.DataFrame, y: np.ndarray, otime: np.ndarray, ltime: np.ndarr
     res = minimize_scalar(lambda T: _nll(_temp_probs(raw, T, n_classes), yv), bounds=(0.3, 5.0), method="bounded")
     art.update({"model": bst.model_to_string(num_iteration=bst.best_iteration), "best_iteration": int(bst.best_iteration),
                 "temperature": float(res.x), "n_train_inner": int(tr.sum()), "n_val_inner": int(val.sum()),
-                "val_nll": float(res.fun), "attribution": family_attribution(bst, X[val], names, spec, n_classes)})
+                "val_nll": float(res.fun),
+                # a development diagnostic: not computed while the spec is under an embargo (DESIGN_V1 section 8)
+                "attribution": family_attribution(bst, X[val], names, spec, n_classes) if attribution else None})
     return art
 
 
@@ -242,10 +245,11 @@ def predict_lgbm(art: dict, df: pd.DataFrame, spec: dict) -> np.ndarray:
 # ---------------------------------------------------------------------------------------------- dispatch
 
 
-def fit(spec: dict, df: pd.DataFrame, y: np.ndarray, otime: np.ndarray, ltime: np.ndarray, n_classes: int) -> dict:
+def fit(spec: dict, df: pd.DataFrame, y: np.ndarray, otime: np.ndarray, ltime: np.ndarray, n_classes: int,
+        attribution: bool = True) -> dict:
     if spec["learner"] == "logreg":
         return fit_logreg(df, y, spec, n_classes)
-    return fit_lgbm(df, y, otime, ltime, spec, n_classes)
+    return fit_lgbm(df, y, otime, ltime, spec, n_classes, attribution=attribution)
 
 
 def predict(spec: dict, art: dict, df: pd.DataFrame) -> np.ndarray:

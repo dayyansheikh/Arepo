@@ -300,7 +300,7 @@ def _movetype_builder(ctx: dict) -> pd.DataFrame:
 # Price-path context for sharp moves (CANDIDATES.md C06; SURPRISE_MOVE_DETECTOR.md section 3 primitives, not the frozen
 # detector): own realised volatility over 6 h / 3 d / 7 d and its ratios to the 24 h one, the largest 2 h move of the
 # last 24 h, UTC weekday and hour of the capture. Inputs: the engine's own quotes files of slots k - 84 .. k (earlier
-# captures plus the origin's own mid); no snapshot rows. Embargo token `surprise` until 2026-11-12 (E011).
+# captures plus the origin's own mid); no snapshot rows. Embargo token `surprise` until 2026-11-19 (E011; config.EMBARGO).
 SURPRISE_COLUMNS = ["sp_rv6h", "sp_rv3d", "sp_rv7d", "sp_r6h_24h", "sp_r24h_7d", "sp_r6h_7d", "sp_maxabs24", "sp_dow",
                     "sp_hour"]
 SP_WINDOWS = {"6h": (3, 2), "24h": (12, 3), "3d": (36, 12), "7d": (84, 24)}  # name: (2 h steps, min finite diffs)
@@ -427,7 +427,6 @@ def run_aux(paths: S.Paths, max_items: int = 4) -> dict:
     state = S.load_state(paths)
     caps = {c["id"]: c for c in S.discover_captures(paths, state)}
     written, gone, errors = [], 0, []
-    failed: set[str] = set()
     mids = SlotMids(paths, index, keep=SP_LOOKBACK + 4)  # shared across captures (newest first)
     for _slot, m in sorted(index.items(), reverse=True):
         cid = m["capture_id"]
@@ -439,12 +438,12 @@ def run_aux(paths: S.Paths, max_items: int = 4) -> dict:
             if AUX_FAMILIES[fam].get("needs_rows", True) and not has_rows:
                 gone += 1
                 continue
-            if len(written) >= max_items or fam in failed:
+            if len(written) + len(errors) >= max_items:  # a failed build uses budget too
                 continue
             try:
                 r = build_aux(paths, fam, m, cap["dir"] if cap is not None else None, index, mids)
-            except Exception as e:  # noqa: BLE001 - one family's failure must not block the others or the predictions
-                failed.add(fam)  # no table is written (missing stays missing); retried at the next run
+            except Exception as e:  # noqa: BLE001 - one build's failure must not block the others or the predictions
+                # no table is written (missing stays missing); this capture is retried at the next run, the others go on
                 errors.append({"capture_id": cid, "family": fam, "error": f"{type(e).__name__}: {e}"[:300]})
                 continue
             if r:
