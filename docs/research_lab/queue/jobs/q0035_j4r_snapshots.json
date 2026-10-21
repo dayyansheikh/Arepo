@@ -12,9 +12,7 @@
   "mem_mb": 3000,
   "cpu": 1
  },
- "depends_on": [
-  "q0036_j4r_release_gate"
- ],
+ "depends_on": [],
  "argv": [
   "scripts/run_bounce_decomp.py",
   "snapshots",
@@ -39,5 +37,6 @@
   "docs/research_lab/trials.jsonl (5 bounce_decomp lines + 1 ml_explain count line + placebo lines, each with family_status)"
  ],
  "next_action": "Claude session: read family_status first (OK / VOID / PLACEBO BIAS; verdicts are withheld unless OK); then apply the declared J4 verdict map; ledger entry; J4-R never closes Q5",
- "notes": "Do not run before 2026-10-21T03:00Z. The runner also exits 3 if the newest complete capture started earlier than --until minus 2h. If it exits 3 for too few periods (< 48), the coordinator re-queues with --until moved forward one UTC day (logged). Placebo: increments drawn with replacement from the market's pooled valid increments. | HELD behind q0036 (not yet created): the coordinator creates the gate job after 2026-10-21T03:00Z so the runner's coverage guard cannot fail the job early."
+ "notes": "Do not run before 2026-10-21T03:00Z. The runner also exits 3 if the newest complete capture started earlier than --until minus 2h. If it exits 3 for too few periods (< 48), the coordinator re-queues with --until moved forward one UTC day (logged). Placebo: increments drawn with replacement from the market's pooled valid increments. | HELD behind q0036 (not yet created): the coordinator creates the gate job after 2026-10-21T03:00Z so the runner's coverage guard cannot fail the job early. | 2026-10-21 ~04:00Z (autopilot): the q0036 gate was never created; its only declared role was the 03:00Z start (SCREENING_BATCH_2.md:1205), so it is replaced by spec not_before 2026-10-21T03:00:00Z (queue feature added later). argv, window and resources unchanged.",
+ "not_before": "2026-10-21T03:00:00Z"
 }
