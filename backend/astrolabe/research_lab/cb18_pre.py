@@ -28,7 +28,7 @@ S_CAP_FIELDS = ("market_id", "condition_id", "event_id", "received_utc", "closed
 S_EXT_FIELDS = ("market_id", "clob_token_id_1", "fee_type", "fee_category", "fees_enabled", "fee_schedule", "taker_base_fee", "order_price_min_tick_size", "order_min_size",
                 "rewards_min_size", "rewards_max_spread", "clob_rewards", "series_slugs")
 PASS1_FIELDS = ("market_id", "condition_id", "received_utc", "closed", "active", "binary", "best_bid", "best_ask", "spread")
-WATERFALL = ("noprev", "open_binary", "two_sided", "spread", "mid_range", "end_27h", "sidecar_missing", "changed", "nosweep", "stamp_missing", "clock_anomaly", "book_touched",
+WATERFALL = ("noprev", "open_binary", "two_sided", "spread", "mid_range", "end_27h", "sidecar_missing", "changed", "nosweep", "stamp_missing", "receipt_missing", "clock_anomaly", "book_touched",
              "uma", "upd_missing", "upd_earlier", "upd_after_receipt", "burst")
 
 
@@ -310,14 +310,14 @@ def s_units(k: int, fr: Frame, prev: Frame, cmp: dict, sw: pd.DataFrame | None, 
         age = rec - st0 / 1000.0
         anomaly = np.isfinite(age) & (age < r.CLOCK_ANOMALY_S)
         b0 = np.isfinite(st0) & (st0 / 1000.0 <= t_prev)
-        b1 = ~np.isfinite(st1) | (st1 / 1000.0 <= t_prev)
+        b1 = ~ok1 | (np.isfinite(st1) & (st1 / 1000.0 <= t_prev))  # outcome-1 book present but its stamp missing: not untouched (unknown never passes)
     book = b0 & b1
     uma_ok = cmp["uma_eq"] & cmp["uma_empty_b"]
     upd_k, upd_p, rec_k = F["upd_ms"].to_numpy(), cmp["upd_a"], F["rec_ms"].to_numpy()
     cls = np.array([r.s_class(a, b, rr) for a, b, rr in zip(upd_p, upd_k, rec_k, strict=True)], dtype=object)
     # waterfall (first failing step; each exclusion counted once)
     steps = [("noprev", pres), ("open_binary", e1), ("two_sided", e2), ("spread", e3), ("mid_range", e4), ("end_27h", e5), ("sidecar_missing", e6), ("changed", eq8),
-             ("nosweep", ok0), ("stamp_missing", np.isfinite(st0)), ("clock_anomaly", ~anomaly), ("book_touched", book), ("uma", uma_ok)]
+             ("nosweep", ok0), ("stamp_missing", np.isfinite(st0)), ("receipt_missing", np.isfinite(rec)), ("clock_anomaly", ~anomaly), ("book_touched", book), ("uma", uma_ok)]
     alive = np.ones(n, bool)
     first_fail = np.full(n, "", dtype=object)
     for name, ok in steps:
@@ -325,7 +325,7 @@ def s_units(k: int, fr: Frame, prev: Frame, cmp: dict, sw: pd.DataFrame | None, 
         first_fail[fail] = name
         alive &= ok
     elig7 = pres & e1 & e2 & e3 & e4 & e5 & e6
-    p10 = elig7 & eq8 & ok0 & np.isfinite(st0) & ~anomaly & book & uma_ok
+    p10 = elig7 & eq8 & ok0 & np.isfinite(st0) & np.isfinite(rec) & ~anomaly & book & uma_ok
     for nm in ("upd_missing", "upd_earlier", "upd_after_receipt"):
         first_fail[p10 & (cls == nm)] = nm
     sq = p10 & np.isin(cls, ["silent", "quiet"])
@@ -718,6 +718,7 @@ def census_p(tree: c.PinnedTree) -> dict:
         s = np.sign(x[sel])
         ex = ext.set_index("market_id").reindex(ms) if em.get("status") == "complete" else None
         sports = c.sports_flags(ex["fee_type"].fillna(""), ex["fee_category"].fillna(""), ex["series_slugs"].fillna("")) if ex is not None else np.zeros(len(ms), bool)
+        cat_known = ex["fee_type"].notna().to_numpy() if ex is not None else np.zeros(len(ms), bool)  # missing / incomplete sidecar or market absent from it: category unknown (never non-sports)
         fam = ex["series_slugs"].fillna("").to_numpy() if ex is not None else np.full(len(ms), "")
         f1 = feat1.reindex(ms)
         t_k1 = org1.reindex(ms).to_numpy(float)
@@ -746,7 +747,7 @@ def census_p(tree: c.PinnedTree) -> dict:
         strat = np.array([smp_1["members"].get(m_) for m_ in ms], dtype=object)
         for i, m_ in enumerate(ms):
             units.append({"market_id": m_, "event": b.loc[m_, "event"], "k": k, "t": t_k, "s": int(s[i]), "absx": abs(float(x[sel][i])), "spread": float(b.loc[m_, "spread_eff"]),
-                          "vol": float(b.loc[m_, "volume24hr"]), "sports": bool(sports[i]), "family": str(fam[i])[:80], "covered": bool(covered[i]), "status_ok": bool(status_ok[i]),
+                          "vol": float(b.loc[m_, "volume24hr"]), "sports": bool(sports[i]), "cat_known": bool(cat_known[i]), "family": str(fam[i])[:80], "covered": bool(covered[i]), "status_ok": bool(status_ok[i]),
                           "state": state[i], "rows": int(nrows[i]), "stratum": strat[i], "c_pre": float(s[i]) * (m2[i] - m4[i]) * 100.0 if (ok2[i] and ok4[i]) else math.nan})
     U = pd.DataFrame(units)
     return summarize_p(U, cnt)
@@ -765,7 +766,7 @@ def _p_mid(q: tuple | None, ms) -> tuple[np.ndarray, np.ndarray]:
 def p_population(U: pd.DataFrame, nonsports: bool) -> dict:
     if U.empty:
         return {"units": 0}
-    P = U[~U["sports"]] if nonsports else U
+    P = U[~U["sports"] & U["cat_known"]] if nonsports else U  # unknown category never enters the non-sports population (counted in summarize_p)
     cov = P[P["status_ok"]]
     trunc = int((~cov["covered"]).sum())
     E = cov[cov["covered"]]
@@ -811,6 +812,7 @@ def p_proxy_se(S: pd.DataFrame) -> dict:
 def summarize_p(U: pd.DataFrame, cnt: Counter) -> dict:
     out = {"family": "P", "idea": "CH172", "job": "q0503", "counts": dict(cnt)}
     ns, al = p_population(U, True), p_population(U, False)
+    out["category_unknown_units"] = int((~U["cat_known"]).sum()) if len(U) else 0
     side_share = _share(cnt["state_window_rows_side_unusable"], cnt["state_window_rows"])
     for d in (ns, al):
         if "gate_inputs" in d:
@@ -832,6 +834,18 @@ def summarize_p(U: pd.DataFrame, cnt: Counter) -> dict:
 def routing_record(results: dict[str, Path], rules_sha256: str) -> dict:
     """seals/cb18_routing.json content: each idea's route by section 3's rules only, both S MDEs, P's GP5 values, the census files' sha256. Counts 0 (cb18_descriptive)."""
     rec: dict = {"rules_version": r.RULES_VERSION, "rules_pre_sha256": rules_sha256, "inputs": {}, "routes": {}}
+    codes = {}
+    for fam, p in results.items():  # every census output must carry the current part-pre hash, and all must come from one code state
+        if p is None or not Path(p).exists():
+            continue
+        d0 = json.loads(Path(p).read_text())
+        if d0.get("rules_pre_sha256") != rules_sha256:
+            raise Refused(f"routing: {Path(p).name} carries rules_pre_sha256 {str(d0.get('rules_pre_sha256'))[:12]}, not the current {rules_sha256[:12]}")
+        codes[fam] = json.dumps(d0.get("code_sha256"), sort_keys=True)
+        if d0.get("code_sha256") is None:
+            raise Refused(f"routing: {Path(p).name} has no code_sha256")
+    if len(set(codes.values())) > 1:
+        raise Refused(f"routing: the census outputs were produced by different code states ({sorted(codes)})")
     for fam, p in results.items():
         if p is None or not Path(p).exists():
             rec["routes"][fam] = {"route": "not run", "reason": "census output absent"}

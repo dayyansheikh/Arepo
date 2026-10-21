@@ -228,7 +228,7 @@ class _Grow:
         self.a: dict[str, np.ndarray] = {}
         self.spec = {"last_j": (np.int32, -1), "t_last": (np.float64, np.nan), "mid_last": (np.float64, np.nan), "lts_mid": (np.float64, np.nan), "lts_t": (np.float64, np.nan),
                      "end_s": (np.float64, np.nan), "sports": (np.int8, 2), "structure": (np.int8, 0), "neg": (bool, False), "slot_last": (np.int32, -1), "event": (object, ""),
-                     "exited": (bool, False), "band": (object, ""), "via": (object, ""), "lag_h": (np.float64, np.nan), "gap_adj": (bool, False)}
+                     "exited": (bool, False), "band": (object, ""), "via": (object, ""), "lag_h": (np.float64, np.nan), "gap_adj": (bool, False), "reapp": (bool, False)}
         for k, (dt, fill) in self.spec.items():
             self.a[k] = np.full(0, fill, dtype=dt)
 
@@ -269,9 +269,14 @@ def map_lastmid(tree: c.PinnedTree) -> dict:
         slot = c.slot_of(c.stamp_epoch(cid))
         idx = G.index_of(d.index)
         a = G.a
+        # an exit is judged on information up to its own time (confirmed at capture j): a later re-appearance is counted (flicker, once per market) and never undoes the exit nor
+        # overwrites its record (2026-10-21 science-reviewer fix; the exit tables no longer depend on later captures)
         back = a["exited"][idx]
-        reappear += int(back.sum())
-        a["exited"][idx] = False
+        reappear += int((back & ~a["reapp"][idx]).sum())
+        a["reapp"][idx[back]] = True
+        keep_rows = ~back
+        d = d[keep_rows]
+        idx = idx[keep_rows]
         mid = d["mid"].to_numpy(float)
         a["t_last"][idx] = t
         a["mid_last"][idx] = mid

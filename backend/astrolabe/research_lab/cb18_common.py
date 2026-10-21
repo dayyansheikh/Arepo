@@ -368,7 +368,7 @@ def iter_chunks(path: Path, fields: list[str]):
     yield from pd.read_csv(path, usecols=fields, dtype=str, keep_default_na=False, chunksize=CHUNK_ROWS)
 
 
-def read_table(path: Path, fields: list[str], flags: list[str], *, keep: Callable[[pd.DataFrame], np.ndarray] | None = None) -> tuple[pd.DataFrame, dict[str, ByteFlag]]:
+def read_table(path: Path, fields: list[str], flags: list[str], *, keep: Callable[[pd.DataFrame], np.ndarray] | None = None, max_col: str | None = None, stats: dict | None = None) -> tuple[pd.DataFrame, dict[str, ByteFlag]]:
     """Stream a gzip CSV in chunks as raw strings (no NA conversion: bytes as written), keep rows passing ``keep`` and turn ``flags`` columns into ByteFlags. Missing columns are
     refused (a header without a whitelisted field is a schema change, never imputed)."""
     head = pd.read_csv(path, nrows=0)
@@ -377,6 +377,10 @@ def read_table(path: Path, fields: list[str], flags: list[str], *, keep: Callabl
         raise Refused(f"{Path(path).name}: columns {miss} absent")
     parts, fparts = [], {f: [] for f in flags}
     for ch in pd.read_csv(path, usecols=fields + flags, dtype=str, keep_default_na=False, chunksize=CHUNK_ROWS):
+        if max_col is not None and stats is not None and len(ch):  # max over ALL rows, before any filter (the sealed capture-time rule)
+            v = epoch_s(ch[max_col].to_numpy())
+            if np.isfinite(v).any():
+                stats["max"] = max(stats.get("max", -math.inf), float(np.nanmax(v)))
         if keep is not None:
             ch = ch[keep(ch)]
         for f in flags:
@@ -399,7 +403,8 @@ def read_capture(tree: PinnedTree, cap_id: str, fields: Iterable[str], flags: It
     man = json.loads(tree.path("snapshots", cap_id, "manifest.json").read_text())
     if man.get("state") != "complete":
         raise Refused(f"capture {cap_id} is not complete ({man.get('state')})")
-    df, fl = read_table(tree.path("snapshots", cap_id, "rows.csv.gz"), fields, flags, keep=keep)
+    stats: dict = {}
+    df, fl = read_table(tree.path("snapshots", cap_id, "rows.csv.gz"), fields, flags, keep=keep, max_col="received_utc", stats=stats)
     n0 = len(df)
     first = np.flatnonzero(~df["market_id"].duplicated().to_numpy())
     cond = df["condition_id"].iloc[first]
@@ -407,8 +412,7 @@ def read_capture(tree: PinnedTree, cap_id: str, fields: Iterable[str], flags: It
     keep_idx = first[~dupc]
     df = df.iloc[keep_idx].reset_index(drop=True)
     fl = {k: v.take(keep_idx) for k, v in fl.items()}
-    rec = epoch_s(df["received_utc"].to_numpy())
-    t = float(np.nanmax(rec)) if len(rec) and np.isfinite(rec).any() else math.nan
+    t = float(stats["max"]) if "max" in stats else math.nan  # last page's receipt over all rows read, not only the kept ones
     r.guard_census_time(t, f"capture {cap_id} last page", cutoff)
     meta = {"t": t, "start": start, "slot": slot_of(start), "rows_kept": len(df), "dup_market_id": n0 - len(first), "dup_condition_id": int(dupc.sum()), "rows_read": n0}
     return df, fl, meta
