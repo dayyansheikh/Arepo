@@ -10,6 +10,10 @@ reader's installation. Until the pin exists, every line the reader writes is `pr
 non-sports neg-risk members; E016 "walked" redefined by grid distance; E019 anatomy controls, t on G_series − 1 and a
 pre-declared ex-crypto rule; new census drop gates; cron install). Code, spec and tests exist (DRAFT, spec not pinned).
 
+**Censuses (2026-10-21): k = 1 (E015 only).** E016-E019 failed their census gates and were dropped before registration,
+uncounted (13.14, 7.6). Their sections are kept as the design record; only E015 is analysed, and only E015's collectors
+run (13.16). The "k = 5" planning figures below are the drafted worst case, not the registered family.
+
 This is research tooling. No edge, calibration, profitability or tradability claim exists or is implied. Every number
 quoted from the round-9 probes is a **counts-only development figure on worn data**. Every MDE here is a **planning
 estimate** built on stated assumptions, not a measurement.
@@ -21,7 +25,7 @@ fault to the rule that answers it.
 
 ## 0. Summary
 
-| ID | Idea | Hypothesis (direction) | Stream | Primary | Planning MDE (estimate; Holm worst case, k = 5) | Floor |
+| ID | Idea | Hypothesis (direction) | Stream | Primary | Planning MDE (estimate; Holm worst case as drafted, k = 5; k = 1 after the censuses, 13.14) | Floor |
 |---|---|---|---|---|---|---|
 | **E015** | CH156 | Within a market, the 2 h continuation after a **parallel** quote-only re-centering is higher than after a **traded** move (one-sided, > 0) | complete-universe captures (+ sidecar, + sweep 1 for the mechanism reading) | expanding-past demeaned OLS of `c` on 1[parallel] over parallel and traded units | **about 0.16-0.23c** (range 0.1-0.4c) | 0.5c |
 | **E016** | CH161 | 6 h taker flow continues more when more of it was **walked** (off-grid aggregated prices): slope of `x6 · zW` > 0 | trade samples + captures | E013-form expanding-past demeaned OLS plus a Freedman-Lane permutation gate (13.13; the distant-donor gate is a non-binding label) | **about 0.0018-0.0029 per SD of zW** | gross 0.5c in the favourable cell |
@@ -30,7 +34,7 @@ fault to the rule that answers it.
 | **E019** | CH159 | Within a non-sports neg-risk event, the members' 2 h continuation after a **high-breadth** untraded interval (>= 80% of members re-quoted) is higher than after a **low-breadth** one (< 50%) (> 0) | captures + sidecar | expanding-past demeaned OLS of `C` on 1[high] within event | **about 0.4-1.0c** (borderline; census-gated) | 0.5c |
 
 - **Family:** one Holm family over the k primaries, one-sided, familywise alpha 0.05, separate from LT2 (E012-E014) and
-  E009-E011. **k = 5** if every census gate in section 8 passes. A test whose census gate fails is dropped *before*
+  E009-E011. **k = 5** if every census gate in section 8 passes (as drafted; **after the censuses k = 1, E015 only**, 13.14). A test whose census gate fails is dropped *before*
   registration, uncounted, and k is the number of tests that survive their gates (E015 has by far the largest projected
   population and is the least likely to drop).
   k is fixed in the spec at registration and never changes afterwards. A primary that is unavailable or fails its gate
@@ -504,7 +508,7 @@ before the pin.
   and code stay separate; E013's `x6` is copied as a constant definition).
 
 ### 9.2 Resources
-(Install amended by 13.4: host cron every 20 min, queue draft q0474 as the fallback.)
+(Install amended by 13.4: host cron every 20 min, a fallback reader queue job (id assigned at install) as the fallback.)
 - **Memory:** per pass, two captures' selected columns (about 150-200k rows each, `usecols` and categorical ids), one sidecar,
   one sweep and one trade sample (about 220k rows, five columns). Target peak < 350 MB (P1 streamed 12 captures at 311 MB),
   hard cap `mem_mb 480`, below the queue's 500 MB blackout exemption (02:45-05:30Z), so the 04:31 slot is never lost.
@@ -662,11 +666,15 @@ stays dropped.
     (END + 30 h). Remove the entry after that.
   - A host cron entry is a host change under the standing collection authorisation. The orchestrator installs it; this
     branch does not.
-- **Fallback:** queue draft q0474 (lane `net`, `mem_mb` 480, repeat), only if the cron entry is not installed. **Never both.**
+- **Fallback:** a fallback reader queue job (id assigned at install; the earlier name q0474 is now the size check's id) (lane `net`,
+  `mem_mb` 480, repeat), only if the cron entry is not installed. **Never both.**
   - Its exit-75 re-check is 30 min, and a long `net` job can hold the lane. That is why it is the fallback.
 - **Measured locally:** none on real data yet. LT2's comparable reader measured 458-471 MB RSS per productive run on the host.
   A host dry run on past captures (`run --dry-run-start ...` into a scratch root, lines `prospective_unregistered`) is owed
-  before the pin.
+  before the pin. It must use **the exact cron command above** (same `flock`, `nice`, `oom_score_adj`, `ulimit -v 983040`,
+  `--max-items 40`, `--data-dumps-cap-gb 40`), changed only by adding `--dry-run-start` / `--dry-run-end` and `--root <scratch
+  dir>`, run from the commit to be pinned, and must record **peak RSS** (for example `/usr/bin/time -v`, maximum resident set
+  size) and **wall-clock run time** of each pass, plus the exit code (pre-pin verification finding 6).
 
 ### 13.5 Simulated-null size of the two gates (section 1.8; `size-check`)
 `la.size_check` (pinned code) simulates panels with **no** moderation or class effect: 40 markets x 30 two-hour units (flow), or
@@ -746,7 +754,7 @@ restored from the releases (`--snapshot-root` takes a restored tree), and a miss
 | R2 | crypto regex | `dogecoin` kept and `^doge` removed (government-DOGE slugs); `^eth` became `^eth-` (Ethiopia, ethics). Excluding a dominant non-crypto family as well is accepted | spec `crypto_rule`; test |
 | R3 | C2 agreement minimum | >= 500 rows per arm (walked, on-grid). Below that the agreement gates of E016 and E018 fail closed (both dropped) | `census_flow`; spec `agreement_min_rows` |
 | R4, R5, R7 | own volatility measure; flow underpowered reference; pessimistic assumptions | Accepted unchanged | — |
-| R6 | install | Cron every 20 min (13.4), q0474 as fallback only. `run_once` also takes an **internal non-blocking `flock`** on `live_tests3/run.lock`. A second reader (cron and queue at once) returns `locked` and exits 75, so they can never race | `run_once`; runner; test |
+| R6 | install | Cron every 20 min (13.4), the fallback reader job (id assigned at install; not q0474, which is now the size check) as fallback only. `run_once` also takes an **internal non-blocking `flock`** on `live_tests3/run.lock`. A second reader (cron and queue at once) returns `locked` and exits 75, so they can never race | `run_once`; runner; test |
 
 Code hashes after these fixes (normalised module sha256, `SPEC_SHA256` line excluded): `live_tests3.py`
 202c0d638d76d028df55923732ef7ccea01e5979e657f2a9ee7c3d516b7fa43c, `live_tests3_analysis.py`
@@ -828,7 +836,10 @@ Design and code only; no outcome data read. Supersedes the binding role of the d
 7. **Process.** New code hashes (below); the spec only changes description text (nothing pinned). `science-reviewer` pass, then the
    2,000-world size check on this code. If any binding scenario fails, the pin is blocked and no further redesign may follow from
    that run.
-Code hashes after this amendment (supersede 13.12): `live_tests3.py` 2dff0621bbefe9186102ee888bb70484839808e58955e799343c9d4eb62b2410,
+Code hashes after this amendment (supersede 13.12): `live_tests3.py` 2dff0621bbefe9186102ee888bb70484839808e58955e799343c9d4eb62b2410
+(**correction, 2026-10-21, pre-pin verification finding 3:** this `live_tests3.py` hash was stale; the real normalised hash
+at b43f6e1b and e29ead9c, the code q0474 ran on, was
+42663375a64e9c843640a6a6b17304ed453373b5ce24dd5ea7d6d43a4a742836; the `live_tests3_analysis.py` hash below was right),
 `live_tests3_analysis.py` 62ef3375266eb663c2d1bb541720bc77015edfad0a2b065df45523b17f96fedb (was 5e242c76… at the
 verification, 2026-10-21 ~00:45 UTC+1: OK to run; its optional fix applied before the size check: the donor label reads
 "within-unit timing untestable" when the verdict is Unavailable, the donor gate could not run, or draws were skipped, so an
@@ -841,13 +852,15 @@ untestable gate is never reported as "not shown"; label only, no gate, p or verd
    `econ.H_lower_cut`) and `e019.exclude_crypto` / `exclude_family` stay null. `code_check` requires them only when E016/E018
    or E019 are in `k_tests` (existing code; no change). C2's printed values are not copied into the spec, so nothing about
    the dropped tests is pinned as if they were live.
-3. **Collector unchanged.** The collector still writes series, sweeps, move, surge and flow lines (it writes raw features;
-   z-scaling happens in the analysis, and a null `vol24_cap` means no cap). Surge and flow lines are **descriptive only**:
-   they belong to no registered test, are never analysed as E016/E017/E018/E019 in this window, and any later use needs its
-   own registration that names these files as already collected. No code file changes, so the q0474 size check still runs
-   on the code to be pinned.
-4. **Remaining before the pin:** q0474 binding size scenarios (any failure blocks the pin, 13.13 item 7), science-reviewer
-   pre-pin verification, host dry run (13.4), `code_sha256` map, `SPEC_SHA256`, ledger registration commit, then the cron
+3. **Collector (corrected 2026-10-21, pre-pin verification findings 2 and 7).** The original text said the collector was
+   unchanged and that "z-scaling happens in the analysis". That was wrong: the collector writes the flow z columns itself, as
+   NaN (`zHTE` as 0) when the census scales are null (`live_tests3._z`). After fix 2 (13.16) the question is moot: the collector writes **no surge or flow
+   lines at all** unless their tests are in `k_tests`, so with `k_tests = ["E015"]` it writes only series, status, sweeps,
+   move and events freezes and their outcomes. No surge or flow file is collected in this window, so nothing about the
+   dropped tests is collected as if it were live. The code changed, so the size check is re-run on the fixed code (13.15).
+4. **Remaining before the pin:** the binding size scenarios per 13.15 (q0474 on the old code, then the re-run q0475 on the
+   fixed code, whose `perm_*` rates must equal q0474's), science-reviewer pre-pin verification (done: PIN_OK_WITH_FIXES; fixes in
+   13.16), host dry run (13.4), `code_sha256` map, `SPEC_SHA256`, ledger registration commit, then the cron
    install. `REGISTERED_UTC` per 1.1.
 
 
@@ -870,3 +883,31 @@ Design only. Supersedes the use of the overall `pass` field in 13.13 item 4 and 
    `fast_score`) stay byte-identical, with the same spec seed, worlds and draws, so the re-run must reproduce q0474's
    `perm_*` rates **exactly**. Any difference means investigate (environment, library versions, code), never re-roll or
    reseed. The re-run's result, on the code to be pinned, is the registered size statement.
+
+### 13.16 Pre-pin fixes and the date-constant rule (2026-10-21; `reviews/LT3_PREPIN_VERIFY_2026-10-21.md`)
+Design and code only; no outcome data and no size-check output read.
+1. **Fix 1 (finding 1, HIGH).** `analyze()` computes only the tests in `k_tests`. A dropped test produces no primary, gate,
+   economics, secondary or verdict output, only `res["dropped"][test] = "dropped at census, uncounted"`. `code_check` refuses
+   an empty or unknown `k_tests` on a pinned spec; `analyze` refuses an empty `k_tests` and never falls back to all five when
+   `k_tests` is set. Null `k_tests` (DRAFT only) keeps the development fallback, labelled DRAFT.
+2. **Fix 2 (finding 2, MED-HIGH).** `live_tests3.enabled_kinds`: move freezes always run; surge freezes only if E017 is in
+   `k_tests`; flow freezes only if E016 or E018 is. A switched-off kind writes no frozen file and no outcome, and trade samples
+   are not scanned when flow is off. Series, sweeps, move/events freezes and their outcomes are unchanged (unit test: with
+   `k_tests = ["E015"]` these files are byte-identical, decompressed, to a run with every kind on). With E015 alone, a crash or
+   out-of-memory error in the surge/flow code can no longer block E015's freezes or outcomes.
+3. **Size-check code untouched.** `size_check()` and every function it calls (13.15 item 6) are byte-identical to the code
+   q0474 ran on (function-source hashes compared before and after the fixes). The re-run is draft `q0475_lt3_size_check_r3`.
+4. **Code hashes after the fixes** (normalised, `lt.code_hashes()`; supersede 13.13): `live_tests3.py`
+   3ac52d7959e56c6a5472a34d112c61ca643c7f35ebe77b87388b5cba9c7b8c65, `live_tests3_analysis.py`
+   224b56036f98a2cfe3f92ffb6778e80c6b1131223cf20a0f548ca95fffaec955.
+5. **Date-constant rule (finding 4).** The registration commit is planned before 2026-10-23T00:00Z, so `REGISTERED_UTC =
+   2026-10-24T00:00Z` stands (1.1). If it slips, a **constants-only edit** is allowed without a new size check: change
+   `REGISTERED_UTC`, `END_UTC` and `ANALYSIS_NOT_BEFORE` (`live_tests3.py`, lines 66-68) and the spec's matching
+   `registered_utc`, `end_utc`, `analysis_not_before` (they must agree: `load_spec` refuses otherwise), all moved by the same
+   whole number of days as 1.1 requires (`REGISTERED_UTC` the next qualifying 00:00Z, `END_UTC = REGISTERED_UTC + 21 d`,
+   analysis `END_UTC + 36 h`). Basis, verified in code: `size_check()` and its helpers never read these constants; the only
+   size-check path that touches them is the CLI's `load_spec(sha=None)` consistency check, and the size check uses only the
+   spec's `size_check.worlds`, `draws`, `seed` and `nominal`. The edit changes the `live_tests3.py` hash, so the size-check
+   record's `code_sha256` will differ from the pin for that one file: the registration commit records both hashes and the
+   `git diff` showing that only those three lines changed. Any other change to either module still needs a new size check
+   (13.5). The move is recorded in the ledger; no data are inspected for it.

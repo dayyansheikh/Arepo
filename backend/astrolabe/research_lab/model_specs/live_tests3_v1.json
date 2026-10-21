@@ -1,8 +1,9 @@
 {
  "spec_id": "live_tests3_v1",
- "status": "DRAFT (not registered; sha256 not pinned in live_tests3.py; census scales and k not filled)",
+ "status": "DRAFT (not registered; sha256 not pinned in live_tests3.py; k fixed by the censuses: k_tests = [\"E015\"], LT3 13.14; flow and e019 census values left null on purpose)",
  "design": "docs/research_lab/LIVE_TESTS_3.md (sections 1-9 as amended by section 13, the response to challenger R1)",
  "experiments": ["E015", "E016", "E017", "E018", "E019"],
+ "experiments_note": "the drafted list; E016-E019 were dropped at their censuses before registration, uncounted (LT3 13.14, 7.6). Only the tests in k_tests are analysed (13.16 fix 1) and only their collectors run: surge needs E017, flow needs E016 or E018 (13.16 fix 2)",
  "registered_utc": "2026-10-24T00:00:00Z",
  "end_utc": "2026-11-14T00:00:00Z",
  "analysis_not_before": "2026-11-15T12:00:00Z",
