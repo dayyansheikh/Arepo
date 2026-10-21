@@ -3131,8 +3131,30 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   census counts are unaffected.
 - **q0545_copy_census_memcheck** (priority 37, cpu, counts only, same pre-window period, separate output, gates NOT
   re-applied) measures the recorder's own peak before the 10-22T03:30Z retention run; q0541 `mem_mb` 450 is confirmed
-  or re-sized from it before the pin. Any count difference from q0544 is a finding.
+  or re-sized from it before the pin. The skill set, signal counts and L = 0 primary set must equal q0544 (a
+  difference is a finding); the 6 h / 24 h availability counts may grow, since later pre-window captures now exist.
 - Test fix: `test_queue_drafts_valid` now finds q0544 in `queue/jobs/` (promoted), 41 / 41 pass.
+
+## SB2-J4-R (q0035, run `bounce-j4r`, finished 2026-10-21 07:25Z): **VOID as declared** (placebo failure); 5 tests counted, no verdict
+- **Run.** Declared window `[2026-10-16T00:00Z, 2026-10-21T00:00Z)`, h-tight, expanding-past estimator, 20 pooled
+  bootstrap placebo draws (seed 117), revision `j4r_expanding_v1`. 58 periods (>= 48), 5 UTC days, 2,581,045 triples,
+  33,849 event clusters. Placebo level consistency: 0 level or increment mismatches. Host tree `git_dirty` (the usual
+  appended trials.jsonl), head 054388ec.
+- **Family status (declared reading rule, SCREENING_BATCH_2.md J4-R freeze check):** the 2.5-97.5% range of the 20
+  placebo betas must cover 0 for every test. It does not for **P3** (placebo mean -0.010, range [-0.019, -0.002]) and
+  **P4** (placebo mean +0.053, range [+0.046, +0.060], 2.6x its real SE), so the family is **VOID** and every verdict is
+  withheld. The 11 trial lines (10 `bounce_decomp` + 1 `ml_explain`, n_tests 5) carry the VOID status. The 5 tests stay
+  counted.
+- **Numbers (descriptive only; no verdict, no claim):** P1 Gamma-mid reversal beta -0.083 (max-SE 0.023, placebo mean
+  -0.000, leave-one-day-out sign stable); P1x -0.059 (0.023; placebo -0.001); P2 +0.030 (0.025; placebo +0.014); P3
+  -0.103 (0.040; placebo -0.010); P4 +0.025 (0.021; placebo +0.053). P1 and P1x have clean placebos, but the VOID rule
+  binds the whole family; reading them alone would be a post-hoc selection, so it is not done.
+- **Consequence.** J4-R does not close Q5 (as declared). The expanding-past estimator removes the dynamic-panel bias for
+  the reversal terms (P1, P1x) but not for P4 (and partly P3), whose regressors are built from levels; the placebo
+  shows a mechanical slope there. Any further re-read would be a new declared family on new captures with a P3/P4
+  estimator whose placebo is null by construction, frozen before the data exist. Not queued now: the bounce question
+  is low priority against the live-test programme, and the signal engine's champion (momentum + market state)
+  already uses recent mid changes, so a reversal slope would enter it there.
 
 ## Signal engine: hidden challenger se15_lgbm_surprise, 2026-10-21 ~15:00Z (signal-engine autopilot; nothing counted)
 - New aux family `surprise` (`se-aux-surprise-v1`; DESIGN_V1 §16) from CANDIDATES C06. It holds own realised volatility

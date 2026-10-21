@@ -247,15 +247,17 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-21 12:25Z
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-21 14:10Z
 Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && git log --oneline -1'` = local tip.
 
 **Tonight (time-critical, in order):**
-1. **E026 census q0544** (priority 36, counts only) must START before 2026-10-22T02:45Z. When done: copy `census.json`
-   (counts only) into the repo as the design requires, fill the CENSUS-GATED values in `LIVE_TESTS_COPY.md`, then run the
-   challenger review (also covering the c4f3549b labeller end-date skip, §6). Then freeze q0540, pins, and the registration
-   commit before 2026-10-24T00:00Z. Owner phone notes go out at review verdict, registration and collection start
-   (`scripts/arepo_notify.py send --type milestone`, one per milestone).
+1. **E026:** census q0544 DONE (register_k2); values filled in `LIVE_TESTS_COPY.md` 7.5/8.2 and spec `planning` (51663ed4).
+   Recorder peak-RSS defect fixed (VmHWM; q0544's 1,441.6 MB was the parent's peak). **q0545_copy_census_memcheck**
+   (priority 37, cpu, counts only) must START before 02:45Z; when done: copy `census_q0545_memcheck.json` into
+   `docs/research_lab/live_tests_copy/` with sha256, set spec `planning.recorder_peak_mb`, size q0541 `mem_mb`/`as_cap_mb`
+   (net lane needs < 500), diff counts vs q0544 (must be equal). Challenger review RUNNING (started ~14:05Z, this
+   session); then fixes, owner phone note (review verdict), freeze q0540, pins, registration commit before
+   2026-10-24T00:00Z (notes at registration and collection start).
 2. **LT5 seal → census:** q0564 (priority 45) runs from 23:20Z. When done:
    - `scp` `live_tests5_census/lt5_census_inputs_captures.json` to `docs/research_lab/seals/lt5_census_inputs_captures.json`
      (byte copy; sha256 equal);

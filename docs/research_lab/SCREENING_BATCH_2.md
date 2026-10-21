@@ -1212,6 +1212,11 @@ These rulings amend the J4-R draft above and J3; they bind both (applied before 
 - **Integrity note:** no capture started on or after 2026-10-16T00:00Z has been analysed by any job before this
   freeze (q0031/q0032 used `--until-utc 2026-10-15T21:00Z`; J5 used captures up to 2026-10-15 20:31Z).
 
+#### J4-R result (q0035, 2026-10-21 07:25Z): VOID as declared
+58 periods, 2.58 M triples. The placebo range misses 0 for P3 (mean -0.010) and P4 (mean +0.053), so by the declared
+reading rule the family is VOID and all verdicts are withheld (5 tests counted). P1 / P1x placebos are clean (means
+-0.000 / -0.001), but the rule binds the whole family. Details: EXPERIMENT_LEDGER.md "SB2-J4-R".
+
 ### J5 (q0005, run `leadlag-sb2-snap2h`, finished 2026-10-15 23:05Z): SB2 rule MET for L1 (one candidate)
 - **Run.** 82.9 min; gap filter [1.5, 3] h excluded 5 periods (the 10-10 development spacing and the host outage);
   `all_periods` 51 periods, 2,394,749 pairs, 126,269 markets, 34,025 event clusters; `neg_risk_periods` 49 periods.
