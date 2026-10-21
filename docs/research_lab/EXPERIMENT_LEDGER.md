@@ -3076,3 +3076,10 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **Install verified (12:07Z):** the host cron ran at 11:40Z and 12:00Z on code 2580c58a, `pinned: true`, spec
   72a174eb, `kinds_off` [flow, surge], status `nothing_new` (no line before REGISTERED_UTC). Crontab backup:
   `~/crontab.bak.20261021T*`.
+
+## Queue, 2026-10-21 ~12:20Z (nothing counted)
+- Done: q0500/q0501 (CB18 restores, after mem_mb 1,200), q0380 (CB16 exclusion keys, attempt 3, complete;
+  `exclusion_keys.csv.gz` sha256 56dc953ed91aa430...), q0560 (LT5 restore).
+- Promoted q0383 (CB16-K census, counts only, exclusive). CB17 q0405 waits for the q0404 smoke; its base-key pin is
+  q0380's key file above.
+- Ops priorities for tonight: q0544 36 (E026 census, must start before 02:45Z); q0564 45 (LT5 seal, from 23:20Z).
