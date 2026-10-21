@@ -8,7 +8,7 @@
   "arepo-data GitHub releases data-20261015-dsheikh, data-20261016-dsheikh, data-20261017-dsheikh, data-20261018-dsheikh, data-20261018-dsheikh-2, data-20261019-dsheikh (read-only; confirmed against the committed catalogues and restore_from_archive.py --list on 2026-10-21: 112 + 28 + 96 + 88 + 4 + 36 = 364 files, each capture from exactly one release)"
  ],
  "resources": {
-  "mem_mb": 600,
+  "mem_mb": 1200,
   "cpu": 1,
   "lane": "net",
   "network": "github releases (private data repo, read-only)"
@@ -52,11 +52,11 @@
   "../data-dumps/research_lab/cb18_census/restore"
  ],
  "timeout_s": 14400,
- "max_retries": 2,
+ "max_retries": 3,
  "outputs": [
   "data-dumps/research_lab/cb18_census/restore/data-dumps/research_lab/{snapshots,book_sweeps}/<id>/",
   "data-dumps/research_lab/cb18_census/restore/RESTORE_REPORT_<tag>.json"
  ],
  "next_action": "write seals/cb18_census_inputs.json (the exact capture, sweep and sample ids of CREATIVE_BATCH_18.md section 3 with sha256 copied from each release's files.sha256, never from disk), commit it, then q0502-q0506",
- "notes": "PROMOTED 2026-10-21 (autopilot): restore only (read-only release download into cb18_census/restore); the census jobs q0502-q0506 wait for the CB18 census code check. | DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md, R1 response written, awaiting the R1 re-check). Data movement only (net lane); counts-only inputs, all before the LT2-LT5 and CB18 windows. Censuses open only files named in the seal and refuse a mismatched or missing pinned file (L4). R1 response (CREATIVE_BATCH_18.md section 11, 2026-10-21): finding 7: tags fixed from the catalogues; data-20261018-dsheikh-2 added (it alone holds the 10-17T04:31Z capture); data-20261014-research-lab-tail dropped (its 10-13T20:31Z/22:31Z captures duplicate data-20261015-dsheikh and would clash in --dest); the Mac-era data-20261013-research-lab and the -val copy (off-grid 10-13T23:19:58Z capture) are not used. Sweeps narrowed to the 10-15/16 passes (census S reads sweep 1 of pass k for k on those days only). finding 5: the six captures of slots 2026-10-14T00:31Z-10:31Z are in no release and are declared unavailable (never 0). Clear the restore tree after the routing record is committed."
+ "notes": "OPS 2026-10-21 09:15Z: mem_mb 600 -> 1200 (attempt 1 crashed in gh's Go runtime init under the address-space cap; q0413/q0480 restores used 1200). | PROMOTED 2026-10-21 (autopilot): restore only (read-only release download into cb18_census/restore); the census jobs q0502-q0506 wait for the CB18 census code check. | DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md, R1 response written, awaiting the R1 re-check). Data movement only (net lane); counts-only inputs, all before the LT2-LT5 and CB18 windows. Censuses open only files named in the seal and refuse a mismatched or missing pinned file (L4). R1 response (CREATIVE_BATCH_18.md section 11, 2026-10-21): finding 7: tags fixed from the catalogues; data-20261018-dsheikh-2 added (it alone holds the 10-17T04:31Z capture); data-20261014-research-lab-tail dropped (its 10-13T20:31Z/22:31Z captures duplicate data-20261015-dsheikh and would clash in --dest); the Mac-era data-20261013-research-lab and the -val copy (off-grid 10-13T23:19:58Z capture) are not used. Sweeps narrowed to the 10-15/16 passes (census S reads sweep 1 of pass k for k on those days only). finding 5: the six captures of slots 2026-10-14T00:31Z-10:31Z are in no release and are declared unavailable (never 0). Clear the restore tree after the routing record is committed."
 }
