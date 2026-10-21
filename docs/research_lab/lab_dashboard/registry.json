@@ -1529,7 +1529,7 @@
   {
    "id": "E026",
    "title": "Copy skilled wallets with a delay (planned live test)",
-   "plain": "Wallets that were skilled in the past stayed skilled in a development study, but only at their own trade prices. This planned live test asks whether someone who sees their trades only later, and pays taker costs, would still gain on paper, and whether any gain comes from the wallets or just from the kind of trade they make. The counting check passed its three pre-set gates (about 450 usable copy signals a day across about 650 events in three days of data). No results are read before the single analysis.",
+   "plain": "Wallets that were skilled in the past stayed skilled in a development study, but only at their own trade prices. This planned live test asks whether someone who sees their trades later and pays taker costs would still gain on paper, and whether any gain comes from the wallets or from the kind of trade. The counting check passed its three pre-set gates. No results are read before the single analysis.",
    "batch": "E026",
    "family": "wallet",
    "stage": "designed",
