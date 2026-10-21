@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-21 15:52 UTC+1
+**Last updated:** 2026-10-21 16:21 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -8,25 +8,17 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 
 ## 1. Right now
 - **Autopilot:** a session has been running since about 15:00 UTC+1 (21 Oct).
-- **Copy-skilled-wallets test (E026):** the counting results are now written into the design (counts only, no results).
-  - About 450 usable copy signals a day from 160 wallets across 650 events. Over the 21-day window that comes to about
-    9,400 copies, far above the pre-set minimum of 400. The smallest effect it can reliably detect is about 4 cents per
-    dollar. Average trading costs are about 5 cents per dollar, so a copy would have to earn more than that to show anything.
-  - An honest caveat: AREPO first sees a skilled wallet's trade a median 4.5 hours after it happens, so "copy at once"
-    really means about 6.6 hours late.
-  - **A measurement bug was found and fixed:** the memory figure for the live recorder was really the memory of its
-    parent process. A short re-check (q0545, counts only) is queued for tonight to measure the true figure before
-    registration.
-  - Also disclosed: an early, uncommitted count was seen before the pass/fail gates were written down. The gates sit far
-    below those numbers, so they could not have been placed to pass narrowly, but they were not set blind.
-  - **Review done (phone note sent):** the independent challenger accepted the design with 10 required fixes and
-    found no use of future information. All 10 are made: for example, a "no effect" verdict is now judged as strictly
-    as a "yes", every input file is locked by a fingerprint, and the 3-week collector was checked for memory on a
-    store 7 times the census size (below the light-job limit). A second check of the fixes passed, with notes. Two extra
-    safety locks were added on its advice.
-  - **Next:** the memory re-check (q0545) and then the one-time freeze of the skilled-wallet list (q0540) run on the
-    server shortly. Then the fingerprints are pinned and the test is registered (planned before 24 Oct), with a phone
-    note. Collection 25 Oct to 15 Nov.
+- **NEW: the copy-skilled-wallets test (E026) is REGISTERED (21 Oct; phone notes sent).**
+  - It asks whether copying wallets that were skilled in the past still pays on paper after AREPO's delay (a median
+    6.6 hours) and after trading costs (about 5 cents per dollar), and whether any gain comes from the wallets rather
+    than the kind of trade they make. Nothing is traded.
+  - Before registration, an independent challenger accepted it with 10 fixes; all were made and checked again. A memory
+    bug was found and fixed (the real recorder needs about 270 MB, not 1.4 GB). The list of 3,559 skilled wallets is now
+    frozen, and every code file is locked by a fingerprint.
+  - Collection runs 25 Oct to 15 Nov, with a single analysis after 6 Dec. No early looks. Expected result: most likely
+    "inconclusive" (the smallest effect it can detect, about 4 cents per dollar, is above the 3-cent bar it would need
+    to rule out).
+  - The test's code files are frozen until 7 Dec (noted in the project rules).
 - **Bounce re-check (SB2-J4-R) finished: VOID.** Its own pre-set safety check (a shuffled-data placebo) failed for 2 of
   its 5 tests, so by its rules no verdict is read. The 5 tests stay counted. No new run is planned; it is low priority.
 - **LT3 (E015) is registered.** Collection 24 Oct to 14 Nov, single analysis after 15 Nov.
@@ -34,7 +26,7 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
   seals after midnight UTC, and the **server resize to 2 CPU / 12 GB at about 03:40 UTC+1** (your approval). No
   deploys during 03:40-04:45 UTC+1. After the resize, the model run (MC1) is re-queued with the bigger memory.
 - **Live:** the E012-E014 collector is running; LT3's collector is installed. Registered live tests waiting for their
-  single analysis: E009/E010 (3 Nov), E011 (11 Nov), E012-E014 (13 Nov), E015 (15 Nov).
+  single analysis: E009/E010 (3 Nov), E011 (11 Nov), E012-E014 (13 Nov), E015 (15 Nov), E026 (6 Dec).
 
 ## 2. Approvals needed from you
 1. ~~Automatic Claude sessions~~ **APPROVED and installed 15 Oct** (full power, your call).
@@ -77,7 +69,7 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 
 | Leading candidates | Awaiting confirmation | Confirmed edge |
 |---|---|---|
-| Kalshi lead; order flow; book/liquidity interactions (being tested) | E009/E010 (3 Nov), E011 (11 Nov), E012-E014 (13 Nov), E015 (15 Nov) | **None** |
+| Kalshi lead; order flow; book/liquidity interactions (being tested) | E009/E010 (3 Nov), E011 (11 Nov), E012-E014 (13 Nov), E015 (15 Nov), E026 (6 Dec) | **None** |
 
 ## 5. Infrastructure
 | Item | State |

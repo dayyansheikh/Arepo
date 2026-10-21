@@ -251,18 +251,11 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && git log --oneline -1'` = local tip.
 
 **Tonight (time-critical, in order):**
-1. **E026:** census done (register_k2); challenger R1 ACCEPT_WITH_FIXES -> fixes d11ba0a0 + e68ff67a -> re-check
-   R1_FIXES_OK_WITH_NOTES (reviews/E026_*_2026-10-21.md; design section 14). Owner notified (review verdict).
-   Queued: **q0545** memcheck (37) then **q0540** freeze (36), both cpu, must start before 02:45Z. When done:
-   (a) copy `census_q0545_memcheck.json` into `live_tests_copy/` (sha256), check skill set / skilled signals / L=0
-   primary n, events, wallets equal q0544; recorder VmHWM < 480 MB or re-size q0541 (if >= 500 it loses the light-job
-   exemption: then STOP and redesign memory BEFORE the pin, never after); (b) read the freeze manifest on the host
-   (`copy_skilled/skillset/skillset_manifest.json`: sha256, checks); (c) fill spec `skillset_sha256`, `code_sha256`
-   (`cs.code_hashes()`), `impact_table_sha256`, status, `planning.recorder_peak_mb`; pin `SPEC_SHA256`; run the pinned
-   hash test (unskips); (d) registration commit before 2026-10-24T00:00Z: ledger block (section 12 updated), the
-   "frozen until 2026-12-07" note for copy_skilled*.py, wallet_skill*.py, costs.py, cost_model_calibration_v1.json in
-   ledger + CLAUDE.md + AGENTS.md, registry stage, promote q0541 / q0542 (not_before 10-25) and q0543 (12-06), deploy;
-   owner phone notes at registration and at collection start (10-25).
+1. **E026: REGISTERED** (7777ca66, 2026-10-21 15:20Z; ledger "E026 REGISTERED"; design 9.1 pins). Deployed and
+   host-verified. q0541 (net, not_before 10-25T00Z), q0542 (net, 10-25T06Z), q0543 (12-06T12Z) are in queue/jobs.
+   On/after 10-25: confirm q0541/q0542 start and stay healthy (counts only; `run_copy_skilled.py status`), send the
+   owner "collection started" note, then weekly counts notes. Re-promote a `failed` collector within 48 h. FROZEN until
+   12-07: copy_skilled*.py, wallet_skill*.py, costs.py, copy_skilled_v1.json, cost_model_calibration_v1.json.
 2. **LT5 seal → census:** q0564 (priority 45) runs from 23:20Z. When done:
    - `scp` `live_tests5_census/lt5_census_inputs_captures.json` to `docs/research_lab/seals/lt5_census_inputs_captures.json`
      (byte copy; sha256 equal);
@@ -282,6 +275,7 @@ Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && gi
 
 **Registered and running (no interim looks):**
 - E009/E010 (to 11-03), E011 (to 11-10), LT2 E012-E014 (q0460; analysis q0461 after 11-13T12Z).
+- **E026** registered 2026-10-21 (7777ca66; SPEC_SHA256 06d117ed…); collection 10-25..11-15, analysis q0543 after 12-06T12Z.
 - **LT3 E015** registered 2026-10-21 (2580c58a; SPEC_SHA256 72a174eb…). Host cron `*/20` installed; remove it after
   2026-11-15T06:00Z. q0475_lt3_analyze runs after 11-15T12Z.
 

@@ -3237,3 +3237,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   the census rate after 7 days the ledger notes "likely Unavailable" and nothing else changes. Signal-engine embargo on
   `wallet_skill` / wallet copy features to 2026-12-07 (applied in 26f5f954).
 - **Overlaps:** same trade samples and captures as LT2-LT4 and the live-print stream; never pooled; WS1 is development.
+- **Registration commit 7777ca66** (2026-10-21 15:20Z; the analysis runs from a worktree at this commit). Deployed;
+  host check: `load_spec` pinned (06d117ed…), `check_pinned_code` passes, reader_sha 2bae593a259b8945, the frozen
+  skill set's sha256 equals the pin. Owner phone notes sent (review verdict, registration); next at collection start
+  (2026-10-25) and weekly counts.
