@@ -232,6 +232,17 @@ async def test_superuser_dashboard_shape(env, keys):
     assert d["host"]["received_at"] and d["mac"] is None
 
 
+async def test_dashboard_passes_signal_engine_block_through(env, keys):
+    """The optional `signal_engine` key (schema se-dash-v1) is stored and returned verbatim."""
+    client = await _make_owner(env)
+    se = {"schema": "se-dash-v1",
+          "prospective": {"status": "bootstrapping", "days_scored": 0, "rows": []},
+          "models": [{"model_id": "se8", "embargoed_until": "2026-11-01T00:00:00Z"}]}
+    r = _signed(client, keys, "POST", "/api/lab/agent/snapshot", snap(signal_engine=se))
+    assert r.status_code == 204
+    assert client.get("/api/lab/dashboard").json()["host"]["payload"]["signal_engine"] == se
+
+
 async def test_owner_post_rejects_foreign_origin(env):
     client = await _make_owner(env)
     r = client.post("/api/lab/commands", json={"target": "queue", "action": "pause"},
