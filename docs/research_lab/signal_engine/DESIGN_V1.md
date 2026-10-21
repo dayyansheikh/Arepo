@@ -156,6 +156,7 @@ champion (market state + momentum), the learner reference and broad multi-family
 | wallet_skill (no model yet) | 2026-12-07T00:00Z | E026 |
 | rewards | 2026-11-22T00:00Z (from 11-18, 2026-10-21) | E020 (LT4 draft: reward flag as control / S3), LT5 R (draft); added 2026-10-21 with `se9_lr_rewards` |
 | event | 2026-11-22T00:00Z | LT5 F (draft, CH184); added 2026-10-21 ~10:20Z on the experiments track's request, before any event score was computed or shown (`se8_lr_event`, `se10_lgbm_event`) |
+| movetype | 2026-11-22T00:00Z | E015 (LT3 registered 2026-10-21, analysis not before 2026-11-15T12Z); same date as `book`; added 2026-10-21 ~14:30Z with `se14_lgbm_movetype` (which also isolates `book`), before any movetype score was computed or shown |
 
 LT3/LT4 dates are the proposed windows; when they register, move the dates **later** if needed (never earlier). A new
 challenger that isolates any hypothesis under a live test must add its token here first.
@@ -290,6 +291,28 @@ Columns:
 
 A market absent from the sidecar is NaN. Present with no programme listed means rate 0. On 2026-10-21, 5.2% of
 markets had a programme. An older sidecar without the reward columns gives an all-NaN table for that capture.
+
+**Third family `movetype` (`se-aux-movetype-v1`), challenger `se14_lgbm_movetype` (2026-10-21; embargoed under
+`movetype` and `book` until 2026-11-22, E015).** CANDIDATES C07 (traded versus quote-only moves, replicated in HB1-R)
+plus C12 (move over spread). The classes follow LIVE_TESTS_3.md §2 (E015). They are computed from the engine's own float32
+quotes and features files of capture k and of slot k - 1, so the tolerances are wider: ltp change > 1e-5, and
+|d volume24hr| > max($0.01, 4e-6 x volume). This is the engine's own definition, not E015's frozen one.
+- It needs no snapshot rows (`needs_rows: False`), so archived captures still get a table (an earlier, already
+  causal file, never a reconstruction).
+- Values are NaN when the market is not two-sided at k - 1, or not in k - 1's features file (not eligible there).
+- Class indicators are 0/1 where the class is decidable and NaN where it is not.
+- Columns:
+  - `mt_db` / `mt_da`: bid and ask change.
+  - `mt_dltp`: last-trade-price change.
+  - `mt_dlogvol`: change of log1p 24 h volume.
+  - Class: `mt_traded` (ltp changed, appeared, or volume up), `mt_never` (no ltp at either end), `mt_ambig` (volume
+    down with no visible trade, or ltp disappeared).
+  - Quote-only sub-classes: `mt_q_still` (both quotes within 0.0005), `mt_q_parallel` (same sign as the move, both
+    >= 0.005, gap <= 0.005), `mt_q_onesided`, `mt_q_spread` (opposite signs).
+  - `mt_x_spread`: move / spread (C12).
+  - `mt_x_traded` and `mt_x_parallel`: move x class.
+- Only a LightGBM challenger is added (§18 rule), with se1's params. Read it against se1.
+- Refit cost: about +9-10 min on 1 OCPU. Per-capture build: under 2 s (4 small parquet reads).
 
 Embargo (event): token `event` until 2026-11-22 since 2026-10-21 (LT5 F draft; §8). Before that request: E005 (neg-risk band deviation) closed 2026-10-11 as not supported. E019 was dropped uncounted.
 SB2-J5 is development only. `ev_sib_*` resembles SB2-J5's L1 and `ev_norm_gap` resembles E005's band deviation, so

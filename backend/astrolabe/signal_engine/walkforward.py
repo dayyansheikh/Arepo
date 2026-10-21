@@ -11,6 +11,7 @@ retrospective (labels and inputs were all on disk when it ran), so it is develop
 from __future__ import annotations
 
 import copy
+import sys
 import time
 
 import numpy as np
@@ -50,6 +51,8 @@ def run_walkforward(paths: S.Paths, reg: dict, champion: str, now: float, max_te
         fits.append({"day": day, **{k: out["summary"][k] for k in ("frame_rows", "seconds")},
                      "status": {m: {t: v.get("status") for t, v in r["targets"].items()} for m, r in out["summary"]["models"].items()}})
         arts = out["arts"]
+        print(f"SE_WALKFORWARD_DAY {day} fit_s={out['summary']['seconds']} elapsed_s={time.time() - t0:.0f} "
+              f"rss_mb={S.peak_rss_mb()}", file=sys.stderr, flush=True)  # progress for the queue log (one line per day)
         for slot, m in by_day[day]:
             start = S.epoch(m["started_utc"])
             f = read_features(paths, m["capture_id"])
