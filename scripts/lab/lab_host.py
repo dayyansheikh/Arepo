@@ -446,6 +446,22 @@ def build_signal_engine(repo: Path, now: datetime) -> dict | None:
                          for r in b["rows"] if isinstance(r, dict)]
     if isinstance(d.get("family_gains"), list):
         d["family_gains"] = [g for g in d["family_gains"] if isinstance(g, dict) and not embargoed(g)]
+    # family attribution: drop every family under an active embargo token (the file's list and the code's own)
+    tokens = {e.get("token"): e.get("until") for e in d.get("embargo_tokens") or [] if isinstance(e, dict)}
+    try:
+        if str(repo / "backend") not in sys.path:
+            sys.path.insert(0, str(repo / "backend"))
+        from astrolabe.signal_engine.config import EMBARGO
+
+        tokens.update({e["token"]: e["until"] for e in EMBARGO})
+    except Exception:  # noqa: BLE001 - the file's list still applies
+        pass
+    live = {t for t, u in tokens.items() if _parse_utc(u) is None or _parse_utc(u) > now}  # unparseable: hidden
+    if isinstance(d.get("attribution"), list):
+        d["attribution"] = [
+            {**a, "families": {f: v for f, v in (a.get("families") or {}).items() if f not in live},
+             "hidden": sorted(set(a.get("hidden") or []) | (set(a.get("families") or {}) & live))}
+            for a in d["attribution"] if isinstance(a, dict) and not embargoed(a)]
     gen = _parse_utc(d.get("generated_at"))
     d["stale"] = gen is None or (now - gen) > timedelta(days=2)
     if len(json.dumps(d, separators=(",", ":"))) > SE_MAX_BYTES:

@@ -279,3 +279,15 @@ Embargo: no token. E005 (neg-risk band deviation) closed 2026-10-11 as not suppo
 SB2-J5 is development only. `ev_sib_*` resembles SB2-J5's L1 and `ev_norm_gap` resembles E005's band deviation, so
 se8 is recorded in the ledger as a counted development look at both: any later live test of either must declare
 that it is not fresh.
+
+## 17. Family attribution (2026-10-21, `learners.family_attribution`)
+
+Every LightGBM fit stores `attribution`: mean |SHAP| (LightGBM `pred_contrib`, raw-score scale, summed over classes)
+per feature family (derived `tte` and `category` are their own entries). It is computed on a seeded subsample of up to
+20,000 rows of the fit's inner validation block. It is a development diagnostic of the fit, never a score, and plays no
+part in promotion. `dashboard.json` carries `attribution` for the newest primary-target fit of each active,
+non-embargoed LightGBM model.
+- Families under an active embargo token are dropped entirely: no value and no share. Only their names are listed
+  under `hidden`, so the remaining numbers reveal nothing about them.
+- `lab_host.py` re-applies the drop independently, using the file's `embargo_tokens` plus the code's `EMBARGO`.
+  An unparseable date counts as embargoed.

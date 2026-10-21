@@ -6,6 +6,7 @@ embargoed models carry only ``embargoed_until`` (no numbers) until their date.""
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from . import config as C
 from . import specs as SP
@@ -29,6 +30,34 @@ def _family(spec: dict) -> str:
         return f"combination ({spec['learner']})"
     iso = spec.get("isolates") or []
     return "+".join(iso) if iso else ("baseline" if spec["learner"] == "logreg" else f"baseline ({spec['learner']})")
+
+
+def _attribution(paths: S.Paths, reg: dict, now: float) -> list[dict]:
+    """Primary-target family attribution of each active LightGBM model's newest fit (development diagnostic).
+    Families under an active embargo token are dropped entirely (no value, no share), so nothing about them leaks."""
+    from . import training as T
+
+    active = {e["token"]: e["until"] for e in C.EMBARGO if now < S.epoch(e["until"])}
+    out = []
+    for mid, spec in SP.active_models(reg).items():
+        if spec["learner"] != "lgbm" or SP.embargo_of(spec, now):
+            continue
+        fit = T.latest_fit(paths, mid, now)
+        if fit is None:
+            continue
+        try:
+            art = json.loads((Path(fit["_dir"]) / f"{C.PRIMARY_TARGET}.json").read_text())
+        except (OSError, ValueError, KeyError):
+            continue
+        a = art.get("attribution")
+        if not a:
+            continue
+        fams = {f: v for f, v in a["families"].items() if f not in active}
+        out.append({"model_id": mid, "fit_time": art.get("fit_time"), "target": C.PRIMARY_TARGET, "method": a["method"],
+                    "block": a["block"], "rows": a["rows"], "families": fams,
+                    "hidden": sorted(f for f in a["families"] if f in active),
+                    "label": "development diagnostic (mean |SHAP| on the fit's validation block), not a score"})
+    return out
 
 
 def build(paths: S.Paths, reg: dict, champion: str, now: float, lb: dict | None, history_days: int = 28) -> dict:
@@ -87,6 +116,8 @@ def build(paths: S.Paths, reg: dict, champion: str, now: float, lb: dict | None,
                                            for r in dev["rows"]]}
         except (OSError, ValueError, KeyError):
             pass
+    out["attribution"] = _attribution(paths, reg, now)
+    out["embargo_tokens"] = [{"token": e["token"], "until": e["until"]} for e in C.EMBARGO if now < S.epoch(e["until"])]
     hist = SP.champion_history(paths)
     out["promotions"] = hist[-10:]
     return S.clean_json(out)

@@ -332,6 +332,13 @@ def test_end_to_end_predict_score_and_embargo(env, monkeypatch):
     js = json.dumps(dash)
     fr = [x for x in dash["prospective"]["rows"] if x["model_id"] == "flowc"]
     assert fr == [{"model_id": "flowc", "embargoed_until": "2026-11-16T00:00:00Z"}] and "NaN" not in js
+    # family attribution (LightGBM mean |SHAP|): the embargoed flow family has no value at all, only its name in hidden
+    at = [x for x in dash["attribution"] if x["model_id"] == "lgb_all"]
+    assert at and at[0]["hidden"] == ["flow", "tte"] and not {"flow", "tte"} & set(at[0]["families"])
+    assert {"market_state", "momentum", "category"} <= set(at[0]["families"]) and at[0]["families"]["momentum"] > 0
+    fit = T.latest_fit(paths, "lgb_all", now)
+    raw = json.loads((Path(fit["_dir"]) / "dir_2h.json").read_text())["attribution"]
+    assert raw["families"]["flow"] >= 0 and raw["block"] == "inner_validation"
     # after the embargo date the same predictions are scored
     later = S.epoch("2026-11-16T00:00:01Z")
     assert SP.embargo_of(reg["models"]["flowc"], later) is None
@@ -629,6 +636,12 @@ def test_lab_host_signal_engine_section_strips_embargoed_numbers(tmp_path):
     rows = se["prospective"]["rows"]
     assert rows[1] == {"model_id": "f", "embargoed_until": "2026-11-16T00:00:00Z"}
     assert se["family_gains"] == [{"model_id": "c2", "gain": 0.0}]
+    # attribution: families under an embargo token (the code's EMBARGO, or the file's list) are dropped by lab_host
+    dash["attribution"] = [{"model_id": "c2", "families": {"momentum": 0.2, "flow": 0.1, "zz": 0.3, "event": 0.05}}]
+    dash["embargo_tokens"] = [{"token": "zz", "until": "2026-12-01T00:00:00Z"}]
+    (d / "dashboard.json").write_text(json.dumps(dash))
+    at = lab.build_signal_engine(tmp_path, now)["attribution"][0]
+    assert at["families"] == {"momentum": 0.2, "event": 0.05} and at["hidden"] == ["flow", "zz"]
     assert lab.build_signal_engine(tmp_path / "none", now) is None
 
 
