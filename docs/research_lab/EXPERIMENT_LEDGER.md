@@ -2894,7 +2894,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   loaded the pre-fix modules at 03:12Z. The size-check functions are byte-identical across the fix (§13.16 item 3), so
   this is a labelling caveat only. q0475, which loaded the fixed code, gives the registered statement.
 
-## Queue promotions, 2026-10-21 ~09:30Z (autopilot; nothing counted)
+## Queue promotions, 2026-10-21 ~08:55Z (autopilot; nothing counted)
 - **Promoted:** q0280_cb13_seal_R (q0278/q0279 done; CB13 freeze-checked; T_seal not binding for CB13);
   q0347_cb15_p_birth_census (q0340 done, q0348 P smoke passed, CB15-P fixes ACCEPT_WITH_FIXES);
   q0380_cb16_exclusion_keys (q0340 done; CB16 freeze-checked and re-checked; `--base-sha256` 10240ce7… = host
@@ -2906,7 +2906,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   q0312 (CB14-S terminal after the q0301 smoke failure); q0040b (not before 10-23); q0235, q0256, q0258 (rep stages not
   triggered: their screens gave advance false).
 
-## CB18 census code: fixes verified, census jobs promoted, 2026-10-21 ~09:20Z (nothing counted)
+## CB18 census code: fixes verified, census jobs promoted, 2026-10-21 ~09:00Z (nothing counted)
 - Code check (science-reviewer) CENSUS_READY_WITH_FIXES (`reviews/CB18_CENSUS_CODE_CHECK_2026-10-21.md`). The eight
   fixes are in 1442bb27: capture time over all rows; unknown category, missing stamp and missing receipt fail closed
   and are counted; routing checks the hashes; map M exits use no later information. CREATIVE_BATCH_18.md §13 holds the

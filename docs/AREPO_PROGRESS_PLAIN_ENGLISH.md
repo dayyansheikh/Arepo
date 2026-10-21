@@ -1,25 +1,24 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-21 09:48 UTC+1
+**Last updated:** 2026-10-21 10:02 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **Autopilot:** a new session started at 09:43 UTC+1 (21 Oct). The previous one ended at its 5-hour limit and left
-  three pieces of work half-done; helpers have picked each one up:
-  - the copy-skilled-wallets live test (E026) design. You get a phone note when the design is done.
-  - the batch 18 counting code.
-  - a design for a fifth group of live tests (LT5), built from the latest round of new ideas.
-- **LT3 (E015) is on track to register by the end of 22 Oct (start 24 Oct).** The server test run is done: peak memory
-  0.53 GB against a 0.96 GB limit, and the slowest pass took 13 minutes against a 20-minute schedule. Left to do: the size-check
-  re-run (finishing about 11:40 UTC+1; it must give exactly the same safety numbers as the first run), an independent
-  freeze check, then pin and register.
-- **Model run (MC1) ran out of memory again** (about 4.9 GB used of the server's 5.6 GB), even after the memory fix.
-  It will not be retried on this server. It needs more memory; see approval 7.
-- **E012-E014 live collector:** running. **LT4 (E020-E022):** its counting checks are queued. **Batch 17:** reproduction
-  check queued. **Second free server:** still "out of host capacity" at Oracle; it retries every 10 min.
+- **Autopilot:** a session has been running since 09:43 UTC+1 (21 Oct).
+- **LT3 (E015) is on track to register by the end of 22 Oct (start 24 Oct).**
+  - The server test run is done: peak memory 0.53 GB against a 0.96 GB limit, and the slowest pass took 13 minutes against a 20-minute schedule.
+  - The first size check passed its three binding safety numbers (false-alarm rates 4.4-4.8% against a 5.8% limit).
+  - The re-run, which must match the first exactly, finishes at about 11:40 UTC+1. Then come pinning and registration.
+  - One order-flow check failed narrowly (5.9%). That does not affect E015, but no future order-flow test may use that check until it is redesigned.
+- **Batch 18 (CB18):** the counting code was finished, checked by an independent reviewer and fixed. Its 7 jobs are now on the server queue (restores, then five counting checks; counts only).
+- **Three more queued jobs:** batch 13's sealed holdout, batch 15's "listed on Kalshi first" count, and batch 16's exclusion list.
+- **New: LT5 draft.** This is a fifth group of up to 5 live tests from the latest new-ideas round. Examples: whether a price jump behaves differently from a slow grind, and whether a market moving alone differs from one moving with its event's other markets. An independent challenger review is running now. The earliest start is 30 Oct.
+- **Copy-skilled-wallets test (E026):** the design is complete apart from its counting check (job q0544). Another session is working on the same branch right now, so this session is not driving it, to avoid duplicate work. Its counting check must start before 03:45 UTC+1 on 22 Oct.
+- **Model run (MC1) ran out of memory again** (about 4.9 GB of 5.6 GB). It won't be retried on this server; see approval 7.
+- **Live:** the E012-E014 collector is running. LT4's counting checks and batch 17's reproduction check are queued. Oracle still says "out of host capacity" for the second server.
 
 ## 2. Approvals needed from you
 1. ~~Automatic Claude sessions~~ **APPROVED and installed 15 Oct** (full power, your call).

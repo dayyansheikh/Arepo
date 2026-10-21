@@ -230,7 +230,7 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-21 08:50Z
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-21 09:05Z
 0. **Autopilot session from 08:43Z 10-21.**
    - **Deploy only from `chore/arepo-claude-setup`**; check `ssh oracle 'cd ~/arepo && git log --oneline -1'` = local tip.
    - **LT3 = E015 only, k = 1.** Host dry run (§13.4) DONE and recorded (§13.17, ledger; peak RSS 534 MB, max wall 13 min).
@@ -240,9 +240,12 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
      2026-10-23T00:00Z**, install the §13.4 cron (never also the fallback job q0474_lt3_live_collect draft).
    - **MC1:** q0116e OOM-killed 07:10Z (4.93 GB). Not retried on this host; waits for the second instance or an
      owner-approved free resize (dashboard approval 7).
-   - **Helpers launched this session (worktrees):** E026 copy-skilled finisher (`../astrolabe-copy-skilled`); CB18 census code
-     (`../astrolabe-cb18`); LT5 design draft (`../astrolabe-live-tests-5`); queue-draft vetting (q0280, q0347, q0380, CB11/12/14
-     drafts) in the main worktree. Merge each after review; owner phone note at E026 design done.
+   - **This session so far:** CB18 census code merged, checked (CENSUS_READY_WITH_FIXES -> FIXES_OK_WITH_NOTES) and
+     q0500-q0506 promoted (then `run_cb18.py routing`); q0280, q0347, q0380 promoted; deployed 1e8fcb35. LT5 draft on
+     `feat/live-tests-5` c4b09d73 (`LIVE_TESTS_5.md`, drafts q0560-q0563): challenger R1 running; merge after review.
+   - **E026 copy-skilled:** another session is committing on feat/copy-skilled (c4f3549b, 09:56 +0100). Do not duplicate.
+     Its census draft **q0544 must START before 2026-10-22T02:45Z** (10-18/19 samples retire 03:30Z). If nobody has
+     promoted it by ~18:00Z, merge feat/copy-skilled and promote q0544.
    - **Copy-skilled (E026):** owner phone notes at design done / review verdict / registration / collection start / weekly
      counts / result (`scripts/arepo_notify.py send --type milestone`).
    - **LT2 (E012-E014) REGISTERED:** q0460 running (repeat); q0461 after 11-13T12Z. No interim looks.
