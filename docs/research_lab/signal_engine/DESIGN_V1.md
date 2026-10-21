@@ -153,6 +153,7 @@ champion (market state + momentum), the learner reference and broad multi-family
 | flow | 2026-11-16T00:00Z | E013, E014 (LT2, 2026-11-13T12Z), E016, E018 (LT3 proposed 2026-11-15T12Z) |
 | book | 2026-11-18T00:00Z | E015, E019 (LT3), E020, E022 (LT4 proposed 2026-11-17T12Z) |
 | wallet | 2026-11-18T00:00Z | E024 (LT4) |
+| rewards | 2026-11-18T00:00Z | E020 (LT4 draft: reward flag as control / S3); added 2026-10-21 with `se9_lr_rewards` |
 
 LT3/LT4 dates are the proposed windows; when they register, move the dates **later** if needed (never earlier). A new
 challenger that isolates any hypothesis under a live test must add its token here first.
@@ -275,7 +276,20 @@ carry part of that market's later move. This removes some large events selective
 coverage by event size (to do). Measured on a host capture (42,161 eligible): ev_log_n 90%, overround 44%, rank 79%,
 sib_chg1h 20%, sib_chg1d 56%, sib_d2h 71%. Build ~14 s per capture under load.
 
-Embargo: no token. E005 (neg-risk band deviation) closed 2026-10-11 as not supported. E019 was dropped uncounted.
+**Second family `rewards` (`se-aux-rewards-v1`), challenger `se9_lr_rewards` (embargoed until 2026-11-18, E020).**
+Inputs: the same capture's Gamma sidecar (`rows_ext.csv.gz`: `rewards_min_size`, `rewards_max_spread`, `clob_rewards`).
+Columns:
+- `rw_has`: an active programme on the capture's UTC date.
+- `rw_log_rate`: log1p of the summed `rewardsDailyRate`.
+- `rw_max_spread`: in cents.
+- `rw_log_min_size`.
+- `rw_in_band`: the current spread is within the max spread, for markets with an active programme.
+- `rw_new`: a programme started within the last 2 days.
+
+A market absent from the sidecar is NaN. Present with no programme listed means rate 0. On 2026-10-21, 5.2% of
+markets had a programme. An older sidecar without the reward columns gives an all-NaN table for that capture.
+
+Embargo (event): no token. E005 (neg-risk band deviation) closed 2026-10-11 as not supported. E019 was dropped uncounted.
 SB2-J5 is development only. `ev_sib_*` resembles SB2-J5's L1 and `ev_norm_gap` resembles E005's band deviation, so
 se8 is recorded in the ledger as a counted development look at both: any later live test of either must declare
 that it is not fresh.

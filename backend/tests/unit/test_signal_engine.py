@@ -439,7 +439,8 @@ def test_aux_family_end_to_end_write_once_and_missing(env, monkeypatch):
     assert not A.aux_path(paths, "event", old).exists()
     cap5 = idx[SLOT0 + 5]["capture_id"]
     sha = S.sha256_file(A.aux_path(paths, "event", cap5))
-    assert A.run_aux(paths, max_items=50) == {"written": [], "unbuildable_no_rows": 1}
+    assert A.run_aux(paths, max_items=50) == {"written": [], "unbuildable_no_rows": 2}  # 2 families
+    assert A.aux_path(paths, "rewards", cap5).exists()  # synthetic sidecar has no reward columns: an all-NaN table
     assert S.sha256_file(A.aux_path(paths, "event", cap5)) == sha
     f = A.read_features(paths, cap5)
     assert np.isfinite(f["ev_log_n"].to_numpy(float)).all() and np.isfinite(f["ev_rank"].to_numpy(float)).any()
@@ -476,6 +477,29 @@ def test_aux_family_end_to_end_write_once_and_missing(env, monkeypatch):
     import pyarrow.parquet as pq
     md = json.loads(pq.read_schema(paths.predictions(cap23, "evc")).metadata[b"signal_engine"])
     assert md["aux_sha256"]["event"] == S.sha256_file(A.aux_path(paths, "event", cap23))
+
+
+def test_rewards_features_hand_example():
+    ext = pd.DataFrame({"rewards_min_size": [50.0, 100.0, 50.0], "rewards_max_spread": [4.5, 3.0, 4.5],
+                        "clob_rewards": ['[{"startDate":"2026-10-20","endDate":"2500-12-31","rewardsDailyRate":100}]',
+                                         '[{"startDate":"2026-09-01","endDate":"2026-10-01","rewardsDailyRate":50}]', None]},
+                       index=pd.Index([1, 2, 3], name="market_id"))
+    f = pd.DataFrame({"market_id": [1, 2, 3, 4], "ms_spread": [0.02, 0.01, 0.10, 0.02]})
+    a = A.rewards_features(ext, f, S.epoch("2026-10-21T06:31:00Z"))
+    np.testing.assert_allclose(a["rw_has"][:3], [1, 0, 0])  # market 2's programme ended
+    np.testing.assert_allclose(a["rw_log_rate"][:3], [math.log1p(100), 0, 0], rtol=1e-6)
+    np.testing.assert_allclose(a["rw_in_band"][:3], [1, 0, 0])
+    np.testing.assert_allclose(a["rw_new"][:3], [1, 0, 0])
+    np.testing.assert_allclose(a["rw_max_spread"][:3], [4.5, 3.0, 4.5])
+    assert np.isnan(a.iloc[3].to_numpy(float)).all()  # not in the sidecar: missing, never zero
+    assert np.isnan(A.rewards_features(None, f, 0.0).to_numpy(float)).all()
+
+
+def test_rewards_family_embargoed_until_lt4():
+    reg = SP.load_registry()
+    e = SP.embargo_of(reg["models"]["se9_lr_rewards"], S.epoch("2026-10-22T00:00:00Z"))
+    assert e and e["until"] == "2026-11-18T00:00:00Z" and "E020" in e["tests"]
+    assert SP.embargo_of(reg["models"]["se8_lr_event"], S.epoch("2026-10-22T00:00:00Z")) is None
 
 
 def test_spec_aux_version_pin():

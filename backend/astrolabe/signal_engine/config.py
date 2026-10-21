@@ -82,4 +82,6 @@ EMBARGO = (
      "why": "quote / ladder / depth anatomy (LT3 proposed 2026-11-15T12Z; LT4 proposed 2026-11-17T12Z)"},
     {"token": "wallet", "until": "2026-11-18T00:00:00Z", "tests": ["E024"],
      "why": "flow concentration (LT4 proposed 2026-11-17T12Z)"},
+    {"token": "rewards", "until": "2026-11-18T00:00:00Z", "tests": ["E020"],
+     "why": "liquidity-reward flag used as control / S3 in the E020 draft (LT4 proposed 2026-11-17T12Z); added 2026-10-21"},
 )

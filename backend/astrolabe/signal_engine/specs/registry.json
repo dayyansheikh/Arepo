@@ -65,6 +65,13 @@
    "spec_sha256": "752e150be4076461420effe233899ca743a3f1eb323d623b22caee485b4bfdaa",
    "status": "active",
    "added_utc": "2026-10-21T04:30:00Z"
+  },
+  {
+   "model_id": "se9_lr_rewards",
+   "file": "se9_lr_rewards.json",
+   "spec_sha256": "09fadab8e652aa9eb420d2a180edb5dd56ed22e0af743de85d4a610502dc1917",
+   "status": "active",
+   "added_utc": "2026-10-21T05:00:00Z"
   }
  ]
 }
