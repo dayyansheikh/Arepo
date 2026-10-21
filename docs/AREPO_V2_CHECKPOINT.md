@@ -270,6 +270,11 @@ Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && gi
    q0164, run the two `derive-exclusion-ids` commands in its draft notes on the host and fill both sha256 tokens.
    CB9 q0181+ and CB10 q0201 come after their pins.
 
+4. **Host resize 2026-10-22 02:40Z** (owner-approved; no deploy / crontab edit / queue resume 02:40-03:45Z). After
+   `~/.arepo/resize/DONE` exists: append `~/.arepo/resize/ledger_deviation_draft.md` to the ledger (facts only), run
+   `resize_host.py --remove-cron`, update the 1 OCPU / 6 GB wording, then promote the prepared draft
+   `queue/drafts/q0116f_mc1_dev_run.json` (exclusive, mem_mb 6000, as_cap_mb 14000) to `queue/jobs/` and deploy.
+
 **Registered and running (no interim looks):**
 - E009/E010 (to 11-03), E011 (to 11-10), LT2 E012-E014 (q0460; analysis q0461 after 11-13T12Z).
 - **LT3 E015** registered 2026-10-21 (2580c58a; SPEC_SHA256 72a174eb…). Host cron `*/20` installed; remove it after
