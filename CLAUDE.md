@@ -28,6 +28,9 @@ No production merge/deploy/migration/infra/env change, no remote branch deletion
 - Verify the Render and Vercel deploys afterwards.
 - This exception does not cover destructive migrations, env/secret changes, infra changes or data deletion. Those still need explicit owner approval.
 Never edit `docs/implementation/*EVIDENCE*.json`, frozen `*_PROTOCOL.md`, or canonical runs in `data-dumps/`.
+**Frozen for registered live test E026 until 2026-12-07** (any edit voids it): `backend/astrolabe/research_lab/`
+`copy_skilled.py`, `copy_skilled_analysis.py`, `wallet_skill.py`, `wallet_skill_dev.py`, `costs.py`, and
+`model_specs/copy_skilled_v1.json`, `model_specs/cost_model_calibration_v1.json`. Put changes in new files instead.
 Data retirement only via the capsule-first policy in `docs/implementation/PHASE_03_BOUNDED_RETENTION.md`, with explicit
 user approval for that session.
 

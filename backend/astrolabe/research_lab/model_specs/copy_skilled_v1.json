@@ -1,6 +1,6 @@
 {
  "version": "copy-skilled-v1",
- "status": "DRAFT (not registered; SPEC_SHA256 unpinned, skillset_sha256 and code_sha256 unfilled)",
+ "status": "REGISTERED (pins filled 2026-10-21; skill set frozen by q0540 at 2026-10-21T15:14Z; window from registered_utc)",
  "doc": "docs/research_lab/LIVE_TESTS_COPY.md",
  "experiments": ["E026-N", "E026-C"],
  "registered_utc": "2026-10-25T00:00:00Z",
@@ -19,8 +19,8 @@
   "top_frac": 0.1,
   "rule": "wallet_skill.build_profiles_batch(profile_trades, resolutions, t_freeze) then snapshot_frame: eligible n_pos >= 5, skilled = top 10% of eligible by skill_score with skill_z > 0; positions only in markets whose outcome was known strictly before t_freeze (closedTime + 48 h); truncated markets and post-close prints excluded (wallet_skill_dev.profile_trades)"
  },
- "skillset_sha256": null,
- "impact_table_sha256": null,
+ "skillset_sha256": "8120c12e604c74721e7ce52dc84df61ea6f9b190151e845d1035e57e4a550f46",
+ "impact_table_sha256": "df45bae4dfcaf5cf685dbb198b5bc4484605319a8bbd3b7917ca7d26aea3ef00",
  "latencies_s": [0, 21600, 86400],
  "primary_latency_s": 0,
  "exit_horizon_s": 86400,
@@ -93,5 +93,5 @@
   "recorder_peak_mb": 269.5,
   "recorder_peak_note": "q0545 (host, R1-fixed code 761d4498, VmHWM of the recorder child, one 35-sample / 41-capture backlog pass; census_q0545_memcheck_2026-10-21.json sha256 24a50571...); q0544's 1441.6 was the parent's peak (Linux ru_maxrss across exec)"
  },
- "code_sha256": {}
+ "code_sha256": {"copy_skilled.py": "84fee699037e92c0566eb0ab35f2305d8f79090cedf6de18c544d9c2884f2499", "copy_skilled_analysis.py": "bc9529969f95ac10e8d569e79ca44f984fbd509b44fb7cc1608980cc17d22a07", "wallet_skill.py": "7bd44743cfdf6718f4e9e2bacbdbf29be113659834f7138559a4b2b29e194b5f", "wallet_skill_dev.py": "a31c0ad76e72e12718b0330eb53f69c5e8929b871df9a473fa1cd065ef766b34", "costs.py": "258856fc360fbe70ce7a062a3f156b66d9d71fd50de56bf3669935c4227f844d"}
 }

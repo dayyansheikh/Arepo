@@ -1,14 +1,16 @@
-# Live test E026: copy skilled wallets with latency — DRAFT pre-registration
+# Live test E026: copy skilled wallets with latency — REGISTERED pre-registration (2026-10-21)
 
 Research tooling only. AREPO never trades. A "copy" here is a PAPER position priced from quotes AREPO already captured.
 No order is sent, no wallet is called informed or an insider, and nothing here is an edge claim. Wallets are HMAC hashes
 (`wallet_sidecar.hash_wallet`, key on the host only). No raw address is read, stored or printed. The skilled-set file
 holds hashes only and is never committed.
 
-**Status: DRAFT.** Not registered, nothing counted. Every line written before the spec pin is
-`prospective_unregistered` and is never analysed as a confirmation. Order: the pre-window counts-only census (q0544,
-section 8.2) fills the numbers marked **CENSUS-GATED** and applies the pre-declared gates (section 7.6) — done
-2026-10-21, decision **register_k2**; then the challenger review (section 11); then the freeze and the pins (section 9).
+**Status: REGISTERED 2026-10-21** (ledger "E026 REGISTERED"). Counted tests: 2 (E026-N, E026-C; Holm k = 2). Window:
+receipts in `[2026-10-25T00:00Z, 2026-11-15T00:00Z)`; label cutoff 2026-12-06T00:00Z; single analysis q0543 on or after
+2026-12-06T12:00Z. No interim look: `status` prints counts only. Order followed: census q0544 (register_k2) ->
+challenger R1 (ACCEPT_WITH_FIXES) -> fixes -> R1 re-check (R1_FIXES_OK_WITH_NOTES) -> memory re-check q0545 -> freeze
+q0540 -> pins (section 9.1). Where any text differs, sections 14 and 9.1 govern. Lines with receipt before the window
+are `prospective_unregistered` and are never analysed as a confirmation.
 
 ## 0. Summary
 
@@ -458,6 +460,26 @@ marker and refuses any other non-empty dir.
 7. From the pin on, lines with receipt in the window are `prospective_confirmation`. The analysis keeps only lines
    with that role, `spec_sha` = the pin and `code_sha` = the pinned recorder hash, and refuses to run if any pinned code
    hash differs.
+
+### 9.1 Pins (filled 2026-10-21)
+
+| pin | value |
+|---|---|
+| `SPEC_SHA256` (spec file `model_specs/copy_skilled_v1.json`) | `06d117ed44f4ed26b309ee2418ec5bccfcd480a66330c2d5cc0f56344e9bbd86` |
+| `skillset_sha256` (q0540, host `copy_skilled/skillset/skillset.csv.gz`, frozen 2026-10-21T15:14:02Z at code 761d4498) | `8120c12e604c74721e7ce52dc84df61ea6f9b190151e845d1035e57e4a550f46` |
+| freeze checks | eligible 35,587, skilled 3,559, max known outcome ts 1791974187 (< 2026-10-18T04:00Z): no mismatch |
+| recorder `code_sha` (reader_sha) | `2bae593a259b8945` |
+| `impact_table_sha256` (`cost_model_calibration_v1.json`) | `df45bae4dfcaf5cf685dbb198b5bc4484605319a8bbd3b7917ca7d26aea3ef00` |
+| `code_sha256` copy_skilled.py | `84fee699037e92c0566eb0ab35f2305d8f79090cedf6de18c544d9c2884f2499` |
+| `code_sha256` copy_skilled_analysis.py | `bc9529969f95ac10e8d569e79ca44f984fbd509b44fb7cc1608980cc17d22a07` |
+| `code_sha256` wallet_skill.py | `7bd44743cfdf6718f4e9e2bacbdbf29be113659834f7138559a4b2b29e194b5f` |
+| `code_sha256` wallet_skill_dev.py | `a31c0ad76e72e12718b0330eb53f69c5e8929b871df9a473fa1cd065ef766b34` |
+| `code_sha256` costs.py | `258856fc360fbe70ce7a062a3f156b66d9d71fd50de56bf3669935c4227f844d` |
+
+**Frozen files until 2026-12-07** (any edit makes the analysis refuse and loses E026): `copy_skilled.py`,
+`copy_skilled_analysis.py`, `wallet_skill.py`, `wallet_skill_dev.py`, `costs.py`, `model_specs/copy_skilled_v1.json`,
+`model_specs/cost_model_calibration_v1.json`. `test_pinned_files_hash_to_the_pins` fails on any edit. The analysis runs
+from a worktree at the registration commit.
 
 ## 10. Stop rules, overlaps and embargo
 

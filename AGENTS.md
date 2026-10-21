@@ -87,6 +87,13 @@ Run validation proportionate to the change. Do not weaken tests or research safe
 - Never reduce market-universe completeness merely to improve performance or storage.
 - Public display limits must remain separate from the universe actually discovered and analysed.
 
+## Frozen code of registered live tests
+
+- E026 (copy skilled wallets), until 2026-12-07: `backend/astrolabe/research_lab/copy_skilled.py`,
+  `copy_skilled_analysis.py`, `wallet_skill.py`, `wallet_skill_dev.py`, `costs.py`, `model_specs/copy_skilled_v1.json`
+  and `model_specs/cost_model_calibration_v1.json` are pinned by sha256. Any edit makes the registered analysis refuse.
+  Put new behaviour in new files; `test_pinned_files_hash_to_the_pins` guards them.
+
 ## Immutable cohorts
 
 - The prospective cohort cadence is 00:00, 06:00, 12:00 and 18:00 UTC.

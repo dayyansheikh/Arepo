@@ -56,7 +56,7 @@ LIVE_TRADES_ROOT = ROOT / "data-dumps" / "research_lab" / "live_trades"
 HISTORY_ROOT = ROOT / "data-dumps" / "research_lab" / "history"
 OUT_ROOT = ROOT / "data-dumps" / "research_lab" / "copy_skilled"
 SPEC_PATH = Path(__file__).resolve().parent / "model_specs" / "copy_skilled_v1.json"
-SPEC_SHA256 = None  # pinned at registration (LIVE_TESTS_COPY.md 9); None = DRAFT, every line is prospective_unregistered
+SPEC_SHA256 = "06d117ed44f4ed26b309ee2418ec5bccfcd480a66330c2d5cc0f56344e9bbd86"  # pinned 2026-10-21 (LIVE_TESTS_COPY.md 9); lines with receipt in the window are prospective_confirmation
 
 REGISTERED_UTC = "2026-10-25T00:00:00Z"
 END_UTC = "2026-11-15T00:00:00Z"

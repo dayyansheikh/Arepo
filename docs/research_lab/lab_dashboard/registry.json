@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-21T14:45:00Z",
+ "updated": "2026-10-21T15:30:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1528,26 +1528,28 @@
   },
   {
    "id": "E026",
-   "title": "Copy skilled wallets with a delay (planned live test)",
-   "plain": "Wallets that were skilled in the past stayed skilled in a development study, but only at their own trade prices. This planned live test asks whether someone who sees their trades later and pays taker costs would still gain on paper, and whether any gain comes from the wallets or from the kind of trade. The counting check passed its three pre-set gates. No results are read before the single analysis.",
+   "title": "Live test E026: copy skilled wallets with a delay (registered)",
+   "plain": "A registered live test. Wallets that were skilled in the past stayed skilled in a development study, but only at their own trade prices. It asks whether someone who sees their trades later and pays taker costs would still gain on paper, and whether any gain comes from the wallets or from the kind of trade. Paper copies only. Registered on 21 Oct 2026 after an independent review; results only after the single analysis.",
    "batch": "E026",
    "family": "wallet",
-   "stage": "designed",
-   "status": "waiting",
+   "stage": "live_test",
+   "status": "queued",
    "verdict": "pending",
    "effect": null,
-   "next": "Fix the 10 points from the challenger review (accepted with fixes on 21 Oct), re-check, then freeze and registration (planned before 24 Oct; collection 25 Oct to 15 Nov)",
-   "next_date": "2026-10-24",
+   "next": "Collection 25 Oct to 15 Nov 2026; single analysis after 6 Dec 2026 12:00 UTC",
+   "next_date": "2026-10-25",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § E026 census q0544 done (2026-10-21)",
-    "next": "docs/research_lab/reviews/E026_CHALLENGER_R1_2026-10-21.md"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § E026 REGISTERED, 2026-10-21; docs/research_lab/LIVE_TESTS_COPY.md §9.1",
+    "next": "docs/research_lab/LIVE_TESTS_COPY.md § Status"
    },
    "stage_results": {
-    "designed": "pending"
+    "designed": "pass",
+    "live_test": "pending"
    },
    "reached": [
-    "designed"
+    "designed",
+    "live_test"
    ]
   }
  ],

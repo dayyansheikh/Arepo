@@ -26,6 +26,7 @@ def spec(**kw) -> dict:
     s = json.loads(cs.SPEC_PATH.read_text())
     s["_sha256"] = "f" * 64
     s["_pinned"] = False
+    s["skillset_sha256"] = None  # synthetic skill sets in the tests (the registered pin is the host's frozen set)
     s.update(kw)
     return s
 
@@ -66,10 +67,10 @@ def test_spec_constants_and_hashes():
     assert s["skill"]["t_freeze_utc"] == cs.REGISTERED_UTC
     assert s["skill"]["min_pos"] == ws.MIN_POS and s["skill"]["n0"] == ws.SHRINK_N0 and s["skill"]["top_frac"] == ws.TOP_FRAC
     assert s["holm"]["k"] == 2 and tuple(s["holm"]["tests"]) == cs.EXPERIMENTS
-    assert cs.SPEC_SHA256 is None  # DRAFT
+    assert cs.SPEC_SHA256 == cs.sha256_file(cs.SPEC_PATH)  # pinned at registration (2026-10-21)
     h = cs.code_hashes()
     assert set(h) == set(cs.CODE_FILES) and all(len(v) == 64 for v in h.values())
-    assert cs.load_spec()["_pinned"] is False
+    assert cs.load_spec()["_pinned"] is True and s["skillset_sha256"] and s["impact_table_sha256"]
 
 
 def test_code_hash_ignores_pin_line(tmp_path):

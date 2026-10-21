@@ -3205,3 +3205,35 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   `mem_mb` 480 holds. Skill set, skilled signals and L = 0 primary set equal q0544; controls / pairs moved as designed
   (pairs 1,200 -> 1,167). Committed `live_tests_copy/census_q0545_memcheck_2026-10-21.json` (sha256 24a50571…; no wallet
   hash). q0540 freeze running since 15:14Z.
+
+## E026 — Copy skilled wallets with latency: **REGISTERED 2026-10-21** (2 counted tests)
+- **Design:** `docs/research_lab/LIVE_TESTS_COPY.md` (sections 0-13; section 14 = challenger R1 response; 9.1 = pins).
+  Code `copy_skilled.py`, `copy_skilled_analysis.py`, runner `run_copy_skilled.py`; spec `model_specs/copy_skilled_v1.json`.
+- **Pins:** `SPEC_SHA256` 06d117ed44f4ed26b309ee2418ec5bccfcd480a66330c2d5cc0f56344e9bbd86; `skillset_sha256`
+  8120c12e604c74721e7ce52dc84df61ea6f9b190151e845d1035e57e4a550f46 (q0540, frozen 2026-10-21T15:14:02Z; eligible 35,587,
+  skilled 3,559, every known outcome before 2026-10-18T04:00Z); recorder code_sha 2bae593a259b8945; impact table
+  df45bae4…; code_sha256 of the five pinned modules in the spec. **Frozen until 2026-12-07:** copy_skilled.py,
+  copy_skilled_analysis.py, wallet_skill.py, wallet_skill_dev.py, costs.py, copy_skilled_v1.json,
+  cost_model_calibration_v1.json (also written into CLAUDE.md and AGENTS.md; a unit test asserts the hashes).
+- **Basis:** WS1 P1 persistence (DEVELOPMENT; S2 P&L per dollar of S1-skilled wallets +21.7c vs +3.6c); WS1 P2-P4 null
+  (skilled flow adds nothing over generic flow). Expected outcome: probably Inconclusive or Not supported on E026-C.
+- **E026-N:** net P&L per dollar of paper copies of frozen-skilled wallets' new taker trades (wallet sidecar), entered at
+  the first complete capture starting at or after receipt (L = 0; census trade-to-entry median 6.6 h), held to
+  resolution, conservative taker costs (census mean 5.3c per dollar); > 0.
+- **E026-C:** E026-N minus the same ratio of matched non-skilled controls (same sample, side, price, age, time-to-end and
+  prior-visible cells, other non-empty event); > 0.
+- **Family:** Holm k = 2, one-sided, alpha 0.05; p = max(event bootstrap, event t, two-way event x wallet t, and for
+  E026-C the combined skilled/control-event bootstrap and t). "Not supported (effects >= 0.03 excluded)" uses the widest
+  upper bound of the same set. Floors: 200 copies, 40 events, 150 pairs (below: Unavailable, p = 1, still counted).
+- **Window:** receipts `[2026-10-25T00:00Z, 2026-11-15T00:00Z)`; label cutoff 2026-12-06T00:00Z; **single analysis
+  q0543 on or after 2026-12-06T12:00Z** (`--trials`, counted). Planning (census q0544, pre-window, counts only):
+  projected 9,428 copies, 4,736 events, 8,503 pairs (q0545); MDE E026-N 0.042 (event) / 0.102 (two-way), E026-C 0.053;
+  gates G1-G3 pass, register_k2 (gates informed, not blind: disclosed).
+- **Reviews:** challenger R1 ACCEPT_WITH_FIXES -> fixes d11ba0a0, e68ff67a -> R1 re-check R1_FIXES_OK_WITH_NOTES.
+- **Jobs:** q0541 recorder (net, mem_mb 480; host peak 269.5 MB), `not_before` 2026-10-25T00:00Z; q0542 labeller (net,
+  mem_mb 400), `not_before` 2026-10-25T06:00Z; q0543 analysis (cpu, mem_mb 1500), `not_before` 2026-12-06T12:00Z.
+  Re-promote a `failed` collector within 48 h; gaps stay missing and are counted.
+- **Stop rules:** no interim look (counts only); runs to END whatever the counts; if skilled signals run below a third of
+  the census rate after 7 days the ledger notes "likely Unavailable" and nothing else changes. Signal-engine embargo on
+  `wallet_skill` / wallet copy features to 2026-12-07 (applied in 26f5f954).
+- **Overlaps:** same trade samples and captures as LT2-LT4 and the live-print stream; never pooled; WS1 is development.

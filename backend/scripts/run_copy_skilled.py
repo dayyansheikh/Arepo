@@ -89,7 +89,8 @@ def cmd_status(a) -> int:
 
 def census_spec(t_start: float, t_end: float) -> dict:
     spec = json.loads(cs.SPEC_PATH.read_text())
-    spec.update(registered_utc=cs.iso(t_start), end_utc=cs.iso(t_end), _sha256="census" + "0" * 58, _pinned=False)
+    spec.update(registered_utc=cs.iso(t_start), end_utc=cs.iso(t_end), _sha256="census" + "0" * 58, _pinned=False,
+                skillset_sha256=None)  # the census rebuilds its own set in the work dir; the registered pin is not its set
     spec["skill"] = {**spec["skill"], "t_freeze_utc": cs.iso(t_start)}
     return spec
 
