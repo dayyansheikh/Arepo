@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-21 12:37 UTC+1
+**Last updated:** 2026-10-21 13:30 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -19,7 +19,7 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
   - Its counting code was checked three times until clean. One fix had quietly loosened a rule; the reviewer caught it and it was put back as originally written.
   - Its counting jobs are queued. They must run tonight, before the server's routine deletion of 8-day-old data at 04:30 UTC+1, which would remove some of the history they need. Tonight's session handles that.
   - Earliest start is 30 Oct.
-- **Copy-skilled-wallets test (E026): design done** (phone note sent). Its counting code was independently checked and fixed. The count of usable signals (counts only) is now queued on the server. Next come the challenger review and registration (planned before 24 Oct), then collection from 25 Oct to 15 Nov.
+- **Copy-skilled-wallets test (E026):** the design is done (phone note sent). Its counting check passed all three pre-set gates: about 450 usable copy signals a day from 160 wallets across 650 events, in three days of data. These are counts only, no results. Next come the challenger review and registration (planned before 24 Oct), then collection from 25 Oct to 15 Nov.
 - **Model run (MC1) ran out of memory again** (about 4.9 GB of 5.6 GB). It won't be retried on this server; see approval 7.
 - **Live:** the E012-E014 collector is running. LT4's counting checks and batch 17's reproduction check are queued. Oracle still says "out of host capacity" for the second server.
 
