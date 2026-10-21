@@ -1,0 +1,71 @@
+{
+ "version": "copy-skilled-v1",
+ "status": "DRAFT (not registered; SPEC_SHA256 unpinned, skillset_sha256 and code_sha256 unfilled)",
+ "doc": "docs/research_lab/LIVE_TESTS_COPY.md",
+ "experiments": ["E026-N", "E026-C"],
+ "registered_utc": "2026-10-25T00:00:00Z",
+ "end_utc": "2026-11-15T00:00:00Z",
+ "label_cutoff_utc": "2026-12-06T00:00:00Z",
+ "analysis_not_before": "2026-12-06T12:00:00Z",
+ "move_rule": "registered_utc is the first 00:00Z at least 24 h after the registration commit (spec pin + ledger entry), never earlier than 2026-10-25T00:00Z; if the commit slips, registered_utc and t_freeze_utc move to the next qualifying 00:00Z, end = registered + 21 d, label cutoff = end + 21 d, analysis = cutoff + 12 h; the move uses no data and is recorded in the ledger (the frozen set does not change: every HB1 outcome was known by 2026-10-15)",
+ "skill": {
+  "skill_version": "wallet-skill-v1",
+  "t_freeze_utc": "2026-10-25T00:00:00Z",
+  "history_panels": ["h1_first", "h2_main", "h3_power"],
+  "res_lag_s": 172800,
+  "min_pos": 5,
+  "n0": 10.0,
+  "top_frac": 0.1,
+  "rule": "wallet_skill.build_profiles_batch(profile_trades, resolutions, t_freeze) then snapshot_frame: eligible n_pos >= 5, skilled = top 10% of eligible by skill_score with skill_z > 0; positions only in markets whose outcome was known strictly before t_freeze (closedTime + 48 h); truncated markets and post-close prints excluded (wallet_skill_dev.profile_trades)"
+ },
+ "skillset_sha256": null,
+ "latencies_s": [0, 21600, 86400],
+ "primary_latency_s": 0,
+ "exit_horizon_s": 86400,
+ "matching": {
+  "n_controls": 3,
+  "price_edges": [0.0, 0.05, 0.15, 0.25, 0.35, 0.5, 0.65, 0.75, 0.85, 0.95, 1.0],
+  "age_edges_s": [0, 3600, 10800, 21600, 43200, 86400, 1000000000000.0],
+  "end_edges_s": [0, 86400, 259200, 1209600, 1000000000000.0],
+  "rule": "same batch (same receipt clock), non-skilled wallet (any profile status), first trade of its (wallet, market) in the batch, not used as a control before, same side (BUY/SELL), same trade-price bucket, same trade-age bucket (receipt - trade ts), same time-to-end bucket (origin Gamma end_date - receipt: <1 d, 1-3 d, 3-14 d, >14 d; missing or past end = no control), other market and other event; up to n_controls by sha256(parent signal id | candidate id) order"
+ },
+ "universe": {
+  "arm": "sidecar",
+  "ask_min": 0.05,
+  "ask_max": 0.95,
+  "spread_max": 0.10,
+  "max_days_to_end": 14,
+  "max_entry_delay_s": 21600,
+  "max_per_wallet_day": 10,
+  "rule": "entry status two_sided; capture start - due <= max_entry_delay_s; copied-token ask in [ask_min, ask_max]; spread <= spread_max; Gamma end date of the entry row <= entry receipt + max_days_to_end days; final Gamma record (resolved or 50/50) fetched at or before label_cutoff_utc, else censored. Primary set = universe copies of skilled signals capped at the first max_per_wallet_day per wallet per UTC receipt day (receipt order; controls follow their parent); the uncapped universe is a secondary"
+ },
+ "costs": {
+  "model": "cost-model-v1 (costs.py)",
+  "fee_policy": "conservative",
+  "stake_usd": 100,
+  "impact": "per-leg $100 buy impact = tier MEAN of cost_model_calibration_v1.json main.books.tier.<tier>.buy100_impact_c by the entry row's Gamma liquidity",
+  "per_copy": "net per share = pay_j - ask_j - impact - taker fee at (mid_j + h); stake per share = ask_j + impact; equal to cost_check(...).taker_resolution_cost_ps (pinned by a unit test)",
+  "exit": "hold to resolution (no exit leg); the 24 h secondary exits by crossing at the exit capture's bid"
+ },
+ "inference": {
+  "statistic": "ratio R = sum(net) / sum(stake) over copies (one share each); E026-C: R_skilled - R_controls, controls averaged within their parent signal",
+  "B": 10000,
+  "seed": 20261023,
+  "clusters": "event_id of the entry row (falls back to the signal's event id, then the market id)",
+  "p_rule": "one-sided p = max(cluster-bootstrap p by event, cluster-robust t p by event with G - 1 df, two-way event x wallet t p with min(G) - 1 df)"
+ },
+ "holm": {"k": 2, "alpha": 0.05, "tests": ["E026-N", "E026-C"], "direction": "> 0 (one-sided)"},
+ "floors": {"min_copies": 200, "min_events": 40, "min_pairs": 150, "max_missing_sample_share": 0.2},
+ "materiality_floor_ppd": 0.03,
+ "census_gates": {
+  "fixed": "2026-10-21, before any census number (LIVE_TESTS_COPY.md 7.6); counts and entry quotes only, sidecar arm, primary set at L = 0, projected linearly to 21 days from the usable batches read",
+  "g1_min_copies": 400,
+  "g1_min_events": 80,
+  "g2_min_pairs": 300,
+  "g2_min_pair_events": 80,
+  "g3_max_mde_N_event_ppd": 0.10,
+  "rule": "G1 = projected primary-set copies >= g1_min_copies and events >= g1_min_events; G2 = projected pairs >= g2_min_pairs and pair events >= g2_min_pair_events. G1 and G2 pass: register E026-N and E026-C (k = 2). G1 passes, G2 fails: E026-C is dropped before the pin (k = 1, recorded in the ledger). G1 fails: not registered as designed; a redesign needs a written justification and a new review. G3 (planning MDE of E026-N with event correlation 1 <= 0.10 $/$) does not block; a failure adds the label 'low-power (a null is uninformative)'. Gates are 2 x the analysis floors to leave room for censoring and rate drift; they are never changed after the census."
+ },
+ "planning": null,
+ "code_sha256": {}
+}

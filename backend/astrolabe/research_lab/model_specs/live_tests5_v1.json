@@ -280,6 +280,6 @@
   "CH186": "engine-first",
   "CH189": "engine-first"
  },
- "vendored_source_drift_accepted": {},
+ "vendored_source_drift_accepted": {"live_tests3.py": {"sha256": "b84d9aec4c8eed1b523c33002c8aff37af223edd0cc27f87b53b4d8452f40bc5", "reason": "LT3 registration pin: only the SPEC_SHA256 line changed (normalised hash 3ac52d79... unchanged); every vendored function still equals its source (checked by this test)", "date": "2026-10-21"}},
  "vendored_source_drift_rule": "a vendored source file whose sha256 differs from live_tests5_base.VENDORED fails the provenance test unless an entry {file: {sha256, reason, date}} is recorded here (an explicit re-vendor decision; census code check finding 10)"
 }

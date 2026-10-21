@@ -918,3 +918,22 @@ Design and code only; no outcome data and no size-check output read.
 The §13.4 dry run ran on the host 04:50-05:15Z on the code to be pinned (hashes as 13.16 item 4), with the exact cron command
 plus `--dry-run-start/--dry-run-end/--root` only, over 2026-10-19T00:00-12:00Z. Four passes: rc 0/0/0/75, peak RSS 534 / 343 /
 318 / 123 MB, wall 13:11 / 3:02 / 0:28 / 0:02; flow and surge off; no late refusals. Details in the ledger (LT3 host dry run).
+
+### 13.18 Registration (2026-10-21; E015 only)
+- **Size statement (13.15):** q0475_lt3_size_check_r3 ran on the code pinned here and reproduced q0474 byte for byte
+  (`size_check_r3.json` sha256 39d0978b…, identical to `size_check_r2.json`). Binding for the pin: `perm_iid` 0.0470,
+  `perm_persistent` 0.0480, `perm_corr_control` 0.0435, all at or below the limit 0.058017, so the pin is not blocked.
+  `flowperm_ar0.6` 0.0590 FAILS. It is recorded (13.15 item 4) and blocks any future flow-moderation use of this gate
+  until the gate is redesigned and size-checked. Donor scenarios are reported only.
+- **Host dry run (13.4, 13.17):** done; peak RSS 534 MB, slowest pass 13 min.
+- **Pins:** spec `live_tests3_v1.json` sha256 **72a174eb85a08ef68b279e67af224a7acced9535f9329dc8eb0d75853af22a26**
+  (`SPEC_SHA256` in `live_tests3.py`). `code_sha256`: `live_tests3.py` 3ac52d79…, `live_tests3_analysis.py` 224b5603…
+  (normalised; unchanged by the pin line). The spec now records the size result. `code_check` passes on a pinned spec.
+- **Dates (1.1, 13.16 item 5):** the registration commit falls before 2026-10-23T00:00Z, so `REGISTERED_UTC =
+  2026-10-24T00:00Z`, `END_UTC = 2026-11-14T00:00Z` and `ANALYSIS_NOT_BEFORE = 2026-11-15T12:00Z` stand unchanged.
+- **k = 1** (`k_tests = ["E015"]`, Holm m = 1). E016-E019 were dropped at census, uncounted (13.14).
+- **Install (13.4):** the host cron line `*/20 * * * *` with the exact command in 13.4, installed after this commit is
+  deployed. The fallback job q0474_lt3_live_collect stays a draft (never both). The analysis q0475_lt3_analyze is queued
+  with `not_before` 2026-11-15T12:00Z and runs once.
+- **Owed before the analysis is read:** nothing. No interim look. Any operational fix after this commit is a recorded
+  deviation, not a re-pin.

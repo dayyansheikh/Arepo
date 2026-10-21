@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-21T09:15:00Z",
+ "updated": "2026-10-21T11:35:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1457,25 +1457,27 @@
   },
   {
    "id": "LT3",
-   "title": "Live test E015 (planned)",
-   "plain": "Planned live test from the round 9 ideas. The counting checks dropped four of the five because the data were too thin to detect the minimum effect (volume surges without a price move, ladder breadth, and two order-flow tests); the quote-only versus traded moves test passed and goes forward alone.",
+   "title": "Live test E015 (registered)",
+   "plain": "A registered live test from the round 9 ideas. It asks whether price moves made only by quotes (no trade) behave differently over the next hours from moves made by trades. The counting checks dropped four of the five planned tests because the data were too thin. E015 went forward alone after independent reviews, a server test run and a size check that passed its safety rules. Registered on 21 Oct 2026; results only after the single analysis.",
    "batch": "LT3",
    "family": "mixed",
-   "stage": "designed",
-   "status": "running",
+   "stage": "live_test",
+   "status": "queued",
    "verdict": "pending",
    "effect": null,
-   "next": "Server test run done (21 Oct, within memory and time limits); size-check re-run finishing; then freeze review, pin and register by 23 Oct for a 24 Oct start",
+   "next": "Collection 24 Oct to 14 Nov 2026; single analysis after 15 Nov 2026 12:00 UTC",
    "next_date": "2026-10-24",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT3 census C2 (q0472), done 2026-10-20 23:45Z"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT3 (E015) REGISTERED, 2026-10-21; docs/research_lab/LIVE_TESTS_3.md §13.18"
    },
    "stage_results": {
-    "designed": "pending"
+    "designed": "pass",
+    "live_test": "pending"
    },
    "reached": [
-    "designed"
+    "designed",
+    "live_test"
    ]
   },
   {
@@ -1516,6 +1518,29 @@
    "candidate": false,
    "sources": {
     "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT5 drafted, challenger R1 and re-check (2026-10-21)"
+   },
+   "stage_results": {
+    "designed": "pending"
+   },
+   "reached": [
+    "designed"
+   ]
+  },
+  {
+   "id": "E026",
+   "title": "Copy skilled wallets with a delay (planned live test)",
+   "plain": "Wallets that were skilled in the past stayed skilled in a development study, but only at their own trade prices. This planned live test asks whether someone who sees their trades only later, and pays taker costs, would still gain on paper, and whether any gain comes from the wallets or just from the kind of trade they make. Its counting check (counts only) is running.",
+   "batch": "E026",
+   "family": "wallet",
+   "stage": "designed",
+   "status": "running",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Counting check on the server, then the challenger review and registration (planned before 24 Oct; collection 25 Oct to 15 Nov)",
+   "next_date": "2026-10-24",
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § E026 copy-skilled: census code checked (2026-10-21)"
    },
    "stage_results": {
     "designed": "pending"

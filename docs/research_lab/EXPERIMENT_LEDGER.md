@@ -2995,7 +2995,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   q0500/q0501 crashed in gh's Go runtime at 600 MB, so they were raised to 1,200 MB, as the earlier restores q0413/q0480
   used. No scientific change.
 
-## LT5 census and size-check code merged; seal job q0564 promoted, 2026-10-21 ~10:10Z (nothing counted)
+## LT5 census and size-check code merged; seal job q0564 promoted, 2026-10-21 ~10:05Z (nothing counted)
 - Code on `feat/live-tests-5`, merged into this branch after these reviews:
   - code check CENSUS_READY_WITH_FIXES (3 MED: silent absence of sealed inputs, R depth-band population, CHW population;
     7 LOW);
@@ -3027,3 +3027,62 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - Mac refit timing (development data only, not a result): ~110 s per extra LightGBM model, peak 1.28 GB RSS.
 - Noted: LightGBM `res_7d` fits fail on the causal inner split until resolution receipts precede the validation cut
   (backlog first fetched 10-21; expected around 10-28). No rule changed.
+
+## E026 copy-skilled: census code checked, q0544 promoted, 2026-10-21 ~10:12Z (nothing counted; DRAFT design)
+- feat/copy-skilled merged (design `LIVE_TESTS_COPY.md` DRAFT, 41 tests). One commit, c4f3549b (labeller end-date
+  skip, store column subset), came from another session. It does not affect the census, and §6 now lists it as a
+  proposed change needing review before the pin.
+- Census code check: **CENSUS_READY_WITH_FIXES**, then fixes afac80d4, then verification **FIXES_OK_WITH_NOTES**
+  (`reviews/E026_CENSUS_CODE_CHECK_2026-10-21.md`).
+  - (MED) Skipped samples inflated rates; each usable sample is now credited with the time back to the previous one read.
+  - Gates are always written.
+  - Comparisons are unrounded.
+  - The work dir has a marker so a retry is safe.
+  - Verification note: the credit runs to the last sample's start, so the rate may be overstated by up to about 1.4%.
+    The census reports it as is, with this note.
+- **q0544 promoted** (counts only; sidecar samples [10-18T04:00Z, 10-21T04:00Z); never opens a capture at/after
+  10-22T00:00Z; gates G1-G3 declared in aba32281 before any census). Next: commit `census.json`, fill the
+  CENSUS-GATED values, challenger review, freeze q0540, pins, registration before 10-24T00:00Z.
+
+## LT3 (E015) REGISTERED, 2026-10-21 ~11:35Z (registration commit = the commit adding this entry)
+- **Test:** E015 only. Quote-only versus traded 2 h moves (LIVE_TESTS_3.md, as amended by §13). `k_tests = ["E015"]`,
+  Holm m = 1. E016, E017, E018 and E019 were dropped at the censuses (q0470, q0472); uncounted.
+- **Size statement (§13.15):**
+  - q0475_lt3_size_check_r3 finished 11:2xZ on the pinned code. Its output is byte-identical to q0474's (sha256 39d0978b…
+    for both files), as §13.15 item 6 requires.
+  - Binding `perm_iid` 0.0470, `perm_persistent` 0.0480, `perm_corr_control` 0.0435, against a limit of 0.058017: all ok.
+  - `flowperm_ar0.6` 0.0590 FAIL: non-binding for E015, recorded, and it blocks future flow-moderation use of the gate.
+- **Host dry run:** §13.17.
+- **Pins:**
+  - spec `live_tests3_v1.json` sha256 **72a174eb85a08ef68b279e67af224a7acced9535f9329dc8eb0d75853af22a26**, with
+    `SPEC_SHA256` set in `live_tests3.py`;
+  - `code_sha256` `live_tests3.py` 3ac52d7959e56c6a5472a34d112c61ca643c7f35ebe77b87388b5cba9c7b8c65 and
+    `live_tests3_analysis.py` 224b56036f98a2cfe3f92ffb6778e80c6b1131223cf20a0f548ca95fffaec955 (normalised);
+  - `code_check` passes on the pinned spec;
+  - the spec records the size result. Its other values are unchanged; the status text and `code_sha256` are filled.
+- **Dates:** `REGISTERED_UTC` 2026-10-24T00:00Z, `END_UTC` 2026-11-14T00:00Z, `ANALYSIS_NOT_BEFORE` 2026-11-15T12:00Z
+  (unchanged; the commit is before 2026-10-23T00:00Z).
+- **Reviews:** challenger R1, freeze check (FREEZE_READY_WITH_FIXES), donor-gate rulings, pre-pin verification
+  PIN_OK_WITH_FIXES, then fix verification FIXES_OK_WITH_NOTES (`reviews/LT3_*`).
+- **Install:** host cron `*/20` with the exact §13.4 command, after this commit is deployed. The fallback job
+  q0474_lt3_live_collect stays a draft. The analysis q0475_lt3_analyze is queued with not_before 2026-11-15T12:00Z.
+- **Test-only edits at the pin:**
+  - `test_analysis_refusals` now nulls `code_sha256` explicitly before its "hashes not pinned" refusal check, because
+    the registered spec has them filled;
+  - LT5's DRAFT spec records the raw-hash drift of `live_tests3.py` (the pin line only) in
+    `vendored_source_drift_accepted`. Its vendored functions are still checked equal to the source.
+  - 110 LT3/LT4/LT5 tests pass.
+- No interim looks. Expected outcome per the design: likely partly explained by quote mechanics (disclosed in §10).
+- **Install verified (12:07Z):** the host cron ran at 11:40Z and 12:00Z on code 2580c58a, `pinned: true`, spec
+  72a174eb, `kinds_off` [flow, surge], status `nothing_new` (no line before REGISTERED_UTC). Crontab backup:
+  `~/crontab.bak.20261021T*`.
+
+## Queue, 2026-10-21 ~12:10Z (nothing counted)
+- Done: q0500/q0501 (CB18 restores, after mem_mb 1,200), q0380 (CB16 exclusion keys, attempt 3, complete;
+  `exclusion_keys.csv.gz` sha256 56dc953ed91aa430...), q0560 (LT5 restore).
+- Promoted q0383 (CB16-K census, counts only, exclusive). CB17 q0405 waits for the q0404 smoke; its base-key pin is
+  q0380's key file above.
+- Ops priorities for tonight: q0544 36 (E026 census, must start before 02:45Z); q0564 45 (LT5 seal, from 23:20Z).
+- (12:11Z) Promoted ahead of T_seal with `not_before`: q0083b (h7 deadline recorder, one-shot, 10-22T00:05Z; q0083 seal
+  follows) and q0161 (CB8 smoke, 10-22T00:00Z). A session then commits the h7 seal / NOT_RUN copies before q0121, q0144
+  and q0145 are promoted.

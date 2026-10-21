@@ -404,6 +404,7 @@ def test_analysis_refusals(tmp_path):
         la.analyze(tmp_path)  # before ANALYSIS_NOT_BEFORE
     spec = _spec(tmp_path)
     spec["_pinned"] = True
+    spec["code_sha256"] = {n: None for n in lt.code_hashes()}  # the registered spec has them filled (13.18)
     with pytest.raises(RuntimeError):
         la.code_check(spec)  # code hashes not pinned
     spec["code_sha256"] = lt.code_hashes()

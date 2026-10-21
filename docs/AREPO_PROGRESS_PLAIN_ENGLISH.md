@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-21 11:05 UTC+1
+**Last updated:** 2026-10-21 12:37 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -8,11 +8,10 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 
 ## 1. Right now
 - **Autopilot:** a session has been running since 09:43 UTC+1 (21 Oct).
-- **LT3 (E015) is on track to register by the end of 22 Oct (start 24 Oct).**
-  - The server test run is done: peak memory 0.53 GB against a 0.96 GB limit, and the slowest pass took 13 minutes against a 20-minute schedule.
-  - The first size check passed its three binding safety numbers (false-alarm rates 4.4-4.8% against a 5.8% limit).
-  - The re-run, which must match the first exactly, finishes at about 11:40 UTC+1. Then come pinning and registration.
-  - One order-flow check failed narrowly (5.9%). That does not affect E015, but no future order-flow test may use that check until it is redesigned.
+- **NEW: LT3 (E015) is REGISTERED (21 Oct).** It asks whether price moves made only by quotes (no trade) behave differently over the next hours from moves made by trades.
+  - The re-run of the safety (size) check gave exactly the same numbers as the first run, and the three binding rates passed (4.4-4.8% against a 5.8% limit).
+  - Collection runs 24 Oct to 14 Nov, with a single analysis after 15 Nov. No early looks.
+  - Registered live tests now waiting for their single analysis: E009/E010, E011, E012-E014 (LT2) and E015 (LT3).
 - **Batch 18 (CB18):** the counting code was finished, checked by an independent reviewer and fixed. Its 7 jobs are now on the server queue (restores, then five counting checks; counts only).
 - **Three more queued jobs:** batch 13's sealed holdout, batch 15's "listed on Kalshi first" count, and batch 16's exclusion list.
 - **LT5 (five possible new live tests) moved fast today.**
@@ -20,7 +19,7 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
   - Its counting code was checked three times until clean. One fix had quietly loosened a rule; the reviewer caught it and it was put back as originally written.
   - Its counting jobs are queued. They must run tonight, before the server's routine deletion of 8-day-old data at 04:30 UTC+1, which would remove some of the history they need. Tonight's session handles that.
   - Earliest start is 30 Oct.
-- **Copy-skilled-wallets test (E026):** the design is complete apart from its counting check (job q0544). Another session is working on the same branch right now, so this session is not driving it, to avoid duplicate work. Its counting check must start before 03:45 UTC+1 on 22 Oct.
+- **Copy-skilled-wallets test (E026): design done** (phone note sent). Its counting code was independently checked and fixed. The count of usable signals (counts only) is now queued on the server. Next come the challenger review and registration (planned before 24 Oct), then collection from 25 Oct to 15 Nov.
 - **Model run (MC1) ran out of memory again** (about 4.9 GB of 5.6 GB). It won't be retried on this server; see approval 7.
 - **Live:** the E012-E014 collector is running. LT4's counting checks and batch 17's reproduction check are queued. Oracle still says "out of host capacity" for the second server.
 
@@ -69,7 +68,7 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 
 | Leading candidates | Awaiting confirmation | Confirmed edge |
 |---|---|---|
-| Kalshi lead; order flow; book/liquidity interactions (being tested) | E009/E010 (3 Nov), E011 (11 Nov), E012-E014 (13 Nov) | **None** |
+| Kalshi lead; order flow; book/liquidity interactions (being tested) | E009/E010 (3 Nov), E011 (11 Nov), E012-E014 (13 Nov), E015 (15 Nov) | **None** |
 
 ## 5. Infrastructure
 | Item | State |
