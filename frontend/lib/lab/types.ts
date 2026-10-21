@@ -158,6 +158,80 @@ export interface HostPayload {
   queue?: QueueBlock;
   infra?: InfraBlock;
   activity?: { queue?: QueueTally };
+  /** Champion/challenger signal engine (schema `se-dash-v1`); optional, see lib/lab/signal-engine.ts. */
+  signal_engine?: SignalEngineBlock | null;
+}
+
+// ---- signal engine (`se-dash-v1`, built by backend/astrolabe/signal_engine/dashboard.py) -----
+// Every field is optional: the block is parsed defensively in lib/lab/signal-engine.ts.
+
+/** One leaderboard row. An embargoed row carries only `model_id` + `embargoed_until`. */
+export interface SeRow {
+  model_id?: string;
+  role?: string;
+  target?: string;
+  window_days?: number;
+  n?: number;
+  log_loss?: number | null;
+  brier?: number | null;
+  cal_slope?: number | null;
+  cal_intercept?: number | null;
+  auc?: number | null;
+  coverage?: number | null;
+  days?: number;
+  /** Mean paired log-loss gain over the champion (nats; positive = better than the champion). */
+  gain?: number | null;
+  gain_lo?: number | null;
+  gain_hi?: number | null;
+  days_positive?: number;
+  n_days?: number;
+  n_clusters?: number;
+  embargoed_until?: string | null;
+}
+
+export interface SeModel {
+  model_id?: string;
+  family?: string;
+  learner?: string;
+  status?: string;
+  embargoed_until?: string | null;
+  embargo_tests?: string[] | null;
+}
+
+export interface SeFamilyGain {
+  date?: string;
+  model_id?: string;
+  family?: string;
+  gain?: number | null;
+  lo?: number | null;
+  hi?: number | null;
+}
+
+export interface SePromotion {
+  event?: string;
+  at?: string;
+  champion?: string;
+  previous?: string;
+  rule?: string;
+  evidence?: { gain?: { mean?: number | null; lo?: number | null; hi?: number | null } | null; level?: number; K?: number };
+}
+
+export interface SignalEngineBlock {
+  schema?: string;
+  generated_at?: string;
+  engine_version?: string;
+  primary_target?: string;
+  champion?: { model_id?: string; spec_sha256?: string; family?: string };
+  models?: SeModel[];
+  note?: string;
+  last_refit?: { at?: string; models?: number; targets_ok?: number };
+  last_prediction?: { capture_id?: string; at?: string; models?: number };
+  prospective?: { generated_at?: string; days_scored?: number; status?: string; rows?: SeRow[] };
+  family_gains?: SeFamilyGain[];
+  development?: { label?: string; generated_at?: string; test_days?: number | null; rows?: SeRow[] };
+  promotions?: SePromotion[];
+  /** Set by the host: the engine's dashboard is more than 2 days old. */
+  stale?: boolean;
 }
 
 export interface AutopilotBlock {

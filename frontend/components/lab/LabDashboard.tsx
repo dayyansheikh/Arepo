@@ -11,6 +11,7 @@ import { Candidates } from "./Candidates";
 import { EdgePipeline } from "./EdgePipeline";
 import { ExperimentExplorer } from "./ExperimentExplorer";
 import { MachineLearning } from "./MachineLearning";
+import { SignalEngine } from "./SignalEngine";
 import { AutopilotCard, Controls, HostCard } from "./Machines";
 import { useAuth } from "@/lib/auth-context";
 import { Revealed, UnlockScreen } from "@/components/security/UnlockScreen";
@@ -231,6 +232,16 @@ export function LabDashboard() {
             aside={<Pill tone="neutral">Development (historical)</Pill>}
           >
             <MachineLearning ml={host.ml} />
+          </LabSection>
+
+          {/* 5b. Signal engine (champion/challenger) */}
+          <LabSection
+            id="signal-engine"
+            eyebrow="Signal engine"
+            title="Champion and challengers"
+            lead="Models compete on forecast quality for fresh markets. Signal strength and forecast quality only: never a probability of profit or an edge claim."
+          >
+            <SignalEngine block={host.signal_engine} nowMs={nowMs} />
           </LabSection>
 
           {/* 6. Activity */}
