@@ -2847,3 +2847,21 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **Effect:** one descriptive summary line is missing; no test count, p-value or verdict changes. Not back-filled. O is
   terminal (q0264 never runs), so the defect cannot recur on this path. The CB12 code stays frozen; any future
   CB12-style runner must map "prospective" to an allowed role. The queue entry stays `failed` as the honest record.
+
+## LT3 host dry run (§13.4), recorded 2026-10-21 ~08:55Z (run 04:50-05:15Z; nothing counted; no outcome read)
+- Run by the 10-21 interactive helper (`/tmp/lt3drv.sh` on the host) and not written up before; recorded here from the
+  host log `/tmp/lt3drv.log` and the per-pass outputs. Host tip 054388ec; `lt.code_hashes()` on the host =
+  `live_tests3.py` 3ac52d79…, `live_tests3_analysis.py` 224b5603… (the §13.16 hashes to be pinned).
+- Command: the exact §13.4 cron command (own `flock` on `~/arepo/run/live_tests3.lock`, `nice -n 19`, `oom_score_adj` 1000,
+  `ulimit -v 983040`, `--max-items 40`, `--data-dumps-cap-gb 40`) plus only `--dry-run-start 2026-10-19T00:00:00Z
+  --dry-run-end 2026-10-19T12:00:00Z --root /tmp/lt3dry`; `/usr/bin/time -v` between `flock` and `nice`. Started only
+  with no collector pass running and MemAvailable >= 1,500 MB (4,504 MB at start).
+- Passes (exit code, peak RSS, wall): 1: rc 0, 534,372 kB, 13:11 (backlog: 39 series, 1 sweep); 2: rc 0, 342,792 kB, 3:02
+  (38 sweeps, 2 move freezes); 3: rc 0, 317,592 kB, 0:28 (4 move freezes, 24 move outcomes); 4: rc 75 `nothing_new`,
+  123,280 kB, 0:02. Every pass `pinned: false` (lines `prospective_unregistered`), `kinds_off: [flow, surge]` (§13.16 fix 2
+  working), `refused_late` 0. Scratch root 117 MB, 156 files (series 39, status 39, sweeps 39, move/frozen 6,
+  events/frozen 6, move/outcomes 24).
+- **Result:** peak RSS 0.53 GB is well under the 960 MB cap; the slowest pass (a 12 h backlog of 40 items) took 13 min,
+  under the 20-min cron interval, and steady-state passes take seconds. 13.4's owed dry run is done. Remaining before
+  registration: q0475 (`perm_*` must equal q0474 exactly, §13.15), pins, registration commit before 2026-10-23T00:00Z,
+  then the cron install.
