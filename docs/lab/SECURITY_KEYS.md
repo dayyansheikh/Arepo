@@ -226,10 +226,10 @@ Any FIDO2 / WebAuthn authenticator works:
 A hardware key is the strongest choice because it cannot be phished and is never synced. Synced
 passkeys (iCloud Keychain) are convenient, and losing one device does not lose them.
 
-## Tables (schema versions 16 and 17, additive, RLS enabled on Postgres)
+## Tables (schema versions 16 and 18, additive, RLS enabled on Postgres)
 
 `admin_webauthn_credentials` (public keys only), `admin_webauthn_challenges` (single use, 5 min),
 `admin_stepup_sessions` (SHA-256 of the unlock token, expiry, revoked_at) and
-`admin_recovery_codes` (Argon2 hashes, used_at). Version 17 adds `admin_trusted_devices`
+`admin_recovery_codes` (Argon2 hashes, used_at). Version 18 adds `admin_trusted_devices`
 (SHA-256 of the device cookie, nickname, user agent, first/last seen, trusted_at, trusted_until). Deleting an account also deletes its rows in
 these tables.

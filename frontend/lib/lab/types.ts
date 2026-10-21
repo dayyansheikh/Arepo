@@ -158,6 +158,103 @@ export interface HostPayload {
   queue?: QueueBlock;
   infra?: InfraBlock;
   activity?: { queue?: QueueTally };
+  /** Champion/challenger signal engine (schema `se-dash-v1`); optional, see lib/lab/signal-engine.ts. */
+  signal_engine?: SignalEngineBlock | null;
+}
+
+// ---- signal engine (`se-dash-v1`, built by backend/astrolabe/signal_engine/dashboard.py) -----
+// Every field is optional: the block is parsed defensively in lib/lab/signal-engine.ts.
+
+/** One leaderboard row. An embargoed row carries only `model_id` + `embargoed_until`. */
+export interface SeRow {
+  model_id?: string;
+  role?: string;
+  target?: string;
+  window_days?: number;
+  n?: number;
+  log_loss?: number | null;
+  brier?: number | null;
+  cal_slope?: number | null;
+  cal_intercept?: number | null;
+  auc?: number | null;
+  coverage?: number | null;
+  days?: number;
+  /** Mean paired log-loss gain over the champion (nats; positive = better than the champion). */
+  gain?: number | null;
+  gain_lo?: number | null;
+  gain_hi?: number | null;
+  days_positive?: number;
+  n_days?: number;
+  n_clusters?: number;
+  embargoed_until?: string | null;
+}
+
+export interface SeModel {
+  model_id?: string;
+  family?: string;
+  learner?: string;
+  status?: string;
+  embargoed_until?: string | null;
+  embargo_tests?: string[] | null;
+}
+
+export interface SeFamilyGain {
+  date?: string;
+  model_id?: string;
+  embargoed_until?: string | null;
+  family?: string;
+  gain?: number | null;
+  lo?: number | null;
+  hi?: number | null;
+}
+
+export interface SePromotion {
+  event?: string;
+  at?: string;
+  champion?: string;
+  previous?: string;
+  rule?: string;
+  evidence?: { gain?: { mean?: number | null; lo?: number | null; hi?: number | null } | null; level?: number; K?: number };
+}
+
+/** Family attribution of one LightGBM fit: development diagnostic (mean |SHAP|), never a score. */
+export interface SeAttribution {
+  model_id?: string;
+  fit_time?: string;
+  target?: string;
+  method?: string;
+  block?: unknown;
+  rows?: number;
+  /** Family -> mean |SHAP|. Families under an active embargo are absent here and named in `hidden`. */
+  families?: Record<string, unknown>;
+  hidden?: string[];
+  label?: string;
+  embargoed_until?: string | null;
+}
+
+export interface SeEmbargoToken {
+  token?: string;
+  until?: string;
+}
+
+export interface SignalEngineBlock {
+  schema?: string;
+  generated_at?: string;
+  engine_version?: string;
+  primary_target?: string;
+  champion?: { model_id?: string; spec_sha256?: string; family?: string };
+  models?: SeModel[];
+  note?: string;
+  last_refit?: { at?: string; models?: number; targets_ok?: number };
+  last_prediction?: { capture_id?: string; at?: string; models?: number };
+  prospective?: { generated_at?: string; days_scored?: number; status?: string; rows?: SeRow[] };
+  family_gains?: SeFamilyGain[];
+  development?: { label?: string; generated_at?: string; test_days?: number | null; rows?: SeRow[] };
+  promotions?: SePromotion[];
+  attribution?: SeAttribution[];
+  embargo_tokens?: SeEmbargoToken[];
+  /** Set by the host: the engine's dashboard is more than 2 days old. */
+  stale?: boolean;
 }
 
 export interface AutopilotBlock {
@@ -188,6 +285,8 @@ export interface ClaudeSession {
   is_error?: boolean;
   /** Text of the closing `AUTOPILOT_DONE <summary>` line. */
   done?: string;
+  /** First sentences of the result text, sent when there is no DONE line (older sessions). */
+  plain?: string;
   /** The session's result text (without the DONE line), truncated on the Mac. */
   summary?: string;
   summary_truncated?: boolean;
@@ -196,6 +295,12 @@ export interface ClaudeSession {
 
 export interface ClaudeInstance {
   name?: string;
+  /** Command target on the Mac: the instance's home directory name ("autopilot", "autopilot-signal"). */
+  key?: string;
+  /** A launchd job exists for it, so "Start a session now" can work. */
+  startable?: boolean;
+  /** Latest assistant text of the running session (sanitised, ≤ 300 chars). */
+  current?: { text?: string | null; at?: string | null } | null;
   home?: string;
   paused?: boolean;
   pause_reason?: string | null;
@@ -225,12 +330,44 @@ export interface ClaudeActivity {
   error?: string;
 }
 
+/** API-equivalent Claude cost of the whole project, computed on the Mac from transcripts. */
+export interface CostsBlock {
+  generated_at?: string;
+  basis?: string;
+  pricing_source?: string;
+  total_usd?: number;
+  last_7d_usd?: number;
+  today_usd?: number;
+  messages?: number;
+  tokens?: { input?: number; output?: number; cache_write?: number; cache_read?: number };
+  first_at?: string | null;
+  last_at?: string | null;
+  by_day?: Array<{ date: string; usd: number }>;
+  by_model?: Array<{ model: string; label?: string; usd: number; messages?: number }>;
+  by_source?: Array<{
+    key: string;
+    label?: string;
+    kind?: "interactive" | "autopilot" | "other_headless" | string;
+    usd: number;
+    main_usd?: number;
+    subagent_usd?: number;
+    sessions?: number;
+    messages?: number;
+  }>;
+  unknown_models?: Array<{ model: string; messages?: number; tokens?: number }>;
+  assumptions?: string[];
+  infra?: Array<{ name: string; gbp_month?: number; note?: string }>;
+  infra_note?: string;
+  error?: string;
+}
+
 export interface MacPayload {
   schema?: string;
   source?: "mac";
   generated_at?: string;
   autopilot?: AutopilotBlock;
   activity?: ClaudeActivity;
+  costs?: CostsBlock;
 }
 
 export interface SnapshotEnvelope<P> {
@@ -239,7 +376,9 @@ export interface SnapshotEnvelope<P> {
 }
 
 export type CommandTarget = "queue" | "autopilot";
-export type CommandAction = "pause" | "resume";
+/** Any command target, including further autopilot instances ("autopilot-signal"). */
+export type AnyCommandTarget = CommandTarget | `autopilot-${string}`;
+export type CommandAction = "pause" | "resume" | "start";
 export type CommandStatus = "pending" | "delivered" | "done" | "failed" | "expired";
 
 export interface LabCommand {
@@ -253,9 +392,27 @@ export interface LabCommand {
   result?: string | null;
 }
 
+export type MessageStatus = "pending" | "fetched" | "delivered" | "read" | "failed" | "cancelled";
+
+/** Owner → Claude message (stored server-side, written to the instance's INBOX.md by the Mac). */
+export interface LabMessage {
+  id: number;
+  target: string;
+  body: string;
+  status: MessageStatus | string;
+  created_at?: string | null;
+  fetched_at?: string | null;
+  delivered_at?: string | null;
+  read_at?: string | null;
+  finished_at?: string | null;
+  result?: string | null;
+}
+
 export interface LabDashboardResponse {
   host?: SnapshotEnvelope<HostPayload> | null;
   mac?: SnapshotEnvelope<MacPayload> | null;
   commands?: LabCommand[];
+  messages?: LabMessage[];
+  limits?: { message_max_chars?: number; messages_per_day?: number; messages_last_24h?: number };
   server_time?: string;
 }

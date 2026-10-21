@@ -628,7 +628,7 @@ async def test_migration_creates_key_tables_with_rls():
     from astrolabe.storage.migrate import _PRIVATE_ACCOUNT_TABLES, SCHEMA_VERSION, check, upgrade
     names = {"admin_webauthn_credentials", "admin_webauthn_challenges", "admin_stepup_sessions",
              "admin_recovery_codes", "admin_trusted_devices"}
-    assert SCHEMA_VERSION >= 17
+    assert SCHEMA_VERSION >= 18
     assert names <= set(_PRIVATE_ACCOUNT_TABLES)
     eng = make_engine("sqlite+aiosqlite:///:memory:")
     await upgrade(eng)
@@ -638,6 +638,20 @@ async def test_migration_creates_key_tables_with_rls():
     assert names <= tables
     await eng.dispose()
 
+
+async def test_claude_board_messages_and_commands_require_stepup(env):
+    client, sm, _ = await _owner(env)
+    key = SoftKey()
+    assert _register(client, key).status_code == 201
+    msg = {"target": "autopilot-signal", "body": "hello"}
+    assert client.post("/api/lab/messages", json=msg).status_code == 201  # unlocked
+    _drop_stepup(client)
+    assert _locked(client.post("/api/lab/messages", json=msg))
+    assert _locked(client.post("/api/lab/messages/1/cancel"))
+    assert _locked(client.post("/api/lab/commands", json={"target": "autopilot-signal",
+                                                          "action": "start"}))
+    assert _unlock(client, key).status_code == 200
+    assert client.post("/api/lab/messages/1/cancel").status_code == 200
 
 
 # ---- method steering (hints / transports / attachment) ----------------------------------------

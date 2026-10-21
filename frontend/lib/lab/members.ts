@@ -385,6 +385,9 @@ const SELF_AUDIT: Record<string, string> = {
   recovery_codes_regenerated: "made new recovery codes",
   device_trusted: "trusted a device (no key prompt there)",
   device_trust_revoked: "asked for the key again on a device",
+  claude_message_sent: "sent Claude a message",
+  claude_message_cancelled: "cancelled a message to Claude",
+  claude_command: "sent a Claude autopilot command",
 };
 
 function auditNickname(detail: string | null): string {

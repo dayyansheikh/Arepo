@@ -1,4 +1,5 @@
-"""ORM tables for the Lab dashboard (additive; one snapshot row per source, bounded command log)."""
+"""ORM tables for the Lab dashboard (additive; one snapshot row per source, bounded command and
+message logs)."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -26,8 +27,10 @@ class LabCommand(Base):
     __tablename__ = "lab_commands"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    target: Mapped[str] = mapped_column(String, nullable=False, index=True)  # queue | autopilot
-    action: Mapped[str] = mapped_column(String, nullable=False)  # pause | resume
+    # queue | autopilot | autopilot-<name>
+    target: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    # pause | resume | start (start: autopilot targets only)
+    action: Mapped[str] = mapped_column(String, nullable=False)
     # pending -> delivered -> done | failed ; pending -> expired
     status: Mapped[str] = mapped_column(String, nullable=False, default="pending")
     created_at: Mapped[datetime] = mapped_column(
@@ -35,6 +38,33 @@ class LabCommand(Base):
     )
     created_by: Mapped[str | None] = mapped_column(String, nullable=True)
     delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    result: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class LabMessage(Base):
+    """Owner -> Claude autopilot message (Lab > Claude board). Additive table, SCHEMA_VERSION 17.
+
+    Lifecycle: pending -> fetched (the Mac took it) -> delivered (appended to the instance's
+    INBOX.md) -> read (the session moved INBOX.md away); pending -> cancelled (owner);
+    pending|fetched -> failed (the Mac could not write it).
+    Private: owner-only API, RLS enabled on Postgres. Bounded (latest 500 rows).
+    """
+
+    __tablename__ = "lab_messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # autopilot | autopilot-<name>
+    target: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    body: Mapped[str] = mapped_column(Text, nullable=False)  # <= 4,000 characters
+    status: Mapped[str] = mapped_column(String, nullable=False, default="pending")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow, index=True
+    )
+    created_by: Mapped[str | None] = mapped_column(String, nullable=True)
+    fetched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     result: Mapped[str | None] = mapped_column(Text, nullable=True)
 

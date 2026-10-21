@@ -3,7 +3,7 @@
 // fixtureAllowed() refuses production. The screen labels it "FIXTURE". Values are illustrative
 // stand-ins shaped like the real programme, not evidence.
 
-import type { ClaudeActivity, ClaudeSession, Experiment, LabDashboardResponse } from "./types";
+import type { ClaudeActivity, ClaudeSession, CostsBlock, Experiment, LabDashboardResponse, LabMessage, SignalEngineBlock } from "./types";
 
 /** Grepped for in the production build output to prove the fixture is not shipped. */
 export const FIXTURE_SENTINEL = "arepo-lab-fixture-sentinel-7f3c";
@@ -65,9 +65,17 @@ const SESSION_SPECS: Array<[number, number, string, string | null, string | null
   [3, 4.9, "ok", "CB17 censuses done; E012–E014 reviewed (revise); checkpoint rewritten",
     "This session got **CB17** through its counting jobs and recorded four overnight server checks.\n\n**Results**\n- Server checks: batches 13 and 15 passed; batch 14 was not testable (source returned nothing), counted 2.\n- CB17: two independent reviews caught real defects; both fixed before any job ran.\n\n**Queue:** the network lane has many hours of work lined up; the compute lane is idle until `q0305` at 14:05Z."],
   [9, 2.1, "usage_limit", null, "You've hit your session limit · resets 11:30pm (Europe/London)"],
-  [14, 0.05, "error", null, "API Error: Can't reach the API server — check your internet or DNS (ENOTFOUND)"],
-  [15, 0.05, "error", null, "API Error: Can't reach the API server — check your internet or DNS (ENOTFOUND)"],
+  [12.1, 0.05, "error", null, "API Error: Can't reach the API server — check your internet or DNS (ENOTFOUND)"],
+  [12.6, 0.05, "error", null, "API Error: Can't reach the API server — check your internet or DNS (ENOTFOUND)"],
+  [13.1, 0.05, "error", null, "API Error: Can't reach the API server — check your internet or DNS (ENOTFOUND)"],
+  [13.6, 0.05, "error", null, "API Error: Can't reach the API server — check your internet or DNS (ENOTFOUND)"],
+  [14.1, 0.05, "error", null, "API Error: Can't reach the API server — check your internet or DNS (ENOTFOUND)"],
+  [14.6, 0.05, "error", null, "API Error: Can't reach the API server — check your internet or DNS (ENOTFOUND)"],
+  [15.1, 0.05, "error", null, "API Error: Can't reach the API server — check your internet or DNS (ENOTFOUND)"],
+  [15.6, 0.05, "error", null, "API Error: Can't reach the API server — check your internet or DNS (ENOTFOUND)"],
   [21, 5, "timeout", null, null],
+  [24, 2.8, "ok", null,
+    "## Summary\nI finished the LT3 order-flow counting check and found no problems with the counts. The registry now lists LT3 as ready for its frozen analysis date.\n\n- q0472 counted 18,204 events."],
   [29, 3.6, "ok", "Round 9 creative hypotheses written (CH156–CH168); LT3 draft started",
     "Round 9 produced 13 new hypotheses, each with a plain-English mechanism and a falsification test.\n\n1. Three are cheap to screen on data we already hold.\n2. Two need the second server.\n\nNothing here is a result yet."],
   [36, 1.2, "interrupted", null, null],
@@ -112,10 +120,16 @@ export function buildActivityFixture(nowMs: number): ClaudeActivity {
     instances: [
       {
         name: "experiments",
+        key: "autopilot",
+        startable: true,
         home: "~/.arepo/autopilot",
         paused: false,
         pause_reason: null,
         session_alive: true,
+        current: {
+          text: "The second CB18 review accepted the design with five changes, and an agent is now applying them and writing CB18's counts-only census code. Creative round 11 and LT3's order-flow counting check are still running.",
+          at: at(0.15),
+        },
         started_at: at(1.4),
         last_outcome: "ok",
         last_finished_at: at(3),
@@ -125,19 +139,133 @@ export function buildActivityFixture(nowMs: number): ClaudeActivity {
       },
       {
         name: "signal",
+        key: "autopilot-signal",
+        startable: true,
         home: "~/.arepo/autopilot-signal",
-        paused: false,
-        pause_reason: null,
+        paused: true,
+        pause_reason: `${at(5)} paused until signal engine v1 is merged (orchestrator)`,
         session_alive: false,
         started_at: null,
         last_outcome: "usage_limit",
         last_finished_at: at(6),
-        next_allowed: at(-2.5),
+        next_allowed: null,
         sessions_total: 3,
         sessions: signal,
       },
     ],
     commits: subjects.map((subject, i) => ({ at: at(0.3 + i * i * 0.45), sha: shas[i], subject })),
+  };
+}
+
+export function buildCostsFixture(nowMs: number): CostsBlock {
+  const DAY = 86_400_000;
+  const spend = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2.1, 338.6, 307.9, 117.9, 43.7, 137.3, 144.7, 299.7, 146.7, 340.7, 297.1];
+  const by_day = spend
+    .map((usd, i) => ({ date: new Date(nowMs - (spend.length - 1 - i) * DAY).toISOString().slice(0, 10), usd }))
+    .filter((d) => d.usd > 0);
+  return {
+    generated_at: new Date(nowMs - 14 * 60_000).toISOString(),
+    basis: "API-equivalent: tokens x published API prices. You pay a flat subscription, not this.",
+    pricing_source: "https://platform.claude.com/docs/en/about-claude/pricing (checked 2026-10-21)",
+    total_usd: 2240.73,
+    last_7d_usd: 1410.65,
+    today_usd: 297.12,
+    messages: 23727,
+    tokens: { input: 59020, output: 28125003, cache_write: 204050877, cache_read: 4006650789 },
+    first_at: new Date(nowMs - 10.3 * DAY).toISOString(),
+    by_day,
+    by_model: [
+      { model: "claude-opus-5-5", label: "Opus 5.5", usd: 1601.47, messages: 16065 },
+      { model: "claude-sonnet-5-5", label: "Sonnet 5.5", usd: 365.43, messages: 7073 },
+      { model: "claude-fable-5-1", label: "Fable 5.1", usd: 272.06, messages: 395 },
+      { model: "claude-sonnet-5", label: "Sonnet 5", usd: 0.53, messages: 4 },
+      { model: "claude-haiku-5-5", label: "Haiku 5.5", usd: 0.33, messages: 189 },
+    ],
+    by_source: [
+      { key: "experiments", label: "experiments autopilot", kind: "autopilot", usd: 1176.01, main_usd: 191.39, subagent_usd: 984.62, sessions: 60 },
+      { key: "interactive", label: "Interactive sessions (you + Claude)", kind: "interactive", usd: 1063.83, main_usd: 321.14, subagent_usd: 742.69, sessions: 16 },
+    ],
+    unknown_models: [],
+    infra: [
+      { name: "Oracle Cloud research host", gbp_month: 0, note: "Always Free tier" },
+      { name: "Render API", gbp_month: 0, note: "Free web service" },
+      { name: "Supabase database", gbp_month: 0, note: "Free tier (500 MB)" },
+      { name: "Vercel website", gbp_month: 0, note: "Hobby (free)" },
+      { name: "GitHub Actions + releases", gbp_month: 0, note: "Free for this repository" },
+    ],
+    infra_note: "All hosting runs on free tiers: £0 a month.",
+  };
+}
+
+export function buildMessagesFixture(nowMs: number): LabMessage[] {
+  const iso = (hAgo: number) => new Date(nowMs - hAgo * 3_600_000).toISOString();
+  return [
+    { id: 7, target: "autopilot", body: "When CB18 is frozen, prioritise the LT3 analysis over new creative rounds.", status: "delivered", created_at: iso(0.6), fetched_at: iso(0.5), delivered_at: iso(0.5) },
+    { id: 6, target: "autopilot-signal", body: "Stay paused until v1 is merged; then start with the leakage audit.", status: "pending", created_at: iso(0.1) },
+    { id: 5, target: "autopilot", body: "Please write the session summary in plain English, one sentence.", status: "read", created_at: iso(20), fetched_at: iso(19.9), delivered_at: iso(19.9), read_at: iso(18) },
+  ];
+}
+
+/** Illustrative `se-dash-v1` block: one embargoed challenger (no numbers), placeholder scores. */
+export function buildSignalEngineFixture(nowMs: number): SignalEngineBlock {
+  const day = (d: number) => new Date(nowMs - d * 86_400_000).toISOString().slice(0, 10);
+  const until = new Date(nowMs + 9 * 86_400_000).toISOString().slice(0, 19) + "Z";
+  const gains = Array.from({ length: 10 }, (_, i) => i);
+  return {
+    schema: "se-dash-v1",
+    generated_at: new Date(nowMs - 3 * 3_600_000).toISOString().slice(0, 19) + "Z",
+    engine_version: "se-v1",
+    primary_target: "dir_2h",
+    champion: { model_id: "se1_lr_base", spec_sha256: "0".repeat(64), family: "baseline" },
+    models: [
+      { model_id: "se1_lr_base", family: "baseline", learner: "logreg", status: "active", embargoed_until: null },
+      { model_id: "se3_lr_flow", family: "flow", learner: "logreg", status: "active", embargoed_until: null },
+      { model_id: "se5_lgbm_all", family: "combination (lgbm)", learner: "lgbm", status: "active", embargoed_until: null },
+      { model_id: "se8_lr_event", family: "event", learner: "logreg", status: "active", embargoed_until: until, embargo_tests: ["E012"] },
+    ],
+    note: "Signal strength / forecast quality only; not probability of profit, not an edge claim.",
+    last_refit: { at: new Date(nowMs - 5 * 3_600_000).toISOString().slice(0, 19) + "Z", models: 4, targets_ok: 15 },
+    last_prediction: { capture_id: "c20261021T1200Z", at: new Date(nowMs - 40 * 60_000).toISOString().slice(0, 19) + "Z", models: 4 },
+    prospective: {
+      generated_at: new Date(nowMs - 3 * 3_600_000).toISOString().slice(0, 19) + "Z",
+      days_scored: 16,
+      status: "scoring",
+      rows: [
+        { model_id: "se1_lr_base", role: "champion", target: "dir_2h", window_days: 14, n: 48210, log_loss: 0.6512, brier: 0.2297, cal_slope: 0.97, cal_intercept: -0.01, auc: 0.584, coverage: 0.93, days: 14 },
+        { model_id: "se3_lr_flow", role: "challenger", target: "dir_2h", window_days: 14, n: 47980, log_loss: 0.6501, brier: 0.2293, cal_slope: 0.95, cal_intercept: 0.02, auc: 0.589, coverage: 0.92, days: 14, gain: 0.0011, gain_lo: -0.0004, gain_hi: 0.0026, days_positive: 9, n_days: 14, n_clusters: 3120 },
+        { model_id: "se5_lgbm_all", role: "challenger", target: "dir_2h", window_days: 14, n: 47110, log_loss: 0.6530, brier: 0.2304, cal_slope: 0.88, cal_intercept: 0.04, auc: 0.581, coverage: 0.9, days: 14, gain: -0.0018, gain_lo: -0.0041, gain_hi: 0.0005, days_positive: 5, n_days: 14, n_clusters: 3080 },
+        { model_id: "se8_lr_event", embargoed_until: until },
+      ],
+    },
+    family_gains: gains.flatMap((i) => [
+      { date: day(9 - i), model_id: "se3_lr_flow", family: "flow", gain: 0.0004 + i * 0.00008, lo: -0.0012 + i * 0.0001, hi: 0.002 + i * 0.00006 },
+      { date: day(9 - i), model_id: "se5_lgbm_all", family: "combination (lgbm)", gain: -0.001 - (i % 3) * 0.0003, lo: -0.0035, hi: 0.0012 },
+    ]),
+    development: {
+      label: "development/historical",
+      generated_at: new Date(nowMs - 2 * 86_400_000).toISOString().slice(0, 19) + "Z",
+      test_days: 6,
+      rows: [
+        { model_id: "se1_lr_base", role: "champion", target: "dir_2h", n: 120400, log_loss: 0.6488, brier: 0.2286, cal_slope: 1.01, cal_intercept: 0.0, auc: 0.591, coverage: 0.94 },
+        { model_id: "se3_lr_flow", role: "challenger", target: "dir_2h", n: 119800, log_loss: 0.6479, brier: 0.2283, cal_slope: 0.98, cal_intercept: 0.01, auc: 0.594, coverage: 0.93, gain: 0.0009, gain_lo: 0.0001, gain_hi: 0.0017, days_positive: 5, n_days: 6, n_clusters: 2900 },
+        { model_id: "se8_lr_event", embargoed_until: until },
+      ],
+    },
+    attribution: [
+      {
+        model_id: "se5_lgbm_all",
+        fit_time: new Date(nowMs - 5 * 3_600_000).toISOString().slice(0, 19) + "Z",
+        target: "dir_2h",
+        method: "mean_abs_shap",
+        rows: 20000,
+        families: { market_state: 0.42, momentum: 0.31, flow: 0.12, tte: 0.08, category: 0.03 },
+        hidden: ["event"],
+        label: "development diagnostic (mean |SHAP| on the fit's validation block), not a score",
+      },
+    ],
+    embargo_tokens: [{ token: "event", until }],
+    promotions: [],
+    stale: false,
   };
 }
 
@@ -260,6 +388,7 @@ export function buildLabFixture(nowMs: number): LabDashboardResponse {
             last_at: iso(4 * MIN),
           },
         },
+        signal_engine: buildSignalEngineFixture(nowMs),
       },
     },
     mac: {
@@ -283,9 +412,13 @@ export function buildLabFixture(nowMs: number): LabDashboardResponse {
           ],
         },
         activity: buildActivityFixture(nowMs),
+        costs: buildCostsFixture(nowMs),
       },
     },
+    messages: buildMessagesFixture(nowMs),
+    limits: { message_max_chars: 4000, messages_per_day: 20, messages_last_24h: 2 },
     commands: [
+      { id: 5, target: "autopilot-signal", action: "pause", status: "done", created_at: iso(5 * HOUR), delivered_at: iso(4.9 * HOUR), finished_at: iso(4.9 * HOUR), result: "signal paused" },
       { id: 4, target: "queue", action: "resume", status: "done", created_at: iso(20 * HOUR), delivered_at: iso(19.9 * HOUR), finished_at: iso(19.9 * HOUR), result: "queue resumed" },
       { id: 3, target: "queue", action: "pause", status: "done", created_at: iso(22 * HOUR), delivered_at: iso(21.9 * HOUR), finished_at: iso(21.9 * HOUR), result: "queue paused" },
       { id: 2, target: "autopilot", action: "pause", status: "expired", created_at: iso(30 * HOUR), delivered_at: null, finished_at: null, result: null },
