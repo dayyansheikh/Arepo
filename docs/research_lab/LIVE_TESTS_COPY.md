@@ -7,8 +7,8 @@ holds hashes only and is never committed.
 
 **Status: DRAFT.** Not registered, nothing counted. Every line written before the spec pin is
 `prospective_unregistered` and is never analysed as a confirmation. Order: the pre-window counts-only census (q0544,
-section 8.2) fills the numbers marked **CENSUS-GATED** and applies the pre-declared gates (section 7.6); then the
-challenger review (section 11); then the freeze and the pins (section 9).
+section 8.2) fills the numbers marked **CENSUS-GATED** and applies the pre-declared gates (section 7.6) — done
+2026-10-21, decision **register_k2**; then the challenger review (section 11); then the freeze and the pins (section 9).
 
 ## 0. Summary
 
@@ -27,7 +27,8 @@ challenger review (section 11); then the freeze and the pins (section 9).
   - **E026-C:** that ratio minus the same ratio of the matched non-skilled controls is > 0.
 - **Window (proposed):** signals with receipt in `[2026-10-25T00:00Z, 2026-11-15T00:00Z)` (21 days). Label cutoff
   2026-12-06T00:00Z. Single analysis on or after 2026-12-06T12:00Z.
-- **Latencies:** L = 0 (primary: the next capture after receipt, in practice about 1.5-2 h later), 6 h, 24 h.
+- **Latencies:** L = 0 (primary: the next capture after receipt, a median 1.8 h after receipt and 6.6 h after the
+  trade printed, census section 7.5), 6 h, 24 h.
 - **Census gates (fixed before any census number, section 7.6):** G1 copies/events and G2 pairs decide between
   registering k = 2, dropping E026-C before the pin (k = 1), or not registering as designed. G3 (MDE) only labels.
 - **Expected outcome.** Probably Inconclusive or Not supported on E026-C. WS1 P2-P4 found that skilled flow adds
@@ -298,19 +299,42 @@ records no exit quote and fetches no resolution.
 - **E026-C.** `n = pairs`, SD inflated by `sqrt(1 + mean(1 / m))` (m = primary-set controls of the pair, at most 3),
   event design effect.
 
-**MDE table: CENSUS-GATED** (to be filled from `census.json`; a row per quantity):
+**MDE table** (filled 2026-10-21 from the committed census `live_tests_copy/census_q0544_2026-10-21.json`, sha256
+`90adaea6d9edfaf19f502e56513e8d7a2ca01c27fae90884c6e6163326ec58bf`; counts and entry-quote levels only):
 
 | quantity (21-day projection, sidecar, L = 0, primary set) | census value |
 |---|---|
-| usable days read; skilled signals per day | CENSUS-GATED |
-| primary-set copies n; events; wallets; top-1 / top-10 wallet share | CENSUS-GATED |
-| pairs; pair events; control SD inflation | CENSUS-GATED |
-| SD per share; mean stake; mean cost per $ staked | CENSUS-GATED |
-| deff_event; deff_2w | CENSUS-GATED |
-| MDE E026-N at deff 1 / deff_event / deff_2w | CENSUS-GATED |
-| MDE E026-C at deff_event | CENSUS-GATED |
-| realised latency quantiles (L = 0, 6 h, 24 h); entry availability | CENSUS-GATED |
-| gate decision (section 7.6) | CENSUS-GATED |
+| usable days read; skilled signals per day | 2.882 days (35 samples, 0 skipped); 6,429 skilled signals = 2,230 a day (242 wallets, 3,769 markets) |
+| primary-set copies n; events; wallets; top-1 / top-10 wallet share | census 1,294 (449 a day; 2,946 before the wallet-day cap and the one-per-(wallet, market) rule), 650 events, 160 wallets, 3.0% / 26.9%; **projected n 9,428, events 4,736** |
+| pairs; pair events; control SD inflation | census 1,200 pairs, 620 pair events; **projected 8,743 pairs, 4,517 pair events**; inflation 1.199 |
+| SD per share; mean stake; mean cost per $ staked | 0.414; 0.571; **0.053** (0.030 per share) |
+| deff_event; deff_2w | 3.97 (deff_wallet 21.35, deff_event x wallet 1.38); **23.93** |
+| MDE E026-N at deff 1 / deff_event / deff_2w | 0.021 / **0.042** / 0.102 $ per $ |
+| MDE E026-C at deff_event | **0.052** $ per $ |
+| realised latency quantiles (L = 0, 6 h, 24 h); entry availability | trade-to-entry p10 / p50 / p90: L = 0 2.6 / 6.6 / 18.4 h; L = 6 h 8.6 / 12.6 / 24.3 h; L = 24 h 26.6 / 30.5 / 40.9 h. Receipt-to-entry median 1.8 h. Two-sided entry: L = 0 6,120 / 6,429 (95%); 6 h 5,271 / 6,040 (87%); 24 h 3,041 / 4,279 (71%) |
+| gate decision (section 7.6) | G1 pass (9,428 >= 400; 4,736 >= 80), G2 pass (8,743 >= 300; 4,517 >= 80), G3 pass (0.042 <= 0.10): **register_k2** |
+
+Census notes (facts, not design changes):
+- **Latency.** The 2-hourly sample first sees a trade a median 4.5 h after it printed (trade age p10 / p50 / p90:
+  0.7 / 4.5 / 16.3 h), so the realised trade-to-entry latency at L = 0 is a median 6.6 h, not the 1.5-2 h of the
+  receipt-to-entry delay alone. L = 0 means "as soon as AREPO can know", and that is several hours.
+- **Power.** The primary p is the maximum of the event bootstrap, the event t and the two-way t (section 7.2), so the
+  two-way MDE (0.102 at the correlation-1 upper bound) is the conservative reading; the event MDE (0.042) is what G3
+  checks. Both exceed the 0.03 materiality floor, so a "Not supported (effects >= 0.03 excluded)" verdict is unlikely;
+  a null will most likely read Inconclusive. G3 passed, so no low-power label is attached.
+- **Hurdle.** The mean conservative cost is 5.3c per dollar staked; E026-N needs a gross gain above that.
+- **Mix.** Primary-set categories: sports 327, weather 322, other 123, culture 104, politics 102, unknown 83, finance 81,
+  crypto 63. BUY share 0.89. Ask bands: long shot 312, middle 417, favourite 565. Median days to end 2.3.
+- **Large-print arm (secondary):** 849 skilled signals in 3.0 days, primary set 117 (64 events, 21 wallets; top-1
+  share 26.5%), projected 819.
+- **Ordering disclosure (gates not blind).** The design session ran an earlier, uncommitted census of the same
+  pre-window data before the gates were committed (aba32281, 2026-10-21 08:56Z); the owner was relayed its numbers
+  (about 1,278 primary-set copies in 2.8 days, about 9,470 projected over 21 days; MDE E026-N 0.042, E026-C 0.051 at the
+  event bound). The committed census q0544 ran later (12:22Z) on reviewed code (afac80d4) and is the one the gates were
+  applied to. So the gates were set with planning numbers in view. They sit far below them (G1 400 copies against about
+  9,400 projected; G2 300 pairs against about 8,700), so they could not have been placed to pass narrowly, but the
+  challenger should treat them as informed, not blind. This touches only power planning: no payout, exit quote or
+  window data was seen.
 
 Benchmark: the WS1 S2 gap (+21.7c vs +3.6c, about 18c per dollar) is the wallets' own P&L at their own price,
 without latency or costs. A copy at L = 0 should keep only part of it. The mean conservative cost per dollar from the
@@ -394,11 +418,20 @@ it must stay below 500 MB), wall times and store bytes. Work dir `data-dumps/res
 
 | item | value |
 |---|---|
-| history load + profiles: peak RSS, wall | CENSUS-GATED |
-| recorder (child): peak RSS, wall, samples / captures read | CENSUS-GATED |
-| store bytes for the census period (scaled to 21 days vs the 1 GB cap) | CENSUS-GATED |
-| missing / retired samples in the census period | CENSUS-GATED |
-| eligible / skilled wallets in the set | CENSUS-GATED |
+| history load + profiles: peak RSS, wall | 1,441.6 MB, 51.4 s (host, q0544) |
+| recorder (child): peak RSS, wall, samples / captures read | **peak not measured by q0544** (see below); wall 236.5 s; 35 samples, 39 captures, 72 print hours |
+| store bytes for the census period (scaled to 21 days vs the 1 GB cap) | 7,069,695 B in 2.88 days, about 51.5 MB per 21 days (5% of the cap) |
+| missing / retired samples in the census period | 0 / 0 |
+| eligible / skilled wallets in the set | 35,587 / 3,559 |
+
+**Recorder memory: measurement defect found 2026-10-21.** The census reported the recorder child's peak as 1,441.6
+MB, exactly the parent's history-load peak. On Linux `ru_maxrss` carries the forking parent's peak across `exec`
+(checked on the host: a child of an 800 MB parent reports 811 MB by `ru_maxrss` and 10 MB by `/proc/self/status`
+VmHWM). So q0544 did not measure the recorder alone. The runner now reads VmHWM in the child (test with a 600 MB parent
+ballast), and the diagnostic re-run **q0545** (same pre-window period, counts only, gates not re-applied; output
+`census_q0545_memcheck.json`) measures it before the 2026-10-22T03:30Z retention run. q0541's `mem_mb` (450, net lane,
+address-space cap 900 MB) is confirmed or re-sized from that number before the pin; if the recorder needs 500 MB or
+more, it cannot use the light-job exemption and the queue entry must say so.
 
 Deadline (retention, not design): the 2026-10-18 and early 10-19 sample files are retired by the 2026-10-22T03:30Z
 archive run and jobs with `mem_mb` >= 500 cannot start 02:45-05:30Z, so q0544 must start before 2026-10-22T02:45Z. A

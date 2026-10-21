@@ -581,8 +581,9 @@ def test_floors_make_unavailable(tmp_path):
 
 def test_queue_drafts_valid():
     repo = Path(__file__).resolve().parents[3]
-    drafts = sorted((repo / "docs" / "research_lab" / "queue" / "drafts").glob("q054[0-4]_copy_*.json"))
-    assert len(drafts) == 5
+    q = repo / "docs" / "research_lab" / "queue"
+    drafts = sorted([*(q / "drafts").glob("q054[0-4]_copy_*.json"), *(q / "jobs").glob("q0544_copy_*.json")])
+    assert len(drafts) == 5  # q0544 (census) was promoted to jobs/ on 2026-10-21
     for p in drafts:
         j = json.loads(p.read_text())
         assert j["id"] == p.stem
@@ -592,7 +593,7 @@ def test_queue_drafts_valid():
         if j["resources"]["lane"] == "net":
             assert j["resources"]["mem_mb"] < 500  # blackout exemption, never blocks the cpu lane
     assert json.loads((repo / "docs/research_lab/queue/drafts/q0543_copy_analyze.json").read_text())["not_before"] == cs.ANALYSIS_NOT_BEFORE
-    cen = json.loads((repo / "docs/research_lab/queue/drafts/q0544_copy_census.json").read_text())
+    cen = json.loads(next(p for p in drafts if p.stem == "q0544_copy_census").read_text())
     a = cen["argv"]
     assert a[1] == "census" and "--out" in a and cen["resources"]["network"] == "none"
     assert cs.epoch(a[a.index("--end") + 1]) <= cs.epoch("2026-10-22T00:00:00Z") < cs.epoch(cs.REGISTERED_UTC)
@@ -702,8 +703,10 @@ def test_census_recorder_child_process(tmp_path):
     rc = _runner()
     snaps, samples, prints, root, caps, _ = _tree(tmp_path)
     a = argparse.Namespace(snapshots=str(snaps), samples=str(samples), prints=str(prints))
+    ballast = b"\x01" * (600 * 2**20)  # a large resident parent: the child's peak must not inherit it
     st, mb = rc.recorder_in_child(root, spec(), a, T0 + 0.5 * H + 2 * H * 5)
-    assert st["samples"] == 2 and st["signals_skilled"] == 2 and mb > 0
+    del ballast
+    assert st["samples"] == 2 and st["signals_skilled"] == 2 and 0 < mb < 550
     assert not (root / "census_args.json").exists()
     assert {p.name[:-7] for p in (root / "entries").glob("*.csv.gz")} == set(caps[:5])
     assert (cs.read_store(root, "entries")["kind"] == "entry").all()

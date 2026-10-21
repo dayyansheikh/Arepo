@@ -146,6 +146,13 @@ st = cs.run_once(root=Path(a["root"]), snapshot_root=Path(a["snapshots"]), sampl
                  prints_root=Path(a["prints"]), spec=a["spec"], now=cs.now_ts(), max_items=100000, log=lambda s: None,
                  capture_hi=a["capture_hi"], exits=False)
 print("CENSUS_RECORDER " + json.dumps(st, default=str))
+try:  # VmHWM: this process's own peak; ru_maxrss carries the forking parent's peak across exec on Linux
+    hwm = [x for x in Path("/proc/self/status").read_text().splitlines() if x.startswith("VmHWM:")][0]
+    print("CENSUS_RECORDER_HWM_MB " + str(int(hwm.split()[1]) / 1024))
+except (OSError, IndexError):
+    import resource
+    r = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    print("CENSUS_RECORDER_HWM_MB " + str(r / (1024 * 1024) if sys.platform == "darwin" else r / 1024))
 """
 
 
@@ -160,8 +167,8 @@ def recorder_in_child(work: Path, spec: dict, a, capture_hi: float) -> tuple[dic
     if r.returncode != 0:
         raise RuntimeError(f"census recorder failed: {r.stderr[-2000:]}")
     line = [x for x in r.stdout.splitlines() if x.startswith("CENSUS_RECORDER ")][-1]
-    ru = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
-    return json.loads(line[len("CENSUS_RECORDER "):]), ru / (1024 * 1024) if sys.platform == "darwin" else ru / 1024
+    hwm = [x for x in r.stdout.splitlines() if x.startswith("CENSUS_RECORDER_HWM_MB ")][-1]
+    return json.loads(line[len("CENSUS_RECORDER "):]), float(hwm.split()[1])
 
 
 WORK_MARKER = ".copy_skilled_census_work"
