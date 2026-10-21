@@ -689,3 +689,15 @@ def test_runner_size_check_guards(tmp_path):
     out = tmp_path / "o.json"
     out.write_text("x")
     assert mod.main(["size-check", "--dev", "--worlds", "1", "--draws", "3", "--out", str(out)]) == 1  # never overwrites
+
+
+def test_load_rows6_end_date_is_text_so_epoch_works_with_many_rows(tmp_path):
+    """Freeze-check fix (HIGH): a categorical end_date made panel._epoch crash on pandas 2.3.3 for >= 50 rows."""
+    d = tmp_path / "cap"
+    d.mkdir()
+    n = 60
+    pd.DataFrame({"received_utc": ["2026-10-01T00:00:05.000000Z"] * n, "market_id": [str(i) for i in range(n)], "condition_id": [f"0x{i}" for i in range(n)],
+                  "event_id": ["1"] * n, "closed": ["False"] * n, "active": ["True"] * n, "end_date": ["2026-12-31T23:59:00Z"] * n}).to_csv(d / "rows.csv.gz", index=False, compression="gzip")
+    rows = lt.load_rows6(d)
+    assert rows["end_date"].dtype != "category"
+    assert np.isfinite(b.panel._epoch(rows["end_date"])).all()

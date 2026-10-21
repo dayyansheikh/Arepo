@@ -693,7 +693,7 @@ def load_rows6(cap_dir: Path) -> pd.DataFrame:
     """All rows of a capture (every status), one per market_id and per condition_id, with LT6's extra columns."""
     cols = set(SNAP_COLS6)
     rows = pd.read_csv(forecast.require_local(Path(cap_dir) / "rows.csv.gz"), usecols=lambda c: c in cols,
-                       dtype={"market_id": str, "condition_id": str, "event_id": str, "received_utc": "category", "end_date": "category",
+                       dtype={"market_id": str, "condition_id": str, "event_id": str, "received_utc": "category", "end_date": str,
                               "closed": str, "active": str, "neg_risk": str, "clob_token_id_0": str, "updated_at": str})
     for c in ("liquidity", "updated_at"):
         if c not in rows:
