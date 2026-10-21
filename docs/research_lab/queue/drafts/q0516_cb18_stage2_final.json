@@ -1,0 +1,40 @@
+{
+ "id": "q0516_cb18_stage2_final",
+ "title": "CB18 Stage-2 final (DRAFT): one strict Holm (one-sided alpha 0.05) over every triggered CB18 Stage-2 test (at most 1); adds passes only; verifies rules and code pins; write-once",
+ "family": "creative_batch_18",
+ "priority": 9,
+ "expected_value": "final Stage-2 decision",
+ "data": [
+  "data-dumps/research_lab/creative_batch18/results_rep.json"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0515_cb18_rep_18"
+ ],
+ "argv": [
+  "scripts/run_cb18.py",
+  "stage2-final",
+  "--rules",
+  "../docs/research_lab/seals/cb18_rules.json",
+  "--code-freeze",
+  "../docs/research_lab/seals/cb18_code_freeze.json",
+  "--out",
+  "../data-dumps/research_lab/creative_batch18/results_final.json",
+  "--disk-cap-gb",
+  "20",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 900,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch18/results_final.json"
+ ],
+ "next_action": "ledger; if S1-rep passed, draft the Stage-P (LT-format) registration",
+ "notes": "DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md, design not yet reviewed). scripts/run_cb18.py DOES NOT EXIST YET (code needed, CREATIVE_BATCH_18.md section 6). Window job: promote only after parts common and S are committed (CB route RS-1), the code freeze record and an accepting code-against-design freeze check."
+}

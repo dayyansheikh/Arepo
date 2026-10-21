@@ -1,0 +1,62 @@
+{
+ "id": "q0500_cb18_census_restore_captures",
+ "title": "CB18 census inputs (DRAFT): restore the 67 complete captures (rows, sidecar, manifest, sidecar manifest) of 2026-10-11T22:31Z .. 2026-10-17T22:31Z and the 48 book-sweep directories of the 2026-10-15/16 passes byte for byte from the data releases into a scratch tree (sha256 re-checked; nothing outside --dest written)",
+ "family": "creative_batch_18",
+ "priority": 30,
+ "expected_value": "the CB18 census and map input set (S, F, M captures; P and R look-back captures; S sweep 1), proven identical to the released copies, for seals/cb18_census_inputs.json",
+ "data": [
+  "arepo-data GitHub releases data-20261015-dsheikh, data-20261016-dsheikh, data-20261017-dsheikh, data-20261018-dsheikh, data-20261018-dsheikh-2, data-20261019-dsheikh (read-only; confirmed against the committed catalogues and restore_from_archive.py --list on 2026-10-21: 112 + 28 + 96 + 88 + 4 + 36 = 364 files, each capture from exactly one release)"
+ ],
+ "resources": {
+  "mem_mb": 600,
+  "cpu": 1,
+  "lane": "net",
+  "network": "github releases (private data repo, read-only)"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/restore_from_archive.py",
+  "--tag",
+  "data-20261015-dsheikh",
+  "--tag",
+  "data-20261016-dsheikh",
+  "--tag",
+  "data-20261017-dsheikh",
+  "--tag",
+  "data-20261018-dsheikh",
+  "--tag",
+  "data-20261018-dsheikh-2",
+  "--tag",
+  "data-20261019-dsheikh",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261011T2231*/rows.csv.gz",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/2026101[234567]T*/rows.csv.gz",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261011T2231*/rows_ext.csv.gz",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/2026101[234567]T*/rows_ext.csv.gz",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261011T2231*/manifest.json",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/2026101[234567]T*/manifest.json",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261011T2231*/ext_manifest.json",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/2026101[234567]T*/ext_manifest.json",
+  "--path-glob",
+  "data-dumps/research_lab/book_sweeps/2026101[56]T*/rows.csv.gz",
+  "--path-glob",
+  "data-dumps/research_lab/book_sweeps/2026101[56]T*/manifest.json",
+  "--dest",
+  "../data-dumps/research_lab/cb18_census/restore"
+ ],
+ "timeout_s": 14400,
+ "max_retries": 2,
+ "outputs": [
+  "data-dumps/research_lab/cb18_census/restore/data-dumps/research_lab/{snapshots,book_sweeps}/<id>/",
+  "data-dumps/research_lab/cb18_census/restore/RESTORE_REPORT_<tag>.json"
+ ],
+ "next_action": "write seals/cb18_census_inputs.json (the exact capture, sweep and sample ids of CREATIVE_BATCH_18.md section 3 with sha256 copied from each release's files.sha256, never from disk), commit it, then q0502-q0506",
+ "notes": "DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md, R1 response written, awaiting the R1 re-check). Data movement only (net lane); counts-only inputs, all before the LT2-LT5 and CB18 windows. Censuses open only files named in the seal and refuse a mismatched or missing pinned file (L4). R1 response (CREATIVE_BATCH_18.md section 11, 2026-10-21): finding 7: tags fixed from the catalogues; data-20261018-dsheikh-2 added (it alone holds the 10-17T04:31Z capture); data-20261014-research-lab-tail dropped (its 10-13T20:31Z/22:31Z captures duplicate data-20261015-dsheikh and would clash in --dest); the Mac-era data-20261013-research-lab and the -val copy (off-grid 10-13T23:19:58Z capture) are not used. Sweeps narrowed to the 10-15/16 passes (census S reads sweep 1 of pass k for k on those days only). finding 5: the six captures of slots 2026-10-14T00:31Z-10:31Z are in no release and are declared unavailable (never 0). Clear the restore tree after the routing record is committed."
+}

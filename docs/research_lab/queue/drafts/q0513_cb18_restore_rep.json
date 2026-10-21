@@ -1,0 +1,40 @@
+{
+ "id": "q0513_cb18_restore_rep",
+ "title": "CB18 REP_18 inputs (DRAFT): restore byte for byte the captures and sweep 1 of [S_18 + 14 d - 24 h, S_18 + 29 d + 2 h) rotated off the host",
+ "family": "creative_batch_18",
+ "priority": 9,
+ "expected_value": "S Stage-2 inputs",
+ "data": [
+  "arepo-data releases covering 2026-11-09 .. 2026-11-25 (tags fixed when known)"
+ ],
+ "resources": {
+  "mem_mb": 600,
+  "cpu": 1,
+  "lane": "net",
+  "network": "github releases (private data repo, read-only)"
+ },
+ "depends_on": [
+  "q0512_cb18_screen_18"
+ ],
+ "argv": [
+  "scripts/restore_from_archive.py",
+  "--tag",
+  "<data-202611xx tags, fixed before promotion>",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/2026*/rows.csv.gz",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/2026*/rows_ext.csv.gz",
+  "--path-glob",
+  "data-dumps/research_lab/book_sweeps/2026*/rows.csv.gz",
+  "--dest",
+  "../data-dumps/research_lab/cb18_window/restore_rep"
+ ],
+ "timeout_s": 21600,
+ "max_retries": 2,
+ "outputs": [
+  "data-dumps/research_lab/cb18_window/restore_rep/"
+ ],
+ "next_action": "q0514",
+ "notes": "DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md, design not yet reviewed). scripts/run_cb18.py DOES NOT EXIST YET (code needed, CREATIVE_BATCH_18.md section 6). Window job: promote only after parts common and S are committed (CB route RS-1), the code freeze record and an accepting code-against-design freeze check. Only if S1 advanced.",
+ "not_before": "2026-11-25T08:00:00Z"
+}

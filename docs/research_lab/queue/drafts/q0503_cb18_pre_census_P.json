@@ -1,0 +1,49 @@
+{
+ "id": "q0503_cb18_pre_census_P",
+ "title": "CB18 pre-census P (CH172 program vs human; DRAFT): counts only on the 23 sealed samples of 2026-10-16/17 (21 usable pass pairs) and captures 10-15T16:31Z..10-17T22:31Z (look-back k-4): parallel quote-only re-centerings at k among markets in both pass k's and pass k+1's samples, coverage of (t_k, t_k+1], fade/follow/none/balanced by pass k+1 sampling stratum, side unusable, DE (DE_gate = max(3.0, computed)), series share, permutable shares (GP1-GP6), proxy SE on s*(mid_{k-2}-mid_{k-4}) (SE only)",
+ "family": "creative_batch_18",
+ "priority": 28,
+ "expected_value": "CB18-P gates and route (LT5 member or dropped, uncounted)",
+ "data": [
+  "data-dumps/research_lab/cb18_census/restore/data-dumps/research_lab (q0500/q0501; read-only)"
+ ],
+ "resources": {
+  "mem_mb": 380,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0500_cb18_census_restore_captures",
+  "q0501_cb18_census_restore_samples"
+ ],
+ "argv": [
+  "scripts/run_cb18.py",
+  "census-p",
+  "--rules",
+  "../docs/research_lab/seals/cb18_rules.json",
+  "--part",
+  "pre",
+  "--seal",
+  "../docs/research_lab/seals/cb18_census_inputs.json",
+  "--snapshot-root",
+  "../data-dumps/research_lab/cb18_census/restore/data-dumps/research_lab/snapshots",
+  "--sweep-root",
+  "../data-dumps/research_lab/cb18_census/restore/data-dumps/research_lab/book_sweeps",
+  "--sample-root",
+  "../data-dumps/research_lab/cb18_census/restore/data-dumps/research_lab/trade_samples",
+  "--out",
+  "../data-dumps/research_lab/cb18_census/P.json",
+  "--disk-cap-gb",
+  "20",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 5400,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/cb18_census/P.json (counts only; write-once)"
+ ],
+ "next_action": "add P.json's sha256 to seals/; routing record; if routed, hand the values to LIVE_TESTS_5.md",
+ "notes": "DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md, R1 response written, awaiting the R1 re-check). scripts/run_cb18.py exists (subcommand tested on a synthetic world, tests/unit/test_cb18_census.py; real-data peak RSS unmeasured, design estimate < 400 MB). Counts 0 (kind cb18_descriptive). Refuses unless part pre is committed and every pinned input is present and matches (L4); refuses any file or row after its cut-off. Reads only receipt times of capture k+1 (no price at k+1 or later). R1 response (CREATIVE_BATCH_18.md section 11, 2026-10-21): finding 8 (both-frames rule from plan.json; k+1 stratum split; the two pairs needing the unsealed 10-17T04:40Z sample unavailable, counted), finding 2 (GP5 with DE_gate >= 3 and the 1.5 factor: pessimistic planning needs about 12,900 fades in 28 days; drop expected; no 42-day branch declared). R2 response (CREATIVE_BATCH_18.md section 12): finding 3: GP5 binds on max(MDE_formula, MDE_proxy) <= 0.5c (proxy = 3.388 x SE_proxy(c_pre) x sqrt(21/(28 x 12)) x sqrt(max(3, DE_W28/DE_census)) x 1.5; NaN proxy -> formula alone); finding 4: P's longest look-back is k-4 (from 10-15T16:31Z), no k-12 read. Reads inside J4-R (finding 1, disclosed); no census object is a mark-out."
+}
