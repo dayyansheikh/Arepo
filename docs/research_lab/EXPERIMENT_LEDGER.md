@@ -2803,6 +2803,29 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - Implementation on `fix/lt3-prepin` (worktree ../astrolabe-lt3-prepin), then merge, promote q0475, dry run, pins,
   registration commit before 2026-10-23T00:00Z.
 
+## Signal engine: started on the host + challenger se8_lr_event (event family), 2026-10-21 ~03:45-04:40Z (signal-engine autopilot; nothing counted yet)
+- **Engine started:**
+  - The per-pass `tick` is the last step of `arepo_pass.sh`.
+  - Queue jobs q0512 refit, q0513 score and q0514 walkforward promoted.
+  - Feature backfill of the captures still on the host; 15 archived captures skipped, missing stays missing.
+  - Bug fixed: archived captures no longer use the per-run feature budget.
+- **New challenger `se8_lr_event`:** the champion plus the auxiliary family `event` (`se-aux-event-v1`; DESIGN_V1 §16).
+  - Science review: ACCEPT-WITH-FIXES. All fixes were applied before any table was written:
+    - no zero-imputed sums;
+    - `require_full_coverage`, for comparability with the champion's row set;
+    - no prediction without the table;
+    - the join result sets the source flag;
+    - coverage and rows-sha provenance recorded.
+  - No embargo token: no live test from E009 onward isolates event or sibling features.
+- **Overlap note (for future registrations):**
+  - `ev_sib_*` resembles SB2-J5's L1 (sibling reversal). `ev_norm_gap` / `ev_sum_mid_m1` resemble E005's band
+    deviation.
+  - se8's prospective scores are a development look at both families. The first leaderboard that shows a se8 gain
+    counts as one development test, and a trials line is appended then.
+  - Any later live test of J5 or a neg-risk band hypothesis must declare that it is not fresh.
+- **For the experiments track (not edited here):** the ledger summary row for E005 (line ~14) still reads
+  "REGISTERED, pending". Its scored entry (line ~678) says "Not supported".
+
 ## LT3 pre-pin fixes merged and verified, 2026-10-21 ~05:00Z (nothing counted; size-check results not read)
 - `fix/lt3-prepin` merged (6c51901c): §13.15 ruling first (65719509: binding for the E015 pin = `perm_iid`,
   `perm_persistent`, `perm_corr_control`; `flowperm_*` recorded, not blocking; donor reported); analysis computes only

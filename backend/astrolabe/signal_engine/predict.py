@@ -20,7 +20,7 @@ from . import learners
 from . import specs as SP
 from . import store as S
 from . import training as T
-from .features import ALL_FEATURES, KEY_COLUMNS
+from .aux import aux_path, read_features, spec_aux_families
 
 
 def quantise(p: np.ndarray) -> np.ndarray:
@@ -86,18 +86,27 @@ def run_predict(paths: S.Paths, reg: dict, now: float | None = None, max_items: 
         cid = m["capture_id"]
         start = S.epoch(m["started_utc"])
         fp = paths.features(cid)
-        feats = S.read_parquet(fp, KEY_COLUMNS + ALL_FEATURES)
+        feats = read_features(paths, cid)
         feats_sha = S.sha256_file(fp)
         elig = L.elig_mask(feats, slot, start)
         for mid, fit in missing:
             spec = models[mid]
+            lacking = [fam for fam in spec_aux_families(spec) if not feats.attrs.get("aux_ok", {}).get(fam)]
+            if lacking:
+                # never write an aux model's prediction without its family (it would be a different model's output);
+                # retried on the next run while the capture is still predictable
+                skipped.append({"capture_id": cid, "model_id": mid, "reason": "aux_pending"})
+                continue
             t0 = time.time()
             if mid not in fit_cache or fit_cache[mid][0] != fit["fit_id"]:
                 fit_cache[mid] = (fit["fit_id"], T.load_artifacts(fit))
             arts = fit_cache[mid][1]
             pf = predict_frame(spec, arts, feats, elig)
             md = {"capture_id": cid, "slot": slot, "model_id": mid, "spec_sha256": spec["_sha256"], "fit_id": fit["fit_id"],
-                  "features_sha256": feats_sha, "n_rows": int(len(pf)), "targets": sorted(arts),
+                  "features_sha256": feats_sha,
+                  "aux_sha256": {fam: S.sha256_file(aux_path(paths, fam, cid)) if aux_path(paths, fam, cid).exists() else None
+                                 for fam in spec_aux_families(spec)},
+                  "n_rows": int(len(pf)), "targets": sorted(arts),
                   "created_utc": S.iso(S.now_ts()), "engine_version": C.ENGINE_VERSION}
             path = paths.predictions(cid, mid)
             if not S.write_once_parquet(path, pf, md):

@@ -23,18 +23,23 @@ from . import labels as L
 from . import learners
 from . import specs as SP
 from . import store as S
+from .aux import AUX_ALL, read_features, spec_aux_families
 from .features import ALL_FEATURES, KEY_COLUMNS, SOURCE_FAMILIES
 
-FRAME_COLUMNS = KEY_COLUMNS + ALL_FEATURES
+FRAME_COLUMNS = KEY_COLUMNS + ALL_FEATURES + AUX_ALL
 
 
 def _rng(*parts) -> np.random.Generator:
     return np.random.default_rng(zlib.crc32("|".join(map(str, parts)).encode()))
 
 
-def _sources(meta: dict) -> dict[str, bool]:
+def _sources(meta: dict, f: pd.DataFrame | None = None) -> dict[str, bool]:
+    """Base stream availability from the capture meta, plus each aux family's join result for the read frame."""
     src = meta.get("sources") or {}
-    return {f: bool(src.get(f)) for f in SOURCE_FAMILIES}
+    out = {fam: bool(src.get(fam)) for fam in SOURCE_FAMILIES}
+    if f is not None:
+        out.update({fam: bool(ok) for fam, ok in f.attrs.get("aux_ok", {}).items()})
+    return out
 
 
 def direction_frame(paths: S.Paths, index: dict[int, dict], fit_time: float, window_days: float, max_rows: int,
@@ -51,7 +56,8 @@ def direction_frame(paths: S.Paths, index: dict[int, dict], fit_time: float, win
         p = paths.features(m["capture_id"])
         if not p.exists():
             continue
-        f = S.read_parquet(p, FRAME_COLUMNS)
+        f = read_features(paths, m["capture_id"], FRAME_COLUMNS)
+        src = _sources(m, f)
         start = S.epoch(m["started_utc"])
         ids, mid = f["market_id"].to_numpy(np.int64), f["ms_mid"].to_numpy(np.float64)
         any_lab = np.zeros(len(f), bool)
@@ -72,7 +78,7 @@ def direction_frame(paths: S.Paths, index: dict[int, dict], fit_time: float, win
             g[f"y_{t}"] = ys[t][idx]
             g[f"lt_{t}"] = lts[t][idx]
         g["otime"] = start
-        for fam, ok in _sources(m).items():
+        for fam, ok in src.items():
             g[f"src_{fam}"] = ok
         parts.append(g)
     if not parts:
@@ -95,7 +101,8 @@ def resolution_frame(paths: S.Paths, index: dict[int, dict], res: pd.DataFrame, 
         if not p.exists():
             continue
         start = S.epoch(m["started_utc"])
-        f = S.read_parquet(p, FRAME_COLUMNS)
+        f = read_features(paths, m["capture_id"], FRAME_COLUMNS)
+        src = _sources(m, f)
         el = L.res_eligible(f["end_ts"].to_numpy(float), start)
         if not el.any():
             continue
@@ -111,7 +118,7 @@ def resolution_frame(paths: S.Paths, index: dict[int, dict], res: pd.DataFrame, 
         g["y_res_7d"] = y[idx]
         g["lt_res_7d"] = lt[idx]
         g["otime"] = start
-        for fam, okk in _sources(m).items():
+        for fam, okk in src.items():
             g[f"src_{fam}"] = okk
         parts.append(g)
     if not parts:
@@ -131,6 +138,24 @@ def select_rows(frame: pd.DataFrame, spec: dict, target: str, fit_time: float) -
     if len(sub) > tr["max_rows"]:
         sub = sub.iloc[np.sort(_rng(spec["model_id"], target, fit_time).choice(len(sub), tr["max_rows"], replace=False))]
     return sub.reset_index(drop=True)
+
+
+def aux_coverage(frame: pd.DataFrame, spec: dict, target: str, fit_time: float) -> dict:
+    """Per aux family of the spec: labelled captures in the target's window, how many joined the family, and a hash
+    of the joined capture list (reproducibility record)."""
+    fams = spec_aux_families(spec)
+    if not fams or frame.empty or f"y_{target}" not in frame:
+        return {}
+    tr = spec["train"]
+    wd = tr["res_window_days"] if target == C.RES_TARGET else tr["window_days"]
+    win = (frame[f"y_{target}"].to_numpy() >= 0) & (frame["otime"].to_numpy(float) >= fit_time - wd * 86400.0)
+    caps = frame.loc[win, ["otime"] + [f"src_{f}" for f in fams]].groupby("otime").max()
+    out = {}
+    for fam in fams:
+        joined = caps.index[caps[f"src_{fam}"].to_numpy(bool)]
+        out[fam] = {"captures": int(len(caps)), "with": int(len(joined)),
+                    "captures_sha256": S.canonical_sha256([S.iso(float(t)) for t in joined])}
+    return out
 
 
 def fit_stamp(t: float) -> str:
@@ -164,6 +189,12 @@ def refit_all(paths: S.Paths, reg: dict, fit_time: float, now: float, models: di
             if fr.empty or f"y_{target}" not in fr:
                 rec["targets"][target] = {"status": "no_data"}
                 continue
+            cov = aux_coverage(fr, spec, target, fit_time)
+            if cov and spec["train"].get("require_full_coverage") and any(c["with"] < c["captures"] for c in cov.values()):
+                # comparability with the champion: an aux challenger trains only once every capture of its window
+                # has the family, so it never learns from a different (shorter, more recent) row set
+                rec["targets"][target] = {"status": "insufficient_coverage", "aux_coverage": cov}
+                continue
             sub = select_rows(fr, spec, target, fit_time)
             n_days = len(np.unique(np.floor(sub["otime"].to_numpy(float) / 86400.0))) if len(sub) else 0
             if len(sub) < spec["train"]["min_rows"] or n_days < spec["train"].get("min_days", 1):
@@ -182,9 +213,11 @@ def refit_all(paths: S.Paths, reg: dict, fit_time: float, now: float, models: di
                         "otime_min": S.iso(float(sub["otime"].min())), "otime_max": S.iso(float(sub["otime"].max())),
                         "label_time_max": S.iso(float(np.nanmax(sub[f"lt_{target}"].to_numpy(float)))),
                         "class_counts": np.bincount(y, minlength=k).tolist()})
+            if cov:
+                art["aux_coverage"] = cov
             arts[mid][target] = art
             rec["targets"][target] = {"status": "ok", "rows": int(len(sub)), "days": int(n_days),
-                                      "seconds": round(time.time() - t1, 1)}
+                                      "seconds": round(time.time() - t1, 1), **({"aux_coverage": cov} if cov else {})}
         summary["models"][mid] = rec
         if write and arts[mid]:
             write_fit(paths, spec, fit_time, arts[mid], rec)

@@ -58,6 +58,13 @@
    "spec_sha256": "831b7162aaec1ad306425219c41639e275fe4f656f0ae374e82bc264cdf319a9",
    "status": "active",
    "added_utc": "2026-10-21T00:00:00Z"
+  },
+  {
+   "model_id": "se8_lr_event",
+   "file": "se8_lr_event.json",
+   "spec_sha256": "752e150be4076461420effe233899ca743a3f1eb323d623b22caee485b4bfdaa",
+   "status": "active",
+   "added_utc": "2026-10-21T04:30:00Z"
   }
  ]
 }

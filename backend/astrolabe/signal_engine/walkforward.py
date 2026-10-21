@@ -23,7 +23,7 @@ from . import scoring as SC
 from . import specs as SP
 from . import store as S
 from . import training as T
-from .features import ALL_FEATURES, KEY_COLUMNS
+from .aux import read_features, spec_aux_families
 
 
 def run_walkforward(paths: S.Paths, reg: dict, champion: str, now: float, max_test_days: int = 7,
@@ -52,16 +52,17 @@ def run_walkforward(paths: S.Paths, reg: dict, champion: str, now: float, max_te
         arts = out["arts"]
         for slot, m in by_day[day]:
             start = S.epoch(m["started_utc"])
-            f = S.read_parquet(paths.features(m["capture_id"]), KEY_COLUMNS + ALL_FEATURES)
+            f = read_features(paths, m["capture_id"])
             ids = f["market_id"].to_numpy(np.int64)
             cl = SC.cluster_ids(f["event_id"].to_numpy(), ids)
             cats = f["category"].astype(str).to_numpy()
             elig = L.elig_mask(f, slot, start)
             for h, t in zip(C.HORIZONS_H, C.DIR_TARGETS, strict=True):
                 y, st, _ = L.direction_labels(qc, index, slot, h, ids, f["ms_mid"].to_numpy(np.float64), now)
-                _score(agg, models, arts, champion, t, day, f, (elig & C.ELIG_BITS[t]) > 0, y, st, cl, cats)
+                _score(agg, models, arts, champion, t, day, f, (elig & C.ELIG_BITS[t]) > 0, y, st, cl, cats, f.attrs.get("aux_ok"))
             y, st, _lt, _cl = L.resolution_labels(res, ids, f["end_ts"].to_numpy(float), now)
-            _score(agg, models, arts, champion, C.RES_TARGET, day, f, (elig & C.ELIG_BITS[C.RES_TARGET]) > 0, y, st, cl, cats)
+            _score(agg, models, arts, champion, C.RES_TARGET, day, f, (elig & C.ELIG_BITS[C.RES_TARGET]) > 0, y, st, cl, cats,
+                   f.attrs.get("aux_ok"))
     lb = SC.leaderboard(agg, reg, champion, now, role="development_historical", windows=(max(len(test_days), 1),),
                         end_day=test_days[-1] if test_days else None)
     lb.update({"test_days": test_days, "fits": fits, "seconds": round(time.time() - t0, 1), "peak_rss_mb": S.peak_rss_mb(),
@@ -73,7 +74,7 @@ def run_walkforward(paths: S.Paths, reg: dict, champion: str, now: float, max_te
     return lb
 
 
-def _score(agg, models, arts, champion, t, day, f, e, y, st, cl, cats) -> None:
+def _score(agg, models, arts, champion, t, day, f, e, y, st, cl, cats, aux_ok=None) -> None:
     lab = e & (st == L.LABELLED)
     agg.add_labels(t, day, st[e])
     if not lab.any():
@@ -82,8 +83,8 @@ def _score(agg, models, arts, champion, t, day, f, e, y, st, cl, cats) -> None:
     sub = f[lab]
     for mid, spec in models.items():
         art = arts.get(mid, {}).get(t)
-        if art is None:
-            continue
+        if art is None or not all((aux_ok or {}).get(fam) for fam in spec_aux_families(spec)):
+            continue  # an aux model is never scored on a capture without its family (as in prospective predict)
         p = learners.predict(spec, art, sub)
         p = np.clip(p, C.P_CLIP, 1.0)
         p = p / p.sum(axis=1, keepdims=True)

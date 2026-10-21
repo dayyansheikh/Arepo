@@ -242,3 +242,32 @@ Do not add these. They are nulls, failed screens, or fail the point-in-time rule
   CB12-M, CB12-E). No evidence either way; do not build features for them.
 - **Any taker-trade framing:** HB1 survivors lose net of costs (-1.2c to -4.1c) and 95 economic setups were not
   profitable (`registry.json` HB1, ECON-95). These candidates are forecasting inputs only.
+
+---
+
+## Builder status (signal-engine autopilot; rewrite this section only)
+
+What the builder has done with the candidates above and with its own data-stream candidates. New families go in via
+`DESIGN_V1.md` section 13 (base store) or section 16 (auxiliary family).
+
+**Deliberate exception, 2026-10-21: `se8_lr_event`.** The list above names "neg-risk sums and sibling lead-lag" as not
+candidates (HB1 null, E005 not supported). The builder added the `event` family anyway, for three reasons:
+- HB1 and E005 tested single moderator or band hypotheses. The engine asks whether event context (size, sibling rank,
+  overround, sibling mean moves from fresh quotes) improves a multivariate forecast, a different question.
+- It is cheap: one aux table per capture, from data already collected.
+- The prospective leaderboard settles it without new tests.
+
+The cost: the Bonferroni K for the other non-embargoed challengers goes from 2 to 3. If se8 shows no gain after 28 days
+of prospective scores, the builder retires it (`status: retired`) and records that here. Its scores count as one
+development look at the neg-risk / sibling family (ledger entry 2026-10-21).
+
+| # | family / model | inputs | evidence so far | embargo | status |
+|---|---|---|---|---|---|
+| 1 | `event` / `se8_lr_event` | aux family from the same capture's binary listing: event size, neg-risk overround and quoted share, normalisation gap, own rank, largest sibling, siblings' Gamma 1 h / 1 d changes | E005 band deviation not supported (closed 2026-10-11); SB2-J5 sibling reversal development only; never tested as a forecast-quality add-on | none (no live test isolates it; E019 dropped uncounted) | **active** (2026-10-21) |
+| 2 | `rewards` | `reward_params/<capture>` (CLOB liquidity-reward parameters; capture received before the origin start) | none; E020 draft uses the reward flag as a control / S3 (`LIVE_TESTS_4.md:90,229,243`) | token `rewards` until 2026-11-18 (LT4) before any spec | next. Probed 2026-10-21: collection began 2026-10-20T23:20Z (cron :35 every 2 h, so use the previous reward capture, finished before the origin start); rows keyed by `condition_id` (needs a condition_id -> market_id map), fields `rewards_max_spread`, `rewards_min_size`, `native_daily_rate`, `total_daily_rate`, `rewards_config[]`; ~14.3k markets. Wait for >= 7 days of history before the first fit |
+| 3 | `rules` | `stream_gamma_rules` edits (rule/description changes before the origin) | none (stream proposal only, `NEW_STREAMS_2026-10-19.md:46`) | none | idea (sparse; check coverage first) |
+| 4 | `xvenue2` | PredictIt / Smarkets mid gaps (`stream_predictit`, `stream_smarkets`) | none (CH114 idea) | under `xvenue` until 2026-11-04 (same hypothesis class as E009/E010) | idea (coverage likely tiny) |
+| 5 | `crypto` | spot reference (Binance) distance to strike for crypto ladders | CB13-R (CH118) smoke PASS, analysis pending | check CB13-R status before any spec | blocked (no live spot stream on the host) |
+| 6 | learner: LightGBM on champion + event (broad) | base + aux | - | broad: none | idea (add after se8 shows whether the family carries signal; each challenger raises K in the Bonferroni rule) |
+| 7 | reversal x liquidity, trade-confirmed reversal (HB1-R, E002/E004/E006) | base | replicated historically | `chg1d_x_liq` until 2026-11-14, `flow` until 2026-11-16 | after the embargo dates |
+| 8 | SHAP family attribution for the LightGBM models | fits | - | display only for non-embargoed families | next (dashboard) |

@@ -12,7 +12,7 @@ import math
 import numpy as np
 import pandas as pd
 
-from .features import FAMILY_COLUMNS
+from .aux import MODEL_FAMILY_COLUMNS
 
 LOG1P_COLS = {"ms_stale_s", "ms_age_h", "bk_age_s", "xv_age_s"}
 TTE_BASE = ("mo_chg_1h", "mo_d2h", "mo_chg_1d", "mo_d6h")
@@ -20,7 +20,7 @@ CAT_MIN_SHARE = 0.005
 
 
 def raw_columns(spec: dict) -> list[str]:
-    return [c for fam in spec["families"] for c in FAMILY_COLUMNS[fam]]
+    return [c for fam in spec["families"] for c in MODEL_FAMILY_COLUMNS[fam]]
 
 
 def _numeric_block(df: pd.DataFrame, spec: dict) -> tuple[np.ndarray, list[str]]:
