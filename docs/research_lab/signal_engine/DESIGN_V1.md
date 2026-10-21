@@ -340,6 +340,12 @@ not the frozen detector.
 - A test checks that the 24 h denominator equals the stored `ms_rv24`.
 - The builders share a `SlotMids` cache that evicts the newest slots (captures are built newest first), so a
   backfill reads each quotes file about once. A live capture reads 85 small files.
+- Host backfill 2026-10-21 14:17Z: 105 tables in about 60 s, peak RSS 551 MB. Coverage on 10-21 12:31Z: `sp_rv6h` 98%,
+  `sp_rv3d` 85%, `sp_rv7d` 78%. The 24 h denominator matches `ms_rv24` to 3e-8.
+- The first attempt hit a MemoryError under the backfill's 2 GB address-space cap. The cache then held pandas
+  Series, and every reindex built a hash table. It now holds sorted numpy arrays. Since then `run_aux` isolates each
+  family: a builder error is recorded under `errors`, no table is written, it is retried at the next run, and the
+  other families and the tick's predictions go on.
 
 Embargo (event): token `event` until 2026-11-22 since 2026-10-21 (LT5 F draft; §8). Before that request: E005 (neg-risk band deviation) closed 2026-10-11 as not supported. E019 was dropped uncounted.
 SB2-J5 is development only. `ev_sib_*` resembles SB2-J5's L1 and `ev_norm_gap` resembles E005's band deviation, so
