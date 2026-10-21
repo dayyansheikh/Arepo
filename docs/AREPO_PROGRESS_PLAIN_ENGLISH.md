@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-21 20:44 UTC+1
+**Last updated:** 2026-10-21 21:08 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -17,12 +17,16 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
     (the size check shuffled data differently from the real test) which is now fixed, and the code is frozen.
   - Next: the size check runs on the server from about 05:00 UTC+1 on 22 Oct (2-4 hours), then registration
     before 25 Oct so collection can start on 26 Oct.
-- **Three batch checks failed their population gates (recorded, nulls included):** batch 13-R (too few complete
-  frames and events), batch 14-W (58 markets where 150 were needed) and batch 15-P (37 pairs where 60 were needed).
-  Batch 14-W and 15-P count 2 tests each as "not testable"; 13-R will count 1 when its last job writes it.
-- **Fixed:** five batch 18 counting jobs were stuck in a retry loop because they asked for 20 GB of disk headroom for
-  tiny output files. They now ask for 0.25 GB and can run. Ten batch 18 job drafts were renumbered because their numbers
-  clashed with the signal engine's jobs.
+- **Four idea batches closed today, all at the counting stage (nulls recorded):**
+  - batch 13 (touch-versus-end-above crypto markets): too few complete frames and events; 1 test counted as "not testable";
+  - batch 14 (58 markets where 150 were needed) and batch 15 (37 pairs where 60 were needed): 2 tests each counted
+    as "not testable";
+  - batch 18: its two candidate tests (silent edits; program versus human trading) did not have enough usable cases or
+    power, so the pre-set rules dropped them before any test (not counted); its other three parts were maps only.
+  - Lesson: many ideas die because too few cases exist. A new ideas round (12) has started, told to show the case
+    counts and power up front.
+- **Fixed:** five batch 18 counting jobs were stuck (first asking for 20 GB of disk headroom for tiny files, then
+  running out of memory); both fixed and all five finished. Ten batch 18 job drafts were renumbered (clashing numbers).
 - **LT6 code, part 2 finished** (the recorder and the analysis entry point; 137 tests pass). Still waiting on E022's
   registration date, as planned.
 - **Copy-skilled wallets (E026):** registered; collection starts 25 Oct (phone note then).
@@ -54,13 +58,13 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 7. ~~More server memory for MC1~~ **APPROVED 21 Oct:** resize to 2 CPU / 12 GB (still free), scheduled automatically
    for 22 Oct about 03:40 UTC+1. MC1 is re-queued afterwards.
 
-8. **NEW (21 Oct): let Claude clear temporary restore copies on the server.** Batch 17's smoke check refuses to
-   run because a 925 MB restore copy (a hash-checked copy of data that is safe in the archive) sits inside batch 17's
-   folder, which has a 0.3 GB limit. The safety hook rightly stops Claude from moving or deleting anything in the data
-   folder. **Decision needed:** allow Claude to move that copy out of the batch 17 folder (nothing is lost), or to
-   delete it (it is in the archive). More generally, finished restore copies (about 9 GB now: batch 18 4.9 GB, LT4
-   3.0 GB, LT5 0.8 GB, batch 17 0.9 GB) will need clearing within about a week, because jobs stop at a 40 GB data
-   limit (now 30 GB). Batch 17 is not late yet (its window opens 26 Oct).
+8. **NEW (21 Oct, not urgent): let Claude clear finished restore copies on the server.** Restore copies are
+   hash-checked copies of data that is safe in the archive, made so a job can re-read old files. About 9 GB of them
+   are finished with (batch 18 4.9 GB, LT4 3.0 GB, batch 17 0.9 GB; LT5's 0.8 GB after tonight). Jobs stop at a
+   40 GB data limit (now about 30 GB), so they will need clearing within about a week. The safety hook rightly stops
+   Claude from deleting anything in the data folder. **Decision needed:** approve a short clearing session for these
+   copies only (each one listed and checked against the archive first). Batch 17 no longer needs this: it now writes
+   to a fresh folder instead.
 
 ## 3. Usage plan (your schedule; reset times are your statement, not verified)
 | When | Plan |

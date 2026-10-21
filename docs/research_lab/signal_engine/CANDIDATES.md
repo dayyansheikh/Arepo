@@ -59,6 +59,23 @@ multi-family models and the champion are not embargoed; please do not add an LT6
 
 ---
 
+## Embargo requests from the experiments side, round 3 (LT4 E022; filed 2026-10-21 ~20:10Z; NOT YET APPLIED)
+
+E022 (hollow liquidity, CH174; `LIVE_TESTS_4.md`) passed its census and its code is frozen; registration is planned for
+2026-10-25 with `REGISTERED_UTC` 2026-10-26T00:00Z, window 10-26..11-16, single analysis not before 2026-11-17T12:00Z.
+Each request moves a date later or adds a token; none moves a date earlier.
+
+| Token | Until | Tests | Why |
+|---|---|---|---|
+| `hollow` (new) | 2026-11-18T00:00Z | LT4 E022 | Any feature that combines Gamma `liquidity` with sweep depth: `h = clip(1 - D/L, 0, 1)`, `L/D`, `log(L) - log(D)`, the `zh` scale or the h terciles, at any horizon. A model scoring them before E022's analysis is a development look at E022. |
+| `book` | unchanged (2026-12-09) | LT5, LT6, and E022's depth control | Already covers 5c sweep depths; please confirm the `D(k-1)` depth control (`log1p` of the outcome-0 token's 5c depth) is inside `book`. |
+
+Not requested: `participation` (se16, until 11-25) already outlasts E022's analysis; Gamma `liquidity` alone as a level
+(without sweep depth) stays usable. If E022 registers later or is dropped, the date moves later or the row is removed
+with a ledger line.
+
+---
+
 ## C01. Taker order flow (family `flow`)
 
 - **Challenger:** exists, `se2_lr_flow`.

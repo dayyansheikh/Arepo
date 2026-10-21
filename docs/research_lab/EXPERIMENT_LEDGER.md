@@ -3386,6 +3386,12 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   **CB18-P (CH172): dropped uncounted** (GP1, GP5, GP6 fail). R map only, F census only (re-entry rule 4.4), M map.
   CB18 has k = 0: nothing counted; drafts q0590-q0599 moot. LT6's change request is satisfied trivially (no SCREEN_18
   or REP_18 exists). Registry: CB18 closed (not_testable at design stage).
+- (~20:20Z, ops) **CB17 unblocked without moving data:** every CB17 window job (q0404 and drafts q0405-q0412) now passes
+  `--root ../data-dumps/research_lab/cb17_window/creative_batch17`. The frozen code accepts any root with a
+  `creative_batch17` path part; the 0.3 GB total cap now counts window outputs only (its purpose), and the worn restore
+  stays where it is as input. Window jobs read nothing from the old root. No code, rule, input or criterion changed
+  (160 CB17 tests pass; argv parse-checked). q0404 retried. The dashboard approval is reduced to the general clearing of
+  finished restore copies (data-dumps headroom).
 - (~20:40Z, signal engine) **Promotion rule `se-promotion-v2` declared** (DESIGN_V1 section 20; `promotion.py`;
   `registry.json` `promotion_rule`). It is v1 plus condition 2b: the dir_2h gain also needs a two-way (event + UTC
   origin day) lower bound `mean - t_{n_days-1} * sqrt(V_event + V_day) > 0`, using the CGM variance without the

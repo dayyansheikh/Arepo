@@ -283,10 +283,10 @@ output), ledger "E022 REGISTERED", registry, battery2/trials kind if needed, pro
 before 10-26T00Z; never also q0485. Then LT6 (V's pin must precede T_E022).
 **Do NOT promote MC1 q0116f ahead of q0484** (q0484 has priority 97 > 95; both exclusive-ish: check).
 
-**Blocked on the owner (dashboard approval 8):** q0404 CB17 smoke refuses because q0413's restore tree (925 MB) sits in
-`creative_batch17/` (frozen 0.3 GB total cap counts it). Needs the tree moved out of `creative_batch17/` (or cleared);
-the evidence hook blocks it without an owner-approved session. Then re-restore/point q0404 at the new path and
-`queue_worker.py retry q0404_cb17_smoke`. S_8 = 10-26T00Z. Restore trees total ~9 GB; data-dumps 29.75 / 40 GB.
+**CB17 unblocked (1c9f604e):** all CB17 window jobs use `--root ../data-dumps/research_lab/cb17_window/creative_batch17`
+(the frozen 0.3 GB cap counted q0413's 925 MB input restore in the default root). q0404 retried 20:08Z; on PASS promote
+q0405 (with the same --root). S_8 = 10-26T00Z. **Owner approval 8 (not urgent):** a clearing session for finished
+restore trees (~9 GB; data-dumps ~30 / 40 GB).
 
 **LT6 (`feat/live-tests-6`, worktree `.claude/worktrees/agent-a985b10db31086738`):** design accepted; code phase 1 and
 phase 2 (reader, analyze entry point, RSS probe, drafts q0585/q0586; 137 tests) committed and pushed. Not merged. Open:
@@ -300,10 +300,12 @@ change request applied or "partially seen", a `battery2.KIND_RULES["live_tests6"
 - **LT3 E015** registered 2026-10-21 (2580c58a). Host cron `*/20`; remove it after 2026-11-15T06:00Z. q0475 after 11-15T12Z.
 
 **Queued and in progress:**
-- CB18 censuses: q0503 P and q0504 R done; q0505 F running; q0502 S retried after OOM (mem 600, as_cap 2400); q0506 pending; then the routing record (`run_cb18.py routing`,
-  `seals/cb18_routing.json`, target 10-24T12Z). Later CB18 drafts are now q0590-q0599 (renumbered; ids clashed).
-- **CB13-R:** census done (gates fail); R freeze entry committed; **q0282 queued** (writes R1 "not testable (basis)" after the R freeze entry (the v1 R1 count line of 10-19 stays: conservative double count, ledger 10-19 ~09:45Z).
-- CB14-W GWC FAIL and CB15-P GPB FAIL recorded (counted 2 each); their later drafts (q0306-q0309, q0349-q0354) are moot.
+- **CB18 closed** (routing record `seals/cb18_routing.json`, fa856ec4): S and P dropped uncounted at census; R/F/M maps;
+  k = 0; drafts q0590-q0599 moot. **CB13 closed** (q0282: R1 "not testable (basis)", counted 1).
+- CB14 and CB15 closed (W GWC FAIL, P GPB FAIL, counted 2 each; S/E earlier); drafts q0306-q0309, q0349-q0354 moot.
+- **Creative round 12** (Fable xhigh, worktree branch `feat/creative-r12`, `CREATIVE_HYPOTHESES_2026-10-26.md`) launched
+  ~20:10Z after four batches closed at census: brief = population arithmetic, permutable strata and MDE vs floor up front;
+  top 6 for a future LT7 + engine-first families. Review and merge when it lands.
 - CB16-K q0383 (exclusive, not before 10-22T06Z). CB17 q0404 blocked (above), then q0405.
 
 **Waiting:**
