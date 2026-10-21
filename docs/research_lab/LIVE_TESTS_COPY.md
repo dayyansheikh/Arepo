@@ -422,7 +422,7 @@ it must stay below 500 MB), wall times and store bytes. Work dir `data-dumps/res
 | item | value |
 |---|---|
 | history load + profiles: peak RSS, wall | 1,441.6 MB, 51.4 s (host, q0544) |
-| recorder (child): peak RSS, wall, samples / captures read | **peak not measured by q0544** (see below); wall 236.5 s; 35 samples, 39 captures, 72 print hours |
+| recorder (child): peak RSS, wall, samples / captures read | q0544 peak not measured (see below); **q0545: 269.5 MB** (VmHWM, R1 code, one backlog pass of 35 samples / 41 captures); wall 236.5 s (q0544), 251.8 s (q0545); 72 print hours |
 | store bytes for the census period (scaled to 21 days vs the 1 GB cap) | 7,069,695 B in 2.88 days, about 51.5 MB per 21 days (5% of the cap) |
 | missing / retired samples in the census period | 0 / 0 |
 | eligible / skilled wallets in the set | 35,587 / 3,559 |
@@ -631,3 +631,11 @@ receipt-order wallet-day cap removes 56% of universe copies and favours early-UT
 Disclosed (not fixed): `prior_visible` sees only the current sample's rows, so a control wallet whose earlier trade in the
 market fell out of the sample can be matched as a first-seen open; rows dropped by trade normalisation do not count as
 prior trades.
+
+**q0545 memory re-check (2026-10-21 15:14Z, counts only):** `live_tests_copy/census_q0545_memcheck_2026-10-21.json`,
+sha256 `24a50571acb8d09367fa23ec6da0f7d1d469eeb7519dbd5262710af0d682ed7c` (equal on the host). Recorder peak **269.5 MB**
+(VmHWM) for a single pass over the whole 35-sample, 41-capture census backlog, so q0541 `mem_mb` 480 holds (the Mac
+synthetic 7.3x-store pass peaked at 448 MB). Reproduction: skill set (35,587 / 3,559), 6,429 skilled signals and the L = 0
+primary set (1,294 copies, 650 events, 160 wallets) equal q0544 exactly. By design (R1 fix 9 and the empty-event rule)
+controls moved 18,543 -> 17,751 and primary pairs 1,200 -> 1,167 (620 -> 616 pair events; projected 8,503 pairs, MDE
+E026-C 0.053). The gate decision is not re-applied; it would be unchanged.

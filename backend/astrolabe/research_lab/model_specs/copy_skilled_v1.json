@@ -90,8 +90,8 @@
   "deff_twoway_icc1": 23.93,
   "projection_21d": {"days": 21.0, "n": 9427.8, "events": 4735.8, "pairs": 8742.9, "pair_events": 4517.2, "mde_N_deff1": 0.0209, "mde_N_event_icc1": 0.0417, "mde_N_twoway_icc1": 0.1023, "mde_C_event_icc1": 0.0519},
   "gates": {"G1_copies_events": true, "G2_pairs": true, "G3_mde_N_event": true, "decision": "register_k2"},
-  "recorder_peak_mb": null,
-  "recorder_peak_note": "q0544 reported the parent peak (Linux ru_maxrss across exec); measured by q0545 (VmHWM) before the pin"
+  "recorder_peak_mb": 269.5,
+  "recorder_peak_note": "q0545 (host, R1-fixed code 761d4498, VmHWM of the recorder child, one 35-sample / 41-capture backlog pass; census_q0545_memcheck_2026-10-21.json sha256 24a50571...); q0544's 1441.6 was the parent's peak (Linux ru_maxrss across exec)"
  },
  "code_sha256": {}
 }

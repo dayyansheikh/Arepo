@@ -3201,3 +3201,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - (~14:55Z) **q0540 freeze promoted** (priority 36, after q0545). It refuses before writing if the built set differs
   from spec `skill.expected` (35,587 / 3,559; outcomes before 10-18T04:00Z). Pins follow only after q0545 confirms the
   recorder memory.
+- (15:20Z) **q0545 done:** recorder peak 269.5 MB on the host (VmHWM, one 35-sample backlog pass, R1 code) -> q0541
+  `mem_mb` 480 holds. Skill set, skilled signals and L = 0 primary set equal q0544; controls / pairs moved as designed
+  (pairs 1,200 -> 1,167). Committed `live_tests_copy/census_q0545_memcheck_2026-10-21.json` (sha256 24a50571…; no wallet
+  hash). q0540 freeze running since 15:14Z.
