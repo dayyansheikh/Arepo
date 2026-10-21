@@ -121,6 +121,13 @@
    "spec_sha256": "5f458bc4b74c6b02efcd6022077211297c194ea49fc5214c4f052d2bd0bf2560",
    "status": "active",
    "added_utc": "2026-10-21T16:00:00Z"
+  },
+  {
+   "model_id": "se17_lgbm_mm_900k",
+   "file": "se17_lgbm_mm_900k.json",
+   "spec_sha256": "6e27b8c6c650abcefc1a4ec7d5feca69b1049ef5ec6b0ccd69f8a98d2c2b0bb6",
+   "status": "active",
+   "added_utc": "2026-10-21T19:30:00Z"
   }
  ]
 }

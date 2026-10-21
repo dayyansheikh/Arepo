@@ -810,6 +810,11 @@ def test_repo_registry_loads_and_embargo_assignment():
     assert pa16["aux_versions"] == {"participation": "se-aux-participation-v1"} and pa16["train"]["require_sources"] == ["participation"]
     assert pa16["train"] == reg["models"]["se15_lgbm_surprise"]["train"] | {"require_sources": ["participation"]}
     assert "participation" not in reg["models"]["se7_lgbm_all"]["families"]
+    s17 = reg["models"]["se17_lgbm_mm_900k"]  # learner budget only: se1's inputs and tree params, more rows / rounds
+    assert emb["se17_lgbm_mm_900k"] is None and s17["isolates"] == [] and s17["broad"] is False
+    assert (s17["families"], s17["derived"], s17["learner"]) == (se1["families"], se1["derived"], "lgbm")
+    assert s17["params"]["lgb"] == se1["params"]["lgb"] and (s17["params"]["max_rounds"], s17["params"]["early_stopping"]) == (1000, 50)
+    assert s17["train"] == se1["train"] | {"max_rows": 900000}
     sp = reg["models"]["se15_lgbm_surprise"]
     assert sp["learner"] == "lgbm" and sp["params"] == se1["params"] and sp["isolates"] == ["surprise"]
     for mid, lr in (("se11_lgbm_flow", "se2_lr_flow"), ("se12_lgbm_tte", "se5_lr_tte"), ("se13_lgbm_xvenue", "se4_lr_xvenue")):

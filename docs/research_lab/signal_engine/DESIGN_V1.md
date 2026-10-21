@@ -432,3 +432,35 @@ Known, self-healing: LightGBM `res_7d` fits fail with "inner split too small (tr
 resolution label's availability time is its fetch receipt time, the whole backlog was first fetched on 2026-10-21, so no
 training row has its label before the validation cut. The split rule is causal and stays; the fits start once receipts
 precede the cut (~6 days of steady fetches, around 10-28). The logistic `res_7d` fits are unaffected (no inner split).
+
+## 19. Learner budget and the `regime` dead end (2026-10-21 ~19:30Z, development only)
+
+The host fits of `se1_lgbm_mm` stop at or near the 300-round cap (best iteration 281 / 300 / 278 on 10-21 11:34Z). A
+scratch development walk-forward on a Mac copy of the store (features, quotes, meta, logs, copied read-only from the
+host; test days 10-18..10-20; every fit uses only data before the test day; LightGBM threads raised for speed, which
+does not change the method) compared learner budgets on the champion's inputs. Mean paired dir_2h gain over the
+champion, in nats (6 h, 24 h in brackets):
+
+| config (se1's tree params unless stated) | dir_2h | vs se1 |
+|---|---|---|
+| se1 (300k rows, 300 rounds, early stop 30) | 0.0431 (0.0568, 0.0574) | - |
+| 63 leaves, min leaf 300, 1000 rounds, stop 50 | 0.0433 | +0.0002 |
+| 1000 rounds, stop 50 | 0.0433 | +0.0002 |
+| 900k rows | 0.0450 (0.0592, 0.0595) | +0.0021 |
+| **900k rows, 1000 rounds, stop 50** | **0.0456 (0.0601, 0.0597)** | **+0.0027** |
+
+Capacity and rounds alone give nothing; more rows give a small, consistent gain on every horizon. The last row is
+registered as `se17_lgbm_mm_900k` (no family, not embargoed). It was **selected** from four development configs, so
+its development gain is optimistic; only prospective scoring counts. Consequences:
+- The shared direction frame now holds up to 900k rows (the maximum over the active specs). Every other model still
+  draws its own seeded `max_rows` subsample from it: same distribution, different realised rows from the 10-22 refit on.
+- Host cost (Mac-to-host ratio from the se1 fits): se17 ~18-31 min of the refit on 1 thread; frame peak +~200 MB.
+  q0512 `timeout_s` 7200 -> 10800 and `mem_mb` 1600 -> 2200. Prediction ~3x se1's (~45 s per capture).
+
+**`regime` (not registered).** A candidate aux family of unsigned market-wide and category-wide activity: share of
+eligible markets with |2 h change| > δ at the previous capture, and among rows received strictly before the market's
+own row in the same capture, plus mean |2 h change| and |1 h change|. Science review: no leakage and no shadowed test
+(REVISE for NaN receipt times, the receipt-order count, the variable k-1 gap and the per-capture common shock, which an
+event-clustered CI ignores). On the development walk-forward above it was **worse** than se1 on every direction target
+(dir_2h -0.0017, dir_6h -0.0022, dir_24h -0.0005 nats): about 12 distinct values a day are mostly capture-level noise
+the trees overfit. The code was removed; do not retry without a new argument (e.g. a much longer history of captures).
