@@ -8,7 +8,7 @@
   "research_lab/signal_engine/{features,quotes,meta,logs/resolutions-*} (own files)"
  ],
  "resources": {
-  "mem_mb": 1600,
+  "mem_mb": 2200,
   "as_cap_mb": 3500,
   "cpu": 1,
   "lane": "cpu",
@@ -23,7 +23,7 @@
   "--data-dumps-cap-gb",
   "40"
  ],
- "timeout_s": 7200,
+ "timeout_s": 10800,
  "max_retries": 3,
  "repeat": {
   "max_runs": 3000,
@@ -34,5 +34,5 @@
   "data-dumps/research_lab/signal_engine/logs/fits-YYYYMMDD.jsonl"
  ],
  "next_action": "daily; due-check every 30 min (<= 41 consecutive tempfails between productive runs, under the 48 cap)",
- "notes": "Promoted 2026-10-21 by the signal-engine autopilot (signal engine v1, docs/research_lab/signal_engine/DESIGN_V1.md section 9). Measured on the host 2026-10-20 23:26-23:45Z in a read-only dry run (/tmp/sigeng, engine root outside ~/arepo, deleted afterwards). 27 captures (2.3 days), 385,190-row frame: 6.7-7.5 min, peak RSS 1.04-1.07 GB under a 3.0 GB address-space cap. The frame is capped by max_rows, so a full 14-day window keeps the same frame size (more captures read: ~+30 s) plus the 24 h LightGBM fits that need > 1 day of history (+~4 min): expect 10-15 min, ~1.1 GB. Not exclusive (< 1.5 GB). Never the MC1 failure mode: no full panel is materialised (one capture at a time, seeded per-capture subsample, float32). depends_on is empty on purpose: the other engine jobs are repeat jobs that never reach 'done'; missing inputs make this job exit 75 or report 'insufficient'/'no_fit' instead. 2026-10-21 (signal-engine autopilot): first host refit 11:34Z, 14 models: each LightGBM model on the 300k-row direction frame takes 8.5-10.5 min on 1 OCPU (flow ~4 min, fewer rows), logistic models seconds; measured total 2,519 s (42 min), peak RSS 1,391 MB (mem_mb 1500 -> 1600), ~50 min once se10 fits (about 10-27). timeout_s raised 3600 -> 7200 for headroom; no change to the fits. 2026-10-21 15:40Z (signal-engine autopilot, owner Lab-board message 14:01Z 'jump queue for experiments on server'): priority raised to 50, above every ready experiment job except the time-bound recorders (q0083b deadline recorder 70, q0162/q0163 CB8 prospective holders snapshots 52/51), which lose data if delayed. No other job's spec changed."
+ "notes": "Promoted 2026-10-21 by the signal-engine autopilot (signal engine v1, docs/research_lab/signal_engine/DESIGN_V1.md section 9). Measured on the host 2026-10-20 23:26-23:45Z in a read-only dry run (/tmp/sigeng, engine root outside ~/arepo, deleted afterwards). 27 captures (2.3 days), 385,190-row frame: 6.7-7.5 min, peak RSS 1.04-1.07 GB under a 3.0 GB address-space cap. The frame is capped by max_rows, so a full 14-day window keeps the same frame size (more captures read: ~+30 s) plus the 24 h LightGBM fits that need > 1 day of history (+~4 min): expect 10-15 min, ~1.1 GB. Not exclusive (< 1.5 GB). Never the MC1 failure mode: no full panel is materialised (one capture at a time, seeded per-capture subsample, float32). depends_on is empty on purpose: the other engine jobs are repeat jobs that never reach 'done'; missing inputs make this job exit 75 or report 'insufficient'/'no_fit' instead. 2026-10-21 (signal-engine autopilot): first host refit 11:34Z, 14 models: each LightGBM model on the 300k-row direction frame takes 8.5-10.5 min on 1 OCPU (flow ~4 min, fewer rows), logistic models seconds; measured total 2,519 s (42 min), peak RSS 1,391 MB (mem_mb 1500 -> 1600), ~50 min once se10 fits (about 10-27). timeout_s raised 3600 -> 7200 for headroom; no change to the fits. 2026-10-21 15:40Z (signal-engine autopilot, owner Lab-board message 14:01Z 'jump queue for experiments on server'): priority raised to 50, above every ready experiment job except the time-bound recorders (q0083b deadline recorder 70, q0162/q0163 CB8 prospective holders snapshots 52/51), which lose data if delayed. No other job's spec changed. 2026-10-21 ~19:30Z (signal-engine autopilot): se17_lgbm_mm_900k added (900k-row direction frame, up to 1000 rounds); the shared frame grows from 300k to 900k rows and every model still draws its own seeded max_rows subsample from it. Mac development estimate: se17 ~18-31 min of host fit time on 1 thread; frame peak +~200 MB. timeout_s 7200 -> 10800 and mem_mb 1600 -> 2200 for headroom (host resize to 2 OCPU / 12 GB on 10-22 02:40Z); no change to any other model's spec."
 }

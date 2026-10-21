@@ -3340,3 +3340,22 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   restricted to `k_tests` = [E022] (Holm m = 1; reader writes only E022's hollow lines; E022 line format unchanged);
   the size check runs only E022's two continuous scenarios (est. 2-4 h). 72 LT3/LT4 tests pass; LT3 module hashes
   unchanged. Code freeze check (science-reviewer) running. Nothing counted.
+
+## Signal engine: development walk-forward q0514 done, learner budgets, se17_lgbm_mm_900k, 2026-10-21 ~19:30Z (signal-engine autopilot; development only, nothing counted)
+- **q0514 walk-forward (attempt 2, done ~17:20Z; 7,528 s, peak 1,412 MB):** test days 10-14..10-20, every fit before
+  its test day, scored retrospectively (`dev/walkforward_*.json`, `development_historical`). dir_2h mean log loss:
+  se0 champion 0.4604, se1_lgbm_mm 0.4196, se7_lgbm_all 0.4146. Paired gain over se0, event-clustered 95% CI:
+  se1 +0.0408 [0.0401, 0.0416], se7 +0.0458 [0.0450, 0.0466], positive on 7/7 days. dir_6h: se1 +0.054, se7 +0.061;
+  dir_24h (6 days): se1 +0.052, se7 +0.059. Embargoed models: no numbers. Development evidence; never used for promotion.
+- **Learner budgets (scratch, Mac copy of the store, test days 10-18..10-20):** se1's host fits stop at or near the
+  300-round cap. Larger trees or more rounds alone: +0.0002 nats dir_2h over se1. 900k rows: +0.0021. 900k rows and
+  up to 1000 rounds: +0.0027 (6 h +0.003, 24 h +0.002). The last is registered as **`se17_lgbm_mm_900k`** (spec sha
+  `6e27b8c6…`, no family, not embargoed; non-embargoed K = 3). It was selected from four configs, so its development
+  gain is optimistic; prospective scoring decides (DESIGN_V1 §19). The shared frame grows to 900k rows; the other
+  models keep their own seeded 300k subsamples. q0512 timeout 7200 -> 10800 s, mem_mb 1600 -> 2200.
+- **`regime` family dropped:** unsigned market- and category-wide activity (previous capture; rows received earlier
+  in the same capture). Science review REVISE (no leak, no shadowed test; common per-capture shock, receipt-order
+  proxy). Development: worse than se1 on every direction target (dir_2h -0.0017 nats). Code removed, nothing deployed.
+- Reviewer note for the promotion rule (not applied): the event-clustered CI ignores shocks common to all events
+  within a capture. Criterion 3 (daily gains positive on >= 2/3 of days) partly covers it. A capture- or day-clustered
+  reading would be a new rule version (`se-promotion-v2`), declared before any challenger is near promotion.

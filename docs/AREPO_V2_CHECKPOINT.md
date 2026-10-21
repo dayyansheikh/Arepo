@@ -307,7 +307,7 @@ change request applied or "partially seen", a `battery2.KIND_RULES["live_tests6"
 **Waiting:**
 - MC1: after the resize (item 4).
 - CB4 q0085 not before ~10-24T12Z. CB5 q0103b on or after 10-27, then q0106. CB3 freeze after q0064 (after 10-25).
-- Signal engine: `signal_engine/CANDIDATES.md` (embargo requests applied, 26f5f954).
+- Signal engine: live state in `signal_engine/STATUS.md` (10-21 19:35Z: se17_lgbm_mm_900k added, q0512 timeout 3 h; `regime` dropped in development); embargo requests applied (26f5f954).
 
 ## Learned surprise-move detector (2026-10-12 evening)
 `docs/research_lab/SURPRISE_MOVE_DETECTOR.md`. Labels fixed and logged before features (`surprise-labels-v1`,
