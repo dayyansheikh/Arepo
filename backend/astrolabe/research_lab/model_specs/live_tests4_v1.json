@@ -155,7 +155,7 @@
   "draws": 200,
   "seed": 20261107,
   "nominal": 0.05,
-  "rule": "rejection rate of the Freedman-Lane gate under each of six simulated nulls (all binding, incl. the MA(2) overlapping-target scenario) <= 0.05 + 1.645 sqrt(0.05 x 0.95 / worlds); one run at the pinned code; no rerun or variant after a failure",
+  "rule": "rejection rate of the Freedman-Lane gate under each of the two E022 continuous simulated nulls (continuous persistent; continuous label-control corr 0.7), permuted within market x two-day block (e022.perm_stratum block2, through strata_of as the registered gate), <= 0.05 + 1.645 sqrt(0.05 x 0.95 / worlds) = 0.058; one run at the pinned code, seed 20261107; no rerun or variant after a failure",
   "seed_rule": "declared 2026-10-20 before any q0484 run; differs from the preliminary seed 20261026 (R2 finding 1)"
  },
  "gates": {

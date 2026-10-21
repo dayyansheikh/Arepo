@@ -684,3 +684,34 @@ def test_size_check_runs_only_scenarios_of_k_tests():
     assert set(sc["scenarios"]) == {"fl_continuous_persistent", "fl_continuous_control_corr0.7"} and sc["k_tests"] == ["E022"]
     assert set(la.SCENARIO_TESTS) == set(la.size_check(worlds=2, draws=19, seed=3)["scenarios"])
     assert set(la.size_check(worlds=2, draws=19, seed=3, k_tests=["E021"])["scenarios"]) == {n for n, t in la.SCENARIO_TESTS.items() if "E021" in t}
+
+
+def test_size_check_and_gate_fl_use_identical_strata(monkeypatch):
+    """Freeze-check fix 1: the size check permutes within the strata the spec's e022.perm_stratum selects (block2), through
+    the same strata_of path as _gate_fl, on worlds carrying a two-day block column."""
+    spec = json.loads(lt.SPEC_PATH.read_text())
+    assert spec["e022"]["perm_stratum"] == "block2"
+    seen: list[np.ndarray] = []
+    real = la.fl_perm_gate
+
+    def spy(df, y, term, controls, **kw):
+        seen.append(np.asarray(kw["strata"]))
+        return real(df, y, term, controls, **kw)
+
+    monkeypatch.setattr(la, "fl_perm_gate", spy)
+    la.size_check(worlds=1, draws=9, seed=5, k_tests=["E022"], spec=spec)
+    assert len(seen) == 2
+    rng = np.random.default_rng(5)
+    for s_used, world in zip(seen, (la.sim_cont_world, la.sim_corr_label_world), strict=True):
+        df = la.with_block(world(rng)[0])
+        assert df["block"].nunique() == 2 and df.groupby("market_id")["block"].nunique().eq(2).all()  # 40 passes = 3.3 days -> blocks 0, 1
+        assert not df["day"].equals(df["block"]) and len(df) == len(s_used)
+        np.testing.assert_array_equal(s_used, la.strata_of(df, spec["e022"]["perm_stratum"]))
+        assert len(set(s_used)) == 120  # 60 markets x 2 blocks, not 60 x 4 days
+    # a pop in _gate_fl with the same spec selects the same strata function
+    df = la.with_block(la.sim_cont_world(rng)[0])
+    pop_st = la.scenario_stratum("fl_continuous_persistent", spec, ["E022"])
+    assert pop_st == spec["e022"]["perm_stratum"]
+    seen.clear()
+    la._gate_fl(df, df["y"].to_numpy(), "zh", ["c1"], 1, {**spec, "gates": {**spec["gates"], "draws": 9}}, "E022", {"testable": True})
+    np.testing.assert_array_equal(seen[0], la.strata_of(df, pop_st))

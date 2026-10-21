@@ -132,8 +132,9 @@ def main(argv: list[str] | None = None) -> int:
         from astrolabe.research_lab import live_tests4_analysis as la
 
         sc = lt.load_spec(sha=None)["size_check"]
+        spec_sc = lt.load_spec(sha=None)
         res = la.size_check(worlds=args.worlds or sc["worlds"], draws=args.draws or sc["draws"], seed=sc["seed"], nominal=sc["nominal"],
-                            k_tests=lt.load_spec(sha=None).get("k_tests"))
+                            k_tests=spec_sc.get("k_tests"), spec=spec_sc)
         return _write_out(args.out, json.dumps(res, sort_keys=True, indent=1, default=lt._json))
     if args.cmd == "analyze":
         from astrolabe.research_lab import live_tests4_analysis as la

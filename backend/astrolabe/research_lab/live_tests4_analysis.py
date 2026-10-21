@@ -666,7 +666,28 @@ SCENARIO_TESTS = {
 }
 
 
-def size_check(*, worlds: int, draws: int, seed: int, nominal: float = 0.05, k_tests: list | None = None) -> dict:
+def with_block(df: pd.DataFrame) -> pd.DataFrame:
+    """Two-day block column for a simulated world, by the registered convention (``block_of`` at an even-offset UTC-midnight
+    anchor): block = floor(day offset / 2) from the world's first day (t_row starts at 0 = the anchor). Done here, in LT4 code,
+    so the LT3-derived world generators stay untouched."""
+    df = df.copy()
+    df["block"] = block_of(df["t_row"], float(df["t_row"].min()))
+    return df
+
+
+def scenario_stratum(name: str, spec: dict | None, k_tests: list | None) -> str:
+    """The spec's ``perm_stratum`` of the first test the scenario belongs to (and that is in ``k_tests``); "day" without a spec.
+    The size check then permutes through ``strata_of``, the path ``_gate_fl`` uses."""
+    if spec is None:
+        return "day"
+    for t in SCENARIO_TESTS[name]:
+        if k_tests is None or t in k_tests:
+            return spec[t.lower()].get("perm_stratum") or "day"
+    return "day"
+
+
+def size_check(*, worlds: int, draws: int, seed: int, nominal: float = 0.05, k_tests: list | None = None,
+               spec: dict | None = None) -> dict:
     """Pass rate of the registered Freedman-Lane gate under six simulated nulls (all binding; LIVE_TESTS_4.md 14-15),
     criterion rate <= nominal + 1.645 sqrt(nominal (1 - nominal) / worlds). The donor scenarios left with E023 / E024.
     ``k_tests`` (the spec's list): a scenario that belongs only to dropped tests is not run (SCENARIO_TESTS); null runs all six."""
@@ -674,17 +695,18 @@ def size_check(*, worlds: int, draws: int, seed: int, nominal: float = 0.05, k_t
     lim = nominal + 1.645 * float(np.sqrt(nominal * (1 - nominal) / worlds))
     out: dict = {"worlds": worlds, "draws": draws, "seed": seed, "limit": lim, "scenarios": {}}
 
-    def perm(df, y, term) -> bool:
-        return bool(fl_perm_gate(df, y, term, ["c1"], sign=+1, strata=(df["market_id"] + "|" + df["day"]).to_numpy(), draws=draws,
+    def perm(df, y, term, name) -> bool:
+        st = scenario_stratum(name, spec, k_tests)
+        return bool(fl_perm_gate(with_block(df), y, term, ["c1"], sign=+1, strata=strata_of(with_block(df), st), draws=draws,
                                  seed=int(rng.integers(1 << 31)), min_stratum=4).get("passes"))
 
     scen = {
-        "fl_binary_iid": lambda: perm(*la3.sim_move_world(rng), "P"),
-        "fl_binary_persistent": lambda: perm(*la3.sim_move_world(rng, persistent=True), "P"),
-        "fl_binary_control_corr0.7": lambda: perm(*sim_corr_label_world(rng, corr=0.7, binary=True), "L"),
-        "fl_continuous_persistent": lambda: perm(*sim_cont_world(rng), "zh"),
-        "fl_continuous_control_corr0.7": lambda: perm(*sim_corr_label_world(rng, corr=0.7), "L"),
-        "fl_binary_persistent_ma2_target": lambda: perm(*sim_ma2_world(rng), "P"),
+        "fl_binary_iid": lambda: perm(*la3.sim_move_world(rng), "P", "fl_binary_iid"),
+        "fl_binary_persistent": lambda: perm(*la3.sim_move_world(rng, persistent=True), "P", "fl_binary_persistent"),
+        "fl_binary_control_corr0.7": lambda: perm(*sim_corr_label_world(rng, corr=0.7, binary=True), "L", "fl_binary_control_corr0.7"),
+        "fl_continuous_persistent": lambda: perm(*sim_cont_world(rng), "zh", "fl_continuous_persistent"),
+        "fl_continuous_control_corr0.7": lambda: perm(*sim_corr_label_world(rng, corr=0.7), "L", "fl_continuous_control_corr0.7"),
+        "fl_binary_persistent_ma2_target": lambda: perm(*sim_ma2_world(rng), "P", "fl_binary_persistent_ma2_target"),
     }
     if k_tests is not None:
         scen = {n: f for n, f in scen.items() if set(SCENARIO_TESTS[n]) & set(k_tests)}

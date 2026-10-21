@@ -31,6 +31,8 @@ it never opens the LT2 or LT3 stores.
 
 ## 0. Summary
 
+> Note 2026-10-21 (freeze check): the six-scenario size check and k = 3 below are the historical design. Only E022 survived the censuses (section 17), so only E022's two continuous scenarios run, permuted within market x two-day block (section 18, section 19). Text below is not rewritten.
+
 | ID | Idea | Hypothesis (direction) | Population | Primary | Planning MDE (estimate; Holm worst case, k = 5) | Floor |
 |---|---|---|---|---|---|---|
 | **E020** | CH169 | After a one-sided quote-only 2 h move, the **unmoved** side follows (ratifies) more when the move was an **arrival** (spread narrowed) than a **cancellation** (spread widened) (one-sided, > 0) | non-sports, complete captures | expanding-past demeaned OLS of `r = s · (U_{k+1} − U_k)` on 1[arrival] | **about 0.12-0.17c** (to about 0.3c) | 0.5c |
@@ -755,6 +757,9 @@ not edited.
 | 1 | HIGH: donor gate not shown to hold size; the q0484 rule allowed a redraw | **E023 and E024 dropped now, before any census, uncounted; k = 3 (E020, E021, E022)**, recorded in 7.3 with the reason (run D, same hash, corr 0.5: 0.085 > 0.075; no redraw). Code paths **removed**, not left inert: the `flow` kind, `freeze_flow`, the composition fields, `census_comp`, `donor_gate_resid`, the flow frame and tests, the flow branches of the labels, and the donor size scenarios. `code_check` refuses a `k_tests` that names E023 or E024; `analyze` writes their verdict as "dropped before any census (R2), uncounted". The overstated test `test_residualised_donor_gate_holds_size_under_correlated_moderator` is **removed** with the gate it tested (no donor gate remains to rename it for). **New size-check seed 20261107**, declared in the spec (`size_check.seed`, `seed_rule`) before any q0484 run; the preliminary seed 20261026 is never reused | 7.3; spec `experiments`, `dropped_before_census`, `k_tests_rule`, `size_check`; `code_check`, `analyze`; q0483-q0486 |
 | 2 | MED: CH identification on outcome-0 depth | `freeze_hollow` freezes both `log1p_Dp0_raw` and `log1p_Dp2_raw` (sweep 1 of pass k − 1, token 0 and both tokens); `census_ch` **recomputes `log1p_Dp` / `Dp_missing` from the chosen `depth_def`** before the within-market VIF, the residual-IQR gate and the MDE; in the window the reader freezes `log1p_Dp` from the pinned `hollow.depth_def` | `freeze_hollow`, `census_ch`, `e022` |
 | 3 | MED: no overlapping-target scenario | New **binding** scenario `fl_binary_persistent_ma2_target`: per market a persistent binary label (market rate, 0.7 persistence) and a target that sums the pass shocks of k + 1, k + 2 and half of k + 3 (MA(2) in pass steps, as `c_skip` at consecutive origins), no label effect. q0484 now runs **six binding Freedman-Lane scenarios** (binary iid, binary persistent, binary control corr 0.7, continuous persistent, continuous control corr 0.7, MA(2)), 2,000 worlds x 200 draws, limit 0.058, **once**, at the pinned code; a failure blocks the pin with no rerun, seed change or variant | `sim_ma2_world`, `size_check`; spec; q0484 |
+
+> Note 2026-10-21: the MA(2) scenario and the binary scenarios do not run; only E022's two continuous scenarios run (section 18). MA(2) is dropped with E021 (its c_skip).
+
 | 4 | MED: computed DE could loosen R0 | **`DE_gate = max(3.0, computed)`** in CQ, CH and CF (`de_gate`, spec `de_floor` 3.0); the computed DE is printed beside it | `de_gate`, `census_cq/ch/clock` |
 | 5 | MED: correlation cap omits `abs_dev` | **Moot after finding 1:** the cap lists belonged to E023/E024's `census_comp`, removed with them. `abs_dev` remains a control of E022 | — |
 | 6 | MED: skip targets masked by `late3` only | `c_skip` and `c_skip_sw` are masked when **`late1 | late3`**; new joint status `status_skip` (two-sided only if two-sided and in time at k + 1 **and** k + 3); E021's attrition bound uses it | `clock_frame`, `e021` |
@@ -922,3 +927,18 @@ After the censuses (section 17) only E022 survives, so the code was narrowed to 
   (rate <= 0.058 at 2,000 worlds) unchanged. q0484 draft notes and runtime estimate updated.
 - Tests added (synthetic): k-only analysis and counting rule, kind switching, size-check scenario selection. Existing collector
   tests now set all three tests in `k_tests`.
+
+
+## 19. Code freeze check (2026-10-21; science-reviewer FREEZE_OK_WITH_FIXES)
+
+Rulings (k_tests = [E022]; no criterion, threshold, world parameter, draw count, seed 20261107 or size limit 0.058 changed):
+
+- **Residual-IQR gate** is the declared replacement for the raw-h IQR (spec commit 708949c3, 2026-10-20, about 22 h before CH ran). The raw-h IQR must not be computed as a gate.
+- **token0** by the declared fallback: superset2 is NaN and fails the >= 0.9 test; sweeps hold one token per market.
+- **Seed kept** with the shorter scenario stream: acceptable, since the seed was never run and the scenario set was decided by census counts.
+- **MA(2) dropped** with E021 (its c_skip).
+- **Section 16 finding 1 satisfied:** 2580c58a (LT3 registration) is an ancestor of this branch; LT3's normalised hashes equal its pins.
+- **Disclosure:** consecutive-pass c_sw targets share an endpoint (MA(1)-type dependence); this is not simulated.
+- **Fixes applied:** (1) HIGH: the size check now permutes within the strata of the spec's `e022.perm_stratum` (block2) through `strata_of`, the registered gate's path, on worlds given a two-day block column (`with_block`, LT4 code; LT3 generators untouched); test `test_size_check_and_gate_fl_use_identical_strata`. (2) Stale text: spec `size_check.rule`, q0484 (branch and section references), q0485/q0486 (E022 only, k = 1, design reviewed), sections 0 and 15 notes. (3) This section.
+
+Placeholders to fill at the freeze: host dry-run peak RSS TBD; install route TBD; final code hashes TBD; spec sha TBD; host commit TBD.
