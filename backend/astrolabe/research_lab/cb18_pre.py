@@ -114,6 +114,11 @@ def load_frame(tree: c.PinnedTree, cap_id: str, cand: set) -> Frame:
     return Frame(cap_id, meta["slot"], meta["t"], F, flags, ext_ok)
 
 
+def slim(fr: Frame) -> Frame:
+    """A look-back frame: the quotes alone (mids at k - 3 and k - 12); no flags, no text digests."""
+    return Frame(fr.cap_id, fr.slot, fr.t, fr.F[["best_bid", "best_ask"]].copy(), {}, fr.ext_ok)
+
+
 def compare(a: Frame | None, b: Frame) -> dict:
     """Interval (a -> b) state for b's markets: presence, the (8) equalities, the chg_* byte flags, (10) and the comment-count flag. Unknown (a missing capture) -> None."""
     if a is None:
@@ -249,13 +254,15 @@ def census_s(tree: c.PinnedTree) -> dict:
             frames.pop(old)
         for old in [s for s in cq if s < k - 12]:
             cq.pop(old)
-        if k not in k_units:
-            continue
-        sid = sweep1.get(fr.cap_id)
-        units, pc = s_units(k, fr, frames[k - 1], cmp_prev, sid and c.read_sweep1(tree, sid), frames, cq, unavail, wf, cnt, flag_split, uma_cls)
-        per_cap.append(pc)
-        if len(units):
-            unit_parts.append(units)
+        if k in k_units:
+            sid = sweep1.get(fr.cap_id)
+            units, pc = s_units(k, fr, frames[k - 1], cmp_prev, sid and c.read_sweep1(tree, sid), frames, cq, unavail, wf, cnt, flag_split, uma_cls)
+            per_cap.append(pc)
+            if len(units):
+                unit_parts.append(units)
+        if k - 1 in frames:
+            frames[k - 1] = slim(frames[k - 1])  # only k - 1 -> k needs the full frame; older slots serve the look-back mids alone
+        del cmp_prev
     U = pd.concat(unit_parts, ignore_index=True) if unit_parts else pd.DataFrame()
     return summarize_s(U, per_cap, wf, cnt, flag_split, uma_cls, len(cand))
 
