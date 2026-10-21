@@ -305,3 +305,14 @@ non-embargoed LightGBM model.
   under `hidden`, so the remaining numbers reveal nothing about them.
 - `lab_host.py` re-applies the drop independently, using the file's `embargo_tokens` plus the code's `EMBARGO`.
   An unparseable date counts as embargoed.
+
+## 18. Learner-matched family challengers (2026-10-21)
+
+The development walk-forward (10-14 to 10-20, development only) shows `se1_lgbm_mm` beating the logistic champion by
+0.04-0.05 nats on every direction target with the same inputs: a learner effect. A family added to the logistic
+champion therefore measures "family on a weak learner", and its gain may vanish if a LightGBM model is promoted.
+Rule from now on: a new family gets a LightGBM challenger with `se1_lgbm_mm`'s params (read against se1 for the family
+effect; the leaderboard's gain column stays "vs the current champion"). Logistic family challengers already registered
+keep running unchanged. First: `se10_lgbm_event` (event family, no embargo). Embargoed families (flow, book, xvenue,
+tte, wallet, rewards) get LightGBM versions only after their embargo dates, or as hidden predictions under the same
+token if added earlier.

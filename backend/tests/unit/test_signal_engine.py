@@ -538,6 +538,8 @@ def test_repo_registry_loads_and_embargo_assignment():
     t = S.epoch("2026-10-22T00:00:00Z")
     emb = {m: (SP.embargo_of(s, t) or {}).get("until") for m, s in reg["models"].items()}
     assert emb["se0_champion_lr_mm"] is None and emb["se1_lgbm_mm"] is None and emb["se7_lgbm_all"] is None
+    assert emb["se10_lgbm_event"] is None and reg["models"]["se10_lgbm_event"]["learner"] == "lgbm"
+    assert reg["models"]["se10_lgbm_event"]["train"]["require_full_coverage"] is True
     assert emb["se4_lr_xvenue"] == "2026-11-04T00:00:00Z"
     assert emb["se2_lr_flow"] == "2026-11-16T00:00:00Z" and emb["se5_lr_tte"] == "2026-11-14T00:00:00Z"
     assert emb["se3_lr_book"] == "2026-11-18T00:00:00Z" and emb["se6_lr_wallet"] == "2026-11-18T00:00:00Z"
