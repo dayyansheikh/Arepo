@@ -376,8 +376,14 @@ def test_analysis_refusals(tmp_path):
     with pytest.raises(RuntimeError):
         la.code_check(spec)  # code hashes not pinned
     spec["code_sha256"] = lt.code_hashes()
+    spec["k_tests"] = None
     with pytest.raises(RuntimeError):
         la.code_check(spec)  # null k_tests
+    spec["k_tests"], spec["flow"]["vol24_cap"] = ["E015", "E016"], None
+    with pytest.raises(RuntimeError):
+        la.code_check(spec)  # E016 kept but flow census values unfilled
+    spec["k_tests"] = ["E015"]
+    assert la.code_check(spec)["label"] is None  # E015 alone needs no census values (13.14)
 
 
 def test_ops_stats_reads_no_price_column(tmp_path, monkeypatch):

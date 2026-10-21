@@ -833,3 +833,20 @@ Code hashes after this amendment (supersede 13.12): `live_tests3.py` 2dff0621bbe
 verification, 2026-10-21 ~00:45 UTC+1: OK to run; its optional fix applied before the size check: the donor label reads
 "within-unit timing untestable" when the verdict is Unavailable, the donor gate could not run, or draws were skipped, so an
 untestable gate is never reported as "not shown"; label only, no gate, p or verdict path changed).
+
+### 13.14 k fixed after the censuses: E015 only (2026-10-21; counts only)
+1. **Census outcome** (7.6; ledger "LT3 census C2 (q0472)"): E017 and E019 failed C3/C4, E016 and E018 failed C2. All four are
+   dropped before registration, uncounted. Spec `k_tests` = `["E015"]`; Holm m = 1; familywise alpha 0.05 unchanged.
+2. **Spec fields left null on purpose.** `flow.*` census values (V*, the z centres and scales, `econ.W_upper_cut`,
+   `econ.H_lower_cut`) and `e019.exclude_crypto` / `exclude_family` stay null. `code_check` requires them only when E016/E018
+   or E019 are in `k_tests` (existing code; no change). C2's printed values are not copied into the spec, so nothing about
+   the dropped tests is pinned as if they were live.
+3. **Collector unchanged.** The collector still writes series, sweeps, move, surge and flow lines (it writes raw features;
+   z-scaling happens in the analysis, and a null `vol24_cap` means no cap). Surge and flow lines are **descriptive only**:
+   they belong to no registered test, are never analysed as E016/E017/E018/E019 in this window, and any later use needs its
+   own registration that names these files as already collected. No code file changes, so the q0474 size check still runs
+   on the code to be pinned.
+4. **Remaining before the pin:** q0474 binding size scenarios (any failure blocks the pin, 13.13 item 7), science-reviewer
+   pre-pin verification, host dry run (13.4), `code_sha256` map, `SPEC_SHA256`, ledger registration commit, then the cron
+   install. `REGISTERED_UTC` per 1.1.
+

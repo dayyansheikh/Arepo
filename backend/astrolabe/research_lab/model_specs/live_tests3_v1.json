@@ -6,7 +6,9 @@
  "registered_utc": "2026-10-24T00:00:00Z",
  "end_utc": "2026-11-14T00:00:00Z",
  "analysis_not_before": "2026-11-15T12:00:00Z",
- "k_tests": null,
+ "k_tests": [
+  "E015"
+ ],
  "k_tests_rule": "list of the primaries that survived their census gates (section 13.6), fixed before the pin; Holm m = len(k_tests); null = not filled (a pinned spec with null k_tests is refused)",
  "code_sha256": {"live_tests3.py": null, "live_tests3_analysis.py": null},
  "grid": {"grid0_utc": "2026-10-01T00:31:00Z", "grid_s": 7200, "slot_tol_s": 1800},
