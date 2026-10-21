@@ -21,7 +21,7 @@ and session ends; nothing here calls Claude or any paid API.
   - marks a job whose runner vanished (reboot, kill, OOM) as `interrupted`, counting it as an attempt;
   - starts at most one job, only if the queue is not paused, the collector pass is not running,
     `MemAvailable ≥ mem_mb + 1200 MB`, and it is not 02:45-05:30 UTC (start blackout around the 03:30 archive run and
-    the 04:31 pass; jobs with `mem_mb` < 500 are exempt). A job already running continues; queue jobs run with
+    the 04:31 pass; jobs with `mem_mb` < 500 are exempt; a blackout-held job never blocks a lower-priority exempt job, 2026-10-21). A job already running continues; queue jobs run with
     `oom_score_adj` 1000, so under memory pressure they are killed before the collector or the archive.
 - **Each job:**
   - runs detached at nice 19;
@@ -32,7 +32,7 @@ and session ends; nothing here calls Claude or any paid API.
     `retry_wait` for 30 min (`not_before`), the attempt is not counted, `attempts.jsonl` records outcome `tempfail`,
     and after 48 consecutive tempfails (about a day) the job becomes `failed`.
 - **Heavy jobs (2026-10-20):** `resources.exclusive: true` makes a job run alone. When it is the top ready job the queue
-  drains (nothing new starts), and while it runs nothing else starts. `resources.as_cap_mb` overrides the 2 x `mem_mb`
+  drains (nothing new starts), and while it runs nothing else starts. **Light jobs** (`mem_mb` < 500, e.g. registered live collectors) are exempt from the drain and may run beside an exclusive job (2026-10-21); the memory gate still applies. `resources.as_cap_mb` overrides the 2 x `mem_mb`
   address-space cap: virtual memory, not RAM. The start gate still uses `mem_mb`.
 - **Idempotency:** a job id is terminal once `done`. A spec changed after completion is ignored; use a new id.
 - **Concurrency (lanes, 2026-10-16):** at most one job per lane, so at most two at once.
