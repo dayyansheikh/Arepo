@@ -139,12 +139,32 @@ def test_old_sidecar_versions_do_not_count_toward_gate(tmp_path):
     assert rmd.sidecar_version(snaps / "cap000") == 2
 
 
-def test_archived_sidecar_raises_not_silently_dropped(tmp_path):
+def test_archived_but_complete_sidecar_counts_for_discovery(tmp_path):
+    from astrolabe.research_lab import forecast
+
+    snaps, _ = _write_world(tmp_path, 6)
+    (snaps / "cap000" / "rows_ext.csv.gz").unlink()  # retention deleted it, manifest says complete
+    assert rmd.sidecar_version(snaps / "cap000") == 3
+    caps = rmd.discover_captures(snaps)
+    assert all(c["sidecar"] for c in caps)
+    assert rmd.gate_status(caps, 40)["longest_consecutive_run"] == 6
+    # reading the archived sidecar is still loud (require_local guards every actual read)
+    from astrolabe.research_lab import ml_panel
+
+    with pytest.raises(forecast.ArchivedDataError):
+        ml_panel.load_snapshot_rows(snaps / "cap000")
+
+
+@pytest.mark.parametrize("manifest", [
+    "{not json", json.dumps({"sidecar_status": "partial", "ext_version": "snapshot-ext-v3"}),
+    json.dumps({"sidecar_status": "complete"}),
+    json.dumps({"sidecar_status": "complete", "ext_version": "snapshot-ext-vX"})])
+def test_archived_sidecar_with_bad_manifest_fails_closed(tmp_path, manifest):
     from astrolabe.research_lab import forecast
 
     snaps, _ = _write_world(tmp_path, 3)
-    assert rmd.sidecar_version(snaps / "cap000") == 3
-    (snaps / "cap000" / "rows_ext.csv.gz").unlink()  # retention deleted it, manifest remains
+    (snaps / "cap000" / "rows_ext.csv.gz").unlink()
+    (snaps / "cap000" / "ext_manifest.json").write_text(manifest)
     with pytest.raises(forecast.ArchivedDataError):
         rmd.sidecar_version(snaps / "cap000")
     with pytest.raises(forecast.ArchivedDataError):

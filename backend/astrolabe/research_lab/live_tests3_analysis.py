@@ -42,7 +42,8 @@ FLOW_BASE = ["logit_mid", "abs_dev", "chg_1h", "chg_1h_missing", "chg_1d", "chg_
 
 def code_check(spec: dict) -> dict:
     """Compare the modules on disk with the spec's ``code_sha256`` map; a pinned spec refuses on any mismatch, an
-    unfilled map, null ``k_tests``, an unfilled V* or unfilled census scales; a DRAFT spec only labels the result."""
+    unfilled map, null, empty or unknown ``k_tests``, an unfilled V* or unfilled census scales; a DRAFT spec only labels
+    the result."""
     pins = spec.get("code_sha256") or {}
     cur = lt.code_hashes()
     status = {n: ("not pinned" if pins.get(n) is None else ("match" if pins.get(n) == h else "MISMATCH")) for n, h in cur.items()}
@@ -52,6 +53,11 @@ def code_check(spec: dict) -> dict:
             raise RuntimeError(f"live_tests3 code sha256 does not match the registered pins: {bad}")
         if spec.get("k_tests") is None:
             raise RuntimeError("live_tests3 spec pinned with null k_tests")
+        if not spec["k_tests"]:
+            raise RuntimeError("live_tests3 spec pinned with an empty k_tests")
+        unknown = [t for t in spec["k_tests"] if t not in TESTS]
+        if unknown:
+            raise RuntimeError(f"live_tests3 spec pinned with unknown k_tests {unknown}")
         if any(t in spec["k_tests"] for t in ("E016", "E018")):
             f = spec["flow"]
             cap = f.get("vol24_cap")
@@ -866,18 +872,37 @@ def trial_record(res: dict) -> dict:
 def analyze(root: Path = lt.OUT_ROOT, *, start_utc: str = lt.REGISTERED_UTC, end_utc: str = lt.END_UTC, spec: dict | None = None,
             roles: tuple[str, ...] = (lt.ROLE_CONF,), force: bool = False) -> dict:
     """The single registered analysis. Refuses before ANALYSIS_NOT_BEFORE unless ``force`` (tests only) and refuses a
-    pinned spec whose code hashes or census values are not filled / do not match."""
+    pinned spec whose code hashes or census values are not filled / do not match. Only the tests in ``k_tests`` are
+    computed (pre-pin verification finding 1): a test dropped at its census has no primary, gate, economics or secondary
+    output, only a line in ``res["dropped"]``. Null ``k_tests`` (DRAFT only) computes all five, labelled DRAFT."""
     if not force and lt.now_ts() < lt.epoch(lt.ANALYSIS_NOT_BEFORE):
         raise RuntimeError(f"analysis refused before {lt.ANALYSIS_NOT_BEFORE}")
     spec = spec or lt.load_spec()
     cc = code_check(spec)
     s, e = lt.epoch(start_utc), lt.epoch(end_utc)
-    ktests = list(spec.get("k_tests") or TESTS)
+    draft_all = spec.get("k_tests") is None
+    if draft_all:  # DRAFT only (code_check refuses a pinned spec with null k_tests): development fallback, all five
+        ktests = list(TESTS)
+    else:  # k fixed by the censuses (13.14): only these tests are computed; a dropped test produces no output at all
+        ktests = list(spec["k_tests"])
+        if not ktests or any(t not in TESTS for t in ktests):
+            raise RuntimeError(f"live_tests3 analysis refused: k_tests must be a non-empty subset of {TESTS}, got {ktests}")
     k = len(ktests)
-    mv, macc = move_frame(root, s, e, roles, spec)
-    fl, facc = flow_frame(root, s, e, roles, spec)
-    res = {"E015": e015(mv, macc, spec, k), "E019": e019(mv, root, s, e, roles, spec), "E017": e017(root, s, e, roles, spec),
-           "E016": flow_test(fl, facc, spec, "E016", "W"), "E018": flow_test(fl, facc, spec, "E018", "H")}
+    res: dict = {}
+    if "E015" in ktests or "E019" in ktests:
+        mv, macc = move_frame(root, s, e, roles, spec)
+        if "E015" in ktests:
+            res["E015"] = e015(mv, macc, spec, k)
+        if "E019" in ktests:
+            res["E019"] = e019(mv, root, s, e, roles, spec)
+    if "E017" in ktests:
+        res["E017"] = e017(root, s, e, roles, spec)
+    if "E016" in ktests or "E018" in ktests:
+        fl, facc = flow_frame(root, s, e, roles, spec)
+        if "E016" in ktests:
+            res["E016"] = flow_test(fl, facc, spec, "E016", "W")
+        if "E018" in ktests:
+            res["E018"] = flow_test(fl, facc, spec, "E018", "H")
     gate_label = {"E015": "SE check failed", "E019": "SE check failed", "E016": "SE check failed",
                   "E018": "SE check failed", "E017": "placebo"}
     pv = {}
@@ -887,11 +912,8 @@ def analyze(root: Path = lt.OUT_ROOT, *, start_utc: str = lt.REGISTERED_UTC, end
         pv[t] = verdict(r.get("primary") or {}, g, r.get("available", False), None, DIRECTION[t], gate_label[t])["p_for_holm"]
     hp = bd.holm(pv)
     floors = {"E015": spec["e015"]["floor_c"], "E019": spec["e019"]["floor_c"], "E017": spec["e017"]["floor_c"]}
-    for t in TESTS:
+    for t in ktests:
         r = res[t]
-        if t not in ktests:
-            r["verdict"] = {"verdict": "dropped before registration (census gate); not in the Holm family"}
-            continue
         g = None if t == "E017" else r.get("gate")
         v = verdict(r.get("primary") or {}, g, r.get("available", False), hp[t], DIRECTION[t], gate_label[t])
         r["holm_p"] = hp[t]
@@ -921,7 +943,10 @@ def analyze(root: Path = lt.OUT_ROOT, *, start_utc: str = lt.REGISTERED_UTC, end
         if (r.get("late_loss_share") or 0.0) > spec["labels"]["late_loss_share"]:
             labels.append(f"late-loss ({r['late_loss_share']:.1%} of origin files refused late)")
         labels.append(cc["label"])
+        if draft_all:
+            labels.append("DRAFT: k_tests null, all five tests computed (development only)")
         r["verdict"] = attach(v, labels)
+    res["dropped"] = {t: "dropped at census, uncounted" for t in TESTS if t not in ktests}
     res["holm"] = {"tests": ktests, "m": k, "p_raw": pv, "p_holm": hp, "alpha": 0.05, "one_sided": True}
     res["spec_sha"] = spec["_sha256"]
     res["code_sha256"] = cc["current"]

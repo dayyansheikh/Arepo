@@ -2825,3 +2825,14 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   - Any later live test of J5 or a neg-risk band hypothesis must declare that it is not fresh.
 - **For the experiments track (not edited here):** the ledger summary row for E005 (line ~14) still reads
   "REGISTERED, pending". Its scored entry (line ~678) says "Not supported".
+
+## LT3 pre-pin fixes merged and verified, 2026-10-21 ~05:00Z (nothing counted; size-check results not read)
+- `fix/lt3-prepin` merged (6c51901c): §13.15 ruling first (65719509: binding for the E015 pin = `perm_iid`,
+  `perm_persistent`, `perm_corr_control`; `flowperm_*` recorded, not blocking; donor reported); analysis computes only
+  `k_tests` (b48e1909); collector surge/flow off by `k_tests` (f9c9566c); text, spec and §13.16 date rule (eaa67bc8).
+  New code hashes: `live_tests3.py` 3ac52d79…, `live_tests3_analysis.py` 224b5603…. 69 LT3/LT4 tests pass.
+- Fix verification (science-reviewer): **FIXES_OK_WITH_NOTES**, nothing blocking; `size_check()` and all callees
+  byte-identical to 6b82fe78, so q0475's `perm_*` rates must equal q0474's exactly. Note applied: a date move after the dry
+  run repeats the dry run.
+- **q0475_lt3_size_check_r3 promoted** (cpu, 400 MB). Remaining: q0475 result vs §13.15, host dry run (13.4), pins,
+  registration commit before 2026-10-23T00:00Z.

@@ -1,8 +1,9 @@
 {
  "spec_id": "live_tests3_v1",
- "status": "DRAFT (not registered; sha256 not pinned in live_tests3.py; census scales and k not filled)",
+ "status": "DRAFT (not registered; sha256 not pinned in live_tests3.py; k fixed by the censuses: k_tests = [\"E015\"], LT3 13.14; flow and e019 census values left null on purpose)",
  "design": "docs/research_lab/LIVE_TESTS_3.md (sections 1-9 as amended by section 13, the response to challenger R1)",
  "experiments": ["E015", "E016", "E017", "E018", "E019"],
+ "experiments_note": "the drafted list; E016-E019 were dropped at their censuses before registration, uncounted (LT3 13.14, 7.6). Only the tests in k_tests are analysed (13.16 fix 1) and only their collectors run: surge needs E017, flow needs E016 or E018 (13.16 fix 2)",
  "registered_utc": "2026-10-24T00:00:00Z",
  "end_utc": "2026-11-14T00:00:00Z",
  "analysis_not_before": "2026-11-15T12:00:00Z",
@@ -74,7 +75,9 @@
  "seeds": {"E015": 20261024, "E015_gate": 20261124, "E016": 20261025, "E016_gate": 20261125, "E017": 20261026,
            "E018": 20261027, "E018_gate": 20261127, "E019": 20261028, "E019_gate": 20261128},
  "size_check": {"worlds": 2000, "draws": 200, "seed": 20261020, "nominal": 0.05,
-                "rule": "rejection rate of each BINDING gate (Freedman-Lane permutation, incl. the flow-world scenarios; the distant-donor scenarios are reported only, LT3 13.13) under each simulated null must not exceed 0.05 + 1.645 * sqrt(0.05 * 0.95 / worlds) (not significantly above 5%); run on the code to be pinned, result recorded in section 13 and the spec before the pin"},
+                "rule": "rejection rate of each scenario in binding_for_pin (Freedman-Lane permutation gate, class-contrast world) under its simulated null must not exceed 0.05 + 1.645 * sqrt(0.05 * 0.95 / worlds) (not significantly above 5%); run on the code to be pinned, result recorded in section 13 and the spec before the pin",
+                "binding_for_pin": ["perm_iid", "perm_persistent", "perm_corr_control"],
+                "pin_rule": "LT3 13.15 (written before q0474 was read): the overall 'pass' field is ignored; any perm_* failure blocks the E015 pin with no redesign; a flowperm_* failure does not block the E015 pin (k fixed by the censuses before the result) but is recorded and blocks any future flow-moderation use of the same gate; donor_* reported only; a re-run on code with size_check() and its helpers byte-identical must reproduce q0474's perm_* rates exactly (any difference: investigate, never re-roll)"},
  "gates": {"draws": 200, "alpha": 0.05, "perm_min_stratum": 4, "donor_min_units": 4, "donor_min_sep_s": 43200, "donor_min_donors": 2},
  "labels": {"fraction": 0.5, "attrition_pp": 0.02, "late_loss_share": 0.02, "series_concentration": 0.5},
  "census_gates": {

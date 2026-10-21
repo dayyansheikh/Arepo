@@ -107,8 +107,19 @@ def sidecar_version(snapshot_dir: Path) -> int | None:
 
     d = Path(snapshot_dir)
     mp = d / "ext_manifest.json"
-    if mp.exists():
-        forecast.require_local(d / "rows_ext.csv.gz")  # manifest kept, sidecar archived: loud
+    if mp.exists() and not (d / "rows_ext.csv.gz").exists():
+        # manifest kept, sidecar rotated off by the host retention. Discovery only needs to know
+        # the capture WAS complete: a manifest that shows a complete sidecar of a parseable
+        # version counts (``require_local`` still guards every read of the sidecar, e.g.
+        # ml_panel.load_snapshot_rows, so a period that is not cached and needs it fails loudly).
+        # Any other manifest (unreadable, not complete, no version): fail closed, loud as before.
+        try:
+            m = json.loads(mp.read_text())
+            if m.get("sidecar_status") == "complete":
+                return int(str(m.get("ext_version", "")).rsplit("v", 1)[1])
+        except (OSError, ValueError, IndexError):
+            pass
+        forecast.require_local(d / "rows_ext.csv.gz")
     if not (d / "rows_ext.csv.gz").exists() or not mp.exists():
         return None
     try:
@@ -336,6 +347,41 @@ def labelled_consuming(df: pd.DataFrame) -> pd.DataFrame:
         del df[c]
     out = pd.DataFrame(cols)
     out.attrs.update(df.attrs)
+    return out
+
+
+LEAK_PREFIX = "leak_"
+
+
+def read_labelled_panel(pq_path: Path, columns: list[str] | None = None,
+                        exclude_prefix: str | None = None,
+                        mask: np.ndarray | None = None) -> pd.DataFrame:
+    """Value-, dtype- and order-identical to ``labelled(read_panel_compact(pq_path))`` restricted
+    to ``columns`` (default every column except those starting with ``exclude_prefix``), but the
+    full frame never exists: one column is read, masked to ``target_available`` rows and kept,
+    so the peak is the labelled frame plus one full column (~31 MB per 4M rows)."""
+    import pyarrow.parquet as papq
+
+    schema = papq.read_schema(pq_path)
+    names = list(schema.names)
+    if mask is None:
+        mask = read_panel_compact(pq_path, ["target_available"])["target_available"].to_numpy(
+            dtype=bool)
+    want = set(columns) if columns is not None else {
+        n for n in names if not (exclude_prefix and n.startswith(exclude_prefix))}
+    names = [n for n in names if n in want]
+    flt = [n for n in names if str(schema.field(n).type) == "double"]
+    # float64 columns fill one column-major block (no later consolidation copy); the frame wraps
+    # it without copying and the other columns are inserted at their original positions
+    block = np.empty((int(mask.sum()), len(flt)), dtype=np.float64, order="F")
+    for j, n in enumerate(flt):
+        block[:, j] = read_panel_compact(pq_path, [n])[n].to_numpy()[mask]
+    out = pd.DataFrame(block, columns=flt, copy=False)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", pd.errors.PerformanceWarning)
+        for i, n in enumerate(names):
+            if n not in out.columns or out.columns[i] != n:
+                out.insert(i, n, read_panel_compact(pq_path, [n])[n].to_numpy()[mask])
     return out
 
 
@@ -670,7 +716,7 @@ def shuffle_labels(lab: pd.DataFrame, by: str = "period", seed: int = SHUFFLE_SE
     (design wording) is the secondary placebo. Features and timing columns are untouched, so the
     fold plan and purge are unchanged."""
     rng = np.random.default_rng(seed)
-    out = lab.copy()
+    out = lab.copy(deep=False)  # only y_class is replaced (assignment rebinds, never writes)
     y = out["y_class"].to_numpy(float).copy()
     for idx in out.groupby(_block_key(out, by), sort=True).indices.values():
         y[idx] = y[rng.permutation(idx)]
@@ -678,7 +724,7 @@ def shuffle_labels(lab: pd.DataFrame, by: str = "period", seed: int = SHUFFLE_SE
     return out
 
 
-def run_placebos(lab, manifest, results, clusters, sink) -> dict:
+def run_placebos(lab, manifest, results, clusters, sink, leak_loader=None) -> dict:
     """Report-only placebos, logged as placebo arms (never enter a verdict): shuffled labels
     (global within-period null, plus period x event), the leak positive control with EVERY
     feature shifted to the target snapshot (``leak_*`` panel columns) and the ``dmid`` scorer
@@ -698,10 +744,16 @@ def run_placebos(lab, manifest, results, clusters, sink) -> dict:
             shuf, {"M0": m0s, f"M1_placebo_shuffled_{by}": m1s}, clusters, sink=sink,
             manifest=manifest)
     leak_cols = [f"leak_{n}" for n in mm.M12_FEATURES]
-    if all(c in lab.columns for c in leak_cols):
-        lk = lab.copy()
+    leak_src = lab if all(c in lab.columns for c in leak_cols) else None
+    if leak_src is None and leak_loader is not None:  # leak_* kept out of memory until now
+        leak_src = leak_loader(leak_cols)
+        if not all(c in leak_src.columns for c in leak_cols):
+            leak_src = None
+    if leak_src is not None:
+        lk = lab.copy(deep=False)  # the shifted features are rebound, lab is not written
         for n in mm.M12_FEATURES:
-            lk[n] = lab[f"leak_{n}"]
+            lk[n] = leak_src[f"leak_{n}"].to_numpy()
+        del leak_src
         m1l = fit_probe("M1_placebo_leak_all_features", None, lk, manifest, sink, fn=mm.fit_m1)
         out["leak_all_features_positive_control"] = mm.score_arms(
             lab, {"M0": m0, "M1_placebo_leak_all_features": m1l}, clusters, sink=sink,
@@ -767,11 +819,15 @@ def real_run(args, caps, gate, policy) -> dict:
     run_ids = set(gate["run_capture_ids"])
     run_caps = [c for c in caps if c["capture_id"] in run_ids]
     sweeps, sweep_report = usable_sweeps(args.sweep_root, run_caps)
-    df, counts, h, cdir, cached = get_panel(run_caps, sweeps, policy, args.delta,
-                                            args.cache_root, args.rebuild, with_leak=True,
-                                            link_frame=getattr(args, "link_frame", None))
     target, horizon = getattr(args, "target", "direction"), int(getattr(args, "horizon", 1))
     extra = list(getattr(args, "families_extra", []) or [])
+    direct = not extra and target == "direction" and horizon == 1
+    # direct path: only the slim columns (fold plan, summary) are read whole; the labelled frame
+    # is then streamed column by column straight from the parquet (see read_labelled_panel)
+    df, counts, h, cdir, cached = get_panel(run_caps, sweeps, policy, args.delta,
+                                            args.cache_root, args.rebuild, with_leak=True,
+                                            link_frame=getattr(args, "link_frame", None),
+                                            columns=DRY_COLUMNS if direct else None)
     join_report = None
     if extra:  # exploratory flow/wallet families: joined after the cached MC1 panel
         df, join_report = ml_panel.add_flow_wallet_columns(
@@ -790,8 +846,10 @@ def real_run(args, caps, gate, policy) -> dict:
     (out_dir / f"{stem}_fold_manifest.json").write_text(
         json.dumps(_clean(man), indent=1, default=_jsonable))
     # pure summary of the full panel, computed now so the full frame can be freed before the fits
-    panel_sum = slim_panel_summary(df)
-    lab = labelled_consuming(df)
+    pq_path = cdir / "panel.parquet"
+    panel_sum = panel_summary(df[[c for c in DRY_COLUMNS if c in df.columns]].copy(),
+                              feature_nan_rates(pq_path, ml_panel.EXTENDED_NAMES))
+    lab = read_labelled_panel(pq_path, exclude_prefix=LEAK_PREFIX)  # leak_* only for the placebo
     del df
     trials_path = Path(args.trials_path)
     before = _count_lines(trials_path)
@@ -818,7 +876,9 @@ def real_run(args, caps, gate, policy) -> dict:
         lab, {"M0": results["M0"], "M0_gap_placebo": probe_results["M0_gap_placebo"]},
         clusters, sink=sink, manifest=man)
     no_sweep = run_no_sweep_sensitivity(lab, man, results, clusters, sink)
-    placebos = run_placebos(lab, man, results, clusters, sink)
+    placebos = run_placebos(
+        lab, man, results, clusters, sink,
+        leak_loader=lambda cols: read_labelled_panel(pq_path, columns=cols))
     report = {
         "placebos": placebos, "no_sweep_sensitivity": no_sweep,
         "gate_overridden": overridden,

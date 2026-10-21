@@ -22,8 +22,8 @@ covers this directory, so it is never deleted on the host):
 * ``move/frozen/<capture>.csv.gz``: E015 mover lines (every eligible market with |x| >= 1c, all categories, with class
   and geometry) and ``events/frozen/<capture>.csv.gz``: E019 event-interval lines (non-sports neg-risk events with
   >= 3 eligible members).
-* ``surge/frozen/<capture>.csv.gz``: E017 lines (every eligible market, labels S / A / SM / baseline).
-* ``flow/frozen/<sample>.csv.gz``: E016 / E018 lines (one per sampled market).
+* ``surge/frozen/<capture>.csv.gz``: E017 lines (every eligible market, labels S / A / SM / baseline); written only if E017 is in ``k_tests``.
+* ``flow/frozen/<sample>.csv.gz``: E016 / E018 lines (one per sampled market); written only if E016 or E018 is in ``k_tests``.
 * ``<kind>/outcomes/<id>.h<j>.csv.gz`` (status and quote at slot k + j) and ``<kind>/outcomes/<id>.s<j>.csv.gz``
   (sweep-1 quote of the pass at slot k + j). Never imputed; statuses two_sided / one_sided / closed_flag / absent /
   capture_missing (section 1.5).
@@ -946,6 +946,16 @@ def sweep_state(by_slot: dict, sweeps: dict, j: int, root: Path, now: float, spe
 FREEZE_KINDS = {"move": "move", "surge": "surge", "flow": "flow"}
 
 
+def enabled_kinds(spec: dict) -> dict[str, bool]:
+    """Which freeze kinds the pass collects (pre-pin verification finding 2). Move freezes always run (E015, E019);
+    surge freezes only if E017 is in ``k_tests``; flow freezes only if E016 or E018 is. Null ``k_tests`` (DRAFT, k not
+    filled) collects every kind (development only). A switched-off kind writes no frozen file and no outcome."""
+    ks = spec.get("k_tests")
+    if ks is None:
+        return {"move": True, "surge": True, "flow": True}
+    return {"move": True, "surge": "E017" in ks, "flow": "E016" in ks or "E018" in ks}
+
+
 def run_once(*, snapshot_root: Path = SNAPSHOT_ROOT, sample_root: Path = SAMPLE_ROOT, sweep_root: Path = SWEEP_ROOT,
              root: Path = OUT_ROOT, spec: dict | None = None, registered_utc: str = REGISTERED_UTC, end_utc: str = END_UTC,
              now: float | None = None, max_items: int = 40, allow_late: bool = False) -> dict:
@@ -979,8 +989,10 @@ def _run_locked(*, snapshot_root: Path, sample_root: Path, sweep_root: Path, roo
         append_jsonl(root / "passes.jsonl", [{"kind": "disk_cap", **stats}])
         return stats
     t_reg, t_end = epoch(registered_utc), epoch(end_utc)
+    kinds = enabled_kinds(spec)
+    stats["kinds_off"] = sorted(n for n, on in kinds.items() if not on)
     by_slot = scan_captures(snapshot_root, st, spec)
-    samples = scan_samples(sample_root, st)
+    samples = scan_samples(sample_root, st) if kinds["flow"] else {}  # trade samples are read only by flow freezes
     sweeps = scan_sweeps(sweep_root, st)
     st.save()
     log: list[dict] = []
@@ -1026,6 +1038,8 @@ def _run_locked(*, snapshot_root: Path, sample_root: Path, sweep_root: Path, roo
         role = role_of(c["start"], registered_utc, end_utc, pinned)
         for kind, first_h, need in (("move", min(spec["move"]["horizons"]), (k - 1, k)),
                                     ("surge", min(spec["surge"]["horizons"]), (k - 13, k - 2, k - 1, k))):
+            if not kinds[kind]:
+                continue
             p = root / kind / "frozen" / f"{c['id']}.csv.gz"
             late_p = p.with_name(p.name.replace(".csv.gz", ".late.csv.gz"))
             if p.exists() or late_p.exists() or budget <= 0:
@@ -1058,7 +1072,7 @@ def _run_locked(*, snapshot_root: Path, sample_root: Path, sweep_root: Path, roo
                 stats[kind] += 1
                 budget -= 1
                 log.append({"kind": f"{kind}_frozen", "id": c["id"], "slot": k, "counts": cnt, "written_utc": iso(now_ts())})
-    # 4. flow freezes (every active sample of an in-window capture)
+    # 4. flow freezes (every active sample of an in-window capture; none when flow is switched off: samples is empty)
     slot_by_id = {c["id"]: k for k, c in by_slot.items()}
     rv_cache: dict = {}
     for sid in sorted(samples):
@@ -1088,6 +1102,8 @@ def _run_locked(*, snapshot_root: Path, sample_root: Path, sweep_root: Path, roo
     plan = {"move": (spec["move"]["horizons"], spec["move"]["sweep_tags"]), "surge": (spec["surge"]["horizons"], []),
             "flow": ([spec["flow"]["horizon_slots"]], spec["flow"]["sweep_tags"])}
     for kind, (hs, ss) in plan.items():
+        if not kinds[kind]:
+            continue  # a switched-off kind writes no outcome
         fdir = root / kind / "frozen"
         for p in sorted(fdir.glob("*.csv.gz")) if fdir.exists() else []:
             if p.name.endswith((".late.csv.gz", ".noprev.csv.gz")) or budget <= 0:

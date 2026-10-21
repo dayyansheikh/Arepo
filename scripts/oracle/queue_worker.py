@@ -387,8 +387,11 @@ def tick() -> int:
             cands = [(s, st) for s, st in cands if st["status"] != "invalid" and ready(s, st)
                      and lane(s) not in busy_lanes and not lane_held(s)]
             cands.sort(key=lambda x: (-x[0]["priority"], x[0]["id"]))
+            # Light jobs (mem_mb below the blackout exemption, e.g. registered live collectors) are never blocked by an
+            # exclusive job or its drain: a late live freeze loses registered data, and under memory pressure the kernel
+            # kills the large research job first (all queue jobs share oom_score_adj 1000). The memory gate still applies.
             if any(exclusive(specs[j]) for j in running):
-                cands = []  # an exclusive job runs alone
+                cands = [c for c in cands if not blackout_blocked(c[0])]  # an exclusive job runs alone, light jobs aside
                 parts.append("exclusive job running")
             # An exclusive job (resources.exclusive) that is the top ready job drains the queue: nothing else starts
             # until the running jobs finish, then it starts alone (heavy-job rule on a 5.6 GB host).
@@ -396,11 +399,14 @@ def tick() -> int:
                           and load_state(j)["status"] != "invalid" and ready(s, load_state(j))],
                          key=lambda x: (-x[0]["priority"], x[0]["id"]))
             if top and exclusive(top[0][0]) and not any(exclusive(specs[j]) for j in running):
-                if running:
-                    cands = []
+                if any(blackout_blocked(specs[j]) for j in running):
+                    cands = [c for c in cands if not blackout_blocked(c[0])]
                     parts.append(f"draining for exclusive {top[0][0]['id']}")
-                else:
+                elif lane(top[0][0]) not in busy_lanes:
                     cands = [top[0]]
+                else:
+                    cands = []
+                    parts.append(f"draining for exclusive {top[0][0]['id']} (lane busy)")
             if cands and in_blackout() and blackout_blocked(cands[0][0]):
                 # A job held by the blackout must not block a lower-priority exempt job (e.g. the LT2 live collector,
                 # whose daily 02:31 freeze would otherwise be late); the held job still starts first after 05:30.

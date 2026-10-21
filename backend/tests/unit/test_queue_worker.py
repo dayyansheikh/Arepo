@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 from pathlib import Path
 
 _P = Path(__file__).resolve().parents[3] / "scripts" / "oracle" / "queue_worker.py"
@@ -104,3 +105,25 @@ def test_blackout_holds_non_exempt_jobs(tmp_path, monkeypatch):
     started = _tick_env(tmp_path, monkeypatch, [_job("a_big", 40, 2000), _job("c_big", 10, 900)])
     qw.tick()
     assert started == []
+
+
+def test_exclusive_running_lets_only_light_jobs_start(tmp_path, monkeypatch):
+    started = _tick_env(tmp_path, monkeypatch, [_job("a_big", 40, 2000, lane="cpu"), _job("b_small", 30, 480)])
+    monkeypatch.setattr(qw, "in_blackout", lambda at=None: False)
+    ex = _job("x_excl", 95, 2600, lane="cpu")
+    ex["resources"]["exclusive"] = True
+    (qw.JOBS / "x_excl.json").write_text(json.dumps(ex))
+    qw.save_state({"id": "x_excl", "status": "running", "attempts": 1, "runner_pid": os.getpid()})
+    qw.tick()
+    assert started == ["b_small"]
+
+
+def test_drain_for_exclusive_ignores_running_light_job(tmp_path, monkeypatch):
+    started = _tick_env(tmp_path, monkeypatch, [_job("b_small", 30, 480), _job("c_big", 10, 900, lane="net")])
+    monkeypatch.setattr(qw, "in_blackout", lambda at=None: False)
+    ex = _job("x_excl", 95, 2600, lane="cpu")
+    ex["resources"]["exclusive"] = True
+    (qw.JOBS / "x_excl.json").write_text(json.dumps(ex))
+    qw.save_state({"id": "b_small", "status": "running", "attempts": 1, "runner_pid": os.getpid()})
+    qw.tick()
+    assert started == ["x_excl"]
