@@ -913,3 +913,8 @@ Design and code only; no outcome data and no size-check output read.
    (13.5). The move is recorded in the ledger; no data are inspected for it.
    **Dry run after a date move (fix verification note, 2026-10-21):** if the constants are edited after the host dry run
    (13.4), the dry run is repeated on the pinned commit before the cron install; the earlier dry run's record is kept.
+
+### 13.17 Host dry run done (2026-10-21; counts and resources only)
+The §13.4 dry run ran on the host 04:50-05:15Z on the code to be pinned (hashes as 13.16 item 4), with the exact cron command
+plus `--dry-run-start/--dry-run-end/--root` only, over 2026-10-19T00:00-12:00Z. Four passes: rc 0/0/0/75, peak RSS 534 / 343 /
+318 / 123 MB, wall 13:11 / 3:02 / 0:28 / 0:02; flow and surge off; no late refusals. Details in the ledger (LT3 host dry run).

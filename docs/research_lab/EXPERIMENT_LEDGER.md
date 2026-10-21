@@ -2848,6 +2848,80 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   terminal (q0264 never runs), so the defect cannot recur on this path. The CB12 code stays frozen; any future
   CB12-style runner must map "prospective" to an allowed role. The queue entry stays `failed` as the honest record.
 
+## LT3 host dry run (§13.4), recorded 2026-10-21 ~08:55Z (run 04:50-05:15Z; nothing counted; no outcome read)
+- Run by the 10-21 interactive helper (`/tmp/lt3drv.sh` on the host) and not written up before; recorded here from the
+  host log `/tmp/lt3drv.log` and the per-pass outputs. Host tip 054388ec; `lt.code_hashes()` on the host =
+  `live_tests3.py` 3ac52d79…, `live_tests3_analysis.py` 224b5603… (the §13.16 hashes to be pinned).
+- Command: the exact §13.4 cron command (own `flock` on `~/arepo/run/live_tests3.lock`, `nice -n 19`, `oom_score_adj` 1000,
+  `ulimit -v 983040`, `--max-items 40`, `--data-dumps-cap-gb 40`) plus only `--dry-run-start 2026-10-19T00:00:00Z
+  --dry-run-end 2026-10-19T12:00:00Z --root /tmp/lt3dry`; `/usr/bin/time -v` between `flock` and `nice`. Started only
+  with no collector pass running and MemAvailable >= 1,500 MB (4,504 MB at start).
+- Passes (exit code, peak RSS, wall): 1: rc 0, 534,372 kB, 13:11 (backlog: 39 series, 1 sweep); 2: rc 0, 342,792 kB, 3:02
+  (38 sweeps, 2 move freezes); 3: rc 0, 317,592 kB, 0:28 (4 move freezes, 24 move outcomes); 4: rc 75 `nothing_new`,
+  123,280 kB, 0:02. Every pass `pinned: false` (lines `prospective_unregistered`), `kinds_off: [flow, surge]` (§13.16 fix 2
+  working), `refused_late` 0. Scratch root 117 MB, 156 files (series 39, status 39, sweeps 39, move/frozen 6,
+  events/frozen 6, move/outcomes 24).
+- **Result:** peak RSS 0.53 GB is well under the 960 MB cap; the slowest pass (a 12 h backlog of 40 items) took 13 min,
+  under the 20-min cron interval, and steady-state passes take seconds. 13.4's owed dry run is done. Remaining before
+  registration: q0475 (`perm_*` must equal q0474 exactly, §13.15), pins, registration commit before 2026-10-23T00:00Z,
+  then the cron install.
+
+## MC1 q0116e: killed by the kernel OOM killer again, 2026-10-21 07:10Z (nothing counted; development only)
+- q0116e (memory-fixed `run_ml_dev.py`, 9e6d5596; exclusive; max_retries 0) started 06:58Z and was killed at 07:10:49Z
+  after 771 s: global OOM, `anon-rss` 4,932,452 kB, total-vm 10.5 GB, `oom_score_adj` 1000 (the collector and monitors
+  were protected as designed; the collector pass and live collectors were unaffected). The job log holds only the argv
+  line, so the stage is not known; the peak is about the same as q0116d's (4.8 GB), so the column-wise read-back fix did
+  not lower the true peak enough, or the peak is in the model-fit stage the fix did not measure.
+- No trials lines, no outputs; the cached panel (hash c30de03b…) and period cache are unchanged and stay reusable.
+- **Decision:** no further attempt on this host (5.6 GB RAM; five OOM-type failures q0116..q0116e). Not retried and not
+  re-designed by shrinking the panel (that would be a design change needing a written justification and review).
+  MC1 waits for more memory: either the second free instance (auto-retry still "out of host capacity" at 08:40Z) or an
+  owner-approved free resize of this instance (Always Free A1 allows 4 OCPU / 24 GB in total). Dashboard approval item.
+  The signal engine (separate autopilot) covers prospective multi-family scoring meanwhile.
+
+## LT3 size check q0474 (old code) read, 2026-10-21 ~09:00Z (information; the binding size statement is q0475's)
+- `live_tests3_census/size_check_r2.json` (sha256 39d0978b…), 2,000 worlds x 200 draws, seed 20261020, limit 0.058017.
+  Read after the §13.15 ruling was committed, as that section requires.
+- **Binding for the E015 pin (§13.15):** `perm_iid` 0.0470, `perm_persistent` 0.0480, `perm_corr_control` 0.0435, all ok.
+- **Flow scenarios (not binding for E015, §13.15 item 4):** `flowperm_iid` 0.0465 ok, `flowperm_collinear_0.7` 0.0495 ok,
+  **`flowperm_ar0.6` 0.0590 FAIL** (above 0.058). As pre-declared, this does not block the E015 pin. It blocks any future
+  use of the Freedman-Lane gate for flow moderation (E016/E018 or a successor) until that gate is redesigned and passes
+  its own size check. The overall `pass` field is false because of it and is ignored for this pin (§13.15 item 2).
+- **Donor (reported only, §13.13):** iid 0.0555 ok; ar0.6 0.0595, corr_control 0.0585, collinear 0.5 0.060 / 0.7 0.067,
+  lifecycle 0.0665 all above the limit, which confirms the donor gate's non-binding status.
+- **Provenance note:** the file's `code_sha256` shows the post-fix hashes (3ac52d79… / 224b5603…). The runner computes
+  them from the files on disk at write time (06:54Z), after the fixes were deployed (~05:00Z), while the process had
+  loaded the pre-fix modules at 03:12Z. The size-check functions are byte-identical across the fix (§13.16 item 3), so
+  this is a labelling caveat only. q0475, which loaded the fixed code, gives the registered statement.
+
+## Queue promotions, 2026-10-21 ~08:55Z (autopilot; nothing counted)
+- **Promoted:** q0280_cb13_seal_R (q0278/q0279 done; CB13 freeze-checked; T_seal not binding for CB13);
+  q0347_cb15_p_birth_census (q0340 done, q0348 P smoke passed, CB15-P fixes ACCEPT_WITH_FIXES);
+  q0380_cb16_exclusion_keys (q0340 done; CB16 freeze-checked and re-checked; `--base-sha256` 10240ce7… = host
+  `creative_batch15/exclusion_keys.csv.gz`, also listed in its `exclusion_report.json`). Rules part hashes regenerated
+  for cb11-cb16 into a scratch path: every one matches the committed seals and the draft notes.
+- **CB18:** census code merged (feat/cb18, 45 fixture tests); restores q0500/q0501 promoted. The census jobs q0502-q0506
+  wait for an independent code-against-rules check.
+- **Held, with reasons:** q0233/q0234 (CB11 P/A freeze part not committed; census already failed GP/GPP and GA/GA0);
+  q0312 (CB14-S terminal after the q0301 smoke failure); q0040b (not before 10-23); q0235, q0256, q0258 (rep stages not
+  triggered: their screens gave advance false).
+
+## CB18 census code: fixes verified, census jobs promoted, 2026-10-21 ~09:00Z (nothing counted)
+- Code check (science-reviewer) CENSUS_READY_WITH_FIXES (`reviews/CB18_CENSUS_CODE_CHECK_2026-10-21.md`). The eight
+  fixes are in 1442bb27: capture time over all rows; unknown category, missing stamp and missing receipt fail closed
+  and are counted; routing checks the hashes; map M exits use no later information. CREATIVE_BATCH_18.md §13 holds the
+  interpretation notes, committed 09:59 +0100, before any census. Rules part `pre` is unchanged (e5b9c645…). Verification:
+  **FIXES_OK_WITH_NOTES**, 51 tests pass. No CB18 output and no `creative_batch_18` trials line existed on the host or
+  locally.
+- **Notes carried forward (disclosure):**
+  - (1) the sealed helper `cb18_rules_pre.book_untouched` still fails open on a NaN outcome-1 stamp. The census does not
+    use it; later S and window code must not reuse it unchanged.
+  - (2) map M counts a re-appearance once per market, and a re-appeared market is no longer tracked, so it never
+    appears in `still_listed_at_end` / `undetermined`.
+  - (3) an empty `fee_type` counts as a known category (same as F).
+- **Promoted:** q0502 (S), q0503 (P), q0504 (R), q0505 (F), q0506 (map), behind restores q0500/q0501. Then the
+  orchestrator runs `run_cb18.py routing`. Real-data memory is not measured (declared 300-390 MB); watch q0502.
+
 ## Signal engine: development walk-forward look + challenger se10_lgbm_event, 2026-10-21 ~08:40-10:00Z (signal-engine autopilot; development only, nothing counted)
 - **Development walk-forward (historical, not prospective):** `run_signal_engine.py walkforward --max-test-days 7
   --max-rows 200000` on a Mac copy of the host engine root (rsync 08:35Z; no host CPU used). Test days 10-14 to 10-20;

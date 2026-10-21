@@ -1,0 +1,49 @@
+{
+ "id": "q0504_cb18_pre_census_R",
+ "title": "CB18 race map (CH179; DRAFT, descriptive only): counts on the 23 sealed samples: raced rows (same market, same ts, different tx_hash), R distribution, ts resolution and gap histogram (same-block label if ts is quantised), fingerprint-identical and same-side shares; race map by category, hour, row-count decile, price band. No gates, no route, no target",
+ "family": "creative_batch_18",
+ "priority": 28,
+ "expected_value": "the race map (k = 0); CB18-R's counted moderator test is dropped (R1 finding 1)",
+ "data": [
+  "data-dumps/research_lab/cb18_census/restore/data-dumps/research_lab (q0500/q0501; read-only)"
+ ],
+ "resources": {
+  "mem_mb": 390,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0500_cb18_census_restore_captures",
+  "q0501_cb18_census_restore_samples"
+ ],
+ "argv": [
+  "scripts/run_cb18.py",
+  "map-race",
+  "--rules",
+  "../docs/research_lab/seals/cb18_rules.json",
+  "--part",
+  "pre",
+  "--seal",
+  "../docs/research_lab/seals/cb18_census_inputs.json",
+  "--snapshot-root",
+  "../data-dumps/research_lab/cb18_census/restore/data-dumps/research_lab/snapshots",
+  "--sweep-root",
+  "../data-dumps/research_lab/cb18_census/restore/data-dumps/research_lab/book_sweeps",
+  "--sample-root",
+  "../data-dumps/research_lab/cb18_census/restore/data-dumps/research_lab/trade_samples",
+  "--out",
+  "../data-dumps/research_lab/cb18_census/R_map.json",
+  "--disk-cap-gb",
+  "20",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 5400,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/cb18_census/R_map.json (counts only; write-once)"
+ ],
+ "next_action": "add R_map.json's sha256 to seals/; publish the race map in CREATIVE_BATCH_18.md section 4.3",
+ "notes": "PROMOTED 2026-10-21 (autopilot): code check CENSUS_READY_WITH_FIXES -> fixes 1442bb27 -> verification FIXES_OK_WITH_NOTES (reviews/CB18_CENSUS_CODE_CHECK_2026-10-21.md, ledger). | DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md). Code check CENSUS_READY_WITH_FIXES 2026-10-21, fixes applied in 1442bb27 (interpretation notes: CREATIVE_BATCH_18.md section 13). scripts/run_cb18.py exists (subcommand tested on a synthetic world, tests/unit/test_cb18_census.py; real-data peak RSS unmeasured, design estimate < 400 MB). Counts 0 (kind cb18_descriptive). Refuses unless part pre is committed and every pinned input is present and matches (L4); refuses any file or row after its cut-off. No x6, y6 or any target read; no zR correlations or VIF (they served the dropped test). Wallet fields never read. R1 response (CREATIVE_BATCH_18.md section 11, 2026-10-21): finding 1: the counted LT5 moderator test is dropped (its residualised donor gate failed a binding size scenario in LT4 R2 and is structurally invalid per LT3 donor-gate ruling 2); no replacement null is declared, so this map cannot revive it. R2 response (CREATIVE_BATCH_18.md section 12, finding 4): the race map's category comes from the sidecar of each sample's own capture k (fee_type, fee_category, series_slugs only; no price), so q0504 also depends on q0500. Reads inside J4-R (finding 1, disclosed); no census object is a mark-out."
+}
