@@ -151,12 +151,14 @@ champion (market state + momentum), the learner reference and broad multi-family
 | chg1d_x_liq (no model yet) | 2026-11-14T00:00Z | E012 |
 | tte | 2026-11-14T00:00Z | E014 |
 | flow | 2026-11-22T00:00Z (from 11-16, 2026-10-21) | E013, E014 (LT2, 2026-11-13T12Z), E016, E018 (LT3 proposed 2026-11-15T12Z), LT5 J/O (draft) |
-| book | 2026-11-22T00:00Z (from 11-18, 2026-10-21) | E015, E019 (LT3), E020, E022 (LT4 proposed 2026-11-17T12Z), LT5 H/R (draft) |
+| book | 2026-12-09T00:00Z (from 11-18, then 11-22, both 2026-10-21) | E015, E019 (LT3), E020, E022 (LT4 proposed 2026-11-17T12Z), LT5 H/R (draft), LT6 V (draft, CH190; experiments round-2 request) |
 | wallet | 2026-12-07T00:00Z (from 11-18, 2026-10-21) | E024 (LT4), E026 copy-skilled (draft, analysis on/after 2026-12-06T12Z) |
 | wallet_skill (no model yet) | 2026-12-07T00:00Z | E026 |
 | rewards | 2026-11-22T00:00Z (from 11-18, 2026-10-21) | E020 (LT4 draft: reward flag as control / S3), LT5 R (draft); added 2026-10-21 with `se9_lr_rewards` |
 | event | 2026-11-22T00:00Z | LT5 F (draft, CH184); added 2026-10-21 ~10:20Z on the experiments track's request, before any event score was computed or shown (`se8_lr_event`, `se10_lgbm_event`) |
 | movetype | 2026-11-22T00:00Z | E015 (LT3 registered 2026-10-21, analysis not before 2026-11-15T12Z); same date as `book`; added 2026-10-21 ~14:30Z with `se14_lgbm_movetype` (which also isolates `book`), before any movetype score was computed or shown |
+| participation | 2026-11-25T00:00Z | CB17-C (CH150, drafted: event-volume change as eligibility, event liquidity as control; REP_8 ends no earlier than 11-23T08Z); added 2026-10-21 with `se16_lgbm_participation` before any table or score existed (science review REVISE) |
+| vote, clips, deadline, siblings (no models yet) | 2026-12-09T00:00Z | LT6 V, K, D, B (draft; experiments round-2 request 2026-10-21) |
 
 LT3/LT4 dates are the proposed windows; when they register, move the dates **later** if needed (never earlier).
 

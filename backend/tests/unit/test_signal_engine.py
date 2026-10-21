@@ -792,11 +792,11 @@ def test_repo_registry_loads_and_embargo_assignment():
     assert reg["models"]["se10_lgbm_event"]["train"]["require_full_coverage"] is True
     assert emb["se4_lr_xvenue"] == "2026-11-04T00:00:00Z"
     assert emb["se2_lr_flow"] == "2026-11-22T00:00:00Z" and emb["se5_lr_tte"] == "2026-11-14T00:00:00Z"
-    assert emb["se3_lr_book"] == "2026-11-22T00:00:00Z" and emb["se6_lr_wallet"] == "2026-12-07T00:00:00Z"
+    assert emb["se3_lr_book"] == "2026-12-09T00:00:00Z" and emb["se6_lr_wallet"] == "2026-12-07T00:00:00Z"  # book: LT6 V (round 2)
     assert emb["se8_lr_event"] == "2026-11-22T00:00:00Z" and emb["se10_lgbm_event"] == "2026-11-22T00:00:00Z"
     assert emb["se9_lr_rewards"] == "2026-11-22T00:00:00Z"
     assert emb["se11_lgbm_flow"] == "2026-11-22T00:00:00Z" and emb["se12_lgbm_tte"] == "2026-11-14T00:00:00Z"
-    assert emb["se13_lgbm_xvenue"] == "2026-11-04T00:00:00Z" and emb["se14_lgbm_movetype"] == "2026-11-22T00:00:00Z"
+    assert emb["se13_lgbm_xvenue"] == "2026-11-04T00:00:00Z" and emb["se14_lgbm_movetype"] == "2026-12-09T00:00:00Z"  # movetype 11-22, book 12-09 (LT6 V): the later date
     assert "E015" in SP.embargo_of(reg["models"]["se14_lgbm_movetype"], t)["tests"]
     se1 = reg["models"]["se1_lgbm_mm"]
     mt = reg["models"]["se14_lgbm_movetype"]
@@ -816,7 +816,7 @@ def test_repo_registry_loads_and_embargo_assignment():
         m, base = reg["models"][mid], reg["models"][lr]
         assert m["learner"] == "lgbm" and m["params"] == se1["params"] and m["train"]["window_days"] == se1["train"]["window_days"]
         assert (m["families"], m["derived"], m["isolates"]) == (base["families"], base["derived"], base["isolates"])
-    assert all(v is None for v in ((SP.embargo_of(s, S.epoch("2026-12-08T00:00:00Z")) or {}).get("until") for s in reg["models"].values()))
+    assert all(v is None for v in ((SP.embargo_of(s, S.epoch("2026-12-09T00:00:01Z")) or {}).get("until") for s in reg["models"].values()))  # latest: book 12-09 (LT6 V)
 
 
 # ---------------------------------------------------------------------------------------------- promotion

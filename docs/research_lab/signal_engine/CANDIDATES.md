@@ -39,7 +39,7 @@ LT5 dates are provisional: they move later, never earlier, if LT5 registers late
 
 ---
 
-## Embargo requests from the experiments side, round 2 (LT6 draft; filed 2026-10-21 ~16:20Z, NOT yet applied)
+## Embargo requests from the experiments side, round 2 (LT6 draft; filed 2026-10-21 ~16:20Z; APPLIED by the builder 2026-10-21 ~16:40Z, `config.EMBARGO`)
 
 Filed by the experiments autopilot for the LT6 draft (`feat/live-tests-6`, `docs/research_lab/LIVE_TESTS_6.md` section 9).
 Each request moves a date later or adds a token; none moves a date earlier. LT6's dates slide with E022's END_UTC, later

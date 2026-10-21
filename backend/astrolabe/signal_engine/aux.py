@@ -66,8 +66,8 @@ class SlotMids:
 # ---------------------------------------------------------------------------------------------- event family
 # Event-level context from the same capture's complete binary listing (every market of the event, including
 # siblings that are not eligible themselves). Development history: E005 (neg-risk band deviation, closed 2026-10-11,
-# not supported) and SB2-J5 (sibling reversal, development only); no registered live test isolates it (checked
-# 2026-10-21), so no embargo token.
+# not supported) and SB2-J5 (sibling reversal, development only). Embargo token `event` until 2026-11-22 (LT5 F,
+# draft, CH184; added 2026-10-21 on the experiments track's request).
 EVENT_MAX_SPREAD_S = 5.0  # siblings must be received within 5 s of each other (median 0 s, p90 0.2 s, p99 201 s on
 # 2026-10-21): otherwise a sibling quote received minutes after a market's own row could carry part of that market's
 # later move into its features, so the whole event is left missing (counted by the NaN rate, never filled)
