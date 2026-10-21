@@ -86,3 +86,37 @@ def test_slim_panel_summary_equals_full():
     full = json.dumps(rmd._clean(rmd.panel_summary(df)), default=rmd._jsonable)
     slim = json.dumps(rmd._clean(rmd.slim_panel_summary(df)), default=rmd._jsonable)
     assert full == slim
+
+
+def test_read_labelled_panel_equals_labelled_compact(tmp_path):
+    from astrolabe.research_lab import ml_panel
+
+    p = tmp_path / "panel.parquet"
+    _write(p)
+    df = rmd.read_panel_compact(p)
+    ref = ml_panel.labelled(df)
+    pd.testing.assert_frame_equal(rmd.read_labelled_panel(p), ref, check_exact=True)
+    keep = [c for c in ref.columns if not c.startswith("x")]
+    got = rmd.read_labelled_panel(p, exclude_prefix="x")
+    pd.testing.assert_frame_equal(got, ref[keep], check_exact=True)
+    got = rmd.read_labelled_panel(p, columns=["y", "dep_group"])
+    pd.testing.assert_frame_equal(got, ref[["dep_group", "y"]], check_exact=True)
+
+
+def test_shuffle_labels_shallow_copy_leaves_input_untouched():
+    rng = np.random.default_rng(1)
+    n = 400
+    lab = pd.DataFrame({"period": np.arange(n) % 5, "event_id": [f"e{i % 40}" for i in range(n)],
+                        "market_id": [f"m{i}" for i in range(n)],
+                        "y_class": rng.integers(0, 3, n).astype(float),
+                        "f1": rng.normal(size=n), "f2": rng.normal(size=n)})
+    before = lab.copy(deep=True)
+    out = rmd.shuffle_labels(lab, "period")
+    pd.testing.assert_frame_equal(lab, before, check_exact=True)
+    ref = before.copy()  # the previous implementation: deep copy
+    y = ref["y_class"].to_numpy(float).copy()
+    g = np.random.default_rng(rmd.SHUFFLE_SEED)
+    for idx in ref.groupby(rmd._block_key(ref, "period"), sort=True).indices.values():
+        y[idx] = y[g.permutation(idx)]
+    ref["y_class"] = y
+    pd.testing.assert_frame_equal(out, ref, check_exact=True)
