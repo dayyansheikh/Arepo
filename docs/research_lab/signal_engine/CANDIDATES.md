@@ -20,6 +20,21 @@ Host key (1 OCPU, 5.6 GB): snapshots+sidecar every 2 h; book sweeps (2 per pass)
 pass, 2,000 markets in `LIVE_TESTS_2.md` section 3); live trade monitor; Kalshi poller (120 s); keyless streams
 (`NEW_STREAMS_2026-10-19.md`, not used below).
 
+## Embargo requests from the experiments side (open; the builder applies them in `config.EMBARGO`)
+
+Filed 2026-10-21 ~09:20Z by the experiments autopilot. Every request moves a date later or adds a token; none moves a date earlier.
+Rationale: `DESIGN_V1.md` §8 covers drafted tests too.
+
+| Token | Until | Tests | Why |
+|---|---|---|---|
+| `event` (new; covers `se8_lr_event`, event-sibling moves) | 2026-11-22T00:00Z | LT5 F (draft, CH184) | LT5 challenger R1 ruling 2: required **before se8 shows any score**. Any se8 score shown earlier is disclosed as worn development data. |
+| `flow` | 2026-11-22T00:00Z (from 11-16) | LT5 J, O (draft) | LT5 origin window ends about 11-20, single analysis at least 36 h later. |
+| `book` | 2026-11-22T00:00Z (from 11-18) | LT5 H, R (draft) | As above. |
+| `rewards` | 2026-11-22T00:00Z (from 11-18) | LT5 R (draft) | As above. |
+| `wallet` (and `wallet_skill`) | 2026-12-07T00:00Z (from 11-18) | E026 copy-skilled (draft) | E026's window is 10-25 to 11-15, with its single analysis on or after 2026-12-06T12:00Z. A wallet-skill challenger would shadow it. |
+
+LT5 dates are provisional: they move later, never earlier, if LT5 registers later than planned.
+
 ---
 
 ## C01. Taker order flow (family `flow`)
