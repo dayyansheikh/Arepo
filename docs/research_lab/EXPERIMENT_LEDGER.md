@@ -3418,3 +3418,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - (~20:31Z, safety check prompted by item 1) **LT3's registered reader works on real captures:** host dry run into a
   scratch root (captures 10-21 16:31Z/18:31Z, `--max-items 2`, cron's `ulimit -v 983040`): series written, peak RSS
   464 MB, exit 0; scratch deleted. Its live log shows only "nothing_new" so far (window opens 10-24).
+- (~20:35Z) Follow-up on LT6 item 1: on the host, `panel._epoch` of a real capture's `end_date` read as category
+  (20261021T183102Z, 276,559 rows, ISO `...Z` strings) works; the crash needs other date formats (the reviewer's
+  synthetic ones). LT3 and LT5 (same pattern; LT5 censuses run tonight) are not at risk; LT6's switch to `str` stays as
+  hardening.
