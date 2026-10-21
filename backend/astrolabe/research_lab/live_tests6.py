@@ -1279,13 +1279,12 @@ def census_d(U: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_days:
     c_th, c_x, c_liq = l5.wcorr(pop, "LT", "theta24"), l5.wcorr(pop, "LT", "x"), l5.wcorr(pop, "LT", "log1p_liq")
     unp = tot.get("unparseable_end_date", 0) / max(tot.get("candidates", 0), 1) if tot.get("candidates", 0) else float("nan")
     later_21d = float(len(lab) * scale)
-    per_mkt = lab.groupby("market_id").size()
     res = {"units": len(U), "by_class": {str(k_): int(v) for k_, v in U["cls"].value_counts().items()}, "washout_dropped": n_wash, "lookback_missing": lb, "updated_at_missing_excluded": updated_missing,
            "exclude_family": excl, "top_family_share": top, "later_21d": later_21d, "later_eff_21d": n1, "nochange_eff_21d": n2,
            "later_direction_moves": len(dirm), "rollover_plus_crypto_share": kill_share, "crypto_failsafe": crypto_fs.get("classifier_shown_to_work"),
            "unparseable_end_date_share": unp, "design_effect": de, "design": dsg, "mde_eff_c": mde, "perm_share": ps, "corr_later_theta24": c_th,
            "corr_later_x": c_x, "corr_later_liq": c_liq, "events_with_later": int(lab["event_id"].nunique()),
-           "later_per_market": {"markets": int(len(per_mkt)), "share_in_markets_with_one": float(lab["market_id"].map(per_mkt).eq(1).mean())},
+           "later_per_market": _per_market_sums(lab["market_id"]),
            "bydate_clock_hist_ET": tot.get("bydate_hist", {}),
            "old_end_ge7d_later_21d": float(((lab["old_end_days"] >= spec["d"]["old_end_subset_days"]).sum()) * scale)}
     res["gate_D"] = b._gate({"later_units": later_21d >= g["later_units_projected_min"],
@@ -1337,14 +1336,13 @@ def census_b(U: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_days:
     gl = ex.get("guard_loss", 0) / max(n_birth_units + ex.get("guard_loss", 0), 1) if (n_birth_units + ex.get("guard_loss", 0)) else float("nan")
     births_21d = float(len(births_ev) * scale)
     cuts = [float(x) for x in np.quantile(lab["loo_a1"], [1 / 3, 2 / 3])] if len(lab) >= 3 else None
-    per_mkt = lab.groupby("market_id").size()
     res = {"units": len(U), "by_class": {str(k_): int(v) for k_, v in U["cls"].value_counts().items()}, "excluded_by_reason": ex, "newcomer_kinds": kinds,
            "washout_dropped": n_wash, "lookback_missing": lb, "exclude_family": excl, "top_family_share": top, "births_21d": births_21d,
            "birth_units_21d": float(len(lab) * scale), "birth_eff_21d": n1, "nobirth_eff_21d": n2, "created_at_parseable_share": parse_share,
            "guard_loss_share": gl, "crypto_births": cg, "crypto_failsafe": crypto_fs.get("classifier_shown_to_work"), "design_effect": de, "design": dsg,
            "mde_eff_c": mde, "perm_share": ps, "corr_birth_a24": c24, "corr_birth_loo": cl1, "corr_birth_liq": cliq, "fake_birth_terciles": cuts,
            "birth_events": int(lab["event_id"].nunique()), "incumbents_per_birth": float(len(lab) / max(len(births_ev), 1)),
-           "birth_per_market": {"markets": int(len(per_mkt)), "share_in_markets_with_one": float(lab["market_id"].map(per_mkt).eq(1).mean())}}
+           "birth_per_market": _per_market_sums(lab["market_id"])}
     res["gate_B"] = b._gate({"births": births_21d >= g["births_projected_min"], "birth_units": res["birth_units_21d"] >= g["birth_units_projected_min"],
                              "created_at_parseable": bool(np.isfinite(parse_share) and parse_share >= g["created_at_parseable_min"]),
                              "guard_loss": bool(np.isfinite(gl) and gl <= g["guard_loss_max"]), "corr_a24": l5.corr_ok(c24, g["corr_max"]),
@@ -1398,6 +1396,15 @@ def census_v(U: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_days:
     return _gate_min_days(res, "gate_V", covered_days, mind)
 
 
+def _per_market_sums(market_ids: pd.Series) -> dict:
+    """Counts only (design 7 / R1 recommended): the distribution of labelled units per market and the share of labelled units in
+    markets with exactly one. No gate."""
+    per = market_ids.astype(str).value_counts()
+    dist = per.value_counts().sort_index()
+    return {"markets": int(len(per)), "labelled_units": int(per.sum()), "units_per_market_hist": {str(int(k_)): int(v) for k_, v in dist.items()},
+            "share_in_markets_with_one": float(market_ids.astype(str).map(per).eq(1).mean()) if len(market_ids) else float("nan")}
+
+
 def census_k(U: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_days: float, block_t0: float) -> dict:
     """CK (K): counts only, from the sealed active-frame samples (interval rows with ``ts < t_k`` only)."""
     g, a = spec["census_gates"]["CK_K"], spec["census_gates"]["mde_common"]
@@ -1432,7 +1439,8 @@ def census_k(U: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_days:
            "perm_share": ps, "corr": corr, "corr_liq": cl, "minsize_would_be_clip_notional_share": minsize_share, "round_clip_notional_share": round_share,
            "ts_not_minute_share": tsn, "order_min_size_present_share": osz_share, "interval_truncated_share": trunc,
            "clip_share_hist": {str(k_): int(v) for k_, v in pd.cut(U["clip_share"], [-1e-9, 0, 0.1, 0.25, 0.5, 1.0]).value_counts().sort_index().items()},
-           "n_trains_mean": float(U["n_trains"].mean()), "sports_share": float((pop["sports"] == 1).mean())}
+           "n_trains_mean": float(U["n_trains"].mean()), "sports_share": float((pop["sports"] == 1).mean()),
+           "clip_per_market": _per_market_sums(pop.loc[pop["CL"] == 1, "market_id"])}
     res["gate_K"] = b._gate({"ts_second_level": bool(np.isfinite(tsn) and tsn >= g["ts_not_minute_min"]),
                              "order_min_size": bool(np.isfinite(osz_share) and osz_share >= g["order_min_size_present_min"]),
                              "qualifying": res["qualifying_21d"] >= g["qualifying_projected_min"],

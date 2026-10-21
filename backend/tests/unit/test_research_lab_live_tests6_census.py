@@ -477,6 +477,8 @@ def test_census_flow_end_to_end(sealed, tmp_path):
     assert "error" not in res and res["samples"] == 23 and res["covered_days"] == pytest.approx(23 / 12)
     ck = res["CK"]
     assert ck["qualifying"] > 0 and "pass" in ck["gate_K"] and ck["gate_K"]["pass"] is False
+    pm = ck["clip_per_market"]  # design 7: per-market label sums are printed by CK (counts only)
+    assert pm["labelled_units"] == sum(int(k_) * v for k_, v in pm["units_per_market_hist"].items()) and 0.0 <= pm["share_in_markets_with_one"] <= 1.0
     assert ck["ts_not_minute_share"] > 0.5 and ck["order_min_size_present_share"] == 1.0 and ck["clip_units"] >= 1
     assert 0.0 <= ck["minsize_would_be_clip_notional_share"] <= 1.0
     below = lt.census_flow(seal=w["seal"], sample_roots=[w["samples"]], snapshot_root=[w["snap"]], work=tmp_path / "wf2", spec=_spec(CK=3.0))  # CK needs 3 days here

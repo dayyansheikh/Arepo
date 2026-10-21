@@ -1186,3 +1186,18 @@ Text only; nothing was chosen from data; nothing was loosened. Both required ite
 drop, with its `END_UTC` and analysis timing (`T_E022`); the outcome of the CB18 request (14.6); and the engine embargo entries
 (section 9).
 
+
+## 16. Freeze-check fixes (2026-10-21; science-reviewer code freeze check, FREEZE_READY_WITH_FIXES for the census code; governs where earlier text differs)
+
+Declarations made **before any LT6 census was run** (q0582 / q0583 / q0584 had not started), to make the code and the text agree. No
+threshold, formula, seed, date, gate, alpha or draw count was changed. Nothing here depends on a census value.
+
+| # | Finding | Fix or disclosed declaration | Sections |
+|---|---|---|---|
+| 1 | `load_rows6` read `end_date` as a pandas category; `panel._epoch` then fails on pandas 2.3.3 for captures of 50 or more rows | LT6's own loader reads `end_date` as text (LT5's base is untouched) | 7 |
+| 2 | B admitted incumbents with an unknown as-of end | 1.4 / 1.5 as written: B requires a **known** end > `t_k` + 27 h; the unknown-end indicator exists only for V and K. Unknown-end incumbents are excluded and counted (`unknown_end_excluded`); `hte_unknown` is removed from B's controls | 1.4, 1.5, 5 |
+| 3 | `updated_at` changed was 1 when either value was missing | A missing `updated_at` at k - 1 or k is NaN (1.5: a missing control excludes the unit, counted as `updated_at_missing`); never "changed" | 1.5, 4 |
+| 4 | Undeclared counted exclusion: V's depletion gate, zero toward-side 5c depth at sweep k - 1 | **Declared now:** among traded units, the 5c halving share and the printed original share use only units whose toward-side 5c depth at k - 1 is positive and finite; the others are counted (`n_5c` against the traded units). Same convention as the declared 1c rule | 7 (CV) |
+| 5 | Undeclared counted exclusion: K requires a known, unchanged, positive tick | **Declared now:** a sampled traded mover whose tick is unknown, not positive, or differs between k - 1 and k is excluded and counted (`tick_unknown_or_changed`) before `steps` is formed, because `steps = round(|x| / tick)` is undefined otherwise | 6, 7 (CK) |
+| 6 | The census seal did not compare the LT5 seal's hash | `seal_inputs` compares the sha256 of the LT5 capture seal with the spec's `census_inputs.source_seals.lt5_capture_seal_sha256` and refuses while it is null or unmatched. The value is filled from the committed LT5 seal (still null in the spec) | 7, 14.1 item 9 |
+| 7 | CK did not print per-market label sums | CK, CD and CB print the distribution of labelled units per market and the share in markets with exactly one (counts only, no gate) | 7 |
