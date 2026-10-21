@@ -6,7 +6,8 @@ any gap are recorded in `EXPERIMENT_LEDGER.md` ("Operational deviation: collecti
 
 ## Host
 - `ssh oracle` (alias in the Mac's `~/.ssh/config`; never copy the key). The user is `opc`, the host runs Oracle Linux 8 aarch64
-  with 1 OCPU and about 6 GB RAM, and the clock is UTC.
+  with 1 OCPU and about 6 GB RAM, and the clock is UTC. A resize to 2 OCPU / 12 GB is scheduled for 2026-10-22 02:40Z
+  (see "Host resize" below).
 - Python 3.11 venv: `/home/opc/arepo/.venv`. It is pinned to the Mac venv's versions (numpy 2.4.6, pandas 2.3.3,
   lightgbm 4.7.0, scikit-learn 1.9.1, scipy 1.17.1) and holds an editable install of `backend/`.
 - The host is shared with the user's other work (`rev-build`, `revision-build`). Leave anything that isn't AREPO alone.
@@ -126,3 +127,88 @@ collection):
 ```
 - **Dry run.** Add `--dry-run` to `--delete` for a first run that only logs `would_delete`.
 - **Load.** Uploads run at the host's uplink speed. zstd `-12 --long=27 -T2` stays under about 1 GB of RAM.
+
+## Host resize to 2 OCPU / 12 GB (owner-approved 2026-10-21; scheduled 2026-10-22 02:40Z)
+The owner approved ("Yes, but at a quiet time") growing this host to the tenancy's whole Always Free A1 allowance,
+**2 OCPU / 12 GB**. The A1 limits are per availability domain: AD-1 has 2 cores / 12 GB, with 1 / 6 in use by this host,
+and the account is Free Tier. Storage is not touched, so the cost stays at 0. The resize restarts the server once.
+
+**Scripts** (`scripts/oracle/`, unit tests in `backend/tests/unit/test_resize_host.py`):
+- `resize_host.py` runs with `~/oci_venv/bin/python`.
+  - `--check` (read-only): prints the shape, the A1 instances in the tenancy, the per-AD limit and availability, and the
+    would-be totals. It exits 3 and refuses if the result would exceed 2 / 12, if any other A1 instance exists (in any
+    state except TERMINATED), if this instance is not RUNNING A1.Flex, or if it is already at the target.
+  - `--run` (cron 02:40Z daily): acts only on or after the night in `~/.arepo/resize/schedule.json` (default 2026-10-22),
+    between 02:40 and 03:05Z, and only when no `STARTED`, `DONE` or `GAVE_UP` marker exists.
+    1. It touches `~/.arepo/oci_retry/DONE`, which stops the second-server retries.
+    2. It pauses the queue. A pause that was already there is kept and is not lifted afterwards.
+    3. It waits for the 02:31 pass's lock. If the lock is not free by 03:05 it undoes everything, moves to the next
+       night and notifies.
+    4. Light queue jobs (mem_mb < 500, such as the LT2 collector q0460) finish on their own.
+    5. It waits for the E009/E010 poller to log its next 10-minute grid cycle.
+    6. It takes the light-job locks (streams, reward params, lab push, cb12/cb15) and waits for unlocked short jobs to end.
+    7. It runs `queue_worker.py stop` on heavier jobs. Their state is recorded as `stopped`: they are re-queued and the
+       attempt is not counted.
+    8. It holds the supervisor lock and sends SIGTERM to both monitors, which exit between cycles.
+    9. It writes `~/.arepo/resize/gap.json` and re-runs the guard.
+    10. It calls `compute.update_instance` with `UpdateInstanceShapeConfigDetails(ocpus=2, memory_in_gbs=12)` and
+        `ALLOW_DOWNTIME`, then writes `STARTED` and notifies.
+    11. It holds every lock until the shutdown ends it.
+
+    If OCI rejects the request (`ServiceError`, for example out of host capacity), it undoes everything and notifies
+    "server unchanged". A capacity or 5xx error retries the next night, up to 7 nights in total; any other error writes
+    `GAVE_UP`. An unexpected error before the change also undoes everything and retries the next night.
+  - `--status`, `--schedule YYYY-MM-DD`, `--install-cron` and `--remove-cron` edit only this script's own cron block,
+    using Python. They take a backup in `~/.arepo/crontab.bak.<epoch>` first and verify the result.
+- `post_resize_check.py` runs from AREPO venv cron, at `@reboot sleep 150` and every 10 minutes. It is idempotent and only
+  acts after `STARTED` and before `DONE`.
+  - It checks the shape (`nproc`, MemTotal at least 10.5 GiB, and metadata `shapeConfig`).
+  - It restarts the monitors with `supervise.sh`, the normal mechanism.
+  - It resumes the queue, but only if `resize_host.py` paused it.
+  - It records the gap end and the measured windows in `gap.json`: the last and first E009/E010 poller cycle, missed
+    120 s cycles, 10-minute grid origins with no poll, live-trade-monitor cycles, stream polls, and passes inside the window.
+  - It writes `~/.arepo/resize/ledger_deviation_draft.md` (facts only) for the autopilot to append to
+    `EXPERIMENT_LEDGER.md`. An aborted night that interrupted collection writes `ledger_deviation_draft_aborted_<date>.md`.
+  - It notifies in plain English and writes `DONE`. If the server did not restart within 40 minutes of the accepted
+    update, it reports "server unchanged".
+- Log: `~/arepo_collector/logs/resize.log` (JSON lines).
+
+**Expected impact on the night.** The 02:31 pass ends at about 02:57-03:02. The next pass is at 04:31, so no pass falls
+inside the window. The light jobs pause from about 03:00 to 03:10 (the grid wait comes first), and the outage runs from
+there until the reboot finishes. LT2 (E012-E014) is safe: q0460 freezes the 02:31 capture and sample only after the
+queue resumes, and its late bound is the 04:31 target capture, so the resize must be done and the queue resumed by about
+04:20. The post-check resumes the queue at boot, or 40 minutes after the accepted update if no restart happens. If the
+host is still down at 03:30, that night's archive run is skipped, because cron does not run missed jobs, and the next
+night archives as usual. The gap is an operational deviation: it is not backfilled and missing stays missing.
+
+**Restart audit (2026-10-21).** What comes back after a reboot:
+
+| Process | How it starts | After a reboot |
+|---|---|---|
+| E009/E010 `run_cross_venue_live.py`, `run_live_trade_monitor.py` | `supervise.sh` (cron `@reboot sleep 90` + `*/5`) | restarted. Stale pidfiles are detected by pid + cmdline (sandbox-tested 2026-10-21); exit 3 or `.disabled` blocks the restart |
+| Collection pass (E011 score, CB extracts) | cron `31 */2`, `flock /tmp/arepo_collector.lock` | next scheduled pass; a lock file has no stale state |
+| Research queue (q0460 LT2 collector, research jobs) | cron `*/2` `queue_worker.py tick` | yes. A job killed by the reboot becomes `interrupted` and is retried; the resize stops jobs first, so they are `stopped` and not counted |
+| Streams, reward params, lab push, notify, outcomes, archive, oci retry | cron | next slot |
+| crond, atd, sshd, firewalld, oracle-cloud-agent, swap (`/.swapfile` in fstab) | systemd / fstab, enabled | yes |
+| `rota_runner.py` (not AREPO; its cron line was removed when the owner retired rota on 2026-10-14, but the process has run since June) | nothing | **will not come back**, which matches the retirement. Not restarted |
+| Ad-hoc `ssh ... until pgrep ...` watcher loops from agent sessions | nothing | gone; they are transient |
+
+**Rollback (shrink back to 1 OCPU / 6 GB).** This is the same OCI call with 1 / 6, and it restarts the server again.
+On the host, at a quiet time, run `~/arepo/.venv/bin/python ~/arepo/scripts/oracle/queue_worker.py pause`, then:
+```bash
+~/oci_venv/bin/python - <<'PY'
+import json, oci, urllib.request
+r = urllib.request.Request("http://169.254.169.254/opc/v2/instance/", headers={"Authorization": "Bearer Oracle"})
+iid = json.load(urllib.request.urlopen(r))["id"]
+c = oci.core.ComputeClient(oci.config.from_file()); m = oci.core.models
+c.update_instance(iid, m.UpdateInstanceDetails(shape_config=m.UpdateInstanceShapeConfigDetails(ocpus=1, memory_in_gbs=6),
+                                               update_operation_constraint="ALLOW_DOWNTIME"))
+PY
+```
+After the restart, run `supervise.sh` (or wait for its `@reboot` entry) and `queue_worker.py resume`. Record the change in
+the ledger.
+
+If the host does not come back, the OCI API key exists only on the host. Use the console instead (sign-in details in the
+operator notes; tenancy `dayyanatifsheikh`, region uk-london-1): Compute, then Instances, then `dsheikh`. Start the
+instance, or use Edit and then Shape. Cancel a scheduled run that has not started yet with
+`touch ~/.arepo/resize/GAVE_UP`; remove the cron block with `resize_host.py --remove-cron`.
