@@ -603,11 +603,13 @@ def pending_items(signals: pd.DataFrame, entries: pd.DataFrame, latencies: Itera
 # --- stores -------------------------------------------------------------------------------------------------------------
 
 
-def read_store(root: Path, sub: str) -> pd.DataFrame:
+def read_store(root: Path, sub: str, usecols: list[str] | None = None) -> pd.DataFrame:
+    """All write-once files of a store, concatenated; ``usecols`` keeps the recorder's memory flat as the store grows."""
     files = sorted((Path(root) / sub).glob("*.csv.gz"))
+    want = None if usecols is None else set(usecols)
     frames = [pd.read_csv(f, dtype={"wallet": str, "event_id": str, "condition_id": str, "signal_id": str,
                                     "parent_id": str, "capture_id": str, "batch_id": str, "fee_category": str},
-                          float_precision="round_trip")
+                          float_precision="round_trip", usecols=None if want is None else (lambda c: c in want))
               for f in files if f.stat().st_size > 0]
     frames = [f for f in frames if len(f)]
     return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
@@ -713,7 +715,7 @@ def _run_locked(*, root: Path, snapshot_root: Path, sample_root: Path, prints_ro
     exit_h = float(spec["exit_horizon_s"])
     work = 0
     # 1. sidecar batches, strictly in start order; an in-progress sample blocks later ones
-    signals_all = read_store(root, "signals")
+    signals_all = read_store(root, "signals", ["arm", "role", "wallet", "market_id"])
     sig_keys = {a: set() for a in ARMS}
     ctl_keys = {a: set() for a in ARMS}
     if len(signals_all):
@@ -782,8 +784,8 @@ def _run_locked(*, root: Path, snapshot_root: Path, sample_root: Path, prints_ro
             work += 1
         h += 3600
     # 3. entries / exits per complete capture, in order, once every batch that could feed it is processed
-    signals_all = read_store(root, "signals")
-    entries = read_store(root, "entries")
+    signals_all = read_store(root, "signals", ["signal_id", "market_id", "receipt_ts"])
+    entries = read_store(root, "entries", ["signal_id", "kind", "latency_s", "status", "row_received_ts"])
     blocked_from = _first_unprocessed_batch(root, sample_root, t0, t_end, now, st)
     for cap in scan_captures(snapshot_root, t0):
         if work >= max_items:
@@ -916,6 +918,15 @@ def label_resolutions(*, root: Path = OUT_ROOT, spec: dict | None = None, transp
     chk = st.d["label_checked"]
     todo = sorted({int(x) for x in sig["market_id"].astype(np.int64)} - final)
     todo = [m for m in todo if now - float(chk.get(str(m), -math.inf)) >= recheck_s]
+    # markets whose latest recorded Gamma end date is more than a day ahead are not asked yet (load control; a market
+    # with no recorded end date is asked); markets past their end date go first
+    ent = read_store(root, "entries")
+    end_of: dict[int, float] = {}
+    if len(ent) and "end_ts" in ent:
+        e = ent[["signal_id", "end_ts"]].merge(sig[["signal_id", "market_id"]], on="signal_id")
+        end_of = e.groupby("market_id")["end_ts"].max().dropna().astype(float).to_dict()
+    todo = [m for m in todo if end_of.get(m, -math.inf) <= now + 86400]
+    todo.sort(key=lambda m: (end_of.get(m, now), m))
     get = transport or httpx_transport()
     rows, n_req = [], 0
     wall0 = time.time()

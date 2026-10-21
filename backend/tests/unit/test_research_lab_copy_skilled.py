@@ -702,3 +702,21 @@ def test_census_recorder_child_process(tmp_path):
     assert not (root / "census_args.json").exists()
     assert {p.name[:-7] for p in (root / "entries").glob("*.csv.gz")} == set(caps[:5])
     assert (cs.read_store(root, "entries")["kind"] == "entry").all()
+
+
+def test_label_asks_closed_and_skips_far_end_dates(tmp_path):
+    root = tmp_path / "out"
+    sig = pd.DataFrame({"signal_id": ["a", "b", "c"], "market_id": [10, 11, 12], "arm": "sidecar", "role": "skilled"})
+    cs.write_once_csv(root / "signals" / "b1.csv.gz", sig)
+    now = T0 + 86400
+    ent = pd.DataFrame({"signal_id": ["a", "b"], "kind": "entry", "latency_s": 0.0, "end_ts": [now - 3600, now + 30 * 86400]})
+    cs.write_once_csv(root / "entries" / "c1.csv.gz", ent)
+    calls = []
+
+    def fake(url, params):
+        calls.append(params)
+        return 200, []
+
+    cs.label_resolutions(root=root, spec=spec(), transport=fake, now=now, sleep=lambda s: None, log=lambda s: None)
+    asked = {int(v) for k, v in calls[0] if k == "id"}
+    assert asked == {10, 12} and ("closed", "true") in calls[0]  # 11 ends in 30 days; 12 has no recorded end date
