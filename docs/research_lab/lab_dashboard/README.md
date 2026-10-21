@@ -35,3 +35,12 @@ experiment forward), the session that writes the ledger entry also updates `regi
 `updated`. The autopilot prompt should include this step. Validate with
 `pytest backend/tests/unit/test_lab_clients.py -k registry`. The host picks the file up on its next push; no deploy is needed
 beyond the normal repo sync to `~/arepo`.
+
+## Claude board v2 (Mac client, 2026-10-21)
+`scripts/lab/lab_mac.py` now also sends `costs` (API-equivalent cost of all Claude Code transcripts for this project,
+`lab_costs.py`, cache `~/.arepo/lab/cost_cache.json`), the running session's latest progress line, per-instance command
+keys, and handles owner messages (`lab_inbox.py`: append to `<instance home>/INBOX.md`, report delivered/read) and the
+`start` command (launches the instance's own launchd `autopilot.py tick`, never when paused, running or before a usage
+reset). Contract: `docs/lab/LAB_DASHBOARD_SPEC.md` ("Claude board v2") on the production branch. Flags: `--no-costs`,
+`--claude-projects`, `--launch-agents`, `--cost-cache`. No plist change is needed: launchd keeps running lab_mac.py
+from the main checkout every 10 min.
