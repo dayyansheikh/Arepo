@@ -18,6 +18,7 @@ from astrolabe.research_lab import battery2
 from astrolabe.research_lab import live_tests4 as lt
 from astrolabe.research_lab import live_tests4_analysis as la
 
+ALL_K = ["E020", "E021", "E022"]
 G0 = datetime(2027, 1, 1, 0, 31, tzinfo=UTC)  # on the spec grid and after the wall clock: real frozen_utc stamps are never "late"
 N_MKT = 40
 
@@ -255,7 +256,7 @@ def test_write_once_round_trips_exactly_with_17g(tmp_path):
 
 
 def test_causality_future_captures_do_not_change_frozen_lines(tmp_path):
-    spec = _spec(tmp_path)
+    spec = _spec(tmp_path, k_tests=ALL_K)  # every collector on (each runs only when its test is in k_tests)
     a = _world(tmp_path / "a", 0, 16)
     b = _world(tmp_path / "b", 0, 16, wild_from=15)  # captures, sweeps of 15-16 differ wildly (post-origin for origin 14)
     now = _t(14, 40)
@@ -274,7 +275,7 @@ def test_causality_future_captures_do_not_change_frozen_lines(tmp_path):
 
 
 def test_late_refusal_write_once_and_dry_run_guard(tmp_path):
-    spec = _spec(tmp_path)
+    spec = _spec(tmp_path, k_tests=ALL_K)  # every collector on (each runs only when its test is in k_tests)
     w = _world(tmp_path, 0, 16)
     root = tmp_path / "r"
     st = _run(w, root, spec, 14, 15, _t(15, -0.5))  # 30 s before slot 15: move / hollow / clock are late
@@ -294,7 +295,7 @@ def test_late_refusal_write_once_and_dry_run_guard(tmp_path):
 
 
 def test_nosweep_marker_and_outcome_statuses(tmp_path):
-    spec = _spec(tmp_path)
+    spec = _spec(tmp_path, k_tests=ALL_K)  # every collector on (each runs only when its test is in k_tests)
     w = _world(tmp_path, 0, 16, sweeps=False)
     root = tmp_path / "r"
     st = _run(w, root, spec, 14, 15, _t(14, 40))
@@ -324,7 +325,7 @@ def test_run_lock_prevents_two_readers(tmp_path):
 
 
 def test_ops_stats_reads_no_price_column(tmp_path, monkeypatch):
-    spec = _spec(tmp_path)
+    spec = _spec(tmp_path, k_tests=ALL_K)  # every collector on (each runs only when its test is in k_tests)
     w = _world(tmp_path, 0, 18)
     root = tmp_path / "r"
     _run(w, root, spec, 14, 15, _t(14, 40))
@@ -625,3 +626,61 @@ def test_e020_bound_share_and_qs_matched_sensitivity():
     share, matched = la.qs_bound_and_matched(pop, y, seed=1)
     assert set(share) == {"arrival", "cancellation"} and max(share.values()) > 0
     assert matched.get("testable") and len(matched["cells"]) == 3
+
+
+# --- pre-pin changes (2026-10-21, LIVE_TESTS_4.md 18) ------------------------------------------------------------------------------
+
+
+def test_analysis_fits_only_k_tests_and_counting_rule_equals_k(tmp_path):
+    spec = _spec(tmp_path, k_tests=["E022"])
+    spec["gates"]["draws"] = 5
+    w = _world(tmp_path, 0, 32)
+    root = tmp_path / "r"
+    for k in range(14, 33):
+        _run(w, root, spec, 14, 26, _t(k, 40))
+    _run(w, root, spec, 14, 26, _t(36, 0))
+    start, end = _iso(G0 + timedelta(hours=28, minutes=-31)), _iso(G0 + timedelta(hours=52, minutes=-31))
+    res = la.analyze(root, start_utc=start, end_utc=end, spec=spec, roles=(lt.ROLE_UNREG,), force=True)
+    assert res["holm"]["tests"] == ["E022"] and res["holm"]["m"] == 1 and set(res["holm"]["p_raw"]) == {"E022"}
+    assert "verdict" in res["E022"]["verdict"] and res["E022"]["counts"]["fit"]["units"] > 0
+    for t in ("E020", "E021"):
+        assert res[t] == {"verdict": {"verdict": la.DROPPED_CENSUS_NOTE}}  # no estimate, no p-value, no counts
+    for t in ("E023", "E024"):
+        assert res[t]["verdict"]["verdict"].startswith("dropped before any census")
+    rec = la.trial_record(res)
+    assert rec["n_tests"] == len(spec["k_tests"]) == 1 and battery2.count_line(rec) == ("live_tests4", 1)
+
+
+def test_collection_runs_only_kinds_of_k_tests(tmp_path, monkeypatch):
+    """With k_tests = [E022] the pass writes no move or clock file (frozen or outcome), reads no trade sample, and the hollow
+    lines, series, status and sweeps are identical (decompressed) to a run with every kind on."""
+    import gzip
+
+    monkeypatch.setattr(lt, "now_ts", lambda: _t(50))
+    spec = _spec(tmp_path, k_tests=["E022"])
+    spec_all = {**spec, "k_tests": ALL_K}
+    assert lt.enabled_kinds(spec) == {"move": False, "hollow": True, "clock": False}
+    assert lt.enabled_kinds(spec_all) == {"move": True, "hollow": True, "clock": True}
+    assert lt.enabled_kinds({**spec, "k_tests": None}) == {"move": True, "hollow": True, "clock": True}
+    w = _world(tmp_path / "w", 0, 30)
+    roots = {"e022": tmp_path / "r_e022", "all": tmp_path / "r_all"}
+    for name, sp in (("e022", spec), ("all", spec_all)):
+        for k in range(14, 31):
+            _run(w, roots[name], sp, 14, 26, _t(k, 40))
+    for kind in ("move", "clock"):
+        assert not (roots["e022"] / kind).exists()
+        assert list((roots["all"] / kind / "frozen").glob("*.csv.gz"))
+    assert lt.l3.State(roots["e022"]).d["samples"] == {}
+    for sub in ("series", "status", "sweeps", "hollow/frozen", "hollow/outcomes"):
+        a = sorted(p.name for p in (roots["e022"] / sub).glob("*.csv.gz"))
+        b = sorted(p.name for p in (roots["all"] / sub).glob("*.csv.gz"))
+        assert a and a == b, sub
+        for n in a:
+            assert gzip.decompress((roots["e022"] / sub / n).read_bytes()) == gzip.decompress((roots["all"] / sub / n).read_bytes()), (sub, n)
+
+
+def test_size_check_runs_only_scenarios_of_k_tests():
+    sc = la.size_check(worlds=3, draws=19, seed=3, k_tests=["E022"])
+    assert set(sc["scenarios"]) == {"fl_continuous_persistent", "fl_continuous_control_corr0.7"} and sc["k_tests"] == ["E022"]
+    assert set(la.SCENARIO_TESTS) == set(la.size_check(worlds=2, draws=19, seed=3)["scenarios"])
+    assert set(la.size_check(worlds=2, draws=19, seed=3, k_tests=["E021"])["scenarios"]) == {n for n, t in la.SCENARIO_TESTS.items() if "E021" in t}

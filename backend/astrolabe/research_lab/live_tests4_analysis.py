@@ -26,6 +26,7 @@ from . import live_tests4 as lt
 
 TESTS = ("E020", "E021", "E022")
 DROPPED = ("E023", "E024")  # dropped before any census, uncounted (LIVE_TESTS_4.md 15, R2 finding 1)
+DROPPED_CENSUS_NOTE = "dropped before registration at census (uncounted); no estimate, no p-value, not in the Holm family"
 DIRECTION = {"E020": +1, "E021": -1, "E022": -1}
 CONTROLS_E020, CONTROLS_E021, CONTROLS_E022 = lt.CONTROLS_E020, lt.CONTROLS_E021, lt.CONTROLS_E022
 GATE_LABEL = {"E020": "SE check failed", "E021": "SE check failed", "E022": "SE check failed"}
@@ -553,12 +554,19 @@ def analyze(root: Path = lt.OUT_ROOT, *, start_utc: str = lt.REGISTERED_UTC, end
     s, e = lt.epoch(start_utc), lt.epoch(end_utc)
     ktests = list(spec.get("k_tests") or TESTS)
     k = len(ktests)
-    mv, macc = move_frame(root, s, e, roles, spec)
-    ck, cacc = clock_frame(root, s, e, roles, spec)
-    hl, hacc = hollow_frame(root, s, e, roles, spec)
-    res = {"E020": e020(mv, macc, spec), "E021": e021(ck, cacc, spec), "E022": e022(hl, hacc, spec)}
+    # only the tests in k_tests are fitted: a test dropped at its census gets no estimate, no p-value and no frame read
+    fns = {"E020": (move_frame, e020), "E021": (clock_frame, e021), "E022": (hollow_frame, e022)}
+    res = {}
+    for t in TESTS:
+        if t in ktests:
+            frame_fn, test_fn = fns[t]
+            df, acc = frame_fn(root, s, e, roles, spec)
+            res[t] = test_fn(df, acc, spec)
     for t in DROPPED:
         res[t] = {"verdict": {"verdict": "dropped before any census (R2: gate size not shown); not in the Holm family, uncounted"}}
+    for t in TESTS:
+        if t not in ktests:
+            res[t] = {"verdict": {"verdict": DROPPED_CENSUS_NOTE}}
     pv = {t: verdict(res[t].get("primary") or {}, res[t].get("gate"), res[t].get("available", False), None, DIRECTION[t], GATE_LABEL[t])["p_for_holm"]
           for t in ktests}
     hp = bd.holm(pv)
@@ -566,8 +574,7 @@ def analyze(root: Path = lt.OUT_ROOT, *, start_utc: str = lt.REGISTERED_UTC, end
     for t in TESTS:
         r = res[t]
         if t not in ktests:
-            r["verdict"] = {"verdict": "dropped before registration (census gate); not in the Holm family"}
-            continue
+            continue  # verdict note already set; no estimate, no p-value
         v = verdict(r.get("primary") or {}, r.get("gate"), r.get("available", False), hp[t], DIRECTION[t], GATE_LABEL[t])
         r["holm_p"] = hp[t]
         labels: list = {"E020": e020_labels, "E021": e021_labels, "E022": e022_labels}[t](r, v, spec)
@@ -647,9 +654,22 @@ def sim_ma2_world(rng: np.random.Generator, *, n_mkt: int = 60, n_t: int = 40, e
     return df, df["y"].to_numpy(float)
 
 
-def size_check(*, worlds: int, draws: int, seed: int, nominal: float = 0.05) -> dict:
+# which tests' gates each size scenario exercises (LIVE_TESTS_4.md 1.8 / 18): binary labels are E020 (arrival) and E021
+# (fresh; the MA(2) overlapping target is its c_skip), the continuous label zh is E022
+SCENARIO_TESTS = {
+    "fl_binary_iid": ("E020", "E021"),
+    "fl_binary_persistent": ("E020", "E021"),
+    "fl_binary_control_corr0.7": ("E020", "E021"),
+    "fl_continuous_persistent": ("E022",),
+    "fl_continuous_control_corr0.7": ("E022",),
+    "fl_binary_persistent_ma2_target": ("E021",),
+}
+
+
+def size_check(*, worlds: int, draws: int, seed: int, nominal: float = 0.05, k_tests: list | None = None) -> dict:
     """Pass rate of the registered Freedman-Lane gate under six simulated nulls (all binding; LIVE_TESTS_4.md 14-15),
-    criterion rate <= nominal + 1.645 sqrt(nominal (1 - nominal) / worlds). The donor scenarios left with E023 / E024."""
+    criterion rate <= nominal + 1.645 sqrt(nominal (1 - nominal) / worlds). The donor scenarios left with E023 / E024.
+    ``k_tests`` (the spec's list): a scenario that belongs only to dropped tests is not run (SCENARIO_TESTS); null runs all six."""
     rng = np.random.default_rng(seed)
     lim = nominal + 1.645 * float(np.sqrt(nominal * (1 - nominal) / worlds))
     out: dict = {"worlds": worlds, "draws": draws, "seed": seed, "limit": lim, "scenarios": {}}
@@ -666,6 +686,9 @@ def size_check(*, worlds: int, draws: int, seed: int, nominal: float = 0.05) -> 
         "fl_continuous_control_corr0.7": lambda: perm(*sim_corr_label_world(rng, corr=0.7), "L"),
         "fl_binary_persistent_ma2_target": lambda: perm(*sim_ma2_world(rng), "P"),
     }
+    if k_tests is not None:
+        scen = {n: f for n, f in scen.items() if set(SCENARIO_TESTS[n]) & set(k_tests)}
+        out["k_tests"] = list(k_tests)
     for name, fn in scen.items():
         rej = sum(int(fn()) for _ in range(worlds))
         out["scenarios"][name] = {"rate": rej / worlds, "ok": rej / worlds <= lim, "binding": True}

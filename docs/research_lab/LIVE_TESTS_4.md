@@ -899,3 +899,26 @@ Population 18,517 covered units, 2,539 events; `Dp_missing` share 0.023. L/D qua
   The spec file's sha256 after the fill is `5f6e7080…`; it changes again at the pin, when the hashes and status are filled.
 - **Test consequence:** `test_analysis_refusals_and_nan_census_values` assumes a null `k_tests` in the DRAFT spec, so it
   needs a test-only edit (`spec["k_tests"] = None` before its "null k_tests" refusal check), as LT3 made at its pin.
+
+## 18. Pre-freeze code changes (2026-10-21)
+
+After the censuses (section 17) only E022 survives, so the code was narrowed to `k_tests` before the pin, as LT3 did
+(`b48e1909`, `f9c9566c`). No threshold, alpha, seed, draw count, date, test definition or frozen-line format changed.
+
+- **`analyze()`** (`live_tests4_analysis.py`): reads a frame and fits only the tests in the spec's `k_tests` (null = all three,
+  development only). A test dropped at its census gets no estimate, no p-value and no counts, only the note "dropped before
+  registration at census (uncounted)". Holm runs over `k_tests` (m = 1 now); `trial_record` counts `len(holm.tests)`, which equals
+  `len(k_tests)`.
+- **Reader** (`live_tests4.py`, `enabled_kinds`): the design does not require every kind to be frozen, and LT3 switched off
+  kinds whose tests were not in k. Same rule here: move lines only if E020 is in `k_tests`, clock lines (and trade-sample
+  scanning) only if E021 is, hollow lines only if E022 is. A switched-off kind writes no frozen file and no outcome; series,
+  status and sweeps are unchanged, and the hollow line format is untouched (a test shows hollow, series, status and sweep files
+  are identical to a run with all kinds on). The pass log records `kinds_off`.
+- **Size check** (`size_check`, `SCENARIO_TESTS`, `scripts/run_live_tests4.py`): scenarios of dropped tests are not run. With
+  `k_tests = [E022]` the run covers the two continuous Freedman-Lane scenarios (continuous persistent; continuous with a control at
+  correlation 0.7). The four binary scenarios (iid, persistent, control corr 0.7, MA(2) overlapping target) belong to the binary
+  labels of E020 and E021 and are not run. Scenario seeds come from one generator, so the two retained scenarios draw different
+  random numbers than they would in a six-scenario run; the seed (20261107) is unchanged and no run has used it. Criterion
+  (rate <= 0.058 at 2,000 worlds) unchanged. q0484 draft notes and runtime estimate updated.
+- Tests added (synthetic): k-only analysis and counting rule, kind switching, size-check scenario selection. Existing collector
+  tests now set all three tests in `k_tests`.

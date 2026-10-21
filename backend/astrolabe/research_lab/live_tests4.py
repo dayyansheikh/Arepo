@@ -443,6 +443,17 @@ def _refuse_late(p: Path, now: float, stats: dict, log: list, kind: str, fid: st
     log.append({"kind": f"{kind}_refused_late", "id": fid, "slot": k, "written_utc": iso(now_ts())})
 
 
+def enabled_kinds(spec: dict) -> dict[str, bool]:
+    """Which freeze kinds the pass collects (LT3's enabled_kinds rule). A kind is collected only if its test is in
+    ``k_tests``: move -> E020, clock -> E021, hollow -> E022. Null ``k_tests`` (DRAFT, not filled) collects every kind
+    (development only). A switched-off kind writes no frozen file and no outcome; series, status and sweeps are unchanged.
+    The frozen-line format of a collected kind is not touched."""
+    ks = spec.get("k_tests")
+    if ks is None:
+        return {"move": True, "hollow": True, "clock": True}
+    return {"move": "E020" in ks, "hollow": "E022" in ks, "clock": "E021" in ks}
+
+
 def _run_locked(*, snapshot_root: Path, sample_root: Path, sweep_root: Path, root: Path, spec: dict | None, registered_utc: str,
                 end_utc: str, now: float | None, max_items: int, allow_late: bool) -> dict:
     spec = spec or load_spec()
@@ -456,8 +467,10 @@ def _run_locked(*, snapshot_root: Path, sample_root: Path, sweep_root: Path, roo
         append_jsonl(root / "passes.jsonl", [{"kind": "disk_cap", **stats}])
         return stats
     t_reg, t_end = epoch(registered_utc), epoch(end_utc)
+    kinds = enabled_kinds(spec)
+    stats["kinds_off"] = sorted(n for n, on in kinds.items() if not on)
     by_slot = l3.scan_captures(snapshot_root, st, spec)
-    samples = l3.scan_samples(sample_root, st)
+    samples = l3.scan_samples(sample_root, st) if kinds["clock"] else {}  # trade samples are read only by clock freezes
     sweeps = l3.scan_sweeps(sweep_root, st)
     st.save()
     log: list[dict] = []
@@ -488,6 +501,8 @@ def _run_locked(*, snapshot_root: Path, sample_root: Path, sweep_root: Path, roo
             continue
         role = l3.role_of(c["start"], registered_utc, end_utc, pinned)
         for kind in ("move", "hollow"):
+            if not kinds[kind]:
+                continue
             p = root / kind / "frozen" / f"{c['id']}.csv.gz"
             if p.exists() or any(_marker(p, s).exists() for s in MARKERS) or budget <= 0:
                 continue
@@ -561,6 +576,8 @@ def _run_locked(*, snapshot_root: Path, sample_root: Path, sweep_root: Path, roo
     # 5. outcomes: status + quote at k + h (series files) and the sweep-1 quote at k + s
     plan = {kind: (spec[kind]["horizons"], spec[kind]["sweep_tags"]) for kind in KINDS}
     for kind, (hs, ss) in plan.items():
+        if not kinds[kind]:
+            continue  # a switched-off kind writes no outcome
         fdir = root / kind / "frozen"
         for p in sorted(fdir.glob("*.csv.gz")) if fdir.exists() else []:
             if p.name.endswith(MARKERS) or budget <= 0:
