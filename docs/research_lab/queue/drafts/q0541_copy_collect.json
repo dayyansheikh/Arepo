@@ -3,7 +3,7 @@
  "title": "E026 recorder (no network): skilled copy signals + matched controls from each new active-frame trade sample's wallet sidecar and each complete hour of >= $1k live prints; entries at the first complete capture starting >= receipt + L (L = 0, 6 h, 24 h) and 24 h exits; write-once files; exit 75 when nothing is new",
  "family": "copy_skilled",
  "priority": 28,
- "expected_value": "prospective lines for E026 (single analysis q0543 on or after 2026-12-05T12:00Z)",
+ "expected_value": "prospective lines for E026 (single analysis q0543 on or after 2026-12-06T12:00Z)",
  "data": [
   "research_lab/trade_samples (active frame: manifest, features, wallets sidecar; read-only)",
   "research_lab/live_trades/trades-*.jsonl (read-only)",
@@ -35,6 +35,6 @@
   "data-dumps/research_lab/copy_skilled/{signals,entries}/",
   "data-dumps/research_lab/copy_skilled/passes.jsonl"
  ],
- "next_action": "runs until END + 24 h + 24 h + 6 h with no pending entry (about 2026-11-16T06:00Z for the proposed window), then only q0542 continues",
+ "next_action": "runs until END + 24 h + 24 h + 6 h with no pending entry (about 2026-11-17T06:00Z for the proposed window), then only q0542 continues",
  "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_COPY.md, E026; design not yet reviewed). Promote only after the challenger review, the freeze job, the spec fill (skillset_sha256, code_sha256, SPEC_SHA256 pin) and the ledger registration commit (>= 2 h before REGISTERED_UTC). Lane net (a 3-week cpu-lane job would block every cpu job); mem_mb 450 stays below the 500 MB blackout exemption; measured peak in the census dry run is in LIVE_TESTS_COPY.md 8. Disk: refuses above 1 GB in copy_skilled/. No retention rule may cover copy_skilled/ before the analysis is committed. Trade samples and captures are rotated by the nightly archive: the recorder must keep up (every 2 min tick; a sample is processed within minutes of completion)."
 }

@@ -18,7 +18,7 @@ from astrolabe.research_lab import copy_skilled_analysis as ca
 from astrolabe.research_lab import costs
 from astrolabe.research_lab import wallet_skill as ws
 
-T0 = cs.epoch("2026-10-24T00:00:00Z")
+T0 = cs.epoch("2026-10-25T00:00:00Z")
 H = 3600.0
 
 
@@ -238,7 +238,7 @@ def test_retired_sample_is_skipped_not_fatal(tmp_path):
     st = cs.run_once(root=root, snapshot_root=snaps, sample_root=samples, prints_root=prints, spec=spec(), now=T0 + 40 * H,
                      max_items=1000, log=lambda s: None)
     assert st["samples"] == 1 and st["skipped_samples"] == 1
-    assert cs.State(root).d["skipped"][s1] == "files_retired"
+    assert json.loads((root / "signals" / f"{s1}.missing.json").read_text())["reason"] == "files_retired"
     assert not (root / "signals" / f"{s1}.csv.gz").exists()
     sk = cs.read_store(root, "signals").query("role == 'skilled'")
     # S1's trade in market 10 (first visible in s1, retired) is first observed in s2, with s2's receipt

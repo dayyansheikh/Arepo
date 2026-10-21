@@ -58,10 +58,11 @@ OUT_ROOT = ROOT / "data-dumps" / "research_lab" / "copy_skilled"
 SPEC_PATH = Path(__file__).resolve().parent / "model_specs" / "copy_skilled_v1.json"
 SPEC_SHA256 = None  # pinned at registration (LIVE_TESTS_COPY.md 9); None = DRAFT, every line is prospective_unregistered
 
-REGISTERED_UTC = "2026-10-24T00:00:00Z"
-END_UTC = "2026-11-14T00:00:00Z"
-LABEL_CUTOFF_UTC = "2026-12-05T00:00:00Z"
-ANALYSIS_NOT_BEFORE = "2026-12-05T12:00:00Z"
+REGISTERED_UTC = "2026-10-25T00:00:00Z"
+END_UTC = "2026-11-15T00:00:00Z"
+LABEL_CUTOFF_UTC = "2026-12-06T00:00:00Z"
+ANALYSIS_NOT_BEFORE = "2026-12-06T12:00:00Z"
+IN_PROGRESS_GRACE_S = 4 * 3600  # a sample still not complete this long after its start is recorded missing
 TEMPFAIL = 75
 DISK_CAP_BYTES = int(1.0e9)
 ROLE_CONF, ROLE_UNREG = "prospective_confirmation", "prospective_unregistered"
@@ -613,8 +614,9 @@ def read_store(root: Path, sub: str) -> pd.DataFrame:
 
 
 class State:
-    """Cache only (``state.json``): processed batch/capture ids and the per-market last sent time of processed samples.
-    The write-once files are the ground truth; ``last_sent`` is rebuilt from processed samples if the cache is lost."""
+    """Cache only (``state.json``): the per-market last sent time of processed samples and the labeller's recheck times.
+    The write-once files (signals, missing markers, entries) are the ground truth; ``last_sent`` is rebuilt from the
+    processed samples still on disk if the cache is lost (``rebuild_last_sent``)."""
 
     def __init__(self, root: Path) -> None:
         self.path = Path(root) / "state.json"
@@ -630,7 +632,40 @@ class State:
 
 
 def _batch_done(root: Path, batch: str) -> bool:
-    return (Path(root) / "signals" / f"{batch}.csv.gz").exists()
+    """A batch is done once its write-once signals file or its write-once missing marker exists."""
+    d = Path(root) / "signals"
+    return (d / f"{batch}.csv.gz").exists() or (d / f"{batch}.missing.json").exists()
+
+
+def mark_missing(root: Path, batch: str, reason: str, now: float) -> bool:
+    """Write-once marker of a batch that is never read (not complete, wrong frame, files retired). Ground truth on
+    disk (not in the state cache), so a lost cache can never let a late batch be read out of order."""
+    path = Path(root) / "signals" / f"{batch}.missing.json"
+    if path.exists():
+        return False
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    tmp.write_text(json.dumps({"batch": batch, "reason": reason, "at": iso(now)}, sort_keys=True))
+    try:
+        os.link(tmp, path)
+    except FileExistsError:
+        return False
+    finally:
+        tmp.unlink(missing_ok=True)
+    return True
+
+
+def rebuild_last_sent(root: Path, sample_root: Path, t0: float, t_end: float) -> dict[int, float]:
+    """``last_sent`` from the processed samples still on disk (used only if the state cache was lost). Samples whose
+    features file was already retired cannot contribute; the caller logs the rebuild."""
+    out: dict[int, float] = {}
+    for s in scan_samples(sample_root, t0, t_end):
+        if not (Path(root) / "signals" / f"{s['id']}.csv.gz").exists() or not (s["dir"] / "features.csv.gz").exists():
+            continue
+        feats = pd.read_csv(s["dir"] / "features.csv.gz", usecols=["market_id", "status", "sent_utc"])
+        for mk, t in sample_sent(feats).items():
+            out[mk] = max(out.get(mk, -math.inf), t)
+    return out
 
 
 # --- the recorder pass --------------------------------------------------------------------------------------------------
@@ -679,29 +714,32 @@ def _run_locked(*, root: Path, snapshot_root: Path, sample_root: Path, prints_ro
         for a, r, w, mk in zip(signals_all["arm"], signals_all["role"], signals_all["wallet"],
                                signals_all["market_id"].astype(np.int64), strict=True):
             (sig_keys if r == "skilled" else ctl_keys)[a].add((w, int(mk)))
+    if not st.path.exists() and any((root / "signals").glob("*.csv.gz")):
+        st.d["last_sent"] = {str(k): v for k, v in rebuild_last_sent(root, sample_root, t0, t_end).items()}
+        append_jsonl(root / "passes.jsonl", [{"kind": "state_rebuilt", "markets": len(st.d["last_sent"]), "at": iso(now)}])
     last_sent = {int(k): float(v) for k, v in st.d["last_sent"].items()}
     for s in scan_samples(sample_root, t0, t_end):
         if work >= max_items:
             break
-        if _batch_done(root, s["id"]) or s["id"] in st.d.setdefault("skipped", {}):
+        if _batch_done(root, s["id"]):
             continue
         if s["state"] != "complete":
-            if now - s["start"] < 3600:
+            if now - s["start"] < IN_PROGRESS_GRACE_S:
                 break  # still running: later samples wait (order matters for first observation)
-            st.d["skipped"][s["id"]] = f"state={s['state']}"
-            stats["skipped_samples"] += 1
-            append_jsonl(root / "passes.jsonl", [{"kind": "sample_missing", "id": s["id"], "reason": f"state={s['state']}",
-                                                  "at": iso(now)}])
-            continue
-        if s["frame"] != "active":
-            st.d["skipped"][s["id"]] = f"frame={s['frame']}"
-            continue
-        if not (s["dir"] / "features.csv.gz").exists():
+            reason = f"state={s['state']}"
+        elif s["frame"] != "active":
+            reason = f"frame={s['frame']}"
+        elif not (s["dir"] / "features.csv.gz").exists():
             # retired by the 3-day trade-sample retention before it was read (recorder outage): missing stays missing
-            st.d["skipped"][s["id"]] = "files_retired"
-            stats["skipped_samples"] += 1
-            append_jsonl(root / "passes.jsonl", [{"kind": "sample_missing", "id": s["id"], "reason": "files_retired",
-                                                  "at": iso(now)}])
+            reason = "files_retired"
+        else:
+            reason = ""
+        if reason:
+            mark_missing(root, s["id"], reason, now)
+            if not reason.startswith("frame="):
+                stats["skipped_samples"] += 1
+                append_jsonl(root / "passes.jsonl", [{"kind": "sample_missing", "id": s["id"], "reason": reason,
+                                                      "at": iso(now)}])
             continue
         tr, sent, cnt = load_sample_batch(s["dir"], last_sent)
         event_of, end_of = _event_map(snapshot_root / str(s["snapshot_id"]), tr["market_id"].unique() if len(tr) else [])
@@ -790,7 +828,7 @@ def _first_unprocessed_batch(root: Path, sample_root: Path, t0: float, t_end: fl
     earliest unprocessed in-window sample, and the earliest unprocessed large-print hour (its start)."""
     b = math.inf
     for s in scan_samples(sample_root, t0, t_end):
-        if not _batch_done(root, s["id"]) and s["id"] not in st.d.get("skipped", {}):
+        if not _batch_done(root, s["id"]):
             b = min(b, s["start"])
             break
     h = math.floor(t0 / 3600) * 3600

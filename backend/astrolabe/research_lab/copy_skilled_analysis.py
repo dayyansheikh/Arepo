@@ -81,7 +81,9 @@ def copy_economics(df: pd.DataFrame, impacts: dict[str, float], policy: str = "c
     tier = [costs.liquidity_tier(x) for x in d["liquidity"].to_numpy(float)]
     imp = np.array([impacts.get(t, 0.0) for t in tier]) if use_impact else np.zeros(len(d))
     p = np.minimum(mid + h, 1.0)
-    fee = rate * p * (1.0 - p)
+    pq = p * (1.0 - p)
+    expo = d["fee_exponent"].astype(float).fillna(1.0).to_numpy() if "fee_exponent" in d else np.ones(len(d))
+    fee = rate * np.maximum(pq, pq ** expo)  # conservative: the larger of the linear and the scheduled-exponent fee
     d["ask_j"], d["bid_j"], d["mid_j"], d["spread_j"] = ask, bid, mid, ask - bid
     d["rate"], d["impact_ps"], d["fee_ps"] = rate, imp, fee
     d["cost_ps"] = h + imp + fee
@@ -162,7 +164,9 @@ def exit_frame(entries: pd.DataFrame, copies: pd.DataFrame, impacts: dict[str, f
     j = m["copy_token"].astype(int).to_numpy()
     xb = np.where(j == 0, m["x_bid0"].astype(float), 1.0 - m["x_ask0"].astype(float))
     ximp = np.array([impacts.get(costs.liquidity_tier(v), 0.0) for v in m["x_liq"].to_numpy(float)])
-    xfee = m["rate"].to_numpy(float) * xb * (1.0 - xb)
+    xpq = xb * (1.0 - xb)
+    xexp = m["fee_exponent"].astype(float).fillna(1.0).to_numpy() if "fee_exponent" in m else np.ones(len(m))
+    xfee = m["rate"].to_numpy(float) * np.maximum(xpq, xpq ** xexp)
     m["net_ps"] = (xb - ximp - xfee) - (m["ask_j"].to_numpy(float) + m["impact_ps"].to_numpy(float) + m["fee_ps"].to_numpy(float))
     m["gross_ps"] = ((xb + np.where(j == 0, m["x_ask0"].astype(float), 1.0 - m["x_bid0"].astype(float))) / 2.0) - m["mid_j"]
     return m[np.isfinite(m["net_ps"].to_numpy(float))]

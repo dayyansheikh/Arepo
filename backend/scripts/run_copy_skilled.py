@@ -189,28 +189,42 @@ def _census_counts(sig: pd.DataFrame, ent: pd.DataFrame, spec: dict, days: float
                                    "universe": int(cl["universe"].sum()),
                                    "entry_delay_h_median": round(float((cl["capture_start_ts"] - cl["due_ts"]).median()) / 3600, 2) if len(cl) else None,
                                    "realised_latency_h_quantiles": {str(q): round(float(cl["latency_real_s"].quantile(q)) / 3600, 2) for q in (0.1, 0.5, 0.9)} if len(cl) else {}}
-            u = c[(c["latency_s"].astype(float) == float(spec["primary_latency_s"])) & (c["role"] == "skilled") & c["universe"]]
-            uc = c[(c["latency_s"].astype(float) == float(spec["primary_latency_s"])) & (c["role"] == "control") & c["universe"]]
+            L0 = (c["latency_s"].astype(float) == float(spec["primary_latency_s"]))
+            un = c[L0 & (c["role"] == "skilled") & c["universe"]]
+            u = c[L0 & (c["role"] == "skilled") & c["primary_set"]]
+            uc = c[L0 & (c["role"] == "control") & c["primary_set"]]
             if len(u):
                 p = u["ask_j"].astype(float).to_numpy()
                 sd_cal = float(np.sqrt(np.mean(p * (1 - p))))  # SD of (pay - ask) per share under calibration at entry
-                sizes = u.groupby("cluster").size().to_numpy()
                 stake = float(u["stake_ps"].mean())
-                deff = ca.deff_upper(sizes)
+                deff_ev = ca.deff_upper(u.groupby("cluster").size().to_numpy())
+                deff_evw = ca.deff_upper(u.groupby(["cluster", "wallet"]).size().to_numpy())
+                wm = u.groupby("wallet").size().sort_values(ascending=False).to_numpy()
                 cost = float(u["cost_ps"].mean())
-                o["universe_L0"] = {"n": int(len(u)), "per_day": round(len(u) / days, 2), "events": int(u["cluster"].nunique()),
-                                    "deff_upper": round(deff, 2), "mean_stake": round(stake, 4), "sd_per_share_calibrated": round(sd_cal, 4),
-                                    "mean_cost_ps": round(cost, 4), "mean_cost_per_dollar": round(cost / stake, 4),
-                                    "days_to_end_median": round(float(((u["end_ts"] - u["row_received_ts"]) / 86400).median()), 2),
-                                    "category": u["fee_category"].astype(str).str.split(":").str[0].value_counts().head(8).to_dict(),
-                                    "controls_in_universe": int(len(uc))}
-                o["universe_L0"]["mde_per_window"] = {}
+                pairs = int(u["signal_id"].isin(set(uc["parent_id"])).sum())
+                o["primary_set_L0"] = {
+                    "n": int(len(u)), "uncapped_universe_n": int(len(un)), "per_day": round(len(u) / days, 2),
+                    "events": int(u["cluster"].nunique()), "wallets": int(len(wm)),
+                    "top1_wallet_share": round(float(wm[0] / wm.sum()), 3), "top10_wallet_share": round(float(wm[:10].sum() / wm.sum()), 3),
+                    "deff_event_icc1": round(deff_ev, 2), "deff_event_x_wallet_icc1": round(deff_evw, 2),
+                    "mean_stake": round(stake, 4), "sd_per_share_calibrated": round(sd_cal, 4),
+                    "mean_cost_ps": round(cost, 4), "mean_cost_per_dollar": round(cost / stake, 4),
+                    "days_to_end_median": round(float(((u["end_ts"] - u["row_received_ts"]) / 86400).median()), 2),
+                    "ask_bands": {str(k): int(v) for k, v in pd.cut(p, [0.05, 0.35, 0.65, 0.951], right=False, labels=["long_shot", "middle", "favourite"]).value_counts().items()},
+                    "buy_share": round(float((u["side"].astype(int) > 0).mean()), 3),
+                    "category": u["fee_category"].astype(str).str.split(":").str[0].value_counts().head(8).to_dict(),
+                    "controls_in_primary_set": int(len(uc)), "skilled_with_control": pairs}
+                o["primary_set_L0"]["mde_per_window"] = {}
                 for wd_days in (14, 21):
                     n = len(u) / days * wd_days
-                    o["universe_L0"]["mde_per_window"][f"{wd_days}d"] = {
-                        "n": round(n), "mde_N_deff_upper": round(ca.mde(n, sd_cal, stake, deff), 4),
-                        "mde_N_deff_1": round(ca.mde(n, sd_cal, stake, 1.0), 4),
-                        "mde_C_deff_upper_K3": round(ca.mde(n, sd_cal * np.sqrt(1 + 1 / 3), stake, deff), 4)}
+                    npair = pairs / days * wd_days
+                    o["primary_set_L0"]["mde_per_window"][f"{wd_days}d"] = {
+                        "n": round(n), "pairs": round(npair),
+                        "mde_N_deff1": round(ca.mde(n, sd_cal, stake, 1.0), 4),
+                        "mde_N_event_icc1": round(ca.mde(n, sd_cal, stake, deff_ev), 4),
+                        "mde_N_event_x_wallet_icc1": round(ca.mde(n, sd_cal, stake, deff_evw), 4),
+                        "mde_N_wallet_icc1_n_eff_wallets": round(ca.mde(len(wm), sd_cal, stake, 1.0), 4),
+                        "mde_C_event_icc1_K3": round(ca.mde(npair, sd_cal * np.sqrt(1 + 1 / 3), stake, deff_ev), 4)}
         out[arm] = o
     return out
 
