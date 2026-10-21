@@ -144,6 +144,16 @@ def test_late_rule_marks_units_but_series_and_sweeps_are_still_written(world, tm
     assert not (root / "deadline" / "frozen" / f"{ids[13]}.csv.gz").exists() and st2["status"] in ("wrote", "nothing_new")
 
 
+def test_a_late_pass_without_a_sweep_is_late_not_nosweep(world, tmp_path):
+    empty = tmp_path / "nosweeps"
+    empty.mkdir()
+    root = tmp_path / "o"
+    _run(world, root, allow_late=False, now=_slot_t(14) + 3600.0, sweep_root=empty)
+    ids = world["ids"]
+    assert (root / "vote" / "frozen" / f"{ids[12]}.late.csv.gz").exists()
+    assert not (root / "vote" / "frozen" / f"{ids[12]}.nosweep.csv.gz").exists() and not (root / "vote" / "frozen" / f"{ids[12]}.noprevsweep.csv.gz").exists()
+
+
 def test_noprev_nosweep_noprevsweep_and_e022_boundary_markers(world, tmp_path):
     ids = world["ids"]
     snap, sw = tmp_path / "snap", tmp_path / "sw"

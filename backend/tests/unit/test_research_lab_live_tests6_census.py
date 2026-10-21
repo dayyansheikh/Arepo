@@ -744,3 +744,16 @@ def test_seal_refuses_while_the_lt5_seal_pin_is_null_or_unmatched(sealed, tmp_pa
     bad = _spec()
     bad["census_inputs"]["source_seals"]["lt5_capture_seal_sha256"] = "0" * 64
     assert "pinned" in lt.seal_inputs(work=tmp_path / "w2", spec=bad, **kw)["error"]
+
+
+def test_v_anatomy_is_one_categorical_with_same_side_unequal_as_base():
+    pop = pd.DataFrame({"cls": ["traded", "traded", "quote_only", "quote_only", "quote_only", "quote_only"],
+                        "geom": ["parallel", "same_side_unequal", "parallel", "one_sided", "spread_change", "same_side_unequal"]})
+    for c_, v_ in (("v", 0.1), ("v_prev", 0.1), ("h0", 0.5), ("x", 0.02), ("D0_k", 5.0), ("D0_p", 5.0), ("tick", 0.01), ("bid", 0.4), ("ask", 0.42), ("vol24_p", 1.0),
+                   ("liq", 1e3), ("end_ts", 2e9), ("t_row", 1e9), ("chg_1d", 0.0), ("chg_1w", 0.0)):
+        pop[c_] = v_
+    out = lt.prepare_v(pop, 0.0, 1.0)
+    d = out[["a_traded", "a_parallel", "a_one_sided", "a_spread_change"]]
+    assert (d.sum(axis=1) <= 1).all()  # mutually exclusive: one categorical, not overlapping dummies
+    assert d.iloc[0].tolist() == [1, 0, 0, 0] and d.iloc[1].tolist() == [1, 0, 0, 0]  # traded wins over its geometry
+    assert d.iloc[5].tolist() == [0, 0, 0, 0] and d.iloc[2].tolist() == [0, 1, 0, 0]  # quote-only same-side-unequal is the base

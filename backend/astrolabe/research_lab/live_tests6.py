@@ -1224,9 +1224,12 @@ def prepare_v(pop: pd.DataFrame, centre: float, scale: float) -> pd.DataFrame:
     sd = la_.std()
     pop["z_log_abs_x"] = (la_ - la_.mean()) / sd if sd and np.isfinite(sd) and sd > 0 else np.nan
     pop["log1p_D0k"], pop["log1p_D0p"] = np.log1p(pop["D0_k"]), np.log1p(pop["D0_p"])
-    pop["a_traded"] = pop["cls"].eq("traded").astype(float)
-    for d_ in ("parallel", "one_sided", "spread_change"):
-        pop[f"a_{d_}"] = pop["geom"].eq(d_).astype(float)
+    # E015's anatomy as ONE categorical (freeze-check fix; design V controls): traded, else the geometry; same-side-unequal is the base.
+    # The four dummies are mutually exclusive (a traded unit is 'traded' only), so with the intercept they are not collinear.
+    traded = pop["cls"].eq("traded")
+    pop["anatomy"] = np.where(traded, "traded", pop["geom"].astype(str))
+    for d_ in ("traded", "parallel", "one_sided", "spread_change"):
+        pop[f"a_{d_}"] = pop["anatomy"].eq(d_).astype(float)
     pop["tick001"] = (np.abs(pop["tick"] - 0.001) <= 1e-12).astype(float)
     return pop
 
@@ -2016,16 +2019,8 @@ def _freezes(root, by_slot, samples, sweeps, spec, t_reg, t_end, now, budget, al
             if not kinds[kind] or p.exists() or any(_marker(p, s).exists() for s in MARKERS) or budget <= 0:
                 continue
             late = not allow_late and l3.is_late(k + 1, now, spec)
-            sw_k_exists = (root / "sweeps" / f"{c['id']}.csv.gz").exists() or c["id"] in sweeps
             pc = by_slot.get(k - 1)
-            sw_p_exists = pc is not None and ((root / "sweeps" / f"{pc['id']}.csv.gz").exists() or pc["id"] in sweeps)
-            if late and kind == "vote" and not sw_k_exists:
-                _refuse(p, ".nosweep.csv.gz", now, stats, log, kind, c["id"], k, "nosweep")
-                continue
-            if late and kind == "vote" and pc is not None and not sw_p_exists:
-                _refuse(p, ".noprevsweep.csv.gz", now, stats, log, kind, c["id"], k, "noprevsweep")
-                continue
-            if late:
+            if late:  # freeze-check fix: a late pass is .late whether or not its sweep exists (the late rule is first; units lost, counted)
                 _refuse(p, ".late.csv.gz", now, stats, log, kind, c["id"], k)
                 continue
             if k - 1 not in by_slot:
