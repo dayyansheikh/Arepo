@@ -2893,3 +2893,15 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   them from the files on disk at write time (06:54Z), after the fixes were deployed (~05:00Z), while the process had
   loaded the pre-fix modules at 03:12Z. The size-check functions are byte-identical across the fix (§13.16 item 3), so
   this is a labelling caveat only. q0475, which loaded the fixed code, gives the registered statement.
+
+## Queue promotions, 2026-10-21 ~09:30Z (autopilot; nothing counted)
+- **Promoted:** q0280_cb13_seal_R (q0278/q0279 done; CB13 freeze-checked; T_seal not binding for CB13);
+  q0347_cb15_p_birth_census (q0340 done, q0348 P smoke passed, CB15-P fixes ACCEPT_WITH_FIXES);
+  q0380_cb16_exclusion_keys (q0340 done; CB16 freeze-checked and re-checked; `--base-sha256` 10240ce7… = host
+  `creative_batch15/exclusion_keys.csv.gz`, also listed in its `exclusion_report.json`). Rules part hashes regenerated
+  for cb11-cb16 into a scratch path: every one matches the committed seals and the draft notes.
+- **CB18:** census code merged (feat/cb18, 45 fixture tests); restores q0500/q0501 promoted. The census jobs q0502-q0506
+  wait for an independent code-against-rules check.
+- **Held, with reasons:** q0233/q0234 (CB11 P/A freeze part not committed; census already failed GP/GPP and GA/GA0);
+  q0312 (CB14-S terminal after the q0301 smoke failure); q0040b (not before 10-23); q0235, q0256, q0258 (rep stages not
+  triggered: their screens gave advance false).
