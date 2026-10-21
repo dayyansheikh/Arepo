@@ -2995,7 +2995,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   q0500/q0501 crashed in gh's Go runtime at 600 MB, so they were raised to 1,200 MB, as the earlier restores q0413/q0480
   used. No scientific change.
 
-## LT5 census and size-check code merged; seal job q0564 promoted, 2026-10-21 ~10:10Z (nothing counted)
+## LT5 census and size-check code merged; seal job q0564 promoted, 2026-10-21 ~10:05Z (nothing counted)
 - Code on `feat/live-tests-5`, merged into this branch after these reviews:
   - code check CENSUS_READY_WITH_FIXES (3 MED: silent absence of sealed inputs, R depth-band population, CHW population;
     7 LOW);
@@ -3028,7 +3028,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - Noted: LightGBM `res_7d` fits fail on the causal inner split until resolution receipts precede the validation cut
   (backlog first fetched 10-21; expected around 10-28). No rule changed.
 
-## E026 copy-skilled: census code checked, q0544 promoted, 2026-10-21 ~10:35Z (nothing counted; DRAFT design)
+## E026 copy-skilled: census code checked, q0544 promoted, 2026-10-21 ~10:12Z (nothing counted; DRAFT design)
 - feat/copy-skilled merged (design `LIVE_TESTS_COPY.md` DRAFT, 41 tests). One commit, c4f3549b (labeller end-date
   skip, store column subset), came from another session. It does not affect the census, and §6 now lists it as a
   proposed change needing review before the pin.
