@@ -2942,3 +2942,13 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   fits and predicts; peak RSS 1.0 GB.
 - **Rewards aux backfill:** 85 `rewards` tables built on the host 09:01-09:04Z (niced, 2 GB address cap); 24
   captures unbuildable (rows archived), missing stays missing.
+
+## Signal engine: embargo requests applied, 2026-10-21 ~10:20Z (signal-engine autopilot; nothing counted)
+- Applied the experiments track's requests (`CANDIDATES.md`, "Embargo requests", filed ~09:20Z) in `config.EMBARGO`:
+  `flow`, `book`, `rewards` -> 2026-11-22T00:00Z (LT5 drafts J/O, H/R, R); `wallet` -> 2026-12-07T00:00Z (E026 draft);
+  new tokens `wallet_skill` (2026-12-07) and `event` (2026-11-22, LT5 F draft). All moves are later; none earlier.
+- `event` now embargoes `se8_lr_event` and `se10_lgbm_event`. No event-family score was ever computed or shown
+  (neither has a fit yet; the earlier development walk-forward reported se8 as insufficient coverage, se10 did not
+  exist). The se10 dry fit on the Mac copy (previous entry) produced fit diagnostics only, no score; its attribution
+  share is not reported anywhere public.
+- Non-embargoed challengers until 2026-11-04: se1, se7 (K = 2).

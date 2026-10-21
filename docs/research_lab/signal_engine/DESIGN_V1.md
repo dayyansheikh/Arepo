@@ -150,10 +150,12 @@ champion (market state + momentum), the learner reference and broad multi-family
 | surprise (no model yet) | 2026-11-12T00:00Z | E011 |
 | chg1d_x_liq (no model yet) | 2026-11-14T00:00Z | E012 |
 | tte | 2026-11-14T00:00Z | E014 |
-| flow | 2026-11-16T00:00Z | E013, E014 (LT2, 2026-11-13T12Z), E016, E018 (LT3 proposed 2026-11-15T12Z) |
-| book | 2026-11-18T00:00Z | E015, E019 (LT3), E020, E022 (LT4 proposed 2026-11-17T12Z) |
-| wallet | 2026-11-18T00:00Z | E024 (LT4) |
-| rewards | 2026-11-18T00:00Z | E020 (LT4 draft: reward flag as control / S3); added 2026-10-21 with `se9_lr_rewards` |
+| flow | 2026-11-22T00:00Z (from 11-16, 2026-10-21) | E013, E014 (LT2, 2026-11-13T12Z), E016, E018 (LT3 proposed 2026-11-15T12Z), LT5 J/O (draft) |
+| book | 2026-11-22T00:00Z (from 11-18, 2026-10-21) | E015, E019 (LT3), E020, E022 (LT4 proposed 2026-11-17T12Z), LT5 H/R (draft) |
+| wallet | 2026-12-07T00:00Z (from 11-18, 2026-10-21) | E024 (LT4), E026 copy-skilled (draft, analysis on/after 2026-12-06T12Z) |
+| wallet_skill (no model yet) | 2026-12-07T00:00Z | E026 |
+| rewards | 2026-11-22T00:00Z (from 11-18, 2026-10-21) | E020 (LT4 draft: reward flag as control / S3), LT5 R (draft); added 2026-10-21 with `se9_lr_rewards` |
+| event | 2026-11-22T00:00Z | LT5 F (draft, CH184); added 2026-10-21 ~10:20Z on the experiments track's request, before any event score was computed or shown (`se8_lr_event`, `se10_lgbm_event`) |
 
 LT3/LT4 dates are the proposed windows; when they register, move the dates **later** if needed (never earlier). A new
 challenger that isolates any hypothesis under a live test must add its token here first.
@@ -289,7 +291,7 @@ Columns:
 A market absent from the sidecar is NaN. Present with no programme listed means rate 0. On 2026-10-21, 5.2% of
 markets had a programme. An older sidecar without the reward columns gives an all-NaN table for that capture.
 
-Embargo (event): no token. E005 (neg-risk band deviation) closed 2026-10-11 as not supported. E019 was dropped uncounted.
+Embargo (event): token `event` until 2026-11-22 since 2026-10-21 (LT5 F draft; §8). Before that request: E005 (neg-risk band deviation) closed 2026-10-11 as not supported. E019 was dropped uncounted.
 SB2-J5 is development only. `ev_sib_*` resembles SB2-J5's L1 and `ev_norm_gap` resembles E005's band deviation, so
 se8 is recorded in the ledger as a counted development look at both: any later live test of either must declare
 that it is not fresh.
@@ -313,6 +315,6 @@ The development walk-forward (10-14 to 10-20, development only) shows `se1_lgbm_
 champion therefore measures "family on a weak learner", and its gain may vanish if a LightGBM model is promoted.
 Rule from now on: a new family gets a LightGBM challenger with `se1_lgbm_mm`'s params (read against se1 for the family
 effect; the leaderboard's gain column stays "vs the current champion"). Logistic family challengers already registered
-keep running unchanged. First: `se10_lgbm_event` (event family, no embargo). Embargoed families (flow, book, xvenue,
+keep running unchanged. First: `se10_lgbm_event` (event family; embargoed with se8 under `event` until 2026-11-22). Embargoed families (flow, book, xvenue,
 tte, wallet, rewards) get LightGBM versions only after their embargo dates, or as hidden predictions under the same
 token if added earlier.
