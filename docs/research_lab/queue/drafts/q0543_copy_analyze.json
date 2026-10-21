@@ -9,6 +9,7 @@
  ],
  "resources": {
   "mem_mb": 1500,
+  "as_cap_mb": 6000,
   "cpu": 1,
   "lane": "cpu",
   "network": "none"
@@ -18,7 +19,9 @@
   "scripts/run_copy_skilled.py",
   "analyze",
   "--out",
-  "../data-dumps/research_lab/copy_skilled/analysis_v1.json"
+  "../data-dumps/research_lab/copy_skilled/analysis_v1.json",
+  "--trials",
+  "../docs/research_lab/trials.jsonl"
  ],
  "timeout_s": 21600,
  "max_retries": 1,
@@ -28,5 +31,5 @@
  ],
  "next_action": "ledger results entry (scored once), registry update",
  "not_before": "2026-12-06T12:00:00Z",
- "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_COPY.md, E026; design not yet reviewed). Promote only after the challenger review, the freeze job, the spec fill (skillset_sha256, code_sha256, SPEC_SHA256 pin) and the ledger registration commit (>= 24 h before REGISTERED_UTC, LIVE_TESTS_COPY.md 2). Runs once; --out refuses to overwrite. Memory estimate (not measured): tens of thousands of copy rows, 10,000 bootstrap draws per statistic, well under 1 GB; never alongside another multi-GB job. Append the trials line with --trials ../docs/research_lab/trials.jsonl only in the registered run."
+ "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_COPY.md, E026; design not yet reviewed). Promote only after the challenger review, the freeze job, the spec fill (skillset_sha256, code_sha256, SPEC_SHA256 pin) and the ledger registration commit (>= 24 h before REGISTERED_UTC, LIVE_TESTS_COPY.md 2). Runs once; --out refuses to overwrite. --trials ../docs/research_lab/trials.jsonl appends the ONE counted line (kind copy_skilled, n_tests = 2); a run with no usable data still returns both tests Unavailable with p = 1 and a Holm block, so the line is well formed. WORKTREE: the analysis runs from a git worktree checked out at the pinned commit (the analysis refuses on any code or impact-table hash mismatch, and wallet_skill.py, wallet_skill_dev.py, costs.py are shared modules frozen until 2026-12-07); never from a moving checkout. It also keeps only entries and resolutions whose spec_sha / code_sha match the pin. MEMORY (challenger R1 fix 5), measured 2026-10-21 on the Mac (macOS ru_maxrss, fresh child interpreter) on a synthetic store 7.3x the q0544 census (188,000 signals, 738,400 entries, 57,393 resolutions; every skilled signal in the primary set, so heavier than the real mix of about 20%), B = 10,000: 1,222 MB peak in 66 s. mem_mb 1500 keeps about 20% margin; as_cap_mb 6000 for the virtual cap (not measurable on the Mac). Never alongside another multi-GB job."
 }

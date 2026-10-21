@@ -73,7 +73,7 @@ ARMS = ("sidecar", "large_prints")
 SIGNAL_COLS = ["signal_id", "arm", "role", "parent_id", "batch_id", "market_id", "condition_id", "event_id", "wallet",
                "skill_score", "skill_n_pos", "trade_ts", "side", "outcome_index", "trade_price", "trade_size",
                "trade_notional", "copy_token", "receipt_ts", "age_s", "price_bucket", "age_bucket", "end_ts_origin",
-               "end_bucket", "n_controls",
+               "end_bucket", "prior_visible", "n_controls",
                "evidence_role", "spec_sha", "code_sha", "code_commit", "frozen_utc"]
 ENTRY_COLS = ["signal_id", "kind", "latency_s", "due_ts", "capture_id", "capture_start_ts", "row_received_ts", "status",
               "best_bid", "best_ask", "spread", "last_trade_price", "liquidity", "volume24hr", "end_ts", "event_id",
@@ -140,6 +140,13 @@ def load_spec(path: Path = SPEC_PATH, sha: str | None = SPEC_SHA256) -> dict:
         raise RuntimeError(f"copy_skilled spec sha256 mismatch: {got} != pinned {sha}")
     spec["_sha256"] = got
     spec["_pinned"] = sha is not None
+    if sha is not None:  # a pinned spec must carry every pin it depends on (a null pin would silently skip its check)
+        have = spec.get("code_sha256") or {}
+        gaps = [k for k, ok in (("skillset_sha256", bool(spec.get("skillset_sha256"))),
+                                ("code_sha256", all(have.get(f) for f in CODE_FILES)),
+                                ("impact_table_sha256", bool(spec.get("impact_table_sha256")))) if not ok]
+        if gaps:
+            raise RuntimeError(f"copy_skilled pinned spec is missing {gaps}")
     for key, val in (("registered_utc", REGISTERED_UTC), ("end_utc", END_UTC), ("label_cutoff_utc", LABEL_CUTOFF_UTC),
                      ("analysis_not_before", ANALYSIS_NOT_BEFORE)):
         if spec.get(key) != val:
@@ -232,13 +239,17 @@ def freeze_skillset(history_root: Path, out_dir: Path, spec: dict, *, now: float
     h = wd.load_history(Path(history_root), panels=panels)
     pt, res = wd.profile_trades(h)
     snap = skillset_frame(pt, res, t_freeze, spec["skill"])
+    chk = freeze_checks(int(len(snap)), int(snap["skilled"].sum()), float(res["known_ts"].max()) if len(res) else None,
+                        spec["skill"].get("expected"))
+    if chk["refuse"]:  # before anything is written: a wrong set must not become the (never rebuilt) frozen set
+        raise RuntimeError(f"freeze refused, expectation mismatch: {chk}")
     if not write_once_csv(path, snap):
         raise RuntimeError("skillset write raced")
     man = {"version": VERSION, "skill_version": ws.SKILL_VERSION, "t_freeze_utc": spec["skill"]["t_freeze_utc"],
            "frozen_utc": iso(now), "history_panels": list(panels), "profile_trades": int(len(pt)),
            "resolved_markets": int(len(res)), "max_known_ts": float(res["known_ts"].max()) if len(res) else None,
            "max_trade_ts": float(pt["ts"].max()) if len(pt) else None, "eligible": int(len(snap)),
-           "skilled": int(snap["skilled"].sum()), "min_pos": spec["skill"]["min_pos"], "n0": spec["skill"]["n0"],
+           "skilled": int(snap["skilled"].sum()), "checks": chk, "min_pos": spec["skill"]["min_pos"], "n0": spec["skill"]["n0"],
            "top_frac": spec["skill"]["top_frac"], "sha256": sha256_file(path), "code_commit": git_commit(),
            "code_sha": reader_sha(), "note": "wallet hashes only (HMAC); never committed to the repository"}
     tmp = man_path.with_suffix(".tmp")
@@ -246,6 +257,22 @@ def freeze_skillset(history_root: Path, out_dir: Path, spec: dict, *, now: float
     os.link(tmp, man_path)
     tmp.unlink()
     return man
+
+
+def freeze_checks(eligible: int, skilled: int, max_known_ts: float | None, expected: dict | None) -> dict:
+    """Recorded in the freeze manifest. With the spec's ``skill.expected`` (eligible / skilled counts from the planning
+    census, ``max_known_ts_before_utc``), any mismatch sets ``refuse`` (the freeze writes nothing)."""
+    out: dict = {"eligible": eligible, "skilled": skilled, "max_known_ts": max_known_ts, "expected": expected, "mismatch": []}
+    if expected:
+        if "eligible" in expected and int(expected["eligible"]) != eligible:
+            out["mismatch"].append("eligible")
+        if "skilled" in expected and int(expected["skilled"]) != skilled:
+            out["mismatch"].append("skilled")
+        lim = expected.get("max_known_ts_before_utc")
+        if lim and not (max_known_ts is not None and max_known_ts < epoch(lim)):
+            out["mismatch"].append("max_known_ts")
+    out["refuse"] = bool(out["mismatch"])
+    return out
 
 
 def load_skillset(out_dir: Path, pinned_sha: str | None) -> pd.DataFrame:
@@ -269,6 +296,15 @@ def first_trades(tr: pd.DataFrame) -> pd.DataFrame:
     t["_o"] = np.arange(len(t))
     t = t.sort_values(["ts", "_o"], kind="stable")
     return t.drop_duplicates(["wallet", "market_id"], keep="first").drop(columns="_o").reset_index(drop=True)
+
+
+def prior_visible_flag(tr: pd.DataFrame) -> np.ndarray:
+    """True for a row whose wallet has a strictly earlier trade in the same market among ``tr`` (the sample's raw rows,
+    before the seen-before filter): an add / close rather than a first-seen open. Uses only trades at or before the row."""
+    if not len(tr):
+        return np.zeros(0, bool)
+    first = tr.groupby(["wallet", "market_id"])["ts"].transform("min").to_numpy(float)
+    return tr["ts"].to_numpy(float) > first
 
 
 def signals_from_batch(tr: pd.DataFrame, *, arm: str, batch_id: str, skill: pd.DataFrame, t0: float,
@@ -303,6 +339,8 @@ def signals_from_batch(tr: pd.DataFrame, *, arm: str, batch_id: str, skill: pd.D
     end = np.array([float(end_of.get(int(x), math.nan)) for x in ft["market_id"].to_numpy(np.int64)], float)
     eb = bucket(end - ft["receipt_ts"].to_numpy(float), m["end_edges_s"])
     ev = np.array([str(event_of.get(int(x), "")) for x in ft["market_id"].to_numpy(np.int64)], dtype=object)
+    ev = np.where(np.isin(ev, ["nan", "None"]), "", ev).astype(object)
+    pv = ft["prior_visible"].to_numpy(bool) if "prior_visible" in ft else np.zeros(len(ft), bool)
     sig_id = np.array([signal_key(arm, w, mk, ts, d, k, p, s) for w, mk, ts, d, k, p, s in zip(
         ft["wallet"], ft["market_id"], ft["ts"], ft["d"], ft["k"], ft["price"], ft["size"], strict=True)], dtype=object)
     pool = np.flatnonzero(~is_sk & np.array([k not in used_controls for k in keys], bool) & (pb >= 0) & (ab >= 0)
@@ -311,7 +349,7 @@ def signals_from_batch(tr: pd.DataFrame, *, arm: str, batch_id: str, skill: pd.D
     mk_arr = ft["market_id"].to_numpy(np.int64)
     cells: dict[tuple, list[int]] = {}
     for j in pool:
-        cells.setdefault((int(pb[j]), int(ab[j]), int(eb[j]), int(dd[j])), []).append(int(j))
+        cells.setdefault((int(pb[j]), int(ab[j]), int(eb[j]), int(dd[j]), bool(pv[j])), []).append(int(j))
     rows: list[dict] = []
 
     def row(i: int, role: str, parent: str, n_ctrl: float) -> dict:
@@ -326,7 +364,7 @@ def signals_from_batch(tr: pd.DataFrame, *, arm: str, batch_id: str, skill: pd.D
                 "trade_size": float(ft["size"].iat[i]), "trade_notional": float(price[i] * ft["size"].iat[i]),
                 "copy_token": k if d > 0 else 1 - k, "receipt_ts": float(ft["receipt_ts"].iat[i]), "age_s": float(age[i]),
                 "price_bucket": int(pb[i]), "age_bucket": int(ab[i]), "end_ts_origin": float(end[i]),
-                "end_bucket": int(eb[i]), "n_controls": n_ctrl}
+                "end_bucket": int(eb[i]), "prior_visible": int(pv[i]), "n_controls": n_ctrl}
 
     taken: set[int] = set()
     for i in np.flatnonzero(new_sk):
@@ -334,8 +372,8 @@ def signals_from_batch(tr: pd.DataFrame, *, arm: str, batch_id: str, skill: pd.D
         if pb[i] < 0 or ab[i] < 0 or eb[i] < 0:
             rows.append(row(i, "skilled", "", 0.0))
             continue
-        cand = [j for j in cells.get((int(pb[i]), int(ab[i]), int(eb[i]), int(dd[i])), [])
-                if j not in taken and mk_arr[j] != mk_arr[i] and (ev[j] == "" or ev[j] != ev[i])]
+        cand = [j for j in cells.get((int(pb[i]), int(ab[i]), int(eb[i]), int(dd[i]), bool(pv[i])), [])
+                if j not in taken and mk_arr[j] != mk_arr[i] and ev[j] != "" and ev[j] != ev[i]]
         cand.sort(key=lambda j: _rank_key(sig_id[i], sig_id[j]))
         pick = cand[: int(m["n_controls"])]
         rows.append(row(i, "skilled", "", float(len(pick))))
@@ -403,8 +441,10 @@ def load_sample_batch(sdir: Path, last_sent: dict[int, float]) -> tuple[pd.DataF
     counts["rows"] = int(len(raw))
     cond = raw[["market_id", "condition_id"]].drop_duplicates("market_id").set_index("market_id")["condition_id"]
     tr = ws.normalise_trades(raw)
+    del raw  # the sample is ~240k rows: free the raw frame before the receipt / flag columns are added
     tr["condition_id"] = cond.reindex(tr["market_id"].to_numpy()).to_numpy()
     tr["receipt_ts"] = tr["market_id"].map(rec).astype(float)
+    tr["prior_visible"] = prior_visible_flag(tr)  # from the raw rows, BEFORE the seen-before filter
     nr = ~np.isfinite(tr["receipt_ts"].to_numpy(float))
     counts["no_receipt"] = int(nr.sum())
     prev = tr["market_id"].map(last_sent).fillna(-np.inf).to_numpy(float)
@@ -434,6 +474,7 @@ def load_print_batch(lines: list[dict]) -> pd.DataFrame:
     tr = ws.normalise_trades(raw)  # drops nothing more: same mask
     tr["condition_id"] = df["condition_id"].astype(str).to_numpy()
     tr["receipt_ts"] = pd.to_numeric(df["recv_ts"], errors="coerce").to_numpy(float)
+    tr["prior_visible"] = prior_visible_flag(tr)
     tr["event_hint"] = df["ctx_event_id"].astype(str).to_numpy() if "ctx_event_id" in df else ""
     tr["end_hint"] = pd.to_numeric(df["ctx_end_ts"], errors="coerce").to_numpy(float) if "ctx_end_ts" in df else math.nan
     return tr.reset_index(drop=True)
@@ -574,30 +615,35 @@ def entries_for_capture(cap: dict, rows: pd.DataFrame, pending: pd.DataFrame) ->
 
 def pending_items(signals: pd.DataFrame, entries: pd.DataFrame, latencies: Iterable[float], exit_h: float,
                   primary_l: float) -> pd.DataFrame:
-    """Entries not yet recorded (every signal x latency) plus fixed-horizon exits of recorded two-sided primary entries."""
+    """Entries not yet recorded (every signal x latency) plus fixed-horizon exits of recorded two-sided primary entries.
+
+    Only the pending rows are ever materialised (per latency: signals without that entry; exits: recorded two-sided
+    primary entries without an exit), so the pass memory stays flat as the stores grow."""
     cols = ["signal_id", "kind", "latency_s", "due_ts", "market_id"]
     if not len(signals):
         return pd.DataFrame(columns=cols)
     lat = [float(x) for x in latencies]
     s = signals[["signal_id", "market_id", "receipt_ts"]].drop_duplicates("signal_id")
-    ent = pd.concat([s.assign(kind="entry", latency_s=L, due_ts=s["receipt_ts"].to_numpy(float) + L) for L in lat],
-                    ignore_index=True)
-    done = set()
-    ex_rows = []
-    if len(entries):
-        e = entries
-        done = set(zip(e["signal_id"], e["kind"], e["latency_s"].astype(float), strict=True))
-        pe = e[(e["kind"] == "entry") & (e["latency_s"].astype(float) == float(primary_l)) & (e["status"] == "two_sided")]
+    have = len(entries) > 0
+    if have:
+        e_lat = entries["latency_s"].astype(float).to_numpy()
+        is_entry, is_exit = (entries["kind"] == "entry").to_numpy(), (entries["kind"] == "exit").to_numpy()
+    parts = []
+    for L in lat:
+        miss = s if not have else s[~s["signal_id"].isin(entries["signal_id"][is_entry & (e_lat == L)])]
+        parts.append(pd.DataFrame({"signal_id": miss["signal_id"].to_numpy(), "kind": "entry", "latency_s": L,
+                                   "due_ts": miss["receipt_ts"].to_numpy(float) + L, "market_id": miss["market_id"].to_numpy()}))
+    if have:
+        pm = is_entry & (e_lat == float(primary_l)) & (entries["status"] == "two_sided").to_numpy()
+        pe = entries[pm]
+        pe = pe[~pe["signal_id"].isin(entries["signal_id"][is_exit & (e_lat == float(primary_l))])]
         if len(pe):
             mk = s.set_index("signal_id")["market_id"]
-            ex_rows = pd.DataFrame({"signal_id": pe["signal_id"].to_numpy(), "kind": "exit", "latency_s": float(primary_l),
-                                    "due_ts": pe["row_received_ts"].to_numpy(float) + exit_h,
-                                    "market_id": mk.reindex(pe["signal_id"].to_numpy()).to_numpy()})
-    allp = pd.concat([ent[cols], ex_rows] if len(ex_rows) else [ent[cols]], ignore_index=True)
-    if done:
-        key = list(zip(allp["signal_id"], allp["kind"], allp["latency_s"].astype(float), strict=True))
-        allp = allp[[k not in done for k in key]]
-    return allp.reset_index(drop=True)
+            parts.append(pd.DataFrame({"signal_id": pe["signal_id"].to_numpy(), "kind": "exit", "latency_s": float(primary_l),
+                                       "due_ts": pe["row_received_ts"].to_numpy(float) + exit_h,
+                                       "market_id": mk.reindex(pe["signal_id"].to_numpy()).to_numpy()}))
+    parts = [x for x in parts if len(x)]
+    return pd.concat(parts, ignore_index=True)[cols] if parts else pd.DataFrame(columns=cols)
 
 
 # --- stores -------------------------------------------------------------------------------------------------------------
@@ -608,7 +654,8 @@ def read_store(root: Path, sub: str, usecols: list[str] | None = None) -> pd.Dat
     files = sorted((Path(root) / sub).glob("*.csv.gz"))
     want = None if usecols is None else set(usecols)
     frames = [pd.read_csv(f, dtype={"wallet": str, "event_id": str, "condition_id": str, "signal_id": str,
-                                    "parent_id": str, "capture_id": str, "batch_id": str, "fee_category": str},
+                                    "parent_id": str, "capture_id": str, "batch_id": str, "fee_category": str,
+                                    "spec_sha": str, "code_sha": str, "code_commit": str, "state": str, "uma_status": str},
                           float_precision="round_trip", usecols=None if want is None else (lambda c: c in want))
               for f in files if f.stat().st_size > 0]
     frames = [f for f in frames if len(f)]
@@ -784,9 +831,15 @@ def _run_locked(*, root: Path, snapshot_root: Path, sample_root: Path, prints_ro
             work += 1
         h += 3600
     # 3. entries / exits per complete capture, in order, once every batch that could feed it is processed
+    signals_all = sig_keys = ctl_keys = None  # release the step-1 key sets before the (larger) step-3 reads
     signals_all = read_store(root, "signals", ["signal_id", "market_id", "receipt_ts"])
     entries = read_store(root, "entries", ["signal_id", "kind", "latency_s", "status", "row_received_ts"])
     blocked_from = _first_unprocessed_batch(root, sample_root, t0, t_end, now, st)
+    pend = pending_items(signals_all, entries, lat, exit_h, float(spec["primary_latency_s"]))
+    signals_all = entries = None  # the pending list is maintained incrementally below (flat memory per capture)
+    if not exits and len(pend):
+        pend = pend[pend["kind"] == "entry"]
+    primary_l = float(spec["primary_latency_s"])
     for cap in scan_captures(snapshot_root, t0):
         if work >= max_items:
             break
@@ -794,20 +847,25 @@ def _run_locked(*, root: Path, snapshot_root: Path, sample_root: Path, prints_ro
             continue
         if cap["start"] >= blocked_from or cap["start"] >= capture_hi:
             break
-        pend = pending_items(signals_all, entries, lat, exit_h, float(spec["primary_latency_s"]))
-        if not exits and len(pend):
-            pend = pend[pend["kind"] == "entry"]
-        due = pend[pend["due_ts"].to_numpy(float) <= cap["start"]] if len(pend) else pend
+        is_due = pend["due_ts"].to_numpy(float) <= cap["start"] if len(pend) else np.zeros(0, bool)
+        due = pend[is_due] if len(pend) else pend
         rows = load_capture(cap["dir"], due["market_id"].unique()) if len(due) else pd.DataFrame()
         ent = entries_for_capture(cap, rows, due) if len(due) else pd.DataFrame(columns=ENTRY_COLS[:-3])
         write_once_csv(root / "entries" / f"{cap['id']}.csv.gz", stamp(ent, spec, commit, now, role_col=None))
-        if len(ent):
-            entries = pd.concat([entries, ent], ignore_index=True) if len(entries) else ent
+        if len(ent):  # every due item got a line: it leaves the pending list; a two-sided primary entry adds its exit
+            pend = pend[~is_due]
+            if exits:
+                pe = ent[(ent["kind"] == "entry") & (ent["latency_s"].astype(float) == primary_l) & (ent["status"] == "two_sided")]
+                if len(pe):
+                    mk = due.drop_duplicates("signal_id").set_index("signal_id")["market_id"]
+                    pend = pd.concat([pend, pd.DataFrame({
+                        "signal_id": pe["signal_id"].to_numpy(), "kind": "exit", "latency_s": primary_l,
+                        "due_ts": pe["row_received_ts"].to_numpy(float) + exit_h,
+                        "market_id": mk.reindex(pe["signal_id"].to_numpy()).to_numpy()})], ignore_index=True)
         stats["captures"] += 1
         stats["entries"] += int(len(ent))
         work += 1
     st.save()
-    pend = pending_items(signals_all, entries, lat, exit_h, float(spec["primary_latency_s"]))
     closed = now >= t_end + max(lat) + exit_h + 6 * 3600 and len(pend) == 0
     stats["pending"] = int(len(pend))
     stats["closed"] = bool(closed)
@@ -909,23 +967,32 @@ def label_resolutions(*, root: Path = OUT_ROOT, spec: dict | None = None, transp
     if now >= epoch(spec["label_cutoff_utc"]) + 86400:
         log("COPY_SKILLED_LABELS_CLOSED")
         return {"closed": True}
-    sig = read_store(root, "signals")
+    sig = read_store(root, "signals", ["signal_id", "market_id"])
     if not len(sig):
         return {"tempfail": True, "reason": "no_signals"}
-    res = read_store(root, "resolutions")
+    res = read_store(root, "resolutions", ["market_id", "state"])
     final = set(res.loc[res["state"].isin(["resolved", "split_50_50"]), "market_id"].astype(int)) if len(res) else set()
     st = State(root)
     chk = st.d["label_checked"]
     todo = sorted({int(x) for x in sig["market_id"].astype(np.int64)} - final)
     todo = [m for m in todo if now - float(chk.get(str(m), -math.inf)) >= recheck_s]
-    # markets whose latest recorded Gamma end date is more than a day ahead are not asked yet (load control; a market
-    # with no recorded end date is asked); markets past their end date go first
-    ent = read_store(root, "entries")
+    n_due = len(todo)
+    # Until 7 days before the label cutoff, markets whose latest recorded Gamma end date is more than a day ahead are not
+    # asked yet (load control; a market with no recorded end date is asked); markets past their end date go first. The
+    # gate cannot change a label (it only delays a request), and it is OFF from cutoff - 7 d so that a later end-date
+    # extension can never hold an early-resolved market back past the cutoff: every due market is then asked.
+    gate_on = now < epoch(spec["label_cutoff_utc"]) - 7 * 86400
     end_of: dict[int, float] = {}
+    ent = read_store(root, "entries", ["signal_id", "end_ts"])  # end dates also order the requests (past-end first)
     if len(ent) and "end_ts" in ent:
-        e = ent[["signal_id", "end_ts"]].merge(sig[["signal_id", "market_id"]], on="signal_id")
-        end_of = e.groupby("market_id")["end_ts"].max().dropna().astype(float).to_dict()
-    todo = [m for m in todo if end_of.get(m, -math.inf) <= now + 86400]
+        mk = ent["signal_id"].map(sig.drop_duplicates("signal_id").set_index("signal_id")["market_id"])
+        end_of = {int(k): float(v) for k, v in ent["end_ts"].astype(float).groupby(mk).max().dropna().items()}
+    del ent
+    n_gated = 0
+    if gate_on:
+        kept = [m for m in todo if end_of.get(m, -math.inf) <= now + 86400]
+        n_gated = len(todo) - len(kept)
+        todo = kept
     todo.sort(key=lambda m: (end_of.get(m, now), m))
     get = transport or httpx_transport()
     rows, n_req = [], 0
@@ -956,7 +1023,10 @@ def label_resolutions(*, root: Path = OUT_ROOT, spec: dict | None = None, transp
         df["spec_sha"] = spec["_sha256"][:16]
         df["code_sha"] = reader_sha()
         write_once_csv(root / "resolutions" / f"{datetime.fromtimestamp(now, UTC).strftime('%Y%m%dT%H%M%S')}.csv.gz", df)
-    out = {"asked": sum(1 for _ in todo[: n_req * batch]), "requests": n_req, "final_new": len(rows), "final_total": len(final) + len(rows)}
+    asked = min(len(todo), n_req * batch)
+    out = {"asked": asked, "requests": n_req, "final_new": len(rows), "final_total": len(final) + len(rows),
+           "due": n_due, "gated": n_gated, "due_unasked": n_due - asked, "gate_on": bool(gate_on)}
+    append_jsonl(root / "passes.jsonl", [{"kind": "label_pass", **out, "at": iso(now)}])
     log(json.dumps(out))
     return out
 

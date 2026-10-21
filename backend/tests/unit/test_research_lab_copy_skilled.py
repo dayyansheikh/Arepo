@@ -485,7 +485,7 @@ def test_mde_monotone():
 # --- end-to-end analysis on a synthetic store -----------------------------------------------------------------------------
 
 
-def synthetic_store(root: Path, sp: dict, n: int = 900, edge_sk: float = 0.08, seed: int = 5) -> None:
+def synthetic_store(root: Path, sp: dict, n: int = 900, edge_sk: float = 0.08, seed: int = 5, code: str = "x") -> None:
     rng = np.random.default_rng(seed)
     rows, ents, res = [], [], []
     for i in range(n):
@@ -497,18 +497,19 @@ def synthetic_store(root: Path, sp: dict, n: int = 900, edge_sk: float = 0.08, s
                      "condition_id": "", "event_id": f"e{i % 400}", "wallet": f"w{i % 150}", "skill_score": rng.uniform(1, 4),
                      "skill_n_pos": 10, "trade_ts": r - 3600, "side": 1, "outcome_index": 0, "trade_price": p, "trade_size": 10,
                      "trade_notional": 10 * p, "copy_token": 0, "receipt_ts": r, "age_s": 3600, "price_bucket": 3, "age_bucket": 1,
-                     "n_controls": 1, "evidence_role": cs.ROLE_CONF, "spec_sha": sp["_sha256"][:16], "code_sha": "x"})
+                     "n_controls": 1, "evidence_role": cs.ROLE_CONF, "spec_sha": sp["_sha256"][:16], "code_sha": code})
         ents.append({"signal_id": sid, "kind": "entry", "latency_s": 0.0, "due_ts": r, "capture_id": "c", "capture_start_ts": r + 3600,
                      "row_received_ts": r + 3605, "status": "two_sided", "best_bid": p - 0.01, "best_ask": p + 0.01, "spread": 0.02,
                      "last_trade_price": p, "liquidity": 50000.0, "volume24hr": 1, "end_ts": r + 5 * 86400, "event_id": f"e{i % 400}",
-                     "fee_category": "politics", "fees_enabled": "1", "fee_schedule_rate": 0.04, "fee_exponent": 1})
-        res.append({"market_id": m, "fetched_ts": r + 6 * 86400, "state": "resolved",
+                     "fee_category": "politics", "fees_enabled": "1", "fee_schedule_rate": 0.04, "fee_exponent": 1,
+                     "spec_sha": sp["_sha256"][:16], "code_sha": code})
+        res.append({"market_id": m, "fetched_ts": r + 6 * 86400, "state": "resolved", "spec_sha": sp["_sha256"][:16], "code_sha": code,
                     "pay0": float(rng.uniform() < min(1, p + edge_sk))})
         cid, cm = f"c{i}", 50000 + i
         rows.append({**rows[-1], "signal_id": cid, "role": "control", "parent_id": sid, "market_id": cm, "wallet": f"n{i}",
                      "event_id": f"f{i}", "n_controls": np.nan})
         ents.append({**ents[-1], "signal_id": cid, "event_id": f"f{i}"})
-        res.append({"market_id": cm, "fetched_ts": r + 6 * 86400, "state": "resolved", "pay0": float(rng.uniform() < p)})
+        res.append({"market_id": cm, "fetched_ts": r + 6 * 86400, "state": "resolved", "spec_sha": sp["_sha256"][:16], "code_sha": code, "pay0": float(rng.uniform() < p)})
     cs.write_once_csv(root / "signals" / "b.csv.gz", pd.DataFrame(rows))
     cs.write_once_csv(root / "entries" / "c.csv.gz", pd.DataFrame(ents))
     cs.write_once_csv(root / "resolutions" / "r.csv.gz", pd.DataFrame(res))
@@ -592,7 +593,15 @@ def test_queue_drafts_valid():
         assert j["resources"]["lane"] in ("cpu", "net")
         if j["resources"]["lane"] == "net":
             assert j["resources"]["mem_mb"] < 500  # blackout exemption, never blocks the cpu lane
-    assert json.loads((repo / "docs/research_lab/queue/drafts/q0543_copy_analyze.json").read_text())["not_before"] == cs.ANALYSIS_NOT_BEFORE
+    dr = {p.stem[:5]: json.loads(p.read_text()) for p in drafts}
+    assert dr["q0543"]["not_before"] == cs.ANALYSIS_NOT_BEFORE
+    assert dr["q0541"]["not_before"] == cs.REGISTERED_UTC  # collectors cannot fail before the window opens
+    assert cs.epoch(dr["q0542"]["not_before"]) == cs.epoch(cs.REGISTERED_UTC) + 6 * 3600
+    a3 = dr["q0543"]["argv"]  # the registered run appends its (well-formed even with no data) trials line
+    assert a3[a3.index("--trials") + 1] == "../docs/research_lab/trials.jsonl" and "worktree" in dr["q0543"]["notes"]
+    assert "re-promote" in dr["q0541"]["notes"] and "re-promote" in dr["q0542"]["notes"]
+    for k in ("q0541", "q0542", "q0543"):  # memory sizing was measured on a synthetic store of about 7.5x the census size
+        assert "measured" in dr[k]["notes"] and dr[k]["resources"]["mem_mb"] > 0
     cen = json.loads(next(p for p in drafts if p.stem == "q0544_copy_census").read_text())
     a = cen["argv"]
     assert a[1] == "census" and "--out" in a and cen["resources"]["network"] == "none"
@@ -770,3 +779,216 @@ def test_census_work_dir_marker(tmp_path):
     other.mkdir()
     (other / "keep.txt").write_text("x")
     assert not rc.prepare_work(other) and (other / "keep.txt").read_text() == "x"
+
+
+# --- challenger R1 fixes (E026_CHALLENGER_R1_2026-10-21.md) -------------------------------------------------------------------
+
+
+def test_negative_verdict_uses_widest_upper_bound():
+    r = {"est": 0.0, "ci95_boot": [-0.05, 0.02], "ci95_upper": 0.05}
+    assert ca.verdict(r, 0.9, 0.03, True) == "Inconclusive"  # the bootstrap alone would say "Not supported"
+    assert ca.verdict({**r, "ci95_upper": 0.025}, 0.9, 0.03, True).startswith("Not supported")
+    assert ca.verdict({"est": 0.0, "ci95_boot": [-0.05, 0.02]}, 0.9, 0.03, True).startswith("Not supported")  # fallback
+    rng = np.random.default_rng(2)
+    p = rng.uniform(0.3, 0.7, 600)
+    ev = np.repeat(np.arange(60), 10).astype(str)
+    y = np.repeat((rng.uniform(size=60) < 0.5).astype(float), 10)
+    w = rng.integers(0, 15, 600).astype(str)
+    out = ca.ratio_stats(y - p, p, ev, w, B=299)
+    t = ca.sps.t.ppf(0.975, 59)
+    want = max(out["ci95_boot"][1], out["est"] + t * out["se_event"], out["est"] + ca.sps.t.ppf(0.975, min(60, out["wallet_clusters"]) - 1) * out["se_twoway"])
+    assert out["ci95_upper"] == pytest.approx(want) and out["ci95_upper"] >= out["ci95_boot"][1]
+
+
+def _pairs(rng, n, ctl_events, share_outcome):
+    """n pairs with 3 controls each; control events drawn from ``ctl_events``; controls of one event share an outcome draw."""
+    ev_y = {e: float(rng.uniform() < 0.5) for e in range(ctl_events)}
+    rows, ctl = [], []
+    for i in range(n):
+        pr = rng.uniform(0.3, 0.7)
+        y = float(rng.uniform() < pr)
+        rows.append({"signal_id": f"s{i}", "net_ps": y - pr, "stake_ps": pr, "cluster": f"e{i}", "wallet": f"w{i % 40}"})
+        nets, stakes = [], []
+        for _ in range(3):
+            e = int(rng.integers(0, ctl_events))
+            pc = 0.5
+            yc = ev_y[e] if share_outcome else float(rng.uniform() < pc)
+            nets.append(yc - pc)
+            stakes.append(pc)
+            ctl.append({"parent_id": f"s{i}", "cluster": f"x{e}", "net_ps": yc - pc, "stake_ps": pc})
+        rows[-1].update(net_c=float(np.mean(nets)), stake_c=float(np.mean(stakes)), n_c=3)
+    return pd.DataFrame(rows), pd.DataFrame(ctl)
+
+
+def test_control_side_event_dependence_inflates_se():
+    rng = np.random.default_rng(4)
+    p, ctl = _pairs(rng, 600, 6, True)  # 600 pairs, every control drawn from one of 6 big events with a shared outcome
+    plain = ca.diff_stats(p, B=299)
+    comb = ca.diff_stats(p, B=299, ctl=ctl)
+    assert comb["se_event_ctl"] > 2 * plain["se_event"] and comb["event_clusters_ctl"] <= 600 + 6
+    assert comb["p"] >= plain["p"] and comb["ci95_upper"] >= plain["ci95_upper"]
+    assert comb["est"] == pytest.approx(plain["est"])
+    # independent controls: the combined SE is of the same order as the skilled-event one (no spurious inflation)
+    p2, ctl2 = _pairs(rng, 600, 6, False)
+    a, b = ca.diff_stats(p2, B=99), ca.diff_stats(p2, B=99, ctl=ctl2)
+    assert b["se_event_ctl"] < 1.6 * a["se_event"]
+    # the combined score sums to the pair-level score: the plain and combined variances agree when controls are singletons
+    ctl3 = ctl2.assign(cluster=[f"u{i}" for i in range(len(ctl2))])
+    p3 = p2.assign(cluster=[f"u{i}" for i in range(len(p2))])
+    c3 = ca.diff_stats(p3, B=99, ctl=ctl3)
+    assert c3["se_event_ctl"] == pytest.approx(ca.diff_stats(p3, B=99)["se_event"], rel=0.05)
+
+
+def test_prior_visible_flag_and_matching_cell():
+    tr = trades([("A", 1, T0 + 1, 1, 0, 0.4, 1, T0 + 10), ("A", 1, T0 + 5, 1, 0, 0.4, 1, T0 + 10), ("B", 1, T0 + 5, 1, 0, 0.4, 1, T0 + 10),
+                 ("A", 2, T0 + 5, 1, 0, 0.4, 1, T0 + 10)])
+    assert list(cs.prior_visible_flag(tr)) == [False, True, False, False]
+    assert len(cs.prior_visible_flag(tr.iloc[0:0])) == 0
+    sk = skill_frame(["S1", "S2"], ["N1", "N2"])
+    r = T0 + 6 * H
+    rows = [("S1", 10, T0 + H, 1, 0, 0.40, 10, r), ("S2", 11, T0 + H, 1, 0, 0.40, 10, r),
+            ("N1", 20, T0 + H, 1, 0, 0.40, 10, r), ("N2", 21, T0 + H, 1, 0, 0.40, 10, r)]
+    t = trades(rows)
+    t["prior_visible"] = [False, True, False, True]  # S1 opens, S2 adds; N1 opens, N2 adds
+    ev = {10: "a", 11: "b", 20: "c", 21: "d"}
+    end = {m: r + 2 * 86400 for m in ev}
+    s = cs.signals_from_batch(t, arm="sidecar", batch_id="b", skill=sk, t0=T0, signalled=set(), used_controls=set(),
+                              event_of=ev, spec=spec(), end_of=end)
+    skl, ctl = s[s["role"] == "skilled"].set_index("market_id"), s[s["role"] == "control"].set_index("market_id")
+    assert skl.loc[10, "prior_visible"] == 0 and skl.loc[11, "prior_visible"] == 1
+    assert list(ctl["parent_id"]) == [skl.loc[10, "signal_id"], skl.loc[11, "signal_id"]]  # N1 -> S1, N2 -> S2 only
+    assert ctl.loc[20, "prior_visible"] == 0 and ctl.loc[21, "prior_visible"] == 1
+
+
+def test_sample_flag_computed_before_seen_before_filter(tmp_path):
+    # wallet A traded market 1 at T0+H (visible in an earlier sample) and again at T0+2H: only the second row survives the
+    # last_sent filter, but it is still flagged because the raw rows hold an earlier A trade in that market
+    sid = make_sample(tmp_path, T0 + 3 * H, "x", [("A", 1, T0 + H, "BUY", 0, 0.5, 1), ("A", 1, T0 + 2 * H, "BUY", 0, 0.5, 1),
+                                                  ("B", 1, T0 + 2 * H, "BUY", 0, 0.5, 1)], [1])
+    tr, _, cnt = cs.load_sample_batch(tmp_path / sid, {1: T0 + 1.5 * H})
+    assert cnt["seen_before"] == 1 and len(tr) == 2
+    f = dict(zip(tr["wallet"], tr["prior_visible"], strict=True))
+    assert f == {"A": True, "B": False}
+
+
+def test_control_with_empty_event_id_is_not_another_event():
+    sk = skill_frame(["S1"], ["N1"])
+    r = T0 + 2 * H
+    tr = trades([("S1", 10, T0 + H, 1, 0, 0.40, 10, r), ("N1", 11, T0 + H, 1, 0, 0.40, 10, r)])
+    base = dict(arm="sidecar", batch_id="b", skill=sk, t0=T0, spec=spec(), end_of={10: r + 2 * 86400, 11: r + 2 * 86400})
+    none = cs.signals_from_batch(tr, signalled=set(), used_controls=set(), event_of={10: "a"}, **base)
+    assert list(none["role"]) == ["skilled"]
+    ok = cs.signals_from_batch(tr, signalled=set(), used_controls=set(), event_of={10: "a", 11: "b"}, **base)
+    assert list(ok["role"]) == ["skilled", "control"]
+
+
+def test_load_spec_refuses_incomplete_pins(tmp_path):
+    src = json.loads(cs.SPEC_PATH.read_text())
+    path = tmp_path / "s.json"
+
+    def write(**kw):
+        path.write_text(json.dumps({**src, **kw}))
+        return cs.sha256_file(path)
+
+    full = dict(skillset_sha256="a" * 64, impact_table_sha256="b" * 64, code_sha256={f: "c" * 64 for f in cs.CODE_FILES})
+    assert cs.load_spec(path, write(**full))["_pinned"] is True
+    for kw, key in (({"skillset_sha256": None}, "skillset_sha256"), ({"impact_table_sha256": None}, "impact_table_sha256"),
+                    ({"code_sha256": {}}, "code_sha256"), ({"code_sha256": {"copy_skilled.py": "c" * 64}}, "code_sha256")):
+        sha = write(**{**full, **kw})
+        with pytest.raises(RuntimeError, match=key):
+            cs.load_spec(path, sha)
+    cs.load_spec(path, None)  # a DRAFT (no pin) loads whatever the fields
+
+
+def _pinned_spec(sp, **kw):
+    return {**sp, "_pinned": True, "code_sha256": cs.code_hashes(), "impact_table_sha256": ca.impact_table_sha256(),
+            "skillset_sha256": None, **kw}
+
+
+def test_analyze_pinned_filters_entries_and_resolutions_and_checks_impact_hash(tmp_path):
+    sp = spec()
+    synthetic_store(tmp_path, sp, code=cs.reader_sha())
+    pin = _pinned_spec(sp)
+    out = ca.analyze(tmp_path, spec=pin, force=True, B=99)
+    assert out["accounting"]["entries_dropped_role_or_pin"] == 0 and out["accounting"].get("resolutions_dropped_pin", 0) == 0
+    n_ok = out["accounting"]["resolved_in_universe"]
+    assert n_ok == 900
+    # entries and resolutions stamped by other code are ignored (their copies are missing / censored), like signals
+    other = tmp_path / "o"
+    synthetic_store(other, sp, code="deadbeefdeadbeef")
+    o = ca.analyze(other, spec=pin, force=True, B=99)
+    assert o.get("status") == "no_data" and o["accounting"]["signals_dropped_role_or_pin"] == 1800
+    # tamper only the resolutions of the good store
+    res = cs.read_store(tmp_path, "resolutions")
+    (tmp_path / "resolutions" / "r.csv.gz").unlink()
+    res.loc[res.index[::2], "code_sha"] = "0" * 16
+    cs.write_once_csv(tmp_path / "resolutions" / "r.csv.gz", res)
+    t = ca.analyze(tmp_path, spec=pin, force=True, B=99)
+    assert t["accounting"]["resolutions_dropped_pin"] > 0 and t["accounting"]["resolved_in_universe"] < n_ok
+    with pytest.raises(RuntimeError, match="impact table"):
+        ca.analyze(tmp_path, spec=_pinned_spec(sp, impact_table_sha256="0" * 64), force=True, B=99)
+    with pytest.raises(RuntimeError, match="code hash mismatch"):
+        ca.analyze(tmp_path, spec=_pinned_spec(sp, code_sha256={**cs.code_hashes(), "costs.py": "0" * 64}), force=True, B=99)
+
+
+def test_no_data_analysis_is_a_well_formed_two_test_family(tmp_path):
+    out = ca.analyze(tmp_path, spec=spec(), force=True, B=99)
+    assert out["status"] == "no_data" and out["E026-N"]["verdict"] == "Unavailable" and out["E026-C"]["verdict"] == "Unavailable"
+    assert out["holm"]["p_raw"] == {"E026-N": 1.0, "E026-C": 1.0} and out["holm"]["k"] == 2
+    tr = ca.trial_record(out)
+    from astrolabe.research_lab import battery2
+    assert tr["n_tests"] == 2 and battery2.count_line(tr) == ("copy_skilled", 2)
+    assert tr["verdicts"] == {"E026-N": "Unavailable", "E026-C": "Unavailable"}
+
+
+def test_pinned_files_hash_to_the_pins():
+    s = json.loads(cs.SPEC_PATH.read_text())
+    if not s.get("code_sha256"):
+        pytest.skip("DRAFT spec: the code / impact-table pins are filled at registration")
+    got = cs.code_hashes()  # copy_skilled.py, copy_skilled_analysis.py and the shared wallet_skill*, costs modules
+    assert {k: got[k] for k in cs.CODE_FILES} == {k: s["code_sha256"][k] for k in cs.CODE_FILES}
+    assert ca.impact_table_sha256() == s["impact_table_sha256"]
+
+
+def test_label_gate_off_from_cutoff_minus_7d_and_pass_record(tmp_path):
+    root = tmp_path / "out"
+    cs.write_once_csv(root / "signals" / "b1.csv.gz", pd.DataFrame({"signal_id": ["a", "b", "c"], "market_id": [10, 11, 12],
+                                                                    "arm": "sidecar", "role": "skilled"}))
+    ent = pd.DataFrame({"signal_id": ["a", "b"], "kind": "entry", "latency_s": 0.0, "end_ts": [T0, T0 + 90 * 86400]})
+    cs.write_once_csv(root / "entries" / "c1.csv.gz", ent)
+    sp = spec()
+    cut = cs.epoch(sp["label_cutoff_utc"])
+    calls = []
+
+    def fake(url, params):
+        calls.append({int(v) for k, v in params if k == "id"})
+        return 200, []
+
+    on = cs.label_resolutions(root=root, spec=sp, transport=fake, now=cut - 8 * 86400, sleep=lambda s: None, log=lambda s: None)
+    assert calls[0] == {10, 12} and on["gated"] == 1 and on["due"] == 3 and on["gate_on"] is True  # 11 ends in 90 days
+    off = cs.label_resolutions(root=root, spec=sp, transport=fake, now=cut - 6 * 86400, sleep=lambda s: None, log=lambda s: None)
+    assert off["gate_on"] is False and off["gated"] == 0 and calls[1] == {10, 11, 12}  # (not rechecked? 20 h passed)
+    recs = [json.loads(x) for x in (root / "passes.jsonl").read_text().splitlines()]
+    assert [r["kind"] for r in recs] == ["label_pass", "label_pass"] and recs[0]["gated"] == 1 and "due_unasked" in recs[1]
+
+
+def test_freeze_checks_and_manifest_expectations():
+    exp = {"eligible": 10, "skilled": 2, "max_known_ts_before_utc": "2026-10-18T04:00:00Z"}
+    ok = cs.freeze_checks(10, 2, cs.epoch("2026-10-18T03:00:00Z"), exp)
+    assert ok["refuse"] is False and ok["mismatch"] == []
+    bad = cs.freeze_checks(11, 3, cs.epoch("2026-10-18T04:00:00Z"), exp)
+    assert bad["refuse"] and set(bad["mismatch"]) == {"eligible", "skilled", "max_known_ts"}
+    assert cs.freeze_checks(5, 1, None, None)["refuse"] is False  # no expectation: recorded only
+    sp = json.loads(cs.SPEC_PATH.read_text())["skill"]["expected"]
+    assert sp["eligible"] == 35587 and sp["skilled"] == 3559 and sp["max_known_ts_before_utc"] == "2026-10-18T04:00:00Z"
+
+
+def test_pending_items_exits_and_done_keys():
+    sig = pd.DataFrame({"signal_id": ["a", "b"], "market_id": [1, 2], "receipt_ts": [T0, T0 + 5]})
+    ent = pd.DataFrame({"signal_id": ["a", "a", "b"], "kind": ["entry", "entry", "entry"], "latency_s": [0.0, 6 * H, 0.0],
+                        "status": ["two_sided", "absent", "one_sided"], "row_received_ts": [T0 + 100, np.nan, T0 + 200]})
+    p = cs.pending_items(sig, ent, [0, 6 * H], 24 * H, 0)
+    got = {(r.signal_id, r.kind, r.latency_s) for r in p.itertuples()}
+    assert got == {("b", "entry", 6 * H), ("a", "exit", 0.0)}  # b's one-sided entry has no exit; a's 6 h entry is done
+    assert float(p[p["kind"] == "exit"]["due_ts"].iat[0]) == T0 + 100 + 24 * H
+    assert int(p[p["kind"] == "exit"]["market_id"].iat[0]) == 1
