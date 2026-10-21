@@ -230,32 +230,25 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-21 03:45Z
-0. **Autopilot session from 03:32Z 10-21** (the interactive session hit the usage limit ~00:00Z; its helpers for the board v2,
-   MC1 unblock, wallet family and copy-skilled design died mid-task).
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-21 08:50Z
+0. **Autopilot session from 08:43Z 10-21.**
    - **Deploy only from `chore/arepo-claude-setup`**; check `ssh oracle 'cd ~/arepo && git log --oneline -1'` = local tip.
-   - **Queue worker fix (0b00ced2, deployed):** a blackout-held job no longer blocks a lower-priority exempt job (q0413 had
-     held q0460 since 00:00Z); q0460 (LT2 collector) started 03:36Z and is productive.
-   - **LT3 = E015 only, k = 1** (§13.14-§13.16): pre-pin review PIN_OK_WITH_FIXES -> fixes merged 6c51901c (analysis only
-     `k_tests`; surge/flow collection off) -> verification FIXES_OK_WITH_NOTES. New hashes live_tests3.py 3ac52d79…,
-     analysis 224b5603…. Binding for the pin (§13.15): perm_iid/perm_persistent/perm_corr_control only. q0474 (old code)
-     running; **q0475_lt3_size_check_r3** queued (perm_* must equal q0474 exactly; any difference = investigate). Host dry
-     run (13.4) agent running. Then pins (code_sha256 map, SPEC_SHA256), ledger registration commit **before
-     2026-10-23T00:00Z** (REGISTERED_UTC 10-24), install the §13.4 cron (never also the fallback job).
-   - **Copy-skilled (E026, feat/copy-skilled, worktree ../astrolabe-copy-skilled):** WIP code recovered; design agent
-     restarted (LIVE_TESTS_COPY.md). Owner phone notes at design done / review verdict / registration / collection start /
-     weekly counts / result (`scripts/arepo_notify.py send --type milestone`).
-   - **MC1:** memory fix merged (9e6d5596; value-identical streamed read-back; archived-sidecar discovery rule).
-     **q0116e** promoted (exclusive, priority 95, max_retries 0): starts after q0474. **If not started by 2026-10-21T16:00Z,
-     park it** (its peak must not overlap LT2's window from 10-22T00Z).
-   - **Queue worker (d6513058):** light jobs (mem_mb < 500) are exempt from exclusive runs/drains (live collectors).
-   - **Signal engine feed:** `signal_engine/CANDIDATES.md` (fac79183), 12 candidates; keep it current.
+   - **LT3 = E015 only, k = 1.** Host dry run (§13.4) DONE and recorded (§13.17, ledger; peak RSS 534 MB, max wall 13 min).
+     **q0475_lt3_size_check_r3** running (ETA ~10:40Z): its `perm_iid/perm_persistent/perm_corr_control` must equal
+     q0474's (`live_tests3_census/size_check_r2.json`) exactly (§13.15); any difference = investigate. Then a
+     science-reviewer freeze check, pins (`code_sha256` map, `SPEC_SHA256`), ledger registration commit **before
+     2026-10-23T00:00Z**, install the §13.4 cron (never also the fallback job q0474_lt3_live_collect draft).
+   - **MC1:** q0116e OOM-killed 07:10Z (4.93 GB). Not retried on this host; waits for the second instance or an
+     owner-approved free resize (dashboard approval 7).
+   - **Helpers launched this session (worktrees):** E026 copy-skilled finisher (`../astrolabe-copy-skilled`); CB18 census code
+     (`../astrolabe-cb18`); LT5 design draft (`../astrolabe-live-tests-5`); queue-draft vetting (q0280, q0347, q0380, CB11/12/14
+     drafts) in the main worktree. Merge each after review; owner phone note at E026 design done.
+   - **Copy-skilled (E026):** owner phone notes at design done / review verdict / registration / collection start / weekly
+     counts / result (`scripts/arepo_notify.py send --type milestone`).
    - **LT2 (E012-E014) REGISTERED:** q0460 running (repeat); q0461 after 11-13T12Z. No interim looks.
-   - **LT4 (E020-E022):** q0480 restore -> q0482 CQ/CH census; q0471 + q0480 -> q0483 CF census. q0484 size check only after
-     LT3's registration commit is merged and the LT4 code freeze is recorded.
-   - **CB14-W:** q0305 (with `--audit`) waits for the cpu lane; it will record GWC FAIL -> W1, W2 not testable, counted.
-   - **CB17:** q0413 restore -> q0404 smoke (exact P1-P3). After PASS: record acceptance; q0405 needs q0380's manifest sha.
-   - **Also queued:** q0278 (CB13 touch prices) -> q0280/q0281/q0282; q0340 (CB15 keys) -> q0347 -> q0380.
+   - **LT4 (E020-E022):** q0482 CQ/CH census; q0483 CF census. q0484 size check only after LT3's registration commit is
+     merged and the LT4 code freeze is recorded.
+   - **CB17:** q0404 smoke queued (q0413 done). After PASS: record acceptance; q0405 needs q0380's manifest sha.
 1. **CB8-H:** q0162/q0163 wait on spec `not_before` (10-21T06Z / 10-22T12Z). **CB8-B:** q0161/q0164 after T_seal; before
    promoting q0164 run the two `derive-exclusion-ids` commands in its draft notes on the host and fill both sha256 tokens.
 2. **CB9:** data jobs q0181+ only after T_seal 2026-10-22T00Z; q0182 needs the pinned q0164 hash. **CB10:** q0201 needs
