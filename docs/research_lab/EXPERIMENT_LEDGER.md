@@ -2905,3 +2905,19 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **Held, with reasons:** q0233/q0234 (CB11 P/A freeze part not committed; census already failed GP/GPP and GA/GA0);
   q0312 (CB14-S terminal after the q0301 smoke failure); q0040b (not before 10-23); q0235, q0256, q0258 (rep stages not
   triggered: their screens gave advance false).
+
+## CB18 census code: fixes verified, census jobs promoted, 2026-10-21 ~09:20Z (nothing counted)
+- Code check (science-reviewer) CENSUS_READY_WITH_FIXES (`reviews/CB18_CENSUS_CODE_CHECK_2026-10-21.md`). The eight
+  fixes are in 1442bb27: capture time over all rows; unknown category, missing stamp and missing receipt fail closed
+  and are counted; routing checks the hashes; map M exits use no later information. CREATIVE_BATCH_18.md §13 holds the
+  interpretation notes, committed 09:59 +0100, before any census. Rules part `pre` is unchanged (e5b9c645…). Verification:
+  **FIXES_OK_WITH_NOTES**, 51 tests pass. No CB18 output and no `creative_batch_18` trials line existed on the host or
+  locally.
+- **Notes carried forward (disclosure):**
+  - (1) the sealed helper `cb18_rules_pre.book_untouched` still fails open on a NaN outcome-1 stamp. The census does not
+    use it; later S and window code must not reuse it unchanged.
+  - (2) map M counts a re-appearance once per market, and a re-appeared market is no longer tracked, so it never
+    appears in `still_listed_at_end` / `undetermined`.
+  - (3) an empty `fee_type` counts as a known category (same as F).
+- **Promoted:** q0502 (S), q0503 (P), q0504 (R), q0505 (F), q0506 (map), behind restores q0500/q0501. Then the
+  orchestrator runs `run_cb18.py routing`. Real-data memory is not measured (declared 300-390 MB); watch q0502.
