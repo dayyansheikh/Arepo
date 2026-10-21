@@ -3371,3 +3371,10 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   (sha256 2c9e2a9e… verified on the host; CF.json 55f01ced… verified). Fixes being applied. Nothing counted.
 - (~19:33Z, ops) q0502 CB18 census S died "out of memory" in the pandas tokenizer under the 2 x 380 MB address cap:
   mem_mb 600, as_cap_mb 2400, retried (resource only). q0503 (P) and q0504 (R map) done; q0505 (F) running.
+- (~19:50Z) **LT4 code freeze recorded** (`LIVE_TESTS_4.md` section 19; code 0e8bbe13, host runs it): five normalised
+  module hashes, spec sha256 99899392… before the registration pin, census shas, orchestrator check of spec vs CQCH.json
+  (equal). Host reader dry run (scratch, pre-window captures, no confirmation line): peak RSS 484 MB per capture, 525 MB
+  for a six-capture catch-up, exit 0 under `ulimit -v 983040`; the 400 MB of 9.2 was a target; cron gets
+  `ulimit -v 1572864` for margin (operational). Install route: host cron `10-59/20` at registration; q0485 fallback only.
+  **q0484 size check promoted** (not_before 2026-10-22T04:00Z, after the resize and LT5's q0561; priority 97; mem 800;
+  one run, seed 20261107, E022's two scenarios with block2 strata, criterion <= 0.058). Nothing counted.

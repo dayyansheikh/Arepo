@@ -941,4 +941,34 @@ Rulings (k_tests = [E022]; no criterion, threshold, world parameter, draw count,
 - **Disclosure:** consecutive-pass c_sw targets share an endpoint (MA(1)-type dependence); this is not simulated.
 - **Fixes applied:** (1) HIGH: the size check now permutes within the strata of the spec's `e022.perm_stratum` (block2) through `strata_of`, the registered gate's path, on worlds given a two-day block column (`with_block`, LT4 code; LT3 generators untouched); test `test_size_check_and_gate_fl_use_identical_strata`. (2) Stale text: spec `size_check.rule`, q0484 (branch and section references), q0485/q0486 (E022 only, k = 1, design reviewed), sections 0 and 15 notes. (3) This section.
 
-Placeholders to fill at the freeze: host dry-run peak RSS TBD; install route TBD; final code hashes TBD; spec sha TBD; host commit TBD.
+**Freeze record (orchestrator, 2026-10-21 ~19:50Z).**
+- Code commit `0e8bbe13` (deployed; the host runs `0e8bbe1311f3`). Normalised `code_hashes()` (five `CODE_FILES`):
+  `live_tests4.py` c92ffe93fd2db8482e1619cb7356462874ad50040ebe7d3e1a87dc1ccfb4f91c;
+  `live_tests4_analysis.py` c31117ac6ee9caff9831e1e37d9d641b2f38e2170b62c4fd306b523e99a0ee75;
+  `live_tests3.py` 3ac52d7959e56c6a5472a34d112c61ca643c7f35ebe77b87388b5cba9c7b8c65;
+  `live_tests3_analysis.py` 224b56036f98a2cfe3f92ffb6778e80c6b1131223cf20a0f548ca95fffaec955;
+  `bounce_decomp.py` 2caf0edc73fbac5b27054589afa495a2cf6844886e41a2f8eced5d9796a34c8a.
+  `run_live_tests4.py` (not in `CODE_FILES`) raw sha256 6aaddaed420f04c5d5df08846d731146d23b8abdd6c113e05d052fa6c02d07cf.
+- Spec `live_tests4_v1.json` before the registration pin: sha256 9989939271a835f3a0aaf8fcb6249c8b7e7c9b5de29f8b0464e0906ebdff26fe
+  (the registration commit adds `REGISTERED_UTC`, `SPEC_SHA256` and the `code_sha256` map; nothing else may change).
+- Census outputs: `CQCH.json` 2c9e2a9eaac48058e1ea5680bac8a4c9e8e790ca8eca75155d470fd9bc87e891, `CF.json`
+  55f01ced1aac2bc1417b1869691f62545249ad6099b47ec6f63da1b94b4c847f (both re-hashed on the host). The census code
+  (`census_ch`, `census_captures`) is unchanged since the censuses ran. The orchestrator checked the spec's E022 values
+  against `CQCH.json`: zh centre 0.7250371409466936 / scale 0.31414282818425204, h cuts 0.7296332672950675 /
+  0.9344107073259192, gap 1.983187115889375, depth_def token0 (`superset_share.both` NaN, token0 0.913), perm stratum
+  block2 (0.599), exclude_family "" (top family 0.024): all equal.
+- **Host dry run** (2026-10-21 ~19:36-19:42Z, scratch roots under /tmp, deleted afterwards; captures 10-21 12:31Z-18:31Z,
+  pre-window; `kinds_off` clock, move; no confirmation line written): six captures in one run peak RSS 524,656 kB
+  (4 min 36 s); one capture per run 484,004 kB and 268,976 kB. All under `ulimit -v 983040`, exit 0. The 400 MB figure
+  of 9.2 was a target, not a gate ("memory to be measured", 14.1). Resources follow the measurement: the cron line
+  keeps `nice -n 19`, `oom_score_adj 1000` and its own flock, with **`ulimit -v 1572864`** (1.5 GiB of virtual memory,
+  margin for larger captures, so a reader crash cannot lose data); q0485 `mem_mb` 700. Operational only.
+- **Install route: host cron** `10-59/20 * * * *` (9.2), installed at registration, before 2026-10-26T00:00Z. q0485
+  stays a draft and is never promoted while the cron line exists.
+- Size check q0484 promoted with `not_before` 2026-10-22T04:00Z (after the 02:40Z host resize and LT5's q0561 window;
+  q0561 is exclusive and must not wait behind it); priority 97 so MC1 (95) does not run ahead of it. Seed 20261107,
+  scenarios fl_continuous_persistent and fl_continuous_control_corr0.7 with block2 strata, 2,000 worlds x 200 draws,
+  criterion rate <= 0.058, one run only.
+- Disclosure (freeze check 5): consecutive-pass `c_sw` targets share an endpoint (MA(1)-type overlap); no size
+  scenario simulates it.
+- `REGISTERED_UTC` 2026-10-26T00:00Z; registration commit by 2026-10-25T00:00Z.
