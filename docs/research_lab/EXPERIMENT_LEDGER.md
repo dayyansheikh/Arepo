@@ -3116,7 +3116,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - q0514 walk-forward: timeout 7200 -> 10800 s, plus a per-day progress line (host LightGBM fits are 8.5-10.5 min). No
   change to fits or scoring.
 
-## E026 census values filled; recorder memory defect; q0545 queued, 2026-10-21 ~14:30Z (counts only; nothing counted)
+## E026 census values filled; recorder memory defect; q0545 queued, 2026-10-21 ~14:00Z (counts only; nothing counted)
 - `LIVE_TESTS_COPY.md` 7.5 / 8.2 and the spec `planning` block are filled from the committed q0544 census (sha256
   90adaea6…). Decision stays **register_k2** (G1-G3 pass). New facts written into 7.5: the trade-to-entry latency at
   L = 0 is a median 6.6 h (trades are first seen a median 4.5 h after printing), not the 1.5-2 h receipt-to-entry delay;
@@ -3164,7 +3164,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   analysis after 11-11). No score has been computed or shown; the walk-forward skips it.
 - K for the non-embargoed challengers is unchanged (2) until 11-04.
 
-## E026 challenger review R1, 2026-10-21 ~14:35Z: **ACCEPT_WITH_FIXES** (nothing counted)
+## E026 challenger review R1, 2026-10-21 ~14:15Z: **ACCEPT_WITH_FIXES** (nothing counted)
 - `reviews/E026_CHALLENGER_R1_2026-10-21.md`. Causally sound (no future information found). 10 required fixes before the
   pin: conservative negative-verdict bound; counted trials line and Unavailable on no data; pins for the impact table,
   null skillset / code hashes refused, entries and resolutions filtered by pin; pinned shared modules protected by a

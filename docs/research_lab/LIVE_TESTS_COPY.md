@@ -125,7 +125,7 @@ recorded in the ledger.
   whose files were already retired cannot contribute, which can only make a trade look new later (disclosed).
 - **Coverage limits (disclosed).** Only sampled markets (about 2,000 per sample). Only the newest 500 trades per
   market: in a busy market, trades between two samples can be missed. Trade age at receipt (receipt minus trade ts)
-  ranges from minutes to about 2 h, more when trades are older than the previous sample.
+  in the census: p10 / p50 / p90 0.7 / 4.5 / 16.3 h (section 7.5); older trades are those first seen in a later sample.
 
 ### 4.2 Secondary arm: >= $1k live prints
 
@@ -305,7 +305,7 @@ records no exit quote and fetches no resolution.
 | quantity (21-day projection, sidecar, L = 0, primary set) | census value |
 |---|---|
 | usable days read; skilled signals per day | 2.882 days (35 samples, 0 skipped); 6,429 skilled signals = 2,230 a day (242 wallets, 3,769 markets) |
-| primary-set copies n; events; wallets; top-1 / top-10 wallet share | census 1,294 (449 a day; 2,946 before the wallet-day cap and the one-per-(wallet, market) rule), 650 events, 160 wallets, 3.0% / 26.9%; **projected n 9,428, events 4,736** |
+| primary-set copies n; events; wallets; top-1 / top-10 wallet share | census 1,294 (449 a day; 2,946 in the universe before the wallet-day cap; one per (wallet, market) is already applied at signal level), 650 events, 160 wallets, 3.0% / 26.9%; **projected n 9,428, events 4,736** |
 | pairs; pair events; control SD inflation | census 1,200 pairs, 620 pair events; **projected 8,743 pairs, 4,517 pair events**; inflation 1.199 |
 | SD per share; mean stake; mean cost per $ staked | 0.414; 0.571; **0.053** (0.030 per share) |
 | deff_event; deff_2w | 3.97 (deff_wallet 21.35, deff_event x wallet 1.38); **23.93** |
@@ -328,10 +328,13 @@ Census notes (facts, not design changes):
 - **Large-print arm (secondary):** 849 skilled signals in 3.0 days, primary set 117 (64 events, 21 wallets; top-1
   share 26.5%), projected 819.
 - **Ordering disclosure (gates not blind).** The design session ran an earlier, uncommitted census of the same
-  pre-window data before the gates were committed (aba32281, 2026-10-21 08:56Z); the owner was relayed its numbers
-  (about 1,278 primary-set copies in 2.8 days, about 9,470 projected over 21 days; MDE E026-N 0.042, E026-C 0.051 at the
-  event bound). The committed census q0544 ran later (12:22Z) on reviewed code (afac80d4) and is the one the gates were
-  applied to. So the gates were set with planning numbers in view. They sit far below them (G1 400 copies against about
+  pre-window data. The gates entered the spec at 3dd2d7ef (2026-10-21 08:52Z) and this document at aba32281 (08:56Z).
+  The time of the earlier run was not recorded and no artefact of it was found on the host (checked 2026-10-21 ~14:20Z);
+  its numbers reached the owner by about 09:40Z (about 1,278 primary-set copies in 2.8 days, about 9,470 projected over
+  21 days; MDE E026-N 0.042, E026-C 0.051 at the event bound), so it may have preceded the gates. The committed census
+  q0544 ran later (12:22Z) at git commit 7d2eac8b, whose library code hashes equal the reviewed afac80d4 (only the
+  runner differs), and is the one the gates were applied to. Every analysis threshold (floors and materiality floor
+  since 7bf5c525, wallet-day cap since ce70ee1b) predates any census. So the gates were set with planning numbers in view. They sit far below them (G1 400 copies against about
   9,400 projected; G2 300 pairs against about 8,700), so they could not have been placed to pass narrowly, but the
   challenger should treat them as informed, not blind. This touches only power planning: no payout, exit quote or
   window data was seen.
@@ -489,7 +492,8 @@ waits.
 1. **SELL signals.** A skilled wallet's SELL may close a position opened before the window (taking profit), not state
    a view. Copying it buys the complement. Should the primary be BUY-only, with SELLs secondary? (Current: both, with
    BUY vs SELL as a secondary.)
-2. **Primary latency.** L = 0 is "the next 2-hourly capture", so the realised trade-to-entry latency is about 2-4 h.
+2. **Primary latency.** L = 0 is "the next 2-hourly capture"; the census realised trade-to-entry latency is a median
+   6.6 h (p10 2.6 h, p90 18.4 h), mostly the trade's age when the sample first sees it.
    Is that the right primary, or should the primary be 6 h (more robust to capture timing)? There is no faster quote
    stream for the full universe.
 3. **Short-dated universe.** Only markets ending within 14 days of entry are in the primaries (they can resolve before
