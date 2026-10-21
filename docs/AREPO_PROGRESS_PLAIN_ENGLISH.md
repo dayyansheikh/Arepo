@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-21 21:03 UTC+1
+**Last updated:** 2026-10-21 21:08 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -58,13 +58,13 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 7. ~~More server memory for MC1~~ **APPROVED 21 Oct:** resize to 2 CPU / 12 GB (still free), scheduled automatically
    for 22 Oct about 03:40 UTC+1. MC1 is re-queued afterwards.
 
-8. **NEW (21 Oct): let Claude clear temporary restore copies on the server.** Batch 17's smoke check refuses to
-   run because a 925 MB restore copy (a hash-checked copy of data that is safe in the archive) sits inside batch 17's
-   folder, which has a 0.3 GB limit. The safety hook rightly stops Claude from moving or deleting anything in the data
-   folder. **Decision needed:** allow Claude to move that copy out of the batch 17 folder (nothing is lost), or to
-   delete it (it is in the archive). More generally, finished restore copies (about 9 GB now: batch 18 4.9 GB, LT4
-   3.0 GB, LT5 0.8 GB, batch 17 0.9 GB) will need clearing within about a week, because jobs stop at a 40 GB data
-   limit (now 30 GB). Batch 17 is not late yet (its window opens 26 Oct).
+8. **NEW (21 Oct, not urgent): let Claude clear finished restore copies on the server.** Restore copies are
+   hash-checked copies of data that is safe in the archive, made so a job can re-read old files. About 9 GB of them
+   are finished with (batch 18 4.9 GB, LT4 3.0 GB, batch 17 0.9 GB; LT5's 0.8 GB after tonight). Jobs stop at a
+   40 GB data limit (now about 30 GB), so they will need clearing within about a week. The safety hook rightly stops
+   Claude from deleting anything in the data folder. **Decision needed:** approve a short clearing session for these
+   copies only (each one listed and checked against the archive first). Batch 17 no longer needs this: it now writes
+   to a fresh folder instead.
 
 ## 3. Usage plan (your schedule; reset times are your statement, not verified)
 | When | Plan |

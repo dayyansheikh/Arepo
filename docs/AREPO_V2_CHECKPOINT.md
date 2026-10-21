@@ -283,10 +283,10 @@ output), ledger "E022 REGISTERED", registry, battery2/trials kind if needed, pro
 before 10-26T00Z; never also q0485. Then LT6 (V's pin must precede T_E022).
 **Do NOT promote MC1 q0116f ahead of q0484** (q0484 has priority 97 > 95; both exclusive-ish: check).
 
-**Blocked on the owner (dashboard approval 8):** q0404 CB17 smoke refuses because q0413's restore tree (925 MB) sits in
-`creative_batch17/` (frozen 0.3 GB total cap counts it). Needs the tree moved out of `creative_batch17/` (or cleared);
-the evidence hook blocks it without an owner-approved session. Then re-restore/point q0404 at the new path and
-`queue_worker.py retry q0404_cb17_smoke`. S_8 = 10-26T00Z. Restore trees total ~9 GB; data-dumps 29.75 / 40 GB.
+**CB17 unblocked (1c9f604e):** all CB17 window jobs use `--root ../data-dumps/research_lab/cb17_window/creative_batch17`
+(the frozen 0.3 GB cap counted q0413's 925 MB input restore in the default root). q0404 retried 20:08Z; on PASS promote
+q0405 (with the same --root). S_8 = 10-26T00Z. **Owner approval 8 (not urgent):** a clearing session for finished
+restore trees (~9 GB; data-dumps ~30 / 40 GB).
 
 **LT6 (`feat/live-tests-6`, worktree `.claude/worktrees/agent-a985b10db31086738`):** design accepted; code phase 1 and
 phase 2 (reader, analyze entry point, RSS probe, drafts q0585/q0586; 137 tests) committed and pushed. Not merged. Open:
