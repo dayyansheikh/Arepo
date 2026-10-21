@@ -19,6 +19,7 @@ from astrolabe.research_lab import live_tests3_analysis as la
 
 G0 = datetime(2027, 1, 1, 0, 31, tzinfo=UTC)  # on the spec grid; later than the wall clock, so real frozen_utc stamps are never "late"
 N_MKT = 40
+ALL_K = ["E015", "E016", "E017", "E018", "E019"]
 
 
 def _iso(dt: datetime) -> str:
@@ -198,7 +199,7 @@ def test_train_flags_same_sign_and_window():
 
 
 def test_causality_future_captures_do_not_change_frozen_lines(tmp_path):
-    spec = _spec(tmp_path)
+    spec = _spec(tmp_path, k_tests=ALL_K)  # exercises the surge / flow collectors (on only when their tests are in k)
     a = _world(tmp_path / "a", 0, 16)
     b = _world(tmp_path / "b", 0, 16, wild_from=15)  # captures 15, 16 differ wildly (post-origin for origin 14)
     now = _t(14, 40)
@@ -215,8 +216,38 @@ def test_causality_future_captures_do_not_change_frozen_lines(tmp_path):
     pd.testing.assert_frame_equal(pd.read_csv(sa).drop(columns=drop), pd.read_csv(sb).drop(columns=drop))
 
 
+def test_surge_and_flow_off_unless_in_k_tests_and_move_files_identical(tmp_path, monkeypatch):
+    """Pre-pin verification finding 2: with k_tests = ["E015"] the pass writes no surge or flow file (frozen or outcome)
+    and reads no trade sample, while series, sweeps, move / events freezes and their outcomes are byte-identical
+    (decompressed; gzip headers carry a write time) to a run with every kind on."""
+    import gzip
+
+    monkeypatch.setattr(lt, "now_ts", lambda: _t(50))  # frozen_utc stamp fixed so both runs can be compared byte for byte
+    spec = _spec(tmp_path, k_tests=["E015"])
+    spec_all = {**spec, "k_tests": ALL_K}  # same spec sha, every kind on
+    assert lt.enabled_kinds(spec) == {"move": True, "surge": False, "flow": False}
+    assert lt.enabled_kinds(spec_all) == {"move": True, "surge": True, "flow": True}
+    assert lt.enabled_kinds({**spec, "k_tests": ["E016"]})["flow"] and not lt.enabled_kinds({**spec, "k_tests": ["E016"]})["surge"]
+    assert lt.enabled_kinds({**spec, "k_tests": None}) == {"move": True, "surge": True, "flow": True}
+    w = _world(tmp_path / "w", 0, 30)
+    roots = {"e015": tmp_path / "r_e015", "all": tmp_path / "r_all"}
+    for name, sp in (("e015", spec), ("all", spec_all)):
+        for k in range(14, 31):
+            _run(w, roots[name], sp, 14, 26, _t(k, 40))
+    for kind in ("surge", "flow"):
+        assert not (roots["e015"] / kind).exists()
+        assert list((roots["all"] / kind / "frozen").glob("*.csv.gz")) and list((roots["all"] / kind / "outcomes").glob("*.csv.gz"))
+    assert lt.State(roots["e015"]).d["samples"] == {}  # trade samples never read
+    for sub in ("series", "status", "sweeps", "move/frozen", "events/frozen", "move/outcomes"):
+        a = sorted(p.name for p in (roots["e015"] / sub).glob("*.csv.gz"))
+        b = sorted(p.name for p in (roots["all"] / sub).glob("*.csv.gz"))
+        assert a and a == b, sub
+        for n in a:
+            assert gzip.decompress((roots["e015"] / sub / n).read_bytes()) == gzip.decompress((roots["all"] / sub / n).read_bytes()), (sub, n)
+
+
 def test_late_refusal_and_write_once(tmp_path):
-    spec = _spec(tmp_path)
+    spec = _spec(tmp_path, k_tests=ALL_K)  # exercises the surge / flow collectors (on only when their tests are in k)
     w = _world(tmp_path, 0, 16)
     root = tmp_path / "r"
     st = _run(w, root, spec, 14, 15, _t(15, -0.5))  # 30 s before slot 15: move (target k + 1) is late, surge / flow (k + 3) are not
@@ -233,7 +264,7 @@ def test_late_refusal_and_write_once(tmp_path):
 
 
 def test_outcome_statuses(tmp_path):
-    spec = _spec(tmp_path)
+    spec = _spec(tmp_path, k_tests=ALL_K)  # exercises the surge / flow collectors (on only when their tests are in k)
     w = _world(tmp_path, 0, 15)
     # slot 16 capture missing; slot 17 present without market 104 (absent); market 105 one-sided at slots with k % 4 == 0
     write_capture(w["snap"], 17, drop=(4,))
@@ -251,7 +282,7 @@ def test_outcome_statuses(tmp_path):
 
 
 def test_pretrend_and_lag_labels_use_only_pre_origin_mids(tmp_path):
-    spec = _spec(tmp_path)
+    spec = _spec(tmp_path, k_tests=ALL_K)  # exercises the surge / flow collectors (on only when their tests are in k)
     w = _world(tmp_path, 0, 15)
     root = tmp_path / "r"
     _run(w, root, spec, 14, 15, _t(14, 40))
