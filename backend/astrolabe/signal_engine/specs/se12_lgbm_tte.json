@@ -1,0 +1,50 @@
+{
+ "broad": false,
+ "derived": [
+  "base",
+  "tte"
+ ],
+ "description": "Learner-matched time-to-close: LightGBM on the champion's features + the tte derived set (as in se5_lr_tte). Compare with se1_lgbm_mm for the family effect without the learner effect (DESIGN_V1 \u00a718). Added 2026-10-21 as hidden predictions under the tte embargo; no score is computed or shown before it lifts.",
+ "families": [
+  "market_state",
+  "momentum"
+ ],
+ "features_version": "se-features-v1",
+ "isolates": [
+  "tte"
+ ],
+ "learner": "lgbm",
+ "model_id": "se12_lgbm_tte",
+ "params": {
+  "early_stopping": 30,
+  "lgb": {
+   "bagging_fraction": 0.8,
+   "bagging_freq": 1,
+   "feature_fraction": 0.8,
+   "lambda_l2": 1.0,
+   "learning_rate": 0.05,
+   "max_bin": 127,
+   "min_data_in_leaf": 500,
+   "num_leaves": 31,
+   "seed": 20261021
+  },
+  "max_rounds": 300,
+  "val_frac": 0.2
+ },
+ "targets": [
+  "dir_2h",
+  "dir_6h",
+  "dir_24h",
+  "res_7d"
+ ],
+ "train": {
+  "max_rows": 300000,
+  "min_days": 2,
+  "min_rows": 5000,
+  "refit": "daily",
+  "require_sources": [],
+  "res_window_days": 28,
+  "window_days": 14
+ },
+ "version": 1
+}

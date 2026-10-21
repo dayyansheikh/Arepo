@@ -79,6 +79,27 @@
    "spec_sha256": "4e79ec7b00d05df8a596057511713c2d1d37ee6b28c25d169c2a5c1700ae8bf8",
    "status": "active",
    "added_utc": "2026-10-21T10:00:00Z"
+  },
+  {
+   "model_id": "se11_lgbm_flow",
+   "file": "se11_lgbm_flow.json",
+   "spec_sha256": "433d42e951b1b6a86778298f30c840a8e06261d50209313d869cbba7dce912c1",
+   "status": "active",
+   "added_utc": "2026-10-21T10:15:00Z"
+  },
+  {
+   "model_id": "se12_lgbm_tte",
+   "file": "se12_lgbm_tte.json",
+   "spec_sha256": "edcc40f72805bfe2a229000c69676c9477334ba8e6806a71c3ac2da81aa8d637",
+   "status": "active",
+   "added_utc": "2026-10-21T10:15:00Z"
+  },
+  {
+   "model_id": "se13_lgbm_xvenue",
+   "file": "se13_lgbm_xvenue.json",
+   "spec_sha256": "f4f1dffcee299c783e2a48aed9e2ea9e2a11f9267845f49d2952d01d0fdbf22e",
+   "status": "active",
+   "added_utc": "2026-10-21T10:15:00Z"
   }
  ]
 }

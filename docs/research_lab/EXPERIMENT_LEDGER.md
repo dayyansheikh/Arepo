@@ -2994,3 +2994,13 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **Ops:** q0380 (CB16 keys) died twice with MemoryError at 500 MB, so it was raised to 1,200 MB. The CB18 restores
   q0500/q0501 crashed in gh's Go runtime at 600 MB, so they were raised to 1,200 MB, as the earlier restores q0413/q0480
   used. No scientific change.
+
+## Signal engine: hidden learner-matched challengers se11-se13, 2026-10-21 ~10:15Z (signal-engine autopilot; nothing counted)
+- Added `se11_lgbm_flow`, `se12_lgbm_tte`, `se13_lgbm_xvenue`: LightGBM with `se1_lgbm_mm`'s params on the champion's
+  features plus one family each (DESIGN_V1 §18). Each is embargoed under the same token as its logistic sibling
+  (flow 11-22, tte 11-14, xvenue 11-04): predictions are written once with receipt times, no score is computed or shown
+  before the date, and the walk-forward skips them. No registered live test, file or frozen artefact was touched.
+- Non-embargoed challenger count is unchanged (K = 2: se1, se7) until 11-04.
+- Mac refit timing (development data only, not a result): ~110 s per extra LightGBM model, peak 1.28 GB RSS.
+- Noted: LightGBM `res_7d` fits fail on the causal inner split until resolution receipts precede the validation cut
+  (backlog first fetched 10-21; expected around 10-28). No rule changed.

@@ -547,6 +547,13 @@ def test_repo_registry_loads_and_embargo_assignment():
     assert emb["se3_lr_book"] == "2026-11-22T00:00:00Z" and emb["se6_lr_wallet"] == "2026-12-07T00:00:00Z"
     assert emb["se8_lr_event"] == "2026-11-22T00:00:00Z" and emb["se10_lgbm_event"] == "2026-11-22T00:00:00Z"
     assert emb["se9_lr_rewards"] == "2026-11-22T00:00:00Z"
+    assert emb["se11_lgbm_flow"] == "2026-11-22T00:00:00Z" and emb["se12_lgbm_tte"] == "2026-11-14T00:00:00Z"
+    assert emb["se13_lgbm_xvenue"] == "2026-11-04T00:00:00Z"
+    se1 = reg["models"]["se1_lgbm_mm"]
+    for mid, lr in (("se11_lgbm_flow", "se2_lr_flow"), ("se12_lgbm_tte", "se5_lr_tte"), ("se13_lgbm_xvenue", "se4_lr_xvenue")):
+        m, base = reg["models"][mid], reg["models"][lr]
+        assert m["learner"] == "lgbm" and m["params"] == se1["params"] and m["train"]["window_days"] == se1["train"]["window_days"]
+        assert (m["families"], m["derived"], m["isolates"]) == (base["families"], base["derived"], base["isolates"])
     assert all(v is None for v in ((SP.embargo_of(s, S.epoch("2026-12-08T00:00:00Z")) or {}).get("until") for s in reg["models"].values()))
 
 
