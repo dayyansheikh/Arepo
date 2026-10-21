@@ -236,16 +236,20 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
    - **Deploy only from `chore/arepo-claude-setup`**; check `ssh oracle 'cd ~/arepo && git log --oneline -1'` = local tip.
    - **Queue worker fix (0b00ced2, deployed):** a blackout-held job no longer blocks a lower-priority exempt job (q0413 had
      held q0460 since 00:00Z); q0460 (LT2 collector) started 03:36Z and is productive.
-   - **LT3 = E015 only, k = 1** (abe0dfd3, 38aa5694; §13.14): C2 census (q0472) failed E016 and E018 gates -> dropped
-     uncounted. Spec `k_tests` = ["E015"]; flow/E019 census values stay null; collector unchanged (surge/flow lines
-     descriptive only). Running: q0474 size check (host) and a science-reviewer pre-pin verification
-     (`reviews/LT3_PREPIN_VERIFY_2026-10-21.md`). Then host dry run (13.4), code_sha256 + SPEC_SHA256 pins, registration
-     commit **before 2026-10-23T00:00Z** for REGISTERED_UTC 10-24, cron/queue install.
+   - **LT3 = E015 only, k = 1** (§13.14-§13.16): pre-pin review PIN_OK_WITH_FIXES -> fixes merged 6c51901c (analysis only
+     `k_tests`; surge/flow collection off) -> verification FIXES_OK_WITH_NOTES. New hashes live_tests3.py 3ac52d79…,
+     analysis 224b5603…. Binding for the pin (§13.15): perm_iid/perm_persistent/perm_corr_control only. q0474 (old code)
+     running; **q0475_lt3_size_check_r3** queued (perm_* must equal q0474 exactly; any difference = investigate). Host dry
+     run (13.4) agent running. Then pins (code_sha256 map, SPEC_SHA256), ledger registration commit **before
+     2026-10-23T00:00Z** (REGISTERED_UTC 10-24), install the §13.4 cron (never also the fallback job).
    - **Copy-skilled (E026, feat/copy-skilled, worktree ../astrolabe-copy-skilled):** WIP code recovered; design agent
      restarted (LIVE_TESTS_COPY.md). Owner phone notes at design done / review verdict / registration / collection start /
      weekly counts / result (`scripts/arepo_notify.py send --type milestone`).
-   - **MC1 (q0116d failed, OOM -9 twice at panel assembly after all 78 periods cached):** fix on `fix/mc1-memory`
-     (worktree ../astrolabe-mc1-mem): value-identical lean assembly + discover_captures archived-sidecar rule; draft q0116e.
+   - **MC1:** memory fix merged (9e6d5596; value-identical streamed read-back; archived-sidecar discovery rule).
+     **q0116e** promoted (exclusive, priority 95, max_retries 0): starts after q0474. **If not started by 2026-10-21T16:00Z,
+     park it** (its peak must not overlap LT2's window from 10-22T00Z).
+   - **Queue worker (d6513058):** light jobs (mem_mb < 500) are exempt from exclusive runs/drains (live collectors).
+   - **Signal engine feed:** `signal_engine/CANDIDATES.md` (fac79183), 12 candidates; keep it current.
    - **LT2 (E012-E014) REGISTERED:** q0460 running (repeat); q0461 after 11-13T12Z. No interim looks.
    - **LT4 (E020-E022):** q0480 restore -> q0482 CQ/CH census; q0471 + q0480 -> q0483 CF census. q0484 size check only after
      LT3's registration commit is merged and the LT4 code freeze is recorded.

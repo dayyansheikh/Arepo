@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-21 04:42 UTC+1
+**Last updated:** 2026-10-21 05:07 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -15,13 +15,20 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
   have made its daily 03:31 freeze late. The queue now lets small allowed jobs pass; the collector started at 04:36.
 - **LT3 is down to one test (E015).** The last counting check (order-flow data, counts only) showed too little usable
   data for E016 and E018 (for example 51,828 usable market-periods where 60,000 were required). By the rules set in
-  advance, both are dropped and not counted. With the earlier two drops, LT3 now registers E015 alone (quote-only
-  versus traded price moves). The large size check is running on the server; an independent pre-registration review is
-  running now. Target start 24 Oct if registered by the end of 22 Oct.
+  advance, both are dropped and not counted. LT3 now registers E015 alone (quote-only versus traded price moves).
+  An independent pre-registration review said "ready, with fixes"; the fixes are made and checked (the analysis now
+  computes only E015, and the dropped tests are no longer collected, so a fault there cannot hurt E015). Because the
+  code changed, the large size check runs once more; it must give exactly the same safety numbers as the first run.
+  A test run on the server is under way. Target start 24 Oct (registration by the end of 22 Oct).
 - **Copy-skilled-wallets live test:** the design helper stopped at the usage limit with code written but no design
   document. This session restarted it; you will get a phone note when the design is done.
-- **Model run (MC1):** the 6-hour model run was killed twice by the server running out of memory while it assembled its
-  data table. A memory fix is being written (it must give identical numbers); the run will be queued again after that.
+- **Model run (MC1):** fixed. It was killed twice by the server running out of memory while it read its data table back.
+  It now reads the table column by column with identical numbers (estimated peak about 4 GB instead of over the limit).
+  It is queued to run after the current size check and must finish before the E012-E014 collection starts on 22 Oct.
+- **Queue rule:** small live-collector jobs can now run beside a big "run alone" job, so registered live tests never wait.
+- **Signal engine:** the experiments side now hands it a list of 12 candidate signal families from replicated results
+  (`signal_engine/CANDIDATES.md`), each with its source and the date until which it must stay hidden (live tests running).
+- **New ideas:** creative round 11 (Fable, deep effort) restarted after the usage limit cut it off.
 - **LT4 (E020-E022):** its counting checks are queued on the server. **Batch 17:** reproduction run queued; window 26 Oct.
 - **Second free server:** still "out of host capacity" at Oracle; it retries every 10 min.
 
