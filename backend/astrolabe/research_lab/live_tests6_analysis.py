@@ -199,7 +199,8 @@ def is_material(test: str, res: dict, spec: dict) -> bool:
 
 
 def analyze_frames(frames: dict[str, pd.DataFrame], spec: dict, *, size_check: dict | None = None, now: float | None = None, force: bool = False,
-                   require_pinned: bool = True, t0: float | None = None, n_boot: int | None = None, accounts: dict | None = None) -> dict:
+                   require_pinned: bool = True, t0: float | None = None, n_boot: int | None = None, accounts: dict | None = None,
+                   extras: dict | None = None) -> dict:
     """The whole analysis on prepared per-test frames. Refuses before the analysis date (``force`` is for tests only), an unpinned
     spec when ``require_pinned``, null ``k_tests``, a test named in ``k_tests`` that LT6 does not have, and a frame missing for a
     surviving test. One Holm family over k, one-sided, alpha 0.05; a primary that is unavailable, fails its gate or is named by a
@@ -257,6 +258,13 @@ def analyze_frames(frames: dict[str, pd.DataFrame], spec: dict, *, size_check: d
         sc = ((size_check or {}).get("scenarios") or {})
         if any(t in s.get("binding_for", []) and (s.get("analytic_rates") or {}).get("oversized") for s in sc.values()):
             labels.append("analytic p oversized in simulation")
+        if extras is not None:  # the readings (live_tests6_readings): binding mechanism / placebo labels, attrition, secondaries, economics
+            from . import live_tests6_readings as rd
+
+            prim_ = (r.get("primary") or {})
+            rdg = rd.run_readings(t, frames[t], v.get("verdict"), prim_.get("beta"), extras.get(t), spec, accounts=acc, n_boot=n_boot)
+            labels.extend(rdg.get("labels") or [])
+            r["readings"] = rd.clean(rdg.get("readings") or {"computed": False})
         r["verdict"] = attach(v, labels)
     return bd._clean({"tests": res, "holm": {"tests": ktests, "m": k, "p_raw": pv, "p_holm": hp, "alpha": 0.05, "one_sided": True},
                       "trial": trial_record(k, spec.get("_sha256")), "spec_sha": spec.get("_sha256")})
@@ -572,7 +580,7 @@ def size_check(*, worlds: int, draws: int, seed: int, nominal: float = 0.05, bin
 from pathlib import Path  # noqa: E402
 
 CONF = lt.ROLE_CONF
-TAGS = {"V": ("h1", "h3", "s1", "s3"), "K": ("h1", "h3", "s1", "s3"), "D": ("h1", "h3", "h12"), "B": ("h1", "h3", "h12")}
+TAGS = {"V": ("h1", "h3", "h4", "s1", "s3"), "K": ("h1", "h3", "h4", "s1", "s3"), "D": ("h1", "h3", "h12"), "B": ("h1", "h3", "h12")}
 KIND_OF = {v: k for k, v in lt.TEST_OF_KIND.items()}
 MARKER_NAMES = ("late", "noprev", "nosweep", "noprevsweep", "e022boundary")
 
@@ -669,16 +677,48 @@ def _late_any(df: pd.DataFrame, tags: tuple[str, ...]) -> np.ndarray:
     return m
 
 
-def build_frame(test: str, df: pd.DataFrame, root: Path, spec: dict, mask_late: bool = True) -> tuple[pd.DataFrame, dict]:
+def joint_status(df: pd.DataFrame, tags: tuple[str, ...]) -> np.ndarray:
+    """``two_sided`` when every target tag is two_sided, else the first tag's non-two_sided status (the joint status of a target built from several slots)."""
+    out = np.full(len(df), "two_sided", dtype=object)
+    for tg in reversed(tags):
+        st = df.get(f"status_{tg}", pd.Series("pending", index=df.index)).astype(str).to_numpy()
+        out = np.where(st != "two_sided", st, out)
+    return out
+
+
+def _attrition_input(test: str, df: pd.DataFrame, spec: dict) -> pd.DataFrame:
+    """(status, cls) per unit for the attrition rule: the contrasted classes are 1 vs 0 for K (clip), D (later), B (birth) and the upper
+    vs lower ``zv`` terciles for V (cuts from the census). Units of another class (V's middle tercile) get ``None``."""
+    tg = {"V": ("s1", "s3"), "K": ("h1", "h3"), "D": ("h1", "h12"), "B": ("h1", "h12")}[test]
+    st = joint_status(df, tg)
+    if test == "V":
+        cuts, c_v, s_v = spec["v"].get("terciles"), spec["v"].get("c_v"), spec["v"].get("s_v")
+        if cuts is None or c_v is None or not s_v:
+            cl = np.full(len(df), None, dtype=object)
+        else:
+            zv = (df["v"].to_numpy(float) - c_v) / s_v
+            cl = np.where(zv >= cuts[1], "upper", np.where(zv <= cuts[0], "lower", None))
+    elif test == "K":
+        cl = np.where(df["class_k"].astype(str) == "clip", 1, np.where(df["class_k"].astype(str) == "clip_free", 0, None))
+    elif test == "D":
+        cl = np.where(df["cls"].astype(str) == "later", 1, np.where(df["cls"].astype(str) == "no_change", 0, None))
+    else:
+        cl = np.where(df["cls"].astype(str) == "birth", 1, np.where(df["cls"].astype(str) == "nobirth", 0, None))
+    return pd.DataFrame({"status": st, "cls": cl}, index=df.index)
+
+
+def build_frame(test: str, df: pd.DataFrame, root: Path, spec: dict, mask_late: bool = True, arm: str = "main") -> tuple[pd.DataFrame, dict]:
     """The prepared analysis frame of one test from its loaded lines: the target (joint status ``two_sided`` and in time at both
     target slots; the joint late mask), the class population, the washout (D, B), ``day``, and the ``lt.prepare_*`` columns. Counts of
     every exclusion are returned (nothing imputed)."""
     cnt: dict = {"lines": len(df)}
     if df.empty:
         return pd.DataFrame(), cnt
-    if "arm" in df:  # the primaries read the main arm only; the reported arms (sports, decided, tail) are read by arm_frame
+    if "arm" in df:  # the primaries read the main arm only; the reported arms (sports, decided, tail) are read with ``arm=...``
         cnt["arm_lines_not_main"] = int((df["arm"].astype(str) != "main").sum())
-        df = df[df["arm"].astype(str) == "main"]
+        df = df[df["arm"].astype(str) == arm]
+        if df.empty:
+            return pd.DataFrame(), cnt
     df = df.copy()
     df["day"] = la3.day_of(df["capture_t"])
     sx = np.sign(df["x"].to_numpy(float)) if "x" in df else None
@@ -708,6 +748,7 @@ def build_frame(test: str, df: pd.DataFrame, root: Path, spec: dict, mask_late: 
     late = late if mask_late else np.zeros(len(df), bool)  # mask_late=False is for dry runs on past captures only
     cnt["late_masked"] = int(late.sum())
     df = df[~late].copy()
+    cnt["_pre"] = _attrition_input(test, df, spec)  # the units BEFORE the missing-target drop: the attrition rule (1.5) reads their statuses
     cnt["target_unavailable"] = int(df[ycol].isna().sum())
     df = df[df[ycol].notna()].reset_index(drop=True)
     if df.empty:
@@ -760,6 +801,12 @@ def load_size_check(spec: dict, base: Path | None = None) -> dict:
     return res
 
 
+def readings_counts(root: Path, kind: str) -> dict:
+    from . import live_tests6_readings as rd
+
+    return rd.pass_counts(root, kind)
+
+
 def analyze(root: Path = lt.OUT_ROOT, *, spec: dict | None = None, now: float | None = None, force: bool = False, require_pinned: bool = True,
             size_check: dict | None = None, n_boot: int | None = None, roles: tuple[str, ...] = (CONF,), mask_late: bool = True) -> dict:
     """The single registered analysis on the reader's write-once files. Refuses before ``analysis_not_before`` (``force`` is for
@@ -778,14 +825,26 @@ def analyze(root: Path = lt.OUT_ROOT, *, spec: dict | None = None, now: float | 
         raise RuntimeError("live_tests6 analysis refused: the spec is not pinned")
     start, end = lt.epoch(spec["registered_utc"]), lt.epoch(spec["end_utc"])
     ktests = list(spec.get("k_tests") or [])
-    frames, accounts = {}, {}
+    frames, accounts, extras = {}, {}, {}
     for t in ktests:
         kind = KIND_OF[t]
         df, acc = load_kind(root, kind, start, end, roles, spec, TAGS[t])
         fr, cnt = build_frame(t, df, root, spec, mask_late)
+        ex: dict = {"pre": cnt.pop("_pre", None), "raw": df}
+        ex["arms"] = {}
+        for arm_ in (a_ for a_ in lt.ARMS.get(t, ()) if a_ != "main"):
+            af, ac = build_frame(t, df, root, spec, mask_late, arm=arm_)
+            ac.pop("_pre", None)
+            ex["arms"][arm_] = af
+        if t == "K":
+            ex["counts"] = readings_counts(root, "clips")
+            if len(df):
+                ex["k_prev_class"] = {(str(m_), int(s_)): c_ for m_, s_, c_ in zip(df["market_id"], df["slot"], df["class_k"], strict=False)}
+        extras[t] = ex
         frames[t], accounts[t] = fr, {**acc, **cnt}
     if size_check is None and require_pinned:
         size_check = load_size_check(spec)  # the size-check labels ("SE check failed (size scenario)", "analytic p oversized") are never optional
-    res = analyze_frames(frames, spec, size_check=size_check, now=now, force=True, require_pinned=require_pinned, t0=start, n_boot=n_boot, accounts=accounts)
+    res = analyze_frames(frames, spec, size_check=size_check, now=now, force=True, require_pinned=require_pinned, t0=start, n_boot=n_boot, accounts=accounts,
+                         extras=extras)
     res.update(code_sha256=cc["current"], code_check=cc, window=[spec["registered_utc"], spec["end_utc"]], roles=list(roles), accounts=accounts)
     return bd._clean(res)

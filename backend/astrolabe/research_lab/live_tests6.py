@@ -54,7 +54,7 @@ ANALYSIS_NOT_BEFORE: str | None = None
 TEMPFAIL = 75
 DAY_S = 86400.0
 FLOOR_REGISTERED_UTC = "2026-11-16T00:00:00Z"
-CODE_FILES = ("live_tests6.py", "live_tests6_analysis.py",
+CODE_FILES = ("live_tests6.py", "live_tests6_analysis.py", "live_tests6_readings.py",
               # imported helpers and dependencies (the vendored base of design 8.1 is replaced by these imports for now)
               "live_tests5_base.py", "live_tests5.py", "live_tests3.py", "live_tests3_analysis.py", "bounce_decomp.py",
               "maker_rewards.py", "panel.py", "trade_sample.py", "cb17_census.py", "cb13_label.py", "economics.py", "forecast.py")
@@ -1861,7 +1861,8 @@ MARKERS = (".late.csv.gz", ".noprev.csv.gz", ".nosweep.csv.gz", ".noprevsweep.cs
 KINDS = ("vote", "clips", "deadline", "birth")
 TEST_OF_KIND = {"vote": "V", "clips": "K", "deadline": "D", "birth": "B"}
 # kind -> (Gamma-capture horizons h, sweep-1 horizons s) of the outcome files (slots k + h; section 1.3)
-OUTCOME_PLAN = {"vote": ([1, 3], [1, 3]), "clips": ([1, 3], [1, 3]), "deadline": ([1, 3, 12], []), "birth": ([1, 3, 12], [])}
+# V and K also get h4 (the 6 h Gamma-mid target from k + 1, secondary S5): a target that cannot be recovered later is frozen online
+OUTCOME_PLAN = {"vote": ([1, 3, 4], [1, 3]), "clips": ([1, 3, 4], [1, 3]), "deadline": ([1, 3, 12], []), "birth": ([1, 3, 12], [])}
 READER_FILES = ("live_tests6.py", "live_tests5.py", "live_tests5_base.py", "live_tests3.py")
 OPS_COLS = frozenset({"role", "cls", "class_k", "geom", "sports", "reason", "status", "late", "checked_utc", "noprev", "nosweep", "crypto6", "crypto_birth", "slot", "arm"})
 DROP_FROZEN = ("end_raw", "fee_cat", "osz", "present")

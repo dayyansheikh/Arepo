@@ -392,3 +392,21 @@ def test_reader_freezes_reported_arms_and_the_analysis_reads_main_only(world, ra
     df, _ = la.load_kind(root, "vote", lt.epoch(REG), lt.epoch(END), (lt.ROLE_UNREG,), None, ("h1", "h3", "s1", "s3"))
     fr, cnt = la.build_frame("V", df, root, _spec(), mask_late=False)
     assert cnt["arm_lines_not_main"] > 0 and (fr["sports"] == 0).all()
+
+
+def test_analyze_end_to_end_computes_the_readings_for_every_test(ran):
+    spec = _aspec()
+    for t in ("v", "k", "d", "b"):
+        for f in spec[t]["floors"]:
+            spec[t]["floors"][f] = 1
+    res = la.analyze(ran["root"], spec=spec, force=True, require_pinned=False, roles=(lt.ROLE_UNREG,), n_boot=20, mask_late=False)
+    for t in ("V", "K", "D", "B"):
+        r = res["tests"][t]
+        assert "readings" in r and r["readings"], t
+        rd = r["readings"]
+        assert {"attrition", "thanksgiving_sensitivity", "economics", "secondaries"} <= set(rd), (t, set(rd))
+    assert {"M1", "M2_own_sweep", "M3", "P_vprev"} <= set(res["tests"]["V"]["readings"])
+    assert {"M1", "M2", "M3", "P1", "P2"} <= set(res["tests"]["K"]["readings"])
+    assert {"M1", "M1_remainder", "M2", "P1"} <= set(res["tests"]["D"]["readings"]) and res["tests"]["D"]["readings"]["P1"]["computed"] is False
+    assert {"M1", "M2", "fake_birth_counts"} <= set(res["tests"]["B"]["readings"])
+    assert "_pre" not in res["accounts"]["V"]
