@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-21T09:15:00Z",
+ "updated": "2026-10-21T10:40:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1516,6 +1516,29 @@
    "candidate": false,
    "sources": {
     "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT5 drafted, challenger R1 and re-check (2026-10-21)"
+   },
+   "stage_results": {
+    "designed": "pending"
+   },
+   "reached": [
+    "designed"
+   ]
+  },
+  {
+   "id": "E026",
+   "title": "Copy skilled wallets with a delay (planned live test)",
+   "plain": "Wallets that were skilled in the past stayed skilled in a development study, but only at their own trade prices. This planned live test asks whether someone who sees their trades only later, and pays taker costs, would still gain on paper, and whether any gain comes from the wallets or just from the kind of trade they make. Its counting check (counts only) is running.",
+   "batch": "E026",
+   "family": "wallet",
+   "stage": "designed",
+   "status": "running",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Counting check on the server, then the challenger review and registration (planned before 24 Oct; collection 25 Oct to 15 Nov)",
+   "next_date": "2026-10-24",
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § E026 copy-skilled: census code checked (2026-10-21)"
    },
    "stage_results": {
     "designed": "pending"
