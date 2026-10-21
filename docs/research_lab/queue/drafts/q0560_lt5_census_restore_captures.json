@@ -1,0 +1,50 @@
+{
+ "id": "q0560_lt5_census_restore_captures",
+ "title": "LT5 census inputs CF5/CHW/CRW (DRAFT): restore ONLY the look-back captures no longer whole on the host (rows, sidecar, manifest of 2026-10-12T00:31Z .. 2026-10-12T22:31Z and 2026-10-13T00:31Z/02:31Z, whose rows the host retired) byte for byte from data-20261015-dsheikh into a scratch tree (sha256 re-checked; nothing outside --dest written); every other capture and sweep is read from the host originals under the seal",
+ "family": "live_tests_5",
+ "priority": 26,
+ "expected_value": "the 14 look-back captures missing on the host (H's 96-slot look-back), proven identical to the released copies, for seals/lt5_census_inputs_captures.json",
+ "data": [
+  "arepo-data GitHub release data-20261015-dsheikh (read-only; the catalogue lists all of 2026-10-12 there; the 10-13T00/02 captures to be confirmed in its files.sha256 before promotion)"
+ ],
+ "resources": {
+  "mem_mb": 1200,
+  "cpu": 1,
+  "lane": "net",
+  "network": "github releases (private data repo, read-only)"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/restore_from_archive.py",
+  "--tag",
+  "data-20261015-dsheikh",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261012T*/rows.csv.gz",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261012T*/rows_ext.csv.gz",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261012T*/manifest.json",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261013T00*/rows.csv.gz",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261013T00*/rows_ext.csv.gz",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261013T00*/manifest.json",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261013T02*/rows.csv.gz",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261013T02*/rows_ext.csv.gz",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261013T02*/manifest.json",
+  "--dest",
+  "../data-dumps/research_lab/live_tests5_census/restore"
+ ],
+ "timeout_s": 7200,
+ "max_retries": 2,
+ "outputs": [
+  "data-dumps/research_lab/live_tests5_census/restore/data-dumps/research_lab/snapshots/<id>/",
+  "data-dumps/research_lab/live_tests5_census/restore/RESTORE_REPORT_data-20261015-dsheikh.json"
+ ],
+ "next_action": "re-list the host (read-only) and extend this restore to any look-back capture rotated off since 2026-10-21T09:48Z (its tag from the catalogue); then q0564 writes the seal (exactly the census inputs, host originals + this tree), the orchestrator commits it, then q0561; all before 2026-10-22T02:45Z (q0564 notes)",
+ "notes": "DRAFT, not in queue/jobs. Census code check (2026-10-21) finding: restore only what the host no longer holds. Read-only host listing 2026-10-21T09:48Z (~/arepo/data-dumps/research_lab): 106 capture dirs 10-12..10-21; rows.csv.gz retired for all 12 of 10-12 and 10-13T00:31/02:31 (restored here); 10-14T00:31..10:31 absent on the host and not catalogued (genuinely missing unless a release holds them: check before promotion, counted as missing slots otherwise, never imputed); 10-21 has 01:01:20 (outside the 30-min tolerance, so the 00:31 slot is missing) and no 02:31 (host stall); 36 sweep dirs 10-19T20..10-21 on the host (R's 10-19T22:31 pass included). The census reads roots [host, this restore tree]; a host dir without rows.csv.gz is not a complete capture, so the restored copy is used. 8-day host retention: 10-13/10-14 captures rotate soon, so re-list before promotion and restore any rotated slot (or it stays missing). Disk about 0.5 GB (estimate). mem_mb 1200 because gh aborts under the 2x address-space cap at 600 MB (q0471). --path-glob is fnmatch (no alternation). Clear the restore tree after the LT5 registration commit. Counts 0."
+}
