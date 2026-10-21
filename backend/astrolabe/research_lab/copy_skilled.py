@@ -923,7 +923,9 @@ def label_resolutions(*, root: Path = OUT_ROOT, spec: dict | None = None, transp
         if n_req >= max_requests:
             break
         ids = todo[i:i + batch]
-        params = [("id", str(x)) for x in ids] + [("limit", str(len(ids)))]
+        # closed=true is required: Gamma /markets defaults to open markets only, so an id list without it never returns a
+        # resolved market (found in the 2026-10-21 host dry run). An open market is simply absent from the reply.
+        params = [("id", str(x)) for x in ids] + [("closed", "true"), ("limit", str(len(ids)))]
         try:
             code, body = get(f"{GAMMA}/markets", params)
         except Exception as exc:  # network failure: retried next pass

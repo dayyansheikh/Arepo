@@ -1,0 +1,39 @@
+{
+ "id": "q0544_copy_census",
+ "title": "E026 PRE-WINDOW planning census (DRAFT): skilled set rebuilt in a work dir from HB1 history at t = census start, recorder replayed on the wallet-sidecar trade samples of [2026-10-18T04:00Z, 2026-10-21T04:00Z) and the >= $1k print hours; entries only from captures before 2026-10-22T00:00Z; counts and entry-quote levels only (no payout, no exit quote, no price change); MDE and the pre-declared gates G1-G3",
+ "family": "copy_skilled",
+ "priority": 31,
+ "expected_value": "fills LIVE_TESTS_COPY.md 7.5 / 8.2 and spec 'planning': skilled-signal rate per day, entry availability per latency, realised latency, primary-set n, events, wallets, design effects, cost per dollar, 21-day projection, MDE, gate decision (register k = 2 / drop E026-C / redesign)",
+ "data": [
+  "research_lab/history/{h1_first,h2_main,h3_power} (read-only)",
+  "research_lab/trade_samples (active-frame samples with wallets.csv.gz, 2026-10-18T04:39Z onwards; read-only)",
+  "research_lab/snapshots (complete captures 2026-10-18T04:00Z .. before 2026-10-22T00:00Z; read-only)",
+  "research_lab/live_trades/trades-2026101[8-9].jsonl, trades-2026102[0-1].jsonl (read-only)"
+ ],
+ "resources": {
+  "mem_mb": 2000,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_copy_skilled.py",
+  "census",
+  "--start",
+  "2026-10-18T04:00:00Z",
+  "--end",
+  "2026-10-21T04:00:00Z",
+  "--work",
+  "../data-dumps/research_lab/copy_skilled_census/work",
+  "--out",
+  "../data-dumps/research_lab/copy_skilled_census/census.json"
+ ],
+ "timeout_s": 7200,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/copy_skilled_census/census.json (counts, quote-level aggregates and gates only; no wallet hash; the work dir is deleted at exit)"
+ ],
+ "next_action": "copy census.json into the repo (docs/research_lab/seals/e026_census.json with its sha256), fill LIVE_TESTS_COPY.md 7.5 / 8.2 and the spec 'planning' block from it, apply the gate decision of spec census_gates (never change a gate), then the challenger review",
+ "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_COPY.md 7.5-7.6, 8.2; E026). Counts 0 (planning; no trials line). Pre-window only: the runner refuses a window ending after 2026-10-22T00:00Z and never opens a capture starting at or after it, so no quote of the LT2-LT4 or E026 windows is read; exits are not recorded (exits=False) and no resolution is fetched. The skill set is rebuilt in the work dir at t_freeze = census start; every HB1 outcome was known by 2026-10-15, so it equals the set the freeze job q0540 will write; the real store data-dumps/research_lab/copy_skilled/ is never touched. DEADLINE (retention, not design): the 3-day trade-sample retention retires the 2026-10-18 / early 10-19 sample files at the 2026-10-22T03:30Z archive run, and the 02:45-05:30Z start blackout applies (mem_mb >= 500), so promote and start before 2026-10-22T02:45Z. A later run still works: retired samples are recorded missing and rates divide by the usable batches actually read (missing stays missing). Running before 2026-10-22T00:30Z is fine too: latency counts then use only batches whose entries are complete within the captures read. Memory: WS1 history load + profiles measured 0.96 GB peak on the Mac; the recorder adds one sample (about 240k sidecar rows) and one capture at a time; mem_mb 2000 is an estimate, not measured on the host (address-space cap 4 GB). Disk: well under 100 MB in the work dir; the runner has no --data-dumps-cap-gb flag."
+}

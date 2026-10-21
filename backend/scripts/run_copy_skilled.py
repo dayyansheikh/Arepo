@@ -19,6 +19,7 @@ import json
 import math
 import resource
 import shutil
+import subprocess
 import sys
 import time
 from datetime import UTC, datetime
@@ -115,6 +116,34 @@ def read_batches(passes: Path) -> dict[str, list[float]]:
     return out
 
 
+_CHILD = """
+import json, sys
+sys.path.insert(0, sys.argv[1])
+from pathlib import Path
+from astrolabe.research_lab import copy_skilled as cs
+a = json.loads(Path(sys.argv[2]).read_text())
+st = cs.run_once(root=Path(a["root"]), snapshot_root=Path(a["snapshots"]), sample_root=Path(a["samples"]),
+                 prints_root=Path(a["prints"]), spec=a["spec"], now=cs.now_ts(), max_items=100000, log=lambda s: None,
+                 capture_hi=a["capture_hi"], exits=False)
+print("CENSUS_RECORDER " + json.dumps(st, default=str))
+"""
+
+
+def recorder_in_child(work: Path, spec: dict, a, capture_hi: float) -> tuple[dict, float]:
+    """The census recorder pass in a fresh interpreter, so its peak RSS is measured apart from the history load."""
+    args = work / "census_args.json"
+    args.write_text(json.dumps({"root": str(work), "snapshots": a.snapshots, "samples": a.samples, "prints": a.prints,
+                                "spec": spec, "capture_hi": capture_hi}))
+    r = subprocess.run([sys.executable, "-c", _CHILD, str(Path(__file__).resolve().parents[1]), str(args)],
+                       capture_output=True, text=True, check=False)
+    args.unlink(missing_ok=True)
+    if r.returncode != 0:
+        raise RuntimeError(f"census recorder failed: {r.stderr[-2000:]}")
+    line = [x for x in r.stdout.splitlines() if x.startswith("CENSUS_RECORDER ")][-1]
+    ru = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
+    return json.loads(line[len("CENSUS_RECORDER "):]), ru / (1024 * 1024) if sys.platform == "darwin" else ru / 1024
+
+
 def cmd_census(a) -> int:
     from astrolabe.research_lab import wallet_skill_dev as wd
 
@@ -147,13 +176,13 @@ def cmd_census(a) -> int:
         cs.write_once_csv(work / "skillset" / "skillset.csv.gz", snap)
         rep["skillset"] = {"eligible": int(len(snap)), "skilled": int(snap["skilled"].sum()), "s": round(time.time() - t0, 1),
                            "peak_mb": round(peak_mb(), 1)}
+        del snap
         t1 = time.time()
-        st = cs.run_once(root=work, snapshot_root=Path(a.snapshots), sample_root=Path(a.samples), prints_root=Path(a.prints),
-                         spec=spec, now=cs.now_ts(), max_items=100000, log=lambda s: None, capture_hi=capture_hi, exits=False)
+        st, child_mb = recorder_in_child(work, spec, a, capture_hi)
         rep["recorder"] = {k: st.get(k) for k in ("samples", "print_hours", "captures", "signals_skilled", "signals_control",
                                                   "entries", "skipped_samples", "pending")}
         rep["recorder"]["s"] = round(time.time() - t1, 1)
-        rep["recorder"]["peak_mb"] = round(peak_mb(), 1)
+        rep["recorder"]["peak_mb_child"] = round(child_mb, 1)  # the recorder alone (q0541 mem_mb must stay below 500)
         rep["store_bytes"] = cs.dir_bytes(work) - cs.dir_bytes(work / "skillset")
         caps = [c["start"] for c in cs.scan_captures(Path(a.snapshots), t_start) if c["start"] < capture_hi]
         cap_last = max(caps) if caps else t_start

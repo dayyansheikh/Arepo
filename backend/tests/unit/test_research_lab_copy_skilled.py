@@ -388,7 +388,7 @@ def test_resolution_rows_and_label_pass(tmp_path):
         return 200, body
 
     out = cs.label_resolutions(root=root, spec=spec(), transport=fake, now=T0 + 86400, sleep=lambda s: None, log=lambda s: None)
-    assert out["final_new"] == 1 and ("id", "10") in calls[0]
+    assert out["final_new"] == 1 and ("id", "10") in calls[0] and ("closed", "true") in calls[0]
     res = cs.read_store(root, "resolutions")
     assert list(res["market_id"]) == [10] and res["state"].iat[0] == "resolved"
     # rechecked markets are skipped within recheck_s
@@ -581,8 +581,8 @@ def test_floors_make_unavailable(tmp_path):
 
 def test_queue_drafts_valid():
     repo = Path(__file__).resolve().parents[3]
-    drafts = sorted((repo / "docs" / "research_lab" / "queue" / "drafts").glob("q054[0-3]_copy_*.json"))
-    assert len(drafts) == 4
+    drafts = sorted((repo / "docs" / "research_lab" / "queue" / "drafts").glob("q054[0-4]_copy_*.json"))
+    assert len(drafts) == 5
     for p in drafts:
         j = json.loads(p.read_text())
         assert j["id"] == p.stem
@@ -592,6 +592,11 @@ def test_queue_drafts_valid():
         if j["resources"]["lane"] == "net":
             assert j["resources"]["mem_mb"] < 500  # blackout exemption, never blocks the cpu lane
     assert json.loads((repo / "docs/research_lab/queue/drafts/q0543_copy_analyze.json").read_text())["not_before"] == cs.ANALYSIS_NOT_BEFORE
+    cen = json.loads((repo / "docs/research_lab/queue/drafts/q0544_copy_census.json").read_text())
+    a = cen["argv"]
+    assert a[1] == "census" and "--out" in a and cen["resources"]["network"] == "none"
+    assert cs.epoch(a[a.index("--end") + 1]) <= cs.epoch("2026-10-22T00:00:00Z") < cs.epoch(cs.REGISTERED_UTC)
+    assert "copy_skilled/" not in a[a.index("--work") + 1] and "copy_skilled/" not in a[a.index("--out") + 1]
 
 
 # --- fee exponent and the planning census ---------------------------------------------------------------------------------
@@ -685,3 +690,15 @@ def test_census_refuses_late_window_and_overwrite(tmp_path):
     assert rc.main(["census", "--start", "2026-10-18T04:00:00Z", "--end", "2026-10-21T04:00:00Z", "--work", str(tmp_path / "w2"),
                     "--out", str(out)]) == 2
     assert out.read_text() == "{}" and not (tmp_path / "w2").exists()
+
+
+def test_census_recorder_child_process(tmp_path):
+    import argparse
+    rc = _runner()
+    snaps, samples, prints, root, caps, _ = _tree(tmp_path)
+    a = argparse.Namespace(snapshots=str(snaps), samples=str(samples), prints=str(prints))
+    st, mb = rc.recorder_in_child(root, spec(), a, T0 + 0.5 * H + 2 * H * 5)
+    assert st["samples"] == 2 and st["signals_skilled"] == 2 and mb > 0
+    assert not (root / "census_args.json").exists()
+    assert {p.name[:-7] for p in (root / "entries").glob("*.csv.gz")} == set(caps[:5])
+    assert (cs.read_store(root, "entries")["kind"] == "entry").all()
