@@ -143,3 +143,27 @@ test("disconnected scan API shows a clear state and recovers", async ({ page }) 
   await page.reload({ waitUntil: "networkidle" });
   await expect(page.getByTestId("eligible-headline")).toBeVisible({ timeout: 15000 });
 });
+
+test("lab signal engine section renders from the dev fixture without leaking embargoed numbers", async ({ page }) => {
+  // Dev-only labelled fixture (`?fixture=1` is refused in production builds).
+  await page.goto("/lab?fixture=1", { waitUntil: "networkidle" });
+  await expect(page.getByText("Fixture · local development data, not real results")).toBeVisible();
+  const se = page.getByTestId("signal-engine");
+  await expect(se).toBeVisible({ timeout: 15000 });
+  await expect(se).toContainText("Signal strength / forecast quality only");
+  await expect(se).toContainText("Development (historical, not prospective)");
+  const embargoed = se.getByTestId("se-embargoed-row").first();
+  await expect(embargoed).toContainText("(live test)");
+  const text = (await embargoed.innerText()).replace(/\d{1,2} \w{3} \d{4}/, "").replace("se8_lr_event", "");
+  expect(text).not.toMatch(/\d/);
+  await expect(se.getByTestId("se-attribution-hidden")).toContainText("event");
+  expect(await se.innerText()).not.toMatch(/expected return|alpha\b/i);
+  // Wide tables scroll inside their own container; the section itself must fit every viewport.
+  // (Scoped to the section: the shared lab tab row is outside this change.)
+  for (const vp of VIEWPORTS) {
+    await page.setViewportSize({ width: vp.width, height: vp.height });
+    const fit = await se.evaluate((el) => ({ sw: el.scrollWidth, cw: el.clientWidth, right: el.getBoundingClientRect().right }));
+    expect(fit.sw, `signal-engine@${vp.name}`).toBeLessThanOrEqual(fit.cw);
+    expect(fit.right, `signal-engine@${vp.name}`).toBeLessThanOrEqual(vp.width);
+  }
+});
