@@ -3131,7 +3131,8 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   census counts are unaffected.
 - **q0545_copy_census_memcheck** (priority 37, cpu, counts only, same pre-window period, separate output, gates NOT
   re-applied) measures the recorder's own peak before the 10-22T03:30Z retention run; q0541 `mem_mb` 450 is confirmed
-  or re-sized from it before the pin. Any count difference from q0544 is a finding.
+  or re-sized from it before the pin. The skill set, signal counts and L = 0 primary set must equal q0544 (a
+  difference is a finding); the 6 h / 24 h availability counts may grow, since later pre-window captures now exist.
 - Test fix: `test_queue_drafts_valid` now finds q0544 in `queue/jobs/` (promoted), 41 / 41 pass.
 
 ## SB2-J4-R (q0035, run `bounce-j4r`, finished 2026-10-21 07:25Z): **VOID as declared** (placebo failure); 5 tests counted, no verdict
