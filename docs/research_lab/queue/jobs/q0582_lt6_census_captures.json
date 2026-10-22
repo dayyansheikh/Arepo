@@ -2,18 +2,19 @@
  "id": "q0582_lt6_census_captures",
  "title": "LT6 censuses CD (D, deadline moves), CB (B, sibling birth) and CV (V, the makers' vote) on the sealed capture span 2026-10-12T00:31Z .. 2026-10-21T22:31Z (CD/CB every pair of consecutive complete slots; CV the passes of UTC 2026-10-20/21 with their pass k - 1 sweep) (DRAFT): counts only, origin-side fields only, no capture or sweep after the one classified, no target, no P&L; refuses unsealed, mismatched or out-of-bound inputs",
  "family": "live_tests_6",
- "priority": 22,
+ "priority": 96,
  "expected_value": "D, B and V census gates (LIVE_TESTS_6.md section 7): kill lines, MDE with VIF_w and size-weighted m_co, depletion gates, perm strata, family exclusions, V's centre/scale/terciles/gap, B's fake-birth cuts; decides part of k before the pin",
  "data": [
   "host originals ~/arepo/data-dumps/research_lab/{snapshots,book_sweeps} (read-only, under the seal)",
   "data-dumps/research_lab/live_tests6_census/restore (q0580; read-only)"
  ],
  "resources": {
-  "mem_mb": 1200,
+  "mem_mb": 2500,
   "cpu": 1,
   "lane": "cpu",
   "network": "none",
-  "exclusive": true
+  "exclusive": true,
+  "as_cap_mb": 9000
  },
  "depends_on": [
   "q0581_lt6_seal"
@@ -44,5 +45,5 @@
   "data-dumps/research_lab/live_tests6_census/CD_CB_CV.json (counts only; the work dir is cleaned up at exit)"
  ],
  "next_action": "commit CD_CB_CV.json and its sha256 (seals/), fill the V centre/scale/terciles/gap, the D/B/V perm_stratum, exclude_family and fake-birth cuts and the D/B/V entries of k_tests in the spec, record any drop in LIVE_TESTS_6.md 6.3 and the ledger",
- "notes": "FILLED 2026-10-22 ~01:15Z (orchestrator): extra root LT5 restore tree (10-12 captures, as in q0581). Must start before 2026-10-23T03:30Z (10-15 capture rows leave the host then). | DRAFT, not in queue/jobs (LIVE_TESTS_6.md, accepted for code only; the code is not yet frozen or reviewed). Promote only after the challenger review of the code and its freeze check. Counts 0 (descriptive; no trials line). mem_mb 1200 is an ESTIMATE (a 14-capture rolling cache of the compact series6/members6 frames; LT5's comparable census was set at 1,500 and run exclusive) and must be measured by a dry run before promotion; at >= 1,000 MB it falls under the memory-heavy-jobs rule (never two multi-GB jobs at once), so it is exclusive. Order inside the job: the capture pass computes CD, CB and CV together (the design's cheapest-kill-first order is a reading order, not a data dependency). Census gates are stated in LIVE_TESTS_6.md section 7 before this runs; nothing is re-tuned after it. Below the minimum covered days (CV 1.5, CD/CB 5) every gate of that census is NaN and fails. The runner refuses, exit 2, a seal not tracked by git or differing from HEAD, and records the seal's sha256 and commit. Must not overlap q0583. Must start before 2026-10-22T02:45Z (blackout) or the host retention run may remove inputs it reads, unless they are in the restore tree."
+ "notes": "PROMOTED 2026-10-22 ~05:35Z (experiments autopilot) after q0581 (seal sha256 18040c80..., committed to seals/ with this promotion). OPS ONLY: priority 22 -> 96 so it runs before the 6 h exclusive MC1 run and before the temporary 10-day snapshot retention is reverted (10-15 rows); mem_mb 1200 -> 2500 and as_cap_mb 9000 because LT5's comparable census q0561 failed twice at the address-space cap (3,000 / 6,500 MB) on its series cache; exclusive on the 12 GB host. argv, code, seal and gates unchanged. | FILLED 2026-10-22 ~01:15Z (orchestrator): extra root LT5 restore tree (10-12 captures, as in q0581). Must start before 2026-10-23T03:30Z (10-15 capture rows leave the host then). | DRAFT, not in queue/jobs (LIVE_TESTS_6.md, accepted for code only; the code is not yet frozen or reviewed). Promote only after the challenger review of the code and its freeze check. Counts 0 (descriptive; no trials line). mem_mb 1200 is an ESTIMATE (a 14-capture rolling cache of the compact series6/members6 frames; LT5's comparable census was set at 1,500 and run exclusive) and must be measured by a dry run before promotion; at >= 1,000 MB it falls under the memory-heavy-jobs rule (never two multi-GB jobs at once), so it is exclusive. Order inside the job: the capture pass computes CD, CB and CV together (the design's cheapest-kill-first order is a reading order, not a data dependency). Census gates are stated in LIVE_TESTS_6.md section 7 before this runs; nothing is re-tuned after it. Below the minimum covered days (CV 1.5, CD/CB 5) every gate of that census is NaN and fails. The runner refuses, exit 2, a seal not tracked by git or differing from HEAD, and records the seal's sha256 and commit. Must not overlap q0583. Must start before 2026-10-22T02:45Z (blackout) or the host retention run may remove inputs it reads, unless they are in the restore tree."
 }

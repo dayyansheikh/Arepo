@@ -3519,3 +3519,13 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   **Operational slip (autopilot):** `queue_worker.py stop <id>` is not per-job: it paused the queue and SIGTERMed every
   running job. Effects: q0121 (h8_tail seal) stopped after 6 s (recorded `stopped`, attempt not counted, re-queued); the
   queue was paused 01:34-01:44Z and resumed by hand. Nothing lost. Use `pause` / `retry <id>` instead.
+
+## Operational deviation: research host resized (2026-10-22; facts only; draft by scripts/oracle/post_resize_check.py, appended by the experiments autopilot ~05:30Z)
+- Owner decision 2026-10-21 ("Yes, but at a quiet time"): Always Free A1 allowance, cost 0. Target 2 OCPU / 12 GB. Before: {'mem_total_gib': 5.52, 'nproc': 1}; after: {'nproc': 2, 'mem_total_gib': 11.4} (metadata {'ocpus': 2.0, 'memory_gb': 12.0}). Result: resized.
+- Queue paused 2026-10-22T02:40:19Z (pre-existing pause: False); resumed 2026-10-22T03:15:31Z. Jobs stopped and re-queued (not counted as attempts): none.
+- Collector pass lock held from 2026-10-22T03:00:59Z; light job locks (streams, reward params, lab push) from 2026-10-22T03:10:17Z; monitors stopped 2026-10-22T03:10:25Z; update accepted 2026-10-22T03:10:28Z; boot 2026-10-22T03:12:36Z; check 2026-10-22T03:20:02Z.
+- E009/E010 poller: last cycle before 2026-10-22T03:10:00Z, first cycle after 2026-10-22T03:16:00Z; missed 120 s cycles 2; 10-minute grid origins without a poll: none. Not backfilled; missing stays missing (gap-fill rule per E009_E010_GAPFILL_RULE_V2.md applies as written).
+- Live trade monitor: last cycle before 2026-10-22T03:08:48Z, first after 2026-10-22T03:15:35Z.
+- Streams (last poll before / first after): predictit (1 min) 2026-10-22T03:10:02Z / 2026-10-22T03:14:02Z; smarkets (5 min) 2026-10-22T03:05:17Z / 2026-10-22T03:15:16Z; espn_odds (10 min) 2026-10-22T03:02:12Z / None at the check (polling again by 05:02Z); gamma_rules (hourly) 2026-10-22T02:51:02Z / None at the check (polled 04:50Z).
+- Scheduled collector passes inside the window: none (E011 scores per complete capture; E012-E014 origins come from captures and trade samples, so no capture means no origin).
+- Problems: none. Resize cron removed (`resize_host.py --remove-cron`, ~05:25Z).

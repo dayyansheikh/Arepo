@@ -6,8 +6,8 @@ any gap are recorded in `EXPERIMENT_LEDGER.md` ("Operational deviation: collecti
 
 ## Host
 - `ssh oracle` (alias in the Mac's `~/.ssh/config`; never copy the key). The user is `opc`, the host runs Oracle Linux 8 aarch64
-  with 1 OCPU and about 6 GB RAM, and the clock is UTC. A resize to 2 OCPU / 12 GB is scheduled for 2026-10-22 02:40Z
-  (see "Host resize" below).
+  with 2 OCPU and about 11.4 GiB RAM (12 GB shape), and the clock is UTC. It was resized from 1 OCPU / 6 GB on
+  2026-10-22 (03:10-03:16Z, 6 min down, no problems; see "Host resize" below). The one-shot resize cron is removed.
 - Python 3.11 venv: `/home/opc/arepo/.venv`. It is pinned to the Mac venv's versions (numpy 2.4.6, pandas 2.3.3,
   lightgbm 4.7.0, scikit-learn 1.9.1, scipy 1.17.1) and holds an editable install of `backend/`.
 - The host is shared with the user's other work (`rev-build`, `revision-build`). Leave anything that isn't AREPO alone.
