@@ -3803,3 +3803,26 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   benchmark, not a challenger: not in the registry, never promoted, no change to K, the promotion rule or any existing
   score. First rows at the 2026-10-23 daily score. Any gain over the mid is forecast quality only (no costs, no fill),
   not an edge claim. Test `test_market_price_reference_scores_res_7d_from_the_origin_mid`.
+
+## LT9 design draft, 2026-10-22 (nothing counted)
+- **Draft:** `docs/research_lab/LIVE_TESTS_9.md` on `feat/live-tests-9` (from chore `9079ca39`), sha256
+  `01c4989065c35743c47baa7c191f5956a1a734d9270a0c8e9c107605f82bef0a`. DRAFT, **not frozen**, no challenger review yet;
+  not registered; no code, seal, census or size run; E-numbers unassigned.
+- **Source:** creative round 14 (`CREATIVE_HYPOTHESES_2026-10-28.md`) ranks 1-3: CH213 (band break: spread re-tightening after
+  a strict `s >= 2v` crossing, reward panel against a cell-matched control panel), CH214 (pool splits: symmetric in-band depth
+  innovation between sweeps k - 2 and k - 1 on the CLOB spread from sweep k to k + 1), CH212 (the `clob_rewards` omission as
+  a serving-path event, route A or B fixed by a counts-only rule, "neither" drops it). CH215 (scheduled programme end) is an
+  optional fourth that enters only if every gate of its own census (CR9) passes; Holm over k <= 3 (4 with CH215).
+- **Reward status:** LT7 13.7's `listed_carry24h_v2` for every LT9 control and panel; CH212's state is that rule's carry lag
+  (no unit is reclassified; LT7's and LT8's frozen controls are not re-opened; LT8's k-only control disclosed as different).
+- **Planning MDEs (DE 31; low / high):** CH213 interaction 1.39c / 0.62c against 1.0c (needs about 68 strict breaks a capture
+  per panel); CH214 slope 0.28c / 0.19c (F binding); CH212 route A 0.58c / 0.35c against 0.5c (needs about 240 omitted units a
+  capture); CH215 2.23c / 0.92c (needs about 51 ends a day). Designer's odds: census 0.35 / 0.35 / 0.30 / 0.10; expected
+  k about 1.0; about 0.30 that CH213, CH214 and CH212 all drop.
+- **Window (proposed, ordered lane):** `[2027-01-21T00:00Z, 2027-02-11T00:00Z)`, keyed to LT8's `END_UTC` + 24 h (slides with
+  LT8; LT8's slot if LT8 drops entirely); analysis on or after 2027-02-12T12:00Z. Round 14's fast lane declined (DST-straddling
+  census, results would inform LT8's pin and LT7's window). Freeze before the earlier of 2026-11-14T12:00Z and `T_E015`;
+  pin before `T_LT7` or every test dropped. Census on a fresh seal 2026-11-02..11-12 (drafts q0640-q0647, none written).
+- **Next:** challenger R1 (`science-reviewer`) on the draft; embargo requests (`bandbreak`, `pool`, `rwblink`; `rwend` on
+  CH215's entry; `book0` / `book` to the LT9 date only if CH214 survives; no `rewards` extension) filed at acceptance and
+  before 2026-12-23.
