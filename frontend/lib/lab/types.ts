@@ -221,6 +221,9 @@ export interface SePromotion {
 export interface SePromotionCandidate {
   model_id?: string;
   pass?: boolean;
+  /** False when the model may never be promoted (dated register on the host); absent reads as eligible. */
+  eligible?: boolean;
+  ineligible_since?: string | null;
   days?: number | null;
   age_days?: number | null;
   days_to_min?: number | null;

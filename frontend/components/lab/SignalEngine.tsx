@@ -260,7 +260,13 @@ function PromotionRuleCard({ view }: { view: PromotionView }) {
                     {c.passed}/{c.total}
                   </td>
                   <td className="px-2 py-2">
-                    <Pill tone={c.pass ? "pos" : "neutral"}>{c.pass ? "Meets rule" : "Not yet"}</Pill>
+                    {c.eligible ? (
+                      <Pill tone={c.pass ? "pos" : "neutral"}>{c.pass ? "Meets rule" : "Not yet"}</Pill>
+                    ) : (
+                      <span title={`Scored and shown, but never promoted${c.ineligibleSince ? ` (since ${fmtUtc(c.ineligibleSince)})` : ""}: its book inputs are read after the label's starting price.`}>
+                        <Pill tone="neutral">Not eligible</Pill>
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}

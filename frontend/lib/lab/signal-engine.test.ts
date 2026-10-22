@@ -298,6 +298,18 @@ describe("promotion rule status", () => {
     expect(html).toContain("waiting");
   });
 
+  it("marks an ineligible candidate and never shows it as meeting the rule", () => {
+    const b = block({ candidates: [cand("se7_lgbm_all", { pass: true, eligible: false, ineligible_since: "2026-10-22T00:50:00Z" }), cand("se1_lgbm_mm")] });
+    const [se7, se1] = promotionView(b, NOW)!.candidates;
+    expect(se7.eligible).toBe(false);
+    expect(se7.pass).toBe(false);
+    expect(se7.ineligibleSince).toBe("2026-10-22T00:50:00Z");
+    expect(se1.eligible).toBe(true);
+    const html = render(b);
+    expect(html).toContain("Not eligible");
+    expect(html).not.toContain("Meets rule");
+  });
+
   it("renders nothing for an absent, null or malformed promotion", () => {
     for (const p of [undefined, null, "x", [], 5]) {
       expect(promotionView({ schema: "se-dash-v1", promotion: p as never }, NOW)).toBeNull();
