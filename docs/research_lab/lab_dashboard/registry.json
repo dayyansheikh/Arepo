@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-22T06:35:00Z",
+ "updated": "2026-10-22T07:00:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1559,22 +1559,22 @@
   },
   {
    "id": "LT6",
-   "title": "Live tests 6: four more ideas from round 11 (planned)",
-   "plain": "A sixth group of planned live tests from new-ideas round 11. On 22 Oct three of the four (quotes refilling after a move, moves near a market's deadline, new sibling markets) failed their counting checks and were dropped before any test, uncounted. One remains: repeated same-size orders.",
+   "title": "Live tests 6: four ideas from round 11 (closed)",
+   "plain": "A sixth group of planned live tests from new-ideas round 11. On 22 Oct all four failed their counting checks (too few cases, or a measure that could not be separated from a related one) and were dropped before any test, so nothing was registered and nothing is counted.",
    "batch": "LT6",
    "family": "mixed",
    "stage": "designed",
-   "status": "running",
-   "verdict": "pending",
+   "status": "closed",
+   "verdict": "not_testable",
    "effect": null,
-   "next": "Counting check for the remaining test (22 Oct), then a size check if it survives",
-   "next_date": "2026-11-01",
+   "next": "Closed: no LT6 test registered (all four dropped at their counting checks, uncounted)",
+   "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT6 capture censuses (q0582): D, B and V dropped at census, uncounted (2026-10-22)"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT6 closed: K dropped at census, no LT6 test registered (2026-10-22); docs/research_lab/LIVE_TESTS_6.md §6.3"
    },
    "stage_results": {
-    "designed": "pending"
+    "designed": "fail"
    },
    "reached": [
     "designed"
@@ -1595,6 +1595,29 @@
    "candidate": false,
    "sources": {
     "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT6 seal committed, LT7 census code verified and merged, census jobs promoted (2026-10-22)"
+   },
+   "stage_results": {
+    "designed": "pending"
+   },
+   "reached": [
+    "designed"
+   ]
+  },
+  {
+   "id": "LT8",
+   "title": "Live tests 8: three ideas from round 13 (planned)",
+   "plain": "Up to three planned live tests from new-ideas round 13: an order book that shifts behind a price that did not move, how much of a recent move the order book had already absorbed, and each market's own busy hours. The design draft is under independent challenger review (22 Oct). Honest planning says all three may fail their counting checks.",
+   "batch": "LT8",
+   "family": "mixed",
+   "stage": "designed",
+   "status": "waiting",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Challenger review, then counting checks; collection not before 30 Dec 2026",
+   "next_date": "2026-12-30",
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/CREATIVE_HYPOTHESES_2026-10-27.md §3; branch feat/live-tests-8 docs/research_lab/LIVE_TESTS_8.md (draft)"
    },
    "stage_results": {
     "designed": "pending"

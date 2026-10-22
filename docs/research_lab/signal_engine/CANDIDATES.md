@@ -130,7 +130,7 @@ six new tokens added (no models). Tests updated. Notes:
   - `book` stays at 2026-12-31 (LT6 V, LT7 CH195 / CH197, E022's depth control).
 - **LT6 D (CH187), B (CH188) and V (CH190) were dropped at census** (q0582, 06:26Z; `LIVE_TESTS_6.md` 6.3). The `vote`
   (V), `deadline` (D) and `siblings` (B) tokens (until 12-09) protect no test now; release is the builder's call. `clips`
-  (K, CH185) stays until LT6's K census (q0583) decides. `book` stays (LT7, E022).
+  (K, CH185) protects no test either: K was dropped at q0583 (LT6 closed with no test). `book` stays (LT7, E022).
 - **E022 (LT4) is REGISTERED** (window 2026-10-26..11-16, analysis after 11-17T12Z): the `hollow` token (until 11-18)
   is now protecting a registered test and must not be released or shortened.
 - **Development-only families from the drops (ideas, no evidence; the census says only that the live test was not

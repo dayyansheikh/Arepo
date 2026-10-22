@@ -3604,3 +3604,11 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **Defect fixed:** the tick built at most 4 aux tables per run, so `participation` and `book0` of each new capture were
   built only at the next pass, after the 2 h target had started (capture 10-22 04:31Z). Now `len(AUX_FAMILIES) x
   max_items`. No prediction was affected (se16 has no fit; se18 / se19 first fit at the 10-22 07:34Z refit).
+
+## LT6 closed: K dropped at census, no LT6 test registered (2026-10-22 ~06:50Z; experiments autopilot)
+- q0583 (CK) ran once (06:28-06:39Z, rc 0) on seal 18040c80…; output `seals/CK.json` sha256 e0476df1… committed. Counts
+  only. **K (CH185): dropped** (13 clip units in 1.92 days, projected 142 against >= 8,400; clip share 0.0066; permutable
+  share 0.0 by day; MDE 5.75c). Details: `LIVE_TESTS_6.md` 6.3.
+- **LT6 has no surviving test** (V, D, B at q0582; K at q0583): nothing registered, **uncounted**. q0584 and the LT6
+  reader / analysis drafts are moot. LT7's "after LT6's q0584 or its recorded drop" is met by this entry; q0602's
+  dependency on q0584 is removed with a note (the cpu lane still serialises LT7 with LT5's census jobs).

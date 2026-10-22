@@ -721,7 +721,15 @@ uncounted.**
   331,728 (>= 42,000), both-sweep coverage 0.93, depletion asymmetry at the touch -7.1 pp traded / -6.5 pp quote-only
   (<= 20 pp), IQR share 0.93, block recurrence 0.93, the other correlations (h0 0.007, log |x| -0.026, traded 0.016,
   liquidity -0.046 within), tercile MDE 0.35c (<= 0.5c; DE_gate 7.2).
-- K (CK) waits for q0583; `k_tests` is fixed after it. The D/B/V census values in the spec stay null on purpose.
+- **K (CH185, CK; q0583, 2026-10-22 06:28-06:39Z, rc 0): DROPPED.** Output `seals/CK.json`, sha256
+  e0476df1e4ff2704a9575bcacb610b269847211204b8823a09c119b04720d5bf (host and Mac equal); 23 sealed samples, 1.92 covered
+  days. Fails: clip units 13 (projected 142, >= 8,400), clip share of qualifying 0.0066 (>= 3%), clip-free projected
+  20,872 (>= 25,200), qualifying projected 21,551 (>= 50,400), round-size share of clip notional 0.89 (<= 0.70),
+  permutable share 0.0 by day / 0.08 by block2 (>= 0.5), pessimistic MDE 5.75c (<= 0.5c). Passes: `ts` second-level
+  0.98, `order_min_size` present 0.9998, `interval_truncated` 0.0025, min-size share 0.043, every correlation gate.
+- **LT6 closes with no test: all four (V, K, D, B) dropped at census before registration, uncounted.** q0584 (size check)
+  and the reader / analysis drafts are moot and are never promoted. LT7's ordering rule (7: after LT6's q0584 "or its
+  recorded drop") is met by this record.
 - Consequences: V's freeze condition on E022 (1.1) is moot; the `vote`, `deadline` and `siblings` engine tokens were
   filed for V, D and B only (CANDIDATES.md note of 2026-10-22).
 

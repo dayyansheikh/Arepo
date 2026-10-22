@@ -28,5 +28,5 @@
   "trials.jsonl (one line, kind live_tests6, n_tests = k)"
  ],
  "next_action": "ledger results entry (scored once), registry update",
- "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_6.md). not_before deliberately unset: the analysis date is END_UTC + 36 h and slides with E022 (section 1); fill at registration. Runs once; --out refuses to overwrite; the analyze command itself refuses before the analysis date and on any pin mismatch. Memory not measured; do not run alongside another multi-GB job."
+ "notes": "MOOT 2026-10-22: LT6 closed with every test dropped at census (LIVE_TESTS_6.md 6.3); never promote. | DRAFT, not in queue/jobs (LIVE_TESTS_6.md). not_before deliberately unset: the analysis date is END_UTC + 36 h and slides with E022 (section 1); fill at registration. Runs once; --out refuses to overwrite; the analyze command itself refuses before the analysis date and on any pin mismatch. Memory not measured; do not run alongside another multi-GB job."
 }

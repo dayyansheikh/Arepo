@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-22 07:30 UTC+1
+**Last updated:** 2026-10-22 07:43 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -13,8 +13,8 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 - **Server resize: DONE** (2 CPUs, 12 GB, free). Down 6 minutes overnight; the short gaps are logged as they happened.
 - **LT5 (round 11 ideas):** three of its five planned tests failed their counting checks this morning and were dropped
   before any test, uncounted (one needed a bigger effect than allowed, two had too few cases). Two remain to be counted.
-- **LT6 (round 11 ideas):** three of its four planned tests failed their counting checks this morning (two had almost no
-  cases; one could not be separated from a related measure) and were dropped, uncounted. The last one is being counted now.
+- **LT6 (round 11 ideas): closed with no test.** All four planned tests failed their counting checks this morning (too few
+  cases, or a measure that could not be separated from a related one); dropped before any test, uncounted.
 - **Honest pattern:** most planned tests die at the counting stage, before any data on the outcome is read. That is the
   checks working as designed; round 13 was written with these failures in mind.
 - **LT7 (five planned tests from round 12):** the counting code passed its checks; its data list is sealed (after a small
