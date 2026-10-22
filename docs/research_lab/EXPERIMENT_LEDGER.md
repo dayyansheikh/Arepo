@@ -3493,3 +3493,10 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   every other must-fix applied; planning at E022's measured design effect 6.196 says all five remaining tests are likely to
   drop at census (k <= 5, expected 0-2). Embargo requests filed (CANDIDATES round 4, 9621c12e); `mm_fresh` withdrawn.
   R1 re-check (science-reviewer) running.
+- (~01:15Z) **LT7 R1 re-check: ACCEPT_WITH_FIXES** (`reviews/LT7_R1_RECHECK_2026-10-22.md`): 3 must-fixes, all tightening
+  (block-gate share proxy scaled to census length, `ceil(16 x covered_days / 21)`; CH197 F gate on
+  `r_gate = max(r_w, r_pool)`; CH193 to the block gate) plus should-fixes, applied in cedfd6be (section 13.5) and checked by
+  the orchestrator. **LT7 DESIGN-TEXT FREEZE:** `LIVE_TESTS_7.md` at cedfd6be, sha256 `840f4500cde37158f57f6cf6bf54a3535ee5b24f3e5dedfd9240b315eeb52899`; merged into
+  chore. Any later change to a test's text is a recorded deviation. Next: restore/seal (q0600-q0601), code (vendored
+  `live_tests7_base.py`), code freeze check, censuses (q0602-q0604), size check (q0605), pins, registration (window not
+  before 2026-12-08). Nothing registered or counted; E-numbers unassigned.
