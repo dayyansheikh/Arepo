@@ -1061,7 +1061,40 @@ def test_rewards_and_event_tokens_withdrawn_after_census_drops():
     assert fl and fl["until"] == "2026-11-16T00:00:00Z" and fl["tests"] == ["E013", "E014"]
     for e in C.EMBARGO:  # a date earlier than before is only ever a recorded withdrawal
         if "until_before" in e:
-            assert e["withdrawn_utc"] == w and S.epoch(e["until"]) < S.epoch(e["until_before"])
+            assert e["withdrawn_utc"] in (w, "2026-10-23T00:00:00Z") and S.epoch(e["until"]) < S.epoch(e["until_before"])
+            assert "WITHDRAW" in e["why"]
+
+
+def test_lt7_closure_withdrawals_and_lt9_round6_requests():
+    # LT7 closed at census with no test (2026-10-22): its tokens and the movetype extension are withdrawn at 10-23 00:00Z
+    reg = SP.load_registry()
+    w2 = "2026-10-23T00:00:00Z"
+    for tok in ("resist", "capath", "deepbook", "absorbed", "ivr"):
+        (ent,) = [x for x in C.EMBARGO if x["token"] == tok]
+        assert ent["until"] == ent["withdrawn_utc"] == w2 and ent["until_before"] == "2026-12-31T00:00:00Z"
+    (mt,) = [x for x in C.EMBARGO if x["token"] == "movetype"]
+    assert (mt["until"], mt["until_before"], mt["withdrawn_utc"], mt["tests"]) == ("2026-11-22T00:00:00Z", "2026-12-31T00:00:00Z", w2, ["E015"])
+    # se14 isolates movetype and book, so it stays hidden to the book date
+    assert SP.embargo_of(reg["models"]["se14_lgbm_movetype"], S.epoch("2026-12-01T00:00:00Z"))["until"] == "2027-02-14T00:00:00Z"
+    # LT9 round 6: new tokens and book / book0 to the LT9 date (conditional on CH214's census), LT7 pruned from the tests
+    for tok, ch in (("bandbreak", "LT9-CH213"), ("pool", "LT9-CH214"), ("rwblink", "LT9-CH212")):
+        (ent,) = [x for x in C.EMBARGO if x["token"] == tok]
+        assert ent["until"] == "2027-02-14T00:00:00Z" and ent["tests"] == [ch]
+    assert not [x for x in C.EMBARGO if x["token"] == "rwend"]  # only on CH215's entry at census
+    for tok in ("book", "book0"):
+        (ent,) = [x for x in C.EMBARGO if x["token"] == tok]
+        assert ent["until"] == "2027-02-14T00:00:00Z" and "LT9-CH214" in ent["tests"]
+        assert not any(t.startswith("LT7") for t in ent["tests"])
+    # attribution-limit entries: inert as family tokens, and no LT8 / LT9 family sits in any broad model
+    lims = [x for x in C.EMBARGO if x.get("kind") == "attribution_limit"]
+    assert {x["token"]: x["until"] for x in lims} == {"attrlimit_lt8": "2027-01-23T00:00:00Z", "attrlimit_lt9": "2027-02-14T00:00:00Z"}
+    fams = set(A.AUX_FAMILIES) | {f for s in reg["models"].values() for f in s["families"]}
+    for x in lims:
+        assert x["token"] not in fams and x["limits"] and x["no_broad_families"]
+        assert not any(x["token"] in (s.get("isolates") or []) for s in reg["models"].values())
+        for s in reg["models"].values():
+            if s.get("broad"):
+                assert not set(s["families"]) & set(x["no_broad_families"]), s["model_id"]
 
 
 def test_spec_aux_version_pin():
@@ -1104,11 +1137,11 @@ def test_repo_registry_loads_and_embargo_assignment():
     assert reg["models"]["se10_lgbm_event"]["train"]["require_full_coverage"] is True
     assert emb["se4_lr_xvenue"] == "2026-11-04T00:00:00Z"
     assert emb["se2_lr_flow"] == "2026-11-16T00:00:00Z" and emb["se5_lr_tte"] == "2026-11-14T00:00:00Z"
-    assert emb["se3_lr_book"] == "2027-01-23T00:00:00Z" and emb["se6_lr_wallet"] == "2026-12-07T00:00:00Z"  # book: LT8 section 9 (from 12-31)
+    assert emb["se3_lr_book"] == "2027-02-14T00:00:00Z" and emb["se6_lr_wallet"] == "2026-12-07T00:00:00Z"  # book: LT9 section 9 (from 2027-01-23)
     assert emb["se8_lr_event"] is None and emb["se10_lgbm_event"] is None  # event withdrawn 10-22 12:00Z
     assert emb["se9_lr_rewards"] == "2026-11-18T00:00:00Z"  # LT5 R extension withdrawn; E022 S2 remains
     assert emb["se11_lgbm_flow"] == "2026-11-16T00:00:00Z" and emb["se12_lgbm_tte"] == "2026-11-14T00:00:00Z"
-    assert emb["se13_lgbm_xvenue"] == "2026-11-04T00:00:00Z" and emb["se14_lgbm_movetype"] == "2027-01-23T00:00:00Z"  # isolates book (LT8) and movetype (12-31)
+    assert emb["se13_lgbm_xvenue"] == "2026-11-04T00:00:00Z" and emb["se14_lgbm_movetype"] == "2027-02-14T00:00:00Z"  # isolates book (LT9) and movetype (11-22)
     assert "E015" in SP.embargo_of(reg["models"]["se14_lgbm_movetype"], t)["tests"]
     se1 = reg["models"]["se1_lgbm_mm"]
     mt = reg["models"]["se14_lgbm_movetype"]
@@ -1129,7 +1162,7 @@ def test_repo_registry_loads_and_embargo_assignment():
     assert s18["families"] == [f for f in se7["families"] if f != "book"] + ["book0"]
     assert s18["train"] == se7["train"] | {"require_full_coverage": True}
     assert "se18_lgbm_all_b0" not in {e["model_id"] for e in C.PROMOTION_INELIGIBLE}
-    assert emb["se19_lr_book0"] == "2027-01-23T00:00:00Z" and set(reg["models"]["se19_lr_book0"]["isolates"]) == {"book0", "book"}
+    assert emb["se19_lr_book0"] == "2027-02-14T00:00:00Z" and set(reg["models"]["se19_lr_book0"]["isolates"]) == {"book0", "book"}
     bk, b0 = ({k: v for k, v in e.items() if k not in ("token", "why")} for t in ("book", "book0") for e in C.EMBARGO if e["token"] == t)
     assert bk == b0  # book0 hides exactly like book (attribution of se18 too)
     s17 = reg["models"]["se17_lgbm_mm_900k"]  # learner budget only: se1's inputs and tree params, more rows / rounds
@@ -1143,7 +1176,7 @@ def test_repo_registry_loads_and_embargo_assignment():
         m, base = reg["models"][mid], reg["models"][lr]
         assert m["learner"] == "lgbm" and m["params"] == se1["params"] and m["train"]["window_days"] == se1["train"]["window_days"]
         assert (m["families"], m["derived"], m["isolates"]) == (base["families"], base["derived"], base["isolates"])
-    assert all(v is None for v in ((SP.embargo_of(s, S.epoch("2027-01-23T00:00:01Z")) or {}).get("until") for s in reg["models"].values()))  # latest: book 2027-01-23 (LT8)
+    assert all(v is None for v in ((SP.embargo_of(s, S.epoch("2027-02-14T00:00:01Z")) or {}).get("until") for s in reg["models"].values()))  # latest: book 2027-02-14 (LT9)
 
 
 # ---------------------------------------------------------------------------------------------- promotion
