@@ -628,3 +628,11 @@ def test_k_features_freeze_the_p1_placebo_and_s3_notional_clips():
     h = lt.clip_unit_features(r, "1", t_k=1000.0, spec=_spec())
     assert h["clip_share"] == 0.0 and h["s3_n_trains"] == 1 and h["s3_clip_share"] == pytest.approx(1.0)
     assert lt.notional_cent_keys(r) == [Decimal("5.00")] * 3
+
+
+def test_e022_decision_must_be_exactly_one_of_registered_or_dropped():
+    """Re-check fix 5: neither or both true leaves the E022 decision unmade / contradictory."""
+    base = _spec()
+    for reg, drop, ok in ((None, None, False), (False, False, False), (True, True, False), (True, None, True), (None, True, True), (True, False, True), (False, True, True)):
+        s = {**base, "e022": {**base["e022"], "registered": reg, "dropped": drop, "end_utc": "2026-11-16T00:00:00Z", "pin_commit_utc": "2026-11-17T09:00:00Z"}}
+        assert ("e022.registered|e022.dropped" not in lt.unfilled(s)) is ok, (reg, drop)

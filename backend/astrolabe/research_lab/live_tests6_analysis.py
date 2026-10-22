@@ -550,12 +550,15 @@ def size_check(*, worlds: int, draws: int, seed: int, nominal: float = 0.05, bin
         raise ValueError(f"size-check binding map mismatch: missing {missing}, unknown {extra}")
     lim = nominal + 1.645 * float(np.sqrt(nominal * (1 - nominal) / worlds))
     lim_a = {0.0125: 0.0125 + 1.645 * math.sqrt(0.0125 * 0.9875 / worlds), 0.05: lim}
-    out: dict = {"worlds": worlds, "draws": draws, "seed": seed, "limit": lim, "scenarios": {}, "spec_sha256": spec_sha256, "dev": bool(dev or only is not None)}
+    out: dict = {"worlds": worlds, "draws": draws, "seed": seed, "limit": lim, "scenarios": {}, "spec_sha256": spec_sha256, "dev": bool(dev or only is not None),
+           "k_tests": list(spec["k_tests"])}
     for name, fn in table.items():
         if only is not None and name not in only:
             continue
         rej = sum(int(fn()) for _ in range(worlds))
-        row = {"rate": rej / worlds, "ok": rej / worlds <= lim, "binding_for": binding[name], "perm_stratum": strata[name]}
+        row = {"rate": rej / worlds, "ok": rej / worlds <= lim, "binding_for": binding[name], "perm_stratum": strata[name],
+               # re-check fix: a scenario whose binding test is outside k_tests has no registered gate (day stratum, run to keep the stream): informational
+               "informational": not any(t in spec["k_tests"] for t in binding[name])}
         if name in rates:
             rr = rates[name]
             ana = {f"{kind}_{nom}": rr.get(f"{kind}_{nom}", 0) / worlds for kind in ("treated", "plain") for nom in NOMINALS}
@@ -612,15 +615,25 @@ def load_kind(root: Path, kind: str, start: float, end: float, roles: tuple[str,
     want_code = lt.pinned_reader_sha(spec) if pinned else None
     if pinned and want_code is None:
         raise RuntimeError("live_tests6 pinned spec lacks the reader code pins")
-    acc = {"files": 0, **{f"{m}_files": 0 for m in MARKER_NAMES}, "dropped_role": 0, "dropped_spec_sha": 0, "dropped_code_sha": 0}
+    acc = {"files": 0, "empty_files": 0, **{f"{m}_files": 0 for m in MARKER_NAMES}, "dropped_role": 0, "dropped_spec_sha": 0, "dropped_code_sha": 0}
+    log_sha = _marker_spec_shas(root) if pinned else {}
     parts = []
     for p in sorted(fdir.glob("*.csv.gz")) if fdir.exists() else []:
-        if p.name.endswith(lt.MARKERS):
-            acc[p.name.split(".")[-3] + "_files"] += 1
+        if p.name.endswith(lt.MARKERS):  # re-check fix 3: a marker counts only if its capture lies in the window (and its logged spec_sha is the pinned one)
+            t_name = lt.l5._name_time(p.name)
+            mname = p.name.split(".")[-3]
+            if t_name == t_name and start <= t_name < end and log_sha.get((p.name.split(".")[0], mname), want_spec) == want_spec:
+                acc[mname + "_files"] += 1
             continue
         fr = pd.read_csv(p, dtype={"market_id": str, "event_id": str, "spec_sha": str, "code_sha": str, "skey": str, "crypto6": str, "crypto_birth": str,
                                    "cls": str, "reason": str, "class_k": str, "geom": str, "arm": str}, float_precision="round_trip")
-        if not len(fr) or not (start <= float(fr["capture_t"].iloc[0]) < end):
+        if not len(fr):  # a frozen pass with no units is still an origin pass: counted when its capture (the file name) lies in the window
+            t_name = lt.l5._name_time(p.name)
+            if t_name == t_name and start <= t_name < end:
+                acc["files"] += 1
+                acc["empty_files"] += 1
+            continue
+        if not (start <= float(fr["capture_t"].iloc[0]) < end):
             continue
         acc["files"] += 1
         keep = fr["role"].isin(roles)
@@ -643,9 +656,31 @@ def load_kind(root: Path, kind: str, start: float, end: float, roles: tuple[str,
         fr["file"] = fid
         parts.append(fr)
     df = pd.concat(parts, ignore_index=True) if parts else pd.DataFrame()
-    tot = acc["files"] + acc["late_files"] + acc["nosweep_files"] + acc["noprevsweep_files"]
-    acc["late_loss_share"] = acc["late_files"] / tot if tot else 0.0
+    # ONE "origin passes" denominator (LIVE_TESTS_6.md 17): the in-window frozen files (empty ones included) plus every in-window marker
+    acc["origin_passes"] = acc["files"] + sum(acc[f"{m}_files"] for m in MARKER_NAMES)
+    acc["late_loss_share"] = acc["late_files"] / acc["origin_passes"] if acc["origin_passes"] else 0.0
     return df, acc
+
+
+_LOG_MARKER = {"late": "late", "noprev": "no_previous_slot", "nosweep": "nosweep", "noprevsweep": "noprevsweep", "e022boundary": "e022boundary"}
+
+
+def _marker_spec_shas(root: Path) -> dict:
+    """(capture id, marker name) -> the ``spec_sha`` the reader logged when it wrote the marker (markers carry none themselves)."""
+    out: dict = {}
+    p = Path(root) / "passes.jsonl"
+    if not p.exists():
+        return out
+    for line in p.read_text().splitlines():
+        try:
+            r = json.loads(line)
+        except ValueError:
+            continue
+        k_, i_ = str(r.get("kind", "")), r.get("id")
+        for m, suffix in _LOG_MARKER.items():
+            if i_ and k_.endswith("_" + suffix) and r.get("spec_sha"):
+                out[(str(i_), m)] = r["spec_sha"]
+    return out
 
 
 def label_slots(root: Path, kind: str, classes: tuple[str, ...]) -> dict[str, list[int]]:
@@ -735,7 +770,8 @@ def build_frame(test: str, df: pd.DataFrame, root: Path, spec: dict, mask_late: 
         ycol = "c_skip"
     elif test == "D":
         df, cnt["washout_dropped"] = lt.apply_washout(df, "no_change", ("later", "earlier"), int(spec["d"]["washout_slots"]), label_slots(root, "deadline", ("later", "earlier")))
-        df = df[df["bydate"].astype(str).isin(["True", "true", "1"]) & df["cls"].isin(["later", "no_change"]) & df["d24"].notna()].copy()
+        by_ok = df["bydate"].astype(str).isin(["True", "true", "1"])
+        df = df[(~by_ok if arm == "nonbydate" else by_ok) & df["cls"].isin(["later", "no_change"]) & df["d24"].notna()].copy()  # nonbydate: P1's placebo population
         df["y22"] = la3.mid_at(df, "h12") - la3.mid_at(df, "h1")
         late = _late_any(df, ("h1", "h12"))
         ycol = "y22"
@@ -798,13 +834,29 @@ def load_size_check(spec: dict, base: Path | None = None) -> dict:
     pins = spec.get("code_sha256") or {}
     if pins and res.get("code_sha256") != pins:
         raise RuntimeError("live_tests6 analysis refused: the size check was not produced on the pinned code (code_sha256 differs)")
+    # re-check fix 1: the result must have been produced with the strata and k_tests of THIS spec (LT4's defect, at load time)
+    if list(res.get("k_tests") or []) != list(spec.get("k_tests") or []) or not spec.get("k_tests"):
+        raise RuntimeError(f"live_tests6 analysis refused: size-check k_tests {res.get('k_tests')!r} != spec {spec.get('k_tests')!r}")
+    binding = sc["scenarios"]
+    try:
+        want_strata = size_strata(spec, binding)
+    except ValueError as e:
+        raise RuntimeError(f"live_tests6 analysis refused: {e}") from e
+    got = res.get("scenarios") or {}
+    absent = sorted(set(binding) - set(got))
+    if absent:
+        raise RuntimeError(f"live_tests6 analysis refused: the size-check result lacks scenarios {absent}")
+    for name, tests in binding.items():
+        if got[name].get("perm_stratum") != want_strata[name] or list(got[name].get("binding_for") or []) != list(tests):
+            raise RuntimeError(f"live_tests6 analysis refused: size-check scenario {name} was run with perm_stratum {got[name].get('perm_stratum')!r} / "
+                               f"binding_for {got[name].get('binding_for')!r}, the spec gives {want_strata[name]!r} / {list(tests)!r}")
     return res
 
 
-def readings_counts(root: Path, kind: str) -> dict:
+def readings_counts(root: Path, kind: str, spec: dict | None = None) -> dict:
     from . import live_tests6_readings as rd
 
-    return rd.pass_counts(root, kind)
+    return rd.pass_counts(root, kind, spec)
 
 
 def analyze(root: Path = lt.OUT_ROOT, *, spec: dict | None = None, now: float | None = None, force: bool = False, require_pinned: bool = True,
@@ -814,6 +866,8 @@ def analyze(root: Path = lt.OUT_ROOT, *, spec: dict | None = None, now: float | 
     role is ``prospective_confirmation`` and their ``spec_sha`` / ``code_sha`` equal the pins. With no data every surviving test is a
     well-formed Unavailable (p = 1 in Holm, k unchanged)."""
     spec = spec or lt.load_spec()
+    if size_check is not None and spec.get("_pinned"):  # re-check fix 2: a pinned spec reads the size check only through load_size_check (sha, strata, code)
+        raise RuntimeError("live_tests6 analysis refused: size_check cannot be passed for a pinned spec; it is loaded from the pinned result")
     if not force:
         nb = spec.get("analysis_not_before")
         if nb is None:
@@ -837,7 +891,7 @@ def analyze(root: Path = lt.OUT_ROOT, *, spec: dict | None = None, now: float | 
             ac.pop("_pre", None)
             ex["arms"][arm_] = af
         if t == "K":
-            ex["counts"] = readings_counts(root, "clips")
+            ex["counts"] = readings_counts(root, "clips", spec)
             if len(df):
                 ex["k_prev_class"] = {(str(m_), int(s_)): c_ for m_, s_, c_ in zip(df["market_id"], df["slot"], df["class_k"], strict=False)}
         extras[t] = ex

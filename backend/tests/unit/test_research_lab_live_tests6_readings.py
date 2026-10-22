@@ -127,3 +127,22 @@ def test_thanksgiving_sensitivity_drops_the_two_days_and_counts_them():
     out = rd.thanksgiving_sensitivity("B", f, spec, 10)
     assert out["units_dropped"] == int((np.arange(len(f)) % 6 == 0).sum())
     assert hi > lo
+
+
+def test_d_p1_label_rule():
+    assert "not template-specific" in rd.label_rules("D", True, 0.01, {"P1": sig(0.006, 0.03)})
+    assert "not template-specific" not in rd.label_rules("D", True, 0.01, {"P1": sig(0.004, 0.03)})
+    assert "not template-specific" not in rd.label_rules("D", True, 0.01, {"P1": {"computed": False}})
+
+
+def test_pass_counts_filters_by_spec_sha_and_window(tmp_path):
+    import json
+
+    spec = copy.deepcopy(lt.load_spec(sha=None))
+    spec.update(_pinned=True, _sha256="a" * 64, registered_utc="2026-10-02T00:00:00Z", end_utc="2026-10-03T00:00:00Z")
+    rows = [{"kind": "clips_frozen", "id": "20261002T040000Z_x", "spec_sha": "a" * 16, "counts": {"traded_ge4_rows": 10}},
+            {"kind": "clips_frozen", "id": "20261002T060000Z_x", "spec_sha": "b" * 16, "counts": {"traded_ge4_rows": 100}},  # another spec
+            {"kind": "clips_frozen", "id": "20260930T060000Z_x", "spec_sha": "a" * 16, "counts": {"traded_ge4_rows": 1000}},  # before the window
+            {"kind": "clips_frozen", "id": "20261002T080000Z_x", "spec_sha": "a" * 16, "counts": {"traded_ge4_rows": 1}}]
+    (tmp_path / "passes.jsonl").write_text("\n".join(json.dumps(r) for r in rows))
+    assert rd.pass_counts(tmp_path, "clips", spec) == {"traded_ge4_rows": 11}

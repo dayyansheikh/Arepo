@@ -367,6 +367,8 @@ def test_analyze_on_a_dry_run_store_runs_end_to_end(ran):
         assert r["verdict"]["verdict"]
         assert res["accounts"][t]["files"] > 0 and "late_loss_share" in res["accounts"][t]
     assert any(res["tests"][t].get("available") for t in res["tests"])
+    # the primaries read arm == main only; the nonbydate arm exists as its own frame and feeds D's P1 (never a primary)
+    assert "nonbydate" in lt.ARMS["D"] and "P1" in (res["tests"]["D"].get("readings") or {}) and "origin_passes" in res["accounts"]["D"]
 
 
 def test_analyze_cli_trials_flag_appends_one_counted_line(tmp_path, monkeypatch):
@@ -388,7 +390,7 @@ def test_reader_freezes_reported_arms_and_the_analysis_reads_main_only(world, ra
     v = _frozen(root, "vote", ids[20])
     assert {"main", "sports"} <= set(v["arm"].astype(str)) and (v.loc[v["arm"] == "sports", "sports"] == 1).all() and (v.loc[v["arm"] == "main", "sports"] == 0).all()
     for kind in ("deadline", "birth"):
-        assert (_frozen(root, kind, ids[20])["arm"].astype(str).isin(["main", "sports", "decided", "tail"])).all()
+        assert (_frozen(root, kind, ids[20])["arm"].astype(str).isin(["main", "sports", "decided", "tail", "nonbydate"])).all()
     df, _ = la.load_kind(root, "vote", lt.epoch(REG), lt.epoch(END), (lt.ROLE_UNREG,), None, ("h1", "h3", "s1", "s3"))
     fr, cnt = la.build_frame("V", df, root, _spec(), mask_late=False)
     assert cnt["arm_lines_not_main"] > 0 and (fr["sports"] == 0).all()
@@ -407,6 +409,30 @@ def test_analyze_end_to_end_computes_the_readings_for_every_test(ran):
         assert {"attrition", "thanksgiving_sensitivity", "economics", "secondaries"} <= set(rd), (t, set(rd))
     assert {"M1", "M2_own_sweep", "M3", "P_vprev"} <= set(res["tests"]["V"]["readings"])
     assert {"M1", "M2", "M3", "P1", "P2"} <= set(res["tests"]["K"]["readings"])
-    assert {"M1", "M1_remainder", "M2", "P1"} <= set(res["tests"]["D"]["readings"]) and res["tests"]["D"]["readings"]["P1"]["computed"] is False
+    assert {"M1", "M1_remainder", "M2", "P1"} <= set(res["tests"]["D"]["readings"])
+    assert "computed" not in res["tests"]["D"]["readings"]["P1"] or "units" in res["tests"]["D"]["readings"]["P1"]  # P1 is fitted from the frozen nonbydate arm (re-check fix 4)
     assert {"M1", "M2", "fake_birth_counts"} <= set(res["tests"]["B"]["readings"])
     assert "_pre" not in res["accounts"]["V"]
+
+
+def test_origin_pass_denominator_counts_empty_files_and_filters_markers_to_the_window(tmp_path):
+    """Re-check fix 3: ONE denominator (in-window frozen files incl. empty ones + in-window markers); out-of-window markers do not count."""
+    fz = tmp_path / "deadline" / "frozen"
+    fz.mkdir(parents=True)
+    cols = {"capture_t": [], "role": [], "market_id": [], "slot": [], "spec_sha": [], "code_sha": []}
+    t_in = lt.epoch(REG) + 3600
+    stem = lambda t: datetime.fromtimestamp(t, UTC).strftime("%Y%m%dT%H%M%SZ_cap")  # noqa: E731
+    pd.DataFrame(cols).to_csv(fz / f"{stem(t_in)}.csv.gz", index=False)  # an in-window EMPTY frozen pass
+    pd.DataFrame({"capture_t": [t_in + 7200], "role": [lt.ROLE_UNREG], "market_id": ["1"], "slot": [13], "spec_sha": ["x"], "code_sha": ["y"], "arm": ["main"]}).to_csv(
+        fz / f"{stem(t_in + 7200)}.csv.gz", index=False)
+    pd.DataFrame({"late": [1]}).to_csv(fz / f"{stem(t_in + 14400)}.late.csv.gz", index=False)
+    pd.DataFrame({"nosweep": [1]}).to_csv(fz / f"{stem(t_in + 21600)}.nosweep.csv.gz", index=False)
+    pd.DataFrame({"late": [1]}).to_csv(fz / f"{stem(lt.epoch(REG) - 86400)}.late.csv.gz", index=False)  # before the window: not counted
+    pd.DataFrame({"late": [1]}).to_csv(fz / f"{stem(lt.epoch(END) + 3600)}.late.csv.gz", index=False)  # after the window: not counted
+    _, acc = la.load_kind(tmp_path, "deadline", lt.epoch(REG), lt.epoch(END), (lt.ROLE_UNREG,), None, la.TAGS["D"])
+    assert acc["files"] == 2 and acc["empty_files"] == 1 and acc["late_files"] == 1 and acc["nosweep_files"] == 1
+    assert acc["origin_passes"] == 4 and acc["late_loss_share"] == 0.25
+    from astrolabe.research_lab import live_tests6_readings as rd
+
+    spec = lt.load_spec(sha=None)
+    assert rd.sweep_missing_label(acc, spec) == "sweep-missing (25.0% of origin passes)"  # the same denominator as late-loss

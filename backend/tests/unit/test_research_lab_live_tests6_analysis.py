@@ -413,11 +413,67 @@ def test_size_check_and_the_gate_use_identical_strata_for_the_same_spec(monkeypa
     assert (gseen[0] == la.strata_of(df, "block2", la.SIZE_T0)).all()
 
 
+def _valid_size_result(spec: dict) -> dict:
+    """A size-check result as ``size_check`` writes it, built from the spec's own strata and binding map (no simulation)."""
+    st = la.size_strata(spec, spec["size_check"]["scenarios"])
+    return {"dev": False, "worlds": 2000, "draws": 200, "seed": 20261167, "code_sha256": {"a": "1"}, "se_check_failed_size_scenario": ["K"], "k_tests": list(spec["k_tests"]),
+            "scenarios": {n: {"rate": 0.04, "ok": True, "binding_for": list(t), "perm_stratum": st[n]} for n, t in spec["size_check"]["scenarios"].items()}}
+
+
+def _written(spec: dict, res: dict, tmp_path) -> None:
+    p = tmp_path / "size_x.json"
+    p.write_text(json.dumps(res))
+    spec["size_check"].update(result_path=str(p), result_sha256=lt.sha256_file(p))
+    spec["code_sha256"] = {"a": "1"}
+
+
+def test_load_size_check_refuses_a_stale_result_changed_strata_or_k_tests(tmp_path):
+    spec = _sized_spec()
+    res = _valid_size_result(spec)
+    _written(spec, res, tmp_path)
+    assert la.load_size_check(spec)["k_tests"] == ["V", "K", "D", "B"]
+    spec["k"]["perm_stratum"] = "block2"  # perm_stratum changed after the size check ran on the unchanged code
+    with pytest.raises(RuntimeError, match="perm_stratum"):
+        la.load_size_check(spec)
+    spec = _sized_spec()
+    _written(spec, {**res, "k_tests": ["V", "K"]}, tmp_path)  # the result records another k_tests
+    with pytest.raises(RuntimeError, match="k_tests"):
+        la.load_size_check(spec)
+    spec = _sized_spec(k=("V", "K", "D"))  # the spec's k_tests changed after the result
+    _written(spec, res, tmp_path)
+    with pytest.raises(RuntimeError, match="k_tests"):
+        la.load_size_check(spec)
+    spec = _sized_spec()
+    bad = _valid_size_result(spec)
+    bad["scenarios"]["s01_fl_binary_iid"]["binding_for"] = ["D"]
+    _written(spec, bad, tmp_path)
+    with pytest.raises(RuntimeError, match="binding_for"):
+        la.load_size_check(spec)
+    miss = _valid_size_result(spec)
+    del miss["scenarios"]["s11_fl_b_stochvol"]
+    _written(spec, miss, tmp_path)
+    with pytest.raises(RuntimeError, match="lacks scenarios"):
+        la.load_size_check(spec)
+
+
+def test_analyze_refuses_a_passed_size_check_for_a_pinned_spec():
+    spec = _sized_spec()
+    spec["_pinned"] = True
+    with pytest.raises(RuntimeError, match="size_check cannot be passed"):
+        la.analyze(spec=spec, size_check={"all_ok": True}, force=True, require_pinned=False)
+
+
+def test_size_check_records_k_tests_and_marks_scenarios_outside_them_informational():
+    r = la.size_check(worlds=2, draws=9, seed=11, spec=_sized_spec(k=("V", "K", "B")), dev=True, only=["s06_fl_d_event_label_ma10", "s01_fl_binary_iid"])
+    assert r["k_tests"] == ["V", "K", "B"]
+    assert r["scenarios"]["s06_fl_d_event_label_ma10"]["informational"] and not r["scenarios"]["s01_fl_binary_iid"]["informational"]
+
+
 def test_load_size_check_verifies_the_pin_and_labels_flow_into_the_analysis(tmp_path):
     spec = _sized_spec()
     with pytest.raises(RuntimeError, match="null"):
         la.load_size_check(spec)
-    res = {"dev": False, "worlds": 2000, "draws": 200, "seed": 20261167, "code_sha256": {"a": "1"}, "se_check_failed_size_scenario": ["K"], "scenarios": {}}
+    res = _valid_size_result(spec)
     p = tmp_path / "size.json"
     p.write_text(json.dumps(res))
     spec["size_check"].update(result_path=str(p), result_sha256=lt.sha256_file(p))

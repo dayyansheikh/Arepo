@@ -125,8 +125,8 @@ def unfilled(spec: dict) -> list[str]:
         return cur
 
     for p in REQUIRED_AT_PIN:
-        if p == "e022.registered":  # exactly one of registered / dropped must be set (a recorded fact), the other may be null
-            if get("e022.registered") is None and get("e022.dropped") is None:
+        if p == "e022.registered":  # re-check fix 5: EXACTLY ONE of registered / dropped must be true (a recorded fact); neither or both is unfilled
+            if bool(get("e022.registered")) == bool(get("e022.dropped")):
                 out.append("e022.registered|e022.dropped")
         elif p == "e022.dropped":
             continue
@@ -840,8 +840,8 @@ def deadline_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, ser_12: pd.DataFram
     """D's units at capture ``k`` (section 4): non-sports markets passing 1.4 items 1-3, 6, 7 at k - 1 and k with ``mid_k`` in
     [0.05, 0.95] whose OLD end date (k - 1) is on a by-date clock time, as-of NEW end more than 27 h after ``t_k``. Classes from
     :func:`end_change_class`. ``no_change`` units are kept only for by-date markets; changed units are kept whether or not by-date
-    (the crypto / roll-over kill line counts every later-direction non-sports interior move; P1's placebo is the non-bydate
-    arm). ``lookback_missing`` (no capture or no row at k - 12) leaves ``d24`` NaN. Uses captures k - 12, k - 1, k only."""
+    (the crypto / roll-over kill line counts every later-direction non-sports interior move). The ``nonbydate`` arm (P1's placebo)
+    keeps the units whose old end is NOT a by-date clock time, no-change ones included. ``lookback_missing`` (no capture or no row at k - 12) leaves ``d24`` NaN. Uses captures k - 12, k - 1, k only."""
     d = spec["d"]
     ap = arm_params(arm, "D", spec)
     j, cnt = b.move_join(ser_k, ser_p, cap, spec, ap["lo"], ap["hi"], -1e9)
@@ -863,12 +863,15 @@ def deadline_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, ser_12: pd.DataFram
         o, n = str(old[i]), str(new[i])
         if o == n:  # byte-equal raw strings parse equal: no_change without the full classifier
             by = bydate_template(parsed_old[o], spec)
-            if not by:
+            if bool(by) == (arm == "nonbydate"):  # main (and the other arms) keep by-date no-change units, ``nonbydate`` the non-by-date ones
                 continue
-            recs.append((i, "no_change", 0.0, True, (parsed_new[n].timestamp() - t_k[i]) / 3600.0))
+            recs.append((i, "no_change", 0.0, bool(by), (parsed_new[n].timestamp() - t_k[i]) / 3600.0))
             continue
         c = end_change_class(o, n, float(t_k[i]), bool(slugs[i]), spec)
-        if c["cls"] == "no_change" and not c["bydate"]:
+        if arm == "nonbydate":  # P1's placebo population: every class, non-by-date old end only (unparseable already excluded)
+            if c["bydate"]:
+                continue
+        elif c["cls"] == "no_change" and not c["bydate"]:
             continue
         recs.append((i, c["cls"], c["delta_s"], c["bydate"], c["T_new_h"]))
     clock = {}
@@ -1006,7 +1009,9 @@ def birth_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, mem_k: pd.DataFrame, m
 # markets with ``mid_k`` > 0.97 or < 0.03) and ``tail`` (B S1: neg-risk incumbents with ``mid_k`` in [0.02, 0.10)). Each arm is a separate
 # pass of the same builder with its own population filter, labelled in the ``arm`` column; the primary analysis and the censuses read
 # ``arm == "main"`` only. Arms never change a verdict.
-ARMS = {"V": ("main", "sports"), "D": ("main", "sports", "decided"), "B": ("main", "sports", "tail")}
+# ``nonbydate`` (D's placebo P1, re-check fix 4): the same model on NON-by-date templates, with its own no-change controls (the main arm keeps
+# no-change units of by-date markets only), so P1 is fitted from frozen units.
+ARMS = {"V": ("main", "sports"), "D": ("main", "sports", "decided", "nonbydate"), "B": ("main", "sports", "tail")}
 
 
 def arm_params(arm: str, test: str, spec: dict) -> dict:
@@ -1596,8 +1601,15 @@ def seal_inputs(*, snapshot_root, sweep_root, sample_root, work: Path, source_se
     pin = (spec["census_inputs"].get("source_seals") or {}).get("lt5_capture_seal_sha256")
     if not pin:
         return {"error": "spec census_inputs.source_seals.lt5_capture_seal_sha256 is null: the LT6 seal is refused until the LT5 capture seal's sha256 is pinned"}
-    if pin not in shas.values():
-        return {"error": "no source seal given has the pinned lt5_capture_seal_sha256: LT6 seal refused", "pinned": pin, "given": shas}
+    # re-check fix (should-fix): the pin is compared with the sha of the SPECIFIC file census_inputs.source_seals.captures, not with any given seal
+    cap_rel = (spec["census_inputs"].get("source_seals") or {}).get("captures")
+    cap_abs = (ROOT / cap_rel) if cap_rel else None
+    named = {k_: v_ for k_, v_ in shas.items() if cap_rel and (Path(k_) == cap_abs or Path(k_).as_posix().endswith(Path(cap_rel).as_posix()))}
+    if not named:
+        return {"error": "no source seal given is the file named by census_inputs.source_seals.captures: LT6 seal refused", "captures": cap_rel, "given": shas}
+    if pin not in named.values():
+        return {"error": "the source seal census_inputs.source_seals.captures does not have the pinned lt5_capture_seal_sha256: LT6 seal refused",
+                "pinned": pin, "given": named}
     by_slot, sweeps = l5._scan(Path(work), snapshot_root, sweep_root, spec)
     span = census_span_slots(spec)
     bound = epoch(spec["census_inputs"]["refuse_at_or_after_utc"])

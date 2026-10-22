@@ -46,6 +46,7 @@ def _spec(**cd_cb) -> dict:
 def _pinned(spec: dict, seal) -> dict:
     """The spec with the LT5 capture-seal pin set to the sha256 of ``seal`` (the production value stays null until LT5's seal is committed)."""
     spec["census_inputs"]["source_seals"]["lt5_capture_seal_sha256"] = lt.sha256_file(Path(seal))
+    spec["census_inputs"]["source_seals"]["captures"] = str(seal)  # the pin is compared with this specific file's sha
     return spec
 
 
@@ -742,8 +743,20 @@ def test_seal_refuses_while_the_lt5_seal_pin_is_null_or_unmatched(sealed, tmp_pa
     kw = {"snapshot_root": [sealed["snap"]], "sweep_root": [sealed["sweeps"]], "sample_root": [sealed["samples"]], "source_seals": [sealed["src"]]}
     assert "null" in lt.seal_inputs(work=tmp_path / "w", spec=_spec(), **kw)["error"]  # as committed: null
     bad = _spec()
-    bad["census_inputs"]["source_seals"]["lt5_capture_seal_sha256"] = "0" * 64
+    bad["census_inputs"]["source_seals"].update(lt5_capture_seal_sha256="0" * 64, captures=str(sealed["src"]))
     assert "pinned" in lt.seal_inputs(work=tmp_path / "w2", spec=bad, **kw)["error"]
+
+
+def test_seal_pin_is_compared_with_the_captures_seal_not_any_given_seal(sealed, tmp_path):
+    """Re-check should-fix: the pin matches ANOTHER given seal but not the file named by source_seals.captures -> refused."""
+    other = tmp_path / "other_seal.json"
+    other.write_text(json.dumps({"files": {}, "samples": []}))
+    kw = {"snapshot_root": [sealed["snap"]], "sweep_root": [sealed["sweeps"]], "sample_root": [sealed["samples"]], "source_seals": [sealed["src"], other]}
+    spec = _pinned(_spec(), other)  # pin = sha of `other`, but `captures` names `other` too: accepted at this step
+    spec["census_inputs"]["source_seals"]["captures"] = str(sealed["src"])  # now names the real captures seal, whose sha differs from the pin
+    assert "does not have the pinned" in lt.seal_inputs(work=tmp_path / "w3", spec=spec, **kw)["error"]
+    spec["census_inputs"]["source_seals"]["captures"] = "docs/not_given.json"
+    assert "no source seal given is the file" in lt.seal_inputs(work=tmp_path / "w4", spec=spec, **kw)["error"]
 
 
 def test_v_anatomy_is_one_categorical_with_same_side_unequal_as_base():
@@ -807,3 +820,18 @@ def test_reported_arms_are_built_beside_main_and_main_is_unchanged(frames):
     assert set(btail["market_id"]) <= {"100", "101", "102"} and len(btail) > 0 and (btail["arm"] == "tail").all()
     with pytest.raises(ValueError):
         lt.arm_params("tail", "D", spec)
+
+
+def test_nonbydate_arm_keeps_non_bydate_no_change_units_and_main_is_unchanged(frames):
+    """Re-check fix 4: D's placebo P1 population (non-by-date old ends, no-change controls included); the main arm still reads by-date only."""
+    f = frames
+    kd = 15
+    sk, sp, s12 = _fr(f, kd)[0], _fr(f, kd - 1)[0], _fr(f, kd - 12)[0]
+    main, _ = lt.deadline_units(sk, sp, s12, kd, f["by_slot"][kd], f["spec"])
+    nb, cnt = lt.deadline_units(sk, sp, s12, kd, f["by_slot"][kd], f["spec"], arm="nonbydate")
+    assert (nb["arm"] == "nonbydate").all() and not nb["bydate"].any()
+    assert "106" in set(nb["market_id"]) and nb.set_index("market_id").loc["106", "cls"] == "no_change"
+    assert not ({"100", "101"} & set(nb["market_id"])) and "106" not in set(main["market_id"])
+    assert main["bydate"].sum() > 0 and "nonbydate" in lt.ARMS["D"] and "nonbydate" not in lt.ARMS["V"]
+    allu, c2 = lt._with_arms("D", lt.deadline_units, (sk, sp, s12, kd, f["by_slot"][kd], f["spec"]), f["spec"])
+    assert c2["arm_units"]["nonbydate"] == len(nb) and c2["arm_units"]["main"] == len(main)

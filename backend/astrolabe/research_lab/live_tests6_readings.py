@@ -105,6 +105,8 @@ def label_rules(test: str, supported: bool, prim_beta: float | None, rd: dict) -
         contradicted = bool(rem.get("testable") and rem.get("ci95_cons") and rem["ci95_cons"][1] < 0)
         if supported and one_sided_sig(m1) and contradicted:
             out.append("transient")
+        if reaches_half(pb, rd.get("P1")):
+            out.append("not template-specific")
     else:
         if reaches_half(pb, rd.get("P_fake_birth")):
             out.append("event-level volatility, not the listing")
@@ -140,23 +142,35 @@ def attrition_reading(test: str, pre: pd.DataFrame | None, frame: pd.DataFrame, 
 # --- coverage-limited and sweep-missing (1.9) -----------------------------------------------------------------------------------------
 
 
-def pass_counts(root: Path, kind: str) -> dict:
-    """Numeric ``counts`` summed over the reader's ``<kind>_frozen`` log lines (``passes.jsonl``)."""
+def pass_counts(root: Path, kind: str, spec: dict | None = None) -> dict:
+    """Numeric ``counts`` summed over the reader's ``<kind>_frozen`` log lines (``passes.jsonl``). With a PINNED ``spec`` only the lines of
+    the pinned spec (``spec_sha``) and of captures inside ``[registered_utc, end_utc)`` are summed (re-check fix); the capture time of a
+    line is its id / ``capture_id`` name time."""
     import json
 
     p = Path(root) / "passes.jsonl"
     tot: dict = {}
     if not p.exists():
         return tot
+    pinned = bool(spec and spec.get("_pinned"))
+    want = spec["_sha256"][:16] if pinned else None
+    lo, hi = (lt.epoch(spec["registered_utc"]), lt.epoch(spec["end_utc"])) if spec and spec.get("registered_utc") and spec.get("end_utc") else (None, None)
     for line in p.read_text().splitlines():
         try:
             r = json.loads(line)
         except ValueError:
             continue
-        if r.get("kind") == f"{kind}_frozen":
-            for k_, v in (r.get("counts") or {}).items():
-                if isinstance(v, (int, float)):
-                    tot[k_] = tot.get(k_, 0) + v
+        if r.get("kind") != f"{kind}_frozen":
+            continue
+        if pinned and r.get("spec_sha") != want:
+            continue
+        if lo is not None:
+            t = lt.l5._name_time(str(r.get("capture_id") or r.get("id") or ""))
+            if t == t and not (lo <= t < hi):
+                continue
+        for k_, v in (r.get("counts") or {}).items():
+            if isinstance(v, (int, float)):
+                tot[k_] = tot.get(k_, 0) + v
     return tot
 
 
@@ -171,7 +185,8 @@ def coverage_label(counts: dict, spec: dict) -> str | None:
 
 def sweep_missing_label(acc: dict, spec: dict) -> str | None:
     """V: *sweep-missing* when ``.nosweep`` / ``.noprevsweep`` passes exceed 2% of V's origin passes (LT4's rule, inherited by 1.5)."""
-    tot = acc.get("files", 0) + sum(acc.get(f"{m}_files", 0) for m in ("late", "nosweep", "noprevsweep", "noprev", "e022boundary"))
+    # the ONE "origin passes" denominator of load_kind (LIVE_TESTS_6.md 17): in-window frozen files (empty ones too) plus every in-window marker
+    tot = acc.get("origin_passes", acc.get("files", 0) + sum(acc.get(f"{m}_files", 0) for m in ("late", "nosweep", "noprevsweep", "noprev", "e022boundary")))
     miss = acc.get("nosweep_files", 0) + acc.get("noprevsweep_files", 0)
     if not tot:
         return None
@@ -249,8 +264,12 @@ def readings_k(frame: pd.DataFrame, extras: dict, spec: dict, n_boot: int | None
         key = list(zip(frame["market_id"].astype(str), frame["slot"].astype(int) - 1, strict=False))
         pc = np.array([prev.get(k_) for k_ in key], dtype=object)
         known = np.array([v is not None for v in pc], bool)
+        # PC = 1 for a previous class of clip, 0 for clip_free, interior or nan (declared coding: the persistent-trait test contrasts clip against
+        # everything else); units with NO known previous class (no frozen line one slot earlier) are dropped and counted separately
         f2 = frame[known].assign(PC=[1.0 if v == "clip" else 0.0 for v in pc[known]]).reset_index(drop=True)
         out["P2"] = fit_reading(f2, f2["c_skip"].to_numpy(float), "PC", [*ctrl, "CL"], spec, "K", 16, n_boot=n_boot)
+        out["P2"]["units_no_known_previous_class"] = int((~known).sum())
+        out["P2"]["units_prev_clip"] = int(f2["PC"].sum())
     sec: dict = {}
     raw = (extras or {}).get("raw")
     if raw is not None and len(raw):
@@ -261,9 +280,9 @@ def readings_k(frame: pd.DataFrame, extras: dict, spec: dict, n_boot: int | None
     if "s3_clip_share" in frame:
         f3 = frame.assign(S3=(frame["s3_clip_share"] >= spec["k"]["clip_share_min"] - 1e-12).astype(float))
         sec["S3_notional_clips"] = fit_reading(f3, f3["c_skip"].to_numpy(float), "S3", ctrl, spec, "K", 23, n_boot=n_boot)
-    for nm, m in (("S4_sports", frame["sports"] == 1), ("S4_non_sports", frame["sports"] == 0)):
+    for nm, m, off in (("S4_sports", frame["sports"] == 1, 24), ("S4_non_sports", frame["sports"] == 0, 27)):  # distinct bootstrap offsets (re-check fix)
         sub = frame[m.to_numpy()].reset_index(drop=True)
-        sec[nm] = fit_reading(sub, sub["c_skip"].to_numpy(float), "CL", ctrl, spec, "K", 24 + len(nm) % 2, n_boot=n_boot)
+        sec[nm] = fit_reading(sub, sub["c_skip"].to_numpy(float), "CL", ctrl, spec, "K", off, n_boot=n_boot)
     if "status_h4" in frame:
         sec["S5_6h_target"] = fit_reading(frame, sx * (_mid(frame, "h4") - _mid(frame, "h1")), "CL", ctrl, spec, "K", 26, n_boot=n_boot)
     out["secondaries"] = sec
@@ -277,8 +296,15 @@ def readings_d(frame: pd.DataFrame, extras: dict, spec: dict, n_boot: int | None
     out["M1"] = fit_reading(frame, m1, "LT", ctrl, spec, "D", 11, treated="LT", n_boot=n_boot)
     out["M1_remainder"] = fit_reading(frame, _mid(frame, "h12") - _mid(frame, "h3"), "LT", ctrl, spec, "D", 12, treated="LT", n_boot=n_boot)
     out["M2"] = fit_reading(frame, _mid(frame, "h12") - frame["mid"].to_numpy(float), "LT", ctrl, spec, "D", 13, treated="LT", n_boot=n_boot)
-    out["P1"] = {"computed": False, "reason": "design question: the non-bydate placebo's no-change controls are not frozen (the builder keeps no-change units of by-date markets only)"}
     arms = (extras or {}).get("arms") or {}
+    # P1 (re-check fix 4): the same model (LT on y22, the primary's controls and inference) on the frozen ``nonbydate`` arm: non-by-date old ends,
+    # later vs no-change units. Label "not template-specific" when one-sided significant and at least half of D_D (label_rules).
+    nb = arms.get("nonbydate")
+    if nb is not None and len(nb):
+        out["P1"] = fit_reading(nb, nb["y22"].to_numpy(float), "LT", ctrl, spec, "D", 14, treated="LT", n_boot=n_boot)
+        out["P1"]["units"], out["P1"]["later"] = int(len(nb)), int((nb["LT"] == 1).sum())
+    else:
+        out["P1"] = {"computed": False, "testable": False, "reason": "no frozen nonbydate-arm units with a known target"}
     y = frame["y22"].to_numpy(float)
     sec: dict = {}
     old7 = frame["old_end_days"].to_numpy(float) >= float(spec["d"]["old_end_subset_days"])
@@ -298,8 +324,9 @@ def readings_d(frame: pd.DataFrame, extras: dict, spec: dict, n_boot: int | None
     sec["S6_counts"] = {"by_class": {str(k_): int(v) for k_, v in frame["cls"].value_counts().items()}}
     raw = (extras or {}).get("raw")
     if raw is not None and len(raw):
-        sec["S2_earlier_arm_units"] = int((raw["cls"] == "earlier").sum())
-        sec["S7_overdue_units"] = int((raw["cls"] == "overdue").sum())
+        rm = raw[raw["arm"].astype(str) == "main"] if "arm" in raw else raw  # the primary population only: reported arms never enter these counts
+        sec["S2_earlier_arm_units"] = int((rm["cls"] == "earlier").sum())
+        sec["S7_overdue_units"] = int((rm["cls"] == "overdue").sum())
     out["secondaries"] = sec
     return out
 
@@ -364,11 +391,12 @@ def readings_b(frame: pd.DataFrame, extras: dict, spec: dict, n_boot: int | None
         sy = _mid(a, "h12") - _mid(a, "h1")  # YES change, predicted < 0
         sec["S1_signed_tail_arm"] = fit_reading(a, sy, "BR", ctrl, spec, "B", 21, sign=-1, treated="BR", n_boot=n_boot)
         sec["S1_signed_tail_arm"]["units"] = int(len(a))
-    sec["S2_attention"] = {"computed": False, "reason": "volume24hr at k + 12 is not a frozen target; reported as not frozen"}
+    sec["S2_attention"] = {"computed": False, "reason": "not computed, disclosed: volume24hr at k + 12 sits in the reader's write-once series files (no leakage), but the analysis keeps "
+                                                                   "no slot-to-capture map for the k + 12 capture; nothing is labelled or counted for it (LIVE_TESTS_6.md 17)"}
     sec["S3_maker_first_pass"] = out["M2"]
-    for nm, m in (("S4_neg_risk", frame["neg_risk"] == 1), ("S4_not_neg_risk", frame["neg_risk"] == 0)):
+    for nm, m, off in (("S4_neg_risk", frame["neg_risk"] == 1, 23), ("S4_not_neg_risk", frame["neg_risk"] == 0, 26)):  # distinct bootstrap offsets (re-check fix)
         sub = frame[m.to_numpy()].reset_index(drop=True)
-        sec[nm] = fit_reading(sub, sub["a22"].to_numpy(float), "BR", ctrl, spec, "B", 22 + len(nm) % 2, treated="BR", n_boot=n_boot)
+        sec[nm] = fit_reading(sub, sub["a22"].to_numpy(float), "BR", ctrl, spec, "B", off, treated="BR", n_boot=n_boot)
     if "sports" in arms and len(arms["sports"]):
         a = arms["sports"]
         sec["S5_sports_arm"] = {"units": int(len(a)), "births": int((a["cls"] == "birth").sum())}
