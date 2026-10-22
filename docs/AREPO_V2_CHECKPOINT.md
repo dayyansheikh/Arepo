@@ -347,7 +347,7 @@ equals its source (the test checks). Do not edit the LT5 spec while q0561/q0562 
 **Waiting:**
 - MC1: after the resize (item 4).
 - CB4 q0085 not before ~10-24T12Z. CB5 q0103b on or after 10-27, then q0106. CB3 freeze after q0064 (after 10-25).
-- Signal engine: live state in `signal_engine/STATUS.md` (10-22 ~21:10Z: res_7d market-price reference added to the scorer (DESIGN_V1 §24; benchmark, not a model, no K/rule change); first read-only reading over 2 days: champion +0.0018 nats over the mid, CI [-0.0001, +0.0035], level with the price; 16 models predicting from the 15:44Z fits; refit/score memory fix from 16:40Z holds; K 7, no promotion; embargo table unchanged).
+- Signal engine: live state in `signal_engine/STATUS.md` (10-22 ~21:50Z: new development family `hwm` (own 3 d / 7 d high-water marks, CH181; DESIGN_V1 §25; science review ACCEPT_WITH_FIXES, applied) and challenger `se21_lgbm_hwm` (not embargoed; K rises by one); deployed 4f643a62; 121 hwm tables backfilled on the host (40 s, 578 MB); first fit at the 10-23 refit q0512; the 10-23 score q0513 writes the first res_7d market-price reference rows; no promotion before ~11-04).
 
 ## Learned surprise-move detector (2026-10-12 evening)
 `docs/research_lab/SURPRISE_MOVE_DETECTOR.md`. Labels fixed and logged before features (`surprise-labels-v1`,
