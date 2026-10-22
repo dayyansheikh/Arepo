@@ -45,7 +45,8 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 
 8. **NEW (21 Oct, not urgent): let Claude clear finished restore copies on the server.** Restore copies are
    hash-checked copies of data that is safe in the archive, made so a job can re-read old files. About 9 GB of them
-   are finished with (batch 18 4.9 GB, LT4 3.0 GB, batch 17 0.9 GB; LT5's 0.8 GB after today). Jobs stop at a
+   are finished with or soon will be (measured 22 Oct: batch 18 4.9 GB finished now; LT4 3.0 GB and LT3 0.3 GB after
+   LT6's flow count today; LT5 0.8 GB after its count today; LT6 1.2 GB after its counts). Jobs stop at a
    40 GB data limit (**33 GB on 22 Oct**, and LT7's restore will add more), so they will need clearing within days. The safety hook rightly stops
    Claude from deleting anything in the data folder. **Decision needed:** approve a short clearing session for these
    copies only (each one listed and checked against the archive first). Batch 17 no longer needs this: it now writes
