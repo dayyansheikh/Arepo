@@ -739,9 +739,15 @@ def test_b_excludes_unknown_end_incumbents_and_d_keeps_missing_updated_at_missin
     assert np.isnan(u.set_index("market_id").loc["101", "updated_changed"]) and cnt["updated_at_missing"] >= 1
 
 
+LT5_SEAL_SHA256 = "fcd88926147051cba07d2094393d350faa7244828131e52bc9ee9b15bd108752"  # seals/lt5_census_inputs_captures.json (q0564)
+
+
 def test_seal_refuses_while_the_lt5_seal_pin_is_null_or_unmatched(sealed, tmp_path):
     kw = {"snapshot_root": [sealed["snap"]], "sweep_root": [sealed["sweeps"]], "sample_root": [sealed["samples"]], "source_seals": [sealed["src"]]}
-    assert "null" in lt.seal_inputs(work=tmp_path / "w", spec=_spec(), **kw)["error"]  # as committed: null
+    assert _spec()["census_inputs"]["source_seals"]["lt5_capture_seal_sha256"] == LT5_SEAL_SHA256  # as committed: the LT5 seal
+    unpinned = _spec()
+    unpinned["census_inputs"]["source_seals"]["lt5_capture_seal_sha256"] = None
+    assert "null" in lt.seal_inputs(work=tmp_path / "w", spec=unpinned, **kw)["error"]
     bad = _spec()
     bad["census_inputs"]["source_seals"].update(lt5_capture_seal_sha256="0" * 64, captures=str(sealed["src"]))
     assert "pinned" in lt.seal_inputs(work=tmp_path / "w2", spec=bad, **kw)["error"]

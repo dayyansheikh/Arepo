@@ -221,7 +221,7 @@
    "captures": "docs/research_lab/seals/lt5_census_inputs_captures.json",
    "flow_samples": "docs/research_lab/seals/lt3_census_inputs_C2.json",
    "flow_captures": "docs/research_lab/seals/lt4_census_inputs_captures.json",
-   "lt5_capture_seal_sha256": null
+   "lt5_capture_seal_sha256": "fcd88926147051cba07d2094393d350faa7244828131e52bc9ee9b15bd108752"
   },
   "capture_days_utc": ["2026-10-20", "2026-10-21"],
   "cd_cb_span": {"first_slot_utc": "2026-10-12T00:31:00Z", "last_slot_utc": "2026-10-21T22:31:00Z"},
