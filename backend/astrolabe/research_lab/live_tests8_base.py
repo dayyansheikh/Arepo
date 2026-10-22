@@ -27,9 +27,10 @@ import pandas as pd
 
 from . import bounce_decomp as bd
 from . import cb13_label as lab
-from . import cb17_census, economics, forecast, panel, trade_sample
+from . import cb17_census, economics, forecast, maker_rewards, panel, trade_sample
 
 ROOT = forecast.ROOT
+REWARD_CARRY_SLOTS = 12  # live_tests7.REWARD_CARRY_SLOTS (the 13.7 carry window [k - 11, k]; used by the copied RewardCarry)
 GRID_S = 7200.0  # live_tests7_base.GRID_S
 SLOT_TOL_S = 1800.0  # live_tests7_base.SLOT_TOL_S
 DAY_S = 86400.0  # live_tests7_base.DAY_S
@@ -1209,9 +1210,188 @@ def _mid12(store: MidStore | None, k: int, markets) -> np.ndarray:
     return store.matrix(k, 12, mk, "mid")[:, 0]
 
 
+def _status_array(ser: pd.DataFrame) -> np.ndarray:
+    """``rew_status`` as strings. pandas reads the cell text ``null`` back from a series CSV as NaN (``read_series`` is a vendored reader and is not edited); a status is never
+    legitimately missing, so a NaN status IS ``null``. Without this the carry would never fire on a file read back from the work dir."""
+    col = ser["rew_status"]
+    return col.where(col.notna(), "null").astype(str).to_numpy()
+
+
+def _series_ids(ser: pd.DataFrame) -> pd.Index:
+    return pd.Index(ser.index.astype(str) if ser.index.name == "market_id" else ser["market_id"].astype(str))
+
+
+class RewardCarry:
+    """Per-slot store of the LISTED ``clob_rewards`` text (market_id -> raw string, with that capture's ``rewards_min_size`` / ``rewards_max_spread``)
+    for slots <= the current origin only, kept for the last ``REWARD_CARRY_SLOTS`` slots. ``add(k, ser)`` is called by a census loop for the capture it
+    has just read (slots arrive in ascending order); ``apply`` never reads a stored slot later than its ``k`` (a test stores one and asserts it is ignored).
+    The null-id sets are held only for the descriptive switching count, never for the primary."""
+
+    def __init__(self, n_slots: int = REWARD_CARRY_SLOTS) -> None:
+        self.n = int(n_slots)
+        self.slots: dict[int, dict] = {}
+
+    def add(self, k: int, ser: pd.DataFrame) -> None:
+        ids = _series_ids(ser)
+        st = _status_array(ser)
+        lst = st == "listed"
+        if "rew_raw" not in ser:
+            if lst.any():
+                raise ValueError("RewardCarry.add: the series frame has no rew_raw column but has listed rows (a pre-13.7 series file or a reused work dir): refused, never carried silently")
+            raw = np.full(len(ids), None, object)
+        else:
+            raw = ser["rew_raw"].to_numpy(object)
+        self.slots[int(k)] = {"listed_ids": pd.Index(ids[lst]), "raw": raw[lst], "rmin": ser["rew_min"].to_numpy(float)[lst], "rms": ser["rew_maxspread"].to_numpy(float)[lst],
+                              "null_ids": pd.Index(ids[st == "null"])}
+        for old in [s_ for s_ in self.slots if s_ < k - self.n + 1]:
+            self.slots.pop(old)
+
+    def apply(self, ser: pd.DataFrame, k: int, day: str) -> pd.DataFrame:
+        """A copy of ``ser`` (the frame of slot ``k``) with the 13.7 carry applied to the rows whose ``rew_status`` at ``k`` is ``null``: ``rewarded`` source =
+        the LATEST listed capture in slots [k - 11, k - 1] whose text re-parsed for ``day`` (the UTC day of ``k``) gives a rate > 0; ``rew_rate`` / ``rew_min`` /
+        ``rew_maxspread`` then come from that source capture. Rows listed, malformed or absent at ``k`` are unchanged. A slot of the window with no stored capture
+        is skipped (counted in ``rew_win_missing``), never filled. Adds ``rew_rate_v1`` (the k-only rate), ``rew_carry_lag`` (slots back, NaN if not carried),
+        ``rew_param_differs`` (a carried unit whose source min / max-spread differ from the k capture's), ``rew_win_inactive`` (null at k, listed in the window,
+        none positive for ``day``), ``rew_trans`` (null/listed transitions of the market over the stored window slots) and ``rew_win_missing``."""
+        out = ser.copy()
+        ids = _series_ids(out)
+        n = len(ids)
+        st = _status_array(out)
+        out["rew_status"] = st
+        rate = out["rew_rate"].to_numpy(float).copy()
+        rmin, rms = out["rew_min"].to_numpy(float).copy(), out["rew_maxspread"].to_numpy(float).copy()
+        k0_min, k0_ms = rmin.copy(), rms.copy()
+        out["rew_rate_v1"] = rate.copy()
+        out["rew_min_v1"], out["rew_maxspread_v1"] = k0_min, k0_ms
+        lag = np.full(n, np.nan)
+        differs = np.zeros(n)
+        seen_listed = np.zeros(n, bool)
+        todo = np.flatnonzero(st == "null")
+        cache: dict[str, float] = {}
+        for s in range(int(k) - 1, int(k) - self.n, -1):  # latest first; only slots <= k - 1 (k itself is null for these rows)
+            if s not in self.slots or not len(todo):
+                continue
+            sl = self.slots[s]
+            pos = sl["listed_ids"].get_indexer(ids[todo])
+            hit = np.flatnonzero(pos >= 0)
+            if not len(hit):
+                continue
+            seen_listed[todo[hit]] = True
+            done = []
+            for h in hit:
+                raw = sl["raw"][pos[h]]
+                if not isinstance(raw, str):
+                    continue
+                r = cache.get(raw)
+                if r is None:
+                    r = cache[raw] = float(maker_rewards.parse_daily_rate(raw, day))
+                if r > 0:
+                    i = todo[h]
+                    rate[i], rmin[i], rms[i], lag[i] = r, sl["rmin"][pos[h]], sl["rms"][pos[h]], k - s
+                    done.append(h)
+            if done:
+                keep = np.ones(len(todo), bool)
+                keep[done] = False
+                todo = todo[keep]
+        carried = np.isfinite(lag)
+        with np.errstate(invalid="ignore"):
+            differs = np.where(carried, (~(np.isclose(rmin, k0_min, equal_nan=True))) | (~(np.isclose(rms, k0_ms, equal_nan=True))), False).astype(float)
+        present = [s for s in range(int(k) - self.n + 1, int(k) + 1) if s in self.slots and s <= k]
+        last = np.full(n, -1, np.int8)
+        trans = np.zeros(n)
+        for s in present:
+            sl = self.slots[s]
+            state = np.full(n, -1, np.int8)
+            state[sl["null_ids"].get_indexer(ids) >= 0] = 0
+            state[sl["listed_ids"].get_indexer(ids) >= 0] = 1
+            has = state >= 0
+            trans += (has & (last >= 0) & (state != last))
+            last = np.where(has, state, last)
+        out["rew_rate"], out["rew_min"], out["rew_maxspread"] = rate, rmin, rms
+        out["rew_carry_lag"], out["rew_param_differs"] = lag, differs
+        out["rew_win_inactive"] = ((st == "null") & seen_listed & ~carried).astype(float)
+        out["rew_trans"] = trans
+        out["rew_win_missing"] = float(self.n - len(present))
+        return out
+
+
+def _reward_cols(j: pd.DataFrame, cnt: dict) -> tuple[np.ndarray, np.ndarray]:
+    """``rew_rate`` and ``rewarded`` (1 if the rate is positive that UTC day, 0 for a null / listed-inactive programme, NaN only for a malformed or absent
+    status) of the eligible units, with the status counts. Without the 13.7 carry columns (a frame that never went through :meth:`RewardCarry.apply`) the
+    v1 counts of ruling 13.6 apply: ``rewards_null_as_zero`` = every null cell. With them (``listed_carry24h_v2``): ``rewards_null_carried`` (+ ``_lag1``,
+    ``_lag2_3``, ``_lag4_11``) = null at k with a listed capture of slots [k - 11, k - 1] whose text re-parsed for day(k) gives a rate > 0 (the unit is
+    rewarded, params from the source); ``rewards_null_window_listed_inactive`` = null at k, listed in the window, none positive (unrewarded); ``rewards_null_as_zero``
+    = null at k with no listed capture in the window (unrewarded); ``carried_param_differs``; ``reward_switch_markets_1`` / ``_ge2`` = units whose market has
+    exactly one / two or more null-listed transitions in the window; ``reward_window_slots_missing`` (once per origin). ``rewards_listed_inactive`` =
+    a listed programme with rate 0 at k; ``reward_unparseable`` = malformed ONLY; ``reward_sidecar_absent`` = no sidecar row."""
+    st = j["rew_status"].astype(str).to_numpy()
+    rew = j["rew_rate"].to_numpy(float)
+    cnt["rewards_listed_inactive"] = int(((st == "listed") & np.isfinite(rew) & (rew == 0.0)).sum())
+    cnt["reward_unparseable"] = int((st == "malformed").sum())
+    cnt["reward_sidecar_absent"] = int((st == "absent").sum())
+    if "rew_carry_lag" in j:
+        lag = j["rew_carry_lag"].to_numpy(float)
+        car = np.isfinite(lag)
+        isnull = st == "null"
+        cnt["rewards_null_carried"] = int(car.sum())
+        cnt["rewards_null_carried_lag1"] = int((car & (lag == 1)).sum())
+        cnt["rewards_null_carried_lag2_3"] = int((car & (lag >= 2) & (lag <= 3)).sum())
+        cnt["rewards_null_carried_lag4_11"] = int((car & (lag >= 4) & (lag <= 11)).sum())
+        inact = j["rew_win_inactive"].to_numpy(float) == 1.0
+        cnt["rewards_null_window_listed_inactive"] = int(inact.sum())
+        cnt["rewards_null_as_zero"] = int((isnull & ~car & ~inact).sum())
+        cnt["carried_param_differs"] = int((j["rew_param_differs"].to_numpy(float) == 1.0).sum())
+        tr = j["rew_trans"].to_numpy(float)
+        both = np.isin(st, ["null", "listed"])
+        cnt["reward_switch_markets_1"] = int((both & (tr == 1)).sum())
+        cnt["reward_switch_markets_ge2"] = int((both & (tr >= 2)).sum())
+        cnt["reward_window_slots_missing"] = int(j["rew_win_missing"].iloc[0]) if len(j) else 0
+    else:
+        cnt["rewards_null_as_zero"] = int((st == "null").sum())
+    return rew, np.where(np.isfinite(rew), (rew > 0).astype(float), np.nan)
+
+
+def _in_band_carry_counts(j: pd.DataFrame, mid, spread, in_band_v2, rewarded, band, cnt: dict) -> None:
+    """Re-check fix 2: the carry can change which units survive the ``isfinite(in_band)`` filter (``in_band`` uses the source capture's ``rewards_max_spread``).
+    Among eligible rows with a finite ``rewarded``: ``in_band_known_only_via_carry`` (NaN with the origin's own ``rewards_max_spread``, finite after the carry: the
+    unit ENTERS) and ``in_band_lost_via_carry`` (finite with the origin's own value, NaN after the carry: the unit DROPS). Zero without carry columns."""
+    if "rew_maxspread_v1" not in j:
+        cnt["in_band_known_only_via_carry"] = cnt["in_band_lost_via_carry"] = 0
+        return
+    v1 = _in_band(mid, spread, j["rew_maxspread_v1"].to_numpy(float), band)
+    fin = np.isfinite(np.asarray(rewarded, float))
+    cnt["in_band_known_only_via_carry"] = int((fin & ~np.isfinite(v1) & np.isfinite(in_band_v2)).sum())
+    cnt["in_band_lost_via_carry"] = int((fin & np.isfinite(v1) & ~np.isfinite(in_band_v2)).sum())
+
+
+def _carry_unit_cols(j: pd.DataFrame) -> dict:
+    """Bookkeeping columns of a unit frame for the 13.7 sensitivities (descriptive only; never controls): the carry lag, the v1 ``rewarded`` (k only,
+    null = 0) and ``listed_k`` (status ``listed`` at k)."""
+    n = len(j)
+    v1 = j["rew_rate_v1"].to_numpy(float) if "rew_rate_v1" in j else j["rew_rate"].to_numpy(float)
+    return {"rew_carry_lag": j["rew_carry_lag"].to_numpy(float) if "rew_carry_lag" in j else np.full(n, np.nan),
+            "rewarded_v1": np.where(np.isfinite(v1), (v1 > 0).astype(float), np.nan), "listed_k": (j["rew_status"].astype(str).to_numpy() == "listed").astype(float),
+            "rew_trans": j["rew_trans"].to_numpy(float) if "rew_trans" in j else np.full(n, np.nan)}
+
+
+def _switch_distinct(pop: pd.DataFrame) -> dict:
+    """Market-deduplicated switching (re-check note): distinct markets whose largest null-listed transition count over their units is exactly 1 / at least 2."""
+    if not len(pop) or "rew_trans" not in pop:
+        return {}
+    mx = pop.groupby(pop["market_id"].astype(str))["rew_trans"].max()
+    return {"markets": int(len(mx)), "switch_markets_1": int((mx == 1).sum()), "switch_markets_ge2": int((mx >= 2).sum())}
+
+
 VENDORED = {
  "MidStore": {
   "normalised_sha256": "db5634a5d2ef82051709166a920edaf8b933452d7a13e57179e6f2b7cb92bf60",
+  "prefix": "\\bb\\.",
+  "source": "live_tests7.py",
+  "source_commit": "8dd013b9",
+  "source_sha256": "e1c5c0c68f7c44d3d5038f9c28324008a4a8132e35f148721a33078d706766a0"
+ },
+ "RewardCarry": {
+  "normalised_sha256": "029d34aab8541a083faec3cb612c291fc44a52238e690748d9e117d01211feb1",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
   "source_commit": "8dd013b9",
@@ -1238,6 +1418,13 @@ VENDORED = {
  },
  "_base_out": {
   "normalised_sha256": "ed9c3ccfbf263c3a9ed34beb8c6832397735de8556d298bedb567e364ff95220",
+  "prefix": "\\bb\\.",
+  "source": "live_tests7.py",
+  "source_commit": "8dd013b9",
+  "source_sha256": "e1c5c0c68f7c44d3d5038f9c28324008a4a8132e35f148721a33078d706766a0"
+ },
+ "_carry_unit_cols": {
+  "normalised_sha256": "3de299389db4a2334d726ebdcfe322ffa917742481e17941058279d1a5de8713",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
   "source_commit": "8dd013b9",
@@ -1368,6 +1555,13 @@ VENDORED = {
  },
  "_in_band": {
   "normalised_sha256": "ece5b541fd3e8cc8b78b3af7d70bacfede14f0ac2f82bca59b402bfd2f3ade1d",
+  "prefix": "\\bb\\.",
+  "source": "live_tests7.py",
+  "source_commit": "8dd013b9",
+  "source_sha256": "e1c5c0c68f7c44d3d5038f9c28324008a4a8132e35f148721a33078d706766a0"
+ },
+ "_in_band_carry_counts": {
+  "normalised_sha256": "258de668aa0201d6e2f8c70ad89ee186a0177f82ea0b843f7d8e260a3120cbc6",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
   "source_commit": "8dd013b9",
@@ -1518,6 +1712,13 @@ VENDORED = {
   "source_commit": "8dd013b9",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
+ "_reward_cols": {
+  "normalised_sha256": "52d82b48a60a7246b454acaabb433eb2e8a0b02cc0766e8a32c2b6ca1f9bef49",
+  "prefix": "\\bb\\.",
+  "source": "live_tests7.py",
+  "source_commit": "8dd013b9",
+  "source_sha256": "e1c5c0c68f7c44d3d5038f9c28324008a4a8132e35f148721a33078d706766a0"
+ },
  "_roots": {
   "normalised_sha256": "3822d52f40f2f0452e90172d37a217f1544f398792743693f5fb5444bb92e9d2",
   "origin": {
@@ -1542,8 +1743,29 @@ VENDORED = {
   "source_commit": "8dd013b9",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
+ "_series_ids": {
+  "normalised_sha256": "08bd1882739139cdbd4a8f842315db001330f860965f430971cd355221f9f078",
+  "prefix": "\\bb\\.",
+  "source": "live_tests7.py",
+  "source_commit": "8dd013b9",
+  "source_sha256": "e1c5c0c68f7c44d3d5038f9c28324008a4a8132e35f148721a33078d706766a0"
+ },
  "_share_by_tercile": {
   "normalised_sha256": "38c8396e09118d3e6292c81a1a8e630e3e786d29dec849f0f70ce73f499adc54",
+  "prefix": "\\bb\\.",
+  "source": "live_tests7.py",
+  "source_commit": "8dd013b9",
+  "source_sha256": "e1c5c0c68f7c44d3d5038f9c28324008a4a8132e35f148721a33078d706766a0"
+ },
+ "_status_array": {
+  "normalised_sha256": "d9388e92dc21444065b421089b1895c4586010ca61125d4400cd3f5d33613441",
+  "prefix": "\\bb\\.",
+  "source": "live_tests7.py",
+  "source_commit": "8dd013b9",
+  "source_sha256": "e1c5c0c68f7c44d3d5038f9c28324008a4a8132e35f148721a33078d706766a0"
+ },
+ "_switch_distinct": {
+  "normalised_sha256": "a6fbefa926794478c72cd8db12e58a5a2c0c001d55234a50df6655260de05871",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
   "source_commit": "8dd013b9",

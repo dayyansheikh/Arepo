@@ -1360,3 +1360,57 @@ census)*. No gate changed.
 | 4 | LT5 closed (2026-10-22 07:35Z, ledger "LT5 closed") | The "LT5 J/O registration" slide risk is moot: LT7 registers after the recorded drops of both LT5 and LT6, so only LT7's own rules (a) and (c) remain; LT5 J as an adjacent test lapses ("dropped at census, no rule"); E-numbers pass to LT7 and then LT8 (LT5 holds none); LT5 has no analysis before LT8's window; J's and O's census counts (J MDE 2.16c, 63.7 units a pass, permutable share 0; O MDE 0.84c, IQR share 0.44, 372 units a pass) are disclosed as read; no gate changes; LT5's vendored functions (`block_fl_gate`, the reward parser) are still copied from LT5's code by hash | header, 0, 1.0, 1.1, 1.6, 1.11, 8.1, 13.1 |
 
 **Ready for the orchestrator's check and the design-text freeze.**
+
+### 13.7 Reward-null rule `listed_carry24h_v2` (from LT7 13.7 and its erratum) (2026-10-22; `reviews/LT8_CENSUS_CODE_FIX_RECHECK_2026-10-22.md`, R2; governs where earlier text differs)
+
+Amendment after the design-text freeze (sha256 `5e61c20b1282cef79c7caee68f08dceb506f845bc1a1325fe2fb9335c955cf48`, now a declared
+predecessor), made before the LT8 seal and before every LT8 census, from counts only. The frozen premise of 1.0 (iv), that an empty
+`clob_rewards` means no programme, is refuted by LT7's counts-only probe (`seals/lt7_rewards_probe.json`, sha256 263413f2…; no price,
+target or outcome read): 30,543 of 258,393 market-days switch between null and non-null `clob_rewards` within a UTC day (0.118), against
+a stable listed share, so Gamma leaving the field out is the likelier reading (LIVE_TESTS_7.md 13.7). As frozen, LT8 read a null as 0,
+which is LT7's rejected option (A): `rewarded` and `ft_both` mislabel captures where Gamma left the field out, and `rw_changed` fires on
+null-to-listed switches, so it flags Gamma omitting the field, not a rate change. These terms feed three CH203 gates:
+`corr(zdimb5, ft_both)`, `VIF_w` and the design-MDE `se_1`. CH202 and CH204 read no reward field and are unchanged.
+
+**Rule `listed_carry24h_v2` (replaces 1.0 (iv)'s null-as-unrewarded reading for CH203; spec keys `reward_null_rule:
+listed_carry24h_v2`, `reward_carry_slots: 12`).** For a CH203 unit at origin capture k whose sidecar row is present:
+
+- **(a) `rewarded`:** LT7 13.7's rule, word for word. If `clob_rewards` at k is null, `rewarded_k = 1` if a LISTED `clob_rewards` text at
+  any sealed capture in the causal window of 12 slots `[k-11, k]` gives a summed daily rate > 0 when **re-parsed for the UTC day of k**
+  (the capture's own day is never used for an earlier text); the latest such capture is the **source**. Cross-day windows are allowed;
+  the re-parse for day(k) keeps a programme that ended before day(k) from counting. A slot of the window with no sealed capture is
+  skipped and counted, never filled (`reward_window_slots_missing`, once per origin). No slot later than k is read, stored or counted.
+  A unit with no positive listed text in the window is `rewarded = 0` with the origin capture's parameters. Here a LISTED text is one
+  LT8's parser (1.0 (iv)) accepts as a JSON list of valid allocations (rewarded, zero-rate or an empty list); the store holds, per slot
+  <= k, every sidecar row's listed text (market_id -> raw string, with that capture's `rewards_min_size` / `rewards_max_spread`), not
+  only the markets two-sided at that slot, and is evicted below k-11. The re-parse uses the vendored LT7 code (`RewardCarry`,
+  `maker_rewards.parse_daily_rate`), which gives LT8's rate on every text LT8's parser lists (unit tested).
+- **(b) Carried units:** take `rew_maxspread` (for `in_band`) and `rewards_min_size` (for `ft_both`) from the source capture. The sweep
+  k-1 touch sizes and spread stay as they are; every other control is the origin capture's.
+- **(c) `rw_changed`:** compare E(k) with E(k-2). E(s) is the capture's own listed text at s; else the latest listed text in `[k-11, s]`;
+  else empty. The NaN rule is unchanged (NaN, excluded and counted, when capture k or k-2 has no sidecar row for the market). Reading of
+  "own listed text": a non-null cell at s keeps its own text; a malformed own text (excluded at k anyway) or a sidecar without the column
+  keeps its own v1 value at s and is never replaced by a carried text; only a null cell takes a carried one.
+- **(d) F pairs:** use the carry at origin k. CS8 already loads `[k-12, k]` for every CH203 origin, so every carry window of an F-pair
+  origin is loaded and no v1 fallback is needed (unlike LT7's CH197, whose pair windows were not all sealed). A test confirms this.
+- **(e) Unchanged:** a listed text at k is parsed at k as before; a malformed text or an absent sidecar row (or column) stays NaN
+  (excluded, counted); no earlier malformed text is read as listed. Gates, thresholds, formulas and MDE inputs are unchanged. As in LT7's
+  13.7 erratum (1), units are kept only if `rewarded` and `in_band` are finite and `in_band` uses the source capture's
+  `rewards_max_spread`, so a unit can enter or drop through the carry; both are counted and the gates read the units as they stand.
+
+**Counts (as LT7; census output, descriptive).** `rewards_null_carried` and by lag in slots (`_lag1`, `_lag2_3`, `_lag4_11`);
+`rewards_null_as_zero` (null at k with no listed capture in the window); `rewards_null_window_listed_inactive` (listed in the window,
+none positive for day(k): unrewarded); `carried_param_differs` (source `rewards_min_size` / `rewards_max_spread` differ from the k
+capture's); `in_band_known_only_via_carry` and `in_band_lost_via_carry`; `reward_window_slots_missing`; `reward_switch_markets_1` /
+`_ge2` and the market-deduplicated `reward_switch_distinct_markets`; and a v1 x v2 table for `rw_changed` (v1 = the k-only comparison
+of the frozen text). The v1 values of `ft_both`, `VIF_w` and the slope MDE (v1 `rewarded`, `in_band`, `ft_both` and `rw_changed` on the
+v2 unit set) are reported as **descriptive only**: never the verdict, never a gate input.
+
+**Spec and tests.** Spec keys `reward_null_rule: listed_carry24h_v2` and `reward_carry_slots: 12` (both in the sealed spec blocks); the
+census refuses a spec without them; re-pinned. Tests: no slot after k is read; cross-day re-parse; a gap; null-like text read back as
+NaN (LT7's bug); the effective-text rule for `rw_changed`; F pairs use the carry at k.
+
+**Disclosure.** A deviation after the text freeze (5e61c20b… is the declared predecessor). It comes before the LT8 seal and every LT8
+census; its only input was probe counts (LT7's `lt7_rewards_probe.json` and LIVE_TESTS_7.md 13.7). At this amendment's commit no LT7
+census output is committed (`seals/` holds no CC7, CS7 or CV7 output), so it is not labelled *informed (LT7 census)*; CV7's host output
+was read for its recorded code hash only (re-check R1), not for any count.

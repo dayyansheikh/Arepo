@@ -41,10 +41,6 @@ def _slot_dt(k: int) -> datetime:
 # --- vendored provenance -----------------------------------------------------------------------------------------------------------
 
 
-# live_tests7.py before LT7 amendment 13.7 (the 41a0bb4e blob LT8 vendored from first); tolerated only until LT7's reward-carry branch is merged here
-PRE_AMENDMENT_13_7 = {"live_tests7.py": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"}
-
-
 def test_vendored_provenance():
     text = (HERE / "live_tests8_base.py").read_text()
     tree = ast.parse(text)
@@ -59,9 +55,7 @@ def test_vendored_provenance():
         assert hashlib.sha256(copy_src.encode()).hexdigest() == v["normalised_sha256"], name
         f = v["source"]
         sha_now = hashlib.sha256(cur[f].encode()).hexdigest()
-        if sha_now == PRE_AMENDMENT_13_7.get(f):
-            pass  # this branch is not yet rebased on feat/lt7-reward-carry (8dd013b9): live_tests7.py is still the pre-13.7 file; the bodies are checked below
-        elif sha_now != v["source_sha256"]:  # source drift must be recorded (an explicit decision) ...
+        if sha_now != v["source_sha256"]:  # source drift must be recorded (an explicit decision) ...
             assert f in drift and drift[f]["sha256"] == sha_now, f"{f} drifted without a vendored_source_drift_accepted entry"
         # ... and the copied function must still equal the current source with the prefix removed (byte-identical in substance)
         src_tree = ast.parse(cur[f])
@@ -996,3 +990,279 @@ def test_e2e_missing_rewards_max_spread_is_excluded_and_counted(tmp_path, monkey
     c = res["CH203"]["counts"]
     assert c["in_band_unknown"] > 0 and c["reward_state_unset"] + c.get("reward_state_empty_list", 0) + c.get("reward_state_rewarded", 0) > 0
     assert "rewarded0_in_band1" in res["CH203"]["rewarded_x_in_band"] and res["CH203"]["rewarded_x_in_band"]["rewarded0_in_band1"] > 0
+
+
+# --- amendment 13.7 (reward-null rule listed_carry24h_v2) and re-check R1 ----------------------------------------------------------------------
+
+REPO = HERE.parents[2]
+CV7_COMMIT = "231696fc"  # chore commit whose live_tests7.py (2ee6a659...) CV7 (q0602) ran on
+CARRY_NAMES = {"_status_array", "_series_ids", "RewardCarry", "_reward_cols", "_in_band_carry_counts", "_carry_unit_cols", "_switch_distinct"}
+POS = '[{"startDate":"2026-01-01","endDate":"2027-01-01","rewardsDailyRate":10}]'
+
+
+def _git_blob(commit: str, rel: str) -> str:
+    try:
+        out = subprocess.run(["git", "show", f"{commit}:{rel}"], cwd=REPO, capture_output=True, timeout=30)
+    except (OSError, subprocess.SubprocessError):
+        pytest.skip("git not available")
+    if out.returncode != 0:
+        pytest.skip(f"git object {commit}:{rel} not available")
+    return out.stdout.decode("utf-8")
+
+
+def test_design_text_amendment_13_7_and_its_predecessor():
+    assert lt.design_text_sha() == lt.DESIGN_TEXT_SHA256 and lt.design_text_error() is None
+    assert "5e61c20b1282cef79c7caee68f08dceb506f845bc1a1325fe2fb9335c955cf48" in lt.DESIGN_TEXT_PREDECESSORS
+    assert lt.DESIGN_TEXT_SHA256 not in lt.DESIGN_TEXT_PREDECESSORS
+    assert "### 13.7 Reward-null rule `listed_carry24h_v2`" in lt.DESIGN_PATH.read_text()
+    spec = lt.load_spec(sha=None)
+    assert spec["design_text_sha256"] == lt.DESIGN_TEXT_SHA256 and lt.DESIGN_TEXT_SHA256 in spec["design"]
+
+
+def test_spec_declares_the_reward_null_rule_and_the_census_refuses_without_it():
+    import astrolabe.research_lab.live_tests7 as lt7  # the test may import LT7; LT8 modules never do
+
+    spec = lt.load_spec(sha=None)
+    assert spec["reward_null_rule"] == lt.REWARD_NULL_RULE == "listed_carry24h_v2" and spec["reward_carry_slots"] == b.REWARD_CARRY_SLOTS == lt7.REWARD_CARRY_SLOTS == 12
+    assert {"reward_null_rule", "reward_carry_slots"} <= set(lt.SPEC_HASHED_BLOCKS) and lt.reward_rule_error(spec) is None
+    for over in ({"reward_null_rule": "null_as_unrewarded_v1"}, {"reward_carry_slots": 11}):
+        assert "13.7" in lt.reward_rule_error({**spec, **over})["error"]
+    assert "maker_rewards.py" in lt.CODE_FILES
+    # the thresholds, gates and MDE inputs are those of the text freeze: only the reward texts and the two new keys changed in the hashed blocks
+    old = json.loads(_git_blob("800ee314", "backend/astrolabe/research_lab/model_specs/live_tests8_v1.json"))
+    for k_ in ("census_gates", "census_inputs", "tests", "move", "eligibility", "grid", "crypto_classifier", "sports_rule", "series_key_rule", "member_cap", "gates", "inference", "verdict", "size_check", "census_fixed"):
+        assert spec[k_] == old[k_], k_
+    assert {k_: v for k_, v in spec["reward_rule"].items() if k_ not in ("rule", "rw_changed_rule")} == {k_: v for k_, v in old["reward_rule"].items() if k_ not in ("rule", "rw_changed_rule")}
+
+
+def test_cv7_dependencies_are_byte_identical_in_the_2ee6a659_blob():
+    """Re-check R1: CV7 ran on live_tests7.py 2ee6a659 (chore 231696fc). Every vendored body that CV7's results depend on (the call closure of
+    census_volsem in that blob) is byte-identical there, and so is every vendored live_tests7.py body except the 13.7 carry additions, which the 2ee6a659
+    blob does not define and CV7 therefore never calls."""
+    txt = _git_blob(CV7_COMMIT, "backend/astrolabe/research_lab/live_tests7.py")
+    assert hashlib.sha256(txt.encode("utf-8")).hexdigest() == "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
+    defs = {n.name: n for n in ast.parse(txt).body if isinstance(n, (ast.FunctionDef, ast.ClassDef))}
+    seen, todo = set(), ["census_volsem"]
+    while todo:
+        n = todo.pop()
+        if n not in seen:
+            seen.add(n)
+            todo += [x.id for x in ast.walk(defs[n]) if isinstance(x, ast.Name) and x.id in defs and x.id not in seen]
+    lt7_names = {n for n, v in b.VENDORED.items() if v["source"] == "live_tests7.py"}
+    assert lt7_names & seen == {"_gate_min_days", "_norm_cat", "_utc_day", "crypto_class"}
+    for name in lt7_names - CARRY_NAMES:
+        v = b.VENDORED[name]
+        src = ast.get_source_segment(txt, defs[name])
+        assert hashlib.sha256(re.sub(v["prefix"], "", src).encode("utf-8")).hexdigest() == v["normalised_sha256"], name
+    assert CARRY_NAMES <= lt7_names and not (CARRY_NAMES - {"_reward_cols"}) & set(defs) and not CARRY_NAMES & seen
+    # the base is the same blob in both
+    base = _git_blob(CV7_COMMIT, "backend/astrolabe/research_lab/live_tests7_base.py")
+    assert hashlib.sha256(base.encode("utf-8")).hexdigest() == "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
+
+
+def test_lt7_census_hash_accepts_exactly_cv7_2ee6a659_and_cc7_cs7_e1c5c0c6(tmp_path, monkeypatch):
+    d = tmp_path / "lt7c"
+    d.mkdir()
+    monkeypatch.setattr(lt, "LT7_CENSUS_DIR", d)
+    old, new, base = "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27", "e1c5c0c68f7c44d3d5038f9c28324008a4a8132e35f148721a33078d706766a0", "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
+    assert {v["source_sha256"] for v in b.VENDORED.values() if v["source"] == "live_tests7.py"} == {new}
+    (d / "CV7.json").write_text(json.dumps({"code_sha256": {"live_tests7.py": old, "live_tests7_base.py": base}}))
+    (d / "CC7.json").write_text(json.dumps({"code_sha256": {"live_tests7.py": new, "live_tests7_base.py": base}}))
+    (d / "CS7.json").write_text(json.dumps({"code_sha256": {"live_tests7.py": new, "live_tests7_base.py": base}}))
+    assert lt.lt7_census_hash_error() is None
+    for name, ch in (("CC7.json", {"live_tests7.py": old}), ("CS7.json", {"live_tests7.py": old}), ("CV7.json", {"live_tests7.py": new}), ("CV7.json", {"live_tests7.py": "232c22fb" + "0" * 56}),
+                     ("CC7.json", {"live_tests7.py": new, "live_tests7_base.py": "0" * 64})):
+        keep = (d / name).read_text()
+        (d / name).write_text(json.dumps({"code_sha256": ch}))
+        err = lt.lt7_census_hash_error()
+        assert err and "re-vendor" in err["error"] and err["bad"][0]["file"] == name, (name, ch)
+        (d / name).write_text(keep)
+    assert lt.lt7_census_hash_error() is None
+    # the vendor script carries the same accepted set
+    sp = importlib.util.spec_from_file_location("vendor_lt8c", HERE.parents[1] / "scripts" / "vendor_lt8_base.py")
+    mod = importlib.util.module_from_spec(sp)
+    sp.loader.exec_module(mod)
+    assert {f: {h: tuple(c) for h, c in v.items()} for f, v in mod.ACCEPTED_CENSUS_CODE.items()} == lt.LT7_CENSUS_CODE_ACCEPTED
+
+
+def test_lt8_listed_texts_reparse_to_the_lt8_rate():
+    from astrolabe.research_lab import maker_rewards
+
+    texts = ["[]", POS, '[{"rewardsDailyRate": 0}]', '[{"rewardsDailyRate": "5.5"}, {"rewardsDailyRate": 2, "endDate": "2026-10-12"}]', ' [{"rewardsDailyRate": " "}] ',
+             '[{"rewardsDailyRate": null, "startDate": "2026-10-13"}, {"rewardsDailyRate": 1e3}]', '[{"startDate": "2026-10-12", "endDate": "2026-10-12", "rewardsDailyRate": 4}]']
+    for v in texts:
+        for day in ("2026-10-11", "2026-10-12", "2026-10-13", None):
+            r, s, _ = lt.reward_detail(v, day)
+            assert lt.LT7_STATUS[s] == "listed" and maker_rewards.parse_daily_rate(v, day) == r, (v, day)
+
+
+def _rwf(rows: dict[str, str | None], rmin: float = 20.0, rms: float = 3.5, day: str = "2026-10-12") -> pd.DataFrame:
+    ext = pd.DataFrame({"market_id": list(rows), "clob_rewards": list(rows.values()), "rewards_min_size": str(rmin), "rewards_max_spread": str(rms)}).set_index("market_id")
+    ext.attrs["has_clob_rewards"] = True
+    return lt.rw_frame(ext, day).set_index("market_id")
+
+
+def _ser_at(rows: dict[str, str | None], day: str = "2026-10-12", rms: float = 3.5) -> pd.DataFrame:
+    st = [lt.reward_detail(v, day) for v in rows.values()]
+    return pd.DataFrame({"rew_rate": [x[0] for x in st], "rew_state": [x[1] for x in st], "rew_status": lt.lt7_status([x[1] for x in st]), "rew_min": 20.0,
+                         "rew_maxspread": rms}, index=pd.Index(list(rows), name="market_id"))
+
+
+def test_carry_reads_no_slot_after_k():
+    carry = b.RewardCarry(lt.b.REWARD_CARRY_SLOTS)
+    carry.add(10, _rwf({"A": "", "B": ""}))
+    carry.add(11, _rwf({"A": POS, "B": POS}))  # a LATER slot than the origin k = 10: stored, never read for k = 10
+    out = carry.apply(_ser_at({"A": "", "B": ""}), 10, "2026-10-12")
+    assert (out["rew_rate"] == 0.0).all() and out["rew_carry_lag"].isna().all() and (out["rew_win_inactive"] == 0).all()
+    rwf = {10: _rwf({"A": ""}), 11: _rwf({"A": POS})}
+    assert list(lt.effective_text(rwf, 10, 0, ["A"])) == [""]  # E(10) never reads slot 11
+
+
+def test_carry_cross_day_reparse_and_source_parameters():
+    ended = '[{"startDate":"2026-10-01","endDate":"2026-10-11","rewardsDailyRate":10}]'  # ended the day before day(k)
+    carry = b.RewardCarry(12)
+    carry.add(8, _rwf({"A": POS, "B": ended, "C": POS}, rmin=50.0, rms=4.5, day="2026-10-11"))
+    carry.add(9, _rwf({"A": ended, "B": "", "C": ""}, day="2026-10-11"))
+    carry.add(10, _rwf({"A": "", "B": "", "C": ""}))
+    out = carry.apply(_ser_at({"A": "", "B": "", "C": "[]"}), 10, "2026-10-12").loc[["A", "B", "C"]]
+    # A: the latest listed text (slot 9) ended before day(k) when re-parsed for day(k); slot 8's text is active on day(k): carried with lag 2 and slot 8's params
+    assert out.loc["A", "rew_rate"] == 10.0 and out.loc["A", "rew_carry_lag"] == 2 and out.loc["A", "rew_min"] == 50.0 and out.loc["A", "rew_maxspread"] == 4.5
+    assert out.loc["A", "rew_param_differs"] == 1.0 and out.loc["A", "rew_rate_v1"] == 0.0
+    # B: listed in the window but inactive for day(k): unrewarded, counted as listed-inactive, origin params kept
+    assert out.loc["B", "rew_rate"] == 0.0 and np.isnan(out.loc["B", "rew_carry_lag"]) and out.loc["B", "rew_win_inactive"] == 1.0 and out.loc["B", "rew_min"] == 20.0
+    # C is LISTED at k (an empty list): parsed at k, never carried
+    assert out.loc["C", "rew_rate"] == 0.0 and np.isnan(out.loc["C", "rew_carry_lag"])
+
+
+def test_carry_gap_is_skipped_and_counted_never_filled():
+    carry = b.RewardCarry(12)
+    carry.add(2, _rwf({"A": POS}))
+    for s in (3, 4, 7, 8):  # slots 5 and 6 have no capture
+        carry.add(s, _rwf({"A": ""}))
+    out = carry.apply(_ser_at({"A": ""}), 8, "2026-10-12")
+    assert out.loc["A", "rew_carry_lag"] == 6 and out.loc["A", "rew_rate"] == 10.0
+    assert out.loc["A", "rew_win_missing"] == 7  # the window [-3, 8] holds slots 2, 3, 4, 7 and 8 only: 7 of its 12 slots are missing, none is filled
+    cnt: dict = {}
+    b._reward_cols(out.assign(rew_status=b._status_array(out)), cnt)
+    assert cnt["reward_window_slots_missing"] == 7 and cnt["rewards_null_carried"] == 1 and cnt["rewards_null_carried_lag4_11"] == 1
+
+
+def _set_clob(host: dict, k: int, market: str, text: str | None) -> None:
+    f = host["snap"] / host["cids"][k] / "rows_ext.csv.gz"
+    e = pd.read_csv(f, dtype=str, keep_default_na=False)
+    e.loc[e["market_id"] == market, "clob_rewards"] = "" if text is None else text
+    e.to_csv(f, index=False, compression="gzip")
+
+
+def test_null_like_text_read_back_as_nan_is_still_null_and_carried(world, tmp_path):
+    """LT7's bug: the cell text ``null`` reads back from a series CSV as NaN. The status must still be null (carried), never dropped or listed."""
+    host, w = world["host"], tmp_path / "work"
+    _set_clob(host, 5, "101", POS)   # market 101 (m = 1) is listed and rewarded at slot 5 ...
+    _set_clob(host, 6, "101", None)  # ... null at slot 6
+    _set_clob(host, 6, "104", "null")  # a literal null-like text: unset, never listed
+    _set_clob(host, 5, "104", "None")
+    caps = {k: {"id": host["cids"][k], "dir": host["snap"] / host["cids"][k], "start": _slot_dt(k).timestamp()} for k in (5, 6)}
+    for k in (5, 6):
+        lt.write_series8(w, caps[k], world["spec"])
+    ser6 = b.read_series(w, caps[6]["id"])
+    assert ser6.loc["101", "rew_state"] == "unset" and pd.isna(ser6.loc["101", "rew_status"]) and pd.isna(ser6.loc["104", "rew_status"])  # "null" read back as NaN
+    rw5, rw6 = lt.read_rw8(w, caps[5]["id"]), lt.read_rw8(w, caps[6]["id"])
+    assert rw6.loc["101", "rew_status"] == "null" and rw6.loc["104", "rew_status"] == "null" and rw5.loc["104", "rew_status"] == "null" and rw5.loc["101", "rew_status"] == "listed"
+    assert rw5.loc["101", "rew_raw"] == POS and rw6.loc["101", "rew_raw"] is None and rw5.loc["104", "rew_raw"] is None and rw5.loc["101", "rew_min"] == 20.0
+    assert len(rw6) == N_MKT  # every sidecar row, not only the two-sided markets
+    carry = b.RewardCarry(12)
+    carry.add(5, rw5)
+    carry.add(6, rw6)
+    out = carry.apply(ser6, 6, "2026-10-01")
+    assert out.loc["101", "rew_rate"] == 10.0 and out.loc["101", "rew_carry_lag"] == 1 and out.loc["101", "rew_rate_v1"] == 0.0
+    assert out.loc["104", "rew_rate"] == 0.0 and np.isnan(out.loc["104", "rew_carry_lag"])  # "None" at slot 5 is not a listed text
+    assert out.loc["107", "rew_status"] == "malformed" and np.isnan(out.loc["107", "rew_rate"])  # malformed stays NaN
+    # a pre-13.7 rw file (no status / raw columns) is refused, never read as unrewarded
+    (w / "rw" / "old.csv.gz").parent.mkdir(exist_ok=True)
+    pd.DataFrame({"market_id": ["1"], "clob_h": [""]}).to_csv(w / "rw" / "old.csv.gz", index=False, compression="gzip")
+    with pytest.raises(ValueError, match="13.7"):
+        lt.read_rw8(w, "old")
+    with pytest.raises(ValueError, match="rew_raw"):
+        b.RewardCarry(12).add(5, rw5.drop(columns=["rew_raw"]))
+
+
+def test_rw_changed_uses_the_effective_text_rule():
+    T, U = POS, '[{"rewardsDailyRate": 3}]'
+    # slots 0..10 (k = 10, window [-1, 10]); per market: its texts at slots 8 (k - 2), 9 (k - 1), 10 (k) and earlier where needed
+    rows = {
+        "same_null_k": {8: T, 9: T, 10: ""},          # v1: T vs "" -> 1; E(k) = T (latest listed, slot 9): unchanged -> 0
+        "null_both_old_T": {3: T, 8: "", 9: "", 10: ""},  # E(k-2) = E(k) = T (slot 3, inside [k-11, s]) -> 0; v1: "" vs "" -> 0
+        "changed": {5: T, 8: "", 9: "", 10: U},       # E(k-2) = T (slot 5), E(k) = U -> 1
+        "appears": {8: "", 9: T, 10: ""},             # E(k-2) = "" (nothing listed in [k-11, k-2]), E(k) = T -> 1 (as worded)
+        "never": {8: "", 9: "", 10: ""},              # 0 and 0
+        "malformed_k2": {6: T, 8: "{bad", 10: T},     # a malformed own text at k-2 keeps its own text: E(k-2) = h("{bad") != h(T) -> 1
+        "absent_k2": {9: T, 10: T},                   # no sidecar row at k-2: NaN (unchanged rule)
+        "too_old": {-2: T, 8: "", 10: ""},            # slot -2 is outside [k-11, k]: never read -> 0
+    }
+    rwf = {}
+    for s in range(-2, 11):
+        cells = {m: v[s] for m, v in rows.items() if s in v}
+        if cells:
+            rwf[s] = _rwf(cells)
+    ids = list(rows)
+    ek, ek2 = pd.Series(lt.effective_text(rwf, 10, -1, ids), index=ids), pd.Series(lt.effective_text(rwf, 8, -1, ids), index=ids)
+    ch = np.where(pd.isna(ek) | pd.isna(ek2), np.nan, (ek != ek2).astype(float))
+    got = dict(zip(ids, ch, strict=True))
+    assert got["same_null_k"] == 0 and got["null_both_old_T"] == 0 and got["changed"] == 1 and got["appears"] == 1 and got["never"] == 0
+    assert got["malformed_k2"] == 1 and np.isnan(got["absent_k2"]) and got["too_old"] == 0
+    assert ek["same_null_k"] == lt.clob_hash(T) and ek2["null_both_old_T"] == lt.clob_hash(T) and ek2["appears"] == "" and ek2["malformed_k2"] == lt.clob_hash("{bad")
+    # the v1 comparison of the frozen text, for the v1 x v2 table
+    v1 = {m: (rwf[10]["clob_h"].get(m), rwf[8]["clob_h"].get(m)) for m in ids}
+    assert v1["same_null_k"][0] != v1["same_null_k"][1] and v1["null_both_old_T"][0] == v1["null_both_old_T"][1]
+    assert np.isnan(lt.effective_text({}, 8, -1, ["x"])[0])  # no rw frame at s: NaN
+
+
+def test_f_pairs_and_the_primary_use_the_carry_at_k(tmp_path, monkeypatch):
+    """13.7 (d): CS8 loads [k - 12, k] for every CH203 origin, so the F-feasibility pairs use the carry at k (no v1 fallback). Market 109 (quiet, rewarded,
+    m = 9) loses its clob_rewards at every slot k = 0 mod 4: at those origins v1 reads it as unrewarded, the carry as rewarded (lag 1)."""
+    design = tmp_path / "LIVE_TESTS_8.md"
+    design.write_text("frozen design text")
+    monkeypatch.setattr(lt, "DESIGN_PATH", design)
+    monkeypatch.setattr(lt, "DESIGN_TEXT_SHA256", hashlib.sha256(design.read_bytes()).hexdigest())
+    host = build_host(tmp_path)
+    for k in range(0, N_SLOT, 4):
+        _set_clob(host, k, "109", None)
+    p7 = write_lt7_seal(tmp_path, host)
+    spec = make_spec(p7, host)
+    s = lt.seal_inputs(snapshot_root=[host["snap"]], sweep_root=[host["swp"]], work=tmp_path / "ws", spec=spec)
+    assert "error" not in s
+    seal = tmp_path / "lt8.json"
+    seal.write_text(json.dumps(s, default=lt._json))
+    seen = {}
+    orig_f, orig_pop = lt.f_mde8, lt.census_ch203
+
+    def spy_f(*a, **kw):
+        seen["F"] = kw["pop"].copy()
+        return orig_f(*a, **kw)
+
+    def spy_pop(Q, *a, **kw):
+        seen["Q"] = Q.copy()
+        return orig_pop(Q, *a, **kw)
+
+    monkeypatch.setattr(lt, "f_mde8", spy_f)
+    monkeypatch.setattr(lt, "census_ch203", spy_pop)
+    res = lt.census_sweeps(seal=seal, snapshot_root=[host["snap"]], sweep_root=[host["swp"]], work=tmp_path / "wk", spec=spec)
+    assert "error" not in res, res
+    assert res["reward_null_rule"] == "listed_carry24h_v2" and res["reward_carry_slots"] == 12
+    Q, F = seen["Q"], seen["F"]
+    q9 = Q[Q["market_id"].astype(str) == "109"]
+    k0 = (q9["slot"].to_numpy(int) % 4 == 0) if "slot" in q9 else None
+    assert len(q9) and k0 is not None and k0.any() and (~k0).any()
+    assert (q9["rewarded"] == 1.0).all() and (q9.loc[k0, "rewarded_v1"] == 0.0).all() and (q9.loc[k0, "rew_carry_lag"] == 1).all() and q9.loc[~k0, "rew_carry_lag"].isna().all()
+    f9 = F[F["market_id"].astype(str) == "109"]
+    assert len(f9) and (f9["slot"].to_numpy(int) % 4 == 0).any()  # pair origins where 109 is null at k
+    assert (f9["rewarded"] == 1.0).all() and (f9["ft_both"].to_numpy(float) == f9["ft_both"].to_numpy(float)).all()
+    assert (f9.loc[f9["slot"].to_numpy(int) % 4 == 0, "rew_carry_lag"] == 1).all()  # the carry at k, not a v1 fallback
+    # rw_changed: at k = 0 mod 4 v1 compares "" with the listed text (1); the effective texts are equal (0); at k = 2 mod 4 the reverse
+    assert (q9["rw_changed"] == 0.0).all() and (q9.loc[q9["slot"].to_numpy(int) % 2 == 0, "rw_changed_v1"] == 1.0).all()
+    c = res["CH203"]["counts"]
+    assert c["rewards_null_carried"] > 0 and c["rewards_null_carried_lag1"] == c["rewards_null_carried"] and "in_band_known_only_via_carry" in c and c["reward_window_slots_missing"] >= 0
+    t = res["CH203"]["rw_changed_v1_x_v2"]
+    assert t["v1_1_v2_0"] > 0 and set(t) >= {"v1_0_v2_0", "v1_0_v2_1", "v1_1_v2_1", "v1_nan"}
+    assert res["CH203"]["reward_switch_distinct_markets"]["switch_markets_ge2"] >= 1 and res["CH203"]["reward_null_rule"] == "listed_carry24h_v2"
+    assert set(res["CH203"]["reward_v1_descriptive"]) >= {"units", "ft_both_share", "corr_ft_both", "vif_w", "mde_tercile_c"} or "error" in res["CH203"]["reward_v1_descriptive"]

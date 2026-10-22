@@ -39,6 +39,14 @@ SOURCE_PINS = {
 }
 SOURCE_COMMIT = "8dd013b9"  # the feat/lt7-reward-carry commit holding both pinned blobs (LT7 amendment 13.7, listed_carry24h_v2; CC7/CS7 run on it); recorded in VENDORED as source_commit
 PREFIX = {"live_tests7_base.py": r"(?!)", "live_tests7.py": r"\bb\."}  # (?!) never matches: the base is flat
+# LT8 census-code fix re-check R1: the live_tests7.py / live_tests7_base.py hash each LT7 census output may record. CV7 (q0602) ran before LT7 13.7 was
+# merged (chore 231696fc: live_tests7.py 2ee6a659...); CC7 / CS7 run on the 13.7 code e1c5c0c6.... Every vendored body CV7's results depend on is
+# byte-identical in the 2ee6a659 blob (tests/unit/test_research_lab_live_tests8.py). Any other (census, hash) pair refuses. Equal to live_tests8.LT7_CENSUS_CODE_ACCEPTED.
+ACCEPTED_CENSUS_CODE = {
+    "live_tests7.py": {"2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27": ["CV7"],
+                       "e1c5c0c68f7c44d3d5038f9c28324008a4a8132e35f148721a33078d706766a0": ["CC7", "CS7"]},
+    "live_tests7_base.py": {"2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20": ["CC7", "CS7", "CV7"]},
+}
 
 PICK = {
     "live_tests7_base.py": [
@@ -56,6 +64,8 @@ PICK = {
         "_gate_min_days", "_fam", "_per_market", "_events", "_tier_shares", "_share_by_tercile", "unit_overlaps", "_z", "_desc_splits",
         "pair_correlations", "_merge_counts", "_fee_counts", "load_unavailable", "_dir_slot", "sealed_sweep_slots", "_movers_join", "_common_cols", "rewarded_x_in_band",
         "_anatomy", "_base_out", "_utc_day", "_mid12",
+        # LIVE_TESTS_8.md 13.7 (reward-null rule listed_carry24h_v2, from LT7 13.7 and its erratum): the causal 12-slot carry and its counts
+        "_status_array", "_series_ids", "RewardCarry", "_reward_cols", "_in_band_carry_counts", "_carry_unit_cols", "_switch_distinct",
     ],
 }
 
@@ -88,9 +98,10 @@ import pandas as pd
 
 from . import bounce_decomp as bd
 from . import cb13_label as lab
-from . import cb17_census, economics, forecast, panel, trade_sample
+from . import cb17_census, economics, forecast, maker_rewards, panel, trade_sample
 
 ROOT = forecast.ROOT
+REWARD_CARRY_SLOTS = 12  # live_tests7.REWARD_CARRY_SLOTS (the 13.7 carry window [k - 11, k]; used by the copied RewardCarry)
 GRID_S = 7200.0  # live_tests7_base.GRID_S
 SLOT_TOL_S = 1800.0  # live_tests7_base.SLOT_TOL_S
 DAY_S = 86400.0  # live_tests7_base.DAY_S
@@ -112,7 +123,8 @@ def normalised_sha(src: str, prefix: str) -> str:
 
 def census_output_check() -> None:
     """LIVE_TESTS_8.md 8.1: LT8 vendors from the hash LT7's censuses actually ran on. If LT7's census outputs (CC7* / CS7* / CV7* .json in
-    data-dumps/research_lab/live_tests7_census/, when present) record another live_tests7.py / live_tests7_base.py hash, refuse."""
+    data-dumps/research_lab/live_tests7_census/, when present) record a live_tests7.py / live_tests7_base.py hash outside ``ACCEPTED_CENSUS_CODE`` for
+    that census (CV7: live_tests7.py 2ee6a659...; CC7 / CS7: e1c5c0c6...), refuse."""
     d = HERE.parents[2] / "data-dumps" / "research_lab" / "live_tests7_census"
     if not d.exists():
         return
@@ -122,9 +134,10 @@ def census_output_check() -> None:
                 ch = json.loads(f.read_text()).get("code_sha256") or {}
             except (OSError, ValueError, AttributeError):
                 raise SystemExit(f"refusing: LT7 census output {f.name} is unreadable JSON; its code hash cannot be checked") from None
-            for name, want in SOURCE_PINS.items():
-                if ch.get(name) and ch[name] != want:
-                    raise SystemExit(f"refusing: LT7 census output {f.name} ran on {name} {ch[name]}, not {want}; re-vendor from that hash first (LIVE_TESTS_8.md 8.1)")
+            census = f.name[:3]
+            for name, ok in ACCEPTED_CENSUS_CODE.items():
+                if ch.get(name) and census not in ok.get(ch[name], []):
+                    raise SystemExit(f"refusing: LT7 census output {f.name} ran on {name} {ch[name]}, not an accepted hash for {census} ({sorted(k for k, v in ok.items() if census in v)}); re-vendor from that hash first (LIVE_TESTS_8.md 8.1)")
 
 
 def main() -> None:

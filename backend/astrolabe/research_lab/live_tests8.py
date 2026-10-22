@@ -16,6 +16,11 @@ mismatch, L3). LT3-LT7 code is used only through the vendored copies in ``live_t
 ``live_tests3`` .. ``live_tests7``. New LT8 code (not vendored): the empty / null ``clob_rewards`` rule (:func:`reward_status`), the
 LT8 lag-slot loader, the slot store, the unit builders, the design-based MDE under a working covariance, the gates and the seal.
 
+Amendment 13.7 (reward-null rule ``listed_carry24h_v2``, from LT7 13.7 and its erratum; governs where earlier text differs): a null
+``clob_rewards`` at origin k takes ``rewarded`` from the latest positive LISTED text of the causal window [k - 11, k] re-parsed for day(k)
+(the vendored LT7 ``RewardCarry``, fed with every sidecar row of each capture), with that source capture's ``rewards_min_size`` /
+``rewards_max_spread``; ``rw_changed`` compares the effective texts E(k) and E(k - 2) (:func:`effective_text`). No slot after k is read.
+
 The reader (``run_once``), ``backfill-series``, the single analysis, the size check and the RSS probe are CODE PHASE 2 (not in this file).
 """
 
@@ -45,12 +50,19 @@ END_UTC = "2027-01-20T00:00:00Z"
 ANALYSIS_NOT_BEFORE = "2027-01-21T12:00:00Z"
 TEMPFAIL = 75
 DAY_S = 86400.0
-DESIGN_TEXT_SHA256 = "5e61c20b1282cef79c7caee68f08dceb506f845bc1a1325fe2fb9335c955cf48"  # LIVE_TESTS_8.md at the design-text freeze
+DESIGN_TEXT_SHA256 = "c76ffff6563ed88eae22046d5986e580cc527e8799488b014dcfd8365ef3accb"  # LIVE_TESTS_8.md with amendment 13.7 (reward-null rule listed_carry24h_v2), 2026-10-22
+# Earlier design texts, for provenance. Amendment 13.7 comes before the LT8 seal and every LT8 census, so no seal may record a predecessor: a seal
+# or census whose design hash is listed here is refused like any other (re-seal on the current text). Anything not equal to DESIGN_TEXT_SHA256 refuses.
+DESIGN_TEXT_PREDECESSORS = {
+    "5e61c20b1282cef79c7caee68f08dceb506f845bc1a1325fe2fb9335c955cf48": "design text freeze (c6e57a64), superseded by amendment 13.7 (reward-null rule listed_carry24h_v2) before the LT8 seal and every LT8 census, 2026-10-22",
+}
+REWARD_NULL_RULE = "listed_carry24h_v2"  # amendment 13.7; spec key reward_null_rule (with reward_carry_slots = live_tests8_base.REWARD_CARRY_SLOTS = 12)
 DESIGN_PATH = ROOT / "docs" / "research_lab" / "LIVE_TESTS_8.md"
 LT7_SEAL_SHA256 = "117e9b458931b7493f6b34e36ce68e7e4898c544fb5aa360956ea106de204137"
 CODE_FILES = ("live_tests8.py", "live_tests8_analysis.py", "live_tests8_base.py", "bounce_decomp.py",
               # hashed dependencies (design 8.1) and the modules the vendored base imports
-              "panel.py", "trade_sample.py", "cb17_census.py", "cb13_label.py", "economics.py", "forecast.py")
+              "panel.py", "trade_sample.py", "cb17_census.py", "cb13_label.py", "economics.py", "forecast.py",
+              "maker_rewards.py")  # 13.7: the vendored RewardCarry re-parses a carried text with maker_rewards.parse_daily_rate
 _PIN_LINE = re.compile(r"^SPEC_SHA256 = .*$", re.M)
 
 SNAP_COLS = [*b.SNAP_COLS, "liquidity"]
@@ -100,7 +112,16 @@ def load_spec(path: Path = SPEC_PATH, sha: str | None = SPEC_SHA256) -> dict:
     return spec
 
 
-SPEC_HASHED_BLOCKS = ("census_gates", "census_inputs", "tests", "move", "eligibility", "grid", "crypto_classifier", "sports_rule", "series_key_rule", "reward_rule", "member_cap")
+def reward_rule_error(spec: dict) -> dict | None:
+    """Amendment 13.7: the census refuses unless the spec declares ``reward_null_rule = listed_carry24h_v2`` with ``reward_carry_slots = 12``."""
+    if spec.get("reward_null_rule") != REWARD_NULL_RULE or spec.get("reward_carry_slots") != b.REWARD_CARRY_SLOTS:
+        return {"error": "the spec does not declare the 13.7 reward-null rule (reward_null_rule listed_carry24h_v2, reward_carry_slots 12): census refused",
+                "reward_null_rule": spec.get("reward_null_rule"), "reward_carry_slots": spec.get("reward_carry_slots")}
+    return None
+
+
+SPEC_HASHED_BLOCKS = ("census_gates", "census_inputs", "tests", "move", "eligibility", "grid", "crypto_classifier", "sports_rule", "series_key_rule", "reward_rule", "member_cap",
+                      "reward_null_rule", "reward_carry_slots")
 
 
 def spec_blocks_sha(spec: dict) -> str:
@@ -176,6 +197,16 @@ def reward_status(v, day: str | None = None) -> tuple[float, str]:
     return r, s
 
 
+# 13.7: LT8's reward states in the LT7 vocabulary the vendored RewardCarry reads (listed / null / malformed / absent). A LISTED text is one LT8's parser
+# accepts as a JSON list of valid allocations (rewarded, zero or an empty list); a null text is unset; a sidecar without the column is ``no_column`` (never
+# carried into, never a source: it says nothing about rewards, check fix 7).
+LT7_STATUS = {"unset": "null", "empty_list": "listed", "zero": "listed", "rewarded": "listed", "malformed": "malformed", "no_sidecar": "absent", "no_column": "no_column"}
+
+
+def lt7_status(states) -> np.ndarray:
+    return np.array([LT7_STATUS[str(s)] for s in states], dtype=object)
+
+
 def clob_hash(v) -> str:
     """Short stable hash of the normalised ``clob_rewards`` string (null / empty / null-like all normalise to the empty string)."""
     if v is None or (isinstance(v, float) and math.isnan(v)) or str(v).strip().casefold() in _NULL_LIKE:
@@ -243,6 +274,7 @@ def series8_frame(rows: pd.DataFrame, ext: pd.DataFrame | None, spec: dict, day:
         st = [reward_detail(v, day) if (p and has_col) else (float("nan"), "no_sidecar" if not p else "no_column", "") for v, p in zip(e["clob_rewards"], present, strict=True)]
         ser["rew_rate"] = [x[0] for x in st]
         ser["rew_state"] = [x[1] for x in st]
+        ser["rew_status"] = lt7_status(ser["rew_state"])  # 13.7 (the cell text "null" reads back as NaN; the vendored _status_array maps NaN to null)
         ser["rew_reason"] = [x[2] for x in st]
         ser["rew_min"] = pd.to_numeric(e["rewards_min_size"], errors="coerce").to_numpy(float)
         ser["rew_maxspread"] = pd.to_numeric(e["rewards_max_spread"], errors="coerce").to_numpy(float)
@@ -250,6 +282,7 @@ def series8_frame(rows: pd.DataFrame, ext: pd.DataFrame | None, spec: dict, day:
     else:
         present = np.zeros(len(mids), bool)
         ser["rew_rate"], ser["rew_state"], ser["rew_reason"], ser["rew_min"], ser["rew_maxspread"] = np.nan, "no_sidecar", "", np.nan, np.nan
+        ser["rew_status"] = "absent"
         fc = [None] * len(mids)
     sp = ser["sports"].to_numpy(int)
     ser["fee_cat"] = pd.Series(fc, dtype=object).to_numpy()
@@ -257,27 +290,84 @@ def series8_frame(rows: pd.DataFrame, ext: pd.DataFrame | None, spec: dict, day:
     return ser
 
 
+RW_COLS = ["market_id", "clob_h", "rew_status", "rew_raw", "rew_min", "rew_maxspread"]
+
+
+def rw_frame(ext: pd.DataFrame | None, day: str) -> pd.DataFrame:
+    """One row per SIDECAR row of a capture (not only the two-sided markets of the series file): the ``clob_rewards`` hash (``rw_changed``), the 13.7 status
+    in the LT7 vocabulary, the raw text of a LISTED cell only (the carry source; None otherwise) and that capture's ``rewards_min_size`` /
+    ``rewards_max_spread``."""
+    if ext is None:
+        return pd.DataFrame({c: [] for c in RW_COLS})
+    has_col = bool(ext.attrs.get("has_clob_rewards", True))
+    vals = ext["clob_rewards"].tolist()
+    st = lt7_status([reward_detail(v, day)[1] if has_col else "no_column" for v in vals])
+    raw = [v if s == "listed" else None for v, s in zip(vals, st, strict=True)]
+    return pd.DataFrame({"market_id": ext.index.astype(str), "clob_h": [clob_hash(v) for v in vals], "rew_status": st, "rew_raw": pd.Series(raw, dtype=object).to_numpy(),
+                         "rew_min": pd.to_numeric(ext["rewards_min_size"], errors="coerce").to_numpy(float), "rew_maxspread": pd.to_numeric(ext["rewards_max_spread"], errors="coerce").to_numpy(float)})
+
+
 def write_series8(work: Path, cap: dict, spec: dict) -> None:
-    """Write-once ``series/<id>.csv.gz`` (two-sided quotes) and ``rw/<id>.csv.gz`` (the ``clob_rewards`` hash of EVERY sidecar row, so
-    that ``rw_changed`` does not depend on the market having been two-sided at k - 2)."""
+    """Write-once ``series/<id>.csv.gz`` (two-sided quotes) and ``rw/<id>.csv.gz`` (:func:`rw_frame`: EVERY sidecar row, so that ``rw_changed`` and the 13.7
+    carry do not depend on the market having been two-sided at an earlier slot)."""
     p = Path(work) / "series" / f"{cap['id']}.csv.gz"
     if p.exists():
         return
     rows = load_rows8(cap["dir"])
     ext = load_ext8(cap["dir"])
-    b.write_once_csv(p, series8_frame(rows, ext, spec, b._utc_day(cap["start"])))
-    rw = pd.DataFrame({"market_id": ext.index.astype(str), "clob_h": [clob_hash(v) for v in ext["clob_rewards"]]}) if ext is not None else pd.DataFrame({"market_id": [], "clob_h": []})
-    b.write_once_csv(Path(work) / "rw" / f"{cap['id']}.csv.gz", rw)
+    day = b._utc_day(cap["start"])
+    b.write_once_csv(p, series8_frame(rows, ext, spec, day))
+    b.write_once_csv(Path(work) / "rw" / f"{cap['id']}.csv.gz", rw_frame(ext, day))
 
 
-def read_rw(work: Path, cap_id: str | None) -> pd.Series | None:
+def read_rw8(work: Path, cap_id: str | None) -> pd.DataFrame | None:
+    """The :func:`rw_frame` of a capture read back, indexed by market_id (no NA parsing of the text columns: ``null`` stays ``null``; an empty
+    ``rew_raw`` is None). An rw file without the 13.7 columns (an older work dir) is refused, never read as unrewarded."""
     if cap_id is None:
         return None
     p = Path(work) / "rw" / f"{cap_id}.csv.gz"
     if not p.exists():
         return None
-    d = pd.read_csv(p, dtype={"market_id": str, "clob_h": str}, keep_default_na=False)
-    return d.drop_duplicates("market_id").set_index("market_id")["clob_h"]
+    d = pd.read_csv(p, dtype=str, keep_default_na=False)
+    if not set(RW_COLS) <= set(d.columns):
+        raise ValueError(f"rw file {p.name} lacks the 13.7 columns {sorted(set(RW_COLS) - set(d.columns))}: refused (a pre-13.7 work dir)")
+    d = d.drop_duplicates("market_id").set_index("market_id")
+    d["rew_raw"] = d["rew_raw"].where(d["rew_raw"] != "", None)
+    for c in ("rew_min", "rew_maxspread"):
+        d[c] = pd.to_numeric(d[c], errors="coerce")
+    return d
+
+
+def read_rw(work: Path, cap_id: str | None) -> pd.Series | None:
+    """The v1 ``clob_rewards`` hash by market_id (null / empty normalised to the empty string)."""
+    d = read_rw8(work, cap_id)
+    return None if d is None else d["clob_h"]
+
+
+def effective_text(rwf: dict, s: int, lo: int, ids) -> np.ndarray:
+    """13.7 (c): E(s) per market of ``ids`` (object array of ``clob_rewards`` hashes). NaN when slot ``s`` has no rw frame or the market has no sidecar row at
+    ``s`` (the NaN rule is unchanged). Otherwise the capture's own text at ``s`` when its cell is not null (a listed text; a malformed or no-column cell keeps
+    its own v1 hash, never replaced by a carried one); for a null cell, the LATEST listed text of the slots [``lo``, ``s`` - 1] (missing slots skipped,
+    never filled), else the empty string. No slot later than ``s`` is read."""
+    idx = pd.Index([str(m) for m in ids])
+    if s not in rwf or rwf[s] is None:
+        return np.full(len(idx), np.nan, dtype=object)
+    f = rwf[s]
+    out = f["clob_h"].reindex(idx).to_numpy(object).copy()
+    st = f["rew_status"].reindex(idx).to_numpy(object)
+    todo = np.flatnonzero(st == "null")
+    for u in range(int(s) - 1, int(lo) - 1, -1):
+        if not len(todo):
+            break
+        g = rwf.get(u)
+        if g is None:
+            continue
+        gs = g["rew_status"].reindex(idx[todo]).to_numpy(object)
+        hit = gs == "listed"
+        if hit.any():
+            out[todo[hit]] = g["clob_h"].reindex(idx[todo[hit]]).to_numpy(object)
+            todo = todo[~hit]
+    return out
 
 
 def lag_sweep8(sweep_dir: Path, cap_dir: Path) -> pd.DataFrame:
@@ -472,13 +562,19 @@ def _rv24(store, k: int, mk, tick, c: dict) -> tuple[np.ndarray, np.ndarray, np.
 
 def quiet_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, ser_k2: pd.DataFrame | None, rw_k: pd.Series | None, rw_k2: pd.Series | None, store: b.MidStore,
                 sw_k2: pd.DataFrame | None, sw_k1: pd.DataFrame | None, lv_k2: pd.DataFrame | None, lv_k1: pd.DataFrame | None, cap: dict, k: int,
-                spec: dict) -> tuple[pd.DataFrame, dict]:
+                spec: dict, rw_k_v1: pd.Series | None = None, rw_k2_v1: pd.Series | None = None) -> tuple[pd.DataFrame, dict]:
     """CH203's units of capture k (section 2): non-sports ex-crypto markets two-sided and tight at k - 1 and k (1.4 items 1-7, end > t + 7 h),
     ``mid_k`` in [0.07, 0.93], with sweep 1 of passes k - 2 AND k - 1 two-sided on the outcome-0 token, tight (sweep spread <= 0.10), both 5c
     depths positive at both and each received BEFORE capture k's start, QUIET (``|smid_{k-1} - smid_{k-2}| < 0.005`` and ``|mid_k -
     smid_{k-1}| < 0.005``). The returned frame keeps every ``n_members`` (the cap is applied by the census, which also needs the pre-cap
     count). State: ``dimb5 = imb5_{k-1} - imb5_{k-2}``. ``sw_*`` are :func:`live_tests8_base.sweep_frame` outputs indexed by market_id.
-    A required control that is missing is excluded and counted (1.5), except the declared indicator pairs."""
+    A required control that is missing is excluded and counted (1.5), except the declared indicator pairs.
+
+    Amendment 13.7: ``ser_k`` is the origin frame after the vendored ``RewardCarry.apply`` (``rewarded``, ``rew_min`` for ``ft_both`` and ``rew_maxspread``
+    for ``in_band`` come from the source capture of a carried unit; the sweep k - 1 sizes and spread are unchanged); ``rw_k`` / ``rw_k2`` are the
+    effective texts E(k) / E(k - 2) (:func:`effective_text`) and ``rw_k_v1`` / ``rw_k2_v1`` the k-only hashes (descriptive v1 ``rw_changed``). A frame
+    without the carry columns (unit tests) gives the k-only values. The v1 columns (``rewarded_v1``, ``in_band_v1``, ``ft_both_v1``, ``rw_changed_v1``)
+    are descriptive only and never a control or a gate input."""
     c = spec["tests"]["CH203"]
     j, cnt = b._movers_join(ser_k, ser_p, cap, spec, c["mid_lo_pre_band"], c["mid_hi_pre_band"], c["end_margin_h"])
     j = b._non_sports_ex_crypto(j.copy(), cnt)
@@ -565,18 +661,34 @@ def quiet_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, ser_k2: pd.DataFrame |
             if s_:
                 cnt[f"reward_malformed_{s_}"] = int(n_)
     ft = _ft_both(rw["rewarded"], j["bsz1_1"], j["asz1_1"], j["rew_min"], spec["reward_rule"]["ft_factor"])
-    if rw_k is not None and rw_k2 is not None:
-        hk, h2 = rw_k.reindex(mkj).to_numpy(object), rw_k2.reindex(mkj).to_numpy(object)
-        rwc = np.where(pd.isna(hk) | pd.isna(h2), np.nan, (hk != h2).astype(float))
-    else:
-        rwc = np.full(len(j), np.nan)
+
+    def _rwc(a: pd.Series | None, c2: pd.Series | None) -> np.ndarray:
+        if a is None or c2 is None:
+            return np.full(len(j), np.nan)
+        hk, h2 = a.reindex(mkj).to_numpy(object), c2.reindex(mkj).to_numpy(object)
+        return np.where(pd.isna(hk) | pd.isna(h2), np.nan, (hk != h2).astype(float))
+
+    rwc = _rwc(rw_k, rw_k2)
+    rwc_v1 = _rwc(rw_k_v1, rw_k2_v1) if (rw_k_v1 is not None or rw_k2_v1 is not None) else rwc
+    # 13.7 counts (as LT7: the vendored _reward_cols / _in_band_carry_counts; their returned reward values are not used, LT8's _rewards decides) and the v1 columns
+    if "rew_status" not in j:
+        j["rew_status"] = lt7_status(j["rew_state"])
+    b._reward_cols(j, cnt)
+    b._in_band_carry_counts(j, mid, spread_sw, rw["in_band"], rw["rewarded"], c["reward_band"], cnt)
+    cu = b._carry_unit_cols(j)
+    rew_v1 = np.where(np.isfinite(rw["rewarded"]), cu["rewarded_v1"], np.nan)
+    rms_v1 = j["rew_maxspread_v1"].to_numpy(float) if "rew_maxspread_v1" in j else j["rew_maxspread"].to_numpy(float)
+    rmin_v1 = j["rew_min_v1"].to_numpy(float) if "rew_min_v1" in j else j["rew_min"].to_numpy(float)
+    in_band_v1 = np.where(np.isfinite(rew_v1), b._in_band(mid, spread_sw, rms_v1, c["reward_band"]), np.nan)
+    ft_v1 = _ft_both(rew_v1, j["bsz1_1"], j["asz1_1"], rmin_v1, spec["reward_rule"]["ft_factor"])
     u = pd.DataFrame({**b._base_out(j, cap, k), "t_row": j["t_row"].to_numpy(float), "mid": mid, "tick": tick, "liq": j["liq"].to_numpy(float), "end_ts": j["end_ts"].to_numpy(float),
                       "vol24": j["vol24"].to_numpy(float), "n_members": j["n_members"].to_numpy(float), "imb5_km1": imb1, "imb5_km2": imb2, "dimb5": imb1 - imb2, "dimb1": dimb1,
                       "dlev": dlev, "total5_km1": tot1, "dlogD5": np.log1p(tot1) - np.log1p(tot2), "log1p_total5": np.log1p(tot1), "spread_sw": spread_sw,
                       "lag_s": (start - j["s_t_1"].to_numpy(float)) / 60.0, "log1p_vol": vol_k, "vol_missing": vol_kmiss, "dV_prev": dvp, "dvp_missing": (~dv_ok).astype(float),
                       "silent": silent.astype(float), "ltp_missing": (~np.isfinite(j["ltp"].to_numpy(float))).astype(float), "d24": d24, "d24_flag": d24f, "rv24": rv,
                       "rv24s": rvs, "rv_floor": rvf, "rewarded": rw["rewarded"], "in_band": rw["in_band"], "ft_both": ft, "rw_changed": rwc, "reward_malformed": rw["malformed"].astype(float),
-                      "fee_cat": j["fee_cat"].to_numpy(object)})
+                      "fee_cat": j["fee_cat"].to_numpy(object), "rewarded_v1": rew_v1, "in_band_v1": in_band_v1, "ft_both_v1": ft_v1, "rw_changed_v1": rwc_v1,
+                      "rew_carry_lag": cu["rew_carry_lag"], "listed_k": cu["listed_k"], "rew_trans": cu["rew_trans"]})
     u = b._common_cols(u)
     u["log_rv24s"] = np.log(u["rv24s"])
     u = _drop_missing(u, cnt, {"log_rv24s": "rv24_undefined", "rewarded": "reward_unknown_or_malformed", "in_band": "in_band_unknown", "ft_both": "ft_both_unknown",
@@ -934,6 +1046,38 @@ def corr_pair_ok(c: dict, cap: float) -> bool:
     return b.corr_ok(c, cap)
 
 
+_V1_COLS = {"rewarded": "rewarded_v1", "in_band": "in_band_v1", "ft_both": "ft_both_v1", "rw_changed": "rw_changed_v1"}
+
+
+def rw_changed_table(pop: pd.DataFrame) -> dict:
+    """13.7, descriptive: the v1 (k-only hash) x v2 (effective text) table of ``rw_changed`` on the CH203 population."""
+    if not len(pop) or "rw_changed_v1" not in pop:
+        return {}
+    v1, v2 = pop["rw_changed_v1"].to_numpy(float), pop["rw_changed"].to_numpy(float)
+    out = {f"v1_{a}_v2_{c}": int(((v1 == a) & (v2 == c)).sum()) for a in (0, 1) for c in (0, 1)}
+    out["v1_nan"] = int((~np.isfinite(v1)).sum())
+    return out
+
+
+def reward_v1_descriptive(pop: pd.DataFrame, scale: float, a: dict, g: dict) -> dict:
+    """Amendment 13.7, DESCRIPTIVE ONLY (never the verdict, never a gate input): CH203's ``ft_both`` share and correlation, ``VIF_w`` and slope MDE with
+    the k-only (v1) ``rewarded``, ``in_band``, ``ft_both`` and ``rw_changed`` substituted on the v2 unit set (v2 standardisation; units whose v1 value is NaN
+    are dropped and counted; terciles, design effect and MDE recomputed). A failure is reported, not raised."""
+    if not len(pop) or not set(_V1_COLS.values()) <= set(pop.columns):
+        return {}
+    try:
+        sub = pop.assign(**{k_: pop[v_] for k_, v_ in _V1_COLS.items()})
+        sub = sub[np.isfinite(sub[list(_V1_COLS)].to_numpy(float)).all(axis=1)].copy()
+        _, _, gap = b.terciles(sub["zdimb5"])
+        de = b._de(sub, scale, g["de_floor"], a)
+        sm = slope_mde8(sub, "zdimb5", CONTROLS_203, scale, a, de["DE_gate"], a[g["sd"]], gap)
+        return {"units": int(len(sub)), "units_dropped_v1_nan": int(len(pop) - len(sub)), "rewarded_share": float(sub["rewarded"].mean()) if len(sub) else float("nan"),
+                "ft_both_share": float(sub["ft_both"].mean()) if len(sub) else float("nan"), "corr_ft_both": b.wcorr(sub, "zdimb5", "ft_both"), "vif_w": sm["design_ss"]["vif_w"],
+                "se_1": sm["se_1"], "tercile_gap": gap, "mde_tercile_c": sm["mde_tercile_c"]}
+    except Exception as exc:  # noqa: BLE001 - descriptive output must never break the census
+        return {"error": f"{type(exc).__name__}: {exc}"}
+
+
 def census_ch203(Q: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_days: float, pair_days: float, per_block: dict) -> dict:
     """CH203's census gate (design 7 table). ``Q`` = the quiet covered in-band units with their members (cap not yet applied)."""
     g, a = spec["census_gates"]["CS8_CH203"], b.mde_common(spec)
@@ -990,6 +1134,8 @@ def census_ch203(Q: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_d
            "events": _events8(pop, scale, covered_days), "t_sum_used": a["t_sum"], "splits": b._desc_splits(tot), "per_market": b._per_market(pop["market_id"]),
            "vol_missing": _ev_share(pop), "liquidity_tiers_top_zdimb5_share": b._tier_shares(pop, "", "zdimb5"),
            "rewarded_share": float(pop["rewarded"].mean()), "ft_both_share": float(pop["ft_both"].mean()), "silent_arm_share": float(pop["silent"].mean()),
+           "reward_null_rule": spec.get("reward_null_rule"), "rewarded_carried_share": float(np.isfinite(pop["rew_carry_lag"].to_numpy(float)).mean()) if "rew_carry_lag" in pop and len(pop) else float("nan"),
+           "reward_switch_distinct_markets": b._switch_distinct(pop), "rw_changed_v1_x_v2": rw_changed_table(pop), "reward_v1_descriptive": reward_v1_descriptive(pop, scale, a, g),
            "n_members_dist": {str(int(v_)): int(n_) for v_, n_ in Q["n_members"].clip(upper=11).value_counts().sort_index().items()}, "ladder_loss": 1.0 - cap_share if np.isfinite(cap_share) else float("nan"),
            "quantiles": {nm: _q(pop[nm]) for nm in ("imb5_km1", "dimb5", "dimb1", "dlev", "lag_s")}, "pairs_per_market_hist": b._per_market(F["market_id"])["units_per_market_hist"] if len(F) else {},
            "counts": {k_: v_ for k_, v_ in tot.items() if isinstance(v_, (int, float))}}
@@ -1304,12 +1450,23 @@ def absent_sealed(seal: dict, by_slot: dict, sweeps: dict | None, spec: dict) ->
 LT7_CENSUS_DIR = ROOT / "data-dumps" / "research_lab" / "live_tests7_census"
 
 
+# R1 (LT8 census-code fix re-check, 2026-10-22): the live_tests7.py / live_tests7_base.py hash each LT7 census output may record. CV7 (q0602) ran before LT7
+# 13.7 was merged (chore 231696fc: live_tests7.py 2ee6a659...); CC7 / CS7 run on the 13.7 code e1c5c0c6... (the blob LT8 vendored from). Every vendored
+# body CV7's results depend on is byte-identical in the 2ee6a659 blob (unit test); the bodies that differ are the 13.7 carry additions, which CV7 never
+# calls (it reads no reward field). Any other (census, hash) pair refuses.
+LT7_CENSUS_CODE_ACCEPTED = {
+    "live_tests7.py": {"2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27": ("CV7",),
+                       "e1c5c0c68f7c44d3d5038f9c28324008a4a8132e35f148721a33078d706766a0": ("CC7", "CS7")},
+    "live_tests7_base.py": {"2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20": ("CC7", "CS7", "CV7")},
+}
+
+
 def lt7_census_hash_error(census_dir: Path | None = None) -> dict | None:
-    """LIVE_TESTS_8.md 8.1: LT8 vendors from the hashes LT7's censuses ran on. If LT7's census outputs (``CC7*``, ``CS7*``, ``CV7*`` .json in
-    ``live_tests7_census/``) record a different ``live_tests7.py`` / ``live_tests7_base.py`` hash than the ones recorded in ``VENDORED``, refuse:
-    re-vendor before any LT8 census. None when no output exists yet or all agree."""
+    """LIVE_TESTS_8.md 8.1: LT8 vendors from the hashes LT7's censuses ran on. If an LT7 census output (``CC7*``, ``CS7*``, ``CV7*`` .json in
+    ``live_tests7_census/``) records a ``live_tests7.py`` / ``live_tests7_base.py`` hash outside ``LT7_CENSUS_CODE_ACCEPTED`` for that census (CV7:
+    live_tests7.py 2ee6a659...; CC7 / CS7: e1c5c0c6...; all: live_tests7_base.py 2e8baa90...), refuse: re-vendor before any LT8 census. None when no
+    output exists yet or all agree."""
     d = Path(census_dir or LT7_CENSUS_DIR)
-    want = {v["source"]: v["source_sha256"] for v in b.VENDORED.values()}
     bad = []
     files = sorted({f for pat in ("CC7*.json", "CS7*.json", "CV7*.json") for f in d.glob(pat)}) if d.exists() else []
     for f in files:
@@ -1319,16 +1476,18 @@ def lt7_census_hash_error(census_dir: Path | None = None) -> dict | None:
             bad.append({"file": f.name, "error": "unreadable JSON: its code hash cannot be checked"})
             continue
         ch = j.get("code_sha256") if isinstance(j, dict) else None
-        for name, sha in want.items():
-            if isinstance(ch, dict) and ch.get(name) and ch[name] != sha:
-                bad.append({"file": f.name, "module": name, "census_ran_on": ch[name], "vendored_from": sha})
-    return {"error": "LT7's census outputs record a different LT7 source hash than the one LT8 vendored from: re-vendor first (LIVE_TESTS_8.md 8.1)", "bad": bad} if bad else None
+        census = f.name[:3]
+        for name, ok in LT7_CENSUS_CODE_ACCEPTED.items():
+            if isinstance(ch, dict) and ch.get(name) and census not in ok.get(ch[name], ()):
+                bad.append({"file": f.name, "module": name, "census_ran_on": ch[name], "accepted_for_" + census: sorted(h for h, cs in ok.items() if census in cs)})
+    return {"error": "LT7's census outputs record an LT7 source hash outside the accepted set (CV7: 2ee6a659...; CC7 / CS7: e1c5c0c6...): re-vendor first (LIVE_TESTS_8.md 8.1)", "bad": bad} if bad else None
 
 
 def _load_for_census(seal: Path, snapshot_root, sweep_root, work: Path, spec: dict):
     seal_d = json.loads(Path(seal).read_text())
     if (derr := design_text_error()) or seal_d.get("design_text_sha256") != DESIGN_TEXT_SHA256:
-        return seal_d, None, None, derr or {"error": "the seal was written against a different LIVE_TESTS_8.md: census refused", "seal_design_text_sha256": seal_d.get("design_text_sha256")}
+        return seal_d, None, None, derr or {"error": "the seal was written against a different LIVE_TESTS_8.md: census refused", "seal_design_text_sha256": seal_d.get("design_text_sha256"),
+                                            "seal_design_is_declared_predecessor": seal_d.get("design_text_sha256") in DESIGN_TEXT_PREDECESSORS}
     viol = bound_violations8(seal_d, spec)
     if viol:
         return seal_d, None, None, {"error": "sealed bound violated: census refused", "bad": viol, "n_bad": len(viol)}
@@ -1445,9 +1604,13 @@ def census_sweeps(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, sweep_root=SWEEP_R
     comp = _check_complete(seal_d, by_slot, sweeps, full | lag_caps, sweep_need & sw_slots, spec, sweep_root, verify)
     if verify and comp["bad"]:
         return {"error": "input identity check failed (L3): census refused", "bad": comp["bad"][:50], "n_bad": len(comp["bad"])}
+    if (rerr := reward_rule_error(spec)):
+        return rerr
     store = b.MidStore()
     frames: dict[int, pd.DataFrame] = {}
-    rws: dict[int, pd.Series | None] = {}
+    nslot = int(spec["reward_carry_slots"])
+    carry = b.RewardCarry(nslot)  # 13.7: per-slot LISTED texts of every sidecar row, slots [k - 11, k] only
+    rws: dict[int, pd.DataFrame | None] = {}  # rw frames of slots [k - 11, k] (E(k), E(k - 2) and the v1 hashes)
     fee_counts: dict = {}
     sweep_cache: dict[int, pd.DataFrame] = {}
     lvl_cache: dict[int, pd.DataFrame] = {}
@@ -1478,12 +1641,15 @@ def census_sweeps(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, sweep_root=SWEEP_R
         write_series8(work, cap, spec)
         ser = b.read_series(work, cap["id"])
         store.add(k, ser)
-        rws[k] = read_rw(work, cap["id"])
+        rws[k] = read_rw8(work, cap["id"])
+        if rws[k] is not None:
+            carry.add(k, rws[k])  # slot k only; nothing later than k is ever stored
         b._fee_counts(ser, fee_counts)
         frames[k] = ser
         for old in [s_ for s_ in frames if s_ < k - 2]:
             frames.pop(old)
-            rws.pop(old, None)
+        for old in [s_ for s_ in rws if s_ < k - nslot + 1]:
+            rws.pop(old)
         for old in [s_ for s_ in store.slots if s_ < k - 12]:
             store.slots.pop(old)
         for old in [s_ for s_ in sweep_cache if s_ < k - 2]:
@@ -1494,7 +1660,14 @@ def census_sweeps(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, sweep_root=SWEEP_R
         if (k - 1) in frames and (k in O203 or k in O202):
             ser_p = frames[k - 1]
             if k in O203:
-                q, cnt = quiet_units(ser, ser_p, frames.get(k - 2), rws.get(k), rws.get(k - 2), store, sw_of(k - 2), sw_of(k - 1), lv_of(k - 2), lv_of(k - 1), cap, k, spec)
+                ser_c = carry.apply(ser, k, b._utc_day(cap["start"]))  # 13.7 (a)-(b): the carry at origin k (the F pairs use these same units, (d))
+                ids = ser.index.astype(str)
+                lo = k - nslot + 1
+                e_k = pd.Series(effective_text(rws, k, lo, ids), index=ids)
+                e_k2 = pd.Series(effective_text(rws, k - 2, lo, ids), index=ids)
+                v1 = {s_: (rws[s_]["clob_h"] if rws.get(s_) is not None else None) for s_ in (k, k - 2)}
+                q, cnt = quiet_units(ser_c, ser_p, frames.get(k - 2), e_k, e_k2, store, sw_of(k - 2), sw_of(k - 1), lv_of(k - 2), lv_of(k - 1), cap, k, spec,
+                                     rw_k_v1=v1[k], rw_k2_v1=v1[k - 2])
                 if k in PAIRS and len(q):
                     q = add_lag(q, lag_of(k + 5), lag_of(k + 6), spec)
                 b._merge_counts(tot203, cnt)
@@ -1517,6 +1690,7 @@ def census_sweeps(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, sweep_root=SWEEP_R
     exp = spec["census_inputs"]["expected_origins_from_file_list"]
     return {"inputs_verified": bool(verify), "missing_slots": comp.get("missing_slots"), "n_missing_slots": comp.get("n_missing_slots"), "files_checked": comp.get("files_checked"),
             "fee_category_values": fs["distinct_values"], "crypto_classifier_shown_to_work": fs["classifier_shown_to_work"],
+            "reward_null_rule": spec.get("reward_null_rule"), "reward_carry_slots": spec.get("reward_carry_slots"), "design_text_sha256": DESIGN_TEXT_SHA256,
             "covered_origins": {"CH203": len(O203), "CH203_F_pairs": len(PAIRS), "CH202": len(O202)}, "expected_origins_from_file_list": {k_: exp[k_] for k_ in ("CH203", "CH203_F_pairs", "CH202")},
             "origins_differ_from_design": [len(O203), len(PAIRS), len(O202)] != [exp["CH203"], exp["CH203_F_pairs"], exp["CH202"]],
             "per_block_origins_pairs_printed": per_block_counts(sorted(PAIRS), spec), "per_pass": per_pass,
