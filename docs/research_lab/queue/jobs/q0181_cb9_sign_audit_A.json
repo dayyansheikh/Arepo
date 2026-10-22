@@ -1,0 +1,42 @@
+{
+ "id": "q0181_cb9_sign_audit_A",
+ "title": "CB9-S: S0a [2026-10-01,10-15) and S0c [2026-02-01,04-27) print samples (250 markets x 4 prints each), receipts, T1/T2, fill type; no agreement computed",
+ "family": "creative_batch_9",
+ "priority": 43,
+ "expected_value": "S0 data for the side-flag measurement",
+ "data": [
+  "public Gamma, Data API windowed trades",
+  "public Polygon JSON-RPC receipts",
+  "creative_batch7/exclusion_keys (ids only)"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "lane": "net",
+  "network": "gamma-api, data-api, polygon-rpc"
+ },
+ "depends_on": [
+  "q0180b_cb9_smoke_v2"
+ ],
+ "argv": [
+  "scripts/run_cb9.py",
+  "sign-audit",
+  "--strata",
+  "a,c",
+  "--rules",
+  "../docs/research_lab/seals/cb9_sign_rules_v5.json",
+  "--rps",
+  "2",
+  "--disk-cap-gb",
+  "0.01",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 2,
+ "outputs": [
+  "research_lab/creative_batch9/sign/{s0a,s0c}/{prints_classes.csv.gz,manifest.json}"
+ ],
+ "next_action": "q0189 census (counts); agreement only in q0190 after the freeze",
+ "notes": "Needs the q0180b smoke v2 result (creative_batch9/smoke_v2.json). net lane, commit after T_seal (round 1: Limiter is per-process, not shared with net-lane jobs); raw proxyWallet compared with takerOrderMaker in memory only; HMAC strict loader. | 2026-10-22 ~16:30Z autopilot: PROMOTED (q0180b smoke v2 PASS 10-17; T_seal 2026-10-22T00Z passed; seal copies h8_tail/h8_geo/h8_text now committed, so the S0 frame drops their ids). Spec copied verbatim from CREATIVE_BATCH_9.md section 4 (11.2 drafts live only there)."
+}
