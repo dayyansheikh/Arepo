@@ -1,0 +1,53 @@
+{
+ "id": "q0622_lt8_census_captures",
+ "title": "LT8 census CC8 (DRAFT): CH204 (the market's own clock) on the sealed complete captures of 2026-10-12T00:31Z .. 10-21T22:31Z (40 origins from the file list, 3.33 days; 84-slot look-back): counts only, origin-side fields only, streaming per-market slot accumulators (no per-run series cache), no sweep and no capture after the origin read, no target, no P&L; refuses unsealed or mismatched inputs",
+ "family": "live_tests_8",
+ "priority": 53,
+ "expected_value": "CH204 census gates (LIVE_TESTS_8.md section 7): look-back coverage, scheduled markets, hot units, events, cap share, venue-clock and category gates, confounder caps, block-gate share and class MDE <= 0.5c; decides part of k before the pin",
+ "data": [
+  "host originals ~/arepo/data-dumps/research_lab/snapshots (read-only, under the seal)",
+  "restore trees live_tests{8,7,6,5,4}_census/restore (read-only)"
+ ],
+ "resources": {
+  "mem_mb": 1500,
+  "as_cap_mb": 4500,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none",
+  "exclusive": true
+ },
+ "depends_on": [
+  "q0621_lt8_seal"
+ ],
+ "argv": [
+  "scripts/run_live_tests8.py",
+  "census-captures",
+  "--seal",
+  "../docs/research_lab/seals/lt8_census_inputs.json",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests8_census/restore/data-dumps/research_lab/snapshots",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests7_census/restore/data-dumps/research_lab/snapshots",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests6_census/restore/data-dumps/research_lab/snapshots",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests5_census/restore/data-dumps/research_lab/snapshots",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests4_census/restore/data-dumps/research_lab/snapshots",
+  "--work",
+  "../data-dumps/research_lab/live_tests8_census/work_captures",
+  "--data-dumps-cap-gb",
+  "40",
+  "--out",
+  "../data-dumps/research_lab/live_tests8_census/CC8.json"
+ ],
+ "timeout_s": 14400,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests8_census/CC8.json (counts only; the work dir is cleaned up at exit)"
+ ],
+ "next_action": "commit the census JSON and its sha256 (seals/), fill the census-fixed spec values (census_fixed.*, k_tests) and record any drop in LIVE_TESTS_8.md 6.3 and the ledger",
+ "notes": "RETENTION (re-check R3): the 10-day snapshot retention must stay until q0623 finishes (do not revert to 8 days after q0604); promote only when `run_live_tests8.py restore-plan` with these roots shows every host-only file in a root that retention does not touch, or the chain q0620-q0623 is timed to finish before 2026-10-28T03:30Z (the earliest departure of a host-only file, the 10-18 captures), outside the 02:45-05:30Z blackout. ROOTS (re-check R3, 2026-10-22): host originals first, then the q0620 restore tree, then the LT7, LT6, LT5 and LT4 restore trees that LT7's q0603 / q0604 use (they hold the 10-12..10-17 copies; LT4's also the 10-14..10-16 sweeps; the LT5 and LT4 sweep roots are added for completeness and are skipped if empty); every opened file is hash-checked against the LT7 seal (q0621) and the LT8 seal (q0622, q0623), so an extra root can never substitute a file. PROMOTE ONLY AFTER the orchestrator has committed docs/research_lab/seals/lt8_census_inputs.json and pulled it on the host (the queue cannot see that commit; the runner exits 2 on an untracked or modified seal). ORDER (7): CC8 first (the likeliest kill). mem_mb 1500 is the design's ESTIMATE (a slot store of 85 slots holding mid, spread, last trade and volume24hr: about 200 MB, one series frame per capture, about 0.1-0.2 million scheduled-unit rows); as_cap_mb 4500 because the default 2 x mem_mb cap is virtual memory (LT5's q0561 lesson); NOT measured by a host dry run on the sealed inputs (each census runs once, re-check R3 note): measure on synthetic data or load-only (reading and hashing the sealed files without running the census), or accept the estimate. Exits 75 (the queue's 'not now') when data-dumps is above 40 GiB. BLAS threads are set to 1 by the runner. The runner refuses (exit 2) a seal not tracked by git or differing from HEAD. DRAFT, not in queue/jobs (LIVE_TESTS_8.md text-frozen at 5e61c20b... (a declared predecessor) and amended by 13.7 (reward-null rule listed_carry24h_v2), sha256 c76ffff6... (a declared predecessor), and by the 13.7 erratum (rw_changed NaN, excluded and counted as rw_changed_no_column, on a no_column capture k or k - 2), sha256 73c941e1...; code phase 1 only: the reader, backfill-series, analysis, size check and RSS probe are phase 2). Promote only after the science-reviewer code-freeze check of the census code against LIVE_TESTS_8.md sections 1.8, 1.8.1 and 7 and the committed LT8 seal. Counts 0 (descriptive; no trials line). Reads the DRAFT spec unpinned; code_sha256 of the hashed modules is written into the output. Every gate threshold is stated in LIVE_TESTS_8.md section 7 before this runs; nothing is re-tuned after it. Memory-heavy-jobs rule: exclusive; never while an LT5/LT6/LT7 census or size-check job runs (q0620 depends_on q0604_lt7_census_sweeps, or its recorded drop: remove that dependency by hand only if the ledger records LT7's drop). Each census runs once; no re-run, only a deterministic crash gets max_retries 1 (no output written)."
+}

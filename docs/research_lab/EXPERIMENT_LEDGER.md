@@ -3858,3 +3858,42 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **LT7 closed with no test** (CC7 dropped CH191/CH192/CH193; CH194 withdrawn before). Nothing counted; phase 2 (reader,
   analysis, q0605) moot. Embargo withdrawals requested in signal_engine/CANDIDATES.md (22:10Z note).
 - **Retention:** the temporary 10-day snapshot rule stays until LT8's q0623 finishes (LT8 re-check R3), then reverts to 8 days.
+
+## LT8 amendment 13.7 and re-check fixes R1-R3, 2026-10-22 (~21:30Z; experiments autopilot; nothing counted)
+- **Trigger:** `reviews/LT8_CENSUS_CODE_FIX_RECHECK_2026-10-22.md` = FIXES_REQUIRED R1-R3 (fixes 1-10 OK). Before the LT8 seal and every LT8 census.
+- **R2, design-text amendment 13.7** ("reward-null rule `listed_carry24h_v2` (from LT7 13.7 and its erratum)"): `LIVE_TESTS_8.md` sha256
+  5e61c20b… (text freeze, now a declared predecessor in code) -> `c76ffff6563ed88eae22046d5986e580cc527e8799488b014dcfd8365ef3accb`. CH203 only:
+  a null `clob_rewards` at k takes `rewarded` from the latest positive listed text of `[k-11, k]` re-parsed for day(k), with that source's
+  `rewards_max_spread` (`in_band`) and `rewards_min_size` (`ft_both`); `rw_changed` compares the effective texts E(k) and E(k-2); F pairs use the
+  carry at k. Counts as LT7; v1 `ft_both`, `VIF_w` and slope MDE descriptive only. Only input: LT7's probe counts (263413f2…); not *informed (LT7
+  census)* (no LT7 census output committed; CV7's host output read for its code hash only). Gates, thresholds, formulas and MDE inputs unchanged.
+- **Code:** vendored LT7 `RewardCarry` and its count helpers (7 names, byte-identical to the e1c5c0c6 blob); spec keys `reward_null_rule:
+  listed_carry24h_v2`, `reward_carry_slots: 12` (sealed blocks); `maker_rewards.py` hashed; pre-13.7 test exemption removed.
+- **R1:** accepted LT7 census code = {CV7: `live_tests7.py` 2ee6a659…; CC7 / CS7: e1c5c0c6…; all: `live_tests7_base.py` 2e8baa90…}; anything else
+  refuses. Every vendored body CV7 depends on (and every non-carry vendored body) is byte-identical in the 2ee6a659 blob (test).
+- **R3:** q0620-q0623 drafts gain the LT7/LT6/LT5/LT4 restore-tree roots (hash-checked); no census "measured by a host dry run" on sealed inputs;
+  10-day retention kept until q0623 finishes; promotion only per `restore-plan` or a chain finishing before 2026-10-28T03:30Z outside 02:45-05:30Z.
+- **Next:** census-code re-check of this commit, then q0620. Nothing counted.
+
+## LT8 13.7 re-check notes N2-N4 closed, 2026-10-22 (~21:58Z; experiments autopilot; nothing counted)
+- **Trigger:** `reviews/LT8_13_7_RECHECK_2026-10-22.md` = FIXES_OK_WITH_NOTES (R1-R3 fixed). Before the LT8 seal and every LT8 census.
+- **N2, option (a): 13.7 erratum** (`LIVE_TESTS_8.md`, end of file): `rw_changed` is NaN, the unit excluded and counted as
+  `rw_changed_no_column`, when capture k or k-2 is a sidecar without the `clob_rewards` column (an absent column is not an empty
+  programme, check fix 7). Code: `rw_frame` / `read_rw8` give a `no_column` row `clob_h` NaN (not `clob_hash(NaN) = ""`), `effective_text`
+  returns NaN there, `quiet_units` takes `rw_nocol` and counts the exclusion before `rw_changed_unknown`; the descriptive v1 comparison is NaN in
+  the same cases. Design sha256 c76ffff6… -> `73c941e1a4dd2c2d00350808ca5287edaebb16ca2edc191ffe3b88ce7f1f356b` (c76ffff6… and 5e61c20b…
+  declared predecessors in code; spec `design`, `design_text_sha256` and `reward_rule.rw_changed_rule` updated). Only input: code reading.
+  Gates, thresholds, formulas and MDE inputs unchanged. CS8 prints `carry_counts_caveat` next to the carry counts: LT8's carry store reads every
+  sidecar row, LT7's only two-sided series rows, so LT8 and LT7 carry counts are not comparable like for like (ruling 2).
+- **N3:** CV7.json on the host records `code_sha256["live_tests7.py"]` = 2ee6a6592890… (verified by the orchestrator 2026-10-22 ~20:55Z; CV7.json
+  read for its code hash only, no count read), so q0621's accepted-set check (`LT7_CENSUS_CODE_ACCEPTED`: CV7 = 2ee6a659…) is satisfied.
+- **N4:** the census drops `rew_raw` from each rw frame once its slot is in the `RewardCarry` (`rw_slim`; test: byte-identical census JSON
+  with and without it, and `effective_text` never sees `rew_raw`). q0623 keeps mem_mb 2000 (reasoning in its notes; no census run to measure).
+- **Next:** short re-check of this commit, then q0620 per the R3 promotion rule (N1, the checkpoint retention line, is the orchestrator's).
+
+## LT8 code merged into chore, 2026-10-22 ~22:20Z (nothing counted)
+- feat/live-tests-8-code merged (amendment 13.7 + erratum; design sha256 73c941e1…; 220 tests). Re-checks:
+  `reviews/LT8_CENSUS_CODE_FIX_RECHECK_2026-10-22.md` (R1-R3), `reviews/LT8_13_7_RECHECK_2026-10-22.md` (OK_WITH_NOTES),
+  `reviews/LT8_13_7_ERRATUM_RECHECK_2026-10-22.md` (OK_WITH_NOTES). **Independence ruling (reviewer):** the 13.7 erratum is
+  the mechanical fix prescribed by N2 option (a) before LT7 CC7 was committed; it concerns only CH203 `rw_changed`
+  missingness, so it is not "informed (LT7 census)".
