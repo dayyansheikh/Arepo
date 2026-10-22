@@ -287,14 +287,22 @@ cap had counted q0413's input restore). **q0404 smoke PASS 20:12Z (P1-P3 exact; 
 attestation again with q0406's commit. **Owner approval 8 (not urgent):** a clearing session for finished restore trees
 (~9 GB; data-dumps ~30 / 40 GB).
 
-**LT6 code freeze check** (science-reviewer) launched ~20:20Z on feat/live-tests-6; apply its fixes on that branch, then
-the LT6 census seal and counts-only censuses after LT5's.
+**LT6 (`feat/live-tests-6`, worktree `.claude/worktrees/agent-a985b10db31086738`):** freeze-check re-check
+**RECHECK_OK_WITH_FIXES** (2026-10-22 00:30Z, `reviews/LT6_FREEZE_RECHECK_2026-10-22.md`, 2e63dd59 on the branch). An
+implementer is applying must-fixes 1-5 (+ should-fixes) on the branch as section 17 (started ~00:40Z). Censuses may
+proceed now (census path untouched by the fixes), q0584 size check only after the fixes. Census input plan (orchestrator):
+q0582's pre-02:45Z window for 10-22 is lost, so after tonight's archive release (data-20261022-dsheikh, ~03:50Z) fill
+q0580's globs for the capture dirs retention deleted (10-13..10-14), add LT5's restore tree
+(`live_tests5_census/restore/...`) and the LT3/LT4 restore trees as extra roots, set `lt5_capture_seal_sha256` =
+fcd88926… in `live_tests6_v1.json`, merge the branch into chore, deploy, then q0580 -> q0581 (commit seal) -> q0582 -> q0583.
+Before registration: LT5 seal sha256, E022 registration, CB18 change request applied or "partially seen",
+`battery2.KIND_RULES["live_tests6"]`. D's P1 fix must be committed before 2026-11-11T08:00Z.
 
-**LT6 (`feat/live-tests-6`, worktree `.claude/worktrees/agent-a985b10db31086738`):** design accepted; code phase 1 and
-phase 2 (reader, analyze entry point, RSS probe, drafts q0585/q0586; 137 tests) committed and pushed. Not merged. Open:
-q0585/q0586 not_before (depend on E022), the RSS probe needs a host dry run, the `LIVE_TESTS6_WINDOW_CLOSED` log
-string is unverified against the design. Before registration: LT5 seal sha256, E022 registration (now planned), CB18
-change request applied or "partially seen", a `battery2.KIND_RULES["live_tests6"]` entry.
+**LT7 (`feat/live-tests-7`, worktree `.claude/worktrees/agent-a912d456e04c96c3d`):** design DRAFT committed (8c9f0328);
+challenger R1 **REVISE** (11 must-fix; `reviews/LT7_CHALLENGER_R1_2026-10-22.md`, f5c011ca). Orchestrator decision: drop
+CH194 (E002/E004-informed; uncounted, never registered). A revision agent is writing section 13 (R1 response) ~00:40Z; then
+an R1 re-check (science-reviewer). Embargo requests filed in `signal_engine/CANDIDATES.md` round 4 (9621c12e; must be
+applied before `movetype` lapses 11-22).
 
 **Registered and running (no interim looks):**
 - E009/E010 (to 11-03), E011 (to 11-10), LT2 E012-E014 (q0460; analysis q0461 after 11-13T12Z).
