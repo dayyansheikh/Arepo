@@ -3572,3 +3572,6 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - Registration check (science-reviewer): REGISTER_OK (pins match; only `code_sha256` and the descriptive `status` changed
   in the spec; LT7's drift record correct and outside its hashed blocks). LT5 must record its `live_tests4.py` drift with
   the post-pin sha256 4e043b65… after q0562.
+- (~06:05Z) Ops decision: the temporary 10-day snapshot retention (693db389) is kept beyond q0561 until LT7's last
+  census (q0604) is done, because LT7's frozen ordering rule (text 7: after LT6's q0584) pushes its censuses past the
+  8-day loss date of the 10-18 rows it sealed. Longer, never shorter; reverted to 8 days afterwards with a ledger line.

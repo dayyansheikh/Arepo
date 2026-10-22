@@ -261,8 +261,11 @@ census (exclusive, running) -> q0583 -> q0116f MC1 (6 h) ; q0562 LT5 flow census
    (12-06T12Z). On/after 10-25: confirm q0541/q0542 start and stay healthy (counts only; `run_copy_skilled.py status`),
    send the owner "collection started" note, then weekly counts notes. Re-promote a `failed` collector within 48 h.
    FROZEN until 12-07: copy_skilled*.py, wallet_skill*.py, costs.py, copy_skilled_v1.json, cost_model_calibration_v1.json.
-2. **LT5:** q0561 done; F, H, R dropped at census (LIVE_TESTS_5.md 7.3). **Revert `archive_retention.json` snapshots
-   to 8 days only after q0582 is done** (q0582 reads live 10-15 captures), ledger line, deploy. After q0562 (J, O): commit
+2. **LT5:** q0561 done; F, H, R dropped at census (LIVE_TESTS_5.md 7.3). **Retention decision (06:05Z): keep the
+   temporary 10-day snapshot retention until LT7's q0604 is done** (LT7's frozen text 7 makes its censuses wait for LT6's
+   q0584, which needs LT6's spec fill + code freeze first; under 8 days the 10-18 rows LT7 sealed would leave 10-26T03:30Z,
+   under 10 days 10-28T03:30Z). Then revert to 8 days (ledger line, deploy). Watch data-dumps (33 / 40 GB); if it nears
+   38 GB, raise owner approval 8 (restore-tree clearing) rather than shortening retention early. After q0562 (J, O): commit
    its output + sha256, fill J/O values and `k_tests`, record `vendored_source_drift_accepted["live_tests4.py"]` with the
    **post-pin sha256 4e043b65…** (not d80bde72), record drops, then promote q0563 (size check) if any test survives.
 3. **h8 seals:** q0121 done; `seals/h8_tail_SEAL.json` committed (sha256 2a88f3e5…). q0144/q0145 promoted; when done,
