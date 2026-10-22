@@ -261,13 +261,9 @@ census (exclusive, running) -> q0583 -> q0116f MC1 (6 h) ; q0562 LT5 flow census
    (12-06T12Z). On/after 10-25: confirm q0541/q0542 start and stay healthy (counts only; `run_copy_skilled.py status`),
    send the owner "collection started" note, then weekly counts notes. Re-promote a `failed` collector within 48 h.
    FROZEN until 12-07: copy_skilled*.py, wallet_skill*.py, costs.py, copy_skilled_v1.json, cost_model_calibration_v1.json.
-2. **LT5:** q0561 done; F, H, R dropped at census (LIVE_TESTS_5.md 7.3). **Retention decision (06:05Z): keep the
-   temporary 10-day snapshot retention until LT7's q0604 is done** (LT7's frozen text 7 makes its censuses wait for LT6's
-   q0584, which needs LT6's spec fill + code freeze first; under 8 days the 10-18 rows LT7 sealed would leave 10-26T03:30Z,
-   under 10 days 10-28T03:30Z). Then revert to 8 days (ledger line, deploy). Watch data-dumps (33 / 40 GB); if it nears
-   38 GB, raise owner approval 8 (restore-tree clearing) rather than shortening retention early. After q0562 (J, O): commit
-   its output + sha256, fill J/O values and `k_tests`, record `vendored_source_drift_accepted["live_tests4.py"]` with the
-   **post-pin sha256 4e043b65…** (not d80bde72), record drops, then promote q0563 (size check) if any test survives.
+2. **LT5: CLOSED, no test** (524b35ce): F/H/R dropped at q0561, J/O at q0562 (7.3; seals CF5_CHW_CRW.json, CJ_CO.json);
+   uncounted; q0563 moot; vendored drift recorded (LT5 tests green). **Retention:** keep the temporary 10-day snapshot rule
+   until LT7's q0604 is done, then revert to 8 days (ledger line, deploy). Watch data-dumps (33 / 40 GB).
 3. **h8 seals:** q0121 done; `seals/h8_tail_SEAL.json` committed (sha256 2a88f3e5…). q0144/q0145 promoted; when done,
    commit `seals/h8_text_SEAL.json` and `seals/h8_geo_SEAL.json` before q0147 (never retry q0141). **CB8:** W1 not
    testable (counted 1); B continues (q0164 pins write-once, do NOT re-derive; then q0165, q0166). CB9 q0181+ and CB10
@@ -281,10 +277,12 @@ census (exclusive, running) -> q0583 -> q0116f MC1 (6 h) ; q0562 LT5 flow census
    depends only on q0601/q0601b), then q0603 and q0604 (drafts; promote each after the previous is done or together,
    their depends_on chain them); if true, challenger ruling first. Censuses must FINISH before 10-28T03:30Z (10-day rule
    kept until q0604). After q0604: revert retention to 8 days. Then phase 2 (reader, analysis, size check q0605, RSS probe).
-7. **Creative round 13 merged** (553bd125; CH202-CH211; families + LT8 hold in CANDIDATES 5ffe8229). **LT8 design draft**
-   (CH203 quiet book, CH202 sweep clock, CH204 own clock; k <= 3) being written on `feat/live-tests-8` (agent worktree,
-   started ~06:30Z). Next: challenger R1 (science-reviewer), response, re-check, text freeze; embargo requests filed in
-   CANDIDATES; registry entry. Window after LT7's END (12-29) + 24 h.
+7. **Creative round 13 merged** (553bd125). **LT8** (CH203, CH202, CH204) on `feat/live-tests-8` (worktree
+   `.claude/worktrees/agent-ac703b52d84655da0`): draft 4552cec5 -> R1 REVISE (9f99504d) -> response 164078c8 -> re-check
+   ACCEPT_WITH_FIXES (3ec28bad/78f0bae4; 4 fixes: worlds 3/5 restored, vendoring wording, LT5 closed). Fixes being applied
+   ~07:30Z by the drafter. Next: verify the 4 fixes, then **design-text freeze** (record sha256 in the ledger), merge into
+   chore, registry; file embargo requests (`quietbook`, `swclock`, `sched`; `book0`/`book` to the later of 2027-01-23 and
+   LT8's analysis commit) in CANDIDATES before 12-01; then code phase (censuses q0620-q0627 per LT8 8.x).
 
 **E022 (LT4) REGISTERED 2026-10-22** (bf730c6f; REGISTER_OK). Window 10-26..11-16; reader = host cron `10-59/20`
 (never also q0485); q0486 after 11-17T12Z. Check the reader log `~/arepo/run/live_tests4.log` after 10-26T00Z (counts only).

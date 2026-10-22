@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-22 07:43 UTC+1
+**Last updated:** 2026-10-22 08:29 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -11,8 +11,8 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
   against says anything about later moves. It passed its size check this morning and collects from 26 Oct to 16 Nov;
   single analysis after 17 Nov. That makes **seven registered live tests** (E009/E010, E011, E012-E014, E015, E022, E026).
 - **Server resize: DONE** (2 CPUs, 12 GB, free). Down 6 minutes overnight; the short gaps are logged as they happened.
-- **LT5 (round 11 ideas):** three of its five planned tests failed their counting checks this morning and were dropped
-  before any test, uncounted (one needed a bigger effect than allowed, two had too few cases). Two remain to be counted.
+- **LT5 (round 11 ideas): closed with no test.** All five planned tests failed their counting checks this morning (too
+  few cases, or an effect size larger than the checks allow); dropped before any test, uncounted.
 - **LT6 (round 11 ideas): closed with no test.** All four planned tests failed their counting checks this morning (too few
   cases, or a measure that could not be separated from a related one); dropped before any test, uncounted.
 - **Honest pattern:** most planned tests die at the counting stage, before any data on the outcome is read. That is the
@@ -21,7 +21,8 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
   fix: the seal wrongly reported some present files as missing). A quick check of reward fields runs next.
 - **New ideas round 13: done** (10 ideas). Its best three are being written up as planned live tests LT8 (a quiet order
   book that shifts behind an unmoved price; how much of a recent move the order book had already absorbed; each market's own
-  busy hours). They would collect from about January, after LT7.
+  busy hours). They would collect from about 30 Dec, after LT7. The design passed its challenger review after changes; final small
+  fixes are being made before it is frozen.
 - **Model run (MC1)** is queued after the LT6 jobs; it only fits on the larger server.
 - **Copy-skilled wallets (E026):** registered; collection starts 25 Oct (phone note then).
 - **Live tests waiting for their single analysis:** E009/E010 (3 Nov), E011 (11 Nov), E012-E014 (13 Nov), E015
