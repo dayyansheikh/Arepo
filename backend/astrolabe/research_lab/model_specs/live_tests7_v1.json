@@ -34,7 +34,8 @@
  "crypto_rule": {
   "fee_type_prefix": "crypto",
   "slug_regex": "(?i)(bitcoin|ethereum|solana|xrp|dogecoin|crypto|^btc|^eth-|^sol-|^bnb|^hype)",
-  "rule": "crypto = fee_type starts with 'crypto' or the first series slug matches slug_regex (section 13, finding 2)"
+  "rule": "crypto = fee_type starts with 'crypto' or the first series slug matches slug_regex (section 13, finding 2)",
+  "note": "vendored-only: read by the copied category_cols; LT7 classifies crypto with crypto_classifier (the `crypto7` class), never with this rule"
  },
  "series_key_rule": "first series slug if present, else 'event:' + event_id; crypto rows without a slug -> 'crypto:noslug' (one family: one spot driver)",
  "move": {
@@ -396,7 +397,7 @@
    "family_cap": 0.4,
    "mde_max": 0.005,
    "f_mde_max": 0.005,
-   "rule": "slope and class MDE gates: max(declared, design); F-MDE = max(declared form MDE x sqrt(2 / (1 - max(0, r_w))), design-based MDE of the contrast in the arm model); NaN fails; DE_gate = max(floor, 1 + (m_21 - 1) x 0.02)"
+   "rule": "slope and class MDE gates: max(declared, design); F-MDE = max(declared form MDE x sqrt(2 / (1 - max(0, r_w))), design-based MDE of the contrast in the arm model); NaN fails; DE_gate = max(floor, 1 + (m_21 - 1) x 0.02); the census takes t_sum = max(3.47, exact computed t_{20,1-0.05/6} + t_{20,0.8}) (census-code check should-fix)"
   },
   "CS7_CH195": {
    "coverage_min": 0.7,

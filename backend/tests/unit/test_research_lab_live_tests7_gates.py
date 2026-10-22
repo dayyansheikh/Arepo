@@ -61,6 +61,7 @@ def pop195(*, n_m=150, per=40, rho=0.0, r_noise=1.0, h0_link=0.0, liq_link=False
     u["log_abs_x"] = np.log(np.abs(u["x"]))
     u["log1p_vol_p"] = np.log1p(u["vol24_p"])
     u["traded"] = (u["cls"] == "traded").astype(float)
+    u["v_prev"] = rng.uniform(-1, 1, n)
     if one_per_market:
         u["market_id"] = [f"m{i}" for i in range(n)]
     tot = {"non_sports_ex_crypto_movers": 1000, "covered": 800, "covered_sign_agree": 700}
@@ -147,7 +148,7 @@ def test_ch191_gates(mut, fails):
     if fails is None:
         assert g["pass"] is True, g
         assert r["mde_class_c"] <= 0.5 and r["block_min_units"] == 6
-        assert r["mde_class_c"] == pytest.approx(lt.b.mde_class(r["class_eff_21d"]["grind"], r["class_eff_21d"]["jump"], 0.05, r["design_effect"]["DE_gate"], SPEC["census_gates"]["mde_common"], r["design"]["vif_w"]) * 100)
+        assert r["mde_class_c"] == pytest.approx(lt.b.mde_class(r["class_eff_21d"]["grind"], r["class_eff_21d"]["jump"], 0.05, r["design_effect"]["DE_gate"], lt.mde_common(SPEC), r["design"]["vif_w"]) * 100)
     else:
         assert g[fails] is False and g["pass"] is False, g
 
@@ -188,6 +189,7 @@ def pop197(*, n_m=3000, rho_imb=0.0, liq_link=False, same_day=False, one_day=Fal
                       "total5": np.exp(rng.normal(6, 1, n)), "h0": rng.uniform(0, 1, n), "d24": d24, "d24_flag": 0.0, "rewarded": rng.integers(0, 2, n).astype(float),
                       "in_band": rng.integers(0, 2, n).astype(float), **c})
     u["dis"] = u["imbB"] - u["imbT"]
+    u["imbT1"] = np.clip(u["imbT"] * 0.8 + rng.normal(0, 0.1, n), -1, 1)
     u["log1p_total5"] = np.log1p(u["total5"])
     u["log1p_vol"] = np.log1p(u["vol24"])
     return _finish(u), {"books_in_band": int(n * 1.2)}
@@ -329,6 +331,9 @@ def pop192(*, n_m=200, per=40, lag_rho=0.0, rv_link=0.0, liq_link=False, narrow=
     u["log_rv24s"], u["log_rv7d"] = np.log(u["rv24s"]), np.log(u["rv7d"])
     u["log1p_vol"] = np.log1p(u["vol24"])
     u["spread_eq_tick"] = (rng.random(n) < 0.2).astype(float)
+    u["spread_g"] = u["spread"]
+    u["ivr_g"] = u["ivr"]
+    u["rv7d_floor"] = 0.0
     for nm in ("traded", "quote_only", "ambiguous", "never_traded"):
         u[f"an_{nm}"] = (u["anat"] == nm).astype(float)
     if one_per_market:
@@ -374,3 +379,60 @@ def test_spec_gate_thresholds_are_the_declared_ones():
     assert (a["sd_c_skip"], a["sd_y22"], a["sd_a"], a["sd_a_s"]) == (0.05, 0.06, 0.03, 0.03)
     assert SPEC["census_inputs"]["min_covered_days"] == {"CC7": 5, "CC7_CH192": 2, "CS7_CH195": 1.5, "CS7_CH197": 2, "CV7": 1.5}
     assert copy.deepcopy(SPEC)["census_inputs"]["refuse_at_or_after_utc"] == "2026-10-22T00:00:00Z"
+
+
+# --- census-code check fixes ---------------------------------------------------------------------------------------------------------
+
+
+def test_multiplier_is_the_larger_of_declared_and_exact():
+    a = lt.mde_common(SPEC)
+    assert SPEC["census_gates"]["mde_common"]["t_sum"] == 3.47  # the declared value is untouched in the spec
+    assert a["t_sum"] == max(3.47, lt.exact_t_sum()) and a["t_sum"] > 3.47 and abs(a["t_sum"] - 3.4725) < 5e-4
+    assert a["t_sum_declared"] == 3.47
+    U, tot = pop195()
+    assert lt.census_ch195(U, tot, SPEC, SCALE, COV)["t_sum_used"] == a["t_sum"]
+    low = copy.deepcopy(SPEC)
+    low["census_gates"]["mde_common"]["t_sum"] = 5.0  # a larger declared value is never lowered
+    assert lt.mde_common(low)["t_sum"] == 5.0
+
+
+def test_in_band_is_nan_when_the_reward_spread_is_missing_inside_the_band():
+    band = SPEC["tests"]["CH197"]["reward_band"]
+    r = lt._in_band([0.5, 0.5, 0.5, 0.95, 0.5], [0.02, 0.05, 0.02, 0.02, 0.02], [3.5, 3.5, np.nan, np.nan, 0.0], band)
+    assert r[0] == 1.0 and r[1] == 0.0  # 5c > 3.5c
+    assert np.isnan(r[2])  # mid in band and rewards_max_spread missing: NaN (excluded, counted), never 0
+    assert r[3] == 0.0  # mid outside the band: 0 whatever the field
+    assert r[4] == 0.0  # a zero maximum spread: out of band
+
+
+def test_ch192_lag_gate_uses_the_larger_abs_correlation_of_the_two_origin_definitions():
+    U, tot = pop192()
+    r0 = lt.census_ch192(U, tot, SPEC, SCALE, 2.75)
+    assert r0["origin_spread_definitions_agree_share"] == 1.0 and r0["gate_CH192"]["corr_lag"] is True and "rv7d_floor_share" in r0
+    U2 = U.copy()
+    U2["ivr_g"] = U2["ivr_lag"] * 0.97 + np.random.default_rng(3).normal(0, 0.1, len(U2))  # Gamma's origin spread tracks the lag: r large
+    U2["spread_g"] = U2["spread"] * 1.5
+    r = lt.census_ch192(U2, tot, SPEC, SCALE, 2.75)
+    assert abs(r["r_w_used"]) > 0.8 and abs(r["r_w_used"]) >= abs(r["corr_lag"]["within"]) and r["gate_CH192"]["corr_lag"] is False
+    assert r["origin_spread_definitions_agree_share"] == 0.0
+
+
+def test_events_two_day_formula_and_descriptives_present():
+    pop = pd.DataFrame({"event_id": ["a", "b", "b", "c", "d", "e"], "day": ["d1", "d1", "d1", "d2", "d2", "d2"]})
+    e = lt._events(pop, 10.5, 2.0)
+    assert e["events"] == 5 and e["events_day1"] == 2 and e["events_projected_21d"] == 5 + (5 - 2) * 19 and e["rule"].startswith("E_2d")
+    pop3 = pd.DataFrame({"event_id": list("abc"), "day": ["d1", "d2", "d3"]})
+    assert lt._events(pop3, 3.0, 7.0)["events_projected_21d"] == 9.0
+    U, tot = pop195()
+    r = lt.census_ch195(U, tot, SPEC, SCALE, COV)
+    assert {"corr_v_prev_printed", "liquidity_tiers_top_zR_share", "projected_units_21d_after_family_exclusion", "events"} <= set(r)
+    assert set(r["liquidity_tiers_top_zR_share"]) == {"low", "mid", "high"}
+    U7, t7 = pop197()
+    r7 = lt.census_ch197(U7, t7, SPEC, SCALE, COV, pairs197())
+    assert {"corr_imbT_1c_form_printed", "rewarded_share_by_zimbB_tercile", "liquidity_tiers_top_zimbB_share"} <= set(r7) and r7["events"]["rule"].startswith("E_2d")
+    ov = lt.unit_overlaps({"A": pd.DataFrame({"market_id": ["m1", "m2", "m3"], "slot": [1, 1, 2]}), "B": pd.DataFrame({"market_id": ["m1", "m3"], "slot": [1, 3]})})
+    assert ov["A&B"]["units"] == 1 and ov["A&B"]["share_of_A"] == pytest.approx(1 / 3)
+    uf = pop195(per=40)[0]
+    uf["skey"] = np.where(np.arange(len(uf)) % 10 < 5, "big", uf["skey"])
+    rf = lt.census_ch195(uf, tot, SPEC, SCALE, COV)
+    assert rf["projected_units_21d_after_family_exclusion"] < rf["projected_units_21d"]

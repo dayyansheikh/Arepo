@@ -31,7 +31,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from . import forecast, maker_rewards, panel
+from . import forecast, maker_rewards, panel, trade_sample
 from . import live_tests7_base as b
 
 VERSION = "live-tests7-v1"
@@ -320,6 +320,16 @@ def _own24(sign, mid_k, mid_12) -> tuple[np.ndarray, np.ndarray]:
     return np.where(miss, 0.0, d), miss.astype(float)
 
 
+def _in_band(mid, spread, rewards_max_spread_cents, band) -> np.ndarray:
+    """``in_band``: folded mid in the one-sided scoring band and spread <= ``rewards_max_spread`` (cents). A missing ``rewards_max_spread`` with the
+    mid inside the band is NaN (excluded, counted), never 0 (1.5; census-code check must-fix 3); a mid outside the band is 0 whatever the field."""
+    mid, sp, rms = (np.asarray(v, float) for v in (mid, spread, rewards_max_spread_cents))
+    inside = (mid >= band[0] - 1e-12) & (mid <= band[1] + 1e-12)
+    with np.errstate(invalid="ignore"):
+        ok = (sp * 100.0 <= rms + 1e-9)
+    return np.where(~inside, 0.0, np.where(np.isfinite(rms), ok.astype(float), np.nan))
+
+
 def _mid12(store: MidStore | None, k: int, markets) -> np.ndarray:
     """Mid at slot k - 12 (the origin's own 24 h look-back) by market; NaN if the slot, the market or the store is absent."""
     mk = np.asarray([str(m) for m in markets])
@@ -415,6 +425,7 @@ def resist_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, store: MidStore | Non
                       "end_ts": j["end_ts"].to_numpy(float), "vol24_p": j["vol24_p"].to_numpy(float), "spread_sw_k": (j["sask_k"] - j["sbid_k"]).to_numpy(float),
                       "spread_sw_p": (j["sask_p"] - j["sbid_p"]).to_numpy(float), "D_hit": d_hit, "D_away": d_away, "h0": h0, "d24": d24, "d24_flag": d24f})
     u["R"], u["R_away"] = np.log1p(u["D_hit"]), np.log1p(u["D_away"])
+    u["v_prev"] = sx * b.imbalance(j["dbid5_p"], j["dask5_p"])  # LT6 V's pre-move skew (descriptive correlation only)
     u["log_abs_x"] = np.log(np.abs(u["x"]))
     u["log1p_vol_p"] = np.log1p(u["vol24_p"].clip(lower=0))
     u["traded"] = (u["cls"] == "traded").astype(float)
@@ -528,7 +539,7 @@ def patient_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, store: MidStore | No
         cnt["nosweep"] = 1
         return pd.DataFrame(), cnt
     mk = j["market_id"].astype(str)
-    cols = ["sbid", "sask", "s_t", "s_two", "bsz1", "asz1", "dbid5", "dask5"]
+    cols = ["sbid", "sask", "s_t", "s_two", "bsz1", "asz1", "dbid5", "dask5", "dbid1", "dask1"]
     s = sw_k.reindex(mk)[cols].reset_index(drop=True)
     j = j.reset_index(drop=True)
     for col in cols:
@@ -556,8 +567,8 @@ def patient_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, store: MidStore | No
     spread_sw = (j["sask"] - j["sbid"]).to_numpy(float)
     mid = j["mid"].to_numpy(float)
     rms = j["rew_maxspread"].to_numpy(float)
-    with np.errstate(invalid="ignore"):
-        in_band = ((mid >= c["reward_band"][0] - 1e-12) & (mid <= c["reward_band"][1] + 1e-12) & np.isfinite(rms) & (spread_sw * 100.0 <= rms + 1e-9)).astype(float)
+    in_band = _in_band(mid, spread_sw, rms, c["reward_band"])
+    cnt["in_band_unknown"] = int(np.isnan(in_band).sum())
     m12 = _mid12(store, k, j["market_id"])
     d24, d24f = _own24(1.0, mid, m12)
     u = pd.DataFrame({**_base_out(j, cap, k), "t_row": j["s_t"].to_numpy(float), "imbT": bt["imbT"], "imbB": bt["imbB"], "bT": bt["bT"], "aT": bt["aT"], "bB": bt["bB"], "aB": bt["aB"],
@@ -565,9 +576,10 @@ def patient_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, store: MidStore | No
                       "spread_sw": spread_sw, "total5": (j["dbid5"] + j["dask5"]).to_numpy(float), "h0": h0, "d24": d24, "d24_flag": d24f,
                       "rewarded": np.where(np.isfinite(rew), (rew > 0).astype(float), np.nan), "in_band": in_band})
     u["dis"] = u["imbB"] - u["imbT"]
+    u["imbT1"] = b.imbalance(j["dbid1"], j["dask1"])  # S4: the 1c-band form of the touch (descriptive correlation with the best-level form)
     u["log1p_total5"] = np.log1p(u["total5"])
     u["log1p_vol"] = np.log1p(u["vol24"].clip(lower=0))
-    u = u[np.isfinite(u["rewarded"])].reset_index(drop=True)
+    u = u[np.isfinite(u["rewarded"]) & np.isfinite(u["in_band"])].reset_index(drop=True)
     u = _common_cols(u)
     cnt["units"] = len(u)
     return u, cnt
@@ -680,16 +692,18 @@ def ivr_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, store: MidStore, cap: di
     rew = j["rew_rate"].to_numpy(float)
     rms = j["rew_maxspread"].to_numpy(float)
     mid = j["mid"].to_numpy(float)
-    with np.errstate(invalid="ignore"):
-        in_band = ((mid >= 0.10 - 1e-12) & (mid <= 0.90 + 1e-12) & np.isfinite(rms) & (spread * 100.0 <= rms + 1e-9)).astype(float)
+    in_band = _in_band(mid, spread, rms, spec["tests"]["CH197"]["reward_band"])
     mover = np.abs(j["x"].to_numpy(float)) >= spec["move"]["min_abs_x"] - 1e-12
     anat = np.where(mover, j["cls"].to_numpy(), "non_mover")
     u = pd.DataFrame({**_base_out(j, cap, k), "t_row": j["t_row"].to_numpy(float), "mid": mid, "spread": spread, "tick": tick, "liq": j["liq"].to_numpy(float),
                       "end_ts": j["end_ts"].to_numpy(float), "vol24": j["vol24"].to_numpy(float), "rv24": rv24, "rv24s": rvs, "rv_floor": rvf, "rv7d": rv7, "ivr": ivr,
-                      "ivr_lag": ivr_lag, "rewarded": np.where(np.isfinite(rew), (rew > 0).astype(float), np.nan), "in_band": in_band, "anat": anat})
+                      "ivr_lag": ivr_lag, "spread_g": j["spread"].to_numpy(float), "rewarded": np.where(np.isfinite(rew), (rew > 0).astype(float), np.nan), "in_band": in_band, "anat": anat})
     cnt["reward_unparseable"] = int(u["rewarded"].isna().sum())
-    u = u[np.isfinite(u["rewarded"])].reset_index(drop=True)
-    u["rv7ds"], _ = floored_rv(u["rv7d"].to_numpy(float), u["tick"].to_numpy(float), c["rv_floor_ticks"])  # "likewise": rv7d is floored at half a tick too
+    cnt["in_band_unknown"] = int(u["in_band"].isna().sum())
+    u = u[np.isfinite(u["rewarded"]) & np.isfinite(u["in_band"])].reset_index(drop=True)
+    u["rv7ds"], u["rv7d_floor"] = floored_rv(u["rv7d"].to_numpy(float), u["tick"].to_numpy(float), c["rv_floor_ticks"])  # "likewise": rv7d is floored at half a tick too
+    with np.errstate(invalid="ignore", divide="ignore"):
+        u["ivr_g"] = np.log(u["spread_g"] / u["rv24s"])  # the origin's other spread definition (Gamma's field, the one the lag loader exposes)
     u["log_rv24s"], u["log_rv7d"] = np.log(u["rv24s"]), np.log(u["rv7ds"])
     u["log1p_vol"] = np.log1p(u["vol24"].clip(lower=0))
     u["spread_eq_tick"] = (np.abs(u["spread"] - u["tick"]) < 1e-9).astype(float)
@@ -703,6 +717,22 @@ def ivr_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, store: MidStore, cap: di
 # =====================================================================================================================
 # Census statistics (counts only; design 7). Every threshold comes from the spec; nothing is tuned here.
 # =====================================================================================================================
+
+
+def exact_t_sum() -> float:
+    """``t_{20, 1 - 0.05/6} + t_{20, 0.8}`` computed exactly (design 1.9: "computed exactly in code")."""
+    from scipy import stats
+
+    return float(stats.t.ppf(1.0 - 0.05 / 6.0, 20) + stats.t.ppf(0.8, 20))
+
+
+def mde_common(spec: dict) -> dict:
+    """The spec's ``mde_common`` with ``t_sum = max(declared 3.47, exact)`` (census-code check should-fix: the declared 3.47 is ~0.07% below
+    the exact 3.4725..., so the census takes the larger, the pessimistic one)."""
+    a = dict(spec["census_gates"]["mde_common"])
+    a["t_sum_declared"], a["t_sum_exact"] = a["t_sum"], exact_t_sum()
+    a["t_sum"] = max(float(a["t_sum"]), a["t_sum_exact"])
+    return a
 
 
 def block_min_units(covered_days: float, full: int = 16, window: float = 21.0) -> float:
@@ -844,9 +874,59 @@ def _per_market(market_ids: pd.Series) -> dict:
 
 
 def _events(pop: pd.DataFrame, scale: float, covered_days: float) -> dict:
-    """Events and the projected 21-day events (descriptive): distinct events over the covered days x 21 / covered days (an estimate)."""
-    ev = pop["event_id"].astype(str).nunique() if len(pop) else 0
-    return {"events": int(ev), "events_projected_21d": float(ev * scale) if np.isfinite(scale) else float("nan"), "covered_days": covered_days}
+    """Events and the projected 21-day events (design 7): ``E_2d + (E_2d - E_day1) x 19`` for a two-day census, else distinct events x
+    21 / covered days."""
+    if pop.empty:
+        return {"events": 0, "events_projected_21d": float("nan"), "covered_days": covered_days}
+    ev = pop["event_id"].astype(str)
+    days = sorted(pop["day"].astype(str).unique()) if "day" in pop else []
+    e_all = int(ev.nunique())
+    if len(days) == 2:
+        e1 = int(ev[pop["day"].astype(str) == days[0]].nunique())
+        return {"events": e_all, "events_day1": e1, "events_projected_21d": float(e_all + (e_all - e1) * 19), "rule": "E_2d + (E_2d - E_day1) x 19", "covered_days": covered_days}
+    return {"events": e_all, "events_projected_21d": float(e_all * scale) if np.isfinite(scale) else float("nan"), "rule": "events x 21 / covered days", "covered_days": covered_days}
+
+
+def _tier_shares(pop: pd.DataFrame, value: str, top_of: str | None = None) -> dict:
+    """Descriptive: by liquidity tier (terciles of ``log1p_liq``) the mean of ``value`` (a 0/1 class) or, with ``top_of``, the share of units in
+    the top tercile of that standardised state."""
+    if pop.empty or pop["log1p_liq"].nunique() < 3:
+        return {}
+    tier = pd.qcut(pop["log1p_liq"], 3, labels=["low", "mid", "high"], duplicates="drop")
+    if top_of:
+        cut = np.quantile(pop[top_of].dropna(), 2 / 3)
+        v = (pop[top_of] >= cut).astype(float)
+    else:
+        v = pop[value].astype(float)
+    return {str(k_): {"units": int((tier == k_).sum()), "share": float(v[tier == k_].mean())} for k_ in tier.cat.categories}
+
+
+def _share_by_tercile(pop: pd.DataFrame, z: str, value: str) -> dict:
+    """Descriptive: the mean of a 0/1 ``value`` by tercile of the state ``z`` (rewarded share by tercile)."""
+    if pop.empty or pop[z].notna().sum() < 3:
+        return {}
+    t1, t2 = np.quantile(pop[z].dropna(), [1 / 3, 2 / 3])
+    grp = np.where(pop[z] <= t1, "bottom", np.where(pop[z] >= t2, "top", "middle"))
+    return {k_: float(pop.loc[grp == k_, value].mean()) for k_ in ("bottom", "middle", "top")}
+
+
+def unit_overlaps(frames: dict) -> dict:
+    """Pairwise overlap of the populations of one census by (market, slot) key (1.11; descriptive, no gate). Cross-census overlaps are not
+    computed (each census runs once on its own inputs)."""
+    keys = {k_: set(zip(f["market_id"].astype(str), f["slot"], strict=True)) for k_, f in frames.items() if len(f)}
+    out = {}
+    names = sorted(keys)
+    for i, a_ in enumerate(names):
+        for b_ in names[i + 1:]:
+            n = len(keys[a_] & keys[b_])
+            out[f"{a_}&{b_}"] = {"units": n, f"share_of_{a_}": n / len(keys[a_]) if keys[a_] else float("nan"), f"share_of_{b_}": n / len(keys[b_]) if keys[b_] else float("nan")}
+    return out
+
+
+def _larger_abs_corr(c1: dict, c2: dict) -> float:
+    """The within-market correlation of larger magnitude of two candidate origin definitions (the pessimistic one for an F-feasibility cap)."""
+    vals = [c["within"] for c in (c1, c2) if c.get("within") is not None and np.isfinite(c["within"])]
+    return float(max(vals, key=abs)) if vals else float("nan")
 
 
 def _z(x, c: float, s: float) -> np.ndarray:
@@ -877,7 +957,7 @@ CONTROLS_192 = ["log_rv24s", "rv_floor", "log_rv7d", "log1p_liq", "logit_mid", "
 
 
 def census_ch195(U: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_days: float) -> dict:
-    g, a = spec["census_gates"]["CS7_CH195"], spec["census_gates"]["mde_common"]
+    g, a = spec["census_gates"]["CS7_CH195"], mde_common(spec)
     mind = spec["census_inputs"]["min_covered_days"]["CS7_CH195"]
     if U.empty:
         return _gate_min_days({"error": "no units", "gate_CH195": {"pass": False}}, "gate_CH195", covered_days, mind)
@@ -900,6 +980,7 @@ def census_ch195(U: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_d
     ri = resid_iqr(pop, "R", ["R_away"], int(g["resid_iqr_min_units"]), g["resid_iqr_min"])
     corr = {nm: b.wcorr(pop, "zdiff", col) for nm, col in (("zh0", "zh0"), ("log_abs_x", "log_abs_x"), ("traded", "traded"))}
     cl = b.wcorr(pop, "zdiff", "log1p_liq")
+    corr_vprev = b.wcorr(pop, "zdiff", "v_prev")
     bm = block_min_units(covered_days)
     bs = block_share(pop, bm)
     movers = tot.get("non_sports_ex_crypto_movers", 0)
@@ -909,8 +990,9 @@ def census_ch195(U: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_d
     projected = float(len(U) * scale)
     res = {"units": len(U), "projected_units_21d": projected, "both_sweep_coverage": cov, "sweep_sign_agreement": agree, "exclude_family": excl, "top_family_share": top,
            "R_R_away": {"centre": c, "scale": s}, "zR": {"terciles": [t1, t2], "tercile_gap": gap}, "design_effect": de, "slope": sm, "arm": arm, "F": fm,
-           "resid_iqr": ri, "corr_zR_zR_away": corr_ra, "corr": corr, "corr_liq": cl, "block_min_units": bm, "block_share": bs,
-           "events": _events(pop, scale, covered_days), "splits": _desc_splits(tot), "per_market": _per_market(pop["market_id"]),
+           "resid_iqr": ri, "corr_zR_zR_away": corr_ra, "corr": corr, "corr_liq": cl, "corr_v_prev_printed": corr_vprev, "block_min_units": bm, "block_share": bs,
+           "projected_units_21d_after_family_exclusion": float(len(pop) * scale), "liquidity_tiers_top_zR_share": _tier_shares(pop, "", "zR"),
+           "events": _events(pop, scale, covered_days), "t_sum_used": a["t_sum"], "splits": _desc_splits(tot), "per_market": _per_market(pop["market_id"]),
            "by_anatomy": {str(k_): int(v_) for k_, v_ in pop["cls"].value_counts().items()}, "counts": {k_: v_ for k_, v_ in tot.items() if isinstance(v_, (int, float))}}
     res["gate_CH195"] = _gate({
         "coverage": bool(np.isfinite(cov) and cov >= g["coverage_min"]), "sign_agreement": bool(np.isfinite(agree) and agree >= g["sign_agree_min"]),
@@ -926,7 +1008,7 @@ def census_ch195(U: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_d
 
 
 def census_ch191(U: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_days: float) -> dict:
-    g, a = spec["census_gates"]["CC7_CH191"], spec["census_gates"]["mde_common"]
+    g, a = spec["census_gates"]["CC7_CH191"], mde_common(spec)
     mind = spec["census_inputs"]["min_covered_days"]["CC7"]
     if U.empty:
         return _gate_min_days({"error": "no units", "gate_CH191": {"pass": False}}, "gate_CH191", covered_days, mind)
@@ -956,7 +1038,8 @@ def census_ch191(U: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_d
     lag7_within = float((j7["G"] - j7.groupby("market_id")["G"].transform("mean")).corr(j7["G_7"] - j7.groupby("market_id")["G_7"].transform("mean"))) if len(j7) > 10 else float("nan")
     res = {"units_6h_movers": n_all, "projected_units_21d": projected, "grind_share": grind_sh, "jump_share": jump_sh, "contrast_units": len(pop),
            "exclude_family": excl, "top_family_share": top, "class_eff_21d": {"grind": n1, "jump": n2}, "design_effect": de, "design": dsg,
-           "mde_class_c": mde, "corr": corr, "corr_liq": cl, "block_min_units": bm, "block_share": bs, "events": _events(pop, scale, covered_days),
+           "mde_class_c": mde, "corr": corr, "corr_liq": cl, "block_min_units": bm, "block_share": bs, "events": _events(pop, scale, covered_days), "t_sum_used": a["t_sum"],
+           "projected_units_21d_after_family_exclusion": float(len(pop) * scale), "liquidity_tiers_grind_share": _tier_shares(pop, "G"),
            "splits": _desc_splits(tot), "per_market": _per_market(pop["market_id"]), "by_class": {str(k_): int(v_) for k_, v_ in U["cls6"].value_counts().items()},
            "pc_quantiles": [float(x) for x in np.quantile(U["pc"], [0.1, 0.5, 0.9])], "sa_quantiles": [float(x) for x in np.quantile(U["sa"], [0.1, 0.5, 0.9])],
            "lag7_label_autocorr_pooled": lag7, "lag7_label_autocorr_within": lag7_within,
@@ -988,7 +1071,7 @@ def pair_correlations(pairs: pd.DataFrame, min_pairs: int) -> dict:
 
 
 def census_ch197(U: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_days: float, pairs: pd.DataFrame) -> dict:
-    g, a = spec["census_gates"]["CS7_CH197"], spec["census_gates"]["mde_common"]
+    g, a = spec["census_gates"]["CS7_CH197"], mde_common(spec)
     mind = spec["census_inputs"]["min_covered_days"]["CS7_CH197"]
     if U.empty:
         return _gate_min_days({"error": "no units", "gate_CH197": {"pass": False}}, "gate_CH197", covered_days, mind)
@@ -1022,7 +1105,9 @@ def census_ch197(U: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_d
     projected = float(len(U) * scale)
     res = {"units": len(U), "projected_units_21d": projected, "covered_share": covered_share, "exclude_family": excl, "top_family_share": top,
            "imbB": {"centre": cb, "scale": sb}, "imbT": {"centre": ct, "scale": st_}, "zimbB": {"terciles": [t1, t2], "tercile_gap": gap}, "design_effect": de, "slope": sm,
-           "pairs": pc, "F": fm, "corr_imbT_imbB": corr_tb, "corr_own24": corr_d24, "corr_liq": cl, "day_diff_share": diff_share, "market_strata_share": strata,
+           "pairs": pc, "F": fm, "corr_imbT_imbB": corr_tb, "corr_imbT_1c_form_printed": b.wcorr(pop, "imbT", "imbT1"), "t_sum_used": a["t_sum"],
+           "projected_units_21d_after_family_exclusion": float(len(pop) * scale), "liquidity_tiers_top_zimbB_share": _tier_shares(pop, "", "zimbB"),
+           "rewarded_share_by_zimbB_tercile": _share_by_tercile(pop, "zimbB", "rewarded"), "corr_own24": corr_d24, "corr_liq": cl, "day_diff_share": diff_share, "market_strata_share": strata,
            "events": _events(pop, scale, covered_days), "splits": _desc_splits(tot), "per_market": _per_market(pop["market_id"]),
            "rewarded_share": float(pop["rewarded"].mean()), "imb_quantiles": {nm: [float(x) for x in np.quantile(pop[nm], [0.1, 0.5, 0.9])] for nm in ("imbT", "imbB", "dis")},
            "counts": {k_: v_ for k_, v_ in tot.items() if isinstance(v_, (int, float))}}
@@ -1041,7 +1126,7 @@ def census_ch197(U: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_d
 
 def census_ch193(U: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_days: float) -> dict:
     """CC7's half of CH193's gate; the other half is CV7's semantic gate (``census_volsem``). CH193 survives only if both pass."""
-    g, a = spec["census_gates"]["CC7_CH193"], spec["census_gates"]["mde_common"]
+    g, a = spec["census_gates"]["CC7_CH193"], mde_common(spec)
     mind = spec["census_inputs"]["min_covered_days"]["CC7"]
     if U.empty:
         return _gate_min_days({"error": "no units", "gate_CH193": {"pass": False}}, "gate_CH193", covered_days, mind)
@@ -1075,6 +1160,7 @@ def census_ch193(U: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_d
            "z_log1p_dV": {"centre": c, "scale": s, "terciles": [t1, t2], "tercile_gap": gap}, "design_effect": de, "slope": sm, "arm": arm, "arm_units": len(arm_pop),
            "arm_share": len(arm_pop) / len(pop) if len(pop) else float("nan"), "F": fm, "resid_iqr": ri, "corr": corr, "corr_liq": cl, "corr_lag": corr_lag,
            "block_min_units": bm, "block_share": bs, "events": _events(pop, scale, covered_days), "splits": _desc_splits(tot), "per_market": _per_market(pop["market_id"]),
+           "t_sum_used": a["t_sum"], "projected_units_21d_after_family_exclusion": float(len(pop) * scale), "liquidity_tiers_top_zdV_share": _tier_shares(pop, "", "zldv"),
            "dV_quantiles": [float(x) for x in np.quantile(U["dV"], [0.1, 0.5, 0.9])], "rolloff_negative_dv_share": rolloff_share,
            "dV_lag_negative_share": float(np.nanmean(U["lag_rolloff"])) if U["lag_rolloff"].notna().any() else float("nan"),
            "dV_lag_missing_share": float(U["dV_lag"].isna().mean()), "last_print_present_share": lp, "last_print_assignable_share": assign,
@@ -1093,7 +1179,7 @@ def census_ch193(U: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_d
 
 
 def census_ch192(U: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_days: float) -> dict:
-    g, a = spec["census_gates"]["CC7_CH192"], spec["census_gates"]["mde_common"]
+    g, a = spec["census_gates"]["CC7_CH192"], mde_common(spec)
     mind = spec["census_inputs"]["min_covered_days"]["CC7_CH192"]
     if U.empty:
         return _gate_min_days({"error": "no units", "gate_CH192": {"pass": False}}, "gate_CH192", covered_days, mind)
@@ -1107,7 +1193,9 @@ def census_ch192(U: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_d
     sm = slope_mde(pop, "zivr", CONTROLS_192, scale, a, de["DE_gate"], a[g["sd"]], gap)
     arm_pop = pop[np.isfinite(pop["zivr_lag"])].copy()
     corr_lag = b.wcorr(arm_pop, "ivr", "ivr_lag")
-    r_w = corr_lag["within"] if corr_lag["within"] is not None else float("nan")
+    corr_lag_g = b.wcorr(arm_pop, "ivr_g", "ivr_lag")  # the origin spread as Gamma's field, the lag's definition
+    r_w = _larger_abs_corr(corr_lag, corr_lag_g)  # gate on the larger |r| of the two origin definitions (census-code check should-fix)
+    agree = float((np.abs(U["spread"] - U["spread_g"]) < 1e-9).mean())
     arm = contrast_ss(arm_pop[b._eff(arm_pop)], ["zivr", "zivr_lag"], CONTROLS_192, "zivr", "zivr_lag") if len(arm_pop) else {"n": 0, "ss_contrast": float("nan")}
     fm = f_mde(sm["mde_tercile_c"], r_w, a, design_ss=arm["ss_contrast"], scale=scale, sd=a[g["sd"]], de_gate=de["DE_gate"], gap=gap)
     ri = resid_iqr(pop, "ivr", ["log_rv24s", "log_rv7d"], int(g["resid_iqr_min_units"]), g["resid_iqr_min"])
@@ -1119,8 +1207,10 @@ def census_ch192(U: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_d
     projected = float(len(U) * scale)
     res = {"units": len(U), "projected_units_21d": projected, "rv_floor_share": floor_share, "exclude_family": excl, "top_family_share": top,
            "zivr": {"centre": c, "scale": s, "terciles": [t1, t2], "tercile_gap": gap}, "design_effect": de, "slope": sm, "arm": arm, "arm_units": len(arm_pop),
-           "arm_share": len(arm_pop) / len(pop) if len(pop) else float("nan"), "F": fm, "resid_iqr": ri, "corr_zivr_log_rv24": corr_rv, "corr_liq": cl, "corr_lag": corr_lag,
-           "block_min_units": bm, "block_share": bs, "events": _events(pop, scale, covered_days), "splits": _desc_splits(tot), "per_market": _per_market(pop["market_id"]),
+           "arm_share": len(arm_pop) / len(pop) if len(pop) else float("nan"), "F": fm, "resid_iqr": ri, "corr_zivr_log_rv24": corr_rv, "corr_liq": cl, "corr_lag": corr_lag, "corr_lag_gamma_origin_spread": corr_lag_g, "r_w_used": r_w,
+           "origin_spread_definitions_agree_share": agree, "rv7d_floor_share": float(U["rv7d_floor"].mean()), "t_sum_used": a["t_sum"],
+           "projected_units_21d_after_family_exclusion": float(len(pop) * scale), "rewarded_share_by_zivr_tercile": _share_by_tercile(pop, "zivr", "rewarded"),
+           "liquidity_tiers_top_zivr_share": _tier_shares(pop, "", "zivr"), "block_min_units": bm, "block_share": bs, "events": _events(pop, scale, covered_days), "splits": _desc_splits(tot), "per_market": _per_market(pop["market_id"]),
            "ivr_quantiles": [float(x) for x in np.quantile(U["ivr"], [0.1, 0.5, 0.9])], "tick_floor_share": float(U["spread_eq_tick"].mean()),
            "rewarded_share": float(U["rewarded"].mean()), "counts": {k_: v_ for k_, v_ in tot.items() if isinstance(v_, (int, float))}}
     res["gate_CH192"] = _gate({
@@ -1247,13 +1337,52 @@ def _sample_rels(sid: str) -> list[str]:
     return [f"data-dumps/research_lab/trade_samples/{sid}/{fn}" for fn in SAMPLE_FILES]
 
 
-def seal_inputs(*, snapshot_root, sweep_root, sample_root, work: Path, source_seals: list[Path], spec: dict | None = None) -> dict:
-    """The LT7 seal (design 7). Selection rule: a capture (rows, manifest and its sidecar if present), a sweep 1 or a sample is selected
-    only if EVERY file it opens is named in a source seal (LT5's capture seal, LT3's C2 sample seal, LT4's capture seal) with an equal
-    sha256 and its slot is one the censuses open (:func:`cc7_slots`, :func:`cs7_slots`, CV7's k - 1 and k of each sample). A mismatch
-    refuses the seal; a slot with no selectable capture is genuinely missing (counted per census, never substituted). Hashes bytes only;
-    parses no rows (a sample manifest and the capture manifests are read for the slot assignment); nothing at or after the bound is hashed."""
+def spec_blocks_sha(spec: dict) -> str:
+    """sha256 of the canonical JSON of the spec's ``census_gates`` and ``census_inputs`` blocks. The seal stores it; every census refuses a
+    spec whose blocks differ from the seal-time ones (census-code check must-fix 2). ``census_fixed`` is deliberately outside the hash."""
+    import hashlib
+
+    blob = json.dumps({"census_gates": spec["census_gates"], "census_inputs": spec["census_inputs"]}, sort_keys=True, separators=(",", ":"), default=str)
+    return hashlib.sha256(blob.encode("utf-8")).hexdigest()
+
+
+def load_unavailable(items) -> set[str]:
+    """The explicit ``--unavailable`` list (census-code check must-fix 1): archive paths (``data-dumps/research_lab/...``) that q0600's restore
+    report says no release holds. Each item is a JSON file (a list of paths, or a restore report whose ``missing`` / ``unavailable`` /
+    ``not_found`` list names them) or a plain archive path."""
+    out: set[str] = set()
+    for it in items or []:
+        p = Path(str(it))
+        if p.is_file():
+            d = json.loads(p.read_text())
+            lists = [d] if isinstance(d, list) else [d.get(k_) or [] for k_ in ("missing", "unavailable", "not_found")]
+            for lst in lists:
+                out |= {str(x["path"] if isinstance(x, dict) else x) for x in lst}
+        else:
+            out.add(str(it))
+    return out
+
+
+def _dir_slot(name: str, spec: dict) -> int | None:
+    t = b._name_time(name)
+    return b.slot_of(t, spec) if np.isfinite(t) else None
+
+
+def _find(roots, name: str, fn: str) -> Path | None:
+    return next((Path(r) / name / fn for r in roots if (Path(r) / name / fn).exists()), None)
+
+
+def seal_inputs(*, snapshot_root, sweep_root, sample_root, work: Path, source_seals: list[Path], spec: dict | None = None, unavailable=None) -> dict:
+    """The LT7 seal (design 7). Selection rule: a capture (every file the source seals name for its directory: rows, manifest and the sidecar),
+    a sweep 1 or a sample is selected only if EVERY such file exists locally and is named in a source seal (LT5's capture seal, LT3's C2 sample
+    seal, LT4's capture seal) with an equal sha256, and its slot is one the censuses open (:func:`cc7_slots`, :func:`cs7_slots`, CV7's k - 1 and
+    k of each sample). A mismatch refuses the seal. **A source-sealed file that is absent locally in a needed slot refuses the seal** (must-fix 1:
+    a sidecar that was not restored must not turn a capture into a quiet ``sports = -1`` one) unless the path is listed in ``unavailable`` (the
+    q0600 restore report says no release holds it): then its directory is not selected and the slot is counted missing, listed under
+    ``unavailable_used``. A slot with nothing sealed is genuinely missing (counted per census, never substituted). Hashes bytes only; parses no
+    rows (the sample and capture manifests are read for the slot assignment); nothing at or after the bound is hashed."""
     spec = spec or load_spec(sha=None)
+    unavail = load_unavailable(unavailable) if not isinstance(unavailable, set) else unavailable
     src, samples, shas = _src_hashes(list(source_seals))
     ss = spec["census_inputs"].get("source_seals") or {}
     pin = ss.get("lt5_capture_seal_sha256")
@@ -1266,18 +1395,34 @@ def seal_inputs(*, snapshot_root, sweep_root, sample_root, work: Path, source_se
         return {"error": "no source seal given is the file named by census_inputs.source_seals.captures: LT7 seal refused", "captures": cap_rel, "given": shas}
     if pin not in named.values():
         return {"error": "the source seal census_inputs.source_seals.captures does not have the pinned lt5_capture_seal_sha256: LT7 seal refused", "pinned": pin, "given": named}
+    snap_roots, sweep_roots, smp_roots = b._roots(snapshot_root), b._roots(sweep_root), b._roots(sample_root)
     by_slot, sweeps = b._scan(Path(work), snapshot_root, sweep_root, spec)
-    slot_of_id = {c["id"]: k for k, c in by_slot.items()}
     bound = epoch(spec["census_inputs"]["refuse_at_or_after_utc"])
     sha_cache: dict[str, str] = {}
     mism: list[dict] = []
     not_sel: list[dict] = []
+    absent: list[str] = []
+    unavail_used: list[str] = []
+    bad_dirs: set[str] = set()  # directories with a file the restore report lists as unavailable: never selected
 
     def hsha(pth: Path) -> str:
         key = str(pth)
         if key not in sha_cache:
             sha_cache[key] = sha256_file(pth)
         return sha_cache[key]
+
+    def dir_rels(sub: str, name: str) -> list[str]:
+        pre = f"data-dumps/research_lab/{sub}/{name}/"
+        return sorted(r for r in src if r.startswith(pre))
+
+    def audit(sub: str, name: str, roots, rels: list[str]) -> None:
+        """Every source-sealed file of directory ``name`` must exist in some root, unless the restore report lists it as unavailable."""
+        for rel in rels:
+            if rel in unavail:
+                unavail_used.append(rel)
+                bad_dirs.add(name)
+            elif _find(roots, name, rel.rsplit("/", 1)[1]) is None:
+                absent.append(rel)
 
     def check(rels: list[tuple[str, Path]]) -> tuple[bool, dict, list, list]:
         ok, got, mm, ns = True, {}, [], []
@@ -1299,7 +1444,15 @@ def seal_inputs(*, snapshot_root, sweep_root, sample_root, work: Path, source_se
             got[rel] = sha
         return ok, got, mm, ns
 
+    def rel_list(sub: str, d: Path, fallback: list[tuple[str, Path]]) -> list[tuple[str, Path]]:
+        """The local capture's own files plus every file the source seals name for the directory (a sealed sidecar is never dropped)."""
+        out = {rel: pth for rel, pth in fallback}
+        for rel in dir_rels(sub, d.name):
+            out.setdefault(rel, d / rel.rsplit("/", 1)[1])
+        return sorted(out.items())
+
     first, last = _span(spec)
+    src_sweep_slots = {k for k in (_dir_slot(d, spec) for d in b.sealed_dirs({"files": src}, "book_sweeps")) if k is not None and first <= k <= last}
     # --- sweeps: which passes have a selectable sweep 1 (a dry check; only the needed ones are committed below)
     sweep_ok: dict[int, tuple[Path, dict]] = {}
     for k in range(first, last + 1):
@@ -1307,16 +1460,16 @@ def seal_inputs(*, snapshot_root, sweep_root, sample_root, work: Path, source_se
         if c is None or c["start"] >= bound or c["id"] not in sweeps:
             continue
         sd = Path(sweeps[c["id"]]["dir"])
-        ok, got, mm, ns = check(b.sweep_files(sd))
+        ok, got, mm, ns = check(rel_list("book_sweeps", sd, b.sweep_files(sd)))
         mism += mm
         if ok:
             sweep_ok[k] = (sd, got)
         else:
             not_sel += ns
-    avail = set(sweep_ok)
+    avail = set(sweep_ok) | src_sweep_slots
     c7, s7 = cc7_slots(spec), cs7_slots(spec, avail)
-    # --- CV7: samples and the captures k - 1, k of each
-    smp_roots = b._roots(sample_root)
+    # --- CV7: samples and the captures k - 1, k of each (the slot comes from the sample manifest's snapshot id, so a capture that is not
+    # local cannot make a sample silently disappear)
     days = {d.replace("-", "") for d in spec["census_inputs"]["cv7_sample_days_utc"]}
     used_samples: list[str] = []
     sample_slot: dict[str, int] = {}
@@ -1324,33 +1477,46 @@ def seal_inputs(*, snapshot_root, sweep_root, sample_root, work: Path, source_se
     for sid in samples:
         if sid[:8] not in days:
             continue
+        rels = _sample_rels(sid)
+        audit("trade_samples", sid, smp_roots, rels)
         sdir = next((r / sid for r in smp_roots if (r / sid / "trades.csv.gz").exists()), None)
-        if sdir is None:
-            not_sel.append({"sample": sid, "reason": "absent locally"})
+        if sdir is None or sid in bad_dirs:
+            not_sel.append({"sample": sid, "reason": "absent locally or listed unavailable by the restore report"})
             continue
-        rels = [(rel, sdir / rel.rsplit("/", 1)[1]) for rel in _sample_rels(sid)]
-        ok, got, mm, ns = check(rels)
+        ok, got, mm, ns = check([(rel, sdir / rel.rsplit("/", 1)[1]) for rel in rels])
         mism += mm
         if not ok:
             not_sel += ns
             continue
-        k = slot_of_id.get(b._manifest(sdir / "manifest.json").get("snapshot_id"))
+        k = _dir_slot(str(b._manifest(sdir / "manifest.json").get("snapshot_id")), spec)
         if k is None:
-            not_sel.append({"sample": sid, "reason": "its capture is not among the local complete captures"})
+            not_sel.append({"sample": sid, "reason": "its snapshot id is on no grid slot"})
             continue
         used_samples.append(sid)
         sample_slot[sid] = k
         sample_files[sid] = {rel: {"sha256": sha, "root": str(sdir.parent)} for rel, sha in got.items()}
     cv_caps = {j for k in sample_slot.values() for j in (k - 1, k)}
     need_caps = c7["caps"] | s7["caps"] | cv_caps
+    # --- the absence audit (must-fix 1): every source-sealed file of a needed slot exists locally or is listed unavailable
+    for d in b.sealed_dirs({"files": src}, "snapshots"):
+        k = _dir_slot(d, spec)
+        if k is not None and k in need_caps:
+            audit("snapshots", d, snap_roots, dir_rels("snapshots", d))
+    for d in b.sealed_dirs({"files": src}, "book_sweeps"):
+        k = _dir_slot(d, spec)
+        if k is not None and k in s7["sweeps"]:
+            audit("book_sweeps", d, sweep_roots, dir_rels("book_sweeps", d))
+    if absent:
+        return {"error": "a source-sealed file is absent locally in a needed slot: LT7 seal refused (restore it, or list it with --unavailable from q0600's restore report)",
+                "absent": sorted(set(absent))[:50], "n_absent": len(set(absent))}
     files: dict[str, dict] = {}
     slots: dict[str, str] = {}
     sel_caps: set[int] = set()
     for k in sorted(need_caps):
         c = by_slot.get(k)
-        if c is None or c["start"] >= bound:
+        if c is None or c["start"] >= bound or Path(c["dir"]).name in bad_dirs:
             continue
-        ok, got, mm, ns = check(b.capture_files(c["dir"]))
+        ok, got, mm, ns = check(rel_list("snapshots", Path(c["dir"]), b.capture_files(c["dir"])))
         mism += mm
         if ok:
             for rel, sha in got.items():
@@ -1360,7 +1526,7 @@ def seal_inputs(*, snapshot_root, sweep_root, sample_root, work: Path, source_se
         else:
             not_sel += ns
     for k in sorted(s7["sweeps"]):
-        if k in sweep_ok and k in sel_caps:
+        if k in sweep_ok and k in sel_caps and sweep_ok[k][0].name not in bad_dirs:
             sd, got = sweep_ok[k]
             for rel, sha in got.items():
                 files[rel] = {"sha256": sha, "root": str(sd.parent), "capture": by_slot[k]["id"]}
@@ -1369,20 +1535,22 @@ def seal_inputs(*, snapshot_root, sweep_root, sample_root, work: Path, source_se
         files.update(sample_files[sid])
     if mism:
         return {"error": "hash mismatch against a source seal: LT7 seal refused", "mismatches": mism[:50], "n_mismatches": len(mism)}
+    sel_sweeps = {k for k in s7["sweeps"] if k in sweep_ok and sweep_ok[k][0].name in slots and sweep_ok[k][0].name not in bad_dirs}
     miss = {
         "CC7_full": [iso(b.slot_time(k, spec)) for k in sorted(c7["full"]) if k not in sel_caps],
         "CC7_lag": [iso(b.slot_time(k, spec)) for k in sorted(c7["lag"]) if k not in sel_caps],
         "CS7_captures": [iso(b.slot_time(k, spec)) for k in sorted(s7["caps"]) if k not in sel_caps],
-        "CS7_sweeps": [iso(b.slot_time(k, spec)) for k in sorted(s7["sweeps"]) if k not in sweep_ok],
+        "CS7_sweeps": [iso(b.slot_time(k, spec)) for k in sorted(s7["sweeps"]) if k not in sel_sweeps],
         "CV7_samples": [s for s in samples if s[:8] in days and s not in used_samples]}
     return {"purpose": "LT7 census inputs (LIVE_TESTS_7.md section 7): exactly the files the censuses open, each named in a source seal with an equal sha256; counts-only use",
-            "written_utc": iso(b.now_ts()), "spec_sha256": sha256_file(SPEC_PATH), "source_seals": shas, "span": spec["census_inputs"]["cc7_span"],
+            "written_utc": iso(b.now_ts()), "spec_sha256": sha256_file(SPEC_PATH), "design_text_sha256": spec.get("design_text_sha256"), "spec_blocks_sha256": spec_blocks_sha(spec),
+            "source_seals": shas, "span": spec["census_inputs"]["cc7_span"],
             "refuse_at_or_after_utc": spec["census_inputs"]["refuse_at_or_after_utc"], "slots": slots, "samples": used_samples,
             "sample_slots": {sid: iso(b.slot_time(k, spec)) for sid, k in sample_slot.items()},
             "needs": {"CC7_full": len(c7["full"]), "CC7_lag": len(c7["lag"]), "CS7_captures": len(s7["caps"]), "CS7_sweeps": len(s7["sweeps"]), "CS7_pairs": len(s7["pairs"]),
                       "CV7_captures": len(cv_caps)},
-            "missing": miss, "n_missing": {k_: len(v_) for k_, v_ in miss.items()}, "not_selected": not_sel[:100], "n_not_selected": len(not_sel),
-            "n_files": len(files), "files": dict(sorted(files.items()))}
+            "unavailable_used": sorted(set(unavail_used)), "missing": miss, "n_missing": {k_: len(v_) for k_, v_ in miss.items()},
+            "not_selected": not_sel[:100], "n_not_selected": len(not_sel), "n_files": len(files), "files": dict(sorted(files.items()))}
 
 
 def sealed_sweep_slots(seal: dict, spec: dict) -> set[int]:
@@ -1411,6 +1579,12 @@ def _load_for_census(seal: Path, snapshot_root, sweep_root, work: Path, spec: di
     viol = bound_violations(seal_d, spec)
     if viol:
         return seal_d, None, None, {"error": "sealed bound violated: census refused", "bad": viol, "n_bad": len(viol)}
+    if seal_d.get("spec_blocks_sha256") != spec_blocks_sha(spec):
+        return seal_d, None, None, {"error": "the spec's census_gates / census_inputs differ from those at seal time (census-code check must-fix 2): census refused",
+                                    "seal_blocks_sha256": seal_d.get("spec_blocks_sha256"), "spec_blocks_sha256": spec_blocks_sha(spec)}
+    w = Path(work)
+    if w.exists() and any(w.iterdir()):
+        return seal_d, None, None, {"error": f"work directory {w} is not empty: a stale series file would be reused (census refused)"}
     by_slot, sweeps = _seal_scan(seal_d, snapshot_root, sweep_root, Path(work), spec)
     return seal_d, by_slot, sweeps, None
 
@@ -1488,7 +1662,7 @@ def census_captures(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, work: Path, spec
     return {"span": spec["census_inputs"]["cc7_span"], "n_captures": len(by_slot), "inputs_verified": bool(verify), "missing_slots": comp.get("missing_slots"),
             "n_missing_slots": comp.get("n_missing_slots"), "files_checked": comp.get("files_checked"), "fee_category_values": fs["distinct_values"],
             "crypto_classifier_shown_to_work": fs["classifier_shown_to_work"], "covered_origins": {"CH191": cov191, "CH193": cov193, "CH192": cov192},
-            "per_capture": per_capture,
+            "per_capture": per_capture, "unit_overlaps": unit_overlaps({"CH191": cat(U191), "CH193": cat(U193), "CH192": cat(U192)}),
             "CH191": census_ch191(cat(U191), t191, spec, sc(d191), d191), "CH193": census_ch193(cat(U193), t193, spec, sc(d193), d193),
             "CH192": census_ch192(cat(U192), t192, spec, sc(d192), d192)}
 
@@ -1576,7 +1750,7 @@ def census_sweeps(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, sweep_root=SWEEP_R
     pairs = cat(PR)
     return {"inputs_verified": bool(verify), "missing_slots": comp.get("missing_slots"), "n_missing_slots": comp.get("n_missing_slots"), "files_checked": comp.get("files_checked"),
             "fee_category_values": fs["distinct_values"], "crypto_classifier_shown_to_work": fs["classifier_shown_to_work"], "covered_passes": {"CH195": cov195, "CH197": cov197},
-            "n_pair_passes": len(sl["pairs"]), "per_pass": per_pass,
+            "n_pair_passes": len(sl["pairs"]), "per_pass": per_pass, "unit_overlaps": unit_overlaps({"CH195": cat(U195), "CH197": cat(U197)}),
             "CH195": census_ch195(cat(U195), t195, spec, sc(d195), d195), "CH197": census_ch197(cat(U197), t197, spec, sc(d197), d197, pairs)}
 
 
@@ -1603,7 +1777,7 @@ def load_sample7(sdir: Path, markets=None, before: float | None = None, chunksiz
 
 def semantic_rows(ser_k: pd.DataFrame, ser_p: pd.DataFrame, feat: pd.DataFrame, tr: pd.DataFrame, spec: dict) -> pd.DataFrame:
     """One row per sampled non-sports market two-sided at k - 1 and k (the interval (t_{k-1}, t_k] of the market's own row receipts): the
-    sampled prints in the interval (``t_p <= ts < t_k``, nothing at or after ``t_k`` is held), their notional (price x size), whether the
+    sampled prints in the interval (``t_p < ts < t_k``, nothing at or after ``t_k`` is held), their notional (price x size), whether the
     page covers the interval (a page below the 500-row limit, or its oldest held row at or before ``t_p``), ``dV`` and the tolerance
     flag, whether every print falls in the last 30 minutes, and the 24 h-earlier interval's print count where the page covers it."""
     g = spec["census_gates"]["CV7_CH193"]
@@ -1622,8 +1796,8 @@ def semantic_rows(ser_k: pd.DataFrame, ser_p: pd.DataFrame, feat: pd.DataFrame, 
     tr["t_k"] = tr["market_id"].astype(str).map(pd.Series(tk.to_numpy(), index=mk)).astype(float)
     tr["t_p"] = tr["market_id"].astype(str).map(pd.Series(tp.to_numpy(), index=mk)).astype(float)
     tr = tr[tr["ts"] < tr["t_k"]]
-    inw = tr[tr["ts"] >= tr["t_p"]]
-    prev = tr[(tr["ts"] >= tr["t_p"] - 86400.0) & (tr["ts"] < tr["t_k"] - 86400.0)]
+    inw = tr[tr["ts"] > tr["t_p"]]  # (t_{k-1}, t_k]: open at t_{k-1}; nothing at or after t_k is ever held
+    prev = tr[(tr["ts"] > tr["t_p"] - 86400.0) & (tr["ts"] <= tr["t_k"] - 86400.0)]
     ag = inw.groupby(inw["market_id"].astype(str)).agg(n_int=("ts", "size"), notional=("notional", "sum"), ts_min=("ts", "min"))
     oldest = tr.groupby(tr["market_id"].astype(str))["ts"].min()
     n_prev = prev.groupby(prev["market_id"].astype(str))["ts"].size()
@@ -1633,7 +1807,7 @@ def semantic_rows(ser_k: pd.DataFrame, ser_p: pd.DataFrame, feat: pd.DataFrame, 
     out["ts_min"] = ag["ts_min"].reindex(mk).to_numpy(float)
     out["oldest"] = oldest.reindex(mk).to_numpy(float)
     out["n_prev24"] = n_prev.reindex(mk).fillna(0).to_numpy(float)
-    full = j["n_returned"].to_numpy(float) >= 500
+    full = j["n_returned"].to_numpy(float) >= trade_sample.TRADE_LIMIT
     with np.errstate(invalid="ignore"):
         cov = ~full | (out["oldest"].to_numpy(float) <= tp.to_numpy(float))
         cov24 = ~full | (out["oldest"].to_numpy(float) <= tp.to_numpy(float) - 86400.0)
@@ -1735,6 +1909,59 @@ def census_volsem(*, seal: Path, sample_roots: list[Path], snapshot_root=SNAPSHO
     else:
         res.update(semantic_gate(R, spec))
     return _gate_min_days(res, "gate_CH193_semantic", covered_days, mind)
+
+
+def rewards_null_share(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, work: Path, spec: dict | None = None, verify: bool = True) -> dict:
+    """Counts-only null-share check of the sealed sidecars (census-code check must-fix 3): reads ONLY ``market_id``, ``clob_rewards``,
+    ``rewards_max_spread`` and ``rewards_min_size`` of every sealed ``rows_ext.csv.gz`` (no price, no outcome, no target) and prints, per field,
+    the share that is null, the share of ``clob_rewards`` that is the empty list ``[]`` (parsed 0.0 by the named parser: not rewarded) and the
+    share that parses to a zero rate. A CSV-empty cell reads as null, so a null ``clob_rewards`` is what the censuses EXCLUDE (a unit with no
+    reward status): if nulls are common, CH197 and CH192 silently shrink to a rewarded subset and the question goes to the challenger BEFORE
+    CC7 / CS7 run (each census runs once). Every opened file is checked against the seal first."""
+    spec = spec or load_spec(sha=None)
+    seal_d, by_slot, _, err = _load_for_census(seal, snapshot_root, [], Path(work), spec)
+    if err:
+        return err
+    files = seal_d.get("files", {})
+    bad, todo = [], []
+    for k, c in sorted(by_slot.items()):
+        rel = f"data-dumps/research_lab/snapshots/{c['id']}/rows_ext.csv.gz"
+        if rel in files:
+            pth = Path(c["dir"]) / "rows_ext.csv.gz"
+            if verify:
+                bad += b.verify_files(seal_d, [(rel, pth)])
+            todo.append((k, c, pth))
+    if bad:
+        return {"error": "input identity check failed (L3): census refused", "bad": bad[:50], "n_bad": len(bad)}
+    tot = {"rows": 0, "clob_null": 0, "clob_empty_list": 0, "clob_nonempty": 0, "clob_nonempty_zero_rate": 0, "max_spread_null": 0, "max_spread_zero": 0, "min_size_null": 0}
+    per_day: dict[str, dict] = {}
+    for _k, c, pth in todo:
+        e = pd.read_csv(pth, usecols=lambda col: col in {"market_id", "clob_rewards", "rewards_max_spread", "rewards_min_size"}, dtype=str)
+        for col in ("clob_rewards", "rewards_max_spread", "rewards_min_size"):
+            if col not in e:
+                e[col] = None
+        e = e.drop_duplicates("market_id")
+        cr = e["clob_rewards"]
+        isnull = cr.isna()
+        empty = cr.fillna("").str.strip().eq("[]")
+        nonempty = ~isnull & ~empty
+        zero = np.array([nonempty.iloc[i] and maker_rewards.parse_daily_rate(v, None) == 0.0 for i, v in enumerate(cr)], bool) if nonempty.any() else np.zeros(len(e), bool)
+        ms = pd.to_numeric(e["rewards_max_spread"], errors="coerce")
+        d = _utc_day(c["start"])
+        rec = {"rows": len(e), "clob_null": int(isnull.sum()), "clob_empty_list": int(empty.sum()), "clob_nonempty": int(nonempty.sum()), "clob_nonempty_zero_rate": int(zero.sum()),
+               "max_spread_null": int(ms.isna().sum()), "max_spread_zero": int((ms == 0).sum()), "min_size_null": int(pd.to_numeric(e["rewards_min_size"], errors="coerce").isna().sum())}
+        for tgt in (tot, per_day.setdefault(d, dict.fromkeys(tot, 0))):
+            for key_, v in rec.items():
+                tgt[key_] += v
+    n = tot["rows"]
+    sh = lambda x: (x / n if n else float("nan"))  # noqa: E731
+    return {"sidecars": len(todo), "captures_without_sealed_sidecar": len(by_slot) - len(todo), "inputs_verified": bool(verify), "totals": tot,
+            "shares": {"clob_rewards_null": sh(tot["clob_null"]), "clob_rewards_empty_list": sh(tot["clob_empty_list"]), "clob_rewards_nonempty": sh(tot["clob_nonempty"]),
+                       "clob_rewards_nonempty_zero_rate": sh(tot["clob_nonempty_zero_rate"]), "rewards_max_spread_null": sh(tot["max_spread_null"]),
+                       "rewards_max_spread_zero": sh(tot["max_spread_zero"]), "rewards_min_size_null": sh(tot["min_size_null"])},
+            "per_day": {d: {**v, "clob_null_share": v["clob_null"] / v["rows"] if v["rows"] else float("nan"), "clob_empty_list_share": v["clob_empty_list"] / v["rows"] if v["rows"] else float("nan")}
+                        for d, v in sorted(per_day.items())},
+            "note": "null clob_rewards = no reward status = EXCLUDED by CH197 / CH192 (1.5); '[]' parses to 0.0 = not rewarded. If nulls are common, ask the challenger before CC7 / CS7."}
 
 
 def cleanup_census(work: Path) -> None:

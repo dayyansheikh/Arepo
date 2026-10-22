@@ -239,6 +239,15 @@ def write_seal(w: dict) -> Path:
     return p
 
 
+def reseal(w: dict, spec: dict, dest: Path) -> Path:
+    """A copy of the seal stamped with the blocks hash of ``spec`` (tests that relax thresholds on purpose)."""
+    d = dict(w["seal"])
+    d["spec_blocks_sha256"] = lt.spec_blocks_sha(spec)
+    p = Path(dest) / "seal_relaxed.json"
+    p.write_text(json.dumps(d, sort_keys=True))
+    return p
+
+
 def iso_slot(k: int) -> str:
     return lt.iso(b.slot_time(k, lt.load_spec(sha=None)))
 
@@ -329,7 +338,10 @@ def test_seal_reads_repeatable_roots(tmp_path):
     spec = pinned(make_spec(), seals[0])
     one = lt.seal_inputs(snapshot_root=[t.snap], sweep_root=[t.sweep], sample_root=[t.samp], work=base / "w1", source_seals=list(seals), spec=spec)
     both = lt.seal_inputs(snapshot_root=[t.snap, restore], sweep_root=[t.sweep], sample_root=[t.samp], work=base / "w2", source_seals=list(seals), spec=spec)
-    assert one["n_missing"]["CC7_full"] > 0 and both["n_missing"]["CC7_full"] == 0 and t.cid[50] in both["slots"] and t.cid[50] not in one["slots"]
+    # a source-sealed capture that is absent from the given roots refuses the seal (must-fix 1) ...
+    assert "absent locally" in one["error"] and one["n_absent"] > 0
+    # ... and with the second root it is whole
+    assert "error" not in both and both["n_missing"]["CC7_full"] == 0 and t.cid[50] in both["slots"]
 
 
 # --- the censuses: refusals ---------------------------------------------------------------------------------------------------------------
@@ -434,11 +446,11 @@ def test_capture_census_with_relaxed_thresholds_exercises_every_gate(world, tmp_
         spec["census_gates"][key]["units_projected_min"] = 1
     spec["census_gates"]["mde_common"]["mde_max"] = 10.0
     spec["census_gates"]["mde_common"]["f_mde_max"] = 10.0
-    r = lt.census_captures(seal=world["seal_path"], snapshot_root=[world["tree"].snap], work=tmp_path / "w", spec=spec)
+    r = lt.census_captures(seal=reseal(world, spec, tmp_path), snapshot_root=[world["tree"].snap], work=tmp_path / "w", spec=spec)
     g191 = r["CH191"]["gate_CH191"]
     assert g191["units"] is True and isinstance(g191["class_mde"], bool)  # the synthetic design is collinear (huge VIF_w): only the formula is checked
     assert r["CH191"]["mde_class_c"] == pytest.approx(
-        b.mde_class(r["CH191"]["class_eff_21d"]["grind"], r["CH191"]["class_eff_21d"]["jump"], 0.05, r["CH191"]["design_effect"]["DE_gate"], spec["census_gates"]["mde_common"], r["CH191"]["design"]["vif_w"]) * 100)
+        b.mde_class(r["CH191"]["class_eff_21d"]["grind"], r["CH191"]["class_eff_21d"]["jump"], 0.05, r["CH191"]["design_effect"]["DE_gate"], lt.mde_common(spec), r["CH191"]["design"]["vif_w"]) * 100)
     for nm in ("CH193", "CH192"):
         gg = r[nm][f"gate_{nm}"]
         assert gg["units"] is True and set(gg) >= {"slope_mde", "f_mde", "corr_lag", "block_share", "resid_iqr"}
@@ -468,7 +480,7 @@ def test_sweep_census_with_relaxed_thresholds(world, tmp_path):
     spec["census_gates"]["CS7_CH197"]["units_projected_min"] = 1
     spec["census_gates"]["mde_common"]["mde_max"] = 10.0
     spec["census_gates"]["mde_common"]["f_mde_max"] = 10.0
-    r = lt.census_sweeps(seal=world["seal_path"], snapshot_root=[world["tree"].snap], sweep_root=[world["tree"].sweep], work=tmp_path / "w", spec=spec)
+    r = lt.census_sweeps(seal=reseal(world, spec, tmp_path), snapshot_root=[world["tree"].snap], sweep_root=[world["tree"].sweep], work=tmp_path / "w", spec=spec)
     g = r["CH195"]["gate_CH195"]
     assert g["units"] is True and g["coverage"] is True and g["sign_agreement"] is True and isinstance(g["slope_mde"], bool) and isinstance(g["f_mde"], bool)
     assert r["CH197"]["gate_CH197"]["units"] is True
@@ -673,12 +685,12 @@ def test_runner_seal_and_exit_codes(tmp_path, monkeypatch):
 
 def test_queue_drafts_match_the_runner_and_the_resource_rules():
     qdir = Path(lt.__file__).resolve().parents[3] / "docs" / "research_lab" / "queue"
-    drafts = {p.stem.split("_")[0]: json.loads(p.read_text()) for p in sorted((qdir / "drafts").glob("q060[0-4]_lt7_*.json"))}
-    assert list(drafts) == ["q0600", "q0601", "q0602", "q0603", "q0604"]
+    drafts = {p.stem.split("_")[0]: json.loads(p.read_text()) for p in sorted((qdir / "drafts").glob("q060[0-4]*_lt7_*.json"))}
+    assert list(drafts) == ["q0600", "q0601", "q0601b", "q0602", "q0603", "q0604"]
     assert not list((qdir / "jobs").glob("q060*"))  # DRAFTS: never in queue/jobs
     run = _runner()
     parser = run.build_parser()
-    cmds = {"q0601": "seal", "q0602": "census-volsem", "q0603": "census-captures", "q0604": "census-sweeps"}
+    cmds = {"q0601": "seal", "q0601b": "rewards-null-share", "q0602": "census-volsem", "q0603": "census-captures", "q0604": "census-sweeps"}
     for qid, cmd in cmds.items():
         d = drafts[qid]
         assert d["argv"][0] == "scripts/run_live_tests7.py" and d["argv"][1] == cmd and d["family"] == "live_tests_7"
@@ -689,11 +701,206 @@ def test_queue_drafts_match_the_runner_and_the_resource_rules():
         assert d["resources"].get("exclusive", False) == (d["resources"]["mem_mb"] >= 1000 and cmd != "seal")
         assert d["max_retries"] == 1 and d["depends_on"]
     assert drafts["q0600"]["argv"][0] == "scripts/restore_from_archive.py" and drafts["q0600"]["depends_on"] == []
-    assert drafts["q0601"]["depends_on"] == ["q0600_lt7_census_restore"] and "q0601_lt7_seal" in drafts["q0602"]["depends_on"]
-    assert drafts["q0603"]["depends_on"] == ["q0602_lt7_census_volsem"] and drafts["q0604"]["depends_on"] == ["q0603_lt7_census_captures"]
+    assert drafts["q0601"]["depends_on"] == ["q0600_lt7_census_restore"] and drafts["q0601b"]["depends_on"] == ["q0601_lt7_seal"]
+    # the reward null-share result gates every census; the chain q0602 -> q0603 -> q0604 is kept
+    assert {"q0601_lt7_seal", "q0601b_lt7_rewards_null_share"} <= set(drafts["q0602"]["depends_on"])
+    assert "q0602_lt7_census_volsem" in drafts["q0603"]["depends_on"] and "q0601b_lt7_rewards_null_share" in drafts["q0603"]["depends_on"]
+    assert "q0603_lt7_census_captures" in drafts["q0604"]["depends_on"] and "q0601b_lt7_rewards_null_share" in drafts["q0604"]["depends_on"]
+    # memory (must-fix 4)
+    assert (drafts["q0603"]["resources"]["mem_mb"], drafts["q0603"]["resources"]["as_cap_mb"]) == (3000, 6500)
+    assert (drafts["q0604"]["resources"]["mem_mb"], drafts["q0604"]["resources"]["as_cap_mb"]) == (2000, 4000)
     for qid in ("q0602", "q0603", "q0604"):
-        assert "2026-10-23" in drafts[qid]["notes"] and "03:30Z" in drafts[qid]["notes"]
-        # the LT5, LT6 and LT4 restore trees are extra roots
-        joined = " ".join(drafts[qid]["argv"])
+        n = drafts[qid]["notes"]
+        assert "q0601b" in n and "challenger" in n and ("2026-10-28T03:30Z" in n or "see q0602" in n)
+        joined = " ".join(drafts[qid]["argv"])  # the LT5, LT6 and LT4 restore trees are extra roots
         assert "live_tests5_census/restore" in joined and "live_tests6_census/restore" in joined and "live_tests4_census/restore" in joined
+    assert "BLAS" in drafts["q0603"]["notes"] and "no env field" in drafts["q0603"]["notes"]
     assert "live_tests3_census/restore" in " ".join(drafts["q0602"]["argv"]) and "live_tests3_census/restore" in " ".join(drafts["q0601"]["argv"])
+    # q0600: three releases, 10-18 and 10-19 captures only (rows, rows_ext, manifest), no sweep glob; 10-day retention stated
+    a = drafts["q0600"]["argv"]
+    assert [a[i + 1] for i, x in enumerate(a) if x == "--tag"] == ["data-20261019-dsheikh", "data-20261020-dsheikh", "data-20261021-dsheikh"]
+    globs = [a[i + 1] for i, x in enumerate(a) if x == "--path-glob"]
+    assert len(globs) == 6 and all("/snapshots/2026101" in g and not g.startswith("data-dumps/research_lab/book_sweeps") for g in globs)
+    assert {g.rsplit("/", 1)[1] for g in globs} == {"rows.csv.gz", "rows_ext.csv.gz", "manifest.json"} and {g.split("/")[3][:8] for g in globs} == {"20261018", "20261019"}
+    assert "sweeps are never deleted" in drafts["q0600"]["notes"] and "D+10" in drafts["q0600"]["notes"]
+    assert not any("8 days" in d["notes"] for d in drafts.values())
+
+
+# --- census-code check fixes ---------------------------------------------------------------------------------------------------------------------
+
+
+def _seal_args(w, tmp, extra=None):
+    t = w["tree"]
+    return dict(snapshot_root=[t.snap], sweep_root=[t.sweep], sample_root=[t.samp], work=tmp, source_seals=list(w["seals"]), spec=w["spec"], **(extra or {}))
+
+
+def test_seal_refuses_an_absent_source_sealed_sidecar_unless_listed_unavailable(tmp_path):
+    w = build(tmp_path / "a")
+    t = w["tree"]
+    ext = t.snap / t.cid[100] / "rows_ext.csv.gz"
+    rel = t.rel(ext)
+    ext.unlink()  # a sidecar that was not restored: the capture would silently become sports = -1
+    r = lt.seal_inputs(**_seal_args(w, tmp_path / "s1"))
+    assert "absent locally" in r["error"] and rel in r["absent"]
+    # listed unavailable (as a path, or a restore report with a `missing` list): the directory is not selected and the slot is counted missing
+    rep = tmp_path / "report.json"
+    rep.write_text(json.dumps({"tag": "x", "missing": [rel]}))
+    for item in ({rel}, [str(rep)], [rel]):
+        ok = lt.seal_inputs(**_seal_args(w, tmp_path / "s2", {"unavailable": item}))
+        assert "error" not in ok and ok["unavailable_used"] == [rel] and t.cid[100] not in ok["slots"] and iso_slot(100) in ok["missing"]["CC7_full"]
+    # every file the source seals name for a capture directory is sealed (the sidecar included) when it exists
+    w2 = build(tmp_path / "b")
+    assert any(rel2.endswith("rows_ext.csv.gz") for rel2 in w2["seal"]["files"])
+
+
+def test_seal_refuses_absent_sealed_capture_sweep_and_sample(tmp_path):
+    for what in ("capture", "sweep", "sample"):
+        w = build(tmp_path / what)
+        t = w["tree"]
+        victim = {"capture": t.snap / t.cid[100], "sweep": t.sweep / t.sw[100], "sample": t.samp / t.samples[0]}[what]
+        shutil.rmtree(victim)
+        r = lt.seal_inputs(**_seal_args(w, tmp_path / f"s_{what}"))
+        assert "absent locally" in r["error"] and r["n_absent"] >= 1, what
+
+
+def test_seal_and_outputs_carry_the_spec_hashes_and_censuses_refuse_a_changed_spec(world, tmp_path):
+    seal, spec = world["seal"], world["spec"]
+    assert seal["spec_blocks_sha256"] == lt.spec_blocks_sha(spec) and seal["design_text_sha256"] == spec["design_text_sha256"] == "840f4500cde37158f57f6cf6bf54a3535ee5b24f3e5dedfd9240b315eeb52899"
+    # a different threshold after seal time (census_gates) or a different span (census_inputs) is refused
+    t = world["tree"]
+    g = copy.deepcopy(spec)
+    g["census_gates"]["CC7_CH191"]["units_projected_min"] = 1
+    for fn, kw in ((lt.census_captures, {"snapshot_root": [t.snap]}), (lt.census_sweeps, {"snapshot_root": [t.snap], "sweep_root": [t.sweep]}),
+                   (lt.census_volsem, {"sample_roots": [t.samp], "snapshot_root": [t.snap]}), (lt.rewards_null_share, {"snapshot_root": [t.snap]})):
+        r = fn(seal=world["seal_path"], work=tmp_path / f"w_{fn.__name__}", spec=g, **kw)
+        assert "differ from those at seal time" in r["error"], fn.__name__
+    i = copy.deepcopy(spec)
+    i["census_inputs"]["min_covered_days"]["CC7"] = 0.5
+    assert "differ from those at seal time" in lt.census_captures(seal=world["seal_path"], snapshot_root=[t.snap], work=tmp_path / "wi", spec=i)["error"]
+    f = copy.deepcopy(spec)
+    f["census_fixed"]["CH195"]["R_centre"] = 1.0  # the census-filled block is outside the hash
+    assert "error" not in lt.census_captures(seal=world["seal_path"], snapshot_root=[t.snap], work=tmp_path / "wf", spec=f)
+
+
+def test_censuses_refuse_a_non_empty_work_directory(world, tmp_path):
+    work = tmp_path / "stale"
+    (work / "series").mkdir(parents=True)
+    (work / "series" / "x.csv.gz").write_bytes(b"stale")
+    t = world["tree"]
+    for fn, kw in ((lt.census_captures, {"snapshot_root": [t.snap]}), (lt.census_sweeps, {"snapshot_root": [t.snap], "sweep_root": [t.sweep]}),
+                   (lt.census_volsem, {"sample_roots": [t.samp], "snapshot_root": [t.snap]})):
+        assert "not empty" in fn(seal=world["seal_path"], work=work, spec=world["spec"], **kw)["error"]
+
+
+def test_rewards_null_share_counts_only(world, tmp_path):
+    t = world["tree"]
+    r = lt.rewards_null_share(seal=world["seal_path"], snapshot_root=[t.snap], work=tmp_path / "w", spec=world["spec"])
+    assert "error" not in r and r["sidecars"] > 100 and r["captures_without_sealed_sidecar"] == 0
+    s = r["shares"]
+    # the tree gives every even market a programme and every odd market '[]'; nothing is null
+    assert s["clob_rewards_null"] == 0.0 and s["clob_rewards_empty_list"] == pytest.approx(0.5) and s["clob_rewards_nonempty"] == pytest.approx(0.5)
+    assert s["clob_rewards_nonempty_zero_rate"] == 0.0 and s["rewards_max_spread_null"] == 0.0 and s["rewards_min_size_null"] == 0.0
+    assert r["per_day"] and all(v["clob_null_share"] == 0.0 for v in r["per_day"].values())
+    # nulls (a CSV-empty cell) are counted as null; tampering is refused
+    tt = Tree(tmp_path / "n", slots=range(90, 100), sweep_slots=[], sample_slots=[])
+    for k in range(90, 100):
+        p = tt.snap / tt.cid[k] / "rows_ext.csv.gz"
+        e = pd.read_csv(p, dtype=str)
+        e.loc[e.index[:10], "clob_rewards"] = np.nan
+        e.loc[e.index[:5], "rewards_max_spread"] = np.nan
+        e.to_csv(p, index=False, compression="gzip")
+    sd = tmp_path / "ns"
+    sd.mkdir()
+    seals = tt.source_seals(sd)
+    spec = pinned(make_spec(), seals[0])
+    seal = lt.seal_inputs(snapshot_root=[tt.snap], sweep_root=[tt.sweep], sample_root=[tt.samp], work=tmp_path / "nw", source_seals=list(seals), spec=spec)
+    sp = tmp_path / "nseal.json"
+    sp.write_text(json.dumps(seal))
+    r2 = lt.rewards_null_share(seal=sp, snapshot_root=[tt.snap], work=tmp_path / "w2", spec=spec)
+    assert r2["shares"]["clob_rewards_null"] == pytest.approx(10 / N_MKT) and r2["shares"]["rewards_max_spread_null"] == pytest.approx(5 / N_MKT)
+    p = tt.snap / tt.cid[95] / "rows_ext.csv.gz"
+    p.write_bytes(p.read_bytes() + b"\x00")
+    assert "input identity" in lt.rewards_null_share(seal=sp, snapshot_root=[tt.snap], work=tmp_path / "w3", spec=spec)["error"]
+
+
+def test_rewards_null_share_reads_only_the_reward_columns(world, tmp_path, monkeypatch):
+    seen = []
+    orig = pd.read_csv
+
+    def spy(path, *a, **k):
+        if "rows_ext" in str(path):
+            seen.append(k.get("usecols"))
+        return orig(path, *a, **k)
+
+    monkeypatch.setattr(pd, "read_csv", spy)
+    lt.rewards_null_share(seal=world["seal_path"], snapshot_root=[world["tree"].snap], work=tmp_path / "w", spec=world["spec"])
+    cols = ["market_id", "clob_rewards", "rewards_max_spread", "rewards_min_size", "fee_type", "fee_category", "order_price_min_tick_size", "series_slugs", "created_at", "bid"]
+    assert seen and all(callable(u) and {c for c in cols if u(c)} == {"market_id", "clob_rewards", "rewards_max_spread", "rewards_min_size"} for u in seen)
+
+
+def test_patient_and_ivr_units_exclude_a_missing_reward_spread_inside_the_band_and_count_it():
+    from tests.unit.test_research_lab_live_tests7 import (  # noqa: PLC0415
+        CAP,
+        K0,
+        SPEC,
+        ser_frame,
+        store_with,
+        sweep_frame_sizes,
+    )
+
+    t0 = lt.epoch("2026-10-09T12:31:05Z")
+    mids = {"a": 0.5, "b": 0.5, "c": 0.95}
+    ser_p = ser_frame(mids, t=t0 - 7200)
+    ser_k = ser_frame(mids, t=t0)
+    ser_k["rew_maxspread"] = [3.5, np.nan, np.nan]
+    sw = sweep_frame_sizes({m: (0.49, 0.51, 50, 40, 150, 120) for m in mids}, t0)
+    u, cnt = lt.patient_units(ser_k, ser_p, None, sw, CAP, K0, SPEC)
+    assert set(u["market_id"]) == {"a"} and cnt["in_band_unknown"] == 1  # 'c' (mid 0.95) is outside CH197's mid band anyway
+    paths = {m: [0.5 + 0.01 * (i % 2) for i in range(85)] for m in ("a", "b")}
+    st = store_with(paths, K0)
+    ks = ser_frame({m: p[-1] for m, p in paths.items()}, t=t0)
+    kp = ser_frame({m: p[-2] for m, p in paths.items()}, t=t0 - 7200)
+    ks["rew_maxspread"] = [3.5, np.nan]
+    u2, c2 = lt.ivr_units(ks, kp, st, CAP, K0, SPEC, pd.Series({"a": 0.02, "b": 0.02}))
+    assert set(u2["market_id"]) == {"a"} and c2["in_band_unknown"] == 1
+
+
+def test_cv7_interval_is_open_at_t_prev():
+    from tests.unit.test_research_lab_live_tests7 import SPEC, T0, ser_frame  # noqa: PLC0415
+
+    t_k, t_p = T0, T0 - 7200.0
+    ser_k = ser_frame({"a": 0.5}, t=t_k, vol=1100.0)
+    ser_p = ser_frame({"a": 0.5}, t=t_p, vol=1000.0)
+    feat = pd.DataFrame({"market_id": ["a"], "n_returned": [lt.trade_sample.TRADE_LIMIT]})
+    tr = pd.DataFrame({"market_id": ["a", "a"], "ts": [str(t_p), str(t_p - 10.0)], "price": ["0.5", "0.5"], "size": ["40", "40"]})
+    R = lt.semantic_rows(ser_k, ser_p, feat, tr, SPEC)
+    assert R.loc["a", "n_int"] == 0  # a print exactly at t_{k-1} is outside (t_{k-1}, t_k]
+    assert bool(R.loc["a", "covered"])  # the full page's oldest held row is at or before t_{k-1}
+    tr2 = pd.DataFrame({"market_id": ["a"], "ts": [str(t_p + 1.0)], "price": ["0.5"], "size": ["40"]})
+    assert not bool(lt.semantic_rows(ser_k, ser_p, feat, tr2, SPEC).loc["a", "covered"])  # TRADE_LIMIT is imported, not a literal 500
+
+
+def test_runner_new_options(tmp_path, monkeypatch):
+    import os
+
+    run = _runner()
+    assert all(os.environ.get(v) for v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"))
+    monkeypatch.setattr(run.lt, "cleanup_census", lambda w: None)
+    got = {}
+    monkeypatch.setattr(run.lt, "seal_inputs", lambda **kw: got.update(kw) or {"n_files": 0, "files": {}})
+    # a missing source seal is refused, not silently dropped
+    assert run.main(["seal", "--work", str(tmp_path / "w"), "--source-seal", str(tmp_path / "nope.json"), "--out", str(tmp_path / "s.json")]) == 2 and not got
+    src = tmp_path / "src.json"
+    src.write_text("{}")
+    rep = tmp_path / "rep.json"
+    rep.write_text("{}")
+    assert run.main(["seal", "--work", str(tmp_path / "w"), "--source-seal", str(src), "--unavailable", str(rep), "--unavailable", "archive/x", "--out", str(tmp_path / "s.json")]) == 0
+    assert got["unavailable"] == [str(rep), "archive/x"] and got["source_seals"] == [src]
+    # outputs carry the spec and design-text hashes
+    monkeypatch.setattr(run.lt, "rewards_null_share", lambda **kw: {"sidecars": 1})
+    repo = tmp_path / "repo"
+    _git_repo(repo, {"s.json": "{}"})
+    assert run.main(["rewards-null-share", "--seal", str(repo / "s.json"), "--work", str(tmp_path / "w"), "--out", str(tmp_path / "r.json")]) == 0
+    out = json.loads((tmp_path / "r.json").read_text())
+    spec = lt.load_spec(sha=None)
+    assert out["spec_sha256"] == spec["_sha256"] and out["design_text_sha256"] == "840f4500cde37158f57f6cf6bf54a3535ee5b24f3e5dedfd9240b315eeb52899" and out["sidecars"] == 1
