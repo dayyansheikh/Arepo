@@ -3427,3 +3427,17 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   or feature computes one, so nothing was scored or shown. Confirmed E022's depth control `log1p D0` is `bk_depth5c`
   (outcome-0, sweep 1 of the pass) under `book` (12-09). Disclosed: the broad `se7_lgbm_all` has `liquidity` and
   `bk_depth5c` as separate inputs (broad models are unembargoed by DESIGN_V1 §8). Nothing counted.
+- (~20:47Z) **Creative round 12** (Fable xhigh; `CREATIVE_HYPOTHESES_2026-10-26.md`, CH191-CH201; merged 042e883d;
+  ideas only, nothing tested or counted). Brief: population arithmetic, permutable strata and MDE vs floor up front,
+  after four batches closed at census today. Top 6 for a future LT7 (window not before 2026-12-08): CH195 resistance
+  (pre-move hit-side depth), CH191 grind at the capture clock, CH194 hour-held move, CH197 patient money, CH193 absorbed
+  flow, CH192 implied vs realised; engine-first families listed in `signal_engine/CANDIDATES.md` (do-not-isolate note
+  for the LT7 six until LT7 fixes its embargo dates).
+- (~21:00Z) **LT6 freeze-check fixes applied** on `feat/live-tests-6` (5d3e549c..f6587202, pushed; 157 tests): end_date as
+  text; B unknown-end exclusion (counted); missing updated_at stays NaN; LT5 seal pin check; per-market label sums; two
+  previously undeclared counted exclusions declared in section 16; size check through `strata_of` with the census-fixed
+  stratum; size-check result verified by the analysis; E022 safeguards fail closed; V anatomy categorical; `.late` fix;
+  reader now freezes K P1/S3, the reported arms and h4 outcomes; new `live_tests6_readings.py` (labels, attrition / Lee
+  bounds, coverage, secondaries, economics, Thanksgiving). Open: the implementer added two label thresholds (sweep-missing
+  2%, attrition 2 pp) and four interpretations (section 16); D's placebo P1 not computable from frozen lines; B's S2 not
+  computed. **Re-check (science-reviewer) running before any LT6 census.** Nothing counted.
