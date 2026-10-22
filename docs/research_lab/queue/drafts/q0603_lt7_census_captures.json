@@ -1,0 +1,50 @@
+{
+ "id": "q0603_lt7_census_captures",
+ "title": "LT7 census CC7 (DRAFT): CH191 (grind at the capture clock), CH193 (absorbed flow; CC7's half) and CH192 (implied against realised) on the sealed complete captures of 2026-10-12T00:31Z .. 10-21T22:31Z (origins 10-15..10-21; CH192's four slots of 10-19..10-21 with the 84-slot look-back): counts only, origin-side fields only, later slots only through the lag-slot loader (volume24hr, spread), no target, no P&L; refuses unsealed or mismatched inputs",
+ "family": "live_tests_7",
+ "priority": 56,
+ "expected_value": "CH191, CH193 and CH192 census gates (LIVE_TESTS_7.md section 7): count gates, identification gates, confounder caps, scaled block-gate share, slope/class MDE and F-MDE <= 0.5c; decides part of k before the pin",
+ "data": [
+  "host originals ~/arepo/data-dumps/research_lab/snapshots (read-only, under the seal)",
+  "restore trees live_tests{7,6,5,4}_census/restore (read-only)"
+ ],
+ "resources": {
+  "mem_mb": 3000,
+  "as_cap_mb": 6500,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none",
+  "exclusive": true
+ },
+ "depends_on": [
+  "q0602_lt7_census_volsem",
+  "q0601b_lt7_rewards_null_share"
+ ],
+ "argv": [
+  "scripts/run_live_tests7.py",
+  "census-captures",
+  "--seal",
+  "../docs/research_lab/seals/lt7_census_inputs.json",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests7_census/restore/data-dumps/research_lab/snapshots",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests6_census/restore/data-dumps/research_lab/snapshots",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests5_census/restore/data-dumps/research_lab/snapshots",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests4_census/restore/data-dumps/research_lab/snapshots",
+  "--work",
+  "../data-dumps/research_lab/live_tests7_census/work_captures",
+  "--out",
+  "../data-dumps/research_lab/live_tests7_census/CC7.json"
+ ],
+ "timeout_s": 21600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests7_census/CC7.json (counts only; the work dir is cleaned up at exit)"
+ ],
+ "next_action": "commit the census JSON and its sha256 (seals/), fill the census-fixed spec values (census_fixed.*, k_tests) and record any drop in LIVE_TESTS_7.md 6.3 and the ledger",
+ "notes": "MEMORY (must-fix 4): mem_mb 3000 with as_cap_mb 6500 (the default 2 x mem_mb cap is virtual memory and killed LT5's q0561 at ~3,000 MB); still an ESTIMATE, to be measured by a host dry run before promotion (LT7 keeps no unbounded cache: frames popped after 2 slots, a coded ~30 MB (mid, spread) store; the accumulated unit frames, up to several hundred thousand CH192 rows, are the main load). BLAS threads: the queue spec has no env field, so run_live_tests7.py sets OMP/OPENBLAS/MKL/NUMEXPR_NUM_THREADS=1 itself before importing numpy. WAITS FOR q0601b (rewards null shares): CH192 uses `rewarded` and `in_band`; a null reward status is excluded (1.5), so if nulls are common the question goes to the challenger BEFORE this census runs (each census runs once). RETENTION (updated): see q0602 (finish before 2026-10-28T03:30Z, or promote q0600 and finish before 2026-10-30T03:30Z). | RETENTION: sealed capture rows 10-15 .. 10-21 leave the host by retention 2026-10-23 .. 10-29 03:30Z, so this census must run before then or read the restore trees. (superseded) mem_mb 1500 was an ESTIMATE (a coded 85-slot (mid, spread) store of about 30 MB, two series frames, about 0.5 million unit rows across three tests); measure by a dry run before promotion; at 1,500 MB it falls under the memory-heavy-jobs rule (exclusive: the queue drains first). Must not overlap q0602 or q0604. DRAFT, not in queue/jobs (LIVE_TESTS_7.md text-frozen, sha256 840f4500...; code phase 1 only: the reader, analysis, size check and RSS probe are phase 2). Promote only after the science-reviewer code-freeze check of the census code and the committed seal. Counts 0 (descriptive; no trials line). Reads the DRAFT spec unpinned; code_sha256 of the hashed modules is written into the output. Every gate threshold is stated in LIVE_TESTS_7.md section 7 before this runs; nothing is re-tuned after it. Roots are repeatable (host originals first, then the q0600 restore tree and the LT6, LT5 and LT4 restore trees (and LT3's for samples), which are reused as extra roots: data-dumps/research_lab/live_tests5_census/restore (10-12, 10-13 partial), live_tests6_census/restore (10-13, 10-14), live_tests4_census/restore (10-14T22 .. 10-17 captures, sweeps 10-14..16), live_tests3_census/restore (the 23 C2 samples)). A sealed capture or sweep in a needed slot that is absent locally refuses the census; slots with no capture and nothing sealed are counted as missing, never substituted. The runner refuses (exit 2) a seal not tracked by git or differing from HEAD. Retention (10-day snapshot rule: day D leaves the host on D+10 at 03:30Z; sweeps are never deleted): see the q0600 and q0602 notes. Memory-heavy-jobs rule: exclusive; never while an LT5/LT6 census or size-check job runs."
+}

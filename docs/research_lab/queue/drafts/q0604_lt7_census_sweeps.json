@@ -1,0 +1,56 @@
+{
+ "id": "q0604_lt7_census_sweeps",
+ "title": "LT7 census CS7 (DRAFT): CH195 (resistance) and CH197 (patient money) on sweep 1 of the 23 sealed passes (2026-10-19T22:36Z .. 10-21T22:38Z) and their captures: counts only, origin-side fields only, pass j + 13 of CH197's F-feasibility pairs only through the lag-slot loader (bid_size_1, ask_size_1, depth_bid_5c, depth_ask_5c), no target, no P&L; refuses unsealed or mismatched inputs",
+ "family": "live_tests_7",
+ "priority": 55,
+ "expected_value": "CH195 and CH197 census gates (LIVE_TESTS_7.md section 7): coverage, residual IQR, confounder caps, r_gate = max(r_w, r_pool), slope MDE and F-MDE <= 0.5c; decides part of k before the pin",
+ "data": [
+  "host originals ~/arepo/data-dumps/research_lab/{snapshots,book_sweeps} (read-only, under the seal)",
+  "restore trees live_tests{7,6,5,4}_census/restore (read-only)"
+ ],
+ "resources": {
+  "mem_mb": 2000,
+  "as_cap_mb": 4000,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none",
+  "exclusive": true
+ },
+ "depends_on": [
+  "q0603_lt7_census_captures",
+  "q0601b_lt7_rewards_null_share"
+ ],
+ "argv": [
+  "scripts/run_live_tests7.py",
+  "census-sweeps",
+  "--seal",
+  "../docs/research_lab/seals/lt7_census_inputs.json",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests7_census/restore/data-dumps/research_lab/snapshots",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests6_census/restore/data-dumps/research_lab/snapshots",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests5_census/restore/data-dumps/research_lab/snapshots",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests4_census/restore/data-dumps/research_lab/snapshots",
+  "--sweep-root",
+  "../data-dumps/research_lab/book_sweeps",
+  "--sweep-root",
+  "../data-dumps/research_lab/live_tests7_census/restore/data-dumps/research_lab/book_sweeps",
+  "--sweep-root",
+  "../data-dumps/research_lab/live_tests6_census/restore/data-dumps/research_lab/book_sweeps",
+  "--work",
+  "../data-dumps/research_lab/live_tests7_census/work_sweeps",
+  "--out",
+  "../data-dumps/research_lab/live_tests7_census/CS7.json"
+ ],
+ "timeout_s": 14400,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests7_census/CS7.json (counts only; the work dir is cleaned up at exit)"
+ ],
+ "next_action": "commit the census JSON and its sha256 (seals/), fill the census-fixed spec values (census_fixed.*, k_tests) and record any drop in LIVE_TESTS_7.md 6.3 and the ledger",
+ "notes": "MEMORY (must-fix 4): mem_mb 2000 with as_cap_mb 4000 (was 1200; the virtual cap, not RAM, is what killed LT5); ESTIMATE to be measured by a host dry run. BLAS threads set to 1 by the runner (no env field in the queue spec). WAITS FOR q0601b: CH197 uses `rewarded` and `in_band`; if null reward fields are common the question goes to the challenger BEFORE this census runs. RETENTION (updated): see q0602. | (superseded) mem_mb 1200 was an ESTIMATE (two series frames, two sweep frames, the 85-slot store, about 0.1 million unit rows); measure by a dry run before promotion; at >= 1,000 MB it is exclusive. Must not overlap q0602 or q0603 (q0604 depends on q0603). The q0605 size check runs only after q0602-q0604 and the committed census values (k and the strata fixed first; phase 2). DRAFT, not in queue/jobs (LIVE_TESTS_7.md text-frozen, sha256 840f4500...; code phase 1 only: the reader, analysis, size check and RSS probe are phase 2). Promote only after the science-reviewer code-freeze check of the census code and the committed seal. Counts 0 (descriptive; no trials line). Reads the DRAFT spec unpinned; code_sha256 of the hashed modules is written into the output. Every gate threshold is stated in LIVE_TESTS_7.md section 7 before this runs; nothing is re-tuned after it. Roots are repeatable (host originals first, then the q0600 restore tree and the LT6, LT5 and LT4 restore trees (and LT3's for samples), which are reused as extra roots: data-dumps/research_lab/live_tests5_census/restore (10-12, 10-13 partial), live_tests6_census/restore (10-13, 10-14), live_tests4_census/restore (10-14T22 .. 10-17 captures, sweeps 10-14..16), live_tests3_census/restore (the 23 C2 samples)). A sealed capture or sweep in a needed slot that is absent locally refuses the census; slots with no capture and nothing sealed are counted as missing, never substituted. The runner refuses (exit 2) a seal not tracked by git or differing from HEAD. Retention (10-day snapshot rule: day D leaves the host on D+10 at 03:30Z; sweeps are never deleted): see the q0600 and q0602 notes. Memory-heavy-jobs rule: exclusive; never while an LT5/LT6 census or size-check job runs."
+}
