@@ -1,0 +1,45 @@
+{
+ "id": "q0561_lt5_census_captures",
+ "title": "LT5 censuses CF5 (F, alone or with the crowd), CHW (H, high-water mark) and CRW (R, the farmer's choice) on the complete captures of UTC 2026-10-20/21 (H's 96-slot look-back from 2026-10-12T00:31Z) and sweep 1 of those passes (DRAFT): counts only, origin-side fields only, no capture or sweep after the one classified, no target, no P&L; refuses unsealed or mismatched inputs",
+ "family": "live_tests_5",
+ "priority": 60,
+ "expected_value": "F, H and R census gates (LIVE_TESTS_5.md section 8): perm strata, family exclusions, R's depth band; decides part of k before the pin",
+ "data": [
+  "host originals ~/arepo/data-dumps/research_lab/{snapshots,book_sweeps} (read-only, under the seal)",
+  "data-dumps/research_lab/live_tests5_census/restore (q0560; read-only)"
+ ],
+ "resources": {
+  "mem_mb": 1500,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none",
+  "exclusive": true
+ },
+ "depends_on": [
+  "q0560_lt5_census_restore_captures",
+  "q0564_lt5_census_seal"
+ ],
+ "argv": [
+  "scripts/run_live_tests5.py",
+  "census-captures",
+  "--seal",
+  "../docs/research_lab/seals/lt5_census_inputs_captures.json",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests5_census/restore/data-dumps/research_lab/snapshots",
+  "--sweep-root",
+  "../data-dumps/research_lab/book_sweeps",
+  "--work",
+  "../data-dumps/research_lab/live_tests5_census/work_captures",
+  "--out",
+  "../data-dumps/research_lab/live_tests5_census/CF5_CHW_CRW.json"
+ ],
+ "timeout_s": 10800,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests5_census/CF5_CHW_CRW.json (counts only; the work dir is cleaned up at exit)"
+ ],
+ "next_action": "commit CF5_CHW_CRW.json and its sha256 (seals/), fill F/H/R perm_stratum, exclude_family, r.depth_band and the F/H/R entries of k_tests in the spec, record any drop in LIVE_TESTS_5.md 7.3 and the ledger",
+ "notes": "PROMOTED 2026-10-22 ~00:15Z (autopilot): q0564 done 23:22Z, seal sha256 fcd88926147051cba07d2094393d350faa7244828131e52bc9ee9b15bd108752 byte-copied (host sha256 equal) to seals/lt5_census_inputs_captures.json and committed; priority 25 -> 60 (top ready job, above signal-engine 50) so it starts before the 02:45Z blackout and reads captures before the 03:30Z retention run; argv, gates and outputs unchanged. | DRAFT, not in queue/jobs (LIVE_TESTS_5.md, design not yet reviewed). Promote only after the challenger review of LIVE_TESTS_5.md, the code and its freeze check, and the committed seal. Every gate threshold is stated in LIVE_TESTS_5.md section 8 before this runs; nothing is re-tuned after it. Counts 0 (descriptive; no trials line). Reads the DRAFT spec unpinned; code_sha256 of the eleven hashed modules (LT5 plus imported dependencies) is written into the output. mem_mb is an estimate (one capture at a time plus H's 96-slot (market, mid) look-back as float32; LT3's comparable census was set at 1,200). R1 finding 9: at 1,500 MB this falls under the memory-heavy-jobs rule (never two multi-GB jobs at once), so it is exclusive (runs alone; the queue drains first). R1: H's units are one per market per UTC day (the 00:31Z slot's capture); R's crossing-market gate and the renamed 'min-size depth present' gate; F's liquidity-tier gate and family DE. The seal must be committed before this runs. Census code check: roots are repeatable (host originals first, then the q0560 restore tree); a sealed capture or sweep in a needed slot that is absent locally refuses the census; slots with no capture and nothing sealed are counted (missing_slots), never imputed. Must not overlap q0562 (q0562 depends on this). Fix verification: depends on q0564 and runs only on the COMMITTED seal (the runner refuses, exit 2, a seal not tracked by git or differing from HEAD, and records the seal's sha256 and commit in the output). Must start before 2026-10-22T02:45Z (blackout) and finish writing its series before the 03:30Z retention run (q0564 notes)."
+}
