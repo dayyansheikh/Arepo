@@ -1153,6 +1153,54 @@ def sealed_sweep_slots(seal: dict, spec: dict) -> set[int]:
     return out
 
 
+def _movers_join(ser_k: pd.DataFrame, ser_p: pd.DataFrame, cap: dict, spec: dict, lo: float, hi: float, margin_h: float) -> tuple[pd.DataFrame, dict]:
+    """1.4 items 1-7 (LT3's ``move_join``, vendored): two-sided and tight at k - 1 and k, ``mid_k`` in [lo, hi], as-of end unknown
+    or > t + margin; adds ``mid``, ``x`` (the 2 h mid move), LT3's class and geometry. Each exclusion counted."""
+    j, cnt = move_join(ser_k, ser_p, cap, spec, lo, hi, margin_h)
+    mid = ((j["bid"] + j["ask"]) / 2.0).to_numpy(float)
+    mid_p = ((j["bid_p"] + j["ask_p"]) / 2.0).to_numpy(float)
+    cls, geom = classify(j["bid_p"], j["ask_p"], j["bid"], j["ask"], j["ltp_p"], j["ltp"], j["vol24_p"], j["vol24"], spec)
+    return j.assign(mid=mid, mid_p=mid_p, x=mid - mid_p, cls=cls, geom=geom), cnt
+
+
+def _common_cols(u: pd.DataFrame) -> pd.DataFrame:
+    u = u.copy()
+    mid = u["mid"].to_numpy(float)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        u["logit_mid"] = np.log(mid / (1.0 - mid))
+    u["abs_dev"] = np.abs(mid - 0.5)
+    u["tick001"] = (np.abs(u["tick"].to_numpy(float) - 0.001) < 1e-9).astype(float)
+    u["log_hte"], u["hte_unknown"] = _hte(u["end_ts"], u["t_row"])
+    u["log1p_liq"] = np.log1p(u["liq"].clip(lower=0))
+    return u
+
+
+def _anatomy(u: pd.DataFrame) -> pd.DataFrame:
+    """Anatomy dummies of 1.4 (traded, parallel, one_sided, spread_change; same-side-unequal the base)."""
+    u = u.copy()
+    u["a_traded"] = (u["cls"] == "traded").astype(float)
+    for g in ("parallel", "one_sided", "spread_change"):
+        u[f"a_{g}"] = (u["geom"] == g).astype(float)
+    return u
+
+
+def _base_out(j: pd.DataFrame, cap: dict, k: int) -> dict:
+    return {"market_id": j["market_id"].astype(str).to_numpy(), "event_id": j["event_id"].astype(str).to_numpy(), "skey": j["skey"].astype(str).to_numpy(),
+            "sports": j["sports"].to_numpy(int), "day": _utc_day(cap["start"]), "slot": k}
+
+
+def _utc_day(t: float) -> str:
+    return datetime.fromtimestamp(t, UTC).strftime("%Y-%m-%d")
+
+
+def _mid12(store: MidStore | None, k: int, markets) -> np.ndarray:
+    """Mid at slot k - 12 (the origin's own 24 h look-back) by market; NaN if the slot, the market or the store is absent."""
+    mk = np.asarray([str(m) for m in markets])
+    if store is None or not len(mk):
+        return np.full(len(mk), np.nan)
+    return store.matrix(k, 12, mk, "mid")[:, 0]
+
+
 VENDORED = {
  "MidStore": {
   "normalised_sha256": "db5634a5d2ef82051709166a920edaf8b933452d7a13e57179e6f2b7cb92bf60",
@@ -1170,6 +1218,24 @@ VENDORED = {
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
+ },
+ "_anatomy": {
+  "normalised_sha256": "7e1799e3533e1e838f96c4c3386596d7708da77637ac69da90eb843e8bb10cf1",
+  "prefix": "\\bb\\.",
+  "source": "live_tests7.py",
+  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+ },
+ "_base_out": {
+  "normalised_sha256": "ed9c3ccfbf263c3a9ed34beb8c6832397735de8556d298bedb567e364ff95220",
+  "prefix": "\\bb\\.",
+  "source": "live_tests7.py",
+  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+ },
+ "_common_cols": {
+  "normalised_sha256": "e513764a8f08b8ea9de4c7ad9c668128709d062220b93c4502c6a6cbdce05447",
+  "prefix": "\\bb\\.",
+  "source": "live_tests7.py",
+  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
  },
  "_day": {
   "normalised_sha256": "193ce8fc116bfcf52669421c18fd7a25628ce7c4ce47b34c24eea8d22e13c98e",
@@ -1330,6 +1396,18 @@ VENDORED = {
   "source": "live_tests7_base.py",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
+ "_mid12": {
+  "normalised_sha256": "335c5b9f220ddb1b7ddfe1513c39ee3c09b1843e402bb9e9d7aaaaf21472cb38",
+  "prefix": "\\bb\\.",
+  "source": "live_tests7.py",
+  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+ },
+ "_movers_join": {
+  "normalised_sha256": "536e9f09c94b880d03b63e62ef6cde0b9494afb7fae5278ecb4e00d87705b4c3",
+  "prefix": "\\bb\\.",
+  "source": "live_tests7.py",
+  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+ },
  "_ms": {
   "normalised_sha256": "d93a09b1eee1b7d9082b044c0c7b6260be5ad3afda2c7139f2c22851adf462ff",
   "origin": {
@@ -1442,6 +1520,12 @@ VENDORED = {
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
+ },
+ "_utc_day": {
+  "normalised_sha256": "886249d0f319353adc905cfd8c44afaadbca98f31b0274e589ae4c9db88df1ab",
+  "prefix": "\\bb\\.",
+  "source": "live_tests7.py",
+  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
  },
  "_vif": {
   "normalised_sha256": "826dc520833f04f216e99968bd7b6ff6cbd808037d0e65d1a55eeb570bc81900",

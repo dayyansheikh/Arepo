@@ -27,6 +27,7 @@ import ast
 import hashlib
 import json
 import re
+import subprocess
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parents[1] / "astrolabe" / "research_lab"
@@ -35,6 +36,7 @@ SOURCE_PINS = {
     "live_tests7.py": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902",
     "live_tests7_base.py": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20",
 }
+SOURCE_COMMIT = "c6e57a64"  # holds both pinned blobs; live_tests7.py moved later (reward-null fix, 2ee6a659...) but 8.1 keeps vendoring from these hashes
 PREFIX = {"live_tests7_base.py": r"(?!)", "live_tests7.py": r"\bb\."}  # (?!) never matches: the base is flat
 
 PICK = {
@@ -51,7 +53,8 @@ PICK = {
         "_norm_cat", "crypto_class", "crypto_failsafe", "slot_in_day", "MidStore", "rv_from_matrix", "floored_rv", "_non_sports_ex_crypto", "_hte",
         "_own24", "_in_band", "exact_t_sum", "mde_common", "block_min_units", "block_share", "resid_iqr", "iqr_ok", "terciles", "standardise", "_de",
         "_gate_min_days", "_fam", "_per_market", "_events", "_tier_shares", "_share_by_tercile", "unit_overlaps", "_z", "_desc_splits",
-        "pair_correlations", "_merge_counts", "_fee_counts", "load_unavailable", "_dir_slot", "sealed_sweep_slots",
+        "pair_correlations", "_merge_counts", "_fee_counts", "load_unavailable", "_dir_slot", "sealed_sweep_slots", "_movers_join", "_common_cols",
+        "_anatomy", "_base_out", "_utc_day", "_mid12",
     ],
 }
 
@@ -111,6 +114,12 @@ def main() -> None:
     for fname, want in SOURCE_PINS.items():
         raw = (HERE / fname).read_bytes()
         got = hashlib.sha256(raw).hexdigest()
+        if got != want:  # LT7 moved on (reward-null fix): take the pinned blob from the commit whose files LT7's seal recorded
+            try:
+                raw = subprocess.run(["git", "-C", str(HERE), "show", f"{SOURCE_COMMIT}:backend/astrolabe/research_lab/{fname}"], capture_output=True, check=True).stdout
+                got = hashlib.sha256(raw).hexdigest()
+            except (subprocess.SubprocessError, OSError):
+                pass
         if got != want:
             raise SystemExit(f"refusing: {fname} sha256 {got} != the hash LT7's seal recorded {want} (LIVE_TESTS_8.md 8.1); nothing vendored")
         texts[fname], fshas[fname] = raw.decode("utf-8"), got
