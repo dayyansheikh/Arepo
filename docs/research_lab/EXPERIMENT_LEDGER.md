@@ -3451,3 +3451,13 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   `h7_cb4_series` (7,699 files; D_split4 2026-06-27; universe 1,904, screen 1,118, holdout 755, embargo 31, 18 dropped
   for era overlap) at 00:08Z. Seal copies committed byte-identical to the host (`f2fddb67…`, `e9e3b627…`).
   **q0121 (h8_tail seal) promoted.** q0144/q0145 stay drafts until q0121's own seal copy is committed (their notes).
+- **CB8 smoke q0161 (00:00Z): FAIL on criterion (a), so CB8-W1 is "not testable (source)", p = 1, COUNTED (1).**
+  The pool rule (h1/h2/h3 exclusion ids looked up on Gamma, closed with `end_at` 2026-05..09, volume >= $50,000,
+  life >= 10 d) left only 5 eligible worn markets of 192 found (20 required); 4 of 5 returned prints, 0 capped, bounds,
+  order and duplicates all OK. The pre-declared rule (CREATIVE_BATCH_8.md) applies as written: q0167/q0168, q0171 and
+  q0175 are not committed; W1-rep is never reached (uncounted). A larger pool would be a design change needing review
+  and is not proposed. (b) Binance checksums and (c) pmxt HEADs PASS, so B continues. Record:
+  `seals/cb8_smoke_FAIL_20261022.json` (sha256 `8189303f…`, equal to the host); trials `cb8_test` W1 plus a
+  `creative_batch_8:W` count line (n_tests 1).
+- **q0164 (CB8 exclusion keys) promoted:** both required pins derived once on the host at 00:17Z (c1_legs 500 ids
+  `8341c500…`; cb5_listings 244,420 ids from 64 files `e1a12551…`).
