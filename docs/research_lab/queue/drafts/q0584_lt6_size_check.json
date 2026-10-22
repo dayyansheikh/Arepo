@@ -1,6 +1,6 @@
 {
  "id": "q0584_lt6_size_check",
- "title": "LT6 simulated-null size of the gates on the code to be pinned (DRAFT; the size-check code is NOT yet written): 11 binding scenarios mapped to tests (LIVE_TESTS_6.md 1.8, worlds 1.8.1) x 2,000 worlds x 200 draws, seed 20261167, criterion rate <= 0.058, plus the non-binding scenario 12, the CR1 / G_treated rates and the planted-effect power runs on their own seeds",
+ "title": "LT6 simulated-null size of the gates on the code to be pinned (DRAFT; the size-check code is written and re-checked, runs only after must-fixes 1-5 and with k_tests and the strata filled): 11 binding scenarios mapped to tests (LIVE_TESTS_6.md 1.8, worlds 1.8.1) x 2,000 worlds x 200 draws, seed 20261167, criterion rate <= 0.058, plus the non-binding scenario 12, the CR1 / G_treated rates and the planted-effect power runs on their own seeds",
  "family": "live_tests_6",
  "priority": 21,
  "expected_value": "LIVE_TESTS_6.md 1.8 size statement at the pinned code",
