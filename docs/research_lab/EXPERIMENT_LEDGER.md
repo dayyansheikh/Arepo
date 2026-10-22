@@ -3826,3 +3826,22 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **Next:** challenger R1 (`science-reviewer`) on the draft; embargo requests (`bandbreak`, `pool`, `rwblink`; `rwend` on
   CH215's entry; `book0` / `book` to the LT9 date only if CH214 survives; no `rewards` extension) filed at acceptance and
   before 2026-12-23.
+
+## LT9 R1 REVISE and response, 2026-10-22 (~22:10Z; nothing counted)
+- **R1** (`science-reviewer`; `reviews/LT9_R1_CHALLENGER_2026-10-22.md`, commit 118cf498): **REVISE**, nine required changes
+  plus should-fix items, on `LIVE_TESTS_9.md` sha256 `01c4989065c35743c47baa7c191f5956a1a734d9270a0c8e9c107605f82bef0a`.
+- **Response** (`reviews/LT9_R1_RESPONSE_2026-10-22.md`): all nine changes made as worded and every should-fix item taken.
+  No threshold, floor or gate was loosened. Revised text sha256
+  `bbfeb62add0e24860947e9413025cece5bdfbd4f8ebbe46b27974b8b29a354e1`. Still DRAFT, not frozen, not registered; no code, seal,
+  census or size run; E-numbers unassigned.
+- **Main changes.** `f_binding` is removed: CH213's and CH214's F bind by design, each with a census F-MDE <= 1.0c gate, and
+  CH212's F is a label. CH213's panel is fixed at the market's first unit (`panel_switched`). New binding worlds 3b
+  (relative position) and 4c (stale control rows), and a `break x relpos_k` control. CH212's route B tests `om_k` on its
+  two-class population, and route A needs a feed-listed end after capture k + 1. CH214 tests `max(0, zdD)` with `min(0, zdD)`
+  as a control, and world 8 carries non-fill volume noise.
+- **Recomputed planning MDEs (low / high).** CH213 1.50c / 0.67c, F 2.24c / 1.005c: **the binding F gate fails at both
+  planning ends, so CH213 is expected to die at census.** CH214 0.56c / 0.38c, F 0.79-0.94c / 0.54-0.65c (a quarter of the low
+  count fails). CH212 route A 0.58c / 0.35c (the low end fails 0.5c, as before). CH215 unchanged.
+- **Disclosed:** CH212's census agreement table (carry against feed) will be seen before `T_LT7`. It is descriptive and changes
+  no LT7 control.
+- **Next:** R1 re-check (`science-reviewer`) of the revised text and the response.
