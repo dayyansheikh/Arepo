@@ -1558,7 +1558,7 @@
   {
    "id": "LT6",
    "title": "Live tests 6: four more ideas from round 11 (planned)",
-   "plain": "A sixth group of up to four planned live tests from the latest new-ideas round. It asks whether quotes that refill after a move lean one way, whether repeated same-size orders leave a footprint, whether moves near a market's deadline behave differently, and whether a new sibling market wakes up older ones. The code passed an independent re-check after fixes, and its data list is sealed (22 Oct); its counting checks run on 22 Oct and decide which tests go ahead.",
+   "plain": "A sixth group of up to four planned live tests from new-ideas round 11: refilling quotes after a move, repeated same-size orders, moves near a market's deadline, and new sibling markets waking older ones. The code passed an independent re-check and its data list is sealed (22 Oct); counting checks decide which tests go ahead.",
    "batch": "LT6",
    "family": "mixed",
    "stage": "designed",
@@ -1581,7 +1581,7 @@
   {
    "id": "LT7",
    "title": "Live tests 7: five ideas from round 12 (planned)",
-   "plain": "Up to five planned live tests from new-ideas round 12: book depth on the side a move hit, slow grinds versus jumps, deep orders behind the best price, trading with no price move, and spreads versus later moves. The design passed an independent challenger review after changes (22 Oct); one idea was dropped as a near-repeat of an earlier result. The counting code passed an independent check after fixes (22 Oct). Honest planning says most may fail their counting checks.",
+   "plain": "Up to five planned live tests from new-ideas round 12: book depth on the side a move hit, slow grinds versus jumps, deep orders behind the best price, trading with no price move, and spreads versus later moves. The design and the counting code passed independent checks (22 Oct). Honest planning says most may fail their counting checks.",
    "batch": "LT7",
    "family": "mixed",
    "stage": "designed",
