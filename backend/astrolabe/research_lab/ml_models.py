@@ -748,6 +748,11 @@ def fit_fold(arm: str, df: pd.DataFrame, fold: dict, embargo_s: float, *, collec
     return ff, train_pos, test_pos
 
 
+# Optional per-unit resume store (``ml_resume.UnitStore``), set by ``scripts/run_ml_dev.py
+# --resume-dir``. None (default) = no behaviour change.
+UNIT_STORE = None
+
+
 def run_arm(
     arm: str, df: pd.DataFrame, manifest: dict, *, sink: TrialSink | None,
     collect_shap: bool = False,
@@ -763,16 +768,28 @@ def run_arm(
     proba = np.full((len(df), N_CLASSES), np.nan)
     mask = np.zeros(len(df), bool)
     folds, shap_folds = [], []
+    store = UNIT_STORE
     for fold in manifest["folds"]:
-        t_start = time.perf_counter()
-        ff, _, test_pos = fit_fold(
-            arm, df, fold, manifest["embargo_s"], collect_shap=collect_shap and arm == "M2"
-        )
-        proba[test_pos], mask[test_pos] = ff.proba, True
-        diag = {**ff.diag, "fold": fold["fold"], "seconds": round(time.perf_counter() - t_start, 2)}
+        cs = bool(collect_shap and arm == "M2")
+        unit = store.load(arm, fold["fold"], cs) if store is not None else None
+        if unit is not None:  # finished in an earlier slice: loaded, never refitted
+            test_pos, diag, shap = unit["test_pos"], unit["diag"], unit["shap"]
+            proba[test_pos], mask[test_pos] = unit["proba"], True
+        else:
+            if store is not None:
+                store.checkpoint()
+            t_start = time.perf_counter()
+            ff, _, test_pos = fit_fold(arm, df, fold, manifest["embargo_s"], collect_shap=cs)
+            proba[test_pos], mask[test_pos] = ff.proba, True
+            diag = {**ff.diag, "fold": fold["fold"],
+                    "seconds": round(time.perf_counter() - t_start, 2)}
+            shap = ff.shap
+            if store is not None:
+                store.save(arm, fold["fold"], cs, test_pos=test_pos, proba=ff.proba, diag=diag,
+                           shap=shap)
         folds.append(diag)
-        if ff.shap is not None:
-            shap_folds.append({"fold": fold["fold"], "test_pos": test_pos, "shap": ff.shap})
+        if shap is not None:
+            shap_folds.append({"fold": fold["fold"], "test_pos": test_pos, "shap": shap})
         if sink is not None:
             sink.write({"kind": "ml_fit", **_trial_header(arm, manifest), **diag})
     return ArmResult(arm, proba, mask, folds, shap_folds)

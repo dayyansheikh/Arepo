@@ -683,3 +683,26 @@ section 18; read against se1). `require_full_coverage` and `require_sources: ["c
   for the next pass, after the capture's 2 h target had started (seen on capture 10-22 04:31Z; se16 has no fit yet
   and se18 / se19 had not predicted, so no prediction was affected). The budget is now `len(AUX_FAMILIES) x max_items`
   (newest capture first), so every family of a new capture is built before its predictions in the same tick.
+
+## 24. Market-price reference for `res_7d` (2026-10-22 ~21:30Z)
+
+**Why.** AREPO's question is whether information beyond the market price predicts outcomes. On the resolution target
+the obvious forecast is the price itself, and until now no leaderboard row said whether the champion (or any model)
+beats it. The direction targets have no comparable price forecast (their natural benchmark is the class frequency,
+which every fitted model already contains), so this is `res_7d` only.
+- **Reference `market_price_reference` (`scoring.REF_MODEL`):** P(yes) = `ms_mid` of the origin's write-once features
+  file, i.e. the outcome-0 Gamma mid `(best_bid + best_ask) / 2` at the capture, the same price every model sees.
+  No fit, no parameter, no prediction file (it is a function of a stored capture-time observation, so there is nothing
+  to write once). Scored on every labelled, res-eligible row with a finite mid; clipped like every probability
+  (`P_CLIP`). Coverage = rows with a finite mid / eligible rows.
+- **Rows.** One leaderboard row per window (`role: "reference"`, `target: res_7d`) with the usual metrics and
+  `gain_vs_champion` = ll(champion) - ll(reference) on rows both scored (negative: the price beats the champion).
+  Every scored model's `res_7d` row carries `gain_vs_market_mid` = ll(reference) - ll(model) on that model's scored
+  rows (event-clustered bootstrap CI, as every gain); `dashboard.json` carries it as `gain_vs_mid` / `_lo` / `_hi`.
+- **What it is not.** Not a model, not in the registry, never a promotion candidate, never in the family-gain series,
+  no effect on K, the promotion rule (`se-promotion-v2`) or any existing score. Embargoed models get no
+  `gain_vs_market_mid` before their date (they are not scored at all). A positive gain over the mid is forecast
+  quality on a 7-day resolution window, not an edge or profit claim: no costs, no fill, and the mid is not a price
+  anyone can trade at.
+- **First rows:** the daily score of 2026-10-23 (the reference covers the 28-day lookback of stored features at once,
+  i.e. the champion's history since 10-21; LightGBM `res_7d` rows appear once those fits work, ~10-28).

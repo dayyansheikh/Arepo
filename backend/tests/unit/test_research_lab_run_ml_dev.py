@@ -338,3 +338,30 @@ def test_primary_run_lines_carry_evidence_role(e2e):
     assert any(x["evidence_role"] == "placebo" for x in lines)
     assert any(x["evidence_role"] == "exploratory_dev" for x in lines)
     assert "dep_group_econ" in rep["panel"]["k_clusters_labelled"]
+
+
+def test_progress_lines_are_valid_json_with_required_keys(capsys):
+    rmd.emit("unit_probe", fold=3, model="M0", phase="start")
+    rec = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
+    assert {"stage", "fold", "model", "elapsed_s", "rss_mb"} <= set(rec)
+    assert rec["stage"] == "unit_probe" and rec["rss_mb"] > 0
+
+
+def test_profile_folds_writes_no_trials_and_no_normal_outputs(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv(rmd.TEST_GATE_ENV, "19")
+    _write_world(tmp_path, 19)
+    assert rmd.main(_args(tmp_path, "--profile-folds", "1")) == 0
+    out = capsys.readouterr().out
+    assert not (tmp_path / "trials.jsonl").exists()
+    names = sorted(p.name for p in (tmp_path / "out").iterdir())
+    assert len(names) == 1 and names[0].startswith("profile_") and names[0].endswith(".json")
+    prof = json.loads((tmp_path / "out" / names[0]).read_text())
+    assert prof["kind"] == "ml_dev_profile" and prof["n_folds_run"] == 1
+    assert prof["peak_rss_mb"] > 0 and prof["stage_seconds"]
+    recs = [json.loads(x) for x in out.splitlines() if x.startswith("{")]
+    assert recs and all({"stage", "fold", "model", "elapsed_s", "rss_mb"} <= set(r) for r in recs)
+    stages = {r["stage"] for r in recs}
+    assert {"panel_load", "fold_plan_write", "fit", "lgb_train", "bootstrap", "shap_tree",
+            "write_profile"} <= stages
+    fit_models = {r["model"] for r in recs if r["stage"] == "fit"}
+    assert {"M0", "M1", "M2", "M3_eb"} <= fit_models

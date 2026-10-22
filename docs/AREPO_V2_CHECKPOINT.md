@@ -247,28 +247,29 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-22 10:45Z
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-22 16:30Z
 Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && git log --oneline -1'` = local tip.
 Host 2 OCPU / 11.4 GiB since the resize. data-dumps 33 / 40 GB cap: owner approval 8 (restore-tree clearing) is time-relevant.
 
-**Autopilot session 10-22 ~10:37Z (in progress):**
-- **LT7 reward-null ruling:** q0601b `common = true` -> challenger ruling **(B) with changes**
-  (`reviews/LT7_REWARD_NULL_RULING_2026-10-22.md`): null `clob_rewards` = unrewarded (`rewarded = 0`); listed-inactive = 0;
-  malformed/absent = NaN; counts split. Design amendment **13.6**, `LIVE_TESTS_7.md` sha256 840f4500 -> **31baf5e5…**; ledger
-  (1cf8ae54); registry (848c8c9b). The LT7 seal (117e9b45) is kept (LT8 pins it); code accepts it as predecessor.
-  **Code fix MERGED** (41a0bb4e; live_tests7.py sha256 2ee6a659…; re-check OK_WITH_NOTES,
-  `reviews/LT7_REWARD_NULL_FIX_RECHECK_2026-10-22.md`, 3d1981bb) and **deployed** 12:1xZ. q0601c (rewards probe) is in
-  jobs/, runs after MC1. **Next:** read q0601c's output against the PRE-DECLARED rules in that re-check file ((b)
-  `order_min_size` null > 5%, (c) within-day null/non-null switching > 5% of markets, (d) malformed > 5% -> back to the
-  challenger; (a) report only). If none fires, promote q0602 -> q0603 -> q0604 (drafts -> jobs, deploy), finishing before
-  10-28T03:30Z. LT8: its vendored LT7 functions are byte-identical after the fix (only the seal reader's design check
-  gained the predecessor rule); re-verify at LT8's freeze check.
-- **LT8:** embargo requests round 5 filed in `signal_engine/CANDIDATES.md` (c6e57a64; builder to apply). **Code phase 1
-  running** on `feat/live-tests-8-code` (worktree agent): vendor script, live_tests8_base/live_tests8 censuses, spec, tests,
-  drafts q0620-q0623 (+q0627 if specified). Then code freeze check (science-reviewer), merge.
-- **Creative round 14** running on `feat/creative-r14` (Fable xhigh): `CREATIVE_HYPOTHESES_2026-10-28.md`, CH212+, census-
-  survival brief. Then merge, CANDIDATES idea notes, LT9 proposal.
-- **MC1 q0116f** running since 07:42Z (RSS 6.2 GB at 3 h; timeout 6 h).
+**Autopilot session 10-22 ~15:59Z (in progress; state at 16:30Z):**
+- **Worktree caveat:** agent worktrees (isolation) start from the PRODUCTION tip (e1dfa8a5), not chore. Never merge such
+  branches into chore; cherry-pick the agent's own commits.
+- **LT7 (deadline: CC7/CS7 finish before 10-28T03:30Z):** probe rule (c) fired -> ruling (C) `listed_carry24h_v2`;
+  code on `feat/lt7-reward-carry` 64acdbc4 + 8dd013b9 (design 8fc83a73…, live_tests7.py e1c5c0c6…; fix 1 option (b));
+  re-check **OK_WITH_NOTES** (reviews/LT7_REWARD_CARRY_FIX_RECHECK_2026-10-22.md; 143 tests). **NOT yet on chore on
+  purpose:** q0602 CV7 (priority 97) must write `live_tests7_census/CV7.json` first (it records the design sha from disk
+  at write time). **Next:** when q0602 is `done`: cherry-pick 64acdbc4 and 8dd013b9 onto chore, run LT7 tests, deploy,
+  confirm host hashes (e1c5c0c6…, 8fc83a73…), promote q0603 (drafts, work_cc7_rn_v2), then q0604 after q0603.
+  Then ledger + registry. Notes for later (after the censuses): `_status_array` in `_reward_cols` no-carry branch.
+- **LT8:** fixes on `feat/live-tests-8-code` (2c932e07); implementer re-vendoring from LT7 8dd013b9 (fix 6) and
+  reporting LT8's reward handling. Then ask the reviewer (re-check of fixes 1-10 + whether LT8 adopts listed_carry24h_v2).
+- **MC1:** q0116f parked; q0116g one-fold profile promoted (priority 45, exclusive, 2 h).
+- **CB16-K:** q0393 audit sample promoted (priority 9). When done: science-reviewer blind audit on `audit_K_sample.json`
+  only (never the keys file), >= 90/100 genuine twins -> K may be designed in a later batch.
+- **CB7:** code on chore (75708661, 4cc77b64, 35a6fd33); q0146 PROMOTED + deployed. q0147: short re-check of fixes 3-8,
+  then promote at/after **10-24T01:00Z** after checking the 10-22..10-25 captures exist on the host.
+- **CB8-B:** q0165/q0166 queued. **CB9:** q0181 running; q0182 per reviews/CB9_H9_DEPENDENCY_RULING_2026-10-22.md after q0166.
+- **Creative round 14** (Fable xhigh) running on `feat/creative-r14` (chore-based: merge is fine).
 
 **Earlier this day (06:00Z):** q0561 LT5 census done (F/H/R dropped, c0700f8f); q0484 size check PASS -> **E022
 REGISTERED** (bf730c6f; reader cron `10-59/20` installed on the host 06:0xZ; q0486 analysis queued, not before 11-17T12Z);
@@ -343,7 +344,7 @@ equals its source (the test checks). Do not edit the LT5 spec while q0561/q0562 
 **Waiting:**
 - MC1: after the resize (item 4).
 - CB4 q0085 not before ~10-24T12Z. CB5 q0103b on or after 10-27, then q0106. CB3 freeze after q0064 (after 10-25).
-- Signal engine: live state in `signal_engine/STATUS.md` (10-22 ~11:00Z: embargo withdrawals after census drops (`event` released, `flow` 11-16, `rewards` 11-18 for E022 S2, LT6 tokens and `mm_fresh` withdrawn), LT8 round 5 applied (`book`/`book0` 2027-01-23); K 5 -> 7; science review ACCEPT_WITH_FIXES applied; refit q0512 delayed behind exclusive MC1; se-promotion-v2 in force).
+- Signal engine: live state in `signal_engine/STATUS.md` (10-22 ~16:40Z: refit q0512 and score q0513 had died at their virtual-memory caps; select_rows now copies the 900k-row frame once, caps re-measured (refit 3400/6000 MB, score as_cap 3000); refit OK 2,887 s / 2.9 GB incl. first fits of se14/15/17/18/19; day-2 leaderboard K 7, no promotion; /lab last-refit time now live; embargo table unchanged since the 12:00Z withdrawals).
 
 ## Learned surprise-move detector (2026-10-12 evening)
 `docs/research_lab/SURPRISE_MOVE_DETECTOR.md`. Labels fixed and logged before features (`surprise-labels-v1`,

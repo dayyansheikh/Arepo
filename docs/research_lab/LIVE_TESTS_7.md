@@ -1281,3 +1281,60 @@ not used for the verdict: the CH197 and CH192 primaries refit on units with list
 defined (for every market); the `rewarded x in_band` counts are reported. Gates, thresholds and MDE formulas are
 unchanged. Before CC7, a counts-only probe reports the share of listed programmes inactive on the capture day, the null
 share of `order_min_size`, and the share of markets switching between null and non-null `clob_rewards` within a UTC day.
+
+
+### 13.7 Challenger ruling on q0601c: within-day null/listed switching (2026-10-22; `reviews/LT7_REWARD_SWITCH_RULING_2026-10-22.md`; governs where earlier text and 13.6 differ)
+
+Amendment after the design-text freeze and after 13.6 (13.6 text sha256 `31baf5e5b5c1bec2518228618fc21ab7f111c0e673d6cb064583ce1363d20dd4`, now a
+declared predecessor), made before any LT7 census, from counts only (probe `seals/lt7_rewards_probe.json`, sha256 263413f2…; no price, target or
+outcome read). The pre-declared rule (c) of `reviews/LT7_REWARD_NULL_FIX_RECHECK_2026-10-22.md` fired: 30,543 of 258,393 market-days switch between
+null and non-null `clob_rewards` within a UTC day (0.118 > 0.05). Rules (b) 0.0012 and (d) 0 did not fire; (a) 0 (report only). One endpoint, one
+parameter set and one code path write the field (an absent key and a JSON null both give an empty cell), so the switching comes from Gamma's responses;
+about 3,000 switchers a day are about 30% of the roughly 9,700 listed markets per capture against a stable listed share (0.347-0.384) and a listed
+zero-rate share of 0/1,047,747. Gamma leaving the field out of a response is the likelier reading than a programme ending and restarting.
+
+**Rule `listed_carry24h_v2` (replaces `null_as_unrewarded_v1` for the primaries of CH197 and CH192; spec key `reward_null_rule`, `reward_carry_slots: 12`).**
+For a unit at origin capture k whose sidecar row is present and whose `clob_rewards` at k is null:
+
+- `rewarded_k = 1` if a LISTED `clob_rewards` text at any sealed capture in the causal window of 12 slots `[k-11, k]` gives a summed daily rate > 0 when
+  **re-parsed for the UTC day of k** (the capture's own day is never used for an earlier text). The latest such capture is the **source**.
+  Cross-day windows are allowed; the re-parse for day(k) is what keeps a programme that ended before day(k) from counting.
+- A slot of the window with no sealed capture is **skipped and counted, never filled** (`reward_window_slots_missing`, once per origin).
+  No slot later than k is read, stored or counted: the store holds, per slot <= k, the listed market_id -> raw `clob_rewards` string (with that capture's
+  `rewards_min_size` / `rewards_max_spread`), and is evicted below k-11.
+- A carried unit takes `rew_min` / `rew_maxspread` (hence `in_band`) and the wall-rule `rewards_min_size` from the **source capture**; every other control
+  and the unit's own `osz` are the origin capture's. A unit with no positive listed text in the window is `rewarded = 0` with the origin's parameters.
+- Unchanged: a listed text at k is parsed at k as before (listed-inactive stays 0, counted `rewards_listed_inactive`); a malformed cell or an absent
+  sidecar row stays NaN (excluded, counted); no earlier malformed text is read as listed. (Corrected by the 13.7 erratum below: the unit set can change through `in_band`.) Gates, thresholds and formulas are unchanged.
+
+**Counts (census output, descriptive).** `rewards_null_carried` and by lag in slots `_lag1`, `_lag2_3`, `_lag4_11`; `rewards_null_as_zero` (null at k with no
+listed capture in the window); `rewards_null_window_listed_inactive` (listed in the window, none positive for day(k): unrewarded); `carried_param_differs`
+(source `rew_min` / `rew_maxspread` differ from the k capture's); `reward_switch_markets_1` / `_ge2` (units whose market has exactly one / two or more
+null-listed transitions in the window); `reward_window_slots_missing`. **Sensitivity (descriptive, never the verdict, never a gate input):** the CH197
+and CH192 slope MDE under `null_as_unrewarded_v1` (k only) and under listed-only units (`reward_sensitivity_descriptive`).
+
+**Corrections to 13.6.** (i) The wall class is **CH193's** (6.A: small wall against `rewards_min_size` in a rewarded market or `order_min_size` in an
+unrewarded one), not CH192's: the 13.6 sentence naming CH192's wall class is read as CH193's. CH192 has no wall class. (ii) Where CH193 gets
+`rew_status` / `rew_min` / `osz`: `absorbed_units` (`live_tests7.py`) carried none. From 13.7 it carries, as bookkeeping columns of the CH193 unit frame
+only, `rew_status`, `rew_min` (after the carry, from the source capture of a carried unit), `osz` and `rew_carry_lag`, taken from the origin capture's
+series row. CH193 has no reward-based exclusion, control, count or gate; the wall class itself is a sweep-based secondary computed in the analysis
+(needs sweep 1 of pass k, outside CC7) and reads these columns.
+
+**Other conditions.** CS7's K-slot set and its look-backs already contain the carry window `[k-11, k]` of each 12:31Z origin (the extra
+`cs7_slots` clause is a no-op in practice); CC7's sets already contain it too. Gates, thresholds and formulas unchanged. No further probe; diagnostics are reported in the census output only. Each census runs once, finishing
+before 2026-10-28T03:30Z. CV7 reads no reward field and keeps design sha256 `31baf5e5…`; CC7 and CS7 record this amendment's sha256 (the split is
+disclosed in the ledger). Not verified: Gamma's semantics of field omission; whether `rewards_min_size` / `rewards_max_spread` at null captures equal the
+listed values (`carried_param_differs` measures it); flips across UTC days beyond what the window counts show; whether the restore trees cover the
+12-slot window for the first CC7 / CS7 origins (missing slots are counted).
+
+**13.7 erratum, 2026-10-22 (census-code re-check of commit 64acdbc4, before any census; the pre-erratum text sha256 `575eb1dd…` is a declared predecessor).**
+(1) The sentence "unit counts do not change" was too strong. Units are kept only if `rewarded` and `in_band` are finite, and `in_band` uses the
+`rewards_max_spread` of the source capture of a carried unit: a unit can ENTER (NaN with the origin capture's own value, finite with the source's) or DROP
+(finite at the origin, NaN at the source). The unit set, `covered_share`, the units gate and the MDE inputs can therefore move. The rule is not changed; the
+census output counts both (`in_band_known_only_via_carry`, `in_band_lost_via_carry`, per census in the CH197 and CH192 counts) and the gates read the units
+as they stand. (2) CH197's F-feasibility pairs (pass j with pass j+13) use the **k-only (v1) `rewarded` and `in_band`** of the origin capture, not the
+carry: their windows `[j-11, j]` are not all sealed (slots 156-161 are not in the LT7 seal) and 12 of the 22 pair slots lie outside CS7's K set, so a
+carried value would depend on which slots happen to be loaded. Pair units still require a finite `rewarded` and `in_band`; the primary CH197 units keep the
+carry. (3) A series frame without the raw reward text but with listed rows is refused (no silent non-carry). (4) Descriptive outputs: the "v1" sensitivity is
+the v1 `rewarded` on the v2 unit set (v2 `in_band` and standardisation); a market-deduplicated switching count (`reward_switch_distinct_markets`) is added to
+the per-unit one. Gates, thresholds and formulas unchanged.

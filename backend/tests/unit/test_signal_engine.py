@@ -369,6 +369,52 @@ def test_late_predictions_are_excluded(env, monkeypatch):
     assert agg.m[("dir_6h", "champ", day)]["n"] == _n_elig(paths, 23, "dir_6h")  # still on time for the 6h target
 
 
+def test_market_price_reference_scores_res_7d_from_the_origin_mid(env, monkeypatch):
+    w, paths = env
+    w.run(24)
+    build_all(paths)
+    reg = SP.load_registry(paths.spec_dir)
+    fit_time = S.slot_time(SLOT0 + 23) - 1800
+    t_pred = S.slot_time(SLOT0 + 23) + 900
+    # every res-eligible market of the window resolves (y ~ Bernoulli(mid)); fetched before the fit, closed after
+    # the prediction, so the champion has a res_7d fit and capture 23's prediction is on time
+    idx = S.load_index(paths)
+    f23 = S.read_parquet(paths.features(idx[SLOT0 + 23]["capture_id"]))
+    e23 = (L.elig_mask(f23, SLOT0 + 23, S.epoch(idx[SLOT0 + 23]["started_utc"])) & C.ELIG_BITS[C.RES_TARGET]) > 0
+    assert e23.sum() > 20
+    rng = np.random.default_rng(3)
+    yv = {int(i): int(rng.random() < p) for i, p in zip(f23["market_id"], f23["ms_mid"].astype(float), strict=True)}
+    S.append_log(paths, "resolutions", [{"market_id": i, "state": "resolved", "y": v, "closed_time": S.iso(t_pred + 3600),
+                                         "fetched_utc": S.iso(fit_time - 60)} for i, v in yv.items()], at=fit_time - 60)
+    out = T.refit_all(paths, reg, fit_time, now=fit_time)
+    assert out["summary"]["models"]["champ"]["targets"][C.RES_TARGET]["status"] == "ok"
+    _clock(monkeypatch, t_pred)
+    P.run_predict(paths, reg, now=t_pred, max_items=10)
+    now = t_pred + 86400
+    agg, _ = SC.score_prospective(paths, reg, "champ", now)
+    lb = SC.leaderboard(agg, reg, "champ", now, role="prospective_engine")
+    ref = [x for x in lb["rows"] if x["model_id"] == SC.REF_MODEL and x["window_days"] == 7]
+    assert len(ref) == 1 and ref[0]["role"] == "reference" and ref[0]["target"] == C.RES_TARGET
+    ids, mids = f23["market_id"].to_numpy()[e23], f23["ms_mid"].to_numpy(np.float64)[e23]
+    y = np.array([yv[int(i)] for i in ids])
+    pp = np.clip(mids, C.P_CLIP, 1 - C.P_CLIP)
+    ll_ref = -(y * np.log(pp) + (1 - y) * np.log(1 - pp))
+    assert ref[0]["n"] == len(ids) and ref[0]["coverage"] == 1.0
+    assert ref[0]["log_loss"] == pytest.approx(ll_ref.mean(), abs=1e-12)
+    ch = [x for x in lb["rows"] if x["model_id"] == "champ" and x["target"] == C.RES_TARGET and x["window_days"] == 7][0]
+    g = ch["gain_vs_market_mid"]
+    assert ch["n"] == len(ids) and g["mean"] == pytest.approx(ll_ref.mean() - ch["log_loss"], abs=1e-9)
+    assert ref[0]["gain_vs_champion"]["mean"] == pytest.approx(-g["mean"], abs=1e-12) and g["n_clusters"] > 1
+    assert not [x for x in lb["rows"] if x.get("target") != C.RES_TARGET and "gain_vs_market_mid" in x]
+    # the reference is not a model: never a promotion candidate, never in the family-gain series
+    assert SC.REF_MODEL not in reg["models"]
+    dash = D.build(paths, reg, "champ", now, lb)
+    drow = [x for x in dash["prospective"]["rows"] if x["model_id"] == "champ" and x.get("target") == C.RES_TARGET]
+    assert drow and drow[0]["gain_vs_mid"] == pytest.approx(SC.gain(agg, C.RES_TARGET, "champ" + SC.REF_PAIR, 14)["mean"])
+    assert [x["role"] for x in dash["prospective"]["rows"] if x["model_id"] == SC.REF_MODEL] == ["reference"]
+    assert not [x for x in dash["family_gains"] if x["model_id"] == SC.REF_MODEL]
+
+
 def test_predict_refuses_when_every_target_started(env, monkeypatch):
     w, paths = env
     w.run(24)
@@ -1256,6 +1302,26 @@ def test_lab_host_signal_engine_section_strips_embargoed_numbers(tmp_path):
     assert lab.build_signal_engine(tmp_path / "none", now) is None
 
 
+def test_lab_host_signal_engine_refreshes_last_refit_from_live_logs(tmp_path):
+    """dashboard.json is rewritten only by the daily score; the 10-minute push re-reads the fit/prediction logs."""
+    lab = _lab_host()
+    d = tmp_path / "data-dumps" / "research_lab" / "signal_engine"
+    d.mkdir(parents=True)
+    dash = {"schema": "se-dash-v1", "generated_at": "2026-10-25T06:00:00Z", "champion": {"model_id": "c"},
+            "last_refit": {"at": "2026-10-23T11:34:00Z", "models": 3, "targets_ok": 9}}
+    (d / "dashboard.json").write_text(json.dumps(dash))
+    now = pd.Timestamp("2026-10-25T07:00:00Z").to_pydatetime()
+    assert lab.build_signal_engine(tmp_path, now)["last_refit"]["at"] == "2026-10-23T11:34:00Z"  # no logs: file value
+    paths = S.Paths(engine=d)
+    t = now.timestamp() - 3600
+    S.append_log(paths, "fits", [{"model_id": m, "fit_time": S.iso(t - 600), "targets": {"dir_2h": {"status": "ok"}}}
+                                 for m in ("c", "x")], at=t)
+    S.append_log(paths, "predictions", [{"capture_id": "cap1", "model_id": m, "written_utc": S.iso(t)} for m in ("c", "x")], at=t)
+    se = lab.build_signal_engine(tmp_path, now)
+    assert se["last_refit"] == {"at": "2026-10-25T05:50:00Z", "models": 2, "targets_ok": 2}
+    assert se["last_prediction"] == {"capture_id": "cap1", "at": "2026-10-25T06:00:00Z", "models": 2}
+
+
 def test_gzip_quotes_reader_for_xvenue(tmp_path):
     xv = tmp_path / "xv"
     xv.mkdir()
@@ -1332,3 +1398,29 @@ def test_dashboard_promotion_block_compacts_checks_and_skips_embargoed():
     assert a["eligible"] and a["ineligible_since"] is None  # older decisions without the key read as eligible
     assert b["eligible"] is False and b["ineligible_since"] == "2026-10-22T00:50:00Z"
     assert out["min_days"] == 14 and D._promotion(None, {}) is None
+
+
+def test_select_rows_matches_the_pre_2026_10_22_two_copy_version():
+    """select_rows indexes before copying (refit address-space fix); the rows and their order must not change."""
+    rng = np.random.default_rng(7)
+    n = 5000
+    fr = pd.DataFrame({"otime": rng.uniform(0, 20 * 86400.0, n), "y_dir_2h": rng.integers(-1, 3, n).astype(np.int8),
+                       "y_res_7d": rng.integers(-1, 2, n).astype(np.int8), "src_flow": rng.random(n) < 0.7,
+                       "x": rng.random(n).astype(np.float32)}, index=pd.RangeIndex(100, 100 + n))
+
+    def old(frame, spec, target, fit_time):
+        tr = spec["train"]
+        wd = tr["res_window_days"] if target == C.RES_TARGET else tr["window_days"]
+        m = (frame[f"y_{target}"].to_numpy() >= 0) & (frame["otime"].to_numpy(float) >= fit_time - wd * 86400.0)
+        for fam in tr["require_sources"]:
+            m &= frame[f"src_{fam}"].to_numpy(bool)
+        sub = frame[m]
+        if len(sub) > tr["max_rows"]:
+            sub = sub.iloc[np.sort(T._rng(spec["model_id"], target, fit_time).choice(len(sub), tr["max_rows"], replace=False))]
+        return sub.reset_index(drop=True)
+
+    for max_rows, req in ((100_000, []), (900, []), (700, ["flow"])):
+        spec = {"model_id": "seX", "train": {"window_days": 14, "res_window_days": 28, "max_rows": max_rows, "require_sources": req}}
+        for target in ("dir_2h", C.RES_TARGET):
+            got = T.select_rows(fr, spec, target, 20 * 86400.0)
+            pd.testing.assert_frame_equal(got, old(fr, spec, target, 20 * 86400.0))

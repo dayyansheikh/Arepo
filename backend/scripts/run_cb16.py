@@ -9,7 +9,8 @@ Q, U and K need NO network (host files only). Two jobs touch the network: exclus
     python scripts/run_cb16.py exclusion-keys                     # q0380 (CB15 q0340 key file sha256 pin MANDATORY; per-key source attribution)
     python scripts/run_cb16.py q-grain-census                     # q0382: CB13-T SCREEN raw files, features only; gate GQG
     python scripts/run_cb16.py k-census                           # q0383: counts only, no outcome, no price; heavy (1.2 GB), run alone
-    python scripts/run_cb16.py a-frame --window screen|rep        # q0384 / q0387: fill table (features only); rep adds the raw mark-quote table and the sha256 seal
+    python scripts/run_cb16.py k-audit-sample                     # q0393: 100 PRESENT-TOPIC pairs (seed 16141); titles + dates for the auditor, ids in a separate key file; needs census_K.json
+    python scripts/run_cb16.py a-frame --window screen|rep       # q0384 / q0387: fill table (features only); rep adds the raw mark-quote table and the sha256 seal
     python scripts/run_cb16.py census --family A                  # q0385: counts only; gates GQ, GU, GQP, GUP
     python scripts/run_cb16.py screen --family A                  # q0386: Q1 and U1 (refuses before the part-A freeze, E011's analysis commit and CB3's freeze or stop record)
     python scripts/run_cb16.py rep --family A                     # q0388: Q1-rep, Q2, U1-rep, U2 (triggered tests only; verifies the SCREEN_A results copy and the REP_A seal)
@@ -461,6 +462,28 @@ def cmd_k_census(a):
     return 0, {"status": "census_K_complete", "written": str(out), "re_entry": block["re_entry"]["verdict"]}
 
 
+@_guarded
+def cmd_k_audit_sample(a):
+    from astrolabe.research_lab import cb16_k_audit as ka  # noqa: PLC0415
+
+    c16 = _c16()
+    shas = {"common": _rules(a, "common"), "K": _rules(a, "K")}
+    _require_smoke(a, "K")
+    root = _root(a)
+    cpath = Path(a.census) if a.census else root / "census_K.json"
+    if not cpath.exists():
+        raise c16.Refused(f"{cpath.name} missing (q0383 first); the audit is not drawn without the census")
+    c16.require_disk(_data_dumps(a), a.data_dumps_cap_gb, int(a.disk_cap_gb * 1024**3))
+    census_sha = hashlib.sha256(cpath.read_bytes()).hexdigest()
+    census = json.loads(cpath.read_text())
+    if census.get("rules_sha256") != shas:
+        raise c16.Refused("census_K.json was written under different rules part hashes")
+    res = ka.sample_run(_cross_venue(a), census, census_sha, Path(a.out_dir) if a.out_dir else root)
+    c16.log_descriptive("audit_K_sample", {"manifest_sha256": res["manifest_sha256"], "sample_sha256": res["sample_sha256"], "keys_sha256": res["keys_sha256"], "n_drawn": res["n_drawn"],
+                                           "n_present_topic_pairs": res["n_present_topic_pairs"]}, trials_path=_tp(a), role=c16.EVIDENCE_ROLE_HIST)
+    return 0, {"status": "audit_K_sample_complete", **res}
+
+
 # ---- q0384 / q0387 frames ----------------------------------------------------------------------------------------------------------------------------
 
 
@@ -874,6 +897,14 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--keys", default=None)
     q.add_argument("--smoke", default=None)
     q.set_defaults(fn=cmd_k_census)
+
+    q = sub.add_parser("k-audit-sample", help="q0393 (heavy: run alone)")
+    common(q)
+    disk(q, disk_cap=0.005)
+    q.add_argument("--census", default=None)
+    q.add_argument("--out-dir", default=None)
+    q.add_argument("--smoke", default=None)
+    q.set_defaults(fn=cmd_k_audit_sample)
 
     q = sub.add_parser("a-frame", help="q0384 / q0387")
     common(q)

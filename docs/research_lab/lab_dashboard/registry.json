@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-22T11:15Z",
+ "updated": "2026-10-22T20:55:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1393,7 +1393,7 @@
   {
    "id": "CB16",
    "title": "Quoter price grain; large-print silence",
-   "plain": "Designed from round 7: whether fills at sub-cent prices (typical of automated quoters) lose less to informed traders than round-cent fills, and whether the first large trade after a long quiet spell in an active market carries information. The price-grain part could not be tested: only 7 markets had fills at both price grains. The quiet-spell part continues.",
+   "plain": "Designed from round 7: whether sub-cent fills (typical of automated quoters) lose less to informed traders, and whether the first large trade after a quiet spell carries information. The price-grain part could not be tested (only 7 markets qualified). The quiet-spell part continues. A cross-venue twin-market idea was dropped as not testable: a blind check found only 3 of 100 sampled pairs were true twins (90 needed).",
    "batch": "CB16",
    "family": "mixed",
    "stage": "designed",
@@ -1404,7 +1404,7 @@
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § q0273 CB13-T screen and q0382 CB16-Q grain census, 2026-10-19"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB16-K blind twin audit, 2026-10-22"
    },
    "stage_results": {
     "designed": "pending"
@@ -1583,18 +1583,18 @@
   {
    "id": "LT7",
    "title": "Live tests 7: five ideas from round 12 (planned)",
-   "plain": "Up to five planned live tests from new-ideas round 12: book depth on the side a move hit, slow grinds versus jumps, deep orders behind the best price, trading with no price move, and spreads versus later moves. The design and the counting code passed independent checks (22 Oct). On 22 Oct a reviewer ruled that markets with no listed reward programme count as unrewarded instead of being dropped; the design text was amended and the counting code is being fixed before the counting checks run. Honest planning says most may fail their counting checks.",
+   "plain": "Up to five planned live tests from new-ideas round 12: book depth on the side a move hit, slow grinds versus jumps, deep orders behind the best price, trading with no price move, and spreads versus later moves. Design and counting code passed independent checks. A market counts as rewarded if listed at any capture in the previous 24 hours. Counting checks run before 28 Oct; most may fail them.",
    "batch": "LT7",
    "family": "mixed",
    "stage": "designed",
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Reward-field fix and re-check, then counting checks (before 28 Oct); collection not before 8 Dec 2026",
+   "next": "Counting checks CC7 and CS7 queued (22 Oct, must finish before 28 Oct); collection not before 8 Dec 2026",
    "next_date": "2026-12-08",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT6 seal committed, LT7 census code verified and merged, census jobs promoted (2026-10-22)"
+    "verdict": "docs/research_lab/reviews/LT7_REWARD_SWITCH_RULING_2026-10-22.md; EXPERIMENT_LEDGER.md (2026-10-22)"
    },
    "stage_results": {
     "designed": "pending"

@@ -37,11 +37,11 @@
  "max_retries": 3,
  "repeat": {
   "max_runs": 4,
-  "until_log_regex": "\"status\": \"xv_prints_complete\""
+  "until_log_regex": "\"status\": \"(xv_prints_complete|disk_budget)\"|\"refused\""
  },
  "outputs": [
   "data-dumps/research_lab/creative_batch7/xv_prints/{prints/,days.csv.gz,progress.jsonl,manifest.json}"
  ],
  "next_action": "q0147",
- "notes": "CREATIVE_BATCH_7.md CB7-X. DRAFT. Commit after T_seal (rows all predate 2026-09, so it is not T_seal-bound; waiting keeps the net lane free for the T_seal-bound fetches). About 8k requests, about 40 min at 4 rps. Stored columns: pair key, ts, side mapped to YES terms (+1 ask-side, -1 bid-side), YES price, size; no wallet. Never opens cross_venue_live/. No target is computed by the fetcher. | 2026-10-17 15:35Z autopilot: data-dumps headroom guard 12.5 -> 40 GiB (ops only, not a declared argument): the user grew the host boot volume to 100 GB (root 89 GB, 60 GB free); collector cap 45 GiB, 4 GB free-disk guard unchanged."
+ "notes": "CREATIVE_BATCH_7.md CB7-X. DRAFT. Commit after T_seal (rows all predate 2026-09, so it is not T_seal-bound; waiting keeps the net lane free for the T_seal-bound fetches). About 8k requests, about 40 min at 4 rps. Stored columns: pair key, ts, side mapped to YES terms (+1 ask-side, -1 bid-side), YES price, size; no wallet. Never opens cross_venue_live/. No target is computed by the fetcher. | 2026-10-17 15:35Z autopilot: data-dumps headroom guard 12.5 -> 40 GiB (ops only, not a declared argument): the user grew the host boot volume to 100 GB (root 89 GB, 60 GB free); collector cap 45 GiB, 4 GB free-disk guard unchanged. | 2026-10-22 ~18:30Z autopilot: PROMOTED after the code freeze check (reviews/CB7_CODE_FREEZE_CHECK_2026-10-22.md: GO_WITH_CONDITIONS; items 1-2 fixed in 4cc77b64/35a6fd33)."
 }

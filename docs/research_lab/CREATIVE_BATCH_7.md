@@ -1106,6 +1106,21 @@ print window uses Gamma `endDate` while the inside-life check used the recorded 
 window outside the life); `n_gamma_failed` is always 0; the v1 overlap is re-derived against today's Gamma data.
 q0142/q0143 are promoted only after a q0140b PASS; a v2 FAIL is final.
 
+### q0146 / q0147 recorded readings (2026-10-22, freeze check of d47d0031)
+
+Recorded before the census; no threshold, floor, gate, window or formula changes.
+- **Reading 1 (Kalshi mid).** The mid at a minute end `tau` comes from the latest candle with `end_ts <= tau` and age <= 300 s, and that
+  candle must itself be valid (`0 < bid < ask < 1`, spread <= 10c, mid in [0.03, 0.97]). There is no fall-back to an older valid candle.
+  This is stricter than the study's as-of-valid-series rule and lowers the S counts (conservative). Move events are evaluated at every minute
+  end between the first and the last candle; the census reports how many of those minute ends have no candle stamped exactly there.
+- **Reading 13 (`h_geo`).** The geopolitics set is `rows_ext.fee_category == "geopolitics"` only (capture rows carry no question), which is
+  narrower than the §2.1 rule (`fee_category` or `topic_of`). The binding `h_geo` is the larger of the pooled median half-spread over
+  (market, capture) observations and the median of per-market medians (first row per market per capture; two-sided quote; YES mid in
+  [0.02, 0.10]; complete captures with a complete sidecar whose start lies in [2026-10-22T00:00Z, 2026-10-25T00:00Z)). The census refuses if
+  no such capture or no geopolitics id exists.
+- **Ops note (headroom).** q0146 runs with the data-dumps headroom guard at 40 GiB (ops argument, not a declared design parameter), as
+  recorded in its draft notes on 2026-10-17; the other CB7 data jobs keep 12.5 GiB (section 2.8).
+
 ## CB7 fetch results (q0142, q0143), recorded 2026-10-17 by the autopilot (counts only; no outcome read)
 
 Both fetches finished `complete` with 0 failed items and 0 failed windows, before `T_seal`. Outcomes sit unread in

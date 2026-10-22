@@ -521,6 +521,90 @@ def peak_rss_mb() -> float:
 
 
 # ---------------------------------------------------------------------------------------------
+# Progress / timing instrumentation (MC1 timing). Output only: no model, panel or gate logic.
+# ---------------------------------------------------------------------------------------------
+
+_T_START = time.perf_counter()
+_EVENTS: list[dict] = []
+_RSS_PEAK = [0.0]
+
+
+def current_rss_mb() -> float:
+    """Resident set size now: VmRSS from /proc/self/status (Linux), else getrusage peak."""
+    try:
+        with open("/proc/self/status", encoding="ascii") as fh:
+            for line in fh:
+                if line.startswith("VmRSS:"):
+                    return int(line.split()[1]) / 1024.0
+    except (OSError, ValueError, IndexError):
+        pass
+    return peak_rss_mb()
+
+
+def emit(stage: str, *, fold=None, model=None, phase=None, **extra) -> dict:
+    """One flushed JSON progress line on stdout (also kept for the --profile-folds report)."""
+    rss = round(current_rss_mb(), 1)
+    _RSS_PEAK[0] = max(_RSS_PEAK[0], rss)
+    rec = {"stage": stage, "fold": fold, "model": model,
+           "elapsed_s": round(time.perf_counter() - _T_START, 2), "rss_mb": rss}
+    if phase is not None:
+        rec["phase"] = phase
+    rec.update(extra)
+    _EVENTS.append(rec)
+    print(json.dumps(rec, default=_jsonable), flush=True)
+    return rec
+
+
+@contextlib.contextmanager
+def stage(name: str, *, fold=None, model=None, **extra):
+    t = time.perf_counter()
+    emit(name, fold=fold, model=model, phase="start", **extra)
+    try:
+        yield
+    finally:
+        emit(name, fold=fold, model=model, phase="end",
+             stage_s=round(time.perf_counter() - t, 2), **extra)
+
+
+@contextlib.contextmanager
+def instrument_models(mm):
+    """Wrap fit_fold, lightgbm.train, tree_shap and score_arms with pass-through progress lines."""
+    import lightgbm as lgb
+
+    state = {"arm": None, "fold": None, "n": 0}
+    n_grid = len(getattr(mm, "LGB_GRID", ()))
+    orig_fit, orig_train = mm.fit_fold, lgb.train
+    orig_shap, orig_score = mm.tree_shap, mm.score_arms
+
+    def fit_fold(arm, df, fold, *a, **kw):
+        state.update(arm=arm, fold=fold.get("fold"), n=0)
+        with stage("fit", fold=state["fold"], model=arm):
+            return orig_fit(arm, df, fold, *a, **kw)
+
+    def train(*a, **kw):
+        state["n"] += 1
+        n = state["n"]
+        label = f"lgb_cfg{n}" if n <= n_grid else "lgb_refit"
+        with stage("lgb_train", fold=state["fold"], model=f"{state['arm']}:{label}"):
+            return orig_train(*a, **kw)
+
+    def tree_shap(*a, **kw):
+        with stage("shap_tree", fold=state["fold"], model=state["arm"]):
+            return orig_shap(*a, **kw)
+
+    def score_arms(*a, **kw):
+        with stage("bootstrap"):
+            return orig_score(*a, **kw)
+
+    mm.fit_fold, lgb.train, mm.tree_shap, mm.score_arms = fit_fold, train, tree_shap, score_arms
+    try:
+        yield
+    finally:
+        mm.fit_fold, lgb.train, mm.tree_shap, mm.score_arms = (
+            orig_fit, orig_train, orig_shap, orig_score)
+
+
+# ---------------------------------------------------------------------------------------------
 # Dry run: builds the panel and folds; fits nothing, logs nothing
 # ---------------------------------------------------------------------------------------------
 
@@ -811,11 +895,36 @@ def accounting(results: dict, probes: dict, trials_before: int, trials_path: Pat
             "trial_lines_written": after - trials_before}
 
 
+def resume_identity(args, man: dict, panel_h: str) -> dict:
+    """What must be equal across slices: fold plan, panel, code and argv (budget/dir excluded)."""
+    from astrolabe.research_lab import ml_resume
+
+    here = Path(__file__).resolve()
+    rl = here.parents[1] / "astrolabe" / "research_lab"
+    files = {"run_ml_dev.py": here, "ml_models.py": rl / "ml_models.py",
+             "ml_panel.py": rl / "ml_panel.py", "ml_resume.py": rl / "ml_resume.py"}
+    return {"fold_manifest_sha256": man["manifest_sha256"], "panel_hash": panel_h,
+            "code_sha256": {k: ml_resume.file_sha256(v) for k, v in files.items()},
+            "argv": ml_resume.normalise_argv(list(getattr(args, "argv", []) or []))}
+
+
 def real_run(args, caps, gate, policy) -> dict:
     from astrolabe.research_lab import ml_models as mm
-    from astrolabe.research_lab import ml_panel, provenance
+    from astrolabe.research_lab import ml_panel, ml_resume, provenance
 
     t0 = time.perf_counter()
+    profile = getattr(args, "profile_folds", None)
+    if profile is not None:
+        extra_f = list(getattr(args, "families_extra", []) or [])
+        if (extra_f or getattr(args, "target", "direction") != "direction"
+                or int(getattr(args, "horizon", 1)) != 1):
+            raise SystemExit("--profile-folds supports only the primary direction/h1 run")
+    resume = getattr(args, "resume_dir", None)
+    if resume is not None and (profile is not None or getattr(args, "families_extra", None)
+                               or getattr(args, "target", "direction") != "direction"
+                               or int(getattr(args, "horizon", 1)) != 1):
+        raise SystemExit("--resume-dir supports only the primary direction/h1 market_state run")
+    emit("run_start", phase="start", profile_folds=profile)
     run_ids = set(gate["run_capture_ids"])
     run_caps = [c for c in caps if c["capture_id"] in run_ids]
     sweeps, sweep_report = usable_sweeps(args.sweep_root, run_caps)
@@ -824,10 +933,12 @@ def real_run(args, caps, gate, policy) -> dict:
     direct = not extra and target == "direction" and horizon == 1
     # direct path: only the slim columns (fold plan, summary) are read whole; the labelled frame
     # is then streamed column by column straight from the parquet (see read_labelled_panel)
-    df, counts, h, cdir, cached = get_panel(run_caps, sweeps, policy, args.delta,
-                                            args.cache_root, args.rebuild, with_leak=True,
-                                            link_frame=getattr(args, "link_frame", None),
-                                            columns=DRY_COLUMNS if direct else None)
+    with stage("panel_load"):
+        df, counts, h, cdir, cached = get_panel(run_caps, sweeps, policy, args.delta,
+                                                args.cache_root, args.rebuild, with_leak=True,
+                                                link_frame=getattr(args, "link_frame", None),
+                                                columns=DRY_COLUMNS if direct else None)
+    emit("panel_cache", phase="info", cache_hit=bool(cached), panel_hash=h[:12])
     join_report = None
     if extra:  # exploratory flow/wallet families: joined after the cached MC1 panel
         df, join_report = ml_panel.add_flow_wallet_columns(
@@ -841,15 +952,34 @@ def real_run(args, caps, gate, policy) -> dict:
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    resume = getattr(args, "resume_dir", None)
+    store = None
+    if resume is not None:
+        store = ml_resume.UnitStore(
+            resume, resume_identity(args, man, h),
+            budget_s=getattr(args, "time_budget_s", None), clock_start=_T_START)
+        store.open(stamp)
+        stamp = store.stamp  # stable across slices: one fold manifest, one set of output names
+        store.begin_slice()
+        mm.UNIT_STORE = store
+        emit("resume_open", phase="info", fresh=store.fresh, resume_dir=str(resume),
+             slices_so_far=json.loads((Path(resume) / ml_resume.PROGRESS).read_text())["slices"])
     stem = f"ml_dev_{stamp}_{man['manifest_sha256'][:8]}"
     # the manifest is written (and hashed) before any fit
-    (out_dir / f"{stem}_fold_manifest.json").write_text(
-        json.dumps(_clean(man), indent=1, default=_jsonable))
+    with stage("fold_plan_write"):
+        if profile is None:
+            if store is None or store.fresh:  # a resumed slice keeps the first slice's file
+                (out_dir / f"{stem}_fold_manifest.json").write_text(
+                    json.dumps(_clean(man), indent=1, default=_jsonable))
+        else:  # measurement run: nothing under the normal names; first N folds only
+            man = {**man, "folds": man["folds"][:int(profile)]}
     # pure summary of the full panel, computed now so the full frame can be freed before the fits
     pq_path = cdir / "panel.parquet"
-    panel_sum = panel_summary(df[[c for c in DRY_COLUMNS if c in df.columns]].copy(),
-                              feature_nan_rates(pq_path, ml_panel.EXTENDED_NAMES))
-    lab = read_labelled_panel(pq_path, exclude_prefix=LEAK_PREFIX)  # leak_* only for the placebo
+    with stage("panel_summary"):
+        panel_sum = panel_summary(df[[c for c in DRY_COLUMNS if c in df.columns]].copy(),
+                                  feature_nan_rates(pq_path, ml_panel.EXTENDED_NAMES))
+    with stage("labelled_panel_read"):
+        lab = read_labelled_panel(pq_path, exclude_prefix=LEAK_PREFIX)  # leak_* only: placebo
     del df
     trials_path = Path(args.trials_path)
     before = _count_lines(trials_path)
@@ -857,6 +987,10 @@ def real_run(args, caps, gate, policy) -> dict:
     sink = mm.TrialSink(dataset=f"ml_dev panel {h[:12]}", path=trials_path,
                         extra={"gate_overridden": True} if overridden else {},
                         evidence_role=EVIDENCE_ROLE)
+    if profile is not None:
+        sink = _null_sink(mm, sink)
+    elif store is not None:  # trial lines only at the final completion, never per slice
+        sink = make_buffer_sink(mm, sink)
     # M1/M2 use the sweep (a11) features, so the sweep-gap diagnostic is mandatory
     sweep_used = bool(len(lab) and lab[list(ml_panel.SWEEP_NAMES)].notna().any().any()
                       and lab["rep_sw_gap"].notna().any())
@@ -864,21 +998,42 @@ def real_run(args, caps, gate, policy) -> dict:
         raise SystemExit("REFUSED: no sweep features / sweep-minus-Gamma gap in the labelled "
                          "panel, but the sweep-gap diagnostic is mandatory for M1/M2")
 
-    results = mm.run_arms(lab, man, mm.ARM_NAMES, sink=sink, collect_shap=True)
-    clusters = mm.cluster_vectors(lab, lab["dep_group"].to_numpy())
-    add_sensitivity_clusters(clusters, lab)
-    score = mm.score_arms(lab, results, clusters, sink=sink, manifest=man)
-    shap = mm.summarize_shap(lab, results["M2"])
+    with instrument_models(mm):
+        with stage("run_arms"):
+            results = mm.run_arms(lab, man, mm.ARM_NAMES, sink=sink, collect_shap=True)
+        clusters = mm.cluster_vectors(lab, lab["dep_group"].to_numpy())
+        add_sensitivity_clusters(clusters, lab)
+        score = mm.score_arms(lab, results, clusters, sink=sink, manifest=man)
+        with stage("shap_summary"):
+            shap = mm.summarize_shap(lab, results["M2"])
 
-    diag = run_gap_diagnostics(lab, man, results, sink)
-    probe_results = diag.pop("fits")
-    diag["gap_placebo_vs_M0"] = mm.score_arms(
-        lab, {"M0": results["M0"], "M0_gap_placebo": probe_results["M0_gap_placebo"]},
-        clusters, sink=sink, manifest=man)
-    no_sweep = run_no_sweep_sensitivity(lab, man, results, clusters, sink)
-    placebos = run_placebos(
-        lab, man, results, clusters, sink,
-        leak_loader=lambda cols: read_labelled_panel(pq_path, columns=cols))
+        with stage("gap_diagnostics"):
+            diag = run_gap_diagnostics(lab, man, results, sink)
+        probe_results = diag.pop("fits")
+        diag["gap_placebo_vs_M0"] = mm.score_arms(
+            lab, {"M0": results["M0"], "M0_gap_placebo": probe_results["M0_gap_placebo"]},
+            clusters, sink=sink, manifest=man)
+        with stage("no_sweep_sensitivity"):
+            no_sweep = run_no_sweep_sensitivity(lab, man, results, clusters, sink)
+        with stage("placebos"):
+            placebos = run_placebos(
+                lab, man, results, clusters, sink,
+                leak_loader=lambda cols: read_labelled_panel(pq_path, columns=cols))
+    if profile is not None:
+        return write_profile(out_dir, h, cached, man, int(profile), t0)
+    if store is not None:
+        marker = store.trials_marker()
+        if marker is not None and marker.get("status") != "done":
+            raise SystemExit("REFUSED: a previous slice began writing the trials lines and did "
+                             "not finish; inspect trials.jsonl and the resume dir by hand")
+        if marker is None:
+            store.write_trials_marker({"status": "started", "trial_lines_before": before})
+            n_flushed = sink.flush()
+            store.write_trials_marker({"status": "done", "trial_lines_before": before,
+                                       "lines_flushed": n_flushed})
+            emit("trials_flushed", phase="info", lines=n_flushed)
+        else:  # defensive: flushed by an earlier completion attempt; never duplicate
+            before = int(marker["trial_lines_before"])
     report = {
         "placebos": placebos, "no_sweep_sensitivity": no_sweep,
         "gate_overridden": overridden,
@@ -902,10 +1057,83 @@ def real_run(args, caps, gate, policy) -> dict:
     }
     report = _clean(report)
     jp, mp = out_dir / f"{stem}.json", out_dir / f"{stem}.md"
-    jp.write_text(json.dumps(report, indent=1, default=_jsonable))
-    mp.write_text(render_md(report))
+    with stage("write_outputs"):
+        jp.write_text(json.dumps(report, indent=1, default=_jsonable))
+        mp.write_text(render_md(report))
     report["_paths"] = [str(jp), str(mp)]
+    if store is not None:
+        store.mark_complete(report["_paths"])
     return report
+
+
+def make_buffer_sink(mm, like):
+    """Sink that holds trial lines in memory until the run's final completion (``--resume-dir``).
+
+    ``dataclasses.replace`` (placebo role) shares the buffer, and every entry keeps its own
+    role, so ``flush`` writes the same lines, in the same order, as the unbuffered sink would.
+    """
+
+    @dataclasses.dataclass
+    class BufferSink(mm.TrialSink):
+        buffer: list = dataclasses.field(default_factory=list)
+
+        def write(self, record: dict) -> dict:
+            self.buffer.append((self.evidence_role, dict(record)))
+            return record
+
+        def flush(self) -> int:
+            real: dict = {}
+            shared = None
+            for role, rec in self.buffer:
+                if role not in real:
+                    real[role] = mm.TrialSink(dataset=self.dataset, path=self.path,
+                                              extra=dict(self.extra), evidence_role=role,
+                                              provenance_record=shared)
+                real[role].write(rec)
+                shared = shared or real[role].provenance_record
+            n = len(self.buffer)
+            self.buffer.clear()
+            return n
+
+    return BufferSink(dataset=like.dataset, path=like.path, extra=dict(like.extra),
+                      evidence_role=like.evidence_role)
+
+
+def _null_sink(mm, like):
+    """Sink that records nothing (``--profile-folds``): same fields, ``write`` is a no-op."""
+
+    @dataclasses.dataclass
+    class NullSink(mm.TrialSink):
+        def write(self, record: dict) -> dict:
+            return record
+
+    return NullSink(dataset=like.dataset, path=like.path, extra=dict(like.extra),
+                    evidence_role=like.evidence_role)
+
+
+def write_profile(out_dir: Path, panel_h: str, cached: bool, man: dict, n_folds: int,
+                  t0: float) -> dict:
+    """Per-stage timings and peak RSS for a bounded ``--profile-folds`` measurement."""
+    emit("write_profile", phase="start")
+    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    path = Path(out_dir) / f"profile_{stamp}.json"
+    ends = [e for e in _EVENTS if e.get("phase") == "end" and "stage_s" in e]
+    by_stage: dict[str, float] = {}
+    for e in ends:
+        key = ":".join(str(x) for x in (e["stage"], e.get("model")) if x is not None)
+        by_stage[key] = round(by_stage.get(key, 0.0) + e["stage_s"], 2)
+    prof = {
+        "kind": "ml_dev_profile",
+        "status": "MEASUREMENT ONLY (development): no trials lines, no model outputs",
+        "profile_folds": n_folds, "n_folds_run": len(man["folds"]),
+        "panel_hash": panel_h, "from_cache": cached,
+        "seconds": round(time.perf_counter() - t0, 1),
+        "peak_rss_mb": round(max(peak_rss_mb(), _RSS_PEAK[0]), 1),
+        "stage_seconds": by_stage, "events": _clean(_EVENTS),
+    }
+    path.write_text(json.dumps(prof, indent=1, default=_jsonable))
+    emit("write_profile", phase="end", path=str(path))
+    return {"_paths": [str(path)], "profile": True}
 
 
 def exploratory_run(args, df, h, cdir, cached, gate, run_caps, sweeps, sweep_report,
@@ -1098,8 +1326,26 @@ def main(argv: list[str] | None = None) -> int:
                     help="fs2 frame dir giving event titles / resolution sources for the "
                     "non-sports dependence links (weather city x day, culture source, S4, S5); "
                     "without it dep_group equals fixture-day and dep_group_links_missing = 1")
+    ap.add_argument("--resume-dir", type=Path, default=None,
+                    help="per-(arm, fold) resumable run: each finished unit is written atomically "
+                    "here and loaded, not refitted, on restart; refuses if the fold manifest, "
+                    "panel hash, code sha256 or argv differ. Trials lines are written once, at the "
+                    "final completion. Primary direction/h1 run only.")
+    ap.add_argument("--time-budget-s", type=float, default=None,
+                    help="with --resume-dir: after this many seconds since start, stop at the next "
+                    "unit boundary and exit 75 (queue tempfail, re-run later); at least one unit "
+                    "is fitted per slice. Exit 0 only when the whole run has completed.")
     ap.add_argument("--rebuild", action="store_true", help="ignore the parquet cache")
+    ap.add_argument("--profile-folds", type=int, default=None, metavar="N",
+                    help="measurement only: run the identical pipeline on the first N folds, "
+                    "write no trials lines and no normal outputs, and write profile_<ts>.json "
+                    "(per-stage timings, peak RSS). Default: full run.")
     args = ap.parse_args(argv)
+    args.argv = list(sys.argv[1:] if argv is None else argv)
+    if args.time_budget_s is not None and (args.resume_dir is None or args.time_budget_s < 0):
+        ap.error("--time-budget-s needs --resume-dir and must be >= 0")
+    if args.profile_folds is not None and args.profile_folds < 1:
+        ap.error("--profile-folds must be >= 1")
     args.families_extra = parse_families(args.families)
     policy = ml_panel.category_policy(
         args.category_mode, [c for c in args.categories.split(",") if c])
@@ -1133,7 +1379,19 @@ def main(argv: list[str] | None = None) -> int:
               f"{gate['complete_snapshots']} complete); {gate['minimum']} required.")
         print(f"ETA: {gate['eta_utc']} ({gate['eta_assumption']}). Use --dry-run to inspect.")
         return 75  # EX_TEMPFAIL: the queue waits 30 min and retries, not counted
-    rep = real_run(args, caps, gate, policy)
+    from astrolabe.research_lab import ml_resume
+
+    try:
+        rep = real_run(args, caps, gate, policy)
+    except ml_resume.BudgetExhausted as exc:
+        emit("budget_stop", phase="info", reason=str(exc))
+        print(f"TIME BUDGET SPENT ({exc}); progress saved in {args.resume_dir}. Exit 75: the "
+              "queue re-runs this job and finished units are loaded, not refitted.")
+        return 75
+    finally:
+        from astrolabe.research_lab import ml_models as _mm
+
+        _mm.UNIT_STORE = None
     kind = ("DEVELOPMENT RUN" if args.target == "direction" and args.horizon == 1
             else f"EXPLORATORY RUN ({args.target}, h{args.horizon})")
     print(f"{kind} (not evidence). Reports: " + ", ".join(rep["_paths"]))

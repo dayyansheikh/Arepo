@@ -3694,3 +3694,112 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - Science review: ACCEPT_WITH_FIXES. All fixes applied: `rewards` kept for E022 S2 (only the LT5 R extension
   withdrawn), "later of" wording on flow / LT8 / book entries, structured withdrawal fields, these disclosures and the
   K path. Withdrawal time set at or after the deploy (deploy before 12:00Z; actual time in STATUS.md). Tests: 50 engine tests pass; ruff clean.
+
+## MC1 q0116f: timed out at the 6 h limit, 2026-10-22 13:42Z (nothing counted; development only); PARKED
+- q0116f (`run_ml_dev.py`, exclusive, 6,000 MB, as_cap 14,000 MB, 1 CPU, timeout 21,600 s) ran on the resized host
+  (2 OCPU / 11.4 GiB) from 07:42Z and was stopped by the worker's timeout at 13:42:02Z (rc -15). No OOM this time (RSS
+  about 6.2 GB at 3 h). It wrote only the fold manifest (`ml_dev_20261022T074210Z_cac75bfc_fold_manifest.json`, 07:42Z,
+  the same size as q0116c's); the job log holds only the argv line, so the stage at which it spent the remaining ~6 h is
+  not known (the model-fit stages log nothing).
+- No trials lines, no model outputs; the cached panel and period cache are unchanged and stay reusable.
+- **Decision:** parked (16:02Z), not retried. Per the standing rule, no new id without a measured fix: the next step is
+  stage-level progress and timing lines in `run_ml_dev.py` (panel load, per-model fit per fold, bootstrap, SHAP) and a
+  bounded one-fold profile job, then a timeout and CPU request set from that measurement. No design change (panel,
+  models, folds and gates unchanged). The signal engine (separate autopilot) keeps covering prospective multi-family
+  scoring meanwhile.
+
+## CB16-K census q0383, 2026-10-22 14:06Z (counts only; no test, nothing counted)
+- Output `creative_batch16/census_K.json` (host, sha256 aebc528a…; rules K cfe9bea5…, common 9a087b8c…; exclusion keys
+  56dc953e…; input pins ok). No outcome, price or network read.
+- Labels over 148,384 rows (frame 61,146; outside frame 87,238): PRESENT-STRICT 939, PRESENT-TOPIC 30,176,
+  ABSENT (liquid-universe) 30,031, FAR-TOPIC 9,989; unlistable absent 16, rule conflicts 2 (0 in matches); 958 matches
+  against 326,380 indexed Kalshi markets. Sports (SPORTS-FEED) reported separately: strict 353, topic 4,977, absent 12,132.
+- Cells (LABELLER class x volume decile) with both labels >= 30 events: strict 7 (all UNSCHEDULED-NEWS; 261 present /
+  2,698 absent events; MDE bound 2.46 pp optimistic, 5.91 pp max); strict ∪ topic 40 (15,405 / 10,240 events; 0.48 pp
+  optimistic, 1.16 pp max). FAR-TOPIC: 39 cells.
+- **Re-entry rule (§CB16-K, declared before the census):** counts part PASSES (union >= 5 eligible cells, optimistic MDE
+  0.48 <= 2 pp; FAR-TOPIC >= 30 events in >= 5 eligible cells). The remaining condition is the seeded blind audit of 100
+  PRESENT-TOPIC pairs (science-reviewer, titles only, seed 16141, >= 90% genuine same-event twins). A counted K may be
+  designed only in a later batch and only if that audit passes; otherwise CH143 is "not testable at the floor". No
+  counted K is registered. **Next:** a titles-only audit sampler (seed 16141), then the audit.
+
+## CB9 gating after CB8-W's smoke FAIL, 2026-10-22 ~16:09Z (science-reviewer ruling; operational, nothing counted)
+- `reviews/CB9_H9_DEPENDENCY_RULING_2026-10-22.md`: REVISE. h9_flow never fetched (CB8 q0161 FAIL (a)); absent at q0182
+  per CB9 §1.3; (f) not engaged. q0182 keeps its id and definition; `depends_on` = [q0164, q0166]; it adds the two
+  `--extra-pin`s (CB8 updown frame, dated CB8-H holders snapshot) the draft lacked, and q0164's keys sha256 (MUST 1).
+- **Pre-declared before q0166's result:** coverage-audit FAIL (`source_unavailable`) -> holdout seal absent at q0182, q0182
+  runs with the q0165 frame pinned; crash/unrecoverable -> (f) as written.
+- q0181 (S0 audit A) promoted ~16:07Z (c535f978); unaffected.
+- **Time-label erratum (autopilot session 10-22 from 15:59Z):** queue-spec notes written this session carry "~HH:MMZ"
+  labels that are 0.2-2.5 h late (local time misread as UTC): q0602/q0165/q0166 "~16:15Z" = ~16:03Z; q0181 "~16:30Z" =
+  ~16:07Z; q0116g/q0393 "~17:20Z" = ~16:12Z; q0146 "~18:30Z" = ~16:25Z; q0602/q0116g priority "18:50Z" = ~16:29Z. Spec
+  files are not edited (hash/ops reasons); commit times are authoritative. Review headers and the checkpoint were corrected.
+
+## LT7 reward-switch ruling and design amendment 13.7 (2026-10-22 ~16:10Z; experiments autopilot; nothing counted)
+- **Trigger:** q0601c (counts only; `seals/lt7_rewards_probe.json`, sha256 263413f2…): the pre-declared rule (c) fired. 30,543 of 258,393
+  market-days (0.118 > 0.05) switch between null and non-null `clob_rewards` within a UTC day; (b) 0.0012 and (d) 0 did not fire; (a) 0
+  (report only). One endpoint, parameter set and code path, so the switching comes from Gamma's responses; Gamma omitting the field in a
+  response is the likelier reading (about 3,000 switchers a day = about 30% of about 9,700 listed markets per capture; listed zero-rate 0/1,047,747).
+- **Challenger ruling (C)** (`reviews/LT7_REWARD_SWITCH_RULING_2026-10-22.md`): rule `listed_carry24h_v2`. A null `clob_rewards` at origin k is
+  `rewarded = 1` if a listed text at any sealed capture in the causal window `[k-11, k]` gives a rate > 0 re-parsed for day(k); the latest such
+  capture is the source for `rew_min` / `rew_maxspread` (`in_band`, wall rule). Missing slots skipped and counted, never filled; no slot after k is
+  read. v1 (`null_as_unrewarded_v1`) and listed-only are descriptive sensitivities. (A) rejected (reads omitted captures of rewarded markets as
+  unrewarded), (B) rejected (uses captures after k: leak), (D) rejected (selection on the reward field), (E) rejected (changes the frozen
+  controls). Unit counts, MDE inputs, gates, thresholds and formulas unchanged. Outcome-blind (counts only, before any census).
+- **Design-text amendment 13.7:** `LIVE_TESTS_7.md` sha256 31baf5e5… (13.6) -> `8fc83a739ef48ddf23c568847e0eec98ff56bd3bead4c4974eac463d023c1803`.
+  13.6's sha and the text-freeze sha 840f4500… are declared predecessors in code (the committed seal 117e9b45… records 840f4500…; CV7's output
+  records 31baf5e5…). 13.7 also corrects 13.6's wall-class label (CH193's, not CH192's) and states that CH193 gets `rew_status` / `rew_min` / `osz`
+  as bookkeeping columns of `absorbed_units` (no exclusion, count or gate).
+- **Split disclosed:** CV7 (q0602) reads no reward field and records design 31baf5e5…; CC7 (q0603) and CS7 (q0604) record 8fc83a73….
+- **Code:** branch `feat/lt7-reward-carry` (`RewardCarry`, `_reward_cols` counts, CS7 capture set gains the 12:31Z carry window, spec
+  `reward_null_rule: listed_carry24h_v2`, `reward_carry_slots: 12`). Drafts q0603 / q0604 use fresh work dirs (`work_cc7_rn_v2`, `work_cs7_rn_v2`)
+  and stay drafts until the census-code re-check. Each census runs once, finishing before 2026-10-28T03:30Z.
+- **13.7 erratum (same day, census-code re-check of 64acdbc4 = FIXES_REQUIRED, before any census):** (1) "unit counts unchanged" corrected: the
+  carry can change `in_band` finiteness, so units can enter or drop; both are counted (`in_band_known_only_via_carry`, `in_band_lost_via_carry`).
+  (2) CH197 F-feasibility pairs use the **k-only (v1) reward and in_band** (option b): their windows are not all sealed (slots 156-161 are not in the
+  LT7 seal; 12 of 22 pair slots lie outside CS7's K set), so option (a) was not available. (3) `RewardCarry.add` refuses a series without `rew_raw`
+  when listed rows exist. (4) v1 sensitivity relabelled "v1 rewarded on the v2 unit set"; market-deduplicated switching count added. Design sha256
+  now `8fc83a739ef48ddf23c568847e0eec98ff56bd3bead4c4974eac463d023c1803` (text above, erratum paragraph at the end of 13.7); `575eb1dd45328800cdab1ccf633099c40a21817a8ae8f308c23454c9de96e730` (13.7 first commit) is a declared predecessor; no census has run on it.
+- **Bug found by the fix-3 round-trip test (code, not design):** pandas reads the series-CSV cell text `null` back as NaN, so `rew_status == "null"` never matched on a file read back from the work dir and the carry would never have fired (the 13.6 `rewards_null_as_zero` count would also have read 0). `RewardCarry` now treats a NaN status as `null` (`_status_array`); `live_tests7_base.read_series` is untouched.
+
+## MC1 one-fold profile q0116g: timed out at its 2 h limit, 2026-10-22 19:22Z (measurement only; nothing counted)
+- q0116g (`run_ml_dev.py --profile-folds 1`, exclusive, 6,000 MB, as_cap 14,000 MB, 1 CPU, timeout 7,200 s) wrote 132
+  stage lines and was stopped at 7,200 s during the placebo fits of fold 0 (rc -15). No trials lines, no model outputs
+  (the profile sink records nothing).
+- **Measured, fold 0 (the smallest training window of 16 folds in the manifest):** sweep arms 3,981 s (M1 fit 1,387 s,
+  M2 fit 2,190 s incl. SHAP 760 s, M3_eb 392 s); no-sweep sensitivity 2,379 s (M1 1,183 s, M2 1,187 s); bootstrap 5 s;
+  placebos started at 6,443 s and were unfinished at 7,200 s. Peak RSS 6,248 MB (fits 5.5-6.2 GB), so memory fits the
+  resized host; time does not.
+- **Implication:** a full development run is at least 16 x ~2 h = ~32 h of exclusive time on 1 CPU (later folds train on
+  more periods, so likely more). It would block the exclusive LT7 censuses (q0603/q0604 must finish before
+  10-28T03:30Z) and the signal-engine refits for days, and the memory rule forbids pairing it with another multi-GB job.
+- **Decision (operational, no design change):** no full run is queued now. The measured fix is per-fold resumability
+  (write each finished fold's out-of-fold predictions and stage record, skip finished folds on restart, same fold plan,
+  models and gates), so the run can proceed in <= 6 h exclusive slices after q0604. q0116g stays `failed` (it was a
+  measurement); q0116f stays parked.
+
+## CB16-K blind twin audit, 2026-10-22 ~20:45Z (science-reviewer; nothing counted)
+- Auditor file `creative_batch16/audit_K_sample.json` (q0393, seed 16141, 100 of 30,176 PRESENT-TOPIC pairs; sha256
+  0d317a11…, equal to the manifest's `sample_sha256`); titles, subtitles and the two 3-day-rule dates only, as q0393
+  declared. Key file not read. Review: `reviews/CB16_K_BLIND_AUDIT_2026-10-22.md`.
+- **Result: 3 GENUINE, 1 UNCLEAR, 96 NOT_TWIN; FAIL against the declared >= 90 / 100.** The PRESENT-TOPIC text rule
+  matches recurring templates (crypto "price between" vs unrelated indices, unnamed-city °F vs °C buckets, one-way
+  implications within a match), not same-event twins.
+- **Re-entry rule not met: CH143 is recorded as "not testable at the floor with available or feasibly collectable
+  data"** (CREATIVE_BATCH_16.md §CB16-K). No K test existed (declared "no CB16 test"), so nothing is counted. The
+  seed / stratum provenance check by a key-side reader is moot for the verdict and not pursued.
+
+## CB7 census q0147 fix re-check, 2026-10-22 ~20:45Z (science-reviewer; operational)
+- `reviews/CB7_CENSUS_FIX_RECHECK_2026-10-22.md`: **FIXES_OK_WITH_NOTES** for freeze-check items 3-8 (4cc77b64, af960b80;
+  39 tests). Design §2.7 unchanged; no outcome read.
+- Note 1 (medium): the q0146-failure contingency (re-specify q0147 as `--family S,G` with X terminal) needs a durable
+  terminal record before it is used: a refused / disk_budget q0146 must leave a marker, `require_xv_complete` must not
+  tempfail on a sticky terminal manifest, and census.json must carry an explicit X terminal state. To implement before
+  q0146 ends or before q0147 is promoted (not before 10-24T01:00Z). Notes 2-3 (low) in the review.
+
+## Signal engine: market-price reference row for `res_7d`, 2026-10-22 ~21:30Z (signal-engine autopilot; no model, no K change)
+- Added `market_price_reference` to the scorer (DESIGN_V1 §24): P(yes) = the origin's Gamma mid from the write-once
+  features file, scored on `res_7d` only, with each scored model's `gain_vs_market_mid` (event-clustered CI). It is a
+  benchmark, not a challenger: not in the registry, never promoted, no change to K, the promotion rule or any existing
+  score. First rows at the 2026-10-23 daily score. Any gain over the mid is forecast quality only (no costs, no fill),
+  not an edge claim. Test `test_market_price_reference_scores_res_7d_from_the_origin_mid`.

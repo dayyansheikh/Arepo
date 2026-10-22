@@ -213,3 +213,8 @@ def test_stage2_final_with_a_triggered_family_waits_for_the_rep_result(env, caps
     assert code == 0 and out["k2"] == 2 and out["verdict"]["Q1"]["pass"] is True and out["verdict"]["Q2"]["pass"] is False
     code, out = _run(["stage2-final", *a], capsys)
     assert out["already_written"] is True
+
+
+def test_k_audit_sample_is_refused_without_smoke_or_census(env, capsys):
+    code, out = _run(["k-audit-sample", *base(env)], capsys)
+    assert code == 2 and "refused" in out and not (env["root"] / "audit_K_sample.json").exists()
