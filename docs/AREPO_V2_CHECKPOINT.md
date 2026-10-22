@@ -343,7 +343,7 @@ equals its source (the test checks). Do not edit the LT5 spec while q0561/q0562 
 **Waiting:**
 - MC1: after the resize (item 4).
 - CB4 q0085 not before ~10-24T12Z. CB5 q0103b on or after 10-27, then q0106. CB3 freeze after q0064 (after 10-25).
-- Signal engine: live state in `signal_engine/STATUS.md` (10-22 ~11:00Z: embargo withdrawals after census drops (`event` released, `flow` 11-16, `rewards` 11-18 for E022 S2, LT6 tokens and `mm_fresh` withdrawn), LT8 round 5 applied (`book`/`book0` 2027-01-23); K 5 -> 7; science review ACCEPT_WITH_FIXES applied; refit q0512 delayed behind exclusive MC1; se-promotion-v2 in force).
+- Signal engine: live state in `signal_engine/STATUS.md` (10-22 ~16:40Z: refit q0512 and score q0513 had died at their virtual-memory caps; select_rows now copies the 900k-row frame once, caps re-measured (refit 3400/6000 MB, score as_cap 3000); refit OK 2,887 s / 2.9 GB incl. first fits of se14/15/17/18/19; day-2 leaderboard K 7, no promotion; /lab last-refit time now live; embargo table unchanged since the 12:00Z withdrawals).
 
 ## Learned surprise-move detector (2026-10-12 evening)
 `docs/research_lab/SURPRISE_MOVE_DETECTOR.md`. Labels fixed and logged before features (`surprise-labels-v1`,
