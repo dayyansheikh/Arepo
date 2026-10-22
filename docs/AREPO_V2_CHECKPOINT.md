@@ -247,29 +247,27 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-22 16:10Z
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-22 17:55Z
 Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && git log --oneline -1'` = local tip.
 Host 2 OCPU / 11.4 GiB since the resize. data-dumps 33 / 40 GB cap: owner approval 8 (restore-tree clearing) is time-relevant.
 
-**Autopilot session 10-22 ~16:00Z (in progress):**
-- **LT7:** q0601c probe output committed (`seals/lt7_rewards_probe.json`, 263413f2…): rule (c) FIRED (within-day
-  null/listed switching 11.8% > 5%); (b) 0.12%, (d) 0. Challenger ruling (C) `listed_carry24h_v2`
-  (`reviews/LT7_REWARD_SWITCH_RULING_2026-10-22.md`): causal 12-slot carry of a listed programme, params from the source
-  capture; amendment 13.7 + wall-class label fix (CH193). **q0602 CV7 PROMOTED + deployed (e9272ab0)**: reads no reward
-  field; do NOT deploy a changed LIVE_TESTS_7.md while it runs unless the implementer confirms CV7 checks the design sha
-  only at start. **Implementer running** on `feat/lt7-reward-carry` (13.7 text, code, spec, fresh CC7/CS7 work dirs).
-  Then census-code re-check (science-reviewer), merge, promote q0603 -> q0604 (finish before 10-28T03:30Z).
-- **LT8:** previous session's uncommitted verification fixes committed on `feat/live-tests-8-code` (2c932e07; 64 tests).
-  Re-check of fixes 1-10 WAITS for LT7 13.7: fix 6 re-vendors from the hash LT7's CC7/CS7 actually run on, and LT8's
-  reward rule should follow LT7's (ask the re-check).
-- **MC1 q0116f:** timed out at 6 h (no OOM, stage unknown); parked; ledger 260a5552. Next: stage timing + one-fold profile.
-- **CB16-K q0383:** re-entry counts pass (40 cells, 0.48 pp; ledger 6e2987a2). Next: a titles-only audit sampler (seed
-  16141, 100 PRESENT-TOPIC pairs), then science-reviewer audit (>= 90% twins). No counted K in CB16.
-- **h8 text seal** committed (eb2841cb, 6074eee8…). **CB7:** implementer running on `feat/cb7-code` (xv-prints q0146 +
-  census q0147); then freeze check, promote q0146/q0147, q0156.
-- **CB8-B:** q0165/q0166 promoted (e9272ab0). W dead (q0167/q0168/q0171/q0175 never). q0169 census BW then needs a B-only
-  route per the design.
-- **Creative round 14** (Fable xhigh) restarted on `feat/creative-r14` (census-survival brief). Then merge, CANDIDATES notes, LT9.
+**Autopilot session 10-22 ~16:00Z (in progress; state at 17:55Z):**
+- **Worktree caveat:** agent worktrees (isolation) start from the PRODUCTION tip (e1dfa8a5), not chore. Never merge such
+  branches into chore; cherry-pick the agent's own commits (done for 58444fa8, 0f1dfbf5).
+- **LT7:** probe rule (c) fired -> challenger ruling (C) `listed_carry24h_v2` (reviews/LT7_REWARD_SWITCH_RULING_2026-10-22.md).
+  q0602 CV7 promoted (priority 95, queued behind the exclusive se refit). 13.7 code on `feat/lt7-reward-carry` (64acdbc4,
+  design 575eb1dd…) -> re-check FIXES_REQUIRED (reviews/LT7_REWARD_CARRY_RECHECK_2026-10-22.md; fix 1 choice (a) else
+  (b)); implementer applying fixes. Then short re-check, cherry-pick onto chore, deploy ONLY AFTER q0602 has written
+  CV7.json (else CV7 records the wrong design sha), promote q0603; q0604 after q0603. Deadline 10-28T03:30Z.
+- **LT8:** fixes committed (2c932e07). Re-check waits for LT7 13.7 merge (re-vendor; LT8 reward rule should follow LT7).
+- **MC1:** q0116f timed out (parked). Timing + `--profile-folds` merged (0f1dfbf5); q0116g one-fold profile promoted.
+- **CB16-K:** counts pass; sampler merged (58444fa8, weakest twin shown); q0393 promoted. When done: science-reviewer
+  blind audit of `audit_K_sample.json` only (>= 90/100 genuine twins); never show the keys file.
+- **CB7:** h8_text seal committed; xv-prints + census code on `feat/cb7-code` (d47d0031, base is production: cherry-pick);
+  freeze check running. Then q0146 (add disk_budget to its until regex), q0147 (G part exits 75 until 10-25T00Z).
+- **CB8-B:** q0165/q0166 promoted. **CB9:** q0181 running; q0182 ruling (reviews/CB9_H9_DEPENDENCY_RULING_2026-10-22.md):
+  after q0166 done (+ its holdout seal committed), promote q0182 with depends [q0164, q0166], two --extra-pin, MUST 1 sha.
+- **Creative round 14** (Fable xhigh) running on `feat/creative-r14` (based on chore: merge is fine).
 
 **Earlier this day (06:00Z):** q0561 LT5 census done (F/H/R dropped, c0700f8f); q0484 size check PASS -> **E022
 REGISTERED** (bf730c6f; reader cron `10-59/20` installed on the host 06:0xZ; q0486 analysis queued, not before 11-17T12Z);
