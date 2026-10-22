@@ -720,3 +720,78 @@ def test_runner_refusals(tmp_path, monkeypatch, capsys):
     assert r.main(["census-sweeps", "--seal", str(seal), "--work", str(tmp_path / "w")]) == 2  # before the CS9 not-before date
     monkeypatch.setattr(r, "_cap", lambda gb: True)
     assert r.main(["census-feed", "--seal", str(seal), "--work", str(tmp_path / "w"), "--data-dumps-cap-gb", "1"]) == lt.TEMPFAIL
+
+
+# --- gates at their thresholds (constructed populations; counts only) ---------------------------------------------------------------
+
+
+def test_cap_applies_before_the_panel_and_relpos():
+    A = pd.DataFrame({"market_id": ["a", "a", "a"], "slot": [1, 2, 3], "rew": [0, 1, 1], "n_members": [20.0, 3.0, 3.0], "log_s": np.log([9.0, 2.0, 4.0])})
+    U, cnt = lt.cap_then_panel(A, 10)
+    assert list(U["slot"]) == [2, 3] and (U["panel"] == 1).all() and cnt["panel_switched"] == 0 and cnt["ladder_arm_candidates"] == 1
+    assert U["relpos"].iloc[1] == pytest.approx(np.log(4.0) - np.log(2.0))  # the ladder origin never enters the mean
+    assert cnt["cap_share_reward"] == 1.0
+
+
+def _q15(n: int, days: int, moved: float = 0.0, ctl: int = 3) -> pd.DataFrame:
+    rows = []
+    for i in range(n):
+        rows.append({"key": f"k{i}", "condition_id": f"c{i}", "T_e": 1e9 + i, "t_dec": 1e9, "event_id": f"e{i}", "cluster": f"e{i}", "n_controls": ctl if i % 10 else 0,
+                     "controls": [], "end_moved": 1.0 if i < moved * n else 0.0, "day": f"2026-11-{4 + i % days:02d}"})
+    return pd.DataFrame(rows)
+
+
+def test_ch215_gates_and_entry():
+    spec = lt.load_spec(sha=None)
+    fc = {"ok": True, "share": 1.0, "slots": 96, "slots_with_usable_feed": 96}
+    r = lt.census_ch215(_q15(4000, 8), {}, spec, fc, 8.0)
+    assert r["gate_CH215"]["ends"] and r["gate_CH215"]["controls"] and r["gate_CH215"]["one_day"] and r["gate_CH215"]["end_moved"]
+    assert r["entered"] is r["gate_CH215"]["pass"]
+    r2 = lt.census_ch215(_q15(4000, 3), {}, spec, fc, 8.0)
+    assert not r2["gate_CH215"]["one_day"] and not r2["entered"]  # one day holds 1/3 > 30%
+    r3 = lt.census_ch215(_q15(4000, 8, moved=0.21), {}, spec, fc, 8.0)
+    assert not r3["gate_CH215"]["end_moved"] and not r3["entered"]
+    r4 = lt.census_ch215(_q15(200, 8), {}, spec, fc, 8.0)
+    assert not r4["gate_CH215"]["ends"]  # 200 x 21 / 8 = 525 < 630
+    r5 = lt.census_ch215(_q15(4000, 8), {}, spec, {**fc, "ok": False}, 8.0)
+    assert not r5["entered"]
+    r6 = lt.census_ch215(_q15(4000, 8), {}, spec, fc, 6.9)
+    assert r6["gate_CH215"].get("values_nan") and not r6["entered"]  # below 7.0 covered days every gate is NaN and fails
+    assert lt.census_ch215(pd.DataFrame(), {}, spec, fc, 8.0)["entered"] is False
+
+
+def test_band_unit_failure_and_min_days_make_every_gate_nan():
+    spec = lt.load_spec(sha=None)
+    res = {"gate_CH213": {"a": True, "b": True, "pass": True}}
+    out = lt._nan_gates(res, "gate_CH213", "band_unit")
+    assert out["gate_CH213"]["pass"] is False and out["gate_CH213"]["values_nan"] and not out["gate_CH213"]["a"]
+    out2 = b._gate_min_days({"gate_CH212": {"x": True, "pass": True}}, "gate_CH212", 6.9, spec["census_inputs"]["min_covered_days"]["CC9_CH212"])
+    assert out2["gate_CH212"]["pass"] is False
+
+
+def test_feed_completeness_share(tmp_path):
+    spec = lt.load_spec(sha=None)
+    k0 = 400
+    for i in range(10):
+        if i != 3:
+            _feed_dir(tmp_path, f"f{i}", [{"condition_id": "x"}], start=datetime.fromtimestamp(b.slot_time(k0 + i, spec) + 240, UTC))
+    _feed_dir(tmp_path, "fbad", [{"condition_id": "x"}], state="failed", start=datetime.fromtimestamp(b.slot_time(k0 + 3, spec) + 240, UTC))
+    fc = lt.feed_completeness(lt.scan_feed([tmp_path]), list(range(k0, k0 + 10)), spec)
+    assert fc["slots_with_usable_feed"] == 9 and fc["share"] == 0.9 and fc["ok"]
+    fc2 = lt.feed_completeness(lt.scan_feed([tmp_path]), list(range(k0, k0 + 11)), spec)
+    assert not fc2["ok"]
+
+
+def test_route_is_dropped_when_the_feed_is_incomplete(world):
+    seal = write_seal(world)
+    h = world["host"]
+    cc = lt.census_captures(seal=seal, snapshot_root=[h["snap"]], feed_root=[h["feed"]], work=world["tmp"] / "wc", spec=world["spec"])
+    U = pd.DataFrame()  # the population is not needed to check the fail-closed route
+    assert lt.census_ch212(U, {}, world["spec"], 1.0, {"ok": False}, {})["gate_CH212"]["pass"] is False
+    assert cc["CH212"]["gate_CH212"]["feed_completeness"] is True
+    tot = {"eligible_in_band": 10, "eligible_in_band_status_finite": 10}
+    pop = pd.DataFrame({"market_id": ["a", "a", "b", "b"], "day": "d", "slot": [1, 2, 1, 2], "t_row": [1.0, 2.0, 1.0, 2.0], "event_id": ["e", "e", "f", "f"], "n_members": 1.0,
+                        "om": [1.0, 0.0, 1.0, 0.0], "listed_prev": [1.0, 1.0, 1.0, 1.0], "clob_listed": [1.0, 1.0, 1.0, 1.0], "clob_dropped": [0.0, 0.0, 0.0, 0.0],
+                        "feed_end_ok": 1.0, "feed_end_why": "", "vol_absent": [1.0, 0.0, 1.0, 0.0], "ltp_absent": 0.0, "page_norm": 0.5, "recv_off": 1.0, "skey": "s", "f_ok": 1.0})
+    r = lt.census_ch212(pop, tot, world["spec"], 1.0, {"ok": False}, {"per_day": {"d": 5000}})
+    assert r["route"] == "dropped" and r["gate_CH212"]["route"] is False and r["gate_CH212"]["feed_completeness"] is False

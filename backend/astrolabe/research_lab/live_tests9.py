@@ -574,15 +574,18 @@ def bandbreak_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, store: b.MidStore,
     rew = j["rewarded"].to_numpy(float)
     st_p = b._status_array(pj)
     rew_p = pj["rewarded"].to_numpy(float)
-    cnt["eligible_in_band"] = len(j)
+    # the finite-status gate (7, pre-exclusion): eligible non-sports ex-crypto rows in band, PLUS the rows whose sidecar is missing (category unknown,
+    # status NaN), so that a missing sidecar can only lower the share (census convention)
+    cnt["eligible_in_band"] = len(j) + int(cnt.get("sports_unknown", 0))
     cnt["eligible_in_band_status_finite"] = int(np.isfinite(rew).sum())
     with np.errstate(invalid="ignore"):
         end_ok = np.isnan(j["end_ts"].to_numpy(float)) | (j["end_ts"].to_numpy(float) > t_dec + c["end_margin_h"] * 3600.0)
     side_p = st_p != "absent"
-    keep = end_ok & side_p & np.isfinite(rew)
+    keep = end_ok & side_p & np.isfinite(rew) & np.isfinite(rew_p)
     cnt["end_date_decision"] = int((~end_ok).sum())
     cnt["sidecar_missing"] = int((end_ok & ~side_p).sum()) + int(cnt.get("sports_unknown", 0))
     cnt["reward_unparseable"] = int((end_ok & side_p & ~np.isfinite(rew)).sum())
+    cnt["reward_unparseable_km1"] = int((end_ok & side_p & np.isfinite(rew) & ~np.isfinite(rew_p)).sum())
     j = j[keep].reset_index(drop=True)
     rew, rew_p = rew[keep], rew_p[keep]
     if j.empty:
@@ -654,6 +657,20 @@ def fix_panels(U: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     return U, cnt
 
 
+def cap_then_panel(A: pd.DataFrame, cap_n: int) -> tuple[pd.DataFrame, dict]:
+    """The member cap is one of section 2's unit filters, so it is applied BEFORE the panel is fixed and ``relpos`` formed (a ladder-arm origin, n_members
+    > 10, is never a market's first unit). Returns the capped units after :func:`fix_panels` and the counts (with ``cap_share_reward``, the share of
+    reward-status candidates within the cap, the census's cap-share input)."""
+    cnt: dict = {}
+    if len(A):
+        rc = A[A["rew"] == 1]
+        cnt["cap_share_reward"] = float((rc["n_members"] <= cap_n).mean()) if len(rc) else float("nan")
+        cnt["ladder_arm_candidates"] = int((A["n_members"] > cap_n).sum())
+        A = A[A["n_members"] <= cap_n].reset_index(drop=True)
+    A, pc = fix_panels(A)
+    return A, {**cnt, **pc}
+
+
 def ch213_terms(pop: pd.DataFrame) -> pd.DataFrame:
     """The design matrix columns of section 2 (``rew`` constant within market is NOT a regressor; it is removed by the demeaning)."""
     p = pop.copy()
@@ -708,7 +725,8 @@ def _nan_gates(res: dict, key: str, why: str) -> dict:
 
 
 def census_ch213(U: pd.DataFrame, tot: dict, spec: dict, covered_days: float, band: dict, pair_days: float) -> dict:
-    """CH213's census gate (design 7 table, CC9). ``U`` = the units after :func:`fix_panels` (every n_members; the cap is applied here)."""
+    """CH213's census gate (design 7 table, CC9). ``U`` = the units after the member cap and :func:`fix_panels` (the cap is one of section 2's unit
+    filters, so it comes BEFORE the panel and ``relpos``); ``tot["cap_share_reward"]`` = the share of reward-status candidates with n_members <= 10."""
     g, a = spec["census_gates"]["CC9_CH213"], b.mde_common(spec)
     mind = spec["census_inputs"]["min_covered_days"]["CC9_CH213"]
     scale = _scale(covered_days)
@@ -717,8 +735,7 @@ def census_ch213(U: pd.DataFrame, tot: dict, spec: dict, covered_days: float, ba
     cap_n = spec["member_cap"]["max_members"]
     elig, fin = tot.get("eligible_in_band", 0), tot.get("eligible_in_band_status_finite", 0)
     finite_share = fin / elig if elig else float("nan")
-    R_all = U[U["panel"] == 1]
-    cap_share = float((R_all["n_members"] <= cap_n).mean()) if len(R_all) else float("nan")
+    cap_share = float(tot.get("cap_share_reward", float("nan")))
     P = U[U["n_members"] <= cap_n]
     pop, excl, top = b._fam(P, a["family_cap"])
     pop = ch213_terms(pop)
@@ -833,7 +850,7 @@ def rwblink_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, store: b.MidStore, c
     j, cnt = b._movers_join(ser_k, ser_p, cap, spec, c["mid_lo"], c["mid_hi"], c["end_margin_h"])
     j = b._non_sports_ex_crypto(j.copy(), cnt)
     rew = j["rewarded"].to_numpy(float)
-    cnt["eligible_in_band"], cnt["eligible_in_band_status_finite"] = len(j), int(np.isfinite(rew).sum())
+    cnt["eligible_in_band"], cnt["eligible_in_band_status_finite"] = len(j) + int(cnt.get("sports_unknown", 0)), int(np.isfinite(rew).sum())
     with np.errstate(invalid="ignore"):
         end_ok = np.isnan(j["end_ts"].to_numpy(float)) | (j["end_ts"].to_numpy(float) > t_dec + c["end_margin_h"] * 3600.0)
     cnt["end_date_decision"] = int((~end_ok).sum())
@@ -930,11 +947,11 @@ def census_ch212(U: pd.DataFrame, tot: dict, spec: dict, covered_days: float, fe
     P = U[U["n_members"] <= cap_n]
     pop, excl, top = b._fam(P, a["family_cap"])
     pop = pop.copy()
-    listed = pop[pop["clob_listed"] == 1]
+    listed = P[P["clob_listed"] == 1]  # the route rule reads the capped census units before the census-fixed family exclusion
     strata = listed["market_id"].astype(str) + "|" + listed["day"].astype(str)
     inp = {"or_vol_absent": mh_odds_ratio(listed["vol_absent"], listed["om"], strata)["or"], "or_ltp_absent": mh_odds_ratio(listed["ltp_absent"], listed["om"], strata)["or"],
            "page_diff": page_diff(listed)["diff"]}
-    trans = pop[(pop["listed_prev"] == 1) & (pop["om"] == 1)]
+    trans = P[(P["listed_prev"] == 1) & (P["om"] == 1)]
     tr_known = trans[np.isfinite(trans["clob_dropped"].to_numpy(float))]
     inp["dropped_share_of_transitions"] = float(tr_known["clob_dropped"].mean()) if len(tr_known) else float("nan")
     route = route_rule(inp, c["route_rule"]) if feed_ok["ok"] else "dropped"
@@ -1048,6 +1065,8 @@ def pool_units(ser_p: pd.DataFrame, ser_p2: pd.DataFrame, store: b.MidStore, sw_
     cnt["sweep_after_origin"] = int((struct & ~recv).sum())
     cov = struct & recv
     cnt["covered"] = int(cov.sum())
+    cov_nt = two & dep & recv  # section 7's coverage as WRITTEN (no 'tight'): the gate numerators (LT8 verification fix 1's lesson)
+    cnt["covered_notight"] = int(cov_nt.sum())
     sm1, sm2 = (a1["sbid"] + a1["sask"]).to_numpy(float) / 2.0, (a2["sbid"] + a2["sask"]).to_numpy(float) / 2.0
     with np.errstate(invalid="ignore"):
         quiet = (np.abs(sm1 - sm2) < c["quiet_eps"] - _Q_EPS) & (np.abs(s1 - s2) < c["quiet_eps"] - _Q_EPS)
@@ -1062,6 +1081,8 @@ def pool_units(ser_p: pd.DataFrame, ser_p2: pd.DataFrame, store: b.MidStore, sw_
         end = j["end_ts"].to_numpy(float)
         end_ok = np.isnan(end) | (end > t1 + c["end_margin_h"] * 3600.0)
     qc = cov & quiet
+    cnt["quiet_covered_notight"] = int((cov_nt & quiet).sum())
+    cnt["band_unchanged_quiet_covered_notight"] = int((cov_nt & quiet & band_ok).sum())
     cnt["touch_out_of_band"] = int((qc & ~inb).sum())
     cnt["status_changed"] = int((qc & inb & ~stat_ok).sum())
     cnt["band_changed"] = int((qc & inb & stat_ok & ~band_ok).sum())
@@ -1163,12 +1184,12 @@ def census_ch214(Q: pd.DataFrame, tot: dict, spec: dict, covered_days: float, pa
     scale = _scale(covered_days)
     if Q.empty:
         return b._gate_min_days({"error": "no units", "gate_CH214": {"pass": False}}, "gate_CH214", covered_days, mind)
-    elig, cov = tot.get("rewarded_eligible_in_band", 0), tot.get("covered", 0)
+    elig, cov = tot.get("rewarded_eligible_in_band", 0), tot.get("covered_notight", 0)
     coverage = cov / elig if elig else float("nan")
-    qc = tot.get("quiet_covered", 0)
+    qc = tot.get("quiet_covered_notight", 0)
     quiet_share = qc / cov if cov else float("nan")
-    qok = tot.get("quiet_covered_in_band_status_ok", 0)
-    unch_share = tot.get("band_unchanged", 0) / qok if qok else float("nan")
+    unch_share = tot.get("band_unchanged_quiet_covered_notight", 0) / qc if qc else float("nan")
+    tight_variant = {"coverage": tot.get("covered", 0) / elig if elig else float("nan"), "quiet_share": tot.get("quiet_covered", 0) / tot.get("covered", 0) if tot.get("covered", 0) else float("nan")}
     cap_n = spec["member_cap"]["max_members"]
     cap_share = float((Q["n_members"] <= cap_n).mean())
     P = Q[Q["n_members"] <= cap_n]
@@ -1206,7 +1227,7 @@ def census_ch214(Q: pd.DataFrame, tot: dict, spec: dict, covered_days: float, pa
     proj = float(len(P) * scale)
     pair_ok = bool(np.isfinite(pair_days) and pair_days >= g["pair_min_days"] and pc["markets"] >= g["pair_markets_min"] and np.isfinite(pc["r_gate"]) and pc["r_gate"] <= g["r_gate_max"])
     vnum_share = float(pop["vnum_missing"].mean()) if len(pop) else float("nan")
-    res = {"two_sweep_coverage": coverage, "quiet_share": quiet_share, "band_unchanged_share": unch_share, "projected_units_21d": proj, "cap_share": cap_share,
+    res = {"two_sweep_coverage": coverage, "quiet_share": quiet_share, "band_unchanged_share": unch_share, "tight_variant_printed": tight_variant, "projected_units_21d": proj, "cap_share": cap_share,
            "exclude_family": excl, "top_family_share": top, "band_unit_check": band, "dD": {"centre": cen, "scale": scl, "within_market_sd_median": float(pop.groupby("market_id")["dD"].std().median()),
            "share_positive": float((pop["dD"] > 0).mean())}, "zdD": {"terciles": [t1, t2], "tercile_gap": gap, "zdDp_gap_between_zdD_terciles": gap_plus},
            "design_effect": de, "slope": sm, "vif_w": vif, "resid_iqr": ri, "corr": corr, "corr_liq": corr_liq, "block_min_units": bm, "block_share": bs,
@@ -1733,7 +1754,7 @@ def census_captures(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, feed_root=FEED_R
         m = np.isfinite(both.to_numpy(float))
         persist["broken_km2"] = int((both.to_numpy(float)[m] == 1).sum())
         persist["broken_km1_given_km2"] = int(((both.to_numpy(float)[m] == 1) & (key.to_numpy(float)[m] == 1)).sum())
-    A, pcnt = fix_panels(A)
+    A, pcnt = cap_then_panel(A, spec["member_cap"]["max_members"])
     b._merge_counts(tot213, pcnt)
     tot213["persist_pooled"] = {**persist, "share": persist["broken_km1_given_km2"] / persist["broken_km2"] if persist["broken_km2"] else float("nan")}
     B = pd.concat(U212, ignore_index=True) if U212 else pd.DataFrame()
