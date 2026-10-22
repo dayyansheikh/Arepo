@@ -1,6 +1,6 @@
 # Signal engine: status (rewrite each session; do not append)
 
-**Last updated:** 2026-10-22 06:56 UTC+1 (05:56Z), signal-engine autopilot session 12
+**Last updated:** 2026-10-22 08:07 UTC+1 (07:07Z), signal-engine autopilot session 12
 
 ## In plain English
 - **New challenger: a crypto spot-price reference (`se20_lgbm_crypto`).**
@@ -23,8 +23,17 @@
 
 ## Live state (host)
 - **Host:** resized to 2 OCPU / 11.4 GiB (owner decision; ledger 2026-10-22). LightGBM still runs on 1 thread.
-- **Code:** this session's commit is bc22813f (merged into auto/signal-engine). Merge into the main checkout and deploy:
-  see "Next actions" 1.
+- **Code:** merged into chore (908c48e9) and deployed at ~07:00Z (host at ea7f80fb, which includes it; registry lists
+  se20). The deploy printed a harmless `rm: cannot remove ~/arepo_trials_from_mac.jsonl` (the file was already gone,
+  probably a concurrent deploy by the other track).
+- **Crypto backfill (running since 07:01Z):** `~/.arepo/signal_engine/aux_backfill_crypto.sh`, log next to it. It runs
+  batches of 7 tables, each capped at 240 s, under `flock -n` on the collector lock, and never at even hours :19-:31.
+  Binance answers in ~2 s per request, so ~40 s per capture and ~70 min for ~102 captures. It also built the 06:31Z
+  capture's `participation` and `book0` tables, which the old-code tick had left out.
+  - First table check (10-22 06:31Z capture, no outcomes): 3,917 of 54,366 eligible markets are mapped (3,441 up/down,
+    143 strikes, 140 neg-risk, 193 hit-price). The spot columns are complete for every mapped market, `cr_beta` for
+    65%, and `cr_ud_z` for only 25 markets (few eligible up/down windows have started at a capture). No symbol is
+    unavailable. Inputs take ~140 KB per capture.
 - **Queue:** `q0512` refit is due ~07:34Z. It is the first fit for se14, se15, se17, se18 and se19 (se20 reports
   `insufficient_coverage` until 10-27). `q0513` score is due ~11:40Z. No jobs were touched.
 - **Promotion-eligible non-embargoed challengers:** se1, se17, se18 and se20 (once it fits). K = 5: se1, se7, se17,
@@ -51,10 +60,9 @@
 4. Tests: 50 engine tests pass (3 crypto tests and 1 budget regression test). Ruff is clean.
 
 ## Next actions
-1. **Merge and deploy** (blocked at 05:56Z because the main checkout had the other track's uncommitted ledger edit):
-   `git -C ~/Projects/astrolabe merge --no-ff auto/signal-engine`, then `scripts/oracle/deploy.sh chore/arepo-claude-setup`.
-   Then run the crypto backfill on the host: `nohup ~/.arepo/signal_engine/aux_backfill_crypto.sh >
-   ~/.arepo/signal_engine/aux_backfill_crypto.log 2>&1 &`. It avoids pass windows itself; expect ~102 tables.
+1. Check that the crypto backfill finished (`crypto backfill done` in its log; ~102 tables in `aux/crypto`, no repeated
+   errors). If Binance latency grows past ~5 s per request, the live tick's 120 s budget will start failing captures;
+   then fetch the symbols in parallel.
 2. After the ~07:34Z refit, read `logs/fits-20261022.jsonl`:
    - Expect se14, se15, se17, se18 and se19 `ok`, se16 `no_fit`, and se20 `insufficient_coverage`.
    - Check that the total runtime is under 10800 s and peak RSS under 2200 MB.
