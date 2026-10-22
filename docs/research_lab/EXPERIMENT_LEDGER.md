@@ -3906,3 +3906,66 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   10-28; so the R3 timing route applies: q0621 (seal, promoted now), then q0622 / q0623 after the seal copy is committed
   and pulled, all before 2026-10-28T03:30Z outside 02:45-05:30Z. q0116h priority lowered 95 -> 40 so the LT8 chain takes
   the gaps between MC1 slices first.
+
+## LT9 design draft, 2026-10-22 (nothing counted)
+- **Draft:** `docs/research_lab/LIVE_TESTS_9.md` on `feat/live-tests-9` (from chore `9079ca39`), sha256
+  `01c4989065c35743c47baa7c191f5956a1a734d9270a0c8e9c107605f82bef0a`. DRAFT, **not frozen**, no challenger review yet;
+  not registered; no code, seal, census or size run; E-numbers unassigned.
+- **Source:** creative round 14 (`CREATIVE_HYPOTHESES_2026-10-28.md`) ranks 1-3: CH213 (band break: spread re-tightening after
+  a strict `s >= 2v` crossing, reward panel against a cell-matched control panel), CH214 (pool splits: symmetric in-band depth
+  innovation between sweeps k - 2 and k - 1 on the CLOB spread from sweep k to k + 1), CH212 (the `clob_rewards` omission as
+  a serving-path event, route A or B fixed by a counts-only rule, "neither" drops it). CH215 (scheduled programme end) is an
+  optional fourth that enters only if every gate of its own census (CR9) passes; Holm over k <= 3 (4 with CH215).
+- **Reward status:** LT7 13.7's `listed_carry24h_v2` for every LT9 control and panel; CH212's state is that rule's carry lag
+  (no unit is reclassified; LT7's and LT8's frozen controls are not re-opened; LT8's k-only control disclosed as different).
+- **Planning MDEs (DE 31; low / high):** CH213 interaction 1.39c / 0.62c against 1.0c (needs about 68 strict breaks a capture
+  per panel); CH214 slope 0.28c / 0.19c (F binding); CH212 route A 0.58c / 0.35c against 0.5c (needs about 240 omitted units a
+  capture); CH215 2.23c / 0.92c (needs about 51 ends a day). Designer's odds: census 0.35 / 0.35 / 0.30 / 0.10; expected
+  k about 1.0; about 0.30 that CH213, CH214 and CH212 all drop.
+- **Window (proposed, ordered lane):** `[2027-01-21T00:00Z, 2027-02-11T00:00Z)`, keyed to LT8's `END_UTC` + 24 h (slides with
+  LT8; LT8's slot if LT8 drops entirely); analysis on or after 2027-02-12T12:00Z. Round 14's fast lane declined (DST-straddling
+  census, results would inform LT8's pin and LT7's window). Freeze before the earlier of 2026-11-14T12:00Z and `T_E015`;
+  pin before `T_LT7` or every test dropped. Census on a fresh seal 2026-11-02..11-12 (drafts q0640-q0647, none written).
+- **Next:** challenger R1 (`science-reviewer`) on the draft; embargo requests (`bandbreak`, `pool`, `rwblink`; `rwend` on
+  CH215's entry; `book0` / `book` to the LT9 date only if CH214 survives; no `rewards` extension) filed at acceptance and
+  before 2026-12-23.
+
+## LT9 R1 REVISE and response, 2026-10-22 (~22:10Z; nothing counted)
+- **R1** (`science-reviewer`; `reviews/LT9_R1_CHALLENGER_2026-10-22.md`, commit 118cf498): **REVISE**, nine required changes
+  plus should-fix items, on `LIVE_TESTS_9.md` sha256 `01c4989065c35743c47baa7c191f5956a1a734d9270a0c8e9c107605f82bef0a`.
+- **Response** (`reviews/LT9_R1_RESPONSE_2026-10-22.md`): all nine changes made as worded and every should-fix item taken.
+  No threshold, floor or gate was loosened. Revised text sha256
+  `bbfeb62add0e24860947e9413025cece5bdfbd4f8ebbe46b27974b8b29a354e1`. Still DRAFT, not frozen, not registered; no code, seal,
+  census or size run; E-numbers unassigned.
+- **Main changes.** `f_binding` is removed: CH213's and CH214's F bind by design, each with a census F-MDE <= 1.0c gate, and
+  CH212's F is a label. CH213's panel is fixed at the market's first unit (`panel_switched`). New binding worlds 3b
+  (relative position) and 4c (stale control rows), and a `break x relpos_k` control. CH212's route B tests `om_k` on its
+  two-class population, and route A needs a feed-listed end after capture k + 1. CH214 tests `max(0, zdD)` with `min(0, zdD)`
+  as a control, and world 8 carries non-fill volume noise.
+- **Recomputed planning MDEs (low / high).** CH213 1.50c / 0.67c, F 2.24c / 1.005c: **the binding F gate fails at both
+  planning ends, so CH213 is expected to die at census.** CH214 0.56c / 0.38c, F 0.79-0.94c / 0.54-0.65c (a quarter of the low
+  count fails). CH212 route A 0.58c / 0.35c (the low end fails 0.5c, as before). CH215 unchanged.
+- **Disclosed:** CH212's census agreement table (carry against feed) will be seen before `T_LT7`. It is descriptive and changes
+  no LT7 control.
+- **Next:** R1 re-check (`science-reviewer`) of the revised text and the response.
+
+## LT9 re-check ACCEPT_WITH_FIXES and fixes 1-6, 2026-10-22; nothing counted
+- **Re-check** (`reviews/LT9_R1_RECHECK_2026-10-22.md`): ACCEPT_WITH_FIXES; fixes 1-6 made as worded (addendum in `reviews/LT9_R1_RESPONSE_2026-10-22.md`), no gate or threshold changed.
+- `LIVE_TESTS_9.md` sha256 `bbfeb62add0e24860947e9413025cece5bdfbd4f8ebbe46b27974b8b29a354e1` -> `098aa3fb5f6765f08dcad3f85ad63ec70e29df65249413608f0f7ad5fd505b77` (still DRAFT; freeze commit separate).
+
+## LT9 drafted, challenger R1 and re-check, DESIGN-TEXT FREEZE (2026-10-22 ~22:50Z; experiments autopilot; nothing counted)
+- **Source:** creative round 14 (`CREATIVE_HYPOTHESES_2026-10-28.md`, merged 9079ca39). LT9 = CH213 (band break
+  re-tightening), CH214 (pool splits: arrival side of the symmetric in-band depth innovation), CH212 (`clob_rewards`
+  omission as a serving-path event, route by counts); CH215 (farmers' retreat before a programme end) enters only if its
+  own census passes. One Holm family, k <= 3 (4).
+- **Reviews:** draft b2882734 (01c49890…) -> challenger R1 **REVISE** (9 required; `reviews/LT9_R1_CHALLENGER_2026-10-22.md`)
+  -> response dcc2ec37 (bbfeb62a…; `reviews/LT9_R1_RESPONSE_2026-10-22.md`) -> re-check **ACCEPT_WITH_FIXES**
+  (`reviews/LT9_R1_RECHECK_2026-10-22.md`; 6 fixes) -> fixes 11fee7a0. Orchestrator diff check: every changed hunk is tagged
+  "re-check fix N" and maps to fixes 1-6; no gate, threshold, floor or planning value changed; optional world-3b rule not applied.
+- **DESIGN-TEXT FREEZE:** `LIVE_TESTS_9.md` at 11fee7a0, sha256 `098aa3fb5f6765f08dcad3f85ad63ec70e29df65249413608f0f7ad5fd505b77`
+  (before the earlier of 2026-11-14T12:00Z and T_E015). Any later change to a test's text is a recorded deviation; changes
+  after LT8's census commit are labelled *informed (LT8 census)*. Proposed window 2027-01-21 .. 2027-02-11 (LT8's end +
+  24 h, slides with LT8); analysis on or after 2027-02-12T12:00Z. Honest odds (author): census survival CH213 0.15, CH214
+  0.30, CH212 0.30, CH215 0.10; about 0.42 that CH213, CH214 and CH212 all drop (CH213 expected to fail its binding F gate).
+- **Next:** embargo requests (section 9) filed in CANDIDATES at acceptance; code phase (seal, censuses CC9/CS9/CR9, drafts
+  q0640-q0647) on a fresh seal of 2026-11-02..11-12.
