@@ -65,7 +65,8 @@ CHECKS = ("c1_days", "c2_ci", "c3_days_positive", "c4_calibration", "c5_secondar
 
 def _promotion(dec: dict | None, emb: dict) -> dict | None:
     """Compact view of the leaderboard's promotion decision: per candidate the rule's checks, the event-clustered lower
-    bound and the two-way (event + day) bound with its event and day components. Informational; the decision itself is
+    bound and the two-way (event + day) bound with its event and day components, and whether it may be promoted at all
+    (section 21). Informational; the decision itself is
     the leaderboard file. Embargoed models never appear (the rule skips them; re-checked here and in lab_host)."""
     if not isinstance(dec, dict):
         return None
@@ -76,7 +77,8 @@ def _promotion(dec: dict | None, emb: dict) -> dict | None:
         if emb.get(mid) or not isinstance(c, dict):
             continue
         g, tw = c.get("gain") or {}, c.get("gain_twoway") or {}
-        cands.append({"model_id": mid, "pass": bool(c.get("pass")), "days": c.get("days"),
+        cands.append({"model_id": mid, "pass": bool(c.get("pass")), "eligible": c.get("eligible", True) is not False,
+                      "ineligible_since": c.get("ineligible_since"), "days": c.get("days"),
                       "age_days": c.get("age_days"), "days_to_min": max(0.0, PR.MIN_DAYS - (c.get("age_days") or 0.0)),
                       "checks": {k: bool(c.get(k)) for k in CHECKS},
                       "gain": g.get("mean"), "lo_event": g.get("lo"), "lo_twoway": tw.get("lo"),

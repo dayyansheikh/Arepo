@@ -792,11 +792,11 @@ def test_repo_registry_loads_and_embargo_assignment():
     assert reg["models"]["se10_lgbm_event"]["train"]["require_full_coverage"] is True
     assert emb["se4_lr_xvenue"] == "2026-11-04T00:00:00Z"
     assert emb["se2_lr_flow"] == "2026-11-22T00:00:00Z" and emb["se5_lr_tte"] == "2026-11-14T00:00:00Z"
-    assert emb["se3_lr_book"] == "2026-12-09T00:00:00Z" and emb["se6_lr_wallet"] == "2026-12-07T00:00:00Z"  # book: LT6 V (round 2)
+    assert emb["se3_lr_book"] == "2026-12-31T00:00:00Z" and emb["se6_lr_wallet"] == "2026-12-07T00:00:00Z"  # book: LT7 round 4 (from 12-09)
     assert emb["se8_lr_event"] == "2026-11-22T00:00:00Z" and emb["se10_lgbm_event"] == "2026-11-22T00:00:00Z"
     assert emb["se9_lr_rewards"] == "2026-11-22T00:00:00Z"
     assert emb["se11_lgbm_flow"] == "2026-11-22T00:00:00Z" and emb["se12_lgbm_tte"] == "2026-11-14T00:00:00Z"
-    assert emb["se13_lgbm_xvenue"] == "2026-11-04T00:00:00Z" and emb["se14_lgbm_movetype"] == "2026-12-09T00:00:00Z"  # movetype 11-22, book 12-09 (LT6 V): the later date
+    assert emb["se13_lgbm_xvenue"] == "2026-11-04T00:00:00Z" and emb["se14_lgbm_movetype"] == "2026-12-31T00:00:00Z"  # movetype and book both 12-31 (LT7 round 4)
     assert "E015" in SP.embargo_of(reg["models"]["se14_lgbm_movetype"], t)["tests"]
     se1 = reg["models"]["se1_lgbm_mm"]
     mt = reg["models"]["se14_lgbm_movetype"]
@@ -821,7 +821,7 @@ def test_repo_registry_loads_and_embargo_assignment():
         m, base = reg["models"][mid], reg["models"][lr]
         assert m["learner"] == "lgbm" and m["params"] == se1["params"] and m["train"]["window_days"] == se1["train"]["window_days"]
         assert (m["families"], m["derived"], m["isolates"]) == (base["families"], base["derived"], base["isolates"])
-    assert all(v is None for v in ((SP.embargo_of(s, S.epoch("2026-12-09T00:00:01Z")) or {}).get("until") for s in reg["models"].values()))  # latest: book 12-09 (LT6 V)
+    assert all(v is None for v in ((SP.embargo_of(s, S.epoch("2026-12-31T00:00:01Z")) or {}).get("until") for s in reg["models"].values()))  # latest: book 12-09 (LT6 V)
 
 
 # ---------------------------------------------------------------------------------------------- promotion
@@ -899,6 +899,40 @@ def test_promotion_v2_one_day_and_zero_rows_fail_safe():
     assert PR.evaluate(agg, reg, "champ", now, [], first)["promote"] is None
     del reg["rule"]
     assert "reason" in PR.evaluate(_agg_with(0.70, 0.65, 14), reg, "champ", now, [], first)
+
+
+def test_promotion_ineligible_model_never_passes_and_keeps_k(monkeypatch):
+    """Section 21: a listed model is evaluated and counted in K, but never promoted; before `since` it is eligible."""
+    reg = _reg2()
+    s2 = spec("ch2", learner="lgbm")
+    s2["_sha256"], s2["_status"] = SP.spec_sha256(s2), "active"
+    reg["models"]["ch2"] = s2
+    now = S.epoch("2026-12-03T23:00:00Z")
+    first = {"ch": S.epoch("2026-11-19T00:00:00Z")}
+    agg = _agg_with(0.70, 0.65, 14)
+    base = PR.evaluate(agg, reg, "champ", now, [], first)
+    assert base["promote"] == "ch" and base["K"] == 2 and base["checks"]["ch"]["eligible"]
+    monkeypatch.setattr(C, "PROMOTION_INELIGIBLE", ({"model_id": "ch", "since": "2026-11-01T00:00:00Z", "why": "t"},))
+    dec = PR.evaluate(agg, reg, "champ", now, [], first)
+    chk = dec["checks"]["ch"]
+    assert dec["promote"] is None and not chk["pass"] and not chk["eligible"]
+    assert chk["ineligible_since"] == "2026-11-01T00:00:00Z"
+    assert all(chk[k] for k in ("c1_days", "c2_ci", "c3_days_positive", "c4_calibration", "c5_secondary", "c6_coverage", "c7_cooldown"))
+    assert dec["K"] == base["K"] and dec["level"] == base["level"]  # K is not reduced
+    monkeypatch.setattr(C, "PROMOTION_INELIGIBLE", ({"model_id": "ch", "since": "2026-12-04T00:00:00Z", "why": "t"},))
+    assert PR.evaluate(agg, reg, "champ", now, [], first)["promote"] == "ch"
+
+
+def test_promotion_ineligible_register_is_declared():
+    ids = [e["model_id"] for e in C.PROMOTION_INELIGIBLE]
+    # append-only register: the declared prefix never changes
+    assert [(e["model_id"], e["since"]) for e in C.PROMOTION_INELIGIBLE[:3]] == [
+        ("se7_lgbm_all", "2026-10-22T00:50:00Z"), ("se3_lr_book", "2026-10-22T00:50:00Z"),
+        ("se14_lgbm_movetype", "2026-10-22T00:50:00Z")]
+    assert len(set(ids)) == len(ids)
+    reg = SP.load_registry()
+    assert all(e["model_id"] in reg["models"] and e["why"] for e in C.PROMOTION_INELIGIBLE)
+    assert S.epoch(C.PROMOTION_INELIGIBLE[0]["since"]) < S.epoch("2026-11-04T00:00:00Z")  # before any se7 could qualify
 
 
 def test_promotion_cluster_var_hand_example():
@@ -1051,7 +1085,8 @@ def test_dashboard_promotion_block_compacts_checks_and_skips_embargoed():
            "checks": {"a": {"days": 15, "age_days": 15.2, "gain": {"mean": 0.02, "lo": 0.01}, "gain_twoway": tw,
                             "c1_days": True, "c2_ci": True, "c3_days_positive": True, "c4_calibration": False,
                             "c5_secondary": True, "c6_coverage": True, "c7_cooldown": True, "pass": False},
-                      "b": {"days": 3, "age_days": 3.5, "gain": None, "gain_twoway": None, "pass": False},
+                      "b": {"days": 3, "age_days": 3.5, "gain": None, "gain_twoway": None, "pass": False,
+                            "eligible": False, "ineligible_since": "2026-10-22T00:50:00Z"},
                       "x": {"days": 15, "gain": {"mean": 0.777, "lo": 0.4}, "pass": True}}}
     out = D._promotion(dec, {"x": {"until": "2026-12-09T00:00:00Z"}})
     assert [c["model_id"] for c in out["candidates"]] == ["a", "b"] and "0.777" not in json.dumps(out)
@@ -1059,4 +1094,6 @@ def test_dashboard_promotion_block_compacts_checks_and_skips_embargoed():
     assert a["lo_event"] == 0.01 and a["lo_twoway"] == 0.004 and a["se_day"] == 0.006 and a["days_to_min"] == 0.0
     assert a["checks"]["c4_calibration"] is False and not a["pass"]
     assert b["gain"] is None and b["lo_twoway"] is None and abs(b["days_to_min"] - 10.5) < 1e-9
+    assert a["eligible"] and a["ineligible_since"] is None  # older decisions without the key read as eligible
+    assert b["eligible"] is False and b["ineligible_since"] == "2026-10-22T00:50:00Z"
     assert out["min_days"] == 14 and D._promotion(None, {}) is None

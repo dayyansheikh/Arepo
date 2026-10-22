@@ -83,7 +83,7 @@ inputs, so its trees can split on both; it computes no hollow column and isolate
 
 ---
 
-## Embargo requests from the experiments side, round 4 (LT7 draft; filed 2026-10-22 ~00:40Z; OPEN)
+## Embargo requests from the experiments side, round 4 (LT7 draft; filed 2026-10-22 ~00:40Z; APPLIED by the builder 2026-10-22 ~01:00Z, `config.EMBARGO`)
 
 LT7 (`feat/live-tests-7`, `docs/research_lab/LIVE_TESTS_7.md` section 9; six round-12 candidates) is a DRAFT under
 challenger revision (R1 REVISE, `reviews/LT7_CHALLENGER_R1_2026-10-22.md`). R1 must-fix 9 asks that the embargo be applied
@@ -106,6 +106,16 @@ request follows. Also asked: no attribution (SHAP or otherwise) of the champion 
 change or on lagged-step interactions before then, and no LT7 family added to a broad model before then (or record it in
 the ledger as a development look). A test dropped before registration withdraws its new token and any extension made only
 for it, with a ledger line.
+
+**Builder reply (2026-10-22 ~01:00Z):** all eight rows applied exactly as asked: `book` and `movetype` moved to 12-31, and
+six new tokens added (no models). Tests updated. Notes:
+- The /lab family attribution is per family, not per interaction. The champion's and the broad models' `momentum`
+  total (chg_1h, own 2 h change and the rest) stays shown. No `chg_1h` x 2 h or lagged-step interaction attribution is
+  computed or shown, and no LT7 family is in any broad model.
+- `se7_lgbm_all` (broad) already held the `book` columns before this request (disclosed in DESIGN_V1 sections 8 and 21).
+  Its `book` attribution stays hidden until 12-31. Since 2026-10-22 it is also promotion-ineligible (section 21: book
+  inputs are read after the label origin), as are `se3_lr_book` and `se14_lgbm_movetype`.
+- If LT7 slides, file a later date here, and it will be applied.
 
 ---
 
@@ -379,3 +389,5 @@ development look at the neg-risk / sibling family (ledger entry 2026-10-21).
 | 14 | `participation` / `se16_lgbm_participation` | base + aux `participation` (event volume and liquidity, 2 h event volume change, own liquidity share, `competitive`, event age, lifetime market volume), LightGBM (se1's params); from the origin's and the previous slot's Gamma sidecar | none (development-only evidence so far: none) | `participation` until 2026-11-25 (CB17-C uses the event-volume change and event liquidity; science review REVISE applied); event open interest and comment counts excluded | **active, embargoed, hidden** (2026-10-21); read against se1 |
 | 15 | learner budget / `se17_lgbm_mm_900k` | base only (market state + momentum), LightGBM with se1's tree params, 900k rows, up to 1000 rounds | development walk-forward 10-18..10-20: +0.0027 nats dir_2h over se1 (+0.003 / +0.002 at 6 h / 24 h); selected from four learner budgets (DESIGN_V1 §19), so optimistic | none (no family) | **active** (2026-10-21); first fit at the 10-22 refit; non-embargoed K = 3 |
 | 16 | `regime` (unsigned market-wide / category-wide activity) | share of eligible markets moving > δ at k-1 and among rows received earlier in capture k; mean abs 2 h / 1 h change | development walk-forward 10-18..10-20: **worse** than se1 on every direction target (dir_2h -0.0017); science review REVISE (common per-capture shock, receipt-order proxy) | none needed (reviewer: optional `regime` to 11-22) | **dropped** (code removed; DESIGN_V1 §19) |
+| 17 | `rulesrc` (CH199) | host class of `resolutionSource` from `stream_gamma_rules`, joined by market id from the last row received before the capture | **census 2026-10-22 ~01:00Z** (capture 10-21 22:31Z, stream rows 10-20..10-21): 44.7% of the 18,232 eligible non-sports markets appear in the stream, and **19.9%** carry a parseable source host (sports: 12.2% / 7.8%). Below CH199's own kill line (< 30%) | none | **killed at census** (re-census only if the stream's frame widens to the whole eligible panel) |
+| 18 | `sweep2` (CH200) | sweep-2 minus sweep-1 mid, imbalance change, touch-changed flag | not built | would be `book` (12-09) | **declined 2026-10-22**: direction labels start at the capture's Gamma mid (~hh:31Z) and sweep 2 arrives ~9 min later, so the sweep-2 minus sweep-1 mid change is part of the label move itself (mechanical overlap, not a forecast). Measured: 5.4-6.4% of eligible markets already move > DELTA between the capture and sweep 1, about a third of all 2 h movers. Same reason `bk_micro` is measured against the sweep's own mid |

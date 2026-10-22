@@ -3461,3 +3461,21 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   `creative_batch_8:W` count line (n_tests 1).
 - **q0164 (CB8 exclusion keys) promoted:** both required pins derived once on the host at 00:17Z (c1_legs 500 ids
   `8341c500…`; cb5_listings 244,420 ids from 64 files `e1a12551…`).
+
+## Signal engine: book timing overlap, se7 promotion-ineligible, CH199 / CH200 closed, 2026-10-22 ~00:50Z (signal-engine autopilot; development diagnostics only, nothing counted)
+- **Book timing overlap found and disclosed** (DESIGN_V1 section 21). Direction labels start at the origin capture's
+  Gamma mid. The `book` family comes from sweep 1 of the pass, ~7 min later. On two 10-21 captures (~50k eligible
+  each), 6.4% / 5.4% of markets had already moved > DELTA by sweep time, about a third of 2 h movers. `bk_micro`
+  correlates -0.28 / -0.22 with that in-window move.
+- **Science review: REVISE twice; both rounds applied.** `se3_lr_book` and `se14_lgbm_movetype` are also listed (still
+  embargoed, no score seen). `se7_lgbm_all` (broad, has book inputs) is promotion-ineligible from
+  2026-10-22T00:50Z (`config.PROMOTION_INELIGIBLE`). It is still scored and shown, and K stays 3. No pinned spec,
+  constant or formula changed. The reason is the timing measurement, not a score. se7's one-day leaderboard of 10-21
+  (about +0.05 nats, same as se1) had been seen; disclosed.
+- **CH200 `sweep2` declined:** sweep-2 minus sweep-1 mid is part of the label's own path.
+- **CH199 `rulesrc` killed at census:** 19.9% of eligible non-sports markets carry a parseable resolution-source host,
+  below its own 30% kill line.
+- Also: /lab promotion-rule status card merged (PR #26).
+- (~01:00Z, signal engine) **Embargo round 4 applied (LT7 draft):** `book` 12-09 -> 12-31, `movetype` 11-22 -> 12-31, new
+  tokens `resist`, `capath`, `mm_fresh`, `deepbook`, `absorbed`, `ivr` until 12-31 (no models). Only later dates and new
+  tokens. No score of an affected model has been computed or shown.
