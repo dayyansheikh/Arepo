@@ -3897,3 +3897,12 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   `reviews/LT8_13_7_ERRATUM_RECHECK_2026-10-22.md` (OK_WITH_NOTES). **Independence ruling (reviewer):** the 13.7 erratum is
   the mechanical fix prescribed by N2 option (a) before LT7 CC7 was committed; it concerns only CH203 `rw_changed`
   missingness, so it is not "informed (LT7 census)".
+
+## LT8 restore-plan and seal promotion, 2026-10-22 ~22:35Z (operational; nothing counted)
+- `run_live_tests8.py restore-plan` on the host with the q0621 roots (host originals, LT8 and LT7-LT4 restore trees):
+  159 / 159 needed dirs present hash-equal, 0 mismatches, 0 restore paths (/tmp/lt8_restore_plan.json, sha256 df557c55…).
+  q0620 (archive restore) is therefore not needed and stays a draft (never promote); q0621's depends_on changed to q0604.
+- Host-only: snapshots 10-18..10-21 and sweeps 10-17 and 10-19T22..10-21, which the 10-day rule starts removing from
+  10-28; so the R3 timing route applies: q0621 (seal, promoted now), then q0622 / q0623 after the seal copy is committed
+  and pulled, all before 2026-10-28T03:30Z outside 02:45-05:30Z. q0116h priority lowered 95 -> 40 so the LT8 chain takes
+  the gaps between MC1 slices first.
