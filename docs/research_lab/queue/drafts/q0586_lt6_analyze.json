@@ -1,0 +1,32 @@
+{
+ "id": "q0586_lt6_analyze",
+ "title": "LT6 single registered analysis (DRAFT): Holm over the k census-surviving primaries, gates, verdicts, counted trials line; refuses before the analysis date and on any pin mismatch",
+ "family": "live_tests_6",
+ "priority": 26,
+ "expected_value": "prospective verdicts for the registered LT6 tests (exploratory; no edge claim without an economic check)",
+ "data": [
+  "research_lab/live_tests6 (write-once lines of the reader)"
+ ],
+ "resources": {
+  "mem_mb": 3000,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_live_tests6.py",
+  "analyze",
+  "--trials",
+  "--out",
+  "../data-dumps/research_lab/live_tests6/analysis_v1.json"
+ ],
+ "timeout_s": 43200,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests6/analysis_v1.json",
+  "trials.jsonl (one line, kind live_tests6, n_tests = k)"
+ ],
+ "next_action": "ledger results entry (scored once), registry update",
+ "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_6.md). not_before deliberately unset: the analysis date is END_UTC + 36 h and slides with E022 (section 1); fill at registration. Runs once; --out refuses to overwrite; the analyze command itself refuses before the analysis date and on any pin mismatch. Memory not measured; do not run alongside another multi-GB job."
+}

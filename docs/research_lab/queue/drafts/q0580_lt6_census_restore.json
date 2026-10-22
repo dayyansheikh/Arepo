@@ -1,0 +1,47 @@
+{
+ "id": "q0580_lt6_census_restore",
+ "title": "LT6 census inputs (DRAFT): restore, byte for byte from the arepo-data releases, every file of the LT5 capture seal, the LT3 C2 sample seal and the LT4 capture seal that is no longer whole on the host (spans of LIVE_TESTS_6.md section 7: complete captures 2026-10-12T00:31Z .. 2026-10-21T22:31Z, sweep 1 from 2026-10-19T22:31Z, the 23 active-frame samples of 2026-10-16/17), into a scratch tree; sha256 re-checked against the source seals; nothing outside --dest written",
+ "family": "live_tests_6",
+ "priority": 22,
+ "expected_value": "the sealed census inputs of CD, CB, CV and CK, proven identical to the source seals",
+ "data": [
+  "arepo-data GitHub releases (read-only; tags to be taken from the catalogue and each file's files.sha256 before promotion)",
+  "seals/lt5_census_inputs_captures.json (after q0564), seals/lt3_census_inputs_C2.json, seals/lt4_census_inputs_captures.json"
+ ],
+ "resources": {
+  "mem_mb": 1200,
+  "cpu": 1,
+  "lane": "net",
+  "network": "github releases (private data repo, read-only)"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/restore_from_archive.py",
+  "--tag",
+  "data-20261015-dsheikh",
+  "--tag",
+  "data-20261016-dsheikh",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261013T*/rows.csv.gz",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261013T*/rows_ext.csv.gz",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261013T*/manifest.json",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261014T*/rows.csv.gz",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261014T*/rows_ext.csv.gz",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261014T*/manifest.json",
+  "--dest",
+  "../data-dumps/research_lab/live_tests6_census/restore"
+ ],
+ "timeout_s": 10800,
+ "max_retries": 3,
+ "outputs": [
+  "data-dumps/research_lab/live_tests6_census/restore/data-dumps/research_lab/{snapshots,book_sweeps,trade_samples}/<id>/",
+  "data-dumps/research_lab/live_tests6_census/restore/RESTORE_REPORT_<tag>.json"
+ ],
+ "next_action": "list the host read-only, add one restore (or one path-glob set per tag) for every source-sealed capture, sweep and sample no longer whole on the host, check each against files.sha256, then q0581 writes the LT6 seal; a source-sealed file that no release holds is genuinely missing (counted per slot, never substituted)",
+ "notes": "FILLED 2026-10-22 ~01:15Z (orchestrator): tonight's 03:30Z retention deletes the 2026-10-13T04:31Z..2026-10-14T22:31Z capture rows from the host (8-day rule); from the release catalogue (files.sha256) data-20261015-dsheikh holds 10-12T00:31..10-14T16:31 and data-20261016-dsheikh 10-14T18:31..22:31 (10-14T00:31..10:31 is the known Mac-outage gap). This job restores the 10-13 and 10-14 captures (rows, rows_ext, manifest; about 1 GB); the 10-12 captures come from LT5's q0560 restore tree, the 23 C2 samples from LT3's q0471 tree and the LT4 captures from q0480's tree (all present 2026-10-22 00:40Z), passed as extra roots to q0581-q0583. Captures from 10-15 on stay on the host until 2026-10-23T03:30Z (10-15 rows deleted then), so q0582 must start before 2026-10-23T03:30Z; otherwise a further restore is needed, never a backfill. | DRAFT, not in queue/jobs (LIVE_TESTS_6.md, accepted for code only; the code is not yet frozen or reviewed). Promote only after the challenger review of the code and its freeze check. Counts 0 (descriptive; no trials line). ONLY the first tag and the 10-12 glob are filled in as an example of the format (the same tag and globs as LT5's q0560); the other tags and globs for 10-13 .. 10-21 and the 23 samples are TO BE FILLED from the releases' catalogue before promotion. Expected ~600 MB (design estimate), scratch disk about 2.5-3.5 GB. mem_mb 1200 because gh aborts under the 2x address-space cap at 600 MB (q0471). Within 48 h of the LT5 seal commit, confirm that every file it names is in a release with an equal sha256 (orchestrator action, design 7). Clear the restore tree after the LT6 registration commit."
+}

@@ -1,0 +1,45 @@
+{
+ "id": "q0583_lt6_census_flow",
+ "title": "LT6 census CK (K, clip trains by size identity) on the 23 sealed active-frame samples of 2026-10-16/17 with their captures k - 1 and k (DRAFT): counts only, origin-side fields only (trade rows with ts < t_k; `side` and wallet fields never read), no target, no P&L; refuses unsealed, mismatched or out-of-bound inputs",
+ "family": "live_tests_6",
+ "priority": 22,
+ "expected_value": "K census gates (LIVE_TESTS_6.md section 7): ts second-level share, order_min_size coverage, clip / clip-free counts, min-size and round-size notional shares, truncation, corr gates incl. H_unsigned and g_path, VIF_w, perm strata, family exclusion; decides K's place in k before the pin",
+ "data": [
+  "data-dumps/research_lab/live_tests3_census/restore (q0471 tree; seals/lt3_census_inputs_C2.json)",
+  "data-dumps/research_lab/live_tests6_census/restore (q0580)"
+ ],
+ "resources": {
+  "mem_mb": 1000,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0582_lt6_census_captures"
+ ],
+ "argv": [
+  "scripts/run_live_tests6.py",
+  "census-flow",
+  "--seal",
+  "../docs/research_lab/seals/lt6_census_inputs.json",
+  "--sample-root",
+  "../data-dumps/research_lab/live_tests3_census/restore/data-dumps/research_lab/trade_samples",
+  "--sample-root",
+  "../data-dumps/research_lab/live_tests6_census/restore/data-dumps/research_lab/trade_samples",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests4_census/restore/data-dumps/research_lab/snapshots",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests6_census/restore/data-dumps/research_lab/snapshots",
+  "--work",
+  "../data-dumps/research_lab/live_tests6_census/work_flow",
+  "--out",
+  "../data-dumps/research_lab/live_tests6_census/CK.json"
+ ],
+ "timeout_s": 7200,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests6_census/CK.json (counts only; the work dir is cleaned up at exit)"
+ ],
+ "next_action": "commit CK.json and its sha256 (seals/), fill K's perm_stratum and exclude_family and K's entry in k_tests, record any drop in LIVE_TESTS_6.md 6.3 and the ledger",
+ "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_6.md, accepted for code only; the code is not yet frozen or reviewed). Promote only after the challenger review of the code and its freeze check. Counts 0 (descriptive; no trials line). CHECK BEFORE PROMOTION: whether the q0471 and q0480 restore trees still exist (both were to be cleared after their own registrations); if not, q0580 must restore those samples and captures too, and the census re-hashes every file against the seal anyway. mem_mb 1000 is an ESTIMATE (two compact frames and one sample's trade rows as text) to be measured by a dry run. Runs after q0582, never alongside it (memory-heavy-jobs rule). Samples whose capture k - 1 is missing are counted in `skipped`, not in the covered days (CK minimum 1.5 days = 18 passes)."
+}
