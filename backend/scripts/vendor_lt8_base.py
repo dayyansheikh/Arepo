@@ -6,7 +6,7 @@ phase 1 (the seal and the counts-only censuses) uses (LIVE_TESTS_8.md 8.1, R1 mu
 Sources (LIVE_TESTS_8.md 8.1: "vendor from the LT7 census code that wrote LT7's seal"): ``live_tests7_base.py`` (which already holds
 unmodified, prefix-free copies of the LT3/LT4/LT5 functions; each name's original source file and hash is carried in ``VENDORED``
 as ``origin``) and ``live_tests7.py`` (the LT7 helpers). The script REFUSES unless the raw sha256 of both sources equals the hashes
-that LT7's own seal recorded as ``code_sha256`` (2ee6a659... and 2e8baa90..., LIVE_TESTS_8.md 8.1), so a drifted LT7 file is never
+that LT7's censuses q0602-q0604 run on (2ee6a659... and 2e8baa90...; LT7's seal recorded 232c22fb... for ``live_tests7.py``, LIVE_TESTS_8.md 8.1), so a drifted LT7 file is never
 vendored. The only change to a copied source is the removal of the module prefix (``b.`` for ``live_tests7.py``, the alias of its
 vendored base; nothing for ``live_tests7_base.py``, which is flat). Provenance per name: the source file, the source file's sha256
 at copy time, the prefix regex and the sha256 of the prefix-normalised function source; ``test_research_lab_live_tests8.py``
@@ -62,7 +62,7 @@ HEADER = '''# ruff: noqa: E501, F401
 
 Unmodified copies of the LT3/LT4/LT5/LT7 reader, census and analysis functions that LT8 uses (LIVE_TESTS_8.md 8.1; LT7 R1 must-fix
 10 and LT8 R1 must-fix 5), so that later LT3-LT7 maintenance cannot void LT8 lines. Sources: ``live_tests7_base.py`` and
-``live_tests7.py`` at the hashes LT7's seal recorded (2ee6a659... / 2e8baa90... at 41a0bb4e). The only change to each copy is the removal of the
+``live_tests7.py`` at the hashes LT7's censuses q0602-q0604 run on (2ee6a659... / 2e8baa90... at 41a0bb4e; LT7's seal recorded 232c22fb... for live_tests7.py). The only change to each copy is the removal of the
 module prefix (``b.`` for the ``live_tests7.py`` sources). ``VENDORED`` records, per name, the source file, its sha256 at copy time,
 the prefix regex and the sha256 of the prefix-normalised source (and, for names that ``live_tests7_base.py`` itself vendored, the
 original LT3/LT4/LT5 file and hash as ``origin``); ``tests/unit/test_research_lab_live_tests8.py`` re-checks them. No LT8 module
@@ -119,7 +119,7 @@ def census_output_check() -> None:
             try:
                 ch = json.loads(f.read_text()).get("code_sha256") or {}
             except (OSError, ValueError, AttributeError):
-                continue
+                raise SystemExit(f"refusing: LT7 census output {f.name} is unreadable JSON; its code hash cannot be checked") from None
             for name, want in SOURCE_PINS.items():
                 if ch.get(name) and ch[name] != want:
                     raise SystemExit(f"refusing: LT7 census output {f.name} ran on {name} {ch[name]}, not {want}; re-vendor from that hash first (LIVE_TESTS_8.md 8.1)")
@@ -132,7 +132,7 @@ def main() -> None:
         raw = (HERE / fname).read_bytes()
         got = hashlib.sha256(raw).hexdigest()
         if got != want:
-            raise SystemExit(f"refusing: {fname} sha256 {got} != the hash LT7's seal recorded {want} (LIVE_TESTS_8.md 8.1); nothing vendored")
+            raise SystemExit(f"refusing: {fname} sha256 {got} != the hash LT7's censuses q0602-q0604 run on {want} (LIVE_TESTS_8.md 8.1); nothing vendored")
         texts[fname], fshas[fname] = raw.decode("utf-8"), got
     # the original LT3/LT4/LT5 origin of every name the LT7 base itself vendored (its VENDORED table is read by text, not imported)
     base_tree = ast.parse(texts["live_tests7_base.py"])

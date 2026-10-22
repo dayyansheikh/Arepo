@@ -822,6 +822,10 @@ def test_coverage_is_computed_as_written_without_tight_and_the_tight_variant_is_
     Q = pd.concat([q.assign(market_id="A"), q.assign(market_id="B")], ignore_index=True)
     out = lt.census_ch203(Q, {k: v * 1 for k, v in cnt.items() if isinstance(v, int)}, spec, 1.0, 1.0, 1.0, {"A": 99, "B": 99, "other": 0})
     assert out["sweep_coverage"] == 1.0 and out["tight_variant"]["coverage"] == 0.5 and "rewarded_x_in_band" in out
+    # the quiet share and the cap share use the SAME (no-tight) covered set as the coverage: 2 of 2 here, not the mixed 1 of 2 (verification fix 1)
+    assert cnt["quiet_covered_notight_in_band"] == 2 and cnt["quiet_covered_in_band"] == 1
+    assert out["quiet_share"] == 1.0 and out["cap_share"] == 1.0 and out["projected_quiet_covered_pre_band"] == 2.0 * 1.0
+    assert out["tight_variant"]["quiet_share"] == 1.0 and out["tight_variant"]["projected_quiet_covered_pre_band"] == 1.0 and out["tight_variant"]["cap_share"] == 1.0
 
 
 def test_count_gates_are_measured_before_the_family_exclusion():
@@ -921,3 +925,68 @@ def test_vendored_records_commit_and_current_lt7_hashes():
     assert {v.get("source_commit") for v in b.VENDORED.values()} == {"41a0bb4e"}
     srcs = {v["source"]: v["source_sha256"] for v in b.VENDORED.values()}
     assert srcs["live_tests7.py"].startswith("2ee6a659") and srcs["live_tests7_base.py"].startswith("2e8baa90")
+
+
+# --- verification fixes 3-5 -------------------------------------------------------------------------------------------------------------------
+
+
+def test_unreadable_lt7_census_json_refuses(tmp_path, monkeypatch):
+    d = tmp_path / "lt7c"
+    d.mkdir()
+    monkeypatch.setattr(lt, "LT7_CENSUS_DIR", d)
+    (d / "CS7.json").write_text("{not json")
+    err = lt.lt7_census_hash_error()
+    assert err and err["bad"][0]["file"] == "CS7.json" and "unreadable" in err["bad"][0]["error"]
+    spec = importlib.util.spec_from_file_location("vendor_lt8b", HERE.parents[1] / "scripts" / "vendor_lt8_base.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    (tmp_path / "data-dumps" / "research_lab" / "live_tests7_census").mkdir(parents=True)
+    (tmp_path / "data-dumps" / "research_lab" / "live_tests7_census" / "CC7.json").write_text("{x")
+    monkeypatch.setattr(mod, "HERE", tmp_path / "a" / "b" / "c")
+    with pytest.raises(SystemExit, match="unreadable"):
+        mod.census_output_check()
+
+
+def test_sealed_sweep_that_does_not_pair_with_its_capture_refuses(world, monkeypatch):
+    w = world
+    seal = seal_and_commit(w, w["tmp"])
+    orig = lt._seal_scan8
+
+    def swapped(*a, **k):  # every sealed directory is present and hash-equal, but the scan pairs slot 50's sweep with slot 51's capture and vice versa
+        by_slot, sweeps = orig(*a, **k)
+        sweeps = dict(sweeps)
+        c50, c51 = by_slot[50]["id"], by_slot[51]["id"]
+        sweeps[c50], sweeps[c51] = sweeps[c51], sweeps[c50]
+        return by_slot, sweeps
+
+    monkeypatch.setattr(lt, "_seal_scan8", swapped)
+    r = lt.census_sweeps(seal=seal, snapshot_root=[w["host"]["snap"]], sweep_root=[w["host"]["swp"]], work=w["tmp"] / "wp", spec=w["spec"])
+    assert "does not pair" in r["error"] and r["slot"] in (50, 51)
+    monkeypatch.setattr(lt, "_seal_scan8", orig)
+    ok = lt.census_sweeps(seal=seal, snapshot_root=[w["host"]["snap"]], sweep_root=[w["host"]["swp"]], work=w["tmp"] / "wq", spec=w["spec"])
+    assert "error" not in ok
+
+
+def test_e2e_missing_rewards_max_spread_is_excluded_and_counted(tmp_path, monkeypatch):
+    design = tmp_path / "LIVE_TESTS_8.md"
+    design.write_text("frozen design text")
+    monkeypatch.setattr(lt, "DESIGN_PATH", design)
+    monkeypatch.setattr(lt, "DESIGN_TEXT_SHA256", hashlib.sha256(design.read_bytes()).hexdigest())
+    host = build_host(tmp_path)
+    # market 51 (flat, quiet, unrewarded) loses its rewards_max_spread in every capture: its mid is inside the band, so in_band is NaN (excluded, counted)
+    for cid in host["cids"].values():
+        f = host["snap"] / cid / "rows_ext.csv.gz"
+        e = pd.read_csv(f, dtype=str)
+        e.loc[e["market_id"] == "151", "rewards_max_spread"] = np.nan
+        e.to_csv(f, index=False, compression="gzip")
+    p7 = write_lt7_seal(tmp_path, host)
+    spec = make_spec(p7, host)
+    s = lt.seal_inputs(snapshot_root=[host["snap"]], sweep_root=[host["swp"]], work=tmp_path / "ws", spec=spec)
+    assert "error" not in s
+    seal = tmp_path / "lt8.json"
+    seal.write_text(json.dumps(s, default=lt._json))
+    res = lt.census_sweeps(seal=seal, snapshot_root=[host["snap"]], sweep_root=[host["swp"]], work=tmp_path / "wk", spec=spec)
+    assert "error" not in res, res
+    c = res["CH203"]["counts"]
+    assert c["in_band_unknown"] > 0 and c["reward_state_unset"] + c.get("reward_state_empty_list", 0) + c.get("reward_state_rewarded", 0) > 0
+    assert "rewarded0_in_band1" in res["CH203"]["rewarded_x_in_band"] and res["CH203"]["rewarded_x_in_band"]["rewarded0_in_band1"] > 0

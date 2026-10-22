@@ -3,7 +3,7 @@
 
 Unmodified copies of the LT3/LT4/LT5/LT7 reader, census and analysis functions that LT8 uses (LIVE_TESTS_8.md 8.1; LT7 R1 must-fix
 10 and LT8 R1 must-fix 5), so that later LT3-LT7 maintenance cannot void LT8 lines. Sources: ``live_tests7_base.py`` and
-``live_tests7.py`` at the hashes LT7's seal recorded (2ee6a659... / 2e8baa90... at 41a0bb4e). The only change to each copy is the removal of the
+``live_tests7.py`` at the hashes LT7's censuses q0602-q0604 run on (2ee6a659... / 2e8baa90... at 41a0bb4e; LT7's seal recorded 232c22fb... for live_tests7.py). The only change to each copy is the removal of the
 module prefix (``b.`` for the ``live_tests7.py`` sources). ``VENDORED`` records, per name, the source file, its sha256 at copy time,
 the prefix regex and the sha256 of the prefix-normalised source (and, for names that ``live_tests7_base.py`` itself vendored, the
 original LT3/LT4/LT5 file and hash as ``origin``); ``tests/unit/test_research_lab_live_tests8.py`` re-checks them. No LT8 module

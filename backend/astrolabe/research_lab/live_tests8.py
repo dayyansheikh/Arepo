@@ -523,6 +523,12 @@ def quiet_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, ser_k2: pd.DataFrame |
     cnt["quiet_covered_in_band"] = int(keep.sum())
     cnt["quiet_covered_in_band_cap"] = int((keep & (j["n_members"].to_numpy(float) <= spec["member_cap"]["max_members"])).sum())
     cnt["quiet_covered_in_band_ladder"] = cnt["quiet_covered_in_band"] - cnt["quiet_covered_in_band_cap"]
+    # section 7's "covered" as WRITTEN (no tight): the numerators of the quiet share, the projected quiet count and the cap share (verification fix 1)
+    cov_nt = struct_nt & recv
+    nm_ok = j["n_members"].to_numpy(float) <= spec["member_cap"]["max_members"]
+    cnt["quiet_covered_notight_pre_band"] = int((cov_nt & quiet).sum())
+    cnt["quiet_covered_notight_in_band"] = int((cov_nt & quiet & in_band).sum())
+    cnt["quiet_covered_notight_in_band_cap"] = int((cov_nt & quiet & in_band & nm_ok).sum())
     j = j[keep].reset_index(drop=True)
     if j.empty:
         return pd.DataFrame(), cnt
@@ -942,12 +948,14 @@ def census_ch203(Q: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_d
     cov_t, struct_t = tot.get("covered_in_band", 0), tot.get("covered_struct_in_band", 0)
     coverage = cov / elig if elig else float("nan")
     received = cov / struct if struct else float("nan")
-    quiet_n = tot.get("quiet_covered_in_band", 0)
+    quiet_n = tot.get("quiet_covered_notight_in_band", 0)
     quiet_share = quiet_n / cov if cov else float("nan")
+    quiet_pre = tot.get("quiet_covered_notight_pre_band", 0) * scale
+    cap_share = tot.get("quiet_covered_notight_in_band_cap", 0) / quiet_n if quiet_n else float("nan")
+    quiet_t = tot.get("quiet_covered_in_band", 0)  # the tight versions (the unit population), printed beside
     tight_variant = {"coverage": cov_t / elig if elig else float("nan"), "received_before_origin_share": cov_t / struct_t if struct_t else float("nan"),
-                     "quiet_share": quiet_n / cov_t if cov_t else float("nan")}
-    quiet_pre = tot.get("quiet_covered_pre_band", 0) * scale
-    cap_share = tot.get("quiet_covered_in_band_cap", 0) / quiet_n if quiet_n else float("nan")
+                     "quiet_share": quiet_t / cov_t if cov_t else float("nan"), "projected_quiet_covered_pre_band": tot.get("quiet_covered_pre_band", 0) * scale,
+                     "cap_share": tot.get("quiet_covered_in_band_cap", 0) / quiet_t if quiet_t else float("nan")}
     P = Q[Q["n_members"] <= cap_n]
     pop, excl, top = b._fam(P, a["family_cap"])
     pop = pop.copy()
@@ -1308,6 +1316,7 @@ def lt7_census_hash_error(census_dir: Path | None = None) -> dict | None:
         try:
             j = json.loads(f.read_text())
         except (OSError, ValueError):
+            bad.append({"file": f.name, "error": "unreadable JSON: its code hash cannot be checked"})
             continue
         ch = j.get("code_sha256") if isinstance(j, dict) else None
         for name, sha in want.items():
@@ -1423,6 +1432,11 @@ def census_sweeps(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, sweep_root=SWEEP_R
         return err
     sc, ss = sealed_slot_maps(seal_d, spec)
     cap_slots, sw_slots = set(sc), set(ss)
+    for k, names in sorted(ss.items()):  # a sealed sweep in a slot must pair with that slot's sealed capture (verification fix 4): never counted as 'nosweep'
+        v = sweeps.get(by_slot[k]["id"]) if k in by_slot else None
+        if v is None or Path(v["dir"]).name not in names:
+            return {"error": "a sealed sweep 1 does not pair with its slot's capture as the seal's slot map says: census refused", "slot": k, "sealed": sorted(names),
+                    "paired": None if v is None else Path(v["dir"]).name}
     org = origins_cs8(cap_slots, sw_slots)
     O203, O202, PAIRS = set(org["CH203"]), set(org["CH202"]), set(org["CH203_pairs"])
     full = {j for k in O203 | O202 for j in range(k - 12, k + 1)} & cap_slots
