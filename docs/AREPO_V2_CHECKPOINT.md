@@ -277,9 +277,15 @@ h8 text/geo seals (58, promoted), CB8 q0162/q0163, CB16-K q0383.
    and k_tests, record drops (LIVE_TESTS_6.md 6.3, ledger). After q0583: CK.json, K fills. Then q0584 size check.
 5. **MC1 q0116f:** when done, write up as development (MULTI_SIGNAL_PIPELINE_DESIGN.md / ledger), record the panel hash.
    If it OOMs: record, park, write the memory profile; no new id without a measured fix.
-6. **LT7:** code phase 1 + census-code check fixes on `feat/live-tests-7` (17da4254, worktree
-   `.claude/worktrees/agent-a912d456e04c96c3d`), not yet merged. A science-reviewer verification of the fixes was started
-   05:35Z. If FIXES_OK*: merge into chore, promote q0600 restore -> q0601 seal -> q0601b null-share -> censuses.
+6. **LT7:** census-code fixes verified FIXES_OK_WITH_NOTES (notes applied 699b9ee9), **merged into chore (dde3c3c4)**.
+   **q0601 seal promoted** (17d67a1a; q0600 restore NOT promoted by its own rule, dependency removed). When q0601 is done:
+   byte-copy `live_tests7_census/lt7_census_inputs.json` to `seals/`, commit, deploy, promote q0601b (null share); read
+   its `common`: if false promote q0602 (it depends on LT6's q0584: promote q0584 after q0583), then q0603, q0604; if
+   true, challenger ruling first. Censuses must FINISH before the first loss (10-26T03:30Z if retention is back to 8
+   days). Then phase 2 (reader, analysis, size check q0605, RSS probe).
+7. **Creative round 13** (Fable xhigh, CH202+, `feat/creative-r13` in an agent worktree) started ~05:45Z because rounds
+   11-12 are fully routed (only engine-first CH186/189/196/198/201 remain). When done: review, merge, rank into LT8 /
+   CB batches, add idea-level families to `signal_engine/CANDIDATES.md`.
 
 **LT4 → E022 registration (deadline: registration commit by 2026-10-25T00:00Z, window 10-26..11-16):**
 k_tests = [E022] (E020/E021 dropped at census, uncounted). Done 2026-10-21: pre-pin code (44a7e938), freeze check
