@@ -247,29 +247,29 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-22 16:30Z
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-22 21:05Z
 Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && git log --oneline -1'` = local tip.
-Host 2 OCPU / 11.4 GiB since the resize. data-dumps 33 / 40 GB cap: owner approval 8 (restore-tree clearing) is time-relevant.
+Host 2 OCPU / 11.4 GiB since the resize. data-dumps 34 / 40 GB cap: owner approval 8 (restore-tree clearing) is time-relevant.
 
-**Autopilot session 10-22 ~15:59Z (in progress; state at 16:30Z):**
-- **Worktree caveat:** agent worktrees (isolation) start from the PRODUCTION tip (e1dfa8a5), not chore. Never merge such
-  branches into chore; cherry-pick the agent's own commits.
-- **LT7 (deadline: CC7/CS7 finish before 10-28T03:30Z):** probe rule (c) fired -> ruling (C) `listed_carry24h_v2`;
-  code on `feat/lt7-reward-carry` 64acdbc4 + 8dd013b9 (design 8fc83a73…, live_tests7.py e1c5c0c6…; fix 1 option (b));
-  re-check **OK_WITH_NOTES** (reviews/LT7_REWARD_CARRY_FIX_RECHECK_2026-10-22.md; 143 tests). **NOT yet on chore on
-  purpose:** q0602 CV7 (priority 97) must write `live_tests7_census/CV7.json` first (it records the design sha from disk
-  at write time). **Next:** when q0602 is `done`: cherry-pick 64acdbc4 and 8dd013b9 onto chore, run LT7 tests, deploy,
-  confirm host hashes (e1c5c0c6…, 8fc83a73…), promote q0603 (drafts, work_cc7_rn_v2), then q0604 after q0603.
-  Then ledger + registry. Notes for later (after the censuses): `_status_array` in `_reward_cols` no-carry branch.
-- **LT8:** fixes on `feat/live-tests-8-code` (2c932e07); implementer re-vendoring from LT7 8dd013b9 (fix 6) and
-  reporting LT8's reward handling. Then ask the reviewer (re-check of fixes 1-10 + whether LT8 adopts listed_carry24h_v2).
-- **MC1:** q0116f parked; q0116g one-fold profile promoted (priority 45, exclusive, 2 h).
-- **CB16-K:** q0393 audit sample promoted (priority 9). When done: science-reviewer blind audit on `audit_K_sample.json`
-  only (never the keys file), >= 90/100 genuine twins -> K may be designed in a later batch.
-- **CB7:** code on chore (75708661, 4cc77b64, 35a6fd33); q0146 PROMOTED + deployed. q0147: short re-check of fixes 3-8,
-  then promote at/after **10-24T01:00Z** after checking the 10-22..10-25 captures exist on the host.
-- **CB8-B:** q0165/q0166 queued. **CB9:** q0181 running; q0182 per reviews/CB9_H9_DEPENDENCY_RULING_2026-10-22.md after q0166.
-- **Creative round 14** (Fable xhigh) running on `feat/creative-r14` (chore-based: merge is fine).
+**Autopilot session 10-22 from 20:35Z (state at 21:05Z):**
+- **LT7:** 13.7 code cherry-picked onto chore (3294d997, f4ff54ec; 143 tests); host hashes live_tests7.py e1c5c0c6…, design
+  8fc83a73… confirmed after deploy a5df8cb0. **q0603 (CC7) and q0604 (CS7) PROMOTED** (exclusive; must finish before
+  10-28T03:30Z). When q0604 is done: ledger + registry; **do NOT revert retention to 8 days** until LT8's q0623 finishes
+  (LT8 re-check R3). Then LT7 phase 2.
+- **LT8:** re-check `reviews/LT8_CENSUS_CODE_FIX_RECHECK_2026-10-22.md` (on feat/live-tests-8-code, 800ee314):
+  FIXES_REQUIRED R1-R3 (fixes 1-10 OK). R1 confirmed: host CV7.json records live_tests7.py 2ee6a659…. An agent is applying
+  amendment 13.7 (listed_carry24h_v2), the CV7/CC7 hash set and the restore roots on that branch. Next: science-reviewer
+  re-check, merge into chore (branch is chore-based), promote q0620-q0623 per R3 timing.
+- **CB16-K:** blind audit FAIL (3/100 genuine twins): CH143 not testable at the floor (4da71761); registry updated.
+- **CB7:** q0147 re-check FIXES_OK_WITH_NOTES (`reviews/CB7_CENSUS_FIX_RECHECK_2026-10-22.md`); notes 1-2 implemented
+  (d504d620: durable XV_TERMINAL marker; X terminal recorded, S/G proceed). Promote q0147 at/after **10-24T01:00Z** after
+  checking the 10-22..10-25 captures exist on the host (census source hash changed; expected before the freeze).
+- **CB8/CB9:** q0164 had exited 0 after a Gamma 422 (keys never written) so q0165 failed x3; q0181 MemoryError x3. An agent
+  is fixing (q0164b, rc 75 on incomplete, q0181 caps). After its commit + deploy: `retry q0165_cb8_updown_frame`, `retry q0181_cb9_sign_audit_A`.
+- **MC1:** q0116g profile measured (fold 0 ~2 h, RSS 6.2 GB; 16 folds -> ~32 h+). Per-unit resume implemented (0adebfb9);
+  draft q0116h (depends on q0604). Promote after q0604 with a quick science-reviewer look at ml_resume.py.
+- **Creative round 14** merged (9079ca39; CH212-CH221). **LT9** draft (CH213, CH214, CH212; CH215 count-gated) being written on
+  `feat/live-tests-9` (`../astrolabe-live-tests-9`). Next: challenger R1, response, re-check, design-text freeze.
 
 **Earlier this day (06:00Z):** q0561 LT5 census done (F/H/R dropped, c0700f8f); q0484 size check PASS -> **E022
 REGISTERED** (bf730c6f; reader cron `10-59/20` installed on the host 06:0xZ; q0486 analysis queued, not before 11-17T12Z);
@@ -282,7 +282,7 @@ census (exclusive, running) -> q0583 -> q0116f MC1 (6 h) ; q0562 LT5 flow census
    FROZEN until 12-07: copy_skilled*.py, wallet_skill*.py, costs.py, copy_skilled_v1.json, cost_model_calibration_v1.json.
 2. **LT5: CLOSED, no test** (524b35ce): F/H/R dropped at q0561, J/O at q0562 (7.3; seals CF5_CHW_CRW.json, CJ_CO.json);
    uncounted; q0563 moot; vendored drift recorded (LT5 tests green). **Retention:** keep the temporary 10-day snapshot rule
-   until LT7's q0604 is done, then revert to 8 days (ledger line, deploy). Watch data-dumps (33 / 40 GB).
+   until LT8's q0623 is done (LT8 re-check R3; was: until q0604), then revert to 8 days (ledger line, deploy). Watch data-dumps (33 / 40 GB).
 3. **h8 seals:** q0121 done; `seals/h8_tail_SEAL.json` committed (sha256 2a88f3e5…). q0144/q0145 promoted; when done,
    commit `seals/h8_text_SEAL.json` and `seals/h8_geo_SEAL.json` before q0147 (never retry q0141). **CB8:** W1 not
    testable (counted 1); B continues (q0164 pins write-once, do NOT re-derive; then q0165, q0166). CB9 q0181+ and CB10
@@ -295,7 +295,7 @@ census (exclusive, running) -> q0583 -> q0116f MC1 (6 h) ; q0562 LT5 flow census
    (priority 97, ahead of MC1). When q0601b is done: read `common` (counts only); if false, promote q0602 by hand (it now
    depends only on q0601/q0601b), then q0603 and q0604 (drafts; promote each after the previous is done or together,
    their depends_on chain them); if true, challenger ruling first. Censuses must FINISH before 10-28T03:30Z (10-day rule
-   kept until q0604). After q0604: revert retention to 8 days. Then phase 2 (reader, analysis, size check q0605, RSS probe).
+   kept until q0604). After q0604: keep the 10-day rule until LT8 q0623 (R3). Then phase 2 (reader, analysis, size check q0605, RSS probe).
 7. **Creative round 13 merged** (553bd125). **LT8** (CH203, CH202, CH204) on `feat/live-tests-8` (worktree
    `.claude/worktrees/agent-ac703b52d84655da0`): draft 4552cec5 -> R1 REVISE (9f99504d) -> response 164078c8 -> re-check
    ACCEPT_WITH_FIXES (3ec28bad/78f0bae4; 4 fixes: worlds 3/5 restored, vendoring wording, LT5 closed). Fixes being applied
