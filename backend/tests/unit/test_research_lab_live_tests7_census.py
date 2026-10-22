@@ -688,10 +688,10 @@ def test_queue_drafts_match_the_runner_and_the_resource_rules():
     # drafts or promoted jobs (q0601 promoted 2026-10-22); each id exists exactly once across the two folders
     found = sorted(p for sub in ("drafts", "jobs") for p in (qdir / sub).glob("q060[0-4]*_lt7_*.json"))
     drafts = {p.stem.split("_")[0]: json.loads(p.read_text()) for p in sorted(found, key=lambda p: p.name)}
-    assert list(drafts) == ["q0600", "q0601", "q0601b", "q0602", "q0603", "q0604"] and len(found) == 6
+    assert list(drafts) == ["q0600", "q0601", "q0601b", "q0601c", "q0602", "q0603", "q0604"] and len(found) == 7
     run = _runner()
     parser = run.build_parser()
-    cmds = {"q0601": "seal", "q0601b": "rewards-null-share", "q0602": "census-volsem", "q0603": "census-captures", "q0604": "census-sweeps"}
+    cmds = {"q0601": "seal", "q0601b": "rewards-null-share", "q0601c": "rewards-probe", "q0602": "census-volsem", "q0603": "census-captures", "q0604": "census-sweeps"}
     for qid, cmd in cmds.items():
         d = drafts[qid]
         assert d["argv"][0] == "scripts/run_live_tests7.py" and d["argv"][1] == cmd and d["family"] == "live_tests_7"
@@ -709,6 +709,13 @@ def test_queue_drafts_match_the_runner_and_the_resource_rules():
     assert {"q0601_lt7_seal", "q0601b_lt7_rewards_null_share"} <= set(drafts["q0602"]["depends_on"])
     assert "q0602_lt7_census_volsem" in drafts["q0603"]["depends_on"] and "q0601b_lt7_rewards_null_share" in drafts["q0603"]["depends_on"]
     assert "q0603_lt7_census_captures" in drafts["q0604"]["depends_on"] and "q0601b_lt7_rewards_null_share" in drafts["q0604"]["depends_on"]
+    # ruling 13.6: the probe gates CC7 / CS7, whose notes carry the merge condition, and every job has its own work dir (series files are write-once)
+    assert drafts["q0601c"]["depends_on"] == ["q0601_lt7_seal"] and drafts["q0601c"]["priority"] == 97 and drafts["q0601c"]["argv"][drafts["q0601c"]["argv"].index("--work") + 1].endswith("/work_rprobe")
+    assert "q0601c_lt7_rewards_probe" in drafts["q0603"]["depends_on"] and "q0601c_lt7_rewards_probe" in drafts["q0604"]["depends_on"]
+    works = [drafts[q]["argv"][drafts[q]["argv"].index("--work") + 1] for q in ("q0601", "q0601b", "q0601c", "q0602", "q0603", "q0604")]
+    assert len(set(works)) == len(works) and works[4] != "../data-dumps/research_lab/live_tests7_census/work_captures" and works[5] != "../data-dumps/research_lab/live_tests7_census/work_sweeps"
+    for qid in ("q0602", "q0603", "q0604"):
+        assert "ruling 13.6: run only after the reward-null fix (feat/lt7-reward-null) is merged and re-checked" in drafts[qid]["notes"]
     # memory (must-fix 4)
     assert (drafts["q0603"]["resources"]["mem_mb"], drafts["q0603"]["resources"]["as_cap_mb"]) == (3000, 6500)
     assert (drafts["q0604"]["resources"]["mem_mb"], drafts["q0604"]["resources"]["as_cap_mb"]) == (2000, 4000)
@@ -777,7 +784,7 @@ def test_seal_refuses_absent_sealed_capture_sweep_and_sample(tmp_path):
 
 def test_seal_and_outputs_carry_the_spec_hashes_and_censuses_refuse_a_changed_spec(world, tmp_path):
     seal, spec = world["seal"], world["spec"]
-    assert seal["spec_blocks_sha256"] == lt.spec_blocks_sha(spec) and seal["design_text_sha256"] == spec["design_text_sha256"] == "840f4500cde37158f57f6cf6bf54a3535ee5b24f3e5dedfd9240b315eeb52899"
+    assert seal["spec_blocks_sha256"] == lt.spec_blocks_sha(spec) and seal["design_text_sha256"] == spec["design_text_sha256"] == "31baf5e5b5c1bec2518228618fc21ab7f111c0e673d6cb064583ce1363d20dd4"
     # a different threshold after seal time (census_gates) or a different span (census_inputs) is refused
     t = world["tree"]
     g = copy.deepcopy(spec)
@@ -922,7 +929,7 @@ def test_runner_new_options(tmp_path, monkeypatch):
     assert run.main(["rewards-null-share", "--seal", str(repo / "s.json"), "--work", str(tmp_path / "w"), "--out", str(tmp_path / "r.json")]) == 0
     out = json.loads((tmp_path / "r.json").read_text())
     spec = lt.load_spec(sha=None)
-    assert out["spec_sha256"] == spec["_sha256"] and out["design_text_sha256"] == "840f4500cde37158f57f6cf6bf54a3535ee5b24f3e5dedfd9240b315eeb52899" and out["sidecars"] == 1
+    assert out["spec_sha256"] == spec["_sha256"] and out["design_text_sha256"] == "31baf5e5b5c1bec2518228618fc21ab7f111c0e673d6cb064583ce1363d20dd4" and out["sidecars"] == 1
 
 
 # --- verification follow-ups ----------------------------------------------------------------------------------------------------------------
@@ -1040,3 +1047,148 @@ def test_seal_does_not_let_a_skipped_sweep1_pass_through_the_sweep2_fallback(tmp
     spec = pinned(make_spec(), seals[0])
     r = lt.seal_inputs(snapshot_root=[t.snap], sweep_root=[t.sweep], sample_root=[t.samp], work=tmp_path / "w", source_seals=list(seals), spec=spec)
     assert "absent locally" in r.get("error", "") and any(t.sw[100] in a for a in r["absent"]), r
+
+
+# --- ruling 13.6: reward nulls are unrewarded (null_as_unrewarded_v1) ----------------------------------------------------
+
+
+def test_reward_status_four_states_and_strict_parse():
+    act = '[{"startDate":"2026-01-01","endDate":"2027-01-01","rewardsDailyRate":10}]'
+    ina = '[{"startDate":"2026-12-01","endDate":"2027-01-01","rewardsDailyRate":10}]'
+    assert lt.reward_status(act, True, "2026-10-09") == ("listed", 10.0)
+    assert lt.reward_status(ina, True, "2026-10-09") == ("listed", 0.0)  # listed but inactive that UTC day
+    assert lt.reward_status("[]", True, "2026-10-09") == ("listed", 0.0)
+    assert lt.reward_status(np.nan, True, "2026-10-09") == ("null", 0.0) and lt.reward_status(None, True, "2026-10-09") == ("null", 0.0)
+    for bad in ("not json", "{", '{"rewardsDailyRate": 5}', "null", "7"):  # invalid JSON or a JSON non-list is malformed, never 0.0
+        st, rate = lt.reward_status(bad, True, "2026-10-09")
+        assert st == "malformed" and np.isnan(rate), bad
+    st, rate = lt.reward_status(act, False, "2026-10-09")  # no sidecar row: absent
+    assert st == "absent" and np.isnan(rate)
+    assert lt.REWARD_STATUSES == ("listed", "null", "malformed", "absent")
+
+
+def test_series7_frame_statuses_come_from_row_presence_not_reindex(tmp_path):
+    t = Tree(tmp_path / "t", slots=range(90, 92), sweep_slots=[], sample_slots=[])
+    d = t.snap / t.cid[90]
+    rows, ext = lt.load_rows7(d), lt.load_ext7(d)
+    spec = lt.load_spec(sha=None)
+    ids = [str(m) for m in rows["market_id"].astype(str)[:6]]
+    act = '[{"startDate":"2026-01-01","endDate":"2027-01-01","rewardsDailyRate":10}]'
+    ina = '[{"startDate":"2026-12-01","endDate":"2027-01-01","rewardsDailyRate":10}]'
+    ext.loc[ids[0], "clob_rewards"] = act
+    ext.loc[ids[1], "clob_rewards"] = ina
+    ext.loc[ids[2], "clob_rewards"] = np.nan
+    ext.loc[ids[3], "clob_rewards"] = "garbage"
+    ext = ext.drop(index=ids[4])  # no sidecar row at all
+    ser = lt.series7_frame(rows, ext, spec, "2026-10-09").set_index("market_id")
+    assert [ser.loc[i, "rew_status"] for i in ids[:5]] == ["listed", "listed", "null", "malformed", "absent"]
+    assert ser.loc[ids[0], "rew_rate"] == 10.0 and ser.loc[ids[1], "rew_rate"] == 0.0 and ser.loc[ids[2], "rew_rate"] == 0.0
+    assert np.isnan(ser.loc[ids[3], "rew_rate"]) and np.isnan(ser.loc[ids[4], "rew_rate"])
+    assert {"rew_min", "osz", "rew_maxspread"} <= set(ser.columns)
+    assert lt.series7_frame(rows, None, spec, "2026-10-09")["rew_status"].eq("absent").all()  # no sidecar file at all
+
+
+def test_unit_builders_count_the_four_reward_groups_and_keep_null_and_inactive_units():
+    from tests.unit.test_research_lab_live_tests7 import (  # noqa: PLC0415
+        CAP,
+        K0,
+        SPEC,
+        ser_frame,
+        store_with,
+        sweep_frame_sizes,
+    )
+
+    t0 = lt.epoch("2026-10-09T12:31:05Z")
+    ids = ["a", "b", "c", "d", "e"]
+    mids = dict.fromkeys(ids, 0.5)
+    ser_p = ser_frame(mids, t=t0 - 7200)
+    ser_k = ser_frame(mids, t=t0)
+    ser_k["rew_status"] = ["listed", "listed", "null", "malformed", "absent"]
+    ser_k["rew_rate"] = [10.0, 0.0, 0.0, np.nan, np.nan]
+    sw = sweep_frame_sizes({m: (0.49, 0.51, 50, 40, 150, 120) for m in mids}, t0)
+    u, cnt = lt.patient_units(ser_k, ser_p, None, sw, CAP, K0, SPEC)
+    assert set(u["market_id"]) == {"a", "b", "c"}  # null and listed-inactive stay (unrewarded); malformed / absent are excluded
+    assert dict(zip(u["market_id"], u["rewarded"], strict=True)) == {"a": 1.0, "b": 0.0, "c": 0.0}
+    assert dict(zip(u["market_id"], u["rew_status"], strict=True)) == {"a": "listed", "b": "listed", "c": "null"}
+    assert {"rew_min", "osz"} <= set(u.columns)
+    assert not ({"rew_status", "rew_min", "osz"} & (set(lt.CONTROLS_197) | set(lt.CONTROLS_192)))  # bookkeeping, not controls
+    assert (cnt["rewards_null_as_zero"], cnt["rewards_listed_inactive"], cnt["reward_unparseable"], cnt["reward_sidecar_absent"]) == (1, 1, 1, 1)
+    assert lt.rewarded_x_in_band(u) == {"rewarded0_in_band0": 0, "rewarded0_in_band1": 2, "rewarded1_in_band0": 0, "rewarded1_in_band1": 1}
+    paths = {m: [0.5 + 0.01 * (i % 2) for i in range(85)] for m in ids}
+    st = store_with(paths, K0)
+    ks = ser_frame({m: p[-1] for m, p in paths.items()}, t=t0)
+    kp = ser_frame({m: p[-2] for m, p in paths.items()}, t=t0 - 7200)
+    ks["rew_status"], ks["rew_rate"] = ser_k["rew_status"].to_numpy(), ser_k["rew_rate"].to_numpy()
+    u2, c2 = lt.ivr_units(ks, kp, st, CAP, K0, SPEC, pd.Series(dict.fromkeys(ids, 0.02)))
+    assert set(u2["market_id"]) == {"a", "b", "c"} and {"rew_status", "rew_min", "osz"} <= set(u2.columns)
+    assert (c2["rewards_null_as_zero"], c2["rewards_listed_inactive"], c2["reward_unparseable"], c2["reward_sidecar_absent"]) == (1, 1, 1, 1)
+
+
+def test_seal_design_hash_accepts_current_and_declared_predecessor_and_refuses_others(world, tmp_path):
+    t, seal = world["tree"], dict(world["seal"])
+    assert lt.DESIGN_TEXT_SHA256 == lt.design_text_sha() == "31baf5e5b5c1bec2518228618fc21ab7f111c0e673d6cb064583ce1363d20dd4"
+    pred = "840f4500cde37158f57f6cf6bf54a3535ee5b24f3e5dedfd9240b315eeb52899"  # the sha recorded by the committed seal (117e9b45...)
+    assert pred in lt.DESIGN_TEXT_PREDECESSORS and lt.seal_design_accepted(pred) and lt.seal_design_accepted(lt.DESIGN_TEXT_SHA256)
+    assert not lt.seal_design_accepted("0" * 64) and not lt.seal_design_accepted(None)
+
+    def probe(tag, h):
+        sp = tmp_path / f"{tag}.json"
+        sp.write_text(json.dumps({**seal, "design_text_sha256": h}))
+        return lt.rewards_null_share(seal=sp, snapshot_root=[t.snap], work=tmp_path / f"w_{tag}", spec=world["spec"])
+
+    assert "error" not in probe("pred", pred) and "error" not in probe("cur", lt.DESIGN_TEXT_SHA256)
+    assert "different LIVE_TESTS_7.md" in probe("bad", "0" * 64)["error"]
+
+
+def test_rewards_probe_counts_on_a_synthetic_sidecar(tmp_path):
+    tt = Tree(tmp_path / "p", slots=range(90, 100), sweep_slots=[], sample_slots=[])
+    for k in range(90, 100):
+        p = tt.snap / tt.cid[k] / "rows_ext.csv.gz"
+        e = pd.read_csv(p, dtype=str)
+        e["clob_rewards"] = '[{"startDate":"2026-01-01","endDate":"2027-01-01","rewardsDailyRate":10}]'
+        e["order_min_size"] = "5"
+        e.loc[e.index[:10], "order_min_size"] = np.nan
+        # zero-rate listed programme on even slots, null on odd ones (a null / non-null switch within a UTC day)
+        e.loc[e.index[:10], "clob_rewards"] = '[{"startDate":"2026-01-01","endDate":"2027-01-01","rewardsDailyRate":0}]' if k % 2 == 0 else np.nan
+        e.loc[e.index[10:12], "clob_rewards"] = "garbage"
+        e.to_csv(p, index=False, compression="gzip")
+    sd = tmp_path / "ps"
+    sd.mkdir()
+    seals = tt.source_seals(sd)
+    spec = pinned(make_spec(), seals[0])
+    seal = lt.seal_inputs(snapshot_root=[tt.snap], sweep_root=[tt.sweep], sample_root=[tt.samp], work=tmp_path / "pw", source_seals=list(seals), spec=spec)
+    sp = tmp_path / "pseal.json"
+    sp.write_text(json.dumps(seal))
+    r = lt.rewards_probe(seal=sp, snapshot_root=[tt.snap], work=tmp_path / "pw2", spec=spec)
+    assert "error" not in r and r["sidecars"] > 0 and r["captures_without_sealed_sidecar"] == 0
+    tot = r["totals"]
+    assert 0 < tot["rows"] < r["sidecars"] * N_MKT and tot["malformed"] == r["malformed_clob_rewards"] > 0
+    assert 0 < tot["listed_zero_rate_on_day"] < tot["listed"] and tot["null"] > 0 and tot["osz_null"] > 0
+    assert r["shares"]["listed_zero_rate_on_day"] == pytest.approx(tot["listed_zero_rate_on_day"] / tot["listed"])
+    assert r["shares"]["order_min_size_null"] == pytest.approx(tot["osz_null"] / tot["rows"])
+    assert tot["markets_seen_2plus"] > 0 and 0 < tot["markets_switching"] <= tot["markets_seen_2plus"]
+    assert r["per_day"] and all(v["rows"] > 0 for v in r["per_day"].values()) and r["reward_null_rule"] == "null_as_unrewarded_v1"
+    p = tt.snap / tt.cid[95] / "rows_ext.csv.gz"
+    p.write_bytes(p.read_bytes() + b"\x00")
+    assert "input identity" in lt.rewards_probe(seal=sp, snapshot_root=[tt.snap], work=tmp_path / "pw3", spec=spec)["error"]
+
+
+def test_rewards_probe_reads_only_the_sidecar_columns(world, tmp_path, monkeypatch):
+    seen = []
+    orig = pd.read_csv
+
+    def spy(path, *a, **k):
+        if "rows_ext" in str(path):
+            seen.append(k.get("usecols"))
+        return orig(path, *a, **k)
+
+    monkeypatch.setattr(pd, "read_csv", spy)
+    lt.rewards_probe(seal=world["seal_path"], snapshot_root=[world["tree"].snap], work=tmp_path / "w", spec=world["spec"])
+    cols = [*lt.EXT_COLS, "bid", "ask", "mid", "last_trade_price", "outcome_prices", "resolved_outcome", "volume24hr", "spread"]
+    assert seen and all(callable(u) and {c for c in cols if u(c)} == set(lt.EXT_COLS) for u in seen)
+
+
+def test_spec_carries_the_reward_null_rule_and_the_controls_are_unchanged():
+    spec = lt.load_spec(sha=None)
+    assert spec["reward_null_rule"] == "null_as_unrewarded_v1" and spec["design_text_sha256"] == lt.DESIGN_TEXT_SHA256
+    assert "rewarded" in lt.CONTROLS_197 and "rewarded" in lt.CONTROLS_192

@@ -21,7 +21,7 @@ CAP = {"id": "c", "start": T0, "dir": "."}
 
 
 def ser_frame(mids: dict, *, t: float = T0, spread: float = 0.02, sports: int = 0, crypto7: str = "non_crypto", vol: float | dict = 1000.0, ltp: float | dict = 0.5,
-              tick: float = 0.01, liq: float = 1e5, event: str = "e1", end_h: float = 500.0, rew: float = 10.0, bid_ask: dict | None = None) -> pd.DataFrame:
+              tick: float = 0.01, liq: float = 1e5, event: str = "e1", end_h: float = 500.0, rew: float = 10.0, bid_ask: dict | None = None, rew_status: str | None = None) -> pd.DataFrame:
     """A series frame (index market_id) as :func:`live_tests7.series7_frame` writes it."""
     ids = list(mids)
     mid = np.array([mids[m] for m in ids], float)
@@ -32,7 +32,7 @@ def ser_frame(mids: dict, *, t: float = T0, spread: float = 0.02, sports: int = 
         "event_id": [event if not isinstance(event, dict) else event[m] for m in ids], "t_row": t, "bid": bid, "ask": ask, "spread": ask - bid, "ltp": f(ltp), "vol24": f(vol),
         "end_ts": t + end_h * 3600.0, "created_ts": np.nan, "chg_1h": 0.0, "chg_1d": 0.0, "chg_1w": 0.0, "neg_risk": 0,
         "sports": sports if not isinstance(sports, dict) else [sports[m] for m in ids], "crypto": 0, "skey": [f"event:{m}" for m in ids], "tick": tick,
-        "fee_rate": 0.0, "fee_exp": 1.0, "liq": liq, "rew_rate": rew, "rew_min": 20.0, "rew_maxspread": 3.5, "osz": 5.0, "fee_cat": "Politics",
+        "fee_rate": 0.0, "fee_exp": 1.0, "liq": liq, "rew_status": rew_status or ("malformed" if not np.isfinite(rew) else "listed"), "rew_rate": rew, "rew_min": 20.0, "rew_maxspread": 3.5, "osz": 5.0, "fee_cat": "Politics",
         "crypto7": crypto7 if not isinstance(crypto7, dict) else [crypto7[m] for m in ids]}, index=pd.Index(ids, name="market_id"))
 
 
