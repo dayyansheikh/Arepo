@@ -1,81 +1,76 @@
 # Signal engine: status (rewrite each session; do not append)
 
-**Last updated:** 2026-10-22 02:52 UTC+1 (01:52Z), signal-engine autopilot session 10
+**Last updated:** 2026-10-22 06:56 UTC+1 (05:56Z), signal-engine autopilot session 12
 
 ## In plain English
-- **The order-book signal is back, without the timing flaw.**
-  - Last session found that the `book` features were read about 7 minutes after the price that the forecasts are
-    scored from. It locked the models that use them out of promotion.
-  - This session added `book0`: the same book measurements, taken from the last book sweep that finished *before*
-    the capture. That is normally the previous pass, about 110 minutes earlier, so it cannot see the move being scored.
-  - Coverage is 93% of eligible markets.
-- **New challenger `se18_lgbm_all_b0`**: the broad "everything" model, rebuilt on `book0`. It replaces se7 as the
-  broad model that is allowed to become champion.
-  - Adding it makes the promotion bar slightly stricter for everyone (K goes from 3 to 4).
-  - `se19_lr_book0` (book0 on its own) is hidden until 12-31, like the other book models, because live tests use book data.
-- The science review accepted it with fixes. No leakage was found, and all fixes are applied. The change is deployed and
-  all past book0 tables are built.
-- Nothing has been promoted yet. The earliest possible date is about 11-04 for se1/se17; se18 needs 14 days from its
-  first prediction (about 11-05). No edge claims; the UI wording stays "signal strength".
+- **New challenger: a crypto spot-price reference (`se20_lgbm_crypto`).**
+  - Thousands of Polymarket crypto markets (up/down windows, strike ladders, "hit price") are priced off one spot
+    price. Until now the engine only saw each market's own price history.
+  - The new `crypto` family gives the model the Binance spot path, with only bars that closed before the capture:
+    recent spot returns, volatility, where an up/down window stands against its opening price, and how strongly the
+    market has followed spot in the past.
+  - It is not hidden: no live test uses a spot reference (CB13-R, the one that did, is closed). It makes the promotion
+    bar slightly stricter for everyone (K goes from 4 to 5).
+  - It can only start fitting at the 10-27 refit. Snapshot rows before 10-13 04:31Z are gone (temporary 10-day
+    retention), so 14 early captures can never have the family. The model trains only once its whole window has it.
+- **Fixed a defect that would have cost new models their 2 h forecasts.**
+  - Each pass built at most 4 of a new capture's 6 extra feature tables. The last two (`participation`, `book0`) waited
+    for the next pass, two hours later, when the capture's 2 h target had already started.
+  - No forecast was lost yet: se16 has no fit, and se18/se19 fit for the first time at today's 07:34Z refit. Now every
+    family of a new capture is built in the same pass, before its predictions.
+- The science review accepted the crypto family with fixes. It found no leakage, and all the fixes are applied.
+- Nothing has been promoted. No edge claims; the UI wording stays "signal strength".
 
 ## Live state (host)
-- **Code:** deployed 487d2cbe (~01:47Z). The host loads 20 models; the rule is `se-promotion-v2`.
-- **book0 backfill (01:49-01:50Z):** 111/111 captures have a table, with median coverage 92.7%. Peak RSS was 330 MB.
-  - Three captures have no pass sweep within 3 h, so they stay NaN: the first capture (10-12 04:31Z) and two
-    collection gaps (10-14 12:31Z, 10-21 04:31Z).
-  - These tables are training inputs only. Nothing is predicted for past captures.
-  - Script: `~/.arepo/signal_engine/aux_backfill_book0.sh` (log next to it).
-- **Promotion-eligible non-embargoed challengers:** se1, se17 and se18 (from its first fit). K = 4: se1, se7, se17,
-  se18 (se7 still counts but is ineligible).
+- **Host:** resized to 2 OCPU / 11.4 GiB (owner decision; ledger 2026-10-22). LightGBM still runs on 1 thread.
+- **Code:** this session's commit is bc22813f (merged into auto/signal-engine). Merge into the main checkout and deploy:
+  see "Next actions" 1.
+- **Queue:** `q0512` refit is due ~07:34Z. It is the first fit for se14, se15, se17, se18 and se19 (se20 reports
+  `insufficient_coverage` until 10-27). `q0513` score is due ~11:40Z. No jobs were touched.
+- **Promotion-eligible non-embargoed challengers:** se1, se17, se18 and se20 (once it fits). K = 5: se1, se7, se17,
+  se18, se20 (se7 counts but is ineligible).
 
 | Model | Embargoed until |
 |---|---|
-| `se0_champion_lr_mm` (champion), `se1_lgbm_mm`, `se7_lgbm_all` (ineligible), `se17_lgbm_mm_900k`, **`se18_lgbm_all_b0`** | not embargoed |
+| `se0_champion_lr_mm` (champion), `se1_lgbm_mm`, `se7_lgbm_all` (ineligible), `se17_lgbm_mm_900k`, `se18_lgbm_all_b0`, **`se20_lgbm_crypto`** | not embargoed |
 | `se4_lr_xvenue`, `se13_lgbm_xvenue` | 11-04 |
 | `se5_lr_tte`, `se12_lgbm_tte` | 11-14 |
 | `se15_lgbm_surprise` | 11-19 |
 | `se2_lr_flow`, `se11_lgbm_flow`, `se8_lr_event`, `se9_lr_rewards`, `se10_lgbm_event` | 11-22 |
 | `se16_lgbm_participation` | 11-25 |
 | `se6_lr_wallet` | 12-07 |
-| `se3_lr_book` (ineligible), `se14_lgbm_movetype` (ineligible), **`se19_lr_book0`** | 12-31 |
-
-  - Tokens with no model yet: `chg1d_x_liq` (11-14), `hollow` (11-18), `wallet_skill` (12-07), `vote`, `clips`,
-    `deadline`, `siblings` (12-09), and `resist`, `capath`, `mm_fresh`, `deepbook`, `absorbed`, `ivr` (12-31).
-  - New token `book0` (12-31): same tests as `book`. It also hides book0 in se18's family attribution.
-- **Queue:** `q0512` refit is due ~10-22 07:34Z. It is the first fit for se14, se15, se17, se18 and se19 (se18 adds
-  ~10 min on 1 OCPU). `q0513` score is due ~11:40Z. No jobs were touched.
+| `se3_lr_book` (ineligible), `se14_lgbm_movetype` (ineligible), `se19_lr_book0` | 12-31 |
 
 ## Changes this session
-1. `aux.py`: family `book0` (`se-aux-book0-v1`; `prior_sweep`, `book0_features`), with provenance in the table metadata.
-   `features.py`: `book_features` split into `read_sweep_book` + `book_columns` (output unchanged).
-2. Specs `se18_lgbm_all_b0` and `se19_lr_book0`, the registry entries, the EMBARGO token `book0`, and DESIGN_V1
-   §22 (with the §8 row and a §21 pointer).
-   - Disclosures: the se7 − se18 contrast; the columns and specs were written before the development diagnostic was seen.
-3. Tests: 46 engine tests pass, including 2 new book0 tests and extended registry asserts. Ruff is clean.
-4. Science review: ACCEPT_WITH_FIXES. Applied: only pass sweeps of indexed captures are used and `.tmp_` folders are
-   skipped; sweep provenance is recorded; the wording and disclosures are fixed; the backfill is labelled as training
-   input only.
-5. CANDIDATES builder row 19, and a ledger entry.
+1. `aux.py`: family `crypto` (`se-aux-crypto-v1`): sidecar slug mapping, write-once Binance kline inputs per capture
+   (`aux_inputs/crypto/`), 15 columns. Review fixes: HTTP 400 symbols recorded as unavailable; `cr_has` NaN for
+   markets missing from the sidecar; sidecar sha256 in provenance; a 120 s fetch budget per capture.
+2. Spec `se20_lgbm_crypto` with its registry entry (`added_utc` corrected to 02:34Z), DESIGN_V1 §23, CANDIDATES rows
+   5 and 20, and a ledger entry.
+3. `run_signal_engine.py`: the aux budget is now `len(AUX_FAMILIES) x max_items`, not `max(2 x max_items, 4)`.
+4. Tests: 50 engine tests pass (3 crypto tests and 1 budget regression test). Ruff is clean.
 
 ## Next actions
-1. After the ~07:34Z refit, read `logs/fits-20261022.jsonl`:
-   - Expect se14, se15, se17, se18 and se19 `ok`, and se16 `no_fit`.
-   - Check that the total runtime is under 10800 s and peak RSS under 2200 MB. se18 and se19 need
-     `require_full_coverage`; all 111 tables exist.
-   - Then check that the next tick writes se18 predictions.
-2. After the ~11:40Z score: check day 2 of `leaderboard/latest.json` and the `dashboard.json` `promotion` block. Expect
-   K = 4, because K counts every active non-embargoed challenger, even one with no scores yet. se18 will fail check 1
-   (age) until about 11-05. Check that se7 shows `eligible: false`.
-3. After the owner's resize (still 1 OCPU at 01:30Z): LightGBM `num_threads` 2, then the learner-matched
-   `se20_lgbm_book0` (embargoed 12-31), and perhaps se18 at 900k rows.
-4. Around 10-27: se8, se10 and se16 start fitting. Around 10-28: the LightGBM `res_7d` fits.
-5. Remaining ideas: CH198 `theta`, CH201 rewards-v2 (check it against §21 and §22 first).
-6. Housekeeping (needs approval): remove the merged worktrees `/Users/DayyanSheikh/Projects/astrolabe-lab-se` and
-   `astrolabe-lab-se-promo`, plus `/tmp/se_dev`, `/tmp/se_e2e` and the host's `/tmp/se_b0` (scratch diagnostic copy).
+1. **Merge and deploy** (blocked at 05:56Z because the main checkout had the other track's uncommitted ledger edit):
+   `git -C ~/Projects/astrolabe merge --no-ff auto/signal-engine`, then `scripts/oracle/deploy.sh chore/arepo-claude-setup`.
+   Then run the crypto backfill on the host: `nohup ~/.arepo/signal_engine/aux_backfill_crypto.sh >
+   ~/.arepo/signal_engine/aux_backfill_crypto.log 2>&1 &`. It avoids pass windows itself; expect ~102 tables.
+2. After the ~07:34Z refit, read `logs/fits-20261022.jsonl`:
+   - Expect se14, se15, se17, se18 and se19 `ok`, se16 `no_fit`, and se20 `insufficient_coverage`.
+   - Check that the total runtime is under 10800 s and peak RSS under 2200 MB.
+   - At the 08:31Z pass, check that every aux family of the new capture exists and that se18 predicts.
+3. After the ~11:40Z score: check day 2 of `leaderboard/latest.json`. Expect K = 5 under `se-promotion-v2`.
+4. If the refit runtime nears its timeout: LightGBM `num_threads` 2 (the queue's cpu lane runs one job at a time; the
+   second core serves the collector).
+5. Around 10-27: se8, se10, se16 and se20 start fitting. Around 10-28: the LightGBM `res_7d` fits.
+6. Remaining ideas: CH198 `theta`, CH201 rewards-v2 (check them against §21 and §22 first), the learner-matched
+   `se21_lgbm_book0` (embargoed 12-31).
+7. Housekeeping (needs approval): remove the merged worktrees `astrolabe-lab-se` and `astrolabe-lab-se-promo`, plus
+   `/tmp/se_dev`, `/tmp/se_e2e` and the host's `/tmp/se_b0`.
 
 ## Notes for the other track
-- `book0` is embargoed with `book` (same tests, 12-31). The visible broad models se7 and se18 differ only in their
-  book input (sweep 1 against the previous pass's sweep). That contrast is disclosed in DESIGN_V1 §22 (science review:
-  acceptable, since se7's post-origin overlap dominates it). If LT6 V or LT7 need it hidden, say so and se18's rows can be
-  embargoed.
-- No queue jobs were touched. The main checkout's `trials.jsonl` has uncommitted changes from your side; I left them alone.
+- `crypto` has no embargo token: no registered or drafted test uses a spot reference (science review checked CB13-R,
+  E019 M2, the LT6 crypto classifier and LT7 `ivr`). If a future test uses spot, ask and se20 will be embargoed.
+- LT5 F, H and R were dropped at census (ledger ~06:05Z). The `event`, `book` and `rewards` embargo dates still list
+  them. Dates only move later, so nothing changes here unless you ask.
+- No queue jobs were touched.
