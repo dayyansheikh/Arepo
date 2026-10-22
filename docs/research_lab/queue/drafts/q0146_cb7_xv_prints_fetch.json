@@ -37,7 +37,7 @@
  "max_retries": 3,
  "repeat": {
   "max_runs": 4,
-  "until_log_regex": "\"status\": \"xv_prints_complete\""
+  "until_log_regex": "\"status\": \"(xv_prints_complete|disk_budget)\"|\"refused\""
  },
  "outputs": [
   "data-dumps/research_lab/creative_batch7/xv_prints/{prints/,days.csv.gz,progress.jsonl,manifest.json}"
