@@ -3803,3 +3803,25 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   benchmark, not a challenger: not in the registry, never promoted, no change to K, the promotion rule or any existing
   score. First rows at the 2026-10-23 daily score. Any gain over the mid is forecast quality only (no costs, no fill),
   not an edge claim. Test `test_market_price_reference_scores_res_7d_from_the_origin_mid`.
+
+## CB8 q0164 / CB9 q0181 failures and fixes, 2026-10-22 ~21:20Z (operational; nothing counted)
+- **CB8 q0164 (exclusion keys) exited 0 on a failed run** (`stage_failed: gamma markets lookup status 422`), so the queue
+  marked it `done` without keys; q0165 then failed 3 times ("exclusion key files missing"). Cause: Gamma's `id` filter
+  takes integers only; the `h7_cb4_series` seal copy names files `<successor market>__<pred event>` (1,922 composite ids).
+  q0164 stays recorded as a failed run that exited 0 and was wrongly marked done (no history rewritten).
+- Fix (new file `cb8_exclusion_fix.py`, run-scoped; pinned CB8 rules 33decb52… untouched): market part to the lookup;
+  ruling `reviews/CB8_Q0164B_RULING_2026-10-22.md` GO_WITH_CHANGES adds the `pred_*` market ids and pred event ids (the
+  conservative direction, before the split), a frozen id-set hash across repeat runs, per-pin id counts (zero-id seals
+  labelled "ids not extractable from seal copy", not covered), provenance of the wrapper in the manifest, refusal on
+  unresolvable ids, a copy of q0164's failed manifest. Incomplete transient stops now exit 75. New job q0164b; q0165
+  depends on it (retry q0165 after q0164b is deployed).
+- **CB9 q0181 (S0 sign audit A):** MemoryError x3 at the 600 MB address-space cap (2 x mem_mb 300), in the S0 frame walk
+  before any sample was written. Measured on the host: VmSize 609 MB at 1,750 requests, RSS growing ~0.035 MB/request.
+  Spec caps raised (mem_mb 1,200, as_cap 4,000, timeout 3 h; ec9f900a), deployed, `retry` at 21:18Z.
+
+## MC1 per-unit resume, 2026-10-22 ~21:30Z (development tooling; nothing counted)
+- `ml_resume.py` + `run_ml_dev.py --resume-dir --time-budget-s` (0adebfb9, 04385110): each finished (arm, fold) unit is
+  stored atomically and reloaded on restart; identity (fold-manifest sha, panel hash, code sha256s, argv, package
+  versions) must match or the run refuses; exit 75 at a unit boundary when the budget would be exceeded; trials rows
+  flushed once at completion. Review OK_WITH_NOTES (no cross-unit RNG or fold state; notes 1-4 applied). Synthetic
+  interrupted-vs-uninterrupted test bit-identical; real fits not yet run twice. Draft q0116h (depends on q0604).
