@@ -1,9 +1,11 @@
 {
  "spec_id": "live_tests7_v1",
  "status": "DRAFT (not registered; SPEC_SHA256 None; k_tests null; census-filled fields null until the censuses)",
- "design": "docs/research_lab/LIVE_TESTS_7.md (text-frozen at cedfd6be, sha256 840f4500cde37158f57f6cf6bf54a3535ee5b24f3e5dedfd9240b315eeb52899; amended by 13.6 reward-null ruling 2026-10-22, sha256 31baf5e5b5c1bec2518228618fc21ab7f111c0e673d6cb064583ce1363d20dd4; sections 0-13, 13 governs)",
- "design_text_sha256": "31baf5e5b5c1bec2518228618fc21ab7f111c0e673d6cb064583ce1363d20dd4",
- "reward_null_rule": "null_as_unrewarded_v1",
+ "design": "docs/research_lab/LIVE_TESTS_7.md (text-frozen at cedfd6be, sha256 840f4500cde37158f57f6cf6bf54a3535ee5b24f3e5dedfd9240b315eeb52899; amended by 13.6 reward-null ruling 2026-10-22 (sha256 31baf5e5b5c1bec2518228618fc21ab7f111c0e673d6cb064583ce1363d20dd4) and 13.7 reward-switch ruling 2026-10-22, sha256 575eb1dd45328800cdab1ccf633099c40a21817a8ae8f308c23454c9de96e730; sections 0-13, 13 governs)",
+ "design_text_sha256": "575eb1dd45328800cdab1ccf633099c40a21817a8ae8f308c23454c9de96e730",
+ "reward_null_rule": "listed_carry24h_v2",
+ "reward_carry_slots": 12,
+ "reward_null_rule_history": "null_as_unrewarded_v1 (13.6, superseded by 13.7 for the primaries of CH197 and CH192; kept as a descriptive sensitivity)",
  "experiments": {
   "CH195": "resistance",
   "CH191": "grind at the capture clock",

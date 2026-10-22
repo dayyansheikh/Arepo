@@ -3734,3 +3734,23 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   labels that are 0.2-2.5 h late (local time misread as UTC): q0602/q0165/q0166 "~16:15Z" = ~16:03Z; q0181 "~16:30Z" =
   ~16:07Z; q0116g/q0393 "~17:20Z" = ~16:12Z; q0146 "~18:30Z" = ~16:25Z; q0602/q0116g priority "18:50Z" = ~16:29Z. Spec
   files are not edited (hash/ops reasons); commit times are authoritative. Review headers and the checkpoint were corrected.
+
+## LT7 reward-switch ruling and design amendment 13.7 (2026-10-22 ~16:10Z; experiments autopilot; nothing counted)
+- **Trigger:** q0601c (counts only; `seals/lt7_rewards_probe.json`, sha256 263413f2…): the pre-declared rule (c) fired. 30,543 of 258,393
+  market-days (0.118 > 0.05) switch between null and non-null `clob_rewards` within a UTC day; (b) 0.0012 and (d) 0 did not fire; (a) 0
+  (report only). One endpoint, parameter set and code path, so the switching comes from Gamma's responses; Gamma omitting the field in a
+  response is the likelier reading (about 3,000 switchers a day = about 30% of about 9,700 listed markets per capture; listed zero-rate 0/1,047,747).
+- **Challenger ruling (C)** (`reviews/LT7_REWARD_SWITCH_RULING_2026-10-22.md`): rule `listed_carry24h_v2`. A null `clob_rewards` at origin k is
+  `rewarded = 1` if a listed text at any sealed capture in the causal window `[k-11, k]` gives a rate > 0 re-parsed for day(k); the latest such
+  capture is the source for `rew_min` / `rew_maxspread` (`in_band`, wall rule). Missing slots skipped and counted, never filled; no slot after k is
+  read. v1 (`null_as_unrewarded_v1`) and listed-only are descriptive sensitivities. (A) rejected (reads omitted captures of rewarded markets as
+  unrewarded), (B) rejected (uses captures after k: leak), (D) rejected (selection on the reward field), (E) rejected (changes the frozen
+  controls). Unit counts, MDE inputs, gates, thresholds and formulas unchanged. Outcome-blind (counts only, before any census).
+- **Design-text amendment 13.7:** `LIVE_TESTS_7.md` sha256 31baf5e5… (13.6) -> `575eb1dd45328800cdab1ccf633099c40a21817a8ae8f308c23454c9de96e730`.
+  13.6's sha and the text-freeze sha 840f4500… are declared predecessors in code (the committed seal 117e9b45… records 840f4500…; CV7's output
+  records 31baf5e5…). 13.7 also corrects 13.6's wall-class label (CH193's, not CH192's) and states that CH193 gets `rew_status` / `rew_min` / `osz`
+  as bookkeeping columns of `absorbed_units` (no exclusion, count or gate).
+- **Split disclosed:** CV7 (q0602) reads no reward field and records design 31baf5e5…; CC7 (q0603) and CS7 (q0604) record 575eb1dd….
+- **Code:** branch `feat/lt7-reward-carry` (`RewardCarry`, `_reward_cols` counts, CS7 capture set gains the 12:31Z carry window, spec
+  `reward_null_rule: listed_carry24h_v2`, `reward_carry_slots: 12`). Drafts q0603 / q0604 use fresh work dirs (`work_cc7_rn_v2`, `work_cs7_rn_v2`)
+  and stay drafts until the census-code re-check. Each census runs once, finishing before 2026-10-28T03:30Z.
