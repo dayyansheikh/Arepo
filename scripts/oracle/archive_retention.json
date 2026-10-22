@@ -27,7 +27,7 @@
         "*/manifest.json",
         "*/ext_manifest.json"
       ],
-      "why": "TEMPORARY 2026-10-22 01:58Z (experiments autopilot): 8 -> 10 days (longer, never shorter) so the LT5 capture census q0561, whose sealed inputs include the 2026-10-13/14 capture rows, can run after tonight's host resize (it needs ~5 GB, more than the 5.6 GB host allows; two attempts died at the address-space cap). Revert to 8 after q0561 is done (ledger line). | E011 reloads 7.5 days of captures; 8 days keeps them. Released 2026-10-17 04:39Z: retention_gate_check.py PASS on the host (CB1/CB2/CB3/CB4 manifests complete; at_risk empty). MC1 must cache its q0111 panel before 2026-10-23 03:30Z; CB3 live quote_state step must be wired before 2026-10-24 03:30Z."
+      "why": "TEMPORARY 2026-10-22 01:58Z (experiments autopilot): 8 -> 10 days (longer, never shorter) so the LT5 capture census q0561, whose sealed inputs include the 2026-10-13/14 capture rows, can run after tonight's host resize (it needs ~5 GB, more than the 5.6 GB host allows; two attempts died at the address-space cap). Revert to 8 after q0561 is done (ledger line). EXTENDED 2026-10-22 06:05Z: kept until LT7's last census q0604 is done (LT7's frozen ordering puts its censuses after LT6's q0584; its sealed 10-18 rows would leave on 10-26 under 8 days). | E011 reloads 7.5 days of captures; 8 days keeps them. Released 2026-10-17 04:39Z: retention_gate_check.py PASS on the host (CB1/CB2/CB3/CB4 manifests complete; at_risk empty). MC1 must cache its q0111 panel before 2026-10-23 03:30Z; CB3 live quote_state step must be wired before 2026-10-24 03:30Z."
     }
   ],
   "deferred_rules": [
