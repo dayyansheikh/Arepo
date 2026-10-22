@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 from pathlib import Path
 
 import numpy as np
@@ -525,6 +526,264 @@ def _book0_builder(ctx: dict) -> pd.DataFrame:
     return book0_features(sweep, ctx["f"], ctx["cap_start"])
 
 
+# ---------------------------------------------------------------------------------------------- crypto family
+# Spot reference for crypto template markets (DESIGN_V1 section 23; CANDIDATES builder row 20). A market is mapped when
+# its sidecar fee_category is "crypto" and a series slug matches `<asset>-<kind>-<cadence>` (up-or-down, multi-strikes,
+# neg-risk, hit-price); text is never parsed, so strikes are unknown and ladders are read through the market's own
+# empirical beta to spot. Inputs: the origin capture's own sidecar (`series_slugs`, `fee_category`), its features
+# (end_ts, ms_mid), the engine's own quotes files of earlier slots, and Binance spot klines that CLOSED before the
+# capture start (venue-clocked, never revised; fetched at build time and kept write-once in aux_inputs/crypto/ with
+# their fetch time). A capture with no mapped market fetches nothing.
+CR_URL = "https://data-api.binance.vision/api/v3/klines"  # public market data mirror (reachable from the host)
+CR_SOURCE = "binance-spot-klines-v3"
+CR_ASSETS = {"btc": "BTCUSDT", "bitcoin": "BTCUSDT", "eth": "ETHUSDT", "ethereum": "ETHUSDT", "sol": "SOLUSDT",
+             "solana": "SOLUSDT", "xrp": "XRPUSDT", "bnb": "BNBUSDT", "doge": "DOGEUSDT", "dogecoin": "DOGEUSDT",
+             "zec": "ZECUSDT", "zcash": "ZECUSDT", "hype": "HYPEUSDT", "hyperliquid": "HYPEUSDT", "ethena": "ENAUSDT",
+             "chainlink": "LINKUSDT", "link": "LINKUSDT"}
+CR_KINDS = {"up-or-down": 1.0, "multi-strikes": 2.0, "neg-risk": 3.0, "hit-price": 4.0}
+CR_UD_CADENCE_H = {"5m": 5 / 60, "15m": 0.25, "hourly": 1.0, "4h": 4.0, "daily": 24.0}  # up/down window length
+_CR_SLUG = re.compile(r"^([a-z0-9]+)-(up-or-down|multi-strikes|neg-risk|hit-price)-([a-z0-9]+)$")
+CR_INTERVALS = {"1m": 60_000, "5m": 300_000}
+CR_LIMIT = 1000  # klines per request: 1m covers 16.7 h, 5m covers 83 h (>= the 3-day beta window)
+CR_STALE_S = 300.0  # spot must have a closed 1m kline within 5 min of the capture start, else the asset is NaN
+CR_BETA_SLOTS = 36  # beta from the previous 36 two-hour pairs (3 days), the latest pair excluded
+CR_BETA_MIN = 4
+CRYPTO_COLUMNS = ["cr_has", "cr_kind", "cr_cad_h", "cr_win_h", "cr_ud_z", "cr_ud_gap", "cr_r5m", "cr_r30m", "cr_r2h",
+                  "cr_r24h", "cr_rv1h", "cr_rv24h", "cr_beta", "cr_lag", "cr_xs"]
+CR_EXT_COLS = ["market_id", "fee_category", "series_slugs"]
+CR_FETCH_BUDGET_S = 120.0  # all of one capture's requests; over it nothing is written (retried next tick), so a slow
+# network never runs a pass's tick into its timeout before the predictions are written
+
+
+class CrUnavailable(Exception):
+    """Binance answered HTTP 400 for a symbol (not listed on spot): permanent, recorded, never retried."""
+
+
+def cr_fetch(symbol: str, interval: str, end_ms: int, limit: int = CR_LIMIT, timeout: float = 20.0) -> list[list]:
+    """Up to ``limit`` klines with open time <= end_ms as [open_ms, open, close]. Raises on any HTTP/network error."""
+    import urllib.request
+
+    url = f"{CR_URL}?symbol={symbol}&interval={interval}&endTime={int(end_ms)}&limit={int(limit)}"
+    req = urllib.request.Request(url, headers={"User-Agent": "arepo-signal-engine"})
+    import urllib.error
+
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:  # noqa: S310 - fixed https host
+            data = json.loads(r.read())
+    except urllib.error.HTTPError as exc:
+        if exc.code == 400:
+            raise CrUnavailable(symbol) from exc
+        raise
+    return [[int(k[0]), float(k[1]), float(k[4])] for k in data]
+
+
+def read_crypto_ext(cap_dir) -> pd.DataFrame | None:
+    p = Path(cap_dir) / "rows_ext.csv.gz" if cap_dir is not None else None
+    if p is None or not p.exists():
+        return None
+    import pyarrow as pa
+    import pyarrow.csv as pacsv
+
+    types = {"market_id": pa.int64(), "fee_category": pa.string(), "series_slugs": pa.string()}
+    try:
+        t = pacsv.read_csv(p, convert_options=pacsv.ConvertOptions(include_columns=CR_EXT_COLS, column_types=types))
+    except (pa.ArrowInvalid, KeyError):
+        return None  # an older sidecar without series_slugs: the family is NaN for this capture
+    return t.to_pandas().drop_duplicates("market_id").set_index("market_id")
+
+
+def cr_map(ext: pd.DataFrame, ids: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Per id: Binance symbol ('' unmapped), kind code (NaN unmapped), up/down window length in hours (NaN otherwise)."""
+    e = ext.reindex(ids)
+    sym = np.full(len(ids), "", dtype=object)  # a market absent from the sidecar is '' here and NaN in cr_has
+    kind = np.full(len(ids), np.nan)
+    cad = np.full(len(ids), np.nan)
+    cat = e["fee_category"].to_numpy(object)
+    slugs = e["series_slugs"].to_numpy(object)
+    for i in range(len(ids)):
+        if cat[i] != "crypto" or not isinstance(slugs[i], str):
+            continue
+        try:
+            lst = json.loads(slugs[i])
+        except ValueError:
+            continue
+        for s in lst if isinstance(lst, list) else []:
+            m = _CR_SLUG.match(s) if isinstance(s, str) else None
+            if m and m.group(1) in CR_ASSETS:
+                sym[i], kind[i] = CR_ASSETS[m.group(1)], CR_KINDS[m.group(2)]
+                if m.group(2) == "up-or-down":
+                    cad[i] = CR_UD_CADENCE_H.get(m.group(3), np.nan)
+                break
+    return sym, kind, cad
+
+
+class _Klines:
+    """Closed klines of one symbol and interval: close times (s) and open / close prices, sorted."""
+
+    def __init__(self, rows: list, interval_ms: int, cap_start: float) -> None:
+        a = np.asarray(rows, dtype=float).reshape(-1, 3)
+        a = a[(a[:, 0] + interval_ms) / 1000.0 <= cap_start]  # closed before the capture start (defensive re-check)
+        a = a[np.argsort(a[:, 0], kind="stable")]
+        self.open_s, self.close_s = a[:, 0] / 1000.0, (a[:, 0] + interval_ms) / 1000.0
+        self.o, self.c = a[:, 1], a[:, 2]
+
+    def price_at(self, t: np.ndarray, tol_s: float) -> np.ndarray:
+        """Close of the last kline closed at or before t (NaN if none within tol_s)."""
+        t = np.asarray(t, float)
+        if len(self.c) == 0:
+            return np.full(t.shape, np.nan)
+        pos = np.searchsorted(self.close_s, t, side="right") - 1
+        ok = (pos >= 0) & (t - self.close_s[np.maximum(pos, 0)] <= tol_s)
+        return np.where(ok, self.c[np.maximum(pos, 0)], np.nan)
+
+    def open_at(self, t: np.ndarray) -> np.ndarray:
+        """Open of the kline that opened exactly at t (NaN if absent)."""
+        t = np.asarray(t, float)
+        if len(self.o) == 0:
+            return np.full(t.shape, np.nan)
+        pos = np.minimum(np.searchsorted(self.open_s, t), len(self.o) - 1)
+        return np.where(np.abs(self.open_s[pos] - t) < 0.5, self.o[pos], np.nan)
+
+    def rv(self, n: int, min_n: int) -> float:
+        """sqrt of the sum of squared log returns of the last n closes (NaN below min_n finite returns)."""
+        r = np.diff(np.log(self.c[-(n + 1):])) if len(self.c) > 1 else np.array([])
+        r = r[np.isfinite(r)]
+        return float(np.sqrt((r ** 2).sum())) if len(r) >= min_n else np.nan
+
+
+def crypto_features(f: pd.DataFrame, ext: pd.DataFrame | None, klines: dict | None, cap_start: float,
+                    hist_mids: np.ndarray | None = None, hist_starts: np.ndarray | None = None) -> pd.DataFrame:
+    """Per eligible market (``f`` row order; market_id, end_ts, ms_mid): the crypto columns.
+
+    ``klines``: symbol -> {"1m": rows, "5m": rows} ([open_ms, open, close]); ``hist_mids``: (n, J) mids of slots
+    k - J + 1 .. k (origin last) and ``hist_starts`` their capture start times (J,)."""
+    n = len(f)
+    out = pd.DataFrame({c: np.full(n, np.nan) for c in CRYPTO_COLUMNS})
+    if ext is None:
+        return out.astype(np.float32)
+    ids = f["market_id"].to_numpy(np.int64)
+    sym, kind, cad = cr_map(ext, ids)
+    mapped = sym != ""
+    out["cr_has"] = np.where(np.isin(ids, ext.index.to_numpy()), mapped.astype(float), np.nan)  # absent: unknown
+    out["cr_kind"] = kind
+    out["cr_cad_h"] = cad
+    if not mapped.any() or not klines:
+        return out.astype(np.float32)
+    end = f["end_ts"].to_numpy(float)
+    mid = f["ms_mid"].to_numpy(float)
+    win = end - cad * 3600.0
+    out["cr_win_h"] = (win - cap_start) / 3600.0
+    cols = {c: out[c].to_numpy(float).copy() for c in CRYPTO_COLUMNS}
+    for s in sorted(set(sym[mapped])):
+        rows = np.flatnonzero(sym == s)
+        ks = klines.get(s) or {}  # None: the symbol is not on Binance spot (recorded as unavailable)
+        k1 = _Klines(ks.get("1m", []), CR_INTERVALS["1m"], cap_start)
+        k5 = _Klines(ks.get("5m", []), CR_INTERVALS["5m"], cap_start)
+        S0 = float(k1.price_at(np.array([cap_start]), CR_STALE_S)[0])
+        if not math.isfinite(S0) or S0 <= 0:
+            continue  # no fresh spot: the asset's columns stay NaN
+        lr = lambda p, s0=S0: math.log(s0 / p) if math.isfinite(p) and p > 0 else np.nan  # noqa: E731
+        cols["cr_r5m"][rows] = lr(float(k1.price_at(np.array([cap_start - 300.0]), 120.0)[0]))
+        cols["cr_r30m"][rows] = lr(float(k1.price_at(np.array([cap_start - 1800.0]), 120.0)[0]))
+        cols["cr_r2h"][rows] = lr(float(k1.price_at(np.array([cap_start - 7200.0]), 120.0)[0]))
+        cols["cr_r24h"][rows] = lr(float(k5.price_at(np.array([cap_start - 86400.0]), 600.0)[0]))
+        rv1h = k1.rv(60, 50)
+        cols["cr_rv1h"][rows] = rv1h
+        cols["cr_rv24h"][rows] = k5.rv(288, 240) / math.sqrt(24.0)  # per-hour scale
+        # up/down windows that started before the capture: z of spot against the window's opening price
+        ud = rows[np.isfinite(win[rows]) & (win[rows] < cap_start)]
+        if len(ud) and math.isfinite(rv1h) and rv1h > 0:
+            K = k1.open_at(win[ud])
+            K = np.where(np.isfinite(K), K, k5.open_at(win[ud]))
+            tau_min = (end[ud] - cap_start) / 60.0
+            with np.errstate(invalid="ignore", divide="ignore"):
+                z = np.log(S0 / K) / ((rv1h / math.sqrt(60.0)) * np.sqrt(tau_min))
+            z = np.where(np.isfinite(z) & (tau_min > 0), z, np.nan)
+            cols["cr_ud_z"][ud] = z
+            phi = 0.5 * (1.0 + np.vectorize(math.erf)(z / math.sqrt(2.0))) if len(z) else z
+            cols["cr_ud_gap"][ud] = np.where(np.isfinite(z), phi - mid[ud], np.nan)
+        # own empirical beta of the 2 h mid change to the 2 h spot log return (earlier pairs only), applied to the latest
+        if hist_mids is not None and hist_starts is not None and hist_mids.shape[1] >= 3:
+            sp = k5.price_at(hist_starts, 600.0)
+            with np.errstate(invalid="ignore", divide="ignore"):
+                ds = np.diff(np.log(sp))  # (J - 1,)
+            dm = np.diff(hist_mids[rows], axis=1)  # (r, J - 1)
+            dsb, dmb = ds[:-1][-CR_BETA_SLOTS:], dm[:, :-1][:, -CR_BETA_SLOTS:]
+            ok = np.isfinite(dmb) & np.isfinite(dsb)[None, :] & (dsb != 0)[None, :]
+            sxx = np.where(ok, dsb[None, :] ** 2, 0.0).sum(axis=1)
+            sxy = np.where(ok, dmb * dsb[None, :], 0.0).sum(axis=1)
+            with np.errstate(invalid="ignore", divide="ignore"):
+                beta = np.where((ok.sum(axis=1) >= CR_BETA_MIN) & (sxx > 0), sxy / sxx, np.nan)
+            cols["cr_beta"][rows] = beta
+            cols["cr_lag"][rows] = beta * ds[-1] - dm[:, -1]
+            cols["cr_xs"][rows] = np.abs(beta) * rv1h * math.sqrt(2.0)
+    for c in CRYPTO_COLUMNS:
+        out[c] = cols[c]
+    return out.astype(np.float32)
+
+
+def cr_inputs_path(paths: S.Paths, cid: str) -> Path:
+    return paths.sub("aux_inputs", "crypto", f"{cid}.json.gz")
+
+
+def cr_load_or_fetch(paths: S.Paths, cid: str, symbols: list[str], cap_start: float, fetch=None) -> tuple[dict, Path]:
+    """The capture's write-once kline inputs: read if present, else fetched (every request must succeed) and written."""
+    import gzip
+
+    p = cr_inputs_path(paths, cid)
+    if p.exists():
+        return json.loads(gzip.decompress(p.read_bytes())), p
+    import time
+
+    fetch = fetch or cr_fetch
+    end_ms = int(math.floor(cap_start * 1000.0)) - 1
+    t0, kl, unavailable = time.monotonic(), {}, []
+    for s in symbols:
+        try:
+            kl[s] = {}
+            for iv, ms in CR_INTERVALS.items():
+                if time.monotonic() - t0 > CR_FETCH_BUDGET_S:
+                    raise TimeoutError(f"crypto fetch budget {CR_FETCH_BUDGET_S:.0f} s exceeded")
+                kl[s][iv] = [r for r in fetch(s, iv, end_ms) if (r[0] + ms) / 1000.0 <= cap_start]
+        except CrUnavailable:
+            kl[s] = None
+            unavailable.append(s)
+    doc = {"source": CR_SOURCE, "url": CR_URL, "capture_id": cid, "cap_start_utc": S.iso(cap_start),
+           "fetched_utc": S.iso(S.now_ts()), "end_ms": end_ms, "limit": CR_LIMIT, "fields": ["open_ms", "open", "close"],
+           "unavailable": unavailable, "klines": kl}
+    S.write_once_bytes(p, gzip.compress(json.dumps(doc, sort_keys=True, separators=(",", ":")).encode(), mtime=0))
+    return json.loads(gzip.decompress(p.read_bytes())), p
+
+
+def _crypto_builder(ctx: dict) -> pd.DataFrame:
+    paths, meta, index = ctx["paths"], ctx["meta"], ctx["index"]
+    cid = meta["capture_id"]
+    f = S.read_parquet(paths.features(cid), ["market_id", "end_ts", "ms_mid"])
+    if pd.api.types.is_datetime64_any_dtype(f["end_ts"]):
+        f["end_ts"] = _epoch_col(f["end_ts"])
+    ext = read_crypto_ext(ctx["cap_dir"])
+    ext_p = Path(ctx["cap_dir"]) / "rows_ext.csv.gz" if ctx["cap_dir"] is not None else None
+    ext_sha = S.sha256_file(ext_p) if ext_p is not None and ext_p.exists() else None
+    ctx["provenance"] = {"cr_source": CR_SOURCE, "cr_inputs_sha256": None, "cr_fetched_utc": None, "cr_symbols": [],
+                         "cr_unavailable": [], "rows_ext_sha256": ext_sha}
+    if ext is None:
+        return crypto_features(f, None, None, ctx["cap_start"])
+    sym, _, _ = cr_map(ext, f["market_id"].to_numpy(np.int64))
+    symbols = sorted(set(sym[sym != ""]))
+    if not symbols:
+        return crypto_features(f, ext, None, ctx["cap_start"])
+    doc, p = cr_load_or_fetch(paths, cid, symbols, ctx["cap_start"], ctx.get("cr_fetch"))
+    ctx["provenance"] = {"cr_source": CR_SOURCE, "cr_inputs_sha256": S.sha256_file(p), "cr_fetched_utc": doc.get("fetched_utc"),
+                         "cr_symbols": symbols, "cr_unavailable": doc.get("unavailable", []), "rows_ext_sha256": ext_sha}
+    mids = ctx.get("mids") or SlotMids(paths, index, keep=CR_BETA_SLOTS + 6)
+    ids = f["market_id"].to_numpy(np.int64)
+    slot = meta["slot"]
+    js = list(range(slot - CR_BETA_SLOTS - 1, slot + 1))  # 38 slots: 37 pairs, the last (k-1 -> k) is the latest
+    H = np.column_stack([mids.get(j, ids) for j in js])
+    starts = np.array([S.epoch(index[j]["started_utc"]) if j in index else S.slot_time(j) for j in js], float)
+    return crypto_features(f, ext, doc["klines"], ctx["cap_start"], H, starts)
+
+
 # ---------------------------------------------------------------------------------------------- registry
 # A builder takes a context dict: rows (snapshot rows; None for a family with needs_rows False), f (features key
 # columns + ms_mid, ms_spread), prev_mid (previous slot's mids or None), cap_dir, cap_start, paths, meta, prev (the
@@ -543,6 +802,8 @@ AUX_FAMILIES: dict[str, dict] = {
     "participation": {"version": "se-aux-participation-v1", "columns": PARTICIPATION_COLUMNS, "prev_sidecar": True,
                       "builder": _participation_builder},
     "book0": {"version": "se-aux-book0-v1", "columns": BOOK0_COLUMNS, "needs_rows": False, "builder": _book0_builder},
+    # needs the capture's snapshot folder (its sidecar) but not the parsed rows
+    "crypto": {"version": "se-aux-crypto-v1", "columns": CRYPTO_COLUMNS, "skip_rows_read": True, "builder": _crypto_builder},
 }
 AUX_COLUMNS: dict[str, list[str]] = {k: v["columns"] for k, v in AUX_FAMILIES.items()}
 AUX_ALL: list[str] = [c for cols in AUX_COLUMNS.values() for c in cols]
@@ -563,7 +824,7 @@ def build_aux(paths: S.Paths, family: str, meta: dict, cap_dir, index: dict | No
         return None
     fp = paths.features(cid)
     f = S.read_parquet(fp, KEY_COLUMNS + ["ms_mid", "ms_spread"])
-    rows = read_rows(cap_dir) if needs_rows else None
+    rows = read_rows(cap_dir) if needs_rows and not spec.get("skip_rows_read") else None
     prev = (index or {}).get(meta["slot"] - 1)
     prev_mid = None
     if prev is not None and paths.quotes(prev["capture_id"]).exists():
@@ -670,4 +931,4 @@ def check_spec_aux(spec: dict) -> str | None:
 
 __all__ = ["AUX_FAMILIES", "AUX_COLUMNS", "AUX_ALL", "MODEL_FAMILY_COLUMNS", "aux_path", "build_aux", "run_aux",
            "aux_sources", "read_features", "spec_aux_families", "check_spec_aux", "event_features", "movetype_features",
-           "surprise_features", "participation_features"]
+           "surprise_features", "participation_features", "crypto_features"]
