@@ -3761,3 +3761,19 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   when listed rows exist. (4) v1 sensitivity relabelled "v1 rewarded on the v2 unit set"; market-deduplicated switching count added. Design sha256
   now `8fc83a739ef48ddf23c568847e0eec98ff56bd3bead4c4974eac463d023c1803` (text above, erratum paragraph at the end of 13.7); `575eb1dd45328800cdab1ccf633099c40a21817a8ae8f308c23454c9de96e730` (13.7 first commit) is a declared predecessor; no census has run on it.
 - **Bug found by the fix-3 round-trip test (code, not design):** pandas reads the series-CSV cell text `null` back as NaN, so `rew_status == "null"` never matched on a file read back from the work dir and the carry would never have fired (the 13.6 `rewards_null_as_zero` count would also have read 0). `RewardCarry` now treats a NaN status as `null` (`_status_array`); `live_tests7_base.read_series` is untouched.
+
+## MC1 one-fold profile q0116g: timed out at its 2 h limit, 2026-10-22 19:22Z (measurement only; nothing counted)
+- q0116g (`run_ml_dev.py --profile-folds 1`, exclusive, 6,000 MB, as_cap 14,000 MB, 1 CPU, timeout 7,200 s) wrote 132
+  stage lines and was stopped at 7,200 s during the placebo fits of fold 0 (rc -15). No trials lines, no model outputs
+  (the profile sink records nothing).
+- **Measured, fold 0 (the smallest training window of 16 folds in the manifest):** sweep arms 3,981 s (M1 fit 1,387 s,
+  M2 fit 2,190 s incl. SHAP 760 s, M3_eb 392 s); no-sweep sensitivity 2,379 s (M1 1,183 s, M2 1,187 s); bootstrap 5 s;
+  placebos started at 6,443 s and were unfinished at 7,200 s. Peak RSS 6,248 MB (fits 5.5-6.2 GB), so memory fits the
+  resized host; time does not.
+- **Implication:** a full development run is at least 16 x ~2 h = ~32 h of exclusive time on 1 CPU (later folds train on
+  more periods, so likely more). It would block the exclusive LT7 censuses (q0603/q0604 must finish before
+  10-28T03:30Z) and the signal-engine refits for days, and the memory rule forbids pairing it with another multi-GB job.
+- **Decision (operational, no design change):** no full run is queued now. The measured fix is per-fold resumability
+  (write each finished fold's out-of-fold predictions and stage record, skip finished folds on restart, same fold plan,
+  models and gates), so the run can proceed in <= 6 h exclusive slices after q0604. q0116g stays `failed` (it was a
+  measurement); q0116f stays parked.
