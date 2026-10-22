@@ -272,9 +272,10 @@ census (exclusive, running) -> q0583 -> q0116f MC1 (6 h) ; q0562 LT5 flow census
    commit `seals/h8_text_SEAL.json` and `seals/h8_geo_SEAL.json` before q0147 (never retry q0141). **CB8:** W1 not
    testable (counted 1); B continues (q0164 pins write-once, do NOT re-derive; then q0165, q0166). CB9 q0181+ and CB10
    q0201 after their pins.
-4. **LT6:** q0581 done; `seals/lt6_census_inputs.json` committed (sha256 18040c80…). When q0582 is done: commit
-   `CD_CB_CV.json` + sha256 (seals/), fill V centre/scale/terciles/gap, D/B/V perm_stratum, exclude_family, fake-birth cuts
-   and k_tests, record drops (LIVE_TESTS_6.md 6.3, ledger). After q0583: CK.json, K fills. Then q0584 size check.
+4. **LT6:** q0582 done: **D, B, V dropped at census** (16db1cb2; 6.3). q0583 (K, CK) running ~06:40Z. When done: commit
+   `CK.json` + sha256 (seals/), record K's verdict; if K survives fill K's perm_stratum / exclude_family / k_tests and the
+   e022 block (registered true, end 11-16), then promote q0584 (size check); if K drops, LT6 has no test: record "LT6
+   dropped at census" (this satisfies LT7's "q0584 or its recorded drop" rule) and remove q0584's dependency from q0602.
 5. **MC1 q0116f:** when done, write up as development (MULTI_SIGNAL_PIPELINE_DESIGN.md / ledger), record the panel hash.
    If it OOMs: record, park, write the memory profile; no new id without a measured fix.
 6. **LT7:** merged (dde3c3c4); seal fix (sweep 2, 74c7f5ac, OK_TO_RUN); **seal committed** `seals/lt7_census_inputs.json`
