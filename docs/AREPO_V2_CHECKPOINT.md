@@ -247,32 +247,32 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-22 21:45Z
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-22 22:23Z
 Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && git log --oneline -1'` = local tip.
 Host 2 OCPU / 11.4 GiB since the resize. data-dumps 34 / 40 GB cap: owner approval 8 (restore-tree clearing) is time-relevant.
 
-**Autopilot session 10-22 from 20:35Z (state at 21:45Z):**
-- **LT7:** 13.7 code cherry-picked onto chore (3294d997, f4ff54ec; 143 tests); host hashes live_tests7.py e1c5c0c6…, design
-  8fc83a73… confirmed after deploy a5df8cb0. **q0603 (CC7) and q0604 (CS7) PROMOTED** (exclusive; must finish before
-  10-28T03:30Z). When q0604 is done: ledger + registry; **do NOT revert retention to 8 days** until LT8's q0623 finishes
-  (LT8 re-check R3). Then LT7 phase 2.
-- **LT8:** re-check R1-R3 fixed on feat/live-tests-8-code (ac15d689 amendment 13.7 + code, 5e0976f8 drafts; design sha
-  c76ffff6…; 218 tests). science-reviewer re-check running (save as reviews/LT8_13_7_RECHECK_2026-10-22.md). If OK: merge
-  into chore (chore-based branch), deploy, run LT8 `restore-plan` on the host with the new roots, promote q0620-q0623 per
-  the drafts' retention notes (finish before 10-28T03:30Z or every host-only file in an untouched root).
-- **CB16-K:** blind audit FAIL (3/100 genuine twins): CH143 not testable at the floor (4da71761); registry updated.
-- **CB7:** q0147 re-check FIXES_OK_WITH_NOTES (`reviews/CB7_CENSUS_FIX_RECHECK_2026-10-22.md`); notes 1-2 implemented
-  (d504d620: durable XV_TERMINAL marker; X terminal recorded, S/G proceed). Promote q0147 at/after **10-24T01:00Z** after
-  checking the 10-22..10-25 captures exist on the host (census source hash changed; expected before the freeze).
-- **CB8/CB9:** q0164b (ruling reviews/CB8_Q0164B_RULING_2026-10-22.md GO_WITH_CHANGES, 62a38346) deployed and queued;
-  q0165 retried (waits on q0164b). Note: a repeat job is marked `done` once max_runs (10) is used even if incomplete; check
-  q0164b's log for `exclusion_keys_complete` before trusting q0165. q0181 caps raised (ec9f900a), retried 21:18Z.
-- **MC1:** q0116g profile measured (fold 0 ~2 h, RSS 6.2 GB; 16 folds -> ~32 h+). Per-unit resume implemented (0adebfb9);
-  draft q0116h (depends on q0604). Promote after q0604 with a quick science-reviewer look at ml_resume.py.
-- **Creative round 14** merged (9079ca39; CH212-CH221; CANDIDATES note 430dc86c). **LT9** draft b2882734 on `feat/live-tests-9`
-  (`../astrolabe-live-tests-9`; sha 01c49890…; window proposed 2027-01-21..02-11; freeze before the earlier of 11-14T12Z and
-  E015's analysis). Challenger R1 running (save as reviews/LT9_R1_CHALLENGER_2026-10-22.md); then response, re-check,
-  design-text freeze, embargo requests (`bandbreak`, `pool`, `rwblink`, `rwend`) in CANDIDATES, registry (entry added dc852235).
+**Autopilot session 10-22 from 20:35Z (state at 22:23Z):**
+- **LT7: CLOSED, no test** (1dd77a67). CC7 dropped CH191/CH192/CH193, CS7 dropped CH195 (F-MDE 0.667c > 0.5c) and CH197.
+  Embargo withdrawals requested in CANDIDATES (22:10Z note). Phase 2 / q0605 moot.
+- **Retention:** keep the temporary 10-day snapshot rule until LT8's q0623 is done, then revert to 8 days (ledger + deploy).
+- **LT8:** code merged into chore (a0044de3; design 73c941e1…; amendment 13.7 + erratum; 220 tests; re-checks OK_WITH_NOTES).
+  restore-plan 159/159 present -> q0620 NOT needed (never promote). **q0621 seal PROMOTED** (774c43c0). When q0621 is done:
+  commit the seal copy (`seals/lt8_census_inputs.json`, as LT7's), deploy, then promote q0622 then q0623 (exclusive). The
+  chain must finish before **10-28T03:30Z** (host-only 10-18..10-21 captures/sweeps start leaving), outside 02:45-05:30Z.
+- **MC1 q0116h RUNNING** (exclusive 5.5 h slices, exit 75 between, priority 40 so LT8 takes the gaps). **Do not edit**
+  run_ml_dev.py, ml_models.py, ml_panel.py, ml_resume.py, ml_panel_cache.py, panel.py, features.py, features_dev.py,
+  evaluate.py while it runs (any change makes later slices refuse). Write up when done (development only).
+- **CB16-K: closed** (blind audit 3/100 twins; CH143 not testable at the floor).
+- **CB7:** q0146 done; q0147 re-check FIXES_OK_WITH_NOTES, notes 1-2 implemented (d504d620). Promote q0147 at/after
+  **10-24T01:00Z** after checking the 10-22..10-25 captures exist on the host (and the q0146 terminal state / marker).
+- **CB8/CB9:** q0164b (ruling GO_WITH_CHANGES, caps raised 80bb4561) queued; check its log for `exclusion_keys_complete`
+  before trusting q0165 (a repeat job is marked `done` after max_runs even if incomplete). q0181 caps raised, queued.
+  Both wait for the MC1 slice (exclusive).
+- **LT9:** draft on `feat/live-tests-9` (`../astrolabe-live-tests-9`): R1 REVISE -> response dcc2ec37 (sha bbfeb62a…; CH213
+  now expected to die at census on its binding F gate). R1 re-check running (save as reviews/LT9_R1_RECHECK_2026-10-22.md
+  on that branch). Then fixes, design-text freeze (ledger sha), merge into chore, embargo requests (`bandbreak`, `pool`,
+  `rwblink`, `rwend`), registry. Freeze before the earlier of 11-14T12Z and E015's analysis.
+- **Creative round 14** merged (9079ca39; CANDIDATES note 430dc86c).
 
 **Earlier this day (06:00Z):** q0561 LT5 census done (F/H/R dropped, c0700f8f); q0484 size check PASS -> **E022
 REGISTERED** (bf730c6f; reader cron `10-59/20` installed on the host 06:0xZ; q0486 analysis queued, not before 11-17T12Z);
