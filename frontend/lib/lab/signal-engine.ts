@@ -9,6 +9,8 @@ import type {
   SeFamilyGain,
   SeModel,
   SePromotion,
+  SePromotionCandidate,
+  SePromotionStatus,
   SeRow,
   SignalEngineBlock,
 } from "./types";
@@ -202,6 +204,88 @@ export function promotions(se: SignalEngineBlock): SePromotion[] {
   return arr<SePromotion>(se.promotions)
     .filter((p) => str(p.champion) && (p.event === undefined || p.event === "promotion"))
     .sort((a, b) => (str(b.at) ?? "").localeCompare(str(a.at) ?? ""));
+}
+
+export const PROMOTION_CHECKS: Array<[string, string]> = [
+  ["c1_days", "14 days"],
+  ["c2_ci", "lower bounds above zero"],
+  ["c3_days_positive", "share of positive days"],
+  ["c4_calibration", "calibration"],
+  ["c5_secondary", "secondary targets"],
+  ["c6_coverage", "coverage"],
+  ["c7_cooldown", "cool-down"],
+];
+
+export interface PromotionCandidateView {
+  modelId: string;
+  pass: boolean;
+  days: number | null;
+  daysToMin: number | null;
+  gain: number | null;
+  loEvent: number | null;
+  loTwoway: number | null;
+  /** se_day^2 / (se_event^2 + se_day^2), or null when either is missing / the total is zero. */
+  dayShare: number | null;
+  passed: number;
+  total: number;
+  failed: string[];
+}
+
+export interface PromotionView {
+  rule: string;
+  at: string | null;
+  k: number | null;
+  level: number | null;
+  promote: string | null;
+  reason: string | null;
+  candidates: PromotionCandidateView[];
+}
+
+/** Share of the combined uncertainty that comes from day-level shocks; null when not computable. */
+export function dayShare(seEvent: number | null, seDay: number | null): number | null {
+  if (seEvent === null || seDay === null) return null;
+  const tot = seEvent * seEvent + seDay * seDay;
+  return tot > 0 ? (seDay * seDay) / tot : null;
+}
+
+/**
+ * Promotion-rule status card. Candidates whose model is under an active embargo (own date or the
+ * model list's) are dropped, and `promote` is withheld when it names an embargoed model.
+ */
+export function promotionView(se: SignalEngineBlock, nowMs: number): PromotionView | null {
+  const p = se.promotion as SePromotionStatus | null | undefined;
+  if (!isObj(p)) return null;
+  const models = modelEmbargoes(se);
+  const candidates: PromotionCandidateView[] = [];
+  for (const c of arr<SePromotionCandidate>(p.candidates)) {
+    const modelId = str(c.model_id);
+    if (!modelId || isEmbargoed(c, nowMs, models)) continue;
+    const checks = isObj(c.checks) ? c.checks : {};
+    const failed = PROMOTION_CHECKS.filter(([k]) => checks[k] !== true).map(([, label]) => label);
+    candidates.push({
+      modelId,
+      pass: c.pass === true,
+      days: num(c.days),
+      daysToMin: num(c.days_to_min),
+      gain: num(c.gain),
+      loEvent: num(c.lo_event),
+      loTwoway: num(c.lo_twoway),
+      dayShare: dayShare(num(c.se_event), num(c.se_day)),
+      passed: PROMOTION_CHECKS.length - failed.length,
+      total: PROMOTION_CHECKS.length,
+      failed,
+    });
+  }
+  const promote = str(p.promote);
+  return {
+    rule: str(p.rule) ?? "promotion rule",
+    at: str(p.at) ?? null,
+    k: num(p.K),
+    level: num(p.level),
+    promote: promote && !isEmbargoed({ model_id: promote }, nowMs, models) ? promote : null,
+    reason: str(p.reason) ?? null,
+    candidates,
+  };
 }
 
 export interface AttributionView {

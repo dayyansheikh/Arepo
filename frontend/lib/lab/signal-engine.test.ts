@@ -14,6 +14,7 @@ import {
   fmtSigned,
   isEmbargoed,
   parseSignalEngine,
+  promotionView,
   promotions,
   prospectiveRows,
   rowCells,
@@ -244,5 +245,64 @@ describe("family attribution", () => {
 
   it("drops the whole entry when its model is embargoed", () => {
     expect(attributionViews(base({ models: [{ model_id: "lg", embargoed_until: UNTIL }] }), NOW)).toEqual([]);
+  });
+});
+
+describe("promotion rule status", () => {
+  const cand = (model_id: string, over: Record<string, unknown> = {}) => ({
+    model_id, pass: false, days: 15, days_to_min: 0,
+    checks: { c1_days: true, c2_ci: true, c3_days_positive: true, c4_calibration: false, c5_secondary: true, c6_coverage: true, c7_cooldown: true },
+    gain: 0.02, lo_event: 0.01, lo_twoway: 0.004, se_event: 0.003, se_day: 0.006, n_days: 15, ...over,
+  });
+  const block = (over: Record<string, unknown> = {}, models: SignalEngineBlock["models"] = []): SignalEngineBlock => ({
+    schema: "se-dash-v1",
+    models,
+    promotion: { rule: "se-promotion-v2", at: "2026-10-21T11:40:00Z", K: 3, level: 0.9833, min_days: 14, promote: null, reason: null, candidates: [cand("se1_lgbm_mm")], ...over },
+  });
+
+  it("computes day share, checks passed and failed-check labels", () => {
+    const v = promotionView(block(), NOW)!;
+    expect(v.candidates).toHaveLength(1);
+    expect(v.candidates[0].dayShare).toBeCloseTo(36 / 45, 10);
+    expect(v.candidates[0].passed).toBe(6);
+    expect(v.candidates[0].failed).toEqual(["calibration"]);
+    const html = render(block());
+    expect(html).toContain("Promotion rule");
+    expect(html).toContain("98.3% one-sided");
+    expect(html).toContain("6/7");
+    expect(html).toContain("Not met: calibration");
+    expect(html).toContain("80%");
+    expect(html).toContain("Not yet");
+    expect(html).toContain("now");
+  });
+
+  it("drops an embargoed candidate (model-list date or own date) and withholds an embargoed promote", () => {
+    const b = block({ promote: "se8", candidates: [cand("se1_lgbm_mm"), cand("se8"), cand("se9", { embargoed_until: UNTIL })] }, [{ model_id: "se8", embargoed_until: UNTIL }]);
+    expect(promotionView(b, NOW)!.candidates.map((c) => c.modelId)).toEqual(["se1_lgbm_mm"]);
+    expect(promotionView(b, NOW)!.promote).toBeNull();
+    const html = render(b);
+    expect(html).not.toContain("se8");
+    expect(html).not.toContain("se9");
+    expect(html).toContain("se1_lgbm_mm");
+    // an expired embargo no longer hides the candidate
+    expect(promotionView(block({ candidates: [cand("x")] }, [{ model_id: "x", embargoed_until: "2026-10-01T00:00:00Z" }]), NOW)!.candidates).toHaveLength(1);
+  });
+
+  it("handles null numbers, eligibility text and a promote pill", () => {
+    const b = block({ promote: "se1_lgbm_mm", reason: "waiting", candidates: [cand("a", { lo_twoway: null, se_day: null, gain: null, days_to_min: 3.25 })] });
+    const v = promotionView(b, NOW)!;
+    expect(v.candidates[0].dayShare).toBeNull();
+    const html = render(b);
+    expect(html).toContain("3.3 days");
+    expect(html).toContain("Promotes se1_lgbm_mm");
+    expect(html).toContain("waiting");
+  });
+
+  it("renders nothing for an absent, null or malformed promotion", () => {
+    for (const p of [undefined, null, "x", [], 5]) {
+      expect(promotionView({ schema: "se-dash-v1", promotion: p as never }, NOW)).toBeNull();
+      expect(render({ schema: "se-dash-v1", promotion: p })).not.toContain("Promotion rule");
+    }
+    expect(promotionView(block({ candidates: "nope" }), NOW)!.candidates).toEqual([]);
   });
 });
