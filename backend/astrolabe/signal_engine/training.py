@@ -134,10 +134,14 @@ def select_rows(frame: pd.DataFrame, spec: dict, target: str, fit_time: float) -
     m = (frame[f"y_{target}"].to_numpy() >= 0) & (frame["otime"].to_numpy(float) >= fit_time - wd * 86400.0)
     for fam in tr["require_sources"]:
         m &= frame[f"src_{fam}"].to_numpy(bool)
-    sub = frame[m]
-    if len(sub) > tr["max_rows"]:
-        sub = sub.iloc[np.sort(_rng(spec["model_id"], target, fit_time).choice(len(sub), tr["max_rows"], replace=False))]
-    return sub.reset_index(drop=True)
+    # positions first, one copy of the frame: frame[m] then .iloc held up to three 876k x 112 copies at once and hit the
+    # refit's address-space cap on 2026-10-22. Same rows in the same order as before.
+    idx = np.flatnonzero(m)
+    if len(idx) > tr["max_rows"]:
+        idx = idx[np.sort(_rng(spec["model_id"], target, fit_time).choice(len(idx), tr["max_rows"], replace=False))]
+    sub = frame.take(idx)
+    sub.index = pd.RangeIndex(len(sub))  # in place: reset_index(drop=True) deep-copies again without copy-on-write
+    return sub
 
 
 def aux_coverage(frame: pd.DataFrame, spec: dict, target: str, fit_time: float) -> dict:

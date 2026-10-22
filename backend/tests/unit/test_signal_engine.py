@@ -1332,3 +1332,29 @@ def test_dashboard_promotion_block_compacts_checks_and_skips_embargoed():
     assert a["eligible"] and a["ineligible_since"] is None  # older decisions without the key read as eligible
     assert b["eligible"] is False and b["ineligible_since"] == "2026-10-22T00:50:00Z"
     assert out["min_days"] == 14 and D._promotion(None, {}) is None
+
+
+def test_select_rows_matches_the_pre_2026_10_22_two_copy_version():
+    """select_rows indexes before copying (refit address-space fix); the rows and their order must not change."""
+    rng = np.random.default_rng(7)
+    n = 5000
+    fr = pd.DataFrame({"otime": rng.uniform(0, 20 * 86400.0, n), "y_dir_2h": rng.integers(-1, 3, n).astype(np.int8),
+                       "y_res_7d": rng.integers(-1, 2, n).astype(np.int8), "src_flow": rng.random(n) < 0.7,
+                       "x": rng.random(n).astype(np.float32)}, index=pd.RangeIndex(100, 100 + n))
+
+    def old(frame, spec, target, fit_time):
+        tr = spec["train"]
+        wd = tr["res_window_days"] if target == C.RES_TARGET else tr["window_days"]
+        m = (frame[f"y_{target}"].to_numpy() >= 0) & (frame["otime"].to_numpy(float) >= fit_time - wd * 86400.0)
+        for fam in tr["require_sources"]:
+            m &= frame[f"src_{fam}"].to_numpy(bool)
+        sub = frame[m]
+        if len(sub) > tr["max_rows"]:
+            sub = sub.iloc[np.sort(T._rng(spec["model_id"], target, fit_time).choice(len(sub), tr["max_rows"], replace=False))]
+        return sub.reset_index(drop=True)
+
+    for max_rows, req in ((100_000, []), (900, []), (700, ["flow"])):
+        spec = {"model_id": "seX", "train": {"window_days": 14, "res_window_days": 28, "max_rows": max_rows, "require_sources": req}}
+        for target in ("dir_2h", C.RES_TARGET):
+            got = T.select_rows(fr, spec, target, 20 * 86400.0)
+            pd.testing.assert_frame_equal(got, old(fr, spec, target, 20 * 86400.0))
