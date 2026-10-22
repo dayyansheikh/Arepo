@@ -3796,3 +3796,10 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   terminal record before it is used: a refused / disk_budget q0146 must leave a marker, `require_xv_complete` must not
   tempfail on a sticky terminal manifest, and census.json must carry an explicit X terminal state. To implement before
   q0146 ends or before q0147 is promoted (not before 10-24T01:00Z). Notes 2-3 (low) in the review.
+
+## Signal engine: market-price reference row for `res_7d`, 2026-10-22 ~21:30Z (signal-engine autopilot; no model, no K change)
+- Added `market_price_reference` to the scorer (DESIGN_V1 §24): P(yes) = the origin's Gamma mid from the write-once
+  features file, scored on `res_7d` only, with each scored model's `gain_vs_market_mid` (event-clustered CI). It is a
+  benchmark, not a challenger: not in the registry, never promoted, no change to K, the promotion rule or any existing
+  score. First rows at the 2026-10-23 daily score. Any gain over the mid is forecast quality only (no costs, no fill),
+  not an edge claim. Test `test_market_price_reference_scores_res_7d_from_the_origin_mid`.

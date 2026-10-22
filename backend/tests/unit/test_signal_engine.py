@@ -369,6 +369,52 @@ def test_late_predictions_are_excluded(env, monkeypatch):
     assert agg.m[("dir_6h", "champ", day)]["n"] == _n_elig(paths, 23, "dir_6h")  # still on time for the 6h target
 
 
+def test_market_price_reference_scores_res_7d_from_the_origin_mid(env, monkeypatch):
+    w, paths = env
+    w.run(24)
+    build_all(paths)
+    reg = SP.load_registry(paths.spec_dir)
+    fit_time = S.slot_time(SLOT0 + 23) - 1800
+    t_pred = S.slot_time(SLOT0 + 23) + 900
+    # every res-eligible market of the window resolves (y ~ Bernoulli(mid)); fetched before the fit, closed after
+    # the prediction, so the champion has a res_7d fit and capture 23's prediction is on time
+    idx = S.load_index(paths)
+    f23 = S.read_parquet(paths.features(idx[SLOT0 + 23]["capture_id"]))
+    e23 = (L.elig_mask(f23, SLOT0 + 23, S.epoch(idx[SLOT0 + 23]["started_utc"])) & C.ELIG_BITS[C.RES_TARGET]) > 0
+    assert e23.sum() > 20
+    rng = np.random.default_rng(3)
+    yv = {int(i): int(rng.random() < p) for i, p in zip(f23["market_id"], f23["ms_mid"].astype(float), strict=True)}
+    S.append_log(paths, "resolutions", [{"market_id": i, "state": "resolved", "y": v, "closed_time": S.iso(t_pred + 3600),
+                                         "fetched_utc": S.iso(fit_time - 60)} for i, v in yv.items()], at=fit_time - 60)
+    out = T.refit_all(paths, reg, fit_time, now=fit_time)
+    assert out["summary"]["models"]["champ"]["targets"][C.RES_TARGET]["status"] == "ok"
+    _clock(monkeypatch, t_pred)
+    P.run_predict(paths, reg, now=t_pred, max_items=10)
+    now = t_pred + 86400
+    agg, _ = SC.score_prospective(paths, reg, "champ", now)
+    lb = SC.leaderboard(agg, reg, "champ", now, role="prospective_engine")
+    ref = [x for x in lb["rows"] if x["model_id"] == SC.REF_MODEL and x["window_days"] == 7]
+    assert len(ref) == 1 and ref[0]["role"] == "reference" and ref[0]["target"] == C.RES_TARGET
+    ids, mids = f23["market_id"].to_numpy()[e23], f23["ms_mid"].to_numpy(np.float64)[e23]
+    y = np.array([yv[int(i)] for i in ids])
+    pp = np.clip(mids, C.P_CLIP, 1 - C.P_CLIP)
+    ll_ref = -(y * np.log(pp) + (1 - y) * np.log(1 - pp))
+    assert ref[0]["n"] == len(ids) and ref[0]["coverage"] == 1.0
+    assert ref[0]["log_loss"] == pytest.approx(ll_ref.mean(), abs=1e-12)
+    ch = [x for x in lb["rows"] if x["model_id"] == "champ" and x["target"] == C.RES_TARGET and x["window_days"] == 7][0]
+    g = ch["gain_vs_market_mid"]
+    assert ch["n"] == len(ids) and g["mean"] == pytest.approx(ll_ref.mean() - ch["log_loss"], abs=1e-9)
+    assert ref[0]["gain_vs_champion"]["mean"] == pytest.approx(-g["mean"], abs=1e-12) and g["n_clusters"] > 1
+    assert not [x for x in lb["rows"] if x.get("target") != C.RES_TARGET and "gain_vs_market_mid" in x]
+    # the reference is not a model: never a promotion candidate, never in the family-gain series
+    assert SC.REF_MODEL not in reg["models"]
+    dash = D.build(paths, reg, "champ", now, lb)
+    drow = [x for x in dash["prospective"]["rows"] if x["model_id"] == "champ" and x.get("target") == C.RES_TARGET]
+    assert drow and drow[0]["gain_vs_mid"] == pytest.approx(SC.gain(agg, C.RES_TARGET, "champ" + SC.REF_PAIR, 14)["mean"])
+    assert [x["role"] for x in dash["prospective"]["rows"] if x["model_id"] == SC.REF_MODEL] == ["reference"]
+    assert not [x for x in dash["family_gains"] if x["model_id"] == SC.REF_MODEL]
+
+
 def test_predict_refuses_when_every_target_started(env, monkeypatch):
     w, paths = env
     w.run(24)
