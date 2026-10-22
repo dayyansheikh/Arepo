@@ -171,7 +171,7 @@ ledger line (the `book0` / `book` extension is withdrawn only if CH203 and CH202
   versus common; this overlaps `event` / se8); `farm` (CH183: book imbalance inside versus outside the reward band; LT5
   saw no unrewarded units, possibly an empty-`clob_rewards` parse artefact, so check the parse before building).
 
-## Embargo requests from the experiments side, round 6 (LT9 design frozen; filed 2026-10-22 ~22:55Z; APPLIED by the builder 2026-10-22 ~23:30Z, `config.EMBARGO`)
+## Embargo requests from the experiments side, round 6 (LT9 design frozen; filed 2026-10-22 ~22:55Z; APPLIED by the builder 2026-10-22 ~23:00Z, `config.EMBARGO`)
 
 LT9 (`docs/research_lab/LIVE_TESTS_9.md` section 9; design text frozen at 11fee7a0, sha256 098aa3fb…; window proposed
 2027-01-21 .. 2027-02-11, analysis about 2027-02-12) is accepted (challenger R1 REVISE -> response -> re-check
@@ -195,7 +195,7 @@ then (or record such a model in the ledger as a development look). LT9's pin ste
 **Not requested:** `surprise`, `movetype`, `participation`. A test dropped at its census withdraws its new token and any
 extension made only for it, with a ledger line.
 
-**Builder reply (2026-10-22 ~23:30Z):** applied as asked, before any isolating challenger exists.
+**Builder reply (2026-10-22 ~23:00Z):** applied as asked, before any isolating challenger exists.
 - `bandbreak`, `pool`, `rwblink` added to 2027-02-14T00:00Z (no models). **`rwend` not added:** it is requested only if
   CH215 enters at its census, and no rwend family will be built before that census decides.
 - `book` and `book0` moved from 2027-01-23 to 2027-02-14, with `LT9-CH214` in their tests. Applied now rather than at the
@@ -220,7 +220,7 @@ rule ("a test dropped before registration withdraws its new token and any extens
 The attribution limits on `chg_1h` x own 2 h change and lagged-step interactions were for LT7; withdraw them unless LT8's
 round-5 limits cover the same terms. Nothing here moves any LT8 or LT9 date.
 
-**Builder reply (2026-10-22 ~23:30Z, effective 2026-10-23T00:00Z):** applied.
+**Builder reply (2026-10-22 ~23:00Z, effective 2026-10-23T00:00Z):** applied.
 - `resist`, `capath`, `deepbook`, `absorbed`, `ivr` withdrawn (`until` = `withdrawn_utc` = 2026-10-23T00:00Z, `until_before`
   12-31). None had a model.
 - `movetype` back to 2026-11-22 (E015). No LT8 or LT9 request holds it, and LT8 section 9 says explicitly that it is not
@@ -532,5 +532,5 @@ development look at the neg-risk / sibling family (ledger entry 2026-10-21).
 | 19 | `book0` (pre-origin book) / `se18_lgbm_all_b0`, `se19_lr_book0` | the `book` columns from the newest sweep finished before the capture start (<= 3 h; previous pass, ~110 min) + lag, spread, origin mid minus sweep mid | development diagnostic 10-21 (8 captures): coverage 92-94%, no correlation of `b0_micro` / `b0_imb5c` with the in-window move (v1 `bk_micro` up to -0.27) | `book0` = `book` (2027-02-14, LT9) for se19; se18 broad, not embargoed | **active 2026-10-22** (DESIGN_V1 §22): se18 is the promotion-eligible honest replacement for se7; LightGBM isolate waits for refit budget |
 | 20 | `crypto` (spot reference) / `se20_lgbm_crypto` | aux family: crypto template markets mapped from the sidecar `series_slugs` + `fee_category` (no text); Binance 1 m / 5 m klines closed before the capture start: spot returns 5 m..24 h, realised vol, up/down window z and normal-reference gap, own empirical beta to spot and the latest lag; LightGBM (se1's params) | none (spec written before any crypto table existed; coverage ~4,800 of 5,870 crypto sidecar rows map) | none (DESIGN_V1 §23) | **active 2026-10-22** (DESIGN_V1 §23); read against se1; K 4 -> 5 |
 | 21 | `hwm` (own high-water marks, CH181) / `se21_lgbm_hwm` | aux family from the engine's own quotes of slots k-84..k: 3 d / 7 d distance below the high and above the low, 7 d hours since high / low, range position, history; LightGBM (se1's params) | none (idea from equities anchoring; spec written before any hwm table existed) | none (science review: no shadowing) | **active 2026-10-22** (DESIGN_V1 §25); first fit at the 10-23 refit; read against se1; K 7 -> 8 |
-| 22 | `dispgap` (display disagreement, CH218) / `se22_lgbm_dispgap` | aux family: Gamma displayed 1 d / 1 w change minus the own 24 h / 7 d mid change, its absolute value, the 1 d gap signed by the own 2 h move, its change since the previous slot; LightGBM (se1's params) | none (spec written before any dispgap table existed) | `dispgap` until 2026-11-14 (E012's Gamma-change sensitivity, E013/E014 controls; science review) | **active, embargoed** 2026-10-23 (DESIGN_V1 §26); census before the first fit; read against se1 |
-| 23 | `dormant` (dormancy, CH220) / `se23_lgbm_dormant` | aux family: run of 2 h steps with |dmid| <= DELTA and with no change, both capped at 12, wake-up flag after >= 6 flat steps; LightGBM (se1's params) | none (spec written before any dormant table existed) | `dormant` until 2026-11-19 (E011's quiet-prior-day label; science review) | **active, embargoed** 2026-10-23 (DESIGN_V1 §26); census before the first fit; read against se1 and se15 |
+| 22 | `dispgap` (display disagreement, CH218) / `se22_lgbm_dispgap` | aux family: Gamma displayed 1 d / 1 w change minus the own 24 h / 7 d mid change, its absolute value, the 1 d gap signed by the own 2 h move, its change since the previous slot; LightGBM (se1's params) | none (spec written before any dispgap table existed) | `dispgap` until 2026-11-14 (E012's Gamma-change sensitivity, E013/E014 controls; science review) | **active, embargoed** 2026-10-23 (DESIGN_V1 §26); census passed 10-22 ~23:25Z (|dg_1d| >= 2 ticks on 4.7% of rows); first fit 10-23; read against se1 |
+| 23 | `dormant` (dormancy, CH220) / `se23_lgbm_dormant` | aux family: run of 2 h steps with |dmid| <= DELTA and with no change, both capped at 12, wake-up flag after >= 6 flat steps; LightGBM (se1's params) | none (spec written before any dormant table existed) | `dormant` until 2026-11-19 (E011's quiet-prior-day label; science review) | **active, embargoed** 2026-10-23 (DESIGN_V1 §26); census passed 10-22 ~23:25Z (24 h still on 10.4% of non-sports); first fit 10-23; read against se1 and se15 |

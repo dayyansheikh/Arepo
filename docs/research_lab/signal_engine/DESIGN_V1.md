@@ -158,7 +158,7 @@ champion (market state + momentum), the learner reference and broad multi-family
 | chg1d_x_liq (no model yet) | 2026-11-14T00:00Z | E012 |
 | tte | 2026-11-14T00:00Z | E014 |
 | flow | 2026-11-16T00:00Z (11-16 -> 11-22 on 2026-10-21 for LT5 J/O; that extension withdrawn 2026-10-22 ~12:00Z, both dropped at q0562; E016/E018 dropped at q0472, 11-16 kept as margin) | E013, E014 (LT2, 2026-11-13T12Z) |
-| book | 2027-02-14T00:00Z (from 11-18, then 11-22, both 2026-10-21; then 12-09; 12-31 on 2026-10-22 for LT7 CH195/CH197, round 4; 2027-01-23 on 2026-10-22 ~12:00Z for LT8 CH202/CH203, LIVE_TESTS_8.md section 9; 2027-02-14 on 2026-10-22 ~23:30Z for LT9 CH214, LIVE_TESTS_9.md section 9, the later of that and LT9's analysis commit, **withdrawn back to 2027-01-23 if CH214 drops at census**) | E015, E022 (LT4 registered), LT8 CH202/CH203, LT9 CH214 (E019, E020, LT5 H/R and LT6 V were dropped at census and pruned 2026-10-22; LT7 CH195/CH197 pruned 2026-10-22 ~23:30Z when LT7 closed with no test) |
+| book | 2027-02-14T00:00Z (from 11-18, then 11-22, both 2026-10-21; then 12-09; 12-31 on 2026-10-22 for LT7 CH195/CH197, round 4; 2027-01-23 on 2026-10-22 ~12:00Z for LT8 CH202/CH203, LIVE_TESTS_8.md section 9; 2027-02-14 on 2026-10-22 ~23:00Z for LT9 CH214, LIVE_TESTS_9.md section 9, the later of that and LT9's analysis commit, **withdrawn back to 2027-01-23 if CH214 drops at census**) | E015, E022 (LT4 registered), LT8 CH202/CH203, LT9 CH214 (E019, E020, LT5 H/R and LT6 V were dropped at census and pruned 2026-10-22; LT7 CH195/CH197 pruned 2026-10-22 ~23:00Z when LT7 closed with no test) |
 | book0 | 2027-02-14T00:00Z (same date and tests as `book`; added 2026-10-22 ~03:00Z with `se19_lr_book0` and broad `se18_lgbm_all_b0`, before any book0 table or score existed; section 22) | as `book`; also hides `book0` in se18's family attribution. Disclosed: the visible se7 minus se18 score contrast compares sweep-1 book with book0 (section 22) |
 | wallet | 2026-12-07T00:00Z (from 11-18, 2026-10-21) | E026 copy-skilled (analysis on/after 2026-12-06T12Z); E024 dropped before any census, pruned 2026-10-22 |
 | wallet_skill (no model yet) | 2026-12-07T00:00Z | E026 |
@@ -170,9 +170,9 @@ champion (market state + momentum), the learner reference and broad multi-family
 | hollow (no model yet) | 2026-11-18T00:00Z | E022 (LT4, CH174; registration planned 2026-10-25, analysis not before 2026-11-17T12Z; experiments round-3 request, added 2026-10-21 ~20:50Z): any feature combining Gamma `liquidity` with sweep depth (`h`, `L/D`, `log L - log D`, `zh`, h terciles). Liquidity alone stays usable. E022's depth control (`log1p D` of the outcome-0 5c depth) is `bk_depth5c`, already under `book` (12-09). Broad `se7_lgbm_all` holds `liquidity` and `bk_depth5c` as separate columns (no hollow column); as a broad model it stays unembargoed under this section's rule, disclosed here |
 | resist, capath, deepbook, absorbed, ivr (no models) | **withdrawn 2026-10-23T00:00Z** (were 12-31) | LT7 closed at census with no test (CH191, CH192, CH193 dropped at CC7; CH195, CH197 at CS7; ledger 2026-10-22). Before that: LT7 (draft; CH195, CH191, CH194, CH197, CH193, CH192; experiments round-4 request, added 2026-10-22 ~01:00Z). Each date is the later of 12-31 and LT7's analysis commit (a later request follows if LT7 slides). `mm_fresh` is the isolated chg_1h x own 2 h set; the champion's momentum family stays usable `mm_fresh` was **withdrawn 2026-10-22T12:00Z** with CH194 (LT7 R1 response) |
 | quietbook, swclock, sched (no models yet) | 2027-01-23T00:00Z (the later of that and LT8's analysis commit) | LT8 CH203, CH202, CH204 (design text frozen c124db50; section 9 requests applied 2026-10-22 ~12:00Z, before the 12-01 deadline) |
-| bandbreak, pool, rwblink (no models yet) | 2027-02-14T00:00Z (the later of that and LT9's analysis commit) | LT9 CH213, CH214, CH212 (design text frozen 11fee7a0; LIVE_TESTS_9.md section 9 requests, round 6, applied 2026-10-22 ~23:30Z). No isolating `pool` challenger is scored before LT8's `quietbook` date in any case. `rwend` (CH215) gets a token only if CH215 enters at its census; no rwend family is built before then |
-| dispgap | 2026-11-14T00:00Z (the later of that and LT2's analysis commit, q0461) | E012 (`dg_1d` is E012's primary x minus its pre-declared Gamma `oneDayPriceChange` sensitivity; se22 is scored on `dir_24h`, E012's horizon), E013 / E014 (`chg_1d` / `chg_1w` as controls); added 2026-10-23 ~01:30Z with `se22_lgbm_dispgap` (science review must-fix 2), before any table or score existed (section 26) |
-| dormant | 2026-11-19T00:00Z (as `surprise`) | E011 (its surprise label requires a quiet prior day, and secondary (a) reads "quiet markets that then move"; `dm_*` encode that quietness); added 2026-10-23 ~01:30Z with `se23_lgbm_dormant` (science review must-fix 1; CH220 asked for it), before any table or score existed (section 26) |
+| bandbreak, pool, rwblink (no models yet) | 2027-02-14T00:00Z (the later of that and LT9's analysis commit) | LT9 CH213, CH214, CH212 (design text frozen 11fee7a0; LIVE_TESTS_9.md section 9 requests, round 6, applied 2026-10-22 ~23:00Z). No isolating `pool` challenger is scored before LT8's `quietbook` date in any case. `rwend` (CH215) gets a token only if CH215 enters at its census; no rwend family is built before then |
+| dispgap | 2026-11-14T00:00Z (the later of that and LT2's analysis commit, q0461) | E012 (`dg_1d` is E012's primary x minus its pre-declared Gamma `oneDayPriceChange` sensitivity; se22 is scored on `dir_24h`, E012's horizon), E013 / E014 (`chg_1d` / `chg_1w` as controls); added 2026-10-22 ~23:15Z with `se22_lgbm_dispgap` (science review must-fix 2), before any table or score existed (section 26) |
+| dormant | 2026-11-19T00:00Z (as `surprise`) | E011 (its surprise label requires a quiet prior day, and secondary (a) reads "quiet markets that then move"; `dm_*` encode that quietness); added 2026-10-22 ~23:15Z with `se23_lgbm_dormant` (science review must-fix 1; CH220 asked for it), before any table or score existed (section 26) |
 | attrlimit_lt8, attrlimit_lt9 (attribution limits, not family tokens) | 2027-01-23T00:00Z, 2027-02-14T00:00Z | LT8 and LT9 section 9: no attribution (SHAP or otherwise) of the champion, se18 / se9 or any broad model on the listed interaction terms (`limits`), and no LT8 / LT9 family in a broad model (`no_broad_families`), before the date. They match no family or spec, so they hide nothing by themselves; the engine's attribution is per family only (section 17), so none of the terms is computed. A test guards `no_broad_families` |
 
 LT3/LT4 dates are the proposed windows; when they register, move the dates **later** if needed (never earlier).
@@ -188,10 +188,10 @@ the bar stricter. First use: 2026-10-22T12:00Z (`event`, `vote`, `clips`, `deadl
 extensions of `flow` (to 11-16) and `rewards` (to 11-18)); K 5 -> 7 (se8 and se10 join). Expected K path as later
 embargoes lapse: 9 at 11-04 (xvenue), 11 at 11-14 (tte), 13 at 11-16 (flow), 14 at
 11-18 (rewards), 15 at 11-19 (surprise), 16 at 11-25 (participation), 17 at 12-07 (wallet), 20 at 2027-01-23 (book,
-book0, movetype); these steps follow the declared definition and are not tuning. Update 2026-10-22 ~23:30Z: `se21_lgbm_hwm`
+book0, movetype); these steps follow the declared definition and are not tuning. Update 2026-10-22 ~23:00Z: `se21_lgbm_hwm`
 adds one to every step from its first score (K 8 now), and the book step moves to 2027-02-14 (LT9; se3, se14, se19).
 Second use of withdrawal: 2026-10-23T00:00Z, LT7's five tokens and the `movetype` extension (no model changes K: se14
-also isolates `book`). Update 2026-10-23 ~01:30Z (section 26): `se22_lgbm_dispgap` joins at 11-14 and `se23_lgbm_dormant` at
+also isolates `book`). Update 2026-10-22 ~23:15Z (section 26): `se22_lgbm_dispgap` joins at 11-14 and `se23_lgbm_dormant` at
 11-19, so from 11-14 every later step is one higher, and from 11-19 two higher.
 
 **Fit diagnostics under an embargo (science review 2026-10-21).**
@@ -754,7 +754,7 @@ evidence yet, development or prospective.
   per refit (~2 min of the ~48 min), one more prediction per capture. The q0512 / q0513 caps are unchanged.
 - Tests: `test_hwm_features_hand_example`, `test_hwm_family_reads_only_earlier_quotes`.
 
-## 26. `dispgap` and `dormant`: two engine-first round-14 families (2026-10-23 ~01:00Z; development families)
+## 26. `dispgap` and `dormant`: two engine-first round-14 families (2026-10-22 ~23:15Z; development families)
 
 **Why.** Round 14 (`CREATIVE_HYPOTHESES_2026-10-28.md`, section 2 C / D) proposed CH218 and CH220 as engine-first: each
 is a per-market, per-capture quantity that no live test can contrast honestly, so its only honest yardstick is forecast
@@ -819,7 +819,7 @@ challenger (se22 from 11-14, se23 from 11-19, when their embargoes lift): the co
     would move the share. Killed if `dm_still == 12` rows are fewer than 3% or more than 60% of the non-sports frame rows.
     NaN rows count in the denominator as not dormant. The NaN share is reported, and `dm_flat == 12` is reported for
     information only.
-  - **Order:** the census runs on the host right after the backfill (2026-10-23 ~01:45Z), before the daily refit
+  - **Order:** the census runs on the host right after the backfill (2026-10-22 ~23:30Z), before the daily refit
     (~15:44Z) can make a first fit. If the refit ran first, a killed challenger would still be set `retired` before any
     of its scores is computed or shown, which the embargoes already guarantee until 11-14 / 11-19. A killed family's
     challenger is set `retired`, with a ledger line.
@@ -834,7 +834,7 @@ challenger (se22 from 11-14, se23 from 11-19, when their embargoes lift): the co
 - **Cost.** 8 float32 columns in total on the frames (~55 MB at the caps), two more LightGBM fits per refit (~4 min of
   the ~48 min), and two more predictions per capture. The q0512 / q0513 caps are unchanged; the peak RSS is watched at
   the 10-23 refit.
-- **Science review (2026-10-23 ~01:20Z): ACCEPT_WITH_FIXES.**
+- **Science review (2026-10-22 ~23:10Z): ACCEPT_WITH_FIXES.**
   - No leakage: no sweep, no row received after the capture, `dg_chg` from slot k - 1 only. Section 21 does not arise,
     and neither challenger is promotion-ineligible. There is the same availability caveat as `hwm`: a late quotes or
     features file enters a backfilled table but would not have entered a live-built one.

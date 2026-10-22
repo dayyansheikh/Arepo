@@ -162,14 +162,14 @@
    "file": "se22_lgbm_dispgap.json",
    "spec_sha256": "11dd925e6a1dd7cb83eace36ec540e61c0131e9bcb7c972ca6334ab3ea228bad",
    "status": "active",
-   "added_utc": "2026-10-23T01:30:00Z"
+   "added_utc": "2026-10-22T23:15:00Z"
   },
   {
    "model_id": "se23_lgbm_dormant",
    "file": "se23_lgbm_dormant.json",
    "spec_sha256": "777b797bc5c0b20a6d18440b6b266220ec5fdbc20b26a05e9ef6263e09707d27",
    "status": "active",
-   "added_utc": "2026-10-23T01:30:00Z"
+   "added_utc": "2026-10-22T23:15:00Z"
   }
  ]
 }

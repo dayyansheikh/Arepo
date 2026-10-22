@@ -348,7 +348,7 @@ equals its source (the test checks). Do not edit the LT5 spec while q0561/q0562 
 **Waiting:**
 - MC1: after the resize (item 4).
 - CB4 q0085 not before ~10-24T12Z. CB5 q0103b on or after 10-27, then q0106. CB3 freeze after q0064 (after 10-25).
-- Signal engine: live state in `signal_engine/STATUS.md` (10-22 ~21:50Z: new development family `hwm` (own 3 d / 7 d high-water marks, CH181; DESIGN_V1 §25; science review ACCEPT_WITH_FIXES, applied) and challenger `se21_lgbm_hwm` (not embargoed; K rises by one); deployed 4f643a62; 121 hwm tables backfilled on the host (40 s, 578 MB); first fit at the 10-23 refit q0512; the 10-23 score q0513 writes the first res_7d market-price reference rows; no promotion before ~11-04).
+- Signal engine: live state in `signal_engine/STATUS.md` (10-22 ~23:25Z: embargo round applied, with LT7's five tokens and its movetype extension withdrawn effective 10-23T00Z, and LT9's bandbreak/pool/rwblink plus book/book0 to 2027-02-14 and the attribution-limit entries; new families `dispgap` (CH218) and `dormant` (CH220) with challengers se22 / se23, DESIGN_V1 §26, science review ACCEPT_WITH_FIXES applied (embargoed to 11-14 for LT2 and 11-19 for E011); both passed their counts-only census; 122 tables each backfilled on the host; first fits at the 10-23 refit q0512; se21 hwm fits there too; no promotion before ~11-04).
 
 ## Learned surprise-move detector (2026-10-12 evening)
 `docs/research_lab/SURPRISE_MOVE_DETECTOR.md`. Labels fixed and logged before features (`surprise-labels-v1`,

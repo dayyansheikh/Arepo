@@ -4013,3 +4013,26 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
     of non-sports; dispgap |dg_1d| >= 2 ticks on >= 2% of rows; frame: captures 10-16..10-22).
 - **K:** se22 joins at 11-14 and se23 at 11-19 (z about 2.73 -> 2.81 at K = 10). No change before then.
 - **Census:** counts only, run after the backfill and before the first fit; the result follows as its own entry.
+
+## Signal engine: census of `dispgap` and `dormant` (counts only), 2026-10-22 ~23:25Z (signal-engine autopilot; both survive; nothing scored)
+- **Backfill** (host, one-off `features --max-items 25`, nice 10, 4 GB address-space cap, alongside MC1 q0116h):
+  122 tables per family in 28 s, peak RSS 537 MB, exit 0, no build errors.
+- **Frame** (DESIGN_V1 section 26, declared before the census): the aux tables of captures started in [10-16T00Z, 10-23T00Z).
+  That is 82 tables, because 2 of the 84 slots have no capture. There are 4,134,776 rows, 1,421,736 of them non-sports.
+  No outcome or label was read.
+- **`dispgap`: survives.**
+  - |dg_1d| >= 2 x ms_tick on 4.72% of all rows (6.38% of non-sports); the kill line was < 2%.
+  - NaN dg_1d 38.8% (no 24 h own look-back or no venue field). NaN or zero tick 0.0%.
+  - Median |dg_1d| is 0 ticks (p90 1 tick).
+  - |dg_chg| < 1 tick on 82.9% of rows: mostly persistent or zero gaps, with a fresh disagreement on about 17%. This is
+    CH218's trait question, reported only.
+  - Units check: the median per-capture correlation of chg_1d with the own 24 h change is 0.934, and both median
+    absolute values are 0.0100. Same scale, so `oneDayPriceChange` is an absolute price change close to the mid path.
+- **`dormant`: survives.** `dm_still == 12` (no change at all for 24 h) on 10.37% of non-sports rows; the kill line was
+  < 3% or > 60%. NaN 22.6% of non-sports. `dm_flat == 12` on 26.6% of non-sports (information only).
+- **Next:** se22 and se23 fit at the 10-23 refit (q0512, ~15:44Z) and predict from the next capture. Scores stay hidden
+  until 11-14 / 11-19.
+- **Timestamp correction for this session's two earlier entries:** "~23:30Z" for the LT7/LT9 embargo entry should read
+  ~23:00Z (deployed 23:03Z). "2026-10-23 ~01:30Z" for the dispgap/dormant entry should read 2026-10-22 ~23:15Z. The
+  builder wrote UTC+1 local times as UTC; the config and docs are corrected (commit 30e62dba). The withdrawal effective
+  time 2026-10-23T00:00:00Z is unchanged.
