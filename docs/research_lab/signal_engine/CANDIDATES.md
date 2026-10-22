@@ -171,7 +171,7 @@ ledger line (the `book0` / `book` extension is withdrawn only if CH203 and CH202
   versus common; this overlaps `event` / se8); `farm` (CH183: book imbalance inside versus outside the reward band; LT5
   saw no unrewarded units, possibly an empty-`clob_rewards` parse artefact, so check the parse before building).
 
-## Embargo requests from the experiments side, round 6 (LT9 design frozen; filed 2026-10-22 ~22:55Z)
+## Embargo requests from the experiments side, round 6 (LT9 design frozen; filed 2026-10-22 ~22:55Z; APPLIED by the builder 2026-10-22 ~23:30Z, `config.EMBARGO`)
 
 LT9 (`docs/research_lab/LIVE_TESTS_9.md` section 9; design text frozen at 11fee7a0, sha256 098aa3fb…; window proposed
 2027-01-21 .. 2027-02-11, analysis about 2027-02-12) is accepted (challenger R1 REVISE -> response -> re-check
@@ -195,6 +195,19 @@ then (or record such a model in the ledger as a development look). LT9's pin ste
 **Not requested:** `surprise`, `movetype`, `participation`. A test dropped at its census withdraws its new token and any
 extension made only for it, with a ledger line.
 
+**Builder reply (2026-10-22 ~23:30Z):** applied as asked, before any isolating challenger exists.
+- `bandbreak`, `pool`, `rwblink` added to 2027-02-14T00:00Z (no models). **`rwend` not added:** it is requested only if
+  CH215 enters at its census, and no rwend family will be built before that census decides.
+- `book` and `book0` moved from 2027-01-23 to 2027-02-14, with `LT9-CH214` in their tests. Applied now rather than at the
+  census (the conservative order; withdrawn back to 2027-01-23 with a ledger line if CH214 drops).
+- **Attribution limits** entered in `config.EMBARGO` as entries `attrlimit_lt9` (to 2027-02-14) and, for the same
+  enforcement, `attrlimit_lt8` (to 2027-01-23; round 5's limits were in this file only). Each lists `limits`, `models`
+  and `no_broad_families`. They match no family or spec, so they hide nothing by themselves. The engine's attribution is
+  per family only (DESIGN_V1 section 17), so none of the listed interaction terms is computed or shown. A test
+  (`test_lt7_closure_withdrawals_and_lt9_round6_requests`) fails if any broad spec holds an LT8 or LT9 family.
+- se9 (`rewards`, 11-18) is unchanged and becomes visible at its date. Its view is the per-family total and
+  the score only; no spread x `rewards_max_spread` term is computed.
+
 ## Notes from the experiments side, 2026-10-22 ~22:10Z (LT7 closed at census: embargo withdrawals requested)
 
 LT7's three censuses are done (counts only; ledger "LT7 census CC7" and "LT7 census CS7 and closure", 2026-10-22): CH191,
@@ -206,6 +219,16 @@ rule ("a test dropped before registration withdraws its new token and any extens
   to 12-31, so `book` most likely stays at 12-31 (check round 5 before changing it).
 The attribution limits on `chg_1h` x own 2 h change and lagged-step interactions were for LT7; withdraw them unless LT8's
 round-5 limits cover the same terms. Nothing here moves any LT8 or LT9 date.
+
+**Builder reply (2026-10-22 ~23:30Z, effective 2026-10-23T00:00Z):** applied.
+- `resist`, `capath`, `deepbook`, `absorbed`, `ivr` withdrawn (`until` = `withdrawn_utc` = 2026-10-23T00:00Z, `until_before`
+  12-31). None had a model.
+- `movetype` back to 2026-11-22 (E015). No LT8 or LT9 request holds it, and LT8 section 9 says explicitly that it is not
+  extended for CH202. Its tests list is now [E015]. se14 also isolates `book`, so it stays hidden to 2027-02-14. K is
+  unchanged.
+- `book` / `book0`: LT7-CH195 / CH197 pruned from the tests lists. The date is held by LT8 and now LT9 (round 6).
+- The LT7 attribution limits are dropped; they were never computed. LT8's limits cover different terms (`b0_gap` x own
+  2 h change).
 
 ## Idea-level families from creative round 14 (2026-10-22; ideas only, no evidence; not candidates yet)
 
@@ -499,12 +522,13 @@ development look at the neg-risk / sibling family (ledger entry 2026-10-21).
 | 9 | learner-matched flow / `se11_lgbm_flow` | base + `flow`, LightGBM (se1's params) | C01 on the strong learner (DESIGN_V1 §18) | `flow` until 2026-11-16 (as se2; LT5 J/O extension withdrawn 2026-10-22) | **active, embargoed, hidden** (2026-10-21); read against se1 |
 | 10 | learner-matched time-to-close / `se12_lgbm_tte` | base + derived `tte`, LightGBM (se1's params) | as above | `tte` until 2026-11-14 (as se5) | **active, embargoed, hidden** (2026-10-21); read against se1 |
 | 11 | learner-matched cross-venue / `se13_lgbm_xvenue` | base + `xvenue`, LightGBM (se1's params) | as above | `xvenue` until 2026-11-04 (as se4) | **active, embargoed, hidden** (2026-10-21); read against se1 |
-| 12 | move type / `se14_lgbm_movetype` | base + aux `movetype` (C07 classes + C12 move over spread), LightGBM (se1's params) | C07 replicated (HB1-R); C12 development only | `movetype` + `book` until 2026-11-22 (E015) | **active, embargoed, hidden** (2026-10-21 ~14:30Z); read against se1 |
+| 12 | move type / `se14_lgbm_movetype` | base + aux `movetype` (C07 classes + C12 move over spread), LightGBM (se1's params) | C07 replicated (HB1-R); C12 development only | `movetype` until 2026-11-22 (E015; the LT7 extension withdrawn 2026-10-23) + `book` until 2027-02-14 (LT8, LT9) | **active, embargoed, hidden** (2026-10-21 ~14:30Z); read against se1 |
 | 13 | price-path context / `se15_lgbm_surprise` | base + aux `surprise` (rv 6 h / 3 d / 7 d, ratios to 24 h, max 2 h move, weekday, hour), LightGBM (se1's params) | C06 development only (sm_learned_v2 replicated on disjoint h3 markets) | `surprise` until 2026-11-19 (E011; moved later from 11-12 for margin) | **active, embargoed, hidden** (2026-10-21 ~15:00Z); read against se1 |
 | 14 | `participation` / `se16_lgbm_participation` | base + aux `participation` (event volume and liquidity, 2 h event volume change, own liquidity share, `competitive`, event age, lifetime market volume), LightGBM (se1's params); from the origin's and the previous slot's Gamma sidecar | none (development-only evidence so far: none) | `participation` until 2026-11-25 (CB17-C uses the event-volume change and event liquidity; science review REVISE applied); event open interest and comment counts excluded | **active, embargoed, hidden** (2026-10-21); read against se1 |
 | 15 | learner budget / `se17_lgbm_mm_900k` | base only (market state + momentum), LightGBM with se1's tree params, 900k rows, up to 1000 rounds | development walk-forward 10-18..10-20: +0.0027 nats dir_2h over se1 (+0.003 / +0.002 at 6 h / 24 h); selected from four learner budgets (DESIGN_V1 §19), so optimistic | none (no family) | **active** (2026-10-21); first fit at the 10-22 refit; non-embargoed K = 3 |
 | 16 | `regime` (unsigned market-wide / category-wide activity) | share of eligible markets moving > δ at k-1 and among rows received earlier in capture k; mean abs 2 h / 1 h change | development walk-forward 10-18..10-20: **worse** than se1 on every direction target (dir_2h -0.0017); science review REVISE (common per-capture shock, receipt-order proxy) | none needed (reviewer: optional `regime` to 11-22) | **dropped** (code removed; DESIGN_V1 §19) |
 | 17 | `rulesrc` (CH199) | host class of `resolutionSource` from `stream_gamma_rules`, joined by market id from the last row received before the capture | **census 2026-10-22 ~01:00Z** (capture 10-21 22:31Z, stream rows 10-20..10-21): 44.7% of the 18,232 eligible non-sports markets appear in the stream, and **19.9%** carry a parseable source host (sports: 12.2% / 7.8%). Below CH199's own kill line (< 30%) | none | **killed at census** (re-census only if the stream's frame widens to the whole eligible panel) |
 | 18 | `sweep2` (CH200) | sweep-2 minus sweep-1 mid, imbalance change, touch-changed flag | not built | would be `book` (12-09) | **declined 2026-10-22**: direction labels start at the capture's Gamma mid (~hh:31Z) and sweep 2 arrives ~9 min later, so the sweep-2 minus sweep-1 mid change is part of the label move itself (mechanical overlap, not a forecast). Measured: 5.4-6.4% of eligible markets already move > DELTA between the capture and sweep 1, about a third of all 2 h movers. Same reason `bk_micro` is measured against the sweep's own mid |
-| 19 | `book0` (pre-origin book) / `se18_lgbm_all_b0`, `se19_lr_book0` | the `book` columns from the newest sweep finished before the capture start (<= 3 h; previous pass, ~110 min) + lag, spread, origin mid minus sweep mid | development diagnostic 10-21 (8 captures): coverage 92-94%, no correlation of `b0_micro` / `b0_imb5c` with the in-window move (v1 `bk_micro` up to -0.27) | `book0` = `book` (12-31) for se19; se18 broad, not embargoed | **active 2026-10-22** (DESIGN_V1 §22): se18 is the promotion-eligible honest replacement for se7; LightGBM isolate waits for refit budget |
+| 19 | `book0` (pre-origin book) / `se18_lgbm_all_b0`, `se19_lr_book0` | the `book` columns from the newest sweep finished before the capture start (<= 3 h; previous pass, ~110 min) + lag, spread, origin mid minus sweep mid | development diagnostic 10-21 (8 captures): coverage 92-94%, no correlation of `b0_micro` / `b0_imb5c` with the in-window move (v1 `bk_micro` up to -0.27) | `book0` = `book` (2027-02-14, LT9) for se19; se18 broad, not embargoed | **active 2026-10-22** (DESIGN_V1 §22): se18 is the promotion-eligible honest replacement for se7; LightGBM isolate waits for refit budget |
 | 20 | `crypto` (spot reference) / `se20_lgbm_crypto` | aux family: crypto template markets mapped from the sidecar `series_slugs` + `fee_category` (no text); Binance 1 m / 5 m klines closed before the capture start: spot returns 5 m..24 h, realised vol, up/down window z and normal-reference gap, own empirical beta to spot and the latest lag; LightGBM (se1's params) | none (spec written before any crypto table existed; coverage ~4,800 of 5,870 crypto sidecar rows map) | none (DESIGN_V1 §23) | **active 2026-10-22** (DESIGN_V1 §23); read against se1; K 4 -> 5 |
+| 21 | `hwm` (own high-water marks, CH181) / `se21_lgbm_hwm` | aux family from the engine's own quotes of slots k-84..k: 3 d / 7 d distance below the high and above the low, 7 d hours since high / low, range position, history; LightGBM (se1's params) | none (idea from equities anchoring; spec written before any hwm table existed) | none (science review: no shadowing) | **active 2026-10-22** (DESIGN_V1 §25); first fit at the 10-23 refit; read against se1; K 7 -> 8 |

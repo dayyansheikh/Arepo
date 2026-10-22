@@ -3969,3 +3969,29 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   0.30, CH212 0.30, CH215 0.10; about 0.42 that CH213, CH214 and CH212 all drop (CH213 expected to fail its binding F gate).
 - **Next:** embargo requests (section 9) filed in CANDIDATES at acceptance; code phase (seal, censuses CC9/CS9/CR9, drafts
   q0640-q0647) on a fresh seal of 2026-11-02..11-12.
+
+## Signal engine: LT7 closure withdrawals and LT9 round-6 embargo requests, 2026-10-22 ~23:30Z (signal-engine autopilot; nothing scored or counted)
+- **Withdrawn, effective 2026-10-23T00:00:00Z.** LT7 closed at census with no test (ledger "LT7 census CC7" and "LT7 census
+  CS7 and closure", 2026-10-22; withdrawal request CANDIDATES ~22:10Z). Programme rule: a test dropped before registration
+  loses its token and any extension made only for it.
+  - New tokens `resist`, `capath`, `deepbook`, `absorbed`, `ivr`: `until` = `withdrawn_utc` = 2026-10-23T00:00Z, `until_before`
+    12-31. None had a model.
+  - `movetype` 12-31 -> 11-22 (E015): the extension was made for CH193 only. LT8 section 9 does not extend it ("not extended
+    for CH202"), and LT9 section 9 lists it as not requested. se14 also isolates `book`, so it stays hidden; K is unchanged.
+  - LT7-CH195 / CH197 pruned from the `book` / `book0` tests lists. Their date is held by LT8 and LT9. The LT7 attribution
+    limits (`chg_1h` x own 2 h, lagged-step interactions) are dropped; they were never computed.
+- **Applied LT9 section 9** (round 6; design text frozen 11fee7a0; filed ~22:55Z; before any isolating challenger exists,
+  well before the 12-23 deadline).
+  - New tokens `bandbreak` (CH213), `pool` (CH214), `rwblink` (CH212), to the later of 2027-02-14T00:00Z and LT9's
+    analysis commit. `rwend` (CH215) gets no token now: it is requested only on CH215's entry at census, and no rwend family
+    is built before then.
+  - `book` / `book0` 2027-01-23 -> 2027-02-14, applied now (the conservative order); withdrawn back to 2027-01-23 if CH214
+    drops at census. se3, se14 and se19 stay hidden about 22 days longer (disclosed by LT9).
+  - Attribution limits entered in `config.EMBARGO` as `attrlimit_lt9` (to 2027-02-14) and, for the same enforcement,
+    `attrlimit_lt8` (to 2027-01-23; round 5's limits were in CANDIDATES only). Each carries `kind: attribution_limit`,
+    `limits`, `models` and `no_broad_families`. They match no family or spec, so they hide nothing by themselves. The
+    engine's attribution is per family only (DESIGN_V1 section 17), so none of the listed terms is computed or shown. A
+    test fails if a broad spec holds an LT8 or LT9 family.
+- **Files:** `signal_engine/config.py`, `tests/unit/test_signal_engine.py` (new
+  `test_lt7_closure_withdrawals_and_lt9_round6_requests`; book dates updated), DESIGN_V1 section 8 table, CANDIDATES (builder
+  replies, rows 12/19, row 21 `hwm`).
