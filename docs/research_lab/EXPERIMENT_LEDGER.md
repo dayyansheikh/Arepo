@@ -3746,11 +3746,18 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   read. v1 (`null_as_unrewarded_v1`) and listed-only are descriptive sensitivities. (A) rejected (reads omitted captures of rewarded markets as
   unrewarded), (B) rejected (uses captures after k: leak), (D) rejected (selection on the reward field), (E) rejected (changes the frozen
   controls). Unit counts, MDE inputs, gates, thresholds and formulas unchanged. Outcome-blind (counts only, before any census).
-- **Design-text amendment 13.7:** `LIVE_TESTS_7.md` sha256 31baf5e5… (13.6) -> `575eb1dd45328800cdab1ccf633099c40a21817a8ae8f308c23454c9de96e730`.
+- **Design-text amendment 13.7:** `LIVE_TESTS_7.md` sha256 31baf5e5… (13.6) -> `8fc83a739ef48ddf23c568847e0eec98ff56bd3bead4c4974eac463d023c1803`.
   13.6's sha and the text-freeze sha 840f4500… are declared predecessors in code (the committed seal 117e9b45… records 840f4500…; CV7's output
   records 31baf5e5…). 13.7 also corrects 13.6's wall-class label (CH193's, not CH192's) and states that CH193 gets `rew_status` / `rew_min` / `osz`
   as bookkeeping columns of `absorbed_units` (no exclusion, count or gate).
-- **Split disclosed:** CV7 (q0602) reads no reward field and records design 31baf5e5…; CC7 (q0603) and CS7 (q0604) record 575eb1dd….
+- **Split disclosed:** CV7 (q0602) reads no reward field and records design 31baf5e5…; CC7 (q0603) and CS7 (q0604) record 8fc83a73….
 - **Code:** branch `feat/lt7-reward-carry` (`RewardCarry`, `_reward_cols` counts, CS7 capture set gains the 12:31Z carry window, spec
   `reward_null_rule: listed_carry24h_v2`, `reward_carry_slots: 12`). Drafts q0603 / q0604 use fresh work dirs (`work_cc7_rn_v2`, `work_cs7_rn_v2`)
   and stay drafts until the census-code re-check. Each census runs once, finishing before 2026-10-28T03:30Z.
+- **13.7 erratum (same day, census-code re-check of 64acdbc4 = FIXES_REQUIRED, before any census):** (1) "unit counts unchanged" corrected: the
+  carry can change `in_band` finiteness, so units can enter or drop; both are counted (`in_band_known_only_via_carry`, `in_band_lost_via_carry`).
+  (2) CH197 F-feasibility pairs use the **k-only (v1) reward and in_band** (option b): their windows are not all sealed (slots 156-161 are not in the
+  LT7 seal; 12 of 22 pair slots lie outside CS7's K set), so option (a) was not available. (3) `RewardCarry.add` refuses a series without `rew_raw`
+  when listed rows exist. (4) v1 sensitivity relabelled "v1 rewarded on the v2 unit set"; market-deduplicated switching count added. Design sha256
+  now `8fc83a739ef48ddf23c568847e0eec98ff56bd3bead4c4974eac463d023c1803` (text above, erratum paragraph at the end of 13.7); `575eb1dd45328800cdab1ccf633099c40a21817a8ae8f308c23454c9de96e730` (13.7 first commit) is a declared predecessor; no census has run on it.
+- **Bug found by the fix-3 round-trip test (code, not design):** pandas reads the series-CSV cell text `null` back as NaN, so `rew_status == "null"` never matched on a file read back from the work dir and the carry would never have fired (the 13.6 `rewards_null_as_zero` count would also have read 0). `RewardCarry` now treats a NaN status as `null` (`_status_array`); `live_tests7_base.read_series` is untouched.

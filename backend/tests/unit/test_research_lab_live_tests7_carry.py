@@ -214,3 +214,58 @@ def test_cs7_slots_cover_the_carry_window_of_each_ch197_origin():
         if lt.slot_in_day(k) == spec["tests"]["CH197"]["slot_index_in_day"]:
             assert {j for j in range(k - 11, k + 1) if j >= first} <= sl["full"]
     assert spec["reward_null_rule"] == "listed_carry24h_v2" and spec["reward_carry_slots"] == lt.REWARD_CARRY_SLOTS == 12
+
+
+def test_pair_units_use_the_k_only_v1_reward_and_in_band_but_primary_units_use_the_carry():
+    ids = ["c", "n"]
+    a_ = (ACT, None, 20.0, 3.5)
+    # c: null at k with the source's max spread 3.5 (carried); the origin's own max spread is NaN (so in_band is NaN with the k-only value)
+    slots = {K0 - 2: {"c": a_, "n": NULLROW}, K0: {"c": (None, None, 20.0, float("nan")), "n": NULLROW}}
+    _, ser_k = build(slots)
+    assert ser_k.loc["c", "rew_rate"] == 10.0 and ser_k.loc["c", "rew_maxspread"] == 3.5
+    ser_p = ser_frame(dict.fromkeys(ids, 0.5), t=T0 - 7200)
+    sw = sweep_frame_sizes({m: (0.49, 0.51, 50, 40, 150, 120) for m in ids}, T0)
+    u, cnt = lt.patient_units(ser_k, ser_p, None, sw, CAP, K0, SPEC)
+    assert set(u["market_id"]) == {"c", "n"} and cnt["in_band_known_only_via_carry"] == 1 and cnt["in_band_lost_via_carry"] == 0
+    assert dict(zip(u["market_id"], u["rewarded"], strict=True)) == {"c": 1.0, "n": 0.0}
+    up, cp = lt.patient_units(ser_k, ser_p, None, sw, CAP, K0, SPEC, any_slot=True)  # F-feasibility pairs: v1 reward and in_band, no carry
+    assert set(up["market_id"]) == {"n"} and cp["rewards_null_carried"] == 0 and cp["in_band_known_only_via_carry"] == 0
+
+
+def test_in_band_lost_via_carry_is_counted():
+    a_ = (ACT, None, 20.0, float("nan"))  # the source capture has no max spread; the origin's own is 3.5
+    _, ser_k = build({K0 - 2: {"c": a_}, K0: {"c": NULLROW}})
+    ser_p = ser_frame({"c": 0.5}, t=T0 - 7200)
+    sw = sweep_frame_sizes({"c": (0.49, 0.51, 50, 40, 150, 120)}, T0)
+    u, cnt = lt.patient_units(ser_k, ser_p, None, sw, CAP, K0, SPEC)
+    assert len(u) == 0 and cnt["in_band_lost_via_carry"] == 1 and cnt["in_band_known_only_via_carry"] == 0
+
+
+def test_add_refuses_a_series_without_raw_text_but_with_listed_rows():
+    import pytest
+
+    f = slot_frame({"a": (ACT, None, 20.0, 3.5)}, K0 - 1).drop(columns=["rew_raw"])
+    with pytest.raises(ValueError, match="rew_raw"):
+        lt.RewardCarry().add(K0 - 1, f)
+    lt.RewardCarry().add(K0, slot_frame({"a": NULLROW}, K0).drop(columns=["rew_raw"]))  # no listed rows: nothing to lose
+
+
+def test_carry_fires_after_a_write_once_csv_read_series_round_trip(tmp_path):
+    from astrolabe.research_lab import live_tests7_base as b
+
+    tricky = '[{"startDate":"2026-01-01","endDate":"2027-01-01","rewardsDailyRate":10,"note":"a, \\"quoted\\" b"}]'
+    fa, fk = slot_frame({"a": (tricky, None, 20.0, 3.5)}, K0 - 3), slot_frame({"a": NULLROW}, K0)
+    for name, f in (("s1", fa), ("s2", fk)):
+        b.write_once_csv(tmp_path / "series" / f"{name}.csv.gz", f.reset_index())
+    ra, rk = b.read_series(tmp_path, "s1"), b.read_series(tmp_path, "s2")
+    assert ra.loc["a", "rew_raw"] == tricky
+    c = lt.RewardCarry()
+    c.add(K0 - 3, ra)
+    c.add(K0, rk)
+    out = c.apply(rk, K0, DAY)
+    assert out.loc["a", "rew_carry_lag"] == 3 and out.loc["a", "rew_rate"] == 10.0
+
+
+def test_distinct_market_switching_and_sensitivity_label():
+    pop = pd.DataFrame({"market_id": ["a", "a", "b", "c"], "rew_trans": [1.0, 3.0, 1.0, 0.0]})
+    assert lt._switch_distinct(pop) == {"markets": 3, "switch_markets_1": 1, "switch_markets_ge2": 1}

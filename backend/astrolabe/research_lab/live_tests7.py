@@ -232,6 +232,13 @@ REWARD_CARRY_SLOTS = 12  # the window [k - 11, k]: 12 two-hour slots, never a sl
 _SLOT_CARRY_KEYS = ("listed_ids", "raw", "rmin", "rms", "null_ids")
 
 
+def _status_array(ser: pd.DataFrame) -> np.ndarray:
+    """``rew_status`` as strings. pandas reads the cell text ``null`` back from a series CSV as NaN (``read_series`` is a vendored reader and is not edited); a status is never
+    legitimately missing, so a NaN status IS ``null``. Without this the carry would never fire on a file read back from the work dir."""
+    col = ser["rew_status"]
+    return col.where(col.notna(), "null").astype(str).to_numpy()
+
+
 def _series_ids(ser: pd.DataFrame) -> pd.Index:
     return pd.Index(ser.index.astype(str) if ser.index.name == "market_id" else ser["market_id"].astype(str))
 
@@ -248,9 +255,14 @@ class RewardCarry:
 
     def add(self, k: int, ser: pd.DataFrame) -> None:
         ids = _series_ids(ser)
-        st = ser["rew_status"].astype(str).to_numpy()
+        st = _status_array(ser)
         lst = st == "listed"
-        raw = ser["rew_raw"].to_numpy(object) if "rew_raw" in ser else np.full(len(ids), None, object)
+        if "rew_raw" not in ser:
+            if lst.any():
+                raise ValueError("RewardCarry.add: the series frame has no rew_raw column but has listed rows (a pre-13.7 series file or a reused work dir): refused, never carried silently")
+            raw = np.full(len(ids), None, object)
+        else:
+            raw = ser["rew_raw"].to_numpy(object)
         self.slots[int(k)] = {"listed_ids": pd.Index(ids[lst]), "raw": raw[lst], "rmin": ser["rew_min"].to_numpy(float)[lst], "rms": ser["rew_maxspread"].to_numpy(float)[lst],
                               "null_ids": pd.Index(ids[st == "null"])}
         for old in [s_ for s_ in self.slots if s_ < k - self.n + 1]:
@@ -266,18 +278,20 @@ class RewardCarry:
         out = ser.copy()
         ids = _series_ids(out)
         n = len(ids)
-        st = out["rew_status"].astype(str).to_numpy()
+        st = _status_array(out)
+        out["rew_status"] = st
         rate = out["rew_rate"].to_numpy(float).copy()
         rmin, rms = out["rew_min"].to_numpy(float).copy(), out["rew_maxspread"].to_numpy(float).copy()
         k0_min, k0_ms = rmin.copy(), rms.copy()
         out["rew_rate_v1"] = rate.copy()
+        out["rew_min_v1"], out["rew_maxspread_v1"] = k0_min, k0_ms
         lag = np.full(n, np.nan)
         differs = np.zeros(n)
         seen_listed = np.zeros(n, bool)
         todo = np.flatnonzero(st == "null")
         cache: dict[str, float] = {}
         for s in range(int(k) - 1, int(k) - self.n, -1):  # latest first; only slots <= k - 1 (k itself is null for these rows)
-            if s > k or s not in self.slots or not len(todo):
+            if s not in self.slots or not len(todo):
                 continue
             sl = self.slots[s]
             pos = sl["listed_ids"].get_indexer(ids[todo])
@@ -492,13 +506,27 @@ def _reward_cols(j: pd.DataFrame, cnt: dict) -> tuple[np.ndarray, np.ndarray]:
     return rew, np.where(np.isfinite(rew), (rew > 0).astype(float), np.nan)
 
 
+def _in_band_carry_counts(j: pd.DataFrame, mid, spread, in_band_v2, rewarded, band, cnt: dict) -> None:
+    """Re-check fix 2: the carry can change which units survive the ``isfinite(in_band)`` filter (``in_band`` uses the source capture's ``rewards_max_spread``).
+    Among eligible rows with a finite ``rewarded``: ``in_band_known_only_via_carry`` (NaN with the origin's own ``rewards_max_spread``, finite after the carry: the
+    unit ENTERS) and ``in_band_lost_via_carry`` (finite with the origin's own value, NaN after the carry: the unit DROPS). Zero without carry columns."""
+    if "rew_maxspread_v1" not in j:
+        cnt["in_band_known_only_via_carry"] = cnt["in_band_lost_via_carry"] = 0
+        return
+    v1 = _in_band(mid, spread, j["rew_maxspread_v1"].to_numpy(float), band)
+    fin = np.isfinite(np.asarray(rewarded, float))
+    cnt["in_band_known_only_via_carry"] = int((fin & ~np.isfinite(v1) & np.isfinite(in_band_v2)).sum())
+    cnt["in_band_lost_via_carry"] = int((fin & np.isfinite(v1) & ~np.isfinite(in_band_v2)).sum())
+
+
 def _carry_unit_cols(j: pd.DataFrame) -> dict:
     """Bookkeeping columns of a unit frame for the 13.7 sensitivities (descriptive only; never controls): the carry lag, the v1 ``rewarded`` (k only,
     null = 0) and ``listed_k`` (status ``listed`` at k)."""
     n = len(j)
     v1 = j["rew_rate_v1"].to_numpy(float) if "rew_rate_v1" in j else j["rew_rate"].to_numpy(float)
     return {"rew_carry_lag": j["rew_carry_lag"].to_numpy(float) if "rew_carry_lag" in j else np.full(n, np.nan),
-            "rewarded_v1": np.where(np.isfinite(v1), (v1 > 0).astype(float), np.nan), "listed_k": (j["rew_status"].astype(str).to_numpy() == "listed").astype(float)}
+            "rewarded_v1": np.where(np.isfinite(v1), (v1 > 0).astype(float), np.nan), "listed_k": (j["rew_status"].astype(str).to_numpy() == "listed").astype(float),
+            "rew_trans": j["rew_trans"].to_numpy(float) if "rew_trans" in j else np.full(n, np.nan)}
 
 
 def rewarded_x_in_band(U: pd.DataFrame) -> dict:
@@ -741,11 +769,14 @@ def patient_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, store: MidStore | No
     liq = j["liq"].to_numpy(float)
     with np.errstate(invalid="ignore", divide="ignore"):
         h0 = np.where(np.isfinite(liq) & (liq > 0), np.clip(1.0 - notional0 / liq, 0.0, 1.0), np.nan)
+    if any_slot and "rew_rate_v1" in j:  # ruling 13.7 / re-check fix 1(b): the F-feasibility pairs use the k-only (v1) reward and in_band (their carry windows are not complete)
+        j = j.assign(rew_rate=j["rew_rate_v1"], rew_min=j["rew_min_v1"], rew_maxspread=j["rew_maxspread_v1"], rew_carry_lag=np.nan, rew_win_inactive=0.0, rew_param_differs=0.0)
     rew, rewarded = _reward_cols(j, cnt)
     spread_sw = (j["sask"] - j["sbid"]).to_numpy(float)
     mid = j["mid"].to_numpy(float)
     rms = j["rew_maxspread"].to_numpy(float)
     in_band = _in_band(mid, spread_sw, rms, c["reward_band"])
+    _in_band_carry_counts(j, mid, spread_sw, in_band, rewarded, c["reward_band"], cnt)
     cnt["in_band_unknown"] = int(np.isnan(in_band).sum())
     m12 = _mid12(store, k, j["market_id"])
     d24, d24f = _own24(1.0, mid, m12)
@@ -883,6 +914,7 @@ def ivr_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, store: MidStore, cap: di
     rms = j["rew_maxspread"].to_numpy(float)
     mid = j["mid"].to_numpy(float)
     in_band = _in_band(mid, spread, rms, spec["tests"]["CH197"]["reward_band"])
+    _in_band_carry_counts(j, mid, spread, in_band, rewarded, spec["tests"]["CH197"]["reward_band"], cnt)
     mover = np.abs(j["x"].to_numpy(float)) >= spec["move"]["min_abs_x"] - 1e-12
     anat = np.where(mover, j["cls"].to_numpy(), "non_mover")
     u = pd.DataFrame({**_base_out(j, cap, k), "t_row": j["t_row"].to_numpy(float), "mid": mid, "spread": spread, "tick": tick, "liq": j["liq"].to_numpy(float),
@@ -1274,14 +1306,22 @@ def pair_correlations(pairs: pd.DataFrame, min_pairs: int) -> dict:
     return {"r_w": r_w, "r_pool": r_pool, "r_gate": r_gate, "n_pairs": int(len(p)), "markets": int(p["market_id"].nunique()), "pairs_all": int(len(pairs))}
 
 
+def _switch_distinct(pop: pd.DataFrame) -> dict:
+    """Market-deduplicated switching (re-check note): distinct markets whose largest null-listed transition count over their units is exactly 1 / at least 2."""
+    if not len(pop) or "rew_trans" not in pop:
+        return {}
+    mx = pop.groupby(pop["market_id"].astype(str))["rew_trans"].max()
+    return {"markets": int(len(mx)), "switch_markets_1": int((mx == 1).sum()), "switch_markets_ge2": int((mx >= 2).sum())}
+
+
 def _reward_sensitivity(pop: pd.DataFrame, zcol: str, controls: list[str], scale: float, a: dict, de_floor: float, sd_key: str) -> dict:
-    """Ruling 13.7, DESCRIPTIVE ONLY (never the verdict, never a gate input): the slope MDE of the same primary under (i) ``null_as_unrewarded_v1`` (the k-only
-    ``rewarded``, null = 0) and (ii) listed-only (units whose status at k is ``listed``, ``rewarded`` as parsed at k). Same standardised state, scale and
+    """Ruling 13.7, DESCRIPTIVE ONLY (never the verdict, never a gate input): the slope MDE of the same primary under (i) "v1 rewarded on the v2 unit set" (the k-only
+    ``rewarded``, null = 0, on the v2 units with the v2 ``in_band`` and standardisation) and (ii) listed-only (units whose status at k is ``listed``, ``rewarded`` as parsed at k). Same standardised state, scale and
     controls; terciles, design effect and the MDE recomputed on each unit set. A failure of a variant is reported, not raised."""
     if not len(pop) or "rewarded_v1" not in pop or "listed_k" not in pop:
         return {}
     out = {}
-    for name, sub in (("v1_null_as_unrewarded", pop.assign(rewarded=pop["rewarded_v1"]).loc[lambda d: np.isfinite(d["rewarded"])]), ("listed_only", pop[pop["listed_k"] == 1.0])):
+    for name, sub in (("v1_rewarded_on_v2_unit_set", pop.assign(rewarded=pop["rewarded_v1"]).loc[lambda d: np.isfinite(d["rewarded"])]), ("listed_only", pop[pop["listed_k"] == 1.0])):
         try:
             sub = sub.copy()
             _, _, gap = terciles(sub[zcol])
@@ -1333,7 +1373,7 @@ def census_ch197(U: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_d
            "rewarded_share_by_zimbB_tercile": _share_by_tercile(pop, "zimbB", "rewarded"), "corr_own24": corr_d24, "corr_liq": cl, "day_diff_share": diff_share, "market_strata_share": strata,
            "events": _events(pop, scale, covered_days), "splits": _desc_splits(tot), "per_market": _per_market(pop["market_id"]),
            "rewarded_share": float(pop["rewarded"].mean()), "rewarded_x_in_band": rewarded_x_in_band(pop),
-           "reward_sensitivity_descriptive": _reward_sensitivity(pop, "zimbB", CONTROLS_197, scale, a, g["de_floor"], g["sd"]), "imb_quantiles": {nm: [float(x) for x in np.quantile(pop[nm], [0.1, 0.5, 0.9])] for nm in ("imbT", "imbB", "dis")},
+           "reward_switch_distinct_markets": _switch_distinct(pop), "reward_sensitivity_descriptive": _reward_sensitivity(pop, "zimbB", CONTROLS_197, scale, a, g["de_floor"], g["sd"]), "imb_quantiles": {nm: [float(x) for x in np.quantile(pop[nm], [0.1, 0.5, 0.9])] for nm in ("imbT", "imbB", "dis")},
            "counts": {k_: v_ for k_, v_ in tot.items() if isinstance(v_, (int, float))}}
     res["gate_CH197"] = _gate({
         "covered_share": bool(np.isfinite(covered_share) and covered_share >= g["covered_share_min"]), "units": projected >= g["units_projected_min"],
@@ -1438,7 +1478,7 @@ def census_ch192(U: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_d
            "liquidity_tiers_top_zivr_share": _tier_shares(pop, "", "zivr"), "block_min_units": bm, "block_share": bs, "events": _events(pop, scale, covered_days), "splits": _desc_splits(tot), "per_market": _per_market(pop["market_id"]),
            "ivr_quantiles": [float(x) for x in np.quantile(U["ivr"], [0.1, 0.5, 0.9])], "tick_floor_share": float(U["spread_eq_tick"].mean()),
            "rewarded_share": float(U["rewarded"].mean()), "rewarded_x_in_band": rewarded_x_in_band(U),
-           "reward_sensitivity_descriptive": _reward_sensitivity(pop, "zivr", CONTROLS_192, scale, a, g["de_floor"], g["sd"]), "counts": {k_: v_ for k_, v_ in tot.items() if isinstance(v_, (int, float))}}
+           "reward_switch_distinct_markets": _switch_distinct(pop), "reward_sensitivity_descriptive": _reward_sensitivity(pop, "zivr", CONTROLS_192, scale, a, g["de_floor"], g["sd"]), "counts": {k_: v_ for k_, v_ in tot.items() if isinstance(v_, (int, float))}}
     res["gate_CH192"] = _gate({
         "units": projected >= g["units_projected_min"], "rv_floor_share": bool(np.isfinite(floor_share) and floor_share <= g["rv_floor_share_max"]), "resid_iqr": iqr_ok(ri, g),
         "corr_zivr_log_rv24": bool(corr_rv["within"] is not None and np.isfinite(corr_rv["within"]) and abs(corr_rv["within"]) <= g["corr_zivr_logrv_max"]),
@@ -1565,11 +1605,12 @@ def _sample_rels(sid: str) -> list[str]:
     return [f"data-dumps/research_lab/trade_samples/{sid}/{fn}" for fn in SAMPLE_FILES]
 
 
-DESIGN_TEXT_SHA256 = "575eb1dd45328800cdab1ccf633099c40a21817a8ae8f308c23454c9de96e730"  # LIVE_TESTS_7.md with the 13.7 reward-switch amendment (2026-10-22)
+DESIGN_TEXT_SHA256 = "8fc83a739ef48ddf23c568847e0eec98ff56bd3bead4c4974eac463d023c1803"  # LIVE_TESTS_7.md with the 13.7 reward-switch amendment and erratum (2026-10-22)
 # Earlier design texts whose seals stay valid. The committed seal (seals/lt7_census_inputs.json, sha256 117e9b45...) records the text-freeze hash; section 13.6
 # and 13.7 change units and control coding, not the sealed inputs, so that seal is accepted and never re-written. Anything not listed here refuses.
 DESIGN_TEXT_PREDECESSORS = {
     "840f4500cde37158f57f6cf6bf54a3535ee5b24f3e5dedfd9240b315eeb52899": "design text freeze (cedfd6be), superseded by the 13.6 reward-null amendment, 2026-10-22",
+    "575eb1dd45328800cdab1ccf633099c40a21817a8ae8f308c23454c9de96e730": "13.7 as first committed (64acdbc4), superseded by the 13.7 erratum before any census, 2026-10-22",
     "31baf5e5b5c1bec2518228618fc21ab7f111c0e673d6cb064583ce1363d20dd4": "13.6 reward-null amendment (CV7 q0602 and its output record it), superseded by the 13.7 reward-switch amendment, 2026-10-22",
 }
 DESIGN_PATH = ROOT / "docs" / "research_lab" / "LIVE_TESTS_7.md"

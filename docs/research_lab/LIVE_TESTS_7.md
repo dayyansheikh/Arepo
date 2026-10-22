@@ -1305,8 +1305,7 @@ For a unit at origin capture k whose sidecar row is present and whose `clob_rewa
 - A carried unit takes `rew_min` / `rew_maxspread` (hence `in_band`) and the wall-rule `rewards_min_size` from the **source capture**; every other control
   and the unit's own `osz` are the origin capture's. A unit with no positive listed text in the window is `rewarded = 0` with the origin's parameters.
 - Unchanged: a listed text at k is parsed at k as before (listed-inactive stays 0, counted `rewards_listed_inactive`); a malformed cell or an absent
-  sidecar row stays NaN (excluded, counted); no earlier malformed text is read as listed. Unit counts do not change (a null is never NaN), so the MDE
-  inputs, gates, thresholds and formulas are unchanged.
+  sidecar row stays NaN (excluded, counted); no earlier malformed text is read as listed. (Corrected by the 13.7 erratum below: the unit set can change through `in_band`.) Gates, thresholds and formulas are unchanged.
 
 **Counts (census output, descriptive).** `rewards_null_carried` and by lag in slots `_lag1`, `_lag2_3`, `_lag4_11`; `rewards_null_as_zero` (null at k with no
 listed capture in the window); `rewards_null_window_listed_inactive` (listed in the window, none positive for day(k): unrewarded); `carried_param_differs`
@@ -1321,9 +1320,21 @@ only, `rew_status`, `rew_min` (after the carry, from the source capture of a car
 series row. CH193 has no reward-based exclusion, control, count or gate; the wall class itself is a sweep-based secondary computed in the analysis
 (needs sweep 1 of pass k, outside CC7) and reads these columns.
 
-**Other conditions.** CS7's capture set gains the carry window `[k-11, k]` (captures only, no sweeps) of each 12:31Z origin; CC7's sets already contain
-it. Gates, thresholds and formulas unchanged. No further probe; diagnostics are reported in the census output only. Each census runs once, finishing
+**Other conditions.** CS7's K-slot set and its look-backs already contain the carry window `[k-11, k]` of each 12:31Z origin (the extra
+`cs7_slots` clause is a no-op in practice); CC7's sets already contain it too. Gates, thresholds and formulas unchanged. No further probe; diagnostics are reported in the census output only. Each census runs once, finishing
 before 2026-10-28T03:30Z. CV7 reads no reward field and keeps design sha256 `31baf5e5…`; CC7 and CS7 record this amendment's sha256 (the split is
 disclosed in the ledger). Not verified: Gamma's semantics of field omission; whether `rewards_min_size` / `rewards_max_spread` at null captures equal the
 listed values (`carried_param_differs` measures it); flips across UTC days beyond what the window counts show; whether the restore trees cover the
 12-slot window for the first CC7 / CS7 origins (missing slots are counted).
+
+**13.7 erratum, 2026-10-22 (census-code re-check of commit 64acdbc4, before any census; the pre-erratum text sha256 `575eb1dd…` is a declared predecessor).**
+(1) The sentence "unit counts do not change" was too strong. Units are kept only if `rewarded` and `in_band` are finite, and `in_band` uses the
+`rewards_max_spread` of the source capture of a carried unit: a unit can ENTER (NaN with the origin capture's own value, finite with the source's) or DROP
+(finite at the origin, NaN at the source). The unit set, `covered_share`, the units gate and the MDE inputs can therefore move. The rule is not changed; the
+census output counts both (`in_band_known_only_via_carry`, `in_band_lost_via_carry`, per census in the CH197 and CH192 counts) and the gates read the units
+as they stand. (2) CH197's F-feasibility pairs (pass j with pass j+13) use the **k-only (v1) `rewarded` and `in_band`** of the origin capture, not the
+carry: their windows `[j-11, j]` are not all sealed (slots 156-161 are not in the LT7 seal) and 12 of the 22 pair slots lie outside CS7's K set, so a
+carried value would depend on which slots happen to be loaded. Pair units still require a finite `rewarded` and `in_band`; the primary CH197 units keep the
+carry. (3) A series frame without the raw reward text but with listed rows is refused (no silent non-carry). (4) Descriptive outputs: the "v1" sensitivity is
+the v1 `rewarded` on the v2 unit set (v2 `in_band` and standardisation); a market-deduplicated switching count (`reward_switch_distinct_markets`) is added to
+the per-unit one. Gates, thresholds and formulas unchanged.

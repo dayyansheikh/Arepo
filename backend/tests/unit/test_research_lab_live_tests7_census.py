@@ -716,7 +716,7 @@ def test_queue_drafts_match_the_runner_and_the_resource_rules():
     assert len(set(works)) == len(works) and works[4] != "../data-dumps/research_lab/live_tests7_census/work_captures" and works[5] != "../data-dumps/research_lab/live_tests7_census/work_sweeps"
     assert "ruling 13.6: run only after the reward-null fix (feat/lt7-reward-null) is merged and re-checked" in drafts["q0602"]["notes"]
     for qid in ("q0603", "q0604"):  # ruling 13.7: the carry rule; fresh work dirs (the _rn dirs of the 13.6 drafts are never reused)
-        assert "ruling 13.7" in drafts[qid]["notes"] and "feat/lt7-reward-carry" in drafts[qid]["notes"] and "575eb1dd" in drafts[qid]["notes"]
+        assert "ruling 13.7" in drafts[qid]["notes"] and "feat/lt7-reward-carry" in drafts[qid]["notes"] and "8fc83a73" in drafts[qid]["notes"] and "erratum" in drafts[qid]["notes"]
         assert drafts[qid]["argv"][drafts[qid]["argv"].index("--work") + 1].endswith("_rn_v2")
     # memory (must-fix 4)
     assert (drafts["q0603"]["resources"]["mem_mb"], drafts["q0603"]["resources"]["as_cap_mb"]) == (3000, 6500)
@@ -786,7 +786,7 @@ def test_seal_refuses_absent_sealed_capture_sweep_and_sample(tmp_path):
 
 def test_seal_and_outputs_carry_the_spec_hashes_and_censuses_refuse_a_changed_spec(world, tmp_path):
     seal, spec = world["seal"], world["spec"]
-    assert seal["spec_blocks_sha256"] == lt.spec_blocks_sha(spec) and seal["design_text_sha256"] == spec["design_text_sha256"] == "575eb1dd45328800cdab1ccf633099c40a21817a8ae8f308c23454c9de96e730"
+    assert seal["spec_blocks_sha256"] == lt.spec_blocks_sha(spec) and seal["design_text_sha256"] == spec["design_text_sha256"] == "8fc83a739ef48ddf23c568847e0eec98ff56bd3bead4c4974eac463d023c1803"
     # a different threshold after seal time (census_gates) or a different span (census_inputs) is refused
     t = world["tree"]
     g = copy.deepcopy(spec)
@@ -931,7 +931,7 @@ def test_runner_new_options(tmp_path, monkeypatch):
     assert run.main(["rewards-null-share", "--seal", str(repo / "s.json"), "--work", str(tmp_path / "w"), "--out", str(tmp_path / "r.json")]) == 0
     out = json.loads((tmp_path / "r.json").read_text())
     spec = lt.load_spec(sha=None)
-    assert out["spec_sha256"] == spec["_sha256"] and out["design_text_sha256"] == "575eb1dd45328800cdab1ccf633099c40a21817a8ae8f308c23454c9de96e730" and out["sidecars"] == 1
+    assert out["spec_sha256"] == spec["_sha256"] and out["design_text_sha256"] == "8fc83a739ef48ddf23c568847e0eec98ff56bd3bead4c4974eac463d023c1803" and out["sidecars"] == 1
 
 
 # --- verification follow-ups ----------------------------------------------------------------------------------------------------------------
@@ -1128,8 +1128,10 @@ def test_unit_builders_count_the_four_reward_groups_and_keep_null_and_inactive_u
 
 def test_seal_design_hash_accepts_current_and_declared_predecessor_and_refuses_others(world, tmp_path):
     t, seal = world["tree"], dict(world["seal"])
-    assert lt.DESIGN_TEXT_SHA256 == lt.design_text_sha() == "575eb1dd45328800cdab1ccf633099c40a21817a8ae8f308c23454c9de96e730"
+    assert lt.DESIGN_TEXT_SHA256 == lt.design_text_sha() == "8fc83a739ef48ddf23c568847e0eec98ff56bd3bead4c4974eac463d023c1803"
     pred = "840f4500cde37158f57f6cf6bf54a3535ee5b24f3e5dedfd9240b315eeb52899"  # the sha recorded by the committed seal (117e9b45...)
+    pe = "575eb1dd45328800cdab1ccf633099c40a21817a8ae8f308c23454c9de96e730"  # 13.7 before the erratum
+    assert pe in lt.DESIGN_TEXT_PREDECESSORS and lt.seal_design_accepted(pe)
     p136 = "31baf5e5b5c1bec2518228618fc21ab7f111c0e673d6cb064583ce1363d20dd4"  # CV7's (q0602) output records the 13.6 text
     assert p136 in lt.DESIGN_TEXT_PREDECESSORS and lt.seal_design_accepted(p136)
     assert pred in lt.DESIGN_TEXT_PREDECESSORS and lt.seal_design_accepted(pred) and lt.seal_design_accepted(lt.DESIGN_TEXT_SHA256)
