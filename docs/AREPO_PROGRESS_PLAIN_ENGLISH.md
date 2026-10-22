@@ -1,44 +1,29 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-21 21:33 UTC+1
+**Last updated:** 2026-10-22 01:18 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **Autopilot:** a session has been running since about 19:55 UTC+1 (21 Oct).
-- **LT4 counting checks finished: one of three tests goes ahead (E022).**
-  - E022 asks whether displayed liquidity that cannot really be traded against tells us anything. It passed every
-    pre-set counting check.
-  - E020 (new orders versus cancellations) and E021 (how recent the last trade was) failed theirs: too few usable
-    cases, and too little power to see a half-cent effect. They are dropped before registration and do not count.
-  - Done tonight: the code was trimmed to the one remaining test, an independent freeze check found one real problem
-    (the size check shuffled data differently from the real test) which is now fixed, and the code is frozen.
-  - Next: the size check runs on the server from about 05:00 UTC+1 on 22 Oct (2-4 hours), then registration
-    before 25 Oct so collection can start on 26 Oct.
-- **Four idea batches closed today, all at the counting stage (nulls recorded):**
-  - batch 13 (touch-versus-end-above crypto markets): too few complete frames and events; 1 test counted as "not testable";
-  - batch 14 (58 markets where 150 were needed) and batch 15 (37 pairs where 60 were needed): 2 tests each counted
-    as "not testable";
-  - batch 18: its two candidate tests (silent edits; program versus human trading) did not have enough usable cases or
-    power, so the pre-set rules dropped them before any test (not counted); its other three parts were maps only.
-  - Lesson: many ideas die because too few cases exist. A new ideas round (12) has started, told to show the case
-    counts and power up front.
-- **Fixed:** five batch 18 counting jobs were stuck (first asking for 20 GB of disk headroom for tiny files, then
-  running out of memory); both fixed and all five finished. Ten batch 18 job drafts were renumbered (clashing numbers).
-- **Batch 17 is moving again** without touching any data: its jobs now write to a fresh folder. Its safety run
-  passed every check (it reproduced three earlier counts exactly), and its key list is built. Its test window opens
-  26 Oct.
-- **LT6 (four more planned live tests):** code finished; an independent freeze check found fixes needed before its
-  counting checks (including the same size-check mistake LT4 had) and more work before registration. Being fixed now.
-  Registration stays planned for after E022's.
+- **Autopilot:** a session started at about 01:10 UTC+1 (22 Oct).
+- **Tonight's time-critical steps are done (before the 03:40 UTC+1 server resize):**
+  - LT5 (planned live tests from round 11): the list of exactly which data files its counting checks may read is
+    sealed and committed, and the counting job is next in line on the server. It must read the files before the
+    nightly 04:30 UTC+1 clean-up.
+  - Batch 4 (series roll / fee era) history is sealed (two sets, about 14,000 files); the batch 6 seal job is queued.
+- **Batch 8 result (a null, recorded):** the "worked-order footprints" idea (W1) could not be tested. Its pre-set data
+  check needed 20 qualifying past markets and only 5 qualified, so it counts as one "not testable" test. Its sister idea
+  (Binance terminal minutes, B) passed its data checks and continues; its exclusion-key job is queued.
+- **E012-E014 (LT2):** collection window opened at 01:00 UTC+1 today; the first data arrives with the 01:31 pass.
+- **LT4 / E022:** the size check runs on the server from about 05:00 UTC+1 (2-4 hours), then registration before 25 Oct
+  so collection can start on 26 Oct.
+- **Server resize to 2 CPU / 12 GB at about 03:40 UTC+1** (your approval). No deploys 03:40-04:45 UTC+1. After it, the
+  model run (MC1) is re-queued with the bigger memory.
 - **Copy-skilled wallets (E026):** registered; collection starts 25 Oct (phone note then).
-- **Tonight (handled by later sessions):** LT5's counting jobs and seal (must run before 04:30 UTC+1), the batch 4/6/7/8
-  seals after midnight UTC, and the **server resize to 2 CPU / 12 GB at about 03:40 UTC+1** (your approval). No
-  deploys during 03:40-04:45 UTC+1. After the resize, the model run (MC1) is re-queued with the bigger memory.
-- **Live:** the E012-E014 collector is running; LT3's collector is installed. Registered live tests waiting for their
-  single analysis: E009/E010 (3 Nov), E011 (11 Nov), E012-E014 (13 Nov), E015 (15 Nov), E026 (6 Dec).
+- **Live tests waiting for their single analysis:** E009/E010 (3 Nov), E011 (11 Nov), E012-E014 (13 Nov), E015
+  (15 Nov), E026 (6 Dec).
 
 ## 2. Approvals needed from you
 1. ~~Automatic Claude sessions~~ **APPROVED and installed 15 Oct** (full power, your call).

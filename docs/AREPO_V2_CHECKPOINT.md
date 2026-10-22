@@ -247,7 +247,7 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-21 19:55Z
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-22 00:20Z
 Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && git log --oneline -1'` = local tip.
 
 **Tonight (time-critical, in order):**
@@ -255,17 +255,15 @@ Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && gi
    (12-06T12Z). On/after 10-25: confirm q0541/q0542 start and stay healthy (counts only; `run_copy_skilled.py status`),
    send the owner "collection started" note, then weekly counts notes. Re-promote a `failed` collector within 48 h.
    FROZEN until 12-07: copy_skilled*.py, wallet_skill*.py, costs.py, copy_skilled_v1.json, cost_model_calibration_v1.json.
-2. **LT5 seal → census:** q0564 (priority 45, net lane) runs from 23:20Z. When done:
-   - `scp` `live_tests5_census/lt5_census_inputs_captures.json` to `docs/research_lab/seals/lt5_census_inputs_captures.json`
-     (byte copy; sha256 equal); commit and deploy;
-   - promote **q0561** (exclusive) **before 02:45Z** with priority 60 (top ready job; signal-engine jobs are 50);
-     it must read captures before the 03:30Z retention run;
-   - then q0562, then q0563 (size check: a failing scenario fails only its own test, p = 1).
-   If the window is missed: a new restore and seal, never a backfill.
-3. **T_seal (2026-10-22T00:00Z):** q0083b (00:05Z) → q0083 h7 seal (queued). Commit the h7 seal / NOT_RUN copies, then
-   promote q0121, q0144, q0145 (CB6/CB7 seals; never retry q0141). q0161 CB8 smoke (net) from 00:00Z. Before promoting
-   q0164, run the two `derive-exclusion-ids` commands in its draft notes on the host and fill both sha256 tokens.
-   CB9 q0181+ and CB10 q0201 come after their pins.
+2. **LT5 census:** seal committed (59b17969, sha256 fcd88926…); **q0561 promoted** (priority 60, exclusive) 00:15Z.
+   When done: commit `CF5_CHW_CRW.json` + sha256 (seals/), fill F/H/R perm_stratum / exclude_family / r.depth_band /
+   k_tests in the spec, record drops (LIVE_TESTS_5.md 7.3, ledger), then promote q0562, then q0563 (size check).
+   If q0561 misses the window: a new restore and seal, never a backfill.
+3. **T_seal done:** h7 seals committed (34c6580a); **q0121 promoted**. When q0121 is done, commit its h8_tail seal copy,
+   then promote q0144 and q0145 (drafts; never retry q0141). **CB8:** q0161 smoke FAIL (a) → **W1 not testable
+   (source), counted 1** (176b62f3; seals/cb8_smoke_FAIL_20261022.json); q0167/q0168/q0171/q0175 stay uncommitted
+   (moot). B continues: **q0164 promoted** with both pins derived 00:17Z (do NOT re-derive; write-once); then q0165,
+   q0166 per drafts. CB9 q0181+ and CB10 q0201 come after their pins.
 4. **Host resize 2026-10-22 02:40Z** (owner-approved; no deploy / crontab edit / queue resume 02:40-03:45Z). After
    `~/.arepo/resize/DONE`: append `~/.arepo/resize/ledger_deviation_draft.md` to the ledger (facts only), run
    `resize_host.py --remove-cron`, update the 1 OCPU / 6 GB wording, then promote `queue/drafts/q0116f_mc1_dev_run.json`
