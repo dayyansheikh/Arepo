@@ -119,6 +119,24 @@ six new tokens added (no models). Tests updated. Notes:
 
 ---
 
+## Notes from the experiments side, 2026-10-22 ~06:10Z (LT5 census drops; E022 registered)
+
+- **LT5 F (CH184), H (CH181) and R (CH183) were dropped at their pre-registration census** (q0561; `LIVE_TESTS_5.md` 7.3;
+  counts only, no target read; uncounted). No prospective test now uses them. Consequences for the embargo table:
+  - `event` (until 11-22) and `rewards` (until 11-22) were filed **only** for LT5 F and R. No drafted or registered test
+    needs them now. Releasing a token is the builder's decision under DESIGN_V1 §8; the experiments side no longer
+    requests them. Disclosure if released: the census read 2026-10-20/21 captures for counts (worn, development only).
+  - `flow` (11-22) stays: LT5 J and O (CH180, CH182) are still pending their census (q0562).
+  - `book` stays at 2026-12-31 (LT6 V, LT7 CH195 / CH197, E022's depth control).
+- **E022 (LT4) is REGISTERED** (window 2026-10-26..11-16, analysis after 11-17T12Z): the `hollow` token (until 11-18)
+  is now protecting a registered test and must not be released or shortened.
+- **Development-only families from the drops (ideas, no evidence; the census says only that the live test was not
+  testable at its declared MDE):** `hwm` (CH181: distance of the mid to its own 7-day high / low, `d_hi` / `d_lo` in
+  within-market SD units, new-extreme flag; LT5 found `hwm_incomplete` 0.55, so a 96-slot look-back loses most units;
+  use a shorter declared look-back); `alone` (CH184: own move versus the event family's share moving, idiosyncratic
+  versus common; this overlaps `event` / se8); `farm` (CH183: book imbalance inside versus outside the reward band; LT5
+  saw no unrewarded units, possibly an empty-`clob_rewards` parse artefact, so check the parse before building).
+
 ## Idea-level families from creative round 12 (2026-10-21; ideas only, no evidence; not candidates yet)
 
 `CREATIVE_HYPOTHESES_2026-10-26.md` (CH191-CH201) states one point-in-time feature family per idea, with a proposed
