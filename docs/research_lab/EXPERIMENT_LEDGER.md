@@ -3529,3 +3529,19 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - Streams (last poll before / first after): predictit (1 min) 2026-10-22T03:10:02Z / 2026-10-22T03:14:02Z; smarkets (5 min) 2026-10-22T03:05:17Z / 2026-10-22T03:15:16Z; espn_odds (10 min) 2026-10-22T03:02:12Z / None at the check (polling again by 05:02Z); gamma_rules (hourly) 2026-10-22T02:51:02Z / None at the check (polled 04:50Z).
 - Scheduled collector passes inside the window: none (E011 scores per complete capture; E012-E014 origins come from captures and trade samples, so no capture means no origin).
 - Problems: none. Resize cron removed (`resize_host.py --remove-cron`, ~05:25Z).
+
+## LT6 seal committed, LT7 census code verified and merged, census jobs promoted (2026-10-22 ~05:50Z; experiments autopilot; nothing counted)
+- **LT6:** q0581 done 04:02Z; `seals/lt6_census_inputs.json` committed byte-identical (sha256 18040c8073fa1af8…, host and
+  Mac equal). q0582 (CD/CB/CV) and q0583 (CK) promoted (8df23f1f). Ops only: priority 22 -> 96 (both must run before the
+  temporary 10-day snapshot retention is reverted; q0582 reads live 10-15 captures), q0582 mem_mb 1200 -> 2500 with
+  as_cap_mb 9000, q0583 as_cap_mb 6000 (LT5 q0561 address-space lesson). argv, code, seal and gates unchanged.
+- **h8 tail:** q0121 done 01:58Z; `seals/h8_tail_SEAL.json` committed (sha256 2a88f3e5…). q0144 / q0145 promoted unchanged.
+- **LT7:** science-reviewer verification of the census-code check fixes: **FIXES_OK_WITH_NOTES**, no remaining must-fix
+  (`reviews/LT7_CENSUS_CODE_CHECK_2026-10-22.md`, final section). Notes applied (699b9ee9): CH192 correlations now fail
+  (NaN) unless both origin definitions are finite (stricter; a test added), blackout-aware deadlines in q0600 / q0602,
+  a stale q0604 note removed, q0601b as_cap_mb 2000. No threshold, gate or design text changed (`LIVE_TESTS_7.md` still
+  840f4500…). Merged into chore (dde3c3c4). **q0601 (seal) promoted** (17d67a1a); q0600 (restore) not promoted by its own
+  rule (the censuses are planned before the first loss, 10-18 rows leaving the host 10-28T03:30Z under the temporary
+  10-day rule or 10-26T03:30Z under 8 days); its dependency was removed from q0601 as its notes direct. Next: commit the
+  seal, run q0601b and read `common` before promoting q0602 by hand.
+- **MC1:** q0116f promoted (8df23f1f) after the resize; depends on q0484. Development only, not evidence.
