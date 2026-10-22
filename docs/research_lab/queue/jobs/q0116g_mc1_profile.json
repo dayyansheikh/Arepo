@@ -2,7 +2,7 @@
  "id": "q0116g_mc1_profile",
  "title": "MC1 multi-signal dev: ONE-FOLD PROFILE (timing and peak RSS per stage; measurement only, nothing counted)",
  "family": "ml_multi_signal",
- "priority": 95,
+ "priority": 45,
  "expected_value": "sizes the full MC1 dev re-run: per-stage seconds and peak RSS for the first fold (panel load, each model fit incl. every LightGBM config, bootstrap, SHAP), so the timeout and CPU request of the full run come from a measurement, not a guess",
  "data": [
   "research_lab/snapshots",
@@ -36,5 +36,5 @@
   "flushed JSON progress lines in the job log"
  ],
  "next_action": "Claude session: read profile_<ts>.json, extrapolate to all folds, set timeout/CPU for the full re-run, then register the full re-run under a NEW id (only after this measurement)",
- "notes": "DRAFT, NOT in queue/jobs. MEASUREMENT (development): nothing is counted, no trials.jsonl lines, no fold manifest or report under the normal names, no model outputs. It runs the identical pipeline on the first fold only (--profile-folds 1) and writes only profile_<ts>.json; the panel parquet cache is read (or built if absent, as in the full run). Motivation: q0116f timed out at 6 h with only the fold manifest written and a log holding just the argv line, so the slow stage is unknown; run_ml_dev.py now prints flushed JSON progress lines (stage, fold, model, elapsed_s, rss_mb). Same resources as q0116f (mem 6000 / as_cap 14000, exclusive, 1 CPU); timeout 7200 s, max_retries 0. If it times out, the progress lines in the log still show the slow stage. The full re-run id (q0116h or later) is created only after this measurement, with timeout and CPU set from it; no design change (panel, models, folds, gates unchanged). | 2026-10-22 ~17:20Z autopilot: PROMOTED (code cherry-picked onto chore, tests pass)."
+ "notes": "DRAFT, NOT in queue/jobs. MEASUREMENT (development): nothing is counted, no trials.jsonl lines, no fold manifest or report under the normal names, no model outputs. It runs the identical pipeline on the first fold only (--profile-folds 1) and writes only profile_<ts>.json; the panel parquet cache is read (or built if absent, as in the full run). Motivation: q0116f timed out at 6 h with only the fold manifest written and a log holding just the argv line, so the slow stage is unknown; run_ml_dev.py now prints flushed JSON progress lines (stage, fold, model, elapsed_s, rss_mb). Same resources as q0116f (mem 6000 / as_cap 14000, exclusive, 1 CPU); timeout 7200 s, max_retries 0. If it times out, the progress lines in the log still show the slow stage. The full re-run id (q0116h or later) is created only after this measurement, with timeout and CPU set from it; no design change (panel, models, folds, gates unchanged). | 2026-10-22 ~17:20Z autopilot: PROMOTED (code cherry-picked onto chore, tests pass). | 18:50Z: priority 95 -> 45 (behind deadline-bound LT7 censuses)."
 }
