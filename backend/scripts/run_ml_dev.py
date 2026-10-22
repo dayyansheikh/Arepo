@@ -905,7 +905,16 @@ def resume_identity(args, man: dict, panel_h: str) -> dict:
              "ml_panel.py": rl / "ml_panel.py", "ml_resume.py": rl / "ml_resume.py"}
     return {"fold_manifest_sha256": man["manifest_sha256"], "panel_hash": panel_h,
             "code_sha256": {k: ml_resume.file_sha256(v) for k, v in files.items()},
+            "versions": ml_resume.runtime_versions(),
             "argv": ml_resume.normalise_argv(list(getattr(args, "argv", []) or []))}
+
+
+def write_fold_manifest_if_missing(path: Path, man: dict) -> bool:
+    """Write the fold manifest unless it already exists (fresh or interrupted-before-write run)."""
+    if Path(path).exists():
+        return False
+    Path(path).write_text(json.dumps(_clean(man), indent=1, default=_jsonable))
+    return True
 
 
 def real_run(args, caps, gate, policy) -> dict:
@@ -968,9 +977,8 @@ def real_run(args, caps, gate, policy) -> dict:
     # the manifest is written (and hashed) before any fit
     with stage("fold_plan_write"):
         if profile is None:
-            if store is None or store.fresh:  # a resumed slice keeps the first slice's file
-                (out_dir / f"{stem}_fold_manifest.json").write_text(
-                    json.dumps(_clean(man), indent=1, default=_jsonable))
+            # a resumed slice keeps the first slice's file, but writes it if it is missing
+            write_fold_manifest_if_missing(out_dir / f"{stem}_fold_manifest.json", man)
         else:  # measurement run: nothing under the normal names; first N folds only
             man = {**man, "folds": man["folds"][:int(profile)]}
     # pure summary of the full panel, computed now so the full frame can be freed before the fits
@@ -1001,6 +1009,8 @@ def real_run(args, caps, gate, policy) -> dict:
     with instrument_models(mm):
         with stage("run_arms"):
             results = mm.run_arms(lab, man, mm.ARM_NAMES, sink=sink, collect_shap=True)
+        if store is not None:  # all arm units exist; refuse a final stage that would overrun
+            store.final_stage_begin()
         clusters = mm.cluster_vectors(lab, lab["dep_group"].to_numpy())
         add_sensitivity_clusters(clusters, lab)
         score = mm.score_arms(lab, results, clusters, sink=sink, manifest=man)
@@ -1062,6 +1072,7 @@ def real_run(args, caps, gate, policy) -> dict:
         mp.write_text(render_md(report))
     report["_paths"] = [str(jp), str(mp)]
     if store is not None:
+        store.final_stage_end()
         store.mark_complete(report["_paths"])
     return report
 

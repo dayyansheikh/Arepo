@@ -18,10 +18,12 @@ import hashlib
 import json
 import os
 import pickle
+import platform
 import re
 import time
 from pathlib import Path
 
+DEFAULT_FINAL_STAGE_S = 1800.0  # conservative estimate until a slice has recorded the real one
 PROGRESS = "progress.json"
 TRIALS_MARKER = "trials_flush.json"
 # flags that may differ between slices without changing the run
@@ -38,6 +40,19 @@ class ResumeMismatch(SystemExit):
 
 def file_sha256(path: Path) -> str:
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def runtime_versions() -> dict:
+    """Interpreter and numerical-library versions; a different stack could change the fits."""
+    import importlib.metadata as md
+
+    out = {"python": platform.python_version()}
+    for pkg in ("numpy", "pandas", "scikit-learn", "lightgbm"):
+        try:
+            out[pkg] = md.version(pkg)
+        except md.PackageNotFoundError:
+            out[pkg] = None
+    return out
 
 
 def normalise_argv(argv: list[str]) -> list[str]:
@@ -81,6 +96,10 @@ class UnitStore:
         self.fitted_this_slice = 0
         self.stamp: str | None = None
         self.fresh = False
+        self._unit_t0: float | None = None
+        self._fit_seconds_this_slice = 0.0
+        self._final_t0: float | None = None
+        self._final_fit_base = 0.0
 
     # -- identity / progress -------------------------------------------------------------------
     def open(self, stamp: str) -> None:
@@ -93,6 +112,10 @@ class UnitStore:
                 raise ResumeMismatch(
                     f"REFUSED: resume dir {self.dir} was started by a different run; differing "
                     f"identity field(s): {bad}. Use a new --resume-dir (no mixing of slices).")
+            if rec.get("status") == "complete":
+                raise ResumeMismatch(
+                    f"REFUSED: resume dir {self.dir} is already complete (outputs: "
+                    f"{rec.get('outputs')}); nothing to resume. Use a new --resume-dir.")
             self.stamp = rec["stamp"]
             return
         self.stamp = stamp
@@ -104,7 +127,9 @@ class UnitStore:
         prev = json.loads(pp.read_text()) if pp.exists() else {}
         rec = {"identity": self.identity, "stamp": self.stamp, "units": units,
                "slices": prev.get("slices", 0) if slices is None else slices,
-               "status": prev.get("status", "in_progress")}
+               "status": prev.get("status", "in_progress"),
+               "unit_seconds": prev.get("unit_seconds", {}),
+               "final_stage_seconds": prev.get("final_stage_seconds")}
         _atomic_write(pp, json.dumps(rec, indent=1, sort_keys=True).encode())
 
     def begin_slice(self) -> None:
@@ -137,21 +162,66 @@ class UnitStore:
                 "test_pos": test_pos, "proba": proba, "diag": diag, "shap": shap}
         p = self._path(arm, fold, collect_shap)
         _atomic_write(p, pickle.dumps(unit, protocol=pickle.HIGHEST_PROTOCOL))
-        rec = json.loads((self.dir / PROGRESS).read_text())
+        dur = 0.0 if self._unit_t0 is None else max(0.0, self._clock() - self._unit_t0)
+        self._unit_t0 = None
+        pp = self.dir / PROGRESS
+        rec = json.loads(pp.read_text())
         if p.name not in rec["units"]:
             rec["units"].append(p.name)
-        self._write_progress(rec["units"])
+        rec.setdefault("unit_seconds", {})[p.name] = round(dur, 2)
+        _atomic_write(pp, json.dumps(rec, indent=1, sort_keys=True).encode())
         self.fitted_this_slice += 1
+        self._fit_seconds_this_slice += dur
+
+    def longest_unit_seconds(self) -> float:
+        """Longest unit duration seen in earlier slices (progress.json) or in this one."""
+        pp = self.dir / PROGRESS
+        rec = json.loads(pp.read_text()) if pp.exists() else {}
+        return max([0.0, *map(float, rec.get("unit_seconds", {}).values())])
+
+    def _elapsed(self) -> float:
+        return self._clock() - self._t0
 
     def checkpoint(self) -> None:
-        """Called before fitting a not-yet-done unit: stop cleanly once the budget is spent.
+        """Called before fitting a not-yet-done unit.
 
-        At least one unit is fitted per slice so every slice makes progress.
+        Stops cleanly when the budget is spent or when the longest unit seen so far would not fit in
+        what remains (elapsed + longest > budget). At least one unit is fitted per slice so every
+        slice makes progress.
         """
-        if (self.budget_s is not None and self.fitted_this_slice >= 1
-                and self._clock() - self._t0 >= self.budget_s):
-            raise BudgetExhausted(
-                f"time budget {self.budget_s:g}s spent after {self.fitted_this_slice} unit(s)")
+        if self.budget_s is not None and self.fitted_this_slice >= 1:
+            elapsed, longest = self._elapsed(), self.longest_unit_seconds()
+            if elapsed >= self.budget_s or elapsed + longest > self.budget_s:
+                raise BudgetExhausted(
+                    f"time budget {self.budget_s:g}s: elapsed {elapsed:.0f}s + longest unit "
+                    f"{longest:.0f}s would overrun, after {self.fitted_this_slice} unit(s)")
+        self._unit_t0 = self._clock()
+
+    def final_stage_begin(self) -> None:
+        """Before the final stage (bootstrap/SHAP/placebo scoring/report): stop (exit 75) when the
+        recorded (else default) estimate would overrun the budget, unless no work was done yet."""
+        if self.budget_s is not None and self.fitted_this_slice >= 1:
+            rec = json.loads((self.dir / PROGRESS).read_text())
+            est = rec.get("final_stage_seconds")
+            est = DEFAULT_FINAL_STAGE_S if est is None else float(est)
+            elapsed = self._elapsed()
+            if elapsed + est > self.budget_s:
+                raise BudgetExhausted(
+                    f"final stage estimate {est:.0f}s + elapsed {elapsed:.0f}s would exceed the "
+                    f"{self.budget_s:g}s budget")
+        self._final_t0 = self._clock()
+        self._final_fit_base = self._fit_seconds_this_slice
+
+    def final_stage_end(self) -> None:
+        """Record the final stage runtime (minus unit fits done inside it) in progress.json."""
+        if self._final_t0 is None:
+            return
+        secs = (self._clock() - self._final_t0) - (self._fit_seconds_this_slice
+                                                   - self._final_fit_base)
+        pp = self.dir / PROGRESS
+        rec = json.loads(pp.read_text())
+        rec["final_stage_seconds"] = round(max(0.0, secs), 2)
+        _atomic_write(pp, json.dumps(rec, indent=1, sort_keys=True).encode())
 
     # -- trials: written once, at final completion -----------------------------------------------
     def trials_marker(self) -> dict | None:
