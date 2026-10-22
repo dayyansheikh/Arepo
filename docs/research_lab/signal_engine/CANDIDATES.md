@@ -137,6 +137,20 @@ six new tokens added (no models). Tests updated. Notes:
   versus common; this overlaps `event` / se8); `farm` (CH183: book imbalance inside versus outside the reward band; LT5
   saw no unrewarded units, possibly an empty-`clob_rewards` parse artefact, so check the parse before building).
 
+## Idea-level families from creative round 13 (2026-10-22; ideas only, no evidence; not candidates yet)
+
+`CREATIVE_HYPOTHESES_2026-10-27.md` (CH202-CH211) states one point-in-time family per idea with a proposed token:
+`quietbook` (CH203, 5c-imbalance innovation behind an unmoved touch from two pre-origin `book0` sweeps), `swclock`
+(CH202, held-versus-fresh split of the previous move by the k-1 sweep receipt), `sched` (CH204, per-market hot-slot
+schedule from 7 days of own moves), `steam` (CH205, ESPN line move versus unmoved pre-game price; sports parameter),
+reward-start natural experiment (CH206, `reward_params`), `farmer` (CH209), `umaparams` (CH207, `gamma_rules` bond /
+liveness classes), `requote` (CH211), `xvenue2` timing extension (CH208), `sweep2_0` (CH210). **Its top 3 (CH203,
+CH202, CH204) are the planned LT8 family: do not build an isolating challenger for `quietbook`, `swclock` or `sched`
+before LT8's design fixes its embargo dates** (requests will follow here; the round proposes the later of
+2027-01-23T00:00Z and LT8's analysis commit, with `book0` / `book` kept to 12-31). CH205 is held for the owner's sports
+decision; CH206 needs a first count. The engine-first rest (CH207-CH211) may be built as development families under
+the usual rules (CH211 after E015's analysis on 11-15 if it moderates E015's classes).
+
 ## Idea-level families from creative round 12 (2026-10-21; ideas only, no evidence; not candidates yet)
 
 `CREATIVE_HYPOTHESES_2026-10-26.md` (CH191-CH201) states one point-in-time feature family per idea, with a proposed
