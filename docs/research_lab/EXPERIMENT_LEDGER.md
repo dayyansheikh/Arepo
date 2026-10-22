@@ -3722,3 +3722,11 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   PRESENT-TOPIC pairs (science-reviewer, titles only, seed 16141, >= 90% genuine same-event twins). A counted K may be
   designed only in a later batch and only if that audit passes; otherwise CH143 is "not testable at the floor". No
   counted K is registered. **Next:** a titles-only audit sampler (seed 16141), then the audit.
+
+## CB9 gating after CB8-W's smoke FAIL, 2026-10-22 ~16:40Z (science-reviewer ruling; operational, nothing counted)
+- `reviews/CB9_H9_DEPENDENCY_RULING_2026-10-22.md`: REVISE. h9_flow never fetched (CB8 q0161 FAIL (a)); absent at q0182
+  per CB9 §1.3; (f) not engaged. q0182 keeps its id and definition; `depends_on` = [q0164, q0166]; it adds the two
+  `--extra-pin`s (CB8 updown frame, dated CB8-H holders snapshot) the draft lacked, and q0164's keys sha256 (MUST 1).
+- **Pre-declared before q0166's result:** coverage-audit FAIL (`source_unavailable`) -> holdout seal absent at q0182, q0182
+  runs with the q0165 frame pinned; crash/unrecoverable -> (f) as written.
+- q0181 (S0 audit A) promoted 16:30Z (c535f978); unaffected.
