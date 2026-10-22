@@ -436,3 +436,29 @@ def test_origin_pass_denominator_counts_empty_files_and_filters_markers_to_the_w
 
     spec = lt.load_spec(sha=None)
     assert rd.sweep_missing_label(acc, spec) == "sweep-missing (25.0% of origin passes)"  # the same denominator as late-loss
+
+
+def test_real_reader_log_lines_carry_spec_sha_so_pinned_pass_counts_and_marker_filter_work(ran):
+    """N1 (verification 2026-10-22): the reader stamps every passes.jsonl line with the spec_sha, so the pinned readers keep their lines."""
+    from astrolabe.research_lab import live_tests6_readings as rd
+
+    root = ran["root"]
+    lines = [json.loads(x) for x in (Path(root) / "passes.jsonl").read_text().splitlines()]
+    assert lines and all(r.get("spec_sha") for r in lines)
+    sha = _spec()["_sha256"][:16]
+    pinned = _spec()
+    pinned["_pinned"] = True
+    assert rd.pass_counts(root, "clips", pinned), "pinned pass_counts must not be empty for lines written by the real reader"
+    assert rd.pass_counts(root, "clips", pinned) == rd.pass_counts(root, "clips", _spec())
+    other = dict(pinned, _sha256="f" * 64)
+    assert rd.pass_counts(root, "clips", other) == {}  # lines of another spec are skipped
+    # marker filter: a marker logged under another spec_sha is dropped, one under the pinned sha is kept
+    cid = "cap_x"
+    lp = Path(root) / "passes.jsonl"
+    before = lp.read_text()
+    try:
+        with lp.open("a") as f:
+            f.write(json.dumps({"kind": "vote_late", "id": cid, "slot": 1, "spec_sha": "0" * 16}) + "\n")
+        assert la._marker_spec_shas(root)[(cid, "late")] == "0" * 16 != sha
+    finally:
+        lp.write_text(before)
