@@ -296,10 +296,11 @@ def cmd_xv_prints(a) -> int:
             bad.append(f"cap_at={a.cap_at!r}")
         if bad:
             raise cm.Refused(f"arguments differ from the declaration: {bad}")
+        rules_sha = cm.verify_rules(Path(a.rules) if a.rules else cm.RULES_FILE, require_committed=not a.allow_uncommitted_rules)
         legs = xv.load_c1_legs(Path(a.cv_root) if a.cv_root else None) if not a.legs else json.loads(Path(a.legs).read_text())
         m = xv.xv_prints_fetch(out_root, hb.httpx_transport(), legs=legs, day_pages=a.day_pages, cap_at=a.cap_at, rps=min(a.rps, 4.0),
                                disk_cap=int(a.disk_cap_gb * 1024**3), budget_min=a.budget_min, data_dumps=data_dumps,
-                               data_dumps_cap_gb=a.data_dumps_cap_gb, live_check=None if a.standalone else hb.live_pass_or_lock,
+                               data_dumps_cap_gb=a.data_dumps_cap_gb, rules_sha256=rules_sha, live_check=None if a.standalone else hb.live_pass_or_lock,
                                snapshot_root=None if a.standalone else Path(a.snapshot_root or cm.c4.SNAPSHOT_ROOT))
     except cm.Refused as exc:
         _emit({"refused": str(exc)})
@@ -443,6 +444,8 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--data-dumps", default=None)
     q.add_argument("--out-root", default=None, help="default <data-dumps>/research_lab/creative_batch7")
     q.add_argument("--cv-root", default=None, help="cross_venue study directory (never cross_venue_live)")
+    q.add_argument("--rules", default=None)
+    q.add_argument("--allow-uncommitted-rules", action="store_true")
     q.add_argument("--legs", default=None, help="tests only: JSON list of legs instead of the C1 reproduction")
     q.add_argument("--standalone", action="store_true")
     q.add_argument("--snapshot-root", default=None)

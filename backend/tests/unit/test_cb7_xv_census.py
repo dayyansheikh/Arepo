@@ -330,10 +330,10 @@ def test_assert_counts_only_refuses_forbidden_keys():
 # ---- census: h_geo ----------------------------------------------------------------------------------------------------------------
 
 
-def write_capture(snaps: Path, name: str, rows, state="complete"):
+def write_capture(snaps: Path, name: str, rows, state="complete", sidecar="complete"):
     d = snaps / name
     d.mkdir(parents=True)
-    (d / "manifest.json").write_text(json.dumps({"capture_id": name, "state": state, "started_utc": "x"}))
+    (d / "manifest.json").write_text(json.dumps({"capture_id": name, "state": state, "sidecar_status": sidecar, "started_utc": "x"}))
     with gzip.open(d / "rows.csv.gz", "wt", newline="") as fh:
         w = csv.writer(fh)
         w.writerow(["received_utc", "market_id", "best_bid", "best_ask", "closed"])
@@ -344,6 +344,24 @@ def write_capture(snaps: Path, name: str, rows, state="complete"):
         w.writerow(["market_id", "fee_category"])
         for mid, _b, _a, fee in rows:
             w.writerow([mid, fee])
+
+
+def test_h_geo_skips_incomplete_sidecar_refuses_without_geo_ids_and_unavailable_only_when_ids_exist(tmp_path):
+    after = datetime(2026, 10, 26, tzinfo=UTC).timestamp()
+    a = tmp_path / "a" / "snapshots"
+    write_capture(a, "20261022T030000Z_aaaa1111", [("g1", 0.04, 0.06, "geopolitics")], sidecar="partial")
+    with pytest.raises(cm.Refused, match="no complete capture"):
+        cc.measure_h_geo(a, wall_clock=lambda: after)
+    write_capture(a, "20261023T030000Z_bbbb2222", [("g1", 0.04, 0.06, "geopolitics")])
+    r = cc.measure_h_geo(a, wall_clock=lambda: after)
+    assert r["captures_skipped_sidecar_not_complete"] == 1 and r["complete_captures"] == 1 and r["status"] == "ok"
+    b = tmp_path / "b" / "snapshots"
+    write_capture(b, "20261022T030000Z_aaaa1111", [("p1", 0.04, 0.06, "politics")])
+    with pytest.raises(cm.Refused, match="no market with fee_category"):
+        cc.measure_h_geo(b, wall_clock=lambda: after)
+    c = tmp_path / "c" / "snapshots"
+    write_capture(c, "20261022T030000Z_aaaa1111", [("g1", 0.30, 0.40, "geopolitics")])  # ids exist, no quote in the mid band
+    assert cc.measure_h_geo(c, wall_clock=lambda: after)["status"] == "unavailable"
 
 
 def test_h_geo_median_half_spread_filters_and_window(tmp_path):
@@ -364,7 +382,8 @@ def test_h_geo_median_half_spread_filters_and_window(tmp_path):
         cc.measure_h_geo(snaps, wall_clock=lambda: datetime(2026, 10, 24, 12, tzinfo=UTC).timestamp())
     with pytest.raises(cm.Refused):
         cc.measure_h_geo(tmp_path / "elsewhere", wall_clock=lambda: after)
-    assert cc.measure_h_geo(snaps, window=("2026-10-30T00:00:00Z", "2026-10-31T00:00:00Z"), wall_clock=lambda: after + 20 * 86400)["status"] == "unavailable"
+    with pytest.raises(cm.Refused, match="no complete capture"):  # item 6: nothing in the window is a misconfiguration, not "unavailable"
+        cc.measure_h_geo(snaps, window=("2026-10-30T00:00:00Z", "2026-10-31T00:00:00Z"), wall_clock=lambda: after + 20 * 86400)
 
 
 # ---- census on sealed fixtures --------------------------------------------------------------------------------------------------
@@ -385,6 +404,7 @@ def sealed(tmp_path_factory):
     cs.seal_cb7(w.root, cm.GEO_RUN_ID, transport=w.api, seals_dir=w.seals, trials_path=trials, sleep=lambda s: None)
     cs.seal_cb7(w.root, cm.TEXT_RUN_ID, transport=w.api, seals_dir=w.seals, trials_path=trials, sleep=lambda s: None)
     w.tail_id = tail_id
+    write_capture(w.tmp / "snapshots", "20261023T030000Z_abcd1234", [("gx", 0.04, 0.06, "geopolitics")])
     return w
 
 
@@ -423,14 +443,16 @@ def test_census_sg_counts_only_no_forbidden_files_and_write_once(sealed, tmp_pat
     assert g["eligible_units"] == sum(v["eligible_units"] for v in g["eligible_by_origin"].values())
     assert g["expected_yes_sum_m"] == pytest.approx(0.06 * g["eligible_units"], rel=0.05)  # prices only: no outcome
     assert g["tag_only_share"]["frame"]["tagged_markets"] > 0 and g["event_clusters"] >= 1 and g["theme_clusters"] >= 1
-    assert g["gate_GG"]["GG"] is False and g["h_geo"]["status"] == "unavailable"
+    assert g["gate_GG"]["GG"] is False and g["h_geo"]["status"] == "ok" and g["gate_GG"]["h_geo_measured"]["met"] is True
     on_disk = json.loads((tmp_path / "cb7" / "census.json").read_text())
     assert on_disk["S"]["eligible_units_all_topics"] == n_elig
     assert "creative_batch_7:census" in (tmp_path / "trials.jsonl").read_text() and '"cb7_descriptive"' in (tmp_path / "trials.jsonl").read_text()
     with pytest.raises(cm.Refused, match="write-once"):
         census(w, ["S"], tmp_path)
     assert (w.tdir / "ACCESS_LOG.jsonl").read_text().count("q0147_cb7_census") >= 1
-    census(w, ["S"], tmp_path, name="again.json")  # the access log does not break the seal check
+    with pytest.raises(cm.Refused, match="write-once"):  # item 3: another file name does not get around the first result
+        census(w, ["S"], tmp_path, name="again.json")
+    census(w, ["S"], tmp_path / "second")  # a fresh dir: the access log left by the first run does not break the seal check
 
 
 def test_census_seal_sha_mismatch_refuses_for_each_run(sealed, tmp_path):
@@ -467,7 +489,7 @@ def test_census_refuses_missing_host_seal_unknown_family_and_no_terminal_record(
             census(w, ["S"], tmp_path)
         (w.root / "h8_geo" / cm.NOT_RUN_FILE).write_text("{}")  # a recorded not-run terminal state lets the other families proceed
         res = census(w, ["G"], tmp_path, name="notrun.json")
-        assert res["G"] == {"status": "not_run"}
+        assert res["G"] == {"status": "not_run_deadline"}
     finally:
         committed.write_bytes(keep)
         (w.root / "h8_geo" / cm.NOT_RUN_FILE).unlink(missing_ok=True)
@@ -503,7 +525,7 @@ def test_census_x_counts_sets_clusters_and_sports_split(tmp_path):
     cv, xvd = make_x_world(tmp_path)
     r = cc.census_x(xvd, cv)
     # per pair: S = ask-side in the up window (BUY YES at s, SELL NO at s + 30 is ask-side too) = 2; S' = the bid-side SELL YES = 1; N = 2
-    assert r["print_classes"]["nonsports"] == {"n_prints": 5, "excluded_both_states": 0, "excluded_unusable": 0, "S": 2, "Sp": 1, "N": 2}
+    assert r["print_classes"]["nonsports"] == {"n_prints": 5, "excluded_both_states": 0, "excluded_unusable": 0, "S": 2, "Sp": 1, "N": 2, "S_mark_available": 2}
     assert r["print_classes"]["sports"]["S"] == 2 and r["print_classes"]["all"]["S"] == 4
     assert r["pairs"] == 2 and r["pairs_nonsports"] == 1 and r["capped_days"] == 0 and r["prints_per_pair"]["total"] == 10
     assert r["kalshi_move_events"]["nonsports"]["up"] > 0 and r["kalshi_move_events"]["nonsports"]["down"] == 0
@@ -583,3 +605,134 @@ def test_runner_census_refusals_and_tempfail(sealed, tmp_path, capsys, monkeypat
     monkeypatch.setattr(cm, "verify_rules", lambda *a, **k: "rules-sha")
     assert script.main([*common, "--family", "G"]) == 75
     assert hashlib.sha256(orig).hexdigest() == hashlib.sha256(host.read_bytes()).hexdigest()
+
+
+# ---- freeze-check fixes (CB7_CODE_FREEZE_CHECK_2026-10-22) ---------------------------------------------------------------------
+
+
+class CappedPageApi(FakeTrades):
+    """A server that silently caps the page size at ``cap`` rows (the page looks short, rows continue at the next offset)."""
+
+    def __init__(self, rows, cap):
+        super().__init__(rows)
+        self.cap = cap
+
+    def __call__(self, url, params):
+        st, body, h = super().__call__(url, params)
+        rows = json.loads(body)
+        return st, json.dumps(rows[:self.cap]).encode(), h
+
+
+def test_item1_silent_page_cap_is_refused_not_truncated(tmp_path):
+    api = CappedPageApi({"cA": day_rows(D1, 2500)}, cap=300)
+    with pytest.raises(cm.Refused, match="capped server-side"):
+        run_to_end(tmp_path, api, [leg()])
+    assert len(api.log) <= 3  # stops at the first probe; no other day is fetched
+    api2 = FakeTrades({"cA": day_rows(D1, 150)})  # a genuinely short last page of >= 100 rows costs one empty probe and is accepted
+    m = run_to_end(tmp_path / "ok", api2, [leg()])
+    assert m["status"] == xv.XV_COMPLETE
+    assert [int(p["offset"]) for p in api2.log if int(p["start"]) == int(WIN_START)] == [0, 150]
+    api3 = FakeTrades({"cA": day_rows(D1, 99)})  # fewer than 100 rows: no probe
+    run_to_end(tmp_path / "few", api3, [leg()])
+    assert [int(p["offset"]) for p in api3.log if int(p["start"]) == int(WIN_START)] == [0]
+
+
+def test_item2_draft_regex_stops_on_disk_budget_and_refused():
+    f = Path(__file__).resolve().parents[3] / "docs" / "research_lab" / "queue" / "drafts" / "q0146_cb7_xv_prints_fetch.json"
+    if not f.exists():
+        pytest.skip("draft not present")
+    rx = json.loads(f.read_text())["repeat"]["until_log_regex"]
+    for line in ('{"status": "xv_prints_complete"}', '{"status": "disk_budget"}', '{"refused": "x"}'):
+        assert re.search(rx, line), line
+    assert not re.search(rx, '{"status": "in_progress"}')
+
+
+def test_item3_out_must_be_inside_cb7_dir_and_any_census_file_blocks(sealed, tmp_path):
+    w = sealed
+    with pytest.raises(cm.Refused, match="outside"):
+        census(w, ["S"], tmp_path, out=tmp_path / "elsewhere" / "census.json")
+    census(w, ["S"], tmp_path, name="census_a.json")
+    with pytest.raises(cm.Refused, match="write-once"):
+        census(w, ["S"], tmp_path, name="census_b.json")  # another name does not get around the first result
+    assert not (tmp_path / "cb7" / "census_b.json").exists()
+
+
+def test_item4_declaration_hashes_written_and_constants_pinned_to_the_design(sealed, tmp_path):
+    assert cc.GS == {"units": 3000, "event_week_clusters": 1000, "series_event_clusters": 300, "within_cell_sd_c": 0.5}
+    assert cc.GG == {"units": 300, "event_clusters": 100, "theme_clusters": 15, "sum_m": 15.0}
+    assert cc.GX == {"s_prints": 2000, "skip_windows_with_s": 300, "event_clusters": 30, "utc_dates": 30}
+    assert cc.Z_MDE == pytest.approx(2.33 + 0.84) and cc.SD_G_WITHIN_CELL_ASSUMED == 0.39
+    assert (xv.K_MAX_AGE_S, xv.K_MAX_SPREAD, xv.MID_RANGE, xv.MOVE_LOOKBACK_S, xv.MOVE_THRESHOLD) == (300.0, 0.10, (0.03, 0.97), 600, 0.01)
+    assert (xv.SKIP_LAG_S, xv.SKIP_LEN_S, xv.DAY_PAGES, xv.PAGE_LIMIT) == (120, 1200, 10, 1000)
+    assert cc.H_GEO_WINDOW == ("2026-10-22T00:00:00Z", "2026-10-25T00:00:00Z") and cc.H_GEO_MID == (0.02, 0.10)
+    d = cc.census_declaration()
+    assert all(len(d[k]) == 64 for k in ("cb7_xv_definitions_sha256", "cb7_census_source_sha256", "constants_sha256")) and d == cc.census_declaration()
+    res = census(sealed, ["S"], tmp_path)
+    assert res["declaration"]["cb7_xv_definitions_sha256"] == d["cb7_xv_definitions_sha256"]
+    on_disk = json.loads((tmp_path / "cb7" / "census.json").read_text())
+    assert on_disk["declaration"]["constants_sha256"] == d["constants_sha256"]
+
+
+def test_item5_terminal_states_stay_distinct(sealed):
+    w = sealed
+    committed = w.seals / "h8_geo_SEAL.json"
+    keep = committed.read_bytes()
+    committed.unlink()
+    try:
+        for marker, want in ((cm.NOT_RUN_FILE, "not_run_deadline"), (cm.UNVERIFIED_FILE, "disjointness_unverified"), (cm.SOURCE_UNVERIFIED_FILE, "source_unverified")):
+            (w.root / "h8_geo" / marker).write_text("{}")
+            try:
+                st = cc.verify_seal_copies(w.root, w.seals)["h8_geo"]["state"]
+                assert st == want
+                sec = cc._terminal(st)
+                assert sec["status"] == want and (sec.get("testable") is False) == (want != "not_run_deadline")
+            finally:
+                (w.root / "h8_geo" / marker).unlink()
+        (w.seals / "h8_geo_NOT_RUN.json").write_text("{}")
+        assert cc.verify_seal_copies(w.root, w.seals)["h8_geo"]["state"] == "not_run_deadline"
+    finally:
+        (w.seals / "h8_geo_NOT_RUN.json").unlink(missing_ok=True)
+        committed.write_bytes(keep)
+
+
+def test_item7_move_events_on_every_minute_end_including_missing_candles():
+    t0 = 6000.0
+    spec = [(t0 + 60 * i, *((0.49, 0.51) if i < 0 else (0.51, 0.53))) for i in range(-30, 40) if i != 5]  # the candle at tau = t0 + 300 is missing
+    km = xv.KalshiMid(candles(spec))
+    up, _ = xv.move_events(km)
+    assert (t0 + 300) in up  # evaluated at the missing minute end from the latest valid candle (<= 5 min old)
+    assert up == sorted(up) and up[0] == t0
+    total, gaps = km.minutes_without_candle()
+    assert gaps == 1 and total == len(km.grid())
+    far = xv.KalshiMid(candles([(t0 + 60 * i, 0.49, 0.51) for i in range(0, 10)] + [(t0 + 60 * i, 0.55, 0.57) for i in range(30, 40)]))
+    u2, _ = xv.move_events(far)
+    assert u2 == []  # a jump across a > 5 min gap has no valid mid on one side: no event
+
+
+def test_item8_unsorted_inputs_give_the_same_counts(tmp_path):
+    t0 = 6000.0
+    base = step_candles(t0, n=400)
+    rng = np.random.default_rng(3)
+    km_a, km_b = xv.KalshiMid(base), xv.KalshiMid(base[rng.permutation(len(base))])
+    assert xv.move_events(km_a) == xv.move_events(km_b)
+    assert km_a.at(t0 + 100) == km_b.at(t0 + 100)
+    cv, xvd = make_x_world(tmp_path)
+    ref = cc.census_x(xvd, cv)
+    z = np.load(cv / "series" / "KX-A.npz")
+    perm = rng.permutation(len(z["ps"]))
+    ps, kc, win = z["ps"][perm], z["kc"][rng.permutation(len(z["kc"]))], z["win"]
+    np.savez_compressed(cv / "series" / "KX-A.npz", ps=ps, kc=kc, win=win)
+    assert cc.census_x(xvd, cv)["print_classes"] == ref["print_classes"]
+
+
+def test_should_items_x_readiness_before_reads_mark_availability_and_manifest_rules(sealed, tmp_path):
+    w = sealed
+    log = w.tdir / "ACCESS_LOG.jsonl"
+    before = log.read_text() if log.exists() else ""
+    with pytest.raises(cm.NotNow, match="xv_prints"):
+        census(w, ["S", "G", "X"], tmp_path)
+    assert (log.read_text() if log.exists() else "") == before  # no S / G read happened
+    assert xv.mark_available(np.array([100.0, 3000.0]), 4000.0) is True and xv.mark_available(np.array([100.0]), 4000.0) is False
+    api = FakeTrades({"cA": day_rows(D1, 3)})
+    m = run_to_end(tmp_path / "m", api, [leg()], rules_sha256="abc123")
+    assert m["rules_sha256"] == "abc123"

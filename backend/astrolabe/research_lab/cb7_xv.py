@@ -37,6 +37,7 @@ XV_COMPLETE = "xv_prints_complete"
 XV_VERSION = "cb7-xv-prints-v1"
 DAY_PAGES = 10
 PAGE_LIMIT = 1000
+PROBE_MIN_ROWS = 100
 XV_OUTPUT_CAP_GB = 0.25
 LEG_COLUMNS = ["pair_key", "p_market_id", "p_event_id", "k_cat", "condition_id", "win_start", "win_end", "token0"]
 PRINT_FILE_COLUMNS = ["pair_key", "ts", "side", "yes_price", "size"]
@@ -163,6 +164,15 @@ def fetch_pair_day(fr: cm.Cb7Run, it: dict, day_pages: int) -> dict:
             else:
                 rows.append(r)
         if len(data) < PAGE_LIMIT:
+            if len(data) >= PROBE_MIN_ROWS:  # a server that silently caps the page size would look like a short last page
+                st2, probe = fr.lim.get(hb.DATA_TRADES, {"market": it["condition_id"], "start": it["start"], "end": it["end"] - 1,
+                                                          "takerOnly": "true", "limit": PAGE_LIMIT, "offset": page * PAGE_LIMIT + len(data)})
+                if st2 != 200 or not isinstance(probe, list):
+                    raise c4.ApiError(f"trades probe status {st2}")
+                if probe:
+                    fr.page_size_refusal = (f"the Data API returned a short page of {len(data)} rows (< limit {PAGE_LIMIT}) but offset {page * PAGE_LIMIT + len(data)} "
+                                            f"still returns rows: the page size is capped server-side; refusing (no silent truncation)")
+                    raise c4.ApiError("page size capped")
             break
         if page == day_pages - 1:
             capped = True
@@ -226,7 +236,7 @@ def xv_prints_fetch(
     sleep: Callable[[float], None] = time.sleep, live_check: Callable[[], bool] | None = hb.live_pass_or_lock,
     should_stop: Callable[[], bool] | None = None, wall_clock: Callable[[], float] = time.time, snapshot_root: Path | None = None,
     health_every_s: float = 600.0, health_check: Callable[[float], tuple[bool, str]] | None = None, data_dumps: Path | None = None,
-    data_dumps_cap_gb: float = 40.0, run_id: str = XV_RUN_ID,
+    data_dumps_cap_gb: float = 40.0, run_id: str = XV_RUN_ID, rules_sha256: str = "",
 ) -> dict:
     """One resumable chunk of the C1 print fetch. ``root`` is ``<data-dumps>/research_lab/creative_batch7``. Terminal states are
     sticky (``xv_prints_complete``, ``disk_budget``); the chunk ends at the budget (``--budget-min``), a 429 limit or a collector-health
@@ -249,6 +259,8 @@ def xv_prints_fetch(
                    now=now, sleep=sleep, live_check=live_check, wall_clock=wall_clock, t_seal_epoch=inf, snapshot_root=snapshot_root,
                    health_every_s=health_every_s, health_check=health_check, cap_at=cap_at, key=b"cb7-no-wallets")
     fr.label = "CB7-X xv_prints"
+    fr.rules_sha256 = rules_sha256
+    fr.page_size_refusal = ""
     rdir = fr.rdir
     why = fr.unhealthy()
     if why:
@@ -274,7 +286,12 @@ def xv_prints_fetch(
             items.append({"item_id": f"{leg['pair_key']}|{day}", "pair_key": leg["pair_key"], "day": day, "start": a, "end": b,
                           "condition_id": leg["condition_id"]})
     extra = {"n_legs": len(legs), "legs_without_condition_id": n_no_cid, "n_items": len(items), "legs_sha256": cm._sha(sorted(x["pair_key"] for x in legs))}
-    stopped, pending = c4._fetch_items(fr, items, "item_id", lambda it: fetch_pair_day(fr, it, day_pages), tally_days(fr.counts), should_stop, extra)
+    def stop_now() -> bool:
+        return bool(fr.page_size_refusal) or bool(should_stop and should_stop())
+
+    stopped, pending = c4._fetch_items(fr, items, "item_id", lambda it: fetch_pair_day(fr, it, day_pages), tally_days(fr.counts), stop_now, extra)
+    if fr.page_size_refusal:
+        raise Refused(fr.page_size_refusal)
     if stopped is None and pending == 0:
         try:
             extra.update(finalize_tables(fr, legs, items))
@@ -303,13 +320,17 @@ def valid_mid(bid: float, ask: float) -> float | None:
 
 
 class KalshiMid:
-    """Mid at any time from 1-minute candles ``[end_ts, bid, ask, last, volume]``: the latest candle with ``end_ts <= tau`` and age
-    <= 5 min, which must itself be valid (a stale or invalid latest candle gives no mid; no fall-back to an older one)."""
+    """Mid at any time from 1-minute candles ``[end_ts, bid, ask, last, volume]`` (sorted by ``end_ts`` here): the latest candle with
+    ``end_ts <= tau`` and age <= 5 min, which must itself be valid (a stale or invalid latest candle gives no mid; no fall-back to an
+    older one)."""
 
     def __init__(self, kc: np.ndarray) -> None:
         kc = np.asarray(kc, float).reshape(-1, 5) if len(kc) else np.empty((0, 5))
+        if len(kc):
+            kc = kc[np.argsort(kc[:, 0], kind="stable")]
         self.ts = kc[:, 0].copy() if len(kc) else np.empty(0)
         self.mid: list[float | None] = [valid_mid(float(b), float(a)) for b, a in zip(kc[:, 1], kc[:, 2], strict=True)] if len(kc) else []
+        self._mid_arr = np.array([np.nan if m is None else m for m in self.mid], float)
 
     def at(self, tau: float) -> float | None:
         i = int(np.searchsorted(self.ts, tau, side="right")) - 1
@@ -317,21 +338,39 @@ class KalshiMid:
             return None
         return self.mid[i]
 
+    def at_many(self, taus: np.ndarray) -> np.ndarray:
+        """Vectorised :meth:`at` (NaN where there is no mid)."""
+        taus = np.asarray(taus, float)
+        if not len(self.ts):
+            return np.full(len(taus), np.nan)
+        i = np.searchsorted(self.ts, taus, side="right") - 1
+        ok = (i >= 0) & (taus - self.ts[np.clip(i, 0, None)] <= K_MAX_AGE_S)
+        return np.where(ok, self._mid_arr[np.clip(i, 0, None)], np.nan)
+
+    def grid(self) -> np.ndarray:
+        """Every minute end between the first and the last candle."""
+        if not len(self.ts):
+            return np.empty(0)
+        return np.arange(math.ceil(self.ts[0] / 60.0) * 60.0, self.ts[-1] + 1e-9, 60.0)
+
+    def minutes_without_candle(self) -> tuple[int, int]:
+        """(minute ends on the grid, of which no candle is stamped exactly there): the density the move-event grid relies on."""
+        g = self.grid()
+        have = np.isin(g, self.ts)
+        return len(g), int((~have).sum())
+
 
 def move_events(km: KalshiMid) -> tuple[list[float], list[float]]:
-    """``(up_taus, down_taus)``: minute ends ``tau`` (candle ends) with both mids valid and ``mid(tau) - mid(tau - 600) >= +0.01`` (up) or
-    ``<= -0.01`` (down)."""
-    up, down = [], []
-    for tau in sorted(set(float(t) for t in km.ts)):
-        a, b = km.at(tau), km.at(tau - MOVE_LOOKBACK_S)
-        if a is None or b is None:
-            continue
-        d = a - b
-        if d >= MOVE_THRESHOLD - 1e-9:
-            up.append(tau)
-        elif d <= -MOVE_THRESHOLD + 1e-9:
-            down.append(tau)
-    return up, down
+    """``(up_taus, down_taus)``: EVERY minute end ``tau`` between the first and last candle with both mids valid and
+    ``mid(tau) - mid(tau - 600) >= +0.01`` (up) or ``<= -0.01`` (down). A minute without a candle still has a mid while the latest valid
+    candle is at most 5 minutes old."""
+    g = km.grid()
+    if not len(g):
+        return [], []
+    d = km.at_many(g) - km.at_many(g - MOVE_LOOKBACK_S)
+    up = g[np.isfinite(d) & (d >= MOVE_THRESHOLD - 1e-9)]
+    down = g[np.isfinite(d) & (d <= -MOVE_THRESHOLD + 1e-9)]
+    return [float(x) for x in up], [float(x) for x in down]
 
 
 def in_skip(taus: list[float], s: float) -> bool:
@@ -360,12 +399,18 @@ def poly_point_ok(ps_ts: np.ndarray, ps_px: np.ndarray, s: float) -> bool:
     return MID_RANGE[0] - 1e-12 <= float(ps_px[i]) <= MID_RANGE[1] + 1e-12
 
 
+def mark_available(ps_ts: np.ndarray, u: float) -> bool:
+    """Existence only (no value is read): a Polymarket history point stamped in ``[u - 3,600, u - 600]`` exists for ``u = s + 3,600``."""
+    i = int(np.searchsorted(ps_ts, u - POLY_MARK_MIN_AGE_S, side="right")) - 1
+    return bool(i >= 0 and ps_ts[i] >= u - POLY_MARK_MAX_AGE_S)
+
+
 def classify_prints(prints: Iterator[tuple[float, int]] | list[tuple[float, int]], up: list[float], down: list[float], km: KalshiMid,
                     ps_ts: np.ndarray, ps_px: np.ndarray) -> dict:
     """Count a pair's prints ``(ts, side)`` (side +1 ask-side, -1 bid-side) into S / S' / N. Returns counts plus the per-print records of
     S (``s_ts``, ``s_window``) needed for the cluster counts. Both-states prints and prints without a valid mid on either venue are excluded
     and counted; no price, mark or outcome is used beyond the usability rule."""
-    c = {"n_prints": 0, "excluded_both_states": 0, "excluded_unusable": 0, "S": 0, "Sp": 0, "N": 0}
+    c = {"n_prints": 0, "excluded_both_states": 0, "excluded_unusable": 0, "S": 0, "Sp": 0, "N": 0, "S_mark_available": 0}
     s_ts: list[float] = []
     s_window: list[tuple[str, float]] = []
     wins = {"up": skip_windows(up), "down": skip_windows(down)}
@@ -385,6 +430,7 @@ def classify_prints(prints: Iterator[tuple[float, int]] | list[tuple[float, int]
         direction = "up" if u else "down"
         if (side > 0) == u:  # ask-side in up-skip or bid-side in down-skip: the fills the skew rule forgoes
             c["S"] += 1
+            c["S_mark_available"] += int(mark_available(ps_ts, ts + 3600.0))
             s_ts.append(ts)
             w = next((w for w in wins[direction] if w[0] <= ts < w[1]), None)
             s_window.append((direction, w[0] if w else float("nan")))

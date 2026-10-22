@@ -118,7 +118,8 @@ def verify_seal_copies(root: Path, seals_dir: Path) -> dict:
     """The committed ``<run>_SEAL.json`` of h8_text, h8_geo and h8_tail must be byte-identical (sha256) to the host's ``<run>/SEAL.json``.
     A run with no committed seal is accepted only as an explicit terminal record (committed ``<run>_NOT_RUN.json`` or the host's
     ``NOT_RUN_DEADLINE.json`` / unverified marker); otherwise, or on any mismatch or missing host copy, :class:`Refused`. h8_tail is
-    only hashed: none of its data is opened. Returns ``{run: {"state": "sealed"|"not_run", "sha256": ...}}``."""
+    only hashed: none of its data is opened. Returns ``{run: {"state": "sealed"|"not_run_deadline"|"disjointness_unverified"|"source_unverified", "sha256": ...}}``; the three
+    terminal states stay distinct (unverified = "not testable", not "not run")."""
     root, seals_dir = Path(root), Path(seals_dir)
     out: dict[str, dict] = {}
     for run in SEALED_RUNS:
@@ -133,10 +134,16 @@ def verify_seal_copies(root: Path, seals_dir: Path) -> dict:
             out[run] = {"state": "sealed", "sha256": a}
             continue
         rdir = root / run
-        terminal = (seals_dir / f"{run}_NOT_RUN.json").exists() or any((rdir / f).exists() for f in (cm.NOT_RUN_FILE, cm.UNVERIFIED_FILE, cm.SOURCE_UNVERIFIED_FILE))
-        if run == "h8_tail" or not terminal:
+        state = None
+        if (seals_dir / f"{run}_NOT_RUN.json").exists() or (rdir / cm.NOT_RUN_FILE).exists():
+            state = cm.NOT_RUN_TOKEN
+        elif (rdir / cm.UNVERIFIED_FILE).exists():
+            state = cm.UNVERIFIED_TOKEN
+        elif (rdir / cm.SOURCE_UNVERIFIED_FILE).exists():
+            state = cm.SOURCE_UNVERIFIED_TOKEN
+        if run == "h8_tail" or state is None:
             raise Refused(f"{run}: no committed seal copy {committed.name} and no terminal (not-run) record; refusing")
-        out[run] = {"state": "not_run", "sha256": None}
+        out[run] = {"state": state, "sha256": None}
     return out
 
 
@@ -284,6 +291,8 @@ def census_s(root: Path, seals_dir: Path) -> dict:
     if n_u and de["deff_s"] is not None and sd_n and not math.isnan(sd_n) and sd_n > 0:
         se = SD_G_WITHIN_CELL_ASSUMED / (sd_n * math.sqrt(n_u)) * math.sqrt(de["deff_s"])
         mde = Z_MDE * se
+    ms = [m for m in (_f(prices[u["market_id"]]["m"]) for u in elig_units) if math.isfinite(m)]
+    sd_g_secondary = math.sqrt(sum(m * (1 - m) for m in ms) / len(ms)) if ms else None
     ew = de["ways"].get("event_x_resolution_week", {}).get("clusters", 0)
     se_c = de["ways"].get("series_or_event", {}).get("clusters", 0)
     gate = {"units": {"value": n_u, "need": GS["units"], "met": n_u >= GS["units"]},
@@ -318,7 +327,7 @@ def census_s(root: Path, seals_dir: Path) -> dict:
         "closed_time": {"rows_with_closed_time": closed_known, "abs_diff_end_lt_1h": closed_end_lt_1h, "before_end_minus_7d": closed_lt_end7,
                         "eligible_units_closed_before_t7": closed_before_t7, "s1_units_closed_before_t7": closed_before_t7_s1},
         "descriptions_longer_than_4000": {"count": long_desc, "share": (long_desc / n_rows) if n_rows else None},
-        "text_only_design_effect": de, "assumed_sd_g_within_cell": SD_G_WITHIN_CELL_ASSUMED,
+        "text_only_design_effect": de, "assumed_sd_g_within_cell": SD_G_WITHIN_CELL_ASSUMED, "secondary_sqrt_mean_m_one_minus_m_s1": sd_g_secondary,
         "s1_se_per_marker_price_units": se, "s1_mde_per_marker_cents": None if mde is None else 100 * mde,
         "gate_GS": gate,
     }
@@ -420,7 +429,7 @@ def measure_h_geo(snap_root: Path, *, window: tuple[str, str] = H_GEO_WINDOW, mi
         raise Refused(f"h_geo reads only a snapshots/ directory, not {root}")
     obs: list[float] = []
     per_market: dict[str, list[float]] = {}
-    n_cap = 0
+    n_cap = n_side_skipped = n_geo_ids = 0
     for d in sorted(root.iterdir() if root.exists() else []):
         m = _CAPTURE_RE.match(d.name)
         if not m or not d.is_dir():
@@ -434,8 +443,12 @@ def measure_h_geo(snap_root: Path, *, window: tuple[str, str] = H_GEO_WINDOW, mi
             continue
         if str(man.get("state")) != "complete":
             continue
+        if str(man.get("sidecar_status")) != "complete":
+            n_side_skipped += 1
+            continue
         geo_ids = {r["market_id"] for r in read_cols(d / "rows_ext.csv.gz", ("market_id", "fee_category")) if r.get("fee_category") == "geopolitics"}
         n_cap += 1
+        n_geo_ids += len(geo_ids)
         seen: set[str] = set()
         for r in read_cols(d / "rows.csv.gz", ("market_id", "best_bid", "best_ask")):
             mid_id = r["market_id"]
@@ -452,7 +465,11 @@ def measure_h_geo(snap_root: Path, *, window: tuple[str, str] = H_GEO_WINDOW, mi
             h = (ask - bid) / 2
             obs.append(h)
             per_market.setdefault(mid_id, []).append(h)
-    res = {"window": list(window), "complete_captures": n_cap, "observations": len(obs), "markets": len(per_market),
+    if n_cap == 0:
+        raise Refused(f"h_geo: no complete capture with a complete sidecar in {window[0]}..{window[1]} under {root} ({n_side_skipped} skipped for sidecar); check the host")
+    if n_geo_ids == 0:
+        raise Refused("h_geo: no market with fee_category == 'geopolitics' in any complete capture: misconfiguration (fee category string or sidecar); refusing")
+    res = {"window": list(window), "complete_captures": n_cap, "captures_skipped_sidecar_not_complete": n_side_skipped, "observations": len(obs), "markets": len(per_market),
            "geopolitics_rule": "rows_ext fee_category == 'geopolitics' (capture rows carry no question)"}
     if not obs:
         return {**res, "median_half_spread_pooled": None, "median_half_spread_by_market": None, "h_geo_binding": None, "status": "unavailable"}
@@ -464,27 +481,37 @@ def measure_h_geo(snap_root: Path, *, window: tuple[str, str] = H_GEO_WINDOW, mi
 # ---- X ----------------------------------------------------------------------------------------------------------------------------
 
 
-def census_x(xv_dir: Path, cv_root: Path) -> dict:
+def require_xv_complete(xv_dir: Path) -> dict:
     cm.refuse_path(xv_dir)
-    cm.refuse_path(cv_root)
     mp = Path(xv_dir) / "manifest.json"
     man = json.loads(mp.read_text()) if mp.exists() else {}
     if not (man.get("complete") is True and man.get("status") == xv.XV_COMPLETE):
         raise NotNow(f"xv_prints is not {xv.XV_COMPLETE}; run q0146 first")
+    return man
+
+
+def census_x(xv_dir: Path, cv_root: Path) -> dict:
+    cm.refuse_path(cv_root)
+    man = require_xv_complete(xv_dir)
     legs = {r["pair_key"]: r for r in cm.read_csv_gz(Path(xv_dir) / "legs.csv.gz")}
     days = Counter()
-    pair_days: Counter = Counter()
+    days_by_group: dict[str, Counter] = {"nonsports": Counter(), "sports": Counter()}
     for r in read_cols(Path(xv_dir) / "days.csv.gz", ("pair_key", "status")):
         days[r["status"]] += 1
-        pair_days[r["pair_key"]] += 1
+        lg = legs.get(r["pair_key"], {})
+        days_by_group["sports" if str(lg.get("k_cat", "")).strip().lower() == "sports" else "nonsports"][r["status"]] += 1
     tot = {"all": Counter(), "nonsports": Counter(), "sports": Counter()}
     moves = {"all": Counter(), "nonsports": Counter(), "sports": Counter()}
     clusters = {g: {"event": set(), "date": set(), "window": set()} for g in tot}
     prints_per_pair: dict[str, int] = {}
+    grid_total = grid_gap = 0
     for key, leg in sorted(legs.items()):
         grp = "sports" if str(leg.get("k_cat", "")).strip().lower() == "sports" else "nonsports"
         z = np.load(Path(cv_root) / "series" / f"{key}.npz")
         km = xv.KalshiMid(z["kc"])
+        gt, gg = km.minutes_without_candle()
+        grid_total += gt
+        grid_gap += gg
         up, down = xv.move_events(km)
         for g in ("all", grp):
             moves[g]["up"] += len(up)
@@ -493,9 +520,11 @@ def census_x(xv_dir: Path, cv_root: Path) -> dict:
         pr = [(float(r["ts"]), _ci(r["side"])) for r in read_cols(pf, ("ts", "side"), required=("ts", "side"))] if pf.exists() else []
         prints_per_pair[key] = len(pr)
         ps = np.asarray(z["ps"], float).reshape(-1, 2)
+        if len(ps):
+            ps = ps[np.argsort(ps[:, 0], kind="stable")]
         res = xv.classify_prints(pr, up, down, km, ps[:, 0] if len(ps) else np.empty(0), ps[:, 1] if len(ps) else np.empty(0))
         for g in ("all", grp):
-            for k in ("n_prints", "excluded_both_states", "excluded_unusable", "S", "Sp", "N"):
+            for k in ("n_prints", "excluded_both_states", "excluded_unusable", "S", "Sp", "N", "S_mark_available"):
                 tot[g][k] += res[k]
             clusters[g]["event"].update({leg["p_event_id"]} if res["S"] else set())
             clusters[g]["date"].update(datetime.fromtimestamp(t, UTC).strftime("%Y-%m-%d") for t in res["s_ts"])
@@ -509,7 +538,8 @@ def census_x(xv_dir: Path, cv_root: Path) -> dict:
     gate["GX"] = all(v["met"] for v in gate.values())
     return {
         "status": "ok", "xv_manifest_status": man.get("status"), "pairs": len(legs), "pairs_nonsports": sum(1 for v in legs.values() if str(v.get("k_cat", "")).strip().lower() != "sports"),
-        "pair_day_items": sum(days.values()), "days_by_status": dict(sorted(days.items())), "capped_days": days.get("capped", 0),
+        "pair_day_items": sum(days.values()), "days_by_status": dict(sorted(days.items())), "days_by_status_by_group": {g: dict(sorted(c.items())) for g, c in days_by_group.items()},
+        "kalshi_move_grid": {"minute_ends": grid_total, "minutes_without_a_candle": grid_gap}, "capped_days": days.get("capped", 0),
         "legs_without_condition_id": man.get("legs_without_condition_id"),
         "prints_per_pair": {"min": min(prints_per_pair.values()) if prints_per_pair else None, "median": statistics.median(prints_per_pair.values()) if prints_per_pair else None,
                             "max": max(prints_per_pair.values()) if prints_per_pair else None, "total": sum(prints_per_pair.values())},
@@ -521,6 +551,27 @@ def census_x(xv_dir: Path, cv_root: Path) -> dict:
 
 
 # ---- the census ---------------------------------------------------------------------------------------------------------------------
+
+
+def _terminal(state: str) -> dict:
+    """A family whose run ended without a seal: ``not_run_deadline`` is "not run"; the two unverified states are "not testable"."""
+    return {"status": state, "testable": False} if state != cm.NOT_RUN_TOKEN else {"status": state}
+
+
+def census_declaration() -> dict:
+    """Item 4 (CB7 section 5.2 declaration guard): sha256 of the CB7-X definitions block of ``cb7_xv`` (source of every definition function and
+    constant), of ``cb7_census.py`` and of the gate / constant dicts. Written into ``census.json``; re-checked at the CB7 freeze and q0150."""
+    import hashlib  # noqa: PLC0415
+    import inspect  # noqa: PLC0415
+
+    xv_src = "\n".join(inspect.getsource(f) for f in (xv.valid_mid, xv.KalshiMid, xv.move_events, xv.in_skip, xv.skip_windows, xv.poly_point_ok,
+                                                      xv.mark_available, xv.classify_prints, xv.map_trade_row))
+    consts = {"GS": GS, "GG": GG, "GX": GX, "Z_MDE": Z_MDE, "SD_G": SD_G_WITHIN_CELL_ASSUMED, "H_GEO_WINDOW": list(H_GEO_WINDOW), "H_GEO_MID": list(H_GEO_MID),
+              "xv": {k: getattr(xv, k) for k in ("K_MAX_AGE_S", "K_MAX_SPREAD", "MID_RANGE", "MOVE_LOOKBACK_S", "MOVE_THRESHOLD", "SKIP_LAG_S", "SKIP_LEN_S",
+                                                  "POLY_MARK_MIN_AGE_S", "POLY_MARK_MAX_AGE_S", "DAY_PAGES", "PAGE_LIMIT")}}
+    sha = lambda x: hashlib.sha256(x.encode()).hexdigest()  # noqa: E731
+    return {"cb7_xv_definitions_sha256": sha(xv_src), "cb7_census_source_sha256": sha(Path(__file__).read_text()),
+            "constants_sha256": sha(json.dumps(consts, sort_keys=True, default=list)), "constants": _jsonable(consts)}
 
 
 def run_census(families: list[str], *, root: Path, seals_dir: Path, cb7_dir: Path, cv_root: Path, snapshot_root: Path,
@@ -536,21 +587,25 @@ def run_census(families: list[str], *, root: Path, seals_dir: Path, cb7_dir: Pat
     for p in (root, cb7_dir, Path(cv_root)):
         cm.refuse_path(p)
     out = Path(out) if out else cb7_dir / RESULT_NAME
-    if out.exists():
-        raise Refused(f"{out} already exists; the census is write-once")
+    if out.resolve().parent != cb7_dir.resolve():
+        raise Refused(f"--out {out} is outside {cb7_dir}; the census is written only there")
+    if out.exists() or (cb7_dir.exists() and any(cb7_dir.glob("census*.json"))):
+        raise Refused(f"a census result already exists in {cb7_dir}; the census is write-once")
+    if "X" in fams:  # readiness before any S / G read, so a tempfail leaves no ACCESS_LOG entry
+        require_xv_complete(cb7_dir / xv.XV_RUN_ID)
     seals = verify_seal_copies(root, seals_dir)
     rules_sha = cm.verify_rules(Path(rules_path) if rules_path else cm.RULES_FILE, require_committed=require_committed, pins=pins)
     res: dict = {"version": CENSUS_VERSION, "job": JOB, "evidence_role": hb.EVIDENCE_ROLE, "kind": "cb7_descriptive", "families": fams,
-                 "rules_sha256": rules_sha, "seals": seals, "git_commit": hb._git_commit(),
+                 "rules_sha256": rules_sha, "declaration": census_declaration(), "seals": seals, "git_commit": hb._git_commit(),
                  "note": "counts only; no outcome, mark, YES rate or estimate is computed; floors, windows and thresholds are never revised from these counts"}
     h_geo: dict | None = None
     if "G" in fams and seals[cm.GEO_RUN_ID]["state"] == "sealed":
         h_geo = measure_h_geo(Path(snapshot_root), wall_clock=wall_clock)
     for fam in fams:
         if fam == "S":
-            res["S"] = census_s(root, seals_dir) if seals[cm.TEXT_RUN_ID]["state"] == "sealed" else {"status": "not_run"}
+            res["S"] = census_s(root, seals_dir) if seals[cm.TEXT_RUN_ID]["state"] == "sealed" else _terminal(seals[cm.TEXT_RUN_ID]["state"])
         elif fam == "G":
-            res["G"] = census_g(root, seals_dir, h_geo or {}) if seals[cm.GEO_RUN_ID]["state"] == "sealed" else {"status": "not_run"}
+            res["G"] = census_g(root, seals_dir, h_geo or {}) if seals[cm.GEO_RUN_ID]["state"] == "sealed" else _terminal(seals[cm.GEO_RUN_ID]["state"])
         else:
             res["X"] = census_x(cb7_dir / xv.XV_RUN_ID, Path(cv_root))
     res = _jsonable(res)
