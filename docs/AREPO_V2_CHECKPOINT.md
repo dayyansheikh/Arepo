@@ -247,29 +247,32 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-22 21:05Z
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-22 21:45Z
 Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && git log --oneline -1'` = local tip.
 Host 2 OCPU / 11.4 GiB since the resize. data-dumps 34 / 40 GB cap: owner approval 8 (restore-tree clearing) is time-relevant.
 
-**Autopilot session 10-22 from 20:35Z (state at 21:05Z):**
+**Autopilot session 10-22 from 20:35Z (state at 21:45Z):**
 - **LT7:** 13.7 code cherry-picked onto chore (3294d997, f4ff54ec; 143 tests); host hashes live_tests7.py e1c5c0c6…, design
   8fc83a73… confirmed after deploy a5df8cb0. **q0603 (CC7) and q0604 (CS7) PROMOTED** (exclusive; must finish before
   10-28T03:30Z). When q0604 is done: ledger + registry; **do NOT revert retention to 8 days** until LT8's q0623 finishes
   (LT8 re-check R3). Then LT7 phase 2.
-- **LT8:** re-check `reviews/LT8_CENSUS_CODE_FIX_RECHECK_2026-10-22.md` (on feat/live-tests-8-code, 800ee314):
-  FIXES_REQUIRED R1-R3 (fixes 1-10 OK). R1 confirmed: host CV7.json records live_tests7.py 2ee6a659…. An agent is applying
-  amendment 13.7 (listed_carry24h_v2), the CV7/CC7 hash set and the restore roots on that branch. Next: science-reviewer
-  re-check, merge into chore (branch is chore-based), promote q0620-q0623 per R3 timing.
+- **LT8:** re-check R1-R3 fixed on feat/live-tests-8-code (ac15d689 amendment 13.7 + code, 5e0976f8 drafts; design sha
+  c76ffff6…; 218 tests). science-reviewer re-check running (save as reviews/LT8_13_7_RECHECK_2026-10-22.md). If OK: merge
+  into chore (chore-based branch), deploy, run LT8 `restore-plan` on the host with the new roots, promote q0620-q0623 per
+  the drafts' retention notes (finish before 10-28T03:30Z or every host-only file in an untouched root).
 - **CB16-K:** blind audit FAIL (3/100 genuine twins): CH143 not testable at the floor (4da71761); registry updated.
 - **CB7:** q0147 re-check FIXES_OK_WITH_NOTES (`reviews/CB7_CENSUS_FIX_RECHECK_2026-10-22.md`); notes 1-2 implemented
   (d504d620: durable XV_TERMINAL marker; X terminal recorded, S/G proceed). Promote q0147 at/after **10-24T01:00Z** after
   checking the 10-22..10-25 captures exist on the host (census source hash changed; expected before the freeze).
-- **CB8/CB9:** q0164 had exited 0 after a Gamma 422 (keys never written) so q0165 failed x3; q0181 MemoryError x3. An agent
-  is fixing (q0164b, rc 75 on incomplete, q0181 caps). After its commit + deploy: `retry q0165_cb8_updown_frame`, `retry q0181_cb9_sign_audit_A`.
+- **CB8/CB9:** q0164b (ruling reviews/CB8_Q0164B_RULING_2026-10-22.md GO_WITH_CHANGES, 62a38346) deployed and queued;
+  q0165 retried (waits on q0164b). Note: a repeat job is marked `done` once max_runs (10) is used even if incomplete; check
+  q0164b's log for `exclusion_keys_complete` before trusting q0165. q0181 caps raised (ec9f900a), retried 21:18Z.
 - **MC1:** q0116g profile measured (fold 0 ~2 h, RSS 6.2 GB; 16 folds -> ~32 h+). Per-unit resume implemented (0adebfb9);
   draft q0116h (depends on q0604). Promote after q0604 with a quick science-reviewer look at ml_resume.py.
-- **Creative round 14** merged (9079ca39; CH212-CH221). **LT9** draft (CH213, CH214, CH212; CH215 count-gated) being written on
-  `feat/live-tests-9` (`../astrolabe-live-tests-9`). Next: challenger R1, response, re-check, design-text freeze.
+- **Creative round 14** merged (9079ca39; CH212-CH221; CANDIDATES note 430dc86c). **LT9** draft b2882734 on `feat/live-tests-9`
+  (`../astrolabe-live-tests-9`; sha 01c49890…; window proposed 2027-01-21..02-11; freeze before the earlier of 11-14T12Z and
+  E015's analysis). Challenger R1 running (save as reviews/LT9_R1_CHALLENGER_2026-10-22.md); then response, re-check,
+  design-text freeze, embargo requests (`bandbreak`, `pool`, `rwblink`, `rwend`) in CANDIDATES, registry (entry added dc852235).
 
 **Earlier this day (06:00Z):** q0561 LT5 census done (F/H/R dropped, c0700f8f); q0484 size check PASS -> **E022
 REGISTERED** (bf730c6f; reader cron `10-59/20` installed on the host 06:0xZ; q0486 analysis queued, not before 11-17T12Z);
