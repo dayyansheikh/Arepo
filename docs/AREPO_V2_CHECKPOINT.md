@@ -247,27 +247,29 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-22 17:55Z
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-22 18:55Z
 Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && git log --oneline -1'` = local tip.
 Host 2 OCPU / 11.4 GiB since the resize. data-dumps 33 / 40 GB cap: owner approval 8 (restore-tree clearing) is time-relevant.
 
-**Autopilot session 10-22 ~16:00Z (in progress; state at 17:55Z):**
+**Autopilot session 10-22 ~16:00Z (in progress; state at 18:55Z):**
 - **Worktree caveat:** agent worktrees (isolation) start from the PRODUCTION tip (e1dfa8a5), not chore. Never merge such
-  branches into chore; cherry-pick the agent's own commits (done for 58444fa8, 0f1dfbf5).
-- **LT7:** probe rule (c) fired -> challenger ruling (C) `listed_carry24h_v2` (reviews/LT7_REWARD_SWITCH_RULING_2026-10-22.md).
-  q0602 CV7 promoted (priority 95, queued behind the exclusive se refit). 13.7 code on `feat/lt7-reward-carry` (64acdbc4,
-  design 575eb1dd…) -> re-check FIXES_REQUIRED (reviews/LT7_REWARD_CARRY_RECHECK_2026-10-22.md; fix 1 choice (a) else
-  (b)); implementer applying fixes. Then short re-check, cherry-pick onto chore, deploy ONLY AFTER q0602 has written
-  CV7.json (else CV7 records the wrong design sha), promote q0603; q0604 after q0603. Deadline 10-28T03:30Z.
-- **LT8:** fixes committed (2c932e07). Re-check waits for LT7 13.7 merge (re-vendor; LT8 reward rule should follow LT7).
-- **MC1:** q0116f timed out (parked). Timing + `--profile-folds` merged (0f1dfbf5); q0116g one-fold profile promoted.
-- **CB16-K:** counts pass; sampler merged (58444fa8, weakest twin shown); q0393 promoted. When done: science-reviewer
-  blind audit of `audit_K_sample.json` only (>= 90/100 genuine twins); never show the keys file.
-- **CB7:** h8_text seal committed; xv-prints + census code on `feat/cb7-code` (d47d0031, base is production: cherry-pick);
-  freeze check running. Then q0146 (add disk_budget to its until regex), q0147 (G part exits 75 until 10-25T00Z).
-- **CB8-B:** q0165/q0166 promoted. **CB9:** q0181 running; q0182 ruling (reviews/CB9_H9_DEPENDENCY_RULING_2026-10-22.md):
-  after q0166 done (+ its holdout seal committed), promote q0182 with depends [q0164, q0166], two --extra-pin, MUST 1 sha.
-- **Creative round 14** (Fable xhigh) running on `feat/creative-r14` (based on chore: merge is fine).
+  branches into chore; cherry-pick the agent's own commits.
+- **LT7 (deadline: CC7/CS7 finish before 10-28T03:30Z):** probe rule (c) fired -> ruling (C) `listed_carry24h_v2`;
+  code on `feat/lt7-reward-carry` 64acdbc4 + 8dd013b9 (design 8fc83a73…, live_tests7.py e1c5c0c6…; fix 1 option (b));
+  re-check **OK_WITH_NOTES** (reviews/LT7_REWARD_CARRY_FIX_RECHECK_2026-10-22.md; 143 tests). **NOT yet on chore on
+  purpose:** q0602 CV7 (priority 97) must write `live_tests7_census/CV7.json` first (it records the design sha from disk
+  at write time). **Next:** when q0602 is `done`: cherry-pick 64acdbc4 and 8dd013b9 onto chore, run LT7 tests, deploy,
+  confirm host hashes (e1c5c0c6…, 8fc83a73…), promote q0603 (drafts, work_cc7_rn_v2), then q0604 after q0603.
+  Then ledger + registry. Notes for later (after the censuses): `_status_array` in `_reward_cols` no-carry branch.
+- **LT8:** fixes on `feat/live-tests-8-code` (2c932e07); implementer re-vendoring from LT7 8dd013b9 (fix 6) and
+  reporting LT8's reward handling. Then ask the reviewer (re-check of fixes 1-10 + whether LT8 adopts listed_carry24h_v2).
+- **MC1:** q0116f parked; q0116g one-fold profile promoted (priority 45, exclusive, 2 h).
+- **CB16-K:** q0393 audit sample promoted (priority 9). When done: science-reviewer blind audit on `audit_K_sample.json`
+  only (never the keys file), >= 90/100 genuine twins -> K may be designed in a later batch.
+- **CB7:** code on chore (75708661, 4cc77b64, 35a6fd33); q0146 PROMOTED + deployed. q0147: short re-check of fixes 3-8,
+  then promote at/after **10-24T01:00Z** after checking the 10-22..10-25 captures exist on the host.
+- **CB8-B:** q0165/q0166 queued. **CB9:** q0181 running; q0182 per reviews/CB9_H9_DEPENDENCY_RULING_2026-10-22.md after q0166.
+- **Creative round 14** (Fable xhigh) running on `feat/creative-r14` (chore-based: merge is fine).
 
 **Earlier this day (06:00Z):** q0561 LT5 census done (F/H/R dropped, c0700f8f); q0484 size check PASS -> **E022
 REGISTERED** (bf730c6f; reader cron `10-59/20` installed on the host 06:0xZ; q0486 analysis queued, not before 11-17T12Z);
