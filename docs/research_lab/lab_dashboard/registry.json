@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-22T22:10:00Z",
+ "updated": "2026-10-22T22:55:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1628,19 +1628,19 @@
   },
   {
    "id": "LT9",
-   "title": "Live tests 9: three ideas from round 14 (draft)",
-   "plain": "Up to three planned live tests from new-ideas round 14, all about reward-programme quoting: whether spreads that leave the reward band re-tighten faster on rewarded markets, whether new depth on both sides squeezes the spread, and what follows when the data feed leaves the reward field out. Design draft written (22 Oct); an independent challenger review is next. Most may fail their counting checks.",
+   "title": "Live tests 9: three ideas from round 14 (planned)",
+   "plain": "Up to three planned live tests from new-ideas round 14, about reward-programme quoting: whether spreads that leave the reward band re-tighten faster on rewarded markets, whether new depth on both sides squeezes the spread, and what follows when the data feed leaves the reward field out. The design passed an independent challenger review after changes and is frozen (22 Oct). Most may fail their counting checks.",
    "batch": "LT9",
    "family": "mixed",
    "stage": "designed",
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Challenger review, then design freeze; collection proposed from 21 Jan 2027",
+   "next": "Code and counting checks (data from 2 to 12 Nov); collection proposed from 21 Jan 2027",
    "next_date": "2027-01-21",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT9 design draft (2026-10-22), branch feat/live-tests-9"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT9 drafted, challenger R1 and re-check, DESIGN-TEXT FREEZE (2026-10-22); docs/research_lab/LIVE_TESTS_9.md"
    },
    "stage_results": {
     "designed": "pending"

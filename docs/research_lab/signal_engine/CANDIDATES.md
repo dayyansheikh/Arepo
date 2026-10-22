@@ -171,6 +171,30 @@ ledger line (the `book0` / `book` extension is withdrawn only if CH203 and CH202
   versus common; this overlaps `event` / se8); `farm` (CH183: book imbalance inside versus outside the reward band; LT5
   saw no unrewarded units, possibly an empty-`clob_rewards` parse artefact, so check the parse before building).
 
+## Embargo requests from the experiments side, round 6 (LT9 design frozen; filed 2026-10-22 ~22:55Z)
+
+LT9 (`docs/research_lab/LIVE_TESTS_9.md` section 9; design text frozen at 11fee7a0, sha256 098aa3fb…; window proposed
+2027-01-21 .. 2027-02-11, analysis about 2027-02-12) is accepted (challenger R1 REVISE -> response -> re-check
+ACCEPT_WITH_FIXES -> fixes). "LT9 date" = the later of 2027-02-14T00:00Z and LT9's analysis commit (if LT9 takes LT8's slot,
+the later of 2027-01-23T00:00Z and LT9's analysis commit). Apply before any isolating challenger is scored, and in any case
+before 2026-12-23T00:00Z. Each request adds a token or moves a date later; none moves a date earlier.
+
+| Token | Until | Test | Columns / why |
+|---|---|---|---|
+| `bandbreak` (new) | LT9 date | CH213 | `bb_*`: spread over twice the reward band, strict break, slots since break, carried band |
+| `pool` (new) | LT9 date | CH214 | `pl_*`: symmetric in-band two-sweep depth innovation; no isolating `pool` challenger before LT8's `quietbook` date in any case |
+| `rwblink` (new) | LT9 date | CH212 | `rb_*`: `clob_rewards` omission state, run length, CLOB-feed listing / disagreement |
+| `rwend` (new) | LT9 date, **only if CH215 enters at its census** | CH215 | `re_*`: hours to a programme's stated end; otherwise built without a token |
+| `book0`, `book` | 2027-01-23 -> LT9 date, **conditional on CH214's census** | CH214 | a model isolating both can form the two-sweep band-sum innovation; withdrawn with a ledger line if CH214 drops (cost: se3, se14, se19 book attribution hidden ~22 more days) |
+
+**Not extended:** `rewards` stays at the later of 2026-11-18 and E022's analysis commit. **Instead, attribution limits (to
+the LT9 date), to be entered in `config.EMBARGO` beside the tokens:** no attribution (SHAP or otherwise) of the champion,
+se9 or any broad model on spread x `rewards_max_spread` interactions, on the history of the `clob_rewards` field's presence,
+or on two-sweep band-sum differences, computed or shown before the LT9 date; no LT9 family added to a broad model before
+then (or record such a model in the ledger as a development look). LT9's pin step (8.4 step 8) verifies both entries.
+**Not requested:** `surprise`, `movetype`, `participation`. A test dropped at its census withdraws its new token and any
+extension made only for it, with a ledger line.
+
 ## Notes from the experiments side, 2026-10-22 ~22:10Z (LT7 closed at census: embargo withdrawals requested)
 
 LT7's three censuses are done (counts only; ledger "LT7 census CC7" and "LT7 census CS7 and closure", 2026-10-22): CH191,
@@ -192,9 +216,8 @@ reward band and its re-tightening), `pool` (CH214, symmetric in-band depth arriv
 under `flow` / `movetype`), `rowq` (CH217, optional-field presence / row quality; also a proposed label-quality weight,
 a learner change under DESIGN_V1 section 19), `dispgap` (CH218, venue-displayed change versus the host's own path),
 `bookclock` (CH219, `book_timestamp` innovation), dormancy (CH220), `sibprop` (CH221, waits for an admissibility ruling
-on `uma_resolution_statuses`). **CH213, CH214 and CH212 (CH215 count-gated) are the planned LT9 family (draft on
-`feat/live-tests-9`): do not build an isolating challenger for `bandbreak`, `pool`, `rwblink` or `rwend` before LT9's
-design fixes its embargo dates** (requests will follow here; `pool` also respects LT8's `quietbook`). The engine-first rest
+on `uma_resolution_statuses`). **CH213, CH214 and CH212 (CH215 count-gated) are the LT9 family (design frozen 2026-10-22): do not build an isolating
+challenger for `bandbreak`, `pool`, `rwblink` or `rwend` before the round-6 requests above are applied** (filed 22:55Z; `pool` also respects LT8's `quietbook`). The engine-first rest
 (CH217-CH220; CH221 after its ruling) may be built as development families under the usual rules.
 
 ## Idea-level families from creative round 13 (2026-10-22; ideas only, no evidence; not candidates yet)
