@@ -3694,3 +3694,16 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - Science review: ACCEPT_WITH_FIXES. All fixes applied: `rewards` kept for E022 S2 (only the LT5 R extension
   withdrawn), "later of" wording on flow / LT8 / book entries, structured withdrawal fields, these disclosures and the
   K path. Withdrawal time set at or after the deploy (deploy before 12:00Z; actual time in STATUS.md). Tests: 50 engine tests pass; ruff clean.
+
+## MC1 q0116f: timed out at the 6 h limit, 2026-10-22 13:42Z (nothing counted; development only); PARKED
+- q0116f (`run_ml_dev.py`, exclusive, 6,000 MB, as_cap 14,000 MB, 1 CPU, timeout 21,600 s) ran on the resized host
+  (2 OCPU / 11.4 GiB) from 07:42Z and was stopped by the worker's timeout at 13:42:02Z (rc -15). No OOM this time (RSS
+  about 6.2 GB at 3 h). It wrote only the fold manifest (`ml_dev_20261022T074210Z_cac75bfc_fold_manifest.json`, 07:42Z,
+  the same size as q0116c's); the job log holds only the argv line, so the stage at which it spent the remaining ~6 h is
+  not known (the model-fit stages log nothing).
+- No trials lines, no model outputs; the cached panel and period cache are unchanged and stay reusable.
+- **Decision:** parked (16:02Z), not retried. Per the standing rule, no new id without a measured fix: the next step is
+  stage-level progress and timing lines in `run_ml_dev.py` (panel load, per-model fit per fold, bootstrap, SHAP) and a
+  bounded one-fold profile job, then a timeout and CPU request set from that measurement. No design change (panel,
+  models, folds and gates unchanged). The signal engine (separate autopilot) keeps covering prospective multi-family
+  scoring meanwhile.
