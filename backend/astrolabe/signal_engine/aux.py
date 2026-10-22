@@ -359,7 +359,11 @@ def _surprise_builder(ctx: dict) -> pd.DataFrame:
 # since the 7 d extremes, the position in the 7 d range and the share of the 7 d slots quoted. Inputs: the engine's own
 # quotes files of slots k - 84 .. k (earlier captures plus the origin's own mid, as `surprise`); no snapshot rows.
 # Windows of 3 d and longer only, so the family carries no 6 h step path (LT7 `capath`) and no time-of-day schedule
-# (LT8 `sched`). No embargo token.
+# (LT8 `sched`). No embargo token. `hw_dhi7d + hw_dlo7d` is the 7 d range, a volatility measure near `sp_rv7d`
+# (`surprise`, E011 until 2026-11-19); no token is needed because E011 tests a frozen detector, not a learned direction
+# score, and the champion already holds ms_rv24 and chg 1w (science review 2026-10-22). Departure from CH181 as written
+# in CANDIDATES: raw probability distances, not within-market SD units (dividing by own volatility would bring the
+# `surprise` quantity in), and the new-extreme flag is only implicit (hw_dhi* < 0).
 HWM_COLUMNS = ["hw_dhi3d", "hw_dlo3d", "hw_dhi7d", "hw_dlo7d", "hw_agehi7d", "hw_agelo7d", "hw_pos7d", "hw_cov7d"]
 HW_WINDOWS = {"3d": (36, 12), "7d": (84, 24)}  # name: (earlier 2 h slots, min quoted slots)
 HW_LOOKBACK = max(w for w, _ in HW_WINDOWS.values())
@@ -368,7 +372,9 @@ HW_MIN_RANGE = 0.01  # the 7 d position needs a range of at least one cent
 
 def hwm_features(H: np.ndarray) -> pd.DataFrame:
     """``H``: per eligible market, mids of slots k - HW_LOOKBACK .. k (NaN where not quoted), last column the origin.
-    The extremes are taken over the earlier slots only, so a new high gives ``hw_dhi* < 0``."""
+    The extremes are taken over the earlier slots only, so a new high gives ``hw_dhi* < 0`` and ``hw_pos7d > 1`` (a new
+    low: below 0; the position is not clipped). ``hw_cov7d`` is reported even below the 24-slot minimum (it says how
+    much history there is)."""
     n = H.shape[0]
     out = pd.DataFrame({c: np.full(n, np.nan, np.float32) for c in HWM_COLUMNS})
     if n == 0:

@@ -724,7 +724,18 @@ evidence yet, development or prospective.
   - `hw_pos7d`: (mid - low) / (high - low) over 7 d, missing when the range is below one cent.
   - `hw_cov7d`: share of the 84 earlier slots quoted (history is truncated for markets older than AREPO's captures).
 - **Windows of 3 d and longer only,** so the family carries no 6 h step path (LT7 `capath`, CH191) and no time-of-day
-  schedule (LT8 `sched`, CH204). No embargo token.
+  schedule (LT8 `sched`, CH204). No embargo token. `hw_dhi7d + hw_dlo7d` is the 7 d range, a volatility measure near
+  `sp_rv7d` (`surprise`, E011 until 11-19); no token is needed because E011 tests a frozen detector, not a learned
+  direction score, and the champion already holds `ms_rv24` and the 1 w change.
+- **Departures from CH181 as listed in CANDIDATES:** raw probability distances, not within-market SD units (dividing by
+  own volatility would bring the `surprise` quantity in); no explicit new-extreme flag (it is `hw_dhi* < 0`, and
+  `hw_pos7d` is not clipped: above 1 at a new high, below 0 at a new low); `hw_cov7d` is reported even below the
+  24-slot minimum.
+- **Science review (2026-10-22 ~22:10Z): ACCEPT_WITH_FIXES.** No leakage (extremes over earlier slots only; the origin
+  quotes file is the same capture's Gamma rows as the label anchor; no sweep input, so §21 does not arise); no token
+  needed (LT5 H and E021 dropped; LT7, LT8, LT9 draft, E015, E022 checked); not promotion-ineligible. Fixes applied:
+  the `surprise` rationale, the departures and the ranges above, written down. One availability caveat: a quotes file
+  that arrived late enters a backfilled table but would not have entered a live-built one (not leakage).
 - **Challenger `se21_lgbm_hwm`:** LightGBM with `se1_lgbm_mm`'s parameters on the champion's features plus `hwm`,
   `require_full_coverage`, read against se1 for the family effect. One pre-declared configuration, no development
   selection; its first evidence is prospective. K rises by one (the conservative direction for every challenger).
