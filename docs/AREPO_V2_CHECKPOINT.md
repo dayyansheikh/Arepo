@@ -321,7 +321,7 @@ applied before `movetype` lapses 11-22).
 **Waiting:**
 - MC1: after the resize (item 4).
 - CB4 q0085 not before ~10-24T12Z. CB5 q0103b on or after 10-27, then q0106. CB3 freeze after q0064 (after 10-25).
-- Signal engine: live state in `signal_engine/STATUS.md` (10-21 ~21:10Z: promotion rule `se-promotion-v2` in force; se17_lgbm_mm_900k first fit at the 10-22 07:34Z refit; embargo round 3 `hollow` (E022, 11-18) applied; dashboard `promotion` block).
+- Signal engine: live state in `signal_engine/STATUS.md` (10-22 ~01:00Z: book label-window overlap disclosed (DESIGN_V1 section 21), se7/se3/se14 promotion-ineligible (K kept at 3), CH199 killed at census, CH200 declined; embargo round 4 (LT7) applied; /lab promotion card PRs #26/#27 merged; deployed 8ea00bd; se-promotion-v2 in force).
 
 ## Learned surprise-move detector (2026-10-12 evening)
 `docs/research_lab/SURPRISE_MOVE_DETECTOR.md`. Labels fixed and logged before features (`surprise-labels-v1`,
