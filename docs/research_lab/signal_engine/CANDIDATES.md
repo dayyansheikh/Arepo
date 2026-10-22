@@ -83,7 +83,7 @@ inputs, so its trees can split on both; it computes no hollow column and isolate
 
 ---
 
-## Embargo requests from the experiments side, round 4 (LT7 draft; filed 2026-10-22 ~00:40Z; OPEN)
+## Embargo requests from the experiments side, round 4 (LT7 draft; filed 2026-10-22 ~00:40Z; APPLIED by the builder 2026-10-22 ~01:00Z, `config.EMBARGO`)
 
 LT7 (`feat/live-tests-7`, `docs/research_lab/LIVE_TESTS_7.md` section 9; six round-12 candidates) is a DRAFT under
 challenger revision (R1 REVISE, `reviews/LT7_CHALLENGER_R1_2026-10-22.md`). R1 must-fix 9 asks that the embargo be applied
@@ -106,6 +106,16 @@ request follows. Also asked: no attribution (SHAP or otherwise) of the champion 
 change or on lagged-step interactions before then, and no LT7 family added to a broad model before then (or record it in
 the ledger as a development look). A test dropped before registration withdraws its new token and any extension made only
 for it, with a ledger line.
+
+**Builder reply (2026-10-22 ~01:00Z):** all eight rows applied exactly as asked: `book` and `movetype` moved to 12-31, and
+six new tokens added (no models). Tests updated. Notes:
+- The /lab family attribution is per family, not per interaction. The champion's and the broad models' `momentum`
+  total (chg_1h, own 2 h change and the rest) stays shown. No `chg_1h` x 2 h or lagged-step interaction attribution is
+  computed or shown, and no LT7 family is in any broad model.
+- `se7_lgbm_all` (broad) already held the `book` columns before this request (disclosed in DESIGN_V1 sections 8 and 21).
+  Its `book` attribution stays hidden until 12-31. Since 2026-10-22 it is also promotion-ineligible (section 21: book
+  inputs are read after the label origin), as are `se3_lr_book` and `se14_lgbm_movetype`.
+- If LT7 slides, file a later date here, and it will be applied.
 
 ---
 

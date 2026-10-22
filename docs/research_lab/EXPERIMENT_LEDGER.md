@@ -3476,3 +3476,6 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **CH199 `rulesrc` killed at census:** 19.9% of eligible non-sports markets carry a parseable resolution-source host,
   below its own 30% kill line.
 - Also: /lab promotion-rule status card merged (PR #26).
+- (~01:00Z, signal engine) **Embargo round 4 applied (LT7 draft):** `book` 12-09 -> 12-31, `movetype` 11-22 -> 12-31, new
+  tokens `resist`, `capath`, `mm_fresh`, `deepbook`, `absorbed`, `ivr` until 12-31 (no models). Only later dates and new
+  tokens. No score of an affected model has been computed or shown.

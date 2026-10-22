@@ -158,15 +158,16 @@ champion (market state + momentum), the learner reference and broad multi-family
 | chg1d_x_liq (no model yet) | 2026-11-14T00:00Z | E012 |
 | tte | 2026-11-14T00:00Z | E014 |
 | flow | 2026-11-22T00:00Z (from 11-16, 2026-10-21) | E013, E014 (LT2, 2026-11-13T12Z), E016, E018 (LT3 proposed 2026-11-15T12Z), LT5 J/O (draft) |
-| book | 2026-12-09T00:00Z (from 11-18, then 11-22, both 2026-10-21) | E015, E019 (LT3), E020, E022 (LT4 proposed 2026-11-17T12Z), LT5 H/R (draft), LT6 V (draft, CH190; experiments round-2 request) |
+| book | 2026-12-31T00:00Z (from 11-18, then 11-22, both 2026-10-21; then 12-09; 12-31 on 2026-10-22 for LT7 CH195/CH197, round 4) | E015, E019 (LT3), E020, E022 (LT4 proposed 2026-11-17T12Z), LT5 H/R (draft), LT6 V (draft, CH190; experiments round-2 request) |
 | wallet | 2026-12-07T00:00Z (from 11-18, 2026-10-21) | E024 (LT4), E026 copy-skilled (draft, analysis on/after 2026-12-06T12Z) |
 | wallet_skill (no model yet) | 2026-12-07T00:00Z | E026 |
 | rewards | 2026-11-22T00:00Z (from 11-18, 2026-10-21) | E020 (LT4 draft: reward flag as control / S3), LT5 R (draft); added 2026-10-21 with `se9_lr_rewards` |
 | event | 2026-11-22T00:00Z | LT5 F (draft, CH184); added 2026-10-21 ~10:20Z on the experiments track's request, before any event score was computed or shown (`se8_lr_event`, `se10_lgbm_event`) |
-| movetype | 2026-11-22T00:00Z | E015 (LT3 registered 2026-10-21, analysis not before 2026-11-15T12Z); same date as `book`; added 2026-10-21 ~14:30Z with `se14_lgbm_movetype` (which also isolates `book`), before any movetype score was computed or shown |
+| movetype | 2026-12-31T00:00Z (from 11-22, 2026-10-22, LT7 CH193, round 4) | E015 (LT3 registered 2026-10-21, analysis not before 2026-11-15T12Z); same date as `book`; added 2026-10-21 ~14:30Z with `se14_lgbm_movetype` (which also isolates `book`), before any movetype score was computed or shown |
 | participation | 2026-11-25T00:00Z | CB17-C (CH150, drafted: event-volume change as eligibility, event liquidity as control; REP_8 ends no earlier than 11-23T08Z); added 2026-10-21 with `se16_lgbm_participation` before any table or score existed (science review REVISE) |
 | vote, clips, deadline, siblings (no models yet) | 2026-12-09T00:00Z | LT6 V, K, D, B (draft; experiments round-2 request 2026-10-21) |
 | hollow (no model yet) | 2026-11-18T00:00Z | E022 (LT4, CH174; registration planned 2026-10-25, analysis not before 2026-11-17T12Z; experiments round-3 request, added 2026-10-21 ~20:50Z): any feature combining Gamma `liquidity` with sweep depth (`h`, `L/D`, `log L - log D`, `zh`, h terciles). Liquidity alone stays usable. E022's depth control (`log1p D` of the outcome-0 5c depth) is `bk_depth5c`, already under `book` (12-09). Broad `se7_lgbm_all` holds `liquidity` and `bk_depth5c` as separate columns (no hollow column); as a broad model it stays unembargoed under this section's rule, disclosed here |
+| resist, capath, mm_fresh, deepbook, absorbed, ivr (no models yet) | 2026-12-31T00:00Z | LT7 (draft; CH195, CH191, CH194, CH197, CH193, CH192; experiments round-4 request, added 2026-10-22 ~01:00Z). Each date is the later of 12-31 and LT7's analysis commit (a later request follows if LT7 slides). `mm_fresh` is the isolated chg_1h x own 2 h set; the champion's momentum family stays usable |
 
 LT3/LT4 dates are the proposed windows; when they register, move the dates **later** if needed (never earlier).
 
@@ -542,7 +543,7 @@ size cannot be bounded from the evidence, so it is treated as material.
      day) had been seen, about +0.05 nats over the champion, the same as se1.
    - The entry is never removed. A later diagnostic cannot restore eligibility.
 3. **The isolating book models `se3_lr_book` and `se14_lgbm_movetype` are promotion-ineligible too** (same `since`,
-   science re-check). They are declared while embargoed (book until 2026-12-09), before any of their scores was
+   science re-check). They are declared while embargoed (book until 2026-12-31 since round 4), before any of their scores was
    computed or seen. They are still predicted, and they are scored once their embargo lifts.
 4. **Future fix (not built):** a `book` v2 family read from the previous pass's last sweep, strictly before the origin,
    and/or a new broad model built on it. It would be registered and frozen as a new spec, and it would build its own
