@@ -159,6 +159,7 @@ champion (market state + momentum), the learner reference and broad multi-family
 | tte | 2026-11-14T00:00Z | E014 |
 | flow | 2026-11-22T00:00Z (from 11-16, 2026-10-21) | E013, E014 (LT2, 2026-11-13T12Z), E016, E018 (LT3 proposed 2026-11-15T12Z), LT5 J/O (draft) |
 | book | 2026-12-31T00:00Z (from 11-18, then 11-22, both 2026-10-21; then 12-09; 12-31 on 2026-10-22 for LT7 CH195/CH197, round 4) | E015, E019 (LT3), E020, E022 (LT4 proposed 2026-11-17T12Z), LT5 H/R (draft), LT6 V (draft, CH190; experiments round-2 request) |
+| book0 | 2026-12-31T00:00Z (same date and tests as `book`; added 2026-10-22 ~03:00Z with `se19_lr_book0` and broad `se18_lgbm_all_b0`, before any book0 table or score existed; section 22) | as `book`; also hides `book0` in se18's family attribution. Disclosed: the visible se7 minus se18 score contrast compares sweep-1 book with book0 (section 22) |
 | wallet | 2026-12-07T00:00Z (from 11-18, 2026-10-21) | E024 (LT4), E026 copy-skilled (draft, analysis on/after 2026-12-06T12Z) |
 | wallet_skill (no model yet) | 2026-12-07T00:00Z | E026 |
 | rewards | 2026-11-22T00:00Z (from 11-18, 2026-10-21) | E020 (LT4 draft: reward flag as control / S3), LT5 R (draft); added 2026-10-21 with `se9_lr_rewards` |
@@ -545,7 +546,58 @@ size cannot be bounded from the evidence, so it is treated as material.
 3. **The isolating book models `se3_lr_book` and `se14_lgbm_movetype` are promotion-ineligible too** (same `since`,
    science re-check). They are declared while embargoed (book until 2026-12-31 since round 4), before any of their scores was
    computed or seen. They are still predicted, and they are scored once their embargo lifts.
-4. **Future fix (not built):** a `book` v2 family read from the previous pass's last sweep, strictly before the origin,
+4. **Future fix (built 2026-10-22 as `book0`, section 22):** a `book` v2 family read from the previous pass's last sweep, strictly before the origin,
    and/or a new broad model built on it. It would be registered and frozen as a new spec, and it would build its own
    prospective age. Optional development diagnostic: se7 versus se1 on a sweep-anchored label, for information only.
+
+## 22. `book0`: the order book strictly before the origin (2026-10-22 ~03:00Z)
+
+**Family `book0` (`se-aux-book0-v1`, `aux.py`).** The honest replacement for the sweep-1 `book` family (section 21).
+- **Which sweep:** the newest complete **pass** sweep (its `snapshot_id` is an indexed grid capture that started before
+  the origin) whose manifest `finished_utc` is before the origin capture's `started_utc` and at most 3 h before it
+  (ties: higher `series_index`). Ad-hoc or subset sweeps and hidden `.tmp_` folders are never chosen. One sweep per
+  capture, for every market. On the host this is the previous pass's last sweep, ~110 min
+  before the capture. Nothing within 3 h: every column is NaN (never filled from an older sweep). Sweep rows received
+  at or after the capture start are dropped (defensive; none expected).
+- **Columns:** the eight `book` columns with the same formulas (`b0_` prefix; `book_columns` is shared with
+  `features.book_features`, output unchanged), plus `b0_lag_s` (capture start minus the row's receipt), `b0_spread`
+  (sweep ask minus bid) and `b0_gap` (origin Gamma mid minus the sweep mid: a pre-origin price change, not a
+  sweep-after-origin gap).
+- **Inputs:** sweep files only (no snapshot rows), so tables are buildable for every capture in the store. The table
+  metadata records the sweep id, its `snapshot_id`, `series_index` and `finished_utc`, and the sha256 of its manifest
+  and rows.
+- **Causality rests on the construction, not on any correlation.** `book_sweep.run_sweep` writes a sweep in a `.tmp_`
+  folder, stamps `finished_utc` (same host clock) after the last batch's receipt, then renames it, so a finish time
+  before the capture start bounds every row receipt. The ~110 min margin dwarfs any clock skew.
+
+**Models.**
+- `se18_lgbm_all_b0`: `se7_lgbm_all` with `book` replaced by `book0` (same learner, params, derived sets, other
+  families). Broad, so not embargoed (section 8) and **promotion-eligible**. It holds Gamma liquidity and `b0_depth5c`
+  as separate columns (no hollow column), as se7 does. It raises K from 3 to 4 (se1, se7, se17, se18), which makes
+  the level stricter for every challenger. Read against se1 and se7.
+- **Disclosed: the se7 minus se18 contrast.** Both broad models are visible, so the difference of their scores is a
+  visible comparison of the sweep-1 book against `book0`, i.e. book information under the 12-31 embargo, close to LT6
+  V's "imbalance at k-1's sweep" control. Judged acceptable (science review 2026-10-22): the post-origin overlap of
+  se7 (section 21) dominates that difference, and se7 is promotion-ineligible. Written down like the `hollow` note.
+- `se19_lr_book0`: the `se3_lr_book` analogue on book0 (isolates `book0` and `book`; embargoed to 2026-12-31). The
+  learner-matched LightGBM version (section 18) waits for refit budget.
+- Embargo token `book0` (same date and tests as `book`). It also hides `book0` in se18's family attribution.
+- Both specs set `require_full_coverage`, so they fit only once every labelled capture in the window has a book0 table
+  (one-off host backfill after deploy).
+
+**Development diagnostic (host, 8 captures of 10-21, ~50k eligible markets each; information only, not a score).**
+- Lag ~110 min; coverage 92-94% of eligible markets.
+- Correlation with the in-window move (own sweep-1 mid minus origin Gamma mid): `b0_micro` -0.11 to +0.02 (mostly
+  |r| < 0.05) and `b0_imb5c` -0.00 to +0.04, against v1 `bk_micro` -0.27 to +0.17. This is consistent with the
+  construction above; it is a symptom, not the proof of causality.
+- `b0_gap` correlates -0.08 to -0.28 with that move and -0.04 to -0.16 with the 2 h label move: a reversal of the
+  pre-origin change, from inputs that all predate the origin. Part of it may be anchor or quote-bounce reversal (the
+  label's own anchor, the Gamma mid, against an earlier CLOB mid) rather than a real market move; it counts for
+  forecast quality only. `b0_spread` correlates +0.09 to +0.15 with a move larger than DELTA.
+- **Order of events (disclosed):** the columns (including `b0_gap` and `b0_spread`) and both specs were written before
+  this diagnostic was run; the diagnostic, including the correlations with the 2 h label, was seen before the specs
+  were committed, and nothing was changed after it.
+- **Backfill:** the one-off host backfill writes book0 tables for past captures as training inputs only. No prediction
+  is ever written for a capture whose 2 h target slot has started (`predict.py`, section 6), so the prospective age of
+  se18 / se19 starts at their first live prediction (`promotion.first_prediction_ts`).
 

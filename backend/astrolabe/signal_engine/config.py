@@ -80,6 +80,8 @@ EMBARGO = (
      "why": "flow x volatility / spread (LT2, 2026-11-13T12Z), flow continuation (LT3, proposed 2026-11-15T12Z); moved from 11-16 on 2026-10-21 for LT5 J/O (draft; origin window ends ~11-20)"},
     {"token": "book", "until": "2026-12-31T00:00:00Z", "tests": ["E015", "E019", "E020", "E022", "LT5-H", "LT5-R", "LT6-V", "LT7-CH195", "LT7-CH197"],
      "why": "quote / ladder / depth anatomy (LT3 proposed 2026-11-15T12Z; LT4 proposed 2026-11-17T12Z); moved from 11-18 on 2026-10-21 for LT5 H/R (draft); moved from 11-22 to 12-09 on 2026-10-21 (~16:40Z, experiments round-2 request) for LT6 V (draft, CH190: a book model with the own 2 h change and the 5c imbalance can learn sign(x) x imb on dir_2h); moved from 12-09 to 12-31 on 2026-10-22 (~01:00Z, experiments round-4 request, LT7 R1 must-fix 9: CH195 hit-side depth, CH197 behind-touch split)"},
+    {"token": "book0", "until": "2026-12-31T00:00:00Z", "tests": ["E015", "E019", "E020", "E022", "LT5-H", "LT5-R", "LT6-V", "LT7-CH195", "LT7-CH197"],
+     "why": "the same book quantities read from the newest sweep finished before the origin (aux family book0, DESIGN_V1 section 22); same date and tests as `book`, so an isolating model and the broad model's family attribution stay hidden until then; added 2026-10-22 ~03:00Z with se18/se19, before any book0 table or score existed"},
     {"token": "wallet", "until": "2026-12-07T00:00:00Z", "tests": ["E024", "E026"],
      "why": "flow concentration (LT4 proposed 2026-11-17T12Z); moved from 11-18 on 2026-10-21 for E026 copy-skilled (draft; window 10-25..11-15, analysis on/after 2026-12-06T12Z)"},
     {"token": "wallet_skill", "until": "2026-12-07T00:00:00Z", "tests": ["E026"],

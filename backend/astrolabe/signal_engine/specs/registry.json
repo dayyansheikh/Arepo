@@ -128,6 +128,20 @@
    "spec_sha256": "6e27b8c6c650abcefc1a4ec7d5feca69b1049ef5ec6b0ccd69f8a98d2c2b0bb6",
    "status": "active",
    "added_utc": "2026-10-21T19:30:00Z"
+  },
+  {
+   "model_id": "se18_lgbm_all_b0",
+   "file": "se18_lgbm_all_b0.json",
+   "spec_sha256": "9b0a90723687a96b16fb2df67c2b507b2e72f235f6422d27e608fba4b4fb72d3",
+   "status": "active",
+   "added_utc": "2026-10-22T03:00:00Z"
+  },
+  {
+   "model_id": "se19_lr_book0",
+   "file": "se19_lr_book0.json",
+   "spec_sha256": "7530ff051f6e367b502c236c52d075b0aecb2b7f499107f97b55fadc66194b42",
+   "status": "active",
+   "added_utc": "2026-10-22T03:00:00Z"
   }
  ]
 }

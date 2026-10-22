@@ -553,6 +553,81 @@ def test_movetype_family_builds_without_snapshot_rows(env):
     assert md["prev_capture_id"] == idx[SLOT0 + 2]["capture_id"]
 
 
+def _write_sweep(root: Path, sid: str, snapshot_id: str, finished: float, ids: np.ndarray, bid: np.ndarray,
+                 ask: np.ndarray, receipt: float | None = None, series_index: int = 1) -> Path:
+    d = root / "book_sweeps" / sid
+    d.mkdir(parents=True)
+    n = len(ids)
+    rows = pd.DataFrame({"market_id": ids, "state": "two_sided", "batch_receipt_utc": _iso(receipt if receipt is not None else finished - 30),
+                         "best_bid": bid, "best_ask": ask, "bid_size_1": 100.0, "ask_size_1": np.linspace(50, 150, n),
+                         "depth_bid_1c": 200.0, "depth_ask_1c": 100.0, "depth_bid_5c": 500.0, "depth_ask_5c": 300.0,
+                         "n_bid_levels": 5, "n_ask_levels": 7, "book_timestamp": (finished - 90) * 1000.0})
+    rows.to_csv(d / "rows.csv.gz", index=False, compression="gzip")
+    (d / "manifest.json").write_text(json.dumps({"sweep_id": sid, "snapshot_id": snapshot_id, "series_index": series_index,
+                                                 "state": "complete", "started_utc": _iso(finished - 80),
+                                                 "finished_utc": _iso(finished)}))
+    return d
+
+
+def test_book0_reads_only_a_sweep_finished_before_the_origin(env):
+    """book0 (DESIGN_V1 section 22): the newest complete sweep finished before the capture start, at most 3 h old; the
+    origin pass's own sweeps (after the capture start) are never read, and a sweep older than 3 h reads as NaN."""
+    w, paths = env
+    w.run(6)
+    build_all(paths)
+    idx = S.load_index(paths)
+    m4, m5 = idx[SLOT0 + 4], idx[SLOT0 + 5]
+    t4, t5 = S.epoch(m4["started_utc"]), S.epoch(m5["started_utc"])
+    ids = np.arange(1000, 1000 + N_MKT)
+    mid = np.full(N_MKT, 0.5)
+    m3 = idx[SLOT0 + 3]["capture_id"]
+    _write_sweep(w.root, "s_old0", m3, t4 - 6900, ids, mid - 0.02, mid + 0.02, series_index=0)
+    prev = _write_sweep(w.root, "s_prev1", m3, t4 - 6800, ids[:100], mid[:100] - 0.01, mid[:100] + 0.01)
+    _write_sweep(w.root, "s_adhoc", "not_a_capture", t4 - 60, ids, mid - 0.3, mid + 0.3)  # not a pass sweep: never read
+    own = _write_sweep(w.root, "s_own", m4["capture_id"], t4 + 450, ids, mid - 0.2, mid + 0.2)  # after the origin
+    tmp = _write_sweep(w.root, "s_tmp", m4["capture_id"], t4 + 460, ids, mid - 0.3, mid + 0.3)
+    tmp.rename(tmp.parent / ".tmp_s_tmp")  # a sweep folder before its atomic rename: never read
+    while A.run_aux(paths, max_items=50)["written"]:
+        pass
+    f = A.read_features(paths, m4["capture_id"])
+    assert f.attrs["aux_ok"]["book0"]
+    has = f["b0_has"].to_numpy(float)
+    assert has[:100].tolist() == [1.0] * 100 and (has[100:] == 0).all()  # only the newest prior sweep's markets
+    np.testing.assert_allclose(f["b0_spread"].to_numpy(float)[:100], 0.02, atol=1e-6)
+    np.testing.assert_allclose(f["b0_lag_s"].to_numpy(float)[:100], 6830, atol=1)
+    np.testing.assert_allclose(f["b0_gap"].to_numpy(float)[:100], f["ms_mid"].to_numpy(float)[:100] - 0.5, atol=1e-6)
+    np.testing.assert_allclose(f["b0_imb5c"].to_numpy(float)[:100], 0.25, atol=1e-6)
+    ref = F.book_features(prev, f.iloc[:100])
+    for c in F.FAMILY_COLUMNS["book"]:
+        np.testing.assert_allclose(f[c.replace("bk_", "b0_")].to_numpy(float)[:100], ref[c].to_numpy(float), rtol=1e-5)
+    assert np.isnan(f["b0_imb5c"].to_numpy(float)[100:]).all()
+    import pyarrow.parquet as pq
+    md = json.loads(pq.read_schema(A.aux_path(paths, "book0", m4["capture_id"])).metadata[b"signal_engine"])
+    assert md["aux_version"] == "se-aux-book0-v1" and md["sweep_id"] == "s_prev1" and md["rows_sha256"] is None
+    assert (md["sweep_snapshot_id"], md["sweep_series_index"], md["sweep_finished_utc"]) == (m3, 1, _iso(t4 - 6800))
+    # capture 5: the newest sweep finished before it is the origin-4 pass's own sweep (t4 + 450 < t5)
+    assert json.loads(pq.read_schema(A.aux_path(paths, "book0", m5["capture_id"])).metadata[b"signal_engine"])["sweep_id"] == "s_own"
+    caps = {m["capture_id"]: S.epoch(m["started_utc"]) for m in idx.values()}
+    assert A.prior_sweep(paths.sweeps, t5, caps) == own and A.prior_sweep(paths.sweeps, t4, caps) == prev
+    # nothing within 3 h: NaN, never filled from an older sweep
+    m1 = idx[SLOT0 + 1]
+    g = A.read_features(paths, m1["capture_id"])
+    assert g.attrs["aux_ok"]["book0"] and np.isnan(g["b0_has"].to_numpy(float)).all()
+    assert A.prior_sweep(paths.sweeps, t4 + 4 * 3600, caps) is None
+
+
+def test_book0_drops_sweep_rows_received_at_or_after_the_origin():
+    ids = np.arange(5)
+    f = pd.DataFrame({"market_id": ids, "ms_mid": np.full(5, 0.5)})
+    with pytest.MonkeyPatch.context() as mp:
+        t = pd.DataFrame({"state": "two_sided", "batch_receipt_utc": pd.to_datetime([_iso(90.0)] * 3 + [_iso(100.0)] * 2, utc=True),
+                          **{c: 1.0 for c in F.SWEEP_NUM}}, index=pd.Index(ids, name="market_id"))
+        mp.setattr(A, "read_sweep_book", lambda _d: t)
+        out = A.book0_features(Path("unused"), f, cap_start=100.0)
+    assert out["b0_has"].tolist() == [1, 1, 1, 0, 0] and np.isnan(out["b0_spread"].to_numpy(float)[3:]).all()
+    assert out.dtypes.unique().tolist() == [np.float32]
+
+
 def test_surprise_features_hand_example():
     n_slots = A.SP_LOOKBACK + 1
     H = np.full((3, n_slots), np.nan)
@@ -810,6 +885,16 @@ def test_repo_registry_loads_and_embargo_assignment():
     assert pa16["aux_versions"] == {"participation": "se-aux-participation-v1"} and pa16["train"]["require_sources"] == ["participation"]
     assert pa16["train"] == reg["models"]["se15_lgbm_surprise"]["train"] | {"require_sources": ["participation"]}
     assert "participation" not in reg["models"]["se7_lgbm_all"]["families"]
+    se7 = reg["models"]["se7_lgbm_all"]
+    s18 = reg["models"]["se18_lgbm_all_b0"]  # se7 with the pre-origin book (DESIGN_V1 section 22): broad, eligible
+    assert emb["se18_lgbm_all_b0"] is None and s18["broad"] is True and s18["isolates"] == []
+    assert (s18["learner"], s18["params"], s18["derived"]) == (se7["learner"], se7["params"], se7["derived"])
+    assert s18["families"] == [f for f in se7["families"] if f != "book"] + ["book0"]
+    assert s18["train"] == se7["train"] | {"require_full_coverage": True}
+    assert "se18_lgbm_all_b0" not in {e["model_id"] for e in C.PROMOTION_INELIGIBLE}
+    assert emb["se19_lr_book0"] == "2026-12-31T00:00:00Z" and set(reg["models"]["se19_lr_book0"]["isolates"]) == {"book0", "book"}
+    bk, b0 = ({k: v for k, v in e.items() if k not in ("token", "why")} for t in ("book", "book0") for e in C.EMBARGO if e["token"] == t)
+    assert bk == b0  # book0 hides exactly like book (attribution of se18 too)
     s17 = reg["models"]["se17_lgbm_mm_900k"]  # learner budget only: se1's inputs and tree params, more rows / rounds
     assert emb["se17_lgbm_mm_900k"] is None and s17["isolates"] == [] and s17["broad"] is False
     assert (s17["families"], s17["derived"], s17["learner"]) == (se1["families"], se1["derived"], "lgbm")
@@ -1061,7 +1146,7 @@ def test_cli_exit_codes_walkforward_and_dashboard(env, capsys):
     w.run(30)
     cli = _cli()
     base = ["--engine-root", str(paths.engine), "--dumps-root", str(w.root), "--spec-dir", str(paths.spec_dir)]
-    assert cli.main(["features", "--max-items", "80", *base]) == 0  # aux budget 2 x 80 >= 30 captures x 5 families
+    assert cli.main(["features", "--max-items", "100", *base]) == 0  # aux budget 2 x 100 >= 30 captures x 6 families
     assert cli.main(["features", *base]) == C.TEMPFAIL  # nothing new
     assert cli.main(["predict", *base]) == C.TEMPFAIL  # no fit yet (and captures are old)
     assert cli.main(["refit", "--force", *base]) == 0

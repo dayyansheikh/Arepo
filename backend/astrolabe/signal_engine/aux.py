@@ -30,8 +30,10 @@ from .features import (
     KEY_COLUMNS,
     _epoch_col,
     _truthy,
+    book_columns,
     mid_series,
     read_rows,
+    read_sweep_book,
 )
 
 
@@ -452,10 +454,82 @@ def _participation_builder(ctx: dict) -> pd.DataFrame:
     return participation_features(read_participation_ext(ctx["cap_dir"]), prev_ext, ctx["rows"], ctx["f"], ctx["cap_start"])
 
 
+# ---------------------------------------------------------------------------------------------- book0 family
+# The order book strictly BEFORE the origin (DESIGN_V1 section 22). The v1 `book` family is read from sweep 1 of the
+# origin's own pass, ~7 min after the capture, so it overlaps the direction label window (section 21). `book0` reads the
+# newest complete pass sweep (of an earlier grid capture) that FINISHED before the origin capture started (normally the
+# previous pass's last sweep, ~110 min earlier), at most B0_MAX_LAG_S old (else NaN); sweep rows received at or after the capture start are dropped
+# (defensive; none expected). Columns: the `book` columns (b0_ prefix, same formulas), the sweep's lag to the capture
+# start, its spread, and the origin Gamma mid minus the sweep mid. Embargoed under `book` (an isolating model declares
+# both tokens). Inputs: the sweep files only; no snapshot rows.
+B0_MAX_LAG_S = 3 * 3600.0
+BOOK0_COLUMNS = [c.replace("bk_", "b0_") for c in FAMILY_COLUMNS["book"]] + ["b0_lag_s", "b0_spread", "b0_gap"]
+_SWEEP_HEADS: dict[str, dict] = {}  # complete sweep manifests are immutable: cached per directory path
+
+
+def prior_sweep(sweeps_root: Path, cap_start: float, captures: dict[str, float],
+                max_lag_s: float = B0_MAX_LAG_S) -> Path | None:
+    """The newest complete PASS sweep with ``cap_start - max_lag_s <= finished < cap_start`` (ties: higher
+    series_index). A pass sweep belongs to a grid capture of ``captures`` (capture_id: start) that started before
+    ``cap_start``; ad-hoc or subset sweeps and hidden temporary folders are never chosen."""
+    best = None
+    for mp in Path(sweeps_root).glob("*/manifest.json"):
+        if mp.parent.name.startswith("."):
+            continue
+        key = str(mp.parent)
+        h = _SWEEP_HEADS.get(key)
+        if h is None:
+            m = S._manifest_head(mp)
+            if not m or m.get("state") != "complete":
+                continue  # not cached: a sweep still in progress is read again next time
+            h = _SWEEP_HEADS[key] = {"finished": S.epoch(m.get("finished_utc")), "series_index": m.get("series_index") or 0,
+                                     "snapshot_id": m.get("snapshot_id"), "finished_utc": m.get("finished_utc")}
+        fin = h["finished"]
+        if not (math.isfinite(fin) and cap_start - max_lag_s <= fin < cap_start):
+            continue
+        if not captures.get(h["snapshot_id"], math.inf) < cap_start or not (mp.parent / "rows.csv.gz").exists():
+            continue
+        rank = (fin, h["series_index"], mp.parent.name)
+        if best is None or rank > best[0]:
+            best = (rank, mp.parent)
+    return None if best is None else best[1]
+
+
+def book0_features(sweep_dir: Path | None, f: pd.DataFrame, cap_start: float) -> pd.DataFrame:
+    """Per eligible market (``f`` row order; needs market_id, ms_mid): the book0 columns (all NaN without a sweep)."""
+    out = pd.DataFrame({c: np.full(len(f), np.nan) for c in BOOK0_COLUMNS})
+    if sweep_dir is None:
+        return out.astype(np.float32)
+    t = read_sweep_book(sweep_dir)
+    t = t[_epoch_col(t["batch_receipt_utc"]) < cap_start]
+    b = t.reindex(f["market_id"].to_numpy())
+    bk = book_columns(b)
+    for c in FAMILY_COLUMNS["book"]:
+        out[c.replace("bk_", "b0_")] = bk[c].to_numpy(float)
+    has = bk["bk_has"].to_numpy(float) > 0
+    bb, ba = b["best_bid"].to_numpy(float), b["best_ask"].to_numpy(float)
+    out["b0_lag_s"] = np.where(has, cap_start - _epoch_col(b["batch_receipt_utc"]), np.nan)
+    out["b0_spread"] = np.where(has, ba - bb, np.nan)
+    out["b0_gap"] = np.where(has, f["ms_mid"].to_numpy(float) - (bb + ba) / 2.0, np.nan)
+    return out.astype(np.float32)
+
+
+def _book0_builder(ctx: dict) -> pd.DataFrame:
+    captures = {m["capture_id"]: S.epoch(m["started_utc"]) for m in ctx["index"].values()}
+    sweep = prior_sweep(ctx["paths"].sweeps, ctx["cap_start"], captures)
+    h = _SWEEP_HEADS.get(str(sweep), {}) if sweep is not None else {}
+    ctx["provenance"] = {"sweep_id": None if sweep is None else sweep.name, "sweep_snapshot_id": h.get("snapshot_id"),
+                         "sweep_series_index": h.get("series_index"), "sweep_finished_utc": h.get("finished_utc"),
+                         "sweep_manifest_sha256": None if sweep is None else S.sha256_file(sweep / "manifest.json"),
+                         "sweep_rows_sha256": None if sweep is None else S.sha256_file(sweep / "rows.csv.gz")}
+    return book0_features(sweep, ctx["f"], ctx["cap_start"])
+
+
 # ---------------------------------------------------------------------------------------------- registry
 # A builder takes a context dict: rows (snapshot rows; None for a family with needs_rows False), f (features key
 # columns + ms_mid, ms_spread), prev_mid (previous slot's mids or None), cap_dir, cap_start, paths, meta, prev (the
-# previous slot's index entry or None), index, mids (a shared SlotMids or None).
+# previous slot's index entry or None), index, mids (a shared SlotMids or None). It may set ctx["provenance"] (a dict
+# merged into the table's parquet metadata).
 
 AUX_FAMILIES: dict[str, dict] = {
     "event": {"version": "se-aux-event-v1", "columns": EVENT_COLUMNS,
@@ -468,6 +542,7 @@ AUX_FAMILIES: dict[str, dict] = {
                  "builder": _surprise_builder},
     "participation": {"version": "se-aux-participation-v1", "columns": PARTICIPATION_COLUMNS, "prev_sidecar": True,
                       "builder": _participation_builder},
+    "book0": {"version": "se-aux-book0-v1", "columns": BOOK0_COLUMNS, "needs_rows": False, "builder": _book0_builder},
 }
 AUX_COLUMNS: dict[str, list[str]] = {k: v["columns"] for k, v in AUX_FAMILIES.items()}
 AUX_ALL: list[str] = [c for cols in AUX_COLUMNS.values() for c in cols]
@@ -493,13 +568,14 @@ def build_aux(paths: S.Paths, family: str, meta: dict, cap_dir, index: dict | No
     prev_mid = None
     if prev is not None and paths.quotes(prev["capture_id"]).exists():
         prev_mid = mid_series(S.read_parquet(paths.quotes(prev["capture_id"]), ["market_id", "bid", "ask", "st"]))
-    a = spec["builder"]({"rows": rows, "f": f, "prev_mid": prev_mid, "cap_dir": cap_dir,
-                         "cap_start": S.epoch(meta["started_utc"]), "paths": paths, "meta": meta, "prev": prev,
-                         "index": index or {}, "mids": mids})
+    ctx = {"rows": rows, "f": f, "prev_mid": prev_mid, "cap_dir": cap_dir, "cap_start": S.epoch(meta["started_utc"]),
+           "paths": paths, "meta": meta, "prev": prev, "index": index or {}, "mids": mids}
+    a = spec["builder"](ctx)
     tab = pd.concat([f[["market_id"]].reset_index(drop=True), a.reset_index(drop=True)], axis=1)
     md = {"capture_id": cid, "slot": meta["slot"], "aux_family": family, "aux_version": spec["version"],
           "features_sha256": S.sha256_file(fp), "rows_sha256": S.sha256_file(cap_dir / "rows.csv.gz") if needs_rows else None,
           "prev_capture_id": prev["capture_id"] if prev_mid is not None else None, "written_utc": S.iso(S.now_ts()), "code_commit": S.git_commit()}
+    md.update(ctx.get("provenance") or {})  # a builder may record which inputs it read (book0: the sweep)
     if spec.get("prev_sidecar"):  # provenance of the previous slot's sidecar the builder actually read (or None)
         ps = Path(paths.snapshots) / prev["capture_id"] / "rows_ext.csv.gz" if prev is not None else None
         md["prev_sidecar_capture_id"] = prev["capture_id"] if ps is not None and ps.exists() else None
