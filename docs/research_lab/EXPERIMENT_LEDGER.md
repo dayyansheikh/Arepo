@@ -3819,3 +3819,19 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **R3:** q0620-q0623 drafts gain the LT7/LT6/LT5/LT4 restore-tree roots (hash-checked); no census "measured by a host dry run" on sealed inputs;
   10-day retention kept until q0623 finishes; promotion only per `restore-plan` or a chain finishing before 2026-10-28T03:30Z outside 02:45-05:30Z.
 - **Next:** census-code re-check of this commit, then q0620. Nothing counted.
+
+## LT8 13.7 re-check notes N2-N4 closed, 2026-10-22 (~21:58Z; experiments autopilot; nothing counted)
+- **Trigger:** `reviews/LT8_13_7_RECHECK_2026-10-22.md` = FIXES_OK_WITH_NOTES (R1-R3 fixed). Before the LT8 seal and every LT8 census.
+- **N2, option (a): 13.7 erratum** (`LIVE_TESTS_8.md`, end of file): `rw_changed` is NaN, the unit excluded and counted as
+  `rw_changed_no_column`, when capture k or k-2 is a sidecar without the `clob_rewards` column (an absent column is not an empty
+  programme, check fix 7). Code: `rw_frame` / `read_rw8` give a `no_column` row `clob_h` NaN (not `clob_hash(NaN) = ""`), `effective_text`
+  returns NaN there, `quiet_units` takes `rw_nocol` and counts the exclusion before `rw_changed_unknown`; the descriptive v1 comparison is NaN in
+  the same cases. Design sha256 c76ffff6… -> `73c941e1a4dd2c2d00350808ca5287edaebb16ca2edc191ffe3b88ce7f1f356b` (c76ffff6… and 5e61c20b…
+  declared predecessors in code; spec `design`, `design_text_sha256` and `reward_rule.rw_changed_rule` updated). Only input: code reading.
+  Gates, thresholds, formulas and MDE inputs unchanged. CS8 prints `carry_counts_caveat` next to the carry counts: LT8's carry store reads every
+  sidecar row, LT7's only two-sided series rows, so LT8 and LT7 carry counts are not comparable like for like (ruling 2).
+- **N3:** CV7.json on the host records `code_sha256["live_tests7.py"]` = 2ee6a6592890… (verified by the orchestrator 2026-10-22 ~20:55Z; CV7.json
+  read for its code hash only, no count read), so q0621's accepted-set check (`LT7_CENSUS_CODE_ACCEPTED`: CV7 = 2ee6a659…) is satisfied.
+- **N4:** the census drops `rew_raw` from each rw frame once its slot is in the `RewardCarry` (`rw_slim`; test: byte-identical census JSON
+  with and without it, and `effective_text` never sees `rew_raw`). q0623 keeps mem_mb 2000 (reasoning in its notes; no census run to measure).
+- **Next:** short re-check of this commit, then q0620 per the R3 promotion rule (N1, the checkpoint retention line, is the orchestrator's).

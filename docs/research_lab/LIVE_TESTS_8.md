@@ -1414,3 +1414,22 @@ NaN (LT7's bug); the effective-text rule for `rw_changed`; F pairs use the carry
 census; its only input was probe counts (LT7's `lt7_rewards_probe.json` and LIVE_TESTS_7.md 13.7). At this amendment's commit no LT7
 census output is committed (`seals/` holds no CC7, CS7 or CV7 output), so it is not labelled *informed (LT7 census)*; CV7's host output
 was read for its recorded code hash only (re-check R1), not for any count.
+
+### 13.7 erratum: `rw_changed` on a sidecar without the `clob_rewards` column (2026-10-22; `reviews/LT8_13_7_RECHECK_2026-10-22.md`, N2 option (a); governs where 13.7 (c) differs)
+
+Erratum to 13.7 (c), made before the LT8 seal and before every LT8 census, from code reading only (no count, price, target or outcome
+read). As committed at c76ffff6…, a capture whose sidecar has no `clob_rewards` column (`no_column`) kept "its own v1 value", and that
+value was the empty-programme hash (`clob_hash` of NaN is the empty string). So a `no_column` capture at k-2 next to a listed capture at k
+gave `rw_changed = 1`, reading an absent column as an empty programme, which contradicts check fix 7 (an absent column says nothing about
+rewards). **Corrected rule:** `rw_changed` is NaN, the unit excluded and counted as `rw_changed_no_column` (a count key of its own, taken
+before `rw_changed_unknown`), when capture k or capture k-2 is `no_column` for the market. E(s) of a `no_column` capture is NaN and is
+never replaced by a carried text; a `no_column` capture is still never a carry source. The descriptive v1 comparison reads the same hash
+and is NaN in the same cases. A `no_column` capture k already leaves `rewarded` NaN (excluded as `reward_unknown_or_malformed`), so the
+new count holds the units excluded for this reason only, in practice a `no_column` capture k-2. Gates, thresholds, formulas and MDE inputs
+are unchanged. Design sha256 c76ffff6563ed88eae22046d5986e580cc527e8799488b014dcfd8365ef3accb becomes a declared predecessor (with
+5e61c20b…); no seal or census exists on either.
+
+**Carry counts are not comparable with LT7's.** LT8's carry store reads every sidecar row of a capture; LT7's reads only the two-sided
+series rows (`live_tests7.py` :1945, :2033). So 13.7 (a)'s "word for word" covers the rule, not the store, and LT8's carry counts
+(`rewards_null_carried_*`, `rewarded_carried_share`, `in_band_*_via_carry`) are not comparable like for like with LT7's. CS8 prints this
+caveat (`carry_counts_caveat`) next to them.

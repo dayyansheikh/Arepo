@@ -50,12 +50,15 @@ END_UTC = "2027-01-20T00:00:00Z"
 ANALYSIS_NOT_BEFORE = "2027-01-21T12:00:00Z"
 TEMPFAIL = 75
 DAY_S = 86400.0
-DESIGN_TEXT_SHA256 = "c76ffff6563ed88eae22046d5986e580cc527e8799488b014dcfd8365ef3accb"  # LIVE_TESTS_8.md with amendment 13.7 (reward-null rule listed_carry24h_v2), 2026-10-22
+DESIGN_TEXT_SHA256 = "73c941e1a4dd2c2d00350808ca5287edaebb16ca2edc191ffe3b88ce7f1f356b"  # LIVE_TESTS_8.md with amendment 13.7 and its erratum (rw_changed NaN on a no_column capture), 2026-10-22
 # Earlier design texts, for provenance. Amendment 13.7 comes before the LT8 seal and every LT8 census, so no seal may record a predecessor: a seal
 # or census whose design hash is listed here is refused like any other (re-seal on the current text). Anything not equal to DESIGN_TEXT_SHA256 refuses.
 DESIGN_TEXT_PREDECESSORS = {
     "5e61c20b1282cef79c7caee68f08dceb506f845bc1a1325fe2fb9335c955cf48": "design text freeze (c6e57a64), superseded by amendment 13.7 (reward-null rule listed_carry24h_v2) before the LT8 seal and every LT8 census, 2026-10-22",
+    "c76ffff6563ed88eae22046d5986e580cc527e8799488b014dcfd8365ef3accb": "amendment 13.7 (reward-null rule listed_carry24h_v2) at ac15d689, superseded by the 13.7 erratum (rw_changed NaN, excluded and counted as rw_changed_no_column, when capture k or k - 2 has no clob_rewards column) before the LT8 seal and every LT8 census, 2026-10-22",
 }
+CARRY_COUNTS_CAVEAT = ("LT8's carry store reads every sidecar row of a capture, LT7's only the two-sided series rows (live_tests7.py :1945, :2033): the LT8 carry "
+                       "counts (rewards_null_carried_*, rewarded_carried_share, in_band_*_via_carry) are not comparable like for like with LT7's (13.7 re-check, ruling 2)")
 REWARD_NULL_RULE = "listed_carry24h_v2"  # amendment 13.7; spec key reward_null_rule (with reward_carry_slots = live_tests8_base.REWARD_CARRY_SLOTS = 12)
 DESIGN_PATH = ROOT / "docs" / "research_lab" / "LIVE_TESTS_8.md"
 LT7_SEAL_SHA256 = "117e9b458931b7493f6b34e36ce68e7e4898c544fb5aa360956ea106de204137"
@@ -296,14 +299,16 @@ RW_COLS = ["market_id", "clob_h", "rew_status", "rew_raw", "rew_min", "rew_maxsp
 def rw_frame(ext: pd.DataFrame | None, day: str) -> pd.DataFrame:
     """One row per SIDECAR row of a capture (not only the two-sided markets of the series file): the ``clob_rewards`` hash (``rw_changed``), the 13.7 status
     in the LT7 vocabulary, the raw text of a LISTED cell only (the carry source; None otherwise) and that capture's ``rewards_min_size`` /
-    ``rewards_max_spread``."""
+    ``rewards_max_spread``. 13.7 erratum: a sidecar WITHOUT the ``clob_rewards`` column has ``clob_h`` NaN (never the empty-programme hash ``""``), so
+    ``rw_changed`` is NaN when capture k or k - 2 is ``no_column`` (check fix 7); :func:`read_rw8` restores the NaN after the CSV round trip."""
     if ext is None:
         return pd.DataFrame({c: [] for c in RW_COLS})
     has_col = bool(ext.attrs.get("has_clob_rewards", True))
     vals = ext["clob_rewards"].tolist()
     st = lt7_status([reward_detail(v, day)[1] if has_col else "no_column" for v in vals])
     raw = [v if s == "listed" else None for v, s in zip(vals, st, strict=True)]
-    return pd.DataFrame({"market_id": ext.index.astype(str), "clob_h": [clob_hash(v) for v in vals], "rew_status": st, "rew_raw": pd.Series(raw, dtype=object).to_numpy(),
+    h = [clob_hash(v) if s != "no_column" else None for v, s in zip(vals, st, strict=True)]
+    return pd.DataFrame({"market_id": ext.index.astype(str), "clob_h": pd.Series(h, dtype=object).to_numpy(), "rew_status": st, "rew_raw": pd.Series(raw, dtype=object).to_numpy(),
                          "rew_min": pd.to_numeric(ext["rewards_min_size"], errors="coerce").to_numpy(float), "rew_maxspread": pd.to_numeric(ext["rewards_max_spread"], errors="coerce").to_numpy(float)})
 
 
@@ -322,7 +327,8 @@ def write_series8(work: Path, cap: dict, spec: dict) -> None:
 
 def read_rw8(work: Path, cap_id: str | None) -> pd.DataFrame | None:
     """The :func:`rw_frame` of a capture read back, indexed by market_id (no NA parsing of the text columns: ``null`` stays ``null``; an empty
-    ``rew_raw`` is None). An rw file without the 13.7 columns (an older work dir) is refused, never read as unrewarded."""
+    ``rew_raw`` is None; a ``no_column`` row's ``clob_h`` is NaN, 13.7 erratum). An rw file without the 13.7 columns (an older work dir) is refused, never
+    read as unrewarded."""
     if cap_id is None:
         return None
     p = Path(work) / "rw" / f"{cap_id}.csv.gz"
@@ -333,6 +339,7 @@ def read_rw8(work: Path, cap_id: str | None) -> pd.DataFrame | None:
         raise ValueError(f"rw file {p.name} lacks the 13.7 columns {sorted(set(RW_COLS) - set(d.columns))}: refused (a pre-13.7 work dir)")
     d = d.drop_duplicates("market_id").set_index("market_id")
     d["rew_raw"] = d["rew_raw"].where(d["rew_raw"] != "", None)
+    d["clob_h"] = d["clob_h"].where(d["rew_status"] != "no_column", np.nan)  # 13.7 erratum: an absent column is not an empty programme
     for c in ("rew_min", "rew_maxspread"):
         d[c] = pd.to_numeric(d[c], errors="coerce")
     return d
@@ -346,8 +353,8 @@ def read_rw(work: Path, cap_id: str | None) -> pd.Series | None:
 
 def effective_text(rwf: dict, s: int, lo: int, ids) -> np.ndarray:
     """13.7 (c): E(s) per market of ``ids`` (object array of ``clob_rewards`` hashes). NaN when slot ``s`` has no rw frame or the market has no sidecar row at
-    ``s`` (the NaN rule is unchanged). Otherwise the capture's own text at ``s`` when its cell is not null (a listed text; a malformed or no-column cell keeps
-    its own v1 hash, never replaced by a carried one); for a null cell, the LATEST listed text of the slots [``lo``, ``s`` - 1] (missing slots skipped,
+    ``s`` (the NaN rule is unchanged), or the capture at ``s`` is a sidecar without the ``clob_rewards`` column (``no_column``: NaN, 13.7 erratum). Otherwise
+    the capture's own text at ``s`` when its cell is not null (a listed text; a malformed cell keeps its own v1 hash, never replaced by a carried one); for a null cell, the LATEST listed text of the slots [``lo``, ``s`` - 1] (missing slots skipped,
     never filled), else the empty string. No slot later than ``s`` is read."""
     idx = pd.Index([str(m) for m in ids])
     if s not in rwf or rwf[s] is None:
@@ -355,6 +362,7 @@ def effective_text(rwf: dict, s: int, lo: int, ids) -> np.ndarray:
     f = rwf[s]
     out = f["clob_h"].reindex(idx).to_numpy(object).copy()
     st = f["rew_status"].reindex(idx).to_numpy(object)
+    out[st == "no_column"] = np.nan  # 13.7 erratum (also set by rw_frame / read_rw8; repeated so a hand-built frame cannot read it as empty)
     todo = np.flatnonzero(st == "null")
     for u in range(int(s) - 1, int(lo) - 1, -1):
         if not len(todo):
@@ -368,6 +376,23 @@ def effective_text(rwf: dict, s: int, lo: int, ids) -> np.ndarray:
             out[todo[hit]] = g["clob_h"].reindex(idx[todo[hit]]).to_numpy(object)
             todo = todo[~hit]
     return out
+
+
+def rw_nocol_mask(rwf: dict, slots, ids) -> pd.Series:
+    """13.7 erratum: True for a market whose capture at any of ``slots`` (k and k - 2) is a sidecar without the ``clob_rewards`` column."""
+    idx = pd.Index([str(m) for m in ids])
+    out = np.zeros(len(idx), bool)
+    for s in slots:
+        f = rwf.get(s)
+        if f is not None:
+            out |= (f["rew_status"].reindex(idx).to_numpy(object) == "no_column")
+    return pd.Series(out, index=idx)
+
+
+def rw_slim(f: pd.DataFrame) -> pd.DataFrame:
+    """Re-check N4: an rw frame without ``rew_raw`` once its slot is in the ``RewardCarry`` (which keeps the listed raw texts); ``effective_text``, the v1
+    hashes and :func:`rw_nocol_mask` read only ``clob_h`` and ``rew_status``."""
+    return f.drop(columns=["rew_raw"], errors="ignore")
 
 
 def lag_sweep8(sweep_dir: Path, cap_dir: Path) -> pd.DataFrame:
@@ -562,7 +587,7 @@ def _rv24(store, k: int, mk, tick, c: dict) -> tuple[np.ndarray, np.ndarray, np.
 
 def quiet_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, ser_k2: pd.DataFrame | None, rw_k: pd.Series | None, rw_k2: pd.Series | None, store: b.MidStore,
                 sw_k2: pd.DataFrame | None, sw_k1: pd.DataFrame | None, lv_k2: pd.DataFrame | None, lv_k1: pd.DataFrame | None, cap: dict, k: int,
-                spec: dict, rw_k_v1: pd.Series | None = None, rw_k2_v1: pd.Series | None = None) -> tuple[pd.DataFrame, dict]:
+                spec: dict, rw_k_v1: pd.Series | None = None, rw_k2_v1: pd.Series | None = None, rw_nocol: pd.Series | None = None) -> tuple[pd.DataFrame, dict]:
     """CH203's units of capture k (section 2): non-sports ex-crypto markets two-sided and tight at k - 1 and k (1.4 items 1-7, end > t + 7 h),
     ``mid_k`` in [0.07, 0.93], with sweep 1 of passes k - 2 AND k - 1 two-sided on the outcome-0 token, tight (sweep spread <= 0.10), both 5c
     depths positive at both and each received BEFORE capture k's start, QUIET (``|smid_{k-1} - smid_{k-2}| < 0.005`` and ``|mid_k -
@@ -574,7 +599,11 @@ def quiet_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, ser_k2: pd.DataFrame |
     for ``in_band`` come from the source capture of a carried unit; the sweep k - 1 sizes and spread are unchanged); ``rw_k`` / ``rw_k2`` are the
     effective texts E(k) / E(k - 2) (:func:`effective_text`) and ``rw_k_v1`` / ``rw_k2_v1`` the k-only hashes (descriptive v1 ``rw_changed``). A frame
     without the carry columns (unit tests) gives the k-only values. The v1 columns (``rewarded_v1``, ``in_band_v1``, ``ft_both_v1``, ``rw_changed_v1``)
-    are descriptive only and never a control or a gate input."""
+    are descriptive only and never a control or a gate input.
+
+    13.7 erratum: ``rw_nocol`` (bool by market_id) marks markets whose capture k or k - 2 is a sidecar without the ``clob_rewards`` column; their
+    ``rw_changed`` (v2 and v1) is NaN and the unit is excluded and counted as ``rw_changed_no_column`` (before ``rw_changed_unknown``), never read as an
+    empty programme. A ``no_column`` capture k already leaves ``rewarded`` NaN, so the count holds the units excluded for this reason only."""
     c = spec["tests"]["CH203"]
     j, cnt = b._movers_join(ser_k, ser_p, cap, spec, c["mid_lo_pre_band"], c["mid_hi_pre_band"], c["end_margin_h"])
     j = b._non_sports_ex_crypto(j.copy(), cnt)
@@ -670,6 +699,8 @@ def quiet_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, ser_k2: pd.DataFrame |
 
     rwc = _rwc(rw_k, rw_k2)
     rwc_v1 = _rwc(rw_k_v1, rw_k2_v1) if (rw_k_v1 is not None or rw_k2_v1 is not None) else rwc
+    nocol = rw_nocol.reindex(mkj, fill_value=False).to_numpy(bool) if rw_nocol is not None else np.zeros(len(j), bool)
+    rwc, rwc_v1 = np.where(nocol, np.nan, rwc), np.where(nocol, np.nan, rwc_v1)
     # 13.7 counts (as LT7: the vendored _reward_cols / _in_band_carry_counts; their returned reward values are not used, LT8's _rewards decides) and the v1 columns
     if "rew_status" not in j:
         j["rew_status"] = lt7_status(j["rew_state"])
@@ -688,11 +719,12 @@ def quiet_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, ser_k2: pd.DataFrame |
                       "silent": silent.astype(float), "ltp_missing": (~np.isfinite(j["ltp"].to_numpy(float))).astype(float), "d24": d24, "d24_flag": d24f, "rv24": rv,
                       "rv24s": rvs, "rv_floor": rvf, "rewarded": rw["rewarded"], "in_band": rw["in_band"], "ft_both": ft, "rw_changed": rwc, "reward_malformed": rw["malformed"].astype(float),
                       "fee_cat": j["fee_cat"].to_numpy(object), "rewarded_v1": rew_v1, "in_band_v1": in_band_v1, "ft_both_v1": ft_v1, "rw_changed_v1": rwc_v1,
-                      "rew_carry_lag": cu["rew_carry_lag"], "listed_k": cu["listed_k"], "rew_trans": cu["rew_trans"]})
+                      "rew_carry_lag": cu["rew_carry_lag"], "listed_k": cu["listed_k"], "rew_trans": cu["rew_trans"], "_rw_col_known": np.where(nocol, np.nan, 1.0)})
     u = b._common_cols(u)
     u["log_rv24s"] = np.log(u["rv24s"])
     u = _drop_missing(u, cnt, {"log_rv24s": "rv24_undefined", "rewarded": "reward_unknown_or_malformed", "in_band": "in_band_unknown", "ft_both": "ft_both_unknown",
-                               "rw_changed": "rw_changed_unknown", "tick": "tick_unknown", "imb5_km1": "imb_unknown", "dimb5": "dimb_unknown"})
+                               "_rw_col_known": "rw_changed_no_column", "rw_changed": "rw_changed_unknown", "tick": "tick_unknown", "imb5_km1": "imb_unknown",
+                               "dimb5": "dimb_unknown"}).drop(columns=["_rw_col_known"])
     u["dimb5_lag"] = np.nan  # filled by the census for the F-feasibility origins (:func:`add_lag`)
     cnt["units_pre_cap"] = len(u)
     return u, cnt
@@ -1134,7 +1166,7 @@ def census_ch203(Q: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_d
            "events": _events8(pop, scale, covered_days), "t_sum_used": a["t_sum"], "splits": b._desc_splits(tot), "per_market": b._per_market(pop["market_id"]),
            "vol_missing": _ev_share(pop), "liquidity_tiers_top_zdimb5_share": b._tier_shares(pop, "", "zdimb5"),
            "rewarded_share": float(pop["rewarded"].mean()), "ft_both_share": float(pop["ft_both"].mean()), "silent_arm_share": float(pop["silent"].mean()),
-           "reward_null_rule": spec.get("reward_null_rule"), "rewarded_carried_share": float(np.isfinite(pop["rew_carry_lag"].to_numpy(float)).mean()) if "rew_carry_lag" in pop and len(pop) else float("nan"),
+           "reward_null_rule": spec.get("reward_null_rule"), "carry_counts_caveat": CARRY_COUNTS_CAVEAT, "rewarded_carried_share": float(np.isfinite(pop["rew_carry_lag"].to_numpy(float)).mean()) if "rew_carry_lag" in pop and len(pop) else float("nan"),
            "reward_switch_distinct_markets": b._switch_distinct(pop), "rw_changed_v1_x_v2": rw_changed_table(pop), "reward_v1_descriptive": reward_v1_descriptive(pop, scale, a, g),
            "n_members_dist": {str(int(v_)): int(n_) for v_, n_ in Q["n_members"].clip(upper=11).value_counts().sort_index().items()}, "ladder_loss": 1.0 - cap_share if np.isfinite(cap_share) else float("nan"),
            "quantiles": {nm: _q(pop[nm]) for nm in ("imb5_km1", "dimb5", "dimb1", "dlev", "lag_s")}, "pairs_per_market_hist": b._per_market(F["market_id"])["units_per_market_hist"] if len(F) else {},
@@ -1644,6 +1676,7 @@ def census_sweeps(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, sweep_root=SWEEP_R
         rws[k] = read_rw8(work, cap["id"])
         if rws[k] is not None:
             carry.add(k, rws[k])  # slot k only; nothing later than k is ever stored
+            rws[k] = rw_slim(rws[k])  # N4: the carry holds the listed raw texts; rws keeps only what effective_text and the v1 hashes read
         b._fee_counts(ser, fee_counts)
         frames[k] = ser
         for old in [s_ for s_ in frames if s_ < k - 2]:
@@ -1667,7 +1700,7 @@ def census_sweeps(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, sweep_root=SWEEP_R
                 e_k2 = pd.Series(effective_text(rws, k - 2, lo, ids), index=ids)
                 v1 = {s_: (rws[s_]["clob_h"] if rws.get(s_) is not None else None) for s_ in (k, k - 2)}
                 q, cnt = quiet_units(ser_c, ser_p, frames.get(k - 2), e_k, e_k2, store, sw_of(k - 2), sw_of(k - 1), lv_of(k - 2), lv_of(k - 1), cap, k, spec,
-                                     rw_k_v1=v1[k], rw_k2_v1=v1[k - 2])
+                                     rw_k_v1=v1[k], rw_k2_v1=v1[k - 2], rw_nocol=rw_nocol_mask(rws, (k, k - 2), ids))
                 if k in PAIRS and len(q):
                     q = add_lag(q, lag_of(k + 5), lag_of(k + 6), spec)
                 b._merge_counts(tot203, cnt)

@@ -1013,6 +1013,8 @@ def _git_blob(commit: str, rel: str) -> str:
 def test_design_text_amendment_13_7_and_its_predecessor():
     assert lt.design_text_sha() == lt.DESIGN_TEXT_SHA256 and lt.design_text_error() is None
     assert "5e61c20b1282cef79c7caee68f08dceb506f845bc1a1325fe2fb9335c955cf48" in lt.DESIGN_TEXT_PREDECESSORS
+    assert "c76ffff6563ed88eae22046d5986e580cc527e8799488b014dcfd8365ef3accb" in lt.DESIGN_TEXT_PREDECESSORS  # 13.7 before its erratum
+    assert "### 13.7 erratum: `rw_changed` on a sidecar without the `clob_rewards` column" in lt.DESIGN_PATH.read_text()
     assert lt.DESIGN_TEXT_SHA256 not in lt.DESIGN_TEXT_PREDECESSORS
     assert "### 13.7 Reward-null rule `listed_carry24h_v2`" in lt.DESIGN_PATH.read_text()
     spec = lt.load_spec(sha=None)
@@ -1266,3 +1268,80 @@ def test_f_pairs_and_the_primary_use_the_carry_at_k(tmp_path, monkeypatch):
     assert t["v1_1_v2_0"] > 0 and set(t) >= {"v1_0_v2_0", "v1_0_v2_1", "v1_1_v2_1", "v1_nan"}
     assert res["CH203"]["reward_switch_distinct_markets"]["switch_markets_ge2"] >= 1 and res["CH203"]["reward_null_rule"] == "listed_carry24h_v2"
     assert set(res["CH203"]["reward_v1_descriptive"]) >= {"units", "ft_both_share", "corr_ft_both", "vif_w", "mde_tercile_c"} or "error" in res["CH203"]["reward_v1_descriptive"]
+
+
+def _rwf_nocol(ids: list[str], day: str = "2026-10-12") -> pd.DataFrame:
+    """The rw frame of a sidecar WITHOUT the clob_rewards column (load_ext8 adds the column as None and sets has_clob_rewards False)."""
+    ext = pd.DataFrame({"market_id": ids, "clob_rewards": None, "rewards_min_size": "20", "rewards_max_spread": "3.5"}).set_index("market_id")
+    ext.attrs["has_clob_rewards"] = False
+    return lt.rw_frame(ext, day).set_index("market_id")
+
+
+def test_rw_changed_is_nan_when_capture_k_or_k2_has_no_clob_rewards_column(tmp_path):
+    """13.7 erratum (re-check N2 (a)): a no_column capture is not an empty programme. Before the erratum its clob_h was clob_hash(NaN) = "" and a
+    no_column capture at k - 2 next to a listed one at k gave rw_changed = 1."""
+    T = POS
+    assert lt.clob_hash(float("nan")) == ""  # the old v1 value of a no_column cell: the empty-programme hash
+    ids = ["A", "B"]
+    # no_column at k - 2 (slot 8), listed at k (slot 10); and listed at k - 2, no_column at k
+    for rwf in ({8: _rwf_nocol(ids), 9: _rwf({"A": T, "B": T}), 10: _rwf({"A": T, "B": ""})}, {7: _rwf({"A": T, "B": T}), 8: _rwf({"A": T, "B": ""}), 10: _rwf_nocol(ids)}):
+        ek, ek2 = (pd.Series(lt.effective_text(rwf, s, -1, ids), index=ids) for s in (10, 8))
+        ch = np.where(pd.isna(ek) | pd.isna(ek2), np.nan, (ek != ek2).astype(float))
+        assert np.isnan(ch).all(), (ek.tolist(), ek2.tolist())  # NaN, not 1
+        v1 = [rwf[s]["clob_h"].reindex(ids) for s in (10, 8)]
+        assert (pd.isna(v1[0]) | pd.isna(v1[1])).all()  # the descriptive v1 comparison is NaN in the same cases
+        assert lt.rw_nocol_mask(rwf, (10, 8), ids).all() and not lt.rw_nocol_mask(rwf, (9,), ids).any()
+    # a null cell at k never takes a carried text over a no_column slot, and a no_column slot is never a source
+    rwf = {7: _rwf({"A": T}), 8: _rwf_nocol(["A"]), 9: _rwf({"A": ""}), 10: _rwf({"A": ""})}
+    assert list(lt.effective_text(rwf, 10, -1, ["A"])) == [lt.clob_hash(T)] and np.isnan(lt.effective_text(rwf, 8, -1, ["A"])[0])
+    # the CSV round trip keeps the NaN (keep_default_na=False would otherwise read the empty string back)
+    w = tmp_path / "work"
+    (w / "rw").mkdir(parents=True)
+    _rwf_nocol(ids).reset_index().to_csv(w / "rw" / "nc.csv.gz", index=False, compression="gzip")
+    d = lt.read_rw8(w, "nc")
+    assert (d["rew_status"] == "no_column").all() and d["clob_h"].isna().all() and d["rew_raw"].isna().all()
+
+
+def test_census_excludes_and_counts_rw_changed_no_column_and_rw_slim_changes_nothing(tmp_path, monkeypatch):
+    """13.7 erratum through the census: capture S's sidecar loses the clob_rewards column. Origin S + 2 then excludes its units as rw_changed_no_column
+    (an origin S would already exclude them as reward_unknown_or_malformed). Re-check N4: dropping rew_raw from the rw frames once the slot is in the carry leaves the census
+    output unchanged (identity rw_slim gives the same JSON) and effective_text never sees rew_raw."""
+    design = tmp_path / "LIVE_TESTS_8.md"
+    design.write_text("frozen design text")
+    monkeypatch.setattr(lt, "DESIGN_PATH", design)
+    monkeypatch.setattr(lt, "DESIGN_TEXT_SHA256", hashlib.sha256(design.read_bytes()).hexdigest())
+    host = build_host(tmp_path)
+    S = 40
+    f = host["snap"] / host["cids"][S] / "rows_ext.csv.gz"
+    pd.read_csv(f, dtype=str, keep_default_na=False).drop(columns=["clob_rewards"]).to_csv(f, index=False, compression="gzip")
+    p7 = write_lt7_seal(tmp_path, host)
+    spec = make_spec(p7, host)
+    s = lt.seal_inputs(snapshot_root=[host["snap"]], sweep_root=[host["swp"]], work=tmp_path / "ws", spec=spec)
+    assert "error" not in s
+    seal = tmp_path / "lt8.json"
+    seal.write_text(json.dumps(s, default=lt._json))
+    seen_cols: set = set()
+    orig_et = lt.effective_text
+
+    def spy_et(rwf, *a, **kw):
+        for fr in rwf.values():
+            if fr is not None:
+                seen_cols.update(fr.columns)
+        return orig_et(rwf, *a, **kw)
+
+    monkeypatch.setattr(lt, "effective_text", spy_et)
+    res = lt.census_sweeps(seal=seal, snapshot_root=[host["snap"]], sweep_root=[host["swp"]], work=tmp_path / "wk", spec=spec)
+    assert "error" not in res, res
+    assert "rew_raw" not in seen_cols and {"clob_h", "rew_status"} <= seen_cols
+    by_cap = {r["capture"]: r for r in res["per_pass"]}
+    r2 = by_cap[host["cids"][S + 2]]
+    assert "CH203" in r2  # origin S + 2 (S itself is not a CH203 origin of this world)
+    assert r2["CH203"]["rw_changed_no_column"] > 0 and r2["CH203"]["units_pre_cap"] == 0
+    assert all(r["CH203"].get("rw_changed_no_column", 0) == 0 for c_, r in by_cap.items() if "CH203" in r and c_ != host["cids"][S + 2])
+    assert res["CH203"]["counts"]["rw_changed_no_column"] == sum(r.get("CH203", {}).get("rw_changed_no_column", 0) for r in res["per_pass"])
+    assert "not comparable like for like" in res["CH203"]["carry_counts_caveat"]
+    monkeypatch.setattr(lt, "rw_slim", lambda fr: fr)  # N4 off: the rw frames keep rew_raw
+    seen_cols.clear()
+    res_full = lt.census_sweeps(seal=seal, snapshot_root=[host["snap"]], sweep_root=[host["swp"]], work=tmp_path / "wk2", spec=spec)
+    assert "rew_raw" in seen_cols
+    assert json.dumps(res, sort_keys=True, default=lt._json) == json.dumps(res_full, sort_keys=True, default=lt._json)
