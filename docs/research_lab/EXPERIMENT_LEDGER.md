@@ -3995,3 +3995,21 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **Files:** `signal_engine/config.py`, `tests/unit/test_signal_engine.py` (new
   `test_lt7_closure_withdrawals_and_lt9_round6_requests`; book dates updated), DESIGN_V1 section 8 table, CANDIDATES (builder
   replies, rows 12/19, row 21 `hwm`).
+
+## Signal engine: `dispgap` (CH218) and `dormant` (CH220) families, se22 and se23, 2026-10-23 ~01:30Z (signal-engine autopilot; development families, nothing scored or counted)
+- **What:** two engine-first round-14 ideas (LT9 section 6.2 left them to the engine), each built as its own aux family
+  with a learner-matched challenger (LightGBM, se1's params, se21's train block). One pre-declared configuration each,
+  with no development selection. DESIGN_V1 section 26.
+  - `dispgap`: Gamma's displayed 1 d / 1 w change minus the own 24 h / 7 d change, plus |gap|, the gap signed by the own
+    2 h move, and its change since the previous slot.
+  - `dormant`: the flat-run (|dmid| <= DELTA) and still-run (no change) lengths, both capped at 12, and a wake-up flag.
+- **Science review (ACCEPT_WITH_FIXES, all applied before deploy).**
+  - New tokens: `dispgap` to the later of 2026-11-14T00:00Z and LT2's analysis commit. E012 pre-declares Gamma
+    `oneDayPriceChange` in place of its x, so `dg_1d` = primary x minus sensitivity x; E013 / E014 use chg_1d / chg_1w as
+    controls. `dormant` to 2026-11-19T00:00Z, because E011's label requires a quiet prior day.
+  - The builder's first draft claimed that no test reads the venue's 1 d / 1 w fields. That was wrong, and it is
+    corrected in section 26.
+  - The census column, denominators and order are fixed before the census runs (dormant on `dm_still == 12`, 3% / 60%
+    of non-sports; dispgap |dg_1d| >= 2 ticks on >= 2% of rows; frame: captures 10-16..10-22).
+- **K:** se22 joins at 11-14 and se23 at 11-19 (z about 2.73 -> 2.81 at K = 10). No change before then.
+- **Census:** counts only, run after the backfill and before the first fit; the result follows as its own entry.
