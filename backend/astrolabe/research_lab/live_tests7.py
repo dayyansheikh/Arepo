@@ -160,24 +160,49 @@ def load_ext7(cap_dir: Path) -> pd.DataFrame | None:
     return ext.drop_duplicates("market_id").set_index("market_id")
 
 
+REWARD_STATUSES = ("listed", "null", "malformed", "absent")
+
+
+def reward_status(v, present: bool, day: str | None) -> tuple[str, float]:
+    """The reward status and daily rate of one sidecar cell (ruling 13.6, rule ``null_as_unrewarded_v1``). ``present`` = the market has a sidecar ROW
+    (not merely a non-NaN cell). ``absent``: no row (NaN rate, excluded and counted). ``null``: the row exists and ``clob_rewards`` is empty / NaN: Gamma
+    lists no programme = unrewarded (rate 0.0). ``listed``: the strict local parse (``json.loads``) gives a list: rate = the named parser's summed daily
+    rate active on ``day`` (0.0 when every programme is inactive that day). ``malformed``: a string that is not a JSON list (NaN rate, excluded and
+    counted). ``maker_rewards.parse_daily_rate`` is not edited; it is only called on a string that parsed as a list."""
+    if not present:
+        return "absent", float("nan")
+    if not isinstance(v, str) or not v.strip():
+        return "null", 0.0
+    try:
+        ok = isinstance(json.loads(v), list)
+    except (json.JSONDecodeError, ValueError):
+        ok = False
+    if not ok:
+        return "malformed", float("nan")
+    return "listed", float(maker_rewards.parse_daily_rate(v, day))
+
+
 def series7_frame(rows: pd.DataFrame, ext: pd.DataFrame | None, spec: dict, day: str) -> pd.DataFrame:
-    """LT3's series (vendored) plus Gamma ``liq``, the reward fields (``rew_rate`` = summed daily rate active on the capture's UTC
-    ``day``, NaN when the sidecar row or the field is absent, never 0; ``rew_min``; ``rew_maxspread`` in cents), the sidecar
-    ``osz`` (order_min_size), the raw ``fee_cat`` and the pinned ``crypto7`` class (``crypto`` / ``non_crypto`` / ``unknown``)."""
+    """LT3's series (vendored) plus Gamma ``liq``, the reward fields (``rew_status`` in {listed, null, malformed, absent}, decided from sidecar ROW
+    presence; ``rew_rate`` = summed daily rate active on the capture's UTC ``day`` for a listed programme, 0.0 for a null ``clob_rewards``, NaN for a
+    malformed cell or an absent row: ruling 13.6 ``null_as_unrewarded_v1``; ``rew_min``; ``rew_maxspread`` in cents), the sidecar ``osz``
+    (order_min_size), the raw ``fee_cat`` and the pinned ``crypto7`` class (``crypto`` / ``non_crypto`` / ``unknown``)."""
     ser, _ = b.series_frame(rows, ext, spec)
     mids = pd.Index(ser["market_id"].astype(str))
     ser["liq"] = rows.set_index(rows["market_id"].astype(str))["liquidity"].reindex(mids).to_numpy(float)
     if ext is not None:
         e = ext.reindex(mids)
         present = mids.isin(ext.index)
-        cr = e["clob_rewards"]
-        ser["rew_rate"] = [maker_rewards.parse_daily_rate(v, day) if isinstance(v, str) else np.nan for v in cr]
+        st = [reward_status(v, bool(p), day) for v, p in zip(e["clob_rewards"], present, strict=True)]
+        ser["rew_status"] = pd.Series([s_ for s_, _ in st], dtype=object).to_numpy()
+        ser["rew_rate"] = np.array([r_ for _, r_ in st], float)
         ser["rew_min"] = pd.to_numeric(e["rewards_min_size"], errors="coerce").to_numpy(float)
         ser["rew_maxspread"] = pd.to_numeric(e["rewards_max_spread"], errors="coerce").to_numpy(float)
         ser["osz"] = pd.to_numeric(e["order_min_size"], errors="coerce").to_numpy(float)
         fc = e["fee_category"].where(e["fee_category"].notna(), None).tolist()
     else:
         present = np.zeros(len(mids), bool)
+        ser["rew_status"] = "absent"
         ser["rew_rate"], ser["rew_min"], ser["rew_maxspread"], ser["osz"] = np.nan, np.nan, np.nan, np.nan
         fc = [None] * len(mids)
     sp = ser["sports"].to_numpy(int)
@@ -329,6 +354,28 @@ def _in_band(mid, spread, rewards_max_spread_cents, band) -> np.ndarray:
         ok = (sp * 100.0 <= rms + 1e-9)
     known = np.isfinite(rms) & np.isfinite(sp)  # a missing field OR a missing spread inside the band is NaN, never 0
     return np.where(~inside, 0.0, np.where(known, ok.astype(float), np.nan))
+
+
+def _reward_cols(j: pd.DataFrame, cnt: dict) -> tuple[np.ndarray, np.ndarray]:
+    """``rew_rate`` and ``rewarded`` (1 if the rate is positive that UTC day, 0 for a null / listed-inactive programme, NaN only for a malformed or absent
+    status) of the eligible units, with the four status counts (ruling 13.6, ``null_as_unrewarded_v1``). ``rewards_null_as_zero`` = null
+    ``clob_rewards`` read as unrewarded; ``rewards_listed_inactive`` = a listed programme with rate 0 on the capture's day; ``reward_unparseable`` =
+    malformed ONLY; ``reward_sidecar_absent`` = no sidecar row. Disjoint groups; the two unrewarded groups are pooled in ``rewarded`` but counted apart."""
+    st = j["rew_status"].astype(str).to_numpy()
+    rew = j["rew_rate"].to_numpy(float)
+    cnt["rewards_null_as_zero"] = int((st == "null").sum())
+    cnt["rewards_listed_inactive"] = int(((st == "listed") & np.isfinite(rew) & (rew == 0.0)).sum())
+    cnt["reward_unparseable"] = int((st == "malformed").sum())
+    cnt["reward_sidecar_absent"] = int((st == "absent").sum())
+    return rew, np.where(np.isfinite(rew), (rew > 0).astype(float), np.nan)
+
+
+def rewarded_x_in_band(U: pd.DataFrame) -> dict:
+    """Counts of the four ``rewarded x in_band`` cells of a unit frame (ruling 13.6 point 8; descriptive only)."""
+    if U.empty or "rewarded" not in U or "in_band" not in U:
+        return {}
+    r, i = U["rewarded"].to_numpy(float), U["in_band"].to_numpy(float)
+    return {f"rewarded{int(a)}_in_band{int(c)}": int(((r == a) & (i == c)).sum()) for a in (0, 1) for c in (0, 1)}
 
 
 def _mid12(store: MidStore | None, k: int, markets) -> np.ndarray:
@@ -563,8 +610,7 @@ def patient_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, store: MidStore | No
     liq = j["liq"].to_numpy(float)
     with np.errstate(invalid="ignore", divide="ignore"):
         h0 = np.where(np.isfinite(liq) & (liq > 0), np.clip(1.0 - notional0 / liq, 0.0, 1.0), np.nan)
-    rew = j["rew_rate"].to_numpy(float)
-    cnt["reward_unparseable"] = int((~np.isfinite(rew)).sum())
+    rew, rewarded = _reward_cols(j, cnt)
     spread_sw = (j["sask"] - j["sbid"]).to_numpy(float)
     mid = j["mid"].to_numpy(float)
     rms = j["rew_maxspread"].to_numpy(float)
@@ -575,7 +621,8 @@ def patient_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, store: MidStore | No
     u = pd.DataFrame({**_base_out(j, cap, k), "t_row": j["s_t"].to_numpy(float), "imbT": bt["imbT"], "imbB": bt["imbB"], "bT": bt["bT"], "aT": bt["aT"], "bB": bt["bB"], "aB": bt["aB"],
                       "mid": mid, "tick": j["tick"].to_numpy(float), "liq": liq, "end_ts": j["end_ts"].to_numpy(float), "vol24": j["vol24"].to_numpy(float),
                       "spread_sw": spread_sw, "total5": (j["dbid5"] + j["dask5"]).to_numpy(float), "h0": h0, "d24": d24, "d24_flag": d24f,
-                      "rewarded": np.where(np.isfinite(rew), (rew > 0).astype(float), np.nan), "in_band": in_band})
+                      "rewarded": rewarded, "in_band": in_band, "rew_status": j["rew_status"].astype(str).to_numpy(), "rew_min": j["rew_min"].to_numpy(float),
+                      "osz": j["osz"].to_numpy(float)})
     u["dis"] = u["imbB"] - u["imbT"]
     u["imbT1"] = b.imbalance(j["dbid1"], j["dask1"])  # S4: the 1c-band form of the touch (descriptive correlation with the best-level form)
     u["log1p_total5"] = np.log1p(u["total5"])
@@ -690,7 +737,7 @@ def ivr_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, store: MidStore, cap: di
         ivr = np.log(spread / rvs)
         ivr_lag = np.where(np.isfinite(lag) & (lag > 0), np.log(lag / rvs), np.nan)
     cnt["lag_missing"] = int((~np.isfinite(ivr_lag)).sum())
-    rew = j["rew_rate"].to_numpy(float)
+    rew, rewarded = _reward_cols(j, cnt)
     rms = j["rew_maxspread"].to_numpy(float)
     mid = j["mid"].to_numpy(float)
     in_band = _in_band(mid, spread, rms, spec["tests"]["CH197"]["reward_band"])
@@ -698,8 +745,8 @@ def ivr_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, store: MidStore, cap: di
     anat = np.where(mover, j["cls"].to_numpy(), "non_mover")
     u = pd.DataFrame({**_base_out(j, cap, k), "t_row": j["t_row"].to_numpy(float), "mid": mid, "spread": spread, "tick": tick, "liq": j["liq"].to_numpy(float),
                       "end_ts": j["end_ts"].to_numpy(float), "vol24": j["vol24"].to_numpy(float), "rv24": rv24, "rv24s": rvs, "rv_floor": rvf, "rv7d": rv7, "ivr": ivr,
-                      "ivr_lag": ivr_lag, "spread_g": j["spread"].to_numpy(float), "rewarded": np.where(np.isfinite(rew), (rew > 0).astype(float), np.nan), "in_band": in_band, "anat": anat})
-    cnt["reward_unparseable"] = int(u["rewarded"].isna().sum())
+                      "ivr_lag": ivr_lag, "spread_g": j["spread"].to_numpy(float), "rewarded": rewarded, "in_band": in_band, "anat": anat,
+                      "rew_status": j["rew_status"].astype(str).to_numpy(), "rew_min": j["rew_min"].to_numpy(float), "osz": j["osz"].to_numpy(float)})
     cnt["in_band_unknown"] = int(u["in_band"].isna().sum())
     u = u[np.isfinite(u["rewarded"]) & np.isfinite(u["in_band"])].reset_index(drop=True)
     u["rv7ds"], u["rv7d_floor"] = floored_rv(u["rv7d"].to_numpy(float), u["tick"].to_numpy(float), c["rv_floor_ticks"])  # "likewise": rv7d is floored at half a tick too
@@ -1123,7 +1170,7 @@ def census_ch197(U: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_d
            "projected_units_21d_after_family_exclusion": float(len(pop) * scale), "liquidity_tiers_top_zimbB_share": _tier_shares(pop, "", "zimbB"),
            "rewarded_share_by_zimbB_tercile": _share_by_tercile(pop, "zimbB", "rewarded"), "corr_own24": corr_d24, "corr_liq": cl, "day_diff_share": diff_share, "market_strata_share": strata,
            "events": _events(pop, scale, covered_days), "splits": _desc_splits(tot), "per_market": _per_market(pop["market_id"]),
-           "rewarded_share": float(pop["rewarded"].mean()), "imb_quantiles": {nm: [float(x) for x in np.quantile(pop[nm], [0.1, 0.5, 0.9])] for nm in ("imbT", "imbB", "dis")},
+           "rewarded_share": float(pop["rewarded"].mean()), "rewarded_x_in_band": rewarded_x_in_band(pop), "imb_quantiles": {nm: [float(x) for x in np.quantile(pop[nm], [0.1, 0.5, 0.9])] for nm in ("imbT", "imbB", "dis")},
            "counts": {k_: v_ for k_, v_ in tot.items() if isinstance(v_, (int, float))}}
     res["gate_CH197"] = _gate({
         "covered_share": bool(np.isfinite(covered_share) and covered_share >= g["covered_share_min"]), "units": projected >= g["units_projected_min"],
@@ -1227,7 +1274,7 @@ def census_ch192(U: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_d
            "projected_units_21d_after_family_exclusion": float(len(pop) * scale), "rewarded_share_by_zivr_tercile": _share_by_tercile(pop, "zivr", "rewarded"),
            "liquidity_tiers_top_zivr_share": _tier_shares(pop, "", "zivr"), "block_min_units": bm, "block_share": bs, "events": _events(pop, scale, covered_days), "splits": _desc_splits(tot), "per_market": _per_market(pop["market_id"]),
            "ivr_quantiles": [float(x) for x in np.quantile(U["ivr"], [0.1, 0.5, 0.9])], "tick_floor_share": float(U["spread_eq_tick"].mean()),
-           "rewarded_share": float(U["rewarded"].mean()), "counts": {k_: v_ for k_, v_ in tot.items() if isinstance(v_, (int, float))}}
+           "rewarded_share": float(U["rewarded"].mean()), "rewarded_x_in_band": rewarded_x_in_band(U), "counts": {k_: v_ for k_, v_ in tot.items() if isinstance(v_, (int, float))}}
     res["gate_CH192"] = _gate({
         "units": projected >= g["units_projected_min"], "rv_floor_share": bool(np.isfinite(floor_share) and floor_share <= g["rv_floor_share_max"]), "resid_iqr": iqr_ok(ri, g),
         "corr_zivr_log_rv24": bool(corr_rv["within"] is not None and np.isfinite(corr_rv["within"]) and abs(corr_rv["within"]) <= g["corr_zivr_logrv_max"]),
@@ -1352,7 +1399,12 @@ def _sample_rels(sid: str) -> list[str]:
     return [f"data-dumps/research_lab/trade_samples/{sid}/{fn}" for fn in SAMPLE_FILES]
 
 
-DESIGN_TEXT_SHA256 = "840f4500cde37158f57f6cf6bf54a3535ee5b24f3e5dedfd9240b315eeb52899"  # LIVE_TESTS_7.md at the design-text freeze
+DESIGN_TEXT_SHA256 = "31baf5e5b5c1bec2518228618fc21ab7f111c0e673d6cb064583ce1363d20dd4"  # LIVE_TESTS_7.md with the 13.6 reward-null amendment (2026-10-22)
+# Earlier design texts whose seals stay valid. The committed seal (seals/lt7_census_inputs.json, sha256 117e9b45...) records the text-freeze hash; section 13.6
+# changes units and control coding, not the sealed inputs, so that seal is accepted and never re-written. Anything not listed here refuses.
+DESIGN_TEXT_PREDECESSORS = {
+    "840f4500cde37158f57f6cf6bf54a3535ee5b24f3e5dedfd9240b315eeb52899": "design text freeze (cedfd6be), superseded by the 13.6 reward-null amendment, 2026-10-22",
+}
 DESIGN_PATH = ROOT / "docs" / "research_lab" / "LIVE_TESTS_7.md"
 SPEC_HASHED_BLOCKS = ("census_gates", "census_inputs", "tests", "move", "eligibility", "grid", "crypto_classifier", "sports_rule", "series_key_rule")
 
@@ -1370,6 +1422,11 @@ def spec_blocks_sha(spec: dict) -> str:
 def design_text_sha() -> str:
     """sha256 of ``docs/research_lab/LIVE_TESTS_7.md`` itself (computed, never copied from the spec)."""
     return sha256_file(DESIGN_PATH)
+
+
+def seal_design_accepted(seal_design_sha: str | None) -> bool:
+    """A seal is accepted iff the design hash it records is the current one or a declared predecessor (``DESIGN_TEXT_PREDECESSORS``)."""
+    return seal_design_sha == DESIGN_TEXT_SHA256 or seal_design_sha in DESIGN_TEXT_PREDECESSORS
 
 
 def design_text_error() -> dict | None:
@@ -1631,7 +1688,7 @@ def _fee_counts(ser: pd.DataFrame, acc: dict) -> None:
 
 def _load_for_census(seal: Path, snapshot_root, sweep_root, work: Path, spec: dict):
     seal_d = json.loads(Path(seal).read_text())
-    if (derr := design_text_error()) or seal_d.get("design_text_sha256") != DESIGN_TEXT_SHA256:
+    if (derr := design_text_error()) or not seal_design_accepted(seal_d.get("design_text_sha256")):
         return seal_d, None, None, derr or {"error": "the seal was written against a different LIVE_TESTS_7.md: census refused", "seal_design_text_sha256": seal_d.get("design_text_sha256")}
     viol = bound_violations(seal_d, spec)
     if viol:
@@ -2033,6 +2090,74 @@ def rewards_null_share(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, work: Path, s
             "per_day": {d: {**v, "clob_empty_or_null_share": (v["clob_null"] + v["clob_empty_list"]) / v["rows"] if v["rows"] else float("nan"), "clob_null_share": v["clob_null"] / v["rows"] if v["rows"] else float("nan"), "clob_empty_list_share": v["clob_empty_list"] / v["rows"] if v["rows"] else float("nan")}
                         for d, v in sorted(per_day.items())},
             "note": "null clob_rewards = no reward status = EXCLUDED by CH197 / CH192 (1.5); '[]' parses to 0.0 = not rewarded. If nulls are common, ask the challenger before CC7 / CS7."}
+
+
+def rewards_probe(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, work: Path, spec: dict | None = None, verify: bool = True) -> dict:
+    """Counts-only probe of the sealed sidecars before CC7 / CS7 (ruling 13.6, "Before CC7"). Reads ONLY the sidecar columns (``EXT_COLS``: no price, no
+    outcome, no target; the category columns apply the non-sports ex-crypto rule) of every sealed ``rows_ext.csv.gz`` (each opened file is checked against
+    the seal first). Per census day and in total, among non-sports ex-crypto market-captures: the share of LISTED programmes whose summed rate is zero on the
+    capture's UTC day; the null share of ``order_min_size``; the share of markets whose ``clob_rewards`` switches between null and non-null across the
+    captures of one UTC day (among markets seen at least twice that day); and the count of malformed ``clob_rewards``."""
+    spec = spec or load_spec(sha=None)
+    seal_d, by_slot, _, err = _load_for_census(seal, snapshot_root, [], Path(work), spec)
+    if err:
+        return err
+    files = seal_d.get("files", {})
+    bad, todo = [], []
+    for k, c in sorted(by_slot.items()):
+        rel = f"data-dumps/research_lab/snapshots/{c['id']}/rows_ext.csv.gz"
+        if rel in files:
+            pth = Path(c["dir"]) / "rows_ext.csv.gz"
+            if verify:
+                bad += b.verify_files(seal_d, [(rel, pth)])
+            todo.append((k, c, pth))
+    if bad:
+        return {"error": "input identity check failed (L3): census refused", "bad": bad[:50], "n_bad": len(bad)}
+    zero = {"rows": 0, "listed": 0, "listed_zero_rate_on_day": 0, "null": 0, "malformed": 0, "osz_null": 0}
+    per_day: dict[str, dict] = {}
+    seen: dict[str, dict[str, list[int]]] = {}  # day -> market_id -> [captures, null captures, listed captures]
+    for _k, c, pth in todo:
+        e = pd.read_csv(pth, usecols=lambda col: col in set(EXT_COLS), dtype=str)  # sidecar columns only (EXT_COLS holds no price)
+        for col in EXT_COLS:
+            if col not in e:
+                e[col] = None
+        e = e.drop_duplicates("market_id")
+        cat = b.category_cols(e.set_index("market_id"), e["market_id"].astype(str), e["market_id"].astype(str), spec)
+        keep = np.array([s_ == 0 and crypto_class(f_, True, int(s_)) == "non_crypto" for s_, f_ in zip(cat["sports"], e["fee_category"].where(e["fee_category"].notna(), None), strict=True)], bool)
+        e = e[keep].reset_index(drop=True)
+        d = _utc_day(c["start"])
+        st_rate = [reward_status(v, True, d) for v in e["clob_rewards"]]
+        st = np.array([s_ for s_, _ in st_rate], dtype=object)
+        rate = np.array([r_ for _, r_ in st_rate], float)
+        rec = {"rows": len(e), "listed": int((st == "listed").sum()), "listed_zero_rate_on_day": int(((st == "listed") & (rate == 0.0)).sum()), "null": int((st == "null").sum()),
+               "malformed": int((st == "malformed").sum()), "osz_null": int(pd.to_numeric(e["order_min_size"], errors="coerce").isna().sum())}
+        day_seen = seen.setdefault(d, {})
+        for m_, s_ in zip(e["market_id"].astype(str).to_numpy(), st, strict=True):
+            if s_ in ("null", "listed"):
+                row = day_seen.setdefault(m_, [0, 0, 0])
+                row[0] += 1
+                row[1 if s_ == "null" else 2] += 1
+        for tgt in (zero, per_day.setdefault(d, dict.fromkeys(zero, 0))):
+            for key_, v in rec.items():
+                tgt[key_] += v
+    sh = lambda x, n: (x / n if n else float("nan"))  # noqa: E731
+    sw_tot = {"markets_seen_2plus": 0, "markets_switching": 0}
+    for d, ms in seen.items():
+        two = [r_ for r_ in ms.values() if r_[0] >= 2]
+        sw = sum(1 for r_ in two if r_[1] > 0 and r_[2] > 0)
+        per_day[d]["markets_seen_2plus"], per_day[d]["markets_switching"] = len(two), sw
+        sw_tot["markets_seen_2plus"] += len(two)
+        sw_tot["markets_switching"] += sw
+    for v in per_day.values():
+        v["listed_zero_rate_share"] = sh(v["listed_zero_rate_on_day"], v["listed"])
+        v["order_min_size_null_share"] = sh(v["osz_null"], v["rows"])
+        v["null_nonnull_switch_share"] = sh(v["markets_switching"], v["markets_seen_2plus"])
+    return {"sidecars": len(todo), "captures_without_sealed_sidecar": len(by_slot) - len(todo), "inputs_verified": bool(verify),
+            "reward_null_rule": spec.get("reward_null_rule"), "totals": {**zero, **sw_tot},
+            "shares": {"listed_zero_rate_on_day": sh(zero["listed_zero_rate_on_day"], zero["listed"]), "order_min_size_null": sh(zero["osz_null"], zero["rows"]),
+                       "null_nonnull_switch_within_day": sh(sw_tot["markets_switching"], sw_tot["markets_seen_2plus"]), "clob_rewards_null": sh(zero["null"], zero["rows"])},
+            "malformed_clob_rewards": zero["malformed"], "per_day": dict(sorted(per_day.items())),
+            "note": "counts only; non-sports ex-crypto market-captures; no price, outcome or target read. A market is a switcher if, among its captures of one UTC day, clob_rewards is null in at least one and listed in at least one."}
 
 
 def cleanup_census(work: Path) -> None:

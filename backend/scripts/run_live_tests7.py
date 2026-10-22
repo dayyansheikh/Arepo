@@ -8,6 +8,7 @@ come in code phase 2.)
     python scripts/run_live_tests7.py census-captures --seal S --work W --out cc7.json                  # CC7: CH191, CH193, CH192  # q0603
     python scripts/run_live_tests7.py census-sweeps --seal S --work W --out cs7.json                    # CS7: CH195, CH197  # q0604
     python scripts/run_live_tests7.py rewards-null-share --seal S --work W --out rns.json              # null shares of the sealed reward fields  # q0601b
+    python scripts/run_live_tests7.py rewards-probe --seal S --work W --out rp.json                    # ruling 13.6 pre-CC7 counts  # q0601c
 
 ``census-flow`` is an alias of ``census-volsem`` (CV7 reads the sealed active-frame trade samples). Every subcommand refuses to
 overwrite ``--out``; the censuses accept ``--data-dumps-cap-gb`` (exit 75 when data-dumps is above the cap, the queue's "not now")
@@ -105,6 +106,13 @@ def build_parser() -> argparse.ArgumentParser:
     r.add_argument("--out", type=Path, default=None)
     r.add_argument("--keep-work", action="store_true")
     r.add_argument("--data-dumps-cap-gb", type=float, default=None)
+    rp = sub.add_parser("rewards-probe", help="counts-only reward probe of the sealed sidecars (ruling 13.6): zero-rate listed share, order_min_size null share, null/non-null switching within a UTC day, malformed count")
+    rp.add_argument("--seal", type=Path, default=SEALS / "lt7_census_inputs.json")
+    rp.add_argument("--work", type=Path, required=True)
+    rp.add_argument("--snapshot-root", type=Path, action="append", help="repeatable (default: the host root)")
+    rp.add_argument("--out", type=Path, default=None)
+    rp.add_argument("--keep-work", action="store_true")
+    rp.add_argument("--data-dumps-cap-gb", type=float, default=None)
     s = sub.add_parser("census-sweeps", help="CS7: CH195 and CH197 on the sealed sweeps and their captures")
     s.add_argument("--seal", type=Path, default=SEALS / "lt7_census_inputs.json")
     s.add_argument("--work", type=Path, required=True)
@@ -147,6 +155,8 @@ def main(argv: list[str] | None = None) -> int:
         res = lt.census_volsem(seal=args.seal, sample_roots=args.sample_root, snapshot_root=args.snapshot_root or [lt.SNAPSHOT_ROOT], work=args.work)
     elif args.cmd == "rewards-null-share":
         res = lt.rewards_null_share(seal=args.seal, snapshot_root=args.snapshot_root or [lt.SNAPSHOT_ROOT], work=args.work)
+    elif args.cmd == "rewards-probe":
+        res = lt.rewards_probe(seal=args.seal, snapshot_root=args.snapshot_root or [lt.SNAPSHOT_ROOT], work=args.work)
     elif args.cmd == "census-captures":
         res = lt.census_captures(seal=args.seal, snapshot_root=args.snapshot_root or [lt.SNAPSHOT_ROOT], work=args.work)
     else:
