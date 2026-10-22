@@ -1,6 +1,6 @@
 {
  "spec_id": "live_tests4_v1",
- "status": "DRAFT after challenger R2 and the censuses (2026-10-21, LIVE_TESTS_4.md 17: k_tests = [\"E022\"], Holm m = 1; E020 failed CQ and E021 failed CF, dropped uncounted, their census values left null on purpose; E023/E024 dropped before any census; E022 values from CH, CQCH.json sha256 2c9e2a9e...; not registered, code_sha256 and SPEC_SHA256 not pinned)",
+ "status": "REGISTERED 2026-10-22 (E022 only: k_tests = [\"E022\"], Holm m = 1, LIVE_TESTS_4.md 17 and 20; REGISTERED_UTC 2026-10-26T00:00Z; SPEC_SHA256 pinned in live_tests4.py; code_sha256 = the section 19 freeze record; size check q0484 passed; E020 failed CQ and E021 failed CF, dropped uncounted, their census values left null on purpose; E023/E024 dropped before any census; E022 values from CH, CQCH.json sha256 2c9e2a9e...)",
  "design": "docs/research_lab/LIVE_TESTS_4.md",
  "experiments": [
   "E020",
@@ -15,11 +15,11 @@
  ],
  "k_tests_rule": "list of the primaries among E020-E022 that survived their census gates, fixed before the pin; Holm m = len(k_tests); null = not filled (refused when pinned); E023/E024 refused",
  "code_sha256": {
-  "live_tests4.py": null,
-  "live_tests4_analysis.py": null,
-  "live_tests3.py": null,
-  "live_tests3_analysis.py": null,
-  "bounce_decomp.py": null
+  "live_tests4.py": "c92ffe93fd2db8482e1619cb7356462874ad50040ebe7d3e1a87dc1ccfb4f91c",
+  "live_tests4_analysis.py": "c31117ac6ee9caff9831e1e37d9d641b2f38e2170b62c4fd306b523e99a0ee75",
+  "live_tests3.py": "3ac52d7959e56c6a5472a34d112c61ca643c7f35ebe77b87388b5cba9c7b8c65",
+  "live_tests3_analysis.py": "224b56036f98a2cfe3f92ffb6778e80c6b1131223cf20a0f548ca95fffaec955",
+  "bounce_decomp.py": "2caf0edc73fbac5b27054589afa495a2cf6844886e41a2f8eced5d9796a34c8a"
  },
  "code_sha_rule": "normalised module sha256 (the SPEC_SHA256 line excluded); frozen lines carry code_sha = first 16 hex of sha256(h(live_tests4.py) + h(live_tests3.py)) (LIVE_TESTS_4.md 1.0 L7)",
  "grid": {

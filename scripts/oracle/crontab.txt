@@ -25,4 +25,7 @@
 # LT3 (E015) live reader, REGISTERED 2026-10-21 (LIVE_TESTS_3.md 13.4, 13.18): own flock, killed before the collector, 960 MB cap, no network.
 # Runs until LIVE_TESTS3_WINDOW_CLOSED (END 2026-11-14T00:00Z + 30 h); remove after 2026-11-15T06:00Z. Never also run the fallback queue job q0474_lt3_live_collect.
 */20 * * * * cd ~/arepo/backend && flock -n ~/arepo/run/live_tests3.lock nice -n 19 sh -c 'echo 1000 > /proc/self/oom_score_adj; ulimit -v 983040; ../.venv/bin/python scripts/run_live_tests3.py run --max-items 40 --data-dumps-cap-gb 40' >> ~/arepo/run/live_tests3.log 2>&1
+# LT4 (E022) live reader, REGISTERED 2026-10-22 (LIVE_TESTS_4.md 9.2, 19, 20): own flock, offset 10 min from LT3, 1.5 GiB virtual cap, no network.
+# Runs until the window closes (END 2026-11-16T00:00Z + 30 h); remove after 2026-11-17T06:00Z. Never also run the fallback queue job q0485_lt4_live_collect.
+10-59/20 * * * * cd ~/arepo/backend && flock -n ~/arepo/run/live_tests4.lock nice -n 19 sh -c 'echo 1000 > /proc/self/oom_score_adj; ulimit -v 1572864; ../.venv/bin/python scripts/run_live_tests4.py run --max-items 40 --data-dumps-cap-gb 40' >> ~/arepo/run/live_tests4.log 2>&1
 # --- end AREPO ---

@@ -27,6 +27,6 @@
   "trials.jsonl (one line, kind live_tests4, n_tests = k)"
  ],
  "next_action": "ledger results entry (scored once), registry update",
- "notes": "DRAFT, not in queue/jobs (LIVE_TESTS_4.md). Runs once; --out refuses to overwrite. Memory estimate (not measured): about 0.3-0.5 M move lines (E020 subset about 0.1 M), 0.15 M hollow lines, 0.05 M clock lines, 200 gate draws each; peak about 1-1.5 GB; never alongside another multi-GB job.",
+ "notes": "PROMOTED 2026-10-22 with the E022 registration (LIVE_TESTS_4.md 20); not_before unchanged. | DRAFT, not in queue/jobs (LIVE_TESTS_4.md). Runs once; --out refuses to overwrite. Memory estimate (not measured): about 0.3-0.5 M move lines (E020 subset about 0.1 M), 0.15 M hollow lines, 0.05 M clock lines, 200 gate draws each; peak about 1-1.5 GB; never alongside another multi-GB job.",
  "not_before": "2026-11-17T12:00:00Z"
 }
