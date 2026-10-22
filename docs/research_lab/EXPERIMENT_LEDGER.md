@@ -3825,3 +3825,11 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   versions) must match or the run refuses; exit 75 at a unit boundary when the budget would be exceeded; trials rows
   flushed once at completion. Review OK_WITH_NOTES (no cross-unit RNG or fold state; notes 1-4 applied). Synthetic
   interrupted-vs-uninterrupted test bit-identical; real fits not yet run twice. Draft q0116h (depends on q0604).
+
+## Signal engine: `hwm` own high-water-mark family, se21, 2026-10-22 ~22:15Z (signal-engine autopilot; development family, nothing scored or counted)
+- Built aux family `hwm` (`se-aux-hwm-v1`, DESIGN_V1 §25; CANDIDATES CH181, development only, LT5 H dropped at census):
+  distance of the origin mid to the highest / lowest mid of the earlier captures over 3 d and 7 d, hours since the 7 d
+  extremes, position in the 7 d range, share of 7 d slots quoted; from the engine's own quotes files only. Challenger
+  `se21_lgbm_hwm` (se1's LightGBM params + hwm; one pre-declared configuration, no development selection; not
+  embargoed). K rises by one. Science review ACCEPT_WITH_FIXES (documentation fixes applied). Ideas only: no evidence
+  yet. Tests `test_hwm_features_hand_example`, `test_hwm_family_reads_only_earlier_quotes`.

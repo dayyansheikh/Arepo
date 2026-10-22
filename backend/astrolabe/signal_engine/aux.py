@@ -353,6 +353,61 @@ def _surprise_builder(ctx: dict) -> pd.DataFrame:
     return surprise_features(np.column_stack(cols), ctx["cap_start"])
 
 
+# ---------------------------------------------------------------------------------------------- hwm family
+# Own high-water marks (CANDIDATES CH181, development only; LT5 H was dropped at census, so no test is shadowed): the
+# distance of the origin mid to the highest and lowest mid of the earlier captures in the last 3 d and 7 d, the hours
+# since the 7 d extremes, the position in the 7 d range and the share of the 7 d slots quoted. Inputs: the engine's own
+# quotes files of slots k - 84 .. k (earlier captures plus the origin's own mid, as `surprise`); no snapshot rows.
+# Windows of 3 d and longer only, so the family carries no 6 h step path (LT7 `capath`) and no time-of-day schedule
+# (LT8 `sched`). No embargo token. `hw_dhi7d + hw_dlo7d` is the 7 d range, a volatility measure near `sp_rv7d`
+# (`surprise`, E011 until 2026-11-19); no token is needed because E011 tests a frozen detector, not a learned direction
+# score, and the champion already holds ms_rv24 and chg 1w (science review 2026-10-22). Departure from CH181 as written
+# in CANDIDATES: raw probability distances, not within-market SD units (dividing by own volatility would bring the
+# `surprise` quantity in), and the new-extreme flag is only implicit (hw_dhi* < 0).
+HWM_COLUMNS = ["hw_dhi3d", "hw_dlo3d", "hw_dhi7d", "hw_dlo7d", "hw_agehi7d", "hw_agelo7d", "hw_pos7d", "hw_cov7d"]
+HW_WINDOWS = {"3d": (36, 12), "7d": (84, 24)}  # name: (earlier 2 h slots, min quoted slots)
+HW_LOOKBACK = max(w for w, _ in HW_WINDOWS.values())
+HW_MIN_RANGE = 0.01  # the 7 d position needs a range of at least one cent
+
+
+def hwm_features(H: np.ndarray) -> pd.DataFrame:
+    """``H``: per eligible market, mids of slots k - HW_LOOKBACK .. k (NaN where not quoted), last column the origin.
+    The extremes are taken over the earlier slots only, so a new high gives ``hw_dhi* < 0`` and ``hw_pos7d > 1`` (a new
+    low: below 0; the position is not clipped). ``hw_cov7d`` is reported even below the 24-slot minimum (it says how
+    much history there is)."""
+    n = H.shape[0]
+    out = pd.DataFrame({c: np.full(n, np.nan, np.float32) for c in HWM_COLUMNS})
+    if n == 0:
+        return out
+    m = H[:, -1]
+    for name, (w, min_n) in HW_WINDOWS.items():
+        P = H[:, -1 - w:-1]
+        ok = np.isfinite(P)
+        cnt = ok.sum(axis=1)
+        good = (cnt >= min_n) & np.isfinite(m)
+        hi = np.where(ok, P, -np.inf).max(axis=1)
+        lo = np.where(ok, P, np.inf).min(axis=1)
+        out[f"hw_dhi{name}"] = np.where(good, hi - m, np.nan)
+        out[f"hw_dlo{name}"] = np.where(good, m - lo, np.nan)
+        if name == "7d":
+            R = P[:, ::-1]  # newest earlier slot first, so argmax / argmin pick the most recent extreme on ties
+            okr = ok[:, ::-1]
+            out["hw_agehi7d"] = np.where(good, 2.0 * (np.argmax(np.where(okr, R, -np.inf), axis=1) + 1), np.nan)
+            out["hw_agelo7d"] = np.where(good, 2.0 * (np.argmin(np.where(okr, R, np.inf), axis=1) + 1), np.nan)
+            with np.errstate(invalid="ignore", divide="ignore"):
+                out["hw_pos7d"] = np.where(good & (hi - lo >= HW_MIN_RANGE), (m - lo) / (hi - lo), np.nan)
+            out["hw_cov7d"] = np.where(np.isfinite(m), cnt / w, np.nan)
+    return out.astype(np.float32)
+
+
+def _hwm_builder(ctx: dict) -> pd.DataFrame:
+    paths, meta, index = ctx["paths"], ctx["meta"], ctx["index"]
+    mids = ctx.get("mids") or SlotMids(paths, index, keep=HW_LOOKBACK + 4)
+    ids = ctx["f"]["market_id"].to_numpy(np.int64)
+    slot = meta["slot"]
+    return hwm_features(np.column_stack([mids.get(j, ids) for j in range(slot - HW_LOOKBACK, slot + 1)]))
+
+
 def read_reward_ext(cap_dir) -> pd.DataFrame | None:
     p = Path(cap_dir) / "rows_ext.csv.gz"
     if not p.exists():
@@ -804,6 +859,7 @@ AUX_FAMILIES: dict[str, dict] = {
     "book0": {"version": "se-aux-book0-v1", "columns": BOOK0_COLUMNS, "needs_rows": False, "builder": _book0_builder},
     # needs the capture's snapshot folder (its sidecar) but not the parsed rows
     "crypto": {"version": "se-aux-crypto-v1", "columns": CRYPTO_COLUMNS, "skip_rows_read": True, "builder": _crypto_builder},
+    "hwm": {"version": "se-aux-hwm-v1", "columns": HWM_COLUMNS, "needs_rows": False, "builder": _hwm_builder},
 }
 AUX_COLUMNS: dict[str, list[str]] = {k: v["columns"] for k, v in AUX_FAMILIES.items()}
 AUX_ALL: list[str] = [c for cols in AUX_COLUMNS.values() for c in cols]
@@ -856,7 +912,7 @@ def run_aux(paths: S.Paths, max_items: int = 4) -> dict:
     state = S.load_state(paths)
     caps = {c["id"]: c for c in S.discover_captures(paths, state)}
     written, gone, errors = [], 0, []
-    mids = SlotMids(paths, index, keep=SP_LOOKBACK + 4)  # shared across captures (newest first)
+    mids = SlotMids(paths, index, keep=max(SP_LOOKBACK, HW_LOOKBACK) + 4)  # shared across captures (newest first)
     for _slot, m in sorted(index.items(), reverse=True):
         cid = m["capture_id"]
         for fam in AUX_FAMILIES:
@@ -931,4 +987,4 @@ def check_spec_aux(spec: dict) -> str | None:
 
 __all__ = ["AUX_FAMILIES", "AUX_COLUMNS", "AUX_ALL", "MODEL_FAMILY_COLUMNS", "aux_path", "build_aux", "run_aux",
            "aux_sources", "read_features", "spec_aux_families", "check_spec_aux", "event_features", "movetype_features",
-           "surprise_features", "participation_features", "crypto_features"]
+           "surprise_features", "participation_features", "crypto_features", "hwm_features"]

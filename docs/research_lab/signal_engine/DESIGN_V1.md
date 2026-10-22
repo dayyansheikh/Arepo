@@ -706,3 +706,42 @@ which every fitted model already contains), so this is `res_7d` only.
   anyone can trade at.
 - **First rows:** the daily score of 2026-10-23 (the reference covers the 28-day lookback of stored features at once,
   i.e. the champion's history since 10-21; LightGBM `res_7d` rows appear once those fits work, ~10-28).
+
+## 25. `hwm`: own high-water marks (2026-10-22 ~22:00Z; development family)
+
+**Why.** CH181 (`CREATIVE_HYPOTHESES_2026-10-25.md`): a market near a salient extreme of its own path may behave
+differently from one in the middle of its range (George and Hwang 2004 on the 52-week high: anchoring at the peak). The
+champion's momentum family holds fixed-horizon changes only, so it cannot see where the price sits relative to its own
+recent highs and lows. LT5 H (the live test of CH181) was dropped at census, so no test is shadowed. Ideas only: no
+evidence yet, development or prospective.
+- **Aux family `hwm` (`se-aux-hwm-v1`, `aux.hwm_features`):** from the engine's own quotes files of slots k - 84 .. k
+  (the earlier captures plus the origin's own mid, the same inputs as `surprise`; no snapshot rows). Over the
+  earlier slots of the window only (so a new high gives a negative distance):
+  - `hw_dhi3d`, `hw_dlo3d`, `hw_dhi7d`, `hw_dlo7d`: highest mid minus the origin mid, and origin mid minus the lowest,
+    over 36 / 84 earlier 2 h slots (3 d / 7 d); missing below 12 / 24 quoted slots or without an origin mid.
+  - `hw_agehi7d`, `hw_agelo7d`: hours since the 7 d high / low (2 h per slot, the newest earlier slot is 2 h; ties go
+    to the most recent).
+  - `hw_pos7d`: (mid - low) / (high - low) over 7 d, missing when the range is below one cent.
+  - `hw_cov7d`: share of the 84 earlier slots quoted (history is truncated for markets older than AREPO's captures).
+- **Windows of 3 d and longer only,** so the family carries no 6 h step path (LT7 `capath`, CH191) and no time-of-day
+  schedule (LT8 `sched`, CH204). No embargo token. `hw_dhi7d + hw_dlo7d` is the 7 d range, a volatility measure near
+  `sp_rv7d` (`surprise`, E011 until 11-19); no token is needed because E011 tests a frozen detector, not a learned
+  direction score, and the champion already holds `ms_rv24` and the 1 w change.
+- **Departures from CH181 as listed in CANDIDATES:** raw probability distances, not within-market SD units (dividing by
+  own volatility would bring the `surprise` quantity in); no explicit new-extreme flag (it is `hw_dhi* < 0`, and
+  `hw_pos7d` is not clipped: above 1 at a new high, below 0 at a new low); `hw_cov7d` is reported even below the
+  24-slot minimum.
+- **Science review (2026-10-22 ~22:10Z): ACCEPT_WITH_FIXES.** No leakage (extremes over earlier slots only; the origin
+  quotes file is the same capture's Gamma rows as the label anchor; no sweep input, so §21 does not arise); no token
+  needed (LT5 H and E021 dropped; LT7, LT8, LT9 draft, E015, E022 checked); not promotion-ineligible. Fixes applied:
+  the `surprise` rationale, the departures and the ranges above, written down. One availability caveat: a quotes file
+  that arrived late enters a backfilled table but would not have entered a live-built one (not leakage).
+- **Challenger `se21_lgbm_hwm`:** LightGBM with `se1_lgbm_mm`'s parameters on the champion's features plus `hwm`,
+  `require_full_coverage`, read against se1 for the family effect. One pre-declared configuration, no development
+  selection; its first evidence is prospective. K rises by one (the conservative direction for every challenger).
+- **Backfill.** `run_aux` builds the table for every processed capture whose features file exists, newest first, from
+  quotes files written at or before that capture. A backfilled table is a deterministic function of stored pre-origin
+  observations, like every earlier aux family; training still uses only labels available before each fit.
+- **Cost.** About 8 float32 columns on the direction and resolution frames (~55 MB at the caps), one more LightGBM fit
+  per refit (~2 min of the ~48 min), one more prediction per capture. The q0512 / q0513 caps are unchanged.
+- Tests: `test_hwm_features_hand_example`, `test_hwm_family_reads_only_earlier_quotes`.
