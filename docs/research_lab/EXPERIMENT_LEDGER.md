@@ -3803,3 +3803,19 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   benchmark, not a challenger: not in the registry, never promoted, no change to K, the promotion rule or any existing
   score. First rows at the 2026-10-23 daily score. Any gain over the mid is forecast quality only (no costs, no fill),
   not an edge claim. Test `test_market_price_reference_scores_res_7d_from_the_origin_mid`.
+
+## LT8 amendment 13.7 and re-check fixes R1-R3, 2026-10-22 (~21:30Z; experiments autopilot; nothing counted)
+- **Trigger:** `reviews/LT8_CENSUS_CODE_FIX_RECHECK_2026-10-22.md` = FIXES_REQUIRED R1-R3 (fixes 1-10 OK). Before the LT8 seal and every LT8 census.
+- **R2, design-text amendment 13.7** ("reward-null rule `listed_carry24h_v2` (from LT7 13.7 and its erratum)"): `LIVE_TESTS_8.md` sha256
+  5e61c20b… (text freeze, now a declared predecessor in code) -> `c76ffff6563ed88eae22046d5986e580cc527e8799488b014dcfd8365ef3accb`. CH203 only:
+  a null `clob_rewards` at k takes `rewarded` from the latest positive listed text of `[k-11, k]` re-parsed for day(k), with that source's
+  `rewards_max_spread` (`in_band`) and `rewards_min_size` (`ft_both`); `rw_changed` compares the effective texts E(k) and E(k-2); F pairs use the
+  carry at k. Counts as LT7; v1 `ft_both`, `VIF_w` and slope MDE descriptive only. Only input: LT7's probe counts (263413f2…); not *informed (LT7
+  census)* (no LT7 census output committed; CV7's host output read for its code hash only). Gates, thresholds, formulas and MDE inputs unchanged.
+- **Code:** vendored LT7 `RewardCarry` and its count helpers (7 names, byte-identical to the e1c5c0c6 blob); spec keys `reward_null_rule:
+  listed_carry24h_v2`, `reward_carry_slots: 12` (sealed blocks); `maker_rewards.py` hashed; pre-13.7 test exemption removed.
+- **R1:** accepted LT7 census code = {CV7: `live_tests7.py` 2ee6a659…; CC7 / CS7: e1c5c0c6…; all: `live_tests7_base.py` 2e8baa90…}; anything else
+  refuses. Every vendored body CV7 depends on (and every non-carry vendored body) is byte-identical in the 2ee6a659 blob (test).
+- **R3:** q0620-q0623 drafts gain the LT7/LT6/LT5/LT4 restore-tree roots (hash-checked); no census "measured by a host dry run" on sealed inputs;
+  10-day retention kept until q0623 finishes; promotion only per `restore-plan` or a chain finishing before 2026-10-28T03:30Z outside 02:45-05:30Z.
+- **Next:** census-code re-check of this commit, then q0620. Nothing counted.
