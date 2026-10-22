@@ -255,10 +255,16 @@ Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && gi
    (12-06T12Z). On/after 10-25: confirm q0541/q0542 start and stay healthy (counts only; `run_copy_skilled.py status`),
    send the owner "collection started" note, then weekly counts notes. Re-promote a `failed` collector within 48 h.
    FROZEN until 12-07: copy_skilled*.py, wallet_skill*.py, costs.py, copy_skilled_v1.json, cost_model_calibration_v1.json.
-2. **LT5 census:** seal committed (59b17969, sha256 fcd88926…); **q0561 promoted** (priority 60, exclusive) 00:15Z.
-   When done: commit `CF5_CHW_CRW.json` + sha256 (seals/), fill F/H/R perm_stratum / exclude_family / r.depth_band /
-   k_tests in the spec, record drops (LIVE_TESTS_5.md 7.3, ledger), then promote q0562, then q0563 (size check).
-   If q0561 misses the window: a new restore and seal, never a backfill.
+2. **LT5 census:** seal committed (59b17969, sha256 fcd88926…). **q0561 failed twice at the address-space cap**
+   (01:33Z at 3,000 MB; 01:54Z at 6,500 MB, loading the full series panel `sbs_all`): real need ~5 GB, beyond the 5.6 GB
+   host. Re-armed for the 12 GB host (9771b42a/7d6b31df): mem_mb 5000, as_cap_mb 11000, priority 98, not_before
+   05:30Z, status queued (retry done). **Snapshot retention raised 8 -> 10 days (693db389, TEMPORARY)** so its sealed
+   10-13/14 captures stay on the host (10-13 rows now leave 10-24T03:30Z). **After q0561 is done: revert
+   `archive_retention.json` snapshots to 8 days (ledger line), deploy.** If q0561 fails again: do not retry blindly;
+   look at RSS (`ps`), consider a code fix (cache eviction) with a census-code re-check, never a backfill.
+   Then commit `CF5_CHW_CRW.json` + sha256 (seals/), fill F/H/R perm_stratum / exclude_family / r.depth_band / k_tests,
+   record `vendored_source_drift_accepted["live_tests4.py"]` (see LT5 test guard below), record drops (LIVE_TESTS_5.md
+   7.3, ledger), then q0562 runs (promoted, depends on q0561), then promote q0563 (size check, 10-18 h).
 3. **T_seal done:** h7 seals committed (34c6580a); **q0121 promoted**. When q0121 is done, commit its h8_tail seal copy,
    then promote q0144 and q0145 (drafts; never retry q0141). **CB8:** q0161 smoke FAIL (a) → **W1 not testable
    (source), counted 1** (176b62f3; seals/cb8_smoke_FAIL_20261022.json); q0167/q0168/q0171/q0175 stay uncommitted

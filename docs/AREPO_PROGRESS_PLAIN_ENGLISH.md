@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-22 01:18 UTC+1
+**Last updated:** 2026-10-22 02:59 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -8,23 +8,24 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 
 ## 1. Right now
 - **Autopilot:** a session started at about 01:10 UTC+1 (22 Oct).
-- **Tonight's time-critical steps are done (before the 03:40 UTC+1 server resize):**
-  - LT5 (planned live tests from round 11): the list of exactly which data files its counting checks may read is
-    sealed and committed, and the counting job is next in line on the server. It must read the files before the
-    nightly 04:30 UTC+1 clean-up.
-  - Batch 4 (series roll / fee era) history is sealed (two sets, about 14,000 files); the batch 6 seal job is queued.
-- **Batch 8 result (a null, recorded):** the "worked-order footprints" idea (W1) could not be tested. Its pre-set data
-  check needed 20 qualifying past markets and only 5 qualified, so it counts as one "not testable" test. Its sister idea
-  (Binance terminal minutes, B) passed its data checks and continues; its exclusion-key job is queued.
-- **E012-E014 (LT2):** collection window opened at 01:00 UTC+1 today; the first data arrives with the 01:31 pass.
-- **LT4 / E022:** the size check runs on the server from about 05:00 UTC+1 (2-4 hours), then registration before 25 Oct
-  so collection can start on 26 Oct.
-- **Server resize to 2 CPU / 12 GB at about 03:40 UTC+1** (your approval). No deploys 03:40-04:45 UTC+1. After it, the
-  model run (MC1) is re-queued with the bigger memory.
+- **LT5 (planned live tests from round 11):** its data list is sealed, but the counting job ran out of memory twice on the
+  small server (it needs about 5 GB). It is set to run again after tonight's resize to 12 GB, at about 06:30 UTC+1. To keep
+  its sealed data safe until then, the server now keeps price snapshots for 10 days instead of 8 (longer, never shorter;
+  it goes back to 8 days after the job). Nothing was lost and nothing was counted.
+- **LT6 (four planned live tests):** the code passed an independent re-check after fixes; its counting checks run
+  tomorrow (22 Oct) after a data restore.
+- **LT7 (new, five planned live tests from ideas round 12):** the design passed an independent challenger review after
+  changes and is frozen; one idea was dropped as a near-repeat of an earlier confirmed result. Its code for the counting
+  checks is written and being fixed after review. Honest planning says most of these may fail their counting checks.
+- **Batch 8 result (a null, recorded):** the "worked-order footprints" idea could not be tested (its data check needed 20
+  qualifying past markets, only 5 qualified); counted as one "not testable" test. Its sister idea continues.
+- **Seals done tonight:** batch 4 history (about 14,000 files); batch 6's seal job is queued.
+- **E012-E014 (LT2):** collecting since 01:00 UTC+1 today.
+- **LT4 / E022:** size check from about 05:00-07:00 UTC+1, then registration before 25 Oct.
+- **Server resize to 2 CPU / 12 GB at about 03:40 UTC+1** (your approval). After it, the model run (MC1) is re-queued.
 - **Copy-skilled wallets (E026):** registered; collection starts 25 Oct (phone note then).
 - **Live tests waiting for their single analysis:** E009/E010 (3 Nov), E011 (11 Nov), E012-E014 (13 Nov), E015
   (15 Nov), E026 (6 Dec).
-
 ## 2. Approvals needed from you
 1. ~~Automatic Claude sessions~~ **APPROVED and installed 15 Oct** (full power, your call).
    - Pause: `python3 scripts/autopilot/autopilot.py pause` (on the Mac, in the repo). Use `resume` to undo, or `stop` to
