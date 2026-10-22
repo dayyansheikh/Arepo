@@ -3777,3 +3777,22 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   (write each finished fold's out-of-fold predictions and stage record, skip finished folds on restart, same fold plan,
   models and gates), so the run can proceed in <= 6 h exclusive slices after q0604. q0116g stays `failed` (it was a
   measurement); q0116f stays parked.
+
+## CB16-K blind twin audit, 2026-10-22 ~20:45Z (science-reviewer; nothing counted)
+- Auditor file `creative_batch16/audit_K_sample.json` (q0393, seed 16141, 100 of 30,176 PRESENT-TOPIC pairs; sha256
+  0d317a11…, equal to the manifest's `sample_sha256`); titles, subtitles and the two 3-day-rule dates only, as q0393
+  declared. Key file not read. Review: `reviews/CB16_K_BLIND_AUDIT_2026-10-22.md`.
+- **Result: 3 GENUINE, 1 UNCLEAR, 96 NOT_TWIN; FAIL against the declared >= 90 / 100.** The PRESENT-TOPIC text rule
+  matches recurring templates (crypto "price between" vs unrelated indices, unnamed-city °F vs °C buckets, one-way
+  implications within a match), not same-event twins.
+- **Re-entry rule not met: CH143 is recorded as "not testable at the floor with available or feasibly collectable
+  data"** (CREATIVE_BATCH_16.md §CB16-K). No K test existed (declared "no CB16 test"), so nothing is counted. The
+  seed / stratum provenance check by a key-side reader is moot for the verdict and not pursued.
+
+## CB7 census q0147 fix re-check, 2026-10-22 ~20:45Z (science-reviewer; operational)
+- `reviews/CB7_CENSUS_FIX_RECHECK_2026-10-22.md`: **FIXES_OK_WITH_NOTES** for freeze-check items 3-8 (4cc77b64, af960b80;
+  39 tests). Design §2.7 unchanged; no outcome read.
+- Note 1 (medium): the q0146-failure contingency (re-specify q0147 as `--family S,G` with X terminal) needs a durable
+  terminal record before it is used: a refused / disk_budget q0146 must leave a marker, `require_xv_complete` must not
+  tempfail on a sticky terminal manifest, and census.json must carry an explicit X terminal state. To implement before
+  q0146 ends or before q0147 is promoted (not before 10-24T01:00Z). Notes 2-3 (low) in the review.
