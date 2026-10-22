@@ -3612,3 +3612,13 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **LT6 has no surviving test** (V, D, B at q0582; K at q0583): nothing registered, **uncounted**. q0584 and the LT6
   reader / analysis drafts are moot. LT7's "after LT6's q0584 or its recorded drop" is met by this entry; q0602's
   dependency on q0584 is removed with a note (the cpu lane still serialises LT7 with LT5's census jobs).
+
+## LT5 closed: J and O dropped at census, no LT5 test registered (2026-10-22 ~07:35Z; experiments autopilot)
+- q0562 (CJ, CO) ran once (07:12-07:25Z, rc 0); output `seals/CJ_CO.json` sha256 5b806f7d… committed. Counts only.
+- **J (CH180): dropped** (63.7 qualifying units a pass < 120; permutable share 0.0; MDE 2.16c). **O (CH182): dropped**
+  (372 covered units a pass < 600; IQR share 0.44 < 0.50; MDE 0.84c). Details: `LIVE_TESTS_5.md` 7.3.
+- **LT5 has no surviving test** (F, H, R at q0561; J, O at q0562): nothing registered, **uncounted**. q0563 and the LT5
+  reader / analysis drafts are moot. The `flow` engine token (until 11-22) was filed for LT5 J / O only.
+- The vendored-provenance guard is closed out with drift records for `live_tests4.py` (post-pin sha256 4e043b65…) and
+  `live_tests4_analysis.py` (c31117ac…; only the E022 pin line and earlier LT4 pre-pin edits changed; every vendored function still equals its source, which the test
+  checks), so the suite stays meaningful; LT5's spec is otherwise unchanged and will never be pinned.

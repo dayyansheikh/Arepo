@@ -645,7 +645,17 @@ the census; nothing re-tuned. **F, H and R all fail and are dropped before regis
   0.9996, permutable share 0.94 (day). Disclosure: the zero unrewarded count may reflect the vendored `series_frame` parse,
   which reads an empty `clob_rewards` as NaN (excluded) rather than 0.0 (LT7 census-code check must-fix 3 noted the same
   parse); the drop does not depend on it, since the crossing and MDE gates fail on their own.
-- J (CJ) and O (CO) wait for q0562; `k_tests` is fixed after it. The F/H/R census values in the spec stay null on purpose.
+- **q0562 (CJ, CO), 2026-10-22 07:12-07:25Z** (attempt 1, rc 0, 802 s) on the 23 sealed samples and the LT4 capture seal;
+  output `seals/CJ_CO.json`, sha256 5b806f7d3b321ceefc7e79c8e391009931c4566650b6dbc604db4876f106ebcd (host and Mac equal).
+- **J (CH180, CJ): DROPPED.** Fails qualifying units per pass 63.7 (>= 120), permutable share 0.0 by day / 0.009 by block2
+  (>= 0.5) and the pessimistic MDE 2.16c (<= 0.5c). Passes: `ts` second-level 0.98, jump share 0.31 and grind share 0.28
+  (>= 0.20 each), jumps from 0.01-tick books 0.44 (<= 0.80), `interval_truncated` 0.0012, the within correlations
+  (fresh -0.02, log1p n_int -0.44, liquidity -0.17; all <= 0.5).
+- **O (CH182, CO): DROPPED.** Fails covered units per pass 372 (>= 600), within-market IQR of `O` >= 1c in 0.44 of markets
+  (>= 0.50) and the pessimistic MDE per SD x tercile gap 0.84c (<= 0.5c). Passes: `trunc24` 0.003, `|m| > 0.9` share 0.20,
+  the correlation gates (0.35 and 0.68 within, limits 0.5 and 0.85), block-gate recurrence 0.80.
+- **LT5 closes with no test: all five (J, F, O, H, R) dropped at census before registration, uncounted.** q0563 (size
+  check) and the LT5 reader / analysis drafts are moot and never promoted. No census value is filled into the spec.
 
 ## 8. Pre-registration censuses (counts only; before registration; worn pre-window data; no target read)
 

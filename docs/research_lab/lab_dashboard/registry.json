@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-22T07:00:00Z",
+ "updated": "2026-10-22T07:35:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1536,22 +1536,22 @@
   },
   {
    "id": "LT5",
-   "title": "Live tests from round 11 (planned)",
-   "plain": "A fifth group of planned live tests from new-ideas round 11. On 22 Oct three of the five (moving alone versus with the family, a recent 7-day high or low, reactions inside reward bands) failed their counting checks and were dropped before any test, uncounted. Two remain: jumps versus slow grinds, and holders sitting on gains.",
+   "title": "Live tests 5: five ideas from round 11 (closed)",
+   "plain": "A fifth group of planned live tests from new-ideas round 11. On 22 Oct all five failed their counting checks (too few cases, or an effect size larger than the checks allow) and were dropped before any test, so nothing was registered and nothing is counted.",
    "batch": "LT5",
    "family": "mixed",
    "stage": "designed",
-   "status": "running",
-   "verdict": "pending",
+   "status": "closed",
+   "verdict": "not_testable",
    "effect": null,
-   "next": "Counting check for the two remaining tests, then a size check; earliest start 30 Oct",
-   "next_date": "2026-10-30",
+   "next": "Closed: no LT5 test registered (all five dropped at their counting checks, uncounted)",
+   "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT5 capture censuses (q0561): F, H and R dropped at census, uncounted (2026-10-22)"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT5 closed: J and O dropped at census, no LT5 test registered (2026-10-22); docs/research_lab/LIVE_TESTS_5.md §7.3"
    },
    "stage_results": {
-    "designed": "pending"
+    "designed": "fail"
    },
    "reached": [
     "designed"

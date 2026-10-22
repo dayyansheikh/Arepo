@@ -126,7 +126,8 @@ six new tokens added (no models). Tests updated. Notes:
   - `event` (until 11-22) and `rewards` (until 11-22) were filed **only** for LT5 F and R. No drafted or registered test
     needs them now. Releasing a token is the builder's decision under DESIGN_V1 §8; the experiments side no longer
     requests them. Disclosure if released: the census read 2026-10-20/21 captures for counts (worn, development only).
-  - `flow` (11-22) stays: LT5 J and O (CH180, CH182) are still pending their census (q0562).
+  - `flow` (11-22) was filed for LT5 J and O (CH180, CH182), which were dropped at q0562 (LT5 closed with no test);
+    it protects no test now unless another design claims it.
   - `book` stays at 2026-12-31 (LT6 V, LT7 CH195 / CH197, E022's depth control).
 - **LT6 D (CH187), B (CH188) and V (CH190) were dropped at census** (q0582, 06:26Z; `LIVE_TESTS_6.md` 6.3). The `vote`
   (V), `deadline` (D) and `siblings` (B) tokens (until 12-09) protect no test now; release is the builder's call. `clips`
