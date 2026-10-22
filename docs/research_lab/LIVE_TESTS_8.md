@@ -1,9 +1,10 @@
 # Live tests 8 (LT8): three round-13 candidates (CH203, CH202, CH204), DRAFT pre-registrations
 
-**Status: DRAFT, first commit. Not registered, nothing counted, no code, no census run, no challenger review yet.** Drafted
-2026-10-22 on branch `feat/live-tests-8` from the `chore/arepo-claude-setup` tip `5ffe8229`, a design-only first commit like
-the first commits of LT3-LT7. E-numbers are **not** assigned here. E026 is the last number used; LT5 provisionally holds
-E027-E031 and LT6 and LT7 the next free numbers for whichever of their tests survive; LT8 takes the next free numbers at its
+**Status: DRAFT. Challenger R1 (2026-10-22, REVISE, 8 must-fix) is answered in section 13, which governs where earlier text
+differs. Not registered, nothing counted, no code, no census run.** Drafted 2026-10-22 on branch `feat/live-tests-8` from the
+`chore/arepo-claude-setup` tip `5ffe8229`, a design-only first commit like the first commits of LT3-LT7; the R1 response
+applies **only** the review's items (section 13, must-fix 2). E-numbers are **not** assigned here. E026 is the last number used; LT5 provisionally holds
+E027-E031 and LT7 the next free numbers for whichever of their tests survive (LT6 closed with no test and holds none); LT8 takes the next free numbers at its
 own registration (provisionally in the order CH203, CH202, CH204 for the tests that survive). If every test drops at its
 census, LT8 is not registered (recorded in the ledger; nothing counted). Before registration this needs, in order:
 1. a challenger review (`science-reviewer`) of this file, the response, and any re-check;
@@ -41,8 +42,8 @@ re-check (13, 13.5) and census-code-check rulings. Every design change from the 
 | Handle | Idea | Hypothesis (direction) | Population | Primary | Planning MDE (DE as stated; multiplier 3.47): slope or class MDE; F-MDE; **max**; at a quarter of the units | Floor |
 |---|---|---|---|---|---|---|
 | **CH203** | the quiet book | Within a market, the YES mid change from capture k + 1 to k + 3 rises with the **innovation of the 5c depth imbalance** between the sweeps of passes k - 2 and k - 1 (both received before capture k), on a touch that did not move, the imbalance level held fixed (one-sided, > 0) | non-sports ex-crypto eligible two-sided books with a quiet touch, events of <= 10 members; captures + sweep 1 of passes k - 2 and k - 1 | expanding-past demeaned OLS of `y_s` on `zdimb5` with `z imb5_{k-1}` a control; **block Freedman-Lane gate**; **far-future innovation falsification is a verdict condition** | slope 0.35c at the tercile gap (DE 31, `n_eff` 1.0M; 0.25c at 2.0M); F 0.50c at `r_w` 0 (0.56c at 0.2); **max 0.50-0.56c** (quarter 1.0-1.1c); passes F only at `n_eff` >= about 1.0-1.4M | 0.5c (tercile) |
-| **CH202** | the sweep clock | Within a market, a 2 h move that the CLOB had **already made by the first sweep of pass k - 1** (held, `early_share >= 0.75`) persists more from k + 1 to k + 3 than one that arrived after it (fresh, `early_share <= 0.25`), the signed Gamma 1 h change held fixed (one-sided, > 0) | non-sports ex-crypto 2 h movers at k with sweep 1 of pass k - 1 two-sided; captures + that sweep | expanding-past demeaned OLS of `c_skip` on 1[held] over held and fresh units; **block Freedman-Lane gate** with a one-path stale-display world; F a reported label | class 0.38c (DE 6.196, low count; 0.29c high); no F (reported label); **max 0.38c** (quarter 0.76c); 0.67c at its count-gate floor with the minimum class shares | 0.5c |
-| **CH204** | the market's own clock | Within markets whose own |2 h moves| concentrate in one slot of the day (scheduled, 7-day look-back), the |move| over (k + 1, k + 2] is larger when that interval ends in the market's hot slot, the venue's slot-of-day pattern held fixed (one-sided, > 0) | non-sports ex-crypto eligible markets classed scheduled at capture k, events of <= 10 members; captures only (84-slot own look-back) | expanding-past demeaned OLS of `a = |mid_{k+2} - mid_{k+1}|` on `sc_hot` with 11 slot-of-day dummies; **block Freedman-Lane gate**; rotated-schedule F a reported label | class 0.53c (DE 31, low count; 0.37c high; 0.61c / 0.43c at DE 41); no F (reported label); **max 0.53c** (quarter 1.05c) | 0.5c (class) |
+| **CH202** | the sweep clock | Within a market, a 2 h move that the CLOB had **already made by the first sweep of pass k - 1** (held, `early_share >= 0.75`) persists more from k + 1 to k + 3 than one that arrived after it (fresh, `early_share <= 0.25`), the signed Gamma 1 h change held fixed (one-sided, > 0) | non-sports ex-crypto 2 h movers at k with sweep 1 of pass k - 1 two-sided; captures + that sweep | expanding-past demeaned OLS of `c_skip` on 1[held] over held and fresh units; **block Freedman-Lane gate**; binding leak worlds with a noisy, lagged `chg_1h` proxy (R1 must-fix 7); F a reported label | class 0.38c (DE 6.196, low count; 0.29c high); no F (reported label); **max 0.38c** (quarter 0.76c); at its count-gate floor (201,600 held plus fresh) 0.33c raw / 0.37c effective with 15% class shares, 0.52c at the least favourable split the gates allow (R1 must-fix 4) | 0.5c |
+| **CH204** | the market's own clock | Within markets whose own |2 h moves| concentrate in one slot of the day (scheduled, 7-day look-back), the |move| over (k + 1, k + 2] is larger when that interval ends in the market's hot slot, the venue's slot-of-day pattern held fixed (one-sided, > 0) | non-sports ex-crypto eligible markets classed scheduled at capture k, events of <= 10 members; captures only (84-slot own look-back) | expanding-past demeaned OLS of `a = |mid_{k+2} - mid_{k+1}|` on `sc_hot` with 11 slot-of-day dummies; **block Freedman-Lane gate**; rotated-schedule F a reported label | class **0.57c** (DE 31, low count; **0.40c** high; 0.66c / 0.47c at DE 41; R1 must-fix 3); no F (reported label); **max 0.57c** (quarter 1.14c); passes 0.5c only with >= about 2,550 hot units a day | 0.5c (class) |
 
 - **Family:** one Holm family over the k surviving primaries, one-sided, familywise alpha 0.05, separate from E009-E011, LT2
   (E012-E014), LT3 (E015), LT4 (E022), LT5, LT6, LT7, E025 and E026. **Provisional k <= 3.** A test whose census gate fails
@@ -51,22 +52,31 @@ re-check (13, 13.5) and census-code-check rulings. Every design change from the 
   after a census drop (CH205 cannot join this family later; section 5).
 - **Window (proposed):** whole captures with start in `[REGISTERED_UTC, END_UTC)`, 21 days, `REGISTERED_UTC =
   2026-12-30T00:00:00Z`, `END_UTC = 2027-01-20T00:00:00Z`; single analysis on or after **2027-01-21T12:00:00Z**. Keyed to
-  LT7's `END_UTC` (proposed 2026-12-29T00:00Z, itself keyed to LT6's) plus 24 h, **never earlier than 2026-12-30T00:00Z**, and
-  sliding later with LT7 (section 1.1). First origins: CH202 12-30T02:31Z, CH203 12-30T04:31Z, CH204 12-30T00:31Z (section
+  LT7's `END_UTC` (proposed 2026-12-29T00:00Z; with LT6 closed, LT7's window now follows its own rules (a) and (c), and the
+  remaining risk of a slide is LT5 J/O's registration, after which LT7 registers) plus 24 h, **never earlier than
+  2026-12-30T00:00Z**, and sliding later with LT7 (section 1.1). First origins: CH202 12-30T02:31Z, CH203 12-30T04:31Z, CH204 12-30T00:31Z (section
   1.1).
 - **Pin early, run late (round 13 rule 9; LT7's form, tightened).** The design text is frozen **before the earlier of
   2026-11-15T12:00Z and `T_E015`** (planned by 2026-11-10), earlier than the round's 2026-12-07T12:00Z, so that it precedes
-  every adjacent analysis except E011's (label only); CH203 is dropped uncounted if the freeze is not before `T_V` (LT6 V),
-  and every test is dropped if its registration is not before `T_LT7` (section 1.1).
-- **Expected outcome, declared now (honest prior odds of surviving census).** **CH203 is borderline on its F-MDE gate**
-  (0.50c at `r_w` 0 at the low planning count; it passes only if the census projects `n_eff` >= about 1.0M at `r_w` 0, 1.24M
-  at 0.2, 1.41M at 0.3); its other risks are the member-cap share, the quiet share and the computed whole-panel DE. Prior odds
-  of surviving: **0.30**. **CH202 is borderline** (0.38c at the low count, 0.67c at its count floor; the block-gate share of
-  all movers is untested; its correlation with the signed 1 h change may inflate `VIF_w`). Prior odds: **0.25**. **CH204 is
-  more likely than not to drop** (0.53c at the low count already exceeds 0.5c at DE 31; the scheduled share, the event count,
-  the venue-clock and category gates are all unprobed). Prior odds: **0.15**. **Expected k is 0 to 1; the chance that every
-  test drops and LT8 is not registered is about one half** (0.70 x 0.75 x 0.85 = 0.45, treating the fates as independent,
-  which they are not). Every taker check is expected to be "not shown" (section 1.10).
+  every adjacent analysis except E011's (label only); every test is dropped if its registration is not before `T_LT7`
+  (section 1.1). (LT6 closed on 2026-10-22 with every test dropped at census, so the first draft's rule that dropped CH203 if
+  the freeze was not before `T_V` is withdrawn; R1 must-fix 1.)
+- **Expected outcome, declared now (honest prior odds; re-stated in the R1 response, 13).** Two numbers per test: the odds of
+  surviving census, and the odds of then also passing the binding size and mechanical worlds, i.e. of reaching a valid
+  verdict. **CH203 is borderline on its F-MDE gate** (0.50c at `r_w` 0 at the low planning count; it passes only if the
+  census projects `n_eff` >= about 1.0M at `r_w` 0, 1.24M at 0.2, 1.41M at 0.3); its other risks are the member-cap share,
+  the quiet share and the computed whole-panel DE. **It is likely to fail its binding fill-leak world 8** once that world
+  carries the `vol_missing` share (at least 0.78; R1 must-fix 8): a fill that leaves no volume trace is the same-signed
+  confounder the design cannot separate. Census **0.30**; valid verdict **about 0.10**. **CH202 is borderline** (0.38c at
+  the low count; the block-gate share of all movers is untested; the signed 1 h change may inflate `VIF_w`), and its binding
+  worlds 3 and 5 now give the model a noisy, lagged `chg_1h` proxy, so the known reversal can leak into the contrast (R1
+  must-fix 7). Census **0.25**; valid verdict **about 0.12**. **CH204 is more likely than not to drop** (0.57c at the low
+  count; it needs about 2,550 hot units a day; the scheduled share, the event count, the venue-clock and category gates are
+  unprobed, and the census days were on summer time while the window is on winter time). Census **0.10**; valid verdict
+  **about 0.08** (world 12 is now reported, R1 must-fix 6). **Expected k at census is about 0.65 (0 to 1); the chance that
+  every test drops and LT8 is not registered is about one half** (0.70 x 0.75 x 0.90 = 0.47, treating the fates as
+  independent, which they are not); **the expected number of tests reaching a valid verdict is about 0.3.** Every taker check
+  is expected to be "not shown" (section 1.10).
 
 ## 1. Common rules
 
@@ -118,6 +128,12 @@ Round 13's design rules (`CREATIVE_HYPOTHESES_2026-10-27.md` 0.1) map onto LT8 a
   (b) lapses and (c) still holds. The proposed value is **2026-12-30T00:00Z**; `END_UTC = REGISTERED_UTC + 21 d` =
   2027-01-20T00:00Z; analysis date `END_UTC + 36 h` = 2027-01-21T12:00Z. **The family slides later if LT7 slides**; the rule
   uses no data; a move is recorded in the ledger.
+- **The chain after LT6's closure (R1 must-fix 1).** LT6 closed on 2026-10-22 with V, D, B and K all dropped at census
+  (`LIVE_TESTS_6.md` 6.3; ledger "LT6 closed"), so LT7's rule (b) (24 h after LT6's `END_UTC`) has no object and LT7's window
+  now follows its own rules (a) (24 h after LT7's registration commit) and (c) (never before 2026-12-08). LT7 registers only
+  after LT5's registration commits or recorded drops; LT5 F, H and R are dropped and **J and O are pending** (q0562), so the
+  remaining source of a slide is LT5 J/O's registration delaying LT7's past 2026-12-07, which would move LT7's `END_UTC` and
+  with it LT8's `REGISTERED_UTC` by rule (b) above. No LT6 date enters any LT8 rule.
 - **Why 24 h after LT7's end is enough (and what is shared).** LT7's last primary and F inputs are CH197's 22 h target and
   k + 13 sweep of its last 12:31Z origin (12-28T12:31Z), ending with the 12-29T14:31Z pass (about 14:40Z). LT8's earliest
   state input (CH203's k - 2 sweep of its first origin) is the 12-30T00:31Z pass, and every LT8 primary state input is a
@@ -141,7 +157,7 @@ Round 13's design rules (`CREATIVE_HYPOTHESES_2026-10-27.md` 0.1) map onto LT8 a
   | CH202 | E015 (`T_E015`, proposed 2026-11-15T12Z) | E015's anatomy (traded against quote-only) is a CH202 control; a held quote-only move is a re-centring that stayed | label *informed (E015)* |
   | CH202, CH203 | E022 (`T_E022`, proposed 2026-11-17T12Z) | E022 reads sweep depth and post-move hollowness on movers; CH202 shares its population; CH203 reads the same depth fields on non-movers | label *informed (E022)* |
   | CH202 | LT5 J (`T_LT5`, proposed about 2026-11-22T12Z), if J registers | J's one-step against grind at the print clock is a timing-of-the-move question | label *informed (LT5)* |
-  | CH203 | **LT6 V** (`T_V`, proposed 2026-12-08T12Z) | V's post-move 5c skew and its `v_prev` pre-move skew are the levels whose change CH203 tests on quiet books | **CH203 dropped uncounted** (as LT7's CH195 against E022) |
+  | CH203 | LT6 V (**closed**: dropped at census 2026-10-22, never registered, no analysis) | V's post-move 5c skew and `v_prev` pre-move skew are levels whose change CH203 tests on quiet books | none: no `T_V` exists; the first draft's drop rule is withdrawn (R1 must-fix 1); V's census counts were read and are disclosed (10) |
   | CH202, CH203, CH204 | **LT7** (`T_LT7`, proposed 2026-12-30T12Z) | CH195 reads the same k - 1 sweep on the same movers (CH202); CH197 the behind-touch level and CH195 the depth level (CH203); CH192 the |move| magnitude on the whole panel (CH204) | registration is before `T_LT7` by construction (at least 24 h before 12-30T00Z); if not, **every LT8 test is dropped** |
   | CH204 | E011 (`T_E011`, analysis after 2026-11-11) | E011 scores moves against the market's own volatility | label *informed (E011)* |
   | CH202 | E002, E004 (complete; Confirmed (exploratory, prospective)) | a reversal of about 21% of Gamma's 1 h change at about 5 h predicts that a fresh move continues less (CH202's sign) | label *informed (E002/E004)* always (3); the signed `chg_1h` is a primary control |
@@ -150,6 +166,12 @@ Round 13's design rules (`CREATIVE_HYPOTHESES_2026-10-27.md` 0.1) map onto LT8 a
   populations (CH195, CH197); an LT8 origin after LT7's last input shares no origin, state, control or target with LT7. (2)
   Host reader slots: LT7's reader stops about as LT8's starts (8.2). (3) LT8 can be frozen in November and pinned in December,
   before LT7's analysis.
+- **Daylight-saving time (disclosed; R1 should-fix).** The census days (2026-10-12..10-21) were on US and UK summer time; the
+  window is on winter time (the UK changes on 2026-10-25, the US on 2026-11-01). A US 08:30 ET release lands at 12:30Z, one
+  minute before the 12:31Z capture, during the census, but at 13:30Z, mid-interval, in the window. CH204's census gates (the
+  scheduled share, the distribution of `s*`, the venue-clock gate) are therefore **not representative of the window's slot
+  positions**; CH202's held/fresh shares may shift for the same reason. The rule is not changed (it would be a change from
+  data the census has not yet produced); the census prints the 12:31Z slot's share of `s*` separately.
 - **Year end (disclosed).** The window spans New Year (2026-12-31..2027-01-02) and its first days follow Christmas; volumes may
   be lower than the October census days; CH204's first-week schedules are built from the Christmas week (12-23..12-29), when
   scheduled releases pause. A counts-only weekly line (`ops-stats`) is recorded, never a look. Sensitivities without origins in
@@ -236,14 +258,20 @@ is also re-estimated on units with the field present and reported, never a verdi
 No mid, move, target, P&L, regression or plot from `live_tests8/` files, or from in-window captures or sweeps, for these
 hypotheses. Only `run_live_tests8.py ops-stats` may run (file, line, role, class and status counts; reads no price column,
 enforced by a unit test). No change of thresholds, scales, populations, estimators or k after registration; operational fixes
-are logged as deviations. E015's, E022's, LT5's, LT6's and LT7's analyses (11-15 .. 12-30) arrive before LT8's window; they
-change nothing in LT8 after the design-text freeze, and the table of 1.1 decides their consequences. **No LT8 designer, coder
-or reviewer reads E015's, E022's, LT5's, LT6's or LT7's analysis outputs, or LT6's or LT7's census outputs beyond counts this
-file already cites, before the pin** (`SPEC_SHA256`). LT7's census outputs (counts only, on the same sealed days and
-neighbouring populations: CH195's movers with the k - 1 sweep, CH197's books, CH192's whole panel) will exist before LT8's
-census; every LT8 threshold is stated in this file before any of them, so none can move; reading them before the pin is
-recorded in the ledger and the affected test carries *informed (LT7 census)*. A read before the design-text freeze is treated
-as a freeze after that analysis (1.1's consequence column).
+are logged as deviations. E015's, E022's, LT5's and LT7's analyses (11-15 .. 12-30) arrive before LT8's window (LT6 has no
+analysis: it closed at census); they change nothing in LT8 after the design-text freeze, and the table of 1.1 decides their
+consequences. **No LT8 designer, coder or reviewer reads E015's, E022's, LT5's or LT7's analysis outputs, or LT7's census
+outputs beyond counts this file already cites, before the pin** (`SPEC_SHA256`). LT6's census outputs (counts only) **have
+been read** in the R1 response (`LIVE_TESTS_6.md` 6.3; disclosed in 10); nothing in LT8 was changed because of them.
+- **LT7's census comes before LT8's freeze (R1 must-fix 2; declared now).** LT7's censuses q0602-q0604 have not run at this
+  response (no CC7/CS7 output in `seals/`); they count the same sealed files and neighbouring populations (CH195's movers with
+  the k - 1 sweep, CH197's books, CH192's whole panel) and are expected before LT8's design-text freeze. Therefore: (i) the R1
+  response applies **only** the items of `reviews/LT8_CHALLENGER_R1_2026-10-22.md` (section 13); (ii) after the LT7 census
+  commit, **any change to an LT8 gate, filter, planning count or expected fate is labelled *informed (LT7 census)*** on the
+  affected test, recorded in the ledger with the reason, and carried to the verdict; (iii) a re-check fix that a reviewer
+  requires after that commit carries the same label unless the reviewer records that it is independent of LT7's counts; (iv)
+  LT7's census outputs are not opened by an LT8 designer before LT8's freeze except to verify a hash. A read before the
+  design-text freeze is treated as a freeze after that analysis (1.1's consequence column).
 
 ### 1.7 Estimators and inference
 - **Expanding-past demeaning** for all three primaries (J4-R; LT2-LT7): every regressor (the tested term and every control)
@@ -281,25 +309,37 @@ as a freeze after that analysis (1.1's consequence column).
   |---|---|---|---|---|
   | 1 | binary iid label | block FL | CH202 | gate rejection rate |
   | 2 | binary label, persistent market rates | block FL | CH202 | gate |
-  | 3 | binary label correlated 0.7 with a control that has a real effect (the signed 1 h change, the E002/E004 channel) | block FL | CH202 | gate |
+  | 3 | **leak world (R1 must-fix 7):** binary label correlated 0.7 with the true last-hour change, which has E002's real reversal effect; the model sees only a **noisy, lagged `chg_1h` proxy** | block FL | CH202 | gate |
   | 4 | binary Markov label (persistence 0.6), MA(2) target, unbalanced markets | block FL | CH202 | gate |
-  | 5 | **one-path stale-display world (CH202):** true martingale price, Gamma display refreshing at random, a sweep reading the true price 7 minutes into the interval, a real display bounce that reverts by k + 1 and a real 1 h reversal carried by the control; labels and target from one path | block FL | CH202 | gate |
+  | 5 | **one-path stale-display world (CH202):** true martingale price, Gamma display refreshing at random, a sweep reading the true price 7 minutes into the interval, a real display bounce that reverts by k + 1 and a real reversal of the true last-hour change, which the model sees only through the **noisy, lagged last-trade `chg_1h` proxy** (R1 must-fix 7); labels and target from one path | block FL | CH202 | gate |
   | 6 | **CH203 level world:** imbalance level AR(1) rho 0.9 (innovation derived from it), control (the level) with a real effect, MA(2) target | block FL | CH203 | gate |
   | 7 | as 6 with rho 0.95 and longer series | block FL | CH203 | gate |
-  | 8 | **CH203 depletion world:** a taker fill depletes one side without moving the touch and its volume enters the volume control; the price follows the fill's sign through the control only | block FL | CH203 | gate |
+  | 8 | **CH203 depletion (leak) world:** a taker fill depletes one side without moving the touch; its volume enters the volume control **only where `volume24hr` is present** (missing with the share `p_vm` = max(the CS8 census `vol_missing` share of CH203's primary units, 0.78); R1 must-fix 8); the price follows the fill's sign | block FL | CH203 | gate |
   | 9 | **mechanical world M-Q (CH203):** a slow market drift that the imbalance innovation proxies equally before and after the target | none | CH203 | verdict size |
   | 10 | **CH204 one-path clustering world:** |moves| from one stochastic-volatility path per market, AR(1) log-volatility rho 0.9, a common venue clock (slot multipliers shared by all markets), no market-specific seasonality; `s*`, the scheduled rule and the target from the same path | block FL | CH204 | gate |
   | 11 | as 10 with rho 0.98 (multi-day clustering), t(3) shocks and longer series | block FL | CH204 | gate |
-  | 12 | as 10 with a **market-specific slot pattern redrawn every 7 days** at an independent random slot (a schedule that never persists past its own week; the look-back and target weeks straddle) | block FL | CH204 | gate |
+  | 12 | as 10 with a **market-specific slot pattern redrawn every 7 days** at an independent random slot (a schedule that lasts one week) | block FL | **none (reported; R1 must-fix 6)** | gate rejection rate, reported |
 
   **Verdict size** (scenario 9; round 13 rule 1 and LT7 1.8) = the share of worlds in which CH203's analytic one-sided p (the
   1.7 rule) is < 0.05 **and** its falsification condition F (1.9) holds; the gate is omitted, which can only raise the rate.
   Criterion: <= 0.058 at 2,000 worlds.
 - **Also reported, never binding:** a planted-effect power run per test (500 worlds each, effect 0.5c per SD or between classes,
   seeds `20261187 x 100 + 31, 32, 33` for CH203, CH202, CH204), giving the power of gate, analytic p and F together; the
-  far-future label rates of CH202 and CH204 in scenarios 4, 5, 10 and 12.
+  far-future label rates of CH202 and CH204 in scenarios 4, 5, 10 and 12; **scenario 12's gate rejection rate** (decided
+  reported now, before any size result exists, R1 must-fix 6: a real schedule that lasts one week satisfies the stated 7-day
+  hypothesis, so world 12 is not a null; it is run in table order at its sub-seed and printed, never binding); the share of
+  block-gate offsets that are multiples of 12 in CH204's gate on data and in worlds 10-12 (R1 should-fix: such offsets keep the
+  slot alignment).
+- **Leak worlds (3, 5, 8; R1 must-fix 7 and 8).** In these worlds the confounder's information reaches the model only through
+  an imperfect control (a lagged, noisy `chg_1h` proxy; a volume control missing on most units), so the tested term carries a
+  real but **mechanical** partial effect. They stay binding gate worlds: a rejection rate above 0.058 means the design cannot
+  separate the hypothesis from the confounder at the declared control, and the test is "SE check failed (size scenario)". This
+  is the intended consequence, declared now; their parameters are the first draft's (8) or neutral sources (3, 5; 1.8.1) and
+  are not tuned. **Expected:** world 8 at `p_vm >= 0.78` is likely to fail (a planning calculation with no simulation run puts
+  the leaked slope near 0.004 per unit of `dimb` against a standard error near 0.002 at the world's size); worlds 3 and 5 may
+  fail.
 - **Consequence of a failure (declared now, as LT5-LT7):** a failing scenario makes **only the tests it is binding for** "SE
-  check failed (size scenario)" (1-8, 10-12) or "SE check failed (mechanical world)" (9): p = 1 in Holm, **k unchanged**, no
+  check failed (size scenario)" (1-8, 10-11) or "SE check failed (mechanical world)" (9): p = 1 in Holm, **k unchanged**, no
   rerun, reseed, redesign or variant. `max_retries 1` covers a deterministic crash only (same code, seed, worlds and draws, no
   output written). No preliminary run of any scenario at seed 20261187 is made.
 
@@ -307,25 +347,49 @@ as a freeze after that analysis (1.1's consequence column).
 Common unless stated: a market's target level `N(0, 0.01)`; unit `i` of a market has `t_row = 7,200 i` s, `day = i // 12`,
 `block2 = day // 2` from the same `block_anchor`; events of three markets; 200 draws per world at a fresh sub-seed from one
 generator seeded 20261187, scenarios in table order; non-binding runs on generators derived as `20261187 x 100 + n`.
-- **1-4:** LT7 scenarios 1-4 exactly (LT4's `sim_move_world`, market rates `U(0.1, 0.6)`, `sim_corr_label_world` with `c1`
-  effect 0.02, LT5 scenario 4's Markov world), evaluated under the block FL gate, minimum 16.
+- **1, 2, 4:** LT7 scenarios 1, 2 and 4 exactly (LT4's `sim_move_world`, market rates `U(0.1, 0.6)`, LT5 scenario 4's Markov
+  world), evaluated under the block FL gate, minimum 16.
+- **The `chg_1h` proxy (worlds 3 and 5; R1 must-fix 7).** Gamma computes `chg_1h` on an unpublished clock and basis, so the
+  binding worlds never give the model the true last-hour change `D60` (the true price change over the last 60 minutes before
+  the capture). Per unit: a lag `L ~ U(0, 60)` minutes; trades arrive as a Poisson process with a market rate `lambda_m ~
+  U(0.5, 6)` per hour; the last-trade price `p_lt(tau)` is the true price at the last trade at or before `tau` (the previous
+  value if none); **`chg1h_obs = p_lt(t - L) - p_lt(t - L - 60 min)`** (exactly 0 when neither window end has a new trade, as
+  Gamma's exact zeros); missing with probability 0.1 (then 0 with `chg1h_missing`, as 1.5). The real reversal acts on the true
+  `D60`: **0.21 x D60 reverts, spread evenly over the next three passes** (E002's about 21% at about 5 h; two thirds of it
+  inside the skip target). The 0-60 minute lag and the trade rates are neutral conventions (the field's documented
+  semantics are unknown; the rate range spans thin to active non-sports markets), recorded in the world's spec.
+- **3 (leak, generic; R1 must-fix 7):** LT7 scenario 3's market layout (60 markets x 40 units, `sim_corr_label_world`) with
+  the control re-specified: `D60_i ~ N(0, (0.012 sqrt(1/2))^2)`; label `1[z > 0]`, `z` correlated 0.7 with `D60`; target
+  `y_i = level - 0.14 x D60_i + noise` (two thirds of E002's 0.21, the share inside the skip window; noise SD 0.04 as LT7's
+  world); the model's control is `chg1h_obs` built by the proxy rule above from a two-point path (the true price at
+  `t - L - 60` and `t - L` drawn as a Brownian bridge consistent with `D60`, trades by the Poisson rule); no effect of the
+  label beyond `D60`. **This replaces LT7 world 3's exact control with effect 0.02** (whose scale had no source), with the
+  E002-scaled effect.
 - **5 (one-path stale display, CH202):** 120 markets, `n_m` (passes) uniform on 120..252; log-volatility `s_t` AR(1) rho 0.95
   stationary SD 0.5; within each 2 h interval the true price `p` moves by two shocks, `u^a_t` over the first 7 minutes and
   `u^b_t` over the remaining 113, variances in the ratio 7 : 113 with total variance `(0.012 exp(s_t - 0.25))^2` (LT7 world
   15's scale); the sweep reads `p` at minute 7; the Gamma mid `m_t = p_t + b_t` with probability `pi_m` and `m_{t-1}`
   otherwise, `pi_m ~ U(0.4, 1.0)` (LT7 world 19's borrowed range), where `b_t = -0.3 u^b_t` is a display bounce that is
-  absent at t + 1 (E004's bounce, removed by the skip target); a real reversal of 0.21 of the last-hour change at the next two
-  passes, entered through a simulated `chg_1h` that equals the true change over the last hour (so the control carries it
-  exactly); units are passes with `|m_t - m_{t-1}| >= 0.01`; labels `early_share`, held, fresh by section 3's rules; target
-  `sign(x)(m_{t+3} - m_{t+1})`; controls `log |x|`, `sign(x) chg_1h`, `log rv24*`. No effect of the label given the control.
+  absent at t + 1 (E004's bounce, removed by the skip target); the true path is simulated at 1-minute resolution inside each
+  interval (the two shocks above split into minutes with variance proportional to time), and the real reversal of the true
+  `D60` (0.21, over the next three passes) is applied to `p`; **the model's control is `sign(x) x chg1h_obs` built by the proxy
+  rule above from the simulated 1-minute path and trades** (the first draft's exact true change is withdrawn, R1 must-fix 7);
+  units are passes with `|m_t - m_{t-1}| >= 0.01`; labels `early_share`, held, fresh by section 3's rules; target
+  `sign(x)(m_{t+3} - m_{t+1})`; controls `log |x|`, `sign(x) chg1h_obs` (+ missing flag), `log rv24*`. No effect of the label
+  beyond the true `D60` reversal and the display bounce.
 - **6-7 (CH203 level worlds):** 80 markets, `n_m` uniform on 24..252 (7: 120..252); `imb_t` AR(1) rho 0.9 (7: 0.95),
   stationary SD 0.3 around a market level `N(0, 0.2)`; state `dimb_t = imb_{t-1} - imb_{t-2}`; control `imb_{t-1}` with a
   real effect 0.01 per unit on the target; target `y_t = level + 0.01 imb_{t-1} + u_{t+1} + u_{t+2} + 0.5 u_{t+3}`, `u ~ N(0,
   0.02)`; no effect of `dimb`.
 - **8 (depletion, CH203):** as 6, plus per pass a taker fill with probability 0.2 of size `|N(0, 1)|` on a random side, which
   lowers that side's depth (shifting `imb` by `-0.1 sign x size` for a bid-side fill) and raises a simulated volume change
-  `dV` by `size`; the target receives `0.005 x signed fill` through the volume-sign control `sign(fill) x log1p dV` (the
-  fill's information enters the model only through the control); no effect of `dimb` given the controls.
+  `dV` by `size`; the target receives `0.005 x signed fill` (of the fill in (t - 2, t - 1]); the model's controls are the
+  volume-sign control `sign(fill) x log1p dV` and `dV_prev = log1p dV`, **observed only where volume is present: per unit,
+  independently, `volume24hr` is missing with probability `p_vm` = max(the CS8 census `vol_missing` share among CH203's
+  primary units, 0.78)** (R1 must-fix 8; 0.78 = DESIGN_V1's share of rows without the field), and a missing unit enters both
+  controls as 0 with `vol_missing` = 1 (1.5's rule); no effect of `dimb` beyond the fill. The fill parameters (probability
+  0.2, imbalance shift 0.1 per unit size, target effect 0.005) are the first draft's conventions, not measurements, and are
+  **not changed** in the R1 response (changing them after learning that the world is likely to fail would be tuning).
 - **9 (M-Q, CH203):** 80 markets, `n_m` uniform on 24..252; a market drift `mu_t` AR(1) rho 0.99 (in 2 h steps; a multi-day
   trend) stationary SD 0.004 per pass; lead state `dimb_t = 0.3 mu_{t-1} / sd(mu) + N(0, 1)`, lag state `dimb_lag_t = 0.3
   mu_{t+5} / sd(mu) + N(0, 1)` (both proxy the drift equally; the lag at the arm's own placement); target `y_t = mu_{t+1} +
@@ -341,11 +405,10 @@ generator seeded 20261187, scenarios in table order; non-binding runs on generat
 - **11:** as 10 with rho 0.98, `e` from t(3) scaled to unit variance, `n_m` uniform on 168..336.
 - **12 (non-persistent schedule):** as 10 plus, for each market and each consecutive block of 84 passes, a random slot `r`
   whose `|Δ|` is multiplied by 2.5 during that block only, the blocks' phase drawn per market; the target week's slot is
-  independent of the look-back week's; no persistent effect of `sc_hot` beyond what the look-back's own block shares.
-  **Disclosed:** where the look-back and target fall in the same block, `sc_hot` predicts by construction; the world is a
-  gate stress for a schedule that lasts days, not weeks, and its rejection rate is expected above 0.05 **unless** the block
-  gate's shift breaks the within-block alignment; the challenger is asked whether 12 is a null world at all (11, question 9).
-  Until answered it is listed as binding.
+  independent of the look-back week's. **Status decided now (R1 must-fix 6): reported, never binding.** Where the look-back and
+  target fall in the same block, `sc_hot` predicts by construction, and a schedule that lasts one week satisfies the stated
+  7-day hypothesis, so world 12 is not a null; binding it could label a true effect "SE check failed". Its rejection rate is
+  printed beside the binding results and changes nothing.
 
 ### 1.9 Verdicts, the falsification condition and labels (per primary, after Holm over k)
 - **Falsification condition F (CH203; LT7's rule, unchanged).** The **arm model** is the primary model with `zdimb5_lag`
@@ -403,12 +466,12 @@ generator seeded 20261187, scenarios in table order; non-binding runs on generat
   | LT8 | Closest prior | Same data? | Same contrast? | Why not a double count |
   |---|---|---|---|---|
   | CH203 | **LT7 CH197** (behind-touch imbalance level at 12:31Z; window to 12-29) | sweeps, the 5c depths | no: CH197's state is the level of the behind-touch split; CH203's is the change of the whole-band imbalance over two pre-origin sweeps, with the level a control | disjoint windows; registration before `T_LT7` or every test dropped (1.1); `book`, `book0`, `deepbook`, `quietbook` tokens |
-  | CH203 | **LT6 V** (post-move 5c skew; `v_prev` pre-move skew) | sweeps | no: V's units are movers after the move; CH203's are quiet books before the origin | design-text freeze before `T_V` or CH203 dropped (1.1); disjoint windows |
+  | CH203 | **LT6 V** (post-move 5c skew; `v_prev` pre-move skew) | sweeps | no: V's units are movers after the move; CH203's are quiet books before the origin | **V closed at census (2026-10-22; within corr(zv, z v_prev) 0.595 > 0.5), never registered**: nothing to double count; no drop rule (R1 must-fix 1) |
   | CH203 | **LT7 CH195** (pre-move hit-side depth), **E022** (post-move hollowness) | sweeps, depth fields | no: levels on movers | disjoint windows; *informed (E022)* rule |
   | CH203 | E020 (dropped at census; arrivals and cancellations at the touch of one-sided movers), E003 (complete; unconditional minute imbalance), ML-r4_book (development; pmxt book family `descriptive_only`) | books | no | nothing registered to double count; ML-r4_book disclosed (10) |
   | CH202 | **LT7 CH195** (same movers, same k - 1 sweep, its depth) and **CH191** (path shape over three steps) | captures, sweeps | no: CH195 reads the sweep's depth, CH202 its mid against the capture mids; CH191 reads the step path at the capture clock | disjoint windows; registration before `T_LT7`; `swclock` token |
   | CH202 | **CH194** (LT7; withdrawn before registration, uncounted) | captures | **the same question** (held against fresh) on another clock (Gamma's `chg_1h` there; host receipts here) | never registered; CH202 is its declared heir with the direct timing gate R1 asked for and with `sign(x) chg_1h` as a control, the redesign R1 named |
-  | CH202 | **E002, E004** (complete; reversal of about 21% of Gamma's 1 h change at about 5 h) | captures | no, but **informing** (1.1) | completed; nothing pooled; *informed (E002/E004)*; the signed `chg_1h` control and scenario 3 / 5 address the channel |
+  | CH202 | **E002, E004** (complete; reversal of about 21% of Gamma's 1 h change at about 5 h) | captures | no, but **informing** (1.1) | completed; nothing pooled; *informed (E002/E004)*; the signed `chg_1h` control (a venue-computed proxy of unknown clock) and the binding leak worlds 3 and 5, which give the model only a noisy, lagged proxy (R1 must-fix 7), decide whether the channel is separated |
   | CH202 | **E015** (anatomy), **E022** (movers), **LT5 J** (jump or grind at the print clock), E021 (age of the move; dropped at census) | captures; samples (J, E021) | no | disjoint windows; *informed (X)* rules |
   | CH202 | the engine's `b0_gap` diagnostic (DESIGN_V1 22: correlation -0.04 to -0.16 with the 2 h label move) | `book0` sweep against the origin mid | **half of the state** (`late` is `b0_gap` up to sign and the sweep used) | disclosed; it is the M2 reading's content, not the primary's skip contrast; *informed (b0_gap diagnostic)* always |
   | CH204 | **LT7 CH192** (|move| over (k + 1, k + 2] on spread over realised volatility), **E011** (moves scaled by own volatility), CH57 (weather model runs; idea), the engine's `surprise` (UTC hour and weekday) and dropped `regime` family | captures | no: CH204's term is a per-market own slot, with the venue's slot pattern held fixed | disjoint windows; *informed (E011)*; registration before `T_LT7`; `sched` token |
@@ -445,7 +508,8 @@ kind is switched off when its test is not in `k_tests`.
   one-sided, the level `imb5_{k-1}` held fixed.** Who would be wrong: the trend reading (a slow market drift that a drifting
   book reflects before and after the target alike; F, M-Q), the farmer reading (mechanical re-posts by reward farmers that
   move depth with the band; reward controls), and the fill reading (a taker fill that ate one side without moving the touch;
-  the volume control, the silent arm and world 8).
+  only partly controlled: the volume control exists on a minority of units, the silent arm is reported and the binding leak
+  world 8 decides; R1 must-fix 8).
 - **Unit and population.** Non-sports ex-crypto eligible market x capture k (1.4 at k - 1 and k), with sweep 1 of passes
   k - 2 and k - 1 for its outcome-0 token both present, two-sided, tight (sweep spread <= 0.10), both 5c depths positive at
   both, each received before capture k's start (1.3); **quiet:** `|smid_{k-1} - smid_{k-2}| < 0.005` and `|mid_k -
@@ -483,8 +547,12 @@ kind is switched off when its test is not in `k_tests`.
   `volume24hr` present at k - 2 and k - 1 and `volume24hr_{k-1} - volume24hr_{k-2} <= max($10, 1e-4 x volume24hr_{k-2})`, the
   engine's movetype tolerance: a book change with no traded volume; label *flow, not silent*). **Corrected from the round
   (6.1 item 5):** a taker fill that eats one side without moving the touch changes `dimb5` with the **same** sign as the
-  hypothesis (a sell fill thins the bid and predicts a fall), so it is a same-signed confounder, not a conservative one; the
-  volume control, M3 and world 8 address it.
+  hypothesis (a sell fill thins the bid and predicts a fall), so it is a same-signed confounder, not a conservative one.
+  **It is not addressed for most units (R1 must-fix 8):** Gamma omits `volume24hr` on about 78% of rows (DESIGN_V1 16), so
+  `dV_prev` is effectively absent (0 with `vol_missing`) for most of the primary, and the silent arm M3 can only be formed on
+  the minority with the field. The binding leak world 8 carries the census `vol_missing` share (or 0.78 if larger); if it
+  fails, CH203 is "SE check failed (size scenario)", which is the honest outcome when silent book building cannot be told
+  from fills that leave no volume trace. The census prints `vol_missing` against a missing `last_trade_price` (section 7).
 - **Reported placebo (label).** The fake split: `zdimb1` in place of `zdimb5`; if its one-sided p < 0.05 and its tercile
   contrast is at least that of `zdimb5`, label *touch innovation, not the band*.
 - **Secondaries.** S1 24 h; S2 `dlev` and `dgrain` in place of `dimb5`; S3 the notional form; S4 the ladder arm (events > 10
@@ -499,7 +567,8 @@ kind is switched off when its test is not in `k_tests`.
   uncapped reading) 0.45c / 0.32c. **F's MDE** `MDE x sqrt(2 / (1 - max(0, r)))`: **0.50c at r = 0** and 0.56c at r = 0.2
   (low count); 0.35c / 0.39c (high count). F meets the 0.5c cap only if `n_eff` >= about 0.99M at r = 0, 1.24M at r = 0.2,
   1.41M at r = 0.3. For comparison, the round's 0.16c used the k-origin target (SD 3c), `n_eff` 3.4M and DE 51; the changes are
-  in 6.1 items 1 and 9. **Expected: borderline on the F-MDE gate** (declared now); prior odds of surviving census 0.30.
+  in 6.1 items 1 and 9. **Expected: borderline on the F-MDE gate** (declared now); prior odds of surviving census 0.30, and
+  about 0.10 of also passing the binding leak world 8 at `p_vm >= 0.78` (R1 must-fix 8).
 - **Floors (Unavailable):** < 20,000 units, < 300 events, < 10 days.
 - **Economics.** Maker (primary route): lean the quote toward the building side (post one tick higher on a side whose
   `dimb5` is in the top tercile) and step off the thinning side for one pass; gross `y_s` by tercile and liquidity tier, "gross,
@@ -518,8 +587,9 @@ kind is switched off when its test is not in `k_tests`.
   bounce E004 measured. **Direction: E[c_skip | held] - E[c_skip | fresh] > 0, one-sided, the signed Gamma 1 h change held
   fixed.** A second reading predicts the same sign: the early part is partly Gamma's display catching up with a CLOB that had
   already moved (CH37's stale displayed mid in reverse), which is not news and has nothing to bounce. The test does not
-  separate the two readings (the maker's rule is the same); scenario 5 shows that a stale display alone, with a martingale
-  true price and the known reversal carried by the control, gives no contrast. **Informed, declared now:** (1) E002/E004
+  separate the two readings (the maker's rule is the same); scenario 5 asks whether a stale display, a martingale true price
+  and the known reversal, seen by the model only through a **noisy, lagged `chg_1h` proxy** (R1 must-fix 7), give the gate
+  a contrast; if they do, CH202 is "SE check failed" and "beyond the reversal" is not supported. **Informed, declared now:** (1) E002/E004
   (a reversal of about 21% of Gamma's 1 h change at about 5 h) predict that a fresh move, whose late part sits in the last
   hour, continues less: CH202 carries *informed (E002/E004)* and **`sign(x) x chg_1h_k` is a primary control**, so the tested
   contrast is the content beyond that reversal (the redesign R1 named for CH194); (2) `late` is, up to sign and the sweep
@@ -560,9 +630,15 @@ kind is switched off when its test is not in `k_tests`.
   2,750 an interval x 12); ex-crypto, sweep-covered (0.93), in band: **13,000 a day (low; LT7 CH195's figure) to 23,000
   (high)**; 273,000 to 483,000 in 21 days; held 25%, fresh 55% (planning; round 13 from DESIGN_V1 21's "a third had moved by
   the sweep"); effective 80%. Low: `n_1` 54,600, `n_2` 120,100: `3.47 x 5c x sqrt(1/54,600 + 1/120,100) x sqrt(6.196) x 1.5
-  x sqrt(1.3)` = **0.38c**; at a quarter **0.76c**; high **0.29c**. At the count-gate floor (800 a capture, 201,600) with the
-  minimum class shares (15% each): **0.67c**. `VIF_w` 1.3 is planning; the signed `chg_1h` control can raise it (the census
-  computes it and the MDE carries `sqrt(VIF_w)`). **Expected: borderline** (declared now); prior odds 0.25.
+  x sqrt(1.3)` = **0.38c**; at a quarter **0.76c**; high **0.29c**. **At the count-gate floor (R1 must-fix 4; the first
+  draft's 0.67c treated 201,600 as all movers, but the gate counts 201,600 held plus fresh units):** with held and fresh each
+  15% of movers (100,800 each, 672,000 movers) the MDE is **0.33c on the raw counts** (the reviewer's figure) and **0.37c at
+  the planning 80% effective share** (`n_1 = n_2` = 80,640), the form every other figure here uses; the least favourable split
+  the gates still allow (no mixed units: 201,600 movers, held at its 15% minimum, 30,240, fresh 171,360; 80% effective) gives
+  **0.52c**. The gate is unchanged: the census MDE gate is computed on the census's own class counts, whatever the split.
+  `VIF_w` 1.3 is planning; the signed `chg_1h` control can raise it (the census computes it and the MDE carries
+  `sqrt(VIF_w)`). **Expected: borderline at census** (declared now); prior odds of surviving census 0.25, and about 0.12 of
+  also passing the binding leak worlds 3 and 5 (R1 must-fix 7).
 - **Floors:** < 20,000 contrasted units, < 2,000 of either class, < 300 events, < 10 days.
 - **Economics.** Maker: after a fresh move re-post toward the pre-move level for one pass (gross M2 for fresh units); after a
   held move quote at the new level (gross `c_skip` for held units), per tier, "gross, no fills", against 0.39c and 2.38c.
@@ -603,25 +679,32 @@ kind is switched off when its test is not in `k_tests`.
   dummies of `sigma(k + 2)`** (the venue clock, 6.1 item 8), `log rv24*_k` and `rv_floor`, `log rv7d*_k` (the 84 changes,
   half-tick floor), spread at k, logit `mid_k`, `|mid_k - 0.5|`, `log1p volume24hr_k` (+ `vol_missing`), log hours-to-end (+
   flag), the market's quote-only share of its look-back movers (E015's anatomy share over the week), 1[tick = 0.001]. Inference
-  1.7 with the `G_minor` df; seed **20261183**. **Gate: block FL** (scenarios 10-12), seed **20261283**.
+  1.7 with the `G_minor` df; seed **20261183**. **Gate: block FL** (binding scenarios 10-11; 12 reported, R1 must-fix 6), seed **20261283**.
 - **Falsification arms (reported labels, not verdict conditions).** (1) **Rotated schedule:** arm model = primary + `sc_rot`;
   if F's rule (Δ = beta(sc_hot) - beta(sc_rot)) fails, label *rotation not excluded*. With the slot dummies in the model, the
   rotation tests whether the specific slot matters beyond any fixed slot. `r_w` of `sc_hot` and `sc_rot` is -1/11 by
   construction. (2) **Not beyond yesterday (M2):** the primary with yesterday's same-slot `|Δ_{k-10}|` added (label *not
   beyond yesterday*). (3) **Out-of-window schedule:** the primary with `s*_2` in place of `s*` where defined (a schedule that
   persists predicts from the week before; reported). **Why not binding:** the state is built from price changes (LT7's CH191
-  ruling); the mechanical threats (venue clock, clustering, chance slots) are controlled and carried by the binding gate worlds
-  10-12, not by a time-symmetric arm.
+  ruling); the mechanical threats (venue clock, clustering) are controlled and carried by the binding gate worlds 10-11, not
+  by a time-symmetric arm; chance one-week schedules are world 12, reported (R1 must-fix 6).
 - **Secondaries.** S1-S3 above; S4 per-category arms (sidecar `fee_category`) when one category holds > 50% of scheduled units;
-  S5 the ladder arm (> 10 members); S6 sports and crypto arms; S7 counts by `s*`, `sc_conc` tercile and category.
+  S5 the ladder arm (> 10 members); S6 sports and crypto arms; S7 counts by `s*`, `sc_conc` tercile and category; **S8 (R1
+  should-fix) the category-clock arm:** the primary with the 11 slot dummies replaced by slot x `fee_category` dummies (a
+  category's own clock held fixed; categories with < 1,000 scheduled units pooled as "other"), reported; **S9** the share of
+  the block gate's drawn offsets that are multiples of 12 (offsets that keep the slot alignment), reported.
 - **Planning MDE (estimate).** Markets with >= 70 of 84 changes: about 23,000 non-sports a capture (round 13: `sp_rv7d`
   coverage 78% of 30,000); scheduled **10-20%, unprobed**: 2,300-4,600 a capture; `n_members <= 10` and ex-crypto within that
   (planning 0.85, since crypto dailies were excluded from the round's share): hot units 2,000-3,900 a day, 41,000-82,000 in 21
-  days, cold units eleven times as many; effective 80% (low: `n_1` 38,600, `n_2` 425,000; high: 77,300 / 850,000, the round's
-  figures). SD of `a` 3c; DE **31** (the cap); `VIF_w` 1.3: `3.47 x 3c x sqrt(1/38,600 + 1/425,000) x sqrt(31) x 1.5 x
-  sqrt(1.3)` = **0.53c** (low), **0.37c** (high); at DE 41 (8-member ladders without the cap's benefit) 0.61c / 0.43c; at a
-  quarter of the units 1.05c / 0.74c. **Expected: more likely than not to drop at census** (the low end already exceeds 0.5c;
-  the scheduled share, events, venue-clock and category gates are unprobed; declared now); prior odds 0.15.
+  days, cold units eleven times as many; effective 80%. **Recomputed from this chain (R1 must-fix 3; the first draft used the
+  round's `n_1` 38,600 / 77,300, which omit the 0.85 cap-and-crypto factor):** low: 1,955 hot units a day x 21 x 0.8 = `n_1`
+  **32,844**, `n_2` = 11 x `n_1` = **361,284**; high: 3,900 x 21 x 0.8 = **65,520**, `n_2` **720,720**. SD of `a` 3c; DE **31**
+  (the cap); `VIF_w` 1.3: `3.47 x 3c x sqrt(1/32,844 + 1/361,284) x sqrt(31) x 1.5 x sqrt(1.3)` = **0.57c** (low), **0.40c**
+  (high); at DE 41 (8-member ladders without the cap's benefit) 0.66c / 0.47c; at a quarter of the units 1.14c / 0.81c. The
+  0.5c gate needs `n_1` >= about 42,900 effective, i.e. **>= about 2,550 hot units a day** (about 3,000 scheduled markets a
+  capture at the 0.85 factor). **Expected: more likely than not to drop at census** (the low end exceeds 0.5c; the scheduled
+  share, events, venue-clock and category gates are unprobed; the census days were on summer time, 1.1; declared now); prior
+  odds of surviving census **0.10** (first draft 0.15).
 - **Floors:** < 20,000 units, < 2,000 hot units, < 300 events, < 10 days.
 - **Economics.** Maker (primary route): in a scheduled market, pull or widen for the hot slot and re-post after it; gross `a`
   avoided (hot minus cold) per tier against 0.39c and 2.38c, and the hot slot's share of the week's |move|, "gross, no fills".
@@ -679,7 +762,9 @@ nothing in LT8, and counts 0. A spread target is not read by the map. The `rwsta
    An empty `clob_rewards` is unrewarded (LT5 R's parse artefact, 1.0).
 5. **CH203's fill confounder sign corrected.** The round called taker-fill depletion "the opposite sign of the building story
    and therefore conservative"; it is **same-signed** (a sell fill thins the bid; a buy fill thins the ask; both predict the
-   fill's direction). LT8 adds `dV_prev` as a control, the silent arm M3 with its label and the binding depletion world 8.
+   fill's direction). LT8 adds `dV_prev` as a control, the silent arm M3 with its label and the binding depletion world 8;
+   R1 must-fix 8: with `volume24hr` absent on about 78% of rows these only partly control it, and world 8 carries the
+   census `vol_missing` share (at least 0.78).
 6. **CH203's gate is the block gate**, not the round's market x day plain gate: the tested term is the change of a persistent
    level and adjacent innovations share a sweep (1.7). The round's `r_w <= 0.3` kill line is kept and applied to
    `r_gate = max(r_w, r_pool)` (LT7 re-check M2), stricter than LT7's 0.8 cap.
@@ -703,8 +788,9 @@ nothing in LT8, and counts 0. A spread target is not read by the map. The `rwsta
    LT8's own mid cache of raw captures, not the engine's `quotes/` (no engine store is an LT input, LT7 1.2). (f) Days are
    rolling 12-interval blocks ending at k; a day counts only if its largest |move| is >= 1c; ties are not scheduled.
 9. **Member cap <= 10 for CH203 and CH204**, declared now with its counting rule (1.4); CH202 keeps all event sizes (mover
-   family, E022's DE). The planning MDEs of CH203 and CH204 include the cap's loss of units (planning 50% and 85%), which the
-   round's figures did not.
+   family, E022's DE). The planning MDE of CH203 includes the cap's loss of units (planning 50%). **Corrected (R1 must-fix 3):**
+   the first draft's claim that CH204's MDE included its 0.85 cap-and-crypto factor was false (it used the round's `n_1`);
+   section 4 now carries the factor (`n_1` 32,844 / 65,520; MDE 0.57c / 0.40c).
 10. **`volume24hr` missing as an indicator pair** (1.5), a declared exception LT7 did not make: DESIGN_V1 16 reports the field
     on about 22% of rows, and dropping units without it would remove most of CH203's and CH204's whole-panel populations; the
     present-only re-estimate is reported.
@@ -756,13 +842,23 @@ and LT4 seals).**
   10-21T22:31Z; 3.33 days). No sweep is read.
 - **Fallback (LT6 R1 item 9's rule):** fewer sealed slots restored: use exactly those (the rest genuinely missing, counted); no
   other day is substituted; slots outside the named spans are never read. **Minimum covered days** (covered origins / 12): CS8
-  >= 2.5 for each test and >= 1.5 for the F pairs; CC8 >= 2.5. Below its minimum, every gate of that census is NaN and fails.
-- **Restore, seal, census: each once.** q0620 restores byte for byte from the data releases exactly the files of the LT7 seal
-  named above (captures and sweeps; no trade samples) and checks every sha256 against the LT7 seal (refuse on any mismatch); it
-  measures bytes before writing and **stops and asks the owner** if the restore would exceed the host's free disk (CLAUDE.md
-  storage stop rule); q0621 writes `seals/lt8_census_inputs.json`, listing exactly the restored files with equal hashes, the
-  source seal's sha256 and the seal's own slot assignment; the orchestrator commits it **before any LT8 census runs**. No
-  restore, seal or census is re-run; a deterministic crash is the only retry (`max_retries 1`, no output written).
+  >= 2.5 for each test and >= 1.5 for the F pairs; CC8 >= 2.5; **and (R1 should-fix, Q14) at least 1.0 covered day (>= 12
+  origins) of each CS8 test in each sweep block**, A (10-14T22..10-16T22, Thursday to Saturday) and B (10-19T22..10-21T22,
+  Tuesday to Wednesday): from the seal's file list CH203 has 22 origins in A and 19 in B, CH202 24 and 21. Below any minimum,
+  every gate of that test's census is NaN and fails. **The F pairs are not put under the per-block rule:** they split 13 / 10
+  (1.08 / 0.83 days) by the same file list, so a per-block 1.0-day rule on pairs would drop CH203 by construction before any
+  count; their pooled minimum (1.5 days; 23 pairs, 1.92 days) stays, the per-block split is printed, and the choice is put to
+  the re-check (13).
+- **Restore, seal, census: each once.** q0620 first accepts **host copies** of the needed files that pass the sha256 check
+  against the LT7 seal (R1 should-fix), then restores the rest byte for byte from the data releases and checks every sha256
+  against the LT7 seal (refuse on any mismatch); the needed set is **430 files** (112 captures x 3, 47 sweeps x 2); **whether the
+  releases hold all 430 is not confirmed** (R1 "not verified"): a file found in neither place is genuinely missing and the
+  fallback above applies (counted, never substituted). It measures bytes before writing and **stops and asks the owner** if the
+  restore would exceed the host's free disk (CLAUDE.md storage stop rule). q0621 writes `seals/lt8_census_inputs.json`, listing
+  exactly the restored or accepted files with equal hashes, the source seal's sha256, **LT7's 159-entry `slots` map reproduced
+  exactly** (a mismatch refuses; R1 should-fix) and the **frozen LT8 design-text sha256** (so the seal is written only after
+  the design-text freeze); the orchestrator commits it **before any LT8 census runs**. No restore, seal or census is re-run; a
+  deterministic crash is the only retry (`max_retries 1`, no output written).
 - **Header pre-check** (before the census code is frozen; a header read, no rows): the sealed sweeps carry `depth_bid_5c`,
   `depth_ask_5c`, `bid_size_1`, `ask_size_1`, `best_bid`, `best_ask`, `tick_size`, `n_bid_levels`, `n_ask_levels`,
   `batch_receipt_utc`; the rows carry `received_utc`, `chg_1h`, `volume24hr`, `event_id`; the sidecars carry
@@ -777,7 +873,13 @@ population in the census days. **Design effect:** `DE_gate = max(floor, 1 + (m_2
 size-weighted mean cluster size by event; floors **3.0 (CH202)**, **5.0 (CH203, CH204; whole panel)**. **MDE gate formulas
 (multiplier 3.47):** class (CH202, CH204) `3.47 x SD x sqrt(1/n1_eff + 1/n2_eff) x sqrt(DE_gate) x 1.5 x sqrt(max(1,
 VIF_w))`; slope at the census tercile gap (CH203) `3.47 x SD / sqrt(n_eff) x sqrt(DE_gate) x 1.5 x sqrt(max(1, VIF_w)) x gap`;
-each with **`max(declared, design)`**. `VIF_w` = within-market (expanding-past demeaned) VIF of the tested term on the
+each with **`max(declared, design)`**. **Definitions (R1 should-fix):** *declared* = the closed formula above evaluated with
+the census's own `n_eff` (or `n1_eff`, `n2_eff`), `DE_gate`, `VIF_w` and tercile gap and the declared target SD; *design* =
+`3.47 x 1.5 x SD x se_1` (x the tercile gap for a slope), where `se_1` is the standard error of the tested coefficient in the
+primary model fitted on the census units' actual expanding-past-demeaned regressors (controls included), computed from the
+regressors alone under a working covariance with unit variance, within-event equicorrelation 0.02 (the `DE_gate` formula's
+intraclass value) and independence across events; no target is read. For F, the same with Δ in the arm model. The gate takes
+the larger of the two. `VIF_w` = within-market (expanding-past demeaned) VIF of the tested term on the
 primary's controls; a NaN fails. **CH203 F-feasibility:** `r_w` = the within-market correlation of `dimb5` and `dimb5_lag` on
 census units that have both, each expanding-past demeaned over the market's such units (the first drops), markets with >= 3
 such units; `r_pool` the pooled correlation on the same units; **`r_gate = max(r_w, r_pool)`**; **F-MDE** = `max(design-based
@@ -793,20 +895,25 @@ marked "within" are on expanding-past-demeaned values and bind; pooled values ar
 - **Descriptive (no gate):** every census prints the sports and crypto splits, the top series family's share, the events and
   the projected 21-day events (both forms), the `n_members` distribution and the cap's loss, the pairwise unit overlap with the
   other LT8 populations and with LT7 CH195's, CH197's and CH192's population definitions on the same days, class or tercile
-  shares by liquidity tier, per-market unit sums, `vol_missing` shares, and the computed DE beside `DE_gate`. CH203:
+  shares by liquidity tier, per-market unit sums, `vol_missing` shares **and the 2 x 2 table of `vol_missing` against a missing
+  `last_trade_price` (R1 must-fix 8)**, and the computed DE beside `DE_gate`. CS8 also prints **the `vol_missing` share among
+  CH203's primary units**, which sets world 8's `p_vm` (1.8.1). CH203:
   distributions of `imb5`, `dimb5`, `dimb1`, `dlev`, `lag_s`; the silent-arm share; `ft_both` and rewarded shares; the number of
   lag pairs per market behind `r_w`; `r_w` and `r_pool` both. CH202: `early_share` distribution (and its mass at 0, 0.5 and 1
   for 1c moves), class shares by anatomy and tick, the `|x| >= 2` ticks share, the `lag_g` distribution and its > 10-minute
   share (the stale-row print), `chg_1h` missing and exact-zero shares. CH204: `sc_conc` distribution, the scheduled share, the
   distribution of `s*` over the 12 slots, category shares, the share of scheduled markets still scheduled with the same `s*`
-  12 origins later (counts only, where the census span allows), the hot slot's mean |move| share.
+  12 origins later (counts only, where the census span allows), the hot slot's mean |move| share, and the 12:31Z slot's share
+  of `s*` separately (the DST disclosure of 1.1: the census days were on summer time).
 - **Order (cheapest kill first):** CC8 (CH204: captures only, the likeliest kill), then CS8 (CH203, CH202). A test whose census
   fails has its reader kind switched off before the reader's code freeze.
 - **Expected census fates (declared now).** **CH203** passes its coverage, quiet and identification gates on the round's
   arithmetic; it is **borderline on the F-MDE gate** (it needs `n_eff` >= about 1.0-1.4M after the cap and the band) and at
   risk on the cap share and the computed DE. **CH202** is borderline on its class MDE at the low count and untested on the
-  block-gate share of all movers and on `VIF_w` with the `chg_1h` control. **CH204** is likely to drop (its MDE at the low
-  count exceeds 0.5c; scheduled count, events, venue clock and category concentration are unprobed).
+  block-gate share of all movers and on `VIF_w` with the `chg_1h` control; CH202 also needs >= 12 origins in each sweep block
+  (24 / 21 on the file list). **CH204** is likely to drop (its MDE at the low count, 0.57c, exceeds 0.5c; it needs about 2,550
+  hot units a day; scheduled count, events, venue clock and category concentration are unprobed and measured on summer time).
+  After census, the binding leak worlds (1.8) are expected to remove CH203 (world 8) and possibly CH202 (worlds 3, 5).
 
 **Census jobs (to be drafted later under `docs/research_lab/queue/drafts/` in README format; ids from q0620 upward, checked
 unused across `docs/research_lab/queue/` in the history of every local and remote-tracking ref on 2026-10-22: the highest id
@@ -836,8 +943,24 @@ q0604 or its recorded drop, so the LT8 censuses follow LT7's). Each counts 0.
   only the module prefixes removed (`series_frame`, `move_join`, `classify`, `category_cols`, `status_codes`, `is_late`,
   `token0_map`, `project_events`, `fit`, `attrition`, `lee_bounds`, `paper_taker`, `econ`, `block_anchor`, `de_gate`,
   `strata_of`, `block_fl_gate`, `holm`, `expanding_demean`, LT5 R's reward parser, LT7's `rv24*` helper, lag-slot loader and
-  mid cache, each where it exists under that name; a missing name is written as new LT8 code, reviewed at the freeze check). LT7
-  functions are vendored **only after LT7's pin** (or its recorded drop), so LT8 never copies an unpinned LT7 function. A
+  mid cache, each where it exists under that name; a missing name is written as new LT8 code, reviewed at the freeze check).
+  **Source of the LT7 copies (R1 must-fix 5; option chosen: vendor from the freeze-checked LT7 census-code commit).** The LT7
+  functions (lag-slot loader, mid cache, `rv24*` helper, seal reader) are copied from **the LT7 census code that was
+  freeze-checked (`reviews/LT7_CENSUS_CODE_CHECK_2026-10-22.md`, FIXES_OK_WITH_NOTES) and that wrote LT7's seal**: at this
+  response `backend/astrolabe/research_lab/live_tests7.py` sha256 `232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902`
+  and `live_tests7_base.py` sha256 `2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20`, the `code_sha256` values
+  recorded in `seals/lt7_census_inputs.json` (equal to the files at the `chore/arepo-claude-setup` tip, last changed by
+  74c7f5ac after the verification notes 699b9ee9). **Rule:** the vendor script refuses unless the source files' sha256 equal
+  the `code_sha256` that LT7's own census outputs (q0602-q0604) record for those modules; if LT7's censuses have not run when
+  LT8's code is written, it uses the seal's recorded hashes above, and the LT8 freeze check re-verifies them against LT7's
+  census outputs once they exist (a mismatch: LT8 re-vendors from the hash LT7's census actually ran, before any LT8 census;
+  never after). Commit id and source hashes are recorded in `VENDORED`. **Why this option, not "wait for LT7's pin":** LT7's
+  pin is due only by about 2026-12-07; waiting would push LT8's censuses, size check, code freeze and dry run into
+  2026-12-07 .. 12-28, three weeks for six sequential steps; the census-code commit is the code that has been reviewed and that
+  will have counted the very sealed files LT8 reads, so copying it is the closest object; later LT7 edits (before or after
+  LT7's pin) cannot change LT8's copies (drift is recorded in `vendored_source_drift_accepted`, never adopted silently). The
+  first draft's "only after LT7's pin" clause is withdrawn. LT5's `block_fl_gate` and LT3/LT4 functions are vendored from
+  their current (unchanging, registered) sources as before. A
   `VENDORED` table records each copy's source file, source sha256 and normalised-source sha256; a unit test fails on source
   drift unless the spec's `vendored_source_drift_accepted` records it (empty at the pin); another proves no LT8 module imports
   `live_tests3*` .. `live_tests7*`. **The empty-`clob_rewards` rule** (unrewarded = 0) is new LT8 code, not a vendored copy,
@@ -917,13 +1040,18 @@ q0604 or its recorded drop, so the LT8 censuses follow LT7's). Each counts 0.
 - **Lag-slot loader:** a census reading a later sweep receives only the keys and the two 5c depths; a test plants wild prices
   and touch sizes in the later slots and shows that no census output changes and that no other column is reachable; CH204's
   census reads no capture after k.
+- **R1 items:** world 12 is in the size check's reported list and absent from the binding map (a failing world 12 changes no
+  test's status); worlds 3 and 5 hand the model `chg1h_obs` from the proxy rule (the true `D60` is unreachable from the model's
+  inputs; exact zeros and the missing flag occur); world 8 reads `p_vm` from the committed CS8 output and refuses a value below
+  0.78; the CS8 per-block minimum (>= 12 origins in each sweep block) makes every gate of that test NaN when not met; the seal
+  refuses unless its `slots` map equals LT7's 159 entries and it records the frozen LT8 design hash; the vendor script refuses
+  unless the LT7 source hashes equal the LT7 census-code hashes (8.1).
 - **Vendored base:** the `VENDORED` provenance check; no LT8 module imports `live_tests3*` .. `live_tests7*`; copied constants
   equal their sources.
 - Shared: causality (future captures and sweeps with wild prices leave every frozen line byte-identical); late refusal,
   write-once, dry-run guard, `%.17g` round trip, run lock; `ops-stats` reads no price column; the `code_sha256` map; counting
   equals k; Holm; the p = max rule and the `G_minor` df; F's two conditions and the Inconclusive mapping; the analysis refusals;
-  the design-freeze and `T_X` rules (CH203 dropped when the freeze is after `T_V`; registration refused when not before
-  `T_LT7`); sealed censuses (counts only, tampering refused, completeness, minimum covered days); each MDE and F-MDE gate
+  the design-freeze and `T_X` rules (registration refused when not before `T_LT7`; no `T_V` rule, R1 must-fix 1); sealed censuses (counts only, tampering refused, completeness, minimum covered days); each MDE and F-MDE gate
   formula with `max(declared, design)` and the 0.5c F-MDE cap; the end-date filter; the scenario-to-test map (scenarios 1-12;
   a failing scenario sets only its own tests to "SE check failed" with k unchanged); `lookback` lines never become units; an
   end-to-end synthetic analysis with a reduced `k_tests`.
@@ -933,14 +1061,16 @@ q0604 or its recorded drop, so the LT8 censuses follow LT7's). Each counts 0.
    engine embargo requests of section 9 are filed in `signal_engine/CANDIDATES.md` and applied** (not a registration step).
 2. **Design-text freeze commit**, its sha256 in the ledger, before the earlier of 2026-11-15T12:00Z and `T_E015`.
 3. q0620 restore, q0621 seal, seal committed and pulled on the host (after LT7's last census, q0604, or its recorded drop).
-4. Code (8.1, 8.3); a `science-reviewer` freeze check of the census and size-check code against sections 1.8, 1.8.1 and 7;
+4. Code (8.1, 8.3), with the LT7 copies vendored from the freeze-checked LT7 census-code hashes (8.1); a `science-reviewer`
+   freeze check of the census and size-check code against sections 1.8, 1.8.1 and 7;
    fixes (none may change frozen text, 1.1).
 5. Censuses q0622-q0623 (counts only); drops recorded in 6.3; `k_tests`, scales, cuts and `exclude_family` filled with the exact
    census floats; a freeze record written (module hashes, spec hash before the pin, census output hashes re-verified on the
    host, spec values checked against the census JSON).
 6. Size check q0624 (2,000 worlds x 200 draws, seed 20261187); results recorded per test.
 7. Reader freeze check; host dry run with the exact cron command following 8.2's ladder (the step used is recorded).
-8. LT7's registration commit (or recorded drop) exists; LT7's functions vendored from its pinned commit; the embargo entries
+8. LT7's registration commit (or recorded drop) exists; the LT7 copies in `live_tests8_base.py` are those vendored at step 4
+   from the freeze-checked LT7 census-code hashes (8.1, R1 must-fix 5), re-verified against LT7's census outputs; the embargo entries
    applied at step 1 are verified in `config.EMBARGO` (a missing entry blocks the pin); any token or extension of a test
    dropped at census is withdrawn with a ledger line. If LT8's window slides, the config entries are extended before their
    current date to the later of 2027-01-23T00:00Z and LT8's analysis commit.
@@ -982,6 +1112,9 @@ analysis commit.
   shown before the later of 2027-01-23T00:00Z and LT8's analysis commit; no LT8 family added to a broad model before then, or
   such a model recorded in the ledger as a development look. **Disclosed now:** `se18_lgbm_all_b0` is broad, visible and
   promotion-eligible and holds `b0_gap`; its aggregate score is a development look at half of CH202's state (10).
+- **LT6-V lapses from the `book` and `book0` test lists (R1 must-fix 1).** LT6 V was dropped at census and is never
+  registered, so its entry in those tokens' `tests` lists (`config.EMBARGO`) no longer protects anything; the tokens' dates are
+  set by LT7 CH195/CH197 (12-31) and, if this request is applied, by LT8. Removing the stale entry is the builder's edit.
 - **Not requested:** `surprise` (UTC hour and weekday, to 11-19) is not extended for CH204 (it holds no per-market slot
   history; question 12); `movetype` (12-31) is not extended for CH202 (anatomy is a control, not the tested term); `rewards`
   (11-22) is not extended for CH203 (reward fields are controls); `steam` and `rwstart` are not requested (5).
@@ -1012,7 +1145,8 @@ primary makes its family a candidate; an engine gain never changes an LT8 verdic
   the `b0_gap` diagnostic. CH204: LT7 CH192, E011, CH57, CH33, CH28, CH18, round 11's rejected own-hours profile, the engine's
   `surprise` and dropped `regime` families.
 - **Mechanics stated up front.** CH203: the level (control; VIF gate), the trend (F, M-Q), farmer re-posts (reward controls,
-  `ft_both`, `rw_changed`), fill depletion (same-signed; `dV_prev`, M3, world 8), the stale Gamma mid (target from k + 1, M1),
+  `ft_both`, `rw_changed`), fill depletion (same-signed; only partly controlled because `volume24hr` is missing on about 78% of rows; `dV_prev`, M3,
+  the binding leak world 8 at `p_vm >= 0.78`), the stale Gamma mid (target from k + 1, M1),
   boundary truncation (mid band). CH202: the bounce (skip target, M2), the known reversal (`chg_1h` control, scenario 3), the
   stale display (scenario 5, M1, `lag_g`), anatomy (controls), ticks (S2), shared shocks between labels and targets (block
   gate). CH204: the venue clock (slot dummies, venue-clock gate, scenario 10), clustering (block gate, scenarios 10-11), chance
@@ -1020,8 +1154,17 @@ primary makes its family a candidate; an engine gain never changes an LT8 verdic
 - **F can reject a true but persistent signal** (CH203): a time-symmetric arm cannot tell a persistent informative innovation
   from a slow trend that the innovation proxies equally before and after; LT8 accepts that cost (LT7 10).
 - **The round's figures are not LT8's.** CH203's 0.16c (round) became 0.35c (LT8) through the k + 1 target, the member cap,
-  the mid band and ex-crypto losses; CH202's 0.26c became 0.38c at LT7's lower mover count; CH204's figures are the round's,
-  with DE 31. The prior odds of section 0 are the designer's, slightly below the round's (0.35, 0.30, 0.20).
+  the mid band and ex-crypto losses; CH202's 0.26c became 0.38c at LT7's lower mover count; CH204's 0.52c (round, DE 31)
+  became 0.57c once its own 0.85 factor is applied to the hot count (R1 must-fix 3). The prior odds of section 0 are the
+  designer's: census survival 0.30, 0.25, 0.10 (the round's 0.35, 0.30, 0.20), and about 0.10, 0.12, 0.08 for a valid verdict
+  after the binding worlds (13).
+- **LT6's census counts were read (R1 must-fix 1).** In the R1 response the designer read `LIVE_TESTS_6.md` 6.3 at the
+  `chore/arepo-claude-setup` tip: V dropped on within-market |corr(zv, z v_prev)| = 0.595 (pooled 0.566) > 0.5 with every
+  other gate passing (projected 331,728 units, both-sweep coverage 0.93, block recurrence 0.93, tercile MDE 0.35c at `DE_gate`
+  7.2); D on 3 later units; B on no birth unit; K on 13 clip units. These are counts on neighbouring book populations (V's
+  movers with the pass k - 1 and k sweeps). **No LT8 gate, threshold or planning figure was changed because of them; in
+  particular CH203's `VIF_w <= 2.0` gate stays exactly as drafted** (the reviewer's rule). The LT6-V entries in the `book` and
+  `book0` tokens' test lists lapse with V (`config.EMBARGO`); the tokens' dates are unchanged by that (section 9).
 - **Retention dependency.** The look-back needs the host's capture and sweep retention to be at least 8 days at install, or a
   byte-identical restore from the data releases (8.1).
 - **Shared data.** Every earlier test and the engine read the same captures and sweeps; LT8's window overlaps none of theirs;
@@ -1030,6 +1173,8 @@ primary makes its family a candidate; an engine gain never changes an LT8 verdic
 - **Window.** Results arrive about 2027-01-21, after every adjacent analysis; the reasons are in 1.1.
 
 ## 11. Open questions for the challenger review
+
+*(Answered by R1, 2026-10-22; the rulings and the resulting changes are in section 13.3. The questions are kept as asked.)*
 
 1. **CH203's target at k + 1** (`y_s = mid_{k+3} - mid_{k+1}`, SD 4.5c, 1.5x the planning MDE) against the round's `c2 = mid_{k+1}
    - mid_k`: is the stale-Gamma-mid catch-up a real threat for a pre-origin book state on quiet books, or should `c2` with a
@@ -1073,29 +1218,107 @@ primary makes its family a candidate; an engine gain never changes an LT8 verdic
 > ## LT8 (three round-13 candidates: CH203, CH202, CH204) — DRAFT pre-registration (not registered, nothing counted, no code)
 > - **Design:** `docs/research_lab/LIVE_TESTS_8.md` on `feat/live-tests-8`. Pure reader of streams the host already writes
 >   (complete captures, sidecar, sweep 1 of passes k - 2 .. k + 6); no network, no new collector; separate store
->   `live_tests8/`; LT3/LT4/LT5/LT7 functions **vendored** into a generated `live_tests8_base.py` (LT7's only after LT7's pin);
+>   `live_tests8/`; LT3/LT4/LT5/LT7 functions **vendored** into a generated `live_tests8_base.py` (LT7's from the
+>   freeze-checked LT7 census-code hashes 232c22fb… / 2e8baa90…, R1 must-fix 5);
 >   memory planned from LT4's measured 484-525 MB with a two-step ladder (<= 650 MB each); install by host cron `5 */2 * * *`;
 >   look-back needs >= 8 days of host retention or a byte-identical release restore.
 > - **CH203** the quiet book: YES change over (k + 1, k + 3] on the 5c-imbalance innovation between sweep 1 of passes k - 2 and
 >   k - 1 (both before the origin) behind an unmoved touch, the level fixed, > 0; events <= 10 members; block Freedman-Lane
 >   gate; far-future innovation F binding (sweeps k + 5, k + 6, sizes only); planning slope MDE 0.35c, F-MDE 0.50c at `r_w` 0
->   (DE 31, `n_eff` 1.0M); borderline on its F-MDE gate.
+>   (DE 31, `n_eff` 1.0M); borderline on its F-MDE gate; likely to fail its binding fill-leak world 8 (`vol_missing` >= 0.78).
 > - **CH202** the sweep clock: held (the CLOB had >= 75% of the 2 h move at pass k - 1's first sweep) against fresh (<= 25%) on
 >   `c_skip`, > 0, the signed Gamma 1 h change a control; block gate with a one-path stale-display world; class MDE 0.38c
->   (0.67c at its count floor); *informed (E002/E004)* and *informed (b0_gap diagnostic)*; CH194's declared heir; borderline.
+>   (0.37c at its count floor with 15% class shares, 80% effective; 0.52c at the least favourable split); binding leak worlds
+>   with a noisy, lagged `chg_1h` proxy; *informed (E002/E004)* and *informed (b0_gap diagnostic)*; CH194's declared heir; borderline.
 > - **CH204** the market's own clock: |move| over (k + 1, k + 2] at the market's own hot slot (7-day look-back, scheduled rule
 >   declared) against its cold slots, 11 slot-of-day dummies held fixed, > 0; events <= 10 members; block gate; rotation and
->   out-of-window readings reported; class MDE 0.53c (low, DE 31); likely to drop.
+>   out-of-window readings reported; class MDE 0.57c (low, DE 31; 0.40c high; R1 must-fix 3); world 12 reported; likely to drop.
 > - **Family:** Holm over **k <= 3** (census-fixed; expected 0 to 1; if 0, LT8 is not registered), one-sided, alpha 0.05;
 >   p = max(event t, two-way, day t) (`G_minor - 1` df for CH202 and CH204); multiplier 3.47 (not lowered); F-MDE cap 0.5c;
->   12 binding size scenarios (11 gate worlds, 1 mechanical verdict-size world), a failure sets only its own tests to p = 1;
+>   11 binding size scenarios (10 gate worlds, of which 3, 5 and 8 are leak worlds with a noisy lagged `chg_1h` proxy or the
+>   census `vol_missing` share >= 0.78; 1 mechanical verdict-size world) and world 12 reported, a failure sets only its own
+>   tests to p = 1;
 >   window proposed `[2026-12-30T00:00Z, 2027-01-20T00:00Z)` keyed to LT7's `END_UTC` + 24 h (slides with it; never before
 >   12-30), single analysis on or after 2027-01-21T12:00Z; design-text freeze before the earlier of 2026-11-15T12:00Z and
->   `T_E015` (CH203 dropped if not before `T_V`); no read of E015/E022/LT5/LT6/LT7 outputs before the pin; registration after
+>   `T_E015` (LT6 closed, so no `T_V` rule); no read of E015/E022/LT5/LT7 outputs before the pin (LT6's census counts read
+>   and disclosed); after LT7's census commit any LT8 change is *informed (LT7 census)*; registration after
 >   LT7's registration commit (or drop) and before `T_LT7`. Census inputs: the LT7-sealed captures and sweeps (seal
 >   117e9b45…), restored, sealed and counted once each (q0620-q0623).
 > - **Deferred:** CH205 (sports scope; not proposed); CH206 a counts-only map (q0627; counts 0); CH207-CH211 engine-first.
-> - **Status:** DRAFT; awaiting challenger R1, the design-text freeze, restore and seal (q0620-q0621), code and freeze check,
+> - **Status:** DRAFT; challenger R1 REVISE (2026-10-22) answered in section 13 (only the review's items applied; any later
+>   change after LT7's census commit labelled *informed (LT7 census)*); awaiting the R1 re-check, the design-text freeze, restore and seal (q0620-q0621), code and freeze check,
 >   censuses (q0622-q0623), size check (q0624), dry run, pins and registration. Engine embargo requests (new `quietbook`,
 >   `swclock`, `sched`; `book0` and `book` from 12-31 to the later of 2027-01-23T00:00Z and LT8's analysis commit) to be filed
 >   in `CANDIDATES.md` at acceptance and in any case before 2026-12-01. **E-numbers not assigned.**
+
+## 13. Response to challenger R1 (2026-10-22; reviews/LT8_CHALLENGER_R1_2026-10-22.md, REVISE)
+
+Text only, before any LT8 census, seal, size run or window data, and **before LT7's censuses q0602-q0604 have run** (no CC7/CS7
+output exists in `seals/`); nothing was chosen from data and no E015, E022, LT5, LT7 output was read. New context read for the
+response: the review record (9f99504d), `LIVE_TESTS_6.md` 6.3 at the `chore/arepo-claude-setup` tip (LT6 closed; counts
+disclosed in 10), `config.EMBARGO`'s `book` / `book0` entries, and the sha256 of `live_tests7.py` / `live_tests7_base.py` at
+699b9ee9, dde3c3c4 and the chore tip (for must-fix 5). **No threshold, floor, alpha, seed, date or direction was loosened.**
+Every change removes a moot rule, corrects arithmetic, adds a disclosure, a print, a reported arm or a minimum, makes a world
+more realistic, or fixes an order of steps. The changes are applied in sections 0-12; where any text differs, this section
+governs.
+
+**Scope declaration (must-fix 2).** This response applies **only** the items of the R1 record. LT7's censuses count the same
+sealed files and neighbouring populations and are expected before LT8's design-text freeze; **after the LT7 census commit,
+any change to an LT8 gate, filter, planning count or expected fate is labelled *informed (LT7 census)*** on the affected
+test, recorded in the ledger with its reason, and carried to the verdict (1.6).
+
+### 13.1 Must-fix items
+
+| # | Item | What changed | Where |
+|---|---|---|---|
+| 1 | LT6 closed; the `T_V` drop rule is moot | The rule dropping CH203 if the freeze is not before `T_V` is withdrawn everywhere; the 1.1 table row now records V as closed with no rule; a new 1.1 bullet rewrites the chain (LT7's window follows its own rules (a) and (c); the remaining slide risk is LT5 J/O's registration, which LT7 waits for); the LT6-V entries in the `book` / `book0` test lists lapse (dates unchanged); LT6's census counts, including V's within-market correlation 0.595 (pooled 0.566), are disclosed as read; **CH203's `VIF_w <= 2.0` gate is unchanged** | header, 0, 1.1, 1.6, 1.11, 8.3, 9, 10, 12 |
+| 2 | LT7's census will precede LT8's freeze | Declared: the response applies only this review's items; after LT7's census commit any change to a gate, filter, planning count or expected fate is labelled *informed (LT7 census)*, re-check fixes included unless the reviewer records independence; LT7 census outputs are opened before LT8's freeze only to verify a hash | header, 1.6, 12, 13 |
+| 3 | CH204's MDE did not follow its chain | `n_1` = 1,955 x 21 x 0.8 = **32,844** (high 65,520), `n_2` = 11 x `n_1`; MDE **0.57c low, 0.40c high** (DE 31), 0.66c / 0.47c at DE 41, quarter 1.14c / 0.81c (computed: 0.571, 0.404, 0.657, 0.465, 1.143, 0.809); the 0.5c gate needs about 2,550 hot units a day; 6.1 item 9's false claim corrected; prior odds of surviving census 0.15 -> **0.10** | 0, 4, 6.1, 10, 12 |
+| 4 | CH202's floor MDE used the wrong count | The gate counts 201,600 **held plus fresh**: with 15% class shares (100,800 each) the MDE is **0.33c raw** (the reviewer's figure; computed 0.329) and **0.37c at the 80% effective share** used everywhere else (0.368); shown also: the least favourable split the gates allow (held 30,240, fresh 171,360, no mixed) **0.52c** (0.515). Gate unchanged | 0, 3, 12 |
+| 5 | Vendoring order contradicted the census step | **Option chosen: vendor from the freeze-checked LT7 census-code commit** (`live_tests7.py` 232c22fb…, `live_tests7_base.py` 2e8baa90…, the hashes in LT7's seal and at the chore tip), the vendor script refusing unless the source hashes equal those LT7's census outputs record; the "only after LT7's pin" clause withdrawn. Justification: waiting for LT7's pin (about 12-07) would compress six sequential LT8 steps into three weeks before 12-28, while the census-code commit is the reviewed code that will have counted the same sealed files; later LT7 edits cannot reach LT8's copies (drift recorded, never adopted) | 8.1, 8.3, 8.4, 12 |
+| 6 | World 12 is not a null | **Decided now, before any size result: world 12 is reported, never binding**; the failure-consequence list is 1-8 and 10-11; CH204's text now names worlds 10-11 as its binding gate worlds | 0, 1.8, 1.8.1, 4, 8.3, 12 |
+| 7 | Worlds 3 and 5 gave the control the exact last-hour change | A **noisy, lagged last-trade proxy** `chg1h_obs = p_lt(t - L) - p_lt(t - L - 60 min)`, `L ~ U(0, 60)` min, Poisson trades at `lambda_m ~ U(0.5, 6)` per hour, exact zeros, 10% missing, is the only control the model sees in both worlds; the reversal acts on the true `D60` (0.21 over three passes, E002's scale); world 3's effect is re-scaled from LT7's sourceless 0.02 to E002's (the share inside the skip window, 0.14 x `D60`); both stay binding as **leak worlds**; CH202's valid-verdict odds about 0.12 | 0, 1.8, 1.8.1, 1.11, 3, 12 |
+| 8 | CH203's fill confounder was called "addressed" | Text now says it is only partly controlled (`volume24hr` absent on about 78% of rows); **world 8 carries `p_vm` = max(the CS8 census `vol_missing` share of CH203's primary units, 0.78)**; the census prints the `vol_missing` x missing `last_trade_price` table and the primary's `vol_missing` share; world 8's fill parameters are kept as drafted (not tuned) and the world is expected to fail, so CH203's valid-verdict odds are about 0.10 | 0, 1.8, 1.8.1, 2, 6.1, 7, 10, 12 |
+
+### 13.2 Should-fix items
+
+| Item | What changed | Where |
+|---|---|---|
+| Daylight-saving time | Disclosed: census days on US/UK summer time, window on winter time (a US 08:30 ET release moves from 12:30Z to 13:30Z); CH204's census gates are not representative of the window's slot positions; the census prints the 12:31Z slot's share of `s*`; no rule changed | 1.1, 4, 7 |
+| The LT8 seal | Reproduces LT7's 159-entry `slots` map exactly (refuses otherwise), records the frozen LT8 design-text sha256, accepts host copies that pass the hash check; the 430-file need and the unconfirmed release coverage stated, with the existing fallback | 7, 8.3 |
+| Q14: per-block minimum | Each CS8 test needs >= 1.0 covered day (>= 12 origins) in each sweep block (CH203 22 / 19, CH202 24 / 21 from the file list). **Not applied to CH203's F pairs** (13 / 10, i.e. 1.08 / 0.83 days), because a per-block rule on pairs would drop CH203 by construction before any count; the pooled 1.5-day pair minimum stays and the split is printed. **Put to the re-check:** if the reviewer reads the should-fix as covering pairs, CH203 is dropped uncounted on the file list alone | 7 |
+| CH204 category arm; offsets | S8: slot x `fee_category` dummies arm (categories < 1,000 scheduled units pooled), reported; S9 and 1.8: the share of block-gate offsets that are multiples of 12, on data and in worlds 10-12, reported | 1.8, 4 |
+| Define "declared" | *declared* = the closed formula at the census's own counts, `DE_gate`, `VIF_w`, gap and the declared SD; *design* = `3.47 x 1.5 x SD x se_1` from the census regressors under a working covariance (unit variance, within-event equicorrelation 0.02, independence across events), no target read; the gate takes the larger | 7 |
+
+### 13.3 Rulings on section 11, as applied
+Q1: target from k + 1 kept. Q2: sweep 1 accepted. Q3: lag placement kept; the lag is **not** required quiet. Q4, Q5: accepted
+with must-fix 8. Q6: the 0.8 correlation gate kept; must-fix 7 applied. Q7: the 1c threshold and the 800-a-capture gate kept;
+text fixed (must-fix 4). Q8: labels accepted. Q9: must-fix 6 (world 12 reported). Q10: partly; the category arm added (S8).
+Q11: cap kept for CH203 and CH204; no cap for CH202. Q12: the embargo requests stand, conditional on the census (a test
+dropped at census withdraws its token and any extension made only for it, 9). Q13: no drop rule for CH202. Q14: should-fix
+above. Q15: dates kept. Q16: multiplier kept. Q17: CH205 not proposed and CH206 a separate map (q0627) accepted; q0620-q0627
+are unused in any ref.
+
+### 13.4 Odds re-stated (the designer's judgement; not measurements)
+
+| Test | Survive census (first draft -> R1) | Then pass the binding worlds | Valid verdict | Main reason for the change |
+|---|---|---|---|---|
+| CH203 | 0.30 -> 0.30 | about 0.35 | **about 0.10** | world 8 at `p_vm >= 0.78` is likely to fail (must-fix 8) |
+| CH202 | 0.25 -> 0.25 | about 0.50 | **about 0.12** | worlds 3 and 5 with the noisy lagged proxy may fail (must-fix 7) |
+| CH204 | 0.15 -> **0.10** | about 0.80 | **about 0.08** | MDE 0.57c at the low count (must-fix 3); DST; world 12 now reported |
+
+Expected k at census about 0.65 (0 to 1); the chance that every test drops at census about 0.47; the expected number of
+tests reaching a valid verdict about 0.3.
+
+### 13.5 Values newly declared here (each with its neutral source)
+
+| Value | Where | Source |
+|---|---|---|
+| `chg_1h` proxy lag `L ~ U(0, 60)` min, trade rate `lambda_m ~ U(0.5, 6)` per hour, missing 0.1 | 1.8.1 | the reviewer's "up to 60 min" lag; a thin-to-active non-sports range (a convention; no AREPO measurement of Gamma's `chg_1h` basis exists); 0.1 a convention |
+| Reversal 0.21 x `D60` over three passes; 0.14 inside the skip window | 1.8.1 | E002/E004's confirmed about 21% at about 5 h |
+| World 8 `p_vm` = max(census share, 0.78) | 1.8.1 | the reviewer's rule; DESIGN_V1 16's 78% |
+| Per-block minimum >= 12 origins in each sweep block | 7 | the reviewer's 1.0 covered day |
+| Design MDE working covariance, within-event equicorrelation 0.02 | 7 | the `DE_gate` formula's intraclass value |
+| CH204 S8: categories < 1,000 scheduled units pooled | 4 | a convention for a reported arm (no gate) |
+
+**Ready for the R1 re-check** (`science-reviewer`), then the orchestrator's check and the design-text freeze.
