@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-22 22:05 UTC+1
+**Last updated:** 2026-10-22 22:39 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -13,18 +13,19 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
   server (checked by file fingerprint). Its two remaining counting checks are queued and must finish before 28 Oct.
 - **LT8 (three planned tests from round 13):** its code fixes passed, but the re-check found three things to fix first: LT8
   must use the same 24-hour reward rule as LT7, accept LT7's first count (made with the earlier code), and read older
-  data copies so its counts are not stopped when old server files expire. Being fixed now. The server keeps 10 days of
+  data copies so its counts are not stopped when old server files expire. Fixed; an independent re-check is running. The server keeps 10 days of
   snapshots until LT8's counts are done.
 - **LT9 (new): three ideas from round 14** about reward-programme quoting (how fast spreads re-tighten after leaving the
   reward band, how new symmetric depth splits the reward pool, and when the data feed leaves the reward field out). The
-  design draft is being written; then an independent challenger review.
+  design draft is written; an independent challenger review is running. Proposed collection: 21 Jan to 11 Feb 2027.
 - **New ideas round 14** is done (10 ideas, CH212-CH221), with duplicates of closed ideas listed and dropped.
 - **Cross-venue twins (batch 16, K): closed, not testable.** A blind check of 100 sampled Polymarket-Kalshi pairs found only
   3 true twins (90 needed). The matching rule pairs markets with similar wording, not the same event. Nothing is counted.
 - **Model run (MC1):** a one-fold timing run showed about 2 hours per fold and 6.2 GB of memory, so a full run needs about
   32 hours or more. The run can now pause and resume in 5.5-hour pieces; it is scheduled after LT7's counts.
 - **Batch 7:** its counting job passed its re-check (with notes, now fixed); it starts from 24 Oct. **Batch 8/9:** two
-  data jobs failed (a data-source error that was wrongly marked as finished, and a memory limit); fixes are being made.
+  data jobs had failed (a data-source error that was wrongly marked as finished, and a memory limit). Both are fixed,
+  reviewed and back in the server queue.
 - **Copy-skilled wallets (E026):** registered; collection starts 25 Oct (phone note then).
 - **Honest pattern:** most planned tests die at the counting stage, before any outcome data is read. That is the checks
   working as designed.

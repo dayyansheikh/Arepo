@@ -323,6 +323,19 @@ def cmd_smoke(a, cm):
                "n_requested": res["n_requested"], "n_nonempty": res["n_nonempty"], "written": str(out)}
 
 
+def exclusion_exit_code(res: dict) -> int:
+    """0 when the run is complete, ended on its declared time budget (a clean resumable pause; the spec repeats until ``"complete": true``) or is terminal (not run /
+    unverified); otherwise a transient stop (``stage_failed: ...``, collector yield, unhealthy host, 429 pause) is TEMPFAIL (75), never 0, so the queue cannot mark an
+    incomplete run done (q0164 failed this way on 2026-10-22: Gamma 422, exit 0, status done)."""
+    if res.get("complete") is True or res.get("stopped") is None:
+        return 0
+    if res.get("stopped") == "budget reached":
+        return 0
+    if res.get("transient"):
+        return TEMPFAIL
+    return 0
+
+
 @_guarded
 def cmd_exclusion_keys(a, cm):
     from astrolabe.research_lab import cb8_updown as u  # noqa: PLC0415
@@ -338,13 +351,17 @@ def cmd_exclusion_keys(a, cm):
         extra = _extra_pins(a.extra_pin)
     except ValueError as exc:
         raise cm.Refused(str(exc)) from None
-    res = u.exclusion_keys(root, hb.httpx_transport(), rules_sha=sha, history_root=Path(a.history_root) if a.history_root else cm.HIST_ROOT,
-                           seals_dir=Path(a.seals_dir) if a.seals_dir else None, extra_pins=extra, disk_cap=int(a.disk_cap_gb * 1024**3), dest_dir=root, **kw)
+    from astrolabe.research_lab import cb8_exclusion_fix as fix  # noqa: PLC0415
+
+    with fix.normalised_exclusion_ids() as norm:  # q0164b: composite seal ids -> market part (Gamma's id filter is integer-only); no hashed function is edited
+        res = u.exclusion_keys(root, hb.httpx_transport(), rules_sha=sha, history_root=Path(a.history_root) if a.history_root else cm.HIST_ROOT,
+                               seals_dir=Path(a.seals_dir) if a.seals_dir else None, extra_pins=extra, disk_cap=int(a.disk_cap_gb * 1024**3), dest_dir=root,
+                               budget_min=a.budget_min, **kw)
     if res.get("status") == cm.DISK_BUDGET_TOKEN:
         return DISK_BUDGET, {"status": cm.DISK_BUDGET_TOKEN, "stopped": res.get("stopped")}
     rep = res.get("exclusion_report") or {}
-    return 0, {"status": res.get("status"), "stopped": res.get("stopped"), "complete": res.get("complete"), "n_ids": rep.get("n_ids"), "n_missing": rep.get("n_missing"),
-               "missing_share": rep.get("missing_share"), "keys": rep.get("keys"), "transient": res.get("transient")}
+    return exclusion_exit_code(res), {"status": res.get("status"), "stopped": res.get("stopped"), "complete": res.get("complete"), "n_ids": rep.get("n_ids"), "n_missing": rep.get("n_missing"),
+               "missing_share": rep.get("missing_share"), "keys": rep.get("keys"), "transient": res.get("transient"), "id_normalisation": norm}
 
 
 @_guarded

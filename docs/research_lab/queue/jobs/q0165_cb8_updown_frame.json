@@ -17,7 +17,7 @@
  },
  "depends_on": [
   "q0161_cb8_smoke",
-  "q0164_cb8_exclusion_keys"
+  "q0164b_cb8_exclusion_keys"
  ],
  "argv": [
   "scripts/run_cb8.py",
