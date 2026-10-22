@@ -744,3 +744,106 @@ def test_should_items_x_readiness_before_reads_mark_availability_and_manifest_ru
     api = FakeTrades({"cA": day_rows(D1, 3)})
     m = run_to_end(tmp_path / "m", api, [leg()], rules_sha256="abc123")
     assert m["rules_sha256"] == "abc123"
+
+
+# ---- re-check note 1 (terminal X record) and note 2 (one seal marker) -------------------------------------------------------------
+
+
+def _xv(tmp):
+    return tmp / "creative_batch7" / "xv_prints"
+
+
+def test_note1_refused_page_size_writes_write_once_terminal_marker(tmp_path):
+    api = CappedPageApi({"cA": day_rows(D1, 2500)}, cap=300)
+    with pytest.raises(cm.Refused, match="capped server-side"):
+        run_to_end(tmp_path, api, [leg()])
+    mk = _xv(tmp_path) / xv.XV_TERMINAL_FILE
+    rec = json.loads(mk.read_text())
+    assert rec["status"] == "refused" and "capped" in rec["reason"] and rec["utc"]
+    first = mk.read_bytes()
+    assert xv.write_terminal_marker(_xv(tmp_path), "disk_budget", "later") is None and mk.read_bytes() == first  # write-once
+    term = cc.require_xv_complete(_xv(tmp_path))
+    assert term["status"] == "refused" and term["testable"] is False and term["source"] == "marker"
+    assert cc.census_x(_xv(tmp_path), tmp_path / "cv") == term  # nothing else is read (cv does not even exist)
+
+
+def test_note1_disk_budget_writes_marker_with_manifest_sha_and_is_terminal(tmp_path):
+    api = FakeTrades({"cA": day_rows(D1, 800)})
+    assert fetch(tmp_path, api, [leg()], disk_cap=2000)["status"] == cm.DISK_BUDGET_TOKEN
+    rec = json.loads((_xv(tmp_path) / xv.XV_TERMINAL_FILE).read_text())
+    assert rec["status"] == "disk_budget" and len(rec["manifest_sha256"]) == 64
+    term = cc.require_xv_complete(_xv(tmp_path))
+    assert term["status"] == "disk_budget" and term["testable"] is False
+    # a sticky manifest alone (a chunk run before this code) is terminal too, and the next chunk back-fills the marker
+    (_xv(tmp_path) / xv.XV_TERMINAL_FILE).unlink()
+    assert cc.require_xv_complete(_xv(tmp_path))["source"] == "manifest"
+    assert fetch(tmp_path, api, [leg()], disk_cap=2000)["status"] == cm.DISK_BUDGET_TOKEN
+    assert (_xv(tmp_path) / xv.XV_TERMINAL_FILE).exists()
+
+
+def test_note1_pending_and_complete_never_terminal(tmp_path):
+    api = FakeTrades({"cA": day_rows(D1, 5)})
+    cv, xvd = make_x_world(tmp_path, xv_complete=False)
+    assert not xvd.exists() or not (xvd / xv.XV_TERMINAL_FILE).exists()
+    with pytest.raises(cm.NotNow):
+        cc.require_xv_complete(xvd)
+    xvd.mkdir(parents=True)
+    (xvd / "manifest.json").write_text(json.dumps({"status": "in_progress", "complete": False, "stopped": "paused: health"}))
+    assert cc.xv_terminal(xvd) is None
+    with pytest.raises(cm.NotNow):
+        cc.require_xv_complete(xvd)
+    m = run_to_end(tmp_path / "ok", api, [leg()])
+    assert m["status"] == xv.XV_COMPLETE and not (tmp_path / "ok" / "creative_batch7" / "xv_prints" / xv.XV_TERMINAL_FILE).exists()
+
+
+def test_note1_marker_validation(tmp_path):
+    d = tmp_path / "xv"
+    d.mkdir()
+    (d / xv.XV_TERMINAL_FILE).write_text(json.dumps({"status": "in_progress"}))
+    with pytest.raises(cm.Refused, match="status must be"):
+        cc.xv_terminal(d)
+    (d / xv.XV_TERMINAL_FILE).write_text("{not json")
+    with pytest.raises(cm.Refused, match="valid JSON"):
+        cc.xv_terminal(d)
+    (d / xv.XV_TERMINAL_FILE).write_text(json.dumps({"status": "refused"}))
+    (d / "manifest.json").write_text(json.dumps({"status": xv.XV_COMPLETE, "complete": True}))
+    with pytest.raises(cm.Refused, match="contradicts"):
+        cc.xv_terminal(d)
+    with pytest.raises(cm.Refused):
+        xv.write_terminal_marker(d, "in_progress", "x")
+
+
+def test_note1_census_records_x_terminal_and_proceeds_with_s_and_g(sealed, tmp_path):
+    w = sealed
+    api = CappedPageApi({"cA": day_rows(D1, 2500)}, cap=300)
+    with pytest.raises(cm.Refused):
+        run_to_end(tmp_path / "f", api, [leg()])
+    (tmp_path / "cb7").mkdir()
+    shutil.copytree(_xv(tmp_path / "f"), tmp_path / "cb7" / xv.XV_RUN_ID)
+    res = census(w, ["S", "G", "X"], tmp_path)
+    assert res["X"]["status"] == "refused" and res["X"]["testable"] is False
+    assert res["S"]["status"] != "refused" and "G" in res
+    assert json.loads((tmp_path / "cb7" / "census.json").read_text())["X"]["testable"] is False
+
+
+def test_note2_seal_markers_exactly_one_and_status_read(sealed):
+    w = sealed
+    committed = w.seals / "h8_geo_SEAL.json"
+    keep = committed.read_bytes()
+    committed.unlink()
+    host_nr, unv, comm_nr = w.root / "h8_geo" / cm.NOT_RUN_FILE, w.root / "h8_geo" / cm.UNVERIFIED_FILE, w.seals / "h8_geo_NOT_RUN.json"
+    try:
+        host_nr.write_text("{}")
+        comm_nr.write_text(json.dumps({"status": "not_run_deadline"}))  # committed copy + host copy of the same kind is fine
+        assert cc.verify_seal_copies(w.root, w.seals)["h8_geo"]["state"] == "not_run_deadline"
+        unv.write_text("{}")  # two different kinds: refuse, no silent precedence
+        with pytest.raises(cm.Refused, match="more than one terminal marker"):
+            cc.verify_seal_copies(w.root, w.seals)
+        unv.unlink()
+        comm_nr.write_text(json.dumps({"status": "something_else"}))
+        with pytest.raises(cm.Refused, match="names status"):
+            cc.verify_seal_copies(w.root, w.seals)
+    finally:
+        for f in (host_nr, unv, comm_nr):
+            f.unlink(missing_ok=True)
+        committed.write_bytes(keep)

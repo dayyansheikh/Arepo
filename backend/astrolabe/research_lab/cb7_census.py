@@ -135,12 +135,19 @@ def verify_seal_copies(root: Path, seals_dir: Path) -> dict:
             continue
         rdir = root / run
         state = None
-        if (seals_dir / f"{run}_NOT_RUN.json").exists() or (rdir / cm.NOT_RUN_FILE).exists():
-            state = cm.NOT_RUN_TOKEN
-        elif (rdir / cm.UNVERIFIED_FILE).exists():
-            state = cm.UNVERIFIED_TOKEN
-        elif (rdir / cm.SOURCE_UNVERIFIED_FILE).exists():
-            state = cm.SOURCE_UNVERIFIED_TOKEN
+        not_run = [f for f in (seals_dir / f"{run}_NOT_RUN.json", rdir / cm.NOT_RUN_FILE) if f.exists()]
+        kinds = {tok: True for tok, present in ((cm.NOT_RUN_TOKEN, bool(not_run)), (cm.UNVERIFIED_TOKEN, (rdir / cm.UNVERIFIED_FILE).exists()),
+                                                (cm.SOURCE_UNVERIFIED_TOKEN, (rdir / cm.SOURCE_UNVERIFIED_FILE).exists())) if present}
+        if len(kinds) > 1:
+            raise Refused(f"{run}: more than one terminal marker ({sorted(kinds)}); exactly one is allowed; refusing")
+        for f in not_run:  # a readable marker must not name another state
+            try:
+                st = json.loads(f.read_text()).get("status")
+            except (ValueError, AttributeError):
+                st = None
+            if st not in (None, cm.NOT_RUN_TOKEN):
+                raise Refused(f"{run}: {f.name} names status {st!r}, not {cm.NOT_RUN_TOKEN!r}; refusing")
+        state = next(iter(kinds), None)
         if run == "h8_tail" or state is None:
             raise Refused(f"{run}: no committed seal copy {committed.name} and no terminal (not-run) record; refusing")
         out[run] = {"state": state, "sha256": None}
@@ -481,8 +488,44 @@ def measure_h_geo(snap_root: Path, *, window: tuple[str, str] = H_GEO_WINDOW, mi
 # ---- X ----------------------------------------------------------------------------------------------------------------------------
 
 
+def xv_terminal(xv_dir: Path) -> dict | None:
+    """The durable terminal record of the q0146 fetch, or ``None`` if it has not ended terminally. A terminal state is a committed
+    ``XV_TERMINAL.json`` (``refused`` | ``disk_budget``) or the sticky ``disk_budget`` manifest status. Pending / transient / in-progress
+    states are never terminal. A marker that is unreadable, has an unknown status or contradicts a complete manifest is :class:`Refused`."""
+    xd = Path(xv_dir)
+    mp, tp = xd / "manifest.json", xd / xv.XV_TERMINAL_FILE
+    man = json.loads(mp.read_text()) if mp.exists() else {}
+    complete = man.get("complete") is True and man.get("status") == xv.XV_COMPLETE
+    rec: dict = {}
+    if tp.exists():
+        try:
+            rec = json.loads(tp.read_text())
+        except ValueError as exc:
+            raise Refused(f"{tp.name} is not valid JSON; refusing") from exc
+        if not isinstance(rec, dict) or rec.get("status") not in xv.XV_TERMINAL_STATES:
+            raise Refused(f"{tp.name}: status must be one of {xv.XV_TERMINAL_STATES}; refusing")
+        if complete:
+            raise Refused(f"{xd.name}: terminal marker {rec['status']!r} contradicts a complete manifest; refusing")
+    if man.get("status") == cm.DISK_BUDGET_TOKEN:
+        if rec and rec["status"] != cm.DISK_BUDGET_TOKEN:
+            raise Refused(f"{xd.name}: marker status {rec['status']!r} contradicts the sticky disk_budget manifest; refusing")
+        rec = rec or {"status": cm.DISK_BUDGET_TOKEN, "reason": str(man.get("stopped") or ""), "utc": None, "manifest_sha256": h5_seal.sha256_file(mp)}
+        rec = {**rec, "source": "manifest" if not tp.exists() else "marker"}
+    elif rec:
+        rec = {**rec, "source": "marker"}
+    else:
+        return None
+    return {"status": rec["status"], "testable": False, "reason": rec.get("reason"), "terminal_utc": rec.get("utc"),
+            "manifest_sha256": rec.get("manifest_sha256"), "source": rec["source"]}
+
+
 def require_xv_complete(xv_dir: Path) -> dict:
+    """The complete manifest, or (item: CB7 re-check note 1) the terminal record ``{"status": "disk_budget"|"refused", "testable": False, ...}``
+    if the fetch ended terminally. A pending or in-progress fetch still raises :class:`NotNow` (tempfail)."""
     cm.refuse_path(xv_dir)
+    term = xv_terminal(xv_dir)
+    if term is not None:
+        return term
     mp = Path(xv_dir) / "manifest.json"
     man = json.loads(mp.read_text()) if mp.exists() else {}
     if not (man.get("complete") is True and man.get("status") == xv.XV_COMPLETE):
@@ -493,6 +536,8 @@ def require_xv_complete(xv_dir: Path) -> dict:
 def census_x(xv_dir: Path, cv_root: Path) -> dict:
     cm.refuse_path(cv_root)
     man = require_xv_complete(xv_dir)
+    if man.get("testable") is False:  # terminal fetch: X1 not testable (CB7 1.4); recorded, nothing is read
+        return man
     legs = {r["pair_key"]: r for r in cm.read_csv_gz(Path(xv_dir) / "legs.csv.gz")}
     days = Counter()
     days_by_group: dict[str, Counter] = {"nonsports": Counter(), "sports": Counter()}
