@@ -103,3 +103,21 @@ EMBARGO = (
     {"token": "hollow", "until": "2026-11-18T00:00:00Z", "tests": ["E022"],
      "why": "hollow liquidity: any feature combining Gamma liquidity with sweep depth (h = clip(1 - D/L, 0, 1), L/D, log L - log D, the zh scale, h terciles), any horizon; LT4 E022 (CH174, registration planned 2026-10-25, analysis not before 2026-11-17T12Z); experiments round-3 request, added 2026-10-21 ~20:50Z (no model yet). Liquidity alone as a level stays usable; sweep depths stay under `book`"},
 )
+
+# Promotion eligibility (DESIGN_V1 section 21; science review REVISE 2026-10-22). A model listed here is still predicted,
+# scored, shown and counted in the promotion rule's K (so the Bonferroni level the other challengers face never
+# loosens), but it can never be promoted. Entries are appended with a dated reason and never removed or edited.
+PROMOTION_INELIGIBLE = (
+    {"model_id": "se7_lgbm_all", "since": "2026-10-22T00:50:00Z",
+     "why": "label-window overlap: dir_* labels start at the origin capture's Gamma mid (~hh:31Z) but the book family "
+            "comes from sweep 1 of the pass (~7 min later); 5.4-6.4% of eligible markets already move > DELTA by then "
+            "(about a third of 2 h movers) and bk_micro correlates -0.22..-0.28 with that in-window move, so a broad "
+            "model holding book inputs is partly scored on a move that has already happened (biases its gain upward). "
+            "Declared from a timing measurement, not from any se7 score."},
+    {"model_id": "se3_lr_book", "since": "2026-10-22T00:50:00Z",
+     "why": "same label-window overlap as se7_lgbm_all (isolates the sweep-1 book family); declared while embargoed "
+            "(book until 2026-12-09), before any of its scores was computed or seen (science re-check 2026-10-22)."},
+    {"model_id": "se14_lgbm_movetype", "since": "2026-10-22T00:50:00Z",
+     "why": "same label-window overlap as se7_lgbm_all (holds the sweep-1 book family); declared while embargoed "
+            "(movetype 2026-11-22, book 2026-12-09), before any of its scores was computed or seen (science re-check 2026-10-22)."},
+)

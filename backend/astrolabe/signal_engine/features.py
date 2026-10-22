@@ -12,7 +12,8 @@ For every complete capture (oldest first) this writes, write-once:
 Causality: every feature uses the origin capture, earlier captures (own look-backs) or inputs received before the
 prediction is written (trade sample: trades strictly before the market's origin row receipt; book sweep: the first sweep
 of this pass, received minutes after the capture and long before any target capture; Kalshi quotes received before
-the capture start). No later capture is ever read here.
+the capture start). No later capture is ever read here. The book sweep is AFTER the label origin (the origin capture's
+Gamma mid), so book inputs overlap the label window by ~7 min: DESIGN_V1 section 21 (se7 promotion-ineligible).
 """
 
 from __future__ import annotations

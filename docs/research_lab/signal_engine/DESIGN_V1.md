@@ -55,14 +55,18 @@ Rewritable convenience files: `dashboard.json`, `leaderboard/latest.json`, `dev/
 | market_state | mid, spread, log liquidity, log 24 h volume, hours to end (+ unknown flag), last trade - mid, quote staleness, market age, tick, neg-risk flag, own 24 h realised volatility, prior observations; category (`fee_category`) | origin row + sidecar; own look-backs from earlier quotes files |
 | momentum | Gamma chg 1h / 1d / 1w; own mid change over 2 h, 6 h, 24 h | origin row; earlier quotes files only |
 | flow | sampled flag, log trades 1 h, log notional 1 h, signed share, largest trade / liquidity, time since last trade | active-frame trade sample of the pass (trades strictly before the market's origin row receipt) |
-| book | has-book, top / 1c / 5c imbalance, 5c depth, microprice minus **sweep** mid, book age, levels | first book sweep of the pass (received ~8 min after the capture; no sweep-Gamma gap) |
+| book | has-book, top / 1c / 5c imbalance, 5c depth, microprice minus **sweep** mid, book age, levels | first book sweep of the pass (received ~7-8 min after the capture, so **after the label origin**: see section 21; no sweep-Gamma gap) |
 | xvenue | has-pair, Kalshi mid minus Gamma mid, Kalshi spread, quote age (<= 30 min) | `cross_venue_live/quotes` lines received before the capture start (quotes only) |
 | wallet | has-sample, log distinct wallets 24 h, top-1 notional share, HHI | `wallets.csv.gz` of the trade sample, trades in [origin - 24 h, origin); hashed wallets |
 | tte (derived) | near-24 h / near-72 h indicators, their products with momentum, chg 1h x log hours | computed at fit/predict time from stored columns |
 
 Derived transforms (logit mid, |mid - 0.5|, log1p of hours/ages) are applied in `learners.py`, so the store stays
 primitive. Causality: no feature reads any capture after the origin; inputs from other streams are received before the
-prediction is written, and every prediction is only scored if written before its target capture (section 6).
+prediction is written, and every prediction is only scored if written before its target capture (section 6). **One
+exception to "before the origin" (disclosed 2026-10-22, section 21):** the `book` family comes from a sweep received
+~7 min after the origin capture, while direction labels start at the origin's Gamma mid, so book inputs partly overlap
+the label window. They are available before the prediction is written, but a model holding them can be credited for a
+move that has already happened.
 Measured coverage on 2026-10-20 20:31Z (46,448 eligible): book 98%, flow and wallet 4.3% (2,000-market sample), xvenue
 0.25% (116 pairs). A feature definition change needs a new `FEATURES_VERSION` and new spec versions (specs pin it).
 
@@ -508,3 +512,39 @@ because 2b cannot be computed with one day of scores.
 per non-embargoed candidate, the seven checks, `days_to_min` (days until 14 days of age), the event-only lower bound
 `lo_event`, the two-way bound `lo_twoway` and its components `se_event` and `se_day`. It copies the leaderboard's
 decision and never recomputes it. Embargoed models are skipped in `dashboard._promotion` and again in `lab_host`.
+
+## 21. Book timing and promotion eligibility (2026-10-22 ~00:50Z; science review REVISE, applied)
+
+**The overlap.** Direction labels are measured from the origin capture's Gamma mid (rows received ~hh:31Z). The `book`
+family is read from sweep 1 of the same pass, which starts ~7 min later (e.g. capture 22:31:01Z, sweep 1
+22:38:19-22:39:38Z, sweep 2 22:39:38-22:40:58Z, predictions written ~22:58Z). Predictions are still write-once and
+written before the target capture, but the book inputs are observed inside the label window.
+
+**Measured (host, two captures of 10-21, development diagnostic, ~50k eligible markets each):**
+- |sweep-1 mid - origin Gamma mid| > DELTA: 6.4% and 5.4% of eligible markets; |2 h label move| > DELTA: 19.9% and 16.6%.
+  So about a third of 2 h movers have already moved by the time the sweep is read.
+- Correlation with the in-window move (`pre` = sweep-1 mid - origin mid): `bk_micro` -0.276 / -0.224; `bk_imb1c`
+  -0.061 / -0.041; `bk_imb5c` -0.051 / -0.032. With the rest of the move (`post` = target mid - sweep-1 mid): `bk_micro`
+  +0.127 / +0.073. With the whole label move: small and mixed in sign (-0.06 to +0.05).
+
+**Why it matters.** The primary score is the 3-class log loss of dir_2h. Magnitude information (flat versus moved)
+counts, and `bk_age_s` is close to a "the book updated after the origin" flag. A model holding book inputs can
+therefore be scored partly on a move that has already happened. The bias favours only models with book inputs, and its
+size cannot be bounded from the evidence, so it is treated as material.
+
+**Decisions:**
+1. **CH200 `sweep2` declined.** Sweep-2 minus sweep-1 mid is a direct piece of the label's own path (CANDIDATES.md row 18).
+2. **`se7_lgbm_all` is promotion-ineligible** on the origin-anchored dir_2h (`config.PROMOTION_INELIGIBLE`, since
+   2026-10-22T00:50Z). It is still predicted, scored and shown, and its dashboard row carries `eligible: false`.
+   - It still counts in K, so the level `1 - 0.05/K` that se1 and se17 face is not loosened.
+   - No pinned spec, rule constant or formula changed.
+   - The reason is the timing measurement above, not any se7 score. Disclosed: se7's day-1 leaderboard (10-21, one
+     day) had been seen, about +0.05 nats over the champion, the same as se1.
+   - The entry is never removed. A later diagnostic cannot restore eligibility.
+3. **The isolating book models `se3_lr_book` and `se14_lgbm_movetype` are promotion-ineligible too** (same `since`,
+   science re-check). They are declared while embargoed (book until 2026-12-09), before any of their scores was
+   computed or seen. They are still predicted, and they are scored once their embargo lifts.
+4. **Future fix (not built):** a `book` v2 family read from the previous pass's last sweep, strictly before the origin,
+   and/or a new broad model built on it. It would be registered and frozen as a new spec, and it would build its own
+   prospective age. Optional development diagnostic: se7 versus se1 on a sweep-anchored label, for information only.
+

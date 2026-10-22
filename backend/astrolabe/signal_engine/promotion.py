@@ -20,6 +20,8 @@ A challenger replaces the champion only if ALL hold on the day's prospective lea
 5. no secondary target with a significant loss (95% CI upper bound of the gain < 0, judged only with >= 50 clusters);
 6. coverage (share of eligible rows with an on-time prediction) >= champion's - ``COVERAGE_TOL``;
 7. at least ``COOLDOWN_D`` days since the last promotion.
+Eligibility (2026-10-22, DESIGN_V1 section 21): a model in ``config.PROMOTION_INELIGIBLE`` is evaluated and counted in K
+like any other candidate, but ``eligible`` is False and it never passes. K is not reduced, so the level stays as declared.
 Ties: the largest two-way lower bound wins. v1 (event clustering only) was superseded on 2026-10-21, before any
 challenger could have met condition 1 (earliest 2026-11-04). Promotions are appended to ``champion/history.jsonl``; nothing is ever removed.
 """
@@ -94,7 +96,8 @@ def evaluate(agg: SC.Agg, reg: dict, champion: str, now: float, history: list[di
     champ_m = SC.metrics(agg, C.PRIMARY_TARGET, champion, days)
     last_promo = max((S.epoch(h["at"]) for h in history if h.get("event") == "promotion"), default=-math.inf)
     cands = [m for m in SP.active_models(reg) if m != champion and not SP.embargo_of(reg["models"][m], now)]
-    K = max(1, len(cands))
+    K = max(1, len(cands))  # ineligible candidates still count (section 21)
+    ineligible = {e["model_id"]: e for e in C.PROMOTION_INELIGIBLE if S.epoch(e["since"]) <= now}
     level = 1 - FAMILY_ALPHA / K
     out = {"rule": RULE_VERSION, "at": S.iso(now), "champion": champion, "K": K, "level": level, "checks": {}, "promote": None}
     if reg.get("rule") != RULE_VERSION:
@@ -105,7 +108,9 @@ def evaluate(agg: SC.Agg, reg: dict, champion: str, now: float, history: list[di
         return out
     passing = []
     for mid in cands:
-        chk: dict = {}
+        chk: dict = {"eligible": mid not in ineligible}
+        if not chk["eligible"]:
+            chk["ineligible_since"] = ineligible[mid]["since"]
         g = SC.gain(agg, C.PRIMARY_TARGET, mid, WINDOW_D, level=level)
         mt = SC.metrics(agg, C.PRIMARY_TARGET, mid, days)
         chk["days"] = 0 if g is None else g["n_days"]
@@ -132,7 +137,7 @@ def evaluate(agg: SC.Agg, reg: dict, champion: str, now: float, history: list[di
         chk["c5_secondary"] = sec_ok
         chk["c6_coverage"] = mt is not None and mt["coverage"] >= champ_m["coverage"] - COVERAGE_TOL
         chk["c7_cooldown"] = (now - last_promo) / 86400.0 >= COOLDOWN_D
-        chk["pass"] = all(chk[k] for k in ("c1_days", "c2_ci", "c3_days_positive", "c4_calibration", "c5_secondary",
+        chk["pass"] = chk["eligible"] and all(chk[k] for k in ("c1_days", "c2_ci", "c3_days_positive", "c4_calibration", "c5_secondary",
                                            "c6_coverage", "c7_cooldown"))
         out["checks"][mid] = chk
         if chk["pass"]:
