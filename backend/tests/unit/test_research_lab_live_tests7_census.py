@@ -685,9 +685,10 @@ def test_runner_seal_and_exit_codes(tmp_path, monkeypatch):
 
 def test_queue_drafts_match_the_runner_and_the_resource_rules():
     qdir = Path(lt.__file__).resolve().parents[3] / "docs" / "research_lab" / "queue"
-    drafts = {p.stem.split("_")[0]: json.loads(p.read_text()) for p in sorted((qdir / "drafts").glob("q060[0-4]*_lt7_*.json"))}
-    assert list(drafts) == ["q0600", "q0601", "q0601b", "q0602", "q0603", "q0604"]
-    assert not list((qdir / "jobs").glob("q060*"))  # DRAFTS: never in queue/jobs
+    # drafts or promoted jobs (q0601 promoted 2026-10-22); each id exists exactly once across the two folders
+    found = sorted(p for sub in ("drafts", "jobs") for p in (qdir / sub).glob("q060[0-4]*_lt7_*.json"))
+    drafts = {p.stem.split("_")[0]: json.loads(p.read_text()) for p in sorted(found, key=lambda p: p.name)}
+    assert list(drafts) == ["q0600", "q0601", "q0601b", "q0602", "q0603", "q0604"] and len(found) == 6
     run = _runner()
     parser = run.build_parser()
     cmds = {"q0601": "seal", "q0601b": "rewards-null-share", "q0602": "census-volsem", "q0603": "census-captures", "q0604": "census-sweeps"}
@@ -699,9 +700,11 @@ def test_queue_drafts_match_the_runner_and_the_resource_rules():
         if cmd != "seal":
             assert str(ns.seal).endswith("docs/research_lab/seals/lt7_census_inputs.json")
         assert d["resources"].get("exclusive", False) == (d["resources"]["mem_mb"] >= 1000 and cmd != "seal")
-        assert d["max_retries"] == 1 and d["depends_on"]
+        assert d["max_retries"] == 1 and (d["depends_on"] or qid == "q0601")
     assert drafts["q0600"]["argv"][0] == "scripts/restore_from_archive.py" and drafts["q0600"]["depends_on"] == []
-    assert drafts["q0601"]["depends_on"] == ["q0600_lt7_census_restore"] and drafts["q0601b"]["depends_on"] == ["q0601_lt7_seal"]
+    # q0601 waits for q0600, unless promoted without it by q0600's own rule (recorded in its notes, 2026-10-22)
+    assert drafts["q0601"]["depends_on"] == ["q0600_lt7_census_restore"] or (drafts["q0601"]["depends_on"] == [] and "q0600 NOT promoted" in drafts["q0601"]["notes"])
+    assert drafts["q0601b"]["depends_on"] == ["q0601_lt7_seal"]
     # the reward null-share result gates every census; the chain q0602 -> q0603 -> q0604 is kept
     assert {"q0601_lt7_seal", "q0601b_lt7_rewards_null_share"} <= set(drafts["q0602"]["depends_on"])
     assert "q0602_lt7_census_volsem" in drafts["q0603"]["depends_on"] and "q0601b_lt7_rewards_null_share" in drafts["q0603"]["depends_on"]
@@ -992,3 +995,48 @@ def test_rewards_null_share_common_flag_follows_the_predeclared_rule(tmp_path):
 
     assert run(0.0, "none")["common"] is False
     assert run(0.5, "half")["common"] is True
+
+
+def _add_sweep2(t, k: int) -> str:
+    """A pass's second sweep (series_index 1, two minutes after sweep 1), as the host writes it; LT7 never opens it."""
+    src = t.sweep / t.sw[k]
+    name = (datetime.strptime(t.sw[k][:16], "%Y%m%dT%H%M%SZ") + timedelta(minutes=2)).strftime("%Y%m%dT%H%M%SZ") + f"_t{k:07x}"
+    shutil.copytree(src, t.sweep / name)
+    (t.sweep / name / "manifest.json").write_text(json.dumps({"state": "complete", "series_index": 1, "snapshot_id": t.cid[k]}))
+    return name
+
+
+def test_seal_accepts_a_sealed_sweep2_present_in_any_root_and_refuses_it_absent(tmp_path):
+    # q0601 (2026-10-22) refused because every sealed sweep-2 directory was reported absent although present on the host
+    t = Tree(tmp_path / "host")
+    s2 = {k: _add_sweep2(t, k) for k in (100, 101)}
+    seals_dir = tmp_path / "seals"
+    seals_dir.mkdir()
+    seals = t.source_seals(seals_dir)
+    spec = pinned(make_spec(), seals[0])
+    args = dict(sample_root=[t.samp], source_seals=list(seals), spec=spec)
+    ok = lt.seal_inputs(snapshot_root=[t.snap], sweep_root=[t.sweep], work=tmp_path / "w1", **args)
+    assert "error" not in ok, ok
+    assert not any(s2[100] in f for f in ok["files"])  # sweep 2 is audited, never sealed into LT7's file list
+    # sweep 2 held only by a second root (a restore tree): still accepted
+    alt = tmp_path / "restore" / "book_sweeps"
+    alt.mkdir(parents=True)
+    shutil.move(str(t.sweep / s2[101]), str(alt / s2[101]))
+    ok2 = lt.seal_inputs(snapshot_root=[t.snap], sweep_root=[t.sweep, alt], work=tmp_path / "w2", **args)
+    assert "error" not in ok2, ok2
+    # sweep 2 absent from every root: refused (sealed but absent)
+    shutil.rmtree(alt / s2[101])
+    r = lt.seal_inputs(snapshot_root=[t.snap], sweep_root=[t.sweep, alt], work=tmp_path / "w3", **args)
+    assert "absent locally" in r["error"] and any(s2[101] in a for a in r["absent"])
+
+
+def test_seal_does_not_let_a_skipped_sweep1_pass_through_the_sweep2_fallback(tmp_path):
+    t = Tree(tmp_path / "host")
+    m = t.sweep / t.sw[100] / "manifest.json"
+    m.write_text(json.dumps({**json.loads(m.read_text()), "state": "partial"}))  # sealed as is (hashes match); the scan skips it
+    seals_dir = tmp_path / "seals"
+    seals_dir.mkdir()
+    seals = t.source_seals(seals_dir)
+    spec = pinned(make_spec(), seals[0])
+    r = lt.seal_inputs(snapshot_root=[t.snap], sweep_root=[t.sweep], sample_root=[t.samp], work=tmp_path / "w", source_seals=list(seals), spec=spec)
+    assert "absent locally" in r.get("error", "") and any(t.sw[100] in a for a in r["absent"]), r

@@ -1403,6 +1403,14 @@ def _find(roots, name: str, fn: str) -> Path | None:
     return next((Path(r) / name / fn for r in roots if (Path(r) / name / fn).exists()), None)
 
 
+def _series_index(d: Path):
+    """``series_index`` from a sweep directory's manifest (None if unreadable)."""
+    try:
+        return b._manifest(Path(d) / "manifest.json").get("series_index")
+    except (OSError, ValueError):
+        return None
+
+
 def seal_inputs(*, snapshot_root, sweep_root, sample_root, work: Path, source_seals: list[Path], spec: dict | None = None, unavailable=None) -> dict:
     """The LT7 seal (design 7). Selection rule: a capture (every file the source seals name for its directory: rows, manifest and the sidecar),
     a sweep 1 or a sample is selected only if EVERY such file exists locally and is named in a source seal (LT5's capture seal, LT3's C2 sample
@@ -1539,10 +1547,20 @@ def seal_inputs(*, snapshot_root, sweep_root, sample_root, work: Path, source_se
         if k is not None and k in need_caps:
             c_ = by_slot.get(k)
             audit(d, Path(c_["dir"]) if c_ is not None and Path(c_["dir"]).name == d else None, dir_rels("snapshots", d))
+    sw_roots = b._roots(sweep_root)
     for d in b.sealed_dirs({"files": src}, "book_sweeps"):
         k = _dir_slot(d, spec)
         if k is not None and k in s7["sweeps"]:
-            audit(d, sweep_dirs.get(d), dir_rels("book_sweeps", d))
+            # a sweep 1 is audited in the directory the scan chose; any other sealed sweep of the pass (sweep 2, never opened by
+            # LT7) in the first root that holds it, as the vendored ``seal_completeness`` does (fix 2026-10-22: q0601 refused
+            # because sweep-2 directories, absent from the sweep-1 map, were all reported absent although present locally)
+            home = sweep_dirs.get(d)
+            if home is None:
+                alt = next((Path(r) / d for r in sw_roots if (Path(r) / d).is_dir()), None)
+                # only a sweep 2 may be found this way; a sweep 1 the scan skipped (e.g. incomplete) stays absent (review 2026-10-22)
+                if alt is not None and _series_index(alt) not in (None, 0):
+                    home = alt
+            audit(d, home, dir_rels("book_sweeps", d))
     if absent:
         return {"error": "a source-sealed file is absent locally in a needed slot: LT7 seal refused (restore it, or list it with --unavailable from q0600's restore report)",
                 "absent": sorted(set(absent))[:50], "n_absent": len(set(absent))}

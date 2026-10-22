@@ -627,7 +627,25 @@ table's order, one generator).
 - **Taker routes as primaries, resolution fetches as primaries:** none (round 11 section 4).
 
 ### 7.3 Census drops
-None yet. Census drops will be recorded here, with their counts, before the pin.
+**q0561 (CF5, CHW, CRW), 2026-10-22 05:30-05:35Z** on the committed seal (59b17969, sha256 fcd88926…); output
+`seals/CF5_CHW_CRW.json`, sha256 2e124285018f39da9be7ca33586232036b7e6f232442e37206023ce6c9f9e77c (host and Mac equal);
+`inputs_verified` true, 382 files checked; census days 2026-10-20/21; 8 genuinely missing slots (10-14 00:31-10:31Z in H's
+look-back, 10-21 00:31Z and 02:31Z; H origin 10-21T00:31Z missing), never imputed. Each gate was fixed in section 8 before
+the census; nothing re-tuned. **F, H and R all fail and are dropped before registration, uncounted.**
+- **F (CH184, CF5): DROPPED.** Fails only the pessimistic MDE: 1.01c > 0.5c (design MDE by family; class MDE 0.86c;
+  DE_gate 10.3 from a projected mean family cluster of 465). Passes the rest: projected idiosyncratic 104,790 / common
+  8,148 (>= 6,300 each), within corr(common, parallel) 0.046, corr with liquidity 0.020 within / 0.048 pooled, crypto share
+  of common 0.28, guard loss 0.125, permutable share 0.53 (day).
+- **H (CH181, CHW): DROPPED.** Fails projected near 1,082 (< 3,150) and far 3,329 (< 15,750), `hwm_incomplete` 0.55
+  (> 0.20), within-market SD of `d_hi` >= 1c in 0.45 of markets (< 0.50), market-strata share 0.0 (< 0.50), within
+  corr(near, s x 24 h change) undefined (NaN fails) and MDE not finite. Passes the crypto share of near units (0.08).
+- **R (CH183, CRW): DROPPED.** Fails the crossing-markets gate (0.21 of rewarded units in crossing markets, < 0.25; 904
+  markets), the pessimistic MDE (design 1.03c > 0.5c; DE_gate 11.9) and both unrewarded cells (0 projected inside and
+  outside, >= 6,300 each). Passes rewarded inside 299,177 / outside 221,183, `imb` IQR share 0.75, min-size depth present
+  0.9996, permutable share 0.94 (day). Disclosure: the zero unrewarded count may reflect the vendored `series_frame` parse,
+  which reads an empty `clob_rewards` as NaN (excluded) rather than 0.0 (LT7 census-code check must-fix 3 noted the same
+  parse); the drop does not depend on it, since the crossing and MDE gates fail on their own.
+- J (CJ) and O (CO) wait for q0562; `k_tests` is fixed after it. The F/H/R census values in the spec stay null on purpose.
 
 ## 8. Pre-registration censuses (counts only; before registration; worn pre-window data; no target read)
 
