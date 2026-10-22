@@ -451,8 +451,15 @@ def test_census_sg_counts_only_no_forbidden_files_and_write_once(sealed, tmp_pat
         census(w, ["S"], tmp_path)
     assert (w.tdir / "ACCESS_LOG.jsonl").read_text().count("q0147_cb7_census") >= 1
     with pytest.raises(cm.Refused, match="write-once"):  # item 3: another file name does not get around the first result
-        census(w, ["S"], tmp_path, name="again.json")
+        census(w, ["S"], tmp_path, name="census_again.json")
     census(w, ["S"], tmp_path / "second")  # a fresh dir: the access log left by the first run does not break the seal check
+
+
+def test_census_out_name_guard_refuses_non_census_name_and_writes_nothing(sealed, tmp_path):
+    with pytest.raises(cm.Refused, match=r"census\*\.json"):
+        census(sealed, ["S"], tmp_path, name="notrun.json")
+    assert not (tmp_path / "cb7" / "notrun.json").exists()
+    assert not list((tmp_path / "cb7").glob("*.json")) if (tmp_path / "cb7").exists() else True
 
 
 def test_census_seal_sha_mismatch_refuses_for_each_run(sealed, tmp_path):
@@ -463,7 +470,7 @@ def test_census_seal_sha_mismatch_refuses_for_each_run(sealed, tmp_path):
         host.write_bytes(orig + b" ")
         try:
             with pytest.raises(cm.Refused, match="sha256"):
-                census(w, ["S"], tmp_path, name=f"{run}.json")
+                census(w, ["S"], tmp_path, name=f"census_{run}.json")
         finally:
             host.write_bytes(orig)
     assert not list((tmp_path / "cb7").glob("*.json")) if (tmp_path / "cb7").exists() else True
@@ -488,7 +495,7 @@ def test_census_refuses_missing_host_seal_unknown_family_and_no_terminal_record(
         with pytest.raises(cm.Refused, match="no committed seal"):
             census(w, ["S"], tmp_path)
         (w.root / "h8_geo" / cm.NOT_RUN_FILE).write_text("{}")  # a recorded not-run terminal state lets the other families proceed
-        res = census(w, ["G"], tmp_path, name="notrun.json")
+        res = census(w, ["G"], tmp_path, name="census_notrun.json")
         assert res["G"] == {"status": "not_run_deadline"}
     finally:
         committed.write_bytes(keep)
@@ -570,8 +577,8 @@ def test_runner_xv_prints_refusals_and_status_line(tmp_path, capsys, monkeypatch
 
 
 def test_runner_queue_drafts_q0146_q0147_parse():
-    drafts = Path(__file__).resolve().parents[3] / "docs" / "research_lab" / "queue" / "drafts"
-    files = sorted(drafts.glob("q014[67]_*.json"))
+    q = Path(__file__).resolve().parents[3] / "docs" / "research_lab" / "queue"
+    files = sorted(f for d in ("drafts", "jobs") for f in (q / d).glob("q014[67]_*.json"))
     if len(files) < 2:
         pytest.skip("drafts not present")
     ap = script.build_parser()
@@ -638,7 +645,8 @@ def test_item1_silent_page_cap_is_refused_not_truncated(tmp_path):
 
 
 def test_item2_draft_regex_stops_on_disk_budget_and_refused():
-    f = Path(__file__).resolve().parents[3] / "docs" / "research_lab" / "queue" / "drafts" / "q0146_cb7_xv_prints_fetch.json"
+    q = Path(__file__).resolve().parents[3] / "docs" / "research_lab" / "queue"
+    f = next((q / d / "q0146_cb7_xv_prints_fetch.json" for d in ("jobs", "drafts") if (q / d / "q0146_cb7_xv_prints_fetch.json").exists()), q / "jobs" / "x")
     if not f.exists():
         pytest.skip("draft not present")
     rx = json.loads(f.read_text())["repeat"]["until_log_regex"]

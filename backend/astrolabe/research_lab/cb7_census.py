@@ -589,6 +589,8 @@ def run_census(families: list[str], *, root: Path, seals_dir: Path, cb7_dir: Pat
     out = Path(out) if out else cb7_dir / RESULT_NAME
     if out.resolve().parent != cb7_dir.resolve():
         raise Refused(f"--out {out} is outside {cb7_dir}; the census is written only there")
+    if not (out.name.startswith("census") and out.name.endswith(".json")):
+        raise Refused(f"--out {out.name} must be named census*.json, so the write-once check sees it")
     if out.exists() or (cb7_dir.exists() and any(cb7_dir.glob("census*.json"))):
         raise Refused(f"a census result already exists in {cb7_dir}; the census is write-once")
     if "X" in fams:  # readiness before any S / G read, so a tempfail leaves no ACCESS_LOG entry
