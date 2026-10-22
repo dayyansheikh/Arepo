@@ -327,7 +327,8 @@ def _in_band(mid, spread, rewards_max_spread_cents, band) -> np.ndarray:
     inside = (mid >= band[0] - 1e-12) & (mid <= band[1] + 1e-12)
     with np.errstate(invalid="ignore"):
         ok = (sp * 100.0 <= rms + 1e-9)
-    return np.where(~inside, 0.0, np.where(np.isfinite(rms), ok.astype(float), np.nan))
+    known = np.isfinite(rms) & np.isfinite(sp)  # a missing field OR a missing spread inside the band is NaN, never 0
+    return np.where(~inside, 0.0, np.where(known, ok.astype(float), np.nan))
 
 
 def _mid12(store: MidStore | None, k: int, markets) -> np.ndarray:
@@ -923,6 +924,12 @@ def unit_overlaps(frames: dict) -> dict:
     return out
 
 
+def _larger_pos_corr(c1: dict, c2: dict) -> float:
+    """``max over both of max(0, r)``: the F-MDE form is ``sqrt(2 / (1 - max(0, r)))``, so the larger signed correlation is the pessimistic one."""
+    vals = [c["within"] for c in (c1, c2) if c.get("within") is not None and np.isfinite(c["within"])]
+    return float(max(max(0.0, v) for v in vals)) if vals else float("nan")
+
+
 def _larger_abs_corr(c1: dict, c2: dict) -> float:
     """The within-market correlation of larger magnitude of two candidate origin definitions (the pessimistic one for an F-feasibility cap)."""
     vals = [c["within"] for c in (c1, c2) if c.get("within") is not None and np.isfinite(c["within"])]
@@ -1194,10 +1201,11 @@ def census_ch192(U: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_d
     arm_pop = pop[np.isfinite(pop["zivr_lag"])].copy()
     corr_lag = b.wcorr(arm_pop, "ivr", "ivr_lag")
     corr_lag_g = b.wcorr(arm_pop, "ivr_g", "ivr_lag")  # the origin spread as Gamma's field, the lag's definition
-    r_w = _larger_abs_corr(corr_lag, corr_lag_g)  # gate on the larger |r| of the two origin definitions (census-code check should-fix)
+    r_w = _larger_abs_corr(corr_lag, corr_lag_g)  # the GATE uses the larger |r| of the two origin definitions (census-code check should-fix)
+    r_f = _larger_pos_corr(corr_lag, corr_lag_g)  # the F-MDE uses the larger SIGNED r: max over both of max(0, r), so it stays pessimistic
     agree = float((np.abs(U["spread"] - U["spread_g"]) < 1e-9).mean())
     arm = contrast_ss(arm_pop[b._eff(arm_pop)], ["zivr", "zivr_lag"], CONTROLS_192, "zivr", "zivr_lag") if len(arm_pop) else {"n": 0, "ss_contrast": float("nan")}
-    fm = f_mde(sm["mde_tercile_c"], r_w, a, design_ss=arm["ss_contrast"], scale=scale, sd=a[g["sd"]], de_gate=de["DE_gate"], gap=gap)
+    fm = f_mde(sm["mde_tercile_c"], r_f, a, design_ss=arm["ss_contrast"], scale=scale, sd=a[g["sd"]], de_gate=de["DE_gate"], gap=gap)
     ri = resid_iqr(pop, "ivr", ["log_rv24s", "log_rv7d"], int(g["resid_iqr_min_units"]), g["resid_iqr_min"])
     corr_rv = b.wcorr(pop, "zivr", "z_log_rv24s")
     cl = b.wcorr(pop, "zivr", "log1p_liq")
@@ -1207,7 +1215,7 @@ def census_ch192(U: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_d
     projected = float(len(U) * scale)
     res = {"units": len(U), "projected_units_21d": projected, "rv_floor_share": floor_share, "exclude_family": excl, "top_family_share": top,
            "zivr": {"centre": c, "scale": s, "terciles": [t1, t2], "tercile_gap": gap}, "design_effect": de, "slope": sm, "arm": arm, "arm_units": len(arm_pop),
-           "arm_share": len(arm_pop) / len(pop) if len(pop) else float("nan"), "F": fm, "resid_iqr": ri, "corr_zivr_log_rv24": corr_rv, "corr_liq": cl, "corr_lag": corr_lag, "corr_lag_gamma_origin_spread": corr_lag_g, "r_w_used": r_w,
+           "arm_share": len(arm_pop) / len(pop) if len(pop) else float("nan"), "F": fm, "resid_iqr": ri, "corr_zivr_log_rv24": corr_rv, "corr_liq": cl, "corr_lag": corr_lag, "corr_lag_gamma_origin_spread": corr_lag_g, "r_w_used": r_w, "r_f_used": r_f,
            "origin_spread_definitions_agree_share": agree, "rv7d_floor_share": float(U["rv7d_floor"].mean()), "t_sum_used": a["t_sum"],
            "projected_units_21d_after_family_exclusion": float(len(pop) * scale), "rewarded_share_by_zivr_tercile": _share_by_tercile(pop, "zivr", "rewarded"),
            "liquidity_tiers_top_zivr_share": _tier_shares(pop, "", "zivr"), "block_min_units": bm, "block_share": bs, "events": _events(pop, scale, covered_days), "splits": _desc_splits(tot), "per_market": _per_market(pop["market_id"]),
@@ -1337,13 +1345,29 @@ def _sample_rels(sid: str) -> list[str]:
     return [f"data-dumps/research_lab/trade_samples/{sid}/{fn}" for fn in SAMPLE_FILES]
 
 
+DESIGN_TEXT_SHA256 = "840f4500cde37158f57f6cf6bf54a3535ee5b24f3e5dedfd9240b315eeb52899"  # LIVE_TESTS_7.md at the design-text freeze
+DESIGN_PATH = ROOT / "docs" / "research_lab" / "LIVE_TESTS_7.md"
+SPEC_HASHED_BLOCKS = ("census_gates", "census_inputs", "tests", "move", "eligibility", "grid", "crypto_classifier", "sports_rule", "series_key_rule")
+
+
 def spec_blocks_sha(spec: dict) -> str:
-    """sha256 of the canonical JSON of the spec's ``census_gates`` and ``census_inputs`` blocks. The seal stores it; every census refuses a
-    spec whose blocks differ from the seal-time ones (census-code check must-fix 2). ``census_fixed`` is deliberately outside the hash."""
+    """sha256 of the canonical JSON of every spec block census code reads (``SPEC_HASHED_BLOCKS``: census_gates, census_inputs, tests, move,
+    eligibility, grid, crypto_classifier, sports_rule, series_key_rule). The seal stores it; every census refuses a spec whose blocks differ
+    from the seal-time ones (must-fix 2 and its follow-up). ``census_fixed`` is deliberately outside the hash."""
     import hashlib
 
-    blob = json.dumps({"census_gates": spec["census_gates"], "census_inputs": spec["census_inputs"]}, sort_keys=True, separators=(",", ":"), default=str)
+    blob = json.dumps({k_: spec[k_] for k_ in SPEC_HASHED_BLOCKS}, sort_keys=True, separators=(",", ":"), default=str)
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()
+
+
+def design_text_sha() -> str:
+    """sha256 of ``docs/research_lab/LIVE_TESTS_7.md`` itself (computed, never copied from the spec)."""
+    return sha256_file(DESIGN_PATH)
+
+
+def design_text_error() -> dict | None:
+    got = design_text_sha()
+    return None if got == DESIGN_TEXT_SHA256 else {"error": "LIVE_TESTS_7.md differs from the text-frozen file: refused", "design_text_sha256": got, "frozen": DESIGN_TEXT_SHA256}
 
 
 def load_unavailable(items) -> set[str]:
@@ -1382,6 +1406,8 @@ def seal_inputs(*, snapshot_root, sweep_root, sample_root, work: Path, source_se
     ``unavailable_used``. A slot with nothing sealed is genuinely missing (counted per census, never substituted). Hashes bytes only; parses no
     rows (the sample and capture manifests are read for the slot assignment); nothing at or after the bound is hashed."""
     spec = spec or load_spec(sha=None)
+    if (derr := design_text_error()):
+        return derr
     unavail = load_unavailable(unavailable) if not isinstance(unavailable, set) else unavailable
     src, samples, shas = _src_hashes(list(source_seals))
     ss = spec["census_inputs"].get("source_seals") or {}
@@ -1395,7 +1421,7 @@ def seal_inputs(*, snapshot_root, sweep_root, sample_root, work: Path, source_se
         return {"error": "no source seal given is the file named by census_inputs.source_seals.captures: LT7 seal refused", "captures": cap_rel, "given": shas}
     if pin not in named.values():
         return {"error": "the source seal census_inputs.source_seals.captures does not have the pinned lt5_capture_seal_sha256: LT7 seal refused", "pinned": pin, "given": named}
-    snap_roots, sweep_roots, smp_roots = b._roots(snapshot_root), b._roots(sweep_root), b._roots(sample_root)
+    smp_roots = b._roots(sample_root)
     by_slot, sweeps = b._scan(Path(work), snapshot_root, sweep_root, spec)
     bound = epoch(spec["census_inputs"]["refuse_at_or_after_utc"])
     sha_cache: dict[str, str] = {}
@@ -1415,13 +1441,15 @@ def seal_inputs(*, snapshot_root, sweep_root, sample_root, work: Path, source_se
         pre = f"data-dumps/research_lab/{sub}/{name}/"
         return sorted(r for r in src if r.startswith(pre))
 
-    def audit(sub: str, name: str, roots, rels: list[str]) -> None:
-        """Every source-sealed file of directory ``name`` must exist in some root, unless the restore report lists it as unavailable."""
+    def audit(name: str, chosen: Path | None, rels: list[str]) -> None:
+        """Every source-sealed file of directory ``name`` must exist in the directory the scan CHOSE (``chosen``: the one the census would open),
+        unless the restore report lists it as unavailable. A directory split across roots (rows in one, the sidecar in another) is therefore
+        refused here, not quietly counted missing; no chosen directory means every file is absent."""
         for rel in rels:
             if rel in unavail:
                 unavail_used.append(rel)
                 bad_dirs.add(name)
-            elif _find(roots, name, rel.rsplit("/", 1)[1]) is None:
+            elif chosen is None or not (Path(chosen) / rel.rsplit("/", 1)[1]).exists():
                 absent.append(rel)
 
     def check(rels: list[tuple[str, Path]]) -> tuple[bool, dict, list, list]:
@@ -1451,6 +1479,7 @@ def seal_inputs(*, snapshot_root, sweep_root, sample_root, work: Path, source_se
             out.setdefault(rel, d / rel.rsplit("/", 1)[1])
         return sorted(out.items())
 
+    sweep_dirs = {Path(v["dir"]).name: Path(v["dir"]) for v in sweeps.values()}
     first, last = _span(spec)
     src_sweep_slots = {k for k in (_dir_slot(d, spec) for d in b.sealed_dirs({"files": src}, "book_sweeps")) if k is not None and first <= k <= last}
     # --- sweeps: which passes have a selectable sweep 1 (a dry check; only the needed ones are committed below)
@@ -1478,8 +1507,8 @@ def seal_inputs(*, snapshot_root, sweep_root, sample_root, work: Path, source_se
         if sid[:8] not in days:
             continue
         rels = _sample_rels(sid)
-        audit("trade_samples", sid, smp_roots, rels)
         sdir = next((r / sid for r in smp_roots if (r / sid / "trades.csv.gz").exists()), None)
+        audit(sid, sdir, rels)
         if sdir is None or sid in bad_dirs:
             not_sel.append({"sample": sid, "reason": "absent locally or listed unavailable by the restore report"})
             continue
@@ -1501,11 +1530,12 @@ def seal_inputs(*, snapshot_root, sweep_root, sample_root, work: Path, source_se
     for d in b.sealed_dirs({"files": src}, "snapshots"):
         k = _dir_slot(d, spec)
         if k is not None and k in need_caps:
-            audit("snapshots", d, snap_roots, dir_rels("snapshots", d))
+            c_ = by_slot.get(k)
+            audit(d, Path(c_["dir"]) if c_ is not None and Path(c_["dir"]).name == d else None, dir_rels("snapshots", d))
     for d in b.sealed_dirs({"files": src}, "book_sweeps"):
         k = _dir_slot(d, spec)
         if k is not None and k in s7["sweeps"]:
-            audit("book_sweeps", d, sweep_roots, dir_rels("book_sweeps", d))
+            audit(d, sweep_dirs.get(d), dir_rels("book_sweeps", d))
     if absent:
         return {"error": "a source-sealed file is absent locally in a needed slot: LT7 seal refused (restore it, or list it with --unavailable from q0600's restore report)",
                 "absent": sorted(set(absent))[:50], "n_absent": len(set(absent))}
@@ -1543,7 +1573,7 @@ def seal_inputs(*, snapshot_root, sweep_root, sample_root, work: Path, source_se
         "CS7_sweeps": [iso(b.slot_time(k, spec)) for k in sorted(s7["sweeps"]) if k not in sel_sweeps],
         "CV7_samples": [s for s in samples if s[:8] in days and s not in used_samples]}
     return {"purpose": "LT7 census inputs (LIVE_TESTS_7.md section 7): exactly the files the censuses open, each named in a source seal with an equal sha256; counts-only use",
-            "written_utc": iso(b.now_ts()), "spec_sha256": sha256_file(SPEC_PATH), "design_text_sha256": spec.get("design_text_sha256"), "spec_blocks_sha256": spec_blocks_sha(spec),
+            "written_utc": iso(b.now_ts()), "spec_sha256": sha256_file(SPEC_PATH), "design_text_sha256": design_text_sha(), "spec_blocks_sha256": spec_blocks_sha(spec),
             "source_seals": shas, "span": spec["census_inputs"]["cc7_span"],
             "refuse_at_or_after_utc": spec["census_inputs"]["refuse_at_or_after_utc"], "slots": slots, "samples": used_samples,
             "sample_slots": {sid: iso(b.slot_time(k, spec)) for sid, k in sample_slot.items()},
@@ -1576,6 +1606,8 @@ def _fee_counts(ser: pd.DataFrame, acc: dict) -> None:
 
 def _load_for_census(seal: Path, snapshot_root, sweep_root, work: Path, spec: dict):
     seal_d = json.loads(Path(seal).read_text())
+    if (derr := design_text_error()) or seal_d.get("design_text_sha256") != DESIGN_TEXT_SHA256:
+        return seal_d, None, None, derr or {"error": "the seal was written against a different LIVE_TESTS_7.md: census refused", "seal_design_text_sha256": seal_d.get("design_text_sha256")}
     viol = bound_violations(seal_d, spec)
     if viol:
         return seal_d, None, None, {"error": "sealed bound violated: census refused", "bad": viol, "n_bad": len(viol)}
@@ -1911,9 +1943,12 @@ def census_volsem(*, seal: Path, sample_roots: list[Path], snapshot_root=SNAPSHO
     return _gate_min_days(res, "gate_CH193_semantic", covered_days, mind)
 
 
+RN_COMMON_THRESHOLD = 0.05  # orchestrator pre-declaration (before any count): "common" = share above 5% on either census day
+
+
 def rewards_null_share(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, work: Path, spec: dict | None = None, verify: bool = True) -> dict:
-    """Counts-only null-share check of the sealed sidecars (census-code check must-fix 3): reads ONLY ``market_id``, ``clob_rewards``,
-    ``rewards_max_spread`` and ``rewards_min_size`` of every sealed ``rows_ext.csv.gz`` (no price, no outcome, no target) and prints, per field,
+    """Counts-only null-share check of the sealed sidecars (census-code check must-fix 3): reads ONLY the sidecar columns (``EXT_COLS``) of
+    every sealed ``rows_ext.csv.gz`` (no price, no outcome, no target; the category columns are there to apply the non-sports ex-crypto rule) and prints, per field,
     the share that is null, the share of ``clob_rewards`` that is the empty list ``[]`` (parsed 0.0 by the named parser: not rewarded) and the
     share that parses to a zero rate. A CSV-empty cell reads as null, so a null ``clob_rewards`` is what the censuses EXCLUDE (a unit with no
     reward status): if nulls are common, CH197 and CH192 silently shrink to a rewarded subset and the question goes to the challenger BEFORE
@@ -1936,11 +1971,15 @@ def rewards_null_share(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, work: Path, s
     tot = {"rows": 0, "clob_null": 0, "clob_empty_list": 0, "clob_nonempty": 0, "clob_nonempty_zero_rate": 0, "max_spread_null": 0, "max_spread_zero": 0, "min_size_null": 0}
     per_day: dict[str, dict] = {}
     for _k, c, pth in todo:
-        e = pd.read_csv(pth, usecols=lambda col: col in {"market_id", "clob_rewards", "rewards_max_spread", "rewards_min_size"}, dtype=str)
-        for col in ("clob_rewards", "rewards_max_spread", "rewards_min_size"):
+        e = pd.read_csv(pth, usecols=lambda col: col in set(EXT_COLS), dtype=str)  # sidecar columns only (EXT_COLS holds no price)
+        for col in EXT_COLS:
             if col not in e:
                 e[col] = None
         e = e.drop_duplicates("market_id")
+        # the pre-declared "common" rule counts the sealed market-captures that are non-sports AND ex-crypto (the primaries' category rule)
+        cat = b.category_cols(e.set_index("market_id"), e["market_id"].astype(str), e["market_id"].astype(str), spec)
+        keep = np.array([s_ == 0 and crypto_class(f_, True, int(s_)) == "non_crypto" for s_, f_ in zip(cat["sports"], e["fee_category"].where(e["fee_category"].notna(), None), strict=True)], bool)
+        e = e[keep].reset_index(drop=True)
         cr = e["clob_rewards"]
         isnull = cr.isna()
         empty = cr.fillna("").str.strip().eq("[]")
@@ -1955,11 +1994,18 @@ def rewards_null_share(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, work: Path, s
                 tgt[key_] += v
     n = tot["rows"]
     sh = lambda x: (x / n if n else float("nan"))  # noqa: E731
-    return {"sidecars": len(todo), "captures_without_sealed_sidecar": len(by_slot) - len(todo), "inputs_verified": bool(verify), "totals": tot,
+    thr = RN_COMMON_THRESHOLD
+    day_common = {}
+    for d, v in per_day.items():
+        r_ = v["rows"]
+        day_common[d] = bool(r_ > 0 and ((v["clob_null"] + v["clob_empty_list"]) / r_ > thr or v["max_spread_null"] / r_ > thr))
+    common = bool(any(day_common.values()))
+    return {"common": common, "common_rule": f"the empty-or-null share of clob_rewards OR the null share of rewards_max_spread exceeds {thr} of sealed non-sports ex-crypto market-captures on either census day",
+            "common_by_day": day_common, "sidecars": len(todo), "captures_without_sealed_sidecar": len(by_slot) - len(todo), "inputs_verified": bool(verify), "totals": tot,
             "shares": {"clob_rewards_null": sh(tot["clob_null"]), "clob_rewards_empty_list": sh(tot["clob_empty_list"]), "clob_rewards_nonempty": sh(tot["clob_nonempty"]),
                        "clob_rewards_nonempty_zero_rate": sh(tot["clob_nonempty_zero_rate"]), "rewards_max_spread_null": sh(tot["max_spread_null"]),
                        "rewards_max_spread_zero": sh(tot["max_spread_zero"]), "rewards_min_size_null": sh(tot["min_size_null"])},
-            "per_day": {d: {**v, "clob_null_share": v["clob_null"] / v["rows"] if v["rows"] else float("nan"), "clob_empty_list_share": v["clob_empty_list"] / v["rows"] if v["rows"] else float("nan")}
+            "per_day": {d: {**v, "clob_empty_or_null_share": (v["clob_null"] + v["clob_empty_list"]) / v["rows"] if v["rows"] else float("nan"), "clob_null_share": v["clob_null"] / v["rows"] if v["rows"] else float("nan"), "clob_empty_list_share": v["clob_empty_list"] / v["rows"] if v["rows"] else float("nan")}
                         for d, v in sorted(per_day.items())},
             "note": "null clob_rewards = no reward status = EXCLUDED by CH197 / CH192 (1.5); '[]' parses to 0.0 = not rewarded. If nulls are common, ask the challenger before CC7 / CS7."}
 

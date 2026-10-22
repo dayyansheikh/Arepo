@@ -436,3 +436,19 @@ def test_events_two_day_formula_and_descriptives_present():
     uf["skey"] = np.where(np.arange(len(uf)) % 10 < 5, "big", uf["skey"])
     rf = lt.census_ch195(uf, tot, SPEC, SCALE, COV)
     assert rf["projected_units_21d_after_family_exclusion"] < rf["projected_units_21d"]
+
+
+def test_in_band_is_nan_when_the_spread_is_missing_and_the_field_is_finite():
+    band = SPEC["tests"]["CH197"]["reward_band"]
+    r = lt._in_band([0.5, 0.5, 0.95], [np.nan, 0.02, np.nan], [3.5, 3.5, 3.5], band)
+    assert np.isnan(r[0]) and r[1] == 1.0 and r[2] == 0.0  # NaN spread inside the band: counted, never 0; outside the band: 0
+
+
+def test_ch192_f_mde_uses_the_larger_signed_correlation():
+    assert lt._larger_pos_corr({"within": -0.9}, {"within": -0.5}) == 0.0
+    assert lt._larger_pos_corr({"within": -0.9}, {"within": 0.3}) == 0.3
+    assert lt._larger_pos_corr({"within": 0.2}, {"within": 0.6}) == 0.6
+    assert lt._larger_abs_corr({"within": -0.9}, {"within": 0.3}) == -0.9  # the gate stays on the larger |r|
+    U, tot = pop192()
+    r = lt.census_ch192(U, tot, SPEC, SCALE, 2.75)
+    assert r["r_f_used"] == lt._larger_pos_corr(r["corr_lag"], r["corr_lag_gamma_origin_spread"]) and r["F"]["r_w"] == r["r_f_used"]

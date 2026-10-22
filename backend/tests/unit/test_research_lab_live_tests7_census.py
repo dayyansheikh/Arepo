@@ -723,7 +723,16 @@ def test_queue_drafts_match_the_runner_and_the_resource_rules():
     assert len(globs) == 6 and all("/snapshots/2026101" in g and not g.startswith("data-dumps/research_lab/book_sweeps") for g in globs)
     assert {g.rsplit("/", 1)[1] for g in globs} == {"rows.csv.gz", "rows_ext.csv.gz", "manifest.json"} and {g.split("/")[3][:8] for g in globs} == {"20261018", "20261019"}
     assert "sweeps are never deleted" in drafts["q0600"]["notes"] and "D+10" in drafts["q0600"]["notes"]
-    assert not any("8 days" in d["notes"] for d in drafts.values())
+    assert not any("8 days" in d["notes"] for k_, d in drafts.items() if k_ != "q0600")
+    # follow-ups 5 and 6: pre-declared q0601b rule, deadlines under both retention settings, no in-band request
+    n_b, a_b = drafts["q0601b"]["notes"], drafts["q0601b"]["next_action"]
+    assert "exceeds 5%" in n_b and "EITHER census day" in n_b and "`common`" in n_b and "challenger ruling" in n_b
+    assert "in the band" not in a_b and "inside the band" not in a_b and "common" in a_b
+    n0, a0 = drafts["q0600"]["notes"], drafts["q0600"]["next_action"]
+    for s_ in ("2026-10-26T03:30Z", "2026-10-28T03:30Z", "2026-10-30T03:30Z", "8 days", "10 days"):
+        assert s_ in a0 or s_ in n0
+    assert "host and add one" not in a0 and "2026-10-26 03:30Z" not in a0
+    assert "2026-10-26T03:30Z" in drafts["q0602"]["notes"] and "2026-10-30T03:30Z" in drafts["q0602"]["notes"]
 
 
 # --- census-code check fixes ---------------------------------------------------------------------------------------------------------------------
@@ -798,7 +807,11 @@ def test_rewards_null_share_counts_only(world, tmp_path):
     assert "error" not in r and r["sidecars"] > 100 and r["captures_without_sealed_sidecar"] == 0
     s = r["shares"]
     # the tree gives every even market a programme and every odd market '[]'; nothing is null
-    assert s["clob_rewards_null"] == 0.0 and s["clob_rewards_empty_list"] == pytest.approx(0.5) and s["clob_rewards_nonempty"] == pytest.approx(0.5)
+    # the denominator is the non-sports ex-crypto market-captures only (the pre-declared category rule), not every sidecar row
+    assert 0 < r["totals"]["rows"] < r["sidecars"] * N_MKT
+    assert s["clob_rewards_null"] == 0.0 and s["clob_rewards_empty_list"] == pytest.approx(0.5, abs=0.1) and s["clob_rewards_nonempty"] == pytest.approx(0.5, abs=0.1)
+    # half the markets are '[]' (empty): the pre-declared rule (empty-or-null above 5% on either day) fires
+    assert r["common"] is True and set(r["common_by_day"].values()) == {True}
     assert s["clob_rewards_nonempty_zero_rate"] == 0.0 and s["rewards_max_spread_null"] == 0.0 and s["rewards_min_size_null"] == 0.0
     assert r["per_day"] and all(v["clob_null_share"] == 0.0 for v in r["per_day"].values())
     # nulls (a CSV-empty cell) are counted as null; tampering is refused
@@ -817,7 +830,9 @@ def test_rewards_null_share_counts_only(world, tmp_path):
     sp = tmp_path / "nseal.json"
     sp.write_text(json.dumps(seal))
     r2 = lt.rewards_null_share(seal=sp, snapshot_root=[tt.snap], work=tmp_path / "w2", spec=spec)
-    assert r2["shares"]["clob_rewards_null"] == pytest.approx(10 / N_MKT) and r2["shares"]["rewards_max_spread_null"] == pytest.approx(5 / N_MKT)
+    n2 = r2["totals"]["rows"]
+    assert n2 > 0 and r2["shares"]["clob_rewards_null"] == pytest.approx(r2["totals"]["clob_null"] / n2) and r2["totals"]["max_spread_null"] > 0
+    assert r2["shares"]["rewards_max_spread_null"] == pytest.approx(r2["totals"]["max_spread_null"] / n2)
     p = tt.snap / tt.cid[95] / "rows_ext.csv.gz"
     p.write_bytes(p.read_bytes() + b"\x00")
     assert "input identity" in lt.rewards_null_share(seal=sp, snapshot_root=[tt.snap], work=tmp_path / "w3", spec=spec)["error"]
@@ -834,8 +849,9 @@ def test_rewards_null_share_reads_only_the_reward_columns(world, tmp_path, monke
 
     monkeypatch.setattr(pd, "read_csv", spy)
     lt.rewards_null_share(seal=world["seal_path"], snapshot_root=[world["tree"].snap], work=tmp_path / "w", spec=world["spec"])
-    cols = ["market_id", "clob_rewards", "rewards_max_spread", "rewards_min_size", "fee_type", "fee_category", "order_price_min_tick_size", "series_slugs", "created_at", "bid"]
-    assert seen and all(callable(u) and {c for c in cols if u(c)} == {"market_id", "clob_rewards", "rewards_max_spread", "rewards_min_size"} for u in seen)
+    cols = [*lt.EXT_COLS, "bid", "ask", "mid", "last_trade_price", "outcome_prices", "resolved_outcome", "volume24hr", "spread"]
+    # sidecar columns only (EXT_COLS, which hold no price / outcome / target)
+    assert seen and all(callable(u) and {c for c in cols if u(c)} == set(lt.EXT_COLS) for u in seen)
 
 
 def test_patient_and_ivr_units_exclude_a_missing_reward_spread_inside_the_band_and_count_it():
@@ -904,3 +920,75 @@ def test_runner_new_options(tmp_path, monkeypatch):
     out = json.loads((tmp_path / "r.json").read_text())
     spec = lt.load_spec(sha=None)
     assert out["spec_sha256"] == spec["_sha256"] and out["design_text_sha256"] == "840f4500cde37158f57f6cf6bf54a3535ee5b24f3e5dedfd9240b315eeb52899" and out["sidecars"] == 1
+
+
+# --- verification follow-ups ----------------------------------------------------------------------------------------------------------------
+
+
+def test_spec_blocks_hash_covers_every_block_census_code_reads_and_design_text_is_computed(world, tmp_path):
+    spec = world["spec"]
+    assert set(lt.SPEC_HASHED_BLOCKS) == {"census_gates", "census_inputs", "tests", "move", "eligibility", "grid", "crypto_classifier", "sports_rule", "series_key_rule"}
+    base = lt.spec_blocks_sha(spec)
+    for blk in lt.SPEC_HASHED_BLOCKS:
+        s2 = copy.deepcopy(spec)
+        s2[blk] = {"changed": 1}
+        assert lt.spec_blocks_sha(s2) != base, blk
+    s3 = copy.deepcopy(spec)
+    s3["census_fixed"] = {"x": 1}
+    assert lt.spec_blocks_sha(s3) == base  # census_fixed stays outside
+    t = world["tree"]
+    g = copy.deepcopy(spec)
+    g["tests"]["CH197"]["reward_band"] = [0.0, 1.0]
+    assert "differ from those at seal time" in lt.census_captures(seal=world["seal_path"], snapshot_root=[t.snap], work=tmp_path / "wt", spec=g)["error"]
+    # the design hash is computed from the file, not read from the spec; a differing file refuses the seal and every census
+    assert lt.design_text_sha() == lt.DESIGN_TEXT_SHA256 == world["seal"]["design_text_sha256"]
+    spec_lie = copy.deepcopy(spec)
+    spec_lie["design_text_sha256"] = "0" * 64
+    assert world["seal"]["design_text_sha256"] == lt.design_text_sha()  # the spec's copy never enters the seal
+    orig = lt.DESIGN_PATH
+    fake = tmp_path / "LIVE_TESTS_7.md"
+    fake.write_text("edited")
+    try:
+        lt.DESIGN_PATH = fake
+        assert "differs from the text-frozen" in lt.census_captures(seal=world["seal_path"], snapshot_root=[t.snap], work=tmp_path / "wd", spec=spec)["error"]
+        assert "differs from the text-frozen" in lt.seal_inputs(**_seal_args(world, tmp_path / "sd"))["error"]
+    finally:
+        lt.DESIGN_PATH = orig
+
+
+def test_seal_refuses_a_capture_split_across_roots(tmp_path):
+    base = tmp_path / "a"
+    t = Tree(base / "host", slots=range(0, SPAN_LAST + 1))
+    seals_dir = base / "seals"
+    seals_dir.mkdir()
+    seals = t.source_seals(seals_dir)
+    other = base / "other" / "snapshots"
+    (other / t.cid[50]).mkdir(parents=True)
+    shutil.move(str(t.snap / t.cid[50] / "rows_ext.csv.gz"), str(other / t.cid[50] / "rows_ext.csv.gz"))  # rows in one root, the sidecar in another
+    spec = pinned(make_spec(), seals[0])
+    r = lt.seal_inputs(snapshot_root=[t.snap, other], sweep_root=[t.sweep], sample_root=[t.samp], work=base / "w", source_seals=list(seals), spec=spec)
+    assert "absent locally" in r["error"] and any(x.endswith(f"{t.cid[50]}/rows_ext.csv.gz") for x in r["absent"])
+
+
+def test_rewards_null_share_common_flag_follows_the_predeclared_rule(tmp_path):
+    def run(share_null, tag):
+        tt = Tree(tmp_path / tag, slots=range(90, 100), sweep_slots=[], sample_slots=[])
+        for k in range(90, 100):
+            p = tt.snap / tt.cid[k] / "rows_ext.csv.gz"
+            e = pd.read_csv(p, dtype=str)
+            e["clob_rewards"] = "[{\"rewardsDailyRate\": 5}]"  # no empties: only the injected nulls count
+            e["rewards_max_spread"] = "3.5"
+            n_null = int(len(e) * share_null)
+            e.loc[e.index[:n_null], "rewards_max_spread"] = np.nan
+            e.to_csv(p, index=False, compression="gzip")
+        sd = tmp_path / (tag + "s")
+        sd.mkdir()
+        seals = tt.source_seals(sd)
+        spec = pinned(make_spec(), seals[0])
+        seal = lt.seal_inputs(snapshot_root=[tt.snap], sweep_root=[tt.sweep], sample_root=[tt.samp], work=tmp_path / (tag + "w"), source_seals=list(seals), spec=spec)
+        sp = tmp_path / (tag + ".json")
+        sp.write_text(json.dumps(seal))
+        return lt.rewards_null_share(seal=sp, snapshot_root=[tt.snap], work=tmp_path / (tag + "w2"), spec=spec)
+
+    assert run(0.0, "none")["common"] is False
+    assert run(0.5, "half")["common"] is True

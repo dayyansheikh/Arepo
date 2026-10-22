@@ -153,7 +153,7 @@ def main(argv: list[str] | None = None) -> int:
         res = lt.census_sweeps(seal=args.seal, snapshot_root=args.snapshot_root or [lt.SNAPSHOT_ROOT], sweep_root=args.sweep_root or [lt.SWEEP_ROOT], work=args.work)
     spec = lt.load_spec(sha=None)
     res["code_sha256"] = lt.code_hashes()
-    res["spec_sha256"], res["design_text_sha256"] = spec["_sha256"], spec.get("design_text_sha256")
+    res["spec_sha256"], res["design_text_sha256"] = spec["_sha256"], lt.design_text_sha()
     res["seal_file"] = {"path": str(args.seal), "sha256": lt.sha256_file(args.seal), "commit": commit}
     if not args.keep_work:
         lt.cleanup_census(args.work)
