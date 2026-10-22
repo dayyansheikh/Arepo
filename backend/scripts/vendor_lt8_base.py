@@ -6,7 +6,7 @@ phase 1 (the seal and the counts-only censuses) uses (LIVE_TESTS_8.md 8.1, R1 mu
 Sources (LIVE_TESTS_8.md 8.1: "vendor from the LT7 census code that wrote LT7's seal"): ``live_tests7_base.py`` (which already holds
 unmodified, prefix-free copies of the LT3/LT4/LT5 functions; each name's original source file and hash is carried in ``VENDORED``
 as ``origin``) and ``live_tests7.py`` (the LT7 helpers). The script REFUSES unless the raw sha256 of both sources equals the hashes
-that LT7's own seal recorded as ``code_sha256`` (232c22fb... and 2e8baa90..., LIVE_TESTS_8.md 8.1), so a drifted LT7 file is never
+that LT7's own seal recorded as ``code_sha256`` (2ee6a659... and 2e8baa90..., LIVE_TESTS_8.md 8.1), so a drifted LT7 file is never
 vendored. The only change to a copied source is the removal of the module prefix (``b.`` for ``live_tests7.py``, the alias of its
 vendored base; nothing for ``live_tests7_base.py``, which is flat). Provenance per name: the source file, the source file's sha256
 at copy time, the prefix regex and the sha256 of the prefix-normalised function source; ``test_research_lab_live_tests8.py``
@@ -27,16 +27,15 @@ import ast
 import hashlib
 import json
 import re
-import subprocess
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parents[1] / "astrolabe" / "research_lab"
 OUT = HERE / "live_tests8_base.py"
 SOURCE_PINS = {
-    "live_tests7.py": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902",
+    "live_tests7.py": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27",
     "live_tests7_base.py": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20",
 }
-SOURCE_COMMIT = "c6e57a64"  # holds both pinned blobs; live_tests7.py moved later (reward-null fix, 2ee6a659...) but 8.1 keeps vendoring from these hashes
+SOURCE_COMMIT = "41a0bb4e"  # the chore commit holding both pinned blobs (LT7 reward-null fix merged); recorded in VENDORED as source_commit
 PREFIX = {"live_tests7_base.py": r"(?!)", "live_tests7.py": r"\bb\."}  # (?!) never matches: the base is flat
 
 PICK = {
@@ -53,7 +52,7 @@ PICK = {
         "_norm_cat", "crypto_class", "crypto_failsafe", "slot_in_day", "MidStore", "rv_from_matrix", "floored_rv", "_non_sports_ex_crypto", "_hte",
         "_own24", "_in_band", "exact_t_sum", "mde_common", "block_min_units", "block_share", "resid_iqr", "iqr_ok", "terciles", "standardise", "_de",
         "_gate_min_days", "_fam", "_per_market", "_events", "_tier_shares", "_share_by_tercile", "unit_overlaps", "_z", "_desc_splits",
-        "pair_correlations", "_merge_counts", "_fee_counts", "load_unavailable", "_dir_slot", "sealed_sweep_slots", "_movers_join", "_common_cols",
+        "pair_correlations", "_merge_counts", "_fee_counts", "load_unavailable", "_dir_slot", "sealed_sweep_slots", "_movers_join", "_common_cols", "rewarded_x_in_band",
         "_anatomy", "_base_out", "_utc_day", "_mid12",
     ],
 }
@@ -63,7 +62,7 @@ HEADER = '''# ruff: noqa: E501, F401
 
 Unmodified copies of the LT3/LT4/LT5/LT7 reader, census and analysis functions that LT8 uses (LIVE_TESTS_8.md 8.1; LT7 R1 must-fix
 10 and LT8 R1 must-fix 5), so that later LT3-LT7 maintenance cannot void LT8 lines. Sources: ``live_tests7_base.py`` and
-``live_tests7.py`` at the hashes LT7's seal recorded (232c22fb... / 2e8baa90...). The only change to each copy is the removal of the
+``live_tests7.py`` at the hashes LT7's seal recorded (2ee6a659... / 2e8baa90... at 41a0bb4e). The only change to each copy is the removal of the
 module prefix (``b.`` for the ``live_tests7.py`` sources). ``VENDORED`` records, per name, the source file, its sha256 at copy time,
 the prefix regex and the sha256 of the prefix-normalised source (and, for names that ``live_tests7_base.py`` itself vendored, the
 original LT3/LT4/LT5 file and hash as ``origin``); ``tests/unit/test_research_lab_live_tests8.py`` re-checks them. No LT8 module
@@ -109,17 +108,29 @@ def normalised_sha(src: str, prefix: str) -> str:
     return hashlib.sha256(re.sub(prefix, "", src).encode("utf-8")).hexdigest()
 
 
+def census_output_check() -> None:
+    """LIVE_TESTS_8.md 8.1: LT8 vendors from the hash LT7's censuses actually ran on. If LT7's census outputs (CC7* / CS7* / CV7* .json in
+    data-dumps/research_lab/live_tests7_census/, when present) record another live_tests7.py / live_tests7_base.py hash, refuse."""
+    d = HERE.parents[2] / "data-dumps" / "research_lab" / "live_tests7_census"
+    if not d.exists():
+        return
+    for pat in ("CC7*.json", "CS7*.json", "CV7*.json"):
+        for f in sorted(d.glob(pat)):
+            try:
+                ch = json.loads(f.read_text()).get("code_sha256") or {}
+            except (OSError, ValueError, AttributeError):
+                continue
+            for name, want in SOURCE_PINS.items():
+                if ch.get(name) and ch[name] != want:
+                    raise SystemExit(f"refusing: LT7 census output {f.name} ran on {name} {ch[name]}, not {want}; re-vendor from that hash first (LIVE_TESTS_8.md 8.1)")
+
+
 def main() -> None:
+    census_output_check()
     texts, fshas = {}, {}
     for fname, want in SOURCE_PINS.items():
         raw = (HERE / fname).read_bytes()
         got = hashlib.sha256(raw).hexdigest()
-        if got != want:  # LT7 moved on (reward-null fix): take the pinned blob from the commit whose files LT7's seal recorded
-            try:
-                raw = subprocess.run(["git", "-C", str(HERE), "show", f"{SOURCE_COMMIT}:backend/astrolabe/research_lab/{fname}"], capture_output=True, check=True).stdout
-                got = hashlib.sha256(raw).hexdigest()
-            except (subprocess.SubprocessError, OSError):
-                pass
         if got != want:
             raise SystemExit(f"refusing: {fname} sha256 {got} != the hash LT7's seal recorded {want} (LIVE_TESTS_8.md 8.1); nothing vendored")
         texts[fname], fshas[fname] = raw.decode("utf-8"), got
@@ -142,7 +153,7 @@ def main() -> None:
                 raise SystemExit(f"duplicate vendored name {name} ({prov[name]['source']} and {fname})")
             src = ast.get_source_segment(text, nodes[name])
             parts.append("\n\n" + re.sub(PREFIX[fname], "", src) + "\n")
-            prov[name] = {"source": fname, "source_sha256": fshas[fname], "prefix": PREFIX[fname], "normalised_sha256": normalised_sha(src, PREFIX[fname])}
+            prov[name] = {"source": fname, "source_sha256": fshas[fname], "prefix": PREFIX[fname], "normalised_sha256": normalised_sha(src, PREFIX[fname]), "source_commit": SOURCE_COMMIT}
             if fname == "live_tests7_base.py" and name in origin:
                 prov[name]["origin"] = {"source": origin[name]["source"], "source_sha256": origin[name]["source_sha256"], "normalised_sha256": origin[name]["normalised_sha256"]}
     parts.append("\n\nVENDORED = " + json.dumps(prov, indent=1, sort_keys=True) + "\n")

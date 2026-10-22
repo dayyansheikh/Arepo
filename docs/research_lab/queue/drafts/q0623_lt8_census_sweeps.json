@@ -9,8 +9,8 @@
   "restore tree live_tests8_census/restore (read-only)"
  ],
  "resources": {
-  "mem_mb": 1200,
-  "as_cap_mb": 3600,
+  "mem_mb": 2000,
+  "as_cap_mb": 6000,
   "cpu": 1,
   "lane": "cpu",
   "network": "none",
@@ -45,5 +45,5 @@
   "data-dumps/research_lab/live_tests8_census/CS8.json (counts only; the work dir is cleaned up at exit)"
  ],
  "next_action": "commit the census JSON and its sha256 (seals/), fill the census-fixed spec values (census_fixed.*, k_tests) and record any drop in LIVE_TESTS_8.md 6.3 and the ledger; q0624 (size check, phase 2) follows only after the census values are committed so k is fixed first",
- "notes": "mem_mb 1200 is the design's ESTIMATE (a 13-slot mid store, 3 series frames and 3 sweep frames, the quiet covered in-band units of CH203 held as one frame, about 0.5-1 million rows before the cap in the worst case); as_cap_mb 3600; to be MEASURED by a host dry run before promotion. Exits 75 above 40 GiB. The F pairs are not under the per-sweep-block rule; their per-block split is printed. The reward rule is the LT8 one (an empty clob_rewards is unrewarded; malformed text excluded and counted). DRAFT, not in queue/jobs (LIVE_TESTS_8.md text-frozen, sha256 5e61c20b...; code phase 1 only: the reader, backfill-series, analysis, size check and RSS probe are phase 2). Promote only after the science-reviewer code-freeze check of the census code against LIVE_TESTS_8.md sections 1.8, 1.8.1 and 7 and the committed LT8 seal. Counts 0 (descriptive; no trials line). Reads the DRAFT spec unpinned; code_sha256 of the hashed modules is written into the output. Every gate threshold is stated in LIVE_TESTS_8.md section 7 before this runs; nothing is re-tuned after it. Memory-heavy-jobs rule: exclusive; never while an LT5/LT6/LT7 census or size-check job runs (q0620 depends_on q0604_lt7_census_sweeps, or its recorded drop: remove that dependency by hand only if the ledger records LT7's drop). Each census runs once; no re-run, only a deterministic crash gets max_retries 1 (no output written)."
+ "notes": "mem_mb 2000 (check fix 9: 1,200 was likely low; LT7's q0604 asked >= 2,000 MB; still an ESTIMATE, one exclusive job) (a 13-slot mid store, 3 series frames and 3 sweep frames, the quiet covered in-band units of CH203 held as one frame, about 0.5-1 million rows before the cap in the worst case); as_cap_mb 6000; to be MEASURED by a host dry run before promotion. Exits 75 above 40 GiB. The F pairs are not under the per-sweep-block rule; their per-block split is printed. The reward rule is the LT8 one (an empty clob_rewards is unrewarded; malformed text excluded and counted). DRAFT, not in queue/jobs (LIVE_TESTS_8.md text-frozen, sha256 5e61c20b...; code phase 1 only: the reader, backfill-series, analysis, size check and RSS probe are phase 2). Promote only after the science-reviewer code-freeze check of the census code against LIVE_TESTS_8.md sections 1.8, 1.8.1 and 7 and the committed LT8 seal. Counts 0 (descriptive; no trials line). Reads the DRAFT spec unpinned; code_sha256 of the hashed modules is written into the output. Every gate threshold is stated in LIVE_TESTS_8.md section 7 before this runs; nothing is re-tuned after it. Memory-heavy-jobs rule: exclusive; never while an LT5/LT6/LT7 census or size-check job runs (q0620 depends_on q0604_lt7_census_sweeps, or its recorded drop: remove that dependency by hand only if the ledger records LT7's drop). Each census runs once; no re-run, only a deterministic crash gets max_retries 1 (no output written)."
 }

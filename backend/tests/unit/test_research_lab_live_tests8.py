@@ -88,7 +88,7 @@ def test_vendor_script_refuses_other_hashes(tmp_path, monkeypatch):
     spec = importlib.util.spec_from_file_location("vendor_lt8", HERE.parents[1] / "scripts" / "vendor_lt8_base.py")
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
-    assert mod.SOURCE_PINS["live_tests7.py"].startswith("232c22fb") and mod.SOURCE_PINS["live_tests7_base.py"].startswith("2e8baa90")
+    assert mod.SOURCE_PINS["live_tests7.py"].startswith("2ee6a659") and mod.SOURCE_PINS["live_tests7_base.py"].startswith("2e8baa90")
     monkeypatch.setattr(mod, "SOURCE_PINS", {**mod.SOURCE_PINS, "live_tests7_base.py": "0" * 64})
     monkeypatch.setattr(mod, "OUT", tmp_path / "out.py")
     with pytest.raises(SystemExit, match="refusing"):
@@ -125,7 +125,13 @@ def test_rewards_controls_unrewarded_is_zero_and_malformed_is_nan():
                       "mid": [0.5] * 6, "rew_maxspread": [np.nan, np.nan, 3.5, 3.5, 3.5, np.nan]})
     r = lt._rewards(j, np.full(6, 0.02), [0.1, 0.9])
     assert np.allclose(r["rewarded"][[0, 1, 2, 5]], [0, 0, 1, 0]) and np.isnan(r["rewarded"][[3, 4]]).all()
-    assert np.allclose(r["in_band"][[0, 1, 2, 5]], [0, 0, 1, 0]) and np.isnan(r["in_band"][[3, 4]]).all()
+    # in_band is LT7 CH197's MECHANICAL definition for every market (LT7 13.6): an unrewarded market with no rewards_max_spread and the mid inside the band is NaN
+    assert np.allclose(r["in_band"][[2]], [1]) and np.isnan(r["in_band"][[0, 1, 3, 4, 5]]).all()
+    j2 = j.assign(rew_maxspread=3.5, mid=[0.5, 0.5, 0.5, 0.5, 0.5, 0.95])
+    r2 = lt._rewards(j2, np.full(6, 0.02), [0.1, 0.9])
+    assert np.allclose(r2["in_band"][[0, 1, 2, 5]], [1, 1, 1, 0]) and r2["rewarded"][0] == 0.0  # unrewarded AND in band: the cell the 0-override would have erased
+    assert np.allclose(r2["in_band"], np.where(np.isnan(r2["rewarded"]), np.nan, r2["in_band"]), equal_nan=True)
+    assert lt._rewards(j2.assign(spread_x=0), np.full(6, 0.05), [0.1, 0.9])["in_band"][0] == 0.0  # spread 5c > 3.5c
     ft = lt._ft_both(r["rewarded"], [10, 10, 20, 1, 1, 1], [10, 10, 21, 1, 1, 1], [20] * 6, 1.05)
     assert ft[0] == 0.0 and ft[1] == 0.0 and ft[2] == 1.0 and np.isnan(ft[3])
     ft2 = lt._ft_both(np.array([1.0]), [30.0], [10.0], [20.0], 1.05)
@@ -180,7 +186,7 @@ def write_capture(root: Path, k: int) -> str:
                      "chg_1h": 0.0 if m % 3 else np.nan, "chg_1d": 0.01, "chg_1w": 0.0, "liquidity": 2e5 + 1000.0 * m, "volume24hr": (1000.0 + 20.0 * k) if m % 2 == 0 else np.nan,
                      "end_date": (G0 + timedelta(days=60 + m % 5)).strftime("%Y-%m-%dT%H:%M:%SZ"), "clob_token_id_0": f"tok{m}", "neg_risk": "False"})
         exts.append({"market_id": str(100 + m), "fee_type": mt["fee_type"], "fee_category": mt["fee_category"], "fees_enabled": "1", "fee_schedule": "", "order_price_min_tick_size": "0.01",
-                     "created_at": _iso(G0 - timedelta(days=30)), "series_slugs": "", "rewards_min_size": "20", "rewards_max_spread": "3.5" if m % 3 == 0 else "", "clob_rewards": _clob(m)})
+                     "created_at": _iso(G0 - timedelta(days=30)), "series_slugs": "", "rewards_min_size": "20", "rewards_max_spread": "3.5", "clob_rewards": _clob(m)})
     pd.DataFrame(rows).to_csv(d / "rows.csv.gz", index=False, compression="gzip")
     pd.DataFrame(exts).to_csv(d / "rows_ext.csv.gz", index=False, compression="gzip")
     (d / "manifest.json").write_text(json.dumps({"capture_id": cid, "state": "complete", "started_utc": _iso(start)}))
@@ -388,7 +394,7 @@ def test_write_once_series_and_atomic(world, tmp_path):
     assert b.write_once_csv(p, pd.DataFrame({"a": [1]})) is False and p.read_bytes() == first
     ser = b.read_series(w, cap["id"])
     assert {"n_members", "rew_state", "rew_rate", "fee_cat", "crypto7", "liq"} <= set(ser.columns)
-    assert ser.loc["107", "rew_state"] == "malformed" and np.isnan(ser.loc["107", "rew_rate"])  # market 7
+    assert ser.loc["107", "rew_state"] == "malformed" and ser.loc["107", "rew_reason"] == "json" and np.isnan(ser.loc["107", "rew_rate"])  # market 7
     assert ser.loc["101", "rew_state"] == "unset" and ser.loc["101", "rew_rate"] == 0.0  # the empty clob_rewards is unrewarded, not NaN
     assert ser.loc["102", "rew_state"] == "empty_list" and ser.loc["103", "rew_state"] == "rewarded"
     assert ser.loc["100", "n_members"] == 4 and ser.loc["145", "n_members"] == 20 and ser.loc["136", "n_members"] == 1  # event sizes; the big event is a ladder
@@ -432,10 +438,10 @@ def test_lag_sweep_returns_only_the_two_depths_and_reads_only_declared_columns(w
 
 def _ser(rows: list[dict]) -> pd.DataFrame:
     base = {"event_id": "e", "t_row": 1000.0, "spread": 0.02, "ltp": 0.5, "vol24": 100.0, "end_ts": np.nan, "created_ts": np.nan, "chg_1h": 0.0, "chg_1d": 0.0, "chg_1w": 0.0, "neg_risk": 0,
-            "sports": 0, "crypto": 0, "skey": "s", "tick": 0.01, "fee_rate": 0.0, "fee_exp": 1.0, "liq": 1e5, "n_members": 1.0, "rew_rate": 0.0, "rew_state": "unset", "rew_min": 20.0,
-            "rew_maxspread": np.nan, "fee_cat": "Politics", "crypto7": "non_crypto"}
+            "sports": 0, "crypto": 0, "skey": "s", "tick": 0.01, "fee_rate": 0.0, "fee_exp": 1.0, "liq": 1e5, "n_members": 1.0, "rew_rate": 0.0, "rew_state": "unset", "rew_reason": "", "rew_min": 20.0,
+            "rew_maxspread": 3.5, "fee_cat": "Politics", "crypto7": "non_crypto"}
     d = pd.DataFrame([{**base, **r} for r in rows])
-    return d.set_index(d["market_id"].astype(str), drop=False).drop(columns=[]).rename_axis("market_id") if False else d.set_index("market_id")
+    return d.set_index("market_id")
 
 
 def _sw(rows: list[dict]) -> pd.DataFrame:
@@ -465,10 +471,10 @@ def test_quiet_condition_edges_and_sweep_receipt_rule():
     q, cnt = lt.quiet_units(ser_k, ser_p, ser_k2=ser_k, rw_k=pd.Series({"A": "", "B": "", "C": ""}), rw_k2=pd.Series({"A": "", "B": "", "C": "h"}), store=store, sw_k2=sw2, sw_k1=sw1,
                             lv_k2=None, lv_k1=None, cap=CAP, k=13, spec=spec)
     assert cnt["sweep_after_origin"] == 1 and cnt["quiet_covered_in_band"] == 1  # only A: B moved 0.005 (not < 0.005), C's sweep k-1 arrived after the origin
-    assert list(q["market_id"]) == ["A"] and q.loc[0, "dimb5"] == pytest.approx(0.0 - (100 - 100) / 200 + (100 - 100) / 200 - ((100 - 80) / 180 - 0)) if False else True
+    assert list(q["market_id"]) == ["A"]
     # imbalance innovation: imb5_{k-1} = 0 (100/100), imb5_{k-2} = (80-100)/180
     assert q.loc[0, "dimb5"] == pytest.approx(0.0 - (80 - 100) / 180)
-    assert q.loc[0, "rw_changed"] == 0.0 and q.loc[0, "rewarded"] == 0.0 and q.loc[0, "ft_both"] == 0.0 and q.loc[0, "in_band"] == 0.0
+    assert q.loc[0, "rw_changed"] == 0.0 and q.loc[0, "rewarded"] == 0.0 and q.loc[0, "ft_both"] == 0.0 and q.loc[0, "in_band"] == 1.0
 
 
 def test_quiet_unit_band_cap_and_missing_controls():
@@ -609,10 +615,18 @@ def test_design_se_matches_ols_when_events_are_singletons_and_inflates_with_clus
     X = b.demean(df, ["x", "c"], "market_id", "t_row", "expanding").dropna()
     A = np.column_stack([np.ones(len(X)), X[["x", "c"]].to_numpy()])
     assert se1 == pytest.approx(math.sqrt(np.linalg.inv(A.T @ A)[1, 1]), rel=1e-9)  # singleton events at scale 1: the working covariance is the identity
-    # events of 4 markets with a shared regressor component: the same census, projected x6, is larger per unit than the iid projection
-    df2 = df.assign(event_id=(df["market_id"].str[1:].astype(int) // 4).astype(str))
-    assert lt.design_se(df2, ["x"], ["c"], {"x": 1.0}, 0.02, 6.0) > lt.design_se(df, ["x"], ["c"], {"x": 1.0}, 0.02, 6.0) * 0.9
-    assert lt.design_se(df.iloc[:5], ["x"], ["c"], {"x": 1.0}, 0.02, 1.0) != lt.design_se(df.iloc[:5], ["x"], ["c"], {"x": 1.0}, 0.02, 1.0)  # NaN for too few rows
+    # events of 4 markets that share a regressor component per time step: the working covariance inflates the SE, and more so when the census is projected
+    ev = (df["market_id"].str[1:].astype(int) // 4).astype(str)
+    comp = pd.Series(rng.normal(size=ev.nunique() * n_t), index=pd.MultiIndex.from_product([sorted(ev.unique()), range(n_t)])).to_dict()
+    tt = (df["t_row"] / 7200.0).astype(int)
+    df2 = df.assign(event_id=ev, x=[comp[(e, ti)] + 0.3 * r for e, ti, r in zip(ev, tt, rng.normal(size=len(df)), strict=True)])
+    iid = df2.assign(event_id=np.arange(len(df2)).astype(str))
+    s_iid = lt.design_se(iid, ["x"], ["c"], {"x": 1.0}, 0.02, 1.0)
+    s_cl = lt.design_se(df2, ["x"], ["c"], {"x": 1.0}, 0.02, 1.0)
+    s_cl6 = lt.design_se(df2, ["x"], ["c"], {"x": 1.0}, 0.02, 6.0)
+    assert s_cl > 1.05 * s_iid  # clustered regressors: the within-event equicorrelation inflates the SE
+    assert s_cl6 > s_cl / math.sqrt(6.0) * 1.2  # projecting with events recurring does not shrink it like 1/sqrt(scale)
+    assert math.isnan(lt.design_se(df.iloc[:5], ["x"], ["c"], {"x": 1.0}, 0.02, 1.0))  # too few rows: NaN, the gate fails
 
 
 def test_ops_stats_reads_no_price_column(tmp_path):
@@ -668,7 +682,6 @@ def test_census_captures_end_to_end_and_refusals(world):
     assert c["scheduled_markets"] > 0 and c["eligible"] > 0 and set(c["gate_CH204"]) >= {"lookback_coverage", "scheduled_per_capture", "hot_units", "events", "cap_share", "venue_clock", "category", "corr_rv24", "corr_liq", "block_share", "class_mde", "pass"}
     assert c["gate_CH204"]["pass"] is False  # tiny panel: the count gates fail
     assert c["lookback_coverage"] > 0.8 and 0 < c["venue_clock_top_share"] <= 1
-    assert not (w["tmp"] / "work_cc" / "series").exists() or True
     # tampering: the same census on a modified capture file is refused (L3)
     cid = w["host"]["cids"][90]
     with open(w["host"]["snap"] / cid / "rows.csv.gz", "ab") as fh:
@@ -744,6 +757,9 @@ def test_census_sweeps_end_to_end_and_lag_loader_guard(world, tmp_path):
         mp.undo()
     assert "error" not in res2
     assert sorted(set(calls)) == sorted({w["host"]["sws"][j] for k in pairs for j in (k + 5, k + 6)}) and len(calls) == 2 * len(pairs)
+    org = lt.origins_cs8(set(range(N_SLOT)), set(SWEEP_SLOTS))
+    full_ok = {w["host"]["sws"][j] for k in org["CH203"] for j in (k - 2, k - 1)} | {w["host"]["sws"][k - 1] for k in org["CH202"]}
+    assert full_reads and set(full_reads) <= full_ok  # the full sweep loader only ever opens the k-2 / k-1 sweeps of an origin
     # res2 equals res on every number (the censuses are deterministic and read nothing else of the lag slots)
     assert res2["CH203"]["pairs"] == c3["pairs"] and res2["CH203"]["F"] == c3["F"]
 
@@ -756,3 +772,152 @@ def test_add_lag_uses_only_the_two_depths_and_the_end_margin():
     out = lt.add_lag(Q, lag5, lag6, spec)
     assert out.loc[0, "dimb5_lag"] == pytest.approx(0.5) and np.isnan(out.loc[1, "dimb5_lag"]) and np.isnan(out.loc[2, "dimb5_lag"])  # B ends within 13 h; C has a zero depth at k + 5
     assert lt.add_lag(Q, None, lag6, spec)["dimb5_lag"].isna().all()
+
+
+# --- check fixes 1-8 -----------------------------------------------------------------------------------------------------------------------------
+
+
+def test_census_refuses_a_sealed_directory_deleted_after_the_seal(world):
+    import shutil
+    w = world
+    seal = seal_and_commit(w, w["tmp"])
+    shutil.rmtree(w["host"]["snap"] / w["host"]["cids"][88])  # retention at 03:30Z between q0621 and q0622
+    r = lt.census_captures(seal=seal, snapshot_root=[w["host"]["snap"]], work=w["tmp"] / "wa", spec=w["spec"])
+    assert "absent or differs" in r["error"] and r["bad"][0]["slot"] == 88
+    shutil.rmtree(w["host"]["swp"] / w["host"]["sws"][50])
+    r = lt.census_sweeps(seal=seal, snapshot_root=[w["host"]["snap"]], sweep_root=[w["host"]["swp"]], work=w["tmp"] / "wb", spec=w["spec"])
+    assert "absent or differs" in r["error"] and any(x["error"].startswith("sealed sweep") for x in r["bad"])
+
+
+def test_absent_sealed_unit_level_and_other_directory_for_the_slot(world):
+    w = world
+    seal = json.loads(seal_and_commit(w, w["tmp"]).read_text())
+    by_slot, sweeps = lt._seal_scan8(seal, [w["host"]["snap"]], [w["host"]["swp"]], w["tmp"] / "ws", w["spec"])
+    assert lt.absent_sealed(seal, by_slot, sweeps, w["spec"]) is None
+    other = {**by_slot, 30: {**by_slot[30], "id": "someone_else"}}
+    assert "differs" in lt.absent_sealed(seal, other, sweeps, w["spec"])["bad"][0]["error"]
+    assert lt.absent_sealed(seal, {k: v for k, v in by_slot.items() if k != 30}, sweeps, w["spec"])["n_bad"] == 1
+
+
+def test_seal_refuses_a_split_directory(world):
+    import shutil
+    host = world["host"]
+    cid = host["cids"][12]
+    part = world["tmp"] / "part"
+    (part / cid).mkdir(parents=True)
+    shutil.move(str(host["snap"] / cid / "rows_ext.csv.gz"), str(part / cid / "rows_ext.csv.gz"))  # rows here, sidecar there: no root holds the whole directory
+    r = lt.seal_inputs(snapshot_root=[host["snap"], part], sweep_root=[host["swp"]], work=world["tmp"] / "w", spec=world["spec"])
+    assert "absent" in r["error"] and r["n_absent"] == 3
+
+
+def test_coverage_is_computed_as_written_without_tight_and_the_tight_variant_is_printed():
+    spec = lt.load_spec(sha=None)
+    ids = ["A", "T"]  # T: a sweep with a 0.12 spread (not tight), otherwise covered
+    ser = _ser([{"market_id": m, "bid": 0.49, "ask": 0.51} for m in ids])
+    sw = _sw([{"market_id": "A", "sbid": 0.49, "sask": 0.51}, {"market_id": "T", "sbid": 0.44, "sask": 0.56}])
+    store = _store_with({s: dict.fromkeys(ids, 0.5) for s in range(0, 14)})
+    q, cnt = lt.quiet_units(ser, ser, ser, pd.Series(dict.fromkeys(ids, "")), pd.Series(dict.fromkeys(ids, "")), store, sw, sw, None, None, CAP, 13, spec)
+    assert cnt["eligible_in_band"] == 2 and cnt["covered_notight_in_band"] == 2 and cnt["covered_in_band"] == 1 and list(q["market_id"]) == ["A"]
+    assert cnt["covered_struct_notight_in_band"] == 2 and cnt["covered_struct_in_band"] == 1
+    Q = pd.concat([q.assign(market_id="A"), q.assign(market_id="B")], ignore_index=True)
+    out = lt.census_ch203(Q, {k: v * 1 for k, v in cnt.items() if isinstance(v, int)}, spec, 1.0, 1.0, 1.0, {"A": 99, "B": 99, "other": 0})
+    assert out["sweep_coverage"] == 1.0 and out["tight_variant"]["coverage"] == 0.5 and "rewarded_x_in_band" in out
+
+
+def test_count_gates_are_measured_before_the_family_exclusion():
+    spec = lt.load_spec(sha=None)
+    rng = np.random.default_rng(3)
+    n = 4000
+    U = pd.DataFrame({"market_id": [f"m{i % 200}" for i in range(n)], "event_id": [f"e{i % 100}" for i in range(n)], "skey": ["fam"] * (n // 2) + [f"o{i}" for i in range(n // 2)],
+                      "t_row": np.tile(np.arange(20) * 7200.0, n // 20), "day": "d", "slot": 0, "klass": np.where(np.arange(n) % 2 == 0, "held", "fresh"), "n_members": 4.0})
+    for c_ in lt.CONTROLS_202 + ["log_abs_x", "d24", "sx_chg1h", "chg1h_missing", "d24_flag", "liq", "held", "log1p_liq", "a_parallel", "a_traded"]:
+        U[c_] = rng.normal(size=n) if c_ not in ("held", "chg1h_missing", "d24_flag") else 0.0
+    U["held"] = (U["klass"] == "held").astype(float)
+    U["ltp_missing"] = 0.0
+    U["early_share"], U["cls"], U["tick"], U["x_ticks"], U["lag_g"] = rng.random(n), "traded", 0.01, 1.0, 6.0
+    U["log1p_liq"] = rng.normal(size=n)
+    tot = {"movers_in_band": n, "covered": n, "held": n // 2, "fresh": n // 2, "chg1h_present": n}
+    out = lt.census_ch202(U, tot, spec, 100.0, 3.0, {"A": 99, "B": 99, "other": 0})
+    assert out["exclude_family"] == "fam" and out["projected_units_21d_after_family_exclusion"] < out["projected_contrasted_units_21d"]
+    # between the post- and the pre-exclusion projection: the gate (>= 201,600) follows the PRE-exclusion value
+    spec2 = copy.deepcopy(spec)
+    spec2["census_gates"]["CS8_CH202"]["units_projected_min"] = (out["projected_units_21d_after_family_exclusion"] + out["projected_contrasted_units_21d"]) / 2
+    assert lt.census_ch202(U, tot, spec2, 100.0, 3.0, {"A": 99, "B": 99, "other": 0})["gate_CH202"]["units"] is True
+
+
+def test_correlation_gates_use_the_larger_of_zero_filled_and_present_values():
+    rng = np.random.default_rng(5)
+    n = 600
+    pop = pd.DataFrame({"market_id": np.repeat([f"m{i}" for i in range(20)], 30), "t_row": np.tile(np.arange(30) * 7200.0, 20)})
+    pop["a"] = rng.normal(size=n)
+    present = rng.random(n) < 0.2  # 80% missing, zero-filled: the zero-filled correlation is diluted toward 0
+    pop["miss"] = (~present).astype(float)
+    pop["col"] = np.where(present, pop["a"] * 0.9 + rng.normal(size=n) * 0.2, 0.0)
+    c = lt.corr_pair(pop, "a", "col", "miss")
+    assert abs(c["zero_filled"]["within"]) < 0.5 < abs(c["present"]["within"])
+    assert lt.corr_pair_ok(c, 0.5) is False  # the diluted value alone would have passed
+    assert lt.corr_pair_ok({"zero_filled": c["present"], "present": c["present"]}, 0.99) is True
+
+
+def test_reward_missing_column_is_nan_and_malformed_reasons_are_split(tmp_path):
+    spec = lt.load_spec(sha=None)
+    d = tmp_path / "cap"
+    d.mkdir()
+    pd.DataFrame({"market_id": ["1", "2"], "fee_type": ["x", "x"], "fee_category": ["Politics", "Politics"], "rewards_min_size": ["20", "20"]}).to_csv(d / "rows_ext.csv.gz", index=False, compression="gzip")
+    ext = lt.load_ext8(d)
+    assert ext.attrs["has_clob_rewards"] is False
+    rows = pd.DataFrame({"market_id": ["1", "2"], "condition_id": ["a", "b"], "event_id": ["e", "e"], "received_utc": [_iso(G0)] * 2, "closed": "False", "active": "True", "binary": 1,
+                         "best_bid": 0.4, "best_ask": 0.5, "spread": 0.1, "last_trade_price": 0.45, "chg_1h": 0.0, "chg_1d": 0.0, "chg_1w": 0.0, "volume24hr": 1.0, "end_date": _iso(G0 + timedelta(days=9)),
+                         "neg_risk": "False", "liquidity": 1.0})
+    rows["t_row"], rows["n_members"], rows["ekey"] = 1.0, 2.0, "e"
+    ser = lt.series8_frame(rows, ext, spec, "2026-10-12")
+    assert (ser["rew_state"] == "no_column").all() and ser["rew_rate"].isna().all()
+    reasons = {v: lt.reward_detail(v)[2] for v in ("{bad", "5", "[1]", '[{"rewardsDailyRate": "x"}]')}
+    assert reasons == {"{bad": "json", "5": "not_list", "[1]": "alloc_not_dict", '[{"rewardsDailyRate": "x"}]': "rate_bad"}
+    assert lt.reward_detail("[]") == (0.0, "empty_list", "") and lt.reward_detail(None) == (0.0, "unset", "")
+
+
+def test_category_gate_is_before_the_cap_and_persistence_is_the_share_still_scheduled():
+    spec = lt.load_spec(sha=None)
+    rows = []
+    for k in (100, 112):  # two origins 12 apart; markets 0-9 scheduled at both; markets 10-19 only at k = 100
+        for m in range(20):
+            if k == 112 and m >= 10:
+                continue
+            rows.append({"market_id": f"m{m}", "event_id": f"e{m}", "skey": f"f{m}", "slot": k, "day": "d" if k == 100 else "e", "t_row": k * 7200.0, "n_members": 4.0 if m < 5 else 11.0,
+                         "fee_cat": "Politics" if m < 5 else "Weather", "s_star": float(m % 4), "sc_hot": float(m % 2), "sc_conc": 0.5, "log_rv24s": 0.1 * m, "log1p_liq": 1.0 + 0.1 * m})
+    S = pd.DataFrame(rows)
+    for c_ in [*lt.CONTROLS_204, "vol24", "ltp_missing"]:
+        if c_ not in S:
+            S[c_] = np.random.default_rng(1).normal(size=len(S))
+    S["vol_missing"] = 0.0
+    out = lt.census_ch204(S, {"eligible": 40, "lookback_covered": 30}, spec, 1.0, 1.0, 2, [100, 112])
+    assert out["category_top_share"] == pytest.approx(20 / 30)  # Weather: 15 + 5 of the 30 scheduled rows, counted before the cap
+    assert out["category_basis"].endswith("before the member cap")
+    cap_only = S[S["n_members"] <= 10]["fee_cat"].value_counts(normalize=True).iloc[0]
+    assert cap_only == 1.0 and out["category_top_share"] < 1.0  # after the cap only Politics would remain
+    assert out["still_scheduled_12_origins_later"] == pytest.approx(0.5)  # 10 of the 20 markets scheduled at k = 100 are scheduled again at 112
+    assert out["still_scheduled_same_s_star_12_origins_later"] == pytest.approx(0.5)
+
+
+def test_lt7_census_outputs_with_another_source_hash_refuse_the_seal(world, tmp_path, monkeypatch):
+    d = tmp_path / "lt7c"
+    d.mkdir()
+    monkeypatch.setattr(lt, "LT7_CENSUS_DIR", d)
+    assert lt.lt7_census_hash_error() is None
+    seal = seal_and_commit(world, world["tmp"])  # sealed while LT7's outputs still agree
+    want = {v["source"]: v["source_sha256"] for v in b.VENDORED.values()}
+    (d / "CC7.json").write_text(json.dumps({"code_sha256": dict(want)}))
+    (d / "lt7_census_inputs.json").write_text(json.dumps({"code_sha256": {"live_tests7.py": "0" * 64}}))  # the seal output is not a census output
+    assert lt.lt7_census_hash_error() is None
+    (d / "CS7.json").write_text(json.dumps({"code_sha256": {**want, "live_tests7.py": "232c22fb" + "0" * 56}}))
+    err = lt.lt7_census_hash_error()
+    assert "re-vendor" in err["error"] and err["bad"][0]["file"] == "CS7.json"
+    assert "re-vendor" in do_seal(world)["error"]
+    assert "re-vendor" in lt.census_captures(seal=seal, snapshot_root=[world["host"]["snap"]], work=tmp_path / "wc", spec=world["spec"])["error"]
+
+
+def test_vendored_records_commit_and_current_lt7_hashes():
+    assert {v.get("source_commit") for v in b.VENDORED.values()} == {"41a0bb4e"}
+    srcs = {v["source"]: v["source_sha256"] for v in b.VENDORED.values()}
+    assert srcs["live_tests7.py"].startswith("2ee6a659") and srcs["live_tests7_base.py"].startswith("2e8baa90")

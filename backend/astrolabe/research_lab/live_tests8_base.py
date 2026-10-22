@@ -3,7 +3,7 @@
 
 Unmodified copies of the LT3/LT4/LT5/LT7 reader, census and analysis functions that LT8 uses (LIVE_TESTS_8.md 8.1; LT7 R1 must-fix
 10 and LT8 R1 must-fix 5), so that later LT3-LT7 maintenance cannot void LT8 lines. Sources: ``live_tests7_base.py`` and
-``live_tests7.py`` at the hashes LT7's seal recorded (232c22fb... / 2e8baa90...). The only change to each copy is the removal of the
+``live_tests7.py`` at the hashes LT7's seal recorded (2ee6a659... / 2e8baa90... at 41a0bb4e). The only change to each copy is the removal of the
 module prefix (``b.`` for the ``live_tests7.py`` sources). ``VENDORED`` records, per name, the source file, its sha256 at copy time,
 the prefix regex and the sha256 of the prefix-normalised source (and, for names that ``live_tests7_base.py`` itself vendored, the
 original LT3/LT4/LT5 file and hash as ``origin``); ``tests/unit/test_research_lab_live_tests8.py`` re-checks them. No LT8 module
@@ -788,7 +788,7 @@ def block_fl_gate(df: pd.DataFrame, y: np.ndarray, term: str, controls: list[str
             "markets_shifted": len(plan)}
 
 
-# --- from live_tests7.py (sha256 232c22fb4c3b40e1...) ----------------------------------------
+# --- from live_tests7.py (sha256 2ee6a6592890732d...) ----------------------------------------
 
 
 def _norm_cat(v) -> str | None:
@@ -1175,6 +1175,14 @@ def _common_cols(u: pd.DataFrame) -> pd.DataFrame:
     return u
 
 
+def rewarded_x_in_band(U: pd.DataFrame) -> dict:
+    """Counts of the four ``rewarded x in_band`` cells of a unit frame (ruling 13.6 point 8; descriptive only)."""
+    if U.empty or "rewarded" not in U or "in_band" not in U:
+        return {}
+    r, i = U["rewarded"].to_numpy(float), U["in_band"].to_numpy(float)
+    return {f"rewarded{int(a)}_in_band{int(c)}": int(((r == a) & (i == c)).sum()) for a in (0, 1) for c in (0, 1)}
+
+
 def _anatomy(u: pd.DataFrame) -> pd.DataFrame:
     """Anatomy dummies of 1.4 (traded, parallel, one_sided, spread_change; same-side-unequal the base)."""
     u = u.copy()
@@ -1206,7 +1214,8 @@ VENDORED = {
   "normalised_sha256": "db5634a5d2ef82051709166a920edaf8b933452d7a13e57179e6f2b7cb92bf60",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "State": {
   "normalised_sha256": "44e892da55e91f6988de500b3451f72665f492a55f7b0f25203a62ea07e67d33",
@@ -1217,25 +1226,29 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "_anatomy": {
   "normalised_sha256": "7e1799e3533e1e838f96c4c3386596d7708da77637ac69da90eb843e8bb10cf1",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "_base_out": {
   "normalised_sha256": "ed9c3ccfbf263c3a9ed34beb8c6832397735de8556d298bedb567e364ff95220",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "_common_cols": {
   "normalised_sha256": "e513764a8f08b8ea9de4c7ad9c668128709d062220b93c4502c6a6cbdce05447",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "_day": {
   "normalised_sha256": "193ce8fc116bfcf52669421c18fd7a25628ce7c4ce47b34c24eea8d22e13c98e",
@@ -1246,6 +1259,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "_days_of": {
@@ -1257,25 +1271,29 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "_de": {
   "normalised_sha256": "25f31cbc00c104f1d6db1a42342943cedd677f5f2cf90a9c24173d0c2d5c804e",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "_desc_splits": {
   "normalised_sha256": "5f761a74da57ae1c9353fe5be4c6b5922f56b05154fe7994af90ad2fdcdf1ebf",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "_dir_slot": {
   "normalised_sha256": "e42915d500ad978282fc5c2aa630ba1d4e5f0d704e0640a4a36433cbd36e6d88",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "_eff": {
   "normalised_sha256": "4f6f7a9aa9ba7aa18f3b4eed645ae4e81e4a2487b8262025218d235b080ac9f3",
@@ -1286,19 +1304,22 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "_events": {
   "normalised_sha256": "94613e69a3e13acdeba491e4d0c7bdabf183c2ffb22443af56effb0ed4cfdb2b",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "_fam": {
   "normalised_sha256": "613cbbe99d09740ea3337a86609754702a0122116b91e06f6fab687c1494e0d8",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "_family_rule": {
   "normalised_sha256": "8b111af57c1a82e67de86ed613e7249aefce811721ca410f6dd23ee4637a32b2",
@@ -1309,13 +1330,15 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "_fee_counts": {
   "normalised_sha256": "62269425c8ec358ca79e93f3f880a380307775524133e6a7bdcedbf4aeea34f9",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "_gate": {
   "normalised_sha256": "25e42270a738644629359145fff5c609a3f3fee2bfaad68f655e8d11f9b1e99a",
@@ -1326,25 +1349,29 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "_gate_min_days": {
   "normalised_sha256": "0eab448eb2faa7c79176a5ff4103d6d8ef57feceba1653d684329cda0d59bf2b",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "_hte": {
   "normalised_sha256": "616a74d06e05e16e3d58c17f9e3db7b2768902c6add6edba8c503eecdb3ed5da",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "_in_band": {
   "normalised_sha256": "ece5b541fd3e8cc8b78b3af7d70bacfede14f0ac2f82bca59b402bfd2f3ade1d",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "_json": {
   "normalised_sha256": "f21cf3aa03f3788a5d856d3025981b8aeb4da309c32566442cc663913f92ea17",
@@ -1355,6 +1382,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "_look": {
@@ -1366,6 +1394,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "_manifest": {
@@ -1377,13 +1406,15 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "_merge_counts": {
   "normalised_sha256": "d3d4163030c1466c9f5368c44357fdc98665dd51cd9554464b1d01126b597893",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "_mid": {
   "normalised_sha256": "7cc7aeddb239d050c849142b2f1b0e92672195101935c3d7d167451f33601893",
@@ -1394,19 +1425,22 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "_mid12": {
   "normalised_sha256": "335c5b9f220ddb1b7ddfe1513c39ee3c09b1843e402bb9e9d7aaaaf21472cb38",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "_movers_join": {
   "normalised_sha256": "536e9f09c94b880d03b63e62ef6cde0b9494afb7fae5278ecb4e00d87705b4c3",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "_ms": {
   "normalised_sha256": "d93a09b1eee1b7d9082b044c0c7b6260be5ad3afda2c7139f2c22851adf462ff",
@@ -1417,6 +1451,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "_name_time": {
@@ -1428,25 +1463,29 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "_non_sports_ex_crypto": {
   "normalised_sha256": "972b74d8e3ce7e2a3951783f971f2952a8181dc7c55978dd4d6b3fdb11adddca",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "_norm_cat": {
   "normalised_sha256": "a78298af5b250052193b78b1c45352569c519d977deff6a97504d80266cc0cf2",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "_own24": {
   "normalised_sha256": "58e8b4aa727add0be742e15ad41234616c7f896bc2917c150d9879be51fa5094",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "_partial": {
   "normalised_sha256": "d562335a821c6e9ce989068ec97edb28be9d8d4648e6b847799fb576321b0bb7",
@@ -1457,13 +1496,15 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "_per_market": {
   "normalised_sha256": "b0082b1f6a63703bd47fe255da34d19a1b67ed89686c7706c99f1f12f82fb0ee",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "_read": {
   "normalised_sha256": "d0601e3fc337180a16aefba572b9416f6c22e95ad8b0663580c471a7f7940055",
@@ -1474,6 +1515,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "_roots": {
@@ -1485,6 +1527,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "_scan": {
@@ -1496,19 +1539,22 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "_share_by_tercile": {
   "normalised_sha256": "38c8396e09118d3e6292c81a1a8e630e3e786d29dec849f0f70ce73f499adc54",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "_tier_shares": {
   "normalised_sha256": "6807f14b982b077ba3ef4155738e92be456b882100d382a3bdea6f9b8dff31ac",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "_truthy": {
   "normalised_sha256": "0015fb4e55901f75992cb2a7a359aa0c5dd74de2696aa485b123b57831a9f0eb",
@@ -1519,13 +1565,15 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "_utc_day": {
   "normalised_sha256": "886249d0f319353adc905cfd8c44afaadbca98f31b0274e589ae4c9db88df1ab",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "_vif": {
   "normalised_sha256": "826dc520833f04f216e99968bd7b6ff6cbd808037d0e65d1a55eeb570bc81900",
@@ -1536,13 +1584,15 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "_z": {
   "normalised_sha256": "9c79a615df006cfc82d046c329137cc36ad72811d5281d09e7b9ee3f679386b3",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "append_jsonl": {
   "normalised_sha256": "5d8f917e8a3da94046f9c721651f4fcad085114eebe2436198d85e44f98843f7",
@@ -1553,6 +1603,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "block_anchor": {
@@ -1564,6 +1615,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "block_fl_gate": {
@@ -1575,19 +1627,22 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "block_min_units": {
   "normalised_sha256": "e6f8d5a912a62125226f98bff6c6ec186d9432e2a7f194af1b1da703b1e5ded4",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "block_share": {
   "normalised_sha256": "e8ef14ff28ee8229eb37436072e1dae0bda0396fdf9c8c83dfeffed60edc71dc",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "capture_files": {
   "normalised_sha256": "274fbbf39779d2b0646dcec4acdeb7db4fdd209c2a89843b6ab2605b70f9dc60",
@@ -1598,6 +1653,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "category_cols": {
@@ -1609,6 +1665,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "census_slots": {
@@ -1620,6 +1677,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "circular_shift": {
@@ -1631,6 +1689,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "classify": {
@@ -1642,6 +1701,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "cleanup_census": {
@@ -1653,6 +1713,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "corr_ok": {
@@ -1664,19 +1725,22 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "crypto_class": {
   "normalised_sha256": "9172e0b3edfd42296228b21e132dfa6b2cd9578686b03575e7a56d933e6fa370",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "crypto_failsafe": {
   "normalised_sha256": "0f5677b48c97eea368164ee07871a1be892f7566521bf4e4d8303925291c4abd",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "de_gate": {
   "normalised_sha256": "b2bca0bc29ff17fb5a8883141d8539c0eee383502245fb981b1c7bb370a29c0a",
@@ -1687,6 +1751,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "demean": {
@@ -1698,6 +1763,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "design_effect": {
@@ -1709,6 +1775,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "design_ss": {
@@ -1720,6 +1787,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "dir_bytes": {
@@ -1731,6 +1799,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "du_bytes": {
@@ -1742,6 +1811,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "epoch": {
@@ -1753,13 +1823,15 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "exact_t_sum": {
   "normalised_sha256": "aa2afa017dcfd11bc10a37606542e81574e0a2456c3a31066eeb112de7e1779c",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "fee_rates": {
   "normalised_sha256": "702ab8186e28700c119f8678c8c2ffd717e4773dac133097d762558fb60b3a87",
@@ -1770,13 +1842,15 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "floored_rv": {
   "normalised_sha256": "4a7e3861e7f2c8b2c0bcd8d952408a004dd00c4be99248ba86a88382d51364bc",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "fold": {
   "normalised_sha256": "b08d3012783b2eeb6f263b60054f4e78c0bfa8807f74f1904c3390d290b9ee5c",
@@ -1787,6 +1861,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "git_commit": {
@@ -1798,6 +1873,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "grid0": {
@@ -1809,6 +1885,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "imbalance": {
@@ -1820,13 +1897,15 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "iqr_ok": {
   "normalised_sha256": "ebbe3b99ec6988b4802571d1d89604c1668fbb87224a3f4fe7740c92a39b7d95",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "iso": {
   "normalised_sha256": "37a5a9f270662b848f92dcbb270bd6eca541e76e185a1d6084006c0191f48f9e",
@@ -1837,13 +1916,15 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "load_unavailable": {
   "normalised_sha256": "a13a8f804d51ead4b8433eec57325e4138c1af195c96a11847a17e3ef17a9e29",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "mde_class": {
   "normalised_sha256": "a36d6856c9cd9d323049614193d0a0d7d61e08602586582afba0f7ef73ccfd06",
@@ -1854,13 +1935,15 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "mde_common": {
   "normalised_sha256": "74ae159b884e01850e6b44aa9377a7e43885ad197d23e95e64a6a235c364c055",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "mde_slope_declared": {
   "normalised_sha256": "496f5474d01a5145c5823c9189691022387c80166e1116917b47ffcd66f1ca63",
@@ -1871,6 +1954,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "mde_slope_design": {
@@ -1882,6 +1966,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "move_join": {
@@ -1893,6 +1978,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "now_ts": {
@@ -1904,6 +1990,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "offset_range": {
@@ -1915,13 +2002,15 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "pair_correlations": {
   "normalised_sha256": "fc2223baef52659f6debe5ca65a2561971ca353b51abee6e0f0d40fe97d63ee3",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "project_events": {
   "normalised_sha256": "5cf6130260cd5c449feab50936f758d480c875f7e3fce6a95198fb1c5be07903",
@@ -1932,6 +2021,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "read_series": {
@@ -1943,19 +2033,29 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "resid_iqr": {
   "normalised_sha256": "4786e7b0fc63d14b40dcf21d811ea851cdd1558dcfdd08305b7858cb849ddc93",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
+ },
+ "rewarded_x_in_band": {
+  "normalised_sha256": "b4fe26ddcf0a9a3d663a14af06afb5315a5de9d074f10c25a033101fc041f5e8",
+  "prefix": "\\bb\\.",
+  "source": "live_tests7.py",
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "rv_from_matrix": {
   "normalised_sha256": "5cc7e10cfb0b3bb2491fb515ee8678d98efaed6b33bd64e46d9c910a0def68e7",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "scan_captures": {
   "normalised_sha256": "ced9022882bc773aba7447ccd51b68090e4db2dcf93db55653f481a02749cea9",
@@ -1966,6 +2066,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "scan_sweeps": {
@@ -1977,6 +2078,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "seal_completeness": {
@@ -1988,6 +2090,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "sealed_dirs": {
@@ -1999,13 +2102,15 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "sealed_sweep_slots": {
   "normalised_sha256": "dbb5378c2adfc2f286402749be1a1f49b708253dd0326d40313ea85c41a95301",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "series_frame": {
   "normalised_sha256": "b469a9fd73f6fc9d571135bc0a8ef93708b56a55b2325f46df4ae3bbda12004d",
@@ -2016,6 +2121,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "sha256_file": {
@@ -2027,6 +2133,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "shift_plan": {
@@ -2038,13 +2145,15 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "slot_in_day": {
   "normalised_sha256": "43aed9da16f277087449422004b48b47e8b585cfefda8c90da92135a0eca1a9e",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "slot_of": {
   "normalised_sha256": "784cb093b56a296586503fe9be4ebd2ba69b943b6091bc175b2c9420926b4c26",
@@ -2055,6 +2164,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "slot_time": {
@@ -2066,13 +2176,15 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "standardise": {
   "normalised_sha256": "013c19764228191d3a0394c4b43ef396932b6256b955dc55832c381860934467",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "strata_of": {
   "normalised_sha256": "337b396479d429d81756e4ddf9a3e215091219207444d9ac237f98b10873f0b0",
@@ -2083,6 +2195,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "sweep_files": {
@@ -2094,6 +2207,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "sweep_frame": {
@@ -2105,13 +2219,15 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "terciles": {
   "normalised_sha256": "b6ce3921d7a7c62be3494a421437c792d45dc3ada81afe574be023edc8fdca98",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "tight_arr": {
   "normalised_sha256": "25e12877f4b07f2ada1beac02acce41e73ed1e71d06decfaeceea1d541d1474e",
@@ -2122,6 +2238,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "token0_map": {
@@ -2133,13 +2250,15 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "unit_overlaps": {
   "normalised_sha256": "c951ac47f1d573161c5bedcac96c80ba7b35f4f4ed32c3fc5d8858bbdfb5db0c",
   "prefix": "\\bb\\.",
   "source": "live_tests7.py",
-  "source_sha256": "232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902"
+  "source_commit": "41a0bb4e",
+  "source_sha256": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27"
  },
  "verify_files": {
   "normalised_sha256": "b6dcc165e203f481ff6b29da40967fded50954e9b52f00a705cfc5ee2adec56f",
@@ -2150,6 +2269,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "wcorr": {
@@ -2161,6 +2281,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
  "write_once_csv": {
@@ -2172,6 +2293,7 @@ VENDORED = {
   },
   "prefix": "(?!)",
   "source": "live_tests7_base.py",
+  "source_commit": "41a0bb4e",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  }
 }

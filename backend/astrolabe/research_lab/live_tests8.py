@@ -123,49 +123,57 @@ def design_text_error() -> dict | None:
 # --- the empty / null clob_rewards rule (NEW LT8 code; design 1.0 (iv), 2; unit tested) ----------------------------------------
 
 
-def reward_status(v, day: str | None = None) -> tuple[float, str]:
-    """``(daily rate, state)`` of a sidecar ``clob_rewards`` value. An empty / null field is UNREWARDED, not unknown (LT5 R and LT7
+def reward_detail(v, day: str | None = None) -> tuple[float, str, str]:
+    """``(daily rate, state, reason)`` of a sidecar ``clob_rewards`` value. An empty / null field is UNREWARDED, not unknown (LT5 R and LT7
     parsed it as NaN and so removed the unrewarded class). States: ``unset`` (None, NaN, empty, whitespace or null-like text; rate 0.0),
     ``empty_list`` (a valid ``[]``; 0.0), ``zero`` (allocations summing to 0 on ``day``), ``rewarded`` (sum > 0) and ``malformed``
     (NON-NULL text that is not a JSON list of dict allocations, or an allocation whose ``rewardsDailyRate`` is non-numeric, boolean,
-    negative or not finite; rate NaN: the unit is excluded and counted, never read as 0)."""
+    negative or not finite; rate NaN: the unit is excluded and counted, never read as 0). ``reason`` (malformed only): ``json`` (does not
+    parse), ``not_list``, ``alloc_not_dict`` (an allocation is not an object), ``rate_bad`` (an allocation's rate is unusable)."""
+    nan = float("nan")
     if v is None or (isinstance(v, float) and math.isnan(v)):
-        return 0.0, "unset"
+        return 0.0, "unset", ""
     s = str(v).strip()
     if s.casefold() in _NULL_LIKE:
-        return 0.0, "unset"
+        return 0.0, "unset", ""
     try:
         arr = json.loads(s)
     except (ValueError, TypeError):
-        return float("nan"), "malformed"
+        return nan, "malformed", "json"
     if arr is None:
-        return 0.0, "unset"
+        return 0.0, "unset", ""
     if not isinstance(arr, list):
-        return float("nan"), "malformed"
+        return nan, "malformed", "not_list"
     if not arr:
-        return 0.0, "empty_list"
+        return 0.0, "empty_list", ""
     tot = 0.0
     for a in arr:
         if not isinstance(a, dict):
-            return float("nan"), "malformed"
+            return nan, "malformed", "alloc_not_dict"
         rate = a.get("rewardsDailyRate")
         if rate is None or (isinstance(rate, str) and rate.strip() == ""):
             r = 0.0
         else:
             if isinstance(rate, bool):
-                return float("nan"), "malformed"
+                return nan, "malformed", "rate_bad"
             try:
                 r = float(rate)
             except (TypeError, ValueError):
-                return float("nan"), "malformed"
+                return nan, "malformed", "rate_bad"
             if not math.isfinite(r) or r < 0:
-                return float("nan"), "malformed"
+                return nan, "malformed", "rate_bad"
         if day is not None:
             sd, ed = str(a.get("startDate") or "")[:10], str(a.get("endDate") or "")[:10]
             if (sd and day < sd) or (ed and day > ed):
                 continue
         tot += r
-    return tot, ("rewarded" if tot > 0 else "zero")
+    return tot, ("rewarded" if tot > 0 else "zero"), ""
+
+
+def reward_status(v, day: str | None = None) -> tuple[float, str]:
+    """``(daily rate, state)`` of :func:`reward_detail` (see there)."""
+    r, s, _ = reward_detail(v, day)
+    return r, s
 
 
 def clob_hash(v) -> str:
@@ -208,16 +216,19 @@ def load_ext8(cap_dir: Path) -> pd.DataFrame | None:
     if not p.exists():
         return None
     ext = pd.read_csv(p, usecols=lambda c: c in set(EXT_COLS), dtype=str)
+    has_clob = "clob_rewards" in ext.columns  # a sidecar WITHOUT the column says nothing about rewards: NaN, not unrewarded (check fix 7)
     for c in EXT_COLS:
         if c not in ext:
             ext[c] = None
-    return ext.drop_duplicates("market_id").set_index("market_id")
+    out = ext.drop_duplicates("market_id").set_index("market_id")
+    out.attrs["has_clob_rewards"] = has_clob
+    return out
 
 
 def series8_frame(rows: pd.DataFrame, ext: pd.DataFrame | None, spec: dict, day: str) -> pd.DataFrame:
     """LT3's series (vendored) plus Gamma ``liq``, ``n_members``, the event key (``event_id`` = Gamma event, else ``m:<market>``), the
     reward fields (``rew_rate`` and ``rew_state`` by :func:`reward_status`: a null / empty ``clob_rewards`` is unrewarded 0.0, malformed
-    text NaN, a market with no sidecar row ``no_sidecar`` NaN; ``rew_min``; ``rew_maxspread`` in cents), the raw ``fee_cat`` and the
+    text NaN, a market with no sidecar row ``no_sidecar`` NaN, a sidecar without the column ``no_column`` NaN; ``rew_min``; ``rew_maxspread`` in cents), the raw ``fee_cat`` and the
     pinned ``crypto7`` class."""
     ser, _ = b.series_frame(rows, ext, spec)
     mids = pd.Index(ser["market_id"].astype(str))
@@ -228,15 +239,17 @@ def series8_frame(rows: pd.DataFrame, ext: pd.DataFrame | None, spec: dict, day:
     if ext is not None:
         e = ext.reindex(mids)
         present = np.asarray(mids.isin(ext.index))
-        st = [reward_status(v, day) if p else (float("nan"), "no_sidecar") for v, p in zip(e["clob_rewards"], present, strict=True)]
+        has_col = bool(ext.attrs.get("has_clob_rewards", True))
+        st = [reward_detail(v, day) if (p and has_col) else (float("nan"), "no_sidecar" if not p else "no_column", "") for v, p in zip(e["clob_rewards"], present, strict=True)]
         ser["rew_rate"] = [x[0] for x in st]
         ser["rew_state"] = [x[1] for x in st]
+        ser["rew_reason"] = [x[2] for x in st]
         ser["rew_min"] = pd.to_numeric(e["rewards_min_size"], errors="coerce").to_numpy(float)
         ser["rew_maxspread"] = pd.to_numeric(e["rewards_max_spread"], errors="coerce").to_numpy(float)
         fc = e["fee_category"].where(e["fee_category"].notna(), None).tolist()
     else:
         present = np.zeros(len(mids), bool)
-        ser["rew_rate"], ser["rew_state"], ser["rew_min"], ser["rew_maxspread"] = np.nan, "no_sidecar", np.nan, np.nan
+        ser["rew_rate"], ser["rew_state"], ser["rew_reason"], ser["rew_min"], ser["rew_maxspread"] = np.nan, "no_sidecar", "", np.nan, np.nan
         fc = [None] * len(mids)
     sp = ser["sports"].to_numpy(int)
     ser["fee_cat"] = pd.Series(fc, dtype=object).to_numpy()
@@ -417,15 +430,15 @@ def _vol_cols(vol24) -> tuple[np.ndarray, np.ndarray]:
 
 
 def _rewards(j: pd.DataFrame, spread_sw, band) -> dict:
-    """``rewarded`` (NaN when the reward text is malformed or the market has no sidecar row), ``in_band`` (0 for an unrewarded market;
-    LT7 CH197's definition for a rewarded one) and the farmer touch ``ft_both`` pieces."""
+    """``rewarded`` (NaN when the reward text is malformed, the market has no sidecar row or the sidecar has no ``clob_rewards`` column),
+    ``in_band`` (LT7 CH197's mechanical definition for EVERY market, as LT7 13.6: folded mid in the band and spread <= ``rewards_max_spread``;
+    NaN, excluded and counted, when the field is missing with the mid inside the band) and the malformed flag."""
     state = j["rew_state"].astype(str).to_numpy()
     rate = j["rew_rate"].to_numpy(float)
-    unk = np.isin(state, ["malformed", "no_sidecar"]) | ~np.isfinite(rate)
+    unk = np.isin(state, ["malformed", "no_sidecar", "no_column"]) | ~np.isfinite(rate)
     rewarded = np.where(unk, np.nan, (rate > 0).astype(float))
-    ib = b._in_band(j["mid"].to_numpy(float), np.asarray(spread_sw, float), j["rew_maxspread"].to_numpy(float), band)
-    in_band = np.where(unk, np.nan, np.where(rewarded == 0.0, 0.0, ib))
-    return {"rewarded": rewarded, "in_band": in_band, "malformed": (state == "malformed")}
+    in_band = b._in_band(j["mid"].to_numpy(float), np.asarray(spread_sw, float), j["rew_maxspread"].to_numpy(float), band)
+    return {"rewarded": rewarded, "in_band": np.where(unk, np.nan, in_band), "malformed": (state == "malformed")}
 
 
 def _ft_both(rewarded, bsz, asz, rmin, factor) -> np.ndarray:
@@ -496,7 +509,10 @@ def quiet_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, ser_k2: pd.DataFrame |
     cnt["covered_struct_in_band"] = int((struct & in_band).sum())
     cnt["sweep_after_origin"] = int((struct & ~recv & in_band).sum())
     cov = struct & recv
-    cnt["covered_in_band"] = int((cov & in_band).sum())
+    cnt["covered_in_band"] = int((cov & in_band).sum())  # the unit population: tight sweeps (the 'tight variant' of the coverage)
+    struct_nt = (two & dep).to_numpy()  # section 7's coverage as WRITTEN: two-sided, both 5c depths positive, received before the origin; no 'tight'
+    cnt["covered_struct_notight_in_band"] = int((struct_nt & in_band).sum())
+    cnt["covered_notight_in_band"] = int((struct_nt & recv & in_band).sum())
     sm1 = ((j["sbid_1"] + j["sask_1"]) / 2.0).to_numpy(float)
     sm2 = ((j["sbid_2"] + j["sask_2"]) / 2.0).to_numpy(float)
     with np.errstate(invalid="ignore"):
@@ -536,6 +552,12 @@ def quiet_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, ser_k2: pd.DataFrame |
     tick = j["tick"].to_numpy(float)
     rv, rvs, rvf = _rv24(store, k, mkj.to_numpy(), tick, c)
     rw = _rewards(j, spread_sw, c["reward_band"])
+    for s_, n_ in j["rew_state"].astype(str).value_counts().items():
+        cnt[f"reward_state_{s_}"] = int(n_)
+    if "rew_reason" in j:
+        for s_, n_ in j["rew_reason"].fillna("").astype(str).value_counts().items():
+            if s_:
+                cnt[f"reward_malformed_{s_}"] = int(n_)
     ft = _ft_both(rw["rewarded"], j["bsz1_1"], j["asz1_1"], j["rew_min"], spec["reward_rule"]["ft_factor"])
     if rw_k is not None and rw_k2 is not None:
         hk, h2 = rw_k.reindex(mkj).to_numpy(object), rw_k2.reindex(mkj).to_numpy(object)
@@ -893,6 +915,19 @@ def _ev_share(pop: pd.DataFrame) -> dict:
                                                                                         "vm0_lm0": int((~vm & ~lm).sum())}}
 
 
+def corr_pair(pop: pd.DataFrame, a: str, col: str, flag: str) -> dict:
+    """A gate correlation of a state with a control that is zero-filled where missing (own 24 h change, ``dV_prev``, ``sx_chg1h``): the
+    zero-filled value is pulled toward 0, so the gate takes the larger magnitude of the zero-filled and the present-values correlations
+    (check fix 5): it passes only if BOTH are within the cap (a degenerate one is NaN and fails)."""
+    return {"zero_filled": b.wcorr(pop, a, col), "present": b.wcorr(pop[pop[flag] == 0], a, col)}
+
+
+def corr_pair_ok(c: dict, cap: float) -> bool:
+    if "zero_filled" in c:
+        return b.corr_ok(c["zero_filled"], cap) and b.corr_ok(c["present"], cap)
+    return b.corr_ok(c, cap)
+
+
 def census_ch203(Q: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_days: float, pair_days: float, per_block: dict) -> dict:
     """CH203's census gate (design 7 table). ``Q`` = the quiet covered in-band units with their members (cap not yet applied)."""
     g, a = spec["census_gates"]["CS8_CH203"], b.mde_common(spec)
@@ -902,12 +937,15 @@ def census_ch203(Q: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_d
     if Q.empty:
         return _gate_blocks(b._gate_min_days(fail, "gate_CH203", covered_days, mind), "gate_CH203", per_block, spec)
     cap_n = spec["member_cap"]["max_members"]
-    elig, cov = tot.get("eligible_in_band", 0), tot.get("covered_in_band", 0)
-    struct = tot.get("covered_struct_in_band", 0)
+    elig, cov = tot.get("eligible_in_band", 0), tot.get("covered_notight_in_band", 0)
+    struct = tot.get("covered_struct_notight_in_band", 0)
+    cov_t, struct_t = tot.get("covered_in_band", 0), tot.get("covered_struct_in_band", 0)
     coverage = cov / elig if elig else float("nan")
     received = cov / struct if struct else float("nan")
     quiet_n = tot.get("quiet_covered_in_band", 0)
     quiet_share = quiet_n / cov if cov else float("nan")
+    tight_variant = {"coverage": cov_t / elig if elig else float("nan"), "received_before_origin_share": cov_t / struct_t if struct_t else float("nan"),
+                     "quiet_share": quiet_n / cov_t if cov_t else float("nan")}
     quiet_pre = tot.get("quiet_covered_pre_band", 0) * scale
     cap_share = tot.get("quiet_covered_in_band_cap", 0) / quiet_n if quiet_n else float("nan")
     P = Q[Q["n_members"] <= cap_n]
@@ -924,7 +962,8 @@ def census_ch203(Q: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_d
     sm = slope_mde8(pop, "zdimb5", CONTROLS_203, scale, a, de["DE_gate"], a[g["sd"]], gap)
     vif = sm["design_ss"]["vif_w"]
     ri = b.resid_iqr(pop, "dimb5", ["imb5_km1"], int(g["resid_iqr_min_units"]), g["resid_iqr_min"])
-    corr = {nm: b.wcorr(pop, "zdimb5", col) for nm, col in (("own24", "z_d24"), ("dlogD5", "dlogD5"), ("ft_both", "ft_both"), ("dV_prev", "z_dV"))}
+    corr = {"own24": corr_pair(pop, "zdimb5", "z_d24", "d24_flag"), "dlogD5": b.wcorr(pop, "zdimb5", "dlogD5"), "ft_both": b.wcorr(pop, "zdimb5", "ft_both"),
+            "dV_prev": corr_pair(pop, "zdimb5", "z_dV", "dvp_missing")}
     cl = b.wcorr(pop, "zdimb5", "log1p_liq")
     bm = b.block_min_units(covered_days)
     bs = b.block_share(pop, bm)
@@ -937,8 +976,8 @@ def census_ch203(Q: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_d
     projected = float(len(pop) * scale)
     pair_ok = bool(np.isfinite(pair_days) and pair_days >= g["pair_min_days"] and pc["markets"] >= g["pair_markets_min"] and np.isfinite(pc["r_gate"]) and pc["r_gate"] <= g["r_gate_max"])
     res = {"units_pre_cap": len(Q), "units_primary": len(P), "projected_units_21d": projected_pre, "projected_units_21d_after_family_exclusion": projected,
-           "sweep_coverage": coverage, "received_before_origin_share": received, "quiet_share": quiet_share, "projected_quiet_covered_pre_band": quiet_pre, "cap_share": cap_share,
-           "exclude_family": excl, "top_family_share": top, "dimb5": {"centre": c_d, "scale": s_d}, "imb5_km1": {"centre": c_i, "scale": s_i}, "zdimb5": {"terciles": [t1, t2], "tercile_gap": gap},
+           "sweep_coverage": coverage, "received_before_origin_share": received, "quiet_share": quiet_share, "tight_variant": tight_variant, "projected_quiet_covered_pre_band": quiet_pre, "cap_share": cap_share,
+           "rewarded_x_in_band": b.rewarded_x_in_band(pop), "exclude_family": excl, "top_family_share": top, "dimb5": {"centre": c_d, "scale": s_d}, "imb5_km1": {"centre": c_i, "scale": s_i}, "zdimb5": {"terciles": [t1, t2], "tercile_gap": gap},
            "design_effect": de, "slope": sm, "F": fm, "pairs": pc, "pair_days": pair_days, "resid_iqr": ri, "vif_w": vif, "corr": corr, "corr_liq": cl, "block_min_units": bm, "block_share": bs,
            "events": _events8(pop, scale, covered_days), "t_sum_used": a["t_sum"], "splits": b._desc_splits(tot), "per_market": b._per_market(pop["market_id"]),
            "vol_missing": _ev_share(pop), "liquidity_tiers_top_zdimb5_share": b._tier_shares(pop, "", "zdimb5"),
@@ -949,8 +988,8 @@ def census_ch203(Q: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_d
     res["gate_CH203"] = b._gate({
         "coverage": bool(np.isfinite(coverage) and coverage >= g["coverage_min"]), "received_before": bool(np.isfinite(received) and received >= g["received_before_min"]),
         "quiet_share": bool(np.isfinite(quiet_share) and quiet_share >= g["quiet_share_min"]), "quiet_covered_projected": bool(quiet_pre >= g["quiet_covered_projected_min"]),
-        "units": bool(projected >= g["units_projected_min"]), "cap_share": bool(np.isfinite(cap_share) and cap_share >= g["cap_share_min"]), "resid_iqr": b.iqr_ok(ri, g),
-        "vif_w": bool(np.isfinite(vif) and vif <= g["vif_w_max"]), **{f"corr_{nm}": b.corr_ok(c_, g["corr_max"]) for nm, c_ in corr.items()},
+        "units": bool(projected_pre >= g["units_projected_min"]), "cap_share": bool(np.isfinite(cap_share) and cap_share >= g["cap_share_min"]), "resid_iqr": b.iqr_ok(ri, g),
+        "vif_w": bool(np.isfinite(vif) and vif <= g["vif_w_max"]), **{f"corr_{nm}": corr_pair_ok(c_, g["corr_max"]) for nm, c_ in corr.items()},
         "corr_liq": b.corr_ok(cl, g["corr_liq_max"], both=True), "block_share": bool(np.isfinite(bs) and bs >= g["block_share_min"]), "r_gate": pair_ok,
         "slope_mde": bool(sm["mde_tercile_c"] <= a["mde_max"] * 100.0), "f_mde": bool(fm["f_mde_c"] <= a["f_mde_max"] * 100.0)})
     res = b._gate_min_days(res, "gate_CH203", covered_days, mind)
@@ -978,12 +1017,14 @@ def census_ch202(U: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_d
     pop["z_sx_chg1h"] = b._z(pop["sx_chg1h"], *b.standardise(pop["sx_chg1h"]))
     de = b._de(pop, scale, g["de_floor"], a)
     cm = class_mde8(pop, "held", CONTROLS_202, scale, a, de["DE_gate"], a[g["sd"]])
-    corr = {nm: b.wcorr(pop, "held", col) for nm, col in (("parallel", "a_parallel"), ("traded", "a_traded"), ("log_abs_x", "z_log_abs_x"), ("own24", "z_d24"))}
-    corr_chg = b.wcorr(pop, "held", "z_sx_chg1h")
+    corr = {"parallel": b.wcorr(pop, "held", "a_parallel"), "traded": b.wcorr(pop, "held", "a_traded"), "log_abs_x": b.wcorr(pop, "held", "z_log_abs_x"),
+            "own24": corr_pair(pop, "held", "z_d24", "d24_flag")}
+    corr_chg = corr_pair(pop, "held", "z_sx_chg1h", "chg1h_missing")
     cl = b.wcorr(pop, "held", "log1p_liq")
     bm = b.block_min_units(covered_days)
     bs = b.block_share(pop, bm)
     projected = float(len(pop) * scale)
+    projected_pre = float(len(contrast) * scale)
     res = {"movers_in_band": movers, "covered_movers": covered, "contrasted_units": len(contrast), "projected_contrasted_units_21d": float(len(contrast) * scale),
            "projected_units_21d_after_family_exclusion": projected, "sweep_coverage": coverage, "held_share_of_movers": held_share, "fresh_share_of_movers": fresh_share,
            "held_share_of_covered": tot.get("held", 0) / covered if covered else float("nan"), "fresh_share_of_covered": tot.get("fresh", 0) / covered if covered else float("nan"),
@@ -996,9 +1037,9 @@ def census_ch202(U: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_d
            "two_tick_share": float((U["x_ticks"] >= 2.0 - 1e-9).mean()), "lag_g_quantiles": _q(U["lag_g"]), "lag_g_over_10min_share": float((U["lag_g"] > spec["tests"]["CH202"]["lag_g_fresh_minutes"]).mean()),
            "counts": {k_: v_ for k_, v_ in tot.items() if isinstance(v_, (int, float))}}
     res["gate_CH202"] = b._gate({
-        "coverage": bool(np.isfinite(coverage) and coverage >= g["coverage_min"]), "units": bool(projected >= g["units_projected_min"]),
+        "coverage": bool(np.isfinite(coverage) and coverage >= g["coverage_min"]), "units": bool(projected_pre >= g["units_projected_min"]),
         "held_share": bool(np.isfinite(held_share) and held_share >= g["class_share_min"]), "fresh_share": bool(np.isfinite(fresh_share) and fresh_share >= g["class_share_min"]),
-        **{f"corr_{nm}": b.corr_ok(c_, g["corr_max"]) for nm, c_ in corr.items()}, "corr_chg1h": b.corr_ok(corr_chg, g["corr_chg1h_max"]),
+        **{f"corr_{nm}": corr_pair_ok(c_, g["corr_max"]) for nm, c_ in corr.items()}, "corr_chg1h": corr_pair_ok(corr_chg, g["corr_chg1h_max"]),
         "chg1h_present": bool(np.isfinite(chg_present) and chg_present >= g["chg1h_present_min"]), "corr_liq": b.corr_ok(cl, g["corr_liq_max"], both=True),
         "block_share": bool(np.isfinite(bs) and bs >= g["block_share_min"]), "class_mde": bool(cm["mde_class_c"] <= a["mde_max"] * 100.0)})
     res = b._gate_min_days(res, "gate_CH202", covered_days, mind)
@@ -1010,7 +1051,7 @@ def _norm_fee_cat(v) -> str:
     return "unknown" if s is None else s
 
 
-def census_ch204(S: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_days: float, n_origins: int) -> dict:
+def census_ch204(S: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_days: float, n_origins: int, origins: list[int] | None = None) -> dict:
     """CH204's census gate (design 7 table). ``S`` = every scheduled market of every covered origin BEFORE the member cap."""
     g, a = spec["census_gates"]["CC8_CH204"], b.mde_common(spec)
     mind = spec["census_inputs"]["min_covered_days"]["CC8"]
@@ -1028,7 +1069,7 @@ def census_ch204(S: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_d
     hot = float(pop["sc_hot"].sum() * scale)
     ev = _events8(S, scale, covered_days)
     star_top = float(S["s_star"].value_counts(normalize=True).iloc[0])
-    cats = U["fee_cat"].map(_norm_fee_cat).value_counts(normalize=True)
+    cats = S["fee_cat"].map(_norm_fee_cat).value_counts(normalize=True)  # "scheduled units" (design 7): before the member cap (check fix 8)
     cat_top = float(cats.iloc[0]) if len(cats) else float("nan")
     de = b._de(pop, scale, g["de_floor"], a)
     cm = class_mde8(pop, "sc_hot", CONTROLS_204, scale, a, de["DE_gate"], a[g["sd"]])
@@ -1036,24 +1077,25 @@ def census_ch204(S: pd.DataFrame, tot: dict, spec: dict, scale: float, covered_d
     cl = b.wcorr(pop, "sc_hot", "log1p_liq")
     bm = b.block_min_units(covered_days)
     bs = b.block_share(pop, bm)
-    k_ = S["slot"].to_numpy(int)
-    later = S[["market_id", "slot", "s_star"]].assign(slot=S["slot"] - 12)
-    again = S[["market_id", "slot", "s_star"]].merge(later, on=["market_id", "slot"], suffixes=("", "_12"))
-    persist = float((again["s_star"] == again["s_star_12"]).mean()) if len(again) else float("nan")
+    org = set(origins or [])
+    base = S[S["slot"].isin({k2 for k2 in org if (k2 + 12) in org})][["market_id", "slot", "s_star"]]
+    nxt = S[["market_id", "slot", "s_star"]].assign(slot=S["slot"] - 12)
+    again = base.merge(nxt, on=["market_id", "slot"], how="left", suffixes=("", "_12"))
+    persist = float(again["s_star_12"].notna().mean()) if len(again) else float("nan")  # the share STILL scheduled 12 origins later
+    persist_same = float((again["s_star"] == again["s_star_12"]).mean()) if len(again) else float("nan")  # ... with the same s*
     res = {"origins": n_origins, "eligible": elig, "lookback_covered": cov, "lookback_coverage": lb, "scheduled_markets": len(S), "scheduled_per_capture": sched_per_capture,
            "scheduled_units_pre_family": len(U), "cap_share": cap_share, "projected_hot_units_21d_pre_family": hot_pre, "projected_hot_units_21d": hot,
            "projected_units_21d": float(len(pop) * scale), "exclude_family": excl, "top_family_share": top, "events": ev, "venue_clock_top_share": star_top,
-           "category_top_share": cat_top, "category_arms_triggered": bool(np.isfinite(cat_top) and cat_top > g["category_arms_trigger"]),
+           "category_top_share": cat_top, "category_basis": "scheduled markets before the member cap", "category_arms_triggered": bool(np.isfinite(cat_top) and cat_top > g["category_arms_trigger"]),
            "category_shares": {str(k2): float(v2) for k2, v2 in cats.head(10).items()}, "design_effect": de, "class_mde": cm, "corr_rv24": corr_rv, "corr_liq": cl,
            "block_min_units": bm, "block_share": bs, "t_sum_used": a["t_sum"], "splits": b._desc_splits(tot), "per_market": b._per_market(pop["market_id"]), "vol_missing": _ev_share(pop),
            "sc_conc_quantiles": _q(S["sc_conc"]), "sc_conc_hist_covered": tot.get("sc_conc_hist", {}), "scheduled_share_of_covered": len(S) / cov if cov else float("nan"),
            "s_star_distribution": {str(int(k2)): int(v2) for k2, v2 in S["s_star"].value_counts().sort_index().items()},
-           "s_star_1231_share": float((S["s_star"] == 6).mean()), "still_scheduled_same_s_star_12_origins_later": persist, "hot_slot_mean_move_share": float(S["sc_conc"].mean()),
+           "s_star_1231_share": float((S["s_star"] == 6).mean()), "still_scheduled_12_origins_later": persist, "still_scheduled_same_s_star_12_origins_later": persist_same, "hot_slot_mean_move_share": float(S["sc_conc"].mean()),
            "liquidity_tiers_hot_share": b._tier_shares(pop, "sc_hot"), "counts": {k2: v2 for k2, v2 in tot.items() if isinstance(v2, (int, float))}}
-    del k_
     res["gate_CH204"] = b._gate({
         "lookback_coverage": bool(np.isfinite(lb) and lb >= g["lookback_coverage_min"]), "scheduled_per_capture": bool(np.isfinite(sched_per_capture) and sched_per_capture >= g["scheduled_per_capture_min"]),
-        "hot_units": hot >= g["hot_units_projected_min"], "events": bool(np.isfinite(ev["events_projected_21d"]) and ev["events_projected_21d"] >= g["events_projected_min"]),
+        "hot_units": hot_pre >= g["hot_units_projected_min"], "events": bool(np.isfinite(ev["events_projected_21d"]) and ev["events_projected_21d"] >= g["events_projected_min"]),
         "cap_share": cap_share >= g["cap_share_min"], "venue_clock": star_top <= g["venue_clock_max"], "category": bool(np.isfinite(cat_top) and cat_top <= g["category_max"]),
         "corr_rv24": b.corr_ok(corr_rv, g["corr_max"]), "corr_liq": b.corr_ok(cl, g["corr_liq_max"], both=True), "block_share": bool(np.isfinite(bs) and bs >= g["block_share_min"]),
         "class_mde": bool(cm["mde_class_c"] <= a["mde_max"] * 100.0)})
@@ -1154,6 +1196,8 @@ def seal_inputs(*, snapshot_root, sweep_root, work: Path | None = None, spec: di
     spec = spec or load_spec(sha=None)
     if (derr := design_text_error()):
         return derr
+    if (herr := lt7_census_hash_error()):
+        return herr
     s7, err = read_lt7_seal(spec)
     if err:
         return err
@@ -1213,6 +1257,65 @@ def _seal_scan8(seal: dict, snapshot_root, sweep_root, work: Path, spec: dict) -
     return by_slot, sweeps
 
 
+def sealed_slot_maps(seal: dict, spec: dict) -> tuple[dict, dict]:
+    """(capture slot -> sealed directory names, sweep slot -> sealed directory names), from the seal's own slot assignment, for directories
+    the seal names with all their files. Origins and needed slots come from HERE, never from what a local scan happens to find."""
+    caps, sws = sealed_complete(seal)
+
+    def to(names: set[str]) -> dict:
+        out: dict[int, set[str]] = {}
+        for d in names:
+            k = b.slot_of(epoch(seal["slots"][d]), spec) if d in seal.get("slots", {}) else None
+            if k is not None:
+                out.setdefault(k, set()).add(d)
+        return out
+
+    return to(caps), to(sws)
+
+
+def absent_sealed(seal: dict, by_slot: dict, sweeps: dict | None, spec: dict) -> dict | None:
+    """Refuse when a sealed directory is absent locally (e.g. deleted by retention between the seal and the census) or the scan chose another
+    directory for its slot: it would otherwise silently drop out of the origins (check fix 1)."""
+    sc, ss = sealed_slot_maps(seal, spec)
+    bad = []
+    for k, names in sorted(sc.items()):
+        c = by_slot.get(k)
+        if c is None:
+            bad.append({"slot": k, "sealed": sorted(names), "error": "sealed capture is absent from every root"})
+        elif c["id"] not in names:
+            bad.append({"slot": k, "sealed": sorted(names), "scanned": c["id"], "error": "the scanned capture differs from the sealed one"})
+    scanned = {Path(v["dir"]).name for v in (sweeps or {}).values()}
+    for k, names in sorted(ss.items()) if sweeps is not None else []:  # CC8 reads no sweep: it passes sweeps=None
+        for d in sorted(names - scanned):
+            bad.append({"slot": k, "sealed": d, "error": "sealed sweep 1 is absent from every root"})
+    if bad:
+        return {"error": "a sealed directory is absent or differs from the scanned one: census refused (check fix 1)", "bad": bad[:50], "n_bad": len(bad)}
+    return None
+
+
+LT7_CENSUS_DIR = ROOT / "data-dumps" / "research_lab" / "live_tests7_census"
+
+
+def lt7_census_hash_error(census_dir: Path | None = None) -> dict | None:
+    """LIVE_TESTS_8.md 8.1: LT8 vendors from the hashes LT7's censuses ran on. If LT7's census outputs (``CC7*``, ``CS7*``, ``CV7*`` .json in
+    ``live_tests7_census/``) record a different ``live_tests7.py`` / ``live_tests7_base.py`` hash than the ones recorded in ``VENDORED``, refuse:
+    re-vendor before any LT8 census. None when no output exists yet or all agree."""
+    d = Path(census_dir or LT7_CENSUS_DIR)
+    want = {v["source"]: v["source_sha256"] for v in b.VENDORED.values()}
+    bad = []
+    files = sorted({f for pat in ("CC7*.json", "CS7*.json", "CV7*.json") for f in d.glob(pat)}) if d.exists() else []
+    for f in files:
+        try:
+            j = json.loads(f.read_text())
+        except (OSError, ValueError):
+            continue
+        ch = j.get("code_sha256") if isinstance(j, dict) else None
+        for name, sha in want.items():
+            if isinstance(ch, dict) and ch.get(name) and ch[name] != sha:
+                bad.append({"file": f.name, "module": name, "census_ran_on": ch[name], "vendored_from": sha})
+    return {"error": "LT7's census outputs record a different LT7 source hash than the one LT8 vendored from: re-vendor first (LIVE_TESTS_8.md 8.1)", "bad": bad} if bad else None
+
+
 def _load_for_census(seal: Path, snapshot_root, sweep_root, work: Path, spec: dict):
     seal_d = json.loads(Path(seal).read_text())
     if (derr := design_text_error()) or seal_d.get("design_text_sha256") != DESIGN_TEXT_SHA256:
@@ -1229,10 +1332,14 @@ def _load_for_census(seal: Path, snapshot_root, sweep_root, work: Path, spec: di
         return seal_d, None, None, {"error": "the seal's slots map differs from LT7's 159 entries: census refused"}
     if (seal_d.get("source_seal") or {}).get("sha256") != sha256_file(_lt7_seal_path(spec)):
         return seal_d, None, None, {"error": "the seal records a different LT7 source seal: census refused"}
+    if (herr := lt7_census_hash_error()):
+        return seal_d, None, None, herr
     w = Path(work)
     if w.exists() and any(w.iterdir()):
         return seal_d, None, None, {"error": f"work directory {w} is not empty: a stale series file would be reused (census refused)"}
     by_slot, sweeps = _seal_scan8(seal_d, snapshot_root, sweep_root, Path(work), spec)
+    if (aerr := absent_sealed(seal_d, by_slot, sweeps if b._roots(sweep_root) else None, spec)):
+        return seal_d, None, None, aerr
     return seal_d, by_slot, sweeps, None
 
 
@@ -1262,7 +1369,7 @@ def census_captures(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, work: Path, spec
     seal_d, by_slot, _, err = _load_for_census(seal, snapshot_root, [], work, spec)
     if err:
         return err
-    cap_slots = set(by_slot)
+    cap_slots = set(sealed_slot_maps(seal_d, spec)[0])
     ORG = origins_cc8(cap_slots, spec)
     L = spec["tests"]["CH204"]["lookback_changes"]
     need = {j for k in ORG for j in range(k - L, k + 1)} & cap_slots
@@ -1302,7 +1409,7 @@ def census_captures(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, work: Path, spec
             "files_checked": comp.get("files_checked"), "fee_category_values": fs["distinct_values"], "crypto_classifier_shown_to_work": fs["classifier_shown_to_work"],
             "covered_origins": {"CH204": len(ORG)}, "expected_origins_from_file_list": spec["census_inputs"]["expected_origins_from_file_list"]["CC8"],
             "origins_differ_from_design": len(ORG) != spec["census_inputs"]["expected_origins_from_file_list"]["CC8"], "per_capture": per_capture,
-            "CH204": census_ch204(_ccf(S), tot, spec, scale, days, len(ORG))}
+            "CH204": census_ch204(_ccf(S), tot, spec, scale, days, len(ORG), ORG)}
 
 
 def census_sweeps(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, sweep_root=SWEEP_ROOT, work: Path, spec: dict | None = None, verify: bool = True) -> dict:
@@ -1314,8 +1421,8 @@ def census_sweeps(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, sweep_root=SWEEP_R
     seal_d, by_slot, sweeps, err = _load_for_census(seal, snapshot_root, sweep_root, work, spec)
     if err:
         return err
-    cap_slots = set(by_slot)
-    sw_slots = {k for k, c in by_slot.items() if c["id"] in sweeps} & _sealed_sweep_slots(seal_d, spec)
+    sc, ss = sealed_slot_maps(seal_d, spec)
+    cap_slots, sw_slots = set(sc), set(ss)
     org = origins_cs8(cap_slots, sw_slots)
     O203, O202, PAIRS = set(org["CH203"]), set(org["CH202"]), set(org["CH203_pairs"])
     full = {j for k in O203 | O202 for j in range(k - 12, k + 1)} & cap_slots
