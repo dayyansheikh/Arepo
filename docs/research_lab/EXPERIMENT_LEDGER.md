@@ -3512,3 +3512,10 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   before commit; nothing changed after it.
 - Science review: ACCEPT_WITH_FIXES (no leakage defect). Applied: pass-sweep restriction and hidden-folder skip, sweep
   provenance in metadata, the se7 minus se18 contrast disclosed, §22 causality wording, backfill = training input only.
+- (~01:35Z) **q0561 (LT5 capture census) attempt 1 failed** (01:02-01:33Z, rc 1): `_ArrayMemoryError` at the 3,000 MB
+  address-space cap (2 x mem_mb) in the counting loop; its per-run series cache keeps every read series (H's 96-slot
+  look-back needs most of ~127). No output was written; nothing counted. Ops-only fix (41636f7c): mem_mb 1500 -> 3000,
+  as_cap_mb 6500; argv, code, seal and gates unchanged. Restarted 01:46Z (attempt 2, the last automatic one).
+  **Operational slip (autopilot):** `queue_worker.py stop <id>` is not per-job: it paused the queue and SIGTERMed every
+  running job. Effects: q0121 (h8_tail seal) stopped after 6 s (recorded `stopped`, attempt not counted, re-queued); the
+  queue was paused 01:34-01:44Z and resumed by hand. Nothing lost. Use `pause` / `retry <id>` instead.
