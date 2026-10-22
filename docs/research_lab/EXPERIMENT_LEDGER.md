@@ -3622,3 +3622,20 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - The vendored-provenance guard is closed out with drift records for `live_tests4.py` (post-pin sha256 4e043b65…) and
   `live_tests4_analysis.py` (c31117ac…; only the E022 pin line and earlier LT4 pre-pin edits changed; every vendored function still equals its source, which the test
   checks), so the suite stays meaningful; LT5's spec is otherwise unchanged and will never be pinned.
+
+## LT8 drafted, challenger R1 and re-check, design-text freeze (2026-10-22 ~07:45Z; experiments autopilot; nothing counted)
+- **Source:** creative round 13 (`CREATIVE_HYPOTHESES_2026-10-27.md`, CH202-CH211, merged 553bd125). LT8 = CH203 (quiet
+  book: 5c-imbalance innovation behind an unmoved touch), CH202 (sweep clock: held versus fresh part of the previous move),
+  CH204 (the market's own hot-slot clock); one Holm family, k <= 3. CH205 not proposed (sports scope, owner's call);
+  CH206 a counts-only map first; CH207-CH211 engine-first.
+- **Reviews:** draft 4552cec5 -> challenger R1 **REVISE** (8 must-fix; `reviews/LT8_CHALLENGER_R1_2026-10-22.md`, 9f99504d)
+  -> response 164078c8 (section 13) -> re-check **ACCEPT_WITH_FIXES** (`reviews/LT8_R1_RECHECK_2026-10-22.md`; 4 fixes:
+  binding worlds 3 and 5 restored to the first draft's scales after the response had weakened them, vendoring wording,
+  LT5 closed) -> fixes c124db50. Orchestrator ruling: world 5's "next two passes" = t + 2 and t + 3 (the reading that
+  puts the whole reversal inside the skip target, i.e. the stricter world).
+- **DESIGN-TEXT FREEZE:** `LIVE_TESTS_8.md` at c124db50, sha256 `5e61c20b1282cef79c7caee68f08dceb506f845bc1a1325fe2fb9335c955cf48`;
+  merged into chore. Any later change to a test's text is a recorded deviation; changes after LT7's census commit are
+  labelled *informed (LT7 census)*. Proposed window 2026-12-30T00:00Z .. 2027-01-20T00:00Z (after LT7's END + 24 h),
+  analysis on or after 2027-01-21T12:00Z. Honest odds (author): expected k at census about 0.65; about 0.47 that all
+  three drop. Next: embargo requests (`quietbook`, `swclock`, `sched`; `book0` / `book` extended) before 12-01, code
+  phase (seal and censuses q0620-q0627), code freeze check. Nothing registered or counted; E-numbers unassigned.
