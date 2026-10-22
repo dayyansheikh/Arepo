@@ -247,12 +247,27 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-22 05:35Z
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-22 10:45Z
 Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && git log --oneline -1'` = local tip.
-**Host is 2 OCPU / 11.4 GiB since the resize (DONE 03:20Z, problems 0; ledger deviation appended; resize cron removed;
-8df23f1f).** data-dumps 33 / 40 GB cap: owner approval 8 (restore-tree clearing) is becoming time-relevant.
+Host 2 OCPU / 11.4 GiB since the resize. data-dumps 33 / 40 GB cap: owner approval 8 (restore-tree clearing) is time-relevant.
 
-**Done this session (06:00Z):** q0561 LT5 census done (F/H/R dropped, c0700f8f); q0484 size check PASS -> **E022
+**Autopilot session 10-22 ~10:37Z (in progress):**
+- **LT7 reward-null ruling:** q0601b `common = true` -> challenger ruling **(B) with changes**
+  (`reviews/LT7_REWARD_NULL_RULING_2026-10-22.md`): null `clob_rewards` = unrewarded (`rewarded = 0`); listed-inactive = 0;
+  malformed/absent = NaN; counts split. Design amendment **13.6**, `LIVE_TESTS_7.md` sha256 840f4500 -> **31baf5e5…**; ledger
+  (1cf8ae54); registry (848c8c9b). The LT7 seal (117e9b45) is kept (LT8 pins it); code accepts it as predecessor.
+  **Code fix running** on `feat/lt7-reward-null` (worktree agent): strict parse, four statuses, spec `reward_null_rule`,
+  `rewards-probe` subcommand + job `q0601c_lt7_rewards_probe`, fresh work dirs for q0602-q0604. **Next:** merge -> census-code
+  re-check (science-reviewer) -> deploy -> q0601c -> promote q0602, q0603, q0604 (one code hash; finish before 10-28T03:30Z).
+  If live_tests7.py's hash changes, LT8's vendored LT7 copies must be re-verified (LT8 8.1 rule) before any LT8 census.
+- **LT8:** embargo requests round 5 filed in `signal_engine/CANDIDATES.md` (c6e57a64; builder to apply). **Code phase 1
+  running** on `feat/live-tests-8-code` (worktree agent): vendor script, live_tests8_base/live_tests8 censuses, spec, tests,
+  drafts q0620-q0623 (+q0627 if specified). Then code freeze check (science-reviewer), merge.
+- **Creative round 14** running on `feat/creative-r14` (Fable xhigh): `CREATIVE_HYPOTHESES_2026-10-28.md`, CH212+, census-
+  survival brief. Then merge, CANDIDATES idea notes, LT9 proposal.
+- **MC1 q0116f** running since 07:42Z (RSS 6.2 GB at 3 h; timeout 6 h).
+
+**Earlier this day (06:00Z):** q0561 LT5 census done (F/H/R dropped, c0700f8f); q0484 size check PASS -> **E022
 REGISTERED** (bf730c6f; reader cron `10-59/20` installed on the host 06:0xZ; q0486 analysis queued, not before 11-17T12Z);
 LT7 merged + seal committed (cd4f3702) + q0601b promoted; h8 tail/geo seals done. **Queue now:** q0582 LT6 captures
 census (exclusive, running) -> q0583 -> q0116f MC1 (6 h) ; q0562 LT5 flow census; q0144; q0601b; CB8/CB16-K.
