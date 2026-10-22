@@ -1265,3 +1265,19 @@ Text only, before any census; nothing was chosen from data; every fix tightens a
 
 **Ready for the design-text freeze** once the orchestrator has checked these fixes (re-check "Freeze readiness").
 
+
+### 13.6 Challenger ruling on q0601b: reward-field nulls (2026-10-22; `reviews/LT7_REWARD_NULL_RULING_2026-10-22.md`; governs where earlier text differs)
+
+Amendment after the design-text freeze (old sha256 840f4500…), made before any LT7 census, from sidecar counts only (seal
+`lt7_rewards_null_share.json`, sha256 2278ce60…; q0601b's pre-declared `common` rule fired: `clob_rewards` null on 0.60-0.65
+of non-sports ex-crypto market-captures every day, `[]` never, `rewards_max_spread` / `rewards_min_size` never null).
+
+For a market whose sealed sidecar row is present, a null `clob_rewards` means "no native programme listed". It enters
+`rewarded = 0` in CH197 and CH192 and the unrewarded branch (`order_min_size`) of CH192's wall class. This is a declared
+exception to 1.5, counted as `rewards_null_as_zero`. A listed programme that is inactive on the capture's UTC day is
+`rewarded = 0`, counted as `rewards_listed_inactive`. Malformed non-null text, or a missing sidecar row, stays NaN
+(excluded, counted as `reward_unparseable` or `sidecar_missing`). No indicator column is added. Sensitivity, reported and
+not used for the verdict: the CH197 and CH192 primaries refit on units with listed programmes only. `in_band` stays as
+defined (for every market); the `rewarded x in_band` counts are reported. Gates, thresholds and MDE formulas are
+unchanged. Before CC7, a counts-only probe reports the share of listed programmes inactive on the capture day, the null
+share of `order_min_size`, and the share of markets switching between null and non-null `clob_rewards` within a UTC day.

@@ -3639,3 +3639,22 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   analysis on or after 2027-01-21T12:00Z. Honest odds (author): expected k at census about 0.65; about 0.47 that all
   three drop. Next: embargo requests (`quietbook`, `swclock`, `sched`; `book0` / `book` extended) before 12-01, code
   phase (seal and censuses q0620-q0627), code freeze check. Nothing registered or counted; E-numbers unassigned.
+
+## LT7 reward-field null ruling and design amendment 13.6 (2026-10-22 ~11:10Z; experiments autopilot; nothing counted)
+- **Trigger:** q0601b (counts only; `seals/lt7_rewards_null_share.json`, sha256 2278ce60…) fired its pre-declared `common`
+  rule: `clob_rewards` null on 0.60-0.65 of sealed non-sports ex-crypto market-captures every day 10-12..10-21; `[]` never;
+  `rewards_max_spread` / `rewards_min_size` never null.
+- **Challenger ruling (B with changes)** (`reviews/LT7_REWARD_NULL_RULING_2026-10-22.md`): a null `clob_rewards` with the
+  sidecar row present = "no native programme listed" -> `rewarded = 0` (CH197, CH192 primary) and the unrewarded
+  wall-class branch, counted `rewards_null_as_zero`; listed but inactive on the day -> 0, counted
+  `rewards_listed_inactive`; malformed or absent -> NaN, counted. No indicator column; listed-only sensitivity reported.
+  Outcome-blind (sidecar counts only, before any census). Gates, thresholds, formulas unchanged; this restores the
+  planned population (leaving it frozen would have cut CH197 and CH192 to ~38% of units, MDE ~1.6x). Also found: the
+  existing parse returned 0.0 for malformed text ("unparseable excluded" was not implemented) and mislabelled a count.
+- **Design-text amendment 13.6:** `LIVE_TESTS_7.md` sha256 840f4500… -> `31baf5e5b5c1bec2518228618fc21ab7f111c0e673d6cb064583ce1363d20dd4`
+  (a recorded deviation after the text freeze; before any census and any adjacent `T_X`). The LT7 census seal
+  (117e9b45…, design hash 840f4500…) is kept, not re-sealed (LT8 pins it); the code will accept it as the amendment's
+  predecessor.
+- **Next:** code fix on a branch (strict parse, four reward statuses, counts, spec key `reward_null_rule`, tests), a
+  counts-only probe (listed-inactive share, `order_min_size` null share, within-day switching), census-code re-check, then
+  CV7 (q0602), CC7 (q0603), CS7 (q0604) on one code hash with fresh work dirs, finishing before 2026-10-28T03:30Z.
