@@ -924,15 +924,22 @@ def unit_overlaps(frames: dict) -> dict:
     return out
 
 
+def _both_finite(c1: dict, c2: dict) -> list:
+    """Both within-market correlations, or [] when either is missing or not finite: NaN fails the gate (verification note 1,
+    2026-10-22), so one undefined origin definition cannot be replaced by the other."""
+    vals = [c.get("within") for c in (c1, c2)]
+    return [float(v) for v in vals] if all(v is not None and np.isfinite(v) for v in vals) else []
+
+
 def _larger_pos_corr(c1: dict, c2: dict) -> float:
     """``max over both of max(0, r)``: the F-MDE form is ``sqrt(2 / (1 - max(0, r)))``, so the larger signed correlation is the pessimistic one."""
-    vals = [c["within"] for c in (c1, c2) if c.get("within") is not None and np.isfinite(c["within"])]
+    vals = _both_finite(c1, c2)
     return float(max(max(0.0, v) for v in vals)) if vals else float("nan")
 
 
 def _larger_abs_corr(c1: dict, c2: dict) -> float:
     """The within-market correlation of larger magnitude of two candidate origin definitions (the pessimistic one for an F-feasibility cap)."""
-    vals = [c["within"] for c in (c1, c2) if c.get("within") is not None and np.isfinite(c["within"])]
+    vals = _both_finite(c1, c2)
     return float(max(vals, key=abs)) if vals else float("nan")
 
 

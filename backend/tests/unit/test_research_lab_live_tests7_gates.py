@@ -452,3 +452,10 @@ def test_ch192_f_mde_uses_the_larger_signed_correlation():
     U, tot = pop192()
     r = lt.census_ch192(U, tot, SPEC, SCALE, 2.75)
     assert r["r_f_used"] == lt._larger_pos_corr(r["corr_lag"], r["corr_lag_gamma_origin_spread"]) and r["F"]["r_w"] == r["r_f_used"]
+
+
+def test_ch192_correlations_fail_when_either_origin_definition_is_undefined():
+    # verification note 1 (2026-10-22): NaN fails; one undefined definition is never replaced by the other
+    for bad in ({"within": float("nan")}, {"within": None}, {}):
+        assert np.isnan(lt._larger_abs_corr(bad, {"within": 0.3}))
+        assert np.isnan(lt._larger_pos_corr({"within": 0.3}, bad))
