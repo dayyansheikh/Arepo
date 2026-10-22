@@ -1,4 +1,4 @@
-# LT7 amendment 13.7 census-code re-check (commit 64acdbc4, branch feat/lt7-reward-carry), 2026-10-22 ~17:45Z
+# LT7 amendment 13.7 census-code re-check (commit 64acdbc4, branch feat/lt7-reward-carry), 2026-10-22 ~16:19Z
 
 `evidence_role: none`. Reviewer: `science-reviewer` (independent, read-only; text saved by the orchestrator, lightly condensed).
 
@@ -45,6 +45,6 @@ q0603. Both fit before 2026-10-28T03:30Z.
 ## Not verified
 Tests not run by the reviewer; reward parameters at null captures (no local data); `_merge_counts` summing; q0604 host roots.
 
-## Orchestrator decision on fix 1 (17:50Z, before any census, from code structure only)
+## Orchestrator decision on fix 1 (16:20Z, before any census, from code structure only)
 (a) full carry windows for pair slots, if every needed slot is inside the LT7 seal and reachable from q0604's roots;
 otherwise (b), with the reason recorded. Fix 2 by re-hash (575eb1dd… added as a predecessor; no census has run on it).

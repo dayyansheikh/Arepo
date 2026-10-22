@@ -1,6 +1,6 @@
-# CB9 h9_flow dependency ruling (science-reviewer, 2026-10-22 ~16:40Z, read-only; saved verbatim by the orchestrator)
+# CB9 h9_flow dependency ruling (science-reviewer, 2026-10-22 ~16:09Z, read-only; saved verbatim by the orchestrator)
 
-`evidence_role: none`. Written BEFORE q0166's result is known (q0166 promoted 16:15Z, not started at the time of writing).
+`evidence_role: none`. Written BEFORE q0166's result is known (q0166 promoted ~16:03Z, not started at the time of writing).
 
 **Verdict: REVISE.** Item (f) does not apply to q0168. q0182 keeps its id and its key-set definition. Its `depends_on` drops q0168. It may be promoted once conditions C1 to C5 are met.
 

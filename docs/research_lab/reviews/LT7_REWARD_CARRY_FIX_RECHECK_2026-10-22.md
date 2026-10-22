@@ -1,4 +1,4 @@
-# LT7 amendment 13.7: re-check of fix commit 8dd013b9 (branch feat/lt7-reward-carry), 2026-10-22 ~18:45Z
+# LT7 amendment 13.7: re-check of fix commit 8dd013b9 (branch feat/lt7-reward-carry), 2026-10-22 ~16:28Z
 
 `evidence_role: none`. Reviewer: `science-reviewer` (read-only; no tests run). Saved by the orchestrator, condensed.
 

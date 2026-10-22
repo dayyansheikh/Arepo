@@ -3723,10 +3723,14 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   designed only in a later batch and only if that audit passes; otherwise CH143 is "not testable at the floor". No
   counted K is registered. **Next:** a titles-only audit sampler (seed 16141), then the audit.
 
-## CB9 gating after CB8-W's smoke FAIL, 2026-10-22 ~16:40Z (science-reviewer ruling; operational, nothing counted)
+## CB9 gating after CB8-W's smoke FAIL, 2026-10-22 ~16:09Z (science-reviewer ruling; operational, nothing counted)
 - `reviews/CB9_H9_DEPENDENCY_RULING_2026-10-22.md`: REVISE. h9_flow never fetched (CB8 q0161 FAIL (a)); absent at q0182
   per CB9 §1.3; (f) not engaged. q0182 keeps its id and definition; `depends_on` = [q0164, q0166]; it adds the two
   `--extra-pin`s (CB8 updown frame, dated CB8-H holders snapshot) the draft lacked, and q0164's keys sha256 (MUST 1).
 - **Pre-declared before q0166's result:** coverage-audit FAIL (`source_unavailable`) -> holdout seal absent at q0182, q0182
   runs with the q0165 frame pinned; crash/unrecoverable -> (f) as written.
-- q0181 (S0 audit A) promoted 16:30Z (c535f978); unaffected.
+- q0181 (S0 audit A) promoted ~16:07Z (c535f978); unaffected.
+- **Time-label erratum (autopilot session 10-22 from 15:59Z):** queue-spec notes written this session carry "~HH:MMZ"
+  labels that are 0.2-2.5 h late (local time misread as UTC): q0602/q0165/q0166 "~16:15Z" = ~16:03Z; q0181 "~16:30Z" =
+  ~16:07Z; q0116g/q0393 "~17:20Z" = ~16:12Z; q0146 "~18:30Z" = ~16:25Z; q0602/q0116g priority "18:50Z" = ~16:29Z. Spec
+  files are not edited (hash/ops reasons); commit times are authoritative. Review headers and the checkpoint were corrected.

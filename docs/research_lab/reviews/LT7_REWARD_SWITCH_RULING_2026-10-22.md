@@ -1,4 +1,4 @@
-# LT7 challenger ruling on q0601c rule (c): within-day null/non-null switching, 2026-10-22 ~16:10Z
+# LT7 challenger ruling on q0601c rule (c): within-day null/non-null switching, 2026-10-22 ~16:00Z
 
 `evidence_role: none`. Counts only (`seals/lt7_rewards_probe.json`, sha256 263413f2…); no price, target or outcome read.
 Challenger: `science-reviewer` (independent, read-only; text saved verbatim by the orchestrator). Trigger: the

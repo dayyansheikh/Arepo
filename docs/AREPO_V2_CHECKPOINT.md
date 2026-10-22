@@ -247,11 +247,11 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-22 18:55Z
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-22 16:30Z
 Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && git log --oneline -1'` = local tip.
 Host 2 OCPU / 11.4 GiB since the resize. data-dumps 33 / 40 GB cap: owner approval 8 (restore-tree clearing) is time-relevant.
 
-**Autopilot session 10-22 ~16:00Z (in progress; state at 18:55Z):**
+**Autopilot session 10-22 ~15:59Z (in progress; state at 16:30Z):**
 - **Worktree caveat:** agent worktrees (isolation) start from the PRODUCTION tip (e1dfa8a5), not chore. Never merge such
   branches into chore; cherry-pick the agent's own commits.
 - **LT7 (deadline: CC7/CS7 finish before 10-28T03:30Z):** probe rule (c) fired -> ruling (C) `listed_carry24h_v2`;
