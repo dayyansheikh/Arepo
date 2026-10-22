@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-22T00:30:00Z",
+ "updated": "2026-10-22T01:00:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1558,18 +1558,41 @@
   {
    "id": "LT6",
    "title": "Live tests 6: four more ideas from round 11 (planned)",
-   "plain": "A sixth group of up to four planned live tests from the latest new-ideas round. It asks whether quotes that refill after a move lean one way, whether repeated same-size orders leave a footprint, whether moves near a market's deadline behave differently, and whether a new sibling market wakes up older ones. The design passed an independent challenger review after changes (21 Oct). Counting checks decide which tests go ahead.",
+   "plain": "A sixth group of up to four planned live tests from the latest new-ideas round. It asks whether quotes that refill after a move lean one way, whether repeated same-size orders leave a footprint, whether moves near a market's deadline behave differently, and whether a new sibling market wakes up older ones. The code passed an independent re-check after fixes (22 Oct); counting checks decide which tests go ahead.",
    "batch": "LT6",
+   "family": "mixed",
+   "stage": "designed",
+   "status": "running",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Counting checks after tonight's data restore; registration only after LT4's test E022 is registered or dropped (not before 1 Nov 2026)",
+   "next_date": "2026-11-01",
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT6 re-check and LT7 challenger R1, 2026-10-22"
+   },
+   "stage_results": {
+    "designed": "pending"
+   },
+   "reached": [
+    "designed"
+   ]
+  },
+  {
+   "id": "LT7",
+   "title": "Live tests 7: five ideas from round 12 (planned)",
+   "plain": "Up to five planned live tests from new-ideas round 12: book depth on the side a move hit, slow grinds versus jumps, deep orders behind the best price, trading with no price move, and spreads versus later moves. A challenger asked for changes; one idea was dropped as a near-repeat of an earlier result. Honest planning says most may fail their counting checks.",
+   "batch": "LT7",
    "family": "mixed",
    "stage": "designed",
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Code and counting checks; registration only after LT4's test E022 is registered or dropped (not before 1 Nov 2026)",
-   "next_date": "2026-11-01",
+   "next": "Re-check of the revised design, then code and counting checks; collection not before 8 Dec 2026",
+   "next_date": "2026-12-08",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT6 design draft, 2026-10-21 (branch feat/live-tests-6, docs/research_lab/LIVE_TESTS_6.md)"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT6 re-check and LT7 challenger R1, 2026-10-22 (branch feat/live-tests-7, docs/research_lab/LIVE_TESTS_7.md)"
    },
    "stage_results": {
     "designed": "pending"
