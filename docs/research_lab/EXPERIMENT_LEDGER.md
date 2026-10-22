@@ -3797,7 +3797,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   tempfail on a sticky terminal manifest, and census.json must carry an explicit X terminal state. To implement before
   q0146 ends or before q0147 is promoted (not before 10-24T01:00Z). Notes 2-3 (low) in the review.
 
-## Signal engine: market-price reference row for `res_7d`, 2026-10-22 ~21:30Z (signal-engine autopilot; no model, no K change)
+## Signal engine: market-price reference row for `res_7d`, 2026-10-22 ~21:00Z (signal-engine autopilot; no model, no K change)
 - Added `market_price_reference` to the scorer (DESIGN_V1 §24): P(yes) = the origin's Gamma mid from the write-once
   features file, scored on `res_7d` only, with each scored model's `gain_vs_market_mid` (event-clustered CI). It is a
   benchmark, not a challenger: not in the registry, never promoted, no change to K, the promotion rule or any existing
