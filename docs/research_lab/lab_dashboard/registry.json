@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-22T05:55:00Z",
+ "updated": "2026-10-22T06:05:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1535,18 +1535,18 @@
   {
    "id": "LT5",
    "title": "Live tests from round 11 (planned)",
-   "plain": "A fifth group of up to five live tests from the latest new-ideas round. It asks whether price jumps behave differently from slow grinds, whether a market moving alone differs from one moving with its family, whether holders sitting on gains slow a move, whether a recent 7-day high or low matters, and how markets react inside reward bands. A challenger accepted it with changes, now made and re-checked. Counting checks decide which tests go ahead.",
+   "plain": "A fifth group of planned live tests from new-ideas round 11. On 22 Oct three of the five (moving alone versus with the family, a recent 7-day high or low, reactions inside reward bands) failed their counting checks and were dropped before any test, uncounted. Two remain: jumps versus slow grinds, and holders sitting on gains.",
    "batch": "LT5",
    "family": "mixed",
    "stage": "designed",
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Counting-check and size-check code, its review, then the counts; earliest start 30 Oct",
+   "next": "Counting check for the two remaining tests, then a size check; earliest start 30 Oct",
    "next_date": "2026-10-30",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT5 drafted, challenger R1 and re-check (2026-10-21)"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT5 capture censuses (q0561): F, H and R dropped at census, uncounted (2026-10-22)"
    },
    "stage_results": {
     "designed": "pending"

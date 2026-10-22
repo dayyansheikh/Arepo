@@ -3545,3 +3545,13 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   10-day rule or 10-26T03:30Z under 8 days); its dependency was removed from q0601 as its notes direct. Next: commit the
   seal, run q0601b and read `common` before promoting q0602 by hand.
 - **MC1:** q0116f promoted (8df23f1f) after the resize; depends on q0484. Development only, not evidence.
+
+## LT5 capture censuses (q0561): F, H and R dropped at census, uncounted (2026-10-22 ~06:05Z; experiments autopilot)
+- q0561 ran once on the 12 GB host (05:30-05:35Z, attempt 3 after two address-space-cap failures; no output existed before)
+  on seal 59b17969 (fcd88926…); output `seals/CF5_CHW_CRW.json` sha256 2e124285… committed. Counts only, no target read.
+- **F (CH184): dropped** (pessimistic MDE 1.01c > 0.5c; all other gates pass). **H (CH181): dropped** (near 1,082 and far
+  3,329 projected, below 3,150 / 15,750; `hwm_incomplete` 0.55; market strata 0.0; NaN corr). **R (CH183): dropped**
+  (crossing share 0.21 < 0.25; design MDE 1.03c > 0.5c; unrewarded cells 0, possibly the empty-`clob_rewards`-as-NaN parse,
+  disclosed; the drop stands without it). Details: `LIVE_TESTS_5.md` 7.3. Uncounted (census drops before registration).
+- LT5 continues with J (CH180) and O (CH182): q0562 (flow census) next; then `k_tests`, the vendored-drift record for
+  `live_tests4.py`, q0563 size check. Snapshot retention stays at the temporary 10 days until LT6's q0582 is done.
