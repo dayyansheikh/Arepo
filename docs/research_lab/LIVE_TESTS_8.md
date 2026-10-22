@@ -3,8 +3,9 @@
 **Status: DRAFT. Challenger R1 (2026-10-22, REVISE, 8 must-fix) is answered in section 13, which governs where earlier text
 differs. Not registered, nothing counted, no code, no census run.** Drafted 2026-10-22 on branch `feat/live-tests-8` from the
 `chore/arepo-claude-setup` tip `5ffe8229`, a design-only first commit like the first commits of LT3-LT7; the R1 response
-applies **only** the review's items (section 13, must-fix 2). E-numbers are **not** assigned here. E026 is the last number used; LT5 provisionally holds
-E027-E031 and LT7 the next free numbers for whichever of their tests survive (LT6 closed with no test and holds none); LT8 takes the next free numbers at its
+applies **only** the review's items (section 13, must-fix 2). E-numbers are **not** assigned here. E026 is the last number used; LT5 and LT6 closed with
+every test dropped at census and hold none (re-check fix 4), so the next free numbers pass to LT7 for whichever of its tests
+survive, and then to LT8; LT8 takes the next free numbers at its
 own registration (provisionally in the order CH203, CH202, CH204 for the tests that survive). If every test drops at its
 census, LT8 is not registered (recorded in the ledger; nothing counted). Before registration this needs, in order:
 1. a challenger review (`science-reviewer`) of this file, the response, and any re-check;
@@ -52,8 +53,8 @@ re-check (13, 13.5) and census-code-check rulings. Every design change from the 
   after a census drop (CH205 cannot join this family later; section 5).
 - **Window (proposed):** whole captures with start in `[REGISTERED_UTC, END_UTC)`, 21 days, `REGISTERED_UTC =
   2026-12-30T00:00:00Z`, `END_UTC = 2027-01-20T00:00:00Z`; single analysis on or after **2027-01-21T12:00:00Z**. Keyed to
-  LT7's `END_UTC` (proposed 2026-12-29T00:00Z; with LT6 closed, LT7's window now follows its own rules (a) and (c), and the
-  remaining risk of a slide is LT5 J/O's registration, after which LT7 registers) plus 24 h, **never earlier than
+  LT7's `END_UTC` (proposed 2026-12-29T00:00Z; with LT5 and LT6 both closed, LT7 registers after their recorded drops and
+  its window follows only its own rules (a) and (c), the only remaining source of a slide; re-check fix 4) plus 24 h, **never earlier than
   2026-12-30T00:00Z**, and sliding later with LT7 (section 1.1). First origins: CH202 12-30T02:31Z, CH203 12-30T04:31Z, CH204 12-30T00:31Z (section
   1.1).
 - **Pin early, run late (round 13 rule 9; LT7's form, tightened).** The design text is frozen **before the earlier of
@@ -98,7 +99,10 @@ r_pool)` (LT7 re-check M2); the block-gate share proxy `ceil(16 x covered_days /
 
 **Census deaths that set LT8's expectations (counts only).** LT5's q0561 (`LIVE_TESTS_5.md` 7.3) dropped F (pessimistic MDE
 1.01c > 0.5c, `DE_gate` 10.3 from a projected mean family cluster of 465, all other gates passing), H (counts, look-back
-completeness 0.55, market strata 0.0, NaN correlation) and R (crossing share 0.21, design MDE 1.03c, `DE_gate` 11.9). LT4
+completeness 0.55, market strata 0.0, NaN correlation) and R (crossing share 0.21, design MDE 1.03c, `DE_gate` 11.9); LT5
+then closed (2026-10-22 07:35Z, ledger "LT5 closed") with J (MDE 2.16c, 63.7 units a pass, permutable share 0) and O (MDE
+0.84c, IQR share 0.44, 372 units a pass) also dropped at census; **these J and O counts have been read** (re-check fix 4)
+and changed no LT8 gate. LT4
 dropped E020 and E021 at their strata gates and registered E022 alone (DE 6.196, `m_21` 260.8). LT7's own planning expects
 k = 0 to 2 of five. The lessons applied here: (i) the MDE gate, not the count gate, is what kills, so every test states the
 count at which its MDE gate passes; (ii) a look-back completeness rule must be stated as a unit rule, not discovered at census
@@ -131,9 +135,11 @@ Round 13's design rules (`CREATIVE_HYPOTHESES_2026-10-27.md` 0.1) map onto LT8 a
 - **The chain after LT6's closure (R1 must-fix 1).** LT6 closed on 2026-10-22 with V, D, B and K all dropped at census
   (`LIVE_TESTS_6.md` 6.3; ledger "LT6 closed"), so LT7's rule (b) (24 h after LT6's `END_UTC`) has no object and LT7's window
   now follows its own rules (a) (24 h after LT7's registration commit) and (c) (never before 2026-12-08). LT7 registers only
-  after LT5's registration commits or recorded drops; LT5 F, H and R are dropped and **J and O are pending** (q0562), so the
-  remaining source of a slide is LT5 J/O's registration delaying LT7's past 2026-12-07, which would move LT7's `END_UTC` and
-  with it LT8's `REGISTERED_UTC` by rule (b) above. No LT6 date enters any LT8 rule.
+  after LT5's and LT6's registration commits or recorded drops; **LT5 also closed (2026-10-22 07:35Z, ledger "LT5 closed";
+  F, H, R, J and O all dropped at census; re-check fix 4)**, so both conditions are met by recorded drops and the first draft's
+  slide risk from LT5 J/O's registration is moot. The only remaining source of a slide is LT7's own rules (a) and (c): a late
+  LT7 registration commit moves LT7's `END_UTC` and with it LT8's `REGISTERED_UTC` by rule (b) above. No LT5 or LT6 date
+  enters any LT8 rule.
 - **Why 24 h after LT7's end is enough (and what is shared).** LT7's last primary and F inputs are CH197's 22 h target and
   k + 13 sweep of its last 12:31Z origin (12-28T12:31Z), ending with the 12-29T14:31Z pass (about 14:40Z). LT8's earliest
   state input (CH203's k - 2 sweep of its first origin) is the 12-30T00:31Z pass, and every LT8 primary state input is a
@@ -156,7 +162,7 @@ Round 13's design rules (`CREATIVE_HYPOTHESES_2026-10-27.md` 0.1) map onto LT8 a
   |---|---|---|---|
   | CH202 | E015 (`T_E015`, proposed 2026-11-15T12Z) | E015's anatomy (traded against quote-only) is a CH202 control; a held quote-only move is a re-centring that stayed | label *informed (E015)* |
   | CH202, CH203 | E022 (`T_E022`, proposed 2026-11-17T12Z) | E022 reads sweep depth and post-move hollowness on movers; CH202 shares its population; CH203 reads the same depth fields on non-movers | label *informed (E022)* |
-  | CH202 | LT5 J (`T_LT5`, proposed about 2026-11-22T12Z), if J registers | J's one-step against grind at the print clock is a timing-of-the-move question | label *informed (LT5)* |
+  | CH202 | LT5 J (**dropped at census** 2026-10-22; LT5 closed; never registered, no analysis) | J's one-step against grind at the print clock is a timing-of-the-move question | none: dropped at census, no rule (re-check fix 4) |
   | CH203 | LT6 V (**closed**: dropped at census 2026-10-22, never registered, no analysis) | V's post-move 5c skew and `v_prev` pre-move skew are levels whose change CH203 tests on quiet books | none: no `T_V` exists; the first draft's drop rule is withdrawn (R1 must-fix 1); V's census counts were read and are disclosed (10) |
   | CH202, CH203, CH204 | **LT7** (`T_LT7`, proposed 2026-12-30T12Z) | CH195 reads the same k - 1 sweep on the same movers (CH202); CH197 the behind-touch level and CH195 the depth level (CH203); CH192 the |move| magnitude on the whole panel (CH204) | registration is before `T_LT7` by construction (at least 24 h before 12-30T00Z); if not, **every LT8 test is dropped** |
   | CH204 | E011 (`T_E011`, analysis after 2026-11-11) | E011 scores moves against the market's own volatility | label *informed (E011)* |
@@ -258,9 +264,9 @@ is also re-estimated on units with the field present and reported, never a verdi
 No mid, move, target, P&L, regression or plot from `live_tests8/` files, or from in-window captures or sweeps, for these
 hypotheses. Only `run_live_tests8.py ops-stats` may run (file, line, role, class and status counts; reads no price column,
 enforced by a unit test). No change of thresholds, scales, populations, estimators or k after registration; operational fixes
-are logged as deviations. E015's, E022's, LT5's and LT7's analyses (11-15 .. 12-30) arrive before LT8's window (LT6 has no
-analysis: it closed at census); they change nothing in LT8 after the design-text freeze, and the table of 1.1 decides their
-consequences. **No LT8 designer, coder or reviewer reads E015's, E022's, LT5's or LT7's analysis outputs, or LT7's census
+are logged as deviations. E015's, E022's and LT7's analyses (11-15 .. 12-30) arrive before LT8's window (LT5 and LT6 have no
+analysis: both closed at census; re-check fix 4); they change nothing in LT8 after the design-text freeze, and the table of
+1.1 decides their consequences. **No LT8 designer, coder or reviewer reads E015's, E022's or LT7's analysis outputs, or LT7's census
 outputs beyond counts this file already cites, before the pin** (`SPEC_SHA256`). LT6's census outputs (counts only) **have
 been read** in the R1 response (`LIVE_TESTS_6.md` 6.3; disclosed in 10); nothing in LT8 was changed because of them.
 - **LT7's census comes before LT8's freeze (R1 must-fix 2; declared now).** LT7's censuses q0602-q0604 have not run at this
@@ -309,7 +315,8 @@ been read** in the R1 response (`LIVE_TESTS_6.md` 6.3; disclosed in 10); nothing
   |---|---|---|---|---|
   | 1 | binary iid label | block FL | CH202 | gate rejection rate |
   | 2 | binary label, persistent market rates | block FL | CH202 | gate |
-  | 3 | **leak world (R1 must-fix 7):** binary label correlated 0.7 with the true last-hour change, which has E002's real reversal effect; the model sees only a **noisy, lagged `chg_1h` proxy** | block FL | CH202 | gate |
+  | 3 | **leak world (R1 must-fix 7; re-check fix 1):** binary label correlated 0.7 with the true last-hour change `D60`, which has a real effect of **0.02 per SD** (the first draft's and LT7's world-3 scale); the model sees only a **noisy, lagged `chg_1h` proxy** | block FL | CH202 | gate |
+  | 3r | as 3 with the E002-scaled effect `-0.14 x D60` | block FL | **none (reported; re-check fix 1)** | gate rejection rate, reported |
   | 4 | binary Markov label (persistence 0.6), MA(2) target, unbalanced markets | block FL | CH202 | gate |
   | 5 | **one-path stale-display world (CH202):** true martingale price, Gamma display refreshing at random, a sweep reading the true price 7 minutes into the interval, a real display bounce that reverts by k + 1 and a real reversal of the true last-hour change, which the model sees only through the **noisy, lagged last-trade `chg_1h` proxy** (R1 must-fix 7); labels and target from one path | block FL | CH202 | gate |
   | 6 | **CH203 level world:** imbalance level AR(1) rho 0.9 (innovation derived from it), control (the level) with a real effect, MA(2) target | block FL | CH203 | gate |
@@ -325,7 +332,8 @@ been read** in the R1 response (`LIVE_TESTS_6.md` 6.3; disclosed in 10); nothing
   Criterion: <= 0.058 at 2,000 worlds.
 - **Also reported, never binding:** a planted-effect power run per test (500 worlds each, effect 0.5c per SD or between classes,
   seeds `20261187 x 100 + 31, 32, 33` for CH203, CH202, CH204), giving the power of gate, analytic p and F together; the
-  far-future label rates of CH202 and CH204 in scenarios 4, 5, 10 and 12; **scenario 12's gate rejection rate** (decided
+  far-future label rates of CH202 and CH204 in scenarios 4, 5, 10 and 12; **scenario 3r's gate rejection rate** (re-check fix
+  1); **scenario 12's gate rejection rate** (decided
   reported now, before any size result exists, R1 must-fix 6: a real schedule that lasts one week satisfies the stated 7-day
   hypothesis, so world 12 is not a null; it is run in table order at its sub-seed and printed, never binding); the share of
   block-gate offsets that are multiples of 12 in CH204's gate on data and in worlds 10-12 (R1 should-fix: such offsets keep the
@@ -334,8 +342,9 @@ been read** in the R1 response (`LIVE_TESTS_6.md` 6.3; disclosed in 10); nothing
   an imperfect control (a lagged, noisy `chg_1h` proxy; a volume control missing on most units), so the tested term carries a
   real but **mechanical** partial effect. They stay binding gate worlds: a rejection rate above 0.058 means the design cannot
   separate the hypothesis from the confounder at the declared control, and the test is "SE check failed (size scenario)". This
-  is the intended consequence, declared now; their parameters are the first draft's (8) or neutral sources (3, 5; 1.8.1) and
-  are not tuned. **Expected:** world 8 at `p_vm >= 0.78` is likely to fail (a planning calculation with no simulation run puts
+  is the intended consequence, declared now; their effect sizes and timings are the first draft's (3: 0.02 per SD; 5: 0.21 at
+  two named passes; 8: the fill parameters), restored by the re-check (fixes 1-2), and are not tuned; only the proxy and the
+  `vol_missing` share are new (R1 must-fix 7, 8). **Expected:** world 8 at `p_vm >= 0.78` is likely to fail (a planning calculation with no simulation run puts
   the leaked slope near 0.004 per unit of `dimb` against a standard error near 0.002 at the world's size); worlds 3 and 5 may
   fail.
 - **Consequence of a failure (declared now, as LT5-LT7):** a failing scenario makes **only the tests it is binding for** "SE
@@ -354,25 +363,32 @@ generator seeded 20261187, scenarios in table order; non-binding runs on generat
   the capture). Per unit: a lag `L ~ U(0, 60)` minutes; trades arrive as a Poisson process with a market rate `lambda_m ~
   U(0.5, 6)` per hour; the last-trade price `p_lt(tau)` is the true price at the last trade at or before `tau` (the previous
   value if none); **`chg1h_obs = p_lt(t - L) - p_lt(t - L - 60 min)`** (exactly 0 when neither window end has a new trade, as
-  Gamma's exact zeros); missing with probability 0.1 (then 0 with `chg1h_missing`, as 1.5). The real reversal acts on the true
-  `D60`: **0.21 x D60 reverts, spread evenly over the next three passes** (E002's about 21% at about 5 h; two thirds of it
-  inside the skip target). The 0-60 minute lag and the trade rates are neutral conventions (the field's documented
-  semantics are unknown; the rate range spans thin to active non-sports markets), recorded in the world's spec.
-- **3 (leak, generic; R1 must-fix 7):** LT7 scenario 3's market layout (60 markets x 40 units, `sim_corr_label_world`) with
-  the control re-specified: `D60_i ~ N(0, (0.012 sqrt(1/2))^2)`; label `1[z > 0]`, `z` correlated 0.7 with `D60`; target
-  `y_i = level - 0.14 x D60_i + noise` (two thirds of E002's 0.21, the share inside the skip window; noise SD 0.04 as LT7's
-  world); the model's control is `chg1h_obs` built by the proxy rule above from a two-point path (the true price at
-  `t - L - 60` and `t - L` drawn as a Brownian bridge consistent with `D60`, trades by the Poisson rule); no effect of the
-  label beyond `D60`. **This replaces LT7 world 3's exact control with effect 0.02** (whose scale had no source), with the
-  E002-scaled effect.
+  Gamma's exact zeros); missing with probability 0.1 (then 0 with `chg1h_missing`, as 1.5). The real effect acts on the true
+  `D60`, at each world's own scale and timing (3 and 5 below). The 0-60 minute lag and the trade rates are neutral conventions
+  (the field's documented semantics are unknown; the rate range spans thin to active non-sports markets), recorded in the
+  world's spec.
+- **3 (leak, generic; R1 must-fix 7; re-check fix 1):** LT7 scenario 3's market layout (60 markets x 40 units,
+  `sim_corr_label_world`) with the control re-specified: `D60_i ~ N(0, (0.012 sqrt(1/2))^2)`; label `1[z > 0]`, `z` correlated
+  0.7 with `D60`; target `y_i = level - 0.02 x D60_i / sd(D60) + noise` (**the first draft's and LT7's effect of 0.02 per SD,
+  kept**; noise SD 0.04 as LT7's world); the model's control is `chg1h_obs` built by the proxy rule above from a two-point
+  path (the true price at `t - L - 60` and `t - L` drawn as a Brownian bridge consistent with `D60`, trades by the Poisson
+  rule); no effect of the label beyond `D60`. Binding.
+- **3r (reported only; re-check fix 1):** world 3 with the E002-scaled effect `y_i = level - 0.14 x D60_i + noise` (two thirds
+  of E002's 0.21, the share inside a three-pass skip window; about 0.0012 per SD of `D60`); its gate rejection rate is printed
+  and changes nothing. (The R1 response had put this weaker scale into binding world 3 without R1 asking; the re-check found
+  that a loosening and it is withdrawn from the binding set.)
 - **5 (one-path stale display, CH202):** 120 markets, `n_m` (passes) uniform on 120..252; log-volatility `s_t` AR(1) rho 0.95
   stationary SD 0.5; within each 2 h interval the true price `p` moves by two shocks, `u^a_t` over the first 7 minutes and
   `u^b_t` over the remaining 113, variances in the ratio 7 : 113 with total variance `(0.012 exp(s_t - 0.25))^2` (LT7 world
   15's scale); the sweep reads `p` at minute 7; the Gamma mid `m_t = p_t + b_t` with probability `pi_m` and `m_{t-1}`
   otherwise, `pi_m ~ U(0.4, 1.0)` (LT7 world 19's borrowed range), where `b_t = -0.3 u^b_t` is a display bounce that is
   absent at t + 1 (E004's bounce, removed by the skip target); the true path is simulated at 1-minute resolution inside each
-  interval (the two shocks above split into minutes with variance proportional to time), and the real reversal of the true
-  `D60` (0.21, over the next three passes) is applied to `p`; **the model's control is `sign(x) x chg1h_obs` built by the proxy
+  interval (the two shocks above split into minutes with variance proportional to time), and **the first draft's real reversal
+  of 0.21 of the true last-hour change `D60` at the next two passes** (re-check fix 2) is applied to `p`, **named explicitly:
+  passes t + 2 and t + 3**, i.e. `-0.105 x D60` added to the true price change of each of the intervals (t + 1, t + 2] and
+  (t + 2, t + 3], so that all of it lies inside the skip target `m_{t+3} - m_{t+1}` (the reading of "the next two passes"
+  under which the leak inside the target is not lowered, the re-check's reason for fix 2; the alternative reading, passes
+  t + 1 and t + 2, would put only half inside the target); **the model's control is `sign(x) x chg1h_obs` built by the proxy
   rule above from the simulated 1-minute path and trades** (the first draft's exact true change is withdrawn, R1 must-fix 7);
   units are passes with `|m_t - m_{t-1}| >= 0.01`; labels `early_share`, held, fresh by section 3's rules; target
   `sign(x)(m_{t+3} - m_{t+1})`; controls `log |x|`, `sign(x) chg1h_obs` (+ missing flag), `log rv24*`. No effect of the label
@@ -472,7 +488,7 @@ generator seeded 20261187, scenarios in table order; non-binding runs on generat
   | CH202 | **LT7 CH195** (same movers, same k - 1 sweep, its depth) and **CH191** (path shape over three steps) | captures, sweeps | no: CH195 reads the sweep's depth, CH202 its mid against the capture mids; CH191 reads the step path at the capture clock | disjoint windows; registration before `T_LT7`; `swclock` token |
   | CH202 | **CH194** (LT7; withdrawn before registration, uncounted) | captures | **the same question** (held against fresh) on another clock (Gamma's `chg_1h` there; host receipts here) | never registered; CH202 is its declared heir with the direct timing gate R1 asked for and with `sign(x) chg_1h` as a control, the redesign R1 named |
   | CH202 | **E002, E004** (complete; reversal of about 21% of Gamma's 1 h change at about 5 h) | captures | no, but **informing** (1.1) | completed; nothing pooled; *informed (E002/E004)*; the signed `chg_1h` control (a venue-computed proxy of unknown clock) and the binding leak worlds 3 and 5, which give the model only a noisy, lagged proxy (R1 must-fix 7), decide whether the channel is separated |
-  | CH202 | **E015** (anatomy), **E022** (movers), **LT5 J** (jump or grind at the print clock), E021 (age of the move; dropped at census) | captures; samples (J, E021) | no | disjoint windows; *informed (X)* rules |
+  | CH202 | **E015** (anatomy), **E022** (movers), **LT5 J** (jump or grind at the print clock; **dropped at census**, LT5 closed), E021 (age of the move; dropped at census) | captures; samples (J, E021) | no | disjoint windows; *informed (X)* rules for E015 and E022; J and E021 dropped at census, no rule (re-check fix 4) |
   | CH202 | the engine's `b0_gap` diagnostic (DESIGN_V1 22: correlation -0.04 to -0.16 with the 2 h label move) | `book0` sweep against the origin mid | **half of the state** (`late` is `b0_gap` up to sign and the sweep used) | disclosed; it is the M2 reading's content, not the primary's skip contrast; *informed (b0_gap diagnostic)* always |
   | CH204 | **LT7 CH192** (|move| over (k + 1, k + 2] on spread over realised volatility), **E011** (moves scaled by own volatility), CH57 (weather model runs; idea), the engine's `surprise` (UTC hour and weekday) and dropped `regime` family | captures | no: CH204's term is a per-market own slot, with the venue's slot pattern held fixed | disjoint windows; *informed (E011)*; registration before `T_LT7`; `sched` token |
   | all | E009/E010 (cross-venue), E025, E026 (frozen modules to 12-07) | no | no | different streams; nothing of E026 is imported |
@@ -944,23 +960,27 @@ q0604 or its recorded drop, so the LT8 censuses follow LT7's). Each counts 0.
   `token0_map`, `project_events`, `fit`, `attrition`, `lee_bounds`, `paper_taker`, `econ`, `block_anchor`, `de_gate`,
   `strata_of`, `block_fl_gate`, `holm`, `expanding_demean`, LT5 R's reward parser, LT7's `rv24*` helper, lag-slot loader and
   mid cache, each where it exists under that name; a missing name is written as new LT8 code, reviewed at the freeze check).
-  **Source of the LT7 copies (R1 must-fix 5; option chosen: vendor from the freeze-checked LT7 census-code commit).** The LT7
-  functions (lag-slot loader, mid cache, `rv24*` helper, seal reader) are copied from **the LT7 census code that was
-  freeze-checked (`reviews/LT7_CENSUS_CODE_CHECK_2026-10-22.md`, FIXES_OK_WITH_NOTES) and that wrote LT7's seal**: at this
-  response `backend/astrolabe/research_lab/live_tests7.py` sha256 `232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902`
-  and `live_tests7_base.py` sha256 `2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20`, the `code_sha256` values
-  recorded in `seals/lt7_census_inputs.json` (equal to the files at the `chore/arepo-claude-setup` tip, last changed by
-  74c7f5ac after the verification notes 699b9ee9). **Rule:** the vendor script refuses unless the source files' sha256 equal
+  **Source of the LT7 copies (R1 must-fix 5; option chosen: vendor from the LT7 census code that wrote LT7's seal).** The LT7
+  functions (lag-slot loader, mid cache, `rv24*` helper, seal reader) are copied from `backend/astrolabe/research_lab/live_tests7.py`
+  sha256 `232c22fb4c3b40e14d828429e052b8eceeaea6732d604c16a693510d9e5ce902` and `live_tests7_base.py` sha256
+  `2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20`. **What these hashes are (re-check fix 3):** the census-code
+  check (`reviews/LT7_CENSUS_CODE_CHECK_2026-10-22.md`, FIXES_OK_WITH_NOTES) checked `live_tests7.py` sha256 `755fa7d2…`
+  (699b9ee9, merged as dde3c3c4); **232c22fb… is that code plus the seal-audit fix 74c7f5ac** (05:45:56Z, reviewed OK_TO_RUN),
+  and the seal written at 05:48:25Z recorded these **post-fix** hashes as its `code_sha256` (they equal the files at the
+  `chore/arepo-claude-setup` tip); `live_tests7_base.py` 2e8baa90… is the same at every one of these commits. 74c7f5ac touches
+  only the seal-input helpers (the helper after `_find` and `seal_inputs`), **not the lag-slot loader or the mid cache that
+  LT8 copies**, so the functions LT8 copies are byte-identical in substance to the census-code-checked version. **Rule:** the vendor script refuses unless the source files' sha256 equal
   the `code_sha256` that LT7's own census outputs (q0602-q0604) record for those modules; if LT7's censuses have not run when
   LT8's code is written, it uses the seal's recorded hashes above, and the LT8 freeze check re-verifies them against LT7's
   census outputs once they exist (a mismatch: LT8 re-vendors from the hash LT7's census actually ran, before any LT8 census;
   never after). Commit id and source hashes are recorded in `VENDORED`. **Why this option, not "wait for LT7's pin":** LT7's
   pin is due only by about 2026-12-07; waiting would push LT8's censuses, size check, code freeze and dry run into
-  2026-12-07 .. 12-28, three weeks for six sequential steps; the census-code commit is the code that has been reviewed and that
-  will have counted the very sealed files LT8 reads, so copying it is the closest object; later LT7 edits (before or after
-  LT7's pin) cannot change LT8's copies (drift is recorded in `vendored_source_drift_accepted`, never adopted silently). The
-  first draft's "only after LT7's pin" clause is withdrawn. LT5's `block_fl_gate` and LT3/LT4 functions are vendored from
-  their current (unchanging, registered) sources as before. A
+  2026-12-07 .. 12-28, three weeks for six sequential steps; this code (census-code-checked, plus a reviewed seal-audit fix
+  outside the copied functions) is the code that will have counted the very sealed files LT8 reads, so copying it is the
+  closest object; later LT7 edits (before or after LT7's pin) cannot change LT8's copies (drift is recorded in
+  `vendored_source_drift_accepted`, never adopted silently). The first draft's "only after LT7's pin" clause is withdrawn.
+  LT5's functions (`block_fl_gate`, the reward parser) are still copied from LT5's code by hash although LT5 closed at census
+  (re-check fix 4), and LT3/LT4 functions from their registered sources, as before. A
   `VENDORED` table records each copy's source file, source sha256 and normalised-source sha256; a unit test fails on source
   drift unless the spec's `vendored_source_drift_accepted` records it (empty at the pin); another proves no LT8 module imports
   `live_tests3*` .. `live_tests7*`. **The empty-`clob_rewards` rule** (unrewarded = 0) is new LT8 code, not a vendored copy,
@@ -1061,7 +1081,8 @@ q0604 or its recorded drop, so the LT8 censuses follow LT7's). Each counts 0.
    engine embargo requests of section 9 are filed in `signal_engine/CANDIDATES.md` and applied** (not a registration step).
 2. **Design-text freeze commit**, its sha256 in the ledger, before the earlier of 2026-11-15T12:00Z and `T_E015`.
 3. q0620 restore, q0621 seal, seal committed and pulled on the host (after LT7's last census, q0604, or its recorded drop).
-4. Code (8.1, 8.3), with the LT7 copies vendored from the freeze-checked LT7 census-code hashes (8.1); a `science-reviewer`
+4. Code (8.1, 8.3), with the LT7 copies vendored from the hashes LT7's seal recorded (the census-code-checked code plus the
+   seal-audit fix 74c7f5ac; 8.1); a `science-reviewer`
    freeze check of the census and size-check code against sections 1.8, 1.8.1 and 7;
    fixes (none may change frozen text, 1.1).
 5. Censuses q0622-q0623 (counts only); drops recorded in 6.3; `k_tests`, scales, cuts and `exclude_family` filled with the exact
@@ -1070,7 +1091,7 @@ q0604 or its recorded drop, so the LT8 censuses follow LT7's). Each counts 0.
 6. Size check q0624 (2,000 worlds x 200 draws, seed 20261187); results recorded per test.
 7. Reader freeze check; host dry run with the exact cron command following 8.2's ladder (the step used is recorded).
 8. LT7's registration commit (or recorded drop) exists; the LT7 copies in `live_tests8_base.py` are those vendored at step 4
-   from the freeze-checked LT7 census-code hashes (8.1, R1 must-fix 5), re-verified against LT7's census outputs; the embargo entries
+   from the hashes LT7's seal recorded (8.1, R1 must-fix 5, re-check fix 3), re-verified against LT7's census outputs; the embargo entries
    applied at step 1 are verified in `config.EMBARGO` (a missing entry blocks the pin); any token or extension of a test
    dropped at census is withdrawn with a ledger line. If LT8's window slides, the config entries are extended before their
    current date to the later of 2027-01-23T00:00Z and LT8's analysis commit.
@@ -1218,8 +1239,9 @@ primary makes its family a candidate; an engine gain never changes an LT8 verdic
 > ## LT8 (three round-13 candidates: CH203, CH202, CH204) — DRAFT pre-registration (not registered, nothing counted, no code)
 > - **Design:** `docs/research_lab/LIVE_TESTS_8.md` on `feat/live-tests-8`. Pure reader of streams the host already writes
 >   (complete captures, sidecar, sweep 1 of passes k - 2 .. k + 6); no network, no new collector; separate store
->   `live_tests8/`; LT3/LT4/LT5/LT7 functions **vendored** into a generated `live_tests8_base.py` (LT7's from the
->   freeze-checked LT7 census-code hashes 232c22fb… / 2e8baa90…, R1 must-fix 5);
+>   `live_tests8/`; LT3/LT4/LT5/LT7 functions **vendored** into a generated `live_tests8_base.py` (LT7's from the hashes
+>   recorded by LT7's seal, 232c22fb… / 2e8baa90…: the census-code-checked 755fa7d2… plus the seal-audit fix 74c7f5ac, which
+>   touches only seal-input helpers, not the copied loader or mid cache; R1 must-fix 5, re-check fix 3);
 >   memory planned from LT4's measured 484-525 MB with a two-step ladder (<= 650 MB each); install by host cron `5 */2 * * *`;
 >   look-back needs >= 8 days of host retention or a byte-identical release restore.
 > - **CH203** the quiet book: YES change over (k + 1, k + 3] on the 5c-imbalance innovation between sweep 1 of passes k - 2 and
@@ -1236,7 +1258,7 @@ primary makes its family a candidate; an engine gain never changes an LT8 verdic
 > - **Family:** Holm over **k <= 3** (census-fixed; expected 0 to 1; if 0, LT8 is not registered), one-sided, alpha 0.05;
 >   p = max(event t, two-way, day t) (`G_minor - 1` df for CH202 and CH204); multiplier 3.47 (not lowered); F-MDE cap 0.5c;
 >   11 binding size scenarios (10 gate worlds, of which 3, 5 and 8 are leak worlds with a noisy lagged `chg_1h` proxy or the
->   census `vol_missing` share >= 0.78; 1 mechanical verdict-size world) and world 12 reported, a failure sets only its own
+>   census `vol_missing` share >= 0.78; 1 mechanical verdict-size world) and worlds 3r and 12 reported, a failure sets only its own
 >   tests to p = 1;
 >   window proposed `[2026-12-30T00:00Z, 2027-01-20T00:00Z)` keyed to LT7's `END_UTC` + 24 h (slides with it; never before
 >   12-30), single analysis on or after 2027-01-21T12:00Z; design-text freeze before the earlier of 2026-11-15T12:00Z and
@@ -1257,7 +1279,10 @@ Text only, before any LT8 census, seal, size run or window data, and **before LT
 output exists in `seals/`); nothing was chosen from data and no E015, E022, LT5, LT7 output was read. New context read for the
 response: the review record (9f99504d), `LIVE_TESTS_6.md` 6.3 at the `chore/arepo-claude-setup` tip (LT6 closed; counts
 disclosed in 10), `config.EMBARGO`'s `book` / `book0` entries, and the sha256 of `live_tests7.py` / `live_tests7_base.py` at
-699b9ee9, dde3c3c4 and the chore tip (for must-fix 5). **No threshold, floor, alpha, seed, date or direction was loosened.**
+699b9ee9, dde3c3c4 and the chore tip (for must-fix 5). **No threshold, floor, alpha, seed, date or direction was loosened,
+with one qualification (re-check fix 3): as first written, this response re-scaled binding world 3's effect (0.02 per SD to
+about 0.0012 per SD) and spread world 5's reversal over three passes, which R1 did not ask for and which weakened two binding
+worlds; the re-check found both, and they are restored (13.6, fixes 1-2).** With that restoration, nothing is loosened.
 Every change removes a moot rule, corrects arithmetic, adds a disclosure, a print, a reported arm or a minimum, makes a world
 more realistic, or fixes an order of steps. The changes are applied in sections 0-12; where any text differs, this section
 governs.
@@ -1271,13 +1296,13 @@ test, recorded in the ledger with its reason, and carried to the verdict (1.6).
 
 | # | Item | What changed | Where |
 |---|---|---|---|
-| 1 | LT6 closed; the `T_V` drop rule is moot | The rule dropping CH203 if the freeze is not before `T_V` is withdrawn everywhere; the 1.1 table row now records V as closed with no rule; a new 1.1 bullet rewrites the chain (LT7's window follows its own rules (a) and (c); the remaining slide risk is LT5 J/O's registration, which LT7 waits for); the LT6-V entries in the `book` / `book0` test lists lapse (dates unchanged); LT6's census counts, including V's within-market correlation 0.595 (pooled 0.566), are disclosed as read; **CH203's `VIF_w <= 2.0` gate is unchanged** | header, 0, 1.1, 1.6, 1.11, 8.3, 9, 10, 12 |
+| 1 | LT6 closed; the `T_V` drop rule is moot | The rule dropping CH203 if the freeze is not before `T_V` is withdrawn everywhere; the 1.1 table row now records V as closed with no rule; a new 1.1 bullet rewrites the chain (LT7's window follows its own rules (a) and (c); after LT5's closure (re-check fix 4) these are the only remaining slide risk; the R1 text's "LT5 J/O registration" risk is moot); the LT6-V entries in the `book` / `book0` test lists lapse (dates unchanged); LT6's census counts, including V's within-market correlation 0.595 (pooled 0.566), are disclosed as read; **CH203's `VIF_w <= 2.0` gate is unchanged** | header, 0, 1.1, 1.6, 1.11, 8.3, 9, 10, 12 |
 | 2 | LT7's census will precede LT8's freeze | Declared: the response applies only this review's items; after LT7's census commit any change to a gate, filter, planning count or expected fate is labelled *informed (LT7 census)*, re-check fixes included unless the reviewer records independence; LT7 census outputs are opened before LT8's freeze only to verify a hash | header, 1.6, 12, 13 |
 | 3 | CH204's MDE did not follow its chain | `n_1` = 1,955 x 21 x 0.8 = **32,844** (high 65,520), `n_2` = 11 x `n_1`; MDE **0.57c low, 0.40c high** (DE 31), 0.66c / 0.47c at DE 41, quarter 1.14c / 0.81c (computed: 0.571, 0.404, 0.657, 0.465, 1.143, 0.809); the 0.5c gate needs about 2,550 hot units a day; 6.1 item 9's false claim corrected; prior odds of surviving census 0.15 -> **0.10** | 0, 4, 6.1, 10, 12 |
 | 4 | CH202's floor MDE used the wrong count | The gate counts 201,600 **held plus fresh**: with 15% class shares (100,800 each) the MDE is **0.33c raw** (the reviewer's figure; computed 0.329) and **0.37c at the 80% effective share** used everywhere else (0.368); shown also: the least favourable split the gates allow (held 30,240, fresh 171,360, no mixed) **0.52c** (0.515). Gate unchanged | 0, 3, 12 |
-| 5 | Vendoring order contradicted the census step | **Option chosen: vendor from the freeze-checked LT7 census-code commit** (`live_tests7.py` 232c22fb…, `live_tests7_base.py` 2e8baa90…, the hashes in LT7's seal and at the chore tip), the vendor script refusing unless the source hashes equal those LT7's census outputs record; the "only after LT7's pin" clause withdrawn. Justification: waiting for LT7's pin (about 12-07) would compress six sequential LT8 steps into three weeks before 12-28, while the census-code commit is the reviewed code that will have counted the same sealed files; later LT7 edits cannot reach LT8's copies (drift recorded, never adopted) | 8.1, 8.3, 8.4, 12 |
+| 5 | Vendoring order contradicted the census step | **Option chosen: vendor from the LT7 census code that wrote LT7's seal** (`live_tests7.py` 232c22fb…, `live_tests7_base.py` 2e8baa90…, the post-fix hashes the seal recorded at 05:48:25Z and the chore tip's: the census-code-checked `live_tests7.py` 755fa7d2… plus the seal-audit fix 74c7f5ac, reviewed OK_TO_RUN, which touches only the seal-input helpers and not the loader or mid cache LT8 copies; `live_tests7_base.py` unchanged throughout; re-check fix 3), the vendor script refusing unless the source hashes equal those LT7's census outputs record; the "only after LT7's pin" clause withdrawn. Justification: waiting for LT7's pin (about 12-07) would compress six sequential LT8 steps into three weeks before 12-28, while this code is the reviewed code that will have counted the same sealed files; later LT7 edits cannot reach LT8's copies (drift recorded, never adopted) | 8.1, 8.3, 8.4, 12 |
 | 6 | World 12 is not a null | **Decided now, before any size result: world 12 is reported, never binding**; the failure-consequence list is 1-8 and 10-11; CH204's text now names worlds 10-11 as its binding gate worlds | 0, 1.8, 1.8.1, 4, 8.3, 12 |
-| 7 | Worlds 3 and 5 gave the control the exact last-hour change | A **noisy, lagged last-trade proxy** `chg1h_obs = p_lt(t - L) - p_lt(t - L - 60 min)`, `L ~ U(0, 60)` min, Poisson trades at `lambda_m ~ U(0.5, 6)` per hour, exact zeros, 10% missing, is the only control the model sees in both worlds; the reversal acts on the true `D60` (0.21 over three passes, E002's scale); world 3's effect is re-scaled from LT7's sourceless 0.02 to E002's (the share inside the skip window, 0.14 x `D60`); both stay binding as **leak worlds**; CH202's valid-verdict odds about 0.12 | 0, 1.8, 1.8.1, 1.11, 3, 12 |
+| 7 | Worlds 3 and 5 gave the control the exact last-hour change | A **noisy, lagged last-trade proxy** `chg1h_obs = p_lt(t - L) - p_lt(t - L - 60 min)`, `L ~ U(0, 60)` min, Poisson trades at `lambda_m ~ U(0.5, 6)` per hour, exact zeros, 10% missing, is the only control the model sees in both worlds; the effect acts on the true `D60`; **after the re-check (fixes 1-2):** binding world 3 keeps the first draft's 0.02 per SD of `D60` (the E002-scaled `0.14 x D60` is the reported world 3r) and world 5 keeps the first draft's reversal of 0.21 at the next two passes, named t + 2 and t + 3 (all inside the skip target); both stay binding as **leak worlds**; CH202's valid-verdict odds about 0.12 | 0, 1.8, 1.8.1, 1.11, 3, 12 |
 | 8 | CH203's fill confounder was called "addressed" | Text now says it is only partly controlled (`volume24hr` absent on about 78% of rows); **world 8 carries `p_vm` = max(the CS8 census `vol_missing` share of CH203's primary units, 0.78)**; the census prints the `vol_missing` x missing `last_trade_price` table and the primary's `vol_missing` share; world 8's fill parameters are kept as drafted (not tuned) and the world is expected to fail, so CH203's valid-verdict odds are about 0.10 | 0, 1.8, 1.8.1, 2, 6.1, 7, 10, 12 |
 
 ### 13.2 Should-fix items
@@ -1315,10 +1340,23 @@ tests reaching a valid verdict about 0.3.
 | Value | Where | Source |
 |---|---|---|
 | `chg_1h` proxy lag `L ~ U(0, 60)` min, trade rate `lambda_m ~ U(0.5, 6)` per hour, missing 0.1 | 1.8.1 | the reviewer's "up to 60 min" lag; a thin-to-active non-sports range (a convention; no AREPO measurement of Gamma's `chg_1h` basis exists); 0.1 a convention |
-| Reversal 0.21 x `D60` over three passes; 0.14 inside the skip window | 1.8.1 | E002/E004's confirmed about 21% at about 5 h |
+| World 5: reversal 0.21 x `D60` at passes t + 2 and t + 3 (0.105 each); world 3: 0.02 per SD of `D60`; world 3r (reported): 0.14 x `D60` | 1.8.1 | the first draft's world 5 and LT7's world 3 scales (re-check fixes 1-2); E002/E004's about 21% at about 5 h for 3r |
 | World 8 `p_vm` = max(census share, 0.78) | 1.8.1 | the reviewer's rule; DESIGN_V1 16's 78% |
 | Per-block minimum >= 12 origins in each sweep block | 7 | the reviewer's 1.0 covered day |
 | Design MDE working covariance, within-event equicorrelation 0.02 | 7 | the `DE_gate` formula's intraclass value |
 | CH204 S8: categories < 1,000 scheduled units pooled | 4 | a convention for a reported arm (no gate) |
 
-**Ready for the R1 re-check** (`science-reviewer`), then the orchestrator's check and the design-text freeze.
+### 13.6 Re-check fixes (2026-10-22; `reviews/LT8_R1_RECHECK_2026-10-22.md`, ACCEPT_WITH_FIXES; governs where earlier text differs)
+
+Text only; exactly the re-check's four remaining fixes, nothing else. They are made before the LT7 census commit (no
+CC7/CS7/CV7 output in `seals/`), and the reviewer records them as independent of it, so they are **not** *informed (LT7
+census)*. No gate changed.
+
+| # | Re-check item | What changed | Where |
+|---|---|---|---|
+| 1 | World 3's effect was re-scaled without R1 asking (a loosening of a binding world) | Binding world 3 keeps **0.02 per SD of the true `D60`**, seen through `chg1h_obs`; the E002-scaled `-0.14 x D60` version is added as **reported world 3r** (never binding) | 1.8, 1.8.1, 12, 13.1, 13.5 |
+| 2 | World 5's reversal timing changed (three passes, 0.14 inside the target) | Back to the first draft's **0.21 of `D60` at the next two passes, named: t + 2 and t + 3** (`-0.105 x D60` in each of (t + 1, t + 2] and (t + 2, t + 3]), all inside the skip target; this reading is chosen because the re-check's reason is that the in-target leak must not be lowered (the other reading, t + 1 and t + 2, would put half outside); the orchestrator may overrule the reading before the freeze | 1.8.1, 13.1, 13.5 |
+| 3 | "Freeze-checked" was wrong for 232c22fb… | 8.1, 8.4, 12 and 13.1 now say: the census-code check covered `live_tests7.py` 755fa7d2… (699b9ee9 / dde3c3c4); 232c22fb… is that code plus the seal-audit fix 74c7f5ac (OK_TO_RUN review), recorded post-fix by the seal at 05:48:25Z; `live_tests7_base.py` 2e8baa90… is unchanged throughout; 74c7f5ac touches only the seal-input helpers, not the loader or mid cache LT8 copies. Section 13's "nothing loosened" is qualified (the R1 text weakened worlds 3 and 5; restored by fixes 1-2) | 8.1, 8.4, 12, 13 |
+| 4 | LT5 closed (2026-10-22 07:35Z, ledger "LT5 closed") | The "LT5 J/O registration" slide risk is moot: LT7 registers after the recorded drops of both LT5 and LT6, so only LT7's own rules (a) and (c) remain; LT5 J as an adjacent test lapses ("dropped at census, no rule"); E-numbers pass to LT7 and then LT8 (LT5 holds none); LT5 has no analysis before LT8's window; J's and O's census counts (J MDE 2.16c, 63.7 units a pass, permutable share 0; O MDE 0.84c, IQR share 0.44, 372 units a pass) are disclosed as read; no gate changes; LT5's vendored functions (`block_fl_gate`, the reward parser) are still copied from LT5's code by hash | header, 0, 1.0, 1.1, 1.6, 1.11, 8.1, 13.1 |
+
+**Ready for the orchestrator's check and the design-text freeze.**
