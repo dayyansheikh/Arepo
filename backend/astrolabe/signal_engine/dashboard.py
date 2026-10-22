@@ -88,16 +88,10 @@ def _promotion(dec: dict | None, emb: dict) -> dict | None:
             "label": "promotion-rule status (forecast quality, primary target); not an edge claim"}
 
 
-def build(paths: S.Paths, reg: dict, champion: str, now: float, lb: dict | None, history_days: int = 28) -> dict:
-    models = reg["models"]
-    emb = {m: SP.embargo_of(s, now) for m, s in models.items()}
-    out = {"schema": "se-dash-v1", "generated_at": S.iso_s(now), "engine_version": C.ENGINE_VERSION,
-           "primary_target": C.PRIMARY_TARGET,
-           "champion": {"model_id": champion, "spec_sha256": models[champion]["_sha256"], "family": _family(models[champion])},
-           "models": [{"model_id": m, "family": _family(s), "learner": s["learner"], "status": s["_status"],
-                       "embargoed_until": emb[m]["until"] if emb[m] else None,
-                       "embargo_tests": emb[m]["tests"] if emb[m] else None} for m, s in models.items()],
-           "note": "Signal strength / forecast quality only; not probability of profit, not an edge claim."}
+def live_status(paths: S.Paths, now: float) -> dict:
+    """Latest refit and prediction from the engine's logs (no scores, no model numbers). The daily dashboard embeds it,
+    and lab_host re-reads it on every push, so a refit that stops shows its real age within 10 minutes."""
+    out = {}
     fits = S.read_logs(paths, "fits", now - 3 * 86400)
     if fits:
         last = max(S.epoch(f["fit_time"]) for f in fits)
@@ -109,6 +103,20 @@ def build(paths: S.Paths, reg: dict, champion: str, now: float, lb: dict | None,
         lp = preds[-1]
         out["last_prediction"] = {"capture_id": lp["capture_id"], "at": lp["written_utc"][:19] + "Z",
                                   "models": len({p["model_id"] for p in preds if p["capture_id"] == lp["capture_id"]})}
+    return out
+
+
+def build(paths: S.Paths, reg: dict, champion: str, now: float, lb: dict | None, history_days: int = 28) -> dict:
+    models = reg["models"]
+    emb = {m: SP.embargo_of(s, now) for m, s in models.items()}
+    out = {"schema": "se-dash-v1", "generated_at": S.iso_s(now), "engine_version": C.ENGINE_VERSION,
+           "primary_target": C.PRIMARY_TARGET,
+           "champion": {"model_id": champion, "spec_sha256": models[champion]["_sha256"], "family": _family(models[champion])},
+           "models": [{"model_id": m, "family": _family(s), "learner": s["learner"], "status": s["_status"],
+                       "embargoed_until": emb[m]["until"] if emb[m] else None,
+                       "embargo_tests": emb[m]["tests"] if emb[m] else None} for m, s in models.items()],
+           "note": "Signal strength / forecast quality only; not probability of profit, not an edge claim."}
+    out.update(live_status(paths, now))
     if lb:
         days = lb.get("days_scored", 0)
         out["prospective"] = {"generated_at": lb["generated_utc"][:19] + "Z", "days_scored": days,

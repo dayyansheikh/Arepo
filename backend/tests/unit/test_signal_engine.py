@@ -1256,6 +1256,26 @@ def test_lab_host_signal_engine_section_strips_embargoed_numbers(tmp_path):
     assert lab.build_signal_engine(tmp_path / "none", now) is None
 
 
+def test_lab_host_signal_engine_refreshes_last_refit_from_live_logs(tmp_path):
+    """dashboard.json is rewritten only by the daily score; the 10-minute push re-reads the fit/prediction logs."""
+    lab = _lab_host()
+    d = tmp_path / "data-dumps" / "research_lab" / "signal_engine"
+    d.mkdir(parents=True)
+    dash = {"schema": "se-dash-v1", "generated_at": "2026-10-25T06:00:00Z", "champion": {"model_id": "c"},
+            "last_refit": {"at": "2026-10-23T11:34:00Z", "models": 3, "targets_ok": 9}}
+    (d / "dashboard.json").write_text(json.dumps(dash))
+    now = pd.Timestamp("2026-10-25T07:00:00Z").to_pydatetime()
+    assert lab.build_signal_engine(tmp_path, now)["last_refit"]["at"] == "2026-10-23T11:34:00Z"  # no logs: file value
+    paths = S.Paths(engine=d)
+    t = now.timestamp() - 3600
+    S.append_log(paths, "fits", [{"model_id": m, "fit_time": S.iso(t - 600), "targets": {"dir_2h": {"status": "ok"}}}
+                                 for m in ("c", "x")], at=t)
+    S.append_log(paths, "predictions", [{"capture_id": "cap1", "model_id": m, "written_utc": S.iso(t)} for m in ("c", "x")], at=t)
+    se = lab.build_signal_engine(tmp_path, now)
+    assert se["last_refit"] == {"at": "2026-10-25T05:50:00Z", "models": 2, "targets_ok": 2}
+    assert se["last_prediction"] == {"capture_id": "cap1", "at": "2026-10-25T06:00:00Z", "models": 2}
+
+
 def test_gzip_quotes_reader_for_xvenue(tmp_path):
     xv = tmp_path / "xv"
     xv.mkdir()

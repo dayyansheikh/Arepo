@@ -459,6 +459,14 @@ def build_signal_engine(repo: Path, now: datetime) -> dict | None:
         tokens.update({e["token"]: e["until"] for e in EMBARGO})
     except Exception:  # noqa: BLE001 - the file's list still applies
         pass
+    try:  # live refit / prediction times: dashboard.json is rewritten only by the daily score (2026-10-22 refit outage)
+        from astrolabe.signal_engine import dashboard as SED
+        from astrolabe.signal_engine import store as SES
+
+        d.update(SED.live_status(SES.Paths(engine=repo / "data-dumps" / "research_lab" / "signal_engine"),
+                                 now.timestamp()))
+    except Exception:  # noqa: BLE001 - the file's own values still apply
+        pass
     live = {t for t, u in tokens.items() if _parse_utc(u) is None or _parse_utc(u) > now}  # unparseable: hidden
     if isinstance(d.get("attribution"), list):
         d["attribution"] = [
