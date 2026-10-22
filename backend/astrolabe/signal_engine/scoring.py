@@ -7,6 +7,11 @@ Per (target, model, origin UTC day) the scorer accumulates row counts, summed lo
 Windows (7/14/28 days) are sums over days, so memory never holds row-level history. CIs are cluster-bootstrap
 percentile intervals (event clusters, B = 2000, seeded). Pending and unavailable labels are counted, never scored.
 Embargoed models (``specs.embargo_of``) are not scored at all before their date.
+
+Market-price reference (``REF_MODEL``, ``res_7d`` only, 2026-10-22): P(yes) = the origin's own Gamma mid
+(``ms_mid`` of the write-once features file, the price every model sees). It is not a model and never a promotion
+candidate. Its row reads "does the champion beat the market's own price?" and every scored model's ``res_7d`` row
+carries ``gain_vs_market_mid`` (``ll(reference) - ll(model)`` on the model's scored rows, event-clustered CI).
 """
 
 from __future__ import annotations
@@ -25,6 +30,8 @@ from . import specs as SP
 from . import store as S
 
 CAL_LO, CAL_HI = -8.0, 8.0
+REF_MODEL = "market_price_reference"
+REF_PAIR = "@vs_market_mid"  # agg key suffix of a model's paired gain over the reference
 
 
 def ll_dir(p: np.ndarray, y: np.ndarray) -> np.ndarray:
@@ -348,6 +355,21 @@ def score_prospective(paths: S.Paths, reg: dict, champion: str, now: float, look
                     both = valid_by[mid] & valid_by[champion]
                     if both.any():
                         agg.add_pair(t, mid, day, cl[both], cats[both], ll_by[champion][both] - ll_by[mid][both])
+            if t == C.RES_TARGET:
+                pm = f["ms_mid"].to_numpy(np.float64)
+                fin = np.isfinite(pm)
+                rv = lab & fin
+                agg.add_cov(t, REF_MODEL, day, int(e.sum()), int((e & fin).sum()), 0)
+                if rv.any():
+                    ll_ref = np.full(len(f), np.nan)
+                    ll_ref[rv] = agg.add_model(t, REF_MODEL, day, y[rv].astype(np.int64), pm[rv], cats[rv])
+                    for mid in ll_by:
+                        both = valid_by[mid] & rv
+                        if not both.any():
+                            continue
+                        agg.add_pair(t, mid + REF_PAIR, day, cl[both], cats[both], ll_ref[both] - ll_by[mid][both])
+                        if mid == champion:  # the reference's own row: its gain over the champion (negative = worse)
+                            agg.add_pair(t, REF_MODEL, day, cl[both], cats[both], ll_by[mid][both] - ll_ref[both])
     return agg, info
 
 
@@ -371,6 +393,8 @@ def leaderboard(agg: Agg, reg: dict, champion: str, now: float, role: str, windo
                      "window_days": w, "spec_sha256": spec["_sha256"], **mt}
                 if mid != champion:
                     r["gain_vs_champion"] = gain(agg, t, mid, w)
+                if t == C.RES_TARGET:
+                    r["gain_vs_market_mid"] = gain(agg, t, mid + REF_PAIR, w)
                 rows.append(r)
         days = window_days(days_all, end_day, max(windows))
         cats = sorted({k[3] for k in agg.cat if k[0] == category_target and k[1] == mid and k[2] in days})
@@ -384,6 +408,12 @@ def leaderboard(agg: Agg, reg: dict, champion: str, now: float, role: str, windo
             if mid != champion:
                 cr["gain_vs_champion"] = gain(agg, category_target, mid, max(windows), category=c)
             cat_rows.append(cr)
+    for w in windows:
+        mt = metrics(agg, C.RES_TARGET, REF_MODEL, window_days(days_all, end_day, w))
+        if mt is not None:
+            rows.append({"model_id": REF_MODEL, "role": "reference", "target": C.RES_TARGET, "window_days": w, **mt,
+                         "gain_vs_champion": gain(agg, C.RES_TARGET, REF_MODEL, w),
+                         "reference": "P(yes) = the origin's Gamma mid; not a model, never promoted"})
     for (t, d), cnt in sorted(agg.labels.items()):
         label_rows.append({"target": t, "day": d, **cnt})
     return {"schema": "se-leaderboard-v1", "evidence_role": role, "generated_utc": S.iso(now), "champion": champion,

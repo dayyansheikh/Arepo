@@ -22,6 +22,9 @@ def _row(r: dict) -> dict:
     if g:
         out.update({"gain": g["mean"], "gain_lo": g["lo"], "gain_hi": g["hi"], "days_positive": g["days_positive"],
                     "n_days": g["n_days"], "n_clusters": g["n_clusters"]})
+    m = r.get("gain_vs_market_mid")  # res_7d only: gain over the market-price reference (scoring.REF_MODEL)
+    if m:
+        out.update({"gain_vs_mid": m["mean"], "gain_vs_mid_lo": m["lo"], "gain_vs_mid_hi": m["hi"]})
     return out
 
 
