@@ -24,6 +24,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from . import config as C
 from . import store as S
 from .features import (
     ALL_FEATURES,
@@ -406,6 +407,114 @@ def _hwm_builder(ctx: dict) -> pd.DataFrame:
     ids = ctx["f"]["market_id"].to_numpy(np.int64)
     slot = meta["slot"]
     return hwm_features(np.column_stack([mids.get(j, ids) for j in range(slot - HW_LOOKBACK, slot + 1)]))
+
+
+# ---------------------------------------------------------------------------------------------- dispgap family
+# The display's disagreement (CH218, development only; engine-first, no live test reads it; DESIGN_V1 section 26): Gamma's
+# venue-computed `oneDayPriceChange` / `oneWeekPriceChange` (the champion's mo_chg_1d / mo_chg_1w, what the site's mover
+# lists rank on) minus the host's own 24 h / 7 d mid changes at the capture clock. dg_1d is the difference of two
+# champion columns (made explicit for the trees); dg_1w uses the own 7 d change from the engine's quotes files (slot
+# k - 84 and the origin's own quotes mid, as `hwm`); dg_vs2h signs dg_1d by the own 2 h move (positive: the display shows
+# more move in the direction the book just moved); dg_chg is dg_1d's change since the previous slot (a fresh disagreement
+# versus a persistent per-market trait of the venue's computation). Inputs: the features files of slots k and k - 1 and
+# the quotes files of slots k - 84 and k. No embargo token: CH218's proposed `dispgap` token was tied to LT7 (`capath`),
+# which closed at census with no test (withdrawn 2026-10-23).
+DISPGAP_COLUMNS = ["dg_1d", "dg_1w", "dg_abs1d", "dg_vs2h", "dg_chg"]
+DG_LOOKBACK = 84  # 7 d of 2 h slots
+DG_FEATURE_COLS = ["market_id", "mo_chg_1d", "mo_chg_1w", "mo_d2h", "mo_d24h"]
+
+
+def dispgap_features(f: pd.DataFrame, own7d: np.ndarray, prev_f: pd.DataFrame | None) -> pd.DataFrame:
+    """``f``: capture k's DG_FEATURE_COLS (eligible rows); ``own7d``: own 7 d mid change per row of ``f`` (NaN where a
+    mid is missing); ``prev_f``: the previous slot's DG_FEATURE_COLS (or None)."""
+    n = len(f)
+    out = pd.DataFrame({c: np.full(n, np.nan, np.float32) for c in DISPGAP_COLUMNS})
+    if n == 0:
+        return out
+    g1d = f["mo_chg_1d"].to_numpy(float) - f["mo_d24h"].to_numpy(float)
+    out["dg_1d"] = g1d
+    out["dg_1w"] = f["mo_chg_1w"].to_numpy(float) - own7d
+    out["dg_abs1d"] = np.abs(g1d)
+    out["dg_vs2h"] = g1d * np.sign(f["mo_d2h"].to_numpy(float))  # NaN where the 2 h move is unknown, 0 where it is 0
+    if prev_f is not None and len(prev_f):
+        p = prev_f.drop_duplicates("market_id").set_index("market_id")
+        pg = (p["mo_chg_1d"] - p["mo_d24h"]).reindex(f["market_id"].to_numpy(np.int64)).to_numpy(float)
+        out["dg_chg"] = g1d - pg
+    return out.astype(np.float32)
+
+
+def _dispgap_builder(ctx: dict) -> pd.DataFrame:
+    paths, meta, index = ctx["paths"], ctx["meta"], ctx["index"]
+    f = S.read_parquet(paths.features(meta["capture_id"]), DG_FEATURE_COLS)
+    ids = f["market_id"].to_numpy(np.int64)
+    if not np.array_equal(ids, ctx["f"]["market_id"].to_numpy(np.int64)):
+        raise ValueError("dispgap: features row order differs")
+    mids = ctx.get("mids") or SlotMids(paths, index, keep=8)
+    own7d = mids.get(meta["slot"], ids) - mids.get(meta["slot"] - DG_LOOKBACK, ids)
+    prev = ctx.get("prev")
+    prev_f = None
+    if prev is not None and paths.features(prev["capture_id"]).exists():
+        prev_f = S.read_parquet(paths.features(prev["capture_id"]), DG_FEATURE_COLS)
+    ctx["provenance"] = {"prev_features_capture_id": prev["capture_id"] if prev_f is not None else None}
+    return dispgap_features(f, own7d, prev_f)
+
+
+# ---------------------------------------------------------------------------------------------- dormant family
+# Dormancy (CH220, development only; engine-first; DESIGN_V1 section 26): run lengths of the 2 h steps ending at the
+# origin in which the market's mid did not move, from the engine's own quotes files of slots k - 12 .. k (the origin's own
+# quotes mid last, as `surprise` / `hwm`). dm_flat counts steps with |dmid| <= DELTA (the direction targets' own flat
+# band), dm_still steps with no change at all (<= DELTA_TOL); both capped at 12 (24 h). A run that reaches an unquoted
+# slot before a move or the cap is unknown (NaN). dm_woke is 1 when the last step moved by more than DELTA after a flat run
+# of at least 6 steps (12 h), 0 when it did not (or the run before it was shorter), NaN when unknown.
+DORMANT_COLUMNS = ["dm_flat", "dm_still", "dm_woke"]
+DM_CAP = 12
+DM_WOKE_MIN = 6
+
+
+def _flat_run(d: np.ndarray, tol: float, cap: int) -> np.ndarray:
+    """``d``: 2 h mid changes, newest step last. Leading (newest-first) steps with a finite |change| <= tol, capped at
+    ``cap``; NaN when the run ends at a missing step rather than at a move."""
+    R = d[:, ::-1][:, :cap]
+    flat = np.isfinite(R) & (np.abs(R) <= tol + C.DELTA_TOL)
+    stop = ~flat
+    any_stop = stop.any(axis=1)
+    first = np.where(any_stop, np.argmax(stop, axis=1), R.shape[1])
+    run = first.astype(float)
+    full = first >= cap
+    rows = np.arange(len(R))
+    ended_by_move = any_stop & np.isfinite(R[rows, np.minimum(first, R.shape[1] - 1)])
+    return np.where(full | ended_by_move, run, np.nan)
+
+
+def dormant_features(H: np.ndarray) -> pd.DataFrame:
+    """``H``: per eligible market, mids of slots k - DM_CAP .. k (NaN where not quoted), last column the origin."""
+    n = H.shape[0]
+    out = pd.DataFrame({c: np.full(n, np.nan, np.float32) for c in DORMANT_COLUMNS})
+    if n == 0:
+        return out
+    d = np.diff(H, axis=1)  # DM_CAP steps
+    out["dm_flat"] = _flat_run(d, C.DELTA, DM_CAP)
+    out["dm_still"] = _flat_run(d, 0.0, DM_CAP)
+    last = d[:, -1]
+    before = d[:, :-1]  # the run before the last step: up to DM_CAP - 1 steps
+    R = before[:, ::-1]
+    flat = np.isfinite(R) & (np.abs(R) <= C.DELTA + C.DELTA_TOL)
+    stop = ~flat
+    first = np.where(stop.any(axis=1), np.argmax(stop, axis=1), R.shape[1])  # known flat steps before the last one
+    rows = np.arange(n)
+    shorter_known = stop.any(axis=1) & np.isfinite(R[rows, np.minimum(first, R.shape[1] - 1)])  # ended by a move
+    moved = np.isfinite(last) & (np.abs(last) > C.DELTA + C.DELTA_TOL)
+    woke = np.where(first >= DM_WOKE_MIN, 1.0, np.where(shorter_known, 0.0, np.nan))
+    out["dm_woke"] = np.where(~np.isfinite(last), np.nan, np.where(moved, woke, 0.0))
+    return out.astype(np.float32)
+
+
+def _dormant_builder(ctx: dict) -> pd.DataFrame:
+    paths, meta, index = ctx["paths"], ctx["meta"], ctx["index"]
+    mids = ctx.get("mids") or SlotMids(paths, index, keep=DM_CAP + 4)
+    ids = ctx["f"]["market_id"].to_numpy(np.int64)
+    slot = meta["slot"]
+    return dormant_features(np.column_stack([mids.get(j, ids) for j in range(slot - DM_CAP, slot + 1)]))
 
 
 def read_reward_ext(cap_dir) -> pd.DataFrame | None:
@@ -860,6 +969,8 @@ AUX_FAMILIES: dict[str, dict] = {
     # needs the capture's snapshot folder (its sidecar) but not the parsed rows
     "crypto": {"version": "se-aux-crypto-v1", "columns": CRYPTO_COLUMNS, "skip_rows_read": True, "builder": _crypto_builder},
     "hwm": {"version": "se-aux-hwm-v1", "columns": HWM_COLUMNS, "needs_rows": False, "builder": _hwm_builder},
+    "dispgap": {"version": "se-aux-dispgap-v1", "columns": DISPGAP_COLUMNS, "needs_rows": False, "builder": _dispgap_builder},
+    "dormant": {"version": "se-aux-dormant-v1", "columns": DORMANT_COLUMNS, "needs_rows": False, "builder": _dormant_builder},
 }
 AUX_COLUMNS: dict[str, list[str]] = {k: v["columns"] for k, v in AUX_FAMILIES.items()}
 AUX_ALL: list[str] = [c for cols in AUX_COLUMNS.values() for c in cols]

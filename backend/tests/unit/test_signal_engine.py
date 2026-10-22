@@ -898,6 +898,87 @@ def test_hwm_family_reads_only_earlier_quotes(env):
     pd.testing.assert_frame_equal(S.read_parquet(A.aux_path(paths, "hwm", k)), before)
 
 
+def test_dispgap_features_hand_example():
+    f = pd.DataFrame({"market_id": np.array([1, 2, 3, 4], np.int64), "mo_chg_1d": [0.05, -0.02, np.nan, 0.0],
+                      "mo_chg_1w": [0.10, 0.0, 0.1, 0.0], "mo_d2h": [0.01, 0.02, 0.0, np.nan],
+                      "mo_d24h": [0.02, 0.01, 0.03, 0.0]})
+    own7d = np.array([0.04, np.nan, 0.1, 0.0])
+    prev = pd.DataFrame({"market_id": np.array([2, 1], np.int64), "mo_chg_1d": [0.0, 0.03], "mo_chg_1w": [0.0, 0.0],
+                         "mo_d2h": [0.0, 0.0], "mo_d24h": [0.0, 0.02]})
+    a = A.dispgap_features(f, own7d, prev)
+    np.testing.assert_allclose(a["dg_1d"].astype(float), [0.03, -0.03, np.nan, 0.0], atol=1e-6)
+    np.testing.assert_allclose(a["dg_1w"].astype(float), [0.06, np.nan, 0.0, 0.0], atol=1e-6)
+    np.testing.assert_allclose(a["dg_abs1d"].astype(float), [0.03, 0.03, np.nan, 0.0], atol=1e-6)
+    # signed by the own 2 h move: up move + display above own -> +; up move + display below own -> -; unknown 2 h -> NaN
+    np.testing.assert_allclose(a["dg_vs2h"].astype(float), [0.03, -0.03, np.nan, np.nan], atol=1e-6)
+    # change since the previous slot (matched by market id, not position); market 3 / 4 absent before -> NaN
+    np.testing.assert_allclose(a["dg_chg"].astype(float), [0.02, -0.03, np.nan, np.nan], atol=1e-6)
+    assert np.isnan(A.dispgap_features(f, own7d, None)["dg_chg"].to_numpy(float)).all()
+
+
+def test_dormant_features_hand_example():
+    n_slots = A.DM_CAP + 1
+    H = np.full((6, n_slots), 0.5)
+    H[1, -1] = 0.52  # woke: moved 2c after 12 flat steps
+    H[2, -4] = 0.53  # moved 3 steps before the origin (then flat): dm_flat 2... see below
+    H[2, -3:] = 0.53
+    H[3, -1] = 0.503  # within DELTA: flat but not still
+    H[4, 3] = np.nan  # an unquoted slot inside the window: run unknown unless a move comes first
+    H[5, -8] = 0.6  # a move 7 steps back, then an unquoted slot further back does not matter
+    H[5, -7:] = 0.6
+    H[5, 0] = np.nan
+    a = A.dormant_features(H)
+    np.testing.assert_allclose(a["dm_flat"].astype(float), [12, 0, 3, 12, np.nan, 7], atol=1e-6)
+    np.testing.assert_allclose(a["dm_still"].astype(float), [12, 0, 3, 0, np.nan, 7], atol=1e-6)
+    np.testing.assert_allclose(a["dm_woke"].astype(float), [0, 1, 0, 0, 0, 0], atol=1e-6)
+    # a wake-up after an unknown run: >= 6 known flat steps before the gap still counts as woke; < 6 is unknown
+    W = np.full((2, n_slots), 0.5)
+    W[:, -1] = 0.55
+    W[0, 2] = np.nan  # 9 known flat steps before the move, then a gap
+    W[1, -5] = np.nan  # 3 known flat steps, then a gap
+    np.testing.assert_allclose(A.dormant_features(W)["dm_woke"].astype(float), [1, np.nan], atol=1e-6)
+    np.testing.assert_allclose(A.dormant_features(W)["dm_flat"].astype(float), [0, 0], atol=1e-6)
+    # a mid older than the window (slot k - 13) does not enter any value
+    H2 = np.column_stack([np.full(6, 0.99), H])
+    np.testing.assert_array_equal(A.dormant_features(H2[:, 1:]).to_numpy(), a.to_numpy())
+
+
+def test_dispgap_and_dormant_read_only_earlier_inputs(env):
+    """The tables of capture k equal the feature functions on inputs of slots <= k and ignore capture k + 1."""
+    w, paths = env
+    w.run(15)
+    build_all(paths)
+    idx = S.load_index(paths)
+    while A.run_aux(paths, max_items=50)["written"]:
+        pass
+    k, prv, nxt = (idx[SLOT0 + i]["capture_id"] for i in (13, 12, 14))
+    f = A.read_features(paths, k)
+    assert f.attrs["aux_ok"]["dispgap"] and f.attrs["aux_ok"]["dormant"]
+    mids = A.SlotMids(paths, idx, keep=A.DG_LOOKBACK + 4)
+    ids = f["market_id"].to_numpy(np.int64)
+    H = np.column_stack([mids.get(j, ids) for j in range(SLOT0 + 13 - A.DM_CAP, SLOT0 + 14)])
+    np.testing.assert_allclose(f[A.DORMANT_COLUMNS].to_numpy(float), A.dormant_features(H).to_numpy(float), equal_nan=True)
+    fk = S.read_parquet(paths.features(k), A.DG_FEATURE_COLS)
+    own7d = mids.get(SLOT0 + 13, ids) - mids.get(SLOT0 + 13 - A.DG_LOOKBACK, ids)
+    want = A.dispgap_features(fk, own7d, S.read_parquet(paths.features(prv), A.DG_FEATURE_COLS))
+    np.testing.assert_allclose(f[A.DISPGAP_COLUMNS].to_numpy(float), want.to_numpy(float), equal_nan=True)
+    assert np.isfinite(f["dg_1d"].to_numpy(float)).any() and np.isnan(f["dg_1w"].to_numpy(float)).all()  # < 7 d of history
+    assert np.isfinite(f["dg_chg"].to_numpy(float)).any() and np.isfinite(f["dm_flat"].to_numpy(float)).any()
+    assert S.parquet_meta(A.aux_path(paths, "dispgap", k))["prev_features_capture_id"] == prv
+    before = {fam: S.read_parquet(A.aux_path(paths, fam, k)) for fam in ("dispgap", "dormant")}
+    p = paths.quotes(nxt)
+    d = S.read_parquet(p)
+    d["bid"], d["ask"] = d["bid"] * np.float32(0.5), d["ask"] * np.float32(0.5)
+    p.unlink()
+    S.write_once_parquet(p, d)
+    for fam in before:
+        A.aux_path(paths, fam, k).unlink()
+    while A.run_aux(paths, max_items=50)["written"]:
+        pass
+    for fam, b in before.items():
+        pd.testing.assert_frame_equal(S.read_parquet(A.aux_path(paths, fam, k)), b)
+
+
 def test_aux_builder_failure_is_isolated(env, monkeypatch):
     w, paths = env
     w.run(4)
@@ -1176,6 +1257,11 @@ def test_repo_registry_loads_and_embargo_assignment():
         m, base = reg["models"][mid], reg["models"][lr]
         assert m["learner"] == "lgbm" and m["params"] == se1["params"] and m["train"]["window_days"] == se1["train"]["window_days"]
         assert (m["families"], m["derived"], m["isolates"]) == (base["families"], base["derived"], base["isolates"])
+    for mid, fam in (("se22_lgbm_dispgap", "dispgap"), ("se23_lgbm_dormant", "dormant")):  # DESIGN_V1 section 26
+        m = reg["models"][mid]
+        assert emb[mid] is None and m["learner"] == "lgbm" and m["params"] == se1["params"] and m["isolates"] == [fam]
+        assert m["families"] == ["market_state", "momentum", fam] and m["broad"] is False
+        assert m["aux_versions"] == {fam: A.AUX_FAMILIES[fam]["version"]} and m["train"] == reg["models"]["se21_lgbm_hwm"]["train"] | {"require_sources": [fam]}
     assert all(v is None for v in ((SP.embargo_of(s, S.epoch("2027-02-14T00:00:01Z")) or {}).get("until") for s in reg["models"].values()))  # latest: book 2027-02-14 (LT9)
 
 

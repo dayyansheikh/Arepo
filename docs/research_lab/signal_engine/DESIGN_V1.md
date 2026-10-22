@@ -750,3 +750,66 @@ evidence yet, development or prospective.
 - **Cost.** About 8 float32 columns on the direction and resolution frames (~55 MB at the caps), one more LightGBM fit
   per refit (~2 min of the ~48 min), one more prediction per capture. The q0512 / q0513 caps are unchanged.
 - Tests: `test_hwm_features_hand_example`, `test_hwm_family_reads_only_earlier_quotes`.
+
+## 26. `dispgap` and `dormant`: two engine-first round-14 families (2026-10-23 ~01:00Z; development families)
+
+**Why.** Round 14 (`CREATIVE_HYPOTHESES_2026-10-28.md`, section 2 C / D) proposed CH218 and CH220 as engine-first: each
+is a per-market, per-capture quantity that no live test can contrast honestly, so its only honest yardstick is forecast
+quality. LT9 section 6.2 left both to the engine. Ideas only: no evidence yet, development or prospective. Each gets its
+own challenger (champion + one family, se1's learner), so the family effect is read against se1. K rises by one per
+challenger (8 -> 10 once both are scored): the conservative direction, and a small cost (Bonferroni z about 2.73 -> 2.81).
+- **`dispgap` (`se-aux-dispgap-v1`, `aux.dispgap_features`, CH218).** Gamma's venue-computed `oneDayPriceChange` and
+  `oneWeekPriceChange` (the champion's `mo_chg_1d` / `mo_chg_1w`, what the site's mover lists rank on) against the host's
+  own path at the capture clock. Where they disagree, one of them is stale or uses a different reference.
+  - `dg_1d` = `mo_chg_1d - mo_d24h`. This is the difference of two champion columns, made explicit because trees
+    approximate differences poorly.
+  - `dg_1w` = `mo_chg_1w` minus the own 7 d mid change (the quotes mids of slot k and slot k - 84). Missing without both.
+  - `dg_abs1d` = |`dg_1d`|.
+  - `dg_vs2h` = `dg_1d` x sign(`mo_d2h`). It is positive when the display shows more move than the book in the direction
+    the book just moved, and 0 with no 2 h move. CH218's money route (display ahead of a move the book has unmade) is
+    its negative tail.
+  - `dg_chg` = `dg_1d` minus the previous slot's `dg_1d`, read from the previous slot's features file and matched by
+    market id. It separates a fresh disagreement from a persistent per-market trait of the venue's computation, which is
+    CH218's "boring explanation".
+  - Inputs: the features files of slots k and k - 1, and the quotes files of slots k and k - 84. The table records
+    `prev_features_capture_id`.
+  - **Departures from CH218:** no two-tick flag (`dg_abs1d` carries it, and trees split on it at any level). `dg_sign`
+    is replaced by `dg_vs2h`, CH218's own money-route sign. `dg_chg` is added for the persistence question.
+  - **No embargo token.** CH218 proposed `dispgap` to the later of 12-31 and LT7's analysis commit because LT7's
+    `capath` (capture-clock step paths) was adjacent. LT7 closed at census with no test, and `capath` was withdrawn
+    2026-10-23T00:00Z. No other registered or drafted test reads the venue's 1 d / 1 w fields; LT8 CH202 (`swclock`)
+    splits the previous 2 h move by sweep receipt, a different object. The `chg_1h` field is not used (CH194's
+    untestable venue clock, and the old LT7 attribution limit).
+- **`dormant` (`se-aux-dormant-v1`, `aux.dormant_features`, CH220).** Run lengths of the 2 h steps ending at the origin in
+  which the mid did not move. Inputs: the engine's own quotes files of slots k - 12 .. k, with the origin's own quotes
+  mid last (as `surprise` / `hwm`).
+  - `dm_flat`: steps with |dmid| <= DELTA (0.005, the direction targets' own flat band), capped at 12 (24 h).
+  - `dm_still`: steps with no change at all (<= `DELTA_TOL`), capped at 12.
+  - A run that reaches an unquoted slot before a move or the cap is missing (NaN). A capped run or a run ended by a move
+    is known.
+  - `dm_woke`: 1 when the last step moved by more than DELTA after at least 6 known flat steps (12 h); 0 when the last
+    step did not move, or the run before it was known to be shorter; NaN otherwise.
+  - **Departure from CH220:** the run uses the targets' DELTA rather than "one tick" (ticks vary by market, and DELTA is
+    the flat class the targets score). `dm_still` keeps the any-change reading.
+  - **Embargo:** see the science review below. CH220's own text says "`surprise` to 11-19 and no new token". The builder
+    read that as "compare with se15 only after `surprise` lifts", not as a request to embargo the family: E011 tests a
+    frozen detector, not a learned direction score (the same reasoning as `hwm`, section 25).
+- **Census (counts only, no outcome; run on the host after the backfill and before the first fit).** These are the kill
+  lines from round 14.
+  - `dispgap` is killed as a family if fewer than 2% of eligible rows have |`dg_1d`| >= 2 x `ms_tick`.
+  - `dormant` is killed if `dm_flat == 12` covers fewer than 3% or more than 60% of eligible non-sports rows.
+  - A killed family's challenger is set `retired` before its first fit, with a ledger line.
+- **Challengers `se22_lgbm_dispgap`, `se23_lgbm_dormant`.** LightGBM with `se1_lgbm_mm`'s parameters and se21's train
+  block (`require_full_coverage`, `require_sources` = the family). One pre-declared configuration each, no development
+  selection. Their first evidence is prospective.
+- **Leakage and timing.** Neither family reads a sweep, a snapshot row or anything received after the capture.
+  - `dg_1d` / `dg_vs2h` / `dg_abs1d` are functions of capture k's own champion columns.
+  - `dg_chg` reads the earlier slot's features file.
+  - The quotes inputs are the same files `surprise` and `hwm` read.
+  - Section 21's sweep-timing issue does not arise.
+- **Cost.** 8 float32 columns in total on the frames (~55 MB at the caps), two more LightGBM fits per refit (~4 min of
+  the ~48 min), and two more predictions per capture. The q0512 / q0513 caps are unchanged; the peak RSS is watched at
+  the 10-23 refit.
+- Tests: `test_dispgap_features_hand_example`, `test_dormant_features_hand_example`,
+  `test_dispgap_and_dormant_read_only_earlier_inputs`, and registry assertions in
+  `test_repo_registry_loads_and_embargo_assignment`.

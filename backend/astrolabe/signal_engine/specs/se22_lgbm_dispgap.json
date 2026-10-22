@@ -1,0 +1,56 @@
+{
+ "aux_versions": {
+  "dispgap": "se-aux-dispgap-v1"
+ },
+ "broad": false,
+ "derived": [
+  "base"
+ ],
+ "description": "Learner-matched display disagreement (CH218, engine-first, development only): LightGBM with se1_lgbm_mm's params on the champion's features + the dispgap aux family (se-aux-dispgap-v1: Gamma's displayed 1 d / 1 w change minus the host's own 24 h / 7 d mid change, its absolute value, the 1 d gap signed by the own 2 h move, and its change since the previous slot). Read against se1_lgbm_mm for the family effect. Built from the engine's own features and quotes files only; trains only when every labelled capture of the window has the table. Not embargoed (CH218's proposed token was tied to LT7, closed at census with no test).",
+ "families": [
+  "market_state",
+  "momentum",
+  "dispgap"
+ ],
+ "features_version": "se-features-v1",
+ "isolates": [
+  "dispgap"
+ ],
+ "learner": "lgbm",
+ "model_id": "se22_lgbm_dispgap",
+ "params": {
+  "early_stopping": 30,
+  "lgb": {
+   "bagging_fraction": 0.8,
+   "bagging_freq": 1,
+   "feature_fraction": 0.8,
+   "lambda_l2": 1.0,
+   "learning_rate": 0.05,
+   "max_bin": 127,
+   "min_data_in_leaf": 500,
+   "num_leaves": 31,
+   "seed": 20261021
+  },
+  "max_rounds": 300,
+  "val_frac": 0.2
+ },
+ "targets": [
+  "dir_2h",
+  "dir_6h",
+  "dir_24h",
+  "res_7d"
+ ],
+ "train": {
+  "max_rows": 300000,
+  "min_days": 2,
+  "min_rows": 5000,
+  "refit": "daily",
+  "require_full_coverage": true,
+  "require_sources": [
+   "dispgap"
+  ],
+  "res_window_days": 28,
+  "window_days": 14
+ },
+ "version": 1
+}

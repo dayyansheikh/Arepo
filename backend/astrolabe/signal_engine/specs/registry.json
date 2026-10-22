@@ -156,6 +156,20 @@
    "spec_sha256": "af05033066d2385e266cf3e2e446381de7740bb9f49dfae20370de03612ddcfd",
    "status": "active",
    "added_utc": "2026-10-22T22:00:00Z"
+  },
+  {
+   "model_id": "se22_lgbm_dispgap",
+   "file": "se22_lgbm_dispgap.json",
+   "spec_sha256": "b3049e5768072cf4b22a92416bbfb64db42af02ae351d73bf24b32336eaa05dd",
+   "status": "active",
+   "added_utc": "2026-10-23T01:00:00Z"
+  },
+  {
+   "model_id": "se23_lgbm_dormant",
+   "file": "se23_lgbm_dormant.json",
+   "spec_sha256": "a27749dca1839a719f53465805ac7c1b6e714687f7a8fd6c641fc7f60436295d",
+   "status": "active",
+   "added_utc": "2026-10-23T01:00:00Z"
   }
  ]
 }
