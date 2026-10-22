@@ -3694,3 +3694,43 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - Science review: ACCEPT_WITH_FIXES. All fixes applied: `rewards` kept for E022 S2 (only the LT5 R extension
   withdrawn), "later of" wording on flow / LT8 / book entries, structured withdrawal fields, these disclosures and the
   K path. Withdrawal time set at or after the deploy (deploy before 12:00Z; actual time in STATUS.md). Tests: 50 engine tests pass; ruff clean.
+
+## MC1 q0116f: timed out at the 6 h limit, 2026-10-22 13:42Z (nothing counted; development only); PARKED
+- q0116f (`run_ml_dev.py`, exclusive, 6,000 MB, as_cap 14,000 MB, 1 CPU, timeout 21,600 s) ran on the resized host
+  (2 OCPU / 11.4 GiB) from 07:42Z and was stopped by the worker's timeout at 13:42:02Z (rc -15). No OOM this time (RSS
+  about 6.2 GB at 3 h). It wrote only the fold manifest (`ml_dev_20261022T074210Z_cac75bfc_fold_manifest.json`, 07:42Z,
+  the same size as q0116c's); the job log holds only the argv line, so the stage at which it spent the remaining ~6 h is
+  not known (the model-fit stages log nothing).
+- No trials lines, no model outputs; the cached panel and period cache are unchanged and stay reusable.
+- **Decision:** parked (16:02Z), not retried. Per the standing rule, no new id without a measured fix: the next step is
+  stage-level progress and timing lines in `run_ml_dev.py` (panel load, per-model fit per fold, bootstrap, SHAP) and a
+  bounded one-fold profile job, then a timeout and CPU request set from that measurement. No design change (panel,
+  models, folds and gates unchanged). The signal engine (separate autopilot) keeps covering prospective multi-family
+  scoring meanwhile.
+
+## CB16-K census q0383, 2026-10-22 14:06Z (counts only; no test, nothing counted)
+- Output `creative_batch16/census_K.json` (host, sha256 aebc528a…; rules K cfe9bea5…, common 9a087b8c…; exclusion keys
+  56dc953e…; input pins ok). No outcome, price or network read.
+- Labels over 148,384 rows (frame 61,146; outside frame 87,238): PRESENT-STRICT 939, PRESENT-TOPIC 30,176,
+  ABSENT (liquid-universe) 30,031, FAR-TOPIC 9,989; unlistable absent 16, rule conflicts 2 (0 in matches); 958 matches
+  against 326,380 indexed Kalshi markets. Sports (SPORTS-FEED) reported separately: strict 353, topic 4,977, absent 12,132.
+- Cells (LABELLER class x volume decile) with both labels >= 30 events: strict 7 (all UNSCHEDULED-NEWS; 261 present /
+  2,698 absent events; MDE bound 2.46 pp optimistic, 5.91 pp max); strict ∪ topic 40 (15,405 / 10,240 events; 0.48 pp
+  optimistic, 1.16 pp max). FAR-TOPIC: 39 cells.
+- **Re-entry rule (§CB16-K, declared before the census):** counts part PASSES (union >= 5 eligible cells, optimistic MDE
+  0.48 <= 2 pp; FAR-TOPIC >= 30 events in >= 5 eligible cells). The remaining condition is the seeded blind audit of 100
+  PRESENT-TOPIC pairs (science-reviewer, titles only, seed 16141, >= 90% genuine same-event twins). A counted K may be
+  designed only in a later batch and only if that audit passes; otherwise CH143 is "not testable at the floor". No
+  counted K is registered. **Next:** a titles-only audit sampler (seed 16141), then the audit.
+
+## CB9 gating after CB8-W's smoke FAIL, 2026-10-22 ~16:09Z (science-reviewer ruling; operational, nothing counted)
+- `reviews/CB9_H9_DEPENDENCY_RULING_2026-10-22.md`: REVISE. h9_flow never fetched (CB8 q0161 FAIL (a)); absent at q0182
+  per CB9 §1.3; (f) not engaged. q0182 keeps its id and definition; `depends_on` = [q0164, q0166]; it adds the two
+  `--extra-pin`s (CB8 updown frame, dated CB8-H holders snapshot) the draft lacked, and q0164's keys sha256 (MUST 1).
+- **Pre-declared before q0166's result:** coverage-audit FAIL (`source_unavailable`) -> holdout seal absent at q0182, q0182
+  runs with the q0165 frame pinned; crash/unrecoverable -> (f) as written.
+- q0181 (S0 audit A) promoted ~16:07Z (c535f978); unaffected.
+- **Time-label erratum (autopilot session 10-22 from 15:59Z):** queue-spec notes written this session carry "~HH:MMZ"
+  labels that are 0.2-2.5 h late (local time misread as UTC): q0602/q0165/q0166 "~16:15Z" = ~16:03Z; q0181 "~16:30Z" =
+  ~16:07Z; q0116g/q0393 "~17:20Z" = ~16:12Z; q0146 "~18:30Z" = ~16:25Z; q0602/q0116g priority "18:50Z" = ~16:29Z. Spec
+  files are not edited (hash/ops reasons); commit times are authoritative. Review headers and the checkpoint were corrected.

@@ -189,6 +189,10 @@ KIND_RULES: dict[str, tuple[str, str]] = {
         "CB8 Stage-2 per-test lines (B1-rep, W1-rep, H1-rep); counted by the matching 'creative_batch_8:*' ml_explain "
         "count line (n_tests). Placebo lines count 0.",
     ),
+    "cb7_descriptive": (
+        EXCLUDE,
+        "CB7 descriptive lines (smoke, exclusion keys, pre-freeze census, gates GS/GG/GX, h_geo, coverage audits); no inference, not a test.",
+    ),
     "cb8_descriptive": (
         EXCLUDE,
         "CB8 descriptive lines (census, gates, strata, reported variants, attribution labels); no inference, not a test.",

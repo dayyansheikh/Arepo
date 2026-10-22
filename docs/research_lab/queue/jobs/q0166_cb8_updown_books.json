@@ -1,0 +1,51 @@
+{
+ "id": "q0166_cb8_updown_books",
+ "title": "CB8-B: pmxt v2 book states of the day's Up/Down tokens at t_end - {600, 300, 120, 60} s (hour 15Z; 14Z lookback only when needed; both clocks <= t) and Data API taker prints in [t_end - 15 min, t_end + 2 min]; HOLDOUT weeks to the sealed root; first stage: count-only pmxt coverage audit (hour 13Z of 20 seeded days; PASS iff >= 90% of (market, day) pairs present, else B not testable 'source unavailable'); pmxt ingress cap 90 GB",
+ "family": "creative_batch_8",
+ "priority": 46,
+ "expected_value": "recorded asks, depth and fee rates for B1 and B1-rep",
+ "data": [
+  "data-dumps/research_lab/creative_batch8/updown/frame.csv.gz + split.json",
+  "r2v2.pmxt.dev hourly parquet (range reads by condition id)",
+  "public Data API trades"
+ ],
+ "resources": {
+  "mem_mb": 1500,
+  "cpu": 1,
+  "network": "r2v2.pmxt.dev, data-api",
+  "lane": "net"
+ },
+ "depends_on": [
+  "q0165_cb8_updown_frame"
+ ],
+ "argv": [
+  "scripts/run_cb8.py",
+  "updown-books",
+  "--ingress-cap-gb",
+  "90",
+  "--audit-hour",
+  "13",
+  "--audit-days",
+  "20",
+  "--rps",
+  "2",
+  "--disk-cap-gb",
+  "0.02",
+  "--data-dumps-cap-gb",
+  "40",
+  "--budget-min",
+  "85"
+ ],
+ "timeout_s": 5700,
+ "max_retries": 3,
+ "repeat": {
+  "max_runs": 6,
+  "until_log_regex": "\"status\": \"(updown_books_complete|updown_books_source_unavailable)\""
+ },
+ "outputs": [
+  "data-dumps/research_lab/creative_batch8/updown/{screen/,holdout/,days.csv.gz,markets.csv.gz,audit.json,ingress.jsonl,drops.csv.gz,manifest.json,HOLDOUT_SEAL.json,ACCESS_LOG.jsonl} (the seal also lists updown_frame/holdout/ as frame_holdout/)",
+  "docs/research_lab/seals/cb8_updown_holdout_SEAL.json (written by the job on the host; copy and commit it)"
+ ],
+ "next_action": "seal copy seals/cb8_updown_holdout_SEAL.json committed; q0169",
+ "notes": "CREATIVE_BATCH_8.md CB8-B. DRAFT. Commit with q0165. Days processed in a seeded order alternating SCREEN and HOLDOUT so the ingress cap truncates both evenly; missing/corrupt hours lose the day (counted, never replaced). Stores derived states only (tens of MB at most). No wallet stored. Final stage seals the HOLDOUT root (listing sha256) after seal-time drops by id and key against every seal copy committed by then (DROPPED_* blocks). Round 1 item 3: market-days without events in 14Z-15Z are labelled 'source unavailable' (never 'no trade'). Item 4: also stores the state at t + 10 s for the latency check. IMPLEMENTED 2026-10-17 (cb8_books.books_fetch). Refuses (exit 2) unless the frame run is updown_frame_complete and every frame file matches its manifest hash. Stage order: count-only coverage audit (hour 13Z of 20 seeded days; FAIL ends 'updown_books_source_unavailable', no checkpoint extracted), then per day (seeded order alternating SCREEN/HOLDOUT) states then prints, then finalize and the HOLDOUT seal. The ingress cap (90 GB decimal, audit included) is checked before each day; later days are recorded 'ingress_cap'. States are stored at t_end - {600,300,120,60} s and +10 s each (asks_top = best 10 ask levels for the latency check). Post-t_end prints go to *_guarded files. The lookback to 14Z is per token (no book event by t_end - 600 s). FREEZE-CHECK FIXES 2026-10-17: a pmxt event clock more than 1 h outside the file's hour is HourCorrupt (day lost, counted); a market whose token has events but never a book snapshot is 'book_unavailable' (its own label with a per-state book_status column; not 'no trade', not halted; days.csv.gz n_book_unavailable); the seal's drops use seal_copy_ids_audited: only seal copies committed (identical to HEAD) by then, and unparseable / id-less / uncommitted copies are recorded with reasons in HOLDOUT_SEAL.json drops.seal_copies_skipped (used copies with sha256); pmxt bytes are metered in a finally block so failed hours count against the ingress cap; the HOLDOUT seal also covers updown_frame/holdout/ (frame_holdout/). Needs the committed seals/cb8_rules_v2.json (rules_sha256 33decb528bbafd46336296be57c91b76e6aaa0c69d7d3eecf92eaa83c4f12a6d). | 2026-10-17 15:35Z autopilot: data-dumps headroom guard 12.5 -> 40 GiB (ops only, not a declared argument): the user grew the host boot volume to 100 GB (root 89 GB, 60 GB free); collector cap 45 GiB, 4 GB free-disk guard unchanged. | 2026-10-22 ~16:15Z autopilot: PROMOTED with q0165 (depends_on chains it); coverage audit is its first stage."
+}
