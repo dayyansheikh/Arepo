@@ -1,84 +1,93 @@
 # Signal engine: status (rewrite each session; do not append)
 
-**Last updated:** 2026-10-22 08:07 UTC+1 (07:07Z), signal-engine autopilot session 12
+**Last updated:** 2026-10-22 12:03 UTC+1 (11:03Z), signal-engine autopilot session 13
 
 ## In plain English
-- **New challenger: a crypto spot-price reference (`se20_lgbm_crypto`).**
-  - Thousands of Polymarket crypto markets (up/down windows, strike ladders, "hit price") are priced off one spot
-    price. Until now the engine only saw each market's own price history.
-  - The new `crypto` family gives the model the Binance spot path, with only bars that closed before the capture:
-    recent spot returns, volatility, where an up/down window stands against its opening price, and how strongly the
-    market has followed spot in the past.
-  - It is not hidden: no live test uses a spot reference (CB13-R, the one that did, is closed). It makes the promotion
-    bar slightly stricter for everyone (K goes from 4 to 5).
-  - It can only start fitting at the 10-27 refit. Snapshot rows before 10-13 04:31Z are gone (temporary 10-day
-    retention), so 14 early captures can never have the family. The model trains only once its whole window has it.
-- **Fixed a defect that would have cost new models their 2 h forecasts.**
-  - Each pass built at most 4 of a new capture's 6 extra feature tables. The last two (`participation`, `book0`) waited
-    for the next pass, two hours later, when the capture's 2 h target had already started.
-  - No forecast was lost yet: se16 has no fit, and se18/se19 fit for the first time at today's 07:34Z refit. Now every
-    family of a new capture is built in the same pass, before its predictions.
-- The science review accepted the crypto family with fixes. It found no leakage, and all the fixes are applied.
-- Nothing has been promoted. No edge claims; the UI wording stays "signal strength".
+- **Two hidden challengers become visible, and two more will be scored sooner.** Several "embargoes" (rules that hide a
+  model's scores so it cannot spoil a registered live test) only protected tests that have since been dropped at
+  their census, before registration. The programme's rule is that such a token is then withdrawn. As of 2026-10-22
+  12:00Z:
+  - **`event` is released.** `se8_lr_event` and `se10_lgbm_event` are scored and shown as soon as they fit (first fits
+    ~10-27), about 4 weeks earlier than before.
+  - **`flow` moves from 11-22 to 11-16.** se2 and se11 are scored 6 days sooner; the registered LT2 tests still keep
+    their margin.
+  - **`rewards` moves from 11-22 to 11-18, not fully released.** The science review found that registered E022 still
+    compares rewarded and unrewarded markets.
+  - Four unused LT6 tokens and LT7's `mm_fresh` are withdrawn.
+- **LT8's protections are applied.** Its three new families are hidden to 2027-01-23. The book families are now hidden
+  to the same date, 23 days longer. That is the price of protecting LT8.
+- **The promotion bar gets slightly stricter.** The rule corrects for every visible challenger at once (K goes from 5 to
+  7). This follows the rule declared in advance; no threshold changed.
+- **The 2 h refit is late today.** The other track's 6 GB "exclusive" MC1 job has held the host since 07:42Z (it may run
+  until 13:42Z). The refit (due 07:34Z) and the daily score (due 11:38Z) start after it. Predictions continue every pass
+  from yesterday's fits. Nothing was touched on the other track's side.
+- No promotion, and no edge claims. The UI wording stays "signal strength".
 
 ## Live state (host)
-- **Host:** resized to 2 OCPU / 11.4 GiB (owner decision; ledger 2026-10-22). LightGBM still runs on 1 thread.
-- **Code:** merged into chore (908c48e9) and deployed at ~07:00Z (host at ea7f80fb, which includes it; registry lists
-  se20). The deploy printed a harmless `rm: cannot remove ~/arepo_trials_from_mac.jsonl` (the file was already gone,
-  probably a concurrent deploy by the other track).
-- **Crypto backfill (running since 07:01Z):** `~/.arepo/signal_engine/aux_backfill_crypto.sh`, log next to it. It runs
-  batches of 7 tables, each capped at 240 s, under `flock -n` on the collector lock, and never at even hours :19-:31.
-  Binance answers in ~2 s per request, so ~40 s per capture and ~70 min for ~102 captures. It also built the 06:31Z
-  capture's `participation` and `book0` tables, which the old-code tick had left out.
-  - First table check (10-22 06:31Z capture, no outcomes): 3,917 of 54,366 eligible markets are mapped (3,441 up/down,
-    143 strikes, 140 neg-risk, 193 hit-price). The spot columns are complete for every mapped market, `cr_beta` for
-    65%, and `cr_ud_z` for only 25 markets (few eligible up/down windows have started at a capture). No symbol is
-    unavailable. Inputs take ~140 KB per capture.
-- **Queue:** `q0512` refit is due ~07:34Z. It is the first fit for se14, se15, se17, se18 and se19 (se20 reports
-  `insufficient_coverage` until 10-27). `q0513` score is due ~11:40Z. No jobs were touched.
-- **Promotion-eligible non-embargoed challengers:** se1, se17, se18 and se20 (once it fits). K = 5: se1, se7, se17,
-  se18, se20 (se7 counts but is ineligible).
+- **Host:** 2 OCPU / 11.4 GiB. Collector pass 10:31Z ran until 11:02:42Z (31 min; MC1 holds memory, swap 1.7 GB). The
+  10:31Z capture has all 7 aux families and all 11 model predictions.
+- **Code:** merged into chore at 09d26bab and deployed at 11:03Z, before the 12:00Z withdrawal time. Verified on the
+  host: K = 5 at 11:59Z and 7 at 12:00:01Z. A second deploy by the other track (cloned after the merge) followed. Earlier
+  in the session, some background-task notices reported a deploy that had not happened yet. Always check the host
+  directly (`git -C ~/arepo log -1`).
+- **Crypto backfill:** done at 09:26Z. 103 `aux/crypto` tables, no errors. The 08:31Z capture has all 7 aux families
+  (last session's same-pass fix works).
+- **Queue:**
+  - `q0116f_mc1_dev_run` (other track, exclusive, mem 6000, timeout 6 h) has run since 07:42Z.
+  - Waiting behind it: `q0512` refit (last fit 10-21 11:34Z; first fits of se14, se15, se17, se18 and se19) and
+    `q0513` score (net lane, but mem 700 >= the 500 MB light-job exemption).
+  - No job was changed. I did not lower q0513's mem_mb to slip under the exemption: that is meant for live collectors.
+- **Promotion candidates (non-embargoed):** se1, se7 (ineligible), se8, se10, se17, se18 and se20. K = 7. Expected K as
+  embargoes lapse: 9 at 11-04, 11 at 11-14, 13 at 11-16, 14 at 11-18, 15 at 11-19, 16 at 11-25, 17 at 12-07, and 20 at
+  2027-01-23.
 
 | Model | Embargoed until |
 |---|---|
-| `se0_champion_lr_mm` (champion), `se1_lgbm_mm`, `se7_lgbm_all` (ineligible), `se17_lgbm_mm_900k`, `se18_lgbm_all_b0`, **`se20_lgbm_crypto`** | not embargoed |
+| `se0_champion_lr_mm` (champion), `se1_lgbm_mm`, `se7_lgbm_all` (ineligible), `se17_lgbm_mm_900k`, `se18_lgbm_all_b0`, `se20_lgbm_crypto`, **`se8_lr_event`, `se10_lgbm_event`** | not embargoed |
 | `se4_lr_xvenue`, `se13_lgbm_xvenue` | 11-04 |
 | `se5_lr_tte`, `se12_lgbm_tte` | 11-14 |
+| `se2_lr_flow`, `se11_lgbm_flow` | **11-16** (was 11-22) |
+| `se9_lr_rewards` | **11-18** (was 11-22) |
 | `se15_lgbm_surprise` | 11-19 |
-| `se2_lr_flow`, `se11_lgbm_flow`, `se8_lr_event`, `se9_lr_rewards`, `se10_lgbm_event` | 11-22 |
 | `se16_lgbm_participation` | 11-25 |
 | `se6_lr_wallet` | 12-07 |
-| `se3_lr_book` (ineligible), `se14_lgbm_movetype` (ineligible), `se19_lr_book0` | 12-31 |
+| `se3_lr_book` (ineligible), `se14_lgbm_movetype` (ineligible), `se19_lr_book0` | **2027-01-23** (was 12-31; LT8) |
 
 ## Changes this session
-1. `aux.py`: family `crypto` (`se-aux-crypto-v1`): sidecar slug mapping, write-once Binance kline inputs per capture
-   (`aux_inputs/crypto/`), 15 columns. Review fixes: HTTP 400 symbols recorded as unavailable; `cr_has` NaN for
-   markets missing from the sidecar; sidecar sha256 in provenance; a 120 s fetch budget per capture.
-2. Spec `se20_lgbm_crypto` with its registry entry (`added_utc` corrected to 02:34Z), DESIGN_V1 §23, CANDIDATES rows
-   5 and 20, and a ledger entry.
-3. `run_signal_engine.py`: the aux budget is now `len(AUX_FAMILIES) x max_items`, not `max(2 x max_items, 4)`.
-4. Tests: 50 engine tests pass (3 crypto tests and 1 budget regression test). Ruff is clean.
+1. `config.EMBARGO`:
+   - Withdrawn: `event`, `vote`, `clips`, `deadline`, `siblings`, `mm_fresh`. Each keeps its entry, with `until` =
+     `withdrawn_utc` = 2026-10-22T12:00Z and `until_before`.
+   - LT5 extensions undone: `flow` back to 11-16 (E013/E014) and `rewards` back to 11-18 (E022 S2).
+   - Dropped tests pruned from the lists of `book`, `book0` and `wallet`.
+   - LT8 round 5 applied: `quietbook`, `swclock` and `sched` added, `book`/`book0` moved to 2027-01-23.
+2. DESIGN_V1 §8: table updated and a new "Withdrawal" paragraph. CANDIDATES: builder rows 1, 2, 6 and 9; round 5 marked
+   APPLIED. Ledger entry: "embargo withdrawals after census drops".
+3. Tests: date tests updated, a withdrawal test added (any date moved earlier must carry the withdrawal fields) and a
+   lab_host check that a withdrawn family is shown again. 50 engine tests pass; ruff is clean.
+4. Science review: ACCEPT_WITH_FIXES, all applied. The main fix: keep `rewards` for E022 S2 instead of withdrawing it.
 
 ## Next actions
-1. Check that the crypto backfill finished (`crypto backfill done` in its log; ~102 tables in `aux/crypto`, no repeated
-   errors). If Binance latency grows past ~5 s per request, the live tick's 120 s budget will start failing captures;
-   then fetch the symbols in parallel.
-2. After the ~07:34Z refit, read `logs/fits-20261022.jsonl`:
-   - Expect se14, se15, se17, se18 and se19 `ok`, se16 `no_fit`, and se20 `insufficient_coverage`.
-   - Check that the total runtime is under 10800 s and peak RSS under 2200 MB.
-   - At the 08:31Z pass, check that every aux family of the new capture exists and that se18 predicts.
-3. After the ~11:40Z score: check day 2 of `leaderboard/latest.json`. Expect K = 5 under `se-promotion-v2`.
-4. If the refit runtime nears its timeout: LightGBM `num_threads` 2 (the queue's cpu lane runs one job at a time; the
-   second core serves the collector).
-5. Around 10-27: se8, se10, se16 and se20 start fitting. Around 10-28: the LightGBM `res_7d` fits.
-6. Remaining ideas: CH198 `theta`, CH201 rewards-v2 (check them against §21 and §22 first), the learner-matched
-   `se21_lgbm_book0` (embargoed 12-31).
+1. After MC1 ends, check that `q0512` ran: `logs/fits-20261022.jsonl` should show se14, se15, se17, se18 and se19 `ok`,
+   se16 `no_fit`, and se20 `insufficient_coverage`. Runtime should be under 10800 s and peak RSS under 2200 MB.
+2. After `q0513` runs: day 2 of `leaderboard/latest.json`. Expect K = 7 and se8/se10 listed (without scores until they fit).
+3. **Before 11-16:** check that LT2's analysis (`q0461`, not before 11-13T12Z) has run. If not, move `flow` later (the
+   entry says "the later of 11-16 and LT2's analysis commit"). Do the same for `rewards` against E022's analysis before
+   11-18.
+4. Around 10-27: se8, se10, se16 and se20 start fitting. se8's 28-day retirement check counts from its first score.
+5. If the refit runtime nears its timeout: LightGBM `num_threads` 2.
+6. Remaining ideas: CH207-CH211 engine-first families (`umaparams`, `requote` after E015, `farmer`), CH198 `theta`, `hwm`
+   with a short look-back. None isolates an embargoed token, but each raises K, so build only those with a real prior.
 7. Housekeeping (needs approval): remove the merged worktrees `astrolabe-lab-se` and `astrolabe-lab-se-promo`, plus
    `/tmp/se_dev`, `/tmp/se_e2e` and the host's `/tmp/se_b0`.
 
 ## Notes for the other track
-- `crypto` has no embargo token: no registered or drafted test uses a spot reference (science review checked CB13-R,
-  E019 M2, the LT6 crypto classifier and LT7 `ivr`). If a future test uses spot, ask and se20 will be embargoed.
-- LT5 F, H and R were dropped at census (ledger ~06:05Z). The `event`, `book` and `rewards` embargo dates still list
-  them. Dates only move later, so nothing changes here unless you ask.
-- No queue jobs were touched.
+- Round 5 (LT8) is applied. `book`/`book0` are now 2027-01-23; they return to 12-31 only if both CH202 and CH203 drop.
+- `rewards` is kept to 11-18 for E022 S2. LT7 has rewarded secondaries (and the new reward-null ruling) but requests no
+  token. If LT7 wants `rewards` protected, file a request and I'll apply it (later only).
+- `event` is released. If any new design uses event-sibling moves as a tested term, file a request before se8/se10 fit
+  (~10-27).
+- Disk: `data-dumps` is 33 GB at 11:00Z (`ml_cache` 4.3 GB, `snapshots` 6.8 GB, engine 1.1 GB; root 58% used). The
+  10:31Z pass logged `refused_data_dumps_over_cap` for the cb4 close-window and cb5 extracts (their own lower cap). The
+  engine's cap is 40 GB, so about 7 GB of headroom remains.
+- Conflict noted: MC1 (exclusive, up to 6 h) delayed the engine's daily refit by ~6 h. Nothing was changed. If MC1 runs
+  again, a not_before outside 07:00-12:00Z would avoid it.
