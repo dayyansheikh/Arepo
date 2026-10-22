@@ -1,7 +1,8 @@
 # Live tests 7 (LT7): five round-12 candidates (CH195, CH191, CH197, CH193, CH192), DRAFT pre-registrations
 
-**Status: DRAFT, not registered, nothing counted, no code. Challenger R1 (2026-10-22, REVISE, 11 must-fix) answered in
-section 13, which governs where earlier text differs; awaiting the R1 re-check.** CH194 (the hour-held move) was withdrawn
+**Status: design accepted (R1 re-check ACCEPT_WITH_FIXES, fixes applied); design-text freeze pending orchestrator check. Not
+registered, nothing counted, no code.** Challenger R1 (2026-10-22, REVISE, 11 must-fix) is answered in section 13 and the R1
+re-check (`reviews/LT7_R1_RECHECK_2026-10-22.md`) in 13.5; both govern where earlier text differs. CH194 (the hour-held move) was withdrawn
 in the R1 response before registration (never registered, not counted; 6.2). Drafted 2026-10-21 on branch
 `feat/live-tests-7` from the `chore/arepo-claude-setup` tip `9e00c22d`. This is a design-only first commit, as the first
 commits of LT3-LT6 were.
@@ -43,7 +44,7 @@ before any data, are listed with reasons in section 6.1. The handles are the CH 
 | **CH195** | resistance | Within a market, a 2 h move that went through **more pre-move depth on the side it hit** (sweep 1 of pass k - 1) persists more from capture k + 1 to k + 3, the unhit side's depth held fixed (one-sided, > 0) | non-sports ex-crypto movers (traded and quote-only), captures + sweep 1 of passes k - 1 and k | expanding-past demeaned OLS of `c_skip` on `zR` with `zR_away` in the model; block Freedman-Lane gate; **away-side falsification is a verdict condition** | slope 0.37c tercile; F 0.75c at `r_w` 0.5 (0.53c at `r_w` 0); **max 0.75c** (quarter 1.50c) | 0.5c (tercile) |
 | **CH191** | grind at the capture clock | Within a market, a 6 h move made in **three same-signed 2 h steps of at least one tick each** (grind) persists more from k + 1 to k + 3 than one made in **one step** (jump) (one-sided, > 0) | non-sports ex-crypto 6 h movers with three observed steps, captures only | expanding-past demeaned OLS of `c_skip` on 1[grind] over grind and jump units; **block (circular-shift) Freedman-Lane gate** | class 0.36c; no F (reported label); **max 0.36c** (quarter 0.73c; 0.67c at its count-gate floor with the minimum class shares) | 0.5c |
 | **CH197** | patient money | Within a market, the YES mid change over the 22 h from capture k + 1 rises with the **behind-touch depth imbalance** of the outcome-0 book, the touch imbalance held fixed (one-sided, > 0) | non-sports ex-crypto two-sided books, **one unit per market per UTC day** at the 12:31Z pass | expanding-past demeaned OLS of `y22` on `zimbB` with `zimbT` a control; Freedman-Lane, market strata; **far-future falsification is a verdict condition** | slope 0.30c tercile; F 0.66c at `r_w` 0.6 (0.50c at `r_w` 0.3); **max 0.66c** (quarter 1.32c) | 0.5c (tercile) |
-| **CH193** | absorbed flow | Within a market, among **traded non-movers** (Gamma 24 h volume rose, mid did not move over (k - 1, k]), the absolute mid move over **(k + 1, k + 2]** rises with the absorbed net volume (one-sided, > 0), **and more than it rises with the volume of the interval (k + 2, k + 3] after the target** | non-sports ex-crypto markets with `volume24hr` at k - 1 and k, captures only | expanding-past demeaned OLS of `a = |mid_{k+2} - mid_{k+1}|` on `z log1p dV`; plain Freedman-Lane gate; **lead-minus-lag is a verdict condition** | slope 0.24c tercile; F 0.41c at `r_w` 0.3; **max 0.41c** (quarter 0.83c) | 0.5c (tercile of E|move|) |
+| **CH193** | absorbed flow | Within a market, among **traded non-movers** (Gamma 24 h volume rose, mid did not move over (k - 1, k]), the absolute mid move over **(k + 1, k + 2]** rises with the absorbed net volume (one-sided, > 0), **and more than it rises with the volume of the interval (k + 2, k + 3] after the target** | non-sports ex-crypto markets with `volume24hr` at k - 1 and k, captures only | expanding-past demeaned OLS of `a = |mid_{k+2} - mid_{k+1}|` on `z log1p dV`; **block Freedman-Lane gate** (R1 re-check ruling A); **lead-minus-lag is a verdict condition** | slope 0.24c tercile; F 0.41c at `r_w` 0.3; **max 0.41c** (quarter 0.83c) | 0.5c (tercile of E|move|) |
 | **CH192** | implied against realised | Within a market, the absolute mid move over (k + 1, k + 2] rises with the spread relative to the market's own 24 h realised volatility at k (one-sided, > 0), **and more than with the same ratio read at k + 3** | non-sports ex-crypto two-sided markets, **four units per market per UTC day** (00:31, 06:31, 12:31, 18:31Z), captures only | expanding-past demeaned OLS of `a_s = |mid_{k+2} - mid_{k+1}|` on `zivr`; block Freedman-Lane gate; **lead-minus-lag is a verdict condition** | slope 0.09c tercile; F 0.27c at `r_w` 0.8; **max 0.27c** (quarter 0.54c) | 0.5c (tercile of E|move|) |
 
 Planning MDEs use **E022's measured design effect 6.196** (`m_21` 260.8, the same mover family; E022's counts-only census
@@ -163,8 +164,9 @@ Round 12's design rules (`CREATIVE_HYPOTHESES_2026-10-26.md` 0.1) map onto LT7 a
 - **Complete-universe captures** `snapshots/<id>/rows.csv.gz` (every 2 h at :31; `state=complete` only): LT3-LT6's columns
   (`bid`, `ask`, `spread`, `last_trade_price`, `volume24hr`, `liquidity`, `chg_1h/1d/1w`, `end_date`, `event_id`, `neg_risk`,
   `closed`, `active`, `received_utc`).
-- **Sidecar** `rows_ext.csv.gz`: `fee_type`, `fee_category`, `series_slugs`, `order_price_min_tick_size`, `rewards_min_size`,
-  `rewards_max_spread`, `clob_rewards`. A missing sidecar sets `sports = -1` and crypto unknown (excluded, counted).
+- **Sidecar** `rows_ext.csv.gz`: `fee_type`, `fee_category`, `series_slugs`, `order_price_min_tick_size`, `order_min_size`
+  (`ext_sidecar.MARKET_NUM`, since 359d6754; may be null per market), `rewards_min_size`, `rewards_max_spread`, `clob_rewards`.
+  A missing sidecar sets `sports = -1` and crypto unknown (excluded, counted).
 - **Book sweep 1** `book_sweeps/<id>/` (`series_index` 0) of passes k - 1, k, k + 1, k + 3 (CH195), of the 12:31Z pass of
   each day and the pass 13 slots later (CH197), and of passes k + 1 and k + 2 (CH193's sweep-mid label reading, 6.A): outcome-0 `best_bid`, `best_ask`, `bid_size_1`, `ask_size_1`, `depth_*_1c`,
   `depth_*_5c`, `tick_size`, `book_timestamp`, `batch_receipt_utc`. **Field meaning (from `book_sweep.parse_book`):**
@@ -215,7 +217,9 @@ attrition rule (|a_1 - a_0| > 2 pp between the contrasted classes or the top and
 and Lee-type bounds) never changes a verdict. A required input missing at the origin produces no unit and is counted
 (`sidecar_missing`, `.nosweep`, `.noprevsweep`, `.noprev`, `lookback_missing`). A missing control or state is NaN (excluded,
 counted), never 0. **Declared indicator-pair exceptions only:** an unknown `end_date` enters log hours-to-end as 0 with
-`hte_unknown`; a missing Gamma `chg_1d` as 0 with its flag (except where `chg_1d` is part of a gate). A falsification state that
+`hte_unknown`; a missing Gamma `chg_1d` as 0 with its flag (except where `chg_1d` is part of a gate); CH193's negative
+`dV_lag` as `log1p(0)` with `lag_rolloff` in the arm model (observed data, not missing; a sensitivity without the
+`lag_rolloff` units is reported, 6.A; R1 re-check should-fix 3). A falsification state that
 is missing (the lag slot or sweep absent, or the lag field missing) leaves the unit in the primary and out of the falsification
 arm (counted); it is never imputed (R1 must-fix 3; CH193's negative lag change is observed data, 6.A).
 
@@ -253,9 +257,9 @@ the design-text freeze is treated as a freeze after that analysis (1.1's consequ
 - **Plain Freedman-Lane gate** (LT4's `fl_perm_gate`, imported): after expanding-past demeaning, the target's residuals from
   the reduced model (target on the controls) are permuted within the census-fixed stratum and the full model refitted; 200
   draws; passes if `p_perm < 0.05`. Strata: market x UTC day if >= 50% of the test's units sit in strata with >= 4 such units, else
-  market x two-day block if >= 50%, else the test fails its census gate (`perm_stratum`). **CH197** (daily units) permutes
-  within market (H's convention): the census gate is >= 50% of units in markets present on both census days. Used by CH193
-  (a per-interval state) and CH197.
+  market x two-day block if >= 50%, else the test fails its census gate (`perm_stratum`); after the R1 re-check no LT7 test
+  uses these strata (the rule is kept for reference). **CH197** (daily units) permutes within market (H's convention): the
+  census gate is >= 50% of units in markets present on both census days. Used by **CH197 only**.
 - **Block (circular-shift) Freedman-Lane gate** (LT5's `block_fl_gate`, imported unchanged): within each market the
   reduced-model residual series (ordered by origin) is circularly shifted by an offset drawn from `[s_m, n_m - s_m]`, `s_m =
   max(4, ceil(n_m / 4))`, and the full model refitted; 200 draws; passes if `p_perm < 0.05`; markets with fewer than 16
@@ -263,9 +267,12 @@ the design-text freeze is treated as a freeze after that analysis (1.1's consequ
   **CH192** (a rolling state: `rv24` uses 12 slots, `rv7d` 84) and **CH191** (R1 must-fix 6: its label is built over three
   intervals, adjacent labels share two steps and the label at k + 3 is built from the target's own shocks at k, so it is a
   rolling state under 1.0's LT5 R1 finding 1 rule; the block gate is the design's existing mechanism for rolling states). For
-  CH191 the shifted series is the market's contrasted (grind and jump) units ordered by origin.
+  CH191 the shifted series is the market's contrasted (grind and jump) units ordered by origin. **CH193 (R1 re-check ruling A,
+  must-fix 3):** `dV` is persistent through volatility clustering, so under 1.0's rule it is a persistent continuous state; the
+  plain gate failed AR(0.6) in LT5 R1 finding 1, and scenario 20 (rho 0.95) would very likely fail it. CH193 uses the block
+  gate, minimum 16, shifting the market's units ordered by origin.
 - A failed gate on data gives p = 1 in Holm and the label "SE check failed (gate on data)".
-- **Size check (L5), after the censuses (k and `perm_stratum` fixed first).** `size-check` runs once, on the code to be pinned,
+- **Size check (L5), after the censuses (k and the census-fixed values fixed first).** `size-check` runs once, on the code to be pinned,
   2,000 worlds x 200 draws, seed **20261177**, limit 0.058. **Every gate scenario permutes within the strata the census fixed
   for the test it is binding for, through the same `strata_of` / `block_anchor` path as the analysis gate**, on worlds carrying
   a UTC-day and a two-day-block column (LT4 19 fix 1); a world is generated once and evaluated under each binding test's
@@ -278,7 +285,7 @@ the design-text freeze is treated as a freeze after that analysis (1.1's consequ
   | 3 | binary label, control at correlation 0.7 with a real effect | block FL | CH191 | gate |
   | 4 | binary Markov label (persistence 0.6), MA(2) target, unbalanced markets | block FL | CH191 | gate |
   | 5 | as 4 with persistence 0.9 (CH191's labels share two of three steps) | block FL | CH191 | gate |
-  | 6 | continuous per-interval state iid, control at correlation 0.5 with a real effect, absolute target, unbalanced markets | FL | CH193 | gate |
+  | 6 | continuous per-interval state iid, control at correlation 0.5 with a real effect, absolute target, unbalanced markets | block FL | CH193 | gate |
   | 7 | daily-unit continuous state, day-to-day persistence 0.6, daily target from 12 pass shocks, control at correlation 0.5 with a real effect | FL (market) | CH197 | gate |
   | 8 | as 7 with persistence 0.9 (a farmer's ladder is the same every day) | FL (market) | CH197 | gate |
   | 9 | continuous state AR(1) rho 0, control at correlation 0.5 with a real effect, MA(2) target (LT6 scenario 8) | block FL | CH195 | gate |
@@ -292,7 +299,7 @@ the design-text freeze is treated as a freeze after that analysis (1.1's consequ
   | 17 | **one-path world (CH191):** labels and target built from one simulated mid path with stochastic volatility; no effect | block FL | CH191 | gate |
   | 18 | as 8 with a **market drift persistent across days** added to the daily target, independent of the state | FL (market) | CH197 | gate |
   | 19 | **mechanical world M-E (stale mid):** a Gamma mid that refreshes to the true price only on some passes, interval volume driven by the true price's moves; no information effect of volume | none | CH193 | verdict size |
-  | 20 | **M-D path world, gate form (CH193):** 15's path, non-mover selection, shared quotes and target, with the volume proxy built from an independent copy of the volatility process (no effect of the tested term; its persistence kept) | FL | CH193 | gate |
+  | 20 | **M-D path world, gate form (CH193):** 15's path, non-mover selection, shared quotes and target, with the volume proxy built from an independent copy of the volatility process (no effect of the tested term; its persistence kept) | block FL | CH193 | gate |
 
   **Verdict size** (scenarios 13-16 and 19; round 12 rule 5) = the share of worlds in which the test's analytic one-sided p (the 1.7
   rule) is < 0.05 **and** its falsification condition F (1.9) holds; the gate is omitted, which can only raise the rate
@@ -348,19 +355,21 @@ at a fresh sub-seed from one generator seeded 20261177, scenarios in table order
   exactly as in the data (the label at t + 3 is built from the target's shocks at t); no effect of the label.
 - **18 (CH197; R1 should-fix):** world 8 (state persistence 0.9) with a market drift `delta_{m,d}`, AR(1) across days rho
   0.8, stationary SD 0.02, added to `y_d` and independent of `z` and `c1` (rho 0.8 is M-C's trait persistence, 14; SD 0.02 is
-  the worlds' control-effect scale, 7-8); no effect of `z`.
+  the worlds' control-effect scale, 7-8); no effect of `z`. A **mild stress** (R1 re-check should-fix 4): the drift is about 11%
+  of `y_d`'s variance.
 - **19 (M-E, stale mid, CH193; R1 must-fix 2):** 120 markets, `n_m` uniform on 24..120; a true price `p_t` with `s_t` and
   `u_t` as 15; the Gamma mid `m_t = p_t` with probability `pi_m` at each pass, else `m_{t-1}` (stale), independently by
   pass, `pi_m ~ U(0.4, 1.0)` by market (mean 0.7, the 70% Gamma/sweep move-agreement floor of CH195's census; a range across
-  markets as worlds 2 and 4-5; no AREPO measurement of Gamma-mid staleness exists); interval volume proxy `z_t = 0.5 (s_t /
+  markets as worlds 2 and 4-5; no AREPO measurement of Gamma-mid staleness exists; the 0.7 is a borrowed level, not a staleness estimate, R1 re-check
+  should-fix 4); interval volume proxy `z_t = 0.5 (s_t /
   0.5) + 0.5 b_t + sqrt(0.5) xi_t`, `b_t` the standardised `|e_t|` (volume rises with the regime and with the interval's true
   move; variance 1); units are passes with `|m_t - m_{t-1}| < 0.005` (Gamma-mid non-movers, stale ones included); target
   `|m_{t+2} - m_{t+1}|`; lag state `z_{t+3}`; control `log rv24*` from the 12 previous Gamma-mid changes; statistic as 13 with
   Δ = beta(z_t) - beta(z_{t+3}). Volume has no effect on the true price; any Supported rate is the stale-mid catch-up.
 - **20 (M-D path world, gate form, CH193; R1 should-fix):** world 15 exactly (path, non-mover selection, shared quotes,
   target `|u_{t+2}|`, control) except that `z_t` is built as in 15 from an **independent copy** `s'_t` of the log-volatility
-  process, so the tested term has no effect while its persistence and the target's dependence are kept; plain FL within
-  CH193's census-fixed stratum.
+  process, so the tested term has no effect while its persistence and the target's dependence are kept; block FL, minimum 16
+  (R1 re-check ruling A). World 6 is also evaluated under the block FL gate, minimum 16.
 
 ### 1.9 Verdicts, the falsification condition and labels (per primary, after Holm over k)
 - **Falsification condition F (CH195, CH197, CH193, CH192; round 12 rule 5; part of the verdict).** The **arm model** is the
@@ -638,13 +647,16 @@ not a revision inside LT7. The idea is recorded in 6.2. Its `mm_fresh` embargo t
 - **Primary statistic.** Expanding-past demeaned OLS of `a` on `z log1p dV`, controls (capture-side only, so the decision time
   stays at capture k): `log rv24*_k` and `rv_floor` (6.B's definition), spread at k, logit `mid_k`, `|mid_k - 0.5|`, `log1p
   volume24hr_{k-1}`, `log1p liquidity_k`, own 24 h change magnitude `|mid_k - mid_{k-12}|` (+ flag), 1[last trade present],
-  1[tick = 0.001], log hours-to-end (+ flag). Inference 1.7; seed 20261175. Gate: plain FL (scenarios 6 and 20), seed 20261275.
+  1[tick = 0.001], log hours-to-end (+ flag). Inference 1.7; seed 20261175. **Gate: block (circular-shift) FL, minimum 16 (scenarios 6 and 20; R1 re-check ruling A)**,
+  seed 20261275.
 - **Falsification (binding, F; the lag arm).** Arm model = primary + `z log1p dV_lag`, `dV_lag = volume24hr_{k+3} -
   volume24hr_{k+2}` (the interval (k + 2, k + 3], adjacent to the target's end; the same census centre and scale as the lead).
   **Missing (R1 must-fix 3):** a unit whose `volume24hr` is missing at k + 2 or k + 3, or whose capture k + 2 or k + 3 is
   absent, is **excluded from the falsification arm and counted** (`lag_missing`, 1.5); it is never imputed. **Negative**
   `dV_lag` (observed: the 24 h roll-off exceeded new volume) is data, not missing: it enters as `log1p(max(dV_lag, 0))` with
-  the indicator `lag_rolloff = 1[dV_lag < 0]` added to the arm model, counted. Δ = beta(lead) - beta(lag) (1.9). Scenarios 15
+  the indicator `lag_rolloff = 1[dV_lag < 0]` added to the arm model, counted; the clamp acts like a missing-indicator method
+  and can be biased, so **the arm without the `lag_rolloff` units is reported as a sensitivity** (never changes the verdict;
+  R1 re-check should-fix 3). Δ = beta(lead) - beta(lag) (1.9). Scenarios 15
   (M-D) and 19 (M-E, stale mid) are CH193's verdict-size statements. Disclosed, all in the conservative direction (each raises
   the lag slope): the lag interval is adjacent to the target while the lead is one interval before it; the lead is selected
   on no move and the lag interval is unrestricted; a large target move draws reaction volume after it.
@@ -811,16 +823,20 @@ and pass j + 13 having `bB + aB > 0` (sizes only, through the lag-slot loader); 
 over the market's pairs ordered by pass j (the first pair of a market drops), markets with >= 3 pairs. The first draft's single
 10-20 12:31Z / 10-21T14:31Z pair per market was that market's first unit, removed by demeaning, so the gate was NaN by
 construction. The design-based arm-model MDE is not computable for a daily unit on two census days (one 12:31Z unit per market
-per day), so **CH197's F-MDE is the declared form** (its census slope MDE times `sqrt(2 / (1 - max(0, r_w)))`). Correlations marked "within" are on
+per day), so **CH197's F-MDE is the declared form**. **`r_gate` (R1 re-check must-fix 2):** pair members demeaned over pairs 2 h apart
+inside a 20 h window keep only sub-day changes, which biases `r_w` low against the analysis's day-scale demeaning (not
+pessimistic, lesson L4); the F-MDE gate and the 0.8 cap therefore use **`r_gate = max(r_w, r_pool)`**, `r_pool` the pooled
+correlation of `imbB_j` and `imbB_{j+13}` over the same pairs; both are printed. CH197's F-MDE = census slope MDE x
+`sqrt(2 / (1 - max(0, r_gate)))`. Correlations marked "within" are on
 expanding-past-demeaned values and bind; pooled values are printed. SDs: `c_skip` 5c, `y22` 6c, `a` and `a_s` 3c.
 
 | Test | Census | Gate (all must hold; NaN fails) | Values fixed into the spec |
 |---|---|---|---|
-| CH195 | CS7 | both-sweep coverage (two-sided outcome-0 sweeps at k - 1 and k, both 5c depths, touch prices) >= 70% of non-sports ex-crypto movers in band; sweep sign agreement >= 70% of covered movers; projected units (all section 2 filters) >= 42,000 (>= 2,000 a day); **residual IQR:** within-market IQR of the residual of `R` after an OLS on `R_away` >= 0.25 (log units) in >= 50% of markets with >= 6 units, and >= 30 such markets; within `|corr(zR, zR_away)|` <= 0.8; within `|corr(zR - zR_away, zh0)|`, `|corr(zR - zR_away, z log|x|)|`, `|corr(zR - zR_away, 1[traded])|` each <= 0.5; `|corr(zR - zR_away, log1p liquidity_k)|` <= 0.5 within and pooled; block-gate share >= 50% of units in markets with >= 2 units; **slope MDE <= 0.5c**; **F-MDE <= 0.5c** (R1 must-fix 7) | common centre and scale of `R`/`R_away`; `zR` tercile cuts and gap; `exclude_family` |
-| CH191 | CC7 | projected 6 h movers (all section 3 filters, including the every-step tick rule of R1 must-fix 11) >= 201,600 (>= 800 a capture); grind >= 15% and jump >= 15% of them; within `|corr(1[grind], 1[traded last step])|`, `|corr(1[grind], z signed own 24 h change)|`, `|corr(1[grind], z log|x6|)|` each <= 0.5; `|corr(1[grind], log1p liquidity_k)|` <= 0.5 within and pooled; **block-gate share** >= 50% of contrasted units in markets with >= 2 contrasted units in the census days (LT5/LT6's recurrence proxy for `n_m >= 16` over 21 days; R1 must-fix 6 replaces the first draft's permutable-strata share); **class MDE <= 0.5c** | `exclude_family` |
-| CH197 | CS7 | covered share (all section 5 filters except the market-day) >= 60% of non-sports ex-crypto books in band; projected daily units >= 210,000 (>= 10,000 a day); within `|corr(imbT, imbB)|` <= 0.5; share of markets present on both days with `|imbB_d2 - imbB_d1| >= 0.1` >= 50%; market-strata share (units in markets present on both days) >= 50%; within `|corr(zimbB, z own 24 h change)|` <= 0.5; `|corr(zimbB, log1p liquidity_k)|` <= 0.5 within and pooled; **slope MDE <= 0.5c** (`DE_gate` floor 5.0); **F-MDE <= 0.5c** (the declared form with `r_w` over every sealed pass pair 13 slots apart, defined above; R1 must-fix 1 and 7) and that within `|corr(imbB_j, imbB_{j+13})|` (= `r_w`) <= 0.8 | `zimbB`, `zimbT` centres and scales; `zimbB` cuts and gap; `exclude_family` |
-| CH193 | CC7 + CV7 | **semantic gate (CV7):** among sampled non-sports traded intervals with complete page coverage of `(t_{k-1}, t_k]` and sample notional > $10, the share with `dV` above the tolerance >= 70%, **and** among sampled markets with complete coverage and no print in the interval, the share with `dV` above the tolerance <= 30%, **and (R1 should-fix, answer 7)** among the same traded intervals the Spearman rank correlation of `dV` with the interval's sampled notional >= 0.5 (LT7's 0.5 correlation level of its confounder caps, used here as the agreement floor), **and** a **latency check**: among those traded intervals whose sampled prints all fall in `(t_k - 30 min, t_k]` (30 min: LT4/LT5's stale-window offset), the share with `dV` above the tolerance >= 70% (the main share's level), NaN (fails) with fewer than 30 such intervals (the design's minimum of 30 for a gate population); printed, not gated: the 70% share restricted to intervals whose interval 24 h earlier had no sampled print where the samples allow it (separating roll-off from timing); `volume24hr` present at k - 1 and k for >= 15% of eligible non-sports ex-crypto rows; projected traded non-movers >= 100,800 (>= 400 a capture); within-market IQR of `log1p dV` >= 0.5 in >= 50% of markets with >= 6 units (and >= 30 markets); within `|corr(z log1p dV, z log1p volume24hr_{k-1})|`, `|corr(z log1p dV, z log rv24)|` each <= 0.5; liquidity gate within and pooled; permutable share >= 50%; **slope MDE <= 0.5c**; **F-MDE <= 0.5c** (R1 must-fix 7) and within `|corr(z log1p dV, z log1p dV_lag)|` <= 0.8, `dV_lag` over (k + 2, k + 3] (R1 must-fix 2) on units with the lag present | `z log1p dV` centre and scale, cuts and gap; `perm_stratum`; `exclude_family` |
-| CH192 | CC7 | projected units >= 210,000 (>= 10,000 a day); `rv_floor` share <= 50%; **residual IQR:** within-market IQR of the residual of `ivr` after an OLS on `log rv24*` and `log rv7d` >= 0.15 in >= 50% of markets with >= 8 units (and >= 30 markets); within `|corr(zivr, z log rv24*)|` <= 0.7; `|corr(zivr, log1p liquidity_k)|` <= 0.5 within and pooled; block-gate share >= 50% of units in markets with >= 2 units; **slope MDE <= 0.5c** (`DE_gate` floor 5.0); **F-MDE <= 0.5c** (R1 must-fix 7) and within `|corr(ivr_k, ivr_lag)|` <= 0.8 | `zivr` centre and scale, cuts and gap; `exclude_family` |
+| CH195 | CS7 | both-sweep coverage (two-sided outcome-0 sweeps at k - 1 and k, both 5c depths, touch prices) >= 70% of non-sports ex-crypto movers in band; sweep sign agreement >= 70% of covered movers; projected units (all section 2 filters) >= 42,000 (>= 2,000 a day); **residual IQR:** within-market IQR of the residual of `R` after an OLS on `R_away` >= 0.25 (log units) in >= 50% of markets with >= 6 units, and >= 30 such markets; within `|corr(zR, zR_away)|` <= 0.8; within `|corr(zR - zR_away, zh0)|`, `|corr(zR - zR_away, z log|x|)|`, `|corr(zR - zR_away, 1[traded])|` each <= 0.5; `|corr(zR - zR_away, log1p liquidity_k)|` <= 0.5 within and pooled; block-gate share >= 50% of units in markets with >= `ceil(16 x covered_days / 21)` units of the test's population in the census days (2 for CS7's two days; R1 re-check must-fix 1); **slope MDE <= 0.5c**; **F-MDE <= 0.5c** (R1 must-fix 7) | common centre and scale of `R`/`R_away`; `zR` tercile cuts and gap; `exclude_family` |
+| CH191 | CC7 | projected 6 h movers (all section 3 filters, including the every-step tick rule of R1 must-fix 11) >= 201,600 (>= 800 a capture); grind >= 15% and jump >= 15% of them; within `|corr(1[grind], 1[traded last step])|`, `|corr(1[grind], z signed own 24 h change)|`, `|corr(1[grind], z log|x6|)|` each <= 0.5; `|corr(1[grind], log1p liquidity_k)|` <= 0.5 within and pooled; **block-gate share** >= 50% of contrasted units in markets with >= `ceil(16 x covered_days / 21)` contrasted units in the census days (6 for CC7's seven days; LT5/LT6's recurrence proxy for `n_m >= 16` over 21 days, scaled to census length by R1 re-check must-fix 1; R1 must-fix 6 replaces the first draft's permutable-strata share); **class MDE <= 0.5c** | `exclude_family` |
+| CH197 | CS7 | covered share (all section 5 filters except the market-day) >= 60% of non-sports ex-crypto books in band; projected daily units >= 210,000 (>= 10,000 a day); within `|corr(imbT, imbB)|` <= 0.5; share of markets present on both days with `|imbB_d2 - imbB_d1| >= 0.1` >= 50%; market-strata share (units in markets present on both days) >= 50%; within `|corr(zimbB, z own 24 h change)|` <= 0.5; `|corr(zimbB, log1p liquidity_k)|` <= 0.5 within and pooled; **slope MDE <= 0.5c** (`DE_gate` floor 5.0); **F-MDE <= 0.5c** (the declared form with `r_gate = max(r_w, r_pool)` over every sealed pass pair 13 slots apart, defined above; R1 must-fix 1 and 7, re-check must-fix 2) and `r_gate` <= 0.8; `r_w` and `r_pool` both printed | `zimbB`, `zimbT` centres and scales; `zimbB` cuts and gap; `exclude_family` |
+| CH193 | CC7 + CV7 | **semantic gate (CV7):** among sampled non-sports traded intervals with complete page coverage of `(t_{k-1}, t_k]` and sample notional > $10, the share with `dV` above the tolerance >= 70%, **and** among sampled markets with complete coverage and no print in the interval, the share with `dV` above the tolerance <= 30%, **and (R1 should-fix, answer 7)** among the same traded intervals the Spearman rank correlation of `dV` with the interval's sampled notional >= 0.5 (LT7's 0.5 correlation level of its confounder caps, used here as the agreement floor), **and** a **latency check**: among those traded intervals whose sampled prints all fall in `(t_k - 30 min, t_k]` (30 min: LT4/LT5's stale-window offset), the share with `dV` above the tolerance >= 70% (the main share's level), NaN (fails) with fewer than 30 such intervals (the design's minimum of 30 for a gate population); printed, not gated: the 70% share restricted to intervals whose interval 24 h earlier had no sampled print where the samples allow it (separating roll-off from timing); `volume24hr` present at k - 1 and k for >= 15% of eligible non-sports ex-crypto rows; projected traded non-movers >= 100,800 (>= 400 a capture); within-market IQR of `log1p dV` >= 0.5 in >= 50% of markets with >= 6 units (and >= 30 markets); within `|corr(z log1p dV, z log1p volume24hr_{k-1})|`, `|corr(z log1p dV, z log rv24)|` each <= 0.5; liquidity gate within and pooled; block-gate share >= 50% of units in markets with >= `ceil(16 x covered_days / 21)` units of the test's population in the census days (6 for CC7's seven days; R1 re-check ruling A and must-fix 1; replaces the permutable share); **slope MDE <= 0.5c**; **F-MDE <= 0.5c** (R1 must-fix 7) and within `|corr(z log1p dV, z log1p dV_lag)|` <= 0.8, `dV_lag` over (k + 2, k + 3] (R1 must-fix 2) on units with the lag present | `z log1p dV` centre and scale, cuts and gap; `exclude_family` |
+| CH192 | CC7 | projected units >= 210,000 (>= 10,000 a day); `rv_floor` share <= 50%; **residual IQR:** within-market IQR of the residual of `ivr` after an OLS on `log rv24*` and `log rv7d` >= 0.15 in >= 50% of markets with >= 8 units (and >= 30 markets); within `|corr(zivr, z log rv24*)|` <= 0.7; `|corr(zivr, log1p liquidity_k)|` <= 0.5 within and pooled; block-gate share >= 50% of units in markets with >= `ceil(16 x covered_days / 21)` units of the test's population in the census days (3 for about 2.75 covered days; R1 re-check must-fix 1); **slope MDE <= 0.5c** (`DE_gate` floor 5.0); **F-MDE <= 0.5c** (R1 must-fix 7) and within `|corr(ivr_k, ivr_lag)|` <= 0.8 | `zivr` centre and scale, cuts and gap; `exclude_family` |
 
 - **Descriptive (no gate):** every census prints the sports and crypto splits, the top series family's share, the events and the
   projected 21-day events, the pairwise unit overlap with the other LT7 populations and with LT6 V's and LT5 J's population
@@ -909,7 +925,7 @@ recorded drop). Each counts 0.
   `lookback_missing` (counted; CH192's `rv7d` is then NaN for the affected early units and those units drop, counted).
 - `backend/astrolabe/research_lab/live_tests7_analysis.py`: the single analysis (1.7-1.10, the arm models and F, Holm over k,
   counting) and the size check (1.8, 1.8.1) with the scenario-to-test map (fail-closed on an unknown or missing scenario), the
-  gates reading `perm_stratum` from the spec through `strata_of`.
+  gates reading their strata from the spec through `strata_of` (CH197's market stratum) or `block_fl_gate` (the others).
 - `backend/scripts/run_live_tests7.py`: `run`, `backfill-series`, `ops-stats`, `seal`, `census-volsem`, `census-captures`,
   `census-sweeps`, `size-check`, `analyze`; censuses accept `--data-dumps-cap-gb` and exit 75 above it; `size-check` refuses
   `--worlds/--draws` without `--dev`; `analyze` refuses before the date, an unpinned, null or NaN spec, or a `k_tests` naming a
@@ -957,7 +973,8 @@ recorded drop). Each counts 0.
 - CH197: `imbT`, `imbB` from best-level sizes and 5c bands (touch inside the band, 1.2); `bB + aB = 0` excluded; the 12:31Z slot
   only; the lag at k + 13; **the census `r_w` over every sealed pass pair 13 slots apart (pairs from any slot; the first pair
   of a market dropped by demeaning; markets with < 3 pairs excluded; a synthetic seal with one 12:31Z pair per market still
-  gives a finite `r_w` from the other pairs)**.
+  gives a finite `r_w` from the other pairs; the gate uses `r_gate = max(r_w, r_pool)` and prints both)**; each block-gate share
+  uses the `ceil(16 x covered_days / 21)` proxy (R1 re-check must-fix 1).
 - CH193: `dV` and the tolerance; a negative `dV` is no unit; `|x| < 0.005`; **the target `|mid_{k+2} - mid_{k+1}|` (a planted
   move in (k, k + 1] leaves it unchanged); the lag `dV` at (k + 2, k + 3]; a missing lag leaves the unit in the primary and out
   of the arm, counted, never 0; a negative lag enters as 0 with `lag_rolloff = 1`; the sweep-mid M1 label rule**; the semantic
@@ -978,7 +995,7 @@ recorded drop). Each counts 0.
   MDE and F-MDE gate formula with `max(declared, design)` and **the 0.5c F-MDE cap**; the end-date filter (> `t` + 7 h for
   CH195, CH191, CH193, CH192; > `t` + 27 h for CH197); **the size check and the gate use identical strata for each test**
   (`test_size_check_and_gate_use_identical_strata`, LT4 19 fix 1); the scenario-to-test map (scenarios 1-20, CH191 on the block
-  gate in 1-5 and 17) and the rule that a failing scenario sets only its own tests to "SE check failed" with k unchanged;
+  gate in 1-5 and 17, CH193 on the block gate in 6 and 20, minimum 16) and the rule that a failing scenario sets only its own tests to "SE check failed" with k unchanged;
   `lookback` lines never become units; an end-to-end synthetic analysis with a reduced `k_tests`.
 
 ### 8.4 Registration steps and pins (in order)
@@ -988,14 +1005,17 @@ recorded drop). Each counts 0.
 3. q0600 restore, q0601 seal, seal committed and pulled on the host.
 4. Code (8.1, 8.3); a `science-reviewer` freeze check of the census and size-check code against sections 1.8, 1.8.1 and 7;
    fixes (none may change frozen text, 1.1).
-5. Censuses q0602-q0604 (counts only); drops recorded in 6.3; `k_tests`, scales, cuts, `perm_stratum` and `exclude_family`
+5. Censuses q0602-q0604 (counts only); drops recorded in 6.3; `k_tests`, scales, cuts and `exclude_family`
    filled with the exact census floats; a freeze record written (LT4 19's form: module hashes, spec hash before the pin, census
    output hashes re-verified on the host, spec values checked against the census JSON).
 6. Size check q0605 (2,000 worlds x 200 draws, seed 20261177, the census-fixed strata); results recorded per test.
 7. Reader freeze check; host dry run with the exact cron command following 8.2's ladder (the step used is recorded).
 8. LT5's and LT6's registration commits (or recorded drops) exist; the embargo entries applied at step 1 are verified in
    `config.EMBARGO` (a missing entry blocks the pin); any token or extension of a test dropped at census is withdrawn with a
-   ledger line.
+   ledger line. **`config.EMBARGO` encodes a fixed 2026-12-31T00:00:00Z** (applied on the main branch, 18d4adc5): if LT7's window
+   slides, the config entries are extended **before 2026-12-31** to the later of that date and LT7's analysis commit (R1 re-check
+   should-fix 2). The `mm_fresh` withdrawal for CH194 is filed on the main branch (68ca8271); its config entry may stay active
+   until then (a harmless over-embargo).
 9. Pins: `SPEC_SHA256`, `code_sha256` map, `code_check` passing; E-numbers assigned from the ledger; the ledger entry is the
    registration commit, at least 24 h before `REGISTERED_UTC` and before `T_V`; the vendored base's `VENDORED` table and
    `vendored_source_drift_accepted` (empty) recorded in the freeze record.
@@ -1146,8 +1166,8 @@ primary makes its family a candidate; an engine gain never changes an LT7 verdic
 > - **CH197** patient money: 22 h YES change on the behind-touch imbalance, touch imbalance fixed, daily units at 12:31Z, > 0;
 >   far-future F binding with `r_w` over every sealed pass pair 13 slots apart; max MDE 0.66c at `r_w` 0.6; *informed
 >   (ML-r4_book)*; likely to drop.
-> - **CH193** absorbed flow: |move| over (k + 1, k + 2] of traded non-movers on net new 24 h volume, lag (k + 2, k + 3], lead
->   minus lag F binding (missing lag excluded from the arm); stale-mid world and sweep-mid label; semantic gate on
+> - **CH193** absorbed flow: |move| over (k + 1, k + 2] of traded non-movers on net new 24 h volume, lag (k + 2, k + 3], block
+>   Freedman-Lane gate, lead minus lag F binding (missing lag excluded from the arm); stale-mid world and sweep-mid label; semantic gate on
 >   `volume24hr` with rank-correlation and latency checks; likely to drop.
 > - **CH192** implied against realised: |move| over (k + 1, k + 2] on spread over own 24 h realised volatility, lag at k + 3, F
 >   binding; four units per market-day; likely to drop.
@@ -1158,8 +1178,8 @@ primary makes its family a candidate; an engine gain never changes an LT7 verdic
 >   2026-12-29T00:00Z)` keyed to LT6's `END_UTC` + 24 h (slides with it), single analysis on or after 2026-12-30T12:00Z;
 >   design-text freeze before the earlier of 2026-11-15T12:00Z and `T_E015` (CH195 dropped if not before `T_E022`, CH191 if
 >   not before `T_LT5`); no read of E022/LT5/LT6 outputs before the pin; registration after LT5 and LT6, before `T_V`.
-> - **Status:** DRAFT; challenger R1 REVISE (2026-10-22) answered in section 13; awaiting the R1 re-check, the design-text
->   freeze, restore and seal (q0600-q0601), code and freeze check, censuses (q0602-q0604), size check (q0605), dry run, pins and
+> - **Status:** DRAFT; challenger R1 REVISE (2026-10-22) answered in section 13; R1 re-check ACCEPT_WITH_FIXES, fixes applied
+>   (13.5); awaiting the orchestrator's check and the design-text freeze, restore and seal (q0600-q0601), code and freeze check, censuses (q0602-q0604), size check (q0605), dry run, pins and
 >   registration. Engine embargo (`book` and `movetype` to the later of 2026-12-31T00:00Z and LT7's analysis commit; new
 >   `resist`, `capath`, `deepbook`, `absorbed`, `ivr`; `mm_fresh` withdrawn) filed in `CANDIDATES.md` round 4, to be applied at
 >   acceptance and in any case before 2026-11-22. **E-numbers not assigned.**
@@ -1216,14 +1236,32 @@ lowered for k <= 5. 17: text freeze kept, with item 9 and the extended no-read r
 | End date > t + 7 h | 1.4 | LT3's value for 6 h targets (R1) |
 | CH197 `r_w`: markets with >= 3 pairs | 7 | the smallest count giving at least two demeaned pairs per market after the first drops |
 | CH191 every step >= 1 tick, same sign | 3 | the hypothesis text (R1 item 11) |
-| CH191 block-gate share >= 50% in markets with >= 2 contrasted units | 7 | LT5/LT6's recurrence proxy for `n_m >= 16` |
-| CH193 Spearman(dV, sampled notional) >= 0.5 | 7 | LT7's 0.5 correlation level of its confounder caps |
+| CH191 block-gate share >= 50% in markets with >= 2 contrasted units (**superseded** by the scaled proxy below, R1 re-check must-fix 1) | 7 | LT5/LT6's recurrence proxy for `n_m >= 16` |
+| CH193 Spearman(dV, sampled notional) >= 0.5 | 7 | a **convention**: the reuse of the 0.5 level of LT7's confounder caps, not a calibrated value (R1 re-check) |
 | CH193 latency window 30 min; share >= 70%; >= 30 intervals | 7 | LT4/LT5's 30-minute stale-window offset; the main semantic share's 70%; the design's minimum of 30 for a gate population |
 | Scenario 18 drift: AR(1) rho 0.8, SD 0.02 | 1.8.1 | M-C's trait persistence (14); the worlds' control-effect scale (7-8) |
 | Scenario 19 refresh `pi_m ~ U(0.4, 1.0)` | 1.8.1 | mean 0.7 = CH195's 70% Gamma/sweep move-agreement floor; a market range as worlds 2, 4-5; no AREPO staleness measurement exists |
 | Scenario 17 and 20 parameters | 1.8.1 | scenario 15's volatility and shock process; 16's market and pass counts |
+| CH197 `r_gate = max(r_w, r_pool)` for the F-MDE gate and the 0.8 cap (R1 re-check must-fix 2) | 7 | the pessimistic choice lesson L4 requires: the larger of the sub-day within-market and the pooled correlation |
+| Block-gate share proxy `ceil(16 x covered_days / 21)` units (R1 re-check must-fix 1) | 7 | the gate's minimum 16 over 21 days, scaled to census length (LT5/LT6's 2-unit proxy was set on 2-day censuses) |
 | Planning DE 6.196 | 0, 2-6 | E022's computed census value (planning only; gates keep `max(floor, computed)`) |
 
-**Open for the re-check (not changed here):** whether CH193's plain gate should become the block gate (its `dV` is persistent
-through volatility clustering; scenario 20 now tests the plain gate on that structure); whether `order_min_size` is present in
-the sealed sidecar (header pre-check; otherwise unrewarded markets are unassigned in the wall-class secondary).
+**Open for the re-check (resolved in 13.5):** CH193's gate (ruling A: block gate) and `order_min_size` (ruling B: available
+since 359d6754; may be null per market, so the header pre-check and the "unassigned, counted" rule stay).
+
+### 13.5 R1 re-check fixes (2026-10-22; `reviews/LT7_R1_RECHECK_2026-10-22.md`, ACCEPT_WITH_FIXES; governs where earlier text differs)
+
+Text only, before any census; nothing was chosen from data; every fix tightens a gate or adds a disclosure.
+
+| # | Re-check item | Change | Sections |
+|---|---|---|---|
+| M1 | The block-gate share proxy (">= 2 units in the census days") was set on 2-day censuses and is lax on longer ones | Every block-gate share uses **markets with >= `ceil(16 x covered_days / 21)` units of the test's population in the census days**: CH191 6, CH193 6, CH192 3, CH195 2 (unchanged) | 7, 13.4 |
+| M2 | CH197's `r_w` is biased low (sub-day demeaning), so its F gate was not pessimistic (L4) | The F-MDE gate and the 0.8 cap use **`r_gate = max(r_w, r_pool)`**, `r_pool` the pooled correlation of `imbB_j` and `imbB_{j+13}` over the same pairs; both printed | 7, 13.4 |
+| M3 | Ruling A: CH193's `dV` is persistent; the plain gate would very likely fail scenario 20 | **CH193 moves to the block (circular-shift) gate, minimum 16**, for its analysis gate and scenarios 6 and 20; the census permutable share is replaced by the scaled block-gate share; `perm_stratum` dropped from CH193's spec values (no LT7 test now carries it) | 0, 1.8, 1.8.1, 6.A, 7, 8.1, 8.3, 8.4, 12 |
+| S1 | `order_min_size` missing from the sidecar field list | Added (ruling B: `ext_sidecar.MARKET_NUM` since 359d6754; may be null per market; header pre-check and "unassigned, counted" kept) | 1.2, 13.3 |
+| S2 | `config.EMBARGO` encodes a fixed 12-31; `mm_fresh` still active | 8.4 step 8: if the window slides, extend the config entries before 12-31; `mm_fresh` withdrawal filed on main (68ca8271) | 8.4 |
+| S3 | CH193's lag clamp works like a missing-indicator method | `lag_rolloff` added to 1.5's declared exceptions; the arm without the `lag_rolloff` units is reported as a sensitivity | 1.5, 6.A |
+| S4 | Scenario 18's drift and scenario 19's refresh level | Scenario 18 stated as a **mild stress** (about 11% of `y_d`'s variance); scenario 19's 0.7 stated as a borrowed level, not a staleness estimate; CH193's Spearman 0.5 disclosed as a convention (13.4) | 1.8.1, 13.4 |
+
+**Ready for the design-text freeze** once the orchestrator has checked these fixes (re-check "Freeze readiness").
+
