@@ -157,20 +157,34 @@ champion (market state + momentum), the learner reference and broad multi-family
 | surprise | 2026-11-19T00:00Z (from 11-12, 2026-10-21) | E011 (window ends 11-10, analysis after 11-11; moved for margin on the science review's note, since pending outcomes are retried); model `se15_lgbm_surprise` since 2026-10-21 ~15:00Z (no score computed or shown before). Its spec description still says 11-12: the spec is pinned, and the date lives in `config.EMBARGO` |
 | chg1d_x_liq (no model yet) | 2026-11-14T00:00Z | E012 |
 | tte | 2026-11-14T00:00Z | E014 |
-| flow | 2026-11-22T00:00Z (from 11-16, 2026-10-21) | E013, E014 (LT2, 2026-11-13T12Z), E016, E018 (LT3 proposed 2026-11-15T12Z), LT5 J/O (draft) |
-| book | 2026-12-31T00:00Z (from 11-18, then 11-22, both 2026-10-21; then 12-09; 12-31 on 2026-10-22 for LT7 CH195/CH197, round 4) | E015, E019 (LT3), E020, E022 (LT4 proposed 2026-11-17T12Z), LT5 H/R (draft), LT6 V (draft, CH190; experiments round-2 request) |
-| book0 | 2026-12-31T00:00Z (same date and tests as `book`; added 2026-10-22 ~03:00Z with `se19_lr_book0` and broad `se18_lgbm_all_b0`, before any book0 table or score existed; section 22) | as `book`; also hides `book0` in se18's family attribution. Disclosed: the visible se7 minus se18 score contrast compares sweep-1 book with book0 (section 22) |
-| wallet | 2026-12-07T00:00Z (from 11-18, 2026-10-21) | E024 (LT4), E026 copy-skilled (draft, analysis on/after 2026-12-06T12Z) |
+| flow | 2026-11-16T00:00Z (11-16 -> 11-22 on 2026-10-21 for LT5 J/O; that extension withdrawn 2026-10-22 ~12:00Z, both dropped at q0562; E016/E018 dropped at q0472, 11-16 kept as margin) | E013, E014 (LT2, 2026-11-13T12Z) |
+| book | 2027-01-23T00:00Z (from 11-18, then 11-22, both 2026-10-21; then 12-09; 12-31 on 2026-10-22 for LT7 CH195/CH197, round 4; 2027-01-23 on 2026-10-22 ~12:00Z for LT8 CH202/CH203, LIVE_TESTS_8.md section 9) | E015, E022 (LT4 registered), LT7 CH195/CH197, LT8 CH202/CH203 (E019, E020, LT5 H/R and LT6 V were dropped at census and pruned from the list 2026-10-22) |
+| book0 | 2027-01-23T00:00Z (same date and tests as `book`; added 2026-10-22 ~03:00Z with `se19_lr_book0` and broad `se18_lgbm_all_b0`, before any book0 table or score existed; section 22) | as `book`; also hides `book0` in se18's family attribution. Disclosed: the visible se7 minus se18 score contrast compares sweep-1 book with book0 (section 22) |
+| wallet | 2026-12-07T00:00Z (from 11-18, 2026-10-21) | E026 copy-skilled (analysis on/after 2026-12-06T12Z); E024 dropped before any census, pruned 2026-10-22 |
 | wallet_skill (no model yet) | 2026-12-07T00:00Z | E026 |
-| rewards | 2026-11-22T00:00Z (from 11-18, 2026-10-21) | E020 (LT4 draft: reward flag as control / S3), LT5 R (draft); added 2026-10-21 with `se9_lr_rewards` |
-| event | 2026-11-22T00:00Z | LT5 F (draft, CH184); added 2026-10-21 ~10:20Z on the experiments track's request, before any event score was computed or shown (`se8_lr_event`, `se10_lgbm_event`) |
+| rewards | 2026-11-18T00:00Z (the later of that and E022's analysis commit; 11-18 -> 11-22 on 2026-10-21 for LT5 R, that extension withdrawn 2026-10-22 ~12:00Z after LT5 R dropped at q0561) | E022 S2 (registered; reward versus non-reward split, analysis not before 2026-11-17T12Z). E020 dropped at the LT4 census. LT7 has rewarded secondaries but requests no token |
+| event | **withdrawn 2026-10-22T12:00Z** (was 11-22) | LT5 F (CH184) dropped at census (q0561); no registered or drafted test uses event-sibling features. se8 / se10 are visible from then (neither had a fit or score before). Disclosed: that census read 2026-10-20/21 captures for counts only |
 | movetype | 2026-12-31T00:00Z (from 11-22, 2026-10-22, LT7 CH193, round 4) | E015 (LT3 registered 2026-10-21, analysis not before 2026-11-15T12Z); same date as `book`; added 2026-10-21 ~14:30Z with `se14_lgbm_movetype` (which also isolates `book`), before any movetype score was computed or shown |
 | participation | 2026-11-25T00:00Z | CB17-C (CH150, drafted: event-volume change as eligibility, event liquidity as control; REP_8 ends no earlier than 11-23T08Z); added 2026-10-21 with `se16_lgbm_participation` before any table or score existed (science review REVISE) |
-| vote, clips, deadline, siblings (no models yet) | 2026-12-09T00:00Z | LT6 V, K, D, B (draft; experiments round-2 request 2026-10-21) |
+| vote, clips, deadline, siblings (no models) | **withdrawn 2026-10-22T12:00Z** (were 12-09) | LT6 V, K, D, B, all dropped at census (q0582, q0583) |
 | hollow (no model yet) | 2026-11-18T00:00Z | E022 (LT4, CH174; registration planned 2026-10-25, analysis not before 2026-11-17T12Z; experiments round-3 request, added 2026-10-21 ~20:50Z): any feature combining Gamma `liquidity` with sweep depth (`h`, `L/D`, `log L - log D`, `zh`, h terciles). Liquidity alone stays usable. E022's depth control (`log1p D` of the outcome-0 5c depth) is `bk_depth5c`, already under `book` (12-09). Broad `se7_lgbm_all` holds `liquidity` and `bk_depth5c` as separate columns (no hollow column); as a broad model it stays unembargoed under this section's rule, disclosed here |
-| resist, capath, mm_fresh, deepbook, absorbed, ivr (no models yet) | 2026-12-31T00:00Z | LT7 (draft; CH195, CH191, CH194, CH197, CH193, CH192; experiments round-4 request, added 2026-10-22 ~01:00Z). Each date is the later of 12-31 and LT7's analysis commit (a later request follows if LT7 slides). `mm_fresh` is the isolated chg_1h x own 2 h set; the champion's momentum family stays usable |
+| resist, capath, deepbook, absorbed, ivr (no models yet) | 2026-12-31T00:00Z | LT7 (draft; CH195, CH191, CH194, CH197, CH193, CH192; experiments round-4 request, added 2026-10-22 ~01:00Z). Each date is the later of 12-31 and LT7's analysis commit (a later request follows if LT7 slides). `mm_fresh` is the isolated chg_1h x own 2 h set; the champion's momentum family stays usable `mm_fresh` was **withdrawn 2026-10-22T12:00Z** with CH194 (LT7 R1 response) |
+| quietbook, swclock, sched (no models yet) | 2027-01-23T00:00Z (the later of that and LT8's analysis commit) | LT8 CH203, CH202, CH204 (design text frozen c124db50; section 9 requests applied 2026-10-22 ~12:00Z, before the 12-01 deadline) |
 
 LT3/LT4 dates are the proposed windows; when they register, move the dates **later** if needed (never earlier).
+
+**Withdrawal (2026-10-22).** The only way a date moves earlier: when a test drops at its census before registration,
+its token and any extension made only for it are withdrawn with a ledger line (the programme's rule, e.g.
+LIVE_TESTS_8.md section 9). A withdrawn entry stays in `config.EMBARGO` with `until` set to the withdrawal time, the
+structured fields `withdrawn_utc` and `until_before`, and a `WITHDRAWN` note, so the record stays auditable and
+`embargo_of` at earlier times still returns the embargo (with the withdrawal time as its date; prediction logs keep
+the date that applied when they were written). An entry whose date moved earlier always carries these fields. A
+withdrawal raises the promotion rule's K at once (every active non-embargoed challenger counts, §21), which only makes
+the bar stricter. First use: 2026-10-22T12:00Z (`event`, `vote`, `clips`, `deadline`, `siblings`, `mm_fresh`; the LT5
+extensions of `flow` (to 11-16) and `rewards` (to 11-18)); K 5 -> 7 (se8 and se10 join). Expected K path as later
+embargoes lapse: 9 at 11-04 (xvenue), 11 at 11-14 (tte), 13 at 11-16 (flow), 14 at
+11-18 (rewards), 15 at 11-19 (surprise), 16 at 11-25 (participation), 17 at 12-07 (wallet), 20 at 2027-01-23 (book,
+book0, movetype); these steps follow the declared definition and are not tuning.
 
 **Fit diagnostics under an embargo (science review 2026-10-21).**
 - A LightGBM fit computes its inner-split validation loss, because early stopping and temperature calibration need it.

@@ -3658,3 +3658,39 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **Next:** code fix on a branch (strict parse, four reward statuses, counts, spec key `reward_null_rule`, tests), a
   counts-only probe (listed-inactive share, `order_min_size` null share, within-day switching), census-code re-check, then
   CV7 (q0602), CC7 (q0603), CS7 (q0604) on one code hash with fresh work dirs, finishing before 2026-10-28T03:30Z.
+
+## Signal engine: embargo withdrawals after census drops, LT8 tokens applied, 2026-10-22 ~12:00Z (signal-engine autopilot; nothing scored or counted)
+- **Withdrawn** (programme rule: a test dropped at census before registration loses its token and any extension made
+  only for it; DESIGN_V1 §8 "Withdrawal"; `until` set to 2026-10-22T12:00:00Z with a `WITHDRAWN` note, entries kept):
+  - `event` (LT5 F, dropped q0561): se8_lr_event and se10_lgbm_event visible from 12:00Z. Neither had a fit, a
+    prediction or a score before. Disclosed: the LT5 census read 2026-10-20/21 captures for counts only.
+  - `rewards` 11-22 -> 11-18: only the extension for LT5 R (dropped q0561) is undone; E020 (dropped at the LT4
+    census) is removed. The token stays for registered E022's S2 secondary (reward versus non-reward split; analysis
+    not before 11-17T12Z): the later of 11-18 and E022's analysis commit. se9 stays hidden until then. LT7 has
+    rewarded secondaries and an open challenger ruling on null `clob_rewards`, but requests no token.
+  - `flow` 11-22 -> 11-16: only the 2026-10-21 extension for LT5 J/O (dropped q0562) is undone. E016/E018 (dropped
+    q0472) are removed; 11-16 is kept as margin over E013/E014's 2026-11-13T12Z analysis (not shortened to 11-14).
+    The later of 11-16 and LT2's analysis commit (q0461): if q0461 slips, the date moves later. se2_lr_flow and
+    se11_lgbm_flow are scored from 11-16, over their history since 10-21.
+  - `vote`, `clips`, `deadline`, `siblings` (LT6 V/K/D/B, dropped q0582/q0583; no models); `mm_fresh` (CH194
+    withdrawn in LT7's R1 response; no model).
+  - Tests lists pruned of dropped tests, dates unchanged: `book`/`book0` drop E019, E020, LT5 H/R, LT6 V (LT8 §9
+    asks for LT6 V); `wallet` drops E024.
+- **Applied LT8 §9 requests** (CANDIDATES round 5, filed ~11:00Z; design text frozen c124db50; before the 12-01 deadline): new tokens `quietbook`
+  (CH203), `swclock` (CH202), `sched` (CH204) to the later of 2027-01-23T00:00Z and LT8's analysis commit; `book` and
+  `book0` 12-31 -> 2027-01-23 (later only; back to 12-31 only if both CH202 and CH203 drop at census). se3, se14
+  and se19 stay hidden 23 days longer (disclosed by LT8).
+- **Record:** withdrawn entries stay in `config.EMBARGO` with `until` = `withdrawn_utc` = 2026-10-22T12:00:00Z and
+  `until_before`; flow and rewards carry the same fields. A test checks that any date moved earlier carries them.
+- **Consequence:** se-promotion-v2's K (every active non-embargoed challenger) goes 5 -> 7 at once (se8, se10), so the
+  Bonferroni level is stricter for se1, se17, se18 and se20. This follows the pre-declared definition of K; no constant
+  changed. No challenger can reach 14 days of age before ~11-04. se8 and se10 join K before they can be scored (first
+  fits ~10-27); if they never fit, they raise K for nothing. Expected K path as embargoes lapse: 9 at 11-04, 11 at
+  11-14, 13 at 11-16, 14 at 11-18, 15 at 11-19, 16 at 11-25, 17 at 12-07, 20 at 2027-01-23. se8's 28-day retirement
+  check counts from its first prospective score, not from today.
+- **Partial overlaps disclosed (no tested term):** the event family holds event size and sibling moves. CB17-C has a
+  "moving members {1, >=2}" stratum (REP_8 to at least 11-23), which the 11-22 `event` token happened to cover; its
+  tested quantity stays under `participation` (11-25). LT8 caps CH203 / CH204 at 10 members per event.
+- Science review: ACCEPT_WITH_FIXES. All fixes applied: `rewards` kept for E022 S2 (only the LT5 R extension
+  withdrawn), "later of" wording on flow / LT8 / book entries, structured withdrawal fields, these disclosures and the
+  K path. Withdrawal time set at or after the deploy (deploy before 12:00Z; actual time in STATUS.md). Tests: 50 engine tests pass; ruff clean.
