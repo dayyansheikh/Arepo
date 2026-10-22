@@ -704,7 +704,26 @@ table's order.
   now. If a census fails, its counts are the output (k = 0 for that idea) and are recorded in 6.3.
 
 ### 6.3 Census drops
-None yet. Census drops will be recorded here, with their counts, before the pin.
+**q0582 (CD, CB, CV), 2026-10-22 05:42-06:26Z** (attempt 1, rc 0, 2,686 s) on the committed seal
+`seals/lt6_census_inputs.json` (sha256 18040c80…); output `seals/CD_CB_CV.json`, sha256
+b4c12b323de053bdb9dfe37111d86c18b19536918b302d3b1b0dc0b26fd71f60 (host and Mac equal); `inputs_verified` true, 382 files
+checked; CD/CB covered 9.08 days (112 captures), CV 1.75 days; 8 genuinely missing slots, never imputed. Every gate was
+fixed in section 7 before the census; nothing re-tuned. **D, B and V all fail and are dropped before registration,
+uncounted.**
+- **D (CH187, CD): DROPPED.** 3 later by-date interior non-sports units in 9.08 covered days (10 earlier, 6 roll-overs,
+  697,757 unchanged), far below the kill line of >= 3,150 projected (>= 150 a day); the census stops at "no later units".
+  Roll-over plus crypto share 0.67 (the second kill line, 0.70, is printed only).
+- **B (CH188, CB): DROPPED.** No birth unit after the section 3 rules (616,926 no-birth units; 105 guard-loss and 95
+  lagged-only candidates excluded and counted), far below the kill lines (>= 630 births, >= 3,150 birth units projected);
+  even counting every excluded candidate the projection (about 470) stays below 630.
+- **V (CH190, CV): DROPPED.** Fails one gate: within-market |corr(zv, z v_prev)| = 0.595 (pooled 0.566) > 0.5, so the
+  aligned post-move skew is not separable from the pre-move skew at the declared limit. Passes the rest: projected units
+  331,728 (>= 42,000), both-sweep coverage 0.93, depletion asymmetry at the touch -7.1 pp traded / -6.5 pp quote-only
+  (<= 20 pp), IQR share 0.93, block recurrence 0.93, the other correlations (h0 0.007, log |x| -0.026, traded 0.016,
+  liquidity -0.046 within), tercile MDE 0.35c (<= 0.5c; DE_gate 7.2).
+- K (CK) waits for q0583; `k_tests` is fixed after it. The D/B/V census values in the spec stay null on purpose.
+- Consequences: V's freeze condition on E022 (1.1) is moot; the `vote`, `deadline` and `siblings` engine tokens were
+  filed for V, D and B only (CANDIDATES.md note of 2026-10-22).
 
 ## 7. Pre-registration censuses (counts only; before registration; worn pre-window data; no target read)
 

@@ -3575,3 +3575,12 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - (~06:05Z) Ops decision: the temporary 10-day snapshot retention (693db389) is kept beyond q0561 until LT7's last
   census (q0604) is done, because LT7's frozen ordering rule (text 7: after LT6's q0584) pushes its censuses past the
   8-day loss date of the 10-18 rows it sealed. Longer, never shorter; reverted to 8 days afterwards with a ledger line.
+
+## LT6 capture censuses (q0582): D, B and V dropped at census, uncounted (2026-10-22 ~06:35Z; experiments autopilot)
+- q0582 ran once (05:42-06:26Z, rc 0) on seal 18040c80…; output `seals/CD_CB_CV.json` sha256 b4c12b32… committed.
+  Counts only, no target read.
+- **D (CH187): dropped** (3 later by-date units in 9.08 days against a >= 3,150 projected kill line). **B (CH188):
+  dropped** (no qualifying birth unit; the kill line is >= 630 births). **V (CH190): dropped** (within corr(zv, z v_prev)
+  0.595 > 0.5; every other gate passes, tercile MDE 0.35c). Details: `LIVE_TESTS_6.md` 6.3. Uncounted (census drops
+  before registration).
+- LT6 continues with K (CH185): q0583 (flow census) next, then `k_tests`; q0584 size check only if K survives.
