@@ -149,6 +149,13 @@
    "spec_sha256": "01918c4f05eb4f861e05512e549ea7de3826c66d4cc891856bebd3ea951dbf9f",
    "status": "active",
    "added_utc": "2026-10-22T02:34:00Z"
+  },
+  {
+   "model_id": "se21_lgbm_hwm",
+   "file": "se21_lgbm_hwm.json",
+   "spec_sha256": "af05033066d2385e266cf3e2e446381de7740bb9f49dfae20370de03612ddcfd",
+   "status": "active",
+   "added_utc": "2026-10-22T22:00:00Z"
   }
  ]
 }

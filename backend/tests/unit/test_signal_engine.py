@@ -843,6 +843,61 @@ def test_surprise_family_reads_only_earlier_quotes(env):
     assert np.isnan(first["sp_rv6h"].to_numpy(float)).all()
 
 
+def test_hwm_features_hand_example():
+    n_slots = A.HW_LOOKBACK + 1
+    H = np.full((4, n_slots), np.nan)
+    H[0] = 0.5  # flat: distances 0, range below one cent so no position, most recent extreme is the last slot
+    H[1] = 0.4
+    H[1, -1 - 50] = 0.6  # 7 d high 50 slots (100 h) back, outside the 3 d window
+    H[1, -1 - 10] = 0.3  # 7 d and 3 d low 10 slots (20 h) back
+    H[1, -1] = 0.45
+    H[2, -1 - 20:-1] = 0.2  # only 20 quoted earlier slots: 3 d values present, 7 d below its minimum count
+    H[2, -1] = 0.25  # a new high: hw_dhi3d < 0
+    H[3, -1] = np.nan  # origin not quoted: everything missing
+    H[3, :-1] = 0.5
+    a = A.hwm_features(H)
+    np.testing.assert_allclose(a.loc[0, ["hw_dhi3d", "hw_dlo3d", "hw_dhi7d", "hw_dlo7d", "hw_agehi7d", "hw_agelo7d", "hw_cov7d"]].astype(float),
+                               [0, 0, 0, 0, 2, 2, 1], atol=1e-6)
+    assert np.isnan(a.loc[0, "hw_pos7d"])
+    np.testing.assert_allclose(a.loc[1, ["hw_dhi3d", "hw_dlo3d", "hw_dhi7d", "hw_dlo7d", "hw_agehi7d", "hw_agelo7d", "hw_pos7d"]].astype(float),
+                               [-0.05, 0.15, 0.15, 0.15, 100, 20, 0.5], atol=1e-6)
+    np.testing.assert_allclose(a.loc[2, ["hw_dhi3d", "hw_dlo3d", "hw_cov7d"]].astype(float), [-0.05, 0.05, 20 / 84], atol=1e-6)
+    assert np.isnan(a.loc[2, ["hw_dhi7d", "hw_dlo7d", "hw_agehi7d", "hw_pos7d"]].astype(float)).all()
+    assert a.loc[3].isna().all()
+    # a mid older than the 7 d window (slot k - 85) does not enter any value
+    H2 = np.column_stack([np.full(4, 0.99), H])
+    np.testing.assert_array_equal(A.hwm_features(H2).to_numpy(), a.to_numpy())
+
+
+def test_hwm_family_reads_only_earlier_quotes(env):
+    """The table of capture k equals hwm_features on the quotes mids of slots <= k, and ignores capture k + 1."""
+    w, paths = env
+    w.run(8)
+    build_all(paths)
+    idx = S.load_index(paths)
+    while A.run_aux(paths, max_items=50)["written"]:
+        pass
+    k, nxt = idx[SLOT0 + 6]["capture_id"], idx[SLOT0 + 7]["capture_id"]
+    f = A.read_features(paths, k)
+    assert f.attrs["aux_ok"]["hwm"]
+    mids = A.SlotMids(paths, idx, keep=A.HW_LOOKBACK + 4)
+    ids = f["market_id"].to_numpy(np.int64)
+    H = np.column_stack([mids.get(j, ids) for j in range(SLOT0 + 6 - A.HW_LOOKBACK, SLOT0 + 7)])
+    want = A.hwm_features(H)
+    np.testing.assert_allclose(f[A.HWM_COLUMNS].to_numpy(float), want.to_numpy(float), equal_nan=True)
+    assert np.isfinite(f["hw_cov7d"].to_numpy(float)).any() and np.isnan(f["hw_dhi7d"].to_numpy(float)).all()  # 6 earlier slots < 24
+    before = S.read_parquet(A.aux_path(paths, "hwm", k))
+    p = paths.quotes(nxt)
+    d = S.read_parquet(p)
+    d["bid"], d["ask"] = d["bid"] * np.float32(0.5), d["ask"] * np.float32(0.5)
+    p.unlink()
+    S.write_once_parquet(p, d)
+    A.aux_path(paths, "hwm", k).unlink()
+    while A.run_aux(paths, max_items=50)["written"]:
+        pass
+    pd.testing.assert_frame_equal(S.read_parquet(A.aux_path(paths, "hwm", k)), before)
+
+
 def test_aux_builder_failure_is_isolated(env, monkeypatch):
     w, paths = env
     w.run(4)
