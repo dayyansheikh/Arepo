@@ -1,26 +1,26 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-22 06:26 UTC+1
+**Last updated:** 2026-10-22 07:01 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **Autopilot:** a new session started at about 06:20 UTC+1 (22 Oct), after the night session hit its usage limit.
-- **Server resize: DONE.** The server now has 2 CPUs and 12 GB (free tier, your approval). It was down 6 minutes
-  (04:10-04:16 UTC+1); nothing was lost, and the live tests' short gaps are written in the log as they happened (no
-  filling in). All data feeds came back by themselves.
-- **Today's job order on the server:** LT5's counting job (needs about 5 GB, now possible), then LT4's size check, then
-  LT6's two counting jobs, then the big model run (MC1, up to 6 hours, also only possible on the larger server).
-- **LT6 (four planned live tests):** its data list is sealed and saved; its counting jobs are queued for today.
-- **LT7 (five planned live tests from ideas round 12):** the counting code was fixed after review; an independent check
-  of those fixes is running now. Honest planning says most of these may fail their counting checks.
-- **Batch 6/7 history seals:** the "tail" seal is done and saved; the "text" and "geo" seals are queued.
-- **LT4 / E022:** size check runs today, then registration before 25 Oct.
+- **New live test registered: E022** (from LT4). It asks whether displayed liquidity that cannot actually be traded
+  against says anything about later moves. It passed its size check this morning and collects from 26 Oct to 16 Nov;
+  single analysis after 17 Nov. That makes **seven registered live tests** (E009/E010, E011, E012-E014, E015, E022, E026).
+- **Server resize: DONE** (2 CPUs, 12 GB, free). Down 6 minutes overnight; the short gaps are logged as they happened.
+- **LT5 (round 11 ideas):** three of its five planned tests failed their counting checks this morning and were dropped
+  before any test, uncounted (one needed a bigger effect than allowed, two had too few cases). Two remain to be counted.
+- **LT6 (four planned tests):** its counting jobs are running now.
+- **LT7 (five planned tests from round 12):** the counting code passed its checks; its data list is sealed (after a small
+  fix: the seal wrongly reported some present files as missing). A quick check of reward fields runs next.
+- **New ideas round 13** is being written (the earlier lists are fully used).
+- **Model run (MC1)** is queued after the LT6 jobs; it only fits on the larger server.
 - **Copy-skilled wallets (E026):** registered; collection starts 25 Oct (phone note then).
 - **Live tests waiting for their single analysis:** E009/E010 (3 Nov), E011 (11 Nov), E012-E014 (13 Nov), E015
-  (15 Nov), E026 (6 Dec).
+  (15 Nov), E022 (17 Nov), E026 (6 Dec).
 ## 2. Approvals needed from you
 1. ~~Automatic Claude sessions~~ **APPROVED and installed 15 Oct** (full power, your call).
    - Pause: `python3 scripts/autopilot/autopilot.py pause` (on the Mac, in the repo). Use `resume` to undo, or `stop` to
@@ -71,7 +71,7 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 
 | Leading candidates | Awaiting confirmation | Confirmed edge |
 |---|---|---|
-| Kalshi lead; order flow; book/liquidity interactions (being tested) | E009/E010 (3 Nov), E011 (11 Nov), E012-E014 (13 Nov), E015 (15 Nov), E026 (6 Dec) | **None** |
+| Kalshi lead; order flow; book/liquidity interactions (being tested) | E009/E010 (3 Nov), E011 (11 Nov), E012-E014 (13 Nov), E015 (15 Nov), E022 (17 Nov), E026 (6 Dec) | **None** |
 
 ## 5. Infrastructure
 | Item | State |
