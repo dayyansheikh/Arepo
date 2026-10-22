@@ -6,7 +6,7 @@ phase 1 (the seal and the counts-only censuses) uses (LIVE_TESTS_8.md 8.1, R1 mu
 Sources (LIVE_TESTS_8.md 8.1: "vendor from the LT7 census code that wrote LT7's seal"): ``live_tests7_base.py`` (which already holds
 unmodified, prefix-free copies of the LT3/LT4/LT5 functions; each name's original source file and hash is carried in ``VENDORED``
 as ``origin``) and ``live_tests7.py`` (the LT7 helpers). The script REFUSES unless the raw sha256 of both sources equals the hashes
-that LT7's censuses q0602-q0604 run on (2ee6a659... and 2e8baa90...; LT7's seal recorded 232c22fb... for ``live_tests7.py``, LIVE_TESTS_8.md 8.1), so a drifted LT7 file is never
+that LT7's censuses q0602-q0604 run on after amendment 13.7 (e1c5c0c6... and 2e8baa90... at 8dd013b9; LT7's seal recorded 232c22fb... for ``live_tests7.py``, LIVE_TESTS_8.md 8.1), so a drifted LT7 file is never
 vendored. The only change to a copied source is the removal of the module prefix (``b.`` for ``live_tests7.py``, the alias of its
 vendored base; nothing for ``live_tests7_base.py``, which is flat). Provenance per name: the source file, the source file's sha256
 at copy time, the prefix regex and the sha256 of the prefix-normalised function source; ``test_research_lab_live_tests8.py``
@@ -18,7 +18,7 @@ Names of 8.1's list that are NOT in the two pinned sources are not vendored here
 ``demean`` (``bounce_decomp.expanding_demean``). LT5 R's reward parser is inline code in ``live_tests5.py`` (not a function); LT8's
 reward rule is new code (``live_tests8.reward_status``).
 
-    python scripts/vendor_lt8_base.py
+    LT8_VENDOR_SRC=<dir with the two blobs from `git show 8dd013b9:backend/astrolabe/research_lab/<file>`> python scripts/vendor_lt8_base.py
 """
 
 from __future__ import annotations
@@ -26,16 +26,18 @@ from __future__ import annotations
 import ast
 import hashlib
 import json
+import os
 import re
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parents[1] / "astrolabe" / "research_lab"
 OUT = HERE / "live_tests8_base.py"
+SRC = Path(os.environ["LT8_VENDOR_SRC"]) if os.environ.get("LT8_VENDOR_SRC") else HERE  # optional dir holding the two pinned blobs (git show 8dd013b9:...)
 SOURCE_PINS = {
-    "live_tests7.py": "2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27",
+    "live_tests7.py": "e1c5c0c68f7c44d3d5038f9c28324008a4a8132e35f148721a33078d706766a0",
     "live_tests7_base.py": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20",
 }
-SOURCE_COMMIT = "41a0bb4e"  # the chore commit holding both pinned blobs (LT7 reward-null fix merged); recorded in VENDORED as source_commit
+SOURCE_COMMIT = "8dd013b9"  # the feat/lt7-reward-carry commit holding both pinned blobs (LT7 amendment 13.7, listed_carry24h_v2; CC7/CS7 run on it); recorded in VENDORED as source_commit
 PREFIX = {"live_tests7_base.py": r"(?!)", "live_tests7.py": r"\bb\."}  # (?!) never matches: the base is flat
 
 PICK = {
@@ -62,7 +64,7 @@ HEADER = '''# ruff: noqa: E501, F401
 
 Unmodified copies of the LT3/LT4/LT5/LT7 reader, census and analysis functions that LT8 uses (LIVE_TESTS_8.md 8.1; LT7 R1 must-fix
 10 and LT8 R1 must-fix 5), so that later LT3-LT7 maintenance cannot void LT8 lines. Sources: ``live_tests7_base.py`` and
-``live_tests7.py`` at the hashes LT7's censuses q0602-q0604 run on (2ee6a659... / 2e8baa90... at 41a0bb4e; LT7's seal recorded 232c22fb... for live_tests7.py). The only change to each copy is the removal of the
+``live_tests7.py`` at the hashes LT7's censuses q0602-q0604 run on (e1c5c0c6... / 2e8baa90... at 8dd013b9, amendment 13.7; LT7's seal recorded 232c22fb... for live_tests7.py). The only change to each copy is the removal of the
 module prefix (``b.`` for the ``live_tests7.py`` sources). ``VENDORED`` records, per name, the source file, its sha256 at copy time,
 the prefix regex and the sha256 of the prefix-normalised source (and, for names that ``live_tests7_base.py`` itself vendored, the
 original LT3/LT4/LT5 file and hash as ``origin``); ``tests/unit/test_research_lab_live_tests8.py`` re-checks them. No LT8 module
@@ -129,7 +131,7 @@ def main() -> None:
     census_output_check()
     texts, fshas = {}, {}
     for fname, want in SOURCE_PINS.items():
-        raw = (HERE / fname).read_bytes()
+        raw = (SRC / fname).read_bytes()
         got = hashlib.sha256(raw).hexdigest()
         if got != want:
             raise SystemExit(f"refusing: {fname} sha256 {got} != the hash LT7's censuses q0602-q0604 run on {want} (LIVE_TESTS_8.md 8.1); nothing vendored")
