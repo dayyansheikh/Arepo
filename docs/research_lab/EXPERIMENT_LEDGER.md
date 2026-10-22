@@ -3479,3 +3479,17 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - (~01:00Z, signal engine) **Embargo round 4 applied (LT7 draft):** `book` 12-09 -> 12-31, `movetype` 11-22 -> 12-31, new
   tokens `resist`, `capath`, `mm_fresh`, `deepbook`, `absorbed`, `ivr` until 12-31 (no models). Only later dates and new
   tokens. No score of an affected model has been computed or shown.
+
+## LT6 re-check and LT7 challenger R1, 2026-10-22 ~00:30-01:00Z (experiments autopilot; nothing registered or counted)
+- **LT6 code freeze-check re-check: RECHECK_OK_WITH_FIXES** (`feat/live-tests-6`, `reviews/LT6_FREEZE_RECHECK_2026-10-22.md`,
+  2e63dd59). Five must-fixes (stale size-check results accepted; a size-check bypass; late-loss / sweep-missing
+  denominators; D's placebo P1 silently dropped; E022 decision could be left unmade) fixed in de2326b1 / b8804735
+  (section 17, 166 tests). Verification: **FIXES_OK_WITH_NOTES**, one new defect N1 (reader log lines lack `spec_sha`, so
+  K's coverage-limited label could never fire in the pinned analysis); fix in progress before q0584. No threshold, formula,
+  seed, date, gate, alpha or draw count changed; no LT6 census has run. Censuses may proceed (census path unaffected).
+- **LT7 challenger R1: REVISE** (`feat/live-tests-7`, `reviews/LT7_CHALLENGER_R1_2026-10-22.md`, f5c011ca): 11 must-fixes,
+  incl. CH197's feasibility gate undefined on the sealed window, CH193's stale-quote channel, CH194 informed by E002/E004,
+  CH191's gate breaking LT7's own rule. Response efdcdb6e (section 13): **CH194 withdrawn before registration (uncounted)**;
+  every other must-fix applied; planning at E022's measured design effect 6.196 says all five remaining tests are likely to
+  drop at census (k <= 5, expected 0-2). Embargo requests filed (CANDIDATES round 4, 9621c12e); `mm_fresh` withdrawn.
+  R1 re-check (science-reviewer) running.

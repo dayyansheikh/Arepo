@@ -96,7 +96,7 @@ Each request moves a date later or adds a token; none moves a date earlier.
 | `movetype` | 2026-12-31T00:00Z (from 11-22) | CH193 | se14_lgbm_movetype isolates the traded flag and volume changes, i.e. CH193's absorbed state |
 | `resist` (new) | 2026-12-31T00:00Z | CH195 | pre-move depth on the side the move hit (`rs_*`) |
 | `capath` (new) | 2026-12-31T00:00Z | CH191 | capture-clock step path (`cp_*`) |
-| `mm_fresh` (new) | 2026-12-31T00:00Z | CH194 | `chg_1h` / own 2 h change; withdrawn if CH194 is dropped in the R1 response |
+| ~~`mm_fresh` (new)~~ | WITHDRAWN 2026-10-22 ~01:00Z | CH194 | CH194 dropped from LT7 before registration (R1 must-fix 4/5: informed by E002/E004; `LIVE_TESTS_7.md` 6.2, efdcdb6e); not requested |
 | `deepbook` (new) | 2026-12-31T00:00Z | CH197 | touch vs behind-touch imbalance (`db_*`) |
 | `absorbed` (new) | 2026-12-31T00:00Z | CH193 | traded x no move interactions |
 | `ivr` (new) | 2026-12-31T00:00Z | CH192 | any spread / realised-volatility ratio, or both in a model built to isolate them |
