@@ -8,13 +8,15 @@ EXPLORATORY: no edge, calibration or profitability claim. Fetch side only: no an
     python scripts/run_cb7.py text-fetch ...         # q0142: one resumable chunk of the h8_text fetch (T_seal-bound)
     python scripts/run_cb7.py geo-fetch ...          # q0143: one resumable chunk of the h8_geo fetch (T_seal-bound)
     python scripts/run_cb7.py text-seal | geo-seal   # q0144 / q0145: re-hash fetched files, record drops, seal
+    python scripts/run_cb7.py xv-prints ...          # q0146: taker prints of the 316 C1 Polymarket legs (daily pages <= 10; capped day unavailable); not T_seal-bound
+    python scripts/run_cb7.py census --family S,G,X  # q0147: pre-freeze counts-only census; verifies the h8_text / h8_geo / h8_tail seal copies by sha256 first
     python scripts/run_cb7.py verify-seal --run-id h8_text|h8_geo
 
 Exit codes: 0 ok / transient pause / terminal state (text_fetch_complete, geo_fetch_complete, not_run_deadline,
-disjointness_unverified, source_unverified, exclusion_keys_complete); 1 error; 2 refusal of a guard (rules hash, any exclusion
+disjointness_unverified, source_unverified, exclusion_keys_complete, xv_prints_complete, census_complete); 1 error; 2 refusal of a guard (rules hash, any exclusion
 file missing or mismatching its pin, smoke not met, run id, refused root, declared arguments changed, smoke result exists);
 4 disk budget exhausted (a declared end state, never retried); 75 (EX_TEMPFAIL) data-dumps headroom refusal or seal sources not
-yet terminal: the queue retries later. A fetch at or after T_seal 2026-10-22T00:00Z starts no chunk (status not_run_deadline).
+yet terminal, xv-prints not complete or the h_geo capture window not yet closed (census): the queue retries later. A fetch at or after T_seal 2026-10-22T00:00Z starts no chunk (status not_run_deadline).
 """
 
 from __future__ import annotations
@@ -281,6 +283,70 @@ def cmd_verify(a) -> int:
     return 0
 
 
+def cmd_xv_prints(a) -> int:
+    from astrolabe.research_lab import cb7_common as cm
+    from astrolabe.research_lab import cb7_xv as xv
+    from astrolabe.research_lab import history_backfill as hb
+
+    data_dumps = Path(a.data_dumps) if a.data_dumps else cm.c4.DATA_DUMPS
+    out_root = Path(a.out_root) if a.out_root else data_dumps / "research_lab" / "creative_batch7"
+    try:
+        bad = _bad({"set": (a.set, "C1"), "day_pages": (a.day_pages, xv.DAY_PAGES)})
+        if cm.c4._ep(a.cap_at) != cm.T_SEAL_EPOCH:
+            bad.append(f"cap_at={a.cap_at!r}")
+        if bad:
+            raise cm.Refused(f"arguments differ from the declaration: {bad}")
+        legs = xv.load_c1_legs(Path(a.cv_root) if a.cv_root else None) if not a.legs else json.loads(Path(a.legs).read_text())
+        m = xv.xv_prints_fetch(out_root, hb.httpx_transport(), legs=legs, day_pages=a.day_pages, cap_at=a.cap_at, rps=min(a.rps, 4.0),
+                               disk_cap=int(a.disk_cap_gb * 1024**3), budget_min=a.budget_min, data_dumps=data_dumps,
+                               data_dumps_cap_gb=a.data_dumps_cap_gb, live_check=None if a.standalone else hb.live_pass_or_lock,
+                               snapshot_root=None if a.standalone else Path(a.snapshot_root or cm.c4.SNAPSHOT_ROOT))
+    except cm.Refused as exc:
+        _emit({"refused": str(exc)})
+        return REFUSED
+    except cm.NotNow as exc:
+        _emit({"tempfail": str(exc)})
+        return TEMPFAIL
+    except Exception as exc:
+        _emit({"error": f"{type(exc).__name__}: {exc}"[:300]})
+        return 1
+    if m.get("status") == cm.DISK_BUDGET_TOKEN:
+        _emit({"status": cm.DISK_BUDGET_TOKEN, "stopped": m.get("stopped"), "counts": m.get("counts")})
+        return DISK_BUDGET
+    _emit({"status": m.get("status") or ("in_progress" if m.get("stopped") else None), "stopped": m.get("stopped"), "complete": m.get("complete"),
+           "counts": m.get("counts"), "transient": m.get("transient"), "requests": m.get("requests")})
+    return 0
+
+
+def cmd_census(a) -> int:
+    import time
+
+    from astrolabe.research_lab import cb7_census as cc
+    from astrolabe.research_lab import cb7_common as cm
+    from astrolabe.research_lab import provenance
+
+    data_dumps = Path(a.data_dumps) if a.data_dumps else cm.c4.DATA_DUMPS
+    try:
+        res = cc.run_census(_csv(a.family), root=Path(a.root) if a.root else cm.HIST_ROOT, seals_dir=Path(a.seals_dir) if a.seals_dir else cm.SEALS_DIR,
+                            cb7_dir=data_dumps / "research_lab" / "creative_batch7",
+                            cv_root=Path(a.cv_root) if a.cv_root else provenance.REPO_ROOT / "data-dumps" / "research_lab" / "cross_venue",
+                            snapshot_root=Path(a.snapshot_root or cm.c4.SNAPSHOT_ROOT), rules_path=Path(a.rules) if a.rules else None,
+                            require_committed=not a.allow_uncommitted_rules, wall_clock=time.time,
+                            trials_path=Path(a.trials_path) if a.trials_path else None, out=Path(a.out) if a.out else None)
+    except cm.Refused as exc:
+        _emit({"refused": str(exc)})
+        return REFUSED
+    except cm.NotNow as exc:
+        _emit({"tempfail": str(exc)})
+        return TEMPFAIL
+    except Exception as exc:
+        _emit({"error": f"{type(exc).__name__}: {exc}"[:300]})
+        return 1
+    _emit({"status": "census_complete", "families": res["families"],
+           "gates": {f: {k: v for k, v in (res.get(f) or {}).items() if k.startswith("gate_G")} for f in res["families"]}})
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -365,6 +431,35 @@ def build_parser() -> argparse.ArgumentParser:
         q.add_argument("--drop-frame", default="h8_geo" if name == "text-seal" else None)
         q.add_argument("--trials-path", default=None)
         q.set_defaults(fn=(lambda a, r=rid: cmd_seal(a, r)))
+
+    q = sub.add_parser("xv-prints")
+    q.add_argument("--set", default="C1")
+    q.add_argument("--day-pages", type=int, default=10)
+    q.add_argument("--cap-at", default="2026-10-22T00:00Z")
+    q.add_argument("--rps", type=float, default=4.0)
+    q.add_argument("--disk-cap-gb", type=float, required=True)
+    q.add_argument("--data-dumps-cap-gb", type=float, default=12.5)
+    q.add_argument("--budget-min", type=float, default=None)
+    q.add_argument("--data-dumps", default=None)
+    q.add_argument("--out-root", default=None, help="default <data-dumps>/research_lab/creative_batch7")
+    q.add_argument("--cv-root", default=None, help="cross_venue study directory (never cross_venue_live)")
+    q.add_argument("--legs", default=None, help="tests only: JSON list of legs instead of the C1 reproduction")
+    q.add_argument("--standalone", action="store_true")
+    q.add_argument("--snapshot-root", default=None)
+    q.set_defaults(fn=cmd_xv_prints)
+
+    q = sub.add_parser("census")
+    q.add_argument("--family", required=True, help="S,G,X")
+    q.add_argument("--root", default=None, help="history root (default data-dumps/research_lab/history)")
+    q.add_argument("--seals-dir", default=None)
+    q.add_argument("--data-dumps", default=None)
+    q.add_argument("--cv-root", default=None)
+    q.add_argument("--snapshot-root", default=None)
+    q.add_argument("--rules", default=None)
+    q.add_argument("--allow-uncommitted-rules", action="store_true")
+    q.add_argument("--trials-path", default=None)
+    q.add_argument("--out", default=None)
+    q.set_defaults(fn=cmd_census)
 
     q = sub.add_parser("verify-seal")
     common(q, "h8_text")
