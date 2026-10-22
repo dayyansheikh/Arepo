@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-21T20:10:00Z",
+ "updated": "2026-10-22T00:30:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -139,10 +139,10 @@
    "batch": "LT2",
    "family": "microstructure",
    "stage": "live_test",
-   "status": "queued",
+   "status": "collecting",
    "verdict": "pending",
    "effect": null,
-   "next": "Collection starts 22 Oct 2026 00:00 UTC and ends 12 Nov 2026; single analysis after 13 Nov 2026",
+   "next": "Collecting since 22 Oct 2026 00:00 UTC, ends 12 Nov 2026; single analysis after 13 Nov 2026",
    "next_date": "2026-10-22",
    "candidate": false,
    "sources": {
@@ -165,10 +165,10 @@
    "batch": "LT2",
    "family": "order_flow",
    "stage": "live_test",
-   "status": "queued",
+   "status": "collecting",
    "verdict": "pending",
    "effect": null,
-   "next": "Collection starts 22 Oct 2026 00:00 UTC and ends 12 Nov 2026; single analysis after 13 Nov 2026",
+   "next": "Collecting since 22 Oct 2026 00:00 UTC, ends 12 Nov 2026; single analysis after 13 Nov 2026",
    "next_date": "2026-10-22",
    "candidate": false,
    "sources": {
@@ -191,10 +191,10 @@
    "batch": "LT2",
    "family": "ml",
    "stage": "live_test",
-   "status": "queued",
+   "status": "collecting",
    "verdict": "pending",
    "effect": null,
-   "next": "Collection starts 22 Oct 2026 00:00 UTC and ends 12 Nov 2026; single analysis after 13 Nov 2026",
+   "next": "Collecting since 22 Oct 2026 00:00 UTC, ends 12 Nov 2026; single analysis after 13 Nov 2026",
    "next_date": "2026-10-22",
    "candidate": false,
    "sources": {
@@ -1035,19 +1035,42 @@
   },
   {
    "id": "CB8-OTHER",
-   "title": "Binance terminal minutes and worked orders (CH76, CH69)",
-   "plain": "Designed: crypto terminal-minute behaviour and footprints of worked orders. Not started.",
+   "title": "Binance terminal minutes (CH76)",
+   "plain": "Designed: does the favourite's price in the last minutes of short crypto up/down markets lag the Binance price? Data checks passed; exclusion keys are being built.",
    "batch": "CB8",
    "family": "microstructure",
    "stage": "designed",
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Waiting for freeze",
+   "next": "Exclusion keys (q0164), then frame, books and census",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/CREATIVE_BATCH_8.md header"
+    "verdict": "docs/research_lab/CREATIVE_BATCH_8.md header; docs/research_lab/EXPERIMENT_LEDGER.md § Seals at T_seal and LT5 census start, 2026-10-22"
+   },
+   "stage_results": {
+    "designed": "pass"
+   },
+   "reached": [
+    "designed"
+   ]
+  },
+  {
+   "id": "CB8-W",
+   "title": "Worked-order footprints (CH69)",
+   "plain": "Do two same-wallet trades in a row signal more same-side trading that costs resting makers money? Not testable: the pre-declared data check needed 20 qualifying past markets and only 5 qualified. Counted, no result either way.",
+   "batch": "CB8",
+   "family": "microstructure",
+   "stage": "designed",
+   "status": "closed",
+   "verdict": "not_testable",
+   "effect": null,
+   "next": "None (counted with p = 1)",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Seals at T_seal and LT5 census start, 2026-10-22 (CB8 smoke q0161)"
    },
    "stage_results": {
     "designed": "pass"
@@ -1443,10 +1466,10 @@
    "batch": "LT2",
    "family": "mixed",
    "stage": "live_test",
-   "status": "queued",
+   "status": "collecting",
    "verdict": "pending",
    "effect": null,
-   "next": "Collection 22 Oct to 12 Nov 2026; single analysis after 13 Nov 2026",
+   "next": "Collecting since 22 Oct 2026 00:00 UTC, ends 12 Nov 2026; single analysis after 13 Nov 2026",
    "next_date": "2026-10-22",
    "candidate": false,
    "sources": {
