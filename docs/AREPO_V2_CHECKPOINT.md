@@ -247,33 +247,39 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-22 00:20Z
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-22 05:35Z
 Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && git log --oneline -1'` = local tip.
+**Host is 2 OCPU / 11.4 GiB since the resize (DONE 03:20Z, problems 0; ledger deviation appended; resize cron removed;
+8df23f1f).** data-dumps 33 / 40 GB cap: owner approval 8 (restore-tree clearing) is becoming time-relevant.
 
-**Tonight (time-critical, in order):**
+**Queue order after the 05:30Z blackout (priorities):** q0561 LT5 census (98) -> q0484 LT4 size check (97) -> q0582 LT6
+captures census (96, exclusive, promoted 8df23f1f; ops: mem 2500 / as_cap 9000) -> q0583 LT6 flow census (96, after
+q0582) -> q0116f MC1 dev run (95, exclusive, 6 h, depends on q0484; promoted) -> q0562 (59, after q0561), q0144/q0145
+h8 text/geo seals (58, promoted), CB8 q0162/q0163, CB16-K q0383.
+
 1. **E026: REGISTERED** (7777ca66, 2026-10-21 15:20Z). q0541 (net, not_before 10-25T00Z), q0542 (10-25T06Z), q0543
    (12-06T12Z). On/after 10-25: confirm q0541/q0542 start and stay healthy (counts only; `run_copy_skilled.py status`),
    send the owner "collection started" note, then weekly counts notes. Re-promote a `failed` collector within 48 h.
    FROZEN until 12-07: copy_skilled*.py, wallet_skill*.py, costs.py, copy_skilled_v1.json, cost_model_calibration_v1.json.
-2. **LT5 census:** seal committed (59b17969, sha256 fcd88926…). **q0561 failed twice at the address-space cap**
-   (01:33Z at 3,000 MB; 01:54Z at 6,500 MB, loading the full series panel `sbs_all`): real need ~5 GB, beyond the 5.6 GB
-   host. Re-armed for the 12 GB host (9771b42a/7d6b31df): mem_mb 5000, as_cap_mb 11000, priority 98, not_before
-   05:30Z, status queued (retry done). **Snapshot retention raised 8 -> 10 days (693db389, TEMPORARY)** so its sealed
-   10-13/14 captures stay on the host (10-13 rows now leave 10-24T03:30Z). **After q0561 is done: revert
-   `archive_retention.json` snapshots to 8 days (ledger line), deploy.** If q0561 fails again: do not retry blindly;
-   look at RSS (`ps`), consider a code fix (cache eviction) with a census-code re-check, never a backfill.
+2. **LT5 census q0561** (mem 5000 / as_cap 11000; seal 59b17969, sha256 fcd88926…). **After it is done: revert
+   `archive_retention.json` snapshots to 8 days ONLY after q0582 has also finished** (q0582 reads 10-15 live captures;
+   with 8 days they leave at the next 03:30Z run), ledger line, deploy. If q0561 fails again: do not retry blindly;
+   look at RSS, consider a code fix (cache eviction) with a census-code re-check, never a backfill.
    Then commit `CF5_CHW_CRW.json` + sha256 (seals/), fill F/H/R perm_stratum / exclude_family / r.depth_band / k_tests,
    record `vendored_source_drift_accepted["live_tests4.py"]` (see LT5 test guard below), record drops (LIVE_TESTS_5.md
-   7.3, ledger), then q0562 runs (promoted, depends on q0561), then promote q0563 (size check, 10-18 h).
-3. **T_seal done:** h7 seals committed (34c6580a); **q0121 promoted**. When q0121 is done, commit its h8_tail seal copy,
-   then promote q0144 and q0145 (drafts; never retry q0141). **CB8:** q0161 smoke FAIL (a) → **W1 not testable
-   (source), counted 1** (176b62f3; seals/cb8_smoke_FAIL_20261022.json); q0167/q0168/q0171/q0175 stay uncommitted
-   (moot). B continues: **q0164 promoted** with both pins derived 00:17Z (do NOT re-derive; write-once); then q0165,
-   q0166 per drafts. CB9 q0181+ and CB10 q0201 come after their pins.
-4. **Host resize 2026-10-22 02:40Z** (owner-approved; no deploy / crontab edit / queue resume 02:40-03:45Z). After
-   `~/.arepo/resize/DONE`: append `~/.arepo/resize/ledger_deviation_draft.md` to the ledger (facts only), run
-   `resize_host.py --remove-cron`, update the 1 OCPU / 6 GB wording, then promote `queue/drafts/q0116f_mc1_dev_run.json`
-   (exclusive, mem_mb 6000, as_cap_mb 14000) to `queue/jobs/` and deploy.
+   7.3, ledger), then q0562 runs, then promote q0563 (size check, 10-18 h).
+3. **h8 seals:** q0121 done; `seals/h8_tail_SEAL.json` committed (sha256 2a88f3e5…). q0144/q0145 promoted; when done,
+   commit `seals/h8_text_SEAL.json` and `seals/h8_geo_SEAL.json` before q0147 (never retry q0141). **CB8:** W1 not
+   testable (counted 1); B continues (q0164 pins write-once, do NOT re-derive; then q0165, q0166). CB9 q0181+ and CB10
+   q0201 after their pins.
+4. **LT6:** q0581 done; `seals/lt6_census_inputs.json` committed (sha256 18040c80…). When q0582 is done: commit
+   `CD_CB_CV.json` + sha256 (seals/), fill V centre/scale/terciles/gap, D/B/V perm_stratum, exclude_family, fake-birth cuts
+   and k_tests, record drops (LIVE_TESTS_6.md 6.3, ledger). After q0583: CK.json, K fills. Then q0584 size check.
+5. **MC1 q0116f:** when done, write up as development (MULTI_SIGNAL_PIPELINE_DESIGN.md / ledger), record the panel hash.
+   If it OOMs: record, park, write the memory profile; no new id without a measured fix.
+6. **LT7:** code phase 1 + census-code check fixes on `feat/live-tests-7` (17da4254, worktree
+   `.claude/worktrees/agent-a912d456e04c96c3d`), not yet merged. A science-reviewer verification of the fixes was started
+   05:35Z. If FIXES_OK*: merge into chore, promote q0600 restore -> q0601 seal -> q0601b null-share -> censuses.
 
 **LT4 → E022 registration (deadline: registration commit by 2026-10-25T00:00Z, window 10-26..11-16):**
 k_tests = [E022] (E020/E021 dropped at census, uncounted). Done 2026-10-21: pre-pin code (44a7e938), freeze check
@@ -285,20 +291,15 @@ failing scenario blocks the pin (no rerun/reseed/variant; one infra retry only);
 output), ledger "E022 REGISTERED", registry, battery2/trials kind if needed, promote q0486 (analysis, not before
 11-17T12Z); (c) install the host cron `10-59/20 * * * *` reader (flock, nice 19, oom_score_adj 1000, ulimit -v 1572864)
 before 10-26T00Z; never also q0485. Then LT6 (V's pin must precede T_E022).
-**Do NOT promote MC1 q0116f ahead of q0484** (q0484 has priority 97 > 95; both exclusive-ish: check).
+q0116f depends_on q0484, so it cannot start first.
 
 **CB17:** window jobs use `--root ../data-dumps/research_lab/cb17_window/creative_batch17` (1c9f604e; the frozen 0.3 GB
 cap had counted q0413's input restore). **q0404 smoke PASS 20:12Z (P1-P3 exact; freeze accepted).** q0405 promoted
 (f7e98170, base pin 56dc953e… from q0380's manifest). Next: q0406+ after S_8 (10-26T00Z) per the drafts' dates; ruling 6
 attestation again with q0406's commit. **Owner approval 8 (not urgent):** a clearing session for finished restore trees
-(~9 GB; data-dumps ~30 / 40 GB).
+(~9 GB; data-dumps 33 / 40 GB on 10-22).
 
-**LT6:** re-check RECHECK_OK_WITH_FIXES -> fixes de2326b1/b8804735 -> verification FIXES_OK_WITH_NOTES (its N1 did not
-reproduce; real-reader test 7e988261). **Merged into chore (7ebfcb8b).** LT5 seal pinned in `live_tests6_v1.json`.
-**q0580 promoted** (restore 10-13/10-14 captures from data-20261015/16-dsheikh) and **q0581 seal promoted** (not before
-04:00Z, after retention; extra roots LT5/LT4/LT3 restore trees). Next: when q0581 is done, byte-copy
-`live_tests6_census/lt6_census_inputs.json` to `seals/`, commit, deploy, promote q0582 (exclusive) **before
-2026-10-23T03:30Z** (10-15 rows leave the host then), then q0583; fill k_tests/strata; q0584 size check after.
+**LT6 history:** code re-check/fixes/verification FIXES_OK_WITH_NOTES, merged (7ebfcb8b); q0580 restore and q0581 seal done 10-22.
 Open should-fix: `e022.pin_commit_utc` check (before the pin). D's P1 is implemented (deadline 11-11T08:00Z met).
 
 **LT7:** R1 REVISE -> response efdcdb6e (CH194 withdrawn, uncounted) -> re-check ACCEPT_WITH_FIXES -> fixes cedfd6be ->
