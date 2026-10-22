@@ -119,6 +119,36 @@ six new tokens added (no models). Tests updated. Notes:
 
 ---
 
+## Embargo requests from the experiments side, round 5 (LT8 design; filed 2026-10-22 ~11:00Z; awaiting the builder)
+
+LT8 (`docs/research_lab/LIVE_TESTS_8.md` section 9; CH203, CH202, CH204; one Holm family, k <= 3) passed challenger R1
+and its re-check (ACCEPT_WITH_FIXES, fixes applied) and is **design-text frozen** (sha256 `5e61c20b…`, ledger
+2026-10-22 ~07:45Z). Section 9 asks for these entries at acceptance and in any case before 2026-12-01T00:00Z; they are not
+a registration step. Window 2026-12-30..2027-01-20 (slides later if LT7 slides); analysis on or after 2027-01-21T12:00Z.
+"2027-01-23" below means **the later of 2027-01-23T00:00Z and LT8's analysis commit**. Every row adds a token or moves a
+date later; none moves a date earlier.
+
+| Token | Until | Tests | Why |
+|---|---|---|---|
+| `quietbook` (new) | 2027-01-23 | CH203 | 5c-imbalance innovation behind an unmoved touch from sweep 1 of passes k - 2 and k - 1 (`qb_*`) |
+| `swclock` (new) | 2027-01-23 | CH202 | held-versus-fresh split of the previous move by the k - 1 sweep receipt (`sw_*`) |
+| `sched` (new) | 2027-01-23 | CH204 | per-market hot-slot schedule from the engine's own `quotes/` of slots k - 84 .. k (`sc_*`) |
+| `book0` | 2027-01-23 (from 12-31) | CH203, CH202 | a `book0` + `book` model can form the (k - 1, k] book innovation adjacent to CH203's (k - 2, k - 1]; `se19_lr_book0` isolates `b0_gap`, CH202's late part |
+| `book` | 2027-01-23 (from 12-31) | CH203 | as `book0` |
+
+Also asked (section 9): no attribution (SHAP or otherwise) of the champion, `se18_lgbm_all_b0` or any broad model on
+`b0_gap` x own 2 h change interactions, on two-sweep book differences, or on per-market slot-of-day interactions,
+computed or shown before 2027-01-23 (as above); no LT8 family added to a broad model before then (or record it in the
+ledger as a development look). **Disclosed:** `se18_lgbm_all_b0` is broad, visible and promotion-eligible and holds
+`b0_gap`; its aggregate score is a development look at half of CH202's state. **Cost, disclosed:** the `book` / `book0`
+family attributions stay hidden about 23 more days; se18's visible broad score is unaffected. **Stale entry:** LT6 V was
+dropped at census (never registered), so it can be removed from the `book` / `book0` `tests` lists (builder's edit).
+**Not requested:** `surprise`, `movetype` and `rewards` are not extended; `steam` and `rwstart` are not requested.
+**Withdrawal rule:** if a test drops at its census, its new token and any extension made only for it are withdrawn with a
+ledger line (the `book0` / `book` extension is withdrawn only if CH203 and CH202 both drop).
+
+---
+
 ## Notes from the experiments side, 2026-10-22 ~06:10Z (LT5 census drops; E022 registered)
 
 - **LT5 F (CH184), H (CH181) and R (CH183) were dropped at their pre-registration census** (q0561; `LIVE_TESTS_5.md` 7.3;
@@ -150,7 +180,7 @@ schedule from 7 days of own moves), `steam` (CH205, ESPN line move versus unmove
 reward-start natural experiment (CH206, `reward_params`), `farmer` (CH209), `umaparams` (CH207, `gamma_rules` bond /
 liveness classes), `requote` (CH211), `xvenue2` timing extension (CH208), `sweep2_0` (CH210). **Its top 3 (CH203,
 CH202, CH204) are the planned LT8 family: do not build an isolating challenger for `quietbook`, `swclock` or `sched`
-before LT8's design fixes its embargo dates** (requests will follow here; the round proposes the later of
+before LT8's design fixes its embargo dates** (requests filed above as round 5, 2026-10-22; the round proposed the later of
 2027-01-23T00:00Z and LT8's analysis commit, with `book0` / `book` kept to 12-31). CH205 is held for the owner's sports
 decision; CH206 needs a first count. The engine-first rest (CH207-CH211) may be built as development families under
 the usual rules (CH211 after E015's analysis on 11-15 if it moderates E015's classes).
