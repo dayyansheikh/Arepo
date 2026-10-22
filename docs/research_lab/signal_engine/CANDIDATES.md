@@ -119,7 +119,7 @@ six new tokens added (no models). Tests updated. Notes:
 
 ---
 
-## Embargo requests from the experiments side, round 5 (LT8 design; filed 2026-10-22 ~11:00Z; awaiting the builder)
+## Embargo requests from the experiments side, round 5 (LT8 design; filed 2026-10-22 ~11:00Z; APPLIED by the builder 2026-10-22 ~12:00Z, `config.EMBARGO`; LT6 V and other census drops pruned from the `book` / `book0` lists)
 
 LT8 (`docs/research_lab/LIVE_TESTS_8.md` section 9; CH203, CH202, CH204; one Holm family, k <= 3) passed challenger R1
 and its re-check (ACCEPT_WITH_FIXES, fixes applied) and is **design-text frozen** (sha256 `5e61c20b…`, ledger
