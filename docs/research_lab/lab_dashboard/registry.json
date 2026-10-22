@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-22T21:45:00Z",
+ "updated": "2026-10-22T22:05:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1583,18 +1583,18 @@
   {
    "id": "LT7",
    "title": "Live tests 7: five ideas from round 12 (planned)",
-   "plain": "Up to five planned live tests from new-ideas round 12: book depth on the side a move hit, slow grinds versus jumps, deep orders behind the best price, trading with no price move, and spreads versus later moves. Design and counting code passed independent checks. A market counts as rewarded if listed at any capture in the previous 24 hours. Counting checks run before 28 Oct; most may fail them.",
+   "plain": "Up to five planned live tests from new-ideas round 12. On 22 Oct the counting check for three of them (slow grinds versus jumps, trading with no price move, and implied against realised volatility) found too few usable cases or too much overlap with known factors, so they were dropped before any outcome was read. The last check (book depth on the side a move hit; deep orders behind the best price) is running.",
    "batch": "LT7",
    "family": "mixed",
    "stage": "designed",
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Counting checks CC7 and CS7 queued (22 Oct, must finish before 28 Oct); collection not before 8 Dec 2026",
+   "next": "Counting check CS7 (running 22 Oct, must finish before 28 Oct); collection not before 8 Dec 2026",
    "next_date": "2026-12-08",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/reviews/LT7_REWARD_SWITCH_RULING_2026-10-22.md; EXPERIMENT_LEDGER.md (2026-10-22)"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT7 census CC7 (q0603), 2026-10-22"
    },
    "stage_results": {
     "designed": "pending"

@@ -3833,3 +3833,17 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   `se21_lgbm_hwm` (se1's LightGBM params + hwm; one pre-declared configuration, no development selection; not
   embargoed). K rises by one. Science review ACCEPT_WITH_FIXES (documentation fixes applied). Ideas only: no evidence
   yet. Tests `test_hwm_features_hand_example`, `test_hwm_family_reads_only_earlier_quotes`.
+
+## LT7 census CC7 (q0603), 2026-10-22 21:4xZ: CH191, CH192, CH193 dropped at census (counts only; uncounted)
+- `live_tests7_census/CC7.json` (host, sha256 088abbcb…; live_tests7.py e1c5c0c6…, design 8fc83a73…, reward rule
+  `listed_carry24h_v2`, 12 carry slots). CV7 (q0602) sha256 309596e9… (records live_tests7.py 2ee6a659…, the pre-13.7
+  code; its only gate is CH193's semantic gate). No outcome or target read; gates as frozen in LIVE_TESTS_7.md §7.
+- **CH191 (grind at the capture clock): FAIL** on units (projected 6 h movers after family exclusion 71,807 < 201,600),
+  grind share (0.045 < 0.15), block-gate share (0.38) and the class MDE (0.63c); correlation caps passed.
+- **CH192 (implied against realised): FAIL** on the slope MDE, the F-MDE (declared 1.73c) and the
+  `corr(zivr, log rv24)` cap (pooled -0.75, within -0.73); units, residual IQR and rv-floor passed.
+- **CH193 (absorbed flow): FAIL** on units (projected 50,269 after family exclusion, below the gate); its MDE, F-MDE and
+  correlation gates passed. CV7's semantic gate is moot.
+- Per LT7 §7 (as for LT5/LT6), a census drop is not a test: nothing counted. LT7's k now depends on CS7 (q0604: CH195,
+  CH197; CH194 was withdrawn earlier). Design-doc census fills (§6.3) after q0604. Retention stays at 10 days until LT8's
+  q0623 (LT8 re-check R3).
