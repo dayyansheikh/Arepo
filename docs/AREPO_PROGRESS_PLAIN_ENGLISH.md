@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-22 17:30 UTC+1
+**Last updated:** 2026-10-22 22:05 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -9,22 +9,22 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 ## 1. Right now
 - **Seven registered live tests** are collecting or waiting to collect (E009/E010, E011, E012-E014, E015, E022, E026).
   Single analyses: E009/E010 (3 Nov), E011 (11 Nov), E012-E014 (13 Nov), E015 (15 Nov), E022 (17 Nov), E026 (6 Dec).
-- **LT7 (five planned tests from round 12): second reviewer ruling today.** A follow-up count (counts only, no outcomes)
-  found that about 12% of markets flip between "reward programme listed" and "nothing listed" within the same day. That
-  points to the data source sometimes leaving the field out, so "nothing listed" cannot always mean "no programme". The
-  reviewer ruled that a market counts as rewarded if it was listed at any capture in the previous 24 hours, using only
-  earlier captures (never later ones). The code change is written and passed its independent re-check (a test also caught a
-  bug that would have stopped the rule from ever applying; fixed). The first counting check (volume and wording, which
-  reads no reward field) runs first; the two reward-dependent checks follow it. All checks must finish before 28 Oct.
-- **LT8 (three planned tests from round 13):** the code fixes from its review are saved. Its re-check waits for the LT7
-  code change, because LT8 reuses LT7's counting code.
-- **Model run (MC1)** hit its 6-hour time limit without running out of memory. It is parked; the next step is to add
-  progress timing so a fixed attempt can be sized from measurements.
-- **Cross-venue twins (batch 16, K):** the size count passed. It can only become a test in a later batch, and only if a
-  blind check of 100 pairs finds at least 90 true twins.
-- **Batch 7 and batch 8:** the seal for batch 7's text data is committed; its fetch code passed review and started, and its counting job follows from 24 Oct.
-  Batch 8's crypto Up/Down part has started its data jobs.
-- **New ideas round 14** is being written, aimed at ideas that survive the counting checks.
+- **LT7 (five planned tests from round 12):** the "rewarded in the last 24 hours" rule is now in the live code on the
+  server (checked by file fingerprint). Its two remaining counting checks are queued and must finish before 28 Oct.
+- **LT8 (three planned tests from round 13):** its code fixes passed, but the re-check found three things to fix first: LT8
+  must use the same 24-hour reward rule as LT7, accept LT7's first count (made with the earlier code), and read older
+  data copies so its counts are not stopped when old server files expire. Being fixed now. The server keeps 10 days of
+  snapshots until LT8's counts are done.
+- **LT9 (new): three ideas from round 14** about reward-programme quoting (how fast spreads re-tighten after leaving the
+  reward band, how new symmetric depth splits the reward pool, and when the data feed leaves the reward field out). The
+  design draft is being written; then an independent challenger review.
+- **New ideas round 14** is done (10 ideas, CH212-CH221), with duplicates of closed ideas listed and dropped.
+- **Cross-venue twins (batch 16, K): closed, not testable.** A blind check of 100 sampled Polymarket-Kalshi pairs found only
+  3 true twins (90 needed). The matching rule pairs markets with similar wording, not the same event. Nothing is counted.
+- **Model run (MC1):** a one-fold timing run showed about 2 hours per fold and 6.2 GB of memory, so a full run needs about
+  32 hours or more. The run can now pause and resume in 5.5-hour pieces; it is scheduled after LT7's counts.
+- **Batch 7:** its counting job passed its re-check (with notes, now fixed); it starts from 24 Oct. **Batch 8/9:** two
+  data jobs failed (a data-source error that was wrongly marked as finished, and a memory limit); fixes are being made.
 - **Copy-skilled wallets (E026):** registered; collection starts 25 Oct (phone note then).
 - **Honest pattern:** most planned tests die at the counting stage, before any outcome data is read. That is the checks
   working as designed.

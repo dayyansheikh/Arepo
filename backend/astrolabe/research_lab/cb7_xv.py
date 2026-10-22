@@ -28,12 +28,15 @@ import numpy as np
 from . import cb4_data as c4
 from . import cb6_tail as c6
 from . import cb7_common as cm
+from . import h5_seal
 from . import history_backfill as hb
 
 Refused, NotNow, DAY = cm.Refused, cm.NotNow, cm.DAY
 
 XV_RUN_ID = "xv_prints"
 XV_COMPLETE = "xv_prints_complete"
+XV_TERMINAL_FILE = "XV_TERMINAL.json"
+XV_TERMINAL_STATES = ("refused", "disk_budget")
 XV_VERSION = "cb7-xv-prints-v1"
 DAY_PAGES = 10
 PAGE_LIMIT = 1000
@@ -230,6 +233,33 @@ def finalize_tables(fr: cm.Cb7Run, legs: list[dict], items: list[dict]) -> dict:
             "days_capped": sum(1 for r in day_rows if r[2] == "capped")}
 
 
+def write_terminal_marker(rdir: Path, status: str, reason: str, *, wall_clock: Callable[[], float] = time.time) -> Path | None:
+    """Durable, write-once record that the q0146 fetch ended in a terminal state (``refused`` or ``disk_budget``). Never called for a
+    transient or pending state. Carries the sha256 of ``manifest.json`` if one exists. Returns the path if written, ``None`` if a marker
+    already exists (the first record stands)."""
+    if status not in XV_TERMINAL_STATES:
+        raise Refused(f"terminal marker status must be one of {XV_TERMINAL_STATES}, not {status!r}")
+    rdir = Path(rdir)
+    rdir.mkdir(parents=True, exist_ok=True)
+    mp = rdir / "manifest.json"
+    rec = {"run_id": rdir.name, "status": status, "reason": str(reason)[:300], "utc": cm._iso(wall_clock()),
+           "manifest_sha256": h5_seal.sha256_file(mp) if mp.exists() else None,
+           "rule": "CREATIVE_BATCH_7.md 1.4: a failed or unknown GX makes X1 'not testable'; recorded from how the fetch ended, never from an outcome"}
+    path = rdir / XV_TERMINAL_FILE
+    try:
+        with path.open("x") as fh:
+            fh.write(json.dumps(rec, indent=1, sort_keys=True))
+    except FileExistsError:
+        return None
+    return path
+
+
+def _disk_budget_end(fr, reason, extra: dict | None = None, wall_clock: Callable[[], float] = time.time) -> dict:
+    m = cm.disk_budget_end(fr, reason, extra)
+    write_terminal_marker(fr.rdir, "disk_budget", str(m.get("stopped") or reason), wall_clock=wall_clock)
+    return m
+
+
 def xv_prints_fetch(
     root: Path, transport: hb.Transport, *, legs: list[dict], day_pages: int = DAY_PAGES, cap_at: str = cm.T_SEAL, rps: float = 4.0,
     disk_cap: int = int(XV_OUTPUT_CAP_GB * 1024**3), budget_min: float | None = None, now: float | None = None,
@@ -250,6 +280,8 @@ def xv_prints_fetch(
     inf = float("inf")
     early = cm.guard_start(root, run_id, wall_clock, inf, XV_COMPLETE)
     if early is not None:
+        if early.get("status") == cm.DISK_BUDGET_TOKEN:  # sticky from an earlier chunk: make sure the durable marker exists
+            write_terminal_marker(root / run_id, "disk_budget", str(early.get("stopped") or "disk_budget"), wall_clock=wall_clock)
         return early
     if data_dumps is not None:
         c6.require_data_dumps_room(Path(data_dumps), data_dumps_cap_gb, disk_cap / 1024**3)
@@ -274,7 +306,7 @@ def xv_prints_fetch(
             fr.budget.write_gz_csv(lp, LEG_COLUMNS, ([leg.get(c, "") for c in LEG_COLUMNS] for leg in sorted(legs, key=lambda x: x["pair_key"])))
             fr.counts["condition_ids_resolved_by_gamma"] = n_resolved
     except OSError as exc:
-        return cm.disk_budget_end(fr, exc)
+        return _disk_budget_end(fr, exc, wall_clock=wall_clock)
     except (NotNow, c4.ApiError, RuntimeError) as exc:
         return fr.manifest(f"stage_failed: {exc}"[:200], {"transient": True, "status": "in_progress"})
     n_no_cid = sum(1 for x in legs if not x.get("condition_id"))
@@ -291,18 +323,19 @@ def xv_prints_fetch(
 
     stopped, pending = c4._fetch_items(fr, items, "item_id", lambda it: fetch_pair_day(fr, it, day_pages), tally_days(fr.counts), stop_now, extra)
     if fr.page_size_refusal:
+        write_terminal_marker(rdir, "refused", fr.page_size_refusal, wall_clock=wall_clock)
         raise Refused(fr.page_size_refusal)
     if stopped is None and pending == 0:
         try:
             extra.update(finalize_tables(fr, legs, items))
         except OSError as exc:
-            return cm.disk_budget_end(fr, exc, extra)
+            return _disk_budget_end(fr, exc, extra, wall_clock)
         extra.update(complete=True, status=XV_COMPLETE, file_sha256=cm.file_hashes(rdir))
         m = fr.manifest(None, extra)
         m["status"] = XV_COMPLETE
         return m
     if stopped and stopped.startswith("disk_budget"):
-        return cm.disk_budget_end(fr, stopped[len("disk_budget: "):], extra)
+        return _disk_budget_end(fr, stopped[len("disk_budget: "):], extra, wall_clock)
     m = fr.manifest(stopped or "pending", {**extra, "transient": bool(stopped and stopped.startswith("paused"))})
     m["status"] = "in_progress"
     return m
