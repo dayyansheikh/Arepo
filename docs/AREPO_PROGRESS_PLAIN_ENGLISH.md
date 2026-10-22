@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-22 22:39 UTC+1
+**Last updated:** 2026-10-22 23:24 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -9,26 +9,22 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 ## 1. Right now
 - **Seven registered live tests** are collecting or waiting to collect (E009/E010, E011, E012-E014, E015, E022, E026).
   Single analyses: E009/E010 (3 Nov), E011 (11 Nov), E012-E014 (13 Nov), E015 (15 Nov), E022 (17 Nov), E026 (6 Dec).
-- **LT7 (five planned tests from round 12):** the "rewarded in the last 24 hours" rule is now in the live code on the
-  server (checked by file fingerprint). Its two remaining counting checks are queued and must finish before 28 Oct.
-- **LT8 (three planned tests from round 13):** its code fixes passed, but the re-check found three things to fix first: LT8
-  must use the same 24-hour reward rule as LT7, accept LT7's first count (made with the earlier code), and read older
-  data copies so its counts are not stopped when old server files expire. Fixed; an independent re-check is running. The server keeps 10 days of
-  snapshots until LT8's counts are done.
-- **LT9 (new): three ideas from round 14** about reward-programme quoting (how fast spreads re-tighten after leaving the
-  reward band, how new symmetric depth splits the reward pool, and when the data feed leaves the reward field out). The
-  design draft is written; an independent challenger review is running. Proposed collection: 21 Jan to 11 Feb 2027.
-- **New ideas round 14** is done (10 ideas, CH212-CH221), with duplicates of closed ideas listed and dropped.
-- **Cross-venue twins (batch 16, K): closed, not testable.** A blind check of 100 sampled Polymarket-Kalshi pairs found only
-  3 true twins (90 needed). The matching rule pairs markets with similar wording, not the same event. Nothing is counted.
-- **Model run (MC1):** a one-fold timing run showed about 2 hours per fold and 6.2 GB of memory, so a full run needs about
-  32 hours or more. The run can now pause and resume in 5.5-hour pieces; it is scheduled after LT7's counts.
-- **Batch 7:** its counting job passed its re-check (with notes, now fixed); it starts from 24 Oct. **Batch 8/9:** two
-  data jobs had failed (a data-source error that was wrongly marked as finished, and a memory limit). Both are fixed,
-  reviewed and back in the server queue.
+- **LT7 (five planned tests from round 12): closed, no test.** All five failed their counting checks tonight, before any
+  outcome was read (too few usable cases, too little power, or too much overlap with known factors). Two were expected to
+  fail when the design was written. Nothing is counted.
+- **LT8 (three planned tests from round 13):** all its fixes passed independent re-checks and the code is merged. Every data
+  file it needs is already on the server (checked by fingerprint), so no restore is needed. Its seal job is queued; its two
+  counting checks follow and must finish before 28 Oct, when the oldest needed server files start to expire.
+- **LT9 (three planned tests from round 14, about reward-programme quoting):** the challenger review asked for changes; the
+  re-check accepted the design with six small fixes, which are being made. Then the design text is frozen. One of the
+  three (spread re-tightening) is now expected to fail its counting check; it stays in, as declared.
+- **Cross-venue twins (batch 16, K): closed, not testable** (a blind check found 3 true twins in 100 sampled pairs; 90 needed).
+- **Model run (MC1):** now running on the server in 5.5-hour pieces (about 32 hours in total), giving way to LT8's checks.
+- **Batch 7:** its counting job starts from 24 Oct. **Batch 8/9:** both failed data jobs are fixed and queued.
+- **New ideas round 14** done (10 ideas). Its signal families were passed to the signal engine's candidate list.
 - **Copy-skilled wallets (E026):** registered; collection starts 25 Oct (phone note then).
-- **Honest pattern:** most planned tests die at the counting stage, before any outcome data is read. That is the checks
-  working as designed.
+- **Honest pattern:** most planned tests die at the counting stage, before any outcome data is read (LT5, LT6 and now LT7
+  all closed this way). That is the checks working as designed.
 ## 2. Approvals needed from you
 1. ~~Automatic Claude sessions~~ **APPROVED and installed 15 Oct** (full power, your call).
    - Pause: `python3 scripts/autopilot/autopilot.py pause` (on the Mac, in the repo). Use `resume` to undo, or `stop` to
