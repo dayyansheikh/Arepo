@@ -990,4 +990,6 @@ Rulings (k_tests = [E022]; no criterion, threshold, world parameter, draw count,
   `~/arepo/run/live_tests4.lock`, `nice -n 19`, `oom_score_adj 1000`, installed with this registration, before
   2026-10-26T00:00Z. q0485 stays a draft and is never promoted while the cron line exists.
 - **Analysis:** q0486 promoted (not before 2026-11-17T12:00Z; scored once).
+- **Reader verified (2026-10-22T06:10Z, first cron run):** `pinned: true`, `spec_sha` f7fbcff174d23f1c, `status: nothing_new`,
+  `kinds_off` [clock, move] (E020 / E021 dropped), nothing written before the window.
 
