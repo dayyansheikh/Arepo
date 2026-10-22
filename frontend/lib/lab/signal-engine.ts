@@ -219,6 +219,8 @@ export const PROMOTION_CHECKS: Array<[string, string]> = [
 export interface PromotionCandidateView {
   modelId: string;
   pass: boolean;
+  eligible: boolean;
+  ineligibleSince: string | null;
   days: number | null;
   daysToMin: number | null;
   gain: number | null;
@@ -264,7 +266,9 @@ export function promotionView(se: SignalEngineBlock, nowMs: number): PromotionVi
     const failed = PROMOTION_CHECKS.filter(([k]) => checks[k] !== true).map(([, label]) => label);
     candidates.push({
       modelId,
-      pass: c.pass === true,
+      pass: c.pass === true && c.eligible !== false,
+      eligible: c.eligible !== false,
+      ineligibleSince: str(c.ineligible_since) ?? null,
       days: num(c.days),
       daysToMin: num(c.days_to_min),
       gain: num(c.gain),
