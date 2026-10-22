@@ -1581,7 +1581,7 @@
   {
    "id": "LT7",
    "title": "Live tests 7: five ideas from round 12 (planned)",
-   "plain": "A seventh group of up to five planned live tests from new-ideas round 12: whether order-book depth on the side a move hit predicts what comes next, whether slow grinds differ from jumps, whether deep book orders behind the best price lean one way, whether trading with no price move matters, and whether quoted spreads mis-price later moves. An independent challenger asked for changes; one idea was dropped as a near-repeat of an earlier result. Honest planning says most may fail their counting checks.",
+   "plain": "Up to five planned live tests from new-ideas round 12: book depth on the side a move hit, slow grinds versus jumps, deep orders behind the best price, trading with no price move, and spreads versus later moves. A challenger asked for changes; one idea was dropped as a near-repeat of an earlier result. Honest planning says most may fail their counting checks.",
    "batch": "LT7",
    "family": "mixed",
    "stage": "designed",
