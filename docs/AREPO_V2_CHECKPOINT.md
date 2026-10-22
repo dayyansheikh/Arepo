@@ -247,7 +247,7 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-21 19:55Z
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-22 00:20Z
 Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && git log --oneline -1'` = local tip.
 
 **Tonight (time-critical, in order):**
@@ -255,17 +255,15 @@ Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && gi
    (12-06T12Z). On/after 10-25: confirm q0541/q0542 start and stay healthy (counts only; `run_copy_skilled.py status`),
    send the owner "collection started" note, then weekly counts notes. Re-promote a `failed` collector within 48 h.
    FROZEN until 12-07: copy_skilled*.py, wallet_skill*.py, costs.py, copy_skilled_v1.json, cost_model_calibration_v1.json.
-2. **LT5 seal → census:** q0564 (priority 45, net lane) runs from 23:20Z. When done:
-   - `scp` `live_tests5_census/lt5_census_inputs_captures.json` to `docs/research_lab/seals/lt5_census_inputs_captures.json`
-     (byte copy; sha256 equal); commit and deploy;
-   - promote **q0561** (exclusive) **before 02:45Z** with priority 60 (top ready job; signal-engine jobs are 50);
-     it must read captures before the 03:30Z retention run;
-   - then q0562, then q0563 (size check: a failing scenario fails only its own test, p = 1).
-   If the window is missed: a new restore and seal, never a backfill.
-3. **T_seal (2026-10-22T00:00Z):** q0083b (00:05Z) → q0083 h7 seal (queued). Commit the h7 seal / NOT_RUN copies, then
-   promote q0121, q0144, q0145 (CB6/CB7 seals; never retry q0141). q0161 CB8 smoke (net) from 00:00Z. Before promoting
-   q0164, run the two `derive-exclusion-ids` commands in its draft notes on the host and fill both sha256 tokens.
-   CB9 q0181+ and CB10 q0201 come after their pins.
+2. **LT5 census:** seal committed (59b17969, sha256 fcd88926…); **q0561 promoted** (priority 60, exclusive) 00:15Z.
+   When done: commit `CF5_CHW_CRW.json` + sha256 (seals/), fill F/H/R perm_stratum / exclude_family / r.depth_band /
+   k_tests in the spec, record drops (LIVE_TESTS_5.md 7.3, ledger), then promote q0562, then q0563 (size check).
+   If q0561 misses the window: a new restore and seal, never a backfill.
+3. **T_seal done:** h7 seals committed (34c6580a); **q0121 promoted**. When q0121 is done, commit its h8_tail seal copy,
+   then promote q0144 and q0145 (drafts; never retry q0141). **CB8:** q0161 smoke FAIL (a) → **W1 not testable
+   (source), counted 1** (176b62f3; seals/cb8_smoke_FAIL_20261022.json); q0167/q0168/q0171/q0175 stay uncommitted
+   (moot). B continues: **q0164 promoted** with both pins derived 00:17Z (do NOT re-derive; write-once); then q0165,
+   q0166 per drafts. CB9 q0181+ and CB10 q0201 come after their pins.
 4. **Host resize 2026-10-22 02:40Z** (owner-approved; no deploy / crontab edit / queue resume 02:40-03:45Z). After
    `~/.arepo/resize/DONE`: append `~/.arepo/resize/ledger_deviation_draft.md` to the ledger (facts only), run
    `resize_host.py --remove-cron`, update the 1 OCPU / 6 GB wording, then promote `queue/drafts/q0116f_mc1_dev_run.json`
@@ -289,14 +287,22 @@ cap had counted q0413's input restore). **q0404 smoke PASS 20:12Z (P1-P3 exact; 
 attestation again with q0406's commit. **Owner approval 8 (not urgent):** a clearing session for finished restore trees
 (~9 GB; data-dumps ~30 / 40 GB).
 
-**LT6 code freeze check** (science-reviewer) launched ~20:20Z on feat/live-tests-6; apply its fixes on that branch, then
-the LT6 census seal and counts-only censuses after LT5's.
+**LT6 (`feat/live-tests-6`, worktree `.claude/worktrees/agent-a985b10db31086738`):** freeze-check re-check
+**RECHECK_OK_WITH_FIXES** (2026-10-22 00:30Z, `reviews/LT6_FREEZE_RECHECK_2026-10-22.md`, 2e63dd59 on the branch). An
+implementer is applying must-fixes 1-5 (+ should-fixes) on the branch as section 17 (started ~00:40Z). Censuses may
+proceed now (census path untouched by the fixes), q0584 size check only after the fixes. Census input plan (orchestrator):
+q0582's pre-02:45Z window for 10-22 is lost, so after tonight's archive release (data-20261022-dsheikh, ~03:50Z) fill
+q0580's globs for the capture dirs retention deleted (10-13..10-14), add LT5's restore tree
+(`live_tests5_census/restore/...`) and the LT3/LT4 restore trees as extra roots, set `lt5_capture_seal_sha256` =
+fcd88926… in `live_tests6_v1.json`, merge the branch into chore, deploy, then q0580 -> q0581 (commit seal) -> q0582 -> q0583.
+Before registration: LT5 seal sha256, E022 registration, CB18 change request applied or "partially seen",
+`battery2.KIND_RULES["live_tests6"]`. D's P1 fix must be committed before 2026-11-11T08:00Z.
 
-**LT6 (`feat/live-tests-6`, worktree `.claude/worktrees/agent-a985b10db31086738`):** design accepted; code phase 1 and
-phase 2 (reader, analyze entry point, RSS probe, drafts q0585/q0586; 137 tests) committed and pushed. Not merged. Open:
-q0585/q0586 not_before (depend on E022), the RSS probe needs a host dry run, the `LIVE_TESTS6_WINDOW_CLOSED` log
-string is unverified against the design. Before registration: LT5 seal sha256, E022 registration (now planned), CB18
-change request applied or "partially seen", a `battery2.KIND_RULES["live_tests6"]` entry.
+**LT7 (`feat/live-tests-7`, worktree `.claude/worktrees/agent-a912d456e04c96c3d`):** design DRAFT committed (8c9f0328);
+challenger R1 **REVISE** (11 must-fix; `reviews/LT7_CHALLENGER_R1_2026-10-22.md`, f5c011ca). Orchestrator decision: drop
+CH194 (E002/E004-informed; uncounted, never registered). A revision agent is writing section 13 (R1 response) ~00:40Z; then
+an R1 re-check (science-reviewer). Embargo requests filed in `signal_engine/CANDIDATES.md` round 4 (9621c12e; must be
+applied before `movetype` lapses 11-22).
 
 **Registered and running (no interim looks):**
 - E009/E010 (to 11-03), E011 (to 11-10), LT2 E012-E014 (q0460; analysis q0461 after 11-13T12Z).

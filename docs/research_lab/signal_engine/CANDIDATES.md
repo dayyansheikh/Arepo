@@ -83,6 +83,32 @@ inputs, so its trees can split on both; it computes no hollow column and isolate
 
 ---
 
+## Embargo requests from the experiments side, round 4 (LT7 draft; filed 2026-10-22 ~00:40Z; OPEN)
+
+LT7 (`feat/live-tests-7`, `docs/research_lab/LIVE_TESTS_7.md` section 9; six round-12 candidates) is a DRAFT under
+challenger revision (R1 REVISE, `reviews/LT7_CHALLENGER_R1_2026-10-22.md`). R1 must-fix 9 asks that the embargo be applied
+now, not at registration, because `movetype` lapses on 2026-11-22. Window not before 2026-12-08; analysis about 12-30.
+Each request moves a date later or adds a token; none moves a date earlier.
+
+| Token | Until | Tests | Why |
+|---|---|---|---|
+| `book` | 2026-12-31T00:00Z (from 12-09) | CH195, CH197 | A book-isolating model with 1c/5c depths per side and the own 2 h change can learn hit-side depth and the behind-touch split |
+| `movetype` | 2026-12-31T00:00Z (from 11-22) | CH193 | se14_lgbm_movetype isolates the traded flag and volume changes, i.e. CH193's absorbed state |
+| `resist` (new) | 2026-12-31T00:00Z | CH195 | pre-move depth on the side the move hit (`rs_*`) |
+| `capath` (new) | 2026-12-31T00:00Z | CH191 | capture-clock step path (`cp_*`) |
+| `mm_fresh` (new) | 2026-12-31T00:00Z | CH194 | `chg_1h` / own 2 h change; withdrawn if CH194 is dropped in the R1 response |
+| `deepbook` (new) | 2026-12-31T00:00Z | CH197 | touch vs behind-touch imbalance (`db_*`) |
+| `absorbed` (new) | 2026-12-31T00:00Z | CH193 | traded x no move interactions |
+| `ivr` (new) | 2026-12-31T00:00Z | CH192 | any spread / realised-volatility ratio, or both in a model built to isolate them |
+
+All dates are "the later of 2026-12-31T00:00Z and LT7's analysis commit" (R1 must-fix 9): if LT7's window slides, a later
+request follows. Also asked: no attribution (SHAP or otherwise) of the champion or any broad model on `chg_1h` x own 2 h
+change or on lagged-step interactions before then, and no LT7 family added to a broad model before then (or record it in
+the ledger as a development look). A test dropped before registration withdraws its new token and any extension made only
+for it, with a ledger line.
+
+---
+
 ## Idea-level families from creative round 12 (2026-10-21; ideas only, no evidence; not candidates yet)
 
 `CREATIVE_HYPOTHESES_2026-10-26.md` (CH191-CH201) states one point-in-time feature family per idea, with a proposed
