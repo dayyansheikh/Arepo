@@ -1,0 +1,44 @@
+{
+ "id": "q0621_lt8_seal",
+ "title": "LT8 census seal (DRAFT): LT7's seal narrowed to the 430 census files, each re-hashed in the host copy or the q0620 restore tree and required to equal LT7's sha256; records LT7's 159-entry slots map exactly, the frozen LT8 design-text sha256 and the spec census blocks; refuses an absent or mismatching file",
+ "family": "live_tests_8",
+ "priority": 54,
+ "expected_value": "the LT8 input identity seal (LIVE_TESTS_8.md 7), committed before any LT8 census runs",
+ "data": [
+  "host originals ~/arepo/data-dumps/research_lab/{snapshots,book_sweeps} (read-only)",
+  "restore tree live_tests8_census/restore (read-only)",
+  "seals/lt7_census_inputs.json"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "lane": "net",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0620_lt8_census_restore"
+ ],
+ "argv": [
+  "scripts/run_live_tests8.py",
+  "seal",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests8_census/restore/data-dumps/research_lab/snapshots",
+  "--sweep-root",
+  "../data-dumps/research_lab/book_sweeps",
+  "--sweep-root",
+  "../data-dumps/research_lab/live_tests8_census/restore/data-dumps/research_lab/book_sweeps",
+  "--work",
+  "../data-dumps/research_lab/live_tests8_census/work_seal",
+  "--out",
+  "../data-dumps/research_lab/live_tests8_census/lt8_census_inputs.json"
+ ],
+ "timeout_s": 7200,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests8_census/lt8_census_inputs.json (the orchestrator copies it to docs/research_lab/seals/ and commits it)"
+ ],
+ "next_action": "orchestrator copies the output to docs/research_lab/seals/lt8_census_inputs.json, commits it and pulls it on the host; the censuses refuse a seal not tracked by git or differing from HEAD",
+ "notes": "The seal refuses unless docs/research_lab/LIVE_TESTS_8.md equals the text-frozen file (sha256 5e61c20b...) AND the design-text freeze commit exists (the seal is written only after it). Add `--unavailable <RESTORE_REPORT_<tag>.json>` (repeatable) for each q0620 report that lists missing members. DRAFT, not in queue/jobs (LIVE_TESTS_8.md text-frozen, sha256 5e61c20b...; code phase 1 only: the reader, backfill-series, analysis, size check and RSS probe are phase 2). Promote only after the science-reviewer code-freeze check of the census code against LIVE_TESTS_8.md sections 1.8, 1.8.1 and 7 and the committed LT8 seal. Counts 0 (descriptive; no trials line). Reads the DRAFT spec unpinned; code_sha256 of the hashed modules is written into the output. Every gate threshold is stated in LIVE_TESTS_8.md section 7 before this runs; nothing is re-tuned after it. Memory-heavy-jobs rule: exclusive; never while an LT5/LT6/LT7 census or size-check job runs (q0620 depends_on q0604_lt7_census_sweeps, or its recorded drop: remove that dependency by hand only if the ledger records LT7's drop). Each census runs once; no re-run, only a deterministic crash gets max_retries 1 (no output written)."
+}

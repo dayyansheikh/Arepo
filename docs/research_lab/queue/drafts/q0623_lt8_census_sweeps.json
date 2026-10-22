@@ -1,0 +1,49 @@
+{
+ "id": "q0623_lt8_census_sweeps",
+ "title": "LT8 census CS8 (DRAFT): CH203 (the quiet book) and CH202 (the sweep clock) on sweep 1 of the 47 sealed passes (blocks 2026-10-14T22Z..10-16T22Z and 10-19T22Z..10-21T22Z) and their captures (CH203 41 origins, 23 F-feasibility pairs, CH202 45 from the file list): counts only, origin-side fields only, the lag sweeps k + 5 and k + 6 only through the lag-slot loader (keys + depth_bid_5c, depth_ask_5c), no target, no P&L; refuses unsealed or mismatched inputs",
+ "family": "live_tests_8",
+ "priority": 52,
+ "expected_value": "CH203 and CH202 census gates (LIVE_TESTS_8.md section 7): coverage, quiet share, count gates, cap share, residual IQR, VIF_w, confounder caps, r_gate <= 0.3, the per-sweep-block minimum, slope / class MDE and F-MDE <= 0.5c; decides part of k before the pin",
+ "data": [
+  "host originals ~/arepo/data-dumps/research_lab/{snapshots,book_sweeps} (read-only, under the seal)",
+  "restore tree live_tests8_census/restore (read-only)"
+ ],
+ "resources": {
+  "mem_mb": 1200,
+  "as_cap_mb": 3600,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none",
+  "exclusive": true
+ },
+ "depends_on": [
+  "q0622_lt8_census_captures"
+ ],
+ "argv": [
+  "scripts/run_live_tests8.py",
+  "census-sweeps",
+  "--seal",
+  "../docs/research_lab/seals/lt8_census_inputs.json",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests8_census/restore/data-dumps/research_lab/snapshots",
+  "--sweep-root",
+  "../data-dumps/research_lab/book_sweeps",
+  "--sweep-root",
+  "../data-dumps/research_lab/live_tests8_census/restore/data-dumps/research_lab/book_sweeps",
+  "--work",
+  "../data-dumps/research_lab/live_tests8_census/work_sweeps",
+  "--data-dumps-cap-gb",
+  "40",
+  "--out",
+  "../data-dumps/research_lab/live_tests8_census/CS8.json"
+ ],
+ "timeout_s": 14400,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests8_census/CS8.json (counts only; the work dir is cleaned up at exit)"
+ ],
+ "next_action": "commit the census JSON and its sha256 (seals/), fill the census-fixed spec values (census_fixed.*, k_tests) and record any drop in LIVE_TESTS_8.md 6.3 and the ledger; q0624 (size check, phase 2) follows only after the census values are committed so k is fixed first",
+ "notes": "mem_mb 1200 is the design's ESTIMATE (a 13-slot mid store, 3 series frames and 3 sweep frames, the quiet covered in-band units of CH203 held as one frame, about 0.5-1 million rows before the cap in the worst case); as_cap_mb 3600; to be MEASURED by a host dry run before promotion. Exits 75 above 40 GiB. The F pairs are not under the per-sweep-block rule; their per-block split is printed. The reward rule is the LT8 one (an empty clob_rewards is unrewarded; malformed text excluded and counted). DRAFT, not in queue/jobs (LIVE_TESTS_8.md text-frozen, sha256 5e61c20b...; code phase 1 only: the reader, backfill-series, analysis, size check and RSS probe are phase 2). Promote only after the science-reviewer code-freeze check of the census code against LIVE_TESTS_8.md sections 1.8, 1.8.1 and 7 and the committed LT8 seal. Counts 0 (descriptive; no trials line). Reads the DRAFT spec unpinned; code_sha256 of the hashed modules is written into the output. Every gate threshold is stated in LIVE_TESTS_8.md section 7 before this runs; nothing is re-tuned after it. Memory-heavy-jobs rule: exclusive; never while an LT5/LT6/LT7 census or size-check job runs (q0620 depends_on q0604_lt7_census_sweeps, or its recorded drop: remove that dependency by hand only if the ledger records LT7's drop). Each census runs once; no re-run, only a deterministic crash gets max_retries 1 (no output written)."
+}
