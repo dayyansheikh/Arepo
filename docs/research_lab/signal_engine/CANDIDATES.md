@@ -171,6 +171,20 @@ ledger line (the `book0` / `book` extension is withdrawn only if CH203 and CH202
   versus common; this overlaps `event` / se8); `farm` (CH183: book imbalance inside versus outside the reward band; LT5
   saw no unrewarded units, possibly an empty-`clob_rewards` parse artefact, so check the parse before building).
 
+## Idea-level families from creative round 14 (2026-10-22; ideas only, no evidence; not candidates yet)
+
+`CREATIVE_HYPOTHESES_2026-10-28.md` (CH212-CH221) proposes one point-in-time family per idea: `rwblink` (CH212,
+`clob_rewards` omission as a serving-path event, routed by the CLOB feed), `bandbreak` (CH213, spread crossing out of the
+reward band and its re-tightening), `pool` (CH214, symmetric in-band depth arrival behind an unmoved touch), `rwend`
+(CH215, farmers' retreat before a programme's stated end), `printage` (CH216, universe-wide large taker prints; built
+under `flow` / `movetype`), `rowq` (CH217, optional-field presence / row quality; also a proposed label-quality weight,
+a learner change under DESIGN_V1 section 19), `dispgap` (CH218, venue-displayed change versus the host's own path),
+`bookclock` (CH219, `book_timestamp` innovation), dormancy (CH220), `sibprop` (CH221, waits for an admissibility ruling
+on `uma_resolution_statuses`). **CH213, CH214 and CH212 (CH215 count-gated) are the planned LT9 family (draft on
+`feat/live-tests-9`): do not build an isolating challenger for `bandbreak`, `pool`, `rwblink` or `rwend` before LT9's
+design fixes its embargo dates** (requests will follow here; `pool` also respects LT8's `quietbook`). The engine-first rest
+(CH217-CH220; CH221 after its ruling) may be built as development families under the usual rules.
+
 ## Idea-level families from creative round 13 (2026-10-22; ideas only, no evidence; not candidates yet)
 
 `CREATIVE_HYPOTHESES_2026-10-27.md` (CH202-CH211) states one point-in-time family per idea with a proposed token:
