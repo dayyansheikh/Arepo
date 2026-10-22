@@ -3849,3 +3849,20 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 ## LT9 re-check ACCEPT_WITH_FIXES and fixes 1-6, 2026-10-22; nothing counted
 - **Re-check** (`reviews/LT9_R1_RECHECK_2026-10-22.md`): ACCEPT_WITH_FIXES; fixes 1-6 made as worded (addendum in `reviews/LT9_R1_RESPONSE_2026-10-22.md`), no gate or threshold changed.
 - `LIVE_TESTS_9.md` sha256 `bbfeb62add0e24860947e9413025cece5bdfbd4f8ebbe46b27974b8b29a354e1` -> `098aa3fb5f6765f08dcad3f85ad63ec70e29df65249413608f0f7ad5fd505b77` (still DRAFT; freeze commit separate).
+
+## LT9 drafted, challenger R1 and re-check, DESIGN-TEXT FREEZE (2026-10-22 ~22:50Z; experiments autopilot; nothing counted)
+- **Source:** creative round 14 (`CREATIVE_HYPOTHESES_2026-10-28.md`, merged 9079ca39). LT9 = CH213 (band break
+  re-tightening), CH214 (pool splits: arrival side of the symmetric in-band depth innovation), CH212 (`clob_rewards`
+  omission as a serving-path event, route by counts); CH215 (farmers' retreat before a programme end) enters only if its
+  own census passes. One Holm family, k <= 3 (4).
+- **Reviews:** draft b2882734 (01c49890…) -> challenger R1 **REVISE** (9 required; `reviews/LT9_R1_CHALLENGER_2026-10-22.md`)
+  -> response dcc2ec37 (bbfeb62a…; `reviews/LT9_R1_RESPONSE_2026-10-22.md`) -> re-check **ACCEPT_WITH_FIXES**
+  (`reviews/LT9_R1_RECHECK_2026-10-22.md`; 6 fixes) -> fixes 11fee7a0. Orchestrator diff check: every changed hunk is tagged
+  "re-check fix N" and maps to fixes 1-6; no gate, threshold, floor or planning value changed; optional world-3b rule not applied.
+- **DESIGN-TEXT FREEZE:** `LIVE_TESTS_9.md` at 11fee7a0, sha256 `098aa3fb5f6765f08dcad3f85ad63ec70e29df65249413608f0f7ad5fd505b77`
+  (before the earlier of 2026-11-14T12:00Z and T_E015). Any later change to a test's text is a recorded deviation; changes
+  after LT8's census commit are labelled *informed (LT8 census)*. Proposed window 2027-01-21 .. 2027-02-11 (LT8's end +
+  24 h, slides with LT8); analysis on or after 2027-02-12T12:00Z. Honest odds (author): census survival CH213 0.15, CH214
+  0.30, CH212 0.30, CH215 0.10; about 0.42 that CH213, CH214 and CH212 all drop (CH213 expected to fail its binding F gate).
+- **Next:** embargo requests (section 9) filed in CANDIDATES at acceptance; code phase (seal, censuses CC9/CS9/CR9, drafts
+  q0640-q0647) on a fresh seal of 2026-11-02..11-12.
