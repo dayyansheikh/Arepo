@@ -256,10 +256,13 @@ Host 2 OCPU / 11.4 GiB since the resize. data-dumps 33 / 40 GB cap: owner approv
   (`reviews/LT7_REWARD_NULL_RULING_2026-10-22.md`): null `clob_rewards` = unrewarded (`rewarded = 0`); listed-inactive = 0;
   malformed/absent = NaN; counts split. Design amendment **13.6**, `LIVE_TESTS_7.md` sha256 840f4500 -> **31baf5e5…**; ledger
   (1cf8ae54); registry (848c8c9b). The LT7 seal (117e9b45) is kept (LT8 pins it); code accepts it as predecessor.
-  **Code fix running** on `feat/lt7-reward-null` (worktree agent): strict parse, four statuses, spec `reward_null_rule`,
-  `rewards-probe` subcommand + job `q0601c_lt7_rewards_probe`, fresh work dirs for q0602-q0604. **Next:** merge -> census-code
-  re-check (science-reviewer) -> deploy -> q0601c -> promote q0602, q0603, q0604 (one code hash; finish before 10-28T03:30Z).
-  If live_tests7.py's hash changes, LT8's vendored LT7 copies must be re-verified (LT8 8.1 rule) before any LT8 census.
+  **Code fix MERGED** (41a0bb4e; live_tests7.py sha256 2ee6a659…; re-check OK_WITH_NOTES,
+  `reviews/LT7_REWARD_NULL_FIX_RECHECK_2026-10-22.md`, 3d1981bb) and **deployed** 12:1xZ. q0601c (rewards probe) is in
+  jobs/, runs after MC1. **Next:** read q0601c's output against the PRE-DECLARED rules in that re-check file ((b)
+  `order_min_size` null > 5%, (c) within-day null/non-null switching > 5% of markets, (d) malformed > 5% -> back to the
+  challenger; (a) report only). If none fires, promote q0602 -> q0603 -> q0604 (drafts -> jobs, deploy), finishing before
+  10-28T03:30Z. LT8: its vendored LT7 functions are byte-identical after the fix (only the seal reader's design check
+  gained the predecessor rule); re-verify at LT8's freeze check.
 - **LT8:** embargo requests round 5 filed in `signal_engine/CANDIDATES.md` (c6e57a64; builder to apply). **Code phase 1
   running** on `feat/live-tests-8-code` (worktree agent): vendor script, live_tests8_base/live_tests8 censuses, spec, tests,
   drafts q0620-q0623 (+q0627 if specified). Then code freeze check (science-reviewer), merge.
