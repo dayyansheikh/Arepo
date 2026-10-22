@@ -287,22 +287,24 @@ cap had counted q0413's input restore). **q0404 smoke PASS 20:12Z (P1-P3 exact; 
 attestation again with q0406's commit. **Owner approval 8 (not urgent):** a clearing session for finished restore trees
 (~9 GB; data-dumps ~30 / 40 GB).
 
-**LT6 (`feat/live-tests-6`, worktree `.claude/worktrees/agent-a985b10db31086738`):** freeze-check re-check
-**RECHECK_OK_WITH_FIXES** (2026-10-22 00:30Z, `reviews/LT6_FREEZE_RECHECK_2026-10-22.md`, 2e63dd59 on the branch). An
-implementer is applying must-fixes 1-5 (+ should-fixes) on the branch as section 17 (started ~00:40Z). Censuses may
-proceed now (census path untouched by the fixes), q0584 size check only after the fixes. Census input plan (orchestrator):
-q0582's pre-02:45Z window for 10-22 is lost, so after tonight's archive release (data-20261022-dsheikh, ~03:50Z) fill
-q0580's globs for the capture dirs retention deleted (10-13..10-14), add LT5's restore tree
-(`live_tests5_census/restore/...`) and the LT3/LT4 restore trees as extra roots, set `lt5_capture_seal_sha256` =
-fcd88926… in `live_tests6_v1.json`, merge the branch into chore, deploy, then q0580 -> q0581 (commit seal) -> q0582 -> q0583.
-Before registration: LT5 seal sha256, E022 registration, CB18 change request applied or "partially seen",
-`battery2.KIND_RULES["live_tests6"]`. D's P1 fix must be committed before 2026-11-11T08:00Z.
+**LT6:** re-check RECHECK_OK_WITH_FIXES -> fixes de2326b1/b8804735 -> verification FIXES_OK_WITH_NOTES (its N1 did not
+reproduce; real-reader test 7e988261). **Merged into chore (7ebfcb8b).** LT5 seal pinned in `live_tests6_v1.json`.
+**q0580 promoted** (restore 10-13/10-14 captures from data-20261015/16-dsheikh) and **q0581 seal promoted** (not before
+04:00Z, after retention; extra roots LT5/LT4/LT3 restore trees). Next: when q0581 is done, byte-copy
+`live_tests6_census/lt6_census_inputs.json` to `seals/`, commit, deploy, promote q0582 (exclusive) **before
+2026-10-23T03:30Z** (10-15 rows leave the host then), then q0583; fill k_tests/strata; q0584 size check after.
+Open should-fix: `e022.pin_commit_utc` check (before the pin). D's P1 is implemented (deadline 11-11T08:00Z met).
 
-**LT7 (`feat/live-tests-7`, worktree `.claude/worktrees/agent-a912d456e04c96c3d`):** design DRAFT committed (8c9f0328);
-challenger R1 **REVISE** (11 must-fix; `reviews/LT7_CHALLENGER_R1_2026-10-22.md`, f5c011ca). Orchestrator decision: drop
-CH194 (E002/E004-informed; uncounted, never registered). A revision agent is writing section 13 (R1 response) ~00:40Z; then
-an R1 re-check (science-reviewer). Embargo requests filed in `signal_engine/CANDIDATES.md` round 4 (9621c12e; must be
-applied before `movetype` lapses 11-22).
+**LT7:** R1 REVISE -> response efdcdb6e (CH194 withdrawn, uncounted) -> re-check ACCEPT_WITH_FIXES -> fixes cedfd6be ->
+**design-text freeze** (sha256 840f4500...; ledger bda3691b; merged e4b1973d). Embargo applied by the builder (18d4adc5;
+`mm_fresh` withdrawal filed). **Code phase 1** (vendored base, seal, censuses CC7/CS7/CV7, runner, drafts q0600-q0604)
+being implemented on `feat/live-tests-7` (started ~01:20Z). Then: code freeze check (science-reviewer), censuses before
+the sealed capture rows leave the host (10-23..10-29 03:30Z) or from restores, phase 2 (reader, analysis, size check).
+
+**LT5 test guard (pre-existing since 44a7e938):** `test_vendored_provenance` fails because `live_tests4.py` changed after LT5
+vendored it. Record `vendored_source_drift_accepted["live_tests4.py"]` (sha256 d80bde72..., reason, date) in
+`live_tests5_v1.json` together with the post-census fills (after q0562), confirming every vendored function still
+equals its source (the test checks). Do not edit the LT5 spec while q0561/q0562 run.
 
 **Registered and running (no interim looks):**
 - E009/E010 (to 11-03), E011 (to 11-10), LT2 E012-E014 (q0460; analysis q0461 after 11-13T12Z).
