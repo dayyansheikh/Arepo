@@ -106,7 +106,8 @@ def test_spec_is_a_draft_with_declared_constants():
     assert spec["size_check"]["seed"] == 20261177 and spec["size_check"]["worlds"] == 2000 and spec["size_check"]["draws"] == 200
     assert spec["seeds"]["estimators"] == {"CH195": 20261171, "CH191": 20261172, "CH197": 20261174, "CH193": 20261175, "CH192": 20261176}
     assert spec["seeds"]["gates"] == {"CH195": 20261271, "CH191": 20261272, "CH197": 20261274, "CH193": 20261275, "CH192": 20261276}
-    assert spec["vendored_source_drift_accepted"] == {}
+    drift = spec["vendored_source_drift_accepted"]  # the E022 pin line only (2026-10-22)
+    assert set(drift) <= {"live_tests4.py"} and drift.get("live_tests4.py", {}).get("sha256") in (None, "4e043b6589a81ec2a9b176603e796630cb328aa2dd87f135918aadf702be98b0")
     for v in spec["census_fixed"].values():
         assert all(x is None for x in v.values())  # census-filled fields are null until the censuses
     bad = dict(__import__("json").loads(lt.SPEC_PATH.read_text()), registered_utc="2026-12-09T00:00:00Z")

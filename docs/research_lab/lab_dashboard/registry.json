@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-22T06:05:00Z",
+ "updated": "2026-10-22T06:35:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1511,25 +1511,27 @@
   },
   {
    "id": "LT4",
-   "title": "Live test E022 (planned; E020 and E021 dropped)",
-   "plain": "Planned live tests from the round 10 ideas. The counting checks on the server (21 Oct) left one: E022, whether displayed liquidity that cannot actually be traded against tells us anything. The other two (new orders versus cancellations; very recent trades) failed their pre-set counting checks and were dropped before registration, so they are not counted.",
+   "title": "Live test E022 (registered; E020 and E021 dropped)",
+   "plain": "A registered live test from the round 10 ideas. It asks whether displayed liquidity that cannot actually be traded against tells us anything about later moves. The counting checks dropped the other two planned tests (not counted). E022 went forward alone after independent reviews, a server test run and a size check that passed its safety rule. Registered on 22 Oct 2026; results only after the single analysis.",
    "batch": "LT4",
    "family": "mixed",
-   "stage": "designed",
-   "status": "running",
+   "stage": "live_test",
+   "status": "queued",
    "verdict": "pending",
    "effect": null,
-   "next": "Code freeze check, size check on the server, then pin and register E022 before 25 Oct",
+   "next": "Collection 26 Oct to 16 Nov 2026; single analysis after 17 Nov 2026 12:00 UTC",
    "next_date": "2026-10-26",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Finished-job write-ups and queue fixes, 2026-10-21 (LT4 censuses)"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § E022 REGISTERED (LT4; 2026-10-22); docs/research_lab/LIVE_TESTS_4.md §20"
    },
    "stage_results": {
-    "designed": "pending"
+    "designed": "pass",
+    "live_test": "pending"
    },
    "reached": [
-    "designed"
+    "designed",
+    "live_test"
    ]
   },
   {
@@ -1558,18 +1560,18 @@
   {
    "id": "LT6",
    "title": "Live tests 6: four more ideas from round 11 (planned)",
-   "plain": "A sixth group of up to four planned live tests from new-ideas round 11: refilling quotes after a move, repeated same-size orders, moves near a market's deadline, and new sibling markets waking older ones. The code passed an independent re-check and its data list is sealed (22 Oct); counting checks decide which tests go ahead.",
+   "plain": "A sixth group of planned live tests from new-ideas round 11. On 22 Oct three of the four (quotes refilling after a move, moves near a market's deadline, new sibling markets) failed their counting checks and were dropped before any test, uncounted. One remains: repeated same-size orders.",
    "batch": "LT6",
    "family": "mixed",
    "stage": "designed",
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Counting checks on 22 Oct; registration only after LT4's test E022 is registered or dropped (not before 1 Nov 2026)",
+   "next": "Counting check for the remaining test (22 Oct), then a size check if it survives",
    "next_date": "2026-11-01",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT6 seal committed, LT7 census code verified and merged, census jobs promoted (2026-10-22)"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT6 capture censuses (q0582): D, B and V dropped at census, uncounted (2026-10-22)"
    },
    "stage_results": {
     "designed": "pending"

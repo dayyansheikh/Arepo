@@ -119,6 +119,41 @@ six new tokens added (no models). Tests updated. Notes:
 
 ---
 
+## Notes from the experiments side, 2026-10-22 ~06:10Z (LT5 census drops; E022 registered)
+
+- **LT5 F (CH184), H (CH181) and R (CH183) were dropped at their pre-registration census** (q0561; `LIVE_TESTS_5.md` 7.3;
+  counts only, no target read; uncounted). No prospective test now uses them. Consequences for the embargo table:
+  - `event` (until 11-22) and `rewards` (until 11-22) were filed **only** for LT5 F and R. No drafted or registered test
+    needs them now. Releasing a token is the builder's decision under DESIGN_V1 §8; the experiments side no longer
+    requests them. Disclosure if released: the census read 2026-10-20/21 captures for counts (worn, development only).
+  - `flow` (11-22) stays: LT5 J and O (CH180, CH182) are still pending their census (q0562).
+  - `book` stays at 2026-12-31 (LT6 V, LT7 CH195 / CH197, E022's depth control).
+- **LT6 D (CH187), B (CH188) and V (CH190) were dropped at census** (q0582, 06:26Z; `LIVE_TESTS_6.md` 6.3). The `vote`
+  (V), `deadline` (D) and `siblings` (B) tokens (until 12-09) protect no test now; release is the builder's call. `clips`
+  (K, CH185) stays until LT6's K census (q0583) decides. `book` stays (LT7, E022).
+- **E022 (LT4) is REGISTERED** (window 2026-10-26..11-16, analysis after 11-17T12Z): the `hollow` token (until 11-18)
+  is now protecting a registered test and must not be released or shortened.
+- **Development-only families from the drops (ideas, no evidence; the census says only that the live test was not
+  testable at its declared MDE):** `hwm` (CH181: distance of the mid to its own 7-day high / low, `d_hi` / `d_lo` in
+  within-market SD units, new-extreme flag; LT5 found `hwm_incomplete` 0.55, so a 96-slot look-back loses most units;
+  use a shorter declared look-back); `alone` (CH184: own move versus the event family's share moving, idiosyncratic
+  versus common; this overlaps `event` / se8); `farm` (CH183: book imbalance inside versus outside the reward band; LT5
+  saw no unrewarded units, possibly an empty-`clob_rewards` parse artefact, so check the parse before building).
+
+## Idea-level families from creative round 13 (2026-10-22; ideas only, no evidence; not candidates yet)
+
+`CREATIVE_HYPOTHESES_2026-10-27.md` (CH202-CH211) states one point-in-time family per idea with a proposed token:
+`quietbook` (CH203, 5c-imbalance innovation behind an unmoved touch from two pre-origin `book0` sweeps), `swclock`
+(CH202, held-versus-fresh split of the previous move by the k-1 sweep receipt), `sched` (CH204, per-market hot-slot
+schedule from 7 days of own moves), `steam` (CH205, ESPN line move versus unmoved pre-game price; sports parameter),
+reward-start natural experiment (CH206, `reward_params`), `farmer` (CH209), `umaparams` (CH207, `gamma_rules` bond /
+liveness classes), `requote` (CH211), `xvenue2` timing extension (CH208), `sweep2_0` (CH210). **Its top 3 (CH203,
+CH202, CH204) are the planned LT8 family: do not build an isolating challenger for `quietbook`, `swclock` or `sched`
+before LT8's design fixes its embargo dates** (requests will follow here; the round proposes the later of
+2027-01-23T00:00Z and LT8's analysis commit, with `book0` / `book` kept to 12-31). CH205 is held for the owner's sports
+decision; CH206 needs a first count. The engine-first rest (CH207-CH211) may be built as development families under
+the usual rules (CH211 after E015's analysis on 11-15 if it moderates E015's classes).
+
 ## Idea-level families from creative round 12 (2026-10-21; ideas only, no evidence; not candidates yet)
 
 `CREATIVE_HYPOTHESES_2026-10-26.md` (CH191-CH201) states one point-in-time feature family per idea, with a proposed

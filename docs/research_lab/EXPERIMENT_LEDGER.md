@@ -3556,6 +3556,35 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - LT5 continues with J (CH180) and O (CH182): q0562 (flow census) next; then `k_tests`, the vendored-drift record for
   `live_tests4.py`, q0563 size check. Snapshot retention stays at the temporary 10 days until LT6's q0582 is done.
 
+## E022 REGISTERED (LT4; 2026-10-22 ~06:20Z; experiments autopilot)
+- **E022** (LT4, the single survivor of its censuses; E020 / E021 dropped uncounted at census, E023 / E024 before any
+  census): **registered**, k = 1 (Holm m = 1). Window 2026-10-26T00:00Z .. 2026-11-16T00:00Z; analysis q0486 not before
+  2026-11-17T12:00Z, scored once. Design `LIVE_TESTS_4.md` (challenger R1, R2, R2 re-check; census results 17; code freeze
+  check FREEZE_OK_WITH_FIXES, 19; registration 20).
+- Size check q0484 (one run, seed 20261107, 2,000 x 200): 0.0485 and 0.048 against the 0.058 limit; both binding
+  scenarios pass. Output sha256 b8e30676…; its code hashes equal the freeze record.
+- Pins: spec sha256 f7fbcff1… (`SPEC_SHA256` in `live_tests4.py`), five normalised module hashes as recorded in section 19.
+- Reader: host cron `10-59/20` installed with the registration (own flock, nice 19, oom_score_adj 1000, ulimit -v 1572864).
+- Counted when analysed: 1 test. No interim looks.
+- Operational slip (recorded): q0486's move from drafts to jobs was swept into commit cd4f3702 (LT7 seal), one commit
+  before this registration commit, and deployed with it. No effect: q0486 has not_before 2026-11-17T12:00Z and the
+  analysis refuses before `ANALYSIS_NOT_BEFORE`; its notes edit lands in the registration commit.
+- Registration check (science-reviewer): REGISTER_OK (pins match; only `code_sha256` and the descriptive `status` changed
+  in the spec; LT7's drift record correct and outside its hashed blocks). LT5 must record its `live_tests4.py` drift with
+  the post-pin sha256 4e043b65… after q0562.
+- (~06:05Z) Ops decision: the temporary 10-day snapshot retention (693db389) is kept beyond q0561 until LT7's last
+  census (q0604) is done, because LT7's frozen ordering rule (text 7: after LT6's q0584) pushes its censuses past the
+  8-day loss date of the 10-18 rows it sealed. Longer, never shorter; reverted to 8 days afterwards with a ledger line.
+
+## LT6 capture censuses (q0582): D, B and V dropped at census, uncounted (2026-10-22 ~06:35Z; experiments autopilot)
+- q0582 ran once (05:42-06:26Z, rc 0) on seal 18040c80…; output `seals/CD_CB_CV.json` sha256 b4c12b32… committed.
+  Counts only, no target read.
+- **D (CH187): dropped** (3 later by-date units in 9.08 days against a >= 3,150 projected kill line). **B (CH188):
+  dropped** (no qualifying birth unit; the kill line is >= 630 births). **V (CH190): dropped** (within corr(zv, z v_prev)
+  0.595 > 0.5; every other gate passes, tercile MDE 0.35c). Details: `LIVE_TESTS_6.md` 6.3. Uncounted (census drops
+  before registration).
+- LT6 continues with K (CH185): q0583 (flow census) next, then `k_tests`; q0584 size check only if K survives.
+
 ## Signal engine: `crypto` spot-reference family, se20, tick aux budget fix, 2026-10-22 ~06:00Z (signal-engine autopilot; nothing scored or counted)
 - **Built** aux family `crypto` (`se-aux-crypto-v1`, DESIGN_V1 §23; CANDIDATES builder row 20, unblocking row 5 now that
   CB13-R is closed): crypto template markets mapped from their own sidecar `series_slugs` + `fee_category` (no text);

@@ -518,6 +518,6 @@
   "CH196": "a map first; not taken",
   "CH198-CH201": "engine-first; not taken"
  },
- "vendored_source_drift_accepted": {},
+ "vendored_source_drift_accepted": {"live_tests4.py": {"sha256": "4e043b6589a81ec2a9b176603e796630cb328aa2dd87f135918aadf702be98b0", "reason": "LT4 (E022) registration pin 2026-10-22: only the SPEC_SHA256 line changed (normalised hash c92ffe93... unchanged); every vendored function still equals its source (checked by test_vendored_provenance)", "date": "2026-10-22"}},
  "vendored_source_drift_rule": "a vendored source file whose sha256 differs from live_tests7_base.VENDORED fails the provenance test unless an entry {file: {sha256, reason, date}} is recorded here (an explicit re-vendor decision; LT5 census code check finding 10); empty at the pin"
 }

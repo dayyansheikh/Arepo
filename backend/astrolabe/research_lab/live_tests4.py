@@ -48,7 +48,7 @@ SAMPLE_ROOT = l3.SAMPLE_ROOT
 SWEEP_ROOT = l3.SWEEP_ROOT
 OUT_ROOT = ROOT / "data-dumps" / "research_lab" / "live_tests4"
 SPEC_PATH = Path(__file__).resolve().parent / "model_specs" / "live_tests4_v1.json"
-SPEC_SHA256 = None  # pinned at registration (LIVE_TESTS_4.md 9.3); None = DRAFT, every line is prospective_unregistered
+SPEC_SHA256 = "f7fbcff174d23f1c9be88ca50a07d8b679ea98165288306b1cdf3d0b5ed055a9"  # pinned at registration 2026-10-22 (LIVE_TESTS_4.md 9.3, 20)
 
 REGISTERED_UTC = "2026-10-26T00:00:00Z"
 END_UTC = "2026-11-16T00:00:00Z"

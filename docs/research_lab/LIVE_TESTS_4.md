@@ -972,3 +972,24 @@ Rulings (k_tests = [E022]; no criterion, threshold, world parameter, draw count,
 - Disclosure (freeze check 5): consecutive-pass `c_sw` targets share an endpoint (MA(1)-type overlap); no size
   scenario simulates it.
 - `REGISTERED_UTC` 2026-10-26T00:00Z; registration commit by 2026-10-25T00:00Z.
+- **Size check result (q0484, 2026-10-22 05:36:01-05:40:50Z, attempt 1, rc 0, 288.5 s on the 2 OCPU host; one run only).**
+  Output `live_tests4_census/size_check.json` sha256 b8e306760a00751d939766062a1b0807c073b5657c7f606671cf9eaef926c8b7
+  (re-hashed on the Mac). Seed 20261107, 2,000 worlds x 200 draws, k_tests [E022], limit 0.05801673834860538:
+  `fl_continuous_persistent` **0.0485**, `fl_continuous_control_corr0.7` **0.048**; both binding, both ok; `pass` true. Its
+  `code_sha256` equals the five normalised hashes above exactly. Nothing blocks the pin.
+
+## 20. Registration (2026-10-22; experiments autopilot)
+- **E022 REGISTERED.** k_tests = [E022], Holm m = 1. `REGISTERED_UTC` 2026-10-26T00:00:00Z (unchanged), `END_UTC`
+  2026-11-16T00:00:00Z, analysis not before 2026-11-17T12:00:00Z (q0486).
+- The registration commit changes only: the spec's `code_sha256` map (the five section 19 hashes, equal to q0484's
+  output), the spec's descriptive `status` text, and `SPEC_SHA256` in `live_tests4.py` =
+  f7fbcff174d23f1c9be88ca50a07d8b679ea98165288306b1cdf3d0b5ed055a9 (sha256 of the spec file as committed). The normalised
+  module hashes exclude the `SPEC_SHA256` line, so the pin leaves them unchanged. No criterion, threshold, world, seed,
+  draw count, size limit or census value changed.
+- **Reader:** host cron `10-59/20 * * * *` (9.2 with the section 19 `ulimit -v 1572864`), own flock
+  `~/arepo/run/live_tests4.lock`, `nice -n 19`, `oom_score_adj 1000`, installed with this registration, before
+  2026-10-26T00:00Z. q0485 stays a draft and is never promoted while the cron line exists.
+- **Analysis:** q0486 promoted (not before 2026-11-17T12:00Z; scored once).
+- **Reader verified (2026-10-22T06:10Z, first cron run):** `pinned: true`, `spec_sha` f7fbcff174d23f1c, `status: nothing_new`,
+  `kinds_off` [clock, move] (E020 / E021 dropped), nothing written before the window.
+
