@@ -1,32 +1,28 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-22 08:29 UTC+1
+**Last updated:** 2026-10-22 11:44 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **New live test registered: E022** (from LT4). It asks whether displayed liquidity that cannot actually be traded
-  against says anything about later moves. It passed its size check this morning and collects from 26 Oct to 16 Nov;
-  single analysis after 17 Nov. That makes **seven registered live tests** (E009/E010, E011, E012-E014, E015, E022, E026).
-- **Server resize: DONE** (2 CPUs, 12 GB, free). Down 6 minutes overnight; the short gaps are logged as they happened.
-- **LT5 (round 11 ideas): closed with no test.** All five planned tests failed their counting checks this morning (too
-  few cases, or an effect size larger than the checks allow); dropped before any test, uncounted.
-- **LT6 (round 11 ideas): closed with no test.** All four planned tests failed their counting checks this morning (too few
-  cases, or a measure that could not be separated from a related one); dropped before any test, uncounted.
-- **Honest pattern:** most planned tests die at the counting stage, before any data on the outcome is read. That is the
-  checks working as designed; round 13 was written with these failures in mind.
-- **LT7 (five planned tests from round 12):** the counting code passed its checks; its data list is sealed (after a small
-  fix: the seal wrongly reported some present files as missing). A quick check of reward fields runs next.
-- **New ideas round 13: done** (10 ideas). Its best three are being written up as planned live tests LT8 (a quiet order
-  book that shifts behind an unmoved price; how much of a recent move the order book had already absorbed; each market's own
-  busy hours). They would collect from about 30 Dec, after LT7. The design passed its challenger review after changes; final small
-  fixes are being made before it is frozen.
-- **Model run (MC1)** is queued after the LT6 jobs; it only fits on the larger server.
+- **Seven registered live tests** are collecting or waiting to collect (E009/E010, E011, E012-E014, E015, E022, E026).
+  Single analyses: E009/E010 (3 Nov), E011 (11 Nov), E012-E014 (13 Nov), E015 (15 Nov), E022 (17 Nov), E026 (6 Dec).
+- **LT7 (five planned tests from round 12): reviewer ruling today.** A check of the reward fields found that about 62% of
+  markets have no listed reward programme (an empty field). The frozen design would have quietly dropped those markets
+  from two tests, cutting their sample to about 38%. An independent reviewer ruled, from counts only and before any
+  outcome was seen, that an empty field means "no reward programme" (so those markets count as unrewarded, not dropped).
+  The design text was amended and logged, and the counting code is being fixed (it also had a small parsing bug). After a
+  re-check, the three counting checks run, and they must finish before 28 Oct.
+- **LT8 (three planned tests from round 13):** design frozen. Today its requests to hide its signal families from the
+  signal engine until its analysis were filed, and its counting code is being written.
+- **New ideas round 14** is being written. It focuses on ideas built to survive the counting checks, because 10 of the
+  last 13 planned tests died there (too few cases, or effects smaller than the checks can detect).
+- **Model run (MC1)** is running on the larger server (started 08:42 UTC+1, at most 6 hours).
 - **Copy-skilled wallets (E026):** registered; collection starts 25 Oct (phone note then).
-- **Live tests waiting for their single analysis:** E009/E010 (3 Nov), E011 (11 Nov), E012-E014 (13 Nov), E015
-  (15 Nov), E022 (17 Nov), E026 (6 Dec).
+- **Honest pattern:** most planned tests die at the counting stage, before any outcome data is read. That is the checks
+  working as designed.
 ## 2. Approvals needed from you
 1. ~~Automatic Claude sessions~~ **APPROVED and installed 15 Oct** (full power, your call).
    - Pause: `python3 scripts/autopilot/autopilot.py pause` (on the Mac, in the repo). Use `resume` to undo, or `stop` to
