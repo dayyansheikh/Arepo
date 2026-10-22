@@ -281,9 +281,10 @@ census (exclusive, running) -> q0583 -> q0116f MC1 (6 h) ; q0562 LT5 flow census
    (cd4f3702, sha256 117e9b45…); **q0601b promoted** (4a9a7c07). When q0601b is done: read `common`; if false promote
    q0602 by hand (it depends on LT6's q0584: promote q0584 after q0583), then q0603, q0604; if true, challenger ruling
    first. Censuses must FINISH before the first loss (10-26T03:30Z if retention is back to 8 days). Then phase 2.
-7. **Creative round 13** (Fable xhigh, CH202+, `feat/creative-r13` in an agent worktree) started ~05:45Z because rounds
-   11-12 are fully routed (only engine-first CH186/189/196/198/201 remain). When done: review, merge, rank into LT8 /
-   CB batches, add idea-level families to `signal_engine/CANDIDATES.md`.
+7. **Creative round 13 merged** (553bd125; CH202-CH211; families + LT8 hold in CANDIDATES 5ffe8229). **LT8 design draft**
+   (CH203 quiet book, CH202 sweep clock, CH204 own clock; k <= 3) being written on `feat/live-tests-8` (agent worktree,
+   started ~06:30Z). Next: challenger R1 (science-reviewer), response, re-check, text freeze; embargo requests filed in
+   CANDIDATES; registry entry. Window after LT7's END (12-29) + 24 h.
 
 **E022 (LT4) REGISTERED 2026-10-22** (bf730c6f; REGISTER_OK). Window 10-26..11-16; reader = host cron `10-59/20`
 (never also q0485); q0486 after 11-17T12Z. Check the reader log `~/arepo/run/live_tests4.log` after 10-26T00Z (counts only).

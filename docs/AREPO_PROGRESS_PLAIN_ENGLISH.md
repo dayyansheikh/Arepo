@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-22 07:01 UTC+1
+**Last updated:** 2026-10-22 07:26 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -16,7 +16,9 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 - **LT6 (four planned tests):** its counting jobs are running now.
 - **LT7 (five planned tests from round 12):** the counting code passed its checks; its data list is sealed (after a small
   fix: the seal wrongly reported some present files as missing). A quick check of reward fields runs next.
-- **New ideas round 13** is being written (the earlier lists are fully used).
+- **New ideas round 13: done** (10 ideas). Its best three are being written up as planned live tests LT8 (a quiet order
+  book that shifts behind an unmoved price; how much of a recent move the order book had already absorbed; each market's own
+  busy hours). They would collect from about January, after LT7.
 - **Model run (MC1)** is queued after the LT6 jobs; it only fits on the larger server.
 - **Copy-skilled wallets (E026):** registered; collection starts 25 Oct (phone note then).
 - **Live tests waiting for their single analysis:** E009/E010 (3 Nov), E011 (11 Nov), E012-E014 (13 Nov), E015
