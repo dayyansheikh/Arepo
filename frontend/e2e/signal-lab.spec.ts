@@ -157,6 +157,11 @@ test("lab signal engine section renders from the dev fixture without leaking emb
   const text = (await embargoed.innerText()).replace(/\d{1,2} \w{3} \d{4}/, "").replace("se8_lr_event", "");
   expect(text).not.toMatch(/\d/);
   await expect(se.getByTestId("se-attribution-hidden")).toContainText("event");
+  // Promotion-rule card: non-embargoed challengers only (the fixture's embargoed se8_lr_event candidate is dropped).
+  const promo = se.getByTestId("se-promotion-table");
+  await expect(promo).toContainText("se3_lr_flow");
+  await expect(promo).toContainText("Not yet");
+  await expect(promo).not.toContainText("se8_lr_event");
   expect(await se.innerText()).not.toMatch(/expected return|alpha\b/i);
   // Wide tables scroll inside their own container; the section itself must fit every viewport.
   // (Scoped to the section: the shared lab tab row is outside this change.)

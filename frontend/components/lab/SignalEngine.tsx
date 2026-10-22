@@ -17,10 +17,12 @@ import {
   fmtUtc,
   parseSignalEngine,
   promotions,
+  promotionView,
   prospectiveRows,
   SE_WINDOW_DAYS,
   type AttributionView,
   type GainSeries,
+  type PromotionView,
   type SeCells,
 } from "@/lib/lab/signal-engine";
 import { seriesColors, theme } from "@/lib/theme";
@@ -195,6 +197,83 @@ function Attribution({ views }: { views: AttributionView[] }) {
   );
 }
 
+const PROMO_COLS = [
+  "Model",
+  "Days scored",
+  "Eligible in",
+  "Gain (nats)",
+  "Lower bound, event-clustered",
+  "Lower bound, event + day",
+  "Day share of uncertainty",
+  "Checks passed",
+  "Status",
+];
+
+function PromotionRuleCard({ view }: { view: PromotionView }) {
+  return (
+    <Card>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-[15px] font-semibold text-arepo-ink">Promotion rule</h3>
+        {view.promote ? <Pill tone="pos">Promotes {view.promote}</Pill> : null}
+      </div>
+      <p className="mt-0.5 text-[12.5px] text-arepo-muted" data-testid="se-promotion-header">
+        {view.rule}
+        {view.k !== null ? <> · {view.k} candidates compared</> : null}
+        {view.level !== null ? <> · {(view.level * 100).toFixed(1)}% one-sided</> : null}
+        {view.at ? <> · evaluated {fmtUtc(view.at)}</> : null}
+      </p>
+      {view.reason ? <p className="mt-1 text-[12px] text-arepo-muted">{view.reason}</p> : null}
+      <p className="mb-4 mt-1 text-[12px] leading-relaxed text-arepo-muted">
+        A challenger replaces the champion only when every check holds, including both lower bounds above zero. The event +
+        day bound also counts shocks shared by all markets on the same day. Signal strength / forecast quality only, not an
+        edge claim.
+      </p>
+      {view.candidates.length ? (
+        <div className="-mx-1 overflow-x-auto px-1">
+          <table className="w-full min-w-[48rem] border-collapse text-[12.5px]" data-testid="se-promotion-table">
+            <caption className="sr-only">Promotion rule status per challenger</caption>
+            <thead>
+              <tr className="border-b border-arepo-border text-left text-[11.5px] font-semibold text-arepo-muted">
+                {PROMO_COLS.map((c, i) => (
+                  <th key={c} scope="col" className={`whitespace-nowrap px-2 py-2 font-semibold ${i >= 1 && i <= 6 ? "text-right" : ""}`}>
+                    {c}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="font-tabular">
+              {view.candidates.map((c) => (
+                <tr key={c.modelId} className="border-b border-arepo-border/70 text-arepo-ink2">
+                  <th scope="row" className="px-2 py-2 text-left font-medium text-arepo-ink">{c.modelId}</th>
+                  <td className="px-2 py-2 text-right">{c.days === null ? "–" : fmtCount(c.days)}</td>
+                  <td className="whitespace-nowrap px-2 py-2 text-right">
+                    {c.daysToMin === null ? "–" : c.daysToMin > 0 ? `${c.daysToMin.toFixed(1)} days` : "now"}
+                  </td>
+                  <td className="px-2 py-2 text-right">{fmtSigned(c.gain)}</td>
+                  <td className="px-2 py-2 text-right">{fmtSigned(c.loEvent)}</td>
+                  <td className="px-2 py-2 text-right">{fmtSigned(c.loTwoway)}</td>
+                  <td className="px-2 py-2 text-right">{c.dayShare === null ? "–" : fmtPct(c.dayShare)}</td>
+                  <td
+                    className="whitespace-nowrap px-2 py-2"
+                    title={c.failed.length ? `Not met: ${c.failed.join(", ")}` : "All checks met"}
+                  >
+                    {c.passed}/{c.total}
+                  </td>
+                  <td className="px-2 py-2">
+                    <Pill tone={c.pass ? "pos" : "neutral"}>{c.pass ? "Meets rule" : "Not yet"}</Pill>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <Quiet>No challengers to show.</Quiet>
+      )}
+    </Card>
+  );
+}
+
 function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="min-w-0">
@@ -215,6 +294,7 @@ export function SignalEngine({ block, nowMs }: { block: unknown; nowMs: number }
   const series = familySeries(se, nowMs);
   const attribution = attributionViews(se, nowMs);
   const promos = promotions(se);
+  const promoRule = promotionView(se, nowMs);
   const days = typeof se.prospective?.days_scored === "number" ? se.prospective.days_scored : 0;
   const champ = se.champion?.model_id;
   return (
@@ -325,6 +405,8 @@ export function SignalEngine({ block, nowMs }: { block: unknown; nowMs: number }
           <Attribution views={attribution} />
         </Card>
       ) : null}
+
+      {promoRule ? <PromotionRuleCard view={promoRule} /> : null}
 
       <Card>
         <h3 className="text-[15px] font-semibold text-arepo-ink">Promotions</h3>

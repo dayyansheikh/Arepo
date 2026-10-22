@@ -265,6 +265,29 @@ export function buildSignalEngineFixture(nowMs: number): SignalEngineBlock {
     ],
     embargo_tokens: [{ token: "event", until }],
     promotions: [],
+    promotion: {
+      rule: "se-promotion-v2",
+      at: new Date(nowMs - 3 * 3_600_000).toISOString().slice(0, 19) + "Z",
+      K: 3,
+      level: 0.9833,
+      min_days: 14,
+      promote: null,
+      reason: null,
+      label: "promotion-rule status (forecast quality, primary target); not an edge claim",
+      candidates: [
+        {
+          model_id: "se3_lr_flow", pass: false, days: 16, age_days: 16.2, days_to_min: 0,
+          checks: { c1_days: true, c2_ci: false, c3_days_positive: false, c4_calibration: true, c5_secondary: true, c6_coverage: true, c7_cooldown: true },
+          gain: 0.0011, lo_event: -0.0004, lo_twoway: -0.0012, se_event: 0.0008, se_day: 0.0011, n_days: 14,
+        },
+        {
+          model_id: "se5_lgbm_all", pass: false, days: 6, age_days: 6.4, days_to_min: 7.6,
+          checks: { c1_days: false, c2_ci: false, c3_days_positive: false, c4_calibration: false, c5_secondary: true, c6_coverage: true, c7_cooldown: true },
+          gain: -0.0018, lo_event: -0.0041, lo_twoway: null, se_event: 0.0012, se_day: null, n_days: 6,
+        },
+        { model_id: "se8_lr_event", embargoed_until: until, pass: false, gain: 0.9 },
+      ],
+    },
     stale: false,
   };
 }

@@ -217,6 +217,35 @@ export interface SePromotion {
   evidence?: { gain?: { mean?: number | null; lo?: number | null; hi?: number | null } | null; level?: number; K?: number };
 }
 
+/** One challenger's status under the promotion rule. Every number may be null. */
+export interface SePromotionCandidate {
+  model_id?: string;
+  pass?: boolean;
+  days?: number | null;
+  age_days?: number | null;
+  days_to_min?: number | null;
+  checks?: Record<string, boolean | null>;
+  gain?: number | null;
+  lo_event?: number | null;
+  lo_twoway?: number | null;
+  se_event?: number | null;
+  se_day?: number | null;
+  n_days?: number | null;
+  embargoed_until?: string | null;
+}
+
+export interface SePromotionStatus {
+  rule?: string;
+  at?: string;
+  K?: number | null;
+  level?: number | null;
+  min_days?: number | null;
+  promote?: string | null;
+  reason?: string | null;
+  label?: string;
+  candidates?: SePromotionCandidate[];
+}
+
 /** Family attribution of one LightGBM fit: development diagnostic (mean |SHAP|), never a score. */
 export interface SeAttribution {
   model_id?: string;
@@ -251,6 +280,8 @@ export interface SignalEngineBlock {
   family_gains?: SeFamilyGain[];
   development?: { label?: string; generated_at?: string; test_days?: number | null; rows?: SeRow[] };
   promotions?: SePromotion[];
+  /** Promotion-rule status (se-promotion-v2); optional, parsed defensively. */
+  promotion?: SePromotionStatus | null;
   attribution?: SeAttribution[];
   embargo_tokens?: SeEmbargoToken[];
   /** Set by the host: the engine's dashboard is more than 2 days old. */
