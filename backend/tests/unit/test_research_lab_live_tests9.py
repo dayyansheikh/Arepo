@@ -599,6 +599,10 @@ def test_censuses_end_to_end_counts_only(world):
     assert c12["transitions_listed_to_null"] > 0 and c12["units_routeA"] > 0 and c12["route"] in ("A", "B", "dropped")
     assert c12["feed_completeness"]["ok"] and c12["switching_markets_mean_per_day"] > 0
     assert c12["feed_end_reasons"].get("feed_end_soon", 0) > 0  # the m % 8 == 0 programmes end inside the span
+    rf = cc["reward_field"]
+    assert rf["null_taxonomy"].get("unset", 0) > 0 and rf["carry_counts"].get("rewards_null_carried_lag1", 0) > 0
+    assert rf["two_ledger_map"]["listed_rewarded"] > 0 and rf["two_ledger_map"]["ghost"] > 0  # market 101 is dropped by the CLOB from slot 25
+    assert rf["omitted_slots_per_market_day"]["ge3"] > 0 and rf["two_ledger_map"]["band_mismatch"] == 0
     cs = lt.census_sweeps(seal=seal, snapshot_root=[h["snap"]], sweep_root=[h["swp"]], feed_root=[h["feed"]], work=world["tmp"] / "ws", spec=world["spec"])
     assert "error" not in cs, cs
     c14 = cs["CH214"]
@@ -795,3 +799,22 @@ def test_route_is_dropped_when_the_feed_is_incomplete(world):
                         "feed_end_ok": 1.0, "feed_end_why": "", "vol_absent": [1.0, 0.0, 1.0, 0.0], "ltp_absent": 0.0, "page_norm": 0.5, "recv_off": 1.0, "skey": "s", "f_ok": 1.0})
     r = lt.census_ch212(pop, tot, world["spec"], 1.0, {"ok": False}, {"per_day": {"d": 5000}})
     assert r["route"] == "dropped" and r["gate_CH212"]["route"] is False and r["gate_CH212"]["feed_completeness"] is False
+
+
+def test_causality_wild_captures_after_the_span(world, tmp_path):
+    """Captures after the span with wild prices: CC9's frozen states (every CH213 quantity except the twin's F inputs) and all of CH212 (its twin is
+    a status only) and CS9 (capture k gives its start only) are unchanged."""
+    seal = write_seal(world)
+    h = world["host"]
+    cc1 = lt.census_captures(seal=seal, snapshot_root=[h["snap"]], feed_root=[h["feed"]], work=world["tmp"] / "a2", spec=world["spec"])
+    cs1 = lt.census_sweeps(seal=seal, snapshot_root=[h["snap"]], sweep_root=[h["swp"]], feed_root=[h["feed"]], work=world["tmp"] / "a3", spec=world["spec"])
+    (tmp_path / "second").mkdir()
+    w2 = {**world, "tmp": tmp_path / "second"}
+    h2 = build_host(tmp_path / "second", wild_caps={SPAN[1] + 1, SPAN[1] + 2, SPAN[1] + 3, SPAN[1] + 4})
+    seal2 = write_seal(w2, h2)
+    cc2 = lt.census_captures(seal=seal2, snapshot_root=[h2["snap"]], feed_root=[h2["feed"]], work=tmp_path / "second" / "b2", spec=world["spec"])
+    cs2 = lt.census_sweeps(seal=seal2, snapshot_root=[h2["snap"]], sweep_root=[h2["swp"]], feed_root=[h2["feed"]], work=tmp_path / "second" / "b3", spec=world["spec"])
+    dump = lambda d: json.dumps(d, sort_keys=True, default=lt._json)  # noqa: E731
+    assert dump(cc1["CH212"]) == dump(cc2["CH212"]) and dump(cs1["CH214"]) == dump(cs2["CH214"])
+    f_keys = {"F", "F_arm_share", "pairs", "gate_CH213", "broken_at_km1_given_km2_pooled"}
+    assert dump({k: v for k, v in cc1["CH213"].items() if k not in f_keys}) == dump({k: v for k, v in cc2["CH213"].items() if k not in f_keys})

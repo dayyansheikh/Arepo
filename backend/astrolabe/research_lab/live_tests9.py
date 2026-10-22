@@ -1652,6 +1652,73 @@ def _load_for_census(seal: Path, snapshot_root, sweep_root, feed_root, work: Pat
     return {"seal": seal_d, "by_slot": by_slot, "sweeps": sweeps, "feeds": feeds, "files_checked": files_checked}
 
 
+# --- CC9's reward-field descriptives (section 7: counts only, no gate; descriptive for LT7 and LT8, never changes their controls) --------
+
+
+def reward_field_counts(sc: pd.DataFrame, feed_k: pd.DataFrame | None, day: str, acc: dict) -> None:
+    """Accumulate, for one span capture (its carried frame ``sc``, the two-sided series rows) restricted to non-sports ex-crypto rows: the null
+    taxonomy (``rew_state``), the vendored carry counts (``_reward_cols``: lags 1 / 2-3 / 4-11, listed-inactive, carried_param_differs, switching), the
+    carry-versus-feed agreement table by day (carry-rewarded x CLOB-listed at the last usable feed capture before the capture), the two-ledger map
+    (listed and rewarded; listed and carry-unrewarded; carry-rewarded and CLOB-absent, the ghost; band and rate mismatches where both list it), the
+    per-market listed-and-unrewarded tally for the whole span (hidden programme) and the omitted slots per market-day. No price is read."""
+    m = _cat_ok(sc)
+    x = sc[m]
+    tax = acc.setdefault("null_taxonomy", {})
+    for k_, v_ in x["rew_state"].astype(str).value_counts().items():
+        tax[k_] = tax.get(k_, 0) + int(v_)
+    cnt: dict = {}
+    if len(x):
+        b._reward_cols(x, cnt)
+    b._merge_counts(acc.setdefault("carry_counts", {}), cnt)
+    rew = x["rewarded"].to_numpy(float)
+    cond = x["condition_id"].astype(str).to_numpy()
+    listed = np.isin(cond, feed_k.index.to_numpy()).astype(float) if feed_k is not None else np.full(len(x), np.nan)
+    t = acc.setdefault("carry_x_feed_by_day", {}).setdefault(day, {"r1_l1": 0, "r1_l0": 0, "r0_l1": 0, "r0_l0": 0, "r_nan": 0, "feed_missing": 0})
+    fin = np.isfinite(rew)
+    t["r_nan"] += int((~fin).sum())
+    if feed_k is None:
+        t["feed_missing"] += int(fin.sum())
+    else:
+        for a_, c_ in ((1, 1), (1, 0), (0, 1), (0, 0)):
+            t[f"r{a_}_l{c_}"] += int((fin & (rew == a_) & (listed == c_)).sum())
+        f = feed_k.reindex(cond)
+        both = fin & (rew == 1) & (listed == 1)
+        v, fb = x["rew_maxspread"].to_numpy(float), f["band"].to_numpy(float)
+        r_, fr = x["rew_rate"].to_numpy(float), f["rate"].to_numpy(float)
+        with np.errstate(invalid="ignore"):
+            lm = acc.setdefault("two_ledger", {"listed_rewarded": 0, "listed_carry_unrewarded": 0, "ghost": 0, "band_mismatch": 0, "rate_mismatch": 0, "both_listed": 0})
+            lm["listed_rewarded"] += int(both.sum())
+            lm["listed_carry_unrewarded"] += int((fin & (rew == 0) & (listed == 1)).sum())
+            lm["ghost"] += int((fin & (rew == 1) & (listed == 0)).sum())
+            lm["both_listed"] += int(both.sum())
+            lm["band_mismatch"] += int((both & np.isfinite(v) & np.isfinite(fb) & (np.abs(v - fb) > 1e-9)).sum())
+            lm["rate_mismatch"] += int((both & np.isfinite(r_) & np.isfinite(fr) & (np.abs(r_ - fr) > 1e-6 * np.maximum(1.0, np.abs(fr)))).sum())
+        hid = acc.setdefault("hidden", {})
+        ids = x.index.astype(str) if x.index.name == "market_id" else x["market_id"].astype(str)
+        for mid_, lu, seen in zip(ids, (fin & (rew == 0) & (listed == 1)), fin, strict=True):
+            if seen:
+                h = hid.setdefault(mid_, [0, 0])
+                h[0] += int(lu)
+                h[1] += 1
+    om = x["om"].to_numpy(float)
+    ids = x.index.astype(str) if x.index.name == "market_id" else x["market_id"].astype(str)
+    md = acc.setdefault("om_market_day", {})
+    for mid_, o in zip(ids, om, strict=True):
+        if o == 1.0:
+            md[(mid_, day)] = md.get((mid_, day), 0) + 1
+
+
+def reward_field_summary(acc: dict) -> dict:
+    hid = acc.get("hidden", {})
+    md = acc.get("om_market_day", {})
+    hist = {"1": 0, "2": 0, "ge3": 0}
+    for v in md.values():
+        hist["1" if v == 1 else ("2" if v == 2 else "ge3")] += 1
+    return {"null_taxonomy": acc.get("null_taxonomy", {}), "carry_counts": acc.get("carry_counts", {}), "carry_x_feed_by_day": acc.get("carry_x_feed_by_day", {}),
+            "two_ledger_map": {**acc.get("two_ledger", {}), "hidden_programme_markets_whole_span": int(sum(1 for a_, n_ in hid.values() if n_ and a_ == n_))},
+            "omitted_slots_per_market_day": hist, "seen_before_T_LT7_note": "descriptive; changes no LT7 or LT8 control; recorded in the ledger as seen before T_LT7 (10)"}
+
+
 # --- CC9 and CS9 (the streaming census loops) ---------------------------------------------------------------------------------------
 
 
@@ -1684,6 +1751,7 @@ def census_captures(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, feed_root=FEED_R
     v_rewarded: list[np.ndarray] = []
     feed_frames: dict[str, pd.DataFrame] = {}
     persist = {"broken_km2": 0, "broken_km1_given_km2": 0}
+    rf_acc: dict = {}
 
     def fframe(d: str | None) -> pd.DataFrame | None:
         if d is None:
@@ -1720,6 +1788,7 @@ def census_captures(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, feed_root=FEED_R
         if k in span:
             rr = sc["rewarded"].to_numpy(float) == 1.0
             v_rewarded.append(sc["rew_maxspread"].to_numpy(float)[rr & _cat_ok(sc)])
+            reward_field_counts(sc, fframe(last_usable_before(feeds, cap["start"])), b._utc_day(cap["start"]), rf_acc)
         if k in org_set and (k - 1) in frames:
             cells = control_cells(sc, spec)
             u, cnt = bandbreak_units(sc, frames[k - 1], store, cap, k, spec, cells)
@@ -1769,7 +1838,7 @@ def census_captures(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, feed_root=FEED_R
     return {"span": spec["census_inputs"]["span"], "inputs_verified": bool(verify), "files_checked": loaded["files_checked"], "fee_category_values": fs["distinct_values"],
             "crypto_classifier_shown_to_work": fs["classifier_shown_to_work"], "reward_null_rule": spec.get("reward_null_rule"), "design_text_sha256": DESIGN_TEXT_SHA256,
             "covered_origins": {"CC9": len(ORG), "CH213_F_pairs": int(pair_days * 12)}, "expected_origins": exp.get("CC9"), "origins_differ_from_design": len(ORG) != exp.get("CC9"),
-            "feed_completeness": fc, "band_unit_check": band,
+            "feed_completeness": fc, "band_unit_check": band, "reward_field": reward_field_summary(rf_acc),
             "unit_overlaps": b.unit_overlaps({"CH213": A[A["n_members"] <= spec["member_cap"]["max_members"]] if len(A) else A, "CH212": B[B["n_members"] <= spec["member_cap"]["max_members"]] if len(B) else B}),
             "CH213": census_ch213(A, tot213, spec, days, band, pair_days), "CH212": census_ch212(B, tot212, spec, days, fc, {"per_day": sw_counts})}
 
