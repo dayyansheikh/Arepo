@@ -601,3 +601,71 @@ size cannot be bounded from the evidence, so it is treated as material.
   is ever written for a capture whose 2 h target slot has started (`predict.py`, section 6), so the prospective age of
   se18 / se19 starts at their first live prediction (`promotion.first_prediction_ts`).
 
+
+## 23. `crypto`: a spot-price reference for crypto template markets (2026-10-22 ~06:00Z)
+
+**Family `crypto` (`se-aux-crypto-v1`, `aux.py`; CANDIDATES builder row 20, which unblocks row 5).** Polymarket lists
+thousands of crypto markets whose fair price is a function of one spot price (up/down windows, strike ladders, "hit
+price" barriers). The champion sees only each market's own price history; this family gives it the spot path.
+- **Mapping (no text parsing):** a market is mapped when its own sidecar row (`rows_ext`, same capture) has
+  `fee_category == "crypto"` and a `series_slugs` entry matching `<asset>-<kind>-<cadence>` with kind in up-or-down,
+  multi-strikes, neg-risk, hit-price and asset in a fixed list (btc/bitcoin, eth/ethereum, sol/solana, xrp, bnb,
+  doge/dogecoin, zec/zcash, hype/hyperliquid, ethena, chainlink/link) mapped to a Binance USDT pair. Strikes are not
+  known (no question text in captures), so ladders and barriers are read through the market's own empirical beta to
+  spot. Capture 10-22 04:31Z: ~4,800 of 5,870 crypto sidecar rows map. Unmapped markets: `cr_has = 0`, rest NaN.
+- **Spot inputs:** Binance spot klines (`data-api.binance.vision/api/v3/klines`, public market data; 1000 x 1 m and
+  1000 x 5 m bars per mapped asset) requested with `endTime` = capture start - 1 ms, and kept only if the bar **closed
+  at or before the capture start** (re-checked when read). Closed klines are venue-clocked and not revised. They are
+  stored write-once per capture in `aux_inputs/crypto/<capture>.json.gz` with their fetch time; the table metadata holds
+  that file's sha256, the fetch time and the symbols. A capture with no mapped market fetches nothing; a failed request
+  writes nothing (retried next tick; never filled from another capture).
+- **Columns (15):** `cr_has`, `cr_kind` (1 up/down, 2 strikes, 3 neg-risk, 4 hit-price), `cr_cad_h` (up/down window
+  length), `cr_win_h` (window start minus capture start, hours); spot log returns `cr_r5m`, `cr_r30m`, `cr_r2h` (1 m
+  closes), `cr_r24h` (5 m); realised volatility `cr_rv1h` (last 60 x 1 m) and `cr_rv24h` (288 x 5 m, per-hour scale);
+  for up/down windows that started before the capture, `cr_ud_z` = log(spot / window open) over rv x sqrt(time left)
+  and `cr_ud_gap` = Phi(z) minus the origin mid; `cr_beta` = the market's own 2 h mid change regressed on the 2 h spot
+  log return over the previous 36 two-hour pairs (latest pair excluded, >= 4 finite pairs), `cr_lag` = beta x the
+  latest spot return minus the latest mid change, `cr_xs` = |beta| x rv1h x sqrt 2. Spot is NaN for an asset with no
+  closed 1 m bar within 5 min of the capture start (columns stay NaN, never carried forward).
+- **Causality:** every spot value is from a bar closed before the capture start; every mid is the engine's own quotes
+  file of the origin slot or earlier (written by the feature step before any aux table). The origin's Gamma mid is
+  received after the capture start, so it may already contain spot moves of those minutes; that can only weaken the
+  family, never give it future information.
+- **Limits (disclosed, science review 2026-10-22 ACCEPT_WITH_FIXES):**
+  - Binance spot is a proxy, not each market's resolution source. CB13-R closed on exactly that basis gap (GR basis
+    0.915), and short-cadence up/down markets may resolve on another feed (e.g. Chainlink). The family is a forecast
+    input only; nothing here claims the reference equals the settlement price.
+  - The window open is the open of the Binance 1 m bar that opens at `end_ts` minus the cadence. Daily up/down markets
+    use the close of the 1 m bar labelled 12:00 ET (`cb8_updown.py`), one minute later; kept as written.
+  - `cr_win_h`, `cr_ud_z` and `cr_ud_gap` are NaN for every market that is not an up/down window. `cr_ud_gap` assumes
+    outcome 0 (the engine's `ms_mid`) is "Up", the Polymarket listing order; not checked per market.
+  - A market missing from the sidecar has `cr_has` NaN (unknown, the engine's convention), not 0. A symbol Binance
+    answers with HTTP 400 is recorded in the inputs file's `unavailable` list and its columns stay NaN (permanent, not
+    retried); every other failure writes nothing and is retried. All requests of one capture share a 120 s budget, so
+    a slow network cannot push a pass's tick past its timeout before predictions are written. The table metadata also
+    records the sidecar's sha256.
+  - On 10-22 every symbol in the list (including HYPEUSDT, ENAUSDT, ZECUSDT) answered 200 from the host.
+- **Coverage and first fit:** snapshot rows (and sidecars) are kept only from 10-13 04:31Z (temporary 10-day snapshot
+  retention), so the 14 engine captures before that have no crypto table and never will (missing stays missing).
+  With `require_full_coverage`, se20's direction fits start once those captures leave the 14-day window (the
+  10-27 refit, like se8 / se10 / se16) and `res_7d` once they leave the 28-day one (~11-10).
+- **Backfill:** tables for past captures fetch the same closed bars now, after the fact (public, immutable data); they
+  are training inputs only. No prediction is written for a past capture (section 6), so se20's prospective age starts
+  at its first live prediction.
+
+**Model `se20_lgbm_crypto`:** LightGBM with se1's params on the champion's families + `crypto` (learner-matched,
+section 18; read against se1). `require_full_coverage` and `require_sources: ["crypto"]`.
+- **Embargo: none.** No registered or drafted live test uses a spot reference: CB13-R (CH118, the Binance barrier test)
+  closed "not testable (basis)" on 2026-10-21 ~19:58Z, and E019 / LT6 use crypto only as a population or cluster label.
+  `cr_win_h` + `cr_cad_h` give time to the end for up/down markets, which the champion's `log_hours` already holds, so
+  this adds nothing to E014's `tte` token.
+- **Promotion:** eligible, and it raises the non-embargoed K from 4 to 5 (se1, se7, se17, se18, se20), which makes the
+  level stricter for every challenger.
+- **Order of events (disclosed):** the columns and spec were written on 2026-10-22 between 02:23Z and 02:41Z (the session that was cut off) before any crypto table
+  was built on real captures (a host coverage diagnostic was attempted and not run); the coverage count above
+  (sidecar slugs only, no outcomes) was read at ~05:45Z, after the spec, and nothing was changed after it.
+- **Tick aux budget (operational fix, 2026-10-22 ~06:00Z):** a features run built at most `max(2 x max_items, 4)` aux
+  tables, 4 at a pass's tick, so with 6 families the 5th and 6th (`participation`, `book0`) of each new capture waited
+  for the next pass, after the capture's 2 h target had started (seen on capture 10-22 04:31Z; se16 has no fit yet
+  and se18 / se19 had not predicted, so no prediction was affected). The budget is now `len(AUX_FAMILIES) x max_items`
+  (newest capture first), so every family of a new capture is built before its predictions in the same tick.

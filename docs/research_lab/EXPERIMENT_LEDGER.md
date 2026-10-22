@@ -3545,3 +3545,23 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   10-day rule or 10-26T03:30Z under 8 days); its dependency was removed from q0601 as its notes direct. Next: commit the
   seal, run q0601b and read `common` before promoting q0602 by hand.
 - **MC1:** q0116f promoted (8df23f1f) after the resize; depends on q0484. Development only, not evidence.
+
+## Signal engine: `crypto` spot-reference family, se20, tick aux budget fix, 2026-10-22 ~06:00Z (signal-engine autopilot; nothing scored or counted)
+- **Built** aux family `crypto` (`se-aux-crypto-v1`, DESIGN_V1 §23; CANDIDATES builder row 20, unblocking row 5 now that
+  CB13-R is closed): crypto template markets mapped from their own sidecar `series_slugs` + `fee_category` (no text);
+  Binance spot 1 m / 5 m klines closed before the capture start, fetched once per capture and stored write-once with
+  their fetch time. Columns: spot returns 5 m..24 h, realised volatility, up/down window z and normal-reference gap,
+  the market's own beta to spot from earlier 2 h pairs and the latest lag. Challenger `se20_lgbm_crypto` (se1's
+  LightGBM params + `crypto`; read against se1). No embargo token: no live test uses a spot reference. K 4 -> 5
+  (stricter for every challenger).
+- Spec written 02:23-02:41Z (the session that hit the usage limit) before any crypto table existed; the only real-data
+  look was a sidecar coverage count (~4,800 of 5,870 crypto rows map; no outcomes) after the spec.
+- Science review: ACCEPT_WITH_FIXES, no leakage. Applied: HTTP 400 symbols recorded as permanently unavailable (all ten
+  symbols answer 200 today); `cr_has` NaN for markets absent from the sidecar; sidecar sha256 in provenance; a 120 s
+  per-capture fetch budget; §23 disclosures (Binance is a proxy, not the resolution source; daily up/down reference
+  minute; NaN scope; outcome-0 = Up assumption); registry `added_utc` corrected to 02:34Z.
+- Coverage: snapshot rows exist only from 10-13 04:31Z (temporary 10-day retention), so 14 engine captures never get a
+  crypto table; se20's direction fits start at the 10-27 refit, `res_7d` ~11-10.
+- **Defect fixed:** the tick built at most 4 aux tables per run, so `participation` and `book0` of each new capture were
+  built only at the next pass, after the 2 h target had started (capture 10-22 04:31Z). Now `len(AUX_FAMILIES) x
+  max_items`. No prediction was affected (se16 has no fit; se18 / se19 first fit at the 10-22 07:34Z refit).

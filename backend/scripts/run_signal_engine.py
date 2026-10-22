@@ -51,8 +51,10 @@ def cmd_features(paths, args) -> tuple[dict, int]:
     from astrolabe.signal_engine import features as F
 
     r = F.run_features(paths, max_items=args.max_items)
-    # auxiliary families (aux.py) for the captures just written and any backlog whose rows still exist
-    r["aux"] = A.run_aux(paths, max_items=max(2 * args.max_items, 4))
+    # auxiliary families (aux.py) for the captures just written and any backlog whose rows still exist. The budget
+    # covers every family of each new capture in the same run (newest first): with 2 x max_items (4 at a pass's tick)
+    # the 5th and later families waited for the next pass, after the capture's 2 h target had started (2026-10-22)
+    r["aux"] = A.run_aux(paths, max_items=max(len(A.AUX_FAMILIES) * args.max_items, 4))
     return r, 0 if (r["written"] or r["aux"]["written"]) else C.TEMPFAIL
 
 

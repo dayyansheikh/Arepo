@@ -440,7 +440,7 @@ def test_aux_family_end_to_end_write_once_and_missing(env, monkeypatch):
     assert not A.aux_path(paths, "event", old).exists()
     cap5 = idx[SLOT0 + 5]["capture_id"]
     sha = S.sha256_file(A.aux_path(paths, "event", cap5))
-    assert A.run_aux(paths, max_items=50) == {"written": [], "unbuildable_no_rows": 3}  # 3 families need rows
+    assert A.run_aux(paths, max_items=50) == {"written": [], "unbuildable_no_rows": 4}  # 4 families need the snapshot folder
     assert A.aux_path(paths, "rewards", cap5).exists()  # synthetic sidecar has no reward columns: an all-NaN table
     assert S.sha256_file(A.aux_path(paths, "event", cap5)) == sha
     f = A.read_features(paths, cap5)
@@ -626,6 +626,130 @@ def test_book0_drops_sweep_rows_received_at_or_after_the_origin():
         out = A.book0_features(Path("unused"), f, cap_start=100.0)
     assert out["b0_has"].tolist() == [1, 1, 1, 0, 0] and np.isnan(out["b0_spread"].to_numpy(float)[3:]).all()
     assert out.dtypes.unique().tolist() == [np.float32]
+
+
+def _klines(t_end: float, n: int, iv_s: int, price, bad_after: bool = True) -> list[list]:
+    """n klines [open_ms, open, close] whose last one closes at or before t_end, plus (bad_after) one still open at t_end."""
+    last_open = math.floor(t_end / iv_s) * iv_s - iv_s
+    out = [[int((last_open - i * iv_s) * 1000), price(last_open - i * iv_s), price(last_open - i * iv_s + iv_s)]
+           for i in range(n)][::-1]
+    if bad_after:
+        out.append([int((last_open + iv_s) * 1000), 1e9, 1e9])  # closes after t_end: must never be used
+    return out
+
+
+def test_crypto_features_hand_example():
+    cap = S.slot_time(SLOT0) + 2.0  # hh:31:02Z
+    btc = lambda t: 80000.0 * math.exp(1e-5 * (t - cap) / 60.0 + 2e-4 * math.sin(t / 60.0))  # noqa: E731
+    kl = {"BTCUSDT": {"1m": _klines(cap, 1000, 60, btc), "5m": _klines(cap, 1000, 300, btc)},
+          "SOLUSDT": {"1m": _klines(cap, 1000, 60, btc), "5m": _klines(cap, 1000, 300, btc)}}
+    ext = pd.DataFrame({"market_id": [1, 2, 3, 4, 5],
+                        "fee_category": ["crypto", "crypto", "crypto", "politics", "crypto"],
+                        "series_slugs": ['["btc-up-or-down-hourly"]', '["btc-up-or-down-5m"]', '["solana-multi-strikes-weekly"]',
+                                         '["btc-up-or-down-hourly"]', '["us-national-bitcoin-reserve"]']}).set_index("market_id")
+    end_a = cap - 2.0 + 29 * 60  # window [hh:00, hh+1:00): started 31 min before the capture
+    f = pd.DataFrame({"market_id": [1, 2, 3, 4, 5], "end_ts": [end_a, cap + 3 * 3600 - 2.0, cap + 5 * 86400, end_a, cap + 9e5],
+                      "ms_mid": [0.6, 0.5, 0.3, 0.6, 0.2]})
+    starts = np.array([cap - 7200.0 * (37 - j) for j in range(38)])
+    sp = np.array([btc(math.floor(t / 300) * 300) for t in starts])  # what price_at reads (5m close at or before t)
+    H = np.full((5, 38), np.nan)
+    H[2] = 0.3 + 0.8 * (np.log(sp) - math.log(sp[-2]))  # mid = 0.8 x log spot exactly, then flat at the origin
+    H[2, -1] = H[2, -2]
+    out = A.crypto_features(f, ext, kl, cap, H, starts)
+    assert list(out.columns) == A.CRYPTO_COLUMNS and out.dtypes.eq(np.float32).all()
+    np.testing.assert_array_equal(out["cr_has"].to_numpy(), [1, 1, 1, 0, 0])
+    np.testing.assert_array_equal(out["cr_kind"].to_numpy()[:3], [1, 1, 2])
+    np.testing.assert_allclose(out["cr_cad_h"].to_numpy()[:2], [1.0, 5 / 60], rtol=1e-6)
+    assert np.isnan(out["cr_cad_h"][2]) and out.iloc[3:].drop(columns="cr_has").isna().all().all()
+    np.testing.assert_allclose(out["cr_win_h"].to_numpy()[:2], [-31 / 60 - 2 / 3600, 3 - 5 / 60 - 2 / 3600], rtol=1e-5)
+    S0 = btc(math.floor(cap / 60) * 60)  # last 1m kline closes at hh:31:00; the hh:31 kline (1e9) is excluded
+    np.testing.assert_allclose(out["cr_r5m"][0], math.log(S0 / btc(math.floor((cap - 300) / 60) * 60)), rtol=1e-5)
+    K = btc(cap - 2.0 - 31 * 60)  # open of the 1m kline at the window start (hh:00)
+    k1 = A._Klines(kl["BTCUSDT"]["1m"], 60_000, cap)
+    z = math.log(S0 / K) / (k1.rv(60, 50) / math.sqrt(60) * math.sqrt((end_a - cap) / 60))
+    np.testing.assert_allclose(out["cr_ud_z"][0], z, rtol=1e-4)
+    np.testing.assert_allclose(out["cr_ud_gap"][0], 0.5 * (1 + math.erf(z / math.sqrt(2))) - 0.6, atol=1e-5)
+    assert np.isnan(out["cr_ud_z"][1]) and np.isnan(out["cr_ud_z"][2])  # future window; not an up/down market
+    np.testing.assert_allclose(out["cr_beta"][2], 0.8, rtol=1e-4)
+    np.testing.assert_allclose(out["cr_lag"][2], 0.8 * math.log(sp[-1] / sp[-2]), rtol=1e-3)
+    assert np.isnan(out["cr_beta"][0])  # no mid history
+    assert (out["cr_rv1h"].to_numpy()[:3] > 0).all() and np.isfinite(out["cr_r24h"].to_numpy()[:3]).all()
+    # the kline still open at the capture start never changes anything
+    kl2 = {s: {iv: v[:-1] for iv, v in d.items()} for s, d in kl.items()}
+    pd.testing.assert_frame_equal(out, A.crypto_features(f, ext, kl2, cap, H, starts))
+    # stale spot (no kline within 5 min of the capture start): the asset's spot columns are NaN
+    old = {s: {iv: [r for r in v if r[0] / 1000 < cap - 1800] for iv, v in d.items()} for s, d in kl.items()}
+    o2 = A.crypto_features(f, ext, old, cap, H, starts)
+    assert np.isnan(o2["cr_r5m"].to_numpy()[:3]).all() and o2["cr_has"][0] == 1
+
+
+def test_crypto_family_fetches_once_only_for_mapped_markets(env, monkeypatch):
+    w, paths = env
+    w.run(4)
+    build_all(paths)
+    idx = S.load_index(paths)
+    cap3 = idx[SLOT0 + 3]["capture_id"]
+    p = w.root / "snapshots" / cap3 / "rows_ext.csv.gz"
+    e = pd.read_csv(p)
+    e["series_slugs"] = np.where(e["market_id"] == 1001, '["btc-up-or-down-hourly"]', "[]")
+    e.to_csv(p, index=False, compression="gzip")
+    calls = []
+
+    def fake(symbol, interval, end_ms, limit=1000, timeout=20.0):
+        calls.append((symbol, interval, end_ms))
+        iv = A.CR_INTERVALS[interval] // 1000
+        return _klines(end_ms / 1000 + 0.001, 200, iv, lambda t: 100.0 + t * 1e-6)
+
+    def boom(*a, **k):
+        raise OSError("network down")
+
+    monkeypatch.setattr(A, "cr_fetch", boom)
+    r = A.run_aux(paths, max_items=50)
+    assert {x["family"] for x in r["errors"]} == {"crypto"} and len(r["errors"]) == 1  # only the mapped capture fetches
+    assert not A.aux_path(paths, "crypto", cap3).exists() and not A.cr_inputs_path(paths, cap3).exists()
+    assert A.aux_path(paths, "crypto", idx[SLOT0 + 2]["capture_id"]).exists()  # no series slugs: no fetch, no inputs
+    assert not A.cr_inputs_path(paths, idx[SLOT0 + 2]["capture_id"]).exists()
+    monkeypatch.setattr(A, "cr_fetch", fake)
+    A.run_aux(paths, max_items=50)
+    start = S.epoch(idx[SLOT0 + 3]["started_utc"])
+    assert sorted(calls) == [("BTCUSDT", "1m", int(math.floor(start * 1000)) - 1), ("BTCUSDT", "5m", int(math.floor(start * 1000)) - 1)]
+    doc = json.loads(gzip.decompress(A.cr_inputs_path(paths, cap3).read_bytes()))
+    assert all((r[0] + A.CR_INTERVALS[iv]) / 1000 <= start for iv, v in doc["klines"]["BTCUSDT"].items() for r in v)
+    import pyarrow.parquet as pq
+    md = json.loads(pq.read_schema(A.aux_path(paths, "crypto", cap3)).metadata[b"signal_engine"])
+    assert md["aux_version"] == "se-aux-crypto-v1" and md["cr_symbols"] == ["BTCUSDT"]
+    assert md["cr_inputs_sha256"] == S.sha256_file(A.cr_inputs_path(paths, cap3))
+    f = A.read_features(paths, cap3)
+    assert f.attrs["aux_ok"]["crypto"] and f.loc[f["market_id"] == 1001, "cr_has"].item() == 1
+    assert np.isfinite(f.loc[f["market_id"] == 1001, "cr_r5m"]).all() and (f["cr_has"].sum() == 1)
+    # write-once: nothing is fetched again
+    A.run_aux(paths, max_items=50)
+    assert len(calls) == 2
+
+
+def test_crypto_unlisted_symbol_absent_market_and_fetch_budget(env, monkeypatch, tmp_path):
+    cap = S.slot_time(SLOT0) + 2.0
+    ext = pd.DataFrame({"market_id": [1, 2], "fee_category": ["crypto", "crypto"],
+                        "series_slugs": ['["btc-up-or-down-hourly"]', '["hype-up-or-down-hourly"]']}).set_index("market_id")
+    f = pd.DataFrame({"market_id": [1, 2, 3], "end_ts": [cap + 1800.0] * 3, "ms_mid": [0.5] * 3})
+    flat = lambda t: 100.0  # noqa: E731
+    kl = {"BTCUSDT": {"1m": _klines(cap, 200, 60, flat), "5m": _klines(cap, 200, 300, flat)}, "HYPEUSDT": None}
+    out = A.crypto_features(f, ext, kl, cap)
+    assert out["cr_has"][0] == 1 and out["cr_has"][1] == 1 and np.isnan(out["cr_has"][2])  # 3 is not in the sidecar
+    assert out["cr_r5m"][0] == 0 and np.isnan(out["cr_r5m"][1])  # unlisted symbol: NaN, never filled
+    _, paths = env
+
+    def fetch(symbol, interval, end_ms, limit=1000, timeout=20.0):
+        if symbol == "HYPEUSDT":
+            raise A.CrUnavailable(symbol)
+        return _klines(end_ms / 1000 + 0.001, 50, A.CR_INTERVALS[interval] // 1000, flat)
+
+    doc, p = A.cr_load_or_fetch(paths, "capX", ["BTCUSDT", "HYPEUSDT"], cap, fetch)
+    assert doc["unavailable"] == ["HYPEUSDT"] and doc["klines"]["HYPEUSDT"] is None and len(doc["klines"]["BTCUSDT"]["1m"]) == 50
+    monkeypatch.setattr(A, "CR_FETCH_BUDGET_S", -1.0)  # over budget: raises, writes nothing
+    with pytest.raises(TimeoutError):
+        A.cr_load_or_fetch(paths, "capY", ["BTCUSDT"], cap, fetch)
+    assert not A.cr_inputs_path(paths, "capY").exists()
 
 
 def test_surprise_features_hand_example():
@@ -1141,12 +1265,24 @@ def _cli():
     return mod
 
 
+def test_cli_features_builds_every_aux_family_of_a_new_capture_in_one_run(env, capsys):
+    w, paths = env
+    w.run(3)
+    cli = _cli()
+    base = ["--engine-root", str(paths.engine), "--dumps-root", str(w.root), "--spec-dir", str(paths.spec_dir)]
+    assert cli.main(["features", "--max-items", "1", *base]) == 0
+    idx = S.load_index(paths)
+    assert len(idx) == 1
+    cid = next(iter(idx.values()))["capture_id"]
+    assert all(A.aux_path(paths, fam, cid).exists() for fam in A.AUX_FAMILIES)  # 7 > the old budget of 4
+
+
 def test_cli_exit_codes_walkforward_and_dashboard(env, capsys):
     w, paths = env
     w.run(30)
     cli = _cli()
     base = ["--engine-root", str(paths.engine), "--dumps-root", str(w.root), "--spec-dir", str(paths.spec_dir)]
-    assert cli.main(["features", "--max-items", "100", *base]) == 0  # aux budget 2 x 100 >= 30 captures x 6 families
+    assert cli.main(["features", "--max-items", "30", *base]) == 0  # aux budget 7 families x 30 captures
     assert cli.main(["features", *base]) == C.TEMPFAIL  # nothing new
     assert cli.main(["predict", *base]) == C.TEMPFAIL  # no fit yet (and captures are old)
     assert cli.main(["refit", "--force", *base]) == 0

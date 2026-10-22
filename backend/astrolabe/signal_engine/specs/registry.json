@@ -142,6 +142,13 @@
    "spec_sha256": "7530ff051f6e367b502c236c52d075b0aecb2b7f499107f97b55fadc66194b42",
    "status": "active",
    "added_utc": "2026-10-22T03:00:00Z"
+  },
+  {
+   "model_id": "se20_lgbm_crypto",
+   "file": "se20_lgbm_crypto.json",
+   "spec_sha256": "01918c4f05eb4f861e05512e549ea7de3826c66d4cc891856bebd3ea951dbf9f",
+   "status": "active",
+   "added_utc": "2026-10-22T02:34:00Z"
   }
  ]
 }
