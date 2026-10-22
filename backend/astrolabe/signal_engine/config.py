@@ -132,6 +132,10 @@ EMBARGO = (
      "why": "symmetric in-band two-sweep depth innovation behind an unmoved touch (pl_*), LT9 (CH214); round-6 request, applied 2026-10-22 ~23:30Z (no model yet); no isolating pool challenger is scored before LT8's quietbook date in any case; the later of 2027-02-14 and LT9's analysis commit"},
     {"token": "rwblink", "until": "2027-02-14T00:00:00Z", "tests": ["LT9-CH212"],
      "why": "clob_rewards omission state, run length, CLOB-feed listing / disagreement (rb_*), LT9 (CH212); round-6 request, applied 2026-10-22 ~23:30Z (no model yet); the later of 2027-02-14 and LT9's analysis commit. (rwend, CH215, gets a token only if CH215 enters at its census; no rwend family is built before then)"},
+    {"token": "dispgap", "until": "2026-11-14T00:00:00Z", "tests": ["E012", "E013", "E014"],
+     "why": "display disagreement (dg_*, CH218; DESIGN_V1 section 26): dg_1d is E012's primary x (own 24 h change) minus its pre-declared sensitivity x (Gamma oneDayPriceChange), and se22 is scored on dir_24h, E012's horizon; E013 / E014 use chg_1d / chg_1w as controls (LIVE_TESTS_2.md); the later of 11-14 and LT2's analysis commit (q0461, not before 2026-11-13T12Z); science review 2026-10-23 must-fix 2, added ~01:30Z before any dispgap table, prediction or score existed"},
+    {"token": "dormant", "until": "2026-11-19T00:00:00Z", "tests": ["E011"],
+     "why": "dormancy run lengths and the wake-up flag (dm_*, CH220; DESIGN_V1 section 26) encode the quiet prior day that E011's surprise label requires and its secondary (a) reading (quiet markets that then move); same date as surprise; CH220 asked for it; science review 2026-10-23 must-fix 1, added ~01:30Z before any dormant table, prediction or score existed"},
     # Attribution-limit entries (not family tokens: no spec isolates them and no family carries their names, so they hide
     # nothing by themselves). They record interaction attributions that must not be computed or shown before ``until``.
     # The engine's attribution is per family only (learners.family_attribution), so none of these terms is computed.

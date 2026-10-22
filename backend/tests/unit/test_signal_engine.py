@@ -934,13 +934,17 @@ def test_dormant_features_hand_example():
     # a wake-up after an unknown run: >= 6 known flat steps before the gap still counts as woke; < 6 is unknown
     W = np.full((2, n_slots), 0.5)
     W[:, -1] = 0.55
-    W[0, 2] = np.nan  # 9 known flat steps before the move, then a gap
+    W[0, 2] = np.nan  # 8 known flat steps before the move, then a gap
     W[1, -5] = np.nan  # 3 known flat steps, then a gap
     np.testing.assert_allclose(A.dormant_features(W)["dm_woke"].astype(float), [1, np.nan], atol=1e-6)
     np.testing.assert_allclose(A.dormant_features(W)["dm_flat"].astype(float), [0, 0], atol=1e-6)
-    # a mid older than the window (slot k - 13) does not enter any value
-    H2 = np.column_stack([np.full(6, 0.99), H])
-    np.testing.assert_array_equal(A.dormant_features(H2[:, 1:]).to_numpy(), a.to_numpy())
+    # only slots k - 12 .. k enter: the builder passes exactly DM_CAP + 1 columns, and the oldest one only sets the 12th step
+    H3 = H.copy()
+    H3[[0, 3], 0] = 0.9  # a move into slot k - 11 from k - 12: the 24 h runs stop at 11 instead of reaching the cap
+    np.testing.assert_allclose(A.dormant_features(H3)["dm_flat"].astype(float)[[0, 3]], [11, 11], atol=1e-6)
+    H4 = H.copy()
+    H4[5, 0] = 0.123  # row 5's run already ended by a move 7 steps back: slot k - 12 changes nothing
+    np.testing.assert_array_equal(A.dormant_features(H4).to_numpy()[5], a.to_numpy()[5])
 
 
 def test_dispgap_and_dormant_read_only_earlier_inputs(env):
@@ -1257,9 +1261,9 @@ def test_repo_registry_loads_and_embargo_assignment():
         m, base = reg["models"][mid], reg["models"][lr]
         assert m["learner"] == "lgbm" and m["params"] == se1["params"] and m["train"]["window_days"] == se1["train"]["window_days"]
         assert (m["families"], m["derived"], m["isolates"]) == (base["families"], base["derived"], base["isolates"])
-    for mid, fam in (("se22_lgbm_dispgap", "dispgap"), ("se23_lgbm_dormant", "dormant")):  # DESIGN_V1 section 26
+    for mid, fam, until in (("se22_lgbm_dispgap", "dispgap", "2026-11-14T00:00:00Z"), ("se23_lgbm_dormant", "dormant", "2026-11-19T00:00:00Z")):  # DESIGN_V1 section 26
         m = reg["models"][mid]
-        assert emb[mid] is None and m["learner"] == "lgbm" and m["params"] == se1["params"] and m["isolates"] == [fam]
+        assert emb[mid] == until and m["learner"] == "lgbm" and m["params"] == se1["params"] and m["isolates"] == [fam]
         assert m["families"] == ["market_state", "momentum", fam] and m["broad"] is False
         assert m["aux_versions"] == {fam: A.AUX_FAMILIES[fam]["version"]} and m["train"] == reg["models"]["se21_lgbm_hwm"]["train"] | {"require_sources": [fam]}
     assert all(v is None for v in ((SP.embargo_of(s, S.epoch("2027-02-14T00:00:01Z")) or {}).get("until") for s in reg["models"].values()))  # latest: book 2027-02-14 (LT9)

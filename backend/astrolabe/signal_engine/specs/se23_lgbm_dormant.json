@@ -6,7 +6,7 @@
  "derived": [
   "base"
  ],
- "description": "Learner-matched dormancy (CH220, engine-first, development only): LightGBM with se1_lgbm_mm's params on the champion's features + the dormant aux family (se-aux-dormant-v1: run of 2 h steps ending at the origin with |dmid| <= DELTA, run with no change at all, both capped at 12, and a wake-up flag after a flat run of >= 6 steps). Read against se1_lgbm_mm for the family effect (and against se15_lgbm_surprise once surprise lifts). Built from the engine's own quotes files only; trains only when every labelled capture of the window has the table.",
+ "description": "Learner-matched dormancy (CH220, engine-first, development only): LightGBM with se1_lgbm_mm's params on the champion's features + the dormant aux family (se-aux-dormant-v1: run of 2 h steps ending at the origin with |dmid| <= DELTA, run with no change at all, both capped at 12, and a wake-up flag after a flat run of >= 6 steps). Read against se1_lgbm_mm for the family effect (and against se15_lgbm_surprise once surprise lifts). Built from the engine's own quotes files only; trains only when every labelled capture of the window has the table. Embargo token dormant until 2026-11-19 (E011; the date lives in config.EMBARGO).",
  "families": [
   "market_state",
   "momentum",

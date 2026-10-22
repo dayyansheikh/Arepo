@@ -171,6 +171,8 @@ champion (market state + momentum), the learner reference and broad multi-family
 | resist, capath, deepbook, absorbed, ivr (no models) | **withdrawn 2026-10-23T00:00Z** (were 12-31) | LT7 closed at census with no test (CH191, CH192, CH193 dropped at CC7; CH195, CH197 at CS7; ledger 2026-10-22). Before that: LT7 (draft; CH195, CH191, CH194, CH197, CH193, CH192; experiments round-4 request, added 2026-10-22 ~01:00Z). Each date is the later of 12-31 and LT7's analysis commit (a later request follows if LT7 slides). `mm_fresh` is the isolated chg_1h x own 2 h set; the champion's momentum family stays usable `mm_fresh` was **withdrawn 2026-10-22T12:00Z** with CH194 (LT7 R1 response) |
 | quietbook, swclock, sched (no models yet) | 2027-01-23T00:00Z (the later of that and LT8's analysis commit) | LT8 CH203, CH202, CH204 (design text frozen c124db50; section 9 requests applied 2026-10-22 ~12:00Z, before the 12-01 deadline) |
 | bandbreak, pool, rwblink (no models yet) | 2027-02-14T00:00Z (the later of that and LT9's analysis commit) | LT9 CH213, CH214, CH212 (design text frozen 11fee7a0; LIVE_TESTS_9.md section 9 requests, round 6, applied 2026-10-22 ~23:30Z). No isolating `pool` challenger is scored before LT8's `quietbook` date in any case. `rwend` (CH215) gets a token only if CH215 enters at its census; no rwend family is built before then |
+| dispgap | 2026-11-14T00:00Z (the later of that and LT2's analysis commit, q0461) | E012 (`dg_1d` is E012's primary x minus its pre-declared Gamma `oneDayPriceChange` sensitivity; se22 is scored on `dir_24h`, E012's horizon), E013 / E014 (`chg_1d` / `chg_1w` as controls); added 2026-10-23 ~01:30Z with `se22_lgbm_dispgap` (science review must-fix 2), before any table or score existed (section 26) |
+| dormant | 2026-11-19T00:00Z (as `surprise`) | E011 (its surprise label requires a quiet prior day, and secondary (a) reads "quiet markets that then move"; `dm_*` encode that quietness); added 2026-10-23 ~01:30Z with `se23_lgbm_dormant` (science review must-fix 1; CH220 asked for it), before any table or score existed (section 26) |
 | attrlimit_lt8, attrlimit_lt9 (attribution limits, not family tokens) | 2027-01-23T00:00Z, 2027-02-14T00:00Z | LT8 and LT9 section 9: no attribution (SHAP or otherwise) of the champion, se18 / se9 or any broad model on the listed interaction terms (`limits`), and no LT8 / LT9 family in a broad model (`no_broad_families`), before the date. They match no family or spec, so they hide nothing by themselves; the engine's attribution is per family only (section 17), so none of the terms is computed. A test guards `no_broad_families` |
 
 LT3/LT4 dates are the proposed windows; when they register, move the dates **later** if needed (never earlier).
@@ -189,7 +191,8 @@ embargoes lapse: 9 at 11-04 (xvenue), 11 at 11-14 (tte), 13 at 11-16 (flow), 14 
 book0, movetype); these steps follow the declared definition and are not tuning. Update 2026-10-22 ~23:30Z: `se21_lgbm_hwm`
 adds one to every step from its first score (K 8 now), and the book step moves to 2027-02-14 (LT9; se3, se14, se19).
 Second use of withdrawal: 2026-10-23T00:00Z, LT7's five tokens and the `movetype` extension (no model changes K: se14
-also isolates `book`).
+also isolates `book`). Update 2026-10-23 ~01:30Z (section 26): `se22_lgbm_dispgap` joins at 11-14 and `se23_lgbm_dormant` at
+11-19, so from 11-14 every later step is one higher, and from 11-19 two higher.
 
 **Fit diagnostics under an embargo (science review 2026-10-21).**
 - A LightGBM fit computes its inner-split validation loss, because early stopping and temperature calibration need it.
@@ -757,7 +760,8 @@ evidence yet, development or prospective.
 is a per-market, per-capture quantity that no live test can contrast honestly, so its only honest yardstick is forecast
 quality. LT9 section 6.2 left both to the engine. Ideas only: no evidence yet, development or prospective. Each gets its
 own challenger (champion + one family, se1's learner), so the family effect is read against se1. K rises by one per
-challenger (8 -> 10 once both are scored): the conservative direction, and a small cost (Bonferroni z about 2.73 -> 2.81).
+challenger (se22 from 11-14, se23 from 11-19, when their embargoes lift): the conservative direction, and a small cost
+(Bonferroni z(1 - 0.05 / 2K) about 2.73 at K = 8 -> 2.81 at K = 10).
 - **`dispgap` (`se-aux-dispgap-v1`, `aux.dispgap_features`, CH218).** Gamma's venue-computed `oneDayPriceChange` and
   `oneWeekPriceChange` (the champion's `mo_chg_1d` / `mo_chg_1w`, what the site's mover lists rank on) against the host's
   own path at the capture clock. Where they disagree, one of them is stale or uses a different reference.
@@ -775,11 +779,14 @@ challenger (8 -> 10 once both are scored): the conservative direction, and a sma
     `prev_features_capture_id`.
   - **Departures from CH218:** no two-tick flag (`dg_abs1d` carries it, and trees split on it at any level). `dg_sign`
     is replaced by `dg_vs2h`, CH218's own money-route sign. `dg_chg` is added for the persistence question.
-  - **No embargo token.** CH218 proposed `dispgap` to the later of 12-31 and LT7's analysis commit because LT7's
-    `capath` (capture-clock step paths) was adjacent. LT7 closed at census with no test, and `capath` was withdrawn
-    2026-10-23T00:00Z. No other registered or drafted test reads the venue's 1 d / 1 w fields; LT8 CH202 (`swclock`)
-    splits the previous 2 h move by sweep receipt, a different object. The `chg_1h` field is not used (CH194's
-    untestable venue clock, and the old LT7 attribution limit).
+  - **Embargo token `dispgap` to the later of 2026-11-14T00:00Z and LT2's analysis commit (E012, E013, E014).**
+    CH218 proposed a token tied to LT7's `capath`; LT7 closed at census with no test (`capath` withdrawn 2026-10-23T00:00Z),
+    so that reason is gone. The builder's first draft said no other test reads the venue's 1 d / 1 w fields. That was
+    wrong (science review): LT2 is running, and E012 pre-declares Gamma `oneDayPriceChange` in place of its `x` (the own
+    24 h change) as a sensitivity, so `dg_1d` is exactly E012's primary `x` minus its sensitivity `x`. se22 is scored on
+    `dir_24h`, E012's horizon. E013 / E014 use `chg_1d` / `chg_1w` as controls (`LIVE_TESTS_2.md`). The contrast does not
+    isolate E012's `x · zL` term, but hiding se22 until LT2's analysis costs only about three weeks. LT8 CH202 (`swclock`)
+    is a different object. The `chg_1h` field is not used.
 - **`dormant` (`se-aux-dormant-v1`, `aux.dormant_features`, CH220).** Run lengths of the 2 h steps ending at the origin in
   which the mid did not move. Inputs: the engine's own quotes files of slots k - 12 .. k, with the origin's own quotes
   mid last (as `surprise` / `hwm`).
@@ -791,14 +798,31 @@ challenger (8 -> 10 once both are scored): the conservative direction, and a sma
     step did not move, or the run before it was known to be shorter; NaN otherwise.
   - **Departure from CH220:** the run uses the targets' DELTA rather than "one tick" (ticks vary by market, and DELTA is
     the flat class the targets score). `dm_still` keeps the any-change reading.
-  - **Embargo:** see the science review below. CH220's own text says "`surprise` to 11-19 and no new token". The builder
-    read that as "compare with se15 only after `surprise` lifts", not as a request to embargo the family: E011 tests a
-    frozen detector, not a learned direction score (the same reasoning as `hwm`, section 25).
-- **Census (counts only, no outcome; run on the host after the backfill and before the first fit).** These are the kill
-  lines from round 14.
-  - `dispgap` is killed as a family if fewer than 2% of eligible rows have |`dg_1d`| >= 2 x `ms_tick`.
-  - `dormant` is killed if `dm_flat == 12` covers fewer than 3% or more than 60% of eligible non-sports rows.
-  - A killed family's challenger is set `retired` before its first fit, with a ledger line.
+  - **Embargo token `dormant` to 2026-11-19T00:00Z (E011, the same date as `surprise`).** CH220's text asks for the
+    `surprise` embargo. The builder first read that as "compare with se15 only after `surprise` lifts", by `hwm`'s
+    reasoning. The science review overruled that: E011's surprise label requires a quiet prior day, its secondary (a)
+    reads "quiet markets that then move", and `dm_flat == 12` / `dm_woke` encode exactly that quietness, which `hwm`'s 7 d
+    range did not. The token lives in `config.EMBARGO`, so the pinned spec sha is unchanged (se23 isolates `dormant`).
+- **Census (counts only, no outcome; fixed before it runs, science review must-fixes 4-6).** These are round 14's kill
+  lines, made exact.
+  - **Frame:** every row of the family's aux tables (one row per eligible market; the tables are built on the features
+    file's rows) of the captures that started in [2026-10-16T00:00Z, 2026-10-23T00:00Z). These are 84 slots, all
+    collected before the families existed. "Non-sports" means `category != "sports"` (the features file's
+    `fee_category`), with `unknown` counted as non-sports.
+  - **`dispgap`:** killed if qualifying rows are fewer than 2% of all frame rows. A row qualifies when `dg_1d` is
+    finite, `ms_tick` is finite and > 0, and |`dg_1d`| >= 2 x `ms_tick`. Rows with a NaN `dg_1d` or a NaN or zero tick
+    count in the denominator as not qualifying. Reported for all rows and non-sports, alongside the NaN shares of
+    `dg_1d` and `ms_tick`, the median |`dg_1d`| in ticks, and the within-market share of rows whose |`dg_chg`| is under
+    one tick. The last is CH218's persistence question, reported but not a kill line.
+  - **`dormant`:** the 3% / 60% line applies to **`dm_still == 12`**. CH220 declared it on "slots since |mid change| >= 1
+    tick", i.e. no change at all for 24 h, and `dm_still` is that variable; `dm_flat` uses the wider DELTA band and
+    would move the share. Killed if `dm_still == 12` rows are fewer than 3% or more than 60% of the non-sports frame rows.
+    NaN rows count in the denominator as not dormant. The NaN share is reported, and `dm_flat == 12` is reported for
+    information only.
+  - **Order:** the census runs on the host right after the backfill (2026-10-23 ~01:45Z), before the daily refit
+    (~15:44Z) can make a first fit. If the refit ran first, a killed challenger would still be set `retired` before any
+    of its scores is computed or shown, which the embargoes already guarantee until 11-14 / 11-19. A killed family's
+    challenger is set `retired`, with a ledger line.
 - **Challengers `se22_lgbm_dispgap`, `se23_lgbm_dormant`.** LightGBM with `se1_lgbm_mm`'s parameters and se21's train
   block (`require_full_coverage`, `require_sources` = the family). One pre-declared configuration each, no development
   selection. Their first evidence is prospective.
@@ -810,6 +834,15 @@ challenger (8 -> 10 once both are scored): the conservative direction, and a sma
 - **Cost.** 8 float32 columns in total on the frames (~55 MB at the caps), two more LightGBM fits per refit (~4 min of
   the ~48 min), and two more predictions per capture. The q0512 / q0513 caps are unchanged; the peak RSS is watched at
   the 10-23 refit.
+- **Science review (2026-10-23 ~01:20Z): ACCEPT_WITH_FIXES.**
+  - No leakage: no sweep, no row received after the capture, `dg_chg` from slot k - 1 only. Section 21 does not arise,
+    and neither challenger is promotion-ineligible. There is the same availability caveat as `hwm`: a late quotes or
+    features file enters a backfilled table but would not have entered a live-built one.
+  - Fixes applied: the tokens `dormant` (11-19, E011) and `dispgap` (11-14, LT2); the false sentence above corrected;
+    the section 8 table and the K path; the census column, denominators and order; a real oldest-slot test in place of
+    a tautological one.
+  - Not verified, and noted: the reference price behind Gamma's `oneDayPriceChange` (last trade or mid; absolute
+    change). The census reports its scale against the own 24 h change.
 - Tests: `test_dispgap_features_hand_example`, `test_dormant_features_hand_example`,
   `test_dispgap_and_dormant_read_only_earlier_inputs`, and registry assertions in
-  `test_repo_registry_loads_and_embargo_assignment`.
+  `test_repo_registry_loads_and_embargo_assignment` (embargo dates).

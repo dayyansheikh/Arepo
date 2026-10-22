@@ -6,7 +6,7 @@
  "derived": [
   "base"
  ],
- "description": "Learner-matched display disagreement (CH218, engine-first, development only): LightGBM with se1_lgbm_mm's params on the champion's features + the dispgap aux family (se-aux-dispgap-v1: Gamma's displayed 1 d / 1 w change minus the host's own 24 h / 7 d mid change, its absolute value, the 1 d gap signed by the own 2 h move, and its change since the previous slot). Read against se1_lgbm_mm for the family effect. Built from the engine's own features and quotes files only; trains only when every labelled capture of the window has the table. Not embargoed (CH218's proposed token was tied to LT7, closed at census with no test).",
+ "description": "Learner-matched display disagreement (CH218, engine-first, development only): LightGBM with se1_lgbm_mm's params on the champion's features + the dispgap aux family (se-aux-dispgap-v1: Gamma's displayed 1 d / 1 w change minus the host's own 24 h / 7 d mid change, its absolute value, the 1 d gap signed by the own 2 h move, and its change since the previous slot). Read against se1_lgbm_mm for the family effect. Built from the engine's own features and quotes files only; trains only when every labelled capture of the window has the table. Embargo token dispgap until 2026-11-14 (E012 / E013 / E014, LT2; the date lives in config.EMBARGO).",
  "families": [
   "market_state",
   "momentum",
