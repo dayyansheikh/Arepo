@@ -1,0 +1,43 @@
+{
+ "id": "q0600_lt7_census_restore",
+ "title": "LT7 census inputs (DRAFT): restore, byte for byte from the arepo-data releases, only the sealed capture and sweep files that the host will no longer hold when the censuses run (captures 2026-10-18T00:31Z .. 10-21T22:31Z and sweep 1 of passes 10-19T22:31Z .. 10-21T22:31Z; 10-12 .. 10-17 are already in the LT5/LT6/LT4 restore trees), into a scratch tree; sha256 re-checked against the source seals; nothing outside --dest written",
+ "family": "live_tests_7",
+ "priority": 58,
+ "expected_value": "the sealed census inputs of CC7 and CS7 after host retention, proven identical to the source seals",
+ "data": [
+  "arepo-data GitHub releases (read-only; tags to be taken from the catalogue and each file's files.sha256 before promotion)",
+  "seals/lt5_census_inputs_captures.json (sha256 fcd88926147051cba07d2094393d350faa7244828131e52bc9ee9b15bd108752), seals/lt3_census_inputs_C2.json, seals/lt4_census_inputs_captures.json"
+ ],
+ "resources": {
+  "mem_mb": 1200,
+  "cpu": 1,
+  "lane": "net",
+  "network": "github releases (private data repo, read-only)"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/restore_from_archive.py",
+  "--tag",
+  "TO_BE_FILLED_FROM_CATALOGUE",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261018T*/rows.csv.gz",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261018T*/rows_ext.csv.gz",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261018T*/manifest.json",
+  "--path-glob",
+  "data-dumps/research_lab/book_sweeps/20261019T*/rows.csv.gz",
+  "--path-glob",
+  "data-dumps/research_lab/book_sweeps/20261019T*/manifest.json",
+  "--dest",
+  "../data-dumps/research_lab/live_tests7_census/restore"
+ ],
+ "timeout_s": 10800,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests7_census/restore/data-dumps/research_lab/{snapshots,book_sweeps}/<id>/",
+  "data-dumps/research_lab/live_tests7_census/restore/RESTORE_REPORT_<tag>.json"
+ ],
+ "next_action": "list the host read-only (~/arepo/data-dumps/research_lab) and add one --tag plus --path-glob set per release for every source-sealed file (LT5 capture seal 382 files, LT4 capture seal) that no restore tree holds and the host will lose (captures 10-18 .. 10-21 from 2026-10-26 03:30Z; sweeps 10-19 .. 10-21), check each against the release files.sha256, then q0601 writes the LT7 seal; a source-sealed file that no release holds is genuinely missing (counted per slot, never substituted)",
+ "notes": "RESTORE ONLY WHAT THE HOST NO LONGER HOLDS (LT5 census-code check / LT6 R1 item 9): the argv carries ONE example tag and the 10-18 / 10-19 globs; the real tags and globs for 10-19 .. 10-21 are TO BE FILLED from the releases' catalogue before promotion (the tag placeholder fails fast if run). If every sealed file is still whole on the host (or in the LT5/LT6/LT4 restore trees) when the censuses are due, do not promote this job. The LT5/LT6/LT4/LT3 restore trees are reused as extra roots by q0601-q0604 (no new restore for 10-12 .. 10-17 and the 23 samples). Expected up to ~600 MB (design estimate), scratch disk about 2.5-3.5 GB. mem_mb 1200 because gh aborts under the 2x address-space cap at 600 MB (q0471). Within 48 h of the LT5 seal commit, confirm that every file it names is in a release with an equal sha256 (orchestrator action). Clear the restore tree after the LT7 registration commit. DRAFT, not in queue/jobs (LIVE_TESTS_7.md text-frozen, sha256 840f4500...; code phase 1 only: the reader, analysis, size check and RSS probe are phase 2). Promote only after the science-reviewer code-freeze check of the census code and the committed seal. Counts 0 (descriptive; no trials line). Reads the DRAFT spec unpinned; code_sha256 of the hashed modules is written into the output. Every gate threshold is stated in LIVE_TESTS_7.md section 7 before this runs; nothing is re-tuned after it. Roots are repeatable (host originals first, then the q0600 restore tree and the LT6, LT5 and LT4 restore trees (and LT3's for samples), which are reused as extra roots: data-dumps/research_lab/live_tests5_census/restore (10-12, 10-13 partial), live_tests6_census/restore (10-13, 10-14), live_tests4_census/restore (10-14T22 .. 10-17 captures, sweeps 10-14..16), live_tests3_census/restore (the 23 C2 samples)). A sealed capture or sweep in a needed slot that is absent locally refuses the census; slots with no capture and nothing sealed are counted as missing, never substituted. The runner refuses (exit 2) a seal not tracked by git or differing from HEAD. Retention: the host deletes capture rows after 8 days at 03:30Z, so sealed capture rows 10-15..10-21 leave the host between 2026-10-23 and 2026-10-29 03:30Z (10-15..10-17 are also in the LT4 restore tree; 10-18..10-21 and the 10-19..10-21 sweeps are host-only until q0600 restores them): the censuses must run before then or read the restore trees. Memory-heavy-jobs rule: exclusive; never while an LT5/LT6 census or size-check job runs."
+}

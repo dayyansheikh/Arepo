@@ -1,0 +1,55 @@
+{
+ "id": "q0601_lt7_seal",
+ "title": "LT7 census seal (DRAFT): hash exactly the files the censuses open (host originals first, then the q0600 restore tree and the LT6, LT5, LT4 and LT3 restore trees), each selected only if it is named in a source seal with an equal sha256, into seals/lt7_census_inputs.json; hashes bytes only, parses no rows (sample and capture manifests read for the slot assignment), nothing at or after 2026-10-22T00:00Z",
+ "family": "live_tests_7",
+ "priority": 58,
+ "expected_value": "the LT7 input identity seal (design 7), committed before any LT7 census runs",
+ "data": [
+  "host originals ~/arepo/data-dumps/research_lab/{snapshots,book_sweeps} (read-only)",
+  "restore trees live_tests{7,6,5,4}_census/restore (snapshots, sweeps) and live_tests{3,6}_census/restore (trade_samples; read-only)"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "lane": "net",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0600_lt7_census_restore"
+ ],
+ "argv": [
+  "scripts/run_live_tests7.py",
+  "seal",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests7_census/restore/data-dumps/research_lab/snapshots",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests6_census/restore/data-dumps/research_lab/snapshots",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests5_census/restore/data-dumps/research_lab/snapshots",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests4_census/restore/data-dumps/research_lab/snapshots",
+  "--sweep-root",
+  "../data-dumps/research_lab/book_sweeps",
+  "--sweep-root",
+  "../data-dumps/research_lab/live_tests7_census/restore/data-dumps/research_lab/book_sweeps",
+  "--sweep-root",
+  "../data-dumps/research_lab/live_tests6_census/restore/data-dumps/research_lab/book_sweeps",
+  "--sample-root",
+  "../data-dumps/research_lab/live_tests3_census/restore/data-dumps/research_lab/trade_samples",
+  "--sample-root",
+  "../data-dumps/research_lab/live_tests6_census/restore/data-dumps/research_lab/trade_samples",
+  "--work",
+  "../data-dumps/research_lab/live_tests7_census/work_seal",
+  "--out",
+  "../data-dumps/research_lab/live_tests7_census/lt7_census_inputs.json"
+ ],
+ "timeout_s": 7200,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests7_census/lt7_census_inputs.json (the orchestrator copies it to docs/research_lab/seals/ and commits it)"
+ ],
+ "next_action": "orchestrator copies the output to docs/research_lab/seals/lt7_census_inputs.json, commits it and pulls it on the host; the censuses refuse a seal not tracked by git or differing from HEAD. The seal needs spec census_inputs.source_seals.lt5_capture_seal_sha256 = fcd88926147051cba07d2094393d350faa7244828131e52bc9ee9b15bd108752 (set in the DRAFT spec) and refuses otherwise",
+ "notes": "The seal lists exactly the files the censuses open: CC7 (captures k - 12 .. k of every origin, k - 84 .. k for CH192, the lag-only slots k + 2, k + 3), CS7 (sweeps k - 1, k and the pass pairs j, j + 13; captures k - 12, k - 1, k and j - 1, j, j + 13), CV7 (the 23 samples' features, manifest and trades files and their captures k - 1, k); it records the seal's own slot assignment, the genuinely missing slots per census and every not-selected file. A file named in two source seals with different hashes, or a hash mismatch, refuses the seal. DRAFT, not in queue/jobs (LIVE_TESTS_7.md text-frozen, sha256 840f4500...; code phase 1 only: the reader, analysis, size check and RSS probe are phase 2). Promote only after the science-reviewer code-freeze check of the census code and the committed seal. Counts 0 (descriptive; no trials line). Reads the DRAFT spec unpinned; code_sha256 of the hashed modules is written into the output. Every gate threshold is stated in LIVE_TESTS_7.md section 7 before this runs; nothing is re-tuned after it. Roots are repeatable (host originals first, then the q0600 restore tree and the LT6, LT5 and LT4 restore trees (and LT3's for samples), which are reused as extra roots: data-dumps/research_lab/live_tests5_census/restore (10-12, 10-13 partial), live_tests6_census/restore (10-13, 10-14), live_tests4_census/restore (10-14T22 .. 10-17 captures, sweeps 10-14..16), live_tests3_census/restore (the 23 C2 samples)). A sealed capture or sweep in a needed slot that is absent locally refuses the census; slots with no capture and nothing sealed are counted as missing, never substituted. The runner refuses (exit 2) a seal not tracked by git or differing from HEAD. Retention: the host deletes capture rows after 8 days at 03:30Z, so sealed capture rows 10-15..10-21 leave the host between 2026-10-23 and 2026-10-29 03:30Z (10-15..10-17 are also in the LT4 restore tree; 10-18..10-21 and the 10-19..10-21 sweeps are host-only until q0600 restores them): the censuses must run before then or read the restore trees. Memory-heavy-jobs rule: exclusive; never while an LT5/LT6 census or size-check job runs."
+}
