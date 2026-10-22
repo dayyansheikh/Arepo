@@ -3441,3 +3441,13 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   bounds, coverage, secondaries, economics, Thanksgiving). Open: the implementer added two label thresholds (sweep-missing
   2%, attrition 2 pp) and four interpretations (section 16); D's placebo P1 not computable from frozen lines; B's S2 not
   computed. **Re-check (science-reviewer) running before any LT6 census.** Nothing counted.
+
+## Seals at T_seal and LT5 census start, 2026-10-22 ~00:15-00:25Z (experiments autopilot; nothing counted)
+- **LT5 capture-census seal:** q0564 done 23:22Z (382 files, 135 slots 2026-10-12T00:31Z..10-21T22:31Z, 8 genuinely
+  missing slots recorded, not imputed). Byte copy committed as `seals/lt5_census_inputs_captures.json`
+  (sha256 `fcd88926…8752`, equal to the host). **q0561 promoted** (priority 25 -> 60, exclusive; argv and gates
+  unchanged) so it starts before the 02:45Z blackout and reads captures before the 03:30Z retention run. Counts only.
+- **h7 (CB4) seals:** q0083b recorded both runs `complete` (00:06Z); q0083 sealed `h7_cb4_era` (6,286 files) and
+  `h7_cb4_series` (7,699 files; D_split4 2026-06-27; universe 1,904, screen 1,118, holdout 755, embargo 31, 18 dropped
+  for era overlap) at 00:08Z. Seal copies committed byte-identical to the host (`f2fddb67…`, `e9e3b627…`).
+  **q0121 (h8_tail seal) promoted.** q0144/q0145 stay drafts until q0121's own seal copy is committed (their notes).
