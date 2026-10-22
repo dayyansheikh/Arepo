@@ -62,3 +62,15 @@ census only through the lag-slot loaders (`:204-224`); no target or outcome is r
 
 **Not verified:** real `clob_rewards` / `rewards_max_spread` null rates; Gamma `spread` vs ask − bid; whether each trade
 sample was fetched at or after t_k; peak memory; release coverage for q0600.
+
+## Verification of the fixes (science-reviewer, 2026-10-22 ~05:40Z): FIXES_OK_WITH_NOTES
+Diff 4fb06335..17da4254; 116 LT7 tests pass, ruff clean; `LIVE_TESTS_7.md` still hashes to 840f4500… and is untouched; no
+`census_gates` threshold changed (spec edits: `crypto_rule.note` and `mde_common.rule` wording only); no census reads a
+target or outcome. All four must-fix and all should-fix items verified as implemented. **Remaining must-fix: none.**
+Notes, applied by the orchestrator in 699b9ee9: (1) CH192 `_larger_abs_corr` / `_larger_pos_corr` now return NaN (fail)
+unless both origin definitions are finite (test added); (3) the 02:45-05:30Z start blackout and the 03:30Z retention
+run are stated in q0600 / q0602 (q0604 must finish before 03:30Z of the deadline day; q0602 promoted by hand only after
+reading q0601b's `common`); (4) the stale q0604 retention note removed; (5) q0601b `as_cap_mb` 2000. Notes 2, 6 and 7
+need no change (ordering consistent; q0601 lane harmless; the null-share screen's denominator is wider than the
+eligible units, and the census counts are the binding ones). Not verified: release coverage for q0600, host retention
+dates, real null rates, peak memory.
