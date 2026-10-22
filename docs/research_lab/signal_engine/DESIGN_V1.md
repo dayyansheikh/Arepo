@@ -684,7 +684,7 @@ section 18; read against se1). `require_full_coverage` and `require_sources: ["c
   and se18 / se19 had not predicted, so no prediction was affected). The budget is now `len(AUX_FAMILIES) x max_items`
   (newest capture first), so every family of a new capture is built before its predictions in the same tick.
 
-## 24. Market-price reference for `res_7d` (2026-10-22 ~21:30Z)
+## 24. Market-price reference for `res_7d` (2026-10-22 ~21:00Z)
 
 **Why.** AREPO's question is whether information beyond the market price predicts outcomes. On the resolution target
 the obvious forecast is the price itself, and until now no leaderboard row said whether the champion (or any model)
