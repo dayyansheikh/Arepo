@@ -3845,3 +3845,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **Disclosed:** CH212's census agreement table (carry against feed) will be seen before `T_LT7`. It is descriptive and changes
   no LT7 control.
 - **Next:** R1 re-check (`science-reviewer`) of the revised text and the response.
+
+## LT9 re-check ACCEPT_WITH_FIXES and fixes 1-6, 2026-10-22; nothing counted
+- **Re-check** (`reviews/LT9_R1_RECHECK_2026-10-22.md`): ACCEPT_WITH_FIXES; fixes 1-6 made as worded (addendum in `reviews/LT9_R1_RESPONSE_2026-10-22.md`), no gate or threshold changed.
+- `LIVE_TESTS_9.md` sha256 `bbfeb62add0e24860947e9413025cece5bdfbd4f8ebbe46b27974b8b29a354e1` -> `098aa3fb5f6765f08dcad3f85ad63ec70e29df65249413608f0f7ad5fd505b77` (still DRAFT; freeze commit separate).

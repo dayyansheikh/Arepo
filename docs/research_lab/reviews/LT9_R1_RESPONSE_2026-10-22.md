@@ -86,3 +86,25 @@ agreement table is seen before `T_LT7` (10, answer 11.2); sections 11 and 12 are
 7. **CH212's decision time** moves to capture k's last row receipt, like CH213's. The reason is `n_members`. R1 named only
    CH213.
 8. **CH215's control-reuse rule** (ban across overlapping spans, clustering for the rest) and the `end_moved` gate at 20%.
+
+## Addendum: re-check fixes 1-6
+
+**Re-check:** `reviews/LT9_R1_RECHECK_2026-10-22.md` (ACCEPT_WITH_FIXES; commit 2414b6bb). **Text before:** sha256
+`bbfeb62add0e24860947e9413025cece5bdfbd4f8ebbe46b27974b8b29a354e1`. **Text after:** sha256
+**`098aa3fb5f6765f08dcad3f85ad63ec70e29df65249413608f0f7ad5fd505b77`** (still DRAFT, not frozen; the freeze commit is
+separate). Only the lines below changed. No gate, threshold, floor or planning value was changed; fix 2's planning
+arithmetic and fix 5's gates are unchanged. Each edit carries the tag "re-check fix N" in the text. Nothing read from data;
+nothing counted.
+
+| # | Re-check requirement | What changed | Where (sections) |
+|---|---|---|---|
+| 1 | CH215 controls assigned in decision-time order over already-decided ends only | The reuse ban now assigns greedily in decision-time order (receipt of each end's decision feed capture, ties by `condition_id`); each end considers only ends already decided and takes its nearest candidates unused by them. The 8.3 test list adds a planted later-decided earlier-`T_e` end that leaves the earlier-decided end's controls unchanged | 5 (which ends, control reuse); 8.3 (CH215) |
+| 2 | `zdD± = max/min(0, dD) / scale_census`; same for the lag twin and worlds 5-8 and 13; centred `zdD` only for S2 and the gates | Every live definition of the split is now at zero change of `dD` (and `dD_lag`), divided by the census scale and not centred; the centred `zdD` is stated to be used only for S2 and the census gates. Planning arithmetic (3, 10.1) unchanged; the 6.4 R1 history line left as written | 0 (CH214 row and summary), 1.8.1 (worlds 5-8, 13), 1.9 (CH214 twin), 3 (direction, state, falsification), 8.3 (CH214 split test), 13 (draft ledger CH214 line) |
+| 3 | Exact instant for route A's slot k + 2 start; feed `end_date` parse rule; route A earliest consistent instant; CH215 `T_e` instant plus sensitivity; CC9 and CR9 print date-only and sentinel shares | New parse rule in 1.2 (offset timestamp; no-offset read as UTC; date-only `D` covers `[D 00:00Z, D + 1 00:00Z)`, `end_date_only`; absent/null/empty open-ended; year >= 2100 sentinel, open-ended, `end_sentinel`; other values incl. before 2020-01-01 malformed). Route A: slot k + 2's start is the nominal `grid0 + 2 h x (k + 2)`; each end at its earliest consistent instant; sentinel ends qualify as open-ended. CH215: `T_e = D 00:00Z` for date-only ends; open-ended, sentinel and malformed ends give no unit; reported sensitivity at `D + 1 00:00Z` (unit set unchanged) and a refit without date-only ends. CC9 (CH212) and CR9 print the date-only and sentinel shares. 8.3 tests for both readers | 1.2 (feed), 4 (route A), 5 (unit), 7 (descriptive prints, CH212 and CR9), 8.3 (CH212, CH215) |
+| 4 | CH214's *material* label: name the scale, report the census `zdD+` gap beside it; the 1.0c power run states the scale | The label now reads per change of `zdD+` equal to the census tercile gap of the centred `zdD` (planning 2.2), stated to be a declared scale and not a `zdD+` tercile contrast (about 2x easier to earn), with the census `zdD+` gap between `zdD`'s top and bottom terciles reported beside it (planning about 1.09). The power run line states CH214's 1.0c is on that scale and its output states it | 1.8 (power run), 1.9 (labels) |
+| 5 | Correct the reason for the 0.95 in-band share; sensitivity at 0.80 | Reason corrected: "half-spread < v at both sweeps" is the complement of the level state s >= 2v, not the 1-3% crossing rate. Sensitivity added: at 0.80 the slope MDE is 0.61c and the F-MDE 0.86c (r 0) to 1.02c (r 0.3), failing the 1.0c F gate at r = 0.3. Text only; no gate change | 3 (planning MDE (i)), 10.1 (CH214 row) |
+| 6 | Three definitions: first-unit filters; `relpos_k`'s earlier units; control-cell median rows | (a) The first unit passes every filter of the paragraph including the band filter of its status at that origin (`band_changed` if rewarded, `ctrl_band_uncovered` if not), so it is itself a unit. (b) `relpos_k`'s strictly earlier units are the market's CH213 units only; `panel_switched`, `band_changed`, `ctrl_band_uncovered` and other excluded origins never enter. (c) The cell median and its >= 20 count use every carry-rewarded (`rewarded_k = 1`) non-sports ex-crypto row of capture k eligible under 1.4 at k with a finite `v`, regardless of `panel_m` and the other unit filters | 2 (unit and population, control band; state, `relpos_k`) |
+
+**Optional world-3b rule (ruling 5) not applied.** Setting the per-panel q to the larger of the declared values and the
+census medians of s/2v would add a census-fixed value to section 7's list and change 1.8.1 and 10.1, so it is not a one-line
+change; world 3b stays as declared.

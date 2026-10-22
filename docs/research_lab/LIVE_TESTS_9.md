@@ -39,7 +39,7 @@ design change from the round's sketches is listed with its reason in 6.1; all we
 | Handle | Idea | Hypothesis (direction) | Population | Primary | Planning MDE (DE 31, multiplier 3.47): low / high; at a quarter of the low count; F-MDE | Floor |
 |---|---|---|---|---|---|---|
 | **CH213** | the band break | Within market, the Gamma spread change over (k, k + 1] after a **strict break** (`s_{k-1} < 2v <= s_k`: no displayed touch scores) is more negative on the reward panel than after the same crossing on the control panel, where the band is assigned by a declared cell rule (one-sided, sign-adjusted > 0) | non-sports ex-crypto eligible markets, mid in [0.10, 0.90], events <= 10 members: reward panel (`rewarded = 1` under `listed_carry24h_v2` **at the market's first unit**) plus control panel (`rewarded = 0` at the first unit); later units of the opposite status excluded (`panel_switched`) | expanding-past demeaned OLS of `ds = s_{k+1} - s_k` on `break x rewarded` with `break` and its liquidity, tick, level and **relative-position** interactions as controls; **block Freedman-Lane gate**; **far-future F binding** | interaction **1.50c / 0.67c** (DE 51: 1.93c / 0.87c); quarter 3.01c; **F 2.24c / 1.005c (binding; census gate F-MDE <= 1.0c fails at both planning ends)**; the MDE gate passes 1.0c with >= about 68 counted strict reward-panel breaks a capture, **the F-MDE gate only with >= about 154** (and as many control breaks) | 1.0c (spread) |
-| **CH214** | the pool splits | Within market, the CLOB spread change from sweep 1 of pass k to sweep 1 of pass k + 1 falls with the **arrival side of the symmetric in-band depth innovation** (`max(0, zdD)`) between the sweeps of passes k - 2 and k - 1 behind an unmoved touch, the departure side (`min(0, zdD)`) and the depth level held fixed (one-sided, sign-adjusted > 0) | reward-panel (`listed_carry24h_v2`) non-sports ex-crypto books, mid in [0.10, 0.90], events <= 10 members, quiet touch, half-spread < v at both state sweeps, unchanged band | expanding-past demeaned OLS of `dsw = sws_{k+1} - sws_k` on `max(0, zdD)` with `min(0, zdD)`, `log D_{k-1}` and `z dimb5` controls; **block Freedman-Lane gate**; **far-future innovation F binding** | slope **0.56c / 0.38c** (DE 51: 0.71c / 0.49c); quarter 1.11c (fails 1.0c); F 0.79c (r 0) to 0.94c (r 0.3) / 0.54-0.65c | 1.0c (spread) |
+| **CH214** | the pool splits | Within market, the CLOB spread change from sweep 1 of pass k to sweep 1 of pass k + 1 falls with the **arrival side of the symmetric in-band depth innovation** (`zdD+ = max(0, dD) / scale_census`) between the sweeps of passes k - 2 and k - 1 behind an unmoved touch, the departure side (`zdD- = min(0, dD) / scale_census`) and the depth level held fixed (one-sided, sign-adjusted > 0) | reward-panel (`listed_carry24h_v2`) non-sports ex-crypto books, mid in [0.10, 0.90], events <= 10 members, quiet touch, half-spread < v at both state sweeps, unchanged band | expanding-past demeaned OLS of `dsw = sws_{k+1} - sws_k` on `zdD+` with `zdD-`, `log D_{k-1}` and `z dimb5` controls; **block Freedman-Lane gate**; **far-future innovation F binding** | slope **0.56c / 0.38c** (DE 51: 0.71c / 0.49c); quarter 1.11c (fails 1.0c); F 0.79c (r 0) to 0.94c (r 0.3) / 0.54-0.65c | 1.0c (spread) |
 | **CH212** | the display's omission | Within market, on reward-panel rows the CLOB feed confirms (with the feed-listed programme end after capture k + 1), the next Gamma |mid move| over (k, k + 1] is larger when Gamma served row k **without** `clob_rewards` (a carried unit: carry lag >= 1) than when it served the field (route A, one-sided > 0); route B (real churn) as declared, chosen by counts | non-sports ex-crypto eligible reward-panel markets (`listed_carry24h_v2`), mid in [0.05, 0.95], events <= 10 members | expanding-past demeaned OLS of `a = |mid_{k+1} - mid_k|` on `om_k` with 11 slot-of-day dummies and activity controls; **block Freedman-Lane gate**; the route fixed by the census's declared count rule | route A **0.58c / 0.35c** (DE 51: 0.75c / 0.45c); quarter 1.17c; F 0.87c / 0.53c (**a reported label, fixed now**); passes 0.5c only with **>= about 240 route-A omitted units a capture**; route B 0.61c / 0.30c (floor 1.0c) | 0.5c (A), 1.0c (B) |
 | *CH215 (optional)* | the scheduled end | The Gamma spread over the 24 h before a CLOB programme's scheduled end, known >= 48 h ahead and > 48 h before the market's own end, widens against the 24-48 h before it, net of matched controls (one-sided > 0) | programme ends on non-sports ex-crypto markets | event-clustered mean of treated-minus-control before-after differences; sign-flip gate by event | 2.23c (n_eff 170) / 0.92c (n_eff 1,000); F reported; passes 1.0c only with **>= about 51 qualifying ends a day** | 1.0c |
 
@@ -62,7 +62,7 @@ design change from the round's sketches is listed with its reason in 6.1; all we
   expected to die at census**; it survives only if the strict-break rate, the panel or the panel retention is above the high
   planning end, or the census `r_gate` is below the planning 0.1. Census **0.15**; valid verdict **about 0.05**. **CH214** has
   power at the low end after R1 fix 9 (0.56c; F 0.79-0.94c) but not at a quarter of it (1.11c); its risks are the
-  static-farmer identification gate, its `VIF_w` gate (planning 1.92 against 2.0 once `min(0, zdD)` is a control) and the
+  static-farmer identification gate, its `VIF_w` gate (planning 1.92 against 2.0 once `zdD-` is a control) and the
   binding fill-leak world 8. Census **0.30**; valid verdict **about 0.08**. **CH212** is decided by its route rule from counts;
   the challenger's own reading (field-level flakiness) predicts "neither", which drops it; its route-A MDE fails the 0.5c floor
   at the low planning end (0.58c); if it survives, its binding activity-leak world 11 may fail. Census **0.30**; valid verdict
@@ -202,7 +202,13 @@ Round 14's design rules (`CREATIVE_HYPOTHESES_2026-10-28.md` 0.2) map onto LT9 a
   start**, i.e. the latest usable feed capture whose manifest finish time is earlier than capture j's manifest start time
   (j = k for CH213 and CH212, j = k - 1 for CH214; `clob_dropped_k` compares the captures so defined for j = k - 1 and j = k).
   This flag is always earlier than the unit's decision time (1.3). CH215's decision is a feed capture itself (1.3). Field
-  names are confirmed by the header pre-check (7); a missing field makes the dependent quantity NaN.
+  names are confirmed by the header pre-check (7); a missing field makes the dependent quantity NaN. **Feed end-date parse
+  rule (re-check fix 3; one rule for CH212 and CH215):** a configuration's end date is parsed as served: a timestamp with
+  an offset is that instant in UTC; a timestamp without an offset is read as UTC; a **date-only** value `YYYY-MM-DD` covers
+  `[D 00:00Z, D + 1 00:00Z)` (counted `end_date_only`); an absent, null or empty value is no end date (open-ended); a value
+  with year >= 2100 is a **sentinel** for no end (open-ended, counted `end_sentinel`); any other value, including one
+  before 2020-01-01, is malformed (NaN). Each reader then takes an instant from the parsed value by its own declared rule
+  (CH212 route A, section 4; CH215's `T_e`, section 5).
 - **Not read:** trade samples, the live large-trade monitor, `cross_venue_live/`, `surprise_live/`, the stores
   `live_tests2/` .. `live_tests8/`, CB8-H holders, the CB16-CB18, E025 and E026 stores, the keyless streams (PredictIt,
   Smarkets, ESPN odds, `gamma_rules`), the signal engine's `quotes/`, `features/`, `aux/` (including `book0`) and
@@ -371,7 +377,8 @@ such a commit carries the label unless the reviewer records that it is independe
   **Verdict size** (13, 14) = the share of worlds in which the test's analytic one-sided p (1.7) is < 0.05 **and** its F (1.9)
   holds; the gate is omitted, which can only raise the rate. Criterion: <= 0.058.
 - **Also reported, never binding:** a planted-effect power run per test (500 worlds each, effect 1.0c for CH213, CH214 and
-  CH215, 0.5c for CH212, per SD or between classes; seeds `20261197 x 100 + 41, 42, 43, 44` for CH213, CH214, CH212, CH215);
+  CH215, 0.5c for CH212, per SD or between classes; CH214's 1.0c is per change of `zdD+` equal to the census `zdD` tercile
+  gap, the *material* scale of 1.9, and the run's output states that scale (re-check fix 4); seeds `20261197 x 100 + 41, 42, 43, 44` for CH213, CH214, CH212, CH215);
   scenario 4r's rate; CH212's far-future label rate (its F is a label, 1.9).
 - **Leak worlds (3, 3b, 4, 4c, 8, 11).** In these the confounder reaches the model only through an imperfect control, so the tested
   term carries a real but mechanical partial effect. They are binding: a rejection rate above 0.058 means the design cannot
@@ -416,8 +423,9 @@ unless stated; 10% of markets carry a 0.1c tick (`1[tick = 0.001]`).
   0.5 around a market level `N(0, 0.5)`; state `dD_t = log D_{t-1} - log D_{t-2}`; control `log D_{t-1}` with a real effect
   of **-0.3c per unit** on the target; target `dsw_t = sws_{t+1} - sws_t` with `sws` a reflected AR(0.8) spread (SD 2c) plus
   the level effect; no effect of `dD`. **Every CH214 world (5-8, 13) fits the primary model of section 3:** tested term
-  `max(0, zdD)`, with `min(0, zdD)` among the controls (`zdD` standardised by the world's pooled centre and scale, the
-  census convention); world 13's arm model adds `max(0, zdD_lag)` (the twin) and `min(0, zdD_lag)` (a control).
+  `zdD+ = max(0, dD) / scale`, with `zdD- = min(0, dD) / scale` among the controls (re-check fix 2: split at zero change,
+  `scale` the world's pooled scale, the census convention; the centred `zdD` only for S2 and the gates); world 13's arm model
+  adds `zdD_lag+ = max(0, dD_lag) / scale` (the twin) and `zdD_lag- = min(0, dD_lag) / scale` (a control).
 - **7 (S18):** world 5 with posted sizes constant within market: `dD_t ~ N(0, 0.02^2)` iid (measurement noise only), the
   spread independent of it.
 - **8 (fill leak, CH214):** world 5 plus, per pass with probability 0.2, a taker fill of size `u = |N(0, 1)|` on a random side
@@ -456,8 +464,8 @@ unless stated; 10% of markets carry a 0.1c tick (`1[tick = 0.001]`).
   (both states are rolling: CH213's label at k + 1 is built from origin k's target, 1.7; CH214's depth level persists), each
   with a census gate F-MDE <= 1.0c (section 7); **CH212's F is a reported label** (*far-future not excluded*), never a verdict
   condition; CH215 has no F verdict condition (a reported placebo end). There is no `f_binding` spec key. Twins: CH213 the
-  strict break of (k + 4, k + 5] and its reward interaction; CH214 `max(0, zdD_lag)`, the arrival side of the innovation
-  between sweeps of passes k + 2 and k + 3 (sizes only), with `min(0, zdD_lag)` as a control in the arm model; CH212
+  strict break of (k + 4, k + 5] and its reward interaction; CH214 `zdD_lag+ = max(0, dD_lag) / scale_census`, the arrival side of the
+  innovation between sweeps of passes k + 2 and k + 3 (sizes only), with `zdD_lag-` as a control in the arm model; CH212
   `om_{k+4}`.
 - **Supported (exploratory, prospective):** Holm-adjusted one-sided p < 0.05, estimate in the predicted direction, gate
   passed, **and F holds (CH213, CH214).** If everything else holds and a binding F fails or is unavailable: **Inconclusive**
@@ -466,8 +474,11 @@ unless stated; 10% of markets carry a 0.1c tick (`1[tick = 0.001]`).
   **Unavailable:** fewer than 20,000 units, fewer than 300 events, or fewer than 10 UTC days with units; CH213 also fewer than
   2,000 reward-panel breaks or 2,000 control breaks; CH212 fewer than 2,000 omitted units; CH215 fewer than 200 ends or 100
   events.
-- **Labels (never change a verdict):** *material* (the sign-adjusted estimate >= the floor: CH213 and CH214 per tercile or
-  class contrast >= 1.0c, CH212 route A >= 0.5c, route B >= 1.0c, CH215 >= 1.0c); *ordinary reversion* (CH213: the main
+- **Labels (never change a verdict):** *material* (the sign-adjusted estimate >= the floor: CH213 per class contrast >=
+  1.0c; CH214 >= 1.0c per change of `zdD+` equal to the census tercile gap of the centred `zdD` (planning 2.2 units of
+  `scale_census`; re-check fix 4: this is a declared scale, not a `zdD+` tercile contrast, and the label is about 2x easier
+  to earn at it than at the real `zdD+` contrast), with the census `zdD+` gap between `zdD`'s top and bottom terciles reported beside it (planning about 1.09); CH212
+  route A >= 0.5c, route B >= 1.0c, CH215 >= 1.0c); *ordinary reversion* (CH213: the main
   effect Supported-level but the interaction not); *capture-quote specific* (CH213: Supported and the sweep reading M1 below
   50% of the primary or p >= 0.05); *omission-driven* (CH213: Supported and the refit on units listed at k below 50% or p >=
   0.05); *not the stale path* (CH212 route A: Supported and the origin-gap reading M1 below 50% or p >= 0.05); *far-future
@@ -555,7 +566,9 @@ is switched off when its test is not in `k_tests`.
 - **Unit and population.** Non-sports ex-crypto eligible market x capture k (1.4 at k - 1 and k), mid in [0.10, 0.90],
   `n_members <= 10`, end > `t` + 7 h, sidecar rows present at k - 1 and k with a finite reward status. **A market's panel is
   its status at its first unit (R1 fix 2):** `panel_m = rewarded_k` at the market's first unit in the window (the first
-  origin at which it passes every other filter of this paragraph); every later unit of the market whose `rewarded_k` differs
+  origin at which it passes every other filter of this paragraph, **including the band filter of the status it holds at
+  that origin: `band_changed` if `rewarded_k = 1`, `ctrl_band_uncovered` if `rewarded_k = 0`**, re-check fix 6, so the first
+  unit is itself a unit); every later unit of the market whose `rewarded_k` differs
   from `panel_m` is excluded and counted `panel_switched` (a programme that ends or starts, or an omission run longer than
   the 12-slot carry window under 13.7); the market stays in its panel and its later units of the panel's status remain
   units. `rew` is therefore constant within a market. **Reward panel:** `panel_m = 1` and `rewarded_k = 1` (1.4.1), with `v` =
@@ -564,13 +577,18 @@ is switched off when its test is not in `k_tests`.
   panel:** `panel_m = 0` and `rewarded_k = 0`, with an **assigned band** `v_ctrl(k)` = the median `v` of the reward-panel units of capture k in
   the same cell (sidecar `fee_category` after strip and casefold, liquidity tier `< $1k`, `$1k-10k`, `$10k-100k`, `>= $100k`
   from capture k's `liquidity`, and tick `0.01` or `0.001`) if that cell holds >= 20 reward-panel units, else the median of
-  the (tier, tick) cell if it holds >= 20, else the unit is uncovered (counted `ctrl_band_uncovered`). The assignment uses
+  the (tier, tick) cell if it holds >= 20, else the unit is uncovered (counted `ctrl_band_uncovered`). **The cell's
+  reward rows (re-check fix 6)** for both the median and the >= 20 count are every carry-rewarded (`rewarded_k = 1`, 1.4.1)
+  non-sports ex-crypto row of capture k eligible under 1.4 at capture k with a finite `v`, regardless of `panel_m` and of
+  the other unit filters (`n_members`, end, `band_changed`, `panel_switched`). The assignment uses
   capture k only (causal, deterministic). Boundary: first origin 2027-01-21T02:31Z (1.1).
 - **State (frozen; decision time = capture k's last row receipt, 1.3).** `s_j = ask_j - bid_j` (Gamma, price units);
   **`break_k = 1[s_{k-1} < 2 v_price and s_k >= 2 v_price]`** (the strict crossing: no displayed touch scores at k and both
   did at k - 1 within the band's outer edge); `rew` the market's panel flag (`panel_m`); `om_k` (1.4.1; 0 on the control
   panel); `x_k = s_k / (2 v_price)`; **`relpos_k = log s_k - mean(log s_j over the market's strictly earlier units)`** (the
-  break's height above the market's own normal spread; NaN at the first unit, which the demeaning drops anyway). Also frozen
+  break's height above the market's own normal spread; NaN at the first unit, which the demeaning drops anyway; re-check
+  fix 6: "units" are the market's CH213 units only, origins that passed every filter of this paragraph, so `panel_switched`,
+  `band_changed`, `ctrl_band_uncovered` and every other excluded origin never enter the mean). Also frozen
   (secondaries): the LT7-style crossing `inb_flip = 1[s_{k-1} <= v_price < s_k]`, the one-sided widening flag (only one of
   `bid`, `ask` changed between k - 1 and k, E015's anatomy in spread form), the carry lag, the source's rate, the CLOB feed's
   listing and band at the last usable feed capture before k (sensitivities only).
@@ -639,7 +657,7 @@ is switched off when its test is not in `k_tests`.
   `(v - s_q)` for the same size): arrivals of in-band depth compress the spread. The Telonex case (depth 23x and makers 302 to
   639 after a programme start, as `MAKER_REWARDS_STUDY.md` and round 13 quote it) is the extreme form; CH206 reads the start,
   CH201 the yield level, CH209 the farmer's touch as a flag. **Direction: within market, the slope of `dsw` on the arrival
-  side `max(0, zdD)` < 0 (sign-adjusted > 0), the departure side `min(0, zdD)`, the depth level and the asymmetric innovation
+  side `zdD+` < 0 (sign-adjusted > 0), the departure side `zdD-`, the depth level and the asymmetric innovation
   held fixed** (R1 fix 9: fills only cause departures, so the hypothesis is tested where arrivals happen and the departure
   side is a control). Who would be wrong: the static-farmer reading (sizes never move; world 7 and the identification gate),
   the level reading (a persistent depth level whose innovation is noise; worlds 5-6), the fill reading (a taker fill thins
@@ -658,7 +676,9 @@ is switched off when its test is not in `k_tests`.
   pass j if `v <= 1.5c`, else `depth_bid_5c + depth_ask_5c` (a declared proxy: the band is measured from the midpoint, the
   stored sums from the touch; fixed now, before any count; the census prints both); **`dD = log D_{k-1} - log D_{k-2}`**; `zdD`
   with the census centre and scale (pooled, fixed in the spec; LT8 6.1 item 3's convention); **the tested term `zdD+ =
-  max(0, zdD)`** and the control `zdD- = min(0, zdD)` (the split at zero of the census-standardised value). Also frozen: the per-side splits
+  max(0, dD) / scale_census`** and the control `zdD- = min(0, dD) / scale_census` (re-check fix 2: the split at zero change
+  of `dD`, scaled by the census scale and not centred, so a census centre below 0 cannot move small departures into the
+  arrival term; the centred `zdD` is used only for S2 and the census gates). Also frozen: the per-side splits
   `dDb`, `dDa`; `dlev` (whole-book level counts, as LT8's); `dgrain` (band sum per level); `dimb5` exactly as LT8 CH203
   defines it (a control here); `lag_s` = capture k's start minus sweep k - 1's receipt; `yield0 = rate / (D_{k-1} x
   mid-weighted price)` (economics only).
@@ -676,8 +696,8 @@ is switched off when its test is not in `k_tests`.
 - **Falsification (binding, F).** `dD_lag = log D_{k+3} - log D_{k+2}` (sweep 1 of passes k + 2 and k + 3, band sums only,
   through the lag-slot loader; no quiet condition, LT8 13.3's Q3 ruling). Placement: the lead innovation ends one pass before
   the target's first sweep (k - 1 to k); the lag starts one pass after the target's last sweep (k + 1 to k + 2): the mirror
-  image. Arm model = primary + `zdD_lag+ = max(0, zdD_lag)` (the twin) + `zdD_lag- = min(0, zdD_lag)` (a control), same
-  centre and scale; `Δ = beta(zdD+) - beta(zdD_lag+)`. F-arm units need end > `t` + 9 h (1.4). World 13 is CH214's
+  image. Arm model = primary + `zdD_lag+ = max(0, dD_lag) / scale_census` (the twin) + `zdD_lag- = min(0, dD_lag) /
+  scale_census` (a control), the same scale and split at zero change (re-check fix 2); `Δ = beta(zdD+) - beta(zdD_lag+)`. F-arm units need end > `t` + 9 h (1.4). World 13 is CH214's
   verdict-size statement.
 - **Mechanism readings.** M1, M2; the silent arm (units with `dvnum` observed and zero: a depth change with no traded
   volume); the agreeing-units refit (*CLOB-disagreement sensitive*).
@@ -691,7 +711,10 @@ is switched off when its test is not in `k_tests`.
   0.95 x target sweeps two-sided 0.90 = 1,544 / 3,242 units a capture (draft); the draft's slope on `zdD` (`VIF_w` 1.5,
   tercile gap 2.2): `3.47 x 2c / sqrt(n_eff) x sqrt(31) x 1.5 x sqrt(1.5) x 2.2` = 0.28c / 0.19c.
   **Recomputed at R1 (fix 9 and the in-band should-fix).** (i) Units: x in-band touch at both state sweeps **0.95** (a
-  declared convention: strict breaks are planned at 1-3% a capture) = **1,467 / 3,081 units a capture**; effective 80% over
+  declared convention; re-check fix 5: "half-spread < v at both sweeps" is the complement of the level state s >= 2v, a
+  share of units, not the 1-3% a capture that is the planned crossing rate of strict breaks; the census measures it;
+  **sensitivity at 0.80:** slope MDE 0.61c, F-MDE 0.86c (r 0) to 1.02c (r 0.3), failing the 1.0c F gate at r = 0.3; no gate
+  changes) = **1,467 / 3,081 units a capture**; effective 80% over
   252: `n_eff` **295,732 / 621,037**. (ii) Tested term `zdD+ = max(0, z)` with `z` standard normal (the census scale):
   `E[zdD+] = 1 / sqrt(2 pi) = 0.39894`, `Var(zdD+) = 1/2 - 1/(2 pi) = 0.34085` (SD 0.58382); `Cov(zdD+, zdD-) = 0 - (0.39894)(-0.39894)
   = 0.15915`, so `corr(zdD+, zdD-) = 0.15915 / 0.34085 = 0.46694` and the pair's own VIF `1 / (1 - 0.46694^2) = 1.27883`;
@@ -737,8 +760,10 @@ is switched off when its test is not in `k_tests`.
   failed feed capture makes the flag NaN and the unit is excluded, counted `feed_missing`); route-A units with
   `clob_listed_k = 0` are counted (`ghost`) and excluded. **Route A also requires (R1 fix 6, causal) that the programme end
   the same feed capture lists is after capture k + 1:** the latest end date among the market's listed configurations with a
-  positive rate in that feed capture is later than the start of slot k + 2 (so the programme is scheduled to run through
-  the whole of capture k + 1); a listed configuration without an end date is open-ended and qualifies (counted
+  positive rate in that feed capture is later than the start of slot k + 2, **the nominal instant `grid0 + 2 h x (k + 2)`**
+  with k the slot index of capture k (re-check fix 3), each end taken at the **earliest instant consistent with the served
+  value** under the parse rule of 1.2 (a date-only `D` at `D 00:00Z`) (so the programme is scheduled to run through the
+  whole of capture k + 1); a listed configuration without an end date, or with a sentinel end, is open-ended and qualifies (counted
   `feed_end_open`); a malformed end is NaN (excluded, counted `feed_end_malformed`); an earlier end excludes the unit
   (counted `feed_end_soon`). This removes scheduled CLOB drops between the k - 1 :35 feed capture and capture k + 1, which would
   enter route A and push the same way as the hypothesis; an unscheduled drop cannot be removed causally and is bounded by the
@@ -818,7 +843,11 @@ is switched off when its test is not in `k_tests`.
   is visible days ahead; the last partial epoch pays pro rata and incumbents' capital is better posted elsewhere, so makers
   retreat before the end and the spread widens before the cliff (CH19 reads the cliff after it). **Direction: the treated
   before-after spread difference minus the control's > 0.**
-- **Unit.** A programme end `e` on a non-sports ex-crypto market: the end time `T_e` (the configuration's end date) is listed
+- **Unit.** A programme end `e` on a non-sports ex-crypto market: the end time `T_e` (the configuration's end date, parsed by
+  1.2's rule; re-check fix 3: a timestamped end is that instant, a date-only `D` is `T_e = D 00:00Z`, the earliest consistent
+  instant; open-ended, sentinel and malformed ends give no unit; reported sensitivity, never for the verdict: date-only
+  ends re-placed at `D + 1 00:00Z`, the latest consistent instant, with the unit set unchanged, and the primary refit
+  without date-only ends) is listed
   identically in a usable feed capture received at least 48 h before `T_e` (decision time = that capture's receipt); the
   market's `end_date` (capture at the decision) is > `T_e` + 48 h; the market is eligible (1.4) at the decision capture, mid in
   [0.10, 0.90]. **Intention to treat:** a later change of the end (extended, rolled, cut) keeps the unit at its originally
@@ -833,8 +862,9 @@ is switched off when its test is not in `k_tests`.
   `REGISTERED_UTC` for the earliest ends, so it reads raw captures of LT8's last three window days (LT8 target inputs; no LT8
   store opened; 1.1); disclosed, reported only; `backfill-series` writes those 36 capture slots' spread series for CH215 only
   if it enters (8.1). **Control reuse:** a market serves as a control for at most one end among ends whose `[T_e - 48 h,
-  T_e)` spans overlap (assigned greedily in `T_e` order, ties by `condition_id`, each end taking its nearest unused
-  candidates; an end left with no control is dropped, counted `no_control`); remaining reuse across non-overlapping ends is
+  T_e)` spans overlap (assigned greedily in **decision-time order** (re-check fix 1: the receipt of each end's decision feed
+  capture, ties by `condition_id`), each end considering only ends already decided and taking its nearest candidates unused
+  by them; an end left with no control is dropped, counted `no_control`); remaining reuse across non-overlapping ends is
   **clustered**: the CH215 cluster is the event merged with every event linked to it by a shared control market (connected
   components), used for the CR1 cluster, the sign-flip gate (1.8) and the census event counts.
 - **Target.** `Δs_e` = mean Gamma spread over the 12 captures in `[T_e - 24 h, T_e)` minus the mean over the 12 in `[T_e -
@@ -1010,11 +1040,12 @@ ends a day is the round's kill line, below the MDE kill line (about 51 a day).
   distribution of `s / 2v` on each panel; strict and LT7-style crossings a capture; the share broken at k - 1 given broken
   at k - 2 (the state's own persistence; no later slot), **pooled over both panels only, never split by panel** (R1 fix 8:
   split by panel it would be a reversion proxy); the `panel_switched` share by panel; the distribution of `relpos_k` at
-  breaks (pooled); cell coverage by cell size; rates of broken markets. **CH212:** the `feed_end_open`, `feed_end_soon` and `feed_end_malformed` shares. **CH214:** both
+  breaks (pooled); cell coverage by cell size; rates of broken markets. **CH212:** the `feed_end_open`, `feed_end_soon` and `feed_end_malformed` shares, and (CC9, re-check fix 3) the date-only (`end_date_only`) and sentinel (`end_sentinel`) shares of listed positive-rate ends. **CH214:** both
   band-sum proxies; `dD` distribution and within-market SD; the share of `zdD > 0`; the quiet, `touch_out_of_band` and
   band-changed shares; `r_w` and `r_pool`; the yield
   terciles at k - 1 (no target). **CR9:** ends a day, their distance to the market's end, the share listed >= 48 h ahead, the
-  share of ends moved between consecutive feed captures, sponsored shares.
+  share of ends moved between consecutive feed captures, sponsored shares, the date-only and sentinel shares of listed ends
+  (re-check fix 3).
 - **Order (cheapest kill first):** CR9 (CH215: the feed only, tiny), then CC9 (CH212, CH213: captures, sidecars, feed), then
   CS9 (CH214: sweeps). **CS9 runs only after `T_E022`** (R1 should-fix: its lag sweeps are read without the quiet filter and
   fall inside E022's window); if it starts before `T_E022`, CH214 carries the label *informed (E022)*. A test whose census
@@ -1124,18 +1155,22 @@ and **never while an LT7 or LT8 census, size-check or analysis job is running** 
 - **CH214:** band sums by the 1.5c rule; `dD`; the two quiet conditions; `band_changed` and `status_changed`; the decision time
   at sweep k - 1's receipt and the freeze before pass k's start (`.late` otherwise); the target on sweeps k and k + 1; the lag at
   k + 2, k + 3 through the sizes-only loader; `dimb5` equals LT8's definition on a shared fixture; `dvnum` with its flag; the
-  split `zdD+ = max(0, zdD)`, `zdD- = min(0, zdD)` (and of the lag) after the census standardisation; `touch_out_of_band` at
+  split `zdD+ = max(0, dD) / scale_census`, `zdD- = min(0, dD) / scale_census` (and of the lag; at zero change, a test
+  with a census centre below 0 shows a small departure never enters `zdD+`); `touch_out_of_band` at
   either state sweep; F-arm membership at end > `t` + 9 h; the boundary (`lt8_boundary`).
 - **CH212:** `om_k` from the carry lag; `clob_listed_k` from the last usable feed capture finished before capture k's start (a
   failed feed capture is skipped, a missing one gives NaN); `clob_dropped_k`; the route rule on synthetic counts (A, B, both ->
   A, neither -> dropped); the Mantel-Haenszel odds ratio; the page position; a unit is never selected by a later capture of its
   day (a test plants a switch after k and shows the unit set unchanged); route A's feed-listed end rule (after slot k + 2's
-  start; open-ended qualifies; malformed NaN; read from the same pre-capture feed capture only); route B's model has `om_k` as
+  nominal start `grid0 + 2 h x (k + 2)`, each end at its earliest consistent instant under the 1.2 parse rule (date-only,
+  sentinel, no-offset and malformed fixtures); open-ended qualifies; malformed NaN; read from the same pre-capture feed capture only); route B's model has `om_k` as
   its only tested term and is full rank on its two-class population; S2b reads the next feed capture only in the analysis;
   F-arm membership at end > `t` + 9 h.
-- **CH215:** the 48 h knowledge rule; intention to treat at a moved end; controls from decision-time fields; the >= 8 of 12 rule;
+- **CH215:** the 48 h knowledge rule; `T_e` by the 1.2 parse rule (date-only at `D 00:00Z`; open-ended, sentinel and
+  malformed ends give no unit); intention to treat at a moved end; controls from decision-time fields; the >= 8 of 12 rule;
   the window's ends (`T_e` in `[REGISTERED_UTC + 48 h, END_UTC]`); day = UTC day of `T_e`; the control reuse ban across
-  overlapping ends and the connected-component clusters; `end_moved` from feed statuses only; the sign-flip gate by cluster;
+  overlapping ends, assigned in decision-time order over already-decided ends only (a test plants an earlier-`T_e` end
+  decided later and shows the earlier-decided end's controls unchanged), and the connected-component clusters; `end_moved` from feed statuses only; the sign-flip gate by cluster;
   `ch215.entered` false makes the analysis ignore every CH215 line and world 12.
 - **Lag-slot loader:** a census reading a later slot receives only the named fields; a test plants wild prices in later slots and
   shows that no census output changes; CH213's twin path returns the break flag only.
@@ -1275,7 +1310,7 @@ primary makes its family a candidate; an engine gain never changes an LT9 verdic
 | Floors 1.0c (spread) and 0.5c (magnitude) | 1.9 | round 14 rule 8 |
 | Count gates: 70 breaks a capture per panel; 1,000 CH214 units a capture; 240 route-A (60 route-B) units a capture; 30 ends a day | 7 | the counts at which each MDE gate passes at the low panel size (sections 2-5); CH214's a declared floor; CH215's the round's kill line; gross projected counts, no 0.8 (7, R1 should-fix); CH213's 70 kept above the recomputed 68 |
 | CH213 panel retention 0.85 (each panel; the `panel_switched` loss) | 2 | a declared convention at R1 (unprobed; programme churn and omission runs > 12 slots over 21 days); the census measures it |
-| CH214 in-band touch at both state sweeps 0.95; `Var(max(0, z))` 0.34085, `corr(max(0, z), min(0, z))` 0.46694 (z standard normal); `VIF_w(zdD+)` 1.5 x 1.27883 = 1.918 | 3 | a declared convention at R1 (strict breaks 1-3% a capture); half-normal arithmetic; the draft's `VIF_w` times the pair's |
+| CH214 in-band touch at both state sweeps 0.95; `Var(max(0, z))` 0.34085, `corr(max(0, z), min(0, z))` 0.46694 (z standard normal); `VIF_w(zdD+)` 1.5 x 1.27883 = 1.918 | 3 | a declared convention at R1 (the complement of the level state s >= 2v at both state sweeps, not the 1-3% crossing rate; re-check fix 5; at 0.80 the MDE is 0.61c and the F-MDE 0.86-1.02c, failing at r = 0.3); half-normal arithmetic; the draft's `VIF_w` times the pair's |
 | CH212 route-A share with the feed-listed end after capture k + 1: 0.97 | 4 | a declared convention at R1 (unprobed); the census measures it |
 | World 3b `q` 0.35 / 0.55 and SD `0.25 x 2v`; world 4c control staleness 0.25; world 8 non-fill noise `w = 0.693 abs(N(0, 1))` (equal variance 0.1745) | 1.8.1 | R1 fixes 3, 4 and 9; conventions, not measurements |
 | CH215 `end_moved` gate <= 20% | 5, 7 | R1 should-fix; a declared convention |
@@ -1346,8 +1381,8 @@ CH215 rules; 3.47.)*
 >   against a control panel with a cell-median band, each market's panel fixed at its first unit; interaction MDE 1.50c /
 >   0.67c (floor 1.0c); F binding, F-MDE 2.24c / 1.005c against its 1.0c census gate: expected to die at census (needs ~154
 >   counted breaks a capture).
-> - **CH214** the pool splits: CLOB spread change from sweep k to k + 1 on the arrival side `max(0, zdD)` of the symmetric
->   in-band depth innovation between sweeps k - 2 and k - 1 behind an unmoved touch (`min(0, zdD)` a control); slope MDE
+> - **CH214** the pool splits: CLOB spread change from sweep k to k + 1 on the arrival side `max(0, dD) / scale` of the symmetric
+>   in-band depth innovation between sweeps k - 2 and k - 1 behind an unmoved touch (`min(0, dD) / scale` a control); slope MDE
 >   0.56c / 0.38c; F binding (0.79-0.94c low); fill leak world likely to fail.
 > - **CH212** the omission: route A |mid move| after an omitted row the CLOB confirms with a programme end after capture
 >   k + 1 (MDE 0.58c / 0.35c, floor 0.5c) or route B (real churn, `om_k` on its two-class population), fixed by a counts-only
