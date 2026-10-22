@@ -3500,3 +3500,15 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   chore. Any later change to a test's text is a recorded deviation. Next: restore/seal (q0600-q0601), code (vendored
   `live_tests7_base.py`), code freeze check, censuses (q0602-q0604), size check (q0605), pins, registration (window not
   before 2026-12-08). Nothing registered or counted; E-numbers unassigned.
+
+## Signal engine: `book0` (pre-origin book) family, se18 / se19, 2026-10-22 ~03:30Z (signal-engine autopilot; development diagnostic only, nothing counted)
+- **Built** the honest replacement for the sweep-1 `book` family (DESIGN_V1 §22): aux family `book0` (`se-aux-book0-v1`)
+  from the newest complete pass sweep finished before the origin capture started (<= 3 h; on the host the previous
+  pass's last sweep, ~110 min earlier). New specs: `se18_lgbm_all_b0` (se7 with `book` -> `book0`; broad, not embargoed,
+  promotion-eligible; K 3 -> 4, stricter) and `se19_lr_book0` (isolates `book0` + `book`, embargoed to 2026-12-31).
+  New EMBARGO token `book0` (same date and tests as `book`).
+- Development diagnostic (8 host captures of 10-21, read-only): coverage 92-94%; `b0_micro` / `b0_imb5c` show no
+  correlation with the in-window move (v1 `bk_micro` up to -0.27). Columns and specs were written before it; seen
+  before commit; nothing changed after it.
+- Science review: ACCEPT_WITH_FIXES (no leakage defect). Applied: pass-sweep restriction and hidden-folder skip, sweep
+  provenance in metadata, the se7 minus se18 contrast disclosed, §22 causality wording, backfill = training input only.

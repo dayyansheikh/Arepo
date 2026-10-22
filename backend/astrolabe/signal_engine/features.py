@@ -343,19 +343,29 @@ def find_sweep(paths: S.Paths, cap_id: str, state: dict) -> Path | None:
     return None if best is None else best[1]
 
 
-def book_features(sweep_dir: Path | None, f: pd.DataFrame) -> pd.DataFrame:
-    cols = FAMILY_COLUMNS["book"]
-    out = _nan_frame(len(f), cols)
-    if sweep_dir is None:
-        return out
-    num = ["best_bid", "best_ask", "bid_size_1", "ask_size_1", "depth_bid_1c", "depth_ask_1c", "depth_bid_5c",
-           "depth_ask_5c", "n_bid_levels", "n_ask_levels", "book_timestamp"]
+SWEEP_NUM = ["best_bid", "best_ask", "bid_size_1", "ask_size_1", "depth_bid_1c", "depth_ask_1c", "depth_bid_5c",
+             "depth_ask_5c", "n_bid_levels", "n_ask_levels", "book_timestamp"]
+
+
+def read_sweep_book(sweep_dir: Path) -> pd.DataFrame:
+    """Two-sided rows of a sweep, first row per market, indexed by market_id."""
     t = pacsv.read_csv(Path(sweep_dir) / "rows.csv.gz", convert_options=pacsv.ConvertOptions(
-        include_columns=["market_id", "state", "batch_receipt_utc", *num],
+        include_columns=["market_id", "state", "batch_receipt_utc", *SWEEP_NUM],
         column_types={"market_id": pa.int64(), "state": pa.string(), "batch_receipt_utc": TS,
-                      **{c: pa.float64() for c in num}})).to_pandas()
-    t = t[t["state"] == "two_sided"].drop_duplicates("market_id").set_index("market_id")
-    b = t.reindex(f["market_id"].to_numpy())
+                      **{c: pa.float64() for c in SWEEP_NUM}})).to_pandas()
+    return t[t["state"] == "two_sided"].drop_duplicates("market_id").set_index("market_id")
+
+
+def book_features(sweep_dir: Path | None, f: pd.DataFrame) -> pd.DataFrame:
+    if sweep_dir is None:
+        return _nan_frame(len(f), FAMILY_COLUMNS["book"])
+    return book_columns(read_sweep_book(sweep_dir).reindex(f["market_id"].to_numpy()))
+
+
+def book_columns(b: pd.DataFrame) -> pd.DataFrame:
+    """The ``book`` family columns from sweep rows ``b`` already aligned to the eligible markets (NaN rows = no book)."""
+    cols = FAMILY_COLUMNS["book"]
+    out = _nan_frame(len(b), cols)
     has = b["state"].notna().to_numpy()
     out["bk_has"] = has.astype(float)
 
