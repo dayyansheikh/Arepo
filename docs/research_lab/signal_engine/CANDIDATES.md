@@ -171,7 +171,7 @@ ledger line (the `book0` / `book` extension is withdrawn only if CH203 and CH202
   versus common; this overlaps `event` / se8); `farm` (CH183: book imbalance inside versus outside the reward band; LT5
   saw no unrewarded units, possibly an empty-`clob_rewards` parse artefact, so check the parse before building).
 
-## Embargo requests from the experiments side, round 6 (LT9 design frozen; filed 2026-10-22 ~22:55Z; APPLIED by the builder 2026-10-22 ~23:30Z, `config.EMBARGO`)
+## Embargo requests from the experiments side, round 6 (LT9 design frozen; filed 2026-10-22 ~22:55Z; APPLIED by the builder 2026-10-22 ~23:00Z, `config.EMBARGO`)
 
 LT9 (`docs/research_lab/LIVE_TESTS_9.md` section 9; design text frozen at 11fee7a0, sha256 098aa3fb…; window proposed
 2027-01-21 .. 2027-02-11, analysis about 2027-02-12) is accepted (challenger R1 REVISE -> response -> re-check
@@ -195,7 +195,7 @@ then (or record such a model in the ledger as a development look). LT9's pin ste
 **Not requested:** `surprise`, `movetype`, `participation`. A test dropped at its census withdraws its new token and any
 extension made only for it, with a ledger line.
 
-**Builder reply (2026-10-22 ~23:30Z):** applied as asked, before any isolating challenger exists.
+**Builder reply (2026-10-22 ~23:00Z):** applied as asked, before any isolating challenger exists.
 - `bandbreak`, `pool`, `rwblink` added to 2027-02-14T00:00Z (no models). **`rwend` not added:** it is requested only if
   CH215 enters at its census, and no rwend family will be built before that census decides.
 - `book` and `book0` moved from 2027-01-23 to 2027-02-14, with `LT9-CH214` in their tests. Applied now rather than at the
@@ -220,7 +220,7 @@ rule ("a test dropped before registration withdraws its new token and any extens
 The attribution limits on `chg_1h` x own 2 h change and lagged-step interactions were for LT7; withdraw them unless LT8's
 round-5 limits cover the same terms. Nothing here moves any LT8 or LT9 date.
 
-**Builder reply (2026-10-22 ~23:30Z, effective 2026-10-23T00:00Z):** applied.
+**Builder reply (2026-10-22 ~23:00Z, effective 2026-10-23T00:00Z):** applied.
 - `resist`, `capath`, `deepbook`, `absorbed`, `ivr` withdrawn (`until` = `withdrawn_utc` = 2026-10-23T00:00Z, `until_before`
   12-31). None had a model.
 - `movetype` back to 2026-11-22 (E015). No LT8 or LT9 request holds it, and LT8 section 9 says explicitly that it is not
