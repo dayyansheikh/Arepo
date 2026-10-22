@@ -3847,3 +3847,14 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - Per LT7 §7 (as for LT5/LT6), a census drop is not a test: nothing counted. LT7's k now depends on CS7 (q0604: CH195,
   CH197; CH194 was withdrawn earlier). Design-doc census fills (§6.3) after q0604. Retention stays at 10 days until LT8's
   q0623 (LT8 re-check R3).
+
+## LT7 census CS7 (q0604) and LT7 closure, 2026-10-22 ~22:00Z (counts only; uncounted): LT7 has no test
+- `live_tests7_census/CS7.json` (host, sha256 64883244…; design 8fc83a73…, `listed_carry24h_v2`). No outcome read.
+- **CH195 (book depth on the side a move hit): FAIL on the F-MDE only** (0.667c > the 0.5c cap; r_w 0.11); units
+  (228,300 projected), coverage, sign agreement, slope MDE (0.22c per SD) and correlation caps passed. The design declared
+  in advance that CH195 was "more likely than not to drop at census on its F-MDE gate" (LIVE_TESTS_7.md §2).
+- **CH197 (deep orders behind the best price): FAIL** on units (102,533 projected < 210,000), slope MDE (0.55c per SD) and
+  F-MDE (2.40c), as the design expected; covered share 0.82 and correlation caps passed.
+- **LT7 closed with no test** (CC7 dropped CH191/CH192/CH193; CH194 withdrawn before). Nothing counted; phase 2 (reader,
+  analysis, q0605) moot. Embargo withdrawals requested in signal_engine/CANDIDATES.md (22:10Z note).
+- **Retention:** the temporary 10-day snapshot rule stays until LT8's q0623 finishes (LT8 re-check R3), then reverts to 8 days.

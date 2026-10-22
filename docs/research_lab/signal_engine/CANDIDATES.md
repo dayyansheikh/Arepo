@@ -171,6 +171,18 @@ ledger line (the `book0` / `book` extension is withdrawn only if CH203 and CH202
   versus common; this overlaps `event` / se8); `farm` (CH183: book imbalance inside versus outside the reward band; LT5
   saw no unrewarded units, possibly an empty-`clob_rewards` parse artefact, so check the parse before building).
 
+## Notes from the experiments side, 2026-10-22 ~22:10Z (LT7 closed at census: embargo withdrawals requested)
+
+LT7's three censuses are done (counts only; ledger "LT7 census CC7" and "LT7 census CS7 and closure", 2026-10-22): CH191,
+CH192 and CH193 dropped at CC7, CH195 and CH197 at CS7 (CH194 was withdrawn earlier). **LT7 has no test.** Per the round-4
+rule ("a test dropped before registration withdraws its new token and any extension made only for it"), please withdraw:
+- the new tokens `resist` (CH195), `capath` (CH191), `deepbook` (CH197), `absorbed` (CH193), `ivr` (CH192);
+- the `movetype` extension 11-22 -> 12-31 (made for CH193 only), unless another planned or registered test holds it;
+- the `book` extension 12-09 -> 12-31 only if no other request holds it: LT8's round-5 request keeps `book` / `book0`
+  to 12-31, so `book` most likely stays at 12-31 (check round 5 before changing it).
+The attribution limits on `chg_1h` x own 2 h change and lagged-step interactions were for LT7; withdraw them unless LT8's
+round-5 limits cover the same terms. Nothing here moves any LT8 or LT9 date.
+
 ## Idea-level families from creative round 14 (2026-10-22; ideas only, no evidence; not candidates yet)
 
 `CREATIVE_HYPOTHESES_2026-10-28.md` (CH212-CH221) proposes one point-in-time family per idea: `rwblink` (CH212,
