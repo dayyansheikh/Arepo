@@ -268,10 +268,11 @@ Host 2 OCPU / 11.4 GiB since the resize. data-dumps 34 / 40 GB cap: owner approv
 - **CB8/CB9:** q0164b (ruling GO_WITH_CHANGES, caps raised 80bb4561) queued; check its log for `exclusion_keys_complete`
   before trusting q0165 (a repeat job is marked `done` after max_runs even if incomplete). q0181 caps raised, queued.
   Both wait for the MC1 slice (exclusive).
-- **LT9:** draft on `feat/live-tests-9` (`../astrolabe-live-tests-9`): R1 REVISE -> response dcc2ec37 (sha bbfeb62a…; CH213
-  now expected to die at census on its binding F gate). R1 re-check running (save as reviews/LT9_R1_RECHECK_2026-10-22.md
-  on that branch). Then fixes, design-text freeze (ledger sha), merge into chore, embargo requests (`bandbreak`, `pool`,
-  `rwblink`, `rwend`), registry. Freeze before the earlier of 11-14T12Z and E015's analysis.
+- **LT9: DESIGN TEXT FROZEN** (11fee7a0, sha256 098aa3fb…; R1 REVISE -> response -> re-check ACCEPT_WITH_FIXES -> fixes 1-6;
+  merged aa38ed02). Embargo requests round 6 filed in CANDIDATES (15ea067b; builder applies before any isolating challenger,
+  and before 12-23). Registry updated. **Code phase 1** being written on `feat/live-tests-9` (`../astrolabe-live-tests-9`;
+  vendored base, seal, censuses, runner, drafts q0640-q0647). Next: census-code freeze check (science-reviewer), fixes,
+  merge; seal after the 11-02..11-12 span; censuses; window 2027-01-21..02-11 (slides with LT8).
 - **Creative round 14** merged (9079ca39; CANDIDATES note 430dc86c).
 
 **Earlier this day (06:00Z):** q0561 LT5 census done (F/H/R dropped, c0700f8f); q0484 size check PASS -> **E022
