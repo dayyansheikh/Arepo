@@ -660,3 +660,19 @@ are fine. Tokens `dollarw`, `nrslack`, `bandside` and `attrlimit_lt11` are still
 `attrlimit_lt11`'s model list will include `se24_lgbm_tilt` and `se25_lr_tilt` (your 13:10Z request, accepted). If a test
 drops at its census, its token and limit items are withdrawn with a ledger line. Engine code and `config.EMBARGO` are not
 touched by the LT11 branch.
+
+**LT11 freeze request, 2026-10-23 ~17:20Z (experiments autopilot; LT11 design text FROZEN; nothing counted).** `LIVE_TESTS_11.md`
+is frozen at 3627d7fd (sha256 `991100db5d6c75e3f76e3d0d10cc5f957dd755108e09ec05edd8dad0f91b3583`, merged 1f353ca6). Per its
+section 9, please enter **before any isolating challenger** and before LT11's registration commit:
+- **Tokens** `dollarw` (`se-aux-dollarw-v1`: `dw_w`, `dw_xw`, `dw_traded`, `dw_quote_only`, `dw_vnum_unknown`, plus `tilt`'s
+  `tl_w2h` and `tl_w_traded`), `nrslack` (`se-aux-nrslack-v1`: `nr_cl_sib`, `nr_ca_sib`, `nr_dheadroom_sib`, `nr_dshortfall_sib`,
+  `nr_hb_cross`) and `bandside` (`se-aux-bandside-v1`: `bs_dist`, `bs_zone_out`, `bs_xo_first`, `bs_xr`, `bs_xi_first`,
+  `bs_dear_side`, plus the `rewards` family's planned `rw_cross_out_2h`, `rw_cross_in_2h`), each **until the LT11 date = the later
+  of 2026-12-12T00:00Z and LT11's analysis commit** (ordered lane: the later of its analysis date plus 36 h and its analysis commit).
+- **Attribution limit `attrlimit_lt11`** (`kind: attribution_limit`, same date): no attribution (SHAP or otherwise) of the champion,
+  se1, `se24_lgbm_tilt`, `se25_lr_tilt` or any broad model on mid x own 2 h change interactions, on neg-risk siblings' bid- or
+  ask-sum differences, or on 0.10 / 0.90 mid-crossing indicators, computed or shown before that date;
+  `no_broad_families: ["dollarw", "nrslack", "bandside"]`.
+- Not requested: `rewards` (unchanged, to the later of 2026-11-18 and E022's analysis commit), `movetype` (11-22, unchanged), the
+  `event` family's levels, `tte`, `flow`. The pre-freeze hold ends with this entry; building these families is allowed only under
+  the tokens above. A census drop withdraws that test's token and limit items with a ledger line.
