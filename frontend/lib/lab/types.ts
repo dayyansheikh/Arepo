@@ -317,6 +317,26 @@ export interface SeFeed {
   } | null;
 }
 
+export interface SeInputAlert {
+  family?: string;
+  column?: string;
+  rule?: string;
+  latest?: number | null;
+  median?: number | null;
+  missing_slots?: number;
+  first_missing_utc?: string;
+}
+
+export interface SeInputs {
+  at?: string;
+  capture_id?: string;
+  status?: string;
+  n_alerts?: number;
+  alerts?: SeInputAlert[];
+  families?: Record<string, string>;
+  universe?: { latest?: number; median?: number | null; status?: string } | null;
+}
+
 export interface SignalEngineBlock {
   schema?: string;
   /** Champion per-market signal feed (`se-feed-v1`); validated by parseSeFeed before display. */
@@ -329,6 +349,8 @@ export interface SignalEngineBlock {
   note?: string;
   last_refit?: { at?: string; models?: number; targets_ok?: number };
   last_prediction?: { capture_id?: string; at?: string; models?: number };
+  /** Input-coverage monitor (`se-input-health-v1`, DESIGN_V1 section 31): inputs only, no scores. */
+  inputs?: SeInputs | null;
   prospective?: { generated_at?: string; days_scored?: number; status?: string; rows?: SeRow[] };
   family_gains?: SeFamilyGain[];
   development?: { label?: string; generated_at?: string; test_days?: number | null; rows?: SeRow[] };

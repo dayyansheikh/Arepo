@@ -12,6 +12,8 @@ import {
   familySeries,
   fmtGain,
   fmtSigned,
+  inputAlertLine,
+  inputsView,
   isEmbargoed,
   parseSignalEngine,
   promotionView,
@@ -452,5 +454,58 @@ describe("gain vs market price (res_7d)", () => {
     expect(html).not.toContain("0.0666");
     expect(html).not.toContain("0.0611");
     expect(html).not.toContain('data-testid="se-vs-mid-note"');
+  });
+});
+
+describe("input-coverage monitor", () => {
+  const base = buildSignalEngineFixture(NOW);
+
+  it("shows nothing when the block has no inputs or an unknown status", () => {
+    expect(inputsView(base)).toBeNull();
+    expect(inputsView({ ...base, inputs: { status: "weird" } })).toBeNull();
+    expect(render(base)).not.toContain("se-inputs");
+  });
+
+  it("reports an all-clear check", () => {
+    const se: SignalEngineBlock = { ...base, inputs: { status: "ok", n_alerts: 0, alerts: [], at: "2026-10-21T10:31:00Z" } };
+    expect(inputsView(se)).toMatchObject({ status: "ok", nAlerts: 0, lines: [] });
+    const html = render(se);
+    expect(html).toContain("All families filled");
+    expect(html).not.toContain("Input alert");
+  });
+
+  it("turns alerts into plain-English lines and a warning pill", () => {
+    const se: SignalEngineBlock = {
+      ...base,
+      inputs: {
+        status: "alert",
+        n_alerts: 8,
+        at: "2026-10-21T10:31:00Z",
+        alerts: [
+          { family: "captures", rule: "capture_gap", missing_slots: 2, first_missing_utc: "2026-10-21T00:31:00Z" },
+          { family: "book", column: "bk_has", rule: "all_zero", latest: 0, median: 0.96 },
+          { family: "flow", column: "fl_sampled", rule: "absent", latest: 0, median: 0.034 },
+          { family: "crypto", column: "cr_r5m", rule: "drop", latest: 0.01, median: 0.04 },
+          { family: "universe", rule: "universe", latest: 30000, median: 58188.5 },
+          { family: "tilt", rule: "missing" },
+          { family: "x", rule: "new_rule" },
+        ],
+      },
+    };
+    const v = inputsView(se);
+    expect(v?.status).toBe("alert");
+    expect(v?.nAlerts).toBe(8);
+    expect(v?.lines).toHaveLength(6);
+    expect(v?.lines[0]).toBe("2 missed captures in the last day (first 21 Oct 2026, 00:31 UTC)");
+    expect(v?.lines[1]).toBe("book bk_has: all zero (usually 96% non-zero)");
+    expect(v?.lines[2]).toBe("flow fl_sampled: empty (usually 3% filled)");
+    expect(v?.lines[3]).toBe("crypto cr_r5m: 1% filled (usually 4%)");
+    expect(v?.lines[4]).toBe("Eligible markets 30000 against a usual 58189");
+    expect(v?.lines[5]).toBe("tilt: table not written");
+    expect(inputAlertLine({ family: "x", rule: "new_rule" })).toBe("x: new_rule");
+    const html = render(se);
+    expect(html).toContain("Input alerts: 8");
+    expect(html).toContain("8 to check");
+    expect(html).toContain("book bk_has: all zero");
   });
 });
