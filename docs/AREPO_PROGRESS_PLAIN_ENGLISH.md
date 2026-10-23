@@ -1,56 +1,34 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-23 14:22 UTC+1
+**Last updated:** 2026-10-23 18:13 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **Your 23 Oct message ("why have you stopped?"): it had not stopped.** Eight experiment sessions ran since Wednesday
-  evening (about every 5 hours, 1 to 3 hours each, about 460 commits). Each one ran until the usage limit cut it off before
-  it could write its closing summary, so the Lab board showed only "hit your session limit". **Fixed (23 Oct):** the board
-  now shows, for such a session, how long it worked and its last progress note. A phone update was sent at about 13:20.
-- **Done this afternoon (23 Oct):** LT10's code passed its independent checks and is merged (it waits for E009's
-  analysis on 3 Nov). The LT11 design (three ideas from round 16) was drafted; the independent challenger asked for 8 changes (none loosens a rule), all made; its re-check is running. The weakest idea (crossings of 10c / 90c) now has about a 1 in 10 chance of passing its counting check.
-  Two broken server jobs are fixed: the model run MC1 (its saved progress was rejected after every code update) and the
-  batch 8 "exclusion keys" job (it counted a temporary file against its small disk allowance). Both are back on the server (the exclusion-keys job is running; MC1 restarts from the beginning once the CPU is free). New-ideas round 17 is being written.
-- **Security check (23 Oct):** Cloudflare's security audit was run on the site and the lab code. No confirmed holes; the lab lock and passkeys held up. There are 5 things to check or fix (details sent to your phone; summary in `docs/security/AUDIT_2026-10-23_RUN1.md`). The most important is to confirm that Render has a strong AUTH_SECRET.
-- **Planned live-test families in the pipeline:** LT8 (counting checks today), LT9 (code done, data from 12 Nov), LT10
-  (design frozen; code written and independently checked, fixes being re-checked).
+- **This evening (23 Oct):** the **LT11 design is frozen** (three ideas from round 16: do price moves backed by more money keep
+  going; does a neg-risk market's spread widen after its sister markets' bids rise; do spreads widen when a rewarded market first
+  crosses 10c or 90c). It passed the challenger review, a re-check and a final check; nothing was loosened. The venue's reward
+  page was re-read at the freeze and confirms the documented rule (one-sided quotes score only between 10c and 90c). Its code is
+  being written now, then an independent code check. Counting checks run after 7 Nov; if any test survives, collection from 18 Nov.
+- **Batch 8, "last-minute certainty" in daily crypto Up/Down markets: no markets left to study.** The rule that removes anything
+  related to earlier samples removed every one of the 783 candidates, because they all belong to a few daily series that earlier
+  samples had touched. No price or outcome was read. An independent reviewer is deciding whether a declared variant (ignore the
+  series link, keep the per-market exclusions) is scientifically fair, or whether the idea is recorded as not testable.
+- **New ideas round 17** is being written again (the previous attempt was cut off by the usage limit halfway).
+- **Your 23 Oct message ("why have you stopped?"): it had not stopped.** Sessions kept running but were cut off by the usage limit
+  before writing their summary; the Lab board now shows how long such a session worked and its last progress note.
+- **Server:** the model run MC1 is working through its folds (healthy); the live collectors are healthy.
 - **Seven registered live tests** are collecting or waiting to collect (E009/E010, E011, E012-E014, E015, E022, E026).
   Single analyses: E009/E010 (3 Nov), E011 (11 Nov), E012-E014 (13 Nov), E015 (15 Nov), E022 (17 Nov), E026 (6 Dec).
-- **LT7 (five planned tests from round 12): closed, no test.** All five failed their counting checks tonight, before any
-  outcome was read (too few usable cases, too little power, or too much overlap with known factors). Two were expected to
-  fail when the design was written. Nothing is counted.
-- **LT8 (three planned tests from round 13): closed, no test.** Both counting checks finished this morning (07:03 and
-  08:41 UTC+1), before any outcome was read. The "busy hours" idea had far too few markets with a regular schedule (about 3
-  per snapshot against 1,200 needed). The "quiet order book" idea passed every power and overlap check but fell short on
-  volume (about 431,000 projected cases against 504,000). The "sweep clock" idea had too few "held" moves (7% against 15%).
-  Nothing is counted. Because LT8 closed, LT9 may now start collecting from 30 Dec instead of 21 Jan.
-- **LT9 (three planned tests from round 14, about reward-programme quoting; a fourth only if its count allows):** design text **frozen** (22 Oct, after the
-  challenger review and a re-check). Its code (data seal and counting checks) passed an independent
-  code check after fixes (23 Oct) and is merged. Its data seal waits until the 2 to 12 Nov data exists.
-- **Cross-venue twins (batch 16, K): closed, not testable** (a blind check found 3 true twins in 100 sampled pairs; 90 needed).
-- **Model run (MC1):** now running on the server in 5.5-hour pieces (about 32 hours in total), giving way to LT8's checks.
-- **Batch 7:** its counting job starts from 24 Oct. **Batch 8/9:** both failed data jobs are fixed and queued.
-- **New ideas round 14** done (10 ideas), all now used by LT9 or the signal engine. **Round 15 done** (10 ideas, CH222-CH231). Its main
-  finding: comparing venues every 2 hours never gives enough pairs, but the 2-minute Kalshi + Polymarket poller (used by
-  E009) does. **LT10** (three ideas on that poller: does Kalshi's quoting move Polymarket's spread or its next move) **design frozen**
-  (23 Oct, after an independent challenger review asked for changes and a re-check accepted them), well before E009's
-  analysis on 3 Nov, so it cannot be shaped by that result. Next: its code. About 3 in 4 that none of the three survives
-  its counting check (the designer's estimate).
-- **New ideas round 16 done** (10 ideas, CH232-CH241), written to clear the counting checks that killed LT5-LT8. Its key
-  observation: on this venue a resting order ties up the money of its side, so cheap-side orders are over-supplied. Top
-  candidates for a planned LT11: whether price moves bought with more money keep going (about 40% chance of surviving its
-  counting check, the author's estimate), whether arbitrage across a multi-outcome event widens spreads, and what happens
-  when a rewarded market's price crosses 10c or 90c. **The counts-only map ran this morning** (9:33 UTC+1, one week of
-  snapshots): all three populations are large enough on paper (for example about 1,240 traded price moves per snapshot
-  where 335 are needed), with two warnings: the trade-volume field is blank for most markets, and the 10c crossings bounce
-  back often. **The LT11 design is being drafted now**, then an independent challenger review.
+- **Planned live-test families:** LT9 (frozen, code done, data seal after 12 Nov), LT10 (frozen, code done, counting checks after
+  3 Nov), LT11 (frozen today, code in progress). LT5-LT8 closed at their counting checks with no test (nothing counted).
 - **Copy-skilled wallets (E026):** registered; collection starts 25 Oct (phone note then).
-- **Honest pattern:** most planned tests die at the counting stage, before any outcome data is read (LT5, LT6, LT7 and now
-  LT8 all closed this way). New-ideas round 16 (running now) is told to aim for much larger case counts. That is the checks working as designed.
+- **Security check (23 Oct):** no confirmed holes; 5 things to check (`docs/security/AUDIT_2026-10-23_RUN1.md`); most important:
+  confirm Render has a strong AUTH_SECRET.
+- **Honest pattern:** most planned tests die at the counting stage, before any outcome data is read. That is the checks working
+  as designed.
 ## 2. Approvals needed from you
 1. ~~Automatic Claude sessions~~ **APPROVED and installed 15 Oct** (full power, your call).
    - Pause: `python3 scripts/autopilot/autopilot.py pause` (on the Mac, in the repo). Use `resume` to undo, or `stop` to

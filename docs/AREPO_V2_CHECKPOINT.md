@@ -8,22 +8,22 @@
 **PHASE 4 IN PROGRESS.** See `implementation/phases/PHASE_04_EDGE_EXPERIMENTS.md` and the ledger `research_lab/EXPERIMENT_LEDGER.md`.
 User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=Etc/GMT-1 date`.
 
-## Experiments autopilot live state (2026-10-23 13:54 UTC+1)
-- Owner lab-msg:4 ("why stopped since Wed? ntfy"): answered by ntfy ~12:20Z. Cause: every session since 10-21 hit the usage
-  limit before AUTOPILOT_DONE and the board's digest drops such sessions. Fix 2b33d60b (`scripts/lab/lab_activity.py`
-  `cutoff_note`: usage_limit/timeout sessions >= 10 min get `done` from the transcript's last own message); live since the
-  12:22Z upload. Mac-side only.
-- **LT10 code merged** (9fc42a20) after code check -> fixes -> re-check FIXES_REQUIRED (R1, R2, N1-N5) -> fixes e1e01426 ->
-  final verification (ledger N1 dates corrected 97554595). Drafts q0660-q0667 NOT promoted; census after E009 and E010
-  analysis commits (3 Nov); q0665 size check not before 11-04.
-- **LT11 design DRAFT merged** (11d7ef92; CH234 / CH233 / CH232; survival 0.35 / 0.50 / 0.20). Challenger R1 = REVISE (8 must-fix, 10
-  should-fix, rulings A1-A13; filed by the designer agent as `reviews/LT11_CHALLENGER_R1_2026-10-23.md`); R1 response running. Fast lane: freeze before 11-14T12:00Z, census on a fresh seal of 10-28..11-07.
-- **Ops fixes merged** (ledger "Ops fixes q0164c and q0116i"): q0164c (exclusion-keys scratch not charged to the hashed cap;
-  CB8 hashes unchanged; q0165 now depends on q0164c) and q0116i (MC1 resume identity without git HEAD; fresh resume dir).
-  q0164b CANCELLED on the host (~13:15Z). Deploy re-run in the background (the first attempt never got the collector
-  pass lock; host was still at 590f0c37).
-- Next: verify the deploy (`git log -1` on host = chore tip) and q0164c / q0116i start; file LT11 R1 and respond; re-check; creative round 17 running (Fable xhigh,
-  worktree `../astrolabe-creative-r17`). Open owner decision: clear ~9 GB restore copies (data-dumps 35 of 40 GB).
+## Experiments autopilot live state (2026-10-23 18:13 UTC+1)
+- **LT11 DESIGN TEXT FROZEN** (3627d7fd, sha256 `991100db…3583`, merged 1f353ca6; ledger b057e076): R1 REVISE -> response ->
+  re-check ACCEPT_WITH_FIXES (F1-F4) -> pre-freeze verify FREEZE_OK_AFTER 4 mechanical edits. Venue reward page re-read in
+  the freeze record: documented reading (single-sided scores inside [0.10, 0.90]), so CH232's M1 = cheap side. Fast lane:
+  census on a fresh seal of 10-28..11-07, window 11-18..12-09, analysis >= 12-10T12Z. Engine tokens `dollarw`, `nrslack`,
+  `bandside`, `attrlimit_lt11` requested in CANDIDATES (freeze request note).
+- **LT11 code running** (implementer, worktree `../astrolabe-live-tests-11-code`, branch `feat/live-tests-11-code`; queue
+  specs as DRAFTS only). Then an independent code-freeze check, fixes, merge.
+- **CB8-B (CH76) frame empty** (ledger 5da64672): series-key exclusion removed all 783 Up/Down candidates; q0166's
+  "source_unavailable" = empty frame. science-reviewer ruling on a declared variant (series key off for B) running; outcome
+  stays recorded. q0182's pin to q0165's frame is vacuous (recorded).
+- **Creative round 17** (Fable xhigh) re-launched in `../astrolabe-creative-r17` (previous writer cut off by the usage limit;
+  section 0 was written, 1-5 being filled). Review + commit when done.
+- Queue: MC1 q0116i running (fold 5 of M1, healthy, RSS ~4.8 GB); LT2 live collector healthy; E026 collection q0541 from
+  10-25T00Z; CB8-H holders jobs waiting on their own day gates. Disk 36 GB data-dumps of the 40 GB job cap.
+- Open owner decision: clear ~9 GB restore copies (data-dumps 36 of 40 GB).
 
 ## Interactive session state (2026-10-23 08:30Z)
 - **Security audit run 1 (2026-10-23):** Cloudflare security-audit skill, quick profile, source-only. 0 confirmed findings and 5 needs-validation leads; see `docs/security/AUDIT_2026-10-23_RUN1.md` (full artefacts in `~/security-audit-skill/astrolabe/run-1/`). Owner notified via ntfy. No fixes made yet. Proposed small PRs:
