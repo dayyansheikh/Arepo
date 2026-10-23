@@ -247,7 +247,7 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-23 03:10Z
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-23 03:05Z
 Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && git log --oneline -1'` = local tip.
 Host 2 OCPU / 11.4 GiB since the resize. data-dumps 34 / 40 GB cap: owner approval 8 (restore-tree clearing) is time-relevant.
 
@@ -264,8 +264,14 @@ Host 2 OCPU / 11.4 GiB since the resize. data-dumps 34 / 40 GB cap: owner approv
   LT8 root; clearing needs owner approval 8 (dashboard, now marked time-sensitive). Contingency if >= 38 GB before approval:
   raise the operational `--data-dumps-cap-gb` of the registered live collectors (q0460) to 44 (below the 45 GiB pass cap;
   root has 36 GB free), with a ledger line; never let a registered collector refuse.
-- Creative round 15 (Fable xhigh, CH222+, census survival + newer streams) running on `feat/creative-r15`
-  (`../astrolabe-creative-r15`); merge, then CANDIDATES note and an LT10 design draft from its top ideas.
+- **Creative round 15 merged** (c23b5a52; CH222-CH231; CANDIDATES note 90c7af39: engine-first xent, ruleedit, xvenue2,
+  gamestate; kxbook conditional on LT10). Finding: capture-clock cross-venue tests lack pairs; E009's 120 s Kalshi+CLOB
+  poller is the only fine-clock panel. **LT10** (CH224, CH223, CH222 on E009's poller stream, `informed (E009)`) design
+  draft being written on `feat/live-tests-10` (`../astrolabe-live-tests-10`). **Deadline: design text frozen before
+  2026-11-03T02:00Z** (E009/E010 analysis). Then challenger R1 (science-reviewer), response, re-check, freeze; poller
+  continuation after 11-03 is an open orchestrator decision (bounded public collection). CH230 (poller pair-list
+  extension) and CH225/CH226 (sports) wait.
+- Host tip = 90c7af39 (deployed 03:04Z).
 
 **Autopilot session 10-22 from 20:35Z (state at 22:23Z):**
 - **LT7: CLOSED, no test** (1dd77a67). CC7 dropped CH191/CH192/CH193, CS7 dropped CH195 (F-MDE 0.667c > 0.5c) and CH197.
