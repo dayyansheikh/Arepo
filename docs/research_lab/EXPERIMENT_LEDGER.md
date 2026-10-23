@@ -4198,3 +4198,16 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   class); CH233 complete neg-risk event-captures about 1,833, `hb` within 2 ticks of zero about 12.6%; CH232 rewarded
   outward first crossings of 0.10 / 0.90 about 79, re-crossing share 0.59 at 0.10 (round's line 0.60: borderline).
 - Next: an LT11 design draft (CH234, CH233, CH232) using these as planning counts, gates declared before its own census.
+
+## Ops fixes q0164c and q0116i, 2026-10-23 ~12:40Z (experiments autopilot; ops only, nothing counted)
+- **q0164b (CB8 exclusion keys) -> q0164c.** Cause: `DiskBudget` is seeded by a scan of the whole run directory, which
+  included the resumable scratch `exclusion_keys_partial.jsonl` (20.9 MB at the 09:40Z start; 4,828 of 6,495 batches,
+  241,198 keys); the declared keys cap 0.01 GiB (+10 MB manifest allowance = 20,737,418 bytes) was passed at the first
+  charge. Fix 7b61b0f5: `cb8_exclusion_budget.scratch_uncounted()` leaves only that scratch file out of the scan; every
+  final output stays capped. `KEYS_OUTPUT_CAP_GB` and every CB8 rules / declaration sha256 are unchanged (checked before
+  and after). q0164c resumes the same run directory; q0165 now depends on q0164c; q0164b is cancelled (record kept).
+- **q0116h (MC1 dev run) -> q0116i.** Cause: the resume identity held the fold-manifest sha256, whose `code_sha` is the
+  repo-wide git HEAD, so every deploy after slice 1 (23 units) made the re-runs refuse. Fix 4f8a11dd: identity = fold-plan
+  hash without `code_sha`, panel hash, sha256 of every loaded `astrolabe` module plus the script, versions, argv; the
+  manifest still records the git HEAD as provenance. No model, fold, feature, target or metric logic changed. q0116i
+  starts fresh in `resume_q0116i` (slice 1 is redone; q0116h's 23 units are not mixed in).
