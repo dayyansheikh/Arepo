@@ -12,10 +12,11 @@
   "public Gamma (ids)"
  ],
  "resources": {
-  "mem_mb": 400,
+  "mem_mb": 1000,
   "cpu": 1,
   "lane": "net",
-  "network": "gamma-api"
+  "network": "gamma-api",
+  "as_cap_mb": 3000
  },
  "depends_on": [
   "q0164c_cb8_exclusion_keys",
@@ -44,5 +45,5 @@
   "manifest.json"
  ],
  "next_action": "q0183, q0185",
- "notes": "RUNS AS PRE-DECLARED (ledger 'CB8-B (CH76) frame empty'; reviews/CB8B_SERIES_KEY_RULING_2026-10-23.md section q0182): q0165's EMPTY frame (header only, sha256 6a14098c...) is extra-pinned and the pin is recorded as vacuous; not re-pinned to q0165b. depends_on q0164c (the run that wrote the keys) and q0166 (done: source_unavailable = empty frame, no holdout seal). Values filled 2026-10-23 ~17:25Z from the host: q0164c keys_sha256 12513c64... = exclusion_report.json keys_sha256 = sha256sum of exclusion_keys.csv.gz (CB9 ruling MUST 1); CB8-H holders frame = union of market_id of holders/snap/2026-10-21..23.markets.csv.gz (4,404 ids; sha256 b77910a4..., 263976f3..., dc2ced4d...) written to pins/cb8_holders_frame_ids_20261023T172452Z.csv (CB9 ruling C2). CB11-CB13 seal copies included automatically (C5); disclose seal_copies_used from the report. >2% missing metadata -> disjointness unverified (P, K, D not testable, counted)."
+ "notes": "RUNS AS PRE-DECLARED (ledger 'CB8-B (CH76) frame empty'; reviews/CB8B_SERIES_KEY_RULING_2026-10-23.md section q0182): q0165's EMPTY frame (header only, sha256 6a14098c...) is extra-pinned and the pin is recorded as vacuous; not re-pinned to q0165b. depends_on q0164c (the run that wrote the keys) and q0166 (done: source_unavailable = empty frame, no holdout seal). Values filled 2026-10-23 ~17:25Z from the host: q0164c keys_sha256 12513c64... = exclusion_report.json keys_sha256 = sha256sum of exclusion_keys.csv.gz (CB9 ruling MUST 1); CB8-H holders frame = union of market_id of holders/snap/2026-10-21..23.markets.csv.gz (4,404 ids; sha256 b77910a4..., 263976f3..., dc2ced4d...) written to pins/cb8_holders_frame_ids_20261023T172452Z.csv (CB9 ruling C2). CB11-CB13 seal copies included automatically (C5); disclose seal_copies_used from the report. >2% missing metadata -> disjointness unverified (P, K, D not testable, counted). | 2026-10-23 ~17:40Z: resources raised to mem_mb 1000 / as_cap_mb 3000 (as q0164c) after q0182 attempt 1 hit MemoryError at the 2 x 400 MB address-space cap (ops only)."
 }
