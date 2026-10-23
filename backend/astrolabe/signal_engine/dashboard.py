@@ -106,6 +106,14 @@ def live_status(paths: S.Paths, now: float) -> dict:
         lp = preds[-1]
         out["last_prediction"] = {"capture_id": lp["capture_id"], "at": lp["written_utc"][:19] + "Z",
                                   "models": len({p["model_id"] for p in preds if p["capture_id"] == lp["capture_id"]})}
+    try:  # input coverage written by the tick (section 31); inputs only, no scores
+        from . import input_health as IH
+
+        ih = IH.read(paths)
+    except Exception:  # noqa: BLE001 - the monitor never breaks the dashboard
+        ih = None
+    if ih is not None:
+        out["inputs"] = ih
     return out
 
 

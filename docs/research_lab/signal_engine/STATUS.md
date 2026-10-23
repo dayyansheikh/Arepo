@@ -1,32 +1,30 @@
 # Signal engine: status (rewrite each session; do not append)
 
-**Last updated:** 2026-10-23 23:31 UTC+1 (22:31Z), signal-engine autopilot session 26
+**Last updated:** 2026-10-24 00:20 UTC+1 (2026-10-23 23:20Z), signal-engine autopilot session 27
 
 ## In plain English
-- **One idea tested and dropped, cheaply.** Creative round 17's top engine idea (CH242, "the third price") said that markets
-  can pay out 50/50, that the engine's resolution label throws those away, and that cheap long-shot prices might carry that
-  hidden payout. The engine's own records answer it: outside sports only 2 of 46,596 resolved markets paid 50/50 (0.004%);
-  in sports 0.68%. That is below the idea's own kill line (0.5%), and the few splits sit near 50/50 prices, not on long
-  shots. So nothing is built and no extra model dilutes the leaderboard. It also gives the experiments track a number
-  their LT12 map could not get.
-- **Engine health:** fine. The `tilt` tables (inputs for se24 / se25) are at 70 of 133 and grow by 12 per pass, so they
-  will be complete before tomorrow's 12:14Z refit. No backfill was run, because the other track's 5 GB job (q0116i) was
-  using most of the host's memory.
-- **Scores:** still only 3 days scored; no promotion is possible before ~11-04 (14-day minimum). Nothing new to read.
+- **New: the engine now checks its own inputs.** At every capture it compares each feature family's coverage with the
+  previous day and raises an alert if a column goes empty, halves, turns all-zero, if an extra table fails to appear,
+  if the market universe shrinks, or if a capture was missed. Without this, a broken data source would leave models
+  quietly predicting on missing inputs for days. Tried on the real data (read-only): today is clean. Over the last
+  6 days, 9 of 72 captures would have alerted, all because of the two missed passes on 10-21 at 00:31Z and 02:31Z. No
+  model, feature or score changed.
+- **Engine health:** fine. `tilt` tables are at 82 of 134 and will be complete before today's 12:14Z refit, when se24 /
+  se25 fit for the first time.
+- **Scores (early, 3 days, not a promotion read):** the LightGBM base model (se1) is ahead of the logistic champion by
+  about 0.05 nats at 2 h, 0.06 at 6 h and 0.07 at 24 h, with tight intervals. No promotion is possible before ~11-04
+  (14-day minimum). For resolution (`res_7d`) the champion is no better than the market price itself.
 - Still needing the owner: a public website version of the feed (the North Star asks for an owner-approved web deploy).
 
 ## Live state (host)
-- **Code:** unchanged since session 25 (LT11 tokens, deployed 10-23 ~18:20Z). This session changed docs only; no deploy.
-- **Refit `q0512`** (daily; 10-23 12:14Z cutoff, peak RSS 3,204 MB, 3,741 s): every direction target fitted where expected.
-  - Still `insufficient_coverage` (expected): se8, se9, se10, se16 and se20 (their aux tables start 10-13; ~10-27).
-  - The `res_7d` LightGBM fits fail with "inner split too small (train 0)" (11 days of resolution labels minus the 7-day
-    gap). Expected to clear ~10-28.
-- **Score `q0513`** ran at 10-23 12:16Z: 3 days scored.
-- **Aux tables:** 133 captures; `book0`, `dispgap`, `dormant`, `hwm`, `movetype`, `surprise` 133; `crypto`, `event`,
-  `participation`, `rewards` 121 (start 10-13); `tilt` 70 (filling).
-- **Label store:** 133,559 markets fetched: 131,951 resolved, 588 split 50/50, 1,020 not yet closed.
-- **Queue:** q0512 and q0513 on their daily due-gates (normal). The other track's q0116i (`run_ml_dev`, ~5.2 GB RSS) was
-  running at 22:30Z; not touched.
+- **Code:** session 27's input monitor merged and deployed (see below). Before it, unchanged since session 25.
+- **Refit `q0512`** (daily, 12:14Z): last ran 10-23 (peak RSS 3,204 MB). Still `insufficient_coverage` (expected): se8,
+  se9, se10, se16, se20 (aux tables from 10-13; ~10-27). The `res_7d` LightGBM fits wait for labels (~10-28).
+- **Score `q0513`:** 3 days scored (10-23 12:16Z). Next at ~10-24 12:16Z.
+- **Aux tables:** 134 captures; `book0`, `dispgap`, `dormant`, `hwm`, `movetype`, `surprise` 134; `crypto`, `event`,
+  `participation`, `rewards` 122; `tilt` 82 (filling 12 per pass).
+- **Queue:** q0512 / q0513 on their daily gates. The other track's q0116i (`run_ml_dev`, exclusive, ~6 GB RSS) has been
+  running since 19:22Z in <= 5.5 h slices. The refit (priority 50) gets the next free slot when due. Not touched.
 
 ## Embargo list (unchanged)
 | Model | Embargoed until |
@@ -42,29 +40,31 @@
 | `se3_lr_book` (ineligible), `se14_lgbm_movetype` (ineligible), `se19_lr_book0` | 2027-02-14 |
 
 ## Changes this session
-1. **CH242 `p3` census (killed).** Counts only, from `signal_engine/logs/resolutions-*.jsonl` joined to the features files'
-   `category` and `ms_mid`. Non-sports 2 / 46,596 splits, sports 586 / 85,943, overall 0.44%; 0 of 21,516 at a cheap side
-   <= 0.05. CANDIDATES row 26 and a note for LT12; ledger "Signal engine: CH242 `p3` killed at census"; checkpoint line.
-2. No code change, so no tests were needed and no deploy.
+1. **Input-coverage monitor** (DESIGN_V1 §31): new `backend/astrolabe/signal_engine/input_health.py`, called at the end
+   of `tick` (never changes its exit code). It writes `state/input_health.json` plus a per-capture cache, and
+   `dashboard.live_status` / `status` expose `inputs`. It reads features / aux / meta only (no labels, predictions or
+   scores). Tests: `tests/unit/test_signal_engine_input_health.py` (6) and the signal-engine and lab suites (190 total)
+   pass; ruff clean.
+2. Ledger entry "Signal engine: input-coverage monitor"; checkpoint line.
 
 ## Next actions
-1. **10-24 refit (12:14Z):** check that `tilt` has a table for every capture, that se24 / se25 fit on the direction
-   targets, and that peak RSS stays under ~3,300 MB. If `tilt` is still short (it should not be), run
-   `~/.arepo/signal_engine/aux_backfill_tilt.sh` with nohup outside the pass window and only when no multi-GB job runs.
-2. **Before 11-14:** check that LT2's analysis (q0461) has run. If not, move `tte`, `chg1d_x_liq` and `dispgap` later, and
+1. **After the next pass (10-24 00:31Z):** check that `state/input_health.json` exists on the host and that the tick
+   log line has `inputs` (the pass log cuts the tick output at 400 characters, so read the file, or run `status`).
+2. **10-24 refit (12:14Z):** `tilt` complete; se24 / se25 fit on the direction targets; peak RSS under ~3,300 MB.
+3. **/lab display of `inputs`:** a small production-branch PR (`frontend/lib/lab/signal-engine.ts`, `SignalEngine.tsx`,
+   types) showing "Inputs: ok" or the alert list. Needs the full frontend validation before a self-merge.
+4. **Before 11-14:** check that LT2's analysis (q0461) has run. If not, move `tte`, `chg1d_x_liq` and `dispgap` later, and
    `flow` before 11-16. Same for `rewards` against E022 before 11-18.
-3. **If CH214 drops at LT9's census:** `book` / `book0` need a new date by ledger line. If a census drops CH232 / CH233 /
+5. **If CH214 drops at LT9's census:** `book` / `book0` need a new date by ledger line. If a census drops CH232 / CH233 /
    CH234, withdraw that LT11 token with a ledger line.
-4. Around 10-27/28: se8, se10, se16 and se20 start fitting and the `res_7d` LightGBM fits should work. Watch refit RSS.
-5. Remaining engine-first ideas (build only with a real prior): CH250 `paymaker` and CH248 `mt_twin_printed` only after
-   11-18 / 11-22; CH243 `tl_fee_free` is nearly `tl_fee_ps == 0` (already held); CH239 `ruleclass` (likely a category
-   proxy); `volage` after 11-22. LT12 families (`mirror`, `mixedlad`, `feeclass`) are not to be isolated before its freeze.
-6. Small fix worth doing: the pass logs the tick output cut to 400 characters (`arepo_pass.sh`), so tick aux counts
-   cannot be read from `collector.log`. The pass script is shared; change it only alongside the other track.
-7. Housekeeping (needs approval): remove the merged worktrees `astrolabe-lab-se`, `astrolabe-lab-se-promo` and
+6. Around 10-27/28: se8, se10, se16 and se20 start fitting and the `res_7d` LightGBM fits should work. Watch refit RSS.
+7. Remaining engine-first ideas (build only with a real prior): CH250 `paymaker` and CH248 `mt_twin_printed` only after
+   11-18 / 11-22; CH239 `ruleclass` (likely a category proxy); `volage` after 11-22. LT12 families (`mirror`, `mixedlad`,
+   `feeclass`) are not to be isolated before its freeze.
+8. Housekeeping (needs approval): remove the merged worktrees `astrolabe-lab-se`, `astrolabe-lab-se-promo` and
    `astrolabe-lab-se-mid`, the `/tmp/se_*` scratch and old backfill logs.
 
 ## Notes for the other track
-- CH242's split map is now drawn from the engine's label store (your CH251 map listed it as not mapped): non-sports split
-  share 0.004%, so `p3` is killed and needs no token. Population caveat in CANDIDATES.
+- The monitor's backtest confirms the 10-21 00:31Z / 02:31Z passes are missing from the engine's captures, and that the
+  2 h / 6 h / 24 h look-back columns of the following captures are empty because of it (missing stays missing).
 - No queue job of yours was paused, cancelled or re-prioritised.
