@@ -79,7 +79,7 @@ def test_ch234_units_classes_filters_and_product(tmp_path):
     m["m8"] = {"mid": _flat(0.40, 0.02), "vnum": {15: 150.0}, "cat": "crypto"}  # dropped
     m["m9"] = {"mid": _flat(0.45, 0.02), "vnum": {15: 150.0}, "tick": {15: "0.001"}}  # tick changed
     m["m10"] = {"mid": _flat(0.45, 0.02), "vnum": {15: 150.0}, "end": "2026-10-02T08:00:00Z"}  # ends within 3 h of the decision (06:32Z): after the row receipt, so only the decision rule drops it
-    m["m11"] = {"mid": _flat(0.45, 0.02), "vnum": {15: 150.0}, "side": False}  # sidecar row missing -> category unknown
+    m["m11"] = {"mid": _flat(0.45, 0.02), "vnum": {15: 150.0}, "side": False}  # sidecar row missing -> category unknown: kept as a counted sidecar_missing unknown line (review should-fix 5)
     m["m12"] = {"mid": _flat(0.50, 0.30), "vnum": {15: 150.0}}  # |d| = 0.30 winsorised at 0.20
     st, spec, _ = _world(tmp_path, m)
     # the end-date test needs a decision time before the end: slot 15 starts 2026-10-02T06:31Z
@@ -88,10 +88,13 @@ def test_ch234_units_classes_filters_and_product(tmp_path):
     assert byid.loc["m1", "vclass"] == "traded" and byid.loc["m2", "vclass"] == "quote_only"
     assert byid.loc["m3", "vclass"] == "vnum_missing_km1" and byid.loc["m4", "vclass"] == "vnum_decrease"
     assert abs(byid.loc["m1", "w"] - 0.5) < 1e-9 and abs(byid.loc["m2", "w"] - 0.7) < 1e-9
-    assert "m5" not in byid.index and "m6" not in byid.index and "m8" not in byid.index and "m11" not in byid.index and "m9" not in byid.index
+    assert "m5" not in byid.index and "m6" not in byid.index and "m8" not in byid.index and "m9" not in byid.index
+    assert byid.loc["m11", "vclass"] == "sidecar_missing" and byid.loc["m11", "cat_unknown"] == 1 and abs(byid.loc["m11", "w"] - 0.45) < 1e-9
+    assert cnt["vclass_sidecar_missing"] == 1 and cnt["sidecar_missing_rows"] == 1 and cnt["sidecar_missing_movers"] == 1
+    assert byid.loc["m11", "in_scope"] == 1 and byid.loc["m11", "ladder"] == 0  # so the census unknown share (in_scope 1, ladder 0, not traded / quote-only) counts it
     assert byid.loc["m7", "in_scope"] == 0 and byid.loc["m1", "in_scope"] == 1
     assert byid.loc["m12", "absd"] == 0.20 and byid.loc["m12", "absd_wins"] == 1 and cnt["winsorised"] == 1
-    assert cnt["not_mover"] == 1 and cnt["p_band"] == 1 and cnt["tick_changed"] == 1 and cnt["crypto"] == 1 and cnt["sports_unknown"] == 1
+    assert cnt["not_mover"] == 1 and cnt["p_band"] == 1 and cnt["tick_changed"] == 1 and cnt["crypto"] == 1 and cnt["sports_unknown"] == 0
     assert "m10" not in byid.index and cnt["end_date_decision"] == 1
     # unit time is the decision time = capture k's last receipt (rows 60 s, sidecar 90 s after the start -> 90 s)
     assert abs(byid["t_row"].iloc[0] - (sy.slot_dt(K0).timestamp() + 90.0)) < 1e-6
@@ -189,6 +192,24 @@ def test_ch232_zone_crossings_xo_xr_and_exclusions(tmp_path):
     assert r.loc["r1", "v_c"] == 4.5 and abs(r.loc["r1", "log_rate"] - math.log(10)) < 1e-9
     # spread-in-ticks dummies: spread 0.02 = 2 ticks, unchanged
     assert r.loc["r1", "S2"] == 1 and r.loc["r1", "S3"] == 0 and r.loc["r1", "dSp1"] == 0
+    assert max(st.reads) <= K32
+
+
+def test_ch232_a6_and_every_outward_crossing_are_counted(tmp_path):
+    """Review should-fix 6 (A6 counted) and 4 (every outward crossing between defined mids recorded for the re-crossing gate)."""
+    m = {
+        "a": {"mid": _path(0.12, {30: 0.08}), "missing": {23}, "rewards_all": RW, "rmin": 20, "rmax": 4.5},  # mid at ds - 1 (slot 23, previous day) undefined
+        "b": {"mid": _path(0.12, {30: 0.08}), "rewards_all": RW, "rmin": 20, "rmax": 4.5},
+        "x": {"mid": _path(0.50, {30: 0.95}), "rewards_all": RW, "rmin": 20, "rmax": 4.5},  # outward crossing from outside the zone: no unit, still a crossing
+        "u": {"mid": _path(0.50, {29: 0.88, 30: 0.86}), "rewards_all": RW, "rmin": 20, "rmax": 4.5},  # no crossing
+    }
+    st, spec = _world32(tmp_path, m)
+    U, cnt = lt.ch232_units(st, K32, spec, stamp=False, arms=("out",))
+    r = U.set_index("market_id")
+    assert r.loc["a", "xo"] == 1 and r.loc["b", "xo"] == 1 and "x" not in r.index
+    assert cnt["arm_out"]["a6_prev_day_mid_undefined"] == 1 and cnt["arm_out"]["a6_prev_day_mid_undefined_xo"] == 1
+    xs = {(m_, up) for m_, _, up in cnt["_xall"]}
+    assert xs == {("a", 0.0), ("b", 0.0), ("x", 1.0)}
     assert max(st.reads) <= K32
 
 

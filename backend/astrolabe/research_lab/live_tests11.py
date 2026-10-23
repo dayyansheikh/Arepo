@@ -762,6 +762,10 @@ def ch234_units(store: SlotStore, k: int, spec: dict, role: str = ROLE_UNREG, co
         return pd.DataFrame(), cnt
     cap = store.by_slot[k]
     cnt["pair_units"] = len(j)
+    nos = j["side"].to_numpy(float) != 1  # no sidecar row of the market at slot k (2.3's sidecar_missing; review should-fix 5)
+    cnt["sidecar_missing_rows"] = int(nos.sum())
+    SM = sidecar_missing_movers(j[nos].reset_index(drop=True), cap, k, t_dec, spec, cnt)
+    j = j[~nos].reset_index(drop=True)
     j = category_split(j, cnt)
     j = tick_rule(j, cnt)
     p_prev = j["mid_p"].to_numpy(float)
@@ -773,12 +777,14 @@ def ch234_units(store: SlotStore, k: int, spec: dict, role: str = ROLE_UNREG, co
     cnt["not_mover"] = int((~mover).sum())
     j = j[mover].reset_index(drop=True)
     if j.empty:
-        return pd.DataFrame(), cnt
+        cnt["units"] = len(SM)
+        return ((_stamp(SM, spec, commit, role) if stamp else SM) if len(SM) else pd.DataFrame()), cnt
     d = j["mid"].to_numpy(float) - j["mid_p"].to_numpy(float)
     sgn = np.sign(d)
     vcl = vnum_classes(j["vnum"].to_numpy(float), j["side"].to_numpy(float), j["vnum_p"].to_numpy(float), j["side_p"].to_numpy(float), True)
     for c_ in ("traded", "quote_only", "vnum_missing_k", "vnum_missing_km1", "vnum_decrease", "sidecar_missing"):
         cnt[f"vclass_{c_}"] = int((vcl == c_).sum())
+    cnt["vclass_sidecar_missing"] += cnt["sidecar_missing_movers"]
     absd, wins = winsorise_absd(d)
     cnt["winsorised"] = int(wins.sum())
     p_prev = j["mid_p"].to_numpy(float)
@@ -798,8 +804,48 @@ def ch234_units(store: SlotStore, k: int, spec: dict, role: str = ROLE_UNREG, co
     cf = (spec.get("census_fixed") or {}).get("CH234")
     u["xw"] = xw_term(u["w"].to_numpy(float), u["absd"].to_numpy(float), cf)
     u = b._drop_missing(u, cnt, {"log_rv24s": "rv24_undefined", "rewarded": "reward_unparseable"})
+    if len(SM):
+        u = pd.concat([u, SM], ignore_index=True)
     cnt["units"] = len(u)
     return (_stamp(u, spec, commit, role) if stamp else u), cnt
+
+
+def sidecar_missing_movers(jm: pd.DataFrame, cap: dict, k: int, t_dec: float, spec: dict, cnt: dict) -> pd.DataFrame:
+    """2.3's ``sidecar_missing`` unknown sub-class (review 2026-10-23 should-fix 5): a pair-frame market with NO sidecar row at slot k has an unknown category
+    (1.4: unknown is treated as crypto and dropped), so before this fix it never reached ``vnum_classes`` and the sub-class was never counted, which LOWERED
+    the census unknown share (and world 3's ``q``). Conservative reading: such a mover that passes every rule not needing the sidecar (``p_{k-1}`` in
+    [0.04, 0.96], ``|d_k| >= 0.01``; the tick rule needs the sidecar and is not applied) is kept as an unknown-class line, ``vclass = sidecar_missing``,
+    ``cat_unknown = 1``, ``in_scope = 1`` (it may be a sports or crypto market: counting it can only RAISE the unknown share). Only ``w``, ``|d|``, the bin
+    and the identity columns are filled; the K block is NaN. It never enters the primary, the quote-only twin or any gate other than the unknown-share
+    rows of the census (2.3: unknown movers are never classed, imputed or re-classed)."""
+    t = spec["tests"]["CH234"]
+    cnt["sidecar_missing_movers"] = 0
+    if jm.empty:
+        return pd.DataFrame()
+    pp = jm["mid_p"].to_numpy(float)
+    d = jm["mid"].to_numpy(float) - pp
+    keep = (pp >= t["p_lo"] - EPS) & (pp <= t["p_hi"] + EPS) & (np.abs(d) >= t["min_abs_d"] - EPS)
+    jm = jm[keep].reset_index(drop=True)
+    cnt["sidecar_missing_movers"] = len(jm)
+    if jm.empty:
+        return pd.DataFrame()
+    jm = jm.assign(in_scope=1)
+    d = jm["mid"].to_numpy(float) - jm["mid_p"].to_numpy(float)
+    sgn = np.sign(d)
+    absd, wins = winsorise_absd(d)
+    p_prev = jm["mid_p"].to_numpy(float)
+    bi = bin_index(p_prev)
+    end = jm["end_ts"].to_numpy(float)
+    with np.errstate(invalid="ignore"):
+        f_ok = (np.isnan(end) | (end > t_dec + t["f_end_margin_h"] * 3600.0)).astype(float)
+    u = pd.DataFrame({**_base_cols(jm, cap, k, t_dec, KINDS["CH234"]), "vclass": "sidecar_missing", "cat_unknown": 1, "d": d, "sgn": sgn, "p_prev": p_prev, "absd": absd,
+                      "absd_wins": wins, "w": collateral_weight(d, p_prev), "bin": bi, "ladder": (jm["n_members"].to_numpy(float) > spec["member_cap"]["max_members"]).astype(int),
+                      "f_end_ok": f_ok, "tick": np.nan, "bid_k": jm["bid"].to_numpy(float), "ask_k": jm["ask"].to_numpy(float), "fee_cat": None})
+    for i, ctr in enumerate(BIN_CENTRES):
+        on = (bi == i).astype(float) * sgn
+        u[f"sb{i}"], u[f"sb{i}_lvl"] = on, on * (p_prev - ctr)
+    u["xw"] = xw_term(u["w"].to_numpy(float), u["absd"].to_numpy(float), (spec.get("census_fixed") or {}).get("CH234"))
+    return u
 
 
 # --- CH232: the cheap side's cliff (section 4) ------------------------------------------------------------------------------------------
@@ -861,6 +907,13 @@ def ch232_units(store: SlotStore, k: int, spec: dict, role: str = ROLE_UNREG, co
     earlier = list(range(ds, k))
     gap_slots = [s_ for s_ in earlier if s_ not in store.by_slot]
     out, tot = [], {"pair_units": len(j0)}
+    if "out" in arms:  # review should-fix 4 (A12 revised): EVERY outward crossing of B between defined mids at (k - 1, k], any market (the re-crossing gate's count)
+        ser_k, ser_p = store.ser(k), store.ser(k - 1)
+        mk_all = np.asarray(ser_k.index.astype(str)) if ser_k is not None else np.array([], dtype=str)
+        m_c, m_p = defined_mid(ser_k, mk_all, spec), defined_mid(ser_p, mk_all, spec)
+        xc = crossing(m_p, m_c, ARMS["out"][0], "out")
+        day_k = b._utc_day(cap["start"])
+        tot["_xall"] = [(str(m_), day_k, float(cv > 0.5)) for m_, cv in zip(mk_all[xc], m_c[xc], strict=True)]  # upper = the boundary crossed (0.90)
     j0 = category_split(j0, tot)
     j0 = tick_rule(j0, tot)
     for arm in arms:
@@ -904,6 +957,10 @@ def ch232_units(store: SlotStore, k: int, spec: dict, role: str = ROLE_UNREG, co
             prev_cross |= crossing(DM[:, i_], DM[:, i_ + 1], band, direction)
         cur = crossing(DM[:, -2], DM[:, -1], band, direction)
         xo, xr = (cur & ~prev_cross).astype(float), (cur & prev_cross).astype(float)
+        # A6 (revised, review should-fix 6): units whose first-of-day status rests on an undefined mid at ds - 1 are COUNTED (kept, as the design excludes only same-day gaps)
+        a6 = (~np.isfinite(DM[:, 0])) if earlier else np.zeros(len(j), bool)
+        cnt["a6_prev_day_mid_undefined"] = int(a6.sum())
+        cnt["a6_prev_day_mid_undefined_xo"] = int((a6 & (xo == 1)).sum())
         rew = j["rewarded"].to_numpy(float)
         d = j["mid"].to_numpy(float) - j["mid_p"].to_numpy(float)
         mp = j["mid_p"].to_numpy(float)
@@ -1740,7 +1797,7 @@ def census_ch234(U: pd.DataFrame, tot: dict, spec: dict, covered_days: float, tw
             "r_gate": bool(np.isfinite(rg["r_gate"]) and rg["r_gate"] <= g["r_gate_max"]), "slope_mde": bool(sm["mde_c"] <= a["mde_max_c"]["CH234"]), "f_mde": bool(fm["f_mde_c"] <= a["f_mde_max_c"]["CH234"])}
     res = _gate_block(res, gate, "gate_CH234")
     res["census_fixed"] = {"w_centre": wc, "w_scale": ws, "absd_centre": dc, "absd_scale": ds_, "xw_cuts": [t1, t2], "xw_gap": gap, "exclude_family": excl,
-                           "q_unknown": max(unk_share, 0.15) if np.isfinite(unk_share) else None}
+                           "q_unknown": max(unk_share, 0.15) if np.isfinite(unk_share) else None, "mde_c": sm["mde_c"]}  # mde_c: 'underpowered' label input only
     return res
 
 
@@ -1824,7 +1881,7 @@ def census_ch233(U: pd.DataFrame, tot: dict, spans: list, spec: dict, covered_da
             "venue_clock": bool(np.isfinite(clock) and clock <= g["venue_clock_max"]), "block_share": bool(np.isfinite(bshare) and bshare >= g["block_share_min"]),
             "r_gate": bool(np.isfinite(rg["r_gate"]) and rg["r_gate"] <= g["r_gate_max"]), "slope_mde": bool(sm["mde_c"] <= a["mde_max_c"]["CH233"]), "f_mde": bool(fm["f_mde_c"] <= a["f_mde_max_c"]["CH233"])}
     res = _gate_block(res, gate, "gate_CH233")
-    res["census_fixed"] = {"s_c": s_c, "zcl_cuts": [t1, t2], "zcl_gap": gap, "exclude_family": excl}
+    res["census_fixed"] = {"s_c": s_c, "zcl_cuts": [t1, t2], "zcl_gap": gap, "exclude_family": excl, "mde_c": sm["mde_c"]}  # mde_c: 'underpowered' label input only
     return res
 
 
@@ -1840,8 +1897,11 @@ def band_unit_check(v_cents, spec: dict) -> dict:
     return {"median_v_cents": med, "rows": int(len(v)), "ok": bool(np.isfinite(med) and lo <= med <= hi)}
 
 
-def census_ch232(U: pd.DataFrame, tot: dict, spec: dict, covered_days: float, twin_days: float, band: dict, by_slot: dict, twin_cache: dict | None = None) -> dict:
-    """CH232's gates on the arm-``out`` units; ``U`` = the units of every arm (S1 / S2 counted descriptively only)."""
+def census_ch232(U: pd.DataFrame, tot: dict, spec: dict, covered_days: float, twin_days: float, band: dict, by_slot: dict, twin_cache: dict | None = None,
+                 xall: list | None = None) -> dict:
+    """CH232's gates on the arm-``out`` units; ``U`` = the units of every arm (S1 / S2 counted descriptively only). ``xall`` = every outward crossing of B
+    between defined mids, any market, as (market, UTC day, upper): the re-crossing gate counts THESE on each reward-panel crossing market-day (7: '>= 3
+    outward crossings of a boundary'; review should-fix 4, A12 revised), the zone / mover-only count printed beside it."""
     g, a = spec["census_gates"]["CH232"], b.mde_common(spec)
     scale, scale_f = _scale(covered_days), _scale(twin_days)
     res: dict = {"covered_days": covered_days, "twin_days": twin_days, "band_unit_check": band, "m1_side_reading": spec.get("m1_side_reading"),
@@ -1872,8 +1932,17 @@ def census_ch232(U: pd.DataFrame, tot: dict, spec: dict, covered_days: float, tw
     md = pd.concat([R[R["xo"] + R["xr"] > 0]]).assign(_c=lambda d: d["xo"] + d["xr"]).groupby(["market_id", "day", "upper"])["_c"].sum()
     first_md = R[R["xo"] == 1].drop_duplicates(["market_id", "day", "upper"]).set_index(["market_id", "day", "upper"]).index
     md = md.reindex(first_md)
-    recross3 = float((md >= 3).mean()) if len(md) else float("nan")
-    recross2 = float((md >= 2).mean()) if len(md) else float("nan")
+    recross3_zone = float((md >= 3).mean()) if len(md) else float("nan")
+    recross2_zone = float((md >= 2).mean()) if len(md) else float("nan")
+    if xall is not None:
+        XA = pd.DataFrame(xall, columns=["market_id", "day", "upper"]) if len(xall) else pd.DataFrame({"market_id": pd.Series(dtype=str), "day": pd.Series(dtype=str), "upper": pd.Series(dtype=float)})
+        md_all = XA.astype({"market_id": str, "day": str, "upper": float}).groupby(["market_id", "day", "upper"]).size()
+        md_all = md_all.reindex(pd.MultiIndex.from_tuples([(str(a_), str(b_), float(c_)) for a_, b_, c_ in first_md], names=["market_id", "day", "upper"])).fillna(0) if len(first_md) else md_all.iloc[:0]
+        recross3 = float((md_all >= 3).mean()) if len(md_all) else float("nan")
+        recross2 = float((md_all >= 2).mean()) if len(md_all) else float("nan")
+        recross_basis = "every outward crossing between defined mids (any origin)"
+    else:
+        recross3, recross2, recross_basis = recross3_zone, recross2_zone, "zone / mover units only (no crossing list given)"
     Re = R[b._eff(R)] if len(R) else R
     dsg = b.design_ss(Re, "xo", controls) if len(Re) else {"vif_w": float("nan")}
     corr_x = {x: b.wcorr(R, "xo", x) for x in ("log1p_liq", "log_rv24s", "absd")}
@@ -1888,7 +1957,8 @@ def census_ch232(U: pd.DataFrame, tot: dict, spec: dict, covered_days: float, tw
     proj_c, proj_cc = float(len(cross) * scale), float(len(ccross) * scale)
     S1, S2 = U[U["arm"] == "in"], U[U["arm"] == "pseudo"]
     res.update({"zone_units": n_zone, "reward_status_finite_share": finite_share, "reward_crossings_projected_21d": proj_c, "control_crossings_projected_21d": proj_cc, "f_arm_coverage": F_cov,
-                "recross_ge3_share": recross3, "recross_ge2_share": recross2, "distinct_events_unprojected": ev_n, "g_eff": ge, "cap_share": cap_share, "exclude_family": excl,
+                "recross_ge3_share": recross3, "recross_ge2_share": recross2, "recross_basis": recross_basis,
+                "recross_ge3_share_zone_units": recross3_zone, "recross_ge2_share_zone_units": recross2_zone, "distinct_events_unprojected": ev_n, "g_eff": ge, "cap_share": cap_share, "exclude_family": excl,
                 "top_family_share": top, "venue_clock": _slot_share(cross) if len(cross) else float("nan"), "corr_x": corr_x, "vif_w": dsg["vif_w"], "block_min_units": bm, "block_share": bs,
                 "r_gate": rg, "class": sm, "F": fm, "design_effect": de, "fee_dummies": fc_names, "reference_units": int((R["xo"] == 0).sum()), "reward_panel_units": int(len(R)),
                 "control_panel_units": int(len(C)), "xr_units": int((R["xr"] == 1).sum()), "inward_S1_units": int(len(S1)), "inward_S1_crossings": int((S1["xo"] == 1).sum()),
@@ -1903,7 +1973,7 @@ def census_ch232(U: pd.DataFrame, tot: dict, spec: dict, covered_days: float, tw
     res = _gate_block(res, gate, "gate_CH232")
     if not band["ok"]:
         res = _nan_gate(res, "gate_CH232", "band_unit")
-    res["census_fixed"] = {"exclude_family": excl}
+    res["census_fixed"] = {"exclude_family": excl, "mde_c": sm["mde_class_c"]}  # mde_c: input of 1.9's 'underpowered' label only
     return res
 
 
@@ -2079,6 +2149,7 @@ def census_units(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, work: Path, spec: d
     parts = {"CH234": [], "CH233": [], "CH232": []}
     tots: dict = {"CH234": {}, "CH233": {}, "CH232": {}}
     spans: list = []
+    xall: list = []
     fee_counts: dict = {}
     v_rewarded: list[np.ndarray] = []
     for k in loop:
@@ -2095,10 +2166,11 @@ def census_units(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, work: Path, spec: d
         for test, fn in (("CH234", ch234_units), ("CH233", ch233_units), ("CH232", ch232_units)):
             u, cnt = fn(store, k, spec, stamp=False)
             spans.extend(cnt.pop("_spans", []))
+            xall.extend(cnt.pop("_xall", []))
             b._merge_counts(tots[test], cnt)
             if len(u):
                 parts[test].append(u)
-    return {"head": head, "cov": cov, "by_slot": by_slot, "ORG": ORG, "parts": parts, "tots": tots, "spans": spans, "fee_counts": fee_counts, "v_rewarded": v_rewarded}
+    return {"head": head, "cov": cov, "by_slot": by_slot, "ORG": ORG, "parts": parts, "tots": tots, "spans": spans, "fee_counts": fee_counts, "v_rewarded": v_rewarded, "xall": xall}
 
 
 def census_gates(cu: dict, spec: dict, twin_cache: dict | None = None) -> dict:
@@ -2114,7 +2186,7 @@ def census_gates(cu: dict, spec: dict, twin_cache: dict | None = None) -> dict:
            "expected_origins": spec["census_inputs"]["expected_origins"].get("CC11"),
            "CH234": census_ch234(U["CH234"], cu["tots"]["CH234"], spec, cd, td, len(ORG), by_slot, twin_cache),
            "CH233": census_ch233(U["CH233"], cu["tots"]["CH233"], cu["spans"], spec, cd, td, by_slot, twin_cache),
-           "CH232": census_ch232(U["CH232"], cu["tots"]["CH232"], spec, cd, td, band, by_slot, twin_cache)}
+           "CH232": census_ch232(U["CH232"], cu["tots"]["CH232"], spec, cd, td, band, by_slot, twin_cache, xall=cu.get("xall"))}
     prim = {"CH234": U["CH234"][(U["CH234"]["in_scope"] == 1) & (U["CH234"]["vclass"] == "traded")] if len(U["CH234"]) else U["CH234"],
             "CH233": U["CH233"][U["CH233"]["arm"] == "primary"] if len(U["CH233"]) else U["CH233"],
             "CH232": U["CH232"][(U["CH232"]["arm"] == "out") & (U["CH232"]["xo"] == 1)] if len(U["CH232"]) else U["CH232"]}

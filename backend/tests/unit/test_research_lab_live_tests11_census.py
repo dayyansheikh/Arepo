@@ -123,6 +123,17 @@ def test_census_fixed_values_are_filled_from_the_census_units(cw):
     assert cf["q_unknown"] >= 0.15  # world 3's unknown share: floor 0.15 (a declared convention)
     assert set(res["CH233"]["census_fixed"]["s_c"]) == {"3-5", "6-10"} and res["CH233"]["census_fixed"]["s_c"]["3-5"] > 0
     assert "exclude_family" in res["CH232"]["census_fixed"]
+    for t in ("CH234", "CH233", "CH232"):  # the census MDE is recorded for 1.9's 'underpowered' label (review should-fix 2)
+        assert "mde_c" in res[t]["census_fixed"]
+
+
+def test_recross_gate_counts_every_outward_crossing(cw):
+    """Review should-fix 4 (A12 revised): the re-crossing gate counts every outward crossing between defined mids on a reward-panel crossing market-day; the
+    zone / mover-only count is printed beside it and can only be lower or equal."""
+    r = _gates(cw, cw["spec"])["CH232"]
+    assert r["recross_basis"].startswith("every outward crossing")
+    a, z = r["recross_ge2_share"], r["recross_ge2_share_zone_units"]
+    assert (a != a and z != z) or a >= z - 1e-12
 
 
 def test_series_family_over_forty_percent_is_excluded(cw):
