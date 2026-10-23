@@ -59,6 +59,12 @@ KIND_RULES: dict[str, tuple[str, str]] = {
         "n_tests = k = the Holm primaries that survived their census gates; gate draws, F, secondaries, mechanism readings, "
         "economics, censuses and the size check are 0. Fail-closed: an unknown kind raises.",
     ),
+    "live_tests11": (
+        N_TESTS,
+        "LT11 single analysis (the price of the quote, CH234/CH233/CH232; LIVE_TESTS_11.md 1.11): one line, n_tests = k = the "
+        "Holm primaries that survived their census gates; gate draws, F, point conditions, secondaries, readings, arms, placebos, "
+        "economics, the CH240 map, censuses and the size check are 0. Fail-closed: an unknown kind raises.",
+    ),
     "copy_skilled": (
         N_TESTS,
         "E026 single analysis (copy skilled wallets with latency; LIVE_TESTS_COPY.md): one line, n_tests = 2 (the "

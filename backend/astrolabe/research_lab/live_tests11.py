@@ -98,10 +98,14 @@ def code_hashes() -> dict:
     return {n: (code_sha256(here / n) if (here / n).exists() else None) for n in CODE_FILES}
 
 
+def joint_sha(h11: str | None, hbase: str | None) -> str:
+    """16 hex digits identifying the reader code: the unit-building module together with the vendored base (the registered pins feed the same function)."""
+    return hashlib.sha256((str(h11) + str(hbase)).encode("utf-8")).hexdigest()[:16]
+
+
 def reader_sha() -> str:
-    """16 hex digits identifying the reader code: the unit-building module together with the vendored base."""
     h = code_hashes()
-    return hashlib.sha256((str(h["live_tests11.py"]) + str(h["live_tests11_base.py"])).encode("utf-8")).hexdigest()[:16]
+    return joint_sha(h["live_tests11.py"], h["live_tests11_base.py"])
 
 
 def _nan_free(o, path: str = "") -> list[str]:
@@ -730,7 +734,7 @@ def _stamp(df: pd.DataFrame, spec: dict, commit: str, role: str) -> pd.DataFrame
 def _base_cols(j: pd.DataFrame, cap: dict, k: int, t_dec: float, kind: str) -> dict:
     return {"market_id": j["market_id"].astype(str).to_numpy(), "event_id": j["event_id"].astype(str).to_numpy(), "skey": j["skey"].astype(str).to_numpy(),
             "sports": j["sports"].to_numpy(int), "in_scope": j["in_scope"].to_numpy(int), "day": b._utc_day(cap["start"]), "slot": k, "t_row": np.full(len(j), t_dec),
-            "kind": kind, "condition_id": j["condition_id"].astype(str).to_numpy(object)}
+            "kind": kind, "condition_id": j["condition_id"].astype(str).to_numpy(object), "fee_rate": j["fee_rate"].to_numpy(float), "fee_exp": j["fee_exp"].to_numpy(float)}
 
 
 def tick_rule(j: pd.DataFrame, cnt: dict) -> pd.DataFrame:
@@ -786,7 +790,7 @@ def ch234_units(store: SlotStore, k: int, spec: dict, role: str = ROLE_UNREG, co
         f_ok = (np.isnan(end) | (end > t_dec + t["f_end_margin_h"] * 3600.0)).astype(float)
     u = pd.DataFrame({**_base_cols(j, cap, k, t_dec, KINDS["CH234"]), "vclass": vcl, "d": d, "sgn": sgn, "p_prev": p_prev, "absd": absd, "absd_wins": wins, "w": w, "bin": bi,
                       "ladder": (j["n_members"].to_numpy(float) > spec["member_cap"]["max_members"]).astype(int), "f_end_ok": f_ok, "tick": j["tick"].to_numpy(float),
-                      "fee_cat": j["fee_cat"].to_numpy(object)})
+                      "bid_k": j["bid"].to_numpy(float), "ask_k": j["ask"].to_numpy(float), "fee_cat": j["fee_cat"].to_numpy(object)})
     for i, ctr in enumerate(BIN_CENTRES):
         on = (bi == i).astype(float) * sgn
         u[f"sb{i}"], u[f"sb{i}_lvl"] = on, on * (p_prev - ctr)
