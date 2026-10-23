@@ -3907,6 +3907,16 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   and pulled, all before 2026-10-28T03:30Z outside 02:45-05:30Z. q0116h priority lowered 95 -> 40 so the LT8 chain takes
   the gaps between MC1 slices first.
 
+## LT8 seal committed, censuses promoted, 2026-10-23 ~02:25Z (operational; nothing counted)
+- q0621's depends_on edit (q0620 -> q0604) recorded at 774c43c0 had not been committed; committed 66bbc2fd and deployed
+  02:00Z. q0621 ran 02:00Z (light, net lane, beside MC1) and wrote `lt8_census_inputs.json`, sha256
+  `5545538af10a672b4f84cd6789481841bc5387e15dc256cca661fd5d55c7bc26`: 430 files (112 capture slots, 47 sweep slots; 159
+  slots), span 10-12T00:31Z..10-21T22:31Z, 0 missing, 0 `--unavailable` reports used, design text 73c941e1…. Copied
+  unchanged to `docs/research_lab/seals/lt8_census_inputs.json` (hash re-checked on the Mac).
+- q0622 (CC8 captures) and q0623 (CS8 sweeps) promoted together (their depends_on chain them; exclusive; mem 1500 / 2000
+  MB, so held by the 02:45-05:30Z start blackout). Each runs once; only a deterministic crash gets one retry. They must
+  finish before 2026-10-28T03:30Z. The 10-day snapshot rule stays until q0623 is done.
+
 ## LT9 design draft, 2026-10-22 (nothing counted)
 - **Draft:** `docs/research_lab/LIVE_TESTS_9.md` on `feat/live-tests-9` (from chore `9079ca39`), sha256
   `01c4989065c35743c47baa7c191f5956a1a734d9270a0c8e9c107605f82bef0a`. DRAFT, **not frozen**, no challenger review yet;
