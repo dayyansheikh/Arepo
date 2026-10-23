@@ -1,6 +1,6 @@
 # Live tests 11 (LT11): the price of the quote (CH234, CH233, CH232), DRAFT pre-registrations
 
-**Status: DRAFT ("R1 response applied; re-check required"). NOT FROZEN, not registered, nothing counted, no code, no seal,
+**Status: DRAFT: R1 re-check ACCEPT_WITH_FIXES; F1-F4 applied as worded; pre-freeze verification next. NOT FROZEN, not registered, nothing counted, no code, no seal,
 no census run. E-numbers unassigned.** Drafted 2026-10-23 (about 12:30-14:30Z) on branch `feat/live-tests-11` from the
 `chore/arepo-claude-setup` tip `2b33d60b`, a design-only first commit like the first commits of LT3-LT10. Challenger R1
 (`reviews/LT11_CHALLENGER_R1_2026-10-23.md`, verdict REVISE: 8 must-fix, 10 should-fix, rulings A1-A13) was answered on
@@ -225,7 +225,7 @@ Round 16's design rules (`CREATIVE_HYPOTHESES_2026-10-30.md` 0.2, with rounds 14
   start at capture k + 1.** **CH233's within-capture receipt order (R1 must-fix 1):** CH233's target `ds` starts at the member's
   own row of capture k, while `cl_sib` reads sibling rows of capture k that may be received later; so that no material part of
   the target interval precedes the state and a sibling's bid has no time to react to the member's own spread change inside
-  the capture, every event-capture at k - 1 or k whose eligible members' `received_utc` span (largest minus smallest) exceeds
+  the capture, every event-capture at k - 1 or k whose eligible members' row (`rows.csv.gz`) `received_utc` span (largest minus smallest) exceeds
   **120 s** gives no unit for any member (`receipt_span`, counted; E005's precedent, ledger E005). The residual overlap (at
   most 120 s of a 2 h target) is disclosed, not removed.
 - **Late rule:** as LT4 1.3: a frozen file is written before capture k + 1's start, else `.late`, units lost and counted;
@@ -933,12 +933,13 @@ captures x 3 files, planning 1.0-1.4 GB. No sweep and no feed capture is read by
   disk (CLAUDE.md storage stop rule); a file found in neither place is genuinely missing (counted, never substituted). q0691 writes
   `seals/lt11_census_inputs.json` (files, sha256, the seal's own slot assignment and the **frozen LT11 design-text sha256**, so the
   seal is written only after the freeze); the orchestrator commits it before the census runs.
-- **Minimum covered days, checked first (R1 must-fix 7)** (covered origins / 12): >= 7.0 for each test (>= 5.0 for twin pairs).
+- **Minimum covered days, checked first** (covered origins / 12, where a covered origin is a sealed slot whose capture and the capture of the slot before it are both `state=complete` with rows and sidecar present, and for twin pairs also the captures of slots k + 2 and k + 3; computed from the seal manifest before any row is read; identical for all three tests and using no test's filters): >= 7.0 (>= 5.0 for twin pairs).
   The census evaluates this coverage check **before** any gate of the test. If it fails, **no gate of that test is computed or
   printed** (the census code returns before building the test's gate block; only the coverage counts are printed) and the test
   is recorded **`census_unavailable (coverage)`**, a status distinct from **`census_dropped`** (a computed gate failed). A
   `census_unavailable` test is not registered in the fast lane and **may be re-censused in the ordered lane** (1.1), because no
   gate value of it was seen; a `census_dropped` test never is.
+  For a `census_unavailable` test, no descriptive line is printed either. A re-censused test is registered in the ordered lane as its own Holm family (`k_tests` = its survivors) and is never added to a family already registered in the fast lane.
 - **Header pre-check** (before the census code is frozen; headers only, no rows): rows carry `received_utc`, `bid`, `ask`,
   `liquidity`, `volume24hr`, `chg_1h`, `end_date`, `event_id`, `neg_risk`, `neg_risk_market_id`, `neg_risk_other`,
   `event_neg_risk_augmented`; sidecars carry `received_utc`, `fee_category`, `fee_type`, `order_price_min_tick_size`,
@@ -1023,7 +1024,7 @@ All are DRAFT and must not be promoted before the challenger review, the design-
 - **No new collector and no network.** A pure reader of the pass's captures and sidecars (sweeps for CH232's M3, the feed for its
   CLOB sensitivity), once a capture.
 - **Memory (planning, then a ladder).** LT4's measured host dry run 484-525 MB; LT9's planning 400-600 MB. LT11 holds per market the
-  last 12 mids, the last `volume_num`, the day's crossing flags and the carry texts, and per neg-risk event the previous capture's
+  last 12 mids, the `volume_num` of slot k - 1, keyed by slot (2.3, 2.7), the day's crossing flags and the carry texts, and per neg-risk event the previous capture's
   member bids and asks: **planning steady 300-450 MB, peak 450-600 MB in a backlog pass.** Ladder, measured by a host dry run with
   the exact install command before the pin: (1) one reader under `ulimit -v 1572864`, accepted if peak RSS <= 650 MB; (2) else two
   readers (CH234 + CH232; CH233) under one shared `flock`, each <= 650 MB; (3) else no pin and LT11 is not registered (recorded).
@@ -1106,8 +1107,8 @@ repeating the pre-freeze hold below, so that the hold stands in the engine's own
   a collateral weight and a move's size, a neg-risk siblings' bid- or ask-sum change, or a 0.10 / 0.90 crossing indicator before
   LT11's freeze. `tilt`'s other columns (`tl_collat`, `tl_cheap_side`, `tl_fee_ps`, `tl_rebate_ps`) are levels and may be built.
   If `tl_w2h` is scored in any family before the freeze, CH234 carries *informed (tilt)* and the ledger records the first scored
-  capture. **Status (engine reply 2026-10-23 ~13:10Z):** `tilt` was built as level columns only (`tl_collat`, `tl_cheap_side`,
-  `tl_fee_ps`, `tl_rebate_ps`, `tl_spread_collat`; `se24_lgbm_tilt`, `se25_lr_tilt`, visible); `tl_w2h` is not built, so CH234
+  capture. If a siblings' bid- or ask-sum change is scored before the freeze, CH233 carries *informed (engine)*; if a 0.10 / 0.90 crossing indicator is, CH232 does. **Status (engine reply 2026-10-23 ~13:10Z):** `tilt` was built as level columns only (`tl_collat`, `tl_cheap_side`,
+  `tl_fee_ps`, `tl_rebate_ps`, `tl_spread_collat`; `se24_lgbm_tilt`, `se25_lr_tilt`, visible); `tl_w2h` was coded under a provisional token in c90bbf48 (13:59 +0100) and removed before deploy in 522a7e70 (14:03 +0100); per those commits nothing was scored or shown, so CH234
   is not *informed (tilt)*. se24's trees can form `sign(d) x (p - 0.5)` from `mo_d2h` and `tl_cheap_side`, as se1 can; this is
   a development look near CH234's object, disclosed (10).
 - **New tokens `dollarw`, `nrslack`, `bandside`** to the LT11 date, entered at the freeze and before any isolating challenger.
@@ -1277,3 +1278,12 @@ request; section 10 (1143-1145) discloses se24 / se25 as visible development sco
 (capture or row), the augmented share, the `day_gap_market` retention and the zone mover share are unprobed until the census;
 the venue's reward-rule page is re-read only at the freeze; the size-check run time is measured only at the code freeze; the
 `T_E015` and `T_E022` dates are proposals.
+
+### 13.x Re-check fixes (2026-10-23; `reviews/LT11_R1_RECHECK_2026-10-23.md`, ACCEPT_WITH_FIXES; applied as worded)
+Line numbers refer to this revision of the file.
+- **F1** (material): covered-origin definition and the minimum-covered-days sentence replaced (line 936); `census_unavailable` prints no
+  descriptive line, and a re-censused test is its own Holm family in the ordered lane (line 942).
+- **F2** (minor): stale `volume_num` wording replaced by "the `volume_num` of slot k - 1, keyed by slot (2.3, 2.7)" (line 1027).
+- **F3** (minor, disclosure): `tl_w2h` provisional-token disclosure replacing "is not built" (lines 1110-1111); the
+  *informed (engine)* labels for CH233 (siblings' sum change) and CH232 (0.10 / 0.90 crossing indicator) added (line 1110).
+- **F4** (optional): `received_utc` span source named as the eligible members' `rows.csv.gz` row (line 228).
