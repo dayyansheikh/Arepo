@@ -969,3 +969,37 @@ column of these families exists, so nothing has been computed or shown on these 
   challenger hidden to 12-12 and adds 1 to the promotion K; the priors are the live tests' own mechanisms, which the tests
   themselves will settle first.
 - Tests: `test_lt11_freeze_requests`; the generic attribution-limit loop now also lists `attrlimit_lt11`.
+
+## 31. Input-coverage monitor `se-input-health-v1` (2026-10-23 ~23:15Z; operations only, no model, feature or score change)
+
+Why: a broken input (a stream that stops, an API field that vanishes, a sweep with no books) leaves NaN or zero columns.
+The models still predict, so nothing fails, and days of prospective scores are spent on a broken family before anyone
+notices. `input_health.py` checks the newest capture at every tick.
+- **Reads.** Only the engine's own write-once `features/` and `aux/` tables and `meta/` files of the newest 13 captures. It
+  never reads labels, predictions or scores, so it carries no outcome information. The embargo does not apply (inputs
+  only), and the numbers stay in the host file; the dashboard gets statuses and the alert list.
+- **Per column:** the finite share and the finite-and-nonzero share, compared with the median over the previous 12
+  captures (one day). Rules, fixed before any host run:
+  - `absent`: the share is 0 where the trailing median is above 0.
+  - `drop`: the share is below half the trailing median, where that median is at least 2%.
+  - `all_zero`: finite values but none nonzero, where the trailing nonzero median is at least 2%. This catches an outage
+    that writes zeros, such as `bk_has` = 0 everywhere. `sp_dow` / `sp_hour` are exempt because they are constant within
+    a capture.
+  - `missing`: an aux table is still absent 4 h after the capture start, for a family that had tables in the trail. It
+    is `pending` before 4 h.
+  - `universe`: eligible rows below 70% of the trailing median.
+  - `capture_gap`: missed 2 h slots in the trailing day, counted from the engine's first capture.
+  - Fewer than 4 earlier tables: `short_history`, not judged.
+- **Outputs.** `state/input_health.json` is a rewritable view, never evidence. `state/input_health_cache.json` holds
+  per-capture summaries; the tables are write-once, and an entry with a pending table is recomputed. The tick's JSON
+  gains `inputs` (status, alert count, the first 6 alerts) or `inputs_error`; the monitor never changes the tick's exit
+  code. `dashboard.live_status` adds `inputs`, so `dashboard.json` and the /lab snapshot carry it on every push, and
+  `run_signal_engine.py status` prints it.
+- **Host check (read-only, 2026-10-23 ~23:10Z).** On capture 10-23 22:31Z: 2.4 s, 226 MB RSS, status ok, no alerts.
+  Backtest over the 72 captures from 10-18 to 10-23: 9 captures alert. All 9 trace to the two missed passes of
+  10-21 00:31Z and 02:31Z. The 2 h / 6 h / 24 h look-backs (momentum, `movetype`, `surprise`, `dispgap`) are NaN for the
+  following 2 h, 6 h and 24 h captures, and the `dormant` runs reset. There are no false alarms on unbroken stretches.
+- Tests: `tests/unit/test_signal_engine_input_health.py` (stable inputs; a zeroed book, a vanished stream, a sparse drop
+  and a shrunk universe; pending, then missing, then backfilled; short history; a missed capture; `live_status`).
+- Not done: the /lab web page does not render `inputs` yet (a production-branch PR); until then it is visible in
+  `dashboard.json`, the snapshot and `status`.

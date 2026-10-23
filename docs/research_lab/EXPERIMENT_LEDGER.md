@@ -4444,3 +4444,11 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   8..119; feed outage -> `census_unavailable (coverage)`, disagreement -> `census_dropped`; NaN own status excluded and counted;
   qualified "not loosened" claim; derive or drop 0.15; dense-twin condition on both sets). Fixes being applied; then a final
   verification and the design-text freeze.
+
+## Signal engine: input-coverage monitor, 2026-10-23 ~23:15Z (signal-engine autopilot; operations only, nothing counted)
+- New `backend/astrolabe/signal_engine/input_health.py` (DESIGN_V1 §31). Each tick compares the newest capture's per-column
+  finite / nonzero shares of every family with the previous 12 captures. The rules are absent, drop (< 0.5 x median),
+  all_zero, missing aux table (> 4 h), universe (< 0.7 x median) and capture_gap. It reads features / aux / meta only, never
+  labels, predictions or scores.
+- Host dry run (read-only): ok, no alerts on 10-23 22:31Z. Backtest: 9 / 72 captures alert, all from the missed 10-21
+  00:31Z / 02:31Z passes; no false alarms elsewhere. No model, spec, feature, label or score changed; K unchanged.

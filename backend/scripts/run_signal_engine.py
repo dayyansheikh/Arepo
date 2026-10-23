@@ -6,7 +6,7 @@ so the queue waits 30 min without counting an attempt):
 
     features    [--max-items 4]        new complete captures -> quotes/, features/, meta/ (write-once; no network)
     predict     [--max-items 4]        every active model predicts every eligible market of new captures (write-once)
-    tick        [--max-items 4]        features, predict, then the champion's signal feed (the per-capture job)
+    tick        [--max-items 4]        features, predict, the champion's signal feed, input-coverage check (per capture)
     refit       [--min-interval-h 20]  daily walk-forward refit of every active model (fit_time = now)
     resolve     [--max-requests 300]   Gamma resolution labels for markets past their scheduled end (network)
     score       [--min-interval-h 20]  resolve, prospective scoring, daily leaderboard, promotion rule, dashboard.json
@@ -79,6 +79,14 @@ def cmd_tick(paths, args) -> tuple[dict, int]:
                                     fetch=None if args.no_feed_titles else SF.fetch_titles)
     except Exception as exc:  # noqa: BLE001
         res["feed_error"] = f"{type(exc).__name__}: {exc}"[:300]
+    try:  # input-coverage monitor (DESIGN_V1 §31): reads features / aux tables only; never fails the tick
+        from astrolabe.signal_engine import input_health as IH
+
+        ih = IH.run(paths)
+        res["inputs"] = {"status": ih["status"], "n_alerts": len(ih["alerts"]),
+                         "alerts": [f'{a["family"]}:{a.get("column", "")}:{a["rule"]}' for a in ih["alerts"][:6]]}
+    except Exception as exc:  # noqa: BLE001
+        res["inputs_error"] = f"{type(exc).__name__}: {exc}"[:300]
     return res, 0 if (f["written"] or f["aux"]["written"] or p["written"]) else C.TEMPFAIL
 
 
@@ -179,7 +187,15 @@ def cmd_status(paths, args) -> tuple[dict, int]:
         return len(list(d.glob(pat))) if d.exists() else 0
 
     return {"captures": n("meta", "*.json"), "prediction_dirs": n("predictions"), "fits": len(list(paths.sub("models").glob("*/*/fit.json"))) if paths.sub("models").exists() else 0,
-            "leaderboards": n("leaderboard", "2*.json"), "engine_bytes": S.du_bytes(paths.engine)}, 0
+            "leaderboards": n("leaderboard", "2*.json"), "engine_bytes": S.du_bytes(paths.engine),
+            "inputs": _inputs_status(paths)}, 0
+
+
+def _inputs_status(paths):
+    from astrolabe.signal_engine import input_health as IH
+
+    h = IH.read(paths)
+    return None if h is None else {k: h[k] for k in ("at", "capture_id", "status", "n_alerts", "alerts")}
 
 
 CMDS = {"features": cmd_features, "predict": cmd_predict, "tick": cmd_tick, "refit": cmd_refit, "resolve": cmd_resolve,
