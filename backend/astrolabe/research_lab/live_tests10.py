@@ -948,7 +948,6 @@ def census_units(L: dict, spec: dict, *, exclude_event: str | None = None, need_
     """The census's origin rows over the sealed span, one day batch at a time (origin-side fields only, 1.6; twins through the Kalshi-only
     loader). Returns the unit rows (status unit) with the category and scope columns, every status count, the coverage, the field presence, the
     record lags and the descriptive accumulators. No target is formed."""
-    ci = spec["census_inputs"]
     days = census_days(spec)
     span_lo, span_hi = _day_epoch(days[0]), _day_epoch(days[-1]) + DAY_S
     last_origin = span_hi - GRID_S
