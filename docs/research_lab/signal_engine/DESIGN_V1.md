@@ -881,3 +881,22 @@ needs a separate owner-approved web deploy, and its own wording review.
   The output is about 15 KB.
 - Tests: `test_signal_feed_reads_back_the_champions_stored_prediction`,
   `test_signal_feed_title_failure_and_embargoed_or_misaligned_champion`, `test_lab_host_signal_feed_recheck`.
+
+## 28. LT10 round 7: `kxbook`, `attrlimit_lt10` and a second `xvenue` read root (2026-10-23 ~04:10Z; no scoring change)
+
+Applied from `CANDIDATES.md` round 7 (LIVE_TESTS_10.md section 9, design text frozen at 34b7e22e), before any `kxbook`
+family or `se-aux-xvenue2-v1` exists, so nothing has been computed or shown on these terms.
+- **Embargo.** `config.EMBARGO` gains `kxbook` (until 2026-12-04T00:00Z, LT10-CH224 / CH223 / CH222) and
+  `attrlimit_lt10` (kind `attribution_limit`, same date, `no_broad_families: ["kxbook"]`), with the requested text
+  verbatim. `xvenue` is not extended: `se4` / `se13` at their current spec versions hold capture-time levels only and
+  still lapse at 11-04. When `se-aux-xvenue2-v1` is built, `kx_last_chg_2h`, `kx_pull_2h` and `kx_spread_chg_2h` go into a
+  separate `kxbook` family (not `xvenue2`); any spec holding it isolates `kxbook`, and no broad spec may hold it.
+- **Second read root (LT10 step O3).** `features.xvenue_features` reads E009's `cross_venue_live/quotes/` and the
+  quotes-only successor's `xv_quotes/quotes/` (`config.XV_QUOTES2_ROOT`, `Paths.xv_quotes2`). It is one continuous
+  stream with the same line schema (the successor adds a trailing `"src"`); quotes from both are pooled under the
+  unchanged rule (last `k_recv` before the capture start per market, age <= 30 min). No column definition changes, so
+  `se-features-v1` and every spec hash stay as they are. While the second directory is absent or empty the output and
+  the meta `inputs.xvenue` string are identical to before; names from the second root are prefixed `xv_quotes/`. This
+  keeps `se4` / `se13` from getting NaN `xvenue` inputs after the handover.
+- Tests: `test_lt10_round7_requests`, `test_xvenue_reads_both_roots_and_keeps_e009_src`; the LT7/LT9 broad-spec test now
+  also lists `attrlimit_lt10`, and its generic loop fails if a broad spec holds `kxbook`.

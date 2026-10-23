@@ -4108,3 +4108,13 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   its code-freeze check (must confirm re-check fixes 1 and 4 in the code); census only after both E009 and E010 analysis
   commits.
 
+
+## Signal engine: LT10 round 7 applied, 2026-10-23 ~04:10Z (signal-engine autopilot; embargo and input plumbing only; nothing scored or counted)
+- **What:** `CANDIDATES.md` round 7 (LIVE_TESTS_10.md section 9) applied verbatim in commit 0a245fa6 (DESIGN_V1 section 28):
+  `config.EMBARGO` gains `kxbook` (until 2026-12-04T00:00:00Z; LT10-CH224 / CH223 / CH222) and `attrlimit_lt10` (attribution
+  limit, same date, `no_broad_families: ["kxbook"]`). `xvenue` unchanged (11-04). No `kxbook` or `xvenue2` family exists; no
+  value on these terms was ever computed or shown.
+- **LT10 step O3 (deadline 2026-11-03T02:00Z):** the engine's second `xvenue` read root (`XV_QUOTES2_ROOT` =
+  `xv_quotes/quotes/`) is in the code; quotes from both roots are pooled under the unchanged last-quote rule. No column
+  definition, feature version or spec hash changed; output identical while the second directory is absent (tested). Live on
+  the host with the deploy of the merge that carries 0a245fa6 into `chore/arepo-claude-setup` (same session).

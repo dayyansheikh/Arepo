@@ -211,7 +211,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.dumps_root:
         d = Path(args.dumps_root)
         kw = {"snapshots": d / "snapshots", "sweeps": d / "book_sweeps", "samples": d / "trade_samples",
-              "xv_quotes": d / "cross_venue_live" / "quotes"}
+              "xv_quotes": d / "cross_venue_live" / "quotes", "xv_quotes2": d / "xv_quotes" / "quotes"}
     if args.spec_dir:
         kw["spec_dir"] = Path(args.spec_dir)
     paths = S.Paths(engine=Path(args.engine_root) if args.engine_root else C.ENGINE_ROOT, **kw)

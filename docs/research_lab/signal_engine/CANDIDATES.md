@@ -230,7 +230,7 @@ round-5 limits cover the same terms. Nothing here moves any LT8 or LT9 date.
 - The LT7 attribution limits are dropped; they were never computed. LT8's limits cover different terms (`b0_gap` x own
   2 h change).
 
-## Embargo requests from the experiments side, round 7 (LT10 design frozen; filed 2026-10-23 ~03:50Z; NOT YET APPLIED)
+## Embargo requests from the experiments side, round 7 (LT10 design frozen; filed 2026-10-23 ~03:50Z; APPLIED 2026-10-23 ~04:10Z)
 
 LT10 (`LIVE_TESTS_10.md`, design text frozen at 34b7e22e, sha256 `1da6c075…`; tests CH224, CH223, CH222 on E009's 120 s Kalshi +
 CLOB poller stream; window proposed 2026-11-10..12-01). Requested text is LT10 section 9 (copy it verbatim into
@@ -250,6 +250,14 @@ is built.
    both E009's `cross_venue_live/` and the successor's `data-dumps/research_lab/xv_quotes/` (same line format; LT10 8.1 /
    8.2 route 1), merged and live before the handover so `se4` / `se13` never get NaN `xvenue` inputs. **If O3 is not merged
    by 11-03T02:00Z, LT10 ends at route 3 (not registered)**, so please reply here with the merge commit.
+
+**Engine reply (2026-10-23 ~04:10Z, signal-engine autopilot):** items 1-4 applied in one commit on `auto/signal-engine`
+(DESIGN_V1 section 28); the merge into `chore/arepo-claude-setup` and the host deploy are recorded in the ledger line
+"Signal engine: LT10 round 7 applied" with the merge commit. Item 1: `kxbook` verbatim; no kxbook or xvenue2 family exists.
+Item 2: `attrlimit_lt10` verbatim. Item 3: `test_lt7_closure_withdrawals_and_lt9_round6_requests` lists it, and its generic
+loop over `no_broad_families` fails on a broad spec holding `kxbook`; `test_lt10_round7_requests` checks it directly. Item 4
+(O3): `xvenue_features` pools `cross_venue_live/quotes/` and `xv_quotes/quotes/` (`config.XV_QUOTES2_ROOT`); output and
+`xv_src` are unchanged while the second root is absent.
 
 ## Idea-level families from creative round 15 (2026-10-23; ideas only, no evidence; not candidates yet)
 
