@@ -13,6 +13,7 @@ coefficient on the lead when the SUM lead + twin is added as a control. The poin
 
 from __future__ import annotations
 
+import json
 import math
 from pathlib import Path
 
@@ -20,6 +21,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import t as t_dist
 
+from . import bounce_decomp as bd
 from . import live_tests11 as lt
 from . import live_tests11_analysis_base as ab
 from . import live_tests11_base as b
@@ -548,3 +550,148 @@ def verdict(r: dict, holm_p: float, test: str) -> dict:
     if base and not pc_ok:
         labels.append(POINT_LABEL[test])
     return {"verdict": "Inconclusive", "labels": labels}
+
+
+# --- readings, attrition, economics (1.9, 1.10; estimates only, count 0) ----------------------------------------------------------------------------------
+
+
+def _refit(r: dict, mask: np.ndarray, spec: dict, test: str, *, term: str | None = None, controls: list[str] | None = None) -> dict:
+    P, y = r["_frame"], r["_y"]
+    sub = P[mask].reset_index(drop=True)
+    if len(sub) < 30:
+        return {"testable": False, "reason": "fewer than 30 units"}
+    ok = np.ones(len(sub), bool)
+    return strip(fit11(sub, y[mask], term or lt.TERM[test], controls or r["_controls"], seed=int(spec["seeds"]["estimators"][test]), minor=g_minor(sub, ok, test), n_boot=200)) or {}
+
+
+def readings(r: dict, test: str, spec: dict) -> dict:
+    """Estimates only: the window excluding the US holiday and the 2026-12-01 reward re-rating day, and per-category refits (crypto, non-crypto). Never a verdict."""
+    P = r["_frame"]
+    t = P["t_row"].to_numpy(float)
+    h0, h1 = lt.epoch(HOLIDAY[0]), lt.epoch(HOLIDAY[1])
+    m0, m1 = lt.epoch(MONTH_START[0]), lt.epoch(MONTH_START[1])
+    out = {"holiday_excluded": _refit(r, ~((t >= h0) & (t < h1)), spec, test), "month_start_excluded": _refit(r, ~((t >= m0) & (t < m1)), spec, test)}
+    if "cat" in P:
+        crypto = P["cat"].astype(str).to_numpy() == "crypto"
+        out["crypto_only"] = _refit(r, crypto, spec, test)
+        out["non_crypto"] = _refit(r, ~crypto, spec, test)
+    return out
+
+
+def attrition_block(test: str, r: dict, spec: dict) -> dict:
+    """1.5-style: the non-two_sided target share by contrasted class (|a_1 - a_0| > 2 pp triggers Lee-type bounds). Never changes a verdict."""
+    X = r["_frame"]
+    status = X["status_h1"].astype(str).to_numpy()
+    cls = np.where(X[lt.TERM[test]].to_numpy(float) > 0, "1", "0")
+    att = ab.attrition(status, cls, ("1", "0"), spec["verdict"]["attrition_pp"] / 100.0)
+    if att.get("triggered"):
+        att["lee_bounds"] = ab.lee_bounds(X, r["_y"], cls, ("1", "0"), att, lambda d, yy: fit11(d, yy, lt.TERM[test], r["_controls"], seed=int(spec["seeds"]["estimators"][test]), n_boot=200))
+    return att
+
+
+def economics_block(r: dict, test: str, spec: dict) -> dict:
+    """1.10: the hurdles quoted for reference and the gross, no-fill, no-queue class contrast of each test's target. No LT11 result is the programme's economic check."""
+    X, y = r["_frame"], r["_y"]
+    out: dict = {"hurdles": HURDLES, "note": "gross, no fills, no queue, no realised rewards; none of this is the programme's economic check"}
+    term = X[lt.TERM[test]].to_numpy(float)
+    hi, lo = term > 0, term <= 0
+    ok = np.isfinite(y)
+    out["gross_target_by_term_sign_c"] = {"positive": float(np.nanmean(y[hi & ok])) if (hi & ok).any() else None, "non_positive": float(np.nanmean(y[lo & ok])) if (lo & ok).any() else None}
+    return out
+
+
+def labels_for(test: str, r: dict, v: dict, spec: dict, k: int, cc: dict) -> list[str]:
+    lab = list(v.get("labels") or [])
+    if v["verdict"] == "Unavailable":
+        return list(dict.fromkeys(lab + ([cc["label"]] if cc["label"] else [])))
+    prim = r.get("primary") or {}
+    beta = prim.get("beta")
+    if beta is not None and beta >= spec["verdict"]["material_c"][test]:
+        lab.append("material")
+    if (r.get("point_condition") or {}).get("holds") is False or v["verdict"] == "Inconclusive" and (r.get("point_condition") or {}).get("p_difference") is not None and float(r["point_condition"]["p_difference"]) < 0.05:
+        lab.append(DIFF_LABEL[test])
+    rd = r.get("readings") or {}
+    ho = rd.get("holiday_excluded") or {}
+    if ho.get("testable") and beta is not None and (ho["beta"] * beta < 0 or ((ho["p"] < 0.05) != (prim.get("p", 1) < 0.05))):
+        lab.append("holiday-sensitive")
+    ms = rd.get("month_start_excluded") or {}
+    if ms.get("testable") and beta is not None and ms["beta"] * beta < 0:
+        lab.append("month-start-sensitive")
+    X = r.get("_frame")
+    pm = (r.get("_prim") or {}).get("_mask")
+    if X is not None and pm is not None:
+        X = X[np.asarray(pm, bool)]
+        if len(X):
+            top = X["event_id"].value_counts(normalize=True)
+            if float(top.iloc[0]) > spec["verdict"]["series_concentrated"]:
+                lab.append(f"event-concentrated ({float(top.iloc[0]):.0%})")
+    att = r.get("attrition") or {}
+    if att.get("triggered"):
+        lab.append(f"attrition-differential ({att['diff'] * 100:+.1f} pp)")
+    if (r["load"].get("late_loss_share") or 0.0) > spec["verdict"]["late_loss_max"]:
+        lab.append(f"late-loss ({r['load']['late_loss_share']:.1%} of origin files written late)")
+    if r.get("analytic_oversized"):
+        lab.append("analytic p oversized in simulation")
+    if cc["label"]:
+        lab.append(cc["label"])
+    return list(dict.fromkeys(lab))
+
+
+def trials_line(spec: dict, ktests: list[str]) -> dict:
+    """The single counted trials line (``battery2.KIND_RULES['live_tests11']``, rule n_tests): k counted tests; gate draws, F, secondaries, readings, arms,
+    economics, censuses and the size check count 0."""
+    return {"kind": "live_tests11", "n_tests": len(ktests), "tests": ktests, "counts": "k = the Holm primaries that survived their census gates; everything else 0",
+            "spec_sha256": spec["_sha256"], "evidence_role": ROLE_CONF}
+
+
+def analyze(out_root: Path = lt.OUT_ROOT, *, spec: dict | None = None, now: float | None = None, force: bool = False, roles: tuple[str, ...] = (ROLE_CONF,)) -> dict:
+    """The single registered analysis. Refuses before ``ANALYSIS_NOT_BEFORE``, on an unpinned spec, a changed design text, a code-hash mismatch, a null / empty /
+    unknown / dropped ``k_tests`` or an unfilled census value."""
+    spec = spec or lt.load_spec(sha=lt.SPEC_SHA256)
+    now = b.now_ts() if now is None else now
+    preconditions(spec, now, force=force)
+    cc = code_check(spec)
+    s, e = lt.epoch(spec["registered_utc"]), lt.epoch(spec["end_utc"])
+    ktests = list(spec.get("k_tests") or TESTS)
+    k = len(ktests)
+    sc = spec.get("size_check_result") or {}
+    res: dict = {}
+    for t in TESTS:
+        if t not in ktests:
+            res[t] = {"verdict": {"verdict": "dropped at its census (uncounted; not in the Holm family)"}}
+            continue
+        note = sc.get(t)
+        status = note.get("status") if isinstance(note, dict) else note
+        size_note = None if status in (None, "pass") else (SIZE_LABEL if str(status).startswith("fail_size") else MECH_LABEL)
+        r = run_test(out_root, t, s, e, spec, roles, size_note)
+        r["analytic_oversized"] = bool(isinstance(note, dict) and note.get("analytic_oversized"))
+        res[t] = r
+    pv = {t: p_for_holm(res[t])[0] for t in ktests}
+    hp = bd.holm(pv)
+    for t in ktests:
+        r = res[t]
+        if r.get("available") and r.get("primary"):
+            r["attrition"] = attrition_block(t, r, spec)
+            r["readings"] = readings(r, t, spec)
+            r["economics"] = economics_block(r, t, spec)
+        v = verdict(r, hp[t], t)
+        r["holm_p"] = hp[t]
+        v["labels"] = labels_for(t, r, v, spec, k, cc)
+        r["verdict"] = v
+    for t in ktests:
+        for key in ("_frame", "_all", "_y", "_prim", "_controls"):
+            res[t].pop(key, None)
+    res["holm"] = {"tests": ktests, "m": k, "p_raw": pv, "p_holm": hp, "alpha": 0.05, "one_sided": True}
+    res["counting"] = trials_line(spec, ktests)
+    res.update(spec_sha=spec["_sha256"], code_sha256=cc["current"], code_check=cc, window=[spec["registered_utc"], spec["end_utc"]], roles=list(roles), design_text_sha256=lt.design_text_sha())
+    return bd._clean(res)
+
+
+def analyze_cli(args, write_out, now: float) -> int:
+    try:
+        spec = lt.load_spec(sha=lt.SPEC_SHA256)
+        res = analyze(args.out_root, spec=spec, now=now)
+    except (Refused, RuntimeError) as exc:
+        print(f"refusing: {exc}")
+        return 2
+    return write_out(args.out, json.dumps(res, sort_keys=True, indent=1, default=str))
