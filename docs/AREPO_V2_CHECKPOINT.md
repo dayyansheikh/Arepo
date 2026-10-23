@@ -256,6 +256,10 @@ Host 2 OCPU / 11.4 GiB since the resize. data-dumps 34 / 40 GB cap: owner approv
   q0621 (priority 54) should start when MC1 q0116h's slice (started 21:58Z) exits ~03:30Z.
 - LT9 code phase 1: an implementer is finishing the uncommitted census edit (share_zdD_positive, feed end-kinds counts)
   on `feat/live-tests-9`; then the science-reviewer census-code freeze check.
+- **Disk:** data-dumps 34 / 40 GB at 02:10Z (about +1 GB/day -> 40 GB about 10-29). cb18_census 4.9 GB is finished and not an
+  LT8 root; clearing needs owner approval 8 (dashboard, now marked time-sensitive). Contingency if >= 38 GB before approval:
+  raise the operational `--data-dumps-cap-gb` of the registered live collectors (q0460) to 44 (below the 45 GiB pass cap;
+  root has 36 GB free), with a ledger line; never let a registered collector refuse.
 - Creative round 15 (Fable xhigh, CH222+, census survival + newer streams) running on `feat/creative-r15`
   (`../astrolabe-creative-r15`); merge, then CANDIDATES note and an LT10 design draft from its top ideas.
 

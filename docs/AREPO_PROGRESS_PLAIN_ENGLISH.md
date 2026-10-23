@@ -50,7 +50,9 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 7. ~~More server memory for MC1~~ **APPROVED 21 Oct:** resize to 2 CPU / 12 GB (still free), scheduled automatically
    for 22 Oct about 03:40 UTC+1. MC1 is re-queued afterwards.
 
-8. **NEW (21 Oct, not urgent): let Claude clear finished restore copies on the server.** Restore copies are
+8. **NOW TIME-SENSITIVE (needed by about 27 Oct): let Claude clear finished restore copies on the server.** Measured 23 Oct
+   03:10 UTC+1: the data folder is at **34 of 40 GB** and grows about 1 GB a day, so jobs (including the LT2 live
+   collector) would start refusing around 29 Oct. Batch 18's 4.9 GB copy is finished now and LT8 does not use it. Restore copies are
    hash-checked copies of data that is safe in the archive, made so a job can re-read old files. About 9 GB of them
    are finished with or soon will be (measured 22 Oct: batch 18 4.9 GB finished now; LT4 3.0 GB and LT3 0.3 GB after
    LT6's flow count today; LT5 0.8 GB after its count today; LT6 1.2 GB after its counts). Jobs stop at a
