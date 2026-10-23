@@ -4319,3 +4319,16 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   `creative_batch8/pins/cb8_holders_frame_ids_20261023T172452Z.csv` (union of `market_id` of the 10-21, 10-22, 10-23
   `holders/snap/*.markets.csv.gz`, 4,404 ids, sha256 `451eaf6f…8a0b`). Correction to the entry above: `updown_frame/holdout/`
   exists (created by `finalize_frame`) and holds only `klines_pre.csv.gz` and `strikes.csv.gz` (Binance side; listing only, not read).
+
+## Creative round 17 (CH242-CH251), 2026-10-23 (Fable xhigh; ideas only, nothing tested, nothing counted)
+- `CREATIVE_HYPOTHESES_2026-10-31.md` (merged 900c5272; written from 12:50Z, cut off by a usage limit, completed ~18:30Z
+  without network, host or data-dumps reads). Census-first like round 16; rules 18-20 added (event x day strata, F on the
+  within-market term only, a third-outcome rule).
+- **LT12 candidates (designer's census priors, judgements):** CH245 the mirror (two-member neg-risk event; twin book's spread
+  innovation -> own next spread) 0.30; CH244 the farmed half (unpaid vs paid members of a mixed ladder after one sibling
+  shock) 0.20; CH243 the fee as the price of urgency (fee-on vs fee-free traded-minus-quote-only continuation) 0.10,
+  conditional on the CH251 map. Expected k about 0.6; P(no LT12 test) about 0.50, stated in advance.
+- **Engine-first families** (CANDIDATES round 17 note): `p3` (CH242), `paymaker` (CH250), `mt_twin_printed` (CH248), `tilt`
+  fee levels (CH243), CH246 `tw_*`, CH249 `crypto` columns, CH247 `gamestate` x futures.
+- **Next:** CH251, the LT12 counts-only population map (no target read), then the LT12 design (fast lane: freeze before
+  `T_LT11` 2026-12-10T12:00Z; census seal 11-07..11-17).
