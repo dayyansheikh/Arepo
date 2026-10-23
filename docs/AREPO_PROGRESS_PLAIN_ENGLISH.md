@@ -52,7 +52,7 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
    for 22 Oct about 03:40 UTC+1. MC1 is re-queued afterwards.
 
 8. **NOW TIME-SENSITIVE (needed by about 27 Oct): let Claude clear finished restore copies on the server.** Measured 23 Oct
-   03:10 UTC+1: the data folder is at **34 of 40 GB** and grows about 1 GB a day, so jobs (including the LT2 live
+   03:10 UTC+1: the data folder was at 34 of 40 GB, **36 of 40 GB at 23:30**, and grows about 1 GB a day, so jobs (including the LT2 live
    collector) would start refusing around 29 Oct. Batch 18's 4.9 GB copy is finished now and LT8 does not use it. Restore copies are
    hash-checked copies of data that is safe in the archive, made so a job can re-read old files. About 9 GB of them
    are finished with or soon will be (measured 22 Oct: batch 18 4.9 GB finished now; LT4 3.0 GB and LT3 0.3 GB after
