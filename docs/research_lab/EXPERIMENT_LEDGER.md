@@ -4313,3 +4313,9 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   disclosure on any B1 result). The amendment needs its own science-reviewer pass before any job runs. **q0182 runs as
   pre-declared with the empty q0165 frame pinned (pin vacuous); it does not wait for q0165b.** Heads-up: CB9-P may carry the
   same series-key risk at q0183 (a counts-only key-overlap check to be declared before q0183 if needed).
+- **q0182 promoted (2026-10-23 ~17:30Z), as pre-declared:** `--cb8-keys-sha256 12513c64…4e3b` (q0164c `exclusion_report.json`
+  keys_sha256 = sha256sum of `exclusion_keys.csv.gz`); extra pins: the EMPTY q0165 frame (`updown_frame/frame.csv.gz`, header
+  only, sha256 `6a14098c…945c`; pin vacuous) and the CB8-H holders frame as a dated ids file
+  `creative_batch8/pins/cb8_holders_frame_ids_20261023T172452Z.csv` (union of `market_id` of the 10-21, 10-22, 10-23
+  `holders/snap/*.markets.csv.gz`, 4,404 ids, sha256 `451eaf6f…8a0b`). Correction to the entry above: `updown_frame/holdout/`
+  exists (created by `finalize_frame`) and holds only `klines_pre.csv.gz` and `strikes.csv.gz` (Binance side; listing only, not read).
