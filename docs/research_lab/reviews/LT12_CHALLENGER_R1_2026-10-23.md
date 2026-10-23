@@ -1,4 +1,4 @@
-# LT12 challenger R1, 2026-10-23 (~00:05Z 10-24)
+# LT12 challenger R1, 2026-10-23 (~22:55Z)
 
 Reviewer: `science-reviewer` (independent, read-only). Draft `LIVE_TESTS_12.md` fd9c425f, sha256 `64fe3e7b…2cac`, 909 lines.
 **Verdict: REVISE.** Re-check required; no fix may loosen a threshold to obtain a pass.
