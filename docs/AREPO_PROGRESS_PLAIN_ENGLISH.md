@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-23 08:45 UTC+1
+**Last updated:** 2026-10-23 08:57 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -31,6 +31,12 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
   (23 Oct, after an independent challenger review asked for changes and a re-check accepted them), well before E009's
   analysis on 3 Nov, so it cannot be shaped by that result. Next: its code. About 3 in 4 that none of the three survives
   its counting check (the designer's estimate).
+- **New ideas round 16 done** (10 ideas, CH232-CH241), written to clear the counting checks that killed LT5-LT8. Its key
+  observation: on this venue a resting order ties up the money of its side, so cheap-side orders are over-supplied. Top
+  candidates for a planned LT11: whether price moves bought with more money keep going (about 40% chance of surviving its
+  counting check, the author's estimate), whether arbitrage across a multi-outcome event widens spreads, and what happens
+  when a rewarded market's price crosses 10c or 90c. First a quick counts-only map (CH240) measures whether there are enough
+  cases; it is being built now. Four other ideas went to the signal engine's list.
 - **Copy-skilled wallets (E026):** registered; collection starts 25 Oct (phone note then).
 - **Honest pattern:** most planned tests die at the counting stage, before any outcome data is read (LT5, LT6, LT7 and now
   LT8 all closed this way). New-ideas round 16 (running now) is told to aim for much larger case counts. That is the checks working as designed.
