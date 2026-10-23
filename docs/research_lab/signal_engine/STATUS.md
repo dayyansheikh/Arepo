@@ -1,6 +1,6 @@
 # Signal engine: status (rewrite each session; do not append)
 
-**Last updated:** 2026-10-24 00:20 UTC+1 (2026-10-23 23:20Z), signal-engine autopilot session 27
+**Last updated:** 2026-10-24 00:47 UTC+1 (2026-10-23 23:47Z), signal-engine autopilot session 27
 
 ## In plain English
 - **New: the engine now checks its own inputs.** At every capture it compares each feature family's coverage with the
@@ -18,6 +18,7 @@
 - **Scores (early, 3 days, not a promotion read):** the LightGBM base model (se1) is ahead of the logistic champion by
   about 0.05 nats at 2 h, 0.06 at 6 h and 0.07 at 24 h, with tight intervals. No promotion is possible before ~11-04
   (14-day minimum). For resolution (`res_7d`) the champion is no better than the market price itself.
+- **/lab shows it:** the Signal engine card now has an "Inputs" line (PR #30, merged and live).
 - Still needing the owner: a public website version of the feed (the North Star asks for an owner-approved web deploy).
 
 ## Live state (host)
@@ -52,8 +53,11 @@
 2. **`refit_full` development probe** (DESIGN_V1 §32): opt-in `params.refit_full` in `learners.fit_lgbm` (no pinned spec
    sets it); `backend/scripts/run_se_dev_refit_full.py`; queue job `q0516_se_dev_refit_full` (priority 30, 1,800 MB, not
    exclusive). Two new tests in `test_signal_engine.py`; 192 backend tests pass; ruff clean.
-3. /lab display of `inputs`: branch `feat/lab-se-inputs` (worktree `../astrolabe-lab-se-inputs`, from the production tip
-   89094c85); frontend tests, tsc, lint and build pass. See "Next actions" for the PR.
+3. **/lab display of `inputs`: PR #30 merged** into `arepo-free-production-v1` (https://github.com/dayyansheikh/Arepo/pull/30,
+   merge d146d36e). The Signal engine card now shows an "Inputs" fact ("All families filled" or "N to check" with up to
+   six plain-English lines) and an "Input alerts: N" pill. Frontend tests 241 pass, tsc / lint / build clean. e2e: 80
+   pass and 41 fail, the same 41 by name on the unchanged production tip (they need a local backend). Vercel production
+   deploy succeeded, the strings are in the live /lab bundle, and the Render API answers /health 200 (no backend change).
 4. Ledger entries "input-coverage monitor" and "`refit_full` development probe queued"; checkpoint line.
 
 ## Next actions
@@ -63,17 +67,16 @@
 3. **q0516 result:** read `SE_DEV_REFIT_FULL` in `~/arepo/run/queue/logs/q0516_se_dev_refit_full.1.log`. Apply the
    fixed rule (DESIGN_V1 §32): a challenger only if all 3 direction targets gain, each CI excludes zero and >= 4/5 days
    are positive. Write the result into §32 and the ledger either way.
-4. **/lab `inputs` PR** (`feat/lab-se-inputs`): open, merge after validation, then check the Render / Vercel deploys.
-5. **Before 11-14:** check that LT2's analysis (q0461) has run. If not, move `tte`, `chg1d_x_liq` and `dispgap` later, and
+4. **Before 11-14:** check that LT2's analysis (q0461) has run. If not, move `tte`, `chg1d_x_liq` and `dispgap` later, and
    `flow` before 11-16. Same for `rewards` against E022 before 11-18.
-6. **If CH214 drops at LT9's census:** `book` / `book0` need a new date by ledger line. If a census drops CH232 / CH233 /
+5. **If CH214 drops at LT9's census:** `book` / `book0` need a new date by ledger line. If a census drops CH232 / CH233 /
    CH234, withdraw that LT11 token with a ledger line.
-7. Around 10-27/28: se8, se10, se16 and se20 start fitting and the `res_7d` LightGBM fits should work. Watch refit RSS.
-8. Remaining engine-first ideas (build only with a real prior): CH250 `paymaker` and CH248 `mt_twin_printed` only after
+6. Around 10-27/28: se8, se10, se16 and se20 start fitting and the `res_7d` LightGBM fits should work. Watch refit RSS.
+7. Remaining engine-first ideas (build only with a real prior): CH250 `paymaker` and CH248 `mt_twin_printed` only after
    11-18 / 11-22; CH239 `ruleclass` (likely a category proxy); `volage` after 11-22. LT12 families (`mirror`, `mixedlad`,
    `feeclass`) are not to be isolated before its freeze.
-9. Housekeeping (needs approval): remove the merged worktrees `astrolabe-lab-se`, `astrolabe-lab-se-promo` and
-   `astrolabe-lab-se-mid`, the `/tmp/se_*` scratch and old backfill logs.
+8. Housekeeping (needs approval): remove the merged worktrees `astrolabe-lab-se`, `astrolabe-lab-se-promo` and
+   `astrolabe-lab-se-mid`, `astrolabe-lab-se-inputs` (PR #30, merged), the `/tmp/se_*` scratch (Mac and host `/tmp/se_ih`) and old backfill logs.
 
 ## Notes for the other track
 - The monitor's backtest confirms the 10-21 00:31Z / 02:31Z passes are missing from the engine's captures, and that the
