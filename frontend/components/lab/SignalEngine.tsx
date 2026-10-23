@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Area, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import {
   attributionViews,
@@ -9,12 +9,14 @@ import {
   engineStatus,
   familyOf,
   familySeries,
+  fmtCents,
   fmtDaysPositive,
   fmtFixed,
   fmtGain,
   fmtPct,
   fmtSigned,
   fmtUtc,
+  parseSeFeed,
   parseSignalEngine,
   promotions,
   promotionView,
@@ -23,6 +25,8 @@ import {
   type AttributionView,
   type GainSeries,
   type PromotionView,
+  type SeFeedRowView,
+  type SeFeedView,
   type SeCells,
 } from "@/lib/lab/signal-engine";
 import { seriesColors, theme } from "@/lib/theme";
@@ -289,6 +293,140 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
+const FEED_SHOW = 10;
+
+function FeedTable({ title, rows }: { title: string; rows: SeFeedRowView[] }) {
+  const [all, setAll] = useState(false);
+  const shown = all ? rows : rows.slice(0, FEED_SHOW);
+  return (
+    <div className="min-w-0" data-testid={`se-feed-${title.toLowerCase().replace(/\s+/g, "-")}`}>
+      <h4 className="mb-2 text-[13.5px] font-semibold text-arepo-ink">{title}</h4>
+      {rows.length ? (
+        <>
+          <div className="-mx-1 overflow-x-auto px-1">
+            <table className="w-full min-w-[40rem] border-collapse text-[12.5px]">
+              <caption className="sr-only">{title}: markets by champion signal strength</caption>
+              <thead>
+                <tr className="border-b border-arepo-border text-left text-[11.5px] font-semibold text-arepo-muted">
+                  <th scope="col" className="px-2 py-2 font-semibold">Market</th>
+                  <th scope="col" className="px-2 py-2 font-semibold">Category</th>
+                  <th scope="col" className="px-2 py-2 text-right font-semibold">Mid</th>
+                  <th scope="col" className="px-2 py-2 text-right font-semibold">Spread</th>
+                  <th scope="col" className="px-2 py-2 text-right font-semibold">2h</th>
+                  <th scope="col" className="px-2 py-2 text-right font-semibold">6h</th>
+                  <th scope="col" className="px-2 py-2 text-right font-semibold">24h</th>
+                </tr>
+              </thead>
+              <tbody className="font-tabular">
+                {shown.map((r) => {
+                  const name = r.title ?? `market ${r.marketId}`;
+                  return (
+                    <tr key={r.marketId} className="border-b border-arepo-border/70 text-arepo-ink2">
+                      <th scope="row" className="max-w-[22rem] px-2 py-2 text-left font-normal">
+                        {r.url ? (
+                          <a href={r.url} target="_blank" rel="noopener noreferrer" className="break-words text-arepo-ink underline decoration-arepo-border underline-offset-2 hover:decoration-arepo-ink">
+                            {name}
+                          </a>
+                        ) : (
+                          <span className="break-words text-arepo-ink">{name}</span>
+                        )}
+                      </th>
+                      <td className="px-2 py-2 text-arepo-muted">{r.category || "–"}</td>
+                      <td className="px-2 py-2 text-right">{fmtCents(r.mid)}</td>
+                      <td className="px-2 py-2 text-right">{fmtCents(r.spread)}</td>
+                      <td className="px-2 py-2 text-right">{fmtSigned(r.s2h, 2)}</td>
+                      <td className="px-2 py-2 text-right">{fmtSigned(r.s6h, 2)}</td>
+                      <td className="px-2 py-2 text-right">{fmtSigned(r.s24h, 2)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          {rows.length > FEED_SHOW ? (
+            <button
+              type="button"
+              onClick={() => setAll((v) => !v)}
+              aria-expanded={all}
+              className="mt-2 text-[12.5px] font-medium text-arepo-ink2 underline underline-offset-2"
+            >
+              {all ? "Show top 10" : `Show all ${rows.length}`}
+            </button>
+          ) : null}
+        </>
+      ) : (
+        <Quiet>No markets in this list.</Quiet>
+      )}
+    </div>
+  );
+}
+
+function SignalFeed({ view }: { view: SeFeedView }) {
+  const pool =
+    view.spreadMax !== null && view.midRange
+      ? `Ranked only where spread ≤ ${fmtCents(view.spreadMax)} and price in ${fmtCents(view.midRange[0])}–${fmtCents(view.midRange[1])}${view.poolMarkets !== null ? `; ${fmtCount(view.poolMarkets)} markets` : ""}.`
+      : view.poolNote;
+  return (
+    <Card>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-[15px] font-semibold text-arepo-ink">Signal feed (champion)</h3>
+        {view.stale ? <Pill tone="warn">Stale: origin over 6 hours old</Pill> : null}
+      </div>
+      <p className="mt-0.5 text-[12.5px] text-arepo-muted" data-testid="se-feed-header">
+        {view.modelId} · origin {fmtUtc(view.originUtc)} · prediction received {fmtUtc(view.predictionWrittenUtc)}
+      </p>
+      <p className="mt-2 text-[12px] leading-relaxed text-arepo-muted" data-testid="se-feed-label">{view.label}</p>
+      {pool ? <p className="mt-1 text-[12px] text-arepo-muted">{pool}</p> : null}
+      <p className="mt-1 text-[12px] text-arepo-muted">
+        2h horizon: {view.dir2h.eligible === null ? "–" : fmtCount(view.dir2h.eligible)} markets scored,{" "}
+        {view.dir2h.absGe025 === null ? "–" : fmtCount(view.dir2h.absGe025)} with |signal strength| ≥ 0.25.
+      </p>
+      {view.titlesError ? <p className="mt-1 text-[12px] text-arepo-muted">Titles unavailable: {view.titlesError}</p> : null}
+      <div className="mt-4 grid grid-cols-1 gap-6">
+        <FeedTable title="Strongest up" rows={view.up} />
+        <FeedTable title="Strongest down" rows={view.down} />
+      </div>
+      {view.track ? (
+        <div className="mt-6" data-testid="se-feed-track">
+          <h4 className="text-[13.5px] font-semibold text-arepo-ink">Prospective record of this model</h4>
+          <p className="mb-2 text-[12px] text-arepo-muted">
+            Forecast quality, not profit.{view.track.label ? ` ${view.track.label}.` : ""}
+          </p>
+          {view.track.rows.length ? (
+            <div className="-mx-1 overflow-x-auto px-1">
+              <table className="w-full min-w-[28rem] border-collapse text-[12.5px]">
+                <caption className="sr-only">Prospective record of the champion (forecast quality, not profit)</caption>
+                <thead>
+                  <tr className="border-b border-arepo-border text-left text-[11.5px] font-semibold text-arepo-muted">
+                    <th scope="col" className="px-2 py-2 font-semibold">Target</th>
+                    <th scope="col" className="px-2 py-2 text-right font-semibold">Days</th>
+                    <th scope="col" className="px-2 py-2 text-right font-semibold">Log loss</th>
+                    <th scope="col" className="px-2 py-2 text-right font-semibold">AUC</th>
+                    <th scope="col" className="px-2 py-2 text-right font-semibold">Cal. slope</th>
+                  </tr>
+                </thead>
+                <tbody className="font-tabular">
+                  {view.track.rows.map((r, i) => (
+                    <tr key={`${r.target}-${i}`} className="border-b border-arepo-border/70 text-arepo-ink2">
+                      <th scope="row" className="px-2 py-2 text-left font-normal">{r.target || "–"}</th>
+                      <td className="px-2 py-2 text-right">{r.days === null ? "–" : fmtCount(r.days)}</td>
+                      <td className="px-2 py-2 text-right">{fmtFixed(r.logLoss, 4)}</td>
+                      <td className="px-2 py-2 text-right">{fmtFixed(r.auc, 3)}</td>
+                      <td className="px-2 py-2 text-right">{fmtFixed(r.calSlope, 2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <Quiet>No scored days yet.</Quiet>
+          )}
+        </div>
+      ) : null}
+    </Card>
+  );
+}
+
 export function SignalEngine({ block, nowMs }: { block: unknown; nowMs: number }) {
   const se = parseSignalEngine(block);
   if (!se) return <Quiet>The latest snapshot has no signal-engine block.</Quiet>;
@@ -303,6 +441,7 @@ export function SignalEngine({ block, nowMs }: { block: unknown; nowMs: number }
   const promoRule = promotionView(se, nowMs);
   const days = typeof se.prospective?.days_scored === "number" ? se.prospective.days_scored : 0;
   const champ = se.champion?.model_id;
+  const feed = parseSeFeed(se, nowMs);
   return (
     <div className="grid grid-cols-1 gap-4" data-testid="signal-engine">
       <Card>
@@ -340,6 +479,8 @@ export function SignalEngine({ block, nowMs }: { block: unknown; nowMs: number }
           {se.note ?? "Signal strength / forecast quality only; not probability of profit, not an edge claim."}
         </p>
       </Card>
+
+      {feed ? <SignalFeed view={feed} /> : null}
 
       <Card>
         <h3 className="text-[15px] font-semibold text-arepo-ink">Prospective leaderboard</h3>

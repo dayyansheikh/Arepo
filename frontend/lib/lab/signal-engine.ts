@@ -343,6 +343,135 @@ export function attributionViews(se: SignalEngineBlock, nowMs: number): Attribut
   return out.sort((x, y) => x.modelId.localeCompare(y.modelId));
 }
 
+// ---- champion signal feed (`se-feed-v1`) --------------------------------------------------------
+
+export const SE_FEED_SCHEMA = "se-feed-v1";
+const POLYMARKET_PREFIX = "https://polymarket.com/";
+
+export interface SeFeedRowView {
+  marketId: string;
+  title: string | null;
+  url: string | null;
+  category: string;
+  mid: number | null;
+  spread: number | null;
+  hoursToEnd: number | null;
+  s2h: number | null;
+  s6h: number | null;
+  s24h: number | null;
+}
+
+export interface SeFeedHorizon {
+  eligible: number | null;
+  absGe025: number | null;
+}
+
+export interface SeFeedTrackRow {
+  target: string;
+  n: number | null;
+  days: number | null;
+  logLoss: number | null;
+  auc: number | null;
+  calSlope: number | null;
+}
+
+export interface SeFeedView {
+  modelId: string;
+  captureId: string | null;
+  originUtc: string | null;
+  predictionWrittenUtc: string | null;
+  stale: boolean;
+  label: string;
+  titlesError: string | null;
+  spreadMax: number | null;
+  midRange: [number, number] | null;
+  poolMarkets: number | null;
+  poolNote: string | null;
+  dir2h: SeFeedHorizon;
+  up: SeFeedRowView[];
+  down: SeFeedRowView[];
+  track: { label: string; daysScored: number | null; rows: SeFeedTrackRow[] } | null;
+}
+
+const FEED_LABEL =
+  "Signal strength = the champion's forecast of up minus down over the horizon. Forecast quality only, not advice.";
+
+function feedRows(v: unknown): SeFeedRowView[] {
+  const out: SeFeedRowView[] = [];
+  for (const r of Array.isArray(v) ? v : []) {
+    if (!isObj(r)) continue;
+    const id = typeof r.market_id === "number" && Number.isFinite(r.market_id) ? String(r.market_id) : str(r.market_id);
+    if (!id) continue;
+    const url = str(r.url);
+    out.push({
+      marketId: id,
+      title: str(r.title) ?? null,
+      url: url && url.startsWith(POLYMARKET_PREFIX) ? url : null,
+      category: str(r.category) ?? "",
+      mid: num(r.mid),
+      spread: num(r.spread),
+      hoursToEnd: num(r.hours_to_end),
+      s2h: num(r.s_2h),
+      s6h: num(r.s_6h),
+      s24h: num(r.s_24h),
+    });
+  }
+  return out;
+}
+
+/**
+ * Champion-only per-market signal feed. Null unless the schema matches, the feed was produced by the
+ * block's current champion, and that champion is not under an active live-test embargo (fail closed).
+ * Never throws.
+ */
+export function parseSeFeed(se: SignalEngineBlock | null | undefined, nowMs: number): SeFeedView | null {
+  try {
+    if (!se || typeof se !== "object" || Array.isArray(se)) return null;
+    const f = se.feed;
+    if (!isObj(f) || f.schema !== SE_FEED_SCHEMA) return null;
+    const champ = str(se.champion?.model_id);
+    const feedChamp = isObj(f.champion) ? str(f.champion.model_id) : undefined;
+    if (!champ || !feedChamp || champ !== feedChamp) return null;
+    if (isEmbargoed({ model_id: champ }, nowMs, modelEmbargoes(se))) return null;
+    const pool = isObj(f.pool) ? f.pool : {};
+    const mr = Array.isArray(pool.mid_range) ? pool.mid_range.map(num) : [];
+    const sum = isObj(f.summary) && isObj(f.summary.dir_2h) ? f.summary.dir_2h : {};
+    const tr = isObj(f.track_record) ? f.track_record : null;
+    return {
+      modelId: champ,
+      captureId: str(f.capture_id) ?? null,
+      originUtc: str(f.origin_utc) ?? null,
+      predictionWrittenUtc: str(f.prediction_written_utc) ?? null,
+      stale: f.stale === true,
+      label: str(f.label) ?? FEED_LABEL,
+      titlesError: str(f.titles_error) ?? null,
+      spreadMax: num(pool.spread_max),
+      midRange: mr.length === 2 && mr[0] !== null && mr[1] !== null ? [mr[0], mr[1]] : null,
+      poolMarkets: num(pool.markets),
+      poolNote: str(pool.note) ?? null,
+      dir2h: { eligible: num(sum.eligible), absGe025: num(sum.abs_ge_0_25) },
+      up: feedRows(f.top_up),
+      down: feedRows(f.top_down),
+      track: tr
+        ? {
+            label: str(tr.label) ?? "",
+            daysScored: num(tr.days_scored),
+            rows: (Array.isArray(tr.rows) ? tr.rows : []).filter(isObj).map((r) => ({
+              target: str(r.target) ?? "",
+              n: num(r.n),
+              days: num(r.days),
+              logLoss: num(r.log_loss),
+              auc: num(r.auc),
+              calSlope: num(r.cal_slope),
+            })),
+          }
+        : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 // ---- formatting --------------------------------------------------------------------------------
 
 const DASH = "–";
@@ -361,6 +490,12 @@ export function fmtSigned(v: number | null | undefined, dp = 4): string {
 
 export function fmtPct(v: number | null | undefined): string {
   return typeof v === "number" && Number.isFinite(v) ? `${Math.round(v * 100)}%` : DASH;
+}
+
+/** Price or spread as cents, e.g. 0.105 -> "10.5c". */
+export function fmtCents(v: number | null | undefined): string {
+  if (typeof v !== "number" || !Number.isFinite(v)) return DASH;
+  return `${(v * 100).toFixed(1).replace(/\.0$/, "")}c`;
 }
 
 /** "+0.0031 [−0.0004, +0.0066]" or "–" when there is no gain (e.g. the champion itself). */

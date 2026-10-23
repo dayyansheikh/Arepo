@@ -318,3 +318,94 @@ describe("promotion rule status", () => {
     expect(promotionView(block({ candidates: "nope" }), NOW)!.candidates).toEqual([]);
   });
 });
+
+// ---- champion signal feed ------------------------------------------------------------------------
+import sampleFeed from "./se-feed-sample.json";
+import { parseSeFeed } from "./signal-engine";
+
+function feedBlock(feedOver: Record<string, unknown> = {}, seOver: Record<string, unknown> = {}): SignalEngineBlock {
+  const feed = { ...(sampleFeed as Record<string, unknown>), ...feedOver };
+  const champ = (sampleFeed as { champion: { model_id: string } }).champion.model_id;
+  return {
+    schema: "se-dash-v1",
+    champion: { model_id: champ },
+    models: [{ model_id: champ, embargoed_until: null }],
+    feed,
+    ...seOver,
+  } as SignalEngineBlock;
+}
+
+describe("parseSeFeed", () => {
+  it("parses the real sample", () => {
+    const v = parseSeFeed(feedBlock(), NOW);
+    expect(v).not.toBeNull();
+    expect(v!.modelId).toBe("se0_champion_lr_mm");
+    expect(v!.up.length).toBeGreaterThan(0);
+    expect(v!.down.length).toBeGreaterThan(0);
+    expect(v!.up[0].url?.startsWith("https://polymarket.com/")).toBe(true);
+    expect(v!.dir2h.absGe025).toBe(389);
+    expect(v!.midRange).toEqual([0.05, 0.95]);
+    expect(v!.track?.rows[0].target).toBe("dir_2h");
+  });
+
+  it("returns null for missing, non-object or wrong-schema feeds", () => {
+    expect(parseSeFeed(null, NOW)).toBeNull();
+    expect(parseSeFeed({ schema: "se-dash-v1" }, NOW)).toBeNull();
+    expect(parseSeFeed({ schema: "se-dash-v1", feed: "x" } as unknown as SignalEngineBlock, NOW)).toBeNull();
+    expect(parseSeFeed(feedBlock({ schema: "se-feed-v2" }), NOW)).toBeNull();
+  });
+
+  it("returns null when the feed champion is not the block champion", () => {
+    expect(parseSeFeed(feedBlock({ champion: { model_id: "other_model" } }), NOW)).toBeNull();
+    expect(parseSeFeed(feedBlock({ champion: undefined }), NOW)).toBeNull();
+  });
+
+  it("returns null when the champion is embargoed or its date is unparseable", () => {
+    const b = feedBlock();
+    b.models = [{ model_id: b.champion!.model_id, embargoed_until: UNTIL }];
+    expect(parseSeFeed(b, NOW)).toBeNull();
+    b.models = [{ model_id: b.champion!.model_id, embargoed_until: "not-a-date" }];
+    expect(parseSeFeed(b, NOW)).toBeNull();
+    b.models = [{ model_id: b.champion!.model_id, embargoed_until: "2026-10-01T00:00:00Z" }];
+    expect(parseSeFeed(b, NOW)).not.toBeNull();
+  });
+
+  it("drops non-polymarket urls, malformed rows and non-finite numbers", () => {
+    const good = { market_id: 1, title: "<b>x</b>", url: "https://polymarket.com/event/a", category: "c", mid: 0.4, spread: 0.01, s_2h: 0.3, s_6h: null, s_24h: 0.1 };
+    const v = parseSeFeed(
+      feedBlock({
+        top_up: [
+          good,
+          { ...good, market_id: 2, url: "javascript:alert(1)" },
+          { ...good, market_id: 3, url: "https://polymarket.com.evil.com/x" },
+          { ...good, market_id: 4, s_2h: Infinity, mid: "0.5", spread: NaN },
+          "junk",
+          null,
+          { title: "no id" },
+        ],
+        top_down: "nope",
+      }),
+      NOW,
+    )!;
+    expect(v.up.map((r) => r.marketId)).toEqual(["1", "2", "3", "4"]);
+    expect(v.up[0].url).toBe("https://polymarket.com/event/a");
+    expect(v.up[1].url).toBeNull();
+    expect(v.up[2].url).toBeNull();
+    expect(v.up[3].s2h).toBeNull();
+    expect(v.up[3].mid).toBeNull();
+    expect(v.up[3].spread).toBeNull();
+    expect(v.down).toEqual([]);
+  });
+
+  it("never throws on malformed nested structures", () => {
+    expect(() => parseSeFeed(feedBlock({ pool: 5, summary: [], track_record: "x", top_up: [[]] }), NOW)).not.toThrow();
+  });
+
+  it("renders in the dashboard, champion only, with safe wording", () => {
+    const html = render(buildSignalEngineFixture(NOW));
+    expect(html).toContain("Signal feed (champion)");
+    expect(html).toContain("Strongest up");
+    expect(html).toContain('rel="noopener noreferrer"');
+    expect(html).not.toMatch(/(buy|sell)/i);
+  });
+});

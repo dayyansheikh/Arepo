@@ -206,6 +206,46 @@ export function buildMessagesFixture(nowMs: number): LabMessage[] {
   ];
 }
 
+/** Illustrative `se-feed-v1` feed for the fixture champion (placeholder markets and numbers). */
+function buildFeedFixture(nowMs: number) {
+  const row = (i: number, sign: number) => ({
+    market_id: 9000 + i * sign,
+    title: `Illustrative market ${i + 1}`,
+    url: `https://polymarket.com/event/illustrative-${i + 1}`,
+    category: "other",
+    mid: 0.3 + i * 0.01,
+    spread: 0.01,
+    hours_to_end: 48,
+    s_2h: sign * (0.5 - i * 0.03),
+    s_6h: sign * (0.4 - i * 0.02),
+    s_24h: i % 3 === 0 ? null : sign * 0.2,
+  });
+  return {
+    schema: "se-feed-v1",
+    generated_at: new Date(nowMs - 3_600_000).toISOString(),
+    capture_id: "c20261021T1200Z",
+    origin_utc: new Date(nowMs - 2 * 3_600_000).toISOString(),
+    prediction_written_utc: new Date(nowMs - 40 * 60_000).toISOString(),
+    primary_target: "dir_2h",
+    stale: false,
+    label: "Signal strength = the champion's forecast of up minus down over the horizon. Forecast quality only, not advice. (Illustrative fixture.)",
+    ranked_by: "|s_2h|, then liquidity",
+    titles_error: null,
+    champion: { model_id: "se1_lr_base", spec_sha256: "0".repeat(64), fit_id: "fixture" },
+    pool: { spread_max: 0.02, mid_range: [0.05, 0.95], markets: 1200, note: "illustrative" },
+    summary: { dir_2h: { eligible: 5000, abs_ge_0_1: 400, abs_ge_0_25: 90, mean: 0.01, valid_until: new Date(nowMs + 3_600_000).toISOString() } },
+    top_up: Array.from({ length: 12 }, (_, i) => row(i, 1)),
+    top_down: Array.from({ length: 12 }, (_, i) => row(i, -1)),
+    track_record: {
+      generated_at: new Date(nowMs - 3 * 3_600_000).toISOString(),
+      days_scored: 16,
+      window_days: 14,
+      label: "prospective, write-once predictions scored after the fact",
+      rows: [{ target: "dir_2h", n: 48210, days: 14, log_loss: 0.6512, brier: 0.2297, auc: 0.584, cal_slope: 0.97, cal_intercept: -0.01 }],
+    },
+  };
+}
+
 /** Illustrative `se-dash-v1` block: one embargoed challenger (no numbers), placeholder scores. */
 export function buildSignalEngineFixture(nowMs: number): SignalEngineBlock {
   const day = (d: number) => new Date(nowMs - d * 86_400_000).toISOString().slice(0, 10);
@@ -224,6 +264,7 @@ export function buildSignalEngineFixture(nowMs: number): SignalEngineBlock {
       { model_id: "se8_lr_event", family: "event", learner: "logreg", status: "active", embargoed_until: until, embargo_tests: ["E012"] },
     ],
     note: "Signal strength / forecast quality only; not probability of profit, not an edge claim.",
+    feed: buildFeedFixture(nowMs),
     last_refit: { at: new Date(nowMs - 5 * 3_600_000).toISOString().slice(0, 19) + "Z", models: 4, targets_ok: 15 },
     last_prediction: { capture_id: "c20261021T1200Z", at: new Date(nowMs - 40 * 60_000).toISOString().slice(0, 19) + "Z", models: 4 },
     prospective: {
