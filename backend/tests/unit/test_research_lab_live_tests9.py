@@ -599,6 +599,10 @@ def test_censuses_end_to_end_counts_only(world):
     assert c12["transitions_listed_to_null"] > 0 and c12["units_routeA"] > 0 and c12["route"] in ("A", "B", "dropped")
     assert c12["feed_completeness"]["ok"] and c12["switching_markets_mean_per_day"] > 0
     assert c12["feed_end_reasons"].get("feed_end_soon", 0) > 0  # the m % 8 == 0 programmes end inside the span
+    e = cc["feed_end_kinds_of_positive_configs"]
+    assert e["positive_configs"] > 0 and e["feed_captures_read"] > 0 and e["listed_markets"] >= e["feed_captures_read"]
+    assert e["end_date_only"] + e["end_sentinel"] <= e["positive_configs"]
+    assert e["date_only_share"] == e["end_date_only"] / e["positive_configs"] and e["sentinel_share"] == e["end_sentinel"] / e["positive_configs"]
     rf = cc["reward_field"]
     assert rf["null_taxonomy"].get("unset", 0) > 0 and rf["carry_counts"].get("rewards_null_carried_lag1", 0) > 0
     assert rf["two_ledger_map"]["listed_rewarded"] > 0 and rf["two_ledger_map"]["ghost"] > 0  # market 101 is dropped by the CLOB from slot 25
@@ -606,6 +610,7 @@ def test_censuses_end_to_end_counts_only(world):
     cs = lt.census_sweeps(seal=seal, snapshot_root=[h["snap"]], sweep_root=[h["swp"]], feed_root=[h["feed"]], work=world["tmp"] / "ws", spec=world["spec"])
     assert "error" not in cs, cs
     c14 = cs["CH214"]
+    assert 0.0 <= c14["dD"]["share_zdD_positive"] <= 1.0 and 0.0 <= c14["dD"]["share_positive"] <= 1.0
     assert c14["projected_units_21d"] > 0 and np.isfinite(c14["dD"]["scale"]) and c14["census_fixed"]["p_vm"] == 0.5 and c14["gate_CH214"]["pass"] is False
     cr = lt.census_feed(seal=seal, snapshot_root=[h["snap"]], feed_root=[h["feed"]], work=world["tmp"] / "wf", spec=world["spec"])
     assert "error" not in cr, cr
@@ -818,3 +823,29 @@ def test_causality_wild_captures_after_the_span(world, tmp_path):
     assert dump(cc1["CH212"]) == dump(cc2["CH212"]) and dump(cs1["CH214"]) == dump(cs2["CH214"])
     f_keys = {"F", "F_arm_share", "pairs", "gate_CH213", "broken_at_km1_given_km2_pooled"}
     assert dump({k: v for k, v in cc1["CH213"].items() if k not in f_keys}) == dump({k: v for k, v in cc2["CH213"].items() if k not in f_keys})
+
+
+def test_feed_end_kinds_counted_once_after_cache_eviction(world, monkeypatch):
+    """The feed-frame cache keeps 4 frames; a re-read after eviction must not be counted twice."""
+    seal = write_seal(world)
+    h = world["host"]
+    calls: dict[str, int] = {}
+    totals: dict[str, tuple[int, int, int, int]] = {}
+    orig = lt.feed_frame
+
+    def spy(feed_dir, spec):
+        f = orig(feed_dir, spec)
+        k = str(feed_dir)
+        calls[k] = calls.get(k, 0) + 1
+        totals[k] = (len(f), int(f["n_pos"].sum()), int(f["n_date_only"].sum()), int(f["n_sentinel"].sum()))
+        return f
+
+    monkeypatch.setattr(lt, "feed_frame", spy)
+    monkeypatch.setattr(lt, "FEED_CACHE_FRAMES", 1)
+    cc = lt.census_captures(seal=seal, snapshot_root=[h["snap"]], feed_root=[h["feed"]], work=world["tmp"] / "wev", spec=world["spec"])
+    assert "error" not in cc, cc
+    e = cc["feed_end_kinds_of_positive_configs"]
+    assert any(n > 1 for n in calls.values()), "fixture must exercise eviction and re-read"
+    assert e["feed_captures_read"] == len(totals)
+    assert e["listed_markets"] == sum(t[0] for t in totals.values()) and e["positive_configs"] == sum(t[1] for t in totals.values())
+    assert e["end_date_only"] == sum(t[2] for t in totals.values()) and e["end_sentinel"] == sum(t[3] for t in totals.values())

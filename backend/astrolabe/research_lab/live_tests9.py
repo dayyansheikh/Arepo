@@ -207,6 +207,8 @@ def _num(v) -> float:
     return x if math.isfinite(x) else float("nan")
 
 
+FEED_CACHE_FRAMES = 4  # feed frames kept in the census cache (older ones are evicted and re-read on demand)
+
 def feed_frame(feed_dir: Path, spec: dict) -> pd.DataFrame:
     """One row per listed ``condition_id`` of a feed capture (native and sponsored records merged): ``feeds`` (native / sponsored / both), the
     band and minimum (as served; the first record's), ``rate`` (summed positive ``rate_per_day`` of its configurations), ``n_pos`` (positive
@@ -1229,7 +1231,7 @@ def census_ch214(Q: pd.DataFrame, tot: dict, spec: dict, covered_days: float, pa
     vnum_share = float(pop["vnum_missing"].mean()) if len(pop) else float("nan")
     res = {"two_sweep_coverage": coverage, "quiet_share": quiet_share, "band_unchanged_share": unch_share, "tight_variant_printed": tight_variant, "projected_units_21d": proj, "cap_share": cap_share,
            "exclude_family": excl, "top_family_share": top, "band_unit_check": band, "dD": {"centre": cen, "scale": scl, "within_market_sd_median": float(pop.groupby("market_id")["dD"].std().median()),
-           "share_positive": float((pop["dD"] > 0).mean())}, "zdD": {"terciles": [t1, t2], "tercile_gap": gap, "zdDp_gap_between_zdD_terciles": gap_plus},
+           "share_positive": float((pop["dD"] > 0).mean()), "share_zdD_positive": float((pop["zdD"] > 0).mean())}, "zdD": {"terciles": [t1, t2], "tercile_gap": gap, "zdDp_gap_between_zdD_terciles": gap_plus},
            "design_effect": de, "slope": sm, "vif_w": vif, "resid_iqr": ri, "corr": corr, "corr_liq": corr_liq, "block_min_units": bm, "block_share": bs,
            "F": fm, "pairs": pc, "pair_days": pair_days, "f_role": "binding", "vnum_missing_share": vnum_share, "p_vm_input": vnum_share,
            "vol_missing_share": float(pop["vol_missing"].mean()), "band_sum_proxies": {"1c_quantiles": b._q(pop["D1c_km1"]), "5c_quantiles": b._q(pop["D5c_km1"]),
@@ -1752,13 +1754,22 @@ def census_captures(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, feed_root=FEED_R
     feed_frames: dict[str, pd.DataFrame] = {}
     persist = {"broken_km2": 0, "broken_km1_given_km2": 0}
     rf_acc: dict = {}
+    ends_acc = {"feed_captures_read": 0, "listed_markets": 0, "positive_configs": 0, "end_date_only": 0, "end_sentinel": 0}
+    ends_counted: set[str] = set()
 
     def fframe(d: str | None) -> pd.DataFrame | None:
         if d is None:
             return None
         if d not in feed_frames:
-            feed_frames[d] = feed_frame(feeds[d]["dir"], spec)
-            for old in list(feed_frames)[:-4]:
+            feed_frames[d] = f = feed_frame(feeds[d]["dir"], spec)
+            if d not in ends_counted:  # frames are evicted and can be re-read: count each capture once
+                ends_counted.add(d)
+                ends_acc["feed_captures_read"] += 1
+                ends_acc["listed_markets"] += int(len(f))
+                ends_acc["positive_configs"] += int(f["n_pos"].sum()) if len(f) else 0
+                ends_acc["end_date_only"] += int(f["n_date_only"].sum()) if len(f) else 0
+                ends_acc["end_sentinel"] += int(f["n_sentinel"].sum()) if len(f) else 0
+            for old in list(feed_frames)[:-FEED_CACHE_FRAMES]:
                 feed_frames.pop(old)
         return feed_frames[d]
 
@@ -1839,6 +1850,8 @@ def census_captures(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, feed_root=FEED_R
             "crypto_classifier_shown_to_work": fs["classifier_shown_to_work"], "reward_null_rule": spec.get("reward_null_rule"), "design_text_sha256": DESIGN_TEXT_SHA256,
             "covered_origins": {"CC9": len(ORG), "CH213_F_pairs": int(pair_days * 12)}, "expected_origins": exp.get("CC9"), "origins_differ_from_design": len(ORG) != exp.get("CC9"),
             "feed_completeness": fc, "band_unit_check": band, "reward_field": reward_field_summary(rf_acc),
+            "feed_end_kinds_of_positive_configs": {**ends_acc, "date_only_share": ends_acc["end_date_only"] / ends_acc["positive_configs"] if ends_acc["positive_configs"] else float("nan"),
+                                                   "sentinel_share": ends_acc["end_sentinel"] / ends_acc["positive_configs"] if ends_acc["positive_configs"] else float("nan")},
             "unit_overlaps": b.unit_overlaps({"CH213": A[A["n_members"] <= spec["member_cap"]["max_members"]] if len(A) else A, "CH212": B[B["n_members"] <= spec["member_cap"]["max_members"]] if len(B) else B}),
             "CH213": census_ch213(A, tot213, spec, days, band, pair_days), "CH212": census_ch212(B, tot212, spec, days, fc, {"per_day": sw_counts})}
 
