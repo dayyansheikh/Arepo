@@ -16,13 +16,14 @@ User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=E
 - **LT10 code merged** (9fc42a20) after code check -> fixes -> re-check FIXES_REQUIRED (R1, R2, N1-N5) -> fixes e1e01426 ->
   final verification (ledger N1 dates corrected 97554595). Drafts q0660-q0667 NOT promoted; census after E009 and E010
   analysis commits (3 Nov); q0665 size check not before 11-04.
-- **LT11 design DRAFT merged** (11d7ef92; CH234 / CH233 / CH232; survival 0.35 / 0.50 / 0.20). Challenger R1 running
-  (science-reviewer on `../astrolabe-live-tests-11`). Fast lane: freeze before 11-14T12:00Z, census on a fresh seal of 10-28..11-07.
+- **LT11 design DRAFT merged** (11d7ef92; CH234 / CH233 / CH232; survival 0.35 / 0.50 / 0.20). Challenger R1 = REVISE (8 must-fix, 10
+  should-fix, rulings A1-A13; filed by the designer agent as `reviews/LT11_CHALLENGER_R1_2026-10-23.md`); R1 response running. Fast lane: freeze before 11-14T12:00Z, census on a fresh seal of 10-28..11-07.
 - **Ops fixes merged** (ledger "Ops fixes q0164c and q0116i"): q0164c (exclusion-keys scratch not charged to the hashed cap;
   CB8 hashes unchanged; q0165 now depends on q0164c) and q0116i (MC1 resume identity without git HEAD; fresh resume dir).
-  Deploy running in the background (waits for the collector pass lock); q0164b to be cancelled once its current run stops.
-- Next: verify the deploy (`git log -1` on host = chore tip) and q0164c / q0116i start; file LT11 R1 and respond; then
-  next creative round or LT census prep. Open owner decision: clear ~9 GB restore copies (data-dumps 35 of 40 GB).
+  q0164b CANCELLED on the host (~13:15Z). Deploy re-run in the background (the first attempt never got the collector
+  pass lock; host was still at 590f0c37).
+- Next: verify the deploy (`git log -1` on host = chore tip) and q0164c / q0116i start; file LT11 R1 and respond; re-check; creative round 17 running (Fable xhigh,
+  worktree `../astrolabe-creative-r17`). Open owner decision: clear ~9 GB restore copies (data-dumps 35 of 40 GB).
 
 ## Interactive session state (2026-10-23 08:30Z)
 - **Security audit run 1 (2026-10-23):** Cloudflare security-audit skill, quick profile, source-only. 0 confirmed findings and 5 needs-validation leads; see `docs/security/AUDIT_2026-10-23_RUN1.md` (full artefacts in `~/security-audit-skill/astrolabe/run-1/`). Owner notified via ntfy. No fixes made yet. Proposed small PRs:
