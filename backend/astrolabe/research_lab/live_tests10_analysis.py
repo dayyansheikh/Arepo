@@ -675,9 +675,10 @@ def analyze(out_root: Path = lt.OUT_ROOT, *, xv_root: Path = lt.XV_ROOT, spec: d
             res[t] = {"verdict": {"verdict": "dropped at its census (uncounted; not in the Holm family)"}}
             continue
         note = sc.get(t)
-        size_note = None if note in (None, "pass") else (SIZE_LABEL if str(note).startswith("fail_size") else MECH_LABEL)
+        status = note.get("status") if isinstance(note, dict) else note
+        size_note = None if status in (None, "pass") else (SIZE_LABEL if str(status).startswith("fail_size") else MECH_LABEL)
         r = run_test(out_root, t, s, e, spec, roles, size_note)
-        r["analytic_oversized"] = bool(isinstance(note, str) and note == "analytic_oversized")
+        r["analytic_oversized"] = bool(isinstance(note, dict) and note.get("analytic_oversized"))
         res[t] = r
     pv = {t: p_for_holm(res[t])[0] for t in ktests}
     hp = bd.holm(pv)
@@ -712,11 +713,6 @@ def trials_line(spec: dict, ktests: list[str]) -> dict:
 # --- command-line entries -------------------------------------------------------------------------------------------------------------------------
 
 
-def size_check_cli(args, write_out) -> int:
-    print("refusing: size-check is not implemented in this code commit")
-    return 2
-
-
 def analyze_cli(args, write_out, now: float) -> int:
     try:
         spec = lt.load_spec(sha=lt.SPEC_SHA256)
@@ -726,3 +722,185 @@ def analyze_cli(args, write_out, now: float) -> int:
         return 2
     return write_out(args.out, json.dumps(res, sort_keys=True, indent=1, default=str))
 
+
+
+# --- the size check (1.8, 1.8.1) -----------------------------------------------------------------------------------------------------------------------
+
+
+# scenario -> (statistics, binding tests). "gate" = the event-phase gate's rejection rate; "verdict" = the share of worlds where the analytic one-sided p
+# is < 0.05 AND the test's verdict conditions beyond p hold (CH224: F; CH223: beta_twin < beta_lead; CH222: none), the gate omitted (1.8). World 10 binds
+# twice for every test.
+SCENARIO_ORDER = ("W1", "W2", "W3", "W4", "W5", "W6", "W7", "W8", "W9", "W10")
+SCENARIOS: dict[str, dict] = {
+    "W1": {"stats": ("gate",), "tests": ("CH224", "CH223", "CH222")},
+    "W2": {"stats": ("gate",), "tests": ("CH224", "CH223", "CH222")},
+    "W3": {"stats": ("gate",), "tests": ("CH224", "CH223", "CH222")},
+    "W4": {"stats": ("gate",), "tests": ("CH222",)},
+    "W5": {"stats": ("gate",), "tests": ("CH222",)},
+    "W6": {"stats": ("gate",), "tests": ("CH223",)},
+    "W7": {"stats": ("gate",), "tests": ("CH223",)},
+    "W8": {"stats": ("gate",), "tests": ("CH224",)},
+    "W9": {"stats": ("verdict",), "tests": ("CH224",)},
+    "W10": {"stats": ("gate", "verdict"), "tests": ("CH224", "CH223", "CH222")},
+}
+NULL_WORLDS_ANALYTIC = ("W1", "W2", "W3")  # the analytic p's own rate here decides the 'analytic p oversized in simulation' label (a convention)
+POWER = {"CH224": ("1.0c per 2.2 SD of zdsK", 1.0 / 2.2, 41), "CH223": ("0.5c between classes", 0.5, 42), "CH222": ("0.5c between classes", 0.5, 43)}
+
+
+def limit_for(worlds: int) -> float:
+    return 0.05 + 1.645 * math.sqrt(0.0475 / worlds)
+
+
+def evaluate_world(world: str, sub_seed: int, spec: dict, *, tests, stats, draws: int, plan=None, days=None, effect: bool = False, with_f: bool = False) -> dict:
+    """One simulated world under each binding test. ``effect`` plants the power-run effect (non-binding). ``with_f`` adds the F rule (the reported F-arm rates)."""
+    from . import live_tests10_worlds as W
+
+    rng = np.random.default_rng(sub_seed)
+    S = W.simulate(world, rng, plan=plan, days=days)
+    u, tw = W.origin_frame(S, rng)
+    out: dict = {}
+    for t in tests:
+        X, y = W.test_frame(u, tw, t, spec)
+        term, controls = lt.TERM[t], list(lt.CONTROLS[t])
+        if effect:
+            y = y + POWER[t][1] * X[term].to_numpy(float)
+        rec: dict = {"n": int(len(X))}
+        ctrl = [c for c in controls if c in X and np.nanstd(X[c].to_numpy(float)) > 0]
+        if "gate" in stats or effect:
+            stratum, n_g = _stratum(t)
+            g = lt.event_phase_fl_gate(X, y, term, ctrl, stratum=stratum, n_g=n_g, draws=draws, seed=int(sub_seed % (2**31 - 1)) + 17, sign=+1)
+            rec.update(gate_testable=bool(g.get("testable")), gate_reject=bool(g.get("passes")))
+        need_fit = ("verdict" in stats) or with_f or effect or (world in NULL_WORLDS_ANALYTIC)
+        if need_fit:
+            ok0 = np.isfinite(y)
+            r = fit10(X, y, term, ctrl, seed=int(sub_seed % (2**31 - 1)), minor=None, n_boot=20)
+            if r.get("testable"):
+                ok = r["_mask"]
+                minor = g_minor(X, ok, t)
+                if minor is not None and minor < int(r["n_event"]):
+                    r = fit10(X, y, term, ctrl, seed=int(sub_seed % (2**31 - 1)), minor=minor, n_boot=20)
+                rec.update(p_analytic=float(r["p"]), analytic_reject=bool(r["p"] < 0.05), beta=float(r["beta"]), n_fit=int(ok.sum()))
+                if "verdict" in stats or with_f:
+                    f = f_rule(X, y, t, ctrl, r, spec, lambda A, m, _t=t: g_minor(A, m, _t))
+                    cond = {"CH224": bool(f.get("available") and f.get("holds")), "CH223": bool(f.get("available") and f.get("twin_below_lead")), "CH222": True}[t]
+                    rec.update(f_available=bool(f.get("available")), f_holds=bool(f.get("holds", False)), twin_below_lead=bool(f.get("twin_below_lead", False)),
+                               verdict_reject=bool(r["p"] < 0.05 and cond))
+            else:
+                rec.update(p_analytic=1.0, analytic_reject=False, verdict_reject=False, fit_testable=False)
+            rec["n_finite_target"] = int(ok0.sum())
+        out[t] = rec
+    return out
+
+
+def size_check(*, worlds: int, draws: int, seed: int, spec: dict, tests=None, plan=None, days=None, power_worlds: int | None = None, reported_worlds: int | None = None,
+               scenarios=SCENARIO_ORDER, progress=None) -> dict:
+    """The size check: ``worlds`` worlds per scenario (the world's sub-seed is drawn from ONE generator seeded ``seed``, scenarios in table order), each
+    evaluated under every binding test through the same event-phase gate path, strata and minima as the analysis. Criterion: the rate <= ``0.05 + 1.645 x
+    sqrt(0.0475 / worlds)`` (0.058 at 2,000 worlds). Non-binding: power runs (planted effect; generators ``seed x 100 + n``), the F-arm rates in W1-W3
+    (the first ``reported_worlds`` worlds) and the analytic p's own rates. A failing gate scenario sets only its tests to 'SE check failed (size scenario)',
+    a failing verdict-size scenario to '(mechanical world)'; k is unchanged, no rerun, reseed or redesign."""
+    lim = limit_for(worlds)
+    alive = list(tests) if tests is not None else list(TESTS)
+    master = np.random.default_rng(seed)
+    res: dict = {t: {} for t in alive}
+    analytic: dict = {t: {} for t in alive}
+    freport: dict = {t: {} for t in alive}
+    rep_n = worlds if reported_worlds is None else reported_worlds
+    for sc in scenarios:
+        spec_s = SCENARIOS[sc]
+        bind = [t for t in spec_s["tests"] if t in alive]
+        if not bind:
+            continue
+        tally = {t: {"gate": 0, "gate_n": 0, "verdict": 0, "verdict_n": 0, "an": 0, "an_n": 0, "f": 0, "f_n": 0, "tbl": 0, "tbl_n": 0} for t in bind}
+        for i in range(worlds):
+            sub = int(master.integers(1, 2**62))
+            recs = evaluate_world(sc, sub, spec, tests=bind, stats=spec_s["stats"], draws=draws, plan=plan, days=days, with_f=(sc in NULL_WORLDS_ANALYTIC and i < rep_n))
+            for t, r in recs.items():
+                a = tally[t]
+                if "gate" in spec_s["stats"]:
+                    a["gate_n"] += 1
+                    a["gate"] += int(r.get("gate_reject", False))
+                if "verdict" in spec_s["stats"]:
+                    a["verdict_n"] += 1
+                    a["verdict"] += int(r.get("verdict_reject", False))
+                if "analytic_reject" in r:
+                    a["an_n"] += 1
+                    a["an"] += int(r["analytic_reject"])
+                if "f_holds" in r and sc in NULL_WORLDS_ANALYTIC:
+                    a["f_n"] += 1
+                    a["f"] += int(r["f_holds"])
+                    a["tbl_n"] += 1
+                    a["tbl"] += int(r.get("twin_below_lead", False))
+            if progress:
+                progress(sc, i + 1, worlds)
+        for t in bind:
+            a = tally[t]
+            for stat in spec_s["stats"]:
+                n, k = a[f"{stat}_n"], a[stat]
+                rate = k / n if n else float("nan")
+                res[t][f"{sc}:{stat}"] = {"scenario": sc, "stat": stat, "worlds": n, "rejections": k, "rate": rate, "limit": lim, "ok": bool(n == worlds and rate <= lim)}
+            if a["an_n"]:
+                analytic[t][sc] = {"worlds": a["an_n"], "rate": a["an"] / a["an_n"], "over_limit": bool(a["an"] / a["an_n"] > lim)}
+            if a["f_n"]:
+                freport[t][sc] = {"worlds": a["f_n"], "f_holds_rate": a["f"] / a["f_n"], "twin_below_lead_rate": a["tbl"] / a["tbl_n"]}
+    out = {"worlds": worlds, "draws": draws, "seed": seed, "limit": lim, "scenarios": res, "analytic_rates": analytic, "f_arm_rates_reported": freport}
+    out["per_test"] = per_test_result(res, analytic, alive, worlds, scenarios)
+    pw = power_worlds
+    if pw:
+        out["power_runs"] = {}
+        for t in alive:
+            label, _slope, n_ = POWER[t]
+            g = np.random.default_rng(seed * 100 + n_)
+            hit_g = hit_a = 0
+            for _ in range(pw):
+                r = evaluate_world("W1", int(g.integers(1, 2**62)), spec, tests=[t], stats=("gate",), draws=draws, plan=plan, days=days, effect=True)[t]
+                hit_g += int(r.get("gate_reject", False))
+                hit_a += int(r.get("analytic_reject", False))
+            out["power_runs"][t] = {"effect": label, "worlds": pw, "gate_power": hit_g / pw, "analytic_power": hit_a / pw, "binding": False}
+    return out
+
+
+def per_test_result(res: dict, analytic: dict, alive: list[str], worlds: int, scenarios=SCENARIO_ORDER) -> dict:
+    """Fail-closed scenario-to-test map: a test passes only if EVERY binding statistic of the scenarios it is bound to exists with ``worlds`` worlds and is
+    within the limit. A missing or incomplete statistic fails the test (a failing scenario sets only its own tests; k unchanged)."""
+    out = {}
+    for t in alive:
+        fails_size, fails_mech, missing = [], [], []
+        for sc in scenarios:
+            spec_s = SCENARIOS.get(sc)
+            if spec_s is None:
+                raise Refused(f"unknown size scenario {sc!r}")
+            if t not in spec_s["tests"]:
+                continue
+            for stat in spec_s["stats"]:
+                r = res.get(t, {}).get(f"{sc}:{stat}")
+                if r is None or r["worlds"] != worlds:
+                    missing.append(f"{sc}:{stat}")
+                elif not r["ok"]:
+                    (fails_size if stat == "gate" and not (sc == "W9") else fails_mech).append(f"{sc}:{stat}")
+        status = "fail_size_scenario" if (fails_size or missing) else ("fail_mechanical_world" if fails_mech else "pass")
+        over = [sc for sc, v in (analytic.get(t) or {}).items() if sc in NULL_WORLDS_ANALYTIC and v["over_limit"]]
+        out[t] = {"status": status, "failed_size": fails_size, "failed_mechanical": fails_mech, "missing": missing, "analytic_oversized": bool(over), "analytic_over_in": over}
+    return out
+
+
+def size_check_cli(args, write_out) -> int:
+    try:
+        spec = lt.load_spec(sha=None)
+    except RuntimeError as exc:
+        print(f"refusing: {exc}")
+        return 2
+    if (e := lt.design_text_error()) is not None:
+        print(f"refusing: {e['error']}")
+        return 2
+    sc = spec["size_check"]
+    worlds = args.worlds if args.worlds is not None else int(sc["worlds"])
+    draws = args.draws if args.draws is not None else int(sc["draws"])
+    if worlds < 2 or draws < 1:
+        print("refusing: worlds / draws too small")
+        return 2
+    tests = spec.get("k_tests")
+    out = size_check(worlds=worlds, draws=draws, seed=int(spec["seeds"]["size_check"]), spec=spec, tests=list(tests) if tests else None,
+                     power_worlds=int(sc["power_worlds"]) if not args.dev else int(getattr(args, "power_worlds", 0) or 0))
+    out.update(code_sha256=lt.code_hashes(), spec_sha256=spec["_sha256"], design_text_sha256=lt.design_text_sha(), dev=bool(args.dev))
+    return write_out(args.out, json.dumps(bd._clean(out), sort_keys=True, indent=1, default=str))

@@ -127,6 +127,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--worlds", type=int, default=None)
     s.add_argument("--draws", type=int, default=None)
     s.add_argument("--dev", action="store_true")
+    s.add_argument("--power-worlds", type=int, default=0, help="--dev only: power-run worlds (the registered run uses 500)")
     s.add_argument("--data-dumps-cap-gb", type=float, default=None)
     a = sub.add_parser("analyze", help="the single analysis (not before the analysis date)")
     a.add_argument("--out", type=Path, default=None)
