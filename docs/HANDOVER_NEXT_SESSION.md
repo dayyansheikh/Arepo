@@ -1,89 +1,55 @@
-# Handover to next session (written 2026-10-15 19:10 UTC+1, 18:10Z)
+# Handover to next session (written 2026-10-23 09:30 UTC+1, 08:30Z)
 
-The previous session reached its compaction limit (2 compactions). Per CLAUDE.md it handed over instead of continuing.
+The previous interactive session reached its compaction limit (2 compactions) and handed over per CLAUDE.md.
 
 ## Objective
-The user's new standing mission is in `docs/research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`. Read it in full; it is the task. In short:
-- Run a sustained, autonomous edge-discovery programme (screening funnel → candidate selection → intensive modelling → frozen prospective confirmation → economic check).
-- Establish **verified** persistence that resumes after the 5-hour and weekly usage limits.
-- Maintain a phone-friendly dashboard.
-- Usage plan: exhaust the current weekly allowance by about Sun 18 Oct. Use the one-time reset, which **expires Wed 21 Oct**, before then. The normal weekly reset is Thu 22 Oct.
+- **Programme.** Phase 4 edge discovery runs autonomously:
+  - the experiments autopilot works in `~/.arepo/autopilot` on `chore/arepo-claude-setup`;
+  - the signal-engine autopilot works in `~/.arepo/autopilot-signal` (worktree `../astrolabe-signal-auto`, branch `auto/signal-engine`), following the permanent North Star in `docs/research_lab/signal_engine/NORTH_STAR.md`.
+- **Interactive sessions.** These handle owner requests, web/lab work and infrastructure.
+- **Last interactive task (done).** Run Cloudflare's security-audit skill on the project and send a full ntfy update.
 
-## Acceptance criteria (first milestone)
-1. **Persistence mechanism:**
-   - Chosen and implemented.
-   - Tested with one harmless real run plus one controlled interruption and recovery.
-   - Documented, with a manual pause and stop.
-   - If unattended Claude re-invocation is not possible on the subscription, say so plainly and ship the server-side experiment runner instead.
-   - No billable API use without approval.
-2. **Durable research queue:**
-   - A queue file or directory in the repo with the fields in mission §8.
-   - Plus a server worker that runs queued jobs with a lock, idempotency, timeouts and bounded retries.
-3. **First real screening jobs** queued and running. Every attempt is logged to the trial ledger, nulls included.
-4. **Dashboard** `docs/AREPO_PROGRESS_PLAIN_ENGLISH.md` rewritten to mission §9: running or waiting state, next invocation, worker health, experiments, usage milestones, and approvals needed.
-5. **User alert** about the one-time reset, telling them whether it needs manual redemption and the exact steps, before Wed 21 Oct.
+## State
+- **Audit run 1 is complete.** It was source-only, quick profile, and both validators pass. Results are in `docs/security/AUDIT_2026-10-23_RUN1.md`; full artefacts are in `~/security-audit-skill/astrolabe/run-1/` (REPORT.md, NEEDS-VALIDATION.md, findings.json, coverage-ledger.json).
+  - 0 confirmed findings and 5 needs-validation leads.
+  - 5 deferred coverage units.
+  - 44 hardening notes.
+- **The owner has been notified via ntfy** (milestone, dedupe key `security-audit-run1-2026-10-23`).
+- **No code fixes have been made yet.**
 
-## State (measured 2026-10-15 18:07Z)
-- **Repo:**
-  - Branch `chore/arepo-claude-setup`; production untouched.
-  - Another session may commit here, so commit only your own files.
-  - Untracked `.codex/` and `backend/data-dumps/` are not ours; leave them.
-- **Oracle server** (`ssh oracle`, BatchMode; see `docs/research_lab/COLLECTION_HOST.md`):
-  - **Hardware:** 1 OCPU aarch64, about 5 GiB RAM (3 GiB available), 15 GB disk free. `data-dumps` is 5.2 GB against a 12 GB cap.
-  - **This is small.** Concurrency on the host must be about 1 heavy job. The Mac (8 GB) is comparable or faster for single fits.
-  - Oracle's free tier allows up to 4 OCPU / 24 GB on Ampere, but the user can't log into the Oracle console, so it can't be resized for now.
-- **Host cron (live, healthy):**
-  - `arepo_pass.sh` at `31 */2`;
-  - `supervise.sh` at `*/5` (live trade monitor + cross-venue-live E009/E010);
-  - outcomes at `10 2,14`;
-  - ntfy notify at `*/15`.
-- **Mac:** collection retired (launchd plists `*.disabled`). Data-dumps retired; 42 GiB free. Data lives in the private GitHub repo `dayyansheikh/arepo-data` (releases) plus the server. Restore guide: `docs/research_lab/DATA_ARCHIVE_2026-10-13.md`.
-- **Notifications:**
-  - ntfy push works; the topic is in `~/.arepo/ntfy_topic`, sent via `backend/astrolabe/research_lab/notify.py`. Use this for user alerts (e.g. the reset deadline).
-  - The Gmail tool may not be connected.
+## Decisions made
+- The audit target was the production branch @ 2842fd1f plus the ops scripts @ 590f0c37, both as clean `git archive` snapshots in the session scratchpad.
+- Nothing was executed: macOS cannot OS-enforce the memory limit the skill requires.
+- Nothing live was probed.
 
-## Research results so far (do not redo)
-See `docs/research_lab/EXPERIMENT_LEDGER.md` and `docs/AREPO_V2_CHECKPOINT.md`.
-- **Signals that hold:**
-  - Order flow (E007) is real but tiny, about 0.36c.
-  - Reversal (E004) is real but not tradable; it is likely bid-ask/quote noise.
-  - Hypothesis battery 1: 18 of 72 survive; 16 replicate on `h3_power`.
-- **Not profitable:** 95 economic conditions, none profitable after costs.
-- **Wallet features:** null in 3 analyses.
-- **Kalshi lead:** the strongest historical predictor. Live as E009/E010; analyse once after 2026-11-03.
-- **Learned surprise detector `sm_learned_v2`:** about 6.5% precision against a 0.87% base rate. It is volatility-driven and not profitable. Live as E011; analyse once after 2026-11-11 13:00Z.
-- **Code base for screening:** `backend/astrolabe/research_lab/` (`ml_panel.py`, `ml_models.py`, `ml_explain.py`, `flow_features.py`, `economics.py`, `history_backfill.py`, `detector_eval.py`, `surprise_*.py`).
-- **Trial budget:** `trials.jsonl`, unioned by `scripts/oracle/deploy.sh`.
+## Files changed this session (last part)
+- `docs/security/AUDIT_2026-10-23_RUN1.md` (new)
+- `docs/AREPO_V2_CHECKPOINT.md` (interactive section rewritten)
+- `docs/AREPO_PROGRESS_PLAIN_ENGLISH.md` (one line)
+- this file
 
-## Decisions made / standing
-- The protected boundaries in CLAUDE.md all stand.
-- **Wallets:** HMAC hashes only, never labelled "insider".
-- **Category scope:** a parameter.
-- **Trading engine:** don't touch.
-- **Heavy jobs:** never run two memory-heavy jobs at once (heavy-lock convention in `~/arepo_collector/heavy_lock.md`).
+## Running or scheduled jobs
+- Both Mac autopilots (launchd, every 30 min).
+- The Oracle queue worker and collectors (cron).
+- MC1 resumable run q0116h, queued.
+- Nothing was started by the audit.
 
-## Open user items
-1. **Server GitHub token, needed by about 22 Oct.**
-   - **What:** a fine-grained token, `arepo-data` only, Contents Read/Write.
-   - **Why:** for server archive rotation (`scripts/oracle/archive_rotate.py`, written but not installed). Without it the 12 GB cap fills at about 1 GB/day.
-   - **Install:** give the user a hidden-input command (`ssh oracle`, `read -s`, saved to `~/.arepo/github_token`, chmod 600). The server lacks `gh` and `zstd`; install them or use Python equivalents.
-2. **E009/E010 overnight gap:**
-   - **Decision:** "include it" or "leave the gap" for the server validation copy `/home/opc/arepo_val`, covering about 00:00–10:47Z on 10-14.
-   - **Recommendation:** include it, logged as a disclosed deviation before the outcome analysis.
-   - **Status:** awaiting the user.
-3. **Resend audit:** deferred by the user.
-4. **One-time usage reset:** verify whether it needs manual redemption, then alert the user via ntfy with steps before Wed 21 Oct.
-
-## Running / scheduled jobs
-- Only the host cron above. No Claude loops or cron jobs are active.
+## Open owner decisions
+1. Clear about 9 GB of restore copies on the host (data at 33 of 40 GB). Asked earlier; no answer yet.
+2. Owner checks from the audit:
+   - Render's AUTH_SECRET is set and strong;
+   - GitHub repo visibility;
+   - whether the account in `backend/astrolabe.db.backup-20260805-205904` is real (if so, rotate its password);
+   - whether to purge that file from git history (needs a force-push, so owner approval is required).
+3. Whether to do the audit fixes now, and whether to run a `standard`-profile follow-up audit on the 5 deferred units.
 
 ## Exact next action
-1. Read the mission file.
-2. Research the options for unattended Claude Code runs on a subscription:
-   - `claude -p` headless with `claude setup-token` / `CLAUDE_CODE_OAUTH_TOKEN`;
-   - cloud routines via RemoteTrigger or `/schedule`;
-   - how rate-limit and reset errors surface.
-3. Check the account's usage and reset facts that are visible to you.
-4. Pick a mechanism.
-5. Build the research queue and the server worker, then test a harmless run plus an interruption.
-6. Queue the first screening family. The first data step is pulling `h3_power` and the history panels from the `arepo-data` releases onto the server.
+- **If the owner approves the audit fixes:** one branch from `origin/arepo-free-production-v1`, with small commits:
+  1. `create_app` raises when `production_issues()` reports AUTH_SECRET or cookie_secure in production. Add a test.
+  2. `git rm --cached backend/astrolabe.db.backup-20260805-205904`.
+  3. `ratelimit._client_key`: use the right-most trusted hop with a `TRUSTED_PROXY_COUNT` setting, and bound `_hits`. Add a test.
+  4. Add a password fingerprint claim to session JWTs, checked in `StepUpJWTStrategy.read_token`; require the current password on PATCH /api/users/me password and email changes. Mount only `/users/me`, which also closes the `/api/users/{id}` guard bypass.
+  5. A TTL cache or semaphore on `/api/historical/screen`, plus `max_length` on `q`.
+
+  Then run the full validation, self-review, and merge via `~/.local/bin/gh pr merge` under the owner exception. Tell the owner the PR link and verify the Render and Vercel deploys.
+- **Otherwise:** resume normal interactive support. The autopilots continue on their own.

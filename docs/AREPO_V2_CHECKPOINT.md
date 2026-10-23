@@ -8,22 +8,18 @@
 **PHASE 4 IN PROGRESS.** See `implementation/phases/PHASE_04_EDGE_EXPERIMENTS.md` and the ledger `research_lab/EXPERIMENT_LEDGER.md`.
 User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=Etc/GMT-1 date`.
 
-## Interactive session state (2026-10-21 ~09:50Z)
-- **Web (all merged by Claude under the owner exception in CLAUDE.md):**
-  - #21 and #24: Claude board (costs, messages, controls).
-  - #22 and #25: security keys / passkeys, unlock-method chooser, per-device trust.
-  - #23 (signal autopilot): signal engine section.
-  - Production schema is v18.
-- **Owner key:** an iCloud Keychain passkey (synced to the iPhone). Recovery codes are with the owner. DB reset steps are in docs/lab/SECURITY_KEYS.md.
-- **Autopilots:** two run on the Mac:
-  - experiments: `~/.arepo/autopilot`, label experiments;
-  - signal engine: `~/.arepo/autopilot-signal`, worktree ../astrolabe-signal-auto, branch auto/signal-engine.
-  - Owner messages arrive in each instance's INBOX.md via /lab/claude.
-- **Host resize:** owner-approved, free, to 2 OCPU / 12 GB, scheduled 2026-10-22 02:40Z (resize_host.py, post_resize_check.py,
-  COLLECTION_HOST.md). No deploys 02:40–03:45Z. After DONE: append the ledger deviation draft, remove the cron, re-promote MC1 (q0116*) on 12 GB.
-- **E026 copy-skilled wallets:** owned by the experiments autopilot. The owner wants a phone notification at each milestone. Freeze is due before 2026-10-25.
-- **New streams live:** PredictIt, Smarkets, ESPN odds, gamma rules, reward params.
-- **Merged development work:** cost model, maker-rewards study, wallet-skill study (WS1).
+## Interactive session state (2026-10-23 08:30Z)
+- **Security audit run 1 (2026-10-23):** Cloudflare security-audit skill, quick profile, source-only. 0 confirmed findings and 5 needs-validation leads; see `docs/security/AUDIT_2026-10-23_RUN1.md` (full artefacts in `~/security-audit-skill/astrolabe/run-1/`). Owner notified via ntfy. No fixes made yet. Proposed small PRs:
+  1. Refuse to start in production on a default or short AUTH_SECRET.
+  2. `git rm --cached` the committed SQLite backup.
+  3. Key the rate limiter on the trusted proxy hop.
+  4. Session revocation and require the current password.
+  5. Cache or limit `/api/historical/screen`.
+  - Owner checks: Render AUTH_SECRET is strong; repo visibility; whether the backup's account is real.
+- **Web (merged under the owner exception):** #19–#25. Production schema v18. Owner passkey in iCloud Keychain; recovery codes with the owner (`docs/lab/SECURITY_KEYS.md`).
+- **Autopilots (Mac):** experiments in `~/.arepo/autopilot` and signal engine in `~/.arepo/autopilot-signal` (worktree `../astrolabe-signal-auto`, branch `auto/signal-engine`). Owner messages arrive in each instance's `INBOX.md` via /lab/claude.
+- **Host:** resized to 2 OCPU / 12 GB on 2026-10-22. Open owner decision: clear about 9 GB of restore copies (data at 33 of 40 GB).
+- **E026 copy-skilled wallets:** owned by the experiments autopilot, which sends milestone notifications.
 
 ## Interactive usage push (owner: use all usage before Wed 21 Oct morning), started 2026-10-19 ~21:20Z
 Parallel worktrees: one branch per stream, each merged by the interactive orchestrator after review. The autopilot keeps the CB8–CB17 pipeline.

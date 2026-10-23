@@ -1,12 +1,13 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-23 08:57 UTC+1
+**Last updated:** 2026-10-23 09:28 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
+- **Security check (23 Oct):** Cloudflare's security audit was run on the site and the lab code. No confirmed holes; the lab lock and passkeys held up. There are 5 things to check or fix (details sent to your phone; summary in `docs/security/AUDIT_2026-10-23_RUN1.md`). The most important is to confirm that Render has a strong AUTH_SECRET.
 - **Planned live-test families in the pipeline:** LT8 (counting checks today), LT9 (code done, data from 12 Nov), LT10
   (design frozen today).
 - **Seven registered live tests** are collecting or waiting to collect (E009/E010, E011, E012-E014, E015, E022, E026).
