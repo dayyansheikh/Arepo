@@ -4067,3 +4067,19 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **Next:** seal (q0641) only after the 11-02..11-12 span exists; check by hand that no LT8 q0624-q0627 runs before
   promoting any LT9 census (memory rule).
 
+## LT10 design draft, 2026-10-23 (~03:30Z; experiments autopilot; nothing counted)
+- **Source:** creative round 15 (`CREATIVE_HYPOTHESES_2026-10-29.md`, CH222-CH231, merged c23b5a52; Fable xhigh). Its finding:
+  capture-clock cross-venue tests lack pairs (>= 1,100 needed; the politics venues offer a few hundred); E009's 120 s
+  Kalshi + Polymarket CLOB poller is the only fine-clock panel with Polymarket on it.
+- **Draft:** `docs/research_lab/LIVE_TESTS_10.md` on `feat/live-tests-10` (ba559ced), sha256 `d7529914c71763bc…`. DRAFT, not
+  frozen, challenger R1 running; not registered; E-numbers unassigned. Tests CH224 (Kalshi spread innovation -> Polymarket
+  spread 20 min later; planning MDE 0.30c / 0.23c, floor 1.0c, F binding), CH223 (Kalshi size pull without a Kalshi mid move ->
+  Polymarket's next |move|; 0.47c / 0.26c, floor 0.5c), CH222 (Kalshi moves split by whether `last_price` changed; 0.63c /
+  0.44c, floor 0.5c: fails at the low planning end, put to the challenger). One Holm family, k <= 3, `informed (E009, E010)`.
+- **Timing:** design text frozen before 2026-11-03T02:00Z (before E009 / E010's analysis) or LT10 is not registered; census
+  (counts only, seal 10-21..10-31) only after E010's analysis commit; window proposed 11-10..12-01, analysis after
+  12-02T12:00Z. Family gate first: >= 60 pairs in >= 30 events (E009's pilot had 22-27 events). Designer's odds that no test
+  registers: about 0.66 (a judgement).
+- **Open orchestrator decision D-LT10-1:** the poller stops at its 2 GiB cap around 11-16 (projection); proposed quotes-only
+  successor in new files (`xv_quotes/`), same pairs and grid; no new external service.
+

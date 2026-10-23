@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-23 03:39 UTC+1
+**Last updated:** 2026-10-23 04:05 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -23,8 +23,10 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 - **Cross-venue twins (batch 16, K): closed, not testable** (a blind check found 3 true twins in 100 sampled pairs; 90 needed).
 - **Model run (MC1):** now running on the server in 5.5-hour pieces (about 32 hours in total), giving way to LT8's checks.
 - **Batch 7:** its counting job starts from 24 Oct. **Batch 8/9:** both failed data jobs are fixed and queued.
-- **New ideas round 14** done (10 ideas), all now used by LT9 or the signal engine. **Round 15 started** (03:00 UTC+1),
-  focused on ideas that can pass the counting checks, using the newer streams (PredictIt, Smarkets, ESPN odds, rules text).
+- **New ideas round 14** done (10 ideas), all now used by LT9 or the signal engine. **Round 15 done** (10 ideas, CH222-CH231). Its main
+  finding: comparing venues every 2 hours never gives enough pairs, but the 2-minute Kalshi + Polymarket poller (used by
+  E009) does. **LT10** (three ideas on that poller: does Kalshi's quoting move Polymarket's spread or its next move) is
+  being designed now; its design must be frozen before E009's analysis on 3 Nov, so it cannot be shaped by that result.
 - **Copy-skilled wallets (E026):** registered; collection starts 25 Oct (phone note then).
 - **Honest pattern:** most planned tests die at the counting stage, before any outcome data is read (LT5, LT6 and now LT7
   all closed this way). That is the checks working as designed.
