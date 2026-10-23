@@ -6,7 +6,7 @@ so the queue waits 30 min without counting an attempt):
 
     features    [--max-items 4]        new complete captures -> quotes/, features/, meta/ (write-once; no network)
     predict     [--max-items 4]        every active model predicts every eligible market of new captures (write-once)
-    tick        [--max-items 4]        features then predict (the per-capture job)
+    tick        [--max-items 4]        features, predict, then the champion's signal feed (the per-capture job)
     refit       [--min-interval-h 20]  daily walk-forward refit of every active model (fit_time = now)
     resolve     [--max-requests 300]   Gamma resolution labels for markets past their scheduled end (network)
     score       [--min-interval-h 20]  resolve, prospective scoring, daily leaderboard, promotion rule, dashboard.json
@@ -70,7 +70,16 @@ def cmd_predict(paths, args) -> tuple[dict, int]:
 def cmd_tick(paths, args) -> tuple[dict, int]:
     f, _ = cmd_features(paths, args)
     p, _ = cmd_predict(paths, args)
-    return {"features": f, "predict": p}, 0 if (f["written"] or f["aux"]["written"] or p["written"]) else C.TEMPFAIL
+    res = {"features": f, "predict": p}
+    try:  # per-market signal feed from the champion's newest prediction (DESIGN_V1 §27); never fails the tick
+        from astrolabe.signal_engine import signal_feed as SF
+        from astrolabe.signal_engine import specs as SP
+
+        res["feed"] = SF.write_feed(paths, SP.load_registry(paths.spec_dir), S.now_ts(),
+                                    fetch=None if args.no_feed_titles else SF.fetch_titles)
+    except Exception as exc:  # noqa: BLE001
+        res["feed_error"] = f"{type(exc).__name__}: {exc}"[:300]
+    return res, 0 if (f["written"] or f["aux"]["written"] or p["written"]) else C.TEMPFAIL
 
 
 def cmd_refit(paths, args) -> tuple[dict, int]:
@@ -192,6 +201,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--force", action="store_true", help="refit/score even if not due")
     ap.add_argument("--fit-time", default=None, help="refit only: an earlier ISO fit time (labels before it only)")
     ap.add_argument("--no-resolve", action="store_true")
+    ap.add_argument("--no-feed-titles", action="store_true", help="tick only: build the signal feed without the Gamma title lookup")
     ap.add_argument("--data-dumps-cap-gb", type=float, default=40.0)
     ap.add_argument("--engine-root", default=None, help="override (dry runs / tests)")
     ap.add_argument("--dumps-root", default=None, help="override the research_lab input root (dry runs)")

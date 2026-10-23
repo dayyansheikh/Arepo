@@ -1602,3 +1602,108 @@ def test_select_rows_matches_the_pre_2026_10_22_two_copy_version():
         for target in ("dir_2h", C.RES_TARGET):
             got = T.select_rows(fr, spec, target, 20 * 86400.0)
             pd.testing.assert_frame_equal(got, old(fr, spec, target, 20 * 86400.0))
+
+
+# ---------------------------------------------------------------------------------------------- signal feed
+
+
+def _feed_world(env, monkeypatch):
+    w, paths = env
+    w.run(24)
+    build_all(paths)
+    reg = SP.load_registry(paths.spec_dir)
+    fit_time = S.slot_time(SLOT0 + 23) - 1800
+    T.refit_all(paths, reg, fit_time, now=fit_time)
+    t_pred = S.slot_time(SLOT0 + 23) + 900
+    _clock(monkeypatch, t_pred)
+    P.run_predict(paths, reg, now=t_pred, max_items=10)
+    return paths, reg, t_pred, S.load_index(paths)[SLOT0 + 23]["capture_id"]
+
+
+def test_signal_feed_reads_back_the_champions_stored_prediction(env, monkeypatch):
+    from astrolabe.signal_engine import signal_feed as SF
+
+    paths, reg, now, cap = _feed_world(env, monkeypatch)
+    calls = []
+
+    def fetch(ids):
+        calls.append(list(ids))
+        return {str(i): {"title": f"Market {i}", "event_slug": "ev", "slug": f"m{i}"} for i in ids[:3]}
+
+    r = SF.write_feed(paths, reg, now, fetch=fetch)
+    assert r["built"] and r["capture_id"] == cap
+    feed = json.loads(paths.sub("feed", "latest.json").read_text())
+    assert feed["schema"] == "se-feed-v1" and feed["champion"]["model_id"] == "champ" and feed["capture_id"] == cap
+    log = [x for x in S.read_logs(paths, "predictions") if x["model_id"] == "champ" and x["capture_id"] == cap][0]
+    assert feed["prediction_written_utc"] == log["written_utc"] and feed["prediction_sha256"] == log["sha256"]
+    # values are the stored quantised probabilities, read back (nothing recomputed), and only for eligible rows
+    pf = S.read_parquet(paths.predictions(cap, "champ"))
+    ids = S.read_parquet(paths.features(cap), columns=["market_id"])["market_id"].to_numpy()
+    p = P.dequantise_dir(pf["dir_2h_dn"].to_numpy(), pf["dir_2h_up"].to_numpy())
+    for row in feed["top_up"] + feed["top_down"]:
+        i = int(np.flatnonzero(ids == row["market_id"])[0])
+        assert (pf["elig"].iat[i] & C.ELIG_BITS["dir_2h"]) > 0
+        assert row["s_2h"] == round(p[i, 2] - p[i, 0], 3)
+        assert set(row) >= {"s_2h", "s_6h", "s_24h"} and not any("res" in k for k in row)
+    up = [r_["s_2h"] for r_ in feed["top_up"]]
+    dn = [r_["s_2h"] for r_ in feed["top_down"]]
+    assert up and dn and all(x > 0 for x in up) and all(x < 0 for x in dn)
+    assert up == sorted(up, reverse=True) and dn == sorted(dn)
+    assert len(up) <= SF.TOP_N and feed["summary"]["dir_2h"]["eligible"] == _n_elig(paths, 23, "dir_2h")
+    assert feed["summary"]["dir_2h"]["valid_until"] == S.iso_s(S.slot_time(SLOT0 + 24))
+    # titles: one bounded lookup, cached; a market without a title keeps None
+    assert len(calls) == 1 and len(calls[0]) == len(up) + len(dn)
+    first = (feed["top_up"] + feed["top_down"])[0]
+    assert first["title"] == f"Market {first['market_id']}" and first["url"] == f"https://polymarket.com/event/ev/m{first['market_id']}"
+    assert any(r_["title"] is None and r_["url"] is None for r_ in feed["top_up"] + feed["top_down"])
+    assert "not an edge claim" in feed["label"] and "NaN" not in json.dumps(feed)
+    # no newer champion prediction -> no rebuild, no network
+    assert SF.write_feed(paths, reg, now, fetch=fetch) == {"built": False, "reason": "current", "capture_id": cap}
+    assert len(calls) == 1
+
+
+def test_signal_feed_title_failure_and_embargoed_or_misaligned_champion(env, monkeypatch):
+    from astrolabe.signal_engine import signal_feed as SF
+
+    paths, reg, now, cap = _feed_world(env, monkeypatch)
+
+    def boom(ids):
+        raise OSError("offline")
+
+    feed = SF.build_feed(paths, reg, now, fetch=boom)
+    assert feed and feed["titles_error"].startswith("OSError") and all(r["title"] is None for r in feed["top_up"])
+    # an embargoed champion (here: the flow isolate before 11-16) never feeds the display
+    monkeypatch.setattr(SP, "current_champion", lambda paths, reg: "flowc")
+    assert paths.predictions(cap, "flowc").exists() and SP.embargo_of(reg["models"]["flowc"], now)
+    assert SF.build_feed(paths, reg, now, fetch=None) is None
+    assert SF.write_feed(paths, reg, now, fetch=None)["reason"] == "refused"
+    monkeypatch.setattr(SP, "current_champion", lambda paths, reg: "champ")
+    # a features file that no longer matches the prediction's pinned sha256 -> nothing shown
+    monkeypatch.setattr(S, "sha256_file", lambda p: "0" * 64)
+    assert SF.build_feed(paths, reg, now, fetch=None) is None
+
+
+def test_lab_host_signal_feed_recheck(tmp_path):
+    import sys
+    from datetime import UTC, datetime
+
+    lab = Path(__file__).resolve().parents[3] / "scripts" / "lab"
+    sys.path.insert(0, str(lab))
+    spec_ = importlib.util.spec_from_file_location("lab_host_feed_test", lab / "lab_host.py")
+    lh = importlib.util.module_from_spec(spec_)
+    spec_.loader.exec_module(lh)
+    repo = tmp_path / "repo"
+    (repo / "data-dumps" / "research_lab" / "signal_engine" / "feed").mkdir(parents=True)
+    (repo / "backend").symlink_to(Path(__file__).resolve().parents[2])
+    reg = SP.load_registry()
+    champ = reg["initial_champion"]
+    f = repo / "data-dumps" / "research_lab" / "signal_engine" / "feed" / "latest.json"
+    now = datetime(2026, 10, 23, 3, 0, tzinfo=UTC)
+    f.write_text(json.dumps({"schema": "se-feed-v1", "champion": {"model_id": champ}, "origin_utc": "2026-10-23T00:31:02Z",
+                             "top_up": [{"market_id": 1, "s_2h": 0.3}], "top_down": []}))
+    d = lh.build_signal_feed(repo, now)
+    assert d and d["stale"] is False and d["top_up"][0]["market_id"] == 1
+    assert lh.build_signal_feed(repo, datetime(2026, 10, 23, 7, 0, tzinfo=UTC))["stale"] is True
+    # a feed that is not the current champion's (or an embargoed model's) is dropped
+    f.write_text(json.dumps({"schema": "se-feed-v1", "champion": {"model_id": "se2_lr_flow"}, "origin_utc": "2026-10-23T00:31:02Z"}))
+    assert lh.build_signal_feed(repo, now) is None

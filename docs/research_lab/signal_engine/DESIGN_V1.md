@@ -278,7 +278,7 @@ Snapshot key `signal_engine` (optional; schema `se-dash-v1`; `arepo-lab-v1` stay
 - `dir_24h` LightGBM needs > ~1.25 days of training history before its inner split exists (reported as `error` until then).
 - `unavailable_absent` mixes resolved and delisted markets (the listing is `closed=false`); attrition is published.
 - Resolution labels have a backlog at start (19k due after 2.3 days); 800 requests/day clears it in ~3 days.
-- Next: per-market signal feed for the website (owner-approved deploy), SHAP family attribution for LightGBM, more
+- Next: per-market signal feed on the public website (owner-approved deploy; the /lab feed is section 27), SHAP family attribution for LightGBM, more
   challengers from replicated effects after their embargoes, scored-capture caching to speed the daily scorer.
 
 ## 16. Auxiliary feature families (2026-10-21, `aux.py`)
@@ -846,3 +846,34 @@ challenger (se22 from 11-14, se23 from 11-19, when their embargoes lift): the co
 - Tests: `test_dispgap_features_hand_example`, `test_dormant_features_hand_example`,
   `test_dispgap_and_dormant_read_only_earlier_inputs`, and registry assertions in
   `test_repo_registry_loads_and_embargo_assignment` (embargo dates).
+
+## 27. Per-market signal feed `se-feed-v1` (2026-10-23 ~02:30Z; display output, no scoring change)
+
+North Star output 6: the engine's suggested signals, per market, for the owner's /lab first. A public website surface
+needs a separate owner-approved web deploy, and its own wording review.
+- **Source.** Only the current champion (`specs.current_champion`). It is never shown while `specs.embargo_of` covers
+  the champion; lab_host re-checks this on every push. The values are the stored quantised probabilities of the
+  champion's newest write-once `predictions/<capture>/<champion>.parquet`, read back with `predict.dequantise_dir`.
+  Nothing is refitted or recomputed. The feed carries the prediction's receipt time (`written_utc`) and sha256 from the
+  predictions log. A features file that no longer matches the prediction's pinned `features_sha256` gives no feed.
+- **Signal strength** = P(up) - P(down) for each direction target, in [-1, 1]. The value is null where the market is
+  not eligible for that target.
+  - Ranking: |`s_2h`| (the primary target), then log liquidity.
+  - It lists the top 20 up and the top 20 down, and per target the eligible count, counts with |s| >= 0.1 and >= 0.25,
+    the mean, and `valid_until` (the target slot).
+  - `res_7d` is left out: a model-versus-price gap at resolution reads as a trade suggestion.
+- **Context shipped with it.**
+  - The champion's own 14-day prospective leaderboard rows (log loss, Brier, AUC, calibration) for the direction
+    targets.
+  - The label "forecast quality only: not a probability of profit, not an edge claim, not advice".
+- **Titles.** One bounded public Gamma `markets?id=...` request (at most 60 ids, 10 s timeout) for ids not yet in
+  `feed/titles.json` (cache capped at 3,000). A failure only leaves `title` / `url` null (`titles_error`).
+- **Where.** `run_signal_engine.py tick` rebuilds `feed/latest.json` (a rewritable view, never evidence) when the
+  champion has a newer prediction than the current feed. It never changes the tick's exit code (`feed_error` on
+  failure; `--no-feed-titles` skips the lookup). `lab_host.build_signal_feed` embeds the feed as `signal_engine.feed`.
+  It is stale after 6 h, dropped if the feed is not the current champion's, and dropped first when the snapshot is
+  over its size limit.
+- **Cost.** Reads one predictions parquet and 6 feature columns per new capture (~55k rows), well under 100 MB and 1 s.
+  The output is about 15 KB.
+- Tests: `test_signal_feed_reads_back_the_champions_stored_prediction`,
+  `test_signal_feed_title_failure_and_embargoed_or_misaligned_champion`, `test_lab_host_signal_feed_recheck`.

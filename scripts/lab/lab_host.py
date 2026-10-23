@@ -481,6 +481,30 @@ def build_signal_engine(repo: Path, now: datetime) -> dict | None:
     return d
 
 
+def build_signal_feed(repo: Path, now: datetime) -> dict | None:
+    """The champion's per-market signal feed (`feed/latest.json`, written by the engine's tick), re-checked here: dropped
+    if the champion is under an active embargo or the file is not the champion's; marked stale after 6 hours."""
+    d = read_json(repo / "data-dumps" / "research_lab" / "signal_engine" / "feed" / "latest.json")
+    if not isinstance(d, dict) or d.get("schema") != "se-feed-v1":
+        return None
+    mid = (d.get("champion") or {}).get("model_id")
+    if str(repo / "backend") not in sys.path:
+        sys.path.insert(0, str(repo / "backend"))
+    from astrolabe.signal_engine import specs as SESP
+    from astrolabe.signal_engine import store as SES
+
+    spec_dir = repo / "backend" / "astrolabe" / "signal_engine" / "specs"
+    reg = SESP.load_registry(spec_dir)
+    paths = SES.Paths(engine=repo / "data-dumps" / "research_lab" / "signal_engine", spec_dir=spec_dir)
+    if mid not in reg["models"] or mid != SESP.current_champion(paths, reg) or SESP.embargo_of(reg["models"][mid], now.timestamp()):
+        return None
+    origin = _parse_utc(d.get("origin_utc"))
+    d["stale"] = origin is None or (now - origin) > timedelta(hours=6)
+    for k in ("top_up", "top_down"):
+        d[k] = [r for r in d.get(k) or [] if isinstance(r, dict)][:25]
+    return d
+
+
 def build_snapshot(repo: Path, registry_path: Path, logs: Path, state_dir: Path, now: datetime, write: bool) -> dict:
     errors: list[str] = []
     cache = read_json(state_dir / "cache.json") or {}
@@ -536,6 +560,12 @@ def build_snapshot(repo: Path, registry_path: Path, logs: Path, state_dir: Path,
             snap["signal_engine"] = se
     except Exception as exc:  # noqa: BLE001
         errors.append(f"signal_engine: {type(exc).__name__}")
+    try:
+        feed = build_signal_feed(repo, now)
+        if feed is not None and "signal_engine" in snap:
+            snap["signal_engine"]["feed"] = feed
+    except Exception as exc:  # noqa: BLE001
+        errors.append(f"signal_feed: {type(exc).__name__}")
     exps = snap.get("experiments") or []
     done = ((queue or {}).get("counts") or {}).get("done")
     head = {"confirmed_edges": sum(1 for e in exps if e.get("stage") == "confirmed"),
@@ -565,6 +595,7 @@ def fit_size(snap: dict) -> dict:
         elif key == "recent" and "queue" in snap:
             snap["queue"]["recent"] = snap["queue"]["recent"][-5:]
         elif key == "signal_engine" and "signal_engine" in snap:
+            snap["signal_engine"].pop("feed", None)
             snap["signal_engine"].pop("family_gains", None)
             snap["signal_engine"].pop("development", None)
     return snap
