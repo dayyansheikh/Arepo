@@ -4358,3 +4358,16 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   its five level columns only, so se24 / se25 stay visible. No value on these terms was ever computed or shown. The engine's
   attribution is per family, so no interaction attribution on the limited terms is computed. Before LT11's registration
   commit, as section 9 / 8.4 step 8 asks.
+
+## Signal engine: CH242 `p3` killed at census, 2026-10-23 ~22:50Z (signal-engine autopilot; counts only; nothing built, scored or shown)
+- **Census (CH242's own line: kill if the non-sports split share < 0.5% and no class >= 3%).** Read on the host from the engine's
+  label store (`signal_engine/logs/resolutions-*.jsonl`, latest fetch per market; category = `fee_category` and mid = `ms_mid`
+  from the last features file holding the market). 133,559 markets: 131,951 `resolved`, 588 `split_50_50`, 1,020 `not_found`
+  (not yet closed). Of 132,539 final records: non-sports 2 / 46,596 (0.004%; crypto 1 / 37,695, finance 1 / 1,417, every
+  other category 0), sports 586 / 85,943 (0.68%), overall 0.44%. By min(p, 1 - p) at the last origin: 0 / 21,516 at <= 0.05,
+  2 / 24,258 in (0.05, 0.15], 23 / 20,110 in (0.15, 0.3], 563 / 66,655 in (0.3, 0.5].
+- **Verdict: killed** (< 0.5% and no class >= 3%). No `p3` column, no three-valued `res_7d` reference row. The "first number"
+  CH242 asked for: the engine's records do distinguish a 0.5 / 0.5 outcome from a missing one (`split_50_50` vs `not_found`;
+  the fetch asks for closed markets, and every closed record carried `umaResolutionStatus = resolved`).
+- **Scope:** the `res_7d` population (markets ending 10-12..10-23, crypto-heavy); no rule-class or `resolvedBy` split was
+  drawn because the non-sports count (2) leaves nothing to split. Fills the CH242 gap in CH251's map (q0700).

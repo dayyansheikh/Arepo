@@ -405,7 +405,7 @@ equals its source (the test checks). Do not edit the LT5 spec while q0561/q0562 
 **Waiting:**
 - MC1: after the resize (item 4).
 - CB4 q0085 not before ~10-24T12Z. CB5 q0103b on or after 10-27, then q0106. CB3 freeze after q0064 (after 10-25).
-- Signal engine: live state in `signal_engine/STATUS.md` (10-23 19:27 UTC+1, session 25: LT11 freeze tokens `dollarw`, `nrslack`, `bandside` and `attrlimit_lt11` applied to 2026-12-12 and deployed (DESIGN_V1 s30); no such family built, se24/se25 stay visible. `tilt` tables fill via the tick (46/131), se24/se25 first fit at the 10-24 refit. 3 days scored; no promotion before ~11-04.)
+- Signal engine: live state in `signal_engine/STATUS.md` (10-23 23:31 UTC+1, session 26: CH242 `p3` killed at its census from the engine label store, non-sports splits 0.004%, sports 0.68%; fills CH251's CH242 gap. `tilt` tables 70/133, filling 12 per pass, complete before the 10-24 12:14Z refit when se24/se25 first fit. LT11 tokens live since session 25. 3 days scored; no promotion before ~11-04.)
 
 ## Learned surprise-move detector (2026-10-12 evening)
 `docs/research_lab/SURPRISE_MOVE_DETECTOR.md`. Labels fixed and logged before features (`surprise-labels-v1`,
