@@ -1,23 +1,20 @@
 # Signal engine: status (rewrite each session; do not append)
 
-**Last updated:** 2026-10-23 08:22 UTC+1 (07:22Z), signal-engine autopilot session 20
+**Last updated:** 2026-10-23 08:53 UTC+1 (07:53Z), signal-engine autopilot session 21
 
 ## In plain English
-- **A short housekeeping session.** The experiments track's LT8 census dropped one of its planned tests (CH204, "the
-  market's own clock"): too few markets qualified. A dropped test no longer needs its hiding rule, so I removed the
-  `sched` embargo token and the one LT8 attribution limit that existed only for it. No model used either, so nothing
-  new becomes visible. The rest of LT8's hiding rules (`quietbook`, `swclock`, `book`, `book0`) are unchanged.
-- **The engine is healthy on the host.** The signal feed was rebuilt from the 06:31Z capture, every model wrote its
-  predictions at 07:00Z, and the daily refit (q0512) and score (q0513) are waiting for their usual afternoon times.
-- **Memory check before today's refit.** Today's refit fits three new challengers (se21-se23) for the first time.
-  Training frames have a fixed row cap (~900k rows; the last refit used 892k at a 2.9 GB peak), so the extra columns
-  should add only ~100 MB, under the 3.4 GB cap.
-- Session 19 (03:55Z-05:14Z) applied LT10 round 7 (`kxbook`, `attrlimit_lt10`, second cross-venue read root) and hit
-  the usage limit before it could rewrite this file; that work is merged and live (ledger "LT10 round 7 applied").
+- **Another short housekeeping session.** The experiments track's LT8 test closed without a test: its last two planned
+  checks (CH203, CH202) were dropped at the sweeps census. So I removed LT8's remaining hiding rules: the `quietbook`
+  and `swclock` tokens and both LT8 attribution limits. No model ever used them, so nothing new becomes visible.
+- **The book hiding date stays at 2027-02-14**, because the LT9 test still needs it. LT8 was just taken off its list.
+  LT8's old fallback ("move book back to 2027-01-23 if LT9's CH214 drops") no longer applies: if CH214 drops, the
+  book date will need a fresh decision and ledger line.
+- **The engine is healthy on the host.** Every model wrote its predictions at 07:00Z for the 06:31Z capture. The
+  daily refit (q0512) and score (q0513) are waiting for their usual afternoon times.
 - Still needing the owner: a public website version of the feed (the North Star asks for an owner-approved web deploy).
 
 ## Live state (host)
-- **Code:** deployed with merge 88ec8a05 (chore/arepo-claude-setup).
+- **Code:** deployed with merge 48dd4c7a (chore/arepo-claude-setup).
 - **Feed:** `signal_engine/feed/latest.json` (`se-feed-v1`, ~16 KB) is rebuilt by the tick when the champion has a
   newer prediction. Titles are cached in `feed/titles.json` (one Gamma request per new capture, at most 60 ids).
 - **Refit `q0512`** (next ~10-23 15:44Z; caps mem_mb 3400, as_cap_mb 6000) fits se21, se22 and se23 for the first time.
@@ -44,12 +41,13 @@
 | `se3_lr_book` (ineligible), `se14_lgbm_movetype` (ineligible), `se19_lr_book0` | **2027-02-14** (was 01-23; LT9) |
 
 ## Changes this session
-1. `config.EMBARGO`: `sched` withdrawn (`until` = `withdrawn_utc` = 2026-10-23T07:30:00Z, `until_before` 2027-01-23).
-   `attrlimit_lt8` drops the per-market slot-of-day limit and `sched` from `no_broad_families` and keeps both under
-   `withdrawn`. Its date is unchanged. DESIGN_V1 section 8 table, CANDIDATES reply, ledger "Signal engine: LT8 `sched`
-   withdrawn". Commit 7fe05328.
-2. Tests: new `test_lt8_sched_withdrawn_after_ch204_census_drop`. 65 engine tests pass and ruff is clean.
-3. Merged into `chore/arepo-claude-setup` (88ec8a05) and deployed. The host's config shows `sched` until 07:30Z.
+1. `config.EMBARGO`: `quietbook`, `swclock` and `attrlimit_lt8` withdrawn (`until` = `withdrawn_utc` =
+   2026-10-23T08:00:00Z, `until_before` 2027-01-23). `book` / `book0` lose LT8-CH202 / CH203 from `tests` and keep
+   2027-02-14. LT9's own "two-sweep band-sum differences" limit is unchanged. DESIGN_V1 section 8 table, CANDIDATES
+   reply, ledger "Signal engine: LT8 closure withdrawals". Commit d9184ee5.
+2. Tests: new `test_lt8_closure_withdraws_quietbook_swclock_and_attrlimit`; the sched test now checks only sched.
+   66 engine tests pass and ruff is clean.
+3. Merged into `chore/arepo-claude-setup` (48dd4c7a) and deployed. The host's config shows the new dates and tests.
 
 ## Next actions
 1. ~10-23 15:45Z: check that q0512 fitted se21, se22 and se23 on the direction targets (`res_7d` LightGBM fits
@@ -65,19 +63,20 @@
 5. **Before 11-14:** check that LT2's analysis (`q0461`, not before 11-13T12Z) has run. If not, move `tte`,
    `chg1d_x_liq` and `dispgap` later, and `flow` before 11-16. Do the same for `rewards` against E022's analysis
    before 11-18.
-6. **If CH214 drops at LT9's census (11-02..11-12):** withdraw the `book` / `book0` extension back to 2027-01-23, with a
-   ledger line. **If CH215 enters:** add the `rwend` token to 2027-02-14.
+6. **If CH214 drops at LT9's census (11-02..11-12):** `book` / `book0` need a new date by ledger line: the latest date a
+   remaining test (E015, E022) still needs, not 2027-01-23 (that fallback was LT8's). **If CH215 enters:** add the
+   `rwend` token to 2027-02-14.
 7. Around 10-27/28: se8, se10, se16 and se20 start fitting, and the `res_7d` LightGBM fits should work. Watch the
    refit peak RSS.
 8. Remaining family ideas, only with a real prior: CH217 `rowq`, CH219 `bookclock` (hidden to 2027-02-14), CH207
    `umaparams` (needs a census), CH198 `theta`. The LT7 tokens are free since 10-23 (resist, capath, deepbook,
    absorbed, ivr). `resist` (CH195) passed every census gate except the F-MDE, so it is the most plausible engine
-   family of the five; check for LT8 `quietbook` overlap first.
+   family of the five (LT8's `quietbook` is withdrawn too, so no LT8 overlap check is needed; check LT9 `pool`).
 9. Housekeeping (needs approval): remove the merged worktrees `astrolabe-lab-se` and `astrolabe-lab-se-promo`,
    `/tmp/se_dev`, `/tmp/se_e2e`, the host's `/tmp/se_b0`, `/tmp/se_hwm_backfill.log` and `/tmp/se_dg_dm_backfill.log`.
    This session's PR worktree and its temporary files are already removed.
 
 ## Notes for the other track
-- No embargo, token or queue change this session. The feed shows only the champion (`se0`, not embargoed). If a
-  broad model is ever promoted, the feed shows it (as the leaderboard does). Raise it in CANDIDATES if a live test
-  needs the feed hidden.
+- LT8 withdrawals applied as requested (`quietbook`, `swclock`, `attrlimit_lt8`; `book` / `book0` pruned of LT8 and kept
+  at LT9's date). No queue change. The feed shows only the champion (`se0`, not embargoed). Raise it in CANDIDATES if a
+  live test needs the feed hidden.
