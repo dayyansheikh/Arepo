@@ -4109,8 +4109,11 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   commits.
 
 - **LT10 code, timing-run disclosure (N1, 2026-10-23, code-fixes re-check):** the seed and plan of the implementer's ~3 s / ~13 s size-check timing
-  runs are not recorded (not in commit messages, tests or the code-check review of this branch). Known: before commit 2e9ba424 the worlds tests
-  (`test_research_lab_live_tests10_worlds.py`, introduced in e3d1dd79) called `size_check` with the registered seed 20261397 and tiny worlds
-  (2 worlds x 4 draws, `registered=True`), and nothing then refused it; so it cannot be ruled out that a timing run or test ran at 20261397.
-  Such a run is a tiny-world code test with no recorded output and no use of any result; the registered q0665 (not before 2026-11-04) stays
-  the only run whose output counts. From f36ff4dd on, no test runs `size_check` at 20261397 (R1) and q0665 has `max_retries` 0 (R2).
+  runs are not recorded (not in commit messages, tests or the code-check review of this branch). Certain (final
+  verification, 2026-10-23): from e3d1dd79 through f36ff4dd the worlds test (`test_research_lab_live_tests10_worlds.py`
+  ~line 260) called `size_check(seed=20261397, registered=True)` on tiny worlds (2 worlds x 4 draws), so every run of that
+  suite in that span, including the re-check's own 116-test run, executed at the registered seed. These were simulated
+  worlds only (no outcome data), a different plan from the registered q0665 run, with no recorded or used output; the
+  design text and thresholds are hash-frozen, so nothing could be tuned on them. The registered q0665 (not before
+  2026-11-04) stays the only run whose output counts. From e1e01426 on, no test runs `size_check` at 20261397 (R1) and
+  q0665 has `max_retries` 0 (R2). Final verification: code fine to merge once this line was corrected.
