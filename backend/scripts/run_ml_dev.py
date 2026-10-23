@@ -895,16 +895,48 @@ def accounting(results: dict, probes: dict, trials_before: int, trials_path: Pat
             "trial_lines_written": after - trials_before}
 
 
-def resume_identity(args, man: dict, panel_h: str) -> dict:
-    """What must be equal across slices: fold plan, panel, code and argv (budget/dir excluded)."""
+def fold_plan_sha256(man: dict) -> str:
+    """Hash of the fold plan excluding provenance-only fields (git-HEAD ``code_sha``)."""
+    core = {k: v for k, v in man.items() if k not in ("code_sha", "manifest_sha256")}
+    blob = json.dumps(core, sort_keys=True, separators=(",", ":"), allow_nan=False,
+                      default=_jsonable)
+    return hashlib.sha256(blob.encode()).hexdigest()
+
+
+def loaded_code_sha256(root: Path | None = None, extra: tuple[Path, ...] = ()) -> dict:
+    """sha256 of every loaded module file under ``root`` (default backend/astrolabe) + this script.
+
+    Keyed by path relative to the backend dir, sorted; any change to imported research code
+    changes the identity, while the repo-wide git HEAD does not enter it.
+    """
     from astrolabe.research_lab import ml_resume
 
     here = Path(__file__).resolve()
-    rl = here.parents[1] / "astrolabe" / "research_lab"
-    files = {"run_ml_dev.py": here, "ml_models.py": rl / "ml_models.py",
-             "ml_panel.py": rl / "ml_panel.py", "ml_resume.py": rl / "ml_resume.py"}
-    return {"fold_manifest_sha256": man["manifest_sha256"], "panel_hash": panel_h,
-            "code_sha256": {k: ml_resume.file_sha256(v) for k, v in files.items()},
+    root = Path(root) if root else here.parents[1] / "astrolabe"
+    base = root.parent
+    files: dict[str, Path] = {here.name: here}
+    for p in extra:
+        files[Path(p).name] = Path(p)
+    for mod in list(sys.modules.values()):
+        f = getattr(mod, "__file__", None)
+        if not f or not str(f).endswith(".py"):
+            continue
+        fp = Path(f).resolve()
+        if fp.is_relative_to(root):
+            files[str(fp.relative_to(base))] = fp
+    return {k: ml_resume.file_sha256(files[k]) for k in sorted(files)}
+
+
+def resume_identity(args, man: dict, panel_h: str, code_root: Path | None = None) -> dict:
+    """What must be equal across slices: fold plan, panel, code and argv (budget/dir excluded).
+
+    The fold plan hash excludes the git-HEAD ``code_sha`` (it changes on every deploy); the code
+    is instead pinned by the sha256 of every loaded astrolabe module file plus this script.
+    """
+    from astrolabe.research_lab import ml_resume
+
+    return {"fold_plan_sha256": fold_plan_sha256(man), "panel_hash": panel_h,
+            "code_sha256": loaded_code_sha256(code_root),
             "versions": ml_resume.runtime_versions(),
             "argv": ml_resume.normalise_argv(list(getattr(args, "argv", []) or []))}
 
