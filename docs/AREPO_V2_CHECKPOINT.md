@@ -257,9 +257,11 @@ Host 2 OCPU / 11.4 GiB since the resize. data-dumps 34 / 40 GB cap: owner approv
   blackout, ahead of MC1 at priority 40). When each is done: write up counts only (ledger, LIVE_TESTS_8.md census
   section, drop/survive per section 7), registry; after q0623: revert the 10-day snapshot rule to 8 days (ledger, deploy),
   then phase 2 for any survivor. Deadline 10-28T03:30Z.
-- LT9 code phase 1 done on `feat/live-tests-9` (2925961a: end-kinds counted once per capture; 55 LT9 + 275 LT7/LT8 tests
-  pass). Science-reviewer census-code freeze check running (-> reviews/LT9_CENSUS_CODE_CHECK_2026-10-23.md); then fixes,
-  merge into chore. Seal only after the 11-02..11-12 span exists.
+- LT9 code phase 1 on `feat/live-tests-9`: census-code freeze check **FIXES_REQUIRED** (a440a2cb,
+  `reviews/LT9_CENSUS_CODE_CHECK_2026-10-23.md`: 5 must-fix incl. missing sealed sidecar must refuse, CR9 decision capture
+  strictly before t_dec, CH213 control twin band at k+5, CH215 ties by condition_id, CR9 completeness over 120 slots; 3
+  rulings; notes). Implementer applying all of them now; then a science-reviewer re-check, merge into chore. Seal only
+  after the 11-02..11-12 span exists.
 - **Disk:** data-dumps 34 / 40 GB at 02:10Z (about +1 GB/day -> 40 GB about 10-29). cb18_census 4.9 GB is finished and not an
   LT8 root; clearing needs owner approval 8 (dashboard, now marked time-sensitive). Contingency if >= 38 GB before approval:
   raise the operational `--data-dumps-cap-gb` of the registered live collectors (q0460) to 44 (below the 45 GiB pass cap;
