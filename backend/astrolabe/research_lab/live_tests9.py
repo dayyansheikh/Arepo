@@ -207,19 +207,23 @@ def _num(v) -> float:
     return x if math.isfinite(x) else float("nan")
 
 
+SWITCHING_GATE_DEFINITION = ("mean over the span's UTC days (days holding at least one capture with a sidecar) of the number of markets that have BOTH a null and a listed "
+                             "clob_rewards status among ALL sidecar rows of that day's span captures (no eligibility, category or cap filter); declared before the seal, code check 2026-10-23")
 FEED_CACHE_FRAMES = 4  # feed frames kept in the census cache (older ones are evicted and re-read on demand)
 
 def feed_frame(feed_dir: Path, spec: dict) -> pd.DataFrame:
     """One row per listed ``condition_id`` of a feed capture (native and sponsored records merged): ``feeds`` (native / sponsored / both), the
     band and minimum (as served; the first record's), ``rate`` (summed positive ``rate_per_day`` of its configurations), ``n_pos`` (positive
-    configurations), and the end of the market's positive configurations under :func:`parse_end`: ``end_kind`` = ``open`` if any is open-ended or a
-    sentinel (it qualifies, 4), else ``malformed`` if any is malformed, else ``dated`` with ``end_lo`` = the LATEST of their earliest instants;
+    configurations), and the end of the market's positive configurations under :func:`parse_end`: ``end_kind`` precedence malformed > open > dated (declared before the seal, code check
+    2026-10-23 ruling 1): ``malformed`` if ANY positive configuration is malformed (the market is NaN; ``mixed_malformed`` marks the markets that also
+    hold an open-ended, sentinel or dated one, counted), else ``open`` if any is open-ended or a sentinel (it qualifies, 4), else ``dated`` with
+    ``end_lo`` = the LATEST of their earliest instants;
     ``ends`` (CR9) = the distinct dated ends ``(end_lo, kind)`` as a JSON list; ``n_date_only`` / ``n_sentinel`` counts. A capture without the rows
     file gives an empty frame. Reads no price."""
     f = spec["feed"]
     p = Path(feed_dir) / "rows.jsonl.gz"
     if not p.exists():
-        return pd.DataFrame(columns=["feeds", "band", "rmin", "rate", "n_pos", "end_kind", "end_lo", "ends", "n_date_only", "n_sentinel"]).rename_axis("condition_id")
+        return pd.DataFrame(columns=["feeds", "band", "rmin", "rate", "n_pos", "end_kind", "end_lo", "ends", "n_date_only", "n_sentinel", "mixed_malformed"]).rename_axis("condition_id")
     acc: dict[str, dict] = {}
     with gzip.open(p, "rt") as fh:
         for line in fh:
@@ -256,22 +260,28 @@ def feed_frame(feed_dir: Path, spec: dict) -> pd.DataFrame:
     rows = {}
     for cid, a in acc.items():
         kinds = a["kinds"]
-        kind = "open" if "open" in kinds else ("malformed" if "malformed" in kinds else ("dated" if a["dated"] else "none"))
+        kind = "malformed" if "malformed" in kinds else ("open" if "open" in kinds else ("dated" if a["dated"] else "none"))
         lo = max(x for x, _ in a["dated"]) if kind == "dated" else float("nan")
         fs = a["feeds"] - {""}
         rows[cid] = {"feeds": "both" if len(fs) > 1 else (next(iter(fs)) if fs else ""), "band": a["band"], "rmin": a["rmin"], "rate": a["rate"], "n_pos": a["n_pos"],
-                     "end_kind": kind, "end_lo": lo, "ends": json.dumps(sorted(a["dated"])), "n_date_only": a["n_date_only"], "n_sentinel": a["n_sentinel"]}
+                     "end_kind": kind, "end_lo": lo, "ends": json.dumps(sorted(a["dated"])), "n_date_only": a["n_date_only"], "n_sentinel": a["n_sentinel"],
+                     "mixed_malformed": bool("malformed" in kinds and len(kinds) > 1)}
     out = pd.DataFrame.from_dict(rows, orient="index")
     out.index.name = "condition_id"
     return out
 
 
-def scan_feed(feed_roots) -> dict[str, dict]:
+def scan_feed(feed_roots, only=None) -> dict[str, dict]:
     """Feed captures over several roots ({dir name: {"dir", "start", "finish", "state", "usable"}}); the first root holding a directory wins.
-    ``usable`` = ``state == complete`` and the rows file present (1.2); a failed capture is listed (it is skipped, never used)."""
+    ``usable`` = ``state == complete`` and the rows file present (1.2); a failed capture is listed (it is skipped, never used). ``only`` (the
+    sealed feed directory names; code check 2026-10-23 note): only those manifests are read, a directory the seal does not name is never opened."""
     out: dict[str, dict] = {}
     for r in b._roots(feed_roots):
-        for p in sorted(Path(r).glob("*/manifest.json")) if Path(r).exists() else []:
+        if only is None:
+            manifests = sorted(Path(r).glob("*/manifest.json")) if Path(r).exists() else []
+        else:
+            manifests = [Path(r) / d / "manifest.json" for d in sorted(only) if (Path(r) / d / "manifest.json").exists()]
+        for p in manifests:
             d = p.parent.name
             if d in out or d.startswith("."):
                 continue
@@ -337,6 +347,29 @@ def load_rows9(cap_dir: Path) -> pd.DataFrame:
     rows["vol_present"] = np.isfinite(pd.to_numeric(rows["volume24hr"], errors="coerce").to_numpy(float)).astype(float)
     rows["ltp_present"] = np.isfinite(pd.to_numeric(rows["last_trade_price"], errors="coerce").to_numpy(float)).astype(float)
     return rows
+
+
+def capture_last_receipt(cap_dir: Path) -> float:
+    """A capture's last row receipt: the largest ``received_utc`` over its rows (1.3's decision clock for CH213 and CH212, and the clock CR9's decision
+    capture is chosen by). Reads the timestamp column only; NaN when it is absent or empty."""
+    r = pd.read_csv(forecast.require_local(Path(cap_dir) / "rows.csv.gz"), usecols=lambda c: c == "received_utc", dtype=str)
+    if "received_utc" not in r or r.empty:
+        return float("nan")
+    t = panel._epoch(r["received_utc"].astype(str))
+    return float(np.nanmax(t)) if np.isfinite(t).any() else float("nan")
+
+
+def decision_slot(cap_slots: list[int], lasts, t: float) -> int:
+    """CR9's decision capture (1.3, "strictly earlier"; code check 2026-10-23 must-fix 2): the latest slot (``cap_slots`` ascending) whose capture's LAST
+    row receipt is strictly before ``t``; ``-10**9`` when none. A capture in progress at ``t`` is never the decision capture."""
+    idx = np.nonzero(np.asarray(lasts, float) < float(t))[0]
+    return int(cap_slots[int(idx[-1])]) if len(idx) else -10**9
+
+
+PRIOR_POPULATION_OVERLAPS = {
+    "LT8_CH203": {"units": float("nan"), "reason": "LT8 CH203's population definition (a sweep-imbalance unit) is not vendored into LT9's base and LT9 imports no LT8 module; not invented, printed NaN"},
+    "LT7_CH197": {"units": float("nan"), "reason": "LT7 CH197's population definition (a sweep-imbalance unit) is not vendored into LT9's base and LT9 imports no LT7 module; not invented, printed NaN"},
+}  # section 7 descriptive: the overlaps with LT8 CH203 / LT7 CH197 on the same days (declared unavailable; code check 2026-10-23 note)
 
 
 def load_ext9(cap_dir: Path) -> pd.DataFrame | None:
@@ -433,6 +466,24 @@ def lag_break_flag(cap_a: Path, cap_b: Path, v_price: pd.Series) -> pd.Series:
     ok = sa.notna() & sb.notna() & v2.notna()
     flag = ((sa < v2 - _EPS_C) & (sb >= v2 - _EPS_C)).astype(float)
     return flag.where(ok, np.nan).rename("break_twin")
+
+
+def lag_twin_flags(cap_a: Path, cap_b: Path, grp: pd.DataFrame, cells_b: dict | None, spec: dict) -> pd.Series:
+    """CH213's twin flag for ONE origin's units (design 2, 7; code check 2026-10-23 must-fix 3). The twin break is ``1[s_{k+4} < 2v and s_{k+5} >= 2v]``
+    against "the same ``v``" for a reward unit and against ``v_ctrl`` OF CAPTURE k + 5's CELL for a control unit: ``cells_b`` is
+    :func:`control_cells` of capture k + 5 (cell medians and counts of ``rewards_max_spread``, no price), the unit's own (category, tier, tick) key
+    comes from its decision-time fields, and the band is assigned here by :func:`assign_control_band` (cell, else (tier, tick), else NaN). The spread
+    comparison happens inside :func:`lag_break_flag`; only the flag leaves (aligned to ``grp.index``)."""
+    mk = grp["market_id"].astype(str).to_numpy()
+    if cells_b is None:
+        v_ctrl = np.full(len(grp), np.nan)
+    else:
+        v_ctrl, _ = assign_control_band(cat_key(grp["fee_cat"]), tier_of(grp["liq"]), tick_key(grp["tick"]), cells_b, int(spec["tests"]["CH213"]["cell_min_units"]))
+    v = np.where(grp["rew"].to_numpy(float) == 1.0, grp["v_c"].to_numpy(float), v_ctrl) / 100.0
+    vp = pd.Series(v, index=mk)
+    vp = vp[~vp.index.duplicated()]
+    fl = lag_break_flag(cap_a, cap_b, vp)
+    return pd.Series(fl.reindex(mk).to_numpy(float), index=grp.index)
 
 
 def lag_band_sums(sweep_dir: Path, cap_dir: Path) -> pd.DataFrame:
@@ -820,7 +871,7 @@ def feed_flags(cond: pd.Series, feed_k: pd.DataFrame | None, feed_prev: pd.DataF
 def feed_end_ok(cond: pd.Series, feed_k: pd.DataFrame | None, k: int, spec: dict) -> tuple[np.ndarray, np.ndarray]:
     """R1 fix 6 and re-check fix 3: route A needs the programme end the SAME feed capture lists to be after the start of slot k + 2, the nominal
     instant ``grid0 + 2 h x (k + 2)``: the latest end among the market's positive-rate configurations, each at its earliest consistent instant
-    (a date-only ``D`` at ``D 00:00Z``), is later than it; open-ended or sentinel qualifies; malformed is NaN. Returns (ok 1 / 0 / NaN, reason)."""
+    (a date-only ``D`` at ``D 00:00Z``), is later than it; open-ended or sentinel qualifies; malformed (any positive configuration) is NaN. Returns (ok 1 / 0 / NaN, reason; ``feed_unlisted`` for a market the capture does not list)."""
     n = len(cond)
     if feed_k is None:
         return np.full(n, np.nan), np.full(n, "feed_missing", dtype=object)
@@ -836,7 +887,9 @@ def feed_end_ok(cond: pd.Series, feed_k: pd.DataFrame | None, k: int, spec: dict
     with np.errstate(invalid="ignore"):
         ok[d] = (lo[d] > t2).astype(float)
     why[d & (ok == 0)] = "feed_end_soon"
+    unlisted = ~pd.Index(cond.astype(str).to_numpy()).isin(feed_k.index)
     why[kind == "none"] = "feed_no_positive_config"
+    why[unlisted] = "feed_unlisted"  # a ghost market (absent from the feed capture) is its own category, never "listed with no positive configuration"
     ok[kind == "none"] = np.nan
     return ok, why
 
@@ -989,7 +1042,9 @@ def census_ch212(U: pd.DataFrame, tot: dict, spec: dict, covered_days: float, fe
            "finite_status_share": finite_share, "feed_completeness": feed_ok, "switching_markets_per_day": sp_days, "switching_markets_mean_per_day": sw_mean,
            "projected_routeA_omitted_21d": proj_a_om, "projected_routeB_dropped_21d": proj_b_drop, "units_routeA": int(len(A)), "units_routeB": int(len(Bp)),
            "ghost_units": int((pop["clob_listed"] == 0).sum()), "feed_missing_units": int((~np.isfinite(pop["clob_listed"].to_numpy(float))).sum()), "feed_end_reasons": why,
-           "feed_end_shares": {k_: v_ / max(1, int((pop["clob_listed"] == 1).sum())) for k_, v_ in why.items()}, "cap_share": cap_share, "venue_clock_top_share": venue_top,
+           "feed_end_shares": {k_: v_ / max(1, int((pop["clob_listed"] == 1).sum())) for k_, v_ in why.items() if k_ != "feed_unlisted"},
+           "feed_end_shares_denominator": "units of the capped, family-excluded CH212 population whose market is listed in the feed capture (clob_listed = 1); feed_unlisted (ghost) units are counted in feed_end_reasons and excluded from the shares",
+           "switching_gate_definition": SWITCHING_GATE_DEFINITION, "cap_share": cap_share, "venue_clock_top_share": venue_top,
            "exclude_family": excl, "top_family_share": top, "design_effect": de, "class_mde": cm, "vif_w": vif, "corr_liq": corr_liq, "corr_abs_move": corr_mv,
            "block_min_units": bm, "block_share": bs, "F_label_printed": fm, "F_pairs": pc, "f_role": "label", "events": b._events8(R, scale, covered_days) if len(R) else {},
            "omitted_by_slot_of_day": {str(int(k_)): int(v_) for k_, v_ in (pop.loc[pop["om"] == 1, "slot"] % 12).value_counts().sort_index().items()},
@@ -1255,6 +1310,14 @@ def census_ch214(Q: pd.DataFrame, tot: dict, spec: dict, covered_days: float, pa
 # --- CH215 the scheduled end (design 5) ---------------------------------------------------------------------------------------------
 
 
+def rank_control_candidates(pool: pd.DataFrame, loglq_ref: float, n: int = 50) -> list[str]:
+    """CH215's control order (design 5; code check 2026-10-23 must-fix 4): nearest ``|log liquidity|`` first, ties by ``condition_id`` (never ``market_id``).
+    ``pool`` holds ``market_id``, ``condition_id`` and ``loglq``; a non-finite distance sorts last. Returns up to ``n`` market ids."""
+    dist = np.abs(pool["loglq"].to_numpy(float) - float(loglq_ref))
+    ranked = pool.assign(_d=np.where(np.isfinite(dist), dist, np.inf)).sort_values(["_d", "condition_id"], kind="mergesort")
+    return ranked["market_id"].astype(str).tolist()[:n]
+
+
 def assign_controls(ends: pd.DataFrame, cands: dict, max_n: int, span_s: float) -> pd.DataFrame:
     """Re-check fix 1: controls assigned greedily in DECISION-TIME order (the receipt of each end's decision feed capture, ties by ``condition_id``);
     each end considers only ends ALREADY decided and takes its nearest candidates (``cands[end_key]``, sorted nearest first) unused by those of
@@ -1304,14 +1367,14 @@ def end_clusters(ends: pd.DataFrame) -> pd.Series:
 def census_feed(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, feed_root=FEED_ROOT, work: Path, spec: dict | None = None, verify: bool = True) -> dict:
     """CR9: CH215 on the sealed feed captures and captures (counts only). An end (condition_id, ``T_e``) of a positive-rate configuration with a
     dated end (a date-only ``D`` at ``D 00:00Z``) qualifies when ``T_e`` is in [span start + 48 h, span end], its DECISION is the first sealed usable
-    feed capture listing it whose finish is <= ``T_e - 48 h`` and not before the first sealed capture's start (census convention), and at the decision capture (the last sealed capture starting at or before the decision's
-    finish) the market is eligible (1.4 at that capture, mid in [0.10, 0.90], non-sports ex-crypto) with a KNOWN end_date > ``T_e + 48 h``.
+    feed capture listing it whose finish is <= ``T_e - 48 h`` and not before the first sealed capture's start (census convention), and at the decision capture (the last sealed capture whose LAST ROW RECEIPT is strictly before the decision time, 1.3 and the code check's
+    must-fix 2) the market is eligible (1.4 at that capture, mid in [0.10, 0.90], non-sports ex-crypto) with a KNOWN end_date > ``T_e + 48 h``.
     Controls: reward-panel markets (the carry at the decision capture) of the same (category, tier, tick) cell, eligible, with no listed positive end
-    within ``[T_e - 72 h, T_e + 72 h]`` at the decision feed capture, nearest ``|log liquidity|`` first (ties by market_id); reuse ban in decision-time
+    within ``[T_e - 72 h, T_e + 72 h]`` at the decision feed capture, nearest ``|log liquidity|`` first (ties by condition_id, code check 2026-10-23 must-fix 4); reuse ban in decision-time
     order (:func:`assign_controls`). ``end_moved``: the last usable feed capture before ``T_e`` does not list the same end (a feed status only)."""
     spec = spec or load_spec(sha=None)
     work = Path(work)
-    loaded = _load_for_census(seal, snapshot_root, [], feed_root, work, spec, need_sweeps=False)
+    loaded = _load_for_census(seal, snapshot_root, [], feed_root, work, spec, need_sweeps=False, verify=verify)
     if "error" in loaded:
         return loaded
     by_slot, feeds = loaded["by_slot"], loaded["feeds"]
@@ -1321,7 +1384,7 @@ def census_feed(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, feed_root=FEED_ROOT,
     lo_e, hi_e = t0 + c["knowledge_h"] * 3600.0, t1
     usable = sorted(((v["finish"], d) for d, v in feeds.items() if v["usable"]), key=lambda x: (x[0], x[1]))
     span_slots = _span_slots(spec)
-    fc = feed_completeness(feeds, [k for k in span_slots if b.slot_time(k, spec) >= lo_e - 1.0], spec)
+    fc = feed_completeness(feeds, span_slots, spec)  # all of the span's slots (7; code check 2026-10-23 must-fix 5: not only those from the first possible end on)
     frames: dict[str, pd.DataFrame] = {}
 
     def ff(d: str) -> pd.DataFrame:
@@ -1329,8 +1392,11 @@ def census_feed(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, feed_root=FEED_ROOT,
             frames[d] = feed_frame(feeds[d]["dir"], spec)
         return frames[d]
 
-    decision: dict[tuple[str, float], tuple[float, str]] = {}
-    kinds = {"end_date_only": 0, "end_sentinel": 0, "open_or_none": 0, "malformed_markets": 0}
+    decision: dict[tuple[str, float], tuple[float, str, str]] = {}
+    seen_ends: set[tuple[str, float]] = set()
+    kinds = {"end_date_only": 0, "end_sentinel": 0, "open_or_none": 0, "malformed_markets": 0, "malformed_mixed_markets": 0, "positive_configs": 0, "ends_in_malformed_markets_excluded": 0}
+    mv = {"pairs": 0, "moved": 0}
+    prev_ends: dict[str, set[float]] = {}
     first_cap = min((v["start"] for v in by_slot.values()), default=math.inf)
     for fin, d in usable:
         if fin < first_cap:  # census convention: a decision needs a sealed capture at or before it (the 26 h feed look-back starts 2 h before the captures)
@@ -1338,21 +1404,51 @@ def census_feed(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, feed_root=FEED_ROOT,
         f = ff(d)
         kinds["end_date_only"] += int(f["n_date_only"].sum()) if len(f) else 0
         kinds["end_sentinel"] += int(f["n_sentinel"].sum()) if len(f) else 0
+        kinds["positive_configs"] += int(f["n_pos"].sum()) if len(f) else 0
         kinds["malformed_markets"] += int((f["end_kind"] == "malformed").sum()) if len(f) else 0
-        for cid, ends_js in zip(f.index, f["ends"], strict=True):
-            for e_lo, _kind in json.loads(ends_js):
+        kinds["malformed_mixed_markets"] += int(f["mixed_malformed"].sum()) if len(f) else 0
+        cur_ends: dict[str, set[float]] = {}
+        for cid, ends_js, ekind, fds in zip(f.index, f["ends"], f["end_kind"], f["feeds"], strict=True):
+            es = [(float(x), k2) for x, k2 in json.loads(ends_js)]
+            if ekind == "malformed":  # ruling 1: any malformed positive configuration makes the market NaN (its dated ends give no unit)
+                kinds["ends_in_malformed_markets_excluded"] += sum(1 for x, _ in es if lo_e <= x <= hi_e)
+                continue
+            cur_ends[str(cid)] = {x for x, _ in es}
+            for e_lo, _kind in es:
                 if not (lo_e <= e_lo <= hi_e):
                     continue
-                key = (str(cid), float(e_lo))
+                key = (str(cid), e_lo)
+                seen_ends.add(key)
                 if key not in decision and fin <= e_lo - c["knowledge_h"] * 3600.0:
-                    decision[key] = (fin, d)
+                    decision[key] = (fin, d, str(fds))
+        for cid, es in prev_ends.items():  # consecutive usable feed captures: a listed in-window end that the next capture does not carry (the market still listed)
+            if cid in cur_ends:
+                for e_lo in es:
+                    if lo_e <= e_lo <= hi_e and fin < e_lo:
+                        mv["pairs"] += 1
+                        mv["moved"] += int(e_lo not in cur_ends[cid])
+        prev_ends = cur_ends
     cnt = {"ends_in_window_listed_ahead": len(decision), **kinds}
+    cnt["ends_in_window_seen"] = len(seen_ends)
+    cnt["share_listed_ge_48h_ahead"] = len(decision) / len(seen_ends) if seen_ends else float("nan")
+    cnt["moved_between_consecutive_feed_captures"] = {**mv, "share": mv["moved"] / mv["pairs"] if mv["pairs"] else float("nan"),
+                                                      "denominator": "(listed in-window end, consecutive usable sealed feed captures with the market listed in both and the later finishing before the end) pairs"}
+    n_dec = len(decision)
+    cnt["sponsored_shares_of_decisions"] = {"sponsored_only": sum(1 for v_ in decision.values() if v_[2] == "sponsored") / n_dec if n_dec else float("nan"),
+                                            "native_and_sponsored": sum(1 for v_ in decision.values() if v_[2] == "both") / n_dec if n_dec else float("nan"),
+                                            "native_only": sum(1 for v_ in decision.values() if v_[2] == "native") / n_dec if n_dec else float("nan"),
+                                            "denominator": "ends in the window listed at least 48 h ahead (decisions), by the feed(s) listing the market at the decision capture"}
+    cnt["date_only_share"] = kinds["end_date_only"] / kinds["positive_configs"] if kinds["positive_configs"] else float("nan")
+    cnt["sentinel_share"] = kinds["end_sentinel"] / kinds["positive_configs"] if kinds["positive_configs"] else float("nan")
+    cnt["end_kind_denominator"] = ("positive-rate configurations of the sealed usable feed captures from the first sealed capture's start on, each capture counted once; "
+                                   "CC9's feed_end_kinds_of_positive_configs counts every capture it reads (span-wide, once each): the two denominators differ and are declared")
+    cnt["overlaps_with_prior_populations"] = PRIOR_POPULATION_OVERLAPS
     ends = pd.DataFrame([{"condition_id": k_[0], "T_e": k_[1], "t_dec": v_[0], "dec_feed": v_[1], "key": f"{k_[0]}|{k_[1]:.0f}"} for k_, v_ in decision.items()])
     if ends.empty:
         return {"feed_completeness": fc, "counts": cnt, "CH215": census_ch215(pd.DataFrame(), cnt, spec, fc, 0.0)}
     cap_slots = sorted(by_slot)
-    starts = np.array([by_slot[k]["start"] for k in cap_slots])
-    ends["dec_slot"] = [cap_slots[int(np.searchsorted(starts, t, side="right")) - 1] if np.searchsorted(starts, t, side="right") > 0 else -10**9 for t in ends["t_dec"]]
+    lasts = np.array([capture_last_receipt(by_slot[k]["dir"]) for k in cap_slots])  # each capture's last row receipt (a timestamp column only)
+    ends["dec_slot"] = [decision_slot(cap_slots, lasts, t) for t in ends["t_dec"]]
     cnt["no_decision_capture"] = int((ends["dec_slot"] < -10**8).sum())
     ends = ends[ends["dec_slot"] > -10**8].reset_index(drop=True)
     need_slots = set(ends["dec_slot"].astype(int))
@@ -1397,9 +1493,7 @@ def census_feed(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, feed_root=FEED_ROOT,
                     near.add(str(cid2))
             pool = sc[sc["el"] & (sc["rewarded"] == 1.0) & (sc["cat"] == r["cat"]) & (sc["tier"] == r["tier"]) & (sc["tickk"] == r["tickk"])
                       & (sc["market_id"].astype(str) != str(r["market_id"])) & ~sc["condition_id"].astype(str).isin(near)]
-            dist = np.abs(pool["loglq"].to_numpy(float) - float(r["loglq"]))
-            pool = pool.assign(_d=np.where(np.isfinite(dist), dist, np.inf)).sort_values(["_d", "market_id"], kind="mergesort")
-            cands[e.key] = pool["market_id"].astype(str).tolist()[: 50]
+            cands[e.key] = rank_control_candidates(pool, float(r["loglq"]))
     info = pd.DataFrame(rows_out)
     E = ends.merge(info, on="key", how="left")
     cnt["market_not_in_capture"] = int((~E["found"].fillna(False).astype(bool)).sum())
@@ -1424,7 +1518,7 @@ def census_feed(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, feed_root=FEED_ROOT,
         Q["end_moved"] = moved
         Q["day"] = pd.to_datetime(Q["T_e"], unit="s", utc=True).dt.strftime("%Y-%m-%d")
     days_cov = fc["slots_with_usable_feed"] / 12.0
-    return {"feed_completeness": fc, "inputs_verified": bool(verify), "files_checked": loaded.get("files_checked"), "counts": cnt,
+    return {"declared_before_seal": spec.get("declared_before_seal"), "feed_completeness": fc, "inputs_verified": bool(verify), "files_checked": loaded.get("files_checked"), "counts": cnt,
             "CH215": census_ch215(Q, cnt, spec, fc, days_cov)}
 
 
@@ -1571,7 +1665,7 @@ def bound_violations(seal: dict, spec: dict) -> list[dict]:
 def _sealed_feeds(seal: dict, feed_root) -> tuple[dict, list[dict]]:
     """Sealed feed captures found locally (each sealed file present and hash-equal), else bad. A local feed directory the seal does not name is
     never opened."""
-    found = scan_feed(feed_root)
+    found = scan_feed(feed_root, only=set(seal.get("feed") or {}))
     out, bad = {}, []
     for d, meta in (seal.get("feed") or {}).items():
         rels = [r for r in seal["files"] if r.startswith(f"data-dumps/research_lab/reward_params/{d}/")]
@@ -1643,10 +1737,13 @@ def _load_for_census(seal: Path, snapshot_root, sweep_root, feed_root, work: Pat
         sweeps = {}
     files_checked = 0
     if verify:
-        fl = [f for k in sorted(by_slot) for f in b.capture_files(by_slot[k]["dir"])]
-        fl += [f for v in sweeps.values() for f in b.sweep_files(v["dir"])]
-        bad += b.verify_files(seal_d, fl)
-        files_checked = len(fl)
+        # LT8's completeness check (code check 2026-10-23 must-fix 1): EVERY sealed file of a sealed capture / sweep (the optional sidecar included) must
+        # be present locally, else the census is refused; the vendored ``capture_files`` skips a missing ``rows_ext``, so ``verify_files`` alone cannot see it.
+        cap_slots_s, sw_slots_s = set(sc), (set(ss) if need_sweeps else set())
+        if cap_slots_s or sw_slots_s:
+            comp = b.seal_completeness(seal_d, by_slot, sweeps if need_sweeps else {}, cap_slots_s, sw_slots_s, spec, sweep_root if need_sweeps else None)
+            bad += comp["bad"]
+            files_checked = comp["files_checked"]
     feeds, fbad = _sealed_feeds(seal_d, feed_root)
     bad += fbad
     if bad:
@@ -1754,8 +1851,10 @@ def census_captures(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, feed_root=FEED_R
     feed_frames: dict[str, pd.DataFrame] = {}
     persist = {"broken_km2": 0, "broken_km1_given_km2": 0}
     rf_acc: dict = {}
-    ends_acc = {"feed_captures_read": 0, "listed_markets": 0, "positive_configs": 0, "end_date_only": 0, "end_sentinel": 0}
+    ends_acc = {"feed_captures_read": 0, "listed_markets": 0, "positive_configs": 0, "end_date_only": 0, "end_sentinel": 0,
+                "malformed_markets": 0, "malformed_mixed_markets": 0}
     ends_counted: set[str] = set()
+    cells5: dict[int, dict] = {}  # control_cells of capture k + 5 (medians and counts of the served band only), for the control twin's v_ctrl
 
     def fframe(d: str | None) -> pd.DataFrame | None:
         if d is None:
@@ -1769,6 +1868,8 @@ def census_captures(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, feed_root=FEED_R
                 ends_acc["positive_configs"] += int(f["n_pos"].sum()) if len(f) else 0
                 ends_acc["end_date_only"] += int(f["n_date_only"].sum()) if len(f) else 0
                 ends_acc["end_sentinel"] += int(f["n_sentinel"].sum()) if len(f) else 0
+                ends_acc["malformed_markets"] += int((f["end_kind"] == "malformed").sum()) if len(f) else 0
+                ends_acc["malformed_mixed_markets"] += int(f["mixed_malformed"].sum()) if len(f) else 0
             for old in list(feed_frames)[:-FEED_CACHE_FRAMES]:
                 feed_frames.pop(old)
         return feed_frames[d]
@@ -1791,6 +1892,8 @@ def census_captures(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, feed_root=FEED_R
         b._fee_counts(ser, fee_counts)
         sc = carry_frame(carry, ser, k, b._utc_day(cap["start"]))
         frames[k] = sc
+        if (k - 5) in org_set:
+            cells5[k] = control_cells(sc, spec)
         om_status[k] = pd.Series(sc["om"].to_numpy(float), index=sc.index.astype(str))
         for old in [s_ for s_ in frames if s_ < k - 2]:
             frames.pop(old)
@@ -1821,10 +1924,7 @@ def census_captures(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, feed_root=FEED_R
         for k, grp in A.groupby("slot"):
             k = int(k)
             if (k + 4) in by_slot and (k + 5) in by_slot:
-                vp = pd.Series(grp["v_c"].to_numpy(float) / 100.0, index=grp["market_id"].astype(str).to_numpy())
-                vp = vp[~vp.index.duplicated()]
-                fl = lag_break_flag(by_slot[k + 4]["dir"], by_slot[k + 5]["dir"], vp)
-                tw.append(pd.Series(fl.reindex(grp["market_id"].astype(str)).to_numpy(float), index=grp.index))
+                tw.append(lag_twin_flags(by_slot[k + 4]["dir"], by_slot[k + 5]["dir"], grp, cells5.get(k + 5), spec))
             else:
                 tw.append(pd.Series(np.nan, index=grp.index))
         A["brk_twin"] = pd.concat(tw).reindex(A.index).to_numpy(float)
@@ -1849,8 +1949,10 @@ def census_captures(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, feed_root=FEED_R
     return {"span": spec["census_inputs"]["span"], "inputs_verified": bool(verify), "files_checked": loaded["files_checked"], "fee_category_values": fs["distinct_values"],
             "crypto_classifier_shown_to_work": fs["classifier_shown_to_work"], "reward_null_rule": spec.get("reward_null_rule"), "design_text_sha256": DESIGN_TEXT_SHA256,
             "covered_origins": {"CC9": len(ORG), "CH213_F_pairs": int(pair_days * 12)}, "expected_origins": exp.get("CC9"), "origins_differ_from_design": len(ORG) != exp.get("CC9"),
-            "feed_completeness": fc, "band_unit_check": band, "reward_field": reward_field_summary(rf_acc),
-            "feed_end_kinds_of_positive_configs": {**ends_acc, "date_only_share": ends_acc["end_date_only"] / ends_acc["positive_configs"] if ends_acc["positive_configs"] else float("nan"),
+            "feed_completeness": fc, "band_unit_check": band, "reward_field": reward_field_summary(rf_acc), "overlaps_with_prior_populations": PRIOR_POPULATION_OVERLAPS,
+            "declared_before_seal": spec.get("declared_before_seal"),
+            "feed_end_kinds_of_positive_configs": {**ends_acc, "denominator": "positive-rate configurations of every sealed usable feed capture read by this census, each capture counted once (not market-level, not slot-level)",
+                                                   "date_only_share": ends_acc["end_date_only"] / ends_acc["positive_configs"] if ends_acc["positive_configs"] else float("nan"),
                                                    "sentinel_share": ends_acc["end_sentinel"] / ends_acc["positive_configs"] if ends_acc["positive_configs"] else float("nan")},
             "unit_overlaps": b.unit_overlaps({"CH213": A[A["n_members"] <= spec["member_cap"]["max_members"]] if len(A) else A, "CH212": B[B["n_members"] <= spec["member_cap"]["max_members"]] if len(B) else B}),
             "CH213": census_ch213(A, tot213, spec, days, band, pair_days), "CH212": census_ch212(B, tot212, spec, days, fc, {"per_day": sw_counts})}
@@ -1933,7 +2035,7 @@ def census_sweeps(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, sweep_root=SWEEP_R
     band = band_unit_check(np.concatenate(v_rewarded) if v_rewarded else [], spec)
     exp = spec["census_inputs"]["expected_origins"]
     return {"inputs_verified": bool(verify), "files_checked": loaded["files_checked"], "fee_category_values": fs["distinct_values"], "crypto_classifier_shown_to_work": fs["classifier_shown_to_work"],
-            "reward_null_rule": spec.get("reward_null_rule"), "design_text_sha256": DESIGN_TEXT_SHA256, "covered_origins": {"CS9": len(ORG), "CS9_F_pairs": len(PAIRS)},
+            "reward_null_rule": spec.get("reward_null_rule"), "design_text_sha256": DESIGN_TEXT_SHA256, "covered_origins": {"CS9": len(ORG), "CS9_F_pairs": len(PAIRS)}, "declared_before_seal": spec.get("declared_before_seal"),
             "expected_origins": exp.get("CS9"), "origins_differ_from_design": len(ORG) != exp.get("CS9"), "band_unit_check": band,
             "CH214": census_ch214(Q, tot, spec, days, pair_days, band)}
 

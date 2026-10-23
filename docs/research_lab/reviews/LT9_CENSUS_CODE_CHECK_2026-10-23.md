@@ -50,3 +50,26 @@ orchestrator because the reviewer cannot write). Branch `feat/live-tests-9`, tip
 ## Not verified
 The vendored helpers' internals (DE, `design_se`, `pair_correlations`). LT8's census outputs do not exist yet, so the LT8
 hash re-check stays open.
+
+## Response (implementer, 2026-10-23; design text untouched, vendored files untouched)
+
+All edits are in `backend/astrolabe/research_lab/live_tests9.py` and `model_specs/live_tests9_v1.json` (new key `declared_before_seal`, printed in every
+census output); tests are in `backend/tests/unit/test_research_lab_live_tests9.py`.
+
+| Item | Fix (file:function) | Test |
+|---|---|---|
+| Must-fix 1, missing sealed sidecar | `_load_for_census` now calls the vendored `b.seal_completeness` (every sealed file of a sealed capture or sweep must exist locally) | `test_missing_sealed_sidecar_refuses_the_census` |
+| Must-fix 2, CR9 decision capture | `capture_last_receipt`, `decision_slot` (last capture whose last row receipt is strictly before `t_dec`), used in `census_feed` | `test_decision_capture_is_the_last_with_last_receipt_strictly_before` (includes a capture in progress at `t_dec`) |
+| Must-fix 3, CH213 control twin | `lag_twin_flags` (v_ctrl of capture k + 5's cell via `assign_control_band` on `control_cells` of k + 5, then `lag_break_flag`; flag only), wired in `census_captures` | `test_ch213_control_twin_uses_v_ctrl_of_capture_k_plus_5_cell` |
+| Must-fix 4, CH215 ties | `rank_control_candidates` (ties by `condition_id`); spec `control_rule` updated | `test_ch215_control_ties_break_by_condition_id` |
+| Must-fix 5, CR9 feed completeness | `census_feed` passes all span slots (120) to `feed_completeness` | `test_cr9_feed_completeness_covers_all_span_slots` |
+| Ruling 1, malformed > open > dated | `feed_frame` (`end_kind`, `mixed_malformed`); CR9 excludes dated ends of malformed markets and counts them; mixed cases counted | `test_malformed_beats_open_beats_dated_and_mixed_cases_are_counted` |
+| Ruling 2, sentinel year as written | declared in `declared_before_seal.sentinel_year` (no code change) | `test_sentinel_year_is_read_as_written` |
+| Ruling 3, denominators | each end-kind denominator printed (CC9, CR9, CH212 shares) and declared; CR9 prints `positive_configs`, `date_only_share`, `sentinel_share` | `test_cr9_and_cc9_print_declared_denominators_and_descriptives` |
+| Note: ghost label | `feed_end_ok` labels unlisted markets `feed_unlisted`; excluded from `feed_end_shares` | `test_ghost_market_is_its_own_feed_end_category` |
+| Note: missing descriptives | CR9: `sponsored_shares_of_decisions`, `share_listed_ge_48h_ahead`, `moved_between_consecutive_feed_captures`; overlaps with LT8 CH203 and LT7 CH197 printed NaN with a reason (`PRIOR_POPULATION_OVERLAPS`: those population definitions are not vendored into LT9 and no earlier module may be imported) | same test as ruling 3 |
+| Note: switching-gate mean per day | `SWITCHING_GATE_DEFINITION` printed in CH212 output and declared in the spec | same test as ruling 3 |
+| Note: `scan_feed` | `scan_feed(only=...)`; `_sealed_feeds` passes the sealed feed names | `test_scan_feed_reads_only_the_named_manifests` |
+
+Open: the overlaps with CH203 and CH197 are NaN, not computed (no vendored population definition). The queue check (no LT8 job q0624-q0627 running
+before promotion) is for the orchestrator.

@@ -849,3 +849,129 @@ def test_feed_end_kinds_counted_once_after_cache_eviction(world, monkeypatch):
     assert e["feed_captures_read"] == len(totals)
     assert e["listed_markets"] == sum(t[0] for t in totals.values()) and e["positive_configs"] == sum(t[1] for t in totals.values())
     assert e["end_date_only"] == sum(t[2] for t in totals.values()) and e["end_sentinel"] == sum(t[3] for t in totals.values())
+
+
+# --- census code check 2026-10-23 (reviews/LT9_CENSUS_CODE_CHECK_2026-10-23.md) -----------------------------------------------------------
+
+
+def test_missing_sealed_sidecar_refuses_the_census(world):
+    """Must-fix 1: a sealed rows_ext absent from every root makes every census refuse (the vendored capture_files skips a missing sidecar)."""
+    seal = write_seal(world)
+    h = world["host"]
+    kw = {"seal": seal, "snapshot_root": [h["snap"]], "feed_root": [h["feed"]], "spec": world["spec"]}
+    (h["snap"] / h["cids"][SPAN[0] + 3] / "rows_ext.csv.gz").unlink()
+    r = lt.census_captures(work=world["tmp"] / "m1", **kw)
+    assert "input identity" in r["error"] and any(x.get("error") == "sealed but absent locally" for x in r["bad"]) and "CH213" not in r
+    assert "input identity" in lt.census_feed(work=world["tmp"] / "m2", **kw)["error"]
+    assert "input identity" in lt.census_sweeps(work=world["tmp"] / "m3", sweep_root=[h["swp"]], **kw)["error"]
+
+
+def test_decision_capture_is_the_last_with_last_receipt_strictly_before(world):
+    """Must-fix 2: a capture in progress at the decision time is never CR9's decision capture."""
+    assert lt.decision_slot([10, 11, 12], [100.0, 200.0, 300.0], 250.0) == 11  # capture 12 started before 250 but is still receiving rows
+    assert lt.decision_slot([10, 11, 12], [100.0, 200.0, 300.0], 200.0) == 10  # strictly earlier
+    assert lt.decision_slot([10, 11, 12], [100.0, 200.0, 300.0], 50.0) == -10**9
+    h = world["host"]
+    assert lt.capture_last_receipt(h["snap"] / h["cids"][SPAN[0]]) == lt.epoch(_iso(_slot_dt(SPAN[0]))) + 9.0
+    # end to end: capture 2 (the first sealed capture) is still receiving rows when the first sealed feed capture finishes (slot 2 + 5 min)
+    def decide(tmp: Path, late: bool):
+        tmp.mkdir()
+        host = build_host(tmp)
+        if late:
+            p = host["snap"] / host["cids"][2] / "rows.csv.gz"
+            df = pd.read_csv(p, dtype=str)
+            df.loc[0, "received_utc"] = _iso(_slot_dt(2) + timedelta(minutes=10))
+            df.to_csv(p, index=False, compression="gzip")
+        w = {**world, "tmp": tmp}
+        seal = write_seal(w, host)
+        return lt.census_feed(seal=seal, snapshot_root=[host["snap"]], feed_root=[host["feed"]], work=tmp / "wf", spec=world["spec"])
+    base, late = decide(world["tmp"] / "d0", False), decide(world["tmp"] / "d1", True)
+    assert "error" not in base and "error" not in late, (base, late)
+    assert late["counts"]["no_decision_capture"] > base["counts"].get("no_decision_capture", 0)
+
+
+def test_ch213_control_twin_uses_v_ctrl_of_capture_k_plus_5_cell(world):
+    """Must-fix 3: a control unit's twin band is the (cat, tier, tick) median of capture k + 5, computed inside the loader (the flag only returns)."""
+    h = world["host"]
+    k = 20  # market 100: spread 2c at k + 4 = 24 and 4c at k + 5 = 25 (every 5th slot)
+    ca, cb = h["snap"] / h["cids"][k + 4], h["snap"] / h["cids"][k + 5]
+    grp = pd.DataFrame({"market_id": ["100"], "fee_cat": ["Politics"], "liq": [5e4], "tick": [0.01], "rew": [0.0], "v_c": [1.0]}, index=[7])
+    key = (lt.cat_key(grp["fee_cat"])[0], lt.tier_of(grp["liq"])[0], lt.tick_key(grp["tick"])[0])
+    cells5 = {"cell": {key: (25, 2.0)}, "tt": {}}
+    fl = lt.lag_twin_flags(ca, cb, grp, cells5, world["spec"])
+    assert list(fl.index) == [7] and fl.iloc[0] == 1.0  # 2 < 4 <= s_b: broken against k + 5's median v = 2c (k's own v_ctrl = 1c would give 0)
+    assert lt.lag_twin_flags(ca, cb, grp, {"cell": {key: (25, 1.0)}, "tt": {}}, world["spec"]).iloc[0] == 0.0
+    assert np.isnan(lt.lag_twin_flags(ca, cb, grp, None, world["spec"]).iloc[0])  # no k + 5 cell: NaN
+    assert np.isnan(lt.lag_twin_flags(ca, cb, grp, {"cell": {key: (2, 2.0)}, "tt": {}}, world["spec"]).iloc[0])  # cell below the minimum, no fallback
+    assert lt.lag_twin_flags(ca, cb, grp.assign(rew=1.0, v_c=2.0), None, world["spec"]).iloc[0] == 1.0  # a reward unit keeps its own v
+    import inspect
+    assert "mid" not in inspect.getsource(lt.lag_twin_flags).replace("midpoint", "")
+
+
+def test_ch215_control_ties_break_by_condition_id():
+    pool = pd.DataFrame({"market_id": ["m1", "m2", "m3"], "condition_id": ["0xc", "0xa", "0xb"], "loglq": [5.0, 5.0, 5.0]})
+    assert lt.rank_control_candidates(pool, 5.0) == ["m2", "m3", "m1"]  # by condition_id, not market_id
+    assert lt.rank_control_candidates(pool.assign(loglq=[5.0, 6.0, 4.5]), 5.0) == ["m1", "m3", "m2"]
+    assert "condition_id" in json.loads(lt.SPEC_PATH.read_text())["tests"]["CH215"]["control_rule"]
+
+
+def test_cr9_feed_completeness_covers_all_span_slots(world):
+    assert len(lt._span_slots(_BASE_SPEC)) == 120
+    seal = write_seal(world)
+    h = world["host"]
+    cr = lt.census_feed(seal=seal, snapshot_root=[h["snap"]], feed_root=[h["feed"]], work=world["tmp"] / "wf", spec=world["spec"])
+    assert cr["feed_completeness"]["slots"] == len(lt._span_slots(world["spec"]))
+
+
+def test_malformed_beats_open_beats_dated_and_mixed_cases_are_counted(tmp_path):
+    spec = lt.load_spec(sha=None)
+    recs = [{"feed": "native", "condition_id": "a", "rewards_config": [{"rate_per_day": 5, "end_date": "junk"}, {"rate_per_day": 5, "end_date": "2026-11-05"}]},
+            {"feed": "native", "condition_id": "b", "rewards_config": [{"rate_per_day": 5, "end_date": "junk"}, {"rate_per_day": 5, "end_date": None}]},
+            {"feed": "native", "condition_id": "c", "rewards_config": [{"rate_per_day": 5, "end_date": None}, {"rate_per_day": 5, "end_date": "2026-11-05"}]},
+            {"feed": "native", "condition_id": "d", "rewards_config": [{"rate_per_day": 5, "end_date": "junk"}]}]
+    f = lt.feed_frame(_feed_dir(tmp_path, "f1", recs), spec)
+    assert f["end_kind"].to_dict() == {"a": "malformed", "b": "malformed", "c": "open", "d": "malformed"}
+    assert f["mixed_malformed"].to_dict() == {"a": True, "b": True, "c": False, "d": False}
+    ok, why = lt.feed_end_ok(pd.Series(["a", "c"]), f, 3, spec)
+    assert np.isnan(ok[0]) and why[0] == "feed_end_malformed" and ok[1] == 1.0
+    assert json.loads(lt.SPEC_PATH.read_text())["declared_before_seal"]["end_kind_precedence"]["rule"].startswith("malformed > open > dated")
+
+
+def test_sentinel_year_is_read_as_written():
+    assert lt.parse_end("2099-12-31T23:00:00-05:00")[2] == "ts"  # as written 2099; UTC is 2100-01-01T04:00Z
+    assert lt.parse_end("2100-01-01T01:00:00+05:00")[2] == "sentinel"  # as written 2100 although UTC is 2099-12-31T20:00Z
+
+
+def test_ghost_market_is_its_own_feed_end_category(tmp_path):
+    spec = lt.load_spec(sha=None)
+    f = lt.feed_frame(_feed_dir(tmp_path, "f1", [{"feed": "native", "condition_id": "listed_no_pos", "rewards_config": [{"rate_per_day": 0, "end_date": None}]}]), spec)
+    ok, why = lt.feed_end_ok(pd.Series(["listed_no_pos", "ghost"]), f, 3, spec)
+    assert list(why) == ["feed_no_positive_config", "feed_unlisted"] and np.isnan(ok).all()
+
+
+def test_scan_feed_reads_only_the_named_manifests(tmp_path):
+    _feed_dir(tmp_path, "fa", [{"condition_id": "x"}])
+    _feed_dir(tmp_path, "fb", [{"condition_id": "x"}])
+    (tmp_path / "fb" / "manifest.json").write_text("not json at all")
+    assert set(lt.scan_feed([tmp_path], only={"fa"})) == {"fa"}
+    assert set(lt.scan_feed([tmp_path], only={"fa", "missing"})) == {"fa"}
+    assert set(lt.scan_feed([tmp_path])) == {"fa"}  # the unrestricted scan skips an unreadable manifest
+
+
+def test_cr9_and_cc9_print_declared_denominators_and_descriptives(world):
+    seal = write_seal(world)
+    h = world["host"]
+    kw = {"seal": seal, "snapshot_root": [h["snap"]], "feed_root": [h["feed"]], "spec": world["spec"]}
+    cr = lt.census_feed(work=world["tmp"] / "wf", **kw)
+    c = cr["counts"]
+    assert cr["declared_before_seal"] and c["positive_configs"] > 0 and c["date_only_share"] == c["end_date_only"] / c["positive_configs"]
+    assert c["sentinel_share"] == c["end_sentinel"] / c["positive_configs"] and "denominators differ" in c["end_kind_denominator"]
+    assert 0.0 < c["share_listed_ge_48h_ahead"] <= 1.0 and c["ends_in_window_seen"] >= c["ends_in_window_listed_ahead"]
+    sp = c["sponsored_shares_of_decisions"]
+    assert abs(sp["sponsored_only"] + sp["native_and_sponsored"] + sp["native_only"] - 1.0) < 1e-9 and sp["native_only"] == 1.0  # the synthetic feed is all native
+    assert c["moved_between_consecutive_feed_captures"]["pairs"] > 0 and c["moved_between_consecutive_feed_captures"]["share"] == 0.0
+    assert all(np.isnan(v["units"]) and v["reason"] for v in c["overlaps_with_prior_populations"].values())
+    cc = lt.census_captures(work=world["tmp"] / "wc", **kw)
+    assert cc["declared_before_seal"] and "denominator" in cc["feed_end_kinds_of_positive_configs"] and "feed_end_shares_denominator" in cc["CH212"]
+    assert "switching_gate_definition" in cc["CH212"] and "feed_unlisted" not in cc["CH212"]["feed_end_shares"]
+    assert cc["overlaps_with_prior_populations"]["LT8_CH203"]["reason"] and "malformed_mixed_markets" in cc["feed_end_kinds_of_positive_configs"]
