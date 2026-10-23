@@ -4263,3 +4263,4 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - Recomputed: CH233 F-MDE 0.46c / 0.19c (DE 31); CH232 F-MDE 1.55c / 0.99c (DE 31, `VIF_w` 1.3). Census odds 0.35 / 0.40 / 0.10;
   expected k 0.85; P(no test) about 0.35. Dated LT11 request note appended to `signal_engine/CANDIDATES.md` (4fb22e26).
 - **Design sha256 `69477a6300faf890f7fa6166fa5c06f4ece68f7d928a0de1f8b3a55d551fb7c9`** (DRAFT, not frozen). **Next:** R1 re-check.
+- **LT11 R1 re-check** (`reviews/LT11_R1_RECHECK_2026-10-23.md`): ACCEPT_WITH_FIXES (F1 covered-days definition and census_unavailable printing/Holm rule; F2 stale volume_num wording; F3 tl_w2h disclosure and engine-informed labels; F4 receipt_span source); applied as worded; design sha256 c96b0351e6d0042ddab1692ab654400714656e6f5ce3374b7c27bdf8de238d36. Next: pre-freeze verification, then the design-text freeze.
