@@ -2,7 +2,7 @@
  "id": "q0623_lt8_census_sweeps",
  "title": "LT8 census CS8 (DRAFT): CH203 (the quiet book) and CH202 (the sweep clock) on sweep 1 of the 47 sealed passes (blocks 2026-10-14T22Z..10-16T22Z and 10-19T22Z..10-21T22Z) and their captures (CH203 41 origins, 23 F-feasibility pairs, CH202 45 from the file list): counts only, origin-side fields only, the lag sweeps k + 5 and k + 6 only through the lag-slot loader (keys + depth_bid_5c, depth_ask_5c), no target, no P&L; refuses unsealed or mismatched inputs",
  "family": "live_tests_8",
- "priority": 52,
+ "priority": 53,
  "expected_value": "CH203 and CH202 census gates (LIVE_TESTS_8.md section 7): coverage, quiet share, count gates, cap share, residual IQR, VIF_w, confounder caps, r_gate <= 0.3, the per-sweep-block minimum, slope / class MDE and F-MDE <= 0.5c; decides part of k before the pin",
  "data": [
   "host originals ~/arepo/data-dumps/research_lab/{snapshots,book_sweeps} (read-only, under the seal)",
