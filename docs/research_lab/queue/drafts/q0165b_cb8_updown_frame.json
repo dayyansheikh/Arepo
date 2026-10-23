@@ -1,0 +1,53 @@
+{
+ "id": "q0165b_cb8_updown_frame",
+ "title": "CB8-B (amendment 2026-10-23, rules v3: series key waived for B): Gamma frame of daily crypto Up/Down markets ending 16:00Z on 2026-04-13..08-09 (minus the pmxt gap 06-12..06-17), same frozen regexes, strike and settlement dates; key drops by market id, event id and negRiskMarketID only; seeded ISO-week SCREEN/HOLDOUT split; Binance 1m monthly archives refetched (CHECKSUM verified); id-drop report by source pin and day-exclusion sensitivity list",
+ "family": "creative_batch_8",
+ "priority": 48,
+ "expected_value": "population, split and Binance features for CH76 under the amended rules",
+ "data": [
+  "public Gamma markets (closed, endDate windows)",
+  "data-dumps/research_lab/creative_batch8/exclusion_keys.csv.gz",
+  "data.binance.vision spot and futures/um monthly 1m klines"
+ ],
+ "resources": {
+  "mem_mb": 600,
+  "cpu": 1,
+  "network": "gamma-api, data.binance.vision",
+  "lane": "net"
+ },
+ "depends_on": [
+  "q0161_cb8_smoke",
+  "q0164c_cb8_exclusion_keys"
+ ],
+ "argv": [
+  "scripts/run_cb8.py",
+  "updown-frame",
+  "--rules",
+  "../docs/research_lab/seals/cb8_rules_v3.json",
+  "--days",
+  "2026-04-13:2026-08-10",
+  "--rps",
+  "2",
+  "--extra-pin",
+  "c1_legs:/home/opc/arepo/data-dumps/research_lab/creative_batch8/pins/c1_legs_ids.csv:8341c500d897936a2d47e50bbf29372fea80e5948e762e67473a7caad5cfe7ae",
+  "--extra-pin",
+  "cb5_listings:/home/opc/arepo/data-dumps/research_lab/creative_batch8/pins/cb5_listings_ids.csv:e1a125517b6cf0a037efe68b66158d1e88501cdb3769728d7532ea8723c85ac7",
+  "--disk-cap-gb",
+  "0.02",
+  "--data-dumps-cap-gb",
+  "40",
+  "--budget-min",
+  "50"
+ ],
+ "timeout_s": 3300,
+ "max_retries": 2,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch8/updown_frame_b/{frame.csv.gz,split.json (report.id_drop_report = id drops by source pin, distinct days, day-exclusion sensitivity days),klines_pre.csv.gz,strikes.csv.gz (SCREEN days only),holdout/klines_pre.csv.gz,holdout/strikes.csv.gz (HOLDOUT days; sealed by q0166b),klines_settle_guarded.csv.gz,outcomes_guarded.csv.gz,manifest.json}"
+ ],
+ "next_action": "q0166b (reads updown_frame_b/ after verifying every file hash against its manifest)",
+ "notes": "DRAFT: promote only after the amendment's science-reviewer pass. CREATIVE_BATCH_8.md section 1.3 'Amendment 2026-10-23 (B only)'; ruling reviews/CB8B_SERIES_KEY_RULING_2026-10-23.md (conditions 1-7). New run directory updown_frame_b; q0165's updown_frame is never opened, reused or moved. Needs the committed seals/cb8_rules_v3.json (rules_sha256 e10fb289ce7363abea0170681028cb8e7f4a967359c4240636e718ce177730a0; re-check against the final committed file at promotion). The q0161 smoke (made under v2 33decb52...) is accepted by smoke_ok (SMOKE_ACCEPT_SHAS). The two --extra-pin values are q0164c's (ids only), used here only for the id-drop source report (the keys file itself is q0164c's, unchanged). Binance zips are not stored, so nothing is reused: every archive is refetched and CHECKSUM-verified; optionally add '--prior-archives-meta <q0165 manifest.json>' to record whether the refetched zip sha256 values equal q0165's recorded archives meta (that opens a q0165 file read-only: leave it out unless the reviewer allows it). Outcomes go only to the guarded files; the frame step reads no outcome beyond what q0165 did. Same caps and budget as q0165 (--disk-cap-gb must equal the declared 0.02).",
+ "repeat": {
+  "max_runs": 4,
+  "until_log_regex": "\"status\": \"(updown_frame_complete|disjointness_unverified|source_unverified)\""
+ }
+}
