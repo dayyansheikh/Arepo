@@ -4250,3 +4250,16 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   removed before deploy. No tilt table, fit, prediction or score existed under either version.
 - **CH237 `parentsib`: killed at its census line** (counts only, no outcome read): capture 2026-10-23T10:31Z, 27 of
   18,349 eligible non-sports rows (0.15%) have a non-null `parent_event_ids` (line 5%). No family built.
+
+## LT11 challenger R1 and response (2026-10-23; experiments autopilot; nothing counted)
+- **R1 verdict REVISE** (`reviews/LT11_CHALLENGER_R1_2026-10-23.md`, filed eed059a5): 8 must-fix, 10 should-fix, rulings
+  A1-A13; arithmetic and the draft hash `c1def3d4…` verified; no map leak into the gates in a passing direction.
+- **Response** (e4e21a7a; section 13 maps every item to section and line): all 8 must-fix and all 10 should-fix applied, none
+  declined; rulings applied. No threshold loosened.
+- **Key changes:** CH233 120 s receipt-span exclusion (gate >= 60% of complete pairs), augmented events a reported arm, `|hb|`
+  absolute; CH232 movers only, tick dummies, binding quote-grid world 15, twin redefined with F-arm coverage >= 60%,
+  defined-mid crossings and `day_gap_market`, count gate raised 60 -> 67 a capture; CH234 `volume_num` keyed by slot, 745 the
+  lenient line; unprojected event gates, `census_unavailable` vs `census_dropped`, lapse labels, `G_eff >= 15`, timing rule.
+- Recomputed: CH233 F-MDE 0.46c / 0.19c (DE 31); CH232 F-MDE 1.55c / 0.99c (DE 31, `VIF_w` 1.3). Census odds 0.35 / 0.40 / 0.10;
+  expected k 0.85; P(no test) about 0.35. Dated LT11 request note appended to `signal_engine/CANDIDATES.md` (4fb22e26).
+- **Design sha256 `69477a6300faf890f7fa6166fa5c06f4ece68f7d928a0de1f8b3a55d551fb7c9`** (DRAFT, not frozen). **Next:** R1 re-check.
