@@ -51,7 +51,7 @@ PICK: list[tuple[str, str, str, list[str]]] = [
         "crypto_failsafe", "slot_in_day", "MidStore", "rv_from_matrix", "floored_rv", "_non_sports_ex_crypto", "_hte", "_own24", "exact_t_sum", "mde_common",
         "block_min_units", "block_share", "resid_iqr", "iqr_ok", "terciles", "standardise", "_de", "_gate_min_days", "_fam", "_per_market", "_events",
         "unit_overlaps", "_z", "_desc_splits", "_merge_counts", "_fee_counts", "load_unavailable", "_utc_day", "_status_array", "_series_ids", "RewardCarry",
-        "_reward_cols", "_movers_join", "_common_cols", "_base_out", "_mid12", "_drop_missing", "_rv24", "design_se", "class_mde8", "corr_pair", "corr_pair_ok", "_q", "_events8", "reward_detail", "reward_status", "lt7_status", "clob_hash", "rw_frame", "read_rw8", "_vol_cols",
+        "_reward_cols", "_movers_join", "_common_cols", "_base_out", "_mid12", "_drop_missing", "_rv24", "design_se", "class_mde8", "corr_pair", "corr_pair_ok", "_q", "_events8", "_tier_shares", "_share_by_tercile", "reward_detail", "reward_status", "lt7_status", "clob_hash", "rw_frame", "read_rw8", "_vol_cols",
     ]),
     ("base", "live_tests9_base.py", r"\b(?:lab|cb17_census)\.", ["category_cols"]),
     ("base", "cb13_label.py", NONE, ["SPORTS_CATEGORIES", "SPORTS_SERIES_RE", "_norm", "first_series_slug"]),

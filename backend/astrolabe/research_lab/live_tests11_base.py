@@ -1273,6 +1273,29 @@ def _events8(pop: pd.DataFrame, scale: float, covered_days: float) -> dict:
             "events_projected_21d_second_form": second, "covered_days": covered_days}
 
 
+def _tier_shares(pop: pd.DataFrame, value: str, top_of: str | None = None) -> dict:
+    """Descriptive: by liquidity tier (terciles of ``log1p_liq``) the mean of ``value`` (a 0/1 class) or, with ``top_of``, the share of units in
+    the top tercile of that standardised state."""
+    if pop.empty or pop["log1p_liq"].nunique() < 3:
+        return {}
+    tier = pd.qcut(pop["log1p_liq"], 3, labels=["low", "mid", "high"], duplicates="drop")
+    if top_of:
+        cut = np.quantile(pop[top_of].dropna(), 2 / 3)
+        v = (pop[top_of] >= cut).astype(float)
+    else:
+        v = pop[value].astype(float)
+    return {str(k_): {"units": int((tier == k_).sum()), "share": float(v[tier == k_].mean())} for k_ in tier.cat.categories}
+
+
+def _share_by_tercile(pop: pd.DataFrame, z: str, value: str) -> dict:
+    """Descriptive: the mean of a 0/1 ``value`` by tercile of the state ``z`` (rewarded share by tercile)."""
+    if pop.empty or pop[z].notna().sum() < 3:
+        return {}
+    t1, t2 = np.quantile(pop[z].dropna(), [1 / 3, 2 / 3])
+    grp = np.where(pop[z] <= t1, "bottom", np.where(pop[z] >= t2, "top", "middle"))
+    return {k_: float(pop.loc[grp == k_, value].mean()) for k_ in ("bottom", "middle", "top")}
+
+
 def reward_detail(v, day: str | None = None) -> tuple[float, str, str]:
     """``(daily rate, state, reason)`` of a sidecar ``clob_rewards`` value. An empty / null field is UNREWARDED, not unknown (LT5 R and LT7
     parsed it as NaN and so removed the unrewarded class). States: ``unset`` (None, NaN, empty, whitespace or null-like text; rate 0.0),
@@ -1964,10 +1987,34 @@ VENDORED = {
   "source_commit": "60df6c47",
   "source_sha256": "03dd3be38f50ad12e00ed2487f189d0bf49299483720d499f5620c0023dc9d39"
  },
+ "_share_by_tercile": {
+  "normalised_sha256": "38c8396e09118d3e6292c81a1a8e630e3e786d29dec849f0f70ce73f499adc54",
+  "origin": {
+   "normalised_sha256": "38c8396e09118d3e6292c81a1a8e630e3e786d29dec849f0f70ce73f499adc54",
+   "source": "live_tests7.py",
+   "source_sha256": "e1c5c0c68f7c44d3d5038f9c28324008a4a8132e35f148721a33078d706766a0"
+  },
+  "prefix": "(?!)",
+  "source": "live_tests9_base.py",
+  "source_commit": "60df6c47",
+  "source_sha256": "03dd3be38f50ad12e00ed2487f189d0bf49299483720d499f5620c0023dc9d39"
+ },
  "_status_array": {
   "normalised_sha256": "d9388e92dc21444065b421089b1895c4586010ca61125d4400cd3f5d33613441",
   "origin": {
    "normalised_sha256": "d9388e92dc21444065b421089b1895c4586010ca61125d4400cd3f5d33613441",
+   "source": "live_tests7.py",
+   "source_sha256": "e1c5c0c68f7c44d3d5038f9c28324008a4a8132e35f148721a33078d706766a0"
+  },
+  "prefix": "(?!)",
+  "source": "live_tests9_base.py",
+  "source_commit": "60df6c47",
+  "source_sha256": "03dd3be38f50ad12e00ed2487f189d0bf49299483720d499f5620c0023dc9d39"
+ },
+ "_tier_shares": {
+  "normalised_sha256": "6807f14b982b077ba3ef4155738e92be456b882100d382a3bdea6f9b8dff31ac",
+  "origin": {
+   "normalised_sha256": "6807f14b982b077ba3ef4155738e92be456b882100d382a3bdea6f9b8dff31ac",
    "source": "live_tests7.py",
    "source_sha256": "e1c5c0c68f7c44d3d5038f9c28324008a4a8132e35f148721a33078d706766a0"
   },

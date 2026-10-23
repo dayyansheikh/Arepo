@@ -363,3 +363,128 @@ def test_ch233_zcl_scaled_by_size_class_census_scale(tmp_path):
     spec["census_fixed"]["CH233"]["s_c"] = {"3-5": 2.0, "6-10": 4.0}
     U, _ = lt.ch233_units(st, K0, spec, stamp=False)
     assert abs(U.set_index("market_id").loc["a1", "zcl"] - 2.0) < 1e-9
+
+
+# --- the lag-slot loaders and the reader ----------------------------------------------------------------------------------------------------
+
+
+def _reader_world(tmp_path):
+    """40 slots (day 2 = slots 24..35). A CH234 mover at slot 28, a CH232 first crossing at slot 30, a CH233 event whose bids move at slot 28, and twins at 30 / 31."""
+    m = {
+        "u1": {"mid": _path(0.50, {28: 0.53, 31: 0.56}, 40), "vnum": {s: (150.0 if s >= 28 else 100.0) for s in range(40)}},
+        "u2": {"mid": _path(0.30, {28: 0.27}, 40), "vnum": {}},
+        "r1": {"mid": _path(0.12, {30: 0.08, 32: 0.13, 33: 0.07}, 40), "rewards_all": RW, "rmin": 20, "rmax": 4.5},
+    }
+    for i, (a, c) in enumerate(zip([0.30, 0.30, 0.30], [0.34, 0.30, 0.30], strict=True)):
+        m[f"n{i}"] = _mem("NR1", "EVNR1", [(a if s < 28 else c) + 0.01 for s in range(40)])
+    root = tmp_path / "snap"
+    by_slot = sy.build_tree(root, range(40), _gen_ch234(m))
+    spec = sy.spec_for_tests()
+    spec["registered_utc"] = sy.iso(sy.slot_dt(20) - pd.Timedelta(minutes=1).to_pytimedelta())
+    spec["end_utc"] = sy.iso(sy.slot_dt(36))
+    return root, by_slot, spec
+
+
+def test_lag_loaders_return_only_the_twin_term(tmp_path):
+    root, by_slot, spec = _reader_world(tmp_path)
+    cf = {"w_centre": 0.5, "w_scale": 0.1, "absd_centre": 0.0, "absd_scale": 0.05}
+    tw = lt.lag_twin_xw(by_slot[29]["dir"], by_slot[30]["dir"], ["u1", "u2", "zz"], cf, spec)
+    assert isinstance(tw, pd.Series) and tw.name == "xw_tw" and list(tw.index) == ["u1", "u2", "zz"]
+    assert abs(tw["u1"] - 0.0) < 1e-9 and math.isnan(tw["zz"])  # no move: w = 0.5, |d| = 0
+    tw2 = lt.lag_twin_xw(by_slot[30]["dir"], by_slot[31]["dir"], ["u1"], cf, spec)
+    assert abs(tw2["u1"] - ((0.53 - 0.5) / 0.1) * (0.03 / 0.05)) < 1e-9  # p_{k+2} = 0.53, an up move: w = 0.53
+    f = lt.twin_flag_xo(by_slot[29]["dir"], by_slot[30]["dir"], ["r1", "u1", "zz"], spec)
+    assert f.name == "xo_tw" and f["r1"] == 1.0 and f["u1"] == 0.0 and math.isnan(f["zz"])  # 0 when the market stays inside or outside
+    f2 = lt.twin_flag_xo(by_slot[32]["dir"], by_slot[33]["dir"], ["r1"], spec)  # re-enters at 32 and leaves again at 33
+    assert f2["r1"] == 1.0
+    f3 = lt.twin_flag_xo(by_slot[30]["dir"], by_slot[31]["dir"], ["r1"], spec)  # outside at both: 0
+    assert f3["r1"] == 0.0
+    z = lt.lag_twin_zcl(by_slot[27]["dir"], by_slot[28]["dir"], ["n0", "n1", "zz"], {"s_c": {"3-5": 2.0, "6-10": 4.0}}, spec)
+    assert z.name == "zcl_tw" and abs(z["n1"] - 2.0) < 1e-9 and abs(z["n0"]) < 1e-9 and math.isnan(z["zz"])
+
+
+def test_lag_twin_xo_is_nan_when_a_later_mid_is_undefined(tmp_path):
+    m = {"r1": {"mid": _path(0.12, {30: 0.08}, 36), "missing": {32}, "rewards_all": RW, "rmin": 20, "rmax": 4.5}, "fill": {"mid": _path(0.5, {}, 36)}}
+    by_slot = sy.build_tree(tmp_path / "snap", range(36), _gen_ch234(m))
+    spec = sy.spec_for_tests()
+    f = lt.twin_flag_xo(by_slot[31]["dir"], by_slot[32]["dir"], ["r1"], spec)
+    assert math.isnan(f["r1"])
+
+
+def test_reader_run_once_outputs_statuses_and_write_once(tmp_path):
+    root, by_slot, spec = _reader_world(tmp_path)
+    out = tmp_path / "out"
+    now = sy.slot_dt(60).timestamp()
+    s1 = lt.run_once(snapshot_root=root, sweep_root=tmp_path / "nosweeps", root=out, spec=spec, now=now, allow_late=True, max_items=10_000)
+    assert s1["status"] == "wrote" and s1["series"] == 34 and s1["pinned"] is False
+    for kind in ("dollarw", "nrslack", "bandside"):
+        assert list((out / kind / "frozen").glob("*.csv.gz")), kind
+        assert list((out / kind / "outcomes").glob("*.h1.csv.gz")) and list((out / kind / "twins").glob("*.csv.gz"))
+    fr = pd.read_csv(next((out / "dollarw" / "frozen").glob(f"{by_slot[28]['id']}.csv.gz")), dtype={"market_id": str})
+    assert set(fr["role"]) == {"prospective_unregistered"} and set(fr["market_id"]) >= {"u1", "u2"}
+    o1 = pd.read_csv(out / "dollarw" / "outcomes" / f"{by_slot[28]['id']}.h1.csv.gz", dtype={"market_id": str}).set_index("market_id")
+    assert o1.loc["u1", "status"] == "two_sided" and abs(o1.loc["u1", "bid"] + o1.loc["u1", "ask"] - 2 * 0.53) < 1e-9
+    tw = pd.read_csv(out / "dollarw" / "twins" / f"{by_slot[28]['id']}.csv.gz", dtype={"market_id": str}).set_index("market_id")
+    assert tw.loc["u1", "tw_ok"] == 1  # slots 30 and 31 exist
+    s2 = lt.run_once(snapshot_root=root, sweep_root=tmp_path / "nosweeps", root=out, spec=spec, now=now, allow_late=True, max_items=10_000)
+    assert s2["status"] == "nothing_new" and s2["written"] == 0
+    # every unit has exactly one status at every target slot, write-once
+    p = out / "dollarw" / "outcomes" / f"{by_slot[28]['id']}.h1.csv.gz"
+    before = p.read_bytes()
+    lt.run_once(snapshot_root=root, sweep_root=tmp_path / "nosweeps", root=out, spec=spec, now=now, allow_late=True)
+    assert p.read_bytes() == before
+
+
+def test_reader_missing_target_capture_is_capture_missing_and_late_freeze_is_refused(tmp_path):
+    m = {"u1": {"mid": _path(0.50, {28: 0.53}, 40), "vnum": {s: (150.0 if s >= 28 else 100.0) for s in range(40)}}}
+    root = tmp_path / "snap"
+    by_slot = sy.build_tree(root, [s for s in range(40) if s != 29], _gen_ch234(m))
+    spec = sy.spec_for_tests()
+    spec["registered_utc"], spec["end_utc"] = sy.iso(sy.slot_dt(20)), sy.iso(sy.slot_dt(36))
+    out = tmp_path / "out"
+    now = sy.slot_dt(60).timestamp()
+    lt.run_once(snapshot_root=root, sweep_root=tmp_path / "x", root=out, spec=spec, now=now, allow_late=True, max_items=10_000)
+    o1 = pd.read_csv(out / "dollarw" / "outcomes" / f"{by_slot[28]['id']}.h1.csv.gz", dtype={"market_id": str})
+    assert set(o1["status"]) == {"capture_missing"}
+    # a reader run after the next capture started refuses the freeze (.late), and an allow_late run is refused on a pinned spec
+    out2 = tmp_path / "out2"
+    s = lt.run_once(snapshot_root=root, sweep_root=tmp_path / "x", root=out2, spec=spec, now=now, allow_late=False, max_items=10_000)
+    assert s["refused_late"] > 0 and not [f for f in (out2 / "dollarw" / "frozen").glob("*.csv.gz") if not f.name.endswith(lt.FROZEN_MARKERS)]
+    pinned = dict(spec, _pinned=True)
+    try:
+        lt.run_once(snapshot_root=root, sweep_root=tmp_path / "x", root=tmp_path / "out3", spec=pinned, now=now, allow_late=True)
+        raise AssertionError("allow_late must refuse a pinned spec")
+    except ValueError:
+        pass
+
+
+def test_reader_noprev_marker_and_run_lock(tmp_path):
+    m = {"u1": {"mid": _path(0.50, {28: 0.53}, 40), "vnum": {s: (150.0 if s >= 28 else 100.0) for s in range(40)}}}
+    root = tmp_path / "snap"
+    sy.build_tree(root, [s for s in range(40) if s != 27], _gen_ch234(m))
+    spec = sy.spec_for_tests()
+    spec["registered_utc"], spec["end_utc"] = sy.iso(sy.slot_dt(20)), sy.iso(sy.slot_dt(36))
+    out = tmp_path / "out"
+    lt.run_once(snapshot_root=root, sweep_root=tmp_path / "x", root=out, spec=spec, now=sy.slot_dt(60).timestamp(), allow_late=True, max_items=10_000)
+    assert list((out / "dollarw" / "frozen").glob("*.noprev.csv.gz"))
+    import fcntl
+
+    out.mkdir(exist_ok=True)
+    with open(out / "run.lock", "a") as lk:
+        fcntl.flock(lk.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        r = lt.run_once(snapshot_root=root, sweep_root=tmp_path / "x", root=out, spec=spec, now=sy.slot_dt(61).timestamp(), allow_late=True)
+        assert r["status"] == "locked"
+
+
+def test_ops_stats_reads_no_price_spread_volume_or_depth_column(tmp_path):
+    import pytest
+
+    root, by_slot, spec = _reader_world(tmp_path)
+    out = tmp_path / "out"
+    lt.run_once(snapshot_root=root, sweep_root=tmp_path / "x", root=out, spec=spec, now=sy.slot_dt(60).timestamp(), allow_late=True, max_items=10_000)
+    st = lt.ops_stats(out)
+    assert st["line_counts"] and st["outcome_status_counts"]
+    for bad in ("mid", "bid", "ask", "spread", "xw", "w", "vnum", "volume_num", "volume24hr", "dbid5", "cl_sib", "y", "absd", "rew_rate"):
+        assert bad not in lt.OPS_COLS
+        with pytest.raises(ValueError):
+            lt._read_ops(next((out / "dollarw" / "frozen").glob("*.csv.gz")), [bad])

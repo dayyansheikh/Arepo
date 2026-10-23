@@ -103,3 +103,88 @@ def quote(mid: float, half: float = 0.01) -> tuple[float, float]:
 
 
 __all__ = ["G0", "b", "build_tree", "iso", "mid_path", "mrow", "prepare", "quote", "slot_dt", "spec_for_tests", "write_capture", "xrow"]
+
+
+RW_TEXT = '[{"rewardsDailyRate": 10, "startDate": "2026-01-01", "endDate": "2027-12-31"}]'
+
+
+def rich_world(root: Path, slots: range, seed: int = 7) -> dict[int, dict]:
+    """A synthetic tree rich enough for every census gate block: 60 free-standing movers (CH234 / CH232 populations, half rewarded), 30 band-hoppers near
+    0.10 / 0.90 (CH232), and 20 neg-risk events of 3-6 members (CH233). Deterministic for a seed; no real data."""
+    rng = np.random.default_rng(seed)
+    n_s = max(slots) + 1
+    mk: dict[str, dict] = {}
+    # free movers: a mid random walk with jumps of 1-4c, a cumulative volume_num that rises on about 60% of the jumps
+    for i in range(60):
+        mid = np.empty(n_s)
+        v = np.empty(n_s)
+        mid[0], v[0] = rng.uniform(0.1, 0.9), 1000.0
+        for s in range(1, n_s):
+            jump = rng.random() < 0.55
+            step = rng.choice([-1, 1]) * rng.integers(1, 5) * 0.01 if jump else 0.0
+            mid[s] = float(np.clip(mid[s - 1] + step, 0.05, 0.95))
+            v[s] = v[s - 1] + (rng.uniform(5, 50) if (jump and rng.random() < 0.6) else 0.0)
+        mk[f"a{i}"] = {"mid": mid, "v": v, "event": f"ea{i // 2}", "rew": i % 2 == 0, "liq": float(rng.uniform(2e3, 2e5)), "cat": ["politics", "economics", "culture"][i % 3]}
+    # band hoppers: near 0.10 / 0.90, crossing the boundary on about a quarter of the slots
+    for i in range(30):
+        base = 0.12 if i % 2 == 0 else 0.88
+        mid = np.empty(n_s)
+        mid[0] = base
+        inside = True
+        for s in range(1, n_s):
+            if rng.random() < 0.3:
+                inside = not inside
+            lo = (0.11, 0.14) if base < 0.5 else (0.86, 0.89)
+            out = (0.05, 0.085) if base < 0.5 else (0.915, 0.95)
+            mid[s] = rng.uniform(*lo) if inside else rng.uniform(*out)
+        mk[f"h{i}"] = {"mid": np.round(mid, 3), "v": np.cumsum(np.full(n_s, 10.0)), "event": f"eh{i // 3}", "rew": i % 3 != 0, "liq": 5e4, "cat": "politics"}
+    # neg-risk events: bids around 0.9 / n with an event shock and member noise
+    for e in range(20):
+        n = 3 + (e % 4)
+        shock = rng.normal(0, 0.012, n_s)
+        for m in range(n):
+            bid = np.clip(0.88 / n + shock + rng.normal(0, 0.004, n_s), 0.02, 0.9)
+            mk[f"n{e}_{m}"] = {"mid": np.round(bid + 0.01, 4), "v": np.cumsum(np.full(n_s, 5.0)), "event": f"en{e}", "rew": False, "liq": 3e4, "cat": "politics", "neg": True, "nrkey": f"NR{e}"}
+    mk["x0"] = {"mid": np.full(n_s, 0.5), "v": np.cumsum(np.full(n_s, 1.0)), "event": "ex0", "rew": False, "liq": 1e4, "cat": "crypto"}  # the crypto classifier needs a crypto value in the set
+    by_slot = {}
+    for s in slots:
+        rows, ext = [], []
+        for mid_id, m in mk.items():
+            p = float(m["mid"][s])
+            bid, ask = quote(p, 0.01)
+            liq = m["liq"] * (1.0 + 0.2 * np.sin(0.7 * s + sum(map(ord, mid_id)) % 7))  # a liquidity that moves over time (a within-market control)
+            rows.append(mrow(mid_id, bid, ask, event=m["event"], neg=1 if m.get("neg") else 0, nrkey=m.get("nrkey", ""), liq=liq, recv_off=60.0))
+            vn = "" if (mid_id.startswith("a") and rng.random() < 0.12) else float(m["v"][s])  # some volume_num cells are empty (the unknown class)
+            ext.append(xrow(mid_id, cat=m["cat"], vnum=vn, rewards=RW_TEXT if m["rew"] else "", rmin=20 if m["rew"] else "", rmax=4.5 if m["rew"] else ""))
+        by_slot[s] = write_capture(root, s, rows, ext)
+    return by_slot
+
+
+def loose_spec(spec: dict) -> dict:
+    """Every census minimum made trivial and every maximum made huge, so that a rich synthetic world passes each gate block; a test then makes ONE
+    threshold impossible and asserts the gate it governs (and the status) flips."""
+    g = spec["census_gates"]
+    for blk in ("CH234", "CH233", "CH232"):
+        for k, v in list(g[blk].items()):
+            if isinstance(v, bool) or not isinstance(v, (int, float)):
+                continue
+            if k.endswith("_min") and k not in ("events_min_units", "w_sd_min_moves", "pair_min_per_market", "resid_iqr_min_units"):
+                g[blk][k] = 1 if k.endswith(("events_min", "markets_min")) else 0
+            elif k.endswith("_max") and not k.startswith("unknown_capture_cut"):
+                g[blk][k] = 1e9
+    g["CH234"]["resid_iqr_markets_min"] = 1
+    g["CH234"]["unknown_capture_cut"] = 0.80
+    g["mde_common"]["g_eff_min"] = 0
+    g["mde_common"]["mde_max_c"] = {"CH234": 1e9, "CH233": 1e9, "CH232": 1e9}
+    g["mde_common"]["f_mde_max_c"] = {"CH234": 1e9, "CH233": 1e9, "CH232": 1e9}
+    spec["census_inputs"]["band_unit_check_cents"] = [0.5, 20]
+    return spec
+
+
+def census_spec(first: int = 14, last: int = 66) -> dict:
+    spec = loose_spec(spec_for_tests())
+    ci = spec["census_inputs"]
+    ci["span"] = {"start_utc": iso(slot_dt(first)), "end_utc": iso(slot_dt(last + 1)), "first_slot_utc": iso(slot_dt(first)), "last_slot_utc": iso(slot_dt(last))}
+    ci["min_covered_days"] = {"CC11": 1.0, "CC11_twins": 1.0}
+    ci["refuse_at_or_after_utc"] = iso(slot_dt(100))
+    return spec
