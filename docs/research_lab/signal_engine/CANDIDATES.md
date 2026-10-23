@@ -650,3 +650,13 @@ killed at its census (0.15% of eligible non-sports rows have a parent). **Reques
 list `se24_lgbm_tilt` and `se25_lr_tilt` in its models beside the champion, se1 and broad models (se24's trees can form
 sign(d) x (p - 0.5) from `mo_d2h` and `tl_cheap_side` as se1 can; science review must-fix). `dollarw` (CH234's own token) is still requested only
 at the freeze. CH237 `parentsib` was killed at its census (0.15% of eligible non-sports rows have a parent).
+
+**LT11 request note, 2026-10-23 (experiments autopilot; LT11 R1 response, design still DRAFT; nothing counted).** Per
+`LIVE_TESTS_11.md` section 9 (design sha256 `69477a63…`): **pre-freeze hold, please keep:** `tl_w2h` (a product of a
+collateral weight and a move's size), neg-risk siblings' bid- or ask-sum changes, and 0.10 / 0.90 crossing indicators stay
+**unbuilt and unscored** in every family until LT11's design-text freeze; if `tl_w2h` is scored earlier, CH234 carries
+*informed (tilt)*, and for any of them the ledger records the first scored capture. `tilt`'s level columns (as built, se24 / se25)
+are fine. Tokens `dollarw`, `nrslack`, `bandside` and `attrlimit_lt11` are still requested **only at the freeze**;
+`attrlimit_lt11`'s model list will include `se24_lgbm_tilt` and `se25_lr_tilt` (your 13:10Z request, accepted). If a test
+drops at its census, its token and limit items are withdrawn with a ledger line. Engine code and `config.EMBARGO` are not
+touched by the LT11 branch.
