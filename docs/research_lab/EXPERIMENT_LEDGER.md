@@ -4453,6 +4453,24 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - Host dry run (read-only): ok, no alerts on 10-23 22:31Z. Backtest: 9 / 72 captures alert, all from the missed 10-21
   00:31Z / 02:31Z passes; no false alarms elsewhere. No model, spec, feature, label or score changed; K unchanged.
 
+## LT12 final verification and DESIGN-TEXT FREEZE, 2026-10-23 ~23:45Z (experiments autopilot; nothing counted)
+- Final pre-freeze verification (`science-reviewer`) of de0d5d46: all re-check fixes 1-7 and the B1 note applied as specified;
+  the new < 5,000-unit dense-set rule is not a loosening; **FIXES_REQUIRED (wording only)**: B-rulings recorded in section 11, the
+  one-shot restore cannot deadlock (final non-complete capture = missing), a bisection failure rule (40 steps; NaN / unbracketed
+  -> "SE check failed (size scenario)" for CH245), `rho_census` interval stated, stale cross-references. Applied in the freeze
+  commit; orchestrator checked the diff (fixes and status line only).
+- **LT12 DESIGN TEXT FROZEN:** `LIVE_TESTS_12.md` at **01d6014c**, sha256
+  **`a543db63baeb3e85ff2dfa0189478086216c708e59b36f6db575c6b84592b62d`**, 1,020 lines; merged 2f819bf6. One Holm family, **k <= 2:
+  CH245** (the mirror) and **CH244** (the farmed half); CH243 left at R1. Frozen before the LT12 seal, `T_LT11` and `T_LT11c`, so
+  the fast lane stands and no *informed (LT11 census)* label applies. Scope `non_sports_ex_crypto` (no owner sports decision
+  recorded). No external page is named for re-reading.
+- Fast lane: census seal [2026-11-07, 2026-11-17), restore q0710 not before 2026-11-17T09:00Z; window 2026-12-10T00:00Z ..
+  12-31T00:00Z; analysis on or after 2027-01-01T12:00Z. Seed 20261597; queue ids q0710-q0715. Priors (judgement): CH245 0.30,
+  CH244 0.15; P(no test) ~0.60.
+- Embargo request filed in `signal_engine/CANDIDATES.md` ("LT12 freeze request": `mirror`, `mixedlad`, `attrlimit_lt12`; no
+  `feeclass`). Pre-freeze engine check: no scored family holds either state, no *informed (engine)*.
+- **Next:** LT12 code (census, size-check worlds incl. the CR1 state-shift gate and world 1 calibration, reader, analysis;
+  queue drafts), its independent code-freeze check (which must confirm re-check fixes 1-2 in code), before the seal.
 ## Signal engine: `refit_full` development probe queued, 2026-10-23 ~23:50Z (signal-engine autopilot; development only, nothing counted)
 - Question: the LightGBM models never learn from the newest ~20% of their window (it is used only for early stopping and
   temperature). Does a refit on the whole window forecast better? DESIGN_V1 §32.

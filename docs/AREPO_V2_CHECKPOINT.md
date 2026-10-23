@@ -8,23 +8,20 @@
 **PHASE 4 IN PROGRESS.** See `implementation/phases/PHASE_04_EDGE_EXPERIMENTS.md` and the ledger `research_lab/EXPERIMENT_LEDGER.md`.
 User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=Etc/GMT-1 date`.
 
-## Experiments autopilot live state (2026-10-24 00:09 UTC+1)
-- **LT11** design text frozen (3627d7fd, `991100db…3583`). **Code-freeze check REJECT** (7 MUST, 11 SHOULD; all code/draft
-  side; `reviews/LT11_CODE_FREEZE_CHECK_2026-10-23.md` on `feat/live-tests-11-code` 659bb3f4). **Fixes being applied** (Opus
-  fixer, `../astrolabe-live-tests-11-code`; incl. a clock-only `size-timing` subcommand + draft q0696, q0691 not_before >= 11-07T06Z,
-  battery2 kind kept with disclosure: LT11 must merge before LT10's census freeze record, not before 11-03). Then re-check,
-  timing run, merge; seal after 11-07.
-- **LT12** draft (`feat/live-tests-12`, `../astrolabe-live-tests-12`): R1 REVISE (59d2a158) -> response 6fc72f57 (sha256
-  `c879bbeb…31e9`): **CH243 dropped (F must bind), k <= 2** (CH245 mirror, CH244 farmed half with a feed-disagreement gate).
-  **Re-check running.** If accepted: design-text freeze, tokens `mirror`, `mixedlad`, `attrlimit_lt12` to CANDIDATES; seal
-  [11-07, 11-17), window 12-10..12-31.
-- **CB8-B:** q0165b frame 665 markets; **q0166b promoted and deployed** (waits for the MC1 exclusive drain). Next: commit the
-  seal copy it writes, then q0169.
-- **Collector-pass fix (9f57dfd2, deployed):** CB4 closewin and CB5 listings guards 13/12 -> 40 GiB; both refused every pass
-  since 10-17 (delay only; host still holds every snapshot since 10-10; ledger deviation). Check the next pass logs `written > 0`.
-- CH251 map written up (`CH251_MAP_2026-10-23.md`). CB9 q0182, q0162 / q0163, se_refit / se_score wait for the MC1 drain.
-- Queue: MC1 q0116i running (exclusive; fold 9); LT2 collector healthy; E026 q0541 from 10-25T00Z (send the owner's
-  "collection started" phone note then).
+## Experiments autopilot live state (2026-10-24 00:22 UTC+1)
+- **LT12 DESIGN TEXT FROZEN** (01d6014c, sha256 `a543db63…b62d`, merged 2f819bf6; ledger aec7a686): k <= 2, CH245 mirror and
+  CH244 farmed half (CH243 dropped at R1). Seal [11-07, 11-17), q0710 not before 11-17T09Z; window 12-10..12-31. CANDIDATES
+  "LT12 freeze request" filed (`mirror`, `mixedlad`, `attrlimit_lt12`). **LT12 code running** (Opus implementer,
+  `../astrolabe-live-tests-12-code`, `feat/live-tests-12-code`; drafts q0710-q0716). Then the independent code-freeze check
+  (must confirm re-check fixes 1-2 in code).
+- **LT11** frozen; code-freeze check REJECT -> fixes committed on `feat/live-tests-11-code` (6d64c56c..7dcf6623; worlds,
+  analysis labels, census counts, drafts q0691 08:00Z / q0690 guard / q0696 size-timing, notes A25-A29); the fixer's full test
+  suite is running. Next: an uncommitted one-line review-header time fix in that worktree (commit it), re-check, timing run
+  (q0696), merge (before LT10's census freeze record, not before 11-03); seal after 11-07.
+- **CB8-B:** q0166b promoted and deployed (waits for the MC1 exclusive drain). Next: commit its seal copy, then q0169.
+- **Collector-pass fix (9f57dfd2, deployed):** CB4 closewin / CB5 listings caps 13/12 -> 40 GiB (refused since 10-17; delay only).
+  Check the next pass logs `written > 0`.
+- Queue: MC1 q0116i running (exclusive); LT2 collector healthy; E026 q0541 from 10-25T00Z (phone note "collection started").
 - Open owner decision: clear ~9 GB restore copies (data-dumps 35.4 GiB of the 40 GiB job guard, about +1 GB a day).
 
 ## Interactive session state (2026-10-23 08:30Z)
