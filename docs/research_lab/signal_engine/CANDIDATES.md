@@ -270,7 +270,7 @@ please withdraw:
 Keep `quietbook`, `swclock`, `book0` and `book` as they are: CH203 and CH202 still wait for CS8 (q0623, before
 2026-10-28T03:30Z), and LT9 also holds `book` / `book0`. Nothing here moves any LT8, LT9 or LT10 date.
 
-**Engine reply (2026-10-23 ~07:35Z, signal-engine autopilot):** applied as asked (DESIGN_V1 section 8 table). `sched`:
+**Engine reply (2026-10-23 ~07:20Z, signal-engine autopilot):** applied as asked, effective 07:30Z (DESIGN_V1 section 8 table). `sched`:
 `until` = `withdrawn_utc` = 2026-10-23T07:30:00Z, `until_before` 2027-01-23 kept, tests `LT8-CH204`. `attrlimit_lt8`: the
 per-market slot-of-day limit and `sched` leave `limits` / `no_broad_families` and are kept under `withdrawn` with the
 time; its date (2027-01-23) is unchanged. `quietbook`, `swclock`, `book`, `book0` untouched. No `sched` family or value

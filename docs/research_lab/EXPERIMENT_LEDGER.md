@@ -4133,7 +4133,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   kind is switched off before the reader's code freeze. LIVE_TESTS_8.md §6.3 is filled only after q0623 finishes (the
   censuses refuse on any change to the frozen design text). Retention stays at 10 days until q0623 is done.
 
-## Signal engine: LT8 `sched` withdrawn, 2026-10-23 ~07:35Z (signal-engine autopilot; embargo only; nothing scored or counted)
+## Signal engine: LT8 `sched` withdrawn, 2026-10-23 ~07:20Z (signal-engine autopilot; embargo only, effective 07:30Z; nothing scored or counted)
 - **Why:** CH204 dropped at LT8's captures census CC8 (q0622; ledger "LT8 census CC8"). Under the round-4 rule a test dropped
   before registration withdraws its token and any limit made only for it (CANDIDATES request ~07:20Z).
 - **What:** `config.EMBARGO` `sched` now has `until` = `withdrawn_utc` = 2026-10-23T07:30:00Z (`until_before` 2027-01-23).
