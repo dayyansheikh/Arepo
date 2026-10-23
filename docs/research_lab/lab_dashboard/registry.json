@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-22T22:55:00Z",
+ "updated": "2026-10-23T02:05:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1606,14 +1606,14 @@
   {
    "id": "LT8",
    "title": "Live tests 8: three ideas from round 13 (planned)",
-   "plain": "Up to three planned live tests from new-ideas round 13: an order book that shifts behind a price that did not move, how much of a recent move the book had already absorbed, and each market's own busy hours. Design frozen (22 Oct). It now uses the same 24-hour reward rule as LT7 (a recorded amendment, before any count), being re-checked. All three may fail their counting checks.",
+   "plain": "Up to three planned live tests from new-ideas round 13: an order book that shifts behind a price that did not move, how much of a recent move the book had already absorbed, and each market's own busy hours. Design frozen (22 Oct). It uses the same 24-hour reward rule as LT7 (a recorded amendment, before any count, re-checked and accepted). The code is merged and its data seal is queued on the server. All three may fail their counting checks.",
    "batch": "LT8",
    "family": "mixed",
    "stage": "designed",
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Re-check of the reward-rule amendment, then counting checks; collection not before 30 Dec 2026",
+   "next": "Data seal, then two counting checks (must finish before 28 Oct); collection not before 30 Dec 2026",
    "next_date": "2026-12-30",
    "candidate": false,
    "sources": {
