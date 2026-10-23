@@ -4423,3 +4423,14 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   mismatch in round 17's statement); two-sided CH245 placebo from a different series / events; gate path with event x day
   demeaning re-applied per draw. 7 SHOULD-FIX. Response being applied by the drafter; then a re-check.
 - CH243 (the fee) leaves the family before any freeze or census; recorded as an engine-first idea (not counted).
+
+## Operational deviation: CB4 closewin and CB5 listings extracts refused every pass since 2026-10-17 (found 2026-10-24 ~00:20Z; not counted)
+- `arepo_pass.sh` ran `run_cb4.py closewin --all-new --data-dumps-max-gb 13` and `run_cb5.py extract --all-new --tables listings
+  --data-dumps-max-gb 12`; the 10-17 guard raise to 40 GiB (36d908f) and the CB3 fix (2018cf6b) missed these two lines. Last
+  success: CB5 listings in the 10-17T06:31Z pass, CB4 closewin in the 10-17T08:31Z pass; from then every pass logged
+  `refused_data_dumps_over_cap`, 0 written. No row was written or altered.
+- Fix: both caps 40 GiB (the convention). Both extracts are idempotent, `--all-new`, oldest first. The host still holds every
+  snapshot since 2026-10-10T19:22Z (156 directories at 00:20Z), so nothing is lost: delay only. A capture no longer on the host
+  when reached is read from a release or recorded `missing`, never reconstructed. Consumers: CB4-MAIN (seals on or after 10-22,
+  flip trades not before 10-24) and CB5-G / CB5-L (q0103b on or after 10-27); their dates are unchanged; their freeze records
+  must show the extract caught up before any seal reads it.
