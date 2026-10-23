@@ -371,9 +371,9 @@ PRIOR_POPULATION_OVERLAPS = {  # CC9 and CR9 (section 7 descriptive: the overlap
     "LT8_CH203": {"units": float("nan"), "reason": _NO_SWEEPS},
     "LT7_CH197": {"units": float("nan"), "reason": _NO_SWEEPS},
 }
-# CS9: CH203's quiet test reads capture k's quotes (mid_k), which CS9 reads for its manifest start only (section 7 loader), so its overlap is not computed
+# CS9: CH203's quiet test reads capture k's quotes (mid_k): capture k is after CH214's decision (1.3) and the section 7 lag-slot loader admits no later-slot mid, so its overlap is not computed
 # (declared_before_seal.prior_population_overlaps); CH197 is computed with the vendored patient_units.
-CS9_CH203_UNAVAILABLE = {"units": float("nan"), "reason": "LT8 CH203's units need capture k's quotes (mid_k and the quiet test |mid_k - smid_{k-1}|); CS9 reads capture k for its manifest start only (frozen text section 7 loader), so the overlap is not computed (declared deviation)"}
+CS9_CH203_UNAVAILABLE = {"units": float("nan"), "reason": "LT8 CH203's units need capture k's quotes (mid_k and the quiet test |mid_k - smid_{k-1}|); capture k is after CH214's decision (frozen text 1.3, LIVE_TESTS_9.md:227-229) and the section 7 lag-slot loader admits no mid of a later slot (LIVE_TESTS_9.md:967-970), so the overlap is not computed (declared deviation; final check 2026-10-23 ruling (i))"}
 
 
 def prior_spec_view(spec: dict) -> dict:
@@ -2014,7 +2014,7 @@ def census_sweeps(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, sweep_root=SWEEP_R
     ch197_slot = int(spec["prior_population_specs"]["LT7_CH197"]["test"]["slot_index_in_day"])
     raw: dict[int, pd.DataFrame] = {}
     U197, tot197 = [], {}
-    c197 = {"passes": 0, "pass_sweep_unsealed": 0}
+    c197 = {"passes": 0, "pass_sweep_unsealed": 0, "pass_prev_capture_missing": 0}
 
     def sw_of(j: int) -> pd.DataFrame | None:
         if j not in sw_slots:
@@ -2038,6 +2038,8 @@ def census_sweeps(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, sweep_root=SWEEP_R
         raw[s] = ser
         for old in [x for x in raw if x < s - 1]:
             raw.pop(old)
+        if s in span and b.slot_in_day(s) == ch197_slot and (s + 1) in org_set and (s - 1) not in raw:
+            c197["pass_prev_capture_missing"] += 1  # final check note 7: counted, never skipped silently
         if s in span and b.slot_in_day(s) == ch197_slot and (s + 1) in org_set and (s - 1) in raw:  # LT7 CH197's pass k = s (its sweep is origin s + 1's sweep k - 1)
             c197["passes"] += 1
             sw_s = sw_of(s)
@@ -2084,7 +2086,7 @@ def census_sweeps(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, sweep_root=SWEEP_R
     ch214_keys = day_keys(Q[Q["n_members"] <= cap_max] if len(Q) else Q)
     ch197_keys = day_keys(pd.concat(U197, ignore_index=True) if U197 else pd.DataFrame())
     overlaps = {"LT8_CH203": CS9_CH203_UNAVAILABLE,
-                "LT7_CH197": {"key": "(market, UTC day)", "passes_12_31Z_in_span_with_sweep_read": c197["passes"], "pass_sweep_unsealed": c197["pass_sweep_unsealed"],
+                "LT7_CH197": {"key": "(market, UTC day)", "passes_12_31Z_in_span_with_sweep_read": c197["passes"], "pass_sweep_unsealed": c197["pass_sweep_unsealed"], "pass_prev_capture_missing": c197["pass_prev_capture_missing"],
                               "units_ch197": int(sum(len(u_) for u_ in U197)), "counts": {k_: v_ for k_, v_ in tot197.items() if isinstance(v_, (int, float))},
                               **b.unit_overlaps({"CH214": ch214_keys, "CH197": ch197_keys}).get("CH197&CH214", {"units": 0})}}
     return {"inputs_verified": bool(verify), "files_checked": loaded["files_checked"], "fee_category_values": fs["distinct_values"], "crypto_classifier_shown_to_work": fs["classifier_shown_to_work"],

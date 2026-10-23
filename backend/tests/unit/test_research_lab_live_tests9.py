@@ -1074,6 +1074,7 @@ def test_cs9_prior_population_overlaps_and_reasons(world):
     o7 = ov["LT7_CH197"]
     assert o7["key"] == "(market, UTC day)" and o7["passes_12_31Z_in_span_with_sweep_read"] >= 1 and o7["units_ch197"] > 0 and o7["units"] >= 0
     assert "share_of_CH197" in o7 and "share_of_CH214" in o7
+    assert o7["pass_prev_capture_missing"] >= 0
     cr = lt.census_feed(work=world["tmp"] / "wf", **kw)
     cc = lt.census_captures(work=world["tmp"] / "wc", **kw)
     for ovs in (cr["counts"]["overlaps_with_prior_populations"], cc["overlaps_with_prior_populations"]):
