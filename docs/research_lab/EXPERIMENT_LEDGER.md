@@ -4332,3 +4332,17 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   fee levels (CH243), CH246 `tw_*`, CH249 `crypto` columns, CH247 `gamestate` x futures.
 - **Next:** CH251, the LT12 counts-only population map (no target read), then the LT12 design (fast lane: freeze before
   `T_LT11` 2026-12-10T12:00Z; census seal 11-07..11-17).
+
+## CB8-B variant merged, q0165b promoted; CH251 map queued, 2026-10-23 ~18:55Z (experiments autopilot; nothing counted)
+- **CB8-B amendment** (`CREATIVE_BATCH_8.md` §1.3, dated 2026-10-23; `seals/cb8_rules_v3.json` rules_sha256 `9c5d432d…e498`;
+  `cb8_b_analysis_rules.json` `904208df…`): review `reviews/CB8B_AMENDMENT_REVIEW_2026-10-23.md` ACCEPT_WITH_FIXES (4 fixes +
+  2 recommendations), applied 93787c2f, verification `reviews/CB8B_AMENDMENT_FIXES_VERIFY_2026-10-23.md` **VERIFIED**; merged
+  bd65a75b. Host facts at ~17:45Z: `creative_batch8/smoke.json` sha256 `8189303f…6954` (= the narrowed acceptance); no
+  `cb8_updown_holdout_SEAL.json` in the host's `seals/`. **q0165b promoted** (new run dir `updown_frame_b`). q0166b stays a
+  draft until q0165b is `updown_frame_complete` and the holdout-seal absence is re-checked at that moment. B1 counted once; if
+  q0165b is also empty, B1 is "not testable" (p = 1), no further variant.
+- **CH251 LT12 population map** (q0700, merged from `feat/ch251-map`; counts only, k = 0, uncounted): span [2026-10-13,
+  2026-10-23) (orchestrator decision: past captures, disjoint from LT11's census seal and window, so LT12's census uses a fresh
+  later seal; overlaps the CH240 map's span, also counts-only). Mapped: CH245, CH244, CH243 (category x age proxy only), CH250
+  (2 x 2 cells), CH248. Not mapped (reasons in the output): CH246 matcher (no question text in captures), CH242 splits (no
+  label store), CH250 tier and minute-pay (undefined), CH243 design-stage gates (census only). Light job (mem 450, as cap 4000).
