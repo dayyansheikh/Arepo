@@ -8,21 +8,23 @@
 **PHASE 4 IN PROGRESS.** See `implementation/phases/PHASE_04_EDGE_EXPERIMENTS.md` and the ledger `research_lab/EXPERIMENT_LEDGER.md`.
 User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=Etc/GMT-1 date`.
 
-## Experiments autopilot live state (2026-10-23 18:13 UTC+1)
-- **LT11 DESIGN TEXT FROZEN** (3627d7fd, sha256 `991100db…3583`, merged 1f353ca6; ledger b057e076): R1 REVISE -> response ->
-  re-check ACCEPT_WITH_FIXES (F1-F4) -> pre-freeze verify FREEZE_OK_AFTER 4 mechanical edits. Venue reward page re-read in
-  the freeze record: documented reading (single-sided scores inside [0.10, 0.90]), so CH232's M1 = cheap side. Fast lane:
-  census on a fresh seal of 10-28..11-07, window 11-18..12-09, analysis >= 12-10T12Z. Engine tokens `dollarw`, `nrslack`,
-  `bandside`, `attrlimit_lt11` requested in CANDIDATES (freeze request note).
-- **LT11 code running** (implementer, worktree `../astrolabe-live-tests-11-code`, branch `feat/live-tests-11-code`; queue
-  specs as DRAFTS only). Then an independent code-freeze check, fixes, merge.
-- **CB8-B (CH76) frame empty** (ledger 5da64672): series-key exclusion removed all 783 Up/Down candidates; q0166's
-  "source_unavailable" = empty frame. science-reviewer ruling on a declared variant (series key off for B) running; outcome
-  stays recorded. q0182's pin to q0165's frame is vacuous (recorded).
-- **Creative round 17** (Fable xhigh) re-launched in `../astrolabe-creative-r17` (previous writer cut off by the usage limit;
-  section 0 was written, 1-5 being filled). Review + commit when done.
-- Queue: MC1 q0116i running (fold 5 of M1, healthy, RSS ~4.8 GB); LT2 live collector healthy; E026 collection q0541 from
-  10-25T00Z; CB8-H holders jobs waiting on their own day gates. Disk 36 GB data-dumps of the 40 GB job cap.
+## Experiments autopilot live state (2026-10-23 18:35 UTC+1)
+- **LT11 DESIGN TEXT FROZEN** (3627d7fd, sha256 `991100db…3583`, merged 1f353ca6; ledger b057e076). Venue reward page re-read
+  at the freeze: documented reading, CH232's M1 = cheap side. Fast lane: census seal 10-28..11-07, window 11-18..12-09.
+  Engine tokens `dollarw`, `nrslack`, `bandside`, `attrlimit_lt11` requested (CANDIDATES "LT11 freeze request").
+- **LT11 code running** (implementer, `../astrolabe-live-tests-11-code`, `feat/live-tests-11-code`; queue specs DRAFTS only).
+  Next: independent code-freeze check, fixes, merge.
+- **CB8-B:** frame empty (series key removed all 783 candidates). Ruling VARIANT_ALLOWED_WITH_CONDITIONS; amendment
+  implemented on `feat/cb8b-variant` (`../astrolabe-cb8b-variant`); amendment review ACCEPT_WITH_FIXES (4 fixes), fixes being
+  applied. Then merge and promote q0165b (q0166b only after confirming no holdout seal copy on the host).
+- **CB9 q0182 promoted** (725f5a08; q0164c keys sha, vacuous empty-frame pin, dated holders ids pin
+  `creative_batch8/pins/cb8_holders_frame_ids_20261023T172452Z.csv`). Attempt 1 MemoryError at 2 x 400 MB; raised to
+  1000 / 3000 MB (7d6df24a, deployed); waits for the MC1 piece to end (exclusive drain).
+- **Creative round 17 merged** (900c5272, CH242-CH251; CANDIDATES note + ledger b8512819). LT12 candidates CH245 mirror
+  (0.30), CH244 farmed half (0.20), CH243 fee (0.10, conditional). **CH251 population map** being built
+  (`../astrolabe-ch251-map`, `feat/ch251-map`), span [10-13, 10-23) (orchestrator decision: past data, disjoint from LT11's
+  seal/window, so LT12's census can use a fresh seal), queue id ~q0700, light (mem < 500).
+- Queue: MC1 q0116i running (exclusive); LT2 collector healthy; E026 q0541 from 10-25T00Z.
 - Open owner decision: clear ~9 GB restore copies (data-dumps 36 of 40 GB).
 
 ## Interactive session state (2026-10-23 08:30Z)

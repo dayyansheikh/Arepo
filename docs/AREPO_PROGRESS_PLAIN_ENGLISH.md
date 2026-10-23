@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-23 18:13 UTC+1
+**Last updated:** 2026-10-23 18:35 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -15,8 +15,13 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 - **Batch 8, "last-minute certainty" in daily crypto Up/Down markets: no markets left to study.** The rule that removes anything
   related to earlier samples removed every one of the 783 candidates, because they all belong to a few daily series that earlier
   samples had touched. No price or outcome was read. An independent reviewer is deciding whether a declared variant (ignore the
-  series link, keep the per-market exclusions) is scientifically fair, or whether the idea is recorded as not testable.
-- **New ideas round 17** is being written again (the previous attempt was cut off by the usage limit halfway).
+  series link, keep the per-market exclusions) is scientifically fair. **Ruling: allowed, with 7 conditions** (it gets one
+  try only and is counted once). The change is written and its check asked for 4 small fixes, which are being made.
+- **New ideas round 17 is done** (10 ideas). The three best live-test candidates: "the mirror" (a two-option event has two
+  order books for one question: does one book's spread change predict the other's?), "the farmed half" (in a multi-option event
+  only some options pay market-maker rewards: do the unpaid ones react differently to the same shock?) and "the fee as the price
+  of urgency". Their author expects about a 50% chance that none survives its counting check. A counts-only map of how many
+  usable cases exist is being built now and runs on past data, so the design can start soon.
 - **Your 23 Oct message ("why have you stopped?"): it had not stopped.** Sessions kept running but were cut off by the usage limit
   before writing their summary; the Lab board now shows how long such a session worked and its last progress note.
 - **Server:** the model run MC1 is working through its folds (healthy); the live collectors are healthy.
