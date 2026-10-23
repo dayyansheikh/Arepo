@@ -4307,3 +4307,9 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **Next:** a `science-reviewer` ruling on whether a declared CB8-B variant (series key not applied to the family under study,
   market-id and event-id keys kept, new job id and run directory) is justified, or CB8-B is recorded "not testable (series
   overlap)". q0165's outcome stays as recorded either way.
+- **Ruling (same day):** `reviews/CB8B_SERIES_KEY_RULING_2026-10-23.md`: **VARIANT_ALLOWED_WITH_CONDITIONS** (dated CB8 §1.3
+  amendment + `cb8_rules_v3.json`, series key off for B only; new jobs q0165b / q0166b in new run directories; id-drop source
+  report and a descriptive day-exclusion sensitivity; nothing else in B changes; B1 counted once, no further variant if empty;
+  disclosure on any B1 result). The amendment needs its own science-reviewer pass before any job runs. **q0182 runs as
+  pre-declared with the empty q0165 frame pinned (pin vacuous); it does not wait for q0165b.** Heads-up: CB9-P may carry the
+  same series-key risk at q0183 (a counts-only key-overlap check to be declared before q0183 if needed).
