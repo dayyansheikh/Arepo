@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-23T07:55:00Z",
+ "updated": "2026-10-23T08:30:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1659,11 +1659,11 @@
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Code and its independent check; counting checks after E009's and E010's analyses (3 Nov); collection proposed from 10 Nov 2026",
+   "next": "Code written (23 Oct); its independent check is running. Counting checks after E009's and E010's analyses (3 Nov); collection proposed from 10 Nov 2026",
    "next_date": "2026-11-10",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT10 challenger R1, response, re-check, DESIGN-TEXT FREEZE (2026-10-23); docs/research_lab/LIVE_TESTS_10.md"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT10 challenger R1, response, re-check, DESIGN-TEXT FREEZE (2026-10-23); docs/research_lab/LIVE_TESTS_10.md; § LT10 code phase done on feat/live-tests-10-code (2026-10-23)"
    },
    "stage_results": {
     "idea": "pending",
