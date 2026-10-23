@@ -49,6 +49,7 @@ ROOT = forecast.ROOT
 E009_ROOT = ROOT / "data-dumps" / "research_lab" / "cross_venue_live"
 XV_ROOT = ROOT / "data-dumps" / "research_lab" / "xv_quotes"
 SNAPSHOT_ROOT = forecast.SNAPSHOT_ROOT
+FEED_ROOT = ROOT / "data-dumps" / "research_lab" / "reward_params"
 OUT_ROOT = ROOT / "data-dumps" / "research_lab" / "live_tests10"
 SPEC_PATH = Path(__file__).resolve().parent / "model_specs" / "live_tests10_v1.json"
 SPEC_SHA256: str | None = None  # DRAFT: filled at registration
@@ -414,6 +415,49 @@ def read_sidecar(path: Path) -> dict[str, tuple[bool, str]]:
     return out
 
 
+def read_sidecar_cond(path: Path) -> dict[str, str]:
+    """market_id -> condition_id from one ``rows_ext.csv.gz`` (keys only; the join key of the reward feed, economics only, 1.2)."""
+    path = check_path(path)
+    df = pd.read_csv(path, usecols=lambda c: c in ("market_id", "condition_id"), dtype=str, keep_default_na=False)
+    if "condition_id" not in df:
+        return {}
+    return {str(m): str(c) for m, c in zip(df["market_id"], df["condition_id"], strict=True) if c}
+
+
+def feed_listing(feed_roots, before: float) -> dict | None:
+    """1.2's reward feed, economics only: the last USABLE feed capture (manifest state complete and its rows file present) whose manifest finish is
+    earlier than ``before``; ``{"capture": id, "rates": {condition_id: summed positive rate_per_day}}`` (a listed market with no positive
+    configuration has rate 0.0). None when there is none (the flags are then NaN). Counts and gross rates only; no price is read."""
+    best = None
+    for r in b_roots(feed_roots):
+        for m in sorted(Path(r).glob("*/manifest.json")) if Path(r).exists() else []:
+            try:
+                d = json.loads(check_path(m).read_text())
+            except (OSError, ValueError, Refused):
+                continue
+            fin = epoch(d.get("finished_utc"))
+            if d.get("state") != "complete" or not math.isfinite(fin) or not fin < before or not (m.parent / "rows.jsonl.gz").exists():
+                continue
+            if best is None or fin > best[0]:
+                best = (fin, m.parent)
+    if best is None:
+        return None
+    rates: dict[str, float] = {}
+    with gzip.open(check_path(best[1] / "rows.jsonl.gz"), "rt") as fh:
+        for line in fh:
+            try:
+                rec = json.loads(line)
+            except ValueError:
+                continue
+            cid = rec.get("condition_id") if isinstance(rec, dict) else None
+            if not isinstance(cid, str) or not cid:
+                continue
+            cfgs = rec.get("rewards_config")
+            rate = sum(x for x in (_f(c.get("rate_per_day")) for c in cfgs if isinstance(c, dict)) if math.isfinite(x) and x > 0) if isinstance(cfgs, list) else 0.0
+            rates[cid] = rates.get(cid, 0.0) + rate
+    return {"capture": best[1].name, "rates": rates}
+
+
 def in_scope(sports: bool, crypto: str, scope: str) -> bool:
     if scope == "non_sports_ex_crypto":
         return (not sports) and crypto == "non_crypto"
@@ -693,7 +737,7 @@ def build_origins(A: dict, t0: int, origin_cols: np.ndarray, meta: dict, *, chec
     out = {
         "pid": np.asarray(meta["pid"], dtype=object)[rows], "ev": ev, "t": t, "status": status, "end_unknown": end_unknown,
         "sports": np.asarray(meta["sports"], bool), "crypto": np.asarray(meta["crypto"], dtype=object), "cat_known": np.asarray(meta["cat_known"], bool),
-        "hv": np.asarray(meta["hv"], bool), "kmid": kmid, "pmid": pmid, "klag": klag, "plag": plag, "dec": np.fmax(g(A["k_recv"]), g(A["p_recv"])),
+        "hv": np.asarray(meta["hv"], bool), "fee_rate": np.asarray(meta.get("fee", np.full((P, K), np.nan)), float), "kmid": kmid, "pmid": pmid, "klag": klag, "plag": plag, "dec": np.fmax(g(A["k_recv"]), g(A["p_recv"])),
         "s0_t": np.where(s0 >= 0, t0 + POLL_S * s0, -1), "n_win": n_win, "p_tick": p_tick,
         "sK_t": sK_t, "sP_t": sP_t, "sK_s0": sK_s0, "sP_s0": sP_s0, "dsK": dsK, "dsP_own": sP_t - sP_s0, "ratio": ratio,
         "floorP": (sP_t <= p_tick + EPS).astype(float), "floorK": (sK_s0 <= 0.01 + EPS).astype(float),
@@ -1043,7 +1087,7 @@ def _meta_for(pids: list[str], origins: list[int], recs: list, pend: list, cats:
     P, K = len(pids), len(origins)
     m = {"pid": np.array(pids, dtype=object), "pair_st": np.zeros((P, K), dtype=np.int64), "cat_known": np.zeros((P, K), bool), "sports": np.zeros((P, K), bool),
          "crypto": np.full((P, K), "unknown", dtype=object), "ev": np.full((P, K), "", dtype=object), "p_end": np.full((P, K), np.nan),
-         "k_close": np.full((P, K), np.nan), "hv": np.zeros((P, K), bool), "exclude_event": exclude_event}
+         "k_close": np.full((P, K), np.nan), "hv": np.zeros((P, K), bool), "fee": np.full((P, K), np.nan), "exclude_event": exclude_event}
     for k, (r, pe) in enumerate(zip(recs, pend, strict=True)):
         for i, pid in enumerate(pids):
             st = pair_status(pid, r, pe)
@@ -1055,6 +1099,7 @@ def _meta_for(pids: list[str], origins: list[int], recs: list, pend: list, cats:
             m["p_end"][i, k] = epoch(rec.get("p_end")) if rec.get("p_end") else np.nan
             m["k_close"][i, k] = epoch(rec.get("k_close")) if rec.get("k_close") else np.nan
             m["hv"][i, k] = bool(rec.get("hand_verified"))
+            m["fee"][i, k] = _f(rec.get("fee_rate"))
             c = cats.get(str(rec.get("p_market_id"))) if cats is not None else None
             if c is not None:
                 m["cat_known"][i, k] = True
@@ -1688,7 +1733,7 @@ def _role(spec: dict) -> str:
 
 
 def run_once(*, xv_root: Path = XV_ROOT, out_root: Path = OUT_ROOT, snapshot_roots=None, spec: dict | None = None, now: float | None = None,
-             max_origins: int = 288) -> dict:
+             max_origins: int = 288, feed_roots=None) -> dict:
     """One reader run (8.1, code phase 1 part): origin statuses and frozen state lines for every origin t whose successor cycle is over (the
     ``runs.jsonl`` line of cycle t, or of a later cycle, exists; 1.2 re-check fix 1), with the record in force by :class:`WindowRecords`.
     Write-once (``%.17g``, atomic hard link): ``status/<YYYYMMDD>/<HHMM>.csv.gz`` and ``<kind>/frozen/<YYYYMMDD>/<HHMM>.csv.gz`` (or ``.late.csv.gz``
@@ -1738,10 +1783,13 @@ def run_once(*, xv_root: Path = XV_ROOT, out_root: Path = OUT_ROOT, snapshot_roo
             t0 = t_lo - (t_lo % POLL_S)
             n = (t_hi - t0) // POLL_S + 1
             A = to_grid(cols, pids, t0, n)
-            cats_by_day = {}
+            cats_by_day, cond_by_day, feed_by_day = {}, {}, {}
             for d in {_ymd(t) for t in todo}:
                 cap = last_completed_capture(snapshot_roots, _day_epoch(d)) if snapshot_roots else None
-                cats_by_day[d] = read_sidecar(cap["dir"] / "rows_ext.csv.gz") if cap and (cap["dir"] / "rows_ext.csv.gz").exists() else None
+                has = bool(cap and (cap["dir"] / "rows_ext.csv.gz").exists())
+                cats_by_day[d] = read_sidecar(cap["dir"] / "rows_ext.csv.gz") if has else None
+                cond_by_day[d] = read_sidecar_cond(cap["dir"] / "rows_ext.csv.gz") if has else {}
+                feed_by_day[d] = feed_listing(feed_roots, _day_epoch(d)) if feed_roots else None
             for k, t in enumerate(todo):
                 meta = _meta_for(pids, [t], [recs[k]], [pend[k]], cats_by_day[_ymd(t)], (spec.get("census_fixed") or {}).get("exclude_event"))
                 if t - LOOKBACK_POLLS * POLL_S < reg:
@@ -1749,6 +1797,7 @@ def run_once(*, xv_root: Path = XV_ROOT, out_root: Path = OUT_ROOT, snapshot_roo
                 df = build_origins(A, t0, np.array([(t - t0) // POLL_S]), meta, check_e009=True)
                 keep = (meta["pair_st"][:, 0] == ST["unit"]) | A["present"][:, (t - t0) // POLL_S] | (meta["pair_st"][:, 0] != ST["retired"])
                 df = df[keep]
+                df = _join_reward(df, recs[k], cond_by_day[_ymd(t)], feed_by_day[_ymd(t)])
                 if not W.cycle_ran(t):
                     df.loc[df["status"] == ST["unit"], "status"] = ST["poll_missing"]
                 written[_write_origin(out_root, t, df, spec, now if injected else b.now_ts())] += 1
@@ -1761,6 +1810,24 @@ def run_once(*, xv_root: Path = XV_ROOT, out_root: Path = OUT_ROOT, snapshot_roo
         lock.close()
 
 
+def _join_reward(df: pd.DataFrame, rec: dict | None, cond: dict[str, str], feed: dict | None) -> pd.DataFrame:
+    """Economics only (1.2): ``rewarded`` (1 listed / 0 not listed in the day's last usable feed capture; NaN without a feed or a condition_id) and the
+    gross ``reward_rate`` (summed positive rate_per_day of the listing)."""
+    out_r, out_x = [], []
+    for pid in df["pid"]:
+        mk = str((rec or {}).get("pairs", {}).get(pid, {}).get("p_market_id"))
+        cid = cond.get(mk)
+        if feed is None or not cid:
+            out_r.append(np.nan)
+            out_x.append(np.nan)
+        else:
+            out_r.append(1.0 if cid in feed["rates"] else 0.0)
+            out_x.append(feed["rates"].get(cid, np.nan))
+    df = df.copy()
+    df["rewarded"], df["reward_rate"] = out_r, out_x
+    return df
+
+
 def _status_path(out_root: Path, t: int) -> Path:
     d, hm = _ymd(t), pd.Timestamp(t, unit="s", tz="UTC").strftime("%H%M")
     return Path(out_root) / "status" / d / f"{hm}.csv.gz"
@@ -1769,7 +1836,7 @@ def _status_path(out_root: Path, t: int) -> Path:
 FROZEN_COLS = ["pid", "ev", "t", "dec", "kmid", "pmid", "sK_t", "sP_t", "sK_s0", "sP_s0", "dsK", "dsP_own", "ratio", "floorP", "floorK", "tightK", "wideK",
                "traded", "trade_steps", "kvol_up", "vol_unknown", "pull", "widen", "bid_fall", "ask_fall", "pull_side", "size_zero", "cls223", "cls222",
                *b.FEATURES, "abs_dk1", "abs_r1", "abs_r6", "abs_dk6", "abs_gap", "rv60_P", "rv60_K", "lkb_t", "lka_t", "lpb_t", "lpa_t", "lkb_s0", "lka_s0",
-               "lpb_s0", "lpa_s0", "lvol", "p_tick", "hv", "sports", "crypto", "s0_t", "n_win"]
+               "lpb_s0", "lpa_s0", "lvol", "p_tick", "hv", "fee_rate", "rewarded", "reward_rate", "sports", "crypto", "s0_t", "n_win"]
 
 
 def _write_origin(out_root: Path, t: int, df: pd.DataFrame, spec: dict, wtime: float) -> str:
@@ -1777,7 +1844,10 @@ def _write_origin(out_root: Path, t: int, df: pd.DataFrame, spec: dict, wtime: f
     st = df[["pid", "ev", "t", "status", "cls223", "cls222"]].copy()
     st["status"] = [STATUS_CODES[s] for s in st["status"]]
     st["role"], st["spec_sha"], st["code_sha"] = _role(spec), spec["_sha256"][:16], (code_hashes().get("live_tests10.py") or "")[:16]
-    u = df[df["status"] == ST["unit"]]
+    u = df[df["status"] == ST["unit"]].copy()
+    for c_ in ("fee_rate", "rewarded", "reward_rate"):
+        if c_ not in u:
+            u[c_] = np.nan
     late = wtime >= t + int(spec["reader"]["freeze_before_s"])
     d, hm = _ymd(t), pd.Timestamp(t, unit="s", tz="UTC").strftime("%H%M")
     for test, kind in KINDS.items():

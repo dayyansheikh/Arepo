@@ -96,6 +96,7 @@ def build_parser() -> argparse.ArgumentParser:
     r.add_argument("--xv-root", type=Path, default=lt.XV_ROOT)
     r.add_argument("--out-root", type=Path, default=lt.OUT_ROOT)
     r.add_argument("--snapshot-root", type=Path, action="append")
+    r.add_argument("--feed-root", type=Path, action="append")
     r.add_argument("--max-origins", type=int, default=288)
     o = sub.add_parser("ops-stats", help="file, unit, class and status counts of live_tests10/, or --stream: the successor's burn-in counts (reads no price column)")
     o.add_argument("--root", type=Path, default=lt.OUT_ROOT)
@@ -144,7 +145,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"refusing to overwrite {args.out}")
         return 1
     if args.cmd == "run":
-        res = lt.run_once(xv_root=args.xv_root, out_root=args.out_root, snapshot_roots=args.snapshot_root or [lt.SNAPSHOT_ROOT], spec=_spec(), max_origins=args.max_origins)
+        res = lt.run_once(xv_root=args.xv_root, out_root=args.out_root, snapshot_roots=args.snapshot_root or [lt.SNAPSHOT_ROOT], spec=_spec(), max_origins=args.max_origins,
+                          feed_roots=args.feed_root or [lt.FEED_ROOT])
         print(json.dumps(res, sort_keys=True, default=str))
         return int(res.get("exit", 0))
     if args.cmd == "ops-stats":

@@ -737,9 +737,17 @@ def _window_tree(tmp, *, hours=8, seed=2, n_pairs=6, runs_until=None):
     _write_runs(xv, t0, t1 if runs_until is None else runs_until, n_pairs, R)
     cid = "20261109T120000Z"
     (snap / cid).mkdir(parents=True)
-    pd.DataFrame({"market_id": [str(i) for i in range(n_pairs)], "fee_type": ["x"] * n_pairs, "fee_category": ["politics"] * n_pairs, "series_slugs": [""] * n_pairs}
-                 ).to_csv(snap / cid / "rows_ext.csv.gz", index=False)
+    pd.DataFrame({"market_id": [str(i) for i in range(n_pairs)], "condition_id": [f"c{i}" for i in range(n_pairs)], "fee_type": ["x"] * n_pairs,
+                  "fee_category": ["politics"] * n_pairs, "series_slugs": [""] * n_pairs}).to_csv(snap / cid / "rows_ext.csv.gz", index=False)
     (snap / cid / "manifest.json").write_text(json.dumps({"state": "complete", "finished_utc": "2026-11-09T12:30:00Z"}))
+    feed = tmp / "data-dumps" / "research_lab" / "reward_params"
+    (feed / "20261109T130000Z").mkdir(parents=True)
+    with gzip.open(feed / "20261109T130000Z" / "rows.jsonl.gz", "wt") as fh:
+        fh.write(json.dumps({"condition_id": "c0", "rewards_config": [{"rate_per_day": 5.0}, {"rate_per_day": 0.0}, {"rate_per_day": 2.5}]}) + "\n")
+        fh.write(json.dumps({"condition_id": "c1", "rewards_config": []}) + "\n")
+    (feed / "20261109T130000Z" / "manifest.json").write_text(json.dumps({"state": "complete", "finished_utc": "2026-11-09T13:20:00Z"}))
+    (feed / "20261109T190000Z").mkdir()
+    (feed / "20261109T190000Z" / "manifest.json").write_text(json.dumps({"state": "failed", "finished_utc": "2026-11-09T19:20:00Z"}))
     return xv, snap, t0, t1
 
 
@@ -777,6 +785,22 @@ def _synth_quotes(rng, pids, t_start, t_end, *, src=None, tick=0.01, trade_p=0.0
 
 def _tree_files(root: Path) -> dict[str, bytes]:
     return {str(p.relative_to(root)): p.read_bytes() for p in sorted(root.rglob("*")) if p.is_file() and p.name not in ("run.lock", "runs.jsonl", "pairs_seen.jsonl")}
+
+
+def test_reward_feed_join_and_fee_rate_in_frozen_lines(tmp_path):
+    xv, snap, t0, t1 = _window_tree(tmp_path, hours=4, runs_until=None)
+    feed = tmp_path / "data-dumps" / "research_lab" / "reward_params"
+    out = tmp_path / "data-dumps" / "research_lab" / "live_tests10"
+    _write_runs(xv, t0, t0 + 2 * 3600 + 32 * 60)
+    lt.run_once(xv_root=xv, out_root=out, snapshot_roots=[snap], spec=lt.load_spec(sha=None), now=float(t0 + 2 * 3600 + 32 * 60), feed_roots=[feed])
+    fr = pd.read_csv(out / "hedge" / "frozen" / "20261110" / "0220.csv.gz")
+    by = fr.set_index("pid")
+    assert by.loc["K0|0", "rewarded"] == 1 and by.loc["K0|0", "reward_rate"] == pytest.approx(7.5)
+    assert by.loc["K1|1", "rewarded"] == 1 and by.loc["K1|1", "reward_rate"] == 0.0 and by.loc["K2|2", "rewarded"] == 0 and np.isnan(by.loc["K2|2", "reward_rate"])
+    assert set(fr.fee_rate) == {0.02}
+    # a failed capture is never used; no feed gives NaN flags
+    assert lt.feed_listing([feed], lt.epoch("2026-11-09T19:30:00Z"))["capture"] == "20261109T130000Z"
+    assert lt.feed_listing([feed], lt.epoch("2026-11-09T13:00:00Z")) is None
 
 
 def test_reader_run_once_outputs_and_write_once(tmp_path):
