@@ -193,7 +193,7 @@ def registration_error(spec: dict) -> dict | None:
         return {"error": f"pinned spec with unknown k_tests {[t for t in k if t not in TESTS]}"}
     cf = spec.get("census_fixed") or {}
     for t in k:
-        if any(v is None for v in (cf.get(t) or {}).values()) or not cf.get(t):
+        if any(v is None or (isinstance(v, float) and not math.isfinite(v)) for v in (cf.get(t) or {}).values()) or not cf.get(t):
             return {"error": f"pinned spec with unfilled census_fixed values of {t}"}
     return None
 

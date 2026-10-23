@@ -112,3 +112,27 @@ def test_full_path_with_loose_floors_runs_every_block(tmp_path):
             v = an.verdict(r, 1.0, t)
             assert v["verdict"] in {"Inconclusive", "Contradicted", "Supported", "Unavailable"}
     assert seen >= 0
+
+
+def test_pinned_spec_with_nan_or_null_census_value_or_code_mismatch_refuses():
+    base = lt.load_spec(sha=None)
+    pins = dict(lt.code_hashes())
+    sp = {**base, "_pinned": True, "code_sha256": pins, "k_tests": ["CH234"], "dropped_tests": [], "census_fixed": {"CH234": {"a": float("nan")}}, "size_check_result": {"CH234": "pass"}}
+    with pytest.raises(an.Refused):
+        an.code_check(sp)
+    sp["census_fixed"] = {"CH234": {"a": None}}
+    with pytest.raises(an.Refused):
+        an.code_check(sp)
+    sp["census_fixed"] = {"CH234": {"a": 1.0}}
+    an.code_check(sp)  # fully filled and matching: accepted
+    sp["code_sha256"] = {**pins, "live_tests11.py": "0" * 64}
+    with pytest.raises(an.Refused):
+        an.code_check(sp)
+    sp["code_sha256"], sp["k_tests"] = pins, ["CH234", "CH233"]
+    sp["census_fixed"]["CH233"] = {"a": 1.0}
+    with pytest.raises(an.Refused):  # a surviving test without its recorded size-check result
+        an.code_check(sp)
+    sp["size_check_result"]["CH233"] = "pass"
+    sp["dropped_tests"] = ["CH233"]
+    with pytest.raises(an.Refused):  # k_tests naming a dropped test
+        an.code_check(sp)
