@@ -4263,3 +4263,86 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - Recomputed: CH233 F-MDE 0.46c / 0.19c (DE 31); CH232 F-MDE 1.55c / 0.99c (DE 31, `VIF_w` 1.3). Census odds 0.35 / 0.40 / 0.10;
   expected k 0.85; P(no test) about 0.35. Dated LT11 request note appended to `signal_engine/CANDIDATES.md` (4fb22e26).
 - **Design sha256 `69477a6300faf890f7fa6166fa5c06f4ece68f7d928a0de1f8b3a55d551fb7c9`** (DRAFT, not frozen). **Next:** R1 re-check.
+- **LT11 R1 re-check** (`reviews/LT11_R1_RECHECK_2026-10-23.md`): ACCEPT_WITH_FIXES (F1 covered-days definition and census_unavailable printing/Holm rule; F2 stale volume_num wording; F3 tl_w2h disclosure and engine-informed labels; F4 receipt_span source); applied as worded; design sha256 c96b0351e6d0042ddab1692ab654400714656e6f5ce3374b7c27bdf8de238d36. Next: pre-freeze verification, then the design-text freeze.
+
+## LT11 re-check, pre-freeze verification, DESIGN-TEXT FREEZE (2026-10-23 ~17:20Z; experiments autopilot; nothing counted)
+- **R1 re-check** `reviews/LT11_R1_RECHECK_2026-10-23.md`: **ACCEPT_WITH_FIXES** (F1 covered-origin definition and
+  `census_unavailable` Holm-family rule; F2 `volume_num` slot wording; F3 `tl_w2h` provisional-token disclosure and the
+  *informed (engine)* labels; F4 optional receipt-span source). Fixes applied as worded, 168c765c.
+- **Pre-freeze verification** `reviews/LT11_PREFREEZE_VERIFY_2026-10-23.md`: **FREEZE_OK_AFTER 4 mechanical edits** (stale
+  `tl_w2h` wording in sections 10 and 13, section 0 Holm-family sentence, 13.x line-number note); applied verbatim 3627d7fd.
+  Nothing loosened (no gate, threshold, MDE, formula or prior changed).
+- **DESIGN-TEXT FREEZE:** `LIVE_TESTS_11.md` at **3627d7fd**, sha256
+  **`991100db5d6c75e3f76e3d0d10cc5f957dd755108e09ec05edd8dad0f91b3583`**; merged into chore 1f353ca6. Frozen before
+  2026-11-14T12:00Z and before `T_E015` (E015's analysis 11-15), so the **fast lane** holds: window 11-18..12-09, single analysis
+  on or after 12-10T12:00Z, census on a fresh seal of `[2026-10-28, 2026-11-07)`. Not registered; E-numbers unassigned.
+- **Venue reward-rule page re-read (1.4.2), in this freeze commit:** `https://docs.polymarket.com/programs/liquidity-rewards`,
+  retrieved 2026-10-23 ~17:11Z. Quoted: "If midpoint is in range [0.10, 0.90] — single-sided liquidity can score:"; "If midpoint
+  is in range [0, 0.10) or (0.90, 1.0] — liquidity must be double-sided to score:"; c = "Scaling factor (currently 3.0 on all
+  markets)"; Q_min = max(min(Q_one, Q_two), max(Q_one/c, Q_two/c)) inside, min(Q_one, Q_two) outside. **The page states the
+  documented reading**, so CH232's M1 side is fixed to the **cheap side** (the primary's sign > 0 is unchanged, declared for
+  both readings). No re-reading after this changes anything.
+- **Engine requests filed at the freeze** (`signal_engine/CANDIDATES.md`, "LT11 freeze request"): tokens `dollarw`, `nrslack`,
+  `bandside` and `attrlimit_lt11` to the LT11 date (later of 2026-12-12T00:00Z and LT11's analysis commit). Pre-freeze hold
+  status: `tl_w2h` coded and removed before deploy (c90bbf48 / 522a7e70), never scored or shown; no sibling-sum change or
+  crossing indicator scored; so none of CH234 / CH233 / CH232 carries an *informed (engine)* label.
+- **Next:** code (section 8: reader, seal q0691 after 11-07, censuses, size check, host memory ladder), its code-freeze check
+  on synthetic data; census after the seal span ends (11-07).
+
+## CB8-B (CH76) frame empty: q0165 / q0166 results, 2026-10-23 (experiments autopilot; operational, nothing counted)
+- **q0165 `cb8_updown_frame`** (13:30Z, done): 44,714 Gamma rows over 113 days, 0 failed requests; 43,931 rejected by the
+  Up/Down question pattern, **783 candidates**; exclusion keys (q0164c) dropped **118 by market id and 665 by series key**
+  (`cb7_common.key_types_matched`, series ids from `cb8_updown.py` `series_ids`); **0 kept** (`n_markets` 0, SCREEN 0, HOLDOUT 0;
+  `frame.csv.gz` header only). Binance side complete (35 archives, 791 strikes, 840 settles). The counts are honest
+  (`cb8_updown.py:1110` from the post-drop list), not a counting bug.
+- **q0166 `cb8_updown_books`** (13:36Z): `updown_books_source_unavailable` with zero requests. The coverage audit
+  (`cb8_books.py:472-475`) had 0 pairs and 0 days, share 0 < 0.90; pmxt was never contacted. The label means "empty frame",
+  not an unreachable source.
+- **Cause (design fact, not a code defect):** daily crypto Up/Down markets belong to a few recurring series, so any one prior
+  sample or seal copy holding one Up/Down market excludes its whole series (1,177 series keys in the set). The family's own
+  series is excluded wholesale; CB8-B is untestable as written. No outcome column and no HOLDOUT content was read (the
+  `holdout/` directory does not exist).
+- **Pre-declared consequence (ledger 3730):** the coverage-audit FAIL route applies: no HOLDOUT seal at q0182; q0182 runs with the
+  q0165 frame pinned, which is now an **empty** frame (the pin is vacuous; recorded).
+- **Next:** a `science-reviewer` ruling on whether a declared CB8-B variant (series key not applied to the family under study,
+  market-id and event-id keys kept, new job id and run directory) is justified, or CB8-B is recorded "not testable (series
+  overlap)". q0165's outcome stays as recorded either way.
+- **Ruling (same day):** `reviews/CB8B_SERIES_KEY_RULING_2026-10-23.md`: **VARIANT_ALLOWED_WITH_CONDITIONS** (dated CB8 §1.3
+  amendment + `cb8_rules_v3.json`, series key off for B only; new jobs q0165b / q0166b in new run directories; id-drop source
+  report and a descriptive day-exclusion sensitivity; nothing else in B changes; B1 counted once, no further variant if empty;
+  disclosure on any B1 result). The amendment needs its own science-reviewer pass before any job runs. **q0182 runs as
+  pre-declared with the empty q0165 frame pinned (pin vacuous); it does not wait for q0165b.** Heads-up: CB9-P may carry the
+  same series-key risk at q0183 (a counts-only key-overlap check to be declared before q0183 if needed).
+- **q0182 promoted (2026-10-23 ~17:30Z), as pre-declared:** `--cb8-keys-sha256 12513c64…4e3b` (q0164c `exclusion_report.json`
+  keys_sha256 = sha256sum of `exclusion_keys.csv.gz`); extra pins: the EMPTY q0165 frame (`updown_frame/frame.csv.gz`, header
+  only, sha256 `6a14098c…945c`; pin vacuous) and the CB8-H holders frame as a dated ids file
+  `creative_batch8/pins/cb8_holders_frame_ids_20261023T172452Z.csv` (union of `market_id` of the 10-21, 10-22, 10-23
+  `holders/snap/*.markets.csv.gz`, 4,404 ids, sha256 `451eaf6f…8a0b`). Correction to the entry above: `updown_frame/holdout/`
+  exists (created by `finalize_frame`) and holds only `klines_pre.csv.gz` and `strikes.csv.gz` (Binance side; listing only, not read).
+
+## Creative round 17 (CH242-CH251), 2026-10-23 (Fable xhigh; ideas only, nothing tested, nothing counted)
+- `CREATIVE_HYPOTHESES_2026-10-31.md` (merged 900c5272; written from 12:50Z, cut off by a usage limit, completed ~18:30Z
+  without network, host or data-dumps reads). Census-first like round 16; rules 18-20 added (event x day strata, F on the
+  within-market term only, a third-outcome rule).
+- **LT12 candidates (designer's census priors, judgements):** CH245 the mirror (two-member neg-risk event; twin book's spread
+  innovation -> own next spread) 0.30; CH244 the farmed half (unpaid vs paid members of a mixed ladder after one sibling
+  shock) 0.20; CH243 the fee as the price of urgency (fee-on vs fee-free traded-minus-quote-only continuation) 0.10,
+  conditional on the CH251 map. Expected k about 0.6; P(no LT12 test) about 0.50, stated in advance.
+- **Engine-first families** (CANDIDATES round 17 note): `p3` (CH242), `paymaker` (CH250), `mt_twin_printed` (CH248), `tilt`
+  fee levels (CH243), CH246 `tw_*`, CH249 `crypto` columns, CH247 `gamestate` x futures.
+- **Next:** CH251, the LT12 counts-only population map (no target read), then the LT12 design (fast lane: freeze before
+  `T_LT11` 2026-12-10T12:00Z; census seal 11-07..11-17).
+
+## CB8-B variant merged, q0165b promoted; CH251 map queued, 2026-10-23 ~18:55Z (experiments autopilot; nothing counted)
+- **CB8-B amendment** (`CREATIVE_BATCH_8.md` §1.3, dated 2026-10-23; `seals/cb8_rules_v3.json` rules_sha256 `9c5d432d…e498`;
+  `cb8_b_analysis_rules.json` `904208df…`): review `reviews/CB8B_AMENDMENT_REVIEW_2026-10-23.md` ACCEPT_WITH_FIXES (4 fixes +
+  2 recommendations), applied 93787c2f, verification `reviews/CB8B_AMENDMENT_FIXES_VERIFY_2026-10-23.md` **VERIFIED**; merged
+  bd65a75b. Host facts at ~17:45Z: `creative_batch8/smoke.json` sha256 `8189303f…6954` (= the narrowed acceptance); no
+  `cb8_updown_holdout_SEAL.json` in the host's `seals/`. **q0165b promoted** (new run dir `updown_frame_b`). q0166b stays a
+  draft until q0165b is `updown_frame_complete` and the holdout-seal absence is re-checked at that moment. B1 counted once; if
+  q0165b is also empty, B1 is "not testable" (p = 1), no further variant.
+- **CH251 LT12 population map** (q0700, merged from `feat/ch251-map`; counts only, k = 0, uncounted): span [2026-10-13,
+  2026-10-23) (orchestrator decision: past captures, disjoint from LT11's census seal and window, so LT12's census uses a fresh
+  later seal; overlaps the CH240 map's span, also counts-only). Mapped: CH245, CH244, CH243 (category x age proxy only), CH250
+  (2 x 2 cells), CH248. Not mapped (reasons in the output): CH246 matcher (no question text in captures), CH242 splits (no
+  label store), CH250 tier and minute-pay (undefined), CH243 design-stage gates (census only). Light job (mem 450, as cap 4000).

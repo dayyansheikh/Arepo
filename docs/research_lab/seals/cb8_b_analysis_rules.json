@@ -1,5 +1,5 @@
 {
- "data_rules_sha256": "33decb528bbafd46336296be57c91b76e6aaa0c69d7d3eecf92eaa83c4f12a6d",
+ "data_rules_sha256": "9c5d432d6f52c28112f3f9adf9a124f433d3c53d9284565528d0926a5199e498",
  "declared": {
   "decision": {
    "alpha1": 0.01,
@@ -211,6 +211,6 @@
   "z_features": "3584aa8c482f66158292adf7f11dda93f4a5e5f56d6b2fb17589510ec32ee95c"
  },
  "funcs_sha256": "437871341c98965aca94f2850938c96ccf25b6d4d5f0c03d73ad9e0d39fe79ca",
- "rules_sha256": "82cd4807732e0ae42ed823353d2d61ebe9dbbd3856db44b82456acf549b80d9d",
+ "rules_sha256": "904208df272e90967c8be1bbbbfef4c90a6228274315c33aee4fb66ad773277c",
  "rules_version": "cb8-b-analysis-rules-v1"
 }

@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-23T13:20:00Z",
+ "updated": "2026-10-23T17:45:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1036,18 +1036,18 @@
   {
    "id": "CB8-OTHER",
    "title": "Binance terminal minutes (CH76)",
-   "plain": "Designed: does the favourite's price in the last minutes of short crypto up/down markets lag the Binance price? Data checks passed; exclusion keys are being built.",
+   "plain": "Designed: does the favourite's price in the last minutes of short crypto up/down markets lag the Binance price? The first market list came back empty: a rule that removes anything linked to earlier samples removed all 783 candidates (they share a few daily series). No price or outcome was read. An independent reviewer allowed one declared retry that ignores the series link but keeps the per-market exclusions; it is counted once and gets no further retry.",
    "batch": "CB8",
    "family": "microstructure",
    "stage": "designed",
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Exclusion keys (q0164), then frame, books and census",
+   "next": "Fresh market list (q0165b), then books, then the counting check",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/CREATIVE_BATCH_8.md header; docs/research_lab/EXPERIMENT_LEDGER.md § Seals at T_seal and LT5 census start, 2026-10-22"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB8-B (CH76) frame empty (2026-10-23) and § CB8-B variant merged, q0165b promoted (2026-10-23); docs/research_lab/reviews/CB8B_SERIES_KEY_RULING_2026-10-23.md"
    },
    "stage_results": {
     "designed": "pass"
@@ -1676,25 +1676,27 @@
   },
   {
    "id": "LT11",
-   "title": "Live tests 11: three ideas from round 16 (draft design)",
-   "plain": "Up to three planned live tests from ideas round 16: whether price moves that carried more money keep going, whether a neg-risk market's spread widens after its sister markets' bids rise, and whether spreads widen when a rewarded market's price first crosses 10c or 90c. The independent review asked for mostly stricter rules, the response is written and the design is still a draft; the third test will probably fail its counting checks.",
+   "title": "Live tests 11: three ideas from round 16 (planned)",
+   "plain": "Up to three planned live tests from ideas round 16: whether price moves that carried more money keep going, whether a neg-risk market's spread widens after its sister markets' bids rise, and whether spreads widen when a rewarded market's price first crosses 10c or 90c. Design frozen (23 Oct) after an independent challenger review, a re-check and a final check; nothing was loosened. Each test may still fail its counting check; the third probably will.",
    "batch": "LT11",
    "family": "mixed",
-   "stage": "idea",
+   "stage": "designed",
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Re-check of the revised draft by the challenger; counting checks on 28 Oct-7 Nov data; collection proposed from 18 Nov 2026",
+   "next": "Code and its independent check; counting checks on 28 Oct-7 Nov data (after 7 Nov); collection proposed from 18 Nov 2026",
    "next_date": "2026-11-18",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT11 challenger R1 and response (2026-10-23); docs/research_lab/LIVE_TESTS_11.md §0, §13"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT11 re-check, pre-freeze verification, DESIGN-TEXT FREEZE (2026-10-23); docs/research_lab/LIVE_TESTS_11.md"
    },
    "stage_results": {
-    "idea": "pending"
+    "idea": "pending",
+    "designed": "pending"
    },
    "reached": [
-    "idea"
+    "idea",
+    "designed"
    ]
   },
   {

@@ -26,7 +26,7 @@ from . import h5_seal
 from . import history_backfill as hb
 from . import history_sources as hs
 
-RUN_ID = "updown"
+RUN_ID = "updown_b"  # v3 (CB8-B amendment 2026-10-23): new run directory; the v2 run dir "updown" is never opened
 COMPLETE = "updown_books_complete"
 SOURCE_UNAVAILABLE = "updown_books_source_unavailable"
 OFFSETS_S = (600, 300, 120, 60)  # t = t_end - s; 600 is reported only
@@ -638,7 +638,7 @@ def seal_holdout(fr: cm.Cb8Run, rdir: Path, frame: list[dict], rules_sha: str, *
     unverified = bool(ids) and missing_meta / len(ids) > U.MAX_UNVERIFIED_KEY_SHARE
     rows, n = [], {"KEPT": 0, "DROPPED_SEAL_COPIES": 0}
     for r in frame:
-        why = (["id"] if r["market_id"] in ids else []) + c7.key_types_matched(r, keys)
+        why = (["id"] if r["market_id"] in ids else []) + [t for t in c7.key_types_matched(r, keys) if t in U.B_KEY_TYPES]  # v3: same key set as the frame (series waived)
         if why:
             n["DROPPED_SEAL_COPIES"] += 1
             rows.append([r["market_id"], "DROPPED_SEAL_COPIES", "+".join(why)])
@@ -659,7 +659,7 @@ def seal_holdout(fr: cm.Cb8Run, rdir: Path, frame: list[dict], rules_sha: str, *
            "audit": fr.extra_state.get("audit"), "frame_manifest_sha256": fr.params.get("frame_manifest_sha256"),
            "read_rules": "verify the listing hash first; append every read to ACCESS_LOG.jsonl; holdout/ and the frame run's holdout/ (listed here as frame_holdout/) are not opened "
                          "before B1 advanced and its Stage-1 result is committed; "
-                         "DROPPED_* blocks of drops.csv.gz are never read; holdout outcomes live in updown_frame/outcomes_guarded.csv.gz (same rule)",
+                         "DROPPED_* blocks of drops.csv.gz are never read; holdout outcomes live in updown_frame_b/outcomes_guarded.csv.gz (same rule)",
            "information_end": "every state is at t <= t_end(d) - 50 s; post-t_end prints are in *_guarded files"}
     data = json.dumps(doc, indent=1, sort_keys=True).encode()
     seal_p.write_bytes(data)

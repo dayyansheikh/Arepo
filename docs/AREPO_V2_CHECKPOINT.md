@@ -8,22 +8,24 @@
 **PHASE 4 IN PROGRESS.** See `implementation/phases/PHASE_04_EDGE_EXPERIMENTS.md` and the ledger `research_lab/EXPERIMENT_LEDGER.md`.
 User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=Etc/GMT-1 date`.
 
-## Experiments autopilot live state (2026-10-23 13:54 UTC+1)
-- Owner lab-msg:4 ("why stopped since Wed? ntfy"): answered by ntfy ~12:20Z. Cause: every session since 10-21 hit the usage
-  limit before AUTOPILOT_DONE and the board's digest drops such sessions. Fix 2b33d60b (`scripts/lab/lab_activity.py`
-  `cutoff_note`: usage_limit/timeout sessions >= 10 min get `done` from the transcript's last own message); live since the
-  12:22Z upload. Mac-side only.
-- **LT10 code merged** (9fc42a20) after code check -> fixes -> re-check FIXES_REQUIRED (R1, R2, N1-N5) -> fixes e1e01426 ->
-  final verification (ledger N1 dates corrected 97554595). Drafts q0660-q0667 NOT promoted; census after E009 and E010
-  analysis commits (3 Nov); q0665 size check not before 11-04.
-- **LT11 design DRAFT merged** (11d7ef92; CH234 / CH233 / CH232; survival 0.35 / 0.50 / 0.20). Challenger R1 = REVISE (8 must-fix, 10
-  should-fix, rulings A1-A13; filed by the designer agent as `reviews/LT11_CHALLENGER_R1_2026-10-23.md`); R1 response running. Fast lane: freeze before 11-14T12:00Z, census on a fresh seal of 10-28..11-07.
-- **Ops fixes merged** (ledger "Ops fixes q0164c and q0116i"): q0164c (exclusion-keys scratch not charged to the hashed cap;
-  CB8 hashes unchanged; q0165 now depends on q0164c) and q0116i (MC1 resume identity without git HEAD; fresh resume dir).
-  q0164b CANCELLED on the host (~13:15Z). Deploy re-run in the background (the first attempt never got the collector
-  pass lock; host was still at 590f0c37).
-- Next: verify the deploy (`git log -1` on host = chore tip) and q0164c / q0116i start; file LT11 R1 and respond; re-check; creative round 17 running (Fable xhigh,
-  worktree `../astrolabe-creative-r17`). Open owner decision: clear ~9 GB restore copies (data-dumps 35 of 40 GB).
+## Experiments autopilot live state (2026-10-23 18:35 UTC+1)
+- **LT11 DESIGN TEXT FROZEN** (3627d7fd, sha256 `991100db…3583`, merged 1f353ca6; ledger b057e076). Venue reward page re-read
+  at the freeze: documented reading, CH232's M1 = cheap side. Fast lane: census seal 10-28..11-07, window 11-18..12-09.
+  Engine tokens `dollarw`, `nrslack`, `bandside`, `attrlimit_lt11` requested (CANDIDATES "LT11 freeze request").
+- **LT11 code running** (implementer, `../astrolabe-live-tests-11-code`, `feat/live-tests-11-code`; queue specs DRAFTS only).
+  Next: independent code-freeze check, fixes, merge.
+- **CB8-B:** frame empty (series key removed all 783 candidates). Ruling VARIANT_ALLOWED_WITH_CONDITIONS; amendment
+  implemented on `feat/cb8b-variant` (`../astrolabe-cb8b-variant`); amendment review ACCEPT_WITH_FIXES (4 fixes), fixes being
+  applied. Then merge and promote q0165b (q0166b only after confirming no holdout seal copy on the host).
+- **CB9 q0182 promoted** (725f5a08; q0164c keys sha, vacuous empty-frame pin, dated holders ids pin
+  `creative_batch8/pins/cb8_holders_frame_ids_20261023T172452Z.csv`). Attempt 1 MemoryError at 2 x 400 MB; raised to
+  1000 / 3000 MB (7d6df24a, deployed); waits for the MC1 piece to end (exclusive drain).
+- **Creative round 17 merged** (900c5272, CH242-CH251; CANDIDATES note + ledger b8512819). LT12 candidates CH245 mirror
+  (0.30), CH244 farmed half (0.20), CH243 fee (0.10, conditional). **CH251 population map** being built
+  (`../astrolabe-ch251-map`, `feat/ch251-map`), span [10-13, 10-23) (orchestrator decision: past data, disjoint from LT11's
+  seal/window, so LT12's census can use a fresh seal), queue id ~q0700, light (mem < 500).
+- Queue: MC1 q0116i running (exclusive); LT2 collector healthy; E026 q0541 from 10-25T00Z.
+- Open owner decision: clear ~9 GB restore copies (data-dumps 36 of 40 GB).
 
 ## Interactive session state (2026-10-23 08:30Z)
 - **Security audit run 1 (2026-10-23):** Cloudflare security-audit skill, quick profile, source-only. 0 confirmed findings and 5 needs-validation leads; see `docs/security/AUDIT_2026-10-23_RUN1.md` (full artefacts in `~/security-audit-skill/astrolabe/run-1/`). Owner notified via ntfy. No fixes made yet. Proposed small PRs:

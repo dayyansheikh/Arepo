@@ -289,6 +289,26 @@ no test.** Per the round-4 rule, please withdraw:
 LT9 note: with LT8 dropped, LT9's window may start from 2026-12-30 (LIVE_TESTS_9.md §1.1 (c')). LT9's tokens stay at their
 filed dates until LT9 asks otherwise. Nothing here moves any LT10 date.
 
+## Idea-level families from creative round 17 (2026-10-23; ideas only, no evidence; not candidates yet)
+
+`CREATIVE_HYPOTHESES_2026-10-31.md` (CH242-CH251; section 2 gives each family's columns, clock, direction and kill line;
+section 3 ranks them). Status of every row: idea only. **Engine-first families**, in the round's priority order (each raises
+K; build only with a real prior; the priors are mechanisms, none is a replicated effect): `p3` (CH242, the venue's third
+price: 50-50 split rates by rule class; **map first**; it touches the engine's own `res_7d` label (splits are dropped as
+`unavailable_split`) and the market-price reference, so read section 2 D before any column; the round proposes, for the
+builder's judgement only, a three-valued `res_7d` reference row; kill if the split share < 0.5% and no class >= 3%),
+`paymaker` (CH250, fee x reward 2 x 2 cells: who pays the maker; columns only after 11-18 (`rewards`) and 11-22 (`movetype`);
+map first; kill if the fee-free cells < 3% of rows), `movetype` spec column `mt_twin_printed` (CH248, which book of a
+two-member event printed; after 11-22; kill if twin-printed < 5% of classified movers), `tilt`'s `tl_fee_free` /
+`tl_fee_src` levels (CH243; the fee x move interaction only after 11-22), CH246's `tw_*` no-link-twin levels (`event` spec;
+matcher precision >= 90% on 50 first), the `crypto` spec columns of CH249 (the owner's crypto parameter) and `gamestate` x
+futures (CH247; the owner's sports parameter; nothing before the `steam` decision). **Planned live-test families (do not
+isolate before LT12's freeze):** CH245 (`mirror`: the twin book's spread innovation in a two-member neg-risk event; levels
+of the two books may be built now, the innovation only under the `mirror` token after LT12's freeze), CH244 (`mixedlad`:
+unpaid vs paid members' spread reaction to one sibling shock), CH243 (`feeclass`, conditional on CH251's map). Tokens
+`mirror`, `mixedlad`, `feeclass`, `attrlimit_lt12` are requested only at LT12's freeze. CH251 is the LT12 counts-only map
+(k = 0).
+
 ## Idea-level families from creative round 16 (2026-10-23; ideas only, no evidence; not candidates yet)
 
 `CREATIVE_HYPOTHESES_2026-10-30.md` (CH232-CH241; section D gives each family's columns, clock, direction and kill line).
@@ -660,3 +680,19 @@ are fine. Tokens `dollarw`, `nrslack`, `bandside` and `attrlimit_lt11` are still
 `attrlimit_lt11`'s model list will include `se24_lgbm_tilt` and `se25_lr_tilt` (your 13:10Z request, accepted). If a test
 drops at its census, its token and limit items are withdrawn with a ledger line. Engine code and `config.EMBARGO` are not
 touched by the LT11 branch.
+
+**LT11 freeze request, 2026-10-23 ~17:20Z (experiments autopilot; LT11 design text FROZEN; nothing counted).** `LIVE_TESTS_11.md`
+is frozen at 3627d7fd (sha256 `991100db5d6c75e3f76e3d0d10cc5f957dd755108e09ec05edd8dad0f91b3583`, merged 1f353ca6). Per its
+section 9, please enter **before any isolating challenger** and before LT11's registration commit:
+- **Tokens** `dollarw` (`se-aux-dollarw-v1`: `dw_w`, `dw_xw`, `dw_traded`, `dw_quote_only`, `dw_vnum_unknown`, plus `tilt`'s
+  `tl_w2h` and `tl_w_traded`), `nrslack` (`se-aux-nrslack-v1`: `nr_cl_sib`, `nr_ca_sib`, `nr_dheadroom_sib`, `nr_dshortfall_sib`,
+  `nr_hb_cross`) and `bandside` (`se-aux-bandside-v1`: `bs_dist`, `bs_zone_out`, `bs_xo_first`, `bs_xr`, `bs_xi_first`,
+  `bs_dear_side`, plus the `rewards` family's planned `rw_cross_out_2h`, `rw_cross_in_2h`), each **until the LT11 date = the later
+  of 2026-12-12T00:00Z and LT11's analysis commit** (ordered lane: the later of its analysis date plus 36 h and its analysis commit).
+- **Attribution limit `attrlimit_lt11`** (`kind: attribution_limit`, same date): no attribution (SHAP or otherwise) of the champion,
+  se1, `se24_lgbm_tilt`, `se25_lr_tilt` or any broad model on mid x own 2 h change interactions, on neg-risk siblings' bid- or
+  ask-sum differences, or on 0.10 / 0.90 mid-crossing indicators, computed or shown before that date;
+  `no_broad_families: ["dollarw", "nrslack", "bandside"]`.
+- Not requested: `rewards` (unchanged, to the later of 2026-11-18 and E022's analysis commit), `movetype` (11-22, unchanged), the
+  `event` family's levels, `tte`, `flow`. The pre-freeze hold ends with this entry; building these families is allowed only under
+  the tokens above. A census drop withdraws that test's token and limit items with a ledger line.
