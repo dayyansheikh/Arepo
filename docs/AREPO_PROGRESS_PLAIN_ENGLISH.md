@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-23 04:45 UTC+1
+**Last updated:** 2026-10-23 08:08 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -14,11 +14,10 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 - **LT7 (five planned tests from round 12): closed, no test.** All five failed their counting checks tonight, before any
   outcome was read (too few usable cases, too little power, or too much overlap with known factors). Two were expected to
   fail when the design was written. Nothing is counted.
-- **LT8 (three planned tests from round 13):** all its fixes passed independent re-checks and the code is merged. Every data
-  file it needs is already on the server (checked by fingerprint), so no restore is needed. Its data seal was
-  blocked by a leftover setting; fixed, and the seal ran at 03:00 UTC+1 (430 files, none missing). Its two counting checks are queued (they
-  start about 06:30 UTC+1) and must finish
-  before 28 Oct, when the oldest needed server files start to expire.
+- **LT8 (three planned tests from round 13):** the first counting check finished at 07:03 UTC+1 and **dropped the
+  "market's own busy hours" idea** (CH204): only about 3 markets per snapshot had a regular schedule, against 1,200 needed.
+  The design had predicted this. Nothing is counted. The second counting check (the two order-book ideas) is queued next and
+  must finish before 28 Oct, when the oldest needed server files start to expire.
 - **LT9 (three planned tests from round 14, about reward-programme quoting; a fourth only if its count allows):** design text **frozen** (22 Oct, after the
   challenger review and a re-check). Its code (data seal and counting checks) passed an independent
   code check after fixes (23 Oct) and is merged. Its data seal waits until the 2 to 12 Nov data exists.

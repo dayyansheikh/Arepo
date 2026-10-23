@@ -247,9 +247,14 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-23 03:55Z
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-23 07:25Z
 Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && git log --oneline -1'` = local tip.
 Host 2 OCPU / 11.4 GiB since the resize. data-dumps 34 / 40 GB cap: owner approval 8 (restore-tree clearing) is time-relevant.
+
+**Autopilot session 10-23 from 07:06Z:**
+- **LT8 CC8 (q0622) done 06:03Z: CH204 DROPPED at census** (3.35 scheduled markets/capture vs 1,200; ledger d3a38c5b;
+  registry; CANDIDATES `sched` withdrawal note). LIVE_TESTS_8.md §6.3 NOT filled yet: the census code refuses on any change
+  to the frozen design text, so fill §6.3 only after q0623 (CS8: CH203, CH202) finishes. q0623 queued (exclusive, draining).
 
 **Autopilot session 10-23 from 01:58Z:**
 - **LT8:** q0621's depends_on fix committed (66bbc2fd) and deployed; q0621 ran 02:00Z; seal committed (84c5c16e, sha256
