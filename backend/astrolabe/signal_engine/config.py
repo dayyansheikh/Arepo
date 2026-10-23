@@ -167,6 +167,32 @@ EMBARGO = (
      "models": ["se0_champion_lr_mm", "se4_lr_xvenue", "se13_lgbm_xvenue", "any broad model"], "no_broad_families": ["kxbook"],
      "why": "LIVE_TESTS_10.md section 9: no attribution (SHAP or otherwise) on these terms and no kxbook family in a broad model "
             "before until; moved later only by a ledger line"},
+    # LT11 freeze request (LIVE_TESTS_11.md section 9, design text frozen 3627d7fd, sha256 991100db...; CANDIDATES.md
+    # 2026-10-23 ~17:20Z), applied 2026-10-23 ~18:40Z before any dollarw / nrslack / bandside family, column or isolating
+    # challenger exists. The LT11 date is the later of 2026-12-12T00:00Z and LT11's analysis commit; moved later only by a
+    # ledger line. The pre-freeze hold ends here: these columns may be built only under these tokens.
+    {"token": "dollarw", "until": "2026-12-12T00:00:00Z", "tests": ["LT11-CH234"],
+     "why": "collateral weight x move size (se-aux-dollarw-v1: dw_w, dw_xw, dw_traded, dw_quote_only, dw_vnum_unknown) and "
+            "tilt's tl_w2h and tl_w_traded (CH234's w); a family holding any such column carries dollarw in its isolates; "
+            "tilt's level columns (tl_collat, tl_cheap_side, tl_fee_ps, tl_rebate_ps, tl_spread_collat) are not covered; "
+            "LIVE_TESTS_11.md section 9; the later of 2026-12-12 and LT11's analysis commit"},
+    {"token": "nrslack", "until": "2026-12-12T00:00:00Z", "tests": ["LT11-CH233"],
+     "why": "neg-risk siblings' bid- / ask-sum innovations between complete event-capture pairs (se-aux-nrslack-v1: nr_cl_sib, "
+            "nr_ca_sib, nr_dheadroom_sib, nr_dshortfall_sib, nr_hb_cross); the event family's existing levels (overround, quoted "
+            "share, normalisation gap, headroom levels) are not covered; LIVE_TESTS_11.md section 9; the later of 2026-12-12 "
+            "and LT11's analysis commit"},
+    {"token": "bandside", "until": "2026-12-12T00:00:00Z", "tests": ["LT11-CH232"],
+     "why": "reward-band side and 0.10 / 0.90 crossings (se-aux-bandside-v1: bs_dist, bs_zone_out, bs_xo_first, bs_xr, "
+            "bs_xi_first, bs_dear_side) and the rewards family's planned rw_cross_out_2h, rw_cross_in_2h; LIVE_TESTS_11.md "
+            "section 9; the later of 2026-12-12 and LT11's analysis commit"},
+    {"token": "attrlimit_lt11", "until": "2026-12-12T00:00:00Z", "tests": ["LT11"], "kind": "attribution_limit",
+     "limits": ["mid x own 2 h change interactions", "neg-risk siblings' bid- or ask-sum differences",
+                "indicators of a mid crossing 0.10 / 0.90"],
+     "models": ["se0_champion_lr_mm", "se1_lgbm_mm", "se24_lgbm_tilt", "se25_lr_tilt", "any broad model"],
+     "no_broad_families": ["dollarw", "nrslack", "bandside"],
+     "why": "LIVE_TESTS_11.md section 9: no attribution (SHAP or otherwise) on these terms computed or shown, and no LT11 "
+            "family in a broad model, before the later of 2026-12-12 and LT11's analysis commit; se24 / se25 listed at the "
+            "engine's request (2026-10-23 ~13:10Z: se24's trees can form sign(d) x (p - 0.5) from mo_d2h and tl_cheap_side)"},
 )
 
 # Promotion eligibility (DESIGN_V1 section 21; science review REVISE 2026-10-22). A model listed here is still predicted,

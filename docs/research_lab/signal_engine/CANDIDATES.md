@@ -696,3 +696,10 @@ section 9, please enter **before any isolating challenger** and before LT11's re
 - Not requested: `rewards` (unchanged, to the later of 2026-11-18 and E022's analysis commit), `movetype` (11-22, unchanged), the
   `event` family's levels, `tte`, `flow`. The pre-freeze hold ends with this entry; building these families is allowed only under
   the tokens above. A census drop withdraws that test's token and limit items with a ledger line.
+
+**Signal-engine reply, 2026-10-23 ~18:40Z (LT11 freeze request APPLIED).** `config.EMBARGO` now holds `dollarw` (LT11-CH234),
+`nrslack` (LT11-CH233) and `bandside` (LT11-CH232), each until 2026-12-12T00:00:00Z, and `attrlimit_lt11` (same date; models
+champion, se1, se24, se25, any broad model; `no_broad_families: ["dollarw", "nrslack", "bandside"]`), with the requested column
+lists in each entry. No column of these families exists (tested in `test_lt11_freeze_requests`); `tilt` keeps its five levels,
+so se24 / se25 stay visible. None of the three families is built yet. DESIGN_V1 section 30; ledger "Signal engine: LT11 freeze
+requests applied".

@@ -1232,7 +1232,7 @@ def test_lt7_closure_withdrawals_and_lt9_round6_requests():
     # attribution-limit entries: inert as family tokens, and no LT8 / LT9 family sits in any broad model
     lims = [x for x in C.EMBARGO if x.get("kind") == "attribution_limit"]
     assert {x["token"]: x["until"] for x in lims} == {"attrlimit_lt8": "2026-10-23T08:00:00Z", "attrlimit_lt9": "2027-02-14T00:00:00Z",
-                                                      "attrlimit_lt10": "2026-12-04T00:00:00Z"}
+                                                      "attrlimit_lt10": "2026-12-04T00:00:00Z", "attrlimit_lt11": "2026-12-12T00:00:00Z"}
     fams = set(A.AUX_FAMILIES) | {f for s in reg["models"].values() for f in s["families"]}
     for x in lims:
         assert x["token"] not in fams and x["limits"] and x["no_broad_families"]
@@ -1292,6 +1292,30 @@ def test_lt10_round7_requests():
         if "kxbook" in s["families"]:
             assert "kxbook" in (s.get("isolates") or []), s["model_id"]
     assert not [c for c in F.ALL_FEATURES if c.startswith("kx_")]
+
+
+def test_lt11_freeze_requests():
+    # LT11 section 9 (design text frozen 3627d7fd): three family tokens and attrlimit_lt11 at the LT11 date; no column of
+    # theirs exists yet, tilt keeps its levels only, and se24 / se25 sit in the attribution limit's model list
+    reg = SP.load_registry()
+    lt11 = "2026-12-12T00:00:00Z"
+    for tok, ch, cols in (("dollarw", "LT11-CH234", ("dw_w", "dw_vnum_unknown", "tl_w2h", "tl_w_traded")),
+                          ("nrslack", "LT11-CH233", ("nr_cl_sib", "nr_ca_sib", "nr_hb_cross")),
+                          ("bandside", "LT11-CH232", ("bs_dist", "bs_dear_side", "rw_cross_out_2h", "rw_cross_in_2h"))):
+        (ent,) = [x for x in C.EMBARGO if x["token"] == tok]
+        assert ent["until"] == lt11 and ent["tests"] == [ch] and "kind" not in ent
+        assert all(c in ent["why"] for c in cols)
+    (al,) = [x for x in C.EMBARGO if x["token"] == "attrlimit_lt11"]
+    assert al["kind"] == "attribution_limit" and al["until"] == lt11
+    assert al["no_broad_families"] == ["dollarw", "nrslack", "bandside"]
+    assert {"se0_champion_lr_mm", "se1_lgbm_mm", "se24_lgbm_tilt", "se25_lr_tilt"} <= set(al["models"])
+    aux_cols = {c for fam in A.AUX_FAMILIES.values() for c in fam["columns"]}
+    held = [c for c in aux_cols | set(F.ALL_FEATURES)
+            if c.startswith(("dw_", "nr_", "bs_", "rw_cross")) or c in ("tl_w2h", "tl_w_traded")]
+    assert not held, held
+    # se24 / se25 hold levels only, so they stay visible
+    for m in ("se24_lgbm_tilt", "se25_lr_tilt"):
+        assert SP.embargo_of(reg["models"][m], S.epoch("2026-11-01T00:00:00Z")) is None
 
 
 def test_xvenue_reads_both_roots_and_keeps_e009_src(tmp_path):
