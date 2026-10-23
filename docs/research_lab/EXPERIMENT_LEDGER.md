@@ -4415,3 +4415,11 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   Fast lane: seal [11-07, 11-17), window 12-10..12-31, analysis >= 2027-01-01T12Z, freeze before the seal and `T_LT11`; else
   ordered lane from >= 2027-01-22. Seed 20261597; queue ids q0710-q0715; tokens `mirror`, `mixedlad`, `feeclass`, `attrlimit_lt12`.
 - Designer's census odds (judgement): CH245 0.30, CH244 0.30, CH243 0.04; P(no test) ~0.47. **Next:** challenger R1 (running).
+
+## LT12 challenger R1: REVISE, 2026-10-24 ~00:05Z (experiments autopilot; nothing counted)
+- `reviews/LT12_CHALLENGER_R1_2026-10-23.md` (`feat/live-tests-12`, 59d2a158). Arithmetic, seed, ids and dates verified.
+  **6 MUST-FIX:** drop CH243 (F must bind, LT11 R1 A4 precedent; k <= 2); exact `listed_carry24h_v2` reward-status cases; CH244
+  carry-omission census prints with a declared threshold; CH245 identification gate redefined with justification (units
+  mismatch in round 17's statement); two-sided CH245 placebo from a different series / events; gate path with event x day
+  demeaning re-applied per draw. 7 SHOULD-FIX. Response being applied by the drafter; then a re-check.
+- CH243 (the fee) leaves the family before any freeze or census; recorded as an engine-first idea (not counted).
