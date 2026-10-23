@@ -4452,3 +4452,13 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   labels, predictions or scores.
 - Host dry run (read-only): ok, no alerts on 10-23 22:31Z. Backtest: 9 / 72 captures alert, all from the missed 10-21
   00:31Z / 02:31Z passes; no false alarms elsewhere. No model, spec, feature, label or score changed; K unchanged.
+
+## Signal engine: `refit_full` development probe queued, 2026-10-23 ~23:50Z (signal-engine autopilot; development only, nothing counted)
+- Question: the LightGBM models never learn from the newest ~20% of their window (it is used only for early stopping and
+  temperature). Does a refit on the whole window forecast better? DESIGN_V1 §32.
+- Opt-in `params.refit_full` in `learners.fit_lgbm`; no pinned spec sets it, so live fits, predictions and sha pins are
+  unchanged.
+- Probe `run_se_dev_refit_full.py` (queue `q0516`, priority 30, below every other ready job): se1 against an unregistered
+  copy over 5 days. It writes only `dev/refit_full_<stamp>.json` and never touches the leaderboard, dashboard or promotion.
+- Reading rule fixed before the run: a registered challenger only if the copy beats se1 on all 3 direction targets, with
+  each CI excluding zero and >= 4/5 days positive; otherwise a dead end.
