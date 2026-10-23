@@ -487,7 +487,7 @@ def test_aux_family_end_to_end_write_once_and_missing(env, monkeypatch):
     assert not A.aux_path(paths, "event", old).exists()
     cap5 = idx[SLOT0 + 5]["capture_id"]
     sha = S.sha256_file(A.aux_path(paths, "event", cap5))
-    assert A.run_aux(paths, max_items=50) == {"written": [], "unbuildable_no_rows": 4}  # 4 families need the snapshot folder
+    assert A.run_aux(paths, max_items=50) == {"written": [], "unbuildable_no_rows": 5}  # 5 families need the snapshot folder
     assert A.aux_path(paths, "rewards", cap5).exists()  # synthetic sidecar has no reward columns: an all-NaN table
     assert S.sha256_file(A.aux_path(paths, "event", cap5)) == sha
     f = A.read_features(paths, cap5)
@@ -984,6 +984,64 @@ def test_dispgap_and_dormant_read_only_earlier_inputs(env):
         pd.testing.assert_frame_equal(S.read_parquet(A.aux_path(paths, fam, k)), b)
 
 
+def test_tilt_features_hand_example(tmp_path):
+    f = pd.DataFrame({"market_id": np.array([1, 2, 3, 4, 5], np.int64), "ms_mid": [0.9, 0.9, 0.2, 0.5, 0.3],
+                      "ms_spread": [0.02, 0.02, 0.01, 0.04, 0.03]})
+    ext = pd.DataFrame({"market_id": [2, 1, 3, 4, 6], "fees_enabled": ["True", "True", "False", "", "True"],
+                        "fee_schedule": ['{"exponent":1,"rate":0.04,"rebateRate":0.25,"takerOnly":true}',
+                                         '{"exponent":2,"rate":0.1,"rebateRate":0.5}', '{"rate":0.04}', None, "{}"]})
+    ext.to_csv(tmp_path / "rows_ext.csv.gz", index=False, compression="gzip")
+    e = A.read_tilt_ext(tmp_path)
+    a = A.tilt_features(f, e)
+    np.testing.assert_allclose(a["tl_collat"].astype(float), [0.1, 0.1, 0.2, 0.5, 0.3], atol=1e-6)
+    np.testing.assert_allclose(a["tl_cheap_side"].astype(float), [1, 1, -1, 0, -1], atol=1e-6)
+    assert "tl_w2h" not in a.columns  # CH234's w is held back until LT11's freeze (LIVE_TESTS_11.md section 9)
+    np.testing.assert_allclose(a["tl_spread_collat"].astype(float), [0.2, 0.2, 0.05, 0.08, 0.1], atol=1e-5)
+    # market 1: 0.1 x (0.09)^2; market 2: 0.04 x 0.09; market 3: fees off -> 0; market 4: no schedule -> NaN; market 5: no row
+    np.testing.assert_allclose(a["tl_fee_ps"].astype(float), [0.1 * 0.09 ** 2, 0.04 * 0.09, 0.0, np.nan, np.nan], atol=1e-7)
+    np.testing.assert_allclose(a["tl_rebate_ps"].astype(float), [0.5 * 0.1 * 0.09 ** 2, 0.25 * 0.04 * 0.09, 0.0, np.nan, np.nan], atol=1e-7)
+    none = A.tilt_features(f, None)  # an older sidecar without the fee columns: the fee columns are NaN, the rest stand
+    assert np.isnan(none[["tl_fee_ps", "tl_rebate_ps"]].to_numpy(float)).all()
+    np.testing.assert_array_equal(none["tl_spread_collat"].to_numpy(), a["tl_spread_collat"].to_numpy())
+    pd.DataFrame({"market_id": [1], "fee_category": ["x"]}).to_csv(tmp_path / "rows_ext.csv.gz", index=False, compression="gzip")
+    assert A.read_tilt_ext(tmp_path) is None
+
+
+def test_tilt_reads_only_its_own_capture(env):
+    """Capture k's tilt table is a function of its own features file and its own sidecar; capture k + 1 changes nothing."""
+    w, paths = env
+    w.run(6)
+    build_all(paths)
+    idx = S.load_index(paths)
+    k, nxt = (idx[SLOT0 + i]["capture_id"] for i in (4, 5))
+    for cid in (k, nxt):  # give both sidecars a fee schedule (the fixture's sidecar has none)
+        p = w.root / "snapshots" / cid / "rows_ext.csv.gz"
+        e = pd.read_csv(p)
+        e["fees_enabled"] = np.where(e["market_id"] % 3 == 0, "False", "True")
+        e["fee_schedule"] = '{"exponent":1,"rate":0.07,"rebateRate":0.2}' if cid == k else '{"exponent":1,"rate":0.5,"rebateRate":0.9}'
+        e.to_csv(p, index=False, compression="gzip")
+    while A.run_aux(paths, max_items=50)["written"]:
+        pass
+    f = A.read_features(paths, k)
+    assert f.attrs["aux_ok"]["tilt"]
+    want = A.tilt_features(S.read_parquet(paths.features(k), A.TL_FEATURE_COLS), A.read_tilt_ext(w.root / "snapshots" / k))
+    np.testing.assert_allclose(f[A.TILT_COLUMNS].to_numpy(float), want.to_numpy(float), equal_nan=True)
+    fee = f["tl_fee_ps"].to_numpy(float)
+    assert np.isfinite(fee).all() and (fee == 0).any() and np.allclose(fee[fee > 0] / (f["ms_mid"] * (1 - f["ms_mid"])).to_numpy(float)[fee > 0], 0.07, atol=1e-5)
+    assert np.isfinite(f["tl_collat"].to_numpy(float)).all() and not any(c.startswith("tl_w") for c in f.columns)
+    assert S.parquet_meta(A.aux_path(paths, "tilt", k))["rows_ext_sha256"] == S.sha256_file(w.root / "snapshots" / k / "rows_ext.csv.gz")
+    before = S.read_parquet(A.aux_path(paths, "tilt", k))
+    p = paths.quotes(nxt)
+    d = S.read_parquet(p)
+    d["bid"], d["ask"] = d["bid"] * np.float32(0.5), d["ask"] * np.float32(0.5)
+    p.unlink()
+    S.write_once_parquet(p, d)
+    A.aux_path(paths, "tilt", k).unlink()
+    while A.run_aux(paths, max_items=50)["written"]:
+        pass
+    pd.testing.assert_frame_equal(S.read_parquet(A.aux_path(paths, "tilt", k)), before)
+
+
 def test_aux_builder_failure_is_isolated(env, monkeypatch):
     w, paths = env
     w.run(4)
@@ -1345,6 +1403,14 @@ def test_repo_registry_loads_and_embargo_assignment():
         assert emb[mid] == until and m["learner"] == "lgbm" and m["params"] == se1["params"] and m["isolates"] == [fam]
         assert m["families"] == ["market_state", "momentum", fam] and m["broad"] is False
         assert m["aux_versions"] == {fam: A.AUX_FAMILIES[fam]["version"]} and m["train"] == reg["models"]["se21_lgbm_hwm"]["train"] | {"require_sources": [fam]}
+    for mid, learner, base in (("se24_lgbm_tilt", "lgbm", "se1_lgbm_mm"), ("se25_lr_tilt", "logreg", "se0_champion_lr_mm")):  # DESIGN_V1 section 29
+        m, b = reg["models"][mid], reg["models"][base]
+        assert emb[mid] is None and m["learner"] == learner and m["params"] == b["params"] and m["isolates"] == ["tilt"]
+        assert m["families"] == ["market_state", "momentum", "tilt"] and m["broad"] is False and m["derived"] == b["derived"]
+        assert m["aux_versions"] == {"tilt": "se-aux-tilt-v1"} and m["train"]["require_sources"] == ["tilt"] and m["train"]["require_full_coverage"] is True
+    assert reg["models"]["se24_lgbm_tilt"]["train"] == reg["models"]["se21_lgbm_hwm"]["train"] | {"require_sources": ["tilt"]}
+    assert reg["models"]["se25_lr_tilt"]["train"] == reg["models"]["se0_champion_lr_mm"]["train"] | {"require_full_coverage": True, "require_sources": ["tilt"]}
+    assert not any("tilt" in s["families"] for s in reg["models"].values() if s.get("broad"))
     assert all(v is None for v in ((SP.embargo_of(s, S.epoch("2027-02-14T00:00:01Z")) or {}).get("until") for s in reg["models"].values()))  # latest: book 2027-02-14 (LT9)
 
 

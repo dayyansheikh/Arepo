@@ -632,9 +632,21 @@ development look at the neg-risk / sibling family (ledger entry 2026-10-21).
 | 21 | `hwm` (own high-water marks, CH181) / `se21_lgbm_hwm` | aux family from the engine's own quotes of slots k-84..k: 3 d / 7 d distance below the high and above the low, 7 d hours since high / low, range position, history; LightGBM (se1's params) | none (idea from equities anchoring; spec written before any hwm table existed) | none (science review: no shadowing) | **active 2026-10-22** (DESIGN_V1 §25); first fit at the 10-23 refit; read against se1; K 7 -> 8 |
 | 22 | `dispgap` (display disagreement, CH218) / `se22_lgbm_dispgap` | aux family: Gamma displayed 1 d / 1 w change minus the own 24 h / 7 d mid change, its absolute value, the 1 d gap signed by the own 2 h move, its change since the previous slot; LightGBM (se1's params) | none (spec written before any dispgap table existed) | `dispgap` until 2026-11-14 (E012's Gamma-change sensitivity, E013/E014 controls; science review) | **active, embargoed** 2026-10-23 (DESIGN_V1 §26); census passed 10-22 ~23:25Z (|dg_1d| >= 2 ticks on 4.7% of rows); first fit 10-23; read against se1 |
 | 23 | `dormant` (dormancy, CH220) / `se23_lgbm_dormant` | aux family: run of 2 h steps with |dmid| <= DELTA and with no change, both capped at 12, wake-up flag after >= 6 flat steps; LightGBM (se1's params) | none (spec written before any dormant table existed) | `dormant` until 2026-11-19 (E011's quiet-prior-day label; science review) | **active, embargoed** 2026-10-23 (DESIGN_V1 §26); census passed 10-22 ~23:25Z (24 h still on 10.4% of non-sports); first fit 10-23; read against se1 and se15 |
+| 24 | `tilt` (collateral-tilt levels, CH235) / `se24_lgbm_tilt`, `se25_lr_tilt` | aux family from the features file and the capture's own sidecar: min(p, 1 - p), cheap side, the market's own schedule's taker fee and maker rebate a share, spread over collateral; LightGBM (se1's params) and the champion's logistic. `tl_w2h` (CH234's `w`) held back until LT11's freeze (LIVE_TESTS_11 §9) | HB1 PX1 survived (level), PX5 same sign (not Holm); spec written before any tilt table existed | none (levels only, LT11 §9) | **active, visible** 2026-10-23 (DESIGN_V1 §29); first fit at the 10-23 refit if the backfill is ready; read against se1 and se0; K 8 -> 10 |
+| 25 | `parentsib` (CH237) | the parent event's other children's 2 h moves | **census 2026-10-23 (capture 10:31Z, counts only): 0.15% of eligible non-sports rows have a parent** (27 / 18,349; line 5%); 44% of all eligible rows, almost all sports | none | **killed at census** (re-census if sports rows come into scope) |
 
 **Signal-engine reply, 2026-10-23 ~08:00Z (LT8 closure withdrawals applied).** `quietbook`, `swclock` and `attrlimit_lt8`
 withdrawn at 2026-10-23T08:00:00Z (`until_before` 2027-01-23 recorded). Both round-5 LT8 limits go: no LT9 limit covers
 `b0_gap` x own 2 h change; LT9's own "two-sweep band-sum differences" limit is unchanged. `book` / `book0` drop LT8-CH202 /
 CH203 from their tests and stay at 2027-02-14 for LT9. If CH214 later drops at census, the book date needs a new request:
 the old fallback (2027-01-23) was LT8's and is void. Ledger "Signal engine: LT8 closure withdrawals".
+
+**Signal-engine reply, 2026-10-23 ~13:10Z (LT11 section 9 pre-freeze hold followed).** The builder added CH235 `tilt` as
+level columns only (`tl_collat`, `tl_cheap_side`, `tl_fee_ps`, `tl_rebate_ps`, `tl_spread_collat`; `se24_lgbm_tilt`,
+`se25_lr_tilt`, visible, no token). `tl_w2h` is not built and no family holds it, so CH234 stays uninformed by the engine.
+A never-deployed first build held it under a provisional `tilt` token; it was removed before any table existed. The
+builder will apply `dollarw`, `nrslack`, `bandside` and `attrlimit_lt11` when filed at the freeze. CH237 `parentsib` was
+killed at its census (0.15% of eligible non-sports rows have a parent). **Request:** when `attrlimit_lt11` is filed, please
+list `se24_lgbm_tilt` and `se25_lr_tilt` in its models beside the champion, se1 and broad models (se24's trees can form
+sign(d) x (p - 0.5) from `mo_d2h` and `tl_cheap_side` as se1 can; science review must-fix). `dollarw` (CH234's own token) is still requested only
+at the freeze. CH237 `parentsib` was killed at its census (0.15% of eligible non-sports rows have a parent).

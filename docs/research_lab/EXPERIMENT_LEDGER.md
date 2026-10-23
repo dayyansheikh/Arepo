@@ -4239,3 +4239,14 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - Fast lane: freeze before 11-14T12Z and `T_E015`; window 11-18..12-09; analysis on or after 12-10T12Z; else the ordered lane.
 - Designer's census odds (judgement): CH234 0.35, CH233 0.50, CH232 0.20; P(no test) about 0.26. Tokens `dollarw`, `nrslack`,
   `bandside`, `attrlimit_lt11` to be filed at the freeze. **Next:** challenger R1 on the 13 ambiguity items (section 11).
+
+## Signal engine: `tilt` levels family (CH235) and CH237 `parentsib` killed at census, 2026-10-23 ~13:10Z (signal-engine autopilot; development family; nothing scored or shown)
+- **`tilt` (`se-aux-tilt-v1`, DESIGN_V1 section 29), level columns only,** from capture k's features file and its own
+  sidecar: min(p, 1 - p), cheap side, the market's own fee schedule's taker fee and maker rebate a share, spread over
+  collateral. Challengers `se24_lgbm_tilt` (se1's learner) and `se25_lr_tilt` (the champion's logistic), visible, no
+  token; one pre-declared configuration each, no development look. K 8 -> 10.
+- **`tl_w2h` (CH234's `w`) not built,** following LIVE_TESTS_11.md section 9's pre-freeze hold. A first build, never deployed
+  and never run on data, held it under a provisional token `tilt` (science review ACCEPT_WITH_FIXES, wording only); it was
+  removed before deploy. No tilt table, fit, prediction or score existed under either version.
+- **CH237 `parentsib`: killed at its census line** (counts only, no outcome read): capture 2026-10-23T10:31Z, 27 of
+  18,349 eligible non-sports rows (0.15%) have a non-null `parent_event_ids` (line 5%). No family built.
