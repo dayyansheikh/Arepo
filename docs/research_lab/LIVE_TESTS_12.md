@@ -1,14 +1,16 @@
 # Live tests 12 (LT12): the mirror and the farmed half (CH245, CH244), DRAFT pre-registrations
 
-**Status: DRAFT. Challenger R1 run (`reviews/LT12_CHALLENGER_R1_2026-10-23.md`, commit 59d2a158): REVISE, 6 must-fix, 7
-should-fix, rulings A1-A16; R1 response applied in this revision (section 13); re-check pending. NOT FROZEN, not registered,
-nothing counted, no code, no seal, no census run. E-numbers unassigned.** Drafted 2026-10-23 on branch `feat/live-tests-12`
+**Status: DRAFT. Challenger R1 (`reviews/LT12_CHALLENGER_R1_2026-10-23.md`, commit 59d2a158): REVISE, 6 must-fix, 7
+should-fix, rulings A1-A16; R1 response applied (section 13); R1 re-check (`reviews/LT12_RECHECK_2026-10-23.md`, commit
+b038afaa): ACCEPT_WITH_FIXES, fixes 1-7 applied in this revision (section 13.x); final verification pending. NOT FROZEN, not
+registered, nothing counted, no code, no seal, no census run. E-numbers unassigned.** Drafted 2026-10-23 on branch `feat/live-tests-12`
 from the `chore/arepo-claude-setup` tip `1e89423d` (first draft fd9c425f, sha256 `64fe3e7b…2cac`), a design-only commit like
 the first commits of LT3-LT11. **CH243 (the fee) was dropped after R1 (MUST 1; section 4); LT12 is now a family of at most
 two tests.** LT12 takes the next free E-numbers at its own registration, in the order CH245, CH244 (round 17's rank order).
 If both tests drop at their census, LT12 is not registered (recorded in the ledger; nothing counted). Before registration
 this needs, in order:
-1. the R1 **re-check** of this revision (`science-reviewer`), and any fixes it asks for;
+1. the **final verification** of this revision (the re-check's fixes 1-7 as applied; fixes 1-2 are confirmed again in code at
+   the code-freeze check, step 3);
 2. the **design-text freeze commit** (1.1) **before the LT12 seal commit and before `T_LT11`** (fast lane), planned by
    2026-11-06 so that it also precedes LT11's census commit (`T_LT11c`, 1.1); otherwise the ordered lane applies;
 3. the code (section 8) with a `science-reviewer` freeze check of the census, gate and size-check code against 1.8, 1.8.1
@@ -71,7 +73,10 @@ a line here says otherwise and why.
   map's weak status-liquidity correlation (-0.05 / -0.09) is no longer counted in CH244's favour: if the omission of
   `clob_rewards` makes status partly noise, a weak correlation is what noise produces. **Expected k at census about 0.45;
   P(no LT12 test) about 0.60** (0.70 x 0.85, treating the fates as independent, which they are not: both read the same event
-  join and captures). Expected valid verdicts about 0.15. Every taker cell is expected "not shown".
+  join and captures). **Expected valid verdicts about 0.2 (re-check fix 6; derived, a judgement):** a valid verdict is a
+  registered test that passes its size check and is not Unavailable; P(size check passes | registered) about 0.5 for CH245
+  (worlds 2 and 4 are the expected risks, 1.8) and 0.6 for CH244 (world 9), P(not Unavailable | both) about 0.9, so 0.30 x 0.5 x
+  0.9 + 0.15 x 0.6 x 0.9 = 0.135 + 0.081 = 0.216. Every taker cell is expected "not shown".
 - **No LT12 result can satisfy the programme's economic check** (1.10). A Supported LT12 primary is an exploratory prospective
   finding, never an edge.
 
@@ -159,8 +164,9 @@ Round 17's rules map onto LT12 as follows (rules 1-17 as in LT11 1.0's table, ap
   (case (c) of 1.4.1); an empty `clob_rewards` cell on a present row is case (b), never NaN.
 - **CLOB reward feed** `reward_params/<capture_id>/`, read only for CH244: the census's feed-disagreement gate and its coverage
   (7; R1 MUST 3), the analysis's CLOB-agreement sensitivity, and economics. Feed clock: the last usable feed capture whose start
-  is before capture k - 1's start and at most **6 h** earlier (else the unit is `feed_uncovered`, counted). Never a state,
-  control or target.
+  is before capture k - 1's start and at most **6 h** earlier (else the unit is `feed_uncovered`, counted). Feed coverage under
+  50% of tested units (an outage included) makes CH244 `census_unavailable (coverage)`; a feed-listed share above 0.20 on
+  adequate coverage makes it `census_dropped` (7; re-check fix 3). Never a state, control or target.
 - **Not read:** sweeps, trade samples, the monitor, `cross_venue_live/`, `xv_quotes/`, `surprise_live/`, the stores
   `live_tests2/` .. `live_tests11/`, CB8-H holders, CB16-CB18, E025 and E026 stores and the **E026 frozen modules**, the keyless
   streams, `gamma_rules`, the engine's `quotes/`, `features/`, `aux/`, `predictions/` and label store, the CH240 and CH251 map
@@ -274,20 +280,26 @@ pre-check (headers only) and the restore's byte and sha256 checks; development u
   built from LT5's `block_fl_gate` offset rule and LT11 CH233's event-phase index (vendored by hash) but **not** "vendored
   unchanged", because LT12 demeans by event x UTC day while LT11 CH233 demeaned by market. For each of 200 draws and each event
   e: `I_e` = the ordered captures at which e has at least one unit of the test, `n_e = |I_e|`, `s_e = max(4, ceil(n_e / 4))`,
-  one offset `o` drawn from `[s_e, n_e - s_e]` (events with `n_e < 16` excluded from the gate, counted). **The raw state is
+  one offset `o` drawn from `[s_e, n_e - s_e]`. **Gate sample (re-check fix 1):** the units of events with `n_e >= 16`; events
+  with `n_e < 16` are excluded from the gate (counted), and **the observed statistic is refitted on that same gate sample**, not
+  taken from the primary fit on all units. **The raw state is
   shifted, never a demeaned value:** CH245 the unit at index position t receives the raw `zs_D` of position `(t + o) mod n_e`;
   CH244 every member's raw `shock` and `shock_size` at position t are replaced by that member's values at `(t + o) mod n_e`, and
   `shock x unrew` and `tier x shock` are recomputed from the shifted shock with the unit's own `unrew` and tier. **Then the
   expanding-past event x UTC-day demeaning is re-applied** to every shifted regressor in each unit's real stratum and real
-  order; every other regressor and the target keep their analysis values; the full model is refitted and its tested t stored. A
+  order; every other regressor and the target keep their analysis values; the full model is refitted on the gate sample and its
+  tested statistic stored. **Statistic (re-check fix 1):** the tested coefficient's **event-clustered CR1 t** (clusters = events
+  of the gate sample; the CR1 small-sample factor of 1.7), computed identically for the observed fit and for every draw. A
   member lacking a unit at the shifted position is omitted from that draw (never filled, never borrowed); the omitted share is
-  printed. One-sided `p_perm = (1 + #{t_draw >= t_obs}) / 201`; the gate passes if `p_perm < 0.05`. Reason for shifting the raw
+  printed. One-sided `p_perm = (1 + #{t_draw >= t_obs}) / 201`, both t's the gate-sample CR1 t; the gate passes if `p_perm <
+  0.05`. Reason for shifting the raw
   state rather than LT5's reduced-model residuals: the demeaning stratum (event x day) is finer than the shift stratum (the
   event), so a shifted demeaned value would carry another day's stratum means into this day.
 - A failed gate on data gives p = 1 in Holm and "SE check failed (gate on data)".
 - **Size check, after the census.** `size-check` runs once on the code to be pinned, **2,000 worlds x 200 draws, seed
   20261597**, limit **0.058** (= 0.05 + 1.645 sqrt(0.0475 / 2,000)); **worlds 1-5 and 7-9 run the gate through
-  `event_day_state_shift_gate` exactly as the analysis does** (raw shift, demeaning re-applied every draw, same minimum and
+  `event_day_state_shift_gate` exactly as the analysis does** (raw shift, demeaning re-applied every draw, the gate-sample refit
+and its event-clustered CR1 t, same minimum and
   omission rule); a world is generated once and evaluated under each test it binds. No effect of the tested term in any world.
 
   | # | Scenario (1.8.1) | Gate | Binding for | Statistic |
@@ -310,8 +322,9 @@ pre-check (headers only) and the restore's byte and sha256 checks; development u
   lead-lag (R1 SHOULD 1):** 500 worlds at seed `20261597 x 100 + 54`, world 4's pairs with each book's next spread change
   loading 0.4 per SD on the other book's innovation in **both** directions (no thin-dense asymmetry) and the 1c spread floor
   enforced on both books; reported statistic: the share of worlds in which the dense-twin point condition `betâ_dense < 0.5 x
-  betâ_thin` holds (the floor alone can make the dense book look like a non-follower, because a dense book at one tick cannot
-  narrow), beside the same share on the variant restricted to dense `spread_k >= 2` ticks.
+  betâ_thin` holds on the full set, on the dense `spread_k >= 2` ticks set, and on both together (the binding form since
+  re-check fix 7; the floor alone can make the dense book look like a non-follower, because a dense book at one tick cannot
+  narrow).
 - **Consequence of a failure:** a failing scenario makes only the tests it binds "SE check failed (size scenario)" (1-5, 7-9)
   or "SE check failed (mechanical world)" (6, 10): p = 1 in Holm, **k unchanged**, no rerun, reseed, redesign or variant;
   `max_retries 1` for a deterministic crash only; no preliminary run at seed 20261597. **Expected:** worlds 2 and 4 may fail for
@@ -323,9 +336,16 @@ seeded 20261597, scenarios in table order; spreads in cents on a 1c grid with a 
 model with K replaced by the simulated controls named; in every world 10% of member units are removed at random after
 generation (exercising the omission rule); every world assigns each event a series family and event-id set so that the
 placebo rule of 2.3 can be applied (worlds 1-6: 40 families, events assigned uniformly).
-- **1 (S30):** 300 two-member events, `n` uniform on 120..252 captures; an event volatility state `v_t` AR(1) rho 0.8
-  (stationary SD 1); each book's spread `s_{b,t} = max(1, round(2 + 1.0 x v_t + u_{b,t}))`, `u` AR(0.5) iid across books (SD
-  0.8c); both books load on `v_t` in the same slot; the model sees `z log rv24` = `v_t + N(0, 0.7^2)`; no lag effect.
+- **1 (S30):** 300 two-member events, **`n` uniform on 8..252 captures** (re-check fix 2: the range includes 8..119, so events
+  with `n_e < 16` occur and the gate's exclusion and refit-on-the-gate-sample rule are exercised); an event volatility state
+  `v_t` AR(1) rho 0.8 (stationary SD 1); each book's spread `s_{b,t} = max(1, round(2 + lambda x v_t + u_{b,t}))`, `u` AR(0.5)
+  iid across books (SD 0.8c); both books load on `v_t` in the same slot; the model sees `z log rv24` = `v_t + N(0, 0.7^2)`; no lag
+  effect. **Loading `lambda` (re-check fix 2):** set so that the planted within-event same-slot correlation of the two books'
+  spread innovations (after rounding and the floor) equals **`rho_ss = max(rho_census, 0.64)`**, `rho_census` the census pooled
+  same-slot correlation on CH245 thin units (census-fixed, 7); `lambda` is found by bisection on [0, 10] to within 0.005 of
+  `rho_ss`, each step a 20,000-slot calibration run at seed `20261597 x 100 + 61` (no size-check world is generated by it), after
+  the census values are committed and before the size check; `lambda` is recorded beside the size-check results. Worlds 2 and 3,
+  built from world 1, inherit its `n` range (and world 3 its `lambda`).
 - **2 (S31):** world 1 without `v_t`; one quote model per event moves both books' spreads by the same step at a Poisson time
   (rate 0.4 a slot); book B updates at that time and book A after a lag `L ~ Exp(mean 60 s)`; each capture reads the two rows
   at times differing by `g`, drawn from the census's receipt-gap distribution between pair rows (its q50 and q90, census
@@ -339,7 +359,8 @@ placebo rule of 2.3 can be applied (worlds 1-6: 40 families, events assigned uni
   and the dense book's innovation SD scaled by `exp(0.5 L_e)`; the model sees `L_e + N(0, 0.5^2)`.
 - **6 (M-Q, CH245):** world 4 plus `mu_t` AR(1) rho 0.99 (stationary SD 0.5c a slot) entering the thin book's target and, with
   loading 0.3 per SD, the dense book's innovation at k and its twin at k + 3.
-- **7 (S26, CH244):** 200 events of 3-10 members (uniform), `n` uniform on 120..252; member mids `m_{j,t} = m_j + e_t + w_{j,t}`
+- **7 (S26, CH244):** 200 events of 3-10 members (uniform), **`n` uniform on 8..252** (re-check fix 2; worlds 8-10 inherit it);
+  member mids `m_{j,t} = m_j + e_t + w_{j,t}`
   with a common event shock `e_t ~ N(0, (1.5c)^2)`; spreads `max(1, round(2 + 1.5 x |e_t| + AR(0.7) noise))` in the same slot;
   each member unrewarded with probability 0.5 independently (at least one of each status per event), status fixed per member;
   shock by 3.2's rule; no lag.
@@ -358,15 +379,18 @@ placebo rule of 2.3 can be applied (worlds 1-6: 40 families, events assigned uni
   design** (rolling states, 1.7). Twins: CH245 `zs_D` over (k + 2, k + 3] for the same pair and the same dense member, NaN unless
   the pair is complete at k + 2 and k + 3 (1.4.3); CH244 `shock x unrew` with the shock over (k + 2, k + 3] on ladder-complete
   pairs at k + 2, k + 3.
-- **Point conditions (binding, fixed now; estimates only, no test, counted 0).** CH245 **(a) dense twin:** the model on the dense
-  members of the same pair-captures (state the thin member's innovation, mirrored controls) has **betâ_dense < 0.5 x
-  betâ_thin**; **(b) placebo, two-sided (R1 MUST 5):** the primary with `zs_D` replaced by the unrelated pair's `zs` (2.3) has
+- **Point conditions (binding, fixed now; estimates only, no test, counted 0).** CH245 **(a) dense twin, on two sets
+  (re-check fix 7):** the model on the dense members of the same pair-captures (state the thin member's innovation, mirrored
+  controls) has **betâ_dense < 0.5 x betâ_thin on the full set and also on the set of pair-captures with the dense `spread_k >= 2`
+  ticks** (each set's `betâ_thin` from the primary refitted on that set); both must hold; if the `>= 2` ticks set holds fewer than
+  5,000 units (a quarter of the 20,000-unit Unavailable floor) condition (a) cannot be shown and the primary is at most
+  Inconclusive (*dense-twin unavailable*); **(b) placebo, two-sided (R1 MUST 5):** the primary with `zs_D` replaced by the unrelated pair's `zs` (2.3) has
   **|betâ_placebo| < 0.5 x betâ_thin**. CH244: the twin model with `lowliq` and `shock x lowliq` in place of `unrew` and `shock x
   unrew` (3.3) has **betâ_lowliq < 0.5 x betâ_unrew**. Each difference's one-sided p is reported as a label.
 - **Supported (exploratory, prospective):** Holm-adjusted one-sided p < 0.05, estimate > 0, gate passed, F holds, every point
   condition holds. Else, with everything else holding: F fails or unavailable -> **Inconclusive** with *mechanical null not
-  excluded* (or *falsification unavailable*); a point condition fails -> **Inconclusive** with *not thin-specific*, *placebo not
-  null* (CH245) or *not status-specific* (CH244).
+  excluded* (or *falsification unavailable*); a point condition fails or cannot be shown -> **Inconclusive** with *not
+  thin-specific* (or *dense-twin unavailable*), *placebo not null* (CH245) or *not status-specific* (CH244).
 - **Contradicted:** the conservative 95% CI lies entirely below 0. **Inconclusive:** otherwise. **Unavailable:** CH245 < 20,000
   thin units, < 300 events, < 100 events with >= 48 units, or the placebo defined on < 50% of thin units; CH244 < 20,000 tested
   units (unrewarded x shock) or < 20,000 rewarded shock units, < 300 events, < 100 events with >= 48 units; both: Kish `G_eff` <
@@ -377,8 +401,7 @@ placebo rule of 2.3 can be applied (worlds 1-6: 40 families, events assigned uni
   mediated** (CH245: M4, the refit with the bid headroom at k, `hb_k`, in place of `hb_{k-1}`, drops the estimate below half; R1
   SHOULD 7: since own spread at k is in K and `g_ask,k = spread_T,k - hb_k`, `g_bid,k = spread_D,k - hb_k`, the round's k-level
   mirror gaps differ from LT12's k - 1 basis only through `hb_k` and the state itself, so this is a bid-sum mediation label, not
-  a general mirror-gap one); *floor-sensitive* (CH245: the dense-twin condition on the dense `spread_k >= 2` ticks variant gives
-  the opposite result to the binding one; R1 SHOULD 1); *receipt-order sensitive* (CH245: the refit on pairs with the thin row
+  a general mirror-gap one); *receipt-order sensitive* (CH245: the refit on pairs with the thin row
   received before the dense row at k changes sign); *ladder-dominated* (CH244: the 11+ arm has the opposite sign);
   *CLOB-disagreement sensitive* (CH244: the refit on members whose carry status and feed listing agree changes sign);
   *liquidity-shared* (CH244: in the joint model of 3.3, `shock x unrew` falls below half its primary value; R1 SHOULD 3).
@@ -455,8 +478,9 @@ book's own innovation and the mirror's prior level, and the reverse (the dense b
   inference 1.7; state-shift gate (1.8); **F binding** (twin `zs_D` over (k + 2, k + 3]); **dense-twin and two-sided placebo
   point conditions binding** (1.9).
 - **Dense twin model:** units = the dense members of the same asymmetric pair-captures; target `ds_D`; state `zs_T =
-  (spread_{T,k} - spread_{T,k-1}) / s_T` (`s_T` census-fixed); controls mirrored. **Reported variant (R1 SHOULD 1):** the same
-  model on pair-captures with the dense `spread_k >= 2` ticks (a dense book at one tick cannot narrow).
+  (spread_{T,k} - spread_{T,k-1}) / s_T` (`s_T` census-fixed); controls mirrored. **Second binding set (R1 SHOULD 1, re-check
+  fix 7):** the same model, and the primary, refitted on pair-captures with the dense `spread_k >= 2` ticks (a dense book at one
+  tick cannot narrow); condition (a) of 1.9 must hold on both sets.
 - **Placebo pair (rule 18; R1 MUST 5):** for the unit of event e at capture k, the unrelated pair e' is the first CH245
   asymmetric pair at capture k after e in the order of `sha256(event key)` (wrapping) such that **(i)** no member of e' shares a
   series family (1.4.3) with any member of e, and **(ii)** the event-id sets of e's members and e''s members are disjoint (an
@@ -495,7 +519,7 @@ book's own innovation and the mirror's prior level, and the reverse (the dense b
 - *Selection on thin at k - 1* (regression to the mean): the dense member is narrow at k - 1, so its innovation tends to be
   positive while the thin member reverts down; this biases against H1, but world 4 is binding and both levels are controls.
 - *The 1c floor:* a dense book at one tick cannot narrow, which can make the dense-twin condition pass by mechanics; world R1
-  reports how often, and the `spread_k >= 2` ticks variant with the *floor-sensitive* label.
+  reports how often, and condition (a) must also hold on the dense `spread_k >= 2` ticks set (1.9).
 - *Thin books are illiquid books:* dense liquidity and K's own liquidity as controls; the corr gates (7); world 5.
 - *Reward status* (the paid book is usually the dense one): both books' status as controls; rr / ru / uu reported.
 - *The record:* LT11's two-member arm (a different state; disclosed); the `event` family's visible levels (no twin-spread
@@ -522,7 +546,10 @@ the rewarded members' in the same event-day, beyond what illiquid rungs do after
 - **Day-fixed status (R1 SHOULD 4, ruling A9):** for each member and UTC day, `unrew_{i,day}` = 1 - `rewarded` (1.4.1, status
   capture s = k - 1) at the **first capture of the UTC day at which the member is an eligible member of the event**. A later unit
   of that day whose status at its own k - 1 differs is excluded (`status_switched`, counted by status). A member whose day-fixed
-  status is NaN makes every event-capture of that event-day that includes it ineligible (`status_nan`).
+  status is NaN makes every event-capture of that event-day that includes it ineligible (`status_nan`). **A unit whose own
+  status at its k - 1 is NaN (1.4.1 case (c)) is excluded and counted (`status_nan_unit`) and is never given the day-fixed
+  status** (re-check fix 4); for the mixed rule below the member still counts by its finite day-fixed status, as a switched
+  member does.
 - **Ladder:** non-augmented, ladder-complete (1.4.3) events with **3-10** eligible members at k - 1 and k; **mixed** at capture k
   **on the day-fixed statuses**: among the eligible members at k - 1, >= 1 with `unrew_{i,day} = 0` and >= 1 with
   `unrew_{i,day} = 1` (switched members count by their day-fixed status). 11+ member ladders a reported arm (completeness 0.31 on
@@ -659,7 +686,10 @@ Items marked **[map]** were made after reading the CH251 map; items marked **[R1
 8. **CH244: own spread change and a favourite dummy added; `cl_sib` never used** (LT11's object); `hb_{k-1}` kept as a level.
 9. **CH244: the feed-disagreement census gate [R1 MUST 3].** Among tested units at captures with a feed capture at the feed
    clock (1.2), the share whose market the feed lists with a positive rate (carry-unrewarded but feed-listed) must be **<= 0.20**,
-   and the feed must cover **>= 50%** of tested units; NaN (no feed, or coverage under 50%) fails. **Gate, not label, because**
+   and the feed must cover **>= 50%** of tested units. **Outcomes (re-check fix 3):** coverage under 50% (an outage included)
+   makes CH244 **`census_unavailable (coverage)`** (no other CH244 gate value is computed or printed; re-census only in the
+   ordered lane, as its own Holm family); a feed-listed share above 0.20 on adequate coverage makes it **`census_dropped`**.
+   **Gate, not label, because**
    a misclassified unrewarded class is not a sensitivity: it changes what the tested term measures, and omission is plausibly
    tied to activity (the S34-type confound), so a label after the result could not protect the verdict. **Why 0.20:** under
    non-differential misclassification of a share m of the tested class the contrast shrinks by about (1 - m); at m = 0.20 the
@@ -691,7 +721,10 @@ start lies in `[2026-11-06T00:00Z, 2026-11-17T00:00Z)` (for CH244's feed gate on
   counted, never substituted; the seal records files, sha256s, the seal's slot assignment and the frozen LT12 design-text sha256).
 - **Minimum covered days, checked first** (covered origins / 12, from the seal manifest, identical for both tests): >= 7.0 (>= 5.0
   for twin pairs). If it fails for a test, no gate or descriptive line of it is computed or printed; the test is
-  `census_unavailable (coverage)` (1.1). Feed coverage is not part of this check; it is CH244's gate below.
+  `census_unavailable (coverage)` (1.1). **CH244's feed coverage is a second coverage check (re-check fix 3):** it is evaluated
+  first in CH244's block, before any other CH244 gate value is computed (it needs only the tested units' keys, statuses and feed
+  timestamps); under 50% (an outage included), CH244 returns at once as `census_unavailable (coverage)`, with only the coverage
+  counts printed. The feed-listed share is then a gate (`census_dropped` above 0.20).
 - **Header pre-check** (headers only, before the census code is frozen; result committed before the seal): the 1.2 fields
   including `series_slugs`, `event_ids`, `liquidity`, `clob_rewards`; whether `chg_1d` / `chg_1w` exist; the feed's listing
   fields. A missing field makes every gate that needs it NaN.
@@ -707,8 +740,8 @@ projected counts.
 
 | Test | Gate (all must hold; NaN fails) | Map number it sits near (planning only) | Values fixed into the spec |
 |---|---|---|---|
-| **CH245** | pair completeness: pair-complete two-member event-captures / eligible two-member event-captures (incl. `members_changed`) >= 60%; receipt span: span-retained pairs >= 60% of pair-complete pairs (span and receipt-gap quantiles q50 / q90 / q99 printed); **projected thin units (all 2.2 filters) >= 46,872 (>= 186 a capture)**; **distinct events with a thin unit >= 500 and events with >= 48 thin units >= 100** (unprojected); **Kish `G_eff` >= 15**; **same-slot correlation:** among events with >= 24 complete pair-captures, the share with within-event `|corr(Δspread_A, Δspread_B)|` >= 0.8 is <= 50%; **identification (6 item 6):** >= 50% of thin units in event x UTC-day strata with a non-zero raw dense innovation on >= 3 thin units; the top 1% of thin units by |demeaned `zs_D`| hold <= 25% of its sum of squares and no event holds > 5%; `VIF_w(zs_D)` <= 2.0; within and pooled `|corr(zs_D, x)|` <= 0.5 for x in {`log1p liquidity` of each book, `z log rv24*`, `d_T`}; venue clock: the most common slot holds <= 50% of units with `|zs_D| >= 1`; block-gate share >= 50% of thin units in events with >= 16 shiftable captures; **placebo coverage** (a pair satisfying 2.3's series-family and event-id rule) >= 90% of thin units; `r_gate` <= 0.3; **slope MDE <= 1.0c; F-MDE <= 1.0c** | thin units 499 a capture before the tight rule; retention 1.000; completeness 0.97-1.00; same-slot correlation pooled 0.38 / 0.11 / 0.64 (per-event shares unprobed); within-stratum variation, leverage and placebo coverage unprobed | `s_D`, `s_T`, `s_w`; `zs_D` tercile cuts and gap; world 2's receipt-gap q50 / q90; `exclude_family` |
-| **CH244** | finite day-fixed status on >= 95% of eligible member-days of 3-10 member events (1.4.1 case (c) is the only NaN); ladder completeness: pair-complete member rows / eligible member rows (incl. `members_changed`) of 3-10 member events >= 60%; receipt span >= 60% of pair-complete pairs; **projected tested units (unrewarded x shock, all 3.2 filters) >= 91,224 (>= 362 a capture)**; projected rewarded shock units >= 45,612 (>= 181 a capture); **feed disagreement (6 item 9):** feed coverage >= 50% of tested units and, among covered tested units, the feed-listed (positive-rate) share <= 0.20; **shock share** of mixed event-captures in [0.10, 0.80]; within-event and pooled `|corr(unrew, log1p liquidity)|` <= 0.5; **within-stratum variation:** >= 50% of tested units in event x UTC day strata holding both shock and no-shock captures; `VIF_w(shock x unrew)` <= 2.0; **distinct mixed events >= 500 and events with >= 48 units >= 100** (unprojected); **Kish `G_eff` >= 15**; venue clock <= 50% of tested units in one slot; block-gate share >= 50%; `r_gate` <= 0.3; **class MDE (four cells) <= 1.0c; F-MDE <= 1.0c** | mixed 3-10 ladders 990 (860 complete) on the simple reading; shock share 0.51-0.53; corr -0.05 / -0.09; the carry effect, feed-listed share, feed coverage, spans and switchers unprobed | world 9's correlation; `shock_size` scale; `exclude_family` |
+| **CH245** | pair completeness: pair-complete two-member event-captures / eligible two-member event-captures (incl. `members_changed`) >= 60%; receipt span: span-retained pairs >= 60% of pair-complete pairs (span and receipt-gap quantiles q50 / q90 / q99 printed); **projected thin units (all 2.2 filters) >= 46,872 (>= 186 a capture)**; **distinct events with a thin unit >= 500 and events with >= 48 thin units >= 100** (unprojected); **Kish `G_eff` >= 15**; **same-slot correlation:** among events with >= 24 complete pair-captures, the share with within-event `|corr(Δspread_A, Δspread_B)|` >= 0.8 is <= 50%; **identification (6 item 6):** >= 50% of thin units in event x UTC-day strata with a non-zero raw dense innovation on >= 3 thin units; the top 1% of thin units by |demeaned `zs_D`| hold <= 25% of its sum of squares and no event holds > 5%; `VIF_w(zs_D)` <= 2.0 (computed on the expanding-past event x UTC-day demeaned regressors, as the analysis fits them; ruling B1); within and pooled `|corr(zs_D, x)|` <= 0.5 for x in {`log1p liquidity` of each book, `z log rv24*`, `d_T`}; venue clock: the most common slot holds <= 50% of units with `|zs_D| >= 1`; block-gate share >= 50% of thin units in events with >= 16 shiftable captures; **placebo coverage** (a pair satisfying 2.3's series-family and event-id rule) >= 90% of thin units; `r_gate` <= 0.3; **slope MDE <= 1.0c; F-MDE <= 1.0c** | thin units 499 a capture before the tight rule; retention 1.000; completeness 0.97-1.00; same-slot correlation pooled 0.38 / 0.11 / 0.64 (per-event shares unprobed); within-stratum variation, leverage and placebo coverage unprobed | `s_D`, `s_T`, `s_w`; `zs_D` tercile cuts and gap; world 2's receipt-gap q50 / q90; `exclude_family` |
+| **CH244** | finite day-fixed status on >= 95% of eligible member-days of 3-10 member events (1.4.1 case (c) is the only NaN); ladder completeness: pair-complete member rows / eligible member rows (incl. `members_changed`) of 3-10 member events >= 60%; receipt span >= 60% of pair-complete pairs; **projected tested units (unrewarded x shock, all 3.2 filters) >= 91,224 (>= 362 a capture)**; projected rewarded shock units >= 45,612 (>= 181 a capture); **feed disagreement (6 item 9):** feed coverage >= 50% of tested units (else `census_unavailable (coverage)`, checked first) and, among covered tested units, the feed-listed (positive-rate) share <= 0.20 (else `census_dropped`); **shock share** of mixed event-captures in [0.10, 0.80]; within-event and pooled `|corr(unrew, log1p liquidity)|` <= 0.5; **within-stratum variation:** >= 50% of tested units in event x UTC day strata holding both shock and no-shock captures; `VIF_w(shock x unrew)` <= 2.0 (on the demeaned regressors); **distinct mixed events >= 500 and events with >= 48 units >= 100** (unprojected); **Kish `G_eff` >= 15**; venue clock <= 50% of tested units in one slot; block-gate share >= 50%; `r_gate` <= 0.3; **class MDE (four cells) <= 1.0c; F-MDE <= 1.0c** | mixed 3-10 ladders 990 (860 complete) on the simple reading; shock share 0.51-0.53; corr -0.05 / -0.09; the carry effect, feed-listed share, feed coverage, spans and switchers unprobed | world 9's correlation; `shock_size` scale; `exclude_family` |
 
 - **Census-fixed values (the exhaustive list; each written into the spec as the exact census float; nothing else is left open).**
   (1) `k_tests`: the tests whose every gate above holds. (2) `s_D`, `s_T`: the population SD (ddof 0, cents) of the dense and the
@@ -718,7 +751,8 @@ projected counts.
   gaps: q50 and q90 of `|received_utc_A - received_utc_B|` at k over CH245 census pair-complete pairs (floor q50 5 s). (6) World
   9's correlation: the within-event `corr(unrew, log1p liquidity)` over CH244 census units (floor |0.20|). (7) `shock_size`
   scale: its population SD over CH244 census units. (8) `<test>.exclude_family`: 1.4's series-family rule on each census primary
-  population. The census's `DE_gate`, `VIF_w`, `r_gate`, the feed shares and the MDEs are gate values, recorded, never re-used to
+  population. (9) **`rho_census`** (re-check fix 2): the pooled Pearson correlation of the raw `Δspread_T` and `Δspread_D` over
+  CH245 census thin units; world 1 uses `rho_ss = max(rho_census, 0.64)` (1.8.1). The census's `DE_gate`, `VIF_w`, `r_gate`, the feed shares and the MDEs are gate values, recorded, never re-used to
   change a threshold.
 - **Census prints for CH244 (R1 MUST 3; descriptive, no further gate):** the **carry-against-simple confusion**: on eligible
   member rows of 3-10 member events at k - 1, the 2 x 2 counts of `listed_carry24h_v2` status against the simple reading
@@ -738,7 +772,10 @@ projected counts.
 
 **Jobs (to be drafted under `docs/research_lab/queue/drafts/`; ids q0710-q0715 checked unused on 2026-10-23; none written in this
 commit).** `q0710_lt12_census_restore` (net, about 1,400 MB disk, `mem_mb` 400; `depends_on` the freeze; `not_before`
-2026-11-17T06:00Z); `q0711_lt12_seal` (net, 300); `q0712_lt12_census` (net, 600, streaming with a two-capture window and the
+2026-11-17T09:00Z, moved from 06:00Z: the last lag slot's capture (slot 2026-11-17T04:31Z) may start as late as 05:01Z under the
+30-minute tolerance and needs up to one slot (2 h) to be `state=complete` with its sidecar, so the inputs are final only at about
+07:01Z; 06:00Z could open the restore before that capture is written, and 09:00Z keeps a 2 h margin; the restore also refuses
+while any lag-slot capture is neither `state=complete` nor past its slot's tolerance with no capture); `q0711_lt12_seal` (net, 300); `q0712_lt12_census` (net, 600, streaming with a two-capture window and the
 12-slot carry state; `cpu` 1,200 exclusive if the dry run measures more); `q0713_lt12_size_check` (cpu, 800, after the census
 values are committed; `max_retries 1`); `q0714_lt12_reader` (fallback only); `q0715_lt12_analysis` (cpu, 4,000, exclusive,
 `not_before` the analysis date). Never promoted while E015's or E022's analysis, or an LT9, LT10 or LT11 census, size check or
@@ -782,7 +819,13 @@ statuses, `status_switched`, the shock excluding the own move, `lowliq` within e
 the feed clock (<= 6 h, else `feed_uncovered`) and the feed-listed share; **the gate path (R1 MUST 6): `event_day_state_shift_gate`
 shifts raw state values with one offset per event, recomputes interactions from the shifted shock, re-applies expanding-past
 event x UTC-day demeaning on every draw, keeps the target and other regressors fixed, omits (never fills) missing positions, and
-a fixture shows that shifting pre-demeaned values gives a different design matrix and is refused by an assertion**; the size
+a fixture shows that shifting pre-demeaned values gives a different design matrix and is refused by an assertion; the gate
+statistic is the event-clustered CR1 t on the gate sample (events with `n_e >= 16`), and the observed t is refitted on that
+sample, never taken from the all-units fit (re-check fix 1)**; world 1's `lambda` bisection reaches `rho_ss` within 0.005 on a
+synthetic `rho_census`, and worlds 1 and 7 generate events with `n_e < 16` (re-check fix 2); a unit with a NaN own status at k - 1
+is `status_nan_unit` and never takes the day-fixed status (fix 4); feed coverage under 50% returns `census_unavailable
+(coverage)` before any other CH244 gate value, a feed-listed share above 0.20 returns `census_dropped` (fix 3); the dense-twin
+condition is evaluated on both sets and the `>= 2` ticks set under 5,000 units gives *dense-twin unavailable* (fix 7); the size
 worlds call the same gate function as the analysis; the lag-slot loader returns only twin terms; the coverage check returns
 before any gate; `ops-stats` reads no price, spread, volume or liquidity column; spec NaN refusal; seal and pin refusals; the
 analysis refuses before its date; the worlds generate the declared shapes; vendored copies match their hashes;
@@ -795,7 +838,7 @@ analysis refuses before its date; the worlds generate the declared shapes; vendo
 3. Code (8.1, 8.3), a `science-reviewer` freeze check of census, gate and size-check code; size-check run time per world measured
    at a timing seed other than 20261597 (20 worlds each; only the clock read) and projected; if census commit + projected run +
    24 h margin + the dry run cannot precede 2026-12-08T00:00Z, the ordered lane is declared by a ledger line before the seal.
-4. q0710 restore, q0711 seal (after 2026-11-17T06:00Z); seal committed and pulled on the host.
+4. q0710 restore, q0711 seal (after 2026-11-17T09:00Z; 7); seal committed and pulled on the host.
 5. Census q0712; `census_dropped` and `census_unavailable (coverage)` recorded separately; `k_tests` and the census-fixed values
    filled with the exact census floats; a freeze record (module hashes, spec hash, census output hash re-verified).
 6. Size check q0713 (2,000 worlds x 200 draws, seed 20261597); results recorded per test; world R1 and the power runs reported.
@@ -878,8 +921,8 @@ A16 no change. **Open items for the re-check (each a judgement call made in this
 3. **B3 (state-shift gate).** Shifting the raw state with re-demeaning on every draw replaces LT5's residual-shift
    Freedman-Lane form. Is a state-shift block permutation an acceptable binding gate here, and should CH244's shift move
    `shock_size` with `shock` (declared: yes) or only the indicator?
-4. **B4 (CH244 feed gate).** Is 0.20 the right line, is a gate (not a label) right, and is "NaN fails" right when feed coverage
-   is unknown (it can drop CH244 on a feed outage alone)? Is the 6 h feed clock right?
+4. **B4 (CH244 feed gate).** Ruled: gate right, 0.20 and 6 h acceptable; missing coverage is now `census_unavailable
+   (coverage)`, not a drop (re-check fix 3).
 5. **B5 (CH244 mixed on day-fixed status).** Switched members count toward "mixed" by their day-fixed status while their own
    units are excluded; acceptable, or should they be removed from the mixed rule as well?
 6. **B6 (world R1).** Is the symmetric lead-lag world with the 1c floor, reported and non-binding, enough for SHOULD 1, or should
@@ -896,7 +939,8 @@ A16 no change. **Open items for the re-check (each a judgement call made in this
 ```
 
 ## 13. R1 response (2026-10-24; designer; every item mapped to the changed section and lines)
-Line numbers refer to this revision of the file.
+Line numbers in this table refer to the R1-response revision 6fc72f57 (sha256 `c879bbeb…31e9`); section 13.x maps the re-check
+fixes to the lines of this revision.
 
 | R1 item | Applied | Section and lines | What changed |
 |---|---|---|---|
@@ -916,10 +960,31 @@ Line numbers refer to this revision of the file.
 | **Rulings A1-A16** | applied | 11: 864-871 (and the sections each names) | A1 drop; A2 conditional-on-asymmetry wording, no pooling; A3 k - 1 levels; A4 placebo binding; A5 MUST 4; A6 with MUST 6; A7 MUST 3; A8 joint model; A9 switch prints; A10-A12 moot; A13 kept; A14 SHOULD 5; A15 disclosure and `pre_window_source` kept (1.1: 135-139); A16 no change |
 | **Priors, P(no test), expected k** | applied | 0: 61-75; 12: 891-896 | CH245 0.30, CH244 0.15; expected k 0.45; P(no test) 0.70 x 0.85 = 0.595, about 0.60; expected valid verdicts about 0.15 |
 
-**Not applied:** none. **No threshold was loosened.** Changes that tighten or add conditions: the two-sided placebo with the
+**Not applied:** none. **No threshold was loosened, with one qualification (re-check fix 5):** part (i) of CH245's new
+identification gate (non-zero innovations in event-day strata) is not comparable to the first draft's raw-SD reading, so it
+cannot be called tighter or looser; it is compensated by two added conditions, the `s_w` term in the declared MDE (a state that
+barely moves inside event-days raises the MDE) and the leverage caps (top 1% <= 25%, one event <= 5%). Changes that tighten or add
+conditions: the two-sided placebo with the
 series-family and event-id rule; the feed gate; the leverage caps and the `s_w` term in the MDE; CH244's prior. The one gate
 that was replaced rather than tightened (CH245's identification gate) is replaced because its round-17 form mixed units; its
 new form was written before any count of either form existed (6 item 6). **New thresholds declared in this revision, each with
 its rationale in the section named:** >= 3 non-zero innovations / 50%, top 1% <= 25%, one event <= 5% (6 item 6); feed-listed
 share <= 0.20, coverage >= 50%, feed clock 6 h (6 item 9); world R1's loading 0.4 and seed (1.8). Nothing is left to the census
 except the values listed as census-fixed in 7.
+
+### 13.x Re-check response (`reviews/LT12_RECHECK_2026-10-23.md`, ACCEPT_WITH_FIXES; fixes applied as worded)
+Line numbers refer to this revision of the file. No threshold is loosened; fixes 1-4 and 7 add or tighten conditions.
+
+| Re-check item | Section and lines | What changed |
+|---|---|---|
+| **Fix 1** gate statistic and sample | 1.8: 279-301; 8.3: 818-828 | the statistic is the tested coefficient's event-clustered CR1 t, identical for the observed fit and every draw; the gate sample is the events with `n_e >= 16`, and the observed t is refitted on that same sample; the size worlds run the same path; unit test added |
+| **Fix 2** world 1 loading and `n` ranges | 1.8.1: 339-348, 362-363; 7: 753-755; 8.3: 818-828 | world 1's loading `lambda` is set by a declared bisection so the planted within-event same-slot correlation equals `rho_ss = max(rho_census, 0.64)`; `rho_census` (pooled same-slot correlation on CH245 census thin units) added to the census-fixed list as item (9); worlds 1 and 7 (and the worlds built on them) draw `n` uniform on 8..252, so `n_e < 16` occurs |
+| **Fix 3** feed coverage and outcomes | 1.2: 165-169; 6 item 9: 687-698; 7: 722-727, 744; 8.3: 818-828; 11 B4: 924-925 | coverage under 50% (an outage included) -> CH244 `census_unavailable (coverage)`, checked first in CH244's block, re-census only in the ordered lane as its own Holm family; a feed-listed share above 0.20 on adequate coverage -> `census_dropped` |
+| **Fix 4** NaN own status | 3.2: 546-553; 8.3: 818-828 | a unit whose own status at k - 1 is NaN is excluded and counted (`status_nan_unit`), never given the day-fixed status |
+| **Fix 5** "no threshold loosened" qualified | 13: 963-968 | part (i) of CH245's identification gate is stated as not comparable to the first draft's raw reading, with the compensating `s_w` MDE term and leverage caps named |
+| **Fix 6** expected valid verdicts | 0: 74-79 | derived: 0.30 x 0.5 x 0.9 + 0.15 x 0.6 x 0.9 = 0.216, about 0.2 (was an underived 0.15) |
+| **Fix 7** dense-twin condition on both sets | 1.8: 320-327; 1.9: 382-394; 2.3: 480-483; 2.5: 522; 8.3: 818-828 | condition (a) must hold on the full set and on the dense `spread_k >= 2` ticks set; that set under 5,000 units -> at most Inconclusive (*dense-twin unavailable*); the *floor-sensitive* label is removed (now part of the condition); world R1 reports both sets and their conjunction |
+| **B1 note** | 7: 743-744 | `VIF_w` stated as computed on the expanding-past event x UTC-day demeaned regressors (both tests) |
+| **Restore margin (not a numbered fix; "not verified" in the re-check)** | 7: 773-779; 8.4: 841 | `q0710`'s `not_before` moved from 2026-11-17T06:00Z to **09:00Z**: the last lag slot (04:31Z) may start up to 05:01Z under the 30-minute tolerance and needs up to one slot to be `state=complete` with its sidecar (final about 07:01Z), so 06:00Z was too tight; 09:00Z keeps 2 h of margin, and the restore also refuses while a lag-slot capture is neither complete nor past its tolerance |
+| **Rulings B1-B7** | 11: 907-930 | B4 recorded as ruled; the others accepted as ruled (B2 keeps 90% coverage; B3 `shock_size` shifts with `shock`, as written in 1.8) |
+| **Status line** | header: 3-6, 12-13 | DRAFT: R1 REVISE, response, re-check ACCEPT_WITH_FIXES, fixes applied; final verification pending |
