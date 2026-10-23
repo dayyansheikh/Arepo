@@ -247,7 +247,7 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-23 03:05Z
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-23 03:55Z
 Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && git log --oneline -1'` = local tip.
 Host 2 OCPU / 11.4 GiB since the resize. data-dumps 34 / 40 GB cap: owner approval 8 (restore-tree clearing) is time-relevant.
 
@@ -265,13 +265,15 @@ Host 2 OCPU / 11.4 GiB since the resize. data-dumps 34 / 40 GB cap: owner approv
   raise the operational `--data-dumps-cap-gb` of the registered live collectors (q0460) to 44 (below the 45 GiB pass cap;
   root has 36 GB free), with a ledger line; never let a registered collector refuse.
 - **Creative round 15 merged** (c23b5a52; CH222-CH231; CANDIDATES note 90c7af39: engine-first xent, ruleedit, xvenue2,
-  gamestate; kxbook conditional on LT10). Finding: capture-clock cross-venue tests lack pairs; E009's 120 s Kalshi+CLOB
-  poller is the only fine-clock panel. **LT10** (CH224, CH223, CH222 on E009's poller stream, `informed (E009)`) draft ba559ced on `feat/live-tests-10` (`../astrolabe-live-tests-10`); **challenger R1 REVISE** (786bb487,
-  `reviews/LT10_CHALLENGER_R1_2026-10-23.md`: 7 must-fix, 10 should-fix); designer response in progress, then re-check. **Deadline: design text frozen before
-  2026-11-03T02:00Z** (E009/E010 analysis). Then challenger R1 (science-reviewer), response, re-check, freeze; poller
-  continuation after 11-03 is an open orchestrator decision (bounded public collection). CH230 (poller pair-list
-  extension) and CH225/CH226 (sports) wait.
-- Host tip = 90c7af39 (deployed 03:04Z).
+  gamestate).
+- **LT10 DESIGN TEXT FROZEN** (34b7e22e, sha256 1da6c075…; merged 6f651f7e): CH224, CH223, CH222 on E009's 120 s Kalshi+CLOB
+  poller, `informed (E009, E010)`, window proposed 11-10..12-01. R1 REVISE -> response -> re-check ACCEPT_WITH_FIXES -> fixes
+  -> pre-freeze verify. O1 done (free 35.9 GB vs 4.5 GB need); O2 not needed. **O3 open:** the engine builder must merge the
+  second `xvenue` read root (`XV_QUOTES_ROOT`) and apply `kxbook` / `attrlimit_lt10` (CANDIDATES round 7) — deadline
+  **2026-11-03T02:00Z**, else LT10 ends at route 3. **Next:** LT10 code phase on a new `feat/live-tests-10-code` (successor
+  poller `run_xv_quotes_poller.py`, reader, seal, censuses CF10/CK10/CD10, size check, tests), then code-freeze check (must
+  confirm re-check fixes 1 and 4). Census only after BOTH E009 and E010 analysis commits.
+- Host tip: see the latest deploy (03:5xZ).
 
 **Autopilot session 10-22 from 20:35Z (state at 22:23Z):**
 - **LT7: CLOSED, no test** (1dd77a67). CC7 dropped CH191/CH192/CH193, CS7 dropped CH195 (F-MDE 0.667c > 0.5c) and CH197.

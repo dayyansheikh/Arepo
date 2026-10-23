@@ -1,12 +1,14 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-23 04:05 UTC+1
+**Last updated:** 2026-10-23 04:45 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
+- **Planned live-test families in the pipeline:** LT8 (counting checks today), LT9 (code done, data from 12 Nov), LT10
+  (design frozen today).
 - **Seven registered live tests** are collecting or waiting to collect (E009/E010, E011, E012-E014, E015, E022, E026).
   Single analyses: E009/E010 (3 Nov), E011 (11 Nov), E012-E014 (13 Nov), E015 (15 Nov), E022 (17 Nov), E026 (6 Dec).
 - **LT7 (five planned tests from round 12): closed, no test.** All five failed their counting checks tonight, before any
@@ -25,8 +27,10 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 - **Batch 7:** its counting job starts from 24 Oct. **Batch 8/9:** both failed data jobs are fixed and queued.
 - **New ideas round 14** done (10 ideas), all now used by LT9 or the signal engine. **Round 15 done** (10 ideas, CH222-CH231). Its main
   finding: comparing venues every 2 hours never gives enough pairs, but the 2-minute Kalshi + Polymarket poller (used by
-  E009) does. **LT10** (three ideas on that poller: does Kalshi's quoting move Polymarket's spread or its next move) is
-  being designed now; its design must be frozen before E009's analysis on 3 Nov, so it cannot be shaped by that result.
+  E009) does. **LT10** (three ideas on that poller: does Kalshi's quoting move Polymarket's spread or its next move) **design frozen**
+  (23 Oct, after an independent challenger review asked for changes and a re-check accepted them), well before E009's
+  analysis on 3 Nov, so it cannot be shaped by that result. Next: its code. About 3 in 4 that none of the three survives
+  its counting check (the designer's estimate).
 - **Copy-skilled wallets (E026):** registered; collection starts 25 Oct (phone note then).
 - **Honest pattern:** most planned tests die at the counting stage, before any outcome data is read (LT5, LT6 and now LT7
   all closed this way). That is the checks working as designed.

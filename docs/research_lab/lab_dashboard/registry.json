@@ -1652,24 +1652,26 @@
   {
    "id": "LT10",
    "title": "Live tests 10: three cross-venue ideas from round 15 (planned)",
-   "plain": "Up to three planned live tests from new-ideas round 15, on the 2-minute Kalshi and Polymarket quote stream: whether Kalshi's spread changes are followed by Polymarket's spread, whether Kalshi quotes pulled without a price change come before larger Polymarket moves, and whether Kalshi moves with a trade differ from quote-only moves. The challenger review asked for changes (23 Oct). All three may fail their counting checks.",
+   "plain": "Up to three planned live tests from new-ideas round 15, on the 2-minute Kalshi and Polymarket quote stream: whether Kalshi's spread changes are followed by Polymarket's spread, whether Kalshi quotes pulled without a price change come before larger Polymarket moves, and whether Kalshi moves with a trade differ from quote-only moves. Design frozen (23 Oct) after an independent challenger review. All three may fail their counting checks.",
    "batch": "LT10",
    "family": "cross_venue",
-   "stage": "idea",
+   "stage": "designed",
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Challenger review, then design freeze before 3 Nov 2026; counting checks after E010's analysis; collection proposed from 10 Nov 2026",
-   "next_date": "2026-11-03",
+   "next": "Code and its independent check; counting checks after E009's and E010's analyses (3 Nov); collection proposed from 10 Nov 2026",
+   "next_date": "2026-11-10",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT10 design draft (2026-10-23); docs/research_lab/LIVE_TESTS_10.md (feat/live-tests-10)"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT10 challenger R1, response, re-check, DESIGN-TEXT FREEZE (2026-10-23); docs/research_lab/LIVE_TESTS_10.md"
    },
    "stage_results": {
-    "idea": "pending"
+    "idea": "pending",
+    "designed": "pending"
    },
    "reached": [
-    "idea"
+    "idea",
+    "designed"
    ]
   },
   {

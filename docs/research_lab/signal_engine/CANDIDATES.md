@@ -230,6 +230,27 @@ round-5 limits cover the same terms. Nothing here moves any LT8 or LT9 date.
 - The LT7 attribution limits are dropped; they were never computed. LT8's limits cover different terms (`b0_gap` x own
   2 h change).
 
+## Embargo requests from the experiments side, round 7 (LT10 design frozen; filed 2026-10-23 ~03:50Z; NOT YET APPLIED)
+
+LT10 (`LIVE_TESTS_10.md`, design text frozen at 34b7e22e, sha256 `1da6c075…`; tests CH224, CH223, CH222 on E009's 120 s Kalshi +
+CLOB poller stream; window proposed 2026-11-10..12-01). Requested text is LT10 section 9 (copy it verbatim into
+`config.EMBARGO`). **Apply before 2026-11-04T00:00Z** (when `xvenue` lapses), and before any isolate or `se-aux-xvenue2-v1`
+is built.
+1. **New token `kxbook`**, `until` 2026-12-04T00:00:00Z, tests LT10-CH224 / CH223 / CH222: any column reading a change in
+   Kalshi's spread, touch prices, touch sizes or `last_price`, or a traded / quote-only split of a Kalshi mid change, at ANY
+   horizon. Named: `kx_spread_chg_10m`, `kx_spread_ratio`, `kx_pull_10m`, `kx_pull_side`, `kx_last_chg_10m`, `kx_dk1_traded`,
+   `kx_dk1_quote`, `kx_trade_steps`, and **`kx_last_chg_2h`, `kx_pull_2h`, `kx_spread_chg_2h` moved out of the planned
+   `se-aux-xvenue2-v1` family into a `kxbook` family** (round-15 note below). `xvenue2` then holds no Kalshi change column.
+   `se4` / `se13` at their current spec versions (levels only) are not covered; a new version adding any `kx_*` change column is.
+2. **New attribution limit `attrlimit_lt10`** (`kind: attribution_limit`), `until` 2026-12-04T00:00:00Z; limits, models and
+   `no_broad_families: ["kxbook"]` as in LT10 section 9.
+3. **Broad-spec test extended:** `test_lt7_closure_withdrawals_and_lt9_round6_requests` (or its successor) also fails if any
+   broad spec holds the `kxbook` family.
+4. **Second read root for `xvenue` (LT10 step O3; deadline 2026-11-03T02:00Z, before E009's analysis):** `XV_QUOTES_ROOT` ->
+   both E009's `cross_venue_live/` and the successor's `data-dumps/research_lab/xv_quotes/` (same line format; LT10 8.1 /
+   8.2 route 1), merged and live before the handover so `se4` / `se13` never get NaN `xvenue` inputs. **If O3 is not merged
+   by 11-03T02:00Z, LT10 ends at route 3 (not registered)**, so please reply here with the merge commit.
+
 ## Idea-level families from creative round 15 (2026-10-23; ideas only, no evidence; not candidates yet)
 
 `CREATIVE_HYPOTHESES_2026-10-29.md` (CH222-CH231) states one point-in-time family per idea. Status of every row below:

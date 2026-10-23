@@ -4083,3 +4083,28 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **Open orchestrator decision D-LT10-1:** the poller stops at its 2 GiB cap around 11-16 (projection); proposed quotes-only
   successor in new files (`xv_quotes/`), same pairs and grid; no new external service.
 
+## LT10 challenger R1, response, re-check, DESIGN-TEXT FREEZE (2026-10-23 ~03:50Z; experiments autopilot; nothing counted)
+- **R1** `reviews/LT10_CHALLENGER_R1_2026-10-23.md`: **REVISE** (7 must-fix: scope final before the census; D-LT10-1 route 1
+  committed; pair-record in-force time; event-level Freedman-Lane offsets + a 20-pair-event world; `kxbook` embargo naming the
+  xvenue2 2 h columns; both E009 and E010 analysis commits required; CH224 count gate; 10 should-fix). All arithmetic
+  re-computed and matching; no E009/E010 frozen rule broken (their no-look rule ends at their analyses; the census runs after).
+- **Response** dc846d4e (section 13; no threshold loosened; designer's odds of no test registering 0.66 -> 0.76, a judgement).
+- **Re-check** `reviews/LT10_R1_RECHECK_2026-10-23.md`: **ACCEPT_WITH_FIXES** (6 fixes: real-time in-force rule in the window;
+  L declared, not guaranteed; pre-`T_E009` steps O1-O3 and scope deadline at the freeze; W10 over 21 days with contiguous
+  presence; `kxbook` family move; disclosure of the CD10 block-gate easing). Fixes d0951bf0. **Pre-freeze verification**
+  `reviews/LT10_PREFREEZE_VERIFY_2026-10-23.md`: FREEZE_OK_AFTER 2 mechanical edits, applied 34b7e22e.
+- **DESIGN-TEXT FREEZE:** `LIVE_TESTS_10.md` at **34b7e22e**, sha256
+  **`1da6c07510f294c26ab0c69d17fd57bd6daefab7275d88f4bbeb6d3a130bc6e8`**; merged into chore 6f651f7e. Frozen before
+  2026-11-03T02:00Z and before E009 / E010's analyses, as required. Family label `informed (E009, E010)`. Not registered;
+  E-numbers unassigned; nothing counted.
+- **Scope:** no owner scope decision exists at the freeze, so the default `non_sports_ex_crypto` holds (fixed at the freeze).
+- **O1 (at the freeze, 2026-10-23T03:44Z, host):** E009's directory `cross_venue_live/` 602,884,181 B (576 MiB); root free
+  35,900,596,224 B (35.9 GB) of 95.3 GB. Route 1's projected need 3.0 GB, x 1.5 = 4.5 GB: covered. No E009/E010 file deletion
+  is needed. **O2: not needed** (the standing collection authorisation covers the successor collector; same public keyless
+  endpoints, same request rate). Separate note: data-dumps is 35 GB against the 40 GB job cap (owner approval 8 pending).
+- **O3 (deadline 11-03T02:00Z):** the engine's second `xvenue` read root, requested in CANDIDATES round 7 with the `kxbook`
+  and `attrlimit_lt10` entries (apply before 11-04T00:00Z). Missing by the deadline = route 3 (not registered).
+- **Next:** code phase (successor poller `run_xv_quotes_poller.py`, reader, seal, censuses CF10 / CK10 / CD10, size check),
+  its code-freeze check (must confirm re-check fixes 1 and 4 in the code); census only after both E009 and E010 analysis
+  commits.
+
