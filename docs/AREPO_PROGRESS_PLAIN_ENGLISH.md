@@ -1,22 +1,25 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-23 23:35 UTC+1
+**Last updated:** 2026-10-24 00:09 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **Tonight (23 Oct):** the **LT11 code is written** (three ideas from round 16, design frozen earlier today). An independent
-  reviewer is now checking the code against the frozen design before anything runs. Counting checks run after 7 Nov; if any
-  test survives, collection from 18 Nov.
-- **Batch 8, "last-minute certainty" in daily crypto Up/Down markets, is back on track.** The reviewer-allowed retry (one try,
-  counted once) found **665 markets** (about half kept sealed for the replication). No price or outcome was read. The next
-  step, a check that order-book history exists for at least 90% of them, is queued.
-- **New: LT12 is being designed** from the three best round-17 ideas ("the mirror", "the farmed half", "the fee as the price
-  of urgency"). The counts-only map came back: the first two have plenty of cases; the fee idea's numbers swing a lot from
-  day to day, so its own counting check will decide. A challenger review follows the draft. If it survives, collection would
-  be 10-31 Dec.
+- **Tonight (23-24 Oct): LT11's code check found real problems, now being fixed.** The independent reviewer found that the
+  simulated "fake data" worlds, used to check that the tests don't raise false alarms, were built more simply than the frozen
+  design says. That would have made the safety check too easy to pass. Every fix is in the code; the frozen design is unchanged.
+  A second check follows. Counting checks after 7 Nov; collection from 18 Nov if a test survives.
+- **LT12 design: the challenger removed one of its three ideas.** "The fee as the price of urgency" relied on an optional
+  falsification check, and an earlier ruling says that check must always count, so it leaves (kept as an idea for the signal
+  engine). Two tests remain: "the mirror" and "the farmed half". The revised draft is being re-checked. Its author now puts the
+  chance that neither survives counting at about 60%.
+- **Batch 8, "last-minute certainty" (crypto Up/Down):** the allowed retry found 665 markets. The order-book coverage check is
+  queued behind the long model run MC1.
+- **Fixed a silent stall:** two background data extractions (for batches 4 and 5) had been refusing to run since 17 Oct
+  because of an old disk limit. Raised to the standard limit. Nothing was lost (the server still holds all the raw data); it
+  is only a delay.
 - **Your 23 Oct message ("why have you stopped?"): it had not stopped.** Sessions kept running but were cut off by the usage limit
   before writing their summary; the Lab board now shows how long such a session worked and its last progress note.
 - **Server:** the model run MC1 is working through its folds (healthy); the live collectors are healthy.
