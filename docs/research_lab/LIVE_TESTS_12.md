@@ -1,18 +1,20 @@
 # Live tests 12 (LT12): the mirror and the farmed half (CH245, CH244), DRAFT pre-registrations
 
-**Status: DRAFT. Challenger R1 (`reviews/LT12_CHALLENGER_R1_2026-10-23.md`, commit 59d2a158): REVISE, 6 must-fix, 7
-should-fix, rulings A1-A16; R1 response applied (section 13); R1 re-check (`reviews/LT12_RECHECK_2026-10-23.md`, commit
-b038afaa): ACCEPT_WITH_FIXES, fixes 1-7 applied in this revision (section 13.x); final verification pending. NOT FROZEN, not
-registered, nothing counted, no code, no seal, no census run. E-numbers unassigned.** Drafted 2026-10-23 on branch `feat/live-tests-12`
+**Status: FROZEN (design text) 2026-10-23, after challenger R1 (`reviews/LT12_CHALLENGER_R1_2026-10-23.md`, 59d2a158):
+REVISE, the R1 response (section 13), the re-check (`reviews/LT12_RECHECK_2026-10-23.md`, b038afaa): ACCEPT_WITH_FIXES, its
+fixes 1-7 (section 13.x), and the final pre-freeze verification: FIXES_REQUIRED (wording), fixes 1-5 applied in this freeze
+commit (section 13.y). Not registered; E-numbers unassigned; nothing counted, no code, no seal, no census run. This file's
+sha256 is recorded in `EXPERIMENT_LEDGER.md` (the file cannot hold its own hash).** Drafted 2026-10-23 on branch `feat/live-tests-12`
 from the `chore/arepo-claude-setup` tip `1e89423d` (first draft fd9c425f, sha256 `64fe3e7b…2cac`), a design-only commit like
 the first commits of LT3-LT11. **CH243 (the fee) was dropped after R1 (MUST 1; section 4); LT12 is now a family of at most
 two tests.** LT12 takes the next free E-numbers at its own registration, in the order CH245, CH244 (round 17's rank order).
 If both tests drop at their census, LT12 is not registered (recorded in the ledger; nothing counted). Before registration
 this needs, in order:
-1. the **final verification** of this revision (the re-check's fixes 1-7 as applied; fixes 1-2 are confirmed again in code at
-   the code-freeze check, step 3);
-2. the **design-text freeze commit** (1.1) **before the LT12 seal commit and before `T_LT11`** (fast lane), planned by
-   2026-11-06 so that it also precedes LT11's census commit (`T_LT11c`, 1.1); otherwise the ordered lane applies;
+1. the **final pre-freeze verification**, the acceptance this freeze rests on (done: FIXES_REQUIRED, wording only, applied in
+   the freeze commit; the re-check's fixes 1-2 are confirmed again in code at the code-freeze check, step 3);
+2. the **design-text freeze commit** (1.1): this commit, made 2026-10-23, before the LT12 seal commit, before `T_LT11` and
+   before LT11's census commit (`T_LT11c`), so the fast lane stands and no *informed (LT11 census)* label applies; its sha256 is
+   recorded in the ledger;
 3. the code (section 8) with a `science-reviewer` freeze check of the census, gate and size-check code against 1.8, 1.8.1
    and 7, on synthetic data only;
 4. the census inputs' restore and seal (7), each once, after the freeze and after the census span and its lag slots end;
@@ -143,7 +145,8 @@ Round 17's rules map onto LT12 as follows (rules 1-17 as in LT11 1.0's table, ap
   count printed in the analysis; R1 ruling A15). Those captures lie after LT11's `END_UTC`; LT11 reads some of them as target
   or twin slots of its last origins. LT12 reads them as raw rows and sidecars only and computes none of LT11's objects. The
   last origin is the last capture starting before `END_UTC`; its targets (k + 1) and twins (k + 3) are read.
-- **Design-text freeze.** After the challenger's acceptance (R1 re-check), a commit records this file's sha256 in the ledger.
+- **Design-text freeze.** After the acceptance of the final pre-freeze verification (which followed R1 and its re-check), a
+  commit records this file's sha256 in the ledger.
   Afterwards the text changes only by the census-fixed values named in 7 and by code-freeze-check fixes that change no state,
   unit, target, estimator, gate, threshold or verdict rule. The embargo requests of 9 are filed at the freeze.
 - **Fixed end, no extension; one analysis** (`run_live_tests12.py analyze` refuses before the analysis date; `--out` refuses
@@ -299,8 +302,7 @@ pre-check (headers only) and the restore's byte and sha256 checks; development u
 - **Size check, after the census.** `size-check` runs once on the code to be pinned, **2,000 worlds x 200 draws, seed
   20261597**, limit **0.058** (= 0.05 + 1.645 sqrt(0.0475 / 2,000)); **worlds 1-5 and 7-9 run the gate through
   `event_day_state_shift_gate` exactly as the analysis does** (raw shift, demeaning re-applied every draw, the gate-sample refit
-and its event-clustered CR1 t, same minimum and
-  omission rule); a world is generated once and evaluated under each test it binds. No effect of the tested term in any world.
+  and its event-clustered CR1 t, same minimum and omission rule); a world is generated once and evaluated under each test it binds. No effect of the tested term in any world.
 
   | # | Scenario (1.8.1) | Gate | Binding for | Statistic |
   |---|---|---|---|---|
@@ -317,7 +319,7 @@ and its event-clustered CR1 t, same minimum and
 
   **Verdict size** (6, 10) = the share of worlds in which the analytic one-sided p (1.7) is < 0.05 **and** F and the test's point
   conditions (1.9) hold; the gate is omitted. Criterion <= 0.058.
-- **Also reported, never binding:** a planted-effect power run per test (500 worlds; CH245 1.0c per census tercile gap of
+- **Diagnostics printed beside the size check (not size criteria):** a planted-effect power run per test (500 worlds; CH245 1.0c per census tercile gap of
   `zs_D`, CH244 1.0c between classes on shock captures; seeds `20261597 x 100 + 51, 52`); and **world R1, the symmetric
   lead-lag (R1 SHOULD 1):** 500 worlds at seed `20261597 x 100 + 54`, world 4's pairs with each book's next spread change
   loading 0.4 per SD on the other book's innovation in **both** directions (no thin-dense asymmetry) and the 1c spread floor
@@ -343,8 +345,13 @@ placebo rule of 2.3 can be applied (worlds 1-6: 40 families, events assigned uni
   effect. **Loading `lambda` (re-check fix 2):** set so that the planted within-event same-slot correlation of the two books'
   spread innovations (after rounding and the floor) equals **`rho_ss = max(rho_census, 0.64)`**, `rho_census` the census pooled
   same-slot correlation on CH245 thin units (census-fixed, 7); `lambda` is found by bisection on [0, 10] to within 0.005 of
-  `rho_ss`, each step a 20,000-slot calibration run at seed `20261597 x 100 + 61` (no size-check world is generated by it), after
-  the census values are committed and before the size check; `lambda` is recorded beside the size-check results. Worlds 2 and 3,
+  `rho_ss`, each step a calibration run on **a single two-member event of 20,000 slots** generated as world 1 at seed `20261597 x
+  100 + 61` (no size-check world is generated by it), after the census values are committed and before the size check;
+  `lambda` is recorded beside the size-check results. **Failure rule (final verification fix 3):** if `rho_census` is NaN, if
+  `rho_ss` is not bracketed by the calibration correlations at `lambda = 0` and `lambda = 10`, or if the tolerance is not reached
+  within **40** bisection steps, world 1 is not run and its outcome is **"SE check failed (size scenario)" for CH245** (1.8's
+  consequence; no other bracket, step count, seed or loading is tried); world 2 has no `v_t` and is unaffected; world 3
+  inherits `lambda` and then fails the same way. Worlds 2 and 3,
   built from world 1, inherit its `n` range (and world 3 its `lambda`).
 - **2 (S31):** world 1 without `v_t`; one quote model per event moves both books' spreads by the same step at a Poisson time
   (rate 0.4 a slot); book B updates at that time and book A after a lag `L ~ Exp(mean 60 s)`; each capture reads the two rows
@@ -751,8 +758,9 @@ projected counts.
   gaps: q50 and q90 of `|received_utc_A - received_utc_B|` at k over CH245 census pair-complete pairs (floor q50 5 s). (6) World
   9's correlation: the within-event `corr(unrew, log1p liquidity)` over CH244 census units (floor |0.20|). (7) `shock_size`
   scale: its population SD over CH244 census units. (8) `<test>.exclude_family`: 1.4's series-family rule on each census primary
-  population. (9) **`rho_census`** (re-check fix 2): the pooled Pearson correlation of the raw `Δspread_T` and `Δspread_D` over
-  CH245 census thin units; world 1 uses `rho_ss = max(rho_census, 0.64)` (1.8.1). The census's `DE_gate`, `VIF_w`, `r_gate`, the feed shares and the MDEs are gate values, recorded, never re-used to
+  population. (9) **`rho_census`** (re-check fix 2): the pooled Pearson correlation of the raw `Δspread_T = spread_{T,k} -
+  spread_{T,k-1}` and `Δspread_D = spread_{D,k} - spread_{D,k-1}`, both over the same interval (k - 1, k] at the same capture
+  pair (the "same slot" of 1.8.1 world 1), over CH245 census thin units; NaN if either has zero variance; world 1 uses `rho_ss = max(rho_census, 0.64)` (1.8.1). The census's `DE_gate`, `VIF_w`, `r_gate`, the feed shares and the MDEs are gate values, recorded, never re-used to
   change a threshold.
 - **Census prints for CH244 (R1 MUST 3; descriptive, no further gate):** the **carry-against-simple confusion**: on eligible
   member rows of 3-10 member events at k - 1, the 2 x 2 counts of `listed_carry24h_v2` status against the simple reading
@@ -774,8 +782,10 @@ projected counts.
 commit).** `q0710_lt12_census_restore` (net, about 1,400 MB disk, `mem_mb` 400; `depends_on` the freeze; `not_before`
 2026-11-17T09:00Z, moved from 06:00Z: the last lag slot's capture (slot 2026-11-17T04:31Z) may start as late as 05:01Z under the
 30-minute tolerance and needs up to one slot (2 h) to be `state=complete` with its sidecar, so the inputs are final only at about
-07:01Z; 06:00Z could open the restore before that capture is written, and 09:00Z keeps a 2 h margin; the restore also refuses
-while any lag-slot capture is neither `state=complete` nor past its slot's tolerance with no capture); `q0711_lt12_seal` (net, 300); `q0712_lt12_census` (net, 600, streaming with a two-capture window and the
+07:01Z; 06:00Z could open the restore before that capture is written, and 09:00Z keeps a 2 h margin; **the restore refuses only
+while a lag-slot capture is still in progress** (started, not yet in a final state); a capture in a **final non-complete state**
+(failed or partial) counts as **missing**, exactly as a file found nowhere does (above), and a slot past its tolerance with no
+capture is missing; so the one-shot restore can never wait on a capture that will not complete); `q0711_lt12_seal` (net, 300); `q0712_lt12_census` (net, 600, streaming with a two-capture window and the
 12-slot carry state; `cpu` 1,200 exclusive if the dry run measures more); `q0713_lt12_size_check` (cpu, 800, after the census
 values are committed; `max_retries 1`); `q0714_lt12_reader` (fallback only); `q0715_lt12_analysis` (cpu, 4,000, exclusive,
 `not_before` the analysis date). Never promoted while E015's or E022's analysis, or an LT9, LT10 or LT11 census, size check or
@@ -832,7 +842,7 @@ analysis refuses before its date; the worlds generate the declared shapes; vendo
 `test_pinned_files_hash_to_the_pins` (E026) stays green.
 
 ### 8.4 Registration steps and pins (in order)
-1. R1 re-check of this revision; any fixes it asks for.
+1. The final pre-freeze verification (the acceptance; done, its wording fixes applied in the freeze commit).
 2. **Design-text freeze commit**, sha256 in the ledger, planned by 2026-11-06 (before `T_LT11c`), required before the seal commit
    and `T_LT11`; the embargo requests of 9 filed in `signal_engine/CANDIDATES.md` in the same session.
 3. Code (8.1, 8.3), a `science-reviewer` freeze check of census, gate and size-check code; size-check run time per world measured
@@ -903,38 +913,43 @@ registration commit. This branch edits no engine code, `config.EMBARGO` or `CAND
 | Tier bins $1k / $10k / $100k | 1.4.2 | `cost-model-v1` | yes (the map found no tier) |
 | `DE_gate` floor 5.0; `G_eff >= 15` | 7 | LT11 | no |
 | Seed 20261597; world R1 seed `x 100 + 54`; q0710-q0715 | 1.8, 7 | unused values | no |
+| World 1: `rho_ss = max(rho_census, 0.64)`; bisection on [0, 10] to 0.005, at most 40 steps; one two-member event of 20,000 slots; seed `x 100 + 61` | 1.8.1, 7 | re-check fix 2, final verification fix 3; 0.64 the map's uu pooled same-slot correlation as the floor | **yes** (0.64 is a map number) |
+| Dense-twin `>= 2` ticks set floor 5,000 units | 1.9 | re-check fix 7; a quarter of the 20,000-unit Unavailable floor | no |
+| Restore `not_before` 2026-11-17T09:00Z | 7 | the last lag slot's start tolerance plus one slot plus 2 h | no |
 
-## 11. DESIGN-AMBIGUITY items for the challenger review
+## 11. Design-ambiguity items and their rulings (R1 A1-A16; re-check B1-B7)
 **R1's rulings (2026-10-23), applied:** A1 F binds, CH243 leaves (section 4); A2 thin-only unit accepted, the estimand conditional
 on asymmetry, no pooling (1.7, 2.2); A3 levels at k - 1, M4 reported and relabelled *bid-sum mediated* (1.9, 2.3); A4 the placebo
 binds, two-sided with the series-family and event-id rule (1.9, 2.3); A5 redefined (6 item 6); A6 valid with the state-shift path
 (1.8); A7 carry status primary, feed disagreement printed and gated (6 item 9, 7); A8 acceptable with the joint model (3.3); A9
 day-fixed status acceptable, switch shares printed by status (3.2, 7); A10-A12 moot (CH243 dropped); A13 twice the kill line
 consistent; A14 CH244's prior reverted and lowered (0); A15 acceptable, disclosure and `pre_window_source` counts kept (1.1, 7);
-A16 no change. **Open items for the re-check (each a judgement call made in this revision):**
-1. **B1 (CH245 identification numbers).** Are 3 non-zero innovations per event-day stratum, the 50% share, the top-1% <= 25% and
-   the per-event <= 5% leverage caps the right lines, and does dividing the gap by `s_w` in the declared MDE double-count what
-   `VIF_w` already measures?
-2. **B2 (placebo rule).** Is the first-entry `series_slugs` family a good enough "series family" (a pair without slugs is its
-   own family), and is "disjoint event-id sets" the right test of unrelatedness? Should placebo coverage (90%) be lower, given
-   that the stricter rule is unprobed?
-3. **B3 (state-shift gate).** Shifting the raw state with re-demeaning on every draw replaces LT5's residual-shift
-   Freedman-Lane form. Is a state-shift block permutation an acceptable binding gate here, and should CH244's shift move
-   `shock_size` with `shock` (declared: yes) or only the indicator?
-4. **B4 (CH244 feed gate).** Ruled: gate right, 0.20 and 6 h acceptable; missing coverage is now `census_unavailable
-   (coverage)`, not a drop (re-check fix 3).
-5. **B5 (CH244 mixed on day-fixed status).** Switched members count toward "mixed" by their day-fixed status while their own
-   units are excluded; acceptable, or should they be removed from the mixed rule as well?
-6. **B6 (world R1).** Is the symmetric lead-lag world with the 1c floor, reported and non-binding, enough for SHOULD 1, or should
-   the dense-twin condition be evaluated only on the dense `spread_k >= 2` ticks units?
-7. **B7 (priors).** CH244 at 0.15 (below the round's 0.20) and CH245 unchanged at 0.30; expected k 0.45, P(no test) 0.60.
+A16 no change. **Re-check rulings B1-B7 (`reviews/LT12_RECHECK_2026-10-23.md`), applied:**
+1. **B1 (CH245 identification numbers): acceptable.** The 3-non-zero / 50% line, the top-1% <= 25% and per-event <= 5% caps and
+   the `s_w` term stand; `VIF_w` is computed on the demeaned regressors (7).
+2. **B2 (placebo rule): acceptable.** The first-entry `series_slugs` family and disjoint event-id sets stand; placebo coverage
+   stays at 90%.
+3. **B3 (state-shift gate): valid in principle** (the circular shift keeps serial dependence; one offset per event keeps the
+   cross-member structure); its size is approximate, so the size worlds bind; adequate after re-check fix 2; `shock_size` shifts
+   with `shock` (1.8).
+4. **B4 (CH244 feed gate): a gate is right; 0.20 and 6 h acceptable;** missing coverage is `census_unavailable (coverage)`, not
+   a drop (re-check fix 3; 1.2, 6 item 9, 7).
+5. **B5 (mixed on day-fixed status): acceptable** (switched and `status_nan_unit` members count toward "mixed" by their finite
+   day-fixed status; their own units are excluded; 3.2).
+6. **B6 (the dense-twin floor): resolved by re-check fix 7.** The dense `spread_k >= 2` ticks set is **binding**: condition (a)
+   of 1.9 must hold on the full set and on that set (both-sets rule; under 5,000 units on that set, at most Inconclusive). World
+   R1 (1.8) prints the condition's pass rate on each set and on both together; its pass rate is a printed diagnostic of the
+   binding rule, not a separate condition.
+7. **B7 (priors): arithmetic correct; the lower CH244 prior justified** (0: CH245 0.30, CH244 0.15; expected k 0.45; P(no test)
+   0.60).
 
-## 12. Draft ledger block (DRAFT, not registered, not counted)
+## 12. Ledger block for the freeze (not registered, not counted)
 ```
-## LT12 design draft R1 response, 2026-10-24 (experiments autopilot; nothing counted)
+## LT12 design-text freeze, 2026-10-23 (experiments autopilot; nothing counted)
 - docs/research_lab/LIVE_TESTS_12.md on feat/live-tests-12 revised for R1 (REVISE; 6 must-fix, SHOULD 1-5 and 7, rulings
   A1-A16): CH243 dropped (LT11 R1 A4: no label-only F chosen for power); k <= 2: CH245 (the mirror), CH244 (the farmed half).
-  DRAFT, not frozen, re-check pending, not registered. Census seal [11-07, 11-17); window 12-10..12-31; analysis after
+  Re-check ACCEPT_WITH_FIXES (fixes 1-7) and final verification FIXES_REQUIRED (wording 1-5) applied; DESIGN TEXT FROZEN
+  2026-10-23 (sha256 in this entry), not registered. Census seal [11-07, 11-17); window 12-10..12-31; analysis after
   2027-01-01T12Z. Designer's census odds 0.30 / 0.15; P(no test) about 0.60.
 ```
 
@@ -969,8 +984,11 @@ series-family and event-id rule; the feed gate; the leverage caps and the `s_w` 
 that was replaced rather than tightened (CH245's identification gate) is replaced because its round-17 form mixed units; its
 new form was written before any count of either form existed (6 item 6). **New thresholds declared in this revision, each with
 its rationale in the section named:** >= 3 non-zero innovations / 50%, top 1% <= 25%, one event <= 5% (6 item 6); feed-listed
-share <= 0.20, coverage >= 50%, feed clock 6 h (6 item 9); world R1's loading 0.4 and seed (1.8). Nothing is left to the census
-except the values listed as census-fixed in 7.
+share <= 0.20, coverage >= 50%, feed clock 6 h (6 item 9); world R1's loading 0.4 and seed (1.8); **and, added by the re-check
+and the final verification:** the 0.64 floor of `rho_ss`, the bisection bracket [0, 10], tolerance 0.005, calibration length
+20,000 slots on one two-member event, seed `20261597 x 100 + 61` and the 40-step maximum (1.8.1); the 5,000-unit floor of the
+dense `spread_k >= 2` ticks set (1.9); the restore `not_before` 09:00Z (7). Nothing is left to the census except the values
+listed as census-fixed in 7.
 
 ### 13.x Re-check response (`reviews/LT12_RECHECK_2026-10-23.md`, ACCEPT_WITH_FIXES; fixes applied as worded)
 Line numbers refer to this revision of the file. No threshold is loosened; fixes 1-4 and 7 add or tighten conditions.
@@ -988,3 +1006,15 @@ Line numbers refer to this revision of the file. No threshold is loosened; fixes
 | **Restore margin (not a numbered fix; "not verified" in the re-check)** | 7: 773-779; 8.4: 841 | `q0710`'s `not_before` moved from 2026-11-17T06:00Z to **09:00Z**: the last lag slot (04:31Z) may start up to 05:01Z under the 30-minute tolerance and needs up to one slot to be `state=complete` with its sidecar (final about 07:01Z), so 06:00Z was too tight; 09:00Z keeps 2 h of margin, and the restore also refuses while a lag-slot capture is neither complete nor past its tolerance |
 | **Rulings B1-B7** | 11: 907-930 | B4 recorded as ruled; the others accepted as ruled (B2 keeps 90% coverage; B3 `shock_size` shifts with `shock`, as written in 1.8) |
 | **Status line** | header: 3-6, 12-13 | DRAFT: R1 REVISE, response, re-check ACCEPT_WITH_FIXES, fixes applied; final verification pending |
+
+### 13.y Final pre-freeze verification response (FIXES_REQUIRED, wording only; applied in the freeze commit)
+Line numbers refer to this frozen revision. Nothing is loosened; fixes 2 and 3 close a deadlock and an undefined branch.
+
+| Item | Section and lines | What changed |
+|---|---|---|
+| **Fix 1** section 11 | 11: 920-945 | retitled as rulings; B1-B7 recorded as the re-check ruled them; B6 points to re-check fix 7 (the dense `spread_k >= 2` ticks set binding through the both-sets rule); no "reported and non-binding" wording remains (world R1 is a printed diagnostic of the binding rule, 1.8: 322-329) |
+| **Fix 2** restore refusal | 7: 781-789 | the restore refuses only while a lag-slot capture is in progress; a capture in a final non-complete state (failed or partial) counts as missing, as a file found nowhere does, so the one-shot restore cannot deadlock |
+| **Fix 3** bisection failure rule | 1.8.1: 343-357 | calibration on a single two-member event of 20,000 slots; `rho_census` NaN, `rho_ss` not bracketed in [0, 10], or no convergence within 40 steps -> world 1 (and world 3, which inherits `lambda`) "SE check failed (size scenario)" for CH245; nothing else tried |
+| **Fix 4** `rho_census` interval | 7: 760-764 | `Δspread_T` and `Δspread_D` both over (k - 1, k] at the same capture pair, matching world 1's "same slot"; NaN on zero variance |
+| **Fix 5** stale cross-references and lists | header: 13-17; 1.1: 148-149; 8.4: 845; 10.1: 916-918; 12: 946-955; 13: 987-990; 1.8: 304-305 | the final verification named as the acceptance in the header, 1.1 and 8.4 step 1; the ledger block no longer says "re-check pending"; 10.1 and section 13's threshold list add 0.64, [0, 10] / 0.005 / 20,000 slots, seed `x 100 + 61`, the 40-step maximum, the 5,000-unit floor (and the 09:00Z restore time); indent fixed |
+| **Status line** | header: 3-7 | FROZEN (design text) 2026-10-23 after R1 REVISE, response, re-check ACCEPT_WITH_FIXES, fixes, final verification FIXES_REQUIRED (wording) applied; not registered; E-numbers unassigned; sha256 recorded in `EXPERIMENT_LEDGER.md` |
