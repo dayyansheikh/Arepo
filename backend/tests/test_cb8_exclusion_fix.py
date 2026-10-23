@@ -176,3 +176,27 @@ def test_incomplete_exclusion_run_is_tempfail_not_zero():
     assert m.exclusion_exit_code({"complete": False, "stopped": "paused_429_chunk_limit", "transient": True}) == 75
     assert m.exclusion_exit_code({"complete": False, "stopped": "budget reached", "transient": True}) == 0  # clean budgeted pause; the spec repeats
     assert m.exclusion_exit_code({"complete": True, "stopped": None}) == 0
+
+
+def test_q0164c_scratch_partial_not_counted_against_declared_cap(tmp_path):
+    """q0164b died with 'disk budget exceeded 20926424 > 20737418': the resume scratch alone exceeded the (hashed) cap."""
+    from astrolabe.research_lab import cb8_exclusion_budget as xb
+    from astrolabe.research_lab import history_backfill as hb
+
+    cap = int(u.KEYS_OUTPUT_CAP_GB * 1024**3)
+    (tmp_path / "exclusion_keys_partial.jsonl").write_bytes(b"x" * (cap * 3))
+    (tmp_path / "manifest.json").write_bytes(b"{}")
+    assert hb.DiskBudget(tmp_path, cap).used > cap  # the bug, unpatched
+    orig = hb.DiskBudget.scan
+    with xb.scratch_uncounted():
+        b = hb.DiskBudget(tmp_path, cap)
+        assert b.used == 2
+        b.write(tmp_path / "out.bin", b"y" * 1000)  # a real output is still charged
+        with pytest.raises(OSError):
+            b.write(tmp_path / "big.bin", b"z" * (cap + 1))
+    assert hb.DiskBudget.scan is orig
+
+
+def test_q0164c_cap_constant_and_wiring_unchanged():
+    assert u.KEYS_OUTPUT_CAP_GB == 0.01
+    assert "scratch_uncounted" in (ROOT / "scripts" / "run_cb8.py").read_text()
