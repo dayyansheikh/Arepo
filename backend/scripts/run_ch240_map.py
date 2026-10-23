@@ -53,6 +53,8 @@ def main(argv: list[str] | None = None) -> int:
     tmp = args.out.with_suffix(".tmp")
     tmp.write_text(json.dumps(res, sort_keys=True, indent=1))
     os.replace(tmp, args.out)
+    for u in res["movers_volume_unusable_per_capture"]:
+        print(f"{u['capture_start_utc']} movers_volume_unusable={u['movers_volume_unusable']} movers_total={u['movers_total']}")
     print(f"wrote {args.out} captures={res['captures']['covered']}")
     return 0
 

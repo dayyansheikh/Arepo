@@ -50,8 +50,8 @@ MIN_UNITS = 48
 DEFAULT_TICK = 0.01
 CATS = ("sports", "crypto", "nonsports_excrypto", "unknown")
 RWS = ("rewarded", "unrewarded", "unknown")
-ROW_COLS = ("market_id", "event_id", "received_utc", "closed", "active", "binary", "best_bid", "best_ask", "volume_num", "neg_risk", "neg_risk_market_id")
-EXT_COLS = ("market_id", "fee_type", "fee_category", "series_slugs", "clob_rewards", "order_price_min_tick_size")
+ROW_COLS = ("market_id", "event_id", "received_utc", "closed", "active", "binary", "best_bid", "best_ask", "neg_risk", "neg_risk_market_id")
+EXT_COLS = ("market_id", "fee_type", "fee_category", "series_slugs", "clob_rewards", "order_price_min_tick_size", "volume_num")
 _NULL_LIKE = {"", "nan", "none", "null", "[]"}
 QUANTILES = (0.05, 0.25, 0.5, 0.75, 0.95)
 
@@ -152,7 +152,7 @@ def _iter_csv(path: Path, cols: tuple[str, ...]):
 
 
 def read_ext(path: Path | None) -> tuple[dict, bool]:
-    """{market_id: (category, reward, tick)} and whether a ``clob_rewards`` column exists."""
+    """{market_id: (category, reward, tick, volume_num)} (cumulative volume_num lives in the sidecar only) and whether a ``clob_rewards`` column exists."""
     out: dict = {}
     if path is None or not Path(path).exists():
         return out, False
@@ -161,9 +161,9 @@ def read_ext(path: Path | None) -> tuple[dict, bool]:
     if present is None:
         return out, False
     has_rw = present[EXT_COLS.index("clob_rewards")]
-    for mid, ft, fc, ss, rw, tk in it:
+    for mid, ft, fc, ss, rw, tk, vn in it:
         t = _f(tk)
-        out[mid] = (category_of(ft, fc, ss, True), reward_status(rw, True, has_rw), t if t > 0 else DEFAULT_TICK)
+        out[mid] = (category_of(ft, fc, ss, True), reward_status(rw, True, has_rw), t if t > 0 else DEFAULT_TICK, _f(vn))
     return out, has_rw
 
 
@@ -174,12 +174,11 @@ def read_rows(path: Path) -> dict:
     present = next(it, None)
     if present is None:
         return out
-    has_vol = present[ROW_COLS.index("volume_num")]
-    for mid, ev, rec, closed, active, binary, bid, ask, vol, nr, nrm in it:
+    for mid, ev, rec, closed, active, binary, bid, ask, nr, nrm in it:
         bid_f, ask_f = _f(bid), _f(ask)
         two = bid_f > 0 and ask_f > 0 and ask_f <= 1 and bid_f < ask_f
         out[mid] = {"event": ev, "binary": _truthy(binary), "open": (not _truthy(closed)) and _truthy(active), "bid": bid_f, "ask": ask_f,
-                    "two": two, "vol": _f(vol) if has_vol else math.nan, "neg_risk": _truthy(nr), "nrm": nrm, "rec": rec}
+                    "two": two, "neg_risk": _truthy(nr), "nrm": nrm, "rec": rec}
     return out
 
 
@@ -234,6 +233,7 @@ class Mapper:
         self.ev_sd: dict = {}  # event -> [_Welford, stratum, tick]
         self.n_captures = 0
         self.n_changes = 0
+        self.unusable_per_capture: list[dict] = []
         self.notes = Counter()
 
     # -- day roll: finalise the per-market-day accumulators
@@ -267,13 +267,13 @@ class Mapper:
             if not r["binary"] or not r["open"]:
                 continue
             e = ext.get(mid)
-            cat, rw, tick = (e if e else ("unknown", "unknown", DEFAULT_TICK))
+            cat, rw, tick, vol = (e if e else ("unknown", "unknown", DEFAULT_TICK, math.nan))
             r["cat"], r["rw"], r["tick"] = cat, rw, tick
             strat = f"{cat}/{rw}"
             r["strat"] = strat
             if r["two"]:
                 mid_k = (r["bid"] + r["ask"]) / 2.0
-                cur[mid] = (r["event"], mid_k, r["vol"])
+                cur[mid] = (r["event"], mid_k, vol)
             if r["neg_risk"] and r["event"]:
                 events.setdefault(r["event"], []).append((mid, r))
         # --- CH232 / CH234 (market level, k - 1 and k)
@@ -370,6 +370,9 @@ class Mapper:
         self.cap_lvl.append(lvl)
         if has_prev:
             self.cap_chg.append(chg)
+            self.unusable_per_capture.append({"capture_start_utc": datetime.fromtimestamp(t, UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "movers_volume_unusable": sum(v for k, v in chg.items() if k.startswith("ch234/movers_volume_unusable/")),
+                "movers_total": sum(v for k, v in chg.items() if k.startswith("ch234/movers_"))})
 
     def finish(self, covered_days_per_capture: float = GRID_S / 86400.0) -> dict:
         if self.day is not None:
@@ -409,6 +412,7 @@ class Mapper:
                 if w.sd() >= tick - EPS:
                     wi[strat][1] += 1
         out["ch233_within_event_sd"] = {s: {"events_ge_48_units": a, "events_sd_ge_1_tick": c, "share": (c / a if a else None)} for s, (a, c) in sorted(wi.items())}
+        out["movers_volume_unusable_per_capture"] = self.unusable_per_capture
         out["notes"] = dict(self.notes)
         return out
 
@@ -465,6 +469,6 @@ def run_map(roots: list[Path], start_utc: str, end_utc: str) -> dict:
         "conventions": {"mid": "(best_bid + best_ask) / 2 of a two-sided open active binary row", "crossing": "strict side change of mid >= boundary between k - 1 and k; outward = away from 0.5",
                         "first_crossing": "first of that market, boundary and UTC day (day of capture k)", "tick_coincident": "|d| <= order_price_min_tick_size (default 0.01)",
                         "neg_risk_event": "rows with neg_risk true grouped by event_id; members = open active binary rows; complete = all members two-sided; event stratum: sports > crypto > unknown > nonsports_excrypto, rewarded if any member rewarded",
-                        "movers": "|d| >= 0.01; traded = volume_num_k > volume_num_{k-1}; quote_only = equal; a falling or missing volume_num is counted as movers_volume_unusable", "projection": "total x 21 / covered days"},
+                        "movers": "|d| >= 0.01; traded = volume_num_k > volume_num_{k-1}; quote_only = equal; sidecar volume_num (cumulative; volume24hr is not used) at k vs k - 1; a missing sidecar row at k or k - 1, or a falling or missing volume_num, is counted as movers_volume_unusable", "projection": "total x 21 / covered days"},
         "inputs": inputs, "code_sha256": code_sha256(), **res,
     }

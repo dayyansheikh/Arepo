@@ -22,15 +22,15 @@ sys.modules["run_ch240_map_under_test"] = runner
 _spec.loader.exec_module(runner)
 
 T0 = datetime(2026, 10, 16, 0, 31, tzinfo=UTC)
-RCOLS = ["market_id", "event_id", "received_utc", "closed", "active", "binary", "best_bid", "best_ask", "volume_num", "neg_risk", "neg_risk_market_id"]
-ECOLS = ["market_id", "fee_type", "fee_category", "series_slugs", "clob_rewards", "order_price_min_tick_size"]
+RCOLS = ["market_id", "event_id", "received_utc", "closed", "active", "binary", "best_bid", "best_ask", "neg_risk", "neg_risk_market_id", "volume24hr"]
+ECOLS = ["market_id", "fee_type", "fee_category", "series_slugs", "clob_rewards", "order_price_min_tick_size", "volume_num"]
 
 
 def mk(mid, ev, mid_p, vol=0.0, half=0.005, nr=False, two=True, rw="", cat="politics", tick=0.01):
     bid, ask = (mid_p - half, mid_p + half) if two else (0.0, mid_p + half)
     return ({"market_id": mid, "event_id": ev, "received_utc": "x", "closed": "false", "active": "true", "binary": "true", "best_bid": f"{bid:.4f}",
-             "best_ask": f"{ask:.4f}", "volume_num": str(vol), "neg_risk": str(nr).lower(), "neg_risk_market_id": ""},
-            {"market_id": mid, "fee_type": "", "fee_category": cat, "series_slugs": "", "clob_rewards": rw, "order_price_min_tick_size": str(tick)})
+             "best_ask": f"{ask:.4f}", "neg_risk": str(nr).lower(), "neg_risk_market_id": "", "volume24hr": "777"},
+            {"market_id": mid, "fee_type": "", "fee_category": cat, "series_slugs": "", "clob_rewards": rw, "order_price_min_tick_size": str(tick), "volume_num": str(vol)})
 
 
 def write_cap(root: Path, k: int, items, hours: float | None = None, with_ext=True) -> Path:
@@ -213,3 +213,21 @@ def test_runner_refuses_overwrite_and_caps(tmp_path, monkeypatch):
     monkeypatch.setattr(runner, "_above_cap", lambda gb: True)
     assert runner.main([*args[:-1], str(out2), "--data-dumps-cap-gb", "0.0001"]) == 75
     assert not out2.exists()
+
+
+def test_volume_only_from_sidecar_and_missing_row_unusable(tmp_path):
+    # volume24hr in rows is ignored (constant 777); a market with no sidecar row at k is unusable; an absent column in rows is irrelevant
+    write_cap(tmp_path, 0, [mk("A", "e1", 0.30, vol=10), mk("B", "e2", 0.30, vol=10)])
+    items = [mk("A", "e1", 0.35, vol=20), mk("B", "e2", 0.35, vol=20)]
+    d = write_cap(tmp_path, 1, items)
+    with gzip.open(d / "rows_ext.csv.gz", "wt", newline="") as fh:  # drop B's sidecar row at k
+        w = csv.DictWriter(fh, fieldnames=ECOLS)
+        w.writeheader()
+        w.writerow(items[0][1])
+    res = m.run_map([tmp_path], *span())
+    c = res["change_counts"]
+    assert c["ch234/movers_traded/0.1-0.5/nonsports_excrypto/unrewarded"]["total"] == 1
+    assert sum(v["total"] for k, v in c.items() if k.startswith("ch234/movers_volume_unusable/")) == 1
+    assert res["movers_volume_unusable_per_capture"][0]["movers_volume_unusable"] == 1
+    # a stray volume_num column in rows.csv.gz is ignored
+    assert "volume_num" not in m.ROW_COLS and "volume_num" in m.EXT_COLS
