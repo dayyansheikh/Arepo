@@ -92,6 +92,9 @@ export type SeCells =
       gainHi: number | null;
       daysPositive: number | null;
       nDays: number | null;
+      gainVsMid: number | null;
+      gainVsMidLo: number | null;
+      gainVsMidHi: number | null;
     };
 
 /** Display cells for one row. Embargoed rows return only the id and date, never a number. */
@@ -116,6 +119,9 @@ export function rowCells(row: SeRow, nowMs: number, models?: Map<string, string>
     gainHi: num(row.gain_hi),
     daysPositive: num(row.days_positive),
     nDays: num(row.n_days),
+    gainVsMid: num(row.gain_vs_mid),
+    gainVsMidLo: num(row.gain_vs_mid_lo),
+    gainVsMidHi: num(row.gain_vs_mid_hi),
   };
 }
 

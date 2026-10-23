@@ -44,13 +44,15 @@ const COLS = [
   "Coverage",
   "Gain vs champion (nats, 95% CI)",
   "Days positive",
+  "Gain vs market price (nats, 95% CI)",
 ];
 
 function ScoreTable({ rows, families, caption }: { rows: SeCells[]; families: Map<string, string>; caption: string }) {
   if (!rows.length) return <Quiet>No rows yet.</Quiet>;
+  const vsMid = rows.some((r) => r.kind === "scored" && (r.role === "reference" || r.gainVsMid !== null));
   return (
     <div className="-mx-1 overflow-x-auto px-1">
-      <table className="w-full min-w-[56rem] border-collapse text-[12.5px]">
+      <table className="w-full min-w-[64rem] border-collapse text-[12.5px]">
         <caption className="sr-only">{caption}</caption>
         <thead>
           <tr className="border-b border-arepo-border text-left text-[11.5px] font-semibold text-arepo-muted">
@@ -63,7 +65,8 @@ function ScoreTable({ rows, families, caption }: { rows: SeCells[]; families: Ma
         </thead>
         <tbody className="font-tabular">
           {rows.map((r, i) => {
-            const fam = families.get(r.modelId);
+            const ref = r.kind === "scored" && r.role === "reference";
+            const fam = families.get(r.modelId) ?? (ref ? "market price (reference, not a model)" : undefined);
             const model = (
               <th scope="row" className="px-2 py-2 text-left font-normal">
                 <span className="block font-medium text-arepo-ink">{r.modelId}</span>
@@ -87,6 +90,7 @@ function ScoreTable({ rows, families, caption }: { rows: SeCells[]; families: Ma
                 <td className="whitespace-nowrap px-2 py-2">
                   {r.target || "–"}
                   {champ ? <span className="ml-1.5 text-[11px] font-semibold text-arepo-accentActive">champion</span> : null}
+                  {ref ? <span className="ml-1.5 text-[11px] font-semibold text-arepo-muted">reference</span> : null}
                 </td>
                 <td className="px-2 py-2 text-right">{fmtCount(r.n)}</td>
                 <td className="px-2 py-2 text-right">{fmtFixed(r.logLoss, 4)}</td>
@@ -97,11 +101,22 @@ function ScoreTable({ rows, families, caption }: { rows: SeCells[]; families: Ma
                 <td className="px-2 py-2 text-right">{fmtPct(r.coverage)}</td>
                 <td className="whitespace-nowrap px-2 py-2 text-right">{fmtGain(r.gain, r.gainLo, r.gainHi)}</td>
                 <td className="px-2 py-2 text-right">{fmtDaysPositive(r.daysPositive, r.nDays)}</td>
+                <td className="whitespace-nowrap px-2 py-2 text-right" data-testid="se-vs-mid">
+                  {fmtGain(r.gainVsMid, r.gainVsMidLo, r.gainVsMidHi)}
+                </td>
               </tr>
             );
           })}
         </tbody>
       </table>
+      {vsMid ? (
+        <p className="mt-2 text-[12px] leading-relaxed text-arepo-muted" data-testid="se-vs-mid-note">
+          Gain vs market price (res_7d only): how much better than the market&apos;s own mid, used as the probability of
+          a yes resolution within 7 days, the row forecast the outcome on the same markets. Positive means better than the
+          price. The reference row&apos;s gain vs champion is the price against the champion. Forecast quality only: no
+          costs, and the mid is not a price anyone can trade at.
+        </p>
+      ) : null}
     </div>
   );
 }
