@@ -4288,3 +4288,22 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   crossing indicator scored; so none of CH234 / CH233 / CH232 carries an *informed (engine)* label.
 - **Next:** code (section 8: reader, seal q0691 after 11-07, censuses, size check, host memory ladder), its code-freeze check
   on synthetic data; census after the seal span ends (11-07).
+
+## CB8-B (CH76) frame empty: q0165 / q0166 results, 2026-10-23 (experiments autopilot; operational, nothing counted)
+- **q0165 `cb8_updown_frame`** (13:30Z, done): 44,714 Gamma rows over 113 days, 0 failed requests; 43,931 rejected by the
+  Up/Down question pattern, **783 candidates**; exclusion keys (q0164c) dropped **118 by market id and 665 by series key**
+  (`cb7_common.key_types_matched`, series ids from `cb8_updown.py` `series_ids`); **0 kept** (`n_markets` 0, SCREEN 0, HOLDOUT 0;
+  `frame.csv.gz` header only). Binance side complete (35 archives, 791 strikes, 840 settles). The counts are honest
+  (`cb8_updown.py:1110` from the post-drop list), not a counting bug.
+- **q0166 `cb8_updown_books`** (13:36Z): `updown_books_source_unavailable` with zero requests. The coverage audit
+  (`cb8_books.py:472-475`) had 0 pairs and 0 days, share 0 < 0.90; pmxt was never contacted. The label means "empty frame",
+  not an unreachable source.
+- **Cause (design fact, not a code defect):** daily crypto Up/Down markets belong to a few recurring series, so any one prior
+  sample or seal copy holding one Up/Down market excludes its whole series (1,177 series keys in the set). The family's own
+  series is excluded wholesale; CB8-B is untestable as written. No outcome column and no HOLDOUT content was read (the
+  `holdout/` directory does not exist).
+- **Pre-declared consequence (ledger 3730):** the coverage-audit FAIL route applies: no HOLDOUT seal at q0182; q0182 runs with the
+  q0165 frame pinned, which is now an **empty** frame (the pin is vacuous; recorded).
+- **Next:** a `science-reviewer` ruling on whether a declared CB8-B variant (series key not applied to the family under study,
+  market-id and event-id keys kept, new job id and run directory) is justified, or CB8-B is recorded "not testable (series
+  overlap)". q0165's outcome stays as recorded either way.
