@@ -233,11 +233,12 @@ def g_minor(X: pd.DataFrame, ok: np.ndarray, test: str) -> int | None:
     return int(pd.unique(X["event_id"].to_numpy()[ok][v == 1]).size)
 
 
-def fit11(X: pd.DataFrame, y: np.ndarray, term: str, controls: list[str], *, seed: int, minor: int | None = None, n_boot: int = ab.N_BOOT) -> dict:
+def fit11(X: pd.DataFrame, y: np.ndarray, term: str, controls: list[str], *, seed: int, minor: int | None = None, n_boot: int = ab.N_BOOT, sign: int = +1) -> dict:
     """The vendored LT3 ``fit`` (event p on t with G_event - 1 df), then 1.7's rule: ``p = max(p_event on t with min(G_event, G_minor) - 1 df, p_two-way normal,
-    p_day on t with G_day - 1 df)`` and the conservative CI widened to the two-way Wald interval."""
+    p_day on t with G_day - 1 df)`` and the conservative CI widened to the two-way Wald interval. ``sign`` = the predicted direction (+1 for every primary;
+    -1 only for CH233's M1 reading, predicted < 0)."""
     ctrl = [c for c in controls if c in X and np.nanstd(X[c].to_numpy(float)) > 0 and c != term]
-    r = ab.fit(X, y, term, ctrl, sign=+1, group="market_id", order="t_row", ev="event_id", time="day", ev_t_ref=True, seed=seed, n_boot=n_boot)
+    r = ab.fit(X, y, term, ctrl, sign=sign, group="market_id", order="t_row", ev="event_id", time="day", ev_t_ref=True, seed=seed, n_boot=n_boot)
     r["dropped_controls"] = [c for c in controls if c not in ctrl]
     if not r.get("testable"):
         return r
@@ -245,7 +246,7 @@ def fit11(X: pd.DataFrame, y: np.ndarray, term: str, controls: list[str], *, see
     df_e = g_e - 1
     if minor is not None and minor < g_e:
         df_e = max(int(minor) - 1, 0)
-        r["p_event"] = float(t_dist.sf(r["z_event"], df=df_e)) if df_e >= 1 else 1.0
+        r["p_event"] = float(t_dist.sf(sign * r["z_event"], df=df_e)) if df_e >= 1 else 1.0
         r["p_event_ref"] = f"t on {df_e} df (G_minor = {minor})"
     r["g_minor"] = minor
     r["p"] = max(float(r["p_event"]), float(r.get("p_twoway", 1.0)), float(r["p_time_t"]))
@@ -327,7 +328,7 @@ def event_index_fl_gate(df: pd.DataFrame, y: np.ndarray, term: str, controls: li
     reduced model's residuals are circularly shifted on the EVENT's capture index ``I_e`` (the ordered captures at which the event has at least one unit):
     ``n_e = |I_e|``, ``s_e = max(4, ceil(n_e / 4))``, ONE offset ``o`` per event and draw on ``[s_e, n_e - s_e]``; member i's unit at position t takes the residual of
     member i at ``(t + o) mod n_e``; if member i has no unit there the unit at t is OMITTED from that draw's refit (never filled, never borrowed). Events with fewer
-    than ``min_rows`` units are excluded from the gate (counted). ``p_perm = (1 + #{sign beta* >= sign beta}) / (1 + draws)``; passes if < 0.05. The omitted share
+    than ``min_rows`` captures on their index (``n_e``, as the census's block-gate share counts them) are excluded from the gate (counted). ``p_perm = (1 + #{sign beta* >= sign beta}) / (1 + draws)``; passes if < 0.05. The omitted share
     per draw is returned (median and maximum)."""
     X = b.demean(df, [term, *controls], group, order, "expanding")
     yv = np.asarray(y, float)
@@ -352,7 +353,7 @@ def event_index_fl_gate(df: pd.DataFrame, y: np.ndarray, term: str, controls: li
         positions = np.unique(sl[idx])
         n_e = len(positions)
         s_e = max(4, math.ceil(n_e / 4))
-        if len(idx) < min_rows or n_e - s_e < s_e:
+        if n_e < min_rows or n_e - s_e < s_e:  # 1.8 / 7: an event needs >= 16 shiftable CAPTURES on its index (the census counts captures too)
             fixed_num += float(xt[idx] @ e[idx])
             fixed_den += float(xt[idx] @ xt[idx])
             n_excl_rows += len(idx)
@@ -365,7 +366,7 @@ def event_index_fl_gate(df: pd.DataFrame, y: np.ndarray, term: str, controls: li
         plan.append((XT, E, n_e, s_e))
         n_planned += len(idx)
     if not plan:
-        return {"testable": False, "passes": False, "reason": f"no event with >= {min_rows} units and a shiftable capture index", "excluded_rows": n_excl_rows}
+        return {"testable": False, "passes": False, "reason": f"no event with >= {min_rows} captures on a shiftable capture index", "excluded_rows": n_excl_rows}
     rng = np.random.default_rng(seed)
     ge, om_share = 0, []
     tot_units = sum(int(np.isfinite(XT).sum()) for XT, _, _, _ in plan)
@@ -452,8 +453,8 @@ def point_condition(Xall: pd.DataFrame, test: str, controls: list[str], prim: di
         P = Xall[Xall["arm"].astype(str) == "primary"].reset_index(drop=True)
         r = fit11(P, P["y"].to_numpy(float), "zca", [c for c in controls], seed=seed, n_boot=200) if len(P) >= 30 else {"testable": False}
         out["beta_alt"], out["alt_name"] = r.get("beta"), "ask-sum twin slope on z ca_sib"
-        both = P.assign(_s=P["zcl"] - P["zca"])
-        d = fit11(both, both["y"].to_numpy(float), "zcl", ["zca", *controls], seed=seed, n_boot=200) if len(P) >= 60 else {"testable": False}
+        both = P.assign(_sum=P["zcl"] + P["zca"])  # LT11 ambiguity A23 (revised): beta_bid - beta_ask is the coefficient on zcl with zcl + zca added, as F's Delta
+        d = fit11(both, both["y"].to_numpy(float), "zcl", ["_sum", *controls], seed=seed, n_boot=200) if len(P) >= 60 else {"testable": False}
         out["p_difference"], out["beta_difference"] = d.get("p"), d.get("beta")
     else:
         C = Xall[(Xall["arm"].astype(str) == "out") & (Xall["in_scope"] == 1) & (Xall["ladder"] == 0) & np.isfinite(Xall["rew"].to_numpy(float))].reset_index(drop=True)
@@ -600,16 +601,97 @@ def economics_block(r: dict, test: str, spec: dict) -> dict:
     return out
 
 
+def _arm_fit(sub: pd.DataFrame, y: np.ndarray, test: str, spec: dict, *, term: str | None = None, sign: int = +1) -> dict:
+    """An uncounted reading's fit (estimates only): the primary estimator on ``sub`` with the test's controls, never a verdict."""
+    sub = sub.reset_index(drop=True)
+    if len(sub) < 30 or (term or lt.TERM[test]) not in sub:
+        return {"testable": False, "reason": "fewer than 30 units", "n": int(len(sub))}
+    ctrl = lt.controls_for(test, sub)
+    ok = np.ones(len(sub), bool)
+    return strip(fit11(sub, np.asarray(y, float), term or lt.TERM[test], ctrl, seed=int(spec["seeds"]["estimators"][test]), minor=g_minor(sub, ok, test), n_boot=200, sign=sign)) or {}
+
+
+def label_readings(r: dict, test: str, spec: dict) -> dict:
+    """The readings 1.9's labels need (estimates only, count 0): CH234 M3's four bin slopes, the unknown-class arm (2.3) and the ladder arm; CH233 M1 (the
+    bid's change, predicted < 0, one-sided p for < 0) and the ladder arm (11+ members); CH232 the ladder arm. Each arm uses the primary's estimator and
+    controls on its own units (the census-fixed family excluded as in the primary)."""
+    P, Xall = r["_frame"], r["_all"]
+    out: dict = {}
+    fam = ((spec.get("census_fixed") or {}).get(test) or {}).get("exclude_family")
+
+    def nofam(d: pd.DataFrame) -> pd.DataFrame:
+        return d[d["skey"].astype(str) != fam] if fam and "skey" in d else d
+
+    if test == "CH234":
+        out["bins"] = {str(i): _arm_fit(P[P["bin"] == i], P.loc[P["bin"] == i, "y"].to_numpy(float), test, spec) for i in range(4)} if "bin" in P else {}
+        base = Xall[(Xall["in_scope"] == 1)]
+        U = nofam(base[(base["ladder"] == 0) & ~base["vclass"].astype(str).isin(["traded", "quote_only"])])
+        out["unknown_arm"] = _arm_fit(U, U["y"].to_numpy(float), test, spec)
+        L = nofam(base[(base["ladder"] == 1) & (base["vclass"].astype(str) == "traded")])
+        out["ladder_arm"] = _arm_fit(L, L["y"].to_numpy(float), test, spec)
+    elif test == "CH233":
+        out["m1"] = _arm_fit(P, P["y_m1"].to_numpy(float), test, spec, sign=-1) if "y_m1" in P else {"testable": False}
+        L = nofam(Xall[Xall["arm"].astype(str) == "ladder"])
+        out["ladder_arm"] = _arm_fit(L, L["y"].to_numpy(float), test, spec)
+    else:
+        L = Xall[(Xall["arm"].astype(str) == "out") & (Xall["in_scope"] == 1) & (Xall["ladder"] == 1) & np.isfinite(Xall["rew"].to_numpy(float))].reset_index(drop=True)
+        L, _ = lt.fix_panels11(L)
+        L = nofam(L[L["panel"] == 1]) if len(L) else L
+        out["ladder_arm"] = _arm_fit(L, L["y"].to_numpy(float), test, spec) if len(L) else {"testable": False, "n": 0}
+    return out
+
+
+def underpowered(test: str, r: dict, spec: dict, k: int) -> dict:
+    """1.9 *underpowered*: Inconclusive and ``(t_{G-1, 1-0.05/k} + t_{G-1, 0.8}) x SE_day`` above the census MDE (``census_fixed.<test>.mde_c``), G = the UTC
+    days of the primary. Not computed (``computed`` False) while the census MDE is unfilled."""
+    prim = r.get("primary") or {}
+    mde = ((spec.get("census_fixed") or {}).get(test) or {}).get("mde_c")
+    g, se = prim.get("n_day"), prim.get("se_day")
+    if mde is None or g is None or se is None or int(g) < 2 or not math.isfinite(float(mde)):
+        return {"computed": False}
+    df_ = int(g) - 1
+    m = (float(t_dist.ppf(1 - 0.05 / max(1, k), df_)) + float(t_dist.ppf(0.8, df_))) * float(se)
+    return {"computed": True, "window_mde_c": m, "census_mde_c": float(mde), "above": bool(m > float(mde))}
+
+
 def labels_for(test: str, r: dict, v: dict, spec: dict, k: int, cc: dict) -> list[str]:
+    """1.9's labels (never change a verdict). Implemented: material (estimate at the census tercile gap of the tested term >= the floor; CH232 the class
+    contrast), the difference label (difference p < 0.05), within-bin, re-centring not widening, side reading ambiguous, informed (X), analytic p oversized,
+    underpowered, attrition-differential, late-loss, series-concentrated (top series family > 50%), ladder-dominated, holiday / month-start sensitive,
+    volume-missing sensitive. Not computed (disclosed, LT11_CODE_NOTES A20): CLOB-disagreement sensitive (LT11 has no feed reader)."""
     lab = list(v.get("labels") or [])
+    lab += [f"informed ({x})" for x in ((spec.get("informed_labels") or {}).get(test) or [])]
     if v["verdict"] == "Unavailable":
         return list(dict.fromkeys(lab + ([cc["label"]] if cc["label"] else [])))
     prim = r.get("primary") or {}
     beta = prim.get("beta")
-    if beta is not None and beta >= spec["verdict"]["material_c"][test]:
+    cf = (spec.get("census_fixed") or {}).get(test) or {}
+    floor = spec["verdict"]["material_c"][test]
+    gap = {"CH234": cf.get("xw_gap"), "CH233": cf.get("zcl_gap"), "CH232": 1.0}[test]  # CH232: xo is a 0/1 class, the estimate IS the class contrast
+    if beta is not None and gap is not None and math.isfinite(float(gap)) and float(beta) * float(gap) >= floor:
         lab.append("material")
-    if (r.get("point_condition") or {}).get("holds") is False or v["verdict"] == "Inconclusive" and (r.get("point_condition") or {}).get("p_difference") is not None and float(r["point_condition"]["p_difference"]) < 0.05:
+    pd_ = (r.get("point_condition") or {}).get("p_difference")
+    if pd_ is not None and math.isfinite(float(pd_)) and float(pd_) < 0.05:
         lab.append(DIFF_LABEL[test])
+    li = r.get("label_readings") or {}
+    if test == "CH234":
+        bins = li.get("bins") or {}
+        if len(bins) == 4 and all(x.get("testable") and float(x["beta"]) > 0 for x in bins.values()):
+            lab.append("within-bin")
+        ua = li.get("unknown_arm") or {}
+        if ua.get("testable") and beta is not None and (float(ua["beta"]) > float(beta) or float(ua["beta"]) * float(beta) < 0):
+            lab.append("volume-missing sensitive")
+    if test == "CH233":
+        m1 = li.get("m1") or {}
+        if m1.get("testable") and float(m1["beta"]) < 0 and float(m1["p"]) < 0.05 and v["verdict"] != "Supported":
+            lab.append("re-centring not widening")
+    if test == "CH232" and spec.get("m1_side_reading") not in ("cheap", "dear"):
+        lab.append("side reading ambiguous")
+    la = li.get("ladder_arm") or {}
+    if la.get("testable") and beta is not None and float(la["beta"]) * float(beta) < 0:
+        lab.append("ladder-dominated")
+    if v["verdict"] == "Inconclusive" and (r.get("underpowered") or {}).get("above"):
+        lab.append("underpowered")
     rd = r.get("readings") or {}
     ho = rd.get("holiday_excluded") or {}
     if ho.get("testable") and beta is not None and (ho["beta"] * beta < 0 or ((ho["p"] < 0.05) != (prim.get("p", 1) < 0.05))):
@@ -621,10 +703,10 @@ def labels_for(test: str, r: dict, v: dict, spec: dict, k: int, cc: dict) -> lis
     pm = (r.get("_prim") or {}).get("_mask")
     if X is not None and pm is not None:
         X = X[np.asarray(pm, bool)]
-        if len(X):
-            top = X["event_id"].value_counts(normalize=True)
+        if len(X) and "skey" in X:
+            top = X["skey"].astype(str).value_counts(normalize=True)
             if float(top.iloc[0]) > spec["verdict"]["series_concentrated"]:
-                lab.append(f"event-concentrated ({float(top.iloc[0]):.0%})")
+                lab.append(f"series-concentrated ({float(top.iloc[0]):.0%})")
     att = r.get("attrition") or {}
     if att.get("triggered"):
         lab.append(f"attrition-differential ({att['diff'] * 100:+.1f} pp)")
@@ -674,6 +756,8 @@ def analyze(out_root: Path = lt.OUT_ROOT, *, spec: dict | None = None, now: floa
             r["attrition"] = attrition_block(t, r, spec)
             r["readings"] = readings(r, t, spec)
             r["economics"] = economics_block(r, t, spec)
+            r["label_readings"] = label_readings(r, t, spec)
+            r["underpowered"] = underpowered(t, r, spec, k)
         v = verdict(r, hp[t], t)
         r["holm_p"] = hp[t]
         v["labels"] = labels_for(t, r, v, spec, k, cc)
