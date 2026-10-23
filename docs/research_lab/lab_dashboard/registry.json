@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-23T17:45:00Z",
+ "updated": "2026-10-23T22:40:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1036,18 +1036,18 @@
   {
    "id": "CB8-OTHER",
    "title": "Binance terminal minutes (CH76)",
-   "plain": "Designed: does the favourite's price in the last minutes of short crypto up/down markets lag the Binance price? The first market list came back empty: a rule that removes anything linked to earlier samples removed all 783 candidates (they share a few daily series). No price or outcome was read. An independent reviewer allowed one declared retry that ignores the series link but keeps the per-market exclusions; it is counted once and gets no further retry.",
+   "plain": "Designed: does the favourite's price in the last minutes of short crypto up/down markets lag the Binance price? The first market list came back empty: a rule that removes anything linked to earlier samples removed all 783 candidates (they share a few daily series). No price or outcome was read. An independent reviewer allowed one declared retry that ignores the series link but keeps the per-market exclusions; it is counted once and gets no further retry. The retry's market list (23 Oct) holds 665 markets, about half kept sealed for the later replication; still no price or outcome read.",
    "batch": "CB8",
    "family": "microstructure",
    "stage": "designed",
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Fresh market list (q0165b), then books, then the counting check",
+   "next": "Order-book coverage check and books (q0166b), then the counting check",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB8-B (CH76) frame empty (2026-10-23) and § CB8-B variant merged, q0165b promoted (2026-10-23); docs/research_lab/reviews/CB8B_SERIES_KEY_RULING_2026-10-23.md"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB8-B (CH76) frame empty (2026-10-23) and § CB8-B variant merged, q0165b promoted (2026-10-23); docs/research_lab/reviews/CB8B_SERIES_KEY_RULING_2026-10-23.md; § CB8-B frame complete (q0165b), q0166b promoted (2026-10-23)"
    },
    "stage_results": {
     "designed": "pass"
