@@ -36,6 +36,7 @@ class Paths:
     sweeps: Path = C.SWEEP_ROOT
     samples: Path = C.SAMPLE_ROOT
     xv_quotes: Path = C.XV_QUOTES_ROOT
+    xv_quotes2: Path = C.XV_QUOTES2_ROOT
     spec_dir: Path = C.SPEC_DIR
 
     def sub(self, *parts: str) -> Path:

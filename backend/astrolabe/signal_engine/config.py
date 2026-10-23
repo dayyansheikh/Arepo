@@ -16,6 +16,9 @@ SNAPSHOT_ROOT = DUMPS / "snapshots"
 SWEEP_ROOT = DUMPS / "book_sweeps"
 SAMPLE_ROOT = DUMPS / "trade_samples"
 XV_QUOTES_ROOT = DUMPS / "cross_venue_live" / "quotes"  # inputs only; outcome/prediction files are never read
+# Second read root (LIVE_TESTS_10.md section 9 / 8.2 route 1; DESIGN_V1 section 28): the quotes-only successor of E009's
+# poller continues the same pair-quote stream (same line schema plus a trailing "src") after E009 / E010's analyses.
+XV_QUOTES2_ROOT = DUMPS / "xv_quotes" / "quotes"
 ENGINE_ROOT = DUMPS / "signal_engine"
 SPEC_DIR = Path(__file__).resolve().parent / "specs"
 
@@ -147,6 +150,21 @@ EMBARGO = (
      "limits": ["spread x rewards_max_spread interactions", "history of the clob_rewards field's presence", "two-sweep band-sum differences"],
      "models": ["se0_champion_lr_mm", "se9_lr_rewards", "any broad model"], "no_broad_families": ["bandbreak", "pool", "rwblink", "rwend"],
      "why": "LIVE_TESTS_9.md section 9 (round 6) in place of a rewards extension (R1 answer 11.9): no attribution (SHAP or otherwise) on these terms and no LT9 family in a broad model before the later of 2027-02-14 and LT9's analysis commit; applied 2026-10-22 ~23:00Z"},
+    # LT10 round 7 (LIVE_TESTS_10.md section 9, design text frozen 34b7e22e; text as requested, applied 2026-10-23 ~04:10Z,
+    # before any kxbook family or se-aux-xvenue2-v1 exists).
+    {"token": "kxbook", "until": "2026-12-04T00:00:00Z", "tests": ["LT10-CH224", "LT10-CH223", "LT10-CH222"],
+     "why": "Kalshi within-window book changes: any column reading a change in Kalshi's spread, touch prices, touch sizes or "
+            "last_price, or a split of a Kalshi mid change by trade (traded / quote-only), at ANY horizon (10 minutes, 2 h or other), "
+            "named: kx_spread_chg_10m, kx_spread_ratio, kx_pull_10m, kx_pull_side, kx_last_chg_10m, kx_dk1_traded, kx_dk1_quote, "
+            "kx_trade_steps, and kx_last_chg_2h, kx_pull_2h, kx_spread_chg_2h (moved from se-aux-xvenue2-v1's plan into the kxbook "
+            "family); LIVE_TESTS_10.md section 9; "
+            "a family holding any such column carries kxbook in its isolates; moved later only by a ledger line"},
+    {"token": "attrlimit_lt10", "until": "2026-12-04T00:00:00Z", "tests": ["LT10"], "kind": "attribution_limit",
+     "limits": ["Kalshi spread, touch-price, touch-size or last-price changes at any horizon (incl. kx_last_chg_2h, kx_pull_2h, "
+                "kx_spread_chg_2h)", "traded / quote-only split of a Kalshi mid change", "Kalshi spread x Polymarket spread interactions"],
+     "models": ["se0_champion_lr_mm", "se4_lr_xvenue", "se13_lgbm_xvenue", "any broad model"], "no_broad_families": ["kxbook"],
+     "why": "LIVE_TESTS_10.md section 9: no attribution (SHAP or otherwise) on these terms and no kxbook family in a broad model "
+            "before until; moved later only by a ledger line"},
 )
 
 # Promotion eligibility (DESIGN_V1 section 21; science review REVISE 2026-10-22). A model listed here is still predicted,

@@ -401,13 +401,24 @@ def _xv_files(xv_root: Path, t0: float) -> list[Path]:
     return out
 
 
-def xvenue_features(xv_root: Path, cap_start: float, f: pd.DataFrame, max_age_s: float = 1800.0) -> tuple[pd.DataFrame, str | None]:
-    """Last Kalshi/Polymarket pair quote received before the capture start (cross_venue_live quotes only)."""
+def xvenue_features(xv_root: Path | tuple[Path, ...], cap_start: float, f: pd.DataFrame,
+                    max_age_s: float = 1800.0) -> tuple[pd.DataFrame, str | None]:
+    """Last Kalshi/Polymarket pair quote received before the capture start.
+
+    ``xv_root`` is one quotes directory or a tuple of them (E009's ``cross_venue_live/quotes`` and its quotes-only
+    successor ``xv_quotes/quotes``, DESIGN_V1 section 28). The roots carry one continuous stream with the same line
+    schema; quotes are pooled and the last ``k_recv`` per market wins. Source names from roots after the first are
+    prefixed with their parent directory's name, so a capture built from E009's directory alone keeps its old ``xv_src``.
+    """
     cols = FAMILY_COLUMNS["xvenue"]
     out = _nan_frame(len(f), cols)
-    files = _xv_files(xv_root, cap_start)
-    if not files:
+    roots = (xv_root,) if isinstance(xv_root, (str, Path)) else tuple(xv_root)
+    named = [(p, ("" if i == 0 else f"{Path(r).parent.name}/") + p.name)
+             for i, r in enumerate(roots) for p in _xv_files(r, cap_start)]
+    if not named:
         return out, None
+    files = [p for p, _ in named]
+    src = ",".join(n for _, n in named)
     last: dict[int, dict] = {}
     lo = cap_start - max_age_s - 600.0
     for p in files:
@@ -437,7 +448,7 @@ def xvenue_features(xv_root: Path, cap_start: float, f: pd.DataFrame, max_age_s:
                     last[mid] = q
     out["xv_has"] = 0.0
     if not last:
-        return out, ",".join(p.name for p in files)
+        return out, src
     ids = f["market_id"].to_numpy(np.int64)
     pos = {m: i for i, m in enumerate(ids)}
     gm = f["ms_mid"].to_numpy(float)
@@ -453,7 +464,7 @@ def xvenue_features(xv_root: Path, cap_start: float, f: pd.DataFrame, max_age_s:
         out.loc[i, "xv_gap"] = (kb + ka) / 2.0 - gm[i]
         out.loc[i, "xv_kspread"] = ka - kb
         out.loc[i, "xv_age_s"] = age
-    return out, ",".join(p.name for p in files)
+    return out, src
 
 
 # ---------------------------------------------------------------------------------------------- one capture
@@ -473,7 +484,7 @@ def build_capture(paths: S.Paths, cap: dict, index: dict[int, dict], mids: MidCa
     fl = flow_features(sample, f, o)
     wl = wallet_features(sample, f)
     bk = book_features(sweep, f)
-    xv, xv_src = xvenue_features(paths.xv_quotes, start, f)
+    xv, xv_src = xvenue_features((paths.xv_quotes, paths.xv_quotes2), start, f)
     feats = pd.concat([f, fl, bk, xv, wl], axis=1)
     for c in ALL_FEATURES:
         feats[c] = feats[c].astype(np.float32)

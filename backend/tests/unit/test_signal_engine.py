@@ -56,7 +56,8 @@ class World:
 
     def paths(self, engine: Path, spec_dir: Path) -> S.Paths:
         return S.Paths(engine=engine, snapshots=self.root / "snapshots", sweeps=self.root / "book_sweeps",
-                       samples=self.root / "trade_samples", xv_quotes=self.root / "xv", spec_dir=spec_dir)
+                       samples=self.root / "trade_samples", xv_quotes=self.root / "xv",
+                       xv_quotes2=self.root / "xv2", spec_dir=spec_dir)
 
     def step(self) -> None:
         d = self.mid - self.prev
@@ -1172,7 +1173,8 @@ def test_lt7_closure_withdrawals_and_lt9_round6_requests():
         assert not any(t.startswith("LT7") for t in ent["tests"])
     # attribution-limit entries: inert as family tokens, and no LT8 / LT9 family sits in any broad model
     lims = [x for x in C.EMBARGO if x.get("kind") == "attribution_limit"]
-    assert {x["token"]: x["until"] for x in lims} == {"attrlimit_lt8": "2027-01-23T00:00:00Z", "attrlimit_lt9": "2027-02-14T00:00:00Z"}
+    assert {x["token"]: x["until"] for x in lims} == {"attrlimit_lt8": "2027-01-23T00:00:00Z", "attrlimit_lt9": "2027-02-14T00:00:00Z",
+                                                      "attrlimit_lt10": "2026-12-04T00:00:00Z"}
     fams = set(A.AUX_FAMILIES) | {f for s in reg["models"].values() for f in s["families"]}
     for x in lims:
         assert x["token"] not in fams and x["limits"] and x["no_broad_families"]
@@ -1180,6 +1182,56 @@ def test_lt7_closure_withdrawals_and_lt9_round6_requests():
         for s in reg["models"].values():
             if s.get("broad"):
                 assert not set(s["families"]) & set(x["no_broad_families"]), s["model_id"]
+
+
+def test_lt10_round7_requests():
+    # LT10 section 9: kxbook token and attrlimit_lt10 at a fixed until; xvenue itself is not extended; no kxbook family
+    # exists yet, and none may sit in a broad model (the generic attribution-limit loop above also enforces this)
+    reg = SP.load_registry()
+    (kx,) = [x for x in C.EMBARGO if x["token"] == "kxbook"]
+    assert kx["until"] == "2026-12-04T00:00:00Z" and kx["tests"] == ["LT10-CH224", "LT10-CH223", "LT10-CH222"]
+    for col in ("kx_spread_chg_10m", "kx_pull_side", "kx_dk1_quote", "kx_last_chg_2h", "kx_pull_2h", "kx_spread_chg_2h"):
+        assert col in kx["why"]
+    (al,) = [x for x in C.EMBARGO if x["token"] == "attrlimit_lt10"]
+    assert al["kind"] == "attribution_limit" and al["no_broad_families"] == ["kxbook"] and al["until"] == kx["until"]
+    (xv,) = [x for x in C.EMBARGO if x["token"] == "xvenue"]
+    assert xv["until"] == "2026-11-04T00:00:00Z"
+    after = S.epoch("2026-11-05T00:00:00Z")
+    for m in ("se4_lr_xvenue", "se13_lgbm_xvenue"):  # levels only: not covered by kxbook
+        assert SP.embargo_of(reg["models"][m], after) is None
+    fams = set(A.AUX_FAMILIES) | {f for s in reg["models"].values() for f in s["families"]}
+    assert "xvenue2" not in fams  # when built, its Kalshi change columns go to a kxbook family instead
+    for s in reg["models"].values():
+        if s.get("broad"):
+            assert "kxbook" not in s["families"], s["model_id"]
+        if "kxbook" in s["families"]:
+            assert "kxbook" in (s.get("isolates") or []), s["model_id"]
+    assert not [c for c in F.ALL_FEATURES if c.startswith("kx_")]
+
+
+def test_xvenue_reads_both_roots_and_keeps_e009_src(tmp_path):
+    a, b = tmp_path / "cross_venue_live" / "quotes", tmp_path / "xv_quotes" / "quotes"
+    a.mkdir(parents=True)
+    b.mkdir(parents=True)
+    t0 = S.epoch("2026-11-03T02:31:00Z")
+    with open(a / "20261103.jsonl", "w") as fh:  # E009's last quotes before the handover
+        fh.write(json.dumps({"t": t0 - 900, "pid": "K1|5", "k_bid": 0.4, "k_ask": 0.42, "k_recv": t0 - 899, "p_recv": t0 - 898}) + "\n")
+        fh.write(json.dumps({"t": t0 - 900, "pid": "K2|6", "k_bid": 0.3, "k_ask": 0.34, "k_recv": t0 - 899, "p_recv": t0 - 898}) + "\n")
+    with open(b / "20261103.jsonl", "w") as fh:  # the successor's lines carry a trailing src
+        fh.write(json.dumps({"t": t0 - 300, "pid": "K1|5", "k_bid": 0.5, "k_ask": 0.52, "k_recv": t0 - 299, "p_recv": t0 - 298,
+                             "src": "xv_quotes_v1"}) + "\n")
+        fh.write(json.dumps({"t": t0 + 30, "pid": "K2|6", "k_bid": 0.9, "k_ask": 0.92, "k_recv": t0 + 31, "p_recv": t0 + 32,
+                             "src": "xv_quotes_v1"}) + "\n")
+    f = pd.DataFrame({"market_id": np.array([5, 6, 7], np.int64), "ms_mid": [0.45, 0.3, 0.5]})
+    out, src = F.xvenue_features((a, b), t0, f)
+    assert out["xv_has"].tolist() == [1.0, 1.0, 0.0]
+    assert abs(out["xv_gap"][0] - 0.06) < 1e-9 and abs(out["xv_age_s"][0] - 299) < 1e-9  # the successor's later quote wins
+    assert abs(out["xv_gap"][1] - 0.02) < 1e-9  # the successor's post-start line is ignored; E009's quote stands
+    assert src == "20261103.jsonl,xv_quotes/20261103.jsonl"
+    # one root, or an absent second root, gives exactly the old output and src
+    o1, s1 = F.xvenue_features(a, t0, f)
+    o2, s2 = F.xvenue_features((a, tmp_path / "absent"), t0, f)
+    assert s1 == s2 == "20261103.jsonl" and o1.equals(o2)
 
 
 def test_spec_aux_version_pin():
