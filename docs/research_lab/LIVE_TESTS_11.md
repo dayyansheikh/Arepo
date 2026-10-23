@@ -1,18 +1,22 @@
 # Live tests 11 (LT11): the price of the quote (CH234, CH233, CH232), DRAFT pre-registrations
 
-**Status: DRAFT, NOT FROZEN. No challenger review yet (R1 not run), not registered, nothing counted, no code, no seal, no
-census run. E-numbers unassigned.** Drafted 2026-10-23 (about 12:30-14:30Z) on branch `feat/live-tests-11` from the
-`chore/arepo-claude-setup` tip `2b33d60b`, a design-only first commit like the first commits of LT3-LT10. LT11 takes the next
-free E-numbers at its own registration, in the order CH234, CH233, CH232 (round 16's rank order). If every test drops at its
-census, LT11 is not registered (recorded in the ledger; nothing counted). Before registration this needs, in order:
-1. a challenger review (`science-reviewer`, R1) of this file, a written response, and any re-check;
+**Status: DRAFT ("R1 response applied; re-check required"). NOT FROZEN, not registered, nothing counted, no code, no seal,
+no census run. E-numbers unassigned.** Drafted 2026-10-23 (about 12:30-14:30Z) on branch `feat/live-tests-11` from the
+`chore/arepo-claude-setup` tip `2b33d60b`, a design-only first commit like the first commits of LT3-LT10. Challenger R1
+(`reviews/LT11_CHALLENGER_R1_2026-10-23.md`, verdict REVISE: 8 must-fix, 10 should-fix, rulings A1-A13) was answered on
+2026-10-23 in this revision; section 13 maps every item to the changed text. No fix loosens a threshold; several tighten one.
+LT11 takes the next free E-numbers at its own registration, in the order CH234, CH233, CH232 (round 16's rank order). If every
+test drops at its census, LT11 is not registered (recorded in the ledger; nothing counted). Before registration this needs, in
+order:
+1. a challenger review (`science-reviewer`, R1) of this file, a written response (done, section 13), and the **re-check** (next);
 2. the **design-text freeze commit** (1.1) **before 2026-11-14T12:00:00Z and before `T_E015`** (the fast lane; otherwise the
    ordered lane of 1.1 applies), with the venue's reward-rule page re-read and recorded in the same commit (1.4.2);
 3. the code (section 8), with a freeze check of the census and size-check code against sections 1.8, 1.8.1 and 7, on
    synthetic data only;
 4. the census inputs' restore and seal (section 7), each once, after the freeze and after the census span has ended;
 5. the counts-only census (section 7), once, which fixes k and every census-fixed spec value;
-6. the size check at >= 2,000 worlds on the code to be pinned, through the census-fixed values (1.8);
+6. the size check at >= 2,000 worlds on the code to be pinned, through the census-fixed values (1.8), whose run time per world
+   is measured at the code freeze (8.4 step 3; the ordered lane is declared before the seal if it does not fit);
 7. a host dry run of the reader with peak RSS measured (8.2);
 8. the engine embargo entries of section 9 verified in `config.EMBARGO` and `signal_engine/CANDIDATES.md`; the `SPEC_SHA256`
    and `code_sha256` pins; the ledger entry, at least 24 h before `REGISTERED_UTC` (8.4).
@@ -43,14 +47,15 @@ made before any LT11 data, several after the map (marked).
 | Handle | Idea | Hypothesis (direction) | Population and unit | Primary | Planning MDE: low / high; quarter of low; F-MDE (all planning) | Floor |
 |---|---|---|---|---|---|---|
 | **CH234** | the dollar weight of a move | Within market, on traded 2 h movers, continuation over (k, k + 1] rises with the **interaction of the move's collateral weight `w` and its size `|d|`** (the dollars behind the move), both main effects, the level drift by price bin and the known-factor block held fixed (one-sided > 0); the quote-only movers' slope is less than half the traded slope (binding point condition) | non-sports ex-crypto market x capture with `|d_k| >= 0.01`, `p_{k-1}` in [0.04, 0.96], **traded** (`volume_num` rose, both values present); quote-only movers the twin; `volume_num` missing or decreasing a **third class, counted, never classed** | expanding-past market-demeaned OLS of `c = sign(d_k) x (mid_{k+1} - mid_k)` on the centred product `xw = z(w) x z(|d|)`; **block Freedman-Lane gate (market)**; **far-future F binding**; twin point condition binding | at the map count less exclusions (900-1,150 a capture), DE 6.196: **0.31c / 0.27c**; quarter 0.61c; **F 0.46c / 0.40c**; at a projected DE 10: 0.39c / 0.34c, **F 0.58c / 0.51c (fails 0.5c)** | 0.5c (2 h mid) |
-| **CH233** | the arb's footprint | Within market, a neg-risk member's spread change over (k, k + 1] rises with the **siblings' YES bid-sum rise** over (k - 1, k] (the event's bid headroom `1 - sum of bids` closing because of the other members), the member's own move, the headroom level and the known-factor block held fixed (one-sided > 0); the siblings' **ask-sum** slope is less than half the bid-sum slope (binding point condition) | non-sports ex-crypto neg-risk member x capture in a **complete** event-capture pair (every eligible member two-sided at k - 1 and k), events with **3-10** eligible members (2-member and 11+ events reported arms) | expanding-past market-demeaned OLS of `ds = spread_{k+1} - spread_k` on `z cl_sib`; **event-phase block Freedman-Lane gate (one offset per event)**; **far-future F binding**; ask twin point condition binding | 4,000-8,000 complete member units a capture (planning, from the map's event counts), DE 31: **0.17c / 0.12c**; quarter 0.35c; **F 0.28c / 0.19c**; at DE 51: 0.22c / 0.16c, F 0.35c / 0.25c | 1.0c (spread) |
-| **CH232** | the cheap side's cliff | Within market, on rewarded markets whose mid at k - 1 sat in the outward approach zone (`[0.10, 0.14]` or `[0.86, 0.90]`), the spread change over (k, k + 1] is larger after the market-day's **first outward crossing** of 0.10 / 0.90 at (k - 1, k] than after no crossing, the move, its size, the mid's level and the known-factor block held fixed (one-sided > 0); the unrewarded panel's crossing coefficient is less than half the rewarded one (binding point condition) | rewarded (`listed_carry24h_v2`) non-sports ex-crypto market x capture in the approach zone; tick-coincident crossings excluded and counted | expanding-past market-demeaned OLS of `ds` on `xo` with `xr` (later crossings of the same UTC day) as a control; **block Freedman-Lane gate (market)**; **far-future F binding**; panel point condition binding | 50-69 counted crossings and 500-1,000 zone units a capture (planning), DE 31, `VIF_w` 1.3: **0.69c / 0.58c**; quarter 1.38c; **F 1.09c / 0.92c (fails 1.0c at the low end)**; at `VIF_w` 2.5: F 1.51c / 1.27c; at a computed DE of 15 and `VIF_w` 1.3: F 0.76c / 0.64c | 1.0c (spread) |
+| **CH233** | the arb's footprint | Within market, a neg-risk member's spread change over (k, k + 1] rises with the **siblings' YES bid-sum rise** over (k - 1, k] (the event's bid headroom `1 - sum of bids` closing because of the other members), the member's own move, the headroom level and the known-factor block held fixed (one-sided > 0); the siblings' **ask-sum** slope is less than half the bid-sum slope (binding point condition) | non-sports ex-crypto neg-risk member x capture in a **complete** event-capture pair (every eligible member two-sided at k - 1 and k), member receipt span **<= 120 s at both captures** (`receipt_span`), events with **3-10** eligible members, **non-augmented** (2-member, 11+ and augmented events reported arms) | expanding-past market-demeaned OLS of `ds = spread_{k+1} - spread_k` on `z cl_sib`; **event-phase block Freedman-Lane gate (one offset per event)**; **far-future F binding**; ask twin point condition binding | 1,440-8,000 complete member units a capture (planning: the map's 4,000-8,000 x receipt-span and non-augmented retention, each 0.6-1.0, unprobed), DE 31: **0.29c / 0.12c**; quarter 0.58c; **F 0.46c / 0.19c**; at DE 51: 0.37c / 0.16c, F 0.59c / 0.25c | 1.0c (spread) |
+| **CH232** | the cheap side's cliff | Within market, on rewarded markets whose mid at k - 1 sat in the outward approach zone (`[0.10, 0.14]` or `[0.86, 0.90]`), the spread change over (k, k + 1] is larger after the market-day's **first outward crossing** of 0.10 / 0.90 at (k - 1, k] than after no crossing, the move, its size, the mid's level and the known-factor block held fixed (one-sided > 0); the unrewarded panel's crossing coefficient is less than half the rewarded one (binding point condition) | rewarded (`listed_carry24h_v2`) non-sports ex-crypto market x capture in the approach zone with **`|d_k| >= 0.01`** (`half_tick`); crossings only between consecutive slots with both mids defined; a unit with any undefined same-day earlier mid excluded (`day_gap_market`); tick-coincident crossings excluded and counted | expanding-past market-demeaned OLS of `ds` on `xo` with `xr` (later crossings of the same UTC day), spread-in-ticks and spread-change-in-ticks dummies as controls; **block Freedman-Lane gate (market)**; **far-future F binding** (twin defined for every unit with mids at k + 2 and k + 3); panel point condition binding | 30-62 counted crossings and 90-540 non-crossing zone movers a capture (planning), DE 31, `VIF_w` 1.3: **0.98c / 0.62c**; quarter 1.96c; **F 1.55c / 0.99c (fails 1.0c except at the high end)**; at `VIF_w` 2.5: F 2.15c / 1.37c; at a computed DE of 15 and `VIF_w` 1.3: F 1.08c / 0.69c | 1.0c (spread) |
 
 - **Family:** one Holm family over the k surviving primaries, one-sided, familywise alpha 0.05, separate from E009-E011, LT2
   (E012-E014), LT3 (E015), LT4 (E022), LT5-LT10, E025 and E026. **Provisional k <= 3.** A test whose census gate fails is
   dropped *before* registration, uncounted; k is the number that survive, fixed in the spec (`k_tests`) at registration and
   never changed. A primary that is unavailable or fails its gate enters Holm with p = 1. No replacement test is added after
-  a census drop, and a census drop is final in both lanes (1.1).
+  a census drop, and a census drop (`census_dropped`) is final in both lanes (1.1); a test recorded `census_unavailable
+  (coverage)` (no gate value computed, 7) is not dropped and may be re-censused in the ordered lane.
 - **Window (proposed; the fast lane, 1.1):** whole captures with start in `[REGISTERED_UTC, END_UTC)`, 21 days,
   **`REGISTERED_UTC = 2026-11-18T00:00:00Z`**, `END_UTC = 2026-12-09T00:00:00Z`; single analysis on or after
   **2026-12-10T12:00:00Z**. Census on a fresh seal of `[2026-10-28T00:00Z, 2026-11-07T00:00Z)`. The window lies after E015's
@@ -59,18 +64,21 @@ made before any LT11 data, several after the map (marked).
 - **Freeze early.** Design-text freeze before 2026-11-14T12:00Z and before `T_E015`, so the traded class (E015's anatomy) and
   the reward control (E022's S2 split) are fixed blind to both results. A freeze after either moves LT11 to the ordered lane.
 - **Expected outcome, declared now (honest prior odds; the designer's judgement, not measurements).** **CH234** has the
-  count (the map's 1,239 traded movers a capture against a count gate of 745) but its binding F-MDE gate sits at the edge:
-  it passes at E022's design effect (6.196) and fails at the low planning count at the design effect its larger population
-  may compute (7-10, a projection, 2.5); `VIF_w` of the centred product and the differential-missingness gate on `volume_num` are the other
-  risks. Census **0.35**. **CH233** has power to spare (F-MDE about a quarter of the floor); the map settled completeness
-  (0.85-1.00 of events of 3-10 members on the rewarded panel) and the working range (`hb` within two ticks of zero on 12.6%
-  of complete event-captures); the risks left are the correlation and `VIF_w` gates against the member's own move and
-  liquidity, and the block-gate share. Census **0.50**. **CH232** has the crossings (79 rewarded outward first crossings a
-  capture on the map, 73 ex-tick) but loses some to the causal approach-zone population (6.1 item 1), and its binding F-MDE
-  gate fails at the planning DE 31 unless `VIF_w` stays near 1.3 or the computed DE is near 15. Census **0.20**. **Expected
-  k at census about 1.05 (0 to 3); the chance that no LT11 test registers is about 0.26** (0.65 x 0.50 x 0.80, treating the
-  fates as independent, which they are not: all three read the same captures and sidecars); **the expected number of valid
-  verdicts is about 0.4** (binding leak worlds may fail, 1.8). Every taker check is expected to be "not shown" (1.10).
+  count (the map's 1,239 traded movers a capture against a count gate of 745, which is the **lenient** line at the optimistic
+  DE 6.196; 2.5) but its binding F-MDE gate sits at the edge and decides: it passes at E022's computed design effect (6.196)
+  and fails at the low planning count at the design effect its larger population may compute (7-10, a projection, 2.5);
+  `VIF_w` of the centred product and the differential-missingness gate on `volume_num` are the other risks. Census **0.35**
+  (unchanged by R1). **CH233** has power to spare (F-MDE under half the floor even at the R1 planning low end); the map
+  settled event-level completeness (0.85-1.00 of events of 3-10 members on the rewarded panel) and the working range (`|hb|`
+  within two ticks of zero on 12.6% of complete event-captures); R1 added two unprobed retentions (the 120 s receipt span,
+  gated at 60%, and the exclusion of augmented events), and the correlation and `VIF_w` gates against the member's own move
+  and liquidity and the block-gate share remain. Census **0.40** (was 0.50). **CH232** after R1 counts only approach-zone
+  movers with complete same-day mids: planning 30-62 counted crossings a capture (4.4) against a count gate raised to **67**
+  (the F-MDE kill line at the base planning values, lesson (i)); it passes only if the zone share, the same-day retention or
+  the carry panel exceed planning. Census **0.10** (was 0.20). **Expected k at census about 0.85 (0 to 3); the chance that no
+  LT11 test registers is about 0.35** (0.65 x 0.60 x 0.90, treating the fates as independent, which they are not: all three
+  read the same captures and sidecars); **the expected number of valid verdicts is about 0.3** (binding leak worlds may fail,
+  1.8). Every taker check is expected to be "not shown" (1.10).
 - **No LT11 result can satisfy the programme's economic check** (1.10): every maker route is gross and without fills; every
   taker cell is a cost rule expected "not shown". A Supported LT11 primary is an exploratory prospective finding, never an edge.
 
@@ -100,7 +108,9 @@ against 500, cap and block shares; CS8: CH203's projected units 431,399 against 
 held share 0.067 against 0.15). E022 alone survived (DE 6.196, `m_21` 260.8). The lessons applied here: (i) the MDE gate and
 the count gate both kill, so every test states **the count at which its binding gate passes** (0, 2-4) and its count gate is
 set at or above that line at the base planning values (the planned DE and `VIF_w`), never below; the MDE gates then decide
-with the census's own values; (ii) a share gate on a quantity nobody has measured kills as surely as a count (CH202),
+with the census's own values. **One declared exception (R1 should-fix 2):** CH234's count gate 745 is the line at the
+optimistic DE 6.196, below its lines at the planned DE 7-10 (2.5); it is the lenient line, kept as a floor only, and CH234's
+F-MDE gate, computed from the census's own DE, `VIF_w` and `r_gate`, is the gate that decides; (ii) a share gate on a quantity nobody has measured kills as surely as a count (CH202),
 so every share gate here is either measured by the map (and the margin stated) or flagged unprobed; (iii) whole-panel
 populations have whole-panel design effects, and a population several times E022's computes a larger `m_21` (2.2 projects
 it), so DE 6.196 is quoted as the optimistic end for CH234, not the plan; (iv) **a field's semantics are declared before any
@@ -116,13 +126,13 @@ Round 16's design rules (`CREATIVE_HYPOTHESES_2026-10-30.md` 0.2, with rounds 14
 | 4. Look-backs <= 12 slots | `rv24*` and the 24 h change read 12 slots; the carry window `[k-11, k]`; "first crossing of the UTC day" reads only earlier slots of the same day |
 | 5. Field semantics first | 2.3 (`volume_num`), 3.2 (members, completeness, the bid of a two-sided row), 4.2 (crossing, tick coincidence), 1.4.1 (reward status) |
 | 6. A stream only where it covers its population | captures and sidecars cover every unit; sweeps are read only for CH232's reported M3 |
-| 7. DE and the kill line | planning DE 6.196 / 10 (CH234), 31 / 51 (CH233), 31 / 15 (CH232); census `DE_gate = max(floor, computed)`, floors 6.196, 5.0, 5.0; each kill line stated |
+| 7. DE and the kill line | planning DE 6.196 / 10 (CH234), 31 / 51 (CH233), 31 / 15 (CH232); census `DE_gate = max(floor, computed)`, floors 6.196, 5.0, 5.0, beside the Kish `G_eff >= 15` gate; each kill line stated |
 | 8. Floors | 0.5c (CH234's 2 h mid), 1.0c (CH233's and CH232's spread targets); the F-MDE cap equals the floor |
 | 9. Census on a fresh seal | `[2026-10-28, 2026-11-07)`, disjoint from the map's span (7) |
 | 10. Pin early, name what was seen | the CH240 map, the round's planning counts and the `event` family's visible level scores are disclosed (10) |
 | 11. Maker-side money routes | every primary route is maker-side, gross, no fills; taker cells reported (1.10) |
-| 15. The rule-boundary clock | CH232's crossing is read from the captures' own mids at k - 1 and k; first crossing of the market-day is the state, later crossings a declared class; the rule's page is re-read at the freeze and fixes only the side of M1 (1.4.2, 6.1 item 3) |
-| 16. Event-join completeness | CH233 is defined only on complete event-capture pairs; incomplete ones are `unavailable`, counted, never filled; the census drops the test below 60% completeness (3.6) |
+| 15. The rule-boundary clock | CH232's crossing is read from the captures' own mids at k - 1 and k, only between consecutive slots with both mids defined; first crossing of the market-day is the state, later crossings a declared class; a unit with an undefined same-day earlier mid is excluded; the rule's page is re-read at the freeze and fixes only the side of M1 (1.4.2, 6.1 item 3) |
+| 16. Event-join completeness | CH233 is defined only on complete event-capture pairs whose member receipt span is <= 120 s at both captures; incomplete ones are `unavailable`, counted, never filled; the census drops the test below 60% pair-completeness or 60% span retention (7) |
 | 17. Mover states vary beyond the sign | CH234's tested term is a centred product with both main effects and `sign(d) x bin` controls; `VIF_w` and residual-IQR gates bind (2.6) |
 
 ### 1.1 Registration, window, single analysis
@@ -133,13 +143,21 @@ Round 16's design rules (`CREATIVE_HYPOTHESES_2026-10-30.md` 0.2, with rounds 14
   **2026-11-14T12:00:00Z and before `T_E015`**, and the registration commit before **2026-11-17T00:00:00Z** (so that (a) holds
   for 11-18). **If the registration commit is not made by 2026-11-17T00:00Z, the fast lane lapses** (recorded) and the ordered
   lane applies; the fast lane never slides day by day, because a later start would overlap LT9's install and the year-end.
+  The fast lane may also be given up earlier by a ledger line (for example under 8.4 step 3's size-check timing rule).
+  **Lapse after an adjacent analysis (R1 must-fix 8):** the *lapse time* is the earlier of the ledger line recording the
+  lapse and 2026-11-17T00:00Z. If the lapse time is after `T_E015`, CH234 carries *informed (E015)* in the ordered lane; if it
+  is after `T_E022`, CH232 carries *informed (E022)*; neither label is removable. (A lapse at 11-17T00:00Z is after the
+  proposed `T_E015` = 11-15T12Z by construction, so a late lapse labels CH234.)
 - **Ordered lane (fallback, declared now).** If the freeze misses its deadline or the fast lane lapses: `REGISTERED_UTC` = the
   first 00:00Z at least 24 h after LT9's `END_UTC` (if LT9 registers; else after LT9's recorded drop) and after the LT11
   registration commit, never before 2027-01-21T00:00Z; 21 days; single analysis >= 36 h after the end. **The ordered lane
   needs a fresh seal and census** of the 10 UTC days ending at least 4 days before the registration commit, with every gate
   and value rule of section 7 unchanged; if the fast-lane census already ran, its outputs become descriptive, **every test it
-  dropped stays dropped** (no second census for a dropped test), and the new census can only drop more. A freeze after
-  `T_E015` labels CH234 *informed (E015)*; a freeze after `T_E022` labels CH232 *informed (E022)* (adjacent analyses below).
+  recorded `census_dropped` stays dropped** (no second census for a dropped test), and the new census can only drop more. **A
+  test the fast-lane census recorded `census_unavailable (coverage)`** (its coverage check failed, so no gate value of it was
+  computed or seen; section 7, R1 must-fix 7) **is re-censused in the ordered lane** under the same gates. A freeze after
+  `T_E015` labels CH234 *informed (E015)*; a freeze after `T_E022` labels CH232 *informed (E022)* (adjacent analyses below);
+  a lapse after either labels the same way (above).
 - **Why the fast lane.** (1) No registered or drafted test reads the captures' crossing, neg-risk sum or collateral states in
   2026-11-18..12-09: E022's window ends 2026-11-16, LT9's starts no earlier than 2026-12-30 (LIVE_TESTS_9.md 1.1 (c')), LT10
   reads the fine-clock stream, E026 the wallet stream. (2) The host's capture-reader slot is free (LT9's reader installs in
@@ -161,8 +179,8 @@ Round 16's design rules (`CREATIVE_HYPOTHESES_2026-10-30.md` 0.2, with rounds 14
 
   | Test | Adjacent analysis (`T_X`) | Why adjacent | Consequence |
   |---|---|---|---|
-  | CH234 | **E015** (`T_E015`, proposed 2026-11-15T12Z) | E015 tests the move's anatomy (traded, quote-only, parallel); CH234 uses its traded class as a population rule and its quote-only class as the twin | freeze not before `T_E015`: ordered lane and label *informed (E015)*; census-fixed CH234 values committed after `T_E015` (they are mechanical counts): disclosed, no label (ambiguity A3) |
-  | CH232 | **E022** (`T_E022`, proposed 2026-11-17T12Z) | E022's S2 splits hollow liquidity by reward status on the same `clob_rewards` field | freeze not before `T_E022`: label *informed (E022)*; the fast-lane pin is before `T_E022` by construction |
+  | CH234 | **E015** (`T_E015`, proposed 2026-11-15T12Z) | E015 tests the move's anatomy (traded, quote-only, parallel); CH234 uses its traded class as a population rule and its quote-only class as the twin | freeze not before `T_E015`: ordered lane and label *informed (E015)*; a fast-lane lapse after `T_E015`: *informed (E015)*; census-fixed CH234 values: **disclosed, no label only if the census output's sha256 is committed and its host completion timestamp both precede `T_E015`; otherwise *informed (E015)*** (R1 ruling A3) |
+  | CH232 | **E022** (`T_E022`, proposed 2026-11-17T12Z) | E022's S2 splits hollow liquidity by reward status on the same `clob_rewards` field | freeze not before `T_E022`, or a fast-lane lapse after `T_E022`: label *informed (E022)*; the fast-lane pin is before `T_E022` by construction |
   | CH233 | **E005** (complete), HB1 XM1-XM3 (complete), the engine's `event` family (se8 / se10, visible since 2026-10-22T12:00Z) | the neg-risk mid-sum record and visible level scores | disclosed (10); no label (the results were known before this draft) |
   | CH232 | **LT9 CH213** (window from 2026-12-30) | the same rewarded panel and `listed_carry24h_v2` | no time overlap; LT11's analysis (12-10) precedes LT9's pin, LT9's design text is frozen (11fee7a0) and its census runs in mid-November, before any LT11 result; disclosed to LT9 (9) |
   | all | LT10 (window 2026-11-10..12-01), E026 (to 2026-12-07) | time only | different streams; no pooling |
@@ -204,7 +222,12 @@ Round 16's design rules (`CREATIVE_HYPOTHESES_2026-10-30.md` 0.2, with rounds 14
 - **Decision time (all three):** **capture k's last row receipt** (the largest `received_utc` over capture k's complete rows
   and sidecar rows), because CH233's state reads other markets' rows of capture k and the member cap and CH232's panel rule
   read capture k's event membership. States read captures k - 1 and k, their sidecars and the 12-slot look-back. **Targets
-  start at capture k + 1.**
+  start at capture k + 1.** **CH233's within-capture receipt order (R1 must-fix 1):** CH233's target `ds` starts at the member's
+  own row of capture k, while `cl_sib` reads sibling rows of capture k that may be received later; so that no material part of
+  the target interval precedes the state and a sibling's bid has no time to react to the member's own spread change inside
+  the capture, every event-capture at k - 1 or k whose eligible members' `received_utc` span (largest minus smallest) exceeds
+  **120 s** gives no unit for any member (`receipt_span`, counted; E005's precedent, ledger E005). The residual overlap (at
+  most 120 s of a 2 h target) is disclosed, not removed.
 - **Late rule:** as LT4 1.3: a frozen file is written before capture k + 1's start, else `.late`, units lost and counted;
   *late-loss* above 2% of a test's origin files.
 - **Twins (F) and post-decision readings** read captures k + 2 and k + 3 (twin states) and, for CH232's M3 only, sweep 1 of
@@ -238,11 +261,14 @@ LT9 CH213. CH234 and CH233 carry `rewarded_k` as a control (NaN excluded and cou
 AREPO's documents disagree on the rule: `COST_MODEL.md` 2 and `MAKER_REWARDS_STUDY.md` quote the venue's page as "two-sided
 quoting is required outside [0.10, 0.90]" (inside, a one-sided quote also scores at the reduced weight `c = 3.0` sets;
 outside, only two-sided quoting scores), while CH71 and round 14's rule 11 record the reverse as the usual reading. **The
-primary's sign does not depend on the reading** (6.1 item 3): under the documented reading an outward crossing removes the
-score of every one-sided quote on the cheap side, so one-sided farmers leave it or must add the dear side (which costs about
-nine times the collateral a share); under the reverse reading it frees the farmers to drop the dear side. In both readings
-the cheapest response of a quote-minute maximiser is to withdraw a side, so the predicted spread change at an outward crossing
-is **> 0**. **The reading fixes only the side of M1** (which touch retreats): the cheap side under the documented reading, the
+primary's direction (> 0) is a declared direction for both readings, not a consequence the mechanism forces** (6.1 item 3;
+R1 should-fix 10, ruling A2). Under the reverse reading an outward crossing frees farmers to drop the dear side, which widens
+the spread. Under the documented reading an outward crossing removes the score of every one-sided quote on the cheap side,
+so one-sided farmers either leave (widening) or add the dear side to keep scoring (which costs about nine times the
+collateral a share, and **would narrow the spread**). The design declares that the cheaper response (withdrawal) dominates
+under both readings, so the predicted spread change at an outward crossing is **> 0**; if the adding response dominates
+under the documented reading, the primary is expected to be Inconclusive or Contradicted, and that is an informative
+outcome, not a reason to change the sign. **The reading fixes only the side of M1** (which touch retreats): the cheap side under the documented reading, the
 dear side under the reverse reading. The venue's page is re-read **in the design-text freeze commit** (not at the pin), the
 quoted sentence and its retrieval time recorded in the ledger, and M1's side set from it; if the page states neither reading,
 M1 is reported for both sides and is a two-row table. No re-reading after the freeze changes anything.
@@ -252,11 +278,14 @@ As LT4 1.5 and LT9 1.5: every frozen unit receives exactly one status at every t
 `closed_flag`, `absent`, `capture_missing`), write-once and online; only `two_sided` has a target. The attrition rule (|a_1 -
 a_0| > 2 pp between the contrasted classes or the top and bottom terciles of the tested term gives *attrition-differential*
 and Lee-type bounds) never changes a verdict. A required input missing at the origin produces no unit and is counted
-(`sidecar_missing`, `reward_unparseable`, `.noprev`, `event_incomplete`, `vnum_unknown`). A missing control or state is NaN
+(`sidecar_missing`, `reward_unparseable`, `.noprev`, `event_incomplete`, `receipt_span`, `vnum_unknown`, `half_tick`,
+`day_gap`, `day_gap_market`). A missing control or state is NaN
 (excluded, counted), never 0. **Declared indicator-pair exceptions only:** an unknown `end_date` enters log hours-to-end as 0
 with `hte_unknown`; a missing `volume24hr` enters `log1p volume24hr` as 0 with `vol_missing`; a missing `chg_1h` (or 6 h / 24 h
-own change, slot missing) enters as 0 with `mom_missing`; every primary is also re-estimated on units with all of them present
-(reported). **`volume_num` is never an indicator-pair exception:** for CH234 it defines the population (2.3); elsewhere it is not
+own change, slot missing) enters as 0 with `mom_missing`; **`chg_1d` and `chg_1w`, if the header pre-check (7) finds them,
+enter as indicator pairs** (a missing or non-numeric value enters as 0 with `chg1d_missing` / `chg1w_missing`; R1 should-fix
+6, ruling A9), so a column that disappears or empties mid-window removes no unit; every primary is also re-estimated on units
+with all of them present (reported). **`volume_num` is never an indicator-pair exception:** for CH234 it defines the population (2.3); elsewhere it is not
 used. A missing F state leaves the unit in the primary and out of the F arm (counted).
 
 ### 1.6 What is not looked at before the analysis date
@@ -282,12 +311,16 @@ census)* on the affected test and recorded with its reason.
   to end (with `hte_unknown`), `1[tick = 0.001]`, `z log rv24*` (12 slots), `neg_risk`, `rewarded_k` (CH234, CH233), the
   non-sports `fee_category` dummies, 11 slot-of-day dummies. *Momentum:* the own 2 h change `d_k` (each test's own form), the own
   6 h and 24 h changes (`mid_k - mid_{k-3}`, `mid_k - mid_{k-12}`, with `mom_missing`), the venue's `chg_1h` (and `chg_1d`,
-  `chg_1w` if present). Market age is not on the rows and is omitted (listed at the code freeze; ambiguity A9). A Supported
+  `chg_1w` as indicator pairs if the header pre-check finds them; the pre-check result is committed before the seal and
+  fixes K's columns, 1.5, 7). Market age is not on the rows and is omitted (listed at the code freeze; ruling A9: acceptable). A Supported
   primary is therefore a statement beyond these columns as the captures carry them, not beyond the engine's fitted models.
 - **Standard errors and p (L10):** CR1 on event (Gamma `event_id`, else the market), two-way event x UTC day, and UTC day.
   One-sided **p = max(p_event on t with `G_event - 1` df, p_two-way normal, p_day on t with `G_day - 1` df)**. **Sparse class
   (CH232):** the event t uses `min(G_event, G_minor) - 1` df, `G_minor` the number of events holding at least one counted
-  crossing. The conservative 95% CI is the hull of a 2,000-draw event bootstrap and the three Wald intervals.
+  crossing. The conservative 95% CI is the hull of a 2,000-draw event bootstrap and the three Wald intervals. **Effective event
+  count (R1 should-fix 8, LT10 R1 should-fix 6):** every census and the analysis print the Kish `G_eff = (sum_e m_e)^2 / sum_e
+  m_e^2` beside `G_event`, `m_e` the test's units in event e (CH232: the counted crossings in event e); `G_eff >= 15` is a
+  census gate for all three (7) and an analysis floor (1.9; below it the primary is Unavailable).
 - **Dependence sensitivities (reported, never the verdict):** event x two-day block CR1; the **fixture-day group**
   (`DEPENDENCE_CLUSTERING_ANALYSIS.md`'s `fixture_day_sidecar`) in place of the event; the market-deduplicated estimate (the
   first unit of each market-day only).
@@ -305,6 +338,13 @@ census)* on the affected test and recorded with its reason.
   shifts reward-panel markets only; the control panel enters only the point condition); **the event for CH233, one common
   offset per event applied to every member's series on the event's capture index** (LT10 R1's event-phase form: a sibling
   state shares its event's shocks, so independent member shifts would break the cross-member dependence the null must keep).
+  **Event-phase index and missing residuals (R1 should-fix 7):** the event's capture index `I_e` is the ordered list of
+  captures at which event e has at least one CH233 unit; `n_e = |I_e|`, `s_e = max(4, ceil(n_e / 4))`, one offset `o` drawn
+  from `[s_e, n_e - s_e]` per event and draw. Member i's unit at index position t receives the reduced-model residual of
+  member i at position `(t + o) mod n_e`; if member i has no unit there (it failed a member-level filter at that capture), the
+  unit at t is **omitted from that draw's refit** (never filled, never borrowed from another member or position). The omitted
+  share per draw is printed (median and maximum over draws); the size-check worlds 5-8 remove 10% of member units at random
+  so this rule is exercised under the null.
 - A failed gate on data gives p = 1 in Holm and the label "SE check failed (gate on data)".
 - **Size check (L5), after the census (k and the census-fixed values fixed first).** `size-check` runs once, on the code to be
   pinned, 2,000 worlds x 200 draws, seed **20261497**, limit 0.058, every gate scenario through the same `block_fl_gate` path
@@ -316,6 +356,7 @@ census)* on the affected test and recorded with its reason.
   | 1 | **S28:** a bounded logit random walk with PX1's level drift by price, traded and quote-only movers alike, no dose | block FL | CH234 | gate rejection rate |
   | 2 | **S29:** continuation that depends on `|d|` alone (and on the spread), no dose | block FL | CH234 | gate |
   | 3 | **missing-volume leak:** `volume_num` missing with a probability that rises with a latent activity state which also raises continuation; the model sees only the noisy activity controls | block FL | CH234 | gate |
+  | 3b | **missing-volume leak, capture level** (R1 ruling A10): whole captures lose `volume_num` with a probability that falls with a market-wide activity latent which also raises continuation | block FL | CH234 | gate |
   | 4 | **volatility clustering:** AR(0.9) log-volatility, movers recur within market-day, continuation scaled by volatility | block FL | CH234 | gate |
   | 5 | **S26:** a common event-level shock that moves every member's bid and spread in the same slot, with no lag effect | event-phase block FL | CH233 | gate |
   | 6 | **S27:** a dormant ladder whose only mover is the favourite; the longshots' spreads mean-revert | event-phase block FL | CH233 | gate |
@@ -327,18 +368,22 @@ census)* on the affected test and recorded with its reason.
   | 12 | **M-Q (CH234):** a slow drift that raises continuation and the lead and twin products alike | none | CH234 | verdict size |
   | 13 | **M-Q (CH233):** a slow event drift that raises sibling bids before and after the target alike | none | CH233 | verdict size |
   | 14 | **M-Q (CH232):** a slow spread-level drift on rewarded markets that raises crossings before and after alike | none | CH232 | verdict size |
+  | 15 | **quote grid (CH232; R1 must-fix 2):** bid and ask each on a 1c grid, the mid their average, a 1-tick spread floor, spread reversion, no boundary effect | block FL | CH232 | gate |
 
   **Verdict size** (12-14) = the share of worlds in which the test's analytic one-sided p (1.7) is < 0.05 **and** its F and
   point condition (1.9) hold; the gate is omitted, which can only raise the rate. Criterion: <= 0.058.
 - **Also reported, never binding:** a planted-effect power run per test (500 worlds each; CH234 0.5c per census tercile gap of
   `xw`, CH233 1.0c per tercile gap of `z cl_sib`, CH232 1.0c between classes; seeds `20261497 x 100 + 41, 42, 43`).
-- **Leak worlds (3, 7, 8, 11)** plant a confounder that reaches the model only through an imperfect control; they are binding.
+- **Leak worlds (3, 3b, 7, 8, 11)** plant a confounder that reaches the model only through an imperfect control; they are
+  binding. **World 15** plants no confounder but the tick mechanics of separate bid and ask quotes (a crossing made by a one-tick
+  quote step at the 1-tick spread floor); it is binding for CH232.
   A rejection rate above 0.058 means the design cannot separate the hypothesis from the confounder at the declared control, and
   the test is "SE check failed (size scenario)". This is the intended consequence, declared now; the parameters are conventions
-  (1.8.1), not measurements, and are not tuned after any result. **Expected:** world 3 may fail if the census
-  `vnum_unknown` share is high (its rate is taken from the census, 1.8.1); worlds 7 and 11 may fail; the others are expected to pass.
+  (1.8.1), not measurements, and are not tuned after any result. **Expected:** worlds 3 and 3b may fail if the census
+  `vnum_unknown` share is high (its rate is taken from the census, 1.8.1); worlds 7, 11 and 15 may fail; the others are expected
+  to pass.
 - **Consequence of a failure (as LT5-LT10):** a failing scenario makes **only the tests it is binding for** "SE check failed
-  (size scenario)" (1-11) or "SE check failed (mechanical world)" (12-14): p = 1 in Holm, **k unchanged**, no rerun, reseed,
+  (size scenario)" (1-11, 3b, 15) or "SE check failed (mechanical world)" (12-14): p = 1 in Holm, **k unchanged**, no rerun, reseed,
   redesign or variant. `max_retries 1` covers a deterministic crash only. No preliminary run of any scenario at seed 20261497.
 
 ### 1.8.1 Simulated worlds (declared now; census inputs only where named)
@@ -356,11 +401,18 @@ spreads in cents on a 1c tick unless stated.
   probability `logistic(-0.6 + 0.8 a)`; `volume_num` missing with probability `logistic(logit(q) - 0.8 a)`, **`q` = the census
   `vnum_unknown` share among CH234's movers** (floor 0.15, a declared convention), so missingness falls with activity; the model
   sees `log1p volume24hr = a + N(0, 0.7^2)` and `z log rv24*` from the simulated moves; no dose beyond `a`.
+- **3b (missing-volume leak, capture level; R1 ruling A10):** world 3 with the row-level missingness replaced by a capture-level
+  one: a market-wide activity latent `A_t` AR(1) rho 0.9 (SD 1) adds `0.3c x A_t` to every market's continuation, and every
+  row of capture t loses `volume_num` together with probability `logistic(logit(q) - 0.8 A_t)` (`q` as world 3); the model sees
+  `log1p volume24hr = a + A_t + N(0, 0.7^2)` and the slot-of-day dummies; the excluded captures' movers are excluded as 2.3
+  says; no dose.
 - **4 (volatility clustering):** world 1 with log-volatility AR(1) rho 0.9 (stationary SD 0.5) scaling the logit step and
   continuation `E[c] = 0.1 x sign(d) x vol_t` (cents per unit of the latent), the model seeing `z log rv24*`; no dose.
 - **5 (S26):** 200 events of 3-10 members (uniform), `n` uniform on 120..252 captures; member bids `b_{j,t}` = `b_j + e_t +
   u_{j,t}` with a common event shock `e_t ~ N(0, (1.5c)^2)` iid and member noise; spreads `s_{j,t} = max(1c, round(2c + 1.5 x
-  |e_t| / 1c + AR(0.7) noise))` in the same slot; target the member's next spread change; no lag effect of `cl_sib`.
+  |e_t| / 1c + AR(0.7) noise))` in the same slot; target the member's next spread change; no lag effect of `cl_sib`. In
+  worlds 5-8, 10% of member units are removed at random after generation (a member-level filter failure; the event-capture
+  stays complete for its other members), so the event-phase gate's omission rule (1.8) is exercised.
 - **6 (S27):** world 5 with one favourite per event carrying all the moves (`e_t` applied to the favourite only, the longshots
   static up to noise) and longshot spreads reflected AR(0.8) around 3c; no effect.
 - **7 (contagion):** world 5 plus an event spread factor `f_t` AR(1) rho 0.8 (SD 1c) added to every member's spread; sibling bids
@@ -378,25 +430,40 @@ spreads in cents on a 1c tick unless stated.
 - **12-14 (M-Q):** as LT9 13-14: a drift `mu_t` AR(1) rho 0.99 (stationary SD 0.5c a slot) entering the target and, with loading
   0.3 per SD, both the lead state and the twin (CH234 the product, CH233 `cl_sib`, CH232 the crossing propensity on reward-panel
   markets only); statistic: analytic p < 0.05 and F and the point condition hold.
+- **15 (quote grid; R1 must-fix 2):** 160 rewarded and 160 control markets, `n_m` uniform on 120..252; a latent fair value
+  `f_t = logistic(l_t)`, `l_t` a logit walk with step SD 0.3 started uniformly in [0.06, 0.94]; a latent half-spread `h_t` AR(1)
+  rho 0.8 around 1.5c (stationary SD 1c, floored at 0.5c), so the spread reverts; **bid** `b_t = floor((f_t - h_t) / 0.01) x
+  0.01` and **ask** `a_t = ceil((f_t + h_t) / 0.01) x 0.01`, each on the 1c grid, with `a_t >= b_t + 0.01` enforced (the 1-tick
+  floor) and both clipped to [0.01, 0.99]; the mid `(b_t + a_t) / 2` and the spread `a_t - b_t` are what the model sees; the
+  approach zone, `|d_k| >= 0.01`, the crossings, `day_gap_market` and the spread-in-ticks dummies by 4.2-4.3; the quote rule is
+  the same on both sides of 0.10 / 0.90 and on both panels (no boundary effect).
+- **9-11 and 15** apply 4.2's population rules (`|d_k| >= 0.01`, crossings between defined mids only) and 4.3's controls
+  (including the tick dummies) exactly as the analysis does.
 
 ### 1.9 Verdicts, the falsification condition and labels (per primary, after Holm over k)
 - **F rule (LT7's, unchanged).** The **arm model** is the primary model with the far-future twin added, fitted on the units that
   have it, same demeaning, controls and clustering. `Δ = beta(lead) - beta(twin)`. **F holds iff (i) Δ's one-sided p < 0.05
   under the 1.7 rule (not Holm-adjusted; counted 0) and (ii) Δ̂ >= 0.5 x betâ_primary.** An arm with fewer than 50% of the
   primary's units is *falsification unavailable*. **F binds for all three, fixed now by design** (all three states are rolling,
-  1.7). Twins: CH234 `xw` of the market's move over (k + 2, k + 3] (computed on every unit with mids at k + 2 and k + 3,
-  `w = 0.5` where that move is 0); CH233 `z cl_sib` over (k + 2, k + 3] on complete event-capture pairs; CH232 the market's
-  first outward crossing at (k + 2, k + 3] (approach-zone rule at k + 2).
+  1.7; R1 ruling A4: a label-only F chosen for power is rejected). Twins: CH234 `xw` of the market's move over (k + 2, k + 3]
+  (computed on every unit with mids at k + 2 and k + 3, `w = 0.5` where that move is 0); CH233 `z cl_sib` over (k + 2, k + 3]
+  on complete event-capture pairs (with the receipt-span rule at k + 2 and k + 3); **CH232 (R1 must-fix 3):** `xo_twin = 1[m_{k+2}
+  in B and m_{k+3} outside B]`, 0 otherwise, **NaN only if the mid at k + 2 or k + 3 is not defined** (4.2's defined mid); no
+  approach-zone, first-of-day or `|d|` condition on the twin (a first-of-day rule read at k + 3 would count the lead crossing
+  itself and make the twin mechanically 0 whenever `xo_k = 1`). The census gates CH232's F-arm coverage at >= 60% of primary
+  units (7).
 - **Point conditions (binding, fixed now; estimates only, no test, counted 0).** CH234: the quote-only twin model's slope on
   `xw` (same controls, same demeaning) **betâ_quote < 0.5 x betâ_traded**. CH233: the ask-sum twin model (`z ca_sib` in place of
   `z cl_sib`) **betâ_ask < 0.5 x betâ_bid**. CH232: the control panel's crossing coefficient **betâ_ctrl < 0.5 x betâ_rew**.
-  Each difference's one-sided p is reported (labels below); none is a significance condition (6.1 item 5).
+  Each difference's one-sided p is reported (labels below); none is a significance condition (6.1 item 5; R1 ruling A11: a
+  point condition suffices).
 - **Supported (exploratory, prospective):** Holm-adjusted one-sided p < 0.05, estimate > 0, gate passed, **F holds and the point
   condition holds.** If everything else holds and F fails or is unavailable: **Inconclusive** with *mechanical null not
   excluded* (or *falsification unavailable*); if the point condition fails: **Inconclusive** with *not traded-specific*
   (CH234), *not bid-specific* (CH233) or *not reward-specific* (CH232). Holm p is not changed.
 - **Contradicted:** the conservative 95% CI lies entirely below 0. **Inconclusive:** otherwise.
-  **Unavailable:** fewer than 20,000 units, fewer than 300 events, or fewer than 10 UTC days with units; CH234 also fewer than
+  **Unavailable:** fewer than 20,000 units, fewer than 300 events, Kish `G_eff` below 15 (1.7), or fewer than 10 UTC days with
+  units; CH234 also fewer than
   20,000 quote-only units; CH233 fewer than 100 events with >= 48 units; CH232 fewer than 2,000 counted crossings or 1,000
   control-panel crossings.
 - **Labels (never change a verdict):** *material* (the estimate >= the floor at the census tercile gap of the tested term:
@@ -423,7 +490,7 @@ spreads in cents on a 1c tick unless stated.
   break-even before rewards (non-sports fill-weighted -0.37c).
 - **Maker routes (gross, an upper bound, no fills):** CH234 re-centre by the full move after a top-tercile `xw` move and by half
   after a bottom-tercile one (the adverse selection avoided is the continuation difference, reported in cents per share); CH233
-  lower the own bid by one tick for one slot when `cl_sib` is in its top census tercile and `hb_k` within two ticks of zero
+  lower the own bid by one tick for one slot when `cl_sib` is in its top census tercile and `|hb_k| <= 2 x tick_e` (3.3)
   (the fill avoided is the bid's subsequent change); CH232 cancel the side M1 names for one slot after an outward crossing (the
   reward minutes lost, at the carry source's rate and the scoring formula `((v - s) / v)^2 x b`, against the retreat avoided).
   No reward is computed as earned.
@@ -490,11 +557,14 @@ any trade (quote-only), where nobody paid, this pattern is absent or much weaker
 
 ### 2.3 `volume_num`: three classes, declared before any count (rule 5; the map's warning)
 `volume_num` is the sidecar's cumulative traded volume in USD. For a mover at k, read `v_{k-1}` and `v_k` from the sidecar rows of
-captures k - 1 and k (the same `condition_id`):
+the captures **assigned to slots k - 1 and k** (the same `condition_id`). **Values are stored keyed by slot (R1 must-fix 5):**
+`v_{k-1}` is the value of slot k - 1's own sidecar row and nothing else; if slot k - 1 has no capture, no sidecar row for the
+market or an empty value, the mover is `vnum_missing_km1`; **the last non-missing value of an earlier slot (k - 2 or before)
+never stands in for k - 1**, and no value is carried forward in either direction (unit test, 8.3).
 - **traded:** both finite and `v_k - v_{k-1} > 1e-6`;
 - **quote-only:** both finite and `|v_k - v_{k-1}| <= 1e-6`;
 - **unknown:** anything else, kept in four counted sub-classes: `vnum_missing_k` (empty, NaN or non-numeric at k),
-  `vnum_missing_km1` (at k - 1 only), `vnum_decrease` (`v_k < v_{k-1} - 1e-6`, a data anomaly), `sidecar_missing`.
+  `vnum_missing_km1` (at slot k - 1 only, including a missing slot or sidecar row there), `vnum_decrease` (`v_k < v_{k-1} - 1e-6`, a data anomaly), `sidecar_missing`.
 **Unknown movers are never classed traded or quote-only, never imputed, never re-classed from `volume24hr`, `last_trade_price`
 or any other field.** They are excluded from the primary and the twin and fitted alone as a reported arm (uncounted). The CH240
 map found `volume_num` empty on 83% of the sidecar rows of one capture (10-22T00:31Z) and about 851 unknown movers a capture
@@ -526,15 +596,19 @@ traded class is a population rule, never the tested term (E015's anatomy is not 
   tightness and cap rules); planning retention 0.73-0.93 gives **900-1,150 traded units a capture** (226,800-289,800 in 21 days;
   `n_eff` 181,400-231,800 at 0.8). Quote-only about 2,466 a capture on the map (planning 1,800-2,300 after the rules). Distinct
   events with a traded mover over the map's 6.92 days: 3,535 (rewarded) and 2,950 (unrewarded).
-- **Design effect:** E022's measured 6.196 (`m_21` 260.8 on about 194,000 21-day units) is the optimistic end. A population
+- **Design effect:** E022's computed `DE_gate` 6.196 (`LIVE_TESTS_4.md`: "DE_gate 6.196 = computed"; `m_21` 260.8 measured on
+  about 194,000 21-day units, the 0.02 equicorrelation a convention) is the optimistic end. A population
   1.2-1.5 times E022's in a comparable set of events projects `m_21` about 300-390 and DE about 7-9; **10 is the pessimistic
   planning end** (a few large ladders dominate a size-weighted mean). The census computes `DE_gate = max(6.196, 1 + (m_21 - 1) x 0.02)`.
 - **MDE (slope at the tercile gap 2.2 SD, `VIF_w` 1.3, SD 4c):** DE 6.196: **0.31c (900) / 0.27c (1,150)**, quarter of the low count
   0.61c, **F-MDE (`r_w` 0.1) 0.46c / 0.40c**. DE 10: 0.39c / 0.34c, quarter 0.78c, **F-MDE 0.58c / 0.51c (fails 0.5c)**. At `VIF_w`
   2.0 and DE 6.196: F-MDE 0.56c / 0.50c.
 - **Kill lines (F-MDE gate 0.5c, binding):** about **745 traded units a capture at DE 6.196 and `VIF_w` 1.3**; 1,146 at `VIF_w` 2.0;
-  1,203 at DE 10; 1,850 at DE 10 and `VIF_w` 2.0. The count gate (7) is set at 745, the most lenient of these, and the F-MDE gate
-  itself, computed from the census's own DE, `VIF_w` and `r_gate`, decides.
+  1,203 at DE 10; 1,850 at DE 10 and `VIF_w` 2.0. The count gate (7) is set at 745, **the most lenient of these** (the line at the
+  optimistic DE 6.196, which 1.0 (iii) says is not the plan; the declared exception to lesson (i), R1 should-fix 2): it is a
+  floor only, and **the F-MDE gate**, computed from the census's own DE, `VIF_w` and `r_gate`, **is the gate that decides**. At
+  the plan's middle (DE about 8, `VIF_w` 1.3) the kill line is about 962 a capture (745 x 8 / 6.196 = 961.9; the line scales
+  with DE at fixed `VIF_w`).
 
 ### 2.6 Confounders and how each is held
 - *Level drift* (PX1: longshots drift down; S28): a down move at a low price has a high `w` and a drift that continues it. Held
@@ -554,7 +628,8 @@ traded class is a population rule, never the tested term (E015's anatomy is not 
 
 ### 2.7 Data streams, jobs, timing (CH234's share of section 8)
 Rows and sidecars of captures k - 3 .. k + 3 (the 24 h change reads k - 12); no sweep, no feed, no new collector. The reader keeps
-per market the last 12 mids and the last `volume_num` (a few hundred bytes). Census CC11 (7), size check (1.8), reader and analysis
+per market the mids of the last 12 slots and the `volume_num` of slot k - 1, **each keyed by its slot** (a missing slot is an
+empty key, never the previous value; 2.3; a few hundred bytes). Census CC11 (7), size check (1.8), reader and analysis
 (8.2). Embargo token `dollarw` (9).
 
 ## 3. CH233: the arb's footprint (the siblings' bid-sum rise and the member's next spread)
@@ -572,50 +647,74 @@ same rise in the siblings' asks should not do this.
   per member row (a row with both a key and a conflicting `event_id` is counted `nr_key_conflict` and keyed by
   `neg_risk_market_id`).
 - **Eligible members of event e at capture j:** rows of capture j with the key, `neg_risk` true, binary, open and active. Placeholder
-  and "Other" members (`neg_risk_other`) are members (they are part of the exhaustive set); `event_neg_risk_augmented` is a control.
+  and "Other" members (`neg_risk_other`) are members (they are part of the exhaustive set; R1 ruling A8 keeps them in the sum).
+- **Augmented events (R1 should-fix 5, ruling A8; E005's precedent):** an event any of whose eligible members has
+  `event_neg_risk_augmented` true (non-zero) at k - 1 or k is outside the primary (`augmented`, counted) and fitted with the same
+  model as a **reported arm** (uncounted); a missing value of the field counts as augmented (excluded, counted).
 - **Complete event-capture pair (k - 1, k):** the eligible member set is identical at k - 1 and k (else `members_changed`), and
-  every member is two-sided (bid > 0, ask < 1) at both (else `event_incomplete`). Incomplete pairs give no unit for any member;
-  they are counted, never filled, and no member's bid is set to 0 or carried.
-- **Size classes:** the primary keeps events with **3-10** eligible members. **2-member events are a reported arm** (6.1 item 7:
-  there the siblings' sum is one market, the complement of the member's own price, so the state is the member's own move); events
-  with 11+ members are the reported ladder arm (round 14 rule 7). Sports, crypto or unknown category on any member excludes the
-  event (counted).
+  every member is two-sided (bid > 0, ask < 1) at both (else `event_incomplete`), and the eligible members' `received_utc` span
+  is <= 120 s at both captures (else `receipt_span`; 1.3, R1 must-fix 1). Incomplete pairs give no unit for any member; they are
+  counted, never filled, and no member's bid is set to 0 or carried. **Zero-bid sensitivity (ruling A8, reported only):** E005's
+  form, in which a member without a bid contributes 0 to the sum (one-sided members kept, an ask still required), refitted on
+  the pairs it adds and in total; never a verdict.
+- **Size classes:** the primary keeps events with **3-10** eligible members at capture k. **2-member events are a reported arm**
+  (6.1 item 7: there the siblings' sum is one market, the complement of the member's own price, so the state is the member's own
+  move); events with 11+ members are the reported ladder arm (round 14 rule 7). Sports, crypto or unknown category on any member
+  excludes the event (counted).
 
 ### 3.3 State, controls and the primary statistic
-- **Headroom:** `hb_j = 1 - sum_m bid_{m,j}` over the event's eligible members at capture j.
+- **Headroom:** `hb_j = 1 - sum_m bid_{m,j}` over the event's eligible members at capture j (signed). **"Within two ticks of
+  zero"** (R1 should-fix 3) means **`|hb_j| <= 2 x tick_e,j`** (absolute), with `tick_e,j` the **largest**
+  `order_price_min_tick_size` among the event's eligible members at capture j, exactly the CH240 map's definition
+  (`boundary_map_ch240.py`: `abs(hb) <= 2 * max member tick`); a member's tick is known for every unit (a missing sidecar row
+  makes the member's category unknown and excludes the event, 3.2).
 - **State (sign corrected, 6.1 item 8):** `cl_sib_{i,k} = sum_{m != i} (bid_{m,k} - bid_{m,k-1})` in cents: positive when the
   siblings' bids rose, i.e. the headroom closed because of the other members. Tested term `z cl_sib = cl_sib / s_c`, `s_c` the census
   pooled SD of `cl_sib` in the member's size class (3-5 or 6-10 members), fixed in the spec.
 - **Twin regressor (separate model):** `ca_sib_{i,k} = sum_{m != i} (ask_{m,k} - ask_{m,k-1})`, scaled the same way (`z ca_sib`).
 - **Controls:** `hb_{k-1}`; the member's own bid change and own spread change over (k - 1, k]; its bid share `bid_{i,k} / sum_m
   bid_{m,k}`; the event's mid overround `sum_m mid_{m,k} - 1` (the `event` family's level); `n_members`; `neg_risk_other`;
-  `event_neg_risk_augmented`; the known-factor block K (1.7, with `d_k` the member's own 2 h mid change).
+  the known-factor block K (1.7, with `d_k` the member's own 2 h mid change). (`event_neg_risk_augmented` is no longer a
+  control: augmented events are outside the primary, 3.2.)
 - **Primary:** expanding-past market-demeaned OLS of `ds_i = spread_{i,k+1} - spread_{i,k}` (cents; spread = ask - bid on the row)
   on `z cl_sib` with the controls; **one-sided H1: beta > 0**; inference 1.7 (event clusters); **event-phase block FL gate** (1.8);
   F binding (twin `z cl_sib` over (k + 2, k + 3]); the **ask point condition** (betâ_ask < 0.5 x betâ_bid from the twin model with
   `z ca_sib` in place of `z cl_sib`, same controls) binding.
 - **Secondaries (reported, uncounted):** M1 the bid's change `bid_{i,k+1} - bid_{i,k}` (predicted < 0); M2 the mid's change (E005's
   object; `informed (E005)` by the record); M3 the headroom crossing class `1[hb_{k-1} > 0 and hb_k <= 0]` (rare: the map's 11.9
-  a capture on the rewarded panel); M4 the slope by the member's rank in the event (favourite against the rest; S27's dose); the
-  2-member and 11+ arms; the sports arm.
+  a capture on the rewarded panel); M4 the slope by the member's rank in the event (favourite against the rest; S27's dose); **M5
+  the working-range interaction** (R1 should-fix 3; E005: the bid sum above one in only about 0.2% of groups, so the arbitrage
+  presses only near zero headroom): the primary model with `z cl_sib x 1[|hb_{k-1}| <= 2 x tick_e,k-1]` and the indicator's
+  main effect added, the interaction's coefficient and one-sided p (predicted > 0) reported, never a verdict; the 2-member,
+  11+ and augmented arms; the zero-bid sensitivity (3.2); the sports arm.
 
 ### 3.4 Planning counts and MDE (planning only)
 - **Counts (map, non-sports ex-crypto, per capture):** neg-risk events 1,664 (rewarded) / 825 (unrewarded); member rows 14,123 /
   4,933; complete event-captures about 1,833; complete shares by size 2: 1.00 / 0.97, 3-5: 0.85 / 0.65, 6-10: 0.88 / 0.67, 11+:
   0.30 / 0.14; complete (k - 1, k) pairs 1,262 / 563. The map did **not** print member rows by size class, so the primary's units
-  are **unprobed**: planning **4,000-8,000 complete member units a capture** in events of 3-10 members (1,008,000-2,016,000 in 21
-  days; `n_eff` 806,400-1,612,800). `hb` q05 / q50 / q95: rewarded 0.010 / 0.109 / 0.414, unrewarded 0.009 / 0.029 / 0.797; within
-  two ticks of zero on about 12.6% of complete event-captures; within-event SD of the siblings' bid-sum change >= 1 tick in 0.83 /
-  0.85 of events with >= 48 units.
+  are **unprobed**: planning **4,000-8,000 complete member units a capture** in events of 3-10 members before R1's two new
+  filters. **R1 retentions (unprobed; planning conventions):** the 120 s receipt span (the census gate's floor 0.60 to 1.0; the
+  map printed no receipt spans) and the non-augmented share (0.60 to 1.0; the map did not count augmented events). Planning
+  after both: **4,000 x 0.60 x 0.60 = 1,440 (low) to 8,000 x 1.0 x 1.0 = 8,000 (high) units a capture** (362,880-2,016,000 in 21
+  days; `n_eff` at 0.8: 290,304-1,612,800). `hb` q05 / q50 / q95: rewarded 0.010 / 0.109 / 0.414, unrewarded 0.009 / 0.029 /
+  0.797; `|hb|` within two ticks of zero on about 12.6% of complete event-captures; within-event SD of the siblings' bid-sum
+  change >= 1 tick in 0.83 / 0.85 of events with >= 48 units.
 - **Design effect:** every member of an event shares its clusters; an event of 3-10 members present for most of the window holds
   700-2,500 units, so planning DE **31** (capped) to **51**; the census computes `DE_gate = max(5.0, 1 + (m_21 - 1) x 0.02)`.
-- **MDE (slope at the gap 2.2 SD, `VIF_w` 1.5, SD 2c):** DE 31: **0.17c (4,000) / 0.12c (8,000)**, quarter 0.35c, **F-MDE (`r_w`
-  0.2) 0.28c / 0.19c**; DE 51: 0.22c / 0.16c, quarter 0.45c, F-MDE 0.35c / 0.25c. All far under 1.0c: **power is not the question;
-  the identification gates are.** The F-MDE gate's kill line is about 500 complete member units a capture at DE 51.
+- **MDE (slope at the gap 2.2 SD, `VIF_w` 1.5, SD 2c; `MDE = 3.47 x 1.5 x 2.2 x SD x sqrt(DE x VIF_w / n_eff)`, `n_eff` = units
+  a capture x 252 x 0.8):** before R1's filters, DE 31: 0.17c (4,000) / 0.12c (8,000), F-MDE 0.28c / 0.19c. **After R1 (low 1,440 /
+  high 8,000), with `3.47 x 1.5 x 2.2 x 2c = 22.902`:** DE 31: `22.902 x sqrt(31 x 1.5 / 290,304) = 22.902 x 0.012656 =`
+  **0.29c** / `22.902 x sqrt(46.5 / 1,612,800) = 22.902 x 0.0053695 =` **0.12c**; quarter of the low count 0.58c; **F-MDE (`r_w` 0.2, x sqrt(2 / 0.8) = 1.5811)
+  0.46c / 0.19c**; DE 51 (x sqrt(51 / 31) = 1.2826): 0.37c / 0.16c, quarter 0.74c, **F-MDE 0.59c / 0.25c**. All under 1.0c:
+  **power is still not the question; the identification and the two new retention gates are.** The F-MDE gate's kill line at DE
+  51 is about 500 complete member units a capture (4,000 x (0.2231 / 0.6325)^2 = 498), unchanged.
 
 ### 3.5 Confounders and how each is held
 - *Common event shocks* (S26: news moves every member's bid and spread in the same slot): the state is lagged one slot behind the
   target by construction; the own changes over (k - 1, k] are controls; world 5 binding.
+- *Within-capture receipt order* (R1 must-fix 1): siblings' rows of capture k received after the member's own row could react
+  to the member's spread change inside the capture; the 120 s receipt-span exclusion bounds the overlap (1.3, 3.2) and the
+  census prints the span distribution (7).
 - *Spread contagion across the ladder* (world 7): a widening of siblings' spreads lowers their bids (`cl_sib < 0`) and widens the
   member's next spread (`ds > 0`), which biases **against** H1; a narrowing biases against it too. Binding nonetheless.
 - *A siblings' mid rise in general* (not the arbitrage): it raises bids and asks alike, so the ask point condition fails; and the
@@ -648,15 +747,25 @@ unrewarded markets, where no rule changes at that price, the same crossing shoul
 
 ### 4.2 Definitions (declared before any count; rule 15)
 - **Mid:** `m_j = (bid_j + ask_j) / 2` on capture j's row (Gamma's touch; the venue scores on its own book midpoint; disclosed).
-  **Band** `B = [0.10, 0.90]`, closed, comparisons with tolerance 1e-9.
-- **Outward approach zone (the primary population, 6.1 item 1):** a rewarded-panel unit at capture k whose `m_{k-1}` lies in
-  `[0.10, 0.14]` or `[0.86, 0.90]` (within 0.04 of a boundary, inside `B`; 0.04 is the planning SD of the 2 h mid change, and the
-  zone's outer edge stays 0.06 inside the tick boundaries 0.04 / 0.96). Membership uses `m_{k-1}` only.
-- **Outward crossing at (k - 1, k]:** `m_{k-1}` in `B` and `m_k` outside `B`. **`xo_k` = 1** if it is the market's first outward
-  crossing of either boundary in the UTC day of capture k, reading only earlier slots of that day; **`xr_k` = 1** if it is a later
-  outward crossing of the same day (a declared class, entered as its own regressor, so the reference class holds only units that
-  did not cross). A unit whose UTC day has a missing earlier slot is excluded (`day_gap`, counted): the first-crossing status is
-  not known.
+  **Band** `B = [0.10, 0.90]`, closed, comparisons with tolerance 1e-9. **A defined mid** at slot j: the slot has a complete
+  capture holding the market's row, binary, open and active, two-sided (bid > 0, ask < 1) and tight (spread <= 0.10); anything
+  else (capture missing, row absent, one-sided, not tight, closed) leaves `m_j` **undefined**, never interpolated or carried.
+- **Outward approach zone (the primary population, 6.1 item 1; R1 ruling A1 keeps it):** a rewarded-panel unit at capture k
+  whose `m_{k-1}` lies in `[0.10, 0.14]` or `[0.86, 0.90]` (within 0.04 of a boundary, inside `B`; 0.04 is the planning SD of the
+  2 h mid change, and the zone's outer edge stays 0.06 inside the tick boundaries 0.04 / 0.96). Membership uses `m_{k-1}` only.
+- **Movers only (R1 must-fix 2):** every unit (crossing or not) has `|d_k| = |m_k - m_{k-1}| >= 0.01` (tolerance 1e-9), as
+  CH234; a smaller move gives no unit (`half_tick`, counted). This removes the crossing made by a half-tick mid step (for
+  example bid 0.09 / ask 0.11 to bid 0.09 / ask 0.10: mid 0.10 to 0.095 with the spread at its 1-tick minimum, where `ds >= 0`
+  follows from the floor alone). The CH240 map's ex-tick counts already exclude first crossings with `|d| <=` one tick
+  (`boundary_map_ch240.py`), so the planning base of 73 (4.4) is not reduced by this rule.
+- **Crossings only between defined mids (R1 must-fix 4):** a crossing at (j - 1, j] exists only where `m_{j-1}` and `m_j` are both
+  defined; never across a gap. **Outward crossing at (k - 1, k]:** `m_{k-1}` in `B` and `m_k` outside `B`. **`xo_k` = 1** if it is
+  the market's first outward crossing of either boundary in the UTC day of capture k, reading only earlier slots of that day;
+  **`xr_k` = 1** if it is a later outward crossing of the same day (a declared class, entered as its own regressor, so the
+  reference class holds only units that did not cross). A unit whose UTC day has a missing earlier capture slot is excluded
+  (`day_gap`, counted); **a unit with any undefined same-day earlier mid of its own market is excluded** (`day_gap_market`,
+  counted; R1 must-fix 4): in both cases the first-crossing status is not known. ("Same-day earlier" = the slots of the UTC day
+  of capture k before slot k; `m_{k-1}` must be defined for zone membership in any case.)
 - **Tick-coincident:** the tick changed between k - 1 and k (already excluded by 1.4) or `m_k` is below 0.04 or above 0.96;
   excluded and counted (`tick_coincident`).
 - **Dear and cheap sides at k:** below 0.10 the dear side is the YES ask (its NO bid costs about `1 - m`), above 0.90 the YES bid.
@@ -668,32 +777,55 @@ unrewarded markets, where no rule changes at that price, the same crossing shoul
 - **State:** `xo_k` (and `xr_k` as a control).
 - **Controls:** the move toward the boundary `d_tow_k` (`-d_k` near 0.10, `+d_k` near 0.90) and `|d_k|`; the distance
   `dist_{k-1}` of `m_{k-1}` to its boundary (in [0, 0.04]); an upper-boundary indicator; the spread level at k and the own spread
-  change over (k - 1, k]; the band `v` and `log` daily rate of the carry source; the known-factor block K (1.7). Together with
+  change over (k - 1, k]; **the tick mechanics (R1 must-fix 2):** spread-at-k-in-ticks dummies `1[S_k = 2]`, `1[S_k = 3]`,
+  `1[S_k >= 4]` (reference `S_k = 1`, the 1-tick floor), `S_k = round(spread_k / tick)` with the unit's own (unchanged) tick, and
+  own-spread-change-in-ticks dummies `1[dS_k <= -2]`, `1[dS_k = -1]`, `1[dS_k = +1]`, `1[dS_k >= +2]` (reference 0), `dS_k = S_k -
+  S_{k-1}`; the band `v` and `log` daily rate of the carry source; the known-factor block K (1.7). Together with
   `dist_{k-1}` and `d_tow_k`, `xo` is a threshold in `m_k`: the design is a local discontinuity in the mid at the boundary,
   identified among units that approached it.
 - **Primary:** expanding-past market-demeaned OLS of `ds = spread_{k+1} - spread_k` (cents) on `xo` with the controls, reward panel,
   approach-zone units; **one-sided H1: beta > 0** (6.1 item 3); inference 1.7 with the sparse-class df; block FL gate in market
-  strata; F binding (twin: the market's first outward crossing at (k + 2, k + 3], zone rule at k + 2); the **control-panel point
-  condition** (betâ_ctrl < 0.5 x betâ_rew) binding.
+  strata; F binding (twin `xo_twin = 1[m_{k+2} in B and m_{k+3} outside B]`, 0 otherwise, NaN only if either mid is undefined;
+  1.9, R1 must-fix 3); the **control-panel point condition** (betâ_ctrl < 0.5 x betâ_rew) binding.
 - **Secondaries (reported, uncounted):** M1 the retreat of the side 1.4.2 names (`-(bid_{k+1} - bid_k)` for the bid,
   `ask_{k+1} - ask_k` for the ask); M2 the mid's change toward the band (a mid target the counts do not reach); M3 sweep 1's 1c and
   5c depths on both sides at passes k and k + 1 (post-decision readings, 1.3); S1 the **inward** twin (zone `[0.06, 0.10)` or
   `(0.90, 0.94]` at k - 1, first inward crossing of the day, predicted < 0); S2 a **pseudo-boundary placebo** at 0.20 / 0.80 (zones
-  `[0.20, 0.24]` and `[0.76, 0.80]`, predicted 0); the panel difference's p; the CLOB-disagreement refit; the sports arm.
+  `[0.20, 0.24]` and `[0.76, 0.80]`, predicted 0; S1 and S2 under the same movers-only, defined-mid and `day_gap_market` rules);
+  the panel difference's p; the CLOB-disagreement refit; the sports arm.
 
 ### 4.4 Planning counts and MDE (planning only)
 - **Counts (map, non-sports ex-crypto, per capture; first crossings per market, boundary and UTC day; the map's reward reading was
   the simple non-empty `clob_rewards` at k, not `listed_carry24h_v2`, so the carry panel may be larger):** rewarded outward 66.3 at
-  0.10 (61 ex-tick) and 12.4 at 0.90, about **79 (73 ex-tick)**; unrewarded 48.5 and 16.8; inward rewarded 45.0 and 4.4. The share
-  that came from inside the 0.04 zone is **unprobed** (planning 0.68-0.95): **50-69 counted reward-panel crossings a capture**;
-  control panel about 43-60. Zone units without a crossing are **unprobed** (planning 500-1,000 a capture on the reward panel).
-  Distinct events with a rewarded crossing over the map's span: 2,178 (0.10) and 673 (0.90).
-- **MDE (class contrast, SD 2c):** DE 31, `VIF_w` 1.3: **0.69c (50; 500) / 0.58c (69; 1,000)**, quarter 1.38c, **F-MDE (`r_w` 0.2)
-  1.09c / 0.92c**. `VIF_w` 2.5 (the discontinuity's controls may push it there): 0.96c / 0.80c, F-MDE 1.51c / 1.27c. A computed DE
-  of 15 with `VIF_w` 1.3: 0.48c / 0.40c, F-MDE 0.76c / 0.64c. The panel interaction (reported only): 1.01c / 0.85c at DE 31.
-- **Kill lines (F-MDE gate 1.0c, binding; 750 zone units a capture):** about **58 counted crossings a capture at DE 31 and `VIF_w`
-  1.3**; 121 at `VIF_w` 2.5; 27 at DE 15; 54 at DE 15 and `VIF_w` 2.5. The count gate (7) is **60 a capture** (round 16's own
-  verdict line, written before the map), the F-MDE gate decides with the census's DE and `VIF_w`.
+  0.10 (61 ex-tick) and 12.4 at 0.90, about **79 (73 ex-tick)**; unrewarded 48.5 and 16.8; inward rewarded 45.0 and 4.4. The map's
+  ex-tick count already excludes crossings with `|d| <=` one tick, so R1's movers-only rule costs nothing further at this base.
+  **Unprobed retentions (planning conventions):** the share from inside the 0.04 zone 0.68-0.95 (unchanged); **the
+  `day_gap_market` retention 0.60-0.90** (R1 must-fix 4; near 0.10 a longshot is often one-sided or wide at some earlier slot of
+  the day, and later slots of a day have more earlier slots to fail). Planning **counted reward-panel crossings: 73 x 0.68 x
+  0.60 = 29.8 to 73 x 0.95 x 0.90 = 62.4, so 30-62 a capture** (was 50-69); control panel about 26-54 (was 43-60; the same
+  factors on its implied base of 63.2: 63.2 x 0.68 x 0.60 = 25.8, 63.2 x 0.95 x 0.90 = 54.0). **Non-crossing zone movers** (the reference class, now movers only): the earlier unprobed 500-1,000 zone units a
+  capture x an unprobed mover share 0.30-0.60 x the `day_gap_market` retention 0.60-0.90 = **90-540 a capture** (base planning
+  value **300**, near the middle). Distinct events with a rewarded crossing over the map's span: 2,178 (0.10) and 673 (0.90),
+  before LT11's zone and R1 rules.
+- **MDE (class contrast, SD 2c; `MDE = 3.47 x 1.5 x SD x sqrt(DE x VIF_w) x sqrt(1 / n1_eff + 1 / n0_eff)`, `n_eff` = a capture's
+  count x 252 x 0.8 = count x 201.6):**
+  - low (30; 90): `sqrt(1 / 6,048 + 1 / 18,144) = sqrt(1.6534e-4 + 5.5115e-5) = 0.014848`; DE 31, `VIF_w` 1.3: `10.41 x 6.3482 x
+    0.014848 =` **0.98c**; high (62; 540): `sqrt(1 / 12,499 + 1 / 108,864) = 0.0094441`, so **0.62c**. Quarter of the low count
+    1.96c. **F-MDE (`r_w` 0.2, x 1.5811): 1.55c / 0.99c** (fails 1.0c except at the high end).
+  - `VIF_w` 2.5 (the discontinuity's and the tick dummies' controls may push it there; `sqrt(31 x 2.5) = 8.8034`): 1.36c / 0.87c,
+    F-MDE 2.15c / 1.37c.
+  - A computed DE of 15 with `VIF_w` 1.3 (`sqrt(19.5) = 4.4159`): 0.68c / 0.43c, F-MDE 1.08c / 0.69c.
+  - At the base (46 crossings, the middle of 30-62; 300 reference): 0.74c, F-MDE 1.17c (fails).
+  - Before R1 (50; 500 / 69; 1,000, for the record): 0.69c / 0.58c, F-MDE 1.09c / 0.92c.
+  - The panel interaction (reported only): about 1.44c / 0.91c at DE 31 (the pre-R1 ratio of the interaction MDE to the
+    rewarded MDE, 1.01 / 0.69 = 1.464, applied: 0.981 x 1.464 = 1.44, 0.624 x 1.464 = 0.91; an approximation).
+- **Kill lines (F-MDE gate 1.0c, binding, so the class MDE must be <= 1.0 / 1.5811 = 0.63246c; at the base 300 reference movers a
+  capture, `1 / n0_eff = 1 / 60,480 = 1.6534e-5`):** DE 31, `VIF_w` 1.3: `(0.63246 / (10.41 x 6.3482))^2 = 9.1590e-5`, less
+  1.6534e-5 = 7.5056e-5, so `n1 = 1 / (201.6 x 7.5056e-5) =` **66.1 counted crossings a capture**; 160 at `VIF_w` 2.5; 29 at DE 15;
+  61 at DE 15 and `VIF_w` 2.5; and 136 at DE 31, `VIF_w` 1.3 if the reference class is only 90 a capture (was 58 at 750 zone
+  units). **The count gate (7) is raised from 60 to 67 a capture** (66.1 rounded up; 67 x 252 = 16,884), so that it sits at or
+  above the kill line at the base planning values (lesson (i) of 1.0); this tightens the gate, it is not chosen for any pass,
+  and the F-MDE gate still decides with the census's own DE, `VIF_w`, `r_gate` and reference count.
 
 ### 4.5 Confounders and how each is held
 - *Big moves widen spreads anyway* (S25): `|d|`, `d_tow` and the own spread change are controls; the crossing must add a
@@ -701,7 +833,14 @@ unrewarded markets, where no rule changes at that price, the same crossing shoul
 - *The spread's level is steep near the extremes* (a smooth shape): `dist_{k-1}`, the level at k and world 10 binding; S2's
   pseudo-boundary placebo.
 - *The tick regime at 0.04 / 0.96* (CH86): the zone stays 0.06 away; tick-coincident units excluded; world 11 binding.
-- *Re-crossing chatter* around 0.10 (ladder longshots): `xr` is its own class; the re-crossing gate (7).
+- *Tick mechanics of separate quotes* (R1 must-fix 2): a one-tick quote step at the 1-tick spread floor can make a crossing and a
+  non-negative spread change at once; movers only (`|d_k| >= 0.01`), the spread-in-ticks and spread-change-in-ticks dummies and
+  world 15 (bid and ask each on the 1c grid) binding.
+- *Market-level gaps* (R1 must-fix 4): crossings only between defined mids; `day_gap_market` excludes a unit whose first-crossing
+  status is unknown because its own mid was undefined earlier that day.
+- *Re-crossing chatter* around 0.10 (ladder longshots): `xr` is its own class and is **the real guard**; the re-crossing gate (7)
+  keeps the round's pre-map >= 3 definition (R1 ruling A7: changing it after seeing the map's 0.59 would be map-informed) and is
+  disclosed as **weak** (it fails only if most crossing market-days chatter three times).
 - *Reward-field omission:* the carry rule (1.4.1); the CLOB-disagreement refit.
 - *E022's S2 and LT9's CH213:* blind freeze, disjoint windows (1.1).
 - *Momentum and market state:* the known-factor block K.
@@ -710,8 +849,8 @@ unrewarded markets, where no rule changes at that price, the same crossing shoul
 
 ### 4.6 Data streams, jobs, timing
 Rows and sidecars of captures k - 12 .. k + 3 (the earlier slots of the UTC day and the carry window); sweep 1 of passes k and
-k + 1 for M3 only; the feed for the CLOB sensitivity and economics. The reader keeps per market the day's crossing flags and the
-carry window's texts. Census CC11, size check, reader, analysis (8). Token `bandside` (9).
+k + 1 for M3 only; the feed for the CLOB sensitivity and economics. The reader keeps per market the day's crossing flags, the day's
+defined-mid flags by slot (for `day_gap_market`) and the carry window's texts. Census CC11, size check, reader, analysis (8). Token `bandside` (9).
 
 ## 5. Deferred and not taken (each with the reason; none counted)
 - **CH235-CH239 (engine-first: `tilt`, `parentsib`, `nrslack` levels, `ruleclass`, `volage`):** not live tests by the round's own
@@ -761,12 +900,17 @@ Items marked **[map]** were made after reading the CH240 map (10.1).
 13. **Count gates at the binding kill line [map]:** CH234's traded-unit count gate is 745 a capture (the round's F line), not 335
     (its MDE line); CH232's crossing gate is 60 a capture (the round's verdict line), not 24. Both values were written by the
     round before the map; choosing the higher of the two round values follows lesson (i) of 1.0 and was made after seeing the
-    map's counts (1,239 and 79), so it is marked.
+    map's counts (1,239 and 79), so it is marked. **After R1** CH232's gate is raised to 67 a capture (the kill line at the
+    revised base planning values, 4.4); CH234's 745 is kept and declared the lenient line (2.5, R1 should-fix 2).
 14. **CH232: tick coincidence defined** (a tick change, or `m_k` beyond 0.04 / 0.96); **CH232: a missing earlier slot of the day
     excludes the unit** (`day_gap`).
 15. **CH234: planning DE 6.196 to 10, not 6.196** (2.5): a population 1.2-1.5 times E022's computes a larger `m_21`.
 16. **CH233 and CH232: census `DE_gate` floor 5.0** (LT9's whole-panel floor) against the round's planning DE 31; the planning
-    MDEs above are quoted at 31 and 51 (or 15) so the reader sees both ends. Flagged for the challenger (A6).
+    MDEs above are quoted at 31 and 51 (or 15) so the reader sees both ends. Flagged for the challenger (A6); R1 kept the floor
+    with `max(declared, design)` and the new `G_eff >= 15` gate.
+
+Changes made in response to challenger R1 (2026-10-23, before any LT11 data) are listed item by item in section 13; none
+loosens a threshold.
 
 ## 7. Pre-registration census (counts only; before registration; worn pre-window data; no target read)
 
@@ -789,17 +933,25 @@ captures x 3 files, planning 1.0-1.4 GB. No sweep and no feed capture is read by
   disk (CLAUDE.md storage stop rule); a file found in neither place is genuinely missing (counted, never substituted). q0691 writes
   `seals/lt11_census_inputs.json` (files, sha256, the seal's own slot assignment and the **frozen LT11 design-text sha256**, so the
   seal is written only after the freeze); the orchestrator commits it before the census runs.
-- **Minimum covered days** (covered origins / 12): >= 7.0 for each test (>= 5.0 for twin pairs). Below it every gate of that test
-  is NaN and fails.
+- **Minimum covered days, checked first (R1 must-fix 7)** (covered origins / 12): >= 7.0 for each test (>= 5.0 for twin pairs).
+  The census evaluates this coverage check **before** any gate of the test. If it fails, **no gate of that test is computed or
+  printed** (the census code returns before building the test's gate block; only the coverage counts are printed) and the test
+  is recorded **`census_unavailable (coverage)`**, a status distinct from **`census_dropped`** (a computed gate failed). A
+  `census_unavailable` test is not registered in the fast lane and **may be re-censused in the ordered lane** (1.1), because no
+  gate value of it was seen; a `census_dropped` test never is.
 - **Header pre-check** (before the census code is frozen; headers only, no rows): rows carry `received_utc`, `bid`, `ask`,
   `liquidity`, `volume24hr`, `chg_1h`, `end_date`, `event_id`, `neg_risk`, `neg_risk_market_id`, `neg_risk_other`,
   `event_neg_risk_augmented`; sidecars carry `received_utc`, `fee_category`, `fee_type`, `order_price_min_tick_size`,
   `rewards_min_size`, `rewards_max_spread`, `clob_rewards`, `volume_num`; manifests carry state and times. The pre-check records
-  whether `chg_1d` and `chg_1w` exist (K, 1.7). A missing field makes the dependent gate NaN. **Band unit check (CH232):** the median
+  whether `chg_1d` and `chg_1w` exist (K, 1.7); **its result is committed before the seal** (R1 should-fix 6) and fixes K's
+  columns for the census, the size check and the analysis; a column found here enters as an indicator pair (1.5), so if it later
+  disappears or empties no unit is removed. A missing field makes the dependent gate NaN. **Band unit check (CH232):** the median
   `rewards_max_spread` over carry-rewarded rows lies in [0.5, 20] (cents), else every CH232 gate that uses `v` is NaN.
 
-**Projection** = census count x 21 / covered days. **Distinct events:** distinct events over the covered days x 21 / covered days
-(pessimistic; LT8's generalised two-day form printed). **Effective counts** = units in markets with >= 2 units of the test's
+**Projection** = census count x 21 / covered days. **Distinct events (R1 must-fix 6):** every distinct-event gate (>= 500, >= 100)
+uses the **unprojected** count of distinct events over the covered days (pessimistic; never projected upward, as
+`LIVE_TESTS_10.md`), and an event's units for the ">= 48 units" rule are counted over the covered days, never projected; the
+projected form (x 21 / covered days) and LT8's generalised two-day form are printed only. **Effective counts** = units in markets with >= 2 units of the test's
 population in the census days. **Design effect:** `DE_gate = max(floor, 1 + (m_21 - 1) x 0.02)`, `m_21` the projected size-weighted
 mean cluster size by event; floors **6.196 (CH234)**, **5.0 (CH233, CH232)**. **MDE gate formulas (multiplier 3.47), each
 `max(declared, design)`** with LT8's definitions (*declared* = the closed formula at the census's own effective counts, `DE_gate`,
@@ -813,25 +965,29 @@ of planning's 0.8, never on top of it.
 
 | Test | Gate (all must hold; NaN fails) | Map number it sits near (planning only) | Values fixed into the spec |
 |---|---|---|---|
-| **CH234** | **projected traded units (all 2.2 filters) >= 187,740 (>= 745 a capture)**; projected quote-only units >= 84,420 (>= 335 a capture); **unknown share** (2.3) among eligible movers <= 0.40 (pooled); captures whose movers are > 80% unknown <= 25% of covered captures; within and pooled `|corr(1[unknown], xw)|` <= 0.3 and `|corr(1[unknown], w)|` <= 0.3; projected distinct events with a traded unit >= 500; cap share >= 40% of traded units in events with `n_members <= 10`; **identification:** within-market-day SD of `w` >= 0.1 in >= 50% of mover market-days with >= 2 traded moves, and within-market IQR of the residual of `xw` after OLS on the controls >= 0.25 in >= 50% of markets with >= 6 traded units (>= 30 such markets); `VIF_w(xw)` <= 2.0; within and pooled `|corr(xw, x)|` <= 0.5 for x in {`log1p liquidity`, `z log rv24*`, `d_k`, spread_k}; venue-clock: the most common slot of day holds <= 50% of traded units; block-gate share >= 50% of traded units in markets with >= `ceil(16 x covered_days / 21)` units; `r_gate` <= 0.3; **slope MDE <= 0.5c; F-MDE <= 0.5c** | traded 1,239 a capture before LT11's rules; unknown about 19% of movers; `w`'s SD share 0.70; DE unmeasured | `w` and `|d|` centres and scales; `xw` tercile cuts and gap; `exclude_family`; world 3's `q` (the unknown share) |
-| **CH233** | **completeness:** complete member rows >= 60% of eligible member rows in events of 3-10 members (all sizes printed); projected complete member units (3-10 members, all filters) >= 252,000 (>= 1,000 a capture); projected distinct events >= 500 and events with >= 48 units >= 100; **working range:** `hb_k` within two ticks of zero (`hb_k <= 2 x tick`) on >= 5% of complete event-captures; **identification:** within-event SD of `cl_sib` >= 1 tick in >= 50% of events with >= 48 units; `VIF_w(z cl_sib)` <= 2.0; within and pooled `|corr(z cl_sib, x)|` <= 0.5 for x in {`d_k`, own bid change, own spread change, `log1p liquidity`, `z log rv24*`, `hb_{k-1}`}; venue-clock: the most common slot holds <= 50% of units with `|z cl_sib| >= 1`; block-gate share >= 50% of units in events with >= 16 shiftable captures; `r_gate` <= 0.3; **slope MDE <= 1.0c; F-MDE <= 1.0c** | completeness 0.85-1.00 / 0.65-0.97 by size (event-level, not row-level); `hb` near zero 12.6%; SD share 0.83-0.85; units by size unprobed | `s_c` by size class; tercile cuts and gap; `exclude_family` |
-| **CH232** | finite reward status on >= 95% of approach-zone units (pre-exclusion); band unit check; **projected counted reward-panel crossings (`xo` = 1, all 4.2 filters) >= 15,120 (>= 60 a capture)**; projected control-panel crossings >= 6,048 (>= 24 a capture); **re-crossing:** <= 60% of reward-panel crossing market-days have >= 3 outward crossings of a boundary (the >= 2 share printed); projected distinct events with a counted crossing >= 500; cap share >= 40%; venue-clock: the most common slot holds <= 50% of counted crossings; within and pooled `|corr(xo, x)|` <= 0.5 for x in {`log1p liquidity`, `z log rv24*`, `|d_k|`}; `VIF_w(xo)` <= 3.0; block-gate share >= 50%; `r_gate` <= 0.3; **class MDE <= 1.0c; F-MDE <= 1.0c**; the 1.4.2 reading recorded in the header (not a gate) | rewarded outward first crossings 79 (73 ex-tick) all origins; zone share unprobed; re-crossing (>= 2) share 0.59 | `exclude_family` |
+| **CH234** | **projected traded units (all 2.2 filters) >= 187,740 (>= 745 a capture)**; projected quote-only units >= 84,420 (>= 335 a capture); **unknown share** (2.3) among eligible movers <= 0.40 (pooled); captures whose movers are > 80% unknown <= 25% of covered captures; within and pooled `|corr(1[unknown], xw)|` <= 0.3 and `|corr(1[unknown], w)|` <= 0.3; **distinct events with a traded unit over the covered days (unprojected) >= 500**; **Kish `G_eff` (traded units by event) >= 15**; cap share >= 40% of traded units in events with `n_members <= 10`; **identification:** within-market-day SD of `w` >= 0.1 in >= 50% of mover market-days with >= 2 traded moves, and within-market IQR of the residual of `xw` after OLS on the controls >= 0.25 in >= 50% of markets with >= 6 traded units (>= 30 such markets); `VIF_w(xw)` <= 2.0; within and pooled `|corr(xw, x)|` <= 0.5 for x in {`log1p liquidity`, `z log rv24*`, `d_k`, spread_k}; venue-clock: the most common slot of day holds <= 50% of traded units; block-gate share >= 50% of traded units in markets with >= `ceil(16 x covered_days / 21)` units; `r_gate` <= 0.3; **slope MDE <= 0.5c; F-MDE <= 0.5c** | traded 1,239 a capture before LT11's rules; unknown about 19% of movers; `w`'s SD share 0.70; DE unmeasured | `w` and `|d|` centres and scales; `xw` tercile cuts and gap; `exclude_family`; world 3's `q` (the unknown share) |
+| **CH233** | **completeness (R1 should-fix 4):** over member rows of non-augmented events of 3-10 eligible members at capture k, the numerator is the member rows in **pair-complete** (k - 1, k) event-captures (identical member set and every member two-sided at both) and the denominator is every eligible member row at k, **including the rows of `members_changed` pairs** (and of `event_incomplete` pairs): ratio >= 60% (all sizes printed); **receipt span (R1 must-fix 1):** pair-complete (k - 1, k) event-capture pairs whose member `received_utc` span is <= 120 s at both k - 1 and k >= 60% of pair-complete pairs (the member-row share printed beside it; the span distribution printed: quantiles q50 / q90 / q99 / max and the shares above 30, 60, 120 and 300 s); projected complete member units (3-10 members, non-augmented, span rule, all filters) >= 252,000 (>= 1,000 a capture); **distinct events over the covered days (unprojected) >= 500 and events with >= 48 units over the covered days (unprojected) >= 100**; **Kish `G_eff` (units by event) >= 15**; **working range:** `|hb_k| <= 2 x tick_e,k` (absolute, the largest member tick; the map's definition, 3.3) on >= 5% of complete event-captures; **identification:** within-event SD of `cl_sib` >= 1 tick in >= 50% of events with >= 48 units; `VIF_w(z cl_sib)` <= 2.0; within and pooled `|corr(z cl_sib, x)|` <= 0.5 for x in {`d_k`, own bid change, own spread change, `log1p liquidity`, `z log rv24*`, `hb_{k-1}`}; venue-clock: the most common slot holds <= 50% of units with `|z cl_sib| >= 1`; block-gate share >= 50% of units in events with >= 16 shiftable captures; `r_gate` <= 0.3; **slope MDE <= 1.0c; F-MDE <= 1.0c** | completeness 0.85-1.00 / 0.65-0.97 by size (event-level, not row-level, `members_changed` not in its denominator); `|hb|` near zero 12.6%; SD share 0.83-0.85; units by size, receipt spans and the augmented share unprobed | `s_c` by size class; tercile cuts and gap; `exclude_family` |
+| **CH232** | finite reward status on >= 95% of approach-zone units (pre-exclusion); band unit check; **projected counted reward-panel crossings (`xo` = 1, all 4.2 filters including movers only and `day_gap_market`) >= 16,884 (>= 67 a capture; raised from 60 after R1, 4.4)**; projected control-panel crossings >= 6,048 (>= 24 a capture); **F-arm coverage (R1 must-fix 3):** reward-panel primary units with a finite `xo_twin` (both mids at k + 2 and k + 3 defined, the end-date rule of 1.4) >= 60% of reward-panel primary units; **re-crossing** (weak, disclosed; ruling A7): <= 60% of reward-panel crossing market-days have >= 3 outward crossings of a boundary (the >= 2 share printed); **distinct events with a counted crossing over the covered days (unprojected) >= 500**; **Kish `G_eff` (counted crossings by event) >= 15**; cap share >= 40%; venue-clock: the most common slot holds <= 50% of counted crossings; within and pooled `|corr(xo, x)|` <= 0.5 for x in {`log1p liquidity`, `z log rv24*`, `|d_k|`}; `VIF_w(xo)` <= 3.0; block-gate share >= 50%; `r_gate` <= 0.3; **class MDE <= 1.0c; F-MDE <= 1.0c**; the 1.4.2 reading recorded in the header (not a gate) | rewarded outward first crossings 79 (73 ex-tick, i.e. `|d|` above one tick) all origins; zone share, `day_gap_market` retention, the zone's mover share and F-arm coverage unprobed; re-crossing (>= 2) share 0.59 | `exclude_family` |
 
 - **Descriptive (no gate):** sports and crypto splits; the top series family's share; events and their 21-day projections; the
   `n_members` distribution and the cap's loss; pairwise unit overlaps among the three populations; class or tercile shares by
   liquidity tier; `vol_missing`, `mom_missing`, `hte_unknown` shares; the computed DE beside `DE_gate`. **CH234:** the unknown
   sub-class counts by capture (its time profile) and by bin; traded, quote-only and unknown counts by the four bins; `w` and `|d|`
-  distributions; the winsorised share. **CH233:** completeness by size class at row and event level; `members_changed` and
-  `nr_key_conflict` counts; `hb` quantiles; `corr(z cl_sib, z ca_sib)`; the headroom-crossing count; M4's rank shares. **CH232:**
-  crossings by boundary and direction on both panels; `xr`, `day_gap`, `tick_coincident` counts; the zone's share of all outward
+  distributions; the winsorised share; the unknown sub-classes split by whether slot k - 1 had a capture. **CH233:** completeness
+  by size class at row and event level; `members_changed`, `receipt_span`, `augmented` and `nr_key_conflict` counts; the
+  receipt-span distribution by size class; the zero-bid variant's added pairs; `hb` quantiles; `corr(z cl_sib, z ca_sib)`; the headroom-crossing count; M4's rank shares. **CH232:**
+  crossings by boundary and direction on both panels; `xr`, `day_gap`, `day_gap_market`, `half_tick`, `tick_coincident` counts;
+  the spread-in-ticks and spread-change-in-ticks distributions on crossing and reference units; the non-crossing zone movers;
+  the F-arm coverage; the zone's share of all outward
   crossings; the zone units without a crossing; the inward (S1) and pseudo-boundary (S2) counts; the carry-versus-simple reward
   reading agreement (the map's reading against `listed_carry24h_v2`, counts only).
 - **Order and lane:** one census job (CC11) streams the captures once and evaluates the three gate blocks independently; a test
   whose block fails has its reader kind switched off before the reader's code freeze.
 - **Expected census fates (declared now).** CH234: the count passes with margin; the F-MDE gate is the likeliest killer (it needs
-  DE near 6.2-8 and `VIF_w` near 1.3), then the unknown-share gates. CH233: the corr gates against the own move and the block-gate
-  share are the risk; power is not. CH232: the 60-a-capture crossing gate (the zone share is unprobed) and the F-MDE gate at the
-  computed DE and `VIF_w`; **expected to die at census more often than not.**
+  DE near 6.2-8 and `VIF_w` near 1.3), then the unknown-share gates. CH233: the receipt-span retention (unmeasured), the corr
+  gates against the own move and the block-gate share are the risk; power is not. CH232: the 67-a-capture crossing gate (planning
+  30-62; the zone share and `day_gap_market` retention are unprobed), the F-arm coverage and the F-MDE gate at the computed DE,
+  `VIF_w` and reference count; **expected to die at census about nine times in ten.**
 
 **Census and later jobs (to be drafted under `docs/research_lab/queue/drafts/` in README format; ids q0690-q0695, checked unused
 in the history of every local and remote-tracking ref on 2026-10-23: the q06xx ids in use are q0600-q0604, q0620-q0623,
@@ -843,7 +999,7 @@ q0640-q0647, q0660-q0667 and q0680; none is written in this commit).**
 - `q0692_lt11_census` (lane `net`, `mem_mb` 600, streaming per capture with a two-capture window and per-market 12-slot state; if
   the code-phase dry run measures a peak above 600 MB, lane `cpu`, `mem_mb` 1,200, **exclusive**; after the seal commit).
 - `q0693_lt11_size_check` (lane `cpu`, `mem_mb` 800; after the census values are committed, so k is fixed before any size result;
-  `max_retries 1` deterministic-crash only).
+  `max_retries 1` deterministic-crash only; 16 scenarios; run time projected at the code freeze, 8.4 step 3).
 - `q0694_lt11_reader` (fallback only, never promoted while the cron line of 8.2 exists).
 - `q0695_lt11_analysis` (lane `cpu`, `mem_mb` 4,000, **exclusive**, `not_before` the analysis date).
 All are DRAFT and must not be promoted before the challenger review, the design-text freeze, the code and its freeze check, and
@@ -887,7 +1043,13 @@ Causality (no unit builder reads capture k + 1 or later; the decision time is ca
 classes with every unknown sub-class, and a test that no other field re-classes an unknown mover; the winsorisation and the
 centred product; the approach zone, the first-of-day rule, `xr`, `day_gap` and tick coincidence; the event key, `members_changed`,
 `event_incomplete`, the 3-10 size rule and the sign of `cl_sib`; the event-phase gate keeps one offset per event; the lag-slot loader
-returns only twin terms; `ops-stats` reads no price, spread, volume or depth column; spec NaN refusal; seal and pin refusals; the
+returns only twin terms; **R1 additions:** `volume_num` stored keyed by slot, so a missing slot k - 1 (or an empty k - 1 value)
+gives `vnum_missing_km1` even when slot k - 2 holds a value (no carry-forward); the 120 s `receipt_span` rule at k - 1 and at k;
+`augmented` events out of the primary; the absolute `|hb| <= 2 x` largest-member-tick rule; CH232's `half_tick`, the defined-mid
+rule, no crossing across an undefined mid, `day_gap_market`, the spread-in-ticks dummies and `xo_twin` (0 when the market stays
+inside or outside, NaN only on an undefined mid, 1 for a lead crossing's market only if it re-enters and leaves again); the
+census's coverage check returns before any gate of a failing test is computed and writes `census_unavailable (coverage)`; the
+event-phase gate omits (never fills) a shifted position the member lacks; `chg_1d` / `chg_1w` indicator pairs; `ops-stats` reads no price, spread, volume or depth column; spec NaN refusal; seal and pin refusals; the
 analysis refuses before the analysis date and on a pin mismatch; the size-check worlds generate the declared shapes; the vendored
 copies match their source hashes; the E026 pin test stays green.
 
@@ -897,9 +1059,16 @@ copies match their source hashes; the E026 pin test stays green.
    (1.4.2), **before 2026-11-14T12:00Z and before `T_E015`** (planned by 2026-11-05 so that the code check precedes the seal). At
    the freeze, the embargo requests of section 9 are filed in `signal_engine/CANDIDATES.md`.
 3. Code (8.1, 8.3), vendored by hash; a `science-reviewer` freeze check of the census and size-check code against sections 1.8,
-   1.8.1 and 7; fixes (none may change frozen text).
+   1.8.1 and 7; fixes (none may change frozen text). **Size-check timing (R1 should-fix 9):** at the code freeze the run time
+   per world of each of the 16 scenarios (1-15 and 3b) is measured on the host-equivalent machine at a timing seed other than
+   20261497 (20 worlds each; no result of these runs is read beyond the clock) and projected to 2,000 worlds x 200 draws. If the
+   projected end (the planned census commit 2026-11-09 plus the projected run time plus 24 h margin) is after
+   **2026-11-15T00:00Z**, the ordered lane is declared by a ledger line **before the seal** (the lapse time of 1.1 is then that
+   line). LT10's size check took about 17 h; LT11 has 16 scenarios, four of them (5-8) on CH233's event worlds.
 4. q0690 restore, q0691 seal, seal committed and pulled on the host (after 2026-11-07T00:00Z).
-5. Census q0692 (counts only); drops recorded in the ledger and in a short census-drop note; `k_tests`, scales, cuts and
+5. Census q0692 (counts only); drops (`census_dropped`) and coverage failures (`census_unavailable (coverage)`) recorded
+   separately in the ledger and in a short census-drop note; its output sha256 and host completion timestamp recorded against
+   `T_E015` (A3); `k_tests`, scales, cuts and
    `exclude_family` filled with the exact census floats; a freeze record (module hashes, spec hash before the pin, census output
    hash re-verified on the host, spec values checked against the census JSON).
 6. Size check q0693 (2,000 worlds x 200 draws, seed 20261497); results recorded per test.
@@ -922,8 +1091,9 @@ Every family below is point-in-time from the origin capture and its 12-slot look
 of these families carries its token until **the LT11 date = the later of 2026-12-12T00:00Z and LT11's analysis commit** (the
 analysis date 2026-12-10T12:00Z plus about 36 h; in the ordered lane, the later of its analysis date plus 36 h and its analysis
 commit). **Timing:** filed in `signal_engine/CANDIDATES.md` **at the design-text freeze** (CANDIDATES' round-16 note: "tokens are
-requested only at LT11's freeze") and applied before the registration commit (8.4 step 8). This branch does not edit
-`CANDIDATES.md`, engine code or `config.EMBARGO`.
+requested only at LT11's freeze") and applied before the registration commit (8.4 step 8). This branch does not edit engine
+code or `config.EMBARGO`; its only `CANDIDATES.md` change is an appended, dated LT11 request note (2026-10-23, R1 response)
+repeating the pre-freeze hold below, so that the hold stands in the engine's own file and not only here.
 
 | Test | Family (aux version) | Columns (NaN = missing) | Source and clock | Token -> until |
 |---|---|---|---|---|
@@ -936,10 +1106,13 @@ requested only at LT11's freeze") and applied before the registration commit (8.
   a collateral weight and a move's size, a neg-risk siblings' bid- or ask-sum change, or a 0.10 / 0.90 crossing indicator before
   LT11's freeze. `tilt`'s other columns (`tl_collat`, `tl_cheap_side`, `tl_fee_ps`, `tl_rebate_ps`) are levels and may be built.
   If `tl_w2h` is scored in any family before the freeze, CH234 carries *informed (tilt)* and the ledger records the first scored
-  capture.
+  capture. **Status (engine reply 2026-10-23 ~13:10Z):** `tilt` was built as level columns only (`tl_collat`, `tl_cheap_side`,
+  `tl_fee_ps`, `tl_rebate_ps`, `tl_spread_collat`; `se24_lgbm_tilt`, `se25_lr_tilt`, visible); `tl_w2h` is not built, so CH234
+  is not *informed (tilt)*. se24's trees can form `sign(d) x (p - 0.5)` from `mo_d2h` and `tl_cheap_side`, as se1 can; this is
+  a development look near CH234's object, disclosed (10).
 - **New tokens `dollarw`, `nrslack`, `bandside`** to the LT11 date, entered at the freeze and before any isolating challenger.
 - **New attribution limit `attrlimit_lt11`** (`kind: attribution_limit`) to the LT11 date: no attribution (SHAP or otherwise) of
-  the champion, se1 or any broad model on mid x own 2 h change interactions, on neg-risk siblings' bid- or ask-sum differences, or
+  the champion, se1, **`se24_lgbm_tilt`, `se25_lr_tilt`** (the engine's request of 2026-10-23, accepted) or any broad model on mid x own 2 h change interactions, on neg-risk siblings' bid- or ask-sum differences, or
   on indicators of a mid crossing 0.10 / 0.90, computed or shown before the LT11 date; no LT11 family added to a broad model before
   then (`no_broad_families: ["dollarw", "nrslack", "bandside"]`), or such a model recorded in the ledger as a development look.
 - **Not requested:** `rewards` (to the later of 2026-11-18 and E022's analysis commit, unchanged), `movetype` (11-22, unchanged:
@@ -958,22 +1131,27 @@ primary makes its family a candidate; an engine gain never changes an LT11 verdi
   lines), `LIVE_TESTS_9.md` (sections 0-1, 7, 8.2, 8.4, 9), `LIVE_TESTS_10.md` (header, 0, 1.0-1.1), `LIVE_TESTS_8.md` and
   `LIVE_TESTS_7.md` (the `m_21` definitions), bounded greps of `EXPERIMENT_LEDGER.md` (LT8-LT10, CH240, census entries),
   `signal_engine/CANDIDATES.md` (rounds 7, the LT8 withdrawals, round 16's families), `lab_dashboard/README.md` and `registry.json`
-  (the LT7-LT10 entries), `backend/tests/unit/test_lab_clients.py` (registry tests). No host, network, `ssh`, `data-dumps`,
-  evidence JSON, census output, prediction, target or P&L.
+  (the LT7-LT10 entries), `backend/tests/unit/test_lab_clients.py` (registry tests). **For the R1 response:** the review
+  (`reviews/LT11_CHALLENGER_R1_2026-10-23.md`), the ledger's E005 entry (its exclusion rules), `LIVE_TESTS_10.md` 1.7 (the
+  `G_eff` text), bounded greps of `CH240_MAP_2026-10-23.md` and `boundary_map_ch240.py` (the `hb` and tick-coincidence
+  definitions, code only), and the tail of `signal_engine/CANDIDATES.md` (the engine's 2026-10-23 reply). No host, network,
+  `ssh`, `data-dumps`, evidence JSON, census output, prediction, target or P&L.
 - **The CH240 map** counted populations on captures 2026-10-16..10-23 (k - 1 and k only); **it read no target, no price change after
   an origin and no P&L**. Its numbers were seen before every gate in this file was written (10.1).
 - **Development looks:** HB1's PX1 (survived), PX5 and MI4 (not survivors), XM1-XM3 (nulls or not survivors), E005 (not supported,
   challenger CONFIRMED); the engine's LightGBM se1 (mid and own 2 h change) and the `event` family's level scores (visible since
-  2026-10-22T12:00Z) are visible development scores near CH234's and CH233's objects. None reads an LT11 state as defined here.
+  2026-10-22T12:00Z) are visible development scores near CH234's and CH233's objects; since 2026-10-23 the `tilt` level
+  challengers `se24_lgbm_tilt` and `se25_lr_tilt` are visible too (cheap side and collateral levels; `tl_w2h` not built, 9).
+  None reads an LT11 state as defined here. No LT11 designer has read a score of se24 or se25.
 - **Known before the freeze:** E015 and E022 results are not known at the planned freeze; LT10's and LT9's census outputs are not
   read (1.6).
-- **The reward rule's wording** is disputed in AREPO's documents (1.4.2); the design does not depend on the reading for its
-  primary.
+- **The reward rule's wording** is disputed in AREPO's documents (1.4.2); the primary's direction (> 0) is declared for both
+  readings, and under the documented reading the opposite (adding) response is possible (R1 should-fix 10).
 
 ### 10.1 Values declared now and their planning sources (all before any LT11 census)
 | Value | Where | Source | Informed by the CH240 map? |
 |---|---|---|---|
-| CH234 count gate 745 a capture | 7 | round 16's F line (`n_eff` 150,500) | **yes** (chosen over the round's 335 after seeing 1,239; 6.1 item 13) |
+| CH234 count gate 745 a capture (the lenient line; the F-MDE gate decides, R1 should-fix 2) | 7 | round 16's F line (`n_eff` 150,500) | **yes** (chosen over the round's 335 after seeing 1,239; 6.1 item 13) |
 | CH234 unknown-share gates (0.40, 0.80 / 25%, corr 0.3) | 7 | conventions | **yes** (the map's warning that `volume_num` is often missing made a gate necessary; the values are conventions with the map's 19% in view) |
 | CH234 `w` SD gate (0.1 in 50%) | 7 | round 16 | the map measured 0.70 against it; value unchanged |
 | CH234 band [0.04, 0.96], bins 0.15 / 0.85, winsorisation 0.20 | 2.2, 2.4 | the tick rule, PX1, convention | no |
@@ -982,12 +1160,27 @@ primary makes its family a candidate; an engine gain never changes an LT11 verdi
 | CH233 completeness 60%, working range 5%, SD gate 50% | 7 | round 16 rule 16 and CH233's census | the map measured them above the lines; values unchanged; the denominator (3-10 members) is **informed** |
 | CH233 count gate 1,000 a capture | 7 | twice the F-MDE kill line at DE 51 (LT9 CH214's practice) | no |
 | CH232 zone 0.04 | 4.2 | the planning SD of the 2 h mid change | no |
-| CH232 crossing gate 60 a capture | 7 | round 16's verdict line | **yes** (chosen over the round's 24 after seeing 79; 6.1 item 13) |
-| CH232 re-crossing gate (>= 3 crossings, 60%) | 7 | round 16, unchanged | **yes**: the map measured a different quantity (>= 2 crossings, 0.59); the round's definition is kept and the >= 2 share printed (ambiguity A7) |
+| CH232 crossing gate 67 a capture (was 60) | 4.4, 7 | the F-MDE kill line at DE 31, `VIF_w` 1.3 and 300 reference movers (R1 response) | partly (the 60 it replaces was chosen over 24 after seeing 79; the 67 is computed from planning conventions, not from a map count) |
+| CH233 receipt span 120 s, retention gate 60% | 1.3, 3.2, 7 | E005's 120 s rule; R1 must-fix 1 | no |
+| CH233 augmented events a reported arm; `|hb|` absolute with the largest member tick | 3.2, 3.3 | E005; the map's code definition (R1 should-fix 3, 5) | the `hb` definition matches the map by construction |
+| CH232 movers only (`|d_k| >= 0.01`), defined-mid crossings, `day_gap_market`, tick dummies, `xo_twin`, F-arm coverage 60% | 4.2, 4.3, 1.9, 7 | R1 must-fix 2-4 | no |
+| Kish `G_eff >= 15` (all three) | 1.7, 7 | LT10 R1 should-fix 6 | no |
+| CH232 planning retentions (`day_gap_market` 0.60-0.90, zone mover share 0.30-0.60, reference base 300) | 4.4 | conventions | no (unprobed) |
+| CH233 planning retentions (receipt span and non-augmented, 0.60-1.0 each) | 3.4 | conventions | no (unprobed) |
+| CH232 re-crossing gate (>= 3 crossings, 60%) | 7 | round 16, unchanged | **yes**: the map measured a different quantity (>= 2 crossings, 0.59); the round's definition is kept and the >= 2 share printed (ambiguity A7; R1 ruling: keep, disclose the gate as weak, `xr` the real guard) |
 | `DE_gate` floors 6.196, 5.0, 5.0 | 7 | E022, LT9 | no |
 | Seed 20261497; queue ids q0690-q0695 | 1.8, 7 | unused values | no |
 
 ## 11. DESIGN-AMBIGUITY items for the challenger review
+**R1's rulings (2026-10-23), applied:** A1 keep the zone and the 0.04 width; A2 keep > 0 for both readings, worded as a declared
+direction (1.4.2), the page re-read at the freeze; A3 "disclosed, no label" only if the census output's sha256 and host
+timestamp precede `T_E015`, else *informed (E015)* (1.1); A4 F stays binding; A5 keep the centred product (M4, M2 reported);
+A6 keep the 5.0 floor with `max(declared, design)` and `G_eff >= 15`; A7 keep >= 3, disclosed as weak; A8 "Other" and
+placeholders in the sum, augmented events a reported arm, two-sided members required, the zero-bid variant a sensitivity; A9
+acceptable with indicator pairs; A10 acceptable, capture-level world 3b added; A11 a point condition suffices; A12 the lapse
+rule stands, drops stay dropped except `census_unavailable`; A13 CH233 is a new object, M2 stays *informed (E005)*. The items
+below are kept as asked, for the record.
+
 - **A1 (CH232, causal frame).** Is the approach-zone population (6.1 item 1) the right replacement for the round's 12-slot
   market-day frame, and is the zone half-width 0.04 acceptable, or should the zone be wider (crossings from farther are lost) or
   the population the whole reward panel with `xo` as a per-capture event (more reference units, a larger DE)?
@@ -1034,3 +1227,53 @@ primary makes its family a candidate; an engine gain never changes an LT11 verdi
 - Fast lane: freeze before 11-14T12Z and T_E015; window 11-18..12-09; analysis after 12-10T12Z. Designer's census odds
   0.35 / 0.50 / 0.20; P(no test) about 0.26.
 ```
+(The ledger entry actually written for R1 is "LT11 challenger R1 and response (2026-10-23)"; after R1 the designer's census
+odds are 0.35 / 0.40 / 0.10 and P(no test) about 0.35.)
+
+## 13. R1 response (2026-10-23; designer; every item mapped to the changed section and line)
+Line numbers refer to this revision of the file. "Applied" means the reviewer's requirement is in the text as written; no item
+was declined. No threshold was loosened; the CH232 count gate and the distinct-event gates are tighter, and new gates were added
+(receipt span, F-arm coverage, `G_eff`).
+
+| Item | Status | Where (section: lines) | Change |
+|---|---|---|---|
+| **MUST 1** CH233 receipt order | applied | 1.3: 225-230; 3.2: 654-656; 3.5: 715-717; 7 table: 969; 3.4: 695-700 | event-captures at k - 1 or k with member `received_utc` span > 120 s give no unit (`receipt_span`); census gate: span-retained pairs >= 60% of pair-complete pairs; span distribution printed; planning retention 0.6-1.0 |
+| **MUST 2** CH232 tick-created crossings | applied | 4.2: 756-760; 4.3: 780-783; 4.5: 836-838; 1.8 table: 371; 1.8.1: 433-441; 1.8: 377-379 | movers only `|d_k| >= 0.01` (`half_tick`); spread-in-ticks (2, 3, 4+ vs 1) and spread-change-in-ticks dummies; binding world 15 with bid and ask each on the 1c grid, 1-tick floor, spread reversion, no boundary effect |
+| **MUST 3** CH232 twin | applied | 1.9: 450-454; 4.3: 788-789; 7 table: 970; 8.3: 1046-1052 | `xo_twin = 1[m_{k+2} in B and m_{k+3} outside B]`, 0 otherwise, NaN only on an undefined mid; no first-of-day or zone condition; census gate F-arm coverage >= 60% |
+| **MUST 4** CH232 market-level gaps | applied | 4.2: 750-752 (defined mid), 761-768; 4.5: 839-840; 4.6: 852-853 | crossings only between consecutive defined mids; any undefined same-day earlier own mid excludes the unit (`day_gap_market`); planning retention 0.60-0.90 |
+| **MUST 5** CH234 `volume_num` carry | applied | 2.3: 559-563, 567; 2.7: 630-632; 8.3: 1046-1047 | values keyed by slot; missing slot k - 1 or value is `vnum_missing_km1`; never the last non-missing value; unit test |
+| **MUST 6** distinct-event gates | applied | 7: 951-954; 7 table: 968 (CH234), 969 (CH233), 970 (CH232) | every >= 500 / >= 100 event gate (and the ">= 48 units" count) unprojected over the covered days; projected forms printed only |
+| **MUST 7** unavailable vs failed | applied | 7: 936-941; 0: 56-58; 1.1: 155-160; 8.4: 1069-1071 | coverage checked first; on failure no gate is computed, status `census_unavailable (coverage)`, distinct from `census_dropped`; such a test may be re-censused in the ordered lane |
+| **MUST 8** lapse after adjacent analysis | applied | 1.1: 146-150, 160; 1.1 table: 182-183 | lapse time = earlier of the lapse ledger line and 11-17T00Z; after `T_E015` CH234 *informed (E015)*, after `T_E022` CH232 *informed (E022)* |
+| **SHOULD 1** "measured" 6.196 | applied | 2.5: 599-600 | "computed `DE_gate` 6.196" with LT4's wording; `m_21` measured, 0.02 a convention |
+| **SHOULD 2** 745 the lenient line | applied | 1.0: 111-113; 2.5: 606-611; 0: 67-69; 6: 903-904; 10.1: 1154 | declared exception to lesson (i); 745 a floor only; F-MDE gate decides; kill line about 962 at DE 8 shown |
+| **SHOULD 3** CH233 near-zero mechanism | applied | 3.3: 666-670 (definition), 686-689 (M5); 7 table: 969; 1.10: maker route | M5 `z cl_sib x 1[|hb_{k-1}| <= 2 x tick_e]` reported; `|hb|` absolute, largest member tick, matching `boundary_map_ch240.py` |
+| **SHOULD 4** completeness denominator | applied | 7 table: 969 | pair-complete member rows over all eligible member rows at k, `members_changed` and `event_incomplete` rows in the denominator |
+| **SHOULD 5** augmented events | applied | 3.2: 651-653; 3.3: 677-678; 0: 50 | outside the primary, a reported arm; missing field counts as augmented; no longer a control |
+| **SHOULD 6** optional K columns | applied | 1.5: 285-287; 1.7: 313-315; 7: 945-948 | indicator pairs; header result committed before the seal; a vanishing column removes no unit |
+| **SHOULD 7** event-phase missing residual | applied | 1.8: 341-347; 1.8.1: 413-415 | shift on the event's capture index; a member lacking the shifted position is omitted from that draw (never filled); omitted share printed; worlds 5-8 drop 10% of member units |
+| **SHOULD 8** Kish `G_eff` | applied | 1.7: 320-323; 1.9: 465; 7 table: 968, 969, 970 | `G_eff >= 15` census gate and analysis floor for all three (CH232 on crossings by event) |
+| **SHOULD 9** size-check timing | applied | header: 18-19; 8.4: 1062-1067; 7: 1001-1002 | per-world time measured at the code freeze on a timing seed; if the projection does not fit by 11-15T00Z the ordered lane is declared before the seal |
+| **SHOULD 10** reading wording | applied | 1.4.2: 260-271; 10: 1148-1149 | > 0 kept as a declared direction; the adding response under the documented reading (narrowing) stated |
+| **A1-A13** rulings | applied | 11: 1175-1182; A1 4.2: 753; A2 1.4.2; A3 1.1 table: 182; A4 1.9: 448; A6 1.7 / 7; A7 4.5: 841-843, 10.1; A8 3.2: 650-660; A9 1.5, 1.7; A10 1.8 table: 359, 1.8.1: 404-408; A11 1.9: 458; A12 1.1: 155-160; A13 11 | as ruled; no item reopened |
+
+**Recomputed figures (arithmetic in the sections named).**
+- **CH233 (3.4: 693-710):** planning units 4,000-8,000 x the two new retentions (0.6-1.0 each) = 1,440-8,000 a capture. With
+  `3.47 x 1.5 x 2.2 x 2c = 22.902`: DE 31 MDE 0.29c / 0.12c, F-MDE 0.46c / 0.19c; DE 51 0.37c / 0.16c, F-MDE 0.59c / 0.25c.
+  The kill line (about 500 a capture at DE 51) and the count gate (1,000) are unchanged.
+- **CH232 (4.4: 797-828):** crossings 73 x (0.68-0.95) x (0.60-0.90) = 30-62 a capture; reference movers 90-540 (base 300).
+  DE 31, `VIF_w` 1.3: MDE 0.98c / 0.62c, F-MDE 1.55c / 0.99c; `VIF_w` 2.5: F-MDE 2.15c / 1.37c; DE 15: F-MDE 1.08c / 0.69c.
+  Kill line 66.1 a capture at the base values, so the **count gate is raised from 60 to 67 a capture (16,884 projected)**.
+- **CH234:** no planning figure changes; the kill line at DE 8 (about 962) is newly shown.
+- **Survival priors (0: 66-81):** CH234 0.35 (unchanged), CH233 0.40 (was 0.50), CH232 0.10 (was 0.20); expected k 0.35 + 0.40 +
+  0.10 = 0.85 (was 1.05); P(no test) 0.65 x 0.60 x 0.90 = 0.351, about 0.35 (was 0.26); expected valid verdicts about 0.3 (was 0.4).
+
+**Not part of R1 (recorded for the re-check):** section 9 (1108-1115) now records the engine's 2026-10-23 reply (`tilt` built as
+levels, `tl_w2h` not built) and adds `se24_lgbm_tilt` and `se25_lr_tilt` to `attrlimit_lt11`'s model list, at the engine's
+request; section 10 (1143-1145) discloses se24 / se25 as visible development scores; a dated LT11 request note is appended to
+`signal_engine/CANDIDATES.md` (section 9, 1094-1096).
+
+**Not resolved by the designer (left to the census or the re-check):** the actual receipt spans, `volume_num` missingness level
+(capture or row), the augmented share, the `day_gap_market` retention and the zone mover share are unprobed until the census;
+the venue's reward-rule page is re-read only at the freeze; the size-check run time is measured only at the code freeze; the
+`T_E015` and `T_E022` dates are proposals.
