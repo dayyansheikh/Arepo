@@ -422,8 +422,9 @@ def test_kind_rules_have_the_cb8_kinds_and_the_counter_runs_on_the_real_trials()
     assert battery2.cumulative_count()["total"] >= 1121
 
 
-def test_analysis_rules_are_separate_and_leave_the_b_data_rules_unchanged(tmp_path):
-    assert u.verify_rules(u.RULES_FILE, require_committed=False) == "33decb528bbafd46336296be57c91b76e6aaa0c69d7d3eecf92eaa83c4f12a6d"
+def test_analysis_rules_are_separate_and_carry_the_v3_b_data_rules_hash(tmp_path):
+    assert u.verify_rules(u.RULES_FILE, require_committed=False) == u.rules_file_doc()["rules_sha256"] != u.RULES_SHA_V2
+    assert json.loads(ba.RULES_FILE.read_text())["data_rules_sha256"] == u.rules_file_doc()["rules_sha256"]  # amendment 2026-10-23: only this field moved
     doc = ba.rules_file_doc()
     assert doc["rules_version"] == "cb8-b-analysis-rules-v1" and doc["data_rules_sha256"] == u.rules_file_doc()["rules_sha256"]
     assert ba.RULES_FILE.name == "cb8_b_analysis_rules.json" and ba.RULES_FILE != u.RULES_FILE
