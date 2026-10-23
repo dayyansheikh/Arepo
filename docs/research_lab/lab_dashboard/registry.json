@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-23T07:20:00Z",
+ "updated": "2026-10-23T07:55:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1605,22 +1605,22 @@
   },
   {
    "id": "LT8",
-   "title": "Live tests 8: three ideas from round 13 (planned)",
-   "plain": "Up to three planned live tests from new-ideas round 13: an order book that shifts behind a price that did not move, how much of a recent move the book had already absorbed, and each market's own busy hours. Design frozen (22 Oct). The busy-hours idea failed its counting check on 23 Oct (far too few markets with a regular schedule), so at most two remain.",
+   "title": "Live tests 8: three ideas from round 13 (closed at the counting stage)",
+   "plain": "Three planned live tests from new-ideas round 13. All three were dropped at their counting checks on 23 Oct, before any outcome was read: too few markets with a regular schedule for one, and too few usable cases for the two order-book ideas. The busy-hours idea was expected to drop. No live test runs from this batch.",
    "batch": "LT8",
    "family": "mixed",
    "stage": "designed",
-   "status": "waiting",
-   "verdict": "pending",
+   "status": "closed",
+   "verdict": "not_testable",
    "effect": null,
-   "next": "Second counting check for the two remaining ideas (queued, must finish before 28 Oct); collection not before 30 Dec 2026",
-   "next_date": "2026-12-30",
+   "next": "Closed: no LT8 test registered (all three dropped at their counting checks, uncounted)",
+   "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT8 census CC8 (q0622), 2026-10-23; LT8 drafted, challenger R1 and re-check, design-text freeze (2026-10-22); docs/research_lab/LIVE_TESTS_8.md"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT8 census CS8 (q0623) and LT8 closure, 2026-10-23; § LT8 census CC8 (q0622), 2026-10-23"
    },
    "stage_results": {
-    "designed": "pending"
+    "designed": "fail"
    },
    "reached": [
     "designed"
@@ -1636,11 +1636,11 @@
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Code checked and merged; data seal after 12 Nov, then counting checks; collection proposed from 21 Jan 2027",
-   "next_date": "2027-01-21",
+   "next": "Code checked and merged; data seal after 12 Nov, then counting checks; collection could start from 30 Dec 2026 (moved earlier because LT8 closed)",
+   "next_date": "2026-12-30",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT9 drafted, challenger R1 and re-check, DESIGN-TEXT FREEZE (2026-10-22); docs/research_lab/LIVE_TESTS_9.md"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT9 drafted, challenger R1 and re-check, DESIGN-TEXT FREEZE (2026-10-22); § LT8 census CS8 (q0623) and LT8 closure, 2026-10-23 (LT9 rule (c')); docs/research_lab/LIVE_TESTS_9.md §1.1"
    },
    "stage_results": {
     "designed": "pending"

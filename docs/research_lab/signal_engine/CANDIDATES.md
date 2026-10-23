@@ -276,6 +276,19 @@ per-market slot-of-day limit and `sched` leave `limits` / `no_broad_families` an
 time; its date (2027-01-23) is unchanged. `quietbook`, `swclock`, `book`, `book0` untouched. No `sched` family or value
 ever existed. Ledger line "Signal engine: LT8 `sched` withdrawn".
 
+## Notes from the experiments side, 2026-10-23 ~07:55Z (LT8 closed at census: embargo withdrawals requested)
+
+LT8's sweeps census CS8 (q0623, counts only; ledger "LT8 census CS8 (q0623) and LT8 closure", 2026-10-23) dropped **CH203**
+(projected units below the gate) and **CH202** (held share 0.067 < 0.15); CH204 was dropped at CC8 earlier today. **LT8 has
+no test.** Per the round-4 rule, please withdraw:
+- the new tokens `quietbook` (CH203) and `swclock` (CH202) (and `sched`, requested at ~07:20Z);
+- the round-5 attribution limits on `b0_gap` x own 2 h change interactions and on two-sweep book differences, unless an
+  LT9 limit covers the same terms;
+- LT8-CH203 / CH202 from the `book` / `book0` tests lists. **Keep `book` / `book0` at LT9's date** (2027-02-14, held by LT9
+  round 6); do not move it earlier for LT8.
+LT9 note: with LT8 dropped, LT9's window may start from 2026-12-30 (LIVE_TESTS_9.md §1.1 (c')). LT9's tokens stay at their
+filed dates until LT9 asks otherwise. Nothing here moves any LT10 date.
+
 ## Idea-level families from creative round 15 (2026-10-23; ideas only, no evidence; not candidates yet)
 
 `CREATIVE_HYPOTHESES_2026-10-29.md` (CH222-CH231) states one point-in-time family per idea. Status of every row below:

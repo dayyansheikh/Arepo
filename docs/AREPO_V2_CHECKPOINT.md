@@ -252,16 +252,18 @@ Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && gi
 Host 2 OCPU / 11.4 GiB since the resize. data-dumps 34 / 40 GB cap: owner approval 8 (restore-tree clearing) is time-relevant.
 
 **Autopilot session 10-23 from 07:06Z:**
-- **LT8 CC8 (q0622) done 06:03Z: CH204 DROPPED at census** (3.35 scheduled markets/capture vs 1,200; ledger d3a38c5b;
-  registry; CANDIDATES `sched` withdrawal note). LIVE_TESTS_8.md §6.3 NOT filled yet: the census code refuses on any change
-  to the frozen design text, so fill §6.3 only after q0623 (CS8: CH203, CH202) finishes. q0623 queued (exclusive).
-- **q0623 starvation fixed** (2417e27b, deployed): the repeating daily q0162 (CB8 holders, priority 52) won the id tie-break
-  against q0623 (also 52) on every re-queue; q0623 -> 53. Expect it to start after q0162's current chunk (~07:35Z).
-  When q0623 is done: counts-only write-up (ledger, registry, CANDIDATES withdrawals for dropped tests), revert the 10-day
-  snapshot rule to 8 days (ledger + deploy), then phase 2 for survivors (fill §6.3 via the design-text predecessor rule).
-- **LT10 code phase resumed** (an implementer agent in `../astrolabe-live-tests-10-code`; the previous session's subagent was
-  cut off at 04:06Z leaving uncommitted live_tests10*.py / xv_quotes_poller*.py). Then: code-freeze check (science-reviewer).
-- **Creative round 16** (Fable xhigh) running in `../astrolabe-creative-r16` (`feat/creative-r16`, CH232+).
+- **LT8 CLOSED, no test** (ledger "LT8 census CC8" + "LT8 census CS8 and LT8 closure"): CC8 (q0622) dropped CH204; CS8
+  (q0623, done 07:41Z) dropped CH203 (units 431,399 < 504,000; MDEs passed) and CH202 (held share 0.067 < 0.15). q0624-q0627
+  moot (never promote). LIVE_TESTS_8.md left unchanged. Registry LT8 closed; CANDIDATES withdrawal notes (`sched`,
+  `quietbook`, `swclock`; `book`/`book0` stay at LT9's date). **LT9 rule (c') now applies:** REGISTERED_UTC >= 2026-12-30.
+- **Retention reverted 10 -> 8 days** (archive_retention.json; deployed with this commit).
+- q0623 starvation fix (2417e27b): q0623 priority 53 (q0162 repeat won the id tie-break at 52).
+- **LT10 code phase** running (implementer agent, `../astrolabe-live-tests-10-code`, ~10 commits by 07:45Z). Next: code-freeze
+  check (science-reviewer; template reviews/LT9_CENSUS_CODE_CHECK_2026-10-23.md), fixes, merge into chore. The successor
+  poller must be freeze-checked before the handover (after E009 + E010 analysis commits, 11-03+).
+- **Creative round 16** (Fable xhigh) running in `../astrolabe-creative-r16` (`feat/creative-r16`, CH232+). Next: merge,
+  CANDIDATES note, pick the top live-test candidates for an LT11 design.
+- E026: q0541 (net, light) from 10-25T00Z, q0542 from 06Z; confirm start + phone note "collection started".
 
 **Autopilot session 10-23 from 01:58Z:**
 - **LT8:** q0621's depends_on fix committed (66bbc2fd) and deployed; q0621 ran 02:00Z; seal committed (84c5c16e, sha256

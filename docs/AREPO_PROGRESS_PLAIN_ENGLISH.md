@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-23 08:08 UTC+1
+**Last updated:** 2026-10-23 08:45 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -14,10 +14,11 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 - **LT7 (five planned tests from round 12): closed, no test.** All five failed their counting checks tonight, before any
   outcome was read (too few usable cases, too little power, or too much overlap with known factors). Two were expected to
   fail when the design was written. Nothing is counted.
-- **LT8 (three planned tests from round 13):** the first counting check finished at 07:03 UTC+1 and **dropped the
-  "market's own busy hours" idea** (CH204): only about 3 markets per snapshot had a regular schedule, against 1,200 needed.
-  The design had predicted this. Nothing is counted. The second counting check (the two order-book ideas) is queued next and
-  must finish before 28 Oct, when the oldest needed server files start to expire.
+- **LT8 (three planned tests from round 13): closed, no test.** Both counting checks finished this morning (07:03 and
+  08:41 UTC+1), before any outcome was read. The "busy hours" idea had far too few markets with a regular schedule (about 3
+  per snapshot against 1,200 needed). The "quiet order book" idea passed every power and overlap check but fell short on
+  volume (about 431,000 projected cases against 504,000). The "sweep clock" idea had too few "held" moves (7% against 15%).
+  Nothing is counted. Because LT8 closed, LT9 may now start collecting from 30 Dec instead of 21 Jan.
 - **LT9 (three planned tests from round 14, about reward-programme quoting; a fourth only if its count allows):** design text **frozen** (22 Oct, after the
   challenger review and a re-check). Its code (data seal and counting checks) passed an independent
   code check after fixes (23 Oct) and is merged. Its data seal waits until the 2 to 12 Nov data exists.
@@ -31,8 +32,8 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
   analysis on 3 Nov, so it cannot be shaped by that result. Next: its code. About 3 in 4 that none of the three survives
   its counting check (the designer's estimate).
 - **Copy-skilled wallets (E026):** registered; collection starts 25 Oct (phone note then).
-- **Honest pattern:** most planned tests die at the counting stage, before any outcome data is read (LT5, LT6 and now LT7
-  all closed this way). That is the checks working as designed.
+- **Honest pattern:** most planned tests die at the counting stage, before any outcome data is read (LT5, LT6, LT7 and now
+  LT8 all closed this way). New-ideas round 16 (running now) is told to aim for much larger case counts. That is the checks working as designed.
 ## 2. Approvals needed from you
 1. ~~Automatic Claude sessions~~ **APPROVED and installed 15 Oct** (full power, your call).
    - Pause: `python3 scripts/autopilot/autopilot.py pause` (on the Mac, in the repo). Use `resume` to undo, or `stop` to

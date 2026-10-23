@@ -4140,3 +4140,26 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   `attrlimit_lt8` drops the "per-market slot-of-day interactions" limit and `sched` from `no_broad_families`, and records
   both under `withdrawn`; its 2027-01-23 date is unchanged. `quietbook`, `swclock`, `book`, `book0` unchanged. No `sched`
   family, model or value ever existed, so nothing becomes visible. Test `test_lt8_sched_withdrawn_after_ch204_census_drop`.
+
+## LT8 census CS8 (q0623) and LT8 closure, 2026-10-23 07:41Z (counts only; uncounted): LT8 has no test
+- `live_tests8_census/CS8.json` (host, sha256 87674bcd…; same code, design text 73c941e1… and spec as CC8). Inputs verified
+  against the LT8 seal, 0 missing slots; covered origins CH203 41 (3.42 days; 23 F pairs), CH202 45 (3.75 days), as the
+  file list predicted; per-block minimums met. No outcome or target read; gates as frozen in LIVE_TESTS_8.md §7.
+- **CH203 (the quiet book): FAIL on units only.** Projected primary units **431,399** (< 504,000; 70,188 census units,
+  no family excluded) and projected quiet covered units before the band **1,763,361** (< 2,520,000). Passed: sweep coverage
+  0.95, received-before, quiet share 0.502 (>= 0.50), cap share 0.77, residual IQR (share 0.85 of 3,999 markets), `VIF_w`
+  1.33, all correlation caps (`dlogD5` within 0.25 the largest), block share 0.98, `r_gate`, **slope MDE and F-MDE** (both
+  <= 0.5c).
+- **CH202 (the sweep clock): FAIL on the held share only.** Held **0.067** of movers (4,915 held; 0.070 of covered) against
+  >= 0.15; fresh 0.79. Passed: coverage 0.97, projected contrasted units 224,622 (>= 201,600), every correlation cap,
+  `chg_1h` presence, block share 0.86, class MDE 0.44c (declared; design 0.21c).
+- **LT8 closed with no test** (CC8 dropped CH204 earlier today). Nothing counted. Phase 2 (q0624 size check, q0625 reader,
+  q0626 analysis) moot; q0627 (CH206 map, counts 0) not promoted. LIVE_TESTS_8.md is left byte-unchanged (its §6.3 is not
+  filled, as for LT7): this entry and the CC8 entry are the census record.
+- **Consequence for LT9 (LIVE_TESTS_9.md §1.1, rule declared before any data):** LT8 dropped entirely, so LT9's conditions (b)
+  and (c) lapse and (c') applies: `REGISTERED_UTC` is the first 00:00Z at least 24 h after LT9's registration commit and
+  never earlier than **2026-12-30T00:00Z** (LT7 is not registered). LT9's embargo dates (2027-02-14) are left as filed
+  (later, so conservative); the signal-engine builder may shorten them on LT9's request.
+- **Retention:** the temporary 10-day snapshot rule (693db389, extended 49c16ebd) is reverted to **8 days** as declared
+  (LT8 re-check R3: until q0623). MC1 q0116h reads its cached panel, not raw captures. Embargo withdrawals for `quietbook`
+  and `swclock` requested in signal_engine/CANDIDATES.md.
