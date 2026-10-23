@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-23T02:05:00Z",
+ "updated": "2026-10-23T02:30:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1606,14 +1606,14 @@
   {
    "id": "LT8",
    "title": "Live tests 8: three ideas from round 13 (planned)",
-   "plain": "Up to three planned live tests from new-ideas round 13: an order book that shifts behind a price that did not move, how much of a recent move the book had already absorbed, and each market's own busy hours. Design frozen (22 Oct). It uses the same 24-hour reward rule as LT7 (a recorded amendment, before any count, re-checked and accepted). The code is merged and its data seal is queued on the server. All three may fail their counting checks.",
+   "plain": "Up to three planned live tests from new-ideas round 13: an order book that shifts behind a price that did not move, how much of a recent move the book had already absorbed, and each market's own busy hours. Design frozen (22 Oct), with a re-checked amendment to the reward rule. Code merged; data seal done (23 Oct, none missing). All three may fail their counting checks.",
    "batch": "LT8",
    "family": "mixed",
    "stage": "designed",
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Data seal, then two counting checks (must finish before 28 Oct); collection not before 30 Dec 2026",
+   "next": "Two counting checks (queued, must finish before 28 Oct); collection not before 30 Dec 2026",
    "next_date": "2026-12-30",
    "candidate": false,
    "sources": {
@@ -1636,7 +1636,7 @@
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Code and counting checks (data from 2 to 12 Nov); collection proposed from 21 Jan 2027",
+   "next": "Independent code check, then counting checks (data from 2 to 12 Nov); collection proposed from 21 Jan 2027",
    "next_date": "2027-01-21",
    "candidate": false,
    "sources": {

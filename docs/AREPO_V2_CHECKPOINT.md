@@ -247,15 +247,19 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-23 02:05Z
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-23 02:30Z
 Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && git log --oneline -1'` = local tip.
 Host 2 OCPU / 11.4 GiB since the resize. data-dumps 34 / 40 GB cap: owner approval 8 (restore-tree clearing) is time-relevant.
 
 **Autopilot session 10-23 from 01:58Z:**
-- q0621's depends_on fix (q0620 -> q0604) had been left uncommitted by 774c43c0; committed 66bbc2fd and deployed 02:00Z.
-  q0621 (priority 54) should start when MC1 q0116h's slice (started 21:58Z) exits ~03:30Z.
-- LT9 code phase 1: an implementer is finishing the uncommitted census edit (share_zdD_positive, feed end-kinds counts)
-  on `feat/live-tests-9`; then the science-reviewer census-code freeze check.
+- **LT8:** q0621's depends_on fix committed (66bbc2fd) and deployed; q0621 ran 02:00Z; seal committed (84c5c16e, sha256
+  5545538a…, 430 files, 0 missing; host tip verified). **q0622 + q0623 promoted** (exclusive; start after the 05:30Z
+  blackout, ahead of MC1 at priority 40). When each is done: write up counts only (ledger, LIVE_TESTS_8.md census
+  section, drop/survive per section 7), registry; after q0623: revert the 10-day snapshot rule to 8 days (ledger, deploy),
+  then phase 2 for any survivor. Deadline 10-28T03:30Z.
+- LT9 code phase 1 done on `feat/live-tests-9` (2925961a: end-kinds counted once per capture; 55 LT9 + 275 LT7/LT8 tests
+  pass). Science-reviewer census-code freeze check running (-> reviews/LT9_CENSUS_CODE_CHECK_2026-10-23.md); then fixes,
+  merge into chore. Seal only after the 11-02..11-12 span exists.
 - **Disk:** data-dumps 34 / 40 GB at 02:10Z (about +1 GB/day -> 40 GB about 10-29). cb18_census 4.9 GB is finished and not an
   LT8 root; clearing needs owner approval 8 (dashboard, now marked time-sensitive). Contingency if >= 38 GB before approval:
   raise the operational `--data-dumps-cap-gb` of the registered live collectors (q0460) to 44 (below the 45 GiB pass cap;
