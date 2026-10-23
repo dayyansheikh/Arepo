@@ -245,3 +245,43 @@ def test_complete_resume_dir_refused(tmp_path):
     s.mark_complete(["out.json"])
     with pytest.raises(SystemExit, match="already complete"):
         ml_resume.UnitStore(tmp_path / "c", _identity()).open("S2")
+
+
+def _man(code_sha="aaa", folds=(1, 2)):
+    return {"manifest_sha256": code_sha + "h", "code_sha": code_sha, "folds": list(folds),
+            "horizon": 1}
+
+
+def test_identity_ignores_git_head_but_not_fold_plan():
+    from types import SimpleNamespace
+
+    a = SimpleNamespace(argv=["a"])
+    i1 = rmd.resume_identity(a, _man("head1"), "p")
+    i2 = rmd.resume_identity(a, _man("head2"), "p")
+    assert i1 == i2
+    i3 = rmd.resume_identity(a, _man("head1", folds=(1, 2, 3)), "p")
+    assert i3["fold_plan_sha256"] != i1["fold_plan_sha256"]
+    assert rmd.fold_plan_sha256(_man("x")) == rmd.fold_plan_sha256(_man("y"))
+
+
+def test_identity_changes_when_a_loaded_astrolabe_module_changes(tmp_path, monkeypatch):
+    import types
+
+    root = tmp_path / "astrolabe"
+    root.mkdir()
+    f = root / "fake_mod.py"
+    f.write_text("x = 1\n")
+    mod = types.ModuleType("astrolabe_fake_mod")
+    mod.__file__ = str(f)
+    monkeypatch.setitem(sys.modules, "astrolabe_fake_mod", mod)
+    h1 = rmd.loaded_code_sha256(root)
+    assert "astrolabe/fake_mod.py" in h1
+    f.write_text("x = 2\n")
+    assert rmd.loaded_code_sha256(root) != h1
+    from types import SimpleNamespace
+
+    a = SimpleNamespace(argv=[])
+    f.write_text("x = 1\n")
+    i1 = rmd.resume_identity(a, _man(), "p", code_root=root)
+    f.write_text("x = 3\n")
+    assert rmd.resume_identity(a, _man(), "p", code_root=root) != i1
