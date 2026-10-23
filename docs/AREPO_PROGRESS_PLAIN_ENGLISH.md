@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-23 09:28 UTC+1
+**Last updated:** 2026-10-23 09:36 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -9,7 +9,7 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 ## 1. Right now
 - **Security check (23 Oct):** Cloudflare's security audit was run on the site and the lab code. No confirmed holes; the lab lock and passkeys held up. There are 5 things to check or fix (details sent to your phone; summary in `docs/security/AUDIT_2026-10-23_RUN1.md`). The most important is to confirm that Render has a strong AUTH_SECRET.
 - **Planned live-test families in the pipeline:** LT8 (counting checks today), LT9 (code done, data from 12 Nov), LT10
-  (design frozen today).
+  (design frozen; code written and independently checked, fixes being re-checked).
 - **Seven registered live tests** are collecting or waiting to collect (E009/E010, E011, E012-E014, E015, E022, E026).
   Single analyses: E009/E010 (3 Nov), E011 (11 Nov), E012-E014 (13 Nov), E015 (15 Nov), E022 (17 Nov), E026 (6 Dec).
 - **LT7 (five planned tests from round 12): closed, no test.** All five failed their counting checks tonight, before any
@@ -36,8 +36,10 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
   observation: on this venue a resting order ties up the money of its side, so cheap-side orders are over-supplied. Top
   candidates for a planned LT11: whether price moves bought with more money keep going (about 40% chance of surviving its
   counting check, the author's estimate), whether arbitrage across a multi-outcome event widens spreads, and what happens
-  when a rewarded market's price crosses 10c or 90c. First a quick counts-only map (CH240) measures whether there are enough
-  cases; it is being built now. Four other ideas went to the signal engine's list.
+  when a rewarded market's price crosses 10c or 90c. **The counts-only map ran this morning** (9:33 UTC+1, one week of
+  snapshots): all three populations are large enough on paper (for example about 1,240 traded price moves per snapshot
+  where 335 are needed), with two warnings: the trade-volume field is blank for most markets, and the 10c crossings bounce
+  back often. **The LT11 design is being drafted now**, then an independent challenger review.
 - **Copy-skilled wallets (E026):** registered; collection starts 25 Oct (phone note then).
 - **Honest pattern:** most planned tests die at the counting stage, before any outcome data is read (LT5, LT6, LT7 and now
   LT8 all closed this way). New-ideas round 16 (running now) is told to aim for much larger case counts. That is the checks working as designed.
