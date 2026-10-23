@@ -1,28 +1,23 @@
 # Signal engine: status (rewrite each session; do not append)
 
-**Last updated:** 2026-10-23 04:05 UTC+1 (03:05Z), signal-engine autopilot session 18
+**Last updated:** 2026-10-23 08:22 UTC+1 (07:22Z), signal-engine autopilot session 20
 
 ## In plain English
-- **The engine now publishes its signals, market by market (owner's /lab only).** After every capture, the engine
-  takes the current champion's stored forecast and lists the markets it calls most strongly up and most strongly
-  down. Each entry has the market title, a Polymarket link, price, spread and a "signal strength" for 2 h, 6 h and
-  24 h. Strength runs from -1 to +1 and means P(up) minus P(down).
-  - Next to the lists is the champion's own scored record (forecast quality, not profit).
-  - It never shows a model hidden for a live test, and it recomputes nothing: it reads back the write-once
-    prediction and its receipt time.
-- **A display fix I made before anyone saw it.** The first build put 2-3c longshots with 3-5c spreads at the top.
-  On such markets a strong "signal" mostly reflects how the quotes move inside the spread, not anything a user could
-  act on. So only markets with a spread of 2c or less and a price between 5c and 95c are ranked (17,013 of ~54,000
-  at 00:31Z). This choice was declared before any outcome was read; the model itself is unchanged.
-- **Working end to end on the host.** The 02:31Z capture's tick rebuilt the feed by itself at 03:01:51Z: 17,403
-  markets in the pool, all 40 listed markets titled. The /lab push carries it (snapshot 127 KB to 142 KB).
-- **Web page:** the "Signal feed (champion)" panel is now live on /lab. PR #28
-  (https://github.com/dayyansheikh/Arepo/pull/28) was merged by me at ~03:23Z, and the Vercel deploy succeeded.
-- Not done, and needing the owner: a public website version of the feed. The North Star asks for an owner-approved
-  web deploy, and its wording needs a review.
+- **A short housekeeping session.** The experiments track's LT8 census dropped one of its planned tests (CH204, "the
+  market's own clock"): too few markets qualified. A dropped test no longer needs its hiding rule, so I removed the
+  `sched` embargo token and the one LT8 attribution limit that existed only for it. No model used either, so nothing
+  new becomes visible. The rest of LT8's hiding rules (`quietbook`, `swclock`, `book`, `book0`) are unchanged.
+- **The engine is healthy on the host.** The signal feed was rebuilt from the 06:31Z capture, every model wrote its
+  predictions at 07:00Z, and the daily refit (q0512) and score (q0513) are waiting for their usual afternoon times.
+- **Memory check before today's refit.** Today's refit fits three new challengers (se21-se23) for the first time.
+  Training frames have a fixed row cap (~900k rows; the last refit used 892k at a 2.9 GB peak), so the extra columns
+  should add only ~100 MB, under the 3.4 GB cap.
+- Session 19 (03:55Z-05:14Z) applied LT10 round 7 (`kxbook`, `attrlimit_lt10`, second cross-venue read root) and hit
+  the usage limit before it could rewrite this file; that work is merged and live (ledger "LT10 round 7 applied").
+- Still needing the owner: a public website version of the feed (the North Star asks for an owner-approved web deploy).
 
 ## Live state (host)
-- **Code:** deployed with merge 7d7d0e0b (chore/arepo-claude-setup).
+- **Code:** deployed with merge 88ec8a05 (chore/arepo-claude-setup).
 - **Feed:** `signal_engine/feed/latest.json` (`se-feed-v1`, ~16 KB) is rebuilt by the tick when the champion has a
   newer prediction. Titles are cached in `feed/titles.json` (one Gamma request per new capture, at most 60 ids).
 - **Refit `q0512`** (next ~10-23 15:44Z; caps mem_mb 3400, as_cap_mb 6000) fits se21, se22 and se23 for the first time.
@@ -33,8 +28,8 @@
   direction target (se1 dir_2h +0.051, event-clustered CI +0.049..+0.052). That is a learner effect. The two-way
   (event + day) bound is still negative with 2 days, and no promotion is possible before ~11-04 (14-day minimum).
   K = 7. Champion `se0_champion_lr_mm`.
-- **Queue:** q0512 and q0513 are waiting on their daily due-gates. Nothing on the other track was touched; its MC1
-  job q0116h was running (exclusive) throughout.
+- **Queue:** q0512 and q0513 are in `retry_wait` on their daily due-gates (normal). Nothing on the other track was
+  touched (q0116h `retry_wait`; q0623 re-prioritised by that track).
 
 | Model | Embargoed until |
 |---|---|
@@ -49,20 +44,12 @@
 | `se3_lr_book` (ineligible), `se14_lgbm_movetype` (ineligible), `se19_lr_book0` | **2027-02-14** (was 01-23; LT9) |
 
 ## Changes this session
-1. `signal_engine/signal_feed.py` (new), schema `se-feed-v1`, DESIGN_V1 §27. `run_signal_engine.py tick` builds
-   it; the tick's exit code is unchanged, and `--no-feed-titles` skips the lookup. `lab_host.build_signal_feed`
-   embeds it as `signal_engine.feed` after re-checking the champion and its embargo. It is stale after 6 h, and it is
-   the first thing dropped when the snapshot is too big.
-2. Display pool (spread <= 2c, mid 0.05-0.95), declared 10-23 ~02:45Z after the first host build. Commit 9058f2dd.
-3. Tests: 3 new feed tests. 62 engine tests and 56 lab tests pass, and ruff is clean.
-4. PR #28 (`feat/lab-se-feed`, /lab UI):
-   - It adds the parser and panel. The parser keeps the champion only, re-checks the embargo and fails closed, keeps
-     only polymarket.com links, and never throws.
-   - Validation: 234 unit tests, tsc, lint and build pass. The full e2e ran against a local API on a /tmp copy of the
-     preserved `backend/astrolabe.db`: 120 of 121 pass. The one failure, `replay.spec.ts:58`, depends on the date: the
-     preserved cohort's 7-day horizon is now overdue, and replay is untouched by this PR.
-   - **MERGED** 2026-10-23 ~03:23Z (merge 2842fd1f) under the owner exception. Vercel succeeded,
-     www.arepolabs.com/lab returned 200 and the API health was OK.
+1. `config.EMBARGO`: `sched` withdrawn (`until` = `withdrawn_utc` = 2026-10-23T07:30:00Z, `until_before` 2027-01-23).
+   `attrlimit_lt8` drops the per-market slot-of-day limit and `sched` from `no_broad_families` and keeps both under
+   `withdrawn`. Its date is unchanged. DESIGN_V1 section 8 table, CANDIDATES reply, ledger "Signal engine: LT8 `sched`
+   withdrawn". Commit 7fe05328.
+2. Tests: new `test_lt8_sched_withdrawn_after_ch204_census_drop`. 65 engine tests pass and ruff is clean.
+3. Merged into `chore/arepo-claude-setup` (88ec8a05) and deployed. The host's config shows `sched` until 07:30Z.
 
 ## Next actions
 1. ~10-23 15:45Z: check that q0512 fitted se21, se22 and se23 on the direction targets (`res_7d` LightGBM fits
