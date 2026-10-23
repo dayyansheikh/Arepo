@@ -30,6 +30,12 @@ from . import store as S
 
 SCHEMA = "se-feed-v1"
 TOP_N = 20
+# Display pool (declared 2026-10-23 before any outcome was read; a display choice, not a model change): on a wide or
+# extreme-priced book the 0.5c "flat" band is far inside the spread, so a strong strength is mostly the mid's quote
+# mechanics, not a move a user could act on. Only markets inside this pool are ranked; the summary counts every
+# eligible market.
+POOL_SPREAD_MAX = 0.02
+POOL_MID = (0.05, 0.95)
 TITLE_CACHE_MAX = 3000
 GAMMA_MARKETS = "https://gamma-api.polymarket.com/markets"
 LABEL = ("Signal strength = the champion's forecast P(up) minus P(down) of the Polymarket mid over the horizon "
@@ -133,7 +139,10 @@ def build_feed(paths: S.Paths, reg: dict, now: float, top_n: int = TOP_N,
                       "mean": _num(np.nanmean(s[m])) if m.any() else None,
                       "valid_until": S.iso_s(S.slot_time(slot + L.horizon_slots(int(t[4:-1]))))}
     prim = strength[C.PRIMARY_TARGET]
-    ok = np.isfinite(prim)
+    mids, spr = feats["ms_mid"].to_numpy(float), feats["ms_spread"].to_numpy(float)
+    with np.errstate(invalid="ignore"):
+        pool = (spr <= POOL_SPREAD_MAX) & (mids >= POOL_MID[0]) & (mids <= POOL_MID[1])
+    ok = np.isfinite(prim) & pool
     liq = feats["ms_log_liq"].to_numpy(float)
     order = np.lexsort((-np.nan_to_num(liq, nan=-1.0), -np.abs(np.nan_to_num(prim))))
     up = [i for i in order if ok[i] and prim[i] > 0][:top_n]
@@ -157,6 +166,8 @@ def build_feed(paths: S.Paths, reg: dict, now: float, top_n: int = TOP_N,
         "capture_id": cid, "slot": slot, "origin_utc": origin, "prediction_written_utc": line.get("written_utc"),
         "prediction_sha256": line.get("sha256"), "primary_target": C.PRIMARY_TARGET, "summary": summary,
         "top_up": [row(i) for i in up], "top_down": [row(i) for i in dn], "ranked_by": f"|s_{C.PRIMARY_TARGET[4:]}|, then liquidity",
+        "pool": {"spread_max": POOL_SPREAD_MAX, "mid_range": list(POOL_MID), "markets": int((np.isfinite(prim) & pool).sum()),
+                 "note": "ranked only where the spread is tight and the price is not extreme (quote mechanics dominate elsewhere)"},
         "track_record": _track_record(paths, champion), "titles_error": title_err, "label": LABEL})
 
 

@@ -858,7 +858,11 @@ needs a separate owner-approved web deploy, and its own wording review.
   predictions log. A features file that no longer matches the prediction's pinned `features_sha256` gives no feed.
 - **Signal strength** = P(up) - P(down) for each direction target, in [-1, 1]. The value is null where the market is
   not eligible for that target.
-  - Ranking: |`s_2h`| (the primary target), then log liquidity.
+  - Ranking: |`s_2h`| (the primary target), then log liquidity, **only inside the display pool**: spread <= 2c and mid
+    in [0.05, 0.95]. The pool was declared 2026-10-23 ~02:45Z, before any outcome was read. It is a display choice,
+    not a model change. The first host build (capture 10-23 00:31Z, no pool) ranked 2-3c longshots with 3-5c
+    spreads on top. On such books the 0.5c flat band lies far inside the spread, so the strength mostly reflects the
+    mid's quote mechanics, not a move a user could act on. `pool.markets` reports the pool size.
   - It lists the top 20 up and the top 20 down, and per target the eligible count, counts with |s| >= 0.1 and >= 0.25,
     the mean, and `valid_until` (the target slot).
   - `res_7d` is left out: a model-versus-price gap at resolution reads as a trade suggestion.

@@ -1645,6 +1645,9 @@ def test_signal_feed_reads_back_the_champions_stored_prediction(env, monkeypatch
         assert (pf["elig"].iat[i] & C.ELIG_BITS["dir_2h"]) > 0
         assert row["s_2h"] == round(p[i, 2] - p[i, 0], 3)
         assert set(row) >= {"s_2h", "s_6h", "s_24h"} and not any("res" in k for k in row)
+    for row in feed["top_up"] + feed["top_down"]:  # display pool only: tight spread, price not extreme
+        assert row["spread"] <= SF.POOL_SPREAD_MAX + 1e-9 and SF.POOL_MID[0] <= row["mid"] <= SF.POOL_MID[1]
+    assert 0 < feed["pool"]["markets"] <= feed["summary"]["dir_2h"]["eligible"]
     up = [r_["s_2h"] for r_ in feed["top_up"]]
     dn = [r_["s_2h"] for r_ in feed["top_down"]]
     assert up and dn and all(x > 0 for x in up) and all(x < 0 for x in dn)
@@ -1672,6 +1675,11 @@ def test_signal_feed_title_failure_and_embargoed_or_misaligned_champion(env, mon
 
     feed = SF.build_feed(paths, reg, now, fetch=boom)
     assert feed and feed["titles_error"].startswith("OSError") and all(r["title"] is None for r in feed["top_up"])
+    # the display pool really excludes: with a spread cap below the synthetic 1c spread nothing is ranked
+    monkeypatch.setattr(SF, "POOL_SPREAD_MAX", 0.005)
+    tight = SF.build_feed(paths, reg, now, fetch=None)
+    assert tight["pool"]["markets"] == 0 and tight["top_up"] == tight["top_down"] == []
+    assert tight["summary"]["dir_2h"]["eligible"] == feed["summary"]["dir_2h"]["eligible"] > 0
     # an embargoed champion (here: the flow isolate before 11-16) never feeds the display
     monkeypatch.setattr(SP, "current_champion", lambda paths, reg: "flowc")
     assert paths.predictions(cap, "flowc").exists() and SP.embargo_of(reg["models"]["flowc"], now)
