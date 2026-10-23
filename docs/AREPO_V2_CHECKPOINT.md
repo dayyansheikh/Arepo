@@ -8,6 +8,17 @@
 **PHASE 4 IN PROGRESS.** See `implementation/phases/PHASE_04_EDGE_EXPERIMENTS.md` and the ledger `research_lab/EXPERIMENT_LEDGER.md`.
 User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=Etc/GMT-1 date`.
 
+## Experiments autopilot live state (2026-10-23 13:21 UTC+1)
+- Owner lab-msg:4 ("why stopped since Wed? ntfy"): answered by ntfy ~12:30Z. Cause: every session since 10-21 hit the usage
+  limit before AUTOPILOT_DONE, and the board's digest drops such sessions. Fix 2b33d60b: `scripts/lab/lab_activity.py`
+  `cutoff_note` sets `done` for usage_limit/timeout sessions >= 10 min from the session transcript's last own message
+  (synthetic CLI messages skipped, sanitised); test in `backend/tests/unit/test_lab_activity.py`. Mac-side only, no web change.
+- Running (restarted, the 08:45Z cut-off lost them): LT10 code-fixes re-check (science-reviewer, worktree
+  `../astrolabe-live-tests-10-code`, tip f36ff4dd); LT11 design draft (worktree `../astrolabe-live-tests-11`);
+  q0164b disk-budget diagnosis/fix (worktree `../astrolabe-q0164c`, branch fix/q0164-disk; CB8 rules hash must not change).
+- Next: file the LT10 re-check, merge LT10 code into chore, promote q0660-q0667 if OK; challenger review of LT11; deploy
+  the q0164 fix. Open owner decision still: clear ~9 GB restore copies (data-dumps 35 of 40 GB on 10-23 12:16Z).
+
 ## Interactive session state (2026-10-23 08:30Z)
 - **Security audit run 1 (2026-10-23):** Cloudflare security-audit skill, quick profile, source-only. 0 confirmed findings and 5 needs-validation leads; see `docs/security/AUDIT_2026-10-23_RUN1.md` (full artefacts in `~/security-audit-skill/astrolabe/run-1/`). Owner notified via ntfy. No fixes made yet. Proposed small PRs:
   1. Refuse to start in production on a default or short AUTH_SECRET.
