@@ -370,7 +370,7 @@ equals its source (the test checks). Do not edit the LT5 spec while q0561/q0562 
 **Waiting:**
 - MC1: after the resize (item 4).
 - CB4 q0085 not before ~10-24T12Z. CB5 q0103b on or after 10-27, then q0106. CB3 freeze after q0064 (after 10-25).
-- Signal engine: live state in `signal_engine/STATUS.md` (10-22 ~23:25Z: embargo round applied, with LT7's five tokens and its movetype extension withdrawn effective 10-23T00Z, and LT9's bandbreak/pool/rwblink plus book/book0 to 2027-02-14 and the attribution-limit entries; new families `dispgap` (CH218) and `dormant` (CH220) with challengers se22 / se23, DESIGN_V1 §26, science review ACCEPT_WITH_FIXES applied (embargoed to 11-14 for LT2 and 11-19 for E011); both passed their counts-only census; 122 tables each backfilled on the host; first fits at the 10-23 refit q0512; se21 hwm fits there too; no promotion before ~11-04).
+- Signal engine: live state in `signal_engine/STATUS.md` (10-23 ~03:05Z, session 18: the per-market signal feed `se-feed-v1` (DESIGN_V1 §27) shows the champion's stored predictions as signal strength. It runs at every tick on the host and appears on /lab only, ranked inside a declared display pool (spread <= 2c, mid 0.05-0.95). /lab UI PR #28 merged 10-23 ~03:23Z. No model, embargo or queue change. The first fits of se21/se22/se23 come at the 10-23 refit q0512. No promotion before ~11-04).
 
 ## Learned surprise-move detector (2026-10-12 evening)
 `docs/research_lab/SURPRISE_MOVE_DETECTOR.md`. Labels fixed and logged before features (`surprise-labels-v1`,
