@@ -4108,3 +4108,9 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   its code-freeze check (must confirm re-check fixes 1 and 4 in the code); census only after both E009 and E010 analysis
   commits.
 
+- **LT10 code, timing-run disclosure (N1, 2026-10-23, code-fixes re-check):** the seed and plan of the implementer's ~3 s / ~13 s size-check timing
+  runs are not recorded (not in commit messages, tests or the code-check review of this branch). Known: before commit 2e9ba424 the worlds tests
+  (`test_research_lab_live_tests10_worlds.py`, introduced in e3d1dd79) called `size_check` with the registered seed 20261397 and tiny worlds
+  (2 worlds x 4 draws, `registered=True`), and nothing then refused it; so it cannot be ruled out that a timing run or test ran at 20261397.
+  Such a run is a tiny-world code test with no recorded output and no use of any result; the registered q0665 (not before 2026-11-04) stays
+  the only run whose output counts. From f36ff4dd on, no test runs `size_check` at 20261397 (R1) and q0665 has `max_retries` 0 (R2).

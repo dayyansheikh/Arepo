@@ -72,7 +72,7 @@ KINDS = {"CH224": "hedge", "CH223": "flinch", "CH222": "traded"}
 SCOPES = ("non_sports_ex_crypto", "ex_crypto")
 SRC_SUCCESSOR = "xv_quotes_v1"
 CODE_FILES = ("live_tests10.py", "live_tests10_analysis.py", "live_tests10_worlds.py", "live_tests10_base.py", "live_tests10_analysis_base.py", "xv_quotes_poller.py", "xv_quotes_poller_base.py",
-              "bounce_decomp.py", "battery.py", "economics.py", "forecast.py", "history_backfill.py")
+              "bounce_decomp.py", "battery.py", "battery2.py", "economics.py", "forecast.py", "history_backfill.py")
 _PIN_LINE = re.compile(r"^SPEC_SHA256 = .*$", re.M)
 EPS = 1e-9
 QUIET_EPS = 1e-5  # 0.001c in price units (section 3)
@@ -1858,6 +1858,9 @@ def _write_origin(out_root: Path, t: int, df: pd.DataFrame, spec: dict, wtime: f
     d, hm = _ymd(t), pd.Timestamp(t, unit="s", tz="UTC").strftime("%H%M")
     if any((Path(out_root) / kind / "frozen" / d / nm).exists() for kind in KINDS.values() for nm in (f"{hm}.csv.gz", f"{hm}.late.csv.gz")):
         # a crash between the frozen and the status file: never write a second (late) copy of an origin already frozen
+        # flag the status file as a reprocess and record which kinds already had a frozen file (the frozen files are never touched)
+        st["reprocess"] = 1
+        st["frozen_kinds"] = ",".join(k for k in KINDS.values() if any((Path(out_root) / k / "frozen" / d / nm).exists() for nm in (f"{hm}.csv.gz", f"{hm}.late.csv.gz")))
         b.write_once_csv(check_path(_status_path(out_root, t)), st)
         return "exists"
     u = df[df["status"] == ST["unit"]].copy()

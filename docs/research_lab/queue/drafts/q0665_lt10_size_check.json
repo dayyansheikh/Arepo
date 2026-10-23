@@ -26,7 +26,7 @@
   "../data-dumps/research_lab/live_tests10_census/SIZE10.json"
  ],
  "timeout_s": 172800,
- "max_retries": 1,
+ "max_retries": 0,
  "outputs": [
   "data-dumps/research_lab/live_tests10_census/SIZE10.json"
  ],

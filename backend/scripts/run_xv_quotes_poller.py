@@ -6,7 +6,9 @@ check and the engine's second read root are recorded in the ledger) the orchestr
   1. disables E009's poller (``run/cross-venue-live.disabled``; last cycle recorded);
   2. copies E009's last ``pairs/pairs_*.json`` byte for byte (``cp -p``, sha256 recorded) to ``xv_quotes/pairs/`` and to
      ``xv_quotes/pairs_current.json`` (the pair list is continuous and the age rule fires the first own refresh at E009's time of day);
-  3. adds the supervise.sh entry  ``[xv-quotes]="scripts/run_xv_quotes_poller.py"``  (a host change under the standing collection
+  3. records the host's ``astrolabe/research_lab/history_backfill.py`` sha256, confirms it equals 25bef961... (the pinned value in the
+     code-freeze check) and that it is the file E009's running process loaded (process start time later than the file's mtime);
+  4. adds the supervise.sh entry  ``[xv-quotes]="scripts/run_xv_quotes_poller.py"``  (a host change under the standing collection
      authorisation, with a ledger line; this commit does NOT edit supervise.sh).
 
   python scripts/run_xv_quotes_poller.py                  poll every 120 s (+ the daily refresh child)

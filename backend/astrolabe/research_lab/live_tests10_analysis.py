@@ -766,7 +766,7 @@ SCENARIOS: dict[str, dict] = {
     "W9": {"stats": ("verdict",), "tests": ("CH224",)},
     "W10": {"stats": ("gate", "verdict"), "tests": ("CH224", "CH223", "CH222")},
 }
-NULL_WORLDS_ANALYTIC = ("W1", "W2", "W3")  # the F-arm report (non-binding)  # the analytic p's own rate here decides the 'analytic p oversized in simulation' label (a convention)
+NULL_WORLDS_ANALYTIC = ("W1", "W2", "W3")  # the F-arm report (non-binding) runs in these null worlds only; the 'analytic p oversized in simulation' label uses ANALYTIC_OVERSIZE_WORLDS (W1, W2, W3 and W10; ruling 6)
 POWER = {"CH224": ("1.0c per 2.2 SD of zdsK", 1.0 / 2.2, 41), "CH223": ("0.5c between classes", 0.5, 42), "CH222": ("0.5c between classes", 0.5, 43)}
 
 
@@ -912,7 +912,7 @@ def per_test_result(res: dict, analytic: dict, alive: list[str], worlds: int, sc
                 elif not r["ok"]:
                     (fails_size if stat == "gate" and not (sc == "W9") else fails_mech).append(f"{sc}:{stat}")
         status = "fail_size_scenario" if (fails_size or missing) else ("fail_mechanical_world" if fails_mech else "pass")
-        # DESIGN-AMBIGUITY: 'analytic p oversized in simulation' = the analytic p's own rejection rate exceeds the limit in W1, W2 or W3 (the null worlds without a leak).
+        # DESIGN-AMBIGUITY: 'analytic p oversized in simulation' = the analytic p's own rejection rate exceeds the limit in W1, W2, W3 or W10 (ANALYTIC_OVERSIZE_WORLDS; ruling 6).
         over = [sc for sc, v in (analytic.get(t) or {}).items() if sc in ANALYTIC_OVERSIZE_WORLDS and v["over_limit"]]
         out[t] = {"status": status, "failed_size": fails_size, "failed_mechanical": fails_mech, "missing": missing, "analytic_oversized": bool(over), "analytic_over_in": over}
     return out

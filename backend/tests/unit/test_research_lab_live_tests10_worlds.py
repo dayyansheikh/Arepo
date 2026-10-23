@@ -252,12 +252,14 @@ def test_size_check_cli(tmp_path):
     assert args.dev and "txt" not in written
 
 
-def test_registered_seed_is_refused_outside_the_registered_run():
+def test_registered_seed_is_refused_outside_the_registered_run(monkeypatch):
     spec = copy.deepcopy(lt.load_spec(sha=None))
-    with pytest.raises(an.Refused, match="20261397"):
-        an.size_check(worlds=2, draws=4, seed=20261397, spec=spec, tests=["CH223"], scenarios=("W6",), **SMALL)
     assert an.DEV_SEED == 20261397 * 100 + 99
-    out = an.size_check(worlds=2, draws=4, seed=20261397, spec=spec, tests=["CH223"], scenarios=("W6",), registered=True, **SMALL)
+    # no test executes size_check at the registered seed: the constant is patched to a stand-in value (R1, LT10 code-fixes re-check)
+    monkeypatch.setattr(an, "REGISTERED_SEED", 777)
+    with pytest.raises(an.Refused, match="20261397"):
+        an.size_check(worlds=2, draws=4, seed=777, spec=spec, tests=["CH223"], scenarios=("W6",), **SMALL)
+    out = an.size_check(worlds=2, draws=4, seed=777, spec=spec, tests=["CH223"], scenarios=("W6",), registered=True, **SMALL)
     assert out["seed_kind"] == "registered" and any("W6 disclosure" in n for n in out["notes"])
 
 

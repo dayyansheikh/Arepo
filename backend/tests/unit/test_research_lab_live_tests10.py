@@ -1337,6 +1337,19 @@ def test_zero_overwrite_of_a_refusing_census_and_frozen_not_duplicated(tmp_path)
     (out / "status" / lt._ymd(t) / (pd.Timestamp(t, unit="s", tz="UTC").strftime("%H%M") + ".csv.gz")).rename(tmp_path / "gone.gz")  # simulate a crash before the status file
     assert lt._write_origin(out, t, df, spec, t + 5000.0) == "exists"  # a late reprocess writes no second frozen copy
     assert not list(out.rglob("*.late.csv.gz"))
+    st = pd.read_csv(out / "status" / lt._ymd(t) / (pd.Timestamp(t, unit="s", tz="UTC").strftime("%H%M") + ".csv.gz"))
+    assert (st["reprocess"] == 1).all() and "hedge" in str(st["frozen_kinds"].iloc[0])  # N4: flagged as a reprocess, with the kinds that had a file
+
+
+def test_refusing_census_writes_no_out_file(tmp_path, monkeypatch):
+    rl = _load_runner("run_live_tests10_s1")
+    monkeypatch.setattr(rl, "_cap", lambda *a, **k: False)
+    monkeypatch.setattr(rl, "_committed", lambda *a, **k: ("", "abc"))
+    monkeypatch.setattr(rl.lt, "census_family", lambda **k: {"error": "refused for the test"})
+    seal, out = tmp_path / "seal.json", tmp_path / "cf10.json"
+    seal.write_text("{}")
+    rc = rl.main(["census-family", "--seal", str(seal), "--out", str(out)])
+    assert rc == 3 and not out.exists()  # S1: a refusing census does not use the write-once --out slot
 
 
 def test_partial_pair_file_is_retried_next_run(tmp_path):
