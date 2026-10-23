@@ -4189,3 +4189,12 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   13 tests; merged 590f0c37, deployed. q0680 (net, mem_mb 450) over the host captures 2026-10-16..10-22, before 10-16 leaves
   the host at 10-24T03:30Z. Reads capture k and k - 1 only; no target, no P&L. Its counts are planning inputs for an LT11
   draft (CH234, CH233, CH232), written before any LT11 gate is set.
+
+## CH240 boundary map (q0680), 2026-10-23 08:33Z (counts only, k = 0, uncounted)
+- `ch240_map/CH240_map.json` (host, sha256 ffb3883c…; 83 captures 10-16..10-22, 80 with k - 1). Report:
+  `CH240_MAP_2026-10-23.md`. No target or P&L read.
+- Non-sports ex-crypto, per capture: CH234 traded movers about 1,239 (round 16 planned 580-935), quote-only about 2,466,
+  and about 851 with `volume_num` missing (83% of sidecar rows have no `volume_num`: a design must handle it as a counted
+  class); CH233 complete neg-risk event-captures about 1,833, `hb` within 2 ticks of zero about 12.6%; CH232 rewarded
+  outward first crossings of 0.10 / 0.90 about 79, re-crossing share 0.59 at 0.10 (round's line 0.60: borderline).
+- Next: an LT11 design draft (CH234, CH233, CH232) using these as planning counts, gates declared before its own census.
