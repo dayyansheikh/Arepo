@@ -254,7 +254,14 @@ Host 2 OCPU / 11.4 GiB since the resize. data-dumps 34 / 40 GB cap: owner approv
 **Autopilot session 10-23 from 07:06Z:**
 - **LT8 CC8 (q0622) done 06:03Z: CH204 DROPPED at census** (3.35 scheduled markets/capture vs 1,200; ledger d3a38c5b;
   registry; CANDIDATES `sched` withdrawal note). LIVE_TESTS_8.md §6.3 NOT filled yet: the census code refuses on any change
-  to the frozen design text, so fill §6.3 only after q0623 (CS8: CH203, CH202) finishes. q0623 queued (exclusive, draining).
+  to the frozen design text, so fill §6.3 only after q0623 (CS8: CH203, CH202) finishes. q0623 queued (exclusive).
+- **q0623 starvation fixed** (2417e27b, deployed): the repeating daily q0162 (CB8 holders, priority 52) won the id tie-break
+  against q0623 (also 52) on every re-queue; q0623 -> 53. Expect it to start after q0162's current chunk (~07:35Z).
+  When q0623 is done: counts-only write-up (ledger, registry, CANDIDATES withdrawals for dropped tests), revert the 10-day
+  snapshot rule to 8 days (ledger + deploy), then phase 2 for survivors (fill §6.3 via the design-text predecessor rule).
+- **LT10 code phase resumed** (an implementer agent in `../astrolabe-live-tests-10-code`; the previous session's subagent was
+  cut off at 04:06Z leaving uncommitted live_tests10*.py / xv_quotes_poller*.py). Then: code-freeze check (science-reviewer).
+- **Creative round 16** (Fable xhigh) running in `../astrolabe-creative-r16` (`feat/creative-r16`, CH232+).
 
 **Autopilot session 10-23 from 01:58Z:**
 - **LT8:** q0621's depends_on fix committed (66bbc2fd) and deployed; q0621 ran 02:00Z; seal committed (84c5c16e, sha256
