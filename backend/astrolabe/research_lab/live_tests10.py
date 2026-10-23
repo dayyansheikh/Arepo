@@ -792,7 +792,10 @@ def targets(A: dict, t0: int, origin_cols: np.ndarray, h_polls: int) -> pd.DataF
     st = np.where(end >= 0, 0, st)
     pm1 = _take(D["pmid"], rows, end)
     sp1 = _take(D["sP"], rows, end)
-    return pd.DataFrame({"tg_status": st.reshape(-1), "pmid_h": np.where(end >= 0, pm1, np.nan).reshape(-1), "sP_h": np.where(end >= 0, sp1, np.nan).reshape(-1)})
+    pbs1, pas1 = _take(A["p_bid_sz"], rows, end), _take(A["p_ask_sz"], rows, end)
+    return pd.DataFrame({"tg_status": st.reshape(-1), "pmid_h": np.where(end >= 0, pm1, np.nan).reshape(-1), "sP_h": np.where(end >= 0, sp1, np.nan).reshape(-1),
+                         "p_bid_sz_h": np.where(end >= 0, pbs1, np.nan).reshape(-1), "p_ask_sz_h": np.where(end >= 0, pas1, np.nan).reshape(-1),
+                         "t_end": np.where(end >= 0, t0 + POLL_S * end, -1).reshape(-1)})
 
 
 # --- censuses: the sealed inputs, the day batches and the gates (section 7) -----------------------------------------------------------
@@ -1694,6 +1697,7 @@ def run_once(*, xv_root: Path = XV_ROOT, out_root: Path = OUT_ROOT, snapshot_roo
 
     spec = spec or load_spec(sha=None)
     out_root = Path(out_root)
+    injected = now is not None
     now = b.now_ts() if now is None else now
     check_path(out_root / "run.lock")
     out_root.mkdir(parents=True, exist_ok=True)
@@ -1707,7 +1711,7 @@ def run_once(*, xv_root: Path = XV_ROOT, out_root: Path = OUT_ROOT, snapshot_roo
             return {"status": "store above its disk limit: refused", "exit": 3}
         run_id = iso(now)
         seen = update_seen(xv_root, out_root, run_id, now)
-        runs = read_runs(check_path(Path(xv_root) / "runs.jsonl")) if (Path(xv_root) / "runs.jsonl").exists() else []
+        runs = read_runs(Path(xv_root)) if check_path(Path(xv_root) / "runs.jsonl").exists() else []
         records = [load_pair_file(p) for p in sorted((Path(xv_root) / "pairs").glob("pairs_*.json"))]
         W = WindowRecords(records, runs, seen, L=int(spec["pair_record_rule"]["L_s"]))
         reg, end = int(epoch(spec["registered_utc"])), int(epoch(spec["end_utc"]))
@@ -1715,7 +1719,8 @@ def run_once(*, xv_root: Path = XV_ROOT, out_root: Path = OUT_ROOT, snapshot_roo
             return {"status": "no successor cycle yet", "exit": TEMPFAIL}
         todo = [t for t in range(reg, min(end, W.last_cycle + 1), GRID_S) if not _status_path(out_root, t).exists()][:max_origins]
         if not todo:
-            return {"status": "nothing new", "exit": TEMPFAIL}
+            fu = followups(xv_root, out_root, W, spec, now, max_origins)
+            return {"status": "ok" if fu else "nothing new", "exit": 0 if fu else TEMPFAIL, "followups": dict(fu)}
         t_lo, t_hi = todo[0] - LOOKBACK_POLLS * POLL_S, todo[-1]
         days = sorted({_ymd(x) for x in range(t_lo - t_lo % DAY_S, t_hi + 1, DAY_S)})
         parts = []
@@ -1746,7 +1751,9 @@ def run_once(*, xv_root: Path = XV_ROOT, out_root: Path = OUT_ROOT, snapshot_roo
                 df = df[keep]
                 if not W.cycle_ran(t):
                     df.loc[df["status"] == ST["unit"], "status"] = ST["poll_missing"]
-                written[_write_origin(out_root, t, df, spec, b.now_ts())] += 1
+                written[_write_origin(out_root, t, df, spec, now if injected else b.now_ts())] += 1
+        fu = followups(xv_root, out_root, W, spec, now, max_origins)
+        written.update({f"followup_{k}": v for k, v in fu.items()})
         b.append_jsonl(Path(out_root) / "runs.jsonl", [{"run": run_id, "origins": len(todo), "first": iso(todo[0]), "last": iso(todo[-1]), "results": dict(written),
                                                         "code_sha256": code_hashes().get("live_tests10.py"), "spec_sha256": spec["_sha256"]}])
         return {"status": "ok", "exit": 0, "origins": len(todo), "results": dict(written)}
@@ -1784,6 +1791,97 @@ def _write_origin(out_root: Path, t: int, df: pd.DataFrame, spec: dict, wtime: f
         b.write_once_csv(check_path(Path(out_root) / kind / "frozen" / d / name), fr)
     b.write_once_csv(check_path(_status_path(out_root, t)), st)
     return "late" if late else "frozen"
+
+
+# --- the reader's follow-up writers: targets and far-future twins (8.1; read only polls AFTER the frozen origin) -----------------------------------
+
+
+HORIZON_MIN = {"hedge": (10, 20), "flinch": (10, 20), "traded": (10, 20, 60)}  # S1 +10 min, the primary +20 min, CH222's M1 +60 min
+TG_NAMES = {0: "two_sided", 1: "one_sided", 2: "late", 3: "absent", 4: "poll_missing"}
+
+
+def _origin_of(path: Path) -> int:
+    return _day_epoch(path.parent.name) + int(path.name[:2]) * 3600 + int(path.name[2:4]) * 60
+
+
+def pending_followups(out_root: Path, W: WindowRecords, limit: int) -> dict[int, list]:
+    """Frozen (not ``.late``) unit files whose target (+h) or twin file is missing and whose last needed poll's cycle has run (no endpoint is read
+    before the successor's ``runs.jsonl`` shows the cycle t + h + 120 s over)."""
+    items: dict[int, list] = {}
+    if W.last_cycle is None:
+        return items
+    for kind in KINDS.values():
+        for p in sorted((Path(out_root) / kind / "frozen").glob("*/*.csv.gz")):
+            if p.name.endswith(".late.csv.gz") or len(p.name) != len("0000.csv.gz"):
+                continue
+            t, d, hm = _origin_of(p), p.parent.name, p.name[:4]
+            need = [("h", h) for h in HORIZON_MIN[kind] if not (Path(out_root) / kind / "outcomes" / d / f"{hm}.h{h}.csv.gz").exists()
+                    and W.last_cycle >= t + h * 60 + POLL_S]
+            if not (Path(out_root) / kind / "twins" / d / f"{hm}.csv.gz").exists() and W.last_cycle >= t + TWIN_AHEAD_POLLS * POLL_S:
+                need.append(("tw", 0))
+            if need:
+                items.setdefault(t, []).append((kind, p, need))
+    return dict(sorted(items.items())[:limit])
+
+
+def followups(xv_root: Path, out_root: Path, W: WindowRecords, spec: dict, now: float, limit: int = 288) -> Counter:
+    """Write-once ``<kind>/outcomes/<d>/<HHMM>.h<min>.csv.gz`` (pid, t, target status, Polymarket mid, spread and touch sizes at the endpoint) and
+    ``<kind>/twins/<d>/<HHMM>.csv.gz`` (Kalshi-only far-future states, read through the Kalshi-only lag loader). A target status never turns into
+    another: files are never rewritten."""
+    out = Counter()
+    items = pending_followups(out_root, W, limit)
+    if not items:
+        return out
+    ts = sorted(items)
+    t_lo, t_hi = ts[0], ts[-1] + 3600 + POLL_S
+    days = sorted({_ymd(x) for x in range(t_lo - t_lo % DAY_S, t_hi + 1, DAY_S)})
+    full_parts, k_parts = [], []
+    for d in days:
+        for suf in (".jsonl", ".jsonl.gz"):
+            f = Path(xv_root) / "quotes" / f"{d}{suf}"
+            if f.exists():
+                full_parts.append(read_quote_file(f, QUOTE_FIELDS, t_lo, t_hi, src=SRC_SUCCESSOR))
+                k_parts.append(read_quote_file(f, KALSHI_LAG_FIELDS, t_lo, t_hi, src=SRC_SUCCESSOR))
+    cols, kcols = concat_cols(full_parts), concat_cols(k_parts)
+    pids = sorted(set(cols["pid"]))
+    t0 = t_lo - (t_lo % POLL_S)
+    n = (t_hi - t0) // POLL_S + 1
+    A = to_grid(cols, pids, t0, n)
+    Ak = to_grid(kcols, pids, t0, n)  # Kalshi fields only: no Polymarket column is ever in this grid
+    idx = {p: i for i, p in enumerate(pids)}
+    meta = {"wrote": iso(now), "role": _role(spec), "spec_sha": spec["_sha256"][:16], "code_sha": (code_hashes().get("live_tests10.py") or "")[:16]}
+    for t in ts:
+        j0 = (t - t0) // POLL_S
+        for kind, path, need in items[t]:
+            fr = pd.read_csv(check_path(path), usecols=["pid", "t"], dtype={"pid": str})
+            rows = np.array([idx.get(str(p), -1) for p in fr["pid"]], dtype=np.int64)
+            ok = rows >= 0
+            d, hm = path.parent.name, path.name[:4]
+            for what, h in need:
+                if what == "h":
+                    tg = pd.DataFrame({"tg_status": np.full(len(fr), 4, dtype=np.int64), "pmid_h": np.nan, "sP_h": np.nan, "p_bid_sz_h": np.nan, "p_ask_sz_h": np.nan,
+                                       "t_end": -1})
+                    if ok.any():
+                        tt = targets(A, t0, np.array([j0], dtype=np.int64), h * 60 // POLL_S)
+                        tt = tt.reset_index(drop=True)
+                        tg.loc[ok, :] = tt.iloc[rows[ok]].to_numpy()
+                    absent = (tg["tg_status"] == 4) & W.cycle_ran(t + h * 60)
+                    tg.loc[absent, "tg_status"] = 3
+                    res = pd.concat([fr.reset_index(drop=True), tg.assign(tg_status=[TG_NAMES[int(x)] for x in tg["tg_status"]])], axis=1)
+                    for k_, v_ in meta.items():
+                        res[k_] = v_
+                    out[f"{kind}_h{h}" if b.write_once_csv(check_path(Path(out_root) / kind / "outcomes" / d / f"{hm}.h{h}.csv.gz"), res) else "exists"] += 1
+                else:
+                    tw = pd.DataFrame({"tw_ok": False, "dsK_tw": np.nan, "pull_tw": np.nan, "traded_tw": np.nan}, index=range(len(fr)))
+                    if ok.any():
+                        tt = twins(Ak, t0, np.array([j0], dtype=np.int64), np.arange(len(pids)))
+                        tt = tt.reset_index(drop=True)
+                        tw.loc[ok, :] = tt.iloc[rows[ok]].to_numpy()
+                    res = pd.concat([fr.reset_index(drop=True), tw], axis=1)
+                    for k_, v_ in meta.items():
+                        res[k_] = v_
+                    out[f"{kind}_twin" if b.write_once_csv(check_path(Path(out_root) / kind / "twins" / d / f"{hm}.csv.gz"), res) else "exists"] += 1
+    return out
 
 
 # --- ops-stats (1.6: counts only; reads no price, spread or size value) ---------------------------------------------------------------
@@ -1842,7 +1940,7 @@ def ops_stats_stream(xv_root: Path = XV_ROOT) -> dict:
     from .xv_quotes_poller import read_runs
 
     xv_root = Path(xv_root)
-    runs = read_runs(check_path(xv_root / "runs.jsonl")) if (xv_root / "runs.jsonl").exists() else []
+    runs = read_runs(xv_root) if check_path(xv_root / "runs.jsonl").exists() else []
     days: dict[str, dict] = {}
     for r in runs:
         if r.get("kind") == "cycle":
