@@ -60,8 +60,8 @@ made before any LT11 data, several after the map (marked).
   the reward control (E022's S2 split) are fixed blind to both results. A freeze after either moves LT11 to the ordered lane.
 - **Expected outcome, declared now (honest prior odds; the designer's judgement, not measurements).** **CH234** has the
   count (the map's 1,239 traded movers a capture against a count gate of 745) but its binding F-MDE gate sits at the edge:
-  it passes at E022's design effect (6.196) and fails at the design effect its larger population may compute (about 10, a
-  projection, 2.2); `VIF_w` of the centred product and the differential-missingness gate on `volume_num` are the other
+  it passes at E022's design effect (6.196) and fails at the low planning count at the design effect its larger population
+  may compute (7-10, a projection, 2.5); `VIF_w` of the centred product and the differential-missingness gate on `volume_num` are the other
   risks. Census **0.35**. **CH233** has power to spare (F-MDE about a quarter of the floor); the map settled completeness
   (0.85-1.00 of events of 3-10 members on the rewarded panel) and the working range (`hb` within two ticks of zero on 12.6%
   of complete event-captures); the risks left are the correlation and `VIF_w` gates against the member's own move and
@@ -405,7 +405,7 @@ spreads in cents on a 1c tick unless stated.
   ambiguous* (CH232, 1.4.2); *informed (X)*; *analytic p oversized in simulation*; *underpowered* (Inconclusive and
   `(t_{G-1, 1-0.05/k} + t_{G-1, 0.8}) x SE_day` above the census MDE); *attrition-differential*; *late-loss*;
   *series-concentrated* (> 50%); *ladder-dominated* (the ladder arm's estimate has the opposite sign); *holiday-sensitive*,
-  *month-start-sensitive* (1.1); *volume-missing sensitive* (CH234: the Lee-type bounds of 2.3 include 0);
+  *month-start-sensitive* (1.1); *volume-missing sensitive* (CH234: the unknown-class arm of 2.3 has an estimate above the traded one, or of the opposite sign);
   *CLOB-disagreement sensitive* (CH232: the refit on units whose carry status and feed listing agree changes sign).
 - **MDE multiplier.** `3.47 = t_{20, 1 - 0.05/6} + t_{20, 0.8}` (LT7-LT10's constant), **not lowered** for k <= 3.
 
@@ -467,3 +467,247 @@ pinned file after the pin makes the analysis refuse; the reader exits 75 when no
 within 48 h; gaps stay missing and are counted; disk: the reader refuses above 3.0 GB in `live_tests11/` and no retention rule
 may cover `live_tests11/` before the analysis is committed; collection of a kind is switched off when its test is not in
 `k_tests`.
+
+## 2. CH234: the dollar weight of a move (continuation rises with the collateral behind a traded move)
+
+### 2.1 Hypothesis in plain words
+On this venue the price of a share is its collateral. A one-cent move up at 0.90 was bought with about 90c a share (YES), a
+one-cent move down at 0.90 with about 10c a share (NO). So the same move in cents carried very different money depending on
+its direction against its level, and money is the cost of being wrong (Kyle 1985). The hypothesis: among moves that came with
+a trade, the ones that carried more dollars (a heavy weight `w` times a larger size `|d|`) keep going more over the next two
+hours than light ones, beyond momentum, the price level's own drift and the market's state; and among moves that came without
+any trade (quote-only), where nobody paid, this pattern is absent or much weaker.
+
+### 2.2 Population and unit
+- **Unit:** a non-sports ex-crypto market x capture k with `|d_k| >= 0.01`, `d_k = mid_k - mid_{k-1}`, passing 1.4 at k - 1
+  and k, `p_{k-1} = mid_{k-1}` in **[0.04, 0.96]** (the 1c-tick regime; the tick boundary itself belongs to CH86), tick unchanged,
+  events with `n_members <= 10` (ladder arm reported), and **traded** by 2.3. The **quote-only** movers (2.3) are the twin
+  population, built by the same rules. The **unknown** movers (2.3) form a counted, reported arm.
+- **Origin and decision clock:** capture k's last row receipt (1.3); every input is from captures k - 1, k and the 12-slot
+  look-back. **Target and horizon:** `c = sign(d_k) x (mid_{k+1} - mid_k)` in cents, over (k, k + 1] (2 h); `unavailable`
+  unless the unit is `two_sided` at k + 1 (1.5).
+
+### 2.3 `volume_num`: three classes, declared before any count (rule 5; the map's warning)
+`volume_num` is the sidecar's cumulative traded volume in USD. For a mover at k, read `v_{k-1}` and `v_k` from the sidecar rows of
+captures k - 1 and k (the same `condition_id`):
+- **traded:** both finite and `v_k - v_{k-1} > 1e-6`;
+- **quote-only:** both finite and `|v_k - v_{k-1}| <= 1e-6`;
+- **unknown:** anything else, kept in four counted sub-classes: `vnum_missing_k` (empty, NaN or non-numeric at k),
+  `vnum_missing_km1` (at k - 1 only), `vnum_decrease` (`v_k < v_{k-1} - 1e-6`, a data anomaly), `sidecar_missing`.
+**Unknown movers are never classed traded or quote-only, never imputed, never re-classed from `volume24hr`, `last_trade_price`
+or any other field.** They are excluded from the primary and the twin and fitted alone as a reported arm (uncounted). The CH240
+map found `volume_num` empty on 83% of the sidecar rows of one capture (10-22T00:31Z) and about 851 unknown movers a capture
+against about 3,705 classed (about 19% of non-sports ex-crypto movers); whether the missingness is capture-level (a sidecar
+version or a fetch path) or row-level is **not known**, so the census measures it and gates it (7: the pooled unknown share,
+the share of captures that are mostly unknown, and the correlation of being unknown with the tested term and with `w`). The
+traded class is a population rule, never the tested term (E015's anatomy is not re-tested here).
+
+### 2.4 State, controls and the primary statistic
+- **Weight:** `w_k = 0.5 + sign(d_k) x (p_{k-1} - 0.5)`: the collateral a share of the side whose buying moved the price (in
+  [0.04, 0.96] on the population). **Size:** `|d_k|` in probability units, **winsorised at 0.20** (declared convention; counted).
+- **Tested term (6.1 item 6):** the centred product `xw_k = z(w_k) x z(|d_k|)`, `z(x) = (x - c_x) / s_x` with the census centre
+  `c_x` (mean) and scale `s_x` (SD) over CH234's census traded units, fixed in the spec.
+- **Controls:** `|d_k|`; the level drift by bin: `sign(d_k) x 1[bin b]` and `sign(d_k) x 1[bin b] x (p_{k-1} - centre_b)` for the
+  four declared bins of `p_{k-1}` (`[0.04, 0.15)`, `[0.15, 0.50)`, `[0.50, 0.85)`, `[0.85, 0.96]`; centres the bin midpoints; the
+  0.15 / 0.85 cuts are HB1 PX1's object), which together span `w` itself (so `w`'s main effect is held fixed); the known-factor
+  block K (1.7: the level, spread, liquidity, 24 h volume, hours to end, tick, `z log rv24*`, `neg_risk`, `rewarded_k`, category
+  and slot dummies, `d_k`, the 6 h and 24 h own changes, `chg_1h`); `n_members`.
+- **Primary:** expanding-past market-demeaned OLS of `c` on `xw` with the controls, on traded units; **one-sided H1: beta > 0**;
+  inference 1.7; block FL gate in market strata (1.8); F binding with the twin of 1.9; the **quote-only point condition**
+  (betâ_quote < 0.5 x betâ_traded, 1.9) binding.
+- **Secondaries (reported, uncounted):** M1 `c_skip = sign(d_k) x (mid_{k+2} - mid_{k+1})`; M2 the quote-only slope itself and the
+  traded-minus-quote-only difference with its p; M3 the slope within each of the four bins; M4 the round's raw form (the tested term
+  `z(w x |d|)` with `|d|`, `p_{k-1}` and `sign(d) x bin` as controls, as round 16 sketched it); the unknown-class arm; the
+  ladder arm; the sports arm (uncounted).
+
+### 2.5 Planning counts and MDE (planning only; the map counted the population, never an effect)
+- **Counts:** the map's traded movers about **1,239 a capture** (non-sports ex-crypto, all price bins, before LT11's band, tick,
+  tightness and cap rules); planning retention 0.73-0.93 gives **900-1,150 traded units a capture** (226,800-289,800 in 21 days;
+  `n_eff` 181,400-231,800 at 0.8). Quote-only about 2,466 a capture on the map (planning 1,800-2,300 after the rules). Distinct
+  events with a traded mover over the map's 6.92 days: 3,535 (rewarded) and 2,950 (unrewarded).
+- **Design effect:** E022's measured 6.196 (`m_21` 260.8 on about 194,000 21-day units) is the optimistic end. A population
+  1.2-1.5 times E022's in a comparable set of events projects `m_21` about 300-390 and DE about 7-9; **10 is the pessimistic
+  planning end** (a few large ladders dominate a size-weighted mean). The census computes `DE_gate = max(6.196, 1 + (m_21 - 1) x 0.02)`.
+- **MDE (slope at the tercile gap 2.2 SD, `VIF_w` 1.3, SD 4c):** DE 6.196: **0.31c (900) / 0.27c (1,150)**, quarter of the low count
+  0.61c, **F-MDE (`r_w` 0.1) 0.46c / 0.40c**. DE 10: 0.39c / 0.34c, quarter 0.78c, **F-MDE 0.58c / 0.51c (fails 0.5c)**. At `VIF_w`
+  2.0 and DE 6.196: F-MDE 0.56c / 0.50c.
+- **Kill lines (F-MDE gate 0.5c, binding):** about **745 traded units a capture at DE 6.196 and `VIF_w` 1.3**; 1,146 at `VIF_w` 2.0;
+  1,203 at DE 10; 1,850 at DE 10 and `VIF_w` 2.0. The count gate (7) is set at 745, the most lenient of these, and the F-MDE gate
+  itself, computed from the census's own DE, `VIF_w` and `r_gate`, decides.
+
+### 2.6 Confounders and how each is held
+- *Level drift* (PX1: longshots drift down; S28): a down move at a low price has a high `w` and a drift that continues it. Held
+  by the piecewise-linear `sign(d) x bin` controls (which span `w`) and by the product's `|d|` dose (drift does not scale with
+  the move's size); world 1 binding.
+- *Size alone* (S29): `|d|` is a control and the product is centred; world 2 binding.
+- *Bounded prices:* a move toward an extreme has less room (works against H1); the bins and the band [0.04, 0.96].
+- *Momentum and market state:* the known-factor block K (1.7).
+- *Selection by missing volume:* the unknown class is excluded and gated (7); world 3 binding with the census's own unknown share.
+- *Volatility clustering:* `z log rv24*`; world 4 binding.
+- *E015's anatomy and E022's population:* blind freeze (1.1); disjoint windows.
+- *The engine's learners* (se1 holds the mid and the own 2 h change and may have learned the product): a development look,
+  disclosed; attribution limit and the `dollarw` token requested (9).
+- **Most likely boring outcome:** continuation on traded movers is the same at every weight because informed flow sits on the
+  cheap longshot side as often as on the dear favourite side (a clean null), or the dose is mostly the drift by bin and the
+  residual variation is thin (the residual-IQR and `VIF_w` gates say so before any target).
+
+### 2.7 Data streams, jobs, timing (CH234's share of section 8)
+Rows and sidecars of captures k - 3 .. k + 3 (the 24 h change reads k - 12); no sweep, no feed, no new collector. The reader keeps
+per market the last 12 mids and the last `volume_num` (a few hundred bytes). Census CC11 (7), size check (1.8), reader and analysis
+(8.2). Embargo token `dollarw` (9).
+
+## 3. CH233: the arb's footprint (the siblings' bid-sum rise and the member's next spread)
+
+### 3.1 Hypothesis in plain words
+In a neg-risk event (one winner among several markets), the YES bids of all members cannot add up to more than one for long:
+selling YES into every bid and converting the NO positions pays the excess at once, and bots do it within minutes. That selling
+lands on the bids. So when the other members' bids rise and the event's bid headroom (`1 - sum of bids`) closes, the arbitrage
+pressure arrives on every member's bid, and over the next two hours the member's makers re-post lower and its spread widens from
+the bid side. The ask side has no such instant arbitrage (buying the whole set below one is a hold-to-resolution carry), so the
+same rise in the siblings' asks should not do this.
+
+### 3.2 Members, completeness and the event key (declared before any count; rule 16)
+- **Event key:** `neg_risk_market_id` where present and non-empty, else Gamma `event_id` among rows with `neg_risk` true; one key
+  per member row (a row with both a key and a conflicting `event_id` is counted `nr_key_conflict` and keyed by
+  `neg_risk_market_id`).
+- **Eligible members of event e at capture j:** rows of capture j with the key, `neg_risk` true, binary, open and active. Placeholder
+  and "Other" members (`neg_risk_other`) are members (they are part of the exhaustive set); `event_neg_risk_augmented` is a control.
+- **Complete event-capture pair (k - 1, k):** the eligible member set is identical at k - 1 and k (else `members_changed`), and
+  every member is two-sided (bid > 0, ask < 1) at both (else `event_incomplete`). Incomplete pairs give no unit for any member;
+  they are counted, never filled, and no member's bid is set to 0 or carried.
+- **Size classes:** the primary keeps events with **3-10** eligible members. **2-member events are a reported arm** (6.1 item 7:
+  there the siblings' sum is one market, the complement of the member's own price, so the state is the member's own move); events
+  with 11+ members are the reported ladder arm (round 14 rule 7). Sports, crypto or unknown category on any member excludes the
+  event (counted).
+
+### 3.3 State, controls and the primary statistic
+- **Headroom:** `hb_j = 1 - sum_m bid_{m,j}` over the event's eligible members at capture j.
+- **State (sign corrected, 6.1 item 8):** `cl_sib_{i,k} = sum_{m != i} (bid_{m,k} - bid_{m,k-1})` in cents: positive when the
+  siblings' bids rose, i.e. the headroom closed because of the other members. Tested term `z cl_sib = cl_sib / s_c`, `s_c` the census
+  pooled SD of `cl_sib` in the member's size class (3-5 or 6-10 members), fixed in the spec.
+- **Twin regressor (separate model):** `ca_sib_{i,k} = sum_{m != i} (ask_{m,k} - ask_{m,k-1})`, scaled the same way (`z ca_sib`).
+- **Controls:** `hb_{k-1}`; the member's own bid change and own spread change over (k - 1, k]; its bid share `bid_{i,k} / sum_m
+  bid_{m,k}`; the event's mid overround `sum_m mid_{m,k} - 1` (the `event` family's level); `n_members`; `neg_risk_other`;
+  `event_neg_risk_augmented`; the known-factor block K (1.7, with `d_k` the member's own 2 h mid change).
+- **Primary:** expanding-past market-demeaned OLS of `ds_i = spread_{i,k+1} - spread_{i,k}` (cents; spread = ask - bid on the row)
+  on `z cl_sib` with the controls; **one-sided H1: beta > 0**; inference 1.7 (event clusters); **event-phase block FL gate** (1.8);
+  F binding (twin `z cl_sib` over (k + 2, k + 3]); the **ask point condition** (betâ_ask < 0.5 x betâ_bid from the twin model with
+  `z ca_sib` in place of `z cl_sib`, same controls) binding.
+- **Secondaries (reported, uncounted):** M1 the bid's change `bid_{i,k+1} - bid_{i,k}` (predicted < 0); M2 the mid's change (E005's
+  object; `informed (E005)` by the record); M3 the headroom crossing class `1[hb_{k-1} > 0 and hb_k <= 0]` (rare: the map's 11.9
+  a capture on the rewarded panel); M4 the slope by the member's rank in the event (favourite against the rest; S27's dose); the
+  2-member and 11+ arms; the sports arm.
+
+### 3.4 Planning counts and MDE (planning only)
+- **Counts (map, non-sports ex-crypto, per capture):** neg-risk events 1,664 (rewarded) / 825 (unrewarded); member rows 14,123 /
+  4,933; complete event-captures about 1,833; complete shares by size 2: 1.00 / 0.97, 3-5: 0.85 / 0.65, 6-10: 0.88 / 0.67, 11+:
+  0.30 / 0.14; complete (k - 1, k) pairs 1,262 / 563. The map did **not** print member rows by size class, so the primary's units
+  are **unprobed**: planning **4,000-8,000 complete member units a capture** in events of 3-10 members (1,008,000-2,016,000 in 21
+  days; `n_eff` 806,400-1,612,800). `hb` q05 / q50 / q95: rewarded 0.010 / 0.109 / 0.414, unrewarded 0.009 / 0.029 / 0.797; within
+  two ticks of zero on about 12.6% of complete event-captures; within-event SD of the siblings' bid-sum change >= 1 tick in 0.83 /
+  0.85 of events with >= 48 units.
+- **Design effect:** every member of an event shares its clusters; an event of 3-10 members present for most of the window holds
+  700-2,500 units, so planning DE **31** (capped) to **51**; the census computes `DE_gate = max(5.0, 1 + (m_21 - 1) x 0.02)`.
+- **MDE (slope at the gap 2.2 SD, `VIF_w` 1.5, SD 2c):** DE 31: **0.17c (4,000) / 0.12c (8,000)**, quarter 0.35c, **F-MDE (`r_w`
+  0.2) 0.28c / 0.19c**; DE 51: 0.22c / 0.16c, quarter 0.45c, F-MDE 0.35c / 0.25c. All far under 1.0c: **power is not the question;
+  the identification gates are.** The F-MDE gate's kill line is about 500 complete member units a capture at DE 51.
+
+### 3.5 Confounders and how each is held
+- *Common event shocks* (S26: news moves every member's bid and spread in the same slot): the state is lagged one slot behind the
+  target by construction; the own changes over (k - 1, k] are controls; world 5 binding.
+- *Spread contagion across the ladder* (world 7): a widening of siblings' spreads lowers their bids (`cl_sib < 0`) and widens the
+  member's next spread (`ds > 0`), which biases **against** H1; a narrowing biases against it too. Binding nonetheless.
+- *A siblings' mid rise in general* (not the arbitrage): it raises bids and asks alike, so the ask point condition fails; and the
+  own move and the overround are controls.
+- *Dormant ladders* (S27; CH220's dormancy is 10.4% of non-sports rows and higher among longshots): the per-event SD gate (7), M4,
+  world 6 binding.
+- *Liquidity:* the corr gates and world 8 binding.
+- *Momentum and market state:* the known-factor block K.
+- *The record:* E005 (a member's deviation from its arbitrage band predicting the mid's repricing) was not supported, challenger
+  CONFIRMED; XM1-XM3 were nulls or not survivors; the `event` family's level scores are visible to the engine (a development look
+  at the levels, disclosed; the innovations are not built, 9).
+- **Most likely boring outcome:** the venue's own arbitrage keeps the bid sum far enough below one that a sibling rise never
+  presses (a noise state; the working-range gate measures it before any target), or the bids that move are the farmers'
+  symmetric quotes following the mid, so the spread re-centres instead of widening (M1 moves, the primary does not; the label
+  *re-centring not widening*).
+
+### 3.6 Data streams, jobs, timing
+Rows of captures k - 1 .. k + 3 (all members of each neg-risk event; the event join is a reader, no matcher); the sidecar for
+category and tick; no sweep, no feed. The reader keeps per event the previous capture's member bids and asks (a few kB per event;
+about 2,500 events). Census CC11, size check, reader, analysis (8). Token `nrslack` (9).
+
+## 4. CH232: the cheap side's cliff (a rewarded market's mid crossing out of [0.10, 0.90])
+
+### 4.1 Hypothesis in plain words
+A resting quote costs its poster the collateral of its side: at a mid of 0.92 the YES bid ties up about 91c a share, the YES ask
+(a NO bid) about 8c. Reward-paid makers therefore crowd the cheap side. The venue's reward rule changes what a maker must post to
+score at the published boundary of 0.10 / 0.90. So when a rewarded market's mid crosses out of [0.10, 0.90] for the first time in
+a day, some makers have just lost the reason to keep one side posted, and over the next two hours the spread should widen; on
+unrewarded markets, where no rule changes at that price, the same crossing should do much less.
+
+### 4.2 Definitions (declared before any count; rule 15)
+- **Mid:** `m_j = (bid_j + ask_j) / 2` on capture j's row (Gamma's touch; the venue scores on its own book midpoint; disclosed).
+  **Band** `B = [0.10, 0.90]`, closed, comparisons with tolerance 1e-9.
+- **Outward approach zone (the primary population, 6.1 item 1):** a rewarded-panel unit at capture k whose `m_{k-1}` lies in
+  `[0.10, 0.14]` or `[0.86, 0.90]` (within 0.04 of a boundary, inside `B`; 0.04 is the planning SD of the 2 h mid change, and the
+  zone's outer edge stays 0.06 inside the tick boundaries 0.04 / 0.96). Membership uses `m_{k-1}` only.
+- **Outward crossing at (k - 1, k]:** `m_{k-1}` in `B` and `m_k` outside `B`. **`xo_k` = 1** if it is the market's first outward
+  crossing of either boundary in the UTC day of capture k, reading only earlier slots of that day; **`xr_k` = 1** if it is a later
+  outward crossing of the same day (a declared class, entered as its own regressor, so the reference class holds only units that
+  did not cross). A unit whose UTC day has a missing earlier slot is excluded (`day_gap`, counted): the first-crossing status is
+  not known.
+- **Tick-coincident:** the tick changed between k - 1 and k (already excluded by 1.4) or `m_k` is below 0.04 or above 0.96;
+  excluded and counted (`tick_coincident`).
+- **Dear and cheap sides at k:** below 0.10 the dear side is the YES ask (its NO bid costs about `1 - m`), above 0.90 the YES bid.
+  M1's side follows 1.4.2.
+- **Panels:** the reward panel (1.4.1, fixed at the market's first unit) is the primary; the control panel (`rewarded = 0`) is fitted
+  with the same model for the point condition.
+
+### 4.3 State, controls and the primary statistic
+- **State:** `xo_k` (and `xr_k` as a control).
+- **Controls:** the move toward the boundary `d_tow_k` (`-d_k` near 0.10, `+d_k` near 0.90) and `|d_k|`; the distance
+  `dist_{k-1}` of `m_{k-1}` to its boundary (in [0, 0.04]); an upper-boundary indicator; the spread level at k and the own spread
+  change over (k - 1, k]; the band `v` and `log` daily rate of the carry source; the known-factor block K (1.7). Together with
+  `dist_{k-1}` and `d_tow_k`, `xo` is a threshold in `m_k`: the design is a local discontinuity in the mid at the boundary,
+  identified among units that approached it.
+- **Primary:** expanding-past market-demeaned OLS of `ds = spread_{k+1} - spread_k` (cents) on `xo` with the controls, reward panel,
+  approach-zone units; **one-sided H1: beta > 0** (6.1 item 3); inference 1.7 with the sparse-class df; block FL gate in market
+  strata; F binding (twin: the market's first outward crossing at (k + 2, k + 3], zone rule at k + 2); the **control-panel point
+  condition** (betâ_ctrl < 0.5 x betâ_rew) binding.
+- **Secondaries (reported, uncounted):** M1 the retreat of the side 1.4.2 names (`-(bid_{k+1} - bid_k)` for the bid,
+  `ask_{k+1} - ask_k` for the ask); M2 the mid's change toward the band (a mid target the counts do not reach); M3 sweep 1's 1c and
+  5c depths on both sides at passes k and k + 1 (post-decision readings, 1.3); S1 the **inward** twin (zone `[0.06, 0.10)` or
+  `(0.90, 0.94]` at k - 1, first inward crossing of the day, predicted < 0); S2 a **pseudo-boundary placebo** at 0.20 / 0.80 (zones
+  `[0.20, 0.24]` and `[0.76, 0.80]`, predicted 0); the panel difference's p; the CLOB-disagreement refit; the sports arm.
+
+### 4.4 Planning counts and MDE (planning only)
+- **Counts (map, non-sports ex-crypto, per capture; first crossings per market, boundary and UTC day; the map's reward reading was
+  the simple non-empty `clob_rewards` at k, not `listed_carry24h_v2`, so the carry panel may be larger):** rewarded outward 66.3 at
+  0.10 (61 ex-tick) and 12.4 at 0.90, about **79 (73 ex-tick)**; unrewarded 48.5 and 16.8; inward rewarded 45.0 and 4.4. The share
+  that came from inside the 0.04 zone is **unprobed** (planning 0.68-0.95): **50-69 counted reward-panel crossings a capture**;
+  control panel about 43-60. Zone units without a crossing are **unprobed** (planning 500-1,000 a capture on the reward panel).
+  Distinct events with a rewarded crossing over the map's span: 2,178 (0.10) and 673 (0.90).
+- **MDE (class contrast, SD 2c):** DE 31, `VIF_w` 1.3: **0.69c (50; 500) / 0.58c (69; 1,000)**, quarter 1.38c, **F-MDE (`r_w` 0.2)
+  1.09c / 0.92c**. `VIF_w` 2.5 (the discontinuity's controls may push it there): 0.96c / 0.80c, F-MDE 1.51c / 1.27c. A computed DE
+  of 15 with `VIF_w` 1.3: 0.48c / 0.40c, F-MDE 0.76c / 0.64c. The panel interaction (reported only): 1.01c / 0.85c at DE 31.
+- **Kill lines (F-MDE gate 1.0c, binding; 750 zone units a capture):** about **58 counted crossings a capture at DE 31 and `VIF_w`
+  1.3**; 121 at `VIF_w` 2.5; 27 at DE 15; 54 at DE 15 and `VIF_w` 2.5. The count gate (7) is **60 a capture** (round 16's own
+  verdict line, written before the map), the F-MDE gate decides with the census's DE and `VIF_w`.
+
+### 4.5 Confounders and how each is held
+- *Big moves widen spreads anyway* (S25): `|d|`, `d_tow` and the own spread change are controls; the crossing must add a
+  discontinuity at the boundary; world 9 binding; the control panel's point condition.
+- *The spread's level is steep near the extremes* (a smooth shape): `dist_{k-1}`, the level at k and world 10 binding; S2's
+  pseudo-boundary placebo.
+- *The tick regime at 0.04 / 0.96* (CH86): the zone stays 0.06 away; tick-coincident units excluded; world 11 binding.
+- *Re-crossing chatter* around 0.10 (ladder longshots): `xr` is its own class; the re-crossing gate (7).
+- *Reward-field omission:* the carry rule (1.4.1); the CLOB-disagreement refit.
+- *E022's S2 and LT9's CH213:* blind freeze, disjoint windows (1.1).
+- *Momentum and market state:* the known-factor block K.
+- **Most likely boring outcome:** too few first crossings from the zone on the reward panel (the count and F-MDE gates), or the
+  farmers never post the dear side at all, so nothing leaves at the crossing (a clean null the documented reading partly predicts).
+
+### 4.6 Data streams, jobs, timing
+Rows and sidecars of captures k - 12 .. k + 3 (the earlier slots of the UTC day and the carry window); sweep 1 of passes k and
+k + 1 for M3 only; the feed for the CLOB sensitivity and economics. The reader keeps per market the day's crossing flags and the
+carry window's texts. Census CC11, size check, reader, analysis (8). Token `bandside` (9).
