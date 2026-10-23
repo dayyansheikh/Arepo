@@ -86,9 +86,9 @@
    `umaparams` (needs a census), CH198 `theta`. The LT7 tokens are free since 10-23 (resist, capath, deepbook,
    absorbed, ivr). `resist` (CH195) passed every census gate except the F-MDE, so it is the most plausible engine
    family of the five; check for LT8 `quietbook` overlap first.
-9. Housekeeping (needs approval): remove the merged worktrees `astrolabe-lab-se`, `astrolabe-lab-se-promo` and
-   `astrolabe-lab-se-feed` (#28 merged), plus `/tmp/se_dev`, `/tmp/se_e2e`, `/tmp/se_feed_e2e`, the host's `/tmp/se_b0`,
-   `/tmp/se_hwm_backfill.log` and `/tmp/se_dg_dm_backfill.log`.
+9. Housekeeping (needs approval): remove the merged worktrees `astrolabe-lab-se` and `astrolabe-lab-se-promo`,
+   `/tmp/se_dev`, `/tmp/se_e2e`, the host's `/tmp/se_b0`, `/tmp/se_hwm_backfill.log` and `/tmp/se_dg_dm_backfill.log`.
+   This session's PR worktree and its temporary files are already removed.
 
 ## Notes for the other track
 - No embargo, token or queue change this session. The feed shows only the champion (`se0`, not embargoed). If a
