@@ -4358,3 +4358,12 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   its five level columns only, so se24 / se25 stay visible. No value on these terms was ever computed or shown. The engine's
   attribution is per family, so no interaction attribution on the limited terms is computed. Before LT11's registration
   commit, as section 9 / 8.4 step 8 asks.
+
+## CB8-B frame complete (q0165b), q0166b promoted, 2026-10-23 ~22:35Z (experiments autopilot; nothing counted, no outcome read)
+- **q0165b** `updown_frame_complete` at 19:25Z (rc 0, 332 s, 503 requests, 0 x 429): 665 markets, 791 strikes, screen 345 /
+  holdout 320 markets (`n_pre_rows` 59,325, holdout 27,825), 0 missing strikes. The frame is non-empty, so B1 stays testable
+  under the declared variant (the "not testable" branch of the 18:55Z entry does not apply).
+- **Promotion checks at 22:30Z:** no `seals/cb8_updown_holdout_SEAL.json` on the host (seals/ listing re-read);
+  `cb8_rules_v3.json` file sha256 `52e3f1f2…41aaf72` identical locally and on the host, `rules_sha256` `9c5d432d…e498` as
+  recorded. **q0166b promoted** unchanged (net lane, mem 1500; coverage audit first, PASS iff >= 90%). Next: copy and commit the
+  seal it writes, then q0169.
