@@ -1,27 +1,22 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-23 18:35 UTC+1
+**Last updated:** 2026-10-23 23:35 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **This evening (23 Oct):** the **LT11 design is frozen** (three ideas from round 16: do price moves backed by more money keep
-  going; does a neg-risk market's spread widen after its sister markets' bids rise; do spreads widen when a rewarded market first
-  crosses 10c or 90c). It passed the challenger review, a re-check and a final check; nothing was loosened. The venue's reward
-  page was re-read at the freeze and confirms the documented rule (one-sided quotes score only between 10c and 90c). Its code is
-  being written now, then an independent code check. Counting checks run after 7 Nov; if any test survives, collection from 18 Nov.
-- **Batch 8, "last-minute certainty" in daily crypto Up/Down markets: no markets left to study.** The rule that removes anything
-  related to earlier samples removed every one of the 783 candidates, because they all belong to a few daily series that earlier
-  samples had touched. No price or outcome was read. An independent reviewer is deciding whether a declared variant (ignore the
-  series link, keep the per-market exclusions) is scientifically fair. **Ruling: allowed, with 7 conditions** (it gets one
-  try only and is counted once). The change is written and its check asked for 4 small fixes, which are being made.
-- **New ideas round 17 is done** (10 ideas). The three best live-test candidates: "the mirror" (a two-option event has two
-  order books for one question: does one book's spread change predict the other's?), "the farmed half" (in a multi-option event
-  only some options pay market-maker rewards: do the unpaid ones react differently to the same shock?) and "the fee as the price
-  of urgency". Their author expects about a 50% chance that none survives its counting check. A counts-only map of how many
-  usable cases exist is being built now and runs on past data, so the design can start soon.
+- **Tonight (23 Oct):** the **LT11 code is written** (three ideas from round 16, design frozen earlier today). An independent
+  reviewer is now checking the code against the frozen design before anything runs. Counting checks run after 7 Nov; if any
+  test survives, collection from 18 Nov.
+- **Batch 8, "last-minute certainty" in daily crypto Up/Down markets, is back on track.** The reviewer-allowed retry (one try,
+  counted once) found **665 markets** (about half kept sealed for the replication). No price or outcome was read. The next
+  step, a check that order-book history exists for at least 90% of them, is queued.
+- **New: LT12 is being designed** from the three best round-17 ideas ("the mirror", "the farmed half", "the fee as the price
+  of urgency"). The counts-only map came back: the first two have plenty of cases; the fee idea's numbers swing a lot from
+  day to day, so its own counting check will decide. A challenger review follows the draft. If it survives, collection would
+  be 10-31 Dec.
 - **Your 23 Oct message ("why have you stopped?"): it had not stopped.** Sessions kept running but were cut off by the usage limit
   before writing their summary; the Lab board now shows how long such a session worked and its last progress note.
 - **Server:** the model run MC1 is working through its folds (healthy); the live collectors are healthy.

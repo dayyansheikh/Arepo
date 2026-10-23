@@ -8,24 +8,19 @@
 **PHASE 4 IN PROGRESS.** See `implementation/phases/PHASE_04_EDGE_EXPERIMENTS.md` and the ledger `research_lab/EXPERIMENT_LEDGER.md`.
 User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=Etc/GMT-1 date`.
 
-## Experiments autopilot live state (2026-10-23 18:35 UTC+1)
-- **LT11 DESIGN TEXT FROZEN** (3627d7fd, sha256 `991100db…3583`, merged 1f353ca6; ledger b057e076). Venue reward page re-read
-  at the freeze: documented reading, CH232's M1 = cheap side. Fast lane: census seal 10-28..11-07, window 11-18..12-09.
-  Engine tokens `dollarw`, `nrslack`, `bandside`, `attrlimit_lt11` requested (CANDIDATES "LT11 freeze request").
-- **LT11 code running** (implementer, `../astrolabe-live-tests-11-code`, `feat/live-tests-11-code`; queue specs DRAFTS only).
-  Next: independent code-freeze check, fixes, merge.
-- **CB8-B:** frame empty (series key removed all 783 candidates). Ruling VARIANT_ALLOWED_WITH_CONDITIONS; amendment
-  implemented on `feat/cb8b-variant` (`../astrolabe-cb8b-variant`); amendment review ACCEPT_WITH_FIXES (4 fixes), fixes being
-  applied. Then merge and promote q0165b (q0166b only after confirming no holdout seal copy on the host).
-- **CB9 q0182 promoted** (725f5a08; q0164c keys sha, vacuous empty-frame pin, dated holders ids pin
-  `creative_batch8/pins/cb8_holders_frame_ids_20261023T172452Z.csv`). Attempt 1 MemoryError at 2 x 400 MB; raised to
-  1000 / 3000 MB (7d6df24a, deployed); waits for the MC1 piece to end (exclusive drain).
-- **Creative round 17 merged** (900c5272, CH242-CH251; CANDIDATES note + ledger b8512819). LT12 candidates CH245 mirror
-  (0.30), CH244 farmed half (0.20), CH243 fee (0.10, conditional). **CH251 population map** being built
-  (`../astrolabe-ch251-map`, `feat/ch251-map`), span [10-13, 10-23) (orchestrator decision: past data, disjoint from LT11's
-  seal/window, so LT12's census can use a fresh seal), queue id ~q0700, light (mem < 500).
-- Queue: MC1 q0116i running (exclusive); LT2 collector healthy; E026 q0541 from 10-25T00Z.
-- Open owner decision: clear ~9 GB restore copies (data-dumps 36 of 40 GB).
+## Experiments autopilot live state (2026-10-23 23:35 UTC+1)
+- **LT11** design text frozen (3627d7fd, sha256 `991100db…3583`). Code complete on `feat/live-tests-11-code`
+  (`../astrolabe-live-tests-11-code`, 3452419b; ambiguity notes A1-A24 in `LT11_CODE_NOTES.md`; drafts q0690-q0695).
+  **Independent code-freeze check (science-reviewer) running.** Then: fixes, the size-check timing run (8.4 step 3, timing seed
+  != 20261497, 20 worlds x 16 scenarios, clock only), merge; seal after 11-07T00Z.
+- **CB8-B:** q0165b frame complete (665 markets, screen 345 / holdout 320). Holdout-seal absence and rules hash re-checked
+  22:30Z; **q0166b promoted** (3d2ee82a). Next: copy and commit `seals/cb8_updown_holdout_SEAL.json` it writes; then q0169.
+- **CH251 map written up** (`research_lab/CH251_MAP_2026-10-23.md`, ledger 1e89423d). **LT12 design draft running**
+  (Opus drafter, `../astrolabe-live-tests-12`, `feat/live-tests-12`: CH245 mirror, CH244 farmed half, CH243 fee). Then challenger R1.
+- **CB9 q0182** retry_wait (1000 / 3000 MB), q0162 / q0163 / se_refit / se_score wait for the MC1 exclusive drain.
+- Queue: MC1 q0116i running (exclusive; fold 9 started ~21:40Z, ~1.3 h a fold); LT2 collector healthy; E026 q0541 from 10-25T00Z.
+- Registry: CB8-OTHER and LT11 plain texts trimmed under the 450-char test limit (test_lab_clients green).
+- Open owner decision: clear ~9 GB restore copies (data-dumps 36 of 40 GB, about +1 GB a day).
 
 ## Interactive session state (2026-10-23 08:30Z)
 - **Security audit run 1 (2026-10-23):** Cloudflare security-audit skill, quick profile, source-only. 0 confirmed findings and 5 needs-validation leads; see `docs/security/AUDIT_2026-10-23_RUN1.md` (full artefacts in `~/security-audit-skill/astrolabe/run-1/`). Owner notified via ntfy. No fixes made yet. Proposed small PRs:
