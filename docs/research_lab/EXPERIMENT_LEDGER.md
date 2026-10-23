@@ -4380,3 +4380,17 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   the fetch asks for closed markets, and every closed record carried `umaResolutionStatus = resolved`).
 - **Scope:** the `res_7d` population (markets ending 10-12..10-23, crypto-heavy); no rule-class or `resolvedBy` split was
   drawn because the non-sports count (2) leaves nothing to split. Fills the CH242 gap in CH251's map (q0700).
+
+## CH251 LT12 population map: counts recorded, 2026-10-23 ~22:50Z (experiments autopilot; counts only, k = 0, uncounted)
+- **q0700** done 18:01:41Z (rc 0, 1,060 s, peak RSS 460 MB); host output `research_lab/ch251_map/CH251_map.json` sha256
+  `ae8fbdb5…5426`; 111 captures over 9.25 covered days of [10-13, 10-23). Note: `CH251_MAP_2026-10-23.md`. No outcome-like
+  field exists in the output (captures k and k - 1 only).
+- Per capture, non-sports ex-crypto (21-day projection): **CH245** complete two-member pairs 639 (~161k; sketch 100-400 events),
+  span retention 1.000; **CH244** mixed ladders 1,363, 976 complete (11+ members complete 0.31); **CH243** fee-free traded movers
+  mean 346 but medians 64 / 7 (rewarded / unrewarded): not stationary over the span, so any gate must be set on the design's own
+  census, not on this mean; **CH250** cells all in the thousands (crypto has no fee-free rows); **CH248** movers in two-member
+  events 63.5 (`twin_printed` 7%). `volume_num` missing for a further 213 fee-free movers a capture (counted third class needed).
+  Not buildable from captures: CH243 matched tier control and CH250 tier cut (no tier definition), CH242 (no label store),
+  CH246 (no rules text).
+- **Next:** LT12 design draft (CH245, CH244, CH243; one Holm family, k <= 3), these as planning counts only; its own census
+  on a fresh seal disjoint from LT11's seal and window.
