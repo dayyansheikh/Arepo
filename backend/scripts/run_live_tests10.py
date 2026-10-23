@@ -193,8 +193,10 @@ def main(argv: list[str] | None = None) -> int:
     res["code_sha256"] = lt.code_hashes()
     res["spec_sha256"], res["design_text_sha256"] = spec["_sha256"], lt.design_text_sha()
     res["seal_file"] = {"path": str(args.seal), "sha256": b.sha256_file(args.seal), "commit": commit}
-    rc = _write_out(args.out, json.dumps(res, sort_keys=True, indent=1, default=str))
-    return 3 if "error" in res else rc
+    if "error" in res:
+        print(res["error"])  # a refusing census does not use the write-once --out slot
+        return 3
+    return _write_out(args.out, json.dumps(res, sort_keys=True, indent=1, default=str))
 
 
 if __name__ == "__main__":

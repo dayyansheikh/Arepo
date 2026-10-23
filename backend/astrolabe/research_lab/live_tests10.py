@@ -72,7 +72,7 @@ KINDS = {"CH224": "hedge", "CH223": "flinch", "CH222": "traded"}
 SCOPES = ("non_sports_ex_crypto", "ex_crypto")
 SRC_SUCCESSOR = "xv_quotes_v1"
 CODE_FILES = ("live_tests10.py", "live_tests10_analysis.py", "live_tests10_worlds.py", "live_tests10_base.py", "live_tests10_analysis_base.py", "xv_quotes_poller.py", "xv_quotes_poller_base.py",
-              "bounce_decomp.py", "battery.py", "economics.py", "forecast.py")
+              "bounce_decomp.py", "battery.py", "economics.py", "forecast.py", "history_backfill.py")
 _PIN_LINE = re.compile(r"^SPEC_SHA256 = .*$", re.M)
 EPS = 1e-9
 QUIET_EPS = 1e-5  # 0.001c in price units (section 3)
@@ -1714,6 +1714,13 @@ def seen_log(out_root: Path) -> list[dict]:
     return [json.loads(x) for x in iter_complete_lines(check_path(p))]
 
 
+def _try_pair_file(p: Path) -> dict | None:
+    try:
+        return load_pair_file(p)
+    except ValueError:
+        return None
+
+
 def update_seen(xv_root: Path, out_root: Path, run_id: str, now: float) -> set[str]:
     """Record the first sighting of every successor pair file (1.2 window rule (iii)); returns the names seen at or before this run."""
     seen = {r["name"] for r in seen_log(out_root)}
@@ -1721,7 +1728,10 @@ def update_seen(xv_root: Path, out_root: Path, run_id: str, now: float) -> set[s
     for p in sorted((Path(xv_root) / "pairs").glob("pairs_*.json")):
         if p.name in seen:
             continue
-        rec = load_pair_file(p)
+        try:
+            rec = load_pair_file(p)
+        except ValueError:  # a pair file still being written (non-atomic write by the vendored refresh): seen on the next run
+            continue
         new.append({"name": p.name, "sha256": rec["sha256"], "refreshed_utc": rec["refreshed_utc"], "seen_utc": iso(now), "run": run_id})
         seen.add(p.name)
     if new:
@@ -1758,7 +1768,7 @@ def run_once(*, xv_root: Path = XV_ROOT, out_root: Path = OUT_ROOT, snapshot_roo
         run_id = iso(now)
         seen = update_seen(xv_root, out_root, run_id, now)
         runs = read_runs(Path(xv_root)) if check_path(Path(xv_root) / "runs.jsonl").exists() else []
-        records = [load_pair_file(p) for p in sorted((Path(xv_root) / "pairs").glob("pairs_*.json"))]
+        records = [r_ for r_ in (_try_pair_file(p) for p in sorted((Path(xv_root) / "pairs").glob("pairs_*.json"))) if r_ is not None]
         W = WindowRecords(records, runs, seen, L=int(spec["pair_record_rule"]["L_s"]))
         reg, end = int(epoch(spec["registered_utc"])), int(epoch(spec["end_utc"]))
         if W.last_cycle is None:
@@ -1845,6 +1855,11 @@ def _write_origin(out_root: Path, t: int, df: pd.DataFrame, spec: dict, wtime: f
     st = df[["pid", "ev", "t", "status", "cls223", "cls222"]].copy()
     st["status"] = [STATUS_CODES[s] for s in st["status"]]
     st["role"], st["spec_sha"], st["code_sha"] = _role(spec), spec["_sha256"][:16], (code_hashes().get("live_tests10.py") or "")[:16]
+    d, hm = _ymd(t), pd.Timestamp(t, unit="s", tz="UTC").strftime("%H%M")
+    if any((Path(out_root) / kind / "frozen" / d / nm).exists() for kind in KINDS.values() for nm in (f"{hm}.csv.gz", f"{hm}.late.csv.gz")):
+        # a crash between the frozen and the status file: never write a second (late) copy of an origin already frozen
+        b.write_once_csv(check_path(_status_path(out_root, t)), st)
+        return "exists"
     u = df[df["status"] == ST["unit"]].copy()
     for c_ in ("fee_rate", "rewarded", "reward_rate"):
         if c_ not in u:

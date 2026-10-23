@@ -406,6 +406,7 @@
  "design_ambiguities": [
   "CD10 correlation terms: 'log Polymarket touch size' is read as the two columns lpb_t and lpa_t (log1p of the bid and the ask touch size at t); CH223's 'log Kalshi touch size' as lkb_s0 and lka_s0, CH222's as lkb_t and lka_t",
   "per-pair block gate sensitivity (1.8): the vendored block_fl_gate demeans within its group, so its group is the pair x stratum key (pair x UTC day; CH222 pair x two-day block), not the pair",
-  "the reward feed (1.2, economics only) is joined in the reader as a per-origin rewarded flag and gross rate (one usable capture before the UTC day)"
+  "the reward feed (1.2, economics only) is joined in the reader as a per-origin rewarded flag and gross rate (one usable capture before the UTC day)",
+  "Code-freeze rulings (reviews/LT10_CODE_CHECK_2026-10-23.md): 1 W3 venue noise kept: faithful; 2 W6 period = origin spacing: faithful, disclosed in the size-check output; 3 per-pair block gate group pair x stratum: faithful; 4 'material' reading: faithful; 5 stream gap: faithful, plus the share of cycles where every fetch failed is printed; 6 'analytic p oversized' judged on W1, W2, W3 and W10 (CHANGED; label only; the F-arm report stays W1-W3); 7 reward feed join: faithful; 8 target 'absent': faithful; 9 CD10 touch-size terms: faithful"
  ]
 }

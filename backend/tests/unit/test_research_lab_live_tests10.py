@@ -1306,3 +1306,46 @@ def test_spec_blocks_for_the_analysis_exist():
     assert set(spec["census_fixed"]["mde_c"]) == set(lt.TESTS) and spec["design_ambiguities"]
     assert spec["economics"]["e009_spec_sha256"] == b.sha256_file(HERE / "model_specs" / "cross_venue_live_v1.json")
     assert spec["vendored"]["cross_venue_live.py"] == b.sha256_file(HERE / "cross_venue_live.py")
+
+
+def test_history_backfill_pin_and_poller_methods_equal_e009s():
+    import inspect
+    import textwrap
+
+    assert b.sha256_file(HERE / "history_backfill.py") == "25bef9614222ae7df12a76575cab1a947bdfe0457295172b3d69dd19f08f9d1c"  # pacing / backoff (Limiter, yield_to_live)
+    assert "history_backfill.py" in lt.CODE_FILES
+
+    def norm(fn, poller=False):
+        src = textwrap.dedent(inspect.getsource(fn))
+        src = src.replace("xb.", "").replace("PairState(p, self._seed_hist(pid, now))", "PairState(p)")  # the successor module prefix; no feature history to seed
+        tree = ast.parse(src)
+        for n in ast.walk(tree):
+            if isinstance(n, ast.FunctionDef) and ast.get_docstring(n):
+                n.body = n.body[1:]
+        return ast.dump(tree)
+
+    for name in ("load_pairs", "active_states", "fetch_kalshi", "fetch_books"):
+        assert norm(getattr(xq.XVQuotesPoller, name)) == norm(getattr(e9.Poller, name)), name
+
+
+def test_zero_overwrite_of_a_refusing_census_and_frozen_not_duplicated(tmp_path):
+    df = pd.DataFrame([origin(mk())])
+    spec = lt.load_spec(sha=None)
+    out = tmp_path / "x" / "live_tests10"
+    t = int(df.t.iloc[0])
+    assert lt._write_origin(out, t, df, spec, t + 10.0) == "frozen"
+    (out / "status" / lt._ymd(t) / (pd.Timestamp(t, unit="s", tz="UTC").strftime("%H%M") + ".csv.gz")).rename(tmp_path / "gone.gz")  # simulate a crash before the status file
+    assert lt._write_origin(out, t, df, spec, t + 5000.0) == "exists"  # a late reprocess writes no second frozen copy
+    assert not list(out.rglob("*.late.csv.gz"))
+
+
+def test_partial_pair_file_is_retried_next_run(tmp_path):
+    xv = tmp_path / "data-dumps" / "research_lab" / "xv_quotes"
+    (xv / "pairs").mkdir(parents=True)
+    out = tmp_path / "data-dumps" / "research_lab" / "live_tests10"
+    out.mkdir(parents=True)
+    f = xv / "pairs" / "pairs_20261109T200000Z.json"
+    f.write_text('{"refreshed_utc": "2026-11-09T20:00')
+    assert lt.update_seen(xv, out, "r1", 1.0) == set()
+    f.write_text(json.dumps({"refreshed_utc": "2026-11-09T20:00:00Z", "pairs": []}))
+    assert lt.update_seen(xv, out, "r2", 2.0) == {f.name}
