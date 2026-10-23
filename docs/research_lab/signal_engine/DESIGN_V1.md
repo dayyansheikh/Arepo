@@ -953,3 +953,19 @@ survived as a level fact, and PX5 carried the same sign without surviving Holm. 
   No family is built; a re-census only if sports rows come into scope or the field's coverage widens.
 - Tests: `test_tilt_features_hand_example`, `test_tilt_reads_only_its_own_capture`, and registry assertions in
   `test_repo_registry_loads_and_embargo_assignment`.
+
+## 30. LT11 freeze: `dollarw`, `nrslack`, `bandside` and `attrlimit_lt11` (2026-10-23 ~18:40Z; no scoring change)
+
+Applied from the `CANDIDATES.md` LT11 freeze request (LIVE_TESTS_11.md section 9, design text frozen at 3627d7fd), before any
+column of these families exists, so nothing has been computed or shown on these terms.
+- **Embargo.** `config.EMBARGO` gains `dollarw` (LT11-CH234), `nrslack` (LT11-CH233) and `bandside` (LT11-CH232), each until
+  2026-12-12T00:00Z (the later of that and LT11's analysis commit), and `attrlimit_lt11` (kind `attribution_limit`, same date,
+  models champion, se1, se24, se25 and any broad model; `no_broad_families: ["dollarw", "nrslack", "bandside"]`).
+- **Column routing.** `tilt`'s planned `tl_w2h` and `tl_w_traded` go under `dollarw`: a `tilt` version that adds either must
+  list `dollarw` in the isolating spec's `isolates`, and se24 / se25 at their current versions (levels only) stay visible. The
+  `rewards` family's planned `rw_cross_out_2h` / `rw_cross_in_2h` go under `bandside`. The `event` family's levels are not
+  covered; a sibling bid- / ask-sum *change* goes only into an `nrslack` family.
+- **Builder judgement (not built this session).** None of the three families is built. Each would be an isolating
+  challenger hidden to 12-12 and adds 1 to the promotion K; the priors are the live tests' own mechanisms, which the tests
+  themselves will settle first.
+- Tests: `test_lt11_freeze_requests`; the generic attribution-limit loop now also lists `attrlimit_lt11`.

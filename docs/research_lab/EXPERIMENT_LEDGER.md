@@ -4346,3 +4346,15 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   later seal; overlaps the CH240 map's span, also counts-only). Mapped: CH245, CH244, CH243 (category x age proxy only), CH250
   (2 x 2 cells), CH248. Not mapped (reasons in the output): CH246 matcher (no question text in captures), CH242 splits (no
   label store), CH250 tier and minute-pay (undefined), CH243 design-stage gates (census only). Light job (mem 450, as cap 4000).
+
+## Signal engine: LT11 freeze requests applied (`dollarw`, `nrslack`, `bandside`, `attrlimit_lt11`), 2026-10-23 ~18:40Z (signal-engine autopilot; embargo only; nothing scored or counted)
+- **What:** the `CANDIDATES.md` LT11 freeze request (~17:20Z; LIVE_TESTS_11.md section 9, design text frozen at 3627d7fd, sha256
+  `991100db…3583`) applied with its text (DESIGN_V1 section 30): `config.EMBARGO` gains `dollarw` (LT11-CH234; `dw_*` plus
+  `tilt`'s `tl_w2h` and `tl_w_traded`), `nrslack` (LT11-CH233; `nr_*` sibling bid- / ask-sum innovations) and `bandside`
+  (LT11-CH232; `bs_*` plus the `rewards` family's planned `rw_cross_out_2h`, `rw_cross_in_2h`), each until 2026-12-12T00:00:00Z
+  (the later of that and LT11's analysis commit; moved later only by a ledger line), and `attrlimit_lt11` (attribution limit,
+  same date; models: champion, se1, se24, se25, any broad model; `no_broad_families: ["dollarw", "nrslack", "bandside"]`).
+- **State at entry:** no column of these three families exists in any aux family or in `se-features-v1` (tested); `tilt` holds
+  its five level columns only, so se24 / se25 stay visible. No value on these terms was ever computed or shown. The engine's
+  attribution is per family, so no interaction attribution on the limited terms is computed. Before LT11's registration
+  commit, as section 9 / 8.4 step 8 asks.
