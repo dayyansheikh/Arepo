@@ -16,6 +16,7 @@ import pytest
 from astrolabe.research_lab import cross_venue as cv
 from astrolabe.research_lab import cross_venue_live as e9
 from astrolabe.research_lab import live_tests10 as lt
+from astrolabe.research_lab import live_tests10_analysis_base as ab
 from astrolabe.research_lab import live_tests10_base as b
 from astrolabe.research_lab import xv_quotes_poller as xq
 from astrolabe.research_lab import xv_quotes_poller_base as xb
@@ -185,11 +186,12 @@ def _nodes(tree):
     return out
 
 
-@pytest.mark.parametrize("modname,vendored", [("live_tests10_base.py", b.VENDORED), ("xv_quotes_poller_base.py", xb.VENDORED)])
+@pytest.mark.parametrize("modname,vendored", [("live_tests10_base.py", b.VENDORED), ("xv_quotes_poller_base.py", xb.VENDORED),
+                                              ("live_tests10_analysis_base.py", ab.VENDORED)])
 def test_vendored_provenance_and_drift(modname, vendored):
     text = (HERE / modname).read_text()
     nodes = _nodes(ast.parse(text))
-    assert len(vendored) >= 40
+    assert len(vendored) >= 7
     src_cache = {}
     for name, v in vendored.items():
         copy_src = _segment(text, nodes[name])

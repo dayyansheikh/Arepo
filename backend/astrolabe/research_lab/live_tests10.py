@@ -70,8 +70,8 @@ TESTS = ("CH224", "CH223", "CH222")
 KINDS = {"CH224": "hedge", "CH223": "flinch", "CH222": "traded"}
 SCOPES = ("non_sports_ex_crypto", "ex_crypto")
 SRC_SUCCESSOR = "xv_quotes_v1"
-CODE_FILES = ("live_tests10.py", "live_tests10_analysis.py", "live_tests10_base.py", "xv_quotes_poller.py", "xv_quotes_poller_base.py",
-              "bounce_decomp.py", "economics.py", "forecast.py")
+CODE_FILES = ("live_tests10.py", "live_tests10_analysis.py", "live_tests10_base.py", "live_tests10_analysis_base.py", "xv_quotes_poller.py", "xv_quotes_poller_base.py",
+              "bounce_decomp.py", "battery.py", "economics.py", "forecast.py")
 _PIN_LINE = re.compile(r"^SPEC_SHA256 = .*$", re.M)
 EPS = 1e-9
 QUIET_EPS = 1e-5  # 0.001c in price units (section 3)
