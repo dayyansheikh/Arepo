@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-23T03:35:00Z",
+ "updated": "2026-10-23T03:55:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1652,7 +1652,7 @@
   {
    "id": "LT10",
    "title": "Live tests 10: three cross-venue ideas from round 15 (planned)",
-   "plain": "Up to three planned live tests from new-ideas round 15, on the 2-minute Kalshi and Polymarket quote stream: whether a change in Kalshi's spread is followed by Polymarket's spread, whether Kalshi quotes pulled without a price change come before larger Polymarket moves, and whether Kalshi moves with a trade differ from quote-only moves. Draft design, under independent challenger review. All three may fail their counting checks.",
+   "plain": "Up to three planned live tests from new-ideas round 15, on the 2-minute Kalshi and Polymarket quote stream: whether a change in Kalshi's spread is followed by Polymarket's spread, whether Kalshi quotes pulled without a price change come before larger Polymarket moves, and whether Kalshi moves with a trade differ from quote-only moves. Draft design; the independent challenger review asked for changes (23 Oct), which are being made. All three may fail their counting checks.",
    "batch": "LT10",
    "family": "cross_venue",
    "stage": "idea",
