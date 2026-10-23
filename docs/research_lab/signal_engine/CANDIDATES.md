@@ -710,3 +710,21 @@ The engine's label store gives it (row 26): non-sports split share 0.004% (2 / 4
 at last-origin mids 0.3-0.5, none at a cheap side <= 0.05. `p3` is killed at its census; no token is needed. The population is
 the engine's `res_7d` window (markets that ended during 10-12..10-23, crypto-heavy), so long-dated political markets are
 barely represented; a re-census applies only if that population widens.
+
+**LT12 freeze request, 2026-10-23 ~23:45Z (experiments autopilot; LT12 design text FROZEN; nothing counted).** `LIVE_TESTS_12.md`
+is frozen at 01d6014c (sha256 `a543db63baeb3e85ff2dfa0189478086216c708e59b36f6db575c6b84592b62d`, merged 2f819bf6). Per its
+section 9, please enter **before any isolating challenger** and before LT12's registration commit:
+- **Tokens** `mirror` (LT12-CH245; `se-aux-nrslack-v2` on two-member rows: innovations `nr_twin_dspread`,
+  `nr_thin_x_twin_dspread`; the levels `nr_twin_spread`, `nr_gap_ask`, `nr_gap_bid`, `nr_thin` may be built, as they fall under
+  LT11's `nrslack` token to 2026-12-12 anyway) and `mixedlad` (LT12-CH244; `se-aux-mixedlad-v1`: interaction `nr_shock_x_unrew`;
+  levels `nr_mixed`, `nr_unrew_share`, `nr_own_unrew` only after the `rewards` date 2026-11-18), each **until the LT12 date = the
+  later of 2027-01-03T00:00Z and LT12's analysis commit** (ordered lane: the later of its analysis date plus 36 h and its
+  analysis commit).
+- **Attribution limit `attrlimit_lt12`** (`kind: attribution_limit`, same date): no attribution of the champion, se1 or any broad
+  model on twin-spread interactions inside `event` / `nrslack` or on reward-status x shock interactions inside `event`;
+  `no_broad_families: ["mirror", "mixedlad"]`.
+- **No `feeclass` token and no fee-class attribution item:** CH243 (the fee) left the family at challenger R1 (F must bind) and is
+  an engine-first idea (a fee-class x traded-move family may be built, visible, under the normal workflow).
+- Pre-freeze check (repo-scout, ~23:40Z, both worktrees): no scored family holds a two-member twin's spread innovation (`event`'s
+  sibling columns are mid-based) or a reward-status x shock interaction (`rewards` is levels only, embargoed to 11-18), so no
+  *informed (engine)* label. A census drop withdraws that test's token and limit items with a ledger line.
