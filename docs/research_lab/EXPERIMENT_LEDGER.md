@@ -4212,6 +4212,34 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   manifest still records the git HEAD as provenance. No model, fold, feature, target or metric logic changed. q0116i
   starts fresh in `resume_q0116i` (slice 1 is redone; q0116h's 23 units are not mixed in).
 
+- **LT10 code, timing-run disclosure (N1, 2026-10-23, code-fixes re-check):** the seed and plan of the implementer's ~3 s / ~13 s size-check timing
+  runs are not recorded (not in commit messages, tests or the code-check review of this branch). Certain (final
+  verification, 2026-10-23): from e3d1dd79 through f36ff4dd the worlds test (`test_research_lab_live_tests10_worlds.py`
+  ~line 260) called `size_check(seed=20261397, registered=True)` on tiny worlds (2 worlds x 4 draws), so every run of that
+  suite in that span, including the re-check's own 116-test run, executed at the registered seed. These were simulated
+  worlds only (no outcome data), a different plan from the registered q0665 run, with no recorded or used output; the
+  design text and thresholds are hash-frozen, so nothing could be tuned on them. The registered q0665 (not before
+  2026-11-04) stays the only run whose output counts. From e1e01426 on, no test runs `size_check` at 20261397 (R1) and
+  q0665 has `max_retries` 0 (R2). Final verification: code fine to merge once this line was corrected.
+
+## LT10 code merged into chore (2026-10-23 ~13:00Z; experiments autopilot; nothing counted)
+- Code-freeze check FIXES_REQUIRED -> fixes 2e9ba424 / f36ff4dd -> re-check FIXES_REQUIRED (R1 registered-seed test, R2
+  q0665 max_retries 0, notes N1-N5; `reviews/LT10_CODE_FIXES_RECHECK_2026-10-23.md`) -> fixes e1e01426 -> final
+  verification (code fine; N1 ledger dates corrected 97554595; `reviews/LT10_CODE_FINAL_VERIFY_2026-10-23.md`).
+- Drafts q0660-q0667 stay drafts (not promoted). Next per the design: the successor poller hand-over and the census only
+  after both E009 and E010 analysis commits (3 Nov); size check q0665 not before 2026-11-04.
+
+## LT11 design draft, 2026-10-23 (experiments autopilot; nothing counted)
+- **Draft** `docs/research_lab/LIVE_TESTS_11.md` (`feat/live-tests-11`, ea67cd56, sha256 `c1def3d4df7822ee…`): DRAFT, not frozen,
+  R1 not run, not registered, E-numbers unassigned. Round 16 ranks 1-3, one Holm family, k <= 3; F binding for all three.
+- **CH234** traded-mover continuation on the collateral weight x size (quote-only twin; `volume_num` missing = counted third
+  class, never inferred); **CH233** neg-risk member's next spread on the siblings' bid-sum rise (ask twin; complete 3-10 member
+  events); **CH232** rewarded first outward crossings of 0.10 / 0.90 (causal approach zone replaces the round's 12-slot frame).
+- CH240 map used as planning counts only (it read no target or P&L); gates declared before LT11's own census, seal `[10-28, 11-07)`.
+- Fast lane: freeze before 11-14T12Z and `T_E015`; window 11-18..12-09; analysis on or after 12-10T12Z; else the ordered lane.
+- Designer's census odds (judgement): CH234 0.35, CH233 0.50, CH232 0.20; P(no test) about 0.26. Tokens `dollarw`, `nrslack`,
+  `bandside`, `attrlimit_lt11` to be filed at the freeze. **Next:** challenger R1 on the 13 ambiguity items (section 11).
+
 ## Signal engine: `tilt` family (CH235) with provisional token, and CH237 `parentsib` killed at census, 2026-10-23 ~13:30Z (signal-engine autopilot; development family; nothing scored or shown)
 - **`tilt` (`se-aux-tilt-v1`, DESIGN_V1 section 29).** Columns from capture k's features file and its own sidecar:
   min(p, 1 - p), cheap side, `tl_w2h` (the post-move analogue of CH234's `w` on 2 h movers), the market's own fee

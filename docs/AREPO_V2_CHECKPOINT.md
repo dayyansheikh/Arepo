@@ -8,16 +8,21 @@
 **PHASE 4 IN PROGRESS.** See `implementation/phases/PHASE_04_EDGE_EXPERIMENTS.md` and the ledger `research_lab/EXPERIMENT_LEDGER.md`.
 User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=Etc/GMT-1 date`.
 
-## Experiments autopilot live state (2026-10-23 13:21 UTC+1)
+## Experiments autopilot live state (2026-10-23 13:54 UTC+1)
 - Owner lab-msg:4 ("why stopped since Wed? ntfy"): answered by ntfy ~12:20Z. Cause: every session since 10-21 hit the usage
-  limit before AUTOPILOT_DONE, and the board's digest drops such sessions. Fix 2b33d60b: `scripts/lab/lab_activity.py`
-  `cutoff_note` sets `done` for usage_limit/timeout sessions >= 10 min from the session transcript's last own message
-  (synthetic CLI messages skipped, sanitised); test in `backend/tests/unit/test_lab_activity.py`. Mac-side only, no web change.
-- Running (restarted, the 08:45Z cut-off lost them): LT10 code-fixes re-check (science-reviewer, worktree
-  `../astrolabe-live-tests-10-code`, tip f36ff4dd); LT11 design draft (worktree `../astrolabe-live-tests-11`);
-  q0164b disk-budget diagnosis/fix (worktree `../astrolabe-q0164c`, branch fix/q0164-disk; CB8 rules hash must not change).
-- Next: file the LT10 re-check, merge LT10 code into chore, promote q0660-q0667 if OK; challenger review of LT11; deploy
-  the q0164 fix. Open owner decision still: clear ~9 GB restore copies (data-dumps 35 of 40 GB on 10-23 12:16Z).
+  limit before AUTOPILOT_DONE and the board's digest drops such sessions. Fix 2b33d60b (`scripts/lab/lab_activity.py`
+  `cutoff_note`: usage_limit/timeout sessions >= 10 min get `done` from the transcript's last own message); live since the
+  12:22Z upload. Mac-side only.
+- **LT10 code merged** (9fc42a20) after code check -> fixes -> re-check FIXES_REQUIRED (R1, R2, N1-N5) -> fixes e1e01426 ->
+  final verification (ledger N1 dates corrected 97554595). Drafts q0660-q0667 NOT promoted; census after E009 and E010
+  analysis commits (3 Nov); q0665 size check not before 11-04.
+- **LT11 design DRAFT merged** (11d7ef92; CH234 / CH233 / CH232; survival 0.35 / 0.50 / 0.20). Challenger R1 running
+  (science-reviewer on `../astrolabe-live-tests-11`). Fast lane: freeze before 11-14T12:00Z, census on a fresh seal of 10-28..11-07.
+- **Ops fixes merged** (ledger "Ops fixes q0164c and q0116i"): q0164c (exclusion-keys scratch not charged to the hashed cap;
+  CB8 hashes unchanged; q0165 now depends on q0164c) and q0116i (MC1 resume identity without git HEAD; fresh resume dir).
+  Deploy running in the background (waits for the collector pass lock); q0164b to be cancelled once its current run stops.
+- Next: verify the deploy (`git log -1` on host = chore tip) and q0164c / q0116i start; file LT11 R1 and respond; then
+  next creative round or LT census prep. Open owner decision: clear ~9 GB restore copies (data-dumps 35 of 40 GB).
 
 ## Interactive session state (2026-10-23 08:30Z)
 - **Security audit run 1 (2026-10-23):** Cloudflare security-audit skill, quick profile, source-only. 0 confirmed findings and 5 needs-validation leads; see `docs/security/AUDIT_2026-10-23_RUN1.md` (full artefacts in `~/security-audit-skill/astrolabe/run-1/`). Owner notified via ntfy. No fixes made yet. Proposed small PRs:

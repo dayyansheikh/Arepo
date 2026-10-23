@@ -1,0 +1,43 @@
+{
+ "id": "q0662_lt10_census_family",
+ "title": "LT10 CF10 (DRAFT): the family census (minimum covered days, field presence, pairs, events, G_eff, late share, event concentration) on the sealed span; counts only, one streaming pass",
+ "family": "live_tests_10",
+ "priority": 50,
+ "expected_value": "CF10 gates and exclude_event; alive tests",
+ "data": [
+  "sealed census inputs (read-only; origin-side fields only; no target)"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0661_lt10_seal"
+ ],
+ "not_before": "2026-11-03T12:00:00Z",
+ "argv": [
+  "scripts/run_live_tests10.py",
+  "census-family",
+  "--seal",
+  "../docs/research_lab/seals/lt10_census_inputs.json",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests10_census/restore/data-dumps/research_lab/snapshots",
+  "--e009-root",
+  "../data-dumps/research_lab/cross_venue_live",
+  "--data-dumps-cap-gb",
+  "60",
+  "--out",
+  "../data-dumps/research_lab/live_tests10_census/CF10.json"
+ ],
+ "timeout_s": 14400,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests10_census/CF10.json"
+ ],
+ "next_action": "commit CF10.json with its sha256 in the ledger; a failed CF10 gate drops all three tests (6.2) and CK10 and CD10 do not run",
+ "notes": "Streams one day file at a time (<= 300 MB). Exits 75 when data-dumps is above the cap. Runs only on a committed seal. DRAFT, not in queue/jobs. Promote only after: the LT10 design-text freeze (LIVE_TESTS_10.md design text frozen at sha256 1da6c07510f294c26ab0c69d17fd57bd6daefab7275d88f4bbeb6d3a130bc6e8 (34b7e22e)), BOTH E009's and E010's analysis commits (ledger line naming both), the LT10 code and the science-reviewer freeze check of the census and size-check code against LIVE_TESTS_10.md sections 1.4, 1.8, 1.8.1 and 7 (8.4 step 3; it confirms re-check fixes 1 and 4 in the code), and never while another census, size-check or analysis job of the memory-heavy class runs (memory-heavy-jobs rule). Counts 0 (descriptive; no trials line). Reads the DRAFT spec unpinned; the code_sha256 of every hashed module is written into the output. Every gate threshold is stated in section 7 before this runs; nothing is re-tuned after it. Each census runs once; max_retries 1 covers a deterministic crash only (no output written)."
+}

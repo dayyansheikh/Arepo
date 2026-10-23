@@ -1,0 +1,30 @@
+{
+ "id": "q0666_lt10_reader",
+ "title": "LT10 reader (DRAFT fallback only): run_live_tests10.py run once a pass; NEVER promoted while the host cron line 3-58/5 * * * * of LIVE_TESTS_10.md 8.2 exists (never both)",
+ "family": "live_tests_10",
+ "priority": 30,
+ "expected_value": "the write-once status / frozen / outcome / twin files of live_tests10/ at the 5-minute cadence (fallback route)",
+ "data": [
+  "data-dumps/research_lab/xv_quotes/ (read-only)"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "as_cap_mb": 1024,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [],
+ "not_before": "2026-11-10T00:00:00Z",
+ "argv": [
+  "scripts/run_live_tests10.py",
+  "run"
+ ],
+ "timeout_s": 900,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests10/"
+ ],
+ "next_action": "only if the host cron line cannot be installed: promote with repeat until END_UTC; record the route used in the ledger",
+ "notes": "Exits 75 when nothing is new. Peak RSS planning 120-200 MB, accepted at <= 300 MB by the 8.2 ladder (measured by a host dry run before the pin). The reader stops writing at 1.5 GB in live_tests10/. DRAFT, not in queue/jobs. Promote only after: the LT10 design-text freeze (LIVE_TESTS_10.md design text frozen at sha256 1da6c07510f294c26ab0c69d17fd57bd6daefab7275d88f4bbeb6d3a130bc6e8 (34b7e22e)), BOTH E009's and E010's analysis commits (ledger line naming both), the LT10 code and the science-reviewer freeze check of the census and size-check code against LIVE_TESTS_10.md sections 1.4, 1.8, 1.8.1 and 7 (8.4 step 3; it confirms re-check fixes 1 and 4 in the code), and never while another census, size-check or analysis job of the memory-heavy class runs (memory-heavy-jobs rule). Counts 0 (descriptive; no trials line). Reads the DRAFT spec unpinned; the code_sha256 of every hashed module is written into the output. Every gate threshold is stated in section 7 before this runs; nothing is re-tuned after it. Each census runs once; max_retries 1 covers a deterministic crash only (no output written)."
+}

@@ -1,0 +1,47 @@
+{
+ "id": "q0664_lt10_census_design",
+ "title": "LT10 CD10 (DRAFT): the design gates of the CK10 survivors (G_eff, VIF_w, correlation caps, block-gate share, slope MDE, F-MDE) and the census-fixed values (DE_gate, OF, rv60 centres and scales, scale_K); counts only",
+ "family": "live_tests_10",
+ "priority": 48,
+ "expected_value": "k_tests and the census-fixed floats for the spec",
+ "data": [
+  "sealed census inputs (read-only)"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0663_lt10_census_kalshi"
+ ],
+ "not_before": "2026-11-03T12:00:00Z",
+ "argv": [
+  "scripts/run_live_tests10.py",
+  "census-design",
+  "--seal",
+  "../docs/research_lab/seals/lt10_census_inputs.json",
+  "--cf10",
+  "../data-dumps/research_lab/live_tests10_census/CF10.json",
+  "--ck10",
+  "../data-dumps/research_lab/live_tests10_census/CK10.json",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests10_census/restore/data-dumps/research_lab/snapshots",
+  "--e009-root",
+  "../data-dumps/research_lab/cross_venue_live",
+  "--data-dumps-cap-gb",
+  "60",
+  "--out",
+  "../data-dumps/research_lab/live_tests10_census/CD10.json"
+ ],
+ "timeout_s": 21600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests10_census/CD10.json"
+ ],
+ "next_action": "fill k_tests, exclude_event, scale_K, the rv60 centres and scales, rho_x1, OF and DE_gate into the spec with the exact floats (8.4 step 6) and record drops in 6.2",
+ "notes": "Refuses unless CK10 named at least one survivor. Planning 300 MB. DRAFT, not in queue/jobs. Promote only after: the LT10 design-text freeze (LIVE_TESTS_10.md design text frozen at sha256 1da6c07510f294c26ab0c69d17fd57bd6daefab7275d88f4bbeb6d3a130bc6e8 (34b7e22e)), BOTH E009's and E010's analysis commits (ledger line naming both), the LT10 code and the science-reviewer freeze check of the census and size-check code against LIVE_TESTS_10.md sections 1.4, 1.8, 1.8.1 and 7 (8.4 step 3; it confirms re-check fixes 1 and 4 in the code), and never while another census, size-check or analysis job of the memory-heavy class runs (memory-heavy-jobs rule). Counts 0 (descriptive; no trials line). Reads the DRAFT spec unpinned; the code_sha256 of every hashed module is written into the output. Every gate threshold is stated in section 7 before this runs; nothing is re-tuned after it. Each census runs once; max_retries 1 covers a deterministic crash only (no output written)."
+}
