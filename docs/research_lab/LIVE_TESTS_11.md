@@ -1,6 +1,6 @@
 # Live tests 11 (LT11): the price of the quote (CH234, CH233, CH232), DRAFT pre-registrations
 
-**Status: DRAFT: R1 re-check ACCEPT_WITH_FIXES; F1-F4 applied as worded; pre-freeze verification next. NOT FROZEN, not registered, nothing counted, no code, no seal,
+**Status: DRAFT: R1 re-check ACCEPT_WITH_FIXES; F1-F4 applied as worded; pre-freeze verification (`reviews/LT11_PREFREEZE_VERIFY_2026-10-23.md`) FREEZE_OK_AFTER 4 mechanical edits, applied. NOT FROZEN, not registered, nothing counted, no code, no seal,
 no census run. E-numbers unassigned.** Drafted 2026-10-23 (about 12:30-14:30Z) on branch `feat/live-tests-11` from the
 `chore/arepo-claude-setup` tip `2b33d60b`, a design-only first commit like the first commits of LT3-LT10. Challenger R1
 (`reviews/LT11_CHALLENGER_R1_2026-10-23.md`, verdict REVISE: 8 must-fix, 10 should-fix, rulings A1-A13) was answered on
@@ -55,7 +55,7 @@ made before any LT11 data, several after the map (marked).
   dropped *before* registration, uncounted; k is the number that survive, fixed in the spec (`k_tests`) at registration and
   never changed. A primary that is unavailable or fails its gate enters Holm with p = 1. No replacement test is added after
   a census drop, and a census drop (`census_dropped`) is final in both lanes (1.1); a test recorded `census_unavailable
-  (coverage)` (no gate value computed, 7) is not dropped and may be re-censused in the ordered lane.
+  (coverage)` (no gate value computed, 7) is not dropped and may be re-censused in the ordered lane, where it is registered as its own Holm family and never added to a fast-lane family (7).
 - **Window (proposed; the fast lane, 1.1):** whole captures with start in `[REGISTERED_UTC, END_UTC)`, 21 days,
   **`REGISTERED_UTC = 2026-11-18T00:00:00Z`**, `END_UTC = 2026-12-09T00:00:00Z`; single analysis on or after
   **2026-12-10T12:00:00Z**. Census on a fresh seal of `[2026-10-28T00:00Z, 2026-11-07T00:00Z)`. The window lies after E015's
@@ -1142,7 +1142,7 @@ primary makes its family a candidate; an engine gain never changes an LT11 verdi
 - **Development looks:** HB1's PX1 (survived), PX5 and MI4 (not survivors), XM1-XM3 (nulls or not survivors), E005 (not supported,
   challenger CONFIRMED); the engine's LightGBM se1 (mid and own 2 h change) and the `event` family's level scores (visible since
   2026-10-22T12:00Z) are visible development scores near CH234's and CH233's objects; since 2026-10-23 the `tilt` level
-  challengers `se24_lgbm_tilt` and `se25_lr_tilt` are visible too (cheap side and collateral levels; `tl_w2h` not built, 9).
+  challengers `se24_lgbm_tilt` and `se25_lr_tilt` are visible too (cheap side and collateral levels; `tl_w2h` coded under a provisional token and removed before deploy, never scored or shown, 9).
   None reads an LT11 state as defined here. No LT11 designer has read a score of se24 or se25.
 - **Known before the freeze:** E015 and E022 results are not known at the planned freeze; LT10's and LT9's census outputs are not
   read (1.6).
@@ -1270,7 +1270,7 @@ was declined. No threshold was loosened; the CH232 count gate and the distinct-e
   0.10 = 0.85 (was 1.05); P(no test) 0.65 x 0.60 x 0.90 = 0.351, about 0.35 (was 0.26); expected valid verdicts about 0.3 (was 0.4).
 
 **Not part of R1 (recorded for the re-check):** section 9 (1108-1115) now records the engine's 2026-10-23 reply (`tilt` built as
-levels, `tl_w2h` not built) and adds `se24_lgbm_tilt` and `se25_lr_tilt` to `attrlimit_lt11`'s model list, at the engine's
+levels, `tl_w2h` not built; superseded by 13.x F3) and adds `se24_lgbm_tilt` and `se25_lr_tilt` to `attrlimit_lt11`'s model list, at the engine's
 request; section 10 (1143-1145) discloses se24 / se25 as visible development scores; a dated LT11 request note is appended to
 `signal_engine/CANDIDATES.md` (section 9, 1094-1096).
 
@@ -1280,7 +1280,7 @@ the venue's reward-rule page is re-read only at the freeze; the size-check run t
 `T_E015` and `T_E022` dates are proposals.
 
 ### 13.x Re-check fixes (2026-10-23; `reviews/LT11_R1_RECHECK_2026-10-23.md`, ACCEPT_WITH_FIXES; applied as worded)
-Line numbers refer to this revision of the file.
+Line numbers refer to this revision of the file; the R1 table's line numbers above refer to the R1-response revision (sha256 `69477a63…`), and those after line 941 are one higher here.
 - **F1** (material): covered-origin definition and the minimum-covered-days sentence replaced (line 936); `census_unavailable` prints no
   descriptive line, and a re-censused test is its own Holm family in the ordered lane (line 942).
 - **F2** (minor): stale `volume_num` wording replaced by "the `volume_num` of slot k - 1, keyed by slot (2.3, 2.7)" (line 1027).
