@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-23T12:40:00Z",
+ "updated": "2026-10-23T13:20:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1677,18 +1677,18 @@
   {
    "id": "LT11",
    "title": "Live tests 11: three ideas from round 16 (draft design)",
-   "plain": "Up to three planned live tests from new-ideas round 16: whether price moves that carried more money keep going, whether a neg-risk market's spread widens after its sister markets' bids rise, and whether spreads widen when a rewarded market's price first crosses 10c or 90c. Draft design only; it still needs an independent challenger review. All three may fail their counting checks.",
+   "plain": "Up to three planned live tests from ideas round 16: whether price moves that carried more money keep going, whether a neg-risk market's spread widens after its sister markets' bids rise, and whether spreads widen when a rewarded market's price first crosses 10c or 90c. The independent review asked for mostly stricter rules, the response is written and the design is still a draft; the third test will probably fail its counting checks.",
    "batch": "LT11",
    "family": "mixed",
    "stage": "idea",
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Independent challenger review of the draft; counting checks on 28 Oct-7 Nov data; collection proposed from 18 Nov 2026",
+   "next": "Re-check of the revised draft by the challenger; counting checks on 28 Oct-7 Nov data; collection proposed from 18 Nov 2026",
    "next_date": "2026-11-18",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT11 design draft, 2026-10-23; docs/research_lab/LIVE_TESTS_11.md §0"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT11 challenger R1 and response (2026-10-23); docs/research_lab/LIVE_TESTS_11.md §0, §13"
    },
    "stage_results": {
     "idea": "pending"
