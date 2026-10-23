@@ -1,16 +1,15 @@
 # Signal engine: status (rewrite each session; do not append)
 
-**Last updated:** 2026-10-23 08:53 UTC+1 (07:53Z), signal-engine autopilot session 21
+**Last updated:** 2026-10-23 13:10 UTC+1 (12:10Z), signal-engine autopilot session 22
 
 ## In plain English
-- **Another short housekeeping session.** The experiments track's LT8 test closed without a test: its last two planned
-  checks (CH203, CH202) were dropped at the sweeps census. So I removed LT8's remaining hiding rules: the `quietbook`
-  and `swclock` tokens and both LT8 attribution limits. No model ever used them, so nothing new becomes visible.
-- **The book hiding date stays at 2027-02-14**, because the LT9 test still needs it. LT8 was just taken off its list.
-  LT8's old fallback ("move book back to 2027-01-23 if LT9's CH214 drops") no longer applies: if CH214 drops, the
-  book date will need a fresh decision and ledger line.
-- **The engine is healthy on the host.** Every model wrote its predictions at 07:00Z for the 06:31Z capture. The
-  daily refit (q0512) and score (q0513) are waiting for their usual afternoon times.
+- **This session answered the owner's Lab-board message (10-23 10:33Z):** a detailed ntfy summary of the signal
+  engine since the North Star. Eight push messages were sent at ~12:05Z (all delivered): what the engine is, the
+  timeline, whether it works and the scores, how it finds value, the findings so far, the hidden challengers and
+  their lift dates, what happens next, and the caveats and open owner decisions. They carry counts and plain-English
+  lines only (no wallet ids, no secrets). Nothing in the engine changed.
+- **The engine is healthy on the host.** The champion wrote its 11:00Z predictions for the 10:31Z capture and the feed
+  was rebuilt at 11:02Z. The daily refit (q0512) and score (q0513) are waiting for their usual afternoon times.
 - Still needing the owner: a public website version of the feed (the North Star asks for an owner-approved web deploy).
 
 ## Live state (host)
@@ -41,13 +40,10 @@
 | `se3_lr_book` (ineligible), `se14_lgbm_movetype` (ineligible), `se19_lr_book0` | **2027-02-14** (was 01-23; LT9) |
 
 ## Changes this session
-1. `config.EMBARGO`: `quietbook`, `swclock` and `attrlimit_lt8` withdrawn (`until` = `withdrawn_utc` =
-   2026-10-23T08:00:00Z, `until_before` 2027-01-23). `book` / `book0` lose LT8-CH202 / CH203 from `tests` and keep
-   2027-02-14. LT9's own "two-sweep band-sum differences" limit is unchanged. DESIGN_V1 section 8 table, CANDIDATES
-   reply, ledger "Signal engine: LT8 closure withdrawals". Commit d9184ee5.
-2. Tests: new `test_lt8_closure_withdraws_quietbook_swclock_and_attrlimit`; the sched test now checks only sched.
-   66 engine tests pass and ruff is clean.
-3. Merged into `chore/arepo-claude-setup` (48dd4c7a) and deployed. The host's config shows the new dates and tests.
+1. Owner message `lab-msg:3` handled: eight ntfy pushes (`notify._ntfy_send`, sent directly because the owner asked
+   for several; bodies under the 1,000-character cap). Inbox moved to `INBOX.done-*.md`.
+2. Numbers quoted come from the host's `leaderboard/latest.json` (10-22 15:46Z, 2 days scored) and `dashboard.json`
+   attribution (development diagnostic). No code, spec, embargo or queue change.
 
 ## Next actions
 1. ~10-23 15:45Z: check that q0512 fitted se21, se22 and se23 on the direction targets (`res_7d` LightGBM fits
