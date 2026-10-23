@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-22 23:24 UTC+1
+**Last updated:** 2026-10-23 03:01 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -13,15 +13,18 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
   outcome was read (too few usable cases, too little power, or too much overlap with known factors). Two were expected to
   fail when the design was written. Nothing is counted.
 - **LT8 (three planned tests from round 13):** all its fixes passed independent re-checks and the code is merged. Every data
-  file it needs is already on the server (checked by fingerprint), so no restore is needed. Its seal job is queued; its two
-  counting checks follow and must finish before 28 Oct, when the oldest needed server files start to expire.
-- **LT9 (three planned tests from round 14, about reward-programme quoting):** the challenger review asked for changes; the
-  re-check accepted the design with six small fixes, which are being made. Then the design text is frozen. One of the
-  three (spread re-tightening) is now expected to fail its counting check; it stays in, as declared.
+  file it needs is already on the server (checked by fingerprint), so no restore is needed. Its seal job was blocked by a
+  leftover setting (it waited for the restore job that will never run); fixed and sent to the server at 03:00 UTC+1. It
+  should start about 04:30 UTC+1, after the current model-run piece. Its two counting checks follow and must finish
+  before 28 Oct, when the oldest needed server files start to expire.
+- **LT9 (three planned tests from round 14, about reward-programme quoting; a fourth only if its count allows):** design text **frozen** (22 Oct, after the
+  challenger review and a re-check). Its code (data seal and counting checks) is being finished and self-checked now; then
+  an independent code check. Its data seal waits until the 2 to 12 Nov data exists.
 - **Cross-venue twins (batch 16, K): closed, not testable** (a blind check found 3 true twins in 100 sampled pairs; 90 needed).
 - **Model run (MC1):** now running on the server in 5.5-hour pieces (about 32 hours in total), giving way to LT8's checks.
 - **Batch 7:** its counting job starts from 24 Oct. **Batch 8/9:** both failed data jobs are fixed and queued.
-- **New ideas round 14** done (10 ideas). Its signal families were passed to the signal engine's candidate list.
+- **New ideas round 14** done (10 ideas), all now used by LT9 or the signal engine. **Round 15 started** (03:00 UTC+1),
+  focused on ideas that can pass the counting checks, using the newer streams (PredictIt, Smarkets, ESPN odds, rules text).
 - **Copy-skilled wallets (E026):** registered; collection starts 25 Oct (phone note then).
 - **Honest pattern:** most planned tests die at the counting stage, before any outcome data is read (LT5, LT6 and now LT7
   all closed this way). That is the checks working as designed.

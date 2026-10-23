@@ -247,9 +247,17 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-22 22:23Z
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-23 02:05Z
 Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && git log --oneline -1'` = local tip.
 Host 2 OCPU / 11.4 GiB since the resize. data-dumps 34 / 40 GB cap: owner approval 8 (restore-tree clearing) is time-relevant.
+
+**Autopilot session 10-23 from 01:58Z:**
+- q0621's depends_on fix (q0620 -> q0604) had been left uncommitted by 774c43c0; committed 66bbc2fd and deployed 02:00Z.
+  q0621 (priority 54) should start when MC1 q0116h's slice (started 21:58Z) exits ~03:30Z.
+- LT9 code phase 1: an implementer is finishing the uncommitted census edit (share_zdD_positive, feed end-kinds counts)
+  on `feat/live-tests-9`; then the science-reviewer census-code freeze check.
+- Creative round 15 (Fable xhigh, CH222+, census survival + newer streams) running on `feat/creative-r15`
+  (`../astrolabe-creative-r15`); merge, then CANDIDATES note and an LT10 design draft from its top ideas.
 
 **Autopilot session 10-22 from 20:35Z (state at 22:23Z):**
 - **LT7: CLOSED, no test** (1dd77a67). CC7 dropped CH191/CH192/CH193, CS7 dropped CH195 (F-MDE 0.667c > 0.5c) and CH197.
