@@ -1,0 +1,53 @@
+{
+ "id": "q0644_lt9_census_sweeps",
+ "title": "LT9 census CS9 (DRAFT): CH214 (the pool splits) on the sealed sweep-1 directories of passes k - 2, k - 1 and their captures (120 origins), the F pairs reading sweeps k + 2, k + 3 ONLY through the sizes-only lag loader (four depths); counts only, no target, no P&L; runs only after T_E022",
+ "family": "live_tests_9",
+ "priority": 50,
+ "expected_value": "CS9 gates (LIVE_TESTS_9.md 7): coverage, quiet and band-unchanged shares, >= 1,000 units a capture, identification (S18), VIF_w(zdD+) <= 2.0, correlation caps for zdD and zdD+, r_gate <= 0.3, slope MDE and F-MDE <= 1.0c; zdD centre / scale / cuts / gap and p_vm",
+ "data": [
+  "sealed host originals and restore trees (read-only, under the seal)"
+ ],
+ "resources": {
+  "mem_mb": 1200,
+  "as_cap_mb": 3600,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none",
+  "exclusive": true
+ },
+ "depends_on": [
+  "q0643_lt9_census_captures"
+ ],
+ "not_before": "2026-11-17T12:00:00Z",
+ "argv": [
+  "scripts/run_live_tests9.py",
+  "census-sweeps",
+  "--seal",
+  "../docs/research_lab/seals/lt9_census_inputs.json",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests9_census/restore/data-dumps/research_lab/snapshots",
+  "--sweep-root",
+  "../data-dumps/research_lab/book_sweeps",
+  "--sweep-root",
+  "../data-dumps/research_lab/live_tests9_census/restore/data-dumps/research_lab/book_sweeps",
+  "--feed-root",
+  "../data-dumps/research_lab/reward_params",
+  "--feed-root",
+  "../data-dumps/research_lab/live_tests9_census/restore/data-dumps/research_lab/reward_params",
+  "--work",
+  "../data-dumps/research_lab/live_tests9_census/work_sweeps",
+  "--data-dumps-cap-gb",
+  "40",
+  "--out",
+  "../data-dumps/research_lab/live_tests9_census/CS9.json"
+ ],
+ "timeout_s": 14400,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests9_census/CS9.json (counts only; the work dir is cleaned up at exit)"
+ ],
+ "next_action": "commit CS9.json and its sha256; fill census_fixed.CH214 (zdD centre, scale, cuts, gap, exclude_family, p_vm) and k_tests; record any drop in 6.3 and the ledger",
+ "notes": "T_E022 (R1 should-fix): CS9's lag sweeps are read without the quiet filter and fall inside E022's window, so CS9 runs only after T_E022 (the earlier of E022's analysis job start and its analysis commit; proposed 2026-11-17T12:00Z). not_before is that proposed time and the runner refuses before it; the orchestrator confirms from the queue log / commit that E022's analysis has started before promoting; if CS9 starts before T_E022, CH214 carries the label informed (E022). mem_mb 1200 is an ESTIMATE (two sweep frames, two carried series frames, the 12-slot carry and the unit frames). Exclusive. DRAFT, not in queue/jobs. Promote only after: the design-text freeze (LIVE_TESTS_9.md design text frozen at sha256 098aa3fb5f6765f08dcad3f85ad63ec70e29df65249413608f0f7ad5fd505b77 (6b78ba90)), the LT9 code phase 1 and the science-reviewer freeze check of the census and size-check code against LIVE_TESTS_9.md sections 1.4.1, 1.8, 1.8.1 and 7 (8.4 step 3), and never while an LT7 or LT8 census, size-check or analysis job runs (memory-heavy-jobs rule). Counts 0 (descriptive; no trials line). Reads the DRAFT spec unpinned; the code_sha256 of every hashed module is written into the output. Every gate threshold is stated in section 7 before this runs; nothing is re-tuned after it. Each census runs once; max_retries 1 covers a deterministic crash only (no output written)."
+}
