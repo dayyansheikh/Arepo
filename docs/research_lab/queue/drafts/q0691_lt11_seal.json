@@ -1,0 +1,40 @@
+{
+ "id": "q0691_lt11_seal",
+ "title": "LT11 seal (DRAFT): run_live_tests11.py seal writes seals/lt11_census_inputs.json (every census input file with its sha256, the seal's own slot assignment and the frozen LT11 design-text sha256; counts only)",
+ "family": "live_tests_11",
+ "priority": 51,
+ "expected_value": "the identity of every file the census may open; provably written after the design-text freeze",
+ "data": [
+  "host originals ~/arepo/data-dumps/research_lab/snapshots and the q0690 restore tree (read-only; no row is read)"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "lane": "net",
+  "network": "none",
+  "disk_mb": 10
+ },
+ "depends_on": [
+  "q0690_lt11_census_restore"
+ ],
+ "not_before": "2026-11-07T03:00:00Z",
+ "argv": [
+  "scripts/run_live_tests11.py",
+  "seal",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests11_census/restore/data-dumps/research_lab/snapshots",
+  "--work",
+  "../data-dumps/research_lab/live_tests11_census/work_seal",
+  "--out",
+  "../docs/research_lab/seals/lt11_census_inputs.json"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "docs/research_lab/seals/lt11_census_inputs.json"
+ ],
+ "next_action": "commit the seal (git add + commit) and pull it on the host before the census runs; the census refuses a seal that is not tracked or differs from HEAD",
+ "notes": "Add --unavailable <restore report or archive path> for files no release holds. The header pre-check result (run_live_tests11.py header-precheck) is committed before the seal. DRAFT, not in queue/jobs. Promote only after: the challenger review, the LT11 design-text freeze (LIVE_TESTS_11.md design text frozen at sha256 991100db5d6c75e3f76e3d0d10cc5f957dd755108e09ec05edd8dad0f91b3583), the LT11 code and the science-reviewer freeze check of the census and size-check code against LIVE_TESTS_11.md sections 1.4, 1.8, 1.8.1 and 7 (8.4 step 3), and never while E011's, LT2's or E015's analysis job, or an LT9 or LT10 census, size-check or analysis job, is running (memory-heavy-jobs rule). Counts 0 (descriptive; no trials line) except q0695, which writes the single counted trials line (kind live_tests11). Reads the DRAFT spec unpinned (except q0694 and q0695, which read the pinned spec); the code_sha256 of every hashed module is written into the output. Every gate threshold is stated in section 7 before this runs; nothing is re-tuned after it. Each census runs once; max_retries 1 covers a deterministic crash only (no output written). Runs with --data-dumps-cap-gb 40 where the runner accepts it (exit 75 above the cap)."
+}

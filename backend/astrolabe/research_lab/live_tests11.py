@@ -898,6 +898,7 @@ def ch232_units(store: SlotStore, k: int, spec: dict, role: str = ROLE_UNREG, co
             cnt["units"] = 0
             tot[f"arm_{arm}"] = cnt
             continue
+        # LT11 ambiguity A6: the day's first interval has its previous mid on the previous UTC day (DM column 0 = slot ds-1); the design excludes only same-day undefined mids, so no exclusion if that mid is undefined.
         prev_cross = np.zeros(len(j), bool)
         for i_ in range(len(earlier)):  # intervals (s-1, s] of the day: columns i_ (slot s-1) and i_ + 1 (slot s)
             prev_cross |= crossing(DM[:, i_], DM[:, i_ + 1], band, direction)
@@ -933,6 +934,7 @@ def ch232_units(store: SlotStore, k: int, spec: dict, role: str = ROLE_UNREG, co
         u = pd.concat([u, X.reset_index(drop=True)], axis=1)
         cnt["candidates"] = len(u)
         u = b._drop_missing(u, cnt, {"log_rv24s": "rv24_undefined"})
+        # LT11 ambiguity A7: v and log_rate are 0 for the control panel (no carry source), so they are controls only on rewarded units.
         bad = (u["rew"].to_numpy(float) == 1.0) & ~np.isfinite(u["v_c"].to_numpy(float))  # a rewarded unit needs the carry source's band v (excluded, counted)
         cnt["band_missing"] = int(bad.sum())
         u = u[~bad].reset_index(drop=True)
