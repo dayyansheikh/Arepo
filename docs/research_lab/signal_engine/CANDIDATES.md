@@ -289,6 +289,24 @@ no test.** Per the round-4 rule, please withdraw:
 LT9 note: with LT8 dropped, LT9's window may start from 2026-12-30 (LIVE_TESTS_9.md §1.1 (c')). LT9's tokens stay at their
 filed dates until LT9 asks otherwise. Nothing here moves any LT10 date.
 
+## Idea-level families from creative round 16 (2026-10-23; ideas only, no evidence; not candidates yet)
+
+`CREATIVE_HYPOTHESES_2026-10-30.md` (CH232-CH241; section D gives each family's columns, clock, direction and kill line).
+Status of every row: idea only. **Engine-first families**, in the round's priority order (each raises K; build only with a
+real prior): `tilt` (CH235, the collateral tilt: `tl_collat` = min(p, 1 - p), `tl_cheap_side`, `tl_w2h` = 0.5 + sign(d)(p -
+0.5) on 2 h movers, `tl_fee_ps`, `tl_rebate_ps`; clock: the row's receipt; prior: HB1 PX1 survived and PX5 carried the
+same sign; **dated columns:** `tl_w_traded` only after 2026-11-22 (`movetype`), `tl_rew_outside` only after 2026-11-18
+(`rewards`); a logistic isolate beside se1), `nrslack` (CH238, neg-risk ladder headroom columns: the siblings' bid-sum and
+ask-sum headroom levels inside the `event` family now; **their innovations only after LT11's design-text freeze** if LT11
+is drafted on CH233; kill if complete event rows < 60%), `parentsib` (CH237, the sidecar's unread `parent_event_ids`
+join: the other children's 2 h moves and spreads; one aux table, no token; kill if coverage < 5%), `ruleclass` (CH239,
+barrier / threshold / source classes parsed from `gamma_rules`, scored on `res_7d` first, one spec with `ruleedit`; kill a
+column under 10% parse). `volage` (CH236, the predictable demotion from the top-volume frame) waits until after 2026-11-22
+and the builder's judgement on K. **Planned live-test family (do not isolate before its freeze):** CH234 (`dollarw`,
+collateral-weighted move continuation), CH233 (`nrslack` innovations), CH232 (`bandside`, rewarded crossings of
+0.10 / 0.90) are the proposed LT11, after the CH240 counts-only map; tokens are requested only at LT11's freeze. CH241 is a
+later LT10 companion (Kalshi route, the owner's call); no engine family.
+
 ## Idea-level families from creative round 15 (2026-10-23; ideas only, no evidence; not candidates yet)
 
 `CREATIVE_HYPOTHESES_2026-10-29.md` (CH222-CH231) states one point-in-time family per idea. Status of every row below:
