@@ -10,7 +10,7 @@ cwd=backend (queue worker). EXPLORATORY / PROSPECTIVE DATA ONLY: no edge, calibr
     python scripts/run_cb8.py holders-pin-h2 --start-utc T  # write-once pin of window 2 (after the CB8 freeze commit + 2 h)
     python scripts/run_cb8.py flow-fetch ...                # q0167: one resumable chunk of the h9_flow fetch
     python scripts/run_cb8.py flow-seal                     # q0168: seal h9_flow (seal-time drops, committed copy)
-    python scripts/run_cb8.py rules --which updown          # write docs/research_lab/seals/cb8_rules_v2.json (B data rules; v1 cb8_rules.json is superseded; commit first)
+    python scripts/run_cb8.py rules --which updown          # write docs/research_lab/seals/cb8_rules_v3.json (B data rules; v1 cb8_rules.json is superseded; commit first)
     python scripts/run_cb8.py derive-exclusion-ids --kind c1_legs|cb5_listings --src PATH --out CSV   # ids CSV + .meta.json sidecar for the REQUIRED q0164 --extra-pin
     python scripts/run_cb8.py smoke ...                     # q0161: Data API paging, Binance checksums, pmxt HEADs; counts only, WRITE-ONCE
     python scripts/run_cb8.py exclusion-keys ...            # q0164: ids and event / neg-risk / series keys of every prior sample and seal copy
@@ -36,6 +36,7 @@ least every 10 hours so the queue's 48-consecutive-tempfail limit never fires wh
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 import time
@@ -387,9 +388,27 @@ def cmd_updown_frame(a, cm):
     sha = _b_rules(a)
     root = _b_root(a, cm)
     kw = _b_net(a, cm)
-    m = u.updown_frame(root, hb.httpx_transport(), rules_sha=sha, blob_get=u.httpx_blob_get(), smoke_path=_data_path(a.require_smoke, u.SMOKE_DEFAULT, None),
+    try:
+        extra = _extra_pins(a.extra_pin)
+    except ValueError as exc:
+        raise cm.Refused(str(exc)) from None
+    seals = Path(a.seals_dir) if a.seals_dir else cm.SEALS_DIR
+    smoke_path = _data_path(a.require_smoke, u.SMOKE_DEFAULT, None)
+    u.smoke_ok(smoke_path, sha, ("b", "c"))  # the smoke / root refusals come before the attribution step, so the refusal order is as before the amendment
+    pins = u.attribution_pins(seals, extra)  # ids only, for the id-drop source report (ruling condition 4); the pin hashes are verified here
+    from astrolabe.research_lab import cb6_tail as c6  # noqa: PLC0415
+
+    files = c6.verify_exclusion_files(pins, history_root=Path(a.history_root) if a.history_root else cm.HIST_ROOT, seals_dir=seals,
+                                      seal_paths={Path(p["path"]).name: Path(p["path"]) for p in extra})
+    prior_meta, prior_sha = None, None
+    if a.prior_archives_meta:  # condition 2: compare the refetched zip sha256 values with the earlier run's recorded archives meta (nothing is reused)
+        pm_bytes = Path(a.prior_archives_meta).read_bytes()
+        prior_sha = hashlib.sha256(pm_bytes).hexdigest()
+        pm = json.loads(pm_bytes)
+        prior_meta = (pm.get("state") or {}).get("archives") or pm.get("archives")
+    m = u.updown_frame(root, hb.httpx_transport(), rules_sha=sha, blob_get=u.httpx_blob_get(), smoke_path=smoke_path,
                        exclusion_keys_path=_data_path(a.exclusion_keys, u.EXCLUSION_KEYS_DEFAULT, None), disk_cap=int(a.disk_cap_gb * 1024**3),
-                       budget_min=a.budget_min, **kw)
+                       budget_min=a.budget_min, id_sources=u.id_sources_by_group(files, pins), prior_archives_meta=prior_meta, pins_meta=pins, prior_meta_sha256=prior_sha, **kw)
     return _result(m, cm)
 
 
@@ -637,7 +656,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     def bcommon(q: argparse.ArgumentParser) -> None:
         q.add_argument("--root", default=None, help="creative_batch8 root (default data-dumps/research_lab/creative_batch8)")
-        q.add_argument("--rules", default=None, help="default docs/research_lab/seals/cb8_rules_v2.json")
+        q.add_argument("--rules", default=None, help="default docs/research_lab/seals/cb8_rules_v3.json")
         q.add_argument("--data-dumps", default=None)
         q.add_argument("--rps", type=float, default=2.0)
         q.add_argument("--standalone", action="store_true", help="no collector yield / health check (tests, off-host)")
@@ -674,6 +693,8 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--days", default="2026-04-13:2026-08-10")
     q.add_argument("--exclusion-keys", default=None, help="default creative_batch8/exclusion_keys.csv.gz")
     q.add_argument("--disk-cap-gb", type=float, required=True)
+    q.add_argument("--extra-pin", action="append", default=None, help="NAME:PATH:SHA256 of the c1_legs / cb5_listings ids CSV (as q0164c); used only for the id-drop source report")
+    q.add_argument("--prior-archives-meta", default=None, help="optional JSON (a manifest or {'archives': ...}) with the earlier run's recorded archives meta; only compared, never reused")
     q.set_defaults(fn=cmd_updown_frame)
 
     q = sub.add_parser("updown-books")
@@ -687,7 +708,7 @@ def build_parser() -> argparse.ArgumentParser:
     def acommon(q: argparse.ArgumentParser, *, freeze: bool) -> None:
         q.add_argument("--family", required=True, help="census: B, W, H or a comma list (q0169: B,W); screen / replicate: exactly one of B, W, H")
         q.add_argument("--root", default=None, help="creative_batch8 root, where census / results files are written (default data-dumps/research_lab/creative_batch8)")
-        q.add_argument("--rules", default=None, help="B data rules (default docs/research_lab/seals/cb8_rules_v2.json)")
+        q.add_argument("--rules", default=None, help="B data rules (default docs/research_lab/seals/cb8_rules_v3.json)")
         q.add_argument("--analysis-rules", default=None, help="B analysis rules (default docs/research_lab/seals/cb8_b_analysis_rules.json)")
         q.add_argument("--flow-rules", default=None, help="W data rules (default docs/research_lab/seals/cb8_flow_rules.json)")
         q.add_argument("--w-analysis-rules", default=None, help="W analysis rules (default docs/research_lab/seals/cb8_w_analysis_rules.json)")

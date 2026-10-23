@@ -32,11 +32,17 @@ from . import economics as econ
 from . import h5_seal
 from . import history_backfill as hb
 
-RULES_VERSION = "cb8-updown-rules-v2"  # v2: freeze-check fixes (hashed dependencies, split HOLDOUT klines, book_unavailable, ...); v1 file kept, superseded
+RULES_VERSION = "cb8-updown-rules-v3"  # v3: B only, series key waived (CREATIVE_BATCH_8.md 1.3 "Amendment 2026-10-23", reviews/CB8B_SERIES_KEY_RULING_2026-10-23.md); new run dirs updown_frame_b / updown_b. v2: freeze-check fixes (hashed dependencies, split HOLDOUT klines, book_unavailable, ...); v1 file kept, superseded
 SMOKE_VERSION = "cb8-smoke-v1"
-RUN_FRAME = "updown_frame"
+RUN_FRAME = "updown_frame_b"  # v3: new run directory (the v2 run dir updown_frame holds the empty q0165 frame and is never opened, reused or moved)
+RUN_FRAME_V2 = "updown_frame"  # q0165 (v2), recorded "frame empty (series overlap); operational, nothing counted"; never touched
 RUN_KEYS = "exclusion_run"
-RULES_FILE = cm.SEALS_DIR / "cb8_rules_v2.json"
+RULES_FILE = cm.SEALS_DIR / "cb8_rules_v3.json"
+RULES_FILE_V2 = cm.SEALS_DIR / "cb8_rules_v2.json"  # consumed by q0161 / q0164c / q0165 / q0166; never rewritten
+RULES_SHA_V2 = "33decb528bbafd46336296be57c91b76e6aaa0c69d7d3eecf92eaa83c4f12a6d"
+SMOKE_ACCEPT_SHAS = (RULES_SHA_V2,)  # the q0161 smoke (criteria b, c: Binance checksum, pmxt HEAD) was made under v2; the amendment changes neither source test
+SMOKE_ACCEPT_FILE_SHAS = ("8189303fea2906ae6255bdce3afc5b391636802c782610f6a486543b9e7f6954",)  # ... and only that file (seals/cb8_smoke_FAIL_20261022.json) is accepted under v2
+B_KEY_TYPES = ("event", "neg_risk_market")  # v3: the series key is waived for B (c7.KEY_TYPES also holds "series"); market-id, event-id and neg-risk keys stay
 RULES_FILE_V1 = cm.SEALS_DIR / "cb8_rules.json"  # superseded before any B job ran; never rewritten
 SMOKE_DEFAULT = cm.CB8_DIR / "smoke.json"
 EXCLUSION_KEYS_DEFAULT = cm.CB8_DIR / "exclusion_keys.csv.gz"
@@ -415,7 +421,9 @@ def declared() -> dict:
                  "(bisection) of the losing-day share; mean_d(W_d)(1-q_U) - mean_d(L_d) q_U >= 0", "tail_conf": TAIL_CONF,
                  "source_disagree_max": SOURCE_DISAGREE_MAX},
         "sources": {"binance": {"base": BINANCE_BASE, "months": list(MONTHS), "rps": BINANCE_RPS, "checksum": "<zip>.CHECKSUM sha256", "stored": "pre-t_end candles, strikes, guarded settlement candles"},
-                    "pmxt": "cb8_books", "exclusion": {"max_unverified_key_share": MAX_UNVERIFIED_KEY_SHARE, "pins": "cb7_common.EXCLUSION_PINS + committed seal copies at q0164 + REQUIRED extra id pins " + "/".join(REQUIRED_EXTRA_PINS) + " (derived ids CSV with a source-sha sidecar)"}},
+                    "pmxt": "cb8_books", "exclusion": {"max_unverified_key_share": MAX_UNVERIFIED_KEY_SHARE, "pins": "cb7_common.EXCLUSION_PINS + committed seal copies at q0164 + REQUIRED extra id pins " + "/".join(REQUIRED_EXTRA_PINS) + " (derived ids CSV with a source-sha sidecar)",
+                                                                  "key_types_applied": list(B_KEY_TYPES), "series_key": "waived for B (Amendment 2026-10-23); id, event and neg-risk keys kept; the same set at the seal-time drops",
+                                                                  "smoke_accepted_under": list(SMOKE_ACCEPT_SHAS), "smoke_accepted_file_sha256": list(SMOKE_ACCEPT_FILE_SHAS), "run_dirs": [RUN_FRAME, "updown_b"]}},
         "smoke": {"version": SMOKE_VERSION, "seed_pool": SMOKE_SEED_POOL, "seed_pmxt": SMOKE_SEED_PMXT, "n": SMOKE_N, "candidates": SMOKE_CANDIDATES,
                   "pool": f"closed, end in [{SMOKE_END_FROM}, {SMOKE_END_TO}), volume >= {SMOKE_MIN_VOLUME:g}, life >= {SMOKE_MIN_LIFE_DAYS} d",
                   "criterion_a": "one paged day [end-5d, end-4d) at limit 1000 per pool market; rows in bounds, newest first, no duplicate across pages, "
@@ -434,7 +442,7 @@ def rule_funcs() -> tuple:
             kline_rows, extract_month, candle_usable, min_present, z_features, eligible_unit, traded_unit, fee_rate, taker_fee_per_share, unit_net,
             latency_fill, _binom_cdf, _ids_of_file, clopper_pearson_upper, required_margin, tail_gate, updown_row, frame_reason, walk_frame, drop_and_split, binance_fetch,
             finalize_frame, updown_frame, run_smoke, smoke_ok, exclusion_ids_cb8, exclusion_keys, c7.key_types_matched, hb._rank,
-            outcome_label_order, derive_exclusion_ids, _extra_pin_sources)
+            outcome_label_order, derive_exclusion_ids, _extra_pin_sources, source_group, attribution_pins, id_sources_by_group, id_drop_report, compare_archive_meta)
 
 
 def _dependency_funcs() -> list:
@@ -670,7 +678,7 @@ def smoke_ok(path: Path, rules_sha: str, need: tuple[str, ...] = ("b", "c")) -> 
         raise cm.Refused(f"smoke result {p} unreadable") from exc
     if d.get("smoke_version") != SMOKE_VERSION:
         raise cm.Refused(f"smoke result {p} is {d.get('smoke_version')}, not {SMOKE_VERSION}")
-    if d.get("rules_sha256") != rules_sha:
+    if d.get("rules_sha256") != rules_sha and not (d.get("rules_sha256") in SMOKE_ACCEPT_SHAS and hashlib.sha256(p.read_bytes()).hexdigest() in SMOKE_ACCEPT_FILE_SHAS):
         raise cm.Refused(f"smoke result {p} was made under another rules hash")
     keys = {"a": "criterion_a_data_api_paging", "b": "criterion_b_binance_checksum", "c": "criterion_c_pmxt_heads"}
     bad = [k for k in need if d.get(keys[k]) is not True]
@@ -923,21 +931,78 @@ def walk_frame(fr: cm.Cb8Run, days: list[str], should_stop: Callable[[], bool] |
     return None if all(d in done or fails.get(d, 0) >= cm.MAX_ITEM_ATTEMPTS for d in days) else "frame_paused"
 
 
-def drop_and_split(rows: list[dict], excl_ids: set[str], excl_keys: dict[str, set[str]]) -> tuple[list[dict], dict]:
-    """Drop markets that share an id or key with the exclusion set (before the split), count by key type, and report the SCREEN / HOLDOUT counts."""
-    rep: dict = {"n_in": len(rows), "dropped_id": 0, "dropped_keys": {}}
-    kept = []
+def source_group(name: str) -> str:
+    """The reporting group of an exclusion pin (ruling condition 4): h1/h2/h3, h5, CB5, C1, other seals."""
+    if name in ("h1_first", "h2_main", "h3_power"):
+        return "h1_h2_h3"
+    if name in ("h5_cb1", "h5_cb1_ladders"):
+        return "h5"
+    if name == "cb5_listings":
+        return "CB5"
+    if name == "c1_legs":
+        return "C1"
+    return "other_seals"
+
+
+def attribution_pins(seals_dir: Path, extra_pins: list[dict] | None = None) -> list[dict]:
+    """The pin list behind the exclusion keys, for the id-drop source report only: the fixed pins, every other committed ``*_SEAL.json`` and the extra id pins."""
+    seals_dir = Path(seals_dir)
+    base_names = {Path(p["path"]).name for p in c7.EXCLUSION_PINS if p["kind"] == "seal"}
+    dyn = [{"name": p.stem, "kind": "seal", "path": str(p), "sha256": h5_seal.sha256_file(p)} for p in sorted(seals_dir.glob("*_SEAL.json"))
+           if p.name not in base_names and p.name not in ("h9_flow_SEAL.json", "cb8_updown_holdout_SEAL.json")]
+    return list(c7.EXCLUSION_PINS) + [dict(p) for p in (extra_pins or [])] + dyn
+
+
+def id_sources_by_group(files: dict[str, Path], pins: list[dict]) -> dict[str, set[str]]:
+    """Market ids of each pin grouped by ``source_group``. A composite seal id ``<market>__<event>`` counts as its numeric market part."""
+    out: dict[str, set[str]] = {}
+    for pin in pins:
+        ids = {i.split("__")[0] for i in exclusion_ids_cb8(files, [pin])}
+        out.setdefault(source_group(pin["name"]), set()).update(ids)
+    return out
+
+
+def id_drop_report(dropped: list[dict], id_sources: dict[str, set[str]] | None, pins_meta: list[dict] | None = None) -> dict:
+    """Ruling condition 4. Id drops by source pin group and the number of distinct days they cover, plus the descriptive B1 sensitivity list (days on which
+    an id-dropped Up/Down market settled). Frame fields only (id, day); no price and no outcome. Binding nothing."""
+    days = sorted({r["day"] for r in dropped})
+    out: dict = {"n_id_dropped": len(dropped), "n_distinct_days": len(days), "day_exclusion_sensitivity_days": days,
+                 "use": "descriptive only: the B1 sensitivity that leaves out these days binds nothing (ruling condition 4)"}
+    if pins_meta is not None:  # fix 4: the attribution pins actually read (the *_SEAL.json set present at run time), name and sha256
+        out["attribution_pins"] = [{"name": q["name"], "sha256": q["sha256"]} for q in pins_meta]
+    if id_sources is None:
+        out["by_source"] = None
+        out["source_attribution"] = "unavailable (no source pins given)"
+        return out
+    by: dict[str, dict] = {}
+    for g in sorted(id_sources):
+        hit = [r for r in dropped if r["market_id"] in id_sources[g]]
+        by[g] = {"n_markets": len(hit), "n_distinct_days": len({r["day"] for r in hit})}
+    out["by_source"] = by
+    out["n_unattributed"] = sum(1 for r in dropped if not any(r["market_id"] in v for v in id_sources.values()))
+    out["note"] = "a market named by several sources counts in each; n_unattributed = id-dropped but in no listed pin (e.g. a pin changed since q0164 or the pred_* market ids)"
+    return out
+
+
+def drop_and_split(rows: list[dict], excl_ids: set[str], excl_keys: dict[str, set[str]], key_types: tuple[str, ...] = B_KEY_TYPES,
+                   id_sources: dict[str, set[str]] | None = None, pins_meta: list[dict] | None = None) -> tuple[list[dict], dict]:
+    """Drop markets that share an id or a key of a type in ``key_types`` with the exclusion set (before the split), count by key type, and report the
+    SCREEN / HOLDOUT counts. v3: ``key_types`` = id, event and neg-risk (the series key is waived for B); the id check comes first."""
+    rep: dict = {"n_in": len(rows), "dropped_id": 0, "dropped_keys": {}, "key_types_applied": list(key_types)}
+    kept, id_dropped = [], []
     for r in rows:
         if r["market_id"] in excl_ids:
             rep["dropped_id"] += 1
+            id_dropped.append(r)
             continue
-        kt = c7.key_types_matched(r, excl_keys)
+        kt = [t for t in c7.key_types_matched(r, excl_keys) if t in key_types]
         if kt:
             for t in kt:
                 rep["dropped_keys"][t] = rep["dropped_keys"].get(t, 0) + 1
             continue
         kept.append(r)
     rep["n_kept"] = len(kept)
+    rep["id_drop_report"] = id_drop_report(id_dropped, id_sources, pins_meta)
     rep["by_split"] = {s: sum(1 for r in kept if r["split"] == s) for s in ("screen", "holdout")}
     rep["by_asset"] = {a: sum(1 for r in kept if r["asset"] == a) for a in sorted({r["asset"] for r in kept})}
     rep["days_by_split"] = {s: len({r["day"] for r in kept if r["split"] == s}) for s in ("screen", "holdout")}
@@ -996,6 +1061,18 @@ def binance_fetch(fr: cm.Cb8Run, get: BlobGet, pacer: Pacer, should_stop: Callab
     return "pending_retry" if retry else None
 
 
+def compare_archive_meta(prior: dict | None, current: dict) -> dict:
+    """Ruling condition 2: Binance archives of the earlier frame run may be reused only if their zip sha256 values match its recorded ``archives`` meta.
+    The zips and the derived rows were not kept, so nothing is reused: every archive is fetched again and verified against Binance's own CHECKSUM. This
+    only records, per (asset|month) key, whether the refetched zip sha256 equals the earlier run's recorded one (``None`` prior -> not compared)."""
+    if prior is None:
+        return {"compared": False, "reused": False}
+    keys = sorted(set(prior) | set(current))
+    match = {k: bool(k in prior and k in current and prior[k].get("zip_sha256") == current[k].get("zip_sha256")) for k in keys}
+    return {"compared": True, "reused": False, "n_keys": len(keys), "n_match": sum(match.values()), "all_match": all(match.values()),
+            "mismatched_keys": [k for k, v in match.items() if not v]}
+
+
 def finalize_frame(fr: cm.Cb8Run, rdir: Path, days: list[str]) -> dict:
     """Write the feature, strike and guarded files from the partials, hash everything, drop the partials. Returns counts."""
     part = rdir / "klines_partial.jsonl.gz"
@@ -1045,7 +1122,9 @@ def updown_frame(root: Path, transport, *, rules_sha: str, blob_get: BlobGet, sm
                  require_smoke: bool = True, rps: float = 2.0, disk_cap: int = int(FRAME_OUTPUT_CAP_GB * 1024**3), budget_min: float | None = None,
                  data_dumps: Path | None = None, data_dumps_cap_gb: float = cm.DATA_DUMPS_FETCH_CAP_GB, wall_clock: Callable[[], float] = time.time,
                  sleep=time.sleep, live_check=None, health_check=None, snapshot_root: Path | None = None, should_stop: Callable[[], bool] | None = None,
-                 now: float | None = None, pacer: Pacer | None = None, run_id: str = RUN_FRAME) -> dict:
+                 now: float | None = None, pacer: Pacer | None = None, run_id: str = RUN_FRAME, id_sources: dict[str, set[str]] | None = None,
+                 prior_archives_meta: dict | None = None, pins_meta: list[dict] | None = None,
+                 prior_meta_sha256: str | None = None) -> dict:
     """One resumable chunk of q0165. Refusals first (run id, root, smoke b and c, exclusion files), headroom (exit 75), sticky end states, the Gamma frame
     walk (per day), the id / key drop and the week split (``frame.csv.gz`` and ``split.json`` are written before the first Binance request), the
     verified Binance archives, then the feature / strike / guarded files."""
@@ -1092,7 +1171,7 @@ def updown_frame(root: Path, transport, *, rules_sha: str, blob_get: BlobGet, sm
                 return m
             recs = list(c6.iter_partial(rdir / "frame_partial_guarded.jsonl.gz"))
             rows = [r for rec in recs for r in rec["rows"]]
-            kept, rep = drop_and_split(rows, ids, ksets)
+            kept, rep = drop_and_split(rows, ids, ksets, id_sources=id_sources, pins_meta=pins_meta)
             rep["frame_walk"] = {"days_walked": len(recs), "n_raw": sum(rec["n_raw"] for rec in recs), "capped_days": sum(1 for rec in recs if rec["capped"]),
                                  "rejected": {}}
             for rec in recs:
@@ -1120,6 +1199,9 @@ def updown_frame(root: Path, transport, *, rules_sha: str, blob_get: BlobGet, sm
             return m
         counts = finalize_frame(fr, rdir, days)
         fr.counts.update(counts)
+        fr.extra_state["archives_vs_prior_run"] = compare_archive_meta(prior_archives_meta, fr.extra_state["archives"])
+        if prior_meta_sha256:
+            fr.extra_state["archives_vs_prior_run"]["prior_meta_file_sha256"] = prior_meta_sha256
     except OSError as exc:
         return cm.disk_budget_end(fr, exc)
     m = fr.manifest(None, {"complete": True, "status": FRAME_COMPLETE})

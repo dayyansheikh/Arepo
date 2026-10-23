@@ -17,6 +17,7 @@ from pathlib import Path
 
 import pytest
 
+from astrolabe.research_lab import cb7_common as c7
 from astrolabe.research_lab import cb8_common as cm
 from astrolabe.research_lab import cb8_updown as u
 from astrolabe.research_lab import h5_seal
@@ -451,13 +452,15 @@ def test_frame_end_to_end_filters_drops_split_and_guard(fenv):
     ids = {r["market_id"] for r in frame}
     # kept: 3 assets on each B day (the gap days 06-12 is outside the walked days); rejects and exclusion hits are gone
     walked = [d for d in FRAME_DAYS if d in u.b_days()]
-    assert len(frame) == 3 * len(walked) and not ids & {"500", "501", "502", "9001", "503", "504", "505"}
+    # v3: the series key is waived, so 505 (series SX only) is kept; id (9001), event (503) and neg-risk (504) keys still drop
+    assert len(frame) == 3 * len(walked) + 1 and not ids & {"500", "501", "502", "9001", "503", "504"} and "505" in ids
     assert {r["day"] for r in frame} == set(walked) and "2026-06-12" not in {r["day"] for r in frame}
     split = json.loads((rdir / "split.json").read_text())
     rep = split["report"]
     assert rep["frame_walk"]["rejected"] == {"strike_dates": 1, "end_not_1600z": 1, "question_pattern": 1}
     assert rep["frame_request_failed_days"] == 0 and rep["frame_request_failed_day_list"] == []
-    assert rep["dropped_id"] == 1 and rep["dropped_keys"] == {"event": 1, "neg_risk_market": 1, "series": 1}
+    assert rep["dropped_id"] == 1 and rep["dropped_keys"] == {"event": 1, "neg_risk_market": 1}
+    assert rep["key_types_applied"] == ["event", "neg_risk_market"] and rep["id_drop_report"]["n_id_dropped"] == 1
     assert all(r["split"] == u.day_split(r["day"]) for r in frame) and split["seed"] == u.SEED_SPLIT
     # the frame has no outcome columns; outcomes and settlement candles are only in the *_guarded files
     for r in frame:
@@ -593,7 +596,7 @@ def test_no_function_compares_consecutive_strikes_and_settlement_stays_guarded()
     src = inspect.getsource(u.finalize_frame)
     assert src.count("timedelta(days=1)") == 1  # the only day - 1 step is the strike lookup
     for mod in (bk,):
-        assert "klines_settle" not in inspect.getsource(mod) and "outcomes_guarded" not in inspect.getsource(mod).replace("holdout outcomes live in updown_frame/outcomes_guarded.csv.gz", "")
+        assert "klines_settle" not in inspect.getsource(mod) and "outcomes_guarded" not in inspect.getsource(mod).replace("holdout outcomes live in updown_frame_b/outcomes_guarded.csv.gz", "")
 
 
 # ---- exclusion keys (q0164) --------------------------------------------------------------------------------------------------------------------------------
@@ -667,7 +670,10 @@ def test_cli_rules_updown_and_declared_argument_refusals(tmp_path, capsys):
     base = ["--rules", str(rules), "--allow-uncommitted-rules", "--root", str(tmp_path / "cb8"), "--data-dumps", str(tmp_path), "--standalone"]
     assert script.main(["updown-frame", *base, "--days", "2026-04-13:2026-08-11", "--disk-cap-gb", "0.02"]) == 2
     assert script.main(["updown-frame", *base, "--disk-cap-gb", "0.5"]) == 2
+    capsys.readouterr()
     assert script.main(["updown-frame", *base, "--disk-cap-gb", "0.02", "--require-smoke", str(tmp_path / "nosmoke.json")]) == 2
+    out = capsys.readouterr().out
+    assert "smoke result" in out and "not found" in out  # refused on the missing smoke, before any attribution step
     assert script.main(["updown-books", *base, "--disk-cap-gb", "0.02", "--ingress-cap-gb", "500"]) == 2
     assert script.main(["updown-books", *base, "--disk-cap-gb", "0.02", "--audit-hour", "15"]) == 2
     assert script.main(["updown-books", *base, "--disk-cap-gb", "0.02", "--require-smoke", str(tmp_path / "nosmoke.json")]) == 2
@@ -808,14 +814,103 @@ def test_exclusion_keys_require_the_c1_and_cb5_pins_with_a_source_sidecar(tmp_pa
     assert rep["n_ids"] == 6 and "21" in {k["market_id"] for k in gz_rows(out / "exclusion_keys.csv.gz")}
 
 
-def test_rules_v2_hashes_the_dependencies_and_v1_is_superseded():
+def test_rules_v3_hashes_the_dependencies_and_v1_v2_are_superseded():
     doc = u.rules_file_doc()
-    assert doc["rules_version"] == "cb8-updown-rules-v2" and u.RULES_FILE.name == "cb8_rules_v2.json" and u.RULES_FILE_V1.name == "cb8_rules.json"
+    assert doc["rules_version"] == "cb8-updown-rules-v3" and u.RULES_FILE.name == "cb8_rules_v3.json" and u.RULES_FILE_V2.name == "cb8_rules_v2.json" and u.RULES_FILE_V1.name == "cb8_rules.json"
     need = {"frame_row", "key_fields", "lookup_keys", "exclusion_stage", "smoke_pool", "load_exclusion_keys", "seal_copy_ids", "verify_manifest_files", "pmxt_url", "RangeFile",
-            "_check_clock", "seal_copy_ids_audited", "outcome_label_order", "derive_exclusion_ids"}
+            "_check_clock", "seal_copy_ids_audited", "outcome_label_order", "derive_exclusion_ids", "id_drop_report", "compare_archive_meta"}
     assert need <= set(doc["func_sources_sha256"])
+    assert doc["declared"]["sources"]["exclusion"]["key_types_applied"] == ["event", "neg_risk_market"]
     v1 = json.loads(u.RULES_FILE_V1.read_text())
     assert v1["rules_version"] == "cb8-updown-rules-v1" and v1["rules_sha256"].startswith("36fd2783") and v1["rules_sha256"] != doc["rules_sha256"]
+    v2 = json.loads(u.RULES_FILE_V2.read_text())  # historical: consumed by q0161 / q0164c / q0165 / q0166, never rewritten
+    assert v2["rules_version"] == "cb8-updown-rules-v2" and v2["rules_sha256"] == u.RULES_SHA_V2 != doc["rules_sha256"]
+    assert v2["declared"]["population"] == doc["declared"]["population"]  # the population rules are not touched by the amendment
+
+
+def test_committed_v3_file_equals_the_code_and_wh_data_rules_are_unchanged():
+    from astrolabe.research_lab import cb8_declaration as dec
+
+    assert json.loads(u.RULES_FILE.read_text()) == u.rules_file_doc()
+    h = dec.rule_hashes()
+    # W and H data rules are byte-identical to before the amendment (recorded at the amendment)
+    assert h["w_data_rules_sha256"] == "9dc74a91bec18387380f9990bd7231c8d6d0cbb995c076beb634dd201abcddae"
+    assert h["h_data_rules_sha256"] == "e7e72f4c75693cfaf30a91c11939eb16b756b7cae879868e0e7a11f9a2af2bb6"
+    assert json.loads(ba_rules_path().read_text())["data_rules_sha256"] == h["b_data_rules_sha256"]
+
+
+def ba_rules_path() -> Path:
+    from astrolabe.research_lab import cb8_b_analysis as ba
+
+    return ba.RULES_FILE
+
+
+def _rows():
+    return [{"market_id": "1", "day": "2026-04-13", "split": "screen", "asset": "BTC", "event_ids": "E1", "neg_risk_market_id": "", "series_ids": "S1"},
+            {"market_id": "2", "day": "2026-04-14", "split": "screen", "asset": "ETH", "event_ids": "E2", "neg_risk_market_id": "", "series_ids": "S9"},
+            {"market_id": "3", "day": "2026-04-14", "split": "holdout", "asset": "BTC", "event_ids": "E3", "neg_risk_market_id": "NX", "series_ids": ""},
+            {"market_id": "4", "day": "2026-04-15", "split": "holdout", "asset": "BTC", "event_ids": "E4", "neg_risk_market_id": "", "series_ids": "S9"},
+            {"market_id": "5", "day": "2026-04-15", "split": "screen", "asset": "SOL", "event_ids": "E5", "neg_risk_market_id": "", "series_ids": ""}]
+
+
+def test_series_key_applies_under_the_old_rules_and_is_waived_for_b_under_v3():
+    excl = {"event": {"E1"}, "neg_risk_market": {"NX"}, "series": {"S9"}}
+    old, rep_old = u.drop_and_split(_rows(), {"5"}, excl, key_types=("event", "neg_risk_market", "series"))
+    assert [r["market_id"] for r in old] == [] and rep_old["dropped_id"] == 1 and rep_old["dropped_keys"] == {"event": 1, "series": 2, "neg_risk_market": 1}
+    new, rep_new = u.drop_and_split(_rows(), {"5"}, excl)  # default = v3 key set
+    assert [r["market_id"] for r in new] == ["2", "4"] and rep_new["dropped_keys"] == {"event": 1, "neg_risk_market": 1} and rep_new["dropped_id"] == 1
+    assert u.B_KEY_TYPES == ("event", "neg_risk_market") and "series" not in rep_new["key_types_applied"]
+    assert set(c7.KEY_TYPES) - set(u.B_KEY_TYPES) == {"series"}  # the shared key helper (W / CB7 use it) is untouched
+
+
+def test_id_drop_report_by_source_and_day_sensitivity():
+    rows = _rows()
+    src = {"h1_h2_h3": {"1", "2"}, "C1": {"2"}, "CB5": {"9"}}
+    _kept, rep = u.drop_and_split(rows, {"1", "2", "3"}, {"event": set(), "neg_risk_market": set(), "series": set()}, id_sources=src)
+    r = rep["id_drop_report"]
+    assert r["n_id_dropped"] == 3 and r["n_distinct_days"] == 2 and r["day_exclusion_sensitivity_days"] == ["2026-04-13", "2026-04-14"]
+    assert r["by_source"] == {"C1": {"n_markets": 1, "n_distinct_days": 1}, "CB5": {"n_markets": 0, "n_distinct_days": 0}, "h1_h2_h3": {"n_markets": 2, "n_distinct_days": 2}}
+    assert r["n_unattributed"] == 1  # market 3 is in no listed pin
+    assert "price" not in json.dumps(r) and "outcome" not in json.dumps(r).replace("use", "")
+    assert u.id_drop_report([], None)["by_source"] is None
+    assert [u.source_group(n) for n in ("h1_first", "h3_power", "h5_cb1_ladders", "cb5_listings", "c1_legs", "h8_tail_SEAL")] == ["h1_h2_h3", "h1_h2_h3", "h5", "CB5", "C1", "other_seals"]
+
+
+def test_archive_meta_comparison_records_sha_matches_and_never_reuses():
+    prior = {"BTC|2026-04": {"zip_sha256": "a" * 64}, "ETH|2026-04": {"zip_sha256": "b" * 64}}
+    same = u.compare_archive_meta(prior, {k: dict(v) for k, v in prior.items()})
+    assert same == {"compared": True, "reused": False, "n_keys": 2, "n_match": 2, "all_match": True, "mismatched_keys": []}
+    diff = u.compare_archive_meta(prior, {"BTC|2026-04": {"zip_sha256": "a" * 64}, "ETH|2026-04": {"zip_sha256": "c" * 64}})
+    assert diff["all_match"] is False and diff["mismatched_keys"] == ["ETH|2026-04"] and diff["reused"] is False
+    assert u.compare_archive_meta(None, prior) == {"compared": False, "reused": False}
+
+
+def test_frame_run_dirs_are_new_and_the_v2_smoke_hash_is_accepted(fenv, tmp_path, monkeypatch):
+    assert u.RUN_FRAME == "updown_frame_b" != u.RUN_FRAME_V2 == "updown_frame"
+    from astrolabe.research_lab import cb8_books as bk
+
+    assert bk.RUN_ID == "updown_b"
+    smoke = tmp_path / "s.json"
+    smoke.write_text(json.dumps({"smoke_version": u.SMOKE_VERSION, "rules_sha256": u.RULES_SHA_V2, "criterion_b_binance_checksum": True, "criterion_c_pmxt_heads": True}))
+    with pytest.raises(cm.Refused, match="another rules hash"):  # a v2-hash smoke is accepted only if the file is the pinned q0161 file
+        u.smoke_ok(smoke, "v3-sha")
+    monkeypatch.setattr(u, "SMOKE_ACCEPT_FILE_SHAS", (hashlib.sha256(smoke.read_bytes()).hexdigest(),))
+    assert u.smoke_ok(smoke, "v3-sha")["rules_sha256"] == u.RULES_SHA_V2
+    smoke.write_text(json.dumps({"smoke_version": u.SMOKE_VERSION, "rules_sha256": "z" * 64, "criterion_b_binance_checksum": True, "criterion_c_pmxt_heads": True}))
+    with pytest.raises(cm.Refused, match="another rules hash"):
+        u.smoke_ok(smoke, "v3-sha")
+
+
+def test_frame_records_archive_comparison_and_drop_report(fenv):
+    m = fenv.frame(prior_archives_meta={"BTC|2026-04": {"zip_sha256": "0" * 64}}, id_sources={"C1": {"9001"}},
+                   pins_meta=[{"name": "C1", "sha256": "f" * 64, "path": "ignored"}], prior_meta_sha256="e" * 64)
+    assert m["status"] == u.FRAME_COMPLETE
+    rep = json.loads((fenv.root / u.RUN_FRAME / "split.json").read_text())["report"]["id_drop_report"]
+    assert rep["attribution_pins"] == [{"name": "C1", "sha256": "f" * 64}]
+    assert rep["n_id_dropped"] == 1 and rep["by_source"]["C1"]["n_markets"] == 1 and rep["day_exclusion_sensitivity_days"] == ["2026-04-14"]
+    man = json.loads((fenv.root / u.RUN_FRAME / "manifest.json").read_text())
+    assert man["state"]["archives_vs_prior_run"]["prior_meta_file_sha256"] == "e" * 64
+    assert man["state"]["archives_vs_prior_run"]["compared"] is True and man["state"]["archives_vs_prior_run"]["reused"] is False
 
 
 def test_cli_derive_exclusion_ids(tmp_path, capsys):
@@ -825,3 +920,35 @@ def test_cli_derive_exclusion_ids(tmp_path, capsys):
     assert script.main(["derive-exclusion-ids", "--kind", "c1_legs", "--src", str(matches), "--out", str(out)]) == 0
     assert out.read_text() == "market_id\n5\n"
     assert script.main(["derive-exclusion-ids", "--kind", "c1_legs", "--src", str(tmp_path / "missing.json"), "--out", str(tmp_path / "pins" / "z.csv")]) == 2
+
+
+def test_cli_updown_frame_attribution_path_records_pins_and_prior_meta_sha(tmp_path, monkeypatch, capsys):
+    """The CLI attribution step on synthetic pins: the committed-seal set found at run time and the extra id pin reach updown_frame with their sha256,
+    after the smoke gate; the --prior-archives-meta file's own sha256 is passed on."""
+    monkeypatch.setattr(c7, "EXCLUSION_PINS", [])  # synthetic pins only; both patches precede the rules file because the hashed rules cover these functions and pins
+    seen = {}
+
+    def fake_frame(root, transport, **kw):
+        seen.update(kw)
+        return {"status": u.FRAME_COMPLETE, "complete": True, "stopped": None, "counts": {}}
+
+    monkeypatch.setattr(u, "updown_frame", fake_frame)
+    rules = tmp_path / "cb8_rules.json"
+    assert script.main(["rules", "--which", "updown", "--path", str(rules)]) == 0
+    sha = json.loads(rules.read_text())["rules_sha256"]
+    smoke = tmp_path / "smoke.json"
+    smoke.write_text(json.dumps({"smoke_version": u.SMOKE_VERSION, "rules_sha256": sha, "criterion_b_binance_checksum": True, "criterion_c_pmxt_heads": True}))
+    seals = tmp_path / "seals"
+    seals.mkdir()
+    (seals / "zz_demo_SEAL.json").write_text(json.dumps({"files": {"prices/700.csv.gz": {}, "trades/701.csv.gz": {}}}))
+    ids = tmp_path / "c1_ids.csv"
+    ids.write_text("market_id\n800\n801\n")
+    ids_sha = hashlib.sha256(ids.read_bytes()).hexdigest()
+    prior = tmp_path / "prior_manifest.json"
+    prior.write_text(json.dumps({"state": {"archives": {"BTC|2026-04": {"zip_sha256": "a" * 64}}}}))
+    argv = ["updown-frame", "--rules", str(rules), "--allow-uncommitted-rules", "--root", str(tmp_path / "cb8"), "--data-dumps", str(tmp_path), "--standalone", "--disk-cap-gb", "0.02",
+            "--require-smoke", str(smoke), "--seals-dir", str(seals), "--extra-pin", f"c1_legs:{ids}:{ids_sha}", "--prior-archives-meta", str(prior)]
+    assert script.main(argv) == 0
+    assert {p["name"]: p["sha256"] for p in seen["pins_meta"]} == {"c1_legs": ids_sha, "zz_demo_SEAL": hashlib.sha256((seals / "zz_demo_SEAL.json").read_bytes()).hexdigest()}
+    assert seen["id_sources"] == {"C1": {"800", "801"}, "other_seals": {"700", "701"}}
+    assert seen["prior_meta_sha256"] == hashlib.sha256(prior.read_bytes()).hexdigest() and seen["prior_archives_meta"] == {"BTC|2026-04": {"zip_sha256": "a" * 64}}
