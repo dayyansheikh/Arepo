@@ -186,6 +186,15 @@ export interface SeRow {
   days_positive?: number;
   n_days?: number;
   n_clusters?: number;
+  /**
+   * res_7d only: mean paired log-loss gain over the market-price reference (P(yes) = the origin's own mid), nats;
+   * positive = the row forecast resolution better than the price on the same rows. Not a return.
+   */
+  gain_vs_mid?: number | null;
+  gain_vs_mid_lo?: number | null;
+  gain_vs_mid_hi?: number | null;
+  /** Present on the market-price reference row (role "reference"): what the reference is. */
+  reference?: string;
   embargoed_until?: string | null;
 }
 

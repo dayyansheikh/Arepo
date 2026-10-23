@@ -409,3 +409,48 @@ describe("parseSeFeed", () => {
     expect(html).not.toMatch(/(buy|sell)/i);
   });
 });
+
+describe("gain vs market price (res_7d)", () => {
+  it("rowCells reads gain_vs_mid and its interval; rows without it stay null", () => {
+    const c = rowCells({ model_id: "se0", target: "res_7d", log_loss: 0.21, gain_vs_mid: -0.0042, gain_vs_mid_lo: -0.0071, gain_vs_mid_hi: -0.0013 }, NOW);
+    expect(c.kind === "scored" && [c.gainVsMid, c.gainVsMidLo, c.gainVsMidHi]).toEqual([-0.0042, -0.0071, -0.0013]);
+    const d = rowCells({ model_id: "se0", target: "dir_2h", log_loss: 0.65 }, NOW);
+    expect(d.kind === "scored" && d.gainVsMid).toBeNull();
+  });
+
+  it("hides the explanatory note when no row carries a market-price gain", () => {
+    expect(render(buildSignalEngineFixture(NOW))).not.toContain('data-testid="se-vs-mid-note"');
+  });
+
+  it("renders the column, labels the reference row and explains the sign", () => {
+    const se = buildSignalEngineFixture(NOW);
+    se.prospective = { ...se.prospective, rows: [
+      ...(se.prospective?.rows ?? []),
+      { model_id: "se1_lr_base", role: "champion", target: "res_7d", window_days: 14, n: 9120, log_loss: 0.2104,
+        gain_vs_mid: -0.0042, gain_vs_mid_lo: -0.0071, gain_vs_mid_hi: -0.0013 },
+      { model_id: "market_price_reference", role: "reference", target: "res_7d", window_days: 14, n: 9120,
+        log_loss: 0.2062, gain: 0.0042, gain_lo: 0.0013, gain_hi: 0.0071, reference: "P(yes) = the origin's Gamma mid" },
+    ] };
+    const html = render(se);
+    expect(html).toContain("Gain vs market price (nats, 95% CI)");
+    expect(html).toContain("−0.0042 [−0.0071, −0.0013]");
+    expect(html).toContain("+0.0042 [+0.0013, +0.0071]");
+    expect(html).toContain("market price (reference, not a model)");
+    expect(html).toContain('data-testid="se-vs-mid-note"');
+    expect(html).toContain("not a price anyone can trade at");
+  });
+
+  it("an embargoed row never shows its gain over the market price", () => {
+    const se: SignalEngineBlock = {
+      schema: "se-dash-v1",
+      prospective: { status: "scoring", days_scored: 15, rows: [
+        { model_id: "champ", role: "champion", target: "res_7d", window_days: 14, n: 10, log_loss: 0.2 },
+        { model_id: "hid", embargoed_until: UNTIL, target: "res_7d", gain_vs_mid: 0.0666, gain_vs_mid_lo: 0.0611 } as never,
+      ] },
+    };
+    const html = render(se);
+    expect(html).not.toContain("0.0666");
+    expect(html).not.toContain("0.0611");
+    expect(html).not.toContain('data-testid="se-vs-mid-note"');
+  });
+});
