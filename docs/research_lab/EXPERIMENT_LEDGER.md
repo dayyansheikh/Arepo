@@ -4359,7 +4359,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   attribution is per family, so no interaction attribution on the limited terms is computed. Before LT11's registration
   commit, as section 9 / 8.4 step 8 asks.
 
-## CB8-B frame complete (q0165b), q0166b promoted, 2026-10-23 ~22:35Z (experiments autopilot; nothing counted, no outcome read)
+## CB8-B frame complete (q0165b), q0166b promoted, 2026-10-23 ~22:32Z (experiments autopilot; nothing counted, no outcome read)
 - **q0165b** `updown_frame_complete` at 19:25Z (rc 0, 332 s, 503 requests, 0 x 429): 665 markets, 791 strikes, screen 345 /
   holdout 320 markets (`n_pre_rows` 59,325, holdout 27,825), 0 missing strikes. The frame is non-empty, so B1 stays testable
   under the declared variant (the "not testable" branch of the 18:55Z entry does not apply).
@@ -4395,7 +4395,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **Next:** LT12 design draft (CH245, CH244, CH243; one Holm family, k <= 3), these as planning counts only; its own census
   on a fresh seal disjoint from LT11's seal and window.
 
-## LT11 code-freeze check: REJECT, fixes started, 2026-10-23 ~23:15Z (experiments autopilot; nothing counted)
+## LT11 code-freeze check: REJECT, fixes started, 2026-10-23 ~22:50Z (experiments autopilot; nothing counted)
 - `science-reviewer` freeze check (8.4 step 3) of `feat/live-tests-11-code` 3452419b: **REJECT**, filed
   `reviews/LT11_CODE_FREEZE_CHECK_2026-10-23.md` (on the branch, 659bb3f4). 143 scoped tests pass; census path close to
   acceptable (coverage-first, gate values = section 7, no carry-forward, causality asserted). **7 MUST-FIX**, mostly the
@@ -4404,7 +4404,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   kind entry moving LT10's code hash (LT10 has no freeze record yet; LT11 merges before it). 11 SHOULD-FIX incl. a clock-only
   timing mode. No fix needs the frozen text changed. Fixes being applied on the branch; then a re-check.
 
-## LT12 design draft, 2026-10-23 (~23:50Z; experiments autopilot; nothing counted)
+## LT12 design draft, 2026-10-23 (~22:45Z; experiments autopilot; nothing counted)
 - **Draft** `docs/research_lab/LIVE_TESTS_12.md` (`feat/live-tests-12`, fd9c425f, sha256 `64fe3e7b…2cac`, 909 lines): DRAFT, not
   frozen, R1 not run, not registered, E-numbers unassigned. One Holm family, k <= 3, one-sided alpha 0.05: **CH245** the mirror
   (thin book's next spread change on the dense book's spread innovation, complete two-member neg-risk pairs; two binding point
@@ -4416,7 +4416,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   ordered lane from >= 2027-01-22. Seed 20261597; queue ids q0710-q0715; tokens `mirror`, `mixedlad`, `feeclass`, `attrlimit_lt12`.
 - Designer's census odds (judgement): CH245 0.30, CH244 0.30, CH243 0.04; P(no test) ~0.47. **Next:** challenger R1 (running).
 
-## LT12 challenger R1: REVISE, 2026-10-24 ~00:05Z (experiments autopilot; nothing counted)
+## LT12 challenger R1: REVISE, 2026-10-23 ~22:55Z (experiments autopilot; nothing counted)
 - `reviews/LT12_CHALLENGER_R1_2026-10-23.md` (`feat/live-tests-12`, 59d2a158). Arithmetic, seed, ids and dates verified.
   **6 MUST-FIX:** drop CH243 (F must bind, LT11 R1 A4 precedent; k <= 2); exact `listed_carry24h_v2` reward-status cases; CH244
   carry-omission census prints with a declared threshold; CH245 identification gate redefined with justification (units
@@ -4424,16 +4424,26 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   demeaning re-applied per draw. 7 SHOULD-FIX. Response being applied by the drafter; then a re-check.
 - CH243 (the fee) leaves the family before any freeze or census; recorded as an engine-first idea (not counted).
 
-## Operational deviation: CB4 closewin and CB5 listings extracts refused every pass since 2026-10-17 (found 2026-10-24 ~00:20Z; not counted)
+## Operational deviation: CB4 closewin and CB5 listings extracts refused every pass since 2026-10-17 (found 2026-10-23 ~23:05Z; not counted)
 - `arepo_pass.sh` ran `run_cb4.py closewin --all-new --data-dumps-max-gb 13` and `run_cb5.py extract --all-new --tables listings
   --data-dumps-max-gb 12`; the 10-17 guard raise to 40 GiB (36d908f) and the CB3 fix (2018cf6b) missed these two lines. Last
   success: CB5 listings in the 10-17T06:31Z pass, CB4 closewin in the 10-17T08:31Z pass; from then every pass logged
   `refused_data_dumps_over_cap`, 0 written. No row was written or altered.
 - Fix: both caps 40 GiB (the convention). Both extracts are idempotent, `--all-new`, oldest first. The host still holds every
-  snapshot since 2026-10-10T19:22Z (156 directories at 00:20Z), so nothing is lost: delay only. A capture no longer on the host
+  snapshot since 2026-10-10T19:22Z (156 directories at ~23:05Z), so nothing is lost: delay only. A capture no longer on the host
   when reached is read from a release or recorded `missing`, never reconstructed. Consumers: CB4-MAIN (seals on or after 10-22,
   flip trades not before 10-24) and CB5-G / CB5-L (q0103b on or after 10-27); their dates are unchanged; their freeze records
   must show the extract caught up before any seal reads it.
+- **R1 response applied** (6fc72f57, sha256 `c879bbeb…31e9`, 925 lines): CH243 removed (k <= 2); the three reward-status cases;
+  CH244 feed-disagreement **gate** (feed-listed share <= 0.20 among covered units, coverage >= 50%, missing fails, feed <= 6 h
+  old); CH245 identification gate redefined (event-day variation, leverage cap, within-stratum MDE) with justification; two-sided
+  placebo from a different series / events; `event_day_state_shift_gate` gate path. Priors CH245 0.30, CH244 0.15; expected k
+  ~0.45, P(no test) ~0.60. Re-check running.
+- **Re-check ACCEPT_WITH_FIXES** (`reviews/LT12_RECHECK_2026-10-23.md`, b038afaa): R1 items applied in substance; 7 tightening
+  fixes (CR1 t statistic and gate sample named; world 1 loading census-fixed to max(census same-slot corr, 0.64) and n range incl.
+  8..119; feed outage -> `census_unavailable (coverage)`, disagreement -> `census_dropped`; NaN own status excluded and counted;
+  qualified "not loosened" claim; derive or drop 0.15; dense-twin condition on both sets). Fixes being applied; then a final
+  verification and the design-text freeze.
 
 ## Signal engine: input-coverage monitor, 2026-10-23 ~23:15Z (signal-engine autopilot; operations only, nothing counted)
 - New `backend/astrolabe/signal_engine/input_health.py` (DESIGN_V1 §31). Each tick compares the newest capture's per-column
