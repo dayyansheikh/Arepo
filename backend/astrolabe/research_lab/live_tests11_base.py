@@ -1145,6 +1145,134 @@ def _reward_cols(j: pd.DataFrame, cnt: dict) -> tuple[np.ndarray, np.ndarray]:
     return rew, np.where(np.isfinite(rew), (rew > 0).astype(float), np.nan)
 
 
+def _movers_join(ser_k: pd.DataFrame, ser_p: pd.DataFrame, cap: dict, spec: dict, lo: float, hi: float, margin_h: float) -> tuple[pd.DataFrame, dict]:
+    """1.4 items 1-7 (LT3's ``move_join``, vendored): two-sided and tight at k - 1 and k, ``mid_k`` in [lo, hi], as-of end unknown
+    or > t + margin; adds ``mid``, ``x`` (the 2 h mid move), LT3's class and geometry. Each exclusion counted."""
+    j, cnt = move_join(ser_k, ser_p, cap, spec, lo, hi, margin_h)
+    mid = ((j["bid"] + j["ask"]) / 2.0).to_numpy(float)
+    mid_p = ((j["bid_p"] + j["ask_p"]) / 2.0).to_numpy(float)
+    cls, geom = classify(j["bid_p"], j["ask_p"], j["bid"], j["ask"], j["ltp_p"], j["ltp"], j["vol24_p"], j["vol24"], spec)
+    return j.assign(mid=mid, mid_p=mid_p, x=mid - mid_p, cls=cls, geom=geom), cnt
+
+
+def _common_cols(u: pd.DataFrame) -> pd.DataFrame:
+    u = u.copy()
+    mid = u["mid"].to_numpy(float)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        u["logit_mid"] = np.log(mid / (1.0 - mid))
+    u["abs_dev"] = np.abs(mid - 0.5)
+    u["tick001"] = (np.abs(u["tick"].to_numpy(float) - 0.001) < 1e-9).astype(float)
+    u["log_hte"], u["hte_unknown"] = _hte(u["end_ts"], u["t_row"])
+    u["log1p_liq"] = np.log1p(u["liq"].clip(lower=0))
+    return u
+
+
+def _base_out(j: pd.DataFrame, cap: dict, k: int) -> dict:
+    return {"market_id": j["market_id"].astype(str).to_numpy(), "event_id": j["event_id"].astype(str).to_numpy(), "skey": j["skey"].astype(str).to_numpy(),
+            "sports": j["sports"].to_numpy(int), "day": _utc_day(cap["start"]), "slot": k}
+
+
+def _mid12(store: MidStore | None, k: int, markets) -> np.ndarray:
+    """Mid at slot k - 12 (the origin's own 24 h look-back) by market; NaN if the slot, the market or the store is absent."""
+    mk = np.asarray([str(m) for m in markets])
+    if store is None or not len(mk):
+        return np.full(len(mk), np.nan)
+    return store.matrix(k, 12, mk, "mid")[:, 0]
+
+
+def _drop_missing(u: pd.DataFrame, cnt: dict, cols: dict[str, str]) -> pd.DataFrame:
+    """Required controls (1.5): a missing control is NaN, EXCLUDED and counted (never 0); ``cols`` maps column -> count key."""
+    for col, key in cols.items():
+        ok = np.isfinite(u[col].to_numpy(float))
+        cnt[key] = int((~ok).sum())
+        u = u[ok]
+    return u.reset_index(drop=True)
+
+
+def _rv24(store, k: int, mk, tick, c: dict) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    M = store.matrix(k, c["rv24_window"], mk, "mid")
+    rv, _ = rv_from_matrix(M, c["rv24_min_obs"])
+    rvs, rvf = floored_rv(rv, tick, c["rv_floor_ticks"])
+    return rv, rvs, rvf
+
+
+def design_se(df: pd.DataFrame, terms: list[str], controls: list[str], contrast: dict, rho: float, scale: float) -> float:
+    """Standard error of a linear combination (``contrast``: column -> weight) of the tested coefficients in the primary model fitted on the
+    census units' expanding-past-demeaned regressors (controls included, intercept), computed from the regressors alone under a working
+    covariance of the errors with unit variance, within-event equicorrelation ``rho`` and independence across events, projected to the
+    21-day window with events recurring (every count and cluster size multiplied by ``scale``): ``Var = (1 - rho) / scale x (X'X)^-1 + rho x
+    (X'X)^-1 S (X'X)^-1`` with ``S`` the sum over events of the outer product of the event's regressor sums. No target is read. NaN when
+    the design cannot be formed."""
+    cols = [*terms, *controls]
+    d = df[["market_id", "event_id", "t_row", *cols]].replace([np.inf, -np.inf], np.nan).dropna()
+    if len(d) < len(cols) + 10:
+        return float("nan")
+    X = demean(d, cols, "market_id", "t_row", "expanding").replace([np.inf, -np.inf], np.nan).dropna()
+    if len(X) < len(cols) + 10:
+        return float("nan")
+    A = np.column_stack([np.ones(len(X)), X[cols].to_numpy()])
+    inv = np.linalg.pinv(A.T @ A)
+    codes, _ = pd.factorize(d.loc[X.index, "event_id"].astype(str).to_numpy())
+    C = np.zeros((int(codes.max()) + 1, A.shape[1]))
+    np.add.at(C, codes, A)
+    S = C.T @ C
+    V = (1.0 - rho) / scale * inv + rho * (inv @ S @ inv)
+    cvec = np.zeros(A.shape[1])
+    for name, w in contrast.items():
+        cvec[1 + cols.index(name)] = w
+    var = float(cvec @ V @ cvec)
+    return math.sqrt(var) if var > 0 else float("nan")
+
+
+def class_mde8(pop: pd.DataFrame, term: str, controls: list[str], scale: float, a: dict, de_gate: float, sd: float) -> dict:
+    """Class-contrast MDE, cents: ``max(declared, design)``. *declared* = ``3.47 x SD x sqrt(1/n1 + 1/n2) x sqrt(DE_gate) x 1.5 x sqrt(max(1,
+    VIF_w))`` on the projected effective class counts; *design* = ``t_sum x day_factor x SD x se_1`` of the class coefficient."""
+    eff = _eff(pop) if len(pop) else pd.Series(dtype=bool)
+    pe = pop[eff] if len(pop) else pop
+    g = pe[term].to_numpy(float) if len(pop) else np.array([])
+    n1, n2 = float((g == 1).sum()) * scale, float((g == 0).sum()) * scale
+    dsg = design_ss(pe, term, controls) if len(pop) else {"n": 0, "ss_resid": float("nan"), "vif_w": float("nan")}
+    vif = dsg["vif_w"]
+    declared = mde_class(n1, n2, sd, de_gate, a, vif) * 100.0 if np.isfinite(vif) else float("inf")
+    se = design_se(pe, [term], controls, {term: 1.0}, float(a["de_rho"]), scale) if len(pop) else float("nan")
+    design = a["t_sum"] * a["day_factor"] * sd * se * 100.0 if np.isfinite(se) else float("inf")
+    return {"design_ss": dsg, "n1_eff_projected": n1, "n2_eff_projected": n2, "declared_c": declared, "design_c": design, "se_1": se,
+            "mde_class_c": float(max(declared, design)) if np.isfinite(declared) else float("inf")}
+
+
+def corr_pair(pop: pd.DataFrame, a: str, col: str, flag: str) -> dict:
+    """A gate correlation of a state with a control that is zero-filled where missing (own 24 h change, ``dV_prev``, ``sx_chg1h``): the
+    zero-filled value is pulled toward 0, so the gate takes the larger magnitude of the zero-filled and the present-values correlations
+    (check fix 5): it passes only if BOTH are within the cap (a degenerate one is NaN and fails)."""
+    return {"zero_filled": wcorr(pop, a, col), "present": wcorr(pop[pop[flag] == 0], a, col)}
+
+
+def corr_pair_ok(c: dict, cap: float) -> bool:
+    if "zero_filled" in c:
+        return corr_ok(c["zero_filled"], cap) and corr_ok(c["present"], cap)
+    return corr_ok(c, cap)
+
+
+def _q(x, qs=(0.1, 0.5, 0.9)) -> list:
+    v = np.asarray(x, float)
+    v = v[np.isfinite(v)]
+    return [float(t) for t in np.quantile(v, qs)] if len(v) else []
+
+
+def _events8(pop: pd.DataFrame, scale: float, covered_days: float) -> dict:
+    """Distinct events and the two projections of design 7: ``events x 21 / covered days`` (gated) and ``E_all + (E_all - E_day1) x (21 -
+    covered_days)`` (printed)."""
+    if pop.empty:
+        return {"events": 0, "events_projected_21d": float("nan"), "events_projected_21d_second_form": float("nan"), "covered_days": covered_days}
+    ev = pop["event_id"].astype(str)
+    days = sorted(pop["day"].astype(str).unique())
+    e_all = int(ev.nunique())
+    e1 = int(ev[pop["day"].astype(str) == days[0]].nunique())
+    second = float(e_all + (e_all - e1) * (21.0 - covered_days)) if np.isfinite(covered_days) else float("nan")
+    return {"events": e_all, "events_day1": e1, "events_projected_21d": float(e_all * scale) if np.isfinite(scale) else float("nan"),
+            "events_projected_21d_second_form": second, "covered_days": covered_days}
+
+
 def reward_detail(v, day: str | None = None) -> tuple[float, str, str]:
     """``(daily rate, state, reason)`` of a sidecar ``clob_rewards`` value. An empty / null field is UNREWARDED, not unknown (LT5 R and LT7
     parsed it as NaN and so removed the unrewarded class). States: ``unset`` (None, NaN, empty, whitespace or null-like text; rate 0.0),
@@ -1378,6 +1506,30 @@ VENDORED = {
   "source_commit": "60df6c47",
   "source_sha256": "03dd3be38f50ad12e00ed2487f189d0bf49299483720d499f5620c0023dc9d39"
  },
+ "_base_out": {
+  "normalised_sha256": "ed9c3ccfbf263c3a9ed34beb8c6832397735de8556d298bedb567e364ff95220",
+  "origin": {
+   "normalised_sha256": "ed9c3ccfbf263c3a9ed34beb8c6832397735de8556d298bedb567e364ff95220",
+   "source": "live_tests7.py",
+   "source_sha256": "e1c5c0c68f7c44d3d5038f9c28324008a4a8132e35f148721a33078d706766a0"
+  },
+  "prefix": "(?!)",
+  "source": "live_tests9_base.py",
+  "source_commit": "60df6c47",
+  "source_sha256": "03dd3be38f50ad12e00ed2487f189d0bf49299483720d499f5620c0023dc9d39"
+ },
+ "_common_cols": {
+  "normalised_sha256": "e513764a8f08b8ea9de4c7ad9c668128709d062220b93c4502c6a6cbdce05447",
+  "origin": {
+   "normalised_sha256": "e513764a8f08b8ea9de4c7ad9c668128709d062220b93c4502c6a6cbdce05447",
+   "source": "live_tests7.py",
+   "source_sha256": "e1c5c0c68f7c44d3d5038f9c28324008a4a8132e35f148721a33078d706766a0"
+  },
+  "prefix": "(?!)",
+  "source": "live_tests9_base.py",
+  "source_commit": "60df6c47",
+  "source_sha256": "03dd3be38f50ad12e00ed2487f189d0bf49299483720d499f5620c0023dc9d39"
+ },
  "_day": {
   "normalised_sha256": "193ce8fc116bfcf52669421c18fd7a25628ce7c4ce47b34c24eea8d22e13c98e",
   "origin": {
@@ -1419,6 +1571,18 @@ VENDORED = {
   "source_commit": "60df6c47",
   "source_sha256": "03dd3be38f50ad12e00ed2487f189d0bf49299483720d499f5620c0023dc9d39"
  },
+ "_drop_missing": {
+  "normalised_sha256": "0ef977ed4a5c9d83e4265a5e96d8bd40cd950f4dde09d075b7adfeb7772e6198",
+  "origin": {
+   "normalised_sha256": "0ef977ed4a5c9d83e4265a5e96d8bd40cd950f4dde09d075b7adfeb7772e6198",
+   "source": "live_tests8.py",
+   "source_sha256": "d1b252cff35d50675f91cb7c85a30a93e14b5b0a45cbbe970e382d802399e6d0"
+  },
+  "prefix": "(?!)",
+  "source": "live_tests9_base.py",
+  "source_commit": "60df6c47",
+  "source_sha256": "03dd3be38f50ad12e00ed2487f189d0bf49299483720d499f5620c0023dc9d39"
+ },
  "_eff": {
   "normalised_sha256": "4f6f7a9aa9ba7aa18f3b4eed645ae4e81e4a2487b8262025218d235b080ac9f3",
   "origin": {
@@ -1442,6 +1606,18 @@ VENDORED = {
    "normalised_sha256": "94613e69a3e13acdeba491e4d0c7bdabf183c2ffb22443af56effb0ed4cfdb2b",
    "source": "live_tests7.py",
    "source_sha256": "e1c5c0c68f7c44d3d5038f9c28324008a4a8132e35f148721a33078d706766a0"
+  },
+  "prefix": "(?!)",
+  "source": "live_tests9_base.py",
+  "source_commit": "60df6c47",
+  "source_sha256": "03dd3be38f50ad12e00ed2487f189d0bf49299483720d499f5620c0023dc9d39"
+ },
+ "_events8": {
+  "normalised_sha256": "2bd81e5c7f6e7437a6d760895b1bcc7214af90ddda37a262d3e42364c98db0d4",
+  "origin": {
+   "normalised_sha256": "2bd81e5c7f6e7437a6d760895b1bcc7214af90ddda37a262d3e42364c98db0d4",
+   "source": "live_tests8.py",
+   "source_sha256": "d1b252cff35d50675f91cb7c85a30a93e14b5b0a45cbbe970e382d802399e6d0"
   },
   "prefix": "(?!)",
   "source": "live_tests9_base.py",
@@ -1576,6 +1752,30 @@ VENDORED = {
   "source_commit": "60df6c47",
   "source_sha256": "03dd3be38f50ad12e00ed2487f189d0bf49299483720d499f5620c0023dc9d39"
  },
+ "_mid12": {
+  "normalised_sha256": "335c5b9f220ddb1b7ddfe1513c39ee3c09b1843e402bb9e9d7aaaaf21472cb38",
+  "origin": {
+   "normalised_sha256": "335c5b9f220ddb1b7ddfe1513c39ee3c09b1843e402bb9e9d7aaaaf21472cb38",
+   "source": "live_tests7.py",
+   "source_sha256": "e1c5c0c68f7c44d3d5038f9c28324008a4a8132e35f148721a33078d706766a0"
+  },
+  "prefix": "(?!)",
+  "source": "live_tests9_base.py",
+  "source_commit": "60df6c47",
+  "source_sha256": "03dd3be38f50ad12e00ed2487f189d0bf49299483720d499f5620c0023dc9d39"
+ },
+ "_movers_join": {
+  "normalised_sha256": "536e9f09c94b880d03b63e62ef6cde0b9494afb7fae5278ecb4e00d87705b4c3",
+  "origin": {
+   "normalised_sha256": "536e9f09c94b880d03b63e62ef6cde0b9494afb7fae5278ecb4e00d87705b4c3",
+   "source": "live_tests7.py",
+   "source_sha256": "e1c5c0c68f7c44d3d5038f9c28324008a4a8132e35f148721a33078d706766a0"
+  },
+  "prefix": "(?!)",
+  "source": "live_tests9_base.py",
+  "source_commit": "60df6c47",
+  "source_sha256": "03dd3be38f50ad12e00ed2487f189d0bf49299483720d499f5620c0023dc9d39"
+ },
  "_ms": {
   "normalised_sha256": "d93a09b1eee1b7d9082b044c0c7b6260be5ad3afda2c7139f2c22851adf462ff",
   "origin": {
@@ -1682,6 +1882,18 @@ VENDORED = {
   "source_commit": "60df6c47",
   "source_sha256": "03dd3be38f50ad12e00ed2487f189d0bf49299483720d499f5620c0023dc9d39"
  },
+ "_q": {
+  "normalised_sha256": "5472d2b30bd6e60346ef58a13a4231acd14dba718b6db75c14dbb4abab3f5e25",
+  "origin": {
+   "normalised_sha256": "5472d2b30bd6e60346ef58a13a4231acd14dba718b6db75c14dbb4abab3f5e25",
+   "source": "live_tests8.py",
+   "source_sha256": "d1b252cff35d50675f91cb7c85a30a93e14b5b0a45cbbe970e382d802399e6d0"
+  },
+  "prefix": "(?!)",
+  "source": "live_tests9_base.py",
+  "source_commit": "60df6c47",
+  "source_sha256": "03dd3be38f50ad12e00ed2487f189d0bf49299483720d499f5620c0023dc9d39"
+ },
  "_reward_cols": {
   "normalised_sha256": "52d82b48a60a7246b454acaabb433eb2e8a0b02cc0766e8a32c2b6ca1f9bef49",
   "origin": {
@@ -1705,6 +1917,18 @@ VENDORED = {
    },
    "source": "live_tests7_base.py",
    "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
+  },
+  "prefix": "(?!)",
+  "source": "live_tests9_base.py",
+  "source_commit": "60df6c47",
+  "source_sha256": "03dd3be38f50ad12e00ed2487f189d0bf49299483720d499f5620c0023dc9d39"
+ },
+ "_rv24": {
+  "normalised_sha256": "e6491f00934c358efa5c35f65485b1beb715590c9fccdb82e96e8c90c068319e",
+  "origin": {
+   "normalised_sha256": "e6491f00934c358efa5c35f65485b1beb715590c9fccdb82e96e8c90c068319e",
+   "source": "live_tests8.py",
+   "source_sha256": "d1b252cff35d50675f91cb7c85a30a93e14b5b0a45cbbe970e382d802399e6d0"
   },
   "prefix": "(?!)",
   "source": "live_tests9_base.py",
@@ -1965,6 +2189,18 @@ VENDORED = {
   "source_commit": "60df6c47",
   "source_sha256": "03dd3be38f50ad12e00ed2487f189d0bf49299483720d499f5620c0023dc9d39"
  },
+ "class_mde8": {
+  "normalised_sha256": "5deeaac66047d051e84ed2a550cbdb92d894d2d2d10ca3971f1aa3f49d6e8258",
+  "origin": {
+   "normalised_sha256": "5deeaac66047d051e84ed2a550cbdb92d894d2d2d10ca3971f1aa3f49d6e8258",
+   "source": "live_tests8.py",
+   "source_sha256": "d1b252cff35d50675f91cb7c85a30a93e14b5b0a45cbbe970e382d802399e6d0"
+  },
+  "prefix": "(?!)",
+  "source": "live_tests9_base.py",
+  "source_commit": "60df6c47",
+  "source_sha256": "03dd3be38f50ad12e00ed2487f189d0bf49299483720d499f5620c0023dc9d39"
+ },
  "classify": {
   "normalised_sha256": "6bf854bb0a707ad14d01a98bb3aa0c6c3c01beb3d734499e36e223fad3de14bf",
   "origin": {
@@ -2022,6 +2258,30 @@ VENDORED = {
    },
    "source": "live_tests7_base.py",
    "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
+  },
+  "prefix": "(?!)",
+  "source": "live_tests9_base.py",
+  "source_commit": "60df6c47",
+  "source_sha256": "03dd3be38f50ad12e00ed2487f189d0bf49299483720d499f5620c0023dc9d39"
+ },
+ "corr_pair": {
+  "normalised_sha256": "15c08f67824618700caae49cf0a427da29465e10f1e2781daa63419972ed7614",
+  "origin": {
+   "normalised_sha256": "15c08f67824618700caae49cf0a427da29465e10f1e2781daa63419972ed7614",
+   "source": "live_tests8.py",
+   "source_sha256": "d1b252cff35d50675f91cb7c85a30a93e14b5b0a45cbbe970e382d802399e6d0"
+  },
+  "prefix": "(?!)",
+  "source": "live_tests9_base.py",
+  "source_commit": "60df6c47",
+  "source_sha256": "03dd3be38f50ad12e00ed2487f189d0bf49299483720d499f5620c0023dc9d39"
+ },
+ "corr_pair_ok": {
+  "normalised_sha256": "15ab846e78b74dcb09beba35b4b1b32661aad3c0a45acb198827a4dbf48ce5f6",
+  "origin": {
+   "normalised_sha256": "15ab846e78b74dcb09beba35b4b1b32661aad3c0a45acb198827a4dbf48ce5f6",
+   "source": "live_tests8.py",
+   "source_sha256": "d1b252cff35d50675f91cb7c85a30a93e14b5b0a45cbbe970e382d802399e6d0"
   },
   "prefix": "(?!)",
   "source": "live_tests9_base.py",
@@ -2097,6 +2357,18 @@ VENDORED = {
    },
    "source": "live_tests7_base.py",
    "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
+  },
+  "prefix": "(?!)",
+  "source": "live_tests9_base.py",
+  "source_commit": "60df6c47",
+  "source_sha256": "03dd3be38f50ad12e00ed2487f189d0bf49299483720d499f5620c0023dc9d39"
+ },
+ "design_se": {
+  "normalised_sha256": "e09f58505796184b530d60d03e7f5c2f4d69df222fc984431e36be2de993d5e0",
+  "origin": {
+   "normalised_sha256": "e09f58505796184b530d60d03e7f5c2f4d69df222fc984431e36be2de993d5e0",
+   "source": "live_tests8.py",
+   "source_sha256": "d1b252cff35d50675f91cb7c85a30a93e14b5b0a45cbbe970e382d802399e6d0"
   },
   "prefix": "(?!)",
   "source": "live_tests9_base.py",
