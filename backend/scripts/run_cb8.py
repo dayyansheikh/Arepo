@@ -351,9 +351,10 @@ def cmd_exclusion_keys(a, cm):
         extra = _extra_pins(a.extra_pin)
     except ValueError as exc:
         raise cm.Refused(str(exc)) from None
+    from astrolabe.research_lab import cb8_exclusion_budget as xb  # noqa: PLC0415
     from astrolabe.research_lab import cb8_exclusion_fix as fix  # noqa: PLC0415
 
-    with fix.normalised_exclusion_ids() as norm:  # q0164b: composite seal ids -> market part (Gamma's id filter is integer-only); no hashed function is edited
+    with xb.scratch_uncounted(), fix.normalised_exclusion_ids() as norm:  # q0164c: resumable partial.jsonl scratch not charged to the hashed 0.01 GiB cap  # q0164b: composite seal ids -> market part (Gamma's id filter is integer-only); no hashed function is edited
         res = u.exclusion_keys(root, hb.httpx_transport(), rules_sha=sha, history_root=Path(a.history_root) if a.history_root else cm.HIST_ROOT,
                                seals_dir=Path(a.seals_dir) if a.seals_dir else None, extra_pins=extra, disk_cap=int(a.disk_cap_gb * 1024**3), dest_dir=root,
                                budget_min=a.budget_min, **kw)
