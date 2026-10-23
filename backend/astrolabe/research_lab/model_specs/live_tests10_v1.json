@@ -1,0 +1,392 @@
+{
+ "spec_id": "live_tests10_v1",
+ "status": "DRAFT (not registered; SPEC_SHA256 None; k_tests and every census_fixed value null until the censuses)",
+ "design": "docs/research_lab/LIVE_TESTS_10.md (design text frozen: sha256 1da6c07510f294c26ab0c69d17fd57bd6daefab7275d88f4bbeb6d3a130bc6e8 at 34b7e22e, after R1 REVISE, response, re-check ACCEPT_WITH_FIXES and fixes 1-6)",
+ "design_text_sha256": "1da6c07510f294c26ab0c69d17fd57bd6daefab7275d88f4bbeb6d3a130bc6e8",
+ "experiments": {
+  "CH224": "the hedged maker's price",
+  "CH223": "the other venue's makers flinch first",
+  "CH222": "the venue that traded first"
+ },
+ "registered_utc": "2026-11-10T00:00:00Z",
+ "end_utc": "2026-12-01T00:00:00Z",
+ "analysis_not_before": "2026-12-02T12:00:00Z",
+ "dates_comment": "proposed values of LIVE_TESTS_10.md 1.1; REGISTERED_UTC slides with steps (a)-(c) and the module constants must equal these (L6)",
+ "k_tests": null,
+ "k_tests_rule": "the tests whose CD10 gate passes (section 7), a subset of [CH224, CH223, CH222]; fixed at registration, never changed; a size-scenario failure sets only its own tests to p = 1 (1.8)",
+ "code_sha256": null,
+ "code_sha_rule": "normalised sha256 (SPEC_SHA256 line excluded) of live_tests10.py, live_tests10_analysis.py, live_tests10_base.py, xv_quotes_poller.py, xv_quotes_poller_base.py, bounce_decomp.py, economics.py, forecast.py (8.1)",
+ "scope": "non_sports_ex_crypto",
+ "scope_rule": "1.4 item 2: the default; ex_crypto only with the ledger line of an owner decision recorded before the design-text freeze; the seal records it and a spec scope that differs from the seal's is refused",
+ "f_roles": {
+  "CH224": "binding",
+  "CH223": "label",
+  "CH222": "label"
+ },
+ "f_roles_rule": "fixed per test by design (1.9), never by a census count; there is no f_binding key; live_tests10.f_role refuses any other value; CH223 also needs beta_twin < beta_lead (point estimates)",
+ "stream": {
+  "window_root": "data-dumps/research_lab/xv_quotes",
+  "window_route": "route 1 (D-LT10-1): quotes-only successor, src xv_quotes_v1",
+  "census_root": "data-dumps/research_lab/cross_venue_live"
+ },
+ "pair_record_rule": {
+  "L_s": 11400,
+  "refresh_rps": 0.5,
+  "retire_keep_s": 22800,
+  "rule": "1.2: census T_in = max(refreshed_utc + L, L_obs); window rule (re-check fix 1): in force at t only with a runs.jsonl load at a cycle <= t, t >= refreshed_utc + L and the file seen by the reader; L_obs is census-only"
+ },
+ "category_rule": {
+  "sports": "cb17_census.is_sports_sidecar(fee_type, fee_category, series_slugs) on the sidecar of the last capture completed before the day's 00:00Z; sidecar missing -> unknown",
+  "crypto": "live_tests9_base.crypto_class (vendored)",
+  "rule": "1.4 item 2"
+ },
+ "eligibility": {
+  "spread_max": 0.1,
+  "mid_range": [
+   0.03,
+   0.97
+  ],
+  "max_recv_lag_s": 60,
+  "lookback_tol_s": 240,
+  "outcome_tol_s": 120,
+  "grid_s": 600,
+  "poll_s": 120,
+  "min_window_polls": 4,
+  "boundary_s": 3840,
+  "rule": "1.3-1.5 (E009's validity rules, vendored)"
+ },
+ "tests": {
+  "CH224": {
+   "kind": "hedge",
+   "term": "zdsK",
+   "target": "dsP",
+   "horizon_s": 1200,
+   "twin_ahead_s": 1800,
+   "stratum": "event x UTC day",
+   "gate_seed_key": "CH224"
+  },
+  "CH223": {
+   "kind": "flinch",
+   "term": "pull",
+   "target": "a",
+   "horizon_s": 1200,
+   "twin_ahead_s": 1800,
+   "quiet_eps": 1e-05,
+   "pull_widen": 0.02,
+   "pull_size_frac": 0.5,
+   "stratum": "event x UTC day"
+  },
+  "CH222": {
+   "kind": "traded",
+   "term": "traded",
+   "target": "c",
+   "horizon_s": 1200,
+   "m1_horizon_s": 3600,
+   "twin_ahead_s": 1800,
+   "move_min": 0.005,
+   "stratum": "event x two-day block (anchor REGISTERED_UTC)"
+  }
+ },
+ "floors": {
+  "CH224": {
+   "units": 30000
+  },
+  "CH223": {
+   "withdrawals": 1500,
+   "no_withdrawals": 30000
+  },
+  "CH222": {
+   "traded": 2000,
+   "quote_only": 2000
+  },
+  "all": {
+   "events": 30,
+   "days": 10,
+   "g_eff": 15
+  }
+ },
+ "seeds": {
+  "estimators": {
+   "CH224": 20261301,
+   "CH223": 20261302,
+   "CH222": 20261303
+  },
+  "gates": {
+   "CH224": 20261391,
+   "CH223": 20261392,
+   "CH222": 20261393
+  },
+  "size_check": 20261397,
+  "power_runs": {
+   "CH224": 2026139741,
+   "CH223": 2026139742,
+   "CH222": 2026139743
+  },
+  "derived_rule": "non-binding runs on generators 20261397 x 100 + n (1.8.1)"
+ },
+ "gates": {
+  "draws": 200,
+  "alpha": 0.05,
+  "min_unit_pair": 4,
+  "min_rows_stratum": 16,
+  "offset_s_rule": "max(4, ceil(n_g / 4))",
+  "perm_method": "event-phase block circular-shift Freedman-Lane (one common offset per event stratum)"
+ },
+ "inference": {
+  "boot_draws": 2000,
+  "p_rule": "p = max(p_event on t with G_event - 1 df, p_two-way normal, p_day on t with G_day - 1 df); CH223 and CH222 event df use min(G_event, G_minor) - 1",
+  "one_sided": true,
+  "multiplier": 3.47
+ },
+ "size_check": {
+  "worlds": 2000,
+  "draws": 200,
+  "seed": 20261397,
+  "nominal": 0.05,
+  "limit": 0.058,
+  "limit_rule": "0.05 + 1.645 sqrt(0.0475 / worlds)",
+  "power_worlds": 500,
+  "binding_scenarios": {
+   "CH224": [
+    "w1",
+    "w2",
+    "w3",
+    "w8",
+    "w10_gate",
+    "w9",
+    "w10_verdict"
+   ],
+   "CH223": [
+    "w1",
+    "w2",
+    "w3",
+    "w6",
+    "w7",
+    "w10_gate",
+    "w10_verdict"
+   ],
+   "CH222": [
+    "w1",
+    "w2",
+    "w3",
+    "w4",
+    "w5",
+    "w10_gate",
+    "w10_verdict"
+   ]
+  },
+  "rule": "a failing scenario sets only the tests it is binding for to 'SE check failed' with k unchanged; the power runs never bind"
+ },
+ "reader": {
+  "max_store_bytes": 1610612736,
+  "freeze_before_s": 1080,
+  "cadence": "host cron 3-58/5 * * * *"
+ },
+ "economics": {
+  "e009_spec": "cross_venue_live_v1.json",
+  "e009_spec_sha256": "e63f20cc095ba88346155cabe0d2e4289981017cc48450ccc575bbc7d0d16e2b",
+  "e010_spec_sha256": "62b992c6af95ff9a508d8c3130c3ec3ae3333e582bf822d051ea72da46e4961c",
+  "rule": "1.10 reported only"
+ },
+ "census_inputs": {
+  "span": {
+   "start_utc": "2026-10-21T00:00:00Z",
+   "end_utc": "2026-10-31T00:00:00Z"
+  },
+  "quote_days": [
+   "20261020",
+   "20261021",
+   "20261022",
+   "20261023",
+   "20261024",
+   "20261025",
+   "20261026",
+   "20261027",
+   "20261028",
+   "20261029",
+   "20261030",
+   "20261031"
+  ],
+  "pair_refresh_window": [
+   "2026-10-19T00:00:00Z",
+   "2026-10-31T00:00:00Z"
+  ]
+ },
+ "mde_planning": {
+  "CH224": {
+   "sd": 0.01,
+   "sd_rule": "SD of dsP 1.0c",
+   "gap_sd": 2.2
+  },
+  "CH223": {
+   "sd": 0.005,
+   "sd_rule": "SD of a 0.5c"
+  },
+  "CH222": {
+   "sd": 0.007,
+   "sd_rule": "SD of c 0.7c"
+  }
+ },
+ "census_gates": {
+  "mde_common": {
+   "t_sum": 3.47,
+   "day_factor": 1.5,
+   "de_rho": 0.0016667,
+   "rule": "every MDE gate is max(declared, design); t_sum = max(3.47, exact)"
+  },
+  "design_effect": {
+   "floor": 51.0,
+   "icc": 0.0016667
+  },
+  "working_covariance": {
+   "adjacent": 0.5,
+   "same_origin_event": 0.5,
+   "event": 0.0016667
+  },
+  "CF10": {
+   "min_covered_days": 7.0,
+   "field_presence_min": 0.95,
+   "pair_min_eligible_origins": 144,
+   "min_pairs": 60,
+   "min_events": 30,
+   "min_g_eff": 15,
+   "max_late_share": 0.1,
+   "event_exclusion_share": 0.4
+  },
+  "CK10": {
+   "CH224": {
+    "min_projected_units": 31000,
+    "min_nonzero_share": 0.1,
+    "pair_min_units": 500,
+    "pair_nonzero_min_share": 0.05,
+    "pair_majority": 0.5,
+    "min_pairs": 30,
+    "min_sign_share": 0.25,
+    "max_modal_hour_share": 0.5,
+    "max_r_gate": 0.3,
+    "min_r_pairs": 30
+   },
+   "CH223": {
+    "min_projected_quiet_untraded": 50000,
+    "withdrawal_share_range": [
+     0.01,
+     0.15
+    ],
+    "min_projected_withdrawals": 2920,
+    "max_modal_hour_share": 0.5,
+    "max_lag1_autocorr": 0.5,
+    "max_modal_minute_share": 0.5,
+    "min_withdrawals_per_pair": 10,
+    "pair_majority": 0.5,
+    "min_pairs": 30
+   },
+   "CH222": {
+    "min_projected_traded": 9650,
+    "min_projected_quote_only": 9650,
+    "traded_share_range": [
+     0.15,
+     0.85
+    ],
+    "max_ambiguous_share": 0.25,
+    "max_modal_hour_share": 0.5,
+    "min_moves_per_pair": 20,
+    "min_within_sd": 0.2,
+    "pair_majority": 0.5,
+    "min_pairs": 30
+   }
+  },
+  "CD10": {
+   "CH224": {
+    "min_g_eff": 15,
+    "max_vif_w": 2.0,
+    "max_abs_corr": 0.5,
+    "within_corr_terms": [
+     "abs_dk1",
+     "traded",
+     "dsP_own",
+     "lpb_t",
+     "lpa_t",
+     "rv60_K"
+    ],
+    "pooled_corr_terms": [
+     "lpb_t",
+     "lpa_t"
+    ],
+    "min_block_share": 0.5,
+    "max_mde_c": 1.0,
+    "max_f_mde_c": 1.0
+   },
+   "CH223": {
+    "min_g_eff": 15,
+    "max_vif_w": 2.0,
+    "max_abs_corr": 0.5,
+    "within_corr_terms": [
+     "rv60_K",
+     "rv60_P",
+     "lkb_s0",
+     "lka_s0",
+     "sK_s0"
+    ],
+    "pooled_corr_terms": [
+     "rv60_K"
+    ],
+    "min_block_share": 0.5,
+    "max_mde_c": 0.5
+   },
+   "CH222": {
+    "min_g_eff": 15,
+    "max_vif_w": 2.0,
+    "max_abs_corr": 0.5,
+    "within_corr_terms": [
+     "abs_dk1",
+     "rv60_K",
+     "rv60_P",
+     "lkb_t",
+     "lka_t"
+    ],
+    "pooled_corr_terms": [
+     "abs_dk1"
+    ],
+    "min_block_share": 0.5,
+    "max_mde_c": 0.5
+   }
+  }
+ },
+ "census_fixed": {
+  "exclude_event": null,
+  "scale_K_cents": null,
+  "rho_x1": {
+   "CH224": null,
+   "CH223": null,
+   "CH222": null
+  },
+  "OF": {
+   "CH224": null,
+   "CH223": null,
+   "CH222": null
+  },
+  "DE_gate": {
+   "CH224": null,
+   "CH223": null,
+   "CH222": null
+  },
+  "rv60": {
+   "rv60_P": {
+    "centre": null,
+    "scale": null
+   },
+   "rv60_K": {
+    "centre": null,
+    "scale": null
+   }
+  },
+  "rule": "filled with the exact census floats at registration (8.4 step 6); outside the seal-hashed blocks"
+ },
+ "vendored": {
+  "cross_venue_live.py": "eac14e68dc7a9d60610d9ea5d2edfdc39be73afd0192d6b41cd3d5459e5ef581",
+  "cross_venue.py": "5264083948a77679189f14471290c2f84bf71dac01fc9632cb0633fdb59ace99",
+  "live_tests9_base.py": "03dd3be38f50ad12e00ed2487f189d0bf49299483720d499f5620c0023dc9d39",
+  "cb17_census.py": "6b98bab8bde4238edbe56e32d5672c72a04acc04d662bec7b393e3cbf806a15a",
+  "cb13_label.py": "2fbf4b91e3ee3db413098866a6d99b24bcdf5e0c97750820de8edbc6fc789380"
+ }
+}

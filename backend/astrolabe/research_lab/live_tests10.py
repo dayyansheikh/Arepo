@@ -741,7 +741,7 @@ def twins(A: dict, t0: int, origin_cols: np.ndarray, pids_rows: np.ndarray) -> p
     kb, ka = A["k_bid"], A["k_ask"]
     kv = np.isfinite(two_sided_vec(kb, ka))
     rows = pids_rows[:, None] if pids_rows.ndim == 1 else pids_rows
-    j = np.broadcast_to(origin_cols, (rows.shape[0], len(origin_cols))).astype(np.int64)
+    j = np.broadcast_to(origin_cols, np.broadcast_shapes(np.shape(origin_cols), rows.shape)).astype(np.int64)
     rows = np.broadcast_to(rows, j.shape)
 
     def end(c: int) -> np.ndarray:
