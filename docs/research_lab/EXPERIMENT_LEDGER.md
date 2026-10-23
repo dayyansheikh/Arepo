@@ -4403,3 +4403,15 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   of worlds 12-14), a disabled census-value refusal, q0691's `not_before` before the last sealed capture, and the `battery2`
   kind entry moving LT10's code hash (LT10 has no freeze record yet; LT11 merges before it). 11 SHOULD-FIX incl. a clock-only
   timing mode. No fix needs the frozen text changed. Fixes being applied on the branch; then a re-check.
+
+## LT12 design draft, 2026-10-23 (~23:50Z; experiments autopilot; nothing counted)
+- **Draft** `docs/research_lab/LIVE_TESTS_12.md` (`feat/live-tests-12`, fd9c425f, sha256 `64fe3e7b…2cac`, 909 lines): DRAFT, not
+  frozen, R1 not run, not registered, E-numbers unassigned. One Holm family, k <= 3, one-sided alpha 0.05: **CH245** the mirror
+  (thin book's next spread change on the dense book's spread innovation, complete two-member neg-risk pairs; two binding point
+  conditions; F binding), **CH244** the farmed half (`shock x unrew` in complete mixed 3-10 member ladders; low-liquidity twin
+  point condition; F binding), **CH243** the fee (conditional; fee-on vs fee-free difference in traded-minus-quote-only
+  continuation; `volume_num` missing = counted third class; median-based count gate; F proposed as a label, ambiguity A1).
+- CH251 / CH240 maps as planning counts only. Tiers from the row's `liquidity` with the cost model's bins (no tiers in captures).
+  Fast lane: seal [11-07, 11-17), window 12-10..12-31, analysis >= 2027-01-01T12Z, freeze before the seal and `T_LT11`; else
+  ordered lane from >= 2027-01-22. Seed 20261597; queue ids q0710-q0715; tokens `mirror`, `mixedlad`, `feeclass`, `attrlimit_lt12`.
+- Designer's census odds (judgement): CH245 0.30, CH244 0.30, CH243 0.04; P(no test) ~0.47. **Next:** challenger R1 (running).
