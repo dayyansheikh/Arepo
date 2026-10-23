@@ -99,7 +99,8 @@ with no test; LT8 closed with no test on 2026-10-23 (CC8: CH204's scheduled mark
 against 500, cap and block shares; CS8: CH203's projected units 431,399 against 504,000 with every power gate passed, CH202's
 held share 0.067 against 0.15). E022 alone survived (DE 6.196, `m_21` 260.8). The lessons applied here: (i) the MDE gate and
 the count gate both kill, so every test states **the count at which its binding gate passes** (0, 2-4) and its count gate is
-set at or above that line, never below; (ii) a share gate on a quantity nobody has measured kills as surely as a count (CH202),
+set at or above that line at the base planning values (the planned DE and `VIF_w`), never below; the MDE gates then decide
+with the census's own values; (ii) a share gate on a quantity nobody has measured kills as surely as a count (CH202),
 so every share gate here is either measured by the map (and the margin stated) or flagged unprobed; (iii) whole-panel
 populations have whole-panel design effects, and a population several times E022's computes a larger `m_21` (2.2 projects
 it), so DE 6.196 is quoted as the optimistic end for CH234, not the plan; (iv) **a field's semantics are declared before any
