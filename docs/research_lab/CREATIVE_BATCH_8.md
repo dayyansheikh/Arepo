@@ -174,6 +174,38 @@ population only; W and H exclude them (`CB1_UPDOWN_RE`).
   and never h4 data (as CB4-C to CB7, disclosed).
 - **J4-R window.** No CB8 row lies in `[2026-10-16, 2026-10-21)`: B ends 08-10, W before 10-01, and H starts ≥ 10-21T06:00Z.
 
+#### Amendment 2026-10-23 (B only): series key waived (`seals/cb8_rules_v3.json`)
+
+Ruling: `reviews/CB8B_SERIES_KEY_RULING_2026-10-23.md` (VARIANT_ALLOWED_WITH_CONDITIONS). Nothing above is edited; this block
+adds to it.
+
+- **Why.** q0165 (rules v2) found 783 daily crypto Up/Down candidates; 118 matched the exclusion set by market id and 665 by
+  series key; 0 were kept. The series key removed the family under study wholesale. It adds no protection against reuse (a
+  series id only links separate daily markets, each with its own outcome). q0165 read only ids, question and rule text, keys and
+  counts; the frame holds no price and no outcome. This amendment is declared as a post-count change to the rule at §1.4 ("no
+  rule revised after any B read"), not an operations fix.
+- **What changes (B only).** The series key is not applied when B drops frame markets. The market-id, event-id and
+  negRiskMarketID keys stay. The same key set (id, event, neg-risk, without series) applies at the q0166b seal-time drops, which
+  re-read every seal copy committed by then, including CB9 to CB13. W and H are unchanged (W/H data rules, series key included
+  where they apply it, are untouched).
+- **Run mechanics.** New data-rules version `seals/cb8_rules_v3.json`. New jobs q0165b (frame) and q0166b (books) with new run
+  directories `updown_frame_b` and `updown_b`; q0165 and q0166 stay recorded as "frame empty (series overlap); operational,
+  nothing counted", and none of their files is opened, reused or moved. q0165b fetches the Gamma frame again; the Binance
+  archives are fetched again (the zips were not kept) and verified against Binance's CHECKSUM; an optional comparison of the
+  refetched zip sha256 values with q0165's recorded `archives` meta is recorded, nothing is reused. The q0161 smoke (criteria b and
+  c, made under v2) is accepted under v3 because the amendment changes neither source test.
+- **Reporting added (descriptive, binding nothing).** q0165b reports the id drops by source pin (h1/h2/h3, h5, CB5, C1, other
+  seals) with the number of distinct days they cover, and the list of days on which an id-dropped Up/Down market settled (a B1
+  sensitivity that leaves those days out). Frame fields only.
+- **Unchanged.** Regexes, checkpoints, z rule, cap, gate GB and the 90% coverage audit, MDE, placebos, the day-cluster way and
+  the Erratum E1 tail-gate margins. `seals/cb8_b_analysis_rules.json` changes only its `data_rules_sha256` (to v3's hash) and the
+  `model_specs/cb8_v1.json` freeze will carry that hash.
+- **Multiplicity.** B1 still counts once in battery2; k1 = 3 and Stage-2 Holm k <= 3 are unchanged. If q0165b is also empty, or GB
+  or the audit fails, B1 is "not testable", counted once (p = 1). There is no further variant.
+- **Disclosure carried by any B1 result.** "population admitted by a post-count amendment waiving the series key; no price or
+  outcome read before the amendment". The evidence ceiling stays `exploratory_historical` (L1, or L2 at Stage 2).
+- **Status.** Needs a `science-reviewer` pass before any job runs.
+
 ### 1.4 Rules files
 
 - `seals/cb8_holders_rules.json` (before q0160/q0162) fixes the H collection frame, sample sizes and seeds, the
