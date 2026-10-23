@@ -1003,3 +1003,27 @@ notices. `input_health.py` checks the newest capture at every tick.
   and a shrunk universe; pending, then missing, then backfilled; short history; a missed capture; `live_status`).
 - Not done: the /lab web page does not render `inputs` yet (a production-branch PR); until then it is visible in
   `dashboard.json`, the snapshot and `status`.
+
+## 32. Development probe: LightGBM refitted on the whole window (`refit_full`, 2026-10-23 ~23:50Z; no scoring change)
+
+**Question.** `fit_lgbm` trains on the older 80% of each window's origins. The newest 20% (about 2.8 of 14 days) is the
+inner validation block: early stopping and temperature use it, and the deployed booster never learns from it. Markets
+drift, so those are plausibly the most informative days. Early prospective calibration points the same way: the
+LightGBM slopes are 1.06-1.09 on every direction target (3 days, under-confident), against 0.97-1.04 for the logistic
+champion. That is a hint, not a test.
+- **Learner option.** `params.refit_full` (default absent, so false) in `learners.fit_lgbm`. After the inner fit, it refits
+  on every frame row with `round(best_iteration x refit_full_scale)` rounds (scale default 1.0) and keeps the inner
+  temperature. Every frame row's label is available before the fit time (section 5), so causality is unchanged. **No
+  pinned spec sets it** (test `test_refit_full_is_opt_in_and_learns_from_every_frame_row`), so live fits, predictions and
+  sha pins are unchanged.
+- **Probe.** `scripts/run_se_dev_refit_full.py`: `walkforward.run_walkforward(write=False)` on an in-memory registry of
+  se1 and a copy `se1f_dev_lgbm_mm_full` (se1's spec plus `refit_full`, never registered), over the last 5 complete days
+  at 200k rows. The gain is reported against se1, not the champion. The only output is the write-once
+  `dev/refit_full_<stamp>.json` (test `test_dev_refit_full_probe_writes_only_its_own_dev_file`). Queue job
+  `q0516_se_dev_refit_full` runs at priority 30, below every other ready job.
+- **Reading, fixed now.** This is development / historical evidence. It never enters the leaderboard, the dashboard or
+  the promotion rule.
+  - Worth a registered challenger (a new spec id, K + 1, prospective scoring like any other) only if the variant beats
+    se1 on all three direction targets, with each CI excluding zero and at least 4 of 5 days positive.
+  - A null or mixed result is recorded here as a dead end, and nothing is registered.
+- Result: pending (q0516).

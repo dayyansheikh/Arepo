@@ -4471,3 +4471,12 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   `feeclass`). Pre-freeze engine check: no scored family holds either state, no *informed (engine)*.
 - **Next:** LT12 code (census, size-check worlds incl. the CR1 state-shift gate and world 1 calibration, reader, analysis;
   queue drafts), its independent code-freeze check (which must confirm re-check fixes 1-2 in code), before the seal.
+## Signal engine: `refit_full` development probe queued, 2026-10-23 ~23:50Z (signal-engine autopilot; development only, nothing counted)
+- Question: the LightGBM models never learn from the newest ~20% of their window (it is used only for early stopping and
+  temperature). Does a refit on the whole window forecast better? DESIGN_V1 §32.
+- Opt-in `params.refit_full` in `learners.fit_lgbm`; no pinned spec sets it, so live fits, predictions and sha pins are
+  unchanged.
+- Probe `run_se_dev_refit_full.py` (queue `q0516`, priority 30, below every other ready job): se1 against an unregistered
+  copy over 5 days. It writes only `dev/refit_full_<stamp>.json` and never touches the leaderboard, dashboard or promotion.
+- Reading rule fixed before the run: a registered challenger only if the copy beats se1 on all 3 direction targets, with
+  each CI excluding zero and >= 4/5 days positive; otherwise a dead end.

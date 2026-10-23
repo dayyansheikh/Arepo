@@ -402,7 +402,7 @@ equals its source (the test checks). Do not edit the LT5 spec while q0561/q0562 
 **Waiting:**
 - MC1: after the resize (item 4).
 - CB4 q0085 not before ~10-24T12Z. CB5 q0103b on or after 10-27, then q0106. CB3 freeze after q0064 (after 10-25).
-- Signal engine: live state in `signal_engine/STATUS.md` (10-23 23:15Z session 27: input-coverage monitor `input_health.py` (DESIGN_V1 §31) runs at every tick and flags absent / dropped / all-zero columns, missing aux tables, universe shrink and capture gaps; host backtest 9/72 alerts, all from the 10-21 00:31Z/02:31Z missed passes. `tilt` 82/134, complete before the 10-24 12:14Z refit. 3 days scored; no promotion before ~11-04.)
+- Signal engine: live state in `signal_engine/STATUS.md` (10-23 23:50Z session 27: input-coverage monitor `input_health.py` (DESIGN_V1 §31) runs at every tick; `refit_full` development probe q0516 queued (DESIGN_V1 §32, rule fixed before the run); /lab `inputs` display on `feat/lab-se-inputs` and flags absent / dropped / all-zero columns, missing aux tables, universe shrink and capture gaps; host backtest 9/72 alerts, all from the 10-21 00:31Z/02:31Z missed passes. `tilt` 82/134, complete before the 10-24 12:14Z refit. 3 days scored; no promotion before ~11-04.)
 
 ## Learned surprise-move detector (2026-10-12 evening)
 `docs/research_lab/SURPRISE_MOVE_DETECTOR.md`. Labels fixed and logged before features (`surprise-labels-v1`,
