@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-24 00:09 UTC+1
+**Last updated:** 2026-10-24 00:22 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -11,10 +11,11 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
   simulated "fake data" worlds, used to check that the tests don't raise false alarms, were built more simply than the frozen
   design says. That would have made the safety check too easy to pass. Every fix is in the code; the frozen design is unchanged.
   A second check follows. Counting checks after 7 Nov; collection from 18 Nov if a test survives.
-- **LT12 design: the challenger removed one of its three ideas.** "The fee as the price of urgency" relied on an optional
-  falsification check, and an earlier ruling says that check must always count, so it leaves (kept as an idea for the signal
-  engine). Two tests remain: "the mirror" and "the farmed half". The revised draft is being re-checked. Its author now puts the
-  chance that neither survives counting at about 60%.
+- **LT12 design is frozen (23 Oct, late evening).** Two tests: "the mirror" (in a two-option event, does one order book's
+  spread change predict the other's?) and "the farmed half" (when only some options in an event pay market-maker rewards, do
+  the unpaid ones react differently to the same shock?). The third idea, the fee, was removed by the challenger. It passed a
+  challenger review, a re-check and a final check; nothing was loosened. Its code is being written now. Counting checks on
+  7-17 Nov data; collection 10-31 Dec if a test survives. Its author's honest estimate: about a 60% chance that neither survives.
 - **Batch 8, "last-minute certainty" (crypto Up/Down):** the allowed retry found 665 markets. The order-book coverage check is
   queued behind the long model run MC1.
 - **Fixed a silent stall:** two background data extractions (for batches 4 and 5) had been refusing to run since 17 Oct
@@ -26,7 +27,7 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 - **Seven registered live tests** are collecting or waiting to collect (E009/E010, E011, E012-E014, E015, E022, E026).
   Single analyses: E009/E010 (3 Nov), E011 (11 Nov), E012-E014 (13 Nov), E015 (15 Nov), E022 (17 Nov), E026 (6 Dec).
 - **Planned live-test families:** LT9 (frozen, code done, data seal after 12 Nov), LT10 (frozen, code done, counting checks after
-  3 Nov), LT11 (frozen today, code in progress). LT5-LT8 closed at their counting checks with no test (nothing counted).
+  3 Nov), LT11 (frozen 23 Oct, code being fixed after its check), LT12 (frozen 23 Oct, code in progress). LT5-LT8 closed at their counting checks with no test (nothing counted).
 - **Copy-skilled wallets (E026):** registered; collection starts 25 Oct (phone note then).
 - **Security check (23 Oct):** no confirmed holes; 5 things to check (`docs/security/AUDIT_2026-10-23_RUN1.md`); most important:
   confirm Render has a strong AUTH_SECRET.
