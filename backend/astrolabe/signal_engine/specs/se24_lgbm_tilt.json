@@ -6,7 +6,7 @@
  "derived": [
   "base"
  ],
- "description": "Learner-matched collateral tilt (CANDIDATES CH235, development only): LightGBM with se1_lgbm_mm's params on the champion's features + the tilt aux family (se-aux-tilt-v1: cheap-side collateral min(p, 1-p), cheap side, the collateral of the side a 2 h move bought (the post-move analogue of CH234's w, 2 h movers only), the market's own fee schedule's taker fee and maker rebate a share, spread over collateral). Read against se1_lgbm_mm for the family effect. Built from the features file and the capture's own sidecar; trains only when every labelled capture of the window has the table. Embargoed under the provisional token tilt (LT11 CH234 draft).",
+ "description": "Learner-matched collateral tilt levels (CANDIDATES CH235, development only): LightGBM with se1_lgbm_mm's params on the champion's features + the tilt aux family (se-aux-tilt-v1: cheap-side collateral min(p, 1-p), cheap side, the market's own fee schedule's taker fee and maker rebate a share, spread over collateral). Read against se1_lgbm_mm for the family effect. Built from the features file and the capture's own sidecar; trains only when every labelled capture of the window has the table. Level columns only (CH234's w is held back until LT11's freeze); not embargoed.",
  "families": [
   "market_state",
   "momentum",

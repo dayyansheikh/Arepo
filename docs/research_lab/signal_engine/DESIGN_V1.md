@@ -173,7 +173,6 @@ champion (market state + momentum), the learner reference and broad multi-family
 | bandbreak, pool, rwblink (no models yet) | 2027-02-14T00:00Z (the later of that and LT9's analysis commit) | LT9 CH213, CH214, CH212 (design text frozen 11fee7a0; LIVE_TESTS_9.md section 9 requests, round 6, applied 2026-10-22 ~23:00Z). No isolating `pool` challenger is scored before LT8's `quietbook` date in any case. `rwend` (CH215) gets a token only if CH215 enters at its census; no rwend family is built before then |
 | dispgap | 2026-11-14T00:00Z (the later of that and LT2's analysis commit, q0461) | E012 (`dg_1d` is E012's primary x minus its pre-declared Gamma `oneDayPriceChange` sensitivity; se22 is scored on `dir_24h`, E012's horizon), E013 / E014 (`chg_1d` / `chg_1w` as controls); added 2026-10-22 ~23:15Z with `se22_lgbm_dispgap` (science review must-fix 2), before any table or score existed (section 26) |
 | dormant | 2026-11-19T00:00Z (as `surprise`) | E011 (its surprise label requires a quiet prior day, and secondary (a) reads "quiet markets that then move"; `dm_*` encode that quietness); added 2026-10-22 ~23:15Z with `se23_lgbm_dormant` (science review must-fix 1; CH220 asked for it), before any table or score existed (section 26) |
-| tilt | 2027-03-09T00:00Z (provisional: the later of that, the earliest ordered-lane end, and LT11's analysis commit; shortened or withdrawn (not before 11-22) at LT11's freeze by a ledger line) | LT11 CH234 (draft): `tl_w2h` is the post-move analogue of CH234's `w`; added 2026-10-23 ~13:30Z with `se24_lgbm_tilt` and `se25_lr_tilt`, before any tilt table or score existed (section 29) |
 | attrlimit_lt8, attrlimit_lt9 (attribution limits, not family tokens) | lt8 **withdrawn 2026-10-23T08:00Z** (was 2027-01-23; LT8 closed with no test), lt9 2027-02-14T00:00Z | LT8 and LT9 section 9: no attribution (SHAP or otherwise) of the champion, se18 / se9 or any broad model on the listed interaction terms (`limits`), and no LT8 / LT9 family in a broad model (`no_broad_families`), before the date. They match no family or spec, so they hide nothing by themselves; the engine's attribution is per family only (section 17), so none of the terms is computed. A test guards `no_broad_families` |
 
 LT3/LT4 dates are the proposed windows; when they register, move the dates **later** if needed (never earlier).
@@ -902,60 +901,55 @@ family or `se-aux-xvenue2-v1` exists, so nothing has been computed or shown on t
 - Tests: `test_lt10_round7_requests`, `test_xvenue_reads_both_roots_and_keeps_e009_src`; the LT7/LT9 broad-spec test now
   also lists `attrlimit_lt10`, and its generic loop fails if a broad spec holds `kxbook`.
 
-## 29. `tilt`: the collateral tilt (2026-10-23 ~13:30Z; development family, CH235)
+## 29. `tilt`: collateral-tilt levels (2026-10-23 ~13:10Z; development family, CH235)
 
 **Why.** Round 16 (`CREATIVE_HYPOTHESES_2026-10-30.md` section D) ranks CH235 first of its engine-first families. On a
 binary venue the price of a share is its collateral, so a maker paid per minute or per fill is pushed to the cheap side
-`min(p, 1 - p)`, and the collateral of the side a move bought (90c for a move up at 0.90, 10c for a move down) is a state
-the logistic champion holds only as separate main effects of `mid` and the own 2 h change. Prior: HB1 PX1 (longshots
-drift down over 24 h) survived as a level fact, and PX5 carried the same sign without surviving Holm. Ideas only: no
-evidence yet, development or prospective.
-- **Aux family `tilt` (`se-aux-tilt-v1`, `aux.tilt_features`).** p = the origin Gamma mid (`ms_mid`), d = `mo_d2h`.
-  - `tl_collat` = min(p, 1 - p); `tl_cheap_side` = sign(p - 0.5).
-  - `tl_w2h` = 0.5 + sign(d)(p - 0.5) on 2 h movers (|d| > DELTA, the targets' flat band), NaN otherwise. This is the
-    post-move analogue of CH234's `w`: CH234 takes the pre-move price p_{k-1} on traded movers with |d| >= 0.01, so
-    `tl_w2h` = `w_pre` + |d| (it still shadows CH234: LightGBM can recover `w_pre`, the logistic gets the sign-by-level product).
+`min(p, 1 - p)`, and the taker fee has the price shape `rate x p(1 - p)`. The logistic champion holds `mid` and the
+category only as separate main effects and cannot form either shape. Prior: HB1 PX1 (longshots drift down over 24 h)
+survived as a level fact, and PX5 carried the same sign without surviving Holm. Ideas only: no evidence yet.
+- **Aux family `tilt` (`se-aux-tilt-v1`, `aux.tilt_features`), level columns only.** p = the origin Gamma mid (`ms_mid`).
+  - `tl_collat` = min(p, 1 - p); `tl_cheap_side` = sign(p - 0.5); `tl_spread_collat` = spread / `tl_collat`.
   - `tl_fee_ps` = the market's own Gamma `fee_schedule` rate x (p(1 - p)) ** exponent (exponent 1 when absent); 0 where
     `fees_enabled` is false; NaN without a schedule. No docs-rate fallback: `costs.taker_rate`'s conservative 0.07 for an
     unknown category is a cost-check convention, not a measured value, so missing stays missing.
-  - `tl_rebate_ps` = the schedule's `rebateRate` x `tl_fee_ps` (0 where fees are off).
-  - `tl_spread_collat` = spread / `tl_collat`.
-  - Inputs: capture k's features file and its own sidecar `rows_ext.csv.gz` (the same Gamma response as the origin row).
-    The table records the sidecar's sha256 (`rows_ext_sha256`). An older sidecar without the fee columns gives NaN fee
-    columns; the rest stand.
-- **Departures from CH235:** `tl_w2h` is taken at the origin (post-move) mid on every 2 h mover with |d| > DELTA, not at
-  the pre-move price on traded movers with |d| >= 0.01 (CH234's `w`); an exponent of 0 in a schedule is taken literally
-  (every observed schedule has exponent 1); the rebate uses the per-market schedule's `rebateRate`, not the category's docs share; the
-  dated columns `tl_w_traded` (after 11-22, `movetype`) and `tl_rew_outside` (after 11-18, `rewards`) are not built (a
-  later version may add them after those dates, as a new aux version and new specs).
-- **Embargo token `tilt` until 2027-03-09T00:00Z (provisional, conservative).** `tl_w2h` is the post-move analogue of
-  CH234's `w`, and CH234 ("continuation at k + 1 rises with `w`") is a planned LT11 test whose design text is not frozen.
-  A visible isolating score on `dir_2h` would inform that design (se25, the logistic isolate, is the purest view of it).
-  CH235's own text needed no token for `tl_w2h`; the builder hides the whole family anyway, because hiding costs nothing
-  while the scoring clock runs. The date is the later of 2027-03-09T00Z and LT11's analysis commit: 2027-03-09 is the
-  **earliest** end of LT11's ordered lane (registered no earlier than 2027-02-14, 21 days, analysis >= 36 h after), so a
-  ledger line extends it if the lane registers later. It is shortened, by a ledger line only, to the later of the fast
-  lane's analysis commit and 2026-12-10T12:00Z if LT11 freezes in the fast lane with CH234. If LT11 freezes without CH234,
-  it is withdrawn no earlier than 2026-11-22T00:00Z, after re-checking E015 (traded / quote-only movers) and E022 S2
-  (rewards). The level columns are not split into their own visible family: for LightGBM they are functions of `mid`, the
-  category and the schedule, so the visible part would add K for almost no information. Disclosed: se1 (visible) can
-  learn `w` from `mid` x `mo_d2h`; that is LT11's attribution-limit matter (its limit should name se1 explicitly), not this
-  family's.
-- **Science review (2026-10-23 ~13:35Z): ACCEPT_WITH_FIXES.** No leakage (capture k's features file and own sidecar only;
-  the next capture changes nothing); no other live test shadowed beyond the date; fee parse correct (`rebateRate` is the
-  fee-rebate share, not the liquidity-rewards flag); `parentsib` census sound (33x below its line). Fixes applied: the
-  date is the earliest ordered-lane end, not the latest; `tl_w2h` is not exactly `w`; a withdrawal waits for 11-22.
+  - `tl_rebate_ps` = the schedule's `rebateRate` x `tl_fee_ps` (0 where fees are off; `rebateRate` is the fee-rebate
+    share, not the liquidity-rewards programme).
+  - Inputs: capture k's features file and its own sidecar `rows_ext.csv.gz` (the same Gamma response as the origin row),
+    whose sha256 the table records (`rows_ext_sha256`). An older sidecar without the fee columns gives NaN fee columns.
+- **Not built.** `tl_w2h` (a collateral weight signed by the 2 h move, the post-move analogue of CH234's `w`):
+  `LIVE_TESTS_11.md` section 9 asks that no scored family hold it before LT11's freeze (CH234 is LT11's lead test), and
+  that is followed exactly; it may come back as a new aux version after the freeze, under `dollarw` if CH234 registers.
+  The dated `tl_w_traded` (11-22, `movetype`) and `tl_rew_outside` (11-18, `rewards`) are not built either.
+- **Departures from CH235:** the rebate uses the per-market schedule's `rebateRate`, not the category's docs share; an
+  exponent of 0 is taken literally (every observed schedule has exponent 1).
+- **No embargo token.** LT11 section 9 names `tl_collat`, `tl_cheap_side`, `tl_fee_ps` and `tl_rebate_ps` as levels that
+  may be built; `tl_spread_collat` (the origin spread over min(p, 1 - p)) is a level of the same kind and none of the hold's
+  three objects (a weight x move product, a siblings' bid- / ask-sum change, a 0.10 / 0.90 crossing indicator). With no move-signed column, neither challenger isolates
+  CH234: se24's trees can form sign(d) x (p - 0.5) from `mo_d2h` and `tl_cheap_side` exactly as se1 can from `mo_d2h` and
+  `mid`, which is LT11's requested `attrlimit_lt11` (no attribution of se1 or broad models on mid x own 2 h change), not a
+  family token. se25's logistic holds the level and the move as separate main effects only. **Request for LT11's freeze:**
+  `attrlimit_lt11`'s models list should name `se24_lgbm_tilt` and `se25_lr_tilt` beside the champion, se1 and broad models
+  (science review must-fix; the engine's per-family attribution never computes that interaction, so nothing leaks now). No other test reads the
+  collateral or fee levels as its state (E015 traded classes and E022 rewards are not touched).
+- **History of this section (disclosed).** A first build, the same afternoon and never deployed, held `tl_w2h` under a
+  provisional token `tilt` to 2027-03-09 (science review ACCEPT_WITH_FIXES: no leakage; the fixes were wording). Before
+  deploy the builder read LT11's section 9 pre-freeze hold, merged into chore shortly before, and removed the column and
+  the token. No tilt table, fit, prediction or score existed at any point under either version.
 - **Challengers.** `se24_lgbm_tilt`: se1's LightGBM params, se21's train block with `require_sources: ["tilt"]`, read
   against se1. `se25_lr_tilt`: the champion's logistic learner and params with `require_full_coverage` and the family,
-  read against se0 (the logistic isolate CH235 asks for: the champion's linear line cannot form min(p, 1 - p),
-  sign(d)(p - 0.5) or rate x p(1 - p)). One pre-declared configuration each, no development selection; first evidence
-  prospective. K rises by two when the embargo lifts (the conservative direction).
-- **Leakage and timing.** No sweep, no snapshot row and nothing received after the capture: the features file of capture
-  k and its own sidecar only. Section 21 does not arise; neither challenger is promotion-ineligible.
-- **Cost.** 6 float32 columns (~40 MB on the frames at the caps), one LightGBM fit (~2 min) and four logistic fits
+  read against se0 (CH235's logistic isolate). One pre-declared configuration each, no development selection; first
+  evidence prospective. K rises by two (8 -> 10 for the visible set; the conservative direction).
+- **Leakage and timing.** No sweep, no snapshot row and nothing received after the capture. Section 21 does not arise;
+  neither challenger is promotion-ineligible.
+- **Science review (2026-10-23 ~13:05Z, two passes): ACCEPT_WITH_FIXES.** No leakage; fee parse correct; `parentsib`
+  census sound; levels-only with no token complies with LT11 section 9; the attribution-limit request above added.
+- **Coverage (counts only, capture 10-23 10:31Z).** 98.1% of eligible rows (93.8% non-sports) carry a fee schedule;
+  `fees_enabled` is 0 on 1,131 of 58,294; schedule rates 0.05 / 0 / 0.03 / 0.07 on 35,062 / 12,397 / 4,968 / 4,721 rows.
+- **Cost.** 5 float32 columns (~35 MB on the frames at the caps), one LightGBM fit (~2 min) and four logistic fits
   (seconds) per refit, two predictions per capture. The q0512 / q0513 caps are unchanged.
 - **CH237 `parentsib` killed at census (counts only).** Capture 2026-10-23T10:31Z: 27 of 18,349 eligible non-sports rows
   (0.15%) carry a non-null `parent_event_ids` (CH237's line: 5%); 44% of all eligible rows have one, almost all sports.
-  No family is built; a re-census only if the sports decision makes sports rows count, or the field's coverage widens.
+  No family is built; a re-census only if sports rows come into scope or the field's coverage widens.
 - Tests: `test_tilt_features_hand_example`, `test_tilt_reads_only_its_own_capture`, and registry assertions in
   `test_repo_registry_loads_and_embargo_assignment`.

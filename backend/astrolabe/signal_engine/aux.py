@@ -519,16 +519,16 @@ def _dormant_builder(ctx: dict) -> pd.DataFrame:
 
 # ---------------------------------------------------------------------------------------------- tilt family
 # The collateral tilt (CH235, development only; engine-first; DESIGN_V1 section 29): on a binary venue the price of a
-# share is its collateral, so the cheap side min(p, 1 - p) and the collateral of the side a move bought are states the
-# logistic champion holds only as separate main effects. tl_collat = min(p, 1 - p); tl_cheap_side = sign(p - 0.5);
-# tl_w2h = 0.5 + sign(d) (p - 0.5) on 2 h movers (|own 2 h change| > DELTA, the targets' flat band; the post-move analogue of CH234's w), NaN
-# otherwise; tl_fee_ps = the market's own fee schedule rate x (p (1 - p)) ** exponent (0 where fees_enabled is false, NaN
-# without a schedule: no docs-rate imputation); tl_rebate_ps = the schedule's rebateRate x tl_fee_ps; tl_spread_collat =
-# spread / tl_collat. p = the origin Gamma mid (ms_mid), d = mo_d2h. Inputs: capture k's features file and its own sidecar
-# (rows_ext.csv.gz, the same Gamma response as the origin row). The dated CH235 columns (tl_w_traded after 2026-11-22,
-# tl_rew_outside after 2026-11-18) are not built. Embargo token `tilt` (provisional, LT11 CH234; config.EMBARGO).
-TILT_COLUMNS = ["tl_collat", "tl_cheap_side", "tl_w2h", "tl_fee_ps", "tl_rebate_ps", "tl_spread_collat"]
-TL_FEATURE_COLS = ["market_id", "ms_mid", "ms_spread", "mo_d2h"]
+# share is its collateral, so the cheap side min(p, 1 - p) and the fee schedule's price shape are states the logistic
+# champion holds only as separate main effects of the mid and the category. tl_collat = min(p, 1 - p); tl_cheap_side =
+# sign(p - 0.5); tl_fee_ps = the market's own fee schedule rate x (p (1 - p)) ** exponent (0 where fees_enabled is false,
+# NaN without a schedule: no docs-rate imputation); tl_rebate_ps = the schedule's rebateRate x tl_fee_ps; tl_spread_collat
+# = spread / tl_collat. p = the origin Gamma mid (ms_mid). Inputs: capture k's features file and its own sidecar
+# (rows_ext.csv.gz, the same Gamma response as the origin row). Level columns only: CH235's tl_w2h (a collateral weight
+# signed by the 2 h move, CH234's w) is held back until LT11's freeze (LIVE_TESTS_11.md section 9 pre-freeze hold), and
+# the dated tl_w_traded (11-22) and tl_rew_outside (11-18) are not built. No embargo token (levels only; LT11 section 9).
+TILT_COLUMNS = ["tl_collat", "tl_cheap_side", "tl_fee_ps", "tl_rebate_ps", "tl_spread_collat"]
+TL_FEATURE_COLS = ["market_id", "ms_mid", "ms_spread"]
 TL_EXT_COLS = ["market_id", "fees_enabled", "fee_schedule"]
 
 
@@ -571,12 +571,9 @@ def tilt_features(f: pd.DataFrame, ext: pd.DataFrame | None) -> pd.DataFrame:
     if n == 0:
         return out
     p = f["ms_mid"].to_numpy(float)
-    d = f["mo_d2h"].to_numpy(float)
     collat = np.minimum(p, 1.0 - p)
     out["tl_collat"] = collat
     out["tl_cheap_side"] = np.sign(p - 0.5)
-    mover = np.isfinite(d) & (np.abs(d) > C.DELTA + C.DELTA_TOL)
-    out["tl_w2h"] = np.where(mover, 0.5 + np.sign(d) * (p - 0.5), np.nan)
     with np.errstate(divide="ignore", invalid="ignore"):
         out["tl_spread_collat"] = np.where(collat > 0, f["ms_spread"].to_numpy(float) / collat, np.nan)
     if ext is not None and len(ext):

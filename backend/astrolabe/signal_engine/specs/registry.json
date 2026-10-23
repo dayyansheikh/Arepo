@@ -174,16 +174,16 @@
   {
    "model_id": "se24_lgbm_tilt",
    "file": "se24_lgbm_tilt.json",
-   "spec_sha256": "fffdf4979fb1bdbeb5fc101ce0a971e338b34e98d059c132e1252b500a14401d",
+   "spec_sha256": "e96e104bc5d33760af03214e0ebc7a484116831febf0ac8246c2960b5fa4ed71",
    "status": "active",
-   "added_utc": "2026-10-23T13:30:00Z"
+   "added_utc": "2026-10-23T13:10:00Z"
   },
   {
    "model_id": "se25_lr_tilt",
    "file": "se25_lr_tilt.json",
-   "spec_sha256": "9a340f4d3bc439d04744d5c3320eb7a56364446d7238083b5f43c149fd2d2d34",
+   "spec_sha256": "527fd16d39de0299ef54ee45392584262e4fceb9c9947d0621dfa9e4dc05b07b",
    "status": "active",
-   "added_utc": "2026-10-23T13:30:00Z"
+   "added_utc": "2026-10-23T13:10:00Z"
   }
  ]
 }

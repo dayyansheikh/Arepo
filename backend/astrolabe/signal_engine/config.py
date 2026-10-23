@@ -139,16 +139,6 @@ EMBARGO = (
      "why": "display disagreement (dg_*, CH218; DESIGN_V1 section 26): dg_1d is E012's primary x (own 24 h change) minus its pre-declared sensitivity x (Gamma oneDayPriceChange), and se22 is scored on dir_24h, E012's horizon; E013 / E014 use chg_1d / chg_1w as controls (LIVE_TESTS_2.md); the later of 11-14 and LT2's analysis commit (q0461, not before 2026-11-13T12Z); science review 2026-10-23 must-fix 2, added 2026-10-22 ~23:15Z before any dispgap table, prediction or score existed"},
     {"token": "dormant", "until": "2026-11-19T00:00:00Z", "tests": ["E011"],
      "why": "dormancy run lengths and the wake-up flag (dm_*, CH220; DESIGN_V1 section 26) encode the quiet prior day that E011's surprise label requires and its secondary (a) reading (quiet markets that then move); same date as surprise; CH220 asked for it; science review 2026-10-23 must-fix 1, added 2026-10-22 ~23:15Z before any dormant table, prediction or score existed"},
-    {"token": "tilt", "until": "2027-03-09T00:00:00Z", "tests": ["LT11-CH234 (draft)"],
-     "why": "collateral tilt (tl_*, CH235; DESIGN_V1 section 29): tl_w2h is the post-move analogue of CH234's w (0.5 + sign(d)(p - 0.5) "
-            "at the origin mid on 2 h movers, = w at the pre-move price + |d|), and CH234 ('continuation rises with w') is a planned "
-            "LT11 test whose design text is not frozen; a visible tilt score on dir_2h would inform that design. Provisional and "
-            "conservative, set by the builder 2026-10-23 ~13:30Z before any tilt table, prediction or score existed: the later of "
-            "2027-03-09T00Z (the EARLIEST ordered-lane end: registered >= 2027-02-14, 21 days, analysis >= 36 h after) and LT11's "
-            "analysis commit, extended by a ledger line if the lane registers later; shortened to the later of the fast lane's "
-            "analysis commit and 2026-12-10T12:00Z if LT11 freezes in the fast lane with CH234; if LT11 freezes without CH234, "
-            "withdrawn no earlier than 2026-11-22T00:00Z (E015, E022 S2 re-checked first); science review 2026-10-23 ACCEPT_WITH_FIXES; "
-            "only by a ledger line"},
     # Attribution-limit entries (not family tokens: no spec isolates them and no family carries their names, so they hide
     # nothing by themselves). They record interaction attributions that must not be computed or shown before ``until``.
     # The engine's attribution is per family only (learners.family_attribution), so none of these terms is computed.

@@ -4240,16 +4240,13 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - Designer's census odds (judgement): CH234 0.35, CH233 0.50, CH232 0.20; P(no test) about 0.26. Tokens `dollarw`, `nrslack`,
   `bandside`, `attrlimit_lt11` to be filed at the freeze. **Next:** challenger R1 on the 13 ambiguity items (section 11).
 
-## Signal engine: `tilt` family (CH235) with provisional token, and CH237 `parentsib` killed at census, 2026-10-23 ~13:30Z (signal-engine autopilot; development family; nothing scored or shown)
-- **`tilt` (`se-aux-tilt-v1`, DESIGN_V1 section 29).** Columns from capture k's features file and its own sidecar:
-  min(p, 1 - p), cheap side, `tl_w2h` (the post-move analogue of CH234's `w` on 2 h movers), the market's own fee
-  schedule's taker fee and maker rebate a share, spread over collateral. Challengers `se24_lgbm_tilt` (se1's learner) and
-  `se25_lr_tilt` (the champion's logistic). One pre-declared configuration each; no development look.
-- **Embargo `tilt` until 2027-03-09T00:00Z (provisional),** entered before any tilt table, prediction or score existed:
-  the later of that (the earliest end of LT11's ordered lane) and LT11's analysis commit, because CH234 is a planned LT11
-  test in draft. Shortened at LT11's freeze (fast lane: the later of its analysis commit and 2026-12-10T12:00Z) or
-  withdrawn no earlier than 2026-11-22 if CH234 is not in LT11, by a later ledger line only. K rises by two at the lift.
+## Signal engine: `tilt` levels family (CH235) and CH237 `parentsib` killed at census, 2026-10-23 ~13:10Z (signal-engine autopilot; development family; nothing scored or shown)
+- **`tilt` (`se-aux-tilt-v1`, DESIGN_V1 section 29), level columns only,** from capture k's features file and its own
+  sidecar: min(p, 1 - p), cheap side, the market's own fee schedule's taker fee and maker rebate a share, spread over
+  collateral. Challengers `se24_lgbm_tilt` (se1's learner) and `se25_lr_tilt` (the champion's logistic), visible, no
+  token; one pre-declared configuration each, no development look. K 8 -> 10.
+- **`tl_w2h` (CH234's `w`) not built,** following LIVE_TESTS_11.md section 9's pre-freeze hold. A first build, never deployed
+  and never run on data, held it under a provisional token `tilt` (science review ACCEPT_WITH_FIXES, wording only); it was
+  removed before deploy. No tilt table, fit, prediction or score existed under either version.
 - **CH237 `parentsib`: killed at its census line** (counts only, no outcome read): capture 2026-10-23T10:31Z, 27 of
   18,349 eligible non-sports rows (0.15%) have a non-null `parent_event_ids` (line 5%). No family built.
-- Science review 2026-10-23 ~13:35Z: ACCEPT_WITH_FIXES (wording of the date and of `w`; withdrawal not before 11-22),
-  all applied.
