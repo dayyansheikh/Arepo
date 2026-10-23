@@ -168,7 +168,7 @@ EMBARGO = (
      "why": "LIVE_TESTS_10.md section 9: no attribution (SHAP or otherwise) on these terms and no kxbook family in a broad model "
             "before until; moved later only by a ledger line"},
     # LT11 freeze request (LIVE_TESTS_11.md section 9, design text frozen 3627d7fd, sha256 991100db...; CANDIDATES.md
-    # 2026-10-23 ~17:20Z), applied 2026-10-23 ~18:40Z before any dollarw / nrslack / bandside family, column or isolating
+    # 2026-10-23 ~17:20Z), applied 2026-10-23 ~18:20Z before any dollarw / nrslack / bandside family, column or isolating
     # challenger exists. The LT11 date is the later of 2026-12-12T00:00Z and LT11's analysis commit; moved later only by a
     # ledger line. The pre-freeze hold ends here: these columns may be built only under these tokens.
     {"token": "dollarw", "until": "2026-12-12T00:00:00Z", "tests": ["LT11-CH234"],

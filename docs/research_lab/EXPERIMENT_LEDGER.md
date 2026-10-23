@@ -4347,7 +4347,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   (2 x 2 cells), CH248. Not mapped (reasons in the output): CH246 matcher (no question text in captures), CH242 splits (no
   label store), CH250 tier and minute-pay (undefined), CH243 design-stage gates (census only). Light job (mem 450, as cap 4000).
 
-## Signal engine: LT11 freeze requests applied (`dollarw`, `nrslack`, `bandside`, `attrlimit_lt11`), 2026-10-23 ~18:40Z (signal-engine autopilot; embargo only; nothing scored or counted)
+## Signal engine: LT11 freeze requests applied (`dollarw`, `nrslack`, `bandside`, `attrlimit_lt11`), 2026-10-23 ~18:20Z (signal-engine autopilot; embargo only; nothing scored or counted)
 - **What:** the `CANDIDATES.md` LT11 freeze request (~17:20Z; LIVE_TESTS_11.md section 9, design text frozen at 3627d7fd, sha256
   `991100db…3583`) applied with its text (DESIGN_V1 section 30): `config.EMBARGO` gains `dollarw` (LT11-CH234; `dw_*` plus
   `tilt`'s `tl_w2h` and `tl_w_traded`), `nrslack` (LT11-CH233; `nr_*` sibling bid- / ask-sum innovations) and `bandside`
