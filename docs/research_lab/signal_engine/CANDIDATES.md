@@ -230,6 +230,27 @@ round-5 limits cover the same terms. Nothing here moves any LT8 or LT9 date.
 - The LT7 attribution limits are dropped; they were never computed. LT8's limits cover different terms (`b0_gap` x own
   2 h change).
 
+## Idea-level families from creative round 15 (2026-10-23; ideas only, no evidence; not candidates yet)
+
+`CREATIVE_HYPOTHESES_2026-10-29.md` (CH222-CH231) states one point-in-time family per idea. Status of every row below:
+idea only. **Engine-first families** (columns scored against se1; no test proposed; each raises K and is built only with
+a real prior): `xent` (CH227, entity clock: whether any contract naming the market's entity moved >= 1c on another
+venue in the last 2 hours; stream: PredictIt / Smarkets / Kalshi feeds via an entity matcher; clock: the other venue's
+line receipt before the capture; no sign, magnitude and spread only; shadows no test, no token; kill if coverage < 5%),
+`ruleedit` (CH228, hours since the market's or event's rule text last changed, a `res_7d` calibration moderator and
+label-quality reading; stream: `gamma_rules`; clock: the stored change time before the capture; no test, no token; kill
+if the recent-edit share < 0.5%), `xvenue2` (CH229, PredictIt `last_close` gap, `src_ts` staleness and the Kalshi
+capture-clock shadows `kx_last_chg_2h`, `kx_pull_2h`, `kx_spread_chg_2h`, as columns inside the existing
+`se-aux-xvenue2-v1` family; stream: PredictIt poll and Kalshi `quotes/`; clock: the latest line's receipt; respects the
+`xvenue` embargo to 11-04), `gamestate` (CH231, in-game period, clock, margin and live de-vigged line, with
+`gs_off_board`; stream: ESPN odds poll with CH205's matcher; clock: poll receipt; sports parameter, scored on the sports
+breakdown only; adjacent to the `steam` token held for the owner's sports decision, so no test or isolate before it).
+**Family A columns (CH222-CH224)** are the planned LT10 family (design in progress on `feat/live-tests-10`; stream: E009's
+Kalshi/Polymarket fine-clock panel). Their capture-clock columns go to the `xvenue` isolate after 11-04 under a
+conditional `kxbook` token, requested only when LT10's design text is frozen (embargo to the later of LT10's analysis
+commit and 2026-12-04T00:00Z); do not build an isolating challenger of them before then. CH225 / CH226 (sports arm)
+wait for the owner's sports decision; CH230 is a map.
+
 ## Idea-level families from creative round 14 (2026-10-22; ideas only, no evidence; not candidates yet)
 
 `CREATIVE_HYPOTHESES_2026-10-28.md` (CH212-CH221) proposes one point-in-time family per idea: `rwblink` (CH212,

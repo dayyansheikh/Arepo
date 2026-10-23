@@ -247,21 +247,31 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-23 02:05Z
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-23 03:05Z
 Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && git log --oneline -1'` = local tip.
 Host 2 OCPU / 11.4 GiB since the resize. data-dumps 34 / 40 GB cap: owner approval 8 (restore-tree clearing) is time-relevant.
 
 **Autopilot session 10-23 from 01:58Z:**
-- q0621's depends_on fix (q0620 -> q0604) had been left uncommitted by 774c43c0; committed 66bbc2fd and deployed 02:00Z.
-  q0621 (priority 54) should start when MC1 q0116h's slice (started 21:58Z) exits ~03:30Z.
-- LT9 code phase 1: an implementer is finishing the uncommitted census edit (share_zdD_positive, feed end-kinds counts)
-  on `feat/live-tests-9`; then the science-reviewer census-code freeze check.
+- **LT8:** q0621's depends_on fix committed (66bbc2fd) and deployed; q0621 ran 02:00Z; seal committed (84c5c16e, sha256
+  5545538a…, 430 files, 0 missing; host tip verified). **q0622 + q0623 promoted** (exclusive; start after the 05:30Z
+  blackout, ahead of MC1 at priority 40). When each is done: write up counts only (ledger, LIVE_TESTS_8.md census
+  section, drop/survive per section 7), registry; after q0623: revert the 10-day snapshot rule to 8 days (ledger, deploy),
+  then phase 2 for any survivor. Deadline 10-28T03:30Z.
+- **LT9 census code MERGED** (9e482fab): code check FIXES_REQUIRED -> fixes -> re-check -> final OK_WITH_NOTES -> notes
+  (ledger entry). Drafts q0640-q0647 not promoted. Next: seal q0641 only after the 11-02..11-12 span exists (not before
+  11-13); then CR9/CC9/CS9 censuses (never beside an LT8 size check / analysis); phase 2 for survivors.
 - **Disk:** data-dumps 34 / 40 GB at 02:10Z (about +1 GB/day -> 40 GB about 10-29). cb18_census 4.9 GB is finished and not an
   LT8 root; clearing needs owner approval 8 (dashboard, now marked time-sensitive). Contingency if >= 38 GB before approval:
   raise the operational `--data-dumps-cap-gb` of the registered live collectors (q0460) to 44 (below the 45 GiB pass cap;
   root has 36 GB free), with a ledger line; never let a registered collector refuse.
-- Creative round 15 (Fable xhigh, CH222+, census survival + newer streams) running on `feat/creative-r15`
-  (`../astrolabe-creative-r15`); merge, then CANDIDATES note and an LT10 design draft from its top ideas.
+- **Creative round 15 merged** (c23b5a52; CH222-CH231; CANDIDATES note 90c7af39: engine-first xent, ruleedit, xvenue2,
+  gamestate; kxbook conditional on LT10). Finding: capture-clock cross-venue tests lack pairs; E009's 120 s Kalshi+CLOB
+  poller is the only fine-clock panel. **LT10** (CH224, CH223, CH222 on E009's poller stream, `informed (E009)`) draft ba559ced on `feat/live-tests-10` (`../astrolabe-live-tests-10`); **challenger R1 REVISE** (786bb487,
+  `reviews/LT10_CHALLENGER_R1_2026-10-23.md`: 7 must-fix, 10 should-fix); designer response in progress, then re-check. **Deadline: design text frozen before
+  2026-11-03T02:00Z** (E009/E010 analysis). Then challenger R1 (science-reviewer), response, re-check, freeze; poller
+  continuation after 11-03 is an open orchestrator decision (bounded public collection). CH230 (poller pair-list
+  extension) and CH225/CH226 (sports) wait.
+- Host tip = 90c7af39 (deployed 03:04Z).
 
 **Autopilot session 10-22 from 20:35Z (state at 22:23Z):**
 - **LT7: CLOSED, no test** (1dd77a67). CC7 dropped CH191/CH192/CH193, CS7 dropped CH195 (F-MDE 0.667c > 0.5c) and CH197.
