@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-23T03:10:00Z",
+ "updated": "2026-10-23T03:35:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1647,6 +1647,29 @@
    },
    "reached": [
     "designed"
+   ]
+  },
+  {
+   "id": "LT10",
+   "title": "Live tests 10: three cross-venue ideas from round 15 (planned)",
+   "plain": "Up to three planned live tests from new-ideas round 15, on the 2-minute Kalshi and Polymarket quote stream: whether a change in Kalshi's spread is followed by Polymarket's spread, whether Kalshi quotes pulled without a price change come before larger Polymarket moves, and whether Kalshi moves with a trade differ from quote-only moves. Draft design, under independent challenger review. All three may fail their counting checks.",
+   "batch": "LT10",
+   "family": "cross_venue",
+   "stage": "idea",
+   "status": "waiting",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Challenger review, then design freeze before 3 Nov 2026; counting checks after E010's analysis; collection proposed from 10 Nov 2026",
+   "next_date": "2026-11-03",
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT10 design draft (2026-10-23); docs/research_lab/LIVE_TESTS_10.md (feat/live-tests-10)"
+   },
+   "stage_results": {
+    "idea": "pending"
+   },
+   "reached": [
+    "idea"
    ]
   },
   {
