@@ -39,6 +39,8 @@ ACTIVITY_MAX_BYTES = 300_000
 LOG_READ_MAX = 4_000_000
 LOG_TAIL = 1_000_000
 SESSION_OUTCOMES = {"ok", "timeout", "usage_limit", "error", "interrupted", "auth_error"}
+CUTOFF_OUTCOMES = {"usage_limit", "timeout"}
+CUTOFF_MIN_S = 600  # shorter cut-off sessions did too little to summarise
 DONE_RE = re.compile(r"AUTOPILOT_DONE\b[ \t:]*([^\n]*)")
 REDACTED = "[redacted]"
 
@@ -331,6 +333,8 @@ def latest_assistant_text(path: Path) -> tuple[str | None, str | None]:
             continue
         if not isinstance(o, dict) or o.get("type") != "assistant" or o.get("isSidechain"):
             continue
+        if (o.get("message") or {}).get("model") == "<synthetic>":
+            continue  # CLI-made messages (e.g. the usage-limit notice), not the session's own words
         content = (o.get("message") or {}).get("content")
         if not isinstance(content, list):
             continue
@@ -339,6 +343,46 @@ def latest_assistant_text(path: Path) -> tuple[str | None, str | None]:
         if text.strip():
             return text, o.get("timestamp") if isinstance(o.get("timestamp"), str) else None
     return None, None
+
+
+def ended_transcript(projects_root: Path, repo, started_at: str | None, ended_at: str | None) -> Path | None:
+    """A finished headless session's transcript: the sdk-cli transcript in the repo's project folder whose first entry
+    falls in [start - 2 min, end] (the earliest such start) and that was written after the session started."""
+    start, end = _parse_iso(started_at), _parse_iso(ended_at)
+    if projects_root is None or not repo or start is None or end is None or end < start:
+        return None
+    folder = Path(projects_root) / slug(repo)
+    lo, hi = (start - timedelta(minutes=2)).timestamp(), end.timestamp()
+    try:
+        cands = [p for p in folder.glob("*.jsonl") if lo <= p.stat().st_mtime <= hi + 3600]
+    except OSError:
+        return None
+    best = None
+    for p in cands[:200]:
+        entry, first = _first_fields(p)
+        t = _parse_iso(first)
+        if entry == "sdk-cli" and t is not None and lo <= t.timestamp() <= hi and (best is None or t < best[0]):
+            best = (t, p)
+    return best[1] if best else None
+
+
+def cutoff_note(rec: dict, projects_root, repo, literals) -> str | None:
+    """For a session stopped by the usage limit or the time cap before its AUTOPILOT_DONE line: a plain line with the
+    run time and the session's last own progress message (from its transcript), so the board can show what it did."""
+    runtime = rec.get("runtime_s")
+    if rec.get("outcome") not in CUTOFF_OUTCOMES or not isinstance(runtime, (int, float)) or runtime < CUTOFF_MIN_S:
+        return None
+    path = ended_transcript(projects_root, repo, rec.get("started_at"), rec.get("at"))
+    if path is None:
+        return None
+    text, _ = latest_assistant_text(path)
+    if not text:
+        return None
+    flat = re.sub(r"\s+", " ", _MD_RE.sub("", sanitise(text, literals))).strip()
+    if not flat:
+        return None
+    why = "the usage limit" if rec.get("outcome") == "usage_limit" else "the time cap"
+    return clip(f"Worked {runtime / 3600:.1f} h, then stopped at {why} before its summary. Last note: {flat}", DONE_CHARS)[0]
 
 
 def current_progress(projects_root, repo, started_at, literals) -> dict | None:
@@ -399,7 +443,7 @@ def _log_for(home: Path, rec: dict) -> Path | None:
     return home / "logs" / name
 
 
-def build_session(home: Path, rec: dict, literals) -> dict:
+def build_session(home: Path, rec: dict, literals, projects_root: Path | None = None, repo=None) -> dict:
     s: dict = {"started_at": rec.get("started_at"), "ended_at": rec.get("at"), "outcome": rec.get("outcome")}
     if isinstance(rec.get("runtime_s"), (int, float)):
         s["runtime_s"] = rec["runtime_s"]
@@ -434,6 +478,13 @@ def build_session(home: Path, rec: dict, literals) -> dict:
             s["plain"] = plain_summary(rest)
         if rest:
             s["summary"], s["summary_truncated"] = clip(rest, SUMMARY_CHARS)
+    if not s.get("done") and projects_root is not None:
+        try:
+            note = cutoff_note(rec, projects_root, repo, literals)
+        except Exception:  # noqa: BLE001 - the note is optional
+            note = None
+        if note:
+            s["done"], s["done_source"] = note, "transcript"
     return s
 
 
@@ -472,7 +523,8 @@ def build_instance(name: str, home: Path, now: datetime, literals, sessions_n: i
         if not (r.get("started_at") or r.get("log")):
             continue  # preflight refusals (no session ran)
         recs.append(r)
-    sessions = [build_session(home, r, literals) for r in recs[-sessions_n:]]
+    repo = spec.get("repo") if spec else None
+    sessions = [build_session(home, r, literals, projects_root, repo) for r in recs[-sessions_n:]]
     sessions.reverse()  # newest first
     home_label = str(home)
     try:

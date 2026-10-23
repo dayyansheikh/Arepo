@@ -167,6 +167,50 @@ def test_multi_instance_discovery_and_sessions(tmp_path):
     assert "commits" not in a
 
 
+def _transcript(folder: Path, name: str, start: str, msgs: list[tuple[str, str, str]], mtime: float) -> Path:
+    """msgs: (timestamp, model, text) assistant lines after an sdk-cli opening line."""
+    import os
+    lines = [json.dumps({"type": "user", "entrypoint": "sdk-cli", "timestamp": start, "message": {"content": "go"}})]
+    for ts, model, text in msgs:
+        lines.append(json.dumps({"type": "assistant", "isSidechain": False, "timestamp": ts,
+                                 "message": {"model": model, "content": [{"type": "text", "text": text}]}}))
+    p = folder / name
+    p.write_text("\n".join(lines) + "\n")
+    os.utime(p, (mtime, mtime))
+    return p
+
+
+def test_cut_off_session_gets_last_progress_note(tmp_path):
+    repo = "/Users/x/Projects/repo"
+    projects = tmp_path / "projects"
+    folder = projects / act.slug(repo)
+    folder.mkdir(parents=True)
+    t = lambda s: datetime.fromisoformat(s.replace("Z", "+00:00")).timestamp()  # noqa: E731
+    _transcript(folder, "a.jsonl", "2026-10-21T05:00:05Z",
+                [("2026-10-21T05:30:00Z", "claude-opus-5-5", "**LT9** census merged; key " + FAKE["github"]),
+                 ("2026-10-21T05:59:00Z", "<synthetic>", "You've hit your session limit")], t("2026-10-21T05:59:00Z"))
+    _transcript(folder, "other.jsonl", "2026-10-21T02:00:00Z",  # an earlier session's transcript
+                [("2026-10-21T03:00:00Z", "claude-opus-5-5", "earlier work")], t("2026-10-21T05:10:00Z"))
+    runs = [
+        {"at": "2026-10-21T06:00:00Z", "started_at": "2026-10-21T05:00:00Z", "outcome": "usage_limit", "runtime_s": 3600,
+         "log": "20261021T050000Z.json"},
+        {"at": "2026-10-21T08:05:00Z", "started_at": "2026-10-21T08:00:00Z", "outcome": "usage_limit", "runtime_s": 300,
+         "log": "20261021T080000Z.json"},  # too short to summarise
+    ]
+    logs = {"20261021T050000Z.json": _result_json("You've hit your session limit", is_error=True),
+            "20261021T080000Z.json": _result_json("You've hit your session limit", is_error=True)}
+    home = _home(tmp_path, "autopilot", runs, logs)
+    spec = {"name": "main", "home": home, "repo": repo, "launch": None}
+    inst = act.build_instance("main", home, NOW, [], spec=spec, projects_root=projects)
+    short, long_ = inst["sessions"]
+    assert "done" not in short
+    assert long_["done_source"] == "transcript"
+    assert long_["done"].startswith("Worked 1.0 h, then stopped at the usage limit before its summary. Last note: LT9 census merged")
+    assert FAKE["github"] not in long_["done"] and "earlier work" not in long_["done"]
+    # no transcript inside the window -> no note
+    assert act.cutoff_note({**runs[0], "started_at": "2026-10-20T05:00:00Z", "at": "2026-10-20T06:00:00Z"}, projects, repo, []) is None
+
+
 def test_instance_without_files(tmp_path):
     a = act.build_activity(tmp_path / "autopilot", NOW, literals=[])
     inst = a["instances"][0]
