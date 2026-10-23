@@ -1147,7 +1147,7 @@ def test_rewards_and_event_tokens_withdrawn_after_census_drops():
     assert fl and fl["until"] == "2026-11-16T00:00:00Z" and fl["tests"] == ["E013", "E014"]
     for e in C.EMBARGO:  # a date earlier than before is only ever a recorded withdrawal
         if "until_before" in e:
-            assert e["withdrawn_utc"] in (w, "2026-10-23T00:00:00Z", "2026-10-23T07:30:00Z") and S.epoch(e["until"]) < S.epoch(e["until_before"])
+            assert e["withdrawn_utc"] in (w, "2026-10-23T00:00:00Z", "2026-10-23T07:30:00Z", "2026-10-23T08:00:00Z") and S.epoch(e["until"]) < S.epoch(e["until_before"])
             assert "WITHDRAW" in e["why"]
 
 
@@ -1173,7 +1173,7 @@ def test_lt7_closure_withdrawals_and_lt9_round6_requests():
         assert not any(t.startswith("LT7") for t in ent["tests"])
     # attribution-limit entries: inert as family tokens, and no LT8 / LT9 family sits in any broad model
     lims = [x for x in C.EMBARGO if x.get("kind") == "attribution_limit"]
-    assert {x["token"]: x["until"] for x in lims} == {"attrlimit_lt8": "2027-01-23T00:00:00Z", "attrlimit_lt9": "2027-02-14T00:00:00Z",
+    assert {x["token"]: x["until"] for x in lims} == {"attrlimit_lt8": "2026-10-23T08:00:00Z", "attrlimit_lt9": "2027-02-14T00:00:00Z",
                                                       "attrlimit_lt10": "2026-12-04T00:00:00Z"}
     fams = set(A.AUX_FAMILIES) | {f for s in reg["models"].values() for f in s["families"]}
     for x in lims:
@@ -1185,17 +1185,30 @@ def test_lt7_closure_withdrawals_and_lt9_round6_requests():
 
 
 def test_lt8_sched_withdrawn_after_ch204_census_drop():
-    # CH204 dropped at LT8's CC8 (2026-10-23): sched and its slot-of-day attribution limit go; quietbook / swclock stay
+    # CH204 dropped at LT8's CC8 (2026-10-23): sched and its slot-of-day attribution limit go first
     w3 = "2026-10-23T07:30:00Z"
     (sc,) = [x for x in C.EMBARGO if x["token"] == "sched"]
     assert sc["until"] == sc["withdrawn_utc"] == w3 and sc["until_before"] == "2027-01-23T00:00:00Z"
-    for tok in ("quietbook", "swclock"):
-        (ent,) = [x for x in C.EMBARGO if x["token"] == tok]
-        assert ent["until"] == "2027-01-23T00:00:00Z" and "withdrawn_utc" not in ent
     (al,) = [x for x in C.EMBARGO if x["token"] == "attrlimit_lt8"]
-    assert al["no_broad_families"] == ["quietbook", "swclock"] and al["until"] == "2027-01-23T00:00:00Z"
+    assert al["no_broad_families"] == ["quietbook", "swclock"]
     assert not any("slot-of-day" in lim for lim in al["limits"])
     assert [(x["no_broad_family"], x["withdrawn_utc"]) for x in al["withdrawn"]] == [("sched", w3)]
+
+
+def test_lt8_closure_withdraws_quietbook_swclock_and_attrlimit():
+    # CS8 (q0623, 2026-10-23) dropped CH203 and CH202: LT8 has no test, so its tokens and attribution limits are withdrawn;
+    # book / book0 keep LT9's date and lose only their LT8 tests
+    reg = SP.load_registry()
+    w4 = "2026-10-23T08:00:00Z"
+    for tok in ("quietbook", "swclock", "attrlimit_lt8"):
+        (ent,) = [x for x in C.EMBARGO if x["token"] == tok]
+        assert ent["until"] == ent["withdrawn_utc"] == w4 and ent["until_before"] == "2027-01-23T00:00:00Z" and "WITHDRAWN" in ent["why"]
+    for tok in ("book", "book0"):
+        (ent,) = [x for x in C.EMBARGO if x["token"] == tok]
+        assert ent["until"] == "2027-02-14T00:00:00Z" and ent["tests"] == ["E015", "E022", "LT9-CH214"]
+    assert not [x for x in C.EMBARGO if any(t.startswith("LT8") for t in x["tests"]) and S.epoch(x["until"]) > S.epoch(w4)]
+    # se19 (isolates book0) stays hidden to the LT9 date
+    assert SP.embargo_of(reg["models"]["se19_lr_book0"], S.epoch("2026-12-01T00:00:00Z"))["until"] == "2027-02-14T00:00:00Z"
 
 
 def test_lt10_round7_requests():

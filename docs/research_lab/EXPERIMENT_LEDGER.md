@@ -4163,3 +4163,15 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **Retention:** the temporary 10-day snapshot rule (693db389, extended 49c16ebd) is reverted to **8 days** as declared
   (LT8 re-check R3: until q0623). MC1 q0116h reads its cached panel, not raw captures. Embargo withdrawals for `quietbook`
   and `swclock` requested in signal_engine/CANDIDATES.md.
+
+## Signal engine: LT8 closure withdrawals (`quietbook`, `swclock`, `attrlimit_lt8`), 2026-10-23 ~07:55Z (signal-engine autopilot; embargo only, effective 08:00Z; nothing scored or counted)
+- **Why:** LT8's sweeps census CS8 (q0623; ledger "LT8 census CS8 (q0623) and LT8 closure") dropped CH203 and CH202; CH204
+  went at CC8. LT8 has no test, so under the round-4 rule its tokens and the limits made for it are withdrawn (CANDIDATES
+  request ~07:55Z).
+- **What:** `config.EMBARGO` `quietbook`, `swclock` and `attrlimit_lt8` now have `until` = `withdrawn_utc` =
+  2026-10-23T08:00:00Z (`until_before` 2027-01-23). Both remaining LT8 limits go ("b0_gap x own 2 h change interactions",
+  "two-sweep book differences"): no LT9 limit covers the b0_gap term, and LT9's narrower "two-sweep band-sum differences"
+  stays under `attrlimit_lt9` to 2027-02-14. `book` / `book0` lose LT8-CH202 / CH203 from `tests` and **keep 2027-02-14**
+  (LT9 CH214 holds it). Their old "back to 2027-01-23 if CH214 drops" fallback is void: if CH214 drops, the date moves only
+  by a new ledger line to the latest date a remaining test still needs. No `quietbook` / `swclock` family, model or value
+  ever existed, so nothing becomes visible. Test `test_lt8_closure_withdraws_quietbook_swclock_and_attrlimit`.
