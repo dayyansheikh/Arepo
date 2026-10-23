@@ -4211,3 +4211,17 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   hash without `code_sha`, panel hash, sha256 of every loaded `astrolabe` module plus the script, versions, argv; the
   manifest still records the git HEAD as provenance. No model, fold, feature, target or metric logic changed. q0116i
   starts fresh in `resume_q0116i` (slice 1 is redone; q0116h's 23 units are not mixed in).
+
+## Signal engine: `tilt` family (CH235) with provisional token, and CH237 `parentsib` killed at census, 2026-10-23 ~13:30Z (signal-engine autopilot; development family; nothing scored or shown)
+- **`tilt` (`se-aux-tilt-v1`, DESIGN_V1 section 29).** Columns from capture k's features file and its own sidecar:
+  min(p, 1 - p), cheap side, `tl_w2h` (the post-move analogue of CH234's `w` on 2 h movers), the market's own fee
+  schedule's taker fee and maker rebate a share, spread over collateral. Challengers `se24_lgbm_tilt` (se1's learner) and
+  `se25_lr_tilt` (the champion's logistic). One pre-declared configuration each; no development look.
+- **Embargo `tilt` until 2027-03-09T00:00Z (provisional),** entered before any tilt table, prediction or score existed:
+  the later of that (the earliest end of LT11's ordered lane) and LT11's analysis commit, because CH234 is a planned LT11
+  test in draft. Shortened at LT11's freeze (fast lane: the later of its analysis commit and 2026-12-10T12:00Z) or
+  withdrawn no earlier than 2026-11-22 if CH234 is not in LT11, by a later ledger line only. K rises by two at the lift.
+- **CH237 `parentsib`: killed at its census line** (counts only, no outcome read): capture 2026-10-23T10:31Z, 27 of
+  18,349 eligible non-sports rows (0.15%) have a non-null `parent_event_ids` (line 5%). No family built.
+- Science review 2026-10-23 ~13:35Z: ACCEPT_WITH_FIXES (wording of the date and of `w`; withdrawal not before 11-22),
+  all applied.

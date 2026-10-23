@@ -1,0 +1,45 @@
+{
+ "aux_versions": {
+  "tilt": "se-aux-tilt-v1"
+ },
+ "broad": false,
+ "derived": [
+  "base"
+ ],
+ "description": "Champion + collateral tilt (CANDIDATES CH235, development only): the champion's logistic learner and params on its features + the tilt aux family (se-aux-tilt-v1), the logistic isolate CH235 asks for, because the champion's linear line cannot form min(p, 1-p), sign(d)(p - 0.5) or rate x p(1-p) from separate main effects. Read against se0_champion_lr_mm. Trains only when every labelled capture of the window has the table. Embargoed under the provisional token tilt (LT11 CH234 draft).",
+ "families": [
+  "market_state",
+  "momentum",
+  "tilt"
+ ],
+ "features_version": "se-features-v1",
+ "isolates": [
+  "tilt"
+ ],
+ "learner": "logreg",
+ "model_id": "se25_lr_tilt",
+ "params": {
+  "C": 1.0,
+  "max_iter": 300,
+  "tol": 0.0001
+ },
+ "targets": [
+  "dir_2h",
+  "dir_6h",
+  "dir_24h",
+  "res_7d"
+ ],
+ "train": {
+  "max_rows": 400000,
+  "min_days": 2,
+  "min_rows": 5000,
+  "refit": "daily",
+  "require_full_coverage": true,
+  "require_sources": [
+   "tilt"
+  ],
+  "res_window_days": 28,
+  "window_days": 14
+ },
+ "version": 1
+}

@@ -517,6 +517,91 @@ def _dormant_builder(ctx: dict) -> pd.DataFrame:
     return dormant_features(np.column_stack([mids.get(j, ids) for j in range(slot - DM_CAP, slot + 1)]))
 
 
+# ---------------------------------------------------------------------------------------------- tilt family
+# The collateral tilt (CH235, development only; engine-first; DESIGN_V1 section 29): on a binary venue the price of a
+# share is its collateral, so the cheap side min(p, 1 - p) and the collateral of the side a move bought are states the
+# logistic champion holds only as separate main effects. tl_collat = min(p, 1 - p); tl_cheap_side = sign(p - 0.5);
+# tl_w2h = 0.5 + sign(d) (p - 0.5) on 2 h movers (|own 2 h change| > DELTA, the targets' flat band; the post-move analogue of CH234's w), NaN
+# otherwise; tl_fee_ps = the market's own fee schedule rate x (p (1 - p)) ** exponent (0 where fees_enabled is false, NaN
+# without a schedule: no docs-rate imputation); tl_rebate_ps = the schedule's rebateRate x tl_fee_ps; tl_spread_collat =
+# spread / tl_collat. p = the origin Gamma mid (ms_mid), d = mo_d2h. Inputs: capture k's features file and its own sidecar
+# (rows_ext.csv.gz, the same Gamma response as the origin row). The dated CH235 columns (tl_w_traded after 2026-11-22,
+# tl_rew_outside after 2026-11-18) are not built. Embargo token `tilt` (provisional, LT11 CH234; config.EMBARGO).
+TILT_COLUMNS = ["tl_collat", "tl_cheap_side", "tl_w2h", "tl_fee_ps", "tl_rebate_ps", "tl_spread_collat"]
+TL_FEATURE_COLS = ["market_id", "ms_mid", "ms_spread", "mo_d2h"]
+TL_EXT_COLS = ["market_id", "fees_enabled", "fee_schedule"]
+
+
+def read_tilt_ext(cap_dir) -> pd.DataFrame | None:
+    """Per market id: fees_enabled (1 / 0 / NaN), schedule rate, exponent and rebateRate (NaN where absent)."""
+    p = Path(cap_dir) / "rows_ext.csv.gz" if cap_dir is not None else None
+    if p is None or not p.exists():
+        return None
+    import pyarrow as pa
+    import pyarrow.csv as pacsv
+
+    types = {"market_id": pa.int64(), "fees_enabled": pa.string(), "fee_schedule": pa.string()}
+    try:
+        t = pacsv.read_csv(p, convert_options=pacsv.ConvertOptions(include_columns=TL_EXT_COLS, column_types=types))
+    except (pa.ArrowInvalid, KeyError):
+        return None  # an older sidecar without the fee columns: the fee columns are NaN for this capture
+    e = t.to_pandas().drop_duplicates("market_id").set_index("market_id")
+    fe = e["fees_enabled"].astype(str).str.strip().str.lower()
+    out = pd.DataFrame(index=e.index)
+    out["fees_enabled"] = np.where(fe.isin(["true", "1", "1.0"]), 1.0, np.where(fe.isin(["false", "0", "0.0"]), 0.0, np.nan))
+
+    def sched(s, key):
+        if not isinstance(s, str) or not s.strip().startswith("{"):
+            return np.nan
+        try:
+            v = json.loads(s).get(key)
+            return float(v) if v is not None else np.nan
+        except (ValueError, TypeError, AttributeError):
+            return np.nan
+
+    for key in ("rate", "exponent", "rebateRate"):
+        out[key] = [sched(s, key) for s in e["fee_schedule"]]
+    return out
+
+
+def tilt_features(f: pd.DataFrame, ext: pd.DataFrame | None) -> pd.DataFrame:
+    """``f``: capture k's TL_FEATURE_COLS (eligible rows); ``ext``: read_tilt_ext of its own sidecar (or None)."""
+    n = len(f)
+    out = pd.DataFrame({c: np.full(n, np.nan, np.float32) for c in TILT_COLUMNS})
+    if n == 0:
+        return out
+    p = f["ms_mid"].to_numpy(float)
+    d = f["mo_d2h"].to_numpy(float)
+    collat = np.minimum(p, 1.0 - p)
+    out["tl_collat"] = collat
+    out["tl_cheap_side"] = np.sign(p - 0.5)
+    mover = np.isfinite(d) & (np.abs(d) > C.DELTA + C.DELTA_TOL)
+    out["tl_w2h"] = np.where(mover, 0.5 + np.sign(d) * (p - 0.5), np.nan)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        out["tl_spread_collat"] = np.where(collat > 0, f["ms_spread"].to_numpy(float) / collat, np.nan)
+    if ext is not None and len(ext):
+        e = ext.reindex(f["market_id"].to_numpy(np.int64))
+        rate, expo, reb, on = (e[c].to_numpy(float) for c in ("rate", "exponent", "rebateRate", "fees_enabled"))
+        expo = np.where(np.isfinite(expo), expo, 1.0)  # the schedule's exponent defaults to 1 when the key is absent
+        with np.errstate(invalid="ignore"):
+            fee = rate * np.power(np.clip(p * (1.0 - p), 0.0, None), expo)
+        fee = np.where(on == 0.0, 0.0, fee)  # fees switched off: 0 (a NaN rate stays NaN otherwise)
+        out["tl_fee_ps"] = fee
+        out["tl_rebate_ps"] = np.where(on == 0.0, 0.0, reb * fee)
+    return out.astype(np.float32)
+
+
+def _tilt_builder(ctx: dict) -> pd.DataFrame:
+    paths, meta = ctx["paths"], ctx["meta"]
+    f = S.read_parquet(paths.features(meta["capture_id"]), TL_FEATURE_COLS)
+    if not np.array_equal(f["market_id"].to_numpy(np.int64), ctx["f"]["market_id"].to_numpy(np.int64)):
+        raise ValueError("tilt: features row order differs")
+    ext = read_tilt_ext(ctx["cap_dir"])
+    ps = Path(ctx["cap_dir"]) / "rows_ext.csv.gz" if ctx["cap_dir"] is not None else None
+    ctx["provenance"] = {"rows_ext_sha256": S.sha256_file(ps) if ext is not None else None}
+    return tilt_features(f, ext)
+
+
 def read_reward_ext(cap_dir) -> pd.DataFrame | None:
     p = Path(cap_dir) / "rows_ext.csv.gz"
     if not p.exists():
@@ -971,6 +1056,8 @@ AUX_FAMILIES: dict[str, dict] = {
     "hwm": {"version": "se-aux-hwm-v1", "columns": HWM_COLUMNS, "needs_rows": False, "builder": _hwm_builder},
     "dispgap": {"version": "se-aux-dispgap-v1", "columns": DISPGAP_COLUMNS, "needs_rows": False, "builder": _dispgap_builder},
     "dormant": {"version": "se-aux-dormant-v1", "columns": DORMANT_COLUMNS, "needs_rows": False, "builder": _dormant_builder},
+    # needs the capture's own sidecar (fee schedule), not the parsed rows
+    "tilt": {"version": "se-aux-tilt-v1", "columns": TILT_COLUMNS, "skip_rows_read": True, "builder": _tilt_builder},
 }
 AUX_COLUMNS: dict[str, list[str]] = {k: v["columns"] for k, v in AUX_FAMILIES.items()}
 AUX_ALL: list[str] = [c for cols in AUX_COLUMNS.values() for c in cols]
@@ -1098,4 +1185,4 @@ def check_spec_aux(spec: dict) -> str | None:
 
 __all__ = ["AUX_FAMILIES", "AUX_COLUMNS", "AUX_ALL", "MODEL_FAMILY_COLUMNS", "aux_path", "build_aux", "run_aux",
            "aux_sources", "read_features", "spec_aux_families", "check_spec_aux", "event_features", "movetype_features",
-           "surprise_features", "participation_features", "crypto_features", "hwm_features"]
+           "surprise_features", "participation_features", "crypto_features", "hwm_features", "tilt_features"]
