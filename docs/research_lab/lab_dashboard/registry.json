@@ -1652,7 +1652,7 @@
   {
    "id": "LT10",
    "title": "Live tests 10: three cross-venue ideas from round 15 (planned)",
-   "plain": "Up to three planned live tests from new-ideas round 15, on the 2-minute Kalshi and Polymarket quote stream: whether a change in Kalshi's spread is followed by Polymarket's spread, whether Kalshi quotes pulled without a price change come before larger Polymarket moves, and whether Kalshi moves with a trade differ from quote-only moves. Draft design; the independent challenger review asked for changes (23 Oct), which are being made. All three may fail their counting checks.",
+   "plain": "Up to three planned live tests from new-ideas round 15, on the 2-minute Kalshi and Polymarket quote stream: whether Kalshi's spread changes are followed by Polymarket's spread, whether Kalshi quotes pulled without a price change come before larger Polymarket moves, and whether Kalshi moves with a trade differ from quote-only moves. The challenger review asked for changes (23 Oct). All three may fail their counting checks.",
    "batch": "LT10",
    "family": "cross_venue",
    "stage": "idea",
