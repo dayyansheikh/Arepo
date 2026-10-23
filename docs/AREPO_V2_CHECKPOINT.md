@@ -9,7 +9,7 @@
 User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=Etc/GMT-1 date`.
 
 ## Experiments autopilot live state (2026-10-23 13:21 UTC+1)
-- Owner lab-msg:4 ("why stopped since Wed? ntfy"): answered by ntfy ~12:30Z. Cause: every session since 10-21 hit the usage
+- Owner lab-msg:4 ("why stopped since Wed? ntfy"): answered by ntfy ~12:20Z. Cause: every session since 10-21 hit the usage
   limit before AUTOPILOT_DONE, and the board's digest drops such sessions. Fix 2b33d60b: `scripts/lab/lab_activity.py`
   `cutoff_note` sets `done` for usage_limit/timeout sessions >= 10 min from the session transcript's last own message
   (synthetic CLI messages skipped, sanitised); test in `backend/tests/unit/test_lab_activity.py`. Mac-side only, no web change.

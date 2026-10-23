@@ -10,7 +10,7 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 - **Your 23 Oct message ("why have you stopped?"): it had not stopped.** Eight experiment sessions ran since Wednesday
   evening (about every 5 hours, 1 to 3 hours each, about 460 commits). Each one ran until the usage limit cut it off before
   it could write its closing summary, so the Lab board showed only "hit your session limit". **Fixed (23 Oct):** the board
-  now shows, for such a session, how long it worked and its last progress note. A phone update was sent at about 13:30.
+  now shows, for such a session, how long it worked and its last progress note. A phone update was sent at about 13:20.
 - **Restarted after the last cut-off:** the independent re-check of LT10's code fixes, the LT11 design draft, and a fix for
   the failed batch 8 "exclusion keys" job (its small disk allowance ran out).
 - **Security check (23 Oct):** Cloudflare's security audit was run on the site and the lab code. No confirmed holes; the lab lock and passkeys held up. There are 5 things to check or fix (details sent to your phone; summary in `docs/security/AUDIT_2026-10-23_RUN1.md`). The most important is to confirm that Render has a strong AUTH_SECRET.
