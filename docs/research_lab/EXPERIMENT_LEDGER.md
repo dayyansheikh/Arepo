@@ -4434,3 +4434,8 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   when reached is read from a release or recorded `missing`, never reconstructed. Consumers: CB4-MAIN (seals on or after 10-22,
   flip trades not before 10-24) and CB5-G / CB5-L (q0103b on or after 10-27); their dates are unchanged; their freeze records
   must show the extract caught up before any seal reads it.
+- **R1 response applied** (6fc72f57, sha256 `c879bbeb…31e9`, 925 lines): CH243 removed (k <= 2); the three reward-status cases;
+  CH244 feed-disagreement **gate** (feed-listed share <= 0.20 among covered units, coverage >= 50%, missing fails, feed <= 6 h
+  old); CH245 identification gate redefined (event-day variation, leverage cap, within-stratum MDE) with justification; two-sided
+  placebo from a different series / events; `event_day_state_shift_gate` gate path. Priors CH245 0.30, CH244 0.15; expected k
+  ~0.45, P(no test) ~0.60. Re-check running.
