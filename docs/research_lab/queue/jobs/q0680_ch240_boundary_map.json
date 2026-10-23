@@ -1,0 +1,38 @@
+{
+ "id": "q0680_ch240_boundary_map",
+ "title": "CH240 boundary map (counts only, k = 0, uncounted): one streaming pass over the 2-hourly captures of 2026-10-16..10-22 counting CH232 boundary crossings, CH233 neg-risk event headroom and complete event-captures, and CH234 traded movers by category and reward status; uses only capture k and k-1, no price target, no P&L",
+ "family": "creative_hypotheses",
+ "priority": 60,
+ "expected_value": "measured counts that replace the planning ranges of CREATIVE_HYPOTHESES_2026-10-30.md section 0.1 and decide whether LT11 (CH232-CH234) is drafted",
+ "data": [
+  "host originals ~/arepo/data-dumps/research_lab/snapshots (read-only)"
+ ],
+ "resources": {
+  "mem_mb": 450,
+  "as_cap_mb": 4000,
+  "cpu": 1,
+  "lane": "net",
+  "network": "none"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_ch240_map.py",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--start-utc",
+  "2026-10-16T00:00:00Z",
+  "--end-utc",
+  "2026-10-23T00:00:00Z",
+  "--out",
+  "../data-dumps/research_lab/ch240_map/CH240_map.json",
+  "--data-dumps-cap-gb",
+  "44"
+ ],
+ "timeout_s": 10800,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/ch240_map/CH240_map.json (counts only)"
+ ],
+ "next_action": "copy the counts into the CH240 / section 0.1 census table of CREATIVE_HYPOTHESES_2026-10-30.md (reported, not tuned); then decide whether LT11 is drafted",
+ "notes": "Counts only, k = 0, uncounted (CREATIVE_HYPOTHESES_2026-10-30.md CH240). Streams one capture at a time and keeps only per-market state of capture k-1 (well under 300 MB); mem_mb stays below 500 so it may run beside an exclusive job. Reward reading is the simple MAP reading (clob_rewards non-empty at capture k = rewarded), not listed_carry24h_v2. Exits 75 when data-dumps is above 44 GiB. Refuses to overwrite its output. Reads rows.csv.gz, rows_ext.csv.gz and manifest.json only; output carries each opened file's size and sha256 and the code sha256 of the runner and module."
+}
