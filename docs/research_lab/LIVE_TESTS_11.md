@@ -711,3 +711,325 @@ unrewarded markets, where no rule changes at that price, the same crossing shoul
 Rows and sidecars of captures k - 12 .. k + 3 (the earlier slots of the UTC day and the carry window); sweep 1 of passes k and
 k + 1 for M3 only; the feed for the CLOB sensitivity and economics. The reader keeps per market the day's crossing flags and the
 carry window's texts. Census CC11, size check, reader, analysis (8). Token `bandside` (9).
+
+## 5. Deferred and not taken (each with the reason; none counted)
+- **CH235-CH239 (engine-first: `tilt`, `parentsib`, `nrslack` levels, `ruleclass`, `volage`):** not live tests by the round's own
+  ranking; they go to the signal engine under its rules, with the embargo limits of section 9 (`tilt`'s `tl_w2h` is CH234's `w`).
+- **CH240 (the boundary map):** done (q0680, counts only, k = 0, uncounted); used here as planning input only.
+- **CH241 (the reverse fine clock):** not taken. It reads LT10's stream, would be `informed (LT10)` by construction, runs only if
+  LT10's family census passes, and its money route is a Kalshi maker's (the owner's call).
+- **Sports arms:** every test reports its sports arm, uncounted, pending the owner's sports-scope decision.
+
+## 6. Design changes from the round-16 sketches (made before any LT11 data; each needs the challenger's acceptance)
+Items marked **[map]** were made after reading the CH240 map (10.1).
+1. **CH232: a causal population.** The round's frame (all 12 slots of a market-day that has a first crossing) selects units by a
+   crossing that happens after their own origins: a unit at an earlier slot of the day would be admitted on a later mid, which is
+   future information in selection (AGENTS.md research integrity), and its target would often span the crossing itself. Replaced
+   by the outward approach zone (4.2), whose membership reads `m_{k-1}` only; the crossing is then a state at k on units already
+   admitted. Cost: the zone's units are unprobed and the discontinuity's controls raise `VIF_w` (planning 1.3 to 2.5).
+2. **CH232: later crossings of the same day (`xr`) are a regressor class**, not only a reported class, so the reference class
+   holds only units that did not cross.
+3. **CH232: the primary's sign is fixed now (> 0) for both readings of the rule; the reading fixes only M1's side,** and the venue's
+   page is re-read in the freeze commit rather than at the pin (rule 15 asks for the sign before the census; the freeze is the
+   earliest commit that can record it). Reason in 1.4.2.
+4. **CH232: the inward crossing is a reported secondary (S1)**, not a co-primary: one tested coefficient per test, and the outward
+   crossing is the money route (a maker steps aside).
+5. **All three: every twin or control comparison is a binding point condition fixed now** (quote-only, ask-sum, control panel),
+   not "a verdict condition where its census MDE is under the floor": LT9 R1 fix 1's rule that whether a condition binds is fixed
+   by design, never by a census count, applied to these conditions as to F. A point condition costs no power; its one-sided p is
+   reported as a label.
+6. **CH234: the tested term is the centred product `z(w) x z(|d|)` with `|d|` and a piecewise-linear `sign(d) x bin` drift that
+   spans `w`** as controls; the round's raw `z(w x |d|)` is kept as M4. Reason: the raw product loads on both main effects (the
+   round's own S28 and S29 worlds exist because of this), and rule 17 asks for variance beyond the sign and the level. Also: `|d|`
+   winsorised at 0.20; band `p_{k-1}` in [0.04, 0.96]; bins cut at PX1's 0.15 / 0.85.
+7. **CH233: 2-member events are a reported arm [map].** In a 2-member event the siblings' bid sum is the other market, roughly
+   the complement of the member's own price, so the state is the member's own move. The reason is arithmetic, but the choice was
+   made after seeing the map's completeness by event size (2-member events 1.00 / 0.97 complete), so it is marked.
+8. **CH233: sign correction.** The round's `dhb_sib = -(sum_{j != i} bid_{j,k} - sum_{j != i} bid_{j,k-1})` is positive when the
+   siblings' bids fell (the headroom opened), while its text says "positive means the headroom closed". LT11 uses `cl_sib` = the
+   siblings' bid-sum change (positive = closed), matching the text and the hypothesis.
+9. **CH233: the ask-sum twin is a separate model** (point condition), not a second regressor in the primary: the siblings' bid-
+   and ask-sum changes move together with the siblings' mids, so in one model the bid coefficient would be identified only by the
+   siblings' spread changes.
+10. **CH233: the Freedman-Lane gate shifts whole events** (one offset per event), as LT10 R1 required for states shared within an
+    event.
+11. **All three: F binds unconditionally, fixed now** (rolling states, 1.7). For CH234 the round had "a reported label at the low
+    planning count, a verdict condition at `n_eff` >= 150,500": a census-dependent rule, not allowed.
+12. **All three: an explicit known-factor block K** (1.7), the champion's market-state and momentum families as the captures carry
+    them.
+13. **Count gates at the binding kill line [map]:** CH234's traded-unit count gate is 745 a capture (the round's F line), not 335
+    (its MDE line); CH232's crossing gate is 60 a capture (the round's verdict line), not 24. Both values were written by the
+    round before the map; choosing the higher of the two round values follows lesson (i) of 1.0 and was made after seeing the
+    map's counts (1,239 and 79), so it is marked.
+14. **CH232: tick coincidence defined** (a tick change, or `m_k` beyond 0.04 / 0.96); **CH232: a missing earlier slot of the day
+    excludes the unit** (`day_gap`).
+15. **CH234: planning DE 6.196 to 10, not 6.196** (2.5): a population 1.2-1.5 times E022's computes a larger `m_21`.
+16. **CH233 and CH232: census `DE_gate` floor 5.0** (LT9's whole-panel floor) against the round's planning DE 31; the planning
+    MDEs above are quoted at 31 and 51 (or 15) so the reader sees both ends. Flagged for the challenger (A6).
+
+## 7. Pre-registration census (counts only; before registration; worn pre-window data; no target read)
+
+The census runs once, reads origin-side fields only (no target, no P&L; the only later-slot quantities are the three twins'
+states, for `r_gate`, through the **lag-slot loader**, which receives keys and the named fields of captures k + 2 and k + 3 and
+returns only the twin term: CH234 the twin `xw`, CH233 the twin `z cl_sib`, CH232 the twin crossing flag; no mid, spread, bid, ask
+or volume of a later slot reaches census code, unit test 8.3), prints counts, and is committed with its sha256 before the
+registration commit. **Every gate threshold below is stated now, before any census.** A failed gate drops that test before
+registration (uncounted); `k_tests` lists the survivors. **Input identity:** the census refuses unless every input file it opens is
+named in the LT11 seal with an equal sha256, builds slots and origins from the seal, and refuses if a sealed file in a needed slot
+is absent locally.
+
+**Inputs (a fresh seal; rule 9).** Span **`[2026-10-28T00:00Z, 2026-11-07T00:00Z)`**, 10 UTC days, 120 capture slots; the 12 slots
+before it (`[2026-10-27T00:00Z, 10-28T00:00Z)`) as look-back only (`rv24*`, the 24 h change, the carry window, the earlier slots of
+the day) and the 3 slots after it (twins only, through the loader). Files: complete captures (rows, sidecar, manifest), 135
+captures x 3 files, planning 1.0-1.4 GB. No sweep and no feed capture is read by the census.
+- **Restore, seal, census: each once.** q0690 accepts host copies that pass a sha256 check against the archive catalogue and
+  restores the rest byte for byte from the data releases (snapshot retention is 8-10 days, so the span's first days will have left
+  the host by the seal date); it measures bytes first and **stops and asks the owner** if the restore would exceed the host's free
+  disk (CLAUDE.md storage stop rule); a file found in neither place is genuinely missing (counted, never substituted). q0691 writes
+  `seals/lt11_census_inputs.json` (files, sha256, the seal's own slot assignment and the **frozen LT11 design-text sha256**, so the
+  seal is written only after the freeze); the orchestrator commits it before the census runs.
+- **Minimum covered days** (covered origins / 12): >= 7.0 for each test (>= 5.0 for twin pairs). Below it every gate of that test
+  is NaN and fails.
+- **Header pre-check** (before the census code is frozen; headers only, no rows): rows carry `received_utc`, `bid`, `ask`,
+  `liquidity`, `volume24hr`, `chg_1h`, `end_date`, `event_id`, `neg_risk`, `neg_risk_market_id`, `neg_risk_other`,
+  `event_neg_risk_augmented`; sidecars carry `received_utc`, `fee_category`, `fee_type`, `order_price_min_tick_size`,
+  `rewards_min_size`, `rewards_max_spread`, `clob_rewards`, `volume_num`; manifests carry state and times. The pre-check records
+  whether `chg_1d` and `chg_1w` exist (K, 1.7). A missing field makes the dependent gate NaN. **Band unit check (CH232):** the median
+  `rewards_max_spread` over carry-rewarded rows lies in [0.5, 20] (cents), else every CH232 gate that uses `v` is NaN.
+
+**Projection** = census count x 21 / covered days. **Distinct events:** distinct events over the covered days x 21 / covered days
+(pessimistic; LT8's generalised two-day form printed). **Effective counts** = units in markets with >= 2 units of the test's
+population in the census days. **Design effect:** `DE_gate = max(floor, 1 + (m_21 - 1) x 0.02)`, `m_21` the projected size-weighted
+mean cluster size by event; floors **6.196 (CH234)**, **5.0 (CH233, CH232)**. **MDE gate formulas (multiplier 3.47), each
+`max(declared, design)`** with LT8's definitions (*declared* = the closed formula at the census's own effective counts, `DE_gate`,
+`sqrt(max(1, VIF_w))`, gap and the declared SD; *design* = `3.47 x 1.5 x SD x se_1` from the census regressors under a working
+covariance with unit variance, within-event equicorrelation 0.02 and independence across events; no target read): CH234 and CH233
+slopes at the census tercile gap of the tested term; CH232 the class contrast. **F-MDE** = `max(design-based MDE of Δ in the arm
+model, MDE x sqrt(2 / (1 - max(0, r_gate))))`, `r_gate = max(r_w, r_pool)` of the lead and twin on census units with both
+(within-market on expanding-past demeaned values over markets with >= 3 such units). SDs: `c` 4c, `ds` 2c. **Count gates are on
+gross projected counts** (all of the test's filters, no 0.8 factor); the declared MDE uses the measured effective share in place
+of planning's 0.8, never on top of it.
+
+| Test | Gate (all must hold; NaN fails) | Map number it sits near (planning only) | Values fixed into the spec |
+|---|---|---|---|
+| **CH234** | **projected traded units (all 2.2 filters) >= 187,740 (>= 745 a capture)**; projected quote-only units >= 84,420 (>= 335 a capture); **unknown share** (2.3) among eligible movers <= 0.40 (pooled); captures whose movers are > 80% unknown <= 25% of covered captures; within and pooled `|corr(1[unknown], xw)|` <= 0.3 and `|corr(1[unknown], w)|` <= 0.3; projected distinct events with a traded unit >= 500; cap share >= 40% of traded units in events with `n_members <= 10`; **identification:** within-market-day SD of `w` >= 0.1 in >= 50% of mover market-days with >= 2 traded moves, and within-market IQR of the residual of `xw` after OLS on the controls >= 0.25 in >= 50% of markets with >= 6 traded units (>= 30 such markets); `VIF_w(xw)` <= 2.0; within and pooled `|corr(xw, x)|` <= 0.5 for x in {`log1p liquidity`, `z log rv24*`, `d_k`, spread_k}; venue-clock: the most common slot of day holds <= 50% of traded units; block-gate share >= 50% of traded units in markets with >= `ceil(16 x covered_days / 21)` units; `r_gate` <= 0.3; **slope MDE <= 0.5c; F-MDE <= 0.5c** | traded 1,239 a capture before LT11's rules; unknown about 19% of movers; `w`'s SD share 0.70; DE unmeasured | `w` and `|d|` centres and scales; `xw` tercile cuts and gap; `exclude_family`; world 3's `q` (the unknown share) |
+| **CH233** | **completeness:** complete member rows >= 60% of eligible member rows in events of 3-10 members (all sizes printed); projected complete member units (3-10 members, all filters) >= 252,000 (>= 1,000 a capture); projected distinct events >= 500 and events with >= 48 units >= 100; **working range:** `hb_k` within two ticks of zero (`hb_k <= 2 x tick`) on >= 5% of complete event-captures; **identification:** within-event SD of `cl_sib` >= 1 tick in >= 50% of events with >= 48 units; `VIF_w(z cl_sib)` <= 2.0; within and pooled `|corr(z cl_sib, x)|` <= 0.5 for x in {`d_k`, own bid change, own spread change, `log1p liquidity`, `z log rv24*`, `hb_{k-1}`}; venue-clock: the most common slot holds <= 50% of units with `|z cl_sib| >= 1`; block-gate share >= 50% of units in events with >= 16 shiftable captures; `r_gate` <= 0.3; **slope MDE <= 1.0c; F-MDE <= 1.0c** | completeness 0.85-1.00 / 0.65-0.97 by size (event-level, not row-level); `hb` near zero 12.6%; SD share 0.83-0.85; units by size unprobed | `s_c` by size class; tercile cuts and gap; `exclude_family` |
+| **CH232** | finite reward status on >= 95% of approach-zone units (pre-exclusion); band unit check; **projected counted reward-panel crossings (`xo` = 1, all 4.2 filters) >= 15,120 (>= 60 a capture)**; projected control-panel crossings >= 6,048 (>= 24 a capture); **re-crossing:** <= 60% of reward-panel crossing market-days have >= 3 outward crossings of a boundary (the >= 2 share printed); projected distinct events with a counted crossing >= 500; cap share >= 40%; venue-clock: the most common slot holds <= 50% of counted crossings; within and pooled `|corr(xo, x)|` <= 0.5 for x in {`log1p liquidity`, `z log rv24*`, `|d_k|`}; `VIF_w(xo)` <= 3.0; block-gate share >= 50%; `r_gate` <= 0.3; **class MDE <= 1.0c; F-MDE <= 1.0c**; the 1.4.2 reading recorded in the header (not a gate) | rewarded outward first crossings 79 (73 ex-tick) all origins; zone share unprobed; re-crossing (>= 2) share 0.59 | `exclude_family` |
+
+- **Descriptive (no gate):** sports and crypto splits; the top series family's share; events and their 21-day projections; the
+  `n_members` distribution and the cap's loss; pairwise unit overlaps among the three populations; class or tercile shares by
+  liquidity tier; `vol_missing`, `mom_missing`, `hte_unknown` shares; the computed DE beside `DE_gate`. **CH234:** the unknown
+  sub-class counts by capture (its time profile) and by bin; traded, quote-only and unknown counts by the four bins; `w` and `|d|`
+  distributions; the winsorised share. **CH233:** completeness by size class at row and event level; `members_changed` and
+  `nr_key_conflict` counts; `hb` quantiles; `corr(z cl_sib, z ca_sib)`; the headroom-crossing count; M4's rank shares. **CH232:**
+  crossings by boundary and direction on both panels; `xr`, `day_gap`, `tick_coincident` counts; the zone's share of all outward
+  crossings; the zone units without a crossing; the inward (S1) and pseudo-boundary (S2) counts; the carry-versus-simple reward
+  reading agreement (the map's reading against `listed_carry24h_v2`, counts only).
+- **Order and lane:** one census job (CC11) streams the captures once and evaluates the three gate blocks independently; a test
+  whose block fails has its reader kind switched off before the reader's code freeze.
+- **Expected census fates (declared now).** CH234: the count passes with margin; the F-MDE gate is the likeliest killer (it needs
+  DE near 6.2-8 and `VIF_w` near 1.3), then the unknown-share gates. CH233: the corr gates against the own move and the block-gate
+  share are the risk; power is not. CH232: the 60-a-capture crossing gate (the zone share is unprobed) and the F-MDE gate at the
+  computed DE and `VIF_w`; **expected to die at census more often than not.**
+
+**Census and later jobs (to be drafted under `docs/research_lab/queue/drafts/` in README format; ids q0690-q0695, checked unused
+in the history of every local and remote-tracking ref on 2026-10-23: the q06xx ids in use are q0600-q0604, q0620-q0623,
+q0640-q0647, q0660-q0667 and q0680; none is written in this commit).**
+- `q0690_lt11_census_restore` (lane `net`, about 1,400 MB disk, `mem_mb` 400): restore the span's files, check sha256s, write the
+  restore report; bytes measured first (disk stop rule). `depends_on` the LT11 design-text freeze; `not_before`
+  2026-11-07T03:00Z.
+- `q0691_lt11_seal` (lane `net`, `mem_mb` 300; after q0690): `run_live_tests11.py seal` writes `lt11_census_inputs.json`.
+- `q0692_lt11_census` (lane `net`, `mem_mb` 600, streaming per capture with a two-capture window and per-market 12-slot state; if
+  the code-phase dry run measures a peak above 600 MB, lane `cpu`, `mem_mb` 1,200, **exclusive**; after the seal commit).
+- `q0693_lt11_size_check` (lane `cpu`, `mem_mb` 800; after the census values are committed, so k is fixed before any size result;
+  `max_retries 1` deterministic-crash only).
+- `q0694_lt11_reader` (fallback only, never promoted while the cron line of 8.2 exists).
+- `q0695_lt11_analysis` (lane `cpu`, `mem_mb` 4,000, **exclusive**, `not_before` the analysis date).
+All are DRAFT and must not be promoted before the challenger review, the design-text freeze, the code and its freeze check, and
+**never while E011's, LT2's or E015's analysis job, or an LT9 or LT10 census, size-check or analysis job, is running**
+(memory-heavy-jobs rule). Each counts 0.
+
+## 8. Implementation plan (no code in this commit)
+
+### 8.1 Modules to be written (engineering list)
+- `backend/astrolabe/research_lab/live_tests11_base.py`: vendored, hash-pinned, unmodified copies of the LT3-LT9 pieces LT11 reuses
+  (`move_join`, `classify`, the slot grid, LT7's `RewardCarry` with its `_status_array` fix, LT5's `block_fl_gate`, LT3's
+  `paper_taker` and `econ`, LT9's lag-slot loader and seal helpers, `cb17_census.is_sports_sidecar`, the crypto classifier); a
+  provenance test checks each copy against its source hash. **No E026 frozen file is imported, copied or edited.**
+- `backend/astrolabe/research_lab/live_tests11.py`: unit builders (2.2-2.4, 3.2-3.3, 4.2-4.3), the reader (per-capture series,
+  write-once statuses, twins and readings online), `ops-stats`, the census (7), the event-phase gate wrapper, the size-check worlds
+  (1.8.1), the analysis (1.7-1.10).
+- `scripts/research_lab/run_live_tests11.py` (`seal`, `census`, `size-check`, `reader`, `backfill-series`, `ops-stats`, `analyze`).
+- `backend/astrolabe/research_lab/model_specs/live_tests11_v1.json` (unpinned until 8.4), `battery2.KIND_RULES["live_tests11"]`.
+
+### 8.2 Resources, collection plan and install
+- **No new collector and no network.** A pure reader of the pass's captures and sidecars (sweeps for CH232's M3, the feed for its
+  CLOB sensitivity), once a capture.
+- **Memory (planning, then a ladder).** LT4's measured host dry run 484-525 MB; LT9's planning 400-600 MB. LT11 holds per market the
+  last 12 mids, the last `volume_num`, the day's crossing flags and the carry texts, and per neg-risk event the previous capture's
+  member bids and asks: **planning steady 300-450 MB, peak 450-600 MB in a backlog pass.** Ladder, measured by a host dry run with
+  the exact install command before the pin: (1) one reader under `ulimit -v 1572864`, accepted if peak RSS <= 650 MB; (2) else two
+  readers (CH234 + CH232; CH233) under one shared `flock`, each <= 650 MB; (3) else no pin and LT11 is not registered (recorded).
+- **Install route: host cron** `20 */2 * * *` (109 minutes after each :31 capture start, 11 minutes before the next), own `flock`,
+  `nice -n 19`, `oom_score_adj 1000`, `ulimit -v 1572864`; the queue draft q0694 is the fallback, **never both**.
+- **Concurrency:** LT10's 5-minute reader (< 200 MB) and E026's collector run in the same weeks; no LT9 reader runs before late
+  December. Peaks additive at most about 0.9 GB on the host.
+- **CPU:** about 1-2 minutes a steady pass (estimate). **Disk:** about 1.5-2.5 GB over the window (CH233's member units dominate);
+  the reader refuses above 3.0 GB in `live_tests11/`.
+- **Analysis job:** about 1.5-3 million unit rows (CH233 1-2 million); the block gate refits 200 times per test; planning 3-4 GB
+  peak, **exclusive**, single run.
+- **Host change:** installing the cron line is a host change under the standing collection authorisation, done by the
+  orchestrator.
+
+### 8.3 Tests to be written (`backend/tests/unit/test_research_lab_live_tests11.py`, synthetic only)
+Causality (no unit builder reads capture k + 1 or later; the decision time is capture k's last receipt); the three `volume_num`
+classes with every unknown sub-class, and a test that no other field re-classes an unknown mover; the winsorisation and the
+centred product; the approach zone, the first-of-day rule, `xr`, `day_gap` and tick coincidence; the event key, `members_changed`,
+`event_incomplete`, the 3-10 size rule and the sign of `cl_sib`; the event-phase gate keeps one offset per event; the lag-slot loader
+returns only twin terms; `ops-stats` reads no price, spread, volume or depth column; spec NaN refusal; seal and pin refusals; the
+analysis refuses before the analysis date and on a pin mismatch; the size-check worlds generate the declared shapes; the vendored
+copies match their source hashes; the E026 pin test stays green.
+
+### 8.4 Registration steps and pins (in order)
+1. Challenger R1 on this file; the response and any re-check.
+2. **Design-text freeze commit**, its sha256 in the ledger, the venue page's reward-rule sentence and retrieval time recorded
+   (1.4.2), **before 2026-11-14T12:00Z and before `T_E015`** (planned by 2026-11-05 so that the code check precedes the seal). At
+   the freeze, the embargo requests of section 9 are filed in `signal_engine/CANDIDATES.md`.
+3. Code (8.1, 8.3), vendored by hash; a `science-reviewer` freeze check of the census and size-check code against sections 1.8,
+   1.8.1 and 7; fixes (none may change frozen text).
+4. q0690 restore, q0691 seal, seal committed and pulled on the host (after 2026-11-07T00:00Z).
+5. Census q0692 (counts only); drops recorded in the ledger and in a short census-drop note; `k_tests`, scales, cuts and
+   `exclude_family` filled with the exact census floats; a freeze record (module hashes, spec hash before the pin, census output
+   hash re-verified on the host, spec values checked against the census JSON).
+6. Size check q0693 (2,000 worlds x 200 draws, seed 20261497); results recorded per test.
+7. Reader freeze check; host dry run with the exact cron command following 8.2's ladder (the step used is recorded).
+8. The embargo entries of section 9 verified in `config.EMBARGO` and `signal_engine/CANDIDATES.md` (a missing entry blocks the
+   pin); any token or limit made only for a test dropped at census withdrawn with a ledger line.
+9. Pins: `SPEC_SHA256`, `code_sha256` map, `code_check` passing; E-numbers assigned from the ledger; the ledger entry is the
+   registration commit, **before 2026-11-17T00:00Z** (fast lane) and at least 24 h before `REGISTERED_UTC`.
+10. Install the cron line and run `backfill-series` within `[REGISTERED_UTC - 72 h, REGISTERED_UTC - 24 h]`; verify `pinned: true`
+    and `nothing_new` before `REGISTERED_UTC`; queue q0695 with `not_before` the analysis date.
+
+**Timetable (fast lane, planning):** R1 and response by 2026-10-30; freeze by 2026-11-05; code and its check 11-01..11-06; restore
+and seal 11-07..11-08; census 11-08..11-09; size check 11-09..11-11 (not beside E011's analysis); reader check and dry run
+11-12..11-14; embargo verification and pin 11-15..11-16; window 11-18..12-09; analysis on or after 12-10T12:00Z.
+
+## 9. Signal-engine mapping and embargo requests
+
+Every family below is point-in-time from the origin capture and its 12-slot look-back (DESIGN_V1 16 causality) and is an
+**auxiliary family** (own write-once table and version string). **Embargo first** (DESIGN_V1 8): any challenger that isolates one
+of these families carries its token until **the LT11 date = the later of 2026-12-12T00:00Z and LT11's analysis commit** (the
+analysis date 2026-12-10T12:00Z plus about 36 h; in the ordered lane, the later of its analysis date plus 36 h and its analysis
+commit). **Timing:** filed in `signal_engine/CANDIDATES.md` **at the design-text freeze** (CANDIDATES' round-16 note: "tokens are
+requested only at LT11's freeze") and applied before the registration commit (8.4 step 8). This branch does not edit
+`CANDIDATES.md`, engine code or `config.EMBARGO`.
+
+| Test | Family (aux version) | Columns (NaN = missing) | Source and clock | Token -> until |
+|---|---|---|---|---|
+| CH234 | `dollarw` (`se-aux-dollarw-v1`) | `dw_w`, `dw_xw`, `dw_traded`, `dw_quote_only`, `dw_vnum_unknown`; and **`tilt`'s `tl_w2h` and `tl_w_traded`** (round 16 CH235) | captures k - 1 and k, their sidecars | `dollarw` (new) -> LT11 date |
+| CH233 | `nrslack` innovations (`se-aux-nrslack-v1`) | `nr_cl_sib`, `nr_ca_sib`, `nr_dheadroom_sib`, `nr_dshortfall_sib`, `nr_hb_cross` | complete event-capture pairs (k - 1, k) | `nrslack` (new) -> LT11 date; the `event` family's existing levels (overround, quoted share, normalisation gap, headroom levels) **not** requested |
+| CH232 | `bandside` (`se-aux-bandside-v1`) | `bs_dist`, `bs_zone_out`, `bs_xo_first`, `bs_xr`, `bs_xi_first`, `bs_dear_side`; and the `rewards` family's planned `rw_cross_out_2h`, `rw_cross_in_2h` | captures k - 1 and k, the UTC day's earlier slots, the carry window | `bandside` (new) -> LT11 date |
+
+**Requests to the signal-engine track.**
+- **Pre-freeze hold (now, repeating CANDIDATES' "do not isolate before its freeze"):** no scored family holds `tl_w2h`, a product of
+  a collateral weight and a move's size, a neg-risk siblings' bid- or ask-sum change, or a 0.10 / 0.90 crossing indicator before
+  LT11's freeze. `tilt`'s other columns (`tl_collat`, `tl_cheap_side`, `tl_fee_ps`, `tl_rebate_ps`) are levels and may be built.
+  If `tl_w2h` is scored in any family before the freeze, CH234 carries *informed (tilt)* and the ledger records the first scored
+  capture.
+- **New tokens `dollarw`, `nrslack`, `bandside`** to the LT11 date, entered at the freeze and before any isolating challenger.
+- **New attribution limit `attrlimit_lt11`** (`kind: attribution_limit`) to the LT11 date: no attribution (SHAP or otherwise) of
+  the champion, se1 or any broad model on mid x own 2 h change interactions, on neg-risk siblings' bid- or ask-sum differences, or
+  on indicators of a mid crossing 0.10 / 0.90, computed or shown before the LT11 date; no LT11 family added to a broad model before
+  then (`no_broad_families: ["dollarw", "nrslack", "bandside"]`), or such a model recorded in the ledger as a development look.
+- **Not requested:** `rewards` (to the later of 2026-11-18 and E022's analysis commit, unchanged), `movetype` (11-22, unchanged:
+  `tl_w_traded` is covered by `dollarw` from the freeze), the `event` family's levels, `tte`, `flow`.
+- If a test drops at its census, its token and any limit item made only for it are withdrawn with a ledger line (the round-4
+  rule).
+- **Note to LT9 (no request):** LT11's analysis (on or after 2026-12-10T12:00Z) precedes LT9's pin (before 2026-12-29); LT9's
+  design text is frozen and its census runs in mid-November, so no LT9 value can follow an LT11 result; LT9 may record LT11's
+  analysis commit time beside its pin.
+
+The engine's yardstick (log-loss gain under `se-promotion-v2`) is a different question from each LT11 primary. A Supported LT11
+primary makes its family a candidate; an engine gain never changes an LT11 verdict and an LT11 verdict never promotes a model.
+
+## 10. Disclosures
+- **What was read to write this file:** `CREATIVE_HYPOTHESES_2026-10-30.md` (sections 0-3), `CH240_MAP_2026-10-23.md` (whole, 50
+  lines), `LIVE_TESTS_9.md` (sections 0-1, 7, 8.2, 8.4, 9), `LIVE_TESTS_10.md` (header, 0, 1.0-1.1), `LIVE_TESTS_8.md` and
+  `LIVE_TESTS_7.md` (the `m_21` definitions), bounded greps of `EXPERIMENT_LEDGER.md` (LT8-LT10, CH240, census entries),
+  `signal_engine/CANDIDATES.md` (rounds 7, the LT8 withdrawals, round 16's families), `lab_dashboard/README.md` and `registry.json`
+  (the LT7-LT10 entries), `backend/tests/unit/test_lab_clients.py` (registry tests). No host, network, `ssh`, `data-dumps`,
+  evidence JSON, census output, prediction, target or P&L.
+- **The CH240 map** counted populations on captures 2026-10-16..10-23 (k - 1 and k only); **it read no target, no price change after
+  an origin and no P&L**. Its numbers were seen before every gate in this file was written (10.1).
+- **Development looks:** HB1's PX1 (survived), PX5 and MI4 (not survivors), XM1-XM3 (nulls or not survivors), E005 (not supported,
+  challenger CONFIRMED); the engine's LightGBM se1 (mid and own 2 h change) and the `event` family's level scores (visible since
+  2026-10-22T12:00Z) are visible development scores near CH234's and CH233's objects. None reads an LT11 state as defined here.
+- **Known before the freeze:** E015 and E022 results are not known at the planned freeze; LT10's and LT9's census outputs are not
+  read (1.6).
+- **The reward rule's wording** is disputed in AREPO's documents (1.4.2); the design does not depend on the reading for its
+  primary.
+
+### 10.1 Values declared now and their planning sources (all before any LT11 census)
+| Value | Where | Source | Informed by the CH240 map? |
+|---|---|---|---|
+| CH234 count gate 745 a capture | 7 | round 16's F line (`n_eff` 150,500) | **yes** (chosen over the round's 335 after seeing 1,239; 6.1 item 13) |
+| CH234 unknown-share gates (0.40, 0.80 / 25%, corr 0.3) | 7 | conventions | **yes** (the map's warning that `volume_num` is often missing made a gate necessary; the values are conventions with the map's 19% in view) |
+| CH234 `w` SD gate (0.1 in 50%) | 7 | round 16 | the map measured 0.70 against it; value unchanged |
+| CH234 band [0.04, 0.96], bins 0.15 / 0.85, winsorisation 0.20 | 2.2, 2.4 | the tick rule, PX1, convention | no |
+| CH234 planning DE 6.196-10 | 2.5 | E022's `m_21`, proportional scaling | partly (the map's traded count sets the scaling) |
+| CH233 3-10 member rule | 3.2 | arithmetic (6.1 item 7), round 14 rule 7 | **yes** (seen with the map's completeness by size) |
+| CH233 completeness 60%, working range 5%, SD gate 50% | 7 | round 16 rule 16 and CH233's census | the map measured them above the lines; values unchanged; the denominator (3-10 members) is **informed** |
+| CH233 count gate 1,000 a capture | 7 | twice the F-MDE kill line at DE 51 (LT9 CH214's practice) | no |
+| CH232 zone 0.04 | 4.2 | the planning SD of the 2 h mid change | no |
+| CH232 crossing gate 60 a capture | 7 | round 16's verdict line | **yes** (chosen over the round's 24 after seeing 79; 6.1 item 13) |
+| CH232 re-crossing gate (>= 3 crossings, 60%) | 7 | round 16, unchanged | **yes**: the map measured a different quantity (>= 2 crossings, 0.59); the round's definition is kept and the >= 2 share printed (ambiguity A7) |
+| `DE_gate` floors 6.196, 5.0, 5.0 | 7 | E022, LT9 | no |
+| Seed 20261497; queue ids q0690-q0695 | 1.8, 7 | unused values | no |
+
+## 11. DESIGN-AMBIGUITY items for the challenger review
+- **A1 (CH232, causal frame).** Is the approach-zone population (6.1 item 1) the right replacement for the round's 12-slot
+  market-day frame, and is the zone half-width 0.04 acceptable, or should the zone be wider (crossings from farther are lost) or
+  the population the whole reward panel with `xo` as a per-capture event (more reference units, a larger DE)?
+- **A2 (CH232, reading).** Is a primary sign that holds under both readings of the reward rule (1.4.2) sound, or does the
+  documented reading (one-sided farmers must add the dear side to keep scoring) predict narrowing often enough that the sign is
+  not fixed by the mechanism? Should the venue page be re-read now, before R1, rather than at the freeze?
+- **A3 (CH234, E015).** The fast-lane freeze precedes `T_E015`, but the census-fixed values (centres, scales, cuts) may be committed
+  after it. They are mechanical counts; is "disclosed, no label" right, or should CH234 carry *informed (E015)* if any census value
+  is committed after `T_E015`?
+- **A4 (CH234, F binding).** F binds because `d_{k+1}` is the next unit's state. At the pessimistic DE (10) the F-MDE gate fails at
+  the low planning count. The designer rejected an F label plus a point condition (LT10 CH223's form) as a design chosen for power;
+  the challenger should rule.
+- **A5 (CH234, the tested term).** Is the centred product with both main effects the right reading of "the dollars behind the
+  move", or should the primary be the round's raw product (kept as M4), or the traded-minus-quote-only difference in the `w` slope
+  (which removes level drift by design but needs both classes' counts)?
+- **A6 (DE floors).** CH233 and CH232 plan at DE 31 but gate at `max(5.0, computed)`; a computed DE far below 31 would let CH232
+  pass. Is LT9's floor right here, or should the floor be the planning DE?
+- **A7 (CH232, re-crossing).** The round's line counts market-days with >= 3 crossings; the map measured >= 2 (0.59). Keeping the
+  round's definition is the pre-map choice; the challenger should rule whether it guards the stated risk (ladder chatter), given
+  that `xr` already separates re-crossings.
+- **A8 (CH233, members).** Are "Other" and placeholder members right as members of the sum; should augmented events
+  (`event_neg_risk_augmented`) be a reported arm; is requiring every member two-sided (rather than treating a missing bid as a
+  zero contribution) right?
+- **A9 (K block).** Market age is not on the rows and is omitted; `chg_1d` / `chg_1w` enter only if the header pre-check finds them.
+  Is a control set fixed by a header read acceptable, and is K close enough to the champion's families for the "beyond momentum and
+  market state" reading?
+- **A10 (CH234, missingness).** If the census shows the unknown class is capture-level (whole captures without `volume_num`), is
+  excluding those captures' movers (a time-based selection) acceptable, and is world 3 the right leak world?
+- **A11 (CH232, panel point condition).** Is a point condition (control-panel coefficient below half the rewarded one) enough to
+  separate the rule's effect from a generic boundary effect, given that the interaction's MDE (about 0.85-1.01c at DE 31) is near
+  the floor?
+- **A12 (timing).** The fast lane leaves about nine days from the seal to the pin beside E011's, LT2's and E015's analyses. Is the
+  lapse rule (no slide; the ordered lane with a fresh census) the right fallback, and should a test dropped by the fast-lane census
+  stay dropped in the ordered lane (declared: yes)?
+- **A13 (CH233, the record).** E005's null on mids and XM3's not-surviving sibling result are disclosed; does the bid-sum
+  innovation on the spread differ enough from them to be a new test rather than a re-test of a closed subject?
+
+## 12. Draft ledger block (DRAFT, not registered, not counted)
+```
+## LT11 design draft, 2026-10-23 (experiments autopilot; nothing counted)
+- Draft docs/research_lab/LIVE_TESTS_11.md on feat/live-tests-11: CH234 (dollar weight of a move), CH233 (neg-risk bid-sum
+  headroom and the next spread), CH232 (rewarded first crossings of 0.10 / 0.90). DRAFT, not frozen, R1 not run, not registered.
+- Planning inputs from the CH240 map (counts only; no target or P&L read); census on a fresh seal [10-28, 11-07).
+- Fast lane: freeze before 11-14T12Z and T_E015; window 11-18..12-09; analysis after 12-10T12Z. Designer's census odds
+  0.35 / 0.50 / 0.20; P(no test) about 0.26.
+```
