@@ -1276,3 +1276,33 @@ def test_runner_committed_seal_and_ancestry(tmp_path):
     run("add", "seal.json")
     run("commit", "-qm", "seal2")
     assert "ancestor" in rl._committed(seal)[0]
+
+
+def test_write_once_and_17g_round_trip(tmp_path):
+    p = tmp_path / "data-dumps" / "research_lab" / "live_tests10" / "x" / "a.csv.gz"
+    df = pd.DataFrame({"a": [0.1 + 0.2, 1 / 3, 1e-17, 123456789.123456789], "b": ["x", "y", "z", "w"]})
+    assert b.write_once_csv(p, df) is True
+    assert b.write_once_csv(p, df.assign(a=0.0)) is False  # existing file never touched
+    back = pd.read_csv(p, float_precision="round_trip")
+    assert (back["a"].to_numpy() == df["a"].to_numpy()).all()  # %.17g: exact round trip
+    assert not list(p.parent.glob(".*.tmp"))
+
+
+def test_cd10_mde_is_max_of_declared_and_design(census_world):
+    cd = census_world["cd"]
+    for t, v in cd["tests"].items():
+        m = v["mde"]
+        assert m["mde_c"] == pytest.approx(max(m["declared_c"], m["design_c"]))
+        assert v["f_role"] == lt.F_ROLES[t]
+        assert v["values"]["DE_gate"] >= 51.0 and v["values"]["OF"] >= 1.0
+    f = cd["tests"]["CH224"]["f_mde"]
+    assert f["f_mde_c"] == pytest.approx(max(f["declared_c"], f["design_c"]))
+    assert "f_mde_ok" in cd["tests"]["CH224"]["gates"] and "f_mde_ok" not in cd["tests"]["CH223"]["gates"]  # only CH224's F-MDE binds
+
+
+def test_spec_blocks_for_the_analysis_exist():
+    spec = lt.load_spec(sha=None)
+    assert spec["labels"]["informed_se4_se13"] is False and spec["dropped_tests"] == [] and spec["size_check_result"] is None
+    assert set(spec["census_fixed"]["mde_c"]) == set(lt.TESTS) and spec["design_ambiguities"]
+    assert spec["economics"]["e009_spec_sha256"] == b.sha256_file(HERE / "model_specs" / "cross_venue_live_v1.json")
+    assert spec["vendored"]["cross_venue_live.py"] == b.sha256_file(HERE / "cross_venue_live.py")

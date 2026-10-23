@@ -115,7 +115,7 @@ def load_kind(out_root: Path, test: str, start: float, end: float, spec: dict, r
         t = _origin_t(p)
         if not (start <= t < end):
             continue
-        fr = pd.read_csv(p, dtype={"pid": str, "ev": str, "spec_sha": str, "code_sha": str, "role": str, "crypto": str})
+        fr = pd.read_csv(p, dtype={"pid": str, "ev": str, "spec_sha": str, "code_sha": str, "role": str, "crypto": str}, float_precision="round_trip")
         acc["files"] += 1
         keep = fr["role"].isin(roles)
         acc["dropped_role"] += int((~keep).sum())
@@ -131,14 +131,14 @@ def load_kind(out_root: Path, test: str, start: float, end: float, spec: dict, r
         for h in lt.HORIZON_MIN[kind]:
             op = out_root / kind / "outcomes" / d / f"{hm}.h{h}.csv.gz"
             if op.exists():
-                o = pd.read_csv(op, dtype={"pid": str, "tg_status": str}, usecols=["pid", "tg_status", "pmid_h", "sP_h", "p_bid_sz_h", "p_ask_sz_h"]).drop_duplicates("pid")
+                o = pd.read_csv(op, dtype={"pid": str, "tg_status": str}, float_precision="round_trip", usecols=["pid", "tg_status", "pmid_h", "sP_h", "p_bid_sz_h", "p_ask_sz_h"]).drop_duplicates("pid")
                 o = o.rename(columns={c: f"{c}{h}" for c in o.columns if c != "pid"})
                 fr = fr.merge(o, on="pid", how="left")
             else:
                 fr[f"tg_status{h}"] = "pending"
         tp = out_root / kind / "twins" / d / f"{hm}.csv.gz"
         if tp.exists():
-            w = pd.read_csv(tp, dtype={"pid": str}, usecols=["pid", "tw_ok", "dsK_tw", "pull_tw", "traded_tw"]).drop_duplicates("pid")
+            w = pd.read_csv(tp, dtype={"pid": str}, float_precision="round_trip", usecols=["pid", "tw_ok", "dsK_tw", "pull_tw", "traded_tw"]).drop_duplicates("pid")
             fr = fr.merge(w, on="pid", how="left")
         else:
             for c in ("tw_ok", "dsK_tw", "pull_tw", "traded_tw"):
@@ -363,6 +363,13 @@ def readings(X: pd.DataFrame, y: np.ndarray, test: str, controls: list[str], pri
     Y = pd.DataFrame({"y": ys, "market_id": X["market_id"], "t_row": X["t_row"]})
     yd = ab.demean(Y, ["y"], "market_id", "t_row", "expanding")["y"].to_numpy(float)
     out["both_demeaned"] = strip(fit10(X, yd, term, controls, seed=seed, n_boot=200))
+    # the vendored per-pair block gate in pair x day (CH222: pair x two-day block) strata: a sensitivity only, never binding (1.8)
+    # DESIGN-AMBIGUITY: the vendored block_fl_gate demeans within its group, so the group here is the pair x stratum key, not the pair.
+    key = "block2" if test == "CH222" else "day"
+    Xg = X.assign(_pk=X["market_id"].astype(str) + "|" + X[key].astype(str))
+    ctrl = [c for c in controls if c in Xg and np.nanstd(Xg[c].to_numpy(float)) > 0]
+    out["per_pair_block_gate_sensitivity"] = b.block_fl_gate(Xg, ys, term, ctrl, sign=+1, draws=int(spec["gates"]["draws"]), seed=int(spec["seeds"]["gates"][test]), min_n=int(spec["gates"]["min_rows_stratum"]),
+                                                              group="_pk", order="t_row")
     if test == "CH224":
         m2 = X["y_m2"].to_numpy(float)
         out["S1_plus_10min"] = refit(X, X["y_s1"].to_numpy(float), test, controls, seed=seed, minor=False)
@@ -566,6 +573,7 @@ def labels_for(test: str, r: dict, v: dict, spec: dict, k: int, stream_gap: floa
         return lab + ([cc["label"]] if cc["label"] else [])
     beta = prim.get("beta")
     if beta is not None:
+        # DESIGN-AMBIGUITY: 'material' (CH224) = the slope per census SD of zdsK (zdsK is in census-SD units) x 2.2 >= 1.0c; CH223 / CH222 = the class contrast beta >= 0.5c.
         if test == "CH224" and beta * 2.2 * 1.0 >= 1.0:  # sign-adjusted slope x 2.2 census SDs of zdsK (zdsK is in census-SD units)
             lab.append("material")
         if test in ("CH223", "CH222") and beta >= 0.5:
@@ -601,6 +609,7 @@ def labels_for(test: str, r: dict, v: dict, spec: dict, k: int, stream_gap: floa
         lab.append(f"attrition-differential ({att['diff'] * 100:+.1f} pp)")
     if (r["load"].get("late_loss_share") or 0.0) > 0.02:
         lab.append(f"late-loss ({r['load']['late_loss_share']:.1%} of origin files written late)")
+    # DESIGN-AMBIGUITY: 'the stream missed > 10% of the window's 120 s cycles' is read as the share of the window's scheduled cycles with no kind = cycle line in the successor's runs.jsonl.
     if stream_gap is not None and stream_gap > 0.10:
         lab.append(f"stream-gap ({stream_gap:.1%} of the window's cycles missing)")
     ho = rd.get("holiday_excluded") or {}
@@ -879,6 +888,7 @@ def per_test_result(res: dict, analytic: dict, alive: list[str], worlds: int, sc
                 elif not r["ok"]:
                     (fails_size if stat == "gate" and not (sc == "W9") else fails_mech).append(f"{sc}:{stat}")
         status = "fail_size_scenario" if (fails_size or missing) else ("fail_mechanical_world" if fails_mech else "pass")
+        # DESIGN-AMBIGUITY: 'analytic p oversized in simulation' = the analytic p's own rejection rate exceeds the limit in W1, W2 or W3 (the null worlds without a leak).
         over = [sc for sc, v in (analytic.get(t) or {}).items() if sc in NULL_WORLDS_ANALYTIC and v["over_limit"]]
         out[t] = {"status": status, "failed_size": fails_size, "failed_mechanical": fails_mech, "missing": missing, "analytic_oversized": bool(over), "analytic_over_in": over}
     return out

@@ -380,7 +380,12 @@
     "scale": null
    }
   },
-  "rule": "filled with the exact census floats at registration (8.4 step 6); outside the seal-hashed blocks"
+  "rule": "filled with the exact census floats at registration (8.4 step 6) from CD10's census_fixed output and its per-test mde_c (price-cents MDE); outside the seal-hashed blocks",
+  "mde_c": {
+   "CH224": null,
+   "CH223": null,
+   "CH222": null
+  }
  },
  "vendored": {
   "cross_venue_live.py": "eac14e68dc7a9d60610d9ea5d2edfdc39be73afd0192d6b41cd3d5459e5ef581",
@@ -388,5 +393,19 @@
   "live_tests9_base.py": "03dd3be38f50ad12e00ed2487f189d0bf49299483720d499f5620c0023dc9d39",
   "cb17_census.py": "6b98bab8bde4238edbe56e32d5672c72a04acc04d662bec7b393e3cbf806a15a",
   "cb13_label.py": "2fbf4b91e3ee3db413098866a6d99b24bcdf5e0c97750820de8edbc6fc789380"
- }
+ },
+ "labels": {
+  "informed_E009_E010": true,
+  "informed_se4_se13": false,
+  "rule": "1.9 / 1.6: 'informed (E009, E010)' is always attached; 'informed (se4/se13)' only if the design text changed after 2026-11-04 other than census values and code-check fixes"
+ },
+ "dropped_tests": [],
+ "dropped_tests_rule": "tests dropped at a census (6.2, uncounted); filled at registration; analyze refuses a k_tests that names one",
+ "size_check_result": null,
+ "size_check_result_rule": "filled at registration (8.4 step 7) from the committed size-check output: {test: {status: pass | fail_size_scenario | fail_mechanical_world, analytic_oversized: bool}}; a pinned spec with a null result refuses",
+ "design_ambiguities": [
+  "CD10 correlation terms: 'log Polymarket touch size' is read as the two columns lpb_t and lpa_t (log1p of the bid and the ask touch size at t); CH223's 'log Kalshi touch size' as lkb_s0 and lka_s0, CH222's as lkb_t and lka_t",
+  "per-pair block gate sensitivity (1.8): the vendored block_fl_gate demeans within its group, so its group is the pair x stratum key (pair x UTC day; CH222 pair x two-day block), not the pair",
+  "the reward feed (1.2, economics only) is joined in the reader as a per-origin rewarded flag and gross rate (one usable capture before the UTC day)"
+ ]
 }

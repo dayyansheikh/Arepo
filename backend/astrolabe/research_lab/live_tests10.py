@@ -424,6 +424,7 @@ def read_sidecar_cond(path: Path) -> dict[str, str]:
     return {str(m): str(c) for m, c in zip(df["market_id"], df["condition_id"], strict=True) if c}
 
 
+# DESIGN-AMBIGUITY: 8.1 names no feed column of the reader; the day's reward listing (1.2, economics only) is joined here as ``rewarded`` / ``reward_rate`` in the frozen lines.
 def feed_listing(feed_roots, before: float) -> dict | None:
     """1.2's reward feed, economics only: the last USABLE feed capture (manifest state complete and its rows file present) whose manifest finish is
     earlier than ``before``; ``{"capture": id, "rates": {condition_id: summed positive rate_per_day}}`` (a listed market with no positive
@@ -1935,6 +1936,8 @@ def followups(xv_root: Path, out_root: Path, W: WindowRecords, spec: dict, now: 
                         tt = targets(A, t0, np.array([j0], dtype=np.int64), h * 60 // POLL_S)
                         tt = tt.reset_index(drop=True)
                         tg.loc[ok, :] = tt.iloc[rows[ok]].to_numpy()
+                    # DESIGN-AMBIGUITY: the target status 'absent' (1.3) is read as: no polled line for the pair although the cycle at t + h ran (the pair left the poller's list);
+                    # 'poll_missing' = the cycle itself is missing from runs.jsonl.
                     absent = (tg["tg_status"] == 4) & W.cycle_ran(t + h * 60)
                     tg.loc[absent, "tg_status"] = 3
                     res = pd.concat([fr.reset_index(drop=True), tg.assign(tg_status=[TG_NAMES[int(x)] for x in tg["tg_status"]])], axis=1)

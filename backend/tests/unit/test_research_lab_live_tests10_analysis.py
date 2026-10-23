@@ -370,3 +370,10 @@ def test_stream_gap_share(world):
     spec = world["spec"]
     gap = an.stream_gap_share(world["xv"], spec)
     assert 0.8 < gap < 1.0  # three days of cycles against a 21-day window
+
+
+def test_end_to_end_per_pair_block_gate_is_a_sensitivity_only(world):
+    for t in lt.TESTS:
+        g = world["res"][t]["readings"]["per_pair_block_gate_sensitivity"]
+        assert "testable" in g and g.get("method", "block circular-shift Freedman-Lane") == "block circular-shift Freedman-Lane" or not g["testable"]
+        assert world["res"][t]["gate"]["method"].startswith("event-phase")  # the binding gate is the event-phase one

@@ -100,6 +100,7 @@ def simulate(world: str, rng: np.random.Generator, *, plan: list[int] | None = N
         a = np.zeros((P, n))
         lag = np.full((P, n), f.get("lag", 0))
     xl = np.take_along_axis(x, np.maximum(j[None, :] - lag, 0), axis=1)
+    # DESIGN-AMBIGUITY: W3 says 'Kalshi's mid = x_t and Polymarket's mid = x_{t-2}'; W1's venue AR(0.5) noise is kept on both (W3 = W1 with the lag).
     km = x + nk
     pm = (xl if (f.get("lag") or f.get("activity")) else x) + npol
     pt = np.where(rng.random(P) < 0.10, 0.001, 0.01)[:, None]
@@ -129,6 +130,7 @@ def simulate(world: str, rng: np.random.Generator, *, plan: list[int] | None = N
     # sizes -------------------------------------------------------------------------------------------------------------------------------------
     sz = np.stack([np.exp(math.log(100.0) + ar1(rng, (P, n), 0.9, 0.5) * (mult if f.get("vol") else 1.0)) for _ in range(4)])
     kbs, kas, pbs, pas_ = sz[0], sz[1], sz[2], sz[3]
+    # DESIGN-AMBIGUITY: W6's period of 5 polls equals the 10-minute origin spacing, so t and s0 share the bot's phase and the reset rarely makes a pull; implemented literally.
     if f.get("bot"):  # Kalshi sizes reset by a bot every 5 polls on a fixed phase per pair: 30% at the reset, refilled over two polls
         phase = rng.integers(0, 5, P)[:, None]
         k = (j[None, :] - phase) % 5
