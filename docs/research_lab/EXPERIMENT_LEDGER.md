@@ -4486,3 +4486,10 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   (`lt11_restore_guard.py`, stop-and-ask on overflow); notes A25-A29. Scoped tests 332 passed (pins incl.). Disclosed: one
   dev-seed small-world look at worlds 12-14 (nothing changed after it) and one 1-world timing run read for the clock only.
   Frozen text unchanged. Re-check running.
+- **LT11 code re-check: ACCEPT_WITH_FIXES** (`reviews/LT11_CODE_RECHECK_2026-10-23.md`). **Deviation found and disclosed:** a unit
+  test (`test_research_lab_live_tests11_worlds.py:66`, since 2c3bbaf6) ran small CH232 worlds 9-10 at the registered size-check
+  seed 20261497 on every pytest run, against 1.8's "no preliminary run at seed 20261497". Only a "missing" status was asserted;
+  no rejection rate was read; the master draws it used go to scenario 1's CH234 worlds in the registered run. Judged
+  uninformative by the reviewer; fixed before merge (non-registered seed, guard test). Other fixes: battery2 ordering before
+  LT10's first census run (11-03T09Z), `informed_labels` null-until-pin, power-run seeds refused by `size-timing`, two label rules
+  disclosed, minor counts / tests. LT12's coder was told the same rule for seed 20261597.
