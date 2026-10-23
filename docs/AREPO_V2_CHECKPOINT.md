@@ -258,14 +258,14 @@ Host 2 OCPU / 11.4 GiB since the resize. data-dumps 34 / 40 GB cap: owner approv
   `quietbook`, `swclock`; `book`/`book0` stay at LT9's date). **LT9 rule (c') now applies:** REGISTERED_UTC >= 2026-12-30.
 - **Retention reverted 10 -> 8 days** (archive_retention.json; deployed with this commit).
 - q0623 starvation fix (2417e27b): q0623 priority 53 (q0162 repeat won the id tie-break at 52).
-- **LT10 code phase** running (implementer agent, `../astrolabe-live-tests-10-code`, ~10 commits by 07:45Z). Next: code-freeze
-  check (science-reviewer; template reviews/LT9_CENSUS_CODE_CHECK_2026-10-23.md), fixes, merge into chore. The successor
-  poller must be freeze-checked before the handover (after E009 + E010 analysis commits, 11-03+).
+- **LT10 code DONE** on `feat/live-tests-10-code` (tip e9abcef2; 110 tests; ledger entry ~08:25Z). **Code-freeze check
+  running** (science-reviewer; file its report as reviews/LT10_CODE_CHECK_2026-10-23.md, apply fixes in that worktree, merge
+  into chore). Size check ~17 h estimated (do not cut worlds; longer timeout or result-identical vectorisation).
 - **Creative round 16 MERGED** (0bbdf451; CH232-CH241; CANDIDATES note 8a61a82f: tilt, nrslack, parentsib, ruleclass, volage).
   LT11 proposed = CH234 (dollarw), CH233 (nrslack innovations), CH232 (bandside); fast lane needs the design text frozen
   before 2026-11-14T12:00Z (window 11-18..12-09), else after LT9. **First CH240 map** (counts only, k = 0): implementer agent
   in `../astrolabe-ch240-map` (`feat/ch240-map`), job q0680 (net, < 500 MB, span 10-16..10-23 host captures; must run
-  before 10-24T03:30Z when 10-16 leaves under the 8-day rule). Then: LT11 draft on `feat/live-tests-11` from the map's counts.
+  before 10-24T03:30Z when 10-16 leaves under the 8-day rule). q0680 merged 590f0c37 + deployed. Then: LT11 draft on `feat/live-tests-11` from the map's counts.
 - E026: q0541 (net, light) from 10-25T00Z, q0542 from 06Z; confirm start + phone note "collection started".
 
 **Autopilot session 10-23 from 01:58Z:**

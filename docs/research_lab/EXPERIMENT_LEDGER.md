@@ -4175,3 +4175,17 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   (LT9 CH214 holds it). Their old "back to 2027-01-23 if CH214 drops" fallback is void: if CH214 drops, the date moves only
   by a new ledger line to the latest date a remaining test still needs. No `quietbook` / `swclock` family, model or value
   ever existed, so nothing becomes visible. Test `test_lt8_closure_withdraws_quietbook_swclock_and_attrlimit`.
+
+## LT10 code phase done on `feat/live-tests-10-code`; CH240 map queued, 2026-10-23 ~08:25Z (experiments autopilot; nothing counted)
+- **LT10 code** (tip e9abcef2, 12 commits on c94bbb12; not merged): successor poller `xv_quotes_poller.py` /
+  `run_xv_quotes_poller.py` (vendored from E009's `cross_venue_live.py` eac14e68… and `cross_venue.py` 52640839…, hashes
+  matched), reader `live_tests10.py`, analysis + size check (`live_tests10_analysis.py`, `live_tests10_worlds.py`), spec
+  `live_tests10_v1.json` (unpinned), runner, `battery2.KIND_RULES["live_tests10"]`, drafts q0660-q0667 (not promoted). 110 LT10
+  tests (synthetic); LT8 / LT9 / battery2 green. 8 DESIGN-AMBIGUITY items listed in the spec for the code-freeze check.
+  LT3's analysis file pinned at its current sha256 (the design records none). **Operational flag:** the implementer
+  estimates the registered 2,000-world size check at about 17 h (planning 6-12 h); the world count is not changed.
+  Next: science-reviewer code-freeze check (running), fixes, merge into chore.
+- **CH240 boundary map** (creative round 16; counts only, k = 0, uncounted): `boundary_map_ch240.py`, `run_ch240_map.py`,
+  13 tests; merged 590f0c37, deployed. q0680 (net, mem_mb 450) over the host captures 2026-10-16..10-22, before 10-16 leaves
+  the host at 10-24T03:30Z. Reads capture k and k - 1 only; no target, no P&L. Its counts are planning inputs for an LT11
+  draft (CH234, CH233, CH232), written before any LT11 gate is set.
