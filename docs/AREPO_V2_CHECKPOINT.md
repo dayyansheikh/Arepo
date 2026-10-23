@@ -247,7 +247,7 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-23 02:30Z
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-23 03:10Z
 Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && git log --oneline -1'` = local tip.
 Host 2 OCPU / 11.4 GiB since the resize. data-dumps 34 / 40 GB cap: owner approval 8 (restore-tree clearing) is time-relevant.
 
@@ -257,11 +257,9 @@ Host 2 OCPU / 11.4 GiB since the resize. data-dumps 34 / 40 GB cap: owner approv
   blackout, ahead of MC1 at priority 40). When each is done: write up counts only (ledger, LIVE_TESTS_8.md census
   section, drop/survive per section 7), registry; after q0623: revert the 10-day snapshot rule to 8 days (ledger, deploy),
   then phase 2 for any survivor. Deadline 10-28T03:30Z.
-- LT9 code phase 1 on `feat/live-tests-9`: census-code freeze check **FIXES_REQUIRED** (a440a2cb,
-  `reviews/LT9_CENSUS_CODE_CHECK_2026-10-23.md`: 5 must-fix incl. missing sealed sidecar must refuse, CR9 decision capture
-  strictly before t_dec, CH213 control twin band at k+5, CH215 ties by condition_id, CR9 completeness over 120 slots; 3
-  rulings; notes). Implementer applying all of them now; then a science-reviewer re-check, merge into chore. Seal only
-  after the 11-02..11-12 span exists.
+- **LT9 census code MERGED** (9e482fab): code check FIXES_REQUIRED -> fixes -> re-check -> final OK_WITH_NOTES -> notes
+  (ledger entry). Drafts q0640-q0647 not promoted. Next: seal q0641 only after the 11-02..11-12 span exists (not before
+  11-13); then CR9/CC9/CS9 censuses (never beside an LT8 size check / analysis); phase 2 for survivors.
 - **Disk:** data-dumps 34 / 40 GB at 02:10Z (about +1 GB/day -> 40 GB about 10-29). cb18_census 4.9 GB is finished and not an
   LT8 root; clearing needs owner approval 8 (dashboard, now marked time-sensitive). Contingency if >= 38 GB before approval:
   raise the operational `--data-dumps-cap-gb` of the registered live collectors (q0460) to 44 (below the 45 GiB pass cap;

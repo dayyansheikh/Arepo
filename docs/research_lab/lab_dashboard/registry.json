@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-23T02:30:00Z",
+ "updated": "2026-10-23T03:10:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1636,7 +1636,7 @@
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Independent code check, then counting checks (data from 2 to 12 Nov); collection proposed from 21 Jan 2027",
+   "next": "Code checked and merged; data seal after 12 Nov, then counting checks; collection proposed from 21 Jan 2027",
    "next_date": "2027-01-21",
    "candidate": false,
    "sources": {

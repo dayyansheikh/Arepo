@@ -4046,3 +4046,24 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   ~23:00Z (deployed 23:03Z). "2026-10-23 ~01:30Z" for the dispgap/dormant entry should read 2026-10-22 ~23:15Z. The
   builder wrote UTC+1 local times as UTC; the config and docs are corrected (commit 30e62dba). The withdrawal effective
   time 2026-10-23T00:00:00Z is unchanged.
+
+## LT9 census code phase 1 merged, 2026-10-23 ~03:05Z (experiments autopilot; nothing counted)
+- **Code** (`feat/live-tests-9`, merged 9e482fab): vendored base `live_tests9_base` (unmodified LT3-LT8 copies, hash-pinned;
+  additions for the overlaps: LT8 `quiet_units` + helpers, LT7 `behind_touch` / `patient_units`), seal, censuses CR9 / CC9 /
+  CS9, feed reader and end-date parse rule, lag-slot loaders, runner, DRAFT spec `live_tests9_v1.json`, drafts q0640-q0647
+  (not promoted). Design text unchanged (sha256 098aa3fb…). 76 LT9 + provenance tests; LT7 / LT8 / copy_skilled green.
+- **Reviews:** `reviews/LT9_CENSUS_CODE_CHECK_2026-10-23.md` FIXES_REQUIRED (5 must-fix: a missing sealed sidecar must
+  refuse; CR9 decision capture strictly before t_dec; CH213 control twin band from capture k + 5's cell; CH215 ties by
+  condition_id; CR9 completeness over all 120 span slots) -> fixes ea4eefbc -> `..._FIX_RECHECK_...` FIXES_OK_WITH_NOTES ->
+  notes 60df6c47 -> `..._FINAL_CHECK_...` OK_WITH_NOTES -> notes 1f1159d8. The reviewers are read-only; the orchestrator
+  filed their reports.
+- **Declared before the seal** (`declared_before_seal` in the spec, printed in every census output; each can only lower a
+  count or is a descriptive): malformed > open > dated for feed ends (mixed cases counted; extended to CR9, and malformed
+  markets excluded from CR9's control pool, counted); the sentinel year read as written; each end-kind denominator; the
+  switching gate's mean-per-day definition; CH197 `osz` passed NaN (no filter).
+- **Deviation (descriptive, no gate):** the LT8 CH203 overlap is NOT computed in CS9 (ruling (i)): CH203's quiet test reads
+  capture k's mid, which is after CH214's decision (1.3) and barred by the section 7 lag-slot rule. CC9 / CR9 print both
+  overlaps NaN ("census reads no sweeps"). CH197's overlap is computed in CS9 on (market, UTC day).
+- **Next:** seal (q0641) only after the 11-02..11-12 span exists; check by hand that no LT8 q0624-q0627 runs before
+  promoting any LT9 census (memory rule).
+

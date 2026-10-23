@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-23 03:05 UTC+1
+**Last updated:** 2026-10-23 03:39 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -18,8 +18,8 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
   start about 06:30 UTC+1) and must finish
   before 28 Oct, when the oldest needed server files start to expire.
 - **LT9 (three planned tests from round 14, about reward-programme quoting; a fourth only if its count allows):** design text **frozen** (22 Oct, after the
-  challenger review and a re-check). Its code (data seal and counting checks) is written and
-  tested; an independent code check is running. Its data seal waits until the 2 to 12 Nov data exists.
+  challenger review and a re-check). Its code (data seal and counting checks) passed an independent
+  code check after fixes (23 Oct) and is merged. Its data seal waits until the 2 to 12 Nov data exists.
 - **Cross-venue twins (batch 16, K): closed, not testable** (a blind check found 3 true twins in 100 sampled pairs; 90 needed).
 - **Model run (MC1):** now running on the server in 5.5-hour pieces (about 32 hours in total), giving way to LT8's checks.
 - **Batch 7:** its counting job starts from 24 Oct. **Batch 8/9:** both failed data jobs are fixed and queued.
