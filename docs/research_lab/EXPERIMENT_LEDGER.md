@@ -4394,3 +4394,12 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   CH246 (no rules text).
 - **Next:** LT12 design draft (CH245, CH244, CH243; one Holm family, k <= 3), these as planning counts only; its own census
   on a fresh seal disjoint from LT11's seal and window.
+
+## LT11 code-freeze check: REJECT, fixes started, 2026-10-23 ~23:15Z (experiments autopilot; nothing counted)
+- `science-reviewer` freeze check (8.4 step 3) of `feat/live-tests-11-code` 3452419b: **REJECT**, filed
+  `reviews/LT11_CODE_FREEZE_CHECK_2026-10-23.md` (on the branch, 659bb3f4). 143 scoped tests pass; census path close to
+  acceptable (coverage-first, gate values = section 7, no carry-forward, causality asserted). **7 MUST-FIX**, mostly the
+  size-check worlds not building 1.8.1's declared worlds (CH234 `w`, world 3's census `q`, world 3b's missingness, M-Q loading
+  of worlds 12-14), a disabled census-value refusal, q0691's `not_before` before the last sealed capture, and the `battery2`
+  kind entry moving LT10's code hash (LT10 has no freeze record yet; LT11 merges before it). 11 SHOULD-FIX incl. a clock-only
+  timing mode. No fix needs the frozen text changed. Fixes being applied on the branch; then a re-check.
