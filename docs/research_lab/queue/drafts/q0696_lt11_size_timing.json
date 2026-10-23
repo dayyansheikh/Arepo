@@ -1,0 +1,37 @@
+{
+ "id": "q0696_lt11_size_timing",
+ "title": "LT11 size-check timing (DRAFT): 20 worlds x 200 draws of each of the 16 scenarios at the timing seed 20261497 x 100 + 98, wall-clock per world only, projected to 2,000 worlds x 200 draws (LIVE_TESTS_11.md 8.4 step 3, R1 should-fix 9)",
+ "family": "live_tests_11",
+ "priority": 48,
+ "expected_value": "the projected run time of q0693 and whether the ordered-lane ledger line is needed before the seal (projected end = 2026-11-09 + run time + 24 h after 2026-11-15T00:00Z); no result of any world is written",
+ "data": [
+  "none (simulated worlds)"
+ ],
+ "resources": {
+  "mem_mb": 600,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [],
+ "not_before": "2026-10-24T00:00:00Z",
+ "argv": [
+  "scripts/run_live_tests11.py",
+  "size-timing",
+  "--worlds",
+  "20",
+  "--draws",
+  "200",
+  "--data-dumps-cap-gb",
+  "40",
+  "--out",
+  "../data-dumps/research_lab/live_tests11_census/SIZE11_TIMING.json"
+ ],
+ "timeout_s": 7200,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests11_census/SIZE11_TIMING.json"
+ ],
+ "next_action": "record the per-scenario seconds per world, the projected total and projected_end_utc in the ledger; if ordered_lane_ledger_line_needed is true, write the ordered-lane ledger line BEFORE the seal (8.4 step 3)",
+ "notes": "Clock only: size-timing writes per-scenario wall-clock seconds per world, the projection to 2,000 worlds x 200 draws (plus the 3 x 500 power-run worlds) and the code / spec / design-text hashes; the worlds' return values are discarded unread and the output holds no rejection count, rate, p-value or status (8.4 step 3: no result of these runs is read beyond the clock). The seed 20261497 x 100 + 98 is neither the registered size-check seed (20261497) nor the development seed (x 100 + 99); the command refuses either. Worlds 3 / 3b use the labelled development q placeholder 0.20 while census_fixed.CH234.q_unknown is unfilled (timing only). Local planning: about 18 s for one world of every scenario (about 6 min for 20 worlds) on the Mac; the host is slower; timeout_s 7200. Run on the host-equivalent machine (the collection host), not beside any memory-heavy job. DRAFT, not in queue/jobs. Promote only after: the challenger review, the LT11 design-text freeze (LIVE_TESTS_11.md design text frozen at sha256 991100db5d6c75e3f76e3d0d10cc5f957dd755108e09ec05edd8dad0f91b3583), the LT11 code and the science-reviewer freeze check of the census and size-check code against LIVE_TESTS_11.md sections 1.4, 1.8, 1.8.1 and 7 (8.4 step 3), and never while E011's, LT2's or E015's analysis job, or an LT9 or LT10 census, size-check or analysis job, is running (memory-heavy-jobs rule). Counts 0 (descriptive; no trials line) except q0695, which writes the single counted trials line (kind live_tests11). Reads the DRAFT spec unpinned (except q0694 and q0695, which read the pinned spec); the code_sha256 of every hashed module is written into the output. Every gate threshold is stated in section 7 before this runs; nothing is re-tuned after it. Each census runs once; max_retries 1 covers a deterministic crash only (no output written). Runs with --data-dumps-cap-gb 40 where the runner accepts it (exit 75 above the cap)."
+}

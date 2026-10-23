@@ -6,6 +6,7 @@ makes no network request.
     python scripts/run_live_tests11.py seal --snapshot-root R --work W --out lt11_census_inputs.json   # q0691
     python scripts/run_live_tests11.py census --seal S --work W --out cc11.json                        # q0692 (CC11: CH234, CH233, CH232)
     python scripts/run_live_tests11.py size-check --out sc11.json [--dev --worlds N --draws N]         # q0693
+    python scripts/run_live_tests11.py size-timing --out t11.json [--worlds 20 --draws 200]            # q0696: wall-clock per world only (8.4 step 3)
     python scripts/run_live_tests11.py reader [--out-root O]                                           # q0694 (host cron); exit 75 when nothing is new
     python scripts/run_live_tests11.py backfill-series [--out-root O]                                  # look-back series files before the window
     python scripts/run_live_tests11.py ops-stats [--root O]                                            # counts only; reads no price, spread or size column
@@ -103,6 +104,12 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--draws", type=int, default=None)
     s.add_argument("--power-worlds", type=int, default=0, help="--dev only: power-run worlds (the registered run uses 500)")
     s.add_argument("--data-dumps-cap-gb", type=float, default=None)
+    tm = sub.add_parser("size-timing", help="8.4 step 3: wall-clock seconds per world of each of the 16 scenarios at a timing seed; no result of the worlds is written")
+    tm.add_argument("--out", type=Path, default=None)
+    tm.add_argument("--worlds", type=int, default=20)
+    tm.add_argument("--draws", type=int, default=200)
+    tm.add_argument("--seed", type=int, default=20261497 * 100 + 98, help="never 20261497 or the development seed 20261497 x 100 + 99 (refused)")
+    tm.add_argument("--data-dumps-cap-gb", type=float, default=None)
     for name, help_ in (("reader", "the window reader (series, frozen units, due outcomes and twins; write-once; exit 75 when nothing is new)"),
                         ("backfill-series", "only the look-back series files before the window")):
         r = sub.add_parser(name, help=help_)
@@ -149,6 +156,12 @@ def main(argv: list[str] | None = None) -> int:
         from astrolabe.research_lab import live_tests11_worlds as wd
 
         return wd.size_check_cli(args, _write_out)
+    if args.cmd == "size-timing":
+        if _cap(args.data_dumps_cap_gb):
+            return lt.TEMPFAIL
+        from astrolabe.research_lab import live_tests11_worlds as wd
+
+        return wd.size_timing_cli(args, _write_out)
     if args.cmd == "analyze":
         from astrolabe.research_lab import live_tests11_analysis as an
 

@@ -49,9 +49,27 @@ def test_reader_exits_75_when_nothing_is_new(tmp_path):
 
 def test_parser_has_every_subcommand():
     ch = R.build_parser()._subparsers._group_actions[0].choices
-    assert {"header-precheck", "seal", "census", "size-check", "reader", "backfill-series", "ops-stats", "analyze"} <= set(ch)
+    assert {"header-precheck", "seal", "census", "size-check", "size-timing", "reader", "backfill-series", "ops-stats", "analyze"} <= set(ch)
 
 
 @pytest.mark.parametrize("cmd", ["analyze", "ops-stats"])
 def test_help_text_mentions_location_ambiguity(cmd):
     assert "LT11 ambiguity A1" in R.__doc__
+
+
+@pytest.mark.parametrize("seed", ["20261497", str(20261497 * 100 + 99)])
+def test_size_timing_refuses_the_registered_and_development_seeds(seed, tmp_path, capsys):
+    assert R.main(["size-timing", "--worlds", "1", "--draws", "1", "--seed", seed, "--out", str(tmp_path / "t.json")]) == 2
+    assert "refusing" in capsys.readouterr().out and not (tmp_path / "t.json").exists()
+
+
+def test_q0696_timing_draft_is_clock_only_and_sane():
+    import json
+
+    root = Path(__file__).resolve().parents[3] / "docs" / "research_lab" / "queue" / "drafts"
+    d = json.loads((root / "q0696_lt11_size_timing.json").read_text())
+    q93 = json.loads((root / "q0693_lt11_size_check.json").read_text())
+    assert d["argv"][:2] == ["scripts/run_live_tests11.py", "size-timing"] and "--seed" not in d["argv"]
+    assert d["resources"]["lane"] == "cpu" and d["resources"]["mem_mb"] <= q93["resources"]["mem_mb"]
+    assert d["argv"][d["argv"].index("--data-dumps-cap-gb") + 1] == "40" and 0 < d["timeout_s"] <= 86400
+    assert d["argv"][d["argv"].index("--worlds") + 1] == "20" and d["argv"][d["argv"].index("--draws") + 1] == "200"
