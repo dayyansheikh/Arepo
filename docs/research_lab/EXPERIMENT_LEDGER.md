@@ -4480,3 +4480,9 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   copy over 5 days. It writes only `dev/refit_full_<stamp>.json` and never touches the leaderboard, dashboard or promotion.
 - Reading rule fixed before the run: a registered challenger only if the copy beats se1 on all 3 direction targets, with
   each CI excluding zero and >= 4/5 days positive; otherwise a dead end.
+- **LT11 code fixes applied** (2026-10-23 ~23:55Z; `feat/live-tests-11-code` 6d64c56c, b2f87b86, 10565177, 77deb1fe, 7dcf6623): all
+  7 MUST and 11 SHOULD fixed or disclosed (CLOB-disagreement label: no feed reader, deviation); `size-timing` (clock only, seed
+  20261497 x 100 + 98) + draft q0696; q0691 not before 11-07T08:00Z; q0690 via a new byte / free-disk guard
+  (`lt11_restore_guard.py`, stop-and-ask on overflow); notes A25-A29. Scoped tests 332 passed (pins incl.). Disclosed: one
+  dev-seed small-world look at worlds 12-14 (nothing changed after it) and one 1-world timing run read for the clock only.
+  Frozen text unchanged. Re-check running.
