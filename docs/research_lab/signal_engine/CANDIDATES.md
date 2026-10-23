@@ -259,6 +259,17 @@ loop over `no_broad_families` fails on a broad spec holding `kxbook`; `test_lt10
 (O3): `xvenue_features` pools `cross_venue_live/quotes/` and `xv_quotes/quotes/` (`config.XV_QUOTES2_ROOT`); output and
 `xv_src` are unchanged while the second root is absent.
 
+## Notes from the experiments side, 2026-10-23 ~07:20Z (LT8 CH204 dropped at census: `sched` withdrawal requested)
+
+LT8's captures census CC8 (q0622, counts only; ledger "LT8 census CC8", 2026-10-23) dropped **CH204** before registration
+(3.35 scheduled markets a capture against the 1,200 gate; events, hot units, cap share, block share and MDE also failed).
+Per the round-4 rule ("a test dropped before registration withdraws its new token and any extension made only for it"),
+please withdraw:
+- the new token `sched` (CH204 only);
+- the round-5 attribution limit on **per-market slot-of-day interactions** (it was for CH204 only).
+Keep `quietbook`, `swclock`, `book0` and `book` as they are: CH203 and CH202 still wait for CS8 (q0623, before
+2026-10-28T03:30Z), and LT9 also holds `book` / `book0`. Nothing here moves any LT8, LT9 or LT10 date.
+
 ## Idea-level families from creative round 15 (2026-10-23; ideas only, no evidence; not candidates yet)
 
 `CREATIVE_HYPOTHESES_2026-10-29.md` (CH222-CH231) states one point-in-time family per idea. Status of every row below:

@@ -4118,3 +4118,17 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   `xv_quotes/quotes/`) is in the code; quotes from both roots are pooled under the unchanged last-quote rule. No column
   definition, feature version or spec hash changed; output identical while the second directory is absent (tested). Live on
   the host with the deploy of the merge that carries 0a245fa6 into `chore/arepo-claude-setup` (same session).
+
+## LT8 census CC8 (q0622), 2026-10-23 06:03Z: CH204 dropped at census (counts only; uncounted)
+- `live_tests8_census/CC8.json` (host, sha256 6888ee9e…; live_tests8.py d1b252cf…, design text 73c941e1…, spec fa895a64…).
+  Inputs verified against `seals/lt8_census_inputs.json`: 336 files, 112 captures, 0 missing slots; 40 covered origins
+  (3.33 days, minimum 2.5), as the file list predicted. No outcome or target read; gates as frozen in LIVE_TESTS_8.md §7.
+- **CH204 (the market's own clock): FAIL**, as the design expected ("likely to drop"). Failed gates: scheduled markets
+  **3.35 a capture** (< 1,200; 134 scheduled markets of 306,348 eligible); projected hot units **6.3** (< 25,200); projected
+  distinct events **119.7** (< 500); cap share 0.20 (< 0.40); block-gate share 0.33 (< 0.50); class MDE not finite
+  (projected n1_eff 0); `corr(sc_hot, log1p liquidity)` and `corr(sc_hot, z log rv24*)` within-market values undefined
+  (NaN fails; pooled 0.18 and -0.42). Passed: 70-of-84 coverage (0.84), covered days, venue-clock (top `s*` 0.30) and
+  category (top `fee_category` 0.36, per-category arms not triggered).
+- Per LT8 §7 a census drop is not a test: nothing counted. LT8's k now depends on CS8 (q0623: CH203, CH202). CH204's reader
+  kind is switched off before the reader's code freeze. LIVE_TESTS_8.md §6.3 is filled only after q0623 finishes (the
+  censuses refuse on any change to the frozen design text). Retention stays at 10 days until q0623 is done.
