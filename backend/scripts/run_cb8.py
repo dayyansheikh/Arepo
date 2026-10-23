@@ -36,6 +36,7 @@ least every 10 hours so the queue's 48-consecutive-tempfail limit never fires wh
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 import time
@@ -392,18 +393,22 @@ def cmd_updown_frame(a, cm):
     except ValueError as exc:
         raise cm.Refused(str(exc)) from None
     seals = Path(a.seals_dir) if a.seals_dir else cm.SEALS_DIR
+    smoke_path = _data_path(a.require_smoke, u.SMOKE_DEFAULT, None)
+    u.smoke_ok(smoke_path, sha, ("b", "c"))  # the smoke / root refusals come before the attribution step, so the refusal order is as before the amendment
     pins = u.attribution_pins(seals, extra)  # ids only, for the id-drop source report (ruling condition 4); the pin hashes are verified here
     from astrolabe.research_lab import cb6_tail as c6  # noqa: PLC0415
 
     files = c6.verify_exclusion_files(pins, history_root=Path(a.history_root) if a.history_root else cm.HIST_ROOT, seals_dir=seals,
                                       seal_paths={Path(p["path"]).name: Path(p["path"]) for p in extra})
-    prior_meta = None
+    prior_meta, prior_sha = None, None
     if a.prior_archives_meta:  # condition 2: compare the refetched zip sha256 values with the earlier run's recorded archives meta (nothing is reused)
-        pm = json.loads(Path(a.prior_archives_meta).read_text())
+        pm_bytes = Path(a.prior_archives_meta).read_bytes()
+        prior_sha = hashlib.sha256(pm_bytes).hexdigest()
+        pm = json.loads(pm_bytes)
         prior_meta = (pm.get("state") or {}).get("archives") or pm.get("archives")
-    m = u.updown_frame(root, hb.httpx_transport(), rules_sha=sha, blob_get=u.httpx_blob_get(), smoke_path=_data_path(a.require_smoke, u.SMOKE_DEFAULT, None),
+    m = u.updown_frame(root, hb.httpx_transport(), rules_sha=sha, blob_get=u.httpx_blob_get(), smoke_path=smoke_path,
                        exclusion_keys_path=_data_path(a.exclusion_keys, u.EXCLUSION_KEYS_DEFAULT, None), disk_cap=int(a.disk_cap_gb * 1024**3),
-                       budget_min=a.budget_min, id_sources=u.id_sources_by_group(files, pins), prior_archives_meta=prior_meta, **kw)
+                       budget_min=a.budget_min, id_sources=u.id_sources_by_group(files, pins), prior_archives_meta=prior_meta, pins_meta=pins, prior_meta_sha256=prior_sha, **kw)
     return _result(m, cm)
 
 

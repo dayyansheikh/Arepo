@@ -670,7 +670,10 @@ def test_cli_rules_updown_and_declared_argument_refusals(tmp_path, capsys):
     base = ["--rules", str(rules), "--allow-uncommitted-rules", "--root", str(tmp_path / "cb8"), "--data-dumps", str(tmp_path), "--standalone"]
     assert script.main(["updown-frame", *base, "--days", "2026-04-13:2026-08-11", "--disk-cap-gb", "0.02"]) == 2
     assert script.main(["updown-frame", *base, "--disk-cap-gb", "0.5"]) == 2
+    capsys.readouterr()
     assert script.main(["updown-frame", *base, "--disk-cap-gb", "0.02", "--require-smoke", str(tmp_path / "nosmoke.json")]) == 2
+    out = capsys.readouterr().out
+    assert "smoke result" in out and "not found" in out  # refused on the missing smoke, before any attribution step
     assert script.main(["updown-books", *base, "--disk-cap-gb", "0.02", "--ingress-cap-gb", "500"]) == 2
     assert script.main(["updown-books", *base, "--disk-cap-gb", "0.02", "--audit-hour", "15"]) == 2
     assert script.main(["updown-books", *base, "--disk-cap-gb", "0.02", "--require-smoke", str(tmp_path / "nosmoke.json")]) == 2
@@ -882,13 +885,16 @@ def test_archive_meta_comparison_records_sha_matches_and_never_reuses():
     assert u.compare_archive_meta(None, prior) == {"compared": False, "reused": False}
 
 
-def test_frame_run_dirs_are_new_and_the_v2_smoke_hash_is_accepted(fenv, tmp_path):
+def test_frame_run_dirs_are_new_and_the_v2_smoke_hash_is_accepted(fenv, tmp_path, monkeypatch):
     assert u.RUN_FRAME == "updown_frame_b" != u.RUN_FRAME_V2 == "updown_frame"
     from astrolabe.research_lab import cb8_books as bk
 
     assert bk.RUN_ID == "updown_b"
     smoke = tmp_path / "s.json"
     smoke.write_text(json.dumps({"smoke_version": u.SMOKE_VERSION, "rules_sha256": u.RULES_SHA_V2, "criterion_b_binance_checksum": True, "criterion_c_pmxt_heads": True}))
+    with pytest.raises(cm.Refused, match="another rules hash"):  # a v2-hash smoke is accepted only if the file is the pinned q0161 file
+        u.smoke_ok(smoke, "v3-sha")
+    monkeypatch.setattr(u, "SMOKE_ACCEPT_FILE_SHAS", (hashlib.sha256(smoke.read_bytes()).hexdigest(),))
     assert u.smoke_ok(smoke, "v3-sha")["rules_sha256"] == u.RULES_SHA_V2
     smoke.write_text(json.dumps({"smoke_version": u.SMOKE_VERSION, "rules_sha256": "z" * 64, "criterion_b_binance_checksum": True, "criterion_c_pmxt_heads": True}))
     with pytest.raises(cm.Refused, match="another rules hash"):
@@ -896,11 +902,14 @@ def test_frame_run_dirs_are_new_and_the_v2_smoke_hash_is_accepted(fenv, tmp_path
 
 
 def test_frame_records_archive_comparison_and_drop_report(fenv):
-    m = fenv.frame(prior_archives_meta={"BTC|2026-04": {"zip_sha256": "0" * 64}}, id_sources={"C1": {"9001"}})
+    m = fenv.frame(prior_archives_meta={"BTC|2026-04": {"zip_sha256": "0" * 64}}, id_sources={"C1": {"9001"}},
+                   pins_meta=[{"name": "C1", "sha256": "f" * 64, "path": "ignored"}], prior_meta_sha256="e" * 64)
     assert m["status"] == u.FRAME_COMPLETE
     rep = json.loads((fenv.root / u.RUN_FRAME / "split.json").read_text())["report"]["id_drop_report"]
+    assert rep["attribution_pins"] == [{"name": "C1", "sha256": "f" * 64}]
     assert rep["n_id_dropped"] == 1 and rep["by_source"]["C1"]["n_markets"] == 1 and rep["day_exclusion_sensitivity_days"] == ["2026-04-14"]
     man = json.loads((fenv.root / u.RUN_FRAME / "manifest.json").read_text())
+    assert man["state"]["archives_vs_prior_run"]["prior_meta_file_sha256"] == "e" * 64
     assert man["state"]["archives_vs_prior_run"]["compared"] is True and man["state"]["archives_vs_prior_run"]["reused"] is False
 
 
@@ -911,3 +920,35 @@ def test_cli_derive_exclusion_ids(tmp_path, capsys):
     assert script.main(["derive-exclusion-ids", "--kind", "c1_legs", "--src", str(matches), "--out", str(out)]) == 0
     assert out.read_text() == "market_id\n5\n"
     assert script.main(["derive-exclusion-ids", "--kind", "c1_legs", "--src", str(tmp_path / "missing.json"), "--out", str(tmp_path / "pins" / "z.csv")]) == 2
+
+
+def test_cli_updown_frame_attribution_path_records_pins_and_prior_meta_sha(tmp_path, monkeypatch, capsys):
+    """The CLI attribution step on synthetic pins: the committed-seal set found at run time and the extra id pin reach updown_frame with their sha256,
+    after the smoke gate; the --prior-archives-meta file's own sha256 is passed on."""
+    monkeypatch.setattr(c7, "EXCLUSION_PINS", [])  # synthetic pins only; both patches precede the rules file because the hashed rules cover these functions and pins
+    seen = {}
+
+    def fake_frame(root, transport, **kw):
+        seen.update(kw)
+        return {"status": u.FRAME_COMPLETE, "complete": True, "stopped": None, "counts": {}}
+
+    monkeypatch.setattr(u, "updown_frame", fake_frame)
+    rules = tmp_path / "cb8_rules.json"
+    assert script.main(["rules", "--which", "updown", "--path", str(rules)]) == 0
+    sha = json.loads(rules.read_text())["rules_sha256"]
+    smoke = tmp_path / "smoke.json"
+    smoke.write_text(json.dumps({"smoke_version": u.SMOKE_VERSION, "rules_sha256": sha, "criterion_b_binance_checksum": True, "criterion_c_pmxt_heads": True}))
+    seals = tmp_path / "seals"
+    seals.mkdir()
+    (seals / "zz_demo_SEAL.json").write_text(json.dumps({"files": {"prices/700.csv.gz": {}, "trades/701.csv.gz": {}}}))
+    ids = tmp_path / "c1_ids.csv"
+    ids.write_text("market_id\n800\n801\n")
+    ids_sha = hashlib.sha256(ids.read_bytes()).hexdigest()
+    prior = tmp_path / "prior_manifest.json"
+    prior.write_text(json.dumps({"state": {"archives": {"BTC|2026-04": {"zip_sha256": "a" * 64}}}}))
+    argv = ["updown-frame", "--rules", str(rules), "--allow-uncommitted-rules", "--root", str(tmp_path / "cb8"), "--data-dumps", str(tmp_path), "--standalone", "--disk-cap-gb", "0.02",
+            "--require-smoke", str(smoke), "--seals-dir", str(seals), "--extra-pin", f"c1_legs:{ids}:{ids_sha}", "--prior-archives-meta", str(prior)]
+    assert script.main(argv) == 0
+    assert {p["name"]: p["sha256"] for p in seen["pins_meta"]} == {"c1_legs": ids_sha, "zz_demo_SEAL": hashlib.sha256((seals / "zz_demo_SEAL.json").read_bytes()).hexdigest()}
+    assert seen["id_sources"] == {"C1": {"800", "801"}, "other_seals": {"700", "701"}}
+    assert seen["prior_meta_sha256"] == hashlib.sha256(prior.read_bytes()).hexdigest() and seen["prior_archives_meta"] == {"BTC|2026-04": {"zip_sha256": "a" * 64}}

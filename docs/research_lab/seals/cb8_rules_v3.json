@@ -170,6 +170,9 @@
      "updown_b"
     ],
     "series_key": "waived for B (Amendment 2026-10-23); id, event and neg-risk keys kept; the same set at the seal-time drops",
+    "smoke_accepted_file_sha256": [
+     "8189303fea2906ae6255bdce3afc5b391636802c782610f6a486543b9e7f6954"
+    ],
     "smoke_accepted_under": [
      "33decb528bbafd46336296be57c91b76e6aaa0c69d7d3eecf92eaa83c4f12a6d"
     ]
@@ -245,9 +248,9 @@
   "day_order": "c08ad50c2635a63078ba2cfce2e54c1615a4681f77b8024366b9bc7a0a26ddba",
   "day_split": "a0ac787f1d070203a9a59c88171674aeef680bd79c4be5ed8f031a4cbcb13970",
   "day_states": "038e6d95f607a6166da7d7dd15dfb9286ea299d03b76b5263b6d0ec30b6de2be",
-  "declared": "aa5686d5e2eb7c0dd0c3c24316f3434798c5a756af054adbdcbdfe9053bd1cc8",
+  "declared": "b37d7fce161eb9df4e50eed4171107fc32289dc5637742d2e4d6fb0f45bc2385",
   "derive_exclusion_ids": "ffcbe81f1b1cbc1db0768eedc04b023c032307b655d9d20ea3ef7a0931b918ef",
-  "drop_and_split": "33412302ac677259a72069da6a121450507dd53a83b80ee592e822253695bc01",
+  "drop_and_split": "eff195fdcb636447bd65a837f219c9fbac3d9669e85e86033f71db2811d66361",
   "eligible_unit": "197c575c6aa65fbf443d1e0c60e24bbe21958961aff68af7a16d3a604603a9cd",
   "exclusion_ids_cb8": "ccd7670c7e3548ab86c7af83219fc46b4a5a18b625fbdbed53df202811047f69",
   "exclusion_keys": "112dbba5c10336dd6869eb3191e790f79301ca36eed81f44d88f374c5e8d4d0c",
@@ -261,7 +264,7 @@
   "frame_row": "d9fc5acf7d123ca379cf06cb7e7b168fb4c6a8546694d5f8f2f2be26ca2c087b",
   "hour_dt": "657128a72888793077e842624aab93d38f9bf54a9e135e52f77e7edfc73e3814",
   "httpx_blob_get": "a46f6be95db007121c13356298cf129800de582fbf2fbe8279b9c3c5274c186b",
-  "id_drop_report": "638f52324570dc03f11d06d5b5d00e00220a3017dd05b9c7719ba5ee01ffe5be",
+  "id_drop_report": "9132c9ec7337ed23d3760ec92be7100fb73b852231e70f7e9bc35084a8b4f8d0",
   "id_sources_by_group": "5ec07ae4270fc8bfda583edfee5e3487f8267f29b53dfd1b34491fd5ceece4ca",
   "ingress_add": "7ce3766387d5df40dbb17d5ec58cf6c5ce4469d8058e1aaf5848285a24618ed9",
   "ingress_used": "c4f87ac92b7e365685506c29e65792ae39591f7a92a2b80f4f118929682c466a",
@@ -285,7 +288,7 @@
   "seal_copy_ids": "d3dcab555304c5b8608fb5437f014f74c3fcf2ba76b48110e9a2e611bb3d9f3b",
   "seal_copy_ids_audited": "32cb7d6a72748799474f853a829c6860672fba51d5fd736c0b8f3fd81e7d84de",
   "seal_holdout": "775b1434cc319e9ab623a547271cd949f9ea7c2bf2304aafe1cb5d4079be2b8b",
-  "smoke_ok": "91b751c547e546f0e5482ef1409ee1c8941dbe9593e9cd7c3a508de88d01bbf6",
+  "smoke_ok": "f0d7ead33bcde3061d1b10954a345d2b1003378273085d6439f7639d679f7af9",
   "smoke_pmxt_hours": "5ef26af3925931fd162b6fb6d8f5d96d0cee4f7b239245896b81944bfd4d6ff4",
   "smoke_pool": "787281f315f4297d7925f1b1e94cc0825e71289148cc9c07da94d5ed3d535317",
   "smoke_pool_ids": "45f33e06bc108a7b640cc35fe704f1e9a1fc0d6ca407b3d01f999ca3dfc414bb",
@@ -298,7 +301,7 @@
   "token_rows": "e195ad068c83a8d8ad66323f9d9c579f552d0618ec4de081f9052dfc37066c99",
   "traded_unit": "2014d5c46f394034fb09847acc575ab06de8af78f5e54e16ac56db3539a200cf",
   "unit_net": "26c155e957d72018ccc32a0162567df9728ea11c83a50cd51f4a1e405f47ef08",
-  "updown_frame": "3f411f3aa4b1368372047838014b94dabf2317768e5e6475e84535555f10096f",
+  "updown_frame": "8c6ca5fa363707ed64704bf8e1a3905096cb78364902cfc704af2a406b9d1acb",
   "updown_row": "5737da3d4126dca4fc6583e1a5308477e9262631a8cf98597fa69520ef9bbddf",
   "verify_manifest_files": "d9bbbd9f8c656e7a4a64edd8491d594378922482293e3003bd2493ceaac986fd",
   "verify_zip": "89f4ad43942c00e84b498f896d100944609e65b0758dfaafe02bf32ffcbce793",
@@ -307,7 +310,7 @@
   "windowed_prints": "1df52768b1a5bd0d177f124a4d16a02e67fec4b183150d80d10f0e902633f757",
   "z_features": "3584aa8c482f66158292adf7f11dda93f4a5e5f56d6b2fb17589510ec32ee95c"
  },
- "funcs_sha256": "27750d88b734a3d8a2cc76d9358be4f125ad6dd3c6f6f7d05514f403c9e6dee3",
- "rules_sha256": "e10fb289ce7363abea0170681028cb8e7f4a967359c4240636e718ce177730a0",
+ "funcs_sha256": "c8ef86f652fbf9b9ff5183df1a28164e21b94fc5bd428c414093737507364748",
+ "rules_sha256": "9c5d432d6f52c28112f3f9adf9a124f433d3c53d9284565528d0926a5199e498",
  "rules_version": "cb8-updown-rules-v3"
 }

@@ -204,6 +204,13 @@ adds to it.
   or the audit fails, B1 is "not testable", counted once (p = 1). There is no further variant.
 - **Disclosure carried by any B1 result.** "population admitted by a post-count amendment waiving the series key; no price or
   outcome read before the amendment". The evidence ceiling stays `exploratory_historical` (L1, or L2 at Stage 2).
+- **Further disclosure (review fix 1).** q0165 also wrote Binance klines, strikes and guarded settlement candles into `updown_frame/`
+  (35 archives, 791 strikes, 840 settles); none was read; they are never opened.
+- **Condition-4 B1 sensitivity (review fix 2).** After the Stage-1 result, the frozen B1 statistic is re-run once on the day set with the
+  id-drop days (`day_exclusion_sensitivity_days` in the q0165b report) removed. It is computed by a new file outside
+  `cb8_b_analysis.py` (condition 5 holds), is descriptive, and binds nothing: it changes no verdict, gate or count.
+- **Smoke acceptance (review recommendation).** The v2-hash smoke is accepted only if the file's own sha256 is
+  `8189303fea2906ae6255bdce3afc5b391636802c782610f6a486543b9e7f6954` (`seals/cb8_smoke_FAIL_20261022.json`).
 - **Status.** Needs a `science-reviewer` pass before any job runs.
 
 ### 1.4 Rules files
