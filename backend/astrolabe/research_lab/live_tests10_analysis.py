@@ -592,6 +592,9 @@ def labels_for(test: str, r: dict, v: dict, spec: dict, k: int, stream_gap: floa
     if mm.get("testable") and beta is not None and mm["beta"] * beta < 0:
         lab.append("mismatch-sensitive")
     X = r.get("_frame")
+    pm = (r.get("_prim") or {}).get("_mask")
+    if X is not None and pm is not None:
+        X = X[np.asarray(pm, bool)]  # the primary's units
     if X is not None and len(X):
         top = X["event_id"].value_counts(normalize=True)
         if len(top) and float(top.iloc[0]) > 0.5:
@@ -666,6 +669,17 @@ def stream_gap_share(xv_root: Path, spec: dict) -> float | None:
     return float(1.0 - n / exp)
 
 
+def all_fetch_failed_share(xv_root: Path, spec: dict) -> float | None:
+    """Code check ruling 5: the share of the window's cycle lines in which no Kalshi market and no Polymarket book was received (every fetch failed)."""
+    from .xv_quotes_poller import read_runs
+
+    s, e = lt.epoch(spec["registered_utc"]), lt.epoch(spec["end_utc"])
+    cyc = [x for x in read_runs(Path(xv_root)) if x.get("kind") == "cycle" and s <= x.get("t", -1) < e]
+    if not cyc:
+        return None
+    return float(sum(1 for x in cyc if not x.get("kalshi_ok") and not x.get("books_ok") and x.get("pairs")) / len(cyc))
+
+
 def analyze(out_root: Path = lt.OUT_ROOT, *, xv_root: Path = lt.XV_ROOT, spec: dict | None = None, now: float | None = None, force: bool = False,
             roles: tuple[str, ...] = (ROLE_CONF,)) -> dict:
     """The single registered analysis (see the module docstring). Refuses before ``ANALYSIS_NOT_BEFORE``, on an unpinned spec, a changed design text, a code
@@ -708,7 +722,7 @@ def analyze(out_root: Path = lt.OUT_ROOT, *, xv_root: Path = lt.XV_ROOT, spec: d
     res["holm"] = {"tests": ktests, "m": k, "p_raw": pv, "p_holm": hp, "alpha": 0.05, "one_sided": True}
     res["counting"] = trials_line(spec, ktests)
     res.update(spec_sha=spec["_sha256"], code_sha256=cc["current"], code_check=cc, window=[spec["registered_utc"], spec["end_utc"]], roles=list(roles),
-               stream_gap_share=gap, design_text_sha256=lt.design_text_sha())
+               stream_gap_share=gap, all_fetch_failed_share=all_fetch_failed_share(xv_root, spec), design_text_sha256=lt.design_text_sha())
     return bd._clean(res)
 
 
@@ -752,7 +766,7 @@ SCENARIOS: dict[str, dict] = {
     "W9": {"stats": ("verdict",), "tests": ("CH224",)},
     "W10": {"stats": ("gate", "verdict"), "tests": ("CH224", "CH223", "CH222")},
 }
-NULL_WORLDS_ANALYTIC = ("W1", "W2", "W3")  # the analytic p's own rate here decides the 'analytic p oversized in simulation' label (a convention)
+NULL_WORLDS_ANALYTIC = ("W1", "W2", "W3")  # the F-arm report (non-binding)  # the analytic p's own rate here decides the 'analytic p oversized in simulation' label (a convention)
 POWER = {"CH224": ("1.0c per 2.2 SD of zdsK", 1.0 / 2.2, 41), "CH223": ("0.5c between classes", 0.5, 42), "CH222": ("0.5c between classes", 0.5, 43)}
 
 
@@ -779,7 +793,7 @@ def evaluate_world(world: str, sub_seed: int, spec: dict, *, tests, stats, draws
             stratum, n_g = _stratum(t)
             g = lt.event_phase_fl_gate(X, y, term, ctrl, stratum=stratum, n_g=n_g, draws=draws, seed=int(sub_seed % (2**31 - 1)) + 17, sign=+1)
             rec.update(gate_testable=bool(g.get("testable")), gate_reject=bool(g.get("passes")))
-        need_fit = ("verdict" in stats) or with_f or effect or (world in NULL_WORLDS_ANALYTIC)
+        need_fit = ("verdict" in stats) or with_f or effect or (world in ANALYTIC_OVERSIZE_WORLDS)
         if need_fit:
             ok0 = np.isfinite(y)
             r = fit10(X, y, term, ctrl, seed=int(sub_seed % (2**31 - 1)), minor=None, n_boot=20)
@@ -801,13 +815,22 @@ def evaluate_world(world: str, sub_seed: int, spec: dict, *, tests, stats, draws
     return out
 
 
+REGISTERED_SEED = 20261397
+DEV_SEED = REGISTERED_SEED * 100 + 99  # development runs never use the registered seed (1.8: no preliminary run at 20261397)
+ANALYTIC_OVERSIZE_WORLDS = ("W1", "W2", "W3", "W10")  # code check ruling 6 (reviews/LT10_CODE_CHECK_2026-10-23.md): label only
+W6_NOTE = ("W6 disclosure (code check ruling 2): the bot's period of 5 polls equals the 10-minute origin spacing, so t and s0 share its phase and W6 has little "
+           "bite on endpoint pulls; implemented as written, a pass in W6 is weak evidence against the bot-cadence channel.")
+
+
 def size_check(*, worlds: int, draws: int, seed: int, spec: dict, tests=None, plan=None, days=None, power_worlds: int | None = None, reported_worlds: int | None = None,
-               scenarios=SCENARIO_ORDER, progress=None) -> dict:
+               scenarios=SCENARIO_ORDER, progress=None, registered: bool = False) -> dict:
     """The size check: ``worlds`` worlds per scenario (the world's sub-seed is drawn from ONE generator seeded ``seed``, scenarios in table order), each
     evaluated under every binding test through the same event-phase gate path, strata and minima as the analysis. Criterion: the rate <= ``0.05 + 1.645 x
     sqrt(0.0475 / worlds)`` (0.058 at 2,000 worlds). Non-binding: power runs (planted effect; generators ``seed x 100 + n``), the F-arm rates in W1-W3
     (the first ``reported_worlds`` worlds) and the analytic p's own rates. A failing gate scenario sets only its tests to 'SE check failed (size scenario)',
     a failing verdict-size scenario to '(mechanical world)'; k is unchanged, no rerun, reseed or redesign."""
+    if seed == REGISTERED_SEED and not registered:
+        raise Refused("seed 20261397 is the registered size check's: development runs use 20261397 x 100 + 99 (1.8: no preliminary run at the registered seed)")
     lim = limit_for(worlds)
     alive = list(tests) if tests is not None else list(TESTS)
     master = np.random.default_rng(seed)
@@ -852,8 +875,9 @@ def size_check(*, worlds: int, draws: int, seed: int, spec: dict, tests=None, pl
                 analytic[t][sc] = {"worlds": a["an_n"], "rate": a["an"] / a["an_n"], "over_limit": bool(a["an"] / a["an_n"] > lim)}
             if a["f_n"]:
                 freport[t][sc] = {"worlds": a["f_n"], "f_holds_rate": a["f"] / a["f_n"], "twin_below_lead_rate": a["tbl"] / a["tbl_n"]}
-    out = {"worlds": worlds, "draws": draws, "seed": seed, "limit": lim, "scenarios": res, "analytic_rates": analytic, "f_arm_rates_reported": freport}
+    out = {"notes": [W6_NOTE], "worlds": worlds, "draws": draws, "seed": seed, "limit": lim, "scenarios": res, "analytic_rates": analytic, "f_arm_rates_reported": freport}
     out["per_test"] = per_test_result(res, analytic, alive, worlds, scenarios)
+    out["seed_kind"] = "registered" if registered else "development"
     pw = power_worlds
     if pw:
         out["power_runs"] = {}
@@ -889,7 +913,7 @@ def per_test_result(res: dict, analytic: dict, alive: list[str], worlds: int, sc
                     (fails_size if stat == "gate" and not (sc == "W9") else fails_mech).append(f"{sc}:{stat}")
         status = "fail_size_scenario" if (fails_size or missing) else ("fail_mechanical_world" if fails_mech else "pass")
         # DESIGN-AMBIGUITY: 'analytic p oversized in simulation' = the analytic p's own rejection rate exceeds the limit in W1, W2 or W3 (the null worlds without a leak).
-        over = [sc for sc, v in (analytic.get(t) or {}).items() if sc in NULL_WORLDS_ANALYTIC and v["over_limit"]]
+        over = [sc for sc, v in (analytic.get(t) or {}).items() if sc in ANALYTIC_OVERSIZE_WORLDS and v["over_limit"]]
         out[t] = {"status": status, "failed_size": fails_size, "failed_mechanical": fails_mech, "missing": missing, "analytic_oversized": bool(over), "analytic_over_in": over}
     return out
 
@@ -910,7 +934,24 @@ def size_check_cli(args, write_out) -> int:
         print("refusing: worlds / draws too small")
         return 2
     tests = spec.get("k_tests")
-    out = size_check(worlds=worlds, draws=draws, seed=int(spec["seeds"]["size_check"]), spec=spec, tests=list(tests) if tests else None,
+    if not args.dev:
+        # the registered run only after k and the census-fixed values are fixed (1.8, 8.4 steps 6-7)
+        k = tests
+        cf = spec.get("census_fixed") or {}
+        if not isinstance(k, list) or not k or [t for t in k if t not in TESTS] or set(k) & set(spec.get("dropped_tests") or []):
+            print("refusing: the registered size check needs k_tests filled with known, undropped tests (census values first)")
+            return 2
+        if "CH224" in k and cf.get("scale_K_cents") is None:
+            print("refusing: scale_K_cents is not filled")
+            return 2
+        if "CH222" in k and any((cf.get("rv60") or {}).get(z, {}).get(w) is None for z in ("rv60_P", "rv60_K") for w in ("centre", "scale")):
+            print("refusing: the rv60 centres and scales are not filled")
+            return 2
+    seed = REGISTERED_SEED if not args.dev else DEV_SEED
+    if int(spec["seeds"]["size_check"]) != REGISTERED_SEED:
+        print("refusing: the spec's size-check seed is not 20261397")
+        return 2
+    out = size_check(worlds=worlds, draws=draws, seed=seed, spec=spec, tests=list(tests) if tests else None, registered=not args.dev,
                      power_worlds=int(sc["power_worlds"]) if not args.dev else int(getattr(args, "power_worlds", 0) or 0))
     out.update(code_sha256=lt.code_hashes(), spec_sha256=spec["_sha256"], design_text_sha256=lt.design_text_sha(), dev=bool(args.dev))
     return write_out(args.out, json.dumps(bd._clean(out), sort_keys=True, indent=1, default=str))

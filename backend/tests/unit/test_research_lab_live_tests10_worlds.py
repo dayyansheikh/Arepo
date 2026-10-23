@@ -215,7 +215,7 @@ def test_per_test_result_is_fail_closed_and_per_test():
 
 def test_size_check_small_run_end_to_end():
     spec = copy.deepcopy(lt.load_spec(sha=None))
-    out = an.size_check(worlds=2, draws=8, seed=20261397, spec=spec, tests=["CH224", "CH222"], scenarios=("W1", "W4", "W9", "W10"), **SMALL)
+    out = an.size_check(worlds=2, draws=8, seed=777, spec=spec, tests=["CH224", "CH222"], scenarios=("W1", "W4", "W9", "W10"), **SMALL)
     assert out["limit"] == pytest.approx(an.limit_for(2))
     assert set(out["scenarios"]["CH224"]) == {"W1:gate", "W9:verdict", "W10:gate", "W10:verdict"}
     assert set(out["scenarios"]["CH222"]) == {"W1:gate", "W4:gate", "W10:gate", "W10:verdict"}
@@ -226,13 +226,13 @@ def test_size_check_small_run_end_to_end():
     assert out["per_test"]["CH224"]["status"] in ("pass", "fail_size_scenario", "fail_mechanical_world")
     assert set(out["f_arm_rates_reported"]["CH224"]) == {"W1"}
     # the same seed gives the same result; a different seed does not necessarily
-    out2 = an.size_check(worlds=2, draws=8, seed=20261397, spec=spec, tests=["CH224", "CH222"], scenarios=("W1", "W4", "W9", "W10"), **SMALL)
+    out2 = an.size_check(worlds=2, draws=8, seed=777, spec=spec, tests=["CH224", "CH222"], scenarios=("W1", "W4", "W9", "W10"), **SMALL)
     assert out == out2
 
 
 def test_power_runs_are_reported_and_never_bind():
     spec = copy.deepcopy(lt.load_spec(sha=None))
-    out = an.size_check(worlds=2, draws=6, seed=20261397, spec=spec, tests=["CH223"], scenarios=("W6",), power_worlds=2, **SMALL)
+    out = an.size_check(worlds=2, draws=6, seed=777, spec=spec, tests=["CH223"], scenarios=("W6",), power_worlds=2, **SMALL)
     pr = out["power_runs"]["CH223"]
     assert pr["binding"] is False and pr["worlds"] == 2 and 0 <= pr["gate_power"] <= 1 and pr["effect"] == "0.5c between classes"
     assert out["per_test"]["CH223"]["status"] in ("pass", "fail_size_scenario")  # power does not enter the status
@@ -250,3 +250,32 @@ def test_size_check_cli(tmp_path):
     # the registered plan is large: only check the refusals and the dev path with tiny worlds through the module function
     assert an.size_check_cli(types.SimpleNamespace(out=tmp_path / "s.json", worlds=1, draws=4, dev=True, power_worlds=0), w) == 2
     assert args.dev and "txt" not in written
+
+
+def test_registered_seed_is_refused_outside_the_registered_run():
+    spec = copy.deepcopy(lt.load_spec(sha=None))
+    with pytest.raises(an.Refused, match="20261397"):
+        an.size_check(worlds=2, draws=4, seed=20261397, spec=spec, tests=["CH223"], scenarios=("W6",), **SMALL)
+    assert an.DEV_SEED == 20261397 * 100 + 99
+    out = an.size_check(worlds=2, draws=4, seed=20261397, spec=spec, tests=["CH223"], scenarios=("W6",), registered=True, **SMALL)
+    assert out["seed_kind"] == "registered" and any("W6 disclosure" in n for n in out["notes"])
+
+
+def test_cli_dev_uses_the_dev_seed_and_registered_refuses_unfilled(tmp_path):
+    seen = {}
+    real = an.size_check
+    an.size_check = lambda **kw: seen.update(kw) or {"x": 1}
+    try:
+        w = lambda path, txt: 0  # noqa: E731
+        assert an.size_check_cli(types.SimpleNamespace(out=tmp_path / "a", worlds=2, draws=2, dev=True, power_worlds=0), w) == 0
+        assert seen["seed"] == an.DEV_SEED and seen["registered"] is False
+        assert an.size_check_cli(types.SimpleNamespace(out=tmp_path / "b", worlds=None, draws=None, dev=False, power_worlds=0), w) == 2  # k_tests null in the draft spec
+    finally:
+        an.size_check = real
+
+
+def test_analytic_oversize_judged_on_w1_w2_w3_w10():
+    assert an.ANALYTIC_OVERSIZE_WORLDS == ("W1", "W2", "W3", "W10") and an.NULL_WORLDS_ANALYTIC == ("W1", "W2", "W3")
+    res = _res(CH224={"W10:gate": 0.05, "W10:verdict": 0.05})
+    out = an.per_test_result(res, {"CH224": {"W10": {"over_limit": True, "rate": 0.1, "worlds": 5}}}, ["CH224"], 2000, scenarios=("W10",))
+    assert out["CH224"]["analytic_oversized"]
