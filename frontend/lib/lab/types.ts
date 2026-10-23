@@ -269,8 +269,49 @@ export interface SeEmbargoToken {
   until?: string;
 }
 
+/** Champion per-market signal feed (`se-feed-v1`); raw shape, parsed defensively into SeFeedView. */
+export interface SeFeedRow {
+  market_id?: number | string;
+  title?: string | null;
+  url?: string | null;
+  category?: string | null;
+  mid?: number | null;
+  spread?: number | null;
+  hours_to_end?: number | null;
+  s_2h?: number | null;
+  s_6h?: number | null;
+  s_24h?: number | null;
+}
+
+export interface SeFeed {
+  schema?: string;
+  generated_at?: string;
+  capture_id?: string;
+  origin_utc?: string;
+  prediction_written_utc?: string;
+  primary_target?: string;
+  stale?: boolean;
+  label?: string;
+  ranked_by?: string;
+  titles_error?: string | null;
+  champion?: { model_id?: string; spec_sha256?: string; fit_id?: string };
+  pool?: { spread_max?: number; mid_range?: number[]; markets?: number; note?: string };
+  summary?: Record<string, { eligible?: number; abs_ge_0_1?: number; abs_ge_0_25?: number; mean?: number; valid_until?: string }>;
+  top_up?: SeFeedRow[];
+  top_down?: SeFeedRow[];
+  track_record?: {
+    generated_at?: string;
+    days_scored?: number;
+    window_days?: number;
+    label?: string;
+    rows?: Array<{ target?: string; n?: number; days?: number; log_loss?: number | null; brier?: number | null; auc?: number | null; cal_slope?: number | null; cal_intercept?: number | null }>;
+  } | null;
+}
+
 export interface SignalEngineBlock {
   schema?: string;
+  /** Champion per-market signal feed (`se-feed-v1`); validated by parseSeFeed before display. */
+  feed?: unknown;
   generated_at?: string;
   engine_version?: string;
   primary_target?: string;

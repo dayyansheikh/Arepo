@@ -162,6 +162,10 @@ test("lab signal engine section renders from the dev fixture without leaking emb
   await expect(promo).toContainText("se3_lr_flow");
   await expect(promo).toContainText("Not yet");
   await expect(promo).not.toContainText("se8_lr_event");
+  const feed = se.getByText("Signal feed (champion)");
+  await expect(feed).toBeVisible();
+  await expect(se.getByTestId("se-feed-strongest-up")).toContainText("Show all 12");
+  await expect(se.getByTestId("se-feed-track")).toContainText("Forecast quality, not profit");
   expect(await se.innerText()).not.toMatch(/expected return|alpha\b/i);
   // Wide tables scroll inside their own container; the section itself must fit every viewport.
   // (Scoped to the section: the shared lab tab row is outside this change.)
