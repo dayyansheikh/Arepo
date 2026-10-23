@@ -4439,3 +4439,8 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   old); CH245 identification gate redefined (event-day variation, leverage cap, within-stratum MDE) with justification; two-sided
   placebo from a different series / events; `event_day_state_shift_gate` gate path. Priors CH245 0.30, CH244 0.15; expected k
   ~0.45, P(no test) ~0.60. Re-check running.
+- **Re-check ACCEPT_WITH_FIXES** (`reviews/LT12_RECHECK_2026-10-23.md`, b038afaa): R1 items applied in substance; 7 tightening
+  fixes (CR1 t statistic and gate sample named; world 1 loading census-fixed to max(census same-slot corr, 0.64) and n range incl.
+  8..119; feed outage -> `census_unavailable (coverage)`, disagreement -> `census_dropped`; NaN own status excluded and counted;
+  qualified "not loosened" claim; derive or drop 0.15; dense-twin condition on both sets). Fixes being applied; then a final
+  verification and the design-text freeze.
