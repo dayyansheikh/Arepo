@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-23T22:40:00Z",
+ "updated": "2026-10-23T23:55:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1684,11 +1684,11 @@
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Code and its independent check; counting checks on 28 Oct-7 Nov data (after 7 Nov); collection proposed from 18 Nov 2026",
+   "next": "Code check (23 Oct) asked for fixes, mainly in the simulated worlds; fixes, re-check; counting checks after 7 Nov; collection proposed from 18 Nov 2026",
    "next_date": "2026-11-18",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT11 re-check, pre-freeze verification, DESIGN-TEXT FREEZE (2026-10-23); docs/research_lab/LIVE_TESTS_11.md"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT11 re-check, pre-freeze verification, DESIGN-TEXT FREEZE (2026-10-23); docs/research_lab/LIVE_TESTS_11.md; § LT11 code-freeze check: REJECT, fixes started (2026-10-23)"
    },
    "stage_results": {
     "idea": "pending",
@@ -1697,6 +1697,29 @@
    "reached": [
     "idea",
     "designed"
+   ]
+  },
+  {
+   "id": "LT12",
+   "title": "Live tests 12: the mirror and the fee (planned)",
+   "plain": "Up to three planned live tests from ideas round 17: in two-option events, does one order book's spread change predict the other's; in multi-option events where only some options pay market-maker rewards, do the unpaid ones react differently to the same shock; and does the trading fee change how traded moves continue. Draft written (23 Oct); an independent challenger review comes next. The third test probably will not survive its counting check.",
+   "batch": "LT12",
+   "family": "mixed",
+   "stage": "idea",
+   "status": "waiting",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Challenger review of the draft, then freeze; counting checks on 7-17 Nov data; collection proposed 10-31 Dec 2026",
+   "next_date": "2026-12-10",
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT12 design draft (2026-10-23); docs/research_lab/CREATIVE_HYPOTHESES_2026-10-31.md; docs/research_lab/CH251_MAP_2026-10-23.md"
+   },
+   "stage_results": {
+    "idea": "pending"
+   },
+   "reached": [
+    "idea"
    ]
   },
   {
