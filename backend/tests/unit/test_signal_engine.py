@@ -1147,7 +1147,7 @@ def test_rewards_and_event_tokens_withdrawn_after_census_drops():
     assert fl and fl["until"] == "2026-11-16T00:00:00Z" and fl["tests"] == ["E013", "E014"]
     for e in C.EMBARGO:  # a date earlier than before is only ever a recorded withdrawal
         if "until_before" in e:
-            assert e["withdrawn_utc"] in (w, "2026-10-23T00:00:00Z") and S.epoch(e["until"]) < S.epoch(e["until_before"])
+            assert e["withdrawn_utc"] in (w, "2026-10-23T00:00:00Z", "2026-10-23T07:30:00Z") and S.epoch(e["until"]) < S.epoch(e["until_before"])
             assert "WITHDRAW" in e["why"]
 
 
@@ -1182,6 +1182,20 @@ def test_lt7_closure_withdrawals_and_lt9_round6_requests():
         for s in reg["models"].values():
             if s.get("broad"):
                 assert not set(s["families"]) & set(x["no_broad_families"]), s["model_id"]
+
+
+def test_lt8_sched_withdrawn_after_ch204_census_drop():
+    # CH204 dropped at LT8's CC8 (2026-10-23): sched and its slot-of-day attribution limit go; quietbook / swclock stay
+    w3 = "2026-10-23T07:30:00Z"
+    (sc,) = [x for x in C.EMBARGO if x["token"] == "sched"]
+    assert sc["until"] == sc["withdrawn_utc"] == w3 and sc["until_before"] == "2027-01-23T00:00:00Z"
+    for tok in ("quietbook", "swclock"):
+        (ent,) = [x for x in C.EMBARGO if x["token"] == tok]
+        assert ent["until"] == "2027-01-23T00:00:00Z" and "withdrawn_utc" not in ent
+    (al,) = [x for x in C.EMBARGO if x["token"] == "attrlimit_lt8"]
+    assert al["no_broad_families"] == ["quietbook", "swclock"] and al["until"] == "2027-01-23T00:00:00Z"
+    assert not any("slot-of-day" in lim for lim in al["limits"])
+    assert [(x["no_broad_family"], x["withdrawn_utc"]) for x in al["withdrawn"]] == [("sched", w3)]
 
 
 def test_lt10_round7_requests():
