@@ -16,6 +16,7 @@ import {
   fmtPct,
   fmtSigned,
   fmtUtc,
+  inputsView,
   parseSeFeed,
   parseSignalEngine,
   promotions,
@@ -457,12 +458,18 @@ export function SignalEngine({ block, nowMs }: { block: unknown; nowMs: number }
   const days = typeof se.prospective?.days_scored === "number" ? se.prospective.days_scored : 0;
   const champ = se.champion?.model_id;
   const feed = parseSeFeed(se, nowMs);
+  const inputs = inputsView(se);
   return (
     <div className="grid grid-cols-1 gap-4" data-testid="signal-engine">
       <Card>
         <div className="flex flex-wrap items-center gap-2">
           <Pill tone={status === "scoring" ? "pos" : "neutral"}>{status === "scoring" ? "Scoring" : "Bootstrapping"}</Pill>
           {se.stale ? <Pill tone="warn">Stale: engine report over 2 days old</Pill> : null}
+          {inputs?.status === "alert" ? (
+            <Pill tone="warn">
+              Input alert{inputs.nAlerts === 1 ? "" : "s"}: {fmtCount(inputs.nAlerts)}
+            </Pill>
+          ) : null}
         </div>
         <dl className="mt-4 grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
           <Fact label="Champion">
@@ -489,6 +496,23 @@ export function SignalEngine({ block, nowMs }: { block: unknown; nowMs: number }
               <span className="block break-all text-[12px] text-arepo-muted">capture {se.last_prediction.capture_id}</span>
             ) : null}
           </Fact>
+          {inputs ? (
+            <Fact label="Inputs">
+              <span data-testid="se-inputs">
+                {inputs.status === "ok" ? "All families filled" : `${fmtCount(inputs.nAlerts)} to check`}
+              </span>
+              <span className="block text-[12px] text-arepo-muted">checked {fmtUtc(inputs.at)}</span>
+              {inputs.lines.length ? (
+                <ul className="mt-1 list-disc pl-4 text-[12px] text-arepo-ink2">
+                  {inputs.lines.map((l, i) => (
+                    <li key={i} className="break-words">
+                      {l}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </Fact>
+          ) : null}
         </dl>
         <p className="mt-4 text-[12px] leading-relaxed text-arepo-muted">
           {se.note ?? "Signal strength / forecast quality only; not probability of profit, not an edge claim."}

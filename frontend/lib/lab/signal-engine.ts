@@ -4,6 +4,7 @@
 // Vocabulary: signal strength / forecast quality only; no probability of profit, no edge claim.
 
 import type {
+  SeInputAlert,
   SeAttribution,
   SeEmbargoToken,
   SeFamilyGain,
@@ -163,6 +164,58 @@ export type SeStatus = "bootstrapping" | "scoring";
 export function engineStatus(se: SignalEngineBlock, nowMs: number): SeStatus {
   const scored = prospectiveRows(se, nowMs).some((r) => r.kind === "scored");
   return se.prospective?.status === "scoring" && scored ? "scoring" : "bootstrapping";
+}
+
+export interface InputsView {
+  status: "ok" | "alert";
+  at?: string;
+  captureId?: string;
+  nAlerts: number;
+  /** Plain-English alert lines (at most `INPUT_LINES`). */
+  lines: string[];
+}
+
+export const INPUT_LINES = 6;
+
+/** One monitor alert as a plain-English line; unknown rules fall back to "family column: rule". */
+export function inputAlertLine(a: SeInputAlert): string {
+  const fam = str(a.family) ?? "input";
+  const where = str(a.column) ? `${fam} ${a.column}` : fam;
+  const latest = num(a.latest);
+  const median = num(a.median);
+  switch (a.rule) {
+    case "capture_gap": {
+      const n = num(a.missing_slots) ?? 0;
+      return `${n} missed capture${n === 1 ? "" : "s"} in the last day (first ${fmtUtc(str(a.first_missing_utc))})`;
+    }
+    case "universe":
+      return `Eligible markets ${latest ?? DASH} against a usual ${median !== null ? Math.round(median) : DASH}`;
+    case "missing":
+      return `${where}: table not written`;
+    case "absent":
+      return `${where}: empty (usually ${fmtPct(median)} filled)`;
+    case "drop":
+      return `${where}: ${fmtPct(latest)} filled (usually ${fmtPct(median)})`;
+    case "all_zero":
+      return `${where}: all zero (usually ${fmtPct(median)} non-zero)`;
+    default:
+      return `${where}: ${str(a.rule) ?? "alert"}`;
+  }
+}
+
+/** The input monitor's view, or null when the block has none or an unknown status. */
+export function inputsView(se: SignalEngineBlock): InputsView | null {
+  const h = se.inputs;
+  if (!isObj(h) || (h.status !== "ok" && h.status !== "alert")) return null;
+  const alerts = arr<SeInputAlert>(h.alerts);
+  const nAlerts = num(h.n_alerts) ?? alerts.length;
+  return {
+    status: h.status === "alert" || nAlerts > 0 ? "alert" : "ok",
+    at: str(h.at),
+    captureId: str(h.capture_id),
+    nAlerts,
+    lines: alerts.slice(0, INPUT_LINES).map(inputAlertLine),
+  };
 }
 
 export function familyOf(se: SignalEngineBlock): Map<string, string> {
