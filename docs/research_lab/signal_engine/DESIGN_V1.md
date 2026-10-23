@@ -954,7 +954,7 @@ survived as a level fact, and PX5 carried the same sign without surviving Holm. 
 - Tests: `test_tilt_features_hand_example`, `test_tilt_reads_only_its_own_capture`, and registry assertions in
   `test_repo_registry_loads_and_embargo_assignment`.
 
-## 30. LT11 freeze: `dollarw`, `nrslack`, `bandside` and `attrlimit_lt11` (2026-10-23 ~18:40Z; no scoring change)
+## 30. LT11 freeze: `dollarw`, `nrslack`, `bandside` and `attrlimit_lt11` (2026-10-23 ~18:20Z; no scoring change)
 
 Applied from the `CANDIDATES.md` LT11 freeze request (LIVE_TESTS_11.md section 9, design text frozen at 3627d7fd), before any
 column of these families exists, so nothing has been computed or shown on these terms.
