@@ -18,7 +18,9 @@
  "depends_on": [],
  "not_before": "2026-11-07T03:00:00Z",
  "argv": [
-  "scripts/restore_from_archive.py",
+  "scripts/lt11_restore_guard.py",
+  "--reserve-gb",
+  "1",
   "--since",
   "2026-10-26",
   "--until",
@@ -104,6 +106,6 @@
   "data-dumps/research_lab/live_tests11_census/restore/data-dumps/research_lab/snapshots/<id>/",
   "data-dumps/research_lab/live_tests11_census/restore/RESTORE_REPORT_*.json"
  ],
- "next_action": "measure bytes first with the same argv plus --list and STOP AND ASK THE OWNER if the restore would exceed the host's free disk (CLAUDE.md storage stop rule); then q0691 (seal)",
- "notes": "WHY: the span 2026-10-28..11-07 (135 captures x 3 files, planning 1.0-1.4 GB) outlives snapshot retention (8-10 days) on the host. A file found in neither place is genuinely missing: counted by the seal, never substituted. DRAFT, not in queue/jobs. Promote only after: the challenger review, the LT11 design-text freeze (LIVE_TESTS_11.md design text frozen at sha256 991100db5d6c75e3f76e3d0d10cc5f957dd755108e09ec05edd8dad0f91b3583), the LT11 code and the science-reviewer freeze check of the census and size-check code against LIVE_TESTS_11.md sections 1.4, 1.8, 1.8.1 and 7 (8.4 step 3), and never while E011's, LT2's or E015's analysis job, or an LT9 or LT10 census, size-check or analysis job, is running (memory-heavy-jobs rule). Counts 0 (descriptive; no trials line) except q0695, which writes the single counted trials line (kind live_tests11). Reads the DRAFT spec unpinned (except q0694 and q0695, which read the pinned spec); the code_sha256 of every hashed module is written into the output. Every gate threshold is stated in section 7 before this runs; nothing is re-tuned after it. Each census runs once; max_retries 1 covers a deterministic crash only (no output written). Runs with --data-dumps-cap-gb 40 where the runner accepts it (exit 75 above the cap)."
+ "next_action": "the guard (scripts/lt11_restore_guard.py) measures the bytes from the data catalogue and the free disk at --dest FIRST and exits 3 with 'STOP AND ASK THE OWNER' if a selected row has no byte count or bytes + 1 GiB reserve exceed the free disk (nothing downloaded or written; CLAUDE.md storage stop rule); on exit 3 ask the owner before anything else; otherwise it runs restore_from_archive.py unchanged; then q0691 (seal)",
+ "notes": "Byte measure and disk stop in the job itself (review 2026-10-23 should-fix 11): restore_from_archive.py has no free-disk check and is shared, so a new LT11-only wrapper does it. WHY: the span 2026-10-28..11-07 (135 captures x 3 files, planning 1.0-1.4 GB) outlives snapshot retention (8-10 days) on the host. A file found in neither place is genuinely missing: counted by the seal, never substituted. DRAFT, not in queue/jobs. Promote only after: the challenger review, the LT11 design-text freeze (LIVE_TESTS_11.md design text frozen at sha256 991100db5d6c75e3f76e3d0d10cc5f957dd755108e09ec05edd8dad0f91b3583), the LT11 code and the science-reviewer freeze check of the census and size-check code against LIVE_TESTS_11.md sections 1.4, 1.8, 1.8.1 and 7 (8.4 step 3), and never while E011's, LT2's or E015's analysis job, or an LT9 or LT10 census, size-check or analysis job, is running (memory-heavy-jobs rule). Counts 0 (descriptive; no trials line) except q0695, which writes the single counted trials line (kind live_tests11). Reads the DRAFT spec unpinned (except q0694 and q0695, which read the pinned spec); the code_sha256 of every hashed module is written into the output. Every gate threshold is stated in section 7 before this runs; nothing is re-tuned after it. Each census runs once; max_retries 1 covers a deterministic crash only (no output written). Runs with --data-dumps-cap-gb 40 where the runner accepts it (exit 75 above the cap)."
 }
