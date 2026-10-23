@@ -44,3 +44,15 @@ neither it nor `live_tests9_base.py`. 65 tests pass; ruff clean. Nothing counted
 `seal_completeness` internals beyond `live_tests9_base.py:651-701`; whether `bandbreak_units` always emits `rew`,
 `fee_cat`, `liq`, `tick` for every unit (tests pass; no real data run); the LT8 hash re-check (LT8 census outputs do not
 exist yet).
+
+## Response 2 (implementer, "before the seal" items)
+
+| # | Item | Fix | Test |
+|---|------|-----|------|
+| 1 | Count captures with no readable receipt (CR9) | `census_feed` prints `captures_no_readable_receipt` {n, of_captures, share, denominator}; such a capture is still never chosen (NaN < t is False). | `test_cr9_counts_captures_without_a_readable_receipt`; base case in `test_cr9_control_pool_excludes_malformed_markets_and_counts_them` |
+| 2 | Spec wording for the CH213 twin | `lag_loader.CH213` now says k + 5's cell membership uses its 1.4 eligibility at k + 5 (streaming loop), only (n, median v) reach `lag_twin_flags`, only the flag reaches the unit frame. | `test_census_captures_builds_cells5_from_capture_k_plus_5` (reads the spec only through behaviour) |
+| 3 | End-to-end test that `cells5` comes from capture k + 5 | New test spies on `lag_twin_flags` inside `census_captures`; editing capture k + 5's reward band changes that origin's cell medians (2 to 3) and flips the control units' twin flag, and no other origin's cells. | `test_census_captures_builds_cells5_from_capture_k_plus_5` |
+| 4 | CR9 control pool: exclude malformed markets, count them | Candidates whose feed end kind at the decision feed capture is malformed leave the pool; `control_pool_malformed_excluded` {candidates_excluded, candidates_before_exclusion, share, denominator}; declared in `declared_before_seal.control_pool_malformed`. | `test_cr9_control_pool_excludes_malformed_markets_and_counts_them` |
+| 5 | Vendor CH203 / CH197 definitions; overlaps | Via `scripts/vendor_lt9_base.py` (regenerated; only additions, pins unchanged, provenance test passes): LT8 `quiet_units`, `_sw_take`, `_rewards`, `effective_text`, `rw_nocol_mask` (+ `_SW_COLS`, `_Q_EPS`), LT7 `behind_touch`, `patient_units`. Restated parameters in new spec block `prior_population_specs` (hashed with the other census blocks). CS9 computes the CH197 overlap (key (market, UTC day)). CC9 and CR9 print NaN, reason "census reads no sweeps". | `test_cs9_prior_population_overlaps_and_reasons`, `test_prior_population_specs_equal_the_prior_spec_files`, `test_vendored_provenance` |
+
+**Not done, declared deviation (needs the orchestrator's ruling).** The CH203 overlap is NOT computed in CS9: `quiet_units` tests `|mid_k - smid_{k-1}| < 0.005`, which reads capture k's quotes, and the section 7 loader for CS9 reads capture k for its manifest start only. Reading it would change the frozen read-set, so CS9 prints NaN with that reason; the deviation is declared in `declared_before_seal.prior_population_overlaps` (names section 7). The vendored `quiet_units` is in place, so a ruling that lets this one descriptive read capture k's mid is a small change. CH197's `osz` (sidecar `order_min_size`, never a unit filter) is not read by CS9 and is passed as NaN (declared).

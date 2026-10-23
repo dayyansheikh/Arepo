@@ -58,6 +58,8 @@ PICK = {
         "_gate_min_days", "_fam", "_per_market", "_events", "_tier_shares", "_share_by_tercile", "unit_overlaps", "_z", "_desc_splits",
         "pair_correlations", "_merge_counts", "_fee_counts", "load_unavailable", "_dir_slot", "sealed_sweep_slots", "_movers_join", "_common_cols",
         "_base_out", "_utc_day", "_mid12",
+        # CH197's population definition (section 7 descriptive: the overlap with LT7 CH197 on the same days; code check 2026-10-23 before-the-seal item 5)
+        "behind_touch", "patient_units",
         # the 13.7 carry (listed_carry24h_v2) and its counts
         "_status_array", "_series_ids", "RewardCarry", "_reward_cols", "_in_band_carry_counts", "_carry_unit_cols", "_switch_distinct",
     ],
@@ -66,6 +68,8 @@ PICK = {
         # design-based MDE under a working covariance (LT8 census-code check)
         "reward_detail", "reward_status", "lt7_status", "clob_hash", "rw_frame", "read_rw8", "rw_slim", "_vol_cols", "_ft_both", "_drop_missing",
         "_rv24", "design_se", "class_mde8", "corr_pair", "corr_pair_ok", "_q", "_events8",
+        # CH203's unit definition (section 7 descriptive: the overlap with LT8 CH203 on the same days; code check 2026-10-23 before-the-seal item 5)
+        "_sw_take", "_rewards", "effective_text", "rw_nocol_mask", "quiet_units",
     ],
 }
 
@@ -118,6 +122,9 @@ _NULL_LIKE = {"", "nan", "none", "null"}  # live_tests7._NULL_LIKE == live_tests
 # live_tests8.LT7_STATUS / RW_COLS (read by the copied lt7_status, rw_frame and read_rw8)
 LT7_STATUS = {"unset": "null", "empty_list": "listed", "zero": "listed", "rewarded": "listed", "malformed": "malformed", "no_sidecar": "absent", "no_column": "no_column"}
 RW_COLS = ["market_id", "clob_h", "rew_status", "rew_raw", "rew_min", "rew_maxspread"]
+# live_tests8._SW_COLS / _Q_EPS (read by the copied _sw_take and quiet_units)
+_SW_COLS = ["sbid", "sask", "s_t", "s_two", "bsz1", "asz1", "dbid5", "dask5", "dbid1", "dask1"]
+_Q_EPS = 1e-9
 '''
 
 

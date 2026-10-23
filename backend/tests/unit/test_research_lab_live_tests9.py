@@ -975,3 +975,121 @@ def test_cr9_and_cc9_print_declared_denominators_and_descriptives(world):
     assert cc["declared_before_seal"] and "denominator" in cc["feed_end_kinds_of_positive_configs"] and "feed_end_shares_denominator" in cc["CH212"]
     assert "switching_gate_definition" in cc["CH212"] and "feed_unlisted" not in cc["CH212"]["feed_end_shares"]
     assert cc["overlaps_with_prior_populations"]["LT8_CH203"]["reason"] and "malformed_mixed_markets" in cc["feed_end_kinds_of_positive_configs"]
+
+
+def test_census_captures_builds_cells5_from_capture_k_plus_5(world, monkeypatch):
+    """Re-check item 3: census_captures hands lag_twin_flags the cell medians of capture k + 5 (not k), end to end. Changing capture k + 5's reward band
+    changes the control units' twin flag of origin k and of no other origin."""
+    seen: dict[int, tuple[dict, pd.Series]] = {}
+    orig = lt.lag_twin_flags
+
+    def spy(cap_a, cap_b, grp, cells_b, spec):
+        fl = orig(cap_a, cap_b, grp, cells_b, spec)
+        seen[int(grp["slot"].iloc[0])] = (cells_b, fl.set_axis(grp["market_id"].astype(str).to_numpy()), grp)
+        return fl
+
+    monkeypatch.setattr(lt, "lag_twin_flags", spy)
+
+    def run(tmp: Path, band: str | None):
+        tmp.mkdir()
+        host = build_host(tmp)
+        if band is not None:
+            p = host["snap"] / host["cids"][KK + 5] / "rows_ext.csv.gz"
+            ext = pd.read_csv(p, dtype=str, keep_default_na=False)
+            ext["rewards_max_spread"] = band
+            ext.to_csv(p, index=False, compression="gzip")
+        w = {**world, "tmp": tmp}
+        seal = write_seal(w, host)
+        seen.clear()
+        cc = lt.census_captures(seal=seal, snapshot_root=[host["snap"]], feed_root=[host["feed"]], work=tmp / "wc", spec=world["spec"])
+        assert "error" not in cc, cc
+        return dict(seen)
+
+    KK = SPAN[0] + 2
+    base, changed = run(world["tmp"] / "t0", None), run(world["tmp"] / "t1", "4")
+    assert KK in base and KK in changed
+    meds = lambda cells: sorted({v[1] for v in cells["cell"].values()})  # noqa: E731
+    assert meds(base[KK][0]) == [2.0] and all(m_ > 2.0 for m_ in meds(changed[KK][0]))  # cell medians of capture KK + 5 reach the loader (carried rewarded rows keep their source's band, so 4 gives 3)
+    ctrl = base[KK][2]["rew"].to_numpy(float) != 1.0
+    assert ctrl.any()
+    fb, fc_ = base[KK][1].to_numpy(float)[ctrl], changed[KK][1].to_numpy(float)[ctrl]
+    assert not np.array_equal(fb, fc_, equal_nan=True) and (fb == 1.0).any() and (fc_[np.isfinite(fc_)] == 0.0).all()  # 2v = 4c breaks, 2v = 6c does not
+    for k in base:  # other origins' cells come from their own k + 5 capture, which this edit did not touch
+        if k != KK:
+            assert meds(base[k][0]) == meds(changed[k][0]) == [2.0]
+
+
+def _malform_feed(host: dict, cids: set[str]) -> None:
+    for d in host["feed"].iterdir():
+        p = d / "rows.jsonl.gz"
+        with gzip.open(p, "rt") as fh:
+            recs = [json.loads(x) for x in fh]
+        for r in recs:
+            if r["condition_id"] in cids:
+                r["rewards_config"] = r["rewards_config"] + [{"rate_per_day": 5, "start_date": "2026-01-01", "end_date": "junk"}]
+        with gzip.open(p, "wt") as fh:
+            for r in recs:
+                fh.write(json.dumps(r) + "\n")
+
+
+def test_cr9_control_pool_excludes_malformed_markets_and_counts_them(world):
+    """Re-check item 4 and item 1: markets whose feed end kind is malformed (unknown end) leave the control pool, counted with a denominator."""
+    def run(tmp: Path, bad: set[str]):
+        tmp.mkdir()
+        host = build_host(tmp)
+        _malform_feed(host, bad)
+        w = {**world, "tmp": tmp}
+        seal = write_seal(w, host)
+        return lt.census_feed(seal=seal, snapshot_root=[host["snap"]], feed_root=[host["feed"]], work=tmp / "wf", spec=world["spec"])
+    base = run(world["tmp"] / "m0", set())
+    bad = run(world["tmp"] / "m1", {"0xc4", "0xc12", "0xc16"})
+    for r in (base, bad):
+        assert "error" not in r, r
+    e0, e1 = base["counts"]["control_pool_malformed_excluded"], bad["counts"]["control_pool_malformed_excluded"]
+    assert e0["candidates_excluded"] == 0 and e0["candidates_before_exclusion"] > 0 and e0["denominator"]
+    assert e1["candidates_excluded"] > 0 and e1["candidates_excluded"] <= e1["candidates_before_exclusion"] and 0 < e1["share"] <= 1
+    nr = base["counts"]["captures_no_readable_receipt"]
+    assert nr["n"] == 0 and nr["of_captures"] > 0 and nr["share"] == 0.0 and nr["denominator"]
+
+
+def test_cr9_counts_captures_without_a_readable_receipt(world):
+    h = world["host"]
+    p = h["snap"] / h["cids"][SPAN[0] + 1] / "rows.csv.gz"
+    df = pd.read_csv(p, dtype=str)
+    df["received_utc"] = ""
+    df.to_csv(p, index=False, compression="gzip")
+    seal = write_seal(world)
+    cr = lt.census_feed(seal=seal, snapshot_root=[h["snap"]], feed_root=[h["feed"]], work=world["tmp"] / "wf", spec=world["spec"])
+    nr = cr["counts"]["captures_no_readable_receipt"]
+    assert nr["n"] == 1 and nr["share"] == 1 / nr["of_captures"]
+
+
+def test_cs9_prior_population_overlaps_and_reasons(world):
+    seal = write_seal(world)
+    h = world["host"]
+    kw = {"seal": seal, "snapshot_root": [h["snap"]], "feed_root": [h["feed"]], "spec": world["spec"]}
+    cs = lt.census_sweeps(sweep_root=[h["swp"]], work=world["tmp"] / "ws", **kw)
+    ov = cs["overlaps_with_prior_populations"]
+    assert np.isnan(ov["LT8_CH203"]["units"]) and "capture k" in ov["LT8_CH203"]["reason"]
+    o7 = ov["LT7_CH197"]
+    assert o7["key"] == "(market, UTC day)" and o7["passes_12_31Z_in_span_with_sweep_read"] >= 1 and o7["units_ch197"] > 0 and o7["units"] >= 0
+    assert "share_of_CH197" in o7 and "share_of_CH214" in o7
+    cr = lt.census_feed(work=world["tmp"] / "wf", **kw)
+    cc = lt.census_captures(work=world["tmp"] / "wc", **kw)
+    for ovs in (cr["counts"]["overlaps_with_prior_populations"], cc["overlaps_with_prior_populations"]):
+        assert all(np.isnan(v["units"]) and v["reason"] == "census reads no sweeps" for v in ovs.values())
+    d = json.loads(lt.SPEC_PATH.read_text())["declared_before_seal"]
+    assert "DECLARED DEVIATION" in d["prior_population_overlaps"]["rule"] and "section 7" in d["prior_population_overlaps"]["rule"]
+    assert d["control_pool_malformed"] and d["captures_no_readable_receipt"]
+
+
+def test_prior_population_specs_equal_the_prior_spec_files():
+    ps = lt.load_spec(sha=None)["prior_population_specs"]
+    s8 = json.loads((lt.SPEC_PATH.parent / "live_tests8_v1.json").read_text())
+    s7 = json.loads((lt.SPEC_PATH.parent / "live_tests7_v1.json").read_text())
+    assert ps["LT8_CH203"]["test"] == s8["tests"]["CH203"] and ps["LT8_CH203"]["ft_factor"] == s8["reward_rule"]["ft_factor"] and ps["LT8_CH203"]["member_cap_max"] == s8["member_cap"]["max_members"]
+    assert ps["LT7_CH197"]["test"] == s7["tests"]["CH197"]
+    assert "prior_population_specs" in lt.SPEC_HASHED_BLOCKS
+    for name in ("quiet_units", "_sw_take", "_rewards", "effective_text", "rw_nocol_mask", "behind_touch", "patient_units"):
+        assert name in b.VENDORED and b.VENDORED[name]["source"] in ("live_tests7.py", "live_tests8.py")
+    assert b._Q_EPS == l8._Q_EPS and b._SW_COLS == l8._SW_COLS

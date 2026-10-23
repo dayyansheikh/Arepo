@@ -47,6 +47,9 @@ _NULL_LIKE = {"", "nan", "none", "null"}  # live_tests7._NULL_LIKE == live_tests
 # live_tests8.LT7_STATUS / RW_COLS (read by the copied lt7_status, rw_frame and read_rw8)
 LT7_STATUS = {"unset": "null", "empty_list": "listed", "zero": "listed", "rewarded": "listed", "malformed": "malformed", "no_sidecar": "absent", "no_column": "no_column"}
 RW_COLS = ["market_id", "clob_h", "rew_status", "rew_raw", "rew_min", "rew_maxspread"]
+# live_tests8._SW_COLS / _Q_EPS (read by the copied _sw_take and quiet_units)
+_SW_COLS = ["sbid", "sask", "s_t", "s_two", "bsz1", "asz1", "dbid5", "dask5", "dbid1", "dask1"]
+_Q_EPS = 1e-9
 
 
 # --- from live_tests7_base.py (sha256 2e8baa9007f60d4c...) ----------------------------------------
@@ -1197,6 +1200,88 @@ def _mid12(store: MidStore | None, k: int, markets) -> np.ndarray:
     return store.matrix(k, 12, mk, "mid")[:, 0]
 
 
+def behind_touch(bsz1, asz1, dbid5, dask5) -> dict:
+    """Touch and behind-touch imbalances of the outcome-0 book: ``bB = depth_bid_5c - bid_size_1`` (the 5c band includes the touch),
+    ``imbT = (bT - aT) / (bT + aT)``, ``imbB = (bB - aB) / (bB + aB)``; NaN where an input is missing, ``bT + aT <= 0``,
+    ``bB + aB <= 0`` (excluded, counted) or either behind-touch depth is negative (an inconsistent book, counted separately)."""
+    bT, aT, d1, d2 = (np.asarray(v, float) for v in (bsz1, asz1, dbid5, dask5))
+    bB, aB = d1 - bT, d2 - aT
+    with np.errstate(invalid="ignore", divide="ignore"):
+        imbT = np.where(np.isfinite(bT + aT) & ((bT + aT) > 0), (bT - aT) / (bT + aT), np.nan)
+        neg = np.isfinite(bB) & np.isfinite(aB) & ((bB < 0) | (aB < 0))
+        zero = np.isfinite(bB) & np.isfinite(aB) & ~neg & ((bB + aB) <= 0)
+        imbB = np.where(np.isfinite(bB + aB) & ((bB + aB) > 0) & ~neg, (bB - aB) / (bB + aB), np.nan)
+    return {"bT": bT, "aT": aT, "bB": bB, "aB": aB, "imbT": imbT, "imbB": imbB, "behind_negative": neg, "behind_zero": zero}
+
+
+def patient_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, store: MidStore | None, sw_k: pd.DataFrame | None, cap: dict, k: int, spec: dict,
+                  any_slot: bool = False) -> tuple[pd.DataFrame, dict]:
+    """CH197's units at the 12:31Z pass k (section 5): non-sports ex-crypto two-sided markets (1.4 items 1-7 at k - 1 and k, mid_k in
+    [0.07, 0.93], end > t + 27 h) with sweep 1 of pass k two-sided on the outcome-0 token, spread <= 0.05, ``bid_size_1`` /
+    ``ask_size_1`` present, both 5c depths present and positive, ``bB + aB > 0`` and a parseable reward status. One unit per market
+    per day by construction (one pass a day). ``books_in_band`` counts the eligible books (the covered-share denominator).
+    ``any_slot=True`` lifts the 12:31Z restriction (only for the F-feasibility pairs j, j + 13 of the census, design 7)."""
+    c = spec["tests"]["CH197"]
+    cnt: dict = {}
+    if not any_slot and slot_in_day(k) != c["slot_index_in_day"]:
+        cnt["not_1231_pass"] = 1
+        return pd.DataFrame(), cnt
+    j, cnt = _movers_join(ser_k, ser_p, cap, spec, c["mid_lo"], c["mid_hi"], c["end_margin_h"])
+    j = _non_sports_ex_crypto(j.copy(), cnt)
+    cnt["books_in_band"] = len(j)
+    if sw_k is None:
+        cnt["nosweep"] = 1
+        return pd.DataFrame(), cnt
+    mk = j["market_id"].astype(str)
+    cols = ["sbid", "sask", "s_t", "s_two", "bsz1", "asz1", "dbid5", "dask5", "dbid1", "dask1"]
+    s = sw_k.reindex(mk)[cols].reset_index(drop=True)
+    j = j.reset_index(drop=True)
+    for col in cols:
+        j[col] = s[col].to_numpy(float)
+    two = j["s_two"] == 1
+    tight = (j["sask"] - j["sbid"]) <= c["sweep_spread_max"] + 1e-12
+    dep = np.isfinite(j[["dbid5", "dask5", "bsz1", "asz1"]]).all(axis=1) & (j["dbid5"] > 0) & (j["dask5"] > 0)
+    cnt["no_sweep_two_sided"] = int((~two).sum())
+    cnt["sweep_not_tight"] = int((two & ~tight).sum())
+    cnt["depth_missing_or_zero"] = int((two & tight & ~dep).sum())
+    j = j[two & tight & dep].copy().reset_index(drop=True)
+    bt = behind_touch(j["bsz1"], j["asz1"], j["dbid5"], j["dask5"])
+    cnt["behind_negative"] = int(bt["behind_negative"].sum())
+    cnt["behind_zero_excluded"] = int(bt["behind_zero"].sum())
+    okb = np.isfinite(bt["imbB"]) & np.isfinite(bt["imbT"])
+    cnt["touch_zero_or_missing"] = int((~okb & ~bt["behind_negative"] & ~bt["behind_zero"]).sum())
+    j = j[okb].copy().reset_index(drop=True)
+    bt = {key: v[okb] for key, v in bt.items()}
+    notional0 = (j["dbid5"] * j["sbid"] + j["dask5"] * j["sask"]).to_numpy(float)
+    liq = j["liq"].to_numpy(float)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        h0 = np.where(np.isfinite(liq) & (liq > 0), np.clip(1.0 - notional0 / liq, 0.0, 1.0), np.nan)
+    if any_slot and "rew_rate_v1" in j:  # ruling 13.7 / re-check fix 1(b): the F-feasibility pairs use the k-only (v1) reward and in_band (their carry windows are not complete)
+        j = j.assign(rew_rate=j["rew_rate_v1"], rew_min=j["rew_min_v1"], rew_maxspread=j["rew_maxspread_v1"], rew_carry_lag=np.nan, rew_win_inactive=0.0, rew_param_differs=0.0)
+    rew, rewarded = _reward_cols(j, cnt)
+    spread_sw = (j["sask"] - j["sbid"]).to_numpy(float)
+    mid = j["mid"].to_numpy(float)
+    rms = j["rew_maxspread"].to_numpy(float)
+    in_band = _in_band(mid, spread_sw, rms, c["reward_band"])
+    _in_band_carry_counts(j, mid, spread_sw, in_band, rewarded, c["reward_band"], cnt)
+    cnt["in_band_unknown"] = int(np.isnan(in_band).sum())
+    m12 = _mid12(store, k, j["market_id"])
+    d24, d24f = _own24(1.0, mid, m12)
+    u = pd.DataFrame({**_base_out(j, cap, k), "t_row": j["s_t"].to_numpy(float), "imbT": bt["imbT"], "imbB": bt["imbB"], "bT": bt["bT"], "aT": bt["aT"], "bB": bt["bB"], "aB": bt["aB"],
+                      "mid": mid, "tick": j["tick"].to_numpy(float), "liq": liq, "end_ts": j["end_ts"].to_numpy(float), "vol24": j["vol24"].to_numpy(float),
+                      "spread_sw": spread_sw, "total5": (j["dbid5"] + j["dask5"]).to_numpy(float), "h0": h0, "d24": d24, "d24_flag": d24f,
+                      "rewarded": rewarded, "in_band": in_band, "rew_status": j["rew_status"].astype(str).to_numpy(), "rew_min": j["rew_min"].to_numpy(float),
+                      "osz": j["osz"].to_numpy(float), **_carry_unit_cols(j)})
+    u["dis"] = u["imbB"] - u["imbT"]
+    u["imbT1"] = imbalance(j["dbid1"], j["dask1"])  # S4: the 1c-band form of the touch (descriptive correlation with the best-level form)
+    u["log1p_total5"] = np.log1p(u["total5"])
+    u["log1p_vol"] = np.log1p(u["vol24"].clip(lower=0))
+    u = u[np.isfinite(u["rewarded"]) & np.isfinite(u["in_band"])].reset_index(drop=True)
+    u = _common_cols(u)
+    cnt["units"] = len(u)
+    return u, cnt
+
+
 def _status_array(ser: pd.DataFrame) -> np.ndarray:
     """``rew_status`` as strings. pandas reads the cell text ``null`` back from a series CSV as NaN (``read_series`` is a vendored reader and is not edited); a status is never
     legitimately missing, so a NaN status IS ``null``. Without this the carry would never fire on a file read back from the work dir."""
@@ -1588,6 +1673,207 @@ def _events8(pop: pd.DataFrame, scale: float, covered_days: float) -> dict:
             "events_projected_21d_second_form": second, "covered_days": covered_days}
 
 
+def _sw_take(sw: pd.DataFrame, mk: pd.Series, suffix: str, j: pd.DataFrame) -> None:
+    a = sw.reindex(mk)[_SW_COLS].reset_index(drop=True)
+    for col in _SW_COLS:
+        j[f"{col}_{suffix}"] = a[col].to_numpy(float)
+
+
+def _rewards(j: pd.DataFrame, spread_sw, band) -> dict:
+    """``rewarded`` (NaN when the reward text is malformed, the market has no sidecar row or the sidecar has no ``clob_rewards`` column),
+    ``in_band`` (LT7 CH197's mechanical definition for EVERY market, as LT7 13.6: folded mid in the band and spread <= ``rewards_max_spread``;
+    NaN, excluded and counted, when the field is missing with the mid inside the band) and the malformed flag."""
+    state = j["rew_state"].astype(str).to_numpy()
+    rate = j["rew_rate"].to_numpy(float)
+    unk = np.isin(state, ["malformed", "no_sidecar", "no_column"]) | ~np.isfinite(rate)
+    rewarded = np.where(unk, np.nan, (rate > 0).astype(float))
+    in_band = _in_band(j["mid"].to_numpy(float), np.asarray(spread_sw, float), j["rew_maxspread"].to_numpy(float), band)
+    return {"rewarded": rewarded, "in_band": np.where(unk, np.nan, in_band), "malformed": (state == "malformed")}
+
+
+def effective_text(rwf: dict, s: int, lo: int, ids) -> np.ndarray:
+    """13.7 (c): E(s) per market of ``ids`` (object array of ``clob_rewards`` hashes). NaN when slot ``s`` has no rw frame or the market has no sidecar row at
+    ``s`` (the NaN rule is unchanged), or the capture at ``s`` is a sidecar without the ``clob_rewards`` column (``no_column``: NaN, 13.7 erratum). Otherwise
+    the capture's own text at ``s`` when its cell is not null (a listed text; a malformed cell keeps its own v1 hash, never replaced by a carried one); for a null cell, the LATEST listed text of the slots [``lo``, ``s`` - 1] (missing slots skipped,
+    never filled), else the empty string. No slot later than ``s`` is read."""
+    idx = pd.Index([str(m) for m in ids])
+    if s not in rwf or rwf[s] is None:
+        return np.full(len(idx), np.nan, dtype=object)
+    f = rwf[s]
+    out = f["clob_h"].reindex(idx).to_numpy(object).copy()
+    st = f["rew_status"].reindex(idx).to_numpy(object)
+    out[st == "no_column"] = np.nan  # 13.7 erratum (also set by rw_frame / read_rw8; repeated so a hand-built frame cannot read it as empty)
+    todo = np.flatnonzero(st == "null")
+    for u in range(int(s) - 1, int(lo) - 1, -1):
+        if not len(todo):
+            break
+        g = rwf.get(u)
+        if g is None:
+            continue
+        gs = g["rew_status"].reindex(idx[todo]).to_numpy(object)
+        hit = gs == "listed"
+        if hit.any():
+            out[todo[hit]] = g["clob_h"].reindex(idx[todo[hit]]).to_numpy(object)
+            todo = todo[~hit]
+    return out
+
+
+def rw_nocol_mask(rwf: dict, slots, ids) -> pd.Series:
+    """13.7 erratum: True for a market whose capture at any of ``slots`` (k and k - 2) is a sidecar without the ``clob_rewards`` column."""
+    idx = pd.Index([str(m) for m in ids])
+    out = np.zeros(len(idx), bool)
+    for s in slots:
+        f = rwf.get(s)
+        if f is not None:
+            out |= (f["rew_status"].reindex(idx).to_numpy(object) == "no_column")
+    return pd.Series(out, index=idx)
+
+
+def quiet_units(ser_k: pd.DataFrame, ser_p: pd.DataFrame, ser_k2: pd.DataFrame | None, rw_k: pd.Series | None, rw_k2: pd.Series | None, store: MidStore,
+                sw_k2: pd.DataFrame | None, sw_k1: pd.DataFrame | None, lv_k2: pd.DataFrame | None, lv_k1: pd.DataFrame | None, cap: dict, k: int,
+                spec: dict, rw_k_v1: pd.Series | None = None, rw_k2_v1: pd.Series | None = None, rw_nocol: pd.Series | None = None) -> tuple[pd.DataFrame, dict]:
+    """CH203's units of capture k (section 2): non-sports ex-crypto markets two-sided and tight at k - 1 and k (1.4 items 1-7, end > t + 7 h),
+    ``mid_k`` in [0.07, 0.93], with sweep 1 of passes k - 2 AND k - 1 two-sided on the outcome-0 token, tight (sweep spread <= 0.10), both 5c
+    depths positive at both and each received BEFORE capture k's start, QUIET (``|smid_{k-1} - smid_{k-2}| < 0.005`` and ``|mid_k -
+    smid_{k-1}| < 0.005``). The returned frame keeps every ``n_members`` (the cap is applied by the census, which also needs the pre-cap
+    count). State: ``dimb5 = imb5_{k-1} - imb5_{k-2}``. ``sw_*`` are :func:`live_tests8_base.sweep_frame` outputs indexed by market_id.
+    A required control that is missing is excluded and counted (1.5), except the declared indicator pairs.
+
+    Amendment 13.7: ``ser_k`` is the origin frame after the vendored ``RewardCarry.apply`` (``rewarded``, ``rew_min`` for ``ft_both`` and ``rew_maxspread``
+    for ``in_band`` come from the source capture of a carried unit; the sweep k - 1 sizes and spread are unchanged); ``rw_k`` / ``rw_k2`` are the
+    effective texts E(k) / E(k - 2) (:func:`effective_text`) and ``rw_k_v1`` / ``rw_k2_v1`` the k-only hashes (descriptive v1 ``rw_changed``). A frame
+    without the carry columns (unit tests) gives the k-only values. The v1 columns (``rewarded_v1``, ``in_band_v1``, ``ft_both_v1``, ``rw_changed_v1``)
+    are descriptive only and never a control or a gate input.
+
+    13.7 erratum: ``rw_nocol`` (bool by market_id) marks markets whose capture k or k - 2 is a sidecar without the ``clob_rewards`` column; their
+    ``rw_changed`` (v2 and v1) is NaN and the unit is excluded and counted as ``rw_changed_no_column`` (before ``rw_changed_unknown``), never read as an
+    empty programme. A ``no_column`` capture k already leaves ``rewarded`` NaN, so the count holds the units excluded for this reason only."""
+    c = spec["tests"]["CH203"]
+    j, cnt = _movers_join(ser_k, ser_p, cap, spec, c["mid_lo_pre_band"], c["mid_hi_pre_band"], c["end_margin_h"])
+    j = _non_sports_ex_crypto(j.copy(), cnt)
+    cnt["eligible_pre_band"] = len(j)
+    if sw_k1 is None:
+        cnt["nosweep_km1"] = 1
+        return pd.DataFrame(), cnt
+    if sw_k2 is None:
+        cnt["nosweep_km2"] = 1
+        return pd.DataFrame(), cnt
+    mk = j["market_id"].astype(str)
+    j = j.reset_index(drop=True)
+    _sw_take(sw_k1, mk, "1", j)
+    _sw_take(sw_k2, mk, "2", j)
+    mid = j["mid"].to_numpy(float)
+    in_band = (mid >= c["mid_lo"] - 1e-12) & (mid <= c["mid_hi"] + 1e-12)
+    cnt["eligible_in_band"] = int(in_band.sum())
+    two = (j["s_two_1"] == 1) & (j["s_two_2"] == 1)
+    smax = c["sweep_spread_max"] + 1e-12
+    tight = ((j["sask_1"] - j["sbid_1"]) <= smax) & ((j["sask_2"] - j["sbid_2"]) <= smax)
+    d5 = j[["dbid5_1", "dask5_1", "dbid5_2", "dask5_2"]].to_numpy(float)
+    dep = np.isfinite(d5).all(axis=1) & (d5 > 0).all(axis=1)
+    struct = (two & tight & dep).to_numpy()
+    start = float(cap["start"])
+    t1, t2 = j["s_t_1"].to_numpy(float), j["s_t_2"].to_numpy(float)
+    with np.errstate(invalid="ignore"):
+        recv = np.isfinite(t1) & np.isfinite(t2) & (t1 < start) & (t2 < start)
+    cnt["covered_struct_in_band"] = int((struct & in_band).sum())
+    cnt["sweep_after_origin"] = int((struct & ~recv & in_band).sum())
+    cov = struct & recv
+    cnt["covered_in_band"] = int((cov & in_band).sum())  # the unit population: tight sweeps (the 'tight variant' of the coverage)
+    struct_nt = (two & dep).to_numpy()  # section 7's coverage as WRITTEN: two-sided, both 5c depths positive, received before the origin; no 'tight'
+    cnt["covered_struct_notight_in_band"] = int((struct_nt & in_band).sum())
+    cnt["covered_notight_in_band"] = int((struct_nt & recv & in_band).sum())
+    sm1 = ((j["sbid_1"] + j["sask_1"]) / 2.0).to_numpy(float)
+    sm2 = ((j["sbid_2"] + j["sask_2"]) / 2.0).to_numpy(float)
+    with np.errstate(invalid="ignore"):
+        quiet = (np.abs(sm1 - sm2) < c["quiet_eps"] - _Q_EPS) & (np.abs(mid - sm1) < c["quiet_eps"] - _Q_EPS)
+    cnt["covered_pre_band"] = int(cov.sum())
+    cnt["quiet_covered_pre_band"] = int((cov & quiet).sum())
+    keep = cov & quiet & in_band
+    cnt["quiet_covered_in_band"] = int(keep.sum())
+    cnt["quiet_covered_in_band_cap"] = int((keep & (j["n_members"].to_numpy(float) <= spec["member_cap"]["max_members"])).sum())
+    cnt["quiet_covered_in_band_ladder"] = cnt["quiet_covered_in_band"] - cnt["quiet_covered_in_band_cap"]
+    # section 7's "covered" as WRITTEN (no tight): the numerators of the quiet share, the projected quiet count and the cap share (verification fix 1)
+    cov_nt = struct_nt & recv
+    nm_ok = j["n_members"].to_numpy(float) <= spec["member_cap"]["max_members"]
+    cnt["quiet_covered_notight_pre_band"] = int((cov_nt & quiet).sum())
+    cnt["quiet_covered_notight_in_band"] = int((cov_nt & quiet & in_band).sum())
+    cnt["quiet_covered_notight_in_band_cap"] = int((cov_nt & quiet & in_band & nm_ok).sum())
+    j = j[keep].reset_index(drop=True)
+    if j.empty:
+        return pd.DataFrame(), cnt
+    mkj = j["market_id"].astype(str)
+    imb1 = imbalance(j["dbid5_1"], j["dask5_1"])
+    imb2 = imbalance(j["dbid5_2"], j["dask5_2"])
+    tot1 = (j["dbid5_1"] + j["dask5_1"]).to_numpy(float)
+    tot2 = (j["dbid5_2"] + j["dask5_2"]).to_numpy(float)
+    dimb1 = imbalance(j["bsz1_1"], j["asz1_1"]) - imbalance(j["bsz1_2"], j["asz1_2"])
+    if lv_k1 is not None and lv_k2 is not None:
+        a1, a2 = lv_k1.reindex(mkj), lv_k2.reindex(mkj)
+        dlev = (a1["nb"].to_numpy(float) - a2["nb"].to_numpy(float)) - (a1["na"].to_numpy(float) - a2["na"].to_numpy(float))
+    else:
+        dlev = np.full(len(j), np.nan)
+    spread_sw = (j["sask_1"] - j["sbid_1"]).to_numpy(float)
+    mid = j["mid"].to_numpy(float)
+    vol_k, vol_kmiss = _vol_cols(j["vol24"])
+    vol_p = j["vol24_p"].to_numpy(float)
+    vol_k2 = ser_k2["vol24"].reindex(mkj).to_numpy(float) if ser_k2 is not None else np.full(len(j), np.nan)
+    dv = vol_p - vol_k2
+    dv_ok = np.isfinite(dv)
+    dvp = np.where(dv_ok, np.log1p(np.clip(np.where(dv_ok, dv, 0.0), 0, None)), 0.0)
+    with np.errstate(invalid="ignore"):
+        silent = dv_ok & (dv <= np.maximum(c["silent_abs_tol"], c["silent_rel_tol"] * np.where(np.isfinite(vol_k2), vol_k2, 0.0)))
+    m12 = _mid12(store, k, j["market_id"])
+    d24, d24f = _own24(1.0, mid, m12)
+    tick = j["tick"].to_numpy(float)
+    rv, rvs, rvf = _rv24(store, k, mkj.to_numpy(), tick, c)
+    rw = _rewards(j, spread_sw, c["reward_band"])
+    for s_, n_ in j["rew_state"].astype(str).value_counts().items():
+        cnt[f"reward_state_{s_}"] = int(n_)
+    if "rew_reason" in j:
+        for s_, n_ in j["rew_reason"].fillna("").astype(str).value_counts().items():
+            if s_:
+                cnt[f"reward_malformed_{s_}"] = int(n_)
+    ft = _ft_both(rw["rewarded"], j["bsz1_1"], j["asz1_1"], j["rew_min"], spec["reward_rule"]["ft_factor"])
+
+    def _rwc(a: pd.Series | None, c2: pd.Series | None) -> np.ndarray:
+        if a is None or c2 is None:
+            return np.full(len(j), np.nan)
+        hk, h2 = a.reindex(mkj).to_numpy(object), c2.reindex(mkj).to_numpy(object)
+        return np.where(pd.isna(hk) | pd.isna(h2), np.nan, (hk != h2).astype(float))
+
+    rwc = _rwc(rw_k, rw_k2)
+    rwc_v1 = _rwc(rw_k_v1, rw_k2_v1) if (rw_k_v1 is not None or rw_k2_v1 is not None) else rwc
+    nocol = rw_nocol.reindex(mkj, fill_value=False).to_numpy(bool) if rw_nocol is not None else np.zeros(len(j), bool)
+    rwc, rwc_v1 = np.where(nocol, np.nan, rwc), np.where(nocol, np.nan, rwc_v1)
+    # 13.7 counts (as LT7: the vendored _reward_cols / _in_band_carry_counts; their returned reward values are not used, LT8's _rewards decides) and the v1 columns
+    if "rew_status" not in j:
+        j["rew_status"] = lt7_status(j["rew_state"])
+    _reward_cols(j, cnt)
+    _in_band_carry_counts(j, mid, spread_sw, rw["in_band"], rw["rewarded"], c["reward_band"], cnt)
+    cu = _carry_unit_cols(j)
+    rew_v1 = np.where(np.isfinite(rw["rewarded"]), cu["rewarded_v1"], np.nan)
+    rms_v1 = j["rew_maxspread_v1"].to_numpy(float) if "rew_maxspread_v1" in j else j["rew_maxspread"].to_numpy(float)
+    rmin_v1 = j["rew_min_v1"].to_numpy(float) if "rew_min_v1" in j else j["rew_min"].to_numpy(float)
+    in_band_v1 = np.where(np.isfinite(rew_v1), _in_band(mid, spread_sw, rms_v1, c["reward_band"]), np.nan)
+    ft_v1 = _ft_both(rew_v1, j["bsz1_1"], j["asz1_1"], rmin_v1, spec["reward_rule"]["ft_factor"])
+    u = pd.DataFrame({**_base_out(j, cap, k), "t_row": j["t_row"].to_numpy(float), "mid": mid, "tick": tick, "liq": j["liq"].to_numpy(float), "end_ts": j["end_ts"].to_numpy(float),
+                      "vol24": j["vol24"].to_numpy(float), "n_members": j["n_members"].to_numpy(float), "imb5_km1": imb1, "imb5_km2": imb2, "dimb5": imb1 - imb2, "dimb1": dimb1,
+                      "dlev": dlev, "total5_km1": tot1, "dlogD5": np.log1p(tot1) - np.log1p(tot2), "log1p_total5": np.log1p(tot1), "spread_sw": spread_sw,
+                      "lag_s": (start - j["s_t_1"].to_numpy(float)) / 60.0, "log1p_vol": vol_k, "vol_missing": vol_kmiss, "dV_prev": dvp, "dvp_missing": (~dv_ok).astype(float),
+                      "silent": silent.astype(float), "ltp_missing": (~np.isfinite(j["ltp"].to_numpy(float))).astype(float), "d24": d24, "d24_flag": d24f, "rv24": rv,
+                      "rv24s": rvs, "rv_floor": rvf, "rewarded": rw["rewarded"], "in_band": rw["in_band"], "ft_both": ft, "rw_changed": rwc, "reward_malformed": rw["malformed"].astype(float),
+                      "fee_cat": j["fee_cat"].to_numpy(object), "rewarded_v1": rew_v1, "in_band_v1": in_band_v1, "ft_both_v1": ft_v1, "rw_changed_v1": rwc_v1,
+                      "rew_carry_lag": cu["rew_carry_lag"], "listed_k": cu["listed_k"], "rew_trans": cu["rew_trans"], "_rw_col_known": np.where(nocol, np.nan, 1.0)})
+    u = _common_cols(u)
+    u["log_rv24s"] = np.log(u["rv24s"])
+    u = _drop_missing(u, cnt, {"log_rv24s": "rv24_undefined", "rewarded": "reward_unknown_or_malformed", "in_band": "in_band_unknown", "ft_both": "ft_both_unknown",
+                               "_rw_col_known": "rw_changed_no_column", "rw_changed": "rw_changed_unknown", "tick": "tick_unknown", "imb5_km1": "imb_unknown",
+                               "dimb5": "dimb_unknown"}).drop(columns=["_rw_col_known"])
+    u["dimb5_lag"] = np.nan  # filled by the census for the F-feasibility origins (:func:`add_lag`)
+    cnt["units_pre_cap"] = len(u)
+    return u, cnt
+
+
 VENDORED = {
  "MidStore": {
   "normalised_sha256": "db5634a5d2ef82051709166a920edaf8b933452d7a13e57179e6f2b7cb92bf60",
@@ -1946,6 +2232,13 @@ VENDORED = {
   "source_commit": "8dd013b9",
   "source_sha256": "e1c5c0c68f7c44d3d5038f9c28324008a4a8132e35f148721a33078d706766a0"
  },
+ "_rewards": {
+  "normalised_sha256": "4cd6904dbdec04441e2e163189612a48c3da371b858f9054fe2d21570464aa50",
+  "prefix": "\\bb\\.",
+  "source": "live_tests8.py",
+  "source_commit": "86e32dd3",
+  "source_sha256": "d1b252cff35d50675f91cb7c85a30a93e14b5b0a45cbbe970e382d802399e6d0"
+ },
  "_roots": {
   "normalised_sha256": "3822d52f40f2f0452e90172d37a217f1544f398792743693f5fb5444bb92e9d2",
   "origin": {
@@ -1997,6 +2290,13 @@ VENDORED = {
   "source": "live_tests7.py",
   "source_commit": "8dd013b9",
   "source_sha256": "e1c5c0c68f7c44d3d5038f9c28324008a4a8132e35f148721a33078d706766a0"
+ },
+ "_sw_take": {
+  "normalised_sha256": "cfe251b28333539d87641df2b812964e497f9a09674eec44f1cc52e2e58194ac",
+  "prefix": "\\bb\\.",
+  "source": "live_tests8.py",
+  "source_commit": "86e32dd3",
+  "source_sha256": "d1b252cff35d50675f91cb7c85a30a93e14b5b0a45cbbe970e382d802399e6d0"
  },
  "_switch_distinct": {
   "normalised_sha256": "a6fbefa926794478c72cd8db12e58a5a2c0c001d55234a50df6655260de05871",
@@ -2068,6 +2368,13 @@ VENDORED = {
   "source": "live_tests7_base.py",
   "source_commit": "8dd013b9",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
+ },
+ "behind_touch": {
+  "normalised_sha256": "1b48a4d6a9e58aacfa24034cff920fefd21e98b4c3e96a06c3d153f4727c655a",
+  "prefix": "\\bb\\.",
+  "source": "live_tests7.py",
+  "source_commit": "8dd013b9",
+  "source_sha256": "e1c5c0c68f7c44d3d5038f9c28324008a4a8132e35f148721a33078d706766a0"
  },
  "block_anchor": {
   "normalised_sha256": "98f12d4ca6f920653e5cef497e0813f847c9717efea62184de08ad5a26233b23",
@@ -2312,6 +2619,13 @@ VENDORED = {
   "source_commit": "8dd013b9",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
  },
+ "effective_text": {
+  "normalised_sha256": "5c2c2750d32795d74b9d47523ecf3c2edc1e80f5221c0e71076123bea66f65a0",
+  "prefix": "\\bb\\.",
+  "source": "live_tests8.py",
+  "source_commit": "86e32dd3",
+  "source_sha256": "d1b252cff35d50675f91cb7c85a30a93e14b5b0a45cbbe970e382d802399e6d0"
+ },
  "epoch": {
   "normalised_sha256": "c703c9b22a239cdf1fc35923f33c0621b86169be7572b5c562bb062f81fef0e1",
   "origin": {
@@ -2517,6 +2831,13 @@ VENDORED = {
   "source_commit": "8dd013b9",
   "source_sha256": "e1c5c0c68f7c44d3d5038f9c28324008a4a8132e35f148721a33078d706766a0"
  },
+ "patient_units": {
+  "normalised_sha256": "2cee6731ad048fa522e708806f83b4b5d86b8b0193f13fafaf83411abb372343",
+  "prefix": "\\bb\\.",
+  "source": "live_tests7.py",
+  "source_commit": "8dd013b9",
+  "source_sha256": "e1c5c0c68f7c44d3d5038f9c28324008a4a8132e35f148721a33078d706766a0"
+ },
  "project_events": {
   "normalised_sha256": "5cf6130260cd5c449feab50936f758d480c875f7e3fce6a95198fb1c5be07903",
   "origin": {
@@ -2528,6 +2849,13 @@ VENDORED = {
   "source": "live_tests7_base.py",
   "source_commit": "8dd013b9",
   "source_sha256": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20"
+ },
+ "quiet_units": {
+  "normalised_sha256": "c41cc66034de22f855ec7ec0a54f3504608d4886cced798ee00f6abafd1875d4",
+  "prefix": "\\bb\\.",
+  "source": "live_tests8.py",
+  "source_commit": "86e32dd3",
+  "source_sha256": "d1b252cff35d50675f91cb7c85a30a93e14b5b0a45cbbe970e382d802399e6d0"
  },
  "read_rw8": {
   "normalised_sha256": "fc21fdc663f456a5c3377826053dd027f6bc38c28209f8a679567032d1b78297",
@@ -2578,6 +2906,13 @@ VENDORED = {
  },
  "rw_frame": {
   "normalised_sha256": "59bc67e145b5005415abc1593e16f0fbc6050358bb4a097b3fc8545accc9c5ef",
+  "prefix": "\\bb\\.",
+  "source": "live_tests8.py",
+  "source_commit": "86e32dd3",
+  "source_sha256": "d1b252cff35d50675f91cb7c85a30a93e14b5b0a45cbbe970e382d802399e6d0"
+ },
+ "rw_nocol_mask": {
+  "normalised_sha256": "57fe8f1bb856c25d9ecd9fe6a288e6ac0cd59d7e59176bfe1e800a6d17a8ea2e",
   "prefix": "\\bb\\.",
   "source": "live_tests8.py",
   "source_commit": "86e32dd3",

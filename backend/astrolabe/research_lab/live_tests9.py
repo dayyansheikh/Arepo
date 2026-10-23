@@ -127,7 +127,7 @@ def reward_rule_error(spec: dict) -> dict | None:
 
 
 SPEC_HASHED_BLOCKS = ("census_gates", "census_inputs", "tests", "move", "eligibility", "grid", "crypto_rule", "crypto_classifier", "sports_rule", "series_key_rule",
-                      "reward_rule", "member_cap", "reward_null_rule", "reward_carry_slots", "feed", "f_roles")
+                      "reward_rule", "member_cap", "reward_null_rule", "reward_carry_slots", "feed", "f_roles", "prior_population_specs")
 
 
 def spec_blocks_sha(spec: dict) -> str:
@@ -366,10 +366,28 @@ def decision_slot(cap_slots: list[int], lasts, t: float) -> int:
     return int(cap_slots[int(idx[-1])]) if len(idx) else -10**9
 
 
-PRIOR_POPULATION_OVERLAPS = {
-    "LT8_CH203": {"units": float("nan"), "reason": "LT8 CH203's population definition (a sweep-imbalance unit) is not vendored into LT9's base and LT9 imports no LT8 module; not invented, printed NaN"},
-    "LT7_CH197": {"units": float("nan"), "reason": "LT7 CH197's population definition (a sweep-imbalance unit) is not vendored into LT9's base and LT9 imports no LT7 module; not invented, printed NaN"},
-}  # section 7 descriptive: the overlaps with LT8 CH203 / LT7 CH197 on the same days (declared unavailable; code check 2026-10-23 note)
+_NO_SWEEPS = "census reads no sweeps"
+PRIOR_POPULATION_OVERLAPS = {  # CC9 and CR9 (section 7 descriptive: the overlaps with LT8 CH203 / LT7 CH197 on the same days; re-check 2026-10-23 item 5)
+    "LT8_CH203": {"units": float("nan"), "reason": _NO_SWEEPS},
+    "LT7_CH197": {"units": float("nan"), "reason": _NO_SWEEPS},
+}
+# CS9: CH203's quiet test reads capture k's quotes (mid_k), which CS9 reads for its manifest start only (section 7 loader), so its overlap is not computed
+# (declared_before_seal.prior_population_overlaps); CH197 is computed with the vendored patient_units.
+CS9_CH203_UNAVAILABLE = {"units": float("nan"), "reason": "LT8 CH203's units need capture k's quotes (mid_k and the quiet test |mid_k - smid_{k-1}|); CS9 reads capture k for its manifest start only (frozen text section 7 loader), so the overlap is not computed (declared deviation)"}
+
+
+def prior_spec_view(spec: dict) -> dict:
+    """The LT9 spec with LT7 CH197's (and LT8 CH203's) test blocks restated from ``prior_population_specs`` for the vendored ``patient_units`` / ``quiet_units``."""
+    ps = spec["prior_population_specs"]
+    tests = {**spec["tests"], "CH197": ps["LT7_CH197"]["test"], "CH203": ps["LT8_CH203"]["test"]}
+    return {**spec, "tests": tests, "reward_rule": {**spec["reward_rule"], "ft_factor": ps["LT8_CH203"]["ft_factor"]}}
+
+
+def day_keys(f: pd.DataFrame) -> pd.DataFrame:
+    """(market, UTC day) keys from a unit frame with a ``slot`` (12 slots a day from the 00:31Z grid origin), for :func:`b.unit_overlaps`."""
+    if f is None or not len(f):
+        return pd.DataFrame({"market_id": [], "slot": []})
+    return pd.DataFrame({"market_id": f["market_id"].astype(str).to_numpy(), "slot": (f["slot"].to_numpy(float) // 12).astype(int)}).drop_duplicates()
 
 
 def load_ext9(cap_dir: Path) -> pd.DataFrame | None:
@@ -1448,6 +1466,9 @@ def census_feed(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, feed_root=FEED_ROOT,
         return {"feed_completeness": fc, "counts": cnt, "CH215": census_ch215(pd.DataFrame(), cnt, spec, fc, 0.0)}
     cap_slots = sorted(by_slot)
     lasts = np.array([capture_last_receipt(by_slot[k]["dir"]) for k in cap_slots])  # each capture's last row receipt (a timestamp column only)
+    n_nr = int(np.isnan(lasts).sum())  # a capture with no readable receipt is never a decision capture (NaN < t is False); counted with its denominator (re-check item 1)
+    cnt["captures_no_readable_receipt"] = {"n": n_nr, "of_captures": len(cap_slots), "share": n_nr / len(cap_slots) if cap_slots else float("nan"),
+                                           "denominator": "sealed span captures whose largest row received_utc could not be read"}
     ends["dec_slot"] = [decision_slot(cap_slots, lasts, t) for t in ends["t_dec"]]
     cnt["no_decision_capture"] = int((ends["dec_slot"] < -10**8).sum())
     ends = ends[ends["dec_slot"] > -10**8].reset_index(drop=True)
@@ -1458,6 +1479,7 @@ def census_feed(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, feed_root=FEED_ROOT,
     nslot = int(spec["reward_carry_slots"])
     lo_k = min(need_slots) - nslot + 1 if need_slots else 0
     rows_out, cands = [], {}
+    pool_stat = {"candidates_before": 0, "malformed_excluded": 0}
     for k in [s for s in cap_slots if lo_k <= s <= max(need_slots)]:
         cap = by_slot[k]
         write_series9(work, cap, spec)
@@ -1491,9 +1513,16 @@ def census_feed(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, feed_root=FEED_ROOT,
             for cid2, js in zip(f.index, f["ends"], strict=True):
                 if any(abs(x - e.T_e) <= c["control_exclusion_h"] * 3600.0 for x, _ in json.loads(js)):
                     near.add(str(cid2))
-            pool = sc[sc["el"] & (sc["rewarded"] == 1.0) & (sc["cat"] == r["cat"]) & (sc["tier"] == r["tier"]) & (sc["tickk"] == r["tickk"])
-                      & (sc["market_id"].astype(str) != str(r["market_id"])) & ~sc["condition_id"].astype(str).isin(near)]
+            malformed_cids = {str(c_) for c_ in f.index[(f["end_kind"] == "malformed").to_numpy()]} if len(f) else set()  # unknown end: may fall inside T_e +- 72 h (code check re-check item 4)
+            pool0 = sc[sc["el"] & (sc["rewarded"] == 1.0) & (sc["cat"] == r["cat"]) & (sc["tier"] == r["tier"]) & (sc["tickk"] == r["tickk"])
+                       & (sc["market_id"].astype(str) != str(r["market_id"])) & ~sc["condition_id"].astype(str).isin(near)]
+            pool = pool0[~pool0["condition_id"].astype(str).isin(malformed_cids)]
+            pool_stat["candidates_before"] += len(pool0)
+            pool_stat["malformed_excluded"] += len(pool0) - len(pool)
             cands[e.key] = rank_control_candidates(pool, float(r["loglq"]))
+    cnt["control_pool_malformed_excluded"] = {"candidates_excluded": pool_stat["malformed_excluded"], "candidates_before_exclusion": pool_stat["candidates_before"],
+                                              "share": pool_stat["malformed_excluded"] / pool_stat["candidates_before"] if pool_stat["candidates_before"] else float("nan"),
+                                              "denominator": "(qualifying end, control candidate) pairs passing the cell, eligibility and near-set rules, before the exclusion of markets whose feed end kind at the decision capture is malformed"}
     info = pd.DataFrame(rows_out)
     E = ends.merge(info, on="key", how="left")
     cnt["market_not_in_capture"] = int((~E["found"].fillna(False).astype(bool)).sum())
@@ -1981,6 +2010,11 @@ def census_sweeps(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, sweep_root=SWEEP_R
     fee_counts: dict = {}
     Qs, tot = [], {}
     v_rewarded: list[np.ndarray] = []
+    pview = prior_spec_view(spec)
+    ch197_slot = int(spec["prior_population_specs"]["LT7_CH197"]["test"]["slot_index_in_day"])
+    raw: dict[int, pd.DataFrame] = {}
+    U197, tot197 = [], {}
+    c197 = {"passes": 0, "pass_sweep_unsealed": 0}
 
     def sw_of(j: int) -> pd.DataFrame | None:
         if j not in sw_slots:
@@ -2001,6 +2035,18 @@ def census_sweeps(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, sweep_root=SWEEP_R
         b._fee_counts(ser, fee_counts)
         sc = carry_frame(carry, ser, s, b._utc_day(cap["start"]))
         frames[s] = sc
+        raw[s] = ser
+        for old in [x for x in raw if x < s - 1]:
+            raw.pop(old)
+        if s in span and b.slot_in_day(s) == ch197_slot and (s + 1) in org_set and (s - 1) in raw:  # LT7 CH197's pass k = s (its sweep is origin s + 1's sweep k - 1)
+            c197["passes"] += 1
+            sw_s = sw_of(s)
+            if sw_s is None:
+                c197["pass_sweep_unsealed"] += 1
+            u197, cnt197 = b.patient_units(sc.assign(osz=np.nan), raw[s - 1], store, sw_s, cap, s, pview)  # osz (order_min_size) is a bookkeeping column of LT7's frame, no unit filter; CS9 does not read it
+            b._merge_counts(tot197, cnt197)
+            if len(u197):
+                U197.append(u197)
         if s in span:
             rr = sc["rewarded"].to_numpy(float) == 1.0
             v_rewarded.append(sc["rew_maxspread"].to_numpy(float)[rr & _cat_ok(sc)])
@@ -2034,7 +2080,15 @@ def census_sweeps(*, seal: Path, snapshot_root=SNAPSHOT_ROOT, sweep_root=SWEEP_R
     days, pair_days = len(ORG) / 12.0, len(PAIRS) / 12.0
     band = band_unit_check(np.concatenate(v_rewarded) if v_rewarded else [], spec)
     exp = spec["census_inputs"]["expected_origins"]
+    cap_max = spec["member_cap"]["max_members"]
+    ch214_keys = day_keys(Q[Q["n_members"] <= cap_max] if len(Q) else Q)
+    ch197_keys = day_keys(pd.concat(U197, ignore_index=True) if U197 else pd.DataFrame())
+    overlaps = {"LT8_CH203": CS9_CH203_UNAVAILABLE,
+                "LT7_CH197": {"key": "(market, UTC day)", "passes_12_31Z_in_span_with_sweep_read": c197["passes"], "pass_sweep_unsealed": c197["pass_sweep_unsealed"],
+                              "units_ch197": int(sum(len(u_) for u_ in U197)), "counts": {k_: v_ for k_, v_ in tot197.items() if isinstance(v_, (int, float))},
+                              **b.unit_overlaps({"CH214": ch214_keys, "CH197": ch197_keys}).get("CH197&CH214", {"units": 0})}}
     return {"inputs_verified": bool(verify), "files_checked": loaded["files_checked"], "fee_category_values": fs["distinct_values"], "crypto_classifier_shown_to_work": fs["classifier_shown_to_work"],
+            "overlaps_with_prior_populations": overlaps,
             "reward_null_rule": spec.get("reward_null_rule"), "design_text_sha256": DESIGN_TEXT_SHA256, "covered_origins": {"CS9": len(ORG), "CS9_F_pairs": len(PAIRS)}, "declared_before_seal": spec.get("declared_before_seal"),
             "expected_origins": exp.get("CS9"), "origins_differ_from_design": len(ORG) != exp.get("CS9"), "band_unit_check": band,
             "CH214": census_ch214(Q, tot, spec, days, pair_days, band)}
