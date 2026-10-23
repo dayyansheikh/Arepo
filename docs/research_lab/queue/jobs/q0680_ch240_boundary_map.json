@@ -9,7 +9,7 @@
  ],
  "resources": {
   "mem_mb": 450,
-  "as_cap_mb": 2000,
+  "as_cap_mb": 4000,
   "cpu": 1,
   "lane": "net",
   "network": "none"
