@@ -1,7 +1,8 @@
 # Live tests 10 (LT10): the fine-clock family on E009's stream (CH224, CH223, CH222), DRAFT pre-registrations
 
 **Status: DRAFT, NOT FROZEN. Challenger R1 (2026-10-23, `reviews/LT10_CHALLENGER_R1_2026-10-23.md`): REVISE (7 must-fix,
-10 should-fix); this revision answers every item (section 13); a re-check is required before the freeze. Not registered,
+10 should-fix); this revision answers every item (section 13); R1 re-check (2026-10-23,
+`reviews/LT10_R1_RECHECK_2026-10-23.md`): ACCEPT_WITH_FIXES, its six fixes applied as worded (13.5). Not registered,
 nothing counted, no code, no seal, no census run. E-numbers unassigned.** Label of the whole family, fixed now: **`informed
 (E009, E010)`** (registration follows E009's and E010's single analyses, whose results will be known; section 1.1).
 Drafted 2026-10-23 (about 03:00-05:00Z) on branch `feat/live-tests-10` from the `chore/arepo-claude-setup` tip `c23b5a52`, a
@@ -12,12 +13,13 @@ the ledger; nothing counted). Before registration this needs, in order:
 1. a challenger review (`science-reviewer`, R1) of this file, the response (section 13), and the re-check;
 2. the **design-text freeze commit** (section 1.1) **before 2026-11-03T02:00:00Z** (E009's earliest analysis time) and before
    `T_E009`; a freeze after either drops the whole family (1.1). **The freeze commits LT10 to collection route 1 (8.2) and to
-   the default scope (1.4 item 2)** unless an owner decision is recorded before the seal commit;
+   the default scope (1.4 item 2)** unless an owner decision is recorded before the design-text freeze commit (re-check fix 3);
 3. the code (section 8), with a freeze check of the census and size-check code against sections 1.8, 1.8.1 and 7, on
    synthetic data only (it can run before 2026-11-03);
 4. the **collection route D-LT10-1 = route 1** (section 8.2: a quotes-only successor of the poller, committed at the freeze, not
-   chosen later), executed by the orchestrator after **both** E009's and E010's analysis commits, with the engine's second
-   read root in place first (8.2); route 3 only on the named operational triggers of 8.2;
+   chosen later), executed by the orchestrator after **both** E009's and E010's analysis commits, with the disk reading, any
+   owner approval of the host change and the engine's second read root merged **before `T_E009`** (8.2, steps O1-O3; re-check
+   fix 3); route 3 only on the named operational triggers of 8.2;
 5. the census inputs' restore (sidecars only, if needed) and seal (section 7), each once, **after both E009's and E010's
    analysis commits** (both hashes recorded in the seal);
 6. the counts-only censuses (section 7), each once, cheapest kill first, which fix k and every census-fixed spec value;
@@ -74,7 +76,8 @@ before any data.
   commits. **D-LT10-1 is committed to route 1 at the freeze** (a quotes-only successor poller in new files, same pair refresh,
   same endpoints, same 120 s grid, same line schema, its own directory; R1 must-fix 2); it is executed, not decided, after
   E009's and E010's results are known. No new external service. Route 3 (not registered) applies only on the operational
-  triggers named in 8.2 (the storage stop rule with no owner remedy, the owner refusing, or the staleness stop).
+  triggers named in 8.2 (before `T_E009`: the disk reading, owner approval and engine root steps O1-O3; after it only a new
+  disk fact with no owner remedy, the staleness stop, or a recorded technical failure of the engine root; re-check fix 3).
 - **Expected outcome, declared now (honest prior odds; the designer's judgement, not measurements; revised after R1, 13).**
   The **family census** is the first risk: E009's pilot saw about 70 pairs in 22 events with complete features (27 events after
   the hand-verified refresh), the engine's 10-20 check 116 pairs; ex-sports and ex-crypto the event count is unprobed and may
@@ -213,7 +216,7 @@ Round 15's design rules (`CREATIVE_HYPOTHESES_2026-10-29.md` 0.2, with round 14'
   absent pairs at the load time). The poller writes no load record: E009's directory has no `runs.jsonl`, `refresh.log` gets one
   JSON summary without an end time, the poller's stderr log has timestamped `cycle n` lines without the loaded record, and file
   modification times are not sealed or preserved by the archive. **The load time is therefore not exactly recoverable for the
-  census, and LT10 declares a conservative lag.** A record r is in force from
+  census, and LT10 declares a conservative lag.** **Census rule:** a record r is in force from
   **`T_in(r) = max(refreshed_utc(r) + L, L_obs(r))`, `L` = 11,400 s (3 h 10 min)**, where `L_obs(r)` is the observed load cycle
   when it is identifiable: the first poll `t` at or after `refreshed_utc(r)` carrying a quote line of a pid of r that has no
   quote line in the `RETIRE_KEEP_S + 120 s` before `refreshed_utc(r)` (a pid the poller adds is polled in the load cycle itself,
@@ -221,14 +224,23 @@ Round 15's design rules (`CREATIVE_HYPOTHESES_2026-10-29.md` 0.2, with round 14'
   is omitted. Source of `L` (neutral, before any data): the nominal paging time at the runner's default refresh rate
   (`run_cross_venue_live.py --refresh-rps` 0.5 per venue, sequential venues; about 2,600 Gamma and 121 Kalshi pages,
   `CROSS_VENUE_LIVE.md`): 2,721 / 0.5 = 5,442 s, doubled for backoff and matching (10,884 s), plus one 120 s cycle, rounded up
-  to the 10-minute grid. The record **in force at t** is the record with the latest `T_in(r) <= t`; a pair absent from it is
-  retired at t (excluded, counted `retired`), even while the poller still polls it (6 h 20 min); a pair added by a record is not
-  a unit before that record's `T_in` (counted `not_yet_in_force`). The **same rule** is applied by the census and by the
-  window's reader. **Window-only causality check:** the successor (8.1) logs every record load with its cycle `t` in its
-  `runs.jsonl`, and LT10's reader logs the first run at which it saw each pair file; if either is later than `T_in(r)` (the
-  declared lag was too short), that later time replaces `T_in(r)` for the window (later only, never earlier; counted
-  `record_lag_exceeded`). The census prints, per record, `L_obs - refreshed_utc` where identifiable and the count of records
-  with `L_obs > refreshed_utc + L`; a census-side lag excess can misplace eligibility counts only (the census reads no target).
+  to the 10-minute grid. **`L` is declared, not guaranteed (re-check fix 2):** the Limiter retries with sleeps up to 60 s and
+  30 s timeouts (`history_backfill.py:231-260`), and the Gamma page count can grow to `max_pages` 6,000, i.e. 12,000 s at
+  0.5 req/s (`cross_venue_live.py:481`), more than `L`. The census therefore prints a lower bound on each refresh's duration,
+  (`k_requests` + `p_requests`) / 0.5 s from `refresh.log`, and flags the records where it exceeds `L` (counts only). The record
+  **in force at t** for the census is the record with the latest `T_in(r) <= t`; a pair absent from it is retired at t
+  (excluded, counted `retired`), even while the poller still polls it (6 h 20 min); a pair added by a record is not a unit
+  before that record's `T_in` (counted `not_yet_in_force`). **Window rule (re-check fix 1; decidable in real time at t, never
+  corrected afterwards, since frozen lines are write-once):** in the window a record r is in force at origin t only if (i) the
+  successor's (8.1) `runs.jsonl` shows r loaded at a cycle <= t, **and** (ii) t >= `refreshed_utc(r)` + L, **and** (iii) LT10's
+  reader had seen the pair file (its first-seen log, at or before the run that processes t); the record in force at t is the
+  latest-refreshed record meeting (i)-(iii), and `retired` and `not_yet_in_force` follow from it as above. **The reader does not
+  process origin t until the successor's `runs.jsonl` line for cycle t exists.** `L_obs` is census-only; the window never uses
+  it. **The "same rule" claim, restated:** the census and the window share the lag floor `refreshed_utc + L` but are not one rule:
+  the window adds the logged load and the reader's sighting, which the census cannot observe, and the census uses `L_obs`
+  (where identifiable) in their place. The census prints, per record, `L_obs - refreshed_utc` where identifiable and the count
+  of records with `L_obs > refreshed_utc + L`; a census-side lag excess can misplace eligibility counts only (the census reads
+  no target).
   Cost (disclosed): a new pair loses up to about 3 h of its first listed day, and a retired pair stays eligible for up to
   about 3 h longer than the poller's own retirement.
 - **Capture sidecar** `snapshots/<id>/rows_ext.csv.gz` (`ext_sidecar.py`; keys `market_id`, `condition_id`): `fee_type`,
@@ -272,11 +284,13 @@ Applied in order and counted, at origin t:
    (`cb17_census.is_sports_sidecar(fee_type, fee_category, series_slugs)`), crypto by the pinned classifier (`fee_category`
    contains `crypto` after strip and casefold), both on the day's sidecar row of the pair's `p_market_id`. A pair without a
    sidecar row that day is `category_unknown`, excluded from every primary and counted (treated as sports and crypto for the
-   default scope). The sports arm and the crypto arm are reported, uncounted. **The scope is final at the seal commit (R1
-   must-fix 1):** the seal records `scope`; it is `non_sports_ex_crypto` unless an owner decision putting sports in scope is
-   recorded in the ledger before the seal commit (and so before any census output exists), in which case it is `ex_crypto`.
+   default scope). The sports arm and the crypto arm are reported, uncounted. **The scope is final at the design-text freeze
+   commit (R1 must-fix 1; the deadline moved from the seal by re-check fix 3, because the seal comes after E009's verdict):** the
+   seal records `scope`; it is `non_sports_ex_crypto` unless an owner decision putting sports in scope is recorded in the ledger
+   before the design-text freeze commit (and so before `T_E009` and before any census output exists), in which case it is
+   `ex_crypto`.
    Every census gate is computed under the sealed scope only; the with-sports (`ex_crypto`) values are **printed only**, as an
-   uncounted input for later families, and can never decide LT10's gates, `k` or registration. After the seal the scope never
+   uncounted input for later families, and can never decide LT10's gates, `k` or registration. After the freeze the scope never
    changes.
 3. **Poll t valid:** both venues two-sided by E009's rule, both mids in E009's `MID_RANGE` [0.03, 0.97], `k_status` in {`active`,
    `open`}, both receipts within 60 s of t.
@@ -385,7 +399,7 @@ outages (poller down, request failures) stay missing; no other venue, poller or 
   | 7 | **W7 volatility leak:** W2 with the withdrawal probability rising with the latent event volatility; the model sees `rv60_P`, `rv60_K` only | event-phase FL | CH223 | gate |
   | 8 | **W8 = S22:** Polymarket's spread mean-reverts on its own with a one-tick floor; Kalshi's spread is a reflected random walk; independent | event-phase FL | CH224 | gate |
   | 9 | **W9 M-Q (CH224):** a slow common spread drift that the lead and the twin innovations proxy equally | none | CH224 | verdict size |
-  | 10 | **W10 large event:** W2 with one 20-pair event among 65 events (84 pairs) and event jumps that also widen both venues' spreads and raise Kalshi's trade probability at the jump poll, simultaneously on both venues | event-phase FL; and none | CH224, CH223, CH222 | gate rejection rate; and verdict size |
+  | 10 | **W10 large event:** W2 with one 20-pair event among 65 events (84 pairs) and event jumps that also widen both venues' spreads and raise Kalshi's trade probability at the jump poll, simultaneously on both venues; **21 UTC days, one pair in four present on a contiguous sub-interval only** (re-check fix 4) | event-phase FL; and none | CH224, CH223, CH222 | gate rejection rate; and verdict size |
 
   **Verdict size** (9, 10) = the share of worlds in which the test's analytic one-sided p (1.7) is < 0.05 **and** its verdict
   conditions beyond p hold (CH224: F, 1.9; CH223: `beta_twin < beta_lead`, 1.9; CH222: none); the gate is omitted, which can
@@ -447,8 +461,17 @@ polls exactly as the reader computes it (windows, `s0`, `rv60`, E009's features)
   admits; the 20-pair size is the event the E009 ledger's Dependence note cites); the event jump probability and size of W1,
   and at each jump poll both venues' spreads widen by one tick (decaying by their AR) and Kalshi's trade probability is 0.5,
   simultaneously on both venues (no lead), so the tested terms (`zdsK`, `pull`, `traded`) and the targets share event-time
-  shocks across 20 pairs. Statistics: the event-phase gate's rejection rate, and the verdict size (analytic p < 0.05 and the
-  test's verdict conditions beyond p).
+  shocks across 20 pairs. **Re-check fix 4:** W10 runs over **21 UTC days** (not 7; source: the window length, 1.1), so the
+  day-cluster t has the analysis's 20 df rather than 6 and does not dominate p = max(...) in a way that could hide an event-t
+  oversize the 21-day window would show. **Contiguous presence:**
+  real gaps are contiguous (a new pair loses about 3 h of its first day, retired pairs drop out, spread censoring clusters at
+  jumps), so one pair in four, drawn at random within each event kind (5 of the 20-pair event's pairs and 16 of the 64
+  single-pair events; the share a convention), is present on one contiguous sub-interval only: it enters at a poll drawn
+  uniformly over the 21 days and gives no unit for its first `L` = 11,400 s (`not_yet_in_force`; source: `L`, 1.2), and it is
+  retired at a later poll drawn uniformly between entry and the end, after which it gives no unit while its polls continue for
+  `RETIRE_KEEP_S` = 22,800 s (6 h 20 min; source: `RETIRE_KEEP_S`, `cross_venue_live.py:86`); the 15% independent origin drop
+  applies on top inside the sub-interval. Statistics: the event-phase gate's rejection rate, and the verdict size (analytic p <
+  0.05 and the test's verdict conditions beyond p).
 
 ### 1.9 Verdicts, the falsification condition and labels (per primary, after Holm over k)
 - **F rule (LT7's, unchanged).** The **arm model** is the primary model with the far-future twin added, fitted on the units that
@@ -731,9 +754,9 @@ computed.
 Both are sports-only by construction (ESPN's board against Polymarket's game markets), need CH205's 42-day rule and a matcher
 that is a map first, and read a stream (`stream_espn_odds/`) no LT has read. They are not in this Holm family and cannot join it
 (k is fixed by LT10's censuses alone). If the owner sets sports in scope, they would be drafted as their own family with CH205
-(`steam` token requested then). LT10 itself keeps sports as a parameter (1.4 item 2): an owner decision recorded before the seal
-commit changes LT10's scope, not its design; after the seal it cannot (R1 must-fix 1), and the census's with-sports print serves
-later families only.
+(`steam` token requested then). LT10 itself keeps sports as a parameter (1.4 item 2): an owner decision recorded before the design-text
+freeze commit changes LT10's scope, not its design; after the freeze it cannot (R1 must-fix 1, re-check fix 3), and the census's
+with-sports print serves later families only.
 
 ### 5.3 CH227-CH229, CH231 (engine-first): not tests
 The entity clock (`xent`), rule freshness (`ruleedit`), the published close and capture-clock shadows (`xvenue2` columns) and the
@@ -938,7 +961,7 @@ All are DRAFT and must not be promoted before the challenger review, the design-
   predictions, no outcomes; quote lines with E009's schema plus a trailing `"src": "xv_quotes_v1"`; its own cap (3.0 GB on its
   directory, exit 3); RSS budget 200 MB. New relative to E009 (records only, no change to what is polled): a `runs.jsonl` line
   per cycle with `t`, the `refreshed_utc` of the record loaded in that cycle (`pairs_loaded_utc`) and a `load` flag on the
-  cycle that loaded a new record, and a refresh-completion line with its end time (1.2's window causality check). Tests: the line schema equals E009's on a recorded synthetic cycle; the refresh rule
+  cycle that loaded a new record, and a refresh-completion line with its end time (1.2's window rule). Tests: the line schema equals E009's on a recorded synthetic cycle; the refresh rule
   selects the same pairs as `select_live_pairs` on a fixture; no prediction or outcome file is written.
 - Spec `backend/astrolabe/research_lab/model_specs/live_tests10_v1.json`: every constant, k, `scope`, `exclude_event`, the fixed F
   roles (CH224 binding, CH223 and CH222 labels; no census-set key), seeds (estimators 20261301-03, gates 20261391-93, size check
@@ -963,11 +986,23 @@ All are DRAFT and must not be promoted before the challenger review, the design-
     E009/E010's canonical directory must not be edited (CLAUDE.md: canonical runs in `data-dumps/` are never edited).
   - **Committed route: route 1, a quotes-only successor in a new directory.** The design-text freeze commits LT10 to it; nothing
     about the route is decided at or after E009's or E010's analysis commit (a registration choice made with a verdict in view
-    would break section 0's independence rule). **Preconditions of the handover (all recorded in the ledger before it):** both
+    would break section 0's independence rule). **Orchestrator steps before `T_E009` (re-check fix 3; each recorded in the
+    ledger with its date and time; all before 2026-11-03T02:00:00Z and before `T_E009`):**
+    - **O1 (at the design-text freeze commit, 8.4 step 2):** a `du` of E009's directory and a free-disk reading of the host,
+      against route 1's projected need with the 1.5 x margin.
+    - **O2 (after O1, only if needed; before 2026-11-03T02:00:00Z and `T_E009`):** if O1 shows that the free disk cannot hold the
+      projected need with the margin, or that a deletion of E009/E010 files from the host would be needed (data retirement), the
+      owner is asked to approve the host change (or a remedy) and the answer is recorded; otherwise O2 records "not needed" (the
+      standing collection authorisation covers the change).
+    - **O3 (after the freeze; before 2026-11-03T02:00:00Z and `T_E009`):** the engine's second read root for `xvenue` (section 9)
+      merged by the engine track.
+
+    An O1-O3 step not completed by its deadline, or an owner refusal (or no approved remedy) at O2, ends LT10 at route 3 before
+    `T_E009` (recorded, nothing counted). **Preconditions of the handover (all recorded in the ledger before it):** both
     analysis commits exist (and the gap-fill merge the analyses use is complete); the successor's code has passed its freeze
-    check (8.4 step 3); **the engine's second read root for `xvenue` (`XV_QUOTES_ROOT` -> both directories, section 9) is merged
-    and live** (R1 should-fix 8: otherwise `se4` and `se13` would get NaN `xvenue` inputs in mid-evaluation); a `du` and
-    free-disk reading. **Handover:** at a 120 s boundary, the orchestrator disables E009's poller (`run/cross-venue-live.disabled`,
+    check (8.4 step 3); **the engine's second read root for `xvenue` (`XV_QUOTES_ROOT` -> both directories, section 9), merged at
+    O3, is live** (R1 should-fix 8: otherwise `se4` and `se13` would get NaN `xvenue` inputs in mid-evaluation); a `du` and
+    free-disk reading at the handover (compared with O1). **Handover:** at a 120 s boundary, the orchestrator disables E009's poller (`run/cross-venue-live.disabled`,
     last cycle recorded) and starts `run_xv_quotes_poller.py` (8.1) under a new `supervise.sh` entry `xv-quotes`, writing
     `data-dumps/research_lab/xv_quotes/` (`quotes/`, `pairs/`, `pairs_current.json`, `runs.jsonl`). E009's last `pairs/pairs_*.json`
     is copied byte for byte (sha256 recorded; `cp -p`, modification time preserved) as the successor's first record and
@@ -980,14 +1015,16 @@ All are DRAFT and must not be promoted before the challenger review, the design-
   - **Not taken: route 2** (raise the cap of E009's poller): it writes about 38 MB a day of unused prediction and outcome lines into
     a completed experiment's canonical directory and changes a module LT10 vendors from.
   - **Route 3 (no change; LT10 not registered, recorded, nothing counted) only on these named operational triggers**, none of
-    which reads or depends on any E009/E010 result: (a) the host's free disk cannot hold the projected need with the 1.5 x margin
-    (CLAUDE.md storage stop rule) and the owner, asked, approves no remedy; (b) the owner, asked, refuses the host change; (c) the
-    successor cannot pass its burn-in before `REGISTERED_UTC` would pass the staleness stop (1.1); (d) the engine's second read root
-    cannot be merged before the staleness stop. A trigger is recorded in the ledger with its evidence (`du`, free disk, the
-    owner's message, the burn-in prints).
+    which reads or depends on any E009/E010 result. **Before `T_E009`:** the O1-O3 outcomes above. **After `T_E009` (re-check
+    fix 3):** (a) **only on a new disk fact**: a reading later than O1 (at the handover or in the burn-in) showing that the host's
+    free disk can no longer hold the projected need with the 1.5 x margin (CLAUDE.md storage stop rule), and the owner, asked,
+    approves no remedy; (b) **removed** (the owner's approval of the host change, if needed, is settled at O2 before `T_E009`);
+    (c) the successor cannot pass its burn-in before `REGISTERED_UTC` would pass the staleness stop (1.1); (d) **only on a recorded
+    technical failure** of the second read root merged at O3 that cannot be fixed before the staleness stop. A trigger is
+    recorded in the ledger with its evidence (`du`, free disk, the owner's message, the burn-in prints, the failure record).
   - **Who executes.** A light change to an existing keyless collector under the standing collection authorisation, executed by
-    the orchestrator and recorded in the ledger with the handover cycle and the readings above. **It goes to the owner only** on
-    trigger (a) or (b) or if any deletion of E009/E010 files from the host would be needed (data retirement); neither is expected.
+    the orchestrator and recorded in the ledger with the handover cycle and the readings above. **It goes to the owner only** at
+    O2 (before `T_E009`) or on trigger (a) after a new disk fact; neither is expected.
   - **Burn-in (counts only, five days before `REGISTERED_UTC`).** `run_live_tests10.py ops-stats --stream` prints per day: cycles
     run against 720, pairs per cycle, Kalshi and CLOB request success shares, both-valid share, receipt-lag quantiles, refresh
     completions and their start times of day, record loads, the field-presence shares of CF10 (7), the `late_origin` share,
@@ -1017,8 +1054,13 @@ All are DRAFT and must not be promoted before the challenger review, the design-
   +-120 s, receipt lag, statuses) and that no endpoint is scheduled before t + 1,080 s; the freeze deadline and `.late`.
 - **Eligibility:** the pair record in force under `T_in = max(refreshed_utc + 11,400 s, L_obs)` (a record is not used before
   `T_in` even if its `refreshed_utc` is earlier; `L_obs` from the first quote line of a newly added pid; no `L_obs` when no pid is
-  new; a pid re-listed within `RETIRE_KEEP_S` is not new; `not_yet_in_force` and `retired`; the window override by a later logged
-  load or first-seen time, never earlier; the census and the reader give identical in-force records on one fixture); the category rule on
+  new; a pid re-listed within `RETIRE_KEEP_S` is not new; `not_yet_in_force` and `retired`; the census flag of a refresh whose
+  duration lower bound exceeds `L`); **the window rule (re-check fix 1):** r is in force at t only with a `runs.jsonl` load at a
+  cycle <= t, t >= `refreshed_utc + L` and the file seen by the reader; the reader does not process origin t before the
+  `runs.jsonl` line for cycle t exists; the window never reads `L_obs`; **a unit test where the load comes late** (the logged load
+  after `refreshed_utc + L`: r is not in force at the origins before its load, the earlier record stays in force there, and no
+  frozen line is rewritten when the load appears); on a fixture whose load precedes `refreshed_utc + L` the census and the reader
+  give identical in-force records; the category rule on
   sidecar fixtures (sports, crypto, unknown); the ends rule; `spread_censored`; `rv_short`; the boundary (`lt10_boundary` for
   t - 3,840 s < `REGISTERED_UTC`); `exclude_event`.
 - **CH224:** `dsK`, `zdsK` with the pooled scale; `floorP`, `floorK`, `tightK`, `wideK`; the design matrix; the twin through the
@@ -1058,10 +1100,14 @@ All are DRAFT and must not be promoted before the challenger review, the design-
    step; before `xvenue` lapses, so no `kx_*` column, including `se-aux-xvenue2-v1`'s planned `kx_last_chg_2h`, `kx_pull_2h` and
    `kx_spread_chg_2h`, can be built unembargoed).
 2. **Design-text freeze commit**, its sha256 in the ledger, before 2026-11-03T02:00Z and before `T_E009`; the ledger line records
-   that D-LT10-1 is route 1 and that the scope is the default unless an owner decision is recorded before the seal commit.
-3. Code (8.1, 8.3), vendored by hash; a `science-reviewer` freeze check of the census and size-check code against 1.8, 1.8.1 and 7;
+   that D-LT10-1 is route 1 and the `scope` the seal will record (the default unless an owner decision was recorded before this freeze
+   commit; re-check fix 3). **Orchestrator steps O1-O3 of 8.2** are completed and recorded, each with its date, before
+   2026-11-03T02:00Z and before `T_E009`.
+3. Code (8.1, 8.3), vendored by hash; a `science-reviewer` freeze check of the census and size-check code against 1.8, 1.8.1 and 7
+   (it confirms re-check fixes 1 and 4 in the code: the window rule of 1.2 and world 10 of 1.8.1);
    fixes (none may change frozen text). The successor poller (route 1) is code-checked in the same pass.
-4. Both E009's and E010's analysis commits exist (ledger, both hashes). The engine's second read root is merged and live (8.2).
+4. Both E009's and E010's analysis commits exist (ledger, both hashes). The engine's second read root, merged before `T_E009`
+   (O3), is live (8.2).
    Route 1 executed and recorded (handover cycle, the copied pair record's sha256, `du`, free disk); the burn-in starts. A named
    route-3 trigger (8.2), if any, is recorded instead and LT10 stops there.
 5. q0660 restore, q0661 seal (both analysis commit hashes and the sealed `scope`), seal committed and pulled on the host.
@@ -1094,9 +1140,9 @@ moved, to the first 00:00Z at least 36 h after the new analysis date; (ii) if LT
 
 | Test | Columns (NaN = missing) | Source and clock | Token -> until |
 |---|---|---|---|
-| CH224 | `kx_spread_chg_10m`, `kx_spread_ratio`; `kx_spread_chg_2h` (xvenue2's planned shadow) | the last Kalshi and CLOB lines before the capture start and Kalshi's line about 10 minutes (2 h) earlier | `kxbook` (new) -> 2026-12-04T00:00:00Z |
-| CH223 | `kx_pull_10m`, `kx_pull_side`; `kx_pull_2h` (xvenue2's planned shadow) | as above | `kxbook` -> 2026-12-04T00:00:00Z |
-| CH222 | `kx_last_chg_10m`, `kx_dk1_traded`, `kx_dk1_quote`, `kx_trade_steps`; `kx_last_chg_2h` (xvenue2's planned shadow) | as above | `kxbook` -> 2026-12-04T00:00:00Z |
+| CH224 | `kx_spread_chg_10m`, `kx_spread_ratio`; `kx_spread_chg_2h` (moved from xvenue2's plan into the `kxbook` family) | the last Kalshi and CLOB lines before the capture start and Kalshi's line about 10 minutes (2 h) earlier | `kxbook` (new) -> 2026-12-04T00:00:00Z |
+| CH223 | `kx_pull_10m`, `kx_pull_side`; `kx_pull_2h` (moved from xvenue2's plan into the `kxbook` family) | as above | `kxbook` -> 2026-12-04T00:00:00Z |
+| CH222 | `kx_last_chg_10m`, `kx_dk1_traded`, `kx_dk1_quote`, `kx_trade_steps`; `kx_last_chg_2h` (moved from xvenue2's plan into the `kxbook` family) | as above | `kxbook` -> 2026-12-04T00:00:00Z |
 
 **Requests to the signal-engine track** (entered at design acceptance and in any case **before 2026-11-04T00:00Z**, when `xvenue`
 lapses and the isolates or `se-aux-xvenue2-v1` could be built; the entries below are the requested text, in `config.EMBARGO`'s
@@ -1107,7 +1153,8 @@ format):
  "why": "Kalshi within-window book changes: any column reading a change in Kalshi's spread, touch prices, touch sizes or "
         "last_price, or a split of a Kalshi mid change by trade (traded / quote-only), at ANY horizon (10 minutes, 2 h or other), "
         "named: kx_spread_chg_10m, kx_spread_ratio, kx_pull_10m, kx_pull_side, kx_last_chg_10m, kx_dk1_traded, kx_dk1_quote, "
-        "kx_trade_steps, and se-aux-xvenue2-v1's planned kx_last_chg_2h, kx_pull_2h, kx_spread_chg_2h; LIVE_TESTS_10.md section 9; "
+        "kx_trade_steps, and kx_last_chg_2h, kx_pull_2h, kx_spread_chg_2h (moved from se-aux-xvenue2-v1's plan into the kxbook "
+        "family); LIVE_TESTS_10.md section 9; "
         "a family holding any such column carries kxbook in its isolates; moved later only by a ledger line"},
 {"token": "attrlimit_lt10", "until": "2026-12-04T00:00:00Z", "tests": ["LT10"], "kind": "attribution_limit",
  "limits": ["Kalshi spread, touch-price, touch-size or last-price changes at any horizon (incl. kx_last_chg_2h, kx_pull_2h, "
@@ -1118,9 +1165,14 @@ format):
 ```
 
 - **`kxbook`** hides every spec that isolates it. `se4` and `se13` at their current spec versions are **not** covered (they hold
-  levels only); a new version that adds any `kx_*` column is. **`se-aux-xvenue2-v1`:** if it holds `kx_last_chg_2h`, `kx_pull_2h`
-  or `kx_spread_chg_2h`, its specs carry `kxbook` in their isolates (or those three columns move to a `kxbook` family); its
-  PredictIt columns are not LT10's concern.
+  levels only); a new version that adds any `kx_*` column is. **`se-aux-xvenue2-v1` (re-check fix 5; embargo request):**
+  `kx_last_chg_2h`, `kx_pull_2h` and `kx_spread_chg_2h` **move out of the `xvenue2` family into a `kxbook` family**; the
+  signal-engine builder applies the move. `xvenue2` then holds no Kalshi change column, every spec holding the `kxbook` family
+  carries `kxbook` in its isolates, and `no_broad_families: ["kxbook"]` keeps the three columns out of every broad model (with
+  them left in `xvenue2`, that entry would not); its PredictIt columns are not LT10's concern.
+- **Broad-spec test extended to LT10 (re-check fix 5; request):** the LT8/LT9 broad-spec test
+  (`test_lt7_closure_withdrawals_and_lt9_round6_requests`, `CANDIDATES.md` line 207, which fails if any broad spec holds an LT8 or
+  LT9 family) is extended to fail also if any broad spec holds the `kxbook` family.
 - **`attrlimit_lt10`** covers what a token cannot: broad models are not embargoed by tokens (`config.EMBARGO`'s comment), so
   `no_broad_families` keeps the `kxbook` family out of any broad model and the `limits` bar attributions on the named terms before
   `until`. 8.4 step 9 verifies both entries in `config.EMBARGO` and `CANDIDATES.md`.
@@ -1131,7 +1183,7 @@ format):
 - **Second read root for `xvenue` (route 1; a precondition of the handover, 8.2):** `XV_QUOTES_ROOT` reads
   `cross_venue_live/quotes/` and `xv_quotes/quotes/` (the same schema; the successor's lines carry `src`). An engine-track change;
   it changes no column definition; merged and live before the handover.
-- **Not requested:** `steam` (5.2), `surprise`, `movetype`; no `xvenue2` token (its Kalshi shadows are under `kxbook` above).
+- **Not requested:** `steam` (5.2), `surprise`, `movetype`; no `xvenue2` token (its Kalshi shadows move to the `kxbook` family above).
 - If every LT10 test drops at its census, `kxbook` and `attrlimit_lt10` are withdrawn with a ledger line (the withdrawn entry keeps
   its record with `withdrawn_utc` and `until_before`, as `config.EMBARGO`'s comment requires); a test dropped alone removes its
   name from `kxbook`'s tests list, date unchanged.
@@ -1215,10 +1267,11 @@ primary makes its columns a candidate; an engine gain never changes an LT10 verd
 | Seeds 20261301-03, 20261391-93, 20261397 | 2-4, 1.8 | new (unused in docs and code across all refs on 2026-10-23) |
 | Census span 2026-10-21..10-31 | 7 | 6.1 item 10 |
 | Window 2026-11-10..12-01; staleness stop 2026-11-30 | 1.1 | 1.1's reasons; the stop a convention |
-| Pair-record lag `L` = 11,400 s (R1) | 1.2 | the nominal refresh paging time at the runner's default 0.5 req/s per venue (2,721 pages, `CROSS_VENUE_LIVE.md`) doubled, plus one cycle, rounded up to the grid |
+| Pair-record lag `L` = 11,400 s (R1) | 1.2 | the nominal refresh paging time at the runner's default 0.5 req/s per venue (2,721 pages, `CROSS_VENUE_LIVE.md`) doubled, plus one cycle, rounded up to the grid. **Declared, not guaranteed** (re-check fix 2): Limiter retries sleep up to 60 s with 30 s timeouts (`history_backfill.py:231-260`) and the Gamma page count can grow to `max_pages` 6,000 = 12,000 s at 0.5 req/s (`cross_venue_live.py:481`); the census prints each refresh's duration lower bound (`k_requests` + `p_requests`) / 0.5 s from `refresh.log` and flags records where it exceeds `L` (counts only) |
 | `G_eff >= 15` (census gate, analysis floor; R1) | 1.7, 1.9, 7 | half of the 30-event minimum (round 15's CB15-P gate) |
 | Event-phase gate: strata event x day / event x two-day block; >= 4 units a pair; >= 16 rows; `s = max(4, ceil(n_g / 4))` (R1) | 1.8 | the draft's LT5 constants (16 rows, `s`), applied to event strata; 4 units = the smallest `n_p` with `1 <= o_p <= n_p - 1` |
 | World 10: one 20-pair event among 65 events (84 pairs; `G_eff` 15.2); jump spread widening one tick; trade probability 0.5 at a jump (R1) | 1.8.1 | the 20-pair event of the E009 ledger's Dependence note; 64 singletons the fewest that keep `G_eff` at the census gate; the rest conventions |
+| World 10: 21 UTC days; one pair in four on a contiguous sub-interval (entry loss `L` = 11,400 s; retirement tail `RETIRE_KEEP_S` = 22,800 s) (re-check fix 4) | 1.8.1 | 21 days: the window length (1.1); `L`: 1.2; `RETIRE_KEEP_S`: `cross_venue_live.py:86` (`6 * 3600 + 1200`); the one-in-four share and the uniform entry and retirement polls conventions |
 | Worlds: 15% of grid origins dropped; W2 diurnal amplitude 0.5, peak 20:00Z (R1) | 1.8.1 | the declared valid share 0.85; the diurnal term a convention (R1 answer 12.7) |
 | CH223 `beta_twin < beta_lead` (R1) | 1.9 | R1 should-fix 10; a sign comparison of point estimates, no threshold |
 
@@ -1271,7 +1324,10 @@ Text only, before any LT10 census, seal, size run, code or data, and before any 
 `EMBARGO` tuple and its reader, DESIGN_V1's withdrawal rule, `CANDIDATES.md` at the merged chore tip `26d58fc5`). **No threshold,
 floor, alpha, seed, date, direction or gate was loosened.** Every change adds a gate, a binding world, a binding condition, a
 print or a precondition, fixes an order of steps, or removes a post-result choice; every new value has its neutral source in
-10.1, fixed before any census. Where any text in sections 0-12 differs, this section governs.
+10.1, fixed before any census. Where any text in sections 0-12 differs, this section governs. **One easing, disclosed
+(re-check fix 6):** the CD10 block-gate share used to need pair x day strata with >= 16 units; it now needs event x day strata
+(CH222: event x two-day block) with >= 16 rows and pairs with >= 4 units, which is easier to meet. It follows from must-fix 4
+(the event-phase gate's strata) and the re-check accepted it.
 
 ### 13.1 Must-fix items
 
@@ -1321,6 +1377,21 @@ hand-verified pairs a label; (7) hour dummies kept, and a diurnal volatility ter
 | P(no LT10 test registers) | 0.66 | **0.76** | 1 - 0.30 x (1 - 0.45 x 0.60 x 0.72), treating the tests as independent given CF10 |
 | Expected valid verdicts | 0.25 | **0.18** | binding worlds: CH224 about 0.8 x 0.85 (world 10), CH223 about 0.4 x 0.85, CH222 about 0.35 x 0.85 |
 
+### 13.5 Re-check fixes (2026-10-23; reviews/LT10_R1_RECHECK_2026-10-23.md, ACCEPT_WITH_FIXES; governs where earlier text differs)
+
+Text only, before any LT10 census, seal, size run, code or data. Applied as worded by the re-check; nothing loosened. The
+re-check allows the design-text freeze without another challenger review once all six are applied; 8.4 step 3's code-freeze
+check must confirm fixes 1 and 4 in the code.
+
+| Fix | Change | Where |
+|---|---|---|
+| 1 | Window in-force rule made decidable in real time: r is in force at t only if the successor's `runs.jsonl` shows r loaded at a cycle <= t, **and** t >= `refreshed_utc` + L, **and** the reader had seen the file; the reader does not process origin t until the `runs.jsonl` line for cycle t exists; the after-the-fact override (`record_lag_exceeded`) removed; `L_obs` census-only; the "same rule" claim restated (shared lag floor only); unit test with a late load | 1.2, 8.3 (eligibility) |
+| 2 | `L` declared, not guaranteed: Limiter retries (sleeps up to 60 s, 30 s timeouts, `history_backfill.py:231-260`) and Gamma pages up to `max_pages` 6,000 = 12,000 s at 0.5 req/s (`cross_venue_live.py:481`) stated; the census prints each refresh's duration lower bound (`k_requests` + `p_requests`) / 0.5 s from `refresh.log` and flags records above `L` (counts only) | 1.2, 8.3, 10.1 |
+| 3 | Dated orchestrator steps before `T_E009` (all before 2026-11-03T02:00:00Z): O1 `du` / free-disk reading at the freeze, O2 owner approval of the host change if needed, O3 the engine's second read root merged; a missed step or an owner refusal ends LT10 at route 3 before `T_E009`. After `T_E009`: (a) only on a new disk fact, (b) removed, (d) only on a recorded technical failure. The owner's scope-decision deadline moved from the seal to the design-text freeze | header items 2 and 4, 0, 1.4 item 2, 5.2, 8.2 (D-LT10-1), 8.4 steps 2-4, 14 |
+| 4 | W10 over 21 UTC days (source: the window length); one pair in four (5 of the 20-pair event, 16 of the 64 singletons; a convention) present on one contiguous sub-interval, with entry loss `L` = 11,400 s and retirement tail `RETIRE_KEEP_S` = 22,800 s (6 h 20 min, `cross_venue_live.py:86`) as neutral sources; the 15% i.i.d. drop on top | 1.8 (table row 10), 1.8.1 (W10), 10.1 |
+| 5 | Embargo request: `kx_last_chg_2h`, `kx_pull_2h`, `kx_spread_chg_2h` move from `xvenue2` into a `kxbook` family (the signal-engine builder applies it), so `no_broad_families: ["kxbook"]` keeps them out of every broad model; the LT8/LT9 broad-spec test (`CANDIDATES.md:207`) extended to LT10 (fails if a broad spec holds `kxbook`) | 9 (table, `kxbook` `why`, bullets) |
+| 6 | The CD10 block-gate share easing disclosed (pair x day strata with >= 16 units -> event x day strata with >= 16 rows and pairs with >= 4 units; from must-fix 4; accepted) | 13 preamble |
+
 ## 14. Draft ledger block (DRAFT, not registered, not counted)
 
 > ## LT10 (the fine-clock family: CH224, CH223, CH222) — DRAFT pre-registration (not registered, nothing counted, no code)
@@ -1340,7 +1411,7 @@ hand-verified pairs a label; (7) hour dummies kept, and a diurnal volatility ter
 >   all three); window proposed `[2026-11-10T00:00Z, 2026-12-01T00:00Z)`, single analysis on or after 2026-12-02T12:00Z; freeze
 >   before 2026-11-03T02:00Z and `T_E009` or not registered; census after both E009's and E010's analysis commits on a seal of
 >   `[2026-10-21, 2026-10-31)` recording both hashes and the scope (default non-sports ex-crypto unless an owner decision precedes
->   the seal) (q0660-q0664; family gate >= 60 pairs in >= 30 events with `G_eff` >= 15 first); pair records in force from
+>   the design-text freeze) (q0660-q0664; family gate >= 60 pairs in >= 30 events with `G_eff` >= 15 first); pair records in force from
 >   `refreshed_utc` + 3 h 10 min or their observed load, whichever is later; registration independent of E009's and E010's
 >   verdicts; not registered if the start would fall after 2026-11-30.
 > - **Collection D-LT10-1 = route 1, committed at the freeze:** the poller's 2 GiB cap is projected to stop it about 2026-11-16; a
