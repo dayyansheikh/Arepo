@@ -403,7 +403,7 @@ equals its source (the test checks). Do not edit the LT5 spec while q0561/q0562 
 **Waiting:**
 - MC1: after the resize (item 4).
 - CB4 q0085 not before ~10-24T12Z. CB5 q0103b on or after 10-27, then q0106. CB3 freeze after q0064 (after 10-25).
-- Signal engine: live state in `signal_engine/STATUS.md` (10-23 ~13:15Z, session 23: new development family `tilt` (CH235 collateral-tilt levels, DESIGN_V1 §29) with challengers se24_lgbm_tilt / se25_lr_tilt, visible, K 8 -> 10; CH234's `w` held back per LIVE_TESTS_11 §9; CH237 `parentsib` killed at census (0.15% < 5%). Leaderboard 3 days scored: se1 leads the champion by +0.047 nats dir_2h, two-way bound now positive (+0.020); no promotion before ~11-04.)
+- Signal engine: live state in `signal_engine/STATUS.md` (10-23 18:50 UTC+1, session 24: /lab now shows each res_7d row's gain vs the market price (PR #29, merged, Vercel deployed); champion res_7d vs price -0.0005 nats [-0.0016, +0.0005] on 3 days, i.e. no difference yet. se21-se23 fitted 10-23 and predict; `tilt` tables fill via the tick (46/131 at 17:00Z), se24/se25 first fit at the 10-24 refit. se1 leads the champion by ~+0.047 nats dir_2h; no promotion before ~11-04.)
 
 ## Learned surprise-move detector (2026-10-12 evening)
 `docs/research_lab/SURPRISE_MOVE_DETECTOR.md`. Labels fixed and logged before features (`surprise-labels-v1`,
