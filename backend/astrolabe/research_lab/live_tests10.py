@@ -1733,7 +1733,7 @@ def _role(spec: dict) -> str:
 
 
 def run_once(*, xv_root: Path = XV_ROOT, out_root: Path = OUT_ROOT, snapshot_roots=None, spec: dict | None = None, now: float | None = None,
-             max_origins: int = 288, feed_roots=None) -> dict:
+             max_origins: int = 288, feed_roots=None, freeze_clock=None) -> dict:
     """One reader run (8.1, code phase 1 part): origin statuses and frozen state lines for every origin t whose successor cycle is over (the
     ``runs.jsonl`` line of cycle t, or of a later cycle, exists; 1.2 re-check fix 1), with the record in force by :class:`WindowRecords`.
     Write-once (``%.17g``, atomic hard link): ``status/<YYYYMMDD>/<HHMM>.csv.gz`` and ``<kind>/frozen/<YYYYMMDD>/<HHMM>.csv.gz`` (or ``.late.csv.gz``
@@ -1800,7 +1800,7 @@ def run_once(*, xv_root: Path = XV_ROOT, out_root: Path = OUT_ROOT, snapshot_roo
                 df = _join_reward(df, recs[k], cond_by_day[_ymd(t)], feed_by_day[_ymd(t)])
                 if not W.cycle_ran(t):
                     df.loc[df["status"] == ST["unit"], "status"] = ST["poll_missing"]
-                written[_write_origin(out_root, t, df, spec, now if injected else b.now_ts())] += 1
+                written[_write_origin(out_root, t, df, spec, freeze_clock(t) if freeze_clock else (now if injected else b.now_ts()))] += 1
         fu = followups(xv_root, out_root, W, spec, now, max_origins)
         written.update({f"followup_{k}": v for k, v in fu.items()})
         b.append_jsonl(Path(out_root) / "runs.jsonl", [{"run": run_id, "origins": len(todo), "first": iso(todo[0]), "last": iso(todo[-1]), "results": dict(written),
