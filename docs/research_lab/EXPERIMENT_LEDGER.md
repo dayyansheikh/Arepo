@@ -4198,3 +4198,14 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   class); CH233 complete neg-risk event-captures about 1,833, `hb` within 2 ticks of zero about 12.6%; CH232 rewarded
   outward first crossings of 0.10 / 0.90 about 79, re-crossing share 0.59 at 0.10 (round's line 0.60: borderline).
 - Next: an LT11 design draft (CH234, CH233, CH232) using these as planning counts, gates declared before its own census.
+
+## LT11 design draft, 2026-10-23 (experiments autopilot; nothing counted)
+- **Draft** `docs/research_lab/LIVE_TESTS_11.md` (`feat/live-tests-11`, ea67cd56, sha256 `c1def3d4df7822ee…`): DRAFT, not frozen,
+  R1 not run, not registered, E-numbers unassigned. Round 16 ranks 1-3, one Holm family, k <= 3; F binding for all three.
+- **CH234** traded-mover continuation on the collateral weight x size (quote-only twin; `volume_num` missing = counted third
+  class, never inferred); **CH233** neg-risk member's next spread on the siblings' bid-sum rise (ask twin; complete 3-10 member
+  events); **CH232** rewarded first outward crossings of 0.10 / 0.90 (causal approach zone replaces the round's 12-slot frame).
+- CH240 map used as planning counts only (it read no target or P&L); gates declared before LT11's own census, seal `[10-28, 11-07)`.
+- Fast lane: freeze before 11-14T12Z and `T_E015`; window 11-18..12-09; analysis on or after 12-10T12Z; else the ordered lane.
+- Designer's census odds (judgement): CH234 0.35, CH233 0.50, CH232 0.20; P(no test) about 0.26. Tokens `dollarw`, `nrslack`,
+  `bandside`, `attrlimit_lt11` to be filed at the freeze. **Next:** challenger R1 on the 13 ambiguity items (section 11).
