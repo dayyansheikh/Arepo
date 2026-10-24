@@ -134,6 +134,17 @@ def test_recross_gate_counts_every_outward_crossing(cw):
     assert r["recross_basis"].startswith("every outward crossing")
     a, z = r["recross_ge2_share"], r["recross_ge2_share_zone_units"]
     assert (a != a and z != z) or a >= z - 1e-12
+    assert a == a and z == z and z < 1.0  # both defined (a pass with both shares NaN / 0 would be vacuous)
+
+
+def test_recross_gate_is_strictly_higher_when_non_mover_crossings_exist(cw):
+    """Review 2026-10-23 defect 6: extra outward crossings between defined mids (not in the zone / mover units) raise the gate's share strictly above the
+    zone-unit share, so the test cannot pass with both shares 0."""
+    base = _gates(cw, cw["spec"])["CH232"]
+    cu2 = {**cw["cu"], "xall": list(cw["cu"]["xall"]) * 4}
+    r = lt.census_gates(cu2, cw["spec"], {})["CH232"]
+    assert r["recross_ge2_share_zone_units"] == base["recross_ge2_share_zone_units"]
+    assert r["recross_ge2_share"] > r["recross_ge2_share_zone_units"]
 
 
 def test_series_family_over_forty_percent_is_excluded(cw):

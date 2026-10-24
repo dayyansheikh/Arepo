@@ -767,6 +767,7 @@ def analyze(out_root: Path = lt.OUT_ROOT, *, spec: dict | None = None, now: floa
             res[t].pop(key, None)
     res["holm"] = {"tests": ktests, "m": k, "p_raw": pv, "p_holm": hp, "alpha": 0.05, "one_sided": True}
     res["counting"] = trials_line(spec, ktests)
+    res["labels_not_computed"] = [{"test": "CH232", "label": "CLOB-disagreement sensitive", "reason": "no feed reader in LT11 (8.2); the label is never assigned, so its absence is not evidence of agreement"}]
     res.update(spec_sha=spec["_sha256"], code_sha256=cc["current"], code_check=cc, window=[spec["registered_utc"], spec["end_utc"]], roles=list(roles), design_text_sha256=lt.design_text_sha())
     return bd._clean(res)
 

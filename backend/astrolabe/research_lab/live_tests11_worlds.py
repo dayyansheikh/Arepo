@@ -552,6 +552,7 @@ def size_check(*, worlds: int, draws: int, seed: int, spec: dict, tests=None, sc
 # --- size-check timing (8.4 step 3, R1 should-fix 9): the clock only ------------------------------------------------------------------------------
 
 
+POWER_RUN_SEEDS = tuple(REGISTERED_SEED * 100 + k for k in (41, 42, 43))  # the 3 x 500 power-run generators (review 2026-10-23 defect 4)
 TIMING_SEED = REGISTERED_SEED * 100 + 98  # neither the registered seed nor the development seed (8.4 step 3: "a timing seed other than 20261497")
 TIMING_KEYS = frozenset({"purpose", "seed", "seed_kind", "worlds_per_scenario", "draws", "seconds_per_world", "seconds_total", "projection", "q_source", "code_sha256", "spec_sha256",
                          "design_text_sha256", "host", "started_utc", "finished_utc"})
@@ -563,8 +564,8 @@ def size_timing(*, spec: dict, worlds: int = 20, draws: int = 200, seed: int = T
     the output holds no rejection, rate, p-value, status or any other result of the worlds."""
     import time as _time
 
-    if seed in (REGISTERED_SEED, DEV_SEED):
-        raise Refused("the timing run needs a seed other than 20261497 and the development seed (8.4 step 3)")
+    if seed in (REGISTERED_SEED, DEV_SEED) or seed in POWER_RUN_SEEDS:
+        raise Refused("the timing run needs a seed other than 20261497, the development seed and the power-run generators 20261497*100+41/42/43 (8.4 step 3)")
     if worlds < 1 or draws < 1:
         raise Refused("worlds / draws too small")
     clock = clock or _time.perf_counter

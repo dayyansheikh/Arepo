@@ -59,11 +59,30 @@ def test_planted_effect_is_detected_by_the_gate():
     assert sum(hits) >= 3
 
 
+NON_REGISTERED_SEED = 99000001  # clearly unrelated to 20261497 and its x100 generators (review 2026-10-23 defect 1)
+
+
+def test_no_test_runs_the_registered_seed_through_size_check():
+    """1.8 / review defect 1: no test may pass the registered seed (literal or W.REGISTERED_SEED) to size_check. The pattern is escaped, so this file does
+    not match itself. A call WITHOUT registered=True is the refusal test and is allowed (it must raise before any world runs)."""
+    import re
+    from pathlib import Path
+    pat = re.compile(r"size_check\([^\n]*seed\s*=\s*(?:\w+\.)?(?:REGISTERED_SEED|20261497)\b[^\n]*registered\s*=\s*True")
+    offenders = [f.name for f in Path(__file__).parent.rglob("*.py") if pat.search(f.read_text())]
+    assert not offenders, offenders
+
+
+def test_size_timing_refuses_registered_dev_and_power_run_seeds():
+    for sd in (W.REGISTERED_SEED, W.DEV_SEED, *(W.REGISTERED_SEED * 100 + k for k in (41, 42, 43))):
+        with pytest.raises(W.Refused):
+            W.size_timing(spec=SPEC, worlds=1, draws=1, seed=sd, small=True)
+
+
 def test_size_check_fail_closed_status():
     out = W.size_check(worlds=2, draws=5, seed=W.DEV_SEED, spec=SPEC, tests=["CH232"], scenarios=("9", "10"), small=True)
     assert out["limit"] == W.limit_for(2) and out["seed_kind"] == "development"
     # scenarios 11, 14, 15 were not run: missing statistics fail the test closed
-    out2 = W.size_check(worlds=2, draws=5, seed=W.REGISTERED_SEED, spec=SPEC, tests=["CH232"], scenarios=("9", "10"), small=True, registered=True)
+    out2 = W.size_check(worlds=2, draws=5, seed=NON_REGISTERED_SEED, spec=SPEC, tests=["CH232"], scenarios=("9", "10"), small=True, registered=True)
     assert out2["per_test"]["CH232"]["status"] == "fail_size_scenario" and set(out2["per_test"]["CH232"]["missing"]) == {"11", "14", "15"}
 
 

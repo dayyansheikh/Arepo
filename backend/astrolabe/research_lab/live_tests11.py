@@ -192,9 +192,24 @@ def registration_error(spec: dict) -> dict | None:
     if [t for t in k if t not in TESTS]:
         return {"error": f"pinned spec with unknown k_tests {[t for t in k if t not in TESTS]}"}
     cf = spec.get("census_fixed") or {}
+
+    def _bad(v) -> bool:  # None, an empty container or a non-finite number anywhere inside (nested dicts / lists included)
+        if v is None:
+            return True
+        if isinstance(v, dict):
+            return not v or any(_bad(x) for x in v.values())
+        if isinstance(v, (list, tuple)):
+            return not v or any(_bad(x) for x in v)
+        if isinstance(v, float):
+            return not math.isfinite(v)
+        return False
+
     for t in k:
-        if any(v is None or (isinstance(v, float) and not math.isfinite(v)) for v in (cf.get(t) or {}).values()) or not cf.get(t):
+        if not cf.get(t) or _bad(cf.get(t)):
             return {"error": f"pinned spec with unfilled census_fixed values of {t}"}
+    il = spec.get("informed_labels")
+    if not isinstance(il, dict) or any(t not in il or not isinstance(il[t], list) for t in k):
+        return {"error": "pinned spec with unfilled informed_labels (null: the registration record has not assigned them; [] means none) (review 2026-10-23 defect 3)"}
     return None
 
 
@@ -777,6 +792,7 @@ def ch234_units(store: SlotStore, k: int, spec: dict, role: str = ROLE_UNREG, co
     cnt["not_mover"] = int((~mover).sum())
     j = j[mover].reset_index(drop=True)
     if j.empty:
+        cnt["vclass_sidecar_missing"] = cnt.get("sidecar_missing_movers", 0)
         cnt["units"] = len(SM)
         return ((_stamp(SM, spec, commit, role) if stamp else SM) if len(SM) else pd.DataFrame()), cnt
     d = j["mid"].to_numpy(float) - j["mid_p"].to_numpy(float)

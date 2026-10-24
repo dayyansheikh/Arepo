@@ -407,11 +407,7 @@
   }
  },
  "census_fixed_rule": "filled with the exact census floats (8.4 step 5); mde_c = the census slope MDE (CH234, CH233) or class MDE (CH232) in cents, the input of 1.9's 'underpowered' label only (never a gate or verdict); exclude_family is \"\" when no family was excluded",
- "informed_labels": {
-  "CH234": [],
-  "CH233": [],
-  "CH232": []
- },
+ "informed_labels": null,
  "informed_labels_rule": "1.1 / 1.6 / 1.9: the 'informed (X)' labels each test carries by the registration record (e.g. 'E015' for CH234 if the census output or the lapse is after T_E015); filled at the pin from the ledger; never removable; never a verdict",
  "economics": {
   "hurdles": "cost-model-v1 (COST_MODEL.md), reported in the analysis; never a verdict"

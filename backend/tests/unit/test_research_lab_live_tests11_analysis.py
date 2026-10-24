@@ -124,13 +124,23 @@ def test_pinned_spec_with_nan_or_null_census_value_or_code_mismatch_refuses():
     sp["census_fixed"] = {"CH234": {"a": None}}
     with pytest.raises(an.Refused):
         an.code_check(sp)
+    sp["census_fixed"] = {"CH234": {"a": 1.0, "b": [1.0, float("nan")]}}
+    with pytest.raises(an.Refused):  # a non-finite value inside a nested list (review defect 6)
+        an.code_check(sp)
+    sp["census_fixed"] = {"CH234": {"a": 1.0, "b": []}}
+    with pytest.raises(an.Refused):  # an empty nested list
+        an.code_check(sp)
     sp["census_fixed"] = {"CH234": {"a": 1.0}}
-    an.code_check(sp)  # fully filled and matching: accepted
+    with pytest.raises(an.Refused):  # informed_labels still null (unfilled): refused (review defect 3)
+        an.code_check(sp)
+    sp["informed_labels"] = {"CH234": []}
+    an.code_check(sp)  # fully filled and matching ([] = none, explicitly assigned): accepted
     sp["code_sha256"] = {**pins, "live_tests11.py": "0" * 64}
     with pytest.raises(an.Refused):
         an.code_check(sp)
     sp["code_sha256"], sp["k_tests"] = pins, ["CH234", "CH233"]
     sp["census_fixed"]["CH233"] = {"a": 1.0}
+    sp["informed_labels"]["CH233"] = []
     with pytest.raises(an.Refused):  # a surviving test without its recorded size-check result
         an.code_check(sp)
     sp["size_check_result"]["CH233"] = "pass"
@@ -223,3 +233,9 @@ def test_underpowered_uses_the_census_mde():
     want = (t_.ppf(1 - 0.05 / 3, 20) + t_.ppf(0.8, 20)) * 0.05
     assert u["computed"] and u["window_mde_c"] == pytest.approx(want) and u["above"] == (want > 0.4)
     assert not an.underpowered("CH234", r, _label_spec(mde_c=None), 3)["computed"]
+
+
+def test_default_spec_informed_labels_is_null_and_not_computed_list_is_reported():
+    assert lt.load_spec(sha=None)["informed_labels"] is None
+    import inspect
+    assert "labels_not_computed" in inspect.getsource(an.analyze)
