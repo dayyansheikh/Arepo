@@ -8,21 +8,21 @@
 **PHASE 4 IN PROGRESS.** See `implementation/phases/PHASE_04_EDGE_EXPERIMENTS.md` and the ledger `research_lab/EXPERIMENT_LEDGER.md`.
 User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=Etc/GMT-1 date`.
 
-## Experiments autopilot live state (2026-10-24 00:22 UTC+1)
-- **LT12 DESIGN TEXT FROZEN** (01d6014c, sha256 `a543db63…b62d`, merged 2f819bf6; ledger aec7a686): k <= 2, CH245 mirror and
-  CH244 farmed half (CH243 dropped at R1). Seal [11-07, 11-17), q0710 not before 11-17T09Z; window 12-10..12-31. CANDIDATES
-  "LT12 freeze request" filed (`mirror`, `mixedlad`, `attrlimit_lt12`). **LT12 code running** (Opus implementer,
-  `../astrolabe-live-tests-12-code`, `feat/live-tests-12-code`; drafts q0710-q0716). Then the independent code-freeze check
-  (must confirm re-check fixes 1-2 in code).
-- **LT11** frozen; code-freeze check REJECT -> fixes committed on `feat/live-tests-11-code` (6d64c56c..7dcf6623; worlds,
-  analysis labels, census counts, drafts q0691 08:00Z / q0690 guard / q0696 size-timing, notes A25-A29); the fixer's full test
-  suite is running. Next: an uncommitted one-line review-header time fix in that worktree (commit it), re-check, timing run
-  (q0696), merge (before LT10's census freeze record, not before 11-03); seal after 11-07.
-- **CB8-B:** q0166b promoted and deployed (waits for the MC1 exclusive drain). Next: commit its seal copy, then q0169.
-- **Collector-pass fix (9f57dfd2, deployed):** CB4 closewin / CB5 listings caps 13/12 -> 40 GiB (refused since 10-17; delay only).
-  Check the next pass logs `written > 0`.
-- Queue: MC1 q0116i running (exclusive); LT2 collector healthy; E026 q0541 from 10-25T00Z (phone note "collection started").
-- Open owner decision: clear ~9 GB restore copies (data-dumps 35.4 GiB of the 40 GiB job guard, about +1 GB a day).
+## Experiments autopilot live state (2026-10-24 04:44 UTC+1)
+- **CB8-B (CH76) CLOSED not testable (source unavailable)**, counted (6f0071e7): q0166b coverage audit 87/119 = 73.1% < 90%;
+  no seal written; drafts q0169/q0170/q0171/q0174/q0175 dead. CB8-H (q0162/q0163, then q0172/q0173/q0176) continues.
+- **CB4 closewin** was stopping at its 0.40 GB output cap (61 captures waiting since 10-18); pass step now `--disk-cap-gb 1.5`
+  (e730d5c4, deployed). Check the next pass logs `written > 0` (T4_dev_end 10-25T00Z). CB5 listings caught up (35 written).
+- **q0182 (CB9 exclusion keys) FAILED x3** (Gamma 422, the q0164 composite-id problem). Fixer agent on `fix/cb9-q0182b`
+  (`../astrolabe-cb9-q0182b`): run-scoped wrapper + q0182b spec + note; then a science-reviewer ruling, merge, deploy, promote.
+- **LT11:** re-check ACCEPT_WITH_FIXES; fixer agent applying defects 1-6 on `feat/live-tests-11-code`. Then orchestrator grep
+  check of fix 1, merge (must precede LT10's first census, q0662 not before 11-03T09Z), deploy, promote q0696 (size-timing).
+- **LT12 code:** Opus implementer continuing on `feat/live-tests-12-code` (WIP from the cut-off session: worlds/analysis
+  untracked; no tests/drafts yet). Then the independent code-freeze check (must confirm re-check fixes 1-2 in code).
+- **Creative round 18** (Fable xhigh, CH252+, `feat/creative-r18`, file `CREATIVE_HYPOTHESES_2026-11-01.md`) running.
+- Queue: MC1 q0116i running (exclusive; ~1.6 h per fold unit), then q0516; LT2 collector healthy; E026 q0541 from 10-25T00Z
+  (phone note "collection started" due then).
+- **Open owner decision, urgent:** data-dumps 37 of the 40 GiB job guard at 03:37Z (+~1 GB/day): clear ~9 GB restore copies.
 
 ## Interactive session state (2026-10-23 08:30Z)
 - **Security audit run 1 (2026-10-23):** Cloudflare security-audit skill, quick profile, source-only. 0 confirmed findings and 5 needs-validation leads; see `docs/security/AUDIT_2026-10-23_RUN1.md` (full artefacts in `~/security-audit-skill/astrolabe/run-1/`). Owner notified via ntfy. No fixes made yet. Proposed small PRs:
