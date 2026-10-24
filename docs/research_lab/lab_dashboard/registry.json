@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-24T04:05:00Z",
+ "updated": "2026-10-24T04:40:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1684,11 +1684,11 @@
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Code check (23 Oct) asked for fixes, mainly in the simulated worlds; fixes, re-check; counting checks after 7 Nov; collection proposed from 18 Nov 2026",
+   "next": "Code fixed and merged after its code check and re-check (24 Oct); a timing run next; counting checks after 7 Nov; collection proposed from 18 Nov 2026",
    "next_date": "2026-11-18",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT11 re-check, pre-freeze verification, DESIGN-TEXT FREEZE (2026-10-23); docs/research_lab/LIVE_TESTS_11.md; § LT11 code-freeze check: REJECT, fixes started (2026-10-23)"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT11 re-check, pre-freeze verification, DESIGN-TEXT FREEZE (2026-10-23); docs/research_lab/LIVE_TESTS_11.md; § LT11 code-freeze check: REJECT, fixes started (2026-10-23); § LT11 code merged; q0696 size-timing promoted (2026-10-24)"
    },
    "stage_results": {
     "idea": "pending",

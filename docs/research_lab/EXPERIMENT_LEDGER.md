@@ -4525,6 +4525,18 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   draft's "at or after 10-24T01:00Z" was the earliest code-readiness time, not the window end). q0144 / q0145 / q0146 done; seal
   copies `h8_text_SEAL.json` / `h8_geo_SEAL.json` committed. argv unchanged (`census --family S,G,X`).
 
+## LT11 code merged; q0696 size-timing promoted, 2026-10-24 ~04:35Z (experiments autopilot; nothing counted)
+- Re-check (ACCEPT_WITH_FIXES) defects 1-6 applied on `feat/live-tests-11-code` (1e08902a): test seed 99000001 with a guard test
+  (no test passes the registered seed 20261497 to `size_check(..., registered=True)`; the remaining uses are refusal tests,
+  verified by grep); battery2 ordering rule in q0662-q0665 notes; `informed_labels` null + refusal; `labels_not_computed`;
+  `size-timing` refuses the power-run generators x 100 + 41/42/43; A30 (holiday / month-start label asymmetry, disclosure
+  only); re-crossing strictly-higher test, `vclass_sidecar_missing` on the early-return path, nested-list check. The ledger's
+  10-23 deviation entry (registered seed in a unit test, judged uninformative) stands as the disclosure. Gaps noted by the
+  fixer: no dedicated test of the early-return `vclass_sidecar_missing`.
+- **Merged** 8ca24855 (frozen text `991100db…` unchanged; scoped tests 317 passed incl. LT10 and the pins). Merged before LT10's
+  first census run (q0662, not before 11-03T09Z), as the battery2 rule requires. Deployed.
+- **q0696 promoted** (clock only; seed 20261497 x 100 + 98; outputs per-scenario seconds and projection, no world result read).
+
 ## Signal engine: LT12 freeze requests applied (`mirror`, `mixedlad`, `attrlimit_lt12`), 2026-10-24 ~04:00Z (signal-engine autopilot; embargo only; nothing scored or counted)
 - **What:** the `CANDIDATES.md` LT12 freeze request (2026-10-23 ~23:45Z; LIVE_TESTS_12.md section 9, design text frozen at
   01d6014c, sha256 `a543db63…b62d`, verified) applied with its text (DESIGN_V1 section 33): `config.EMBARGO` gains `mirror`
