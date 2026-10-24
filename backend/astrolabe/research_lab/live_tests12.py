@@ -224,7 +224,19 @@ def registration_error(spec: dict) -> dict | None:
     for t in k:
         if (m := census_fixed_missing(spec, t)):
             return {"error": f"pinned spec with unfilled census_fixed values of {t}: {m}"}
+        cg = ((spec.get("census_gate_values") or {}).get(t) or {}).get("mde_c")
+        if cg is None or not isinstance(cg, (int, float)) or not math.isfinite(float(cg)):
+            return {"error": f"pinned spec with an unfilled census_gate_values.{t}.mde_c"}
+    il = spec.get("informed_labels")
+    if not isinstance(il, dict) or any(not isinstance(il.get(t), list) for t in k):
+        return {"error": "pinned spec with null informed_labels (filled at the pin from the ledger; [] only when none applies)"}
+    for slot in ("dropped_tests", "census_unavailable"):
+        if not isinstance(spec.get(slot), list):
+            return {"error": f"pinned spec with a null {slot} (a list, [] when none)"}
     return None
+
+
+CERTAIN_INFORMED = {"CH244": ("E022",)}  # 1.1: 'informed (E022)' is certain for CH244 in both lanes (the analysis adds it whatever the spec slot holds)
 
 
 # --- small helpers ----------------------------------------------------------------------------------------------------------------------------

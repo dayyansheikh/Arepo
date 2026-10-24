@@ -396,13 +396,8 @@
   }
  },
  "census_gate_values_rule": "recorded census gate values (7: 'recorded, never re-used to change a threshold'); mde_c is the input of 1.9's 'underpowered' label only",
- "informed_labels": {
-  "CH245": [],
-  "CH244": [
-   "E022"
-  ]
- },
- "informed_labels_rule": "1.1 / 1.9: the 'informed (X)' labels each test carries; CH244 'informed (E022)' is certain in both lanes; others (LT11 census, LT11, engine) filled at the pin from the ledger; never removable; never a verdict",
+ "informed_labels": null,
+ "informed_labels_rule": "1.1 / 1.9: null until the pin, then {test: [labels]} filled from the ledger ([] only when none applies); registration refuses while null. CH244's 'informed (E022)' is certain and added by the analysis itself (live_tests12.CERTAIN_INFORMED); never removable; never a verdict",
  "economics": {
   "hurdles": "cost-model-v1 (COST_MODEL.md), reported in the analysis; never a verdict"
  },
