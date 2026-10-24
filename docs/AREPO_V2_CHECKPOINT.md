@@ -8,21 +8,24 @@
 **PHASE 4 IN PROGRESS.** See `implementation/phases/PHASE_04_EDGE_EXPERIMENTS.md` and the ledger `research_lab/EXPERIMENT_LEDGER.md`.
 User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=Etc/GMT-1 date`.
 
-## Experiments autopilot live state (2026-10-24 04:44 UTC+1)
-- **CB8-B (CH76) CLOSED not testable (source unavailable)**, counted (6f0071e7): q0166b coverage audit 87/119 = 73.1% < 90%;
-  no seal written; drafts q0169/q0170/q0171/q0174/q0175 dead. CB8-H (q0162/q0163, then q0172/q0173/q0176) continues.
-- **CB4 closewin** was stopping at its 0.40 GB output cap (61 captures waiting since 10-18); pass step now `--disk-cap-gb 1.5`
-  (e730d5c4, deployed). Check the next pass logs `written > 0` (T4_dev_end 10-25T00Z). CB5 listings caught up (35 written).
-- **q0182 (CB9 exclusion keys) FAILED x3** (Gamma 422, the q0164 composite-id problem). Fixer agent on `fix/cb9-q0182b`
-  (`../astrolabe-cb9-q0182b`): run-scoped wrapper + q0182b spec + note; then a science-reviewer ruling, merge, deploy, promote.
-- **LT11:** re-check ACCEPT_WITH_FIXES; fixer agent applying defects 1-6 on `feat/live-tests-11-code`. Then orchestrator grep
-  check of fix 1, merge (must precede LT10's first census, q0662 not before 11-03T09Z), deploy, promote q0696 (size-timing).
-- **LT12 code:** Opus implementer continuing on `feat/live-tests-12-code` (WIP from the cut-off session: worlds/analysis
-  untracked; no tests/drafts yet). Then the independent code-freeze check (must confirm re-check fixes 1-2 in code).
-- **Creative round 18** (Fable xhigh, CH252+, `feat/creative-r18`, file `CREATIVE_HYPOTHESES_2026-11-01.md`) running.
-- Queue: MC1 q0116i running (exclusive; ~1.6 h per fold unit), then q0516; LT2 collector healthy; E026 q0541 from 10-25T00Z
-  (phone note "collection started" due then).
-- **Open owner decision, urgent:** data-dumps 37 of the 40 GiB job guard at 03:37Z (+~1 GB/day): clear ~9 GB restore copies.
+## Experiments autopilot live state (2026-10-24 05:01 UTC+1)
+- **CB8-B (CH76) CLOSED not testable (source unavailable)**, counted (6f0071e7): coverage audit 87/119 = 73.1% < 90%.
+- **CB4 closewin** pass step `--disk-cap-gb 1.5` (e730d5c4, deployed; was stopped at 0.40 GB since 10-18). A background watcher
+  waits for the next pass line; check it shows `written > 0` (T4_dev_end 10-25T00Z).
+- **CB9 q0182b** (run-scoped composite-id fix; ruling GO_WITH_CHANGES applied; merged 6f600491; queued, net lane). Next: write up
+  its result (3,990 new ids expected; `n_pred_event_ids_not_in_any_key_set` 8), then q0183+ per CB9.
+- **CB7 q0147 census** promoted, not before 10-25T01:00Z (h_geo window closes 10-25T00Z). Next: insert counts and gates,
+  freeze check, freeze.
+- **LT11 code MERGED** (8ca24855, re-check fixes 1-6), deployed; q0696 size-timing queued (clock only). Next: record its
+  projection in the ledger (ordered-lane line before the seal if needed); census q0691 not before 11-07T08:00Z.
+- **LT12 code:** Opus implementer on `feat/live-tests-12-code` (`../astrolabe-live-tests-12-code`). Then the independent
+  code-freeze check (must confirm re-check fixes 1-2 in code), fixes, merge before the 11-07 seal.
+- **Creative round 18** (Fable xhigh, CH252+, `feat/creative-r18`) running; then CANDIDATES notes + LT13 shortlist.
+- Queue: MC1 q0116i running (exclusive, ~1.6 h per fold unit), then q0516; E026 q0541 from 10-25T00Z (phone note due then).
+- Coordination: the signal autopilot merges `auto/signal-engine` into this worktree; it aborted one merge at ~03:55Z on a ledger
+  conflict (its retry is its own). Commit promptly; do not leave uncommitted edits here.
+- **Open owner decision, urgent:** data-dumps 37/40 GiB; measured clearable restore copies 10.2 GB (cb18 4.9, LT4 3.0, LT6 1.2,
+  LT5 0.8, LT3 0.3; no job reads them; keep CB17 worn_restore 0.9). Dashboard item 8.
 
 ## Interactive session state (2026-10-23 08:30Z)
 - **Security audit run 1 (2026-10-23):** Cloudflare security-audit skill, quick profile, source-only. 0 confirmed findings and 5 needs-validation leads; see `docs/security/AUDIT_2026-10-23_RUN1.md` (full artefacts in `~/security-audit-skill/astrolabe/run-1/`). Owner notified via ntfy. No fixes made yet. Proposed small PRs:
