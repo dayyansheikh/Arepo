@@ -4506,3 +4506,15 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   follows. Drafts q0169 (census BW), q0170 / q0174 (B) and q0171 / q0175 (W, already not testable at the q0161 smoke) are
   dead and stay unpromoted; CB8-H (q0162 / q0163 collection, then q0172 / q0173 / q0176) continues unchanged.
 - Registry: CB8-OTHER -> closed, `not_testable`.
+
+## Operational deviation: CB4 closewin pass step stopped at its 0.40 GB output cap since 2026-10-18 (found 2026-10-24 ~04:10Z; not counted)
+- After the 10-23 data-dumps guard fix (9f57dfd2), CB5 listings caught up (35 written, 10-24T02:31Z pass) but CB4 `closewin
+  --all-new` logged `stopped: disk_cap`, `written: 0`, `remaining: 61`: its separate output cap (default `--disk-cap-gb 0.40`,
+  CREATIVE_BATCH_4.md §2 disk guard, declared for the q0080 backfill) binds at 383 MiB written (84 captures 10-11T12:33Z ..
+  10-18T22:31Z, all `extracted`; about 4.6 MB a capture, against the design's storage estimate).
+- Fix (ops only; no row, rule, window or population changed): the pass step gets `--disk-cap-gb 1.5` (`arepo_pass.sh`). Not 3.0:
+  the headroom rule reserves the unused allowance against the 40 GiB data-dumps guard (37 GiB at 03:37Z), so a larger cap
+  would refuse sooner. 1.5 GB covers the 61 waiting captures plus about 15 days. The extract stays idempotent, oldest first;
+  a capture no longer on the host when reached is recorded `missing`, never reconstructed. Same consumer rule as the 10-23
+  entry: CB4-MAIN / CH46 freeze records must show the extract caught up (T4_dev_end 10-25T00Z) before any seal reads it.
+  Revisit with the owner's restore-copy clearing decision (dashboard item 8).
