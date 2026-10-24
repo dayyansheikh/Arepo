@@ -280,10 +280,27 @@ def cmd_exclusion_keys(a):
     sha, _ = _rules(a, "pyth")
     root = _cb9_root(a)
     kw = _net_kw(a)
-    m = c9.exclusion_keys(root, hb.httpx_transport(), rules_sha=sha, cb8_keys_path=Path(a.cb8_keys) if a.cb8_keys else c9.CB8_KEYS_DEFAULT,
-                          cb8_keys_sha256=a.cb8_keys_sha256, seals_dir=Path(a.seals_dir) if a.seals_dir else None, extra_pins=_extra_pins(a.extra_pin),
-                          is_committed=None if a.allow_uncommitted_rules else cb1_history.spec_committed, disk_cap=int(a.disk_cap_gb * 1024**3), **kw)
-    return _result(m)
+    extra = _extra_pins(a.extra_pin)
+    run_kw = dict(rules_sha=sha, cb8_keys_path=Path(a.cb8_keys) if a.cb8_keys else c9.CB8_KEYS_DEFAULT, cb8_keys_sha256=a.cb8_keys_sha256,
+                  seals_dir=Path(a.seals_dir) if a.seals_dir else None, extra_pins=extra,
+                  is_committed=None if a.allow_uncommitted_rules else cb1_history.spec_committed, disk_cap=int(a.disk_cap_gb * 1024**3), **kw)
+    if not a.normalise_ids:  # q0182 as registered (fails on the composite h7_cb4_series ids); kept for reproducibility
+        return _result(c9.exclusion_keys(root, hb.httpx_transport(), **run_kw))
+    from astrolabe.research_lab import cb8_exclusion_budget as xb  # noqa: PLC0415
+    from astrolabe.research_lab import cb9_exclusion_fix as fix  # noqa: PLC0415
+
+    with xb.scratch_uncounted(), fix.normalised_exclusion_ids(extra) as norm:  # q0182b: composite seal ids -> market part (Gamma's id filter is integer-only); no hashed function is edited
+        m = c9.exclusion_keys(root, hb.httpx_transport(), **run_kw)
+    code, payload = _result(m)
+    payload["id_normalisation"] = norm
+    return (exclusion_exit_code(m) if code == 0 else code), payload
+
+
+def exclusion_exit_code(m: dict) -> int:
+    """0 when complete / terminal or a clean 'budget reached' pause; any other transient incomplete stop is TEMPFAIL (75), never 0 (q0164 failed that way)."""
+    if m.get("complete") is True or m.get("stopped") is None or m.get("stopped") == "budget reached":
+        return 0
+    return TEMPFAIL if m.get("transient") else 0
 
 
 # ---- q0183 / q0184 P data ---------------------------------------------------------------------------------------------------------------------
@@ -939,6 +956,7 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--cb8-keys-sha256", required=True, help="the pinned sha256 of CB8 q0164's exclusion_keys.csv.gz")
     q.add_argument("--seals-dir", default=None)
     q.add_argument("--extra-pin", action="append", default=None, help="NAME:PATH:SHA256 of an ids CSV / frame with a market_id column (ids only); repeatable")
+    q.add_argument("--normalise-ids", action="store_true", help="q0182b: composite seal ids -> numeric market part + pred_* market ids (cb9_exclusion_fix); exit 75 on a transient incomplete stop")
     q.set_defaults(fn=cmd_exclusion_keys)
 
     q = sub.add_parser("pyth-frame", help="q0183")
