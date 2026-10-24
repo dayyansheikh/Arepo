@@ -18,7 +18,7 @@
   "as_cap_mb": 3000
  },
  "depends_on": [
-  "q0182_cb9_exclusion_keys",
+  "q0182b_cb9_exclusion_keys",
   "q0183_cb9_pyth_frame",
   "q0185_cb9_kd_frame"
  ],
