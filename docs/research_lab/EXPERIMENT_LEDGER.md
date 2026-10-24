@@ -4518,3 +4518,9 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   a capture no longer on the host when reached is recorded `missing`, never reconstructed. Same consumer rule as the 10-23
   entry: CB4-MAIN / CH46 freeze records must show the extract caught up (T4_dev_end 10-25T00Z) before any seal reads it.
   Revisit with the owner's restore-copy clearing decision (dashboard item 8).
+
+## CB7 census q0147 promoted, 2026-10-24 ~04:20Z (experiments autopilot; operational, nothing counted)
+- Draft -> job with `not_before` 2026-10-25T01:00Z: the binding `h_geo` reads complete captures starting in
+  [2026-10-22T00:00Z, 2026-10-25T00:00Z) (CREATIVE_BATCH_7.md reading 13), so it cannot run before that window closes (the
+  draft's "at or after 10-24T01:00Z" was the earliest code-readiness time, not the window end). q0144 / q0145 / q0146 done; seal
+  copies `h8_text_SEAL.json` / `h8_geo_SEAL.json` committed. argv unchanged (`census --family S,G,X`).
