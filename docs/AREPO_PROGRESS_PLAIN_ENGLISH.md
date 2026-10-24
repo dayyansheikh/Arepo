@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-24 04:47 UTC+1
+**Last updated:** 2026-10-24 04:58 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -48,16 +48,14 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 7. ~~More server memory for MC1~~ **APPROVED 21 Oct:** resize to 2 CPU / 12 GB (still free), scheduled automatically
    for 22 Oct about 03:40 UTC+1. MC1 is re-queued afterwards.
 
-8. **URGENT (needed within about 3 days): let Claude clear finished restore copies on the server.** 24 Oct 04:37 UTC+1: **37 of 40 GB**. Measured 23 Oct
-   03:10 UTC+1: the data folder was at 34 of 40 GB, **36 of 40 GB at 23:30**, and grows about 1 GB a day, so jobs (including the LT2 live
-   collector) would start refusing around 29 Oct. Batch 18's 4.9 GB copy is finished now and LT8 does not use it. Restore copies are
-   hash-checked copies of data that is safe in the archive, made so a job can re-read old files. About 9 GB of them
-   are finished with or soon will be (measured 22 Oct: batch 18 4.9 GB finished now; LT4 3.0 GB and LT3 0.3 GB after
-   LT6's flow count today; LT5 0.8 GB after its count today; LT6 1.2 GB after its counts). Jobs stop at a
-   40 GB data limit (**33 GB on 22 Oct**, and LT7's restore will add more), so they will need clearing within days. The safety hook rightly stops
-   Claude from deleting anything in the data folder. **Decision needed:** approve a short clearing session for these
-   copies only (each one listed and checked against the archive first). Batch 17 no longer needs this: it now writes
-   to a fresh folder instead.
+8. **URGENT (needed within about 3 days): let Claude clear finished restore copies on the server.** 24 Oct 04:37 UTC+1:
+   **37 of 40 GB**, growing about 1 GB a day; at 40 GB jobs (including live collectors' extracts) start refusing. Restore
+   copies are hash-checked copies of data that is safe in the archive, made so a job could re-read old files. **Measured
+   list (24 Oct, read-only):** batch 18 `cb18_census/restore` 4.9 GB (batch 18 closed), LT4 `live_tests4_census/restore`
+   3.0 GB, LT6 1.2 GB, LT5 0.8 GB, LT3 0.3 GB: **10.2 GB in total, and no queued or planned job reads any of them**
+   (checked against every job and draft). Batch 17's 0.9 GB copy is still needed and stays. The safety hook rightly stops
+   Claude from deleting anything in the data folder. **Decision needed:** reply "approve restore-copy clearing" (Lab
+   inbox) to allow one session that re-checks each copy against the archive, then deletes only these five folders.
 
 ## 3. Usage plan (your schedule; reset times are your statement, not verified)
 | When | Plan |
