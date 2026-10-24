@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-24T04:40:00Z",
+ "updated": "2026-10-24T05:15:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1082,18 +1082,18 @@
   {
    "id": "CB9",
    "title": "Trade direction, hourly-anchored dailies, flow-skewed maker",
-   "plain": "Designed: whether trade direction labels are reliable and a few maker ideas. Smoke test v2 passed; data jobs start after the 22 Oct cut-off.",
+   "plain": "Designed: whether trade direction labels are reliable and a few maker ideas. Smoke test v2 passed. The step that removes markets already used by earlier tests failed on 24 Oct on a market-ID format problem (the same one batch 8 hit); a reviewed fix is queued. No outcome read.",
    "batch": "CB9",
    "family": "microstructure",
    "stage": "designed",
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Data jobs after 22 Oct",
-   "next_date": "2026-10-22",
+   "next": "Market-overlap step (q0182b), then the data jobs",
+   "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Smokes PASS (CB9 smoke v2); docs/AREPO_V2_CHECKPOINT.md"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Smokes PASS (CB9 smoke v2); docs/AREPO_V2_CHECKPOINT.md; docs/research_lab/EXPERIMENT_LEDGER.md § CB9 q0182 FAILED x3 (Gamma 422); q0182b fix reviewed, merged, queued (2026-10-24)"
    },
    "stage_results": {
     "designed": "pass"
