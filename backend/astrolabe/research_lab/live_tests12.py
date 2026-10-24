@@ -1568,7 +1568,7 @@ def cr1_event_t(y: np.ndarray, x: np.ndarray, Z: np.ndarray, ev: np.ndarray, sig
 def event_phase_index(df: pd.DataFrame, rows: np.ndarray, min_captures: int) -> dict:
     """The event-phase index (LT11 CH233's, vendored as ``b.event_index_fl_gate``; the same rule): per event e, ``I_e`` = the ordered captures at which e has
     at least one unit (``rows``), ``n_e = |I_e|``, ``s_e = max(4, ceil(n_e / 4))``, offsets drawn from ``[s_e, n_e - s_e]``. Events with ``n_e <
-    min_captures`` (16) are outside the gate sample (counted)."""
+    min_captures`` (16) are outside the gate sample (counted; re-check fix 1)."""
     ev = df["event_id"].astype(str).to_numpy()[rows]
     sl = df["slot"].to_numpy(int)[rows]
     plan, excluded_events, excluded_rows = {}, 0, 0
@@ -1592,7 +1592,7 @@ def _recompute(test: str, X: pd.DataFrame) -> None:
         for i in (1, 2, 3):
             if f"tl{i}" in X:
                 X[f"tl{i}_x_shock"] = X[f"tl{i}"].to_numpy(float) * X["shock"].to_numpy(float)
-        if "shock_x_lowliq" in X and "lowliq" in X:
+        if "lowliq" in X:
             X["shock_x_lowliq"] = X["shock"].to_numpy(float) * X["lowliq"].to_numpy(float)
 
 
@@ -1626,15 +1626,36 @@ def event_day_state_shift_gate(df: pd.DataFrame, y: np.ndarray, term: str, contr
     gate_rows = units[np.isin(df["event_id"].astype(str).to_numpy()[units], list(plan))]
     if len(gate_rows) < 10:
         return {"testable": False, "passes": False, "reason": f"no event with >= {min_captures} captures on its index", "excluded_events": idx["excluded_events"]}
+    # re-check fix 1 (gate sample): only the units of events with n_e >= 16 enter the gate; the observed statistic is refitted on THIS sample below
     G = df.iloc[gate_rows].reset_index(drop=True)
     yG = yv[gate_rows]
     changed = set(shift) | set(derived)
-    D = demeaned_frame(df, reg).iloc[gate_rows].reset_index(drop=True)  # analysis values (demeaned on all units; strata lie inside events)
+    D = demeaned_frame(df, reg).iloc[gate_rows].reset_index(drop=True)  # analysis values of the FIXED regressors (strata lie inside events)
     codes, slot = stratum_codes(G), G["slot"].to_numpy(float)
     evG = G["event_id"].astype(str).to_numpy()
     ctrl_fixed = [c for c in controls if c not in changed]
+    rawG = {c: G[c].to_numpy(float) for c in shift}
+    xcols = [c for c in (*shift, *derived, "unrew", "tl1", "tl2", "tl3", "lowliq") if c in G]
+
+    def shifted(src: np.ndarray) -> tuple[pd.DataFrame, np.ndarray]:
+        """The design of one draw: the RAW state of gate row ``src[t]`` placed at row t (``-1`` = omitted, never filled), CH244's interactions recomputed,
+        then the expanding-past event x UTC-day demeaning re-applied to every shifted column over the gate sample's non-omitted rows; every other regressor
+        keeps its analysis value. The observed fit is ``src = identity`` (o = 0) through this same path (LT12 ambiguity A25)."""
+        keep = src >= 0
+        X = G[xcols].copy()
+        for c in shift:
+            v = np.full(len(G), np.nan)
+            v[keep] = rawG[c][src[keep]]
+            X[c] = v
+        _recompute(test, X)
+        Dm = D.copy()
+        for c in changed:
+            if c in Dm:
+                Dm[c] = strict_expanding_demean(codes, slot, X[c].to_numpy(float))
+        return Dm, keep
 
     def stat(Dm: pd.DataFrame, keep: np.ndarray) -> float:
+        # re-check fix 1 (statistic): the tested coefficient's event-clustered CR1 t, clusters = the gate sample's events, identical for observed and draws
         cols = [c for c in controls if np.nanstd(Dm[c].to_numpy(float)[keep]) > 0]
         ok = keep & np.isfinite(yG) & np.isfinite(Dm[term].to_numpy(float)) & np.all(np.isfinite(Dm[cols].to_numpy(float)), axis=1)
         if ok.sum() < 10:
@@ -1642,7 +1663,7 @@ def event_day_state_shift_gate(df: pd.DataFrame, y: np.ndarray, term: str, contr
         r = cr1_event_t(yG[ok], Dm[term].to_numpy(float)[ok], Dm[cols].to_numpy(float)[ok] if cols else np.zeros((int(ok.sum()), 0)), evG[ok], sign)
         return float(r["t"]) if r["testable"] else math.nan
 
-    t_obs = stat(D, np.ones(len(G), bool))
+    t_obs = stat(*shifted(np.arange(len(G))))  # re-check fix 1: the observed t refitted on the gate sample, never taken from the all-units primary fit
     if not math.isfinite(t_obs):
         return {"testable": False, "passes": False, "reason": "observed gate-sample fit not testable"}
     member = (G["event_id"].astype(str) if test == "CH245" else G["event_id"].astype(str) + "|" + G["market_id"].astype(str)).to_numpy()
@@ -1659,30 +1680,18 @@ def event_day_state_shift_gate(df: pd.DataFrame, y: np.ndarray, term: str, contr
     key = mcode.astype(np.int64) * pmax + pos
     srt = np.argsort(key, kind="mergesort")
     skey = key[srt]
-    rawG = {c: G[c].to_numpy(float) for c in shift}
     rng = np.random.default_rng(seed)
     ge, om, tvals = 0, [], []
     for _ in range(draws):
-        o = rng.integers(s_e, n_e - s_e + 1)
+        o = rng.integers(s_e, n_e - s_e + 1)  # one offset per event on [s_e, n_e - s_e] (inclusive)
         newpos = (pos + o[ev_code]) % n_e[ev_code]
         want = mcode.astype(np.int64) * pmax + newpos
         j = np.searchsorted(skey, want)
         j = np.minimum(j, len(skey) - 1)
         hit = skey[j] == want
         src = np.where(hit, srt[j], -1)
-        keep = src >= 0
-        om.append(float((~keep).mean()))
-        X = G[[c for c in (*shift, *derived, "unrew", "tl1", "tl2", "tl3", "lowliq") if c in G]].copy()
-        for c in shift:
-            v = np.full(len(G), np.nan)
-            v[keep] = rawG[c][src[keep]]
-            X[c] = v
-        _recompute(test, X)
-        Dm = D.copy()
-        for c in changed:
-            if c in Dm:
-                Dm[c] = strict_expanding_demean(codes, slot, X[c].to_numpy(float))
-        tv = stat(Dm, keep)
+        om.append(float((src < 0).mean()))
+        tv = stat(*shifted(src))
         tvals.append(tv)
         ge += int(math.isfinite(tv) and tv >= t_obs)
     p = (1 + ge) / (1 + draws)
@@ -2137,6 +2146,59 @@ def seal_windows(spec: dict) -> dict:
     ci = spec["census_inputs"]
     sl = _span_slots(spec)
     return {"captures": (sl[0] - ci["lookback_capture_slots"], sl[-1] + ci["lag_slots_after"]), "feed": tuple(ci["feed_window"])}
+
+
+def lag_slots(spec: dict) -> list[int]:
+    """The ``lag_slots_after`` (3) slots after the census span (twins only; 7)."""
+    sl = _span_slots(spec)
+    return [sl[-1] + i for i in range(1, int(spec["census_inputs"]["lag_slots_after"]) + 1)]
+
+
+def restore_readiness(snapshot_roots, spec: dict, now: float) -> dict:
+    """The one-shot restore's ONLY refusal (7, final verification fix 2): it refuses while a lag-slot capture is still IN PROGRESS (started, not yet in a final
+    state), never otherwise. Per lag slot k (captures whose start lies within the 30 min slot tolerance of slot k, in any root):
+
+    - ``complete``: a capture with ``state=complete`` and its ``rows.csv.gz`` exists (an input);
+    - ``in_progress``: no complete capture, and a capture whose manifest state is not final (or that has no readable manifest yet) started less than one slot
+      (2 h) ago -- the restore refuses (exit 75, "not now");
+    - ``missing``: every other case -- only captures in a FINAL non-complete state (failed, partial, ...), a capture still non-final one slot (2 h) after its
+      start (LT12 ambiguity A26: by 7's own timing a capture needs up to one slot to complete, so a capture still open after it is not "in progress" but one
+      that will not complete; it counts as missing, as a file found nowhere does), or no capture at all once the slot is past its tolerance;
+    - ``pending``: no capture yet and the slot is not past its tolerance (a capture may still start) -- the restore refuses, as for ``in_progress``.
+
+    Never waits on a capture that will not complete; a missing slot is counted by the seal, never substituted."""
+    tol = float(spec["grid"]["slot_tol_s"])
+    per: dict[str, dict] = {}
+    for k in lag_slots(spec):
+        t0 = b.slot_time(k, spec)
+        caps = []
+        for r in b._roots(snapshot_roots):
+            if not Path(r).exists():
+                continue
+            for d in sorted(p for p in Path(r).iterdir() if p.is_dir()):
+                m: dict = {}
+                try:
+                    m = json.loads((d / "manifest.json").read_text())
+                except (OSError, ValueError):
+                    m = {}
+                st_ = epoch(m["started_utc"]) if m.get("started_utc") else b._name_time(d.name)
+                if not (isinstance(st_, float) and math.isfinite(st_)) or abs(st_ - t0) > tol:
+                    continue
+                state = str(m.get("state") or "no_manifest")
+                caps.append({"dir": d.name, "root": str(r), "state": state, "started_utc": iso(st_), "rows": (d / "rows.csv.gz").exists(), "age_s": now - st_})
+        if any(c["state"] == "complete" and c["rows"] for c in caps):
+            status = "complete"
+        elif any(c["state"] not in FINAL_CAPTURE_STATES and c["age_s"] < GRID_S for c in caps):
+            status = "in_progress"
+        elif caps or now > t0 + tol:
+            status = "missing"
+        else:
+            status = "pending"
+        per[iso(t0)] = {"status": status, "captures": caps}
+    refuse = [s_ for s_, v in per.items() if v["status"] in ("in_progress", "pending")]
+    return {"lag_slots": per, "refuse": bool(refuse), "refusing_slots": refuse, "missing_slots": [s_ for s_, v in per.items() if v["status"] == "missing"],
+            "rule": "7: the restore refuses only while a lag-slot capture is in progress; a final non-complete capture, a capture still open one slot after its start, "
+                    "or no capture past the slot tolerance is missing (counted by the seal, never substituted)"}
 
 
 def seal_inputs(*, snapshot_root, feed_root=None, work: Path, spec: dict | None = None, unavailable=None, design_path: Path | None = None) -> dict:

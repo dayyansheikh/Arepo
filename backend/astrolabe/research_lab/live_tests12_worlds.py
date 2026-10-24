@@ -125,6 +125,7 @@ def world1_lambda(rho_census, spec: dict, *, seed: int) -> dict:
     each step a calibration run (:func:`calib_corr`). Failure rule: ``rho_census`` NaN, ``rho_ss`` not bracketed by the calibration correlations at 0 and 10,
     or no convergence within 40 steps -> world 1 (and world 3, which inherits ``lambda``) is not run: 'SE check failed (size scenario)' for CH245; no other
     bracket, step count, seed or loading is tried."""
+    # re-check fix 2 (world 1's loading) and final verification fix 3 (failure rule): bracket, tolerance, step limit, slots and seed from the spec block
     w = spec["size_check"]["world1"]
     lo, hi = (float(x) for x in w["bracket"])
     tol, steps, slots = float(w["tol"]), int(w["max_steps"]), int(w["slots"])
@@ -215,7 +216,7 @@ def world_ch245(world: str, rng: np.random.Generator, *, events: int = 300, effe
     rows: list[dict] = []
     fam: dict[str, int] = {}
     for e in range(events):
-        n = int(rng.integers(8, SLOTS + 1))
+        n = int(rng.integers(8, SLOTS + 1))  # re-check fix 2: n uniform on 8..252 (worlds 1-6 and R1), so events with n_e < 16 occur
         st = _place(rng, n)
         fam[f"e{e}"] = int(rng.integers(0, FAMILIES))
         extra: dict = {}
@@ -327,7 +328,7 @@ def world_ch244(world: str, rng: np.random.Generator, *, events: int = 200, effe
     parts = []
     for e in range(events):
         M = int(rng.integers(3, 11))
-        n = int(rng.integers(8, SLOTS + 1))
+        n = int(rng.integers(8, SLOTS + 1))  # re-check fix 2: n uniform on 8..252 (worlds 7-10), so events with n_e < 16 occur
         st = _place(rng, n)
         scale = np.exp(MQ_LOADING * mu[st:st + n] / MQ_SD) if world == "10" else np.ones(n)
         et = rng.normal(0.0, 1.5, n) * scale
@@ -423,7 +424,7 @@ def evaluate_world(world: str, sub_seed: int, spec: dict, *, stat: str, draws: i
     seed = int(sub_seed % (2**31 - 1))
     rec: dict = {"n": int(len(P))}
     if stat == "gate":
-        g = an.gate(P, y, test, ctrl, spec, draws=draws, seed=seed)
+        g = an.gate(P, y, test, ctrl, spec, draws=draws, seed=seed)  # re-check fix 1: the analysis' own gate path (gate sample n_e >= 16, refitted CR1 t)
         rec.update(gate_testable=bool(g.get("testable")), reject=bool(g.get("passes")), excluded_events=g.get("excluded_events"), omitted_share_max=g.get("omitted_share_max"))
         return rec
     r = an.fit12(P, y, lt.TERM[test], ctrl, seed=seed, n_boot=20)
@@ -458,6 +459,8 @@ def size_check(*, worlds: int, draws: int, seed: int, spec: dict, tests=None, sc
     CH245 is 'SE check failed (size scenario)'. Reported, non-binding: the power runs and world R1. A failing gate scenario sets only its test to 'SE check
     failed (size scenario)', a failing verdict-size scenario to '(mechanical world)'; k unchanged; no rerun, reseed or redesign."""
     seed_guard(seed, registered=registered)
+    if registered and cal is None:
+        raise Refused("the registered size check needs the census-fixed world inputs (cal); development placeholders are never a size result")
     unknown = [s for s in scenarios if s not in SCENARIOS]
     if unknown:
         raise Refused(f"unknown size scenario {unknown}")
@@ -631,6 +634,9 @@ def size_check_cli(args, write_out) -> int:
         print(f"refusing: {e['error']}")
         return 2
     sc = spec["size_check"]
+    if not args.dev and (args.worlds is not None or args.draws is not None):
+        print("refusing: --worlds / --draws need --dev (the registered size check is 2,000 worlds x 200 draws, seed 20261597)")
+        return 2
     worlds = args.worlds if args.worlds is not None else int(sc["worlds"])
     draws = args.draws if args.draws is not None else int(sc["draws"])
     if worlds < 2 or draws < 1:
