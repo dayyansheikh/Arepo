@@ -63,6 +63,7 @@ adds this file.
 | A36 | `lt12_restore_guard.py`, q0710 | The reward-feed captures are restored with the same selectors; if the feed is not archived the globs match nothing and the host copies are the only source (a feed capture found nowhere is missing; CH244's feed coverage is a census coverage check). |
 | A37 | `census_ch245` | `s_D`, `s_T`, `s_w`, the terciles and `rho_census` are computed on the census thin population after 1.4's series-family exclusion. |
 | A38 | `_recompute` | `shock x lowliq` is recomputed whenever `lowliq` is present (the WIP recomputed it only when the column already existed, so the CH244 worlds lacked it; found by the development smoke run, D1). |
+| A39 | `battery2.KIND_RULES["live_tests12"]` | Added as 8.1 names it, in the form of LT11's entry (rule `n_tests`, fail-closed): one counted line, n_tests = k. **Ordering rule:** LT12 must be merged before LT10's first census run (q0662, not before 2026-11-03T09Z), because LT10's drafts q0662-q0665 record code_sha256 including battery2.py; the sentence is appended to the notes of q0662-q0665 (notes text only). |
 
 ## Deviations (disclosed)
 - **Gate trace hook.** `event_day_state_shift_gate(..., trace=None)` has a keyword-only test hook that receives each draw's frame, offsets and source rows; the analysis and the worlds never set it; it changes no value.

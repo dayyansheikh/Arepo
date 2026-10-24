@@ -181,3 +181,25 @@ def test_reader_then_analysis_on_a_synthetic_tree(tmp_path):
         assert res[t]["counts"]["units"] > 0 and res[t]["gate"]["testable"] in (True, False)
         assert "DRAFT: code hashes not verified" in res[t]["verdict"]["labels"]
     assert "informed (E022)" in res["CH244"]["verdict"]["labels"] and res["holm"]["m"] == 2 and res["counting"]["kind"] == "live_tests12"
+
+
+def test_battery2_counts_the_lt12_trials_line_as_k_and_fails_closed():
+    """8.1 / 1.11: battery2.KIND_RULES['live_tests12'] counts n_tests = k; a placebo-role line counts 0; an unknown kind raises (fail-closed)."""
+    from astrolabe.research_lab import battery2
+
+    assert battery2.KIND_RULES["live_tests12"][0] == battery2.N_TESTS and "Fail-closed" in battery2.KIND_RULES["live_tests12"][1]
+    for k in (["CH245", "CH244"], ["CH244"]):
+        assert battery2.count_line(an.trials_line(dict(_spec(), _sha256="x" * 64), k)) == ("live_tests12", len(k))
+    assert battery2.count_line({"kind": "live_tests12", "n_tests": 2, "evidence_role": "placebo"}) == ("live_tests12", 0)
+    with pytest.raises(KeyError):
+        battery2.count_line({"kind": "live_tests13", "n_tests": 1})
+
+
+def test_lt10_drafts_carry_the_lt12_battery2_ordering_rule():
+    import json
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[3] / "docs" / "research_lab" / "queue" / "drafts"
+    for f in ("q0662_lt10_census_family.json", "q0663_lt10_census_kalshi.json", "q0664_lt10_census_design.json", "q0665_lt10_size_check.json"):
+        n = json.loads((root / f).read_text())["notes"]
+        assert "LT12 (feat/live-tests-12-code, which changes battery2.py) must be merged BEFORE LT10's first census run" in n, f

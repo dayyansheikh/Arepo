@@ -118,7 +118,9 @@ def test_no_lt12_module_imports_lt3_to_lt11_or_e026():
 
 
 def test_branch_changed_no_e026_frozen_file_and_no_existing_live_tests_module():
-    r = subprocess.run(["git", "diff", "--name-only", FREEZE_COMMIT, "--", "backend/astrolabe/research_lab/", "docs/research_lab/LIVE_TESTS_12.md"], cwd=REPO, capture_output=True, text=True)
+    # this branch's OWN commits since the freeze (first parent, merges of the integration branch excluded: they bring other merged work)
+    r = subprocess.run(["git", "log", "--first-parent", "--no-merges", "--name-only", "--format=", f"{FREEZE_COMMIT}..HEAD", "--", "backend/astrolabe/research_lab/",
+                        "docs/research_lab/LIVE_TESTS_12.md"], cwd=REPO, capture_output=True, text=True)
     if r.returncode != 0:
         pytest.skip("git history not available")
     changed = [Path(x).name for x in r.stdout.split()]
