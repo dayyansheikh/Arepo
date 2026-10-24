@@ -299,10 +299,11 @@ def cmd_exclusion_keys(a):
 
 
 def exclusion_exit_code(m: dict) -> int:
-    """0 only when complete / terminal; every transient incomplete stop, including 'budget reached' (the spec has no repeat block), is TEMPFAIL (75)."""
+    """0 only when complete / terminal; every transient incomplete stop, including 'budget reached' (the spec has no repeat block), is TEMPFAIL (75);
+    a non-transient incomplete stop is an error (1), never 0, so the queue cannot mark a failed run done (q0164)."""
     if m.get("complete") is True or m.get("stopped") is None:
         return 0
-    return TEMPFAIL if m.get("transient") else 0
+    return TEMPFAIL if m.get("transient") else 1
 
 
 # ---- q0183 / q0184 P data ---------------------------------------------------------------------------------------------------------------------

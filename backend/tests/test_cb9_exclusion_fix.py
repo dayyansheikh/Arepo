@@ -150,6 +150,7 @@ def test_exit_code_incomplete_is_75_budget_pause_and_complete_are_0():
     assert f({"complete": False, "stopped": "paused_429_chunk_limit", "transient": True}) == 75
     assert f({"complete": False, "stopped": "budget reached", "transient": True}) == 75  # no repeat block in q0182b: a pause must not read as done
     assert f({"complete": True, "stopped": None}) == 0
+    assert f({"complete": False, "stopped": "walk_failed_terminal", "transient": False}) == 1  # never 0 on an incomplete run
 
 
 def test_cli_flag_and_job_spec_wiring():
