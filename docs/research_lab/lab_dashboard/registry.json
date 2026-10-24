@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-23T23:50:00Z",
+ "updated": "2026-10-24T04:05:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1036,18 +1036,18 @@
   {
    "id": "CB8-OTHER",
    "title": "Binance terminal minutes (CH76)",
-   "plain": "Designed: does the favourite's price in the last minutes of short crypto up/down markets lag the Binance price? The first market list was empty (a rule against overlap with earlier samples removed all 783 candidates). A reviewer allowed one declared retry, counted once; its list (23 Oct) holds 665 markets, about half sealed for replication. No price or outcome read yet.",
+   "plain": "Designed: does the favourite's price in the last minutes of short crypto up/down markets lag the Binance price? Not testable: the pre-declared order-book coverage check needed book data on at least 90% of sampled market-days and found 73% (87 of 119). Counted, no result either way; no price or outcome was read.",
    "batch": "CB8",
    "family": "microstructure",
    "stage": "designed",
-   "status": "waiting",
-   "verdict": "pending",
+   "status": "closed",
+   "verdict": "not_testable",
    "effect": null,
-   "next": "Order-book coverage check and books (q0166b), then the counting check",
+   "next": "None (counted with p = 1)",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB8-B (CH76) frame empty (2026-10-23) and § CB8-B variant merged, q0165b promoted (2026-10-23); docs/research_lab/reviews/CB8B_SERIES_KEY_RULING_2026-10-23.md; § CB8-B frame complete (q0165b), q0166b promoted (2026-10-23)"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB8-B coverage audit FAIL (q0166b), 2026-10-24"
    },
    "stage_results": {
     "designed": "pass"

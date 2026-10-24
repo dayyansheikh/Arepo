@@ -4493,3 +4493,16 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   uninformative by the reviewer; fixed before merge (non-registered seed, guard test). Other fixes: battery2 ordering before
   LT10's first census run (11-03T09Z), `informed_labels` null-until-pin, power-run seeds refused by `size-timing`, two label rules
   disclosed, minor counts / tests. LT12's coder was told the same rule for seed 20261597.
+
+## CB8-B coverage audit FAIL (q0166b), 2026-10-24 (experiments autopilot; counted, not testable; no price or outcome read)
+- **q0166b** (`updown-books`, rules v3 `9c5d432d…e498`, run dir `updown_b`) finished rc 0 at 01:20Z in 30 s with status
+  **`updown_books_source_unavailable`**: the pre-declared count-only pmxt coverage audit (hour 13Z of 20 seeded days; PASS iff
+  >= 90% of (market, day) pairs show an event; CREATIVE_BATCH_8.md round-1 item 3) found **87 of 119 pairs = 73.1%**
+  (`n_days_hour_unreadable` 0, so the readable-only share is the same). `AUDIT_FAIL.json` and `audit.json` (sha256
+  `bde1b0da…2a05`) written; no checkpoint extracted, no book state, price, print or outcome read; no HOLDOUT seal written
+  (so there is no `cb8_updown_holdout_SEAL.json` to commit).
+- **Verdict, as pre-declared: CB8-B (CH76) "not testable (source unavailable)"**, counted with p = 1 in CB8's family. The
+  variant allowed by `reviews/CB8B_SERIES_KEY_RULING_2026-10-23.md` was its one declared retry ("no further variant"); none
+  follows. Drafts q0169 (census BW), q0170 / q0174 (B) and q0171 / q0175 (W, already not testable at the q0161 smoke) are
+  dead and stay unpromoted; CB8-H (q0162 / q0163 collection, then q0172 / q0173 / q0176) continues unchanged.
+- Registry: CB8-OTHER -> closed, `not_testable`.
