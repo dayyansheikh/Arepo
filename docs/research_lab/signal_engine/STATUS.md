@@ -58,6 +58,7 @@
    `flow` before 11-16. Same for `rewards` against E022 before 11-18.
 5. **If CH214 drops at LT9's census:** `book` / `book0` need a new date by ledger line. If a census drops CH232 / CH233 /
    CH234, withdraw that LT11 token with a ledger line.
+   Same for LT12: a census drop of CH245 / CH244 withdraws `mirror` / `mixedlad` and any `attrlimit_lt12` item made only for it.
 6. Around 10-27/28: se8, se10, se16 and se20 start fitting and the `res_7d` LightGBM fits should work. Watch refit RSS.
 7. Remaining engine-first ideas (build only with a real prior): CH250 `paymaker` and CH248 `mt_twin_printed` only after
    11-18 / 11-22; CH239 `ruleclass` (likely a category proxy); `volage` after 11-22. LT12 families (`mirror`, `mixedlad`,
