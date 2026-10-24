@@ -33,7 +33,7 @@ MAPPING_RULE = (
 SIDECAR = "exclusion_fix_provenance.json"
 ASIDE = "manifest_q0182_failed.json"
 ASIDE_SHA = "manifest_q0182_failed.json.sha256"
-NOT_EXTRACTABLE = f8.NOT_EXTRACTABLE
+NOT_EXTRACTABLE = f8.NOT_EXTRACTABLE  # NB: unreachable here: seal_copy_ids_audited omits seals without market ids, so a seal with only pred_* files is skipped entirely (none exists today; fix before CB10 q0201 reuses this module)
 
 
 def fix_sha256() -> str:
@@ -103,6 +103,7 @@ def normalised_exclusion_ids(extra_pins: list[dict] | None = None) -> Iterator[d
     def wrapped_load(keys_path):
         out = orig_load(keys_path)
         state["n_cb8_ids"] = len(out[0])
+        state["cb8_event_keys"] = set(out[1].get("event", ()))
         return out
 
     def wrapped_seal(seals_dir, *a, **kw):
@@ -122,6 +123,8 @@ def normalised_exclusion_ids(extra_pins: list[dict] | None = None) -> Iterator[d
                 "counts": {**sp["counts"], "n_cb8_ids": state.get("n_cb8_ids"), "n_new_ids_final": len(ids)}, "per_pin": sp["per_pin"], "ids_sha256": f8.ids_sha256(set(ids)),
                 "pins": [{"name": n, "kind": "seal", "sha256": s} for n, s in sorted(state.get("shas", {}).items())] + [{"name": p["name"], "kind": "ids", "sha256": p["sha256"]} for p in extra_pins or []],
                 "pred_event_map_sha256": hashlib.sha256(json.dumps({k: sorted(v) for k, v in sorted((state.get("pred_map") or {}).items())}).encode()).hexdigest()}
+        pred_events = {e for v in (state.get("pred_map") or {}).values() for e in v}
+        plan["counts"]["n_pred_event_ids_not_in_any_key_set"] = stats["n_pred_event_ids_not_in_any_key_set"] = len(pred_events - state.get("cb8_event_keys", set()))  # inherited CB8 q0164b gap (found=0 markets)
         stats["n_new_ids_final"] = len(ids)
         fr.params["exclusion_fix"] = {k: plan[k] for k in ("mapping_rule", "fix_module_sha256", "cb8_fix_module_sha256", "counts", "ids_sha256", "pred_event_map_sha256")}
         _sidecar_and_aside(fr, plan)

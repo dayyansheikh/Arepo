@@ -148,7 +148,7 @@ def test_exit_code_incomplete_is_75_budget_pause_and_complete_are_0():
     f = run_cb9.exclusion_exit_code
     assert f({"complete": False, "stopped": "stage_failed: gamma markets lookup status 422", "transient": True}) == run_cb9.TEMPFAIL == 75
     assert f({"complete": False, "stopped": "paused_429_chunk_limit", "transient": True}) == 75
-    assert f({"complete": False, "stopped": "budget reached", "transient": True}) == 0
+    assert f({"complete": False, "stopped": "budget reached", "transient": True}) == 75  # no repeat block in q0182b: a pause must not read as done
     assert f({"complete": True, "stopped": None}) == 0
 
 
@@ -163,3 +163,48 @@ def test_cli_flag_and_job_spec_wiring():
     assert "--normalise-ids" not in old["argv"]  # q0182 stays recorded as registered
     draft = json.loads((root.parent / "drafts" / "q0201_cb10_exclusion_keys.json").read_text())
     assert "q0182b_cb9_exclusion_keys" in draft["depends_on"] and "q0182_cb9_exclusion_keys" not in draft["depends_on"]
+
+
+def test_budget_min_is_refused_under_normalise_ids(capsys):
+    code = run_cb9.main(["exclusion-keys", "--cb8-keys-sha256", "0" * 64, "--normalise-ids", "--budget-min", "5"])
+    assert code == run_cb9.REFUSED and "budget-min" in capsys.readouterr().out
+
+
+def test_end_to_end_exclusion_keys_under_the_patch(tmp_path):
+    """c9.exclusion_keys itself: composite already covered by the CB8 key file is not new, uncommitted seals are skipped, sidecar is in the manifest."""
+    import csv
+    import gzip
+
+    from astrolabe.research_lab import h5_seal
+    from astrolabe.research_lab import history_backfill as hb
+
+    seals = tmp_path / "seals"
+    seals.mkdir()
+    _seal(seals, "h7_cb4_series", ["prices/102__555.csv.gz", "pred_prices/200__555.csv.gz", "pred_trades/102__556.csv.gz"])
+    _seal(seals, "h8_tail", ["prices/300.csv.gz"])
+    _seal(seals, "h9_draft", ["prices/999.csv.gz"])  # not committed
+    keys = tmp_path / "cb8" / "exclusion_keys.csv.gz"
+    keys.parent.mkdir()
+    keys.write_bytes(hb._gz_csv_bytes(list(c6.KEY_COLUMNS), [["102", "1", "e102", "", ""], ["200", "1", "555", "", ""]]))
+    ksha = h5_seal.sha256_file(keys)
+    (keys.parent / c9.EXCLUSION_REPORT_NAME).write_text(json.dumps({"keys_sha256": ksha, "n_ids": 2, "n_missing": 0, "disjointness": "verified"}))
+    asked: list[str] = []
+
+    def tr(url, params):
+        ids = list(params.get("id") or [])
+        asked.extend(ids)
+        return 200, json.dumps([{"id": x, "negRiskMarketID": "", "events": [{"id": f"e{x}"}]} for x in ids]).encode(), {}
+
+    out = tmp_path / "creative_batch9"
+    with fix.normalised_exclusion_ids() as stats:
+        m = c9.exclusion_keys(out, tr, rules_sha="r" * 64, cb8_keys_path=keys, cb8_keys_sha256=ksha, seals_dir=seals, is_committed=lambda p: p.name != "h9_draft_SEAL.json",
+                              rps=1000.0, sleep=lambda s: None, data_dumps=None)
+    assert asked == ["300"]  # composite 102__555 -> 102 and pred market 200 are in the CB8 keys, so only 300 is new; 999 (uncommitted) never read
+    assert m["status"] in (c9.EXCLUSION_KEYS_COMPLETE, c9.UNVERIFIED) and m["complete"] is True
+    assert "h9_draft_SEAL.json" not in m["params"]["seal_copies_used"] and {"name": "h9_draft_SEAL.json", "reason": "not_committed"} in m["params"]["seal_copies_skipped"]
+    assert fix.SIDECAR in m["file_sha256"] and m["params"]["exclusion_fix"]["counts"]["n_new_ids_final"] == 1
+    assert m["params"]["exclusion_fix"]["counts"]["n_pred_event_ids_not_in_any_key_set"] == 1 and stats["n_pred_event_ids_not_in_any_key_set"] == 1  # 556 is in no CB8 key set
+    side = json.loads((out / "exclusion_run9" / fix.SIDECAR).read_text())
+    assert side["counts"]["n_pred_event_ids_not_in_any_key_set"] == 1
+    with gzip.open(out / "exclusion_keys.csv.gz", "rt", encoding="utf-8", newline="") as fh:
+        assert {r["market_id"] for r in csv.DictReader(fh)} == {"102", "200", "300"}

@@ -284,6 +284,8 @@ def cmd_exclusion_keys(a):
     run_kw = dict(rules_sha=sha, cb8_keys_path=Path(a.cb8_keys) if a.cb8_keys else c9.CB8_KEYS_DEFAULT, cb8_keys_sha256=a.cb8_keys_sha256,
                   seals_dir=Path(a.seals_dir) if a.seals_dir else None, extra_pins=extra,
                   is_committed=None if a.allow_uncommitted_rules else cb1_history.spec_committed, disk_cap=int(a.disk_cap_gb * 1024**3), **kw)
+    if a.normalise_ids and getattr(a, "budget_min", None) is not None:
+        raise c9.Refused("--budget-min is not supported with --normalise-ids (q0182b runs to completion inside its timeout and resumes by batch)")
     if not a.normalise_ids:  # q0182 as registered (fails on the composite h7_cb4_series ids); kept for reproducibility
         return _result(c9.exclusion_keys(root, hb.httpx_transport(), **run_kw))
     from astrolabe.research_lab import cb8_exclusion_budget as xb  # noqa: PLC0415
@@ -297,8 +299,8 @@ def cmd_exclusion_keys(a):
 
 
 def exclusion_exit_code(m: dict) -> int:
-    """0 when complete / terminal or a clean 'budget reached' pause; any other transient incomplete stop is TEMPFAIL (75), never 0 (q0164 failed that way)."""
-    if m.get("complete") is True or m.get("stopped") is None or m.get("stopped") == "budget reached":
+    """0 only when complete / terminal; every transient incomplete stop, including 'budget reached' (the spec has no repeat block), is TEMPFAIL (75)."""
+    if m.get("complete") is True or m.get("stopped") is None:
         return 0
     return TEMPFAIL if m.get("transient") else 0
 
