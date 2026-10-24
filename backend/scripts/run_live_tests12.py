@@ -13,7 +13,7 @@ makes no network request.
     python scripts/run_live_tests12.py ops-stats [--root O]                                              # counts only; reads no price, spread, volume or liquidity column
     python scripts/run_live_tests12.py analyze --out a12.json                                            # q0715, not before 2027-01-01T12:00Z
 
-LT12 ambiguity A2 (= LT11 A1): the design (8.1) names ``scripts/research_lab/run_live_tests12.py``; the LT9-LT11 runners live in ``backend/scripts/``, so
+LT12 ambiguity A28 (= LT11 A1): the design (8.1) names ``scripts/research_lab/run_live_tests12.py``; the LT9-LT11 runners live in ``backend/scripts/``, so
 this one does too. Queue drafts use ``scripts/run_live_tests12.py``.
 
 Every subcommand that writes refuses to overwrite ``--out``; the census, the size check and the reader accept ``--data-dumps-cap-gb`` (exit 75 above it, the

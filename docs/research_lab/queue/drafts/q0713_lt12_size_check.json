@@ -1,0 +1,35 @@
+{
+ "id": "q0713_lt12_size_check",
+ "title": "LT12 size check (DRAFT): 2,000 worlds x 200 draws, seed 20261597, limit 0.058, the 10 scenarios of LIVE_TESTS_12.md 1.8 / 1.8.1 through the analysis's own gate path (event_day_state_shift_gate), world 1's loading by the declared bisection first, after k and the census-fixed values are committed",
+ "family": "live_tests_12",
+ "priority": 47,
+ "expected_value": "per-test size results (1.8); a failing scenario sets only its own tests to 'SE check failed (size scenario)' or '(mechanical world)', k unchanged; world 1's lambda, the power runs and world R1 printed beside them",
+ "data": [
+  "none (simulated worlds; the census-fixed rho_census, receipt-gap q50 / q90 and status-liquidity correlation from the committed spec)"
+ ],
+ "resources": {
+  "mem_mb": 800,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0712_lt12_census"
+ ],
+ "not_before": "2026-11-18T00:00:00Z",
+ "argv": [
+  "scripts/run_live_tests12.py",
+  "size-check",
+  "--data-dumps-cap-gb",
+  "40",
+  "--out",
+  "../data-dumps/research_lab/live_tests12_census/SIZE12.json"
+ ],
+ "timeout_s": 172800,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests12_census/SIZE12.json"
+ ],
+ "next_action": "record the per-test size results, world 1's lambda, the power runs and world R1 in the ledger and in the spec's size_check_result before the pin",
+ "notes": "Planning: set timeout_s from q0716's projection before promotion. A timeout kill is NOT a deterministic crash: no rerun at seed 20261597. The command refuses outside --dev unless k_tests and the census values are filled, refuses --worlds/--draws without --dev, and refuses without the census-fixed world inputs. No preliminary run at seed 20261597 or at its declared derived seeds (x 100 + 51, 52, 54, 61); no test uses them (guard test). If world 1's bisection fails (rho_census NaN, unbracketed on [0, 10], or no convergence in 40 steps), worlds 1 and 3 are not run and CH245 is 'SE check failed (size scenario)' (final verification fix 3). DRAFT, not in queue/jobs. Promote only after: the LT12 design-text freeze (LIVE_TESTS_12.md design text frozen at sha256 a543db63baeb3e85ff2dfa0189478086216c708e59b36f6db575c6b84592b62d), the LT12 code and the independent science-reviewer code-freeze check of the census, gate and size-check code against LIVE_TESTS_12.md sections 1.8, 1.8.1 and 7 (8.4 step 3; it must confirm re-check fixes 1-2 in code, see docs/research_lab/LT12_CODE_NOTES.md), and never while E015's or E022's analysis, or an LT9, LT10 or LT11 census, size check or analysis job, is running (memory-heavy-jobs rule; 7). Counts 0 (descriptive; no trials line) except q0715, which writes the single counted trials line (kind live_tests12). Reads the DRAFT spec unpinned (except q0714 and q0715, which read the pinned spec); the code_sha256 of every hashed module is written into the output. Every gate threshold is stated in section 7 before this runs; nothing is re-tuned after it. Restore, seal and census run ONCE each; max_retries 1 covers a deterministic crash only (no output written). Runs with --data-dumps-cap-gb 40 where the runner accepts it (exit 75 above the cap)."
+}

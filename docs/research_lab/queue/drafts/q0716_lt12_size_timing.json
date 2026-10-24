@@ -1,0 +1,37 @@
+{
+ "id": "q0716_lt12_size_timing",
+ "title": "LT12 size-check timing (DRAFT): 20 worlds x 200 draws of each of the 10 scenarios (and 5 R1 worlds) at the timing seed 20261597 x 100 + 98, wall-clock per world only, projected to 2,000 worlds x 200 draws plus the power runs and world R1 (LIVE_TESTS_12.md 8.4 step 3)",
+ "family": "live_tests_12",
+ "priority": 48,
+ "expected_value": "the projected run time of q0713 and whether the ordered-lane ledger line is needed before the seal (projected end = planned census commit 2026-11-19 + run time + 24 h margin + the dry run, against 2026-12-08T00:00Z); no result of any world is written",
+ "data": [
+  "none (simulated worlds)"
+ ],
+ "resources": {
+  "mem_mb": 600,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [],
+ "not_before": "2026-10-25T00:00:00Z",
+ "argv": [
+  "scripts/run_live_tests12.py",
+  "size-timing",
+  "--worlds",
+  "20",
+  "--draws",
+  "200",
+  "--data-dumps-cap-gb",
+  "40",
+  "--out",
+  "../data-dumps/research_lab/live_tests12_census/SIZE12_TIMING.json"
+ ],
+ "timeout_s": 7200,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests12_census/SIZE12_TIMING.json"
+ ],
+ "next_action": "record the per-scenario seconds per world, the projected total and projected_end_utc in the ledger; if ordered_lane_ledger_line_needed is true, write the ordered-lane ledger line BEFORE the seal (8.4 step 3)",
+ "notes": "Not in 7's id list (q0710-q0715): added as LT11 added q0696 (LT12_CODE_NOTES A27). Clock only: size-timing writes per-scenario wall-clock seconds per world, the projection and the code / spec / design-text hashes; the worlds' return values are discarded unread and the output holds no rejection count, rate, p-value or status. The timing seed 20261597 x 100 + 98 is neither the registered size-check seed nor a declared derived seed (x 100 + 51, 52, 54, 61) nor the development seed (x 100 + 99); the command refuses those. Worlds use the labelled development placeholders (rho_census 0.64, receipt gaps 5 s / 30 s, correlation -0.20) while the census values are unfilled (timing only). Run on the collection host, not beside any memory-heavy job. DRAFT, not in queue/jobs. Promote only after: the LT12 design-text freeze (LIVE_TESTS_12.md design text frozen at sha256 a543db63baeb3e85ff2dfa0189478086216c708e59b36f6db575c6b84592b62d), the LT12 code and the independent science-reviewer code-freeze check of the census, gate and size-check code against LIVE_TESTS_12.md sections 1.8, 1.8.1 and 7 (8.4 step 3; it must confirm re-check fixes 1-2 in code, see docs/research_lab/LT12_CODE_NOTES.md), and never while E015's or E022's analysis, or an LT9, LT10 or LT11 census, size check or analysis job, is running (memory-heavy-jobs rule; 7). Counts 0 (descriptive; no trials line) except q0715, which writes the single counted trials line (kind live_tests12). Reads the DRAFT spec unpinned (except q0714 and q0715, which read the pinned spec); the code_sha256 of every hashed module is written into the output. Every gate threshold is stated in section 7 before this runs; nothing is re-tuned after it. Restore, seal and census run ONCE each; max_retries 1 covers a deterministic crash only (no output written). Runs with --data-dumps-cap-gb 40 where the runner accepts it (exit 75 above the cap)."
+}
