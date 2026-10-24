@@ -1027,3 +1027,19 @@ champion. That is a hint, not a test.
     se1 on all three direction targets, with each CI excluding zero and at least 4 of 5 days positive.
   - A null or mixed result is recorded here as a dead end, and nothing is registered.
 - Result: pending (q0516).
+
+## 33. LT12 freeze: `mirror`, `mixedlad` and `attrlimit_lt12` (2026-10-24 ~04:00Z; no scoring change)
+
+Applied from the `CANDIDATES.md` LT12 freeze request (~23:45Z; LIVE_TESTS_12.md section 9, design text frozen at 01d6014c,
+sha256 `a543db63…`, checked against the file), before any column of these families exists, so nothing has been computed or
+shown on these terms.
+- **Embargo.** `config.EMBARGO` gains `mirror` (LT12-CH245: `nr_twin_dspread`, `nr_thin_x_twin_dspread`) and `mixedlad`
+  (LT12-CH244: `nr_shock_x_unrew`), each until 2027-01-03T00:00Z (the later of that and LT12's analysis commit; moved later
+  only by a ledger line), and `attrlimit_lt12` (kind `attribution_limit`, same date; models champion, se1 and any broad
+  model; `no_broad_families: ["mirror", "mixedlad"]`). No `feeclass` token (CH243 left LT12 at challenger R1).
+- **Column routing.** The two-member levels `nr_twin_spread`, `nr_gap_ask`, `nr_gap_bid`, `nr_thin` are outside `mirror` but
+  are `nrslack` columns, so they stay under LT11's `nrslack` to 2026-12-12. `mixedlad`'s levels (`nr_mixed`, `nr_unrew_share`,
+  `nr_own_unrew`) are reward-status columns and wait for the `rewards` date (2026-11-18) in any family.
+- **Builder judgement (not built this session).** Neither family is built: each would be a hidden isolating challenger until
+  2027-01-03 that raises K, on a mechanism LT12 itself will settle first.
+- Tests: `test_lt12_freeze_requests`; the generic attribution-limit loop now also lists `attrlimit_lt12`.

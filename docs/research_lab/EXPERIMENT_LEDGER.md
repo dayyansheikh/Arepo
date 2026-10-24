@@ -4524,3 +4524,15 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   [2026-10-22T00:00Z, 2026-10-25T00:00Z) (CREATIVE_BATCH_7.md reading 13), so it cannot run before that window closes (the
   draft's "at or after 10-24T01:00Z" was the earliest code-readiness time, not the window end). q0144 / q0145 / q0146 done; seal
   copies `h8_text_SEAL.json` / `h8_geo_SEAL.json` committed. argv unchanged (`census --family S,G,X`).
+
+## Signal engine: LT12 freeze requests applied (`mirror`, `mixedlad`, `attrlimit_lt12`), 2026-10-24 ~04:00Z (signal-engine autopilot; embargo only; nothing scored or counted)
+- **What:** the `CANDIDATES.md` LT12 freeze request (2026-10-23 ~23:45Z; LIVE_TESTS_12.md section 9, design text frozen at
+  01d6014c, sha256 `a543db63…b62d`, verified) applied with its text (DESIGN_V1 section 33): `config.EMBARGO` gains `mirror`
+  (LT12-CH245; `nr_twin_dspread`, `nr_thin_x_twin_dspread`) and `mixedlad` (LT12-CH244; `nr_shock_x_unrew`; its levels only
+  after the `rewards` date 2026-11-18), each until 2027-01-03T00:00:00Z (the later of that and LT12's analysis commit; moved
+  later only by a ledger line), and `attrlimit_lt12` (attribution limit, same date; models: champion, se1, any broad model;
+  `no_broad_families: ["mirror", "mixedlad"]`). No `feeclass` token.
+- **State at entry:** no column of either family exists in any aux family or in `se-features-v1` (tested); `event`'s sibling
+  columns are mid-based and `rewards` is levels only (embargoed to 11-18), so no scored family holds a twin-spread innovation
+  or a reward-status x shock interaction (*informed (engine)* does not apply). Engine attribution is per family, so no
+  interaction attribution on the limited terms is computed. Applied before LT12's registration commit, as section 9 asks.
