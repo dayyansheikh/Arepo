@@ -4548,3 +4548,21 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   columns are mid-based and `rewards` is levels only (embargoed to 11-18), so no scored family holds a twin-spread innovation
   or a reward-status x shock interaction (*informed (engine)* does not apply). Engine attribution is per family, so no
   interaction attribution on the limited terms is computed. Applied before LT12's registration commit, as section 9 asks.
+
+## CB9 q0182 FAILED x3 (Gamma 422); q0182b fix reviewed, merged, queued, 2026-10-24 ~05:10Z (experiments autopilot; operational, nothing counted)
+- **q0182** failed 3 times (01:22Z-01:58Z, rc 1, `ApiError: gamma markets lookup status 422`), the q0164 cause: the committed
+  `h7_cb4_series_SEAL.json` names files `<successor market>__<pred event>` (1,922 composite ids) and Gamma's `id` filter takes
+  integers only. `exclusion_run9` held only `request_clock.json` (nothing to resume or copy aside). q0182 stays recorded failed.
+- **Fix** (`cb9_exclusion_fix.py`, run-scoped via `exclusion-keys --normalise-ids`; reuses CB8 q0164b's mapping rule; no
+  rules-hashed function edited, `cb9_rules_v4.json` verifies): ruling `reviews/CB9_Q0182B_RULING_2026-10-24.md`
+  **GO_WITH_CHANGES**, changes 1-5 applied (af2726f9) plus an orchestrator self-review fix (8a1caf4f: a non-transient incomplete
+  stop exits 1, never 0). Merged 6f600491; tests 186 passed (CB8/CB9 + pins).
+- **Dry run on a temp clone with the real commit rule:** seals used h5_cb1, h5_cb1_ladders, h7_cb4_era, h7_cb4_series, h8_tail;
+  h6_weather `not_committed` (absent at q0182 per CREATIVE_BATCH_9.md:175; an earlier 66,020-id figure that included it is
+  withdrawn); 12,640 committed seal ids -> 13,207 after pred market ids; 324,735 CB8 ids; **3,990 new ids**, none non-integer.
+- **Inherited deviation disclosed (not repaired):** CB8 q0164b attaches `pred_event_id` only for predecessor markets Gamma found,
+  against its ruling's item 1; **8 predecessor event ids are in no CB8 event key set** (`n_pred_event_ids_not_in_any_key_set`,
+  written to the q0182b sidecar and manifest). Other markets of those 8 events can pass CB8's key drop. No retroactive CB8 repair.
+- Known existing issue (not covered): other CB9 kinds (`run_cb9.py` sign / kd / pyth paths) still exit 0 on a transient
+  incomplete stop. `NOT_EXTRACTABLE` is unreachable in `build_seal_plan`; to be handled before CB10 q0201 reuses the module.
+- **q0182b queued** (net lane, depends q0164c / q0166, both done); q0201 (CB10, draft) now depends on q0182b.
