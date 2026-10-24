@@ -4524,3 +4524,15 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   [2026-10-22T00:00Z, 2026-10-25T00:00Z) (CREATIVE_BATCH_7.md reading 13), so it cannot run before that window closes (the
   draft's "at or after 10-24T01:00Z" was the earliest code-readiness time, not the window end). q0144 / q0145 / q0146 done; seal
   copies `h8_text_SEAL.json` / `h8_geo_SEAL.json` committed. argv unchanged (`census --family S,G,X`).
+
+## LT11 code merged; q0696 size-timing promoted, 2026-10-24 ~04:35Z (experiments autopilot; nothing counted)
+- Re-check (ACCEPT_WITH_FIXES) defects 1-6 applied on `feat/live-tests-11-code` (1e08902a): test seed 99000001 with a guard test
+  (no test passes the registered seed 20261497 to `size_check(..., registered=True)`; the remaining uses are refusal tests,
+  verified by grep); battery2 ordering rule in q0662-q0665 notes; `informed_labels` null + refusal; `labels_not_computed`;
+  `size-timing` refuses the power-run generators x 100 + 41/42/43; A30 (holiday / month-start label asymmetry, disclosure
+  only); re-crossing strictly-higher test, `vclass_sidecar_missing` on the early-return path, nested-list check. The ledger's
+  10-23 deviation entry (registered seed in a unit test, judged uninformative) stands as the disclosure. Gaps noted by the
+  fixer: no dedicated test of the early-return `vclass_sidecar_missing`.
+- **Merged** 8ca24855 (frozen text `991100db…` unchanged; scoped tests 317 passed incl. LT10 and the pins). Merged before LT10's
+  first census run (q0662, not before 11-03T09Z), as the battery2 rule requires. Deployed.
+- **q0696 promoted** (clock only; seed 20261497 x 100 + 98; outputs per-scenario seconds and projection, no world result read).
