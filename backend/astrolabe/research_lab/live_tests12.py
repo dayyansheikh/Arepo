@@ -1597,7 +1597,7 @@ def _recompute(test: str, X: pd.DataFrame) -> None:
 
 
 def event_day_state_shift_gate(df: pd.DataFrame, y: np.ndarray, term: str, controls: list[str], *, test: str, draws: int, seed: int, min_captures: int = 16,
-                               sign: int = 1) -> dict:
+                               sign: int = 1, trace=None) -> dict:
     """The event-phase STATE-SHIFT gate of LT12 (1.8, R1 must-fix 6, re-check fix 1). New code (not a vendored copy), built from LT5's offset rule and LT11
     CH233's event-phase index (:func:`event_phase_index`).
 
@@ -1610,7 +1610,8 @@ def event_day_state_shift_gate(df: pd.DataFrame, y: np.ndarray, term: str, contr
     demeaning is RE-APPLIED to every shifted regressor in each unit's real stratum and real order (over the draw's non-omitted units); every other regressor
     and the target keep their analysis values; the full model is refitted on the gate sample. Statistic: the tested coefficient's event-clustered CR1 t
     (:func:`cr1_event_t`, clusters = the gate sample's events), computed identically for the OBSERVED fit, which is refitted on the same gate sample (never
-    taken from the all-units fit), and for every draw. ``p_perm = (1 + #{t_draw >= t_obs}) / (1 + draws)``; passes if < 0.05."""
+    taken from the all-units fit), and for every draw. ``p_perm = (1 + #{t_draw >= t_obs}) / (1 + draws)``; passes if < 0.05. ``trace`` (tests only;
+    never set by the analysis or the worlds) is called once per draw with the gate frame, the per-event offsets, the source rows and the draw's design."""
     assert not df.attrs.get("lt12_demeaned"), "event_day_state_shift_gate shifts RAW states only: a pre-demeaned frame is refused (1.8, R1 must-fix 6)"
     assert test in SHIFT_RAW, test
     shift = [c for c in SHIFT_RAW[test] if c in df]
@@ -1691,7 +1692,10 @@ def event_day_state_shift_gate(df: pd.DataFrame, y: np.ndarray, term: str, contr
         hit = skey[j] == want
         src = np.where(hit, srt[j], -1)
         om.append(float((src < 0).mean()))
-        tv = stat(*shifted(src))
+        Dm_, keep_ = shifted(src)
+        if trace is not None:
+            trace({"G": G, "events": ev_order, "offsets": o.copy(), "src": src.copy(), "pos": pos.copy(), "D": D, "Dm": Dm_})
+        tv = stat(Dm_, keep_)
         tvals.append(tv)
         ge += int(math.isfinite(tv) and tv >= t_obs)
     p = (1 + ge) / (1 + draws)
