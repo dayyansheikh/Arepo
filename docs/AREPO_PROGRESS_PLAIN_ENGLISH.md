@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-24 04:58 UTC+1
+**Last updated:** 2026-10-24 05:08 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -13,9 +13,11 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
   read, and there is no retry (the one allowed retry was this run).
 - **Fixed a second silent stall:** one background extraction for batch 4 had stopped at a small size limit since 18 Oct.
   The limit is raised (storage only; no rule changed). Nothing is lost; it catches up over the next passes.
-- **Being fixed now (in parallel):** LT11's last six review fixes, then it merges; batch 9's market-overlap check (failed on the
-  same ID-format problem batch 8 hit, so the same reviewed fix is being reused); LT12's code (two tests: "the mirror" and "the
-  farmed half"), then its independent code check; and a fresh round of original ideas (round 18).
+- **Done this morning:** LT11's code passed its re-check fixes and is merged (its timing run is queued); batch 9's
+  market-overlap step got a reviewed fix and is queued again (it failed on the same ID-format problem batch 8 hit); batch 7's
+  counting check is queued for 25 Oct, when its fixed data window closes.
+- **In progress:** LT12's code (two tests: "the mirror" and "the farmed half"), then its independent code check; and a fresh
+  round of original ideas (round 18).
 - **Server:** the long model run MC1 is working through its folds; live collectors healthy.
 - **Seven registered live tests** are collecting or waiting to collect (E009/E010, E011, E012-E014, E015, E022, E026).
   Single analyses: E009/E010 (3 Nov), E011 (11 Nov), E012-E014 (13 Nov), E015 (15 Nov), E022 (17 Nov), E026 (6 Dec).
