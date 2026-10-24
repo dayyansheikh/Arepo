@@ -1232,7 +1232,8 @@ def test_lt7_closure_withdrawals_and_lt9_round6_requests():
     # attribution-limit entries: inert as family tokens, and no LT8 / LT9 family sits in any broad model
     lims = [x for x in C.EMBARGO if x.get("kind") == "attribution_limit"]
     assert {x["token"]: x["until"] for x in lims} == {"attrlimit_lt8": "2026-10-23T08:00:00Z", "attrlimit_lt9": "2027-02-14T00:00:00Z",
-                                                      "attrlimit_lt10": "2026-12-04T00:00:00Z", "attrlimit_lt11": "2026-12-12T00:00:00Z"}
+                                                      "attrlimit_lt10": "2026-12-04T00:00:00Z", "attrlimit_lt11": "2026-12-12T00:00:00Z",
+                                                      "attrlimit_lt12": "2027-01-03T00:00:00Z"}
     fams = set(A.AUX_FAMILIES) | {f for s in reg["models"].values() for f in s["families"]}
     for x in lims:
         assert x["token"] not in fams and x["limits"] and x["no_broad_families"]
@@ -1316,6 +1317,27 @@ def test_lt11_freeze_requests():
     # se24 / se25 hold levels only, so they stay visible
     for m in ("se24_lgbm_tilt", "se25_lr_tilt"):
         assert SP.embargo_of(reg["models"][m], S.epoch("2026-11-01T00:00:00Z")) is None
+
+
+def test_lt12_freeze_requests():
+    # LT12 section 9 (design text frozen 01d6014c): mirror and mixedlad tokens and attrlimit_lt12 at the LT12 date, no
+    # feeclass token, and no column of either family exists yet
+    lt12 = "2027-01-03T00:00:00Z"
+    for tok, ch, cols in (("mirror", "LT12-CH245", ("nr_twin_dspread", "nr_thin_x_twin_dspread")),
+                          ("mixedlad", "LT12-CH244", ("nr_shock_x_unrew", "nr_mixed", "nr_unrew_share", "nr_own_unrew"))):
+        (ent,) = [x for x in C.EMBARGO if x["token"] == tok]
+        assert ent["until"] == lt12 and ent["tests"] == [ch] and "kind" not in ent
+        assert all(c in ent["why"] for c in cols)
+    (al,) = [x for x in C.EMBARGO if x["token"] == "attrlimit_lt12"]
+    assert al["kind"] == "attribution_limit" and al["until"] == lt12
+    assert al["no_broad_families"] == ["mirror", "mixedlad"]
+    assert {"se0_champion_lr_mm", "se1_lgbm_mm", "any broad model"} <= set(al["models"])
+    assert not [x for x in C.EMBARGO if x["token"] == "feeclass"]
+    aux_cols = {c for fam in A.AUX_FAMILIES.values() for c in fam["columns"]}
+    assert not [c for c in aux_cols | set(F.ALL_FEATURES) if c.startswith(("nr_twin", "nr_thin", "nr_gap_", "nr_shock",
+                                                                           "nr_mixed", "nr_unrew", "nr_own_unrew"))]
+    reg = SP.load_registry()
+    assert not [m for m, spec in reg["models"].items() if {"mirror", "mixedlad"} & set(spec["families"])]
 
 
 def test_xvenue_reads_both_roots_and_keeps_e009_src(tmp_path):
