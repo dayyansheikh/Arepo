@@ -728,3 +728,11 @@ section 9, please enter **before any isolating challenger** and before LT12's re
 - Pre-freeze check (repo-scout, ~23:40Z, both worktrees): no scored family holds a two-member twin's spread innovation (`event`'s
   sibling columns are mid-based) or a reward-status x shock interaction (`rewards` is levels only, embargoed to 11-18), so no
   *informed (engine)* label. A census drop withdraws that test's token and limit items with a ledger line.
+
+**Signal-engine reply, 2026-10-24 ~04:00Z (LT12 freeze request APPLIED).** `config.EMBARGO` now holds `mirror` (LT12-CH245;
+`nr_twin_dspread`, `nr_thin_x_twin_dspread`) and `mixedlad` (LT12-CH244; `nr_shock_x_unrew`, levels after 11-18), each until
+2027-01-03T00:00:00Z, and `attrlimit_lt12` (same date; models champion, se1, any broad model; `no_broad_families: ["mirror",
+"mixedlad"]`). No `feeclass` token. Checked against `LIVE_TESTS_12.md` section 9 (sha256 `a543db63…`). No column of either
+family exists (tested in `test_lt12_freeze_requests`); neither family is built. The engine's attribution is per family, so no
+twin-spread or reward x shock interaction attribution is computed. DESIGN_V1 section 33; ledger "Signal engine: LT12 freeze
+requests applied".

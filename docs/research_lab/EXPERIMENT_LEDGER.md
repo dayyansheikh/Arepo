@@ -4471,3 +4471,98 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   `feeclass`). Pre-freeze engine check: no scored family holds either state, no *informed (engine)*.
 - **Next:** LT12 code (census, size-check worlds incl. the CR1 state-shift gate and world 1 calibration, reader, analysis;
   queue drafts), its independent code-freeze check (which must confirm re-check fixes 1-2 in code), before the seal.
+## Signal engine: `refit_full` development probe queued, 2026-10-23 ~23:50Z (signal-engine autopilot; development only, nothing counted)
+- Question: the LightGBM models never learn from the newest ~20% of their window (it is used only for early stopping and
+  temperature). Does a refit on the whole window forecast better? DESIGN_V1 §32.
+- Opt-in `params.refit_full` in `learners.fit_lgbm`; no pinned spec sets it, so live fits, predictions and sha pins are
+  unchanged.
+- Probe `run_se_dev_refit_full.py` (queue `q0516`, priority 30, below every other ready job): se1 against an unregistered
+  copy over 5 days. It writes only `dev/refit_full_<stamp>.json` and never touches the leaderboard, dashboard or promotion.
+- Reading rule fixed before the run: a registered challenger only if the copy beats se1 on all 3 direction targets, with
+  each CI excluding zero and >= 4/5 days positive; otherwise a dead end.
+- **LT11 code fixes applied** (2026-10-23 ~23:55Z; `feat/live-tests-11-code` 6d64c56c, b2f87b86, 10565177, 77deb1fe, 7dcf6623): all
+  7 MUST and 11 SHOULD fixed or disclosed (CLOB-disagreement label: no feed reader, deviation); `size-timing` (clock only, seed
+  20261497 x 100 + 98) + draft q0696; q0691 not before 11-07T08:00Z; q0690 via a new byte / free-disk guard
+  (`lt11_restore_guard.py`, stop-and-ask on overflow); notes A25-A29. Scoped tests 332 passed (pins incl.). Disclosed: one
+  dev-seed small-world look at worlds 12-14 (nothing changed after it) and one 1-world timing run read for the clock only.
+  Frozen text unchanged. Re-check running.
+- **LT11 code re-check: ACCEPT_WITH_FIXES** (`reviews/LT11_CODE_RECHECK_2026-10-23.md`). **Deviation found and disclosed:** a unit
+  test (`test_research_lab_live_tests11_worlds.py:66`, since 2c3bbaf6) ran small CH232 worlds 9-10 at the registered size-check
+  seed 20261497 on every pytest run, against 1.8's "no preliminary run at seed 20261497". Only a "missing" status was asserted;
+  no rejection rate was read; the master draws it used go to scenario 1's CH234 worlds in the registered run. Judged
+  uninformative by the reviewer; fixed before merge (non-registered seed, guard test). Other fixes: battery2 ordering before
+  LT10's first census run (11-03T09Z), `informed_labels` null-until-pin, power-run seeds refused by `size-timing`, two label rules
+  disclosed, minor counts / tests. LT12's coder was told the same rule for seed 20261597.
+
+## CB8-B coverage audit FAIL (q0166b), 2026-10-24 (experiments autopilot; counted, not testable; no price or outcome read)
+- **q0166b** (`updown-books`, rules v3 `9c5d432d…e498`, run dir `updown_b`) finished rc 0 at 01:20Z in 30 s with status
+  **`updown_books_source_unavailable`**: the pre-declared count-only pmxt coverage audit (hour 13Z of 20 seeded days; PASS iff
+  >= 90% of (market, day) pairs show an event; CREATIVE_BATCH_8.md round-1 item 3) found **87 of 119 pairs = 73.1%**
+  (`n_days_hour_unreadable` 0, so the readable-only share is the same). `AUDIT_FAIL.json` and `audit.json` (sha256
+  `bde1b0da…2a05`) written; no checkpoint extracted, no book state, price, print or outcome read; no HOLDOUT seal written
+  (so there is no `cb8_updown_holdout_SEAL.json` to commit).
+- **Verdict, as pre-declared: CB8-B (CH76) "not testable (source unavailable)"**, counted with p = 1 in CB8's family. The
+  variant allowed by `reviews/CB8B_SERIES_KEY_RULING_2026-10-23.md` was its one declared retry ("no further variant"); none
+  follows. Drafts q0169 (census BW), q0170 / q0174 (B) and q0171 / q0175 (W, already not testable at the q0161 smoke) are
+  dead and stay unpromoted; CB8-H (q0162 / q0163 collection, then q0172 / q0173 / q0176) continues unchanged.
+- Registry: CB8-OTHER -> closed, `not_testable`.
+
+## Operational deviation: CB4 closewin pass step stopped at its 0.40 GB output cap since 2026-10-18 (found 2026-10-24 ~04:10Z; not counted)
+- After the 10-23 data-dumps guard fix (9f57dfd2), CB5 listings caught up (35 written, 10-24T02:31Z pass) but CB4 `closewin
+  --all-new` logged `stopped: disk_cap`, `written: 0`, `remaining: 61`: its separate output cap (default `--disk-cap-gb 0.40`,
+  CREATIVE_BATCH_4.md §2 disk guard, declared for the q0080 backfill) binds at 383 MiB written (84 captures 10-11T12:33Z ..
+  10-18T22:31Z, all `extracted`; about 4.6 MB a capture, against the design's storage estimate).
+- Fix (ops only; no row, rule, window or population changed): the pass step gets `--disk-cap-gb 1.5` (`arepo_pass.sh`). Not 3.0:
+  the headroom rule reserves the unused allowance against the 40 GiB data-dumps guard (37 GiB at 03:37Z), so a larger cap
+  would refuse sooner. 1.5 GB covers the 61 waiting captures plus about 15 days. The extract stays idempotent, oldest first;
+  a capture no longer on the host when reached is recorded `missing`, never reconstructed. Same consumer rule as the 10-23
+  entry: CB4-MAIN / CH46 freeze records must show the extract caught up (T4_dev_end 10-25T00Z) before any seal reads it.
+  Revisit with the owner's restore-copy clearing decision (dashboard item 8).
+
+## CB7 census q0147 promoted, 2026-10-24 ~04:20Z (experiments autopilot; operational, nothing counted)
+- Draft -> job with `not_before` 2026-10-25T01:00Z: the binding `h_geo` reads complete captures starting in
+  [2026-10-22T00:00Z, 2026-10-25T00:00Z) (CREATIVE_BATCH_7.md reading 13), so it cannot run before that window closes (the
+  draft's "at or after 10-24T01:00Z" was the earliest code-readiness time, not the window end). q0144 / q0145 / q0146 done; seal
+  copies `h8_text_SEAL.json` / `h8_geo_SEAL.json` committed. argv unchanged (`census --family S,G,X`).
+
+## LT11 code merged; q0696 size-timing promoted, 2026-10-24 ~04:35Z (experiments autopilot; nothing counted)
+- Re-check (ACCEPT_WITH_FIXES) defects 1-6 applied on `feat/live-tests-11-code` (1e08902a): test seed 99000001 with a guard test
+  (no test passes the registered seed 20261497 to `size_check(..., registered=True)`; the remaining uses are refusal tests,
+  verified by grep); battery2 ordering rule in q0662-q0665 notes; `informed_labels` null + refusal; `labels_not_computed`;
+  `size-timing` refuses the power-run generators x 100 + 41/42/43; A30 (holiday / month-start label asymmetry, disclosure
+  only); re-crossing strictly-higher test, `vclass_sidecar_missing` on the early-return path, nested-list check. The ledger's
+  10-23 deviation entry (registered seed in a unit test, judged uninformative) stands as the disclosure. Gaps noted by the
+  fixer: no dedicated test of the early-return `vclass_sidecar_missing`.
+- **Merged** 8ca24855 (frozen text `991100db…` unchanged; scoped tests 317 passed incl. LT10 and the pins). Merged before LT10's
+  first census run (q0662, not before 11-03T09Z), as the battery2 rule requires. Deployed.
+- **q0696 promoted** (clock only; seed 20261497 x 100 + 98; outputs per-scenario seconds and projection, no world result read).
+
+## Signal engine: LT12 freeze requests applied (`mirror`, `mixedlad`, `attrlimit_lt12`), 2026-10-24 ~04:00Z (signal-engine autopilot; embargo only; nothing scored or counted)
+- **What:** the `CANDIDATES.md` LT12 freeze request (2026-10-23 ~23:45Z; LIVE_TESTS_12.md section 9, design text frozen at
+  01d6014c, sha256 `a543db63…b62d`, verified) applied with its text (DESIGN_V1 section 33): `config.EMBARGO` gains `mirror`
+  (LT12-CH245; `nr_twin_dspread`, `nr_thin_x_twin_dspread`) and `mixedlad` (LT12-CH244; `nr_shock_x_unrew`; its levels only
+  after the `rewards` date 2026-11-18), each until 2027-01-03T00:00:00Z (the later of that and LT12's analysis commit; moved
+  later only by a ledger line), and `attrlimit_lt12` (attribution limit, same date; models: champion, se1, any broad model;
+  `no_broad_families: ["mirror", "mixedlad"]`). No `feeclass` token.
+- **State at entry:** no column of either family exists in any aux family or in `se-features-v1` (tested); `event`'s sibling
+  columns are mid-based and `rewards` is levels only (embargoed to 11-18), so no scored family holds a twin-spread innovation
+  or a reward-status x shock interaction (*informed (engine)* does not apply). Engine attribution is per family, so no
+  interaction attribution on the limited terms is computed. Applied before LT12's registration commit, as section 9 asks.
+
+## CB9 q0182 FAILED x3 (Gamma 422); q0182b fix reviewed, merged, queued, 2026-10-24 ~05:10Z (experiments autopilot; operational, nothing counted)
+- **q0182** failed 3 times (01:22Z-01:58Z, rc 1, `ApiError: gamma markets lookup status 422`), the q0164 cause: the committed
+  `h7_cb4_series_SEAL.json` names files `<successor market>__<pred event>` (1,922 composite ids) and Gamma's `id` filter takes
+  integers only. `exclusion_run9` held only `request_clock.json` (nothing to resume or copy aside). q0182 stays recorded failed.
+- **Fix** (`cb9_exclusion_fix.py`, run-scoped via `exclusion-keys --normalise-ids`; reuses CB8 q0164b's mapping rule; no
+  rules-hashed function edited, `cb9_rules_v4.json` verifies): ruling `reviews/CB9_Q0182B_RULING_2026-10-24.md`
+  **GO_WITH_CHANGES**, changes 1-5 applied (af2726f9) plus an orchestrator self-review fix (8a1caf4f: a non-transient incomplete
+  stop exits 1, never 0). Merged 6f600491; tests 186 passed (CB8/CB9 + pins).
+- **Dry run on a temp clone with the real commit rule:** seals used h5_cb1, h5_cb1_ladders, h7_cb4_era, h7_cb4_series, h8_tail;
+  h6_weather `not_committed` (absent at q0182 per CREATIVE_BATCH_9.md:175; an earlier 66,020-id figure that included it is
+  withdrawn); 12,640 committed seal ids -> 13,207 after pred market ids; 324,735 CB8 ids; **3,990 new ids**, none non-integer.
+- **Inherited deviation disclosed (not repaired):** CB8 q0164b attaches `pred_event_id` only for predecessor markets Gamma found,
+  against its ruling's item 1; **8 predecessor event ids are in no CB8 event key set** (`n_pred_event_ids_not_in_any_key_set`,
+  written to the q0182b sidecar and manifest). Other markets of those 8 events can pass CB8's key drop. No retroactive CB8 repair.
+- Known existing issue (not covered): other CB9 kinds (`run_cb9.py` sign / kd / pyth paths) still exit 0 on a transient
+  incomplete stop. `NOT_EXTRACTABLE` is unreachable in `build_seal_plan`; to be handled before CB10 q0201 reuses the module.
+- **q0182b queued** (net lane, depends q0164c / q0166, both done); q0201 (CB10, draft) now depends on q0182b.

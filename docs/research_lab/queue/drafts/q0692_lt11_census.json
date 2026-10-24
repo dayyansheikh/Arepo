@@ -1,0 +1,43 @@
+{
+ "id": "q0692_lt11_census",
+ "title": "LT11 CC11 (DRAFT): the three gate blocks (CH234, CH233, CH232) on the sealed captures; counts only; coverage checked from the seal manifest before any row is opened",
+ "family": "live_tests_11",
+ "priority": 50,
+ "expected_value": "CC11 gates, census-fixed values and k (census_pass / census_dropped / census_unavailable (coverage))",
+ "data": [
+  "sealed census inputs (read-only; origin-side fields; twins only through the lag-slot loaders; no target of any unit)"
+ ],
+ "resources": {
+  "mem_mb": 600,
+  "cpu": 1,
+  "lane": "net",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0691_lt11_seal"
+ ],
+ "not_before": "2026-11-07T06:00:00Z",
+ "argv": [
+  "scripts/run_live_tests11.py",
+  "census",
+  "--seal",
+  "../docs/research_lab/seals/lt11_census_inputs.json",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests11_census/restore/data-dumps/research_lab/snapshots",
+  "--work",
+  "../data-dumps/research_lab/live_tests11_census/work",
+  "--data-dumps-cap-gb",
+  "40",
+  "--out",
+  "../data-dumps/research_lab/live_tests11_census/CC11.json"
+ ],
+ "timeout_s": 43200,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests11_census/CC11.json"
+ ],
+ "next_action": "commit CC11.json with its sha256 in the ledger; record k and the census-fixed values; then q0693. If the code-phase dry run measures a peak above 600 MB: lane cpu, mem_mb 1200, exclusive",
+ "notes": "Streams per capture with a two-capture window and per-market 12-slot state. Exits 75 when data-dumps is above the cap; runs only on a committed seal. DRAFT, not in queue/jobs. Promote only after: the challenger review, the LT11 design-text freeze (LIVE_TESTS_11.md design text frozen at sha256 991100db5d6c75e3f76e3d0d10cc5f957dd755108e09ec05edd8dad0f91b3583), the LT11 code and the science-reviewer freeze check of the census and size-check code against LIVE_TESTS_11.md sections 1.4, 1.8, 1.8.1 and 7 (8.4 step 3), and never while E011's, LT2's or E015's analysis job, or an LT9 or LT10 census, size-check or analysis job, is running (memory-heavy-jobs rule). Counts 0 (descriptive; no trials line) except q0695, which writes the single counted trials line (kind live_tests11). Reads the DRAFT spec unpinned (except q0694 and q0695, which read the pinned spec); the code_sha256 of every hashed module is written into the output. Every gate threshold is stated in section 7 before this runs; nothing is re-tuned after it. Each census runs once; max_retries 1 covers a deterministic crash only (no output written). Runs with --data-dumps-cap-gb 40 where the runner accepts it (exit 75 above the cap)."
+}

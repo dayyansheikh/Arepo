@@ -1232,7 +1232,8 @@ def test_lt7_closure_withdrawals_and_lt9_round6_requests():
     # attribution-limit entries: inert as family tokens, and no LT8 / LT9 family sits in any broad model
     lims = [x for x in C.EMBARGO if x.get("kind") == "attribution_limit"]
     assert {x["token"]: x["until"] for x in lims} == {"attrlimit_lt8": "2026-10-23T08:00:00Z", "attrlimit_lt9": "2027-02-14T00:00:00Z",
-                                                      "attrlimit_lt10": "2026-12-04T00:00:00Z", "attrlimit_lt11": "2026-12-12T00:00:00Z"}
+                                                      "attrlimit_lt10": "2026-12-04T00:00:00Z", "attrlimit_lt11": "2026-12-12T00:00:00Z",
+                                                      "attrlimit_lt12": "2027-01-03T00:00:00Z"}
     fams = set(A.AUX_FAMILIES) | {f for s in reg["models"].values() for f in s["families"]}
     for x in lims:
         assert x["token"] not in fams and x["limits"] and x["no_broad_families"]
@@ -1316,6 +1317,27 @@ def test_lt11_freeze_requests():
     # se24 / se25 hold levels only, so they stay visible
     for m in ("se24_lgbm_tilt", "se25_lr_tilt"):
         assert SP.embargo_of(reg["models"][m], S.epoch("2026-11-01T00:00:00Z")) is None
+
+
+def test_lt12_freeze_requests():
+    # LT12 section 9 (design text frozen 01d6014c): mirror and mixedlad tokens and attrlimit_lt12 at the LT12 date, no
+    # feeclass token, and no column of either family exists yet
+    lt12 = "2027-01-03T00:00:00Z"
+    for tok, ch, cols in (("mirror", "LT12-CH245", ("nr_twin_dspread", "nr_thin_x_twin_dspread")),
+                          ("mixedlad", "LT12-CH244", ("nr_shock_x_unrew", "nr_mixed", "nr_unrew_share", "nr_own_unrew"))):
+        (ent,) = [x for x in C.EMBARGO if x["token"] == tok]
+        assert ent["until"] == lt12 and ent["tests"] == [ch] and "kind" not in ent
+        assert all(c in ent["why"] for c in cols)
+    (al,) = [x for x in C.EMBARGO if x["token"] == "attrlimit_lt12"]
+    assert al["kind"] == "attribution_limit" and al["until"] == lt12
+    assert al["no_broad_families"] == ["mirror", "mixedlad"]
+    assert {"se0_champion_lr_mm", "se1_lgbm_mm", "any broad model"} <= set(al["models"])
+    assert not [x for x in C.EMBARGO if x["token"] == "feeclass"]
+    aux_cols = {c for fam in A.AUX_FAMILIES.values() for c in fam["columns"]}
+    assert not [c for c in aux_cols | set(F.ALL_FEATURES) if c.startswith(("nr_twin", "nr_thin", "nr_gap_", "nr_shock",
+                                                                           "nr_mixed", "nr_unrew", "nr_own_unrew"))]
+    reg = SP.load_registry()
+    assert not [m for m, spec in reg["models"].items() if {"mirror", "mixedlad"} & set(spec["families"])]
 
 
 def test_xvenue_reads_both_roots_and_keeps_e009_src(tmp_path):
@@ -1884,3 +1906,52 @@ def test_lab_host_signal_feed_recheck(tmp_path):
     # a feed that is not the current champion's (or an embargoed model's) is dropped
     f.write_text(json.dumps({"schema": "se-feed-v1", "champion": {"model_id": "se2_lr_flow"}, "origin_utc": "2026-10-23T00:31:02Z"}))
     assert lh.build_signal_feed(repo, now) is None
+
+
+def test_refit_full_is_opt_in_and_learns_from_every_frame_row():
+    """DESIGN_V1 §32: no pinned spec sets refit_full; when set, the model is refitted on all rows with the inner rounds."""
+    from astrolabe.signal_engine import learners as LR
+
+    reg = SP.load_registry()
+    assert not any(s["params"].get("refit_full") for s in reg["models"].values())
+    rng = np.random.default_rng(3)
+    n = 6000
+    df = pd.DataFrame({c: rng.normal(size=n).astype(np.float32) for c in F.FAMILY_COLUMNS["market_state"] + F.FAMILY_COLUMNS["momentum"]})
+    df["ms_mid"] = rng.uniform(0.05, 0.95, n).astype(np.float32)
+    df["category"] = "politics"
+    y = (df["mo_chg_1h"].to_numpy() + rng.normal(scale=0.5, size=n) > 0).astype(int)
+    otime = np.repeat(np.arange(20, dtype=float) * 7200, n // 20)
+    ltime = otime + 3600
+    s0 = spec("l", learner="lgbm")
+    s1 = json.loads(json.dumps(s0))
+    s1["params"]["refit_full"] = True
+    a0 = LR.fit_lgbm(df, y, otime, ltime, s0, 2, attribution=False)
+    a1 = LR.fit_lgbm(df, y, otime, ltime, s1, 2, attribution=False)
+    assert "n_train_full" not in a0 and a1["n_train_full"] == n
+    assert a1["refit_full_rounds"] == a0["best_iteration"] and a1["temperature"] == a0["temperature"]
+    p0, p1 = LR.predict_lgbm(a0, df, s0), LR.predict_lgbm(a1, df, s1)
+    assert p1.shape == p0.shape and not np.allclose(p0, p1)
+
+
+def test_dev_refit_full_probe_writes_only_its_own_dev_file(tmp_path, capsys):
+    w = World(tmp_path / "dumps", n_caps=30)
+    spec_dir = tmp_path / "specs"
+    write_specs(spec_dir, [spec("champ"), spec("lgb", learner="lgbm")], "champ")
+    paths = w.paths(tmp_path / "engine", spec_dir)
+    w.run(30)
+    build_all(paths)
+    root = Path(__file__).resolve().parents[2]
+    sp = importlib.util.spec_from_file_location("run_se_dev_refit_full_test", root / "scripts" / "run_se_dev_refit_full.py")
+    mod = importlib.util.module_from_spec(sp)
+    sp.loader.exec_module(mod)
+    before = sorted(p.relative_to(paths.engine).as_posix() for p in paths.engine.rglob("*") if p.is_file())
+    assert mod.main(["--days", "2", "--base", "lgb", "--engine-root", str(paths.engine), "--spec-dir", str(spec_dir)]) == 0
+    after = sorted(p.relative_to(paths.engine).as_posix() for p in paths.engine.rglob("*") if p.is_file())
+    new = sorted(set(after) - set(before))
+    assert len(new) == 1 and new[0].startswith("dev/refit_full_") and not (paths.engine / "dev" / "latest.json").exists()
+    out = json.loads((paths.engine / new[0]).read_text())
+    assert out["evidence_role"] == "development_historical" and out["reference"] == "lgb"
+    assert {r["model_id"] for r in out["rows"]} >= {"lgb", mod.VARIANT}
+    line = [x for x in capsys.readouterr().out.splitlines() if x.startswith("SE_DEV_REFIT_FULL ")][0]
+    res = json.loads(line.split(" ", 1)[1])
+    assert res["test_days"] and any(v.get("gain_vs_se1") is not None for v in res["targets"].values())

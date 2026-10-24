@@ -1,0 +1,35 @@
+{
+ "id": "q0693_lt11_size_check",
+ "title": "LT11 size check (DRAFT): 2,000 worlds x 200 draws, seed 20261497, limit 0.058, the 16 scenarios of LIVE_TESTS_11.md 1.8 / 1.8.1 through the analysis's own gate path, after k and the census-fixed values are committed",
+ "family": "live_tests_11",
+ "priority": 47,
+ "expected_value": "per-test size results (1.8); a failing scenario sets only its own tests to 'SE check failed' with k unchanged",
+ "data": [
+  "none (simulated worlds)"
+ ],
+ "resources": {
+  "mem_mb": 800,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0692_lt11_census"
+ ],
+ "not_before": "2026-11-08T00:00:00Z",
+ "argv": [
+  "scripts/run_live_tests11.py",
+  "size-check",
+  "--data-dumps-cap-gb",
+  "40",
+  "--out",
+  "../data-dumps/research_lab/live_tests11_census/SIZE11.json"
+ ],
+ "timeout_s": 172800,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests11_census/SIZE11.json"
+ ],
+ "next_action": "record the per-test size results in the ledger and LIVE_TESTS_11.md section 6 before the pin",
+ "notes": "Planning: roughly 0.1-1 s a world gate evaluation, 32,000 evaluations (16 scenarios x 2,000 worlds) plus 1,500 power-run worlds: 8-20 h single core; timeout_s 172800. A timeout kill is NOT a deterministic crash: no rerun at seed 20261497. The command refuses outside --dev unless k_tests and the census values are filled. Refuses --worlds/--draws without --dev. No preliminary run at seed 20261497. DRAFT, not in queue/jobs. Promote only after: the challenger review, the LT11 design-text freeze (LIVE_TESTS_11.md design text frozen at sha256 991100db5d6c75e3f76e3d0d10cc5f957dd755108e09ec05edd8dad0f91b3583), the LT11 code and the science-reviewer freeze check of the census and size-check code against LIVE_TESTS_11.md sections 1.4, 1.8, 1.8.1 and 7 (8.4 step 3), and never while E011's, LT2's or E015's analysis job, or an LT9 or LT10 census, size-check or analysis job, is running (memory-heavy-jobs rule). Counts 0 (descriptive; no trials line) except q0695, which writes the single counted trials line (kind live_tests11). Reads the DRAFT spec unpinned (except q0694 and q0695, which read the pinned spec); the code_sha256 of every hashed module is written into the output. Every gate threshold is stated in section 7 before this runs; nothing is re-tuned after it. Each census runs once; max_retries 1 covers a deterministic crash only (no output written). Runs with --data-dumps-cap-gb 40 where the runner accepts it (exit 75 above the cap)."
+}

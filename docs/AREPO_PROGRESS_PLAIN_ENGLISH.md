@@ -1,37 +1,33 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-24 00:09 UTC+1
+**Last updated:** 2026-10-24 05:01 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **Tonight (23-24 Oct): LT11's code check found real problems, now being fixed.** The independent reviewer found that the
-  simulated "fake data" worlds, used to check that the tests don't raise false alarms, were built more simply than the frozen
-  design says. That would have made the safety check too easy to pass. Every fix is in the code; the frozen design is unchanged.
-  A second check follows. Counting checks after 7 Nov; collection from 18 Nov if a test survives.
-- **LT12 design: the challenger removed one of its three ideas.** "The fee as the price of urgency" relied on an optional
-  falsification check, and an earlier ruling says that check must always count, so it leaves (kept as an idea for the signal
-  engine). Two tests remain: "the mirror" and "the farmed half". The revised draft is being re-checked. Its author now puts the
-  chance that neither survives counting at about 60%.
-- **Batch 8, "last-minute certainty" (crypto Up/Down):** the allowed retry found 665 markets. The order-book coverage check is
-  queued behind the long model run MC1.
-- **Fixed a silent stall:** two background data extractions (for batches 4 and 5) had been refusing to run since 17 Oct
-  because of an old disk limit. Raised to the standard limit. Nothing was lost (the server still holds all the raw data); it
-  is only a delay.
-- **Your 23 Oct message ("why have you stopped?"): it had not stopped.** Sessions kept running but were cut off by the usage limit
-  before writing their summary; the Lab board now shows how long such a session worked and its last progress note.
-- **Server:** the model run MC1 is working through its folds (healthy); the live collectors are healthy.
+- **Early 24 Oct: batch 8's "last-minute certainty" test (crypto Up/Down vs Binance) is closed as not testable.** Its
+  pre-declared first step checked whether the historical order-book archive covers enough of the markets: it needed 90% of
+  sampled market-days and found 73%. So, as written in advance, the test stops there. It is counted, no price or outcome was
+  read, and there is no retry (the one allowed retry was this run).
+- **Fixed a second silent stall:** one background extraction for batch 4 had stopped at a small size limit since 18 Oct.
+  The limit is raised (storage only; no rule changed). Nothing is lost; it catches up over the next passes.
+- **Done this morning:** LT11's code passed its re-check fixes and is merged (its timing run is queued); batch 9's
+  market-overlap step got a reviewed fix and is queued again (it failed on the same ID-format problem batch 8 hit); batch 7's
+  counting check is queued for 25 Oct, when its fixed data window closes.
+- **In progress:** LT12's code (two tests: "the mirror" and "the farmed half"), then its independent code check; and a fresh
+  round of original ideas (round 18).
+- **Server:** the long model run MC1 is working through its folds; live collectors healthy.
 - **Seven registered live tests** are collecting or waiting to collect (E009/E010, E011, E012-E014, E015, E022, E026).
   Single analyses: E009/E010 (3 Nov), E011 (11 Nov), E012-E014 (13 Nov), E015 (15 Nov), E022 (17 Nov), E026 (6 Dec).
 - **Planned live-test families:** LT9 (frozen, code done, data seal after 12 Nov), LT10 (frozen, code done, counting checks after
-  3 Nov), LT11 (frozen today, code in progress). LT5-LT8 closed at their counting checks with no test (nothing counted).
+  3 Nov), LT11 (frozen, final code fixes), LT12 (frozen, code in progress). LT5-LT8 closed at their counting checks with no test.
 - **Copy-skilled wallets (E026):** registered; collection starts 25 Oct (phone note then).
 - **Security check (23 Oct):** no confirmed holes; 5 things to check (`docs/security/AUDIT_2026-10-23_RUN1.md`); most important:
   confirm Render has a strong AUTH_SECRET.
-- **Honest pattern:** most planned tests die at the counting stage, before any outcome data is read. That is the checks working
-  as designed.
+- **Honest pattern:** most planned tests die at the counting or data-coverage stage, before any outcome data is read. That is
+  the checks working as designed.
 ## 2. Approvals needed from you
 1. ~~Automatic Claude sessions~~ **APPROVED and installed 15 Oct** (full power, your call).
    - Pause: `python3 scripts/autopilot/autopilot.py pause` (on the Mac, in the repo). Use `resume` to undo, or `stop` to
@@ -54,16 +50,14 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 7. ~~More server memory for MC1~~ **APPROVED 21 Oct:** resize to 2 CPU / 12 GB (still free), scheduled automatically
    for 22 Oct about 03:40 UTC+1. MC1 is re-queued afterwards.
 
-8. **NOW TIME-SENSITIVE (needed by about 27 Oct): let Claude clear finished restore copies on the server.** Measured 23 Oct
-   03:10 UTC+1: the data folder was at 34 of 40 GB, **36 of 40 GB at 23:30**, and grows about 1 GB a day, so jobs (including the LT2 live
-   collector) would start refusing around 29 Oct. Batch 18's 4.9 GB copy is finished now and LT8 does not use it. Restore copies are
-   hash-checked copies of data that is safe in the archive, made so a job can re-read old files. About 9 GB of them
-   are finished with or soon will be (measured 22 Oct: batch 18 4.9 GB finished now; LT4 3.0 GB and LT3 0.3 GB after
-   LT6's flow count today; LT5 0.8 GB after its count today; LT6 1.2 GB after its counts). Jobs stop at a
-   40 GB data limit (**33 GB on 22 Oct**, and LT7's restore will add more), so they will need clearing within days. The safety hook rightly stops
-   Claude from deleting anything in the data folder. **Decision needed:** approve a short clearing session for these
-   copies only (each one listed and checked against the archive first). Batch 17 no longer needs this: it now writes
-   to a fresh folder instead.
+8. **URGENT (needed within about 3 days): let Claude clear finished restore copies on the server.** 24 Oct 04:37 UTC+1:
+   **37 of 40 GB**, growing about 1 GB a day; at 40 GB jobs (including live collectors' extracts) start refusing. Restore
+   copies are hash-checked copies of data that is safe in the archive, made so a job could re-read old files. **Measured
+   list (24 Oct, read-only):** batch 18 `cb18_census/restore` 4.9 GB (batch 18 closed), LT4 `live_tests4_census/restore`
+   3.0 GB, LT6 1.2 GB, LT5 0.8 GB, LT3 0.3 GB: **10.2 GB in total, and no queued or planned job reads any of them**
+   (checked against every job and draft). Batch 17's 0.9 GB copy is still needed and stays. The safety hook rightly stops
+   Claude from deleting anything in the data folder. **Decision needed:** reply "approve restore-copy clearing" (Lab
+   inbox) to allow one session that re-checks each copy against the archive, then deletes only these five folders.
 
 ## 3. Usage plan (your schedule; reset times are your statement, not verified)
 | When | Plan |

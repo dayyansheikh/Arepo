@@ -193,6 +193,25 @@ EMBARGO = (
      "why": "LIVE_TESTS_11.md section 9: no attribution (SHAP or otherwise) on these terms computed or shown, and no LT11 "
             "family in a broad model, before the later of 2026-12-12 and LT11's analysis commit; se24 / se25 listed at the "
             "engine's request (2026-10-23 ~13:10Z: se24's trees can form sign(d) x (p - 0.5) from mo_d2h and tl_cheap_side)"},
+    # LT12 freeze request (LIVE_TESTS_12.md section 9, design text frozen 01d6014c, sha256 a543db63...; CANDIDATES.md
+    # 2026-10-23 ~23:45Z), applied 2026-10-24 ~04:00Z before any mirror / mixedlad column or isolating challenger exists.
+    # The LT12 date is the later of 2027-01-03T00:00Z and LT12's analysis commit; moved later only by a ledger line. No
+    # feeclass token (CH243 left LT12 at challenger R1).
+    {"token": "mirror", "until": "2027-01-03T00:00:00Z", "tests": ["LT12-CH245"],
+     "why": "a two-member neg-risk event's twin-book spread innovation (se-aux-nrslack-v2 on two-member rows: "
+            "nr_twin_dspread, nr_thin_x_twin_dspread); the levels nr_twin_spread, nr_gap_ask, nr_gap_bid, nr_thin are not "
+            "covered by this token but fall under LT11's nrslack to 2026-12-12; a family holding an innovation carries mirror "
+            "in its isolates; LIVE_TESTS_12.md section 9; the later of 2027-01-03 and LT12's analysis commit"},
+    {"token": "mixedlad", "until": "2027-01-03T00:00:00Z", "tests": ["LT12-CH244"],
+     "why": "reward-status x sibling-shock interaction in a neg-risk ladder (se-aux-mixedlad-v1: nr_shock_x_unrew); the "
+            "levels nr_mixed, nr_unrew_share, nr_own_unrew may be built only after the rewards date (2026-11-18); "
+            "LIVE_TESTS_12.md section 9; the later of 2027-01-03 and LT12's analysis commit"},
+    {"token": "attrlimit_lt12", "until": "2027-01-03T00:00:00Z", "tests": ["LT12"], "kind": "attribution_limit",
+     "limits": ["twin-spread interactions inside event / nrslack", "reward-status x shock interactions inside event"],
+     "models": ["se0_champion_lr_mm", "se1_lgbm_mm", "any broad model"],
+     "no_broad_families": ["mirror", "mixedlad"],
+     "why": "LIVE_TESTS_12.md section 9: no attribution (SHAP or otherwise) on these terms computed or shown, and no LT12 "
+            "family in a broad model, before the later of 2027-01-03 and LT12's analysis commit"},
 )
 
 # Promotion eligibility (DESIGN_V1 section 21; science review REVISE 2026-10-22). A model listed here is still predicted,

@@ -201,7 +201,16 @@ def fit_lgbm(df: pd.DataFrame, y: np.ndarray, otime: np.ndarray, ltime: np.ndarr
     raw = bst.predict(X[val], raw_score=True, num_iteration=bst.best_iteration)
     yv = y[val]
     res = minimize_scalar(lambda T: _nll(_temp_probs(raw, T, n_classes), yv), bounds=(0.3, 5.0), method="bounded")
-    art.update({"model": bst.model_to_string(num_iteration=bst.best_iteration), "best_iteration": int(bst.best_iteration),
+    model = bst.model_to_string(num_iteration=bst.best_iteration)
+    if spec["params"].get("refit_full"):
+        # opt-in (no pinned spec sets it; DESIGN_V1 §32): the inner model never sees the newest val_frac of origins.
+        # Refit on every row of the frame (all labels are available before the fit time) with the inner model's rounds
+        # (x refit_full_scale) and keep its temperature; early stopping and temperature still come from the inner block
+        rounds = max(1, int(round(bst.best_iteration * float(spec["params"].get("refit_full_scale", 1.0)))))
+        full = lgb.train(p, lgb.Dataset(X, y, categorical_feature=cat_idx, free_raw_data=True), num_boost_round=rounds)
+        model = full.model_to_string()
+        art.update({"refit_full_rounds": rounds, "n_train_full": int(len(y))})
+    art.update({"model": model, "best_iteration": int(bst.best_iteration),
                 "temperature": float(res.x), "n_train_inner": int(tr.sum()), "n_val_inner": int(val.sum()),
                 "val_nll": float(res.fun),
                 # a development diagnostic: not computed while the spec is under an embargo (DESIGN_V1 section 8)
