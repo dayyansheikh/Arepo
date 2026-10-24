@@ -1,0 +1,35 @@
+{
+ "id": "q0171_cb8_screen_W",
+ "title": "CB8-W: W1 Stage 1 on SCREEN events (skipped-fill maker mark-out, route gate, time-shift placebo, wallet attribution, binding robustness)",
+ "family": "creative_batch_8",
+ "priority": 38,
+ "expected_value": "CH69 screen",
+ "data": [
+  "history/h9_flow/screen (verified seal copy seals/h9_flow_SEAL.json; SCREEN files re-hashed)"
+ ],
+ "resources": {
+  "mem_mb": 1500,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0169_cb8_census_BW"
+ ],
+ "argv": [
+  "scripts/run_cb8.py",
+  "screen",
+  "--family",
+  "W",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 5400,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch8/results_W1.json (write-once)",
+  "docs/research_lab/seals/cb8_w1_stage1.json (byte copy; commit it)",
+  "trials.jsonl (cb8_test + placebo + cb8_descriptive + ml_explain creative_batch_8:W)"
+ ],
+ "next_action": "commit results_W1 copy (seals/cb8_w1_stage1.json); q0175 only if W1 advanced",
+ "notes": "CREATIVE_BATCH_8.md CB8-W and 'W and H analysis implementation notes (2026-10-17)'. DRAFT. Commit after the CB8 freeze: refuses (exit 2) without a committed backend/astrolabe/research_lab/model_specs/cb8_v1.json carrying w_analysis_rules_sha256 and w_data_rules_sha256, without census_W.json under the same W rules, or if results exist. GW / disjointness fail -> not testable, p = 1, counted. Time-shift placebo 200 draws (the main wall-time cost). Exit 75 on headroom (cap 14). | 2026-10-17 15:35Z autopilot: data-dumps headroom guard 14 -> 40 GiB (ops only, not a declared argument): the user grew the host boot volume to 100 GB (root 89 GB, 60 GB free); collector cap 45 GiB, 4 GB free-disk guard unchanged."
+}

@@ -1,0 +1,40 @@
+{
+ "id": "q0594_cb18_census_18",
+ "title": "CB18-S window census (counts only; DRAFT): units by class and exclusion, burst captures, availability by class, informativeness at the selected level, power gate on the pre-origin proxy (SE only; MDE > 2 x floor -> not run (power), counted)",
+ "family": "creative_batch_18",
+ "priority": 9,
+ "expected_value": "S window gates",
+ "data": [
+  "data-dumps/research_lab/creative_batch18/screen/"
+ ],
+ "resources": {
+  "mem_mb": 390,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0593_cb18_frame_screen_S"
+ ],
+ "argv": [
+  "scripts/run_cb18.py",
+  "census-window",
+  "--rules",
+  "../docs/research_lab/seals/cb18_rules.json",
+  "--frame",
+  "../data-dumps/research_lab/creative_batch18/screen",
+  "--out",
+  "../data-dumps/research_lab/creative_batch18/census_18.json",
+  "--disk-cap-gb",
+  "20",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch18/census_18.json"
+ ],
+ "next_action": "q0595",
+ "notes": "DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md, design not yet reviewed). scripts/run_cb18.py DOES NOT EXIST YET (code needed, CREATIVE_BATCH_18.md section 6). Window job: promote only after parts common and S are committed (CB route RS-1), the code freeze record and an accepting code-against-design freeze check. RENUMBERED 2026-10-21 ~19:40Z (autopilot): CB18 drafts q0507-q0516 -> q0590-q0599 (same order) because q0510-q0515 were already taken by signal-engine jobs; ids and depends_on only."
+}

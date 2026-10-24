@@ -1,0 +1,171 @@
+{
+ "conditions": [],
+ "description": "Learned surprise-move detector (elastic-net logistic on surprise-features-v1; weights fit on the development months)",
+ "direction_feature": "sm_imb_1h",
+ "min_terms_present": 1,
+ "rule_id": "sm_learned_v1",
+ "terms": [
+  {
+   "cap": 4.0,
+   "center": 0.9999999999999984,
+   "feature": "sm_abs_imb_1h",
+   "scale": 2.0986712367943027e-14,
+   "transform": "raw",
+   "weight": 0.012484015906932789
+  },
+  {
+   "cap": 4.0,
+   "center": 0.4897959183673469,
+   "feature": "sm_burst_6h",
+   "scale": 0.7261714285714285,
+   "transform": "raw",
+   "weight": 0.04867070283401224
+  },
+  {
+   "cap": 4.0,
+   "center": 1.9414244508542196,
+   "feature": "sm_large_rel_24h",
+   "scale": 1.3957558908364658,
+   "transform": "raw",
+   "weight": -0.06646653281276961
+  },
+  {
+   "cap": 4.0,
+   "center": 0.9,
+   "feature": "sm_same_side_share_24h",
+   "scale": 0.14825999999999995,
+   "transform": "raw",
+   "weight": 0.021818162950224203
+  },
+  {
+   "cap": 4.0,
+   "center": 0.005,
+   "feature": "sm_resp_24h",
+   "scale": 0.02223899999999985,
+   "transform": "raw",
+   "weight": -0.05106119823417121
+  },
+  {
+   "cap": 4.0,
+   "center": 0.301,
+   "feature": "abs_mid_dev",
+   "scale": 0.2008923,
+   "transform": "raw",
+   "weight": -0.02156428308004811
+  },
+  {
+   "cap": 4.0,
+   "center": 0.19899999999999995,
+   "feature": "dist_01",
+   "scale": 0.2008922999999999,
+   "transform": "raw",
+   "weight": 0.0215642830800479
+  },
+  {
+   "cap": 4.0,
+   "center": 6.984715891448671,
+   "feature": "log_hours_to_end",
+   "scale": 1.5276426189224779,
+   "transform": "raw",
+   "weight": -0.012128365070968514
+  },
+  {
+   "cap": 4.0,
+   "center": 811.104951908191,
+   "feature": "market_age_h",
+   "scale": 994.8128110807398,
+   "transform": "raw",
+   "weight": -0.08258198071976022
+  },
+  {
+   "cap": 4.0,
+   "center": 0.0,
+   "feature": "chg_1w",
+   "scale": 0.0452193,
+   "transform": "raw",
+   "weight": -0.0034552480955231464
+  },
+  {
+   "cap": 4.0,
+   "center": 0.005,
+   "feature": "own_vol",
+   "scale": 0.0074129999999999995,
+   "transform": "raw",
+   "weight": -0.01081284978887863
+  },
+  {
+   "cap": 4.0,
+   "center": 0.001507556722887,
+   "feature": "rv_2h",
+   "scale": 0.002235103597352266,
+   "transform": "raw",
+   "weight": 0.08135472391861354
+  },
+  {
+   "cap": 4.0,
+   "center": 0.002070196678027,
+   "feature": "rv_6h",
+   "scale": 0.00306927359484283,
+   "transform": "raw",
+   "weight": 0.11919741600697735
+  },
+  {
+   "cap": 4.0,
+   "center": 0.0032770230837251496,
+   "feature": "rv_1d",
+   "scale": 0.004514823375804406,
+   "transform": "raw",
+   "weight": -0.46432642460951484
+  },
+  {
+   "cap": 4.0,
+   "center": 0.008237672064002301,
+   "feature": "rv_7d",
+   "scale": 0.010138859624050933,
+   "transform": "raw",
+   "weight": 0.229001808616786
+  },
+  {
+   "cap": 4.0,
+   "center": 3.0,
+   "feature": "dow",
+   "scale": 2.9652,
+   "transform": "raw",
+   "weight": -0.14135277295307638
+  },
+  {
+   "cap": 4.0,
+   "center": 24.860555555555557,
+   "feature": "last_trade_age_h",
+   "scale": 34.977005,
+   "transform": "raw",
+   "weight": -0.03578135308885324
+  },
+  {
+   "cap": 4.0,
+   "center": 0.0,
+   "feature": "sib_n",
+   "scale": 1.081216689047112,
+   "transform": "raw",
+   "weight": -0.05033049224374994
+  },
+  {
+   "cap": 4.0,
+   "center": 0.003,
+   "feature": "sib_max_abs_chg_2h",
+   "scale": 0.0044478,
+   "transform": "raw",
+   "weight": 0.05710110332147142
+  },
+  {
+   "cap": 4.0,
+   "center": 0.0,
+   "feature": "ladder_n",
+   "scale": 0.5861968421562003,
+   "transform": "raw",
+   "weight": -0.035728317109043076
+  }
+ ],
+ "theory_ref": "surprise_learned",
+ "version": "1"
+}

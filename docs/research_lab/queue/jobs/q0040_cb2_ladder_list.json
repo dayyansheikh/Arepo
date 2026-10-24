@@ -1,0 +1,37 @@
+{
+ "id": "q0040_cb2_ladder_list",
+ "title": "CB2-L: direction-aware ladder list (within + cross-event) from daily captures since 2026-10-11T12:00Z (metadata only)",
+ "family": "creative_batch_2",
+ "priority": 62,
+ "expected_value": "fixes the L/X rung universe before the backfill; grouper audit sample",
+ "data": [
+  "research_lab/snapshots (one capture per day, ids and fee fields)",
+  "Gamma /markets metadata"
+ ],
+ "resources": {
+  "mem_mb": 800,
+  "cpu": 1,
+  "network": "gamma-api"
+ },
+ "depends_on": [
+  "q0039_cb2_freezecheck_gate"
+ ],
+ "argv": [
+  "scripts/run_cb2.py",
+  "ladder-list",
+  "--from",
+  "2026-10-11T12:00Z",
+  "--rps",
+  "2",
+  "--max-requests",
+  "3000"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 2,
+ "outputs": [
+  "data-dumps/research_lab/cb2_extract/ladder_list.json (+ .sha256, ladder_lists/<grouper-hash12>/ladder_list_v1.json)",
+  "data-dumps/research_lab/cb2_extract/audit_sample.json"
+ ],
+ "next_action": "q0042 after T2_dev_end",
+ "notes": "CREATIVE_BATCH_2.md section 5. Refuses (exit 3) unless the grouper-rule hash in docs/research_lab/seals/cb2_grouper_rule.json equals the code's (committed before any text is read); no prices or outcomes read; v1 applies retrospectively to dev captures (CB2-L). Text fetched through the shared Limiter with a resumable cache (cb2_extract/ladder_text_cache.jsonl); exits 4 without writing a list if --max-requests is reached, a retry resumes from the cache. One lineage per grouper hash under ladder_lists/<hash12>/; v1 is immutable and a rerun when the lineage already has a version REFUSES (exit 3, use --refresh, see queue/drafts/q0040b). The grouper seal must be git-committed and identical to HEAD. | Held behind gate q0039 (created after the CB2 code freeze check): ladder_list_v1 is immutable, so no grouper fix may be needed after it is written."
+}

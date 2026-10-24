@@ -1,0 +1,39 @@
+{
+ "id": "q0257_cb12_quake_live",
+ "title": "CB12-E Stage 2 collector (cron 10:00Z and 16:00Z daily, outside the queue lanes): Gamma frame of open earthquake events (tags 103038/100184), two receipt-timed CLOB /book reads per parsed member (<= 80) >= 60 s apart per pass, USGS events (M >= 4.5) from the earliest open rule-window start (cap 400 d) to the read, as served; Gamma resolutions to the guarded outcome file >= 72 h after each window end",
+ "family": "creative_batch_12",
+ "priority": 0,
+ "expected_value": "E1-rep and E2 inputs",
+ "data": [
+  "public Gamma, CLOB /book",
+  "USGS FDSN"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "lane": "cron",
+  "network": "gamma-api, clob, earthquake.usgs.gov"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb12.py",
+  "quake-live",
+  "--rules",
+  "../docs/research_lab/seals/cb12_rules.json",
+  "--rps",
+  "1",
+  "--disk-cap-gb",
+  "0.01",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 600,
+ "max_retries": 0,
+ "outputs": [
+  "history/h12_quake_live/<date>_<HHMM>.json.gz",
+  "history/h12_quake_live/{state,manifest}.json",
+  "history/h12_quake_live/outcomes_guarded.csv.gz"
+ ],
+ "next_action": "runs until T12_E2_collect_max (first listed >= 1 day after the freeze, + 90 d)",
+ "notes": "DRAFT, NOT A QUEUE JOB: the orchestrator installs crontab lines after the E freeze is committed (the runner refuses, exit 2, before the E entry of model_specs/cb12_v1.json with frozen_utc exists). Proposed lines (retry calls at :15 and :25 of the same slots; same slot key, an ok or max-tries slot is a no-op): 5,15,25 10,16 * * * cd /home/opc/arepo/backend && /home/opc/arepo/.venv/bin/python scripts/run_cb12.py quake-live --rules ../docs/research_lab/seals/cb12_rules.json --rps 1 --disk-cap-gb 0.01 --data-dumps-cap-gb 40 >> /home/opc/arepo_collector/logs/cb12-quake-live.log 2>&1 (a pass runs at the first call in [HH:00, HH:30); idempotent per slot; lock file). <= 80 members x 2 books + ~4 Gamma + 1 USGS per pass at <= 1 rps (about 4 min). A missed pass is 'unavailable (collection)', a disk refusal 'unavailable (host disk)', never back-filled. Collection is unconditional; analysis only if E1 advanced. Stored per pass: whitelisted member rows (no description), books, USGS events >= 5.5 over the span plus every served event of the last 10 days. Rules part sha256 (seals/cb12_rules.json, 2026-10-19 code): common f2f672c1dfa22ce1388fd85b42bebc23248f58c5bb4349f6745c4b2493dcc647, E bd512db4ccbe9a790c732e7871b50d938a94b56a9e83105dde845f6c7c6b5edc. CB12 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / E code changes."
+}

@@ -1,0 +1,48 @@
+{
+ "id": "q0105_cb5_cdf_extract_backfill",
+ "title": "CB5-L: cdf/ extract (all legs of frozen families) from dev captures since 2026-10-11T12:00Z (host raw, else verified release copies)",
+ "family": "creative_batch_5",
+ "priority": 45,
+ "expected_value": "dev touches for the CH59 screen",
+ "data": [
+  "research_lab/snapshots (host, else verified release copies)",
+  "creative_batch5/cdf_frame/families_vN.json (frozen)"
+ ],
+ "resources": {
+  "mem_mb": 700,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0104_cb5_cdf_frame"
+ ],
+ "argv": [
+  "scripts/run_cb5.py",
+  "extract",
+  "--backfill-from",
+  "2026-10-11T12:00Z",
+  "--tables",
+  "cdf",
+  "--family-list",
+  "auto",
+  "--release-stream",
+  "--retry-missing",
+  "--budget-min",
+  "150",
+  "--disk-cap-gb",
+  "0.05",
+  "--data-dumps-max-gb",
+  "40"
+ ],
+ "timeout_s": 10800,
+ "max_retries": 2,
+ "repeat": {
+  "max_runs": 6,
+  "until_log_regex": "\"backfill_complete\": true"
+ },
+ "outputs": [
+  "data-dumps/research_lab/cb5_extract/{cdf/,manifest.json}"
+ ],
+ "next_action": "pass step continues (add --tables cdf --family-list auto); q0106; Done only when the log shows \"backfill_complete\": true; a headroom refusal exits 75 and is retried after 30 min without burning an attempt.",
+ "notes": "DRAFT: the coordinator copies this to queue/jobs/ only after the science-reviewer CB5 freeze check of the code. Commit only after the audited family list is frozen and committed. Up to about 13 GB release ingress if every dev capture was deleted (streamed one capture at a time, peak <= 0.2 GB). Prospective versioning: a family listed after a capture is absent from that capture's rows. Refuses (exit 75, EX_TEMPFAIL: the queue waits and retries) when data-dumps size + the output allowance + scratch would pass 12 GB; the coordinator records the section 2.8 headroom precondition in the release commit. | 2026-10-17 15:35Z autopilot: data-dumps headroom guard 12 -> 40 GiB (ops only, not a declared argument): the user grew the host boot volume to 100 GB (root 89 GB, 60 GB free); collector cap 45 GiB, 4 GB free-disk guard unchanged. | HELD 2026-10-17 20:45 UTC+1 (autopilot): q0104b cdf frame has 0 families under the frozen cdf-grouper-v1 (ledger a1dad42), so G59 will fail and this job would read an empty family list. Do not promote unless a reviewed design change admits families."
+}

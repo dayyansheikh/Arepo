@@ -1,0 +1,30 @@
+{
+ "id": "q0168_h9_flow_seal",
+ "title": "CB8-W: seal h9_flow (seal-time drops by id and key against every seal copy committed by then; manifest, per-file sha256, HOLDOUT listing sha256, request clocks, DROPPED_* blocks)",
+ "family": "creative_batch_8",
+ "priority": 45,
+ "expected_value": "sealed W holdout",
+ "data": [
+  "data-dumps/research_lab/history/h9_flow"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0167_h9_flow_fetch"
+ ],
+ "argv": [
+  "scripts/run_cb8.py",
+  "flow-seal"
+ ],
+ "timeout_s": 900,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/history/h9_flow/{SEAL.json,ACCESS_LOG.jsonl}",
+  "trials.jsonl (history_seal_declaration)"
+ ],
+ "next_action": "coordinator commits seals/h9_flow_SEAL.json and seals/cb8_updown_holdout_SEAL.json; then q0169",
+ "notes": "CREATIVE_BATCH_8.md section 1.3. IMPLEMENTED 2026-10-17 (cb8_flow.flow_seal), still a DRAFT until promoted. Exit 75 until the fetch is flow_fetch_complete; exit 2 if the manifest fingerprint differs from the pinned one, any file differs from its manifest sha256 or an unlisted file exists. Re-hashes every file, reads every committed seal copy under docs/research_lab/seals except h9_flow_SEAL.json and cb8_updown_holdout_SEAL.json for market ids, looks them up (light Gamma, <= 2 rps), writes DROPPED_SEAL_COPIES blocks to drops.csv.gz (sealed files are never edited), records the HOLDOUT listing sha256, seals via h5_seal.seal_run (one n_tests = 0 trial line) and writes the committed copy seals/h9_flow_SEAL.json. Needs seals/cb8_flow_rules.json committed. Coordinator commits the copy."
+}

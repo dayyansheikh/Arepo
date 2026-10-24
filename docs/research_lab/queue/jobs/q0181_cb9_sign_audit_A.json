@@ -1,0 +1,43 @@
+{
+ "id": "q0181_cb9_sign_audit_A",
+ "title": "CB9-S: S0a [2026-10-01,10-15) and S0c [2026-02-01,04-27) print samples (250 markets x 4 prints each), receipts, T1/T2, fill type; no agreement computed",
+ "family": "creative_batch_9",
+ "priority": 43,
+ "expected_value": "S0 data for the side-flag measurement",
+ "data": [
+  "public Gamma, Data API windowed trades",
+  "public Polygon JSON-RPC receipts",
+  "creative_batch7/exclusion_keys (ids only)"
+ ],
+ "resources": {
+  "mem_mb": 1200,
+  "cpu": 1,
+  "lane": "net",
+  "network": "gamma-api, data-api, polygon-rpc",
+  "as_cap_mb": 4000
+ },
+ "depends_on": [
+  "q0180b_cb9_smoke_v2"
+ ],
+ "argv": [
+  "scripts/run_cb9.py",
+  "sign-audit",
+  "--strata",
+  "a,c",
+  "--rules",
+  "../docs/research_lab/seals/cb9_sign_rules_v5.json",
+  "--rps",
+  "2",
+  "--disk-cap-gb",
+  "0.01",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 10800,
+ "max_retries": 2,
+ "outputs": [
+  "research_lab/creative_batch9/sign/{s0a,s0c}/{prints_classes.csv.gz,manifest.json}"
+ ],
+ "next_action": "q0189 census (counts); agreement only in q0190 after the freeze",
+ "notes": "Needs the q0180b smoke v2 result (creative_batch9/smoke_v2.json). net lane, commit after T_seal (round 1: Limiter is per-process, not shared with net-lane jobs); raw proxyWallet compared with takerOrderMaker in memory only; HMAC strict loader. | 2026-10-22 ~16:30Z autopilot: PROMOTED (q0180b smoke v2 PASS 10-17; T_seal 2026-10-22T00Z passed; seal copies h8_tail/h8_geo/h8_text now committed, so the S0 frame drops their ids). Spec copied verbatim from CREATIVE_BATCH_9.md section 4 (11.2 drafts live only there). | 2026-10-22 ~21:10Z resource fix (no code, rule, argv or sample change): attempts 1-3 died with MemoryError in the S0 frame walk (cb9_sign.walk_frame, before any sample/progress file) at the 600 MB address-space cap (2 x mem_mb 300). Measured on the host (read-only walk, 2 rps, public Gamma): baseline VmSize 288 MB after imports; VmSize 424 MB at 60 requests, 576 MB at 120, 609 MB at 1750 (RSS 305 MB), rising about 0.035 MB RSS per request as frame rows accumulate (about 100 raw markets per request). The walk is not resumable and its length is unknown, so mem_mb is raised to 1200 (start gate needs 2400 MB free; host ~9 GB available) and as_cap_mb to 4000 (virtual, not RAM; the job keeps oom_score_adj 1000), and timeout_s to 10800 so a long walk is not killed at 3600 s (attempt 2 ran 2496 s before the memory error). Re-run with `retry q0181_cb9_sign_audit_A`."
+}

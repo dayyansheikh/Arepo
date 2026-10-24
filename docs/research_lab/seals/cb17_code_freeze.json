@@ -1,0 +1,28 @@
+{
+ "code_sha256": "529e7de5b3a34f22a7a938a19c35ca68e727431e76cde79373ee3540e13f6267",
+ "rules_sha256": {
+  "B": "64e61091574ec4406b6f235f48f37ab2d0bf8b41bf89bfbeace9153186c96a10",
+  "C": "3e24af26db1c827b6ff8dadc5bc63743a4cd03280d510211edf0ad87137b2647",
+  "E": "9b1eba65e5de9de0f67e31f9d7dccf6f012ef8ee37895a603aaa5a6103067412",
+  "common": "2343744082bcb664ac06f18f967c166aae09c216e9437045d7aa07aa77ef8c9f",
+  "pre": "ddc0249b23eedf8cfe50b2b60e94378264804ca4791c82c01cf3993df54df6a7"
+ },
+ "files": {
+  "cb17_b.py": "772ce5fe67fbc9da8163c6e0505bab311936a620e4afa16482a317ab4ca2fb71",
+  "cb17_c.py": "b55ec162fbe8831dc8190cb700cae8b3e1f980ab9d9b0017b3214e3e85e65dd3",
+  "cb17_e.py": "fcb8524003031e88ccc9edc8b5798afb654a37b463c37c4436c9fcfc57cf60ef",
+  "cb17_jobs.py": "14bf6d504ff319ec8d2dba200ea216b01b3bf7be8e2877a82027f9d41c0ace17",
+  "cb17_smoke.py": "f73b2928b469bac90dcc041579ba8a97e6db570a2b6e0e6a2ce55a583eec930a",
+  "cb17_win.py": "22ea03e185bd73b30c372a30c905b00cefbc895205ae7e8a885e2db970948efa",
+  "run_cb17.py": "1ea789574bd59e08f72a7c77a96f6657af0bf7e194703156273845c053c98f98"
+ },
+ "frozen_utc": "2026-10-20T19:05:50Z",
+ "code_commit": "10838876 (merge of 04fa3e12 on chore/arepo-claude-setup)",
+ "attestation_code_freeze": "Orchestrator (autopilot session 2026-10-20 ~17:38Z onward), for every agent that worked on CB17 (implementer, science-reviewers of the freeze check, delta check and verifications, the orchestrator): no SCREEN_8 or REP_8 raw file was opened; none exists (S_8 = 2026-10-26T00:00Z per seals/cb17_t17_rules.json); all CB17 code and tests used synthetic data only and no agent ssh'd for CB17 except the orchestrator's read of q0400-q0403 outputs and host file listings (pre-window). Ruling 6; to be attested again with q0406's commit.",
+ "reviews": [
+  "reviews/CB17_WINDOW_FREEZE_CHECK_2026-10-20.md (FREEZE_READY_WITH_FIXES; fixes 1-7 applied)",
+  "reviews/CB17_OPEN_QUESTION_RULINGS_2026-10-20.md (O-rulings applied)",
+  "reviews/CB17_DELTA_FREEZE_CHECK_2026-10-20.md (D1, D2, lows applied; final D1 completeness verified gap fixed in 04fa3e12)"
+ ],
+ "acceptance": "ruling 6 (ii): the freeze is accepted only when q0404 reproduces P1-P3 exactly on the host with this code; a different count is a FAIL (counted), a missing/unpinned worn file is a refusal"
+}

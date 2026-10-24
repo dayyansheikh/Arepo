@@ -1,0 +1,49 @@
+{
+ "id": "q0154_cb7_xv_rep_fetch",
+ "title": "CB7-X: Stage-2 data for the frozen fresh pairs over [T7_X_rep_start, T7_X_rep_end) (Kalshi 1-minute candles, Polymarket fidelity-10 history, daily taker-print pages)",
+ "family": "creative_batch_7",
+ "priority": 41,
+ "expected_value": "post-window public data for the out-of-time CH73 replication",
+ "data": [
+  "docs/research_lab/seals/cb7_xv_pairs.json (hash-checked)",
+  "public Kalshi candlesticks",
+  "public CLOB prices-history",
+  "public Data API trades"
+ ],
+ "resources": {
+  "mem_mb": 600,
+  "cpu": 1,
+  "network": "kalshi, clob, data-api",
+  "lane": "net"
+ },
+ "depends_on": [
+  "q0153_cb7_xv_pairlist"
+ ],
+ "argv": [
+  "scripts/run_cb7.py",
+  "xv-rep-fetch",
+  "--pairs",
+  "../docs/research_lab/seals/cb7_xv_pairs.json",
+  "--day-pages",
+  "10",
+  "--rps",
+  "2",
+  "--disk-cap-gb",
+  "0.10",
+  "--data-dumps-cap-gb",
+  "40",
+  "--budget-min",
+  "60"
+ ],
+ "timeout_s": 4200,
+ "max_retries": 3,
+ "repeat": {
+  "max_runs": 4,
+  "until_log_regex": "\"status\": \"xv_rep_fetch_complete\""
+ },
+ "outputs": [
+  "data-dumps/research_lab/creative_batch7/xv_rep/{series/,prints/,days.csv.gz,manifest.json}"
+ ],
+ "next_action": "q0155",
+ "notes": "CREATIVE_BATCH_7.md CB7-X Stage 2. DRAFT. Commit after the audited pair list is committed. Refuses before T7_X_rep_end + 2 h. About 5k requests. Kalshi <= 2 rps. No wallet stored. Round 1 (after CB6's history smoke failure): a pair-day with < 50% of expected fidelity-10 history points is unavailable (counted); > 30% unavailable pair-days -> X1-rep not testable (source), counted. | 2026-10-17 15:35Z autopilot: data-dumps headroom guard 12.5 -> 40 GiB (ops only, not a declared argument): the user grew the host boot volume to 100 GB (root 89 GB, 60 GB free); collector cap 45 GiB, 4 GB free-disk guard unchanged."
+}

@@ -1,0 +1,137 @@
+{
+ "declared": {
+  "concentration": "c_j = amount_rank1(j) / max(OI, sum top-20 amounts of j), bounded by 1; OI = the capture's open_interest",
+  "dates": {
+   "collect_max": "t8_h1_start + 63 d; nothing is collected after it",
+   "collect_max_days": 63,
+   "deploy_delay_s": 7200,
+   "h1_days": 21,
+   "h1_earliest": "2026-10-21T06:00:00Z",
+   "h1_start": "first complete capture >= max(h1_earliest, first run + 2 h), pinned in snap/t8_h1_start.json",
+   "h2": "pinned by holders-pin-h2 (write-once)"
+  },
+  "disk": {
+   "prints_cap_gb": 0.12,
+   "snap_cap_gb": 0.15
+  },
+  "frame": {
+   "filters": [
+    "binary",
+    "closed false",
+    "accepting_orders true",
+    "open_interest >= 1000",
+    "condition id present",
+    "not weather (fee_category)",
+    "not crypto Up/Down (hb.CB1_UPDOWN_RE on series_slugs)"
+   ],
+   "max_capture_age_s": 9000.0,
+   "source": "latest complete capture (rows.csv.gz + rows_ext.csv.gz), finished <= 2.5 h before the run",
+   "sports": "fee_category == 'sports'"
+  },
+  "holders": {
+   "limit": 20,
+   "rank": "descending amount within token",
+   "snapshot_time": "request-sent time h",
+   "url": "https://data-api.polymarket.com/holders"
+  },
+  "idle": {
+   "heartbeat_s": 36000.0,
+   "idle_exit": 75
+  },
+  "incomplete_day": "a plan still in progress after UTC midnight is consolidated with what was done and marked <day>.INCOMPLETE.json (n_planned, n_done)",
+  "marks": {
+   "fields": [
+    "market_id",
+    "capture_id",
+    "capture_start_utc",
+    "received_utc",
+    "best_bid",
+    "best_ask"
+   ],
+   "rule": "YES best bid / ask of each stored market at every complete capture in [h, h + 30 h]",
+   "window_h": 30
+  },
+  "paging": {
+   "offset": 4000,
+   "rule": "a 400 at offset > 0 is a capped window (unavailable), any other non-200 is a failed request; the smoke probes offsets 0 and 4000"
+  },
+  "prints": {
+   "capped": "market-day unavailable (counted), prints not stored",
+   "lag_h": 30,
+   "limit": 1000,
+   "pages": 5,
+   "stored": "all prints of market-days with c >= 0.5 on either token; else prints by top-5 holders of either token",
+   "taker_only": true,
+   "window_h": 26
+  },
+  "sample": {
+   "allocation": "proportional (hb.allocate_weighted)",
+   "n_main": 1500,
+   "n_sports": 300,
+   "order_within_stratum": "sha256(seed|market_id)",
+   "plan_written_before_first_request": true,
+   "seed_prefix": "arepo-cb8-holders-",
+   "seed_smoke": "arepo-cb8-hsmoke",
+   "strata": "group x open-interest tercile (cut points from that capture)"
+  },
+  "smoke": {
+   "criteria": "a: HTTP 200 >= 19/20; b: grouped by token, outcomeIndex in {0,1}, numeric amount >= 0, proxyWallet present, >= 1 non-empty; c: <= 20 rows per token; d: response time; e: OI units label; f: strict key fingerprint == pin. pass = a and b and f",
+   "min_ok": 19,
+   "n": 20,
+   "oi_units_ratio": 1.05,
+   "output": "counts and ratios only, write-once",
+   "version": "cb8-holders-smoke-v1"
+  },
+  "wallet_hash_hex": 32,
+  "window2_pin": {
+   "min_delay_s": 7200,
+   "rule": "T8_H2_start >= max(T8_H1_end, pin time + 2 h); the pin time is recorded"
+  }
+ },
+ "disk": {
+  "data_dumps_fetch_cap_gb": 12.5,
+  "disk_budget_exit": 4,
+  "headroom_exit": 75
+ },
+ "func_sources_sha256": {
+  "_consolidate_prints": "9c8b10a204d81c2a8be58f4303b80ad1dfc8d994d0a73add10e9e55d93884866",
+  "_consolidate_snap": "98673c6ce06a759a2e5cc8748064463eec319acef151d17d8a819dfb6ac17122",
+  "_parse_print": "a1df96ca5f44670591f0188534b55157ff030d89ff70ee442240606fd3260a74",
+  "_rank": "b003f6a3f3ab5751ac4f774522f7dce34511583bda3cd70b817750b957d9dc3f",
+  "allocate_weighted": "459fe070ca62da621f70aaf6f44f0a2e7d3171244c726d16d4d098edab871cb9",
+  "capture_marks": "bc316d087036d0da1a3e459cac2f4ed753601c5d053806cb0616a35e49ee09e4",
+  "collection_end": "6831b156fcc2d66932edb61d1efaea3c0f963a25eb913fee20cda910a1d4b842",
+  "concentration": "cd48ac3d21684bdba2d16562536243d6df22682fb3a2af71f0681fa416a45910",
+  "declared": "d34266443c6ff64ec818c585384ea35766ad9716d3ccebdc33464b33ce10ee9b",
+  "fetch_holders": "cec45d5aa722e0c0d234b439e00ae12e39caf3af15369bb021c0111b9ce41919",
+  "hash_wallet": "de1003c768c24a7fe41bd93b2ada2ae245ab60d4c217df365cb14e1efc156338",
+  "holders_frame": "d19b13339a64db03c3b247c9921d1ef41beaa251c06a6262a8147e8dd167598e",
+  "holders_prints": "370d7d0f24d28725e49d8cc17d2a44a2ae569ee04fd201a781a023be62b1f2fb",
+  "holders_sample": "aff0aad132bafdb17f12eaca608be98f55067ba642b7acc615d6ab1598b8b36d",
+  "holders_smoke": "d513a9784faefc15f2b72905fc5ffb0c0c8a8728520d6db9030e92c5da07d561",
+  "holders_snap": "226ed8f2d6ef966495724a5c03c12cecd718ed1aefae1a6c81823c3d4727ac1c",
+  "is_updown": "828c196b44e9d1eeceb281ede6b52fcf78530ca25268f137e351d09da1572511",
+  "key_fingerprint": "2dc81a0d992c306cbea5156b49df455044b4efe3b6f921c29bf696d9ee64e568",
+  "list_captures": "4f07ab402ceb8ef86f99aa9acbb2e311b9e359028c8f3506f29c2a1f74086282",
+  "load_wallet_key_strict": "8c3e91817c91c8d6699889a1e24f9e05225c80357d6ac6fa0c36ec5f1f5a2af0",
+  "missed_days": "9e5b0015de220825b585b06ee83dbfe3eb971e28cff8faacbdef4d42d28ed57b",
+  "parse_holders": "b721ad2da627bb14d4380889667a5ae8c7c215b444bb78b3d123088128cca169",
+  "pin_h2": "e6629c9b41b81603eab9b45863d2a73de44001e080fc3eede2b1bbd0fe6f5bea",
+  "read_capture": "cfe59b54b8e99b5d0db5ec1dd3374ae7737bb7bacbde6c267fb15357afb1ba09",
+  "smoke_ok": "b08b46b601fef53d00f98978f40ce6b6e435b1a92047d0aefc584f8c4c2c5660",
+  "smoke_pick": "6cbf47500beb2644a208e01dcb4d215876a53ac2622d3102b2036a088e052a40",
+  "smoke_verdict": "df9b28146fc9d9c024bf52daa998e831c24513cb621a2c1a4b0aced2b3f8c260",
+  "start_gate": "f7e647a552ef4a668aed0727081dc8a801781c876afe057f032dadabfc63fb2e",
+  "windowed_prints": "1df52768b1a5bd0d177f124a4d16a02e67fec4b183150d80d10f0e902633f757"
+ },
+ "funcs_sha256": "ce2a4507140f454d102d17e29aaaea192c40c3e94521acacafd81822ef6b32da",
+ "rules_sha256": "2b225da61c8676fa932d445e923e350eac204e493cb7972e0a9130680d576c09",
+ "rules_version": "cb8-holders-rules-v1",
+ "wallet": {
+  "fingerprint": "first 16 hex of HMAC-SHA256(key, 'arepo-cb8-wallet-key-fingerprint-v1')",
+  "hash": "HMAC-SHA256(key, lower-cased proxyWallet), first 32 hex characters",
+  "key_file": "~/.arepo/wallet_hash_key (or AREPO_WALLET_HASH_KEY_PATH), mode 600, never created by CB8",
+  "raw_addresses_stored": false
+ },
+ "wallet_key_fingerprint": "80ce5e81a539a570"
+}

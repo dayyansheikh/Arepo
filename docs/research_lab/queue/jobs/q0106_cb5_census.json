@@ -1,0 +1,39 @@
+{
+ "id": "q0106_cb5_census",
+ "title": "CB5: pre-freeze census (G seed echo, determinism, seed-vs-book gate, side audit, G56; L families, eligible pair-captures, G59; K steps/clusters per bucket, MDE, J4 wide-by-hour)",
+ "family": "creative_batch_5",
+ "priority": 40,
+ "expected_value": "gates and MDEs before the freeze; no target, net, bucket sum or lead statistic",
+ "data": [
+  "history/h2_main (guarded views)",
+  "h2_main/cb5/head_prices",
+  "creative_batch5/census_cohort",
+  "cb5_extract/{listings,cdf} (< T5_dev_end)",
+  "cross_venue/series + matches.json (C1)",
+  "snapshots < 2026-10-20T03:00Z (spread and mid only)"
+ ],
+ "resources": {
+  "mem_mb": 1500,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0102_cb5_h2_head_fetch",
+  "q0103b_cb5_seed_cohort_fetch",
+  "q0105_cb5_cdf_extract_backfill"
+ ],
+ "argv": [
+  "scripts/run_cb5.py",
+  "census",
+  "--family",
+  "G,L,K"
+ ],
+ "timeout_s": 5400,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch5/census.json",
+  "trials.jsonl (cb5_descriptive)"
+ ],
+ "next_action": "Claude session: insert counts and gates into CREATIVE_BATCH_5.md; scripts/run_cb5.py write-spec; commit model_specs/cb5_v1.json; pin T5_rep_start",
+ "notes": "DRAFT: the coordinator copies this to queue/jobs/ only after the science-reviewer CB5 freeze check of the code. Outcome guard (assert_census_frame, trim_census); floors are never revised from the census. Run before 2026-10-20T03:00Z for the J4 count if raw captures are still on the host."
+}

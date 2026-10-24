@@ -1,0 +1,44 @@
+{
+ "id": "q0564_lt5_census_seal",
+ "title": "LT5 capture-census seal (DRAFT): sha256 of exactly the files census-captures will open (each needed slot's complete capture: rows, manifest, rows_ext; sweep 1 of passes 2026-10-19T22:31Z .. 2026-10-21T22:31Z) from the host originals and the q0560 restore tree, with the seal's own slot assignment per directory, the root of each file, the q0560 restore report and the genuinely missing slots; hashes bytes and reads manifests only, parses no rows",
+ "family": "live_tests_5",
+ "priority": 45,
+ "expected_value": "seals/lt5_census_inputs_captures.json, the committed input identity that q0561 requires",
+ "data": [
+  "host originals ~/arepo/data-dumps/research_lab/{snapshots,book_sweeps} (read-only)",
+  "data-dumps/research_lab/live_tests5_census/restore (q0560; read-only)"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "lane": "net",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0560_lt5_census_restore_captures"
+ ],
+ "not_before": "2026-10-21T23:20:00Z",
+ "argv": [
+  "scripts/run_live_tests5.py",
+  "seal-captures",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests5_census/restore/data-dumps/research_lab/snapshots",
+  "--sweep-root",
+  "../data-dumps/research_lab/book_sweeps",
+  "--restore-report",
+  "../data-dumps/research_lab/live_tests5_census/restore/RESTORE_REPORT_data-20261015-dsheikh.json",
+  "--work",
+  "../data-dumps/research_lab/live_tests5_census/work_seal",
+  "--out",
+  "../data-dumps/research_lab/live_tests5_census/lt5_census_inputs_captures.json"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests5_census/lt5_census_inputs_captures.json (write-once; the work dir is cleaned up at exit)"
+ ],
+ "next_action": "orchestrator: copy the output byte for byte to docs/research_lab/seals/lt5_census_inputs_captures.json, commit it (message with its sha256), pull that commit on the host, then promote q0561 (which refuses a seal that is not tracked or differs from HEAD)",
+ "notes": "OPS 2026-10-21 15:30Z (autopilot): lane cpu -> net (file hashing, IO-bound, mem_mb 300) so a running cpu-lane job (signal-engine refit / walk-forward, censuses) cannot hold the 23:20Z start; argv, seal rules and outputs unchanged. | OPS 2026-10-21 12:15Z: priority 26 -> 45 (must run right after 23:20Z so the seal commit and q0561 fit before the 02:45Z blackout). | PROMOTED 2026-10-21 ~10:10Z (autopilot): census code check CENSUS_READY_WITH_FIXES -> fixes e8f0cd96/f49bf94e -> FIXES_OK_WITH_NOTES (reviews/LT5_CENSUS_CODE_CHECK_2026-10-21.md). Starts no earlier than 23:20Z. NEXT (session at ~23:30Z): byte-copy the seal into docs/research_lab/seals/lt5_census_inputs_captures.json, commit, deploy, promote q0561 before 2026-10-22T02:45Z. | DRAFT, not in queue/jobs. Census code fix verification (2026-10-21): the seal step. Same roots and the same needed-slot rule (capture_needs) as q0561, so the seal lists exactly what the census opens and nothing after the last census slot. A failed q0560 restore report refuses the seal (exit 3). not_before 23:20Z: the census days end with the 2026-10-21T22:31Z pass, whose capture and sweep 1 must be complete. TIMING (hard): host retention deletes captures nightly at 03:30Z (tonight up to about 2026-10-14T03:30Z, inside H's look-back) and the queue start blackout begins 02:45Z, so q0560 -> q0564 -> seal commit + host pull -> q0561 must all start before 2026-10-22T02:45Z, and q0561 must have written its series (its first phase) before 03:30Z. If the window is missed, the sealed 10-13/10-14 captures are gone and q0561 refuses (sealed but absent): a new restore and seal are then needed, never an unsealed run. Hashing about 110 captures and 14 sweeps: a few minutes, small memory. Counts 0."
+}

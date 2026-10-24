@@ -1,0 +1,55 @@
+{
+ "id": "q0201_cb10_exclusion_keys",
+ "title": "CB10: exclusion keys = CB9 q0182 keys + CB9 P and K/D frame ids + seal copies committed since q0182; series-date keys for the two ladder series",
+ "family": "creative_batch_10",
+ "priority": 34,
+ "expected_value": "disjointness of D and B",
+ "data": [
+  "creative_batch9/exclusion_keys.csv.gz",
+  "creative_batch9 frame id lists",
+  "docs/research_lab/seals/*",
+  "public Gamma (ids)"
+ ],
+ "resources": {
+  "mem_mb": 1000,
+  "cpu": 1,
+  "lane": "net",
+  "network": "gamma-api",
+  "as_cap_mb": 3000
+ },
+ "depends_on": [
+  "q0182b_cb9_exclusion_keys",
+  "q0183_cb9_pyth_frame",
+  "q0185_cb9_kd_frame"
+ ],
+ "argv": [
+  "scripts/run_cb10.py",
+  "exclusion-keys",
+  "--rules",
+  "../docs/research_lab/seals/cb10_rules_v2.json",
+  "--rps",
+  "2",
+  "--disk-cap-gb",
+  "0.005",
+  "--data-dumps-cap-gb",
+  "40",
+  "--cb9-keys-sha256",
+  "FILL_SHA256_OF_CB9_Q0182_EXCLUSION_KEYS",
+  "--extra-pin",
+  "cb9_p_frame:FILL_PATH:FILL_SHA256",
+  "--extra-pin",
+  "cb9_kd_frame:FILL_PATH:FILL_SHA256"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 2,
+ "outputs": [
+  "research_lab/creative_batch10/exclusion_keys.csv.gz",
+  "manifest.json"
+ ],
+ "next_action": "q0202, q0204",
+ "notes": "CB10 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. Rules file seals/cb10_rules_v2.json (freeze-check v2, supersedes cb10_rules.json) (rules_sha256 d422cc70... (file sha256 5ee0ea23...)). --data-dumps-cap-gb 40 (ops convention; design text says 14). After T_seal. >2% missing metadata -> disjointness unverified (D1, B1, B2 not testable, counted). Exit 75 on data-dumps or free-disk headroom. PLACEHOLDERS to fill at commit time (after q0182/q0183/q0185 finish): the q0182 keys sha256 (--cb9-keys-sha256 is REQUIRED by run_cb10.py; the design argv omitted it) and the pinned CB9 P and K/D frame id lists (--extra-pin NAME:PATH:SHA256, ids only). Freeze-check fix 7: can return in_progress with exit 0, so a repeat block re-runs until the completion or a declared stall status. | 2026-10-23 ~17:40Z: resources raised to mem_mb 1000 / as_cap_mb 3000 (as q0164c) after q0182 attempt 1 hit MemoryError at the 2 x 400 MB address-space cap (ops only).",
+ "repeat": {
+  "max_runs": 4,
+  "until_log_regex": "\"status\": \"(exclusion_keys_complete|not_run_source|disjointness_unverified|upstream_not_testable|disk_budget)\""
+ }
+}

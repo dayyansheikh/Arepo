@@ -1,0 +1,44 @@
+{
+ "id": "q0100_j8_tte_diag",
+ "title": "J8 C-TTE descriptive diagnostics on h3_power (look-ahead exclusion, <24h pre/post-end split, near-end exclusion, UTC-day clustering)",
+ "family": "modelling",
+ "priority": 55,
+ "expected_value": "Q6: whether the replicated C-TTE contrast depends on the after-the-fact endDate (look-ahead, clip-at-0 post-end rows, endDate ~ closedTime markets) or on event clustering; descriptive only, not counted tests",
+ "data": [
+  "history/h3_power panel_H2h, frame.csv.gz",
+  "history/h2_main/ml_history_results_r5_regime_ix.json (frozen cuts, columns, folds)"
+ ],
+ "resources": {
+  "mem_mb": 2500,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_ml_history.py",
+  "--run-id",
+  "h3_power",
+  "--max-rows",
+  "250000",
+  "--horizons",
+  "1",
+  "--cells",
+  "direction:1",
+  "--n-boot-ablation",
+  "10000",
+  "--exclude-markets-from",
+  "seed:7:250000",
+  "--frozen-from",
+  "../data-dumps/research_lab/history/h2_main/ml_history_results_r5_regime_ix.json",
+  "--tte-diag",
+  "--revision",
+  "h3_r5_tte_diag"
+ ],
+ "timeout_s": 21600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/history/h3_power/ml_history_results_h3_r5_tte_diag.json"
+ ],
+ "next_action": "Claude session: write up descriptively; decide whether to draft a near-end conditional rule with cost check or an as-of hours-to-end live feature (challenger 2026-10-16)",
+ "notes": "DESCRIPTIVE diagnostics, not counted tests: --tte-diag skips Holm and appends nothing to trials.jsonl. Same frozen configs, folds and exclusion as q0013 (cell direction:1 only; C-TTE advanced there). Reports as-replicated contrast (should reproduce q0013 0.01878), after the endDate look-ahead exclusion (closedTime > 24h before endDate), the <24h bin split into pre-end and post-end origins (hours are clipped at 0), exclusion of markets with |endDate - closedTime| <= 1h (declared in tte_diag.NEAR_END_TOL_S), event / dep_group / UTC-day clustered CIs, and a check that frozen base_cols equal M0V. Never overwrites an existing results file. Can run only after the h3_power frame.csv.gz is present."
+}

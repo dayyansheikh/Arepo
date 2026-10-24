@@ -1,0 +1,18 @@
+LOW	NEWS	PATH-SETTLED	Will Anthropic's valuation hit (HIGH) $5.0T by December 31?
+NEWS	LOW	UNSCHEDULED-NEWS	Republican Senate odds hit 45% by October 31?
+NEWS	LOW	UNSCHEDULED-NEWS	Will "Babydoll – Dominic Fike" be the #2 song for 2026?
+NEWS	LOW	UNSCHEDULED-NEWS	Will Donald Trump post 80-99 Truth Social posts from October 9 to October 16, 2026?
+NEWS	LOW	UNSCHEDULED-NEWS	Will PPI YoY be 5.8% in September?
+NEWS	LOW	UNSCHEDULED-NEWS	Will Spider-Man: Brand New Day be the top grossing movie of 2026?
+NEWS	LOW	UNSCHEDULED-NEWS	Will Zelenskyy post 80-99 posts from October 6 to October 13, 2026?
+NEWS	other	UNSCHEDULED-NEWS	Will Avigdor Lieberman be the next Prime Minister of Israel?
+NEWS	other	UNSCHEDULED-NEWS	Will Elisabeth Thand Ringqvist be the next Prime Minister of Sweden?
+NEWS	other	UNSCHEDULED-NEWS	Will Grand Theft Auto VI win Game of the Year at the 2026 Game Awards?
+NEWS	other	UNSCHEDULED-NEWS	Will Magdalena Andersson be the next Prime Minister of Sweden?
+NEWS	other	UNSCHEDULED-NEWS	Will Rob Callister be the next Chief Minister of the Isle of Man?
+NEWS	other	UNSCHEDULED-NEWS	Will Ulf Kristersson be the next Prime Minister of Sweden?
+NEWS	other	UNSCHEDULED-NEWS	Will Ulrich Siegmund be the next Minister-President of Sachsen-Anhalt?
+NEWS	other	UNSCHEDULED-NEWS	Will the Bank of Russia decrease the key rate after the October Meeting?
+NEWS	other	UNSCHEDULED-NEWS	Will the upper bound of the target federal funds rate be ≥ 4.5% at the end of 2026?
+other	NEWS	SPORTS-FEED	Will LeBron James retire before next NBA season?
+other	NEWS	SPORTS-FEED	Will Rocco Baldelli be the next permanent manager of the Philadelphia Phillies?

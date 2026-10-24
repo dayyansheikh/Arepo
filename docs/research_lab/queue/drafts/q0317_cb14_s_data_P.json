@@ -1,0 +1,51 @@
+{
+ "id": "q0317_cb14_s_data_P",
+ "title": "CB14-S P: target transcripts (reduced to per-member first-mention offsets and last offset, guarded_p/), CLOB prices-history fidelity 1 over [startTime - 30 min, startTime + 5 h] per member, Data API prints (<= 2 pages) aggregated to transactions in that span, Gamma outcomes to guarded_p/outcomes_guarded.csv.gz",
+ "family": "creative_batch_14",
+ "priority": 11,
+ "expected_value": "S P data",
+ "data": [
+  "rollcall.com factbase",
+  "public CLOB prices-history",
+  "public Data API",
+  "public Gamma"
+ ],
+ "resources": {
+  "mem_mb": 500,
+  "cpu": 1,
+  "lane": "net",
+  "network": "rollcall.com, clob, data-api, gamma-api"
+ },
+ "depends_on": [
+  "q0316_cb14_s_pregate"
+ ],
+ "argv": [
+  "scripts/run_cb14.py",
+  "s-data",
+  "--subset",
+  "P",
+  "--rules",
+  "../docs/research_lab/seals/cb14_rules.json",
+  "--rps",
+  "2",
+  "--factbase-rps",
+  "0.5",
+  "--disk-cap-gb",
+  "0.05",
+  "--data-dumps-cap-gb",
+  "40",
+  "--budget-min",
+  "60"
+ ],
+ "timeout_s": 4800,
+ "max_retries": 2,
+ "outputs": [
+  "history/h14_speech/{prices_p.csv.gz,tx_p.csv.gz,guarded_p/,manifest_p.json}"
+ ],
+ "next_action": "q0319 (with q0318)",
+ "notes": "DRAFT. Refuses unless the model sha256 is pinned in part S. No side, wallet or hash stored. Rules part sha256 (seals/cb14_rules.json, resealed 2026-10-19 after the freeze-check fixes and the re-check of 515d68d, CREATIVE_BATCH_14.md section 11): common d34a2e739bacc69957fb0df777c174cfcbf95a92bdc72152a88bf4b326297e9c, S 657c7ae3b081d965d8dd01e2a9787d45ebb7adbf5774af2a7f931f14faba856f. CB14 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes.",
+ "repeat": {
+  "max_runs": 3,
+  "until_log_regex": "\"status\": \"s_data_P_complete\""
+ }
+}

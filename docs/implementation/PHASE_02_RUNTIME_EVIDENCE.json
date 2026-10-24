@@ -1,0 +1,79 @@
+{
+  "schema_version": "fs2-diagnostic-report-v1",
+  "local_evidence_directory": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_2d3194413f0d4429ad65603a2e8f6102",
+  "research_admitted": false,
+  "raw_artifacts_committed": false,
+  "reports": [
+    {
+      "capture_id": "14e06be7-7551-4da9-a5e1-53ab35129a63",
+      "source_id": "data.v2.trades",
+      "status": 200,
+      "raw_bytes": 1772,
+      "raw_hash": "fb7ee9d6221c8b1190d4640f818043195e8f63978c8f6a3e2a02cdd8d466eb9f",
+      "received_at": "2026-09-20T17:04:05.428824Z",
+      "parse_error": null,
+      "parsed_artifact_available_at": "2026-09-20T17:04:05.430291Z",
+      "capture_kind": "live_diagnostic",
+      "research_admitted": false,
+      "trades": 2,
+      "has_more": true,
+      "coverage": "bounded_page",
+      "economic_fill_identity": "unresolved"
+    },
+    {
+      "capture_id": "1edc5780-f41b-44f4-ae0c-10684864b8c7",
+      "source_id": "gamma.markets",
+      "status": 200,
+      "raw_bytes": 12100,
+      "raw_hash": "9d33f283581e6d2840afeb749ce19d3032a14eb52b31f6acd29c118b15f2c00a",
+      "received_at": "2026-09-20T17:04:05.212528Z",
+      "parse_error": null,
+      "parsed_artifact_available_at": "2026-09-20T17:04:05.214566Z",
+      "capture_kind": "live_diagnostic",
+      "research_admitted": false,
+      "markets": 2,
+      "source_local_identity_parsed": true,
+      "chain_identity_verified": false
+    },
+    {
+      "capture_id": "2c51f952-1729-4c71-a9d6-bdf492025141",
+      "source_id": "coinbase.btc_usd.ticker",
+      "status": 200,
+      "raw_bytes": 187,
+      "raw_hash": "21e5681b123366b1d6eb7262efc0f7d4d885a275ff77a84796c4479c949bf68b",
+      "received_at": "2026-09-20T17:04:05.490028Z",
+      "parse_error": null,
+      "parsed_artifact_available_at": "2026-09-20T17:04:05.491806Z",
+      "capture_kind": "live_diagnostic",
+      "research_admitted": false,
+      "fields": [
+        "ask",
+        "bid",
+        "price",
+        "rfq_volume",
+        "size",
+        "time",
+        "trade_id",
+        "volume"
+      ],
+      "source_time_raw": "2026-09-20T17:04:04.330479503Z"
+    },
+    {
+      "capture_id": "c37b4db5-8826-4312-abb1-99cad5a6ffe1",
+      "source_id": "clob.book",
+      "status": 200,
+      "raw_bytes": 5854,
+      "raw_hash": "0559e8f3b9f6a03fe26b6977ed44b5d17593b446d469fec42a9b83f35e96bdf8",
+      "received_at": "2026-09-20T17:04:05.294782Z",
+      "parse_error": null,
+      "parsed_artifact_available_at": "2026-09-20T17:04:05.297407Z",
+      "capture_kind": "live_diagnostic",
+      "research_admitted": false,
+      "bid_levels": 36,
+      "ask_levels": 130,
+      "timestamp_raw": "1789923844641",
+      "quality_flags": [],
+      "native_clock_unit_admitted": false
+    }
+  ]
+}

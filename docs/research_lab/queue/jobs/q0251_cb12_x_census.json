@@ -1,0 +1,32 @@
+{
+ "id": "q0251_cb12_x_census",
+ "title": "CB12-X census, counts only, on host files (C1 reproduction 316/183/517,616; scheduled end by streaming read of poly_markets.json; edit flag; usable consecutive step pairs by horizon bin x category x PM-volume tercile; G per way; GX)",
+ "family": "creative_batch_12",
+ "priority": 24,
+ "expected_value": "X gate before the freeze",
+ "data": [
+  "research_lab/cross_venue/{series/*.npz,matches.json,audit_flags.json,audit_sample100.json,poly_markets.json,kalshi_markets*.jsonl} (sha256-pinned, read-only)"
+ ],
+ "resources": {
+  "mem_mb": 900,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0240_cb12_smoke"
+ ],
+ "argv": [
+  "scripts/run_cb12.py",
+  "census",
+  "--family",
+  "X"
+ ],
+ "timeout_s": 2400,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch12/census_X.json",
+  "trials.jsonl (cb12_descriptive)"
+ ],
+ "next_action": "science-reviewer freeze check (X part)",
+ "notes": "PROMOTED 2026-10-18 by the autopilot after the CB12 freeze check + verify round (X GO; smoke after D1-D4 in 7fc7c68; rules common f2f672c1\u2026, M a2e420b0\u2026, X 24e3444b\u2026). DRAFT. Refuses cross_venue_live, any step >= 2026-10-12T00:00Z and any input modified at or after 2026-10-13T00:00Z. No gap, rho or half-life computed (unit-tested with the gap accessor poisoned). Rules part sha256 (seals/cb12_rules.json, 2026-10-18 code): X 7485a272bb57d7afd3b114b3382b79ffdb81c0bdf1e2c4cfbc1458280abf3a9f. CB12 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes. (the v1 census ran 2026-10-18T21:06Z under X 24e3444b\u2026 and reported fresh_step_pairs 0 for every bin; A7 corrected the freshness age; q0251b re-runs the census to census_X_v2.json, v1 kept)"
+}

@@ -1,0 +1,46 @@
+{
+ "id": "q0242_cb12_say_frame",
+ "title": "CB12-M: Gamma closed events tag_id=100343, endDate [2025-06-01,2026-10-01), >= 8 binary members, startTime present; sports exclusion (frozen tag list + broadcast regex, counted); occasion rule (endDate - startTime <= 36 h) vs period baskets (counted only); key rule (market, event, series-date +-1 d ; exclusion_series_dates.csv.gz is mandatory: the job waits, exit 75, while it is missing); start_edit flags; out-of-time split at 2026-03-01; outcomes and umaResolutionStatus to separate SCREEN and HOLDOUT guarded files",
+ "family": "creative_batch_12",
+ "priority": 23,
+ "expected_value": "M population, flags and split",
+ "data": [
+  "public Gamma",
+  "creative_batch12/exclusion_keys.csv.gz"
+ ],
+ "resources": {
+  "mem_mb": 1000,
+  "cpu": 1,
+  "lane": "net",
+  "network": "gamma-api"
+ },
+ "depends_on": [
+  "q0241_cb12_exclusion_keys"
+ ],
+ "argv": [
+  "scripts/run_cb12.py",
+  "say-frame",
+  "--rules",
+  "../docs/research_lab/seals/cb12_rules.json",
+  "--rps",
+  "2",
+  "--disk-cap-gb",
+  "0.005",
+  "--data-dumps-cap-gb",
+  "40",
+  "--budget-min",
+  "35"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 2,
+ "outputs": [
+  "history/h12_say/{events.csv.gz,members.csv.gz,frame_report.json,split.json,outcomes_guarded_screen.csv.gz,manifest.json}",
+  "history/h12_say/holdout/{events.csv.gz,members.csv.gz,outcomes_guarded_holdout.csv.gz}"
+ ],
+ "next_action": "q0243",
+ "notes": "DRAFT. Returns in_progress (exit 0) on a transient Gamma failure; the repeat block re-runs it. No price read. Capped windows are split until uncapped (counted). Shares the run directory (and manifest) h12_say with q0243; a frame re-run after q0243 started is a no-op. Rules part sha256 (seals/cb12_rules.json, 2026-10-18 code): M a2e420b031421642b97398ff284e2e2a9364b92004969b4421d5daa7c0910455. CB12 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes. | OPS 2026-10-20 (autopilot): attempts 1-2 died in ~6 s with MemoryError under the 2 x 300 MB address-space cap (loading the exclusion keys); mem_mb 300 -> 1000 (as q0244, which completed). Resource only; no rule, argv or output change.",
+ "repeat": {
+  "max_runs": 12,
+  "until_log_regex": "\"status\": \"(say_frame_complete|not_run_source|disjointness_unverified)\""
+ }
+}

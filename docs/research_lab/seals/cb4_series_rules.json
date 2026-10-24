@@ -1,0 +1,25 @@
+{
+ "cadence_bounds_sha256": "e404024b49220b6c1703ffbddb854815ac69bdb9270a58358d75e71abbdf1539",
+ "constants": {
+  "DAY": 86400.0,
+  "PRED_PRICE_H": 3.0,
+  "PRED_TRADES": 1000,
+  "PRICE_POST_H": 2.0,
+  "PRICE_PRE_H": 3.0,
+  "PSEUDO_GAP_H": 6.0,
+  "SERIES_ROLL_FROM": "2025-10-01",
+  "SERIES_ROLL_TO_MARGIN_D": 3,
+  "SERIES_WALK_AFTER_D": 2,
+  "SERIES_WALK_BASE_DAYS": 7,
+  "SERIES_WALK_FROM": "2025-09-24",
+  "SERIES_WINDOW_MIN_S": 3600,
+  "SUCC_CREATED_LAG_H": 1.0,
+  "TEMP_RE": "^(Highest|Lowest) temperature in (.+?) on (.+?)\\?$",
+  "TEMP_RE_FLAGS": 0,
+  "WIN_PRICE": 0.99
+ },
+ "funcs_sha256": "05ae34718f0c4b9dbc0fcb2b609f231917cd034b6d6e3038ef4a53bfa6590eb5",
+ "horizons_sha256": "8028d95b476a3b6c2e9a95499f5d03803e4c7e268fed25b6eaf1de165568bd6f",
+ "rule_text": "CB4-S series rules (CREATIVE_BATCH_4.md CB4-S). Series are found from event listings (series on events, closed=false then true, end dates from the walk start to R_to + 2 d). Cadence from the median gap of member endDates only: daily [20h,28h], weekly [6d,8d], monthly [27d,32d], else excluded. Weather = fee_category weather or CB2 TEMP_RE on a title. Sports series = modal fee_category in the committed group-S decision. Series sample: square-root allocation over cadence x modal fee_category (hb.allocate), rank sha256(seed|series). Block: up to members-1 consecutive predecessors with endDate in [R_from, R_to], start sha256(seed|series|block) mod range. t0 = closedTime of the single winning market (price >= 0.99, others <= 0.01). Successor = smallest later endDate with createdAt <= t0 - 1h. Side: binary-member events by normalised outcome label; multi-member events by normalised groupItemTitle (exact), else the unit is excluded. Horizons: daily M=3h V_end=12h; weekly and monthly M=6h V_end=48h. Fetch window = union over origins t0 and t0_alt = endDate(pred)+1h of [o' - 3h, o + V_end + 2h] with o' = o - V_end - 6h, plus the winning predecessor token and one trade page around t0 for the publicity check. R_from = 2025-10-01 (earliest allowed roll time t0). R_to = min(T_fetch7 - 3 d, T_seal) - 2 d (latest allowed roll time t0; T_fetch7 = the series fetch's own clock, T_seal = the sealing time), so the event walk ends at R_to + 2 d.",
+ "rule_text_sha256": "77611e502b570506b23e165386082f8098f5981ea32f3dced7285d74d31ec222"
+}

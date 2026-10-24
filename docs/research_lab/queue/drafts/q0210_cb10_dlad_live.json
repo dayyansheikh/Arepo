@@ -1,0 +1,41 @@
+{
+ "id": "q0210_cb10_dlad_live",
+ "title": "CB10-D Stage 2: 56 post-freeze resolution dates; per 12:00 ET origin, a cron-run (outside the queue lanes) records receipt-timed the ladder frame, CLOB /book of both tokens of every strike, Deribit trades [t-120min,t) and the live book summary (variant); prints fetched after each origin",
+ "family": "creative_batch_10",
+ "priority": 35,
+ "expected_value": "out-of-time D replication and D2 economic data",
+ "data": [
+  "public Gamma, CLOB /book, Data API",
+  "Deribit public"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "lane": "none (cron, round 1 item 13)",
+  "network": "gamma-api, clob, data-api, deribit"
+ },
+ "depends_on": [
+  "q0208_cb10_screen_D"
+ ],
+ "argv": [
+  "scripts/run_cb10.py",
+  "dlad-live",
+  "--origin",
+  "auto",
+  "--rps",
+  "1",
+  "--disk-cap-gb",
+  "0.01",
+  "--data-dumps-cap-gb",
+  "40",
+  "--d1-result-commit-epoch",
+  "TODO-COORDINATOR-d1-commit-epoch"
+ ],
+ "timeout_s": 300,
+ "max_retries": 0,
+ "outputs": [
+  "research_lab/creative_batch10/dlad_live/<origin_date>/..."
+ ],
+ "next_action": "q0211 after T10_D2_end + 2 d",
+ "notes": "CB10 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. Rules file seals/cb10_rules_v2.json (freeze-check v2, supersedes cb10_rules.json) (rules_sha256 d422cc70... (file sha256 5ee0ea23...)). --data-dumps-cap-gb 40 (ops convention; design text says 14). Not a queue job: two cron lines (0 16 and 0 17 UTC; acts only at 12:00 America/New_York) committed to scripts/oracle/crontab.txt and deployed only if D1 advanced. Every receipt in [t, t+10 min] or the origin is unavailable (scheduling / host disk / source), never refilled; > 20% unavailable -> D1-rep and D2 not testable, counted. Logs any concurrent lane job. Freeze-check fix 5: --d1-result-commit-epoch is REQUIRED (no written_epoch fallback); the cron lines must carry the commit epoch of the committed D1 results (git log -1 --format=%ct on the results commit) filled in by the coordinator at deployment: placeholder TODO-COORDINATOR-d1-commit-epoch."
+}

@@ -1,0 +1,41 @@
+{
+ "id": "q0474_lt3_live_collect",
+ "title": "LT3 live reader for E015-E019 (DRAFT, FALLBACK install only): write-once series/status/sweep files per complete capture, frozen E015/E019 move lines, E017 surge lines and E016/E018 flow lines, then target statuses and quotes at k+1/k+3/k+12 and sweep-1 quotes; no network request; exit 75 when nothing is new",
+ "family": "live_tests_3",
+ "priority": 31,
+ "expected_value": "prospective lines for E015-E019; single analysis after 2026-11-15T12:00Z (q0475)",
+ "data": [
+  "research_lab/snapshots (complete captures + rows_ext sidecar, read-only)",
+  "research_lab/book_sweeps (sweep 1, read-only)",
+  "research_lab/trade_samples (active frame, read-only)"
+ ],
+ "resources": {
+  "mem_mb": 480,
+  "cpu": 1,
+  "lane": "net",
+  "network": "none"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_live_tests3.py",
+  "run",
+  "--max-items",
+  "40",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 3,
+ "repeat": {
+  "max_runs": 3000,
+  "until_log_regex": "LIVE_TESTS3_WINDOW_CLOSED"
+ },
+ "outputs": [
+  "data-dumps/research_lab/live_tests3/{series,status,sweeps}/",
+  "data-dumps/research_lab/live_tests3/{move,events,surge,flow}/frozen/",
+  "data-dumps/research_lab/live_tests3/{move,surge,flow}/outcomes/",
+  "data-dumps/research_lab/live_tests3/passes.jsonl"
+ ],
+ "next_action": "runs until END + 30 h (2026-11-15T06:00Z for the proposed window), then q0475",
+ "notes": "DRAFT, not in queue/jobs. The RECOMMENDED install is the host cron entry of LIVE_TESTS_3.md 13.4 (every 20 min, own flock, challenger R1 finding 9); promote this job ONLY if that cron entry is not installed, never both. Exposure as a queue job: exit 75 waits 30 min and a long net-lane job (pmxt reads; LT2's q0460 shares the lane) can delay a run; inputs are complete by about :45 and the tightest late deadline is the next :31 minus 60 s, so slack is about 1 h 45 min; late-refused files are counted and labelled (> 2% -> late-loss). mem_mb 480 keeps it outside the 02:45-05:30 start blackout. Promote only after the censuses, the freeze check, the spec fill, the SPEC_SHA256 / code_sha256 pin and the ledger registration commit (at least 24 h before REGISTERED_UTC, LIVE_TESTS_3.md 1.1). Disk: the module stops at 1.5 GB in live_tests3/ (estimate about 0.8 GB). 48 consecutive idle runs mark the job failed: revive with queue_worker.py retry (missing captures stay missing; the window is never extended). No retention rule may cover live_tests3/ before the analysis is committed."
+}

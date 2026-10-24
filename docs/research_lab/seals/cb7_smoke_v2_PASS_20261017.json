@@ -1,0 +1,48 @@
+{
+ "bounds_ok": true,
+ "counts_only": true,
+ "criterion_a_slug_resolves_to_pinned_id": true,
+ "criterion_b_bounds_and_order": true,
+ "criterion_c_coverage": true,
+ "disclosure": {
+  "final_note": "a v2 FAIL is final; T_seal unchanged; S1/G1 then 'not run (smoke FAIL)' and counted",
+  "prior_probe_overlap_counts": {
+   "cb6_smoke_v1_probed_in_v2_draws": 1,
+   "cb6_smoke_v2_probed_in_v2_draws": 14,
+   "cb7_smoke_v1_probed_in_v2_draws": 0,
+   "cb7_smoke_v1_probed_total": 2
+  },
+  "supersedes": {
+   "cause": "pool spec: 200 candidates drawn before the 2025/volume filter",
+   "criterion_a": true,
+   "job": "q0140_cb7_smoke",
+   "n_in_pool": 2,
+   "n_nonempty": 0,
+   "n_requested": 2,
+   "result": "FAIL",
+   "version": "cb7-smoke-v1"
+  }
+ },
+ "git_commit": "aeefc924272d54125860f9db0d13319b97c45594",
+ "n_candidates_drawn": 33,
+ "n_candidates_found_on_gamma": 33,
+ "n_covered": 15,
+ "n_failed_requests": 0,
+ "n_gamma_failed_requests": 0,
+ "n_in_pool": 20,
+ "n_nonempty": 15,
+ "n_recorded_pass": 33,
+ "n_recorded_pass_volume_ge_min": 26,
+ "n_requested": 20,
+ "newest_first_ok": true,
+ "pass": true,
+ "pass_thresholds": {
+  "min_coverage": 14,
+  "min_nonempty": 10,
+  "n": 20
+ },
+ "rules_sha256": "05bf365cbb885d0183f31da1b032b2337830afaf262c90bfa1f0e9f9061221e9",
+ "run_utc": "2026-10-17T10:00:20Z",
+ "smoke_version": "cb7-smoke-v2",
+ "tag_request_failed": false
+}

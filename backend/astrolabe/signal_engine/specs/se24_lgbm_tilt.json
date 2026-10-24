@@ -1,0 +1,56 @@
+{
+ "aux_versions": {
+  "tilt": "se-aux-tilt-v1"
+ },
+ "broad": false,
+ "derived": [
+  "base"
+ ],
+ "description": "Learner-matched collateral tilt levels (CANDIDATES CH235, development only): LightGBM with se1_lgbm_mm's params on the champion's features + the tilt aux family (se-aux-tilt-v1: cheap-side collateral min(p, 1-p), cheap side, the market's own fee schedule's taker fee and maker rebate a share, spread over collateral). Read against se1_lgbm_mm for the family effect. Built from the features file and the capture's own sidecar; trains only when every labelled capture of the window has the table. Level columns only (CH234's w is held back until LT11's freeze); not embargoed.",
+ "families": [
+  "market_state",
+  "momentum",
+  "tilt"
+ ],
+ "features_version": "se-features-v1",
+ "isolates": [
+  "tilt"
+ ],
+ "learner": "lgbm",
+ "model_id": "se24_lgbm_tilt",
+ "params": {
+  "early_stopping": 30,
+  "lgb": {
+   "bagging_fraction": 0.8,
+   "bagging_freq": 1,
+   "feature_fraction": 0.8,
+   "lambda_l2": 1.0,
+   "learning_rate": 0.05,
+   "max_bin": 127,
+   "min_data_in_leaf": 500,
+   "num_leaves": 31,
+   "seed": 20261021
+  },
+  "max_rounds": 300,
+  "val_frac": 0.2
+ },
+ "targets": [
+  "dir_2h",
+  "dir_6h",
+  "dir_24h",
+  "res_7d"
+ ],
+ "train": {
+  "max_rows": 300000,
+  "min_days": 2,
+  "min_rows": 5000,
+  "refit": "daily",
+  "require_full_coverage": true,
+  "require_sources": [
+   "tilt"
+  ],
+  "res_window_days": 28,
+  "window_days": 14
+ },
+ "version": 1
+}

@@ -1,0 +1,148 @@
+{
+ "spec_id": "live_tests2_v1",
+ "status": "DRAFT (not registered; sha256 not pinned in live_tests2.py)",
+ "design": "docs/research_lab/LIVE_TESTS_2.md",
+ "experiments": [
+  "E012",
+  "E013",
+  "E014"
+ ],
+ "registered_utc": "2026-10-22T00:00:00Z",
+ "end_utc": "2026-11-12T00:00:00Z",
+ "analysis_not_before": "2026-11-13T12:00:00Z",
+ "grid": {
+  "grid0_utc": "2026-10-01T00:31:00Z",
+  "grid_s": 7200,
+  "slot_tol_s": 1800
+ },
+ "eligibility": {
+  "spread_max": 0.1,
+  "mid_lo": 0.02,
+  "mid_hi": 0.98,
+  "rule": "tight = two-sided (0 < bid < ask < 1), spread <= 0.10 (Gamma spread, else ask - bid), mid in [0.02, 0.98]; origin eligibility = panel.eligibility_mask"
+ },
+ "e012": {
+  "origin_hours_utc": [
+   0,
+   6,
+   12,
+   18
+  ],
+  "horizon_slots": 12,
+  "end_margin_h": 25,
+  "x": "mid_i - mid_h, h = the capture 12 slots (24 h) before i, tight at h; NaN otherwise",
+  "y": "mid_j - mid_i, j = the capture 12 slots after i, two-sided at j (panel.target_valid)",
+  "L": "log1p(volume24hr) at i (NaN -> 0)",
+  "zL": {
+   "centre": 1.1329432102999761,
+   "scale": 2.2540017066291274
+  },
+  "econ": {
+   "illiquid": "L == 0 (volume24hr zero or missing at i; 75.5% of eligible rows in the census)",
+   "liquid_cut": 5.337665835963216,
+   "min_abs_x": 0.05,
+   "rule": "primary paper rule: L == 0 and |x| >= 0.05: take the side against x at the origin touch, exit at the j touch, taker fee both legs. Descriptive companion: L >= liquid_cut (upper tercile of L > 0) and |x| >= 0.05, follow x"
+  },
+  "skip_slots": 3,
+  "x_skip6": "mid_{i-3} - mid_h (both tight; the 6 h skip slot, never contains mid_i); mechanism label only (LIVE_TESTS_2.md section 2)"
+ },
+ "flow": {
+  "window_s": 21600,
+  "lag_s": 1800,
+  "x6_clip": 1.0,
+  "x6_sd": 0.8578247852488129,
+  "x6": "clip(sum(sign * size * price) / sum(size * price), -1, 1) / 0.8578 over trades with t - 6 h <= ts < t (t = origin row receipt); NaN if the 6 h window is not covered by the 500-trade page or has no trade",
+  "rv_steps": 12,
+  "rv_min_diffs": 6,
+  "rv": "rms of consecutive-slot two-sided mid differences over slots k-12..k (series files); log(rv + 1e-4)",
+  "zRV": {
+   "centre": -4.886686589985,
+   "scale": 1.6950458634230905
+  },
+  "zSPR": {
+   "centre": 0.02819072911636891,
+   "scale": 0.022417011750925184
+  },
+  "horizon_slots": 3,
+  "end_margin_h": 7,
+  "econ": {
+   "lrv_upper_tercile_cut": -4.012442799870679,
+   "spr_upper_tercile_cut": 0.03,
+   "min_abs_imb": 0.5,
+   "rule": "favourable (upper) moderator tercile (log rv >= cut for F4; spread >= 0.03 - 1e-9 for F5) and |imb6| >= 0.5: follow sign(imb6) at the origin touch, exit at the 6 h target touch, taker fee both legs"
+  },
+  "vol24_cap": Infinity,
+  "vol24_cap_source": "census re-run 2026-10-20 on the registered census inputs (docs/research_lab/seals/lt2_census_r1_2026-10-20.json, sha256 4656490bc02132c1fb3bce5c6cc504a77a0e7b830019075cdd2a69a89864c2aa): 6 h truncation 5 / 4,147 = 0.12% < 1%, so no volume cut binds and the cap is +inf exactly as recorded (stored as the JSON token Infinity, which json.loads reads as float inf; analysis casts with float())",
+  "vol24_cap_max_trunc_share": 0.01,
+  "vol24_cap_rule": "E013 population: origin-capture Gamma volume24hr <= vol24_cap. vol24_cap = the largest volume24hr v such that, among the pre-window census flow rows (tight; >= 1 trade in the 6 h window or a truncated window) with volume24hr <= v, the share of truncated 6 h windows is <= 0.01 (live_tests2.vol24_cap_rule). Filled from the census before the pin; null or NaN = not filled (the analysis refuses a pinned spec with a null or NaN cap; +inf is allowed)",
+  "trunc_label_share": 0.02
+ },
+ "e014": {
+  "source": "data-dumps/research_lab/e007/dev_fit.json (E007 frozen development fit; host copy read 2026-10-19)",
+  "source_sha256": "7e2c4f79079ced0c74ad1899cfb3536e71f97385c499d9730dd62046560124c6",
+  "base": {
+   "intercept": 0.0010731534292327662,
+   "chg_1h": -0.14918419671175465
+  },
+  "augmented": {
+   "intercept": 0.0010113672605499763,
+   "chg_1h": -0.16362806692762996,
+   "signed_share": 0.005034284136345737
+  },
+  "signed_share": "signed_volume_1h / volume_1h from the trade sample's features.csv.gz (0 if volume_1h = 0), E007 definition",
+  "regime_A_h": [
+   0,
+   24
+  ],
+  "regime_B_min_h": 720,
+  "regimes": "as-of hours to end = (Gamma end_date at the origin capture - origin receipt) / 3600; A: (0, 24], B: > 720, P: <= 0 (past nominal end, excluded), M: between (excluded), U: unknown (excluded)",
+  "horizon_slots": 1,
+  "econ": {
+   "abs_ss": 1.0,
+   "min_trades_1h": 3,
+   "rule": "regime A, |signed_share| = 1 and n_trades_1h >= 3: follow sign(signed_share) at the origin touch, exit at the 2 h target touch, taker fee both legs"
+  },
+  "trunc_label_share": 0.02,
+  "ss_truncated": "ss = NaN when the trade sample flags the 1 h window truncated (trades_truncated); NaN rows are excluded and counted"
+ },
+ "census": {
+  "until_utc": "2026-10-19T21:00:00Z",
+  "note": "pre-window, origin-side fields only (no target read); run on the host 2026-10-19 ~21:40Z into /tmp (deleted); scales change effect units and the economics cuts, never the sign or p of an interaction test",
+  "captures": [
+   "20261019T143101Z_d7b5f026",
+   "20261019T163101Z_e6079fc4",
+   "20261019T183101Z_48fb645a",
+   "20261019T203102Z_22a57dc7"
+  ],
+  "samples": [
+   "20261019T143934Z_2a241531",
+   "20261019T163915Z_d277da60",
+   "20261019T183959Z_cf74b060",
+   "20261019T203935Z_513785d1"
+  ],
+  "n": {
+   "zL": 153711,
+   "zRV": 3891,
+   "zSPR": 4142
+  },
+  "L_zero_share": 0.7553135429474793,
+  "L_pos_tercile_cuts": [
+   3.69947925147739,
+   5.337665835963216
+  ],
+  "lrv_tercile_cuts": [
+   -5.406523934083523,
+   -4.012442799870679
+  ],
+  "spr_tercile_cuts": [
+   0.01,
+   0.03
+  ],
+  "ids_note": "capture and sample ids of the 2026-10-19 census (all started before 2026-10-19T21:00Z) are listed above; vol24_cap and the truncation shares come from the re-run of `run_live_tests2.py census --until 2026-10-19T21:00:00Z` on these same inputs (2026-10-20; seals/lt2_census_r1_2026-10-20.json); census() refuses unless the selected captures and samples equal these lists"
+ },
+ "code_sha256": {
+  "live_tests2.py": "88ee00b20fbe8241659dcadd209c69b1aad63563188c9115443eeedec5f58053",
+  "live_tests2_analysis.py": "a7b5c781444c6d3599abe2ebc6db7d3aea5c1c4a48481a08616f34357b211ab0",
+  "rule": "normalised sha256 (the SPEC_SHA256 line replaced by 'SPEC_SHA256 = <pin>'; live_tests2.code_sha256); kept equal to the modules by a unit test after every code change (first filled 2026-10-20, challenger R1) and re-verified in the SPEC_SHA256 pin commit. Frozen lines carry code_sha (first 16 hex digits of the collector hash); the analysis keeps only lines whose spec_sha and code_sha equal the pins and refuses to run a pinned spec if either module's hash differs"
+ }
+}

@@ -1,0 +1,38 @@
+{
+ "id": "q0353_cb15_rep_P",
+ "title": "CB15-P Stage 2: P1-rep (book-mid slope; >= 60 pairs) and P2-rep (recorded best ask at t_d, best bid at t_d + 24 h, no bid -> -9.3c; >= 40 units with |g_d| >= 5c); +1c robustness; title-audit failures dropped and counted; one Stage-2 Holm over the triggered tests",
+ "family": "creative_batch_15",
+ "priority": 9,
+ "expected_value": "P Stage-2 verdicts (evidence level L2, causal selection)",
+ "data": [
+  "history/h15_birth_live/",
+  "docs/research_lab/seals/cb15_p_audit/<week>.json (science-reviewer verdicts)",
+  "creative_batch15/results_P.json (sha256 pinned)"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0351_cb15_screen_P"
+ ],
+ "argv": [
+  "scripts/run_cb15.py",
+  "rep",
+  "--family",
+  "P",
+  "--rules",
+  "../docs/research_lab/seals/cb15_rules.json",
+  "--results-sha256",
+  "TODO-COORDINATOR"
+ ],
+ "timeout_s": 1200,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch15/results_P_rep.json",
+  "trials.jsonl (cb15_replication + creative_batch_15:P:rep)"
+ ],
+ "next_action": "pass: Stage P-P registration draft",
+ "notes": "CREATIVE_BATCH_15.md CB15-P Stage 2, section 2.3. DRAFT. Commit only if P1 or P2 advanced. TODO-COORDINATOR: --results-sha256 = sha256 of the committed results_P.json. Waits (exit 75) until the watcher closed and every audit week has verdicts; nothing triggered -> exit 0, nothing counted. Rules part sha256 (seals/cb15_rules.json, P declared 2026-10-19): common 13c703222500e502cd29acb94cdec497c43ff68cfc9415bd0efbfd4699718f3a, P 1c6b7e955bd5cf92e026c4826d879c16aa301b446d54da79e7838847fd3bf876. CB15 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer, part P) and the committed rules file; the coordinator regenerates the rules and these shas if any common / P code changes. P-3/P-4/P-11: P1-rep 24-h mid by the one-sided-bound rule, availability gate, top-5 drops need p < 0.01 and the floor, first in-window read."
+}

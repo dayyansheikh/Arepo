@@ -1,0 +1,32 @@
+{
+ "id": "q0308_cb14_census_W",
+ "title": "CB14-W census, counts only: frame by term/class/listing year/status; key drops and full-series counterfactual; CB11-A entity overlap; revisions and bursts by subject, state band and grid (edits only); reach; W2 units by label; decisive moves by subject and week (price-only denominator, never related to bursts); gates GW, GWP (W1 binomial worst case; W2 pre-burst round-trip proxy, SEs only); MDEs",
+ "family": "creative_batch_14",
+ "priority": 14,
+ "expected_value": "W gates and MDEs before the freeze",
+ "data": [
+  "history/h14_wiki/ (outcomes_guarded only for the NO-resolved D audit count)"
+ ],
+ "resources": {
+  "mem_mb": 600,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0307_cb14_w_prints"
+ ],
+ "argv": [
+  "scripts/run_cb14.py",
+  "census",
+  "--family",
+  "W"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch14/census_W.json",
+  "trials.jsonl (cb14_descriptive)"
+ ],
+ "next_action": "science-reviewer freeze check (W part)",
+ "notes": "DRAFT. No L_D, placebo share, entry-exit net or lead computed. Re-reads absent exclusion frames. Rules part sha256 (seals/cb14_rules.json, resealed 2026-10-19 after the freeze-check fixes and the re-check of 515d68d, CREATIVE_BATCH_14.md section 11): common d34a2e739bacc69957fb0df777c174cfcbf95a92bdc72152a88bf4b326297e9c, W 011abaf508b061e84b2e005c7774a4f2f6ccf0d4d8a8cf3566540ab4f933a369. CB14 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes."
+}

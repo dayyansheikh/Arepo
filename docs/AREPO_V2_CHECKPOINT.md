@@ -1,0 +1,434 @@
+# AREPO v2 live checkpoint
+
+**PHASE 3 CLOSED.**
+- D116 was PASS_WITH_LIMITATION, giving D117.
+- D118 then PASSED live on 2026-10-11, validating the control-pairing *mechanism* on liquid markets (D119).
+  - Scope and disclosures: `implementation/d118/D118_ADDENDUM.md`. Pair 1 was very probably sibling markets; 5 of 7 triggers had no control.
+
+**PHASE 4 IN PROGRESS.** See `implementation/phases/PHASE_04_EDGE_EXPERIMENTS.md` and the ledger `research_lab/EXPERIMENT_LEDGER.md`.
+User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=Etc/GMT-1 date`.
+
+## Experiments autopilot live state (2026-10-24 05:01 UTC+1)
+- **CB8-B (CH76) CLOSED not testable (source unavailable)**, counted (6f0071e7): coverage audit 87/119 = 73.1% < 90%.
+- **CB4 closewin** pass step `--disk-cap-gb 1.5` (e730d5c4, deployed; was stopped at 0.40 GB since 10-18). A background watcher
+  waits for the next pass line; check it shows `written > 0` (T4_dev_end 10-25T00Z).
+- **CB9 q0182b** (run-scoped composite-id fix; ruling GO_WITH_CHANGES applied; merged 6f600491; queued, net lane). Next: write up
+  its result (3,990 new ids expected; `n_pred_event_ids_not_in_any_key_set` 8), then q0183+ per CB9.
+- **CB7 q0147 census** promoted, not before 10-25T01:00Z (h_geo window closes 10-25T00Z). Next: insert counts and gates,
+  freeze check, freeze.
+- **LT11 code MERGED** (8ca24855, re-check fixes 1-6), deployed; q0696 size-timing queued (clock only). Next: record its
+  projection in the ledger (ordered-lane line before the seal if needed); census q0691 not before 11-07T08:00Z.
+- **LT12 code:** Opus implementer on `feat/live-tests-12-code` (`../astrolabe-live-tests-12-code`). Then the independent
+  code-freeze check (must confirm re-check fixes 1-2 in code), fixes, merge before the 11-07 seal.
+- **Creative round 18** (Fable xhigh, CH252+, `feat/creative-r18`) running; then CANDIDATES notes + LT13 shortlist.
+- Queue: MC1 q0116i running (exclusive, ~1.6 h per fold unit), then q0516; E026 q0541 from 10-25T00Z (phone note due then).
+- Coordination: the signal autopilot merges `auto/signal-engine` into this worktree; it aborted one merge at ~03:55Z on a ledger
+  conflict (its retry is its own). Commit promptly; do not leave uncommitted edits here.
+- **Open owner decision, urgent:** data-dumps 37/40 GiB; measured clearable restore copies 10.2 GB (cb18 4.9, LT4 3.0, LT6 1.2,
+  LT5 0.8, LT3 0.3; no job reads them; keep CB17 worn_restore 0.9). Dashboard item 8.
+
+## Interactive session state (2026-10-23 08:30Z)
+- **Security audit run 1 (2026-10-23):** Cloudflare security-audit skill, quick profile, source-only. 0 confirmed findings and 5 needs-validation leads; see `docs/security/AUDIT_2026-10-23_RUN1.md` (full artefacts in `~/security-audit-skill/astrolabe/run-1/`). Owner notified via ntfy. No fixes made yet. Proposed small PRs:
+  1. Refuse to start in production on a default or short AUTH_SECRET.
+  2. `git rm --cached` the committed SQLite backup.
+  3. Key the rate limiter on the trusted proxy hop.
+  4. Session revocation and require the current password.
+  5. Cache or limit `/api/historical/screen`.
+  - Owner checks: Render AUTH_SECRET is strong; repo visibility; whether the backup's account is real.
+- **Web (merged under the owner exception):** #19–#25. Production schema v18. Owner passkey in iCloud Keychain; recovery codes with the owner (`docs/lab/SECURITY_KEYS.md`).
+- **Autopilots (Mac):** experiments in `~/.arepo/autopilot` and signal engine in `~/.arepo/autopilot-signal` (worktree `../astrolabe-signal-auto`, branch `auto/signal-engine`). Owner messages arrive in each instance's `INBOX.md` via /lab/claude.
+- **Host:** resized to 2 OCPU / 12 GB on 2026-10-22. Open owner decision: clear about 9 GB of restore copies (data at 33 of 40 GB).
+- **E026 copy-skilled wallets:** owned by the experiments autopilot, which sends milestone notifications.
+
+## Interactive usage push (owner: use all usage before Wed 21 Oct morning), started 2026-10-19 ~21:20Z
+Parallel worktrees: one branch per stream, each merged by the interactive orchestrator after review. The autopilot keeps the CB8–CB17 pipeline.
+- `feat/live-tests-2` (`../astrolabe-live-tests`): new prospective live tests E0xx. Designs, light collectors and drafts; challenger review, then freeze.
+- `feat/creative-r6` (`../astrolabe-creative-r6`): Fable xhigh creative round 6, CH118+.
+- `feat/prior-art` (`../astrolabe-prior-art`): literature map of PM anomalies against AREPO status, and gaps.
+- `feat/new-streams` (`../astrolabe-new-streams`): new keyless prospective collectors (drafts, dry runs).
+- `feat/live-audit` (`../astrolabe-live-audit`): readiness audit of registered live tests' analyses (counts only, no peeking).
+- `feat/cost-model` (`../astrolabe-cost-model`): a realistic taker/maker execution cost model (development).
+- Web: PR #20 (members admin) is waiting for the owner's merge. /lab is live (PR #19).
+
+## Owner Lab dashboard (/lab), 2026-10-18 (interactive session, user-approved incl. production deploy)
+- **Spec:** `docs/lab/LAB_DASHBOARD_SPEC.md`. Web code: branch `feat/lab-dashboard`, NOT yet on production.
+  - aa166b7: frontend /lab; 1053cd1: API + 2 additive tables, schema v14.
+  - Tests: backend 24 new, frontend 129, build OK.
+  - Local end-to-end check: signed mac push 204; forged push 401; unauthenticated 401. The host key matches the committed public key.
+- **Clients and registry:** merged into this branch (5e0f0b2). `scripts/lab/lab_host.py` (host, 10 min) and `lab_mac.py` (Mac); science-reviewed
+  `docs/research_lab/lab_dashboard/registry.json`. The host cron line in crontab.txt is commented out until the API is live.
+- **Blocked on the user:**
+  - The repo hook forbids pushes to `arepo-free-production-v1` from Claude.
+  - The Mac's git credential helper `/usr/local/bin/gh` is x86_64 and fails after the 10-18 macOS update ("Bad CPU type"), so no push works.
+  - The user fixes gh (e.g. installs Rosetta or an arm64 gh), pushes `feat/lab-dashboard`, and merges the PR into `arepo-free-production-v1`.
+- **After the merge:**
+  1. Verify the Render build/migration and the Vercel deploy.
+  2. Set `is_superuser=true` for the owner account (approved).
+  3. Deploy to the host, uncomment the lab cron, and install `scripts/lab/com.arepo.lab-mac.plist`.
+  4. Smoke-test with `--no-commands`, then a pause/resume round trip.
+
+## Second Always Free server: auto-retry running (2026-10-17 15:12Z, interactive session)
+- **Approval:** the user approved a second free A1 instance (1 OCPU / 6 GB / 100 GB boot; totals 2/12/200 = the tenancy's
+  free limits) to move some experiments onto. London AD-1/AD-2 were out of host capacity, so the user chose the auto-retry.
+- **How:** `scripts/oracle/oci_retry_create.py` runs on the host every 10 min (cron, flock, `~/oci_venv`, API key in
+  `~/.oci`, never leaves the host). It refuses if the result would exceed the free limits, never creates a duplicate, and
+  stops itself and sends a phone alert once `arepo-research` exists.
+  - Log: `~/arepo_collector/logs/oci-retry.log`. Stop: `touch ~/.arepo/oci_retry/DONE`.
+- **First runs (15:12Z):** "Out of host capacity" in both ADs. One AD-2 call returned a transient 401, and the next run was fine.
+- **q0116b (MC1 dev run): PARKED on 2026-10-17 by the user's instruction, as a backup, not dropped.** Both attempts died in
+  about 16 s at the 2 x 3200 MB address-space cap (`_ArrayMemoryError`). The new queue status `parked` never starts until
+  `queue_worker.py retry <id>`. Revive it on the second instance, or with a measured cap. Do not create a q0116c on this host meanwhile.
+- **Next, once created:** set up the instance (OL9, Python 3.11 venv, repo, ssh alias), then move queue `cpu`-lane jobs there.
+
+## Host disk: RESOLVED (2026-10-17 ~15:05Z, interactive session)
+- **Resize:** boot volume 46.6 -> 100 GB in the OCI console, user-approved. It stays Always Free: home region, no other
+  volumes or backups, 100 of 200 GB used. The host was grown online with the rescan plus `oci-growfs`.
+- **Result:** root is 89 GB with 61 GB free. Collection and the monitors were uninterrupted.
+- **Collector cap:** 16 -> 45 GiB (`arepo_pass.sh`, deployed 0122e3e). The 4 GB free-disk guard is kept.
+- **Per-job guards:** raised to **40 GiB** in every pending job and draft by the autopilot (36d908f, deployed 15:35Z;
+  q0120b was running and stays at 14). New convention: `--data-dumps-cap-gb 40`.
+- **Relocation:** the /var/oled relocation is not needed and was not done. Symlinked dirs could hide files from recursive
+  globs.
+
+## (superseded by the entry above) Host disk (2026-10-17 ~14:35Z, autopilot): eased, not solved
+- **Was (14:30Z):** data-dumps 13.1 GiB against the 14 GiB collector cap, about +1.1 GB/day; root free 6.0 GB against the
+  4 GB guard. The 8-day snapshot rule frees nothing until about 21 Oct (host captures start 10-13/14).
+- **Done (a8bbe68):** `dnf clean all` (1.5 GB), `dnf-makecache.timer` disabled (it rebuilt the cache within a day; undo
+  with `sudo systemctl enable --now dnf-makecache.timer`), journal vacuumed to 60 MB (0.2 GB). Root free 6.0 -> 7.5 GB.
+  Collector cap 14 -> 16 GiB, so the 4 GB free-disk guard binds first (about 20 Oct). q0120b data-dumps guard 13 -> 14
+  (ops only; its output cap stays 0.25 GB).
+- **Blocked by the evidence hook (correctly, not bypassed):** relocating idle data (`ml_cache` 1.4 GB and
+  `history/h1_first,h3_power,h5_cb1*,h6_weather` 1.7 GB, unwritten for 6 h+) to the separate 10 GB `/var/oled` volume
+  (9.1 GB free; holds only pcp logs and the empty kdump dir) as a verified copy plus symlink. `protect_evidence.py`
+  blocks move/delete under data-dumps unless a user-approved retirement session is running. **Dashboard approval item.**
+  Alternative: the user grows the boot volume in the OCI console (Always Free includes 200 GB of block storage; the boot
+  volume is 46.6 GB).
+- h7_cb4_series `walk_partial*.jsonl` is already 1.3 GB uncompressed (q0082f).
+
+## Standing user decisions
+- Work autonomously. Use parallel agents where there is real cause.
+- Specialists: Opus max, or Fable 5.1 used sparingly. Extra credits are off.
+- Never hold two multi-GB jobs at once.
+- Data rights are out of scope (private phase).
+- **Category scope is undecided**: sports inclusion is the user's later call, so designs stay category-agnostic with category as a parameter.
+- **Trading engine:** a possible far-future feature only. Do not touch the trading or execution plans committed by another session.
+- Website wording, physical backup and compression are parked.
+- Bypass permissions mode is persisted in `.claude/settings.local.json`. The `git push` ask rule has been removed. Branch-delete and worktree-remove asks remain; do not use them.
+
+## State (2026-10-11 ~13:45Z; historical, see the autonomous programme section for live state)
+- **Branch:** `chore/arepo-claude-setup`, pushed. Production is untouched. Another session also commits here, so commit only your own files.
+- **Backup:** private repo `dayyansheikh/arepo-data`, release `data-20261011`, verified. The local archive parts were deleted 13:4xZ with user approval after a hash re-check; the local manifest and index files remain.
+- **Disk:** about 16.3 GB free. D120 launch needs 15,382,085,632 B.
+
+## Multi-signal ML pipeline (user direction, 2026-10-11)
+Edge search now goes through combined models plus SHAP, not a chain of single E-tests (memory `multi-signal-ml-direction`).
+- **Design:** `research_lab/MULTI_SIGNAL_PIPELINE_DESIGN.md`. Reviewed twice and accepted; amendment A1 (M3 Laplace-EM, fixed-effect categories) has been re-simulated.
+- **Target:** 3-class Gamma-mid move over the next snapshot, δ = 0.005.
+- **Confirmation:** one model, fixed-sequence H1 (log loss vs M0), then H2a/H2b (economic). Needs ≥40 development snapshots plus 24 test periods.
+- **Code:**
+  - `ml_panel.py` (latest 6c5a074): pairs, features, sweep A features, siblings, dependence groups, fold plan, sweep-gap diagnostic.
+  - `ml_models.py` (a1de02e): M0, elastic net, LightGBM (20-config search), M3_eb, clustered bootstrap, OOF SHAP, trials logging.
+  - `requirements-research.txt` and `scripts/research_ml_setup.sh` (libomp workaround).
+- **Sidecar:** `ext_sidecar.py` writes `rows_ext.csv.gz` per snapshot (v2, from pass 7 on). Main files are byte-identical.
+- **Clustering:** `research_lab/DEPENDENCE_CLUSTERING_ANALYSIS.md` (393249a) concludes ML co-primary = fixture-day groups (event ∪ parentEventId ∪ negRisk ∪ series×UTC day ∪ underlying), with season-level as a sensitivity.
+  - Done: ml_panel uses fixture-day `dep_group` plus `dep_group_season`; sidecar v3 adds parentEventId (pass 9 onwards).
+- **Runner:** `scripts/run_ml_dev.py` (87fb74c). Gate: 40 consecutive complete snapshots with sidecar, which means about 14–15 Oct. `--dry-run` is available. Placebos are being added.
+
+## Experiments
+- E002: Confirmed (exploratory). E003: inconclusive.
+- E004/E005/E006: 9 of 12 qualifying. Passes run at 18:31Z, 20:31Z and 22:31Z. Score at 12.
+- E007: 2 of 12. Deadline 2026-10-18.
+- **Collection runs on the Oracle host (`ssh oracle`) since 2026-10-14 11:29Z** (user-approved; runbook `research_lab/COLLECTION_HOST.md`).
+  - Mac launchd `com.arepo.*` is unloaded; the plists are kept as `*.plist.disabled` for rollback.
+  - Host cron (UTC): `scripts/oracle/arepo_pass.sh` at `31 */2` (flock, 4 GB free-disk guard, 12 GB data cap); `supervise.sh` watchdog at `@reboot` and `*/5` for the live trade monitor and E009/E010 poller; outcomes at `10 2,14`; notify every 15 min.
+  - Code reaches the host only via `scripts/oracle/deploy.sh` (committed tip; unions trials.jsonl both ways). Pull data read-only with rsync.
+  - Health: `ssh oracle '~/arepo/scripts/oracle/supervise.sh status; tail -n 12 ~/arepo_collector/logs/collector.log'`.
+  - Disk: about 1 GB/day against the 12 GB cap (3.7 GB at cutover), so it fills around 2026-10-22 unless archive rotation is installed (needs user decisions; see COLLECTION_HOST.md).
+  - Mac outage: 00:31Z–10:31Z passes on 10-14 were missed and monitors were down ~00:00–10:47Z (ledger: operational deviation). A host validation copy covering it sits unmerged in `/home/opc/arepo_val` pending a design decision.
+
+## D120 (pairing redesign): PASS
+- Frozen at 04e71ea (record ea29ae6). Launched once at 14:47Z (HEAD 47375bc).
+- Evaluator: PASS, 6/6 group-disjoint complete pairs, 0 engineering findings.
+- Challenger: PASS_WITH_CAVEATS. Economics pair shares a driver; reliability is untested.
+- Evidence `PHASE_03_D120_EVIDENCE.json`, addendum `d120/D120_ADDENDUM.md`, decision D120/D121 (86004ed).
+
+## Hourly update job
+Cancelled by the user at about 18:30 UTC+1 on 2026-10-11 (cron `dbea28e0` deleted).
+
+## Feature-discovery programme (user objective, 2026-10-11 evening)
+- **Mapping and governance:** `research_lab/FEATURE_DISCOVERY_PROGRAMME.md` (09afff6), plus Phase 4 amendment A-ML1. M1 is the default F*. Complex arms must beat M1 (CI under both clusterings, ≥2/3 blocks stable, ≥16 dev days). Budgets are cumulative.
+- **Done:**
+  - `flow_features.py` and `wallet_sidecar.py` (b3923b5): HMAC wallet hashes; E007 files unchanged.
+  - `ml_explain.py`: ranks by incremental out-of-sample ΔLL; `demonstrated_incremental_value` vs `descriptive_only`.
+  - Horizons h1/h3/h12 plus magnitude and binary targets (389a677).
+- **Running agents (usage budget high until Wed 14 Oct; user asked for max progress):**
+  - `history_backfill` (CLOB prices-history plus Data API trades; exploratory_historical);
+  - non-sports dependence analysis (Opus max);
+  - integration (flow/wallet into the panel, evidence_role enforcement, cumulative counter);
+  - `history_sources` (historical books, on-chain wallet history);
+  - `resolution_dev` (T5 resolution forecasting, Opus);
+  - `external_news` (GDELT);
+  - `economics` (fees, slippage, paper P&L, break-even).
+- **Disk caps:** history 1.5 GB, sources 1 GB, resolution 2 GB, news 0.5 GB.
+
+## Unusual pre-news flow programme (the user's founding goal: Maduro-style signals)
+**Design and tooling**
+- Programme (Fable): `research_lab/UNUSUAL_FLOW_PROGRAMME.md` and `detector_eval.py`.
+- 5 variants FINAL FREEZE at 692ab61 (`UNUSUAL_FLOW_DETECTOR.md`). IF-H1 frozen as f92952cb.
+- Theory (Opus max): `INFORMED_FLOW_SIGNAL_THEORY.md`.
+
+**Results**
+- Maduro (`CASE_STUDY_MADURO.md`): striking but not unusual against the market's own history.
+- Broad backtest and census revision (7dbc7bf): nothing significant; underpowered (26–80 alert episodes against 200–800 needed). Lead only: `uf_new_wallet_concentration` lift 6.9, nominal p 0.045.
+- Held-out cases (`CASE_CATALOGUE.md`, 11 cases): alerts before 4/10, but always 36–52h early. The reported flows came in the final hours.
+- Cumulative detector trials: 18.
+
+**Conclusion:** rare events can only be tested prospectively, at fine time resolution.
+
+**Live large-trade monitor**
+- `live_trade_monitor.py` (c8a291c and later): 5-minute poll of trades ≥ $1k, hashed wallets, wallet age, frozen-rule scores, matched controls, and a separate outcome writer.
+- Being fixed: a causal trailing-99th-percentile alert budget with a 7-day warm-up, and a wider control pool.
+- NOT installed as launchd: **this needs the user's approval.**
+
+## Other results (overnight 11–12 Oct)
+- E004 Supported but not tradable; E005 Not supported; E006 sign-only (ad55b0f).
+- T5 resolution: no model beats recalibrated price. The 7d candidate was an artefact (untraded placeholder prices).
+- Historical ML (`HISTORICAL_ML_DEV.md`, revisions r1–r3): against M0v, flow adds about 2% direction skill at 2h and 1% at 6h (demonstrated; possibly a series-lag artefact); wallet age shows nothing. r4_book is pending the h2 book table (background job, about 15h).
+- GDELT is unusable; the Wikipedia pageviews fallback is built (574b703).
+- **E007: Supported** (β 0.0036, CI [0.0017, 0.0053], 11/12 periods). The challenger confirmed it with caveats. The staleness check (dev, 7cffda0) survives excluding the last 5–15 min. Not tradable as a taker.
+
+## Wave 3 workstreams (launched 2026-10-12 ~17:30 UTC+1; heavy-lock convention in `~/arepo_collector/heavy_lock.md`)
+1. **Learned surprise-move detector** (Fable): `SURPRISE_MOVE_DETECTOR.md`. If it beats the hand rules on the test months, freeze it and add it to the live monitor.
+2. **Hypothesis battery 1: DONE (development).** 72 declared (7a4d80c), one run: 18 pass cumulative BY (m=468). Survivors are flow continuation (aggressive flow strongest), reversal moderators by trade confirmation (quote noise), flow weaker at longshots/quiet markets, price-level drift and one |move| feature. Wallet, cross-market, time, category and book hypotheses are null; ladders untestable. No survivor covers taker costs. Candidates C1-C4 (not registered) are in `HYPOTHESIS_BATTERY_1.md` section 11.6. **Replication on h3_power (HB1-R, e5a3ef3): 16 of 18 replicate under Holm, no shrinkage (median ratio 1.20); still no cost viability; wallet-age nulls stay null except a weak WA2 lead** (`HYPOTHESIS_BATTERY_1_REPLICATION.md`). Cumulative tests now 494.
+3. **`h3_power` backfill:** about 10k more markets, oversampling decision-asymmetric categories.
+4. **Cross-venue Kalshi lead-lag:** `CROSS_VENUE_STUDY.md` (historical, L1). **Live test E009 registered** (`CROSS_VENUE_LIVE.md`, `cross_venue_live.py`): `REGISTERED_UTC` 2026-10-13T00:00Z, fixed end 2026-11-03T00:00Z, analyse once after 02:00Z that day; no interim outcome looks.
+5. **Economic conditions** (liquid markets, large signals, maker-style paper analysis): `ECONOMIC_CONDITIONS_STUDY.md`.
+6. **IF-H2 deadline ladder:** development, then possible E008 registration (`IF_H2_DEADLINE_LADDER.md`).
+
+**Live jobs (Oracle host since 2026-10-14 11:29Z):** collector pass, live trade monitor + outcomes, E009/E010 cross-venue poller (+ daily pair refresh) and notify (ntfy topic in `~/.arepo/ntfy_topic` on the host). See `research_lab/COLLECTION_HOST.md`.
+
+## Latest results (12–13 Oct)
+- **Economics:** 95 conditions, none after-cost positive (`ECONOMIC_CONDITIONS_STUDY.md`).
+- **Battery 1:** 72 hypotheses, 18 survive BY, none cost-viable. Flow continuation is the main real effect; wallet effects are null (`HYPOTHESIS_BATTERY_1.md`).
+- **Learned surprise detector** `sm_learned_v1`: test-month lift about 4x, excess +1.8 pts, Holm p 0.008, placebo rank 1/100. It is volatility-driven. Deployed live in the monitor (`SURPRISE_MOVE_DETECTOR.md`).
+- **Cross-venue:** Kalshi leads Polymarket by 10–20 min (`CROSS_VENUE_STUDY.md`).
+  - **E009 registered:** live test, runs 2026-10-13 to 2026-11-03, analysed once (`CROSS_VENUE_LIVE.md`). launchd job `com.arepo.cross-venue-live`.
+  - The historical pairs are being re-audited for matcher errors: 56 of 167 live pairs were wrongly matched.
+- **Running:** IF-H2 (E008 is reserved for it) and `h3_power`.
+
+## Registered live experiments (as of 2026-10-13)
+- **E009 / E010:** Kalshi→Polymarket lead and gap. Poller on the Oracle host (`supervise.sh`). Analyse once after 2026-11-03.
+- **E011:** ungated learned surprise score `sm_learned_v2` on complete-universe snapshots.
+  - Registered at 3e628ec; window starts 2026-10-13 14:00Z; analyse once after 2026-11-11 13:00Z.
+  - Wired into the host pass `scripts/oracle/arepo_pass.sh` (`run_surprise_snapshot.py score`).
+- **Replications on `h3_power`:**
+  - HB1: 16/18 replicate.
+  - ML flow: 2/4 cells replicate.
+  - Frozen gated `sm_learned_v1`: null, because of the deployment gate. The ungated form replicates (excess +5.8 pts).
+  - Wallet effects stay null.
+- **Ops:** the live monitor crashed at 22:23Z on 10-12 (KeyError). Fixed in 1 commit; launchd now restarts it on any failure; the 11h gap stays missing.
+- **Disk:** about 6.3 GB free. A restart would reclaim swap.
+
+## Autonomous programme: live state (2026-10-15 ~19:18Z)
+Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
+
+### Persistence
+- **Server research queue: live and verified.**
+  - Worker: `scripts/oracle/queue_worker.py` (cron `*/2`).
+  - Specs: `research_lab/queue/jobs/`. Runtime state on the host: `~/arepo/run/queue/`.
+  - Tests:
+    - Local: deps, error, timeout, invalid argv, kill -9 recovery, stop/pause/resume.
+    - Host: `q0001_selftest` was killed with -9 mid-run, recorded as interrupted, and attempt 2 finished `done` under cron at 18:23Z.
+- **Claude autopilot: installed and verified (the user approved full power, 2026-10-15 ~20:00 UTC+1).**
+  - launchd `com.arepo.autopilot` runs `scripts/autopilot/autopilot.py tick` every 30 min. Each session runs
+    `claude -p` with a 5 h cap, `bypassPermissions` and `caffeinate -i`, and sleeps until any usage-limit reset.
+  - Verified: a real headless run; kill -9 recovery; the reset parser. Details: `research_lab/autopilot/PERSISTENCE.md`.
+  - Session prompt: `research_lab/autopilot/AUTOPILOT_PROMPT.md`. Read-only host view: `scripts/oracle/queue_status.sh`.
+- **Cloud routines:** rejected. The minimum interval is 1h and they cannot reach the host without an SSH key in the cloud.
+- **One-time reset:** no documented redemption mechanism. The user was alerted by ntfy at about 18:22Z.
+
+### Jobs
+- **Queued** (book family; pending step 1 of `research_lab/HISTORICAL_ML_DEV.md`):
+  - `q0002_books_h2main`: pmxt book features. Resumable, with repeat-until-complete.
+  - `q0003_books_finalize`.
+  - `q0004_ml_r4_book`: `run_ml_history.py --revision r4_book --book-table`.
+- **Data:** `history/`, `history_sources/` and `ml_cache/` are being restored from release `data-20261013-research-lab` to the host's `~/arepo/data-dumps/research_lab/`, hash-verified per file, using a scratchpad script on the Mac.
+- **Code change:** `history_sources.memory_free_pct` now falls back to `/proc/meminfo` on Linux.
+
+## Pending user decisions (2026-10-15)
+1. Autopilot: approve as built, ask for a restricted variant, or stay server-only (`research_lab/autopilot/PERSISTENCE.md`).
+2. Server GitHub token for archive rotation (needed by ~20-22 Oct; disk cap).
+3. E009/E010 overnight gap: include the server validation copy (recommended) or leave the gap.
+4. Resend audit (deferred).
+5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
+
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-23 07:25Z
+Deploy only from `chore/arepo-claude-setup`; check `ssh oracle 'cd ~/arepo && git log --oneline -1'` = local tip.
+Host 2 OCPU / 11.4 GiB since the resize. data-dumps 34 / 40 GB cap: owner approval 8 (restore-tree clearing) is time-relevant.
+
+**Autopilot session 10-23 from 07:06Z:**
+- **LT8 CLOSED, no test** (ledger "LT8 census CC8" + "LT8 census CS8 and LT8 closure"): CC8 (q0622) dropped CH204; CS8
+  (q0623, done 07:41Z) dropped CH203 (units 431,399 < 504,000; MDEs passed) and CH202 (held share 0.067 < 0.15). q0624-q0627
+  moot (never promote). LIVE_TESTS_8.md left unchanged. Registry LT8 closed; CANDIDATES withdrawal notes (`sched`,
+  `quietbook`, `swclock`; `book`/`book0` stay at LT9's date). **LT9 rule (c') now applies:** REGISTERED_UTC >= 2026-12-30.
+- **Retention reverted 10 -> 8 days** (archive_retention.json; deployed with this commit).
+- q0623 starvation fix (2417e27b): q0623 priority 53 (q0162 repeat won the id tie-break at 52).
+- **LT10 code DONE** on `feat/live-tests-10-code`: code check FIXES_REQUIRED (filed e14c13b7,
+  reviews/LT10_CODE_CHECK_2026-10-23.md) -> fixes 2e9ba424 + f36ff4dd (289 tests) -> **fix re-check running**. If OK: file it
+  as reviews/LT10_CODE_FIX_RECHECK_2026-10-23.md, ledger, merge into chore, deploy (code only; nothing installed). The
+  successor poller is installed only at the handover (after E009 + E010 analysis commits; record host history_backfill.py sha).
+- **Creative round 16 MERGED** (0bbdf451; CANDIDATES 8a61a82f). **CH240 map done** (q0680 08:33Z; report
+  CH240_MAP_2026-10-23.md, ledger 53c45132): CH234 ~1,239 traded movers/capture (volume_num missing on 83% of sidecar rows),
+  CH233 ~1,833 complete event-captures, CH232 ~79 rewarded outward crossings, re-cross 0.59. **LT11 draft being written**
+  (opus agent, `../astrolabe-live-tests-11`, `feat/live-tests-11`). Next: challenger R1 (science-reviewer), response,
+  re-check, design-text freeze (fast lane needs it before 2026-11-14T12:00Z), registry entry, embargo requests.
+- E026: q0541 (net, light) from 10-25T00Z, q0542 from 06Z; confirm start + phone note "collection started".
+
+**Autopilot session 10-23 from 01:58Z:**
+- **LT8:** q0621's depends_on fix committed (66bbc2fd) and deployed; q0621 ran 02:00Z; seal committed (84c5c16e, sha256
+  5545538a…, 430 files, 0 missing; host tip verified). **q0622 + q0623 promoted** (exclusive; start after the 05:30Z
+  blackout, ahead of MC1 at priority 40). When each is done: write up counts only (ledger, LIVE_TESTS_8.md census
+  section, drop/survive per section 7), registry; after q0623: revert the 10-day snapshot rule to 8 days (ledger, deploy),
+  then phase 2 for any survivor. Deadline 10-28T03:30Z.
+- **LT9 census code MERGED** (9e482fab): code check FIXES_REQUIRED -> fixes -> re-check -> final OK_WITH_NOTES -> notes
+  (ledger entry). Drafts q0640-q0647 not promoted. Next: seal q0641 only after the 11-02..11-12 span exists (not before
+  11-13); then CR9/CC9/CS9 censuses (never beside an LT8 size check / analysis); phase 2 for survivors.
+- **Disk:** data-dumps 34 / 40 GB at 02:10Z (about +1 GB/day -> 40 GB about 10-29). cb18_census 4.9 GB is finished and not an
+  LT8 root; clearing needs owner approval 8 (dashboard, now marked time-sensitive). Contingency if >= 38 GB before approval:
+  raise the operational `--data-dumps-cap-gb` of the registered live collectors (q0460) to 44 (below the 45 GiB pass cap;
+  root has 36 GB free), with a ledger line; never let a registered collector refuse.
+- **Creative round 15 merged** (c23b5a52; CH222-CH231; CANDIDATES note 90c7af39: engine-first xent, ruleedit, xvenue2,
+  gamestate).
+- **LT10 DESIGN TEXT FROZEN** (34b7e22e, sha256 1da6c075…; merged 6f651f7e): CH224, CH223, CH222 on E009's 120 s Kalshi+CLOB
+  poller, `informed (E009, E010)`, window proposed 11-10..12-01. R1 REVISE -> response -> re-check ACCEPT_WITH_FIXES -> fixes
+  -> pre-freeze verify. O1 done (free 35.9 GB vs 4.5 GB need); O2 not needed. **O3 open:** the engine builder must merge the
+  second `xvenue` read root (`XV_QUOTES_ROOT`) and apply `kxbook` / `attrlimit_lt10` (CANDIDATES round 7) — deadline
+  **2026-11-03T02:00Z**, else LT10 ends at route 3. **Next:** LT10 code phase on a new `feat/live-tests-10-code` (successor
+  poller `run_xv_quotes_poller.py`, reader, seal, censuses CF10/CK10/CD10, size check, tests), then code-freeze check (must
+  confirm re-check fixes 1 and 4). Census only after BOTH E009 and E010 analysis commits.
+- Host tip: see the latest deploy (03:5xZ).
+
+**Autopilot session 10-22 from 20:35Z (state at 22:23Z):**
+- **LT7: CLOSED, no test** (1dd77a67). CC7 dropped CH191/CH192/CH193, CS7 dropped CH195 (F-MDE 0.667c > 0.5c) and CH197.
+  Embargo withdrawals requested in CANDIDATES (22:10Z note). Phase 2 / q0605 moot.
+- **Retention:** keep the temporary 10-day snapshot rule until LT8's q0623 is done, then revert to 8 days (ledger + deploy).
+- **LT8:** code merged into chore (a0044de3; design 73c941e1…; amendment 13.7 + erratum; 220 tests; re-checks OK_WITH_NOTES).
+  restore-plan 159/159 present -> q0620 NOT needed (never promote). **q0621 seal PROMOTED** (774c43c0). When q0621 is done:
+  commit the seal copy (`seals/lt8_census_inputs.json`, as LT7's), deploy, then promote q0622 then q0623 (exclusive). The
+  chain must finish before **10-28T03:30Z** (host-only 10-18..10-21 captures/sweeps start leaving), outside 02:45-05:30Z.
+- **MC1 q0116h RUNNING** (exclusive 5.5 h slices, exit 75 between, priority 40 so LT8 takes the gaps). **Do not edit**
+  run_ml_dev.py, ml_models.py, ml_panel.py, ml_resume.py, ml_panel_cache.py, panel.py, features.py, features_dev.py,
+  evaluate.py while it runs (any change makes later slices refuse). Write up when done (development only).
+- **CB16-K: closed** (blind audit 3/100 twins; CH143 not testable at the floor).
+- **CB7:** q0146 done; q0147 re-check FIXES_OK_WITH_NOTES, notes 1-2 implemented (d504d620). Promote q0147 at/after
+  **10-24T01:00Z** after checking the 10-22..10-25 captures exist on the host (and the q0146 terminal state / marker).
+- **CB8/CB9:** q0164b (ruling GO_WITH_CHANGES, caps raised 80bb4561) queued; check its log for `exclusion_keys_complete`
+  before trusting q0165 (a repeat job is marked `done` after max_runs even if incomplete). q0181 caps raised, queued.
+  Both wait for the MC1 slice (exclusive).
+- **LT9: DESIGN TEXT FROZEN** (11fee7a0, sha256 098aa3fb…; R1 REVISE -> response -> re-check ACCEPT_WITH_FIXES -> fixes 1-6;
+  merged aa38ed02). Embargo requests round 6 filed in CANDIDATES (15ea067b; builder applies before any isolating challenger,
+  and before 12-23). Registry updated. **Code phase 1** being written on `feat/live-tests-9` (`../astrolabe-live-tests-9`;
+  vendored base, seal, censuses, runner, drafts q0640-q0647). Next: census-code freeze check (science-reviewer), fixes,
+  merge; seal after the 11-02..11-12 span; censuses; window 2027-01-21..02-11 (slides with LT8).
+- **Creative round 14** merged (9079ca39; CANDIDATES note 430dc86c).
+
+**Earlier this day (06:00Z):** q0561 LT5 census done (F/H/R dropped, c0700f8f); q0484 size check PASS -> **E022
+REGISTERED** (bf730c6f; reader cron `10-59/20` installed on the host 06:0xZ; q0486 analysis queued, not before 11-17T12Z);
+LT7 merged + seal committed (cd4f3702) + q0601b promoted; h8 tail/geo seals done. **Queue now:** q0582 LT6 captures
+census (exclusive, running) -> q0583 -> q0116f MC1 (6 h) ; q0562 LT5 flow census; q0144; q0601b; CB8/CB16-K.
+
+1. **E026: REGISTERED** (7777ca66, 2026-10-21 15:20Z). q0541 (net, not_before 10-25T00Z), q0542 (10-25T06Z), q0543
+   (12-06T12Z). On/after 10-25: confirm q0541/q0542 start and stay healthy (counts only; `run_copy_skilled.py status`),
+   send the owner "collection started" note, then weekly counts notes. Re-promote a `failed` collector within 48 h.
+   FROZEN until 12-07: copy_skilled*.py, wallet_skill*.py, costs.py, copy_skilled_v1.json, cost_model_calibration_v1.json.
+2. **LT5: CLOSED, no test** (524b35ce): F/H/R dropped at q0561, J/O at q0562 (7.3; seals CF5_CHW_CRW.json, CJ_CO.json);
+   uncounted; q0563 moot; vendored drift recorded (LT5 tests green). **Retention:** keep the temporary 10-day snapshot rule
+   until LT8's q0623 is done (LT8 re-check R3; was: until q0604), then revert to 8 days (ledger line, deploy). Watch data-dumps (33 / 40 GB).
+3. **h8 seals:** q0121 done; `seals/h8_tail_SEAL.json` committed (sha256 2a88f3e5…). q0144/q0145 promoted; when done,
+   commit `seals/h8_text_SEAL.json` and `seals/h8_geo_SEAL.json` before q0147 (never retry q0141). **CB8:** W1 not
+   testable (counted 1); B continues (q0164 pins write-once, do NOT re-derive; then q0165, q0166). CB9 q0181+ and CB10
+   q0201 after their pins.
+4. **LT6: CLOSED, no test** (2ac48655): V, D, B dropped at q0582, K at q0583 (6.3; seals CD_CB_CV.json, CK.json);
+   uncounted. q0584-q0586 moot (never promote). q0602's dependency on q0584 removed (LT7 text 7 "or its recorded drop").
+5. **MC1 q0116f:** when done, write up as development (MULTI_SIGNAL_PIPELINE_DESIGN.md / ledger), record the panel hash.
+   If it OOMs: record, park, write the memory profile; no new id without a measured fix.
+6. **LT7:** merged (dde3c3c4); seal fix (74c7f5ac); seal committed (cd4f3702, sha256 117e9b45…); q0601b promoted
+   (priority 97, ahead of MC1). When q0601b is done: read `common` (counts only); if false, promote q0602 by hand (it now
+   depends only on q0601/q0601b), then q0603 and q0604 (drafts; promote each after the previous is done or together,
+   their depends_on chain them); if true, challenger ruling first. Censuses must FINISH before 10-28T03:30Z (10-day rule
+   kept until q0604). After q0604: keep the 10-day rule until LT8 q0623 (R3). Then phase 2 (reader, analysis, size check q0605, RSS probe).
+7. **Creative round 13 merged** (553bd125). **LT8** (CH203, CH202, CH204) on `feat/live-tests-8` (worktree
+   `.claude/worktrees/agent-ac703b52d84655da0`): draft 4552cec5 -> R1 REVISE (9f99504d) -> response 164078c8 -> re-check
+   ACCEPT_WITH_FIXES (3ec28bad/78f0bae4; 4 fixes: worlds 3/5 restored, vendoring wording, LT5 closed). Fixes being applied
+   ~07:30Z by the drafter. Next: verify the 4 fixes, then **design-text freeze** (record sha256 in the ledger), merge into
+   chore, registry; file embargo requests (`quietbook`, `swclock`, `sched`; `book0`/`book` to the later of 2027-01-23 and
+   LT8's analysis commit) in CANDIDATES before 12-01; then code phase (censuses q0620-q0627 per LT8 8.x).
+
+**E022 (LT4) REGISTERED 2026-10-22** (bf730c6f; REGISTER_OK). Window 10-26..11-16; reader = host cron `10-59/20`
+(never also q0485); q0486 after 11-17T12Z. Check the reader log `~/arepo/run/live_tests4.log` after 10-26T00Z (counts only).
+q0116f depends_on q0484, so it cannot start first.
+
+**CB17:** window jobs use `--root ../data-dumps/research_lab/cb17_window/creative_batch17` (1c9f604e; the frozen 0.3 GB
+cap had counted q0413's input restore). **q0404 smoke PASS 20:12Z (P1-P3 exact; freeze accepted).** q0405 promoted
+(f7e98170, base pin 56dc953e… from q0380's manifest). Next: q0406+ after S_8 (10-26T00Z) per the drafts' dates; ruling 6
+attestation again with q0406's commit. **Owner approval 8 (not urgent):** a clearing session for finished restore trees
+(~9 GB; data-dumps 33 / 40 GB on 10-22).
+
+**LT6 history:** code re-check/fixes/verification FIXES_OK_WITH_NOTES, merged (7ebfcb8b); q0580 restore and q0581 seal done 10-22.
+Open should-fix: `e022.pin_commit_utc` check (before the pin). D's P1 is implemented (deadline 11-11T08:00Z met).
+
+**LT7:** R1 REVISE -> response efdcdb6e (CH194 withdrawn, uncounted) -> re-check ACCEPT_WITH_FIXES -> fixes cedfd6be ->
+**design-text freeze** (sha256 840f4500...; ledger bda3691b; merged e4b1973d). Embargo applied by the builder (18d4adc5;
+`mm_fresh` withdrawal filed). **Code phase 1** (vendored base, seal, censuses CC7/CS7/CV7, runner, drafts q0600-q0604)
+being implemented on `feat/live-tests-7` (started ~01:20Z). Then: code freeze check (science-reviewer), censuses before
+the sealed capture rows leave the host (10-23..10-29 03:30Z) or from restores, phase 2 (reader, analysis, size check).
+
+**LT5 test guard (pre-existing since 44a7e938):** `test_vendored_provenance` fails because `live_tests4.py` changed after LT5
+vendored it. Record `vendored_source_drift_accepted["live_tests4.py"]` (sha256 d80bde72..., reason, date) in
+`live_tests5_v1.json` together with the post-census fills (after q0562), confirming every vendored function still
+equals its source (the test checks). Do not edit the LT5 spec while q0561/q0562 run.
+
+**Registered and running (no interim looks):**
+- E009/E010 (to 11-03), E011 (to 11-10), LT2 E012-E014 (q0460; analysis q0461 after 11-13T12Z).
+- **E026** registered 2026-10-21; collection 10-25..11-15, analysis q0543 after 12-06T12Z.
+- **LT3 E015** registered 2026-10-21 (2580c58a). Host cron `*/20`; remove it after 2026-11-15T06:00Z. q0475 after 11-15T12Z.
+
+**Queued and in progress:**
+- **CB18 closed** (routing record `seals/cb18_routing.json`, fa856ec4): S and P dropped uncounted at census; R/F/M maps;
+  k = 0; drafts q0590-q0599 moot. **CB13 closed** (q0282: R1 "not testable (basis)", counted 1).
+- CB14 and CB15 closed (W GWC FAIL, P GPB FAIL, counted 2 each; S/E earlier); drafts q0306-q0309, q0349-q0354 moot.
+- **Creative round 12 merged** (042e883d; CH191-CH201). **LT7 design draft** from its top 6 (CH195, CH191, CH194, CH197,
+  CH193, CH192) being written ~20:50Z on `feat/live-tests-7` (`LIVE_TESTS_7.md`; window not before 12-08). Next: challenger
+  R1 (science-reviewer), response, re-check; registry entry; embargo requests in CANDIDATES.md.
+- CB16-K q0383 (exclusive, not before 10-22T06Z). CB17 q0404 blocked (above), then q0405.
+
+**Waiting:**
+- MC1: after the resize (item 4).
+- CB4 q0085 not before ~10-24T12Z. CB5 q0103b on or after 10-27, then q0106. CB3 freeze after q0064 (after 10-25).
+- Signal engine: live state in `signal_engine/STATUS.md` (10-24 04:00Z session 28: LT12 freeze requests applied: `mirror`, `mixedlad`, `attrlimit_lt12` to 2027-01-03, DESIGN_V1 §33; no family built. Input monitor live and clean (03:09Z: 0 alerts). q0516 `refit_full` probe still queued behind the other track's exclusive q0116i. 3 days scored; no promotion before ~11-04.)
+
+## Learned surprise-move detector (2026-10-12 evening)
+`docs/research_lab/SURPRISE_MOVE_DETECTOR.md`. Labels fixed and logged before features (`surprise-labels-v1`,
+sha `d9cf42f7…`), 1,186 surprise moves in `history/h2_main`, matched negatives, 83 pre-event features, three
+learned arms + 5 frozen hand rules, time split train ≤ 2026-05 / valid Jun-Jul / test Aug-Oct. Test months at
+the 1 % budget: `en_logit_full` precision 2.25 % vs 0.56 % base and 0.43 % matched controls (excess +1.8 pts,
+Holm p 0.008, first of 100 shuffled-label placebos); hand rules 0 %. Value sits in price-path context
+(`rv_1d` −, `rv_7d` +), flow/wallet families carry no demonstrated incremental value; paper P&L ≤ 0; no case
+clears the budget under the frozen arm. Frozen `sm_learned_v1` (sha `ee7ea5f1…`, `FROZEN_SURPRISE.json`) and
+deployed in `live_trade_monitor` v2 (prospective, unregistered). Next: let the live alert stream accumulate;
+register (programme §7) only if ≥ 30 episodes with controls; do not revise features on this data window.
+- **h3 replication (2026-10-13):** frozen `sm_learned_v1` as specified (direction gate on) is **null** on the
+  disjoint h3 primary months (0/63 alerts, placebo rank 0.78); the gate admits only rows with 1 h flow (8 %), where
+  the signal is absent. The validated ungated score replicates strongly (1 %: precision 6.5 % vs 0.87 % base,
+  matched excess +5.8 pts, CI +2.6/+9.6, weighted +7.2), concentrated in sports/crypto/politics; asymmetric topics
+  weak or absent. Combined h2+h3 refit: price path only; flow/wallet families still ≈ 0. Decision for the
+  coordinator: freeze an ungated v2 and test it on the complete-universe passes, not the print monitor.
+- **E011 registered (2026-10-13):** frozen ungated `sm_learned_v2` (sha `ee227e7e…`, identical terms to v1,
+  `FROZEN_SURPRISE_SNAPSHOT.json`) scored on every complete-universe capture by
+  `scripts/run_surprise_snapshot.py score` (stage-1 proxies from the rolling capture series, Spearman 0.71 on h3;
+  stage-2 exact features for 400 candidates; top 60 alerts + 3 matched controls per capture written before
+  outcomes; one price-history fetch per line at t + 24 h 15 min for the surprise label and moves). Window
+  2026-10-13T14:00Z to 2026-11-10T00:00Z, single analysis after 2026-11-11T13:00Z (`analyze`). Primary: matched
+  excess of the 6 h surprise label, event-clustered, one-sided. Reviewer ACCEPT_WITH_CHANGES applied. **User action:**
+  add `caffeinate -i $PY scripts/run_surprise_snapshot.py score --rps 4 2>&1 | tail -2` after `run_flow_screen.py`
+  in `~/arepo_collector/arepo_pass.sh`.

@@ -1,0 +1,163 @@
+{
+ "status": "BOTH 12-MEMBER CANDIDATES PASS the unchanged abort criteria (window age at freeze <= 40 s, audit <= 240 s); 4x3 chosen by the predeclared tie-break (higher S4q pair probability). D118 remains DRAFT, NOT FROZEN.",
+ "provenance": "synthetic loopback dry run (mock HTTP transport, loopback websocket); engineering evidence only, never evidence about live data",
+ "context": "pre-freeze design iteration after the 16-member (4x4) dry run breached the 40 s criterion (D118_DRY_RUN.json, 43.09 s). The 40 s and 240 s criteria are unchanged.",
+ "selection_rule_declared_before_runs": "run each 12-member candidate (4x3, 3x4) exactly once with the 16-member method and settings; ineligible if window age at freeze > 40 s or audit > 240 s; if both eligible choose the higher S4q P(>=1 complete pair) in D118_DESIGN_ESTIMATES_V2.json; if neither, stop without trying other sizes. 2x6 was estimated only and not dry-run (not a named candidate).",
+ "run_count": "one run per candidate; not repeated or re-parameterised after the results",
+ "method_vs_16_member_run": "identical script path, synthetic frame (same four strata, per-stratum+1 members each), 0.9 s per HTTP response, runtime concurrency 8, D116 windows/trigger/freshness; only --strata/--per-stratum differ. The script gained a --strata option (strata_limit and slots = strata x per-stratum); library code hashes equal those of the 16-member run.",
+ "code_commit_at_run": "7268e0a2c1e78169221db5caf4da0e62a01c5be3",
+ "code_note": "dry-run script edits (the --strata option) were uncommitted at run time and are committed with this record; file hashes below are of the files as run. The logic-only evaluator outcome in each summary used the pre-revision 4x4 evaluator constants; only its timeline margins are used here.",
+ "file_sha256": {
+  "backend/scripts/d118_window_dry_run.py": "0479c860ee7539c57998a717fc4272b68c6b00031b1aa03cd015eeae8d8a6083",
+  "backend/astrolabe/research_panel/d118_evaluator.py": "39f0c85c8b044dad9c72e3d40ec03303f77cd9d968c49e126683053974956e62",
+  "backend/astrolabe/research_panel/d116_evaluator.py": "772b984a83f7d984f9d127401d3fe38cd68fcb339bb828f88438176a29893ab9",
+  "backend/astrolabe/research_panel/panel_declaration.py": "9ab71ae0c0411d5941c99ec1270067bd608dc63a76ceffc956908055fc75ba4a",
+  "backend/astrolabe/research_panel/panel_selection.py": "ecd2ddd5af58d893f3d123a2715161cd693298e93990a0100558175d2fbd9f3b",
+  "backend/astrolabe/research_panel/screening_worker.py": "dec77b51760872c37248f5143a1464dffea2883bb76e734a0ef941faaaf0a84f",
+  "backend/astrolabe/research_panel/concurrent_runtime.py": "277794b4da938d4153ff7f12f5708bb7a14d77e9c484fbcc2699d684dedf9b15"
+ },
+ "abort_criteria": {
+  "max_window_age_at_freeze_s": 40,
+  "max_audit_s": 240
+ },
+ "runs": {
+  "4x3": {
+   "command": "cd backend && python scripts/d118_window_dry_run.py --work-dir <scratch>/d118_dry_run_v2_4x3 --strata 4 --per-stratum 3 (defaults --latency 0.9 --runtime-concurrency 8)",
+   "started_utc": "Sun Oct 11 08:51:26 UTC 2026",
+   "finished_utc": "Sun Oct 11 08:53:46 UTC 2026",
+   "returncode": 0,
+   "peak_memory_footprint_bytes": 72747072,
+   "measured": {
+    "max_window_age_at_freeze_s": 36.255695,
+    "audit_verification_s": 5.796094,
+    "margin_to_40s_s": 3.744,
+    "breaches": {
+     "window_age": false,
+     "audit": false
+    }
+   },
+   "eligible": true,
+   "dry_run_summary": {
+    "provenance": "synthetic loopback dry run; never evidence about live data",
+    "strata": 4,
+    "per_stratum": 3,
+    "members": 12,
+    "latency_s_per_request": 0.9,
+    "runtime_concurrency": 8,
+    "worker_state": "pilot_collected_unaccepted",
+    "elapsed_s": 138.025,
+    "max_window_age_at_freeze_s": 36.255695,
+    "window_ages_at_freeze_s": [
+     10.678,
+     10.716,
+     17.803,
+     18.358,
+     28.874,
+     28.908,
+     29.102,
+     29.124,
+     29.165,
+     35.932,
+     36.177,
+     36.256
+    ],
+    "max_assessment_window_age_at_activation_s": 33.399085,
+    "audit_verification_s": 5.796094,
+    "recovery_after_runtime_s": 11.774684,
+    "evaluator_outcome": "PASS",
+    "evaluator_reasons": [
+     "non_authoritative_logic_only",
+     "observed matched pair with both members' complete chains"
+    ],
+    "pairs_both_complete": 4,
+    "role_capacity": {
+     "scheduled": 12,
+     "triggered": 6,
+     "control": 4
+    },
+    "abort_criteria": {
+     "max_window_age_at_freeze_s": 40,
+     "max_audit_s": 240
+    },
+    "abort": false
+   }
+  },
+  "3x4": {
+   "command": "cd backend && python scripts/d118_window_dry_run.py --work-dir <scratch>/d118_dry_run_v2_3x4 --strata 3 --per-stratum 4 (defaults --latency 0.9 --runtime-concurrency 8)",
+   "started_utc": "Sun Oct 11 08:53:50 UTC 2026",
+   "finished_utc": "Sun Oct 11 08:56:09 UTC 2026",
+   "returncode": 0,
+   "peak_memory_footprint_bytes": 73353344,
+   "measured": {
+    "max_window_age_at_freeze_s": 36.138707,
+    "audit_verification_s": 5.781602,
+    "margin_to_40s_s": 3.861,
+    "breaches": {
+     "window_age": false,
+     "audit": false
+    }
+   },
+   "eligible": true,
+   "dry_run_summary": {
+    "provenance": "synthetic loopback dry run; never evidence about live data",
+    "strata": 3,
+    "per_stratum": 4,
+    "members": 12,
+    "latency_s_per_request": 0.9,
+    "runtime_concurrency": 8,
+    "worker_state": "pilot_collected_unaccepted",
+    "elapsed_s": 138.023,
+    "max_window_age_at_freeze_s": 36.138707,
+    "window_ages_at_freeze_s": [
+     10.681,
+     10.764,
+     17.798,
+     18.398,
+     28.808,
+     28.813,
+     29.025,
+     29.124,
+     29.131,
+     35.922,
+     36.133,
+     36.139
+    ],
+    "max_assessment_window_age_at_activation_s": 33.346387,
+    "audit_verification_s": 5.781602,
+    "recovery_after_runtime_s": 11.810829,
+    "evaluator_outcome": "PASS",
+    "evaluator_reasons": [
+     "non_authoritative_logic_only",
+     "observed matched pair with both members' complete chains"
+    ],
+    "pairs_both_complete": 6,
+    "role_capacity": {
+     "control": 6,
+     "scheduled": 12,
+     "triggered": 6
+    },
+    "abort_criteria": {
+     "max_window_age_at_freeze_s": 40,
+     "max_audit_s": 240
+    },
+    "abort": false
+   }
+  }
+ },
+ "choice": {
+  "design": "4x3",
+  "strata_limit": 4,
+  "per_stratum": 3,
+  "S4q_P_complete_pair": {
+   "4x3": 0.5995,
+   "3x4": 0.5959
+  },
+  "note": "the S4q difference (0.5995 vs 0.5959) is within model noise and 3x4 is marginally higher under S1/S4/S4h; the choice follows the rule declared before the runs, not a judgement after them"
+ },
+ "reading": [
+  "Twelve origins freeze in fewer waves than sixteen (at most seven concurrent origins, concurrent_runtime.py:41-43): maximum window age at freeze 36.26 s (4x3) and 36.14 s (3x4) vs 43.09 s for 4x4.",
+  "The margin to the 40 s criterion is only about 3.8 s on loopback; live latency comparable to or above 0.9 s per response could breach the 60 s code limit only with a further ~24 s of delay, but a live breach of 60 s is ENGINEERING (FAIL), never relabelled.",
+  "Audits (5.8 s) are far inside 240 s.",
+  "Synthetic PASS states show only that the control path executes on loopback; not acceptance evidence."
+ ]
+}

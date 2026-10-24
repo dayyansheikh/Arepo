@@ -1,0 +1,42 @@
+{
+ "id": "q0260_cb12_opt_smoke",
+ "title": "CB12-O smoke (one live checkpoint dry run inside a regular session, 10:00-15:45 ET): both strike-frame regexes on the frozen public searches ('closes above', 'close above'), rule-text flags, CBOE chain per underlying with its timestamp (older than the receipt, < 1 h), the iv time-convention check (theo recomputed under ACT/365 vs 252 x 6.5 trading hours for 20 near-the-money calls; >= 80% within 1%; ACT/365 if both; none -> Phi(d2) units excluded), two /book reads on up to 4 members, Yahoo daily bars keyless (ETF and index; O1 outcome and q_RV source), the Gamma closed=true lookup, Nasdaq ex-dividend lists keyless (ETF and stock), Nasdaq earnings calendar keyless, chain dividend field (informational); no unit kept",
+ "family": "creative_batch_12",
+ "priority": 21,
+ "expected_value": "go/no-go for O and the iv convention written into the O freeze entry",
+ "data": [
+  "public Gamma public-search, CLOB /book",
+  "cdn.cboe.com delayed quotes",
+  "api.nasdaq.com earnings calendar",
+  "query1.finance.yahoo.com daily bars",
+  "api.nasdaq.com dividends"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "gamma-api, clob, cdn.cboe.com, query1.finance.yahoo.com, api.nasdaq.com"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb12.py",
+  "opt-smoke",
+  "--rules",
+  "../docs/research_lab/seals/cb12_rules.json",
+  "--rps",
+  "2"
+ ],
+ "timeout_s": 900,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch12/opt_smoke.json (write-once)",
+  "trials.jsonl (cb12_descriptive)"
+ ],
+ "next_action": "PASS: copy opt_smoke.json iv_convention into the O entry of model_specs/cb12_v1.json (with frozen_utc), science-reviewer freeze confirmation, commit the O freeze, install the q0261 cron line; FAIL: O not testable (source), counted",
+ "notes": "<= 450 requests (one checkpoint). Outside a regular session it exits 75 (pending) and returns a clean idle heartbeat at least every 10 h, so a weekend wait never trips the 48-tempfail cap; it ends only on the smoke line. No price, outcome or unit kept. Smoke needs: guards_fixture_O, o_frame_regex (daily template >= 1 hit), o_chain, o_chain_timestamp, o_books, o_iv_convention_checked (>= 20 options examined; 'none' is a valid declared outcome). Section 11 amendment O3 (pre-data; needs the science-reviewer's re-check before this smoke runs): the ex-dividend rule reads the previous session's Nasdaq list (indices exempt, ETFs asked as assetclass etf) because the CBOE chain has no dividend field. Needed criteria now also: o_yahoo_keyless, o_gamma_closed_lookup, o_dividends_keyless (<= 450 requests plus ~10). Rules part sha256 (seals/cb12_rules.json, 2026-10-19 code): common f2f672c1dfa22ce1388fd85b42bebc23248f58c5bb4349f6745c4b2493dcc647, O 4e1dd759f6ce96bd2ebb75c86f9d4e0686ea1a52fa428e62d6d8e4f826df21e2. Disclosed deviation: the design's seals/cb12_opt_rules.json is part O of seals/cb12_rules.json (per-part hashing). PROMOTED 2026-10-19 ~20:50Z (autopilot): CB12-O re-check ACCEPT_WITH_FIXES allowed the smoke after fix 2 (n_dates >= 1), landed in 89fd546 with fixes 1 and 3 (O 0899797a). not_before = Tue 2026-10-20 10:05 ET (14:05Z) so it starts inside the first regular session.",
+ "repeat": {
+  "max_runs": 12,
+  "until_log_regex": "\"smoke\": (true|false)"
+ },
+ "not_before": "2026-10-20T14:05:00Z"
+}

@@ -1,0 +1,116 @@
+{
+ "drops": {
+  "absent_drop_ids": 0,
+  "absent_drop_ids_without_metadata": 0,
+  "absent_reread": {
+   "h10_brk": {
+    "now_present": false
+   },
+   "h10_dlad": {
+    "now_present": false
+   },
+   "h10_sign": {
+    "now_present": false
+   },
+   "h12_opt_live": {
+    "now_present": false
+   },
+   "h12_prints": {
+    "now_present": false
+   },
+   "h12_quake_live": {
+    "now_present": false
+   },
+   "h9_flow": {
+    "now_present": false
+   }
+  },
+  "counts": {
+   "DROPPED_ABSENT_AT_Q0276": 0,
+   "DROPPED_SEAL_COPIES": 0,
+   "KEPT": 238
+  },
+  "disjointness": "verified",
+  "drop_ids": 7219,
+  "drop_ids_without_metadata": 1,
+  "drops_sha256": "fc818bf675e8eae28604bc540e32c27549f1488a7e37c0c8b2fd18938a20884f",
+  "seal_copies_read": [
+   "h5_cb1_SEAL.json",
+   "h5_cb1_ladders_SEAL.json"
+  ],
+  "seal_copies_sha256": {
+   "h5_cb1_SEAL.json": "fbac4c8d2898447555a6e68de0d31fbc9b4efa5aec1fa58d62ce2373685fae85",
+   "h5_cb1_ladders_SEAL.json": "d3e7b335c15ac5917d270f5a0cbb6ded84363408dcc6a54d47f20ba6aed28104"
+  },
+  "seal_copies_skipped": [
+   {
+    "name": "cb11_attn_holdout_SEAL.json",
+    "reason": "no_market_ids"
+   },
+   {
+    "name": "cb11_pol_holdout_SEAL.json",
+    "reason": "no_market_ids"
+   },
+   {
+    "name": "cb11_w_hold_SEAL.json",
+    "reason": "no_market_ids"
+   },
+   {
+    "name": "cb11_wprints_holdout_SEAL.json",
+    "reason": "no_market_ids"
+   },
+   {
+    "name": "cb12_say_holdout_SEAL.json",
+    "reason": "no_market_ids"
+   },
+   {
+    "name": "h6_weather_SEAL.json",
+    "reason": "not_committed"
+   }
+  ]
+ },
+ "family": "R",
+ "fetched_files_rehashed": 74,
+ "files": {
+  "h13_binance/holdout/BTCUSDT-1m-2026-04.zip": "318afd4f5acfbcfbb40fbe727a77eee8e9e7b54d8941589c78a32283d90b4a01",
+  "h13_binance/holdout/BTCUSDT-1m-2026-05.zip": "62983d93c35e26ec6c29116c629e443b7ddfe3d301aca83331ff58112199d8d0",
+  "h13_binance/holdout/BTCUSDT-1m-2026-06.zip": "c8e1d5e70b766dd2312fc9cd7085785bb25708e27e75c21a5a5aaba61a6d07f5",
+  "h13_binance/holdout/BTCUSDT-1m-2026-07.zip": "3ef15c84353da48e1c7c5fd99b9751cb036bf8986ed47f7cd1be63359c0d4f6b",
+  "h13_binance/holdout/BTCUSDT-1m-2026-08.zip": "acab442e02745177063031d402929703ae983715010064b40cf811c4beb843d4",
+  "h13_binance/holdout/BTCUSDT-1m-2026-09.zip": "7a021fb5981cfdb1a56457d68fa81360ab27350c981ddfe63112b2322df44b56",
+  "h13_binance/holdout/ETHUSDT-1m-2026-04.zip": "8a2f0a2907764827ca3c52416bd9357c5d6213f3816fadbd0515bf504ea75ffd",
+  "h13_binance/holdout/ETHUSDT-1m-2026-05.zip": "bc0e625d18c0fa5378cecd0119aa20721b8830c24c3a55094f4c4c966ff8f710",
+  "h13_binance/holdout/ETHUSDT-1m-2026-06.zip": "770fdf44aac01dbe136e5b37a10501e57069af4048e76fbb3a3a2de2e9662934",
+  "h13_binance/holdout/ETHUSDT-1m-2026-07.zip": "1ad273218d6c33fd62515198276f00c0656ae002c0d1d9ab10cca0f5d0f7adc2",
+  "h13_binance/holdout/ETHUSDT-1m-2026-08.zip": "f2f2fe8da85467fb8ec8185e07f16f3af9f4ebcb266633ba494e76ac73c40c0c",
+  "h13_binance/holdout/ETHUSDT-1m-2026-09.zip": "827b46043bdc877d542edf8ff178dc0411cfa166a56fa73f2f850ad06c951b50",
+  "h13_binance/holdout/SOLUSDT-1m-2026-04.zip": "259fd7109745c47858ee133cb0e97995f8b6b40cbd0727eefd6301304bac848e",
+  "h13_binance/holdout/SOLUSDT-1m-2026-05.zip": "e5be21fb183cf534a975db77567398f4b1a567c9ed24738bfafa409b7876c6b3",
+  "h13_binance/holdout/SOLUSDT-1m-2026-06.zip": "e165365110140912f07d5e250d0e7511b1b37c93db46ce8b7bb1a2ddf06c4b04",
+  "h13_binance/holdout/SOLUSDT-1m-2026-07.zip": "7980195ca8f511ca8e11d7903c0031f19cd274c034fae7f54768bf235ef64470",
+  "h13_binance/holdout/SOLUSDT-1m-2026-08.zip": "138412edb2c86df6109e0800b7b7399c6f7d2b4483d0e35ddf5921e70c0d08b6",
+  "h13_binance/holdout/SOLUSDT-1m-2026-09.zip": "c18c258e478a84c3d87e88e2e16f17e5675bf087cb11bf789c0ae717c875ee0a",
+  "h13_binance/holdout/XRPUSDT-1m-2026-04.zip": "fa1bc3a2dabaabd5e5fed3deff698ad92dcf3524c3b0297dec2f8b5d890d7b2c",
+  "h13_binance/holdout/XRPUSDT-1m-2026-05.zip": "56908ba1323042af99a041e6862e57bf6ea2615f163984d6f94bebe7f72f962b",
+  "h13_binance/holdout/XRPUSDT-1m-2026-06.zip": "90cecd3b80ace2abbe3382e12f1ab7fc8c368f16a64860a74a8f74abf3f838d4",
+  "h13_binance/holdout/XRPUSDT-1m-2026-07.zip": "835f0da43f23c0d43431c81f9f5976794484b95c21b075b8de3a38c5b29eed16",
+  "h13_binance/holdout/XRPUSDT-1m-2026-08.zip": "c2d64e7fccc79a915659e4453b6423f49d9fbec2cf3ce8b4fcb33852c2c1f5cf",
+  "h13_binance/holdout/XRPUSDT-1m-2026-09.zip": "70f33c0a260df972a5e4179ad052880c944b4bb1a84136c193a3ea4d946ac52e",
+  "h13_touch/holdout/events.csv.gz": "8615bdbf4f8bdc4a24f568bbfe133e907afeb67728aa620234289719d2223b89",
+  "h13_touch/holdout/members.csv.gz": "8129d863b265256434ee4c0e726a09150185b8d38485b3a484fc9d6ed0cd1300",
+  "h13_touch/holdout/outcomes_guarded_holdout.csv.gz": "d286ec558c5e8043894e07a7591e5c81ab5c7d29bb67be3402d43575ea44770f",
+  "h13_touch/holdout/prices.csv.gz": "22e8186ada2dcb47f520d84645cf4ae9abc142035a0355feb223fe37c03cb4fd"
+ },
+ "git_commit": "1e8fcb35d709aa7c4b63473044811541df79bc53",
+ "holdout_outcome_file_sha256": {
+  "outcomes_guarded_holdout.csv.gz": "d286ec558c5e8043894e07a7591e5c81ab5c7d29bb67be3402d43575ea44770f"
+ },
+ "listing_sha256": "b5391c3efea2ce60bdde735cb487e5563e6da0f8250c9c493fd53d92098ad67f",
+ "n_holdout_files": 28,
+ "n_holdout_markets": 238,
+ "read_rules": "verify the listing hash and the outcome-file hash first; append every read to ACCESS_LOG.jsonl; holdout/ is not opened before R1's Stage-1 result is committed; markets in DROPPED_* rows of drops.csv.gz are never analysed; the census reads HOLDOUT counts only",
+ "rules_sha256": "919070246add0ef76100a9d375c1c16b18c15fa817e2be9492bd9fc03f1775f7",
+ "run_id": "h13_touch",
+ "seal_version": "cb13-R-holdout-seal-v1",
+ "sealed_utc": "2026-10-21T09:11:49Z"
+}

@@ -1,0 +1,3409 @@
+{
+ "parts": {
+  "E": {
+   "constants": {
+    "cb15_common": {
+     "ALLOWED_OUTPUT_ROOT_PARTS": [
+      "creative_batch15",
+      "h15_elect_live",
+      "h15_birth",
+      "h15_birth_live"
+     ],
+     "ALWAYS_REFUSED_ROOTS": [
+      "surprise_live",
+      "cross_venue_live",
+      "trade_samples",
+      "forecasts",
+      "flow_screen",
+      "live_trades",
+      "snapshots",
+      "book_sweeps"
+     ],
+     "AVAIL_MIN": 0.6,
+     "BASE_SOURCE": "base:cb14_q0302",
+     "BATCH_HOLM_K1": 4,
+     "BY_Q": 0.1,
+     "C1_SOURCE": "c1",
+     "CB14_KEYS_FILE": "exclusion_keys.csv.gz",
+     "CB15_OUTPUT_CAP_GB": 1.2,
+     "CB15_SPORTS_IN_PRIMARY": false,
+     "COST_ROBUST_PER_SIDE": 0.01,
+     "DATA_DUMPS_CAP_GB": 40.0,
+     "EARLY_ALPHA2": 0.025,
+     "EVIDENCE_ROLE_DEV": "exploratory_dev",
+     "EVIDENCE_ROLE_HIST": "exploratory_historical",
+     "EVIDENCE_ROLE_PROSPECTIVE": "prospective",
+     "EXCLUSION_KEYS_COMPLETE": "exclusion_keys_complete",
+     "EXPERIMENT_ROOT_RE": "^e0\\d\\d$",
+     "EXTRACT_ROOT_RE": "^cb\\d+_extract$",
+     "EXTRA_REFUSED_ROOTS": [
+      "creative_batch14",
+      "creative_batch13",
+      "creative_batch12",
+      "creative_batch11",
+      "creative_batch10",
+      "creative_batch9",
+      "creative_batch8",
+      "creative_batch7",
+      "creative_batch6",
+      "creative_batch5",
+      "creative_batch4",
+      "creative_batch3",
+      "creative_batch2",
+      "creative_batch1",
+      "snapshots",
+      "trade_samples",
+      "live_trades",
+      "book_sweeps",
+      "surprise_live",
+      "cross_venue_live",
+      "cross_venue",
+      "forecasts",
+      "flow_screen",
+      "h9_flow",
+      "h10_sign",
+      "h10_dlad",
+      "h10_brk",
+      "h11_wprints",
+      "h11_pol",
+      "h11_attn",
+      "h12_say",
+      "h12_quake",
+      "h12_prints",
+      "h12_quake_live",
+      "h12_opt_live",
+      "h13_touch",
+      "h13_binance",
+      "h14_wiki",
+      "h14_wiki_live",
+      "h14_speech",
+      "h1_first",
+      "h2_main",
+      "h3_power",
+      "h4_seal",
+      "h5_cb1",
+      "h5_cb1_ladders",
+      "h6_weather",
+      "h7_cb4_era",
+      "h7_cb4_series",
+      "h8_tail",
+      "h8_tail_b",
+      "h8_text",
+      "h8_geo",
+      "cb3_followup",
+      "cb6_followup"
+     ],
+     "E_FREEZE_PINS": [
+      "sign_table_sha256",
+      "poll_close_sha256",
+      "party_map_sha256",
+      "cross_table_sha256",
+      "source_manifest_sha256",
+      "race_map_sha256",
+      "disk_cap_gb"
+     ],
+     "E_JUDGE_ALPHA": 0.01,
+     "FAMILY_MODULES": {
+      "E": [
+       "cb15_e"
+      ],
+      "P": [
+       "cb15_p"
+      ]
+     },
+     "FAMILY_PARTS": [
+      "E",
+      "P"
+     ],
+     "FAMILY_REP_TESTS": {
+      "E": [],
+      "P": [
+       "P1",
+       "P2"
+      ]
+     },
+     "FAMILY_TESTS": {
+      "E": [
+       "E1",
+       "E2"
+      ],
+      "P": [
+       "P1",
+       "P2"
+      ]
+     },
+     "FEE_FLOOR": 0.04,
+     "FORBIDDEN_OUTPUT_COLUMNS": [
+      "side",
+      "wallet",
+      "wallet_hash",
+      "proxyWallet",
+      "tx16",
+      "transactionHash",
+      "tx_hash",
+      "hash",
+      "name",
+      "pseudonym",
+      "user",
+      "userid",
+      "username",
+      "outcome_prices",
+      "outcomePrices",
+      "umaResolutionStatus",
+      "umaResolutionStatuses",
+      "uma_status",
+      "closedTime",
+      "closed_time",
+      "result",
+      "settlement_value",
+      "p_end"
+     ],
+     "FORBIDDEN_PARSE_FIELDS": [
+      "side",
+      "proxyWallet",
+      "outcomePrices",
+      "umaResolutionStatus",
+      "umaResolutionStatuses",
+      "closedTime",
+      "result",
+      "settlement_value",
+      "transactionHash",
+      "hash",
+      "name",
+      "pseudonym",
+      "p_end"
+     ],
+     "FREEZE_PARTS": [
+      "E",
+      "P"
+     ],
+     "FREEZE_PIN_KEYS": {
+      "common": "common_rules_sha256",
+      "rules": "rules_sha256"
+     },
+     "FREE_DISK_MIN_GB": 4.5,
+     "GAMMA_EVENTS": "https://gamma-api.polymarket.com/events",
+     "GAMMA_MARKETS": "https://gamma-api.polymarket.com/markets",
+     "GAMMA_OFFSET_CAP": 2000,
+     "GAMMA_PAGE": 100,
+     "GAMMA_SEARCH": "https://gamma-api.polymarket.com/public-search",
+     "GATE_P": 0.01,
+     "G_CR2": 15,
+     "HEARTBEAT_S": 36000.0,
+     "HOLDOUT_PARTS": [
+      "holdout",
+      "t_holdout"
+     ],
+     "ID_COLUMNS": [
+      "market_id",
+      "event_id",
+      "condition_id",
+      "neg_risk_market_id",
+      "negRiskMarketID",
+      "series_id"
+     ],
+     "ID_READABLE": {
+      "creative_batch13": [
+       "t_screen/fills.csv.gz",
+       "t_holdout/fills.csv.gz"
+      ],
+      "h11_attn": [
+       "frame.csv.gz",
+       "entities.csv.gz",
+       "holdout/frame_hold.csv.gz"
+      ],
+      "h11_pol": [
+       "frame.csv.gz"
+      ],
+      "h11_wprints": [
+       "markets.csv.gz"
+      ],
+      "h12_opt_live": [
+       "markets.csv.gz"
+      ],
+      "h12_prints": [
+       "markets.csv.gz"
+      ],
+      "h12_quake": [
+       "events.csv.gz",
+       "members.csv.gz"
+      ],
+      "h12_quake_live": [
+       "markets.csv.gz"
+      ],
+      "h12_say": [
+       "events.csv.gz",
+       "members.csv.gz"
+      ],
+      "h13_touch": [
+       "events.csv.gz",
+       "members.csv.gz",
+       "holdout/events.csv.gz",
+       "holdout/members.csv.gz"
+      ],
+      "h14_speech": [
+       "events_p.csv.gz",
+       "events_n.csv.gz",
+       "events_s2.csv.gz",
+       "members.csv.gz"
+      ],
+      "h14_wiki": [
+       "frame.csv.gz"
+      ],
+      "h14_wiki_live": [
+       "frame_ids.csv.gz"
+      ]
+     },
+     "ID_RESEARCH_ROOTS": [
+      "creative_batch13"
+     ],
+     "KEYS_OUTPUT_CAP_GB": 0.01,
+     "KEYS_RUN": "exclusion_run15",
+     "KEYS_STATUS": "exclusion_keys_complete",
+     "KEY_COLUMNS": [
+      "market_id",
+      "found",
+      "event_ids",
+      "neg_risk_market_id",
+      "series_ids",
+      "sources"
+     ],
+     "LIVE_ROOT_NAMES": [
+      "cross_venue_live",
+      "surprise_live"
+     ],
+     "LOOKUP_PER_REQUEST": 50,
+     "MAX_UNVERIFIED_KEY_SHARE": 0.02,
+     "MDE_INFLATE": 1.2,
+     "MDE_MULT": 3.16,
+     "N_BOOT": 2000,
+     "N_WILD": 9999,
+     "PAPER_SIZE": 100.0,
+     "PARTS": [
+      "common",
+      "E",
+      "P"
+     ],
+     "PERM_DRAWS": 9999,
+     "PIN_UNSET": "TODO-COORDINATOR",
+     "PLACEBO_DRAWS": 200,
+     "PLACEBO_MAX_ADVANCE": 0.015,
+     "PLACEBO_SEEDS": {
+      "P1_shuffle": 15111,
+      "P2_shuffle": 15112
+     },
+     "PLACEBO_SEED_RANGE": [
+      15101,
+      15130
+     ],
+     "RULES_MACHINERY": [
+      "rules_part_doc",
+      "rules_part_file_doc",
+      "rules_file_doc",
+      "write_rules",
+      "verify_rules",
+      "family_modules",
+      "common_funcs",
+      "part_funcs",
+      "shared_helper_sources",
+      "common_declared"
+     ],
+     "RULES_VERSION": "cb15-rules-v1",
+     "SEED_BOOT": 1515,
+     "SEED_PAIRED_BOOT": 15121,
+     "SEED_PERM": 15101,
+     "SHARED_HELPERS": [
+      [
+       "cw",
+       "small_g_pvalue"
+      ],
+      [
+       "cw",
+       "_cluster_sums"
+      ],
+      [
+       "c12",
+       "holm"
+      ],
+      [
+       "c12",
+       "cluster_se_mean"
+      ],
+      [
+       "c9",
+       "top_k_drop_mask"
+      ],
+      [
+       "c10",
+       "placebo_advance_rate"
+      ],
+      [
+       "c10",
+       "leave_one_out_sign"
+      ],
+      [
+       "c12",
+       "aggregate_transactions"
+      ],
+      [
+       "c12",
+       "fetch_prints_paged"
+      ],
+      [
+       "c12",
+       "reach_ok"
+      ],
+      [
+       "c12",
+       "listish"
+      ],
+      [
+       "c12",
+       "parse_iso"
+      ],
+      [
+       "c12",
+       "iso_week_of"
+      ],
+      [
+       "c12",
+       "read_csv_gz"
+      ],
+      [
+       "c12",
+       "read_id_set"
+      ],
+      [
+       "c12",
+       "exclusion_stage"
+      ],
+      [
+       "c12",
+       "lookup_keys_closed_first"
+      ],
+      [
+       "c12",
+       "manifest_complete"
+      ],
+      [
+       "c12",
+       "require_complete"
+      ],
+      [
+       "c12",
+       "verify_fetch"
+      ],
+      [
+       "c12",
+       "c1_market_ids"
+      ],
+      [
+       "c12",
+       "module_constants"
+      ],
+      [
+       "c12",
+       "module_funcs"
+      ],
+      [
+       "c10",
+       "require_disk"
+      ],
+      [
+       "c9",
+       "write_stall"
+      ],
+      [
+       "c9",
+       "stall_of"
+      ],
+      [
+       "c9",
+       "write_results_once"
+      ],
+      [
+       "c6",
+       "KEY_COLUMNS_SRC"
+      ],
+      [
+       "bk",
+       "seal_copy_ids_audited"
+      ],
+      [
+       "cm",
+       "write_once_json"
+      ],
+      [
+       "cm",
+       "write_json_atomic"
+      ],
+      [
+       "cm",
+       "idle"
+      ]
+     ],
+     "SMOKE_VERSION": "cb15-smoke-v1",
+     "STAGE1_HOLM_FAMILY": [
+      "E1",
+      "E2",
+      "P1",
+      "P2"
+     ],
+     "STAGE2_K_MAX": 2,
+     "STAGE2_NAMES": {
+      "P1": "P1-rep",
+      "P2": "P2-rep"
+     },
+     "STAGE_ALPHA": 0.05,
+     "TERMINAL_NAME": "terminal_{family}.json",
+     "TERMINAL_STATUS": "terminal_not_testable",
+     "TICK": 0.01,
+     "TOP_DROP": 5,
+     "UNVERIFIED": "disjointness_unverified",
+     "USER_AGENT": "arepo-research-probe/1.0 (read-only counts; https://www.arepolabs.com)",
+     "W_STAR": -0.093
+    },
+    "cb15_e": {
+     "ABSENT_WHY": "token absent from the response",
+     "BAND": [
+      0.1,
+      0.9
+     ],
+     "BATCH_RETRY_S": 2.0,
+     "BOOKS_BATCH": 100,
+     "BOOKS_RPS": 2.0,
+     "BOOK_FIELDS": [
+      "asset_id",
+      "market",
+      "timestamp",
+      "bids",
+      "asks",
+      "tick_size",
+      "neg_risk",
+      "last_trade_price"
+     ],
+     "BOOK_LEVELS": 5,
+     "BOOK_LEVELS_DEGRADED": 1,
+     "CAP_MARGIN": 3.0,
+     "CAP_MIN_GB": 1.0,
+     "CENSUS_COLUMNS": [
+      "event_id",
+      "kind",
+      "office",
+      "state",
+      "district",
+      "general_ok",
+      "excluded",
+      "n_members",
+      "trade_type",
+      "chamber",
+      "neg_risk_market_id",
+      "series_id",
+      "market_ids"
+     ],
+     "CENSUS_MAX_REQ": 620,
+     "CENSUS_STATUS": "e_census_complete",
+     "CLOB_BOOKS": "https://clob.polymarket.com/books",
+     "CLOSED_BEFORE_TA": "closed before t_a (pre-entry)",
+     "CLOSED_STATUS": "closed before t_b (last read)",
+     "COLLECTOR_LOCK": "/tmp/arepo_cb15_e_live.lock",
+     "COLLECTOR_MEM_MB": 200,
+     "COLLECTOR_NICE": 5,
+     "COMPLETENESS_MIN": 0.95,
+     "CONTROL_RE": {
+      "flags": 34,
+      "regex": "(?i)\\b(control|majority|balance of power|which party will win)\\b"
+     },
+     "CRON_FILE_REL": "scripts/oracle/cb15_e_crontab.txt",
+     "DAY": 86400.0,
+     "DEM_RE": {
+      "flags": 34,
+      "regex": "(?i)\\b(democrat|democrats|democratic)\\b"
+     },
+     "DEPLOY_FREEZE": "from the part-E freeze to 2026-11-06T00:00Z: no deploy that changes backend/astrolabe/research_lab/{cb15_common,cb15_e}.py or any SHARED_HELPERS module (cb2_weather, cb6_tail, cb8_books, cb8_common, cb9_common, cb10_common, cb12_common); e-live re-verifies these hashes every minute and refuses on a change",
+     "DISTRICT_ORD_RE": {
+      "flags": 34,
+      "regex": "(?i)\\b(\\d{1,2})(st|nd|rd|th)\\s+(congressional\\s+)?district\\b"
+     },
+     "DISTRICT_RE": {
+      "flags": 32,
+      "regex": "\\b([A-Z]{2})-(\\d{1,2}|AL)\\b"
+     },
+     "E1_FLOOR": 0.05,
+     "E1_SIGN_SHARE_MIN": 0.6,
+     "E2_FLOOR": 0.01,
+     "ELECTION_DAY": "2026-11-03",
+     "EVENT_LOOKUP_MAX_REQ": 400,
+     "GAMMA_TIMEOUT_S": 10.0,
+     "GE0_ARCHIVE_REL": "research_lab/creative_batch15/ge0_sources",
+     "GE0_AUDIT_VALUES": [
+      "supported",
+      "unsupported"
+     ],
+     "GE0_DIR_REL": "docs/research_lab/seals/cb15_ge0",
+     "GE0_FILES": {
+      "cross_table": "cross_table.json",
+      "party_map": "party_map.json",
+      "poll_close": "poll_close.json",
+      "sign_table": "sign_table.json",
+      "source_manifest": "source_manifest.json"
+     },
+     "GE0_FORBIDDEN_SOURCE_KINDS": [
+      "2026_poll",
+      "2026_forecast",
+      "market_page",
+      "2026_news"
+     ],
+     "GE0_PASSES": [
+      "A",
+      "B"
+     ],
+     "GE0_SCHEMAS": {
+      "cross_table": {
+       "all_51": "generated by `run_cb15.py ge0-cross-table` (counts of effective signs by closing-hour stratum)",
+       "version": "cb15-ge0-cross-v1"
+      },
+      "party_map": {
+       "races": {
+        "<XX>|<senate|governor|house>|<district or ''>": {
+         "candidates": {
+          "<candidate name>": "D / R"
+         },
+         "citations": "[archive sha256]"
+        }
+       },
+       "version": "cb15-ge0-party-v1"
+      },
+      "poll_close": {
+       "states": {
+        "<XX>": {
+         "citations": "[archive sha256]",
+         "t_close_utc": "YYYY-MM-DDTHH:MM:SSZ (the latest official close across its time zones)"
+        }
+       },
+       "version": "cb15-ge0-pollclose-v1"
+      },
+      "sign_table": {
+       "kappa": "Cohen's kappa of passes A and B (reported)",
+       "states": {
+        "<XX>": {
+         "audit": "supported / unsupported (science-reviewer, read-only)",
+         "dir_2022": "+1 / -1 / 0",
+         "dir_2022_citations": "[archive sha256]",
+         "dir_2024": "+1 / -1 / 0",
+         "dir_2024_citations": "[archive sha256]",
+         "mode_order": "+1 / -1 / 0 (2026 counting order of vote modes)",
+         "mode_order_citations": "[archive sha256]",
+         "pass_a": "+1 / -1 / 0",
+         "pass_b": "+1 / -1 / 0",
+         "s": "+1 / -1 / 0"
+        }
+       },
+       "version": "cb15-ge0-sign-v1"
+      },
+      "source_manifest": {
+       "files": [
+        {
+         "fetched_utc": "ISO UTC",
+         "file": "path under ge0_sources/",
+         "kind": "state_law / election_office / ncsl / results_2022 / results_2024 / poll_close / candidate_list / other",
+         "sha256": "hex",
+         "url": "source URL"
+        }
+       ],
+       "version": "cb15-ge0-sources-v1"
+      }
+     },
+     "GE0_SIGNS": [
+      -1,
+      0,
+      1
+     ],
+     "GE0_VERSIONS": {
+      "cross_table": "cb15-ge0-cross-v1",
+      "party_map": "cb15-ge0-party-v1",
+      "poll_close": "cb15-ge0-pollclose-v1",
+      "sign_table": "cb15-ge0-sign-v1",
+      "source_manifest": "cb15-ge0-sources-v1"
+     },
+     "GEC_MIN_PER_SIGN": 9,
+     "GEC_MIN_RACES": 25,
+     "GEC_MIN_STATES": 16,
+     "GENERAL_DATE_RE": {
+      "flags": 34,
+      "regex": "(?i)(november\\s+3(rd)?,?\\s+2026|3(rd)?\\s+november,?\\s+2026|nov\\.?\\s+3(rd)?,?\\s+2026|2026-11-03|11/0?3/2026)"
+     },
+     "GEP_MAX_MDE": 0.15,
+     "GEP_SIGMA_D": 0.2,
+     "GEP_Z": 3.167969107613755,
+     "GE_MIN_PER_SIGN": 7,
+     "GE_MIN_STATES": 16,
+     "GOVERNOR_RE": {
+      "flags": 34,
+      "regex": "(?i)\\b(governor|gubernatorial)\\b"
+     },
+     "GRID_S": 600.0,
+     "HOLD_LANE": "cpu",
+     "HOLD_MIN_MEM_MB": 500,
+     "HOST_PROTECT_FREE_GB": 2.0,
+     "HOST_PY": "/home/opc/arepo/.venv/bin/python",
+     "HOUR": 3600.0,
+     "HOUSE_RE": {
+      "flags": 34,
+      "regex": "(?i)(\\bhouse\\b|\\bcongressional district\\b|\\b[A-Z]{2}-(\\d{1,2}|AL)\\b|\\bat-large\\b)"
+     },
+     "LABEL_E": "one-night case study (2026-11-03 US general election); the night is one cluster; L2 prospective, recorded books; no claim beyond that night",
+     "LIVE_FILES": {
+      "books_dir": "books",
+      "gaps": "gaps.jsonl",
+      "heartbeat": "heartbeat.json",
+      "manifest": "manifest.json",
+      "passes": "passes.jsonl",
+      "refresh_dir": "refresh",
+      "state": "state.json",
+      "storage": "storage.jsonl",
+      "tier": "tier.json"
+     },
+     "LIVE_STATUS_CLOSED": "e_live_window_closed",
+     "LOGIT_CLAMP": [
+      0.01,
+      0.99
+     ],
+     "LOG_DIR": "/home/opc/arepo_collector/logs",
+     "MAP_REFRESH_S": 21600.0,
+     "MINUTE": 60.0,
+     "NET_CONTROL_P": 0.05,
+     "NIGHT_GRID_S": 60.0,
+     "NOT_RUN_CALENDAR": "not run (calendar)",
+     "NOT_RUN_IDENT": "not run (identifiability)",
+     "NOT_RUN_POWER": "not run (power)",
+     "NOT_TESTABLE_AVAIL": "not testable (availability)",
+     "NOT_TESTABLE_FRAME": "not testable (frame completeness)",
+     "NOT_TESTABLE_POP": "not testable (population)",
+     "NOT_TESTABLE_SOURCE": "not testable (source)",
+     "NO_DEPTH_SIZE": 10.0,
+     "NTP_MAX_OFFSET_S": 1.0,
+     "NTP_SERVER": "pool.ntp.org",
+     "PLACEBO_P_FAIL": 0.01,
+     "PLACEBO_WINDOW_S": [
+      -129600.0,
+      -86400.0
+     ],
+     "POLL_CLOSE_RANGE": [
+      "2026-11-03T23:00:00Z",
+      "2026-11-04T07:30:00Z"
+     ],
+     "PRE_NIGHT_FREE_MARGIN_GB": 10.0,
+     "PROJECTION_WINDOW": 10,
+     "QUERIES": [
+      "Senate 2026",
+      "Governor 2026",
+      "House 2026",
+      "congressional district 2026",
+      "midterm 2026"
+     ],
+     "QUEUE_WORKER": "/home/opc/arepo/scripts/oracle/queue_worker.py",
+     "RACE_EXCLUDE_RE": {
+      "flags": 34,
+      "regex": "(?i)\\b(primary|primaries|runoff|run-off|nominee|nomination|caucus|margin|turnout|popular vote|recount|by how much|vote share|percentage)\\b"
+     },
+     "RACE_MAP_COLUMNS": [
+      "race_id",
+      "kind",
+      "state",
+      "office",
+      "district",
+      "event_id",
+      "market_id",
+      "token_d_yes",
+      "token_d_no",
+      "party_source",
+      "two_party",
+      "band_q0344",
+      "sign",
+      "stratum",
+      "t_close",
+      "chamber",
+      "fee_rate",
+      "neg_risk_market_id",
+      "series_id",
+      "key_overlap"
+     ],
+     "RACE_MAP_NAME": "race_map.csv",
+     "READ_LAG_A_S": 120.0,
+     "READ_LAG_B_S": 300.0,
+     "REP_RE": {
+      "flags": 34,
+      "regex": "(?i)\\b(republican|republicans|gop)\\b"
+     },
+     "ROBUST_P": 0.05,
+     "RUN": "h15_elect_live",
+     "SEARCH_LIMIT": 50,
+     "SEARCH_MAX_PAGES": 24,
+     "SEARCH_STATUS": "active",
+     "SENATE_GOV_MIN_PER_SIGN": 4,
+     "SENATE_RE": {
+      "flags": 34,
+      "regex": "(?i)\\bsenate\\b"
+     },
+     "SIGN_YEARS": [
+      "2022",
+      "2024"
+     ],
+     "SMOKE_FULL_PASS_TOKENS": 1000,
+     "SMOKE_MAX_REQUESTS": 30,
+     "SMOKE_NEEDS": [
+      "guards_fixture_E",
+      "e_part_hashes",
+      "e_ge0_schema_fixture",
+      "e_collector_before_pre",
+      "e_gap_logging",
+      "e_degradation",
+      "e_lane_hold_flag",
+      "e_gamma_paging",
+      "e_books_100",
+      "e_full_pass_bytes",
+      "e_ntp_offset"
+     ],
+     "SMOKE_QUERY": "Governor 2026",
+     "SPREAD_MAX": 0.1,
+     "STATES": {
+      "AK": "Alaska",
+      "AL": "Alabama",
+      "AR": "Arkansas",
+      "AZ": "Arizona",
+      "CA": "California",
+      "CO": "Colorado",
+      "CT": "Connecticut",
+      "DC": "District of Columbia",
+      "DE": "Delaware",
+      "FL": "Florida",
+      "GA": "Georgia",
+      "HI": "Hawaii",
+      "IA": "Iowa",
+      "ID": "Idaho",
+      "IL": "Illinois",
+      "IN": "Indiana",
+      "KS": "Kansas",
+      "KY": "Kentucky",
+      "LA": "Louisiana",
+      "MA": "Massachusetts",
+      "MD": "Maryland",
+      "ME": "Maine",
+      "MI": "Michigan",
+      "MN": "Minnesota",
+      "MO": "Missouri",
+      "MS": "Mississippi",
+      "MT": "Montana",
+      "NC": "North Carolina",
+      "ND": "North Dakota",
+      "NE": "Nebraska",
+      "NH": "New Hampshire",
+      "NJ": "New Jersey",
+      "NM": "New Mexico",
+      "NV": "Nevada",
+      "NY": "New York",
+      "OH": "Ohio",
+      "OK": "Oklahoma",
+      "OR": "Oregon",
+      "PA": "Pennsylvania",
+      "RI": "Rhode Island",
+      "SC": "South Carolina",
+      "SD": "South Dakota",
+      "TN": "Tennessee",
+      "TX": "Texas",
+      "UT": "Utah",
+      "VA": "Virginia",
+      "VT": "Vermont",
+      "WA": "Washington",
+      "WI": "Wisconsin",
+      "WV": "West Virginia",
+      "WY": "Wyoming"
+     },
+     "T15_CPU_DRY_RUN": [
+      "2026-11-02T12:00:00Z",
+      "2026-11-02T12:10:00Z"
+     ],
+     "T15_CPU_HOLD": [
+      "2026-11-03T21:00:00Z",
+      "2026-11-04T22:00:00Z"
+     ],
+     "T15_CPU_HOLD_PLACE": "2026-11-03T15:00:00Z",
+     "T15_DISK_CHECK_DAY": "2026-11-02",
+     "T15_E_END": "2026-11-06T00:00:00Z",
+     "T15_E_FREEZE": "2026-11-01T12:00:00Z",
+     "T15_E_OFF": "2026-11-04T21:00:00Z",
+     "T15_E_ON": "2026-11-03T22:00:00Z",
+     "T15_E_PRE": "2026-11-02T12:00:00Z",
+     "TIER_LIQUID_SHARE": 0.3333333333333333,
+     "TIER_RETRY_S": 600.0,
+     "TOP_STATES_PER_SIGN": 2,
+     "T_A_OFFSET_S": 5400.0,
+     "T_A_ROBUST_S": [
+      3600.0,
+      9000.0
+     ],
+     "T_B_OFFSET_S": 43200.0,
+     "T_B_ROBUST_S": [
+      21600.0,
+      86400.0
+     ],
+     "WALK_END_WINDOW": [
+      "2026-11-03T00:00:00Z",
+      "2027-02-01T00:00:00Z"
+     ],
+     "WALK_MAX_REQ": 100,
+     "WALK_STEP_D": 7,
+     "WALK_TAG_ID": 2,
+     "WATCHDOG_MAX_AGE_S": 180.0
+    }
+   },
+   "declared": {
+    "cb15_e": {
+     "collector": {
+      "batch": 100,
+      "book_fields": [
+       "asset_id",
+       "market",
+       "timestamp",
+       "bids",
+       "asks",
+       "tick_size",
+       "neg_risk",
+       "last_trade_price"
+      ],
+      "cap": {
+       "margin": 3.0,
+       "min_gb": 1.0
+      },
+      "degraded_levels": 1,
+      "grid_s": 600.0,
+      "hash": "discarded",
+      "host_protect_free_gb": 2.0,
+      "levels": 5,
+      "map_refresh_s": 21600.0,
+      "mem_mb": 200,
+      "nice": 5,
+      "night_grid_s": 60.0,
+      "no_exit75_in_window": true,
+      "pre_night_free_margin_gb": 10.0,
+      "rps": 2.0
+     },
+     "cron": {
+      "deploy_freeze": "from the part-E freeze to 2026-11-06T00:00Z: no deploy that changes backend/astrolabe/research_lab/{cb15_common,cb15_e}.py or any SHARED_HELPERS module (cb2_weather, cb6_tail, cb8_books, cb8_common, cb9_common, cb10_common, cb12_common); e-live re-verifies these hashes every minute and refuses on a change",
+      "file": "scripts/oracle/cb15_e_crontab.txt",
+      "hold": {
+       "lane": "cpu",
+       "min_mem_mb": 500,
+       "placed": "2026-11-03T15:00:00Z"
+      },
+      "lines": [
+       "# --- CB15-E election night (docs/research_lab/CREATIVE_BATCH_15.md sections 1.2, 2.8, 11; q0345). Install after the part-E freeze, by 2026-11-02T00:00Z; remove after 2026-11-06T00:00Z. ---",
+       "# DEPLOY FREEZE from the part-E freeze to 2026-11-06T00:00Z: no deploy that changes backend/astrolabe/research_lab/{cb15_common,cb15_e}.py or any SHARED_HELPERS module (cb2_weather, cb6_tail, cb8_books, cb8_common, cb9_common, cb10_common, cb12_common); e-live re-verifies these hashes every minute and refuses on a change.",
+       "* * * * * cd /home/opc/arepo/backend && flock -n /tmp/arepo_cb15_e_live.lock nice -n 5 /home/opc/arepo/.venv/bin/python scripts/run_cb15.py e-live --rules ../docs/research_lab/seals/cb15_rules.json --not-before 2026-11-02T12:00:00Z --until 2026-11-06T00:00:00Z --disk-cap-gb freeze --data-dumps-cap-gb 40 --no-exit75-in-window >> /home/opc/arepo_collector/logs/cb15-e-live.log 2>&1",
+       "0 12 2 11 * [ \"$(date -u +\\%Y)\" = 2026 ] && /home/opc/arepo/.venv/bin/python /home/opc/arepo/scripts/oracle/queue_worker.py hold-lane cpu 500 >> /home/opc/arepo_collector/logs/cb15-e-hold.log 2>&1  # dry run (verify a held job is not promoted)",
+       "10 12 2 11 * [ \"$(date -u +\\%Y)\" = 2026 ] && /home/opc/arepo/.venv/bin/python /home/opc/arepo/scripts/oracle/queue_worker.py release-lane >> /home/opc/arepo_collector/logs/cb15-e-hold.log 2>&1  # dry run (verify promotion)",
+       "0 15 3 11 * [ \"$(date -u +\\%Y)\" = 2026 ] && /home/opc/arepo/.venv/bin/python /home/opc/arepo/scripts/oracle/queue_worker.py hold-lane cpu 500 >> /home/opc/arepo_collector/logs/cb15-e-hold.log 2>&1  # placed 6 h before 2026-11-03T21:00:00Z",
+       "*/5 * * * * cd /home/opc/arepo/backend && /home/opc/arepo/.venv/bin/python scripts/run_cb15.py e-watchdog >> /home/opc/arepo_collector/logs/cb15-e-watchdog.log 2>&1  # heartbeat age + heavy cpu job alert (notify)",
+       "0 22 4 11 * [ \"$(date -u +\\%Y)\" = 2026 ] && /home/opc/arepo/.venv/bin/python /home/opc/arepo/scripts/oracle/queue_worker.py release-lane >> /home/opc/arepo_collector/logs/cb15-e-hold.log 2>&1",
+       "# --- end CB15-E ---"
+      ],
+      "watchdog_max_age_s": 180.0
+     },
+     "dates": {
+      "cpu_dry_run": [
+       "2026-11-02T12:00:00Z",
+       "2026-11-02T12:10:00Z"
+      ],
+      "cpu_hold": [
+       "2026-11-03T21:00:00Z",
+       "2026-11-04T22:00:00Z"
+      ],
+      "election_day": "2026-11-03",
+      "end": "2026-11-06T00:00:00Z",
+      "freeze": "2026-11-01T12:00:00Z",
+      "off": "2026-11-04T21:00:00Z",
+      "on": "2026-11-03T22:00:00Z",
+      "poll_close_range": [
+       "2026-11-03T23:00:00Z",
+       "2026-11-04T07:30:00Z"
+      ],
+      "pre": "2026-11-02T12:00:00Z"
+     },
+     "e1": {
+      "floor": 0.05,
+      "logit_clamp": [
+       0.01,
+       0.99
+      ],
+      "net_of_control_p": 0.05,
+      "perm": {
+       "draws": 9999,
+       "seed": 15101
+      },
+      "placebo_fail_p": 0.01,
+      "placebo_window_s": [
+       -129600.0,
+       -86400.0
+      ],
+      "robust": {
+       "p": 0.05,
+       "senate_gov_min_per_sign": 4,
+       "t_a_s": [
+        3600.0,
+        9000.0
+       ],
+       "t_b_s": [
+        21600.0,
+        86400.0
+       ],
+       "top_states_per_sign": 2
+      },
+      "sign_share_min": 0.6,
+      "stat": "sum_h w_h (1/2 mean_{+,h} d - 1/2 mean_{-,h} d); m_h = n+ n- / (n+ + n-)"
+     },
+     "e2": {
+      "exit_robust_s": 21600.0,
+      "fee_floor": 0.04,
+      "floor": 0.01,
+      "no_depth_size": 10.0,
+      "support": "states with both side nets (the permutation's support)",
+      "w_star": -0.093
+     },
+     "family": "E",
+     "frame": {
+      "control": "the D member of the national Senate / House control markets (single candidate, else the coordinator's pre-freeze override naming one candidate from the q0341 census); missing -> net-of-control unknown (E1 cannot advance)",
+      "paging": "to hasMore = false",
+      "queries": [
+       "Senate 2026",
+       "Governor 2026",
+       "House 2026",
+       "congressional district 2026",
+       "midterm 2026"
+      ],
+      "race_rules": {
+       "control": "(?i)\\b(control|majority|balance of power|which party will win)\\b",
+       "exclude": "(?i)\\b(primary|primaries|runoff|run-off|nominee|nomination|caucus|margin|turnout|popular vote|recount|by how much|vote share|percentage)\\b",
+       "general_date": "(?i)(november\\s+3(rd)?,?\\s+2026|3(rd)?\\s+november,?\\s+2026|nov\\.?\\s+3(rd)?,?\\s+2026|2026-11-03|11/0?3/2026)",
+       "governor": "(?i)\\b(governor|gubernatorial)\\b",
+       "house": "(?i)(\\bhouse\\b|\\bcongressional district\\b|\\b[A-Z]{2}-(\\d{1,2}|AL)\\b|\\bat-large\\b)",
+       "senate": "(?i)\\bsenate\\b"
+      },
+      "status": "active",
+      "tier": "top 0.3333 by Gamma liquidity at T15_E_pre",
+      "trade_market": "(a) a party member / market naming Democrat(ic); else (b) the D candidate member by the GE0 party map; D-terms = D YES mid",
+      "two_party": "the two highest-priced members at the q0344 read are one D and one R; a single-member D party market passes (single_party_market, reported)",
+      "walk": {
+       "end_window": [
+        "2026-11-03T00:00:00Z",
+        "2027-02-01T00:00:00Z"
+       ],
+       "min": 0.95,
+       "tag": 2
+      }
+     },
+     "gates": {
+      "ge": {
+       "per_sign": 7,
+       "states": 16
+      },
+      "gec": {
+       "per_sign": 9,
+       "races": 25,
+       "states": 16
+      },
+      "gep": {
+       "max_mde": 0.15,
+       "sigma_d": 0.2,
+       "z": 3.167969107613755
+      }
+     },
+     "ge0": {
+      "archive": "research_lab/creative_batch15/ge0_sources",
+      "dir": "docs/research_lab/seals/cb15_ge0",
+      "files": {
+       "cross_table": "cross_table.json",
+       "party_map": "party_map.json",
+       "poll_close": "poll_close.json",
+       "sign_table": "sign_table.json",
+       "source_manifest": "source_manifest.json"
+      },
+      "forbidden_source_kinds": [
+       "2026_poll",
+       "2026_forecast",
+       "market_page",
+       "2026_news"
+      ],
+      "passes": [
+       "A",
+       "B"
+      ],
+      "pin": "ge0_bundle_sha256 = sha256 of the sorted JSON of the five per-file sha256s; MANDATORY --ge0-sha256",
+      "schemas": {
+       "cross_table": {
+        "all_51": "generated by `run_cb15.py ge0-cross-table` (counts of effective signs by closing-hour stratum)",
+        "version": "cb15-ge0-cross-v1"
+       },
+       "party_map": {
+        "races": {
+         "<XX>|<senate|governor|house>|<district or ''>": {
+          "candidates": {
+           "<candidate name>": "D / R"
+          },
+          "citations": "[archive sha256]"
+         }
+        },
+        "version": "cb15-ge0-party-v1"
+       },
+       "poll_close": {
+        "states": {
+         "<XX>": {
+          "citations": "[archive sha256]",
+          "t_close_utc": "YYYY-MM-DDTHH:MM:SSZ (the latest official close across its time zones)"
+         }
+        },
+        "version": "cb15-ge0-pollclose-v1"
+       },
+       "sign_table": {
+        "kappa": "Cohen's kappa of passes A and B (reported)",
+        "states": {
+         "<XX>": {
+          "audit": "supported / unsupported (science-reviewer, read-only)",
+          "dir_2022": "+1 / -1 / 0",
+          "dir_2022_citations": "[archive sha256]",
+          "dir_2024": "+1 / -1 / 0",
+          "dir_2024_citations": "[archive sha256]",
+          "mode_order": "+1 / -1 / 0 (2026 counting order of vote modes)",
+          "mode_order_citations": "[archive sha256]",
+          "pass_a": "+1 / -1 / 0",
+          "pass_b": "+1 / -1 / 0",
+          "s": "+1 / -1 / 0"
+         }
+        },
+        "version": "cb15-ge0-sign-v1"
+       },
+       "source_manifest": {
+        "files": [
+         {
+          "fetched_utc": "ISO UTC",
+          "file": "path under ge0_sources/",
+          "kind": "state_law / election_office / ncsl / results_2022 / results_2024 / poll_close / candidate_list / other",
+          "sha256": "hex",
+          "url": "source URL"
+         }
+        ],
+        "version": "cb15-ge0-sources-v1"
+       }
+      },
+      "sign_rule": "+1/-1 only if both passes, the vote-mode order and both years agree, every input cites an archived sha256 and the audit is 'supported'; else 0",
+      "versions": {
+       "cross_table": "cb15-ge0-cross-v1",
+       "party_map": "cb15-ge0-party-v1",
+       "poll_close": "cb15-ge0-pollclose-v1",
+       "sign_table": "cb15-ge0-sign-v1",
+       "source_manifest": "cb15-ge0-sources-v1"
+      },
+      "years": [
+       "2022",
+       "2024"
+      ]
+     },
+     "judgement": {
+      "alpha": 0.01,
+      "rule": "judged when it runs at p < min(0.01, alpha/k1), strict; never withdrawn; the final Holm only adds passes; no Stage 2 in CB15"
+     },
+     "label": "one-night case study (2026-11-03 US general election); the night is one cluster; L2 prospective, recorded books; no claim beyond that night",
+     "round2": {
+      "calendar": "first commit of model_specs/cb15_v1.json carrying the pinned race-map sha256 value",
+      "closure": "a missing t_b read after closure evidence (token omitted by a successful batch, or the market unlisted / inactive in a map refresh) uses the last read before closure (mid by the one-sided rule; E2 exit at its best bid, none -> w*), counted as 'closed before t_b (last read)'; closure before t_a is a counted pre-entry state; without evidence a missing read is a gap",
+      "gamma": "collector Gamma calls without retries, short timeout, attempt marked first; tier only in [T15_E_pre, T15_E_on); a snapshot at or after T15_E_on is never used",
+      "placebo": "an untestable pre-night placebo is unknown: E1 cannot advance",
+      "smoke": "transient /books or NTP faults -> pending (exit 75), never a counted FAIL; out-of-frame tokens from order-book markets accepting orders",
+      "trade_market": "several members naming Democrat(ic) -> ambiguous, excluded and counted"
+     },
+     "smoke": {
+      "full_pass_tokens": 1000,
+      "max_requests": 30,
+      "needs": [
+       "guards_fixture_E",
+       "e_part_hashes",
+       "e_ge0_schema_fixture",
+       "e_collector_before_pre",
+       "e_gap_logging",
+       "e_degradation",
+       "e_lane_hold_flag",
+       "e_gamma_paging",
+       "e_books_100",
+       "e_full_pass_bytes",
+       "e_ntp_offset"
+      ],
+      "ntp_max_offset_s": 1.0
+     },
+     "units": {
+      "band": [
+       0.1,
+       0.9
+      ],
+      "read_lag_a_s": 120.0,
+      "read_lag_b_s": 300.0,
+      "spread_max": 0.1,
+      "state_weight": "1 per state",
+      "t_a_offset_s": 5400.0,
+      "t_b_offset_s": 43200.0,
+      "t_b_rule": "mid whatever the spread; no ask -> 1, no bid -> 0; no exclusion at t_b"
+     }
+    }
+   },
+   "func_sources_sha256": {
+    "cb15_common.assert_clean_columns": "45f148919a1277b7ea10de404ced0c04aae3dc09e4ab14a400b81ead026d5c8d",
+    "cb15_common.attribute_sources": "5484ed77e7bb01a103197df59a3c03ec31d5ae7c6eaf64a8ca1d0cfa21f60697",
+    "cb15_common.cluster_p": "9c8a06cc1e552f05ca1ad243523d83d89ed0a11da096c8f1290e58f080597ed9",
+    "cb15_common.cluster_se_mean": "b00c59bb7c9237ae9758c44ad2f8e64d6ac23e37ffc6ecb4c5093b9c2ac6bfb8",
+    "cb15_common.drop_reason": "473566e22ff10f0a43fb27490a2e051a2143d3231092db2c1f107dc0fc5f9806",
+    "cb15_common.e_judged": "fc0aec03eea6d06692f76c2ab9e4c6882127a518fa535bd0e7065ffe8bd5e03c",
+    "cb15_common.early_stage2_ok": "305ef281a402a20429df8643d1240f59ae8befd2ba799a7001a252c7c3ef7b5a",
+    "cb15_common.ep": "3a9fd8059b8d56d7572e9e9a04d0c83e2aeef94fb27ca9badb6318501b40be1b",
+    "cb15_common.exclusion_keys": "9857057598dd1d0078c837802ffbaaf2693d65f5cc18666cc5ce350c65ec09fb",
+    "cb15_common.fee": "f60799ffb16af8c3a40d16efc5bf91e5b750eb01973926b1149e001991c4ec91",
+    "cb15_common.frame_ids": "d4e6b48f49c62f4fca8f188cbb7ad9260f034a6b3970b5d8a5f363fff55e16e1",
+    "cb15_common.guard_id_file": "9ced860ec8540d07256add0b92d34e953e8ac0961efc9ab87fc757cc31dfe05b",
+    "cb15_common.guard_input_path": "164d1ef74fb21fadf457fb7bf07d733609e9a7c3975bb3291ead8f8531ea2b21",
+    "cb15_common.holm": "af9d8cb1193c0e2ea54f102aac4a2dd8251d43681e389fcc6de098a40c3b4925",
+    "cb15_common.id_source_path": "3b5a053b8a8a055a96496aec795a54acb96da841936c23ee5bd667a28e4c1a51",
+    "cb15_common.is_holdout_path": "fd0e9fc15a27748914a0f1ea4aeb591d1db8857f851df923768b0a99b111e22a",
+    "cb15_common.iso": "28e937dc91f5bc02d678e907f1ec255deda7d37b9b06627231aebb9362d33172",
+    "cb15_common.iso_week_of": "ff68e893db31f9232f2c34de2a0133f8ae0c3a5d71d81e24e6e6fa0c1ae16a5b",
+    "cb15_common.jsonl_append": "c3ae14b3b228dd1ddfa4bd2da270cfea1124c185f51111bb73d27c56595b3b9b",
+    "cb15_common.jsonl_iter": "73e573de41cbdac268159b61cd7920199da727075650ddafb9aa4292587f2b78",
+    "cb15_common.key_sources": "bc08139db9ea31085cf2441aaf2d69524328fbe12273063cc66b167c2ee115f6",
+    "cb15_common.ksrc_of": "e6f9b0b6df80f8fd38a51e9c5d1473633b5b5305e143abdb1ef48107aa8adb76",
+    "cb15_common.log_descriptive": "ddc8665a334bcc147383e739be810f428ed964744cdb7f48dda5a6fbb1e5e56d",
+    "cb15_common.log_family": "f99455370935d58dbd9bbdc2dbd92a5495820422bb27c5bca8de5fc173581b20",
+    "cb15_common.manifest_complete": "9963a22f89b1b545fe07d75e58db6e88f1dd2fc4f0602068b2b362bc7c8f08ed",
+    "cb15_common.max_se_over_ways": "18f28ac880ad440c2f2922904a7aa736ceb3d58b3dd06288a3a7a1331aa17210",
+    "cb15_common.mde": "68e3c42134841a96ebd49600e805e0fb740f0cfc9ddcaf6e055874d60c4aa54f",
+    "cb15_common.num": "6b0d39403e1916672eadc55c8241ff0c3cdfb233983e5e8b36b400140ab6f068",
+    "cb15_common.p_pass": "9146e1b511427a8077dcf1e0c98dc2061341d14ea489bdddbd2b4c0739b0f6fb",
+    "cb15_common.parse_iso": "86d7c91645a1d5a2d1fb78eb256c528c2c4cbfd3c64d20fe2a80fa1c710205c3",
+    "cb15_common.perm_p_within_strata": "e00803dac055969902fd5b259a57b4d07507df970ff767b083fcbb89323a7e41",
+    "cb15_common.permute_within_strata": "2bf4187d99c213263d86171fb8a6e351fb03c456293071480bfed837073e3efb",
+    "cb15_common.placebo_advance_rate": "dddafa6653cc29c6d9cfaac9f5cbf9b45bb978e4249f3b54b1f0854c7dcbe0ea",
+    "cb15_common.read_csv_gz": "dd1530f10901a596b85fc5801beee783bf19c890fc0578930899b4afcab28176",
+    "cb15_common.read_id_columns": "152f2a91e32673cc860367557e1e960a61c1a4ee4cb2fb37bd041278c0106dbd",
+    "cb15_common.read_keys_with_sources": "1593ed700d2254ab0a4bf9fa1e0eca755bc6569c8f1ebca565752c9ef9215e8c",
+    "cb15_common.read_terminal": "006816bb9ee48d0279a54dc7d862c7ca14a60a6529a59bfc2d3ac071dbc0da0f",
+    "cb15_common.record_terminal": "4238198b9578142bebae073998bf9f8b8fe9575a38dfd0e1cd66d8ae22263c43",
+    "cb15_common.refuse_path": "005240906e6165cd1332d272a89e34138497db45276a90ece5269a358623c8cb",
+    "cb15_common.refused_names": "32b50ab79443589af19374c0cc7519d67f852856b04b43f23c510ec76c27b790",
+    "cb15_common.require_after": "6241d5801e7645bf91762727ba115dfb8b52b46613a150bdc9a424f9ebd4480b",
+    "cb15_common.require_complete": "f77e2697117079e41572fa4ece99d3e504c2bece2e23b9a8db1179a95a030396",
+    "cb15_common.require_disk": "171d800c22cef62ab8df80181d31036f4323320b554a25cb2e4e473fc713babc",
+    "cb15_common.require_freeze": "87f10294bc0e0c4fe96ea616292c19a9ac95c8b9995bc7a646ba5cd55495d1d8",
+    "cb15_common.require_output_root": "dc5032aeffb912cf1f4e6d7b1f253c7f3baeb429767781b18707b533674f08fe",
+    "cb15_common.round_trip_net": "46eec3c7e42964135951e52de15fb77d1e8c281662a96247432dd229e60ca5c8",
+    "cb15_common.sha256_file": "9b9e433786c3b739ebdf2370926158a2e42a946e90aae266587c550a4a08ee8b",
+    "cb15_common.sha256_obj": "29f7a73c2109e9902f07d1b4343c0975871e392d9e53aea23bc0b4e5d4ca548f",
+    "cb15_common.sign_ok": "b34ef383569c27a123b97b1917db932b9aeae517c3cc36a28501dbee67575473",
+    "cb15_common.stage1_advance": "96adfe88a985cf11f2bcb8defd9fb72e01a1028ad9d1acccebb82eb1dfecb34c",
+    "cb15_common.stage1_holm": "80933d4d8cf601b805194a1df4915aaf27554e5f75d2c8666d5bf709b017bc9b",
+    "cb15_common.stage2_final": "7949450e414c2cf506d190b8b7d713093b7692890bbdde4f86ce0ad119174ed2",
+    "cb15_common.stage2_holm": "226a02d95e1380409dd57a3f383a1695b6e855ae5792099557e99efe2655596b",
+    "cb15_common.stage2_pass": "eda7e2d9e4ad630d3d2db3955f0f5e5e074fe345e45738379aed63e9205e3857",
+    "cb15_common.stall_of": "beaf29289839d29160f8aa542364dc8395c2620bbe57d025038cbfa1443bc186",
+    "cb15_common.stratified_balanced": "b40418886e98ae361f84339d043088d242f7569c2987d7d7ecf760900609ad5a",
+    "cb15_common.stratified_sign_share": "9a8cf9bfeeefd5f77cb506f2d09bf26cfd7f7eaa52910cdc63a126172568ef1a",
+    "cb15_common.stratum_weights": "cc6d8f0d6fc1195a7b0c7b543c927c226c357043a1f2b475ef67a4d40c064f2a",
+    "cb15_common.strip_forbidden": "4ee5f8ba6041e3d90109a9f3b3c72a1fdd8a51d4b15cd6efd681759bed6f7366",
+    "cb15_common.taker_rate": "57df60290525b05a7a6496f30fb564217e47357e1ac5742e792a3b9b97c699fb",
+    "cb15_common.terminal_path": "4e0150b311e003a9840b41fe82133de0907c9e90e2f9513517b9683140aa8bce",
+    "cb15_common.top_k_drop_mask": "6582a115058255fc43f961c9c4e156af75be744d0ddbc3806df9af0d4a175d6b",
+    "cb15_common.utc_day": "08bd95ebea2913c2ac28497a6f68d35937ad7630f9a0653a2f7e6f1b8c389cdb",
+    "cb15_common.verify_fetch": "f635c0f941f94b8e9a72b32fe28b5aae1c91f1bedd0d180ef75a827f57857ae4",
+    "cb15_common.wait_or_idle": "f321b147668d42a0ecf204d1f68ff2c0a15413b88f5037e6e0a040311938f059",
+    "cb15_common.wls_coef_pseudo": "dbbb657f7ca9a20bb1acbcedd08004b085bd89a9f4bc5acafeea19a882ff61b7",
+    "cb15_common.write_dir_manifest": "0c1109c89812f4aa3f70f086bfcbc00213eecac8cef68a43c53af7118b6abdc7",
+    "cb15_common.write_gz_csv": "8418c983bf77c0e977d2c31ce79b23ac5efb5f5a1bd485683a29e7c7c04a2670",
+    "cb15_common.write_results_once": "8d9db29f6dfe30663f51418686250cc01acae415517635cf5fb419c14c3cc630",
+    "cb15_common.write_stall": "a75cca03b65b4179b2e461a6ed1c21fbc71752f6090a554ae30f71e2da4b675d",
+    "cb15_common.yes_price": "71a7eeb5ab5dbe172e2df3b468985054f1bde3636d9759961f8e0f92f93b23a2",
+    "cb15_e.BookIndex": "77570a05192d0933b894126b51e6483af07c7ff87acc50da47d9c668059a45c3",
+    "cb15_e._arrays": "dfe1c54fc44356db62498e74246146cc2f838c9d379cb46d9660c5a1a3a7a004",
+    "cb15_e._chk": "23583bb5704fd13ade8e6407f0dc2750b436d540ead9f313604e390d09c2c7bb",
+    "cb15_e._cron_at": "9c544d76f16f1756ad703374054b07808c8121c8e79033ff24932adc68e8fa3f",
+    "cb15_e._levels": "266d1f4e9d0b538d30d993a84dec8609ce33960eb449d76cf0d7313296541b7c",
+    "cb15_e.band_label": "996937dbd2a3666abcde1a31f2e7cf121b692190cdc5bf5284b21a2773ed6012",
+    "cb15_e.best_of": "8d6b695afe7dda81c96ee93e59ce8de857aba9902d5d6d4557c575ee569d8468",
+    "cb15_e.books_batch": "b1599322232f99af806cd90c70712c879346a0b805a5982e1701572866702a7c",
+    "cb15_e.books_poster": "134e53f300ac2f7c53bb48aa15f69f469c194186104a0783ef7113222c0e457b",
+    "cb15_e.build_cross_table": "da1f92be7902eaf2fd74c0ea87d1f8a6d7f7112c3c59f9c357d5477645a1534e",
+    "cb15_e.calendar_missed": "c210baca8f19ac7f59d6d12d7477c06a22275c36d6a6c5ec63dee5220bd1fdef",
+    "cb15_e.capacity": "77f163b06055fd2686e5789eca18f1da91e28c5bdeb079785627207e8fe0cd57",
+    "cb15_e.census_e": "dd4e26276f566daec7cd3280422b3b64ba474ce7bc9b409a9289074681cebba2",
+    "cb15_e.cited": "d83c20d497ab878e1e6ef07d880c9d11e5425afd929c1f07d087aa85b67b0c5f",
+    "cb15_e.cited_party_map": "e43a3779d593c626466bb076ff168f7e541a55d3c905aee546783e0a27e7bf2b",
+    "cb15_e.classify_event": "0752ac55b09181bff40d5dd37ad56b2aa1c58b0da62f2ad3356a321e099edc44",
+    "cb15_e.closure_evidence": "986a472e003fe48bf6d30dfc475ecacebdda05e55a0c2008cbf08e82d529d423",
+    "cb15_e.collector_cap_gb": "940dbf804d6c171edc8eab5aa93e8ab4757fde1894fddc3426c7c04d5a823bb0",
+    "cb15_e.collector_tokens": "89af1610a97d43e196f7bac1078d38f9f6843ccfeacf141cab61b4214ab83814",
+    "cb15_e.contrast": "7317a90155dd3f174fc1341311310861a9c6191a1a9183658bfb4a80fae3de75",
+    "cb15_e.control_drift": "670291478a7987c70aa5c56ff12be908f0000618af523cb8baf7da5ae7519c0b",
+    "cb15_e.control_member": "2a2c1f4158a88af7863c603e55e79b6f531cde71774b3ce6d248fcf6109aac69",
+    "cb15_e.cron_lines": "38ce72f1ef4db5ec6f8815134efec6b02d59274c2b55cd36829adac3cd3be1e2",
+    "cb15_e.cron_text": "6fb8ccb87bf9c73734ce72995953c4d621ea07e86518ebf1436f6ed9bfe9710a",
+    "cb15_e.cross_table": "b3170717a65bb3888e0b69fbc7414ce1d613d9119fe2f6509013140c9f38853a",
+    "cb15_e.cross_table_doc": "3e272e0195063fc0d995671cd58e239a947e28c492cea4bd38a3f579e6644047",
+    "cb15_e.declared": "a24081a9e5ce89d8f916380097447fcd15c3b509484fd8bbce696d946b59c5f8",
+    "cb15_e.dir_bytes": "6aa6bfc378ef4890b0f7bdad4d57393078049885eb8926061279954485ed792a",
+    "cb15_e.district_of": "967f64eb82e18f8802aa2b342ce660d0e9774067e7191c2e6195bf26d5cfde14",
+    "cb15_e.drop_top_per_sign": "4453ca47f15502761b5e0e22df0bcf15578398c1fbcf93e1acb5a2f645320043",
+    "cb15_e.e1_test": "d991e69e5f19fdb794e0e54fe7b4282258cb72beb8ab3162cb33a3c0e42792a5",
+    "cb15_e.e2_test": "f54c49385d8a7ec2dbf0b44bc9ca9f39bf9e39f5729491e82b843638a4e46d83",
+    "cb15_e.e_freeze_commit_time": "d6a06ef5ed39cfde8053b98a7e0afde6be3dfc5efebe34f391f4c1517151989c",
+    "cb15_e.e_live": "a1413cb107f47c420f710cfc5cd1dfb80ae3b2e1086a2fba49a5eafc588d26e8",
+    "cb15_e.effective_sign": "c3255b38e7f09cc9601d1c622a3761eb64198b0f9ce9c886bd0975b8865fbb8e",
+    "cb15_e.ep": "d5bd2bb62fd73161eef1a1f8576056d57ba15ff28937cb658c67d50a5a8516a9",
+    "cb15_e.file_sha": "3cb1574dce9f3ba81c056915ef69a17674b36d89841bada9b207bac0141fec1b",
+    "cb15_e.gamma_markets": "a134a51a59301bf099b6653a9a899a08f981817a70eed9256e9fb3fed367579d",
+    "cb15_e.gate_ge": "19391ad25e0239f3107fdef9d680a4b3f835e28b9cc1496435bc2ad4b52e9127",
+    "cb15_e.gates_pregate": "9f3eec76b792264c7b8142be662cd566c63df49987315482e41170fe53e0cd4f",
+    "cb15_e.ge0_bundle_sha256": "bed0b2f83e49fa992a0860a39dbf08060437a0ad04e9061a79a69ead44275fae",
+    "cb15_e.ge0_dir": "da1498e21e5879850c7652055962e1f375c23bcd60baf966a6e1ed6755a67cc8",
+    "cb15_e.ge0_file_docs": "5cee4d0da383cfa8be2fa86e33a105c1bbc50ab9143d7f6ff4bbddda70d046c6",
+    "cb15_e.ge0_fixture": "bc71f2ec180dad40804be1df1fc42812aa4954de3b51f79eca4a8531fd8370f8",
+    "cb15_e.grid_due": "bca815e93db85053b951603891222b99f52c4698b2e9706eacd5b161e976ae66",
+    "cb15_e.identified_only": "03041a273dc2db629d40901e2b753de00e007e233a6e61c86e0bd60b82d13873",
+    "cb15_e.is_night": "f41b1caa3c8bf20eb59f92d3f0ad183caeaa8c6061a04b65e0cd7fc3965fb027",
+    "cb15_e.is_transient": "50ea7f8fea321bfdc8c8acc200b308d28435dd3b1ae73659ec59a7d63a070dcb",
+    "cb15_e.listish": "ef522edc88a15b04cc77d48d01c99fe53495dad824b095536480e70f4afe747b",
+    "cb15_e.load_books": "2b69468edf39e66b5c429c37f17906ea43f645775702acd1500e86f48be15a9f",
+    "cb15_e.load_ge0": "837f47f9455c2089b421f6bb8ac135c79c2b888c7016d3ae5c8a4d1d4bf65cb7",
+    "cb15_e.load_screen_inputs": "83980efddae9e4196aef4ab566de92c12fa9d59993ef4834dbecf95bcc5f9f97",
+    "cb15_e.logit": "e011c448744d28c7bd7a186e3379117d923d2527318e9a357d5e2b7cb6ff82e4",
+    "cb15_e.lookup_events": "b9238646993fa1ad85e11e899345d628535b4f18ee848e7deb29c884ecb474a6",
+    "cb15_e.loso": "edbdde9359e6f85efba9538b91a8568e77bfaa42b6f1e36199a63a2da212e403",
+    "cb15_e.manifest_shas": "d74fee87e4055bccdd54f1941e9d4c990c0e18f0ec7ad0de2dec4a3aeaee023b",
+    "cb15_e.mde_e1": "cccdabbd8ad15adbd4e7ecc69bcb92bd394a353a4092ac0a9b216163d955e59b",
+    "cb15_e.member_party": "6c75a277e4687b4d7636824f3bba0e576be8c46c8c257074c660ff6ffee7834c",
+    "cb15_e.mid_one_sided": "886bc81d8353fc9a85575f417a3adaccdd3a685e7d80c816436f07742cc83fd5",
+    "cb15_e.norm_name": "450e82ed88fc014a739302d2147db66f2dd0b55e88415009de0c0b4e6239700f",
+    "cb15_e.ntp_offset": "8c21ce18025862b99a4187f0309ebc23b2d3334cc3fd48e427e399a3ba08c14f",
+    "cb15_e.office_of": "6cb71cfce6541e01e9dcb30fe8613ca0f89421596c533dc949a9cfba0d73f2bf",
+    "cb15_e.offsets_on_grid": "e30016df12b63afb8f5a44d0697149171e81a299fae40c0e8650e4f9966520cc",
+    "cb15_e.out_of_frame_tokens": "d6a2f240c74bfc4106c73f3802a8b0d53577482524fd414b1b1c702670b2eb16",
+    "cb15_e.parse_book": "25804d218e034af38ca07a7ac798fde84387b3378fb10f7e6196ef696c37593e",
+    "cb15_e.parse_event": "074f32efb372f4eddd827bb92ed69f7d678283d537afb2a1f0f54503247b380b",
+    "cb15_e.parse_market": "a1ecc60005be788925deb0055adf26e0f5e2ca41c53b0645e6626170cb98c7d1",
+    "cb15_e.party_of_text": "d0f23301055daf3466af927fa33ac364d4215c05b07d0f2298765119ec13c26d",
+    "cb15_e.pass_bytes": "a4d02ff1a13d5cc08acf1cd668f50335356ce746efed881c29e88a0e464a2eab",
+    "cb15_e.pass_file": "461e6df9b885ce6049fb978742dea236b1006631b15fe547455cac30572a7020",
+    "cb15_e.pick_control": "dfacffe7b7285e91f449b5e68b5eb295ced61741f0cd6fc74879b0fed8c46291",
+    "cb15_e.pre_night_disk_check": "be3297132b6d5a587734dfad1a3893358b832af420561d28e59d8cf71d370035",
+    "cb15_e.predicted_value": "e9250f18181fb053ecffc43a03a5d059b09cef97e98280155af3ff9cd6c9d64b",
+    "cb15_e.pregate_e": "66ac0a213e32b8b735008451be7c69926989e4f5804daa8b75296cdcdb8feddc",
+    "cb15_e.race_id_of": "ea556304d1d1ffa42319a6db27d90c5aba4793b87028a54025da6df9057ed1ab",
+    "cb15_e.race_share": "f8a5906db5c24439a66224e24a31a467d1b152fc8dc668d048bc652faee957bc",
+    "cb15_e.race_unit": "1a8733c15874cff896e6c6acd23c5dc009089744c3e9d93803fc53ffdabb33c8",
+    "cb15_e.read_or_closed": "ef5590f980317d56ceb3fdcbe30af0a39618c647a3fe493f641d0bba68e77a3a",
+    "cb15_e.read_race_map": "ff77aa42d28516c3612a4c3223228fec5915e9763545781bf43415cac3006912",
+    "cb15_e.refresh_map": "0f71a73c4ab17b703c2e228b3541b092e606996e5557f0731fb87d165f98b3b1",
+    "cb15_e.require_ge0_pin": "fbda8eafe987dd6124d512c5dfd7970af66ebb899aec0572223b68abe03d3580",
+    "cb15_e.run_pass": "923a71e4d53a8ac39a4209adfb3cf1421ced32804030e9967577b11dbe241422",
+    "cb15_e.scheduled_slots": "6bf5c0553dbed080849738d0b6a13771edb397b8b7fc7689671ce8046fb91f44",
+    "cb15_e.screen_e": "2f553623f278bf3f480a814212b6c17571169ba62844afb2f3cd33b4897cc0c1",
+    "cb15_e.search_all": "836997deaa8360e54812b0a8536f1b519f5bf1595088e4337760c767dfb7bdf7",
+    "cb15_e.smoke_offline": "ee7e417fb589dbcc6fa73631682736226a6962a939ce281443c5e58d9a8970d5",
+    "cb15_e.smoke_online": "a17628e13c79d5038eb0dea0621a646dbbf7e26d223cce0b16d5704ec0803ea4",
+    "cb15_e.state_of": "55008a4714941c636e5e1e00ee5361bc3b24aa92e768f9566c22d8508fd52e21",
+    "cb15_e.state_table": "21bffb92a1d715bc51e0496dd4696f5d1093b4730a53210790cfc53deeda23e4",
+    "cb15_e.storage_decision": "82f8afcf9b9061a0eac56f6acf7092a3477679b78d9237701adeb7590754e604",
+    "cb15_e.stratum_of": "ab86750f728675c1d7d8277289207a0d86091c927825961302225d1cc9a29c8e",
+    "cb15_e.t_a_of": "c32e8477d9894b3d0f661d47a0dd21db78f534096764059845c1aa512e1a4e7f",
+    "cb15_e.tier_filter": "5bb1a6ee8aedbcf0ca7278da7435658e2cfa73457984b558cc49f20ce2b0f85e",
+    "cb15_e.tier_snapshot": "aa93417d5faa70aa6a0e89f1f0537fb6d1ce31de6bcb64743c76bc9929923b5b",
+    "cb15_e.tiers_of": "d5a7df506ceebcd667876184409a67d4265f07d1ad4c9bdd3b46dac22ef384d2",
+    "cb15_e.trade_market": "3e7cb9cf3db5f458864e75a291e427a2c748f1916f8546430b486d3e881eca59",
+    "cb15_e.two_party": "3e875fcdea71667a2038b83aee04fc65450886e08317b2a5450ccded90490ba9",
+    "cb15_e.unstratified": "44b14f76c2b18409473c11505c8fcfa0966590b6c0a16affd3484ef7a8cf2ca9",
+    "cb15_e.validate_manifest": "930708df819d19f4f6ba94a1e23c3ec181eec0cd1fb37b8c7a34e6e8f5b845ca",
+    "cb15_e.validate_poll_close": "40f5384cb87073292db390dfa258f1b5b9d853beebf88c69b635d6f1c8b57213",
+    "cb15_e.verify_archive": "ceb61c69047ea203c29552b9f3c1148279255d0ac72802c59d52420a2b1dfed9",
+    "cb15_e.walk_politics": "b709db8849cbbebce7d65718de02d2e9174adc8dfe6f11de3d3eca94fd139408",
+    "cb15_e.walk_windows": "ab3c3195ff65f154bb682ebfdefa26c48b28f6b9ff418c7fa8cf907f0f5711e5"
+   },
+   "funcs_sha256": "ff0c3df0e24bb6804929fe637204819e81ced8ea81da8877679370936ac78639",
+   "part": "E",
+   "part_declared": true,
+   "rules_sha256": "10ab88e7728e9956e84036f29bdb534d4b3359a04d78103f277d245e00e8dcf6",
+   "rules_version": "cb15-rules-v1",
+   "shared_helper_sources_sha256": {
+    "bk.seal_copy_ids_audited": "32cb7d6a72748799474f853a829c6860672fba51d5fd736c0b8f3fd81e7d84de",
+    "c10.leave_one_out_sign": "9111c0aad2192e6661156b015421e86dd20a91d8099a0aca630f11ba30a06eea",
+    "c10.placebo_advance_rate": "41993f5ee1243cd17f53bea3eac84a4be523902ce4e19e5def15a591eea630bb",
+    "c10.require_disk": "1e0e4e4682fa9a16fa71df384f5163983fa5cfa675b15a9b7f009dbbf3d81370",
+    "c12.aggregate_transactions": "08f41e54495e027b0ce3e213b6548ce55999782173c2f79ad54683e4a8324a6c",
+    "c12.c1_market_ids": "2d470f722e34a801c5751de43d423bf3c03a51353c4b0d9ae5321c6e25d0e599",
+    "c12.cluster_se_mean": "d8c8ed52c7eb81940adc26f9acb4ba90fbd3fc251a796274faa7c9b3230029c6",
+    "c12.exclusion_stage": "b2dd35c1ec54c7121299bf8e5f6d5b657691366488904e553d9195e6f1e86e97",
+    "c12.fetch_prints_paged": "db90a4c31db02d6535efd8c88a0bda75dad6b22be99d094f7e7b4659ab7ba5cb",
+    "c12.holm": "7831f9b32b4876f0450ed05cb8050f4c22ce84e78e12430e8d5efd3aee861803",
+    "c12.iso_week_of": "8380c27fb3b8e66a304fe0bbae7a45da206ae521ce57764292e51f45a982c0ac",
+    "c12.listish": "66999b312145ac17e5fd36f52a83fb78253aaa91dc03b49c9124589a11602024",
+    "c12.lookup_keys_closed_first": "466132284fb1886941bcbdc820c075250009fa794dcb9112c2bd74aa7e5654d2",
+    "c12.manifest_complete": "242883ea1969a82f1f2614ae217699788f001e6047505786b420a64710a5bed0",
+    "c12.module_constants": "fb29c0e68787f7dc57cf9f74f69ca3bdd9969f4f3545dab292e710d77f8dc332",
+    "c12.module_funcs": "f6b3644ad7747424f31089bfde865212eb552b068dcf0f43dc955adadf3482e1",
+    "c12.parse_iso": "f56a746aac64f2456a69e6ad81c952e3b4ebff1aa8a167e5ab567d2182477da3",
+    "c12.reach_ok": "c1027e0f9f22591e52de9c54ee1cec87bbff59fc529022838f630b36f35b9036",
+    "c12.read_csv_gz": "0de78d753f9c22f4985ca862de9e64db28b0333f859376b5d38ce4eb9aedc535",
+    "c12.read_id_set": "247f84572b3a12e65d3b20d455cb7de0da46cbcf6a98ffe4244b844dbac9e57c",
+    "c12.require_complete": "3b6604357fd07395f4104daa66c2311f94cad2703e372c20966f9c5c9d619474",
+    "c12.verify_fetch": "cac10ee8e422fb149ac3d0242da785480b95f233ce272d9a8af21d1781b2e427",
+    "c6.KEY_COLUMNS": "4f64d5e62210755ba0498694e2110262ed8ab409be2d565f523ba326479bc0d3",
+    "c9.stall_of": "b46fd8ac330a177aad3cc79b7758958132d99a79ca51a09bb986083ebe883a47",
+    "c9.top_k_drop_mask": "ca983a19b993ebcfc76179a5579602fdf85a722d3e3e59c4e5a34ae3753d209a",
+    "c9.write_results_once": "94af1d221ce65cc6b07c147cd2ec225bae7afc7cf5b94817ea5620880e628b46",
+    "c9.write_stall": "7851c4dd8b6f92b1a20db8e6bf736419d9878f4a43444c02d62eb1a73d73f3c0",
+    "cm.idle": "6c4c5e1d8cc89e4c76a490d3b03b0cc8af6ee630b12344e18578ae81691e8f23",
+    "cm.write_json_atomic": "1e9308681e9ed324aadbbf3b8e8bfc4bda352e9c0978a12d4d9278210853ac9b",
+    "cm.write_once_json": "96de340201f4213c580706a6c2f57a3addda7abf3019daa2f1868cd49c4eadb9",
+    "cw._cluster_sums": "f5f61ce926b7e7e9fd8223d2dd667341d37f67b44318e3c67c48f6eee6b83b97",
+    "cw.small_g_pvalue": "1a94b013ef2dbe475942d7c041c355f6c36411d4eac5c60a95816dfd1f71cd91"
+   },
+   "wallet": {
+    "note": "no CB15 job reads or stores a wallet field, a transaction hash (aggregated in memory and discarded) or the Data API side field",
+    "read": false
+   }
+  },
+  "P": {
+   "constants": {
+    "cb15_common": {
+     "ALLOWED_OUTPUT_ROOT_PARTS": [
+      "creative_batch15",
+      "h15_elect_live",
+      "h15_birth",
+      "h15_birth_live"
+     ],
+     "ALWAYS_REFUSED_ROOTS": [
+      "surprise_live",
+      "cross_venue_live",
+      "trade_samples",
+      "forecasts",
+      "flow_screen",
+      "live_trades",
+      "snapshots",
+      "book_sweeps"
+     ],
+     "AVAIL_MIN": 0.6,
+     "BASE_SOURCE": "base:cb14_q0302",
+     "BATCH_HOLM_K1": 4,
+     "BY_Q": 0.1,
+     "C1_SOURCE": "c1",
+     "CB14_KEYS_FILE": "exclusion_keys.csv.gz",
+     "CB15_OUTPUT_CAP_GB": 1.2,
+     "CB15_SPORTS_IN_PRIMARY": false,
+     "COST_ROBUST_PER_SIDE": 0.01,
+     "DATA_DUMPS_CAP_GB": 40.0,
+     "EARLY_ALPHA2": 0.025,
+     "EVIDENCE_ROLE_DEV": "exploratory_dev",
+     "EVIDENCE_ROLE_HIST": "exploratory_historical",
+     "EVIDENCE_ROLE_PROSPECTIVE": "prospective",
+     "EXCLUSION_KEYS_COMPLETE": "exclusion_keys_complete",
+     "EXPERIMENT_ROOT_RE": "^e0\\d\\d$",
+     "EXTRACT_ROOT_RE": "^cb\\d+_extract$",
+     "EXTRA_REFUSED_ROOTS": [
+      "creative_batch14",
+      "creative_batch13",
+      "creative_batch12",
+      "creative_batch11",
+      "creative_batch10",
+      "creative_batch9",
+      "creative_batch8",
+      "creative_batch7",
+      "creative_batch6",
+      "creative_batch5",
+      "creative_batch4",
+      "creative_batch3",
+      "creative_batch2",
+      "creative_batch1",
+      "snapshots",
+      "trade_samples",
+      "live_trades",
+      "book_sweeps",
+      "surprise_live",
+      "cross_venue_live",
+      "cross_venue",
+      "forecasts",
+      "flow_screen",
+      "h9_flow",
+      "h10_sign",
+      "h10_dlad",
+      "h10_brk",
+      "h11_wprints",
+      "h11_pol",
+      "h11_attn",
+      "h12_say",
+      "h12_quake",
+      "h12_prints",
+      "h12_quake_live",
+      "h12_opt_live",
+      "h13_touch",
+      "h13_binance",
+      "h14_wiki",
+      "h14_wiki_live",
+      "h14_speech",
+      "h1_first",
+      "h2_main",
+      "h3_power",
+      "h4_seal",
+      "h5_cb1",
+      "h5_cb1_ladders",
+      "h6_weather",
+      "h7_cb4_era",
+      "h7_cb4_series",
+      "h8_tail",
+      "h8_tail_b",
+      "h8_text",
+      "h8_geo",
+      "cb3_followup",
+      "cb6_followup"
+     ],
+     "E_FREEZE_PINS": [
+      "sign_table_sha256",
+      "poll_close_sha256",
+      "party_map_sha256",
+      "cross_table_sha256",
+      "source_manifest_sha256",
+      "race_map_sha256",
+      "disk_cap_gb"
+     ],
+     "E_JUDGE_ALPHA": 0.01,
+     "FAMILY_MODULES": {
+      "E": [
+       "cb15_e"
+      ],
+      "P": [
+       "cb15_p"
+      ]
+     },
+     "FAMILY_PARTS": [
+      "E",
+      "P"
+     ],
+     "FAMILY_REP_TESTS": {
+      "E": [],
+      "P": [
+       "P1",
+       "P2"
+      ]
+     },
+     "FAMILY_TESTS": {
+      "E": [
+       "E1",
+       "E2"
+      ],
+      "P": [
+       "P1",
+       "P2"
+      ]
+     },
+     "FEE_FLOOR": 0.04,
+     "FORBIDDEN_OUTPUT_COLUMNS": [
+      "side",
+      "wallet",
+      "wallet_hash",
+      "proxyWallet",
+      "tx16",
+      "transactionHash",
+      "tx_hash",
+      "hash",
+      "name",
+      "pseudonym",
+      "user",
+      "userid",
+      "username",
+      "outcome_prices",
+      "outcomePrices",
+      "umaResolutionStatus",
+      "umaResolutionStatuses",
+      "uma_status",
+      "closedTime",
+      "closed_time",
+      "result",
+      "settlement_value",
+      "p_end"
+     ],
+     "FORBIDDEN_PARSE_FIELDS": [
+      "side",
+      "proxyWallet",
+      "outcomePrices",
+      "umaResolutionStatus",
+      "umaResolutionStatuses",
+      "closedTime",
+      "result",
+      "settlement_value",
+      "transactionHash",
+      "hash",
+      "name",
+      "pseudonym",
+      "p_end"
+     ],
+     "FREEZE_PARTS": [
+      "E",
+      "P"
+     ],
+     "FREEZE_PIN_KEYS": {
+      "common": "common_rules_sha256",
+      "rules": "rules_sha256"
+     },
+     "FREE_DISK_MIN_GB": 4.5,
+     "GAMMA_EVENTS": "https://gamma-api.polymarket.com/events",
+     "GAMMA_MARKETS": "https://gamma-api.polymarket.com/markets",
+     "GAMMA_OFFSET_CAP": 2000,
+     "GAMMA_PAGE": 100,
+     "GAMMA_SEARCH": "https://gamma-api.polymarket.com/public-search",
+     "GATE_P": 0.01,
+     "G_CR2": 15,
+     "HEARTBEAT_S": 36000.0,
+     "HOLDOUT_PARTS": [
+      "holdout",
+      "t_holdout"
+     ],
+     "ID_COLUMNS": [
+      "market_id",
+      "event_id",
+      "condition_id",
+      "neg_risk_market_id",
+      "negRiskMarketID",
+      "series_id"
+     ],
+     "ID_READABLE": {
+      "creative_batch13": [
+       "t_screen/fills.csv.gz",
+       "t_holdout/fills.csv.gz"
+      ],
+      "h11_attn": [
+       "frame.csv.gz",
+       "entities.csv.gz",
+       "holdout/frame_hold.csv.gz"
+      ],
+      "h11_pol": [
+       "frame.csv.gz"
+      ],
+      "h11_wprints": [
+       "markets.csv.gz"
+      ],
+      "h12_opt_live": [
+       "markets.csv.gz"
+      ],
+      "h12_prints": [
+       "markets.csv.gz"
+      ],
+      "h12_quake": [
+       "events.csv.gz",
+       "members.csv.gz"
+      ],
+      "h12_quake_live": [
+       "markets.csv.gz"
+      ],
+      "h12_say": [
+       "events.csv.gz",
+       "members.csv.gz"
+      ],
+      "h13_touch": [
+       "events.csv.gz",
+       "members.csv.gz",
+       "holdout/events.csv.gz",
+       "holdout/members.csv.gz"
+      ],
+      "h14_speech": [
+       "events_p.csv.gz",
+       "events_n.csv.gz",
+       "events_s2.csv.gz",
+       "members.csv.gz"
+      ],
+      "h14_wiki": [
+       "frame.csv.gz"
+      ],
+      "h14_wiki_live": [
+       "frame_ids.csv.gz"
+      ]
+     },
+     "ID_RESEARCH_ROOTS": [
+      "creative_batch13"
+     ],
+     "KEYS_OUTPUT_CAP_GB": 0.01,
+     "KEYS_RUN": "exclusion_run15",
+     "KEYS_STATUS": "exclusion_keys_complete",
+     "KEY_COLUMNS": [
+      "market_id",
+      "found",
+      "event_ids",
+      "neg_risk_market_id",
+      "series_ids",
+      "sources"
+     ],
+     "LIVE_ROOT_NAMES": [
+      "cross_venue_live",
+      "surprise_live"
+     ],
+     "LOOKUP_PER_REQUEST": 50,
+     "MAX_UNVERIFIED_KEY_SHARE": 0.02,
+     "MDE_INFLATE": 1.2,
+     "MDE_MULT": 3.16,
+     "N_BOOT": 2000,
+     "N_WILD": 9999,
+     "PAPER_SIZE": 100.0,
+     "PARTS": [
+      "common",
+      "E",
+      "P"
+     ],
+     "PERM_DRAWS": 9999,
+     "PIN_UNSET": "TODO-COORDINATOR",
+     "PLACEBO_DRAWS": 200,
+     "PLACEBO_MAX_ADVANCE": 0.015,
+     "PLACEBO_SEEDS": {
+      "P1_shuffle": 15111,
+      "P2_shuffle": 15112
+     },
+     "PLACEBO_SEED_RANGE": [
+      15101,
+      15130
+     ],
+     "RULES_MACHINERY": [
+      "rules_part_doc",
+      "rules_part_file_doc",
+      "rules_file_doc",
+      "write_rules",
+      "verify_rules",
+      "family_modules",
+      "common_funcs",
+      "part_funcs",
+      "shared_helper_sources",
+      "common_declared"
+     ],
+     "RULES_VERSION": "cb15-rules-v1",
+     "SEED_BOOT": 1515,
+     "SEED_PAIRED_BOOT": 15121,
+     "SEED_PERM": 15101,
+     "SHARED_HELPERS": [
+      [
+       "cw",
+       "small_g_pvalue"
+      ],
+      [
+       "cw",
+       "_cluster_sums"
+      ],
+      [
+       "c12",
+       "holm"
+      ],
+      [
+       "c12",
+       "cluster_se_mean"
+      ],
+      [
+       "c9",
+       "top_k_drop_mask"
+      ],
+      [
+       "c10",
+       "placebo_advance_rate"
+      ],
+      [
+       "c10",
+       "leave_one_out_sign"
+      ],
+      [
+       "c12",
+       "aggregate_transactions"
+      ],
+      [
+       "c12",
+       "fetch_prints_paged"
+      ],
+      [
+       "c12",
+       "reach_ok"
+      ],
+      [
+       "c12",
+       "listish"
+      ],
+      [
+       "c12",
+       "parse_iso"
+      ],
+      [
+       "c12",
+       "iso_week_of"
+      ],
+      [
+       "c12",
+       "read_csv_gz"
+      ],
+      [
+       "c12",
+       "read_id_set"
+      ],
+      [
+       "c12",
+       "exclusion_stage"
+      ],
+      [
+       "c12",
+       "lookup_keys_closed_first"
+      ],
+      [
+       "c12",
+       "manifest_complete"
+      ],
+      [
+       "c12",
+       "require_complete"
+      ],
+      [
+       "c12",
+       "verify_fetch"
+      ],
+      [
+       "c12",
+       "c1_market_ids"
+      ],
+      [
+       "c12",
+       "module_constants"
+      ],
+      [
+       "c12",
+       "module_funcs"
+      ],
+      [
+       "c10",
+       "require_disk"
+      ],
+      [
+       "c9",
+       "write_stall"
+      ],
+      [
+       "c9",
+       "stall_of"
+      ],
+      [
+       "c9",
+       "write_results_once"
+      ],
+      [
+       "c6",
+       "KEY_COLUMNS_SRC"
+      ],
+      [
+       "bk",
+       "seal_copy_ids_audited"
+      ],
+      [
+       "cm",
+       "write_once_json"
+      ],
+      [
+       "cm",
+       "write_json_atomic"
+      ],
+      [
+       "cm",
+       "idle"
+      ]
+     ],
+     "SMOKE_VERSION": "cb15-smoke-v1",
+     "STAGE1_HOLM_FAMILY": [
+      "E1",
+      "E2",
+      "P1",
+      "P2"
+     ],
+     "STAGE2_K_MAX": 2,
+     "STAGE2_NAMES": {
+      "P1": "P1-rep",
+      "P2": "P2-rep"
+     },
+     "STAGE_ALPHA": 0.05,
+     "TERMINAL_NAME": "terminal_{family}.json",
+     "TERMINAL_STATUS": "terminal_not_testable",
+     "TICK": 0.01,
+     "TOP_DROP": 5,
+     "UNVERIFIED": "disjointness_unverified",
+     "USER_AGENT": "arepo-research-probe/1.0 (read-only counts; https://www.arepolabs.com)",
+     "W_STAR": -0.093
+    },
+    "cb15_p": {
+     "AUDIT_DIR_REL": "docs/research_lab/seals/cb15_p_audit",
+     "AUDIT_VALUES": [
+      "pass",
+      "fail"
+     ],
+     "BIRTH_CONTRAST_P": 0.05,
+     "BIRTH_FRAME_COLUMNS": [
+      "k_ticker",
+      "k_series",
+      "k_cat",
+      "k_src",
+      "p_market_id",
+      "p_event_id",
+      "k_open",
+      "p_start",
+      "lead_h",
+      "c1_win_start",
+      "c1_win_end"
+     ],
+     "BIRTH_FRAME_NAME": "birth_frame.csv.gz",
+     "C1_EXPECTED": {
+      "events": 183,
+      "pairs": 316
+     },
+     "CACHE_BUDGET_S": 2900.0,
+     "CACHE_DAILY_MAX": 1800,
+     "CACHE_DIR_CAP_BYTES": 268435456,
+     "CACHE_FILES": {
+      "cache": "kalshi_open.jsonl.gz",
+      "gaps": "gaps.jsonl",
+      "heartbeat": "cache_heartbeat.json",
+      "partial": "kalshi_partial.jsonl",
+      "state": "cache_state.json"
+     },
+     "CACHE_MAX_AGE_S": 14400.0,
+     "CACHE_SUBDIR": "kcache",
+     "CACHE_WARMUP_S": 86400.0,
+     "CANDLE_FIELDS": [
+      "end_period_ts",
+      "yes_bid",
+      "yes_ask",
+      "price"
+     ],
+     "CANDLE_L_PRE_S": 3600.0,
+     "CANDLE_POST_S": 90000.0,
+     "CANDLE_PRE_S": 21600.0,
+     "CLOB_BOOK": "https://clob.polymarket.com/book",
+     "CLOB_PRICES": "https://clob.polymarket.com/prices-history",
+     "CV_MODULE_REL": "backend/astrolabe/research_lab/cross_venue.py",
+     "DAILY_REQUEST_CAP": 3500,
+     "DATA_FILES": {
+      "attempts": "attempts.jsonl",
+      "kalshi": "kalshi.csv.gz",
+      "meta": "meta.csv.gz",
+      "prices": "prices.csv.gz",
+      "tx": "tx.csv.gz",
+      "volume": "volume_guarded.csv.gz",
+      "work": "work.jsonl"
+     },
+     "DATA_RUN": "h15_birth",
+     "DAY": 86400.0,
+     "DISK_CHECK_EVERY_S": 3600.0,
+     "ELECTIONS_CAT": "Elections",
+     "END_MARGIN_S": 90000.0,
+     "ENTRY_ROBUST_S": [
+      180.0,
+      3600.0
+     ],
+     "ENTRY_WINDOW_S": [
+      60.0,
+      3600.0
+     ],
+     "EXIT_ROBUST_S": [
+      43200.0,
+      45000.0
+     ],
+     "EXIT_WINDOW_S": [
+      86400.0,
+      88200.0
+     ],
+     "FIRST_PRINT_GIVE_UP_S": 604800.0,
+     "FIRST_PRINT_PAGE": 500,
+     "FIRST_PRINT_POLL_S": 300.0,
+     "GAP_MIN": 0.05,
+     "GPB_MIN": {
+      "events": 30,
+      "pairs": 60
+     },
+     "GPP_P1_MAX": 0.6,
+     "GPP_P2_MAX": 0.02,
+     "HORIZON_S": 86400.0,
+     "HOUR": 3600.0,
+     "KALSHI_API": "https://api.elections.kalshi.com/trade-api/v2",
+     "KALSHI_FIRST_ROBUST_S": 259200.0,
+     "KALSHI_FIRST_S": 86400.0,
+     "KALSHI_FLAG_LABEL": "Kalshi early-close/provisional flag (excluded)",
+     "KALSHI_FORBIDDEN": [
+      "result",
+      "settlement_value",
+      "expiration_value",
+      "settlement_timer_seconds"
+     ],
+     "KALSHI_FULL_EVERY_S": 86400.0,
+     "KALSHI_INCR_OVERLAP_S": 3600.0,
+     "KALSHI_MAX_PAGES": 400,
+     "KALSHI_PAGE": 1000,
+     "K_CANDLE_CHUNK_S": 288000,
+     "K_COLUMNS": [
+      "k_ticker",
+      "end_ts",
+      "bid",
+      "ask"
+     ],
+     "K_MAX_AGE_S": 3600.0,
+     "K_SPREAD_MAX": 0.1,
+     "LABEL_P": "selected on lifetime volume (C1 universe: Polymarket event volume >= 20k, Kalshi >= 5,000 contracts, >= 200 usable steps near resolution); L1 worn set; only P-rep can lead to Stage P",
+     "LEAD_BINS_H": [
+      24,
+      72,
+      168,
+      720
+     ],
+     "LISTING_LOOKBACK_S": 7200.0,
+     "LISTING_MAX_PAGES": 10,
+     "LISTING_PAGE": 100,
+     "LISTING_SCAN_EVERY_S": 3600.0,
+     "LIVE_DIR_CAP_BYTES": 53687091,
+     "LIVE_FILES": {
+      "audit_dir": "audit_batches",
+      "books": "books.jsonl",
+      "closed": "closed.json",
+      "first_prints": "first_prints.jsonl",
+      "gaps": "gaps.jsonl",
+      "heartbeat": "heartbeat.json",
+      "listings": "listings.jsonl",
+      "pairs": "pairs.jsonl",
+      "series_cat": "series_cat.json",
+      "state": "state.json"
+     },
+     "LIVE_RUN": "h15_birth_live",
+     "LIVE_SOFT_DEADLINE_S": 35.0,
+     "LIVE_STATUS_CLOSED": "p_live_closed",
+     "MATCH_FIELDS": [
+      "k_ticker",
+      "k_series",
+      "k_cat",
+      "k_src",
+      "k_open",
+      "k_close",
+      "p_market_id",
+      "p_event_id",
+      "p_start",
+      "p_token0"
+     ],
+     "META_COLUMNS": [
+      "k_ticker",
+      "k_series",
+      "k_cat",
+      "p_market_id",
+      "p_event_id",
+      "k_open",
+      "created",
+      "start",
+      "end_sched",
+      "fee_rate",
+      "yes_index",
+      "t_birth",
+      "t_birth_vwap",
+      "reach",
+      "print_pages",
+      "n_tx",
+      "ph_before_birth",
+      "ph_first_seeded",
+      "k_bool_provisional",
+      "k_bool_close_early",
+      "c1_win_start",
+      "c1_win_end",
+      "status",
+      "key_drop"
+     ],
+     "MINUTE": 60.0,
+     "NEVER_READ_FIELDS": [
+      "p_end",
+      "closed_time",
+      "closedTime"
+     ],
+     "NOT_RUN_POWER": "not run (power)",
+     "NOT_RUN_POWER_REP": "not run (power)",
+     "NOT_TESTABLE_AVAIL": "not testable (availability)",
+     "NOT_TESTABLE_POP": "not testable (population)",
+     "NOT_TESTABLE_SOURCE": "not testable (source)",
+     "NO_BOOK_24H": "unavailable (no order book at 24 h)",
+     "NO_BOOK_24H_P2": "ok (P1 only; NO book unavailable at 24 h)",
+     "OPENING_CONTROL_P": 0.05,
+     "OPENING_CONTROL_SHARE": 0.5,
+     "P1_FLOOR": 0.3,
+     "P1_MIN": {
+      "events": 30,
+      "pairs": 60
+     },
+     "P2_FLOOR": 0.01,
+     "P2_MIN": {
+      "events": 25,
+      "pairs": 40
+     },
+     "PAIR_FAIL_ATTEMPTS": 3,
+     "PAIR_FAIL_SPAN_S": 900.0,
+     "PH_COLUMNS": [
+      "p_market_id",
+      "t",
+      "p"
+     ],
+     "PH_FIDELITY": 10,
+     "PH_LAG_S": 600.0,
+     "PH_MAX_AGE_S": 7200.0,
+     "PH_PRE_S": 21600.0,
+     "PH_WINDOW_DAYS": 14,
+     "POLY_NO_BOOK_STATUS": 404,
+     "POLY_RULE_BOOLEANS": "unknown",
+     "PRINT_MAX_AGE_S": 7200.0,
+     "PRINT_PAGES": 6,
+     "PRINT_PAGE_LIMIT": 10000,
+     "P_DATA_MAX_PAIRS": 150,
+     "P_DATA_PROGRESS": "p_data_in_progress",
+     "P_DATA_STATUS": "p_data_complete",
+     "P_FREEZE_MARKER": "cb15-P-freeze",
+     "READ_LAGS": {
+      "t_d": 120.0,
+      "t_d+24h": 300.0
+     },
+     "READ_LAG_TB_S": 300.0,
+     "READ_LAG_TD_S": 120.0,
+     "READ_MAX_REQUESTS": 3,
+     "READ_RESERVE": 300,
+     "REP_MIN": {
+      "P1": 60,
+      "P2": 40
+     },
+     "RUN_STAMP": "run_stamp.json",
+     "SEEDED_MID": 0.5,
+     "SEEDED_TOL": 0.005,
+     "SMOKE_CACHE_PAGES": 3,
+     "SMOKE_MAX_REQUESTS": 30,
+     "SMOKE_NEEDS": [
+      "guards_fixture_P",
+      "p_matches_reader",
+      "p_hist_end_refusal",
+      "p_birth_from_prints",
+      "p_c1_reproduction",
+      "p_first_tx_reach",
+      "p_kalshi_candles",
+      "p_kalshi_min_created",
+      "p_kalshi_open_cache"
+     ],
+     "SPORTS_CAT": "Sports",
+     "STAGE2_BIRTHS_STOP": 60,
+     "STAGE2_READY": true,
+     "STRATUM_MIN": 20,
+     "T15_HIST_END": "2026-10-12T00:00:00Z",
+     "T15_P2_CAP": "2027-04-30T00:00:00Z",
+     "T15_P2_START_MIN": "2026-11-04T00:00:00Z",
+     "TARGET_PRINT_WINDOW_S": [
+      79200.0,
+      86400.0
+     ],
+     "TERCILE_MIN": 15,
+     "TX_COLUMNS": [
+      "p_market_id",
+      "ts",
+      "vwap_yes",
+      "min_yes",
+      "max_yes",
+      "size"
+     ],
+     "TX_L_POST_S": 88200.0,
+     "TX_L_PRE_S": 7200.0,
+     "TX_STORE_S": 90000.0,
+     "T_D_OFFSET_S": 600.0,
+     "T_D_ROBUST_S": 1800.0,
+     "T_L_OFFSET_S": 604800.0,
+     "UNAVAILABLE_CACHE_CAP": "unavailable (source: cache cap)",
+     "UNAVAILABLE_SOURCE": "unavailable (source)",
+     "UNKNOWN": "unknown",
+     "VOL_COLUMNS": [
+      "p_market_id",
+      "volume_lifetime"
+     ]
+    }
+   },
+   "declared": {
+    "cb15_p": {
+     "clocks": {
+      "end_margin_s": 90000.0,
+      "k_max_age_s": 3600.0,
+      "k_spread_max": 0.1,
+      "ph_after_birth_only": true,
+      "ph_lag_s": 600.0,
+      "ph_max_age_s": 7200.0,
+      "print_max_age_s": 7200.0,
+      "t_d_offset_s": 600.0,
+      "t_l_offset_s": 604800.0,
+      "target_print_window_s": [
+       79200.0,
+       86400.0
+      ]
+     },
+     "dates": {
+      "hist_end": "2026-10-12T00:00:00Z",
+      "p2_cap": "2027-04-30T00:00:00Z",
+      "p2_start_min": "2026-11-04T00:00:00Z"
+     },
+     "family": "P",
+     "fetch": {
+      "candles": "[t_birth - 6 h, t_d + 25 h] and [t_L - 1 h, t_L + 25 h]",
+      "chunks": {
+       "candle_chunk_s": 288000,
+       "clob_prices": "https://clob.polymarket.com/prices-history",
+       "ph_fidelity": 10,
+       "ph_window_days": 14
+      },
+      "max_pairs": 150,
+      "non_200": "P-5: status-aware candle and prices-history fetches in this module (the shared cross_venue / history_backfill fetchers skip a non-200 silently and are unchanged); any non-200 leaves the pair pending (attempts.jsonl), the run never completes with a pending pair",
+      "prices_history": "fidelity 10 after t_birth only; points before counted",
+      "print_page_limit": 10000,
+      "print_pages": 6,
+      "reach": "complete iff a non-full page is reached (newest-first offset paging)",
+      "shared_parser_sha256": {
+       "cross_venue.parse_k_candles": "13affe3e1bc1d807c2b3c9386587eb1a543335501a5190d226745e426ff00403"
+      },
+      "terminal_rule": {
+       "P-17": "a pair with >= 3 failed attempts in that many separate runs, first to last >= 900 s apart, becomes 'unavailable (source)' (counted in labels and denominators; P2 worst case at w*)",
+       "kalshi_fallback": "a 404 on the frozen candle endpoint -> ONE try of the other endpoint (live/historical), accepted only if every candle carries ['end_period_ts', 'yes_bid', 'yes_ask', 'price']; otherwise the chunk fails"
+      },
+      "tx_windows": "[t_birth, t_birth + 25 h] and [t_L - 2 h, t_L + 24 h 30 min]",
+      "volume": "stored apart; opened only by the screen's tercile check"
+     },
+     "gpp": {
+      "inflate": 1.2,
+      "mult": 3.16,
+      "p1_max_mde": 0.6,
+      "p2_max_mde": 0.02,
+      "proxy": "SE only at t_L"
+     },
+     "label": "selected on lifetime volume (C1 universe: Polymarket event volume >= 20k, Kalshi >= 5,000 contracts, >= 200 usable steps near resolution); L1 worn set; only P-rep can lead to Stage P",
+     "p1": {
+      "birth_contrast_p": 0.05,
+      "floor": 0.3,
+      "min": {
+       "events": 30,
+       "pairs": 60
+      },
+      "opening_control": {
+       "p": 0.05,
+       "share": 0.5
+      },
+      "paired_boot": {
+       "draws": 2000,
+       "seed": 15121
+      },
+      "placebo": {
+       "draws": 200,
+       "max_advance": 0.015,
+       "seed": 15111
+      },
+      "robust": {
+       "kalshi_first_s": 259200.0,
+       "stratum_min": 20,
+       "t_d_s": 1800.0
+      },
+      "tercile_min": 15,
+      "ways": [
+       "event",
+       "birth_week"
+      ]
+     },
+     "p2": {
+      "cost_robust": 0.01,
+      "entry_robust_s": [
+       180.0,
+       3600.0
+      ],
+      "entry_s": [
+       60.0,
+       3600.0
+      ],
+      "exit_robust_s": [
+       43200.0,
+       45000.0
+      ],
+      "exit_s": [
+       86400.0,
+       88200.0
+      ],
+      "fee_floor": 0.04,
+      "floor": 0.01,
+      "gap_min": 0.05,
+      "min": {
+       "events": 25,
+       "pairs": 40
+      },
+      "w_star": -0.093
+     },
+     "population": {
+      "c1_call": "cb12_x.load_c1(root, expected=cb12_x.C1_EXPECTED) (pinned inputs and study source)",
+      "c1_expected": {
+       "events": 183,
+       "pairs": 316
+      },
+      "c1_loader_sha256": "137d1fce90255efa0f8e0d987c1cf423711a235a38524912305c23a47a1ece8f",
+      "fields": [
+       "k_ticker",
+       "k_series",
+       "k_cat",
+       "k_src",
+       "k_open",
+       "k_close",
+       "p_market_id",
+       "p_event_id",
+       "p_start",
+       "p_token0"
+      ],
+      "gpb": {
+       "events": 30,
+       "pairs": 60
+      },
+      "kalshi_first_binding": "t_birth - k_open >= 24 h (exactly 24 h counts)",
+      "kalshi_first_proxy": "p_start - k_open >= 24 h (census)",
+      "key_rule": "P-7: q0347 re-reads the frames recorded absent at q0340; q0349 checks ALL keys of each pair (market, events, negRiskMarketID, series ids) by source (a C1-only key is kept)",
+      "never_read": [
+       "p_end",
+       "closed_time",
+       "closedTime"
+      ],
+      "p6_ruling": "P-27: Polymarket early-close flags are UNKNOWN and disclosed. The Kalshi true-flag exclusion (causal, from the Kalshi record at the match) is kept and labelled 'Kalshi early-close/provisional flag'. Units are NEVER excluded or labelled by when the Polymarket market actually closed (post-t0, outcome-linked); early-closing units stay in the denominators (Stage 2 'unavailable (no order book at 24 h)', Stage 1 'no target'); a count of them may be reported descriptively, never as a gate. Disclosure: Stage 1 reads Gamma endDate after the fact and it may have been edited to the actual close date (the scheduled-end exclusion, P-16, uses that value in Stage 1; in Stage 2 it is the value stored at the match)",
+      "polymarket_rule_booleans": "unknown",
+      "rule_booleans": "P-6/P-20: Polymarket's is_provisional / can_close_early are declared UNKNOWN (no field at listing; Polymarket markets can resolve early); the design is silent for unknown, so the conservative choice: a pair whose Kalshi is_provisional or can_close_early is true (C1 universe rows; live: the Kalshi market record) is excluded, counted; Kalshi false or missing is kept (counted unknown); residual mismatch is bounded by the scheduled-end exclusion and the 24-h no-book label",
+      "sports_cat": "Sports",
+      "sports_in_primary": false
+     },
+     "smoke": {
+      "max_requests": 30,
+      "needs": [
+       "guards_fixture_P",
+       "p_matches_reader",
+       "p_hist_end_refusal",
+       "p_birth_from_prints",
+       "p_c1_reproduction",
+       "p_first_tx_reach",
+       "p_kalshi_candles",
+       "p_kalshi_min_created",
+       "p_kalshi_open_cache"
+      ]
+     },
+     "stage2": {
+      "audit": {
+       "batches": "weekly, titles only",
+       "missing": "pending (the rep waits)",
+       "values": [
+        "pass",
+        "fail"
+       ],
+       "verdicts_dir": "docs/research_lab/seals/cb15_p_audit"
+      },
+      "cache_cap_rule": "P-25: the 0.25 GB cache cap is NOT changed after any size is seen (the smoke's within_cap projection is informative only). If the projection or the folder exceeds the cap, the cap binds: the cache stops adding pages (stale), this is logged, scans skipped for a stale cache are counted (cache_cap_scans_skipped), new listings with no cached match are counted as 'unavailable (source: cache cap)' (cache_cap_unavailable_upper_bound: an UPPER bound, it also counts listings with no Kalshi counterpart; P-28: listings seen while the cache is stale under the cap are logged without prices, cache_cap_listings_unmatched; when the cap binds it ends enrolment of new pairs, a time-dependent rule, never outcome-dependent) and are never read",
+      "cache_folder": {
+       "cap_bytes": 268435456,
+       "files": {
+        "cache": "kalshi_open.jsonl.gz",
+        "gaps": "gaps.jsonl",
+        "heartbeat": "cache_heartbeat.json",
+        "partial": "kalshi_partial.jsonl",
+        "state": "cache_state.json"
+       },
+       "live_cap": "live files <= live cap AND live files + cache folder <= live cap + cache cap (the cache is counted in the total)",
+       "smoke_pages": 3,
+       "subdir": "kcache"
+      },
+      "cadence": {
+       "cache": "separate job and lock (p_cache), hourly cron, 3,000-s timeout, resumable cursor, full pull daily, min_created_ts hourly, starts one day before T15_P2_start",
+       "cache_daily_max": 1800,
+       "disk_check_every_s": 3600.0,
+       "live_dir_cap_bytes": 53687091,
+       "read_max_requests": 3,
+       "read_reserve": 300,
+       "watcher": "cron every minute under flock, 55-s timeout: reads first, then eligible first-print polls (5 min), then the hourly listing scan against the cache; soft deadline 35 s"
+      },
+      "candle_fallback": "P-24: the other-endpoint fallback needs a NON-EMPTY candlesticks reply with the parser's fields; else the chunk fails (pair pending -> unavailable (source))",
+      "daily_request_cap": 3500,
+      "eligible": "Kalshi-first (open_time <= listing - 24 h), no audit-conflict flag, no rule-boolean difference, Kalshi series category known and not Sports; only eligible pairs are polled",
+      "first_print": {
+       "give_up_s": 604800.0,
+       "late": "detection after t_birth + 10 min -> late, excluded and counted",
+       "page": 500,
+       "poll_s": 300.0
+      },
+      "freeze_marker": "cb15-P-freeze",
+      "holm": "one Stage-2 Holm over the triggered tests; early alpha/2; the Holm only adds passes",
+      "kalshi_cache": {
+       "full_every_s": 86400.0,
+       "incremental": "min_created_ts, 1 h overlap"
+      },
+      "legs": "P-18: only the legs the analysis uses are required (t_d: Polymarket YES + Kalshi, NO when g_d <= -5c; 24 h: YES, NO when the t_d read put P2 on NO; Kalshi is not read at 24 h)",
+      "listing": {
+       "every_s": 3600.0,
+       "lookback_s": 7200.0,
+       "max_pages": 10
+      },
+      "matcher": "cross_venue.match_markets over the FULL Kalshi open-market cache (C1 mutual best, against the new listings: declared), then each pair's lead is checked (kalshi_first) and the r1 audit_conflict rule applied (flag -> excluded, counted); source sha256 = CB12-X's pinned cross_venue.py",
+      "no_side_404": "P-26: a NO-book 404 at 24 h drops the unit from P2 only (P1 uses the YES side only)",
+      "reads": {
+       "books": "Polymarket YES and NO /book, Kalshi orderbook (YES ask = 1 - best NO bid)",
+       "t_d_24h_lag_s": 300.0,
+       "t_d_lag_s": 120.0,
+       "usable_birth": "stop rule: not late, both reads in their windows",
+       "window": "a read counts only if due <= receipt <= due + lag (receipt after the response; first in-window read per pair and read); a failed HTTP read is retried inside the window, never stored, and is 'unavailable (read)'; a Polymarket 404 = empty book"
+      },
+      "rep_availability": "available / eligible < 60% -> not testable (availability) (section 2.6 iv)",
+      "rep_checks": "floor, small-G, top-5 event / week drops (p < 0.01 AND the floor on the kept units), halves, leave-one-quarter-out; P2-rep +1c per side; no bid at t_d + 24 h -> w*",
+      "rep_min": {
+       "P1": 60,
+       "P2": 40
+      },
+      "rep_quote": "t_d: Polymarket and Kalshi two-sided, spread <= 10c each (P-13a); t_d + 24 h Polymarket mid by the one-sided-bound rule (no ask -> 1, no bid -> 0), never dropped (P-3)",
+      "run_gap": "P-23: p-data exits 75 if the previous run that left failed pairs ended < PAIR_FAIL_SPAN_S ago (the queue worker re-starts a repeat run at once); q0349 repeat.max_runs 8 so the terminal rule (3 failing runs + a labelling run) is always reachable",
+      "scheduled_end": "P-16: endDate stored at the match; at the first-print detection a pair with endDate < t_d + 25 h is 'ends early (scheduled)' (no reads, counted, outside the availability denominators); a missing endDate is not an exclusion (counted); a Polymarket 404 at the 24-h read is 'unavailable (no order book at 24 h)': never read as an empty book, counted in the availability denominators, in no estimate",
+      "shared_count": "P-19b: the cache writes the daily request count after every page and re-reads the watcher's before every page; the watcher writes after every batch and re-reads the cache's at every check",
+      "window": "T15_P2_start = max(P freeze + 1 d, 2026-11-04T00:00Z); stop at >= 60 eligible births with their 24-h read (births, never results); cap 2027-04-30"
+     },
+     "stage2_ready": true
+    }
+   },
+   "func_sources_sha256": {
+    "cb15_common.assert_clean_columns": "45f148919a1277b7ea10de404ced0c04aae3dc09e4ab14a400b81ead026d5c8d",
+    "cb15_common.attribute_sources": "5484ed77e7bb01a103197df59a3c03ec31d5ae7c6eaf64a8ca1d0cfa21f60697",
+    "cb15_common.cluster_p": "9c8a06cc1e552f05ca1ad243523d83d89ed0a11da096c8f1290e58f080597ed9",
+    "cb15_common.cluster_se_mean": "b00c59bb7c9237ae9758c44ad2f8e64d6ac23e37ffc6ecb4c5093b9c2ac6bfb8",
+    "cb15_common.drop_reason": "473566e22ff10f0a43fb27490a2e051a2143d3231092db2c1f107dc0fc5f9806",
+    "cb15_common.e_judged": "fc0aec03eea6d06692f76c2ab9e4c6882127a518fa535bd0e7065ffe8bd5e03c",
+    "cb15_common.early_stage2_ok": "305ef281a402a20429df8643d1240f59ae8befd2ba799a7001a252c7c3ef7b5a",
+    "cb15_common.ep": "3a9fd8059b8d56d7572e9e9a04d0c83e2aeef94fb27ca9badb6318501b40be1b",
+    "cb15_common.exclusion_keys": "9857057598dd1d0078c837802ffbaaf2693d65f5cc18666cc5ce350c65ec09fb",
+    "cb15_common.fee": "f60799ffb16af8c3a40d16efc5bf91e5b750eb01973926b1149e001991c4ec91",
+    "cb15_common.frame_ids": "d4e6b48f49c62f4fca8f188cbb7ad9260f034a6b3970b5d8a5f363fff55e16e1",
+    "cb15_common.guard_id_file": "9ced860ec8540d07256add0b92d34e953e8ac0961efc9ab87fc757cc31dfe05b",
+    "cb15_common.guard_input_path": "164d1ef74fb21fadf457fb7bf07d733609e9a7c3975bb3291ead8f8531ea2b21",
+    "cb15_common.holm": "af9d8cb1193c0e2ea54f102aac4a2dd8251d43681e389fcc6de098a40c3b4925",
+    "cb15_common.id_source_path": "3b5a053b8a8a055a96496aec795a54acb96da841936c23ee5bd667a28e4c1a51",
+    "cb15_common.is_holdout_path": "fd0e9fc15a27748914a0f1ea4aeb591d1db8857f851df923768b0a99b111e22a",
+    "cb15_common.iso": "28e937dc91f5bc02d678e907f1ec255deda7d37b9b06627231aebb9362d33172",
+    "cb15_common.iso_week_of": "ff68e893db31f9232f2c34de2a0133f8ae0c3a5d71d81e24e6e6fa0c1ae16a5b",
+    "cb15_common.jsonl_append": "c3ae14b3b228dd1ddfa4bd2da270cfea1124c185f51111bb73d27c56595b3b9b",
+    "cb15_common.jsonl_iter": "73e573de41cbdac268159b61cd7920199da727075650ddafb9aa4292587f2b78",
+    "cb15_common.key_sources": "bc08139db9ea31085cf2441aaf2d69524328fbe12273063cc66b167c2ee115f6",
+    "cb15_common.ksrc_of": "e6f9b0b6df80f8fd38a51e9c5d1473633b5b5305e143abdb1ef48107aa8adb76",
+    "cb15_common.log_descriptive": "ddc8665a334bcc147383e739be810f428ed964744cdb7f48dda5a6fbb1e5e56d",
+    "cb15_common.log_family": "f99455370935d58dbd9bbdc2dbd92a5495820422bb27c5bca8de5fc173581b20",
+    "cb15_common.manifest_complete": "9963a22f89b1b545fe07d75e58db6e88f1dd2fc4f0602068b2b362bc7c8f08ed",
+    "cb15_common.max_se_over_ways": "18f28ac880ad440c2f2922904a7aa736ceb3d58b3dd06288a3a7a1331aa17210",
+    "cb15_common.mde": "68e3c42134841a96ebd49600e805e0fb740f0cfc9ddcaf6e055874d60c4aa54f",
+    "cb15_common.num": "6b0d39403e1916672eadc55c8241ff0c3cdfb233983e5e8b36b400140ab6f068",
+    "cb15_common.p_pass": "9146e1b511427a8077dcf1e0c98dc2061341d14ea489bdddbd2b4c0739b0f6fb",
+    "cb15_common.parse_iso": "86d7c91645a1d5a2d1fb78eb256c528c2c4cbfd3c64d20fe2a80fa1c710205c3",
+    "cb15_common.perm_p_within_strata": "e00803dac055969902fd5b259a57b4d07507df970ff767b083fcbb89323a7e41",
+    "cb15_common.permute_within_strata": "2bf4187d99c213263d86171fb8a6e351fb03c456293071480bfed837073e3efb",
+    "cb15_common.placebo_advance_rate": "dddafa6653cc29c6d9cfaac9f5cbf9b45bb978e4249f3b54b1f0854c7dcbe0ea",
+    "cb15_common.read_csv_gz": "dd1530f10901a596b85fc5801beee783bf19c890fc0578930899b4afcab28176",
+    "cb15_common.read_id_columns": "152f2a91e32673cc860367557e1e960a61c1a4ee4cb2fb37bd041278c0106dbd",
+    "cb15_common.read_keys_with_sources": "1593ed700d2254ab0a4bf9fa1e0eca755bc6569c8f1ebca565752c9ef9215e8c",
+    "cb15_common.read_terminal": "006816bb9ee48d0279a54dc7d862c7ca14a60a6529a59bfc2d3ac071dbc0da0f",
+    "cb15_common.record_terminal": "4238198b9578142bebae073998bf9f8b8fe9575a38dfd0e1cd66d8ae22263c43",
+    "cb15_common.refuse_path": "005240906e6165cd1332d272a89e34138497db45276a90ece5269a358623c8cb",
+    "cb15_common.refused_names": "32b50ab79443589af19374c0cc7519d67f852856b04b43f23c510ec76c27b790",
+    "cb15_common.require_after": "6241d5801e7645bf91762727ba115dfb8b52b46613a150bdc9a424f9ebd4480b",
+    "cb15_common.require_complete": "f77e2697117079e41572fa4ece99d3e504c2bece2e23b9a8db1179a95a030396",
+    "cb15_common.require_disk": "171d800c22cef62ab8df80181d31036f4323320b554a25cb2e4e473fc713babc",
+    "cb15_common.require_freeze": "87f10294bc0e0c4fe96ea616292c19a9ac95c8b9995bc7a646ba5cd55495d1d8",
+    "cb15_common.require_output_root": "dc5032aeffb912cf1f4e6d7b1f253c7f3baeb429767781b18707b533674f08fe",
+    "cb15_common.round_trip_net": "46eec3c7e42964135951e52de15fb77d1e8c281662a96247432dd229e60ca5c8",
+    "cb15_common.sha256_file": "9b9e433786c3b739ebdf2370926158a2e42a946e90aae266587c550a4a08ee8b",
+    "cb15_common.sha256_obj": "29f7a73c2109e9902f07d1b4343c0975871e392d9e53aea23bc0b4e5d4ca548f",
+    "cb15_common.sign_ok": "b34ef383569c27a123b97b1917db932b9aeae517c3cc36a28501dbee67575473",
+    "cb15_common.stage1_advance": "96adfe88a985cf11f2bcb8defd9fb72e01a1028ad9d1acccebb82eb1dfecb34c",
+    "cb15_common.stage1_holm": "80933d4d8cf601b805194a1df4915aaf27554e5f75d2c8666d5bf709b017bc9b",
+    "cb15_common.stage2_final": "7949450e414c2cf506d190b8b7d713093b7692890bbdde4f86ce0ad119174ed2",
+    "cb15_common.stage2_holm": "226a02d95e1380409dd57a3f383a1695b6e855ae5792099557e99efe2655596b",
+    "cb15_common.stage2_pass": "eda7e2d9e4ad630d3d2db3955f0f5e5e074fe345e45738379aed63e9205e3857",
+    "cb15_common.stall_of": "beaf29289839d29160f8aa542364dc8395c2620bbe57d025038cbfa1443bc186",
+    "cb15_common.stratified_balanced": "b40418886e98ae361f84339d043088d242f7569c2987d7d7ecf760900609ad5a",
+    "cb15_common.stratified_sign_share": "9a8cf9bfeeefd5f77cb506f2d09bf26cfd7f7eaa52910cdc63a126172568ef1a",
+    "cb15_common.stratum_weights": "cc6d8f0d6fc1195a7b0c7b543c927c226c357043a1f2b475ef67a4d40c064f2a",
+    "cb15_common.strip_forbidden": "4ee5f8ba6041e3d90109a9f3b3c72a1fdd8a51d4b15cd6efd681759bed6f7366",
+    "cb15_common.taker_rate": "57df60290525b05a7a6496f30fb564217e47357e1ac5742e792a3b9b97c699fb",
+    "cb15_common.terminal_path": "4e0150b311e003a9840b41fe82133de0907c9e90e2f9513517b9683140aa8bce",
+    "cb15_common.top_k_drop_mask": "6582a115058255fc43f961c9c4e156af75be744d0ddbc3806df9af0d4a175d6b",
+    "cb15_common.utc_day": "08bd95ebea2913c2ac28497a6f68d35937ad7630f9a0653a2f7e6f1b8c389cdb",
+    "cb15_common.verify_fetch": "f635c0f941f94b8e9a72b32fe28b5aae1c91f1bedd0d180ef75a827f57857ae4",
+    "cb15_common.wait_or_idle": "f321b147668d42a0ecf204d1f68ff2c0a15413b88f5037e6e0a040311938f059",
+    "cb15_common.wls_coef_pseudo": "dbbb657f7ca9a20bb1acbcedd08004b085bd89a9f4bc5acafeea19a882ff61b7",
+    "cb15_common.write_dir_manifest": "0c1109c89812f4aa3f70f086bfcbc00213eecac8cef68a43c53af7118b6abdc7",
+    "cb15_common.write_gz_csv": "8418c983bf77c0e977d2c31ce79b23ac5efb5f5a1bd485683a29e7c7c04a2670",
+    "cb15_common.write_results_once": "8d9db29f6dfe30663f51418686250cc01acae415517635cf5fb419c14c3cc630",
+    "cb15_common.write_stall": "a75cca03b65b4179b2e461a6ed1c21fbc71752f6090a554ae30f71e2da4b675d",
+    "cb15_common.yes_price": "71a7eeb5ab5dbe172e2df3b468985054f1bde3636d9759961f8e0f92f93b23a2",
+    "cb15_p.PairPending": "b7230057541a0f5f63aea662e1a6aa91e478eec2e1491f494126d3131920646c",
+    "cb15_p._chk": "23583bb5704fd13ade8e6407f0dc2750b436d540ead9f313604e390d09c2c7bb",
+    "cb15_p._day_requests": "914bd6c614518e4e7d786330c7b0b610abdf730669a73e1e8fd4a7bfee2f6ef2",
+    "cb15_p._dir_bytes": "a10b1ca646a447ae66aa087f16eee0fb9e24d80278783a86b3ba7216ec74fa45",
+    "cb15_p._gap": "683a3d45c0439aeca53947e4d4117deed7b1f896b7620354a85f4801fbf54f4a",
+    "cb15_p._load_cache": "b9490ffdb8444caab1314902bc2cc2fc3a0c82b193f0082ead7432efa6ba6cf2",
+    "cb15_p._read_json": "aebd02de4f117191f60f830ffb54929ac32303301d8cc2dade337de7f08ae66c",
+    "cb15_p._save_cache": "3a1fbe926825758162b239fa75f4d1c42582b598bc30a5e268ab30053bb257d8",
+    "cb15_p._src_sha": "b055aca4eb8525a50395abc70683bdd5d17ea58822f2cf1b84f43eb9503acaaa",
+    "cb15_p.avail": "4660a4b7d726e3c9213734c6f52a3987a15293a479279e347bd54dcda69b1d72",
+    "cb15_p.birth_census": "76823e1572049669e1f2eef84f45ba1701b2cc60a4d2369e1e2f64bb86c77664",
+    "cb15_p.birth_of": "c9d581364b402d0ff6b4e7f0756c55984cdf7c5824f78c7c3aebc454ace9e874",
+    "cb15_p.births_with_24h_read": "989d9fca13bb450d7436bbf7a5ed0b7c5d2cf3f6a2a8c57de09cbac13b37abc1",
+    "cb15_p.c1_frame": "d0ca73d234fc5f3f15f97e575a46fd87e110b1bae81fed475ed7459fc0eb17cc",
+    "cb15_p.c1_loader_sha": "2a23cae440062ca8d2b4001e3e459e73cdb7db07cce164a63590963ac5054465",
+    "cb15_p.cache_size_probe": "a79fcdfc8e911772a579fb698b64743dc6c91f178037e743d6044c9b219c491d",
+    "cb15_p.candle_has_fields": "fb1cd7281494adafdcf5ae7a8906dc0889d6e18d974182eeefc3d084956d21f2",
+    "cb15_p.census_p": "1b926b0f21567d620cfbe0c1054fac951ff1dc73dc3b3da9e6c0e06647f426df",
+    "cb15_p.declared": "e3e4cd25ae34a6bcce954f1642064fbedefd1b03d2134d256fcb5f54c59a4ba8",
+    "cb15_p.ep": "d5bd2bb62fd73161eef1a1f8576056d57ba15ff28937cb658c67d50a5a8516a9",
+    "cb15_p.event_weights": "8155632843dfe0042ba371da7a327d9140de0fd170b34649b2010423663e4202",
+    "cb15_p.features_table": "695d84fcfb3d1f6cb63689576f89aa8a6eba2b968db9adedb9cba4ce121f5a06",
+    "cb15_p.fetch_k_candles_checked": "20cf145439c25c2a48493bc3e11c866f7c72f00355586913d5dbde816dd14918",
+    "cb15_p.fetch_pair": "a113d3365cdf92723ead1132b328792ffccebd211bed2df9e91096cc98e1bdb8",
+    "cb15_p.fetch_prices_checked": "b9e4c766192e0c61103eb5febe440ffaa33024ca52f9a577ae9d53dc2010d10b",
+    "cb15_p.fetch_prints_from_birth": "e5a30b483dd878b2f6669f6958ed7a0ae363024d67583a354cf7ae7f72914dc9",
+    "cb15_p.first_print_poll": "550c4d02a38aa202f94a1cbe364c3f4ac71d724f967d6f7b100a558f0f21f2f1",
+    "cb15_p.gamma_meta": "5cd84b4690aba4aa91a966f52595177c7a1c369eba450ef2a5f5a8a64b4bd368",
+    "cb15_p.gap_closed_share": "3502f7c182176d56dd54d9f1fade6a0fd003dc3919e878c697de707b7413c46c",
+    "cb15_p.k_mid_at": "8e31ccce1f83d1cebaa999bf5e750041a0bb2a780b871a5d24775d6429b1bce2",
+    "cb15_p.kalshi_book": "74a7c322c7ecbcb106effe1e788886496a25903ad4061bbc196ab8eddb209f16",
+    "cb15_p.kalshi_bools_from_universe": "cfb569e791f6582d394a86df86e2c72d196cc6d2e48a8c4989ce9abb0cc1e0f9",
+    "cb15_p.kalshi_page": "716d08a472bf12133c3beeed77d88b9cbc01978dc3b3686bc75ad7721a56a236",
+    "cb15_p.kalshi_record": "9316d932d9dad47518aea491f24a39c61568f7ce659482ada605851980580eb5",
+    "cb15_p.later_unit": "0269b9a256f651e51e64d937ac963bcc98a70bcb60f131047fae47afbad78a83",
+    "cb15_p.lead_bin": "7f95222e14343051ef531e4746ebca19390209580be71407d4f9aef0ca1134e5",
+    "cb15_p.load_data": "7e0e3029d10ab2318f8d1e19cb8a6e4f112078cf3c23832fa1eab4ccad00d198",
+    "cb15_p.lowest_tercile": "b4e6c72d875d22a7be6d6211387031b4ce5e4772a249487f8f4049d80bef5531",
+    "cb15_p.match_new": "f0f4a3a7e3522171ef6e298756131db1f734126c0beff5e5e64c69040d948efa",
+    "cb15_p.matcher_sha": "8bdf498eea6c505dbbe0e3934f3e0ee018504edeb440927bb681b361b3926b30",
+    "cb15_p.mean_test": "62ffb4e788c5d24e64162474b33047b53ceaf781055a418fd4178f6d9c7540db",
+    "cb15_p.mid_one_sided": "8140fbb26a4a5925a1779a983338247be19dd82d05ec2118d1dc8dd68f1f0305",
+    "cb15_p.month_of": "2e636f3ce9696508b4c588fb800182d9ac4ab0a7abd43cce249f39992d2f1c90",
+    "cb15_p.nt": "655b6afe14325df8ccf96182bb12019fe15c2e09eac0c1b561d8a989e41cea1d",
+    "cb15_p.open_volume": "495785c3b89bd4658de0780ecb4f987021fb8c2c7956862e2910c510a8ad6cca",
+    "cb15_p.p1_test": "f88e348d030f2190a96012e941d136fb83d830ba1aea60a7491be8b4b42b2bcf",
+    "cb15_p.p2_net": "658e9dd2fd66d6c1ffccba0e37bb222b5876bc12304edc068f3c8fe05cfd6862",
+    "cb15_p.p2_side": "0b3f83df09fbee9278eea9e0c30931ae1b426e9829d71a0971e39f2d3a22af0d",
+    "cb15_p.p2_test": "2d0743b2d09b0223042cb90761bd3c5fa5720757031edf7d49c247880c504908",
+    "cb15_p.p2_units": "c3205f2ecf806e2f51ee44a5351e75f34201e71989055d3b630b8abbee8ca7a7",
+    "cb15_p.p2_window": "eaedf8813ec3f895820d6c7f4c165b07d4776a2866865fc9b0f7acb3c53d7219",
+    "cb15_p.p_at": "228b90d0feb1d9db9dfbfeaa38dfb3bba0c53d47c61385e1e5961adb61c7005e",
+    "cb15_p.p_cache": "787b4fc0977d5fd18f411991bac6c99441fdfc919ed3017db525dd1a6f3452da",
+    "cb15_p.p_data": "a437a54f34bad9e555210f84a82fd1a543eb42afe0e15646f72928252839ec9c",
+    "cb15_p.p_live": "51d30f5aa67294d09173b82e9f2529467982c64c58a931d009ab008cca35632d",
+    "cb15_p.paired_contrast": "b4881d23d94fc2a283cbc3d73da9acdbac1aa0095bbfde11de471ab740b65dff",
+    "cb15_p.part_unready": "e5fa7a01285a0e56b8a46a8c13dd1c92b35f8ce782e82bb4d9722babc4922230",
+    "cb15_p.ph_at": "287c592a454e5e5166ac0ffd895b21bd432a4afab25fda925d205f61bf25bff0",
+    "cb15_p.poly_book": "e0d5019c91684eaddfa612391722e25761310197828a399c373b77931e4596ed",
+    "cb15_p.poly_listing": "0bba537429d5c1f5411a6fd3f4c2e366f38a3b82729a861c40de6be73fca3716",
+    "cb15_p.print_in": "c70d605ba367e551b8886fd89f06d1274b211b7fa91373c1306500a583adcd3a",
+    "cb15_p.quarter_of": "170f439d6d92d97e515330db8f68f0f1284188e86b353929d2234f9c1165789e",
+    "cb15_p.read_audits": "176bd843bf11ac6f3d11eec16788126ca83eb5614a6598b51e0c19eb62c860cd",
+    "cb15_p.read_books": "81a2782887e12c08e7ae1d1c7dfb1c41122171120194fd8c12ba0a17fe15344f",
+    "cb15_p.read_due": "177206d72c154a96ae5715103646c5d2ca3a63e3a37a11e358143247703c8944",
+    "cb15_p.read_frame": "f0995395849625f341f91e348b9f6289f81c36cd8a3c06ac46d69770e9e495db",
+    "cb15_p.read_gz_rows": "60afb66f29914ee221be9327368809e97e177562f6c2668fe5f6acf8cda4793d",
+    "cb15_p.read_matches": "febb844c187967c733c76c2ccf588290efdf86af7db2a2b2f8b71ff2d286ee3b",
+    "cb15_p.refuse_hist_row": "b9cfdee7c4954fe6b855d0ed0aee334765d69aa4815502f435a203e769a00069",
+    "cb15_p.rep_p": "af3a723147c80407aa58471c1dd03b4f10812d8defa96658a9f5049ae0c389ff",
+    "cb15_p.rep_p2_net": "b64aa18ed35451008d86cc726297cdd4a2b1397ac280b96fb28068489d34ba71",
+    "cb15_p.rep_units": "e3053a7bc652d433f68122b609adae1870f66ceafbe6058795307b51f135a002",
+    "cb15_p.reread_absent_frames": "5d7bf9993efe185698700556cec9d80d1dd5a335d190cc53eff8e065bae2fed2",
+    "cb15_p.rule_booleans_differ": "fff3e15dba8f0df313375b8d86316255eeef07358c3dd330b1a6a9c63cfd0120",
+    "cb15_p.scan_listings": "e5a7c21a6b553cdd0e53f0b1bfcc229437033ced5fc397ae3dd78cad67088ff1",
+    "cb15_p.screen_p": "b5064f16aa832296d4f79203fc2c17d539b990edab3f72a404c3b302a380d8ab",
+    "cb15_p.se_only_proxy": "b4d3efecce63c7c929b2ad1574abf64954a192190604028993ced7096fefa63a",
+    "cb15_p.seeded_flags": "924d473b883108bd04325f39cc5eca6d99f26e785cd4bdea7359f05994d2aefd",
+    "cb15_p.series_category": "785be179b34c63a11586aab2afd01b4601e3c420f42687a1fdf7a5208451e8e5",
+    "cb15_p.sign_checks": "0d635570f193c85d06af7958ce7c2c9a40bea453ab5880ae2523746585d31fe8",
+    "cb15_p.slope_test": "3062e609ef5973b9545675d99283dba458416266e5faad078e9336e0f7dd93a8",
+    "cb15_p.smoke_offline": "99e42ef7025d1f9cb2446f295e1a643d7557c36c3956d6584fcdd272a5623831",
+    "cb15_p.smoke_online": "ef7c633141c7e9e02510868cd4ec24d7ecfb329ae7b60e77ee65a2c8be237666",
+    "cb15_p.strip_kalshi": "506996ede8f0a67b60263ba9b7b3297c868ce6fd115d6f1eb98418019adc8b52",
+    "cb15_p.target_availability": "57b76c650df6e9db6e5699d8e120ffd321265905febcbbdf33c54b6e074db445",
+    "cb15_p.transactions": "a3e78fea13c09acaa5a722cecbe735d1d5ddd0fc680e53c2049b5b60adc8660a",
+    "cb15_p.truthy": "493f37cab87d0f342c9d4ebed1d27d47b6b7ef02638e3c26d7b3b489e3e3e431",
+    "cb15_p.two_sided": "8445849c58a54e22308884ac88204b6da98a7d1f210f261c0649858e383f1210",
+    "cb15_p.unit_features": "d578651dcce691a5de9f83316fa765c6b6ca7a376ff4690e89ece5ee6d267126",
+    "cb15_p.unit_target": "5cebc1170ca7448639ab030df7ab0f28bc0568591a2c0ea56f13d80dab7f8ed5",
+    "cb15_p.valid_reads": "1ca37db8380c61bdba23555817a702efbd0894b36995b973da7c2011fce3cd62",
+    "cb15_p.verify_matcher": "e65a5ec3f158f73c05cfaed3df98b2fb807f87b21d4c7cd11aa5bcc5e3c2e48d",
+    "cb15_p.weeks_of": "de2d87762237fddcdc474821d0cb9b7bb013631b8be941eb7cc7388be3e39f1a",
+    "cb15_p.write_birth_frame": "6f2bf2ca09314865b0376345913632db5d19a2be0c4da828e9a490433700a2fe",
+    "cb15_p.write_data_files": "ef6af4a2ae686eef89e6605f848603d187a89f0fcb5b3b18f7335c32c44644b5"
+   },
+   "funcs_sha256": "e59e455eeabdef340febc17cebdb53bf87580fd53f44a72d3fa3ef896c01a86b",
+   "part": "P",
+   "part_declared": true,
+   "rules_sha256": "1c6b7e955bd5cf92e026c4826d879c16aa301b446d54da79e7838847fd3bf876",
+   "rules_version": "cb15-rules-v1",
+   "shared_helper_sources_sha256": {
+    "bk.seal_copy_ids_audited": "32cb7d6a72748799474f853a829c6860672fba51d5fd736c0b8f3fd81e7d84de",
+    "c10.leave_one_out_sign": "9111c0aad2192e6661156b015421e86dd20a91d8099a0aca630f11ba30a06eea",
+    "c10.placebo_advance_rate": "41993f5ee1243cd17f53bea3eac84a4be523902ce4e19e5def15a591eea630bb",
+    "c10.require_disk": "1e0e4e4682fa9a16fa71df384f5163983fa5cfa675b15a9b7f009dbbf3d81370",
+    "c12.aggregate_transactions": "08f41e54495e027b0ce3e213b6548ce55999782173c2f79ad54683e4a8324a6c",
+    "c12.c1_market_ids": "2d470f722e34a801c5751de43d423bf3c03a51353c4b0d9ae5321c6e25d0e599",
+    "c12.cluster_se_mean": "d8c8ed52c7eb81940adc26f9acb4ba90fbd3fc251a796274faa7c9b3230029c6",
+    "c12.exclusion_stage": "b2dd35c1ec54c7121299bf8e5f6d5b657691366488904e553d9195e6f1e86e97",
+    "c12.fetch_prints_paged": "db90a4c31db02d6535efd8c88a0bda75dad6b22be99d094f7e7b4659ab7ba5cb",
+    "c12.holm": "7831f9b32b4876f0450ed05cb8050f4c22ce84e78e12430e8d5efd3aee861803",
+    "c12.iso_week_of": "8380c27fb3b8e66a304fe0bbae7a45da206ae521ce57764292e51f45a982c0ac",
+    "c12.listish": "66999b312145ac17e5fd36f52a83fb78253aaa91dc03b49c9124589a11602024",
+    "c12.lookup_keys_closed_first": "466132284fb1886941bcbdc820c075250009fa794dcb9112c2bd74aa7e5654d2",
+    "c12.manifest_complete": "242883ea1969a82f1f2614ae217699788f001e6047505786b420a64710a5bed0",
+    "c12.module_constants": "fb29c0e68787f7dc57cf9f74f69ca3bdd9969f4f3545dab292e710d77f8dc332",
+    "c12.module_funcs": "f6b3644ad7747424f31089bfde865212eb552b068dcf0f43dc955adadf3482e1",
+    "c12.parse_iso": "f56a746aac64f2456a69e6ad81c952e3b4ebff1aa8a167e5ab567d2182477da3",
+    "c12.reach_ok": "c1027e0f9f22591e52de9c54ee1cec87bbff59fc529022838f630b36f35b9036",
+    "c12.read_csv_gz": "0de78d753f9c22f4985ca862de9e64db28b0333f859376b5d38ce4eb9aedc535",
+    "c12.read_id_set": "247f84572b3a12e65d3b20d455cb7de0da46cbcf6a98ffe4244b844dbac9e57c",
+    "c12.require_complete": "3b6604357fd07395f4104daa66c2311f94cad2703e372c20966f9c5c9d619474",
+    "c12.verify_fetch": "cac10ee8e422fb149ac3d0242da785480b95f233ce272d9a8af21d1781b2e427",
+    "c6.KEY_COLUMNS": "4f64d5e62210755ba0498694e2110262ed8ab409be2d565f523ba326479bc0d3",
+    "c9.stall_of": "b46fd8ac330a177aad3cc79b7758958132d99a79ca51a09bb986083ebe883a47",
+    "c9.top_k_drop_mask": "ca983a19b993ebcfc76179a5579602fdf85a722d3e3e59c4e5a34ae3753d209a",
+    "c9.write_results_once": "94af1d221ce65cc6b07c147cd2ec225bae7afc7cf5b94817ea5620880e628b46",
+    "c9.write_stall": "7851c4dd8b6f92b1a20db8e6bf736419d9878f4a43444c02d62eb1a73d73f3c0",
+    "cm.idle": "6c4c5e1d8cc89e4c76a490d3b03b0cc8af6ee630b12344e18578ae81691e8f23",
+    "cm.write_json_atomic": "1e9308681e9ed324aadbbf3b8e8bfc4bda352e9c0978a12d4d9278210853ac9b",
+    "cm.write_once_json": "96de340201f4213c580706a6c2f57a3addda7abf3019daa2f1868cd49c4eadb9",
+    "cw._cluster_sums": "f5f61ce926b7e7e9fd8223d2dd667341d37f67b44318e3c67c48f6eee6b83b97",
+    "cw.small_g_pvalue": "1a94b013ef2dbe475942d7c041c355f6c36411d4eac5c60a95816dfd1f71cd91"
+   },
+   "wallet": {
+    "note": "no CB15 job reads or stores a wallet field, a transaction hash (aggregated in memory and discarded) or the Data API side field",
+    "read": false
+   }
+  },
+  "common": {
+   "constants": {
+    "cb15_common": {
+     "ALLOWED_OUTPUT_ROOT_PARTS": [
+      "creative_batch15",
+      "h15_elect_live",
+      "h15_birth",
+      "h15_birth_live"
+     ],
+     "ALWAYS_REFUSED_ROOTS": [
+      "surprise_live",
+      "cross_venue_live",
+      "trade_samples",
+      "forecasts",
+      "flow_screen",
+      "live_trades",
+      "snapshots",
+      "book_sweeps"
+     ],
+     "AVAIL_MIN": 0.6,
+     "BASE_SOURCE": "base:cb14_q0302",
+     "BATCH_HOLM_K1": 4,
+     "BY_Q": 0.1,
+     "C1_SOURCE": "c1",
+     "CB14_KEYS_FILE": "exclusion_keys.csv.gz",
+     "CB15_OUTPUT_CAP_GB": 1.2,
+     "CB15_SPORTS_IN_PRIMARY": false,
+     "COST_ROBUST_PER_SIDE": 0.01,
+     "DATA_DUMPS_CAP_GB": 40.0,
+     "EARLY_ALPHA2": 0.025,
+     "EVIDENCE_ROLE_DEV": "exploratory_dev",
+     "EVIDENCE_ROLE_HIST": "exploratory_historical",
+     "EVIDENCE_ROLE_PROSPECTIVE": "prospective",
+     "EXCLUSION_KEYS_COMPLETE": "exclusion_keys_complete",
+     "EXPERIMENT_ROOT_RE": "^e0\\d\\d$",
+     "EXTRACT_ROOT_RE": "^cb\\d+_extract$",
+     "EXTRA_REFUSED_ROOTS": [
+      "creative_batch14",
+      "creative_batch13",
+      "creative_batch12",
+      "creative_batch11",
+      "creative_batch10",
+      "creative_batch9",
+      "creative_batch8",
+      "creative_batch7",
+      "creative_batch6",
+      "creative_batch5",
+      "creative_batch4",
+      "creative_batch3",
+      "creative_batch2",
+      "creative_batch1",
+      "snapshots",
+      "trade_samples",
+      "live_trades",
+      "book_sweeps",
+      "surprise_live",
+      "cross_venue_live",
+      "cross_venue",
+      "forecasts",
+      "flow_screen",
+      "h9_flow",
+      "h10_sign",
+      "h10_dlad",
+      "h10_brk",
+      "h11_wprints",
+      "h11_pol",
+      "h11_attn",
+      "h12_say",
+      "h12_quake",
+      "h12_prints",
+      "h12_quake_live",
+      "h12_opt_live",
+      "h13_touch",
+      "h13_binance",
+      "h14_wiki",
+      "h14_wiki_live",
+      "h14_speech",
+      "h1_first",
+      "h2_main",
+      "h3_power",
+      "h4_seal",
+      "h5_cb1",
+      "h5_cb1_ladders",
+      "h6_weather",
+      "h7_cb4_era",
+      "h7_cb4_series",
+      "h8_tail",
+      "h8_tail_b",
+      "h8_text",
+      "h8_geo",
+      "cb3_followup",
+      "cb6_followup"
+     ],
+     "E_FREEZE_PINS": [
+      "sign_table_sha256",
+      "poll_close_sha256",
+      "party_map_sha256",
+      "cross_table_sha256",
+      "source_manifest_sha256",
+      "race_map_sha256",
+      "disk_cap_gb"
+     ],
+     "E_JUDGE_ALPHA": 0.01,
+     "FAMILY_MODULES": {
+      "E": [
+       "cb15_e"
+      ],
+      "P": [
+       "cb15_p"
+      ]
+     },
+     "FAMILY_PARTS": [
+      "E",
+      "P"
+     ],
+     "FAMILY_REP_TESTS": {
+      "E": [],
+      "P": [
+       "P1",
+       "P2"
+      ]
+     },
+     "FAMILY_TESTS": {
+      "E": [
+       "E1",
+       "E2"
+      ],
+      "P": [
+       "P1",
+       "P2"
+      ]
+     },
+     "FEE_FLOOR": 0.04,
+     "FORBIDDEN_OUTPUT_COLUMNS": [
+      "side",
+      "wallet",
+      "wallet_hash",
+      "proxyWallet",
+      "tx16",
+      "transactionHash",
+      "tx_hash",
+      "hash",
+      "name",
+      "pseudonym",
+      "user",
+      "userid",
+      "username",
+      "outcome_prices",
+      "outcomePrices",
+      "umaResolutionStatus",
+      "umaResolutionStatuses",
+      "uma_status",
+      "closedTime",
+      "closed_time",
+      "result",
+      "settlement_value",
+      "p_end"
+     ],
+     "FORBIDDEN_PARSE_FIELDS": [
+      "side",
+      "proxyWallet",
+      "outcomePrices",
+      "umaResolutionStatus",
+      "umaResolutionStatuses",
+      "closedTime",
+      "result",
+      "settlement_value",
+      "transactionHash",
+      "hash",
+      "name",
+      "pseudonym",
+      "p_end"
+     ],
+     "FREEZE_PARTS": [
+      "E",
+      "P"
+     ],
+     "FREEZE_PIN_KEYS": {
+      "common": "common_rules_sha256",
+      "rules": "rules_sha256"
+     },
+     "FREE_DISK_MIN_GB": 4.5,
+     "GAMMA_EVENTS": "https://gamma-api.polymarket.com/events",
+     "GAMMA_MARKETS": "https://gamma-api.polymarket.com/markets",
+     "GAMMA_OFFSET_CAP": 2000,
+     "GAMMA_PAGE": 100,
+     "GAMMA_SEARCH": "https://gamma-api.polymarket.com/public-search",
+     "GATE_P": 0.01,
+     "G_CR2": 15,
+     "HEARTBEAT_S": 36000.0,
+     "HOLDOUT_PARTS": [
+      "holdout",
+      "t_holdout"
+     ],
+     "ID_COLUMNS": [
+      "market_id",
+      "event_id",
+      "condition_id",
+      "neg_risk_market_id",
+      "negRiskMarketID",
+      "series_id"
+     ],
+     "ID_READABLE": {
+      "creative_batch13": [
+       "t_screen/fills.csv.gz",
+       "t_holdout/fills.csv.gz"
+      ],
+      "h11_attn": [
+       "frame.csv.gz",
+       "entities.csv.gz",
+       "holdout/frame_hold.csv.gz"
+      ],
+      "h11_pol": [
+       "frame.csv.gz"
+      ],
+      "h11_wprints": [
+       "markets.csv.gz"
+      ],
+      "h12_opt_live": [
+       "markets.csv.gz"
+      ],
+      "h12_prints": [
+       "markets.csv.gz"
+      ],
+      "h12_quake": [
+       "events.csv.gz",
+       "members.csv.gz"
+      ],
+      "h12_quake_live": [
+       "markets.csv.gz"
+      ],
+      "h12_say": [
+       "events.csv.gz",
+       "members.csv.gz"
+      ],
+      "h13_touch": [
+       "events.csv.gz",
+       "members.csv.gz",
+       "holdout/events.csv.gz",
+       "holdout/members.csv.gz"
+      ],
+      "h14_speech": [
+       "events_p.csv.gz",
+       "events_n.csv.gz",
+       "events_s2.csv.gz",
+       "members.csv.gz"
+      ],
+      "h14_wiki": [
+       "frame.csv.gz"
+      ],
+      "h14_wiki_live": [
+       "frame_ids.csv.gz"
+      ]
+     },
+     "ID_RESEARCH_ROOTS": [
+      "creative_batch13"
+     ],
+     "KEYS_OUTPUT_CAP_GB": 0.01,
+     "KEYS_RUN": "exclusion_run15",
+     "KEYS_STATUS": "exclusion_keys_complete",
+     "KEY_COLUMNS": [
+      "market_id",
+      "found",
+      "event_ids",
+      "neg_risk_market_id",
+      "series_ids",
+      "sources"
+     ],
+     "LIVE_ROOT_NAMES": [
+      "cross_venue_live",
+      "surprise_live"
+     ],
+     "LOOKUP_PER_REQUEST": 50,
+     "MAX_UNVERIFIED_KEY_SHARE": 0.02,
+     "MDE_INFLATE": 1.2,
+     "MDE_MULT": 3.16,
+     "N_BOOT": 2000,
+     "N_WILD": 9999,
+     "PAPER_SIZE": 100.0,
+     "PARTS": [
+      "common",
+      "E",
+      "P"
+     ],
+     "PERM_DRAWS": 9999,
+     "PIN_UNSET": "TODO-COORDINATOR",
+     "PLACEBO_DRAWS": 200,
+     "PLACEBO_MAX_ADVANCE": 0.015,
+     "PLACEBO_SEEDS": {
+      "P1_shuffle": 15111,
+      "P2_shuffle": 15112
+     },
+     "PLACEBO_SEED_RANGE": [
+      15101,
+      15130
+     ],
+     "RULES_MACHINERY": [
+      "rules_part_doc",
+      "rules_part_file_doc",
+      "rules_file_doc",
+      "write_rules",
+      "verify_rules",
+      "family_modules",
+      "common_funcs",
+      "part_funcs",
+      "shared_helper_sources",
+      "common_declared"
+     ],
+     "RULES_VERSION": "cb15-rules-v1",
+     "SEED_BOOT": 1515,
+     "SEED_PAIRED_BOOT": 15121,
+     "SEED_PERM": 15101,
+     "SHARED_HELPERS": [
+      [
+       "cw",
+       "small_g_pvalue"
+      ],
+      [
+       "cw",
+       "_cluster_sums"
+      ],
+      [
+       "c12",
+       "holm"
+      ],
+      [
+       "c12",
+       "cluster_se_mean"
+      ],
+      [
+       "c9",
+       "top_k_drop_mask"
+      ],
+      [
+       "c10",
+       "placebo_advance_rate"
+      ],
+      [
+       "c10",
+       "leave_one_out_sign"
+      ],
+      [
+       "c12",
+       "aggregate_transactions"
+      ],
+      [
+       "c12",
+       "fetch_prints_paged"
+      ],
+      [
+       "c12",
+       "reach_ok"
+      ],
+      [
+       "c12",
+       "listish"
+      ],
+      [
+       "c12",
+       "parse_iso"
+      ],
+      [
+       "c12",
+       "iso_week_of"
+      ],
+      [
+       "c12",
+       "read_csv_gz"
+      ],
+      [
+       "c12",
+       "read_id_set"
+      ],
+      [
+       "c12",
+       "exclusion_stage"
+      ],
+      [
+       "c12",
+       "lookup_keys_closed_first"
+      ],
+      [
+       "c12",
+       "manifest_complete"
+      ],
+      [
+       "c12",
+       "require_complete"
+      ],
+      [
+       "c12",
+       "verify_fetch"
+      ],
+      [
+       "c12",
+       "c1_market_ids"
+      ],
+      [
+       "c12",
+       "module_constants"
+      ],
+      [
+       "c12",
+       "module_funcs"
+      ],
+      [
+       "c10",
+       "require_disk"
+      ],
+      [
+       "c9",
+       "write_stall"
+      ],
+      [
+       "c9",
+       "stall_of"
+      ],
+      [
+       "c9",
+       "write_results_once"
+      ],
+      [
+       "c6",
+       "KEY_COLUMNS_SRC"
+      ],
+      [
+       "bk",
+       "seal_copy_ids_audited"
+      ],
+      [
+       "cm",
+       "write_once_json"
+      ],
+      [
+       "cm",
+       "write_json_atomic"
+      ],
+      [
+       "cm",
+       "idle"
+      ]
+     ],
+     "SMOKE_VERSION": "cb15-smoke-v1",
+     "STAGE1_HOLM_FAMILY": [
+      "E1",
+      "E2",
+      "P1",
+      "P2"
+     ],
+     "STAGE2_K_MAX": 2,
+     "STAGE2_NAMES": {
+      "P1": "P1-rep",
+      "P2": "P2-rep"
+     },
+     "STAGE_ALPHA": 0.05,
+     "TERMINAL_NAME": "terminal_{family}.json",
+     "TERMINAL_STATUS": "terminal_not_testable",
+     "TICK": 0.01,
+     "TOP_DROP": 5,
+     "UNVERIFIED": "disjointness_unverified",
+     "USER_AGENT": "arepo-research-probe/1.0 (read-only counts; https://www.arepolabs.com)",
+     "W_STAR": -0.093
+    },
+    "cb15_smoke": {
+     "MAX_REQUESTS": {
+      "E": 30,
+      "P": 30
+     },
+     "SMOKE_PARTS": [
+      "E",
+      "P"
+     ]
+    }
+   },
+   "declared": {
+    "common": {
+     "always_refused": [
+      "surprise_live",
+      "cross_venue_live",
+      "trade_samples",
+      "forecasts",
+      "flow_screen",
+      "live_trades",
+      "snapshots",
+      "book_sweeps"
+     ],
+     "bootstrap": {
+      "n_boot": 2000,
+      "n_wild": 9999,
+      "perm_draws": 9999,
+      "small_g": "G>=30 CR1; 15<=G<30 CR2 t(G-1) + Webb wild; G<15 the way leaves the max and its leave-one-cluster-out sign rule binds (CB10 2.3, A-C1)"
+     },
+     "costs": {
+      "cost_robust_per_side": 0.01,
+      "fee_floor": 0.04,
+      "paper_size": 100.0,
+      "w_star": -0.093
+     },
+     "disk": {
+      "data_dumps_cap_gb": 40.0,
+      "free_min_gb": 4.5,
+      "output_cap_gb": 1.2
+     },
+     "field_whitelists": {
+      "forbidden_output_columns": [
+       "side",
+       "wallet",
+       "wallet_hash",
+       "proxyWallet",
+       "tx16",
+       "transactionHash",
+       "tx_hash",
+       "hash",
+       "name",
+       "pseudonym",
+       "user",
+       "userid",
+       "username",
+       "outcome_prices",
+       "outcomePrices",
+       "umaResolutionStatus",
+       "umaResolutionStatuses",
+       "uma_status",
+       "closedTime",
+       "closed_time",
+       "result",
+       "settlement_value",
+       "p_end"
+      ],
+      "forbidden_parse_fields": [
+       "side",
+       "proxyWallet",
+       "outcomePrices",
+       "umaResolutionStatus",
+       "umaResolutionStatuses",
+       "closedTime",
+       "result",
+       "settlement_value",
+       "transactionHash",
+       "hash",
+       "name",
+       "pseudonym",
+       "p_end"
+      ]
+     },
+     "holm": {
+      "alpha": 0.05,
+      "e_judge_alpha": 0.01,
+      "gate_p": 0.01,
+      "k1": 4,
+      "stage2_early_alpha": 0.025,
+      "stage2_k_max": 2,
+      "stage2_rule": "checks_ok and (p < alpha/2 early or the final Stage-2 Holm rejects)",
+      "strict": true
+     },
+     "id_readable": {
+      "creative_batch13": [
+       "t_screen/fills.csv.gz",
+       "t_holdout/fills.csv.gz"
+      ],
+      "h11_attn": [
+       "frame.csv.gz",
+       "entities.csv.gz",
+       "holdout/frame_hold.csv.gz"
+      ],
+      "h11_pol": [
+       "frame.csv.gz"
+      ],
+      "h11_wprints": [
+       "markets.csv.gz"
+      ],
+      "h12_opt_live": [
+       "markets.csv.gz"
+      ],
+      "h12_prints": [
+       "markets.csv.gz"
+      ],
+      "h12_quake": [
+       "events.csv.gz",
+       "members.csv.gz"
+      ],
+      "h12_quake_live": [
+       "markets.csv.gz"
+      ],
+      "h12_say": [
+       "events.csv.gz",
+       "members.csv.gz"
+      ],
+      "h13_touch": [
+       "events.csv.gz",
+       "members.csv.gz",
+       "holdout/events.csv.gz",
+       "holdout/members.csv.gz"
+      ],
+      "h14_speech": [
+       "events_p.csv.gz",
+       "events_n.csv.gz",
+       "events_s2.csv.gz",
+       "members.csv.gz"
+      ],
+      "h14_wiki": [
+       "frame.csv.gz"
+      ],
+      "h14_wiki_live": [
+       "frame_ids.csv.gz"
+      ]
+     },
+     "key_rule": {
+      "E": "calendar disjointness; keys as binding robustness (any source drops)",
+      "P": "drop a unit if any key has a source other than C1 (a C1-only key is kept)",
+      "sources": "rebuilt from readable sources; unattributed inherited ids are never C1-only"
+     },
+     "output_roots": [
+      "creative_batch15",
+      "h15_elect_live",
+      "h15_birth",
+      "h15_birth_live"
+     ],
+     "refused_roots": [
+      "creative_batch14",
+      "creative_batch13",
+      "creative_batch12",
+      "creative_batch11",
+      "creative_batch10",
+      "creative_batch9",
+      "creative_batch8",
+      "creative_batch7",
+      "creative_batch6",
+      "creative_batch5",
+      "creative_batch4",
+      "creative_batch3",
+      "creative_batch2",
+      "creative_batch1",
+      "snapshots",
+      "trade_samples",
+      "live_trades",
+      "book_sweeps",
+      "surprise_live",
+      "cross_venue_live",
+      "cross_venue",
+      "forecasts",
+      "flow_screen",
+      "h9_flow",
+      "h10_sign",
+      "h10_dlad",
+      "h10_brk",
+      "h11_wprints",
+      "h11_pol",
+      "h11_attn",
+      "h12_say",
+      "h12_quake",
+      "h12_prints",
+      "h12_quake_live",
+      "h12_opt_live",
+      "h13_touch",
+      "h13_binance",
+      "h14_wiki",
+      "h14_wiki_live",
+      "h14_speech",
+      "h1_first",
+      "h2_main",
+      "h3_power",
+      "h4_seal",
+      "h5_cb1",
+      "h5_cb1_ladders",
+      "h6_weather",
+      "h7_cb4_era",
+      "h7_cb4_series",
+      "h8_tail",
+      "h8_tail_b",
+      "h8_text",
+      "h8_geo",
+      "cb3_followup",
+      "cb6_followup"
+     ],
+     "seeds": {
+      "boot": 1515,
+      "paired_boot": 15121,
+      "perm": 15101,
+      "placebo": {
+       "P1_shuffle": 15111,
+       "P2_shuffle": 15112
+      },
+      "placebo_range": [
+       15101,
+       15130
+      ]
+     },
+     "stop_rule": "3 CPU-hours per family; a job failing twice for the same non-transient reason stops; no re-screen of a failed CB15 test"
+    },
+    "smoke": {
+     "consequence": "a failed criterion makes the dependent family not testable (source), counted once; no rule is re-fitted",
+     "counts_only": true,
+     "design": "family modules contribute SMOKE_NEEDS / smoke_offline / smoke_online; the orchestrator is family-agnostic",
+     "max_requests": {
+      "E": 30,
+      "P": 30
+     },
+     "version": "cb15-smoke-v1",
+     "write_once": true
+    }
+   },
+   "func_sources_sha256": {
+    "cb15_common.assert_clean_columns": "45f148919a1277b7ea10de404ced0c04aae3dc09e4ab14a400b81ead026d5c8d",
+    "cb15_common.attribute_sources": "5484ed77e7bb01a103197df59a3c03ec31d5ae7c6eaf64a8ca1d0cfa21f60697",
+    "cb15_common.cluster_p": "9c8a06cc1e552f05ca1ad243523d83d89ed0a11da096c8f1290e58f080597ed9",
+    "cb15_common.cluster_se_mean": "b00c59bb7c9237ae9758c44ad2f8e64d6ac23e37ffc6ecb4c5093b9c2ac6bfb8",
+    "cb15_common.drop_reason": "473566e22ff10f0a43fb27490a2e051a2143d3231092db2c1f107dc0fc5f9806",
+    "cb15_common.e_judged": "fc0aec03eea6d06692f76c2ab9e4c6882127a518fa535bd0e7065ffe8bd5e03c",
+    "cb15_common.early_stage2_ok": "305ef281a402a20429df8643d1240f59ae8befd2ba799a7001a252c7c3ef7b5a",
+    "cb15_common.ep": "3a9fd8059b8d56d7572e9e9a04d0c83e2aeef94fb27ca9badb6318501b40be1b",
+    "cb15_common.exclusion_keys": "9857057598dd1d0078c837802ffbaaf2693d65f5cc18666cc5ce350c65ec09fb",
+    "cb15_common.fee": "f60799ffb16af8c3a40d16efc5bf91e5b750eb01973926b1149e001991c4ec91",
+    "cb15_common.frame_ids": "d4e6b48f49c62f4fca8f188cbb7ad9260f034a6b3970b5d8a5f363fff55e16e1",
+    "cb15_common.guard_id_file": "9ced860ec8540d07256add0b92d34e953e8ac0961efc9ab87fc757cc31dfe05b",
+    "cb15_common.guard_input_path": "164d1ef74fb21fadf457fb7bf07d733609e9a7c3975bb3291ead8f8531ea2b21",
+    "cb15_common.holm": "af9d8cb1193c0e2ea54f102aac4a2dd8251d43681e389fcc6de098a40c3b4925",
+    "cb15_common.id_source_path": "3b5a053b8a8a055a96496aec795a54acb96da841936c23ee5bd667a28e4c1a51",
+    "cb15_common.is_holdout_path": "fd0e9fc15a27748914a0f1ea4aeb591d1db8857f851df923768b0a99b111e22a",
+    "cb15_common.iso": "28e937dc91f5bc02d678e907f1ec255deda7d37b9b06627231aebb9362d33172",
+    "cb15_common.iso_week_of": "ff68e893db31f9232f2c34de2a0133f8ae0c3a5d71d81e24e6e6fa0c1ae16a5b",
+    "cb15_common.jsonl_append": "c3ae14b3b228dd1ddfa4bd2da270cfea1124c185f51111bb73d27c56595b3b9b",
+    "cb15_common.jsonl_iter": "73e573de41cbdac268159b61cd7920199da727075650ddafb9aa4292587f2b78",
+    "cb15_common.key_sources": "bc08139db9ea31085cf2441aaf2d69524328fbe12273063cc66b167c2ee115f6",
+    "cb15_common.ksrc_of": "e6f9b0b6df80f8fd38a51e9c5d1473633b5b5305e143abdb1ef48107aa8adb76",
+    "cb15_common.log_descriptive": "ddc8665a334bcc147383e739be810f428ed964744cdb7f48dda5a6fbb1e5e56d",
+    "cb15_common.log_family": "f99455370935d58dbd9bbdc2dbd92a5495820422bb27c5bca8de5fc173581b20",
+    "cb15_common.manifest_complete": "9963a22f89b1b545fe07d75e58db6e88f1dd2fc4f0602068b2b362bc7c8f08ed",
+    "cb15_common.max_se_over_ways": "18f28ac880ad440c2f2922904a7aa736ceb3d58b3dd06288a3a7a1331aa17210",
+    "cb15_common.mde": "68e3c42134841a96ebd49600e805e0fb740f0cfc9ddcaf6e055874d60c4aa54f",
+    "cb15_common.num": "6b0d39403e1916672eadc55c8241ff0c3cdfb233983e5e8b36b400140ab6f068",
+    "cb15_common.p_pass": "9146e1b511427a8077dcf1e0c98dc2061341d14ea489bdddbd2b4c0739b0f6fb",
+    "cb15_common.parse_iso": "86d7c91645a1d5a2d1fb78eb256c528c2c4cbfd3c64d20fe2a80fa1c710205c3",
+    "cb15_common.perm_p_within_strata": "e00803dac055969902fd5b259a57b4d07507df970ff767b083fcbb89323a7e41",
+    "cb15_common.permute_within_strata": "2bf4187d99c213263d86171fb8a6e351fb03c456293071480bfed837073e3efb",
+    "cb15_common.placebo_advance_rate": "dddafa6653cc29c6d9cfaac9f5cbf9b45bb978e4249f3b54b1f0854c7dcbe0ea",
+    "cb15_common.read_csv_gz": "dd1530f10901a596b85fc5801beee783bf19c890fc0578930899b4afcab28176",
+    "cb15_common.read_id_columns": "152f2a91e32673cc860367557e1e960a61c1a4ee4cb2fb37bd041278c0106dbd",
+    "cb15_common.read_keys_with_sources": "1593ed700d2254ab0a4bf9fa1e0eca755bc6569c8f1ebca565752c9ef9215e8c",
+    "cb15_common.read_terminal": "006816bb9ee48d0279a54dc7d862c7ca14a60a6529a59bfc2d3ac071dbc0da0f",
+    "cb15_common.record_terminal": "4238198b9578142bebae073998bf9f8b8fe9575a38dfd0e1cd66d8ae22263c43",
+    "cb15_common.refuse_path": "005240906e6165cd1332d272a89e34138497db45276a90ece5269a358623c8cb",
+    "cb15_common.refused_names": "32b50ab79443589af19374c0cc7519d67f852856b04b43f23c510ec76c27b790",
+    "cb15_common.require_after": "6241d5801e7645bf91762727ba115dfb8b52b46613a150bdc9a424f9ebd4480b",
+    "cb15_common.require_complete": "f77e2697117079e41572fa4ece99d3e504c2bece2e23b9a8db1179a95a030396",
+    "cb15_common.require_disk": "171d800c22cef62ab8df80181d31036f4323320b554a25cb2e4e473fc713babc",
+    "cb15_common.require_freeze": "87f10294bc0e0c4fe96ea616292c19a9ac95c8b9995bc7a646ba5cd55495d1d8",
+    "cb15_common.require_output_root": "dc5032aeffb912cf1f4e6d7b1f253c7f3baeb429767781b18707b533674f08fe",
+    "cb15_common.round_trip_net": "46eec3c7e42964135951e52de15fb77d1e8c281662a96247432dd229e60ca5c8",
+    "cb15_common.sha256_file": "9b9e433786c3b739ebdf2370926158a2e42a946e90aae266587c550a4a08ee8b",
+    "cb15_common.sha256_obj": "29f7a73c2109e9902f07d1b4343c0975871e392d9e53aea23bc0b4e5d4ca548f",
+    "cb15_common.sign_ok": "b34ef383569c27a123b97b1917db932b9aeae517c3cc36a28501dbee67575473",
+    "cb15_common.stage1_advance": "96adfe88a985cf11f2bcb8defd9fb72e01a1028ad9d1acccebb82eb1dfecb34c",
+    "cb15_common.stage1_holm": "80933d4d8cf601b805194a1df4915aaf27554e5f75d2c8666d5bf709b017bc9b",
+    "cb15_common.stage2_final": "7949450e414c2cf506d190b8b7d713093b7692890bbdde4f86ce0ad119174ed2",
+    "cb15_common.stage2_holm": "226a02d95e1380409dd57a3f383a1695b6e855ae5792099557e99efe2655596b",
+    "cb15_common.stage2_pass": "eda7e2d9e4ad630d3d2db3955f0f5e5e074fe345e45738379aed63e9205e3857",
+    "cb15_common.stall_of": "beaf29289839d29160f8aa542364dc8395c2620bbe57d025038cbfa1443bc186",
+    "cb15_common.stratified_balanced": "b40418886e98ae361f84339d043088d242f7569c2987d7d7ecf760900609ad5a",
+    "cb15_common.stratified_sign_share": "9a8cf9bfeeefd5f77cb506f2d09bf26cfd7f7eaa52910cdc63a126172568ef1a",
+    "cb15_common.stratum_weights": "cc6d8f0d6fc1195a7b0c7b543c927c226c357043a1f2b475ef67a4d40c064f2a",
+    "cb15_common.strip_forbidden": "4ee5f8ba6041e3d90109a9f3b3c72a1fdd8a51d4b15cd6efd681759bed6f7366",
+    "cb15_common.taker_rate": "57df60290525b05a7a6496f30fb564217e47357e1ac5742e792a3b9b97c699fb",
+    "cb15_common.terminal_path": "4e0150b311e003a9840b41fe82133de0907c9e90e2f9513517b9683140aa8bce",
+    "cb15_common.top_k_drop_mask": "6582a115058255fc43f961c9c4e156af75be744d0ddbc3806df9af0d4a175d6b",
+    "cb15_common.utc_day": "08bd95ebea2913c2ac28497a6f68d35937ad7630f9a0653a2f7e6f1b8c389cdb",
+    "cb15_common.verify_fetch": "f635c0f941f94b8e9a72b32fe28b5aae1c91f1bedd0d180ef75a827f57857ae4",
+    "cb15_common.wait_or_idle": "f321b147668d42a0ecf204d1f68ff2c0a15413b88f5037e6e0a040311938f059",
+    "cb15_common.wls_coef_pseudo": "dbbb657f7ca9a20bb1acbcedd08004b085bd89a9f4bc5acafeea19a882ff61b7",
+    "cb15_common.write_dir_manifest": "0c1109c89812f4aa3f70f086bfcbc00213eecac8cef68a43c53af7118b6abdc7",
+    "cb15_common.write_gz_csv": "8418c983bf77c0e977d2c31ce79b23ac5efb5f5a1bd485683a29e7c7c04a2670",
+    "cb15_common.write_results_once": "8d9db29f6dfe30663f51418686250cc01acae415517635cf5fb419c14c3cc630",
+    "cb15_common.write_stall": "a75cca03b65b4179b2e461a6ed1c21fbc71752f6090a554ae30f71e2da4b675d",
+    "cb15_common.yes_price": "71a7eeb5ab5dbe172e2df3b468985054f1bde3636d9759961f8e0f92f93b23a2",
+    "cb15_smoke.collect_checks": "e4014aad95ced13940a203cba709ba63e8391e2ad3c719bb154c0a2be8570482",
+    "cb15_smoke.declared": "ff90d51a014fb8065670e14e4e7ec8460f58828e2f6d3fe2fe011df050db59af",
+    "cb15_smoke.family_needs": "fc8a82a9fa528f9992263ec9964fe393a6c15e078dfe4b04567f24dc166df231",
+    "cb15_smoke.smoke_failures": "45d23fabaeabcf3f2cfa5ddcc452eeec3c92e35b265f7aaf7b82a1032192f04e"
+   },
+   "funcs_sha256": "1a53b6e0f348977ac49fb144522645c0b7947c895bd395a8a2ba31b0736cfd0e",
+   "part": "common",
+   "part_declared": true,
+   "rules_sha256": "13c703222500e502cd29acb94cdec497c43ff68cfc9415bd0efbfd4699718f3a",
+   "rules_version": "cb15-rules-v1",
+   "shared_helper_sources_sha256": {
+    "bk.seal_copy_ids_audited": "32cb7d6a72748799474f853a829c6860672fba51d5fd736c0b8f3fd81e7d84de",
+    "c10.leave_one_out_sign": "9111c0aad2192e6661156b015421e86dd20a91d8099a0aca630f11ba30a06eea",
+    "c10.placebo_advance_rate": "41993f5ee1243cd17f53bea3eac84a4be523902ce4e19e5def15a591eea630bb",
+    "c10.require_disk": "1e0e4e4682fa9a16fa71df384f5163983fa5cfa675b15a9b7f009dbbf3d81370",
+    "c12.aggregate_transactions": "08f41e54495e027b0ce3e213b6548ce55999782173c2f79ad54683e4a8324a6c",
+    "c12.c1_market_ids": "2d470f722e34a801c5751de43d423bf3c03a51353c4b0d9ae5321c6e25d0e599",
+    "c12.cluster_se_mean": "d8c8ed52c7eb81940adc26f9acb4ba90fbd3fc251a796274faa7c9b3230029c6",
+    "c12.exclusion_stage": "b2dd35c1ec54c7121299bf8e5f6d5b657691366488904e553d9195e6f1e86e97",
+    "c12.fetch_prints_paged": "db90a4c31db02d6535efd8c88a0bda75dad6b22be99d094f7e7b4659ab7ba5cb",
+    "c12.holm": "7831f9b32b4876f0450ed05cb8050f4c22ce84e78e12430e8d5efd3aee861803",
+    "c12.iso_week_of": "8380c27fb3b8e66a304fe0bbae7a45da206ae521ce57764292e51f45a982c0ac",
+    "c12.listish": "66999b312145ac17e5fd36f52a83fb78253aaa91dc03b49c9124589a11602024",
+    "c12.lookup_keys_closed_first": "466132284fb1886941bcbdc820c075250009fa794dcb9112c2bd74aa7e5654d2",
+    "c12.manifest_complete": "242883ea1969a82f1f2614ae217699788f001e6047505786b420a64710a5bed0",
+    "c12.module_constants": "fb29c0e68787f7dc57cf9f74f69ca3bdd9969f4f3545dab292e710d77f8dc332",
+    "c12.module_funcs": "f6b3644ad7747424f31089bfde865212eb552b068dcf0f43dc955adadf3482e1",
+    "c12.parse_iso": "f56a746aac64f2456a69e6ad81c952e3b4ebff1aa8a167e5ab567d2182477da3",
+    "c12.reach_ok": "c1027e0f9f22591e52de9c54ee1cec87bbff59fc529022838f630b36f35b9036",
+    "c12.read_csv_gz": "0de78d753f9c22f4985ca862de9e64db28b0333f859376b5d38ce4eb9aedc535",
+    "c12.read_id_set": "247f84572b3a12e65d3b20d455cb7de0da46cbcf6a98ffe4244b844dbac9e57c",
+    "c12.require_complete": "3b6604357fd07395f4104daa66c2311f94cad2703e372c20966f9c5c9d619474",
+    "c12.verify_fetch": "cac10ee8e422fb149ac3d0242da785480b95f233ce272d9a8af21d1781b2e427",
+    "c6.KEY_COLUMNS": "4f64d5e62210755ba0498694e2110262ed8ab409be2d565f523ba326479bc0d3",
+    "c9.stall_of": "b46fd8ac330a177aad3cc79b7758958132d99a79ca51a09bb986083ebe883a47",
+    "c9.top_k_drop_mask": "ca983a19b993ebcfc76179a5579602fdf85a722d3e3e59c4e5a34ae3753d209a",
+    "c9.write_results_once": "94af1d221ce65cc6b07c147cd2ec225bae7afc7cf5b94817ea5620880e628b46",
+    "c9.write_stall": "7851c4dd8b6f92b1a20db8e6bf736419d9878f4a43444c02d62eb1a73d73f3c0",
+    "cm.idle": "6c4c5e1d8cc89e4c76a490d3b03b0cc8af6ee630b12344e18578ae81691e8f23",
+    "cm.write_json_atomic": "1e9308681e9ed324aadbbf3b8e8bfc4bda352e9c0978a12d4d9278210853ac9b",
+    "cm.write_once_json": "96de340201f4213c580706a6c2f57a3addda7abf3019daa2f1868cd49c4eadb9",
+    "cw._cluster_sums": "f5f61ce926b7e7e9fd8223d2dd667341d37f67b44318e3c67c48f6eee6b83b97",
+    "cw.small_g_pvalue": "1a94b013ef2dbe475942d7c041c355f6c36411d4eac5c60a95816dfd1f71cd91"
+   },
+   "wallet": {
+    "note": "no CB15 job reads or stores a wallet field, a transaction hash (aggregated in memory and discarded) or the Data API side field",
+    "read": false
+   }
+  }
+ },
+ "rules_version": "cb15-rules-v1"
+}

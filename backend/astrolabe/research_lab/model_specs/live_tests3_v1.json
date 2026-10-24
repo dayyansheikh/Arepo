@@ -1,0 +1,99 @@
+{
+ "spec_id": "live_tests3_v1",
+ "status": "REGISTERED 2026-10-21 (E015 only: k_tests = [\"E015\"], Holm m = 1, LT3 13.14; SPEC_SHA256 pinned in live_tests3.py, LT3 13.18; flow and e019 census values left null on purpose)",
+ "design": "docs/research_lab/LIVE_TESTS_3.md (sections 1-9 as amended by section 13, the response to challenger R1)",
+ "experiments": ["E015", "E016", "E017", "E018", "E019"],
+ "experiments_note": "the drafted list; E016-E019 were dropped at their censuses before registration, uncounted (LT3 13.14, 7.6). Only the tests in k_tests are analysed (13.16 fix 1) and only their collectors run: surge needs E017, flow needs E016 or E018 (13.16 fix 2)",
+ "registered_utc": "2026-10-24T00:00:00Z",
+ "end_utc": "2026-11-14T00:00:00Z",
+ "analysis_not_before": "2026-11-15T12:00:00Z",
+ "k_tests": [
+  "E015"
+ ],
+ "k_tests_rule": "list of the primaries that survived their census gates (section 13.6), fixed before the pin; Holm m = len(k_tests); null = not filled (a pinned spec with null k_tests is refused)",
+ "code_sha256": {"live_tests3.py": "3ac52d7959e56c6a5472a34d112c61ca643c7f35ebe77b87388b5cba9c7b8c65", "live_tests3_analysis.py": "224b56036f98a2cfe3f92ffb6778e80c6b1131223cf20a0f548ca95fffaec955"},
+ "grid": {"grid0_utc": "2026-10-01T00:31:00Z", "grid_s": 7200, "slot_tol_s": 1800},
+ "eligibility": {
+  "spread_max": 0.1,
+  "rule": "section 1.4: binary, not closed, active, two-sided (0 < bid < ask <= 1) and spread <= 0.10 (Gamma spread, else ask - bid) at k-1 and k; one row per market_id and per condition_id (first in page order)"
+ },
+ "sports_rule": "cb17_census.is_sports_sidecar(fee_type, fee_category, series_slugs) on the sidecar of the capture; sidecar missing -> sports = -1 (unknown; excluded wherever the category is needed)",
+ "crypto_rule": {
+  "fee_type_prefix": "crypto",
+  "slug_regex": "(?i)(bitcoin|ethereum|solana|xrp|dogecoin|crypto|^btc|^eth-|^sol-|^bnb|^hype)",
+  "rule": "crypto = fee_type starts with 'crypto' or the first series slug matches slug_regex (section 13, finding 2)"
+ },
+ "series_key_rule": "first series slug if present, else 'event:' + event_id; crypto rows without a slug -> 'crypto:noslug' (one family: one spot driver)",
+ "move": {
+  "mid_lo": 0.02, "mid_hi": 0.98, "end_margin_h": 3, "min_abs_x": 0.01,
+  "ltp_tol": 1e-9, "vol_tol": 0.01,
+  "parallel_min": 0.005, "parallel_max_diff": 0.005, "one_sided_max": 0.0005,
+  "horizons": [1, 3],
+  "sweep_tags": [0, 1],
+  "class_rule": "never_traded (ltp absent at k-1 and k) > traded (L or V+) > ambiguous (V-, ltp present at k-1 and absent at k, or volume24hr unknown) > quote_only (not L, V0); geometry for every unit: parallel (sign db = sign da = sign x, both >= 0.005, |db - da| <= 0.005), one_sided (min(|db|,|da|) <= 0.0005), spread_change (opposite signs, both > 0.0005), same_side_unequal (rest)"
+ },
+ "e015": {"floor_c": 0.005, "floors": {"parallel": 5000, "traded": 20000, "events": 300, "days": 10}},
+ "e019": {
+  "min_members": 3, "high_b": 0.8, "low_b": 0.5,
+  "exclude_crypto": null,
+  "exclude_family": null,
+  "exclude_rule": "fixed from census C4 before the pin: if one series family holds > 50% of the high-breadth untraded non-sports units, exclude_crypto = true (and exclude_family = that family if it is not a crypto family); else false (section 13, finding 2)",
+  "floor_c": 0.005,
+  "floors": {"events_both": 150, "clusters_high": 50, "days": 10}
+ },
+ "surge": {
+  "mid_lo": 0.05, "mid_hi": 0.95, "end_margin_h": 48, "min_age_h": 48,
+  "surge_ratio": 3.0, "surge_min_abs": 500.0, "move_max": 0.01,
+  "horizons": [3, 12],
+  "pretrend_slots": [1, 13],
+  "rule": "S: vol_k >= 3 vol_{k-1} and vol_k - vol_{k-1} >= 500; A: S and max(|x_k|, |x_{k-1}|) < 0.01; SM: S and max(|x_k|, |x_{k-1}|) >= 0.01; S with x_{k-1} unknown -> lag_unknown (excluded, counted); baseline: not S (section 13, finding 8)"
+ },
+ "e017": {"floor_c": 0.01, "floors": {"A_units": 800, "events": 100, "blocks": 5}, "population": "neg_risk == 1 and sports == 0 (section 13, finding 7)"},
+ "flow": {
+  "window_s": 21600, "lag_s": 1800, "train_s": 300,
+  "x6_clip": 1.0, "x6_sd": 0.8578247852488129,
+  "end_margin_h": 7, "horizon_slots": 3, "sweep_tags": [0, 3],
+  "rv_steps": 12, "rv_min_diffs": 6,
+  "walk_min_dist": 0.0001,
+  "walk_rule": "a signed row is walked if the sidecar tick at the sample's capture is known and |p - tick * round(p / tick)| >= 1e-4 (section 13, finding 4); tick unknown -> the row is left out of W (numerator and denominator)",
+  "vol24_cap": null,
+  "vol24_cap_max_trunc_share": 0.02,
+  "trunc_label_share": 0.03,
+  "zW": {"centre": null, "scale": null},
+  "zH": {"centre": null, "scale": null},
+  "zN": {"centre": null, "scale": null},
+  "zSize": {"centre": null, "scale": null},
+  "zSPR": {"centre": null, "scale": null},
+  "zRV": {"centre": null, "scale": null},
+  "zHTE": {"centre": null, "scale": null},
+  "econ": {"W_upper_cut": null, "H_lower_cut": null, "min_abs_imb": 0.5},
+  "categories": "all (sports reported split; category is a parameter, section 13 finding 12)"
+ },
+ "e016": {"floors": {"units": 20000, "events": 500, "days": 10}, "floor_gross_c": 0.005, "underpowered_ref": 0.0029},
+ "e018": {"floors": {"units": 20000, "events": 500, "days": 10}, "floor_gross_c": 0.005, "underpowered_ref": 0.0029,
+          "underpowered_ref_rule": "a slope has no cent floor; the underpowered label uses the top of the planning MDE range per SD (0.0029, section 3) as the reference (section 13, item U)"},
+ "seeds": {"E015": 20261024, "E015_gate": 20261124, "E016": 20261025, "E016_gate": 20261125, "E017": 20261026,
+           "E018": 20261027, "E018_gate": 20261127, "E019": 20261028, "E019_gate": 20261128},
+ "size_check": {"worlds": 2000, "draws": 200, "seed": 20261020, "nominal": 0.05,
+                "rule": "rejection rate of each scenario in binding_for_pin (Freedman-Lane permutation gate, class-contrast world) under its simulated null must not exceed 0.05 + 1.645 * sqrt(0.05 * 0.95 / worlds) (not significantly above 5%); run on the code to be pinned, result recorded in section 13 and the spec before the pin",
+                "binding_for_pin": ["perm_iid", "perm_persistent", "perm_corr_control"],
+                "result": {"run": "q0475_lt3_size_check_r3 on the code pinned here, 2026-10-21; live_tests3_census/size_check_r3.json sha256 39d0978ba3f98fd34022d3294916b4501234d62616db431c1758387064a70f61, byte-identical to q0474 size_check_r2.json", "limit": 0.05801673834860538, "binding": {"perm_iid": 0.047, "perm_persistent": 0.048, "perm_corr_control": 0.0435}, "binding_ok": true, "flow_not_binding": {"flowperm_iid": 0.0465, "flowperm_collinear_0.7": 0.0495, "flowperm_ar0.6": 0.059}, "flowperm_ar0.6": "FAIL, recorded (13.15 item 4): blocks future flow-moderation use of this gate until redesigned and size-checked", "donor_reported_only": {"donor_iid": 0.0555, "donor_ar0.6": 0.0595, "donor_corr_control": 0.0585, "donor_collinear_control_0.5": 0.06, "donor_collinear_control_0.7": 0.067, "donor_lifecycle": 0.0665}},
+                "pin_rule": "LT3 13.15 (written before q0474 was read): the overall 'pass' field is ignored; any perm_* failure blocks the E015 pin with no redesign; a flowperm_* failure does not block the E015 pin (k fixed by the censuses before the result) but is recorded and blocks any future flow-moderation use of the same gate; donor_* reported only; a re-run on code with size_check() and its helpers byte-identical must reproduce q0474's perm_* rates exactly (any difference: investigate, never re-roll)"},
+ "gates": {"draws": 200, "alpha": 0.05, "perm_min_stratum": 4, "donor_min_units": 4, "donor_min_sep_s": 43200, "donor_min_donors": 2},
+ "labels": {"fraction": 0.5, "attrition_pp": 0.02, "late_loss_share": 0.02, "series_concentration": 0.5},
+ "census_gates": {
+  "C1_E015": {"parallel_21d": 20000, "traded_21d": 50000, "traded_share": [0.15, 0.60], "ltp_absent_max": 0.60, "mde_eff_max_c": 0.005,
+              "mde_assumptions": {"sd_c": 0.04, "deff_event": 3.0, "day_factor": 1.5, "t_sum": 3.388}},
+  "C2_E016": {"covered_W_interior_21d": 60000, "walked_share_min": 0.10, "ge4dec_on_grid_max": 0.20, "agreement_gap_max": 0.05, "agreement_min_rows": 500},
+  "C2_E018": {"H_interior_share_min": 0.40, "corr_zW_zH_max": 0.5, "agreement_gap_max": 0.05},
+  "C3_E017": {"A_21d": 2000, "events_21d": 1500, "mde_max": 0.01,
+              "mde_assumptions": {"sd_c": 0.06, "within": 1.1, "block_factor": 1.8, "t_sum": 3.643, "rule": "section 4 pessimistic end: t_sum * sd / sqrt(projected A events) * within * block (freeze fix 4)"}},
+  "C4_E019": {"high_21d": 3000, "events_both_21d": 300, "clusters_high_census": 50, "mde_max": 0.005,
+              "mde_assumptions": {"sd_c": 0.03, "within": 1.118034, "deff_series": 3.0, "day_factor": 2.0, "t_sum": 3.388, "rule": "section 6 pessimistic end: t_sum * sd / sqrt(projected high) * sqrt(1.25) * sqrt(deff) * day (freeze fix 4)"}}
+ },
+ "census_inputs": {
+  "C1_C3_C4_days_utc": ["2026-10-15", "2026-10-16"],
+  "C2_seal": "docs/research_lab/seals/lt3_census_inputs_C2.json",
+  "projection": "counts x 21 / census days (estimate); distinct events: E_2d + (E_2d - E_day1) x 19 (new-event rate of day 2 carried forward; estimate)"
+ }
+}

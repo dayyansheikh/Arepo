@@ -1,0 +1,37 @@
+{
+ "id": "q0008_hb2_run_h2",
+ "title": "SB2-J1b: HB2 declared screen on h2_main (13 tests, Stage-1 gate, BY label, placebo)",
+ "family": "flow",
+ "priority": 68,
+ "expected_value": "Q2/Q3/Q4/Q6: which moderators of flow and liquidity advance to frozen replication",
+ "data": [
+  "history/h2_main/battery1/features.parquet",
+  "history/h2_main/battery2/features2*.parquet",
+  "backend/astrolabe/research_lab/model_specs/hb2_v1.json"
+ ],
+ "resources": {
+  "mem_mb": 2000,
+  "cpu": 1
+ },
+ "depends_on": [
+  "q0007c_hb2_fitspec_h2"
+ ],
+ "argv": [
+  "scripts/run_hypothesis_battery2.py",
+  "run",
+  "--run-id",
+  "h2_main",
+  "--n-boot",
+  "2000",
+  "--threads",
+  "1"
+ ],
+ "timeout_s": 14400,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/history/h2_main/battery2/results_hb2.json",
+  "docs/research_lab/trials.jsonl (13 history_battery2 lines + count line + placebo lines)"
+ ],
+ "next_action": "Claude session: check placebo lines are null first; record results; if F/L advanced, q0009-q0010; if X advanced, q0014-q0015",
+ "notes": "spec committed from host copy (spec_sha256 23cbdd0d..., declaration 567e2e52..., signs = sign(disc_beta) for all 13); refuses unless committed spec hash matches; feature hashes checked at run"
+}

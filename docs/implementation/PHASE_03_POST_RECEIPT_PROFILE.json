@@ -1,0 +1,483 @@
+{
+  "decision": "D107",
+  "scope": "32 ordinal-spread post-receipt processing diagnostic with warm build checks and synthetic durable copies; no network, original journal mutation or admission",
+  "profile_overhead_included": true,
+  "elapsed_ns": 3664022250,
+  "checks": [
+    {
+      "ordinal": 1,
+      "capture_id": "354e1692-d1d5-40c8-a6ac-aad48e36972a",
+      "raw_hash": "ffda99f0369ba2c321ad253a0eb1ef7dc298a440f311c5f32092f76a6457584c",
+      "page_hash": "53be8a4e4f575136d2059613bf2907db97ba8b6805045389daa84de03db19a01"
+    },
+    {
+      "ordinal": 90,
+      "capture_id": "69d62530-d107-47a9-a797-5509f416c74f",
+      "raw_hash": "d369f96e65c1e275b49f9dac87b362f8b407ea6cd5142bb7caace11fd7f8812a",
+      "page_hash": "d854efc10de65548ce62423c358331760e1e8c55591429a079b4e39225a458d2"
+    },
+    {
+      "ordinal": 179,
+      "capture_id": "9d6c4360-8b55-41bb-b9a4-873d45250d7a",
+      "raw_hash": "79efe76d4d7ecaf2e48906da1c7a07944c6bf4c07ebd78139ef7444277776e16",
+      "page_hash": "9c9c2cc873e72ebc6dccb9c99674da23380c2a782f893bb8b847dac8747ee11b"
+    },
+    {
+      "ordinal": 268,
+      "capture_id": "f0de990e-cb3a-4071-9c39-aff9e5846ad8",
+      "raw_hash": "4db68c7520eecf07e52e73497d2b66d8d2959730c6660c199f4546f64fce3ef7",
+      "page_hash": "8aced62e6dcb9b4104abd3afedd95e55cb9de2a2fd329e952eb2c520fe51d374"
+    },
+    {
+      "ordinal": 357,
+      "capture_id": "5e4a9c74-3dac-49e8-b6e3-b4e0d540607a",
+      "raw_hash": "a7b3e22ec40fc33a6dd71653fdf07c7ccd68ff5086fc6681ac7fd37820284a6e",
+      "page_hash": "745e03a3686ddcefa2e92833a1b31bf1d137f49868018d5d8041ffbe9f0b7cab"
+    },
+    {
+      "ordinal": 446,
+      "capture_id": "9ec4ab98-8dba-42ef-af07-89d1431391a7",
+      "raw_hash": "a8f1d38edfeaf1539033828e5aa2decf55215c354a6080685d45fe66162a7d2e",
+      "page_hash": "9a01b1e8a12cb674a769da27ea77c57adf571dee55f53a7b3b102a098bd3d851"
+    },
+    {
+      "ordinal": 535,
+      "capture_id": "16a02d2f-db8c-4324-868c-b022fde79ef8",
+      "raw_hash": "1b9c6a9a9a9d655d49738fb3e1671789773accfa3d80ab314f82cdc195ed7f05",
+      "page_hash": "d58b3ff3192d632806a69b2907c1595face69ae897d9050cdc159f535ecec7a3"
+    },
+    {
+      "ordinal": 624,
+      "capture_id": "c5cacc39-afa1-44fc-98a0-96087406df6c",
+      "raw_hash": "9c8fc1a2dbef329e544c7ad0873ba122d061fd7f101d3ce87ad81dcc94274e9b",
+      "page_hash": "a1620658dd8c707cf3e5d46b8f1c68e90d0d5148259d798bc1920b46b5b3fce3"
+    },
+    {
+      "ordinal": 714,
+      "capture_id": "13c74a8e-2190-486e-bb47-07f5bd8fcda4",
+      "raw_hash": "fa24822b2d11fe8f788a0402e7d295a2f347201f5d196f028cf5f2b67efeed4b",
+      "page_hash": "c99057e2dc3480e89b97357b8d49aafa25f3700814a019b78310c2f369542cb6"
+    },
+    {
+      "ordinal": 803,
+      "capture_id": "3262f4b7-faf1-472f-9da0-c103ff86f93b",
+      "raw_hash": "22fef72c39dd40dad720b761d2c1ffea9a2278d4749eafba3896e0e08fbce2ad",
+      "page_hash": "9211f931ea0ddf1cfd6e48c599aa310768e342cc592b40392ed38ceb01b0e833"
+    },
+    {
+      "ordinal": 892,
+      "capture_id": "44837db2-8f84-4528-8a0e-97b56daa58c7",
+      "raw_hash": "a6a646e78d5229d985422ffc237dc80fad9009ba0e12dc785ee5bb87005d07fc",
+      "page_hash": "f1635a93d16569684107ec82e27edae5a5ab1be593c719f266cbeb26c2433ba1"
+    },
+    {
+      "ordinal": 981,
+      "capture_id": "262e9e3d-1e40-4705-82e5-1ee5fa461892",
+      "raw_hash": "0d6084d694ef5748889613ae99f31af11a8da0711ff1313215fc7a74d97f5a0f",
+      "page_hash": "37df540e389146e932c92bd8eedf3b2dd9e1b040f03d885c433c681296c6ea04"
+    },
+    {
+      "ordinal": 1070,
+      "capture_id": "2a5b9029-85c9-4e8d-b8a1-2172864653f2",
+      "raw_hash": "d2b7850f14582e1c6835088c4ffa9cd9d2cab463c75da0fba8aa748aff84a679",
+      "page_hash": "3ea23f88da1950baf97dde42e6e20808e895ef91fef92ce9825cf1b930d2fc91"
+    },
+    {
+      "ordinal": 1159,
+      "capture_id": "10770c21-bf51-446e-acec-822edeeb9fab",
+      "raw_hash": "03781999deb6c06e5ad4717608e992845d765914b51e8e5761f0a2d6dccac0f6",
+      "page_hash": "ef0f1202e769f43d3ad17cf276f23e6c3734ee82b53458162e06e525f800901d"
+    },
+    {
+      "ordinal": 1248,
+      "capture_id": "1e11483b-7c15-42a2-b08b-56d38775967e",
+      "raw_hash": "b04bb662e8e94c68477dac4b2978a5b049af6d42b6fea330d73a1a46328f38db",
+      "page_hash": "f91e508a6faa38bbe4eb5b3ce55747d34a793f58cbc8ce3cfd69a07a8e6a2d78"
+    },
+    {
+      "ordinal": 1337,
+      "capture_id": "9005a5c2-b6fe-43c4-8aeb-efb38b58a405",
+      "raw_hash": "e720ed43547c40225fc5019132cd692f8ceef43ba776320764c0b6e7a0131458",
+      "page_hash": "2eb52cda26647aab7d0f7b352909404e552c459b10eaa4df1fa278bf1f4d10c9"
+    },
+    {
+      "ordinal": 1426,
+      "capture_id": "c2a3e94d-a8d8-4caa-86f0-c10c691a73c1",
+      "raw_hash": "7ea7f0659657d64b32631b5f28aaf0fe6d2062f796feb80e5e8dc70938e9428c",
+      "page_hash": "616efcf79c59a56fc00bf5c8a60713e09526e2589f6b320cf360ced38b9b7ef1"
+    },
+    {
+      "ordinal": 1515,
+      "capture_id": "758da7dd-aabd-43db-9c56-dcf4d145af15",
+      "raw_hash": "fc8482c01b1d3bfa0148d04682a97e7462da750bde2332bcc6316963e1b21690",
+      "page_hash": "2bf33e25c1016ef34c390171cf03e4c038e42f07527b1f07a5d60e7536a4ce45"
+    },
+    {
+      "ordinal": 1604,
+      "capture_id": "f446de38-0ce1-40b6-a8c1-25d1d73fd18f",
+      "raw_hash": "55132ece8751908761a3a91b3853f7a787ad2a0911e1b5d08885c116e9cb2328",
+      "page_hash": "cf9dbee0b5b0795ad372658d7ed918d2274f899f93cda6c5f3f8ce187bf33075"
+    },
+    {
+      "ordinal": 1693,
+      "capture_id": "0d7c2d61-c222-4c89-b201-68b208bf0ac4",
+      "raw_hash": "ca887a92a7520f1806fc3d41b467f4f4bca88fe6f33b5ceff184f6f144c8fc35",
+      "page_hash": "31d99896c2866678da7e0688c614cf7bc737c204a95935003b816f8dae8b0d45"
+    },
+    {
+      "ordinal": 1782,
+      "capture_id": "951af079-2f1e-4cca-9fdc-925be5e1aff6",
+      "raw_hash": "635a893d979ace449293a7e18d7ab4b3901bf2ad4344d3faefdc0d730f580365",
+      "page_hash": "e03ed43fbcceec99c9567723958821080b38edbf3d27924d767fa0d837781955"
+    },
+    {
+      "ordinal": 1871,
+      "capture_id": "7ecfcd40-e237-4886-a539-7d4167199ad1",
+      "raw_hash": "c1d49d88b86b5624bd7c3bd7891743ab2015cd27b41979f4f404d3a547111b66",
+      "page_hash": "ba53ce7742b3c2ea62cfa86232ea1c09c868c8839f316f97ff218e2650febf7a"
+    },
+    {
+      "ordinal": 1960,
+      "capture_id": "870068ba-3b34-4d70-93be-4ae9bdbd5260",
+      "raw_hash": "a31653f5f39c0fdfcb1af4370c44af60af4f783d27aec3aecf2b58496461f285",
+      "page_hash": "c30e3d9371545b038af9f787546f09915d0101507d035728103d6de77213dca2"
+    },
+    {
+      "ordinal": 2049,
+      "capture_id": "d14ecfb7-01cb-49ac-bd37-ac9c279e23fd",
+      "raw_hash": "8a02acb33f53242c620020d933baed045e8817a04508133998483798714931b6",
+      "page_hash": "3d46b0d7cbe8d5ee4ffb681f5651cf4f16d49e46957d0ff172843cd7d411e3c1"
+    },
+    {
+      "ordinal": 2139,
+      "capture_id": "8a7eebc9-6036-4463-85e1-4197196bdd81",
+      "raw_hash": "cfea19b96e978b0bc1201b56871b2f464a3cb53f91da3bc2a331fdfcf6af166d",
+      "page_hash": "e97da3ea46a776a7b6c46f2b5bbc4771dd90e077f60469f3c20abc5abfc3152f"
+    },
+    {
+      "ordinal": 2228,
+      "capture_id": "599d70f3-5300-4756-8924-176be576bd4c",
+      "raw_hash": "f315263ea5587c1d715a29652ad7ffff6838ec1da878286dcbcf90eaf67b5e72",
+      "page_hash": "8afd6626e6e1de5294893ec823eaa21b83d05fbfa2b917a42c6b651b7d555a36"
+    },
+    {
+      "ordinal": 2317,
+      "capture_id": "daab680b-8a07-4ac6-8b1f-39f037420370",
+      "raw_hash": "a5b1491ec847d213d3376428d504038db29cb4da2e74b2c7c679331b9ee42ff5",
+      "page_hash": "4e26b8d7e68e9341906519b28d4f1bd6a79bc47d5e88e2dda318cf56167e084e"
+    },
+    {
+      "ordinal": 2406,
+      "capture_id": "cd49a319-0376-448b-94be-c3c9269f677e",
+      "raw_hash": "fcbee01c75742d055f324c7521ba5f38a3ad2a23c0099e407b7c2d7153561fce",
+      "page_hash": "d8ca1e06786ed1ff2d3574c1e6e6347519872544f1f13a42561df8e7a6230e9f"
+    },
+    {
+      "ordinal": 2495,
+      "capture_id": "e629cb98-4dcc-4612-907a-ca4a52076c01",
+      "raw_hash": "697e3d2492f14658607ef06db177a36b1802594176ec506f0d64cd802e7a11de",
+      "page_hash": "b57e4d6dd9b31e32e1a507d116e2d371b1e6a8719f0c10352c530ae902143a99"
+    },
+    {
+      "ordinal": 2584,
+      "capture_id": "10a7471f-6623-4e59-b326-70196b034a1b",
+      "raw_hash": "20f9ac449eeb7bc15cd74ec29bf3d80eda363744e7e4764b79cca203cd9c0796",
+      "page_hash": "b5b82ae5ec20ac1a93b5fccef9273e8eb5760636a20b4e687e12a1ff76da3c17"
+    },
+    {
+      "ordinal": 2673,
+      "capture_id": "8526e31b-e430-400f-ab06-ab12a2cb78d7",
+      "raw_hash": "a9c6dff12c7c1f0c374d9ce12fb5dc84bc737edbeebedeeede9ad2a09145fa26",
+      "page_hash": "a65240a2ca28c1548370d76a53856d36f4620e52983200c4210659003b017bf1"
+    },
+    {
+      "ordinal": 2762,
+      "capture_id": "3dc73cfc-deab-4bc2-a7fc-58d4883d7dc8",
+      "raw_hash": "3e9e6cd26e429321c5a0c639262ec582cccf5fca06cd096a392c9e3c63416ac1",
+      "page_hash": "9638edb9722bc166316c7136f66385b7cda1f436ed0cd55bc14be6d5ffc270da"
+    }
+  ],
+  "functions": [
+    {
+      "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/research_panel/frame.py",
+      "line": 252,
+      "function": "_page_facts",
+      "calls": 32,
+      "self_seconds": 0.007962375,
+      "cumulative_seconds": 1.756501458
+    },
+    {
+      "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/research_panel/frame.py",
+      "line": 201,
+      "function": "parse_page",
+      "calls": 32,
+      "self_seconds": 0.026226425,
+      "cumulative_seconds": 1.748539083
+    },
+    {
+      "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/types.py",
+      "line": 76,
+      "function": "canonical_json",
+      "calls": 6476,
+      "self_seconds": 0.012737111,
+      "cumulative_seconds": 1.103030036
+    },
+    {
+      "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/types.py",
+      "line": 59,
+      "function": "canonical_value",
+      "calls": 361705,
+      "self_seconds": 0.415282729,
+      "cumulative_seconds": 1.05357791
+    },
+    {
+      "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/json/__init__.py",
+      "line": 183,
+      "function": "dumps",
+      "calls": 9666,
+      "self_seconds": 0.02217923,
+      "cumulative_seconds": 1.026476011
+    },
+    {
+      "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/json/encoder.py",
+      "line": 183,
+      "function": "encode",
+      "calls": 9666,
+      "self_seconds": 0.021056613000000002,
+      "cumulative_seconds": 0.995706513
+    },
+    {
+      "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/json/encoder.py",
+      "line": 205,
+      "function": "iterencode",
+      "calls": 9666,
+      "self_seconds": 0.6837137010000001,
+      "cumulative_seconds": 0.9702970240000001
+    },
+    {
+      "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/json/__init__.py",
+      "line": 299,
+      "function": "loads",
+      "calls": 6668,
+      "self_seconds": 0.022974636000000003,
+      "cumulative_seconds": 0.831419651
+    },
+    {
+      "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/json/decoder.py",
+      "line": 332,
+      "function": "decode",
+      "calls": 6668,
+      "self_seconds": 0.017281036,
+      "cumulative_seconds": 0.756207945
+    },
+    {
+      "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/capture.py",
+      "line": 79,
+      "function": "_strict_json",
+      "calls": 6572,
+      "self_seconds": 0.008602291,
+      "cumulative_seconds": 0.7526974780000001
+    },
+    {
+      "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/json/decoder.py",
+      "line": 343,
+      "function": "raw_decode",
+      "calls": 6668,
+      "self_seconds": 0.437291374,
+      "cumulative_seconds": 0.7284781450000001
+    },
+    {
+      "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/capture.py",
+      "line": 71,
+      "function": "_json_bytes",
+      "calls": 96,
+      "self_seconds": 0.00088933,
+      "cumulative_seconds": 0.7017406620000001
+    },
+    {
+      "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/types.py",
+      "line": 72,
+      "function": "<dictcomp>",
+      "calls": 38504,
+      "self_seconds": 0.125695575,
+      "cumulative_seconds": 0.7005844750000001
+    },
+    {
+      "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/source_parsers.py",
+      "line": 82,
+      "function": "gamma_identity",
+      "calls": 3190,
+      "self_seconds": 0.049881717000000006,
+      "cumulative_seconds": 0.6790021900000001
+    },
+    {
+      "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/types.py",
+      "line": 68,
+      "function": "<listcomp>",
+      "calls": 25584,
+      "self_seconds": 0.017953409,
+      "cumulative_seconds": 0.602316795
+    },
+    {
+      "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/capture.py",
+      "line": 353,
+      "function": "verify_capture",
+      "calls": 32,
+      "self_seconds": 0.0031299780000000003,
+      "cumulative_seconds": 0.537659334
+    },
+    {
+      "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/admission.py",
+      "line": 84,
+      "function": "content_hash",
+      "calls": 6380,
+      "self_seconds": 0.014356260000000001,
+      "cumulative_seconds": 0.45587609300000004
+    },
+    {
+      "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/research_panel/build_identity.py",
+      "line": 12,
+      "function": "verified_panel_build",
+      "calls": 32,
+      "self_seconds": 0.013508821,
+      "cumulative_seconds": 0.443443958
+    },
+    {
+      "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/source_run.py",
+      "line": 92,
+      "function": "_persist",
+      "calls": 32,
+      "self_seconds": 0.000546253,
+      "cumulative_seconds": 0.394914294
+    },
+    {
+      "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/build_identity.py",
+      "line": 41,
+      "function": "verified_build",
+      "calls": 32,
+      "self_seconds": 0.043285260000000006,
+      "cumulative_seconds": 0.31783020900000003
+    },
+    {
+      "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/capture.py",
+      "line": 80,
+      "function": "pairs",
+      "calls": 95199,
+      "self_seconds": 0.291186771,
+      "cumulative_seconds": 0.291186771
+    },
+    {
+      "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/types.py",
+      "line": 22,
+      "function": "exact_decimal",
+      "calls": 61109,
+      "self_seconds": 0.146866563,
+      "cumulative_seconds": 0.21949084700000002
+    },
+    {
+      "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/pathlib.py",
+      "line": 1046,
+      "function": "read_bytes",
+      "calls": 2816,
+      "self_seconds": 0.005376378,
+      "cumulative_seconds": 0.199421075
+    },
+    {
+      "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/build_identity.py",
+      "line": 76,
+      "function": "<dictcomp>",
+      "calls": 32,
+      "self_seconds": 0.000289501,
+      "cumulative_seconds": 0.171328543
+    },
+    {
+      "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/importlib/metadata/__init__.py",
+      "line": 1001,
+      "function": "version",
+      "calls": 128,
+      "self_seconds": 0.00028512400000000004,
+      "cumulative_seconds": 0.171039042
+    },
+    {
+      "file": "~",
+      "line": 0,
+      "function": "<built-in method builtins.all>",
+      "calls": 41694,
+      "self_seconds": 0.05290804,
+      "cumulative_seconds": 0.17078121100000002
+    },
+    {
+      "file": "~",
+      "line": 0,
+      "function": "<built-in method builtins.isinstance>",
+      "calls": 1527212,
+      "self_seconds": 0.15370160500000002,
+      "cumulative_seconds": 0.15396573600000002
+    },
+    {
+      "file": "~",
+      "line": 0,
+      "function": "<built-in method _hashlib.openssl_sha256>",
+      "calls": 11906,
+      "self_seconds": 0.14832673100000002,
+      "cumulative_seconds": 0.14832673100000002
+    },
+    {
+      "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/importlib/metadata/__init__.py",
+      "line": 629,
+      "function": "version",
+      "calls": 128,
+      "self_seconds": 0.0006580070000000001,
+      "cumulative_seconds": 0.139669249
+    },
+    {
+      "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/importlib/metadata/__init__.py",
+      "line": 602,
+      "function": "metadata",
+      "calls": 128,
+      "self_seconds": 0.0008680910000000001,
+      "cumulative_seconds": 0.13795329
+    },
+    {
+      "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/email/__init__.py",
+      "line": 32,
+      "function": "message_from_string",
+      "calls": 128,
+      "self_seconds": 0.0007817340000000001,
+      "cumulative_seconds": 0.115826124
+    },
+    {
+      "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/email/parser.py",
+      "line": 59,
+      "function": "parsestr",
+      "calls": 128,
+      "self_seconds": 0.0014235110000000001,
+      "cumulative_seconds": 0.114944761
+    },
+    {
+      "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/email/parser.py",
+      "line": 41,
+      "function": "parse",
+      "calls": 128,
+      "self_seconds": 0.0008002500000000001,
+      "cumulative_seconds": 0.11352125
+    },
+    {
+      "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/types.py",
+      "line": 70,
+      "function": "<genexpr>",
+      "calls": 297534,
+      "self_seconds": 0.09390933400000001,
+      "cumulative_seconds": 0.11328562800000001
+    },
+    {
+      "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/capture.py",
+      "line": 75,
+      "function": "_digest",
+      "calls": 3446,
+      "self_seconds": 0.004933075,
+      "cumulative_seconds": 0.11101348700000001
+    }
+  ],
+  "script": "import cProfile,pstats,json,time,tempfile,hashlib\nfrom pathlib import Path\nfrom astrolabe.research_panel.frame import _page_facts\nfrom astrolabe.research_panel.build_identity import verified_panel_build\nfrom astrolabe.feature_store.capture import verify_capture,_json_bytes\nfrom astrolabe.feature_store.source_run import _pair,_persist\nroot=Path('data-dumps/fs2_capture_2413ff8c20c04a4ba31763fdadd3a84e').resolve();report=json.loads((root/'frame_report.json').read_text());pages=report['pages'];indices=sorted(set(round(i*(len(pages)-1)/31) for i in range(32)))\nverified_panel_build();profile=cProfile.Profile();checks=[]\nwith tempfile.TemporaryDirectory(prefix='arepo_d107_synthetic_') as scratch:\n start=time.perf_counter_ns();profile.enable()\n for index in indices:\n  item=pages[index];folder=root/item['capture_id'];capture=verify_capture(folder)\n  verified_panel_build();facts=_page_facts(capture,100);page,ack=_pair(folder,'frame_page')\n  assert page['facts']==json.loads(_json_bytes(facts))\n  output=Path(scratch)/str(index);output.mkdir();_persist(output,'synthetic_frame_page',page)\n  checks.append({'ordinal':item['ordinal'],'capture_id':item['capture_id'],'raw_hash':item['raw_hash'],'page_hash':ack['payload_hash']})\n profile.disable();elapsed=time.perf_counter_ns()-start\nstats=pstats.Stats(profile);rows=[{'file':f,'line':l,'function':n,'calls':nc,'self_seconds':tt,'cumulative_seconds':ct} for (f,l,n),(cc,nc,tt,ct,callers) in stats.stats.items()]\ne={'decision':'D107','scope':'32 ordinal-spread post-receipt processing diagnostic with warm build checks and synthetic durable copies; no network, original journal mutation or admission','profile_overhead_included':True,'elapsed_ns':elapsed,'checks':checks,'functions':sorted(rows,key=lambda x:-x['cumulative_seconds'])[:35],'script':Path(__file__).read_text()}\nPath('docs/implementation/PHASE_03_POST_RECEIPT_PROFILE.json').write_text(json.dumps(e,indent=2)+'\\n');print(json.dumps(e['functions'][:12],indent=2))\n"
+}

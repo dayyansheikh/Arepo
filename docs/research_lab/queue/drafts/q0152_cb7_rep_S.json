@@ -1,0 +1,39 @@
+{
+ "id": "q0152_cb7_rep_S",
+ "title": "CB7-S: Stage 2 (S1-rep on textorig units, text as of the origin; S2 NO bought at the recorded ask in the high-C group; Holm over the CB7 Stage-2 set)",
+ "family": "creative_batch_7",
+ "priority": 38,
+ "expected_value": "out-of-time replication (L2) of the specificity discount and a recorded-ask economic test (L1)",
+ "data": [
+  "cb7_extract/textorig",
+  "creative_batch7/text_rep",
+  "creative_batch7/S_screen/results.json",
+  "seals/h8_text_SEAL.json (cut points)",
+  "model_specs/cb7_v1.json"
+ ],
+ "resources": {
+  "mem_mb": 1200,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0151_cb7_text_rep_fetch",
+  "q0148_cb7_screen_S"
+ ],
+ "argv": [
+  "scripts/run_cb7.py",
+  "replicate",
+  "--family",
+  "S",
+  "--n-boot",
+  "2000"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch7/S_rep/results.json",
+  "trials.jsonl (cb7_replication x2 + count line + placebos)"
+ ],
+ "next_action": "batch Holm; ledger; Stage P-S registration if passed",
+ "notes": "CREATIVE_BATCH_7.md CB7-S. DRAFT. Commit only if S1 advanced. Refuses before T7_S_out or without the committed Stage-1 S results file. S2 has no Stage 1: a pass is labelled single stage on post-freeze data (L1) and still counts in the Holm k."
+}

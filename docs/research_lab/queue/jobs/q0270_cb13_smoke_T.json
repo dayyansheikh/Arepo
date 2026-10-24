@@ -1,0 +1,33 @@
+{
+ "id": "q0270_cb13_smoke_T",
+ "title": "CB13-T smoke, no network (common + T rules part hashes; refusals: J4-R window at both edges, T HOLDOUT before seal, HOLDOUT mark quotes before T13_T_rep, surprise_live, cross_venue_live, e00*, trade_samples, monitor alerts/scores/outcomes/wallets, forbidden fields side/wallet_*/ctx_chg_1h/chg_1h/uma; capture-print join reproduces probe H8 on 2 SCREEN captures and reports touch-consistency band counts; labeller UNKNOWN <= 5% on SCREEN titles); counts only",
+ "family": "creative_batch_13",
+ "priority": 19,
+ "expected_value": "go/no-go for every CB13 source",
+ "data": [
+  "live_trades/trades-202610{12..15}.jsonl (whitelisted fields)",
+  "snapshots/ (2 SCREEN captures, whitelisted columns)"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb13.py",
+  "smoke",
+  "--part",
+  "T",
+  "--rules",
+  "../docs/research_lab/seals/cb13_rules.json"
+ ],
+ "timeout_s": 1200,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch13/smoke_T.json",
+  "trials.jsonl (cb13_descriptive)"
+ ],
+ "next_action": "PASS: labeller audit (GL); FAIL: T not testable (source), counted",
+ "notes": "CREATIVE_BATCH_13.md CB13-S. DRAFT. No network (round 1 item 11). No side, wallet or hash stored. Starts outside :31-:55 of even hours. Rules part sha256 (seals/cb13_rules.json, code of 2026-10-19 after the freeze-check round 1 fixes (CREATIVE_BATCH_13.md section 11)): common 4553488ed29ece7b71acad8bb4c8646728e5897c3650218410583d813f373c52, LABELLER 6801e2150d4a772b61523aa1ed1548b485255f12099fb52c1154afe6b22cfa0c, T 5e0dc8948bb03e611f0da047dcfb110a8a1714c3f653726e15478425ea8483cd. CB13 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes. | PROMOTED 2026-10-19 ~04:40Z by the autopilot after the CB13 verify round (science-reviewer: T smoke GO; R smoke/data GO_WITH_FIXES, smoke itself unaffected; the smoke file carries no rules sha, so the coming reseal for new defects A/B does not invalidate it)."
+}

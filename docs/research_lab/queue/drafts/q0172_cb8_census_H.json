@@ -1,0 +1,34 @@
+{
+ "id": "q0172_cb8_census_H",
+ "title": "CB8-H: census of window 1 (snapshots, concentrated market-days, rank-1 exits, matched exits with marks, events, days, holders, OI inconsistency, hash-join rate; GH); counts only",
+ "family": "creative_batch_8",
+ "priority": 40,
+ "expected_value": "GH and the H1 MDE",
+ "data": [
+  "data-dumps/research_lab/creative_batch8/holders (window 1)"
+ ],
+ "resources": {
+  "mem_mb": 600,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0163_cb8_holders_prints"
+ ],
+ "argv": [
+  "scripts/run_cb8.py",
+  "census",
+  "--family",
+  "H",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch8/census_H.json (write-once)",
+  "trials.jsonl (cb8_descriptive)"
+ ],
+ "next_action": "insert counts into CREATIVE_BATCH_8.md; q0173 after the CB8 freeze",
+ "notes": "CREATIVE_BATCH_8.md section 2.7 and 'W and H analysis implementation notes (2026-10-17)'. DRAFT. Needs the committed seals/cb8_h_analysis_rules_v4.json; snapshot and prints manifests must carry the holders rules v6 hash (e7e72f4c...) and the pinned fingerprint; every file read is re-hashed. Exit 75 before T8_H1_end + 30 h (from snap/t8_h1_start.json) and while a window-1 snapshot day has no prints day and the prints run is not terminal. Marks are read as availability only (MarkBook census mode refuses mids): no mark-out or contrast. GH fail or no rank-1 hash joining a print wallet -> H1 not testable (source / GH), counted at q0173. Exit 75 on headroom (cap 14). | 2026-10-17 15:35Z autopilot: data-dumps headroom guard 14 -> 40 GiB (ops only, not a declared argument): the user grew the host boot volume to 100 GB (root 89 GB, 60 GB free); collector cap 45 GiB, 4 GB free-disk guard unchanged."
+}

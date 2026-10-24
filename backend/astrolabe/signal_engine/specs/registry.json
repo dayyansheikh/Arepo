@@ -1,0 +1,189 @@
+{
+ "schema": "se-registry-v1",
+ "initial_champion": "se0_champion_lr_mm",
+ "promotion_rule": "se-promotion-v2",
+ "models": [
+  {
+   "model_id": "se0_champion_lr_mm",
+   "file": "se0_champion_lr_mm.json",
+   "spec_sha256": "19549cb403b41de6974a8f3e7acf7378baf433779b16cae46d367fe6fb5ff919",
+   "status": "active",
+   "added_utc": "2026-10-21T00:00:00Z"
+  },
+  {
+   "model_id": "se1_lgbm_mm",
+   "file": "se1_lgbm_mm.json",
+   "spec_sha256": "d8c2598a36446515f5fde78bb037137e1b63d3483186c12cffee7b8a611b4c1c",
+   "status": "active",
+   "added_utc": "2026-10-21T00:00:00Z"
+  },
+  {
+   "model_id": "se2_lr_flow",
+   "file": "se2_lr_flow.json",
+   "spec_sha256": "c7e6d333ba695f5858b9b05444d0e4795ffdc3d91f9ffa72445d656588dff8be",
+   "status": "active",
+   "added_utc": "2026-10-21T00:00:00Z"
+  },
+  {
+   "model_id": "se3_lr_book",
+   "file": "se3_lr_book.json",
+   "spec_sha256": "0d5fd8868d1e5e009f539829a4ac1a4bc208d92d687ed5dbc47e5752b4d5c561",
+   "status": "active",
+   "added_utc": "2026-10-21T00:00:00Z"
+  },
+  {
+   "model_id": "se4_lr_xvenue",
+   "file": "se4_lr_xvenue.json",
+   "spec_sha256": "05745eb139478f79acadb3cbef46f110a333b5b8aa7f5458ae62a8e92780f94f",
+   "status": "active",
+   "added_utc": "2026-10-21T00:00:00Z"
+  },
+  {
+   "model_id": "se5_lr_tte",
+   "file": "se5_lr_tte.json",
+   "spec_sha256": "8bd27f00630afb7b51a98d2e9f94539cb32949b40bfc5159fa247b12e9c914ff",
+   "status": "active",
+   "added_utc": "2026-10-21T00:00:00Z"
+  },
+  {
+   "model_id": "se6_lr_wallet",
+   "file": "se6_lr_wallet.json",
+   "spec_sha256": "2768bc85a64db11e3b07f81605f1da23d8973456df4f7cc4a87c9110fb28e6da",
+   "status": "active",
+   "added_utc": "2026-10-21T00:00:00Z"
+  },
+  {
+   "model_id": "se7_lgbm_all",
+   "file": "se7_lgbm_all.json",
+   "spec_sha256": "831b7162aaec1ad306425219c41639e275fe4f656f0ae374e82bc264cdf319a9",
+   "status": "active",
+   "added_utc": "2026-10-21T00:00:00Z"
+  },
+  {
+   "model_id": "se8_lr_event",
+   "file": "se8_lr_event.json",
+   "spec_sha256": "752e150be4076461420effe233899ca743a3f1eb323d623b22caee485b4bfdaa",
+   "status": "active",
+   "added_utc": "2026-10-21T04:30:00Z"
+  },
+  {
+   "model_id": "se9_lr_rewards",
+   "file": "se9_lr_rewards.json",
+   "spec_sha256": "09fadab8e652aa9eb420d2a180edb5dd56ed22e0af743de85d4a610502dc1917",
+   "status": "active",
+   "added_utc": "2026-10-21T05:00:00Z"
+  },
+  {
+   "model_id": "se10_lgbm_event",
+   "file": "se10_lgbm_event.json",
+   "spec_sha256": "4e79ec7b00d05df8a596057511713c2d1d37ee6b28c25d169c2a5c1700ae8bf8",
+   "status": "active",
+   "added_utc": "2026-10-21T10:00:00Z"
+  },
+  {
+   "model_id": "se11_lgbm_flow",
+   "file": "se11_lgbm_flow.json",
+   "spec_sha256": "433d42e951b1b6a86778298f30c840a8e06261d50209313d869cbba7dce912c1",
+   "status": "active",
+   "added_utc": "2026-10-21T10:15:00Z"
+  },
+  {
+   "model_id": "se12_lgbm_tte",
+   "file": "se12_lgbm_tte.json",
+   "spec_sha256": "edcc40f72805bfe2a229000c69676c9477334ba8e6806a71c3ac2da81aa8d637",
+   "status": "active",
+   "added_utc": "2026-10-21T10:15:00Z"
+  },
+  {
+   "model_id": "se13_lgbm_xvenue",
+   "file": "se13_lgbm_xvenue.json",
+   "spec_sha256": "f4f1dffcee299c783e2a48aed9e2ea9e2a11f9267845f49d2952d01d0fdbf22e",
+   "status": "active",
+   "added_utc": "2026-10-21T10:15:00Z"
+  },
+  {
+   "model_id": "se14_lgbm_movetype",
+   "file": "se14_lgbm_movetype.json",
+   "spec_sha256": "4ea00818f6211cc44ec164dbcd3d10d3ce0768c3a9494abb73591d7dddd6f1e4",
+   "status": "active",
+   "added_utc": "2026-10-21T14:30:00Z"
+  },
+  {
+   "model_id": "se15_lgbm_surprise",
+   "file": "se15_lgbm_surprise.json",
+   "spec_sha256": "ead98d1ab41f1ec21be0ac64c4859734b059e3d971dcc8f7880d4c93bf33d692",
+   "status": "active",
+   "added_utc": "2026-10-21T15:00:00Z"
+  },
+  {
+   "model_id": "se16_lgbm_participation",
+   "file": "se16_lgbm_participation.json",
+   "spec_sha256": "5f458bc4b74c6b02efcd6022077211297c194ea49fc5214c4f052d2bd0bf2560",
+   "status": "active",
+   "added_utc": "2026-10-21T16:00:00Z"
+  },
+  {
+   "model_id": "se17_lgbm_mm_900k",
+   "file": "se17_lgbm_mm_900k.json",
+   "spec_sha256": "6e27b8c6c650abcefc1a4ec7d5feca69b1049ef5ec6b0ccd69f8a98d2c2b0bb6",
+   "status": "active",
+   "added_utc": "2026-10-21T19:30:00Z"
+  },
+  {
+   "model_id": "se18_lgbm_all_b0",
+   "file": "se18_lgbm_all_b0.json",
+   "spec_sha256": "9b0a90723687a96b16fb2df67c2b507b2e72f235f6422d27e608fba4b4fb72d3",
+   "status": "active",
+   "added_utc": "2026-10-22T03:00:00Z"
+  },
+  {
+   "model_id": "se19_lr_book0",
+   "file": "se19_lr_book0.json",
+   "spec_sha256": "7530ff051f6e367b502c236c52d075b0aecb2b7f499107f97b55fadc66194b42",
+   "status": "active",
+   "added_utc": "2026-10-22T03:00:00Z"
+  },
+  {
+   "model_id": "se20_lgbm_crypto",
+   "file": "se20_lgbm_crypto.json",
+   "spec_sha256": "01918c4f05eb4f861e05512e549ea7de3826c66d4cc891856bebd3ea951dbf9f",
+   "status": "active",
+   "added_utc": "2026-10-22T02:34:00Z"
+  },
+  {
+   "model_id": "se21_lgbm_hwm",
+   "file": "se21_lgbm_hwm.json",
+   "spec_sha256": "af05033066d2385e266cf3e2e446381de7740bb9f49dfae20370de03612ddcfd",
+   "status": "active",
+   "added_utc": "2026-10-22T22:00:00Z"
+  },
+  {
+   "model_id": "se22_lgbm_dispgap",
+   "file": "se22_lgbm_dispgap.json",
+   "spec_sha256": "11dd925e6a1dd7cb83eace36ec540e61c0131e9bcb7c972ca6334ab3ea228bad",
+   "status": "active",
+   "added_utc": "2026-10-22T23:15:00Z"
+  },
+  {
+   "model_id": "se23_lgbm_dormant",
+   "file": "se23_lgbm_dormant.json",
+   "spec_sha256": "777b797bc5c0b20a6d18440b6b266220ec5fdbc20b26a05e9ef6263e09707d27",
+   "status": "active",
+   "added_utc": "2026-10-22T23:15:00Z"
+  },
+  {
+   "model_id": "se24_lgbm_tilt",
+   "file": "se24_lgbm_tilt.json",
+   "spec_sha256": "e96e104bc5d33760af03214e0ebc7a484116831febf0ac8246c2960b5fa4ed71",
+   "status": "active",
+   "added_utc": "2026-10-23T13:10:00Z"
+  },
+  {
+   "model_id": "se25_lr_tilt",
+   "file": "se25_lr_tilt.json",
+   "spec_sha256": "527fd16d39de0299ef54ee45392584262e4fceb9c9947d0621dfa9e4dc05b07b",
+   "status": "active",
+   "added_utc": "2026-10-23T13:10:00Z"
+  }
+ ]
+}

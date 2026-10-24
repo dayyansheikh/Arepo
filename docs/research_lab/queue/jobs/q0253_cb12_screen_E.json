@@ -1,0 +1,32 @@
+{
+ "id": "q0253_cb12_screen_E",
+ "title": "CB12-E: E1 (market-weighted slope of Y - p_t on q - p_reg, catalogue outcome by the frozen rule parser; event/ISO-week/window-component ways; binding sign-flip calibration per way; binding p_alt independent-price placebo; top-5 drops per way, class, 30 days after M>=7.5, halves, Gamma-outcome and 7-day-lag robustness; agreement audit; Poisson variant reported); early Holm at alpha/10",
+ "family": "creative_batch_12",
+ "priority": 21,
+ "expected_value": "E1 verdict",
+ "data": [
+  "history/h12_quake + outcomes_guarded.csv.gz (opened here)"
+ ],
+ "resources": {
+  "mem_mb": 600,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0266_cb12_census_E"
+ ],
+ "argv": [
+  "scripts/run_cb12.py",
+  "screen",
+  "--family",
+  "E"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch12/results_E.json",
+  "trials.jsonl (cb12_test + creative_batch_12:E n_tests=1)"
+ ],
+ "next_action": "advanced: arm q0258 for T12_E2_end",
+ "notes": "DRAFT. Refuses before the E entry of model_specs/cb12_v1.json is committed (the entry must carry frozen_utc for q0257). Counted with p = 1 if the census gate (GE, parser, GEP) failed. Every line labelled 'L1 historical (E1); Stage 2 prospective (L2)'; agreement < 97% adds the label 'rule ambiguity'. Rules part sha256 (seals/cb12_rules.json, 2026-10-19 code): common f2f672c1dfa22ce1388fd85b42bebc23248f58c5bb4349f6745c4b2493dcc647, E bd512db4ccbe9a790c732e7871b50d938a94b56a9e83105dde845f6c7c6b5edc. CB12 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / E code changes. PROMOTED 2026-10-20 ~23:30Z (autopilot): M/E freeze entries merged (ae175bec) after science-reviewer FREEZE_OK_WITH_FIXES; gate-failure path, p = 1 lines only."
+}

@@ -1,0 +1,34 @@
+{
+ "id": "q0381_cb16_smoke",
+ "title": "CB16 smoke (cpu, no network): part hashes and CB13 pins; refusals on fixtures; grain parser; monitor-gap detector; silence standardiser; CB13 fill-function reproduction (counts); K streaming readers reproduce file counts with no outcome field parsed",
+ "family": "creative_batch_16",
+ "priority": 20,
+ "expected_value": "go/no-go for parts A and K",
+ "data": [
+  "fixtures",
+  "creative_batch13/ (SCREEN fill table features, if present)",
+  "research_lab/cross_venue/{poly_markets.json,kalshi_markets*.jsonl,matches_all.json} (field-restricted)"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb16.py",
+  "smoke",
+  "--parts",
+  "A,K",
+  "--rules",
+  "../docs/research_lab/seals/cb16_rules.json"
+ ],
+ "timeout_s": 900,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch16/smoke.json",
+  "trials.jsonl (cb16_descriptive, or counted not-testable lines once)"
+ ],
+ "next_action": "PASS: q0382, q0383",
+ "notes": "CREATIVE_BATCH_16.md section 4, CB16 code. No network. Parts A and K in one write-once smoke.json. Part K is declared (matches_all.json pinned f4cde1e9...ca326, freeze-check amendment 5; the K freeze check is part of the science-reviewer re-check). A failed A smoke counts Q1 and U1 once each (terminal records); a failed K smoke is a descriptive line. Rules part sha256 (seals/cb16_rules.json, written 2026-10-19 after the freeze-check fixes): common 9a087b8c463ec40e51ea795887ddb5332fba03aef1b09780dffe6e317ac577cb, A 8f395a7db285bebade752bd898be0b03e472a54d833cd560b89acdaae4ff6320, K cfe9bea5c1b97166dba84212d829a8ea31e57e3aa118891660702b8843909d01. PROMOTED 2026-10-19 ~21:15Z (autopilot): CB16 re-check of cc82c5e ACCEPT_WITH_FIXES, part K signed off; host check done read-only: all 11 cross_venue files match the K pins (incl. matches_all.json f4cde1e9...ca326) and the CB13-T SCREEN captures (2026-10-12..15) are present. Priority 20 so it runs before the 10-12 captures age out."
+}

@@ -1,0 +1,30 @@
+{
+  "decision": "D095",
+  "at": "2026-10-08T13:14:06.977046+00:00",
+  "authority": "user heartbeat2026-10-08T13:08:07 permits verified obsolete local artefact/prompt cleanup",
+  "capacity_before_cleanup_already_sufficient": true,
+  "free_bytes_before": 14924095488,
+  "free_bytes_after": 14924144640,
+  "deleted": [
+    {
+      "path": "AREPO_PRODUCTION_DEPLOYMENT_AND_FINAL_REVIEW_PROMPT.md",
+      "bytes": 18122,
+      "allocated_bytes": 20480,
+      "sha256": "8d35eaad647404b1dc2a3f6fae08d16a81f66c73dfccf66d32405626b9d5e05e",
+      "reason": "untracked obsolete v1 orchestration prompt, no current repository reference or open handle; not canonical evidence/plan",
+      "disposition": "deleted"
+    },
+    {
+      "path": "AREPO_SHORT_HORIZON_UNIVERSE_AND_SIGNAL_TRAJECTORY_PROMPT.md",
+      "bytes": 17029,
+      "allocated_bytes": 20480,
+      "sha256": "fb2cff0280865140fe86eb0512f8ab6b1b4f44af84957feb8294192c1fc41149",
+      "reason": "untracked obsolete v1 orchestration prompt, no current repository reference or open handle; not canonical evidence/plan",
+      "disposition": "deleted"
+    }
+  ],
+  "logical_bytes_removed": 35151,
+  "allocated_bytes_released_estimate": 40960,
+  "concurrent_activity": "test run active; free-space delta is not attributable solely to prompt removal",
+  "preserved": "All data-dumps empirical/synthetic evidence and dependencies, canonical docs, referenced prompts, environments and uncertain artefacts. No test directories cleaned while tests active."
+}

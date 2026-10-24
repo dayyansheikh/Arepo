@@ -1,0 +1,9 @@
+{
+ "freeze_commit": "2fc056289a2a2f9bab0d06f49ee8e0493f82982e",
+ "freeze_commit_plus_2h": "2026-10-16T01:37:06Z",
+ "freeze_commit_time": "2026-10-15T23:37:06Z",
+ "rule": "max(floor, freeze commit time + 2h); the rep capture list from_utc must equal t_rep_start",
+ "t_rep_start": "2026-10-19T00:00:00Z",
+ "t_rep_start_floor": "2026-10-19T00:00:00Z",
+ "version": "cb1-structural-v1"
+}

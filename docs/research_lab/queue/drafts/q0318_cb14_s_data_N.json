@@ -1,0 +1,53 @@
+{
+ "id": "q0318_cb14_s_data_N",
+ "title": "CB14-S N (CB12-M SCREEN window, nested): the same fetch as q0317 into guarded_n/; refuses before T14_S_open (CB12-M Stage-1 result commit or its ledger stop record, verified by commit hash)",
+ "family": "creative_batch_14",
+ "priority": 10,
+ "expected_value": "S N data",
+ "data": [
+  "rollcall.com factbase",
+  "public CLOB prices-history",
+  "public Data API",
+  "public Gamma"
+ ],
+ "resources": {
+  "mem_mb": 500,
+  "cpu": 1,
+  "lane": "net",
+  "network": "rollcall.com, clob, data-api, gamma-api"
+ },
+ "depends_on": [
+  "q0317_cb14_s_data_P"
+ ],
+ "argv": [
+  "scripts/run_cb14.py",
+  "s-data",
+  "--subset",
+  "N",
+  "--rules",
+  "../docs/research_lab/seals/cb14_rules.json",
+  "--require-open",
+  "cb12_m_stage1",
+  "--rps",
+  "2",
+  "--factbase-rps",
+  "0.5",
+  "--disk-cap-gb",
+  "0.15",
+  "--data-dumps-cap-gb",
+  "40",
+  "--budget-min",
+  "110"
+ ],
+ "timeout_s": 7200,
+ "max_retries": 2,
+ "outputs": [
+  "history/h14_speech/{prices_n.csv.gz,tx_n.csv.gz,guarded_n/,manifest_n.json}"
+ ],
+ "next_action": "q0319",
+ "notes": "DRAFT. Exit 75 (pending) before T14_S_open. Never opens h12_say. Rules part sha256 (seals/cb14_rules.json, resealed 2026-10-19 after the freeze-check fixes and the re-check of 515d68d, CREATIVE_BATCH_14.md section 11): common d34a2e739bacc69957fb0df777c174cfcbf95a92bdc72152a88bf4b326297e9c, S 657c7ae3b081d965d8dd01e2a9787d45ebb7adbf5774af2a7f931f14faba856f. CB14 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes.",
+ "repeat": {
+  "max_runs": 6,
+  "until_log_regex": "\"status\": \"s_data_N_complete\""
+ }
+}

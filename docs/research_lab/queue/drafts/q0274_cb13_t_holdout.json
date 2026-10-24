@@ -1,0 +1,47 @@
+{
+ "id": "q0274_cb13_t_holdout",
+ "title": "CB13-T HOLDOUT seal: sha256 of trades-2026102{1..6}.jsonl and rows/rows_ext of captures starting [t_j4r_end, 2026-10-26T00Z); HOLDOUT fill table (features, frozen labeller and fill rules, SCREEN events dropped, counted) and raw mark-quote table (bid/ask at mark captures, no mark-out computed) to t_holdout/; re-read exclusion sets; counts only; seal copy",
+ "family": "creative_batch_13",
+ "priority": 19,
+ "expected_value": "sealed T HOLDOUT",
+ "data": [
+  "live_trades/trades-2026102{1..6}.jsonl (whitelist)",
+  "snapshots/ (HOLDOUT captures, whitelist)",
+  "creative_batch13/t_screen/fills.csv.gz (event ids only)"
+ ],
+ "resources": {
+  "mem_mb": 800,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0273_cb13_screen_T"
+ ],
+ "argv": [
+  "scripts/run_cb13.py",
+  "t-holdout",
+  "--rules",
+  "../docs/research_lab/seals/cb13_rules.json",
+  "--not-before",
+  "2026-10-26T08:00:00Z",
+  "--disk-cap-gb",
+  "0.02",
+  "--data-dumps-cap-gb",
+  "40",
+  "--budget-min",
+  "45"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 2,
+ "outputs": [
+  "research_lab/creative_batch13/t_holdout/{fills.csv.gz,mark_quotes.csv.gz,manifest.json}",
+  "research_lab/creative_batch13/t_holdout_SEAL.json"
+ ],
+ "next_action": "commit seals/cb13_t_holdout_SEAL.json; q0275 if triggered",
+ "notes": "DRAFT. Exits 75 (pending) before 2026-10-26T08:00Z. Writes no M. Refuses any capture starting before t_j4r_end (round 1 item 2); if J4-R's end has moved, the window starts at the new end (recorded). May run before CB3's freeze (no mark-out). Rules part sha256 (seals/cb13_rules.json, code of 2026-10-19 after the freeze-check round 1 fixes (CREATIVE_BATCH_13.md section 11)): common 62e90149ba7e3f282d9876626d51667fd40a559da16b813e03c431f5084ef014, LABELLER 95cde0ab70a3845977933a5a13ed2f65263eb903f86ca9da93a90924948d79b9, T 33bd165b490fb2233ef1fc892b0727a92c17462a88d48acd40af0d375840948b. CB13 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes. FREEZE-CHECK R1 (2026-10-19): spec-level not_before 2026-10-26T08:00Z (the waiting job no longer burns the tempfail cap); the HOLDOUT window and the seal list now include trades-20261026.jsonl (next receipt day); exits 75 until the J4-R pin (seals/j4r_window.json) is final.",
+ "not_before": "2026-10-26T08:00:00Z",
+ "repeat": {
+  "max_runs": 20,
+  "until_log_regex": "\"status\": \"(t_holdout_complete)\""
+ }
+}

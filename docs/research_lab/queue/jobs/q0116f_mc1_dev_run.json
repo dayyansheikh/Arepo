@@ -1,0 +1,41 @@
+{
+ "id": "q0116f_mc1_dev_run",
+ "title": "MC1 multi-signal dev: REAL development run (M0, elastic net, LightGBM 20-config, M3_eb; clustered bootstrap; OOF SHAP; trials logged) once the 40-consecutive-capture gate is met",
+ "family": "ml_multi_signal",
+ "priority": 95,
+ "expected_value": "first MC1 development read (log-loss vs M0, incremental families) before the 8-day snapshot deletion (captures from 10-14T12:31Z pass 8 days at 10-23 03:30Z); caches the panel parquet that also unblocks the book_sweeps retention rule",
+ "data": [
+  "research_lab/snapshots (70 complete; longest consecutive run 30 at 2026-10-16T23Z)",
+  "research_lab/book_sweeps",
+  "research_lab/trade_samples"
+ ],
+ "resources": {
+  "mem_mb": 6000,
+  "as_cap_mb": 14000,
+  "exclusive": true,
+  "cpu": 1
+ },
+ "depends_on": [
+  "q0484_lt4_size_check"
+ ],
+ "argv": [
+  "scripts/run_ml_dev.py",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--sweep-root",
+  "../data-dumps/research_lab/book_sweeps",
+  "--cache-root",
+  "../data-dumps/research_lab/ml_cache",
+  "--out-dir",
+  "../data-dumps/research_lab/ml_dev"
+ ],
+ "timeout_s": 21600,
+ "max_retries": 0,
+ "outputs": [
+  "data-dumps/research_lab/ml_dev/ reports",
+  "ml_cache/<panel hash>/panel.parquet",
+  "trials.jsonl DEVELOPMENT rows"
+ ],
+ "next_action": "Claude session: write up the dev run in MULTI_SIGNAL_PIPELINE_DESIGN.md / ledger (development, not evidence); record the panel hash; then the book_sweeps rule may move to rules once q0035 is done",
+ "notes": "PROMOTED 2026-10-22 ~05:30Z (experiments autopilot) after ~/.arepo/resize/DONE (03:20Z, problems 0; 2 OCPU / 11.4 GiB). Unchanged otherwise. | OPS 2026-10-22 ~00:45Z (autopilot): depends_on q0484_lt4_size_check so this exclusive 6 GB run (up to 6 h) cannot start before the LT4 size check (not_before 04:00Z) and delay E022's registration; nothing else changed. | DRAFT 2026-10-21 ~14:20Z (autopilot), NOT in queue/jobs. Promote ONLY after ~/.arepo/resize/DONE exists on the host and post_resize_check passed (2 OCPU / 12 GB), and never during 2026-10-22 02:40-03:45Z. Same argv as q0116e (code 9e6d5596 + later fixes on this branch). Sizing for 12 GB: q0116e was OOM-killed at anon-rss 4.93 GB during the panel read-back (3.85M rows x 123 cols, about 3.35 GB of float64 alone), so its full peak is unknown and above 4.9 GB. mem_mb 6000 makes the start gate need MemAvailable >= 7.2 GB, which only the resized host has; as_cap_mb 14000 (virtual, not RAM) keeps a runaway below RAM + swap so a MemoryError comes before a kernel OOM could reach the collectors (queue jobs also run with oom_score_adj 1000). Exclusive drains the cpu lane; light net-lane collectors are exempt and keep running. The 02:45-05:30Z blackout delays a start to about 05:30Z; 6 h timeout finishes before the 10-23T03:30Z snapshot deletion that the expected_value cites. max_retries 0. If it OOMs again: record it, park, and write the memory profile; do not retry under a new id without a measured fix."
+}

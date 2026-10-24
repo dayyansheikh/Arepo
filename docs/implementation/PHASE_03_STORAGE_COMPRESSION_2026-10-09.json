@@ -1,0 +1,195 @@
+{
+  "decision": "D105",
+  "method": "Previously verified D099 transparent filesystem compression; exact logical files at original paths",
+  "journals": [
+    {
+      "operation": {
+        "version": "arepo-local-transparent-compression-v1",
+        "source": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_82978cc9231a4690bd0668491d70a732",
+        "candidate": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/.arepo-compression-candidate-20261009-1",
+        "rollback_copy": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/.arepo-uncompressed-backup-20261009-1",
+        "started_at": "2026-10-09T11:14:41.168219+00:00",
+        "free_before_bytes": 7088676864,
+        "state": "complete",
+        "semantics": "All primary files stay at the same paths with exact bytes. No record deletion, archive-only substitution, retention or production change.",
+        "operation_sha256": "d2119b6a2a0323706367cba86ed4a6a86744c5d0097f6dfe047c9902bdf0fbe2",
+        "files": 18814,
+        "logical_bytes": 4248544018,
+        "allocated_before_bytes": 4301049856,
+        "manifest_sha256": "50242cf32d7fe09e200b345ad4e43196d8777e0690096b7d1f8d0e4fcaee3fbd",
+        "allocated_compressed_bytes": 666398720,
+        "expected_allocated_saving_bytes": 3634651136,
+        "finished_at": "2026-10-09T11:17:04.606117+00:00",
+        "free_after_bytes": 10719932416,
+        "all_content_hashes_equal": true,
+        "all_sizes_modes_owners_mtimes_equal": true,
+        "original_paths_preserved": true,
+        "logical_records_deleted": 0,
+        "observed_free_delta_bytes": 3631255552
+      },
+      "verification": {
+        "original_report_equal": true,
+        "original_report_source": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_selection_panel_temporal_pilot_20261008_1/fs2_frame_read_original/original_report.json",
+        "original_report_sha256": "4dac5bc921e39c408041a0a3b6633de678c217240cc490b5e79aa5ce66a78083",
+        "verification_root": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_frame_read_compression_20261009_1",
+        "read_receipt": {
+          "completed_at": {
+            "clock_session_id": "f2bee1e7-38c7-4ed0-af05-4f08ff2f1aba",
+            "monotonic_ns": "2448919629101958",
+            "utc": "2026-10-09T11:23:34.714459Z"
+          },
+          "metadata_read_started_at": {
+            "clock_session_id": "f2bee1e7-38c7-4ed0-af05-4f08ff2f1aba",
+            "monotonic_ns": "2448669559886666",
+            "utc": "2026-10-09T11:19:24.641670Z"
+          },
+          "observation_clocks_changed": false,
+          "origin_admitted": false,
+          "original_provenance_class": "prospective",
+          "original_report_hash": "e2475c577768b3788b6a7424ec7e7b510ec49fc13291841f7dc7f7c976a9aa7f",
+          "original_state": "exhausted_consistent",
+          "output_bytes": 3009610,
+          "output_hash": "4dac5bc921e39c408041a0a3b6633de678c217240cc490b5e79aa5ce66a78083",
+          "read_policy_hash": "91216ee745fbd381bf0ca73164fb8573b835491ddde95c77702f32959fdcdde1",
+          "schema_version": "fs2-original-frame-read-v1",
+          "verification_started_at": {
+            "clock_session_id": "f2bee1e7-38c7-4ed0-af05-4f08ff2f1aba",
+            "monotonic_ns": "2448675820172208",
+            "utc": "2026-10-09T11:19:30.902064Z"
+          }
+        },
+        "read_available_at": {
+          "clock_session_id": "f2bee1e7-38c7-4ed0-af05-4f08ff2f1aba",
+          "monotonic_ns": "2448919633139958",
+          "utc": "2026-10-09T11:23:34.718540Z"
+        },
+        "free_bytes_after_verification": 13967577088
+      },
+      "artifacts": [
+        {
+          "path": "data-dumps/fs2_storage_compression_20261009_1/operation.json",
+          "bytes": 1294,
+          "sha256": "ee85e3a8715d89b1f47c71002cdd1f26ce34b501ee2648aabdc6a866c4c76d76"
+        },
+        {
+          "path": "data-dumps/fs2_storage_compression_20261009_1/operation.py",
+          "bytes": 3957,
+          "sha256": "d2119b6a2a0323706367cba86ed4a6a86744c5d0097f6dfe047c9902bdf0fbe2"
+        },
+        {
+          "path": "data-dumps/fs2_storage_compression_20261009_1/manifest.json.gz",
+          "bytes": 1086557,
+          "sha256": "27a24747c9bdeb007cfdb96dc585f94686024beeb379d74987e5e8e6b89c49c9"
+        },
+        {
+          "path": "data-dumps/fs2_storage_compression_20261009_1/verification.json",
+          "bytes": 1749,
+          "sha256": "a213fd1e767d53469ae1dc87a800a1cfc14b51555ca034fabd07b458000abe24"
+        },
+        {
+          "path": "data-dumps/fs2_storage_compression_20261009_1/verification.py",
+          "bytes": 1097,
+          "sha256": "8e9097c0b2e791b66d764c17797314287c704ac4ff4646bf1a9c6f82c42504ba"
+        }
+      ]
+    },
+    {
+      "operation": {
+        "version": "arepo-local-transparent-compression-v1",
+        "source": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_a7850bc9155c4d8a99495d710c2d6967",
+        "candidate": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/.arepo-compression-candidate-20261009-2",
+        "rollback_copy": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/.arepo-uncompressed-backup-20261009-2",
+        "started_at": "2026-10-09T11:17:11.320956+00:00",
+        "free_before_bytes": 10719612928,
+        "state": "complete",
+        "semantics": "All primary files stay at the same paths with exact bytes. No record deletion, archive-only substitution, retention or production change.",
+        "operation_sha256": "c032903f6d7b7a056a38c04c1640d4522d52f5b5df2a2f6dce0d4e4a872514be",
+        "files": 16588,
+        "logical_bytes": 3774128055,
+        "allocated_before_bytes": 3820421120,
+        "manifest_sha256": "4bf7b1e3544af71141cefa02c4b5dcb64ae5b46e0f10ef0cd123db3a9fdd112c",
+        "allocated_compressed_bytes": 594739200,
+        "expected_allocated_saving_bytes": 3225681920,
+        "finished_at": "2026-10-09T11:19:05.754328+00:00",
+        "free_after_bytes": 13990338560,
+        "all_content_hashes_equal": true,
+        "all_sizes_modes_owners_mtimes_equal": true,
+        "original_paths_preserved": true,
+        "logical_records_deleted": 0,
+        "observed_free_delta_bytes": 3270725632
+      },
+      "verification": {
+        "original_report_equal": true,
+        "original_report_source": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_selection_panel_window_pilot_20261005_1/fs2_frame_read_original/original_report.json",
+        "original_report_sha256": "7900ee894bb162139d50c088ae42416a7b2dfebadeba34c4485f75dd7b5aa858",
+        "verification_root": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_frame_read_compression_20261009_2",
+        "read_receipt": {
+          "completed_at": {
+            "clock_session_id": "ee3e3c65-3b1d-4263-9a50-24319d1bb42b",
+            "monotonic_ns": "2449096112186375",
+            "utc": "2026-10-09T11:26:31.200150Z"
+          },
+          "metadata_read_started_at": {
+            "clock_session_id": "ee3e3c65-3b1d-4263-9a50-24319d1bb42b",
+            "monotonic_ns": "2448926923074875",
+            "utc": "2026-10-09T11:23:42.008607Z"
+          },
+          "observation_clocks_changed": false,
+          "origin_admitted": false,
+          "original_provenance_class": "prospective",
+          "original_report_hash": "43967051ccdcf47e36845cecf18a6867222f592b299d48a43fa3443c4cf62dd6",
+          "original_state": "exhausted_consistent",
+          "output_bytes": 2653448,
+          "output_hash": "7900ee894bb162139d50c088ae42416a7b2dfebadeba34c4485f75dd7b5aa858",
+          "read_policy_hash": "7ff280483dc8c49dd404717615f17d347cb4e38f949ff48a2142f5e427f84756",
+          "schema_version": "fs2-original-frame-read-v1",
+          "verification_started_at": {
+            "clock_session_id": "ee3e3c65-3b1d-4263-9a50-24319d1bb42b",
+            "monotonic_ns": "2448930912083083",
+            "utc": "2026-10-09T11:23:45.997658Z"
+          }
+        },
+        "read_available_at": {
+          "clock_session_id": "ee3e3c65-3b1d-4263-9a50-24319d1bb42b",
+          "monotonic_ns": "2449096115845000",
+          "utc": "2026-10-09T11:26:31.203864Z"
+        },
+        "free_bytes_after_verification": 13950251008
+      },
+      "artifacts": [
+        {
+          "path": "data-dumps/fs2_storage_compression_20261009_2/operation.json",
+          "bytes": 1295,
+          "sha256": "87ba810ee6a396251963bed662b85f813376e9e6fb9a0de693114c8f830d3beb"
+        },
+        {
+          "path": "data-dumps/fs2_storage_compression_20261009_2/operation.py",
+          "bytes": 3957,
+          "sha256": "c032903f6d7b7a056a38c04c1640d4522d52f5b5df2a2f6dce0d4e4a872514be"
+        },
+        {
+          "path": "data-dumps/fs2_storage_compression_20261009_2/manifest.json.gz",
+          "bytes": 959078,
+          "sha256": "3718f9f8a0d38a5c7b3bf7f09d8bf3b1ebe2bc49e38e8c6faa3edceb7b526a4c"
+        },
+        {
+          "path": "data-dumps/fs2_storage_compression_20261009_2/verification.json",
+          "bytes": 1747,
+          "sha256": "2d195c2efe1b1c8b1b57da96cf05c059d5d58bc20d2e4f905e08e3b45ee980c6"
+        },
+        {
+          "path": "data-dumps/fs2_storage_compression_20261009_2/verification.py",
+          "bytes": 1095,
+          "sha256": "42f7c8ba7d65236c2a037f05de1f8a782151d4ef94645fa0723f46e30d2b2b9e"
+        }
+      ]
+    }
+  ],
+  "total_files": 35402,
+  "logical_bytes_preserved": 8022672073,
+  "allocated_saving_bytes": 6860333056,
+  "free_bytes_after_verification": 13950021632,
+  "required_reservation_bytes": 13308526592,
+  "logical_records_deleted": 0,
+  "limits": "No archive-only substitution, source-clock changes, retention or production changes. Physical representation only. Recheck full reservation at launch."
+}

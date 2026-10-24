@@ -1,0 +1,62 @@
+{
+  "policy": "docs/implementation/PHASE_03_BOUNDED_RETENTION.md",
+  "records": [
+    {
+      "run": "D101",
+      "capsule_path": "data-dumps/phase3_evidence_capsules/20261010_D101/capsule.json",
+      "capsule_sha256": "81cf7a80d577722b17afa829efaf566f9fc3ad6f9e5d1d4bf2f385bed402c745",
+      "manifest_path": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/phase3_evidence_capsules/20261010_D101/full_pre_retirement_manifest.json.gz",
+      "manifest_sha256": "924029f019daf4f4083be4c28b094502b5a39da8ae2ae5be55984dccfbdb47b4",
+      "retained_capture_count": 35,
+      "retained_logical_bytes": 56513326,
+      "deleted_files": 19138,
+      "deleted_logical_bytes": 4322873688,
+      "allocated_bytes_reclaimed": 4376309760,
+      "observed_free_delta_bytes": 4380565504,
+      "full_frame_replay_available": false,
+      "old_status_changed": false
+    },
+    {
+      "run": "D106",
+      "capsule_path": "data-dumps/phase3_evidence_capsules/20261010_D106/capsule.json",
+      "capsule_sha256": "2f2a7d5a388bf0a0cc01bacee016e354ab95db63bdc09a1c628b8a6ca0fffe0d",
+      "manifest_path": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/phase3_evidence_capsules/20261010_D106/full_pre_retirement_manifest.json.gz",
+      "manifest_sha256": "5f48b8554f48e2f97d3d9d5237ec9678dd3575c6460f4a6076578c44ac7fe23d",
+      "retained_capture_count": 33,
+      "retained_logical_bytes": 55012249,
+      "deleted_files": 19103,
+      "deleted_logical_bytes": 4326084596,
+      "allocated_bytes_reclaimed": 677015552,
+      "observed_free_delta_bytes": 770727936,
+      "full_frame_replay_available": false,
+      "old_status_changed": false
+    },
+    {
+      "run": "D110",
+      "capsule_path": "data-dumps/phase3_evidence_capsules/20261010_D110/capsule.json",
+      "capsule_sha256": "a2915cf1f4ef936b2f3e65522e0e425dba7b718d51f953b885833e1ceef68c00",
+      "manifest_path": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/phase3_evidence_capsules/20261010_D110/full_pre_retirement_manifest.json.gz",
+      "manifest_sha256": "514ac2ac11c3dc95e560f8204a4ec91083c2a87ccc3d8eba5e891ff4b87868b4",
+      "retained_capture_count": 3,
+      "retained_logical_bytes": 8350591,
+      "deleted_files": 19586,
+      "deleted_logical_bytes": 4431753933,
+      "allocated_bytes_reclaimed": 693235712,
+      "observed_free_delta_bytes": 700534784,
+      "full_frame_replay_available": false,
+      "old_status_changed": false
+    }
+  ],
+  "total_deleted_logical_bytes": 13080712217,
+  "total_allocated_bytes_reclaimed": 5746561024,
+  "free_bytes_after": 14484873216,
+  "complete_canonical_reference_retained": [
+    "D082",
+    "D094",
+    "D097",
+    "D114"
+  ],
+  "origin_target_cohorts_deleted": 0,
+  "production_changes": false,
+  "limits": "Allocation sums describe retired file blocks; observed free deltas also include unrelated filesystem activity. Full old reports and wrappers remain historical; retired partial journals cannot supply complete-frame replay."
+}

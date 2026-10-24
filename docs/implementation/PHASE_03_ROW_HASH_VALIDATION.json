@@ -1,0 +1,16 @@
+{
+  "decision": "D104",
+  "implementation_commit": "3ce788b",
+  "command": "cd backend && DATABASE_URL=sqlite+aiosqlite:////tmp/arepo_d104_tests.sqlite AUTO_MIGRATE=false EMAIL_PROVIDER=disabled caffeinate -is .venv/bin/pytest -q tests/unit/test_research_panel_row_hash.py tests/unit/test_research_panel_frame.py tests/unit/test_research_panel_original_reader.py tests/unit/test_feature_store_types.py",
+  "returncode": 0,
+  "passed": 97,
+  "elapsed_seconds": "39.13",
+  "log_sha256": "a5b181c7a8a9cd227ffe99225988ef994fc9630b161ca47d3b8ad1dd8326d56d",
+  "log": "........................................................................ [ 74%]\n.........................                                                [100%]\n97 passed in 39.13s\n",
+  "additional_checks": [
+    "Ruff on changed source/test passed after formatting-only wrap",
+    "canonical contract passed",
+    "git diff --check passed"
+  ],
+  "scientific_scope": "synthetic software validation only"
+}

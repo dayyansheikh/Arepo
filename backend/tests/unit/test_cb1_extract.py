@@ -1,0 +1,680 @@
+# ruff: noqa: E501
+"""CB1 snapshot extractor (creative_batch1.extract, scripts/run_cb1_extract.py)."""
+
+from __future__ import annotations
+
+import gzip
+import json
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import pytest
+
+from astrolabe.research_lab import creative_batch1 as cb
+from astrolabe.research_lab import forecast
+
+BACKEND = Path(__file__).resolve().parents[2]
+ROW_COLS = ["capture_id", "capture_start_utc", "received_utc", "market_id", "condition_id", "event_id",
+            "closed", "active", "binary", "best_bid", "best_ask", "spread", "last_trade_price",
+            "chg_1h", "chg_1d", "chg_1w", "liquidity", "volume24hr", "end_date", "updated_at",
+            "dup_count", "clob_token_id_0", "neg_risk", "neg_risk_market_id", "neg_risk_other",
+            "event_neg_risk_augmented", "page_index"]
+EXT_COLS = ["capture_id", "market_id", "accepting_orders", "fees_enabled", "volume_num",
+            "fee_schedule", "fee_category"]
+
+
+def _row(cid, mid, **kw):
+    r = dict.fromkeys(ROW_COLS, "")
+    r.update(capture_id=cid, capture_start_utc="2026-10-12T00:00:00Z",
+             received_utc="2026-10-12T00:05:00Z", market_id=mid, event_id=f"E{mid}",
+             closed="False", active="True", binary=1, best_bid=0.4, best_ask=0.45, spread=0.05,
+             last_trade_price=0.42, end_date="2026-12-01T00:00:00Z", clob_token_id_0=f"tok{mid}")
+    r.update(kw)
+    return r
+
+
+def _write_gz(path: Path, df: pd.DataFrame) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with gzip.open(path, "wt", newline="") as fh:
+        df.to_csv(fh, index=False)
+
+
+def make_capture(root: Path, cid: str, start: str, rows: list[dict], ext: list[dict] | None = None,
+                 state="complete") -> Path:
+    d = root / cid
+    d.mkdir(parents=True)
+    _write_gz(d / "rows.csv.gz", pd.DataFrame(rows, columns=ROW_COLS))
+    if ext is not None:
+        _write_gz(d / "rows_ext.csv.gz", pd.DataFrame(ext, columns=EXT_COLS))
+        (d / "ext_manifest.json").write_text("{}")
+    (d / "manifest.json").write_text(json.dumps({"capture_id": cid, "started_utc": start,
+                                                  "state": state}))
+    return d
+
+
+def make_sweep(root: Path, sid: str, cid: str, k: int, asks: dict[str, tuple[float, float]]):
+    d = root / sid
+    d.mkdir(parents=True)
+    _write_gz(d / "rows.csv.gz", pd.DataFrame(
+        [{"market_id": m, "best_ask": a, "ask_size_1": s, "state": "two_sided"}
+         for m, (a, s) in asks.items()]))
+    (d / "manifest.json").write_text(json.dumps({"snapshot_id": cid, "series_index": k,
+                                                  "state": "complete",
+                                                  "started_utc": f"2026-10-12T00:1{k}:00Z"}))
+
+
+def _ext(cid, mid, **kw):
+    r = {"capture_id": cid, "market_id": mid, "accepting_orders": 1, "fees_enabled": 1,
+         "volume_num": 1000.0, "fee_schedule": '{"rate":0.04,"exponent":1}', "fee_category": "politics"}
+    r.update(kw)
+    return r
+
+
+@pytest.fixture
+def world(tmp_path):
+    snap, sw, ex = tmp_path / "snap", tmp_path / "sweeps", tmp_path / "extract"
+    cid = "cap_a"
+    rows = [
+        _row(cid, "1", neg_risk_market_id="NR1", neg_risk=1, neg_risk_other=0, event_neg_risk_augmented=0),
+        _row(cid, "2", neg_risk_market_id="NR1", neg_risk=1, neg_risk_other=0, event_neg_risk_augmented=0),
+        _row(cid, "3"),  # plain market: dropped
+        # post-end favourite (YES side, ask 0.97), end passed
+        _row(cid, "4", best_bid=0.95, best_ask=0.97, end_date="2026-10-11T00:00:00Z"),
+        # post-end NO favourite: mid 0.03, touch = 1 - bid = 0.97
+        _row(cid, "5", best_bid=0.03, best_ask=0.05, end_date="2026-10-11T00:00:00Z"),
+        # favourite but end in the future: dropped
+        _row(cid, "6", best_bid=0.95, best_ask=0.97),
+        # post-end but closed: dropped
+        _row(cid, "7", best_bid=0.95, best_ask=0.97, end_date="2026-10-11T00:00:00Z", closed="True"),
+        # post-end, touch below 0.95: dropped
+        _row(cid, "8", best_bid=0.90, best_ask=0.92, end_date="2026-10-11T00:00:00Z"),
+    ]
+    ext = [_ext(cid, str(i)) for i in range(1, 9)]
+    make_capture(snap, cid, "2026-10-12T00:00:00Z", rows, ext)
+    make_sweep(sw, "sw_a1", cid, 0, {"1": (0.46, 10.0)})
+    make_sweep(sw, "sw_a2", cid, 1, {"1": (0.47, 12.0), "2": (0.5, 3.0)})
+    return snap, sw, ex
+
+
+def _run(world, **kw):
+    snap, sw, ex = world
+    kw.setdefault("transport", lambda url, params: (200, b'{"markets": []}', {}))
+    kw.setdefault("sleep", lambda s: None)
+    return cb.extract(snap, sw, ex, **kw)
+
+
+def test_extracts_only_negrisk_and_postend_with_fields_and_sweep_join(world):
+    out = _run(world)
+    assert out["extracted"] == 1 and out["missing"] == 0 and out["remaining"] == 0
+    ex = world[2]
+    neg = pd.read_csv(ex / "negrisk" / "cap_a.csv.gz", dtype=str)
+    assert list(neg.columns) == cb.NEGRISK_COLUMNS
+    assert sorted(neg["market_id"]) == ["1", "2"]
+    n1 = neg[neg.market_id == "1"].iloc[0]
+    assert n1.neg_risk_market_id == "NR1" and n1.event_id == "E1" and n1.clob_token_id_0 == "tok1"
+    assert float(n1.volume_num) == 1000.0 and n1.fee_category == "politics" and n1.accepting_orders == "1.0"
+    assert (float(n1.sw1_best_ask), float(n1.sw1_ask_size_1)) == (0.46, 10.0)
+    assert (float(n1.sw2_best_ask), float(n1.sw2_ask_size_1)) == (0.47, 12.0)
+    n2 = neg[neg.market_id == "2"].iloc[0]
+    assert pd.isna(n2.sw1_best_ask) and float(n2.sw2_best_ask) == 0.5  # not in sweep 1: blank
+    post = pd.read_csv(ex / "postend" / "cap_a.csv.gz", dtype=str)
+    assert sorted(post["market_id"]) == ["4", "5"]
+    p5 = post[post.market_id == "5"].iloc[0]
+    assert p5.fav_token == "1" and abs(float(p5.touch) - 0.97) < 1e-9
+    p4 = post[post.market_id == "4"].iloc[0]
+    assert p4.fav_token == "0" and abs(float(p4.touch) - 0.97) < 1e-9 and p4.fee_schedule
+    man = json.loads((ex / "manifest.json").read_text())["captures"]["cap_a"]
+    assert man["status"] == "extracted" and man["n_rows"] == 8 and man["n_negrisk"] == 2
+    assert man["rows_sha256"] == forecast.sha256_file(world[0] / "cap_a" / "rows.csv.gz")
+    assert man["sweeps"] == {"sw1": "sw_a1", "sw2": "sw_a2"}
+
+
+def test_idempotent_by_capture_id(world):
+    _run(world)
+    ex = world[2]
+    before = {p: p.read_bytes() for p in ex.rglob("*.csv.gz")}
+    mtime = (ex / "manifest.json").stat().st_mtime_ns
+    out = _run(world)
+    assert out["extracted"] == 0 and out["remaining"] == 0
+    assert {p: p.read_bytes() for p in ex.rglob("*.csv.gz")} == before
+    assert (ex / "manifest.json").stat().st_mtime_ns == mtime
+    assert not list(ex.rglob(".tmp_*"))
+
+
+def test_snapshots_and_sweeps_untouched(world):
+    snap, sw, _ = world
+    files = [p for r in (snap, sw) for p in r.rglob("*") if p.is_file()]
+    before = {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in files}
+    _run(world)
+    assert {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in files} == before
+
+
+def test_missing_rows_file_per_mode(world):
+    snap, sw, ex = world
+    make_capture(snap, "cap_b", "2026-10-12T02:00:00Z", [_row("cap_b", "1")], [_ext("cap_b", "1")])
+    (snap / "cap_b" / "rows.csv.gz").unlink()
+    out = _run(world)  # all-new: recorded missing, others still extracted
+    assert out["missing"] == 1 and out["extracted"] == 1
+    man = json.loads((ex / "manifest.json").read_text())["captures"]
+    assert man["cap_b"]["status"] == "missing" and man["cap_a"]["status"] == "extracted"
+    with pytest.raises(forecast.ArchivedDataError):
+        _run(world, mode="backfill", backfill_from="2026-10-11T12:00:00Z")
+
+
+def test_script_exit_codes(world, tmp_path):
+    snap, sw, ex = world
+    make_capture(snap, "cap_b", "2026-10-12T02:00:00Z", [_row("cap_b", "1")])
+    (snap / "cap_b" / "rows.csv.gz").unlink()
+    base = [sys.executable, str(BACKEND / "scripts" / "run_cb1_extract.py"), "--snapshot-root", str(snap),
+            "--sweep-root", str(sw), "--extract-root", str(ex), "--max-requests", "0"]
+    r = subprocess.run([*base, "--all-new"], capture_output=True, text=True)
+    assert r.returncode == 0 and json.loads(r.stdout.strip().splitlines()[-1])["missing"] == 1
+    r = subprocess.run([*base, "--backfill-from", "2026-10-11T12:00Z"], capture_output=True, text=True)
+    assert r.returncode == 1 and "ArchivedDataError" in r.stdout
+
+
+def test_event_members_fetch_cached_and_budgeted(world):
+    calls = []
+
+    def tr(url, params):
+        calls.append(url)
+        return 200, json.dumps({"id": "E1", "markets": [{"closed": False}, {"closed": True},
+                                                          {"closed": False}]}).encode(), {}
+
+    _run(world, transport=tr)
+    em = pd.read_csv(world[2] / "event_members.csv.gz", dtype=str)
+    assert list(em["neg_risk_market_id"]) == ["NR1"] and em.iloc[0].member_count == "3"
+    assert em.iloc[0].n_closed == "1" and calls == ["https://gamma-api.polymarket.com/events/E1"]
+    _run(world, transport=tr)  # cached: no new request
+    assert len(calls) == 1
+
+
+def test_self_limit_leaves_remaining(world):
+    snap, _, ex = world
+    for i in range(3):
+        make_capture(snap, f"cap_x{i}", f"2026-10-12T0{i + 2}:00:00Z", [_row(f"cap_x{i}", "1")])
+    t = {"v": 0.0}
+
+    def clock():
+        t["v"] += 100.0  # every call advances: budget 250 s lets ~1 capture through
+        return t["v"]
+
+    out = _run(world, clock=clock, budget_s=250.0, max_requests=0)
+    assert out["stopped"] == "budget" and out["extracted"] >= 1 and out["remaining"] >= 1
+    n_done = out["extracted"]
+    out2 = _run(world)  # next run finishes the rest
+    assert out2["extracted"] == 4 - n_done and out2["remaining"] == 0
+
+
+def test_freeze_list_sha_stable_and_extend_only(world):
+    snap, sw, ex = world
+    _run(world)
+    a = cb.freeze_list("dev", ex, snapshot_root=snap, from_utc=None, until="2026-10-13T00:00:00Z",
+                       now=lambda: "T1")
+    b = cb.freeze_list("dev", ex, snapshot_root=snap, from_utc=None, until="2026-10-13T00:00:00Z",
+                       now=lambda: "T2")
+    assert a["sha256"] == b["sha256"] and b["created_utc"] == "T1"  # unchanged: not rewritten
+    assert a["capture_ids"] == ["cap_a"] and not a["final"] and a["missing_ids"] == []
+    assert cb.load_capture_list(ex, "dev")["sha256"] == cb.ids_sha256(["cap_a"])
+    make_capture(snap, "cap_c", "2026-10-12T12:00:00Z", [_row("cap_c", "1")])
+    c = cb.freeze_list("dev", ex, snapshot_root=snap, from_utc=None, until="2026-10-17T00:00:00Z")
+    assert c["capture_ids"] == ["cap_a", "cap_c"] and c["final"] and c["previous_sha256"] == a["sha256"]
+    assert c["missing_ids"] == ["cap_c"]  # in the list, not yet extracted: counted
+    with pytest.raises(ValueError):
+        cb.freeze_list("dev", ex, snapshot_root=snap, from_utc="2026-10-12T06:00:00Z",
+                       until="2026-10-17T00:00:00Z")
+    p = ex / "capture_lists" / "dev.json"
+    d = json.loads(p.read_text())
+    d["capture_ids"].append("zzz")
+    p.write_text(json.dumps(d))
+    with pytest.raises(ValueError, match="sha256"):
+        cb.load_capture_list(ex, "dev")
+
+
+def test_backfill_complete_writes_dev_list(world):
+    out = _run(world, mode="backfill", backfill_from="2026-10-11T12:00:00Z", write_dev_list=True,
+               now=lambda: "2026-10-14T00:00:00Z")
+    assert out["backfill_complete"] is True and out["dev_list"]
+    assert cb.load_capture_list(world[2], "dev")["capture_ids"] == ["cap_a"]
+
+
+def test_lock_blocks_concurrent_run(world):
+    ex = world[2]
+    with cb._lock(ex), pytest.raises(cb.ExtractLocked):
+        _run(world)
+
+
+# --- memory bound on a synthetic ~300k-row capture ---------------------------------------------------
+
+_MEM_SCRIPT = r"""
+import json, resource, sys, time
+from pathlib import Path
+from astrolabe.research_lab import creative_batch1 as cb
+snap, sw, ex = map(Path, sys.argv[1:4])
+t = time.time()
+out = cb.extract(snap, sw, ex, max_requests=0)
+rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+rss_mb = rss / 1e6 if sys.platform == "darwin" else rss / 1e3
+print(json.dumps({"rss_mb": rss_mb, "s": time.time() - t, "out": out}))
+"""
+
+
+def test_peak_rss_on_300k_row_capture(tmp_path):
+    n = 300_000
+    rng = np.random.default_rng(0)
+    bid = np.round(rng.uniform(0.01, 0.97, n), 3)
+    ids = np.arange(n).astype(str)
+    nr = np.where(rng.random(n) < 0.05, "NR" + (np.arange(n) % 900).astype(str), "")
+    df = pd.DataFrame({
+        "capture_id": "big", "capture_start_utc": "2026-10-12T00:00:00Z",
+        "received_utc": "2026-10-12T00:05:00.123456Z", "market_id": ids,
+        "condition_id": "0x" + pd.Series(ids).str.zfill(64), "event_id": (np.arange(n) // 3).astype(str),
+        "closed": "False", "active": "True", "binary": 1, "best_bid": bid, "best_ask": bid + 0.02,
+        "spread": 0.02, "last_trade_price": bid, "chg_1h": 0.001, "chg_1d": 0.002, "chg_1w": 0.003,
+        "liquidity": 1234.5, "volume24hr": 99.9, "end_date": "2026-12-01T00:00:00Z",
+        "updated_at": "2026-10-12T00:04:00.000Z", "dup_count": 0,
+        "clob_token_id_0": "7" * 70 + pd.Series(ids), "neg_risk": (nr != "").astype(int),
+        "neg_risk_market_id": nr, "neg_risk_other": 0, "event_neg_risk_augmented": 0, "page_index": 1})
+    snap = tmp_path / "snap"
+    d = snap / "big"
+    d.mkdir(parents=True)
+    _write_gz(d / "rows.csv.gz", df)
+    ext = pd.DataFrame({"capture_id": "big", "market_id": ids, "accepting_orders": 1, "fees_enabled": 1,
+                        "volume_num": 5000.0, "fee_schedule": '{"rate":0.04,"exponent":1}',
+                        "fee_category": "politics"})
+    _write_gz(d / "rows_ext.csv.gz", ext)
+    (d / "ext_manifest.json").write_text("{}")
+    (d / "manifest.json").write_text(json.dumps({"capture_id": "big",
+                                                  "started_utc": "2026-10-12T00:00:00Z",
+                                                  "state": "complete"}))
+    del df, ext
+    env = {**os.environ, "PYTHONPATH": str(BACKEND)}
+    t = time.time()
+    r = subprocess.run([sys.executable, "-c", _MEM_SCRIPT, str(snap), str(tmp_path / "sw"),
+                        str(tmp_path / "ex")], capture_output=True, text=True, env=env, cwd=BACKEND)
+    assert r.returncode == 0, r.stderr[-800:]
+    res = json.loads(r.stdout.strip().splitlines()[-1])
+    print(f"\nCB1 extract synthetic 300k rows: peak RSS {res['rss_mb']:.0f} MB, "
+          f"{res['s']:.1f} s in-process, {time.time() - t:.1f} s wall")
+    assert res["out"]["extracted"] == 1
+    assert res["rss_mb"] < 500
+    neg = pd.read_csv(tmp_path / "ex" / "negrisk" / "big.csv.gz", dtype=str)
+    assert len(neg) == int((nr != "").sum()) > 10_000
+
+
+def test_event_members_append_only_with_asof_reader(world):
+    def tr3(url, params):
+        return 200, json.dumps({"markets": [{"closed": False}] * 3}).encode(), {}
+
+    def tr4(url, params):
+        return 200, json.dumps({"markets": [{"closed": False}] * 4}).encode(), {}
+
+    _run(world, transport=tr3, now=lambda: "2026-10-12T05:00:00Z")
+    _run(world, transport=tr3, now=lambda: "2026-10-13T05:00:00Z")  # fresh: no new row
+    ex = world[2]
+    assert len(pd.read_csv(ex / "event_members.csv.gz", dtype=str)) == 1
+    _run(world, transport=tr4, now=lambda: "2026-10-20T05:00:00Z")  # stale (>7d): appended
+    raw = pd.read_csv(ex / "event_members.csv.gz", dtype=str)
+    assert list(raw["member_count"]) == ["3", "4"] and len(raw) == 2  # history kept
+    latest = cb.event_members_asof(ex)
+    assert list(latest["member_count"]) == ["4"]
+    mid = cb.event_members_asof(ex, "2026-10-15T00:00:00Z")  # the count that applied then
+    assert list(mid["member_count"]) == ["3"]
+    assert cb.event_members_asof(ex, "2026-10-12T00:00:00Z").empty  # not yet known: stays missing
+    _run(world, transport=tr4, now=lambda: "2026-10-20T06:00:00Z")  # idempotent
+    assert len(pd.read_csv(ex / "event_members.csv.gz", dtype=str)) == 2
+
+
+# --- B3 rungs/ tables ---------------------------------------------------------------------------
+
+AS_OF = "2026-10-12T00:00:00Z"
+
+
+def _rung_list(ids, as_of=AS_OF):
+    return {"as_of_utc": as_of, "ladders": [{"ladder_id": "L", "event_id": "E", "rungs": [{"market_id": m} for m in ids]}]}
+
+
+def _install_list(ex, seal, ids, *, seal_sha="auto", as_of=AS_OF):
+    ex.mkdir(parents=True, exist_ok=True)
+    lp = ex / cb.RUNG_LIST_NAME
+    lp.write_text(json.dumps(_rung_list(ids, as_of), sort_keys=True))
+    if seal_sha is not None:
+        seal.write_text(json.dumps({"sha256": cb.sha256_stream(lp) if seal_sha == "auto" else seal_sha}))
+
+
+def _manifest(ex):
+    return json.loads((ex / "manifest.json").read_text())
+
+
+def test_rungs_no_list_no_rungs(world, tmp_path):
+    out = _run(world, rung_seal=tmp_path / "seal.json")
+    assert out["rungs_gate"] == "no_rung_list"
+    assert not (world[2] / "rungs").exists()
+    assert "rungs" not in _manifest(world[2])["captures"]["cap_a"]
+
+
+def test_rungs_list_without_seal_no_rungs(world, tmp_path):
+    _install_list(world[2], tmp_path / "seal.json", ["1"], seal_sha=None)
+    out = _run(world, rung_seal=tmp_path / "seal.json")
+    assert out["rungs_gate"] == "no_committed_seal" and not (world[2] / "rungs").exists()
+
+
+def test_rungs_sha_mismatch_flags_and_writes_nothing(world, tmp_path):
+    _install_list(world[2], tmp_path / "seal.json", ["1"], seal_sha="0" * 64)
+    out = _run(world, rung_seal=tmp_path / "seal.json")
+    assert out["extracted"] == 1  # the pass itself is unaffected
+    m = _manifest(world[2])
+    assert m["rungs_gate"]["reason"] == "sha_mismatch" and m["rungs_gate"]["error"] is True
+    assert not (world[2] / "rungs").exists()
+
+
+def test_rungs_capture_before_as_of_no_rungs(world, tmp_path):
+    _install_list(world[2], tmp_path / "seal.json", ["1"], as_of="2026-10-12T00:00:01Z")
+    _run(world, rung_seal=tmp_path / "seal.json")
+    assert not (world[2] / "rungs").exists()
+
+
+def test_rungs_written_exact_columns_missing_recorded_and_idempotent(world, tmp_path):
+    seal = tmp_path / "seal.json"
+    _install_list(world[2], seal, ["1", "3", "99"])  # 99 absent from the capture
+    _run(world, rung_seal=seal)
+    ex = world[2]
+    r = pd.read_csv(ex / "rungs" / "cap_a.csv.gz", dtype=str)
+    assert list(r.columns) == cb.RUNG_COLUMNS
+    assert sorted(r["market_id"]) == ["1", "3"]  # exactly the listed rungs found, no fill for 99
+    r1 = r[r.market_id == "1"].iloc[0]
+    assert r1.event_id == "E1" and r1.clob_token_id_0 == "tok1" and r1.capture_start_utc == "2026-10-12T00:00:00Z"
+    assert r1.accepting_orders == "1.0" and float(r1.best_ask) == 0.45 and r1.closed == "False"
+    ent = _manifest(ex)["captures"]["cap_a"]["rungs"]
+    assert ent["status"] == "written" and ent["missing"] == ["99"] and ent["n_listed"] == 3 and ent["n_found"] == 2
+    before = {p: p.read_bytes() for p in ex.rglob("*.csv.gz")}
+    mtime = (ex / "manifest.json").stat().st_mtime_ns
+    out = _run(world, rung_seal=seal)
+    assert out["extracted"] == 0
+    assert {p: p.read_bytes() for p in ex.rglob("*.csv.gz")} == before
+    assert (ex / "manifest.json").stat().st_mtime_ns == mtime
+
+
+def test_rungs_backfill_adds_to_already_extracted_captures(world, tmp_path):
+    seal = tmp_path / "seal.json"
+    _run(world, rung_seal=seal)  # extracted without rungs (no list yet)
+    assert not (world[2] / "rungs").exists()
+    _install_list(world[2], seal, ["1"])
+    out = _run(world, mode="backfill", backfill_from=cb.CB1_START, rung_seal=seal)
+    assert out["rungs_backfilled"] == 1
+    assert list(pd.read_csv(world[2] / "rungs" / "cap_a.csv.gz", dtype=str)["market_id"]) == ["1"]
+    assert _manifest(world[2])["captures"]["cap_a"]["rungs"]["status"] == "written"
+    out = _run(world, mode="backfill", backfill_from=cb.CB1_START, rung_seal=seal)
+    assert out["rungs_backfilled"] == 0
+
+
+# --- CB2 extractor v2 (ladder_candidates text-free, event_text, rewards) -------------------------------
+
+EXT2_COLS = [*EXT_COLS, "clob_rewards", "rewards_max_spread", "rewards_min_size", "competitive"]
+
+
+def _cb2_world(tmp_path, start="2026-10-12T13:00:00Z", cid="cap_c"):
+    snap, sw, ex, c2 = tmp_path / "snap", tmp_path / "sweeps", tmp_path / "extract", tmp_path / "cb2"
+    rows = [
+        _row(cid, "1", neg_risk_market_id="NR1", neg_risk=1),            # neg-risk: not a candidate
+        _row(cid, "2", best_bid=0.50, best_ask=0.55),                     # politics: candidate
+        _row(cid, "3"),                                                    # sports: excluded
+        _row(cid, "4"),                                                    # weather: excluded
+        _row(cid, "5", best_bid=0.2, best_ask=0.25),                      # candidate, reward-enabled
+    ]
+    ext = [_ext(cid, "1"), _ext(cid, "2"), _ext(cid, "3", fee_category="sports"),
+           _ext(cid, "4", fee_category="weather"), _ext(cid, "5", fee_category="crypto")]
+    for e in ext:
+        e.update(clob_rewards="", rewards_max_spread=np.nan, rewards_min_size=np.nan, competitive=np.nan)
+    ext[4].update(clob_rewards='[{"rewardsDailyRate": 5, "startDate": "2026-10-01", "endDate": "2026-12-01"},'
+                               '{"rewardsDailyRate": 2.5, "startDate": "2026-09-01", "endDate": "2026-11-01"}]',
+                  rewards_max_spread=3.5, rewards_min_size=50, competitive=0.9)
+    d = snap / cid
+    d.mkdir(parents=True)
+    _write_gz(d / "rows.csv.gz", pd.DataFrame(rows, columns=ROW_COLS))
+    _write_gz(d / "rows_ext.csv.gz", pd.DataFrame(ext, columns=EXT2_COLS))
+    (d / "ext_manifest.json").write_text("{}")
+    (d / "manifest.json").write_text(json.dumps({"capture_id": cid, "started_utc": start, "state": "complete"}))
+    sdir = sw / "sw_c1"
+    sdir.mkdir(parents=True)
+    _write_gz(sdir / "rows.csv.gz", pd.DataFrame([{"market_id": "2", "best_bid": 0.5, "best_ask": 0.56,
+                                                    "bid_size_1": 7.0, "ask_size_1": 9.0}]))
+    (sdir / "manifest.json").write_text(json.dumps({"snapshot_id": cid, "series_index": 0, "state": "complete",
+                                                     "started_utc": "2026-10-12T13:10:00Z"}))
+    return snap, sw, ex, c2
+
+
+def _cb2(snap, sw, c2, **kw):
+    kw.setdefault("tables", ("ladder_candidates", "rewards"))
+    kw.setdefault("mode", "all-new")
+    kw.setdefault("since", cb.T2_DEV_START)
+    kw.setdefault("deadline", time.monotonic() + 600)
+    return cb.run_cb2_tables(snap, sw, c2, **kw)
+
+
+def test_cb2_ladder_candidates_text_free_filtered_sweep_joined(tmp_path):
+    snap, sw, ex, c2 = _cb2_world(tmp_path)
+    out = _cb2(snap, sw, c2)  # no ladder list anywhere
+    assert out["written"] == 1 and out["remaining"] == 0
+    lc = pd.read_csv(c2 / "ladder_candidates" / "cap_c.csv.gz", dtype=str)
+    assert list(lc.columns) == cb.LADDER_COLUMNS
+    assert sorted(lc.market_id) == ["2", "5"]  # neg-risk, sports and weather rows are out
+    banned = {"question", "slug", "title", "description", "group_item_title"}
+    assert not banned & set(lc.columns)
+    r2 = lc[lc.market_id == "2"].iloc[0]
+    assert (float(r2.sw1_best_bid), float(r2.sw1_bid_size_1), float(r2.sw1_ask_size_1)) == (0.5, 7.0, 9.0)
+    assert r2.fee_category == "politics" and r2.event_id == "E2" and float(r2.volume_num) == 1000.0
+    assert pd.isna(lc[lc.market_id == "5"].iloc[0].sw1_best_ask)
+    man = json.loads((c2 / "manifest.json").read_text())["captures"]["cap_c"]
+    assert man["ladder_candidates"]["status"] == "written" and man["ladder_candidates"]["n_out"] == 2
+
+
+def test_cb2_idempotent_by_capture_id(tmp_path):
+    snap, sw, ex, c2 = _cb2_world(tmp_path)
+    _cb2(snap, sw, c2)
+    before = {p: p.read_bytes() for p in c2.rglob("*.csv.gz")}
+    mtime = (c2 / "manifest.json").stat().st_mtime_ns
+    out = _cb2(snap, sw, c2)
+    assert out["written"] == 0 and {p: p.read_bytes() for p in c2.rglob("*.csv.gz")} == before
+    assert (c2 / "manifest.json").stat().st_mtime_ns == mtime
+
+
+def test_cb2_ladder_candidates_stop_at_t2_dev_end(tmp_path):
+    snap, sw, ex, c2 = _cb2_world(tmp_path, start="2026-10-24T00:00:00Z")
+    out = _cb2(snap, sw, c2, tables=("ladder_candidates",))
+    assert out["written"] == 0 and not (c2 / "ladder_candidates").exists()
+
+
+def test_cb2_rewards_table_first_capture_after_noon(tmp_path):
+    snap, sw, ex, c2 = _cb2_world(tmp_path)
+    _cb2(snap, sw, c2)
+    rw = pd.read_csv(c2 / "rewards" / "2026-10-12.csv.gz", dtype=str)
+    assert list(rw.columns) == cb.REWARD_COLUMNS and list(rw.market_id) == ["5"]
+    r = rw.iloc[0]
+    assert float(r.rewards_daily_rate) == 7.5 and r.rewards_start == "2026-09-01" and r.rewards_end == "2026-12-01"
+    assert float(r.rewards_max_spread) == 3.5 and float(r.competitive) == 0.9 and "rewardsDailyRate" in r.clob_rewards
+    # a later capture the same day is not the first after 12:00Z: no second rewards table
+    snap2 = snap
+    d = snap2 / "cap_d"
+    d.mkdir()
+    for f in ("rows.csv.gz", "rows_ext.csv.gz", "ext_manifest.json"):
+        (d / f).write_bytes((snap / "cap_c" / f).read_bytes())
+    (d / "manifest.json").write_text(json.dumps({"capture_id": "cap_d", "started_utc": "2026-10-12T15:00:00Z",
+                                                  "state": "complete"}))
+    _cb2(snap, sw, c2)
+    assert sorted(p.name for p in (c2 / "rewards").glob("*")) == ["2026-10-12.csv.gz"]
+
+
+def test_cb2_all_new_and_backfill_record_missing_and_continue(tmp_path):
+    snap, sw, ex, c2 = _cb2_world(tmp_path)
+    (snap / "cap_c" / "rows.csv.gz").unlink()
+    out = _cb2(snap, sw, c2)
+    assert out["missing"] == 1 and out["remaining"] == 0
+    assert json.loads((c2 / "manifest.json").read_text())["captures"]["cap_c"]["status"] == "missing"
+    # backfill no longer raises: the missing capture is counted and not retried, others are still processed
+    out = _cb2(snap, sw, c2, mode="backfill", tables=("ladder_candidates",))
+    assert out["remaining"] == 0 and out["backfill_complete"] is True
+    out = _cb2(snap, sw, c2, mode="backfill", tables=("ladder_candidates",))
+    assert out["written"] == 0 and out["missing"] == 0
+
+
+def test_cb2_backfill_script_exits_nonzero_when_over_cap(tmp_path):
+    snap, sw, ex, c2 = _cb2_world(tmp_path)
+    dd = tmp_path / "dd"
+    dd.mkdir()
+    (dd / "big").write_bytes(b"x" * 2_000_000)
+    base = [sys.executable, str(BACKEND / "scripts" / "run_cb1_extract.py"), "--snapshot-root", str(snap), "--sweep-root", str(sw),
+            "--extract-root", str(ex), "--cb2-root", str(c2), "--tables", "ladder_candidates", "--data-dumps", str(dd),
+            "--data-dumps-max-gb", "0.001"]
+    r = subprocess.run([*base, "--backfill-from", "2026-10-11T12:00Z"], capture_output=True, text=True)
+    assert r.returncode == 1 and "refused" in r.stdout
+
+
+def test_cb2_disk_cap_and_data_dumps_guard_and_backfill_complete(tmp_path):
+    snap, sw, ex, c2 = _cb2_world(tmp_path)
+    dd = tmp_path / "dd"
+    dd.mkdir()
+    (dd / "big").write_bytes(b"x" * 2_000_000)
+    out = _cb2(snap, sw, c2, data_dumps=dd, data_dumps_max_gb=0.001)
+    assert out["stopped"] == "refused_data_dumps_over_cap" and not c2.exists()
+    c2.mkdir()
+    (c2 / "pad").write_bytes(b"x" * 10)  # cap checked before each capture: already over it, nothing written
+    out = _cb2(snap, sw, c2, mode="backfill", tables=("ladder_candidates",), disk_cap_gb=1e-9)
+    assert out["written"] == 0 and out["stopped"] == "disk_cap" and out["remaining"] == 1
+    assert out["backfill_complete"] is False
+    (c2 / "pad").unlink()
+    out = _cb2(snap, sw, c2, mode="backfill", tables=("ladder_candidates",), disk_cap_gb=0.25)
+    assert out["backfill_complete"] is True and out["remaining"] == 0
+
+
+def test_cb2_event_text_from_same_response_live_only(world):
+    calls = []
+
+    def tr(url, params):
+        calls.append(url)
+        return 200, json.dumps({"id": "E1", "title": "Highest temperature in Paris on May 1?", "slug": "hi-paris",
+                                "markets": [{"id": 1, "groupItemTitle": "20C", "closed": False},
+                                            {"id": 2, "groupItemTitle": "21C", "closed": True}]}).encode(), {}
+
+    snap, sw, ex = world
+    cb.extract(snap, sw, ex, transport=tr, sleep=lambda s: None, cb2_root=ex.parent / "cb2",
+               cb2_tables=("ladder_candidates",))
+    assert len(calls) == 1  # no extra request for the text
+    et = pd.read_csv(ex / "event_text.csv.gz", dtype=str, keep_default_na=False)
+    assert list(et.columns) == cb.EVENT_TEXT_COLUMNS
+    r = et.iloc[0]
+    assert r.title.startswith("Highest temperature") and r.slug == "hi-paris"
+    assert json.loads(r.group_item_titles) == ["20C", "21C"] and json.loads(r.member_market_ids) == ["1", "2"]
+    # without a cb2 root (and in backfill) no event_text is written
+    snap2 = world[0].parent / "x"
+    assert not (snap2 / "event_text.csv.gz").exists()
+
+
+def test_cb2_additions_leave_cb1_tables_byte_identical(tmp_path):
+    def build(sub):
+        root = tmp_path / sub
+        root.mkdir()
+        snap, sw, ex = root / "snap", root / "sweeps", root / "extract"
+        cid = "cap_a"
+        rows = [_row(cid, "1", neg_risk_market_id="NR1", neg_risk=1), _row(cid, "2", neg_risk_market_id="NR1", neg_risk=1),
+                _row(cid, "3"), _row(cid, "4", best_bid=0.95, best_ask=0.97, end_date="2026-10-11T00:00:00Z")]
+        make_capture(snap, cid, "2026-10-12T00:00:00Z", rows, [_ext(cid, str(i)) for i in range(1, 5)])
+        make_sweep(sw, "sw_a1", cid, 0, {"1": (0.46, 10.0)})
+        return snap, sw, ex
+
+    tr = lambda url, params: (200, b'{"markets": []}', {})  # noqa: E731
+    a, b = build("a"), build("b")
+    cb.extract(*a, transport=tr, sleep=lambda s: None)
+    cb.extract(*b, transport=tr, sleep=lambda s: None, cb2_root=b[2].parent / "cb2")
+    for t in ("negrisk", "postend"):
+        assert (a[2] / t / "cap_a.csv.gz").read_bytes() == (b[2] / t / "cap_a.csv.gz").read_bytes()
+    assert (a[2] / "event_members.csv.gz").read_bytes() == (b[2] / "event_members.csv.gz").read_bytes()
+    assert (b[2].parent / "cb2" / "ladder_candidates" / "cap_a.csv.gz").exists()
+    assert not (a[2].parent / "cb2").exists()
+    ma = json.loads((a[2] / "manifest.json").read_text())["captures"]["cap_a"]
+    mb = json.loads((b[2] / "manifest.json").read_text())["captures"]["cap_a"]
+    for k in ("n_rows", "n_negrisk", "n_postend", "rows_sha256", "sweeps", "ext_status"):
+        assert ma[k] == mb[k]
+
+
+def test_cb2_script_tables_flag(tmp_path):
+    snap, sw, ex, c2 = _cb2_world(tmp_path)
+    cmd = [sys.executable, str(BACKEND / "scripts" / "run_cb1_extract.py"), "--snapshot-root", str(snap),
+           "--sweep-root", str(sw), "--extract-root", str(ex), "--cb2-root", str(c2), "--backfill-from",
+           "2026-10-11T12:00Z", "--tables", "ladder_candidates", "--budget-min", "5", "--disk-cap-gb", "0.25"]
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    assert r.returncode == 0 and '"backfill_complete": true' in r.stdout
+    assert (c2 / "ladder_candidates" / "cap_c.csv.gz").exists() and not ex.exists()
+
+
+# --- CB2 ladders/ table (ladder_gate opened by cb2_structural's versioned ladder list) -------------------
+
+def _lad_doc(rungs_by_version):
+    from astrolabe.research_lab import cb2_structural as cs
+    dl = 1_790_000_000.0
+    doc = None
+    for i, (listed, ids) in enumerate(rungs_by_version, start=1):
+        rungs = [{"market_id": m, "event_id": "E", "deadline": dl + k * 86400, "question": f"q{m}"} for k, m in enumerate(ids)]
+        g = {"ladders": [{"ladder_id": "L:E:a", "type": "L", "direction": "INC", "stem": "s", "event_ids": ["E"],
+                          "rungs": rungs}], "counts": {}}
+        doc = cs.ladder_list(g, version=i, listed_utc=listed, prev=doc)
+    return cs, doc
+
+
+def _lad_run(snap, sw, c2):
+    return _cb2(snap, sw, c2, tables=("ladders",))
+
+
+def test_cb2_ladders_gate_closed_without_list(tmp_path):
+    snap, sw, ex, c2 = _cb2_world(tmp_path)
+    assert cb.ladder_gate(c2)["open"] is False
+    out = _lad_run(snap, sw, c2)
+    assert out["written"] == 0 and out["ladders_gate"] == "no_ladder_list" and not (c2 / "ladders").exists()
+
+
+def test_cb2_ladders_open_writes_only_listed_rungs(tmp_path):
+    snap, sw, ex, c2 = _cb2_world(tmp_path)
+    cs, doc = _lad_doc([("2026-10-16T01:00:00Z", ["2", "99"])])  # 99 is listed but absent from the capture
+    cs.write_ladder_list(doc, c2)
+    out = _lad_run(snap, sw, c2)
+    assert out["written"] == 1 and out["ladders_gate"] == "ladder_list_v1"
+    lad = pd.read_csv(c2 / "ladders" / "cap_c.csv.gz", dtype=str)
+    assert list(lad.columns) == cb.LADDER_COLUMNS and list(lad.market_id) == ["2"]
+    m = json.loads((c2 / "manifest.json").read_text())["captures"]["cap_c"]["ladders"]
+    assert m["status"] == "written" and m["n_out"] == 1 and m["missing"] == ["99"]
+    before = (c2 / "ladders" / "cap_c.csv.gz").read_bytes()
+    mt = (c2 / "manifest.json").stat().st_mtime_ns
+    assert _lad_run(snap, sw, c2)["written"] == 0  # idempotent
+    assert (c2 / "ladders" / "cap_c.csv.gz").read_bytes() == before and (c2 / "manifest.json").stat().st_mtime_ns == mt
+
+
+def test_cb2_ladders_v2_rung_absent_before_its_listed_utc(tmp_path):
+    snap, sw, ex, c2 = _cb2_world(tmp_path)  # capture at 2026-10-12T13:00Z
+    cs, doc = _lad_doc([("2026-10-16T01:00:00Z", ["2"]), ("2026-10-23T01:00:00Z", ["2", "5"])])
+    cs.write_ladder_list(doc, c2)
+    g = cb.ladder_gate(c2)
+    assert g["open"] and g["reason"] == "ladder_list_v2"
+    _lad_run(snap, sw, c2)
+    lad = pd.read_csv(c2 / "ladders" / "cap_c.csv.gz", dtype=str)
+    assert list(lad.market_id) == ["2"]  # 5 was added by v2 -> invisible to a pre-listed_utc capture
+
+
+def test_cb2_ladders_sha_mismatch_or_malformed_closes_with_reason(tmp_path):
+    snap, sw, ex, c2 = _cb2_world(tmp_path)
+    cs, doc = _lad_doc([("2026-10-16T01:00:00Z", ["2"])])
+    cs.write_ladder_list(doc, c2)
+    (c2 / "ladder_list.json.sha256").write_text("0" * 64 + "\n")
+    g = cb.ladder_gate(c2)
+    assert g["open"] is False and g["error"] and "LadderListError" in g["reason"]
+    out = _lad_run(snap, sw, c2)
+    assert out["written"] == 0 and not (c2 / "ladders").exists()
+    assert "ladder_list_error" in json.loads((c2 / "manifest.json").read_text())["ladders_gate"]
+    (c2 / "ladder_list.json").write_text("{not json")
+    g = cb.ladder_gate(c2)
+    assert g["open"] is False and g["error"]
+    assert _lad_run(snap, sw, c2)["written"] == 0

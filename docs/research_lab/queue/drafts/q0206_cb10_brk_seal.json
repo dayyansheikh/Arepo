@@ -1,0 +1,32 @@
+{
+ "id": "q0206_cb10_brk_seal",
+ "title": "CB10-B: HOLDOUT listing sha256, seal-time drops vs seal copies committed by now (incl. CB9 h10_sign if present), seal copy seals/cb10_brk_holdout_SEAL.json",
+ "family": "creative_batch_10",
+ "priority": 32,
+ "expected_value": "sealed holdout",
+ "data": [
+  "history/h10_brk/holdout/"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "gamma-api (light)"
+ },
+ "depends_on": [
+  "q0205_cb10_brk_prints"
+ ],
+ "argv": [
+  "scripts/run_cb10.py",
+  "brk-seal",
+  "--rps",
+  "2"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 2,
+ "outputs": [
+  "history/h10_brk/holdout_SEAL.json"
+ ],
+ "next_action": "commit the seal copy; q0207",
+ "notes": "CB10 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. Rules file seals/cb10_rules_v2.json (freeze-check v2, supersedes cb10_rules.json) (rules_sha256 d422cc70... (file sha256 5ee0ea23...)). --data-dumps-cap-gb 40 (ops convention; design text says 14). Sealed files never edited; drops recorded as DROPPED_* blocks."
+}

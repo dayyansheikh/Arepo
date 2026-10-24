@@ -1,0 +1,46 @@
+{
+ "id": "q0413_cb17_worn_restore",
+ "title": "CB17 smoke worn inputs: byte-for-byte restore from the private data releases (hash-checked) into creative_batch17/worn_restore, because the 8-day / 10-day retention removes them before q0404 can run",
+ "family": "creative_batch_17",
+ "priority": 40,
+ "expected_value": "lets q0404 (CB17 smoke, exact P1-P3 reproduction against the frozen code, ruling 6 (ii)) run after the live copies are rotated away; no analysis",
+ "data": [
+  "github releases data-20261015-dsheikh, data-20261016-dsheikh, data-20261017-dsheikh (read-only)"
+ ],
+ "resources": {
+  "mem_mb": 1200,
+  "cpu": 1,
+  "lane": "net",
+  "network": "github releases (private data repo, read-only)"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/restore_from_archive.py",
+  "--tag",
+  "data-20261016-dsheikh",
+  "--tag",
+  "data-20261017-dsheikh",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261012T003103Z_2df48d64/*",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261015T*/rows.csv.gz",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261015T*/rows_ext.csv.gz",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261015T*/manifest.json",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261015T*/ext_manifest.json",
+  "--path-glob",
+  "data-dumps/research_lab/live_trades/trades-2026101[2-5].jsonl",
+  "--dest",
+  "../data-dumps/research_lab/creative_batch17/worn_restore"
+ ],
+ "timeout_s": 10800,
+ "max_retries": 3,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch17/worn_restore/ (copies of released data) and RESTORE_REPORT_<tag>.json"
+ ],
+ "next_action": "after the CB17 code freeze: q0404 smoke with --snapshot-root/--live-trades-root pointing at this tree and the --worn-sha256 pin",
+ "notes": "Added 2026-10-20 ~18:35Z by the orchestrator (CB17 freeze check, review CB17_WINDOW_FREEZE_CHECK_2026-10-20.md section \"Smoke inputs and retention\"): rows_ext of 20261012T003103Z_2df48d64 is already rotated off the host; the 10-15 captures go ~10-23/24 and trades-20261012..15 ~10-22..25. Copies of released data only, hash-checked against files.sha256 and the catalogue; reads no target, computes nothing. Files not present in a given tag are simply not selected from it. Clear the tree after q0404. No rule or analysis depends on this job. OPS 2026-10-20 ~19:25Z: gh (a Go binary) aborts with 'runtime: out of memory' under the 2 x mem_mb address-space cap at 1.2 GB (measured on the host: --version fails at 1.2 GB, works at 1.6 GB); mem_mb -> 1200 (cap 2.4 GB). Resource only; argv unchanged. OPS 2026-10-20 ~22:50Z (autopilot): attempt 1 restored and verified all 6 selected files of data-20261015-dsheikh (RESTORE_REPORT passed, 79,926,435 B) and then stopped at 'no catalogue for data-20261016-dsheikh'; attempts 2-3 refused because those 6 files already exist in --dest. Fix: catalogues for data-20261015-dsheikh-active, -20261016 .. -20261020 (incl. -2 and -active) generated with archive_catalogue.py and committed; the already-restored data-20261015-dsheikh tag is dropped from argv (its report stays in --dest). Selection globs unchanged; retry with a fresh budget.",
+ "not_before": null
+}

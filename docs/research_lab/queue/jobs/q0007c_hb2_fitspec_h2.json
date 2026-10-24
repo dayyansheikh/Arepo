@@ -1,0 +1,30 @@
+{
+ "id": "q0007c_hb2_fitspec_h2",
+ "title": "SB2-J1 fitspec: discovery-row z-scales, cuts and signs into model_specs/hb2_v1.json (host copy, to be reviewed and committed)",
+ "family": "flow",
+ "priority": 67,
+ "expected_value": "produces the frozen spec file that q0008 requires; discovery rows only",
+ "data": [
+  "history/h2_main battery features (discovery rows only)"
+ ],
+ "resources": {
+  "mem_mb": 2000,
+  "cpu": 1
+ },
+ "depends_on": [
+  "q0007b_hb2_dryrun_h2"
+ ],
+ "argv": [
+  "scripts/run_hypothesis_battery2.py",
+  "fitspec",
+  "--run-id",
+  "h2_main"
+ ],
+ "timeout_s": 7200,
+ "max_retries": 1,
+ "outputs": [
+  "backend/astrolabe/research_lab/model_specs/hb2_v1.json (host working copy)"
+ ],
+ "next_action": "Claude session: copy hb2_v1.json from host, science-reviewer freeze check of code+spec vs SCREENING_BATCH_2.md, commit, then queue q0008",
+ "notes": "refuses to overwrite; prints declaration and spec hashes"
+}

@@ -1,0 +1,33 @@
+{
+ "id": "q0645_lt9_size_check",
+ "title": "LT9 size check (DRAFT, code phase 2): 2,000 worlds x 200 draws, seed 20261197, limit 0.058, every binding scenario of LIVE_TESTS_9.md 1.8 through the analysis's own gate path, after k, ch212.route and ch215.entered are fixed by the committed censuses",
+ "family": "live_tests_9",
+ "priority": 49,
+ "expected_value": "per-test size results (1.8); a failing binding scenario sets only its own tests to 'SE check failed' with k unchanged",
+ "data": [
+  "none (simulated worlds; p_vm from the committed CS9)"
+ ],
+ "resources": {
+  "mem_mb": 800,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0644_lt9_census_sweeps"
+ ],
+ "not_before": "2026-11-18T00:00:00Z",
+ "argv": [
+  "scripts/run_live_tests9.py",
+  "size-check",
+  "--out",
+  "../data-dumps/research_lab/live_tests9_census/SIZE9.json"
+ ],
+ "timeout_s": 43200,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests9_census/SIZE9.json"
+ ],
+ "next_action": "record the per-test size results in the ledger and LIVE_TESTS_9.md 6.3 before the pin",
+ "notes": "CODE PHASE 2: the size-check subcommand is not written yet and refuses (exit 2); this draft fixes the job's place and dependencies only. Run once on the code to be pinned, after the census values are committed (k and CH215's entry fixed before any size result exists); no preliminary run at seed 20261197; max_retries 1 deterministic crash only. DRAFT, not in queue/jobs. Promote only after: the design-text freeze (LIVE_TESTS_9.md design text frozen at sha256 098aa3fb5f6765f08dcad3f85ad63ec70e29df65249413608f0f7ad5fd505b77 (6b78ba90)), the LT9 code phase 1 and the science-reviewer freeze check of the census and size-check code against LIVE_TESTS_9.md sections 1.4.1, 1.8, 1.8.1 and 7 (8.4 step 3), and never while an LT7 or LT8 census, size-check or analysis job runs (memory-heavy-jobs rule). Counts 0 (descriptive; no trials line). Reads the DRAFT spec unpinned; the code_sha256 of every hashed module is written into the output. Every gate threshold is stated in section 7 before this runs; nothing is re-tuned after it. Each census runs once; max_retries 1 covers a deterministic crash only (no output written)."
+}

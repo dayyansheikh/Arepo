@@ -1,0 +1,71 @@
+{
+ "id": "q0081_h7_cb4_era_fetch",
+ "title": "CB4-E: h7_cb4_era backfill (4,800 closed binary markets ending in P0/P1/P2, sports vs other; prices + trades, period-anchored windows)",
+ "family": "history_data",
+ "priority": 61,
+ "expected_value": "era-pure sample for the fee-rollout measurement (CH53)",
+ "data": [
+  "public Gamma/CLOB/Data API",
+  "history/h1_first, h2_main, h3_power sample.csv.gz (exclusion ids only)",
+  "docs/research_lab/seals/h5_cb1_SEAL.json file table (h5 market ids only)"
+ ],
+ "resources": {
+  "mem_mb": 800,
+  "cpu": 1,
+  "network": "gamma-api, clob, data-api",
+  "lane": "net"
+ },
+ "depends_on": [
+  "q0018_h5_cb1_seal",
+  "q0081a_h7_release_gate",
+  "q0081f_h7_cb4_era_frame",
+  "q0081g_h7_group_s_amendment_gate"
+ ],
+ "argv": [
+  "scripts/run_cb4.py",
+  "era-fetch",
+  "--run-id",
+  "h7_cb4_era",
+  "--seed",
+  "arepo-h7-era",
+  "--per-cell",
+  "800",
+  "--periods",
+  "2025-12-01/2026-02-18,2026-02-25/2026-03-30,2026-04-06/2026-04-28",
+  "--origin-window-h",
+  "72",
+  "--min-life-d",
+  "4",
+  "--exclude-runs",
+  "h1_first,h2_main,h3_power",
+  "--exclude-seal-ids",
+  "../docs/research_lab/seals/h5_cb1_SEAL.json",
+  "--exclude-categories",
+  "weather",
+  "--walk-closed",
+  "true,false",
+  "--cap-at",
+  "2026-10-22T00:00Z",
+  "--rps",
+  "4",
+  "--disk-cap-gb",
+  "0.20",
+  "--budget-min",
+  "150",
+  "--group-s-amendment",
+  "../docs/research_lab/seals/h7_cb4_group_s_amendment.json",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 10800,
+ "max_retries": 3,
+ "repeat": {
+  "max_runs": 6,
+  "until_log_regex": "\"status\": \"(era_fetch_complete|not_run_deadline)\""
+ },
+ "outputs": [
+  "data-dumps/research_lab/history/h7_cb4_era/{frame.csv.gz,sample.csv.gz,prices/,trades/,outcomes_guarded.csv.gz,progress.jsonl,frame_report.json,request_clock.json,manifest.json}"
+ ],
+ "next_action": "q0083",
+ "notes": "CREATIVE_BATCH_4.md CB4-E/4.2. About 15-18k requests, 2-3 h wall. Terminal states (exit 0, one JSON line with the status key): era_fetch_complete, or not_run_deadline when the run is still incomplete at T_seal 2026-10-22T00:00Z (marker NOT_RUN_DEADLINE.json; no seal, no analysis, no refetch, cap unchanged). Refuses (exit 2) until the committed seals/h5_cb1_SEAL.json exists, for run ids h3_power/h4_seal/h5_cb1/h5_cb1_ladders/h6_weather, for any path under cb1_extract/ or cb2_extract/, for arguments differing from the declaration, and while data-dumps > 10 GB. Weather (fee_category weather or CB2 TEMP_RE title) is excluded and counted. Sports vs other uses fee_category == sports as declared; the per-cell fee_category counts are in frame_report. 429 back-off (rps halved above 1%, chunk ends after 50 429s), collector-health pause (transient, exit 0), live-collector yield. Rows capped at min(T_fetch7, T_seal) with dropped counts. Outcome fields only in outcomes_guarded.csv.gz. Resumable per frame day and per market. Net lane: q0002 (priority 60) may hold it; this job must finish before T_seal, so the coordinator should confirm the lane is free. | 2026-10-16 priority 58->61: net lane: must beat q0002 (60) at run boundaries to finish before T_seal. | Held behind q0081a_h7_release_gate: freeze-check fix 5: refusals would burn retries; gate is created once the h5 seal copy is committed and fixes 5, 8-11 land. | Freeze-check fixes: sampling refuses (exit 2) until the committed group-S amendment matches frame_report.json; requires the h5_cb1_ladders seal copy too; strict price/trade requests (a non-200 fails the market); a missing exclusion sample is a refusal. Depends on q0081f (frame) and the gate q0081g (created by the coordinator once the amendment is committed). 2026-10-17 (autopilot, h7 release re-check must-fix 1): --data-dumps-cap-gb 12.5 added (code default 10) because data-dumps is ~9.9 GB and growing ~0.95 GB/day; with the default every start would exit 75 until the job failed, missing T_seal. Operational headroom only (collector cap now 13 GB; job writes <= 0.4 GB); outputs do not depend on it. | 2026-10-17 15:35Z autopilot: data-dumps headroom guard 12.5 -> 40 GiB (ops only, not a declared argument): the user grew the host boot volume to 100 GB (root 89 GB, 60 GB free); collector cap 45 GiB, 4 GB free-disk guard unchanged."
+}

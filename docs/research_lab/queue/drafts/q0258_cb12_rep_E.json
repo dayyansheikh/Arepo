@@ -1,0 +1,36 @@
+{
+ "id": "q0258_cb12_rep_E",
+ "title": "CB12-E: E1-rep (p_t = first 16:00Z read mid, p_reg = first 10:00Z read mid of the same day, p_alt = 16:00Z read 48 h earlier) and E2 (economic at recorded asks, |q - a| >= 8c, fee r a (1 - a), held to resolution, Gamma payoff) on windows ending [T12_E2_start, T12_E2_end); each needs >= 100 units and >= 30 window components, else not run (power), counted",
+ "family": "creative_batch_12",
+ "priority": 20,
+ "expected_value": "L2 verdicts",
+ "data": [
+  "history/h12_quake_live",
+  "history/h12_quake (model inputs, catalogue before 2024-09-01)",
+  "Gamma outcomes after resolution (guarded; opened by rep-E only)"
+ ],
+ "resources": {
+  "mem_mb": 600,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0253_cb12_screen_E"
+ ],
+ "argv": [
+  "scripts/run_cb12.py",
+  "rep",
+  "--family",
+  "E",
+  "--results-sha256",
+  "TODO-COORDINATOR"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch12/results_E_rep.json",
+  "trials.jsonl (cb12_replication + creative_batch_12:E:rep)"
+ ],
+ "next_action": "pass: Stage P-E fresh window",
+ "notes": "DRAFT. Only if E1 advanced (the Stage-1 results_E.json sha256 pin is verified first; the coordinator replaces TODO-COORDINATOR). Waits (exit 75) until T12_E2_end + 2 d. Both E1-rep and E2 run once E1 advanced (n_tests = 2 in the Stage-2 count line). Judged against alpha/10 until the Stage-2 count is known; --stage2-k can pass k2. Rules part sha256 (seals/cb12_rules.json, 2026-10-19 code): common f2f672c1dfa22ce1388fd85b42bebc23248f58c5bb4349f6745c4b2493dcc647, E bd512db4ccbe9a790c732e7871b50d938a94b56a9e83105dde845f6c7c6b5edc. CB12 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / E code changes."
+}

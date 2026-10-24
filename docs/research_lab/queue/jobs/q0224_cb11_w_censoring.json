@@ -1,0 +1,45 @@
+{
+ "id": "q0224_cb11_w_censoring",
+ "title": "CB11-W: right-censoring count, one Gamma closed=false query (gate) and one closed=true query (diagnostic, frame-to-query gap) per seeded frame window (300), each up to 5 pages with the window's end_date bounds; censored share per window set for gate GWC (upper 95% bound > 2%, any capped window, or < 60% of windows available -> W not testable (censoring))",
+ "family": "creative_batch_11",
+ "priority": 28,
+ "expected_value": "gate GWC",
+ "data": [
+  "public Gamma",
+  "creative_batch11/w/censor_windows.csv"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "net",
+  "network": "gamma-api"
+ },
+ "depends_on": [
+  "q0222_cb11_w_frame"
+ ],
+ "argv": [
+  "scripts/run_cb11.py",
+  "w-censoring",
+  "--rules",
+  "../docs/research_lab/seals/cb11_rules.json",
+  "--rps",
+  "2",
+  "--disk-cap-gb",
+  "0.001",
+  "--data-dumps-cap-gb",
+  "40",
+  "--budget-min",
+  "25"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 2,
+ "outputs": [
+  "research_lab/creative_batch11/w/censoring.json"
+ ],
+ "next_action": "q0231",
+ "notes": "OPS 2026-10-18: mem_mb 200 -> 400 (address cap 2x): rules verification imports scikit-learn, whose shared objects cannot map under an 800 MB-or-less cap below ~600 MB (q0220 attempt 1 failed with SystemError at a 400 MB cap). No scientific change. PROMOTED 2026-10-18 by the autopilot after the CB11 focused re-check and verify round (GO for smoke/keys, W data, P/A data, seals, censuses; fixes 19a8c9f + 1f9a208; rules W 2d2bb169\u2026, PA 2d48bd73\u2026). DRAFT, new in round 1 (item 2); freeze-check fixes B2/N1 (section 11): repeats until w_censoring_complete (in-progress chunks exit 0); <= 3,000 requests (300 windows x 2 queries x <= 5 pages, design said <= 300), <= 25 min per chunk. Counts only; no market field beyond ids and endDate stored. CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. rules sha256 6d3f1613d74431eb53de888e5dec83bac8f8c0eb516348d05a33919bb8582a33 (regenerated 2026-10-19 for the q0221b amendment, CREATIVE_BATCH_11.md section 11.2; was 2d2bb169...) (part W of cb11_rules.json v2, 2026-10-18 freeze-check fixes; sample pins filled and rules regenerated 2026-10-18 after the re-check fixes b1-b2, c1-c2, d1-d3).",
+ "repeat": {
+  "max_runs": 12,
+  "until_log_regex": "\"status\": \"(w_censoring_complete|not_run_source|upstream_not_testable)\""
+ }
+}

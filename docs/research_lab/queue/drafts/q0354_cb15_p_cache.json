@@ -1,0 +1,40 @@
+{
+ "id": "q0354_cb15_p_cache",
+ "title": "CB15-P Kalshi open-market cache (cron hourly, OWN flock, 3,000-s timeout, outside lanes): full pull daily, min_created_ts incremental hourly (1 h overlap from the previous job start), resumable by cursor (cache_state.json + kalshi_partial.jsonl), atomic cache replace only when a job completes; starts one day before T15_P2_start; <= 1,800 requests a day and nothing past the shared 3,500 cap minus the 300-request read reserve; public open-market list only, nothing read for P",
+ "family": "creative_batch_15",
+ "priority": 0,
+ "expected_value": "keeps the watcher (q0352) free to do its timed reads",
+ "data": [
+  "public Gamma, Data API, CLOB /book",
+  "public Kalshi markets, series and orderbook"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "lane": "cron",
+  "network": "kalshi"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb15.py",
+  "p-cache",
+  "--rules",
+  "../docs/research_lab/seals/cb15_rules.json",
+  "--kalshi-rps",
+  "0.5",
+  "--budget-s",
+  "2900",
+  "--disk-cap-gb",
+  "0.05",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 3000,
+ "max_retries": 0,
+ "outputs": [
+  "history/h15_birth_live/kcache/{kalshi_open.jsonl.gz,kalshi_partial.jsonl,cache_state.json,cache_heartbeat.json,gaps.jsonl}"
+ ],
+ "next_action": "runs to T15_P2_end or the cap",
+ "notes": "CREATIVE_BATCH_15.md section 11b P-2. DRAFT. Installed by the coordinator with q0352 after the P freeze (crontab line: 0 * * * * cd /home/opc/arepo/backend && flock -n /tmp/arepo_cb15_p_cache.lock timeout 3000 nice -n 10 python scripts/run_cb15.py p-cache ...; a DIFFERENT lock from q0352 so that the hourly pull never blocks the minute reads). Refuses before the part-P freeze or if cross_venue.py differs from the pinned matcher; idles before T15_P2_start - 1 d. Never reads cross_venue_live/. Rules part sha256 (seals/cb15_rules.json, P resealed 2026-10-19): common 13c703222500e502cd29acb94cdec497c43ff68cfc9415bd0efbfd4699718f3a, P 1c6b7e955bd5cf92e026c4826d879c16aa301b446d54da79e7838847fd3bf876. CB15 DRAFT, not in queue/jobs: needs the committed rules file; the coordinator regenerates the rules and these shas if any common / P code changes. P-19/P-22: own folder kcache with its own 0.25 GB cap (counted in the watcher's total); Kalshi 0.5 rps.",
+ "not_before": "2026-11-03T00:00:00Z"
+}

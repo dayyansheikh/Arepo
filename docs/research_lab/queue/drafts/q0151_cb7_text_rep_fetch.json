@@ -1,0 +1,44 @@
+{
+ "id": "q0151_cb7_text_rep_fetch",
+ "title": "CB7-S: Stage-2 rolling fetch for textorig units (one windowed taker-print request per unit at t7 + 3 h or later; guarded outcome lookups after T7_S_out)",
+ "family": "creative_batch_7",
+ "priority": 41,
+ "expected_value": "prices and outcomes for the out-of-time CH63 replication",
+ "data": [
+  "research_lab/cb7_extract/textorig (pass-step table)",
+  "public Data API trades",
+  "public Gamma markets by id (outcomes guarded)"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "network": "data-api, gamma-api",
+  "lane": "cpu"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb7.py",
+  "text-rep-fetch",
+  "--print-limit",
+  "50",
+  "--rps",
+  "2",
+  "--disk-cap-gb",
+  "0.03",
+  "--data-dumps-cap-gb",
+  "40",
+  "--budget-min",
+  "20"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 3,
+ "repeat": {
+  "max_runs": 200,
+  "until_log_regex": "\"status\": \"text_rep_fetch_complete\""
+ },
+ "outputs": [
+  "data-dumps/research_lab/creative_batch7/text_rep/{prints/,outcomes_guarded.csv.gz,progress.jsonl,manifest.json}"
+ ],
+ "next_action": "q0152 after T7_S_out (only if S1 advanced)",
+ "notes": "CREATIVE_BATCH_7.md CB7-S Stage 2. DRAFT. Commit at the CB7 freeze together with the textorig pass step (data collection only; the analysis refuses unless S1 advanced). Rolling about every 6 h; <= 15k print requests over about six weeks at 2 rps; outcome lookups only after T7_S_out, written to the guarded file. Completes (status text_rep_fetch_complete) once every unit with origin < T7_S_rep_end has its prints and the T7_S_out outcome read is done. No target computed by the fetcher; no wallet stored. | 2026-10-17 15:35Z autopilot: data-dumps headroom guard 12.5 -> 40 GiB (ops only, not a declared argument): the user grew the host boot volume to 100 GB (root 89 GB, 60 GB free); collector cap 45 GiB, 4 GB free-disk guard unchanged."
+}

@@ -1,0 +1,49 @@
+{
+ "id": "q0349_cb15_p_data",
+ "title": "CB15-P data per Kalshi-first proxy pair (<= 150): Gamma metadata (createdAt, startDate, scheduled endDate, feeSchedule, lifetime volume stored apart for the tercile check), Data API prints from the first transaction (newest-first paging <= 6 pages; else no birth print) aggregated to transactions over [t_birth, t_birth + 25 h] and [t_L - 2 h, t_L + 24 h 30 min], Kalshi 1-minute candles over [t_birth - 6 h, t_d + 25 h] and [t_L - 1 h, t_L + 25 h], prices-history fidelity 10 after t_birth only (earlier points counted); rows >= 2026-10-12 dropped at parse; any non-200 candle / prices-history read leaves the pair pending (attempts.jsonl); all keys (market, events, negRiskMarketID, series) checked; frames absent at q0340 re-read at q0347",
+ "family": "creative_batch_15",
+ "priority": 8,
+ "expected_value": "P births, gaps, targets and prints",
+ "data": [
+  "public Gamma, Kalshi, CLOB, Data API",
+  "creative_batch15/birth_frame.csv.gz (q0347)",
+  "research_lab/cross_venue/kalshi_markets*.jsonl (rule booleans only)"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "net",
+  "network": "gamma-api, kalshi, clob, data-api"
+ },
+ "depends_on": [
+  "q0347_cb15_p_birth_census",
+  "q0348_cb15_smoke_P"
+ ],
+ "argv": [
+  "scripts/run_cb15.py",
+  "p-data",
+  "--rules",
+  "../docs/research_lab/seals/cb15_rules.json",
+  "--rps",
+  "2",
+  "--kalshi-rps",
+  "1",
+  "--disk-cap-gb",
+  "0.05",
+  "--data-dumps-cap-gb",
+  "40",
+  "--budget-min",
+  "45"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 2,
+ "outputs": [
+  "history/h15_birth/{meta.csv.gz,tx.csv.gz,kalshi.csv.gz,prices.csv.gz,volume_guarded.csv.gz,work.jsonl,manifest.json}"
+ ],
+ "next_action": "q0350",
+ "notes": "CREATIVE_BATCH_15.md CB15-P, section 2.8. DRAFT. No outcome, side, wallet or hash stored. Resumable (work.jsonl); incomplete = pending (p_data_in_progress, exit 0). Rules part sha256 (seals/cb15_rules.json, P declared 2026-10-19): common 13c703222500e502cd29acb94cdec497c43ff68cfc9415bd0efbfd4699718f3a, P 1c6b7e955bd5cf92e026c4826d879c16aa301b446d54da79e7838847fd3bf876. CB15 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer, part P) and the committed rules file; the coordinator regenerates the rules and these shas if any common / P code changes. P-17: a pair with >= 3 failed attempts in 3 separate runs spanning >= 15 min becomes 'unavailable (source)' (counted, never a unit) so the run can complete; re-run until complete. P-23: the queue worker re-starts a repeat run at once, so the run gap is enforced in code (a run that starts < 15 min after the previous run that left failed pairs exits 75 = retry_wait 30 min, not counted as a run or attempt); max_runs 8 = 3 failing runs + 1 labelling run + 4 spare runs for a budget-limited first pass, so the terminal rule is always reachable.",
+ "repeat": {
+  "max_runs": 8,
+  "until_log_regex": "\"status\": \"p_data_complete\""
+ }
+}

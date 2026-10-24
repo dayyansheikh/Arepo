@@ -1,0 +1,495 @@
+{
+  "assignments": [
+    {
+      "arm": "triggered",
+      "conditional_matching_probability": null,
+      "inclusion_probability": {
+        "decimal": "0.5",
+        "decimal_state": "exact",
+        "denominator": "2",
+        "numerator": "1"
+      },
+      "market_id": "synthetic-00000002",
+      "matched_trigger_ids": [],
+      "probability_scope": "market within arm/stratum, frozen trigger states",
+      "source_observation_id": "0000000000000000000000000000000000000000000000000000000000000002",
+      "stratum": "597e93f25f666ba3a017da7ebb51162efea25e1f0c0576f402e3ff9219304672",
+      "token_id": "10000000000000000000000000000000000000000000000000000000000000000000000000002",
+      "trigger_id": "fixture-trigger-2"
+    },
+    {
+      "arm": "triggered",
+      "conditional_matching_probability": null,
+      "inclusion_probability": {
+        "decimal": "0.5",
+        "decimal_state": "exact",
+        "denominator": "2",
+        "numerator": "1"
+      },
+      "market_id": "synthetic-00000003",
+      "matched_trigger_ids": [],
+      "probability_scope": "market within arm/stratum, frozen trigger states",
+      "source_observation_id": "0000000000000000000000000000000000000000000000000000000000000003",
+      "stratum": "597e93f25f666ba3a017da7ebb51162efea25e1f0c0576f402e3ff9219304672",
+      "token_id": "10000000000000000000000000000000000000000000000000000000000000000000000000003",
+      "trigger_id": "fixture-trigger-3"
+    },
+    {
+      "arm": "triggered",
+      "conditional_matching_probability": null,
+      "inclusion_probability": {
+        "decimal": "0.5",
+        "decimal_state": "exact",
+        "denominator": "2",
+        "numerator": "1"
+      },
+      "market_id": "synthetic-00000004",
+      "matched_trigger_ids": [],
+      "probability_scope": "market within arm/stratum, frozen trigger states",
+      "source_observation_id": "0000000000000000000000000000000000000000000000000000000000000004",
+      "stratum": "597e93f25f666ba3a017da7ebb51162efea25e1f0c0576f402e3ff9219304672",
+      "token_id": "10000000000000000000000000000000000000000000000000000000000000000000000000004",
+      "trigger_id": "fixture-trigger-4"
+    },
+    {
+      "arm": "triggered",
+      "conditional_matching_probability": null,
+      "inclusion_probability": {
+        "decimal": "0.5",
+        "decimal_state": "exact",
+        "denominator": "2",
+        "numerator": "1"
+      },
+      "market_id": "synthetic-00000006",
+      "matched_trigger_ids": [],
+      "probability_scope": "market within arm/stratum, frozen trigger states",
+      "source_observation_id": "0000000000000000000000000000000000000000000000000000000000000006",
+      "stratum": "597e93f25f666ba3a017da7ebb51162efea25e1f0c0576f402e3ff9219304672",
+      "token_id": "10000000000000000000000000000000000000000000000000000000000000000000000000006",
+      "trigger_id": "fixture-trigger-6"
+    },
+    {
+      "arm": "triggered",
+      "conditional_matching_probability": null,
+      "inclusion_probability": {
+        "decimal": "0.5",
+        "decimal_state": "exact",
+        "denominator": "2",
+        "numerator": "1"
+      },
+      "market_id": "synthetic-00000007",
+      "matched_trigger_ids": [],
+      "probability_scope": "market within arm/stratum, frozen trigger states",
+      "source_observation_id": "0000000000000000000000000000000000000000000000000000000000000007",
+      "stratum": "597e93f25f666ba3a017da7ebb51162efea25e1f0c0576f402e3ff9219304672",
+      "token_id": "10000000000000000000000000000000000000000000000000000000000000000000000000007",
+      "trigger_id": "fixture-trigger-7"
+    },
+    {
+      "arm": "control",
+      "conditional_matching_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "199995",
+        "numerator": "1"
+      },
+      "inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "39999",
+        "numerator": "1"
+      },
+      "market_id": "synthetic-00009020",
+      "matched_trigger_ids": [
+        "fixture-trigger-7"
+      ],
+      "probability_scope": "market within arm/stratum, frozen trigger states",
+      "source_observation_id": "000000000000000000000000000000000000000000000000000000000000233c",
+      "stratum": "597e93f25f666ba3a017da7ebb51162efea25e1f0c0576f402e3ff9219304672",
+      "token_id": "10000000000000000000000000000000000000000000000000000000000000000000000009020",
+      "trigger_id": null
+    },
+    {
+      "arm": "scheduled",
+      "conditional_matching_probability": null,
+      "inclusion_probability": {
+        "decimal": "0.0000125",
+        "decimal_state": "exact",
+        "denominator": "80000",
+        "numerator": "1"
+      },
+      "market_id": "synthetic-00044695",
+      "matched_trigger_ids": [],
+      "probability_scope": "market within arm/stratum, frozen trigger states",
+      "source_observation_id": "000000000000000000000000000000000000000000000000000000000000ae97",
+      "stratum": "597e93f25f666ba3a017da7ebb51162efea25e1f0c0576f402e3ff9219304672",
+      "token_id": "10000000000000000000000000000000000000000000000000000000000000000000000044695",
+      "trigger_id": null
+    },
+    {
+      "arm": "scheduled",
+      "conditional_matching_probability": null,
+      "inclusion_probability": {
+        "decimal": "0.0000125",
+        "decimal_state": "exact",
+        "denominator": "80000",
+        "numerator": "1"
+      },
+      "market_id": "synthetic-00064838",
+      "matched_trigger_ids": [],
+      "probability_scope": "market within arm/stratum, frozen trigger states",
+      "source_observation_id": "000000000000000000000000000000000000000000000000000000000000fd46",
+      "stratum": "597e93f25f666ba3a017da7ebb51162efea25e1f0c0576f402e3ff9219304672",
+      "token_id": "10000000000000000000000000000000000000000000000000000000000000000000000064838",
+      "trigger_id": null
+    },
+    {
+      "arm": "control",
+      "conditional_matching_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "199995",
+        "numerator": "1"
+      },
+      "inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "39999",
+        "numerator": "1"
+      },
+      "market_id": "synthetic-00089343",
+      "matched_trigger_ids": [
+        "fixture-trigger-2"
+      ],
+      "probability_scope": "market within arm/stratum, frozen trigger states",
+      "source_observation_id": "0000000000000000000000000000000000000000000000000000000000015cff",
+      "stratum": "597e93f25f666ba3a017da7ebb51162efea25e1f0c0576f402e3ff9219304672",
+      "token_id": "10000000000000000000000000000000000000000000000000000000000000000000000089343",
+      "trigger_id": null
+    },
+    {
+      "arm": "control",
+      "conditional_matching_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "199995",
+        "numerator": "1"
+      },
+      "inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "39999",
+        "numerator": "1"
+      },
+      "market_id": "synthetic-00094540",
+      "matched_trigger_ids": [
+        "fixture-trigger-6"
+      ],
+      "probability_scope": "market within arm/stratum, frozen trigger states",
+      "source_observation_id": "000000000000000000000000000000000000000000000000000000000001714c",
+      "stratum": "597e93f25f666ba3a017da7ebb51162efea25e1f0c0576f402e3ff9219304672",
+      "token_id": "10000000000000000000000000000000000000000000000000000000000000000000000094540",
+      "trigger_id": null
+    },
+    {
+      "arm": "scheduled",
+      "conditional_matching_probability": null,
+      "inclusion_probability": {
+        "decimal": "0.0000125",
+        "decimal_state": "exact",
+        "denominator": "80000",
+        "numerator": "1"
+      },
+      "market_id": "synthetic-00104606",
+      "matched_trigger_ids": [],
+      "probability_scope": "market within arm/stratum, frozen trigger states",
+      "source_observation_id": "000000000000000000000000000000000000000000000000000000000001989e",
+      "stratum": "597e93f25f666ba3a017da7ebb51162efea25e1f0c0576f402e3ff9219304672",
+      "token_id": "10000000000000000000000000000000000000000000000000000000000000000000000104606",
+      "trigger_id": null
+    },
+    {
+      "arm": "control",
+      "conditional_matching_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "199995",
+        "numerator": "1"
+      },
+      "inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "39999",
+        "numerator": "1"
+      },
+      "market_id": "synthetic-00117633",
+      "matched_trigger_ids": [
+        "fixture-trigger-4"
+      ],
+      "probability_scope": "market within arm/stratum, frozen trigger states",
+      "source_observation_id": "000000000000000000000000000000000000000000000000000000000001cb81",
+      "stratum": "597e93f25f666ba3a017da7ebb51162efea25e1f0c0576f402e3ff9219304672",
+      "token_id": "10000000000000000000000000000000000000000000000000000000000000000000000117633",
+      "trigger_id": null
+    },
+    {
+      "arm": "control",
+      "conditional_matching_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "199995",
+        "numerator": "1"
+      },
+      "inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "39999",
+        "numerator": "1"
+      },
+      "market_id": "synthetic-00207218",
+      "matched_trigger_ids": [
+        "fixture-trigger-2"
+      ],
+      "probability_scope": "market within arm/stratum, frozen trigger states",
+      "source_observation_id": "0000000000000000000000000000000000000000000000000000000000032972",
+      "stratum": "597e93f25f666ba3a017da7ebb51162efea25e1f0c0576f402e3ff9219304672",
+      "token_id": "10000000000000000000000000000000000000000000000000000000000000000000000207218",
+      "trigger_id": null
+    },
+    {
+      "arm": "control",
+      "conditional_matching_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "199995",
+        "numerator": "1"
+      },
+      "inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "39999",
+        "numerator": "1"
+      },
+      "market_id": "synthetic-00262299",
+      "matched_trigger_ids": [
+        "fixture-trigger-6"
+      ],
+      "probability_scope": "market within arm/stratum, frozen trigger states",
+      "source_observation_id": "000000000000000000000000000000000000000000000000000000000004009b",
+      "stratum": "597e93f25f666ba3a017da7ebb51162efea25e1f0c0576f402e3ff9219304672",
+      "token_id": "10000000000000000000000000000000000000000000000000000000000000000000000262299",
+      "trigger_id": null
+    },
+    {
+      "arm": "control",
+      "conditional_matching_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "199995",
+        "numerator": "1"
+      },
+      "inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "39999",
+        "numerator": "1"
+      },
+      "market_id": "synthetic-00269509",
+      "matched_trigger_ids": [
+        "fixture-trigger-3"
+      ],
+      "probability_scope": "market within arm/stratum, frozen trigger states",
+      "source_observation_id": "0000000000000000000000000000000000000000000000000000000000041cc5",
+      "stratum": "597e93f25f666ba3a017da7ebb51162efea25e1f0c0576f402e3ff9219304672",
+      "token_id": "10000000000000000000000000000000000000000000000000000000000000000000000269509",
+      "trigger_id": null
+    },
+    {
+      "arm": "control",
+      "conditional_matching_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "199995",
+        "numerator": "1"
+      },
+      "inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "39999",
+        "numerator": "1"
+      },
+      "market_id": "synthetic-00294817",
+      "matched_trigger_ids": [
+        "fixture-trigger-7"
+      ],
+      "probability_scope": "market within arm/stratum, frozen trigger states",
+      "source_observation_id": "0000000000000000000000000000000000000000000000000000000000047fa1",
+      "stratum": "597e93f25f666ba3a017da7ebb51162efea25e1f0c0576f402e3ff9219304672",
+      "token_id": "10000000000000000000000000000000000000000000000000000000000000000000000294817",
+      "trigger_id": null
+    },
+    {
+      "arm": "scheduled",
+      "conditional_matching_probability": null,
+      "inclusion_probability": {
+        "decimal": "0.0000125",
+        "decimal_state": "exact",
+        "denominator": "80000",
+        "numerator": "1"
+      },
+      "market_id": "synthetic-00305606",
+      "matched_trigger_ids": [],
+      "probability_scope": "market within arm/stratum, frozen trigger states",
+      "source_observation_id": "000000000000000000000000000000000000000000000000000000000004a9c6",
+      "stratum": "597e93f25f666ba3a017da7ebb51162efea25e1f0c0576f402e3ff9219304672",
+      "token_id": "10000000000000000000000000000000000000000000000000000000000000000000000305606",
+      "trigger_id": null
+    },
+    {
+      "arm": "control",
+      "conditional_matching_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "199995",
+        "numerator": "1"
+      },
+      "inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "39999",
+        "numerator": "1"
+      },
+      "market_id": "synthetic-00311062",
+      "matched_trigger_ids": [
+        "fixture-trigger-4"
+      ],
+      "probability_scope": "market within arm/stratum, frozen trigger states",
+      "source_observation_id": "000000000000000000000000000000000000000000000000000000000004bf16",
+      "stratum": "597e93f25f666ba3a017da7ebb51162efea25e1f0c0576f402e3ff9219304672",
+      "token_id": "10000000000000000000000000000000000000000000000000000000000000000000000311062",
+      "trigger_id": null
+    },
+    {
+      "arm": "scheduled",
+      "conditional_matching_probability": null,
+      "inclusion_probability": {
+        "decimal": "0.0000125",
+        "decimal_state": "exact",
+        "denominator": "80000",
+        "numerator": "1"
+      },
+      "market_id": "synthetic-00332110",
+      "matched_trigger_ids": [],
+      "probability_scope": "market within arm/stratum, frozen trigger states",
+      "source_observation_id": "000000000000000000000000000000000000000000000000000000000005114e",
+      "stratum": "597e93f25f666ba3a017da7ebb51162efea25e1f0c0576f402e3ff9219304672",
+      "token_id": "10000000000000000000000000000000000000000000000000000000000000000000000332110",
+      "trigger_id": null
+    },
+    {
+      "arm": "control",
+      "conditional_matching_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "199995",
+        "numerator": "1"
+      },
+      "inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "39999",
+        "numerator": "1"
+      },
+      "market_id": "synthetic-00357701",
+      "matched_trigger_ids": [
+        "fixture-trigger-3"
+      ],
+      "probability_scope": "market within arm/stratum, frozen trigger states",
+      "source_observation_id": "0000000000000000000000000000000000000000000000000000000000057545",
+      "stratum": "597e93f25f666ba3a017da7ebb51162efea25e1f0c0576f402e3ff9219304672",
+      "token_id": "10000000000000000000000000000000000000000000000000000000000000000000000357701",
+      "trigger_id": null
+    }
+  ],
+  "benchmark_context": "standalone synthetic sizing after implementation commit; no overlapping regression run",
+  "build": {
+    "files": {
+      "__init__.py": "24644ec3204c3093bb24fa952b5e61d9ecb25815fc6aebf19b38720bbb3c43c3",
+      "build_identity.py": "343bea6321220183d52101b10e504b7cef2ccf0bf12eca93df0a59ad7efd245d",
+      "frame.py": "21ee84e4c03e7703d0c9289806753baa203dde7bf2d0cd8a3c4898ed0ce243d3",
+      "frame_cli.py": "485f8cb2190277a36513fb16ff957278e302a797149d157bc880c69a2706144c",
+      "original_reader.py": "e2ae9bee3f22beee439dd8a4f533d854f2c1ae4c7cbdb6439228b524680f3d01",
+      "sampling.py": "4d9d74cf5292cbd94c472672a2c6e69ea390ef897f15ae6fa5fd988cb31b4dcd",
+      "targets.py": "c711cb11f013dec3d5fed53063ee0637c328b818fbb1936195f82b38bff3a730"
+    },
+    "schema_version": "fs2-panel-build-v1",
+    "source_build": {
+      "files": {
+        "__init__.py": "f884b7f83b0e4f74029cacea82278a7be2bac7da559423e15bbd666525a668bb",
+        "admission.py": "564778f025b64e63ab2de30c313083a0f5dde13c45a988a50c681db997e34409",
+        "book_replay.py": "a6f16bc341069d2ae54654ba9cf6040f167ddae0940b2e03e79fcdd88dd7cb20",
+        "build_identity.py": "ac5606a32714f64a2ef2c0194df90de96eb823290151aab4fe72abc4364d2431",
+        "capture.py": "fbd46fab640b0cfe3a1ec171772ac0f000f82083bd7e74954c944ee7dfe4417b",
+        "cli.py": "4c29680c3a6cb0374bbcfee39ffa224622f6144fa488d7ebefb0991290cffdc2",
+        "identity_bridge.py": "a326e18ab63a93502d0007bfb6cbd97fc5bc73abd42fd5356a8551ba4b3ffb1e",
+        "identity_views.py": "a06f920802c6ce59b22acffbfcd5d1206f349d75ddf857809d1a668cfd43c18e",
+        "migrations.py": "87ff4e739625a50a470057f72312ff0a2157f3330d7d6dcb3f405eb8ea48fe2c",
+        "models.py": "14c1b6c3bded0dc83e828e3af4f8c59dcb45d2cb78bd95ef943e77d23c7dbdd7",
+        "preservation.py": "b605941c732f360c13d628f8a2441fcbaf0a8e8f4e678d37162a2ef5dd4b366e",
+        "repository.py": "cb8f8bdeb2c6e5f5cc4e0469a9182729f23059ba9b25ec6ca91247ecfe6a3e5a",
+        "schema.py": "16ea19ea7934a8669e356a5024a52e71f1f01998c997113c82a8a0bdf7296434",
+        "source_bridge.py": "f072dc6dd83e933695742973abc3118e7c0495e979a37effdc04a8b83943d83f",
+        "source_parsers.py": "589be4ada5b8405bd6523e4c0e8ddc1a7a1c611481b7c1229060630d974b0622",
+        "source_run.py": "3ee8f29d2480ecca1372554653361f7ad469b4ab84e278ab9158937f0f2e0f90",
+        "sources.py": "49e9a7610d1a2fc7bf25a0430f0b68b3e25eb11817ccf370f9526b91794db5ac",
+        "stream_probe.py": "d07ff8fa05cef02ca2807bb0bbe0127d80738077823b129efb02263ec5a79c6d",
+        "types.py": "4472ccd5f7bbbe56ad9d7fe9e9693e990f6aeb4974b6408a00b78fde11806b4b"
+      },
+      "libraries": {
+        "SQLAlchemy": "2.0.51",
+        "aiosqlite": "0.22.1",
+        "asyncpg": "0.31.0",
+        "httpx": "0.28.1"
+      },
+      "python": "3.11.2 (v3.11.2:878ead1ac1, Feb  7 2023, 10:02:41) [Clang 13.0.0 (clang-1300.0.29.30)]",
+      "schema_version": "fs2-build-v1"
+    }
+  },
+  "capacity_gate_passed": true,
+  "earlier_measurement": {
+    "elapsed_ns": "29322234667",
+    "note": "precommit run, same module build; script whitespace formatted subsequently",
+    "peak_resident_bytes": 322699264
+  },
+  "elapsed_ns": "27764313417",
+  "frame_hash": "a4f4b1600111330520248163a5b2d5db37c4f80eb29493a651d294721058dc95",
+  "implementation_commit": "84cf4b132bfb9cca4772b0cce0a5a694c7e8ce57",
+  "max_resident_bytes": 1073741824,
+  "max_seconds": 180,
+  "measurement": "synthetic capacity only; no live source or panel acceptance",
+  "peak_resident_bytes": 320897024,
+  "plan_hash": "7e1290e63124f360348d659319431f36271b983e48de0ac757c7e1de6c1d2ae6",
+  "population_inference_eligible": false,
+  "rows": 400000,
+  "script_sha256": "406b7200eb7d507bf72225c65dd8936b184dc3da223ceea8391b70a7f66fd277",
+  "strata": [
+    {
+      "category": "synthetic-unknown",
+      "control_pool": 399990,
+      "controls_selected": 10,
+      "controls_wanted": 10,
+      "economic_independence": "unresolved",
+      "eligible_count": 400000,
+      "event_group": null,
+      "liquidity_band": "1",
+      "probability_band": "1",
+      "scheduled_count": 5,
+      "stratum": "597e93f25f666ba3a017da7ebb51162efea25e1f0c0576f402e3ff9219304672",
+      "time": "synthetic-scheduled",
+      "time_to_close": "unknown",
+      "triggered_count": 5,
+      "triggered_pool": 10,
+      "unfilled_control_slots": 0
+    }
+  ]
+}

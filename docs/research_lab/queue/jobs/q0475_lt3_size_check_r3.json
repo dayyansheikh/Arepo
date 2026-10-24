@@ -1,0 +1,30 @@
+{
+ "id": "q0475_lt3_size_check_r3",
+ "title": "LT3 binding size check re-run on the pre-pin-fixed code (live_tests3.py 3ac52d79 / live_tests3_analysis.py 224b5603): 2,000 worlds x 200 draws, seed 20261020; binding for the E015 pin perm_iid, perm_persistent, perm_corr_control (limit 0.058; LT3 13.15); flowperm_* recorded, donor_* reported only",
+ "family": "live_tests_3",
+ "priority": 42,
+ "expected_value": "LIVE_TESTS_3.md 13.15 registered size statement on the code to be pinned (after the pre-pin fixes 13.16); gates LT3's E015 pin",
+ "data": [
+  "none (simulation)"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_live_tests3.py",
+  "size-check",
+  "--out",
+  "../data-dumps/research_lab/live_tests3_census/size_check_r3.json"
+ ],
+ "timeout_s": 43200,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests3_census/size_check_r3.json"
+ ],
+ "next_action": "compare perm_iid, perm_persistent, perm_corr_control with q0474 (must be exactly equal; any difference: investigate, never re-roll); record the rates in LIVE_TESTS_3.md 13.15 and the ledger; any perm_* failure blocks the pin with no redesign; a flowperm_* failure is recorded and blocks future flow-moderation use of the gate but not the E015 pin; on pass: host dry run (13.4), pin, register",
+ "notes": "DRAFT 2026-10-21 (fix/lt3-prepin); the orchestrator promotes it. Re-runs the size check on the code after the pre-pin fixes (reviews/LT3_PREPIN_VERIFY_2026-10-21.md findings 1 and 2; LT3 13.16), which changed both module hashes. size_check() and every helper it calls are byte-identical to the code q0474 ran on, with the same spec seed, worlds and draws, so the perm_* rates MUST equal q0474's exactly; any difference means investigate (environment, library versions, code), never re-roll or reseed. The ruling (13.15) was written before q0474's result was read. Spec defaults: 2,000 worlds, 200 draws, seed 20261020 (no --worlds/--draws). Estimated 3-5 h on the host; results are written only at the end; the CLI refuses to overwrite --out. max_retries 1 covers infrastructure failures only (host, OOM, timeout), same code and seed; a completed run is never repeated, reseeded or varied. Counts 0."
+}

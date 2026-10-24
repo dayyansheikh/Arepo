@@ -1,0 +1,32 @@
+{
+ "id": "q0470_lt3_census_captures",
+ "title": "LT3 censuses C1 (E015 classes), C3 (E017 surges), C4 (E019 breadth) on the complete captures of UTC 2026-10-15 and 10-16 (DRAFT): counts only, origin-side fields only, no capture after the one classified, no target, no P&L",
+ "family": "live_tests_3",
+ "priority": 45,
+ "expected_value": "E015/E017/E019 census gates (LIVE_TESTS_3.md 13.6), E019 exclude_crypto / exclude_family, effective-count E015 MDE; decides k before the pin",
+ "data": [
+  "research_lab/snapshots (complete captures 2026-10-14T00:31Z .. 2026-10-16T22:31Z incl. look-back, read-only)"
+ ],
+ "resources": {
+  "mem_mb": 1200,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_live_tests3.py",
+  "census-captures",
+  "--work",
+  "../data-dumps/research_lab/live_tests3_census/work_c134",
+  "--out",
+  "../data-dumps/research_lab/live_tests3_census/C134.json"
+ ],
+ "timeout_s": 7200,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests3_census/C134.json (counts only; the work dir is cleaned up at exit)"
+ ],
+ "next_action": "commit C134.json and its sha256 to the repo (seals/), fill e019.exclude_crypto / exclude_family and the E015/E017/E019 entries of k_tests in the spec, record any drop in LIVE_TESTS_3.md 7.6",
+ "notes": "PROMOTED 2026-10-20 ~13:05Z after the LT3 freeze check (FREEZE_READY_WITH_FIXES, CENSUS_OK_TO_RUN after fixes 1, 2, 4 + rulings; fixes in 76778698, merged 2993a5df). Counts only, pre-window, no target read. DEADLINE (retention, not design): the look-back captures of 2026-10-14 are removed by the 2026-10-22T03:30Z archive run, so promote and run before then; otherwise restore them byte for byte from the releases and pass --snapshot-root (a missing capture stays missing). Reads about 37 captures one at a time (series of each written under the work dir, then classified); holds only origin-side unit lines in memory. mem_mb is an estimate (not measured on the host; LT2's reader measured 458-471 MB per capture); the address-space cap is 2 x mem_mb. Counts 0 (descriptive; no trials line). Does not need the spec pin: the census reads the DRAFT spec unpinned, and the census code is the code at the promoted commit (code_sha256 is written into the output)."
+}

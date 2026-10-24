@@ -1,0 +1,35 @@
+{
+ "id": "q0212_cb10_rep_B",
+ "title": "CB10-B: B1-rep and/or B2-rep on sealed HOLDOUT events",
+ "family": "creative_batch_10",
+ "priority": 30,
+ "expected_value": "L2 verdicts",
+ "data": [
+  "history/h10_brk/holdout/"
+ ],
+ "resources": {
+  "mem_mb": 800,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0208_cb10_screen_D",
+  "q0209_cb10_screen_B"
+ ],
+ "argv": [
+  "scripts/run_cb10.py",
+  "rep",
+  "--family",
+  "B",
+  "--b-results-sha256",
+  "TODO-COORDINATOR-sha256-of-committed-results_B.json"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch10/results_B_rep.json",
+  "trials.jsonl (cb10_replication)"
+ ],
+ "next_action": "pass: Stage P-B draft",
+ "notes": "CB10 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. Rules file seals/cb10_rules_v2.json (freeze-check v2, supersedes cb10_rules.json) (rules_sha256 d422cc70... (file sha256 5ee0ea23...)). --data-dumps-cap-gb 40 (ops convention; design text says 14). Only for advanced tests; verifies the seal hash first. Freeze-check fix 7 and SHOULD-FIX: also depends on q0208; --b-results-sha256 pins the committed Stage-1 results_B.json (required; the HOLDOUT stays closed on a mismatch): placeholder to be filled by the coordinator after the B screen result is committed."
+}

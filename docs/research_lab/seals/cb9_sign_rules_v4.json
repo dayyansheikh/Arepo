@@ -1,0 +1,740 @@
+{
+ "common": {
+  "counting": {
+   "count_line": "ml_explain, source creative_batch_9:<family>, n_tests = 1 per test",
+   "kinds": [
+    "cb9_test",
+    "cb9_replication",
+    "cb9_descriptive"
+   ],
+   "not_testable": "counted with p = 1"
+  },
+  "exclusion": {
+   "max_unverified_key_share": 0.02,
+   "own_seal_copies": [
+    "cb9_kd_holdout_SEAL.json"
+   ]
+  },
+  "placebos": {
+   "draws": 200,
+   "max_advance_rate": 0.015,
+   "seeds": {
+    "D1_shuffle": 9194,
+    "K1_skew_sign": 9193,
+    "P1_breakeven": 9191,
+    "P2_label_swap": 9192,
+    "spare_5": 9195,
+    "spare_6": 9196,
+    "spare_7": 9197
+   }
+  },
+  "read_allowed_names": [
+   "exclusion_keys.csv.gz",
+   "exclusion_report.json"
+  ],
+  "refused_roots": [
+   "cb1_extract",
+   "cb2_extract",
+   "cb3_extract",
+   "cb4_extract",
+   "cb5_extract",
+   "cb6_extract",
+   "cb7_extract",
+   "cb3_followup",
+   "cb6_followup",
+   "cross_venue",
+   "cross_venue_live",
+   "surprise_live",
+   "live_trades",
+   "trade_samples",
+   "cb8_extract",
+   "creative_batch8",
+   "creative_batch7",
+   "creative_batch6",
+   "creative_batch5",
+   "creative_batch4",
+   "h1_first",
+   "h2_main",
+   "h3_power",
+   "h4_seal",
+   "h5_cb1",
+   "h5_cb1_ladders",
+   "h6_weather",
+   "h7_cb4_era",
+   "h7_cb4_series",
+   "h8_tail",
+   "h8_text",
+   "h8_geo",
+   "h9_flow"
+  ],
+  "refused_run_ids": [
+   "h1_first",
+   "h2_main",
+   "h3_power",
+   "h4_seal",
+   "h5_cb1",
+   "h5_cb1_ladders",
+   "h6_weather",
+   "h7_cb4_era",
+   "h7_cb4_series",
+   "h8_tail",
+   "h8_text",
+   "h8_geo",
+   "h9_flow",
+   "updown",
+   "updown_frame",
+   "exclusion_run",
+   "holders"
+  ],
+  "results": "write-once: a screen / rep refuses to overwrite its results file and logs no second count line",
+  "stage1": {
+   "batch_holm_alpha": 0.01,
+   "batch_holm_k1": 5,
+   "by_family": "battery2.cumulative_count() at the run (triage only)",
+   "by_q": 0.1,
+   "gate_p": 0.01,
+   "holm_family": [
+    "P1",
+    "P2",
+    "K1",
+    "D1",
+    "S1"
+   ]
+  },
+  "stage2": {
+   "alpha": 0.05,
+   "k": "derived in code (stage2_k) from results_P.json and results_KD.json",
+   "rule": "k = number of Stage-1 advances among P1, P2, K1, D1, fixed when results_P.json and results_KD.json are both final; each Stage-2 test is judged when it finishes at the threshold alpha/k (one-sided alpha 0.05; strict p < alpha/k), in its Stage-1 direction, AND with the section 2.4 floor on the point estimate, every binding placebo (advance rate <= 1.5% at the same threshold) and every binding robustness check (section 2.6 'any advance or pass'; their p thresholds at alpha/k); the Holm step-down over the final Stage-2 p values is reported as a label only"
+  },
+  "stall": {
+   "exit": 0,
+   "labels": {
+    "disjointness_unverified": "not testable (disjointness unverified)",
+    "not_run_source": "not testable (source)"
+   },
+   "screens": "p = 1, testable false",
+   "statuses": [
+    "not_run_source",
+    "disjointness_unverified",
+    "upstream_not_testable"
+   ]
+  },
+  "t_seal": "2026-10-22T00:00:00Z",
+  "uncertainty": {
+   "min_clusters": 30,
+   "min_units": 100,
+   "n_boot": 2000,
+   "n_wild": 9999,
+   "seed_boot": 919,
+   "small_g": "cb2_weather.small_g_pvalue per way; p = max over declared ways",
+   "top_drop": 5
+  }
+ },
+ "declared": {
+  "amount_decimals": 6,
+  "census": {
+   "columns": [
+    "stratum",
+    "market_id",
+    "era",
+    "receipt_status",
+    "endpoint",
+    "match_status",
+    "t1_available",
+    "t2_available",
+    "t2_status",
+    "fill_type",
+    "sports"
+   ],
+   "forbidden": [
+    "api_side",
+    "api_idx",
+    "t1_side",
+    "t1_idx",
+    "t2_side",
+    "t2_idx",
+    "feed_side",
+    "notional",
+    "size",
+    "price_band"
+   ],
+   "gate_GS": {
+    "match_rate": 0.9,
+    "min_matched": 300
+   }
+  },
+  "contracts": {
+   "ctf": "0x4d97dcd97ec945f40cf65f87097ace5ea0476045",
+   "exchanges_v1": [
+    "0x4bfb41d5b3570defd03c39a9a4d8de6bd8b8982e",
+    "0xc5d563a36ae78145c45a50134d48a1215220f80a"
+   ],
+   "exchanges_v2": [
+    "0xe111180000d2663c0091e4f400237545b87b996b",
+    "0xe2222d279d744050d28e00520010520000310f59"
+   ],
+   "neg_risk_adapter": "0xd91e80cf2e7be2e162c6513ced06f1dd0da35296",
+   "verification": "v1 and CTF from Polymarket's published contracts list; v2 from the section 0.3 probe; re-verify before commit (open item)"
+  },
+  "decision": {
+   "era_map": {
+    "a": {
+     "era": "v2 exchange, [2026-10-01, 2026-10-15)",
+     "informs": [
+      "E007"
+     ]
+    },
+    "b": {
+     "era": "v2 exchange, pmxt window May-Aug 2026",
+     "informs": [
+      "HB1",
+      "HB2 (incl. HB2-R F4/F5)",
+      "CB9-K"
+     ]
+    },
+    "c": {
+     "era": "v1 exchange, [2026-02-01, 2026-04-27)",
+     "informs": []
+    }
+   },
+   "gs_fail": "not testable (source); mapped results unverified; never inherited",
+   "material": "q_hat < 0.9 or q_wc < 0.85",
+   "minor": {
+    "q_hat": 0.9,
+    "q_wc": 0.85
+   },
+   "near_truth": {
+    "q_hat": 0.97,
+    "q_lb": 0.95
+   },
+   "pooled": "descriptive only",
+   "q_lb": "min(market-cluster bootstrap 0.5th percentile, Wilson 0.99 on markets)",
+   "q_wc": "every sampled print without a match (unmatched or receipt unavailable) scored as a disagreement"
+  },
+  "endpoints": {
+   "attempts_per_endpoint": 2,
+   "method": "eth_getTransactionReceipt (keyless JSON-RPC POST)",
+   "order": [
+    "https://polygon.drpc.org",
+    "https://1rpc.io/matic",
+    "https://polygon-bor-rpc.publicnode.com"
+   ],
+   "rps": 2.0,
+   "unavailable": "after every endpoint failed twice (HTTP != 200, RPC error, unparseable, null result); counted, never repaired",
+   "used_by_other_jobs": false
+  },
+  "family": "CB9-S (CH79), CREATIVE_BATCH_9.md CB9-S; collection rules fixed before the first receipt (q0181)",
+  "fill_type": "receipt segment after the previous OrdersMatched up to the matched one: normal / mint (complementary BUYs + PositionSplit) / merge (complementary SELLs + PositionsMerge) / mixed / unknown",
+  "indexed_rule": "leading len(topics) - 1 parameters; data length must equal the rest",
+  "layouts": {
+   "transfer_single": [
+    [
+     "operator",
+     "address"
+    ],
+    [
+     "from",
+     "address"
+    ],
+    [
+     "to",
+     "address"
+    ],
+    [
+     "id",
+     "uint256"
+    ],
+    [
+     "value",
+     "uint256"
+    ]
+   ],
+   "v1_order_filled": [
+    [
+     "orderHash",
+     "bytes32"
+    ],
+    [
+     "maker",
+     "address"
+    ],
+    [
+     "taker",
+     "address"
+    ],
+    [
+     "makerAssetId",
+     "uint256"
+    ],
+    [
+     "takerAssetId",
+     "uint256"
+    ],
+    [
+     "makerAmountFilled",
+     "uint256"
+    ],
+    [
+     "takerAmountFilled",
+     "uint256"
+    ],
+    [
+     "fee",
+     "uint256"
+    ]
+   ],
+   "v1_orders_matched": [
+    [
+     "takerOrderHash",
+     "bytes32"
+    ],
+    [
+     "takerOrderMaker",
+     "address"
+    ],
+    [
+     "makerAssetId",
+     "uint256"
+    ],
+    [
+     "takerAssetId",
+     "uint256"
+    ],
+    [
+     "makerAmountFilled",
+     "uint256"
+    ],
+    [
+     "takerAmountFilled",
+     "uint256"
+    ]
+   ],
+   "v2_order_filled": [
+    [
+     "orderHash",
+     "bytes32"
+    ],
+    [
+     "maker",
+     "address"
+    ],
+    [
+     "taker",
+     "address"
+    ],
+    [
+     "side",
+     "uint8"
+    ],
+    [
+     "tokenId",
+     "uint256"
+    ],
+    [
+     "makerAmountFilled",
+     "uint256"
+    ],
+    [
+     "takerAmountFilled",
+     "uint256"
+    ],
+    [
+     "fee",
+     "uint256"
+    ],
+    [
+     "b1",
+     "bytes32"
+    ],
+    [
+     "b2",
+     "bytes32"
+    ]
+   ],
+   "v2_orders_matched": [
+    [
+     "takerOrderHash",
+     "bytes32"
+    ],
+    [
+     "takerOrderMaker",
+     "address"
+    ],
+    [
+     "side",
+     "uint8"
+    ],
+    [
+     "tokenId",
+     "uint256"
+    ],
+    [
+     "makerAmountFilled",
+     "uint256"
+    ],
+    [
+     "takerAmountFilled",
+     "uint256"
+    ]
+   ]
+  },
+  "match": "OrdersMatched on a pinned exchange whose takerOrderMaker equals the print's proxyWallet (compared as the strict-key HMAC, in memory) and whose token is the print's asset or its complement; several -> those with share amount = size within 1e-06; zero or several remaining -> unmatched",
+  "s1": {
+   "anchor_tol_s": 1800,
+   "eras": {
+    "v1": [
+     "2026-02-01",
+     "2026-04-27"
+    ],
+    "v2": [
+     "2026-05-01",
+     "2026-10-01"
+    ]
+   },
+   "exclusions": "q0182 ids and keys + K/D frame (SCREEN and HOLDOUT) + P frame + S0a/S0b/S0c samples + every market with a pythdata.app resolution source (by rule; a stalled P frame contributes no ids)",
+   "feature_h": 6,
+   "lb_percentile": 1.0,
+   "max_receipt_prints": 20000,
+   "min_prints": 3,
+   "n_markets": 1200,
+   "origin_step_h": 2,
+   "pages": 20,
+   "ratio": 1.5,
+   "rule": "pass iff R_hat >= 1.5 and the 1st percentile of 2,000 event-clustered draws > 1.5; beta_api <= 0 draws count as R <= 1.5",
+   "seed": "arepo-cb9-h10",
+   "target_h": 6,
+   "window_h": 72
+  },
+  "samples": {
+   "capped_market": "a market whose window is still full after 5 pages is unavailable (counted); no replacement market is drawn",
+   "feed_side": "S0b: pmxt last_trade_price side by (tx, asset) for prints in [13Z, 14Z); 'unmatched' there without an event; 'not_measured' elsewhere (ruling (c))",
+   "frame": "Gamma closed and active, endDate >= window start, startDate < window end, volumeNum >= 1000; end-date windows of 7 d (one window beyond 400 d), bisected on the offset cap down to 3600 s",
+   "liq_tercile": "terciles of Gamma volumeNum among the stratum's sampled markets",
+   "max_per_event": 3,
+   "min_volume": 1000.0,
+   "n_markets": 250,
+   "no_replacement": "a sampled market with fewer than 4 prints contributes what it has; no replacement",
+   "notional": "size x price, the declared weight of the notional-weighted agreement (round-1 addition)",
+   "pages": 5,
+   "price_bands": [
+    [
+     0.0,
+     0.1,
+     "<0.10"
+    ],
+    [
+     0.1,
+     0.3,
+     "0.10-0.30"
+    ],
+    [
+     0.3,
+     0.7,
+     "0.30-0.70"
+    ],
+    [
+     0.7,
+     0.9,
+     "0.70-0.90"
+    ],
+    [
+     0.9,
+     1.0000001,
+     ">=0.90"
+    ]
+   ],
+   "print_limit": 1000,
+   "prints_per_market": 4,
+   "s0a_drops": "none (section 1.3)",
+   "s0b": "1000 K/D SCREEN prints, markets in seeded order, <= 4 per market; HOLDOUT refused",
+   "s0c_drops": "CB7 q0141 key file (ids + event / neg-risk / series keys) + ids of every committed seal copy at q0181's start",
+   "seeds": {
+    "a": "arepo-cb9-s0a",
+    "b": "arepo-cb9-s0b",
+    "c": "arepo-cb9-s0c"
+   },
+   "stall": "a failed smoke criterion for the stratum's era -> terminal not_run_source, label 'not testable (source)', exit 0 (M5)",
+   "stored": [
+    "stratum",
+    "market_id",
+    "event_id",
+    "tx",
+    "asset",
+    "api_side",
+    "api_idx",
+    "size",
+    "notional",
+    "price_band",
+    "liq_tercile",
+    "sports",
+    "era",
+    "receipt_status",
+    "endpoint",
+    "match_status",
+    "n_candidates",
+    "t1_available",
+    "t2_available",
+    "t2_status",
+    "t1_side",
+    "t1_idx",
+    "t2_side",
+    "t2_idx",
+    "fill_type",
+    "wallet_hash",
+    "feed_side"
+   ],
+   "windows": {
+    "a": [
+     "2026-10-01",
+     "2026-10-15"
+    ],
+    "c": [
+     "2026-02-01",
+     "2026-04-27"
+    ]
+   }
+  },
+  "shares": "BUY: taker amount; SELL: maker amount (both eras)",
+  "side_enum_v2": {
+   "0": "BUY",
+   "1": "SELL"
+  },
+  "smoke": {
+   "era_days": {
+    "v1": "2026-01-20",
+    "v2": "2026-09-15"
+   },
+   "markets_per_era": 10,
+   "max_unavailable": 2,
+   "min_decoded_t1_eq_t2": 18,
+   "min_volume": 10000.0,
+   "network_failure": "nothing written, exit 75",
+   "per_exchange": "matched and T1 = T2 counts per pinned exchange address, reported (M1)",
+   "prints_per_market": 2,
+   "receipts_per_era": 20,
+   "seed": "arepo-cb9-smoke",
+   "unavailable_rule": "more than 2 unavailable receipts in an era -> nothing written, exit 75 (M2)",
+   "version": "cb9-smoke-v1",
+   "yahoo": {
+    "bar_clock": {
+     "checkpoints_et": [
+      "10:32 (09:30 bar)",
+      "12:32 (11:30 bar)",
+      "15:32 (14:30 bar)"
+     ],
+     "daily_close": "close of day d - 1 usable from d 00:00Z",
+     "drop": "o < 09:30 ET, o >= close (closing rows), e <= o (zero length), missing open/close",
+     "end": "e = min(o + 60 min, 16:00 ET) (13:00 ET on half sessions)",
+     "full_bars": 7,
+     "half_bars": 4,
+     "half_sessions_2026": [
+      "2026-11-27",
+      "2026-12-24"
+     ],
+     "holidays_2026": [
+      "2026-01-01",
+      "2026-01-19",
+      "2026-02-16",
+      "2026-04-03",
+      "2026-05-25",
+      "2026-06-19",
+      "2026-07-03",
+      "2026-09-07",
+      "2026-11-26",
+      "2026-12-25"
+     ],
+     "other_count": "bars unavailable for that ticker-day, counted, never repaired",
+     "timestamp": "bar start o",
+     "usable": "e + 120 s <= t"
+    },
+    "check": "after the drop exactly 7 bars; first start 09:30 ET; first open vs daily open and last close vs daily close within 0.2%; dropped rows by count",
+    "failure": "P not testable (source), counted; never re-fitted",
+    "gamma_paging": "two walks per day, equal id sets, not capped; parse_market reason counts and the equality-clause sentence of primary markets recorded (M3)",
+    "gamma_paging_days": [
+     "2026-09-15",
+     "2026-09-16"
+    ],
+    "pmxt_heads": [
+     "2026-06-30T14",
+     "2026-04-28T16",
+     "2026-04-29T19"
+    ],
+    "pmxt_seed": "arepo-cb9-smoke-pmxt",
+    "sessions": [
+     "2026-09-15",
+     "2026-09-16"
+    ],
+    "ticker": "NVDA",
+    "tol": 0.002
+   }
+  },
+  "source_gate": {
+   "comparison": "side and token",
+   "t1_eq_t2_min": 0.99
+  },
+  "t1": "v2: side enum + tokenId of the matched OrdersMatched; v1: BUY of takerAssetId if makerAssetId = 0, else SELL of makerAssetId",
+  "t2": "net ERC-1155 TransferSingle/TransferBatch flow (CTF contract) of the pair's tokens to (BUY) / from (SELL) the taker address; one token non-zero, else ambiguous / absent",
+  "topics": {
+   "computed": {
+    "position_split": "0x2e6bb91f8cbcda0c93623c54d0403a43514fabc40084ec96b6d5379a74786298",
+    "positions_merge": "0x6f13ca62553fcc2bcd2372180a43949c1e4cebba603901ede2f4e14f36b282ca",
+    "transfer_batch": "0x4a39dc06d4c0dbc64b70af90fd698a233a518aa5d07e595d983b8c0526c8f7fb",
+    "transfer_single": "0xc3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62",
+    "v1_order_filled": "0xd0a08e8c493f9c94f29311604c9de1b4e8c8d4c06bd0c789af57f2d65bfec0f6",
+    "v1_orders_matched": "0x63bf4d16b7fa898ef4c4b2b6d90fd201e9c56313b65638af6088d149d2ce956c",
+    "v2_fee_charged": "0x55bb3cade9d43b798a4fe5ffdd05024b2d7870df53920673bfc7e68047cd0ab1",
+    "v2_order_filled": "0xd543adfd945773f1a62f74f0ee55a5e3b9b1a28262980ba90b1a89f2ea84d8ee",
+    "v2_orders_matched": "0x174b3811690657c217184f89418266767c87e4805d09680c39fc9c031c0cab7c"
+   },
+   "keccak": "local Keccak-256 (Ethereum padding)",
+   "pinned_full": {
+    "v1_order_filled": "0xd0a08e8c493f9c94f29311604c9de1b4e8c8d4c06bd0c789af57f2d65bfec0f6",
+    "v1_orders_matched": "0x63bf4d16b7fa898ef4c4b2b6d90fd201e9c56313b65638af6088d149d2ce956c",
+    "v2_order_filled": "0xd543adfd945773f1a62f74f0ee55a5e3b9b1a28262980ba90b1a89f2ea84d8ee",
+    "v2_orders_matched": "0x174b3811690657c217184f89418266767c87e4805d09680c39fc9c031c0cab7c"
+   },
+   "pinned_prefix": {
+    "v2_fee_charged": "0x55bb3cad"
+   },
+   "pins_ok": true,
+   "signatures": {
+    "position_split": "PositionSplit(address,address,bytes32,bytes32,uint256[],uint256)",
+    "positions_merge": "PositionsMerge(address,address,bytes32,bytes32,uint256[],uint256)",
+    "transfer_batch": "TransferBatch(address,address,address,uint256[],uint256[])",
+    "transfer_single": "TransferSingle(address,address,address,uint256,uint256)",
+    "v1_order_filled": "OrderFilled(bytes32,address,address,uint256,uint256,uint256,uint256,uint256)",
+    "v1_orders_matched": "OrdersMatched(bytes32,address,uint256,uint256,uint256,uint256)",
+    "v2_fee_charged": "FeeCharged(address,uint256)",
+    "v2_order_filled": "OrderFilled(bytes32,address,address,uint8,uint256,uint256,uint256,uint256,bytes32,bytes32)",
+    "v2_orders_matched": "OrdersMatched(bytes32,address,uint8,uint256,uint256,uint256)"
+   }
+  },
+  "yes_sign": "+1 for BUY of outcome 0 or SELL of outcome 1, -1 otherwise; primary A_yes = API sign == T1 sign; A_tok (side and token) reported"
+ },
+ "disk": {
+  "data_dumps_cap_gb_default": 40.0,
+  "disk_budget_exit": 4,
+  "headroom_exit": 75,
+  "refusal_exit": 2
+ },
+ "func_sources_sha256": {
+  "cb8_common.hash_wallet": "de1003c768c24a7fe41bd93b2ada2ae245ab60d4c217df365cb14e1efc156338",
+  "cb8_common.key_fingerprint": "2dc81a0d992c306cbea5156b49df455044b4efe3b6f921c29bf696d9ee64e568",
+  "cb8_common.load_wallet_key_strict": "8c3e91817c91c8d6699889a1e24f9e05225c80357d6ac6fa0c36ec5f1f5a2af0",
+  "cb9_common.batch_holm_label": "e3ec2afd7046c24d9eec169caf4474b60f222c3a2fde8ad690bf59fc016cab2b",
+  "cb9_common.check_stage2_k": "730c65cc56ceed75083c8e5357b40d5eb4c49b9d8ef2d60559f6d7e3aa49efe2",
+  "cb9_common.cluster_bootstrap_means": "40f9457f421736bc49b6399ccc4bc208b9fac8a674c72c567dc5b2eae1dfe2f9",
+  "cb9_common.cluster_p": "532ef114f37a643e11fe31208bfc6f8cd203ca2b782881ba8a5b4363c43d7561",
+  "cb9_common.common_declared": "8a022cf635587bf639204bccec55016413367af94db1655356aa607a931c9a95",
+  "cb9_common.drop_by_keys": "003e35843649afc05ee07261e9c478685bcdc6f02f9b7acd71c573ba62282956",
+  "cb9_common.exclusion_keys": "fa3a3d72873e5d471fd9c1b68a6bfc57efc9cfc4c41493f84c2570a1d6b987dc",
+  "cb9_common.holm": "00f897abbb2444fa983bcb62be53639bfad2b04e5ff76737533c31eacfcd82d0",
+  "cb9_common.load_exclusion_keys": "2c13a3c2a200b121b7da49223ed5202d626c55bf0432a6fb7d518e34485aaed3",
+  "cb9_common.placebo_advance_rate": "7e1f27beb4ff605960b8fd50b333d618105d07c4e951978df65966de2db61c81",
+  "cb9_common.rank": "84ab60daca926f462c2bc318f0a7a3b6b4d5a2480a5640d13181fcbec93683bc",
+  "cb9_common.read_csv_gz_restricted": "a6cfdb3c916eb25f73a926e6305f3478af52491bbc2f86c07032578d8f94fcd6",
+  "cb9_common.refuse_path": "c5cd8ffd054f083b675d8b0f3d6114f671b78e94d4045a4b3cdf81be463cd37f",
+  "cb9_common.refuse_read": "b1c2c29b1989c535ee446ae802547ee16233d4b795cdba006c39144197513935",
+  "cb9_common.refuse_run_id": "7205c058266bdae9021aee0b2ed09f55a6ecb4ffd788b03bf612f1313e1d1461",
+  "cb9_common.require_after_t_seal": "43368ba9aad66ec6a441952ef0cea90c1bde2e5955ec38ddde2a28f18b45e65f",
+  "cb9_common.stage2_gate": "7191e9ee50bcaaba9aa981528fdb8208388408ab465400cb635a8e16c2ac1932",
+  "cb9_common.stage2_k": "64c27038cade07a1694b376438ab054f143d1fb1e5e5996c27dcad50aaad42ad",
+  "cb9_common.stall_of": "b46fd8ac330a177aad3cc79b7758958132d99a79ca51a09bb986083ebe883a47",
+  "cb9_common.top_k_drop_mask": "ca983a19b993ebcfc76179a5579602fdf85a722d3e3e59c4e5a34ae3753d209a",
+  "cb9_common.wilson_lower": "4471a3b1d2f5c188e7edd0f77f1441fb37d8f71ff4994775f7b1140c75a98728",
+  "cb9_common.write_results_once": "94af1d221ce65cc6b07c147cd2ec225bae7afc7cf5b94817ea5620880e628b46",
+  "cb9_common.write_stall": "7851c4dd8b6f92b1a20db8e6bf736419d9878f4a43444c02d62eb1a73d73f3c0",
+  "cb9_pyth.bar_clock_declared": "2d735e019a74be2368d48c671237b4be5033ae3084165c008aeb61d79a799a5e",
+  "cb9_pyth.close_et": "ed34c91c3dfc25b25b4351e98689316af572540ddb77aa7b534113e8241822c2",
+  "cb9_pyth.daily_rows": "601ea8a3a8177587854ec5da2880703117eec551029a333d4f78aed36262f698",
+  "cb9_pyth.equality_excerpt": "c72e74891b92ed22d756311fa2769cc56b5ebba5086a3a7159dabae27c4b7653",
+  "cb9_pyth.et_day": "0b296db46df1478cb66c279d39b8273cb4e1b2362cccb50d0766cd784f3a4a8f",
+  "cb9_pyth.et_epoch": "379d6991b4bee8dc09b0470efbe7b4bb8f15c7655954bf16cf2b8b0e1064524a",
+  "cb9_pyth.expected_bars": "14a25b2c4d1c5252ff8c2480c3a43bc74079a8ba97713eaeef1cc3a2f1301ba8",
+  "cb9_pyth.full_sessions": "a81bced5996dc1dd7140ad85bf71f44a8d05d7239114bd9ee0af45f4a2096a6e",
+  "cb9_pyth.gamma_end_window": "d5d57edbee95d0bafcca4c3cd14bd9b2a248e5156dcd80a4be4376de363ed015",
+  "cb9_pyth.is_full_session": "64df8c2abfa661ed039f4ebe54042ace369334ce6438a55e9ac37e644503082d",
+  "cb9_pyth.latest_usable": "29a781e70e2011ad8aba10f00bca55a0ea8cc1b6ed519d4efcbbf8eb817e50e3",
+  "cb9_pyth.p_days": "b0459438138cd66bdfb3f546b430c30c4c91ecfc9e9b19b03456ff3470d45910",
+  "cb9_pyth.parse_chart": "f069a1692e01cf3bfc69889f697d68299db2d527750d8e1265e59957230d4520",
+  "cb9_pyth.parse_market": "f721bb8a6f69f43508b1317247139f5b5ce7da34d3dd5c93135537ed666984c8",
+  "cb9_pyth.session_bars": "ffb48e21df2769d3f526d59f57809d677c8b00e0a11dbd06ba715cc9a09117ff",
+  "cb9_pyth.smoke_declared": "1be8e966bb389f9b70c41b6ad44e1f82f1e8446b857710e4bce1384f75cf0621",
+  "cb9_pyth.smoke_gamma_paging": "5ea8ddc982453cf1c341a2019e8058c0500624b27112cceef2c68398e86db9ec",
+  "cb9_pyth.smoke_pmxt_heads": "c41b31598a3e881bcf2d5298b78e4d01c3a982b6da4c32a887fd954b1baf2cb2",
+  "cb9_pyth.smoke_pmxt_hours": "5499c11ce2c916f3d98d7738dac735c7b975736b2c1510da3dc33411d30390a4",
+  "cb9_pyth.smoke_yahoo_check": "bf02904a651e8d3a4e49019a8449cab5c199b753fae61dad0753431efc0bca0f",
+  "cb9_pyth.usable": "920becfef988fe33a53d0c343abb61c83334050d9f4252b2ccd7003cd61ae385",
+  "cb9_pyth.yahoo_chart": "74cfcf3c50c352567178088a673a2e8dffe8fe04a67897fff23e52549f4bb76a",
+  "cb9_pyth.yahoo_transport": "117dfe0fa3629d70adee5cf51c61c7ca6a5b75e876384c22821154f3bc41b704",
+  "cb9_sign.RpcClient.__init__": "1eb423881fbff33a0862a66df1bbd8ee12b74ecc27de01b145988ad06de092cc",
+  "cb9_sign.RpcClient._pace": "f8055695c98895ade83e4f3cf617000be9c1c74ee040e09230c8b75981ac36b6",
+  "cb9_sign.RpcClient.receipt": "a5339b7bffd9f1aade7876a87904c0c50ccb506a98a7d72b08e4e5f5dd2f8a6f",
+  "cb9_sign._hasher": "27817550bf4a283bcb10e7a32d41ed2949e19f5a21eb8bfabfcf319a9d35242c",
+  "cb9_sign._keccak_f": "00708a92682ae2df2918be8b5b8d224844be3f3f719d621bd7dcd73aff55c44d",
+  "cb9_sign._print_rank_key": "0026c725b27ff75bde610586473f82cf39c6dec687403bdea78c62592b00647f",
+  "cb9_sign._side_str": "d6f653d8ecaa0911f61d45a8a41a506a9ec18396d43ec5b96d8a58507e0c5e07",
+  "cb9_sign._side_token_v1": "f0df8fbfe43951d868f5ed17c49dda36bfb393e1a2f0fff0cae1e8b15422d319",
+  "cb9_sign._side_token_v2": "83b97edae0823fd2261d4fa09a2cc4b3b36f932969e1f5552dca0bc90b4798b8",
+  "cb9_sign._slope": "b03ab3b5cc8e4ebbb5e3544855532f50fb4c22b715a4ccd1e7bf59c746c7a8f6",
+  "cb9_sign._val": "ab29a6345e8e26673e2690ce59fb750d8bfc5161310c8759f613a6a3111e67f3",
+  "cb9_sign._words": "8c1bfd87399545ca96d19c378bb60da0eacaad6cacfafa924b6116f41d5589fb",
+  "cb9_sign.census_s": "58a4ca9e1a92917f09c700cd9a718e332056d211cfd009e626e24bb0713ec686",
+  "cb9_sign.classify_print": "14e17c13df4ef8af09b6547ab5d269b3c51a0bc7403e7b0124abd10f23f78e94",
+  "cb9_sign.declared": "05f6e3283b14272604426732a7fcc700568f354da6ffa544e22e5aa39c86143e",
+  "cb9_sign.decode_receipt": "d369799b98c347359dd26136e264ecd599ada3771b9712abe29e8841f0a6c1a7",
+  "cb9_sign.decode_static": "c0d2922c4986c6140afe15a474320c616386a704d44ff2e20d68188ab061a59d",
+  "cb9_sign.decode_transfer_batch": "20a604d3cfb7216f62d804514642cb8ae7e8fd2686c7217a318ee9a28ce2a023",
+  "cb9_sign.draw_prints": "784f621fb3eec401b70310715fd833cd34ce2cb68e73871125fa30945e899d92",
+  "cb9_sign.feed_label": "e178a6d33ba8ca416c750b325582b9ad7252399b8f6d0415a87cae8b7d400451",
+  "cb9_sign.fill_type": "dff49863932148c2fd059a575485cdc9d9fa762c215468d849c3546f2c2e3b8a",
+  "cb9_sign.frame_windows": "036feef69fc07a06754ecfacba883b25b9ef65342c3dec86dfbbbba5e5e8b977",
+  "cb9_sign.h10_exclusions": "e644a0c521f934973529095970cd6c0c62a3b183487fbd7c2790dec09acbbc00",
+  "cb9_sign.h10_window": "0cb47f2cc8fc61ac5f04139dcc10526ab4b6494bf6b440898d53783b78fd42bf",
+  "cb9_sign.httpx_post": "a12066a338364481f0259aac23b5d37f97d3744d0a8aa2c61e261a43a03e4421",
+  "cb9_sign.kd_s0b_input": "18b0867f82dc2805622c98fce69fb168b65933270098f8136ca3b0e08343ab35",
+  "cb9_sign.kd_upstream_stall": "f63ec5aef6658017f830d55f165332844c61e3886ae6d848648dff6828f4ed8d",
+  "cb9_sign.keccak256": "de38f4e1144d52c7b5317e780ddc570453bef22c2a5facba6f624d58d9309cd1",
+  "cb9_sign.market_row": "ad47c02ad156ef58a8831f5d51d3a8722f60f70be4f06829d3e223c217fdd1d2",
+  "cb9_sign.match_print": "f40225e9db94e8e76fe75525ebb67d689ee2ad5ff9d5ef25d935d33e795546c2",
+  "cb9_sign.parse_print_s": "0dd1e5fb41f62bd257690f068801199076f96aab8c27292350c6882592a64ddc",
+  "cb9_sign.price_band": "eec23d9b471b4854f0bd7b0d3284ff856c6b02ee538fa0da558617c61a84ae6a",
+  "cb9_sign.read_census_rows": "366ef3afde945a62db38878ec5e4573cd8e025b4b7d823418c026a4c5ccfa460",
+  "cb9_sign.require_topic_pins": "117f4dda1243b96b0b1a7e851525bff7782fdb102d40e133cdc70a07d1d22908",
+  "cb9_sign.s0_frame_and_sample": "44b198a600379d9344b00750196f8cec514a3a84f0eed0e804c9ca36927d589a",
+  "cb9_sign.s0_screen": "b2c05812637d73514096b6fcf190fd18c2d68480b5f7340147c51ac656074b78",
+  "cb9_sign.s0_stratum": "904cfaeeea521501a430abae6ffa5c14d2b6d4e9fb2a45bcdaa2d23450938d9f",
+  "cb9_sign.s0b_sample": "5fbf27dc2cc3c7ee8800184c661e019e9e7af447f627d925ede9dc18033fc5ec",
+  "cb9_sign.s1_ratio": "c98286b19cd5c7a25608b1b68375e8d9a27a4415691a5775374ff6e91ea8b355",
+  "cb9_sign.s1_units": "3f7f673425ddfceb9e0a72ac8e142384d4a1044527e04f7f30bbffd901d37825",
+  "cb9_sign.sample_markets": "425622a3bd19b0d518d6ba8c3a97aafa9315d86f23c665437b2e0837a2672684",
+  "cb9_sign.seal_copy_ids": "d48345fe257b43f7ce9576e4ce1ff83ec80527d417ffd403efbb218b16a9f731",
+  "cb9_sign.sign_audit": "a5dc2099151a11c42c3481ad2bf85ca96f0171c669fae12e98d6d54b82deab91",
+  "cb9_sign.sign_fetch_h10": "062c75ba9b9d5df6855f14edfde2f4c1ae282efa99c2be576d47c444bef618cf",
+  "cb9_sign.smoke_criterion": "0443f30193b528eba51765f2333d1115cc7d081327c32834b92aaf0541ca1659",
+  "cb9_sign.smoke_ok": "3371fc385d589e7814b37f85f290946f5ab05260ebe7c31bc5816ef86ba5f346",
+  "cb9_sign.smoke_receipts": "c16cb2580917c57153a059dc77d8fb7d1968209a6d01fadaadc6da4576ad06f6",
+  "cb9_sign.t1_of": "231f4e34eff5a31ca89b9aefbc540e0592e4d102d4c9263758020d771f5d0c14",
+  "cb9_sign.t2_of": "6f50aac3a941381820f5c242021c5f113104d422049e490d13f9159021a44df2",
+  "cb9_sign.tercile_of": "50dd4868cdbef878f658d3c4352734d56837578d12bab60a4f9383d8bd63ebbb",
+  "cb9_sign.terciles": "50f56c8062046ec5937f8e3fcca56f8dfc08bce5fc5b9d127f4a212e1b9ce570",
+  "cb9_sign.topic": "b000e64e7ffd5e8283adb826f955e3188242e5eee95fae4be73483fadb684518",
+  "cb9_sign.topic_pins_ok": "64e69a43524247ef9c84ca5ca66169d79cca13ac0ba4d717d5501e93ec555bc9",
+  "cb9_sign.topics": "e80fd21bcd6f40ac2fca900370a9065b0c5b69d0242184fdc8d1d0413660420f",
+  "cb9_sign.walk_frame": "766583d0b365800a750d7b120c017e05fd55f8de9bb272921a61a09f98fc5059",
+  "cb9_sign.windowed_prints_s": "84ac6501c41576fdb02e80ac8bd05759b5f39c09f4e1212d2ac95bd8a12fc80f",
+  "cb9_sign.yes_sign": "ae76f3ef05f0e5cf9822e1888f1f2b16561cc80f377267b4323fe88c1c23e1e2",
+  "history_backfill._paged": "4c1cb360b928f71732eedc4bdf05ee21b2a54938c3f44b9b17ce09e847e0ea08",
+  "history_backfill.frame_row": "d9fc5acf7d123ca379cf06cb7e7b168fb4c6a8546694d5f8f2f2be26ca2c087b"
+ },
+ "funcs_sha256": "d04db1be60dba61cf0f438ed1fa5c2a70739984825b53bf6c605ad05acc82876",
+ "rules_sha256": "881fd325c30718af7d85ad9765fee84eb85fa0b6e8f88f824a09e0ae2514c669",
+ "rules_version": "cb9-sign-rules-v4",
+ "wallet": {
+  "fingerprint": "first 16 hex of HMAC-SHA256(key, 'arepo-cb8-wallet-key-fingerprint-v1')",
+  "hash": "HMAC-SHA256(key, lower-cased proxyWallet), first 32 hex characters",
+  "key_file": "~/.arepo/wallet_hash_key (or AREPO_WALLET_HASH_KEY_PATH), mode 600, never created by CB9",
+  "raw_addresses_stored": false
+ },
+ "wallet_key_fingerprint": "80ce5e81a539a570"
+}

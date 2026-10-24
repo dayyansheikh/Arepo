@@ -1,0 +1,32 @@
+{
+ "id": "q0486_lt4_analyze",
+ "title": "LT4 single registered analysis of E022 only (DRAFT; E020, E021, E023, E024 dropped before registration): k = 1 one-sided primary, Freedman-Lane permutation gates, mechanism labels, attrition bounds, paper taker economics; refuses before 2026-11-17T12:00Z and on any pin mismatch",
+ "family": "live_tests_4",
+ "priority": 26,
+ "expected_value": "prospective verdict for E022 (exploratory; expected economics: not shown)",
+ "data": [
+  "research_lab/live_tests4 (write-once lines of the reader)"
+ ],
+ "resources": {
+  "mem_mb": 3000,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_live_tests4.py",
+  "analyze",
+  "--out",
+  "../data-dumps/research_lab/live_tests4/analysis_v1.json"
+ ],
+ "timeout_s": 43200,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests4/analysis_v1.json",
+  "trials.jsonl (one line, kind live_tests4, n_tests = k)"
+ ],
+ "next_action": "ledger results entry (scored once), registry update",
+ "notes": "PROMOTED 2026-10-22 with the E022 registration (LIVE_TESTS_4.md 20); not_before unchanged. | DRAFT, not in queue/jobs (LIVE_TESTS_4.md). Runs once; --out refuses to overwrite. Memory estimate (not measured): about 0.3-0.5 M move lines (E020 subset about 0.1 M), 0.15 M hollow lines, 0.05 M clock lines, 200 gate draws each; peak about 1-1.5 GB; never alongside another multi-GB job.",
+ "not_before": "2026-11-17T12:00:00Z"
+}

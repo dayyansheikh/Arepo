@@ -1,0 +1,39 @@
+{
+ "id": "q0323_cb14_stage2_final",
+ "title": "CB14 Stage 2 final: ONE strict Holm (one-sided alpha 0.05) over every triggered CB14 Stage-2 test (W1-rep, W2-rep, S1-rep, S2-rep); can only add passes to the early alpha/4 decisions",
+ "family": "creative_batch_14",
+ "priority": 14,
+ "expected_value": "final Stage-2 verdicts",
+ "data": [
+  "research_lab/creative_batch14/results_{W,S}.json",
+  "research_lab/creative_batch14/results_{W,S}_rep.json"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0309_cb14_screen_W",
+  "q0320_cb14_screen_S"
+ ],
+ "argv": [
+  "scripts/run_cb14.py",
+  "stage2-final",
+  "--rules",
+  "../docs/research_lab/seals/cb14_rules.json"
+ ],
+ "timeout_s": 600,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch14/results_stage2_final.json",
+  "trials.jsonl (cb14_descriptive: stage2_final)"
+ ],
+ "next_action": "a pass: Stage P registration draft (recorded books); otherwise CB14 closed",
+ "notes": "DRAFT. Long wait: exit 75 (pending) with an idle heartbeat (exit 0) at least every 10 h, so the repeat (until the completion status) keeps it alive. CREATIVE_BATCH_14.md section 2.3 and section 11 F6. Runs once every TRIGGERED family's rep result exists (W iff W1 or W2 advanced at Stage 1; S iff S1 or S2 advanced); a family that is terminal 'not testable' or triggered nothing is skipped; while a triggered rep is missing it waits (exit 75, pending). A triggered test that could not run enters with p = 1. A pass needs checks_ok (every binding check except the primary p gate) and either the early alpha/4 decision or the final Holm reject. Verifies the rules file (every part) first. Write-once (a second run reports already_written). No family triggered -> refusal (exit 2): nothing to finalise. Counts nothing (the reps counted their tests). Rules part sha256 (seals/cb14_rules.json, resealed 2026-10-19 after the freeze-check fixes and the re-check of 515d68d, CREATIVE_BATCH_14.md section 11): common d34a2e739bacc69957fb0df777c174cfcbf95a92bdc72152a88bf4b326297e9c, W 011abaf508b061e84b2e005c7774a4f2f6ccf0d4d8a8cf3566540ab4f933a369, S 657c7ae3b081d965d8dd01e2a9787d45ebb7adbf5774af2a7f931f14faba856f. CB14 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes.",
+ "not_before": "2026-12-01T00:00:00Z",
+ "repeat": {
+  "max_runs": 600,
+  "until_log_regex": "\"status\": \"stage2_final_complete\""
+ }
+}

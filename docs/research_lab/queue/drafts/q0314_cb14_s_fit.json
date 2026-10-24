@@ -1,0 +1,31 @@
+{
+ "id": "q0314_cb14_s_fit",
+ "title": "CB14-S: frozen position model S_w(e) by speaker, type class and term from fit offsets only (shrinkage 10 to the pooled curve; 1-minute grid to 180 min); model file sha256 recorded for part S",
+ "family": "creative_batch_14",
+ "priority": 14,
+ "expected_value": "the frozen anchor",
+ "data": [
+  "history/h14_speech/fit/"
+ ],
+ "resources": {
+  "mem_mb": 500,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0313_cb14_s_fit_fetch"
+ ],
+ "argv": [
+  "scripts/run_cb14.py",
+  "s-fit",
+  "--rules",
+  "../docs/research_lab/seals/cb14_rules.json"
+ ],
+ "timeout_s": 1200,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch14/s_model.json"
+ ],
+ "next_action": "pin the model sha256 in part S (commit); q0316 after GS0",
+ "notes": "DRAFT. Refuses if any h14_speech price, print, guarded or target file exists. Rules part sha256 (seals/cb14_rules.json, resealed 2026-10-19 after the freeze-check fixes and the re-check of 515d68d, CREATIVE_BATCH_14.md section 11): common d34a2e739bacc69957fb0df777c174cfcbf95a92bdc72152a88bf4b326297e9c, S 657c7ae3b081d965d8dd01e2a9787d45ebb7adbf5774af2a7f931f14faba856f. CB14 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes."
+}

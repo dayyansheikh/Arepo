@@ -1,0 +1,33 @@
+{
+ "id": "q0347_cb15_p_birth_census",
+ "title": "CB15-P birth-order census, counts only, no network: C1 reproduction call (cb12_x.load_c1, 316/183, pinned inputs and study source), matches.json field reader (k_open, p_start, k_cat, ids; p_end never read), non-sports, key drops by source (P rule: C1-only keys kept), Kalshi-first proxy (p_start - k_open >= 24 h) by lead bin and category, the no-drop counterfactual; gate GPB (>= 60 pairs, >= 30 events); writes the birth frame (ids and series window times only)",
+ "family": "creative_batch_15",
+ "priority": 9,
+ "expected_value": "decides whether CH130 has a population",
+ "data": [
+  "research_lab/cross_venue/{matches.json,audit_flags.json,audit_sample100.json,poly_markets.json,kalshi_markets*.jsonl,series/} (sha256 pinned by CB12-X; pair list and window times only)",
+  "creative_batch15/exclusion_keys.csv.gz (q0340, complete)"
+ ],
+ "resources": {
+  "mem_mb": 900,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0340_cb15_exclusion_keys"
+ ],
+ "argv": [
+  "scripts/run_cb15.py",
+  "p-birth-census",
+  "--rules",
+  "../docs/research_lab/seals/cb15_rules.json"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch15/{census_P_birth.json,birth_frame.csv.gz}",
+  "trials.jsonl (cb15_descriptive; a failed GPB writes P1, P2 not testable (population), counted once)"
+ ],
+ "next_action": "PASS: q0348 then q0349; FAIL: q0349 is never committed",
+ "notes": "PROMOTED 2026-10-21 (autopilot): q0340 done, q0348 P smoke PASS, CB15-P fixes confirmed (ACCEPT_WITH_FIXES, P-28 applied); rules parts common/P reproduce from the committed seals/cb15_rules.json; ledger order is q0347 with q0340. CREATIVE_BATCH_15.md CB15-P. DRAFT. mem_mb 600: the C1 reproduction streams poly_markets.json as CB12-X did (start blackout applies). No series value used in any statistic; refuses any cross_venue_live path. Rules part sha256 (seals/cb15_rules.json, P declared 2026-10-19): common 13c703222500e502cd29acb94cdec497c43ff68cfc9415bd0efbfd4699718f3a, P 1c6b7e955bd5cf92e026c4826d879c16aa301b446d54da79e7838847fd3bf876. CB15 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer, part P) and the committed rules file; the coordinator regenerates the rules and these shas if any common / P code changes. P-7: re-reads the frames recorded absent at q0340. mem_mb 900 (the C1 reproduction call ran at 900 elsewhere)."
+}

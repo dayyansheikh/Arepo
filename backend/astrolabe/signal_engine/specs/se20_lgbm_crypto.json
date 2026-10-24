@@ -1,0 +1,56 @@
+{
+ "aux_versions": {
+  "crypto": "se-aux-crypto-v1"
+ },
+ "broad": false,
+ "derived": [
+  "base"
+ ],
+ "description": "Learner-matched crypto spot reference (DESIGN_V1 section 23; CANDIDATES builder row 20): LightGBM with se1_lgbm_mm's params on the champion's features + the crypto aux family (se-aux-crypto-v1: for crypto template markets mapped from the sidecar series slug, Binance spot log returns over 5 min / 30 min / 2 h / 24 h and realised volatility from klines closed before the capture start, the up/down window length and start relative to the origin, the spot z-score and normal-reference gap of started up/down windows, and the market's own empirical beta to spot from earlier 2 h pairs applied to the latest pair). Non-crypto markets read cr_has = 0 and NaN. Read against se1_lgbm_mm for the family effect. Trains only when every labelled capture of the window has the table.",
+ "families": [
+  "market_state",
+  "momentum",
+  "crypto"
+ ],
+ "features_version": "se-features-v1",
+ "isolates": [
+  "crypto"
+ ],
+ "learner": "lgbm",
+ "model_id": "se20_lgbm_crypto",
+ "params": {
+  "early_stopping": 30,
+  "lgb": {
+   "bagging_fraction": 0.8,
+   "bagging_freq": 1,
+   "feature_fraction": 0.8,
+   "lambda_l2": 1.0,
+   "learning_rate": 0.05,
+   "max_bin": 127,
+   "min_data_in_leaf": 500,
+   "num_leaves": 31,
+   "seed": 20261021
+  },
+  "max_rounds": 300,
+  "val_frac": 0.2
+ },
+ "targets": [
+  "dir_2h",
+  "dir_6h",
+  "dir_24h",
+  "res_7d"
+ ],
+ "train": {
+  "max_rows": 300000,
+  "min_days": 2,
+  "min_rows": 5000,
+  "refit": "daily",
+  "require_full_coverage": true,
+  "require_sources": [
+   "crypto"
+  ],
+  "res_window_days": 28,
+  "window_days": 14
+ },
+ "version": 1
+}

@@ -1,0 +1,32 @@
+{
+ "id": "q0516_se_dev_refit_full",
+ "title": "Signal engine development probe (DESIGN_V1 section 32): walk forward se1_lgbm_mm against an in-memory copy refitted on the whole training window (params.refit_full; same rows, rounds and temperature) over the last 5 complete days; writes only dev/refit_full_<stamp>.json; development/historical, never prospective, never pooled",
+ "family": "signal_engine",
+ "priority": 30,
+ "expected_value": "whether the newest ~2.8 days of each window (today used only for early stopping and temperature) carry forecast information the LightGBM models are missing; decides whether a refit_full challenger is worth its promotion-K cost",
+ "data": [
+  "research_lab/signal_engine/{features,aux,quotes,meta,logs/resolutions-*} (own files)"
+ ],
+ "resources": {
+  "mem_mb": 1800,
+  "as_cap_mb": 4500,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_se_dev_refit_full.py",
+  "--days",
+  "5",
+  "--max-rows",
+  "200000"
+ ],
+ "timeout_s": 14400,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/signal_engine/dev/refit_full_<stamp>.json"
+ ],
+ "next_action": "read the SE_DEV_REFIT_FULL line: per direction target, the variant's log-loss gain over se1 with its CI and days positive. A consistent gain on every direction target justifies a registered refit_full challenger (new spec id, K + 1, prospective scoring); otherwise record a dead end in DESIGN_V1 section 32",
+ "notes": "Added 2026-10-23 ~23:50Z by the signal-engine autopilot (session 27). One-off development job, not exclusive. Priority 30 is below every other ready job, including the other track's q0116i slices (40), so it only runs in their gaps; the daily refit (50) still comes first. Size from q0514 (200k rows, about 15 min a test day with two LightGBM models); the refit_full copy fits twice per target, so expect about 20-25 min a test day, 2 h for 5 days. Peak RSS expected about 1.3 GB (q0514 1.07 GB at 385k rows, plus one LightGBM Dataset over the frame). It reads only the engine's own files and writes one write-once dev file; no registry, spec, fit, prediction, leaderboard or dashboard file changes."
+}

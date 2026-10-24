@@ -1,0 +1,41 @@
+{
+ "id": "q0345_cb15_e_live",
+ "title": "CB15-E collector (cron every minute, flock, outside lanes; scripts/oracle/cb15_e_crontab.txt): POST /books batches <= 100 tokens for the D YES and D NO tokens of every frozen trade and control market; passes on the 10-minute grid from 2026-11-02T12:00Z, every minute in [2026-11-03T22:00Z, 2026-11-04T21:00Z), 10-minute grid to 2026-11-06T00:00Z; tier snapshot (liquidity) at the first pass; Gamma map refresh every 6 h; receipt times; gaps and missed slots logged as unavailable; no exit-75 path in the window (degrade to the top level on projection overrun; stop only below 2 GB root free)",
+ "family": "creative_batch_15",
+ "priority": 0,
+ "expected_value": "the one night of E data at recorded books",
+ "data": [
+  "public CLOB /books",
+  "public Gamma"
+ ],
+ "resources": {
+  "mem_mb": 200,
+  "cpu": 1,
+  "lane": "cron",
+  "network": "clob, gamma-api"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb15.py",
+  "e-live",
+  "--rules",
+  "../docs/research_lab/seals/cb15_rules.json",
+  "--not-before",
+  "2026-11-02T12:00:00Z",
+  "--until",
+  "2026-11-06T00:00:00Z",
+  "--disk-cap-gb",
+  "freeze",
+  "--data-dumps-cap-gb",
+  "40",
+  "--no-exit75-in-window"
+ ],
+ "timeout_s": 55,
+ "max_retries": 0,
+ "outputs": [
+  "history/h15_elect_live/{books/,gaps.jsonl,storage.jsonl,passes.jsonl,tier.json,refresh/,state.json,heartbeat.json}"
+ ],
+ "next_action": "q0346 after 2026-11-06T00:00Z",
+ "notes": "RETIRED 2026-10-19 (not run, not counted): family E terminal \"not testable (frame completeness)\" written by q0341b (share 0.051 < 0.95), audited FAITHFUL by the science-reviewer (EXPERIMENT_LEDGER.md, CB15-E completeness audit). Never promote. CREATIVE_BATCH_15.md sections 1.2, 2.8. DRAFT. Installed by the coordinator after the E freeze, by 2026-11-02T00:00Z, from scripts/oracle/cb15_e_crontab.txt (collector line; e-watchdog every 5 min with notifier alerts; cpu hold placed 2026-11-03T15:00Z, released 2026-11-04T22:00Z; the 2026-11-02 12:00/12:10Z dry run; DEPLOY FREEZE note, CREATIVE_BATCH_15.md section 11), nice 5. --disk-cap-gb freeze = the cap pinned in the part-E freeze entry (3x smoke bytes per pass x scheduled passes, >= 1.0 GB). Refuses (exit 2) unless the part-E freeze pins this code and race map. Pre-night disk check on 2026-11-02: run_cb15.py e-disk-check --disk-cap-gb <frozen cap>. Reads no AREPO store. Rules part sha256 (seals/cb15_rules.json, resealed 2026-10-19 after the part-E freeze-check fixes, CREATIVE_BATCH_15.md section 11): common 13c703222500e502cd29acb94cdec497c43ff68cfc9415bd0efbfd4699718f3a, E 10ab88e7728e9956e84036f29bdb534d4b3359a04d78103f277d245e00e8dcf6. CB15 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer, part E first) and the committed rules file; the coordinator regenerates the rules and these shas if any common / E code changes.",
+ "not_before": "2026-11-02T00:00:00Z"
+}

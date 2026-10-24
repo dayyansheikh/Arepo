@@ -1,0 +1,33 @@
+{
+ "id": "q0249_cb12_census_M",
+ "title": "CB12-M census, counts only (events by month, endDate-startTime deciles, sports exclusions, occasion/period, members, availability, print reach, flags, key drops incl. full-series counterfactual, speaker keys, ISO weeks; GM; coverage audit; GMP power gate with speaker factor); the CB12-E census is a separate job (reserved id q0266) once E code exists",
+ "family": "creative_batch_12",
+ "priority": 22,
+ "expected_value": "M gates and MDE before the freeze",
+ "data": [
+  "history/h12_say/screen (no outcome file opened; HOLDOUT counts from the frame report only)"
+ ],
+ "resources": {
+  "mem_mb": 600,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0243_cb12_say_prices",
+  "q0248_cb12_seal"
+ ],
+ "argv": [
+  "scripts/run_cb12.py",
+  "census",
+  "--family",
+  "M"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch12/census_M.json",
+  "trials.jsonl (cb12_descriptive)"
+ ],
+ "next_action": "science-reviewer freeze check (M part)",
+ "notes": "DRAFT. No outcome, D, slope, fill or net computed. Refuses on an incomplete manifest or an unverified seal. Deviation from section 4: one family per census job, so M and E freeze independently. Rules part sha256 (seals/cb12_rules.json, 2026-10-18 code): M a2e420b031421642b97398ff284e2e2a9364b92004969b4421d5daa7c0910455. CB12 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes."
+}

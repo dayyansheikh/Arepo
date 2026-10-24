@@ -1,0 +1,25 @@
+{
+ "id": "q0081g_h7_group_s_amendment_gate",
+ "title": "Gate: CB4 h7 group-S amendment committed (as_declared, reviewed) — releases q0081/q0082 fetches",
+ "family": "gate",
+ "priority": 63,
+ "expected_value": "releases the h7 era and series fetches only after the reviewed group-S decision is committed with both frame-report hashes",
+ "data": [],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1
+ },
+ "depends_on": [
+  "q0081f_h7_cb4_era_frame",
+  "q0082g_h7_cb4_series_frame"
+ ],
+ "argv": [
+  "scripts/cb1_h5.py",
+  "selfcheck"
+ ],
+ "timeout_s": 600,
+ "max_retries": 1,
+ "outputs": [],
+ "next_action": "q0081/q0082 fetch (net lane, before cap-at 2026-10-22T00:00Z); q0083b on/after 2026-10-22T00:00Z, then q0083 seal",
+ "notes": "Coordinator gate 2026-10-17 ~20:40Z after the science-reviewer ruling A (as_declared): seals/h7_cb4_group_s_amendment.json carries era 03e58086... and series 50e51b87... frame-report hashes, verified on the host. CH53 E1/E2 not testable (frame counts only). Same trivial argv as q0081a."
+}

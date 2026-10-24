@@ -1,0 +1,38 @@
+{
+ "id": "q0341b_cb15_e_census",
+ "title": "CB15-E census, counts only: active 2026 general-election races (Senate, Governor, House) by the frozen query list paged to hasMore=false; race regex, general-election rule, member structure, party/candidate market type; national Senate and House control markets; politics-tag completeness walk (binding >= 95%); no price, no outcome",
+ "family": "creative_batch_15",
+ "priority": 99,
+ "expected_value": "E race and state counts for GEI and GEC; control-market candidates",
+ "data": [
+  "public Gamma"
+ ],
+ "resources": {
+  "mem_mb": 1000,
+  "cpu": 1,
+  "lane": "net",
+  "network": "gamma-api"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb15.py",
+  "e-census",
+  "--rules",
+  "../docs/research_lab/seals/cb15_rules.json",
+  "--rps",
+  "2",
+  "--disk-cap-gb",
+  "0.005",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 1200,
+ "max_retries": 2,
+ "outputs": [
+  "history/h15_elect_live/frame_census.csv.gz",
+  "research_lab/creative_batch15/census_E.json",
+  "trials.jsonl (cb15_descriptive; a failed completeness walk writes E1, E2 not testable (frame completeness), counted once)"
+ ],
+ "next_action": "q0343; GE0 runs in parallel (all 51 jurisdictions); if a chamber has != 1 control candidate, the coordinator names one D member market id for q0344 (--control-senate / --control-house) from census_E.json before the freeze",
+ "notes": "CREATIVE_BATCH_15.md CB15-E, section 4. outcomePrices/umaResolutionStatus(es)/closedTime discarded at parse; <= 620 requests. Calendar exception (CREATIVE_BATCH_15.md round 1 item 4): priority 99 with a 2-h net promotion hold placed by the coordinator before the start (or a one-shot command with the same argv after the running net job ends). Rules part sha256 (seals/cb15_rules.json, written 2026-10-19): common 13c703222500e502cd29acb94cdec497c43ff68cfc9415bd0efbfd4699718f3a, E a796280b16e1a79928cfdca0beee77e230f17498eb309f931ec85990a5a0723d. CB15 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer, part E first) and the committed rules file; the coordinator regenerates the rules and these shas if any common / E code changes. PROMOTED 2026-10-19 (autopilot): CB15-E freeze check (science-reviewer) q0341 GO (counts only, outcome-blind; rules common 13c70322, E a796280b reproduced). Part E overall REVISE; re-run under a new id only if the fixes touch classify_event, the regexes, QUERIES or the walk. SUPERSEDED BY q0341b (2026-10-19 autopilot): q0341 failed 3/3 with MemoryError ~20 s in, nothing written. Cause: address-space cap 2 x 300 MB = 600 MB; a local outcome-blind memory probe of census_e (no outputs written, counts not inspected) measured Python peak 289 MB and max RSS 586 MB, and virtual size exceeds RSS. q0341b is identical (argv, rules file, code) except mem_mb 1000 (cap 2000 MB). Resource-only change: no design, query, regex or walk change, so no re-review needed. Runs on the current committed rules file (common 13c70322, E 10ab88e7 after the c0bfef8 freeze-check fixes; the only census-path change is the reviewer's own round-2 fix 6 in trade_market, ambiguous multiple D-party members excluded and counted)."
+}

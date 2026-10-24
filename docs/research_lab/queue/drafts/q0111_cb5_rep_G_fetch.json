@@ -1,0 +1,50 @@
+{
+ "id": "q0111_cb5_rep_G_fetch",
+ "title": "CB5-G: replication-cohort fetch (listings created in [T5_rep_start, T5_rep_start+21d); prices [L-1h, L+4d+1h], trades; each at L+4d+2h)",
+ "family": "creative_batch_5",
+ "priority": 41,
+ "expected_value": "post-freeze day-0..3 data for the CH56 replication",
+ "data": [
+  "cb5_extract/listings (>= T5_rep_start)",
+  "public CLOB prices-history",
+  "public Data API trades"
+ ],
+ "resources": {
+  "mem_mb": 500,
+  "cpu": 1,
+  "lane": "net",
+  "network": "clob, data-api"
+ },
+ "depends_on": [
+  "q0108_cb5_screen_G"
+ ],
+ "argv": [
+  "scripts/run_cb5.py",
+  "rep-fetch",
+  "--family",
+  "G",
+  "--max-markets",
+  "5000",
+  "--seed",
+  "arepo-cb5-rep",
+  "--rps",
+  "4",
+  "--disk-cap-gb",
+  "0.10",
+  "--data-dumps-max-gb",
+  "40",
+  "--budget-min",
+  "50"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 3,
+ "repeat": {
+  "max_runs": 120,
+  "until_log_regex": "rep_fetch_complete"
+ },
+ "outputs": [
+  "data-dumps/research_lab/creative_batch5/rep_cohort/{prices/,trades/,progress.jsonl,manifest.json}"
+ ],
+ "next_action": "q0112 after T5_G_read",
+ "notes": "DRAFT: the coordinator copies this to queue/jobs/ only after the science-reviewer CB5 freeze check of the code. Commit only if G advanced or G2 was carried (the runner exits 0 'nothing advanced' otherwise); needs the pinned docs/research_lab/seals/cb5_t_rep_start.json. Rolling: one run per 6h (the queue repeat with a not-before cadence is set by the coordinator at release); each market is fetched only once now >= L + 4d + 2h; no target is computed by the fetcher. Refuses (exit 75, EX_TEMPFAIL: the queue waits and retries) when data-dumps size + the output allowance + scratch would pass 12 GB; the coordinator records the section 2.8 headroom precondition in the release commit. Network-bound: lane net as instructed by the coordinator; CREATIVE_BATCH_5 section 2.8 said cpu because q0002 holds net for days, so switch lane to cpu at release if q0002 still holds it. | 2026-10-17 15:35Z autopilot: data-dumps headroom guard 12 -> 40 GiB (ops only, not a declared argument): the user grew the host boot volume to 100 GB (root 89 GB, 60 GB free); collector cap 45 GiB, 4 GB free-disk guard unchanged."
+}

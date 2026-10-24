@@ -1,0 +1,34 @@
+{
+ "id": "q0256_cb12_rep_M",
+ "title": "CB12-M: M1-rep and/or M2-rep on the sealed HOLDOUT ends [2026-03-01,2026-10-01) (seal copy committed and verified first; the pinned Stage-1 results file verified before the HOLDOUT outcome file is opened)",
+ "family": "creative_batch_12",
+ "priority": 20,
+ "expected_value": "L2 verdicts",
+ "data": [
+  "history/h12_say/holdout + holdout/outcomes_guarded_holdout.csv.gz (seal hash verified first)"
+ ],
+ "resources": {
+  "mem_mb": 600,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0252_cb12_screen_M"
+ ],
+ "argv": [
+  "scripts/run_cb12.py",
+  "rep",
+  "--family",
+  "M",
+  "--results-sha256",
+  "TODO-COORDINATOR"
+ ],
+ "timeout_s": 2400,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch12/results_M_rep.json",
+  "trials.jsonl (cb12_replication + creative_batch_12:M:rep)"
+ ],
+ "next_action": "pass: Stage P-M registration draft",
+ "notes": "DRAFT. Only for advanced tests. The coordinator replaces --results-sha256 TODO-COORDINATOR with the sha256 of the committed Stage-1 results_M.json. Judged against alpha/10 until the Stage-2 count is known. Rules part sha256 (seals/cb12_rules.json, 2026-10-18 code): M a2e420b031421642b97398ff284e2e2a9364b92004969b4421d5daa7c0910455. CB12 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes."
+}

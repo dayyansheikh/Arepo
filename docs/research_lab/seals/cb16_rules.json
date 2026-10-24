@@ -1,0 +1,3436 @@
+{
+ "parts": {
+  "A": {
+   "constants": {
+    "cb16_a": {
+     "FRAME_DIRS": {
+      "rep": "a_rep",
+      "screen": "a_screen"
+     },
+     "FRAME_PROGRESS": {
+      "rep": "a_rep_progress",
+      "screen": "a_frame_progress"
+     },
+     "FRAME_STATUS": {
+      "rep": "a_rep_complete",
+      "screen": "a_frame_complete"
+     },
+     "GAI_CAND_WINDOW_S": 1800.0,
+     "LABEL_AUDIT_UNAUDITED": "labeller unaudited",
+     "SCREEN_MARK_TAIL_S": 28800.0,
+     "STAGE_TESTS": {
+      "Q": [
+       "Q1"
+      ],
+      "U": [
+       "U1"
+      ]
+     }
+    },
+    "cb16_common": {
+     "ALLOWED_OUTPUT_ROOT_PARTS": [
+      "creative_batch16"
+     ],
+     "ALWAYS_REFUSED_ROOTS": [
+      "surprise_live",
+      "cross_venue_live",
+      "trade_samples",
+      "forecasts",
+      "flow_screen",
+      "cb3_followup",
+      "cb6_followup"
+     ],
+     "AVAILABILITY_LABEL": "not testable (availability)",
+     "AVAIL_MIN": 0.6,
+     "BASE_SOURCE": "base:cb15_q0340",
+     "BATCH_HOLM_K1": 2,
+     "BY_Q": 0.1,
+     "CAPTURE_DIR_RE": "^(\\d{8}T\\d{6}Z)_[0-9a-f]+$",
+     "CAPTURE_LEAD_S": 18000.0,
+     "CB13_PINS": {
+      "cb13_common.iter_capture_rows": "12b4e6b6cb5d7b109e91349add37f2d9fa7f1975a5e2059e16b0b1966d5e4fd5",
+      "cb13_common.iter_sidecar_rows": "0f402eeae1be954e5ad009a58bf80d01d6b193e896d44137c7366713c8633d81",
+      "cb13_common.whitelist_print": "12950339a9210bc46d5f24cb466638570539229141148ad21ceb1a6295bf7c8f",
+      "cb13_label.audit_group": "86deaf8f1768141659b9a20308ff13d6c59dedea1aab4ad338048f5567366b24",
+      "cb13_label.classify": "d94d6645e05e07032fa0d73f63375849acbf3b92f1f83e64524e636d0203a0dc",
+      "cb13_label.first_series_slug": "7bfcc9ce328d1f75f82774a57ad26aa933fbfb7085a9887ca003101f69e171d2",
+      "cb13_label.underlying_of": "89d25064c2b8d141dbb60f5c95297a6ea0bf72ee629b5e90dda79cec2e5956a9",
+      "cb13_t.MarkTable": "40a28befff88bf3cd30cf22f4ba2ea6429d6ac768da3080ab538639dee438ab9",
+      "cb13_t.Q": "31bffc647a65f33892aec10cd87a2dbeb4e66f3f846ccfdf16f0a90dba20108e",
+      "cb13_t.QuoteIndex": "8c6da5ba6632d22f9872936bf8fc8e27eecce1b761f0be20cf72d1e89cff752e",
+      "cb13_t.adverse_value": "8868091f8f3776d2f3c7816606705f526758a4a62b1398ff06038ae4e98c5c68",
+      "cb13_t.build_dataset": "32d69ce3e99b40ba723e59bbebd5fad7a173e3bd01a82a442ef8fff6fd5f8960",
+      "cb13_t.build_transactions": "464be3b04fdf08db8d49fcc200b6181284594b33e54a947b2dd5d870489f286e",
+      "cb13_t.classify_position": "d0ece510d787ea67aa1e6d6fea9a7a86fdc3897abb6f5f38432878ac0a51586a",
+      "cb13_t.drop_screen_events": "c34aa82c838a1c92d9e438739304458c0acb2796f23125d719933ac3c096cbb9",
+      "cb13_t.fee_rate_of": "97e6304d1acb5621d7f94485c43620097a47ccd8722b1b458c90e711f59968a0",
+      "cb13_t.gate_gti": "e5c7a389658b6bf6da34109f2da9a7e3eb574c4142b190a208ed06afce37b6de",
+      "cb13_t.make_fills": "00da3417fd0f2d863e15ea8b96013518dbcb8c418060d22b096052d4d79863a6",
+      "cb13_t.stale_variant": "8e722a30cd3b2c7144b5581d5e9667050ad195a11968b4c99154ec9f94a2face",
+      "cb13_t.t3_values": "dea5843f46215c00f9d0a5bf5b3e447afd0b5f29d1fab61aef276f94d0a2d878",
+      "cb13_t.two_sided": "72495426a00ebbe012e8c1c798b804944ff9ab9d1fa61b59226f122f3b97ce48",
+      "cb13_t.worst_value": "354deceb6a1936977c88368701fd4e369f4a7cd3caedc5e7f1975f3be72ba0a1",
+      "cb13_t.yes_price": "2ce135e7489e799573c92668a400b8cf6895dfda7a8a0ab93a88407121b4362c"
+     },
+     "CB13_T_HOLDOUT": [
+      "2026-10-21T00:00:00Z",
+      "2026-10-26T00:00:00Z"
+     ],
+     "CB13_T_SCREEN": [
+      "2026-10-12T00:00:00Z",
+      "2026-10-16T00:00:00Z"
+     ],
+     "CB15_KEYS_FILE": "exclusion_keys.csv.gz",
+     "CB16_OUTPUT_CAP_GB": 0.15,
+     "CB16_SPORTS_IN_PRIMARY": false,
+     "CB3_FREEZE_NAME": "cb3_v1.json",
+     "CB3_STOP_NAME": "cb3_stop.json",
+     "COUNT_FAMILIES": [
+      "Q",
+      "U"
+     ],
+     "DATA_API_FIELDS": [
+      "timestamp",
+      "price",
+      "size",
+      "conditionId"
+     ],
+     "DATA_DUMPS_CAP_GB": 40.0,
+     "E011_ANALYSIS_EARLIEST": "2026-11-11T13:00:00Z",
+     "E011_ANALYSIS_NAME": "e011_analysis_commit.json",
+     "EARLY_ALPHA2": 0.0125,
+     "ELECTION_NIGHT": [
+      "2026-11-03T18:00:00Z",
+      "2026-11-05T00:00:00Z"
+     ],
+     "EVIDENCE_ROLE_DEV": "exploratory_dev",
+     "EVIDENCE_ROLE_HIST": "exploratory_historical",
+     "EVIDENCE_ROLE_PROSPECTIVE": "prospective",
+     "EXCLUSION_KEYS_COMPLETE": "exclusion_keys_complete",
+     "EXPERIMENT_ROOT_RE": "^e0\\d\\d$",
+     "EXTRACT_ROOT_RE": "^cb\\d+_extract$",
+     "EXTRA_REFUSED_ROOTS": [
+      "creative_batch15",
+      "creative_batch14",
+      "creative_batch13",
+      "creative_batch12",
+      "creative_batch11",
+      "creative_batch10",
+      "creative_batch9",
+      "creative_batch8",
+      "creative_batch7",
+      "creative_batch6",
+      "creative_batch5",
+      "creative_batch4",
+      "creative_batch3",
+      "creative_batch2",
+      "creative_batch1",
+      "snapshots",
+      "trade_samples",
+      "live_trades",
+      "book_sweeps",
+      "surprise_live",
+      "cross_venue_live",
+      "cross_venue",
+      "forecasts",
+      "flow_screen",
+      "h9_flow",
+      "h10_sign",
+      "h10_dlad",
+      "h10_brk",
+      "h11_wprints",
+      "h11_pol",
+      "h11_attn",
+      "h12_say",
+      "h12_quake",
+      "h12_prints",
+      "h12_quake_live",
+      "h12_opt_live",
+      "h13_touch",
+      "h13_binance",
+      "h14_wiki",
+      "h14_wiki_live",
+      "h14_speech",
+      "h15_elect_live",
+      "h15_birth",
+      "h15_birth_live",
+      "h1_first",
+      "h2_main",
+      "h3_power",
+      "h4_seal",
+      "h5_cb1",
+      "h5_cb1_ladders",
+      "h6_weather",
+      "h7_cb4_era",
+      "h7_cb4_series",
+      "h8_tail",
+      "h8_tail_b",
+      "h8_text",
+      "h8_geo",
+      "cb3_followup",
+      "cb6_followup"
+     ],
+     "FAMILY_MODULES": {
+      "A": [
+       "cb16_q",
+       "cb16_u",
+       "cb16_a"
+      ],
+      "K": [
+       "cb16_k"
+      ]
+     },
+     "FAMILY_PARTS": [
+      "A",
+      "K"
+     ],
+     "FAMILY_REP_TESTS": {
+      "Q": [
+       "Q1",
+       "Q2"
+      ],
+      "U": [
+       "U1",
+       "U2"
+      ]
+     },
+     "FAMILY_TESTS": {
+      "Q": [
+       "Q1"
+      ],
+      "U": [
+       "U1"
+      ]
+     },
+     "FORBIDDEN_OUTPUT_COLUMNS": [
+      "side",
+      "wallet",
+      "wallet_hash",
+      "proxyWallet",
+      "tx16",
+      "transactionHash",
+      "tx_hash",
+      "hash",
+      "name",
+      "pseudonym",
+      "recv_ts",
+      "chg_1h",
+      "chg_1d",
+      "chg_1w",
+      "ctx_chg_1h",
+      "uma_resolution_statuses",
+      "outcome_prices",
+      "outcomePrices",
+      "umaResolutionStatus",
+      "closedTime",
+      "closed_time",
+      "result",
+      "settlement_value",
+      "p_end"
+     ],
+     "FORBIDDEN_PARSE_FIELDS": [
+      "side",
+      "proxyWallet",
+      "outcome_prices",
+      "outcomePrices",
+      "umaResolutionStatus",
+      "umaResolutionStatuses",
+      "uma_resolution_statuses",
+      "closedTime",
+      "closed_time",
+      "result",
+      "settlement_value",
+      "transactionHash",
+      "hash",
+      "name",
+      "pseudonym",
+      "p_end",
+      "recv_ts",
+      "chg_1h",
+      "ctx_chg_1h"
+     ],
+     "FORBIDDEN_PRINT_FIELDS": [
+      "side",
+      "key",
+      "recv_ts",
+      "wallet_hash",
+      "wallet",
+      "proxyWallet",
+      "ctx_chg_1h",
+      "ctx_status",
+      "chg_1h"
+     ],
+     "FRAME_DELAY_S": 28800.0,
+     "FREEZE_PARTS": [
+      "A"
+     ],
+     "FREEZE_PIN_KEYS": {
+      "common": "common_rules_sha256",
+      "frozen": "frozen_utc",
+      "rules": "rules_sha256"
+     },
+     "FREE_DISK_MIN_GB": 4.5,
+     "GATE_P": 0.01,
+     "G_CR2": 15,
+     "H15_ROOT_RE": "^h15_",
+     "HEARTBEAT_S": 36000.0,
+     "HOLDOUT_PARTS": [
+      "holdout",
+      "t_holdout"
+     ],
+     "ID_COLUMNS": [
+      "market_id",
+      "event_id",
+      "condition_id",
+      "neg_risk_market_id",
+      "negRiskMarketID",
+      "series_id",
+      "p_market_id",
+      "p_event_id"
+     ],
+     "ID_READABLE": {
+      "creative_batch15": [
+       "birth_frame.csv.gz"
+      ],
+      "h15_birth_live": [
+       "pairs.jsonl"
+      ],
+      "h15_elect_live": [
+       "race_map.csv"
+      ]
+     },
+     "ID_RESEARCH_ROOTS": [
+      "creative_batch15"
+     ],
+     "J4R_WINDOW": [
+      "2026-10-16T00:00:00Z",
+      "2026-10-21T00:00:00Z"
+     ],
+     "KEYS_OUTPUT_CAP_GB": 0.01,
+     "KEYS_RUN": "exclusion_run16",
+     "KEYS_STATUS": "exclusion_keys_complete",
+     "KEY_COLUMNS": [
+      "market_id",
+      "found",
+      "event_ids",
+      "neg_risk_market_id",
+      "series_ids",
+      "sources"
+     ],
+     "LIVE_ROOT_NAMES": [
+      "cross_venue_live",
+      "surprise_live"
+     ],
+     "LOOKBACK_FIELDS": [
+      "ts",
+      "condition_id",
+      "cash"
+     ],
+     "LOOKBACK_FLOOR": "2026-10-26T00:00:00Z",
+     "LOOKBACK_ROBUST_S": 259200.0,
+     "LOOKBACK_S": 604800.0,
+     "LOO_DAY_P": 0.05,
+     "MARK_TAIL_S": 28800.0,
+     "MAX_UNVERIFIED_KEY_SHARE": 0.02,
+     "MDE_FACTOR": 3.8,
+     "MONITOR_FORBIDDEN_FILES": [
+      "alerts.jsonl",
+      "outcomes.jsonl",
+      "wallets.jsonl",
+      "stats.jsonl",
+      "state.json"
+     ],
+     "MONITOR_FORBIDDEN_RE": "^scores-\\d{8}\\.jsonl$",
+     "MONITOR_TRADES_RE": "^trades-\\d{8}\\.jsonl$",
+     "N_BOOT": 2000,
+     "N_WILD": 9999,
+     "PARTS": [
+      "common",
+      "A",
+      "K"
+     ],
+     "PIN_UNSET": "TODO-COORDINATOR",
+     "PLACEBO_DRAWS": 200,
+     "PLACEBO_MAX_ADVANCE": 0.015,
+     "PLACEBO_SEEDS": {
+      "Q1_calibration": 16102,
+      "Q1_composition": 16101,
+      "U1_calibration": 16112,
+      "U1_composition": 16111
+     },
+     "PLACEBO_SEED_RANGE": [
+      16101,
+      16130
+     ],
+     "PRINT_FIELDS": [
+      "ts",
+      "condition_id",
+      "token_id",
+      "outcome_index",
+      "price",
+      "size",
+      "cash",
+      "title",
+      "slug",
+      "ctx_event_id",
+      "ctx_market_id",
+      "ctx_category",
+      "ctx_fee_type"
+     ],
+     "REP_SEAL_COPY": "cb16_a_rep_SEAL.json",
+     "REP_SEAL_NAME": "a_rep_SEAL.json",
+     "RULES_MACHINERY": [
+      "rules_part_doc",
+      "rules_part_file_doc",
+      "rules_file_doc",
+      "write_rules",
+      "verify_rules",
+      "family_modules",
+      "common_funcs",
+      "part_funcs",
+      "shared_helper_sources",
+      "external_closure",
+      "_code_names",
+      "_helper_key",
+      "common_declared"
+     ],
+     "RULES_VERSION": "cb16-rules-v1",
+     "SEED_BOOT": 1616,
+     "SEED_K_AUDIT": 16141,
+     "SEED_U_VALIDITY": 16131,
+     "SHARED_HELPERS": [
+      [
+       "cw",
+       "small_g_pvalue"
+      ],
+      [
+       "cw",
+       "_cluster_sums"
+      ],
+      [
+       "c12",
+       "holm"
+      ],
+      [
+       "c12",
+       "cluster_se_mean"
+      ],
+      [
+       "c9",
+       "top_k_drop_mask"
+      ],
+      [
+       "c10",
+       "placebo_advance_rate"
+      ],
+      [
+       "c10",
+       "leave_one_out_sign"
+      ],
+      [
+       "c14",
+       "cluster_p"
+      ],
+      [
+       "c14",
+       "wls_coef_pseudo"
+      ],
+      [
+       "c13",
+       "leave_one_out_p"
+      ],
+      [
+       "c12",
+       "exclusion_stage"
+      ],
+      [
+       "c12",
+       "lookup_keys_closed_first"
+      ],
+      [
+       "c12",
+       "module_constants"
+      ],
+      [
+       "c12",
+       "module_funcs"
+      ],
+      [
+       "c10",
+       "require_disk"
+      ],
+      [
+       "c9",
+       "write_stall"
+      ],
+      [
+       "c9",
+       "stall_of"
+      ],
+      [
+       "c9",
+       "write_results_once"
+      ],
+      [
+       "bk",
+       "seal_copy_ids_audited"
+      ],
+      [
+       "cm",
+       "write_once_json"
+      ],
+      [
+       "cm",
+       "write_json_atomic"
+      ],
+      [
+       "cm",
+       "idle"
+      ]
+     ],
+     "SMOKE_VERSION": "cb16-smoke-v1",
+     "SOURCE_NOT_TESTABLE": "not testable (source)",
+     "STAGE1_HOLM_FAMILY": [
+      "Q1",
+      "U1"
+     ],
+     "STAGE2_K_MAX": 4,
+     "STAGE2_NAMES": {
+      "Q1": "Q1-rep",
+      "Q2": "Q2",
+      "U1": "U1-rep",
+      "U2": "U2"
+     },
+     "STAGE_ALPHA": 0.05,
+     "STOP_RULE": "3 CPU-hours per family; a job failing twice for the same non-transient reason stops and is recorded; no re-screen of a failed CB16 test",
+     "SWEEP_FIELDS": [
+      "token_id",
+      "batch_receipt_utc",
+      "best_bid",
+      "best_ask",
+      "bid_size_1",
+      "ask_size_1",
+      "depth_bid_1c",
+      "depth_ask_1c",
+      "depth_bid_5c",
+      "depth_ask_5c",
+      "n_bid_levels",
+      "n_ask_levels"
+     ],
+     "S_A_AFTER_FREEZE_S": 86400.0,
+     "S_A_EARLIEST": "2026-11-02T00:00:00Z",
+     "T16_A_FREEZE_TARGET": "2026-11-01T00:00:00Z",
+     "T16_DRAFT": "2026-10-19T09:20:00Z",
+     "TERMINAL_NAME": "terminal_{family}.json",
+     "TERMINAL_REP_NAME": "terminal_{family}_rep.json",
+     "TERMINAL_STATUS": "terminal_not_testable",
+     "TOP_DROP": 5,
+     "U2_LAG_FIELDS": [
+      "ts",
+      "condition_id",
+      "recv_ts"
+     ],
+     "UNVERIFIED": "disjointness_unverified",
+     "USER_AGENT": "arepo-research-lab/1 (read-only research; https://www.arepolabs.com)",
+     "WINDOW_S": 1209600.0
+    },
+    "cb16_q": {
+     "AGE_EDGE_S": 1200.0,
+     "A_EXCL_SKIP_RE": "(_live$|^h15_|^h16_)",
+     "A_EXCL_SKIP_RUNS": [
+      "h1_first",
+      "h2_main",
+      "h3_power",
+      "h4_seal",
+      "h13_touch",
+      "h13_binance"
+     ],
+     "BIG_TX_USD": 10000.0,
+     "EXTRA_COLUMNS": [
+      "tick_touch",
+      "created_epoch",
+      "token0",
+      "hour",
+      "g",
+      "grain_ok",
+      "u_ok",
+      "excl_P",
+      "excl_g",
+      "politics",
+      "s",
+      "tau_prev",
+      "n_prior",
+      "x",
+      "x3",
+      "n_prior3",
+      "wake",
+      "x_raw",
+      "silence_status",
+      "spans_night",
+      "s12_dropped",
+      "wake_lag_s",
+      "sw_share",
+      "sw_ratio",
+      "sw_levels",
+      "sw_age_s"
+     ],
+     "FILLS_NAME": "fills.csv.gz",
+     "FILL_COLUMNS": [
+      "tx_id",
+      "condition_id",
+      "market_id",
+      "event_id",
+      "status",
+      "label",
+      "underlying",
+      "path_key",
+      "tau",
+      "tau_last",
+      "p_vwap",
+      "p_min",
+      "p_max",
+      "size",
+      "cash",
+      "n_fills",
+      "d",
+      "P",
+      "bid0",
+      "ask0",
+      "spread0",
+      "mid0",
+      "touch_recv",
+      "touch_age_s",
+      "touch_cap",
+      "liq",
+      "end_epoch",
+      "prev_mid",
+      "prev_recv",
+      "q_stale",
+      "d_stale",
+      "fee_rate",
+      "clob_rewards",
+      "fee_type",
+      "block",
+      "day",
+      "neg_risk_market_id",
+      "tick_touch",
+      "created_epoch",
+      "token0",
+      "hour",
+      "g",
+      "grain_ok",
+      "u_ok",
+      "excl_P",
+      "excl_g",
+      "politics",
+      "s",
+      "tau_prev",
+      "n_prior",
+      "x",
+      "x3",
+      "n_prior3",
+      "wake",
+      "x_raw",
+      "silence_status",
+      "spans_night",
+      "s12_dropped",
+      "wake_lag_s",
+      "sw_share",
+      "sw_ratio",
+      "sw_levels",
+      "sw_age_s"
+     ],
+     "GAI_AGREE": 0.7,
+     "GAI_MIN_PAIRS": 200,
+     "GQG_BOTH_SHARE": 0.4,
+     "GQG_SUB_SHARE": [
+      0.05,
+      0.95
+     ],
+     "GQ_MIN": {
+      "events": 60,
+      "fills": 1000,
+      "markets": 100
+     },
+     "GRAIN_P_BAND": [
+      0.05,
+      0.95
+     ],
+     "GRAIN_TICK": 0.001,
+     "INFORMATIVE_SHARE": 0.5,
+     "KEYS_NAME": "a_exclusion_keys.csv.gz",
+     "KEYS_PARTIAL_NAME": "a_exclusion_keys_partial.jsonl",
+     "LABEL_A": "L2 live window (SCREEN_A, post-freeze), Stage-1 screen",
+     "LABEL_CADENCE": "cadence informativeness unverified (n < 200)",
+     "LABEL_COMPOSITION": "composition, not grain",
+     "LABEL_EXCL": "grain-dependent exclusion could explain the contrast",
+     "LABEL_GRAIN": "quoter grain",
+     "LABEL_HALFSPREAD": "realised half-spread, not adverse selection",
+     "LABEL_Q2": "fills like the bots' fills; queue position ignored, so an upper bound",
+     "LABEL_REP": "later live window replication, event-disjoint (L2)",
+     "LABEL_REP_THIN": "REP_A thinned by event overlap",
+     "LABEL_RT": "recorded-touch round trip (L2)",
+     "LABEL_SPREAD_STATE": "grain or contemporaneous spread state",
+     "LABEL_UNAUDITED": "labeller unaudited",
+     "LABEL_UNINFORMATIVE": "composition placebo uninformative",
+     "LABEL_UPPER": "maker mark-out at a mid exit: an upper bound for any maker",
+     "MARKS_NAME": "mark_quotes.csv.gz",
+     "MARK_COLUMNS": [
+      "tx_id",
+      "h",
+      "status",
+      "recv",
+      "bid",
+      "ask",
+      "tick"
+     ],
+     "MARK_H": {
+      "2-4h": 7200.0,
+      "6-8h": 21600.0
+     },
+     "NOT_RUN_POWER": "not run (power)",
+     "NOT_TESTABLE_CADENCE": "not testable (cadence)",
+     "NOT_TESTABLE_GRAIN": "not testable (grain)",
+     "NOT_TESTABLE_POP": "not testable (population)",
+     "POLITICS_FEE_PREFIX": "politics_fees",
+     "POWER_MDE_MAX": 1.0,
+     "P_ROBUST_BAND": [
+      0.1,
+      0.9
+     ],
+     "Q1_FLOOR": 0.5,
+     "Q2_EXIT_ROBUST": 0.5,
+     "Q2_FLOOR": 0.5,
+     "Q2_MAX_SIZE": 100.0,
+     "Q_P_EDGES": [
+      0.2,
+      0.8
+     ],
+     "Q_SIZE_EDGES": [
+      2500.0,
+      10000.0
+     ],
+     "Q_SPREAD_EDGES": [
+      0.01,
+      0.02,
+      0.05
+     ],
+     "REP_THIN_SHARE": 0.4,
+     "REWARD_MIN_FILLS": 300,
+     "SMOKE_NEEDS": [
+      "a_cb13_pins",
+      "a_refusals",
+      "a_forbidden_fields",
+      "a_grain_parser",
+      "a_monitor_gap",
+      "a_silence_standardiser",
+      "a_cb13_reproduction"
+     ],
+     "SPREAD_FREE_P": 0.05,
+     "SWEEP_MAX_AGE_S": 7200.0,
+     "S_ELECTION": "excluded: election night",
+     "S_FILL": "fill",
+     "S_REP_DROP": "dropped: SCREEN event",
+     "TICK_TOL": 1e-09,
+     "TIGHT_AGE_S": 1200.0,
+     "TIGHT_MIN_FILLS": 300,
+     "TIGHT_SPREAD": 0.01,
+     "TTE_EDGES_S": [
+      86400.0,
+      604800.0
+     ],
+     "U_P_BAND": [
+      0.03,
+      0.97
+     ],
+     "WORST_QUANTILE": {
+      "bot": 10.0,
+      "human": 90.0
+     }
+    },
+    "cb16_u": {
+     "DATA_TRADES": "https://data-api.polymarket.com/trades",
+     "GENESIS_MIN_AGE_S": 86400.0,
+     "GU_MIN": {
+      "events": 60,
+      "markets": 100,
+      "units": 1000
+     },
+     "LABEL_ARRIVAL": "arrival information",
+     "LABEL_U_A": "L2 live window (SCREEN_A, post-freeze), Stage-1 screen: large-print silence in active markets",
+     "LABEL_U_COMPOSITION": "composition, not silence",
+     "LABEL_U_LARGE_ONLY": "large-print silence only; market was trading below $1k",
+     "LABEL_U_PROTECT": "a pass says that stepping aside avoids losses, not that a maker route exists",
+     "LABEL_U_UPPER": "maker mark-out at a mid exit: an upper bound for any maker",
+     "LONG_SILENCE_S": 43200.0,
+     "MIN_GAP_S": 1.0,
+     "MIN_PRIOR_GAPS": 5,
+     "MIN_UNITS_PER_MARKET": 5,
+     "MONITOR_GAP_S": 900.0,
+     "NIGHT_END_S": 21600.0,
+     "NIGHT_START_S": 0.0,
+     "NOT_TESTABLE_CADENCE": "not testable (cadence)",
+     "SILENCE_STATUSES": [
+      "ok",
+      "no_prev",
+      "few_gaps",
+      "genesis",
+      "genesis_unknown",
+      "censored (monitor gap)"
+     ],
+     "S_CENSORED": "censored (monitor gap)",
+     "S_FEW": "few_gaps",
+     "S_GENESIS": "genesis",
+     "S_GENESIS_UNKNOWN": "genesis_unknown",
+     "S_NO_PREV": "no_prev",
+     "S_OK": "ok",
+     "TAKER_HURDLE_C": 4.5,
+     "U1_FLOOR": 0.5,
+     "U2_DELAY_ROBUST_S": 300.0,
+     "U2_DELAY_S": 60.0,
+     "U2_LEVEL_FLOOR": 1.0,
+     "U2_PRIMARY_FLOOR": 0.5,
+     "U2_WINDOW_S": 7200.0,
+     "U_POWER_MDE_MAX": 1.0,
+     "VALIDITY_N": 300,
+     "VALIDITY_PAGES": 6,
+     "VALIDITY_PAGE_SIZE": 500,
+     "VALIDITY_SILENCE_S": 3600.0,
+     "VALIDITY_WAKE_MIN": 0.5,
+     "WAKE_MIN_S": 3600.0,
+     "WAKE_PCT": 90.0
+    }
+   },
+   "declared": {
+    "cb16_a": {
+     "frame_dirs": {
+      "rep": "a_rep",
+      "screen": "a_screen"
+     },
+     "freeze_check_declarations": {
+      "calibration_placebo": "g / x shuffled within market only",
+      "composition_placebo": "within-strata permutation test (200 draws; holds iff <= 3 of 200 permuted coefficients reach the observed one); Q keeps the >= 50% informativeness rule",
+      "k_pin": "an unset K pin is refused; matches_all.json is not re-derived from the pinned inputs and its hindsight p_end is never parsed",
+      "q2_u2_rep_minimums": "Q2 and U2 also require the REP_A GQ / GU minimums (else 'not run (power)')",
+      "tight_touch_count": "the tight-touch fill count uses only markets holding BOTH grains inside the tight subset",
+      "validity": "a non-200 read and a no-earlier-print result are failed / unresolved, counted separately, never in the share",
+      "wake_percentile": "np.percentile linear interpolation (default method) of the prior gaps, 90th"
+     },
+     "jobs": {
+      "q0382": "grain_census (CB13-T SCREEN raw files, features only)",
+      "q0384": "a-frame screen",
+      "q0385": "census",
+      "q0386": "screen",
+      "q0387": "a-frame rep (sealed)",
+      "q0388": "rep"
+     },
+     "mark_mode": "frames read the touch-mode index (no mark accessor); the screen and rep read the mark-mode index / sealed mark-quote table",
+     "network": false,
+     "order": "gates (smoke, GQG, GQ/GU, GQP/GUP, GAI) -> Q1 / U1 -> batch Holm k1 = 2 -> Stage 2 (Q1-rep, Q2, U1-rep, U2) -> CB16-wide final Holm",
+     "rep_event_disjoint": "binding even if thinned (round 1 item 20)",
+     "statuses": {
+      "complete": {
+       "rep": "a_rep_complete",
+       "screen": "a_frame_complete"
+      },
+      "progress": {
+       "rep": "a_rep_progress",
+       "screen": "a_frame_progress"
+      }
+     }
+    },
+    "cb16_q": {
+     "bands": {
+      "age_s": 1200.0,
+      "p": [
+       0.2,
+       0.8
+      ],
+      "size": [
+       2500.0,
+       10000.0
+      ],
+      "spread": [
+       0.01,
+       0.02,
+       0.05
+      ],
+      "tte_s": [
+       86400.0,
+       604800.0
+      ]
+     },
+     "family": "Q (CH131)",
+     "fill": "CB13-T's pinned print-anchored rule (cb13_t.classify_position); no UNKNOWN exclusion; SPORTS-FEED out of the primary",
+     "floor_cents": 0.5,
+     "gates": {
+      "GAI": {
+       "agree": 0.7,
+       "min_pairs": 200
+      },
+      "GQ": {
+       "events": 60,
+       "fills": 1000,
+       "markets": 100
+      },
+      "GQG": {
+       "both_grain_share": 0.4,
+       "sub_share": [
+        0.05,
+        0.95
+       ]
+      },
+      "GQP_mde_max": 1.0
+     },
+     "grain": {
+      "p_band": [
+       0.05,
+       0.95
+      ],
+      "rule": "g = 1 iff round(1000 P) mod 10 != 0",
+      "tick": 0.001,
+      "tick_at": [
+       "touch capture",
+       "2-4 h mark capture (else 'tick change', excluded)"
+      ]
+     },
+     "keys": {
+      "skip_re": "(_live$|^h15_|^h16_)",
+      "skip_runs": [
+       "h1_first",
+       "h2_main",
+       "h3_power",
+       "h4_seal",
+       "h13_touch",
+       "h13_binance"
+      ]
+     },
+     "labels": {
+      "composition": "composition, not grain",
+      "excl": "grain-dependent exclusion could explain the contrast",
+      "grain": "quoter grain",
+      "halfspread": "realised half-spread, not adverse selection",
+      "q2": "fills like the bots' fills; queue position ignored, so an upper bound",
+      "rep": "later live window replication, event-disjoint (L2)",
+      "rt": "recorded-touch round trip (L2)",
+      "spread_state": "grain or contemporaneous spread state",
+      "uninformative": "composition placebo uninformative",
+      "upper": "maker mark-out at a mid exit: an upper bound for any maker"
+     },
+     "loo_day": {
+      "p_max": 0.05,
+      "sign": true
+     },
+     "placebos": {
+      "calibration": {
+       "seed": 16102,
+       "strata": "market"
+      },
+      "composition": {
+       "informative_share": 0.5,
+       "rule": "within-strata permutation test: holds iff <= 3 of 200 permuted coefficients reach the observed one",
+       "seed": 16101,
+       "strata": "market x spread band x P band x size band"
+      },
+      "draws": 200,
+      "max_advance": 0.015,
+      "prefill": "pre-fill proxy must not pass p < 0.01"
+     },
+     "q2": {
+      "exit_robust_cents": 0.5,
+      "fee": "r x (1 - x), unknown 0.07 (CB13-T3)",
+      "floor_cents": 0.5,
+      "max_size": 100.0
+     },
+     "rep": {
+      "event_disjoint": true,
+      "keep_variant": "reported only",
+      "thin_share": 0.4
+     },
+     "robustness": [
+      "age <= 20 min",
+      "6-8 h",
+      "adverse-touch mark",
+      "tx < $10k",
+      "each side",
+      "market-weighted",
+      "P in [0.10, 0.90]",
+      "reward bands (>= 300 each)",
+      "top-5 of every way"
+     ],
+     "shape": {
+      "reported_only": true,
+      "sweep_max_age_s": 7200.0
+     },
+     "spread_free": {
+      "mark": "100 d (mid_h - mid_0)",
+      "p": 0.05,
+      "rule": "sign, >= half of beta_Q, one-sided p < 0.05"
+     },
+     "statistic": "market fixed-effect OLS of M_2-4h on g, one unit per fill, unweighted; one-sided > 0; floor +0.5c",
+     "tight_touch": {
+      "age_s": 1200.0,
+      "consequence": "label only",
+      "min_fills": 300,
+      "spread": 0.01
+     },
+     "ways": [
+      "event",
+      "path key x 6 h block",
+      "6 h block",
+      "UTC hour of day"
+     ],
+     "worst_case": {
+      "consequence": "label",
+      "quantiles": {
+       "bot": 10.0,
+       "human": 90.0
+      }
+     }
+    },
+    "cb16_u": {
+     "family": "U (CH132): relative large-print silence in active markets",
+     "gates": {
+      "GAI": "as Q",
+      "GU": {
+       "events": 60,
+       "markets": 100,
+       "units": 1000
+      },
+      "GUP_mde_max_per_sd": 1.0
+     },
+     "labels": {
+      "arrival": "arrival information",
+      "composition": "composition, not silence",
+      "large_only": "large-print silence only; market was trading below $1k",
+      "protect": "a pass says that stepping aside avoids losses, not that a maker route exists",
+      "upper": "maker mark-out at a mid exit: an upper bound for any maker"
+     },
+     "silence": {
+      "genesis_min_age_s": 86400.0,
+      "min_gap_s": 1.0,
+      "min_prior_gaps": 5,
+      "monitor_gap_s": 900.0,
+      "prior_gaps": "consecutive gaps with both ends in [max(tau - 7 d, 2026-10-26T00Z), tau)",
+      "sd_x": "computed on SCREEN_A units, frozen for U1-rep (a REP_A value is refused)",
+      "tau_prev": "previous large transaction at or after the lookback floor",
+      "wake": {
+       "min_s": 3600.0,
+       "pct": 90.0,
+       "rule": "s >= max(1 h, 90th percentile of the prior gaps)"
+      },
+      "x": "ln(s) - ln(median of the prior gaps)"
+     },
+     "stream": "the monitor's large-print stream (cash >= $1k), per condition id (any outcome token)",
+     "u1": {
+      "attribution": {
+       "covariates": "Q's plus g (missing indicator)",
+       "else": "composition, not silence",
+       "label": "arrival information"
+      },
+      "floor_cents_per_sd": 0.5,
+      "placebos": {
+       "calibration": {
+        "seed": 16112
+       },
+       "composition": {
+        "rule": "within-strata permutation test: holds iff <= 3 of 200 permuted coefficients reach the observed one",
+        "seed": 16111,
+        "strata": "market x UTC 6 h band x spread band x size band"
+       },
+       "draws": 200,
+       "max_advance": 0.015,
+       "prefill": "x on the pre-fill proxy must not pass p < 0.01"
+      },
+      "robustness": [
+       "6-8 h",
+       "age <= 20 min",
+       "adverse-touch mark",
+       "SCHEDULED-EVENT class out",
+       "3-day lookback",
+       "silence spanning 00:00-06:00Z out",
+       "each side",
+       "tx < $10k",
+       "top-5 of every way",
+       "leave-one-day-out"
+      ],
+      "statistic": "-(coefficient on x / SD(x)) in a market fixed-effect OLS of M_2-4h"
+     },
+     "u2": {
+      "avoided": {
+       "delay_s": 60.0,
+       "robust_delays": [
+        300.0,
+        "receipt lag"
+       ],
+       "window_s": 7200.0
+      },
+      "exit_cost_check": "none (vacuous, round 1 item 11)",
+      "level": {
+       "floor_cents": -1.0,
+       "stat": "avoided-fill net"
+      },
+      "p": "max of the two one-sided p's",
+      "primary": {
+       "floor_cents": -0.5,
+       "stat": "within-market difference of the CB13-T3 net, avoided minus other fills"
+      }
+     },
+     "units": {
+      "min_units_per_market": 5,
+      "p_band": [
+       0.03,
+       0.97
+      ],
+      "sports": "out of the primary (reported arm)"
+     },
+     "validity": {
+      "fields": [
+       "timestamp",
+       "price",
+       "size",
+       "conditionId"
+      ],
+      "n_each": 300,
+      "pages": 6,
+      "reported_only": true,
+      "seed": 16131,
+      "silence_s": 3600.0,
+      "unresolved_rule": "a non-200 read = failed; no earlier print at all = no_earlier_print; each counted separately and never in the share or its denominator",
+      "wake_min_share": 0.5
+     }
+    }
+   },
+   "func_sources_sha256": {
+    "cb16_a.census_a": "045765c4ddbfb8a0a3978b097b1f6d926b7ef55c416e7d04c3bcca51261535be",
+    "cb16_a.declared": "f47ffd31842db078a9e9a9b3b41956e74864ea1081c7a1e3727133e8714899ff",
+    "cb16_a.frame_a": "1540561e82e78b748e01d7f2f819d8dfee99699fc8bb5ff1cc89fd6440ffed27",
+    "cb16_a.gai_candidates": "c0d733f428f7cfd34dafc36d26b580954bf1b78f2ca34822cc2030d178b36703",
+    "cb16_a.gate_result": "1125640792d7c6a8bd008eec8cfca7c9da746aba832ab4968b34b2d674e6f28f",
+    "cb16_a.grain_census": "30356f5ba8d65a16edc2465a4a61a814b255700c0fbd3947f9cba3e712ab9e5f",
+    "cb16_a.labeller_label": "28a9a0ddffee8987629be148858414f33ea86c233c34c931cf758b4eda0f8939",
+    "cb16_a.mark_rows16": "3ac015e51020f4d303bedf3809b2d38250a88cdc1bd20304c98dd60b38f80a01",
+    "cb16_a.rep_a": "96743351edd5f529dc04ab7ad053675f2824d43452e776b19db9961433f46a6c",
+    "cb16_a.screen_a": "335dc15347310153e2e6601f6472c5065f8fbff7a5b2b39fedc65d8d3929ce4d",
+    "cb16_a.stage2_annotate": "7c08f49eca46cbfb46bf4752cf0eafd9a992a2e2c4ddca82a509c40597a3f0d7",
+    "cb16_a.timeline_from_prints": "f8a47fa88a64c494b09e04873007b514eb26c66e8878173af4b6d17bcee675db",
+    "cb16_a.triggers_of": "1741da8f2b82a14631fbc4bb1dedd8dfea25776f2e915ce394538c1ddc520724",
+    "cb16_a.tx_hash_index": "653ffe166070396be659103a77114d685ec2fc43f41b1e09d878fda6d20d4a84",
+    "cb16_a.wake_lags": "f2ee4e878dbde89cbae53b543b2b984b469d8b7dfc622fe8cc1495248157a689",
+    "cb16_common.assert_clean_columns": "45f148919a1277b7ea10de404ced0c04aae3dc09e4ab14a400b81ead026d5c8d",
+    "cb16_common.attribute_sources": "02da5cd492bb537666820101e8c4d47eadca070ca1f1e407b3312c854bbb4f4a",
+    "cb16_common.availability": "5705ff910d9cede83871105c320022f7c599502a2bdaff946eb765a1d9948018",
+    "cb16_common.block6": "651714269542559c1c3ca2d3284609c68a1276563d01da9048113acd7705e41b",
+    "cb16_common.cb13_pin_current": "68e906d2e725f0b698ad29a16748c31bc396c8c8b3bc06fb440a747c84b66489",
+    "cb16_common.cb13_pins_ok": "b1284ac2dbdaf8788e7d67b62bcb6a35fde6731e795ce990b88d44edb84fef1b",
+    "cb16_common.cb3_hold_lifted": "05b88d5f9f9272854cb6bb18f4c0f16f3e45fdbf050f822ee4c36d5dc957967e",
+    "cb16_common.cluster_p": "cf516bf7efd20c42ffa1da353fecde2d499ee84c6eaf63432ac11ca5e937ccb7",
+    "cb16_common.cluster_se_mean": "b00c59bb7c9237ae9758c44ad2f8e64d6ac23e37ffc6ecb4c5093b9c2ac6bfb8",
+    "cb16_common.collector_gap_ok": "a2024df3b0b73f7178e8583fb64c6250e11e05c5f6ca2b3511a56bd0f6a895ba",
+    "cb16_common.committed_record": "5371a19751afa3afdf3988971e6853a04ad58d7fc3354f7bdb84c48e6263b26f",
+    "cb16_common.e011_hold_lifted": "063f6342e70c49e908a76d1461dba30f1fd84c957a67eebddeb8fced413a9459",
+    "cb16_common.early_stage2_ok": "6163ed098794484aec71660e60241f39e0e5acc17459cdac2c09c16894420ded",
+    "cb16_common.ensure_source_file": "5c02368fdb2dc28cbee40f487524fbe6da0afa5730b74e6148a5ff790cd12fe6",
+    "cb16_common.ep": "3a9fd8059b8d56d7572e9e9a04d0c83e2aeef94fb27ca9badb6318501b40be1b",
+    "cb16_common.exclusion_keys": "26dab3d13fa6a2e187d2964e798253811297340239fb9d70d5bbf9288afc39ed",
+    "cb16_common.fe_coef_pseudo": "ae3c618fbe67d32123d48fd1c2756fafd4afb90d6f5b2da3d9702ddbc659d13d",
+    "cb16_common.fe_demean": "9a8d6c47058f1e143f381841b7ea27819ed2ec1f98d51d14a9f1beb4076a1117",
+    "cb16_common.fe_ols": "48efe39e1cc5b133addb49a6ba319e637a8f48f828e4af2adf3e5096841515ff",
+    "cb16_common.frame_ids": "9bab1e7a532bb920b83018e3dbf7de9c434f2035d1585085d23d7fb87f671a78",
+    "cb16_common.guard_capture_dir": "efdacc0d5c09767dced2c9c0cbe281bcc41b2f2ab24e05edee2e5b792ff9f925",
+    "cb16_common.guard_cross_venue_file": "642fcc62de9fd4d0e9037ce4ef93e6afd1953c5360774e478ebf120a9198c4ea",
+    "cb16_common.guard_floor": "ae1b4cda7945f8aca5725ff019490cb4bbb1c4a91230476bca9562b2477afb59",
+    "cb16_common.guard_id_file": "f94f2710b609b7a6017a77cb4d919f907ef9961d4d4c9310051fb11c6ce06f3e",
+    "cb16_common.guard_monitor_file": "db3b6039e74fe64a25830389561f44fe746d3fc6133d75ed217ef502c0de7fc4",
+    "cb16_common.guard_rep_unit": "eb1a69cc7f1b61ba5c2e7b346b7157cd70e59e57d0c811e5f53b95a84bfdf513",
+    "cb16_common.guard_sweep_file": "d7380a86be35a8bc9b8b210c0e189c5a169062607ef194e3255aba31f3f1bc15",
+    "cb16_common.holm": "bc13d2e3180f887c3d592f02f5ddf23f33ac4ee417378f6e610f5aa298b65d69",
+    "cb16_common.hour_of_day": "04bde92724f55de312dcd49e2bd6c8558f9032b55a2c68be9593ef21ee9af6a3",
+    "cb16_common.id_source_path": "3b5a053b8a8a055a96496aec795a54acb96da841936c23ee5bd667a28e4c1a51",
+    "cb16_common.in_election_night": "d78b3cf4eb2c08fe48494793d9d1435f398168ec43f1da3467d5758d1ac022a4",
+    "cb16_common.is_holdout_path": "fd0e9fc15a27748914a0f1ea4aeb591d1db8857f851df923768b0a99b111e22a",
+    "cb16_common.iso": "28e937dc91f5bc02d678e907f1ec255deda7d37b9b06627231aebb9362d33172",
+    "cb16_common.key_sources": "1db2912a5d0863cb1f4314b8e0ae1980c95c1739de90d1fe4445123d8cba9fc2",
+    "cb16_common.leave_one_out_p": "2a41193ffc93eee725fb14e03d8dc1785e89c0c262b7158c515517da30d6b8e5",
+    "cb16_common.load_keys": "dbca334a5d8e941df590cbc12efe971817ff22f9961763d8dd28bcf003534e67",
+    "cb16_common.log_descriptive": "91d741b318f658ffc0da2b1f6d511997a1dc56c11aba85381888aefb8e74faaa",
+    "cb16_common.log_family": "5cb9855a470e1390d8a2359327a21adcbdf5c8d5dd3e6cead02f8a254859d00f",
+    "cb16_common.manifest_complete": "9963a22f89b1b545fe07d75e58db6e88f1dd2fc4f0602068b2b362bc7c8f08ed",
+    "cb16_common.market_ids_of": "2548134ae77ea9e45f725490c2c110d7ccd417f0315d6363298faf2338a3d452",
+    "cb16_common.max_se_over_ways": "5727241359a4d053c2dd1749a1a30d5b60b7801f3b726bff5ff9e625d7fcd7a9",
+    "cb16_common.mde": "de3d855dff122ee4d4ea194dadc7fbf88e851b931caac3bda9492c020722f8c2",
+    "cb16_common.num": "6b0d39403e1916672eadc55c8241ff0c3cdfb233983e5e8b36b400140ab6f068",
+    "cb16_common.p_pass": "4e029dd2fbfab1d14d9119aa8778fa559702d0086f17a8d1bf6c84455191e3ea",
+    "cb16_common.parse_iso": "86d7c91645a1d5a2d1fb78eb256c528c2c4cbfd3c64d20fe2a80fa1c710205c3",
+    "cb16_common.permute_within": "c1c908c40f5c91e1172067fd6fc5f6a141e2339327f19669f615efff961b76a6",
+    "cb16_common.placebo_advance_rate": "dddafa6653cc29c6d9cfaac9f5cbf9b45bb978e4249f3b54b1f0854c7dcbe0ea",
+    "cb16_common.read_csv_gz": "dd1530f10901a596b85fc5801beee783bf19c890fc0578930899b4afcab28176",
+    "cb16_common.read_id_columns": "93a426955bfd66d615159de1fcd017e8ebfcf06ca020cefabe500278862fe126",
+    "cb16_common.read_keys_with_sources": "8fc3844432b94d96dd8e50df233960f88b0818bf1258dc9667b4857d64caa5b8",
+    "cb16_common.read_terminal": "8214d68291f29a05bdaa6c1bcaf81eaf03f4e1b0108baaa06e3c95cfb17270cf",
+    "cb16_common.record_terminal": "93cd0dde88897f50ee1fcf7de2efd6d1db87e696b23d6f8f1c8c58c59b7d1389",
+    "cb16_common.refuse_path": "984c7b1020d07266c5a5d749572ed0d4042dbcd377bc2f1a3323cf608fbebbd9",
+    "cb16_common.refused_names": "32b50ab79443589af19374c0cc7519d67f852856b04b43f23c510ec76c27b790",
+    "cb16_common.require_after": "6241d5801e7645bf91762727ba115dfb8b52b46613a150bdc9a424f9ebd4480b",
+    "cb16_common.require_cb13_pins": "6da6be4446e70ccb88fddc6fe6cb8202aaaf261cc4733aff679ba89ccb5be386",
+    "cb16_common.require_disk": "66681a0d33bf0192436c44a5e343dfbc775a355bfe24fdfdfd809fb2c08f1ada",
+    "cb16_common.require_freeze": "3c36d4f232b54e10de594701f0decb615d827d3d878b7cefcdce3e4e6a9a40b7",
+    "cb16_common.require_output_root": "2e08f4945a39c5f091919bc9a4d3661092e77b20980debd3e149ef5adbff43f1",
+    "cb16_common.s_a_from_freeze": "e6d4d0c8b59bf396adfc2d1142ffd7c4b9ae49782cbf62e0cd4a1dc543d6d23a",
+    "cb16_common.sha256_file": "9b9e433786c3b739ebdf2370926158a2e42a946e90aae266587c550a4a08ee8b",
+    "cb16_common.sha256_obj": "29f7a73c2109e9902f07d1b4343c0975871e392d9e53aea23bc0b4e5d4ca548f",
+    "cb16_common.sign_ok": "4215d155c50e056ad88483e383f2757581a6876f0446baffbe26179cf23d2a26",
+    "cb16_common.stage1_advance": "8d50727f680a1d594eb8fab39b506b2bfefa1a224436be9c8cfbf1364d24e0a5",
+    "cb16_common.stage1_holm": "5e4e5770068247582436bae11b5c6551ba5d2d12684c5a0a881985ad9992cc70",
+    "cb16_common.stage2_final": "dba5cc57efeaa7514f7be2e2298be2e1b3225f9293ff43d870b96ffac94e1503",
+    "cb16_common.stage2_holm": "226a02d95e1380409dd57a3f383a1695b6e855ae5792099557e99efe2655596b",
+    "cb16_common.stage2_pass": "399db8ba67a750620ab91df6886b4b7c74b27dd13f1325ef4722a5463d0509d5",
+    "cb16_common.stall_of": "beaf29289839d29160f8aa542364dc8395c2620bbe57d025038cbfa1443bc186",
+    "cb16_common.strip_forbidden": "701a87c9a17de8722ab446e28b4a9f7fb8f57b6104eea7dcf6826fa095338583",
+    "cb16_common.terminal_path": "551eea2f50d1cbaf21888e0fef47629092cab8d8a71e5a8700909c833b940b75",
+    "cb16_common.top_k_drop_mask": "6582a115058255fc43f961c9c4e156af75be744d0ddbc3806df9af0d4a175d6b",
+    "cb16_common.utc_day": "08bd95ebea2913c2ac28497a6f68d35937ad7630f9a0653a2f7e6f1b8c389cdb",
+    "cb16_common.verify_dir_manifest": "779841c0e733f0990075aa8001cfc13a3f5870c66103e2e1a0ce70a189d6dc3c",
+    "cb16_common.wait_or_idle": "f321b147668d42a0ecf204d1f68ff2c0a15413b88f5037e6e0a040311938f059",
+    "cb16_common.windows": "8d3bd8e67d37f6827ba8ca6ec3216d4c552a8f652e301e423ec08e65e7045274",
+    "cb16_common.write_dir_manifest": "9b435366ccfe2c7c633a98dc5fa0ddba16e1589934bbb0508f2456c4b2c31504",
+    "cb16_common.write_gz_csv": "8418c983bf77c0e977d2c31ce79b23ac5efb5f5a1bd485683a29e7c7c04a2670",
+    "cb16_common.write_results_once": "8d9db29f6dfe30663f51418686250cc01acae415517635cf5fb419c14c3cc630",
+    "cb16_common.write_stall": "a75cca03b65b4179b2e461a6ed1c21fbc71752f6090a554ae30f71e2da4b675d",
+    "cb16_q.MarkTable16": "c320ed99a48584b7fd4c50512504c660be2212c5d34561271c5745d710f79ecc",
+    "cb16_q.QuoteIndex16": "bc9049facfb96465cac5a33a9336dd87562f495687cce8f6d80952dc3231242c",
+    "cb16_q._fmt": "f929cadfcad3a3c1a17b6be41f0fba53db09348b1e3f076a6cf67f25b13a792b",
+    "cb16_q.a_exclusion_keys": "17a94964dcd91ea6cb5f1a2c959fe4548814e26f8d510dfccdda0dddd40a5cff",
+    "cb16_q.add_shape": "02f4b44660083f7f4663b90745cf0feb551533c15fd63cc3f8e39ac59b0caa9b",
+    "cb16_q.age_band": "d2cdd365a5424c0a36ae7279e76e14f4924be849482922bbcba4c27c9d47cdba",
+    "cb16_q.analyse": "ce20f706ef4638e01af7e3c80c0111e9794904f092588362db4e5d2c1adef366",
+    "cb16_q.arm_mask": "215d313e0b7ebca273238ed7eaafbd67bf2aad9e350a4701fb708d2bf7a53487",
+    "cb16_q.attribution": "86e5aa1df02a1f337b6b3fdd519e7288f922138da214f28d0742720546c0876c",
+    "cb16_q.beta_worst": "1611e641a165b8c93d5a7812ab7552415a20faae4b239a1a7ac83527e40fbfc8",
+    "cb16_q.both_grain_markets": "03f1be0ab7ef83910373e836b6a168a1bb4a740e77761e9d40f094a2b50346e0",
+    "cb16_q.build_dataset": "5f5b6966ddeecf4e53178dbc6e8a132a12faa3f8e79734cf9d0f37d9ac59d621",
+    "cb16_q.covariates": "83a12bfffc363915290533756b40f9f166f300a6205d606ce2904439ccd6b88e",
+    "cb16_q.declared": "dd817950946ae52ac89bf37aec03638235ee8bfc34ae0f8ed26c4044f6fdb5be",
+    "cb16_q.drop_screen_events": "8f51e7442de960ec8d783bfbc11c1913dd406482a6be7d6f7e691c09699f419a",
+    "cb16_q.est_only": "e8c4fe2701154d4c336a3692c42462d077b5c583cbdb58af2631b6047a8ee3c2",
+    "cb16_q.excluded_side_price": "7a8e228438b5cc52a596ee9b6db62a87449f1faaec8962de5392e0787bea479f",
+    "cb16_q.exclusion_by_grain": "c1bd438026be89aa188c039c7ab0d0efebecd5b5b762d796fba080938a90a333",
+    "cb16_q.gai_pooled": "b9aa0a4adbac819aff845490d525207073ccda2abcfe34508539613a2b538ad9",
+    "cb16_q.gate_gai": "d3aff476f0c050eef89c17f990fecac406c3add78f6cf1364f630af778827256",
+    "cb16_q.gate_gqg": "3cb049a791ce239dccf9e81615454d43d58d5346459826394ba37647a5a327d6",
+    "cb16_q.grain_eligible": "f3997b0c6e9e2d1a90b23e4294fc4d1d44e03cfc19df46d42bece185051e27a9",
+    "cb16_q.grain_of": "682b3db1aa856b5fe9c072cde51d81905c274cf1819a74353e023cf43713abc3",
+    "cb16_q.in_band": "4b967c5970389cf599b1bb2f11ebf799c7ab9c178d65e2049cf72ca7b02d1aa2",
+    "cb16_q.independent_status": "c7fc7e3057ed6eefd25493f2c4cae527b5365039ee23cd2ac9e14038a14bff50",
+    "cb16_q.informative_share": "8daa5582aa2f0ec97e269e96c9ad70863ecc7ebc80f234184f574afc404b7634",
+    "cb16_q.is_politics": "cf93149de4f65cc94961035e59f92ff420dba8ae4cc7753ce6df4113410b41ae",
+    "cb16_q.is_primary": "bb6e2c9e2473b243790038657cfd648314bd132fc5bc5095c743d86858a0e1c5",
+    "cb16_q.is_sports_arm": "eb0e27527f39aced6f6d33697e577db033de937f66c1b512b422fa708734ec50",
+    "cb16_q.iter_lookback": "4cfcebb087b4aee359948bfb81f69cfbf73c78aa3d8abe480510ed772b7c0c19",
+    "cb16_q.iter_prints": "9c495a96b3953f443d1d235757ca4b30b3877c4cd38587b72603398a039891fe",
+    "cb16_q.iter_recv_lag": "a23234cd05c72ff8386f8b5ab122784c59a26efac7de71ee3e8f5deb126b3602",
+    "cb16_q.list_captures": "0f101a92ea11d4284e8615a130a2445900e2c9445b6a581e349de51a99140878",
+    "cb16_q.load_quote_index": "f627df5db45bd33143aae7d210289eb722729fb46e2307d4fbae0d7b38bd9687",
+    "cb16_q.load_sweeps": "9b9ad54c9d04743fb9b696a259b66f18d228ab9641a282e1cd85ceb9e9a24b98",
+    "cb16_q.make_fe": "1e14e961652445512cdd5f05a39ff01dc014345b327177f492fe4c64d21eea69",
+    "cb16_q.make_fills": "0c2098b01948d24777d9e92413de68b9c01014161f32c1d1364cfc294422b767",
+    "cb16_q.make_mean": "52dc3bd9dff81137f2694ff22c8585dda22fff35882dad2e967fa1d8ca817271",
+    "cb16_q.not_testable": "070f4547251b6b86738c5e27eb8b51678c1fb5ee5a2ae9983d39c61dc389e2fc",
+    "cb16_q.p_band": "5c46d4315a27fcd48ddf8eee2c01db981ebf8c9f1fde6df2d7ffb85d0da2c67a",
+    "cb16_q.p_of": "d191af4d7ec092ce6e9a13ac3e5ef9856abab76d563db14bbd906b277325900f",
+    "cb16_q.permutation_placebo": "6e3b5cbfb7da33c2ed76c4fb662abe3d970a711cfe4810e6e2e1f0406079143b",
+    "cb16_q.power_se": "b2bb403e50fb564f5061870314450dd4eeb4b4892ec744aa4d7aa3eb124b7424",
+    "cb16_q.prefill_placebo": "ce26edaf7c60a9a8e40a310652bed336c59e1af1dea0424a169846ea8ea2b04a",
+    "cb16_q.q1_test": "c1551fa058c8b02efb6130b6534a26a723aa6cd90e27cff259ac05d77f5461a1",
+    "cb16_q.q2_test": "0b793fe1672c0c09b43ee9353d2c4029a97b8bf77e60ed0f3b491b8a407389c3",
+    "cb16_q.q2_values": "0e26d6059229817b5274b2bd665c8114f5719bb150740759ecec51d9ef3602e2",
+    "cb16_q.q2_worst": "3463a722215e06c7649a11186a6ebae1506e7eb9b862f228ee098a78f9199b94",
+    "cb16_q.q_eligible": "0161368d44b1c10fd04e5eb59c3c300d6cb6d1e9cea132c80b74d178928a6f74",
+    "cb16_q.q_gate_gq": "06027679e0bb68c9bd8804f1b84cf9199188e75ac830cc2c6592faac4bcb3e18",
+    "cb16_q.q_power": "cc1d5a7b27628632484cea434cc46a9dddb9996d4dcb5841e4c403964c6729bd",
+    "cb16_q.q_reported": "fa9cfad5d3e7300fa935725f487a12fc636613f7a5f1ead1ca35c9fbf29faae4",
+    "cb16_q.q_strata": "6d5c241b6bc144451d660b8fb497543041ec13420f0b9d4e7a7d771dde1ffdcd",
+    "cb16_q.read_fills": "32fff16b79bb180d6cd23744ba5257802f1c9a6c556d7a5a7491c1eb5f39eb0b",
+    "cb16_q.reproduction": "3dcd33415ba0faa21c076dc1555e05abc92587e7954bb30a1199c576edc00d04",
+    "cb16_q.size_band": "092d2725e655479f9e233439746f4ef5f068c3380401b53311cd2da43403b296",
+    "cb16_q.smoke_offline": "7a50d602bf50618768de17340dc8e81c50239cbc47f66477b435c4d438eb7926",
+    "cb16_q.spread_band": "5abc8261fa88e293e1a177a6d183b06c3de67374cdeea6a7c5d450f8738a5f77",
+    "cb16_q.strata_permutation_test": "20973744278b5a4e54107ff32346542278c8e790cdceb449df0f95c2def724b8",
+    "cb16_q.stratum_keys": "c5d19a9f5645a1179dac8f97beaad91bc8f2d26029d0ada0b3efbea3621dbffa",
+    "cb16_q.tick_is_grain": "37ea076338f7690d0bddb09a59ba7ac158b2acec29ce8207aa9f91c8a537767a",
+    "cb16_q.timeline": "22be7014252f10c2cea98e18d44fc55f6a6cf662d48a3d1f51e2ca244b2bde94",
+    "cb16_q.trade_files": "4db22673cc0538736f5e3b677c5f8845675439449fb55acab4b2b3baf229df8a",
+    "cb16_q.tte_band": "1cbf024b8cd7b67c3778535bc8034db07a54770a42311db8e1fe89f83cc9b184",
+    "cb16_q.ways_of": "b1e24a4241c0cd8bf2bacaf9ade02b68ecd67a4df0b3bd987f8b190d5cbe54bc",
+    "cb16_q.ways_rows": "732c3fbd8e23dee73b375da8aa2b7ee800ee2df03f294c9be83ab39bc2b21d8f",
+    "cb16_q.window_transactions": "3e60ffefc7655f0abe26f41a960001d71c60e7ca736f4cf02b078bba0784e435",
+    "cb16_q.write_fills": "2756904cebff4a6195affdfe713ce00a9d4efe6d23d9f20f00b6228d7d326734",
+    "cb16_u._dump": "7f9e8b6e3ec4f5946391823742655b3a913e831e51d89751c240567c5a261275",
+    "cb16_u._g_extra": "c9af62f200089b05cc6b913b5959280245d427ffaee99651014f8963e41f6299",
+    "cb16_u._informative_x": "1f22691d1e3e3307efc751e79e0330d9150e0471c2258dab4a9736b4da4ab3dc",
+    "cb16_u._net": "5d068faf7827beaee546632c1154c992672d3390d6cf1a8f88e2e2017afd8c3b",
+    "cb16_u._prior_gaps": "e4d3e90a5f2b23d0a842c4de2f22ae08d1b94aedc575e16626e8e3e98a8f0900",
+    "cb16_u.add_silence": "b4e5abceda4000974d1a3e260910b316276048079464bc13f3d3c8e992d31fe0",
+    "cb16_u.all_size_silence": "65333fdf79ddcad41167437b12778c1f536237aa73421063ac13a23647d7a933",
+    "cb16_u.attach_wake_lags": "57717f161e67df66fda229b99837abed8d0a461728a65a62790f11fdc2d7e212",
+    "cb16_u.avoided_mask": "31a38f543df21d6a4479d7470da0d8df9a4061803b62c65efc1488dc59d3def4",
+    "cb16_u.declared": "ee66b717b2b9752e15eba958dced4ec130847519fcc2e3d2f110b2a604e24e07",
+    "cb16_u.exclusion_by_x": "5e0d451aebac01ce501a781fcf40d6c8c740a55bcdbe452e74e88ef0c2bf1c83",
+    "cb16_u.monitor_gaps": "da1cd00b25c3fc5a0dbf074113e279abe2d48c8867fb6924c790d67298bc34a5",
+    "cb16_u.overlaps_gap": "e045c291243caf68a1d2bd5414ed6c910325a4c8014c251d5a251461d2306cfb",
+    "cb16_u.parse_data_api_page": "480acbffc58917a639e2b6f91d9fe0c455d078627c5a886587958750ae06ff5b",
+    "cb16_u.run_validity": "865753b7be967036e9eb50b55fbcdd3ffd51c28388ececa23aea824b76e8d3bf",
+    "cb16_u.sample_path": "be4b609ac661502fce10d311dd2f3b0e229aaab1db06fd31908c1101766f1f14",
+    "cb16_u.sd_of": "076a7f902dd9ffd8d144ef405b8e771a95b596eb416b1ac48f450629cad62706",
+    "cb16_u.silence_dropped_counts": "ce4ccb8cdfde53ace2cc686cc24da4bc82fc858434cf6328a02d73788a25a276",
+    "cb16_u.silence_state": "2a72fcb63da929735c2e81bbfd38bd55ec260d58565e026d3606c0e5f48f484a",
+    "cb16_u.smoke_silence_checks": "9457b05777c7caec0ec9a7aee76d7065bd480557deb08d41c0f27c5319c2720d",
+    "cb16_u.spans_night": "e568183dfb041a225275e867c16d3d9b50cc164e22788856f4fad905ab87397b",
+    "cb16_u.u1_test": "58fd70c363fcb5b81fa7bfe1bfd12024019cf6e6bb203269f5d75387cc006956",
+    "cb16_u.u2_test": "81e67f98a3a0d9f9bfecb3a10d87a705ea4ca10ac322423371d9d1afbf33c8f5",
+    "cb16_u.u_gate_gu": "855ee4db75e356c83852b99238da2f33d5a252e64bd0a35e60cdccc5ec895a81",
+    "cb16_u.u_mask_rows": "cc196f74944eda40445c709be4987fd39a491c4c128e3b298a2b7bedb25c5509",
+    "cb16_u.u_power": "e3aa4ad6f01514aada42d98f79ecc8091743a4c8857a69ce0a139f3bc0a15d5f",
+    "cb16_u.u_reported": "4bfd04e942aa7d9a4fa17ef41f57ce629d7bdfe1a65b3c8b4bdb411a40a184ca",
+    "cb16_u.u_units": "44958efc70eeba772c5b776a16b4f4cfb81241e77e7bed84995a460565a3fdce",
+    "cb16_u.validity_sample": "93d64ac33d25bf8fa94e3f6bd4b2997ebedd8e7c8962399aa0dba4b120e839a3",
+    "cb16_u.wake_index": "41a84789da8bc4a9f598d9bd65b0fc0571f6b064b895326a6e3fe36d1b62cba1"
+   },
+   "funcs_sha256": "3caca7c96523b421b5dac5380f2288a86df3e59e01482988c8c5456fc0896dcd",
+   "part": "A",
+   "part_declared": true,
+   "rules_sha256": "8f395a7db285bebade752bd898be0b03e472a54d833cd560b89acdaae4ff6320",
+   "rules_version": "cb16-rules-v1",
+   "shared_helper_sources_sha256": {
+    "battery._cr_var_of_sum": "32089a1b067735667210bc2d1d52984f3d7fc06d5cdfd6cc4606b274a7595ae6",
+    "cb10_common.leave_one_out_sign": "9111c0aad2192e6661156b015421e86dd20a91d8099a0aca630f11ba30a06eea",
+    "cb10_common.placebo_advance_rate": "41993f5ee1243cd17f53bea3eac84a4be523902ce4e19e5def15a591eea630bb",
+    "cb10_common.require_disk": "1e0e4e4682fa9a16fa71df384f5163983fa5cfa675b15a9b7f009dbbf3d81370",
+    "cb12_common._jsonable": "221fb06a8fd4005aca19de35bd4b5b1b4ab675538202185e71fa5ebbd7ec91f6",
+    "cb12_common.cluster_se_mean": "d8c8ed52c7eb81940adc26f9acb4ba90fbd3fc251a796274faa7c9b3230029c6",
+    "cb12_common.exclusion_stage": "b2dd35c1ec54c7121299bf8e5f6d5b657691366488904e553d9195e6f1e86e97",
+    "cb12_common.holm": "7831f9b32b4876f0450ed05cb8050f4c22ce84e78e12430e8d5efd3aee861803",
+    "cb12_common.lookup_keys_closed_first": "466132284fb1886941bcbdc820c075250009fa794dcb9112c2bd74aa7e5654d2",
+    "cb12_common.manifest_complete": "242883ea1969a82f1f2614ae217699788f001e6047505786b420a64710a5bed0",
+    "cb12_common.module_constants": "fb29c0e68787f7dc57cf9f74f69ca3bdd9969f4f3545dab292e710d77f8dc332",
+    "cb12_common.module_funcs": "f6b3644ad7747424f31089bfde865212eb552b068dcf0f43dc955adadf3482e1",
+    "cb12_common.parse_iso": "f56a746aac64f2456a69e6ad81c952e3b4ebff1aa8a167e5ab567d2182477da3",
+    "cb12_common.read_csv_gz": "0de78d753f9c22f4985ca862de9e64db28b0333f859376b5d38ce4eb9aedc535",
+    "cb12_common.refuse_path": "28d433c10d4e09f2f81181a4ae07cbc3f8ca857c01e14e26fed7104a7bf3c844",
+    "cb12_common.refused_names": "32b50ab79443589af19374c0cc7519d67f852856b04b43f23c510ec76c27b790",
+    "cb12_common.require_complete": "3b6604357fd07395f4104daa66c2311f94cad2703e372c20966f9c5c9d619474",
+    "cb12_common.require_disk": "66681a0d33bf0192436c44a5e343dfbc775a355bfe24fdfdfd809fb2c08f1ada",
+    "cb12_common.require_output_root": "3a7951b8ce7552c8540ba4cfb5445cae02e40188d5619f4a816c2792956e0cb0",
+    "cb12_common.verify_fetch": "cac10ee8e422fb149ac3d0242da785480b95f233ce272d9a8af21d1781b2e427",
+    "cb13_common.block6": "60e08a08865f96e35444981c6689f1a2c9b8008d9fe593775a477e75c34b107a",
+    "cb13_common.capture_allowed": "f0cd6309634c857bbcb5e60b75a71523cd6d9c3d510618d36a205340fabc4b5c",
+    "cb13_common.capture_meta": "866e8e1d120f2dfcb0619d62073ed4bf734fbe168b48ed6781b669a3fe12b061",
+    "cb13_common.cb3_hold_lifted": "ee6bf55bc6182d732e6fbda7bfec94f0088a321aff400fd577b5d1454d23a2dc",
+    "cb13_common.check_window": "209e4e0af63a86b55ae075d326b4090d6dd8493c7fb19aa6a480e17de5c36991",
+    "cb13_common.collector_gap_ok": "e7b0df305a6f2a2bc12869b5b8f0936e5adb89dedce4de366a6515229acf1235",
+    "cb13_common.ensure_source_file": "2a26fefa3cf4de7bd504a91300a9b488389dae4980f34f04147fa1d0431db236",
+    "cb13_common.ep": "3a9fd8059b8d56d7572e9e9a04d0c83e2aeef94fb27ca9badb6318501b40be1b",
+    "cb13_common.guard_capture_file": "75cad26f8b48b9d6a64d3c1571c487f3bb378e8772e8fc9d0ab1838f3dea149e",
+    "cb13_common.guard_monitor_file": "a5f34589042871b9c78bdd1e82d511ebeb037825b988dbfa81bab7bd801fede8",
+    "cb13_common.holm": "a55d8506b4249a76d2a0584222e8889ec9fcbcd33268655234c44b88b1e8fbf4",
+    "cb13_common.in_j4r": "83c7865c75a287ed320af3e8c2db3750c52981505bf214421af085dcf9dec1fc",
+    "cb13_common.iso": "28e937dc91f5bc02d678e907f1ec255deda7d37b9b06627231aebb9362d33172",
+    "cb13_common.iter_capture_rows": "12b4e6b6cb5d7b109e91349add37f2d9fa7f1975a5e2059e16b0b1966d5e4fd5",
+    "cb13_common.iter_prints": "1a0c6321be5a0015519a0ca8581730f0139237528a3a59058197f6bdc0f5ea79",
+    "cb13_common.iter_sidecar_rows": "0f402eeae1be954e5ad009a58bf80d01d6b193e896d44137c7366713c8633d81",
+    "cb13_common.leave_one_out_p": "bf3ca7ee7031737db016be4870bef5daca1399f7436fba1acf102e5d607c73fb",
+    "cb13_common.list_captures": "37c4d1901a10faf25a579113c63632fe235987b88d6ab9be04c400a22c8ff09f",
+    "cb13_common.num": "6b0d39403e1916672eadc55c8241ff0c3cdfb233983e5e8b36b400140ab6f068",
+    "cb13_common.parse_iso": "86d7c91645a1d5a2d1fb78eb256c528c2c4cbfd3c64d20fe2a80fa1c710205c3",
+    "cb13_common.read_csv_gz": "dd1530f10901a596b85fc5801beee783bf19c890fc0578930899b4afcab28176",
+    "cb13_common.read_id_ts_columns": "4bd8518a0d06315e92da818a257bff857fb2c1c189dddda710749dffca3301a9",
+    "cb13_common.refuse_path": "57a0739d961739050329d14345f25b4f71508cb12ecb7f1b41d41ac1c0a95590",
+    "cb13_common.refused_names": "32b50ab79443589af19374c0cc7519d67f852856b04b43f23c510ec76c27b790",
+    "cb13_common.require_capture_allowed": "13edb328009930e956b3d92345e5afba3f959650b31a14586c2e20851dc55525",
+    "cb13_common.require_output_root": "97e4042e0713043491e2b3305295909a9d2f678d84efc525f28257f88a83b86a",
+    "cb13_common.split_bounds": "dcf9078020ff1bdce351200e835ec357d473eb4547eb2a0c0dd11819340b123b",
+    "cb13_common.stage1_holm": "0440cf91c287dc515fec0b6b789e1d0dd8b2ec11f9fc98ea587f7c3bd9903431",
+    "cb13_common.utc_day": "08bd95ebea2913c2ac28497a6f68d35937ad7630f9a0653a2f7e6f1b8c389cdb",
+    "cb13_common.whitelist_print": "12950339a9210bc46d5f24cb466638570539229141148ad21ceb1a6295bf7c8f",
+    "cb13_label._norm": "284192491e6c3ecddba702e0ed4e24ebdbd8282155414e07b4613d888c1ce709",
+    "cb13_label.audit_group": "86deaf8f1768141659b9a20308ff13d6c59dedea1aab4ad338048f5567366b24",
+    "cb13_label.classify": "d94d6645e05e07032fa0d73f63375849acbf3b92f1f83e64524e636d0203a0dc",
+    "cb13_label.first_series_slug": "7bfcc9ce328d1f75f82774a57ad26aa933fbfb7085a9887ca003101f69e171d2",
+    "cb13_label.underlying_of": "89d25064c2b8d141dbb60f5c95297a6ea0bf72ee629b5e90dda79cec2e5956a9",
+    "cb13_t.Q": "31bffc647a65f33892aec10cd87a2dbeb4e66f3f846ccfdf16f0a90dba20108e",
+    "cb13_t.QuoteIndex": "8c6da5ba6632d22f9872936bf8fc8e27eecce1b761f0be20cf72d1e89cff752e",
+    "cb13_t.ScanUnfinished": "8ed4f029ee0dc1c85822b2c910c985ba06c1027054c74e06085b1c01dfb106a0",
+    "cb13_t._partial_records": "82f05ed86bd34dc4f0babda779787b7500b6bfac0bbfe4540a2ae96f1233e82f",
+    "cb13_t.adverse_value": "8868091f8f3776d2f3c7816606705f526758a4a62b1398ff06038ae4e98c5c68",
+    "cb13_t.build_dataset": "32d69ce3e99b40ba723e59bbebd5fad7a173e3bd01a82a442ef8fff6fd5f8960",
+    "cb13_t.build_transactions": "464be3b04fdf08db8d49fcc200b6181284594b33e54a947b2dd5d870489f286e",
+    "cb13_t.classify_position": "d0ece510d787ea67aa1e6d6fea9a7a86fdc3897abb6f5f38432878ac0a51586a",
+    "cb13_t.drop_screen_events": "c34aa82c838a1c92d9e438739304458c0acb2796f23125d719933ac3c096cbb9",
+    "cb13_t.fee_rate_of": "97e6304d1acb5621d7f94485c43620097a47ccd8722b1b458c90e711f59968a0",
+    "cb13_t.gate_gl": "ec3eb8328c40f6b4199e6ea6c1ae5a5d812b22b3297d64f13d105bfc61a9c351",
+    "cb13_t.gate_gti": "e5c7a389658b6bf6da34109f2da9a7e3eb574c4142b190a208ed06afce37b6de",
+    "cb13_t.key_hit": "bdb628356c06eab75779ff55de797a3f80f78ca181a08d6a34e004ccf0cfd23b",
+    "cb13_t.load_quote_index": "1287418f744921b1fd7edc51adb5c3820c4ac42bb0765429a0aeb1b3f33050fd",
+    "cb13_t.make_fills": "00da3417fd0f2d863e15ea8b96013518dbcb8c418060d22b096052d4d79863a6",
+    "cb13_t.screen_prints": "5a2cc69a8a895d284f6b42b1e33315ae8d5f2bff9a33c4a6e93864c2d1cad53a",
+    "cb13_t.smoke_capture_pair": "68dbefa8e755114f45267512d68980c512ad01d2005b951e9d894935cce482ee",
+    "cb13_t.stale_variant": "8e722a30cd3b2c7144b5581d5e9667050ad195a11968b4c99154ec9f94a2face",
+    "cb13_t.t3_values": "dea5843f46215c00f9d0a5bf5b3e447afd0b5f29d1fab61aef276f94d0a2d878",
+    "cb13_t.trade_files": "f4f1e5adb156ee43dad3b1837a5e95092dbf79b0a9fcd6ff6327e85e096c1dfb",
+    "cb13_t.two_sided": "72495426a00ebbe012e8c1c798b804944ff9ab9d1fa61b59226f122f3b97ce48",
+    "cb13_t.worst_value": "354deceb6a1936977c88368701fd4e369f4a7cd3caedc5e7f1975f3be72ba0a1",
+    "cb13_t.yes_price": "2ce135e7489e799573c92668a400b8cf6895dfda7a8a0ab93a88407121b4362c",
+    "cb14_common.cluster_p": "7d296287276a4d1bef82c57fc8f266eac46028b6a31e4c8081ea4b3043472a60",
+    "cb14_common.p_pass": "9146e1b511427a8077dcf1e0c98dc2061341d14ea489bdddbd2b4c0739b0f6fb",
+    "cb14_common.sign_ok": "712e76b2e21927a6d1e9cf877e424f413356804262a773c57da46220e442d79b",
+    "cb14_common.wls_coef_pseudo": "863daf060a1f83f30bf979487574309ba9620561bbea9e2670230c29e31c9d78",
+    "cb2_weather._cluster_sums": "f5f61ce926b7e7e9fd8223d2dd667341d37f67b44318e3c67c48f6eee6b83b97",
+    "cb2_weather.small_g_pvalue": "1a94b013ef2dbe475942d7c041c355f6c36411d4eac5c60a95816dfd1f71cd91",
+    "cb4_data.ApiError": "d7693252d58765a27dc8388425abb8bfac6b3b3936114266ad971d4af7f9ac6a",
+    "cb4_data._cb2w": "622c8ad974650eea96af27feef02d4017ad348099b858e6558abe31369a4e1c4",
+    "cb6_tail.NotNow": "08b9fb3b8355ad01e3b1dd27581ebae1e1efaf463f20232f3c0c91fbb18dab8f",
+    "cb6_tail.Refused": "60c0f89a153d7221261fbcf72fab5c3575768e044ebe16651a7179da8abbb6ed",
+    "cb8_books.seal_copy_ids_audited": "32cb7d6a72748799474f853a829c6860672fba51d5fd736c0b8f3fd81e7d84de",
+    "cb8_common.Cb8Run": "663dd9c79653b892a18db94cbb122fc9ac15886fa408f381165ebf82fe1d6f3d",
+    "cb8_common.idle": "6c4c5e1d8cc89e4c76a490d3b03b0cc8af6ee630b12344e18578ae81691e8f23",
+    "cb8_common.iso": "ac272e28c92099a676a96b2c020c11350330df755b773770371939d966fa80ab",
+    "cb8_common.open_run": "d55fe2332f649adf7342b469ea93b3125414500a29696c7d3cd234e3120421c4",
+    "cb8_common.refuse_path": "af007ad446106f78884d4bde62fc4b7c2787d424e91584c19aa18144c609b959",
+    "cb8_common.refuse_run_id": "e0f7b45599aa9c6b87c890e2d4f608ddb60b41bcd16a3c9002b38fd5039ad841",
+    "cb8_common.sha_obj": "cafbecf98cedc4dfb52e87251e7a10fac6b4cb9acebcdc0085e5620305953a1e",
+    "cb8_common.write_json_atomic": "1e9308681e9ed324aadbbf3b8e8bfc4bda352e9c0978a12d4d9278210853ac9b",
+    "cb8_common.write_once_json": "96de340201f4213c580706a6c2f57a3addda7abf3019daa2f1868cd49c4eadb9",
+    "cb9_common.refuse_path": "c5cd8ffd054f083b675d8b0f3d6114f671b78e94d4045a4b3cdf81be463cd37f",
+    "cb9_common.stall_of": "b46fd8ac330a177aad3cc79b7758958132d99a79ca51a09bb986083ebe883a47",
+    "cb9_common.top_k_drop_mask": "ca983a19b993ebcfc76179a5579602fdf85a722d3e3e59c4e5a34ae3753d209a",
+    "cb9_common.write_results_once": "94af1d221ce65cc6b07c147cd2ec225bae7afc7cf5b94817ea5620880e628b46",
+    "cb9_common.write_stall": "7851c4dd8b6f92b1a20db8e6bf736419d9878f4a43444c02d62eb1a73d73f3c0",
+    "h5_seal._git_commit": "42e78eba1a0911ebf148d36b31bee24f180023dde55cf5956852cde90b70728a",
+    "h5_seal.sha256_file": "4f94a914e8c0a61c8bdc51d167b632ac747c159c6cad4eb1256f7953a234cbe9",
+    "history_backfill.DiskBudget": "a6a8692879504d7a98237f70bd5ad0beb2441d3f7ade01ccfc8029e79bc1d193",
+    "history_backfill.FrameInterrupted": "bea2d0a9ff5f7f08b3474fbd3c1407e8affb7d0994fc8e9c43d61411bb7352a9",
+    "history_backfill.Limiter": "3632bbaa30d702c0a4d4264ab25b119a1005a70648fbe5eccb1a1071ea7e529c",
+    "history_backfill._epoch": "7ae5ba07a4da5ae21a348679af0cebf33523ef9fb94e90dd7205dfa6c3d56b71",
+    "history_backfill._git_commit": "42e78eba1a0911ebf148d36b31bee24f180023dde55cf5956852cde90b70728a",
+    "history_backfill._gz_csv_bytes": "523fb0ad397559f1095652b03e34e3caa1af4fa653ca5a17476fa8f9b886783c",
+    "history_backfill._iter_partial": "3a7e27465b5082028f0cf9379a58069c59066c0972799127f04fba83644d0926",
+    "history_backfill._paged": "4c1cb360b928f71732eedc4bdf05ee21b2a54938c3f44b9b17ce09e847e0ea08",
+    "history_backfill._rank": "b003f6a3f3ab5751ac4f774522f7dce34511583bda3cd70b817750b957d9dc3f",
+    "history_backfill._read_progress": "91090d9ab04092567e0b075948b93b306d327fa134f16fc32436426caf8c873c",
+    "history_backfill.allocate": "e6eb6ee29c64619b2e22c8167998793daf610c4a473fb6110d75eb59693dd86c",
+    "history_backfill.allocate_weighted": "459fe070ca62da621f70aaf6f44f0a2e7d3171244c726d16d4d098edab871cb9",
+    "history_backfill.cb1_topic": "789d963655a1c46ef7bd4f6fb17080d7b80a3766b46cd3dcba0fbe79fb74ec95",
+    "history_backfill.close_or_end_windows": "cfbfcba77139455244409853181686d184daebecc37225ec95da428c1d18d2fb",
+    "history_backfill.draw_sample": "594d33171639767e6f568292b91756e61588aaa4d70ff127ae43ab072fb83ce2",
+    "history_backfill.draw_sample_cb1": "35ce15b29e85735c7580618102ed1424a53ec4fc3d8bb98f312df58158b0f651",
+    "history_backfill.draw_sample_weighted": "cfc76b9bb328ad135227fe6251629cdb6f540330f134a3683fcea0cc8c95bfc5",
+    "history_backfill.fetch_frame": "2694e97c36a18a9fc2c5096957de36747910ec5c9f4344eca9a3917a7f42e791",
+    "history_backfill.fetch_prices": "6847f9a95dda8d150a6f3359035186a8ddef148974a04b5ad4541b6a9484e0ef",
+    "history_backfill.fetch_trades": "423cb996b496fb3e159c0f24e4578e7dfa9393d9e598f8b24629e9815bbb7054",
+    "history_backfill.frame_row": "d9fc5acf7d123ca379cf06cb7e7b168fb4c6a8546694d5f8f2f2be26ca2c087b",
+    "history_backfill.key_id": "9e0d7ddb99cbd74755928fdc16672d3c0a1a03e3236a83d9245f66ea6277b3bc",
+    "history_backfill.pin_request_clock": "6d607933d8b713ff3fb204af801c8d0f9ac922e7e6e06341f0728445ed4dad9e",
+    "history_backfill.price_window": "96b19aa08156f62e9c3ae6956a2c250657ce262233f5c94725750912854907ba",
+    "history_backfill.price_windows": "d2fd5690089c94a00a546e5530b1933bd6edf2e5fcfe44399ae6200d6f8023f0",
+    "history_backfill.run": "7eebcedee6d3d6d3b566f3cdd8791e0c5ec1acf1737d7bc4b0c8721e7454a844",
+    "history_backfill.stratum": "51491d272bdaf924fe8ba55503299982f881eca0c562cd7f6960e3a405e1f850",
+    "history_backfill.trade_key": "346b3670785c1aafa172f6d94de50185fd909531ca402ba7a07d2a6588a91c25",
+    "history_backfill.utc_iso": "d8245b1e1d4bd8561d741a149d5040f0f30e85b1fb584dfb3f5556137191ecbb",
+    "history_backfill.wallet_hash": "d0e1bb99a989e15abb8ee4989a042f77688f7f7c41643c2aceb82a30269c5492",
+    "history_backfill.yield_to_live": "7891939eae4391a7685b3382b073c9330c6c91fa2f20e668752cc1c0f45299dc",
+    "history_topics.is_asymmetric": "862b6fbf1eaf684a423fd207866af7d67df7cb79493146ed5d0ffc00337e907c",
+    "history_topics.topic_of": "fa3538d4f10aebcc4fcf21baad778a56ce4cd60875cc5bc357f82f474d12015d",
+    "pairing.fee_category": "92c2cbf7c9207676110ca0e5828273d066926bad4ecc1387c318846707b52c5b",
+    "provenance.EvidenceRoleError": "7b336a992c69d6d56ec45da927dce137014fe0b34fbfd0a21ab0c30a79e0ec35",
+    "provenance.append_trial": "fb9994b0432e034eae414186f16cd95ff59f1158dc0d028d7e41375d9e19353f",
+    "provenance.role_required": "85cad103453f602808701521edb26f5d0474b9269f33325c3861367be2004220",
+    "provenance.validate_evidence_role": "42b61e7d9e401ab2dd6b098a5012cfa82f776576e3f1a12ba492f71ca82d2522",
+    "wallet_sidecar.hash_wallet": "e6497ed41b51dcc4af2ca46bbebe94c7cad7d4e3e6a3d192520ff18a205b3819",
+    "wallet_sidecar.key_path": "c2fe21f5329ca2c006b9b74e7ddc583f965f474edd79a2fa5ad8a40aa311122f",
+    "wallet_sidecar.load_or_create_key": "01a8975c5ebe7064bb9987a4329a49d19031c32fcea3a619264bfd75d91810a5"
+   },
+   "wallet": {
+    "note": "no CB16 job reads or stores a wallet field, a transaction hash (tx16 is aggregated in memory and discarded), the monitor's or the Data API's side field",
+    "read": false
+   }
+  },
+  "K": {
+   "constants": {
+    "cb16_common": {
+     "ALLOWED_OUTPUT_ROOT_PARTS": [
+      "creative_batch16"
+     ],
+     "ALWAYS_REFUSED_ROOTS": [
+      "surprise_live",
+      "cross_venue_live",
+      "trade_samples",
+      "forecasts",
+      "flow_screen",
+      "cb3_followup",
+      "cb6_followup"
+     ],
+     "AVAILABILITY_LABEL": "not testable (availability)",
+     "AVAIL_MIN": 0.6,
+     "BASE_SOURCE": "base:cb15_q0340",
+     "BATCH_HOLM_K1": 2,
+     "BY_Q": 0.1,
+     "CAPTURE_DIR_RE": "^(\\d{8}T\\d{6}Z)_[0-9a-f]+$",
+     "CAPTURE_LEAD_S": 18000.0,
+     "CB13_PINS": {
+      "cb13_common.iter_capture_rows": "12b4e6b6cb5d7b109e91349add37f2d9fa7f1975a5e2059e16b0b1966d5e4fd5",
+      "cb13_common.iter_sidecar_rows": "0f402eeae1be954e5ad009a58bf80d01d6b193e896d44137c7366713c8633d81",
+      "cb13_common.whitelist_print": "12950339a9210bc46d5f24cb466638570539229141148ad21ceb1a6295bf7c8f",
+      "cb13_label.audit_group": "86deaf8f1768141659b9a20308ff13d6c59dedea1aab4ad338048f5567366b24",
+      "cb13_label.classify": "d94d6645e05e07032fa0d73f63375849acbf3b92f1f83e64524e636d0203a0dc",
+      "cb13_label.first_series_slug": "7bfcc9ce328d1f75f82774a57ad26aa933fbfb7085a9887ca003101f69e171d2",
+      "cb13_label.underlying_of": "89d25064c2b8d141dbb60f5c95297a6ea0bf72ee629b5e90dda79cec2e5956a9",
+      "cb13_t.MarkTable": "40a28befff88bf3cd30cf22f4ba2ea6429d6ac768da3080ab538639dee438ab9",
+      "cb13_t.Q": "31bffc647a65f33892aec10cd87a2dbeb4e66f3f846ccfdf16f0a90dba20108e",
+      "cb13_t.QuoteIndex": "8c6da5ba6632d22f9872936bf8fc8e27eecce1b761f0be20cf72d1e89cff752e",
+      "cb13_t.adverse_value": "8868091f8f3776d2f3c7816606705f526758a4a62b1398ff06038ae4e98c5c68",
+      "cb13_t.build_dataset": "32d69ce3e99b40ba723e59bbebd5fad7a173e3bd01a82a442ef8fff6fd5f8960",
+      "cb13_t.build_transactions": "464be3b04fdf08db8d49fcc200b6181284594b33e54a947b2dd5d870489f286e",
+      "cb13_t.classify_position": "d0ece510d787ea67aa1e6d6fea9a7a86fdc3897abb6f5f38432878ac0a51586a",
+      "cb13_t.drop_screen_events": "c34aa82c838a1c92d9e438739304458c0acb2796f23125d719933ac3c096cbb9",
+      "cb13_t.fee_rate_of": "97e6304d1acb5621d7f94485c43620097a47ccd8722b1b458c90e711f59968a0",
+      "cb13_t.gate_gti": "e5c7a389658b6bf6da34109f2da9a7e3eb574c4142b190a208ed06afce37b6de",
+      "cb13_t.make_fills": "00da3417fd0f2d863e15ea8b96013518dbcb8c418060d22b096052d4d79863a6",
+      "cb13_t.stale_variant": "8e722a30cd3b2c7144b5581d5e9667050ad195a11968b4c99154ec9f94a2face",
+      "cb13_t.t3_values": "dea5843f46215c00f9d0a5bf5b3e447afd0b5f29d1fab61aef276f94d0a2d878",
+      "cb13_t.two_sided": "72495426a00ebbe012e8c1c798b804944ff9ab9d1fa61b59226f122f3b97ce48",
+      "cb13_t.worst_value": "354deceb6a1936977c88368701fd4e369f4a7cd3caedc5e7f1975f3be72ba0a1",
+      "cb13_t.yes_price": "2ce135e7489e799573c92668a400b8cf6895dfda7a8a0ab93a88407121b4362c"
+     },
+     "CB13_T_HOLDOUT": [
+      "2026-10-21T00:00:00Z",
+      "2026-10-26T00:00:00Z"
+     ],
+     "CB13_T_SCREEN": [
+      "2026-10-12T00:00:00Z",
+      "2026-10-16T00:00:00Z"
+     ],
+     "CB15_KEYS_FILE": "exclusion_keys.csv.gz",
+     "CB16_OUTPUT_CAP_GB": 0.15,
+     "CB16_SPORTS_IN_PRIMARY": false,
+     "CB3_FREEZE_NAME": "cb3_v1.json",
+     "CB3_STOP_NAME": "cb3_stop.json",
+     "COUNT_FAMILIES": [
+      "Q",
+      "U"
+     ],
+     "DATA_API_FIELDS": [
+      "timestamp",
+      "price",
+      "size",
+      "conditionId"
+     ],
+     "DATA_DUMPS_CAP_GB": 40.0,
+     "E011_ANALYSIS_EARLIEST": "2026-11-11T13:00:00Z",
+     "E011_ANALYSIS_NAME": "e011_analysis_commit.json",
+     "EARLY_ALPHA2": 0.0125,
+     "ELECTION_NIGHT": [
+      "2026-11-03T18:00:00Z",
+      "2026-11-05T00:00:00Z"
+     ],
+     "EVIDENCE_ROLE_DEV": "exploratory_dev",
+     "EVIDENCE_ROLE_HIST": "exploratory_historical",
+     "EVIDENCE_ROLE_PROSPECTIVE": "prospective",
+     "EXCLUSION_KEYS_COMPLETE": "exclusion_keys_complete",
+     "EXPERIMENT_ROOT_RE": "^e0\\d\\d$",
+     "EXTRACT_ROOT_RE": "^cb\\d+_extract$",
+     "EXTRA_REFUSED_ROOTS": [
+      "creative_batch15",
+      "creative_batch14",
+      "creative_batch13",
+      "creative_batch12",
+      "creative_batch11",
+      "creative_batch10",
+      "creative_batch9",
+      "creative_batch8",
+      "creative_batch7",
+      "creative_batch6",
+      "creative_batch5",
+      "creative_batch4",
+      "creative_batch3",
+      "creative_batch2",
+      "creative_batch1",
+      "snapshots",
+      "trade_samples",
+      "live_trades",
+      "book_sweeps",
+      "surprise_live",
+      "cross_venue_live",
+      "cross_venue",
+      "forecasts",
+      "flow_screen",
+      "h9_flow",
+      "h10_sign",
+      "h10_dlad",
+      "h10_brk",
+      "h11_wprints",
+      "h11_pol",
+      "h11_attn",
+      "h12_say",
+      "h12_quake",
+      "h12_prints",
+      "h12_quake_live",
+      "h12_opt_live",
+      "h13_touch",
+      "h13_binance",
+      "h14_wiki",
+      "h14_wiki_live",
+      "h14_speech",
+      "h15_elect_live",
+      "h15_birth",
+      "h15_birth_live",
+      "h1_first",
+      "h2_main",
+      "h3_power",
+      "h4_seal",
+      "h5_cb1",
+      "h5_cb1_ladders",
+      "h6_weather",
+      "h7_cb4_era",
+      "h7_cb4_series",
+      "h8_tail",
+      "h8_tail_b",
+      "h8_text",
+      "h8_geo",
+      "cb3_followup",
+      "cb6_followup"
+     ],
+     "FAMILY_MODULES": {
+      "A": [
+       "cb16_q",
+       "cb16_u",
+       "cb16_a"
+      ],
+      "K": [
+       "cb16_k"
+      ]
+     },
+     "FAMILY_PARTS": [
+      "A",
+      "K"
+     ],
+     "FAMILY_REP_TESTS": {
+      "Q": [
+       "Q1",
+       "Q2"
+      ],
+      "U": [
+       "U1",
+       "U2"
+      ]
+     },
+     "FAMILY_TESTS": {
+      "Q": [
+       "Q1"
+      ],
+      "U": [
+       "U1"
+      ]
+     },
+     "FORBIDDEN_OUTPUT_COLUMNS": [
+      "side",
+      "wallet",
+      "wallet_hash",
+      "proxyWallet",
+      "tx16",
+      "transactionHash",
+      "tx_hash",
+      "hash",
+      "name",
+      "pseudonym",
+      "recv_ts",
+      "chg_1h",
+      "chg_1d",
+      "chg_1w",
+      "ctx_chg_1h",
+      "uma_resolution_statuses",
+      "outcome_prices",
+      "outcomePrices",
+      "umaResolutionStatus",
+      "closedTime",
+      "closed_time",
+      "result",
+      "settlement_value",
+      "p_end"
+     ],
+     "FORBIDDEN_PARSE_FIELDS": [
+      "side",
+      "proxyWallet",
+      "outcome_prices",
+      "outcomePrices",
+      "umaResolutionStatus",
+      "umaResolutionStatuses",
+      "uma_resolution_statuses",
+      "closedTime",
+      "closed_time",
+      "result",
+      "settlement_value",
+      "transactionHash",
+      "hash",
+      "name",
+      "pseudonym",
+      "p_end",
+      "recv_ts",
+      "chg_1h",
+      "ctx_chg_1h"
+     ],
+     "FORBIDDEN_PRINT_FIELDS": [
+      "side",
+      "key",
+      "recv_ts",
+      "wallet_hash",
+      "wallet",
+      "proxyWallet",
+      "ctx_chg_1h",
+      "ctx_status",
+      "chg_1h"
+     ],
+     "FRAME_DELAY_S": 28800.0,
+     "FREEZE_PARTS": [
+      "A"
+     ],
+     "FREEZE_PIN_KEYS": {
+      "common": "common_rules_sha256",
+      "frozen": "frozen_utc",
+      "rules": "rules_sha256"
+     },
+     "FREE_DISK_MIN_GB": 4.5,
+     "GATE_P": 0.01,
+     "G_CR2": 15,
+     "H15_ROOT_RE": "^h15_",
+     "HEARTBEAT_S": 36000.0,
+     "HOLDOUT_PARTS": [
+      "holdout",
+      "t_holdout"
+     ],
+     "ID_COLUMNS": [
+      "market_id",
+      "event_id",
+      "condition_id",
+      "neg_risk_market_id",
+      "negRiskMarketID",
+      "series_id",
+      "p_market_id",
+      "p_event_id"
+     ],
+     "ID_READABLE": {
+      "creative_batch15": [
+       "birth_frame.csv.gz"
+      ],
+      "h15_birth_live": [
+       "pairs.jsonl"
+      ],
+      "h15_elect_live": [
+       "race_map.csv"
+      ]
+     },
+     "ID_RESEARCH_ROOTS": [
+      "creative_batch15"
+     ],
+     "J4R_WINDOW": [
+      "2026-10-16T00:00:00Z",
+      "2026-10-21T00:00:00Z"
+     ],
+     "KEYS_OUTPUT_CAP_GB": 0.01,
+     "KEYS_RUN": "exclusion_run16",
+     "KEYS_STATUS": "exclusion_keys_complete",
+     "KEY_COLUMNS": [
+      "market_id",
+      "found",
+      "event_ids",
+      "neg_risk_market_id",
+      "series_ids",
+      "sources"
+     ],
+     "LIVE_ROOT_NAMES": [
+      "cross_venue_live",
+      "surprise_live"
+     ],
+     "LOOKBACK_FIELDS": [
+      "ts",
+      "condition_id",
+      "cash"
+     ],
+     "LOOKBACK_FLOOR": "2026-10-26T00:00:00Z",
+     "LOOKBACK_ROBUST_S": 259200.0,
+     "LOOKBACK_S": 604800.0,
+     "LOO_DAY_P": 0.05,
+     "MARK_TAIL_S": 28800.0,
+     "MAX_UNVERIFIED_KEY_SHARE": 0.02,
+     "MDE_FACTOR": 3.8,
+     "MONITOR_FORBIDDEN_FILES": [
+      "alerts.jsonl",
+      "outcomes.jsonl",
+      "wallets.jsonl",
+      "stats.jsonl",
+      "state.json"
+     ],
+     "MONITOR_FORBIDDEN_RE": "^scores-\\d{8}\\.jsonl$",
+     "MONITOR_TRADES_RE": "^trades-\\d{8}\\.jsonl$",
+     "N_BOOT": 2000,
+     "N_WILD": 9999,
+     "PARTS": [
+      "common",
+      "A",
+      "K"
+     ],
+     "PIN_UNSET": "TODO-COORDINATOR",
+     "PLACEBO_DRAWS": 200,
+     "PLACEBO_MAX_ADVANCE": 0.015,
+     "PLACEBO_SEEDS": {
+      "Q1_calibration": 16102,
+      "Q1_composition": 16101,
+      "U1_calibration": 16112,
+      "U1_composition": 16111
+     },
+     "PLACEBO_SEED_RANGE": [
+      16101,
+      16130
+     ],
+     "PRINT_FIELDS": [
+      "ts",
+      "condition_id",
+      "token_id",
+      "outcome_index",
+      "price",
+      "size",
+      "cash",
+      "title",
+      "slug",
+      "ctx_event_id",
+      "ctx_market_id",
+      "ctx_category",
+      "ctx_fee_type"
+     ],
+     "REP_SEAL_COPY": "cb16_a_rep_SEAL.json",
+     "REP_SEAL_NAME": "a_rep_SEAL.json",
+     "RULES_MACHINERY": [
+      "rules_part_doc",
+      "rules_part_file_doc",
+      "rules_file_doc",
+      "write_rules",
+      "verify_rules",
+      "family_modules",
+      "common_funcs",
+      "part_funcs",
+      "shared_helper_sources",
+      "external_closure",
+      "_code_names",
+      "_helper_key",
+      "common_declared"
+     ],
+     "RULES_VERSION": "cb16-rules-v1",
+     "SEED_BOOT": 1616,
+     "SEED_K_AUDIT": 16141,
+     "SEED_U_VALIDITY": 16131,
+     "SHARED_HELPERS": [
+      [
+       "cw",
+       "small_g_pvalue"
+      ],
+      [
+       "cw",
+       "_cluster_sums"
+      ],
+      [
+       "c12",
+       "holm"
+      ],
+      [
+       "c12",
+       "cluster_se_mean"
+      ],
+      [
+       "c9",
+       "top_k_drop_mask"
+      ],
+      [
+       "c10",
+       "placebo_advance_rate"
+      ],
+      [
+       "c10",
+       "leave_one_out_sign"
+      ],
+      [
+       "c14",
+       "cluster_p"
+      ],
+      [
+       "c14",
+       "wls_coef_pseudo"
+      ],
+      [
+       "c13",
+       "leave_one_out_p"
+      ],
+      [
+       "c12",
+       "exclusion_stage"
+      ],
+      [
+       "c12",
+       "lookup_keys_closed_first"
+      ],
+      [
+       "c12",
+       "module_constants"
+      ],
+      [
+       "c12",
+       "module_funcs"
+      ],
+      [
+       "c10",
+       "require_disk"
+      ],
+      [
+       "c9",
+       "write_stall"
+      ],
+      [
+       "c9",
+       "stall_of"
+      ],
+      [
+       "c9",
+       "write_results_once"
+      ],
+      [
+       "bk",
+       "seal_copy_ids_audited"
+      ],
+      [
+       "cm",
+       "write_once_json"
+      ],
+      [
+       "cm",
+       "write_json_atomic"
+      ],
+      [
+       "cm",
+       "idle"
+      ]
+     ],
+     "SMOKE_VERSION": "cb16-smoke-v1",
+     "SOURCE_NOT_TESTABLE": "not testable (source)",
+     "STAGE1_HOLM_FAMILY": [
+      "Q1",
+      "U1"
+     ],
+     "STAGE2_K_MAX": 4,
+     "STAGE2_NAMES": {
+      "Q1": "Q1-rep",
+      "Q2": "Q2",
+      "U1": "U1-rep",
+      "U2": "U2"
+     },
+     "STAGE_ALPHA": 0.05,
+     "STOP_RULE": "3 CPU-hours per family; a job failing twice for the same non-transient reason stops and is recorded; no re-screen of a failed CB16 test",
+     "SWEEP_FIELDS": [
+      "token_id",
+      "batch_receipt_utc",
+      "best_bid",
+      "best_ask",
+      "bid_size_1",
+      "ask_size_1",
+      "depth_bid_1c",
+      "depth_ask_1c",
+      "depth_bid_5c",
+      "depth_ask_5c",
+      "n_bid_levels",
+      "n_ask_levels"
+     ],
+     "S_A_AFTER_FREEZE_S": 86400.0,
+     "S_A_EARLIEST": "2026-11-02T00:00:00Z",
+     "T16_A_FREEZE_TARGET": "2026-11-01T00:00:00Z",
+     "T16_DRAFT": "2026-10-19T09:20:00Z",
+     "TERMINAL_NAME": "terminal_{family}.json",
+     "TERMINAL_REP_NAME": "terminal_{family}_rep.json",
+     "TERMINAL_STATUS": "terminal_not_testable",
+     "TOP_DROP": 5,
+     "U2_LAG_FIELDS": [
+      "ts",
+      "condition_id",
+      "recv_ts"
+     ],
+     "UNVERIFIED": "disjointness_unverified",
+     "USER_AGENT": "arepo-research-lab/1 (read-only research; https://www.arepolabs.com)",
+     "WINDOW_S": 1209600.0
+    },
+    "cb16_k": {
+     "CELL_MIN_EVENTS": 30,
+     "CROSS_VENUE_PINS": {
+      "audit_flags.json": "a7273ea747c8bb3162effe790363108fb820599c884a14d539b4ca464b6b7629",
+      "kalshi_markets.jsonl": "703fda587da8581651c1f8500c20ed7388647ecbf9234c748cf5540f7b3c073c",
+      "kalshi_markets_b.jsonl": "47f49f5bd6875318a2fc92f54502c2df6a802d11f24de709658ec715862bedea",
+      "kalshi_markets_s0.jsonl": "80445c4e2123a00d51eb3442b9f9cb5ace3b5bbb61ecede49fc8b544e5c55af0",
+      "kalshi_markets_s1.jsonl": "a1a36adfd7b0fb9466df5905e58d7dded446897276b941435890ed352772943b",
+      "kalshi_markets_s2.jsonl": "39975faf55e23d456bc28f80c56229391320321fac77ad9d75463b4a76713b55",
+      "kalshi_markets_s3.jsonl": "0e13ffcac5f97cd1c52cbed939a34fae8997dee6aefd5e68bab61113ebd23755",
+      "kalshi_markets_s4.jsonl": "6a47c20aea5b1de400b6d3a620d688915a9af950c3c232a09fd577c24b254234",
+      "kalshi_markets_s5.jsonl": "9479b4cc7a089fe6e96bc99da4815854d7b73d6440869c260eee6d7438934d15",
+      "matches_all.json": "f4cde1e952d85fbe6bca8ac1d42620fcee4bc755468381ccaf5cd639d27ca326",
+      "poly_markets.json": "749adfa6faf34c4948fec9dc9e6bac2485133713370893e489aa5bd6434a23b2"
+     },
+     "DECILES": 10,
+     "EXPECTED_COUNTS": {
+      "kalshi_markets": 326380,
+      "matches": 958,
+      "poly_markets": 148384
+     },
+     "FAR_GAP_S": [
+      2592000.0,
+      15552000.0
+     ],
+     "FLAG_KEEP": [
+      "rule"
+     ],
+     "FRAME_END": [
+      "2025-10-13T00:00:00Z",
+      "2026-10-01T00:00:00Z"
+     ],
+     "KALSHI_KEEP": [
+      "ticker",
+      "title",
+      "yes_sub",
+      "close_time",
+      "cat",
+      "series",
+      "volume"
+     ],
+     "LABEL_ABSENT": "ABSENT (liquid-universe)",
+     "LABEL_HINDSIGHT_VOLUME": "lifetime volume is hindsight",
+     "LABEL_SELECTED_ON_VOLUME": "selected on lifetime volume",
+     "MATCHES_ALL_PIN_META": {
+      "host_path": "~/arepo/data-dumps/research_lab/cross_venue/matches_all.json",
+      "limitation": "matches_all.json is not re-derived from the pinned inputs and its hindsight p_end is never parsed",
+      "mtime_utc": "2026-10-12T20:52:48Z",
+      "size_bytes": 603444
+     },
+     "MATCH_KEEP": [
+      "p_market_id",
+      "p_event_id",
+      "k_ticker",
+      "k_cat"
+     ],
+     "MDE_SD_MAX": 0.24,
+     "MDE_SD_OPTIMISTIC": 0.1,
+     "POLY_KEEP": [
+      "market_id",
+      "event_id",
+      "condition_id",
+      "question",
+      "item",
+      "outcomes",
+      "end",
+      "event_title",
+      "slug",
+      "volume",
+      "volume_num",
+      "volumeNum",
+      "volume_total",
+      "neg_risk_market_id",
+      "negRiskMarketID",
+      "fee_category"
+     ],
+     "POLY_VOLUME_KEYS": [
+      "volume",
+      "volume_num",
+      "volumeNum",
+      "volume_total"
+     ],
+     "RE_ENTRY_MDE_PP": 2.0,
+     "RE_ENTRY_MIN_CELLS": 5,
+     "SMOKE_NEEDS": [
+      "k_inputs_pinned",
+      "k_counts_exact",
+      "k_no_outcome_fields",
+      "k_topic_rule"
+     ],
+     "TOPIC_MAX_GAP_S": 259200.0,
+     "TOPIC_MIN_JACCARD": 0.3,
+     "TOPIC_MIN_SHARED": 2,
+     "UNLISTABLE_RE": {
+      "flags": 34,
+      "regex": "(?i)(\\bassassinat\\w*|\\bterroris\\w*|\\bdeclar\\w* (?:of )?war\\b|\\bwar declaration\\b|\\binvasion\\b|\\binvade\\w*|\\b(?:military|air) strikes?\\b|\\bnuclear (?:detonation|weapon|test)\\w*|\\bcoup\\b)"
+     }
+    }
+   },
+   "declared": {
+    "cb16_k": {
+     "cell_min_events": 30,
+     "cells": "LABELLER class x lifetime-volume decile (hindsight); sports reported separately",
+     "expected_counts": {
+      "kalshi_markets": 326380,
+      "matches": 958,
+      "poly_markets": 148384
+     },
+     "family": "K (CH143): census only, k = 0",
+     "fields": {
+      "audit_flags": [
+       "rule"
+      ],
+      "kalshi": [
+       "ticker",
+       "title",
+       "yes_sub",
+       "close_time",
+       "cat",
+       "series",
+       "volume"
+      ],
+      "matches": [
+       "p_market_id",
+       "p_event_id",
+       "k_ticker",
+       "k_cat"
+      ],
+      "poly": [
+       "market_id",
+       "event_id",
+       "condition_id",
+       "question",
+       "item",
+       "outcomes",
+       "end",
+       "event_title",
+       "slug",
+       "volume",
+       "volume_num",
+       "volumeNum",
+       "volume_total",
+       "neg_risk_market_id",
+       "negRiskMarketID",
+       "fee_category"
+      ]
+     },
+     "frame": {
+      "binary": "outcomes == ['Yes', 'No']",
+      "end": [
+       "2025-10-13T00:00:00Z",
+       "2026-10-01T00:00:00Z"
+      ],
+      "selection": "selected on lifetime volume"
+     },
+     "inputs": [
+      "audit_flags.json",
+      "kalshi_markets.jsonl",
+      "kalshi_markets_b.jsonl",
+      "kalshi_markets_s0.jsonl",
+      "kalshi_markets_s1.jsonl",
+      "kalshi_markets_s2.jsonl",
+      "kalshi_markets_s3.jsonl",
+      "kalshi_markets_s4.jsonl",
+      "kalshi_markets_s5.jsonl",
+      "matches_all.json",
+      "poly_markets.json"
+     ],
+     "labels": {
+      "absent": "ABSENT (liquid-universe)",
+      "far_topic": {
+       "disjoint_from_present_topic": true,
+       "gap_s": [
+        2592000.0,
+        15552000.0
+       ],
+       "same_text_rule": true
+      },
+      "present_strict": "market id in matches_all.json minus r1 audit-rule conflicts (counted)",
+      "present_topic": {
+       "max_gap_s": 259200.0,
+       "min_jaccard": 0.3,
+       "min_shared": 2
+      },
+      "unlistable_regex": "(?i)(\\bassassinat\\w*|\\bterroris\\w*|\\bdeclar\\w* (?:of )?war\\b|\\bwar declaration\\b|\\binvasion\\b|\\binvade\\w*|\\b(?:military|air) strikes?\\b|\\bnuclear (?:detonation|weapon|test)\\w*|\\bcoup\\b)"
+     },
+     "matches_all_pin_meta": {
+      "host_path": "~/arepo/data-dumps/research_lab/cross_venue/matches_all.json",
+      "limitation": "matches_all.json is not re-derived from the pinned inputs and its hindsight p_end is never parsed",
+      "mtime_utc": "2026-10-12T20:52:48Z",
+      "size_bytes": 603444
+     },
+     "mde": {
+      "factor": 3.8,
+      "formula": "3.80 x SD x sqrt(1/G_present + 1/G_absent) over eligible cells",
+      "sd": [
+       0.1,
+       0.24
+      ]
+     },
+     "never_parsed": [
+      "side",
+      "proxyWallet",
+      "outcome_prices",
+      "outcomePrices",
+      "umaResolutionStatus",
+      "umaResolutionStatuses",
+      "uma_resolution_statuses",
+      "closedTime",
+      "closed_time",
+      "result",
+      "settlement_value",
+      "transactionHash",
+      "hash",
+      "name",
+      "pseudonym",
+      "p_end",
+      "recv_ts",
+      "chg_1h",
+      "ctx_chg_1h"
+     ],
+     "pins": {
+      "audit_flags.json": "a7273ea747c8bb3162effe790363108fb820599c884a14d539b4ca464b6b7629",
+      "kalshi_markets.jsonl": "703fda587da8581651c1f8500c20ed7388647ecbf9234c748cf5540f7b3c073c",
+      "kalshi_markets_b.jsonl": "47f49f5bd6875318a2fc92f54502c2df6a802d11f24de709658ec715862bedea",
+      "kalshi_markets_s0.jsonl": "80445c4e2123a00d51eb3442b9f9cb5ace3b5bbb61ecede49fc8b544e5c55af0",
+      "kalshi_markets_s1.jsonl": "a1a36adfd7b0fb9466df5905e58d7dded446897276b941435890ed352772943b",
+      "kalshi_markets_s2.jsonl": "39975faf55e23d456bc28f80c56229391320321fac77ad9d75463b4a76713b55",
+      "kalshi_markets_s3.jsonl": "0e13ffcac5f97cd1c52cbed939a34fae8997dee6aefd5e68bab61113ebd23755",
+      "kalshi_markets_s4.jsonl": "6a47c20aea5b1de400b6d3a620d688915a9af950c3c232a09fd577c24b254234",
+      "kalshi_markets_s5.jsonl": "9479b4cc7a089fe6e96bc99da4815854d7b73d6440869c260eee6d7438934d15",
+      "matches_all.json": "f4cde1e952d85fbe6bca8ac1d42620fcee4bc755468381ccaf5cd639d27ca326",
+      "poly_markets.json": "749adfa6faf34c4948fec9dc9e6bac2485133713370893e489aa5bd6434a23b2"
+     },
+     "re_entry": {
+      "audit_genuine_min": 0.9,
+      "audit_n": 100,
+      "audit_seed": 16141,
+      "far_topic_min_cells": 5,
+      "far_topic_min_events": 30,
+      "min_cells": 5,
+      "optimistic_mde_pp": 2.0
+     }
+    }
+   },
+   "func_sources_sha256": {
+    "cb16_common.assert_clean_columns": "45f148919a1277b7ea10de404ced0c04aae3dc09e4ab14a400b81ead026d5c8d",
+    "cb16_common.attribute_sources": "02da5cd492bb537666820101e8c4d47eadca070ca1f1e407b3312c854bbb4f4a",
+    "cb16_common.availability": "5705ff910d9cede83871105c320022f7c599502a2bdaff946eb765a1d9948018",
+    "cb16_common.block6": "651714269542559c1c3ca2d3284609c68a1276563d01da9048113acd7705e41b",
+    "cb16_common.cb13_pin_current": "68e906d2e725f0b698ad29a16748c31bc396c8c8b3bc06fb440a747c84b66489",
+    "cb16_common.cb13_pins_ok": "b1284ac2dbdaf8788e7d67b62bcb6a35fde6731e795ce990b88d44edb84fef1b",
+    "cb16_common.cb3_hold_lifted": "05b88d5f9f9272854cb6bb18f4c0f16f3e45fdbf050f822ee4c36d5dc957967e",
+    "cb16_common.cluster_p": "cf516bf7efd20c42ffa1da353fecde2d499ee84c6eaf63432ac11ca5e937ccb7",
+    "cb16_common.cluster_se_mean": "b00c59bb7c9237ae9758c44ad2f8e64d6ac23e37ffc6ecb4c5093b9c2ac6bfb8",
+    "cb16_common.collector_gap_ok": "a2024df3b0b73f7178e8583fb64c6250e11e05c5f6ca2b3511a56bd0f6a895ba",
+    "cb16_common.committed_record": "5371a19751afa3afdf3988971e6853a04ad58d7fc3354f7bdb84c48e6263b26f",
+    "cb16_common.e011_hold_lifted": "063f6342e70c49e908a76d1461dba30f1fd84c957a67eebddeb8fced413a9459",
+    "cb16_common.early_stage2_ok": "6163ed098794484aec71660e60241f39e0e5acc17459cdac2c09c16894420ded",
+    "cb16_common.ensure_source_file": "5c02368fdb2dc28cbee40f487524fbe6da0afa5730b74e6148a5ff790cd12fe6",
+    "cb16_common.ep": "3a9fd8059b8d56d7572e9e9a04d0c83e2aeef94fb27ca9badb6318501b40be1b",
+    "cb16_common.exclusion_keys": "26dab3d13fa6a2e187d2964e798253811297340239fb9d70d5bbf9288afc39ed",
+    "cb16_common.fe_coef_pseudo": "ae3c618fbe67d32123d48fd1c2756fafd4afb90d6f5b2da3d9702ddbc659d13d",
+    "cb16_common.fe_demean": "9a8d6c47058f1e143f381841b7ea27819ed2ec1f98d51d14a9f1beb4076a1117",
+    "cb16_common.fe_ols": "48efe39e1cc5b133addb49a6ba319e637a8f48f828e4af2adf3e5096841515ff",
+    "cb16_common.frame_ids": "9bab1e7a532bb920b83018e3dbf7de9c434f2035d1585085d23d7fb87f671a78",
+    "cb16_common.guard_capture_dir": "efdacc0d5c09767dced2c9c0cbe281bcc41b2f2ab24e05edee2e5b792ff9f925",
+    "cb16_common.guard_cross_venue_file": "642fcc62de9fd4d0e9037ce4ef93e6afd1953c5360774e478ebf120a9198c4ea",
+    "cb16_common.guard_floor": "ae1b4cda7945f8aca5725ff019490cb4bbb1c4a91230476bca9562b2477afb59",
+    "cb16_common.guard_id_file": "f94f2710b609b7a6017a77cb4d919f907ef9961d4d4c9310051fb11c6ce06f3e",
+    "cb16_common.guard_monitor_file": "db3b6039e74fe64a25830389561f44fe746d3fc6133d75ed217ef502c0de7fc4",
+    "cb16_common.guard_rep_unit": "eb1a69cc7f1b61ba5c2e7b346b7157cd70e59e57d0c811e5f53b95a84bfdf513",
+    "cb16_common.guard_sweep_file": "d7380a86be35a8bc9b8b210c0e189c5a169062607ef194e3255aba31f3f1bc15",
+    "cb16_common.holm": "bc13d2e3180f887c3d592f02f5ddf23f33ac4ee417378f6e610f5aa298b65d69",
+    "cb16_common.hour_of_day": "04bde92724f55de312dcd49e2bd6c8558f9032b55a2c68be9593ef21ee9af6a3",
+    "cb16_common.id_source_path": "3b5a053b8a8a055a96496aec795a54acb96da841936c23ee5bd667a28e4c1a51",
+    "cb16_common.in_election_night": "d78b3cf4eb2c08fe48494793d9d1435f398168ec43f1da3467d5758d1ac022a4",
+    "cb16_common.is_holdout_path": "fd0e9fc15a27748914a0f1ea4aeb591d1db8857f851df923768b0a99b111e22a",
+    "cb16_common.iso": "28e937dc91f5bc02d678e907f1ec255deda7d37b9b06627231aebb9362d33172",
+    "cb16_common.key_sources": "1db2912a5d0863cb1f4314b8e0ae1980c95c1739de90d1fe4445123d8cba9fc2",
+    "cb16_common.leave_one_out_p": "2a41193ffc93eee725fb14e03d8dc1785e89c0c262b7158c515517da30d6b8e5",
+    "cb16_common.load_keys": "dbca334a5d8e941df590cbc12efe971817ff22f9961763d8dd28bcf003534e67",
+    "cb16_common.log_descriptive": "91d741b318f658ffc0da2b1f6d511997a1dc56c11aba85381888aefb8e74faaa",
+    "cb16_common.log_family": "5cb9855a470e1390d8a2359327a21adcbdf5c8d5dd3e6cead02f8a254859d00f",
+    "cb16_common.manifest_complete": "9963a22f89b1b545fe07d75e58db6e88f1dd2fc4f0602068b2b362bc7c8f08ed",
+    "cb16_common.market_ids_of": "2548134ae77ea9e45f725490c2c110d7ccd417f0315d6363298faf2338a3d452",
+    "cb16_common.max_se_over_ways": "5727241359a4d053c2dd1749a1a30d5b60b7801f3b726bff5ff9e625d7fcd7a9",
+    "cb16_common.mde": "de3d855dff122ee4d4ea194dadc7fbf88e851b931caac3bda9492c020722f8c2",
+    "cb16_common.num": "6b0d39403e1916672eadc55c8241ff0c3cdfb233983e5e8b36b400140ab6f068",
+    "cb16_common.p_pass": "4e029dd2fbfab1d14d9119aa8778fa559702d0086f17a8d1bf6c84455191e3ea",
+    "cb16_common.parse_iso": "86d7c91645a1d5a2d1fb78eb256c528c2c4cbfd3c64d20fe2a80fa1c710205c3",
+    "cb16_common.permute_within": "c1c908c40f5c91e1172067fd6fc5f6a141e2339327f19669f615efff961b76a6",
+    "cb16_common.placebo_advance_rate": "dddafa6653cc29c6d9cfaac9f5cbf9b45bb978e4249f3b54b1f0854c7dcbe0ea",
+    "cb16_common.read_csv_gz": "dd1530f10901a596b85fc5801beee783bf19c890fc0578930899b4afcab28176",
+    "cb16_common.read_id_columns": "93a426955bfd66d615159de1fcd017e8ebfcf06ca020cefabe500278862fe126",
+    "cb16_common.read_keys_with_sources": "8fc3844432b94d96dd8e50df233960f88b0818bf1258dc9667b4857d64caa5b8",
+    "cb16_common.read_terminal": "8214d68291f29a05bdaa6c1bcaf81eaf03f4e1b0108baaa06e3c95cfb17270cf",
+    "cb16_common.record_terminal": "93cd0dde88897f50ee1fcf7de2efd6d1db87e696b23d6f8f1c8c58c59b7d1389",
+    "cb16_common.refuse_path": "984c7b1020d07266c5a5d749572ed0d4042dbcd377bc2f1a3323cf608fbebbd9",
+    "cb16_common.refused_names": "32b50ab79443589af19374c0cc7519d67f852856b04b43f23c510ec76c27b790",
+    "cb16_common.require_after": "6241d5801e7645bf91762727ba115dfb8b52b46613a150bdc9a424f9ebd4480b",
+    "cb16_common.require_cb13_pins": "6da6be4446e70ccb88fddc6fe6cb8202aaaf261cc4733aff679ba89ccb5be386",
+    "cb16_common.require_disk": "66681a0d33bf0192436c44a5e343dfbc775a355bfe24fdfdfd809fb2c08f1ada",
+    "cb16_common.require_freeze": "3c36d4f232b54e10de594701f0decb615d827d3d878b7cefcdce3e4e6a9a40b7",
+    "cb16_common.require_output_root": "2e08f4945a39c5f091919bc9a4d3661092e77b20980debd3e149ef5adbff43f1",
+    "cb16_common.s_a_from_freeze": "e6d4d0c8b59bf396adfc2d1142ffd7c4b9ae49782cbf62e0cd4a1dc543d6d23a",
+    "cb16_common.sha256_file": "9b9e433786c3b739ebdf2370926158a2e42a946e90aae266587c550a4a08ee8b",
+    "cb16_common.sha256_obj": "29f7a73c2109e9902f07d1b4343c0975871e392d9e53aea23bc0b4e5d4ca548f",
+    "cb16_common.sign_ok": "4215d155c50e056ad88483e383f2757581a6876f0446baffbe26179cf23d2a26",
+    "cb16_common.stage1_advance": "8d50727f680a1d594eb8fab39b506b2bfefa1a224436be9c8cfbf1364d24e0a5",
+    "cb16_common.stage1_holm": "5e4e5770068247582436bae11b5c6551ba5d2d12684c5a0a881985ad9992cc70",
+    "cb16_common.stage2_final": "dba5cc57efeaa7514f7be2e2298be2e1b3225f9293ff43d870b96ffac94e1503",
+    "cb16_common.stage2_holm": "226a02d95e1380409dd57a3f383a1695b6e855ae5792099557e99efe2655596b",
+    "cb16_common.stage2_pass": "399db8ba67a750620ab91df6886b4b7c74b27dd13f1325ef4722a5463d0509d5",
+    "cb16_common.stall_of": "beaf29289839d29160f8aa542364dc8395c2620bbe57d025038cbfa1443bc186",
+    "cb16_common.strip_forbidden": "701a87c9a17de8722ab446e28b4a9f7fb8f57b6104eea7dcf6826fa095338583",
+    "cb16_common.terminal_path": "551eea2f50d1cbaf21888e0fef47629092cab8d8a71e5a8700909c833b940b75",
+    "cb16_common.top_k_drop_mask": "6582a115058255fc43f961c9c4e156af75be744d0ddbc3806df9af0d4a175d6b",
+    "cb16_common.utc_day": "08bd95ebea2913c2ac28497a6f68d35937ad7630f9a0653a2f7e6f1b8c389cdb",
+    "cb16_common.verify_dir_manifest": "779841c0e733f0990075aa8001cfc13a3f5870c66103e2e1a0ce70a189d6dc3c",
+    "cb16_common.wait_or_idle": "f321b147668d42a0ecf204d1f68ff2c0a15413b88f5037e6e0a040311938f059",
+    "cb16_common.windows": "8d3bd8e67d37f6827ba8ca6ec3216d4c552a8f652e301e423ec08e65e7045274",
+    "cb16_common.write_dir_manifest": "9b435366ccfe2c7c633a98dc5fa0ddba16e1589934bbb0508f2456c4b2c31504",
+    "cb16_common.write_gz_csv": "8418c983bf77c0e977d2c31ce79b23ac5efb5f5a1bd485683a29e7c7c04a2670",
+    "cb16_common.write_results_once": "8d9db29f6dfe30663f51418686250cc01acae415517635cf5fb419c14c3cc630",
+    "cb16_common.write_stall": "a75cca03b65b4179b2e461a6ed1c21fbc71752f6090a554ae30f71e2da4b675d",
+    "cb16_k.KalshiIndex": "47a147ca8e12b92ff51bf4e6391658afa67790854d42e5a01def32e159742bba",
+    "cb16_k._hook": "ac67617f947a4836e9bb530680441ddd9dade33169c71e2363d1477ab5e73630",
+    "cb16_k.add_deciles": "723e126b663ecf13c84efe4eb7cdc70dcff6c8500677f28448ddf48a4cf6e0ec",
+    "cb16_k.build_kalshi_index": "fed7423d8d86e623676270ad1a31c25579f58086ed4bcf561568efc68340cbb4",
+    "cb16_k.cell_counts": "8a07a585aab8cb1a39b213eb60fe448e3a2ac0f9203da83d6ce9aea391933cdc",
+    "cb16_k.census": "f61edf9950601857e43431df5f28c66005b78a6fb0e09b9e292c0b2489406c27",
+    "cb16_k.class_of": "6ca0a8057ba67fc5822acb0cea53f36fdcd58670ad20120bf47a92531f2b7a3d",
+    "cb16_k.count_files": "c0ba940879e5a2dc393e4ffd7fec1fcda588b819e346382497c91e95a869fd30",
+    "cb16_k.declared": "4157aa7f9f4614d924112182b68c778dfa5ccd7619c905df080b6b45e3df21d2",
+    "cb16_k.eligible_cells": "c5baf72bbbe90ed57d74c20a6f6df76b82cc49b3c373c346250d5e1df084cbdb",
+    "cb16_k.far_topic_cells": "0e09753b0b093f07a85acb3db885b4d57082e2a737b6edac66d964ea232613f9",
+    "cb16_k.gap_class": "29e7cfc0e89cb4631c88e62872187086bdb72c294cb16685e1726f184e3c6b47",
+    "cb16_k.in_frame": "8d09df1dfc359241d23f811307701d8d97cb95c240256f93545fb05fc1889d47",
+    "cb16_k.is_binary_yes_no": "6033401052f208304a8daeae5a46ce739afb3114d5be696867fb6a3ea1c81ba5",
+    "cb16_k.is_unlistable": "76e375590736a2d9e7f6f66a41dcc02261691f180e225054f3961398bba39485",
+    "cb16_k.iter_json_array": "e6b7beee330c4d94228c1296cd16c8ce504b226aa6641f933d480f6e9f1851da",
+    "cb16_k.iter_kalshi": "73829adc00034659445dcbbcf6ba426e037eb1b25cff652f6689cd1de8e075fe",
+    "cb16_k.kalshi_text": "7bde230747f7024412073b19fabb1b7d907794fd41ddc74651645f7f3a51fed1",
+    "cb16_k.key_overlaps": "fbfc26fe72e5d71837b92dde316fe6ba1ec71bd1ae64f8a2f1ee74dd784af0bc",
+    "cb16_k.label_markets": "f6a5b946002bd53d2f8d778b52abd2baa0cbd6ac8be16909c4d6f6a47d3860a0",
+    "cb16_k.mde_bounds": "d83030817016761244c01c7b1245fa1b1457e636bfc7c1d9295cc1dc362b2b67",
+    "cb16_k.part_unready": "25ff01c04ad4d61ba5d29e1ac783a15b35cbb72b59b6d5509fe253530916ac26",
+    "cb16_k.poly_end": "d13ac27e49ddb3fe1048e4108bf18ea5fcb4ee7c7cbe716eb7f76fcba1fe7ff0",
+    "cb16_k.poly_text": "e7ae93ddbf7ce542bef9c599ca86ef902b6d3beb1ca793e1b4b29e83aee8e74f",
+    "cb16_k.poly_volume": "791e668d37eddc27525459ba6f2200b52c735eafcb7832b8f3e76971cad490ef",
+    "cb16_k.re_entry": "f626f046c37d94979a786769e57b1df65243536a03aad6b30fd8115b55e46462",
+    "cb16_k.read_matches": "bddf7df1bbbd0d58220e8a1e4be7627c9d8bb2de55e68b843ef3dc1d1fd64faa",
+    "cb16_k.read_rule_conflicts": "8c6c12718e9263ffb5bd6c2f171a353437a524d335b3d95b121f7a904d19ccff",
+    "cb16_k.sha256_files": "3bbadb8e59b3ed366504084addd0ecb503c092950b92bf881c7ca456be4fab21",
+    "cb16_k.sha_of": "50ee24875277d96600b88b764e35eb02dd9f80c24f64accb538e55843b805a4c",
+    "cb16_k.smoke_offline": "ef633319dd96099cf84e49320a315bb9bcf755594d5fed8628d13091fc40ab06",
+    "cb16_k.text_twin": "54fed3a77a711c3e4ad0f0a18795aa044b46ec7facebb37195886a16c20fd71e",
+    "cb16_k.verify_pins": "f6fdf411e6a9118115aca84d445f94bf73327129197aef1ad19cb105941563d0",
+    "cb16_k.words_of": "a8fa19abd6defc7d22ef379ff06fadba645fd103406345cdacbea5f4dc9cdd92"
+   },
+   "funcs_sha256": "a8600768070873aba53daf1668bd39861931c73f2cd4b7880a05dd81f80f8e39",
+   "part": "K",
+   "part_declared": true,
+   "rules_sha256": "cfe9bea5c1b97166dba84212d829a8ea31e57e3aa118891660702b8843909d01",
+   "rules_version": "cb16-rules-v1",
+   "shared_helper_sources_sha256": {
+    "battery._cr_var_of_sum": "32089a1b067735667210bc2d1d52984f3d7fc06d5cdfd6cc4606b274a7595ae6",
+    "cb10_common.leave_one_out_sign": "9111c0aad2192e6661156b015421e86dd20a91d8099a0aca630f11ba30a06eea",
+    "cb10_common.placebo_advance_rate": "41993f5ee1243cd17f53bea3eac84a4be523902ce4e19e5def15a591eea630bb",
+    "cb10_common.require_disk": "1e0e4e4682fa9a16fa71df384f5163983fa5cfa675b15a9b7f009dbbf3d81370",
+    "cb12_common._jsonable": "221fb06a8fd4005aca19de35bd4b5b1b4ab675538202185e71fa5ebbd7ec91f6",
+    "cb12_common.cluster_se_mean": "d8c8ed52c7eb81940adc26f9acb4ba90fbd3fc251a796274faa7c9b3230029c6",
+    "cb12_common.exclusion_stage": "b2dd35c1ec54c7121299bf8e5f6d5b657691366488904e553d9195e6f1e86e97",
+    "cb12_common.holm": "7831f9b32b4876f0450ed05cb8050f4c22ce84e78e12430e8d5efd3aee861803",
+    "cb12_common.lookup_keys_closed_first": "466132284fb1886941bcbdc820c075250009fa794dcb9112c2bd74aa7e5654d2",
+    "cb12_common.manifest_complete": "242883ea1969a82f1f2614ae217699788f001e6047505786b420a64710a5bed0",
+    "cb12_common.module_constants": "fb29c0e68787f7dc57cf9f74f69ca3bdd9969f4f3545dab292e710d77f8dc332",
+    "cb12_common.module_funcs": "f6b3644ad7747424f31089bfde865212eb552b068dcf0f43dc955adadf3482e1",
+    "cb12_common.parse_iso": "f56a746aac64f2456a69e6ad81c952e3b4ebff1aa8a167e5ab567d2182477da3",
+    "cb12_common.read_csv_gz": "0de78d753f9c22f4985ca862de9e64db28b0333f859376b5d38ce4eb9aedc535",
+    "cb12_common.refuse_path": "28d433c10d4e09f2f81181a4ae07cbc3f8ca857c01e14e26fed7104a7bf3c844",
+    "cb12_common.refused_names": "32b50ab79443589af19374c0cc7519d67f852856b04b43f23c510ec76c27b790",
+    "cb12_common.require_complete": "3b6604357fd07395f4104daa66c2311f94cad2703e372c20966f9c5c9d619474",
+    "cb12_common.require_disk": "66681a0d33bf0192436c44a5e343dfbc775a355bfe24fdfdfd809fb2c08f1ada",
+    "cb12_common.require_output_root": "3a7951b8ce7552c8540ba4cfb5445cae02e40188d5619f4a816c2792956e0cb0",
+    "cb12_common.verify_fetch": "cac10ee8e422fb149ac3d0242da785480b95f233ce272d9a8af21d1781b2e427",
+    "cb13_common.cb3_hold_lifted": "ee6bf55bc6182d732e6fbda7bfec94f0088a321aff400fd577b5d1454d23a2dc",
+    "cb13_common.collector_gap_ok": "e7b0df305a6f2a2bc12869b5b8f0936e5adb89dedce4de366a6515229acf1235",
+    "cb13_common.ensure_source_file": "2a26fefa3cf4de7bd504a91300a9b488389dae4980f34f04147fa1d0431db236",
+    "cb13_common.holm": "a55d8506b4249a76d2a0584222e8889ec9fcbcd33268655234c44b88b1e8fbf4",
+    "cb13_common.leave_one_out_p": "bf3ca7ee7031737db016be4870bef5daca1399f7436fba1acf102e5d607c73fb",
+    "cb13_common.stage1_holm": "0440cf91c287dc515fec0b6b789e1d0dd8b2ec11f9fc98ea587f7c3bd9903431",
+    "cb13_label._norm": "284192491e6c3ecddba702e0ed4e24ebdbd8282155414e07b4613d888c1ce709",
+    "cb13_label.classify": "d94d6645e05e07032fa0d73f63375849acbf3b92f1f83e64524e636d0203a0dc",
+    "cb13_label.first_series_slug": "7bfcc9ce328d1f75f82774a57ad26aa933fbfb7085a9887ca003101f69e171d2",
+    "cb13_label.underlying_of": "89d25064c2b8d141dbb60f5c95297a6ea0bf72ee629b5e90dda79cec2e5956a9",
+    "cb14_common.cluster_p": "7d296287276a4d1bef82c57fc8f266eac46028b6a31e4c8081ea4b3043472a60",
+    "cb14_common.p_pass": "9146e1b511427a8077dcf1e0c98dc2061341d14ea489bdddbd2b4c0739b0f6fb",
+    "cb14_common.sign_ok": "712e76b2e21927a6d1e9cf877e424f413356804262a773c57da46220e442d79b",
+    "cb14_common.wls_coef_pseudo": "863daf060a1f83f30bf979487574309ba9620561bbea9e2670230c29e31c9d78",
+    "cb2_weather._cluster_sums": "f5f61ce926b7e7e9fd8223d2dd667341d37f67b44318e3c67c48f6eee6b83b97",
+    "cb2_weather.small_g_pvalue": "1a94b013ef2dbe475942d7c041c355f6c36411d4eac5c60a95816dfd1f71cd91",
+    "cb4_data.ApiError": "d7693252d58765a27dc8388425abb8bfac6b3b3936114266ad971d4af7f9ac6a",
+    "cb4_data._cb2w": "622c8ad974650eea96af27feef02d4017ad348099b858e6558abe31369a4e1c4",
+    "cb6_tail.NotNow": "08b9fb3b8355ad01e3b1dd27581ebae1e1efaf463f20232f3c0c91fbb18dab8f",
+    "cb6_tail.Refused": "60c0f89a153d7221261fbcf72fab5c3575768e044ebe16651a7179da8abbb6ed",
+    "cb8_books.seal_copy_ids_audited": "32cb7d6a72748799474f853a829c6860672fba51d5fd736c0b8f3fd81e7d84de",
+    "cb8_common.Cb8Run": "663dd9c79653b892a18db94cbb122fc9ac15886fa408f381165ebf82fe1d6f3d",
+    "cb8_common.idle": "6c4c5e1d8cc89e4c76a490d3b03b0cc8af6ee630b12344e18578ae81691e8f23",
+    "cb8_common.iso": "ac272e28c92099a676a96b2c020c11350330df755b773770371939d966fa80ab",
+    "cb8_common.open_run": "d55fe2332f649adf7342b469ea93b3125414500a29696c7d3cd234e3120421c4",
+    "cb8_common.refuse_path": "af007ad446106f78884d4bde62fc4b7c2787d424e91584c19aa18144c609b959",
+    "cb8_common.refuse_run_id": "e0f7b45599aa9c6b87c890e2d4f608ddb60b41bcd16a3c9002b38fd5039ad841",
+    "cb8_common.sha_obj": "cafbecf98cedc4dfb52e87251e7a10fac6b4cb9acebcdc0085e5620305953a1e",
+    "cb8_common.write_json_atomic": "1e9308681e9ed324aadbbf3b8e8bfc4bda352e9c0978a12d4d9278210853ac9b",
+    "cb8_common.write_once_json": "96de340201f4213c580706a6c2f57a3addda7abf3019daa2f1868cd49c4eadb9",
+    "cb9_common.refuse_path": "c5cd8ffd054f083b675d8b0f3d6114f671b78e94d4045a4b3cdf81be463cd37f",
+    "cb9_common.stall_of": "b46fd8ac330a177aad3cc79b7758958132d99a79ca51a09bb986083ebe883a47",
+    "cb9_common.top_k_drop_mask": "ca983a19b993ebcfc76179a5579602fdf85a722d3e3e59c4e5a34ae3753d209a",
+    "cb9_common.write_results_once": "94af1d221ce65cc6b07c147cd2ec225bae7afc7cf5b94817ea5620880e628b46",
+    "cb9_common.write_stall": "7851c4dd8b6f92b1a20db8e6bf736419d9878f4a43444c02d62eb1a73d73f3c0",
+    "cross_venue._canon_num": "ee9318b18d45ec8bf0999fc14a228966cb6b14c6edb8af96c61428c44ee5dfde",
+    "cross_venue._epoch": "4c35a337cb8a6770f8785d76000d45070009af445ec09cc37c7d136841f69575",
+    "cross_venue.k_text": "48b5ab25585350c40d73d61a0542d0dcfe51cc91ba3c29b52e4c66699e161eed",
+    "cross_venue.p_text": "ff3558d3355a74f2fe8592afb4d261b7a49c4e8501f76176d95b9f753d616824",
+    "cross_venue.tokenize": "c790bc5cb079b48d7d5c29bbed4de0474a00aee000a11b0cc1acc5340a0a6280",
+    "h5_seal._git_commit": "42e78eba1a0911ebf148d36b31bee24f180023dde55cf5956852cde90b70728a",
+    "h5_seal.sha256_file": "4f94a914e8c0a61c8bdc51d167b632ac747c159c6cad4eb1256f7953a234cbe9",
+    "history_backfill.DiskBudget": "a6a8692879504d7a98237f70bd5ad0beb2441d3f7ade01ccfc8029e79bc1d193",
+    "history_backfill.FrameInterrupted": "bea2d0a9ff5f7f08b3474fbd3c1407e8affb7d0994fc8e9c43d61411bb7352a9",
+    "history_backfill.Limiter": "3632bbaa30d702c0a4d4264ab25b119a1005a70648fbe5eccb1a1071ea7e529c",
+    "history_backfill._epoch": "7ae5ba07a4da5ae21a348679af0cebf33523ef9fb94e90dd7205dfa6c3d56b71",
+    "history_backfill._git_commit": "42e78eba1a0911ebf148d36b31bee24f180023dde55cf5956852cde90b70728a",
+    "history_backfill._gz_csv_bytes": "523fb0ad397559f1095652b03e34e3caa1af4fa653ca5a17476fa8f9b886783c",
+    "history_backfill._iter_partial": "3a7e27465b5082028f0cf9379a58069c59066c0972799127f04fba83644d0926",
+    "history_backfill._paged": "4c1cb360b928f71732eedc4bdf05ee21b2a54938c3f44b9b17ce09e847e0ea08",
+    "history_backfill._rank": "b003f6a3f3ab5751ac4f774522f7dce34511583bda3cd70b817750b957d9dc3f",
+    "history_backfill._read_progress": "91090d9ab04092567e0b075948b93b306d327fa134f16fc32436426caf8c873c",
+    "history_backfill.allocate": "e6eb6ee29c64619b2e22c8167998793daf610c4a473fb6110d75eb59693dd86c",
+    "history_backfill.allocate_weighted": "459fe070ca62da621f70aaf6f44f0a2e7d3171244c726d16d4d098edab871cb9",
+    "history_backfill.cb1_topic": "789d963655a1c46ef7bd4f6fb17080d7b80a3766b46cd3dcba0fbe79fb74ec95",
+    "history_backfill.close_or_end_windows": "cfbfcba77139455244409853181686d184daebecc37225ec95da428c1d18d2fb",
+    "history_backfill.draw_sample": "594d33171639767e6f568292b91756e61588aaa4d70ff127ae43ab072fb83ce2",
+    "history_backfill.draw_sample_cb1": "35ce15b29e85735c7580618102ed1424a53ec4fc3d8bb98f312df58158b0f651",
+    "history_backfill.draw_sample_weighted": "cfc76b9bb328ad135227fe6251629cdb6f540330f134a3683fcea0cc8c95bfc5",
+    "history_backfill.fetch_frame": "2694e97c36a18a9fc2c5096957de36747910ec5c9f4344eca9a3917a7f42e791",
+    "history_backfill.fetch_prices": "6847f9a95dda8d150a6f3359035186a8ddef148974a04b5ad4541b6a9484e0ef",
+    "history_backfill.fetch_trades": "423cb996b496fb3e159c0f24e4578e7dfa9393d9e598f8b24629e9815bbb7054",
+    "history_backfill.frame_row": "d9fc5acf7d123ca379cf06cb7e7b168fb4c6a8546694d5f8f2f2be26ca2c087b",
+    "history_backfill.key_id": "9e0d7ddb99cbd74755928fdc16672d3c0a1a03e3236a83d9245f66ea6277b3bc",
+    "history_backfill.pin_request_clock": "6d607933d8b713ff3fb204af801c8d0f9ac922e7e6e06341f0728445ed4dad9e",
+    "history_backfill.price_window": "96b19aa08156f62e9c3ae6956a2c250657ce262233f5c94725750912854907ba",
+    "history_backfill.price_windows": "d2fd5690089c94a00a546e5530b1933bd6edf2e5fcfe44399ae6200d6f8023f0",
+    "history_backfill.run": "7eebcedee6d3d6d3b566f3cdd8791e0c5ec1acf1737d7bc4b0c8721e7454a844",
+    "history_backfill.stratum": "51491d272bdaf924fe8ba55503299982f881eca0c562cd7f6960e3a405e1f850",
+    "history_backfill.trade_key": "346b3670785c1aafa172f6d94de50185fd909531ca402ba7a07d2a6588a91c25",
+    "history_backfill.utc_iso": "d8245b1e1d4bd8561d741a149d5040f0f30e85b1fb584dfb3f5556137191ecbb",
+    "history_backfill.wallet_hash": "d0e1bb99a989e15abb8ee4989a042f77688f7f7c41643c2aceb82a30269c5492",
+    "history_backfill.yield_to_live": "7891939eae4391a7685b3382b073c9330c6c91fa2f20e668752cc1c0f45299dc",
+    "history_topics.is_asymmetric": "862b6fbf1eaf684a423fd207866af7d67df7cb79493146ed5d0ffc00337e907c",
+    "history_topics.topic_of": "fa3538d4f10aebcc4fcf21baad778a56ce4cd60875cc5bc357f82f474d12015d",
+    "pairing.fee_category": "92c2cbf7c9207676110ca0e5828273d066926bad4ecc1387c318846707b52c5b",
+    "provenance.EvidenceRoleError": "7b336a992c69d6d56ec45da927dce137014fe0b34fbfd0a21ab0c30a79e0ec35",
+    "provenance.append_trial": "fb9994b0432e034eae414186f16cd95ff59f1158dc0d028d7e41375d9e19353f",
+    "provenance.role_required": "85cad103453f602808701521edb26f5d0474b9269f33325c3861367be2004220",
+    "provenance.validate_evidence_role": "42b61e7d9e401ab2dd6b098a5012cfa82f776576e3f1a12ba492f71ca82d2522",
+    "wallet_sidecar.hash_wallet": "e6497ed41b51dcc4af2ca46bbebe94c7cad7d4e3e6a3d192520ff18a205b3819",
+    "wallet_sidecar.key_path": "c2fe21f5329ca2c006b9b74e7ddc583f965f474edd79a2fa5ad8a40aa311122f",
+    "wallet_sidecar.load_or_create_key": "01a8975c5ebe7064bb9987a4329a49d19031c32fcea3a619264bfd75d91810a5"
+   },
+   "wallet": {
+    "note": "no CB16 job reads or stores a wallet field, a transaction hash (tx16 is aggregated in memory and discarded), the monitor's or the Data API's side field",
+    "read": false
+   }
+  },
+  "common": {
+   "constants": {
+    "cb16_common": {
+     "ALLOWED_OUTPUT_ROOT_PARTS": [
+      "creative_batch16"
+     ],
+     "ALWAYS_REFUSED_ROOTS": [
+      "surprise_live",
+      "cross_venue_live",
+      "trade_samples",
+      "forecasts",
+      "flow_screen",
+      "cb3_followup",
+      "cb6_followup"
+     ],
+     "AVAILABILITY_LABEL": "not testable (availability)",
+     "AVAIL_MIN": 0.6,
+     "BASE_SOURCE": "base:cb15_q0340",
+     "BATCH_HOLM_K1": 2,
+     "BY_Q": 0.1,
+     "CAPTURE_DIR_RE": "^(\\d{8}T\\d{6}Z)_[0-9a-f]+$",
+     "CAPTURE_LEAD_S": 18000.0,
+     "CB13_PINS": {
+      "cb13_common.iter_capture_rows": "12b4e6b6cb5d7b109e91349add37f2d9fa7f1975a5e2059e16b0b1966d5e4fd5",
+      "cb13_common.iter_sidecar_rows": "0f402eeae1be954e5ad009a58bf80d01d6b193e896d44137c7366713c8633d81",
+      "cb13_common.whitelist_print": "12950339a9210bc46d5f24cb466638570539229141148ad21ceb1a6295bf7c8f",
+      "cb13_label.audit_group": "86deaf8f1768141659b9a20308ff13d6c59dedea1aab4ad338048f5567366b24",
+      "cb13_label.classify": "d94d6645e05e07032fa0d73f63375849acbf3b92f1f83e64524e636d0203a0dc",
+      "cb13_label.first_series_slug": "7bfcc9ce328d1f75f82774a57ad26aa933fbfb7085a9887ca003101f69e171d2",
+      "cb13_label.underlying_of": "89d25064c2b8d141dbb60f5c95297a6ea0bf72ee629b5e90dda79cec2e5956a9",
+      "cb13_t.MarkTable": "40a28befff88bf3cd30cf22f4ba2ea6429d6ac768da3080ab538639dee438ab9",
+      "cb13_t.Q": "31bffc647a65f33892aec10cd87a2dbeb4e66f3f846ccfdf16f0a90dba20108e",
+      "cb13_t.QuoteIndex": "8c6da5ba6632d22f9872936bf8fc8e27eecce1b761f0be20cf72d1e89cff752e",
+      "cb13_t.adverse_value": "8868091f8f3776d2f3c7816606705f526758a4a62b1398ff06038ae4e98c5c68",
+      "cb13_t.build_dataset": "32d69ce3e99b40ba723e59bbebd5fad7a173e3bd01a82a442ef8fff6fd5f8960",
+      "cb13_t.build_transactions": "464be3b04fdf08db8d49fcc200b6181284594b33e54a947b2dd5d870489f286e",
+      "cb13_t.classify_position": "d0ece510d787ea67aa1e6d6fea9a7a86fdc3897abb6f5f38432878ac0a51586a",
+      "cb13_t.drop_screen_events": "c34aa82c838a1c92d9e438739304458c0acb2796f23125d719933ac3c096cbb9",
+      "cb13_t.fee_rate_of": "97e6304d1acb5621d7f94485c43620097a47ccd8722b1b458c90e711f59968a0",
+      "cb13_t.gate_gti": "e5c7a389658b6bf6da34109f2da9a7e3eb574c4142b190a208ed06afce37b6de",
+      "cb13_t.make_fills": "00da3417fd0f2d863e15ea8b96013518dbcb8c418060d22b096052d4d79863a6",
+      "cb13_t.stale_variant": "8e722a30cd3b2c7144b5581d5e9667050ad195a11968b4c99154ec9f94a2face",
+      "cb13_t.t3_values": "dea5843f46215c00f9d0a5bf5b3e447afd0b5f29d1fab61aef276f94d0a2d878",
+      "cb13_t.two_sided": "72495426a00ebbe012e8c1c798b804944ff9ab9d1fa61b59226f122f3b97ce48",
+      "cb13_t.worst_value": "354deceb6a1936977c88368701fd4e369f4a7cd3caedc5e7f1975f3be72ba0a1",
+      "cb13_t.yes_price": "2ce135e7489e799573c92668a400b8cf6895dfda7a8a0ab93a88407121b4362c"
+     },
+     "CB13_T_HOLDOUT": [
+      "2026-10-21T00:00:00Z",
+      "2026-10-26T00:00:00Z"
+     ],
+     "CB13_T_SCREEN": [
+      "2026-10-12T00:00:00Z",
+      "2026-10-16T00:00:00Z"
+     ],
+     "CB15_KEYS_FILE": "exclusion_keys.csv.gz",
+     "CB16_OUTPUT_CAP_GB": 0.15,
+     "CB16_SPORTS_IN_PRIMARY": false,
+     "CB3_FREEZE_NAME": "cb3_v1.json",
+     "CB3_STOP_NAME": "cb3_stop.json",
+     "COUNT_FAMILIES": [
+      "Q",
+      "U"
+     ],
+     "DATA_API_FIELDS": [
+      "timestamp",
+      "price",
+      "size",
+      "conditionId"
+     ],
+     "DATA_DUMPS_CAP_GB": 40.0,
+     "E011_ANALYSIS_EARLIEST": "2026-11-11T13:00:00Z",
+     "E011_ANALYSIS_NAME": "e011_analysis_commit.json",
+     "EARLY_ALPHA2": 0.0125,
+     "ELECTION_NIGHT": [
+      "2026-11-03T18:00:00Z",
+      "2026-11-05T00:00:00Z"
+     ],
+     "EVIDENCE_ROLE_DEV": "exploratory_dev",
+     "EVIDENCE_ROLE_HIST": "exploratory_historical",
+     "EVIDENCE_ROLE_PROSPECTIVE": "prospective",
+     "EXCLUSION_KEYS_COMPLETE": "exclusion_keys_complete",
+     "EXPERIMENT_ROOT_RE": "^e0\\d\\d$",
+     "EXTRACT_ROOT_RE": "^cb\\d+_extract$",
+     "EXTRA_REFUSED_ROOTS": [
+      "creative_batch15",
+      "creative_batch14",
+      "creative_batch13",
+      "creative_batch12",
+      "creative_batch11",
+      "creative_batch10",
+      "creative_batch9",
+      "creative_batch8",
+      "creative_batch7",
+      "creative_batch6",
+      "creative_batch5",
+      "creative_batch4",
+      "creative_batch3",
+      "creative_batch2",
+      "creative_batch1",
+      "snapshots",
+      "trade_samples",
+      "live_trades",
+      "book_sweeps",
+      "surprise_live",
+      "cross_venue_live",
+      "cross_venue",
+      "forecasts",
+      "flow_screen",
+      "h9_flow",
+      "h10_sign",
+      "h10_dlad",
+      "h10_brk",
+      "h11_wprints",
+      "h11_pol",
+      "h11_attn",
+      "h12_say",
+      "h12_quake",
+      "h12_prints",
+      "h12_quake_live",
+      "h12_opt_live",
+      "h13_touch",
+      "h13_binance",
+      "h14_wiki",
+      "h14_wiki_live",
+      "h14_speech",
+      "h15_elect_live",
+      "h15_birth",
+      "h15_birth_live",
+      "h1_first",
+      "h2_main",
+      "h3_power",
+      "h4_seal",
+      "h5_cb1",
+      "h5_cb1_ladders",
+      "h6_weather",
+      "h7_cb4_era",
+      "h7_cb4_series",
+      "h8_tail",
+      "h8_tail_b",
+      "h8_text",
+      "h8_geo",
+      "cb3_followup",
+      "cb6_followup"
+     ],
+     "FAMILY_MODULES": {
+      "A": [
+       "cb16_q",
+       "cb16_u",
+       "cb16_a"
+      ],
+      "K": [
+       "cb16_k"
+      ]
+     },
+     "FAMILY_PARTS": [
+      "A",
+      "K"
+     ],
+     "FAMILY_REP_TESTS": {
+      "Q": [
+       "Q1",
+       "Q2"
+      ],
+      "U": [
+       "U1",
+       "U2"
+      ]
+     },
+     "FAMILY_TESTS": {
+      "Q": [
+       "Q1"
+      ],
+      "U": [
+       "U1"
+      ]
+     },
+     "FORBIDDEN_OUTPUT_COLUMNS": [
+      "side",
+      "wallet",
+      "wallet_hash",
+      "proxyWallet",
+      "tx16",
+      "transactionHash",
+      "tx_hash",
+      "hash",
+      "name",
+      "pseudonym",
+      "recv_ts",
+      "chg_1h",
+      "chg_1d",
+      "chg_1w",
+      "ctx_chg_1h",
+      "uma_resolution_statuses",
+      "outcome_prices",
+      "outcomePrices",
+      "umaResolutionStatus",
+      "closedTime",
+      "closed_time",
+      "result",
+      "settlement_value",
+      "p_end"
+     ],
+     "FORBIDDEN_PARSE_FIELDS": [
+      "side",
+      "proxyWallet",
+      "outcome_prices",
+      "outcomePrices",
+      "umaResolutionStatus",
+      "umaResolutionStatuses",
+      "uma_resolution_statuses",
+      "closedTime",
+      "closed_time",
+      "result",
+      "settlement_value",
+      "transactionHash",
+      "hash",
+      "name",
+      "pseudonym",
+      "p_end",
+      "recv_ts",
+      "chg_1h",
+      "ctx_chg_1h"
+     ],
+     "FORBIDDEN_PRINT_FIELDS": [
+      "side",
+      "key",
+      "recv_ts",
+      "wallet_hash",
+      "wallet",
+      "proxyWallet",
+      "ctx_chg_1h",
+      "ctx_status",
+      "chg_1h"
+     ],
+     "FRAME_DELAY_S": 28800.0,
+     "FREEZE_PARTS": [
+      "A"
+     ],
+     "FREEZE_PIN_KEYS": {
+      "common": "common_rules_sha256",
+      "frozen": "frozen_utc",
+      "rules": "rules_sha256"
+     },
+     "FREE_DISK_MIN_GB": 4.5,
+     "GATE_P": 0.01,
+     "G_CR2": 15,
+     "H15_ROOT_RE": "^h15_",
+     "HEARTBEAT_S": 36000.0,
+     "HOLDOUT_PARTS": [
+      "holdout",
+      "t_holdout"
+     ],
+     "ID_COLUMNS": [
+      "market_id",
+      "event_id",
+      "condition_id",
+      "neg_risk_market_id",
+      "negRiskMarketID",
+      "series_id",
+      "p_market_id",
+      "p_event_id"
+     ],
+     "ID_READABLE": {
+      "creative_batch15": [
+       "birth_frame.csv.gz"
+      ],
+      "h15_birth_live": [
+       "pairs.jsonl"
+      ],
+      "h15_elect_live": [
+       "race_map.csv"
+      ]
+     },
+     "ID_RESEARCH_ROOTS": [
+      "creative_batch15"
+     ],
+     "J4R_WINDOW": [
+      "2026-10-16T00:00:00Z",
+      "2026-10-21T00:00:00Z"
+     ],
+     "KEYS_OUTPUT_CAP_GB": 0.01,
+     "KEYS_RUN": "exclusion_run16",
+     "KEYS_STATUS": "exclusion_keys_complete",
+     "KEY_COLUMNS": [
+      "market_id",
+      "found",
+      "event_ids",
+      "neg_risk_market_id",
+      "series_ids",
+      "sources"
+     ],
+     "LIVE_ROOT_NAMES": [
+      "cross_venue_live",
+      "surprise_live"
+     ],
+     "LOOKBACK_FIELDS": [
+      "ts",
+      "condition_id",
+      "cash"
+     ],
+     "LOOKBACK_FLOOR": "2026-10-26T00:00:00Z",
+     "LOOKBACK_ROBUST_S": 259200.0,
+     "LOOKBACK_S": 604800.0,
+     "LOO_DAY_P": 0.05,
+     "MARK_TAIL_S": 28800.0,
+     "MAX_UNVERIFIED_KEY_SHARE": 0.02,
+     "MDE_FACTOR": 3.8,
+     "MONITOR_FORBIDDEN_FILES": [
+      "alerts.jsonl",
+      "outcomes.jsonl",
+      "wallets.jsonl",
+      "stats.jsonl",
+      "state.json"
+     ],
+     "MONITOR_FORBIDDEN_RE": "^scores-\\d{8}\\.jsonl$",
+     "MONITOR_TRADES_RE": "^trades-\\d{8}\\.jsonl$",
+     "N_BOOT": 2000,
+     "N_WILD": 9999,
+     "PARTS": [
+      "common",
+      "A",
+      "K"
+     ],
+     "PIN_UNSET": "TODO-COORDINATOR",
+     "PLACEBO_DRAWS": 200,
+     "PLACEBO_MAX_ADVANCE": 0.015,
+     "PLACEBO_SEEDS": {
+      "Q1_calibration": 16102,
+      "Q1_composition": 16101,
+      "U1_calibration": 16112,
+      "U1_composition": 16111
+     },
+     "PLACEBO_SEED_RANGE": [
+      16101,
+      16130
+     ],
+     "PRINT_FIELDS": [
+      "ts",
+      "condition_id",
+      "token_id",
+      "outcome_index",
+      "price",
+      "size",
+      "cash",
+      "title",
+      "slug",
+      "ctx_event_id",
+      "ctx_market_id",
+      "ctx_category",
+      "ctx_fee_type"
+     ],
+     "REP_SEAL_COPY": "cb16_a_rep_SEAL.json",
+     "REP_SEAL_NAME": "a_rep_SEAL.json",
+     "RULES_MACHINERY": [
+      "rules_part_doc",
+      "rules_part_file_doc",
+      "rules_file_doc",
+      "write_rules",
+      "verify_rules",
+      "family_modules",
+      "common_funcs",
+      "part_funcs",
+      "shared_helper_sources",
+      "external_closure",
+      "_code_names",
+      "_helper_key",
+      "common_declared"
+     ],
+     "RULES_VERSION": "cb16-rules-v1",
+     "SEED_BOOT": 1616,
+     "SEED_K_AUDIT": 16141,
+     "SEED_U_VALIDITY": 16131,
+     "SHARED_HELPERS": [
+      [
+       "cw",
+       "small_g_pvalue"
+      ],
+      [
+       "cw",
+       "_cluster_sums"
+      ],
+      [
+       "c12",
+       "holm"
+      ],
+      [
+       "c12",
+       "cluster_se_mean"
+      ],
+      [
+       "c9",
+       "top_k_drop_mask"
+      ],
+      [
+       "c10",
+       "placebo_advance_rate"
+      ],
+      [
+       "c10",
+       "leave_one_out_sign"
+      ],
+      [
+       "c14",
+       "cluster_p"
+      ],
+      [
+       "c14",
+       "wls_coef_pseudo"
+      ],
+      [
+       "c13",
+       "leave_one_out_p"
+      ],
+      [
+       "c12",
+       "exclusion_stage"
+      ],
+      [
+       "c12",
+       "lookup_keys_closed_first"
+      ],
+      [
+       "c12",
+       "module_constants"
+      ],
+      [
+       "c12",
+       "module_funcs"
+      ],
+      [
+       "c10",
+       "require_disk"
+      ],
+      [
+       "c9",
+       "write_stall"
+      ],
+      [
+       "c9",
+       "stall_of"
+      ],
+      [
+       "c9",
+       "write_results_once"
+      ],
+      [
+       "bk",
+       "seal_copy_ids_audited"
+      ],
+      [
+       "cm",
+       "write_once_json"
+      ],
+      [
+       "cm",
+       "write_json_atomic"
+      ],
+      [
+       "cm",
+       "idle"
+      ]
+     ],
+     "SMOKE_VERSION": "cb16-smoke-v1",
+     "SOURCE_NOT_TESTABLE": "not testable (source)",
+     "STAGE1_HOLM_FAMILY": [
+      "Q1",
+      "U1"
+     ],
+     "STAGE2_K_MAX": 4,
+     "STAGE2_NAMES": {
+      "Q1": "Q1-rep",
+      "Q2": "Q2",
+      "U1": "U1-rep",
+      "U2": "U2"
+     },
+     "STAGE_ALPHA": 0.05,
+     "STOP_RULE": "3 CPU-hours per family; a job failing twice for the same non-transient reason stops and is recorded; no re-screen of a failed CB16 test",
+     "SWEEP_FIELDS": [
+      "token_id",
+      "batch_receipt_utc",
+      "best_bid",
+      "best_ask",
+      "bid_size_1",
+      "ask_size_1",
+      "depth_bid_1c",
+      "depth_ask_1c",
+      "depth_bid_5c",
+      "depth_ask_5c",
+      "n_bid_levels",
+      "n_ask_levels"
+     ],
+     "S_A_AFTER_FREEZE_S": 86400.0,
+     "S_A_EARLIEST": "2026-11-02T00:00:00Z",
+     "T16_A_FREEZE_TARGET": "2026-11-01T00:00:00Z",
+     "T16_DRAFT": "2026-10-19T09:20:00Z",
+     "TERMINAL_NAME": "terminal_{family}.json",
+     "TERMINAL_REP_NAME": "terminal_{family}_rep.json",
+     "TERMINAL_STATUS": "terminal_not_testable",
+     "TOP_DROP": 5,
+     "U2_LAG_FIELDS": [
+      "ts",
+      "condition_id",
+      "recv_ts"
+     ],
+     "UNVERIFIED": "disjointness_unverified",
+     "USER_AGENT": "arepo-research-lab/1 (read-only research; https://www.arepolabs.com)",
+     "WINDOW_S": 1209600.0
+    },
+    "cb16_smoke": {
+     "SMOKE_PARTS": [
+      "A",
+      "K"
+     ]
+    }
+   },
+   "declared": {
+    "common": {
+     "always_refused": [
+      "surprise_live",
+      "cross_venue_live",
+      "trade_samples",
+      "forecasts",
+      "flow_screen",
+      "cb3_followup",
+      "cb6_followup"
+     ],
+     "bootstrap": {
+      "n_boot": 2000,
+      "n_wild": 9999,
+      "small_g": "G>=30 CR1; 15<=G<30 CR2 t(G-1) + Webb wild; G<15 the way leaves the max and its leave-one-cluster-out sign rule binds (CB10 2.3, A-C1)"
+     },
+     "cb13_pins": {
+      "cb13_common.iter_capture_rows": "12b4e6b6cb5d7b109e91349add37f2d9fa7f1975a5e2059e16b0b1966d5e4fd5",
+      "cb13_common.iter_sidecar_rows": "0f402eeae1be954e5ad009a58bf80d01d6b193e896d44137c7366713c8633d81",
+      "cb13_common.whitelist_print": "12950339a9210bc46d5f24cb466638570539229141148ad21ceb1a6295bf7c8f",
+      "cb13_label.audit_group": "86deaf8f1768141659b9a20308ff13d6c59dedea1aab4ad338048f5567366b24",
+      "cb13_label.classify": "d94d6645e05e07032fa0d73f63375849acbf3b92f1f83e64524e636d0203a0dc",
+      "cb13_label.first_series_slug": "7bfcc9ce328d1f75f82774a57ad26aa933fbfb7085a9887ca003101f69e171d2",
+      "cb13_label.underlying_of": "89d25064c2b8d141dbb60f5c95297a6ea0bf72ee629b5e90dda79cec2e5956a9",
+      "cb13_t.MarkTable": "40a28befff88bf3cd30cf22f4ba2ea6429d6ac768da3080ab538639dee438ab9",
+      "cb13_t.Q": "31bffc647a65f33892aec10cd87a2dbeb4e66f3f846ccfdf16f0a90dba20108e",
+      "cb13_t.QuoteIndex": "8c6da5ba6632d22f9872936bf8fc8e27eecce1b761f0be20cf72d1e89cff752e",
+      "cb13_t.adverse_value": "8868091f8f3776d2f3c7816606705f526758a4a62b1398ff06038ae4e98c5c68",
+      "cb13_t.build_dataset": "32d69ce3e99b40ba723e59bbebd5fad7a173e3bd01a82a442ef8fff6fd5f8960",
+      "cb13_t.build_transactions": "464be3b04fdf08db8d49fcc200b6181284594b33e54a947b2dd5d870489f286e",
+      "cb13_t.classify_position": "d0ece510d787ea67aa1e6d6fea9a7a86fdc3897abb6f5f38432878ac0a51586a",
+      "cb13_t.drop_screen_events": "c34aa82c838a1c92d9e438739304458c0acb2796f23125d719933ac3c096cbb9",
+      "cb13_t.fee_rate_of": "97e6304d1acb5621d7f94485c43620097a47ccd8722b1b458c90e711f59968a0",
+      "cb13_t.gate_gti": "e5c7a389658b6bf6da34109f2da9a7e3eb574c4142b190a208ed06afce37b6de",
+      "cb13_t.make_fills": "00da3417fd0f2d863e15ea8b96013518dbcb8c418060d22b096052d4d79863a6",
+      "cb13_t.stale_variant": "8e722a30cd3b2c7144b5581d5e9667050ad195a11968b4c99154ec9f94a2face",
+      "cb13_t.t3_values": "dea5843f46215c00f9d0a5bf5b3e447afd0b5f29d1fab61aef276f94d0a2d878",
+      "cb13_t.two_sided": "72495426a00ebbe012e8c1c798b804944ff9ab9d1fa61b59226f122f3b97ce48",
+      "cb13_t.worst_value": "354deceb6a1936977c88368701fd4e369f4a7cd3caedc5e7f1975f3be72ba0a1",
+      "cb13_t.yes_price": "2ce135e7489e799573c92668a400b8cf6895dfda7a8a0ab93a88407121b4362c"
+     },
+     "dates": {
+      "e011_earliest": "2026-11-11T13:00:00Z",
+      "election_night": [
+       "2026-11-03T18:00:00Z",
+       "2026-11-05T00:00:00Z"
+      ],
+      "frame_delay_h": 8.0,
+      "lookback_floor": "2026-10-26T00:00:00Z",
+      "s_a_rule": "max(2026-11-02T00Z, first 00:00Z at or after T16_A_freeze + 24 h)",
+      "window_days": 14.0
+     },
+     "disk": {
+      "data_dumps_cap_gb": 40.0,
+      "free_min_gb": 4.5,
+      "output_cap_gb": 0.15
+     },
+     "field_whitelists": {
+      "data_api": [
+       "timestamp",
+       "price",
+       "size",
+       "conditionId"
+      ],
+      "forbidden_output": [
+       "side",
+       "wallet",
+       "wallet_hash",
+       "proxyWallet",
+       "tx16",
+       "transactionHash",
+       "tx_hash",
+       "hash",
+       "name",
+       "pseudonym",
+       "recv_ts",
+       "chg_1h",
+       "chg_1d",
+       "chg_1w",
+       "ctx_chg_1h",
+       "uma_resolution_statuses",
+       "outcome_prices",
+       "outcomePrices",
+       "umaResolutionStatus",
+       "closedTime",
+       "closed_time",
+       "result",
+       "settlement_value",
+       "p_end"
+      ],
+      "forbidden_parse": [
+       "side",
+       "proxyWallet",
+       "outcome_prices",
+       "outcomePrices",
+       "umaResolutionStatus",
+       "umaResolutionStatuses",
+       "uma_resolution_statuses",
+       "closedTime",
+       "closed_time",
+       "result",
+       "settlement_value",
+       "transactionHash",
+       "hash",
+       "name",
+       "pseudonym",
+       "p_end",
+       "recv_ts",
+       "chg_1h",
+       "ctx_chg_1h"
+      ],
+      "forbidden_prints": [
+       "side",
+       "key",
+       "recv_ts",
+       "wallet_hash",
+       "wallet",
+       "proxyWallet",
+       "ctx_chg_1h",
+       "ctx_status",
+       "chg_1h"
+      ],
+      "lookback": [
+       "ts",
+       "condition_id",
+       "cash"
+      ],
+      "prints": [
+       "ts",
+       "condition_id",
+       "token_id",
+       "outcome_index",
+       "price",
+       "size",
+       "cash",
+       "title",
+       "slug",
+       "ctx_event_id",
+       "ctx_market_id",
+       "ctx_category",
+       "ctx_fee_type"
+      ],
+      "sweeps": [
+       "token_id",
+       "batch_receipt_utc",
+       "best_bid",
+       "best_ask",
+       "bid_size_1",
+       "ask_size_1",
+       "depth_bid_1c",
+       "depth_ask_1c",
+       "depth_bid_5c",
+       "depth_ask_5c",
+       "n_bid_levels",
+       "n_ask_levels"
+      ],
+      "u2_lag_only": [
+       "ts",
+       "condition_id",
+       "recv_ts"
+      ]
+     },
+     "h15_rule": "every h15_* root refused except the q0380 id files",
+     "holm": {
+      "alpha": 0.05,
+      "family": [
+       "Q1",
+       "U1"
+      ],
+      "k1": 2,
+      "stage2_early_alpha": 0.0125,
+      "stage2_final": "one CB16-wide strict Holm over the triggered Stage-2 tests; U2 enters with the max of its two component p's; adds passes only",
+      "stage2_k_max": 4,
+      "strict": true
+     },
+     "id_readable": {
+      "creative_batch15": [
+       "birth_frame.csv.gz"
+      ],
+      "h15_birth_live": [
+       "pairs.jsonl"
+      ],
+      "h15_elect_live": [
+       "race_map.csv"
+      ]
+     },
+     "key_rule": "Q/U drop a market / event id only if a sealed historical set holds it with a stored timestamp inside SCREEN_A or REP_A (live stages are collection overlap); K counts overlaps",
+     "mde": "3.8 x SE",
+     "output_roots": [
+      "creative_batch16"
+     ],
+     "refused_roots": [
+      "creative_batch15",
+      "creative_batch14",
+      "creative_batch13",
+      "creative_batch12",
+      "creative_batch11",
+      "creative_batch10",
+      "creative_batch9",
+      "creative_batch8",
+      "creative_batch7",
+      "creative_batch6",
+      "creative_batch5",
+      "creative_batch4",
+      "creative_batch3",
+      "creative_batch2",
+      "creative_batch1",
+      "snapshots",
+      "trade_samples",
+      "live_trades",
+      "book_sweeps",
+      "surprise_live",
+      "cross_venue_live",
+      "cross_venue",
+      "forecasts",
+      "flow_screen",
+      "h9_flow",
+      "h10_sign",
+      "h10_dlad",
+      "h10_brk",
+      "h11_wprints",
+      "h11_pol",
+      "h11_attn",
+      "h12_say",
+      "h12_quake",
+      "h12_prints",
+      "h12_quake_live",
+      "h12_opt_live",
+      "h13_touch",
+      "h13_binance",
+      "h14_wiki",
+      "h14_wiki_live",
+      "h14_speech",
+      "h15_elect_live",
+      "h15_birth",
+      "h15_birth_live",
+      "h1_first",
+      "h2_main",
+      "h3_power",
+      "h4_seal",
+      "h5_cb1",
+      "h5_cb1_ladders",
+      "h6_weather",
+      "h7_cb4_era",
+      "h7_cb4_series",
+      "h8_tail",
+      "h8_tail_b",
+      "h8_text",
+      "h8_geo",
+      "cb3_followup",
+      "cb6_followup"
+     ],
+     "seeds": {
+      "boot": 1616,
+      "k_audit": 16141,
+      "placebo": {
+       "Q1_calibration": 16102,
+       "Q1_composition": 16101,
+       "U1_calibration": 16112,
+       "U1_composition": 16111
+      },
+      "placebo_range": [
+       16101,
+       16130
+      ],
+      "u_validity": 16131
+     },
+     "sports_in_primary": false,
+     "stop_rule": "3 CPU-hours per family; a job failing twice for the same non-transient reason stops and is recorded; no re-screen of a failed CB16 test"
+    },
+    "smoke": {
+     "consequence": "a failed criterion makes the dependent part not testable (source): Q1 and U1 counted once each; K a descriptive line; no rule is re-fitted",
+     "counts_only": true,
+     "design": "family modules contribute SMOKE_NEEDS / smoke_offline; the orchestrator is family-agnostic",
+     "network": false,
+     "parts": [
+      "A",
+      "K"
+     ],
+     "version": "cb16-smoke-v1",
+     "write_once": true
+    }
+   },
+   "func_sources_sha256": {
+    "cb16_common.assert_clean_columns": "45f148919a1277b7ea10de404ced0c04aae3dc09e4ab14a400b81ead026d5c8d",
+    "cb16_common.attribute_sources": "02da5cd492bb537666820101e8c4d47eadca070ca1f1e407b3312c854bbb4f4a",
+    "cb16_common.availability": "5705ff910d9cede83871105c320022f7c599502a2bdaff946eb765a1d9948018",
+    "cb16_common.block6": "651714269542559c1c3ca2d3284609c68a1276563d01da9048113acd7705e41b",
+    "cb16_common.cb13_pin_current": "68e906d2e725f0b698ad29a16748c31bc396c8c8b3bc06fb440a747c84b66489",
+    "cb16_common.cb13_pins_ok": "b1284ac2dbdaf8788e7d67b62bcb6a35fde6731e795ce990b88d44edb84fef1b",
+    "cb16_common.cb3_hold_lifted": "05b88d5f9f9272854cb6bb18f4c0f16f3e45fdbf050f822ee4c36d5dc957967e",
+    "cb16_common.cluster_p": "cf516bf7efd20c42ffa1da353fecde2d499ee84c6eaf63432ac11ca5e937ccb7",
+    "cb16_common.cluster_se_mean": "b00c59bb7c9237ae9758c44ad2f8e64d6ac23e37ffc6ecb4c5093b9c2ac6bfb8",
+    "cb16_common.collector_gap_ok": "a2024df3b0b73f7178e8583fb64c6250e11e05c5f6ca2b3511a56bd0f6a895ba",
+    "cb16_common.committed_record": "5371a19751afa3afdf3988971e6853a04ad58d7fc3354f7bdb84c48e6263b26f",
+    "cb16_common.e011_hold_lifted": "063f6342e70c49e908a76d1461dba30f1fd84c957a67eebddeb8fced413a9459",
+    "cb16_common.early_stage2_ok": "6163ed098794484aec71660e60241f39e0e5acc17459cdac2c09c16894420ded",
+    "cb16_common.ensure_source_file": "5c02368fdb2dc28cbee40f487524fbe6da0afa5730b74e6148a5ff790cd12fe6",
+    "cb16_common.ep": "3a9fd8059b8d56d7572e9e9a04d0c83e2aeef94fb27ca9badb6318501b40be1b",
+    "cb16_common.exclusion_keys": "26dab3d13fa6a2e187d2964e798253811297340239fb9d70d5bbf9288afc39ed",
+    "cb16_common.fe_coef_pseudo": "ae3c618fbe67d32123d48fd1c2756fafd4afb90d6f5b2da3d9702ddbc659d13d",
+    "cb16_common.fe_demean": "9a8d6c47058f1e143f381841b7ea27819ed2ec1f98d51d14a9f1beb4076a1117",
+    "cb16_common.fe_ols": "48efe39e1cc5b133addb49a6ba319e637a8f48f828e4af2adf3e5096841515ff",
+    "cb16_common.frame_ids": "9bab1e7a532bb920b83018e3dbf7de9c434f2035d1585085d23d7fb87f671a78",
+    "cb16_common.guard_capture_dir": "efdacc0d5c09767dced2c9c0cbe281bcc41b2f2ab24e05edee2e5b792ff9f925",
+    "cb16_common.guard_cross_venue_file": "642fcc62de9fd4d0e9037ce4ef93e6afd1953c5360774e478ebf120a9198c4ea",
+    "cb16_common.guard_floor": "ae1b4cda7945f8aca5725ff019490cb4bbb1c4a91230476bca9562b2477afb59",
+    "cb16_common.guard_id_file": "f94f2710b609b7a6017a77cb4d919f907ef9961d4d4c9310051fb11c6ce06f3e",
+    "cb16_common.guard_monitor_file": "db3b6039e74fe64a25830389561f44fe746d3fc6133d75ed217ef502c0de7fc4",
+    "cb16_common.guard_rep_unit": "eb1a69cc7f1b61ba5c2e7b346b7157cd70e59e57d0c811e5f53b95a84bfdf513",
+    "cb16_common.guard_sweep_file": "d7380a86be35a8bc9b8b210c0e189c5a169062607ef194e3255aba31f3f1bc15",
+    "cb16_common.holm": "bc13d2e3180f887c3d592f02f5ddf23f33ac4ee417378f6e610f5aa298b65d69",
+    "cb16_common.hour_of_day": "04bde92724f55de312dcd49e2bd6c8558f9032b55a2c68be9593ef21ee9af6a3",
+    "cb16_common.id_source_path": "3b5a053b8a8a055a96496aec795a54acb96da841936c23ee5bd667a28e4c1a51",
+    "cb16_common.in_election_night": "d78b3cf4eb2c08fe48494793d9d1435f398168ec43f1da3467d5758d1ac022a4",
+    "cb16_common.is_holdout_path": "fd0e9fc15a27748914a0f1ea4aeb591d1db8857f851df923768b0a99b111e22a",
+    "cb16_common.iso": "28e937dc91f5bc02d678e907f1ec255deda7d37b9b06627231aebb9362d33172",
+    "cb16_common.key_sources": "1db2912a5d0863cb1f4314b8e0ae1980c95c1739de90d1fe4445123d8cba9fc2",
+    "cb16_common.leave_one_out_p": "2a41193ffc93eee725fb14e03d8dc1785e89c0c262b7158c515517da30d6b8e5",
+    "cb16_common.load_keys": "dbca334a5d8e941df590cbc12efe971817ff22f9961763d8dd28bcf003534e67",
+    "cb16_common.log_descriptive": "91d741b318f658ffc0da2b1f6d511997a1dc56c11aba85381888aefb8e74faaa",
+    "cb16_common.log_family": "5cb9855a470e1390d8a2359327a21adcbdf5c8d5dd3e6cead02f8a254859d00f",
+    "cb16_common.manifest_complete": "9963a22f89b1b545fe07d75e58db6e88f1dd2fc4f0602068b2b362bc7c8f08ed",
+    "cb16_common.market_ids_of": "2548134ae77ea9e45f725490c2c110d7ccd417f0315d6363298faf2338a3d452",
+    "cb16_common.max_se_over_ways": "5727241359a4d053c2dd1749a1a30d5b60b7801f3b726bff5ff9e625d7fcd7a9",
+    "cb16_common.mde": "de3d855dff122ee4d4ea194dadc7fbf88e851b931caac3bda9492c020722f8c2",
+    "cb16_common.num": "6b0d39403e1916672eadc55c8241ff0c3cdfb233983e5e8b36b400140ab6f068",
+    "cb16_common.p_pass": "4e029dd2fbfab1d14d9119aa8778fa559702d0086f17a8d1bf6c84455191e3ea",
+    "cb16_common.parse_iso": "86d7c91645a1d5a2d1fb78eb256c528c2c4cbfd3c64d20fe2a80fa1c710205c3",
+    "cb16_common.permute_within": "c1c908c40f5c91e1172067fd6fc5f6a141e2339327f19669f615efff961b76a6",
+    "cb16_common.placebo_advance_rate": "dddafa6653cc29c6d9cfaac9f5cbf9b45bb978e4249f3b54b1f0854c7dcbe0ea",
+    "cb16_common.read_csv_gz": "dd1530f10901a596b85fc5801beee783bf19c890fc0578930899b4afcab28176",
+    "cb16_common.read_id_columns": "93a426955bfd66d615159de1fcd017e8ebfcf06ca020cefabe500278862fe126",
+    "cb16_common.read_keys_with_sources": "8fc3844432b94d96dd8e50df233960f88b0818bf1258dc9667b4857d64caa5b8",
+    "cb16_common.read_terminal": "8214d68291f29a05bdaa6c1bcaf81eaf03f4e1b0108baaa06e3c95cfb17270cf",
+    "cb16_common.record_terminal": "93cd0dde88897f50ee1fcf7de2efd6d1db87e696b23d6f8f1c8c58c59b7d1389",
+    "cb16_common.refuse_path": "984c7b1020d07266c5a5d749572ed0d4042dbcd377bc2f1a3323cf608fbebbd9",
+    "cb16_common.refused_names": "32b50ab79443589af19374c0cc7519d67f852856b04b43f23c510ec76c27b790",
+    "cb16_common.require_after": "6241d5801e7645bf91762727ba115dfb8b52b46613a150bdc9a424f9ebd4480b",
+    "cb16_common.require_cb13_pins": "6da6be4446e70ccb88fddc6fe6cb8202aaaf261cc4733aff679ba89ccb5be386",
+    "cb16_common.require_disk": "66681a0d33bf0192436c44a5e343dfbc775a355bfe24fdfdfd809fb2c08f1ada",
+    "cb16_common.require_freeze": "3c36d4f232b54e10de594701f0decb615d827d3d878b7cefcdce3e4e6a9a40b7",
+    "cb16_common.require_output_root": "2e08f4945a39c5f091919bc9a4d3661092e77b20980debd3e149ef5adbff43f1",
+    "cb16_common.s_a_from_freeze": "e6d4d0c8b59bf396adfc2d1142ffd7c4b9ae49782cbf62e0cd4a1dc543d6d23a",
+    "cb16_common.sha256_file": "9b9e433786c3b739ebdf2370926158a2e42a946e90aae266587c550a4a08ee8b",
+    "cb16_common.sha256_obj": "29f7a73c2109e9902f07d1b4343c0975871e392d9e53aea23bc0b4e5d4ca548f",
+    "cb16_common.sign_ok": "4215d155c50e056ad88483e383f2757581a6876f0446baffbe26179cf23d2a26",
+    "cb16_common.stage1_advance": "8d50727f680a1d594eb8fab39b506b2bfefa1a224436be9c8cfbf1364d24e0a5",
+    "cb16_common.stage1_holm": "5e4e5770068247582436bae11b5c6551ba5d2d12684c5a0a881985ad9992cc70",
+    "cb16_common.stage2_final": "dba5cc57efeaa7514f7be2e2298be2e1b3225f9293ff43d870b96ffac94e1503",
+    "cb16_common.stage2_holm": "226a02d95e1380409dd57a3f383a1695b6e855ae5792099557e99efe2655596b",
+    "cb16_common.stage2_pass": "399db8ba67a750620ab91df6886b4b7c74b27dd13f1325ef4722a5463d0509d5",
+    "cb16_common.stall_of": "beaf29289839d29160f8aa542364dc8395c2620bbe57d025038cbfa1443bc186",
+    "cb16_common.strip_forbidden": "701a87c9a17de8722ab446e28b4a9f7fb8f57b6104eea7dcf6826fa095338583",
+    "cb16_common.terminal_path": "551eea2f50d1cbaf21888e0fef47629092cab8d8a71e5a8700909c833b940b75",
+    "cb16_common.top_k_drop_mask": "6582a115058255fc43f961c9c4e156af75be744d0ddbc3806df9af0d4a175d6b",
+    "cb16_common.utc_day": "08bd95ebea2913c2ac28497a6f68d35937ad7630f9a0653a2f7e6f1b8c389cdb",
+    "cb16_common.verify_dir_manifest": "779841c0e733f0990075aa8001cfc13a3f5870c66103e2e1a0ce70a189d6dc3c",
+    "cb16_common.wait_or_idle": "f321b147668d42a0ecf204d1f68ff2c0a15413b88f5037e6e0a040311938f059",
+    "cb16_common.windows": "8d3bd8e67d37f6827ba8ca6ec3216d4c552a8f652e301e423ec08e65e7045274",
+    "cb16_common.write_dir_manifest": "9b435366ccfe2c7c633a98dc5fa0ddba16e1589934bbb0508f2456c4b2c31504",
+    "cb16_common.write_gz_csv": "8418c983bf77c0e977d2c31ce79b23ac5efb5f5a1bd485683a29e7c7c04a2670",
+    "cb16_common.write_results_once": "8d9db29f6dfe30663f51418686250cc01acae415517635cf5fb419c14c3cc630",
+    "cb16_common.write_stall": "a75cca03b65b4179b2e461a6ed1c21fbc71752f6090a554ae30f71e2da4b675d",
+    "cb16_smoke.collect_checks": "725f12d377b1e6f004c1b0f5104236e1b41d61d5c166907ecf4ce35ff2a25d7a",
+    "cb16_smoke.declared": "756089ff87208b51bd9c61c58fc217404a9e1f775bf4edd597fab51b9848d1b8",
+    "cb16_smoke.family_needs": "a805e1c6e109357c6d7a67ba499a60cc29acf6e8a7a99c81960e1155ad8e5af1",
+    "cb16_smoke.smoke_failures": "f0899b9ac86a156408d98c67ded7ee495d018b8cc3906ca772b1282e463beb37"
+   },
+   "funcs_sha256": "80620c1aa117d69b3942ca575d38913565d4fdb974dc2f9a2dbf40ce1bb7a9c6",
+   "part": "common",
+   "part_declared": true,
+   "rules_sha256": "9a087b8c463ec40e51ea795887ddb5332fba03aef1b09780dffe6e317ac577cb",
+   "rules_version": "cb16-rules-v1",
+   "shared_helper_sources_sha256": {
+    "battery._cr_var_of_sum": "32089a1b067735667210bc2d1d52984f3d7fc06d5cdfd6cc4606b274a7595ae6",
+    "cb10_common.leave_one_out_sign": "9111c0aad2192e6661156b015421e86dd20a91d8099a0aca630f11ba30a06eea",
+    "cb10_common.placebo_advance_rate": "41993f5ee1243cd17f53bea3eac84a4be523902ce4e19e5def15a591eea630bb",
+    "cb10_common.require_disk": "1e0e4e4682fa9a16fa71df384f5163983fa5cfa675b15a9b7f009dbbf3d81370",
+    "cb12_common._jsonable": "221fb06a8fd4005aca19de35bd4b5b1b4ab675538202185e71fa5ebbd7ec91f6",
+    "cb12_common._mods": "fe5a9e87cfb03415e572f37f3f23c40ff312795ad6f717182e25c4faf3870194",
+    "cb12_common.cluster_se_mean": "d8c8ed52c7eb81940adc26f9acb4ba90fbd3fc251a796274faa7c9b3230029c6",
+    "cb12_common.exclusion_stage": "b2dd35c1ec54c7121299bf8e5f6d5b657691366488904e553d9195e6f1e86e97",
+    "cb12_common.holm": "7831f9b32b4876f0450ed05cb8050f4c22ce84e78e12430e8d5efd3aee861803",
+    "cb12_common.lookup_keys_closed_first": "466132284fb1886941bcbdc820c075250009fa794dcb9112c2bd74aa7e5654d2",
+    "cb12_common.manifest_complete": "242883ea1969a82f1f2614ae217699788f001e6047505786b420a64710a5bed0",
+    "cb12_common.module_constants": "fb29c0e68787f7dc57cf9f74f69ca3bdd9969f4f3545dab292e710d77f8dc332",
+    "cb12_common.module_funcs": "f6b3644ad7747424f31089bfde865212eb552b068dcf0f43dc955adadf3482e1",
+    "cb12_common.parse_iso": "f56a746aac64f2456a69e6ad81c952e3b4ebff1aa8a167e5ab567d2182477da3",
+    "cb12_common.read_csv_gz": "0de78d753f9c22f4985ca862de9e64db28b0333f859376b5d38ce4eb9aedc535",
+    "cb12_common.refuse_path": "28d433c10d4e09f2f81181a4ae07cbc3f8ca857c01e14e26fed7104a7bf3c844",
+    "cb12_common.refused_names": "32b50ab79443589af19374c0cc7519d67f852856b04b43f23c510ec76c27b790",
+    "cb12_common.require_complete": "3b6604357fd07395f4104daa66c2311f94cad2703e372c20966f9c5c9d619474",
+    "cb12_common.require_disk": "66681a0d33bf0192436c44a5e343dfbc775a355bfe24fdfdfd809fb2c08f1ada",
+    "cb12_common.require_output_root": "3a7951b8ce7552c8540ba4cfb5445cae02e40188d5619f4a816c2792956e0cb0",
+    "cb12_common.verify_fetch": "cac10ee8e422fb149ac3d0242da785480b95f233ce272d9a8af21d1781b2e427",
+    "cb13_common.cb3_hold_lifted": "ee6bf55bc6182d732e6fbda7bfec94f0088a321aff400fd577b5d1454d23a2dc",
+    "cb13_common.collector_gap_ok": "e7b0df305a6f2a2bc12869b5b8f0936e5adb89dedce4de366a6515229acf1235",
+    "cb13_common.ensure_source_file": "2a26fefa3cf4de7bd504a91300a9b488389dae4980f34f04147fa1d0431db236",
+    "cb13_common.holm": "a55d8506b4249a76d2a0584222e8889ec9fcbcd33268655234c44b88b1e8fbf4",
+    "cb13_common.leave_one_out_p": "bf3ca7ee7031737db016be4870bef5daca1399f7436fba1acf102e5d607c73fb",
+    "cb13_common.stage1_holm": "0440cf91c287dc515fec0b6b789e1d0dd8b2ec11f9fc98ea587f7c3bd9903431",
+    "cb14_common.cluster_p": "7d296287276a4d1bef82c57fc8f266eac46028b6a31e4c8081ea4b3043472a60",
+    "cb14_common.p_pass": "9146e1b511427a8077dcf1e0c98dc2061341d14ea489bdddbd2b4c0739b0f6fb",
+    "cb14_common.sign_ok": "712e76b2e21927a6d1e9cf877e424f413356804262a773c57da46220e442d79b",
+    "cb14_common.wls_coef_pseudo": "863daf060a1f83f30bf979487574309ba9620561bbea9e2670230c29e31c9d78",
+    "cb2_weather._cluster_sums": "f5f61ce926b7e7e9fd8223d2dd667341d37f67b44318e3c67c48f6eee6b83b97",
+    "cb2_weather.small_g_pvalue": "1a94b013ef2dbe475942d7c041c355f6c36411d4eac5c60a95816dfd1f71cd91",
+    "cb4_data.ApiError": "d7693252d58765a27dc8388425abb8bfac6b3b3936114266ad971d4af7f9ac6a",
+    "cb4_data._cb2w": "622c8ad974650eea96af27feef02d4017ad348099b858e6558abe31369a4e1c4",
+    "cb6_tail.NotNow": "08b9fb3b8355ad01e3b1dd27581ebae1e1efaf463f20232f3c0c91fbb18dab8f",
+    "cb6_tail.Refused": "60c0f89a153d7221261fbcf72fab5c3575768e044ebe16651a7179da8abbb6ed",
+    "cb8_books.seal_copy_ids_audited": "32cb7d6a72748799474f853a829c6860672fba51d5fd736c0b8f3fd81e7d84de",
+    "cb8_common.Cb8Run": "663dd9c79653b892a18db94cbb122fc9ac15886fa408f381165ebf82fe1d6f3d",
+    "cb8_common.idle": "6c4c5e1d8cc89e4c76a490d3b03b0cc8af6ee630b12344e18578ae81691e8f23",
+    "cb8_common.iso": "ac272e28c92099a676a96b2c020c11350330df755b773770371939d966fa80ab",
+    "cb8_common.open_run": "d55fe2332f649adf7342b469ea93b3125414500a29696c7d3cd234e3120421c4",
+    "cb8_common.refuse_path": "af007ad446106f78884d4bde62fc4b7c2787d424e91584c19aa18144c609b959",
+    "cb8_common.refuse_run_id": "e0f7b45599aa9c6b87c890e2d4f608ddb60b41bcd16a3c9002b38fd5039ad841",
+    "cb8_common.sha_obj": "cafbecf98cedc4dfb52e87251e7a10fac6b4cb9acebcdc0085e5620305953a1e",
+    "cb8_common.write_json_atomic": "1e9308681e9ed324aadbbf3b8e8bfc4bda352e9c0978a12d4d9278210853ac9b",
+    "cb8_common.write_once_json": "96de340201f4213c580706a6c2f57a3addda7abf3019daa2f1868cd49c4eadb9",
+    "cb9_common.refuse_path": "c5cd8ffd054f083b675d8b0f3d6114f671b78e94d4045a4b3cdf81be463cd37f",
+    "cb9_common.stall_of": "b46fd8ac330a177aad3cc79b7758958132d99a79ca51a09bb986083ebe883a47",
+    "cb9_common.top_k_drop_mask": "ca983a19b993ebcfc76179a5579602fdf85a722d3e3e59c4e5a34ae3753d209a",
+    "cb9_common.write_results_once": "94af1d221ce65cc6b07c147cd2ec225bae7afc7cf5b94817ea5620880e628b46",
+    "cb9_common.write_stall": "7851c4dd8b6f92b1a20db8e6bf736419d9878f4a43444c02d62eb1a73d73f3c0",
+    "h5_seal._git_commit": "42e78eba1a0911ebf148d36b31bee24f180023dde55cf5956852cde90b70728a",
+    "h5_seal.sha256_file": "4f94a914e8c0a61c8bdc51d167b632ac747c159c6cad4eb1256f7953a234cbe9",
+    "history_backfill.DiskBudget": "a6a8692879504d7a98237f70bd5ad0beb2441d3f7ade01ccfc8029e79bc1d193",
+    "history_backfill.FrameInterrupted": "bea2d0a9ff5f7f08b3474fbd3c1407e8affb7d0994fc8e9c43d61411bb7352a9",
+    "history_backfill.Limiter": "3632bbaa30d702c0a4d4264ab25b119a1005a70648fbe5eccb1a1071ea7e529c",
+    "history_backfill._epoch": "7ae5ba07a4da5ae21a348679af0cebf33523ef9fb94e90dd7205dfa6c3d56b71",
+    "history_backfill._git_commit": "42e78eba1a0911ebf148d36b31bee24f180023dde55cf5956852cde90b70728a",
+    "history_backfill._gz_csv_bytes": "523fb0ad397559f1095652b03e34e3caa1af4fa653ca5a17476fa8f9b886783c",
+    "history_backfill._iter_partial": "3a7e27465b5082028f0cf9379a58069c59066c0972799127f04fba83644d0926",
+    "history_backfill._paged": "4c1cb360b928f71732eedc4bdf05ee21b2a54938c3f44b9b17ce09e847e0ea08",
+    "history_backfill._rank": "b003f6a3f3ab5751ac4f774522f7dce34511583bda3cd70b817750b957d9dc3f",
+    "history_backfill._read_progress": "91090d9ab04092567e0b075948b93b306d327fa134f16fc32436426caf8c873c",
+    "history_backfill.allocate": "e6eb6ee29c64619b2e22c8167998793daf610c4a473fb6110d75eb59693dd86c",
+    "history_backfill.allocate_weighted": "459fe070ca62da621f70aaf6f44f0a2e7d3171244c726d16d4d098edab871cb9",
+    "history_backfill.cb1_topic": "789d963655a1c46ef7bd4f6fb17080d7b80a3766b46cd3dcba0fbe79fb74ec95",
+    "history_backfill.close_or_end_windows": "cfbfcba77139455244409853181686d184daebecc37225ec95da428c1d18d2fb",
+    "history_backfill.draw_sample": "594d33171639767e6f568292b91756e61588aaa4d70ff127ae43ab072fb83ce2",
+    "history_backfill.draw_sample_cb1": "35ce15b29e85735c7580618102ed1424a53ec4fc3d8bb98f312df58158b0f651",
+    "history_backfill.draw_sample_weighted": "cfc76b9bb328ad135227fe6251629cdb6f540330f134a3683fcea0cc8c95bfc5",
+    "history_backfill.fetch_frame": "2694e97c36a18a9fc2c5096957de36747910ec5c9f4344eca9a3917a7f42e791",
+    "history_backfill.fetch_prices": "6847f9a95dda8d150a6f3359035186a8ddef148974a04b5ad4541b6a9484e0ef",
+    "history_backfill.fetch_trades": "423cb996b496fb3e159c0f24e4578e7dfa9393d9e598f8b24629e9815bbb7054",
+    "history_backfill.frame_row": "d9fc5acf7d123ca379cf06cb7e7b168fb4c6a8546694d5f8f2f2be26ca2c087b",
+    "history_backfill.key_id": "9e0d7ddb99cbd74755928fdc16672d3c0a1a03e3236a83d9245f66ea6277b3bc",
+    "history_backfill.pin_request_clock": "6d607933d8b713ff3fb204af801c8d0f9ac922e7e6e06341f0728445ed4dad9e",
+    "history_backfill.price_window": "96b19aa08156f62e9c3ae6956a2c250657ce262233f5c94725750912854907ba",
+    "history_backfill.price_windows": "d2fd5690089c94a00a546e5530b1933bd6edf2e5fcfe44399ae6200d6f8023f0",
+    "history_backfill.run": "7eebcedee6d3d6d3b566f3cdd8791e0c5ec1acf1737d7bc4b0c8721e7454a844",
+    "history_backfill.stratum": "51491d272bdaf924fe8ba55503299982f881eca0c562cd7f6960e3a405e1f850",
+    "history_backfill.trade_key": "346b3670785c1aafa172f6d94de50185fd909531ca402ba7a07d2a6588a91c25",
+    "history_backfill.utc_iso": "d8245b1e1d4bd8561d741a149d5040f0f30e85b1fb584dfb3f5556137191ecbb",
+    "history_backfill.wallet_hash": "d0e1bb99a989e15abb8ee4989a042f77688f7f7c41643c2aceb82a30269c5492",
+    "history_backfill.yield_to_live": "7891939eae4391a7685b3382b073c9330c6c91fa2f20e668752cc1c0f45299dc",
+    "history_topics.is_asymmetric": "862b6fbf1eaf684a423fd207866af7d67df7cb79493146ed5d0ffc00337e907c",
+    "history_topics.topic_of": "fa3538d4f10aebcc4fcf21baad778a56ce4cd60875cc5bc357f82f474d12015d",
+    "pairing.fee_category": "92c2cbf7c9207676110ca0e5828273d066926bad4ecc1387c318846707b52c5b",
+    "provenance.EvidenceRoleError": "7b336a992c69d6d56ec45da927dce137014fe0b34fbfd0a21ab0c30a79e0ec35",
+    "provenance.append_trial": "fb9994b0432e034eae414186f16cd95ff59f1158dc0d028d7e41375d9e19353f",
+    "provenance.role_required": "85cad103453f602808701521edb26f5d0474b9269f33325c3861367be2004220",
+    "provenance.validate_evidence_role": "42b61e7d9e401ab2dd6b098a5012cfa82f776576e3f1a12ba492f71ca82d2522",
+    "wallet_sidecar.hash_wallet": "e6497ed41b51dcc4af2ca46bbebe94c7cad7d4e3e6a3d192520ff18a205b3819",
+    "wallet_sidecar.key_path": "c2fe21f5329ca2c006b9b74e7ddc583f965f474edd79a2fa5ad8a40aa311122f",
+    "wallet_sidecar.load_or_create_key": "01a8975c5ebe7064bb9987a4329a49d19031c32fcea3a619264bfd75d91810a5"
+   },
+   "wallet": {
+    "note": "no CB16 job reads or stores a wallet field, a transaction hash (tx16 is aggregated in memory and discarded), the monitor's or the Data API's side field",
+    "read": false
+   }
+  }
+ },
+ "rules_version": "cb16-rules-v1"
+}

@@ -1,0 +1,46 @@
+{
+ "id": "q0245_cb12_quake_prices",
+ "title": "CB12-E: CLOB prices-history per parsed member of a kept event over [max(createdAt, 2024-09-01), endDate] (fidelity 60, <= 14-day bounded chunks; a point is usable from stamp + 3600 s), for p_t, p_reg (t-6h) and p_alt (t-48h) at daily 16:00Z checkpoints from 2024-09-04T16:00Z",
+ "family": "creative_batch_12",
+ "priority": 23,
+ "expected_value": "E1 prices",
+ "data": [
+  "public CLOB prices-history",
+  "history/h12_quake/members.csv.gz"
+ ],
+ "resources": {
+  "mem_mb": 600,
+  "cpu": 1,
+  "lane": "net",
+  "network": "clob"
+ },
+ "depends_on": [
+  "q0244_cb12_quake_frame"
+ ],
+ "argv": [
+  "scripts/run_cb12.py",
+  "quake-prices",
+  "--rules",
+  "../docs/research_lab/seals/cb12_rules.json",
+  "--rps",
+  "2",
+  "--disk-cap-gb",
+  "0.01",
+  "--data-dumps-cap-gb",
+  "40",
+  "--budget-min",
+  "110"
+ ],
+ "timeout_s": 7200,
+ "max_retries": 2,
+ "outputs": [
+  "history/h12_quake/prices.csv.gz",
+  "history/h12_quake/manifest.json"
+ ],
+ "next_action": "q0266",
+ "notes": "PROMOTED 2026-10-20 ~12:35Z after q0244 done (05:51Z). <= 15,000 requests = the sum recorded by q0244 (refuses if it exceeds 15,000). Resumable (prices_partial.jsonl); a member that keeps failing after 3 attempts is 'unavailable (network)', counted. No outcome read. Rules part sha256 (seals/cb12_rules.json, 2026-10-19 code): common f2f672c1dfa22ce1388fd85b42bebc23248f58c5bb4349f6745c4b2493dcc647, E bd512db4ccbe9a790c732e7871b50d938a94b56a9e83105dde845f6c7c6b5edc. CB12 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / E code changes. OPS 2026-10-20 ~17:55Z: attempt 1 died at start with MemoryError under the 600 MB address-space cap (2 x mem_mb 300); mem_mb 300 -> 600 (resource only; argv, rules and caps unchanged).",
+ "repeat": {
+  "max_runs": 3,
+  "until_log_regex": "\"status\": \"(quake_prices_complete|not_run_source|disjointness_unverified|upstream_not_testable)\""
+ }
+}

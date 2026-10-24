@@ -1,0 +1,77 @@
+{
+  "comment": "Per-directory deletion rules for archive_rotate.py --retention (see docs/research_lab/data_catalogue/RETENTION.md). A server file is only ever removed if it is in a verified release with an identical sha256; these rules only say how old it must be and which small files stay. Directories without a rule are never deleted. GATE: snapshots/ moved to rules 2026-10-17 after backend/scripts/retention_gate_check.py printed retention_gate PASS on the host (04:39Z). book_sweeps/ stays deferred until q0035 (J4-R) is done and the MC1 q0111 panel is cached. cb1_extract/, cb2_extract/, cb3_extract/, cb4_extract/ are never deleted (no rule).",
+  "rules": [
+    {
+      "prefix": "data-dumps/research_lab/trade_samples/",
+      "older_than_days": 3,
+      "keep": [
+        "*/manifest.json",
+        "*/plan.json"
+      ],
+      "why": "FLOW-SCREEN and E007 status read sample pairs from pair_cache/ once cached; manifest and plan form the cache key and the sample list"
+    },
+    {
+      "prefix": "data-dumps/research_lab/live_trades/scores-",
+      "older_than_days": 10,
+      "why": "live_trade_monitor reloads score history for trailing_days = 7 only"
+    },
+    {
+      "prefix": "data-dumps/research_lab/live_trades/trades-",
+      "older_than_days": 10,
+      "why": "live_trade_monitor reloads only today's and yesterday's trades file"
+    },
+    {
+      "prefix": "data-dumps/research_lab/snapshots/",
+      "older_than_days": 8,
+      "keep": [
+        "*/manifest.json",
+        "*/ext_manifest.json"
+      ],
+      "why": "Reverted 10 -> 8 days 2026-10-23 07:5xZ (experiments autopilot) after LT8's q0623, as declared (ledger 'LT8 census CS8 and LT8 closure'); the temporary 10-day rule ran 2026-10-22 01:58Z .. 10-23. | E011 reloads 7.5 days of captures; 8 days keeps them. Released 2026-10-17 04:39Z: retention_gate_check.py PASS on the host (CB1/CB2/CB3/CB4 manifests complete; at_risk empty). MC1 must cache its q0111 panel before 2026-10-23 03:30Z; CB3 live quote_state step must be wired before 2026-10-24 03:30Z."
+    }
+  ],
+  "deferred_rules": [
+    {
+      "prefix": "data-dumps/research_lab/book_sweeps/",
+      "older_than_days": 3,
+      "keep": [
+        "*/manifest.json"
+      ]
+    },
+    {
+      "prefix": "data-dumps/research_lab/stream_predictit/",
+      "older_than_days": 14,
+      "why": "PROPOSED (NEW_STREAMS_2026-10-19.md): day files are complete once the UTC day ends; keep 14 days on the host for quick reads, older files only in verified releases. state.json/du_state.json/stream.lock are never archived and never deleted. Activate by moving to rules after the first verified releases contain these dirs."
+    },
+    {
+      "prefix": "data-dumps/research_lab/stream_smarkets/",
+      "older_than_days": 14,
+      "why": "PROPOSED (NEW_STREAMS_2026-10-19.md): day files are complete once the UTC day ends; keep 14 days on the host for quick reads, older files only in verified releases. state.json/du_state.json/stream.lock are never archived and never deleted. Activate by moving to rules after the first verified releases contain these dirs."
+    },
+    {
+      "prefix": "data-dumps/research_lab/stream_espn_odds/",
+      "older_than_days": 14,
+      "why": "PROPOSED (NEW_STREAMS_2026-10-19.md): day files are complete once the UTC day ends; keep 14 days on the host for quick reads, older files only in verified releases. state.json/du_state.json/stream.lock are never archived and never deleted. Activate by moving to rules after the first verified releases contain these dirs."
+    },
+    {
+      "prefix": "data-dumps/research_lab/stream_gamma_rules/",
+      "older_than_days": 14,
+      "why": "PROPOSED (NEW_STREAMS_2026-10-19.md): day files are complete once the UTC day ends; keep 14 days on the host for quick reads, older files only in verified releases. state.json/du_state.json/stream.lock are never archived and never deleted. Activate by moving to rules after the first verified releases contain these dirs."
+    },
+    {
+      "prefix": "data-dumps/research_lab/signal_engine/predictions/",
+      "older_than_days": 35,
+      "why": "PROPOSED (signal_engine/DESIGN_V1.md section 8): write-once prediction files; the scorer reads 28 days (+2 days of label lag); older ones only in verified releases. meta/, models/, leaderboard/, dev/, champion/, logs/ and state/ are never deleted (no rule). Activate by moving to rules after the first verified releases contain these files."
+    },
+    {
+      "prefix": "data-dumps/research_lab/signal_engine/features/",
+      "older_than_days": 45,
+      "why": "PROPOSED (signal_engine/DESIGN_V1.md section 8): rolling training windows read <= 28 days (resolution) and the scorer 28 days; 45 keeps a margin. meta/, models/, leaderboard/, dev/, champion/, logs/ and state/ are never deleted (no rule). Activate by moving to rules after the first verified releases contain these files."
+    },
+    {
+      "prefix": "data-dumps/research_lab/signal_engine/quotes/",
+      "older_than_days": 45,
+      "why": "PROPOSED (signal_engine/DESIGN_V1.md section 8): labels and look-backs of the last 28 days + 24 h horizons; 45 keeps a margin. meta/, models/, leaderboard/, dev/, champion/, logs/ and state/ are never deleted (no rule). Activate by moving to rules after the first verified releases contain these files."
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+ "id": "q0145_h8_geo_seal",
+ "title": "CB7-G: h8_geo seal (listing hash; drop blocks by id and event/neg-risk/series key vs h8_tail and h7_cb4_era/series; read location)",
+ "family": "history_data",
+ "priority": 58,
+ "expected_value": "sealed, event-disjoint h8_geo before any CB7 read",
+ "data": [
+  "history/h8_geo",
+  "docs/research_lab/seals/h8_tail_SEAL.json, h7_cb4_era_SEAL.json, h7_cb4_series_SEAL.json (ids only, if committed)",
+  "public Gamma markets by id (keys only)"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "gamma-api"
+ },
+ "depends_on": [
+  "q0143_h8_geo_fetch"
+ ],
+ "argv": [
+  "scripts/run_cb7.py",
+  "geo-seal",
+  "--run-id",
+  "h8_geo",
+  "--drop-seals",
+  "../docs/research_lab/seals",
+  "--drop-runs",
+  "h8_tail,h7_cb4_era,h7_cb4_series",
+  "--rps",
+  "2"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/history/h8_geo/{SEAL.json,drops.csv.gz,drops_report.json,ACCESS_LOG.jsonl}",
+  "docs/research_lab/seals/h8_geo_SEAL.json (host copy; the coordinator commits it)",
+  "trials.jsonl (history_seal_declaration)"
+ ],
+ "next_action": "coordinator commits docs/research_lab/seals/h8_geo_SEAL.json before q0147",
+ "notes": "PROMOTED 2026-10-22 ~05:35Z (experiments autopilot): conditions as q0144 (q0143 done). Spec unchanged. | CREATIVE_BATCH_7.md section 1.3. DRAFT. Commit conditions as q0144. h8_geo keeps priority over h8_text (the census is complete; h8_text drops overlaps with it). IMPLEMENTATION 2026-10-17 (fetch side): argv matches scripts/run_cb7.py as built (declared arguments are checked; a changed one exits 2). Lane net. Re-hash of every fetched file and drop-source terminal checks as q0144 (exit 2 / exit 75). Refuses a source_unverified, not_run_deadline or disjointness_unverified h8_geo."
+}

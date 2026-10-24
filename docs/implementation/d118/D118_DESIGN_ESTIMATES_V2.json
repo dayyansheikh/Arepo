@@ -1,0 +1,1001 @@
+{
+ "chain_completion_c": 0.95,
+ "definitions": {
+  "availability": "Gamma snapshot best_bid/best_ask both present with 0 < bid < ask < 1 (proxy for a two-sided CLOB book at screening)",
+  "complete_pair": "both pair members complete origin, history and target; each independently with probability c",
+  "independence": "members treated as independent; neg-risk/same-event dependence is not modelled",
+  "pair": "within one drawn stratum, triggered T and untriggered U screened members give min(T, U) drawn pairs (triggered_per_stratum = per-stratum count, one control per trigger, controls only from the same stratum)",
+  "populations": {
+   "P0": "D116 temporal population: scheduled end after the selection declaration or unknown",
+   "PL": "D118: P0 intersected with frame Gamma liquidity >= 1000 (liquidity missing, invalid or below 1000 excluded with zero inclusion)"
+  },
+  "required_free_bytes": "7 GiB frame cap + panel/window/runtime reservation incl. 2 GiB reserve + 34 MiB, as the frozen script computes",
+  "scenarios": {
+   "S1": "availability = member two-sided in the Gamma snapshot; trigger probability = pooled sweep rate over all two-sided sweep books (one rate for every member)",
+   "S4": "availability as S1; trigger probability member-specific: Jeffreys posterior mean (k+0.5)/(n+1) over the member's own two-sided sweep books, else the pooled sweep rate of its liquidity band",
+   "S4h": "S4 with every member's untriggered probability halved: p' = 1-(1-p)/2 (stress)",
+   "S4q": "S4 with every member's untriggered probability quartered: p' = 1-(1-p)/4 (harshest defined stress; motivated by both pilots: 10 of 10 assessable members triggered)"
+  },
+  "strata_draw": "uniform without replacement over all eligible strata (exact elementary-symmetric expectation); within-stratum subsets enumerated exactly when C(n, r) <= subsets, else that many seeded random subsets",
+  "trigger": "|bid_size_1 - ask_size_1| / (bid_size_1 + ask_size_1) >= 1/3 on a two-sided sweep book (exact decimal comparison)"
+ },
+ "fidelity": {
+  "d116_plan_eligible_strata": 87,
+  "d116_plan_frame_size": 262793,
+  "d116_plan_selection_eligible_member_count": 208582,
+  "reproduces_d116": true,
+  "sampling_members": 262793,
+  "temporal_eligible": 208582,
+  "temporal_strata": 87
+ },
+ "generated_by": "backend/scripts/d118_design_estimates.py",
+ "inputs": {
+  "book_sweeps": [
+   {
+    "path": "data-dumps/research_lab/book_sweeps/20261010T194225Z_94956338/rows.csv.gz",
+    "sha256": "7867d18c044fa41beced573b3f2e788c3c6cf07b76d1c5910e0ba720824def17"
+   },
+   {
+    "path": "data-dumps/research_lab/book_sweeps/20261010T194347Z_d61a9354/rows.csv.gz",
+    "sha256": "96f9f23786545d92a0965c2e4200992d5a00330f0e9b7fc935984f4fa69c713b"
+   },
+   {
+    "path": "data-dumps/research_lab/book_sweeps/20261010T194506Z_f1051015/rows.csv.gz",
+    "sha256": "7ee4d96bee5df8e223cb894eff70c3165932df1e6e8af089017909ae23fc422f"
+   },
+   {
+    "path": "data-dumps/research_lab/book_sweeps/20261010T210152Z_e46bbf90/rows.csv.gz",
+    "sha256": "151eda02dcaded8eb23ba9c89d92749247101d80ad00fe17f872240b3482246a"
+   },
+   {
+    "path": "data-dumps/research_lab/book_sweeps/20261010T210348Z_afeb30f2/rows.csv.gz",
+    "sha256": "4de5442ed4fc5821666244a6f6ffa28edc900114c80e151cdc4d66c697f3ec06"
+   },
+   {
+    "path": "data-dumps/research_lab/book_sweeps/20261010T210603Z_0f474a80/rows.csv.gz",
+    "sha256": "00ab8c6cbed2335862e7c90e8150a7f245db48aa883b0306ddeae603c7059778"
+   },
+   {
+    "path": "data-dumps/research_lab/book_sweeps/20261011T022944Z_eba4a73e/rows.csv.gz",
+    "sha256": "d9f4cfc78f4f9f33fdc85fe3385c9cdaf45ac75f6cd80ba81859ba2eed334e84"
+   },
+   {
+    "path": "data-dumps/research_lab/book_sweeps/20261011T023104Z_4de8c806/rows.csv.gz",
+    "sha256": "61eeb6384a544a51c2b11eea6e39cb2f4e148a7a9a8bef482e7898af711c1bad"
+   }
+  ],
+  "d097_evidence_sha256": "094d4a8253e130b93ab2f7436769472c7c7b0333fcedad99a687d869ee14fba3",
+  "d116_evaluation_sha256": "876f50ae6ec74c554bfa98cd278bd91fd192f77ea03eac4997a1d2037350af39",
+  "d116_selection_inventory_ack": "dac86ce57dda10fb2fec50bc4fe331e3cd141b9cf1ae1150964867ab3bc5ecfa",
+  "d116_selection_pages_verified": "every projection.json sha256 equals inventory",
+  "d116_selection_plan_sha256": "a9b62ecda3a1490ceb42d803fe5d6546e522378dbedae05a70547a64b304fe36",
+  "d116_selection_policy_sha256": "26f7ad356a2aa1005d68f1ca61a2536faca3a79842db3bdc235ebf9d89b30c4a",
+  "population_reference_at": {
+   "clock_session_id": "93532ee8-7900-41e9-9697-dbe75d11e78a",
+   "monotonic_ns": "8426342614791",
+   "utc": "2026-10-11T00:41:10.986923Z"
+  },
+  "snapshot": {
+   "manifest_sha256": "9e6a086fe8fc1e77010e614f5cfbd631f8c6949542b45a9a944349fa24bcb405",
+   "path": "data-dumps/research_lab/snapshots/20261011T002442Z_2173f20d",
+   "rows_sha256": "01493e195f28a02d3eeb74c4412650cf098fa99a78a0c273e299a2c5e75ae11b"
+  }
+ },
+ "model_inputs": {
+  "availability_by_liquidity_band": {
+   "0": 0.587,
+   "1": 0.8323,
+   "2": 0.8845,
+   "3": 0.85,
+   "unknown": 0.0045
+  },
+  "coverage": {
+   "availability_from_band_rate": 21,
+   "availability_from_snapshot": 262772,
+   "trigger_from_band_rate": 211133,
+   "trigger_from_own_sweeps": 51660
+  },
+  "pooled_sweep_trigger_rate": 0.557,
+  "sweep_two_sided_books": 346495,
+  "trigger_rate_by_liquidity_band": {
+   "0": 0.5421,
+   "1": 0.5405,
+   "2": 0.5942,
+   "3": 0.7565,
+   "unknown": 0.4986
+  }
+ },
+ "original_designs_note": "rows of the original designs are drawn first with the same seed on the same pinned sweeps, so they equal D118_DESIGN_ESTIMATES.json; recommended_design is the original 4x4 field and is superseded by twelve_member_candidates (choice follows the V2 dry run)",
+ "pilots": {
+  "likelihood_of_observed_states": {
+   "S1": 0.002875665595444482,
+   "S4": 0.0019288245310358925,
+   "S4h": 0.12351071538215283,
+   "S4q": 0.3854450137477504
+  },
+  "likelihood_ratio_vs_S1": {
+   "S1": 1.0,
+   "S4": 0.6707402050125236,
+   "S4h": 42.95030534072311,
+   "S4q": 134.03679981370487
+  },
+  "members": [
+   {
+    "basis": "model",
+    "market_id": "3377353",
+    "observed_state": "triggered",
+    "p_trigger_S4": 0.8333,
+    "predicted_available": 1.0,
+    "run": "D116"
+   },
+   {
+    "basis": "model",
+    "market_id": "5176734",
+    "observed_state": "triggered",
+    "p_trigger_S4": 0.9444,
+    "predicted_available": 1.0,
+    "run": "D116"
+   },
+   {
+    "basis": "model",
+    "market_id": "5313309",
+    "observed_state": "triggered",
+    "p_trigger_S4": 0.5421,
+    "predicted_available": 1.0,
+    "run": "D116"
+   },
+   {
+    "basis": "model",
+    "market_id": "5316097",
+    "observed_state": "unavailable",
+    "p_trigger_S4": 0.5421,
+    "predicted_available": 0.0,
+    "run": "D116"
+   },
+   {
+    "basis": "model",
+    "market_id": "5402156",
+    "observed_state": "unavailable",
+    "p_trigger_S4": 0.5421,
+    "predicted_available": 0.0,
+    "run": "D116"
+   },
+   {
+    "basis": "model",
+    "market_id": "5478000",
+    "observed_state": "unavailable",
+    "p_trigger_S4": 0.4986,
+    "predicted_available": 0.0,
+    "run": "D116"
+   },
+   {
+    "basis": "model",
+    "market_id": "5518402",
+    "observed_state": "unavailable",
+    "p_trigger_S4": 0.4986,
+    "predicted_available": 0.0,
+    "run": "D116"
+   },
+   {
+    "basis": "model",
+    "market_id": "5522386",
+    "observed_state": "triggered",
+    "p_trigger_S4": 0.5421,
+    "predicted_available": 1.0,
+    "run": "D116"
+   },
+   {
+    "basis": "model",
+    "market_id": "1282872",
+    "observed_state": "triggered",
+    "p_trigger_S4": 0.9444,
+    "predicted_available": 1.0,
+    "run": "D097"
+   },
+   {
+    "basis": "model",
+    "market_id": "1284832",
+    "observed_state": "triggered",
+    "p_trigger_S4": 0.9444,
+    "predicted_available": 1.0,
+    "run": "D097"
+   },
+   {
+    "basis": "model",
+    "market_id": "4963025",
+    "observed_state": "triggered",
+    "p_trigger_S4": 0.5421,
+    "predicted_available": 1.0,
+    "run": "D097"
+   },
+   {
+    "basis": "model",
+    "market_id": "5208013",
+    "observed_state": "triggered",
+    "p_trigger_S4": 0.0556,
+    "predicted_available": 1.0,
+    "run": "D097"
+   },
+   {
+    "basis": "pooled",
+    "market_id": "5322651",
+    "observed_state": "triggered",
+    "p_trigger_S4": 0.557,
+    "predicted_available": 0.0,
+    "run": "D097"
+   },
+   {
+    "basis": "pooled",
+    "market_id": "5338149",
+    "observed_state": "triggered",
+    "p_trigger_S4": 0.557,
+    "predicted_available": 0.0,
+    "run": "D097"
+   },
+   {
+    "basis": "model",
+    "market_id": "5377439",
+    "observed_state": "unavailable",
+    "p_trigger_S4": 0.4986,
+    "predicted_available": 0.0,
+    "run": "D097"
+   },
+   {
+    "basis": "model",
+    "market_id": "5378616",
+    "observed_state": "unavailable",
+    "p_trigger_S4": 0.4986,
+    "predicted_available": 0.0,
+    "run": "D097"
+   }
+  ]
+ },
+ "population_exclusions_from_P0_frame": {
+  "liquidity_below_1000": 153317,
+  "liquidity_missing_or_invalid": 4667,
+  "temporal": 54211
+ },
+ "population_summaries": {
+  "P0": {
+   "mean_availability": 0.6651,
+   "mean_stratum_availability_uniform_over_strata": 0.7824,
+   "mean_trigger_probability_S4_available": 0.5448,
+   "members": 208582,
+   "strata": 87,
+   "strata_with_at_least_2": 84,
+   "strata_with_at_least_4": 76
+  },
+  "PL": {
+   "mean_availability": 0.92,
+   "mean_stratum_availability_uniform_over_strata": 0.9146,
+   "mean_trigger_probability_S4_available": 0.5542,
+   "members": 50598,
+   "strata": 58,
+   "strata_with_at_least_2": 56,
+   "strata_with_at_least_4": 48
+  }
+ },
+ "recommended_design": {
+  "P_complete_pair_by_scenario": {
+   "S1": 0.9916,
+   "S4": 0.9865,
+   "S4h": 0.9105,
+   "S4q": 0.7015
+  },
+  "design": "4x4",
+  "harshest_scenario": "S4q",
+  "population": "PL",
+  "range": [
+   0.7015,
+   0.9916
+  ]
+ },
+ "script_sha256": "c9de5296dbaed1a5f1acebce9141f2f03fd310e68411a928db446e38a8a6200c",
+ "seed": 20261011,
+ "sensitivity_all_sweeps_at_run_time": {
+  "book_sweeps": [
+   {
+    "path": "data-dumps/research_lab/book_sweeps/20261010T194225Z_94956338/rows.csv.gz",
+    "sha256": "7867d18c044fa41beced573b3f2e788c3c6cf07b76d1c5910e0ba720824def17"
+   },
+   {
+    "path": "data-dumps/research_lab/book_sweeps/20261010T194347Z_d61a9354/rows.csv.gz",
+    "sha256": "96f9f23786545d92a0965c2e4200992d5a00330f0e9b7fc935984f4fa69c713b"
+   },
+   {
+    "path": "data-dumps/research_lab/book_sweeps/20261010T194506Z_f1051015/rows.csv.gz",
+    "sha256": "7ee4d96bee5df8e223cb894eff70c3165932df1e6e8af089017909ae23fc422f"
+   },
+   {
+    "path": "data-dumps/research_lab/book_sweeps/20261010T210152Z_e46bbf90/rows.csv.gz",
+    "sha256": "151eda02dcaded8eb23ba9c89d92749247101d80ad00fe17f872240b3482246a"
+   },
+   {
+    "path": "data-dumps/research_lab/book_sweeps/20261010T210348Z_afeb30f2/rows.csv.gz",
+    "sha256": "4de5442ed4fc5821666244a6f6ffa28edc900114c80e151cdc4d66c697f3ec06"
+   },
+   {
+    "path": "data-dumps/research_lab/book_sweeps/20261010T210603Z_0f474a80/rows.csv.gz",
+    "sha256": "00ab8c6cbed2335862e7c90e8150a7f245db48aa883b0306ddeae603c7059778"
+   },
+   {
+    "path": "data-dumps/research_lab/book_sweeps/20261011T022944Z_eba4a73e/rows.csv.gz",
+    "sha256": "d9f4cfc78f4f9f33fdc85fe3385c9cdaf45ac75f6cd80ba81859ba2eed334e84"
+   },
+   {
+    "path": "data-dumps/research_lab/book_sweeps/20261011T023104Z_4de8c806/rows.csv.gz",
+    "sha256": "61eeb6384a544a51c2b11eea6e39cb2f4e148a7a9a8bef482e7898af711c1bad"
+   },
+   {
+    "path": "data-dumps/research_lab/book_sweeps/20261011T042652Z_b6267963/rows.csv.gz",
+    "sha256": "0d582675d67696cec2a5d685bf105c3e04bf02ace6e9bc7272376244b7bf9626"
+   },
+   {
+    "path": "data-dumps/research_lab/book_sweeps/20261011T042817Z_4a74b788/rows.csv.gz",
+    "sha256": "8ec2286279ff0de29fad009f2223e21fb25f825a69553afb1d688e04f3d38ff0"
+   },
+   {
+    "path": "data-dumps/research_lab/book_sweeps/20261011T062543Z_2c949680/rows.csv.gz",
+    "sha256": "2387ac3cde5619f888ec7f6d25d4ec3b4cd3edc7d4ff9c6173ecefb512fc15dc"
+   },
+   {
+    "path": "data-dumps/research_lab/book_sweeps/20261011T062706Z_14acad4b/rows.csv.gz",
+    "sha256": "40162b90ec9fc076515d5ab2b127fa26a13569f6bb5d903d24d643c377cd23d1"
+   },
+   {
+    "path": "data-dumps/research_lab/book_sweeps/20261011T082521Z_e0a9b847/rows.csv.gz",
+    "sha256": "2d1e89685cef60ee7eb5b4b6c802eae27938117351ba3c6fa63a1686ff702d6e"
+   },
+   {
+    "path": "data-dumps/research_lab/book_sweeps/20261011T082643Z_077269f2/rows.csv.gz",
+    "sha256": "314e138233cdb1ef053ee6c7afd38fca38fca1f793d51a794f4c9efca47d2d41"
+   }
+  ],
+  "candidates": {
+   "2x6": {
+    "E_complete_pairs_by_scenario": {
+     "S1": 2.8609,
+     "S4": 2.5917,
+     "S4h": 1.608,
+     "S4q": 0.8369
+    },
+    "P_complete_pair_by_scenario": {
+     "S1": 0.965,
+     "S4": 0.9425,
+     "S4h": 0.8039,
+     "S4q": 0.5666
+    },
+    "per_stratum": 6,
+    "population": "PL",
+    "required_free_bytes": 14449901568,
+    "strata_limit": 2
+   },
+   "3x4": {
+    "E_complete_pairs_by_scenario": {
+     "S1": 2.6779,
+     "S4": 2.4388,
+     "S4h": 1.5623,
+     "S4q": 0.8368
+    },
+    "P_complete_pair_by_scenario": {
+     "S1": 0.9719,
+     "S4": 0.954,
+     "S4h": 0.8232,
+     "S4q": 0.5818
+    },
+    "per_stratum": 4,
+    "population": "PL",
+    "required_free_bytes": 14449901568,
+    "strata_limit": 3
+   },
+   "4x3": {
+    "E_complete_pairs_by_scenario": {
+     "S1": 2.2813,
+     "S4": 2.0913,
+     "S4h": 1.3988,
+     "S4q": 0.7877
+    },
+    "P_complete_pair_by_scenario": {
+     "S1": 0.9664,
+     "S4": 0.9489,
+     "S4h": 0.8221,
+     "S4q": 0.5846
+    },
+    "per_stratum": 3,
+    "population": "PL",
+    "required_free_bytes": 14449901568,
+    "strata_limit": 4
+   },
+   "4x4": {
+    "E_complete_pairs_by_scenario": {
+     "S1": 3.5705,
+     "S4": 3.2517,
+     "S4h": 2.0831,
+     "S4q": 1.1158
+    },
+    "P_complete_pair_by_scenario": {
+     "S1": 0.9916,
+     "S4": 0.9837,
+     "S4h": 0.9011,
+     "S4q": 0.6875
+    },
+    "per_stratum": 4,
+    "population": "PL",
+    "required_free_bytes": 15591276544,
+    "strata_limit": 4
+   }
+  },
+  "likelihood_ratio_vs_S1": {
+   "S1": 1.0,
+   "S4": 0.32096265295531545,
+   "S4h": 38.72944158221196,
+   "S4q": 128.92057960672486
+  },
+  "note": "not the primary figures: same model on every sweep present at run time",
+  "pooled_sweep_trigger_rate": 0.5565
+ },
+ "status": "design figures only; not acceptance criteria; D118 pre-freeze V2 (12-member candidates after the 16-member dry-run abort)",
+ "subsets_per_stratum": 2000,
+ "table": [
+  {
+   "E_complete_pairs": 1.2603,
+   "E_pairs_drawn": 1.3964,
+   "P_complete_pair": 0.7808,
+   "P_pair_drawn": 0.8215,
+   "design": "4x2",
+   "eligible_strata": 87,
+   "per_stratum": 2,
+   "population": "P0",
+   "required_free_bytes": 13308526592,
+   "scenario": "S1",
+   "scheduled_slots": 8,
+   "strata_limit": 4
+  },
+  {
+   "E_complete_pairs": 1.2121,
+   "E_pairs_drawn": 1.343,
+   "P_complete_pair": 0.7651,
+   "P_pair_drawn": 0.8065,
+   "design": "4x2",
+   "eligible_strata": 87,
+   "per_stratum": 2,
+   "population": "P0",
+   "required_free_bytes": 13308526592,
+   "scenario": "S4",
+   "scheduled_slots": 8,
+   "strata_limit": 4
+  },
+  {
+   "E_complete_pairs": 0.8236,
+   "E_pairs_drawn": 0.9126,
+   "P_complete_pair": 0.603,
+   "P_pair_drawn": 0.6458,
+   "design": "4x2",
+   "eligible_strata": 87,
+   "per_stratum": 2,
+   "population": "P0",
+   "required_free_bytes": 13308526592,
+   "scenario": "S4h",
+   "scheduled_slots": 8,
+   "strata_limit": 4
+  },
+  {
+   "E_complete_pairs": 0.4662,
+   "E_pairs_drawn": 0.5165,
+   "P_complete_pair": 0.3911,
+   "P_pair_drawn": 0.4251,
+   "design": "4x2",
+   "eligible_strata": 87,
+   "per_stratum": 2,
+   "population": "P0",
+   "required_free_bytes": 13308526592,
+   "scenario": "S4q",
+   "scheduled_slots": 8,
+   "strata_limit": 4
+  },
+  {
+   "E_complete_pairs": 3.0652,
+   "E_pairs_drawn": 3.3963,
+   "P_complete_pair": 0.9755,
+   "P_pair_drawn": 0.9851,
+   "design": "4x4",
+   "eligible_strata": 87,
+   "per_stratum": 4,
+   "population": "P0",
+   "required_free_bytes": 15591276544,
+   "scenario": "S1",
+   "scheduled_slots": 16,
+   "strata_limit": 4
+  },
+  {
+   "E_complete_pairs": 2.9116,
+   "E_pairs_drawn": 3.2261,
+   "P_complete_pair": 0.9687,
+   "P_pair_drawn": 0.9801,
+   "design": "4x4",
+   "eligible_strata": 87,
+   "per_stratum": 4,
+   "population": "P0",
+   "required_free_bytes": 15591276544,
+   "scenario": "S4",
+   "scheduled_slots": 16,
+   "strata_limit": 4
+  },
+  {
+   "E_complete_pairs": 1.9033,
+   "E_pairs_drawn": 2.1089,
+   "P_complete_pair": 0.8729,
+   "P_pair_drawn": 0.9001,
+   "design": "4x4",
+   "eligible_strata": 87,
+   "per_stratum": 4,
+   "population": "P0",
+   "required_free_bytes": 15591276544,
+   "scenario": "S4h",
+   "scheduled_slots": 16,
+   "strata_limit": 4
+  },
+  {
+   "E_complete_pairs": 1.0269,
+   "E_pairs_drawn": 1.1378,
+   "P_complete_pair": 0.6536,
+   "P_pair_drawn": 0.6921,
+   "design": "4x4",
+   "eligible_strata": 87,
+   "per_stratum": 4,
+   "population": "P0",
+   "required_free_bytes": 15591276544,
+   "scenario": "S4q",
+   "scheduled_slots": 16,
+   "strata_limit": 4
+  },
+  {
+   "E_complete_pairs": 1.7847,
+   "E_pairs_drawn": 1.9775,
+   "P_complete_pair": 0.9068,
+   "P_pair_drawn": 0.9356,
+   "design": "2x4",
+   "eligible_strata": 58,
+   "per_stratum": 4,
+   "population": "PL",
+   "required_free_bytes": 13308526592,
+   "scenario": "S1",
+   "scheduled_slots": 8,
+   "strata_limit": 2
+  },
+  {
+   "E_complete_pairs": 1.668,
+   "E_pairs_drawn": 1.8482,
+   "P_complete_pair": 0.8823,
+   "P_pair_drawn": 0.9141,
+   "design": "2x4",
+   "eligible_strata": 58,
+   "per_stratum": 4,
+   "population": "PL",
+   "required_free_bytes": 13308526592,
+   "scenario": "S4",
+   "scheduled_slots": 8,
+   "strata_limit": 2
+  },
+  {
+   "E_complete_pairs": 1.0751,
+   "E_pairs_drawn": 1.1913,
+   "P_complete_pair": 0.6997,
+   "P_pair_drawn": 0.7406,
+   "design": "2x4",
+   "eligible_strata": 58,
+   "per_stratum": 4,
+   "population": "PL",
+   "required_free_bytes": 13308526592,
+   "scenario": "S4h",
+   "scheduled_slots": 8,
+   "strata_limit": 2
+  },
+  {
+   "E_complete_pairs": 0.5769,
+   "E_pairs_drawn": 0.6393,
+   "P_complete_pair": 0.4532,
+   "P_pair_drawn": 0.4893,
+   "design": "2x4",
+   "eligible_strata": 58,
+   "per_stratum": 4,
+   "population": "PL",
+   "required_free_bytes": 13308526592,
+   "scenario": "S4q",
+   "scheduled_slots": 8,
+   "strata_limit": 2
+  },
+  {
+   "E_complete_pairs": 1.5168,
+   "E_pairs_drawn": 1.6807,
+   "P_complete_pair": 0.852,
+   "P_pair_drawn": 0.8875,
+   "design": "4x2",
+   "eligible_strata": 58,
+   "per_stratum": 2,
+   "population": "PL",
+   "required_free_bytes": 13308526592,
+   "scenario": "S1",
+   "scheduled_slots": 8,
+   "strata_limit": 4
+  },
+  {
+   "E_complete_pairs": 1.4425,
+   "E_pairs_drawn": 1.5983,
+   "P_complete_pair": 0.8338,
+   "P_pair_drawn": 0.871,
+   "design": "4x2",
+   "eligible_strata": 58,
+   "per_stratum": 2,
+   "population": "PL",
+   "required_free_bytes": 13308526592,
+   "scenario": "S4",
+   "scheduled_slots": 8,
+   "strata_limit": 4
+  },
+  {
+   "E_complete_pairs": 0.9691,
+   "E_pairs_drawn": 1.0738,
+   "P_complete_pair": 0.671,
+   "P_pair_drawn": 0.7143,
+   "design": "4x2",
+   "eligible_strata": 58,
+   "per_stratum": 2,
+   "population": "PL",
+   "required_free_bytes": 13308526592,
+   "scenario": "S4h",
+   "scheduled_slots": 8,
+   "strata_limit": 4
+  },
+  {
+   "E_complete_pairs": 0.5465,
+   "E_pairs_drawn": 0.6056,
+   "P_complete_pair": 0.4447,
+   "P_pair_drawn": 0.4818,
+   "design": "4x2",
+   "eligible_strata": 58,
+   "per_stratum": 2,
+   "population": "PL",
+   "required_free_bytes": 13308526592,
+   "scenario": "S4q",
+   "scheduled_slots": 8,
+   "strata_limit": 4
+  },
+  {
+   "E_complete_pairs": 3.5695,
+   "E_pairs_drawn": 3.9551,
+   "P_complete_pair": 0.9916,
+   "P_pair_drawn": 0.996,
+   "design": "4x4",
+   "eligible_strata": 58,
+   "per_stratum": 4,
+   "population": "PL",
+   "required_free_bytes": 15591276544,
+   "scenario": "S1",
+   "scheduled_slots": 16,
+   "strata_limit": 4
+  },
+  {
+   "E_complete_pairs": 3.336,
+   "E_pairs_drawn": 3.6964,
+   "P_complete_pair": 0.9865,
+   "P_pair_drawn": 0.9929,
+   "design": "4x4",
+   "eligible_strata": 58,
+   "per_stratum": 4,
+   "population": "PL",
+   "required_free_bytes": 15591276544,
+   "scenario": "S4",
+   "scheduled_slots": 16,
+   "strata_limit": 4
+  },
+  {
+   "E_complete_pairs": 2.1502,
+   "E_pairs_drawn": 2.3825,
+   "P_complete_pair": 0.9105,
+   "P_pair_drawn": 0.9333,
+   "design": "4x4",
+   "eligible_strata": 58,
+   "per_stratum": 4,
+   "population": "PL",
+   "required_free_bytes": 15591276544,
+   "scenario": "S4h",
+   "scheduled_slots": 16,
+   "strata_limit": 4
+  },
+  {
+   "E_complete_pairs": 1.1539,
+   "E_pairs_drawn": 1.2785,
+   "P_complete_pair": 0.7015,
+   "P_pair_drawn": 0.7397,
+   "design": "4x4",
+   "eligible_strata": 58,
+   "per_stratum": 4,
+   "population": "PL",
+   "required_free_bytes": 15591276544,
+   "scenario": "S4q",
+   "scheduled_slots": 16,
+   "strata_limit": 4
+  },
+  {
+   "E_complete_pairs": 5.3542,
+   "E_pairs_drawn": 5.9326,
+   "P_complete_pair": 0.9993,
+   "P_pair_drawn": 0.9998,
+   "design": "6x4",
+   "eligible_strata": 58,
+   "per_stratum": 4,
+   "population": "PL",
+   "required_free_bytes": 17874026496,
+   "scenario": "S1",
+   "scheduled_slots": 24,
+   "strata_limit": 6
+  },
+  {
+   "E_complete_pairs": 5.0039,
+   "E_pairs_drawn": 5.5445,
+   "P_complete_pair": 0.9985,
+   "P_pair_drawn": 0.9994,
+   "design": "6x4",
+   "eligible_strata": 58,
+   "per_stratum": 4,
+   "population": "PL",
+   "required_free_bytes": 17874026496,
+   "scenario": "S4",
+   "scheduled_slots": 24,
+   "strata_limit": 6
+  },
+  {
+   "E_complete_pairs": 3.2254,
+   "E_pairs_drawn": 3.5738,
+   "P_complete_pair": 0.9735,
+   "P_pair_drawn": 0.983,
+   "design": "6x4",
+   "eligible_strata": 58,
+   "per_stratum": 4,
+   "population": "PL",
+   "required_free_bytes": 17874026496,
+   "scenario": "S4h",
+   "scheduled_slots": 24,
+   "strata_limit": 6
+  },
+  {
+   "E_complete_pairs": 1.7308,
+   "E_pairs_drawn": 1.9178,
+   "P_complete_pair": 0.8373,
+   "P_pair_drawn": 0.8675,
+   "design": "6x4",
+   "eligible_strata": 58,
+   "per_stratum": 4,
+   "population": "PL",
+   "required_free_bytes": 17874026496,
+   "scenario": "S4q",
+   "scheduled_slots": 24,
+   "strata_limit": 6
+  },
+  {
+   "E_complete_pairs": 2.2807,
+   "E_pairs_drawn": 2.5271,
+   "P_complete_pair": 0.9664,
+   "P_pair_drawn": 0.9821,
+   "design": "4x3",
+   "eligible_strata": 58,
+   "per_stratum": 3,
+   "population": "PL",
+   "required_free_bytes": 14449901568,
+   "scenario": "S1",
+   "scheduled_slots": 12,
+   "strata_limit": 4
+  },
+  {
+   "E_complete_pairs": 2.1549,
+   "E_pairs_drawn": 2.3877,
+   "P_complete_pair": 0.9555,
+   "P_pair_drawn": 0.9743,
+   "design": "4x3",
+   "eligible_strata": 58,
+   "per_stratum": 3,
+   "population": "PL",
+   "required_free_bytes": 14449901568,
+   "scenario": "S4",
+   "scheduled_slots": 12,
+   "strata_limit": 4
+  },
+  {
+   "E_complete_pairs": 1.4485,
+   "E_pairs_drawn": 1.605,
+   "P_complete_pair": 0.8353,
+   "P_pair_drawn": 0.8724,
+   "design": "4x3",
+   "eligible_strata": 58,
+   "per_stratum": 3,
+   "population": "PL",
+   "required_free_bytes": 14449901568,
+   "scenario": "S4h",
+   "scheduled_slots": 12,
+   "strata_limit": 4
+  },
+  {
+   "E_complete_pairs": 0.817,
+   "E_pairs_drawn": 0.9053,
+   "P_complete_pair": 0.5995,
+   "P_pair_drawn": 0.6422,
+   "design": "4x3",
+   "eligible_strata": 58,
+   "per_stratum": 3,
+   "population": "PL",
+   "required_free_bytes": 14449901568,
+   "scenario": "S4q",
+   "scheduled_slots": 12,
+   "strata_limit": 4
+  },
+  {
+   "E_complete_pairs": 2.6771,
+   "E_pairs_drawn": 2.9663,
+   "P_complete_pair": 0.9719,
+   "P_pair_drawn": 0.9839,
+   "design": "3x4",
+   "eligible_strata": 58,
+   "per_stratum": 4,
+   "population": "PL",
+   "required_free_bytes": 14449901568,
+   "scenario": "S1",
+   "scheduled_slots": 12,
+   "strata_limit": 3
+  },
+  {
+   "E_complete_pairs": 2.502,
+   "E_pairs_drawn": 2.7723,
+   "P_complete_pair": 0.9601,
+   "P_pair_drawn": 0.9752,
+   "design": "3x4",
+   "eligible_strata": 58,
+   "per_stratum": 4,
+   "population": "PL",
+   "required_free_bytes": 14449901568,
+   "scenario": "S4",
+   "scheduled_slots": 12,
+   "strata_limit": 3
+  },
+  {
+   "E_complete_pairs": 1.6127,
+   "E_pairs_drawn": 1.7869,
+   "P_complete_pair": 0.8359,
+   "P_pair_drawn": 0.8683,
+   "design": "3x4",
+   "eligible_strata": 58,
+   "per_stratum": 4,
+   "population": "PL",
+   "required_free_bytes": 14449901568,
+   "scenario": "S4h",
+   "scheduled_slots": 12,
+   "strata_limit": 3
+  },
+  {
+   "E_complete_pairs": 0.8654,
+   "E_pairs_drawn": 0.9589,
+   "P_complete_pair": 0.5959,
+   "P_pair_drawn": 0.6353,
+   "design": "3x4",
+   "eligible_strata": 58,
+   "per_stratum": 4,
+   "population": "PL",
+   "required_free_bytes": 14449901568,
+   "scenario": "S4q",
+   "scheduled_slots": 12,
+   "strata_limit": 3
+  },
+  {
+   "E_complete_pairs": 2.86,
+   "E_pairs_drawn": 3.169,
+   "P_complete_pair": 0.9649,
+   "P_pair_drawn": 0.9758,
+   "design": "2x6",
+   "eligible_strata": 58,
+   "per_stratum": 6,
+   "population": "PL",
+   "required_free_bytes": 14449901568,
+   "scenario": "S1",
+   "scheduled_slots": 12,
+   "strata_limit": 2
+  },
+  {
+   "E_complete_pairs": 2.6514,
+   "E_pairs_drawn": 2.9378,
+   "P_complete_pair": 0.9497,
+   "P_pair_drawn": 0.9636,
+   "design": "2x6",
+   "eligible_strata": 58,
+   "per_stratum": 6,
+   "population": "PL",
+   "required_free_bytes": 14449901568,
+   "scenario": "S4",
+   "scheduled_slots": 12,
+   "strata_limit": 2
+  },
+  {
+   "E_complete_pairs": 1.6521,
+   "E_pairs_drawn": 1.8306,
+   "P_complete_pair": 0.8163,
+   "P_pair_drawn": 0.8464,
+   "design": "2x6",
+   "eligible_strata": 58,
+   "per_stratum": 6,
+   "population": "PL",
+   "required_free_bytes": 14449901568,
+   "scenario": "S4h",
+   "scheduled_slots": 12,
+   "strata_limit": 2
+  },
+  {
+   "E_complete_pairs": 0.861,
+   "E_pairs_drawn": 0.954,
+   "P_complete_pair": 0.579,
+   "P_pair_drawn": 0.6163,
+   "design": "2x6",
+   "eligible_strata": 58,
+   "per_stratum": 6,
+   "population": "PL",
+   "required_free_bytes": 14449901568,
+   "scenario": "S4q",
+   "scheduled_slots": 12,
+   "strata_limit": 2
+  }
+ ],
+ "twelve_member_candidates": {
+  "2x6": {
+   "E_complete_pairs_by_scenario": {
+    "S1": 2.86,
+    "S4": 2.6514,
+    "S4h": 1.6521,
+    "S4q": 0.861
+   },
+   "P_complete_pair_by_scenario": {
+    "S1": 0.9649,
+    "S4": 0.9497,
+    "S4h": 0.8163,
+    "S4q": 0.579
+   },
+   "per_stratum": 6,
+   "population": "PL",
+   "required_free_bytes": 14449901568,
+   "strata_limit": 2
+  },
+  "3x4": {
+   "E_complete_pairs_by_scenario": {
+    "S1": 2.6771,
+    "S4": 2.502,
+    "S4h": 1.6127,
+    "S4q": 0.8654
+   },
+   "P_complete_pair_by_scenario": {
+    "S1": 0.9719,
+    "S4": 0.9601,
+    "S4h": 0.8359,
+    "S4q": 0.5959
+   },
+   "per_stratum": 4,
+   "population": "PL",
+   "required_free_bytes": 14449901568,
+   "strata_limit": 3
+  },
+  "4x3": {
+   "E_complete_pairs_by_scenario": {
+    "S1": 2.2807,
+    "S4": 2.1549,
+    "S4h": 1.4485,
+    "S4q": 0.817
+   },
+   "P_complete_pair_by_scenario": {
+    "S1": 0.9664,
+    "S4": 0.9555,
+    "S4h": 0.8353,
+    "S4q": 0.5995
+   },
+   "per_stratum": 3,
+   "population": "PL",
+   "required_free_bytes": 14449901568,
+   "strata_limit": 4
+  }
+ }
+}

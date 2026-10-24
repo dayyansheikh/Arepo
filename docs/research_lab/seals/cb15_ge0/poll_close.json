@@ -1,0 +1,1367 @@
+{
+ "merge_rule": "where both passes give the same t_close_utc it is used (citations = union); where they differ the later close is used and the difference is noted",
+ "n_differences": 0,
+ "states": {
+  "AK": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "c9560e7f39ac9a48bf960e0ae192cd8467c79c96b8fe23e54f92935ce5416b86",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+     "c9560e7f39ac9a48bf960e0ae192cd8467c79c96b8fe23e54f92935ce5416b86"
+    ],
+    "t_close_utc": "2026-11-04T06:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T06:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T06:00:00Z"
+  },
+  "AL": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379"
+    ],
+    "t_close_utc": "2026-11-04T01:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T01:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T01:00:00Z"
+  },
+  "AR": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379"
+    ],
+    "t_close_utc": "2026-11-04T01:30:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T01:30:00Z"
+   },
+   "t_close_utc": "2026-11-04T01:30:00Z"
+  },
+  "AZ": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "929aa4266bce21de8f72254c10950faa5e09d60bfee418acbfdbea9ec6f0aa09",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+     "929aa4266bce21de8f72254c10950faa5e09d60bfee418acbfdbea9ec6f0aa09"
+    ],
+    "t_close_utc": "2026-11-04T02:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T02:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T02:00:00Z"
+  },
+  "CA": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379"
+    ],
+    "t_close_utc": "2026-11-04T04:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T04:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T04:00:00Z"
+  },
+  "CO": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379"
+    ],
+    "t_close_utc": "2026-11-04T02:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T02:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T02:00:00Z"
+  },
+  "CT": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379"
+    ],
+    "t_close_utc": "2026-11-04T01:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T01:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T01:00:00Z"
+  },
+  "DC": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379"
+    ],
+    "t_close_utc": "2026-11-04T01:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T01:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T01:00:00Z"
+  },
+  "DE": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379"
+    ],
+    "t_close_utc": "2026-11-04T01:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T01:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T01:00:00Z"
+  },
+  "FL": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "4524313bd0e21d49d08ea51b68fc92150547e3a4175f991a4be7294751d639bc",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+     "4524313bd0e21d49d08ea51b68fc92150547e3a4175f991a4be7294751d639bc"
+    ],
+    "t_close_utc": "2026-11-04T01:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T01:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T01:00:00Z"
+  },
+  "GA": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "39cb9a9a4d23a00a480ea0a95e33a5ee1d0c87ee2d85975733e2a57896670fc0",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+     "39cb9a9a4d23a00a480ea0a95e33a5ee1d0c87ee2d85975733e2a57896670fc0"
+    ],
+    "t_close_utc": "2026-11-04T00:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T00:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T00:00:00Z"
+  },
+  "HI": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379"
+    ],
+    "t_close_utc": "2026-11-04T05:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T05:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T05:00:00Z"
+  },
+  "IA": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "e62d80f82eb85936f1acdd236979e1a3c2c407e10f49395a2b204a16c3493667",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+     "e62d80f82eb85936f1acdd236979e1a3c2c407e10f49395a2b204a16c3493667"
+    ],
+    "t_close_utc": "2026-11-04T02:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T02:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T02:00:00Z"
+  },
+  "ID": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379"
+    ],
+    "t_close_utc": "2026-11-04T04:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T04:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T04:00:00Z"
+  },
+  "IL": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379"
+    ],
+    "t_close_utc": "2026-11-04T01:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T01:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T01:00:00Z"
+  },
+  "IN": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379"
+    ],
+    "t_close_utc": "2026-11-04T00:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T00:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T00:00:00Z"
+  },
+  "KS": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "cf2d1119a84d1697f10cb70dee38100b793e41e898f03e1a2098e2fc8bd3f62a",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+     "cf2d1119a84d1697f10cb70dee38100b793e41e898f03e1a2098e2fc8bd3f62a"
+    ],
+    "t_close_utc": "2026-11-04T02:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T02:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T02:00:00Z"
+  },
+  "KY": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379"
+    ],
+    "t_close_utc": "2026-11-04T00:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T00:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T00:00:00Z"
+  },
+  "LA": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952",
+    "73e713e72c1dcf4f8af31f260f5cb94618c90aca4e2245d56b76c879280acc00"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379"
+    ],
+    "t_close_utc": "2026-11-04T02:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952",
+     "73e713e72c1dcf4f8af31f260f5cb94618c90aca4e2245d56b76c879280acc00"
+    ],
+    "t_close_utc": "2026-11-04T02:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T02:00:00Z"
+  },
+  "MA": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379"
+    ],
+    "t_close_utc": "2026-11-04T01:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T01:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T01:00:00Z"
+  },
+  "MD": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379"
+    ],
+    "t_close_utc": "2026-11-04T01:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T01:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T01:00:00Z"
+  },
+  "ME": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "5e553fa23741aa3681fa95947162b5d88475054091ba5cb5a612042a512b7d3a",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+     "5e553fa23741aa3681fa95947162b5d88475054091ba5cb5a612042a512b7d3a"
+    ],
+    "t_close_utc": "2026-11-04T01:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T01:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T01:00:00Z"
+  },
+  "MI": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379"
+    ],
+    "t_close_utc": "2026-11-04T02:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T02:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T02:00:00Z"
+  },
+  "MN": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "d466d1e10c36d4e994a56d267c9d1ea711f1a2c4821982fe10928740b13837a1",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+     "d466d1e10c36d4e994a56d267c9d1ea711f1a2c4821982fe10928740b13837a1"
+    ],
+    "t_close_utc": "2026-11-04T02:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T02:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T02:00:00Z"
+  },
+  "MO": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7f5421579b82bb6804df8b7d4d64b6510d0dd3261657b7945f535157b0137a66",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+     "7f5421579b82bb6804df8b7d4d64b6510d0dd3261657b7945f535157b0137a66"
+    ],
+    "t_close_utc": "2026-11-04T01:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T01:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T01:00:00Z"
+  },
+  "MS": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379"
+    ],
+    "t_close_utc": "2026-11-04T01:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T01:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T01:00:00Z"
+  },
+  "MT": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379"
+    ],
+    "t_close_utc": "2026-11-04T03:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T03:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T03:00:00Z"
+  },
+  "NC": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379"
+    ],
+    "t_close_utc": "2026-11-04T00:30:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T00:30:00Z"
+   },
+   "t_close_utc": "2026-11-04T00:30:00Z"
+  },
+  "ND": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "dd4ef4bc3fa6b80da57d9e708dea3e47e530d9715e76eab7d363679da8fb2cfd",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+     "dd4ef4bc3fa6b80da57d9e708dea3e47e530d9715e76eab7d363679da8fb2cfd"
+    ],
+    "t_close_utc": "2026-11-04T04:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T04:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T04:00:00Z"
+  },
+  "NE": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379"
+    ],
+    "t_close_utc": "2026-11-04T02:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T02:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T02:00:00Z"
+  },
+  "NH": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "0ab47d9fb45de7fd0935690d9a8a95b3175398d45e6a905646248f208f2773f8",
+    "63d7a5a0259489895cd1defe7135d2c70c565ab74903c6921e3575360ee816a4",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+     "0ab47d9fb45de7fd0935690d9a8a95b3175398d45e6a905646248f208f2773f8",
+     "63d7a5a0259489895cd1defe7135d2c70c565ab74903c6921e3575360ee816a4"
+    ],
+    "t_close_utc": "2026-11-04T01:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T01:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T01:00:00Z"
+  },
+  "NJ": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379"
+    ],
+    "t_close_utc": "2026-11-04T01:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T01:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T01:00:00Z"
+  },
+  "NM": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379"
+    ],
+    "t_close_utc": "2026-11-04T02:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T02:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T02:00:00Z"
+  },
+  "NV": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379"
+    ],
+    "t_close_utc": "2026-11-04T03:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T03:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T03:00:00Z"
+  },
+  "NY": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379"
+    ],
+    "t_close_utc": "2026-11-04T02:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T02:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T02:00:00Z"
+  },
+  "OH": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379"
+    ],
+    "t_close_utc": "2026-11-04T00:30:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T00:30:00Z"
+   },
+   "t_close_utc": "2026-11-04T00:30:00Z"
+  },
+  "OK": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379"
+    ],
+    "t_close_utc": "2026-11-04T01:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T01:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T01:00:00Z"
+  },
+  "OR": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "975f6faa1e812495b2b1bba6a81c688b828386259a9e41a8ec0936c0ddc377db",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+     "975f6faa1e812495b2b1bba6a81c688b828386259a9e41a8ec0936c0ddc377db"
+    ],
+    "t_close_utc": "2026-11-04T04:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T04:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T04:00:00Z"
+  },
+  "PA": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379"
+    ],
+    "t_close_utc": "2026-11-04T01:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T01:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T01:00:00Z"
+  },
+  "RI": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379"
+    ],
+    "t_close_utc": "2026-11-04T01:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T01:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T01:00:00Z"
+  },
+  "SC": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379"
+    ],
+    "t_close_utc": "2026-11-04T00:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T00:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T00:00:00Z"
+  },
+  "SD": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379"
+    ],
+    "t_close_utc": "2026-11-04T02:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T02:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T02:00:00Z"
+  },
+  "TN": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379"
+    ],
+    "t_close_utc": "2026-11-04T01:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T01:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T01:00:00Z"
+  },
+  "TX": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379"
+    ],
+    "t_close_utc": "2026-11-04T02:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T02:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T02:00:00Z"
+  },
+  "UT": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379"
+    ],
+    "t_close_utc": "2026-11-04T03:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T03:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T03:00:00Z"
+  },
+  "VA": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7b69f6e8233ea7428d9c8e70766f3108f5c3a7cc1d57d840aca9e50aa0f2cb61",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+     "7b69f6e8233ea7428d9c8e70766f3108f5c3a7cc1d57d840aca9e50aa0f2cb61"
+    ],
+    "t_close_utc": "2026-11-04T00:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T00:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T00:00:00Z"
+  },
+  "VT": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "23058f07e9011c959924f9cf604beab8d838ee7235025eab27a658505d04c8fb",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+     "23058f07e9011c959924f9cf604beab8d838ee7235025eab27a658505d04c8fb"
+    ],
+    "t_close_utc": "2026-11-04T00:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T00:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T00:00:00Z"
+  },
+  "WA": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "131a0668889798054e4ec9a94a5d8ab8d306daa1c3493ec55c4643b374847f0f",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+     "131a0668889798054e4ec9a94a5d8ab8d306daa1c3493ec55c4643b374847f0f"
+    ],
+    "t_close_utc": "2026-11-04T04:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T04:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T04:00:00Z"
+  },
+  "WI": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379"
+    ],
+    "t_close_utc": "2026-11-04T02:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T02:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T02:00:00Z"
+  },
+  "WV": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379"
+    ],
+    "t_close_utc": "2026-11-04T00:30:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T00:30:00Z"
+   },
+   "t_close_utc": "2026-11-04T00:30:00Z"
+  },
+  "WY": {
+   "citations": [
+    "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+    "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+    "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+    "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+    "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+   ],
+   "note": "passes agree",
+   "pass_a": {
+    "citations": [
+     "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+     "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+     "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+     "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379"
+    ],
+    "t_close_utc": "2026-11-04T02:00:00Z"
+   },
+   "pass_b": {
+    "citations": [
+     "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952"
+    ],
+    "t_close_utc": "2026-11-04T02:00:00Z"
+   },
+   "t_close_utc": "2026-11-04T02:00:00Z"
+  }
+ },
+ "version": "cb15-ge0-pollclose-v1"
+}

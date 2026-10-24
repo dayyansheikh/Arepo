@@ -1,0 +1,67 @@
+{
+ "id": "q0081f_h7_cb4_era_frame",
+ "title": "CB4-E: h7_cb4_era frame stage only (period-day walk, frame rules, fee-category counts per period; no sample, no prices)",
+ "family": "history_data",
+ "priority": 61,
+ "expected_value": "era-pure sample for the fee-rollout measurement (CH53)",
+ "data": [
+  "public Gamma/CLOB/Data API",
+  "history/h1_first, h2_main, h3_power sample.csv.gz (exclusion ids only)",
+  "docs/research_lab/seals/h5_cb1_SEAL.json file table (h5 market ids only)"
+ ],
+ "resources": {
+  "mem_mb": 800,
+  "cpu": 1,
+  "network": "gamma-api, clob, data-api",
+  "lane": "net"
+ },
+ "depends_on": [
+  "q0018_h5_cb1_seal",
+  "q0081a_h7_release_gate"
+ ],
+ "argv": [
+  "scripts/run_cb4.py",
+  "era-frame",
+  "--run-id",
+  "h7_cb4_era",
+  "--seed",
+  "arepo-h7-era",
+  "--per-cell",
+  "800",
+  "--periods",
+  "2025-12-01/2026-02-18,2026-02-25/2026-03-30,2026-04-06/2026-04-28",
+  "--origin-window-h",
+  "72",
+  "--min-life-d",
+  "4",
+  "--exclude-runs",
+  "h1_first,h2_main,h3_power",
+  "--exclude-seal-ids",
+  "../docs/research_lab/seals/h5_cb1_SEAL.json",
+  "--exclude-categories",
+  "weather",
+  "--walk-closed",
+  "true,false",
+  "--cap-at",
+  "2026-10-22T00:00Z",
+  "--rps",
+  "4",
+  "--disk-cap-gb",
+  "0.20",
+  "--budget-min",
+  "150",
+  "--data-dumps-cap-gb",
+  "12.5"
+ ],
+ "timeout_s": 10800,
+ "max_retries": 3,
+ "repeat": {
+  "max_runs": 6,
+  "until_log_regex": "\"status\": \"(era_frame_complete|era_fetch_complete|not_run_deadline)\""
+ },
+ "outputs": [
+  "data-dumps/research_lab/history/h7_cb4_era/{frame.csv.gz,frame_report.json,outcomes_guarded.csv.gz,request_clock.json,manifest.json}"
+ ],
+ "next_action": "Claude session: read frame_report.json (kept_by_period_category), decide group S, get the amendment reviewed and committed (docs/research_lab/seals/h7_cb4_group_s_amendment.json), then create gate q0081g; q0081 then samples and fetches",
+ "notes": "Freeze-check fix 8. Stops after the frame: no group, no sample, no prices. About 1.6-3k requests. Failed windows are counted separately from capped windows and retried (3 attempts per day). Same refusals and terminal states as q0081 (exit 2 refusals; status era_frame_complete or not_run_deadline). 2026-10-17 (autopilot, h7 release re-check must-fix 1): --data-dumps-cap-gb 12.5 added (code default 10) because data-dumps is ~9.9 GB and growing ~0.95 GB/day; with the default every start would exit 75 until the job failed, missing T_seal. Operational headroom only (collector cap now 13 GB; job writes <= 0.4 GB); outputs do not depend on it."
+}

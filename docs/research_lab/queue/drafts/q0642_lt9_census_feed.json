@@ -1,0 +1,48 @@
+{
+ "id": "q0642_lt9_census_feed",
+ "title": "LT9 census CR9 (DRAFT): CH215 (the scheduled end, the optional fourth) on the sealed reward_params captures and captures: ends listed >= 48 h ahead with T_e in [11-04T00:00Z, 11-12T00:00Z], decision-time eligibility, controls (reuse ban in decision-time order), clusters, end_moved; counts only, no target, no P&L; decides ch215.entered",
+ "family": "live_tests_9",
+ "priority": 51,
+ "expected_value": "CR9 gates (LIVE_TESTS_9.md 7): feed completeness, >= 630 projected ends, >= 100 clusters, control availability, one-day share, end_moved share, MDE <= 1.0c; ch215.entered",
+ "data": [
+  "sealed host originals and restore trees (read-only, under the seal)"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "as_cap_mb": 1500,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0641_lt9_seal"
+ ],
+ "not_before": "2026-11-12T06:00:00Z",
+ "argv": [
+  "scripts/run_live_tests9.py",
+  "census-feed",
+  "--seal",
+  "../docs/research_lab/seals/lt9_census_inputs.json",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests9_census/restore/data-dumps/research_lab/snapshots",
+  "--feed-root",
+  "../data-dumps/research_lab/reward_params",
+  "--feed-root",
+  "../data-dumps/research_lab/live_tests9_census/restore/data-dumps/research_lab/reward_params",
+  "--work",
+  "../data-dumps/research_lab/live_tests9_census/work_feed",
+  "--data-dumps-cap-gb",
+  "40",
+  "--out",
+  "../data-dumps/research_lab/live_tests9_census/CR9.json"
+ ],
+ "timeout_s": 7200,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests9_census/CR9.json (counts only; the work dir is cleaned up at exit)"
+ ],
+ "next_action": "commit CR9.json and its sha256; record CH215's entry or non-entry in LIVE_TESTS_9.md 6.3 and the ledger; set ch215.entered in the spec",
+ "notes": "ORDER (7): CR9 first (the cheapest kill). PROMOTE ONLY AFTER the orchestrator has committed seals/lt9_census_inputs.json and pulled it on the host (the runner exits 2 on an untracked or modified seal). mem_mb 300 is an ESTIMATE (one feed frame of ~14,000 records at a time, the 12-slot carry, one series frame per needed capture); as_cap_mb 1500 because the default 2 x mem_mb cap is virtual memory. Exits 75 when data-dumps is above 40 GiB. DRAFT, not in queue/jobs. Promote only after: the design-text freeze (LIVE_TESTS_9.md design text frozen at sha256 098aa3fb5f6765f08dcad3f85ad63ec70e29df65249413608f0f7ad5fd505b77 (6b78ba90)), the LT9 code phase 1 and the science-reviewer freeze check of the census and size-check code against LIVE_TESTS_9.md sections 1.4.1, 1.8, 1.8.1 and 7 (8.4 step 3), and never while an LT7 or LT8 census, size-check or analysis job runs (memory-heavy-jobs rule). Counts 0 (descriptive; no trials line). Reads the DRAFT spec unpinned; the code_sha256 of every hashed module is written into the output. Every gate threshold is stated in section 7 before this runs; nothing is re-tuned after it. Each census runs once; max_retries 1 covers a deterministic crash only (no output written)."
+}

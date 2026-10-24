@@ -1,0 +1,40 @@
+{
+ "id": "q0041_cb2_extract_backfill",
+ "title": "CB2: one-off text-free ladder_candidates/ extract from complete captures since 2026-10-11T12:00Z",
+ "family": "creative_batch_2",
+ "priority": 62,
+ "expected_value": "preserves L/X dev inputs before raw captures become deletable, without waiting for the ladder list",
+ "data": [
+  "research_lab/snapshots + rows_ext + book_sweeps present on host"
+ ],
+ "resources": {
+  "mem_mb": 1000,
+  "cpu": 1
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb1_extract.py",
+  "--backfill-from",
+  "2026-10-11T12:00Z",
+  "--tables",
+  "ladder_candidates",
+  "--budget-min",
+  "150",
+  "--disk-cap-gb",
+  "0.25",
+  "--data-dumps-max-gb",
+  "10.5"
+ ],
+ "timeout_s": 10800,
+ "max_retries": 2,
+ "repeat": {
+  "max_runs": 3,
+  "until_log_regex": "\"backfill_complete\": true"
+ },
+ "outputs": [
+  "data-dumps/research_lab/cb2_extract/ladder_candidates/",
+  "data-dumps/research_lab/cb2_extract/manifest.json"
+ ],
+ "next_action": "pass step continues (extractor v2); q0040 ladder list next",
+ "notes": "CREATIVE_BATCH_2.md \u00a74.3/\u00a75. Idempotent by capture_id; CB1 tables untouched; no text read; missing captures counted; refuses while data-dumps > 10.5 GB (flag added vs the doc's argv, which named the guard in notes only); repeat regex matches only a true backfill_complete."
+}

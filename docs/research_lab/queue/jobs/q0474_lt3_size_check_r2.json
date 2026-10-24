@@ -1,0 +1,30 @@
+{
+ "id": "q0474_lt3_size_check_r2",
+ "title": "LT3 binding size check after donor ruling 2 (code 62ef3375 analysis / 2dff0621 reader): 2,000 worlds x 200 draws, seed 20261020; binding scenarios perm_iid, perm_persistent, perm_corr_control, flowperm_iid, flowperm_ar0.6, flowperm_collinear_0.7 (limit 0.058); donor_* reported only",
+ "family": "live_tests_3",
+ "priority": 42,
+ "expected_value": "LIVE_TESTS_3.md 13.13 item 7 size statement on the code to be pinned; gates LT3's pin",
+ "data": [
+  "none (simulation)"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_live_tests3.py",
+  "size-check",
+  "--out",
+  "../data-dumps/research_lab/live_tests3_census/size_check_r2.json"
+ ],
+ "timeout_s": 43200,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests3_census/size_check_r2.json"
+ ],
+ "next_action": "record the rates in LIVE_TESTS_3.md 13.13 and the ledger; any binding scenario failing blocks the pin, with no further redesign (13.13 item 7); on pass: q0472 census-flow results -> freeze review, pin, register",
+ "notes": "PROMOTED 2026-10-20 ~23:50Z (autopilot) after ruling 2 (reviews/LT3_DONOR_GATE_RULING2_2026-10-21.md) and the science-reviewer verification of b43f6e1b (OK to run; its optional label fix applied in e29ead9c, label only). Spec defaults: 2,000 worlds, 200 draws, seed 20261020 (no --worlds/--draws). Estimated 3-5 h on the host (85 min on the Mac; peak ~150 MB); results are written only at the end; the CLI refuses to overwrite --out. max_retries 1 covers infrastructure failures only (host, OOM, timeout), same code and seed; a completed run is never repeated, reseeded or varied. Supersedes q0473b (cancelled, no output used). Counts 0."
+}

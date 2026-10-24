@@ -1,0 +1,91 @@
+{
+ "drops": {
+  "absent_at_q0241_reread": {
+   "h10_brk/frame.csv.gz": {
+    "now_present": false
+   },
+   "h10_dlad/frame.csv.gz": {
+    "now_present": false
+   },
+   "h10_sign/sample.csv.gz": {
+    "now_present": false
+   },
+   "h11_attn/frame.csv.gz": {
+    "n_ids": 812,
+    "now_present": true,
+    "sha256": "fc25e2a954d57df8f2e9e63e3f51fa362b47fd26b8765d5f023fcf18fd1fba9d"
+   },
+   "h11_wprints/markets.csv.gz": {
+    "n_ids": 4788,
+    "now_present": true,
+    "sha256": "45550c390a1927424d3e6779616da05770916d77b4e00e8ca5282905c81a1746"
+   },
+   "h9_flow/sample.csv.gz": {
+    "now_present": false
+   }
+  },
+  "absent_drop_ids": 5569,
+  "absent_drop_ids_without_metadata": 0,
+  "counts": {
+   "DROPPED_ABSENT_AT_Q0241": 365,
+   "DROPPED_SEAL_COPIES": 0,
+   "KEPT": 6632
+  },
+  "disjointness": "verified",
+  "drop_ids": 7219,
+  "drop_ids_without_metadata": 1,
+  "drops_sha256": "54e6b3b4381666f085951167cc4c81ba96def689070e6815840c4f141a890454",
+  "seal_copies_read": [
+   "h5_cb1_SEAL.json",
+   "h5_cb1_ladders_SEAL.json"
+  ],
+  "seal_copies_sha256": {
+   "h5_cb1_SEAL.json": "fbac4c8d2898447555a6e68de0d31fbc9b4efa5aec1fa58d62ce2373685fae85",
+   "h5_cb1_ladders_SEAL.json": "d3e7b335c15ac5917d270f5a0cbb6ded84363408dcc6a54d47f20ba6aed28104"
+  },
+  "seal_copies_skipped": [
+   {
+    "name": "cb11_attn_holdout_SEAL.json",
+    "reason": "not_committed"
+   },
+   {
+    "name": "cb11_pol_holdout_SEAL.json",
+    "reason": "not_committed"
+   },
+   {
+    "name": "cb11_w_hold_SEAL.json",
+    "reason": "no_market_ids"
+   },
+   {
+    "name": "cb11_wprints_holdout_SEAL.json",
+    "reason": "no_market_ids"
+   },
+   {
+    "name": "h6_weather_SEAL.json",
+    "reason": "not_committed"
+   }
+  ]
+ },
+ "family": "say",
+ "fetched_files_rehashed": 14,
+ "files": {
+  "holdout/events.csv.gz": "d3ef8ef971cd18a2701ee6e938c347e40915c0b4e644227e21b349c2186ede68",
+  "holdout/markets.csv.gz": "0a78178fe083c74937321b3e7f2a5450abcacd371dbf1557be6fb86f9f4b931f",
+  "holdout/members.csv.gz": "70ea23a1815ccdc5e4de8a4cbaa391442e4b17670ed507a25bc9ab970bc4b388",
+  "holdout/outcomes_guarded_holdout.csv.gz": "cbf69f823b327906971504822bf9d109859afc5db8dd09369ac9ce0548e09e8e",
+  "holdout/prices.csv.gz": "ebbaaa94ce78c7561bf8f0f1b96e02abdb9ea0ed238eb69975bc1243309bd4d8",
+  "holdout/tx.csv.gz": "fca8a1e22f0aa7461c114a330a7cbfa573b88b38b9cd7bfd250e3e12159db25d"
+ },
+ "git_commit": "a4c2585c58e6d3a4d4b4244f5625d61a9ee44944",
+ "holdout_outcome_file_sha256": {
+  "outcomes_guarded_holdout.csv.gz": "cbf69f823b327906971504822bf9d109859afc5db8dd09369ac9ce0548e09e8e"
+ },
+ "listing_sha256": "586cf35cb44a621ea92401620b78e8531f3fb16b8a5cebcdea1d556f93ffbf36",
+ "n_holdout_files": 6,
+ "n_holdout_markets": 6997,
+ "read_rules": "verify the listing hash and the outcome-file hash first; append every read to ACCESS_LOG.jsonl; holdout/ is not opened before the family's Stage-1 test advanced and its result is committed; markets in DROPPED_* rows of drops.csv.gz are never analysed; the census reads HOLDOUT counts only",
+ "rules_sha256": "a2e420b031421642b97398ff284e2e2a9364b92004969b4421d5daa7c0910455",
+ "run_id": "h12_say",
+ "seal_version": "cb12-say-holdout-seal-v1",
+ "sealed_utc": "2026-10-20T12:12:37Z"
+}

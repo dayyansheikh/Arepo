@@ -1,0 +1,29 @@
+{
+ "id": "q0032_j4_regime_diag",
+ "title": "SB2-J4 regime-toggle diagnostic: P1-P4 pooled / market FE / h,j tight, with placebo (engineering check, no trials)",
+ "family": "microstructure",
+ "priority": 74,
+ "expected_value": "tests the selection mechanism behind the between-market J4 slope (origin-only eligibility, wide-spread h/j states); informs the corrected-null re-read and J3/J5/HB1 reversal readings",
+ "data": [
+  "research_lab/snapshots + book_sweeps, same captures as q0006 (until 2026-10-15T21:00Z)"
+ ],
+ "resources": {
+  "mem_mb": 1500,
+  "cpu": 1
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/diag_bounce_regime.py",
+  "--out",
+  "../data-dumps/research_lab/bounce_decomp/diag_regime_q0032.json",
+  "--until-utc",
+  "2026-10-15T21:00:00Z"
+ ],
+ "timeout_s": 5400,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/bounce_decomp/diag_regime_q0032.json"
+ ],
+ "next_action": "write up in SCREENING_BATCH_2.md J4; send diagnosis + corrected-null re-read plan to science-reviewer (one round)",
+ "notes": "plain OLS point estimates only; logs no trials; refuses to overwrite"
+}

@@ -1,0 +1,35 @@
+{
+ "id": "q0170_cb8_screen_B",
+ "title": "CB8-B: B1 Stage 1 on SCREEN weeks (recorded-ask net, day-unit tail gate (required mean margin = q_U: about 7.4c at 60 traded days with no losing day, Erratum E1), disagreement units kept with the Gamma outcome, break-even placebo, certainty attribution, binding robustness)",
+ "family": "creative_batch_8",
+ "priority": 38,
+ "expected_value": "CH76 screen",
+ "data": [
+  "data-dumps/research_lab/creative_batch8/updown/screen + guarded outcomes and settlement candles (after the freeze)"
+ ],
+ "resources": {
+  "mem_mb": 800,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0169_cb8_census_BW"
+ ],
+ "argv": [
+  "scripts/run_cb8.py",
+  "screen",
+  "--family",
+  "B",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch8/results_B1.json (write-once)",
+  "docs/research_lab/seals/cb8_b1_stage1.json (byte copy; commit it)",
+  "trials.jsonl (cb8_test + placebo + cb8_descriptive + ml_explain creative_batch_8:B)"
+ ],
+ "next_action": "commit results_B1 copy (seals/cb8_b1_stage1.json); q0174 only if B1 advanced",
+ "notes": "CREATIVE_BATCH_8.md CB8-B and 'B analysis implementation notes (2026-10-17)'. DRAFT. Commit after the CB8 freeze: refuses (exit 2) without a committed backend/astrolabe/research_lab/model_specs/cb8_v1.json carrying b_analysis_rules_sha256 and b_data_rules_sha256, without census_B.json, or if results exist. GB / audit / disjointness / source-check fail -> not testable, p = 1, counted. Exit 75 on headroom (cap 14). | 2026-10-17 15:35Z autopilot: data-dumps headroom guard 14 -> 40 GiB (ops only, not a declared argument): the user grew the host boot volume to 100 GB (root 89 GB, 60 GB free); collector cap 45 GiB, 4 GB free-disk guard unchanged."
+}

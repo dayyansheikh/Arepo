@@ -1,0 +1,22 @@
+{
+ "id": "q0039_cb2_freezecheck_gate",
+ "title": "Gate: CB2 code freeze-check fix 1 landed (grouper seal binds code; e745f87b) \u2014 releases q0040",
+ "family": "creative_batch_2",
+ "priority": 63,
+ "expected_value": "releases q0040 only after the grouper hash binds the applying code",
+ "data": [],
+ "resources": {
+  "mem_mb": 200,
+  "cpu": 1
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/cb1_h5.py",
+  "selfcheck"
+ ],
+ "timeout_s": 600,
+ "max_retries": 1,
+ "outputs": [],
+ "next_action": "q0040 runs",
+ "notes": "Created by the coordinator after verifying seals/cb2_grouper_rule.json == cb2_structural.GROUPER_RULE_SHA256 (e745f87b\u2026) and 156 tests passing (779a63d, ad52d5e). Same trivial argv as q0033."
+}

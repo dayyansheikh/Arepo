@@ -1,0 +1,41 @@
+{
+ "id": "q0160b_cb8_holders_smoke_v2",
+ "title": "CB8-H smoke v2: market OI from the Data API /oi for EVERY base-frame market (batches of 60, frame time t_f per batch, strictly before the first /holders request), 20 live markets from the OI >= 1,000 frame: /holders HTTP, token grouping, outcomeIndex, numeric amount, proxyWallet present and hashed in memory, rows per token <= 20, response time; /oi value, single-market event OI and sum-top-20 ratios (OI units); /oi source share <= 2 %; strict-key fingerprint; deep-offset paging probe; realised frame and stratum sizes vs 1,500 + 300; counts only",
+ "family": "creative_batch_8",
+ "priority": 55,
+ "expected_value": "source check before the prospective CH70 collection (smoke v1 FAILed on an empty frame: Gamma never carries market openInterest)",
+ "data": [
+  "latest complete capture (frame fields + sidecar event_open_interest)",
+  "public Data API /oi (about 4,600 requests of 60 condition ids)",
+  "public Data API /holders (20 requests) and /trades (2 paging probes)",
+  "docs/research_lab/seals/cb8_holders_rules_v3.json (hash-checked; rules_sha256 b6ac7f7f...)"
+ ],
+ "resources": {
+  "mem_mb": 700,
+  "cpu": 1,
+  "network": "data-api",
+  "lane": "net"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb8.py",
+  "holders-smoke",
+  "--rules",
+  "../docs/research_lab/seals/cb8_holders_rules_v3.json",
+  "--seed",
+  "arepo-cb8-hsmoke-v2",
+  "--n",
+  "20",
+  "--rps",
+  "2",
+  "--oi-rps",
+  "4"
+ ],
+ "timeout_s": 5400,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch8/holders_smoke_v2.json (WRITE-ONCE; the v1 holders_smoke.json FAIL is never overwritten)"
+ ],
+ "next_action": "PASS (a, b, f, h): collector freeze check, then promote q0162/q0163 (they pin the v3 rules hash and this v2 PASS). FAIL of (a) or (b) [or h]: H is 'not run (source)', counted; no smoke v3",
+ "notes": "CREATIVE_BATCH_8.md 'H v2 (2026-10-17)'; SMOKE_DIAGNOSIS_2026-10-17_CB7_CB8H.md sections 2 and 4. DRAFT. Reviewer ACCEPT_WITH_CHANGES (items 5-9 applied). v1 (q0160) FAILed with an empty frame because the sidecar open_interest is blank in all 280,175 rows. v2 changes only the OI source: base frame = binary, open, accepting orders (capture-time), not weather, not crypto Up/Down; market OI from /oi?market=<cid1>,<cid2>,... (60 ids per request) fetched at frame-build time t_f (reply time, per batch, max asserted < the first /holders request); OI >= 1,000 and the OI terciles use the /oi value at t_f. Mixed clocks disclosed: accepting/closed/event OI at capture time, /oi at t_f (hours later); c uses OI at t_f, not at h. Missing states oi_lookup_failed / oi_absent / oi_nonnumeric are dropped and counted, never imputed; per-batch assertion that returned ids were sent (identity, no duplicates, count); more than 2 % of base-frame markets missing -> criterion h FAIL (written; the smoke is write-once). A network failure after retries writes nothing and exits 75. Criterion (e) records the /oi value, event OI for single-market events and the sum-top-20 ratios; threshold units are 'units unverified' unless /oi and single-market event OI agree (band 0.25) and sum top-20 <= 1.05 OI in at least half the picks. The output also discloses the realised frame and stratum sizes against the 1,500 + 300 sample. Cost: about 4,550 /oi requests (about 19 min at 4 rps) + ~20 /holders + 2 paging requests; timeout 5400 (the limiter enforces a minimum gap between request starts but does not offset reply time, and yields to the live collector; ~4,550 /oi requests at ~0.6 s per reply take ~45 min before any yielding). mem 700 (273k-market base frame about 0.3 GB measured on a synthetic frame; the sidecar is also held while reading). Seed arepo-cb8-hsmoke-v2. A timeout or exit 75 writes nothing, is NOT a v2 FAIL (the smoke cannot resume) and may be re-queued under a new id; the no-smoke-v3 rule is unchanged (only a written FAIL of a, b or h counts). Rules: v3 file b6ac7f7f... (v2 file 30e7f7f0... was superseded before any job ran: day_rolled guard in the snapshot); the output name/version cb8-holders-smoke-v2 is kept and binds to the v3 rules hash. Exit 2 if holders_smoke_v2.json exists, on a rules-hash mismatch or on a key/fingerprint problem; v1 smoke results are never accepted."
+}

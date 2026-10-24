@@ -1,0 +1,36 @@
+{
+ "id": "q0150_cb7_screen_X",
+ "title": "CB7-X: Stage-1 X1 on C1 non-sports pairs with new prints (skipped-fill maker mark-out at 1 h; time-shift and wrong-side placebos; route gate; latency and alternative-mark robustness)",
+ "family": "creative_batch_7",
+ "priority": 38,
+ "expected_value": "whether CH73 advances to the fresh-pair Stage 2",
+ "data": [
+  "cross_venue series + matches (C1 rule set, read-only)",
+  "creative_batch7/xv_prints",
+  "model_specs/cb7_v1.json"
+ ],
+ "resources": {
+  "mem_mb": 1500,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0147_cb7_census"
+ ],
+ "argv": [
+  "scripts/run_cb7.py",
+  "screen",
+  "--family",
+  "X",
+  "--n-boot",
+  "2000"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch7/X_screen/results.json",
+  "trials.jsonl (1 cb7_test + count line + placebos + descriptive)"
+ ],
+ "next_action": "if X1 advanced: commit q0153 at T7_X_list (>= 2026-11-03T06:00Z)",
+ "notes": "CREATIVE_BATCH_7.md CB7-X. DRAFT. Commit after the CB7 freeze. Labelled 'worn pairs, new prints, L1 at most'. Never opens cross_venue_live/. Exits 0 'not testable' if GX failed."
+}

@@ -1,0 +1,49 @@
+{
+ "id": "q0643_lt9_census_captures",
+ "title": "LT9 census CC9 (DRAFT): CH213 (the band break) and CH212 (the omission) on the sealed captures of 2026-11-02T00:31Z..11-11T22:31Z (120 origins; 12-slot look-back) and their reward_params captures: counts only, origin-side fields only, streaming per capture with the 12-slot carry window, twins through the lag-slot loader (flags / statuses only), no target, no P&L; refuses unsealed or mismatched inputs",
+ "family": "live_tests_9",
+ "priority": 51,
+ "expected_value": "CC9 gates (LIVE_TESTS_9.md 7) of CH213 (units, breaks >= 70 a capture per panel, control band coverage, VIF, MDE and binding F-MDE <= 1.0c) and CH212 (route rule A / B / neither, switching markets, units, MDE <= the route's floor); ch212.route",
+ "data": [
+  "sealed host originals and restore trees (read-only, under the seal)"
+ ],
+ "resources": {
+  "mem_mb": 1500,
+  "as_cap_mb": 4500,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none",
+  "exclusive": true
+ },
+ "depends_on": [
+  "q0642_lt9_census_feed"
+ ],
+ "not_before": "2026-11-12T06:00:00Z",
+ "argv": [
+  "scripts/run_live_tests9.py",
+  "census-captures",
+  "--seal",
+  "../docs/research_lab/seals/lt9_census_inputs.json",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests9_census/restore/data-dumps/research_lab/snapshots",
+  "--feed-root",
+  "../data-dumps/research_lab/reward_params",
+  "--feed-root",
+  "../data-dumps/research_lab/live_tests9_census/restore/data-dumps/research_lab/reward_params",
+  "--work",
+  "../data-dumps/research_lab/live_tests9_census/work_captures",
+  "--data-dumps-cap-gb",
+  "40",
+  "--out",
+  "../data-dumps/research_lab/live_tests9_census/CC9.json"
+ ],
+ "timeout_s": 14400,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests9_census/CC9.json (counts only; the work dir is cleaned up at exit)"
+ ],
+ "next_action": "commit CC9.json and its sha256; fill census_fixed (exclude_family), ch212.route and k_tests; record any drop in LIVE_TESTS_9.md 6.3 and the ledger",
+ "notes": "mem_mb 1500 is the design's ESTIMATE (two carried series frames, the 12-slot carry texts, a 13-slot mid store and the accumulated unit frames of two tests over 120 origins, about 1-2 million candidate rows); NOT measured on the sealed inputs (each census runs once): measure on synthetic data or load-only, or accept the estimate. Exclusive. Exits 75 when data-dumps is above 40 GiB. BLAS threads are set to 1 by the runner. DRAFT, not in queue/jobs. Promote only after: the design-text freeze (LIVE_TESTS_9.md design text frozen at sha256 098aa3fb5f6765f08dcad3f85ad63ec70e29df65249413608f0f7ad5fd505b77 (6b78ba90)), the LT9 code phase 1 and the science-reviewer freeze check of the census and size-check code against LIVE_TESTS_9.md sections 1.4.1, 1.8, 1.8.1 and 7 (8.4 step 3), and never while an LT7 or LT8 census, size-check or analysis job runs (memory-heavy-jobs rule). Counts 0 (descriptive; no trials line). Reads the DRAFT spec unpinned; the code_sha256 of every hashed module is written into the output. Every gate threshold is stated in section 7 before this runs; nothing is re-tuned after it. Each census runs once; max_retries 1 covers a deterministic crash only (no output written)."
+}

@@ -1,0 +1,3705 @@
+{
+  "accepted_panel": false,
+  "artifacts": [
+    {
+      "bytes": 93872,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/diagnostic_report.json",
+      "sha256": "b0211116b6a0335d1f4a64b483ae05ba966aed6c4f7dde7446d8c9cde9839e11"
+    },
+    {
+      "bytes": 3750,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_case_0/book_facts.json",
+      "sha256": "d6be811b9023da1c9e6d998932fa5e5927bed63dc89dee6935fbbb5187f7f6cc"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_case_0/book_facts_ack.json",
+      "sha256": "9737519fdedb1031c1888cf06f28baa276755eeef21d84f24afeb2c8ecd9d9da"
+    },
+    {
+      "bytes": 6887,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_case_0/book_policy.json",
+      "sha256": "b44f07c41ab193b40f9e9fa838604c02baba56c28f4ac0ceff58ea5ece1b1c62"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_case_0/book_policy_ack.json",
+      "sha256": "b22dfa15d0fcd646109ea245f722ae0131f85107d293837fa4afe0acce5cb37d"
+    },
+    {
+      "bytes": 26253,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_case_0/fs2_input_read_source/read_facts.json",
+      "sha256": "65a95d42d72e33d06c82583735bc295ae616c4c0e9122de2739b40251bf0c33a"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_case_0/fs2_input_read_source/read_facts_ack.json",
+      "sha256": "635615557ddb7aa5579b1a560871e9ce5d0b4d0a7f9be8d5fa4f14eab226b885"
+    },
+    {
+      "bytes": 6455,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_case_0/fs2_input_read_source/read_policy.json",
+      "sha256": "c3a89edb4a7efac06286dcc1bd96a6e5cf44804c181a280d880e7f2816a9160b"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_case_0/fs2_input_read_source/read_policy_ack.json",
+      "sha256": "c831772ed0ffcc70ade8383542b38a788ddc005c0e79f4ed58f85c5b16f53e02"
+    },
+    {
+      "bytes": 3750,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_case_1/book_facts.json",
+      "sha256": "752d134910323b8be41732612695ebb79912a0b4f6e94237cc2a4e35a86334ef"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_case_1/book_facts_ack.json",
+      "sha256": "2fed9d3ae4be79be25f19f4a8ffbd7be3ab082f99658e88ad14d821221157541"
+    },
+    {
+      "bytes": 6887,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_case_1/book_policy.json",
+      "sha256": "f8efe1703cdfcf2d21a16deaf848d01b448a3436ad879e91c51c6db3984bb10c"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_case_1/book_policy_ack.json",
+      "sha256": "6d2631b88700032f3911b34aaca2547c22b1d0f3eafb25c6eddb7d9b82a1b220"
+    },
+    {
+      "bytes": 26200,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_case_1/fs2_input_read_source/read_facts.json",
+      "sha256": "2ffcbb454703309bf88b0447adfe381316f8cc7547c7dd6ac2e5cf1d43e07e3b"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_case_1/fs2_input_read_source/read_facts_ack.json",
+      "sha256": "f40d24d687ff433bbf4117a9936fb0d2e5eac8c62dbf7132a31cf05674bad70e"
+    },
+    {
+      "bytes": 6455,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_case_1/fs2_input_read_source/read_policy.json",
+      "sha256": "9948804dd58735849812bbab591d8ff16a130e3f10b85ae3da0fbc9dfd4f94ab"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_case_1/fs2_input_read_source/read_policy_ack.json",
+      "sha256": "21118f146e125ebbb4915c675d55a7dc86573defd2f02bd3a1ad7c8e327fdc18"
+    },
+    {
+      "bytes": 11122,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_case_2/book_facts.json",
+      "sha256": "a62a0bccadab328b6964da061a4237df8a027142f665f3bb1c485608b6bff99f"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_case_2/book_facts_ack.json",
+      "sha256": "65133b8698761eb905c9a871a920687ee5c82e298c0a5de0403b2dd06898ca9f"
+    },
+    {
+      "bytes": 6887,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_case_2/book_policy.json",
+      "sha256": "491674fd372a3d7bb0afa9cd8132854710bbc37a6ec512edef2acffbc92a6a1d"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_case_2/book_policy_ack.json",
+      "sha256": "db1ad3385fc9652a85000ee7afde25856fe8ca9f7360028789731ef02e1801b5"
+    },
+    {
+      "bytes": 29608,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_case_2/fs2_input_read_source/read_facts.json",
+      "sha256": "199136e6b698a87fe99583cadc65cff5c61c31fea6d9a46434302862f7f58f21"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_case_2/fs2_input_read_source/read_facts_ack.json",
+      "sha256": "0cdd05948c7f808df8098cdaada477a084edd63898384a808cbcba2e268eac73"
+    },
+    {
+      "bytes": 6455,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_case_2/fs2_input_read_source/read_policy.json",
+      "sha256": "78bb7bf63bcc90d9a56194690de2be6ee2034d4ad76ba3a20eec599d231e39dd"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_case_2/fs2_input_read_source/read_policy_ack.json",
+      "sha256": "a90e0f79138d3e286affde6a0c935fd0731f702e11f92826b9c43b9b1bd02f0e"
+    },
+    {
+      "bytes": 4783,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_read_case_0/original_report.json",
+      "sha256": "fb5aca99edc176b76e1fbf7b42236832ba202af82234aea91d8629de6cf4a34e"
+    },
+    {
+      "bytes": 18266,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_read_case_0/read_policy.json",
+      "sha256": "98493216664ebf4898c08da558f9a20db66eb3a1d0fd3ac6e24202c7320d73d0"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_read_case_0/read_policy_ack.json",
+      "sha256": "5f1e87d6e8c4344d9da28f8d26669411d7a5720195f24a1b59430ab351493f48"
+    },
+    {
+      "bytes": 939,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_read_case_0/read_receipt.json",
+      "sha256": "e21a29d8989bf8959fb7c4486b4232df31487eb7fd11c400a3626748c26e2938"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_read_case_0/read_receipt_ack.json",
+      "sha256": "5887c24a24839dc6cae3c27d0e194880cdec1de6bcbfd1514b2783a943b3112b"
+    },
+    {
+      "bytes": 4783,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_read_case_1/original_report.json",
+      "sha256": "2c3ec76a662297b1c9b756d933193685c18bae020ad20fbb5e5c8fa959f05aaa"
+    },
+    {
+      "bytes": 18266,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_read_case_1/read_policy.json",
+      "sha256": "11216803ada9e37b68c613bf60960c793c5dd10f2b673fe026c3406000dc2bc5"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_read_case_1/read_policy_ack.json",
+      "sha256": "8ccbce826cdbacb952cf2c3860e86bd5a1dec06d0ef1afde7b85ad1f8cb0eb16"
+    },
+    {
+      "bytes": 939,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_read_case_1/read_receipt.json",
+      "sha256": "e1b6275f93e8ec4ad70ac80d86a03e4e0e1ba77460e6c96e5ad2708b9c976bf7"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_read_case_1/read_receipt_ack.json",
+      "sha256": "c9a8780000cae47e43fc173c95286cd98bcd932b9bbf784b39986b22b10b3fbf"
+    },
+    {
+      "bytes": 12168,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_read_case_2/original_report.json",
+      "sha256": "cde2a504e11c43f6ed75995a848d4762efa65705248bb4b44dff8d964979a281"
+    },
+    {
+      "bytes": 18266,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_read_case_2/read_policy.json",
+      "sha256": "8c100889fe900d24b1af5861a5af3c095d16f24634b091dc9b4c369ab7033456"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_read_case_2/read_policy_ack.json",
+      "sha256": "44a32378f796a7c6ce110acf24ffca799b7f0877d25c47389353d3f12c62f797"
+    },
+    {
+      "bytes": 940,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_read_case_2/read_receipt.json",
+      "sha256": "dde123cf7520a37919b0e17384a87e82e57027d824f080cf77ec1bf91423d02b"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_read_case_2/read_receipt_ack.json",
+      "sha256": "777dfff6cc6eda8d075069abe25d5913f41d8c96795948a460f05c7c7ee7983d"
+    },
+    {
+      "bytes": 563,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_0/7d5319a8-58d2-46e1-86e6-db4fe8c7c27b/admission.json",
+      "sha256": "fcc6a1f37ad1d435172938525fa51a666bca7fe68632b9333c754ea3e3741934"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_0/7d5319a8-58d2-46e1-86e6-db4fe8c7c27b/admission_ack.json",
+      "sha256": "78f1817249c375937ffc831ab9eab0359aa9fdd3cdb047c026a9aa381ef17844"
+    },
+    {
+      "bytes": 388,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_0/7d5319a8-58d2-46e1-86e6-db4fe8c7c27b/parsed.json",
+      "sha256": "94e349b9dbbd0e22ccf9aa8a1b170e228741563807870d5c2e61f51b67e2bf18"
+    },
+    {
+      "bytes": 308,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_0/7d5319a8-58d2-46e1-86e6-db4fe8c7c27b/parsed_ack.json",
+      "sha256": "a49845f1bddb53ef1a3fdeb84d4f22c6a7e1324c105c30ca976ca0897e612282"
+    },
+    {
+      "bytes": 59,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_0/7d5319a8-58d2-46e1-86e6-db4fe8c7c27b/raw.bin",
+      "sha256": "db4e9a718fd2ff3d1b0075604fb6e2d7208d53ce17e76e47a7e19f9649e35a96"
+    },
+    {
+      "bytes": 305,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_0/7d5319a8-58d2-46e1-86e6-db4fe8c7c27b/raw_ack.json",
+      "sha256": "1a03e35dac25ebe433c760618850f65cd612784ec4293ac529f01462a9d2fec9"
+    },
+    {
+      "bytes": 1805,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_0/7d5319a8-58d2-46e1-86e6-db4fe8c7c27b/receipt.json",
+      "sha256": "f8489fae619b3455c3588a3d7149a120718df58bd64a87c2525adababba38371"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_0/7d5319a8-58d2-46e1-86e6-db4fe8c7c27b/source_parse_9ebc0600c3f2a8643345f936b4ba8c4a936a687dc0db556e653aa5ea2e320918_0b18aaab31f729c495247e65ccfee0b8a4000fd3d3b1f5b6f75f5aa6cbd6b0b6/ack.json",
+      "sha256": "f3f8e17907b6b4e0a81e3dd0661edebea61c4a38f495304015ed6d2031683c3d"
+    },
+    {
+      "bytes": 993,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_0/7d5319a8-58d2-46e1-86e6-db4fe8c7c27b/source_parse_9ebc0600c3f2a8643345f936b4ba8c4a936a687dc0db556e653aa5ea2e320918_0b18aaab31f729c495247e65ccfee0b8a4000fd3d3b1f5b6f75f5aa6cbd6b0b6/source.json",
+      "sha256": "fca2a7e86fe062742ac02da5b934d170be8036d8fde8c5333a88d7c30af59e0d"
+    },
+    {
+      "bytes": 563,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_0/dfa48e6a-1f34-45bc-911c-6022f7b9c635/admission.json",
+      "sha256": "f4211c34f1974aaed70c9c7717d2010f49f20ea85f7ec450bb0e6fdbe166f454"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_0/dfa48e6a-1f34-45bc-911c-6022f7b9c635/admission_ack.json",
+      "sha256": "63213071d32de5f6f97446940599808674abde2c3748de68e70951c2d69c9d0f"
+    },
+    {
+      "bytes": 4793,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_0/dfa48e6a-1f34-45bc-911c-6022f7b9c635/parsed.json",
+      "sha256": "fb682ad61b4f0037388dfe823c60ba15719151bc7f5af75bec8f848f70b764d5"
+    },
+    {
+      "bytes": 308,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_0/dfa48e6a-1f34-45bc-911c-6022f7b9c635/parsed_ack.json",
+      "sha256": "8aef8bff19804cc069e159d1343d988d10585645a49ad913f40d99309e355059"
+    },
+    {
+      "bytes": 4274,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_0/dfa48e6a-1f34-45bc-911c-6022f7b9c635/raw.bin",
+      "sha256": "20d0d0fba0411c617a8ce8f252e2a703c137b70b67c46cdee740a544b594384c"
+    },
+    {
+      "bytes": 305,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_0/dfa48e6a-1f34-45bc-911c-6022f7b9c635/raw_ack.json",
+      "sha256": "a485dc36861a16c47260a72abc00640852975c9757480dcaa9974af64c6bd036"
+    },
+    {
+      "bytes": 1801,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_0/dfa48e6a-1f34-45bc-911c-6022f7b9c635/receipt.json",
+      "sha256": "4ef8cc5adf167b861a2e20aae70fe2a86162de1b9c593b05b96f98c2531f27a0"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_0/dfa48e6a-1f34-45bc-911c-6022f7b9c635/source_parse_aa6a1639cbb92fb5b7b39e775da9fc01e15038a549285631da03fd9b9dda44b3_0b18aaab31f729c495247e65ccfee0b8a4000fd3d3b1f5b6f75f5aa6cbd6b0b6/ack.json",
+      "sha256": "192926ecd0de8613b72bc160b1217005b1753184eeb2142950a2aa45328ff85f"
+    },
+    {
+      "bytes": 3479,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_0/dfa48e6a-1f34-45bc-911c-6022f7b9c635/source_parse_aa6a1639cbb92fb5b7b39e775da9fc01e15038a549285631da03fd9b9dda44b3_0b18aaab31f729c495247e65ccfee0b8a4000fd3d3b1f5b6f75f5aa6cbd6b0b6/source.json",
+      "sha256": "11cf7cfde1bea79d2de385d32e10b4c271eb2a1552150939ad534d7de68fc319"
+    },
+    {
+      "bytes": 4337,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_0/run.json",
+      "sha256": "97379412568cd90db803194da5b7b20c843781773cd690406a263d380bc547c3"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_0/run_ack.json",
+      "sha256": "efa7a4a73f55b63841522da2fad19e732ce55be4807c6ac9063627c4cc46a487"
+    },
+    {
+      "bytes": 376,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_0/session.json",
+      "sha256": "fcf92d476f2f4c00ef92bacef2863993aa56dcc71ed629dd4008d6796a0fa59d"
+    },
+    {
+      "bytes": 563,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_1/6f1095ed-86f4-455d-962d-ea87ec4e3037/admission.json",
+      "sha256": "9a02935b75523c929473884651951e9b60c5f134fae852b520adfe43fc052133"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_1/6f1095ed-86f4-455d-962d-ea87ec4e3037/admission_ack.json",
+      "sha256": "b9e386bab3463c50e82dae5c7e0dd82361312c73f624737774a68102e414480a"
+    },
+    {
+      "bytes": 388,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_1/6f1095ed-86f4-455d-962d-ea87ec4e3037/parsed.json",
+      "sha256": "918fe2a8185f2835a7550db3d085ab0fc355b7dbdd354c905358c8bbdd51cb5d"
+    },
+    {
+      "bytes": 308,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_1/6f1095ed-86f4-455d-962d-ea87ec4e3037/parsed_ack.json",
+      "sha256": "9ae1ac81003cbd3f7a17f5ded2f4aabdb69c83cd18e7996dfba8ac6cb0f57b5e"
+    },
+    {
+      "bytes": 59,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_1/6f1095ed-86f4-455d-962d-ea87ec4e3037/raw.bin",
+      "sha256": "db4e9a718fd2ff3d1b0075604fb6e2d7208d53ce17e76e47a7e19f9649e35a96"
+    },
+    {
+      "bytes": 305,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_1/6f1095ed-86f4-455d-962d-ea87ec4e3037/raw_ack.json",
+      "sha256": "cbb8115662a26002183b999e1349bb6106f6f3c43889160e6474ee28b2f9b0a4"
+    },
+    {
+      "bytes": 1804,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_1/6f1095ed-86f4-455d-962d-ea87ec4e3037/receipt.json",
+      "sha256": "887d1756c0030d28a78227c9bfe46dfcd03f181760fb591acc33734519ae2e64"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_1/6f1095ed-86f4-455d-962d-ea87ec4e3037/source_parse_9ebc0600c3f2a8643345f936b4ba8c4a936a687dc0db556e653aa5ea2e320918_0b18aaab31f729c495247e65ccfee0b8a4000fd3d3b1f5b6f75f5aa6cbd6b0b6/ack.json",
+      "sha256": "d4b1a348720d698502880f2de4c5ec10a08af5a4c43dc11aa0c19e7bdf0a0220"
+    },
+    {
+      "bytes": 993,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_1/6f1095ed-86f4-455d-962d-ea87ec4e3037/source_parse_9ebc0600c3f2a8643345f936b4ba8c4a936a687dc0db556e653aa5ea2e320918_0b18aaab31f729c495247e65ccfee0b8a4000fd3d3b1f5b6f75f5aa6cbd6b0b6/source.json",
+      "sha256": "2a5fa91cc06d92b5cc97e5c5ed3043fc21a814cd3e9531a6dac010e13439b6a4"
+    },
+    {
+      "bytes": 563,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_1/6f730d80-507c-450e-b235-db6c93a6412f/admission.json",
+      "sha256": "ec3e03bd6997a368f87d468ebd819e9f2bdd0116f66c01e82884a0a1bdd13391"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_1/6f730d80-507c-450e-b235-db6c93a6412f/admission_ack.json",
+      "sha256": "ec8a4de02910cdad1e460ad26b393f31a122fd0aac4d4a186e3e81f77f26a5ea"
+    },
+    {
+      "bytes": 4754,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_1/6f730d80-507c-450e-b235-db6c93a6412f/parsed.json",
+      "sha256": "2f7d97f351f9597fdb61391547a1414e55bd0da7fbe153e8c98de76e81fdf6d4"
+    },
+    {
+      "bytes": 308,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_1/6f730d80-507c-450e-b235-db6c93a6412f/parsed_ack.json",
+      "sha256": "54da06ac0f9a51a2579c6140825999b7c535cf9981c40c9f8929053fe2b0d61f"
+    },
+    {
+      "bytes": 4235,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_1/6f730d80-507c-450e-b235-db6c93a6412f/raw.bin",
+      "sha256": "453656c3339ec4ac6c602f9a2fb4c13cf2538b02e4f68361619826e49cf038fd"
+    },
+    {
+      "bytes": 305,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_1/6f730d80-507c-450e-b235-db6c93a6412f/raw_ack.json",
+      "sha256": "34e377de048c220a7f63ac95a698b316f1ef98afe10ea482d642accf08d53905"
+    },
+    {
+      "bytes": 1801,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_1/6f730d80-507c-450e-b235-db6c93a6412f/receipt.json",
+      "sha256": "357c9369227b143356adc58ec6a82ce31561649353816bdbd70691df2c74e51d"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_1/6f730d80-507c-450e-b235-db6c93a6412f/source_parse_aa6a1639cbb92fb5b7b39e775da9fc01e15038a549285631da03fd9b9dda44b3_0b18aaab31f729c495247e65ccfee0b8a4000fd3d3b1f5b6f75f5aa6cbd6b0b6/ack.json",
+      "sha256": "7c3a00f14bb344f800e3918b82ff497ec09815b7acdb33a8b7db720390a60bfe"
+    },
+    {
+      "bytes": 3408,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_1/6f730d80-507c-450e-b235-db6c93a6412f/source_parse_aa6a1639cbb92fb5b7b39e775da9fc01e15038a549285631da03fd9b9dda44b3_0b18aaab31f729c495247e65ccfee0b8a4000fd3d3b1f5b6f75f5aa6cbd6b0b6/source.json",
+      "sha256": "84c4e67cdaa54441dc576190e93b452ebfd01545584b2fe49b02876ff0e669a4"
+    },
+    {
+      "bytes": 4337,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_1/run.json",
+      "sha256": "e4426d273cc763d22be893c84c10a497e44e5f3b5ac54e45134347dcad4a44b8"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_1/run_ack.json",
+      "sha256": "6f92dc1ec90fab1d0dc0286e18ad192352ff06bf3a72b5d4e140fc9387910d38"
+    },
+    {
+      "bytes": 376,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_1/session.json",
+      "sha256": "d68c2fef726e0d9eb7f92dcd289ebb9caa233d3cc949179a10549a0e55f6f1cb"
+    },
+    {
+      "bytes": 563,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_2/88410010-bc1b-4a5d-b076-bf90f05fc3f9/admission.json",
+      "sha256": "99097b027e63f59d28d63490f2dcf13f0c3920d0f43055fa3b8b7fcba4547550"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_2/88410010-bc1b-4a5d-b076-bf90f05fc3f9/admission_ack.json",
+      "sha256": "b0b2c65d521eabe9996295e384c6225ade9d6b82860db3a42bc74e7c9284d0cb"
+    },
+    {
+      "bytes": 2585,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_2/88410010-bc1b-4a5d-b076-bf90f05fc3f9/parsed.json",
+      "sha256": "d3af20f96ae5245e1ba30a23cb80da3abdffb29da4f762cbef4f019330ea1e93"
+    },
+    {
+      "bytes": 308,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_2/88410010-bc1b-4a5d-b076-bf90f05fc3f9/parsed_ack.json",
+      "sha256": "e7fdc9f92e8c9ac2223a2c5ecbf30123ca3394b1936089ebdb9c99ca0d294301"
+    },
+    {
+      "bytes": 2216,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_2/88410010-bc1b-4a5d-b076-bf90f05fc3f9/raw.bin",
+      "sha256": "f327c43012aba22c41ca8bf688e1aea166c5ba4025ed601a74e7e1621fc48bf2"
+    },
+    {
+      "bytes": 305,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_2/88410010-bc1b-4a5d-b076-bf90f05fc3f9/raw_ack.json",
+      "sha256": "b333755de29a7d33f1caa688b772ea5e2ab7fe3728a1e80273d7f4fcb6f24bba"
+    },
+    {
+      "bytes": 1808,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_2/88410010-bc1b-4a5d-b076-bf90f05fc3f9/receipt.json",
+      "sha256": "1c6577b4249c0ae62bcd3d57a0b81c175cdfde71ca78d6c651aa3a6e70badb4e"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_2/88410010-bc1b-4a5d-b076-bf90f05fc3f9/source_parse_9ebc0600c3f2a8643345f936b4ba8c4a936a687dc0db556e653aa5ea2e320918_0b18aaab31f729c495247e65ccfee0b8a4000fd3d3b1f5b6f75f5aa6cbd6b0b6/ack.json",
+      "sha256": "13ec9af207b13ec9f7c04956849d41e9964d42c02235b4fd89c7578a01d96bb4"
+    },
+    {
+      "bytes": 7911,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_2/88410010-bc1b-4a5d-b076-bf90f05fc3f9/source_parse_9ebc0600c3f2a8643345f936b4ba8c4a936a687dc0db556e653aa5ea2e320918_0b18aaab31f729c495247e65ccfee0b8a4000fd3d3b1f5b6f75f5aa6cbd6b0b6/source.json",
+      "sha256": "38a673648f9b5119f260bee430147079cb72c87e6b1b0016e6bb1dca6ecf06bd"
+    },
+    {
+      "bytes": 563,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_2/bff2c044-a6dd-4c79-8503-555e9bb063fa/admission.json",
+      "sha256": "c8463b7d950afd1af83a9dc13818acec512a61b8745cb8162e0d41846674da02"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_2/bff2c044-a6dd-4c79-8503-555e9bb063fa/admission_ack.json",
+      "sha256": "094e17810b332bf79090ddcf8f6d1b67f74bd2c655e4ca13e8f34c7c83410013"
+    },
+    {
+      "bytes": 3894,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_2/bff2c044-a6dd-4c79-8503-555e9bb063fa/parsed.json",
+      "sha256": "dc3c4f7fa719c7c9ab7cade8ab7d223be26dbdca426f2e30f98f30cbd6ea49b1"
+    },
+    {
+      "bytes": 308,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_2/bff2c044-a6dd-4c79-8503-555e9bb063fa/parsed_ack.json",
+      "sha256": "5a1f1e73826afcb03f577f0937dbe9e4c561ac2ce02dcb80cde9146190fc11b3"
+    },
+    {
+      "bytes": 3345,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_2/bff2c044-a6dd-4c79-8503-555e9bb063fa/raw.bin",
+      "sha256": "73ee9cc5681b8a5e9af6b84dbb4bd227b1f1372a278da23ed16f947dcbaee5a2"
+    },
+    {
+      "bytes": 305,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_2/bff2c044-a6dd-4c79-8503-555e9bb063fa/raw_ack.json",
+      "sha256": "66a867d786f46f81e44b4191c326d06e24a68692ede9c9f72115d86f788e8c99"
+    },
+    {
+      "bytes": 1799,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_2/bff2c044-a6dd-4c79-8503-555e9bb063fa/receipt.json",
+      "sha256": "676d4833eff6d5d9eaa532df3f8b527e2269bd8f8c171c1b13411cc4d0d6ed9e"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_2/bff2c044-a6dd-4c79-8503-555e9bb063fa/source_parse_aa6a1639cbb92fb5b7b39e775da9fc01e15038a549285631da03fd9b9dda44b3_0b18aaab31f729c495247e65ccfee0b8a4000fd3d3b1f5b6f75f5aa6cbd6b0b6/ack.json",
+      "sha256": "08bfb7cb6f079309c957f0fb1406457ef2b5123e73f4267708da5d3ab7c7e6a1"
+    },
+    {
+      "bytes": 2570,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_2/bff2c044-a6dd-4c79-8503-555e9bb063fa/source_parse_aa6a1639cbb92fb5b7b39e775da9fc01e15038a549285631da03fd9b9dda44b3_0b18aaab31f729c495247e65ccfee0b8a4000fd3d3b1f5b6f75f5aa6cbd6b0b6/source.json",
+      "sha256": "ac4eb2865a6de64f4308f562cfe48017a5814172e3779c98804296be5ac69a89"
+    },
+    {
+      "bytes": 4337,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_2/run.json",
+      "sha256": "210da088edbef9736f1a5ad70f23d1688a4e76c39371c03a7fa2285f7dd60200"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_2/run_ack.json",
+      "sha256": "9f3f511d97f1b1b33899f7c288a150eda8673bd4cfd1ed34ab05c597d8a60451"
+    },
+    {
+      "bytes": 376,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_2/session.json",
+      "sha256": "464007fa767af32919cfacbbdf9174becd2b57ae15195dce562156c821e454ad"
+    },
+    {
+      "bytes": 9106,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_analysis_case_2/socket_analysis_facts.json",
+      "sha256": "669bac28bbea0aab2ef11a0b399324fea0a4a6512071782c207e1777111b8729"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_analysis_case_2/socket_analysis_facts_ack.json",
+      "sha256": "f454bd20fbb8936b93d407ebee66ce8e760527d92eeaff9593d1b82159d56718"
+    },
+    {
+      "bytes": 10937,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_analysis_case_2/socket_analysis_input.json",
+      "sha256": "1ddea90b974537e18908d5b7d44f42b3ea8b397c0dc3313c9fb4a20ff1c67098"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_analysis_case_2/socket_analysis_input_ack.json",
+      "sha256": "9d380819cdb119fedf9e61b1ac37bba3d70eafe8f61df67113123b525afc53f1"
+    },
+    {
+      "bytes": 6483,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_analysis_case_2/socket_analysis_policy.json",
+      "sha256": "63f14496c7b31263cffc5df44036182b3ef73814722e0e47a4f14ef6b39e0288"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_analysis_case_2/socket_analysis_policy_ack.json",
+      "sha256": "29d7d88dfa6917702f7f67b89009002f2107bfd892139b78100fbbe031a58499"
+    },
+    {
+      "bytes": 10029,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_analysis_read_case_2/original_report.json",
+      "sha256": "acaeccc0fc2d8080dba5c35a1be34f1de577b1f4da0c10860faf7dc175f992c7"
+    },
+    {
+      "bytes": 18261,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_analysis_read_case_2/read_policy.json",
+      "sha256": "fe8f26f34a0073ffceffd70ccd4fdfdba7f135b2b9a20a4534c414e13024e1c7"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_analysis_read_case_2/read_policy_ack.json",
+      "sha256": "9fc610c2c111e03e6dac32ed2d7e5ef4b2c1e9db2001644c8f36aa65e0d290c9"
+    },
+    {
+      "bytes": 938,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_analysis_read_case_2/read_receipt.json",
+      "sha256": "ab046606f32adb004b4b3a88b65eee78ef66d0f3c2452be2533e0c162b407c86"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_analysis_read_case_2/read_receipt_ack.json",
+      "sha256": "9b17f0d45b84e2dcfd239c423ef84d24bad0bdc18956f3a71bececc12a96e904"
+    },
+    {
+      "bytes": 593,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000001.json",
+      "sha256": "551b68983d179ea497e6195421b436861c2af69c8f49a61fb15e8d004e5484ba"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000001_ack.json",
+      "sha256": "3bc842bba41ed8b332c3e37f9e131844f5e45076b7095c0231c0cfc6b5f1b5c2"
+    },
+    {
+      "bytes": 775,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000002.json",
+      "sha256": "79538a9f3aa07dc66980182339831181b90569f4f6c008f62044bbe1d93fb0ba"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000002_ack.json",
+      "sha256": "eaa1620c558395db7b591a580339cc4409594080f2ff76670a0cc7ecd1e3df3e"
+    },
+    {
+      "bytes": 113,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000003.bin",
+      "sha256": "91baf4daee27353678c7f5d5b1fe13bbcf93cc7136c0df2fb29aac231a07ac5c"
+    },
+    {
+      "bytes": 778,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000003.json",
+      "sha256": "c46d479431dddcdf1f3e589d6b5cce339c4a9fc37e750dbafa55892d74a5faf8"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000003_ack.json",
+      "sha256": "2692beb3c63f114bbbc0777e8e6754cbe3be2c44172079f0be7e5bcda5196d86"
+    },
+    {
+      "bytes": 783,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000004.json",
+      "sha256": "3c2491f600d9629ce9f4958d01887594f200d1a0028b0b79d7b5c8ada1cd091d"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000004_ack.json",
+      "sha256": "0b4c8db0f6cfcb03de21b660682cdf439470a07187d1625320d5c6aa97d20884"
+    },
+    {
+      "bytes": 2201,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000005.bin",
+      "sha256": "7a1f86fcc2e509588126947574e0aff80f0c6d231dd5172d3ba46c81e88d11cc"
+    },
+    {
+      "bytes": 769,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000005.json",
+      "sha256": "b5d244d76e4002f86feec63f4efccd61ae097e840abb019b93bd3e9a8ab7ee56"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000005_ack.json",
+      "sha256": "48c885915b4293ac5382c4b8592faca49ccf73d2b255947f3d3555a6e6c7847a"
+    },
+    {
+      "bytes": 4,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000006.bin",
+      "sha256": "906055e56391a9362ff2e354e21a9e0ded69135ecadbea28eabcdf931686acbd"
+    },
+    {
+      "bytes": 766,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000006.json",
+      "sha256": "8cea2b47cd211fbf48d79f98d2754159be43838691d69cc0dd33b45fee320ef0"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000006_ack.json",
+      "sha256": "aa5f9eb79efea8009754e41470f8244dfe39753fac0d48d10f03024bb582ab75"
+    },
+    {
+      "bytes": 775,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000007.json",
+      "sha256": "c74b3531d7db5a22df85c22dbbf3c36f83e1590a01fbe29af364ed58497cb2e9"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000007_ack.json",
+      "sha256": "1d98a555dcdbd64489d77744eef58ceec9cbadb40e31c641f2ef13a51574cad8"
+    },
+    {
+      "bytes": 4,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000008.bin",
+      "sha256": "95784973cc639977bff93619700168505cb8f7855e44fa643d34622a43706c87"
+    },
+    {
+      "bytes": 763,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000008.json",
+      "sha256": "2c149ca6674a834e98f2daaa738fe3a3797f4164b17064e20a908efe67ac59e4"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000008_ack.json",
+      "sha256": "02224e50ac7f0c96bf87415c454e2a4d82ffa89f8be6506ab0dfd755be0a9db4"
+    },
+    {
+      "bytes": 4,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000009.bin",
+      "sha256": "906055e56391a9362ff2e354e21a9e0ded69135ecadbea28eabcdf931686acbd"
+    },
+    {
+      "bytes": 766,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000009.json",
+      "sha256": "670d32939ab40a8a129f9241ea167b4b3bc49b102b33081a671997e32d35a6a8"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000009_ack.json",
+      "sha256": "be97c608d94613a815909c43882f140412592305543ee86ff97badac8c12c8f6"
+    },
+    {
+      "bytes": 776,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000010.json",
+      "sha256": "0aecd6fae73adfe0601a26421c1489aaba006b4720eeefc03dadc4e66a0c5202"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000010_ack.json",
+      "sha256": "80d954e61014565d2a04801c88265972c777674415ee938bd4ecc356fb96e432"
+    },
+    {
+      "bytes": 4,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000011.bin",
+      "sha256": "95784973cc639977bff93619700168505cb8f7855e44fa643d34622a43706c87"
+    },
+    {
+      "bytes": 764,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000011.json",
+      "sha256": "54e8c03fbeaa488c1f2b2b8b34c0ab57b2ee77c926d8ac65a42ad3249c4e9ecb"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000011_ack.json",
+      "sha256": "1ca9a26fd8ada197ebc9dfba89c13000da2e4425ccf9dc29a89f8a9650606d38"
+    },
+    {
+      "bytes": 4,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000012.bin",
+      "sha256": "906055e56391a9362ff2e354e21a9e0ded69135ecadbea28eabcdf931686acbd"
+    },
+    {
+      "bytes": 767,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000012.json",
+      "sha256": "584c42a2971501055ed3733d391748cb735116d2f6740c5365a663da01102260"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000012_ack.json",
+      "sha256": "35ffd76a7d496b5cc2a3404a624ea05d6a031e81788dd04a57e6a1a8940822e6"
+    },
+    {
+      "bytes": 776,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000013.json",
+      "sha256": "5ce14b7da6e91caa218b0bef15b90488ee9abf00d6f75087061d3a2d5b1e709b"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000013_ack.json",
+      "sha256": "2cbb5b8b7f975d9969a499a4a7a2aebb6aa8f470efc601c9c038c4ec6634c339"
+    },
+    {
+      "bytes": 4,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000014.bin",
+      "sha256": "95784973cc639977bff93619700168505cb8f7855e44fa643d34622a43706c87"
+    },
+    {
+      "bytes": 764,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000014.json",
+      "sha256": "3caa74b5bff555db8415f64bb7795cccf6933035e2af53aa06d1a6bf08e46d45"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000014_ack.json",
+      "sha256": "72e7c3a5145a9c0d2a1b96ab1515ca6987bf9fc4216cbc3e03510b54662399ad"
+    },
+    {
+      "bytes": 4,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000015.bin",
+      "sha256": "906055e56391a9362ff2e354e21a9e0ded69135ecadbea28eabcdf931686acbd"
+    },
+    {
+      "bytes": 767,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000015.json",
+      "sha256": "e3ae79e8b30f53b22f040a1489128fa9a389e5ca34b442fc4d022cf458a42122"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000015_ack.json",
+      "sha256": "4d853ff4bcd40b6f08e42c63ebfe30d6d038a4666e8f5b3a8f9b895731644329"
+    },
+    {
+      "bytes": 776,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000016.json",
+      "sha256": "b85e9c5968be977b170df4a41da455f6bb2f28241ed411f869060b4fe7b9a979"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000016_ack.json",
+      "sha256": "f986e3ff675f06fd3f250520d75cdfcddfd81c126bf6069b76f1ffb81be307a0"
+    },
+    {
+      "bytes": 4,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000017.bin",
+      "sha256": "95784973cc639977bff93619700168505cb8f7855e44fa643d34622a43706c87"
+    },
+    {
+      "bytes": 764,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000017.json",
+      "sha256": "a10fbcf581cc64837817ee5464b4b7cd575adfba3e0e46b599ee7802784dd1bd"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000017_ack.json",
+      "sha256": "b8a6aa61fdd7b6e19a9051c2e8ab25ebf18de0abda603b9674a7845d393e36e7"
+    },
+    {
+      "bytes": 4,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000018.bin",
+      "sha256": "906055e56391a9362ff2e354e21a9e0ded69135ecadbea28eabcdf931686acbd"
+    },
+    {
+      "bytes": 767,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000018.json",
+      "sha256": "2f1cd93cffec4dc141668927a48ff7c07c65cbd65982dc15a7ac3c2d9a47f8cd"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000018_ack.json",
+      "sha256": "212374cc9da0557a2eabdd8e7ef9a554d59c9f15fa6a35c79296cd64751ae01d"
+    },
+    {
+      "bytes": 776,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000019.json",
+      "sha256": "d943d6e8666a3ecf5167bf3de4a7f14d9a465f477adc445edb5ca7bded5ae3e7"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000019_ack.json",
+      "sha256": "0370ad0691bd9c705a01ac318d998e8d992816fcb212894c34a61d74e29213a3"
+    },
+    {
+      "bytes": 4,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000020.bin",
+      "sha256": "95784973cc639977bff93619700168505cb8f7855e44fa643d34622a43706c87"
+    },
+    {
+      "bytes": 764,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000020.json",
+      "sha256": "f131e82d6325452158984e456876092bb60ab1a09262070fa94f07df0298460f"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000020_ack.json",
+      "sha256": "ad95c6bfc8bd4a337fbd1ff9333186d680b1f8e39e4c76e9ab50742fbef5cdaa"
+    },
+    {
+      "bytes": 656,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000021.json",
+      "sha256": "18440402f093cd04754d8067190ee3fa042c55896b286837112cc8ee18fd7c5e"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000021_ack.json",
+      "sha256": "9f69336999d5a944966a1de9d821f360cbcc5cad9253dfa72920194b5a197f5c"
+    },
+    {
+      "bytes": 654,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000022.json",
+      "sha256": "39c975c39a8253bbfa6e59d420dd88dcf67b5db316e1df53b4b9c4e3cfa38843"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000022_ack.json",
+      "sha256": "15ad218971f3c5321ab16d65dd9d5a69a727afe4eac68b6ad5419d9f42bb37c5"
+    },
+    {
+      "bytes": 773,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000023.json",
+      "sha256": "faa8c9ca11eb1a7a073f7778873a632b0a068ec2466664e9487a1c51c2ab0d1b"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/event_000023_ack.json",
+      "sha256": "1a4973424d45ed30da99f5a6f966c9044126894cf082012527776d8eb3fbc67d"
+    },
+    {
+      "bytes": 2585,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/socket_window_binding.json",
+      "sha256": "298c6a26de9bdb593b447a0dd78dafa9a961509dfbc6cda5ee533aa931b2cd91"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/socket_window_binding_ack.json",
+      "sha256": "d5354d7411880ef339fd1947eae982507d23071aaad909815c3fc02032ecaca7"
+    },
+    {
+      "bytes": 7396,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/socket_window_policy.json",
+      "sha256": "959eb59377c2bafd18a53482311ef16ddd74580e1184371a43e8d73a0ca8b94b"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/socket_window_policy_ack.json",
+      "sha256": "c0d603adbf0de9f5393386bdbe51c223038faa34e78a0310744ff43cec1df4e9"
+    },
+    {
+      "bytes": 1693,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/socket_window_report.json",
+      "sha256": "5d73fbe7dfd233e7c059d20bf24f7f17b9d44dbeb6d75caf6d9b545746585780"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_case_2/socket_window_report_ack.json",
+      "sha256": "8a84d3db817895bddea4ec661f04c67b9f5ec15baf48a0d245d31b8d492689b0"
+    },
+    {
+      "bytes": 1947,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_read_case_2/original_report.json",
+      "sha256": "218c02026da5c85fa0e3a0bf521da41efc2666e022e9edfef9eebc577d5d5b63"
+    },
+    {
+      "bytes": 18251,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_read_case_2/read_policy.json",
+      "sha256": "0ae46bd45430e8d70eac210d90ba7e0ae1a777166f424c58b7d84cfe98429361"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_read_case_2/read_policy_ack.json",
+      "sha256": "b901d861475fa84051d0cdf3bd25dc9ac9f151d8c38de598c128956cb91524a5"
+    },
+    {
+      "bytes": 929,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_read_case_2/read_receipt.json",
+      "sha256": "625b56bc6970bb80be5cecd1f5b62b4a4fb0e7edb30af11219d1ed9d5bc2a1d1"
+    },
+    {
+      "bytes": 227,
+      "path": "data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_read_case_2/read_receipt_ack.json",
+      "sha256": "f8636b767aad3fecf09a344c8bab3ad4ab498f676dba7ee5b2be1aa347d942ee"
+    }
+  ],
+  "cases": [
+    {
+      "coverage": null,
+      "lifecycle": {
+        "acceptingOrders": false,
+        "active": true,
+        "archived": false,
+        "closed": true
+      },
+      "market_id": "5233594",
+      "pre_states": [
+        "invalid"
+      ],
+      "refusal": {
+        "exception_type": "ValueError",
+        "stage": "binding"
+      }
+    },
+    {
+      "coverage": null,
+      "lifecycle": {
+        "acceptingOrders": false,
+        "active": true,
+        "archived": false,
+        "closed": true
+      },
+      "market_id": "5299067",
+      "pre_states": [
+        "invalid"
+      ],
+      "refusal": {
+        "exception_type": "ValueError",
+        "stage": "binding"
+      }
+    },
+    {
+      "coverage": {
+        "complete_continuous_history": false,
+        "covered_mean_imbalance": null,
+        "covered_persistence_ratio": null,
+        "declared_duration_ns": "60000000000",
+        "end_imbalance": null,
+        "feature_store_admitted": false,
+        "frames": [
+          {
+            "event_hash": "b5d244d76e4002f86feec63f4efccd61ae097e840abb019b93bd3e9a8ab7ee56",
+            "frame": "event_000005",
+            "item_count": 1,
+            "raw_hash": "7a1f86fcc2e509588126947574e0aff80f0c6d231dd5172d3ba46c81e88d11cc",
+            "received_at": {
+              "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+              "monotonic_ns": "2331688905250083",
+              "utc": "2026-10-08T02:49:42.608630Z"
+            },
+            "source_available_at": {
+              "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+              "monotonic_ns": "2331688906405375",
+              "utc": "2026-10-08T02:49:42.609787Z"
+            },
+            "state": "decoded"
+          },
+          {
+            "event_hash": "2c149ca6674a834e98f2daaa738fe3a3797f4164b17064e20a908efe67ac59e4",
+            "frame": "event_000008",
+            "item_count": 0,
+            "raw_hash": "95784973cc639977bff93619700168505cb8f7855e44fa643d34622a43706c87",
+            "received_at": {
+              "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+              "monotonic_ns": "2331698894358416",
+              "utc": "2026-10-08T02:49:52.597787Z"
+            },
+            "source_available_at": {
+              "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+              "monotonic_ns": "2331698895212791",
+              "utc": "2026-10-08T02:49:52.598644Z"
+            },
+            "state": "heartbeat_control"
+          },
+          {
+            "event_hash": "54e8c03fbeaa488c1f2b2b8b34c0ab57b2ee77c926d8ac65a42ad3249c4e9ecb",
+            "frame": "event_000011",
+            "item_count": 0,
+            "raw_hash": "95784973cc639977bff93619700168505cb8f7855e44fa643d34622a43706c87",
+            "received_at": {
+              "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+              "monotonic_ns": "2331708899141166",
+              "utc": "2026-10-08T02:50:02.602620Z"
+            },
+            "source_available_at": {
+              "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+              "monotonic_ns": "2331708900054750",
+              "utc": "2026-10-08T02:50:02.603535Z"
+            },
+            "state": "heartbeat_control"
+          },
+          {
+            "event_hash": "3caa74b5bff555db8415f64bb7795cccf6933035e2af53aa06d1a6bf08e46d45",
+            "frame": "event_000014",
+            "item_count": 0,
+            "raw_hash": "95784973cc639977bff93619700168505cb8f7855e44fa643d34622a43706c87",
+            "received_at": {
+              "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+              "monotonic_ns": "2331718907792208",
+              "utc": "2026-10-08T02:50:12.611317Z"
+            },
+            "source_available_at": {
+              "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+              "monotonic_ns": "2331718908838500",
+              "utc": "2026-10-08T02:50:12.612367Z"
+            },
+            "state": "heartbeat_control"
+          },
+          {
+            "event_hash": "a10fbcf581cc64837817ee5464b4b7cd575adfba3e0e46b599ee7802784dd1bd",
+            "frame": "event_000017",
+            "item_count": 0,
+            "raw_hash": "95784973cc639977bff93619700168505cb8f7855e44fa643d34622a43706c87",
+            "received_at": {
+              "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+              "monotonic_ns": "2331728898127833",
+              "utc": "2026-10-08T02:50:22.601700Z"
+            },
+            "source_available_at": {
+              "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+              "monotonic_ns": "2331728899469458",
+              "utc": "2026-10-08T02:50:22.603041Z"
+            },
+            "state": "heartbeat_control"
+          },
+          {
+            "event_hash": "f131e82d6325452158984e456876092bb60ab1a09262070fa94f07df0298460f",
+            "frame": "event_000020",
+            "item_count": 0,
+            "raw_hash": "95784973cc639977bff93619700168505cb8f7855e44fa643d34622a43706c87",
+            "received_at": {
+              "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+              "monotonic_ns": "2331738894035916",
+              "utc": "2026-10-08T02:50:32.597661Z"
+            },
+            "source_available_at": {
+              "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+              "monotonic_ns": "2331738895230875",
+              "utc": "2026-10-08T02:50:32.598857Z"
+            },
+            "state": "heartbeat_control"
+          }
+        ],
+        "gaps": [
+          {
+            "at_monotonic_ns": "2331688905250083",
+            "item_id": "event_000005:0",
+            "reason": "invalid_or_conflicting_message"
+          }
+        ],
+        "identity_state": "verified_prior_source_local_binding",
+        "imbalance_ns_integral": {
+          "decimal": "0",
+          "decimal_state": "exact",
+          "denominator": "1",
+          "numerator": "0"
+        },
+        "items": [
+          {
+            "element_index": 0,
+            "event_type": "book",
+            "frame": "event_000005",
+            "item_id": "event_000005:0",
+            "message_hash": "95b692003c1c0247ce5f43644b0f04edeacf04f0fd2cdcc110e62f956a2e0550",
+            "native_timestamp_raw": "1791427747815",
+            "numerical_change": false,
+            "snapshot": null,
+            "state": "invalid_or_conflicting_message"
+          }
+        ],
+        "limits": {
+          "max_array_items": 100,
+          "max_items": 10000,
+          "max_levels": 10000,
+          "max_processing_seconds": 180
+        },
+        "native_book_age": null,
+        "native_clock_admitted": false,
+        "origin_admitted": false,
+        "persistence_missing_reason": "unavailable",
+        "policy": {
+          "max_receipt_hold_ms": 1000,
+          "version": "fs2-window-coverage-policy-v1"
+        },
+        "projection_hash": "3c8d04bff6ce6660a222469419ffc48552fb7c7e907376f06030a3c4a7d86e08",
+        "provenance_class": "prospective",
+        "reconstructed_receipt_duration_ns": "0",
+        "registered_features": {
+          "F02": {
+            "state": "prerequisites_unproven",
+            "value": null
+          },
+          "F10": {
+            "state": "prerequisites_unproven",
+            "value": null
+          },
+          "F27": {
+            "state": "prerequisites_unproven",
+            "value": null
+          }
+        },
+        "runtime_source_verification_required": true,
+        "schema_version": "fs2-socket-receipt-coverage-v1",
+        "segments": [
+          {
+            "duration_ns": "29082583",
+            "end_ns": "2331688905250083",
+            "imbalance": null,
+            "start_ns": "2331688876167500",
+            "state": "awaiting_initial_snapshot",
+            "state_item_id": null
+          },
+          {
+            "duration_ns": "9989108333",
+            "end_ns": "2331698894358416",
+            "imbalance": null,
+            "start_ns": "2331688905250083",
+            "state": "invalid_or_conflicting_message",
+            "state_item_id": null
+          },
+          {
+            "duration_ns": "10004782750",
+            "end_ns": "2331708899141166",
+            "imbalance": null,
+            "start_ns": "2331698894358416",
+            "state": "invalid_or_conflicting_message",
+            "state_item_id": null
+          },
+          {
+            "duration_ns": "10008651042",
+            "end_ns": "2331718907792208",
+            "imbalance": null,
+            "start_ns": "2331708899141166",
+            "state": "invalid_or_conflicting_message",
+            "state_item_id": null
+          },
+          {
+            "duration_ns": "9990335625",
+            "end_ns": "2331728898127833",
+            "imbalance": null,
+            "start_ns": "2331718907792208",
+            "state": "invalid_or_conflicting_message",
+            "state_item_id": null
+          },
+          {
+            "duration_ns": "9995908083",
+            "end_ns": "2331738894035916",
+            "imbalance": null,
+            "start_ns": "2331728898127833",
+            "state": "invalid_or_conflicting_message",
+            "state_item_id": null
+          },
+          {
+            "duration_ns": "9982131584",
+            "end_ns": "2331748876167500",
+            "imbalance": null,
+            "start_ns": "2331738894035916",
+            "state": "invalid_or_conflicting_message",
+            "state_item_id": null
+          }
+        ],
+        "socket_close_state": "closed",
+        "socket_terminal": "interval_ended",
+        "source_admitted": false,
+        "source_policy": {
+          "condition_id": "0x58b0474e74a03480c439d50e13dd0b75146c3596e5a475f95e70035c90cee4ca",
+          "duration_ms": 60000,
+          "token_id": "113017673827188867377109454527754982157460887938297582871131403025795572613918"
+        },
+        "source_report_hash": "5d73fbe7dfd233e7c059d20bf24f7f17b9d44dbeb6d75caf6d9b545746585780",
+        "uncovered_duration_ns": "60000000000"
+      },
+      "lifecycle": {
+        "acceptingOrders": true,
+        "active": true,
+        "archived": false,
+        "closed": false
+      },
+      "market_id": "628957",
+      "pre_states": [
+        "one_sided_or_missing"
+      ],
+      "refusal": null
+    }
+  ],
+  "decision": "D090",
+  "http_raw_bytes": 14188,
+  "limitations": [
+    "Fixed historical failure cases at new clocks, not a representative draw or retrospective repair.",
+    "No received two-sided recovery in the sole completed60s socket; PONG/silence never imply native continuity.",
+    "Legacy coverage marked a valid one-sided book invalid_or_conflicting_message; preserve this original result and refine future explicit-version diagnostic missingness.",
+    "No target, origin, external/related information admission or predictive/economic claim."
+  ],
+  "protocol": "PHASE_03_ONE_SIDED_DIAGNOSTIC_PROTOCOL.md",
+  "report": {
+    "accepted_panel": false,
+    "completed_at": {
+      "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+      "monotonic_ns": "2331761042669500",
+      "utc": "2026-10-08T02:50:54.746399Z"
+    },
+    "implementation_commit": "e8021098b19cb9d6d8651b14c378767ea54a2200",
+    "predictive_evidence": false,
+    "reservation_bytes": 3221225472,
+    "results": [
+      {
+        "analysis": null,
+        "case": {
+          "condition_id": "0xf660fe0fc13a37671829c71fb9995159ec6a7808405a92449cbee7695ccafc35",
+          "mapping_version": "84ed8bef61ff40677d53b45490290de012528a7d8e52498102ecec37e8506256",
+          "market_id": "5233594",
+          "token_id": "98077667723851266764737777347553785196408711705582489371303343543835560555375"
+        },
+        "finished_at": {
+          "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+          "monotonic_ns": "2331688768590041",
+          "utc": "2026-10-08T02:49:42.471972Z"
+        },
+        "pre": {
+          "computation_available_at": {
+            "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+            "monotonic_ns": "2331688676767875",
+            "utc": "2026-10-08T02:49:42.380149Z"
+          },
+          "computation_hash": "d6be811b9023da1c9e6d998932fa5e5927bed63dc89dee6935fbbb5187f7f6cc",
+          "computation_started_at": {
+            "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+            "monotonic_ns": "2331688668282625",
+            "utc": "2026-10-08T02:49:42.371662Z"
+          },
+          "computed_at": {
+            "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+            "monotonic_ns": "2331688669538250",
+            "utc": "2026-10-08T02:49:42.372921Z"
+          },
+          "feature_store_admitted": false,
+          "input_read_hash": "65a95d42d72e33d06c82583735bc295ae616c4c0e9122de2739b40251bf0c33a",
+          "origin_admitted": false,
+          "policy_hash": "b44f07c41ab193b40f9e9fa838604c02baba56c28f4ac0ceff58ea5ece1b1c62",
+          "projection_hash": "460f2a179459aeb079f584d130d2545633b500985d66343b6511cb908c7e202d",
+          "schema_version": "fs2-book-computation-v1",
+          "snapshot_count": 1,
+          "snapshot_states": {
+            "invalid": 1
+          },
+          "source_observation_count": 2,
+          "source_provenance_class": "prospective"
+        },
+        "recovery": {
+          "pre": {
+            "read_available_at": {
+              "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+              "monotonic_ns": "2331751815846041",
+              "utc": "2026-10-08T02:50:45.519525Z"
+            },
+            "read_receipt": {
+              "completed_at": {
+                "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                "monotonic_ns": "2331751815367875",
+                "utc": "2026-10-08T02:50:45.519028Z"
+              },
+              "metadata_read_started_at": {
+                "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                "monotonic_ns": "2331749424992541",
+                "utc": "2026-10-08T02:50:43.128666Z"
+              },
+              "observation_clocks_changed": false,
+              "origin_admitted": false,
+              "original_provenance_class": "prospective",
+              "original_report_hash": "d6be811b9023da1c9e6d998932fa5e5927bed63dc89dee6935fbbb5187f7f6cc",
+              "original_state": "verified_book_computation",
+              "output_bytes": 4783,
+              "output_hash": "fb5aca99edc176b76e1fbf7b42236832ba202af82234aea91d8629de6cf4a34e",
+              "read_policy_hash": "98493216664ebf4898c08da558f9a20db66eb3a1d0fd3ac6e24202c7320d73d0",
+              "schema_version": "fs2-original-book-computation-read-v1",
+              "verification_started_at": {
+                "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                "monotonic_ns": "2331751153462625",
+                "utc": "2026-10-08T02:50:44.857141Z"
+              }
+            },
+            "read_receipt_hash": "e21a29d8989bf8959fb7c4486b4232df31487eb7fd11c400a3626748c26e2938",
+            "read_root": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_read_case_0",
+            "report": {
+              "facts": {
+                "computation_started_at": {
+                  "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                  "monotonic_ns": "2331688668282625",
+                  "utc": "2026-10-08T02:49:42.371662Z"
+                },
+                "computed_at": {
+                  "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                  "monotonic_ns": "2331688669538250",
+                  "utc": "2026-10-08T02:49:42.372921Z"
+                },
+                "feature_store_admitted": false,
+                "input_read": {
+                  "observation_count": 2,
+                  "origin_admitted": false,
+                  "projection_completed_at": {
+                    "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                    "monotonic_ns": "2331688627655291",
+                    "utc": "2026-10-08T02:49:42.331035Z"
+                  },
+                  "projection_hash": "91ea4617a8d4189f15f2101d401dc312cf35b52c1454eed177269bcae58e6a69",
+                  "read_available_at": {
+                    "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                    "monotonic_ns": "2331688636466458",
+                    "utc": "2026-10-08T02:49:42.339846Z"
+                  },
+                  "read_facts_hash": "65a95d42d72e33d06c82583735bc295ae616c4c0e9122de2739b40251bf0c33a",
+                  "read_started_at": {
+                    "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                    "monotonic_ns": "2331688608624416",
+                    "utc": "2026-10-08T02:49:42.312007Z"
+                  },
+                  "schema_version": "fs2-panel-input-read-v2",
+                  "source_clocks_changed": false,
+                  "source_provenance_class": "prospective"
+                },
+                "origin_admitted": false,
+                "policy_hash": "b44f07c41ab193b40f9e9fa838604c02baba56c28f4ac0ceff58ea5ece1b1c62",
+                "projection": {
+                  "clock_basis": "receipt",
+                  "cutoff": {
+                    "$utc": "2026-10-08T02:49:42.371662Z"
+                  },
+                  "durable_computation_required": true,
+                  "economic_value_claim": false,
+                  "feature_store_admitted": false,
+                  "limits": {
+                    "max_absolute_exponent": 256,
+                    "max_coefficient_digits": 256,
+                    "max_levels_per_book": 10000
+                  },
+                  "native_clock_admitted": false,
+                  "origin_admitted": false,
+                  "policy": {
+                    "max_identity_age_seconds": 180,
+                    "max_receipt_age_seconds": 60,
+                    "version": "fs2-receipt-quote-input-policy-v1"
+                  },
+                  "projection_hash": "460f2a179459aeb079f584d130d2545633b500985d66343b6511cb908c7e202d",
+                  "provenance_class": "prospective",
+                  "quote_projection_hash": "29d0bc7cc70b85a565cef48a4a41f8708cf25229ff088553a0a1e41915be1ef2",
+                  "registered_window_features_available": false,
+                  "runtime_source_verification_required": true,
+                  "schema_version": "fs2-book-snapshot-primitives-v1",
+                  "snapshots": [
+                    {
+                      "components": null,
+                      "continuous_window_eligible": false,
+                      "intermediates": null,
+                      "levels": null,
+                      "missing_fields": {
+                        "components": "invalid",
+                        "intermediates": "invalid",
+                        "levels": "invalid",
+                        "native_book_age": "unavailable",
+                        "tick_size": "unavailable"
+                      },
+                      "native_book_age": null,
+                      "quote": {
+                        "ask": null,
+                        "ask_size": null,
+                        "bid": null,
+                        "bid_size": null,
+                        "condition_id": null,
+                        "mapping": null,
+                        "midpoint": null,
+                        "observation_id": "8bd52e82d3fabf8cd5f1d3f7c469765b26f2d6fadffc6597ee8bd4ca07173bae",
+                        "provenance_class": "prospective",
+                        "quality_flags": [],
+                        "received_at": {
+                          "$utc": "2026-10-08T02:49:42.270471Z"
+                        },
+                        "source_available_at": {
+                          "$utc": "2026-10-08T02:49:42.285149Z"
+                        },
+                        "state": "invalid",
+                        "token_id": null
+                      },
+                      "source_book_hash_raw": null,
+                      "source_timestamp_raw": null,
+                      "state": "invalid",
+                      "tick_size": null
+                    }
+                  ],
+                  "source_inventory": [
+                    {
+                      "available_at": {
+                        "$utc": "2026-10-08T02:49:41.722359Z"
+                      },
+                      "missing_reason": "observed",
+                      "observation_id": "416c66d248cd5a188d458542db4bbf25d3873f959f7f8de69403e953498d57ed",
+                      "payload_hash": "20d0d0fba0411c617a8ce8f252e2a703c137b70b67c46cdee740a544b594384c",
+                      "provenance_class": "prospective",
+                      "received_at": {
+                        "$utc": "2026-10-08T02:49:41.710224Z"
+                      },
+                      "source_id": "gamma.market"
+                    },
+                    {
+                      "available_at": {
+                        "$utc": "2026-10-08T02:49:42.285149Z"
+                      },
+                      "missing_reason": "invalid",
+                      "observation_id": "8bd52e82d3fabf8cd5f1d3f7c469765b26f2d6fadffc6597ee8bd4ca07173bae",
+                      "payload_hash": "db4e9a718fd2ff3d1b0075604fb6e2d7208d53ce17e76e47a7e19f9649e35a96",
+                      "provenance_class": "prospective",
+                      "received_at": {
+                        "$utc": "2026-10-08T02:49:42.270471Z"
+                      },
+                      "source_id": "clob.book"
+                    }
+                  ],
+                  "units": {
+                    "collateral_identity": "unresolved",
+                    "notional": "source_local_price_times_shares",
+                    "price": "source_local_price_per_share",
+                    "ratio": "dimensionless",
+                    "size": "shares"
+                  }
+                },
+                "schema_version": "fs2-book-computation-v1"
+              },
+              "summary": {
+                "computation_available_at": {
+                  "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                  "monotonic_ns": "2331688676767875",
+                  "utc": "2026-10-08T02:49:42.380149Z"
+                },
+                "computation_hash": "d6be811b9023da1c9e6d998932fa5e5927bed63dc89dee6935fbbb5187f7f6cc",
+                "computation_started_at": {
+                  "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                  "monotonic_ns": "2331688668282625",
+                  "utc": "2026-10-08T02:49:42.371662Z"
+                },
+                "computed_at": {
+                  "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                  "monotonic_ns": "2331688669538250",
+                  "utc": "2026-10-08T02:49:42.372921Z"
+                },
+                "feature_store_admitted": false,
+                "input_read_hash": "65a95d42d72e33d06c82583735bc295ae616c4c0e9122de2739b40251bf0c33a",
+                "origin_admitted": false,
+                "policy_hash": "b44f07c41ab193b40f9e9fa838604c02baba56c28f4ac0ceff58ea5ece1b1c62",
+                "projection_hash": "460f2a179459aeb079f584d130d2545633b500985d66343b6511cb908c7e202d",
+                "schema_version": "fs2-book-computation-v1",
+                "snapshot_count": 1,
+                "snapshot_states": {
+                  "invalid": 1
+                },
+                "source_observation_count": 2,
+                "source_provenance_class": "prospective"
+              }
+            }
+          }
+        },
+        "refusal": {
+          "exception_type": "ValueError",
+          "stage": "binding"
+        },
+        "socket": null,
+        "started_at": {
+          "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+          "monotonic_ns": "2331688592419250",
+          "utc": "2026-10-08T02:49:42.295799Z"
+        }
+      },
+      {
+        "analysis": null,
+        "case": {
+          "condition_id": "0xd402178e89ba98691804fa583b50f991524692b3306397e5683fb95746301d7f",
+          "mapping_version": "9960b949377fd07783435c7001cb8e0e1b58015009f1791e70328012376a8318",
+          "market_id": "5299067",
+          "token_id": "3676102803406651090688924860420061420346707850876754167420213205930652979159"
+        },
+        "finished_at": {
+          "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+          "monotonic_ns": "2331688567003500",
+          "utc": "2026-10-08T02:49:42.270385Z"
+        },
+        "pre": {
+          "computation_available_at": {
+            "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+            "monotonic_ns": "2331688475815833",
+            "utc": "2026-10-08T02:49:42.179195Z"
+          },
+          "computation_hash": "752d134910323b8be41732612695ebb79912a0b4f6e94237cc2a4e35a86334ef",
+          "computation_started_at": {
+            "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+            "monotonic_ns": "2331688466892833",
+            "utc": "2026-10-08T02:49:42.170269Z"
+          },
+          "computed_at": {
+            "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+            "monotonic_ns": "2331688468201041",
+            "utc": "2026-10-08T02:49:42.171582Z"
+          },
+          "feature_store_admitted": false,
+          "input_read_hash": "2ffcbb454703309bf88b0447adfe381316f8cc7547c7dd6ac2e5cf1d43e07e3b",
+          "origin_admitted": false,
+          "policy_hash": "f8efe1703cdfcf2d21a16deaf848d01b448a3436ad879e91c51c6db3984bb10c",
+          "projection_hash": "ea20f025e89ef4909084bdba47107f71dcd25980529c310bbdc2db45522bc9e5",
+          "schema_version": "fs2-book-computation-v1",
+          "snapshot_count": 1,
+          "snapshot_states": {
+            "invalid": 1
+          },
+          "source_observation_count": 2,
+          "source_provenance_class": "prospective"
+        },
+        "recovery": {
+          "pre": {
+            "read_available_at": {
+              "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+              "monotonic_ns": "2331754087712750",
+              "utc": "2026-10-08T02:50:47.791406Z"
+            },
+            "read_receipt": {
+              "completed_at": {
+                "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                "monotonic_ns": "2331754087329375",
+                "utc": "2026-10-08T02:50:47.791008Z"
+              },
+              "metadata_read_started_at": {
+                "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                "monotonic_ns": "2331751833756083",
+                "utc": "2026-10-08T02:50:45.537435Z"
+              },
+              "observation_clocks_changed": false,
+              "origin_admitted": false,
+              "original_provenance_class": "prospective",
+              "original_report_hash": "752d134910323b8be41732612695ebb79912a0b4f6e94237cc2a4e35a86334ef",
+              "original_state": "verified_book_computation",
+              "output_bytes": 4783,
+              "output_hash": "2c3ec76a662297b1c9b756d933193685c18bae020ad20fbb5e5c8fa959f05aaa",
+              "read_policy_hash": "11216803ada9e37b68c613bf60960c793c5dd10f2b673fe026c3406000dc2bc5",
+              "schema_version": "fs2-original-book-computation-read-v1",
+              "verification_started_at": {
+                "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                "monotonic_ns": "2331753559746708",
+                "utc": "2026-10-08T02:50:47.263440Z"
+              }
+            },
+            "read_receipt_hash": "e1b6275f93e8ec4ad70ac80d86a03e4e0e1ba77460e6c96e5ad2708b9c976bf7",
+            "read_root": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_read_case_1",
+            "report": {
+              "facts": {
+                "computation_started_at": {
+                  "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                  "monotonic_ns": "2331688466892833",
+                  "utc": "2026-10-08T02:49:42.170269Z"
+                },
+                "computed_at": {
+                  "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                  "monotonic_ns": "2331688468201041",
+                  "utc": "2026-10-08T02:49:42.171582Z"
+                },
+                "feature_store_admitted": false,
+                "input_read": {
+                  "observation_count": 2,
+                  "origin_admitted": false,
+                  "projection_completed_at": {
+                    "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                    "monotonic_ns": "2331688423209583",
+                    "utc": "2026-10-08T02:49:42.126589Z"
+                  },
+                  "projection_hash": "2fd630f4f2d4db3dddd3e85572f8e0b9e83fc09b0aaab302ce7faca09c66d226",
+                  "read_available_at": {
+                    "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                    "monotonic_ns": "2331688433576458",
+                    "utc": "2026-10-08T02:49:42.136955Z"
+                  },
+                  "read_facts_hash": "2ffcbb454703309bf88b0447adfe381316f8cc7547c7dd6ac2e5cf1d43e07e3b",
+                  "read_started_at": {
+                    "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                    "monotonic_ns": "2331688407294375",
+                    "utc": "2026-10-08T02:49:42.110676Z"
+                  },
+                  "schema_version": "fs2-panel-input-read-v2",
+                  "source_clocks_changed": false,
+                  "source_provenance_class": "prospective"
+                },
+                "origin_admitted": false,
+                "policy_hash": "f8efe1703cdfcf2d21a16deaf848d01b448a3436ad879e91c51c6db3984bb10c",
+                "projection": {
+                  "clock_basis": "receipt",
+                  "cutoff": {
+                    "$utc": "2026-10-08T02:49:42.170269Z"
+                  },
+                  "durable_computation_required": true,
+                  "economic_value_claim": false,
+                  "feature_store_admitted": false,
+                  "limits": {
+                    "max_absolute_exponent": 256,
+                    "max_coefficient_digits": 256,
+                    "max_levels_per_book": 10000
+                  },
+                  "native_clock_admitted": false,
+                  "origin_admitted": false,
+                  "policy": {
+                    "max_identity_age_seconds": 180,
+                    "max_receipt_age_seconds": 60,
+                    "version": "fs2-receipt-quote-input-policy-v1"
+                  },
+                  "projection_hash": "ea20f025e89ef4909084bdba47107f71dcd25980529c310bbdc2db45522bc9e5",
+                  "provenance_class": "prospective",
+                  "quote_projection_hash": "6f75eeb5f83b5ae8a4c990d6683d845753fe0c9adf9b06f1c389f2b830cb07af",
+                  "registered_window_features_available": false,
+                  "runtime_source_verification_required": true,
+                  "schema_version": "fs2-book-snapshot-primitives-v1",
+                  "snapshots": [
+                    {
+                      "components": null,
+                      "continuous_window_eligible": false,
+                      "intermediates": null,
+                      "levels": null,
+                      "missing_fields": {
+                        "components": "invalid",
+                        "intermediates": "invalid",
+                        "levels": "invalid",
+                        "native_book_age": "unavailable",
+                        "tick_size": "unavailable"
+                      },
+                      "native_book_age": null,
+                      "quote": {
+                        "ask": null,
+                        "ask_size": null,
+                        "bid": null,
+                        "bid_size": null,
+                        "condition_id": null,
+                        "mapping": null,
+                        "midpoint": null,
+                        "observation_id": "142db618edd62ce222bac7210bbd0530bbf3735ee48ef859b5e0c4d0906da973",
+                        "provenance_class": "prospective",
+                        "quality_flags": [],
+                        "received_at": {
+                          "$utc": "2026-10-08T02:49:42.063733Z"
+                        },
+                        "source_available_at": {
+                          "$utc": "2026-10-08T02:49:42.082259Z"
+                        },
+                        "state": "invalid",
+                        "token_id": null
+                      },
+                      "source_book_hash_raw": null,
+                      "source_timestamp_raw": null,
+                      "state": "invalid",
+                      "tick_size": null
+                    }
+                  ],
+                  "source_inventory": [
+                    {
+                      "available_at": {
+                        "$utc": "2026-10-08T02:49:42.082259Z"
+                      },
+                      "missing_reason": "invalid",
+                      "observation_id": "142db618edd62ce222bac7210bbd0530bbf3735ee48ef859b5e0c4d0906da973",
+                      "payload_hash": "db4e9a718fd2ff3d1b0075604fb6e2d7208d53ce17e76e47a7e19f9649e35a96",
+                      "provenance_class": "prospective",
+                      "received_at": {
+                        "$utc": "2026-10-08T02:49:42.063733Z"
+                      },
+                      "source_id": "clob.book"
+                    },
+                    {
+                      "available_at": {
+                        "$utc": "2026-10-08T02:49:41.688341Z"
+                      },
+                      "missing_reason": "observed",
+                      "observation_id": "2eef9fc01d66ed7ece1fe5dc989645dfef68de78b49e87c7f26e587692243a0f",
+                      "payload_hash": "453656c3339ec4ac6c602f9a2fb4c13cf2538b02e4f68361619826e49cf038fd",
+                      "provenance_class": "prospective",
+                      "received_at": {
+                        "$utc": "2026-10-08T02:49:41.676623Z"
+                      },
+                      "source_id": "gamma.market"
+                    }
+                  ],
+                  "units": {
+                    "collateral_identity": "unresolved",
+                    "notional": "source_local_price_times_shares",
+                    "price": "source_local_price_per_share",
+                    "ratio": "dimensionless",
+                    "size": "shares"
+                  }
+                },
+                "schema_version": "fs2-book-computation-v1"
+              },
+              "summary": {
+                "computation_available_at": {
+                  "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                  "monotonic_ns": "2331688475815833",
+                  "utc": "2026-10-08T02:49:42.179195Z"
+                },
+                "computation_hash": "752d134910323b8be41732612695ebb79912a0b4f6e94237cc2a4e35a86334ef",
+                "computation_started_at": {
+                  "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                  "monotonic_ns": "2331688466892833",
+                  "utc": "2026-10-08T02:49:42.170269Z"
+                },
+                "computed_at": {
+                  "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                  "monotonic_ns": "2331688468201041",
+                  "utc": "2026-10-08T02:49:42.171582Z"
+                },
+                "feature_store_admitted": false,
+                "input_read_hash": "2ffcbb454703309bf88b0447adfe381316f8cc7547c7dd6ac2e5cf1d43e07e3b",
+                "origin_admitted": false,
+                "policy_hash": "f8efe1703cdfcf2d21a16deaf848d01b448a3436ad879e91c51c6db3984bb10c",
+                "projection_hash": "ea20f025e89ef4909084bdba47107f71dcd25980529c310bbdc2db45522bc9e5",
+                "schema_version": "fs2-book-computation-v1",
+                "snapshot_count": 1,
+                "snapshot_states": {
+                  "invalid": 1
+                },
+                "source_observation_count": 2,
+                "source_provenance_class": "prospective"
+              }
+            }
+          }
+        },
+        "refusal": {
+          "exception_type": "ValueError",
+          "stage": "binding"
+        },
+        "socket": null,
+        "started_at": {
+          "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+          "monotonic_ns": "2331688389805666",
+          "utc": "2026-10-08T02:49:42.093183Z"
+        }
+      },
+      {
+        "analysis": {
+          "computation_available_at": {
+            "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+            "monotonic_ns": "2331749233820708",
+            "utc": "2026-10-08T02:50:42.937496Z"
+          },
+          "computation_hash": "669bac28bbea0aab2ef11a0b399324fea0a4a6512071782c207e1777111b8729",
+          "computation_started_at": {
+            "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+            "monotonic_ns": "2331749231474458",
+            "utc": "2026-10-08T02:50:42.935150Z"
+          },
+          "computed_at": {
+            "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+            "monotonic_ns": "2331749233153625",
+            "utc": "2026-10-08T02:50:42.936828Z"
+          },
+          "feature_store_admitted": false,
+          "origin_admitted": false,
+          "policy_hash": "63f14496c7b31263cffc5df44036182b3ef73814722e0e47a4f14ef6b39e0288",
+          "projection_hash": "2d14c4dfd2a0a1ef3bb5dc52bf48d6a986b9f13e7c944b0a97f8bdaf6cf46c27",
+          "schema_version": "fs2-socket-analysis-v1",
+          "source_admitted": false,
+          "source_provenance_class": "prospective",
+          "state": "diagnostics_available"
+        },
+        "binding": {
+          "book_observation_id": "37ebfc147fed21886345f8d526dcd84c772243e52c17ad030027ebfbf1cc9176",
+          "book_received_at": {
+            "$utc": "2026-10-08T02:49:41.790187Z"
+          },
+          "history_admitted": false,
+          "identity": {
+            "condition_id": "0x58b0474e74a03480c439d50e13dd0b75146c3596e5a475f95e70035c90cee4ca",
+            "lifecycle": {
+              "acceptingOrders": true,
+              "active": true,
+              "archived": false,
+              "closed": false
+            },
+            "mapping_version": "477b94f65ceef423831e054f213e0b36d22ce4c848e3b9c7cdd0cb04410ae5ae",
+            "market_id": "628957",
+            "outcome_index": 0,
+            "outcome_label": "Yes",
+            "token_id": "113017673827188867377109454527754982157460887938297582871131403025795572613918"
+          },
+          "identity_available_at": {
+            "$utc": "2026-10-08T02:49:41.656939Z"
+          },
+          "identity_observation_id": "d6baf470cf862b21154c089f6b3501d93d90dc5584e8259e41e162d983c499ad",
+          "identity_received_at": {
+            "$utc": "2026-10-08T02:49:41.645775Z"
+          },
+          "origin_admitted": false,
+          "pre_computation": {
+            "computation_available_at": {
+              "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+              "monotonic_ns": "2331688212606166",
+              "utc": "2026-10-08T02:49:41.915986Z"
+            },
+            "computation_hash": "a62a0bccadab328b6964da061a4237df8a027142f665f3bb1c485608b6bff99f",
+            "computation_started_at": {
+              "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+              "monotonic_ns": "2331688203731583",
+              "utc": "2026-10-08T02:49:41.907110Z"
+            },
+            "computed_at": {
+              "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+              "monotonic_ns": "2331688205658833",
+              "utc": "2026-10-08T02:49:41.909040Z"
+            },
+            "feature_store_admitted": false,
+            "input_read_hash": "199136e6b698a87fe99583cadc65cff5c61c31fea6d9a46434302862f7f58f21",
+            "origin_admitted": false,
+            "policy_hash": "491674fd372a3d7bb0afa9cd8132854710bbc37a6ec512edef2acffbc92a6a1d",
+            "projection_hash": "541aed89f28e3df7b6728618913a634bd4535039fcfdbd9587388de85acdc502",
+            "schema_version": "fs2-book-computation-v1",
+            "snapshot_count": 1,
+            "snapshot_states": {
+              "one_sided_or_missing": 1
+            },
+            "source_observation_count": 2,
+            "source_provenance_class": "prospective"
+          },
+          "pre_midpoint": null,
+          "pre_quote_state": "one_sided_or_missing",
+          "pre_source_root": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_capture_case_2",
+          "requires_actual_subscription_freshness_check": true,
+          "schema_version": "fs2-observation-identity-binding-v1",
+          "socket_admitted": false
+        },
+        "case": {
+          "condition_id": "0x58b0474e74a03480c439d50e13dd0b75146c3596e5a475f95e70035c90cee4ca",
+          "mapping_version": "477b94f65ceef423831e054f213e0b36d22ce4c848e3b9c7cdd0cb04410ae5ae",
+          "market_id": "628957",
+          "token_id": "113017673827188867377109454527754982157460887938297582871131403025795572613918"
+        },
+        "finished_at": {
+          "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+          "monotonic_ns": "2331749418661458",
+          "utc": "2026-10-08T02:50:43.122336Z"
+        },
+        "pre": {
+          "computation_available_at": {
+            "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+            "monotonic_ns": "2331688212606166",
+            "utc": "2026-10-08T02:49:41.915986Z"
+          },
+          "computation_hash": "a62a0bccadab328b6964da061a4237df8a027142f665f3bb1c485608b6bff99f",
+          "computation_started_at": {
+            "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+            "monotonic_ns": "2331688203731583",
+            "utc": "2026-10-08T02:49:41.907110Z"
+          },
+          "computed_at": {
+            "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+            "monotonic_ns": "2331688205658833",
+            "utc": "2026-10-08T02:49:41.909040Z"
+          },
+          "feature_store_admitted": false,
+          "input_read_hash": "199136e6b698a87fe99583cadc65cff5c61c31fea6d9a46434302862f7f58f21",
+          "origin_admitted": false,
+          "policy_hash": "491674fd372a3d7bb0afa9cd8132854710bbc37a6ec512edef2acffbc92a6a1d",
+          "projection_hash": "541aed89f28e3df7b6728618913a634bd4535039fcfdbd9587388de85acdc502",
+          "schema_version": "fs2-book-computation-v1",
+          "snapshot_count": 1,
+          "snapshot_states": {
+            "one_sided_or_missing": 1
+          },
+          "source_observation_count": 2,
+          "source_provenance_class": "prospective"
+        },
+        "recovery": {
+          "analysis": {
+            "read_available_at": {
+              "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+              "monotonic_ns": "2331761037364791",
+              "utc": "2026-10-08T02:50:54.741091Z"
+            },
+            "read_receipt": {
+              "completed_at": {
+                "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                "monotonic_ns": "2331761036973041",
+                "utc": "2026-10-08T02:50:54.740681Z"
+              },
+              "metadata_read_started_at": {
+                "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                "monotonic_ns": "2331758585116875",
+                "utc": "2026-10-08T02:50:52.288832Z"
+              },
+              "observation_clocks_changed": false,
+              "origin_admitted": false,
+              "original_provenance_class": "prospective",
+              "original_report_hash": "669bac28bbea0aab2ef11a0b399324fea0a4a6512071782c207e1777111b8729",
+              "original_state": "verified_socket_analysis",
+              "output_bytes": 10029,
+              "output_hash": "acaeccc0fc2d8080dba5c35a1be34f1de577b1f4da0c10860faf7dc175f992c7",
+              "read_policy_hash": "fe8f26f34a0073ffceffd70ccd4fdfdba7f135b2b9a20a4534c414e13024e1c7",
+              "schema_version": "fs2-original-socket-analysis-read-v1",
+              "verification_started_at": {
+                "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                "monotonic_ns": "2331760242823833",
+                "utc": "2026-10-08T02:50:53.946550Z"
+              }
+            },
+            "read_receipt_hash": "ab046606f32adb004b4b3a88b65eee78ef66d0f3c2452be2533e0c162b407c86",
+            "read_root": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_analysis_read_case_2",
+            "report": {
+              "facts": {
+                "computation_started_at": {
+                  "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                  "monotonic_ns": "2331749231474458",
+                  "utc": "2026-10-08T02:50:42.935150Z"
+                },
+                "computed_at": {
+                  "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                  "monotonic_ns": "2331749233153625",
+                  "utc": "2026-10-08T02:50:42.936828Z"
+                },
+                "input_hash": "1ddea90b974537e18908d5b7d44f42b3ea8b397c0dc3313c9fb4a20ff1c67098",
+                "policy_hash": "63f14496c7b31263cffc5df44036182b3ef73814722e0e47a4f14ef6b39e0288",
+                "projection": {
+                  "continuous_sequence_proven": false,
+                  "coverage": {
+                    "complete_continuous_history": false,
+                    "covered_mean_imbalance": null,
+                    "covered_persistence_ratio": null,
+                    "declared_duration_ns": "60000000000",
+                    "end_imbalance": null,
+                    "feature_store_admitted": false,
+                    "frames": [
+                      {
+                        "event_hash": "b5d244d76e4002f86feec63f4efccd61ae097e840abb019b93bd3e9a8ab7ee56",
+                        "frame": "event_000005",
+                        "item_count": 1,
+                        "raw_hash": "7a1f86fcc2e509588126947574e0aff80f0c6d231dd5172d3ba46c81e88d11cc",
+                        "received_at": {
+                          "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                          "monotonic_ns": "2331688905250083",
+                          "utc": "2026-10-08T02:49:42.608630Z"
+                        },
+                        "source_available_at": {
+                          "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                          "monotonic_ns": "2331688906405375",
+                          "utc": "2026-10-08T02:49:42.609787Z"
+                        },
+                        "state": "decoded"
+                      },
+                      {
+                        "event_hash": "2c149ca6674a834e98f2daaa738fe3a3797f4164b17064e20a908efe67ac59e4",
+                        "frame": "event_000008",
+                        "item_count": 0,
+                        "raw_hash": "95784973cc639977bff93619700168505cb8f7855e44fa643d34622a43706c87",
+                        "received_at": {
+                          "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                          "monotonic_ns": "2331698894358416",
+                          "utc": "2026-10-08T02:49:52.597787Z"
+                        },
+                        "source_available_at": {
+                          "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                          "monotonic_ns": "2331698895212791",
+                          "utc": "2026-10-08T02:49:52.598644Z"
+                        },
+                        "state": "heartbeat_control"
+                      },
+                      {
+                        "event_hash": "54e8c03fbeaa488c1f2b2b8b34c0ab57b2ee77c926d8ac65a42ad3249c4e9ecb",
+                        "frame": "event_000011",
+                        "item_count": 0,
+                        "raw_hash": "95784973cc639977bff93619700168505cb8f7855e44fa643d34622a43706c87",
+                        "received_at": {
+                          "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                          "monotonic_ns": "2331708899141166",
+                          "utc": "2026-10-08T02:50:02.602620Z"
+                        },
+                        "source_available_at": {
+                          "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                          "monotonic_ns": "2331708900054750",
+                          "utc": "2026-10-08T02:50:02.603535Z"
+                        },
+                        "state": "heartbeat_control"
+                      },
+                      {
+                        "event_hash": "3caa74b5bff555db8415f64bb7795cccf6933035e2af53aa06d1a6bf08e46d45",
+                        "frame": "event_000014",
+                        "item_count": 0,
+                        "raw_hash": "95784973cc639977bff93619700168505cb8f7855e44fa643d34622a43706c87",
+                        "received_at": {
+                          "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                          "monotonic_ns": "2331718907792208",
+                          "utc": "2026-10-08T02:50:12.611317Z"
+                        },
+                        "source_available_at": {
+                          "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                          "monotonic_ns": "2331718908838500",
+                          "utc": "2026-10-08T02:50:12.612367Z"
+                        },
+                        "state": "heartbeat_control"
+                      },
+                      {
+                        "event_hash": "a10fbcf581cc64837817ee5464b4b7cd575adfba3e0e46b599ee7802784dd1bd",
+                        "frame": "event_000017",
+                        "item_count": 0,
+                        "raw_hash": "95784973cc639977bff93619700168505cb8f7855e44fa643d34622a43706c87",
+                        "received_at": {
+                          "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                          "monotonic_ns": "2331728898127833",
+                          "utc": "2026-10-08T02:50:22.601700Z"
+                        },
+                        "source_available_at": {
+                          "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                          "monotonic_ns": "2331728899469458",
+                          "utc": "2026-10-08T02:50:22.603041Z"
+                        },
+                        "state": "heartbeat_control"
+                      },
+                      {
+                        "event_hash": "f131e82d6325452158984e456876092bb60ab1a09262070fa94f07df0298460f",
+                        "frame": "event_000020",
+                        "item_count": 0,
+                        "raw_hash": "95784973cc639977bff93619700168505cb8f7855e44fa643d34622a43706c87",
+                        "received_at": {
+                          "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                          "monotonic_ns": "2331738894035916",
+                          "utc": "2026-10-08T02:50:32.597661Z"
+                        },
+                        "source_available_at": {
+                          "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                          "monotonic_ns": "2331738895230875",
+                          "utc": "2026-10-08T02:50:32.598857Z"
+                        },
+                        "state": "heartbeat_control"
+                      }
+                    ],
+                    "gaps": [
+                      {
+                        "at_monotonic_ns": "2331688905250083",
+                        "item_id": "event_000005:0",
+                        "reason": "invalid_or_conflicting_message"
+                      }
+                    ],
+                    "identity_state": "verified_prior_source_local_binding",
+                    "imbalance_ns_integral": {
+                      "decimal": "0",
+                      "decimal_state": "exact",
+                      "denominator": "1",
+                      "numerator": "0"
+                    },
+                    "items": [
+                      {
+                        "element_index": 0,
+                        "event_type": "book",
+                        "frame": "event_000005",
+                        "item_id": "event_000005:0",
+                        "message_hash": "95b692003c1c0247ce5f43644b0f04edeacf04f0fd2cdcc110e62f956a2e0550",
+                        "native_timestamp_raw": "1791427747815",
+                        "numerical_change": false,
+                        "snapshot": null,
+                        "state": "invalid_or_conflicting_message"
+                      }
+                    ],
+                    "limits": {
+                      "max_array_items": 100,
+                      "max_items": 10000,
+                      "max_levels": 10000,
+                      "max_processing_seconds": 180
+                    },
+                    "native_book_age": null,
+                    "native_clock_admitted": false,
+                    "origin_admitted": false,
+                    "persistence_missing_reason": "unavailable",
+                    "policy": {
+                      "max_receipt_hold_ms": 1000,
+                      "version": "fs2-window-coverage-policy-v1"
+                    },
+                    "projection_hash": "3c8d04bff6ce6660a222469419ffc48552fb7c7e907376f06030a3c4a7d86e08",
+                    "provenance_class": "prospective",
+                    "reconstructed_receipt_duration_ns": "0",
+                    "registered_features": {
+                      "F02": {
+                        "state": "prerequisites_unproven",
+                        "value": null
+                      },
+                      "F10": {
+                        "state": "prerequisites_unproven",
+                        "value": null
+                      },
+                      "F27": {
+                        "state": "prerequisites_unproven",
+                        "value": null
+                      }
+                    },
+                    "runtime_source_verification_required": true,
+                    "schema_version": "fs2-socket-receipt-coverage-v1",
+                    "segments": [
+                      {
+                        "duration_ns": "29082583",
+                        "end_ns": "2331688905250083",
+                        "imbalance": null,
+                        "start_ns": "2331688876167500",
+                        "state": "awaiting_initial_snapshot",
+                        "state_item_id": null
+                      },
+                      {
+                        "duration_ns": "9989108333",
+                        "end_ns": "2331698894358416",
+                        "imbalance": null,
+                        "start_ns": "2331688905250083",
+                        "state": "invalid_or_conflicting_message",
+                        "state_item_id": null
+                      },
+                      {
+                        "duration_ns": "10004782750",
+                        "end_ns": "2331708899141166",
+                        "imbalance": null,
+                        "start_ns": "2331698894358416",
+                        "state": "invalid_or_conflicting_message",
+                        "state_item_id": null
+                      },
+                      {
+                        "duration_ns": "10008651042",
+                        "end_ns": "2331718907792208",
+                        "imbalance": null,
+                        "start_ns": "2331708899141166",
+                        "state": "invalid_or_conflicting_message",
+                        "state_item_id": null
+                      },
+                      {
+                        "duration_ns": "9990335625",
+                        "end_ns": "2331728898127833",
+                        "imbalance": null,
+                        "start_ns": "2331718907792208",
+                        "state": "invalid_or_conflicting_message",
+                        "state_item_id": null
+                      },
+                      {
+                        "duration_ns": "9995908083",
+                        "end_ns": "2331738894035916",
+                        "imbalance": null,
+                        "start_ns": "2331728898127833",
+                        "state": "invalid_or_conflicting_message",
+                        "state_item_id": null
+                      },
+                      {
+                        "duration_ns": "9982131584",
+                        "end_ns": "2331748876167500",
+                        "imbalance": null,
+                        "start_ns": "2331738894035916",
+                        "state": "invalid_or_conflicting_message",
+                        "state_item_id": null
+                      }
+                    ],
+                    "socket_close_state": "closed",
+                    "socket_terminal": "interval_ended",
+                    "source_admitted": false,
+                    "source_policy": {
+                      "condition_id": "0x58b0474e74a03480c439d50e13dd0b75146c3596e5a475f95e70035c90cee4ca",
+                      "duration_ms": 60000,
+                      "token_id": "113017673827188867377109454527754982157460887938297582871131403025795572613918"
+                    },
+                    "source_report_hash": "5d73fbe7dfd233e7c059d20bf24f7f17b9d44dbeb6d75caf6d9b545746585780",
+                    "uncovered_duration_ns": "60000000000"
+                  },
+                  "feature_store_admitted": false,
+                  "native_clock_admitted": false,
+                  "origin_admitted": false,
+                  "projection_hash": "2d14c4dfd2a0a1ef3bb5dc52bf48d6a986b9f13e7c944b0a97f8bdaf6cf46c27",
+                  "provenance_class": "prospective",
+                  "reconciliation": {
+                    "comparison_scope": "best_bid_ask_price_and_size",
+                    "continuous_sequence_proven": false,
+                    "coverage_projection_hash": "3c8d04bff6ce6660a222469419ffc48552fb7c7e907376f06030a3c4a7d86e08",
+                    "end_comparison": {
+                      "left": null,
+                      "right": null,
+                      "right_minus_left": null,
+                      "state": "unavailable"
+                    },
+                    "feature_store_admitted": false,
+                    "first_stream_item": null,
+                    "first_stream_received_at": null,
+                    "full_book_equivalence": false,
+                    "last_stream_item": null,
+                    "last_stream_received_at": null,
+                    "last_stream_to_post_ms": null,
+                    "origin_admitted": false,
+                    "original_identity": {
+                      "condition_id": "0x58b0474e74a03480c439d50e13dd0b75146c3596e5a475f95e70035c90cee4ca",
+                      "lifecycle": {
+                        "acceptingOrders": true,
+                        "active": true,
+                        "archived": false,
+                        "closed": false
+                      },
+                      "mapping_version": "477b94f65ceef423831e054f213e0b36d22ce4c848e3b9c7cdd0cb04410ae5ae",
+                      "market_id": "628957",
+                      "outcome_index": 0,
+                      "outcome_label": "Yes",
+                      "token_id": "113017673827188867377109454527754982157460887938297582871131403025795572613918"
+                    },
+                    "original_identity_available_at": {
+                      "$utc": "2026-10-08T02:49:41.656939Z"
+                    },
+                    "post_quote": null,
+                    "post_request_boundary": {
+                      "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                      "monotonic_ns": "2331748989548250",
+                      "utc": "2026-10-08T02:50:42.693220Z"
+                    },
+                    "pre_to_first_stream_ms": null,
+                    "provenance_class": "prospective",
+                    "raw_window_ended_at": {
+                      "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                      "monotonic_ns": "2331748878295958",
+                      "utc": "2026-10-08T02:50:42.581956Z"
+                    },
+                    "reasons": [
+                      "post_identity_or_rules_changed_or_unavailable",
+                      "post_snapshot_unavailable",
+                      "post_source_pair_unavailable",
+                      "window_end_unavailable"
+                    ],
+                    "schema_version": "fs2-socket-endpoint-reconciliation-v1",
+                    "source_inventory": [],
+                    "start_comparison": {
+                      "left": null,
+                      "right": null,
+                      "right_minus_left": null,
+                      "state": "unavailable"
+                    },
+                    "state": "unavailable",
+                    "uncovered_duration_ns": "60000000000",
+                    "units": {
+                      "collateral_identity": "unresolved",
+                      "notional": "source_local_price_times_shares",
+                      "price": "source_local_price_per_share",
+                      "ratio": "dimensionless",
+                      "size": "shares"
+                    }
+                  },
+                  "schema_version": "fs2-socket-analysis-v1",
+                  "socket_close_state": "closed",
+                  "socket_terminal": "interval_ended",
+                  "source_admitted": false,
+                  "state": "diagnostics_available"
+                },
+                "schema_version": "fs2-socket-analysis-v1"
+              },
+              "summary": {
+                "computation_available_at": {
+                  "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                  "monotonic_ns": "2331749233820708",
+                  "utc": "2026-10-08T02:50:42.937496Z"
+                },
+                "computation_hash": "669bac28bbea0aab2ef11a0b399324fea0a4a6512071782c207e1777111b8729",
+                "computation_started_at": {
+                  "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                  "monotonic_ns": "2331749231474458",
+                  "utc": "2026-10-08T02:50:42.935150Z"
+                },
+                "computed_at": {
+                  "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                  "monotonic_ns": "2331749233153625",
+                  "utc": "2026-10-08T02:50:42.936828Z"
+                },
+                "feature_store_admitted": false,
+                "origin_admitted": false,
+                "policy_hash": "63f14496c7b31263cffc5df44036182b3ef73814722e0e47a4f14ef6b39e0288",
+                "projection_hash": "2d14c4dfd2a0a1ef3bb5dc52bf48d6a986b9f13e7c944b0a97f8bdaf6cf46c27",
+                "schema_version": "fs2-socket-analysis-v1",
+                "source_admitted": false,
+                "source_provenance_class": "prospective",
+                "state": "diagnostics_available"
+              }
+            }
+          },
+          "pre": {
+            "read_available_at": {
+              "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+              "monotonic_ns": "2331756301160875",
+              "utc": "2026-10-08T02:50:50.004854Z"
+            },
+            "read_receipt": {
+              "completed_at": {
+                "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                "monotonic_ns": "2331756300764916",
+                "utc": "2026-10-08T02:50:50.004446Z"
+              },
+              "metadata_read_started_at": {
+                "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                "monotonic_ns": "2331754102167625",
+                "utc": "2026-10-08T02:50:47.805862Z"
+              },
+              "observation_clocks_changed": false,
+              "origin_admitted": false,
+              "original_provenance_class": "prospective",
+              "original_report_hash": "a62a0bccadab328b6964da061a4237df8a027142f665f3bb1c485608b6bff99f",
+              "original_state": "verified_book_computation",
+              "output_bytes": 12168,
+              "output_hash": "cde2a504e11c43f6ed75995a848d4762efa65705248bb4b44dff8d964979a281",
+              "read_policy_hash": "8c100889fe900d24b1af5861a5af3c095d16f24634b091dc9b4c369ab7033456",
+              "schema_version": "fs2-original-book-computation-read-v1",
+              "verification_started_at": {
+                "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                "monotonic_ns": "2331755760624625",
+                "utc": "2026-10-08T02:50:49.464327Z"
+              }
+            },
+            "read_receipt_hash": "dde123cf7520a37919b0e17384a87e82e57027d824f080cf77ec1bf91423d02b",
+            "read_root": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_book_computation_read_case_2",
+            "report": {
+              "facts": {
+                "computation_started_at": {
+                  "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                  "monotonic_ns": "2331688203731583",
+                  "utc": "2026-10-08T02:49:41.907110Z"
+                },
+                "computed_at": {
+                  "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                  "monotonic_ns": "2331688205658833",
+                  "utc": "2026-10-08T02:49:41.909040Z"
+                },
+                "feature_store_admitted": false,
+                "input_read": {
+                  "observation_count": 2,
+                  "origin_admitted": false,
+                  "projection_completed_at": {
+                    "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                    "monotonic_ns": "2331688166521083",
+                    "utc": "2026-10-08T02:49:41.869900Z"
+                  },
+                  "projection_hash": "3f0dd829dc3bb959c8ae95314a0899f8cb1aeae073fa3afe7adfcf36074ddcd3",
+                  "read_available_at": {
+                    "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                    "monotonic_ns": "2331688174149208",
+                    "utc": "2026-10-08T02:49:41.877529Z"
+                  },
+                  "read_facts_hash": "199136e6b698a87fe99583cadc65cff5c61c31fea6d9a46434302862f7f58f21",
+                  "read_started_at": {
+                    "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                    "monotonic_ns": "2331688152415375",
+                    "utc": "2026-10-08T02:49:41.855796Z"
+                  },
+                  "schema_version": "fs2-panel-input-read-v2",
+                  "source_clocks_changed": false,
+                  "source_provenance_class": "prospective"
+                },
+                "origin_admitted": false,
+                "policy_hash": "491674fd372a3d7bb0afa9cd8132854710bbc37a6ec512edef2acffbc92a6a1d",
+                "projection": {
+                  "clock_basis": "receipt",
+                  "cutoff": {
+                    "$utc": "2026-10-08T02:49:41.907110Z"
+                  },
+                  "durable_computation_required": true,
+                  "economic_value_claim": false,
+                  "feature_store_admitted": false,
+                  "limits": {
+                    "max_absolute_exponent": 256,
+                    "max_coefficient_digits": 256,
+                    "max_levels_per_book": 10000
+                  },
+                  "native_clock_admitted": false,
+                  "origin_admitted": false,
+                  "policy": {
+                    "max_identity_age_seconds": 180,
+                    "max_receipt_age_seconds": 60,
+                    "version": "fs2-receipt-quote-input-policy-v1"
+                  },
+                  "projection_hash": "541aed89f28e3df7b6728618913a634bd4535039fcfdbd9587388de85acdc502",
+                  "provenance_class": "prospective",
+                  "quote_projection_hash": "f086be4c41abeb3eefb50fc415493b3b24039f266198faeca38ef6f0a3fa9f49",
+                  "registered_window_features_available": false,
+                  "runtime_source_verification_required": true,
+                  "schema_version": "fs2-book-snapshot-primitives-v1",
+                  "snapshots": [
+                    {
+                      "components": null,
+                      "continuous_window_eligible": false,
+                      "intermediates": null,
+                      "levels": {
+                        "asks": [
+                          {
+                            "price": {
+                              "$decimal": "0.999"
+                            },
+                            "price_raw": "0.999",
+                            "size": {
+                              "$decimal": "11011157.56"
+                            },
+                            "size_raw": "11011157.56",
+                            "source_index": 0
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.998"
+                            },
+                            "price_raw": "0.998",
+                            "size": {
+                              "$decimal": "507515.37"
+                            },
+                            "size_raw": "507515.37",
+                            "source_index": 1
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.997"
+                            },
+                            "price_raw": "0.997",
+                            "size": {
+                              "$decimal": "10000"
+                            },
+                            "size_raw": "10000",
+                            "source_index": 2
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.996"
+                            },
+                            "price_raw": "0.996",
+                            "size": {
+                              "$decimal": "95000"
+                            },
+                            "size_raw": "95000",
+                            "source_index": 3
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.995"
+                            },
+                            "price_raw": "0.995",
+                            "size": {
+                              "$decimal": "10.29"
+                            },
+                            "size_raw": "10.29",
+                            "source_index": 4
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.994"
+                            },
+                            "price_raw": "0.994",
+                            "size": {
+                              "$decimal": "92500"
+                            },
+                            "size_raw": "92500",
+                            "source_index": 5
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.99"
+                            },
+                            "price_raw": "0.99",
+                            "size": {
+                              "$decimal": "1100"
+                            },
+                            "size_raw": "1100",
+                            "source_index": 6
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.989"
+                            },
+                            "price_raw": "0.989",
+                            "size": {
+                              "$decimal": "90000"
+                            },
+                            "size_raw": "90000",
+                            "source_index": 7
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.988"
+                            },
+                            "price_raw": "0.988",
+                            "size": {
+                              "$decimal": "200000"
+                            },
+                            "size_raw": "200000",
+                            "source_index": 8
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.987"
+                            },
+                            "price_raw": "0.987",
+                            "size": {
+                              "$decimal": "12.02"
+                            },
+                            "size_raw": "12.02",
+                            "source_index": 9
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.978"
+                            },
+                            "price_raw": "0.978",
+                            "size": {
+                              "$decimal": "60000"
+                            },
+                            "size_raw": "60000",
+                            "source_index": 10
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.95"
+                            },
+                            "price_raw": "0.95",
+                            "size": {
+                              "$decimal": "28700"
+                            },
+                            "size_raw": "28700",
+                            "source_index": 11
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.949"
+                            },
+                            "price_raw": "0.949",
+                            "size": {
+                              "$decimal": "61960.78"
+                            },
+                            "size_raw": "61960.78",
+                            "source_index": 12
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.948"
+                            },
+                            "price_raw": "0.948",
+                            "size": {
+                              "$decimal": "5.11"
+                            },
+                            "size_raw": "5.11",
+                            "source_index": 13
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.9"
+                            },
+                            "price_raw": "0.9",
+                            "size": {
+                              "$decimal": "13200"
+                            },
+                            "size_raw": "13200",
+                            "source_index": 14
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.899"
+                            },
+                            "price_raw": "0.899",
+                            "size": {
+                              "$decimal": "20000"
+                            },
+                            "size_raw": "20000",
+                            "source_index": 15
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.85"
+                            },
+                            "price_raw": "0.85",
+                            "size": {
+                              "$decimal": "33104.16"
+                            },
+                            "size_raw": "33104.16",
+                            "source_index": 16
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.81"
+                            },
+                            "price_raw": "0.81",
+                            "size": {
+                              "$decimal": "18453.95"
+                            },
+                            "size_raw": "18453.95",
+                            "source_index": 17
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.809"
+                            },
+                            "price_raw": "0.809",
+                            "size": {
+                              "$decimal": "5.58"
+                            },
+                            "size_raw": "5.58",
+                            "source_index": 18
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.8"
+                            },
+                            "price_raw": "0.8",
+                            "size": {
+                              "$decimal": "6700"
+                            },
+                            "size_raw": "6700",
+                            "source_index": 19
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.77"
+                            },
+                            "price_raw": "0.77",
+                            "size": {
+                              "$decimal": "14551.63"
+                            },
+                            "size_raw": "14551.63",
+                            "source_index": 20
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.75"
+                            },
+                            "price_raw": "0.75",
+                            "size": {
+                              "$decimal": "5200"
+                            },
+                            "size_raw": "5200",
+                            "source_index": 21
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.73"
+                            },
+                            "price_raw": "0.73",
+                            "size": {
+                              "$decimal": "11805.56"
+                            },
+                            "size_raw": "11805.56",
+                            "source_index": 22
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.729"
+                            },
+                            "price_raw": "0.729",
+                            "size": {
+                              "$decimal": "800"
+                            },
+                            "size_raw": "800",
+                            "source_index": 23
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.7"
+                            },
+                            "price_raw": "0.7",
+                            "size": {
+                              "$decimal": "4000"
+                            },
+                            "size_raw": "4000",
+                            "source_index": 24
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.69"
+                            },
+                            "price_raw": "0.69",
+                            "size": {
+                              "$decimal": "7197.58"
+                            },
+                            "size_raw": "7197.58",
+                            "source_index": 25
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.65"
+                            },
+                            "price_raw": "0.65",
+                            "size": {
+                              "$decimal": "9348.21"
+                            },
+                            "size_raw": "9348.21",
+                            "source_index": 26
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.61"
+                            },
+                            "price_raw": "0.61",
+                            "size": {
+                              "$decimal": "4495.18"
+                            },
+                            "size_raw": "4495.18",
+                            "source_index": 27
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.6"
+                            },
+                            "price_raw": "0.6",
+                            "size": {
+                              "$decimal": "2500"
+                            },
+                            "size_raw": "2500",
+                            "source_index": 28
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.59"
+                            },
+                            "price_raw": "0.59",
+                            "size": {
+                              "$decimal": "5"
+                            },
+                            "size_raw": "5",
+                            "source_index": 29
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.57"
+                            },
+                            "price_raw": "0.57",
+                            "size": {
+                              "$decimal": "3706.4"
+                            },
+                            "size_raw": "3706.4",
+                            "source_index": 30
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.53"
+                            },
+                            "price_raw": "0.53",
+                            "size": {
+                              "$decimal": "3390.96"
+                            },
+                            "size_raw": "3390.96",
+                            "source_index": 31
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.49"
+                            },
+                            "price_raw": "0.49",
+                            "size": {
+                              "$decimal": "2500"
+                            },
+                            "size_raw": "2500",
+                            "source_index": 32
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.44"
+                            },
+                            "price_raw": "0.44",
+                            "size": {
+                              "$decimal": "5.02"
+                            },
+                            "size_raw": "5.02",
+                            "source_index": 33
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.439"
+                            },
+                            "price_raw": "0.439",
+                            "size": {
+                              "$decimal": "5"
+                            },
+                            "size_raw": "5",
+                            "source_index": 34
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.437"
+                            },
+                            "price_raw": "0.437",
+                            "size": {
+                              "$decimal": "25"
+                            },
+                            "size_raw": "25",
+                            "source_index": 35
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.436"
+                            },
+                            "price_raw": "0.436",
+                            "size": {
+                              "$decimal": "400"
+                            },
+                            "size_raw": "400",
+                            "source_index": 36
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.059"
+                            },
+                            "price_raw": "0.059",
+                            "size": {
+                              "$decimal": "84.7"
+                            },
+                            "size_raw": "84.7",
+                            "source_index": 37
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.058"
+                            },
+                            "price_raw": "0.058",
+                            "size": {
+                              "$decimal": "100"
+                            },
+                            "size_raw": "100",
+                            "source_index": 38
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.045"
+                            },
+                            "price_raw": "0.045",
+                            "size": {
+                              "$decimal": "10"
+                            },
+                            "size_raw": "10",
+                            "source_index": 39
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.04"
+                            },
+                            "price_raw": "0.04",
+                            "size": {
+                              "$decimal": "10"
+                            },
+                            "size_raw": "10",
+                            "source_index": 40
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.039"
+                            },
+                            "price_raw": "0.039",
+                            "size": {
+                              "$decimal": "25"
+                            },
+                            "size_raw": "25",
+                            "source_index": 41
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.036"
+                            },
+                            "price_raw": "0.036",
+                            "size": {
+                              "$decimal": "73"
+                            },
+                            "size_raw": "73",
+                            "source_index": 42
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.035"
+                            },
+                            "price_raw": "0.035",
+                            "size": {
+                              "$decimal": "10"
+                            },
+                            "size_raw": "10",
+                            "source_index": 43
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.03"
+                            },
+                            "price_raw": "0.03",
+                            "size": {
+                              "$decimal": "10"
+                            },
+                            "size_raw": "10",
+                            "source_index": 44
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.028"
+                            },
+                            "price_raw": "0.028",
+                            "size": {
+                              "$decimal": "30"
+                            },
+                            "size_raw": "30",
+                            "source_index": 45
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.027"
+                            },
+                            "price_raw": "0.027",
+                            "size": {
+                              "$decimal": "50"
+                            },
+                            "size_raw": "50",
+                            "source_index": 46
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.026"
+                            },
+                            "price_raw": "0.026",
+                            "size": {
+                              "$decimal": "250"
+                            },
+                            "size_raw": "250",
+                            "source_index": 47
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.025"
+                            },
+                            "price_raw": "0.025",
+                            "size": {
+                              "$decimal": "40"
+                            },
+                            "size_raw": "40",
+                            "source_index": 48
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.022"
+                            },
+                            "price_raw": "0.022",
+                            "size": {
+                              "$decimal": "10"
+                            },
+                            "size_raw": "10",
+                            "source_index": 49
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.019"
+                            },
+                            "price_raw": "0.019",
+                            "size": {
+                              "$decimal": "1083.54"
+                            },
+                            "size_raw": "1083.54",
+                            "source_index": 50
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.018"
+                            },
+                            "price_raw": "0.018",
+                            "size": {
+                              "$decimal": "45"
+                            },
+                            "size_raw": "45",
+                            "source_index": 51
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.012"
+                            },
+                            "price_raw": "0.012",
+                            "size": {
+                              "$decimal": "156"
+                            },
+                            "size_raw": "156",
+                            "source_index": 52
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.007"
+                            },
+                            "price_raw": "0.007",
+                            "size": {
+                              "$decimal": "196.26"
+                            },
+                            "size_raw": "196.26",
+                            "source_index": 53
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.005"
+                            },
+                            "price_raw": "0.005",
+                            "size": {
+                              "$decimal": "510"
+                            },
+                            "size_raw": "510",
+                            "source_index": 54
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.004"
+                            },
+                            "price_raw": "0.004",
+                            "size": {
+                              "$decimal": "10.99"
+                            },
+                            "size_raw": "10.99",
+                            "source_index": 55
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.002"
+                            },
+                            "price_raw": "0.002",
+                            "size": {
+                              "$decimal": "3099"
+                            },
+                            "size_raw": "3099",
+                            "source_index": 56
+                          },
+                          {
+                            "price": {
+                              "$decimal": "0.001"
+                            },
+                            "price_raw": "0.001",
+                            "size": {
+                              "$decimal": "77810.53"
+                            },
+                            "size_raw": "77810.53",
+                            "source_index": 57
+                          }
+                        ],
+                        "bids": []
+                      },
+                      "missing_fields": {
+                        "components": "one_sided_or_missing",
+                        "intermediates": "one_sided_or_missing",
+                        "native_book_age": "unavailable",
+                        "tick_size": "unavailable"
+                      },
+                      "native_book_age": null,
+                      "quote": {
+                        "ask": "0.001",
+                        "ask_size": "77810.53",
+                        "bid": null,
+                        "bid_size": null,
+                        "condition_id": "0x58b0474e74a03480c439d50e13dd0b75146c3596e5a475f95e70035c90cee4ca",
+                        "mapping": {
+                          "available_at": {
+                            "$utc": "2026-10-08T02:49:41.656939Z"
+                          },
+                          "economic_group_status": "unresolved",
+                          "identity_status": "source_local_only",
+                          "lifecycle": {
+                            "acceptingOrders": true,
+                            "active": true,
+                            "archived": false,
+                            "closed": false
+                          },
+                          "mapping_version": "477b94f65ceef423831e054f213e0b36d22ce4c848e3b9c7cdd0cb04410ae5ae",
+                          "market_id": "628957",
+                          "observation_id": "d6baf470cf862b21154c089f6b3501d93d90dc5584e8259e41e162d983c499ad",
+                          "outcome_index": 0,
+                          "outcome_label": "Yes",
+                          "received_at": {
+                            "$utc": "2026-10-08T02:49:41.645775Z"
+                          }
+                        },
+                        "midpoint": null,
+                        "observation_id": "37ebfc147fed21886345f8d526dcd84c772243e52c17ad030027ebfbf1cc9176",
+                        "provenance_class": "prospective",
+                        "quality_flags": [
+                          "one_sided_book"
+                        ],
+                        "received_at": {
+                          "$utc": "2026-10-08T02:49:41.790187Z"
+                        },
+                        "source_available_at": {
+                          "$utc": "2026-10-08T02:49:41.804170Z"
+                        },
+                        "state": "one_sided_or_missing",
+                        "token_id": "113017673827188867377109454527754982157460887938297582871131403025795572613918"
+                      },
+                      "source_book_hash_raw": "21db3b2d8a0a6d2b3eb0bdd815155533257f9beb",
+                      "source_timestamp_raw": "1791427747815",
+                      "state": "one_sided_or_missing",
+                      "tick_size": null
+                    }
+                  ],
+                  "source_inventory": [
+                    {
+                      "available_at": {
+                        "$utc": "2026-10-08T02:49:41.804170Z"
+                      },
+                      "missing_reason": "observed",
+                      "observation_id": "37ebfc147fed21886345f8d526dcd84c772243e52c17ad030027ebfbf1cc9176",
+                      "payload_hash": "f327c43012aba22c41ca8bf688e1aea166c5ba4025ed601a74e7e1621fc48bf2",
+                      "provenance_class": "prospective",
+                      "received_at": {
+                        "$utc": "2026-10-08T02:49:41.790187Z"
+                      },
+                      "source_id": "clob.book"
+                    },
+                    {
+                      "available_at": {
+                        "$utc": "2026-10-08T02:49:41.656939Z"
+                      },
+                      "missing_reason": "observed",
+                      "observation_id": "d6baf470cf862b21154c089f6b3501d93d90dc5584e8259e41e162d983c499ad",
+                      "payload_hash": "73ee9cc5681b8a5e9af6b84dbb4bd227b1f1372a278da23ed16f947dcbaee5a2",
+                      "provenance_class": "prospective",
+                      "received_at": {
+                        "$utc": "2026-10-08T02:49:41.645775Z"
+                      },
+                      "source_id": "gamma.market"
+                    }
+                  ],
+                  "units": {
+                    "collateral_identity": "unresolved",
+                    "notional": "source_local_price_times_shares",
+                    "price": "source_local_price_per_share",
+                    "ratio": "dimensionless",
+                    "size": "shares"
+                  }
+                },
+                "schema_version": "fs2-book-computation-v1"
+              },
+              "summary": {
+                "computation_available_at": {
+                  "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                  "monotonic_ns": "2331688212606166",
+                  "utc": "2026-10-08T02:49:41.915986Z"
+                },
+                "computation_hash": "a62a0bccadab328b6964da061a4237df8a027142f665f3bb1c485608b6bff99f",
+                "computation_started_at": {
+                  "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                  "monotonic_ns": "2331688203731583",
+                  "utc": "2026-10-08T02:49:41.907110Z"
+                },
+                "computed_at": {
+                  "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                  "monotonic_ns": "2331688205658833",
+                  "utc": "2026-10-08T02:49:41.909040Z"
+                },
+                "feature_store_admitted": false,
+                "input_read_hash": "199136e6b698a87fe99583cadc65cff5c61c31fea6d9a46434302862f7f58f21",
+                "origin_admitted": false,
+                "policy_hash": "491674fd372a3d7bb0afa9cd8132854710bbc37a6ec512edef2acffbc92a6a1d",
+                "projection_hash": "541aed89f28e3df7b6728618913a634bd4535039fcfdbd9587388de85acdc502",
+                "schema_version": "fs2-book-computation-v1",
+                "snapshot_count": 1,
+                "snapshot_states": {
+                  "one_sided_or_missing": 1
+                },
+                "source_observation_count": 2,
+                "source_provenance_class": "prospective"
+              }
+            }
+          },
+          "socket": {
+            "read_available_at": {
+              "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+              "monotonic_ns": "2331758572888666",
+              "utc": "2026-10-08T02:50:52.276607Z"
+            },
+            "read_receipt": {
+              "completed_at": {
+                "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                "monotonic_ns": "2331758572520791",
+                "utc": "2026-10-08T02:50:52.276217Z"
+              },
+              "metadata_read_started_at": {
+                "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                "monotonic_ns": "2331756314821708",
+                "utc": "2026-10-08T02:50:50.018523Z"
+              },
+              "observation_clocks_changed": false,
+              "origin_admitted": false,
+              "original_provenance_class": "prospective",
+              "original_report_hash": "5d73fbe7dfd233e7c059d20bf24f7f17b9d44dbeb6d75caf6d9b545746585780",
+              "original_state": "duration_completed",
+              "output_bytes": 1947,
+              "output_hash": "218c02026da5c85fa0e3a0bf521da41efc2666e022e9edfef9eebc577d5d5b63",
+              "read_policy_hash": "0ae46bd45430e8d70eac210d90ba7e0ae1a777166f424c58b7d84cfe98429361",
+              "schema_version": "fs2-original-socket-window-read-v1",
+              "verification_started_at": {
+                "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                "monotonic_ns": "2331757975401666",
+                "utc": "2026-10-08T02:50:51.679116Z"
+              }
+            },
+            "read_receipt_hash": "625b56bc6970bb80be5cecd1f5b62b4a4fb0e7edb30af11219d1ed9d5bc2a1d1",
+            "read_root": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_one_sided_diagnostic_20261007_1/fs2_socket_window_read_case_2",
+            "report": {
+              "binding_available_at": {
+                "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                "monotonic_ns": "2331688356286333",
+                "utc": "2026-10-08T02:49:42.059664Z"
+              },
+              "binding_hash": "298c6a26de9bdb593b447a0dd78dafa9a961509dfbc6cda5ee533aa931b2cd91",
+              "close_state": "closed",
+              "continuous_sequence_proven": false,
+              "ended_at": {
+                "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                "monotonic_ns": "2331748878295958",
+                "utc": "2026-10-08T02:50:42.581956Z"
+              },
+              "event_count": 23,
+              "feature_store_admitted": false,
+              "frame_count": 6,
+              "identity": {
+                "condition_id": "0x58b0474e74a03480c439d50e13dd0b75146c3596e5a475f95e70035c90cee4ca",
+                "lifecycle": {
+                  "acceptingOrders": true,
+                  "active": true,
+                  "archived": false,
+                  "closed": false
+                },
+                "mapping_version": "477b94f65ceef423831e054f213e0b36d22ce4c848e3b9c7cdd0cb04410ae5ae",
+                "market_id": "628957",
+                "outcome_index": 0,
+                "outcome_label": "Yes",
+                "token_id": "113017673827188867377109454527754982157460887938297582871131403025795572613918"
+              },
+              "identity_available_at": {
+                "$utc": "2026-10-08T02:49:41.656939Z"
+              },
+              "identity_fresh_at_subscription_completion": true,
+              "last_event_hash": "faa8c9ca11eb1a7a073f7778873a632b0a068ec2466664e9487a1c51c2ab0d1b",
+              "late_frame_count": 0,
+              "native_clock_admitted": false,
+              "origin_admitted": false,
+              "ping_count": 5,
+              "policy_hash": "959eb59377c2bafd18a53482311ef16ddd74580e1184371a43e8d73a0ca8b94b",
+              "provenance_class": "prospective",
+              "retained_raw_bytes": 2354,
+              "schema_version": "fs2-observation-socket-window-v2",
+              "socket_window_available_at": {
+                "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                "monotonic_ns": "2331748989548250",
+                "utc": "2026-10-08T02:50:42.693220Z"
+              },
+              "socket_window_report_hash": "5d73fbe7dfd233e7c059d20bf24f7f17b9d44dbeb6d75caf6d9b545746585780",
+              "source_admitted": false,
+              "source_provenance_compatible": true,
+              "state": "duration_completed",
+              "subscription_sent_at": {
+                "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+                "monotonic_ns": "2331688876167500",
+                "utc": "2026-10-08T02:49:42.579551Z"
+              },
+              "terminal": "interval_ended",
+              "transport_scope": "public"
+            }
+          }
+        },
+        "refusal": null,
+        "socket": {
+          "binding_available_at": {
+            "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+            "monotonic_ns": "2331688356286333",
+            "utc": "2026-10-08T02:49:42.059664Z"
+          },
+          "binding_hash": "298c6a26de9bdb593b447a0dd78dafa9a961509dfbc6cda5ee533aa931b2cd91",
+          "close_state": "closed",
+          "continuous_sequence_proven": false,
+          "ended_at": {
+            "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+            "monotonic_ns": "2331748878295958",
+            "utc": "2026-10-08T02:50:42.581956Z"
+          },
+          "event_count": 23,
+          "feature_store_admitted": false,
+          "frame_count": 6,
+          "identity": {
+            "condition_id": "0x58b0474e74a03480c439d50e13dd0b75146c3596e5a475f95e70035c90cee4ca",
+            "lifecycle": {
+              "acceptingOrders": true,
+              "active": true,
+              "archived": false,
+              "closed": false
+            },
+            "mapping_version": "477b94f65ceef423831e054f213e0b36d22ce4c848e3b9c7cdd0cb04410ae5ae",
+            "market_id": "628957",
+            "outcome_index": 0,
+            "outcome_label": "Yes",
+            "token_id": "113017673827188867377109454527754982157460887938297582871131403025795572613918"
+          },
+          "identity_available_at": {
+            "$utc": "2026-10-08T02:49:41.656939Z"
+          },
+          "identity_fresh_at_subscription_completion": true,
+          "last_event_hash": "faa8c9ca11eb1a7a073f7778873a632b0a068ec2466664e9487a1c51c2ab0d1b",
+          "late_frame_count": 0,
+          "native_clock_admitted": false,
+          "origin_admitted": false,
+          "ping_count": 5,
+          "policy_hash": "959eb59377c2bafd18a53482311ef16ddd74580e1184371a43e8d73a0ca8b94b",
+          "provenance_class": "prospective",
+          "retained_raw_bytes": 2354,
+          "schema_version": "fs2-observation-socket-window-v2",
+          "socket_window_available_at": {
+            "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+            "monotonic_ns": "2331748989548250",
+            "utc": "2026-10-08T02:50:42.693220Z"
+          },
+          "socket_window_report_hash": "5d73fbe7dfd233e7c059d20bf24f7f17b9d44dbeb6d75caf6d9b545746585780",
+          "source_admitted": false,
+          "source_provenance_compatible": true,
+          "state": "duration_completed",
+          "subscription_sent_at": {
+            "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+            "monotonic_ns": "2331688876167500",
+            "utc": "2026-10-08T02:49:42.579551Z"
+          },
+          "terminal": "interval_ended",
+          "transport_scope": "public"
+        },
+        "started_at": {
+          "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+          "monotonic_ns": "2331688110162625",
+          "utc": "2026-10-08T02:49:41.813541Z"
+        }
+      }
+    ],
+    "started_at": {
+      "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+      "monotonic_ns": "2331687739033708",
+      "utc": "2026-10-08T02:49:41.442365Z"
+    }
+  },
+  "retained_bytes": 519491,
+  "source_receipts": [
+    {
+      "capture_id": "7d5319a8-58d2-46e1-86e6-db4fe8c7c27b",
+      "capture_kind": "live_diagnostic",
+      "clock_error_bound_ms": null,
+      "first_byte": {
+        "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+        "monotonic_ns": "2331688359348708",
+        "utc": "2026-10-08T02:49:42.062728Z"
+      },
+      "first_received": {
+        "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+        "monotonic_ns": "2331688567088666",
+        "utc": "2026-10-08T02:49:42.270471Z"
+      },
+      "headers": {
+        "content-type": "application/json",
+        "date": "Thu, 08 Oct 2026 02:49:41 GMT"
+      },
+      "previous_capture_id": null,
+      "raw_bytes": 59,
+      "raw_hash": "db4e9a718fd2ff3d1b0075604fb6e2d7208d53ce17e76e47a7e19f9649e35a96",
+      "receipt_ordinal": 2,
+      "request": {
+        "method": "GET",
+        "params": {
+          "token_id": "98077667723851266764737777347553785196408711705582489371303343543835560555375"
+        },
+        "url": "https://clob.polymarket.com/book"
+      },
+      "request_started": {
+        "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+        "monotonic_ns": "2331688031996125",
+        "utc": "2026-10-08T02:49:41.735374Z"
+      },
+      "schema_version": "fs2-receipt-v2",
+      "scope": "diagnostic_only; no population or historical coverage claim",
+      "session_hash": "fcf92d476f2f4c00ef92bacef2863993aa56dcc71ed629dd4008d6796a0fa59d",
+      "session_id": "f777782e-421a-4d71-8b55-7a2794999c61",
+      "source_contract": {
+        "clock_semantics": "snapshot timestamp retained raw; unit admission requires evidence",
+        "documentation": "https://docs.polymarket.com/api-reference/market-data/get-order-book",
+        "endpoint": "https://clob.polymarket.com/book",
+        "parser_version": "clob-book-v1",
+        "protocol": "clob",
+        "rights_scope": "bounded local diagnostic; bulk/commercial redistribution unverified",
+        "source_id": "clob.book",
+        "units": "decimal price and share size strings; asset token and condition IDs"
+      },
+      "source_id": "clob.book",
+      "source_version": "9ebc0600c3f2a8643345f936b4ba8c4a936a687dc0db556e653aa5ea2e320918",
+      "status": 404,
+      "transport_error": null
+    },
+    {
+      "capture_id": "dfa48e6a-1f34-45bc-911c-6022f7b9c635",
+      "capture_kind": "live_diagnostic",
+      "clock_error_bound_ms": null,
+      "first_byte": {
+        "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+        "monotonic_ns": "2331687972500583",
+        "utc": "2026-10-08T02:49:41.675879Z"
+      },
+      "first_received": {
+        "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+        "monotonic_ns": "2331688006845541",
+        "utc": "2026-10-08T02:49:41.710224Z"
+      },
+      "headers": {
+        "content-type": "application/json",
+        "date": "Thu, 08 Oct 2026 02:49:41 GMT"
+      },
+      "previous_capture_id": null,
+      "raw_bytes": 4274,
+      "raw_hash": "20d0d0fba0411c617a8ce8f252e2a703c137b70b67c46cdee740a544b594384c",
+      "receipt_ordinal": 1,
+      "request": {
+        "method": "GET",
+        "params": {},
+        "path_params": {
+          "id": "5233594"
+        },
+        "url": "https://gamma-api.polymarket.com/markets/5233594"
+      },
+      "request_started": {
+        "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+        "monotonic_ns": "2331687786735000",
+        "utc": "2026-10-08T02:49:41.490110Z"
+      },
+      "schema_version": "fs2-receipt-v2",
+      "scope": "diagnostic_only; no population or historical coverage claim",
+      "session_hash": "fcf92d476f2f4c00ef92bacef2863993aa56dcc71ed629dd4008d6796a0fa59d",
+      "session_id": "f777782e-421a-4d71-8b55-7a2794999c61",
+      "source_contract": {
+        "clock_semantics": "metadata clocks are not first receipt or lifecycle time",
+        "documentation": "https://docs.polymarket.com/api-reference/markets/get-market-by-id",
+        "endpoint": "https://gamma-api.polymarket.com/markets/{id}",
+        "parser_version": "gamma-market-identity-v1",
+        "protocol": "gamma-by-id",
+        "rights_scope": "bounded local diagnostic; bulk/commercial redistribution unverified",
+        "source_id": "gamma.market",
+        "units": "one exact decimal market ID; ordered outcomes/tokens; nullable lifecycle flags"
+      },
+      "source_id": "gamma.market",
+      "source_version": "aa6a1639cbb92fb5b7b39e775da9fc01e15038a549285631da03fd9b9dda44b3",
+      "status": 200,
+      "transport_error": null
+    },
+    {
+      "capture_id": "6f1095ed-86f4-455d-962d-ea87ec4e3037",
+      "capture_kind": "live_diagnostic",
+      "clock_error_bound_ms": null,
+      "first_byte": {
+        "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+        "monotonic_ns": "2331688358672208",
+        "utc": "2026-10-08T02:49:42.062050Z"
+      },
+      "first_received": {
+        "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+        "monotonic_ns": "2331688360354250",
+        "utc": "2026-10-08T02:49:42.063733Z"
+      },
+      "headers": {
+        "content-type": "application/json",
+        "date": "Thu, 08 Oct 2026 02:49:41 GMT"
+      },
+      "previous_capture_id": null,
+      "raw_bytes": 59,
+      "raw_hash": "db4e9a718fd2ff3d1b0075604fb6e2d7208d53ce17e76e47a7e19f9649e35a96",
+      "receipt_ordinal": 2,
+      "request": {
+        "method": "GET",
+        "params": {
+          "token_id": "3676102803406651090688924860420061420346707850876754167420213205930652979159"
+        },
+        "url": "https://clob.polymarket.com/book"
+      },
+      "request_started": {
+        "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+        "monotonic_ns": "2331688000636416",
+        "utc": "2026-10-08T02:49:41.704015Z"
+      },
+      "schema_version": "fs2-receipt-v2",
+      "scope": "diagnostic_only; no population or historical coverage claim",
+      "session_hash": "d68c2fef726e0d9eb7f92dcd289ebb9caa233d3cc949179a10549a0e55f6f1cb",
+      "session_id": "4ff220b1-dee1-4adf-b362-74e7934af2a4",
+      "source_contract": {
+        "clock_semantics": "snapshot timestamp retained raw; unit admission requires evidence",
+        "documentation": "https://docs.polymarket.com/api-reference/market-data/get-order-book",
+        "endpoint": "https://clob.polymarket.com/book",
+        "parser_version": "clob-book-v1",
+        "protocol": "clob",
+        "rights_scope": "bounded local diagnostic; bulk/commercial redistribution unverified",
+        "source_id": "clob.book",
+        "units": "decimal price and share size strings; asset token and condition IDs"
+      },
+      "source_id": "clob.book",
+      "source_version": "9ebc0600c3f2a8643345f936b4ba8c4a936a687dc0db556e653aa5ea2e320918",
+      "status": 404,
+      "transport_error": null
+    },
+    {
+      "capture_id": "6f730d80-507c-450e-b235-db6c93a6412f",
+      "capture_kind": "live_diagnostic",
+      "clock_error_bound_ms": null,
+      "first_byte": {
+        "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+        "monotonic_ns": "2331687971876791",
+        "utc": "2026-10-08T02:49:41.675254Z"
+      },
+      "first_received": {
+        "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+        "monotonic_ns": "2331687973244208",
+        "utc": "2026-10-08T02:49:41.676623Z"
+      },
+      "headers": {
+        "content-type": "application/json",
+        "date": "Thu, 08 Oct 2026 02:49:41 GMT"
+      },
+      "previous_capture_id": null,
+      "raw_bytes": 4235,
+      "raw_hash": "453656c3339ec4ac6c602f9a2fb4c13cf2538b02e4f68361619826e49cf038fd",
+      "receipt_ordinal": 1,
+      "request": {
+        "method": "GET",
+        "params": {},
+        "path_params": {
+          "id": "5299067"
+        },
+        "url": "https://gamma-api.polymarket.com/markets/5299067"
+      },
+      "request_started": {
+        "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+        "monotonic_ns": "2331687853885791",
+        "utc": "2026-10-08T02:49:41.557262Z"
+      },
+      "schema_version": "fs2-receipt-v2",
+      "scope": "diagnostic_only; no population or historical coverage claim",
+      "session_hash": "d68c2fef726e0d9eb7f92dcd289ebb9caa233d3cc949179a10549a0e55f6f1cb",
+      "session_id": "4ff220b1-dee1-4adf-b362-74e7934af2a4",
+      "source_contract": {
+        "clock_semantics": "metadata clocks are not first receipt or lifecycle time",
+        "documentation": "https://docs.polymarket.com/api-reference/markets/get-market-by-id",
+        "endpoint": "https://gamma-api.polymarket.com/markets/{id}",
+        "parser_version": "gamma-market-identity-v1",
+        "protocol": "gamma-by-id",
+        "rights_scope": "bounded local diagnostic; bulk/commercial redistribution unverified",
+        "source_id": "gamma.market",
+        "units": "one exact decimal market ID; ordered outcomes/tokens; nullable lifecycle flags"
+      },
+      "source_id": "gamma.market",
+      "source_version": "aa6a1639cbb92fb5b7b39e775da9fc01e15038a549285631da03fd9b9dda44b3",
+      "status": 200,
+      "transport_error": null
+    },
+    {
+      "capture_id": "bff2c044-a6dd-4c79-8503-555e9bb063fa",
+      "capture_kind": "live_diagnostic",
+      "clock_error_bound_ms": null,
+      "first_byte": {
+        "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+        "monotonic_ns": "2331687941343416",
+        "utc": "2026-10-08T02:49:41.644716Z"
+      },
+      "first_received": {
+        "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+        "monotonic_ns": "2331687942398916",
+        "utc": "2026-10-08T02:49:41.645775Z"
+      },
+      "headers": {
+        "content-type": "application/json",
+        "date": "Thu, 08 Oct 2026 02:49:41 GMT"
+      },
+      "previous_capture_id": null,
+      "raw_bytes": 3345,
+      "raw_hash": "73ee9cc5681b8a5e9af6b84dbb4bd227b1f1372a278da23ed16f947dcbaee5a2",
+      "receipt_ordinal": 1,
+      "request": {
+        "method": "GET",
+        "params": {},
+        "path_params": {
+          "id": "628957"
+        },
+        "url": "https://gamma-api.polymarket.com/markets/628957"
+      },
+      "request_started": {
+        "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+        "monotonic_ns": "2331687870125375",
+        "utc": "2026-10-08T02:49:41.573500Z"
+      },
+      "schema_version": "fs2-receipt-v2",
+      "scope": "diagnostic_only; no population or historical coverage claim",
+      "session_hash": "464007fa767af32919cfacbbdf9174becd2b57ae15195dce562156c821e454ad",
+      "session_id": "5fb1b358-679a-48e8-8026-d773f80b114c",
+      "source_contract": {
+        "clock_semantics": "metadata clocks are not first receipt or lifecycle time",
+        "documentation": "https://docs.polymarket.com/api-reference/markets/get-market-by-id",
+        "endpoint": "https://gamma-api.polymarket.com/markets/{id}",
+        "parser_version": "gamma-market-identity-v1",
+        "protocol": "gamma-by-id",
+        "rights_scope": "bounded local diagnostic; bulk/commercial redistribution unverified",
+        "source_id": "gamma.market",
+        "units": "one exact decimal market ID; ordered outcomes/tokens; nullable lifecycle flags"
+      },
+      "source_id": "gamma.market",
+      "source_version": "aa6a1639cbb92fb5b7b39e775da9fc01e15038a549285631da03fd9b9dda44b3",
+      "status": 200,
+      "transport_error": null
+    },
+    {
+      "capture_id": "88410010-bc1b-4a5d-b076-bf90f05fc3f9",
+      "capture_kind": "live_diagnostic",
+      "clock_error_bound_ms": null,
+      "first_byte": {
+        "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+        "monotonic_ns": "2331688086283583",
+        "utc": "2026-10-08T02:49:41.789658Z"
+      },
+      "first_received": {
+        "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+        "monotonic_ns": "2331688086809916",
+        "utc": "2026-10-08T02:49:41.790187Z"
+      },
+      "headers": {
+        "content-type": "application/json",
+        "date": "Thu, 08 Oct 2026 02:49:41 GMT"
+      },
+      "previous_capture_id": null,
+      "raw_bytes": 2216,
+      "raw_hash": "f327c43012aba22c41ca8bf688e1aea166c5ba4025ed601a74e7e1621fc48bf2",
+      "receipt_ordinal": 2,
+      "request": {
+        "method": "GET",
+        "params": {
+          "token_id": "113017673827188867377109454527754982157460887938297582871131403025795572613918"
+        },
+        "url": "https://clob.polymarket.com/book"
+      },
+      "request_started": {
+        "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+        "monotonic_ns": "2331687965265791",
+        "utc": "2026-10-08T02:49:41.668644Z"
+      },
+      "schema_version": "fs2-receipt-v2",
+      "scope": "diagnostic_only; no population or historical coverage claim",
+      "session_hash": "464007fa767af32919cfacbbdf9174becd2b57ae15195dce562156c821e454ad",
+      "session_id": "5fb1b358-679a-48e8-8026-d773f80b114c",
+      "source_contract": {
+        "clock_semantics": "snapshot timestamp retained raw; unit admission requires evidence",
+        "documentation": "https://docs.polymarket.com/api-reference/market-data/get-order-book",
+        "endpoint": "https://clob.polymarket.com/book",
+        "parser_version": "clob-book-v1",
+        "protocol": "clob",
+        "rights_scope": "bounded local diagnostic; bulk/commercial redistribution unverified",
+        "source_id": "clob.book",
+        "units": "decimal price and share size strings; asset token and condition IDs"
+      },
+      "source_id": "clob.book",
+      "source_version": "9ebc0600c3f2a8643345f936b4ba8c4a936a687dc0db556e653aa5ea2e320918",
+      "status": 200,
+      "transport_error": null
+    }
+  ],
+  "status_counts": {
+    "clob.book:200": 1,
+    "clob.book:404": 2,
+    "gamma.market:200": 3
+  },
+  "wrapper_artifacts": [
+    {
+      "bytes": 364,
+      "path": "data-dumps/fs2_one_sided_launch_20261007_1_launch.json",
+      "sha256": "1c3b2291f835f41ca10949c01246c32bbdd26841068583f639cc570bbb8e2066"
+    },
+    {
+      "bytes": 468,
+      "path": "data-dumps/fs2_one_sided_launch_20261007_1_result.json",
+      "sha256": "50a5cad4940e685197a9e8dd6bece35fb23cab7dc56e3d57515065b5cdebe294"
+    },
+    {
+      "bytes": 0,
+      "path": "data-dumps/fs2_one_sided_launch_20261007_1_stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 378,
+      "path": "data-dumps/fs2_one_sided_launch_20261007_1_stdout.log",
+      "sha256": "824ee4f8bcc7b86cf8ee53f920a8c1d1ab60091d1175dae4818e08a17357206a"
+    }
+  ],
+  "wrapper_result": {
+    "command": [
+      "caffeinate",
+      "-is",
+      "/Users/DayyanSheikh/Projects/astrolabe/backend/.venv/bin/python",
+      "/tmp/arepo_d090_frozen.py"
+    ],
+    "completed_at": "2026-10-08T02:50:54.828824+00:00",
+    "elapsed_ns": "73836691417",
+    "implementation_commit": "e8021098b19cb9d6d8651b14c378767ea54a2200",
+    "returncode": 0,
+    "script_sha256": "83c617abebc0acd8319b62f9ce5790d4db06faff5239d754c4e292f3ac0bf5cb",
+    "started_at": "2026-10-08T02:49:40.991373+00:00"
+  }
+}

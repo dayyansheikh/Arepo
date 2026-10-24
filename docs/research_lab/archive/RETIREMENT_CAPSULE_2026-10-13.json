@@ -1,0 +1,1827 @@
+{
+ "capsule": "RETIREMENT_CAPSULE_2026-10-13 (tier 1a: unprotected Mac data-dumps outside research_lab; tier 1b: protected canonical Phase 3 roots, separate opt-in)",
+ "purpose": "User request 2026-10-13: shrink AREPO data and archive it to the private GitHub repo dayyansheikh/arepo-data, then free Mac disk. This capsule supports deleting LOCAL Mac copies only; every listed file is preserved byte-for-byte in a verified release (archive equivalence, stronger than the capsule-only retirement in PHASE_03_BOUNDED_RETENTION.md).",
+ "policy": "docs/implementation/PHASE_03_BOUNDED_RETENTION.md; deletion is user-run in a user-opened retirement session (AREPO_RETIREMENT_SESSION=1).",
+ "releases": {
+  "data-20261011": {
+   "tag": "data-20261011",
+   "verified_utc": "2026-10-13T23:36:23.084323Z",
+   "method": "every part streamed back from GitHub, hashed against MANIFEST.sha256, decompressed with zstd -d --long=31, every tar member re-hashed against files.sha256 in both directions",
+   "n_listed": 206934,
+   "n_members_verified": 206935,
+   "n_missing": 0,
+   "hash_mismatches": [],
+   "unlisted_members": [],
+   "unlisted_appledouble_metadata_members": [
+    "data-dumps/._.DS_Store"
+   ],
+   "files_sha256": "37f92c1fd15fd65d18ab7e447b07aaa6b0945de5b9cbe39f5bd08f38f3b30d35",
+   "passed": true,
+   "parts": [
+    {
+     "name": "arepo-data-20261011.tar.zst.part-aa",
+     "bytes": 1992294400,
+     "sha256": "25e0376b2dcd8e2a6265ee8eb81d962973216be77fa2933e8ac2eab9bee73e21",
+     "ok": true
+    },
+    {
+     "name": "arepo-data-20261011.tar.zst.part-ab",
+     "bytes": 885015168,
+     "sha256": "945abf68bf8f4a23554d5e6d6e7f6021e25bb0e9e622b90406d79e2076dac35f",
+     "ok": true
+    }
+   ]
+  },
+  "data-20261013-fs2": {
+   "tag": "data-20261013-fs2",
+   "verified_utc": "2026-10-13T23:53:02.605786Z",
+   "method": "every part streamed back from GitHub, hashed against MANIFEST.sha256, decompressed with zstd -d --long=31, every tar member re-hashed against files.sha256 in both directions",
+   "n_listed": 51168,
+   "n_members_verified": 51168,
+   "n_missing": 0,
+   "hash_mismatches": [],
+   "unlisted_members": [],
+   "unlisted_appledouble_metadata_members": [],
+   "files_sha256": "6e7a240a3ea3719e2b07f401a09356c7b986a4268ae2cc22a50734aebf40aabe",
+   "passed": true,
+   "parts": [
+    {
+     "name": "arepo-data-20261013-fs2.tar.zst.part-aa",
+     "bytes": 659735530,
+     "sha256": "87895db71d9a8a75694dd00cb3591f9eb62b595447b8a834cea12b1ce60bc612",
+     "ok": true
+    }
+   ],
+   "zstd": "-12 --long=27",
+   "logical_bytes": 6676309231,
+   "compressed_bytes": 659735530,
+   "changed_during_archive": [],
+   "missing_at_archive": []
+  }
+ },
+ "restore_samples": {
+  "data-20261013-fs2": {
+   "n": 60,
+   "identical": 60,
+   "passed": true,
+   "seed": 20261013,
+   "bytes": 7059255
+  },
+  "data-20261011": {
+   "n": 60,
+   "identical": 60,
+   "passed": true,
+   "seed": 20261013,
+   "bytes": 9498330
+  }
+ },
+ "excluded_and_why": {
+  "data-dumps/research_lab/": "Not in tier 1. Dirs now canonical on the Oracle host (COLLECTION_HOST.md) are duplicates on the Mac but their newest files are still being archived (data-20261013-research-lab); Mac-only analysis dirs (history, if_h2, ml_cache, large_trade_census, history_sources, ...) are still read by local analyses.",
+  "files modified < 3 h before manifest build": "possibly active",
+  "backend/data-dumps/": "Mac-only working file, archived in data-20261013-research-lab, not in tier 1.",
+  "data-dumps/.DS_Store etc.": "files whose current hash differs from the release are not listed (1 file)"
+ },
+ "limitations": "After deletion, no Phase 3 frame, capture or panel can be replayed or re-verified on the Mac, and E001 re-extraction or the dependence-clustering analysis cannot be re-run, until the data are restored from GitHub (restore command in DATA_ARCHIVE_2026-10-13.md). GitHub becomes the ONLY copy: one private repo, one account, no second independent backup; deleting the repo, a release asset or the account loses the data permanently. Recommended mitigation before --confirm: download the release parts (data-20261011 2.88 GB, data-20261013-fs2 0.66 GB) to an external drive. Outcomes, statuses and evidence JSONs in docs/ are unchanged; nothing is relabelled. Old verification results remain historical results. data-dumps/fs2_d116/d118/d120_*_evaluation.json wrapper files are among the deleted local copies (archived).",
+ "dependencies_checked": "Phase 3 CLOSED (D119). No launchd/cron job or the Oracle host reads data-dumps outside research_lab. Two replays are lost after deletion until a restore: (1) E001 (EXPERIMENT_LEDGER.md) re-extraction via backend/scripts/run_research_e001.py, which globs data-dumps/fs2_capture_*; the script now refuses to run when previously extracted captures are missing or none are found, so it can no longer overwrite research_lab/e001/snapshots.csv.gz with a smaller extraction; E001 outputs in research_lab/e001 are kept. (2) backend/scripts/dependence_clustering_analysis.py (DEPENDENCE_CLUSTERING_ANALYSIS.md) reads fs2_capture_52eead5d (tier 1b). d118/d120 launch/design scripts reference only their own completed roots. Tests that read data-dumps read research_lab only.",
+ "code_sha256": {
+  "backend/scripts/archive_release.py": "7128aba88765356bccce595a11ab4bf24a8a16ce378e441de7652505fe711b3f",
+  "backend/scripts/build_deletion_manifest.py": "261b94f1d6b2c0b4bf4257861fca1bbc1933da6c69c9e35e7260511619ab499a",
+  "backend/scripts/retire_archived_local.py": "9da195c94c50ff592cedde32197368f1ed283ad9f13aa7d6107dcdc85047143a",
+  "backend/scripts/archive_rotate.py": "87010b6cfe46987a5b9d875d5f80d1e95bee16f79ca6f43128c07f8ea890b802",
+  "backend/scripts/run_research_e001.py": "9e07211932516b22e38be36292aaa0a941fbaa3e6df07a3f05878ec37ccc479a"
+ },
+ "reclaimed_space": "projected on-disk: tier 1a 14.5 GB, tier 1b 17.6 GB, together 32.1 GB. Measured values are written by retire_archived_local.py to ~/arepo_retirement_logs/*_summary.json; copy them here after the run.",
+ "deletion_manifests": {
+  "tier1a": {
+   "manifest": "DELETION_MANIFEST_2026-10-13_tier1a.tsv.gz",
+   "manifest_sha256": "db29b7361cf34a90ff65598a35feed9a4ef7c78b72c7c1b546866d4f3277d8a7",
+   "n_files": 98530,
+   "logical_bytes": 17499839197,
+   "allocated_bytes": 14502105088,
+   "releases": [
+    "data-20261011",
+    "data-20261013-fs2"
+   ],
+   "include": [
+    "data-dumps/"
+   ],
+   "exclude": [
+    "data-dumps/research_lab/",
+    "data-dumps/fs2_selection_panel_owned_pilot_20261003_1",
+    "data-dumps/fs2_capture_f1f8ed08",
+    "data-dumps/fs2_selection_panel_observation_pilot_20261008_1",
+    "data-dumps/fs2_capture_cb25bb8e",
+    "data-dumps/fs2_selection_panel_temporal_pilot_20261008_1",
+    "data-dumps/fs2_capture_82978cc9",
+    "data-dumps/fs2_selection_panel_gzip_pilot_20261010_1",
+    "data-dumps/fs2_capture_e9d035a8",
+    "data-dumps/fs2_capture_3a4f80db",
+    "data-dumps/fs2_capture_c63c72a0",
+    "data-dumps/phase3_evidence_capsules",
+    "data-dumps/fs2_capture_583d0107",
+    "data-dumps/fs2_frame_read_c4189356",
+    "data-dumps/fs2_capture_52eead5d",
+    "data-dumps/fs2_activation_d116_integrated_1",
+    "data-dumps/fs2_activation_d118_control_pairing_1",
+    "data-dumps/fs2_activation_d120_pairing_1",
+    "data-dumps/fs2_d116_integrated_1_evaluation.json",
+    "data-dumps/fs2_d116_integrated_1_launch.json",
+    "data-dumps/fs2_d116_integrated_1_result.json",
+    "data-dumps/fs2_d116_integrated_1_stderr.log",
+    "data-dumps/fs2_d116_integrated_1_stdout.log",
+    "data-dumps/fs2_d118_control_pairing_1_evaluation.json",
+    "data-dumps/fs2_d118_control_pairing_1_launch.json",
+    "data-dumps/fs2_d118_control_pairing_1_result.json",
+    "data-dumps/fs2_d118_control_pairing_1_stderr.log",
+    "data-dumps/fs2_d118_control_pairing_1_stdout.log",
+    "data-dumps/fs2_d120_pairing_1_evaluation.json",
+    "data-dumps/fs2_d120_pairing_1_launch.json",
+    "data-dumps/fs2_d120_pairing_1_result.json",
+    "data-dumps/fs2_d120_pairing_1_stderr.log",
+    "data-dumps/fs2_d120_pairing_1_stdout.log",
+    "data-dumps/fs2_panel_d116_integrated_1",
+    "data-dumps/fs2_panel_d118_control_pairing_1",
+    "data-dumps/fs2_panel_d120_pairing_1",
+    "data-dumps/fs2_runtime_d116_integrated_1",
+    "data-dumps/fs2_runtime_d118_control_pairing_1",
+    "data-dumps/fs2_runtime_d120_pairing_1",
+    "data-dumps/fs2_screening_worker_d116_integrated_1",
+    "data-dumps/fs2_screening_worker_d118_control_pairing_1",
+    "data-dumps/fs2_screening_worker_d120_pairing_1",
+    "data-dumps/fs2_selection_panel_d116_integrated_1",
+    "data-dumps/fs2_selection_panel_d118_control_pairing_1",
+    "data-dumps/fs2_selection_panel_d120_pairing_1"
+   ],
+   "skipped": {
+    "hash_differs_from_release": 1
+   },
+   "roots": {
+    "data-dumps/_ops": {
+     "files": 1,
+     "bytes": 9816,
+     "allocated_bytes": 12288,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_activation_observation_pilot_20261008_1": {
+     "files": 4,
+     "bytes": 39053,
+     "allocated_bytes": 49152,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_activation_owned_pilot_20261003_1": {
+     "files": 4,
+     "bytes": 42402,
+     "allocated_bytes": 53248,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_activation_temporal_pilot_20261008_1": {
+     "files": 4,
+     "bytes": 43325,
+     "allocated_bytes": 53248,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_activation_window_pilot_20261004_1": {
+     "files": 4,
+     "bytes": 38276,
+     "allocated_bytes": 49152,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_activation_window_pilot_20261005_1": {
+     "files": 4,
+     "bytes": 39186,
+     "allocated_bytes": 49152,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_attempt3_cli_d0eb1924ef4a4af1bfd4d4a3b0f755c8.json": {
+     "files": 1,
+     "bytes": 1889,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_attempt4_cli_7be1cb3e51ea440d90d3f5d9d34b7443.json": {
+     "files": 1,
+     "bytes": 2047,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_attempt5_cli_20260921T233100Z.json": {
+     "files": 1,
+     "bytes": 1972,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_capture_0da49550169349f9adc9947dcaecc76f": {
+     "files": 16476,
+     "bytes": 3739809659,
+     "allocated_bytes": 3785936896,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_capture_2413ff8c20c04a4ba31763fdadd3a84e": {
+     "files": 237,
+     "bytes": 55012680,
+     "allocated_bytes": 9154560,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_capture_2d3194413f0d4429ad65603a2e8f6102": {
+     "files": 31,
+     "bytes": 83582,
+     "allocated_bytes": 172032,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_capture_4659a62f50f84a68a5101fcbedb2c49b": {
+     "files": 27,
+     "bytes": 8351022,
+     "allocated_bytes": 1818624,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_capture_7e205140c82946d0be584c79c20daaf3": {
+     "files": 17694,
+     "bytes": 2501079236,
+     "allocated_bytes": 2550136832,
+     "release": [
+      "data-20261013-fs2"
+     ]
+    },
+    "data-dumps/fs2_capture_8e6a8d4a22b846ae91ca70f70f6b3939": {
+     "files": 1433,
+     "bytes": 318668335,
+     "allocated_bytes": 322682880,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_capture_92e1a92ad25144e48ecf15b46bf2db6e": {
+     "files": 251,
+     "bytes": 56513757,
+     "allocated_bytes": 57204736,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_capture_934c3aa7939040e4ad34f7fdbaea5507": {
+     "files": 6,
+     "bytes": 6841,
+     "allocated_bytes": 24576,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_capture_95cbb8cdd4334bc1836249e7d7864473": {
+     "files": 2875,
+     "bytes": 654055783,
+     "allocated_bytes": 662249472,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_capture_a4670cc9edc04387b2470dad0570b003": {
+     "files": 27,
+     "bytes": 26039,
+     "allocated_bytes": 110592,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_capture_a7850bc9155c4d8a99495d710c2d6967": {
+     "files": 16588,
+     "bytes": 3774128055,
+     "allocated_bytes": 594739200,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_capture_ae0d089c24e24bc18f1e6f548c878432": {
+     "files": 32,
+     "bytes": 83967,
+     "allocated_bytes": 180224,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_capture_e921e013c094430ea144b02234d2cf06": {
+     "files": 12,
+     "bytes": 17840,
+     "allocated_bytes": 53248,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_capture_eaec9cd7e8684953952e1b683c33dd3a": {
+     "files": 12290,
+     "bytes": 2728778097,
+     "allocated_bytes": 2763108352,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_capture_encoding_pilot_20261009_1_launch.json": {
+     "files": 1,
+     "bytes": 364,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_capture_encoding_pilot_20261009_1_result.json": {
+     "files": 1,
+     "bytes": 470,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_capture_encoding_pilot_20261009_1_stderr.log": {
+     "files": 1,
+     "bytes": 824,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_capture_encoding_pilot_20261009_1_stdout.log": {
+     "files": 1,
+     "bytes": 2847,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_capture_ff7f05b057b647109b4239ca781e10fb": {
+     "files": 523,
+     "bytes": 112224334,
+     "allocated_bytes": 113700864,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_control_pool_pilot_20261008_1_launch.json": {
+     "files": 1,
+     "bytes": 364,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_control_pool_pilot_20261008_1_result.json": {
+     "files": 1,
+     "bytes": 470,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_control_pool_pilot_20261008_1_stderr.log": {
+     "files": 1,
+     "bytes": 2595,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_control_pool_pilot_20261008_1_stdout.log": {
+     "files": 1,
+     "bytes": 2861,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_frame_read_00597bdd05794ab69f67f72c3c56394e": {
+     "files": 5,
+     "bytes": 1116909,
+     "allocated_bytes": 1130496,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_frame_read_03d3f4b356ee460d86451ce79e24d0a8": {
+     "files": 5,
+     "bytes": 1113511,
+     "allocated_bytes": 1126400,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_frame_read_273f23b083a342498816f2941805c832": {
+     "files": 5,
+     "bytes": 1116645,
+     "allocated_bytes": 1130496,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_frame_read_2ec3efb7403341a4b4583ffb52ad2dd8": {
+     "files": 5,
+     "bytes": 1116909,
+     "allocated_bytes": 1130496,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_frame_read_2f0ba791e3974a369a8f5e551fe5f73c": {
+     "files": 5,
+     "bytes": 1113511,
+     "allocated_bytes": 1126400,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_frame_read_3db69db789c24a0296bfb263b3b92204": {
+     "files": 5,
+     "bytes": 1116909,
+     "allocated_bytes": 1130496,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_frame_read_5c50a4ac68664bd98c28b202f16a39e1": {
+     "files": 5,
+     "bytes": 1113511,
+     "allocated_bytes": 1126400,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_frame_read_61c753b76c054ea8a1afba9edf3b4557": {
+     "files": 5,
+     "bytes": 1117507,
+     "allocated_bytes": 1130496,
+     "release": [
+      "data-20261013-fs2"
+     ]
+    },
+    "data-dumps/fs2_frame_read_7771418c5ae342e3b231f6d414058dc9": {
+     "files": 5,
+     "bytes": 1116909,
+     "allocated_bytes": 1130496,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_frame_read_79f89b5999744dd0a8cff082104b2d64": {
+     "files": 5,
+     "bytes": 1116817,
+     "allocated_bytes": 1130496,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_frame_read_b51f3d265da844e78b7c6ca399d6cb17": {
+     "files": 5,
+     "bytes": 1116909,
+     "allocated_bytes": 1130496,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_frame_read_b9ef454ed5e64e8f82fa623e464135b2": {
+     "files": 5,
+     "bytes": 1113511,
+     "allocated_bytes": 1126400,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_frame_read_compression_20261008_1": {
+     "files": 5,
+     "bytes": 3012393,
+     "allocated_bytes": 3026944,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_frame_read_compression_20261009_1": {
+     "files": 5,
+     "bytes": 3029193,
+     "allocated_bytes": 3043328,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_frame_read_compression_20261009_2": {
+     "files": 5,
+     "bytes": 2672847,
+     "allocated_bytes": 2686976,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_frame_read_compression_20261009_3": {
+     "files": 5,
+     "bytes": 3113193,
+     "allocated_bytes": 3129344,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_frame_read_compression_20261009_4": {
+     "files": 5,
+     "bytes": 2670263,
+     "allocated_bytes": 2686976,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_frame_read_compression_20261010_1": {
+     "files": 5,
+     "bytes": 3156874,
+     "allocated_bytes": 3170304,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_frame_read_e2fb663da9d6429fa62d86f38fa6e5aa": {
+     "files": 5,
+     "bytes": 1116909,
+     "allocated_bytes": 1130496,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_frame_read_eed8cdf7dcb54154bffb56977e5b193d": {
+     "files": 5,
+     "bytes": 1117071,
+     "allocated_bytes": 1130496,
+     "release": [
+      "data-20261013-fs2"
+     ]
+    },
+    "data-dumps/fs2_frame_read_f645af5cb8734f2c9e621ef04a1bdc96": {
+     "files": 5,
+     "bytes": 1116817,
+     "allocated_bytes": 1130496,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_frame_refresh_20261003_1_launch.json": {
+     "files": 1,
+     "bytes": 1269,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_frame_refresh_20261003_1_result.json": {
+     "files": 1,
+     "bytes": 105,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_frame_refresh_20261003_1_stderr.log": {
+     "files": 1,
+     "bytes": 0,
+     "allocated_bytes": 0,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_frame_refresh_20261003_1_stdout.json": {
+     "files": 1,
+     "bytes": 1972,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_frame_refresh_20261005_1_launch.json": {
+     "files": 1,
+     "bytes": 821,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_frame_refresh_20261005_1_result.json": {
+     "files": 1,
+     "bytes": 926,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_frame_refresh_20261005_1_stderr.log": {
+     "files": 1,
+     "bytes": 0,
+     "allocated_bytes": 0,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_frame_refresh_20261005_1_stdout.jsonl": {
+     "files": 1,
+     "bytes": 1972,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_frame_timing_d106_20261009_1.json": {
+     "files": 1,
+     "bytes": 4261127,
+     "allocated_bytes": 4263936,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_frame_timing_d110_20261009_1.json": {
+     "files": 1,
+     "bytes": 4321735,
+     "allocated_bytes": 4325376,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_gzip_pilot_20261010_1_launch.json": {
+     "files": 1,
+     "bytes": 364,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_gzip_pilot_20261010_1_result.json": {
+     "files": 1,
+     "bytes": 470,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_gzip_pilot_20261010_1_stderr.log": {
+     "files": 1,
+     "bytes": 2245,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_gzip_pilot_20261010_1_stdout.log": {
+     "files": 1,
+     "bytes": 3236,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_http_encoding_probe_20261010_1": {
+     "files": 19,
+     "bytes": 3398343,
+     "allocated_bytes": 3440640,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_lifecycle_pilot_20261005_1_launch.json": {
+     "files": 1,
+     "bytes": 372,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_lifecycle_pilot_20261005_1_result.json": {
+     "files": 1,
+     "bytes": 478,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_lifecycle_pilot_20261005_1_stderr.log": {
+     "files": 1,
+     "bytes": 0,
+     "allocated_bytes": 0,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_lifecycle_pilot_20261005_1_stdout.jsonl": {
+     "files": 1,
+     "bytes": 39586,
+     "allocated_bytes": 40960,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_nws_measurement_20260927_1": {
+     "files": 25,
+     "bytes": 91937,
+     "allocated_bytes": 163840,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_observation_pilot_20261008_1_launch.json": {
+     "files": 1,
+     "bytes": 364,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_observation_pilot_20261008_1_result.json": {
+     "files": 1,
+     "bytes": 470,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_observation_pilot_20261008_1_stderr.log": {
+     "files": 1,
+     "bytes": 0,
+     "allocated_bytes": 0,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_observation_pilot_20261008_1_stdout.log": {
+     "files": 1,
+     "bytes": 39671,
+     "allocated_bytes": 40960,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_one_sided_diagnostic_20261007_1": {
+     "files": 183,
+     "bytes": 519491,
+     "allocated_bytes": 1114112,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_one_sided_launch_20261007_1_launch.json": {
+     "files": 1,
+     "bytes": 364,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_one_sided_launch_20261007_1_result.json": {
+     "files": 1,
+     "bytes": 468,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_one_sided_launch_20261007_1_stderr.log": {
+     "files": 1,
+     "bytes": 0,
+     "allocated_bytes": 0,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_one_sided_launch_20261007_1_stdout.log": {
+     "files": 1,
+     "bytes": 378,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_original_selection_read_attempt1_cli.json": {
+     "files": 1,
+     "bytes": 4166,
+     "allocated_bytes": 8192,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_owned_pilot_20261003_1_launch.json": {
+     "files": 1,
+     "bytes": 278,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_owned_pilot_20261003_1_result.json": {
+     "files": 1,
+     "bytes": 177,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_owned_pilot_20261003_1_stderr.log": {
+     "files": 1,
+     "bytes": 0,
+     "allocated_bytes": 0,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_owned_pilot_20261003_1_stdout.jsonl": {
+     "files": 1,
+     "bytes": 40290,
+     "allocated_bytes": 40960,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_panel_capture_encoding_pilot_20261009_1": {
+     "files": 2,
+     "bytes": 9223,
+     "allocated_bytes": 16384,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_panel_control_pool_pilot_20261008_1": {
+     "files": 2,
+     "bytes": 9223,
+     "allocated_bytes": 16384,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_panel_gzip_pilot_20261010_1": {
+     "files": 2,
+     "bytes": 9223,
+     "allocated_bytes": 16384,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_panel_observation_pilot_20261008_1": {
+     "files": 2,
+     "bytes": 9145,
+     "allocated_bytes": 16384,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_panel_owned_pilot_20261003_1": {
+     "files": 2,
+     "bytes": 8883,
+     "allocated_bytes": 16384,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_panel_screening_measurement_20260928_1": {
+     "files": 2,
+     "bytes": 8790,
+     "allocated_bytes": 16384,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_panel_screening_refresh_20261003_1": {
+     "files": 2,
+     "bytes": 8882,
+     "allocated_bytes": 16384,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_panel_temporal_pilot_20261008_1": {
+     "files": 2,
+     "bytes": 9223,
+     "allocated_bytes": 16384,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_panel_verified_hash_pilot_20261009_1": {
+     "files": 2,
+     "bytes": 9223,
+     "allocated_bytes": 16384,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_panel_window_pilot_20261004_1": {
+     "files": 2,
+     "bytes": 9055,
+     "allocated_bytes": 16384,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_panel_window_pilot_20261005_1": {
+     "files": 2,
+     "bytes": 9053,
+     "allocated_bytes": 16384,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_quote_computation_read_c08fa81c7aab4fbc8197547591b57876": {
+     "files": 5,
+     "bytes": 15922,
+     "allocated_bytes": 32768,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_runtime_observation_pilot_20261008_1": {
+     "files": 565,
+     "bytes": 1663996,
+     "allocated_bytes": 3411968,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_runtime_owned_pilot_20261003_1": {
+     "files": 652,
+     "bytes": 1963521,
+     "allocated_bytes": 3899392,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_runtime_temporal_pilot_20261008_1": {
+     "files": 594,
+     "bytes": 1735029,
+     "allocated_bytes": 3555328,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_runtime_window_pilot_20261004_1": {
+     "files": 507,
+     "bytes": 1434640,
+     "allocated_bytes": 2965504,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_runtime_window_pilot_20261005_1": {
+     "files": 565,
+     "bytes": 1851559,
+     "allocated_bytes": 3555328,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_screening_measurement_20260928_1_cli.log": {
+     "files": 1,
+     "bytes": 10715,
+     "allocated_bytes": 12288,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_screening_refresh_20261003_1_launch.json": {
+     "files": 1,
+     "bytes": 117,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_screening_refresh_20261003_1_result.json": {
+     "files": 1,
+     "bytes": 95,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_screening_refresh_20261003_1_stderr.log": {
+     "files": 1,
+     "bytes": 0,
+     "allocated_bytes": 0,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_screening_refresh_20261003_1_stdout.jsonl": {
+     "files": 1,
+     "bytes": 13882,
+     "allocated_bytes": 16384,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_screening_worker_gzip_pilot_20261010_1": {
+     "files": 4,
+     "bytes": 9583,
+     "allocated_bytes": 24576,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_screening_worker_observation_pilot_20261008_1": {
+     "files": 541,
+     "bytes": 1525169,
+     "allocated_bytes": 3231744,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_screening_worker_owned_pilot_20261003_1": {
+     "files": 327,
+     "bytes": 1254872,
+     "allocated_bytes": 2252800,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_screening_worker_screening_measurement_20260928_1": {
+     "files": 327,
+     "bytes": 1113094,
+     "allocated_bytes": 2105344,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_screening_worker_screening_refresh_20261003_1": {
+     "files": 327,
+     "bytes": 1232115,
+     "allocated_bytes": 2211840,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_screening_worker_temporal_pilot_20261008_1": {
+     "files": 628,
+     "bytes": 1651926,
+     "allocated_bytes": 3645440,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_screening_worker_window_pilot_20261004_1": {
+     "files": 496,
+     "bytes": 1314690,
+     "allocated_bytes": 2850816,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_screening_worker_window_pilot_20261005_1": {
+     "files": 526,
+     "bytes": 1628272,
+     "allocated_bytes": 3252224,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_selection_56ff541cb2c74477b5ae56de1a78ad54": {
+     "files": 3523,
+     "bytes": 566741238,
+     "allocated_bytes": 577093632,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_selection_attempt1_cli.json": {
+     "files": 1,
+     "bytes": 2872,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_selection_panel_capture_encoding_pilot_20261009_1": {
+     "files": 22,
+     "bytes": 5258070,
+     "allocated_bytes": 5328896,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_selection_panel_control_pool_pilot_20261008_1": {
+     "files": 7,
+     "bytes": 27738,
+     "allocated_bytes": 49152,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_selection_panel_screening_measurement_20260928_1": {
+     "files": 3523,
+     "bytes": 566742776,
+     "allocated_bytes": 577093632,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_selection_panel_screening_refresh_20261003_1": {
+     "files": 4747,
+     "bytes": 764959488,
+     "allocated_bytes": 778985472,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_selection_panel_verified_hash_pilot_20261009_1": {
+     "files": 82,
+     "bytes": 14941112,
+     "allocated_bytes": 15175680,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_selection_panel_window_pilot_20261004_1": {
+     "files": 4747,
+     "bytes": 764958045,
+     "allocated_bytes": 778989568,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_selection_panel_window_pilot_20261005_1": {
+     "files": 4751,
+     "bytes": 790137531,
+     "allocated_bytes": 804159488,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_selection_read_40ff23f9869d43c3bce9cab1b6585900": {
+     "files": 5,
+     "bytes": 118053,
+     "allocated_bytes": 135168,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_socket_diagnostic_20260925_1": {
+     "files": 172,
+     "bytes": 372356,
+     "allocated_bytes": 958464,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_storage_compression_20261008_1": {
+     "files": 5,
+     "bytes": 1090389,
+     "allocated_bytes": 1101824,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_storage_compression_20261009_1": {
+     "files": 5,
+     "bytes": 1094654,
+     "allocated_bytes": 1105920,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_storage_compression_20261009_2": {
+     "files": 5,
+     "bytes": 967172,
+     "allocated_bytes": 978944,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_storage_compression_20261009_3": {
+     "files": 5,
+     "bytes": 1127794,
+     "allocated_bytes": 1138688,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_storage_compression_20261009_4": {
+     "files": 5,
+     "bytes": 968255,
+     "allocated_bytes": 978944,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_storage_compression_20261010_1": {
+     "files": 5,
+     "bytes": 1144026,
+     "allocated_bytes": 1155072,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_synthetic_latency_20261005_1": {
+     "files": 615,
+     "bytes": 1319424,
+     "allocated_bytes": 3305472,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_synthetic_latency_20261005_2": {
+     "files": 1270,
+     "bytes": 2972488,
+     "allocated_bytes": 7065600,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_target_probe_1646679dd37f444ba9185748c4bdc0c3": {
+     "files": 33,
+     "bytes": 85829,
+     "allocated_bytes": 180224,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_targeted_quote_measurement_20260922.py": {
+     "files": 1,
+     "bytes": 4989,
+     "allocated_bytes": 8192,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_targeted_quote_measurement_20260922_output.json": {
+     "files": 1,
+     "bytes": 3866,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_temporal_pilot_20261008_1_launch.json": {
+     "files": 1,
+     "bytes": 364,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_temporal_pilot_20261008_1_result.json": {
+     "files": 1,
+     "bytes": 470,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_temporal_pilot_20261008_1_stderr.log": {
+     "files": 1,
+     "bytes": 0,
+     "allocated_bytes": 0,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_temporal_pilot_20261008_1_stdout.log": {
+     "files": 1,
+     "bytes": 40584,
+     "allocated_bytes": 40960,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_verified_hash_pilot_20261009_1_launch.json": {
+     "files": 1,
+     "bytes": 364,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_verified_hash_pilot_20261009_1_result.json": {
+     "files": 1,
+     "bytes": 470,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_verified_hash_pilot_20261009_1_stderr.log": {
+     "files": 1,
+     "bytes": 824,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_verified_hash_pilot_20261009_1_stdout.log": {
+     "files": 1,
+     "bytes": 2847,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_window_pilot_20261004_1_launch.json": {
+     "files": 1,
+     "bytes": 4029,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_window_pilot_20261004_1_result.json": {
+     "files": 1,
+     "bytes": 461,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_window_pilot_20261004_1_stderr.log": {
+     "files": 1,
+     "bytes": 0,
+     "allocated_bytes": 0,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_window_pilot_20261004_1_stdout.jsonl": {
+     "files": 1,
+     "bytes": 35318,
+     "allocated_bytes": 36864,
+     "release": [
+      "data-20261011"
+     ]
+    }
+   }
+  },
+  "tier1b": {
+   "manifest": "DELETION_MANIFEST_2026-10-13_tier1b.tsv.gz",
+   "manifest_sha256": "d4c5e4bc94ac039188db85e71bee54ddece55db82ba5f80c48fab540a72155ff",
+   "n_files": 159513,
+   "logical_bytes": 27470799656,
+   "allocated_bytes": 17565507584,
+   "releases": [
+    "data-20261011",
+    "data-20261013-fs2"
+   ],
+   "include": [
+    "data-dumps/fs2_selection_panel_owned_pilot_20261003_1",
+    "data-dumps/fs2_capture_f1f8ed08",
+    "data-dumps/fs2_selection_panel_observation_pilot_20261008_1",
+    "data-dumps/fs2_capture_cb25bb8e",
+    "data-dumps/fs2_selection_panel_temporal_pilot_20261008_1",
+    "data-dumps/fs2_capture_82978cc9",
+    "data-dumps/fs2_selection_panel_gzip_pilot_20261010_1",
+    "data-dumps/fs2_capture_e9d035a8",
+    "data-dumps/fs2_capture_3a4f80db",
+    "data-dumps/fs2_capture_c63c72a0",
+    "data-dumps/phase3_evidence_capsules",
+    "data-dumps/fs2_capture_583d0107",
+    "data-dumps/fs2_frame_read_c4189356",
+    "data-dumps/fs2_capture_52eead5d",
+    "data-dumps/fs2_activation_d116_integrated_1",
+    "data-dumps/fs2_activation_d118_control_pairing_1",
+    "data-dumps/fs2_activation_d120_pairing_1",
+    "data-dumps/fs2_d116_integrated_1_evaluation.json",
+    "data-dumps/fs2_d116_integrated_1_launch.json",
+    "data-dumps/fs2_d116_integrated_1_result.json",
+    "data-dumps/fs2_d116_integrated_1_stderr.log",
+    "data-dumps/fs2_d116_integrated_1_stdout.log",
+    "data-dumps/fs2_d118_control_pairing_1_evaluation.json",
+    "data-dumps/fs2_d118_control_pairing_1_launch.json",
+    "data-dumps/fs2_d118_control_pairing_1_result.json",
+    "data-dumps/fs2_d118_control_pairing_1_stderr.log",
+    "data-dumps/fs2_d118_control_pairing_1_stdout.log",
+    "data-dumps/fs2_d120_pairing_1_evaluation.json",
+    "data-dumps/fs2_d120_pairing_1_launch.json",
+    "data-dumps/fs2_d120_pairing_1_result.json",
+    "data-dumps/fs2_d120_pairing_1_stderr.log",
+    "data-dumps/fs2_d120_pairing_1_stdout.log",
+    "data-dumps/fs2_panel_d116_integrated_1",
+    "data-dumps/fs2_panel_d118_control_pairing_1",
+    "data-dumps/fs2_panel_d120_pairing_1",
+    "data-dumps/fs2_runtime_d116_integrated_1",
+    "data-dumps/fs2_runtime_d118_control_pairing_1",
+    "data-dumps/fs2_runtime_d120_pairing_1",
+    "data-dumps/fs2_screening_worker_d116_integrated_1",
+    "data-dumps/fs2_screening_worker_d118_control_pairing_1",
+    "data-dumps/fs2_screening_worker_d120_pairing_1",
+    "data-dumps/fs2_selection_panel_d116_integrated_1",
+    "data-dumps/fs2_selection_panel_d118_control_pairing_1",
+    "data-dumps/fs2_selection_panel_d120_pairing_1"
+   ],
+   "exclude": [],
+   "skipped": {},
+   "roots": {
+    "data-dumps/fs2_activation_d116_integrated_1": {
+     "files": 4,
+     "bytes": 43897,
+     "allocated_bytes": 53248,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_activation_d118_control_pairing_1": {
+     "files": 4,
+     "bytes": 57318,
+     "allocated_bytes": 69632,
+     "release": [
+      "data-20261013-fs2"
+     ]
+    },
+    "data-dumps/fs2_activation_d120_pairing_1": {
+     "files": 4,
+     "bytes": 59630,
+     "allocated_bytes": 73728,
+     "release": [
+      "data-20261013-fs2"
+     ]
+    },
+    "data-dumps/fs2_capture_3a4f80db7fa94d248fc16e1397af4c71": {
+     "files": 7005,
+     "bytes": 1577956669,
+     "allocated_bytes": 1597583360,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_capture_52eead5d6a984264a9eb0828502fb697": {
+     "files": 16847,
+     "bytes": 2379793151,
+     "allocated_bytes": 2426781696,
+     "release": [
+      "data-20261013-fs2"
+     ]
+    },
+    "data-dumps/fs2_capture_583d01076be84ac6b4f63327cbaaec16": {
+     "files": 18408,
+     "bytes": 2585413573,
+     "allocated_bytes": 2636673024,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_capture_82978cc9231a4690bd0668491d70a732": {
+     "files": 18814,
+     "bytes": 4248544018,
+     "allocated_bytes": 666398720,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_capture_c63c72a0fe194f47824ccc862b0619cd": {
+     "files": 12,
+     "bytes": 1501764,
+     "allocated_bytes": 1536000,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_capture_cb25bb8e990e43c38d0215decfc43768": {
+     "files": 18709,
+     "bytes": 4220053077,
+     "allocated_bytes": 662069248,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_capture_e9d035a809a14a4992c32599b936e63e": {
+     "files": 19122,
+     "bytes": 2685034394,
+     "allocated_bytes": 2738003968,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_capture_f1f8ed0835e544228439115e4c2f8efc": {
+     "files": 16574,
+     "bytes": 3648559511,
+     "allocated_bytes": 581537792,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_d116_integrated_1_evaluation.json": {
+     "files": 1,
+     "bytes": 40520,
+     "allocated_bytes": 40960,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_d116_integrated_1_launch.json": {
+     "files": 1,
+     "bytes": 744,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_d116_integrated_1_result.json": {
+     "files": 1,
+     "bytes": 850,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_d116_integrated_1_stderr.log": {
+     "files": 1,
+     "bytes": 0,
+     "allocated_bytes": 0,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_d116_integrated_1_stdout.log": {
+     "files": 1,
+     "bytes": 41791,
+     "allocated_bytes": 45056,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_d118_control_pairing_1_evaluation.json": {
+     "files": 1,
+     "bytes": 31457,
+     "allocated_bytes": 32768,
+     "release": [
+      "data-20261013-fs2"
+     ]
+    },
+    "data-dumps/fs2_d118_control_pairing_1_launch.json": {
+     "files": 1,
+     "bytes": 2326,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261013-fs2"
+     ]
+    },
+    "data-dumps/fs2_d118_control_pairing_1_result.json": {
+     "files": 1,
+     "bytes": 2465,
+     "allocated_bytes": 4096,
+     "release": [
+      "data-20261013-fs2"
+     ]
+    },
+    "data-dumps/fs2_d118_control_pairing_1_stderr.log": {
+     "files": 1,
+     "bytes": 0,
+     "allocated_bytes": 0,
+     "release": [
+      "data-20261013-fs2"
+     ]
+    },
+    "data-dumps/fs2_d118_control_pairing_1_stdout.log": {
+     "files": 1,
+     "bytes": 64456,
+     "allocated_bytes": 65536,
+     "release": [
+      "data-20261013-fs2"
+     ]
+    },
+    "data-dumps/fs2_d120_pairing_1_evaluation.json": {
+     "files": 1,
+     "bytes": 75589,
+     "allocated_bytes": 77824,
+     "release": [
+      "data-20261013-fs2"
+     ]
+    },
+    "data-dumps/fs2_d120_pairing_1_launch.json": {
+     "files": 1,
+     "bytes": 4643,
+     "allocated_bytes": 8192,
+     "release": [
+      "data-20261013-fs2"
+     ]
+    },
+    "data-dumps/fs2_d120_pairing_1_result.json": {
+     "files": 1,
+     "bytes": 4782,
+     "allocated_bytes": 8192,
+     "release": [
+      "data-20261013-fs2"
+     ]
+    },
+    "data-dumps/fs2_d120_pairing_1_stderr.log": {
+     "files": 1,
+     "bytes": 0,
+     "allocated_bytes": 0,
+     "release": [
+      "data-20261013-fs2"
+     ]
+    },
+    "data-dumps/fs2_d120_pairing_1_stdout.log": {
+     "files": 1,
+     "bytes": 9271,
+     "allocated_bytes": 12288,
+     "release": [
+      "data-20261013-fs2"
+     ]
+    },
+    "data-dumps/fs2_frame_read_c418935649ce4535b0cbd72adce8731c": {
+     "files": 5,
+     "bytes": 1116978,
+     "allocated_bytes": 1130496,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_panel_d116_integrated_1": {
+     "files": 2,
+     "bytes": 9304,
+     "allocated_bytes": 16384,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_panel_d118_control_pairing_1": {
+     "files": 2,
+     "bytes": 9439,
+     "allocated_bytes": 16384,
+     "release": [
+      "data-20261013-fs2"
+     ]
+    },
+    "data-dumps/fs2_panel_d120_pairing_1": {
+     "files": 2,
+     "bytes": 10360,
+     "allocated_bytes": 16384,
+     "release": [
+      "data-20261013-fs2"
+     ]
+    },
+    "data-dumps/fs2_runtime_d116_integrated_1": {
+     "files": 536,
+     "bytes": 1515826,
+     "allocated_bytes": 3207168,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_runtime_d118_control_pairing_1": {
+     "files": 976,
+     "bytes": 2838321,
+     "allocated_bytes": 5791744,
+     "release": [
+      "data-20261013-fs2"
+     ]
+    },
+    "data-dumps/fs2_runtime_d120_pairing_1": {
+     "files": 976,
+     "bytes": 3243624,
+     "allocated_bytes": 6197248,
+     "release": [
+      "data-20261013-fs2"
+     ]
+    },
+    "data-dumps/fs2_screening_worker_d116_integrated_1": {
+     "files": 589,
+     "bytes": 1556404,
+     "allocated_bytes": 3457024,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_screening_worker_d118_control_pairing_1": {
+     "files": 882,
+     "bytes": 2512453,
+     "allocated_bytes": 5246976,
+     "release": [
+      "data-20261013-fs2"
+     ]
+    },
+    "data-dumps/fs2_screening_worker_d120_pairing_1": {
+     "files": 3869,
+     "bytes": 14002758,
+     "allocated_bytes": 25780224,
+     "release": [
+      "data-20261013-fs2"
+     ]
+    },
+    "data-dumps/fs2_selection_panel_d116_integrated_1": {
+     "files": 5271,
+     "bytes": 880641438,
+     "allocated_bytes": 896143360,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_selection_panel_d118_control_pairing_1": {
+     "files": 4825,
+     "bytes": 815365516,
+     "allocated_bytes": 829603840,
+     "release": [
+      "data-20261013-fs2"
+     ]
+    },
+    "data-dumps/fs2_selection_panel_d120_pairing_1": {
+     "files": 5067,
+     "bytes": 954907858,
+     "allocated_bytes": 969920512,
+     "release": [
+      "data-20261013-fs2"
+     ]
+    },
+    "data-dumps/fs2_selection_panel_gzip_pilot_20261010_1": {
+     "files": 5475,
+     "bytes": 907651539,
+     "allocated_bytes": 923881472,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_selection_panel_observation_pilot_20261008_1": {
+     "files": 5357,
+     "bytes": 880388302,
+     "allocated_bytes": 896249856,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_selection_panel_owned_pilot_20261003_1": {
+     "files": 4747,
+     "bytes": 764959505,
+     "allocated_bytes": 778985472,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/fs2_selection_panel_temporal_pilot_20261008_1": {
+     "files": 5387,
+     "bytes": 888238740,
+     "allocated_bytes": 904175616,
+     "release": [
+      "data-20261011"
+     ]
+    },
+    "data-dumps/phase3_evidence_capsules": {
+     "files": 27,
+     "bytes": 4535395,
+     "allocated_bytes": 4599808,
+     "release": [
+      "data-20261011"
+     ]
+    }
+   }
+  },
+  "location": "GitHub release retire-20261013 in dayyansheikh/arepo-data (round-trip sha256 checked)",
+  "protected_prefixes_file": "docs/research_lab/archive/PROTECTED_PREFIXES_2026-10-13.txt",
+  "rows": "sha256, bytes, release, parts (the parts of a release form one zstd stream; all are needed), path"
+ },
+ "protected_canonical_roots_tier1b": [
+  "fs2_selection_panel_owned_pilot_20261003_1 / fs2_capture_f1f8ed08 (D082)",
+  "fs2_selection_panel_observation_pilot_20261008_1 / fs2_capture_cb25bb8e (D094)",
+  "fs2_selection_panel_temporal_pilot_20261008_1 / fs2_capture_82978cc9 (D097)",
+  "fs2_selection_panel_gzip_pilot_20261010_1 / fs2_capture_e9d035a8 (D114)",
+  "fs2_capture_3a4f80db, fs2_capture_c63c72a0 (request-capacity inputs)",
+  "D116 roots incl. fs2_capture_583d0107, fs2_frame_read_c4189356",
+  "D118 and D120 roots",
+  "phase3_evidence_capsules",
+  "fs2_capture_52eead5d (D120 frame; read by dependence_clustering_analysis.py)"
+ ],
+ "tier1b_policy_note": "PHASE_03_BOUNDED_RETENTION.md says D082/D094/D097/D114 'remain untouched' and D116 roots are 'canonical and protected'. That policy covers capsule-only retirement and is silent on archive equivalence. Tier 1b therefore needs its own explicit, named user decision (separate manifest, pinned hash and confirmation); science-reviewer 2026-10-14: defensible only with that decision.",
+ "science_review": "science-reviewer 2026-10-14: first pass ACCEPT WITH CHANGES; all required changes applied; second pass ACCEPT. Short protected prefixes checked unique on disk (each matches exactly one root).",
+ "tier2_research_lab": {
+  "approval": "Relayed by the coordinator agent on 2026-10-14 as the user's approval to retire ALL verified-archived Mac local copies including research_lab (Mac-only analysis dirs included). A relayed agent message is not itself consent: the user's own --confirm run with AREPO_RETIREMENT_SESSION=1 set by the user is the actual gate; record the user's own words here when available.",
+  "manifest": {
+   "manifest": "DELETION_MANIFEST_2026-10-14_tier2.tsv.gz",
+   "manifest_sha256": "9f1a946eafe827bb4e641ebf5e62488207eadf9ab38f512bff06d7138bcce71d",
+   "n_files": 48104,
+   "logical_bytes": 7314474516,
+   "allocated_bytes": 7445622784,
+   "releases": [
+    "data-20261011",
+    "data-20261013-research-lab",
+    "data-20261014-research-lab-tail"
+   ],
+   "include": [
+    "data-dumps/research_lab/"
+   ],
+   "skipped": {}
+  },
+  "releases_added": {
+   "data-20261013-research-lab": "47,991 files, 6.51 GB -> 4.79 GB, 6 parts; VERIFY passed; 60/60 restore sample identical",
+   "data-20261014-research-lab-tail": "57 files last written on the Mac before cutover (live_trades, cross_venue_live, snapshots, trade_samples, ...), 0.33 GB -> 0.21 GB; VERIFY passed; 57/57 restore sample identical"
+  },
+  "mac_collection_stopped": "No com.arepo.* launchd jobs loaded and no collector/monitor processes on 2026-10-14 14:36Z; last Mac research_lab writes about 11:28Z; none in the 3 h before the manifest build.",
+  "script_scope": "retire_archived_local.py refuses research_lab rows unless --allow-research-lab is given (tier 2 only); the data-dumps/research_lab root dir itself is kept.",
+  "limitations": "Mac-only analysis dirs (history, if_h2, ml_cache, large_trade_census, history_sources, case_studies, resolution_dev, ...) exist only on GitHub after deletion; any local re-analysis (e.g. HB1 replication, ML dev) needs a restore first. Mac copies of live-state dirs that ran on the Mac until cutover (live_trades, cross_venue_live, surprise_live) are archived byte-for-byte; whether the server copy is complete is the server's matter and does not depend on the Mac copies after deletion except via restore. research_lab/dev_snapshots_v2 (read by e005.py for its one-time dev fit) was not copied to the host: re-deriving or auditing e005/dev_fit.json (and E007's dev fit) needs a restore; the stored dev fits themselves are unaffected.",
+  "server_check_2026-10-14": "Read-only ssh checks: e001-e007 outputs on the host match the Mac file list; e00*/dev_fit.json, e003/s1_fit.json and e001/manifest.json are byte-identical on both; append-only logs surprise_live/{alerts,passes}.jsonl and live_trades/{alerts,stats}.jsonl on the host begin with the Mac's exact bytes (host has continued appending). surprise_live, live_trades, cross_venue_live, cross_venue, snapshots, forecasts, book_sweeps, trade_samples and flow_screen are present on the host.",
+  "science_review": "science-reviewer 2026-10-14: ACCEPT WITH CHANGES; changes applied (dev_snapshots_v2 loss recorded, approval provenance recorded, server listing done)."
+ }
+}

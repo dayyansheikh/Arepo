@@ -1,0 +1,43 @@
+{
+ "id": "q0203_cb10_deribit_trades",
+ "title": "CB10-D: Deribit option trades [t-120min, t) per origin time and currency (timestamp, instrument, iv in percent, index_price, amount, block/combo/liquidation flags); pre-window [2025-07-01,2025-10-01) ATM IV and perpetual bars for the reported haircut; BTC/ETH-PERPETUAL hourly bars [t-7d, t); settlement index at each resolution minute to the guarded file",
+ "family": "creative_batch_10",
+ "priority": 33,
+ "expected_value": "D anchor and attribution inputs",
+ "data": [
+  "history.deribit.com public (keyless)",
+  "www.deribit.com public chart data"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "net",
+  "network": "history.deribit.com, www.deribit.com"
+ },
+ "depends_on": [
+  "q0202_cb10_dlad_frame"
+ ],
+ "argv": [
+  "scripts/run_cb10.py",
+  "deribit-trades",
+  "--rules",
+  "../docs/research_lab/seals/cb10_rules_v2.json",
+  "--rps",
+  "2",
+  "--disk-cap-gb",
+  "0.02",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 2,
+ "outputs": [
+  "history/h10_dlad/deribit/{trades.csv.gz,perp_bars.csv.gz,settle_index_guarded.csv.gz,manifest.json}"
+ ],
+ "next_action": "q0207",
+ "notes": "CB10 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. Rules file seals/cb10_rules_v2.json (freeze-check v2, supersedes cb10_rules.json) (rules_sha256 d422cc70... (file sha256 5ee0ea23...)). --data-dumps-cap-gb 40 (ops convention; design text says 14). Origin times from q0202's frame only; no Polymarket field read. Freeze-check fix 7: can return in_progress with exit 0, so a repeat block re-runs until the completion or a declared stall status.",
+ "repeat": {
+  "max_runs": 12,
+  "until_log_regex": "\"status\": \"(deribit_complete|not_run_source|disjointness_unverified|upstream_not_testable|disk_budget)\""
+ }
+}

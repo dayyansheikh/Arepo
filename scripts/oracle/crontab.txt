@@ -1,0 +1,31 @@
+# --- AREPO collection (Oracle host; installed 2026-10-14; see docs/research_lab/COLLECTION_HOST.md) ---
+# Host clock is UTC. Replaces Mac launchd com.arepo.{collector,live-trade-monitor,live-trade-outcomes,
+# cross-venue-live,notify}. Remove: delete this block with `crontab -e`, then `supervise.sh stop`.
+31 */2 * * * /home/opc/arepo/scripts/oracle/arepo_pass.sh >> /home/opc/arepo_collector/logs/collector.log 2>> /home/opc/arepo_collector/logs/collector.err
+@reboot sleep 90 && /home/opc/arepo/scripts/oracle/supervise.sh
+*/5 * * * * /home/opc/arepo/scripts/oracle/supervise.sh
+10 2,14 * * * cd /home/opc/arepo/backend && /home/opc/arepo/.venv/bin/python scripts/run_live_trade_monitor.py --outcomes >> /home/opc/arepo_collector/logs/live-trade-outcomes.out 2>> /home/opc/arepo_collector/logs/live-trade-outcomes.err
+*/15 * * * * cd /home/opc/arepo/backend && /home/opc/arepo/.venv/bin/python scripts/arepo_notify.py check >> /home/opc/arepo_collector/logs/notify.out 2>> /home/opc/arepo_collector/logs/notify.err
+# Research queue worker (scripts/oracle/queue_worker.py; pause: queue_worker.py pause). PATH includes ~/.local/bin for gh (restore_from_archive jobs), 2026-10-20.
+*/2 * * * * PATH=/home/opc/.local/bin:/usr/bin:/bin; /home/opc/arepo/.venv/bin/python /home/opc/arepo/scripts/oracle/queue_worker.py tick >> /home/opc/arepo_collector/logs/queue.log 2>&1
+# Second Always Free A1 instance: retry until capacity (scripts/oracle/oci_retry_create.py; stops itself once created;
+# stop manually: touch ~/.arepo/oci_retry/DONE)
+*/10 * * * * flock -n /home/opc/.arepo/oci_retry/lock /home/opc/oci_venv/bin/python /home/opc/arepo/scripts/oracle/oci_retry_create.py >> /home/opc/arepo_collector/logs/oci-retry.log 2>&1
+# Nightly archive to arepo-data (verify-before-publish) + retention. --dry-run: lists would_delete only.
+# Remove --dry-run per docs/research_lab/data_catalogue/RETENTION.md checklist (deletion approved by the user 2026-10-15).
+30 3 * * * PATH=/home/opc/.local/bin:/usr/bin:/bin; cd /home/opc/arepo/backend && nice -n 15 /home/opc/arepo/.venv/bin/python scripts/archive_rotate.py --root /home/opc/arepo --scan data-dumps/research_lab --older-than-days 1 --retention /home/opc/arepo/scripts/oracle/archive_retention.json --delete >> /home/opc/arepo_collector/logs/archive-rotate.log 2>&1
+# Weekly point-in-time copies of append-only evidence logs (E009/E010/E011); archive-only, never deletes. INSTALLED 2026-10-15.
+# Sunday 06:10 UTC: outside the 02:45-05:30 archive/queue window and not on a :31 pass time.
+10 6 * * 0 PATH=/home/opc/.local/bin:/usr/bin:/bin; cd /home/opc/arepo/backend && nice -n 19 /home/opc/arepo/.venv/bin/python scripts/archive_rotate.py --root /home/opc/arepo --scan data-dumps/research_lab --older-than-days 1 --include-active 'data-dumps/research_lab/cross_venue_live/predictions*.jsonl,data-dumps/research_lab/cross_venue_live/outcomes*.jsonl,data-dumps/research_lab/live_trades/alerts.jsonl,data-dumps/research_lab/live_trades/wallets.jsonl,data-dumps/research_lab/surprise_live/*' >> /home/opc/arepo_collector/logs/archive-active.log 2>&1
+# Arepo Lab dashboard push (scripts/lab/lab_host.py): snapshot + whitelisted queue pause/resume. Enabled 2026-10-18 after PR #19 deployed.
+*/10 * * * * flock -n /home/opc/.arepo/lab/push.lock nice -n 10 /home/opc/arepo/.venv/bin/python /home/opc/arepo/scripts/lab/lab_host.py >> /home/opc/arepo_collector/logs/lab-push.log 2>&1
+# Live-tests watchdog (E009/E010 poller freshness, E011 scorer/outcomes freshness, caps, disk): alerts via arepo_notify.py, never acts.
+# NOT INSTALLED (added 2026-10-20, readiness audit); stops watching after 2026-11-11T13:00Z. Uncomment after deploy.
+# */15 * * * * cd /home/opc/arepo/backend && /home/opc/arepo/.venv/bin/python scripts/live_tests_watchdog.py >> /home/opc/arepo_collector/logs/live-watchdog.log 2>&1
+# LT3 (E015) live reader, REGISTERED 2026-10-21 (LIVE_TESTS_3.md 13.4, 13.18): own flock, killed before the collector, 960 MB cap, no network.
+# Runs until LIVE_TESTS3_WINDOW_CLOSED (END 2026-11-14T00:00Z + 30 h); remove after 2026-11-15T06:00Z. Never also run the fallback queue job q0474_lt3_live_collect.
+*/20 * * * * cd ~/arepo/backend && flock -n ~/arepo/run/live_tests3.lock nice -n 19 sh -c 'echo 1000 > /proc/self/oom_score_adj; ulimit -v 983040; ../.venv/bin/python scripts/run_live_tests3.py run --max-items 40 --data-dumps-cap-gb 40' >> ~/arepo/run/live_tests3.log 2>&1
+# LT4 (E022) live reader, REGISTERED 2026-10-22 (LIVE_TESTS_4.md 9.2, 19, 20): own flock, offset 10 min from LT3, 1.5 GiB virtual cap, no network.
+# Runs until the window closes (END 2026-11-16T00:00Z + 30 h); remove after 2026-11-17T06:00Z. Never also run the fallback queue job q0485_lt4_live_collect.
+10-59/20 * * * * cd ~/arepo/backend && flock -n ~/arepo/run/live_tests4.lock nice -n 19 sh -c 'echo 1000 > /proc/self/oom_score_adj; ulimit -v 1572864; ../.venv/bin/python scripts/run_live_tests4.py run --max-items 40 --data-dumps-cap-gb 40' >> ~/arepo/run/live_tests4.log 2>&1
+# --- end AREPO ---

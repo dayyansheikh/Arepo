@@ -1,0 +1,282 @@
+{
+ "capture_id": "20261017T163102Z_0e2a115a",
+ "clocks": "accepting_orders/closed/event OI: capture time; /oi: t_f (after the capture, before any /holders request)",
+ "counts_only": true,
+ "criterion_a_http_ok": true,
+ "criterion_b_shape": true,
+ "criterion_c_rows_per_token_le_20": true,
+ "criterion_e_oi_units_label": "units consistent",
+ "criterion_f_key_fingerprint": true,
+ "criterion_g_paging": true,
+ "criterion_h_oi_source": false,
+ "event_oi_comparison": {
+  "agree_band": 0.25,
+  "median_oi_tf_over_event_oi": 1.0,
+  "n_agree": 707,
+  "n_single_market_events_in_frame": 729
+ },
+ "first_holders_request_epoch": 1792264241.6824493,
+ "frame_counts": {
+  "n_frame": 8564,
+  "n_oi_below_min": 41823
+ },
+ "frame_size": 8564,
+ "git_commit": "36d908f9cd9fea7ea1244bab72120d1692081d61",
+ "max_rows_per_token": 20,
+ "n_http_not_ok": 0,
+ "n_http_ok": 20,
+ "n_nonempty": 20,
+ "n_oi_known": 20,
+ "n_oi_over_1_05": 5,
+ "n_requested": 20,
+ "oi": {
+  "missing_share": 0.8192102760983836,
+  "n_base": 278705,
+  "n_batches": 4646,
+  "n_batches_integrity_violation": 0,
+  "n_missing": 228318,
+  "states": {
+   "oi_absent": 228318,
+   "oi_lookup_failed": 0,
+   "oi_nonnumeric": 0,
+   "ok": 50387
+  },
+  "t_f_max_epoch": 1792264239.6855495,
+  "t_f_min_epoch": 1792261333.0850077
+ },
+ "oi_ratios": [
+  {
+   "event_oi_single_market": null,
+   "oi_tf": 25780.523542,
+   "oi_tf_over_event_oi": null,
+   "sum_top20": 24151.551527999996,
+   "sum_top20_over_event_oi": null,
+   "sum_top20_over_oi_tf": 0.9368138505276596
+  },
+  {
+   "event_oi_single_market": null,
+   "oi_tf": 15253.970933,
+   "oi_tf_over_event_oi": null,
+   "sum_top20": 10835.331554999999,
+   "sum_top20_over_event_oi": null,
+   "sum_top20_over_oi_tf": 0.7103285828058814
+  },
+  {
+   "event_oi_single_market": null,
+   "oi_tf": 3418.64175,
+   "oi_tf_over_event_oi": null,
+   "sum_top20": 17684.580871,
+   "sum_top20_over_event_oi": null,
+   "sum_top20_over_oi_tf": 5.172984525506365
+  },
+  {
+   "event_oi_single_market": null,
+   "oi_tf": 1110.709815,
+   "oi_tf_over_event_oi": null,
+   "sum_top20": 1690.733291,
+   "sum_top20_over_event_oi": null,
+   "sum_top20_over_oi_tf": 1.5222097330615558
+  },
+  {
+   "event_oi_single_market": 1010974.62601,
+   "oi_tf": 1010950.15601,
+   "oi_tf_over_event_oi": 0.9999757956338662,
+   "sum_top20": 782558.9525469999,
+   "sum_top20_over_event_oi": 0.7740638908372159,
+   "sum_top20_over_oi_tf": 0.7740826270165382
+  },
+  {
+   "event_oi_single_market": null,
+   "oi_tf": 1902.758201,
+   "oi_tf_over_event_oi": null,
+   "sum_top20": 2144.022775,
+   "sum_top20_over_event_oi": null,
+   "sum_top20_over_oi_tf": 1.1267972850534569
+  },
+  {
+   "event_oi_single_market": null,
+   "oi_tf": 4032.050802,
+   "oi_tf_over_event_oi": null,
+   "sum_top20": 4154.605339,
+   "sum_top20_over_event_oi": null,
+   "sum_top20_over_oi_tf": 1.0303950875170544
+  },
+  {
+   "event_oi_single_market": null,
+   "oi_tf": 2309.693236,
+   "oi_tf_over_event_oi": null,
+   "sum_top20": 2289.6463109999995,
+   "sum_top20_over_event_oi": null,
+   "sum_top20_over_oi_tf": 0.9913205248699094
+  },
+  {
+   "event_oi_single_market": null,
+   "oi_tf": 1576.613986,
+   "oi_tf_over_event_oi": null,
+   "sum_top20": 1576.6139859999998,
+   "sum_top20_over_event_oi": null,
+   "sum_top20_over_oi_tf": 0.9999999999999999
+  },
+  {
+   "event_oi_single_market": null,
+   "oi_tf": 5703.254086,
+   "oi_tf_over_event_oi": null,
+   "sum_top20": 5686.681839999999,
+   "sum_top20_over_event_oi": null,
+   "sum_top20_over_oi_tf": 0.9970942472928427
+  },
+  {
+   "event_oi_single_market": null,
+   "oi_tf": 3645.341812,
+   "oi_tf_over_event_oi": null,
+   "sum_top20": 3678.399562,
+   "sum_top20_over_event_oi": null,
+   "sum_top20_over_oi_tf": 1.0090684911607406
+  },
+  {
+   "event_oi_single_market": null,
+   "oi_tf": 1439.054974,
+   "oi_tf_over_event_oi": null,
+   "sum_top20": 1438.2322309999997,
+   "sum_top20_over_event_oi": null,
+   "sum_top20_over_oi_tf": 0.9994282754899118
+  },
+  {
+   "event_oi_single_market": null,
+   "oi_tf": 24805.949055,
+   "oi_tf_over_event_oi": null,
+   "sum_top20": 52708.06284999999,
+   "sum_top20_over_event_oi": null,
+   "sum_top20_over_oi_tf": 2.1248154115424143
+  },
+  {
+   "event_oi_single_market": null,
+   "oi_tf": 17161.311172,
+   "oi_tf_over_event_oi": null,
+   "sum_top20": 17051.995881,
+   "sum_top20_over_event_oi": null,
+   "sum_top20_over_oi_tf": 0.9936301317594918
+  },
+  {
+   "event_oi_single_market": null,
+   "oi_tf": 3974.847598,
+   "oi_tf_over_event_oi": null,
+   "sum_top20": 2117.5724130000003,
+   "sum_top20_over_event_oi": null,
+   "sum_top20_over_oi_tf": 0.5327430450580009
+  },
+  {
+   "event_oi_single_market": null,
+   "oi_tf": 9455.381488,
+   "oi_tf_over_event_oi": null,
+   "sum_top20": 6943.729745999999,
+   "sum_top20_over_event_oi": null,
+   "sum_top20_over_oi_tf": 0.7343680162257245
+  },
+  {
+   "event_oi_single_market": null,
+   "oi_tf": 2730.580314,
+   "oi_tf_over_event_oi": null,
+   "sum_top20": 2542.1594489999998,
+   "sum_top20_over_event_oi": null,
+   "sum_top20_over_oi_tf": 0.9309960362513622
+  },
+  {
+   "event_oi_single_market": null,
+   "oi_tf": 3832.273975,
+   "oi_tf_over_event_oi": null,
+   "sum_top20": 4358.563686000001,
+   "sum_top20_over_event_oi": null,
+   "sum_top20_over_oi_tf": 1.1373309200838129
+  },
+  {
+   "event_oi_single_market": null,
+   "oi_tf": 1260.653017,
+   "oi_tf_over_event_oi": null,
+   "sum_top20": 1129.55438,
+   "sum_top20_over_event_oi": null,
+   "sum_top20_over_oi_tf": 0.8960073587005106
+  },
+  {
+   "event_oi_single_market": null,
+   "oi_tf": 1222.643797,
+   "oi_tf_over_event_oi": null,
+   "sum_top20": 695.3097349999999,
+   "sum_top20_over_event_oi": null,
+   "sum_top20_over_oi_tf": 0.5686936266360495
+  }
+ ],
+ "oi_source_verdict": "missing share 0.8192 > 0.02",
+ "paging": {
+  "deep_offset": "ok",
+  "offset0_status": 200,
+  "offset4000_status": 200,
+  "pass": true
+ },
+ "pass": false,
+ "response_time_s": {
+  "max": 0.577,
+  "median": 0.501
+ },
+ "rules_sha256": "b6ac7f7fd773c1656ad96a2b00abb260cfe693a8ee06a0a48798d8d6f3211f57",
+ "run_utc": "2026-10-17T19:10:52Z",
+ "sample_disclosure": {
+  "main": {
+   "alloc": {
+    "main|t0": 500,
+    "main|t1": 500,
+    "main|t2": 500
+   },
+   "cuts": [
+    2073.792138,
+    6097.955583
+   ],
+   "pool": 5779,
+   "realised_n": 1500,
+   "shortfall": 0,
+   "strata": {
+    "main|t0": 1926,
+    "main|t1": 1926,
+    "main|t2": 1927
+   },
+   "target": 1500
+  },
+  "sports": {
+   "alloc": {
+    "sports|t0": 100,
+    "sports|t1": 100,
+    "sports|t2": 100
+   },
+   "cuts": [
+    1771.6166,
+    5039.503983
+   ],
+   "pool": 2785,
+   "realised_n": 300,
+   "shortfall": 0,
+   "strata": {
+    "sports|t0": 928,
+    "sports|t1": 928,
+    "sports|t2": 929
+   },
+   "target": 300
+  }
+ },
+ "smoke_version": "cb8-holders-smoke-v2",
+ "t_f_asserted_before_first_holders_request": true,
+ "threshold_units": "units consistent",
+ "v1_record": {
+  "cause": "empty frame: the sidecar open_interest (Gamma market openInterest) is blank in all rows",
+  "criteria_failed": [
+   "a",
+   "b",
+   "g"
+  ],
+  "frame_size": 0,
+  "job": "q0160_cb8_holders_smoke",
+  "n_requested": 0,
+  "result": "FAIL",
+  "version": "cb8-holders-smoke-v1"
+ },
+ "wallet_key_fingerprint": "80ce5e81a539a570"
+}

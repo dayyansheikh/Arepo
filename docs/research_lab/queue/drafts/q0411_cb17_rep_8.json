@@ -1,0 +1,44 @@
+{
+ "id": "q0411_cb17_rep_8",
+ "title": "CB17 Stage 2 (triggered only): B1-rep, B1-econ; B2-rep (SCREEN_8 frozen SD_x), B2-econ; C1-rep, C1-econ; early alpha / 8",
+ "family": "creative_batch_17",
+ "priority": 9,
+ "expected_value": "Stage-2 verdicts (L2)",
+ "data": [
+  "creative_batch17/rep/"
+ ],
+ "resources": {
+  "mem_mb": 1200,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0410_cb17_frame_rep"
+ ],
+ "argv": [
+  "scripts/run_cb17.py",
+  "rep",
+  "--root",
+  "../data-dumps/research_lab/cb17_window/creative_batch17",
+  "--rules",
+  "../docs/research_lab/seals/cb17_rules.json",
+  "--results-sha256",
+  "TODO-COORDINATOR",
+  "--disk-cap-gb",
+  "0.01",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 7200,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch17/results_rep.json",
+  "trials.jsonl (cb17_replication + creative_batch_17:<family>:rep)"
+ ],
+ "next_action": "q0412",
+ "notes": "TODO-COORDINATOR: --results-sha256 = sha256 of the committed results_8.json (the job refuses the token). Verifies the committed REP seal copy and the source file hashes first; econ lines are 'not run (power)' below 300 fills per bin in 60 events (counted, p = 1). Heavy: run alone. CREATIVE_BATCH_17.md section 4, CB17 window code (branch T: family A withdrawn uncounted; B, C and the E census live; Holm k1 = 3). DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer), the committed code-freeze record seals/cb17_code_freeze.json (code_sha256 from `run_cb17.py code-pin`, ruling-6 attestation) and seals/cb17_t17_rules.json. Rules part sha256 (seals/cb17_rules.json; part A is never declared): pre ddc0249b23eedf8cfe50b2b60e94378264804ca4791c82c01cf3993df54df6a7, common 2343744082bcb664ac06f18f967c166aae09c216e9437045d7aa07aa77ef8c9f, B 64e61091574ec4406b6f235f48f37ab2d0bf8b41bf89bfbeace9153186c96a10, C 3e24af26db1c827b6ff8dadc5bc63743a4cd03280d510211edf0ad87137b2647, E 9b1eba65e5de9de0f67e31f9d7dccf6f012ef8ee37895a603aaa5a6103067412. The coordinator regenerates the rules and these shas if any hashed module changes (window code changes only the code pin). OPS 2026-10-21 ~20:20Z (autopilot): --root ../data-dumps/research_lab/cb17_window/creative_batch17 for every CB17 window job. The frozen cb17_jobs._disk counts the whole output root against the 0.3 GB CB17 total, and q0413's worn restore (925 MB of input copies) sits in the default root creative_batch17/worn_restore, so q0404 refused twice. The evidence hook (rightly) blocks moving it without the owner; the frozen code accepts any root with a 'creative_batch17' path part (cb17_common.ALLOWED_OUTPUT_ROOT_PARTS), so all window outputs now go to this fresh root and the 0.3 GB cap keeps its purpose (outputs only). Window jobs read nothing from the old root (pre-census A-C and the cost map stay there, unread). No code, rule, input or criterion changed.",
+ "repeat": {
+  "max_runs": 6,
+  "until_log_regex": "\"status\": \"(rep_complete|rep_not_triggered)\""
+ }
+}

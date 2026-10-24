@@ -1,0 +1,31 @@
+{
+ "id": "q0009_hb2_features_h3",
+ "title": "SB2-J2a: HB2 extension features on h3_power",
+ "family": "flow",
+ "priority": 66,
+ "expected_value": "input for frozen replication of F3, F4, F5, F7, F8, L1",
+ "data": [
+  "history/h3_power (trades, prices, panel)",
+  "history/h3_power/battery1_rep/features.parquet"
+ ],
+ "resources": {
+  "mem_mb": 2000,
+  "cpu": 1
+ },
+ "depends_on": [
+  "q0008_hb2_run_h2"
+ ],
+ "argv": [
+  "scripts/run_hypothesis_battery2.py",
+  "features",
+  "--run-id",
+  "h3_power"
+ ],
+ "timeout_s": 14400,
+ "max_retries": 2,
+ "outputs": [
+  "data-dumps/research_lab/history/h3_power/battery2/features2*.parquet"
+ ],
+ "next_action": "q0010",
+ "notes": "advanced F/L on h2 (q0008, 2026-10-15 23:28Z): F3 F4 F5 F7 F8 L1; X none, so q0014/q0015 are not queued"
+}

@@ -1,0 +1,41 @@
+{
+ "broad": false,
+ "derived": [
+  "base"
+ ],
+ "description": "Champion + order book of the pass's first sweep (top / 1c / 5c imbalance, 5c depth, microprice displacement vs the sweep mid, book age, levels).",
+ "families": [
+  "market_state",
+  "momentum",
+  "book"
+ ],
+ "features_version": "se-features-v1",
+ "isolates": [
+  "book"
+ ],
+ "learner": "logreg",
+ "model_id": "se3_lr_book",
+ "params": {
+  "C": 1.0,
+  "max_iter": 300,
+  "tol": 0.0001
+ },
+ "targets": [
+  "dir_2h",
+  "dir_6h",
+  "dir_24h",
+  "res_7d"
+ ],
+ "train": {
+  "max_rows": 400000,
+  "min_days": 2,
+  "min_rows": 5000,
+  "refit": "daily",
+  "require_sources": [
+   "book"
+  ],
+  "res_window_days": 28,
+  "window_days": 14
+ },
+ "version": 1
+}

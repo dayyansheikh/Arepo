@@ -1,0 +1,37 @@
+{
+ "id": "q0148_cb7_screen_S",
+ "title": "CB7-S: Stage-1 S1 on the whole sealed h8_text (cell-FE slope of price minus outcome on C; calibrated-null and marker-shuffle placebos; worst cases; staleness; sign by month)",
+ "family": "creative_batch_7",
+ "priority": 38,
+ "expected_value": "whether CH63 advances to the prospective Stage 2",
+ "data": [
+  "history/h8_text (verified seal)",
+  "model_specs/cb7_v1.json",
+  "creative_batch7/text_edit_audit.json (committed text-stability gate result)"
+ ],
+ "resources": {
+  "mem_mb": 1200,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0147_cb7_census",
+  "q0156_cb7_text_edit_audit"
+ ],
+ "argv": [
+  "scripts/run_cb7.py",
+  "screen",
+  "--family",
+  "S",
+  "--n-boot",
+  "2000"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch7/S_screen/results.json",
+  "trials.jsonl (1 cb7_test + count line + placebos + descriptive)"
+ ],
+ "next_action": "if S1 advanced: commit q0152 (data from q0151 are collected regardless)",
+ "notes": "CREATIVE_BATCH_7.md CB7-S. DRAFT. Commit after the CB7 freeze. Exits 0 'not testable' if GS failed, disjointness unverified or h8_text not_run_deadline (counted, p = 1). S1 cannot advance unless the q0156 text-stability gate is met (Wilson 95% upper bound of the C-changed share <= 0.10; > 20% unretrievable = unverified = cannot advance). Binding closed_time < end_at - 2 d drop sensitivity (round 1, item 3)."
+}

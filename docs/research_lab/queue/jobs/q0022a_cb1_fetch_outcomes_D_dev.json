@@ -1,0 +1,38 @@
+{
+ "id": "q0022a_cb1_fetch_outcomes_D_dev",
+ "title": "CB1-D: fetch outcomes for markets in the frozen dev capture list (resolved subset for the realised-payout gate)",
+ "family": "creative_batch_1",
+ "priority": 55,
+ "expected_value": "realised-payout and payout-anomaly gates for D2 (resolved subset as of the fetch)",
+ "data": [
+  "research_lab/cb1_extract (frozen dev list sha 967a0cb0...)"
+ ],
+ "resources": {
+  "mem_mb": 800,
+  "cpu": 1,
+  "network": "gamma-api",
+  "lane": "cpu"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb1_structural.py",
+  "fetch-outcomes-D",
+  "--window",
+  "dev",
+  "--extract-root",
+  "../data-dumps/research_lab/cb1_extract",
+  "--list-sha256",
+  "967a0cb0887656f416adb419bef61667915b0d78933fc176aadc0541d618623e",
+  "--out",
+  "../data-dumps/research_lab/creative_batch1/D_dev/outcomes_dev.csv",
+  "--rps",
+  "4"
+ ],
+ "timeout_s": 7200,
+ "max_retries": 2,
+ "outputs": [
+  "../data-dumps/research_lab/creative_batch1/D_dev/outcomes_dev.csv"
+ ],
+ "next_action": "q0022 runs",
+ "notes": "mem_mb 800 (cap 1.6 GB address space): window_market_ids now streams market_id per capture; measured peak RSS ~0.3 GB on a synthetic 60x96k table (old loader 1.8+ GB RSS, several GB on real object columns). Counted download; requires the committed CB1 declaration. Analysis date = this fetch (declared 2026-10-17 before any D outcome was read). Dev list (60 captures 2026-10-11T12Z..2026-10-17T00Z, 0 missing; the 10-14 Mac-outage passes are absent and counted) committed as docs/research_lab/seals/cb1_dev_capture_list.json. Lane cpu (not net): small fetch, would otherwise wait 6-9 h behind q0043 on the net lane."
+}

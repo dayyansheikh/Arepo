@@ -1,0 +1,67 @@
+{
+ "binance": [
+  {
+   "checksum_ok": true,
+   "month": "2026-03",
+   "n_rows": 44640,
+   "sha256": "a2c1e689d39aa7877e218f436f15162e9a4436778a377d32e9d9b81b081381cd",
+   "symbol": "BTCUSDT",
+   "venue": "spot"
+  },
+  {
+   "checksum_ok": true,
+   "month": "2026-03",
+   "n_rows": 44640,
+   "sha256": "567601a0c1517eb9f3452fc1956e33f3d52570dc89430e3b247f107722522fbf",
+   "symbol": "HYPEUSDT",
+   "venue": "um"
+  }
+ ],
+ "bounds_ok": true,
+ "counts_only": true,
+ "criterion_a_data_api_paging": false,
+ "criterion_b_binance_checksum": true,
+ "criterion_c_pmxt_heads": true,
+ "deep_offset_probe": {
+  "market_id": "3475952",
+  "n_rows": 0,
+  "status": 200,
+  "verdict": "deep_ok"
+ },
+ "git_commit": "c65d0748f244c557b43230d23f31a57a97949ca9",
+ "last_api_error": null,
+ "n_candidates": 200,
+ "n_capped": 0,
+ "n_failed_requests": 0,
+ "n_found_on_gamma": 192,
+ "n_gamma_requests": 4,
+ "n_in_pool": 5,
+ "n_nonempty": 4,
+ "n_requested": 5,
+ "newest_first_ok": true,
+ "no_duplicates_ok": true,
+ "pass": false,
+ "pass_thresholds": {
+  "deep_offset": 4000,
+  "max_capped": 2,
+  "min_nonempty": 14,
+  "n": 20
+ },
+ "pmxt_heads": [
+  {
+   "day": "2026-08-05",
+   "size": 566692446
+  },
+  {
+   "day": "2026-05-18",
+   "size": 373994878
+  },
+  {
+   "day": "2026-07-17",
+   "size": 581004508
+  }
+ ],
+ "rules_sha256": "33decb528bbafd46336296be57c91b76e6aaa0c69d7d3eecf92eaa83c4f12a6d",
+ "run_utc": "2026-10-22T00:00:25Z",
+ "smoke_version": "cb8-smoke-v1"
+}
