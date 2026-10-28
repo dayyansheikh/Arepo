@@ -4615,3 +4615,17 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   over `created_at`, 120 s receipt-span filter, pseudo-batch by created-at decile, halted = `accepting_orders` false, flips
   only when the new leader was the runner-up. The 40 and 690 lines are printed, no verdict applied in code.
 - q0701 queued (cpu lane, mem 500 MB unmeasured, as_cap 4,000 MB). Next: map note with counts -> LT13 draft or not.
+
+## CB9 q0182b host result; q0183 / q0185 promoted after ruling GO_WITH_CHANGES, 2026-10-28 ~12:10Z (experiments autopilot; operational, nothing counted)
+- **q0182b host result** (done 10-24T07:25Z, `exclusion_report.json`): `exclusion_keys_complete`, **disjointness verified**,
+  `keys_sha256` `e613604ab15b4e9741275d7860fdf58180525cbd9cb22fa2088a5efdcc6d375f` (equals the sha256 of `exclusion_keys.csv.gz`),
+  n_ids 328,725, n_missing 204 (share 0.00062 < 0.02), seal copies used h5_cb1, h5_cb1_ladders, h7_cb4_era, h7_cb4_series,
+  h8_tail; 1,922 composites replaced, 574 new pred market ids, **3,990 new ids**, **8 pred event ids in no key set** (disclosed
+  10-24, not repaired). Host counts equal the dry run's.
+- **Exit-code fix** (`cb9_exit.py`; pyth-frame, pyth-books, kd-frame, kd-books: 0 complete/terminal, 75 transient, 1 otherwise;
+  rules hashes pyth v4 / sign v5 / kd v2 unchanged). Ruling `reviews/CB9_Q0183_RULING_2026-10-28.md` GO_WITH_CHANGES; changes 1-4
+  applied (5d174dc3); merged. Conditions 5-6 (max_runs-incomplete q0184; hard-coded `budget_chunk_ok`) bind q0184's promotion.
+- **Disclosure (ruling change 4):** `cb9_pyth.pyth_frame` keeps `outcome_prices` in `pyth_frame/frame_partial.jsonl` (resume
+  scratch, never removed), contrary to CREATIVE_BATCH_9.md §1.1 "outcomes only in outcomes_guarded". The code is rules-hashed
+  and is not changed; a test proves no CB9 reader other than the writer's resume loop names the file. No session reads it.
+- **q0183 and q0185 queued** (net lane, depend on q0182b). After each run: manifest `exclusion_keys_sha256` must equal e613604a….
