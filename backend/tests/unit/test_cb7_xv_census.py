@@ -333,7 +333,9 @@ def test_assert_counts_only_refuses_forbidden_keys():
 def write_capture(snaps: Path, name: str, rows, state="complete", sidecar="complete"):
     d = snaps / name
     d.mkdir(parents=True)
-    (d / "manifest.json").write_text(json.dumps({"capture_id": name, "state": state, "sidecar_status": sidecar, "started_utc": "x"}))
+    (d / "manifest.json").write_text(json.dumps({"capture_id": name, "state": state, "started_utc": "x"}))  # host layout: no sidecar_status here
+    if sidecar is not None:
+        (d / "ext_manifest.json").write_text(json.dumps({"capture_id": name, "sidecar_status": sidecar}))
     with gzip.open(d / "rows.csv.gz", "wt", newline="") as fh:
         w = csv.writer(fh)
         w.writerow(["received_utc", "market_id", "best_bid", "best_ask", "closed"])
@@ -352,9 +354,16 @@ def test_h_geo_skips_incomplete_sidecar_refuses_without_geo_ids_and_unavailable_
     write_capture(a, "20261022T030000Z_aaaa1111", [("g1", 0.04, 0.06, "geopolitics")], sidecar="partial")
     with pytest.raises(cm.Refused, match="no complete capture"):
         cc.measure_h_geo(a, wall_clock=lambda: after)
+    write_capture(a, "20261022T040000Z_cccc3333", [("g1", 0.04, 0.06, "geopolitics")], sidecar=None)  # no ext_manifest.json: skipped
     write_capture(a, "20261023T030000Z_bbbb2222", [("g1", 0.04, 0.06, "geopolitics")])
     r = cc.measure_h_geo(a, wall_clock=lambda: after)
-    assert r["captures_skipped_sidecar_not_complete"] == 1 and r["complete_captures"] == 1 and r["status"] == "ok"
+    assert r["captures_skipped_sidecar_not_complete"] == 2 and r["complete_captures"] == 1 and r["status"] == "ok"
+    legacy = tmp_path / "legacy" / "snapshots"  # sidecar_status only in manifest.json (the old fixture layout) is not trusted
+    write_capture(legacy, "20261023T030000Z_dddd4444", [("g1", 0.04, 0.06, "geopolitics")], sidecar=None)
+    m = legacy / "20261023T030000Z_dddd4444" / "manifest.json"
+    m.write_text(json.dumps({**json.loads(m.read_text()), "sidecar_status": "complete"}))
+    with pytest.raises(cm.Refused, match="no complete capture"):
+        cc.measure_h_geo(legacy, wall_clock=lambda: after)
     b = tmp_path / "b" / "snapshots"
     write_capture(b, "20261022T030000Z_aaaa1111", [("p1", 0.04, 0.06, "politics")])
     with pytest.raises(cm.Refused, match="no market with fee_category"):

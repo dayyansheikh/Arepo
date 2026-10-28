@@ -4566,3 +4566,12 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - Known existing issue (not covered): other CB9 kinds (`run_cb9.py` sign / kd / pyth paths) still exit 0 on a transient
   incomplete stop. `NOT_EXTRACTABLE` is unreachable in `build_seal_plan`; to be handled before CB10 q0201 reuses the module.
 - **q0182b queued** (net lane, depends q0164c / q0166, both done); q0201 (CB10, draft) now depends on q0182b.
+
+## CB7 census q0147 FAILED x2 (h_geo read the wrong manifest); q0147b queued, 2026-10-28 ~10:30Z (experiments autopilot; operational, nothing counted)
+- **q0147** refused twice (10-25T01:31Z, rc 2): `h_geo: no complete capture with a complete sidecar in 2026-10-22..10-25 (36
+  skipped for sidecar)`. Cause: `measure_h_geo` read `sidecar_status` from `manifest.json`; the host writes it only in
+  `ext_manifest.json` beside `rows_ext.csv.gz` (checked: the in-window captures say `complete` there; `manifest.json` has no such
+  key). The unit fixture had put the key in `manifest.json`, so tests passed. A refusal writes nothing; q0147 stays failed.
+- **Fix** (read path only): read `ext_manifest.json`; a capture without it is skipped as before; fixture now uses the host layout
+  and a test proves a `manifest.json`-only key is not trusted. Window, mid band, thresholds, gates and argv unchanged.
+  Tests 45 passed. **q0147b queued** (same spec, no `not_before`: the window closed 10-25T00Z).
