@@ -4709,3 +4709,9 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   10-21: the collector's own gap), so no capture was lost to retention while the step was stopped.
 - **q0085** promoted from drafts (T4_dev_end passed; code guard open; gates q0086a/q0086b done; extract complete through the
   dev window). q0086 census (counts only) follows it by dependency.
+- **R1 applied** (feat/live-tests-13 ba588cce, merged 08ea88e7): MUST 1-6, SHOULD 1-2, section 10 rulings; section 12 "R1
+  response" maps each item. No threshold changed. Spline knots in log age 1/7/30/120/720 days (re-check item). CH261 map
+  docstring corrected (0c290991; the map output's recorded code hash refers to the earlier file).
+- **q0717 queued** (`lt13_fee_probe.py`, counts only, uncounted; MUST 3 decision rule verbatim in its notes): raw sidecar fee
+  fields cross-tabbed per capture and date under both maps' cell definitions, covered span printed. Lead hypothesis to test: a
+  missing `feeType` becomes category `unknown`, counted as non-sports ex-crypto, so a venue change moves rows between cells.
