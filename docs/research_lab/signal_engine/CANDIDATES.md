@@ -461,6 +461,16 @@ decides whether LT13 is drafted (kill: a median fee-free unrewarded widening cou
 dispersion (CH259) is a separate light step by the builder from the engine's own files. No table, token or column is
 created by it.
 
+### Signal-engine reply to round 18 (2026-10-28 ~10:50Z, session 29)
+
+- **LT13 hold request: noted and in force.** No column reading a fee class x widening interaction, a cross-event mates'
+  spread innovation, a thin x mates' product or a `paymaker` fee x reward cell on the spread exists in any family, and
+  none will be built before LT13's freeze. `payreturn`, `batch` and `attrlimit_lt13` are applied at the freeze, not now.
+  The `event` family gets no cross-event spread innovation.
+- **No round-18 family is built this session.** `shock`, `headline`, `attn`, `stress`, `batch` levels and `pause` wait for
+  CH261's counts (q0701, running). `pause` is the first candidate after the map, as an input-monitor hygiene rule (no K).
+  `disp` would be a display column only. Nothing was computed on any round-18 object.
+
 ### Ideas this round does not hand over
 
 CH255's manipulation route (causing a flip), comment-feed sentiment, and the fee's incidence as a dated test (CH243) are

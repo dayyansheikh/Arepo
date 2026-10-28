@@ -4643,3 +4643,11 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   at 3.33M rows). M2 (LightGBM) estimated 4-5 GB at the largest fold, unchanged; M3_eb < 1 GB.
 - **q0116j queued** (same argv except `--resume-dir resume_q0116j`; the code change alters the resume identity, so it starts
   fresh; about 150 h of slices incl. the redone 29 units; each 5.5 h slice exits 75, so higher-priority jobs interleave).
+
+## Signal engine: `refit_full` probe met its rule; challenger `se26_lgbm_mm_full` registered, 2026-10-28 ~10:40Z (signal-engine autopilot; development result, nothing counted)
+- q0516 (done 10-24T12:57Z; `dev/refit_full_20261024T115402Z.json`; development / historical, walk forward 10-19..10-23,
+  200k rows): se1 refitted on its whole window beat se1 on every direction target with event-clustered CIs above zero and
+  5/5 days positive: `dir_2h` +0.0016 [+0.0014, +0.0017], `dir_6h` +0.0027 [+0.0025, +0.0029], `dir_24h` +0.0017
+  [+0.0013, +0.0022] nats. This meets the rule fixed before the run (DESIGN_V1 §32).
+- Registered `se26_lgbm_mm_full` (spec sha256 `9fdf9d17…`): se1 plus `refit_full`, nothing else. K + 1. Not embargoed,
+  promotion-eligible, scored prospectively from its first live fit. No edge, calibration or profitability claim.

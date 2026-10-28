@@ -409,7 +409,7 @@ equals its source (the test checks). Do not edit the LT5 spec while q0561/q0562 
 **Waiting:**
 - MC1: after the resize (item 4).
 - CB4 q0085 not before ~10-24T12Z. CB5 q0103b on or after 10-27, then q0106. CB3 freeze after q0064 (after 10-25).
-- Signal engine: live state in `signal_engine/STATUS.md` (10-24 04:00Z session 28: LT12 freeze requests applied: `mirror`, `mixedlad`, `attrlimit_lt12` to 2027-01-03, DESIGN_V1 §33; no family built. Input monitor live and clean (03:09Z: 0 alerts). q0516 `refit_full` probe still queued behind the other track's exclusive q0116i. 3 days scored; no promotion before ~11-04.)
+- Signal engine: live state in `signal_engine/STATUS.md` (10-28 ~11:00Z session 29: the q0516 `refit_full` probe met DESIGN_V1 §32's fixed rule on all 3 direction targets (development, +0.0016..+0.0027 nats over se1, 5/5 days), so challenger `se26_lgbm_mm_full` is registered (K + 1, not embargoed). Refits daily and healthy (peak 3.4 GB); 7 days scored; se1 / se17 / se18 lead the champion by ~0.046 nats on dir_2h; no promotion before the 14-day minimum (~11-04). Round-18 LT13 hold request noted; no family built.)
 
 ## Learned surprise-move detector (2026-10-12 evening)
 `docs/research_lab/SURPRISE_MOVE_DETECTOR.md`. Labels fixed and logged before features (`surprise-labels-v1`,

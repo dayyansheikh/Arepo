@@ -1026,7 +1026,23 @@ champion. That is a hint, not a test.
   - Worth a registered challenger (a new spec id, K + 1, prospective scoring like any other) only if the variant beats
     se1 on all three direction targets, with each CI excluding zero and at least 4 of 5 days positive.
   - A null or mixed result is recorded here as a dead end, and nothing is registered.
-- Result: pending (q0516).
+- **Result (q0516, done 2026-10-24T12:57Z, `dev/refit_full_20261024T115402Z.json`; development / historical).** Walk
+  forward over 2026-10-19..10-23, 200k rows a fit, gain of the variant over se1 with event-clustered CIs (the leaderboard's
+  `gain` method), peak RSS 1,923 MB, 3,819 s:
+
+  | Target | n | gain over se1 (nats) | CI | days positive | cal. slope |
+  |---|---|---|---|---|---|
+  | `dir_2h` | 2,866,643 | +0.0016 | [+0.0014, +0.0017] | 5/5 | 1.003 |
+  | `dir_6h` | 2,733,106 | +0.0027 | [+0.0025, +0.0029] | 5/5 | 1.012 |
+  | `dir_24h` | 2,084,011 | +0.0017 | [+0.0013, +0.0022] | 5/5 | 1.058 |
+
+  The fixed rule is met on all three targets, so the variant is registered as **`se26_lgbm_mm_full`** (2026-10-28 ~10:40Z):
+  se1's spec with `params.refit_full: true`, `refit_full_scale: 1.0`, nothing else changed (same families, rows, window,
+  targets including `res_7d`). K rises by one. It is not embargoed (no family), not broad and promotion-eligible, and is
+  scored prospectively from its first live fit like any other challenger. The gain is small (about 0.4% of se1's
+  `dir_2h` log loss); the days overlap the probe's own training windows, so it is not prospective evidence and may be
+  optimistic. `test_refit_full_is_opt_in_and_learns_from_every_frame_row` now asserts se26 is the only spec that sets the
+  option and that it differs from se1 only there.
 
 ## 33. LT12 freeze: `mirror`, `mixedlad` and `attrlimit_lt12` (2026-10-24 ~04:00Z; no scoring change)
 
