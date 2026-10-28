@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-28 11:18 UTC+1
+**Last updated:** 2026-10-28 11:55 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -16,11 +16,14 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 - **Storage fix today:** the data folder reached 38.9 of its 40 GB per-job limit, so the live collectors would have started
   skipping within about two days. The limits are raised to 50 GB for jobs and 55 GB for collection (the disk has 30 GB
   free). Storage only; no rule changed. Clearing restore copies (item 8) is still the real fix.
-- **Fixed:** batch 7's counting check failed because it looked for a status flag in the wrong file; fixed and re-queued.
-- **New ideas:** round 18 of original hypotheses (10 ideas) is saved; two are candidates for a new live test (LT13), decided
-  by a counting-only "population map" now being built. Seven more were handed to the signal engine as ideas.
-- **In progress:** LT12's independent code check; batch 9's next data steps (reviewed fix); the long model run MC1, which
-  hit a memory limit at fold 13, is getting a lower-memory version that gives identical numbers (it restarts from scratch).
+- **Batch 7:** its counting check looked for a "geopolitics" label that the data never contains. An independent review
+  confirmed the fix: find those markets by their question text, as the design's own rule says. A small text-lookup job is
+  queued; the old data window is held on the server a few extra days so the check can still run.
+- **New live test on the way (LT13):** the counting-only map for round 18's two best ideas came back large enough, so the
+  LT13 design is being drafted now (the "payer's return" spread test and the "listing batch" test). A third idea failed its
+  count and is dropped.
+- **LT12** passed its independent code check and is merged. **Batch 9** moved to its next data steps after a review.
+- **The long model run MC1** hit a memory limit; a lower-memory version that gives identical numbers is queued (it restarts).
 - **Seven registered live tests** are collecting or waiting: single analyses E009/E010 (3 Nov), E011 (11 Nov), E012-E014
   (13 Nov), E015 (15 Nov), E022 (17 Nov), E026 (6 Dec). LT9-LT12 are frozen designs on their way to registration.
 - **Honest pattern:** most planned tests die at the counting or data-coverage stage, before any outcome data is read. That is

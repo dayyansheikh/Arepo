@@ -8,28 +8,27 @@
 **PHASE 4 IN PROGRESS.** See `implementation/phases/PHASE_04_EDGE_EXPERIMENTS.md` and the ledger `research_lab/EXPERIMENT_LEDGER.md`.
 User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=Etc/GMT-1 date`.
 
-## Experiments autopilot live state (2026-10-28 11:18 UTC+1)
+## Experiments autopilot live state (2026-10-28 11:55 UTC+1)
 - **Gap:** no autopilot session 10-24 09:07Z .. 10-28 10:08Z (weekly usage limit). Collectors ran throughout.
-- **Owner inbox 10-27** ("promote Forecasting gain near market close"): SB2-CTTE is already live as E014 (LT2); registry card
-  now points there (f7cc693b). Window fixed; not shortened.
-- **E026:** recording since 10-25T00Z (q0541/q0542 healthy); phone milestone "collection started" sent 10-28. Next phone note:
-  weekly counts ~11-01.
-- **Disk ops (66fa90a5, deployed, live crontab edited with backup):** data-dumps 38.9 GiB; guards 40 -> 50 GiB (75 specs,
-  pass steps, crontab, run_stream default), collector cap 45 -> 55. Owner restore-copy decision still open (dashboard item 8).
-  Check next session: CB4 closewin pass line shows `written > 0` (it was `refused_data_dumps_over_cap`).
-- **CB7:** q0147 failed (h_geo read sidecar_status from manifest.json; it is in ext_manifest.json). Fixed 915c3837; q0147b
-  queued and deployed. Next: its counts -> CREATIVE_BATCH_7.md, freeze check, freeze.
-- **CB9:** q0182b done (3,990 new ids, 8 pred-event gap). `fix/cb9-q0183` (../astrolabe-cb9-q0183; 5bc3580a, ef05fb81): exit
-  codes for pyth/kd frame+books, specs q0183/q0185. science-reviewer ruling RUNNING -> save as
-  reviews/CB9_Q0183_RULING_2026-10-28.md, apply changes, merge, deploy.
-- **LT11:** q0696 timing recorded (17.4 h; projected end 11-10T17:23Z; no ordered-lane line). Census q0691 not before 11-07T08Z.
-- **LT12:** code on `feat/live-tests-12-code` (b9d7fa3a); science-reviewer code-freeze check RUNNING -> save as
-  reviews/LT12_CODE_FREEZE_CHECK_2026-10-28.md, fixes, merge before the 11-07 seal.
-- **MC1:** q0116i failed at fold 13 M1 (RLIMIT_AS 14,000 MB; physical peak ~9.2-9.6 GB too close to ~10 GB available).
-  Implementer on `fix/mc1-m1-memory` (../astrolabe-mc1-mem): chunked, bit-identical transform + q0116j (fresh resume dir;
-  ~120 h of work remains). Then review the diff, merge, deploy, queue q0116j.
-- **Creative round 18** merged (09b7d4a4); CANDIDATES round 18 notes (444528e0). **CH261 map** (LT13 decision): implementer on
-  `feat/ch261-map` (../astrolabe-ch261-map) -> q0701; then review, merge, deploy.
+- **Owner inbox 10-27** ("promote Forecasting gain near market close"): SB2-CTTE is already live as E014; registry points there
+  (also SB2-L1 -> E012). Windows fixed; not shortened.
+- **E026:** recording since 10-25T00Z; phone milestone "collection started" sent 10-28. Next phone note: weekly counts ~11-01.
+- **Disk/retention ops:** data-dumps 38.9 GiB; guards 40 -> 50 GiB (66fa90a5), collector cap 45 -> 55; snapshot retention 8 -> 12
+  days (99984534) to hold the CB7 h_geo window until q0147c — **revert to 8 after q0147c** (ledger line). Owner restore-copy
+  decision open. Check: CB4 closewin / CB5 / CB3 pass lines show `written > 0` after the guard change (10:31Z pass was running).
+- **CB7:** h_geo fixed twice (sidecar manifest 915c3837; Reading 13 -> 13a with text lookup, merged 218d1e85; ruling + re-check
+  in reviews/CB7_HGEO_*). **q0147t (text) queued**; when done: write its manifest sha256 + text sha256 into
+  drafts/q0147c notes and the ledger, move q0147c to jobs, deploy — **must run before ~11-01** (retention hold to 12 days).
+- **CB9:** q0183/q0185 queued (ruling GO_WITH_CHANGES applied, 8351c077). After each: manifest `exclusion_keys_sha256` must be
+  e613604a…. q0184/q0186 promotion carries ruling conditions 5-6.
+- **LT12:** code merged 6b443d5c (freeze check + targeted re-check ACCEPT). Census/seal from 11-07.
+- **LT11:** timing recorded (projected end 11-10T17:23Z). Census q0691 not before 11-07T08Z.
+- **MC1:** bit-identical memory fix merged (d2bf29be); **q0116j** queued fresh (~150 h of slices).
+- **CH261 map** done: LT13 gate cleared (CH252 fee-free widenings median 1,857.5; fee-on arm thin, median 15; CH253 killers
+  passed; CH255 out). **LT13 design draft** being written on `feat/live-tests-13` (../astrolabe-live-tests-13); then
+  challenger R1 (science-reviewer), revisions, freeze.
+- **Stalled backlog (inventory 10-28):** CB4 q0085 release after closewin catches up past 10-25; CB5 q0103b needs a freeze
+  check; CB3 q0064a gate missing and freeze deadline passed (needs a decision); CB10 q0201 needs the CB9 NOT_EXTRACTABLE fix.
 
 ## Interactive session state (2026-10-23 08:30Z)
 - **Security audit run 1 (2026-10-23):** Cloudflare security-audit skill, quick profile, source-only. 0 confirmed findings and 5 needs-validation leads; see `docs/security/AUDIT_2026-10-23_RUN1.md` (full artefacts in `~/security-audit-skill/astrolabe/run-1/`). Owner notified via ntfy. No fixes made yet. Proposed small PRs:
