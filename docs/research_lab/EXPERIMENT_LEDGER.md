@@ -4699,3 +4699,6 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   CH252 `withdrawn_pre_census (fee reading unresolved)`); CH252 age by spline, wording "fee-on/post-03-30 vs fee-free/pre-03-30
   contrast"; no CH253 placebo change, cap 30; "expected to lower". CH261 map docstring correction (SHOULD 3).
 - Next: revisions + q0717 (counts-only fee-reading probe, before the retention removes 10-20/21) on `feat/live-tests-13`.
+- **q0183 / q0185 attempt 1 (10:28Z / 10:30Z): MemoryError** at the default address-space cap (2 x mem_mb 400 = 800 MB)
+  before any output (the q0181 failure mode). Specs: `as_cap_mb` 3000 explicit, mem_mb 450 (ops only). Redeployed; attempt 2
+  uses the new caps.

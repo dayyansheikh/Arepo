@@ -9,10 +9,11 @@
   "creative_batch9/exclusion_keys.csv.gz"
  ],
  "resources": {
-  "mem_mb": 400,
+  "mem_mb": 450,
   "cpu": 1,
   "lane": "net",
-  "network": "gamma-api"
+  "network": "gamma-api",
+  "as_cap_mb": 3000
  },
  "depends_on": [
   "q0182b_cb9_exclusion_keys"
@@ -33,5 +34,5 @@
   "research_lab/creative_batch9/kd_frame/{frame.csv.gz,split.json,manifest.json}"
  ],
  "next_action": "q0186",
- "notes": "Promotion-ready 2026-10-28 (fix of the draft in CREATIVE_BATCH_9.md CB9-F; depends_on moved from q0182 (failed x3) to q0182b, complete on the host 2026-10-24). No sha256 argument: kd-frame takes only --exclusion-keys (default creative_batch9/exclusion_keys.csv.gz, the q0182b output) and records its sha256 in the manifest (exclusion_keys_sha256); a q0182 disjointness_unverified report makes it write a terminal upstream stall and exit 0. Exit codes as q0183 (cb9_exit.py): 0 complete/terminal, 75 transient incomplete stop, 1 non-transient incomplete stop. No repeat block, no --budget-min (a budget stop would exit 75). Split written before any pmxt or print read. Rules file cb9_kd_rules_v2.json unchanged (8ee7bf36...86a1). NOT QUEUED until the fix note has a science-reviewer ruling. Both q0183 and q0185 are net lane: they run one after the other, never two multi-GB jobs at once. | data-dumps guard 50 GiB (2026-10-28 ops convention). | q0182b HOST RESULT (2026-10-24T07:25Z; ledger 'CB9 q0182b host result' 2026-10-28): exclusion_keys_complete, disjointness verified, keys_sha256 e613604ab15b4e9741275d7860fdf58180525cbd9cb22fa2088a5efdcc6d375f (= sha256 of exclusion_keys.csv.gz), n_ids 328,725, n_missing 204 (share 0.00062 < 0.02), 3,990 new ids, 8 pred event ids in no key set. After the run, check the manifest exclusion_keys_sha256 equals this hash (ruling CB9_Q0183_RULING_2026-10-28.md change 3)."
+ "notes": "Promotion-ready 2026-10-28 (fix of the draft in CREATIVE_BATCH_9.md CB9-F; depends_on moved from q0182 (failed x3) to q0182b, complete on the host 2026-10-24). No sha256 argument: kd-frame takes only --exclusion-keys (default creative_batch9/exclusion_keys.csv.gz, the q0182b output) and records its sha256 in the manifest (exclusion_keys_sha256); a q0182 disjointness_unverified report makes it write a terminal upstream stall and exit 0. Exit codes as q0183 (cb9_exit.py): 0 complete/terminal, 75 transient incomplete stop, 1 non-transient incomplete stop. No repeat block, no --budget-min (a budget stop would exit 75). Split written before any pmxt or print read. Rules file cb9_kd_rules_v2.json unchanged (8ee7bf36...86a1). NOT QUEUED until the fix note has a science-reviewer ruling. Both q0183 and q0185 are net lane: they run one after the other, never two multi-GB jobs at once. | data-dumps guard 50 GiB (2026-10-28 ops convention). | q0182b HOST RESULT (2026-10-24T07:25Z; ledger 'CB9 q0182b host result' 2026-10-28): exclusion_keys_complete, disjointness verified, keys_sha256 e613604ab15b4e9741275d7860fdf58180525cbd9cb22fa2088a5efdcc6d375f (= sha256 of exclusion_keys.csv.gz), n_ids 328,725, n_missing 204 (share 0.00062 < 0.02), 3,990 new ids, 8 pred event ids in no key set. After the run, check the manifest exclusion_keys_sha256 equals this hash (ruling CB9_Q0183_RULING_2026-10-28.md change 3). | 2026-10-28 ~11:20Z: attempt 1 died 'MemoryError' at the default address-space cap (2 x mem_mb 400 = 800 MB) before any output, as q0181 did at 600 MB; as_cap_mb 3000 set explicitly, mem_mb 450 (admission estimate; stays below the 500 MB blackout exemption). Ops only."
 }
