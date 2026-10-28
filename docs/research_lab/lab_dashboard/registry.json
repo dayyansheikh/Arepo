@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-28T11:05:00Z",
+ "updated": "2026-10-28T11:35:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -905,11 +905,12 @@
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Seals on or after 22 Oct; flip trades no earlier than 24 Oct",
-   "next_date": "2026-10-22",
+   "next": "Flip-trade fetch released 28 Oct (its data window is complete), then the counting check",
+   "next_date": "2026-10-29",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Ops (2026-10-18 ~00:55Z); docs/AREPO_V2_CHECKPOINT.md (q0085 not before ~10-24)"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Ops (2026-10-18 ~00:55Z); docs/AREPO_V2_CHECKPOINT.md (q0085 not before ~10-24)",
+    "next": "docs/research_lab/EXPERIMENT_LEDGER.md § CB4 closewin extract caught up; q0085 released (2026-10-28)"
    },
    "stage_results": {
     "designed": "pass"
@@ -1725,6 +1726,30 @@
    },
    "reached": [
     "idea",
+    "designed"
+   ]
+  },
+  {
+   "id": "LT13",
+   "title": "Planned live tests LT13 (payer's return, listing batch)",
+   "plain": "Two original spread ideas from round 18: after the same quote widening, do fee-charging markets re-tighten faster than fee-free ones; and does a new market's quote move with the markets listed in the same batch. Draft design; an independent challenger said go ahead with changes, building the counting check first. A planning map suggests both may fail their counting checks.",
+   "batch": "LT13",
+   "family": "mixed",
+   "stage": "designed",
+   "status": "waiting",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Design revisions and a small counting-only probe of the fee labels; then a re-check and the design freeze",
+   "next_date": "2026-10-29",
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/reviews/LT13_CHALLENGER_R1_2026-10-28.md",
+    "next": "docs/research_lab/LIVE_TESTS_13.md (DRAFT); docs/research_lab/EXPERIMENT_LEDGER.md § LT13 design draft and challenger R1 (2026-10-28)"
+   },
+   "stage_results": {
+    "designed": "pass"
+   },
+   "reached": [
     "designed"
    ]
   },
