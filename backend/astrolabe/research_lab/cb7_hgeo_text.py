@@ -142,37 +142,68 @@ def complete_captures(snap_root: Path, window: tuple[str, str]) -> tuple[list[Pa
     return out, skipped
 
 
-def _read_cols(path: Path, wanted: tuple[str, ...]):
+def _read_cols(path: Path, wanted: tuple[str, ...], required: tuple[str, ...] = ()):
+    """Only the ``wanted`` columns; a missing ``required`` column refuses (as ``cb7_census.read_cols(required=...)``), never silently reads blanks."""
     csv.field_size_limit(10**9)
     with gzip.open(path, "rt", encoding="utf-8", newline="") as fh:
         rd = csv.reader(fh)
         head = next(rd, [])
+        miss = [c for c in required if c not in head]
+        if miss:
+            raise Refused(f"{path.parent.name}/{path.name}: required columns {miss} missing; refusing")
         idx = {c: head.index(c) for c in wanted if c in head}
         for row in rd:
             yield {c: row[i] for c, i in idx.items()}
 
 
-def capture_observations(d: Path, mid_band: tuple[float, float]) -> list[tuple[str, float, str]]:
+def capture_observations(d: Path, mid_band: tuple[float, float], stats: dict | None = None) -> list[tuple[str, float, str]]:
     """``(market_id, half_spread, fee_category)`` per market of one capture: FIRST row per market only, two-sided quote (``0 < bid < ask < 1``), YES mid
-    in ``mid_band``. Reads only market_id, best_bid, best_ask (rows.csv.gz) and market_id, fee_category (rows_ext.csv.gz). ``fee_category`` is ``""``
-    when the sidecar has no row for the market. Rows of ``FEE_FIRST`` categories are returned (the caller counts and drops them)."""
+    in ``mid_band``. Reads only market_id, best_bid, best_ask (rows.csv.gz; all three required) and market_id, fee_category (rows_ext.csv.gz; both
+    required), plus, for the report only, ``token_id`` (rows) and ``clob_token_id_0`` (sidecar) when present. ``fee_category`` is ``""`` when the
+    sidecar has no row for the market. Rows of ``FEE_FIRST`` categories are returned (the caller counts and drops them). ``stats`` (optional, mutated)
+    collects the first-row report: markets, markets with more than one row, and, if both token columns exist, first rows whose token is not
+    ``clob_token_id_0`` (the YES token). No rule depends on it."""
     fee: dict[str, str] = {}
-    for r in _read_cols(d / "rows_ext.csv.gz", ("market_id", "fee_category")):
+    tok0: dict[str, str] = {}
+    for r in _read_cols(d / "rows_ext.csv.gz", ("market_id", "fee_category", "clob_token_id_0"), ("market_id", "fee_category")):
         fee.setdefault(r["market_id"], r.get("fee_category") or "")
+        tok0.setdefault(r["market_id"], r.get("clob_token_id_0") or "")
+    n_rows: dict[str, int] = {}
+    first_tok: dict[str, str | None] = {}
     seen: set[str] = set()
     out: list[tuple[str, float, str]] = []
-    for r in _read_cols(d / "rows.csv.gz", ("market_id", "best_bid", "best_ask")):
+    for r in _read_cols(d / "rows.csv.gz", ("market_id", "best_bid", "best_ask", "token_id"), ("market_id", "best_bid", "best_ask")):
         mid_id = r["market_id"]
+        n_rows[mid_id] = n_rows.get(mid_id, 0) + 1
         if mid_id in seen:
             continue
         seen.add(mid_id)
+        first_tok[mid_id] = r.get("token_id")
         bid, ask = _f(r.get("best_bid")), _f(r.get("best_ask"))
         if not (math.isfinite(bid) and math.isfinite(ask)) or not (0.0 < bid < ask < 1.0):
             continue
         if not (mid_band[0] <= (bid + ask) / 2 <= mid_band[1]):
             continue
         out.append((mid_id, (ask - bid) / 2, fee.get(mid_id, "")))
+    if stats is not None:
+        multi = {m for m, n in n_rows.items() if n > 1}
+        stats["market_captures"] = stats.get("market_captures", 0) + len(n_rows)
+        stats["multi_row_market_captures"] = stats.get("multi_row_market_captures", 0) + len(multi)
+        stats.setdefault("multi_row_ids", set()).update(multi)
+        if any(v is not None for v in first_tok.values()):
+            chk = [m for m, v in first_tok.items() if v is not None and tok0.get(m)]
+            stats["token_checked_market_captures"] = stats.get("token_checked_market_captures", 0) + len(chk)
+            stats["first_row_not_token0_market_captures"] = stats.get("first_row_not_token0_market_captures", 0) + sum(1 for m in chk if first_tok[m] != tok0[m])
     return out
+
+
+def row_report(stats: dict) -> dict:
+    """The first-row report as written to manifests and the census (counts only)."""
+    chk = stats.get("token_checked_market_captures")
+    return {"market_captures": stats.get("market_captures", 0), "market_captures_with_more_than_one_row": stats.get("multi_row_market_captures", 0),
+            "distinct_markets_with_more_than_one_row": len(stats.get("multi_row_ids", ())),
+            "first_row_token_check": ("token_id column absent in rows.csv.gz" if chk is None else
+                                      {"checked_market_captures": chk, "first_row_not_clob_token_id_0": stats.get("first_row_not_token0_market_captures", 0)})}
 
 
 def candidate_ids(snap_root: Path, window: tuple[str, str], mid_band: tuple[float, float]) -> tuple[list[str], dict]:
@@ -181,13 +212,18 @@ def candidate_ids(snap_root: Path, window: tuple[str, str], mid_band: tuple[floa
     ids: set[str] = set()
     fee_first_ids: set[str] = set()
     n_obs = 0
+    stats: dict = {}
     for d in caps:
-        for mid_id, _h, fc in capture_observations(d, mid_band):
+        for mid_id, _h, fc in capture_observations(d, mid_band, stats):
             n_obs += 1
             (fee_first_ids if fc in FEE_FIRST else ids).add(mid_id)
-    fee_first_ids -= ids  # an id seen under both (cannot happen for one market) is kept as a candidate
+    # A market can be both: no sidecar row in one capture (fee_category "") and a FEE_FIRST category in another. Its FEE_FIRST rows are dropped,
+    # the market stays a candidate through the other capture. Reported, no rule change.
+    both = len(fee_first_ids & ids)
+    fee_first_ids -= ids
     return sorted(ids), {"complete_captures": len(caps), "captures_skipped_sidecar_not_complete": skipped, "in_band_observations": n_obs,
-                         "candidate_ids": len(ids), "dropped_fee_first_ids": len(fee_first_ids)}
+                         "candidate_ids": len(ids), "dropped_fee_first_ids": len(fee_first_ids), "candidate_and_fee_first_in_another_capture": both,
+                         "first_row_report": row_report(stats)}
 
 
 # ---- Gamma parse (allow-list) ---------------------------------------------------------------------------------------------------
@@ -201,32 +237,52 @@ def parse_text(m: dict) -> dict:
     return {"market_id": str(m.get("id")), "question": str(m.get("question") or ""), "event_title": str(et or ""), "slug": str(m.get("slug") or "")}
 
 
-def _fetch_batch(lim: hb.Limiter, ids: list[str], now: Callable[[], float]) -> tuple[dict[str, dict], dict[str, str]]:
-    """(text per found id, reason per id that got a definitive non-200 answer). Open markets first, then ``closed=true`` for the rest. A network
-    failure after retries raises :class:`NotNow` (transient)."""
+def _fetch_batch(lim: hb.Limiter, ids: list[str], now: Callable[[], float], stats: dict | None = None) -> tuple[dict[str, dict], dict[str, str]]:
+    """(text per found id, reason per id that got a definitive non-200 answer). Open markets first, then ``closed=true`` for the rest, each pass over
+    the ids still unresolved. A 400/404/422 on a multi-id request says nothing about the single ids, so every id of that request is retried alone in
+    the same pass; ``http_<n>`` is recorded only for a single-id request. ``stats["ok"]`` counts 200 replies. A network failure after retries raises
+    :class:`NotNow` (transient)."""
+    stats = stats if stats is not None else {}
     found: dict[str, dict] = {}
     reasons: dict[str, str] = {}
-    for closed in (False, True):
-        todo = [x for x in ids if x not in found and x not in reasons]
-        if not todo:
-            break
-        params: dict = {"id": todo, "limit": GAMMA_IDS_PER_REQUEST}
+
+    def ask(chunk: list[str], closed: bool) -> tuple[int, list | None]:
+        params: dict = {"id": chunk, "limit": GAMMA_IDS_PER_REQUEST}
         if closed:
             params["closed"] = "true"
         try:
             status, rows = lim.get(hb.GAMMA_MARKETS, params)
         except RuntimeError:
             raise NotNow("h_geo text: Gamma lookup failed after retries (network); resumable, retry later") from None
-        if status != 200 or not isinstance(rows, list):
-            if status in (400, 404, 422):  # definitive for this request: those ids are unavailable (counted), not a transient fault
-                for x in todo:
-                    reasons[x] = f"http_{status}"
-                continue
-            raise NotNow(f"h_geo text: Gamma lookup status {status}; resumable, retry later")
+        if status == 200 and isinstance(rows, list):
+            stats["ok"] = stats.get("ok", 0) + 1
+            return 200, rows
+        if status in (400, 404, 422):
+            return status, None
+        raise NotNow(f"h_geo text: Gamma lookup status {status}; resumable, retry later")
+
+    def take(chunk: list[str], rows: list) -> None:
         fetch_utc = _iso(now())
         for m in rows:
-            if isinstance(m, dict) and str(m.get("id")) in todo:
+            if isinstance(m, dict) and str(m.get("id")) in chunk:
                 found[str(m["id"])] = {**parse_text(m), "fetch_utc": fetch_utc}
+
+    for closed in (False, True):
+        todo = [x for x in ids if x not in found and x not in reasons]
+        if not todo:
+            break
+        status, rows = ask(todo, closed)
+        if status == 200:
+            take(todo, rows or [])
+        elif len(todo) == 1:
+            reasons[todo[0]] = f"http_{status}"
+        else:  # a 4xx on a multi-id request: one id may be malformed or unknown; ask each alone
+            for x in todo:
+                s1, r1 = ask([x], closed)
+                if s1 == 200:
+                    take([x], r1 or [])
+                else:
+                    reasons[x] = f"http_{s1}"
     return found, reasons
 
 
@@ -245,6 +301,15 @@ def _manifest(rdir: Path, budget: hb.DiskBudget, body: dict) -> dict:
     budget.cap += 10**7  # bookkeeping must stay writable at the cap
     budget.write(rdir / "manifest.json", json.dumps(body, indent=1, sort_keys=True, default=str).encode())
     return body
+
+
+def _append_progress(budget: hb.DiskBudget, prog_path: Path, lines: list[dict]) -> None:
+    buf = io.StringIO()
+    w = csv.DictWriter(buf, fieldnames=TEXT_COLUMNS, lineterminator="\n")
+    if not prog_path.exists():
+        w.writeheader()
+    w.writerows(lines)
+    budget.write_append(prog_path, buf.getvalue())
 
 
 def hgeo_text_fetch(out_root: Path, transport, *, snap_root: Path, pin_file: Path, window: tuple[str, str], mid_band: tuple[float, float],
@@ -286,6 +351,8 @@ def hgeo_text_fetch(out_root: Path, transport, *, snap_root: Path, pin_file: Pat
         raise Refused(f"{final} exists but does not match its manifest / pins; refusing to overwrite")
     done = _load_progress(prog_path)
     todo = [x for x in ids if x not in done]
+    stats: dict = {}
+    held: list[dict] = []  # unavailable rows of batches that saw no 200 yet: persisted only once the session has a 200 reply
     try:
         for i in range(0, len(todo), GAMMA_IDS_PER_REQUEST):
             if should_stop is not None and should_stop():
@@ -293,7 +360,7 @@ def hgeo_text_fetch(out_root: Path, transport, *, snap_root: Path, pin_file: Pat
             if budget_min and time.time() - t0 >= budget_min * 60:
                 return manifest("budget reached", {"transient": False, "status": "in_progress", "done_ids": len(done), "candidate_ids": len(ids)})
             batch = todo[i:i + GAMMA_IDS_PER_REQUEST]
-            found, reasons = _fetch_batch(lim, batch, wall_clock)
+            found, reasons = _fetch_batch(lim, batch, wall_clock, stats)
             fetch_utc = _iso(wall_clock())
             lines = []
             for x in batch:
@@ -304,16 +371,17 @@ def hgeo_text_fetch(out_root: Path, transport, *, snap_root: Path, pin_file: Pat
                          "fetch_utc": fetch_utc, "reason": reasons.get(x, "not_returned")}
                 done[x] = r
                 lines.append(r)
-            buf = io.StringIO()
-            w = csv.DictWriter(buf, fieldnames=TEXT_COLUMNS, lineterminator="\n")
-            if not prog_path.exists():
-                w.writeheader()
-            w.writerows(lines)
-            budget.write_append(prog_path, buf.getvalue())
+            held.extend(lines)
+            if stats.get("ok", 0) > 0:
+                _append_progress(budget, prog_path, held)
+                held = []
     except NotNow as exc:
         return manifest(str(exc)[:200], {"transient": True, "status": "in_progress", "done_ids": len(done), "candidate_ids": len(ids)})
     except OSError as exc:
         return manifest(f"disk_budget: {exc}"[:200], {"status": cm.DISK_BUDGET_TOKEN, "done_ids": len(done), "candidate_ids": len(ids)})
+    if lim.requests > 0 and stats.get("ok", 0) == 0:
+        raise Refused(f"h_geo text: Gamma gave no 200 reply in this session ({lim.requests} requests, {len(held)} ids unanswered); the endpoint or the request "
+                      "shape is wrong, not the ids; refusing to record them unavailable")
     rows = [[done[x].get(c, "") for c in TEXT_COLUMNS] for x in ids]
     try:
         budget.write_gz_csv(final, TEXT_COLUMNS, rows)
@@ -340,9 +408,10 @@ def exit_code(m: dict) -> int:
 # ---- reader (census) ---------------------------------------------------------------------------------------------------------------
 
 
-def load_text_table(text_dir: Path, pin_file: Path) -> tuple[dict[str, dict], dict]:
-    """Verify and read the text table: complete manifest, table sha256 equal to the manifest's, manifest bound to the CURRENT capture pin file. Any
-    mismatch refuses. Returns ``({market_id: row}, manifest)``."""
+def load_text_table(text_dir: Path, pin_file: Path, *, window: tuple[str, str], mid_band: tuple[float, float]) -> tuple[dict[str, dict], dict]:
+    """Verify and read the text table: complete manifest, table sha256 equal to the manifest's, manifest bound to the CURRENT capture pin file and to
+    the census ``window`` and ``mid_band``. Any mismatch refuses. The caller must also check the ids against its candidate set
+    (:func:`require_table_ids`). Returns ``({market_id: row}, manifest)``."""
     text_dir = Path(text_dir)
     mp, tp = text_dir / "manifest.json", text_dir / TEXT_FILE
     if not mp.exists() or not tp.exists():
@@ -357,5 +426,15 @@ def load_text_table(text_dir: Path, pin_file: Path) -> tuple[dict[str, dict], di
         raise Refused("h_geo text table sha256 does not match its manifest pin; refusing")
     if (man.get("capture_pins") or {}).get("pin_file_sha256") != _sha_file(Path(pin_file)):
         raise Refused("h_geo text table was built against a different capture pin file; refusing")
+    if list(man.get("window") or []) != list(window) or list(man.get("mid_band") or []) != list(mid_band):
+        raise Refused(f"h_geo text table was built for window {man.get('window')} / mid_band {man.get('mid_band')}, not {list(window)} / {list(mid_band)}; refusing")
     table = {r["market_id"]: r for r in cm.read_csv_gz(tp)}
     return table, man
+
+
+def require_table_ids(table: dict[str, dict], candidates: set[str]) -> None:
+    """The table must hold exactly the candidate ids (no missing id read as 'no text', no stray id). Any difference refuses."""
+    ids = set(table)
+    if ids != candidates:
+        raise Refused(f"h_geo text table ids differ from the census candidate ids (only in table {sorted(ids - candidates)[:3]} [{len(ids - candidates)}], "
+                      f"only in candidates {sorted(candidates - ids)[:3]} [{len(candidates - ids)}]); refusing")

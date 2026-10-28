@@ -468,8 +468,9 @@ def test_hgeo_text_pin_refusal_resumable_and_unavailable_on_4xx(tmp_path):
     assert m2["complete"] is True and ht.exit_code(m2) == 0 and m2["counts"]["text_available"] == 1
     again = run_text(snaps, tmp_path / "cb7", pin2, FakeGamma({}, fail_first=99))  # finished: re-verified, never refetched
     assert again["complete"] is True
-    bad = run_text(snaps, tmp_path / "cb8", pin2, FakeGamma({}, status=422))
-    assert bad["complete"] is True and bad["counts"]["unavailable_reasons"] == {"http_422": 1}
+    with pytest.raises(cm.Refused, match="no 200 reply"):  # every reply a 4xx: the request is wrong, the id is not 'unavailable'
+        run_text(snaps, tmp_path / "cb8", pin2, FakeGamma({}, status=422))
+    assert not (tmp_path / "cb8" / ht.TEXT_DIR_NAME / ht.TEXT_FILE).exists() and not (tmp_path / "cb8" / ht.TEXT_DIR_NAME / ht.PROGRESS_FILE).exists()
 
 
 def test_hgeo_text_headroom_refusal_is_tempfail(tmp_path):
@@ -491,7 +492,7 @@ def test_h_geo_rule_matches_topic_not_fee_category_and_counts(tmp_path):
     snaps, pin, tdir, m, _ = hgeo_world(tmp_path, rows, texts)
     assert m["counts"]["text_unavailable"] == 1
     r = hg(snaps, pin, tdir)
-    assert r["counts"] == {"candidates": 4, "dropped_fee_first_ids": 1, "text_available": 3, "text_unavailable": 1, "matched_by_fee_category": 0, "matched_by_topic": 2}
+    assert r["counts"] == {"candidates": 4, "dropped_fee_first_ids": 1, "candidate_and_fee_first_in_another_capture": 0, "text_available": 3, "text_unavailable": 1, "matched_by_fee_category": 0, "matched_by_topic": 2}
     a = r["variant_A_markets_with_text"]  # g1 (0.01, 0.02), g2 (0.03): pooled median 0.02, by-market median(0.015, 0.03) = 0.0225
     assert a["observations"] == 3 and a["median_half_spread_pooled"] == pytest.approx(0.02) and a["median_half_spread_by_market"] == pytest.approx(0.0225)
     b = r["variant_B_no_text_counted_geopolitics"]  # + t1 (0.01): pooled median of 0.01, 0.01, 0.02, 0.03 = 0.015; by market median(0.015, 0.03, 0.01) = 0.015
@@ -516,6 +517,109 @@ def test_h_geo_max_rule_binds_the_text_missing_variant_when_larger(tmp_path):
     # fee_category half is kept and reported: a literal 'geopolitics' value (never produced by pairing) still matches
     snaps4, pin4, tdir4, _m4, _ = hgeo_world(tmp_path / "w", {CAP1: [("z1", 0.04, 0.06, "geopolitics")]}, {"z1": {"q": OTHER_Q}})
     assert hg(snaps4, pin4, tdir4)["counts"]["matched_by_fee_category"] == 1
+
+
+class Picky(FakeGamma):
+    """4xx for a multi-id request (and for ids in ``bad`` alone); otherwise as FakeGamma."""
+
+    def __init__(self, texts, bad=()):
+        super().__init__(texts)
+        self.bad = set(bad)
+
+    def __call__(self, url, params):
+        ids = params["id"]
+        if len(ids) > 1 or set(ids) & self.bad:
+            self.calls.append(dict(params))
+            return 400, b"{}", {}
+        return super().__call__(url, params)
+
+
+def test_hgeo_text_multi_id_4xx_retries_each_id_alone_in_both_passes(tmp_path):
+    rows = {CAP1: [("a1", 0.04, 0.06, "other:x"), ("a2", 0.04, 0.06, "other:x"), ("a3", 0.04, 0.06, "other:x"), ("a4", 0.04, 0.06, "other:x")]}
+    snaps = tmp_path / "snapshots"
+    for n, r in rows.items():
+        write_capture(snaps, n, r)
+    pin = write_pins(snaps, tmp_path / "seals" / ht.PIN_NAME)
+    texts = {"a1": {"q": GEO_Q}, "a2": {"q": OTHER_Q, "closed": True}, "a3": {"q": OTHER_Q}}  # a4 unknown; a3 is malformed for Gamma alone too
+    api = Picky(texts, bad={"a3"})
+    m = run_text(snaps, tmp_path / "cb7", pin, api)
+    assert m["complete"] is True
+    tdir = tmp_path / "cb7" / ht.TEXT_DIR_NAME
+    t = {r["market_id"]: r for r in cm.read_csv_gz(tdir / ht.TEXT_FILE)}
+    assert t["a1"]["status"] == "ok" and t["a2"]["status"] == "ok"  # a2 only via the closed pass, again retried alone
+    assert t["a3"]["reason"] == "http_400" and t["a4"]["reason"] == "not_returned"
+    assert m["counts"]["unavailable_reasons"] == {"http_400": 1, "not_returned": 1}  # http_<n> only for the single-id 4xx
+    assert [c["id"] for c in api.calls if len(c["id"]) > 1] and any(c.get("closed") == "true" and len(c["id"]) == 1 for c in api.calls)
+
+
+def test_hgeo_text_missing_required_columns_refuse(tmp_path):
+    snaps = tmp_path / "snapshots"
+    write_capture(snaps, CAP1, [("g1", 0.04, 0.06, "other:x")])
+    with gzip.open(snaps / CAP1 / "rows.csv.gz", "wt", newline="") as fh:  # best_ask gone
+        w = csv.writer(fh)
+        w.writerow(["received_utc", "market_id", "best_bid", "closed"])
+        w.writerow(["t", "g1", 0.04, "false"])
+    pin = write_pins(snaps, tmp_path / "seals" / ht.PIN_NAME)
+    with pytest.raises(cm.Refused, match=r"required columns \['best_ask'\] missing"):
+        run_text(snaps, tmp_path / "cb7", pin, FakeGamma({}))
+    write_capture(snaps.parent / "s2" / "snapshots", CAP1, [("g1", 0.04, 0.06, "other:x")])
+    d = snaps.parent / "s2" / "snapshots" / CAP1
+    with gzip.open(d / "rows_ext.csv.gz", "wt", newline="") as fh:  # fee_category gone
+        csv.writer(fh).writerows([["market_id"], ["g1"]])
+    with pytest.raises(cm.Refused, match="fee_category"):
+        ht.capture_observations(d, cc.H_GEO_MID)
+
+
+def test_h_geo_no_text_at_all_is_unavailable_not_variant_b(tmp_path):
+    rows = {CAP1: [("n1", 0.02, 0.10, "other:x"), ("n2", 0.02, 0.12, "other:x")]}
+    snaps, pin, tdir, m, _ = hgeo_world(tmp_path, rows, {})  # Gamma returns nothing: text_available 0
+    assert m["counts"]["text_available"] == 0
+    r = hg(snaps, pin, tdir)
+    assert r["counts"]["text_available"] == 0 and r["counts"]["candidates"] == 2
+    assert r["variant_B_no_text_counted_geopolitics"] is not None  # computed, reported, but not binding
+    assert r["status"] == "unavailable" and r["h_geo_binding"] is None and r["unavailable_reason"] == "no_candidate_has_text"
+
+
+def _rewrite_table(tdir: Path, drop=(), extra=(), **manifest):
+    tp, mp = tdir / ht.TEXT_FILE, tdir / "manifest.json"
+    rows = [r for r in cm.read_csv_gz(tp) if r["market_id"] not in drop]
+    rows += [{"market_id": x, "status": "unavailable", "question": "", "event_title": "", "slug": "", "source": "gamma_by_id", "fetch_utc": "x", "reason": "r"} for x in extra]
+    with gzip.open(tp, "wt", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=ht.TEXT_COLUMNS)
+        w.writeheader()
+        w.writerows(rows)
+    man = json.loads(mp.read_text())
+    man.update(text_sha256=hashlib.sha256(tp.read_bytes()).hexdigest(), **manifest)
+    mp.write_text(json.dumps(man))
+
+
+def test_h_geo_refuses_table_ids_not_equal_to_candidates_and_window_or_band_mismatch(tmp_path):
+    rows = {CAP1: [("g1", 0.04, 0.06, "other:x"), ("g2", 0.04, 0.06, "other:x")]}
+    for name, kw in (("missing", dict(drop={"g2"})), ("stray", dict(extra={"zz"}))):
+        snaps, pin, tdir, _m, _ = hgeo_world(tmp_path / name, rows, {"g1": {"q": GEO_Q}, "g2": {"q": OTHER_Q}})
+        _rewrite_table(tdir, **kw)
+        with pytest.raises(cm.Refused, match="ids differ from the census candidate ids"):
+            hg(snaps, pin, tdir)
+    snaps, pin, tdir, _m, _ = hgeo_world(tmp_path / "win", rows, {"g1": {"q": GEO_Q}, "g2": {"q": OTHER_Q}})
+    assert hg(snaps, pin, tdir)["status"] == "ok"
+    _rewrite_table(tdir, window=["2026-10-22T00:00:00Z", "2026-10-24T00:00:00Z"])
+    with pytest.raises(cm.Refused, match="window"):
+        hg(snaps, pin, tdir)
+    _rewrite_table(tdir, window=list(cc.H_GEO_WINDOW), mid_band=[0.02, 0.2])
+    with pytest.raises(cm.Refused, match="mid_band"):
+        hg(snaps, pin, tdir)
+
+
+def test_hgeo_reports_fee_first_overlap_and_first_row_stats(tmp_path):
+    rows = {CAP1: [("m1", 0.04, 0.06, ""), ("m1", 0.04, 0.06, ""), ("m2", 0.04, 0.06, "other:x")], CAP2: [("m1", 0.04, 0.06, "politics")]}
+    snaps, pin, tdir, m, _ = hgeo_world(tmp_path, rows, {"m1": {"q": GEO_Q}, "m2": {"q": OTHER_Q}})
+    c = m["candidates"]
+    assert c["candidate_ids"] == 2 and c["dropped_fee_first_ids"] == 0 and c["candidate_and_fee_first_in_another_capture"] == 1
+    fr = c["first_row_report"]
+    assert fr["market_captures"] == 3 and fr["market_captures_with_more_than_one_row"] == 1 and fr["distinct_markets_with_more_than_one_row"] == 1
+    assert fr["first_row_token_check"] == "token_id column absent in rows.csv.gz"
+    r = hg(snaps, pin, tdir)
+    assert r["counts"]["candidate_and_fee_first_in_another_capture"] == 1 and r["first_row_report"] == fr
 
 
 def test_h_geo_refuses_text_pin_mismatch_and_capture_changes_and_window(tmp_path):

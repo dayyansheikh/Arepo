@@ -445,8 +445,9 @@ def measure_h_geo(snap_root: Path, *, text_dir: Path, pin_file: Path, window: tu
     outcome. First row per market per capture. Refuses unless the captures match ``pin_file`` and the text table matches its pin. Rows whose
     ``fee_category`` is in ``FEE_FIRST`` are dropped up front. A market without text (unavailable or absent from the table) is geopolitics in
     variant B only; ``h_geo_binding`` is the larger of variant A (markets with text) and variant B (every in-band market without text counted as
-    geopolitics), each variant being the larger of the pooled and the per-market median. No measurable market -> ``status unavailable`` (G1 runs,
-    cannot advance); never a fallback spread. Raises :class:`NotNow` until the window has closed."""
+    geopolitics), each variant being the larger of the pooled and the per-market median. No measurable market, or no candidate with text at all (variant B would then
+    label every in-band market geopolitics) -> ``status unavailable``, ``h_geo_binding`` None (G1 runs, cannot advance); never a fallback spread. Refuses unless
+    the text table's ids equal the candidate ids and its window and mid_band equal the arguments. Raises :class:`NotNow` until the window has closed."""
     if wall_clock() < cm._ep(window[1]):
         raise NotNow(f"h_geo window {window[0]}..{window[1]} is not closed yet")
     root = Path(snap_root)
@@ -454,7 +455,7 @@ def measure_h_geo(snap_root: Path, *, text_dir: Path, pin_file: Path, window: tu
     if root.name != "snapshots":
         raise Refused(f"h_geo reads only a snapshots/ directory, not {root}")
     pins = ht.verify_capture_pins(root, window, pin_file)
-    table, tman = ht.load_text_table(text_dir, pin_file)
+    table, tman = ht.load_text_table(text_dir, pin_file, window=window, mid_band=mid_band)
     caps, n_side_skipped = ht.complete_captures(root, window)
     if not caps:
         raise Refused(f"h_geo: no complete capture with a complete sidecar in {window[0]}..{window[1]} under {root} ({n_side_skipped} skipped for sidecar); check the host")
@@ -466,8 +467,9 @@ def measure_h_geo(snap_root: Path, *, text_dir: Path, pin_file: Path, window: tu
     by_fee: set[str] = set()
     by_topic: set[str] = set()
     fee_first: set[str] = set()
+    rstats: dict = {}
     for d in caps:
-        for mid_id, h, fc in ht.capture_observations(d, mid_band):
+        for mid_id, h, fc in ht.capture_observations(d, mid_band, rstats):
             if fc in FEE_FIRST:
                 fee_first.add(mid_id)
                 continue
@@ -483,16 +485,20 @@ def measure_h_geo(snap_root: Path, *, text_dir: Path, pin_file: Path, window: tu
                 obs_a.append((mid_id, h))
             elif not has_text:
                 obs_b_extra.append((mid_id, h))
+    ht.require_table_ids(table, cand)
     va, vb = _h_of(obs_a), _h_of(obs_a + obs_b_extra)
     res = {"window": list(window), "complete_captures": len(caps), "captures_skipped_sidecar_not_complete": n_side_skipped,
            "geopolitics_rule": HGEO_RULE, "capture_pins": pins, "text_table_sha256": tman.get("text_sha256"), "text_table_manifest_counts": tman.get("counts"),
-           "counts": {"candidates": len(cand), "dropped_fee_first_ids": len(fee_first - cand), "text_available": len(avail), "text_unavailable": len(unavail),
+           "counts": {"candidates": len(cand), "dropped_fee_first_ids": len(fee_first - cand), "candidate_and_fee_first_in_another_capture": len(fee_first & cand),
+                      "text_available": len(avail), "text_unavailable": len(unavail),
                       "matched_by_fee_category": len(by_fee), "matched_by_topic": len(by_topic)},
+           "first_row_report": ht.row_report(rstats),
            "variant_A_markets_with_text": va, "variant_B_no_text_counted_geopolitics": vb,
            "observations": (vb or {}).get("observations", 0), "markets": (vb or {}).get("markets", 0)}
     hs = [v["h"] for v in (va, vb) if v]
-    if not hs:
-        return {**res, "median_half_spread_pooled": None, "median_half_spread_by_market": None, "h_geo_binding": None, "status": "unavailable"}
+    if not hs or not avail:  # no text for any candidate: variant B would call every in-band market geopolitics, which is not a measurement
+        return {**res, "median_half_spread_pooled": None, "median_half_spread_by_market": None, "h_geo_binding": None, "status": "unavailable",
+                "unavailable_reason": "no_candidate_has_text" if cand else "no_measurable_market"}
     bind = vb if (va is None or (vb is not None and vb["h"] >= va["h"])) else va
     return {**res, "median_half_spread_pooled": bind["median_half_spread_pooled"], "median_half_spread_by_market": bind["median_half_spread_by_market"],
             "h_geo_binding": max(hs), "status": "ok"}

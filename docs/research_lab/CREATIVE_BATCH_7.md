@@ -1131,6 +1131,13 @@ Recorded before the census; no threshold, floor, gate, window or formula changes
     in-band market without text as geopolitics). Each variant is the larger of the pooled median and the per-market median, as in Reading 13.
     Conservative, no new threshold. If no market can be measured at all, `h_geo` is unavailable: G1 still runs and is counted in the Holm family
     (GG does not depend on `h_geo`) but cannot advance. Never a fallback spread (`HALF_SPREAD`, 0).
+    *Case: no text at all (re-check fix 1, 2026-10-28).* If no candidate market has text (`text_available == 0`), variant B would label every
+    in-band market geopolitics and is not a measurement; `h_geo` is then `unavailable` with `h_geo_binding` None (never variant B as binding), and
+    the census records `unavailable_reason: no_candidate_has_text`. The census also refuses unless the text table's ids equal the candidate ids and
+    its window and mid_band equal `H_GEO_WINDOW` and `H_GEO_MID`; the text job refuses on missing required columns and when Gamma gave no 200 at all.
+    A 4xx on a multi-id Gamma request is retried id by id; `http_<n>` is recorded only for a single-id 4xx. The text job and the census report
+    `candidate_and_fee_first_in_another_capture` (a market with no sidecar row in one capture and a `FEE_FIRST` category in another is both a
+    candidate and dropped per row; no rule change) and a first-row report (markets with more than one row in a capture; first row vs YES token).
   - *Finding 5 (disclosure).* The G1 fee rule's "geopolitics 0.0" never applies: h8_geo markets are charged as `other:*` / unknown at 0.07 or their
     real category. This is conservative against G1; recorded only.
   - *Finding 6 (disclosure).* The `h_geo` window overlaps the E009/E010 window (to 2026-11-03), which seems to conflict with design line 166. A
@@ -1138,6 +1145,9 @@ Recorded before the census; no threshold, floor, gate, window or formula changes
   - *Run order.* One combined S,G,X census (q0147c, depends on q0147t); q0147b stays failed. No separate S,X run.
 - **Ops note (headroom).** q0146 runs with the data-dumps headroom guard at 40 GiB (ops argument, not a declared design parameter), as
   recorded in its draft notes on 2026-10-17; the other CB7 data jobs keep 12.5 GiB (section 2.8).
+- **Ops note (headroom, q0147t/q0147c).** Following the q0146 precedent, q0147t runs with the data-dumps headroom guard at 50 GiB
+  (`--data-dumps-cap-gb 50` in its argv; ops argument, not a design parameter; recorded 2026-10-28). q0147c (`census`) takes no headroom argument
+  (read-only apart from `census.json`), so no guard value applies to it.
 
 ## CB7 fetch results (q0142, q0143), recorded 2026-10-17 by the autopilot (counts only; no outcome read)
 
