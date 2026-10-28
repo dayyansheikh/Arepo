@@ -4688,3 +4688,14 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   byte-identical at test seeds, no registered seed in tests, frozen text unchanged (a543db63). Merged 6b443d5c before the
   11-07 seal and before q0662 (11-03T09Z; the battery2 change moves LT10's code hash as noted). q0716's timing must be measured
   on the merged code. Stale LT11 test path (q0696 now in jobs/) fixed.
+
+## LT13 design draft and challenger R1: GO_WITH_CHANGES, 2026-10-28 ~11:40Z (experiments autopilot; nothing counted)
+- Draft `LIVE_TESTS_13.md` (d35e2dd0, merged; CH252 payer's return, CH253 listing batch; k <= 2; window proposed 2027-01-21 ..
+  02-11). The designer's own planning estimate: P(census pass) 0.08 (CH252) and 0.10 (CH253).
+- Challenger R1 `reviews/LT13_CHALLENGER_R1_2026-10-28.md` **GO_WITH_CHANGES**: the CH261 map is not the census (its 0.108 and
+  0.755 are not measured census lines; recording `census_dropped` now would be a mis-record; a value-based stop would be
+  `withdrawn_pre_census (map-informed)`). MUST: headline names all three CH252 lines failed on the map; build the census code
+  first, the rest only for survivors; declare q0717's decision rule before it runs (field reading only; unresolved ->
+  CH252 `withdrawn_pre_census (fee reading unresolved)`); CH252 age by spline, wording "fee-on/post-03-30 vs fee-free/pre-03-30
+  contrast"; no CH253 placebo change, cap 30; "expected to lower". CH261 map docstring correction (SHOULD 3).
+- Next: revisions + q0717 (counts-only fee-reading probe, before the retention removes 10-20/21) on `feat/live-tests-13`.
