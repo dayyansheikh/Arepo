@@ -1988,6 +1988,14 @@ def _result(m: dict) -> tuple[int, dict]:
                "counts": m.get("counts"), "transient": m.get("transient"), "requests": m.get("requests"), "label": m.get("label")}
 
 
+def _resumable_result(m: dict, *, budget_chunk_ok: bool = False) -> tuple[int, dict]:
+    """``_result`` plus the CB9 queue exit code for resumable data kinds (q0183-q0186): see ``cb9_exit.incomplete_exit_code``."""
+    from . import cb9_exit  # noqa: PLC0415
+
+    code, payload = _result(m)
+    return (cb9_exit.incomplete_exit_code(m, budget_chunk_ok=budget_chunk_ok) if code == 0 else code), payload
+
+
 def _declared_args(a, checks: dict) -> None:
     bad = [f"{k}={got!r} (declared {want!r})" for k, (got, want) in checks.items() if got != want]
     if bad:
@@ -2017,7 +2025,7 @@ def cmd_kd_frame(a):
     sha, _fp = _rules(a)
     m = kd_frame(_root(a), hb.httpx_transport(), rules_sha=sha, exclusion_keys_path=Path(a.exclusion_keys) if a.exclusion_keys else None, rps=min(a.rps, MAX_RPS_FRAME),
                  disk_cap=int(a.disk_cap_gb * 1024**3), **_net(a))
-    return _result(m)
+    return _resumable_result(m)
 
 
 @_guarded
@@ -2029,7 +2037,7 @@ def cmd_kd_books(a):
     key = cm.load_wallet_key_strict(Path(a.wallet_key_path) if a.wallet_key_path else None, fp)
     m = kd_books(_root(a), hb.httpx_transport(), rules_sha=sha, key=key, fp=fp, fetch=hs.httpx_range_fetch(), size_fn=hs.httpx_size, ingress_cap_gb=a.ingress_cap_gb,
                  rps=min(a.rps, MAX_RPS_BOOKS), disk_cap=int(a.disk_cap_gb * 1024**3), smoke_path=Path(a.smoke) if a.smoke else None, **_net(a))
-    return _result(m)
+    return _resumable_result(m, budget_chunk_ok=True)  # q0186 has a repeat block: its own --budget-min stop exits 0 and is re-queued
 
 
 @_guarded

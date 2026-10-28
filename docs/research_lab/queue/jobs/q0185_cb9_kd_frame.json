@@ -1,0 +1,37 @@
+{
+ "id": "q0185_cb9_kd_frame",
+ "title": "CB9-K/D: Gamma frame (life overlap >= 3 d, volume >= $10k, non-weather, non-crypto-updown, non-Pyth), key drops, <= 3 per event, seeded 1,000 markets, event split SCREEN/HOLDOUT (arepo-cb9-kd-split)",
+ "family": "creative_batch_9",
+ "priority": 42,
+ "expected_value": "K/D population and split",
+ "data": [
+  "public Gamma",
+  "creative_batch9/exclusion_keys.csv.gz"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "net",
+  "network": "gamma-api"
+ },
+ "depends_on": [
+  "q0182b_cb9_exclusion_keys"
+ ],
+ "argv": [
+  "scripts/run_cb9.py",
+  "kd-frame",
+  "--rps",
+  "2",
+  "--disk-cap-gb",
+  "0.01",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 3000,
+ "max_retries": 2,
+ "outputs": [
+  "research_lab/creative_batch9/kd_frame/{frame.csv.gz,split.json,manifest.json}"
+ ],
+ "next_action": "q0186",
+ "notes": "Promotion-ready 2026-10-28 (fix of the draft in CREATIVE_BATCH_9.md CB9-F; depends_on moved from q0182 (failed x3) to q0182b, complete on the host 2026-10-24). No sha256 argument: kd-frame takes only --exclusion-keys (default creative_batch9/exclusion_keys.csv.gz, the q0182b output) and records its sha256 in the manifest (exclusion_keys_sha256); a q0182 disjointness_unverified report makes it write a terminal upstream stall and exit 0. Exit codes as q0183 (cb9_exit.py): 0 complete/terminal, 75 transient incomplete stop, 1 non-transient incomplete stop. No repeat block, no --budget-min (a budget stop would exit 75). Split written before any pmxt or print read. Rules file cb9_kd_rules_v2.json unchanged (8ee7bf36...86a1). NOT QUEUED until the fix note has a science-reviewer ruling. Both q0183 and q0185 are net lane: they run one after the other, never two multi-GB jobs at once."
+}
