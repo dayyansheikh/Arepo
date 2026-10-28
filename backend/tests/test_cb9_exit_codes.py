@@ -137,6 +137,15 @@ def test_promotion_specs_parse_against_the_real_argparse(name, sub):
     spec = json.loads((JOBS / f"{name}.json").read_text())
     assert spec["id"] == name and spec["depends_on"] == ["q0182b_cb9_exclusion_keys"] and "repeat" not in spec
     argv = spec["argv"]
-    assert argv[:2] == ["scripts/run_cb9.py", sub] and "--data-dumps-cap-gb" in argv and argv[argv.index("--data-dumps-cap-gb") + 1] == "40"
+    assert argv[:2] == ["scripts/run_cb9.py", sub] and "--data-dumps-cap-gb" in argv and argv[argv.index("--data-dumps-cap-gb") + 1] == "50"
     a = run_cb9.build_parser().parse_args(argv[1:])
-    assert a.rps == 2 and a.disk_cap_gb == 0.01 and a.data_dumps_cap_gb == 40
+    assert a.rps == 2 and a.disk_cap_gb == 0.01 and a.data_dumps_cap_gb == 50
+
+
+def test_pyth_frame_partial_with_outcomes_has_no_reader_outside_the_resume_path():
+    """Ruling CB9_Q0183 change 4: cb9_pyth.pyth_frame keeps ``outcome_prices`` in ``pyth_frame/frame_partial.jsonl`` (rules-hashed, not
+    changed; disclosed in the ledger). The only code that names that file is the writer / resume loop itself; no other CB9 reader opens it."""
+    root = Path(__file__).resolve().parents[1]
+    files = sorted((root / "astrolabe" / "research_lab").glob("cb9*.py")) + [root / "scripts" / "run_cb9.py"]
+    hits = [(f.name, n) for f in files for n, line in enumerate(f.read_text().splitlines(), 1) if '"frame_partial.jsonl"' in line]
+    assert [h[0] for h in hits] == ["cb9_pyth.py"], hits
