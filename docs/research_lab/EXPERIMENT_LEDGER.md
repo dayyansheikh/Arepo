@@ -4651,3 +4651,21 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   [+0.0013, +0.0022] nats. This meets the rule fixed before the run (DESIGN_V1 §32).
 - Registered `se26_lgbm_mm_full` (spec sha256 `9fdf9d17…`): se1 plus `refit_full`, nothing else. K + 1. Not embargoed,
   promotion-eligible, scored prospectively from its first live fit. No edge, calibration or profitability claim.
+
+## CB7 h_geo: Reading 13 superseded by 13a; text-source job q0147t queued, census q0147c held, 2026-10-28 ~13:30Z (experiments autopilot; operational, nothing counted)
+- **q0147b** refused (10-28T10:14Z, rc 2): `no market with fee_category == 'geopolitics'`. The sidecar's `pairing.fee_category`
+  never produces that value (in-window capture: sports 241,630; other:zero_fees 29,415; crypto 5,866; ...; no geopolitics).
+  q0147b parked and stays failed in substance (nothing written).
+- **Ruling** `reviews/CB7_HGEO_RULING_2026-10-28.md` **REVISE**: Reading 13 kept only the fee_category half of the §2.1 rule;
+  the binding set is §2.1 as written (`topic_of` on question, first event title, slug, fee_category). No threshold, window,
+  mid band or gate change; no separate S,X census. Disclosures: G1's "geopolitics 0.0" fee clause never applies (conservative);
+  the h_geo window overlaps E009/E010's window (a broad median spread cannot reveal their statistic).
+- **Pins:** `seals/cb7_hgeo_window_captures.sha256` (36 in-window captures, 144 files). No spread computed or inspected.
+- **Fix** (`fix/cb7-hgeo` 836dc3f9 + 0f6f031c, merged 218d1e85): Reading 13a (missing-text rule: binding h_geo = max(with-text,
+  without-text-counted-as-geopolitics); no text at all -> unavailable, G1 counted but cannot advance; never a fallback spread);
+  `cb7_hgeo_text.py` + `run_cb7.py hgeo-text` (Gamma by id, allow-listed fields at parse, per-id retry on a batch 4xx, refuses
+  with no 200 reply, required-column refusals); census joins the pinned text table and refuses on id-set / window / band
+  mismatch. Re-check `reviews/CB7_HGEO_RECHECK_2026-10-28.md` ACCEPT_WITH_FIXES, fixes 1-7 applied (172 passed). Host: capture
+  rows are market-level (no `token_id`), so the first-row YES-quote rule holds.
+- **q0147t queued** (net, 400 MB). **q0147c in drafts** until q0147t's manifest sha256 and text sha256 are written into its notes
+  and here (re-check answer 4).
