@@ -4587,3 +4587,10 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   `attn` vs `participation`; `stress` vs the dropped `regime`; `pause` depends on `rules`.
 - **E026:** owner phone milestone "collection started" sent 10-28 (the 10-25 window start fell in the usage-limit gap);
   recorder q0541 and labeller q0542 running since 10-25T00Z.
+
+## LT11 q0696 size-check timing recorded, 2026-10-28 ~11:00Z (experiments autopilot; clock only, nothing counted)
+- q0696 done 10-24T07:32Z (`SIZE11_TIMING.json` sha256 `8f2de288…b599`; design text `991100db…` matches; 20 worlds x 200
+  draws per scenario, seed per the q0696 rule; no world result recorded; q from the development placeholder 0.20).
+- **Projection:** registered size check 2,000 worlds over 16 scenarios = 62,558 s (17.4 h) plus the power run 2,721 s;
+  planned census commit 11-09T00Z -> projected end **11-10T17:23Z**, 24 h margin, inside the fast-lane limit 11-15T00Z.
+  `ordered_lane_ledger_line_needed: false`, so no ordered-lane line before the seal. Census q0691 not before 11-07T08:00Z.
