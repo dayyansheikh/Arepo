@@ -1,0 +1,38 @@
+{
+ "id": "q0717_lt13_fee_probe",
+ "title": "LT13 fee-reading probe (counts only, k = 0, uncounted): one streaming pass over the 2-hourly captures still on the host for [2026-10-13, 2026-10-28) cross-tabbing the raw sidecar fee fields (fees_enabled, fee_schedule state and sha256, taker_base_fee, fee_type, fee_category, clob_rewards non-empty, age class) by the CH251 cell (open rows), two-sided rows and the CH261 cell (complete units), by fee class x fee_src x reward x category, per capture and per UTC date, plus fee / category class changes against capture k-1; explains why the CH261 fee panel differs from CH251's; uses only capture k and k-1, no price change, no target, no outcome, no P&L",
+ "family": "creative_hypotheses",
+ "priority": 65,
+ "expected_value": "attributes the CH251/CH261 fee-panel shift (implied fee-free complete units 12,850 vs fee-free open rows 4,577; lumpiness moved from the fee-free to the fee-on cell) to a cell definition, the spans, a change in how the sidecar fee fields are served, or a category reclassification; decides LIVE_TESTS_13.md 1.4.3's field reading and whether CH252 is withdrawn_pre_census (fee reading unresolved), by the decision rule in notes",
+ "data": [
+  "host originals ~/arepo/data-dumps/research_lab/snapshots (read-only)"
+ ],
+ "resources": {
+  "mem_mb": 450,
+  "as_cap_mb": 4000,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_lt13_fee_probe.py",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--start-utc",
+  "2026-10-13T00:00:00Z",
+  "--end-utc",
+  "2026-10-28T00:00:00Z",
+  "--out",
+  "../data-dumps/research_lab/lt13_fee_probe/LT13_fee_probe.json",
+  "--data-dumps-cap-gb",
+  "50"
+ ],
+ "timeout_s": 21600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/lt13_fee_probe/LT13_fee_probe.json (counts only)"
+ ],
+ "next_action": "copy the covered span, the headline series (CH251 and CH261 definitions, by span and by date), the fee_src and raw-field cross-tabs and the class-change counts into a short LT13 fee-probe note; apply the declared decision rule (notes) in LIVE_TESTS_13.md 1.4.3 and the R1 re-check; never change a threshold",
+ "notes": "Counts only, k = 0, uncounted (LIVE_TESTS_13.md 1.4.3 and 7.5; LT13 challenger R1 MUST 3). Run soon: the 8-day snapshot retention keeps deleting rows files from 2026-10-20 onward; captures whose rows.csv.gz is gone are counted as missing (rows_gone) and never restored; the runner prints its covered span (first and last covered capture, covered / expected slots, gaps). DECLARED DECISION RULE (R1 MUST 3, verbatim): (a) q0717 may change only the field reading of 1.4.3 and the census prints, never a threshold (0.25, 77, 5x, 60%/20, 95%, 5%, 0.90). (b) If q0717 does not explain the CH251/CH261 shift with a field-semantics cause that a declared reading rule fixes, CH252 is `withdrawn_pre_census (fee reading unresolved)`. (c) If CH252 is withdrawn, CH253 still goes to census under item 2. Reads manifest.json, rows.csv.gz (through population_map_ch251.read_rows; only the two-sided flag is kept), rows_ext.csv.gz (named columns only: market_id, fee_type, fee_category, series_slugs, clob_rewards, fees_enabled, fee_schedule, taker_base_fee, created_at) and ext_manifest.json (ext_version); never capture k+1; no spread, price change, volume, target or outcome. Cell reading reuses population_map_ch251.fee_class and the CH240 category / reward readers unchanged (a test checks equality with population_map_ch261.read_ext). Refuses roots outside research_lab/snapshots and outputs outside research_lab; refuses to overwrite; exits 75 when data-dumps is above 50 GiB or the output disk has under 1 GiB free. Output carries each opened file's size and sha256 and the code sha256 of the runner and module. Memory: keeps only an integer code per market for capture k-1; synthetic 260k-row captures peaked at 352 MB RSS on the Mac (about 174 MB of it imports); mem_mb 450 keeps it exempt from the start blackout, as_cap 4000 is the guard."
+}
