@@ -4679,3 +4679,12 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - CH252 fee-free unrewarded widenings median **1,857.5** a capture (line 40: LT13 is drafted); fee-on unrewarded widenings
   median **15** (thin arm). CH253 cross-event batch share 0.873, VIF 1.001, same-slot corr 0.059. CH255 flips median **11**
   (line 690: not a third test). Next: LT13 design draft (CH252, CH253; k <= 2), then challenger R1.
+
+## LT12 code merged after freeze check and re-check, 2026-10-28 ~11:05Z (experiments autopilot; nothing counted)
+- Code-freeze check `reviews/LT12_CODE_FREEZE_CHECK_2026-10-28.md` ACCEPT_WITH_FIXES (MUST 1: worlds 6 and 10 drew one
+  market-wide drift, so the placebo shared it; MUST 2: D1 disclosure order; SHOULD 3-6: analytic-oversize label, NaN draws as
+  exceedances, census list states, `analyze --out` required). Fixes f2d5215d, 8ad3b2ec, 99d60e76 (drafts guard 50: dbc40c9c).
+  Targeted re-check `reviews/LT12_CODE_RECHECK_2026-10-28.md` **ACCEPT**: per-event drift verified, worlds 1-5 and 7-9
+  byte-identical at test seeds, no registered seed in tests, frozen text unchanged (a543db63). Merged 6b443d5c before the
+  11-07 seal and before q0662 (11-03T09Z; the battery2 change moves LT10's code hash as noted). q0716's timing must be measured
+  on the merged code. Stale LT11 test path (q0696 now in jobs/) fixed.

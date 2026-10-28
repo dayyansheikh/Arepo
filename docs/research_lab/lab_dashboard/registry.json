@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-28T10:40:00Z",
+ "updated": "2026-10-28T11:05:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -999,11 +999,12 @@
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Seals after the 22 Oct cut-off",
-   "next_date": "2026-10-22",
+   "next": "Pre-freeze counting check: a text-lookup step (fixed 28 Oct after the geopolitics label was found missing from the data) runs first, then the census before 30 Oct",
+   "next_date": "2026-10-29",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB7 fetches complete (q0142, q0143); docs/AREPO_V2_CHECKPOINT.md"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB7 fetches complete (q0142, q0143); docs/AREPO_V2_CHECKPOINT.md",
+    "next": "docs/research_lab/EXPERIMENT_LEDGER.md § CB7 h_geo: Reading 13 superseded by 13a (2026-10-28); docs/research_lab/reviews/CB7_HGEO_RECHECK_2026-10-28.md"
    },
    "stage_results": {
     "designed": "pass"
@@ -1711,11 +1712,12 @@
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Code and its independent check; counting checks on 7-17 Nov data; collection proposed 10-31 Dec 2026",
+   "next": "Code passed its independent check and is merged (28 Oct); counting checks on 7-17 Nov data; collection proposed 10-31 Dec 2026",
    "next_date": "2026-12-10",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT12 final verification and DESIGN-TEXT FREEZE (2026-10-23); docs/research_lab/LIVE_TESTS_12.md"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § LT12 final verification and DESIGN-TEXT FREEZE (2026-10-23); docs/research_lab/LIVE_TESTS_12.md",
+    "next": "docs/research_lab/reviews/LT12_CODE_RECHECK_2026-10-28.md; docs/research_lab/EXPERIMENT_LEDGER.md § LT12 code merged (2026-10-28)"
    },
    "stage_results": {
     "idea": "pending",
