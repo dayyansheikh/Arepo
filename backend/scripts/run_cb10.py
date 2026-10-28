@@ -237,10 +237,27 @@ def cmd_exclusion_keys(a):
     _declared(a, "exclusion-keys")
     c10.require_after_t_seal(time.time(), "exclusion-keys")
     sha = _rules(a)
-    m = c10.exclusion_keys(_root(a), hb.httpx_transport(), rules_sha=sha, cb9_keys_path=Path(a.cb9_keys) if a.cb9_keys else c10.CB9_KEYS_DEFAULT,
-                           cb9_keys_sha256=a.cb9_keys_sha256, seals_dir=Path(a.seals_dir) if a.seals_dir else None, extra_pins=_extra_pins(a.extra_pin),
-                           is_committed=None if a.allow_uncommitted_rules else cb1_history.spec_committed, disk_cap=int(a.disk_cap_gb * 1024**3), **_net_kw(a))
-    return _result(m)
+    from astrolabe.research_lab import cb9_exit  # noqa: PLC0415
+
+    extra = _extra_pins(a.extra_pin)
+    if a.normalise_ids and getattr(a, "budget_min", None) is not None:
+        raise c10.Refused("--budget-min is not supported with --normalise-ids (q0201 runs to completion inside its timeout and resumes by batch)")
+    run_kw = dict(rules_sha=sha, cb9_keys_path=Path(a.cb9_keys) if a.cb9_keys else c10.CB9_KEYS_DEFAULT, cb9_keys_sha256=a.cb9_keys_sha256,
+                  seals_dir=Path(a.seals_dir) if a.seals_dir else None, extra_pins=extra, is_committed=None if a.allow_uncommitted_rules else cb1_history.spec_committed,
+                  disk_cap=int(a.disk_cap_gb * 1024**3), **_net_kw(a))
+    if not a.normalise_ids:  # composite seal ids (h7_cb4_series) would 422 at Gamma: kept only for tests / reproducibility
+        m = c10.exclusion_keys(_root(a), hb.httpx_transport(), **run_kw)
+        norm = None
+    else:
+        from astrolabe.research_lab import cb8_exclusion_budget as xb  # noqa: PLC0415
+        from astrolabe.research_lab import cb10_exclusion_fix as fix  # noqa: PLC0415
+
+        with xb.scratch_uncounted(), fix.cb10_exclusion_ids(extra) as norm:  # no hashed function is edited; patches restored on exit
+            m = c10.exclusion_keys(_root(a), hb.httpx_transport(), **run_kw)
+    code, payload = _result(m)
+    if norm is not None:
+        payload["id_normalisation"] = norm
+    return (cb9_exit.incomplete_exit_code(m) if code == 0 else code), payload  # 0 only complete/terminal, 75 transient incomplete, 1 otherwise
 
 
 # ---- q0202 / q0203 D data -----------------------------------------------------------------------------------------------------------------------
@@ -681,6 +698,7 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--cb9-keys-sha256", required=True, help="the pinned sha256 of CB9 q0182's exclusion_keys.csv.gz")
     q.add_argument("--seals-dir", default=None)
     q.add_argument("--extra-pin", action="append", default=None, help="NAME:PATH:SHA256 of a CB9 frame id list (market_id column; ids only); repeatable")
+    q.add_argument("--normalise-ids", action="store_true", help="q0201: composite seal ids -> numeric market part, pred_* market ids, NOT_EXTRACTABLE seals counted (cb10_exclusion_fix)")
     q.set_defaults(fn=cmd_exclusion_keys)
 
     for name, fn, cap, extra in (("dlad-frame", cmd_dlad_frame, 0.01, ("smoke", "exclusion-keys")), ("deribit-trades", cmd_deribit, 0.02, ("smoke",)),
