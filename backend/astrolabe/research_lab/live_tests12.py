@@ -60,7 +60,7 @@ F_ROLES = {"CH245": "binding", "CH244": "binding"}  # 1.7 / 1.9: F binds for bot
 RECEIPT_SPAN_S = 120.0  # 1.3
 EPS = 1e-9
 CODE_FILES = ("live_tests12.py", "live_tests12_worlds.py", "live_tests12_analysis.py", "live_tests12_base.py", "live_tests12_analysis_base.py", "bounce_decomp.py",
-              "battery.py", "panel.py", "economics.py", "forecast.py", "maker_rewards.py")
+              "battery.py", "battery2.py", "panel.py", "economics.py", "forecast.py", "maker_rewards.py")  # battery2.py: KIND_RULES["live_tests12"] counts the trials line (code-freeze check, non-blocking; LT10 pins it the same way)
 _PIN_LINE = re.compile(r"^SPEC_SHA256 = .*$", re.M)
 SNAP_COLS12 = [*b.SNAP_COLS, "liquidity", "neg_risk_market_id", "neg_risk_other", "event_neg_risk_augmented"]
 EXT_COLS12 = [*b.EXT_COLS, "rewards_min_size", "rewards_max_spread", "clob_rewards", "received_utc", "volume_num", "accepting_orders", "event_ids"]

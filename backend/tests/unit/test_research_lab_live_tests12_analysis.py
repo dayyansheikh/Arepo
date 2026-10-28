@@ -235,6 +235,19 @@ def test_battery2_counts_the_lt12_trials_line_as_k_and_fails_closed():
         battery2.count_line({"kind": "live_tests13", "n_tests": 1})
 
 
+def test_battery2_kind_rule_live_tests12_is_pinned():
+    """Code-freeze check (non-blocking): the counting entry is pinned verbatim, and battery2.py is among the hashed code files."""
+    from astrolabe.research_lab import battery2
+
+    assert battery2.KIND_RULES["live_tests12"] == (
+        battery2.N_TESTS,
+        "LT12 single analysis (the mirror and the farmed half, CH245/CH244; LIVE_TESTS_12.md 1.11): one line, n_tests = k = the "
+        "Holm primaries that survived their census gates; gate draws, F, point conditions, placebos, secondaries, arms, economics, "
+        "the census, the CH251 map and the size check are 0; CH243's drop counts 0. Fail-closed: an unknown kind raises.",
+    )
+    assert "battery2.py" in lt.CODE_FILES and lt.code_hashes()["battery2.py"] is not None
+
+
 def test_lt10_drafts_carry_the_lt12_battery2_ordering_rule():
     import json
     from pathlib import Path
