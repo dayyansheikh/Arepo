@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-28T11:20:00Z",
+ "updated": "2026-10-28T10:40:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -431,11 +431,12 @@
    "status": "analysed",
    "verdict": "replicated",
    "effect": null,
-   "next": "Needs a cost check and a prospective registration before any claim",
-   "next_date": null,
+   "next": "In its live test as E012 (1-day change x liquidity on complete-universe snapshots): collecting since 22 Oct, ends 12 Nov; single analysis after 13 Nov. A cost check is still needed before any claim.",
+   "next_date": "2026-11-13",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § SB2-J2 (replicated at Holm 0.05, ratio 1.22)"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § SB2-J2 (replicated at Holm 0.05, ratio 1.22)",
+    "next": "docs/research_lab/LIVE_TESTS_2.md § 2 (E012, SB2 L1); docs/research_lab/EXPERIMENT_LEDGER.md § LT2 registration (E012-E014), 2026-10-20"
    },
    "stage_results": {
     "designed": "pass",

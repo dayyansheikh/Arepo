@@ -4629,3 +4629,17 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   scratch, never removed), contrary to CREATIVE_BATCH_9.md §1.1 "outcomes only in outcomes_guarded". The code is rules-hashed
   and is not changed; a test proves no CB9 reader other than the writer's resume loop names the file. No session reads it.
 - **q0183 and q0185 queued** (net lane, depend on q0182b). After each run: manifest `exclusion_keys_sha256` must equal e613604a….
+
+## MC1 q0116i FAILED x3 (address-space cap at fold 13 M1); bit-identical memory fix merged; q0116j queued fresh, 2026-10-28 ~12:45Z (experiments autopilot; development, ops only, nothing counted)
+- **q0116i** (identity v2) completed 5 slices (all 16 M0 folds, M1 folds 0-12; 29 units) and then died 3 times at fold 13 M1
+  (3.14M training rows): `_ArrayMemoryError` allocating 1.66 GiB in `_M1Design.transform` (`np.hstack`) under RLIMIT_AS
+  14,000 MB (not physical OOM; ~10 GB available). Estimated physical peak 9.2 GB (fold 13) to 9.6 GB (fold 15), too close to
+  the host's ~10 GB available with collectors for a resources-only retry. q0116i stays failed; resume_q0116i is not reused.
+- **Fix** (`fix/mc1-m1-memory` 385cf4b5, merged): `_M1Design.transform` writes 32,768-row chunks into one preallocated array;
+  the spline is fitted on the standardised spline columns only; `_Prep` clips and standardises in place; `fit_m1` frees the
+  inner design before building the full-fold design. No dtype, column order, parameter, solver, seed or CV change. Bit-identity
+  tests against a verbatim copy of the old code (chunk edges, NaN, extrapolation, a full `fit_m1` fold; a 200k-row synthetic fit
+  gave identical probabilities). Measured numpy allocation per row (tracemalloc) `fit_m1` 1.65 -> 0.96 KB (about 5.4 -> 3.1 GB
+  at 3.33M rows). M2 (LightGBM) estimated 4-5 GB at the largest fold, unchanged; M3_eb < 1 GB.
+- **q0116j queued** (same argv except `--resume-dir resume_q0116j`; the code change alters the resume identity, so it starts
+  fresh; about 150 h of slices incl. the redone 29 units; each 5.5 h slice exits 75, so higher-priority jobs interleave).
