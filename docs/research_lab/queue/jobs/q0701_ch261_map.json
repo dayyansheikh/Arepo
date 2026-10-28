@@ -1,0 +1,38 @@
+{
+ "id": "q0701_ch261_map",
+ "title": "CH261 LT13 population map (counts only, k = 0, uncounted): one streaming pass over the 2-hourly captures of 2026-10-13..10-27 counting widenings and narrowings by the 2 x 2 fee x reward cell (fee-free unrewarded per-capture min/median/mean), creation batches over created_at (cross-event share, >= 24-unit batch-days, same-slot and category-factor correlations, pseudo-batch coverage), first-of-day leader flips by trade class / size / visibility vs the 690 line, favourite collapses, comment-field presence and bursts, halts, fee per dollar staked; uses only capture k and k-1, no price target, no P&L",
+ "family": "creative_hypotheses",
+ "priority": 60,
+ "expected_value": "measured counts that decide whether LT13 (CH252, CH253) is drafted and whether CH255 enters as a third (CREATIVE_HYPOTHESES_2026-11-01.md CH261, section 3)",
+ "data": [
+  "host originals ~/arepo/data-dumps/research_lab/snapshots (read-only)"
+ ],
+ "resources": {
+  "mem_mb": 500,
+  "as_cap_mb": 4000,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_ch261_map.py",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--start-utc",
+  "2026-10-13T00:00:00Z",
+  "--end-utc",
+  "2026-10-28T00:00:00Z",
+  "--out",
+  "../data-dumps/research_lab/ch261_map/CH261_map.json",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 21600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/ch261_map/CH261_map.json (counts only)"
+ ],
+ "next_action": "copy the headline block and shares into the LT13 census table (reported, not tuned); then decide whether LT13 is drafted (median fee-free unrewarded widenings per capture against the 40 line) and whether CH255 enters (traded first-of-day flips against the 690 line)",
+ "notes": "Counts only, k = 0, uncounted (CREATIVE_HYPOTHESES_2026-11-01.md CH261). SPAN (declared parameter): [2026-10-13T00:00Z, 2026-10-28T00:00Z), fifteen UTC days, or pass --last-days 14 to the runner for the most recent 14 days of captures; overlaps the CH240 and CH251 maps' spans (also counts-only), disclosed. Streams one capture at a time and keeps only capture k-1 state (CH251 peaked at 460 MB; target similar). Reward reading is the simple MAP reading (clob_rewards non-empty at capture k), not listed_carry24h_v2 with the CLOB feed adjudicating. PRINTED AS UNAVAILABLE (output's not_mapped, with reasons): everything needing capture k+1 (CH252/CH253 targets, 'vanished at k+1', post-reopen move beyond k), the liquidity tier, CH258 (se20 klines), CH259 (engine files), CH260's res_7d label census. Reads rows.csv.gz, rows_ext.csv.gz (named columns only) and manifest.json only; refuses roots outside research_lab/snapshots and outputs outside research_lab; refuses to overwrite; exits 75 when data-dumps is above 40 GiB or the output disk has under 1 GiB free. Output carries each opened file's size and sha256 and the code sha256 of the runner and module."
+}
