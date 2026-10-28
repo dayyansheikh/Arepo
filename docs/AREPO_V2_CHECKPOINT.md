@@ -8,7 +8,7 @@
 **PHASE 4 IN PROGRESS.** See `implementation/phases/PHASE_04_EDGE_EXPERIMENTS.md` and the ledger `research_lab/EXPERIMENT_LEDGER.md`.
 User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=Etc/GMT-1 date`.
 
-## Experiments autopilot live state (2026-10-28 11:55 UTC+1)
+## Experiments autopilot live state (2026-10-28 12:17 UTC+1)
 - **Gap:** no autopilot session 10-24 09:07Z .. 10-28 10:08Z (weekly usage limit). Collectors ran throughout.
 - **Owner inbox 10-27** ("promote Forecasting gain near market close"): SB2-CTTE is already live as E014; registry points there
   (also SB2-L1 -> E012). Windows fixed; not shortened.
@@ -19,14 +19,21 @@ User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=E
 - **CB7:** h_geo fixed twice (sidecar manifest 915c3837; Reading 13 -> 13a with text lookup, merged 218d1e85; ruling + re-check
   in reviews/CB7_HGEO_*). **q0147t (text) queued**; when done: write its manifest sha256 + text sha256 into
   drafts/q0147c notes and the ledger, move q0147c to jobs, deploy — **must run before ~11-01** (retention hold to 12 days).
-- **CB9:** q0183/q0185 queued (ruling GO_WITH_CHANGES applied, 8351c077). After each: manifest `exclusion_keys_sha256` must be
-  e613604a…. q0184/q0186 promotion carries ruling conditions 5-6.
+- **CB9:** q0183/q0185 queued (ruling GO_WITH_CHANGES applied, 8351c077); attempt 1 MemoryError at the 800 MB default cap ->
+  as_cap_mb 3000 (b50d403f, deployed). After each: manifest `exclusion_keys_sha256` must be e613604a…. q0184/q0186 promotion
+  carries ruling conditions 5-6. **CB10 q0201:** fix on `fix/cb10-q0201` (245dd030, not merged; NOT_EXTRACTABLE wrapper, exit
+  codes); blocked on q0183/q0185 frame pins (FILL_), a ruling on reviews/CB10_Q0201_FIX_NOTE_2026-10-28.md, CB10 freeze check,
+  q0200 smoke.
+- **CB4:** closewin extract caught up (no retention gap); **q0085 released** (dc90c29d); q0086 census follows by dependency.
 - **LT12:** code merged 6b443d5c (freeze check + targeted re-check ACCEPT). Census/seal from 11-07.
 - **LT11:** timing recorded (projected end 11-10T17:23Z). Census q0691 not before 11-07T08Z.
 - **MC1:** bit-identical memory fix merged (d2bf29be); **q0116j** queued fresh (~150 h of slices).
-- **CH261 map** done: LT13 gate cleared (CH252 fee-free widenings median 1,857.5; fee-on arm thin, median 15; CH253 killers
-  passed; CH255 out). **LT13 design draft** being written on `feat/live-tests-13` (../astrolabe-live-tests-13); then
-  challenger R1 (science-reviewer), revisions, freeze.
+- **CH261 map** done (note corrected: map lines are not census lines). **LT13** draft merged; challenger R1 GO_WITH_CHANGES
+  (reviews/LT13_CHALLENGER_R1_2026-10-28.md). Opus implementer on `feat/live-tests-13` applies R1 + builds **q0717** fee-label
+  probe (counts only). Then: merge, deploy q0717, run, apply MUST 3 decision rule, targeted re-check, design freeze; census code
+  first (MUST 2).
+- **Creative round 19** (Fable xhigh, CH262+) running on `feat/creative-r19` (../astrolabe-creative-r19); then CANDIDATES notes.
+- **CB3:** read-only state assessment running (freeze deadline 10-26T22Z passed in the gap; q0064a gate never created).
 - **Stalled backlog (inventory 10-28):** CB4 q0085 release after closewin catches up past 10-25; CB5 q0103b needs a freeze
   check; CB3 q0064a gate missing and freeze deadline passed (needs a decision); CB10 q0201 needs the CB9 NOT_EXTRACTABLE fix.
 

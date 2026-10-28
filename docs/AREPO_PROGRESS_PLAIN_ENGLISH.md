@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-28 11:55 UTC+1
+**Last updated:** 2026-10-28 12:17 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -19,9 +19,11 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 - **Batch 7:** its counting check looked for a "geopolitics" label that the data never contains. An independent review
   confirmed the fix: find those markets by their question text, as the design's own rule says. A small text-lookup job is
   queued; the old data window is held on the server a few extra days so the check can still run.
-- **New live test on the way (LT13):** the counting-only map for round 18's two best ideas came back large enough, so the
-  LT13 design is being drafted now (the "payer's return" spread test and the "listing batch" test). A third idea failed its
-  count and is dropped.
+- **New live test on the way (LT13):** the map for round 18's two best ideas was large enough to draft LT13. The independent
+  challenger said go ahead with changes: build the counting check first, and run a small probe of the fee labels first. Honest
+  caveat: the planning numbers suggest both ideas may well fail their counting checks. A third idea failed and is dropped.
+- **Batch 4** can move again: its data extract caught up, so its next data step is released. A fresh round 19 of original
+  ideas is being written.
 - **LT12** passed its independent code check and is merged. **Batch 9** moved to its next data steps after a review.
 - **The long model run MC1** hit a memory limit; a lower-memory version that gives identical numbers is queued (it restarts).
 - **Seven registered live tests** are collecting or waiting: single analyses E009/E010 (3 Nov), E011 (11 Nov), E012-E014
