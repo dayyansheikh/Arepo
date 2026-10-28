@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-24T05:15:00Z",
+ "updated": "2026-10-28T11:20:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -511,12 +511,13 @@
     "label": "+0.019 nats",
     "note": "development (historical); log-loss gain, not a return"
    },
-   "next": "Test with an as-of end date in a later ML run",
-   "next_date": null,
+   "next": "Already in its live test as E014 (end date known at the time): collecting since 22 Oct, ends 12 Nov; single analysis after 13 Nov. The registered window cannot be shortened.",
+   "next_date": "2026-11-13",
    "candidate": true,
    "sources": {
     "effect": "docs/research_lab/EXPERIMENT_LEDGER.md § SB2-J8 (+0.0188 nats, CI [0.0094, 0.0292]) and § J8 C-TTE diagnostics",
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § SB2-J8; challenger verdict section"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § SB2-J8; challenger verdict section",
+    "next": "docs/research_lab/LIVE_TESTS_2.md § 1.1 (E014); docs/research_lab/EXPERIMENT_LEDGER.md § LT2 registration (E012-E014), 2026-10-20"
    },
    "stage_results": {
     "designed": "pass",
