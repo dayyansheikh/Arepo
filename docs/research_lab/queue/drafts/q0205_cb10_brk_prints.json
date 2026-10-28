@@ -26,7 +26,7 @@
   "--disk-cap-gb",
   "0.06",
   "--data-dumps-cap-gb",
-  "40",
+  "50",
   "--budget-min",
   "85"
  ],
@@ -37,7 +37,7 @@
   "manifest.json"
  ],
  "next_action": "q0206",
- "notes": "CB10 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. Rules file seals/cb10_rules_v2.json (freeze-check v2, supersedes cb10_rules.json) (rules_sha256 d422cc70... (file sha256 5ee0ea23...)). --data-dumps-cap-gb 40 (ops convention; design text says 14). No side, wallet or hash stored. One market in memory at a time.",
+ "notes": "CB10 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. Rules file seals/cb10_rules_v2.json (freeze-check v2, supersedes cb10_rules.json) (rules_sha256 d422cc70... (file sha256 5ee0ea23...)). --data-dumps-cap-gb 40 (ops convention; design text says 14). No side, wallet or hash stored. One market in memory at a time. | 2026-10-28 ops (experiments autopilot): data-dumps guard 40 -> 50 GiB (data-dumps 38.9 GiB, ~0.5 GiB/day; root 30 GB free; collector cap 45 -> 55); no rule, window or population changed.",
  "repeat": {
   "max_runs": 3,
   "until_log_regex": "\"status\": \"brk_prints_complete\""

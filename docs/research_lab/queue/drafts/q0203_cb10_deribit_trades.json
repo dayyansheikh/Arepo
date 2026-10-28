@@ -27,7 +27,7 @@
   "--disk-cap-gb",
   "0.02",
   "--data-dumps-cap-gb",
-  "40"
+  "50"
  ],
  "timeout_s": 3600,
  "max_retries": 2,
@@ -35,7 +35,7 @@
   "history/h10_dlad/deribit/{trades.csv.gz,perp_bars.csv.gz,settle_index_guarded.csv.gz,manifest.json}"
  ],
  "next_action": "q0207",
- "notes": "CB10 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. Rules file seals/cb10_rules_v2.json (freeze-check v2, supersedes cb10_rules.json) (rules_sha256 d422cc70... (file sha256 5ee0ea23...)). --data-dumps-cap-gb 40 (ops convention; design text says 14). Origin times from q0202's frame only; no Polymarket field read. Freeze-check fix 7: can return in_progress with exit 0, so a repeat block re-runs until the completion or a declared stall status.",
+ "notes": "CB10 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. Rules file seals/cb10_rules_v2.json (freeze-check v2, supersedes cb10_rules.json) (rules_sha256 d422cc70... (file sha256 5ee0ea23...)). --data-dumps-cap-gb 40 (ops convention; design text says 14). Origin times from q0202's frame only; no Polymarket field read. Freeze-check fix 7: can return in_progress with exit 0, so a repeat block re-runs until the completion or a declared stall status. | 2026-10-28 ops (experiments autopilot): data-dumps guard 40 -> 50 GiB (data-dumps 38.9 GiB, ~0.5 GiB/day; root 30 GB free; collector cap 45 -> 55); no rule, window or population changed.",
  "repeat": {
   "max_runs": 12,
   "until_log_regex": "\"status\": \"(deribit_complete|not_run_source|disjointness_unverified|upstream_not_testable|disk_budget)\""

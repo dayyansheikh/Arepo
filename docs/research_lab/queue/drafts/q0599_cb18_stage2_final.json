@@ -28,7 +28,7 @@
   "--disk-cap-gb",
   "20",
   "--data-dumps-cap-gb",
-  "40"
+  "50"
  ],
  "timeout_s": 900,
  "max_retries": 1,
@@ -36,5 +36,5 @@
   "data-dumps/research_lab/creative_batch18/results_final.json"
  ],
  "next_action": "ledger; if S1-rep passed, draft the Stage-P (LT-format) registration",
- "notes": "DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md, design not yet reviewed). scripts/run_cb18.py DOES NOT EXIST YET (code needed, CREATIVE_BATCH_18.md section 6). Window job: promote only after parts common and S are committed (CB route RS-1), the code freeze record and an accepting code-against-design freeze check. RENUMBERED 2026-10-21 ~19:40Z (autopilot): CB18 drafts q0507-q0516 -> q0590-q0599 (same order) because q0510-q0515 were already taken by signal-engine jobs; ids and depends_on only."
+ "notes": "DRAFT, not in queue/jobs (CREATIVE_BATCH_18.md, design not yet reviewed). scripts/run_cb18.py DOES NOT EXIST YET (code needed, CREATIVE_BATCH_18.md section 6). Window job: promote only after parts common and S are committed (CB route RS-1), the code freeze record and an accepting code-against-design freeze check. RENUMBERED 2026-10-21 ~19:40Z (autopilot): CB18 drafts q0507-q0516 -> q0590-q0599 (same order) because q0510-q0515 were already taken by signal-engine jobs; ids and depends_on only. | 2026-10-28 ops (experiments autopilot): data-dumps guard 40 -> 50 GiB (data-dumps 38.9 GiB, ~0.5 GiB/day; root 30 GB free; collector cap 45 -> 55); no rule, window or population changed."
 }

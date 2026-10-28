@@ -4594,3 +4594,15 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **Projection:** registered size check 2,000 worlds over 16 scenarios = 62,558 s (17.4 h) plus the power run 2,721 s;
   planned census commit 11-09T00Z -> projected end **11-10T17:23Z**, 24 h margin, inside the fast-lane limit 11-15T00Z.
   `ordered_lane_ledger_line_needed: false`, so no ordered-lane line before the seal. Census q0691 not before 11-07T08:00Z.
+
+## Operational: data-dumps guards 40 -> 50 GiB, collector cap 45 -> 55 GiB, 2026-10-28 ~11:15Z (experiments autopilot; ops only, nothing counted)
+- **Why:** data-dumps 38.9 GiB (root 30 GB free of 89), growing about 0.5 GiB/day (37 GiB on 10-24). The CB4 closewin pass
+  step already refuses every pass (`refused_data_dumps_over_cap`: its 1.5 GB reservation crosses 40); within about two days
+  the 40 GiB per-job guard would have stopped the registered collectors (LT2 q0460 for E012-E014, LT3/LT4 cron collectors),
+  the signal-engine tick and the stream collectors, and missed prospective data stays missing.
+- **Change (guards only; no rule, window, population, threshold or registered argument other than the guard value):**
+  `--data-dumps-cap-gb` / `--data-dumps-max-gb` 40 -> 50 in every non-terminal job and draft spec (75 files), the four
+  `arepo_pass.sh` steps and the two `crontab.txt` collector lines (live crontab edited with a backup); `run_stream.py`
+  default 40 -> 50; collector `CAP_GB` 45 -> 55, keeping the 5 GiB gap. Root free at 55 GiB of data is about 13 GB, above the
+  4 GB free-disk guard. Rules-hashed `DATA_DUMPS_CAP_GB = 40.0` constants in cb10-cb16 commons are untouched (their jobs pass the
+  flag). The owner's restore-copy clearing decision (10.2 GB, dashboard) stays open and is now the main disk lever.

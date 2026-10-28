@@ -35,7 +35,7 @@
   "--work",
   "../data-dumps/research_lab/live_tests9_census/work_captures",
   "--data-dumps-cap-gb",
-  "40",
+  "50",
   "--out",
   "../data-dumps/research_lab/live_tests9_census/CC9.json"
  ],
@@ -45,5 +45,5 @@
   "data-dumps/research_lab/live_tests9_census/CC9.json (counts only; the work dir is cleaned up at exit)"
  ],
  "next_action": "commit CC9.json and its sha256; fill census_fixed (exclude_family), ch212.route and k_tests; record any drop in LIVE_TESTS_9.md 6.3 and the ledger",
- "notes": "mem_mb 1500 is the design's ESTIMATE (two carried series frames, the 12-slot carry texts, a 13-slot mid store and the accumulated unit frames of two tests over 120 origins, about 1-2 million candidate rows); NOT measured on the sealed inputs (each census runs once): measure on synthetic data or load-only, or accept the estimate. Exclusive. Exits 75 when data-dumps is above 40 GiB. BLAS threads are set to 1 by the runner. DRAFT, not in queue/jobs. Promote only after: the design-text freeze (LIVE_TESTS_9.md design text frozen at sha256 098aa3fb5f6765f08dcad3f85ad63ec70e29df65249413608f0f7ad5fd505b77 (6b78ba90)), the LT9 code phase 1 and the science-reviewer freeze check of the census and size-check code against LIVE_TESTS_9.md sections 1.4.1, 1.8, 1.8.1 and 7 (8.4 step 3), and never while an LT7 or LT8 census, size-check or analysis job runs (memory-heavy-jobs rule). Counts 0 (descriptive; no trials line). Reads the DRAFT spec unpinned; the code_sha256 of every hashed module is written into the output. Every gate threshold is stated in section 7 before this runs; nothing is re-tuned after it. Each census runs once; max_retries 1 covers a deterministic crash only (no output written)."
+ "notes": "mem_mb 1500 is the design's ESTIMATE (two carried series frames, the 12-slot carry texts, a 13-slot mid store and the accumulated unit frames of two tests over 120 origins, about 1-2 million candidate rows); NOT measured on the sealed inputs (each census runs once): measure on synthetic data or load-only, or accept the estimate. Exclusive. Exits 75 when data-dumps is above 40 GiB. BLAS threads are set to 1 by the runner. DRAFT, not in queue/jobs. Promote only after: the design-text freeze (LIVE_TESTS_9.md design text frozen at sha256 098aa3fb5f6765f08dcad3f85ad63ec70e29df65249413608f0f7ad5fd505b77 (6b78ba90)), the LT9 code phase 1 and the science-reviewer freeze check of the census and size-check code against LIVE_TESTS_9.md sections 1.4.1, 1.8, 1.8.1 and 7 (8.4 step 3), and never while an LT7 or LT8 census, size-check or analysis job runs (memory-heavy-jobs rule). Counts 0 (descriptive; no trials line). Reads the DRAFT spec unpinned; the code_sha256 of every hashed module is written into the output. Every gate threshold is stated in section 7 before this runs; nothing is re-tuned after it. Each census runs once; max_retries 1 covers a deterministic crash only (no output written). | 2026-10-28 ops (experiments autopilot): data-dumps guard 40 -> 50 GiB (data-dumps 38.9 GiB, ~0.5 GiB/day; root 30 GB free; collector cap 45 -> 55); no rule, window or population changed."
 }

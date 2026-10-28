@@ -20,7 +20,7 @@
   "scripts/run_live_tests11.py",
   "reader",
   "--data-dumps-cap-gb",
-  "40"
+  "50"
  ],
  "timeout_s": 900,
  "max_retries": 1,
@@ -28,5 +28,5 @@
   "data-dumps/research_lab/live_tests11/"
  ],
  "next_action": "only if the host cron line cannot be installed: promote with repeat until END_UTC; record the route used in the ledger",
- "notes": "Exits 75 when nothing is new. The reader stops writing at its 3 GB disk cap. DRAFT, not in queue/jobs. Promote only after: the challenger review, the LT11 design-text freeze (LIVE_TESTS_11.md design text frozen at sha256 991100db5d6c75e3f76e3d0d10cc5f957dd755108e09ec05edd8dad0f91b3583), the LT11 code and the science-reviewer freeze check of the census and size-check code against LIVE_TESTS_11.md sections 1.4, 1.8, 1.8.1 and 7 (8.4 step 3), and never while E011's, LT2's or E015's analysis job, or an LT9 or LT10 census, size-check or analysis job, is running (memory-heavy-jobs rule). Counts 0 (descriptive; no trials line) except q0695, which writes the single counted trials line (kind live_tests11). Reads the DRAFT spec unpinned (except q0694 and q0695, which read the pinned spec); the code_sha256 of every hashed module is written into the output. Every gate threshold is stated in section 7 before this runs; nothing is re-tuned after it. Each census runs once; max_retries 1 covers a deterministic crash only (no output written). Runs with --data-dumps-cap-gb 40 where the runner accepts it (exit 75 above the cap)."
+ "notes": "Exits 75 when nothing is new. The reader stops writing at its 3 GB disk cap. DRAFT, not in queue/jobs. Promote only after: the challenger review, the LT11 design-text freeze (LIVE_TESTS_11.md design text frozen at sha256 991100db5d6c75e3f76e3d0d10cc5f957dd755108e09ec05edd8dad0f91b3583), the LT11 code and the science-reviewer freeze check of the census and size-check code against LIVE_TESTS_11.md sections 1.4, 1.8, 1.8.1 and 7 (8.4 step 3), and never while E011's, LT2's or E015's analysis job, or an LT9 or LT10 census, size-check or analysis job, is running (memory-heavy-jobs rule). Counts 0 (descriptive; no trials line) except q0695, which writes the single counted trials line (kind live_tests11). Reads the DRAFT spec unpinned (except q0694 and q0695, which read the pinned spec); the code_sha256 of every hashed module is written into the output. Every gate threshold is stated in section 7 before this runs; nothing is re-tuned after it. Each census runs once; max_retries 1 covers a deterministic crash only (no output written). Runs with --data-dumps-cap-gb 40 where the runner accepts it (exit 75 above the cap). | 2026-10-28 ops (experiments autopilot): data-dumps guard 40 -> 50 GiB (data-dumps 38.9 GiB, ~0.5 GiB/day; root 30 GB free; collector cap 45 -> 55); no rule, window or population changed."
 }
