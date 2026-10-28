@@ -200,10 +200,13 @@ class _Prep:
 
     def _clip(self, x: np.ndarray) -> np.ndarray:
         z = np.where(np.isnan(x), self.med, x)
-        return np.clip(z, self.lo, self.hi)
+        return np.clip(z, self.lo, self.hi, out=z)  # in place on the fresh copy: same values
 
     def transform(self, x: np.ndarray) -> np.ndarray:
-        return (self._clip(x) - self.mu) / self.sd
+        z = self._clip(x)
+        z -= self.mu  # in-place steps give bit-identical values to (clip - mu) / sd
+        z /= self.sd
+        return z
 
 
 # ---------------------------------------------------------------------------------------------
@@ -292,6 +295,9 @@ def fit_m0(df, train_pos, test_pos, inner, **_) -> FoldFit:
     )
 
 
+M1_CHUNK_ROWS = 32768  # rows per chunk of the M1 design transform (memory only)
+
+
 class _M1Design:
     """Standardised tier-(a) block + natural-style spline basis + declared interactions."""
 
@@ -302,19 +308,38 @@ class _M1Design:
         from sklearn.preprocessing import SplineTransformer
 
         self.prep = _Prep(self.cols).fit(x)
-        z = self.prep.transform(x)
         self.si = [self.cols.index(c) for c in SPLINE_FEATURES]
         self.ii = [self.cols.index(c) for c in INTERACTION_PARTNERS]
         self.ci = self.cols.index("ml_chg_1h")
+        # the spline is fitted on the standardised spline columns only; standardisation is
+        # element-wise, so building just those columns chunk by chunk gives identical values
+        zs = np.empty((len(x), len(self.si)))
+        for a in range(0, len(x), M1_CHUNK_ROWS):
+            zs[a : a + M1_CHUNK_ROWS] = self.prep.transform(x[a : a + M1_CHUNK_ROWS])[:, self.si]
         self.spl = SplineTransformer(
             n_knots=5, degree=3, knots="uniform", extrapolation="constant"
-        ).fit(z[:, self.si])
+        ).fit(zs)
         return self
 
-    def transform(self, x: np.ndarray) -> np.ndarray:
+    def _block(self, x: np.ndarray) -> np.ndarray:
         z = self.prep.transform(x)
         inter = z[:, [self.ci]] * z[:, self.ii]
         return np.hstack([z, self.spl.transform(z[:, self.si]), inter])
+
+    def transform(self, x: np.ndarray, chunk: int | None = None) -> np.ndarray:
+        """Row-wise design; written chunk by chunk into one preallocated array (same values,
+        dtype and column order as ``_block(x)`` on all rows, without the full-size temporaries)."""
+        chunk = chunk or M1_CHUNK_ROWS
+        n = len(x)
+        if n <= chunk:
+            return self._block(x)
+        first = self._block(x[:chunk])
+        out = np.empty((n, first.shape[1]), dtype=first.dtype)
+        out[:chunk] = first
+        del first
+        for a in range(chunk, n, chunk):
+            out[a : a + chunk] = self._block(x[a : a + chunk])
+        return out
 
 
 def _m1_model(cfg: dict):
@@ -329,11 +354,13 @@ def _m1_model(cfg: dict):
 def fit_m1(df, train_pos, test_pos, inner, **_) -> FoldFit:
     cols = M12_FEATURES
     itr, iva = inner
-    xtr_all = _xmat(df.iloc[train_pos], cols)
-    design_in = _M1Design(cols).fit(_xmat(df.iloc[itr], cols))
-    xin, xva = design_in.transform(_xmat(df.iloc[itr], cols)), design_in.transform(
-        _xmat(df.iloc[iva], cols)
-    )
+    x_itr = _xmat(df.iloc[itr], cols)
+    design_in = _M1Design(cols).fit(x_itr)
+    xin = design_in.transform(x_itr)
+    del x_itr
+    x_iva = _xmat(df.iloc[iva], cols)
+    xva = design_in.transform(x_iva)
+    del x_iva, design_in
     yin, yva = _y(df, itr), _y(df, iva)
     search, best = [], None
     for cfg in M1_GRID:
@@ -344,10 +371,15 @@ def fit_m1(df, train_pos, test_pos, inner, **_) -> FoldFit:
         search.append({"config": cfg, "inner_val_log_loss": loss, "nonconverged": nonconv})
         if best is None or loss < best[0]:
             best = (loss, cfg, p)
+    del xin, xva, m  # free the inner design before the (larger) full-fold design is built
     temp = fit_temperature(best[2], yva)
+    xtr_all = _xmat(df.iloc[train_pos], cols)
     design = _M1Design(cols).fit(xtr_all)
+    xtr_design = design.transform(xtr_all)
+    del xtr_all
     m = _m1_model(best[1])
-    nonconv = _quiet_fit(m, design.transform(xtr_all), _y(df, train_pos))
+    nonconv = _quiet_fit(m, xtr_design, _y(df, train_pos))
+    del xtr_design
     xte = design.transform(_xmat(df.iloc[test_pos], cols))
     p = _expand_classes(m.classes_, m.predict_proba(xte))
     return FoldFit(
