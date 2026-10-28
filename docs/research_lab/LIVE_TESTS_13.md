@@ -1,18 +1,22 @@
 # Live tests 13 (LT13): the payer's return and the listing batch (CH252, CH253), DRAFT pre-registrations
 
-**Status: DRAFT (first draft, 2026-10-28), for challenger R1. Not frozen, not registered; E-numbers unassigned; nothing
-counted, no code, no seal, no census run.** Drafted on branch `feat/live-tests-13` from the `chore/arepo-claude-setup` tip
-`0d760612`, a design-only commit like the first commits of LT3-LT12. LT13 takes the next free E-numbers at its own
-registration, in the order CH252, CH253 (round 18's rank order). If both tests drop at their census, LT13 is not registered
-(recorded in the ledger; nothing counted). Before registration this needs, in order:
-1. challenger R1 (`science-reviewer`), the designer's response, a re-check, and a final pre-freeze verification;
+**Status: DRAFT (second draft, 2026-10-28: challenger R1 GO_WITH_CHANGES applied, section 12), for the R1 re-check. Not
+frozen, not registered; E-numbers unassigned; nothing counted, no LT13 code, no seal, no census run.** Drafted on branch
+`feat/live-tests-13` from the `chore/arepo-claude-setup` tip `0d760612`, a design-only commit like the first commits of LT3-LT12.
+LT13 takes the next free E-numbers at its own registration, in the order CH252, CH253 (round 18's rank order). If both tests drop
+at their census or are withdrawn before it, LT13 is not registered (recorded in the ledger; nothing counted). Before registration
+this needs, in order (R1 MUST 2 stages the build):
+1. challenger R1 (`science-reviewer`), the designer's response (12), a re-check, the **q0717 fee-reading probe and its declared
+   decision rule (1.4.3, 7.5; R1 MUST 3)**, and a final pre-freeze verification;
 2. the **design-text freeze commit** (1.1), its sha256 recorded in the ledger, before the LT13 seal commit and, planned,
-   before LT12's census job starts (`T_LT12c`, about 2026-11-18);
-3. the code (section 7) with a `science-reviewer` code-freeze check of the census, gate and size-check code against 1.8,
-   1.8.1 and 6, on synthetic data only;
+   before LT12's census job starts (`T_LT12c`, about 2026-11-18); the worlds of 1.8.1 are fully specified in the frozen text;
+3. the **census code only** (6, with the seal and restore helpers it needs), with a `science-reviewer` code-freeze check of it
+   against 1.4, 6 and 1.14 on synthetic data only; **no world, size-check or analysis code is written yet**;
 4. the census inputs' restore and seal (6), each once, after the freeze and after the census span and its lag slots end;
 5. the counts-only census (6), once, which fixes k and every census-fixed value named in 6;
-6. the size check at 2,000 worlds on the code to be pinned (1.8), after the census values are committed;
+6. **only for the tests that survive the census:** the world, size-check, gate and analysis code (7.1), a second code-freeze check
+   that verifies it against the frozen text of 1.7-1.10 and 1.8.1 (the code follows the text; the text is not changed to fit the
+   code), then the size check at 2,000 worlds on the code to be pinned (1.8), after the census values are committed;
 7. a host dry run of the reader with peak RSS measured (7.2);
 8. the embargo entries of section 8 verified in `config.EMBARGO` and `signal_engine/CANDIDATES.md`; `SPEC_SHA256` and
    `code_sha256` pins; the ledger entry (the registration commit) before `T_LT12` and at least 24 h before `REGISTERED_UTC`.
@@ -33,19 +37,28 @@ is still declared before its own census. **The map applied none of LT13's filter
 reading `clob_rewards` non-empty at k instead of `listed_carry24h_v2`, no k + 1 availability, no tick-change rule, no support
 cells), so its counts are upper bounds of the design's population before an unprobed retention factor (planning 0.5, 2.4).
 
-**What the map says about LT13's odds (stated before any design line, and not softened below).** On the map's own numbers
-**each test fails one census line that round 18 itself wrote**:
-- **CH252:** the fee-on unrewarded widening arm, the arm the contrast rests on, has a per-capture **median 15 and mean
-  139.3**: the median capture holds **0.108** of the mean, under round 18's declared non-stationarity kill (median < 25% of
-  the mean). Its pre-filter mean (139.3) at the planning retention 0.5 gives **about 70 units a capture against the count gate
-  of 77** (2.4). Round 18's cell-matched coverage line, read as the round wrote it (fee-free units in cells holding >= 20 fee-on
-  units), measured **0.096** on the map's proxy against 0.60; section 5 item 2 changes the direction of that line [map] and
-  says why, and R1 must rule on it.
-- **CH253:** the pseudo-batch placebo coverage measured **0.755** on the map's reading (same age decile over all eligible
-  rows, created >= 7 days apart, **without** the same-category match rule 21 requires), against rule 21's census gate of
-  **0.90**; the design's stricter rule-21 reading can only lower it. The gate is kept unchanged (10 item 4).
-Unless the census span's populations differ from the map's, **LT13 is expected to register no test**; R1 is asked to rule
-whether to proceed to the freeze at all (10 item 1).
+**What the map says about LT13's odds (stated before any design line, and not softened below; R1 MUST 1).** On the map's own
+numbers **CH252 fails three census lines that round 18 itself wrote, and CH253 fails one**:
+- **CH252, three round-18 lines:** **(1) non-stationarity:** the fee-on unrewarded widening arm, the arm the contrast rests on,
+  has a per-capture **median 15 and mean 139.3**: the median capture holds **0.108** of the mean, under round 18's declared kill
+  (median < 25% of the mean). **(2) "fee-on >= 5x fee-free"** (round 18, `CREATIVE_HYPOTHESES_2026-11-01.md` l. 460): the map's
+  ratio is about **0.008** at the median (15 / 1,857.5). **(3) cell-matched coverage:** read as the round wrote it (fee-free units in
+  cells holding >= 20 fee-on units), **0.096** on the map's proxy against 0.60. Lines (2) and (3) are restated in section 5 items 1-2
+  [map] (direction reversed, reasons given; R1 accepted item 2, with MUST 4); line (1) is kept unchanged and still fails. On LT13's
+  own restated count line, the pre-filter mean (139.3) at the planning retention 0.5 gives **about 70 units a capture against the
+  count gate of 77** (2.4).
+- **CH253, one line:** the pseudo-batch placebo coverage measured **0.755** on the map's reading (same age decile over all
+  eligible rows, created >= 7 days apart, **without** the same-category match rule 21 requires), against rule 21's census gate of
+  **0.90**; the design's stricter rule-21 reading is **expected to lower** it (not proven: the tight rule changes both the decile
+  base and the mate count m; R1 MUST 6). The gate is kept unchanged (10 item 4, R1 MUST 5).
+**The map is not the census (R1).** Round 18 puts its 0.25 and 0.90 lines on the census (the worn LT12 seal or the ordered lane's
+fresh seal); CH261 had no kill criteria (it is a map) and ran on 10-20..10-28 without the design's filters. Neither 0.108 nor 0.755
+is a measured census line, so neither test is recorded `census_dropped` on the map. A withdrawal before the census on the map's
+values is allowed (`AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md` l. 102, 128: stop low-value work) and is labelled
+**`withdrawn_pre_census (map-informed)`** (or, for CH252 under 1.4.3's rule, `withdrawn_pre_census (fee reading unresolved)`),
+never `census_dropped` or "died at line X". Unless the census span's populations differ from the map's, **LT13 is expected to
+register no test**. R1 ruled **GO** (10 item 1) with the staged build (MUST 2) and the q0717 decision rule declared before it
+runs (MUST 3, 1.4.3).
 
 Source ideas: `CREATIVE_HYPOTHESES_2026-11-01.md` (round 18) section 3, ranks 1-2 and their sketches: **CH252** (the payer's
 return) and **CH253** (the listing batch). Rank 3 (CH261) is the map. No third candidate: CH255 is out by the map (median 11
@@ -63,9 +76,10 @@ conventions (`LIVE_TESTS_12.md`, frozen at sha256 `a543db63…2d62d`) unless a l
 - **Family:** one Holm family over the k surviving primaries, one-sided, familywise alpha 0.05, separate from E009-E011, LT2
   (E012-E014), LT3 (E015), LT4 (E022), LT5-LT12, E025 and E026. **Provisional k <= 2.** Each test is killable independently at
   its census; a failed gate drops it before registration (`census_dropped`, uncounted, final in both lanes); a failed coverage
-  check is `census_unavailable (coverage)` (6), re-censusable only in the ordered lane as its own Holm family. `k_tests` is fixed
+  check is `census_unavailable (coverage)` (6), re-censusable only in the ordered lane as its own Holm family. A test withdrawn
+  before the census is `withdrawn_pre_census (<reason>)` (uncounted, final, never `census_dropped`; R1). `k_tests` is fixed
   in the spec at registration. A primary that is unavailable or fails its gate enters Holm with p = 1. No replacement test after
-  a drop.
+  a drop or a withdrawal.
 - **Window (fast lane, 1.1):** whole captures with start in `[REGISTERED_UTC, END_UTC)`, **`REGISTERED_UTC` proposed
   2027-01-21T00:00:00Z** (never earlier; it slides later with LT9's window, never earlier), `END_UTC` = `REGISTERED_UTC` + 21 days
   (proposed **2027-02-11T00:00:00Z**); single analysis on or after `END_UTC` + 36 h (proposed **2027-02-12T12:00:00Z**). Census
@@ -74,9 +88,11 @@ conventions (`LIVE_TESTS_12.md`, frozen at sha256 `a543db63…2d62d`) unless a l
   object is computed); CH252's M1 *informed (E015)* and *informed (E022)* (E015's traded class, about 2026-11-15; E022's S2,
   about 2026-11-17). Lane-dependent labels: 1.1.
 - **Honest survival priors (the designer's judgement after the CH261 map, not measurements; round 18's in brackets).**
-  **CH252 0.08 [0.22]:** two of round 18's own lines fail on the map's numbers (median / mean 0.108 < 0.25; about 70 < 77 a
-  capture at retention 0.5); the census span would need a larger and steadier fee-on unrewarded arm, and the map also shows an
-  unexplained shift in the fee panel against CH251 (1.4.3), which the new fee-reading gates may catch. **CH253 0.10 [0.15]:**
+  **CH252 0.08 [0.22]:** **three** of round 18's own census lines fail on the map's numbers (non-stationarity median / mean 0.108
+  < 0.25; fee-on >= 5x fee-free at about 0.008; cell coverage 0.096 < 0.60; the last two restated in 5 items 1-2), and LT13's
+  restated count line too (about 70 < 77 a capture at retention 0.5); the census span would need a larger and steadier fee-on
+  unrewarded arm, and the map also shows an unexplained shift in the fee panel against CH251 (1.4.3): if q0717 does not explain
+  it, CH252 is withdrawn before the census (1.4.3 rule (b)). **CH253 0.10 [0.15]:**
   the map cleared the round's three named killers (coverage 0.873, VIF 1.001, same-slot correlation 0.059) and the count has
   margin, but the rule-21 placebo coverage gate is expected to fail (0.755 on a coarser reading than the design's). **Expected k
   at census about 0.18; P(no LT13 test) about 0.83** (0.92 x 0.90, treating the fates as independent, which they are not: both
@@ -241,9 +257,24 @@ missing `liquidity` is NaN, excluded, counted.
   11,267 fee-on unrewarded open rows** a capture on an overlapping span (2026-10-13..10-23 against 10-20..10-28). Part of the
   gap is definitional (open rows against complete two-sided units: young fee-on unrewarded books are often one-sided), but a
   fee-free count of complete units almost three times the fee-free open-row count is not explained by any definition here. The
-  cause (a change in how Gamma serves `fees_enabled` / `fee_schedule`, a denominator difference, or the spans) is **unknown**;
-  LT13 does not resolve it and adds the fee-reading gates of 6 (finite class, switch share) and the per-capture prints. A
-  counts-only fee-reading probe before the freeze is recommended (7.5, q0717).
+  cause (a change in how Gamma serves `fees_enabled` / `fee_schedule` / `feeType`, a denominator difference, a category
+  reclassification, or the spans) is **unknown**; LT13 adds the fee-reading gates of 6 (finite class, switch share) and the
+  per-capture prints, and the counts-only probe q0717 runs **before the freeze** (7.5; R1 MUST 3). Hypotheses the probe can
+  separate, all from counts: (i) row against unit definitions (the CH251 open-row cell and the CH261 complete-unit cell are
+  both printed per capture); (ii) the spans (the per-capture series is printed by date and over CH251's span, CH261's covered
+  span and their overlap); (iii) sidecar field semantics changing over time (`fees_enabled` blank / true / false / absent,
+  `fee_schedule` state and text hash, `taker_base_fee`, `ext_version`, by date); (iv) category reclassification (`fee_type` and
+  `fee_category` verbatim by date; a missing `feeType` gives the literal category `unknown`, which the maps' reader counts as
+  non-sports ex-crypto); (v) markets switching fee or category class between captures k - 1 and k.
+- **Declared q0717 decision rule (R1 MUST 3, verbatim; declared before q0717 runs):**
+  (a) q0717 may change only the field reading of 1.4.3 and the census prints, never a threshold (0.25, 77, 5x, 60%/20, 95%, 5%, 0.90).
+  (b) If q0717 does not explain the CH251/CH261 shift with a field-semantics cause that a declared reading rule fixes,
+  CH252 is `withdrawn_pre_census (fee reading unresolved)`.
+  (c) If CH252 is withdrawn, CH253 still goes to census under item 2.
+  Here "item 2" is R1's staging (step 3 of the status block: CH253's census code is written and frozen alone). A reading rule that
+  q0717 motivates is written into this section before the freeze, with its reason, and carries *informed (q0717)*; it may not use
+  any count of widenings, narrowings or spread changes (q0717 holds none). q0717 runs before the 8-day snapshot retention removes
+  more of 2026-10-20..10-21 and prints its covered span; captures already gone stay missing (never restored for it).
 
 ### 1.4.4 The creation batch (CH253; rule 21; pinned by sha256 before any count)
 - **Registry:** every market seen in any sealed capture of the census (or, in the window, any capture the reader has processed
@@ -345,7 +376,10 @@ before the LT13 seal commit, except the header pre-check (headers only) and the 
   above 0.058 it sets the label *analytic p oversized in simulation* (never a verdict change). Criterion <= 0.058.
 - **Diagnostics beside the size check (not criteria):** a planted-effect power run per test (500 worlds; CH252 a 1.0c fee-on
   re-tightening after a widening, world 1's composition kept; CH253 1.0c per census tercile gap of `zs_bt`; seeds `20261797 x 100
-  + 51, 52`); the CH252 permutable share and the CH253 omitted-position share per world.
+  + 51, 52`); the CH252 permutable share and the CH253 omitted-position share per world; **world 1 (S38) also run under the
+  label-permutation gate and its rejection rate reported as a diagnostic (R1 SHOULD 2)**: the gate is not a valid null under
+  composition (fee class is not exchangeable with age), so world 1's criterion stays verdict size and this rate never sets a
+  label or a verdict.
 - **Consequence of a failure:** a failing scenario makes only the test it binds "SE check failed (size scenario)" (gate worlds) or
   "SE check failed (mechanical world)" (verdict-size worlds): p = 1 in Holm, **k unchanged**, no rerun, reseed, redesign or
   variant; `max_retries 1` for a deterministic crash only; no preliminary run at seed 20261797. **Expected:** worlds 1, 3 and 4
@@ -404,13 +438,15 @@ at random unless the world says otherwise; the model is the test's primary with 
   widening over (k + 2, k + 3] (NaN unless two-sided and tight at k + 2 and k + 3, tick unchanged); CH253 `zs_bt` over (k + 2,
   k + 3] for the same batch and mate rule.
 - **Point conditions (binding, fixed now; estimates only, counted 0).** CH252 **(a) narrowing placebo, two-sided:** |b̂_nwFF| <
-  0.5 x b̂_wdFF; **(b) age condition:** the primary refitted with `wd x log age` and `nw x log age` added gives b̂_wdFF(age) >= 0.5 x
-  b̂_wdFF. CH253 **(a) pseudo-batch placebo, two-sided:** the primary with `zs_bt` replaced by `zs_pb` (1.4.4) has |b̂_pb| < 0.5 x
+  0.5 x b̂_wdFF; **(b) age condition:** the primary refitted with `wd x RCS(log age)` and `nw x RCS(log age)` added (the restricted
+  cubic spline of 2.3, knots declared there, none at the 2026-03-30 step; R1 MUST 4) gives b̂_wdFF(age) >= 0.5 x b̂_wdFF. CH253 **(a) pseudo-batch placebo, two-sided:** the primary with `zs_bt` replaced by `zs_pb` (1.4.4) has |b̂_pb| < 0.5 x
   b̂_bt, on the units where the placebo is defined (that set's b̂_bt refitted on it).
 - **Supported (exploratory, prospective):** Holm-adjusted one-sided p < 0.05, estimate > 0, gate passed, F holds, every point
   condition holds. Else, with everything else holding: F fails or unavailable -> **Inconclusive** with *mechanical null not
   excluded* (or *falsification unavailable*); a point condition fails -> **Inconclusive** with *not payer-specific* (CH252 (a)),
-  *age-confounded* (CH252 (b)) or *placebo not null* (CH253).
+  *age-confounded* (CH252 (b)) or *placebo not null* (CH253). **CH252's Supported text** reads "a **fee-on/post-03-30 versus
+  fee-free/pre-03-30 contrast** in re-tightening after a widening", **never "fee effect"** (R1 MUST 4: fee and age are separated
+  only by functional form, 2.3).
 - **Contradicted:** the conservative 95% CI lies entirely below 0. **Inconclusive:** otherwise. **Unavailable:** CH252 < 5,000
   fee-on widening units, < 100 fee-on events with a widening unit, < 20,000 fee-free widening units on support, < 300 fee-free
   events, fee-on `G_eff` < 15, or < 2,500 fee-on narrowing units (the placebo cannot be shown); CH253 < 20,000 units, < 300
@@ -538,15 +574,25 @@ would show the mirror-image difference (a slower book is slow both ways), and th
   rho_on) x size` and `b_nwFF` about `-(rho_ff - rho_on) x size`, so |b_nwFF| ~ b_wdFF and (a) fails, as intended. **Disclosed
   weakness (10 item 3):** a payer whose maker also *stays* longer after a narrowing predicts `b_nwFF > 0`, which (a) also
   rejects; the two-sided form is kept because round 18 wrote it and a one-sided form would loosen it.
-- **Age condition (b):** fee class is a step in `created_at` at 2026-03-30 within every category but geopolitics, so the contrast
-  is old against new markets by the venue's own rule. (b) asks that `b_wdFF` survive at >= half when `wd x log age` and `nw x log
-  age` enter; identification then rests on the step against a smooth age trend. The census prints `VIF_w(wd x FF)` with and
-  without the age terms; a large value warns that (b) will be noisy (print, no gate; 10 item 2).
+- **Age condition (b) (R1 MUST 4):** fee class is a step in `created_at` at 2026-03-30 within every category but geopolitics, so
+  the contrast is old against new markets by the venue's own rule; round 18's age class (before / after 2026-03-30) **is** the fee
+  rule, so exact matching on it is a positivity failure by construction, and fee and age are separated **only by functional
+  form**. (b) asks that `b_wdFF` survive at >= half when `wd x RCS(la)` and `nw x RCS(la)` enter, where `age_k` = capture k's
+  start minus `created_at` in days (floored at 1/24 day), `la = ln(age_k)`, and `RCS` is the restricted cubic spline (Harrell's
+  truncated-power basis, linear beyond the outer knots, nonlinear terms scaled by `(t_5 - t_1)^2`; 4 basis terms) with **5 knots
+  declared now at ln of 1, 7, 30, 120 and 720 days**. **No knot sits at the 03-30 step:** markets created on 2026-03-30 are 222-232
+  days old over the census span and 297-318 days old over the window, both strictly inside (120, 720), so the spline is one
+  smooth cubic across the step and cannot absorb it. The census prints `VIF_w(wd x FF)` with and without the spline terms; a
+  large value warns that (b) will be noisy (print, no gate; 10 item 2).
+- **Wording:** a Supported CH252 reads "**fee-on/post-03-30 versus fee-free/pre-03-30 contrast**", never "fee effect" (1.9).
 - **Secondaries (reported, uncounted):** M1 traded widenings only (`volume_num` change > 0 at (k - 1, k]; `unknown` a class;
   *informed (E015)*, *informed (E022)*); M2 the rewarded panel's contrast (*informed (LT9)* if after `T_LT9`); M3 the contrast by
   `|p_k - 0.5|` tercile (the rebate's dose: expected largest in the central tercile); M4 the deployment-date neighbourhood (markets
-  created within +/- 60 days of 2026-03-30, geopolitics excluded); M5 the doc-rule fee class (1.4.3); the feed-agreement refit; the
-  per-capture distribution of fee-on widening units.
+  created within +/- 60 days of 2026-03-30, geopolitics excluded); M5 the doc-rule fee class (1.4.3); **M6 (R1 MUST 4) the
+  geopolitics-young versus fee-on-young contrast:** the primary model on units of markets created on or after 2026-03-30 only, with
+  `FF` = 1 for sidecar-geopolitics markets (fee-free by the venue's rule at any age, 1.4.3's `doc_class`) and 0 for fee-on markets,
+  so fee is not a step in age inside it; category is then confounded with fee (disclosed; never binding); the feed-agreement refit;
+  the per-capture distribution of fee-on widening units.
 
 ### 2.4 Planning counts and MDE (planning only; the map counted the population, never an effect)
 - **Counts (CH261, per capture, non-sports ex-crypto, simple reward reading, no tight rule):** fee-on unrewarded widenings
@@ -572,15 +618,19 @@ would show the mirror-image difference (a slower book is slow both ways), and th
   (**21.0 fee-on widening units a capture**, post-filter), 7,748 at DE 11 (**38.4**), 21,836 at DE 31 (108.3). **Count gate 77 a
   capture** (19,404 projected; twice the line at DE 11, LT9-LT12 practice). The MDE gates decide with the census's own DE, `VIF_w`
   and `r_gate`.
-- **Against the map (said plainly):** pre-filter mean 139.3 at retention 0.5 gives about **70 < 77**; a retention >= 0.55 would
-  clear it; no retention clears it on the median capture. The non-stationarity line (median >= 0.25 x mean) failed on the map at
-  **0.108**. **These two lines are the census lines expected to drop CH252.**
+- **Against the map (said plainly; R1 MUST 1):** pre-filter mean 139.3 at retention 0.5 gives about **70 < 77**; a retention >= 0.55
+  would clear it; no retention clears it on the median capture. On the map, CH252 fails **three of round 18's census lines**: the
+  non-stationarity line (median >= 0.25 x mean) at **0.108**; round 18's "fee-on >= 5x fee-free" at about **0.008** (median 15 /
+  1,857.5); round 18's cell-matched coverage at **0.096** (< 0.60). The last two are restated in 5 items 1-2 [map]; the first is
+  unchanged. **The non-stationarity line and the count line are the census lines expected to drop CH252**; the map's values are
+  not census values (the map is not the census, top of file).
 
 ### 2.5 Confounders and how each is held
 - *Composition: old, large, slow fee-free books* (S38): support cells, `wd x` cell interactions, the narrowing placebo (a), the age
   condition (b), world 1 (verdict size).
-- *Fee class is a step in age* (the venue's rule): (b), M4 (the deployment-date neighbourhood), disclosed as the identification
-  limit; no cell can separate fee from age except near 2026-03-30.
+- *Fee class is a step in age* (the venue's rule): (b) with the restricted cubic spline in log age (no knot at the step), M4 (the
+  deployment-date neighbourhood), M6 (geopolitics-young against fee-on-young), the Supported wording of 1.9; disclosed as the
+  identification limit: fee and age are separated only by functional form; no cell can separate them except near 2026-03-30.
 - *The one-tick floor* (world 3): `wd x spread_{k-1}`, `nw x spread_{k-1}`, the size terms.
 - *A lumpy thin arm* (median 15, mean 139): the non-stationarity gate, the venue-clock gate, the capture fixed-effect sensitivity,
   world 4 (gate).
@@ -631,7 +681,7 @@ names carries spread information across events, beyond the category's own moveme
 - **Counts (CH261, per capture):** primary units (>= 2 complete cross-event mates, cap 30, no tight rule) **median 2,965, mean
   2,957.2, min 2,797** (stationary: median / mean 1.003); eligible rows in a cross-event batch of >= 3: **0.873**; same-slot
   correlation of the own and the mates' mean innovation **0.059** (n 266,149); mates against category non-mates **0.035** (VIF
-  1.001); pseudo-batch coverage **0.755** (map reading, 1.4.4 differs). Planning retention 0.5 (unprobed): `n_eff` = 2,965 x 252 x
+  1.001); pseudo-batch coverage **0.755** (map reading: no category match, 1.4.4 differs). Planning retention 0.5 (unprobed): `n_eff` = 2,965 x 252 x
   0.5 x 0.8 = **298,872**.
 - **Design effect:** cluster = batch; a batch of 31 members over 21 days at retention 0.5 holds 3,906 units, so the formula gives
   `1 + 3,905 x 0.02` = **79**; 31 (round 18's convention for events capped at 10 members) and 51 (round 18's formula value for a
@@ -644,9 +694,16 @@ names carries spread information across events, beyond the category's own moveme
 - **Kill line (F-MDE <= 1.0c):** `n_eff >= 1,704.6 x DE`: 262 units a capture at DE 31, 431 at DE 51, 668 at DE 79. **Count gate
   862 a capture** (217,224 projected; twice the line at DE 51). Map: 2,965 x 0.5 = 1,482, margin about 1.7.
 - **Against the map (said plainly):** power is not the question. The **placebo coverage gate (0.90)** is: the map's 0.755 used
-  the age decile over all eligible rows and no category match, and rule 21's pseudo-batch adds the category match, which can only
-  lower coverage. The structural reason is visible in advance: in the youngest age decile few markets were created >= 7 days apart
-  from a young unit, and batches are young. **This is the census line expected to drop CH253.**
+  the age decile over the capture's complete eligible units and no category match (`population_map_ch261.py` l. 474-480), and rule
+  21's pseudo-batch adds the category match, which is **expected to lower** coverage. This is not proven (R1 MUST 6): the design's
+  tight rule changes both the decile base and the mate count m, which can move coverage either way. The structural reason is
+  visible in advance: in the youngest age decile few markets were created >= 7 days apart from a young unit, and batches are
+  young. **This is the census line expected to drop CH253.** It is not changed (R1 MUST 5): no nearby-batch placebo, and the cap
+  stays 30 cross-event mates; a cap of 10 would raise placebo coverage by lowering m, a loosening made after the map.
+- **Round 18's own cap inconsistency (disclosed, R1 MUST 5):** round 18 caps cross-event mates at **30** in CH253's sketch and its
+  design lines (`CREATIVE_HYPOTHESES_2026-11-01.md` l. 507, 941) but writes **cap 10 for the primary** (DE 31; 11-30 a reported arm
+  at DE 51) in its power and DE lines (l. 532, 952). LT13 keeps **cap 30** (the cap the sketch and the map used); the DE lines
+  quote 31, 51 and the formula's 79 (above).
 
 ### 3.5 Confounders and how each is held
 - *The batch is the category* (S41): `cbar_{c,k}` as a control, `VIF_w` gate, world 7.
@@ -677,7 +734,9 @@ Items marked **[map]** were made after reading the CH261 map.
    >= 5x fee-free. The map found the reverse (fee-on median 15, mean 139.3; fee-free median 1,857.5). The count gate is now on the
    fee-on arm (77 a capture, twice its own F line at DE 11), fee-free must be >= 5x fee-on, and round 18's non-stationarity line
    (median >= 25% of mean) is kept unchanged on both arms. Nothing is loosened: round 18's line 40 was on the arm that turned out
-   large; the new fee-on line is stricter than any line round 18 put on fee-on.
+   large; the new fee-on line is stricter than any line round 18 put on fee-on. **Disclosed (R1 MUST 1):** on the map, round 18's
+   own "fee-on >= 5x fee-free" fails at about 0.008 (median 15 / 1,857.5); this item restates it, so the failure is recorded here,
+   not hidden (MUST 1 wording applied at the top, in 0 and in 11).
 2. **CH252: support cells defined from the scarce arm, age removed from the cells [map; the riskiest change in this draft].**
    Round 18 required >= 60% of **fee-free** widening units in a tier x category x age cell holding >= 20 **fee-on** widening units;
    the map's proxy (category x age, no tier) measured 0.096. Two reasons for the change, both written before any census: **(i)** a
@@ -687,13 +746,18 @@ Items marked **[map]** were made after reading the CH261 map.
    identified from fee-reading errors, not from the fee. Age therefore leaves the cells and enters the binding age condition (1.9
    (b)), M4 and world 1. The new gate (>= 60% of **fee-on** widening units in tier x tick x category cells holding >= 20 fee-free
    widening units) keeps round 18's 60% and 20. **This change turns a line the map says would fail into one it does not measure; if
-   R1 rejects it, round 18's direction stands and CH252 is expected to drop on it.**
+   R1 rejects it, round 18's direction stands and CH252 is expected to drop on it.** **R1: accepted, with MUST 4** (ruling 10.2;
+   the spline age condition, the Supported wording and M6; item 4). Round 18's own line in its own direction measured 0.096 on the
+   map (disclosed, MUST 1).
 3. **CH252: one model with widenings and narrowings, and "same widening" interactions.** Round 18 stated two contrasts (`wd`,
    `nw`); one model with both indicators and their `FF` interactions makes the unchanged-spread units the common reference and
    puts the placebo in the same fit; `wsz`, `wd x spread_{k-1}`, tick, tier and category interactions make "after the same
    widening" explicit.
 4. **CH252: a binding age condition (new).** Written because of item 2(ii): with fee a step in age, the narrowing placebo alone does
    not hold an age-specific reversion that is asymmetric; (b) is a point condition, estimate only, like LT12's dense-twin condition.
+   **Amended by R1 MUST 4:** (b) uses a restricted cubic spline in log age with 5 knots declared now (2.3; none at the 03-30 step)
+   instead of a linear `log age` term; the Supported text reads "fee-on/post-03-30 versus fee-free/pre-03-30 contrast", never "fee
+   effect" (1.9); M6 (geopolitics-young against fee-on-young) added as a reported secondary (2.3).
 5. **CH252: the event-level label-permutation gate (new); the within-market Freedman-Lane gate printed only.** Rule 20 says the
    within-market null tests only the within-market term; LT13 adds a gate on the term actually tested, for the reason in 1.8.
 6. **CH252: fee class day-fixed with a switch gate, and the doc rule printed [map].** 1.4.3: the unexplained CH251 / CH261 fee panel
@@ -706,6 +770,13 @@ Items marked **[map]** were made after reading the CH261 map.
 9. **CH253: mates of any non-crypto category; batch key and registry stated.** The map chained over all categories; the quoter set
    is the batch's; the non-sports-mates-only refit is a label.
 10. **CH253: DE 79 added beside 31 and 51 [map: the cap 30 the map used].** The formula at a 31-member batch gives 79; quoted.
+    **R1 (MUST 5, ruling 10.8): cap 30 kept.** Round 18's own cap inconsistency (cap 30 at l. 507 / 941 against cap 10 for the
+    primary at l. 532 / 952) is disclosed in 3.4; cap 10 would raise placebo coverage by lowering m, a loosening after the map.
+11. **CH253: no placebo change (R1 MUST 5, ruling 10.4).** The nearby-batch placebo of 10 item 4 is rejected (a map-informed change
+    to a rule-21 line after it failed); rule 21's pseudo-batch and its 0.90 coverage gate stand verbatim.
+12. **Staged build (R1 MUST 2).** Census code first and frozen alone; world, size-check, gate and analysis code only for tests that
+    survive the census (status block steps 3-6, 7.1, 7.4). The worlds stay fully specified in 1.8.1 at the freeze; the second code
+    check verifies the code against that text.
 
 ## 6. Pre-registration census (counts only; before registration; worn pre-window data; no target read)
 The census runs once, reads origin-side fields only (the only later-slot quantities are the twins' states, for `r_gate`, through
@@ -743,26 +814,40 @@ captures with a previous capture, zeros included.
 | **CH253** | the batch join's code sha256 pinned in the seal before the count; **coverage:** >= 20% of eligible non-sports ex-crypto rows (1.4 at k) in a cross-event batch of >= 3; **completeness:** complete-member share pooled over batch-captures with an eligible member >= 60%; **projected units >= 217,224 (>= 862 a capture)**; **batches with a unit >= 500 and batches with >= 48 units >= 100** (unprojected); **Kish `G_eff` (batch) >= 15**; **same-slot:** among batches with >= 24 units, the share with within-batch `|corr(own innovation, mbar)|` >= 0.8 is <= 50%; **identification (LT12 form):** >= 50% of units in batch x UTC-day strata where the raw `mbar` is non-zero on >= 3 units; the top 1% of units by |demeaned `zs_bt`| hold <= 25% of its sum of squares and no batch holds > 5%; `VIF_w(zs_bt)` <= 2.0 against `cbar` and the own innovation (demeaned regressors); within and pooled `|corr(zs_bt, x)|` <= 0.5 for x in {`log1p liquidity`, `z log rv24`, `d_i`}; **placebo coverage (rule 21) >= 90% of units**; block-gate share >= 50% (units in batches with >= 16 shiftable captures); venue clock <= 50% of units with `|zs_bt|` >= 1 in one slot-of-day; `r_gate` <= 0.3; **slope MDE <= 1.0c; F-MDE <= 1.0c** | units 2,965 a capture (no tight rule); coverage 0.873; same-slot 0.059 pooled; VIF 1.001; **placebo coverage 0.755 on a looser reading (expected to fail)**; completeness, batches with units, identification unprobed | `s_bt`, `s_w`, `zs_bt` tercile cuts and gap, world 8's receipt-gap q50 / q90, `rho_census`, `exclude_family` |
 
 - **Census-fixed values (exhaustive; each the exact census float).** (1) `k_tests`, `dropped_tests`, `census_unavailable`
-  (mutually exclusive). (2) `support_cells`. (3) CH252 world inputs: `M_on`; tick shares, category shares and the q10..q90
-  `spread_{k-1}` quantiles (ticks) of widening units, by panel; the fee-on per-capture median / mean ratio. (4) `s_bt`: population
+  and `withdrawn_pre_census` (mutually exclusive). (2) `support_cells`. (3) CH252 world inputs: `M_on`; tick shares, category
+  shares and the q10..q90 `spread_{k-1}` quantiles (ticks) of widening units, by panel; the fee-on per-capture median / mean ratio. (4) `s_bt`: population
   SD (ddof 0, cents) of `mbar_i` over census units. (5) `s_w`: population SD of the expanding-past batch x UTC-day demeaned `zs_bt`.
   (6) `zs_bt` tercile cuts (1/3, 2/3 quantiles) and the gap (top-tercile mean minus bottom-tercile mean). (7) World 8's receipt gaps:
   q50 and q90 of `|received_utc_i - received_utc_j|` at k over census unit-mate pairs (floor q50 5 s). (8) `rho_census`: the pooled
   Pearson correlation of the own innovation and `mbar_i`, both over (k - 1, k], over census units; NaN on zero variance. (9)
   `<test>.exclude_family`. The census's `DE_gate`, `VIF_w`, `r_gate`, feed shares and MDEs are gate values, recorded, never re-used to
   change a threshold.
+- **Non-stationarity "each cell" (R1 SHOULD 1; round 18, `CREATIVE_HYPOTHESES_2026-11-01.md` l. 466-467).** The kill (median <
+  0.25 x mean) binds on the two cells CH252's contrast uses: fee-on unrewarded and fee-free unrewarded widening units (all 2.2
+  filters, on support). The **rewarded cells** (fee-on rewarded, fee-free rewarded) are **print-only** (per-capture min / median /
+  mean): they are outside CH252's population (unrewarded only, 2.2) and enter only the M2 secondary, which carries no verdict, so a
+  kill on them would drop the test for a population its primary never reads. The fee-class `unknown` cell is printed too.
 - **Census prints (descriptive, no further gate).** CH252: the per-capture table of eligible non-sports ex-crypto rows by fee class x
-  `fee_src` x carry status x {open, two-sided, tight, complete} (the CH251 / CH261 discrepancy, 1.4.3); the sidecar-against-doc
+  `fee_src` x carry status x {open, two-sided, tight, complete} (the CH251 / CH261 discrepancy, 1.4.3; extended by any print q0717
+  motivates under 1.4.3 rule (a)); the sidecar-against-doc
   fee confusion; the carry-against-simple reward confusion and the 1.4.1 case counts; `fee_switched` and `status_switched` by class;
   the top-5 captures' share of fee-on widening units; `VIF_w(wd x FF)` with the age terms; the narrowing counts by panel; the
   off-support counts; the within-market Freedman-Lane gate is not run (no target). CH253: batch-size distribution, cross-event share,
   `batch_incomplete`, `receipt_span`, `placebo_none` by age decile, units by batch age (genesis share), the > 30 mates arm, the sports
   arm, sports-mate share; the overlap of CH252 and CH253 units.
 - **Order:** one census job (CC13) streams the captures once and evaluates the two blocks independently.
-- **Expected fates (declared now).** CH252: the non-stationarity line and the fee-on count decide; then support coverage, the fee
-  switch share and fee-on events. CH253: placebo coverage decides; then completeness and identification.
+- **Expected fates (declared now).** CH252: withdrawn before the census if q0717 leaves the fee shift unexplained (1.4.3 rule (b));
+  else the non-stationarity line and the fee-on count decide; then support coverage, the fee switch share and fee-on events.
+  CH253 (censused even if CH252 is withdrawn, 1.4.3 rule (c)): placebo coverage decides; then completeness and identification.
 
-## 7. Implementation plan and queue drafts (no code in this commit)
+## 7. Implementation plan and queue drafts (no LT13 code yet; the q0717 probe is written, 7.5)
+
+**Build order (R1 MUST 2).** Stage A, before the census: `live_tests13_base.py` (the vendored pieces the census uses),
+the census, seal and restore paths of `live_tests13.py` and `run_live_tests13.py` (`seal`, `census`), their tests, and a
+code-freeze check of that code alone. Stage B, only for the tests in `k_tests` after the census: the unit builders and reader,
+`live_tests13_worlds.py`, `live_tests13_analysis.py`, `size-check`, `reader`, `backfill-series`, `ops-stats`, `analyze`, their tests,
+and a second code-freeze check that verifies the code against the frozen text (1.7-1.10, 1.8.1); a world or gate for a dropped or
+withdrawn test is never written. If no test survives, stage B is not written.
 
 ### 7.1 Modules to be written
 - `backend/astrolabe/research_lab/live_tests13_base.py`: vendored, hash-pinned copies of `move_join`, `classify`, the slot grid,
@@ -802,7 +887,8 @@ refused); **every drift world draws its drift per cluster, and a placebo partner
 and its partner's drift over > 200 pairs); worlds generate clusters with `n < 16`; world 10's bisection and its failure rule; the
 verdict-size worlds aggregate the analytic rate and set the label above 0.058; untestable worlds counted per scenario; the lag guard's
 72 h alert; the one-shot restore (byte-identical only, once per capture, never a second time, a final non-complete capture missing);
-`ops-stats` reads no price, spread, volume or liquidity column; the spec's three lists mutually exclusive; `analyze` refuses without
+`ops-stats` reads no price, spread, volume or liquidity column; the spec's four lists (`k_tests`, `dropped_tests`,
+`census_unavailable`, `withdrawn_pre_census`) mutually exclusive; `analyze` refuses without
 `--out`, before its date and on an existing `--out`; no test uses seed 20261797 (an AST and run-time guard, as LT12);
 `test_pinned_files_hash_to_the_pins` (E026) stays green.
 
@@ -810,13 +896,16 @@ verdict-size worlds aggregate the analytic rate and set the label above 0.058; u
 1. R1, response, re-check, final pre-freeze verification.
 2. **Design-text freeze commit**, sha256 in the ledger, planned by **2026-11-14** (before `T_LT12c` about 11-18 and before the LT13
    seal); the embargo requests of 8 filed in `signal_engine/CANDIDATES.md` in the same session.
-3. Code (7.1, 7.3); a `science-reviewer` code-freeze check of census, gates and size-check code; size-check run time per world measured
-   at a timing seed other than 20261797 and projected; if census commit + projected run + 24 h + the dry run cannot precede
-   2026-12-28T00:00Z, the ordered lane is declared by a ledger line before the seal.
+3. **Stage A code** (census, seal, restore; 7 build order); a `science-reviewer` code-freeze check of it on synthetic data. A
+   timing estimate of the size check per world (from 1.8.1's text, at a timing seed other than 20261797) is projected; if census
+   commit + projected stage B + run + 24 h + the dry run cannot precede 2026-12-28T00:00Z, the ordered lane is declared by a ledger
+   line before the seal.
 4. q0720 restore and q0721 seal (not before 2026-11-17T09:00Z, after LT12's q0712 census finished); seal committed and pulled on the
    host.
-5. Census q0722 (once); `census_dropped` and `census_unavailable (coverage)` recorded separately; census-fixed values filled.
-6. Size check q0723 (2,000 worlds x 200 draws, seed 20261797), once; results per test; power runs reported.
+5. Census q0722 (once); `census_dropped`, `census_unavailable (coverage)` and any `withdrawn_pre_census` recorded separately;
+   census-fixed values filled.
+6. **Stage B code for the surviving tests only**, its code-freeze check against the frozen text; then size check q0723 (2,000 worlds
+   x 200 draws, seed 20261797), once; results per test; power runs reported.
 7. Reader freeze check; host dry run following 7.2's ladder (on non-window captures).
 8. Embargo entries verified (a missing entry blocks the pin); tokens of dropped tests withdrawn with a ledger line.
 9. Pins `SPEC_SHA256`, `code_sha256`, `code_check`; E-numbers assigned; the ledger entry is the registration commit, **before
@@ -825,19 +914,19 @@ verdict-size worlds aggregate the analytic rate and set the label above 0.058; u
     REGISTERED_UTC - 24 h]` (= [2027-01-18T00:00Z, 2027-01-20T00:00Z]); `pinned: true` and `nothing_new` verified; q0725 queued with
     `not_before` 2027-02-12T12:00Z.
 
-**Timetable (fast lane, planning):** R1 by 11-02; response and re-check by 11-08; final verification and freeze by 11-14; code and its
-check 11-14..11-26; restore and seal from 11-17T09Z (after LT12's census); census 11-27..11-29; size check by 12-08; reader check and
-dry run by 12-20; embargo verification and pin by 12-28 (before `T_LT12`); window 2027-01-21..02-11; analysis on or after
-2027-02-12T12:00Z.
+**Timetable (fast lane, planning):** R1 done 10-28; q0717 at once (retention); response and re-check by 11-08; final verification
+and freeze by 11-14; stage A code and its check 11-14..11-22; restore and seal from 11-17T09Z (after LT12's census); census
+11-23..11-25; stage B code and its check for the survivors 11-25..12-03; size check by 12-10; reader check and dry run by 12-20;
+embargo verification and pin by 12-28 (before `T_LT12`); window 2027-01-21..02-11; analysis on or after 2027-02-12T12:00Z.
 
-### 7.5 Queue drafts (ids q0717 and q0720-q0725 checked unused on 2026-10-28; none written under `queue/` in this commit)
+### 7.5 Queue drafts (ids q0717 and q0720-q0725 checked unused on 2026-10-28; only q0717 is written under `queue/jobs/`)
 Every job: DRAFT, counts 0 except q0725 (the single counted trials line, kind `live_tests13`); promoted only after the step named;
 never while E015's, E022's or any LT9-LT12 census, size check or analysis runs (memory-heavy-jobs rule); `--data-dumps-cap-gb 50`
 where the runner accepts it; restore, seal and census run once each, `max_retries 1` for a deterministic crash only.
 
 | Id | Lane, mem, disk | `not_before` / `depends_on` | What it does |
 |---|---|---|---|
-| `q0717_ch261b_fee_reading_probe` (optional, recommended before the freeze) | cpu, 400 MB | after R1; host captures still present (2026-10-20 onward) | counts only, k = 0: per capture, eligible non-sports ex-crypto rows by fee class x `fee_src` x simple reward reading x {open, two-sided, tight, complete}; `fees_enabled` / `fee_schedule` value shapes; fee-class switches per market-day; the fee-on unrewarded widening count by capture with each capture's top categories; reads captures k - 1 and k only, never k + 1; resolves 1.4.3's discrepancy before the gates are frozen (*informed (CH261b)* on every gate it informs) |
+| `q0717_lt13_fee_probe` (**required before the freeze**, R1 MUST 3; spec `queue/jobs/q0717_lt13_fee_probe.json`, code `lt13_fee_probe.py` / `run_lt13_fee_probe.py`) | cpu, `mem_mb` 450 (start-blackout exempt), `as_cap` 4,000, priority 65 | at once: the 8-day retention keeps deleting 2026-10-20..10-21 | counts only, k = 0, uncounted: per capture over the captures still on the host for [2026-10-13, 2026-10-28) (prints its covered span; captures whose rows are gone are counted missing, never restored), the raw sidecar fields (`fees_enabled`, `fee_schedule` state and sha256, `taker_base_fee`, `fee_type`, `fee_category`, `clob_rewards` non-empty, age class, `ext_version`) cross-tabbed by CH251's open-row cell, two-sided rows and CH261's complete-unit cell, by fee class x `fee_src` x reward x category, per capture and per date; fee / category class changes against k - 1; reads captures k - 1 and k only, never k + 1; no spread or price change, no target. **Decision rule declared in 1.4.3 (R1 MUST 3 (a)-(c), verbatim in the spec's notes).** *informed (q0717)* on every reading rule it motivates |
 | `q0720_lt13_census_restore` | net, 400 MB, about 1,400 MB disk | 2026-11-17T09:00Z; the LT13 freeze; LT12's q0710-q0712 done | byte-identical restore of the census inputs (6) the host no longer holds; accepts q0710's restored copies after a catalogue sha256 check; bytes measured first, exit 3 "STOP AND ASK THE OWNER" if bytes + 1 GiB exceed free disk; the lag-slot rule of 1.14 |
 | `q0721_lt13_seal` | net, 300 MB | q0720 | file list, sha256s, slot assignment, design-text sha256; committed before q0722 |
 | `q0722_lt13_census` | cpu, 750 MB (exclusive if the dry run measures more) | q0721; code-freeze check accepted | CC13 (6), once |
@@ -875,7 +964,10 @@ analysis commit). Filed in `CANDIDATES.md` at the freeze, applied before the reg
   `EXECUTION_COSTS.md` (formula sources), `scripts/oracle/archive_retention.json`, `EXPERIMENT_LEDGER.md` (the CH261 entries),
   `lab_dashboard/registry.json` (the LT12 entry's shape), queue drafts q0710 and q0714, and the code of `population_map_ch261.py`
   and `population_map_ch251.fee_class` (definitions only). No host, network, `ssh`, `data-dumps`, evidence JSON, census output,
-  prediction, target or P&L.
+  prediction, target or P&L. **Second draft (R1 response) additionally read:** `reviews/LT13_CHALLENGER_R1_2026-10-28.md`,
+  `population_map_ch251.py` and `population_map_ch261.py` (whole), the CH240 map's readers, `ext_sidecar.py` and
+  `pairing.fee_category` (definitions only), `CREATIVE_HYPOTHESES_2026-11-01.md` l. 396-397, 460, 466-467, 507, 532, 941, 952, and
+  `AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md` l. 102, 128. Still no host, network, `data-dumps` or evidence read.
 - **The CH261 map** counted populations on captures 2026-10-20..10-28 (k - 1 and k only); seen before every gate here (9.1). It
   probed none of: the tight-rule retention, the carry reading's effect, k + 1 availability, support cells under the new rule, fee
   switches, fee-on events, CH253's completeness, batches with units, identification, or the rule-21 placebo coverage.
@@ -899,37 +991,53 @@ analysis commit). Filed in `CANDIDATES.md` at the freeze, applied before the reg
 | World 10 floor `rho_ss >= 0.10`; bisection [0, 10], 0.005, 40 steps, seed `x 100 + 61` | 1.8.1 | LT12 re-check fix 2 form; 0.10 above the map's 0.059 | **yes** |
 | Planning retention 0.5 | 2.4, 3.4 | designer's planning value | no (unprobed) |
 | Seed 20261797; q0717, q0720-q0725 | 1.8, 7.5 | unused values (git grep, 2026-10-28) | no |
+| CH252 age condition: restricted cubic spline in ln(age days), 5 knots at 1, 7, 30, 120, 720 days | 2.3, 1.9 | R1 MUST 4; knots at round ages spanning the planning age range, none inside (120, 720) where the 03-30 step lies (222-318 days) | no (the map holds no age-by-effect count) |
+| q0717 decision rule (a)-(c) | 1.4.3, 7.5 | R1 MUST 3, verbatim | yes (the CH251 / CH261 shift) |
 | Lag guard 72 h; reader cron `45 */2` | 1.14, 7.2 | 5 days of margin before the 8-day deletion | no |
 
 ## 10. Design-ambiguity items for the challenger (R1), the riskiest first
+R1's ruling follows each item (**R1:**); the response is section 12.
 1. **Go / no-go.** On the map, each test fails one of round 18's own census lines (CH252 0.108 < 0.25; CH253 0.755 < 0.90 on a
    looser reading). P(no test) about 0.83. Should LT13 proceed to the freeze and a census (cost: code, a restore, a census, a size check;
    value: a recorded census on fresh data), or should CH252 and CH253 go engine-first now (`payreturn` and `batch` as aux families after
    a recorded drop)? The designer's recommendation: run q0717 first; if it confirms the fee-on arm's lumpiness and the CH251 / CH261
    shift, record CH252 as dropped on the map without a census, and decide CH253 by R1's ruling on item 4.
+   **R1: GO, with MUST 2 (staged build) and MUST 3 (q0717's decision rule declared before it runs).** A map-based "drop" would be a
+   mis-record: the map is not the census; a value-based withdrawal is `withdrawn_pre_census (map-informed)` (top of file, 1.4.3).
 2. **CH252's support cells (5 item 2).** Is reversing the matching direction and removing age from the cells a correction of a premise
    or a change that turns a failing line into an unmeasured one? Is the age condition (1.9 (b)) an adequate guard when fee is a step in
    age (VIF printed only)? Should the deployment-date neighbourhood (M4) be the primary instead, accepting that it is underpowered?
+   **R1: accepted with MUST 4** (spline age condition with declared knots, none at the step; "fee-on/post-03-30 versus
+   fee-free/pre-03-30 contrast" wording; M6). Applied in 2.3, 1.9, 2.5, 5 items 2 and 4.
 3. **CH252's narrowing placebo.** The two-sided form rejects the composition story (|b_nwFF| ~ b_wdFF) but also a payer whose maker
    stays longer after a narrowing (b_nwFF > 0). Keep two-sided (designer), or rule a one-sided `b_nwFF > -0.5 x b_wdFF` with a written
    justification (a loosening)?
+   **R1: keep two-sided** (LT12 R1 MUST 5). Unchanged.
 4. **CH253's placebo coverage.** Rule 21's pseudo-batch is nearly infeasible for the youngest age decile by construction (few markets
    created >= 7 days apart within it). The designer keeps rule 21 and its 90% gate verbatim. An alternative R1 may rule on: a
    **nearby-batch placebo** (same category, created within +/- 7 days but in a different batch and event), which is *closer* to the
    treatment (it shares the listing week) and so harder to pass as a placebo, but has higher coverage. The designer does not adopt it:
    it would change a rule-21 line after the map showed the line fails.
+   **R1: rejected (MUST 5).** No placebo change; 3.4 and 5 item 11.
 5. **CH252's gate.** Is the event-level fee-label permutation within category x tick strata a valid and useful gate for a panel
    contrast (rule 20), given that fee class is not exchangeable with age? Should the within-market Freedman-Lane gate bind instead or
    as well?
+   **R1: acceptable as an extra binding gate; the Freedman-Lane gate printed.** Unchanged (1.8); world 1 under this gate is a
+   reported diagnostic (SHOULD 2).
 6. **The fee reading (1.4.3).** Are the day-fixed class, the 5% switch gate and the 95% finite-class gate the right response to an
    unexplained shift in the fee panel, or should the doc rule (category, deployment date) be the primary reading?
+   **R1: sidecar primary, contingent on MUST 3** (1.4.3's decision rule; CH252 withdrawn if the shift stays unexplained).
 7. **The census span.** LT13 re-seals LT12's census span `[11-07, 11-17)` (round 18's proposal; label *informed (LT12 census span)*).
    Acceptable, or must LT13 wait for the ordered lane's fresh seal?
+   **R1: acceptable; freeze before `T_LT12c`, else *informed (LT12 census)*.** Kept; the freeze is planned by 11-14 (7.4).
 8. **CH253's DE and cap.** Cap 30 cross-event mates with DE up to 79 (the formula), against round 18's primary cap 10 (DE 31). The
    designer keeps the map's cap 30 because the map counted it; a cap 10 would shrink units by an unmeasured share.
+   **R1: cap 30 (MUST 5).** Round 18's own cap inconsistency disclosed (3.4, 5 item 10).
 9. **CH253's sports mates** (1.4.4): mates of any non-crypto category, with a label. Or non-sports mates only in the primary?
+   **R1: acceptable with the label.** Unchanged.
 10. **Planning retention 0.5** (unprobed) decides CH252's count line at the margin (70 against 77). Is the line fair at a value nobody
     has measured? (It is a planning number only; the census decides.)
+    **R1: planning only; the census decides.** Unchanged.
 
 ## 11. Proposed registry entry and draft ledger block (DRAFT; not applied)
 **`docs/research_lab/lab_dashboard/registry.json`, `live_tests` (proposed, not applied):**
@@ -944,7 +1052,7 @@ analysis commit). Filed in `CANDIDATES.md` at the freeze, applied before the reg
  "status": "waiting",
  "verdict": "pending",
  "effect": null,
- "next": "Challenger review of the draft; optional fee-reading count first; counting checks on 7-17 Nov data; collection proposed 21 Jan - 11 Feb 2027",
+ "next": "Fee-reading count (q0717) now; challenger re-check of the second draft; counting checks on 7-17 Nov data; collection proposed 21 Jan - 11 Feb 2027",
  "next_date": "2027-01-21",
  "candidate": false,
  "sources": {"verdict": "docs/research_lab/LIVE_TESTS_13.md (DRAFT)"},
@@ -962,9 +1070,32 @@ analysis commit). Filed in `CANDIDATES.md` at the freeze, applied before the reg
   spread innovation -> own next spread change; rule-21 pseudo-batch placebo; batch state-shift gate). F binds for both.
 - Planning MDE: CH252 1.07c / 0.37c at DE 6 (thin fee-on arm 15 / 139.3 a capture, retention 0.5), F 1.69c / 0.59c; CH253
   0.27c-0.43c at DE 31-79, F 0.42c-0.67c. Count gates 77 (fee-on) and 862 a capture.
-- On CH261's numbers each test fails one round-18 census line (CH252 median/mean 0.108 < 0.25; CH253 placebo coverage 0.755
-  < 0.90 on a looser reading); designer's odds 0.08 / 0.10, P(no test) about 0.83. CH251/CH261 fee-panel shift unexplained
-  (q0717 probe recommended). Census on LT12's worn span [11-07, 11-17); window 2027-01-21..02-11 (fast lane, pin before
+- On CH261's numbers CH252 fails three round-18 census lines (non-stationarity median/mean 0.108 < 0.25; fee-on >= 5x
+  fee-free at about 0.008; cell coverage 0.096 < 0.60; the last two restated in 5 items 1-2) and LT13's restated count line
+  (about 70 < 77); CH253 fails one (placebo coverage 0.755 < 0.90 on a looser reading). The map is not the census: nothing is
+  census_dropped on it; a withdrawal is withdrawn_pre_census. Designer's odds 0.08 / 0.10, P(no test) about 0.83. CH251/CH261
+  fee-panel shift unexplained: q0717 runs before the freeze under a declared rule (CH252 withdrawn_pre_census (fee reading
+  unresolved) if it stays unexplained; CH253 still censused). Census on LT12's worn span [11-07, 11-17); window 2027-01-21..02-11 (fast lane, pin before
   T_LT12); analysis on or after 2027-02-12T12:00Z. Tokens payreturn, batch, attrlimit_lt13 requested at the freeze.
-- Next: challenger R1 (science-reviewer), including the go / no-go item (10.1).
+- R1 GO_WITH_CHANGES (2026-10-28) applied in the second draft (section 12). Next: q0717, then the R1 re-check.
 ```
+
+## 12. R1 response (2026-10-28; `reviews/LT13_CHALLENGER_R1_2026-10-28.md`, GO_WITH_CHANGES)
+No line round 18 set is loosened by any change below; every threshold (0.25, 77, 5x, 60% / 20, 95%, 5%, 0.90, cap 30) is unchanged.
+
+| R1 item | Applied where |
+|---|---|
+| Go / no-go: the map is not the census; `withdrawn_pre_census (map-informed)`, never `census_dropped` | top of file ("The map is not the census"), 0 (family bullet), 6 (census-fixed list (1)), 7.3 (four lists), 10 item 1, 11 |
+| MUST 1: CH252 fails three round-18 lines (0.108; 5x at about 0.008; coverage 0.096) | top of file, 0 (survival priors), 2.4 ("Against the map"), 5 items 1-2, 11 (ledger block) |
+| MUST 2: staged build (census code first; worlds, size check and analysis only for survivors) | status block steps 1-6, 5 item 12, 7 (build order), 7.4 steps 3, 5, 6 and the timetable |
+| MUST 3: q0717's decision rule declared before it runs; run before retention; print covered span | 1.4.3 (hypotheses and rule (a)-(c) verbatim), 6 (census prints, expected fates), 7.5 (q0717 row), 9.1; code `backend/astrolabe/research_lab/lt13_fee_probe.py`, `backend/scripts/run_lt13_fee_probe.py`, spec `queue/jobs/q0717_lt13_fee_probe.json` |
+| MUST 4: spline age condition (knots declared, none at 03-30); "fee-on/post-03-30 versus fee-free/pre-03-30 contrast"; M6 | 2.3 (age condition, wording, M6), 1.9 (condition (b), Supported text), 2.5, 5 items 2 and 4, 9.1 |
+| MUST 5: no CH253 placebo change; cap 30; round 18's cap inconsistency disclosed | 3.4 (two bullets), 5 items 10-11, 10 items 4 and 8 |
+| MUST 6: "can only lower" -> "expected to lower" | top of file (CH253 bullet), 3.4 |
+| SHOULD 1: non-stationarity "each cell": rewarded cells print-only, and why | 6 (new bullet before the census prints) |
+| SHOULD 2: world 1 under the label-permutation gate as a diagnostic | 1.8 (diagnostics) |
+| SHOULD 3: `population_map_ch261.py:16` docstring | its own commit (docstring only; the q0701 output's code sha256 refers to the pre-fix file) |
+| Rulings on 10 (1-10) | each item of 10 carries its ruling |
+
+**Left for the re-check:** q0717's output and the reading rule (if any) it motivates under 1.4.3 (a), or CH252's withdrawal under
+(b); the spline knots (2.3) and M6's definition; the staged-build wording (status block, 7).
