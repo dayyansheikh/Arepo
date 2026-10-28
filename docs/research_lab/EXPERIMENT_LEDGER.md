@@ -4672,3 +4672,10 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **Retention hold (ops, ~13:45Z):** the snapshot rule deletes `rows*.csv.gz` older than 8 days at 03:30Z nightly, so the pinned
   window captures would start to go at the 10-30 run, before q0147c. `archive_retention.json` snapshots 8 -> 12 days (adds
   about 3 GB; the deleted files are in verified releases either way). Revert to 8 days with a ledger line after q0147c.
+
+## CH261 LT13 population map: counts recorded, 2026-10-28 ~11:00Z (experiments autopilot; counts only, k = 0, uncounted)
+- q0701 done (`CH261_map.json` sha256 `56aa673f…42c1`); note `CH261_MAP_2026-10-28.md`. 93 of 180 slots covered (captures before
+  10-20 had lost their row files to the 8-day retention; disclosed), 90 with k - 1.
+- CH252 fee-free unrewarded widenings median **1,857.5** a capture (line 40: LT13 is drafted); fee-on unrewarded widenings
+  median **15** (thin arm). CH253 cross-event batch share 0.873, VIF 1.001, same-slot corr 0.059. CH255 flips median **11**
+  (line 690: not a third test). Next: LT13 design draft (CH252, CH253; k <= 2), then challenger R1.
