@@ -6,7 +6,8 @@ No beta, net, mark-out, YES rate or log loss is computed. Every reader is field-
   reports; it never opens ``outcomes_guarded.csv.gz``, ``origin_prints.csv.gz`` or ``frame.csv.gz`` and never uses the description text.
 - G (``h8_geo``) reads ``sample.csv.gz``, ``frame.csv.gz`` (tag / topic counts), ``origin_prices.csv.gz``, ``capped.csv.gz``,
   ``drops.csv.gz`` and the count reports; never the outcomes or the prints. ``h_geo`` reads best bid / best ask (and the fee category) of
-  complete captures in ``[2026-10-22T00:00Z, 2026-10-25T00:00Z)`` only.
+  pinned complete captures in ``[2026-10-22T00:00Z, 2026-10-25T00:00Z)`` only, joined to the pinned text table (question, slug, first event title) for the
+  section 2.1 rule (Reading 13a).
 - X reads ``creative_batch7/xv_prints`` (pair key, ``ts``, side), the pair list and the stored Kalshi candles / Polymarket history points of
   ``cross_venue/series/*.npz`` (prices as the usability rule needs them; no later price is ever compared with an earlier one).
 The committed seals ``h8_text``, ``h8_geo`` and ``h8_tail`` are checked by sha256 against the host copies first; any mismatch refuses.
@@ -19,7 +20,6 @@ import csv
 import gzip
 import json
 import math
-import re
 import statistics
 import time
 from collections import Counter
@@ -32,9 +32,11 @@ import numpy as np
 from . import cb6_tail as c6
 from . import cb7_common as cm
 from . import cb7_geo as cg
+from . import cb7_hgeo_text as ht
 from . import cb7_xv as xv
 from . import h5_seal
 from . import history_backfill as hb
+from .history_topics import FEE_FIRST, topic_of
 
 Refused, NotNow = cm.Refused, cm.NotNow
 
@@ -418,75 +420,88 @@ def census_g(root: Path, seals_dir: Path, h_geo: dict) -> dict:
 # ---- h_geo ------------------------------------------------------------------------------------------------------------------------
 
 
-_CAPTURE_RE = re.compile(r"^(\d{8}T\d{6}Z)_[0-9a-f]+$")
+HGEO_RULE = ("section 2.1 rule as written: topic_of(question, first event title, slug, fee_category) == 'geopolitics' (text from the pinned h_geo text table) "
+             "or rows_ext fee_category == 'geopolitics' (expected to match 0); FEE_FIRST rows dropped up front; binding h_geo = max(h_geo on markets with text, "
+             "h_geo also counting every in-band market without text as geopolitics) (Reading 13a, DRAFT)")
 
 
-def measure_h_geo(snap_root: Path, *, window: tuple[str, str] = H_GEO_WINDOW, mid_band: tuple[float, float] = H_GEO_MID,
+def _h_of(obs: list[tuple[str, float]]) -> dict | None:
+    """``{pooled, by_market, h}`` for ``(market_id, half_spread)`` observations; ``h`` is the larger of the pooled and the per-market median."""
+    if not obs:
+        return None
+    per: dict[str, list[float]] = {}
+    for mid_id, h in obs:
+        per.setdefault(mid_id, []).append(h)
+    pooled = statistics.median(h for _m, h in obs)
+    by_mkt = statistics.median(statistics.median(v) for v in per.values())
+    return {"observations": len(obs), "markets": len(per), "median_half_spread_pooled": pooled, "median_half_spread_by_market": by_mkt, "h": max(pooled, by_mkt)}
+
+
+def measure_h_geo(snap_root: Path, *, text_dir: Path, pin_file: Path, window: tuple[str, str] = H_GEO_WINDOW, mid_band: tuple[float, float] = H_GEO_MID,
                   wall_clock: Callable[[], float] = time.time) -> dict:
-    """Median half-spread ``(ask - bid) / 2`` of geopolitics markets (``fee_category == "geopolitics"``, or the topic rule when the capture rows carry a
-    question) with a two-sided quote and YES mid in ``mid_band``, over the complete captures whose start lies in ``window``. Reads only
-    ``market_id``, ``best_bid``, ``best_ask`` (rows.csv.gz) and ``fee_category`` (rows_ext.csv.gz): spreads, no outcome. First row per market per
-    capture. Raises :class:`NotNow` until the window has closed. ``h_geo_binding`` is the larger of the pooled and the per-market median."""
-    lo, hi = cm._ep(window[0]), cm._ep(window[1])
-    if wall_clock() < hi:
+    """Median half-spread ``(ask - bid) / 2`` of geopolitics markets with a two-sided quote and YES mid in ``mid_band`` over the complete captures
+    whose start lies in ``window`` (CB7 section 2.1 rule via ``topic_of`` on the pinned text table, plus the ``fee_category`` half; Reading 13a).
+    Reads only ``market_id``, ``best_bid``, ``best_ask`` (rows.csv.gz) and ``fee_category`` (rows_ext.csv.gz) plus the text table: spreads, no
+    outcome. First row per market per capture. Refuses unless the captures match ``pin_file`` and the text table matches its pin. Rows whose
+    ``fee_category`` is in ``FEE_FIRST`` are dropped up front. A market without text (unavailable or absent from the table) is geopolitics in
+    variant B only; ``h_geo_binding`` is the larger of variant A (markets with text) and variant B (every in-band market without text counted as
+    geopolitics), each variant being the larger of the pooled and the per-market median. No measurable market, or no candidate with text at all (variant B would then
+    label every in-band market geopolitics) -> ``status unavailable``, ``h_geo_binding`` None (G1 runs, cannot advance); never a fallback spread. Refuses unless
+    the text table's ids equal the candidate ids and its window and mid_band equal the arguments. Raises :class:`NotNow` until the window has closed."""
+    if wall_clock() < cm._ep(window[1]):
         raise NotNow(f"h_geo window {window[0]}..{window[1]} is not closed yet")
     root = Path(snap_root)
     cm.refuse_path(root)
     if root.name != "snapshots":
         raise Refused(f"h_geo reads only a snapshots/ directory, not {root}")
-    obs: list[float] = []
-    per_market: dict[str, list[float]] = {}
-    n_cap = n_side_skipped = n_geo_ids = 0
-    for d in sorted(root.iterdir() if root.exists() else []):
-        m = _CAPTURE_RE.match(d.name)
-        if not m or not d.is_dir():
-            continue
-        start = datetime.strptime(m.group(1), "%Y%m%dT%H%M%SZ").replace(tzinfo=UTC).timestamp()
-        if not (lo <= start < hi):
-            continue
-        try:
-            man = json.loads((d / "manifest.json").read_text())
-        except (OSError, ValueError):
-            continue
-        if str(man.get("state")) != "complete":
-            continue
-        try:  # the host writes sidecar_status in ext_manifest.json beside rows_ext.csv.gz, never in manifest.json (q0147 refusal, 2026-10-25)
-            ext = json.loads((d / "ext_manifest.json").read_text())
-        except (OSError, ValueError):
-            ext = {}
-        if str(ext.get("sidecar_status")) != "complete":
-            n_side_skipped += 1
-            continue
-        geo_ids = {r["market_id"] for r in read_cols(d / "rows_ext.csv.gz", ("market_id", "fee_category")) if r.get("fee_category") == "geopolitics"}
-        n_cap += 1
-        n_geo_ids += len(geo_ids)
-        seen: set[str] = set()
-        for r in read_cols(d / "rows.csv.gz", ("market_id", "best_bid", "best_ask")):
-            mid_id = r["market_id"]
-            if mid_id in seen:
-                continue
-            seen.add(mid_id)
-            if mid_id not in geo_ids:
-                continue
-            bid, ask = _f(r.get("best_bid")), _f(r.get("best_ask"))
-            if not (math.isfinite(bid) and math.isfinite(ask)) or not (0.0 < bid < ask < 1.0):
-                continue
-            if not (mid_band[0] <= (bid + ask) / 2 <= mid_band[1]):
-                continue
-            h = (ask - bid) / 2
-            obs.append(h)
-            per_market.setdefault(mid_id, []).append(h)
-    if n_cap == 0:
+    pins = ht.verify_capture_pins(root, window, pin_file)
+    table, tman = ht.load_text_table(text_dir, pin_file, window=window, mid_band=mid_band)
+    caps, n_side_skipped = ht.complete_captures(root, window)
+    if not caps:
         raise Refused(f"h_geo: no complete capture with a complete sidecar in {window[0]}..{window[1]} under {root} ({n_side_skipped} skipped for sidecar); check the host")
-    if n_geo_ids == 0:
-        raise Refused("h_geo: no market with fee_category == 'geopolitics' in any complete capture: misconfiguration (fee category string or sidecar); refusing")
-    res = {"window": list(window), "complete_captures": n_cap, "captures_skipped_sidecar_not_complete": n_side_skipped, "observations": len(obs), "markets": len(per_market),
-           "geopolitics_rule": "rows_ext fee_category == 'geopolitics' (capture rows carry no question)"}
-    if not obs:
-        return {**res, "median_half_spread_pooled": None, "median_half_spread_by_market": None, "h_geo_binding": None, "status": "unavailable"}
-    pooled = statistics.median(obs)
-    by_mkt = statistics.median(statistics.median(v) for v in per_market.values())
-    return {**res, "median_half_spread_pooled": pooled, "median_half_spread_by_market": by_mkt, "h_geo_binding": max(pooled, by_mkt), "status": "ok"}
+    obs_a: list[tuple[str, float]] = []  # markets with text that match the rule
+    obs_b_extra: list[tuple[str, float]] = []  # in-band markets without text (geopolitics in variant B only)
+    cand: set[str] = set()
+    avail: set[str] = set()
+    unavail: set[str] = set()
+    by_fee: set[str] = set()
+    by_topic: set[str] = set()
+    fee_first: set[str] = set()
+    rstats: dict = {}
+    for d in caps:
+        for mid_id, h, fc in ht.capture_observations(d, mid_band, rstats):
+            if fc in FEE_FIRST:
+                fee_first.add(mid_id)
+                continue
+            cand.add(mid_id)
+            t = table.get(mid_id)
+            has_text = t is not None and t.get("status") == ht.STATUS_OK
+            (avail if has_text else unavail).add(mid_id)
+            if fc == "geopolitics":
+                by_fee.add(mid_id)
+                obs_a.append((mid_id, h))
+            elif has_text and topic_of(t["question"], t["event_title"], t["slug"], fc) == "geopolitics":
+                by_topic.add(mid_id)
+                obs_a.append((mid_id, h))
+            elif not has_text:
+                obs_b_extra.append((mid_id, h))
+    ht.require_table_ids(table, cand)
+    va, vb = _h_of(obs_a), _h_of(obs_a + obs_b_extra)
+    res = {"window": list(window), "complete_captures": len(caps), "captures_skipped_sidecar_not_complete": n_side_skipped,
+           "geopolitics_rule": HGEO_RULE, "capture_pins": pins, "text_table_sha256": tman.get("text_sha256"), "text_table_manifest_counts": tman.get("counts"),
+           "counts": {"candidates": len(cand), "dropped_fee_first_ids": len(fee_first - cand), "candidate_and_fee_first_in_another_capture": len(fee_first & cand),
+                      "text_available": len(avail), "text_unavailable": len(unavail),
+                      "matched_by_fee_category": len(by_fee), "matched_by_topic": len(by_topic)},
+           "first_row_report": ht.row_report(rstats),
+           "variant_A_markets_with_text": va, "variant_B_no_text_counted_geopolitics": vb,
+           "observations": (vb or {}).get("observations", 0), "markets": (vb or {}).get("markets", 0)}
+    hs = [v["h"] for v in (va, vb) if v]
+    if not hs or not avail:  # no text for any candidate: variant B would call every in-band market geopolitics, which is not a measurement
+        return {**res, "median_half_spread_pooled": None, "median_half_spread_by_market": None, "h_geo_binding": None, "status": "unavailable",
+                "unavailable_reason": "no_candidate_has_text" if cand else "no_measurable_market"}
+    bind = vb if (va is None or (vb is not None and vb["h"] >= va["h"])) else va
+    return {**res, "median_half_spread_pooled": bind["median_half_spread_pooled"], "median_half_spread_by_market": bind["median_half_spread_by_market"],
+            "h_geo_binding": max(hs), "status": "ok"}
 
 
 # ---- X ----------------------------------------------------------------------------------------------------------------------------
@@ -625,7 +640,8 @@ def census_declaration() -> dict:
 
 def run_census(families: list[str], *, root: Path, seals_dir: Path, cb7_dir: Path, cv_root: Path, snapshot_root: Path,
                rules_path: Path | None = None, require_committed: bool = True, wall_clock: Callable[[], float] = time.time,
-               trials_path: Path | None = None, out: Path | None = None, pins=None) -> dict:
+               trials_path: Path | None = None, out: Path | None = None, pins=None,
+               hgeo_pin_file: Path | None = None, hgeo_text_dir: Path | None = None) -> dict:
     """Verify the seal copies (before anything is read), run the requested families and write ``census.json`` once. A family whose run is a
     recorded ``not_run`` terminal state is recorded as such and the others proceed."""
     fams = [f.strip().upper() for f in families if f.strip()]
@@ -651,7 +667,8 @@ def run_census(families: list[str], *, root: Path, seals_dir: Path, cb7_dir: Pat
                  "note": "counts only; no outcome, mark, YES rate or estimate is computed; floors, windows and thresholds are never revised from these counts"}
     h_geo: dict | None = None
     if "G" in fams and seals[cm.GEO_RUN_ID]["state"] == "sealed":
-        h_geo = measure_h_geo(Path(snapshot_root), wall_clock=wall_clock)
+        h_geo = measure_h_geo(Path(snapshot_root), text_dir=Path(hgeo_text_dir) if hgeo_text_dir else cb7_dir / ht.TEXT_DIR_NAME,
+                              pin_file=Path(hgeo_pin_file) if hgeo_pin_file else seals_dir / ht.PIN_NAME, wall_clock=wall_clock)
     for fam in fams:
         if fam == "S":
             res["S"] = census_s(root, seals_dir) if seals[cm.TEXT_RUN_ID]["state"] == "sealed" else _terminal(seals[cm.TEXT_RUN_ID]["state"])
