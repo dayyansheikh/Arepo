@@ -134,6 +134,14 @@ def _result(m: dict) -> tuple[int, dict]:
     return 0, {"status": m.get("status"), "stopped": m.get("stopped"), "complete": m.get("complete"), "counts": m.get("counts"), "transient": m.get("transient")}
 
 
+def _resumable_result(m: dict, *, budget_chunk_ok: bool = False) -> tuple[int, dict]:
+    """``_result`` plus the CB9 queue exit code for resumable data kinds (q0183-q0186): see ``cb9_exit.incomplete_exit_code``."""
+    from astrolabe.research_lab import cb9_exit  # noqa: PLC0415
+
+    code, payload = _result(m)
+    return (cb9_exit.incomplete_exit_code(m, budget_chunk_ok=budget_chunk_ok) if code == 0 else code), payload
+
+
 def _commit_epoch(path: Path) -> float | None:
     try:
         out = subprocess.run(["git", "log", "-1", "--format=%ct", "--", str(path)], capture_output=True, text=True, cwd=ROOT, timeout=30).stdout.strip()
@@ -321,7 +329,7 @@ def cmd_pyth_frame(a):
     m = py.pyth_frame(root, hb.httpx_transport(), rules_sha=sha, smoke_path=Path(a.smoke) if a.smoke else c9.SMOKE_DEFAULT,
                       exclusion_keys_path=Path(a.exclusion_keys) if a.exclusion_keys else c9.EXCLUSION_KEYS_DEFAULT, now=time.time(),
                       disk_cap=int(a.disk_cap_gb * 1024**3), **_net_kw(a))
-    return _result(m)
+    return _resumable_result(m)
 
 
 @_guarded
@@ -339,7 +347,7 @@ def cmd_pyth_books(a):
     m = py.pyth_books(root, hb.httpx_transport(), rules_sha=sha, smoke_path=Path(a.smoke) if a.smoke else c9.SMOKE_DEFAULT, frame_dir=root / "pyth_frame",
                       fetch=hs.httpx_range_fetch(), size_fn=hs.httpx_size, now=time.time(), ingress_cap_gb=a.ingress_cap_gb, disk_cap=int(a.disk_cap_gb * 1024**3),
                       **_net_kw(a))
-    return _result(m)
+    return _resumable_result(m, budget_chunk_ok=True)  # q0184 has a repeat block: its own --budget-min stop exits 0 and is re-queued
 
 
 # ---- q0189 census -------------------------------------------------------------------------------------------------------------------------------
