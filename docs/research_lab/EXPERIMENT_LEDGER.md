@@ -4566,3 +4566,52 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - Known existing issue (not covered): other CB9 kinds (`run_cb9.py` sign / kd / pyth paths) still exit 0 on a transient
   incomplete stop. `NOT_EXTRACTABLE` is unreachable in `build_seal_plan`; to be handled before CB10 q0201 reuses the module.
 - **q0182b queued** (net lane, depends q0164c / q0166, both done); q0201 (CB10, draft) now depends on q0182b.
+
+## CB7 census q0147 FAILED x2 (h_geo read the wrong manifest); q0147b queued, 2026-10-28 ~10:30Z (experiments autopilot; operational, nothing counted)
+- **q0147** refused twice (10-25T01:31Z, rc 2): `h_geo: no complete capture with a complete sidecar in 2026-10-22..10-25 (36
+  skipped for sidecar)`. Cause: `measure_h_geo` read `sidecar_status` from `manifest.json`; the host writes it only in
+  `ext_manifest.json` beside `rows_ext.csv.gz` (checked: the in-window captures say `complete` there; `manifest.json` has no such
+  key). The unit fixture had put the key in `manifest.json`, so tests passed. A refusal writes nothing; q0147 stays failed.
+- **Fix** (read path only): read `ext_manifest.json`; a capture without it is skipped as before; fixture now uses the host layout
+  and a test proves a `manifest.json`-only key is not trusted. Window, mid band, thresholds, gates and argv unchanged.
+  Tests 45 passed. **q0147b queued** (same spec, no `not_before`: the window closed 10-25T00Z).
+
+## Creative round 18 (CH252-CH261) merged; CANDIDATES round 18 notes, 2026-10-28 ~10:55Z (experiments autopilot; ideas only, nothing counted)
+- `CREATIVE_HYPOTHESES_2026-11-01.md` (Fable xhigh, written 10-24 from 03:44Z on `feat/creative-r18`; the session was cut by the
+  usage limit before its commit) committed 09b7d4a4 and merged. LT13 shortlist: CH252 (payer's return), CH253 (listing batch),
+  decided by the CH261 counts-only map; engine-first families CH254-CH260. The round's own prior: about 0.66 chance that no
+  LT13 test registers.
+- `signal_engine/CANDIDATES.md` gains a round 18 section: an LT13 hold request (CH252/CH253 columns stay out of broad
+  engine families until LT13's decision; tokens `payreturn`, `batch`, `attrlimit_lt13` filed for the freeze, applied by the
+  signal autopilot) and seven engine-first notes. Noted overlaps: `headline` vs `mirror`/`attrlimit_lt12` and `bandside`;
+  `attn` vs `participation`; `stress` vs the dropped `regime`; `pause` depends on `rules`.
+- **E026:** owner phone milestone "collection started" sent 10-28 (the 10-25 window start fell in the usage-limit gap);
+  recorder q0541 and labeller q0542 running since 10-25T00Z.
+
+## LT11 q0696 size-check timing recorded, 2026-10-28 ~11:00Z (experiments autopilot; clock only, nothing counted)
+- q0696 done 10-24T07:32Z (`SIZE11_TIMING.json` sha256 `8f2de288…b599`; design text `991100db…` matches; 20 worlds x 200
+  draws per scenario, seed per the q0696 rule; no world result recorded; q from the development placeholder 0.20).
+- **Projection:** registered size check 2,000 worlds over 16 scenarios = 62,558 s (17.4 h) plus the power run 2,721 s;
+  planned census commit 11-09T00Z -> projected end **11-10T17:23Z**, 24 h margin, inside the fast-lane limit 11-15T00Z.
+  `ordered_lane_ledger_line_needed: false`, so no ordered-lane line before the seal. Census q0691 not before 11-07T08:00Z.
+
+## Operational: data-dumps guards 40 -> 50 GiB, collector cap 45 -> 55 GiB, 2026-10-28 ~11:15Z (experiments autopilot; ops only, nothing counted)
+- **Why:** data-dumps 38.9 GiB (root 30 GB free of 89), growing about 0.5 GiB/day (37 GiB on 10-24). The CB4 closewin pass
+  step already refuses every pass (`refused_data_dumps_over_cap`: its 1.5 GB reservation crosses 40); within about two days
+  the 40 GiB per-job guard would have stopped the registered collectors (LT2 q0460 for E012-E014, LT3/LT4 cron collectors),
+  the signal-engine tick and the stream collectors, and missed prospective data stays missing.
+- **Change (guards only; no rule, window, population, threshold or registered argument other than the guard value):**
+  `--data-dumps-cap-gb` / `--data-dumps-max-gb` 40 -> 50 in every non-terminal job and draft spec (75 files), the four
+  `arepo_pass.sh` steps and the two `crontab.txt` collector lines (live crontab edited with a backup); `run_stream.py`
+  default 40 -> 50; collector `CAP_GB` 45 -> 55, keeping the 5 GiB gap. Root free at 55 GiB of data is about 13 GB, above the
+  4 GB free-disk guard. Rules-hashed `DATA_DUMPS_CAP_GB = 40.0` constants in cb10-cb16 commons are untouched (their jobs pass the
+  flag). The owner's restore-copy clearing decision (10.2 GB, dashboard) stays open and is now the main disk lever.
+
+## CH261 LT13 population map: code merged, q0701 queued, 2026-10-28 ~11:45Z (experiments autopilot; counts only, k = 0, uncounted)
+- `population_map_ch261.py`, `run_ch261_map.py` (feat/ch261-map f7990014, merged), CH251's readers reused; tests 19 passed
+  incl. a test that capture k + 1 is never opened. Span [2026-10-13, 2026-10-28). Printed as `unavailable` (reasons in
+  `not_mapped`): every k + 1 target (CH252 re-tightening, CH253 own change, CH254 vanished at k + 1), liquidity tier, CH258
+  klines, CH259 engine files, CH260 `res_7d` labels. Implementer's own readings, to be listed in the map note: batch chaining
+  over `created_at`, 120 s receipt-span filter, pseudo-batch by created-at decile, halted = `accepting_orders` false, flips
+  only when the new leader was the runner-up. The 40 and 690 lines are printed, no verdict applied in code.
+- q0701 queued (cpu lane, mem 500 MB unmeasured, as_cap 4,000 MB). Next: map note with counts -> LT13 draft or not.

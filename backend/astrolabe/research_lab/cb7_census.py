@@ -450,7 +450,11 @@ def measure_h_geo(snap_root: Path, *, window: tuple[str, str] = H_GEO_WINDOW, mi
             continue
         if str(man.get("state")) != "complete":
             continue
-        if str(man.get("sidecar_status")) != "complete":
+        try:  # the host writes sidecar_status in ext_manifest.json beside rows_ext.csv.gz, never in manifest.json (q0147 refusal, 2026-10-25)
+            ext = json.loads((d / "ext_manifest.json").read_text())
+        except (OSError, ValueError):
+            ext = {}
+        if str(ext.get("sidecar_status")) != "complete":
             n_side_skipped += 1
             continue
         geo_ids = {r["market_id"] for r in read_cols(d / "rows_ext.csv.gz", ("market_id", "fee_category")) if r.get("fee_category") == "geopolitics"}

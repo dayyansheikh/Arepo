@@ -27,7 +27,7 @@
   "--disk-cap-gb",
   "0.01",
   "--data-dumps-cap-gb",
-  "40",
+  "50",
   "--budget-min",
   "85"
  ],
@@ -37,7 +37,7 @@
   "history/h10_dlad/{frame.csv.gz,origins.csv.gz,outcomes_guarded.csv.gz,manifest.json}"
  ],
  "next_action": "q0203",
- "notes": "CB10 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. Rules file seals/cb10_rules_v2.json (freeze-check v2, supersedes cb10_rules.json) (rules_sha256 d422cc70... (file sha256 5ee0ea23...)). --data-dumps-cap-gb 40 (ops convention; design text says 14). No print stored beyond origin rows; no side or wallet read. Gamma whitelist (round 1 item 6). Exit 75 = pending.",
+ "notes": "CB10 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. Rules file seals/cb10_rules_v2.json (freeze-check v2, supersedes cb10_rules.json) (rules_sha256 d422cc70... (file sha256 5ee0ea23...)). --data-dumps-cap-gb 40 (ops convention; design text says 14). No print stored beyond origin rows; no side or wallet read. Gamma whitelist (round 1 item 6). Exit 75 = pending. | 2026-10-28 ops (experiments autopilot): data-dumps guard 40 -> 50 GiB (data-dumps 38.9 GiB, ~0.5 GiB/day; root 30 GB free; collector cap 45 -> 55); no rule, window or population changed.",
  "repeat": {
   "max_runs": 3,
   "until_log_regex": "\"status\": \"dlad_frame_complete\""

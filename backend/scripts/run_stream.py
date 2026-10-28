@@ -38,7 +38,7 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("stream", choices=sorted(SPECS))
     ap.add_argument("--data-dumps", type=Path, default=DEFAULT_DATA_DUMPS)
-    ap.add_argument("--data-dumps-cap-gb", type=float, default=40.0)
+    ap.add_argument("--data-dumps-cap-gb", type=float, default=50.0)  # 40 -> 50 on 2026-10-28 (ops; collector cap 55)
     ap.add_argument("--free-min-gb", type=float, default=4.0)
     ap.add_argument("--stream-cap-gb", type=float, default=None)
     ap.add_argument("--rps", type=float, default=None, help="override the stream's polite default")
