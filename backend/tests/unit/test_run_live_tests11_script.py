@@ -66,9 +66,9 @@ def test_size_timing_refuses_the_registered_and_development_seeds(seed, tmp_path
 def test_q0696_timing_draft_is_clock_only_and_sane():
     import json
 
-    root = Path(__file__).resolve().parents[3] / "docs" / "research_lab" / "queue" / "drafts"
-    d = json.loads((root / "q0696_lt11_size_timing.json").read_text())
-    q93 = json.loads((root / "q0693_lt11_size_check.json").read_text())
+    queue = Path(__file__).resolve().parents[3] / "docs" / "research_lab" / "queue"
+    d = json.loads((queue / "jobs" / "q0696_lt11_size_timing.json").read_text())  # promoted to jobs/ on 2026-10-24 (ran 10-24T07:22Z)
+    q93 = json.loads((queue / "drafts" / "q0693_lt11_size_check.json").read_text())
     assert d["argv"][:2] == ["scripts/run_live_tests11.py", "size-timing"] and "--seed" not in d["argv"]
     assert d["resources"]["lane"] == "cpu" and d["resources"]["mem_mb"] <= q93["resources"]["mem_mb"]
     assert d["argv"][d["argv"].index("--data-dumps-cap-gb") + 1] == "40" and 0 < d["timeout_s"] <= 86400

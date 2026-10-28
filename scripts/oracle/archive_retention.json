@@ -22,12 +22,12 @@
     },
     {
       "prefix": "data-dumps/research_lab/snapshots/",
-      "older_than_days": 8,
+      "older_than_days": 12,
       "keep": [
         "*/manifest.json",
         "*/ext_manifest.json"
       ],
-      "why": "Reverted 10 -> 8 days 2026-10-23 07:5xZ (experiments autopilot) after LT8's q0623, as declared (ledger 'LT8 census CS8 and LT8 closure'); the temporary 10-day rule ran 2026-10-22 01:58Z .. 10-23. | E011 reloads 7.5 days of captures; 8 days keeps them. Released 2026-10-17 04:39Z: retention_gate_check.py PASS on the host (CB1/CB2/CB3/CB4 manifests complete; at_risk empty). MC1 must cache its q0111 panel before 2026-10-23 03:30Z; CB3 live quote_state step must be wired before 2026-10-24 03:30Z."
+      "why": "8 -> 12 days 2026-10-28 (experiments autopilot): holds the CB7 h_geo window captures [10-22, 10-25) pinned in seals/cb7_hgeo_window_captures.sha256 until census q0147c has run (the first would go at the 10-30 03:30Z run); revert to 8 days in the ledger after q0147c. Earlier: Reverted 10 -> 8 days 2026-10-23 07:5xZ (experiments autopilot) after LT8's q0623, as declared (ledger 'LT8 census CS8 and LT8 closure'); the temporary 10-day rule ran 2026-10-22 01:58Z .. 10-23. | E011 reloads 7.5 days of captures; 8 days keeps them. Released 2026-10-17 04:39Z: retention_gate_check.py PASS on the host (CB1/CB2/CB3/CB4 manifests complete; at_risk empty). MC1 must cache its q0111 panel before 2026-10-23 03:30Z; CB3 live quote_state step must be wired before 2026-10-24 03:30Z."
     }
   ],
   "deferred_rules": [

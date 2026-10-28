@@ -4669,3 +4669,6 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   rows are market-level (no `token_id`), so the first-row YES-quote rule holds.
 - **q0147t queued** (net, 400 MB). **q0147c in drafts** until q0147t's manifest sha256 and text sha256 are written into its notes
   and here (re-check answer 4).
+- **Retention hold (ops, ~13:45Z):** the snapshot rule deletes `rows*.csv.gz` older than 8 days at 03:30Z nightly, so the pinned
+  window captures would start to go at the 10-30 run, before q0147c. `archive_retention.json` snapshots 8 -> 12 days (adds
+  about 3 GB; the deleted files are in verified releases either way). Revert to 8 days with a ledger line after q0147c.
