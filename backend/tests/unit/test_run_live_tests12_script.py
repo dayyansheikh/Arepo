@@ -35,6 +35,19 @@ def test_analyze_refuses_before_the_analysis_date(capsys, tmp_path):
     assert "refusing" in capsys.readouterr().out and not (tmp_path / "a.json").exists()
 
 
+def test_analyze_requires_out(tmp_path, capsys):
+    """Code-freeze check fix 6: ``analyze`` without ``--out`` is a usage error (the single analysis is never only printed, so it cannot be repeated)."""
+    with pytest.raises(SystemExit) as e:
+        R.main(["analyze", "--out-root", str(tmp_path)])
+    assert e.value.code == 2 and "--out" in capsys.readouterr().err
+    from types import SimpleNamespace
+
+    from astrolabe.research_lab import live_tests12_analysis as an
+
+    assert an.analyze_cli(SimpleNamespace(out=None, out_root=tmp_path), lambda *a: 0, 0.0) == 2  # defence in depth below the parser
+    assert "needs --out" in capsys.readouterr().out
+
+
 def test_size_check_refuses_worlds_or_draws_without_dev(capsys):
     assert R.main(["size-check", "--worlds", "5"]) == 2
     assert R.main(["size-check", "--draws", "5"]) == 2

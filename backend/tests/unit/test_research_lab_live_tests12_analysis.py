@@ -50,6 +50,46 @@ def test_code_check_refuses_a_pinned_spec_without_matching_pins():
         an.code_check(spec)  # registration_error: null k_tests (and null informed_labels behind it)
 
 
+def _pinned_census(k, dropped, unav) -> dict:
+    spec = copy.deepcopy(_spec())
+    spec["_pinned"], spec["code_sha256"] = True, lt.code_hashes()
+    spec["k_tests"], spec["dropped_tests"], spec["census_unavailable"] = k, dropped, unav
+    spec["census_fixed"]["CH245"] = {"s_D": 1.2, "s_T": 1.1, "s_w": 0.9, "zs_cuts": [-0.4, 0.4], "zs_gap": 1.5, "rgap_q50_s": 6.0, "rgap_q90_s": 20.0, "exclude_family": "",
+                                     "rho_census": 0.5, "rho_census_nan": False}
+    spec["census_fixed"]["CH244"] = {"world9_corr": -0.1, "shock_size_scale": 2.0, "exclude_family": ""}
+    spec["census_gate_values"] = {"CH245": {"mde_c": 0.5}, "CH244": {"mde_c": 0.7}}
+    spec["informed_labels"] = {"CH245": [], "CH244": []}
+    spec["size_check_result"] = {t: {"status": "pass"} for t in k}
+    return spec
+
+
+def test_code_check_refuses_a_test_in_none_or_two_census_lists():
+    """Code-freeze check fix 5: every test in exactly one of k_tests, dropped_tests, census_unavailable."""
+    assert an.code_check(_pinned_census(["CH245", "CH244"], [], []))["status"]
+    assert an.code_check(_pinned_census(["CH245"], ["CH244"], []))["status"]
+    assert an.code_check(_pinned_census(["CH245"], [], ["CH244"]))["status"]
+    with pytest.raises(an.Refused, match="exactly one"):
+        an.code_check(_pinned_census(["CH245"], [], []))  # CH244 in none of the three
+    with pytest.raises(an.Refused, match="exactly one"):
+        an.code_check(_pinned_census(["CH245", "CH244"], [], ["CH244"]))  # in k and census_unavailable
+    with pytest.raises(an.Refused, match="exactly one"):
+        an.code_check(_pinned_census(["CH245"], ["CH244"], ["CH244"]))  # dropped and unavailable
+    with pytest.raises(an.Refused, match="dropped"):
+        an.code_check(_pinned_census(["CH245", "CH244"], ["CH244"], []))
+    with pytest.raises(an.Refused, match="unknown"):
+        an.code_check(_pinned_census(["CH245", "CH244"], ["CH243"], []))
+
+
+def test_census_state_is_printed_from_the_spec_lists():
+    sp = _pinned_census(["CH245"], [], ["CH244"])
+    assert an.census_state(sp, "CH245") == "k" and an.census_state(sp, "CH244") == lt.CENSUS_UNAVAILABLE
+    sp = _pinned_census(["CH245"], ["CH244"], [])
+    assert an.census_state(sp, "CH244") == lt.CENSUS_DROPPED
+    assert an.census_state(_spec(), "CH244") is None
+    assert an.NOT_IN_K[lt.CENSUS_UNAVAILABLE].startswith("census_unavailable (coverage)") and "ordered lane" in an.NOT_IN_K[lt.CENSUS_UNAVAILABLE]
+    assert an.NOT_IN_K[lt.CENSUS_DROPPED].startswith("census_dropped") and an.NOT_IN_K[lt.CENSUS_UNAVAILABLE] != an.NOT_IN_K[lt.CENSUS_DROPPED]
+
+
 def _r(beta=1.0, p=0.001, ci=(0.2, 2.0), gate=True, f=(True, True), pc=True, test="CH245", ge2_available=True, placebo=True):
     r = {"available": True, "primary": {"testable": True, "beta": beta, "p": p, "ci95_cons": list(ci)}, "gate": {"passes": gate}, "f": {"available": f[0], "holds": f[1]}, "size_note": None}
     if test == "CH245":

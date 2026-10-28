@@ -54,12 +54,37 @@ def code_check(spec: dict) -> dict:
         drop = set(spec.get("dropped_tests") or [])
         if drop & set(k):
             raise Refused(f"live_tests12 k_tests names a dropped test: {sorted(drop & set(k))}")
+        # code-freeze check fix 5: every test is in exactly one of k_tests, dropped_tests (census_dropped) and census_unavailable (coverage)
+        lists = {"k_tests": set(k), "dropped_tests": drop, "census_unavailable": set(spec.get("census_unavailable") or [])}
+        if (unk := sorted(set().union(*lists.values()) - set(TESTS))):
+            raise Refused(f"live_tests12 census lists name unknown tests: {unk}")
+        for t in TESTS:
+            where = [n for n, v in lists.items() if t in v]
+            if len(where) != 1:
+                raise Refused(f"live_tests12 {t} must be in exactly one of k_tests, dropped_tests, census_unavailable (found in {where or 'none'})")
         sc = spec.get("size_check_result")
         if not isinstance(sc, dict) or any(t not in sc for t in k):
             raise Refused("live_tests12 spec pinned without the recorded size-check result of every surviving test")
         for t in k:
             lt.f_role(spec, t)
     return {"current": cur, "pinned": {n: pins.get(n) for n in cur}, "status": status, "label": None if all(s == "match" for s in status.values()) else "DRAFT: code hashes not verified"}
+
+
+def census_state(spec: dict, t: str) -> str | None:
+    """The census state of ``t`` read from the spec's own lists (code-freeze check fix 5): ``k`` (a Holm primary), ``census_dropped`` (``dropped_tests``) or
+    ``census_unavailable (coverage)`` (``census_unavailable``); None when no list names it (a DRAFT spec; a pinned spec refuses in :func:`code_check`)."""
+    if t in (spec.get("k_tests") or []):
+        return "k"
+    if t in (spec.get("census_unavailable") or []):
+        return lt.CENSUS_UNAVAILABLE
+    if t in (spec.get("dropped_tests") or []):
+        return lt.CENSUS_DROPPED
+    return None
+
+
+NOT_IN_K = {lt.CENSUS_DROPPED: f"{lt.CENSUS_DROPPED}: dropped at its census (uncounted; not in the Holm family; never re-censused)",
+            lt.CENSUS_UNAVAILABLE: f"{lt.CENSUS_UNAVAILABLE} (uncounted; not in the Holm family; may be re-censused only in the ordered lane as its own Holm family)",
+            None: "not in k_tests; census state not recorded in the spec (uncounted; not in the Holm family)"}
 
 
 def preconditions(spec: dict, now: float, *, force: bool = False) -> None:
@@ -629,13 +654,15 @@ def analyze(out_root: Path = lt.OUT_ROOT, *, spec: dict | None = None, now: floa
     res: dict = {}
     for t in TESTS:
         if t not in ktests:
-            res[t] = {"verdict": {"verdict": "dropped at its census (uncounted; not in the Holm family)"}}
+            st = census_state(spec, t)
+            res[t] = {"census_state": st, "verdict": {"verdict": NOT_IN_K.get(st, NOT_IN_K[None])}}
             continue
         note = sc.get(t)
         status = note.get("status") if isinstance(note, dict) else note
         size_note = None if status in (None, "pass") else (SIZE_LABEL if str(status).startswith("fail_size") else MECH_LABEL)
         r = run_test(out_root, t, s, e, spec, roles, size_note)
         r["analytic_oversized"] = bool(isinstance(note, dict) and note.get("analytic_oversized"))
+        r["census_state"] = "k"
         res[t] = r
     pv = {t: p_for_holm(res[t])[0] for t in ktests}
     hp = bd.holm(pv)
@@ -660,6 +687,9 @@ def analyze(out_root: Path = lt.OUT_ROOT, *, spec: dict | None = None, now: floa
 
 
 def analyze_cli(args, write_out, now: float) -> int:
+    if getattr(args, "out", None) is None:  # code-freeze check fix 6: the single analysis is written once to --out, never only printed (repeatable)
+        print("refusing: analyze needs --out (write-once)")
+        return 2
     try:
         spec = lt.load_spec(sha=lt.SPEC_SHA256)
         res = analyze(args.out_root, spec=spec, now=now)

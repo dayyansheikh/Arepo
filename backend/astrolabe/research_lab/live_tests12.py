@@ -1697,13 +1697,13 @@ def event_day_state_shift_gate(df: pd.DataFrame, y: np.ndarray, term: str, contr
             trace({"G": G, "events": ev_order, "offsets": o.copy(), "src": src.copy(), "pos": pos.copy(), "D": D, "Dm": Dm_})
         tv = stat(Dm_, keep_)
         tvals.append(tv)
-        ge += int(math.isfinite(tv) and tv >= t_obs)
+        ge += int(not math.isfinite(tv) or tv >= t_obs)  # code-freeze check fix 4: a draw whose statistic is NaN counts as an exceedance (conservative)
     p = (1 + ge) / (1 + draws)
     return {"testable": True, "t_obs": t_obs, "p_perm": p, "passes": bool(p < 0.05), "draws": draws, "statistic": "event-clustered CR1 t on the gate sample (observed refitted on it)",
             "method": "event-phase state-shift (raw state shifted, one offset per event, event x UTC-day demeaning re-applied every draw)", "events_shifted": len(plan),
             "excluded_events": idx["excluded_events"], "excluded_rows": idx["excluded_rows"], "gate_rows": int(len(G)), "fixed_controls": len(ctrl_fixed),
             "omitted_share_median": float(np.median(om)) if om else 0.0, "omitted_share_max": float(np.max(om)) if om else 0.0,
-            "draw_t_nan": int(sum(1 for v in tvals if not math.isfinite(v)))}
+            "draw_t_nan": int(sum(1 for v in tvals if not math.isfinite(v))), "draw_t_nan_rule": "counted as exceedances (code-freeze check fix 4)"}
 
 
 # --- census helpers (7) ------------------------------------------------------------------------------------------------------------------

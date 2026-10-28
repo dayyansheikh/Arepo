@@ -19,7 +19,7 @@ this one does too. Queue drafts use ``scripts/run_live_tests12.py``.
 Every subcommand that writes refuses to overwrite ``--out``; the census, the size check and the reader accept ``--data-dumps-cap-gb`` (exit 75 above it, the
 queue's "not now"); the census runs only on a seal tracked by git and identical to HEAD (exit 2 otherwise). ``size-check`` refuses ``--worlds`` / ``--draws``
 without ``--dev`` (the registered run is 2,000 worlds x 200 draws at seed 20261597, after the census values are committed). ``analyze`` refuses before the
-analysis date and on an unpinned, null or NaN spec or a code-hash mismatch (exit 2).
+analysis date and on an unpinned, null or NaN spec or a code-hash mismatch (exit 2); its ``--out`` is required (code-freeze check fix 6).
 """
 
 from __future__ import annotations
@@ -129,7 +129,7 @@ def build_parser() -> argparse.ArgumentParser:
     o.add_argument("--out", type=Path, default=None)
     a = sub.add_parser("analyze", help="the single analysis (not before the analysis date)")
     a.add_argument("--out-root", type=Path, default=lt.OUT_ROOT)
-    a.add_argument("--out", type=Path, default=None)
+    a.add_argument("--out", type=Path, required=True)  # code-freeze check fix 6: the single analysis is always written once (write-once --out), never only printed
     return ap
 
 

@@ -272,6 +272,41 @@ def test_world6_placebo_partner_carries_its_own_drift():
     assert abs(np.corrcoef(own, partner)[0, 1]) < 0.3  # independent event drifts (was identically 1 with the market-wide drift)
 
 
+# --- code-freeze check fixes 3-4: analytic rate of worlds 6 / 10 and untestable worlds in the size check -------------------------------------------------
+
+
+def _scripted(monkeypatch, plan: dict[str, list[dict]]):
+    it = {sc: iter(v) for sc, v in plan.items()}
+    monkeypatch.setattr(W, "evaluate_world", lambda sc, *a, **k: next(it[sc]))
+
+
+def test_size_check_sets_analytic_oversized_above_the_limit(monkeypatch):
+    spec = lt.load_spec(sha=None)
+    lim = W.limit_for(10)
+    assert W.limit_for(W.FROZEN_WORLDS) == 0.058  # the label's threshold at the registered 2,000 worlds (1.8: limit 0.058)
+    v = {"reject": False, "testable": True, "analytic_reject": False}
+    hot = [{**v, "analytic_reject": True}] * 2 + [v] * 8  # 0.2 > limit_for(10) = 0.163
+    cool = [{**v, "analytic_reject": True}] + [v] * 9  # 0.1 <= 0.163
+    _scripted(monkeypatch, {"6": hot, "10": cool})
+    out = W.size_check(worlds=10, draws=2, seed=TEST_SEED, spec=spec, scenarios=("6", "10"), small=True)
+    s6, s10 = out["scenarios"]["CH245"]["6"], out["scenarios"]["CH244"]["10"]
+    assert s6["analytic_rejections"] == 2 and s6["analytic_rate"] == pytest.approx(0.2) and s6["analytic_over_limit"] is True and 0.2 > lim
+    assert s10["analytic_rejections"] == 1 and s10["analytic_over_limit"] is False
+    assert out["per_test"]["CH245"]["analytic_oversized"] is True and out["per_test"]["CH245"]["analytic_over_in"] == ["6"]
+    assert out["per_test"]["CH244"]["analytic_oversized"] is False
+    assert out["per_test"]["CH245"]["status"] == "pass"  # a label only: the size status reads the verdict-size rejections, not the analytic rate
+
+
+def test_size_check_reports_untestable_worlds_per_scenario(monkeypatch):
+    spec = lt.load_spec(sha=None)
+    g_ok, g_un = {"reject": False, "gate_testable": True}, {"reject": False, "gate_testable": False}
+    _scripted(monkeypatch, {"4": [g_un, g_ok, g_un, g_ok], "6": [{"reject": False, "testable": False}] + [{"reject": False, "analytic_reject": False}] * 3})
+    out = W.size_check(worlds=4, draws=2, seed=TEST_SEED, spec=spec, scenarios=("4", "6"), small=True)
+    assert out["scenarios"]["CH245"]["4"]["untestable"] == 2 and out["scenarios"]["CH245"]["6"]["untestable"] == 1
+    assert out["per_test"]["CH245"]["untestable_worlds"] == {"4": 2, "6": 1}
+    assert out["scenarios"]["CH245"]["4"]["rejections"] == 0  # untestable worlds stay non-rejections (the analysis gives p = 1 on an untestable gate)
+
+
 # --- the size worlds call the analysis' own gate (1.8) --------------------------------------------------------------------------------------------------
 
 

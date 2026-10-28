@@ -483,19 +483,26 @@ def size_check(*, worlds: int, draws: int, seed: int, spec: dict, tests=None, sc
                 master.integers(1, 2**62)  # the sub-seed sequence of the later scenarios is unchanged by the failure
             res[sp["test"]][sc] = {"scenario": sc, "stat": sp["stat"], "worlds": 0, "not_run": True, "reason": f"world 1 loading failed: {lam.get('reason')}", "ok": False}
             continue
-        k = n = 0
+        k = n = ka = nu = 0
         for i in range(worlds):
             sub = int(master.integers(1, 2**62))
             r = evaluate_world(sc, sub, spec, stat=sp["stat"], draws=draws, small=small, cal=cal)
             n += 1
             k += int(r.get("reject", False))
+            ka += int(r.get("analytic_reject", False))
+            nu += int(not r.get("gate_testable", True) if sp["stat"] == "gate" else not r.get("testable", True))
             if progress:
                 progress(sc, i + 1, worlds)
         rate = k / n if n else float("nan")
-        res[sp["test"]][sc] = {"scenario": sc, "stat": sp["stat"], "worlds": n, "rejections": k, "rate": rate, "limit": lim, "ok": bool(n == worlds and rate <= lim)}
+        rec = {"scenario": sc, "stat": sp["stat"], "worlds": n, "rejections": k, "rate": rate, "limit": lim, "ok": bool(n == worlds and rate <= lim),
+               "untestable": nu}  # code-freeze check fix 4: worlds whose gate (or verdict fit) was untestable, counted as non-rejections and reported
+        if sp["stat"] == "verdict":  # code-freeze check fix 3: the analytic p's own rejection rate (worlds 6, 10) feeds 'analytic p oversized in simulation'
+            arate = ka / n if n else float("nan")
+            rec.update(analytic_rejections=ka, analytic_rate=arate, analytic_over_limit=bool(n and arate > lim))
+        res[sp["test"]][sc] = rec
     per_test = {}
     for t in alive:
-        fs, fm, miss = [], [], []
+        fs, fm, miss, over, unt = [], [], [], [], {}
         for sc in (SCENARIO_ORDER if registered else scenarios):
             if SCENARIOS[sc]["test"] != t:
                 continue
@@ -504,7 +511,14 @@ def size_check(*, worlds: int, draws: int, seed: int, spec: dict, tests=None, sc
                 miss.append(sc)
             elif not r["ok"]:
                 (fs if SCENARIOS[sc]["stat"] == "gate" else fm).append(sc)
-        per_test[t] = {"status": "fail_size_scenario" if (fs or miss) else ("fail_mechanical_world" if fm else "pass"), "failed_size": fs, "failed_mechanical": fm, "missing": miss}
+            if r is not None and r.get("analytic_over_limit"):
+                over.append(sc)
+            if r is not None and r.get("untestable"):
+                unt[sc] = r["untestable"]
+        # code-freeze check fix 3 (LT12 A40): 'analytic p oversized in simulation' = the analytic p's own rejection rate in the verdict-size world (6 or 10)
+        # exceeds the frozen limit (1.8: 0.058 at 2,000 worlds); a label only, never a verdict or a size status
+        per_test[t] = {"status": "fail_size_scenario" if (fs or miss) else ("fail_mechanical_world" if fm else "pass"), "failed_size": fs, "failed_mechanical": fm, "missing": miss,
+                       "analytic_oversized": bool(over), "analytic_over_in": over, "untestable_worlds": unt}
     out = {"worlds": worlds, "draws": draws, "seed": seed, "limit": lim, "scenarios": res, "per_test": per_test, "seed_kind": "registered" if registered else "development",
            "world1_lambda": lam, "census_inputs_used": {k_: v for k_, v in cal.items() if k_ != "lambda"}}
     if power_worlds:

@@ -214,6 +214,20 @@ def test_p_perm_is_one_plus_exceedances_over_one_plus_draws():
     assert g2["p_perm"] == g["p_perm"]  # deterministic for a seed
 
 
+def test_nan_draw_statistics_count_as_exceedances(monkeypatch):
+    """Code-freeze check fix 4: a draw whose statistic is NaN counts as an exceedance (conservative), never as a non-exceedance."""
+    df = _ch245_frame({"a": 40, "b": 36, "c": 44}, seed=1)
+    real, calls = lt.cr1_event_t, []
+
+    def first_only(*a, **k):
+        calls.append(1)
+        return real(*a, **k) if len(calls) == 1 else {"testable": False, "t": float("nan")}  # the observed fit is real; every draw is NaN
+
+    monkeypatch.setattr(lt, "cr1_event_t", first_only)
+    g = lt.event_day_state_shift_gate(df, df["y"].to_numpy(), "zs", ["own_ds_c"], test="CH245", draws=19, seed=2)
+    assert g["testable"] is True and g["draw_t_nan"] == 19 and g["p_perm"] == pytest.approx(1.0) and g["passes"] is False
+
+
 def test_gate_without_a_long_event_is_not_testable():
     df = _ch245_frame({"a": 10, "b": 12})
     g = lt.event_day_state_shift_gate(df, df["y"].to_numpy(), "zs", ["own_ds_c"], test="CH245", draws=3, seed=1)
