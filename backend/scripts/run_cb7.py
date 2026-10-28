@@ -9,6 +9,7 @@ EXPLORATORY: no edge, calibration or profitability claim. Fetch side only: no an
     python scripts/run_cb7.py geo-fetch ...          # q0143: one resumable chunk of the h8_geo fetch (T_seal-bound)
     python scripts/run_cb7.py text-seal | geo-seal   # q0144 / q0145: re-hash fetched files, record drops, seal
     python scripts/run_cb7.py xv-prints ...          # q0146: taker prints of the 316 C1 Polymarket legs (daily pages <= 10; capped day unavailable); not T_seal-bound
+    python scripts/run_cb7.py hgeo-text ...          # q0147t: question / slug / first event title of the in-band window ids (Gamma by id, net lane; Reading 13a)
     python scripts/run_cb7.py census --family S,G,X  # q0147: pre-freeze counts-only census; verifies the h8_text / h8_geo / h8_tail seal copies by sha256 first
     python scripts/run_cb7.py verify-seal --run-id h8_text|h8_geo
 
@@ -319,6 +320,36 @@ def cmd_xv_prints(a) -> int:
     return 0
 
 
+def cmd_hgeo_text(a) -> int:
+    from astrolabe.research_lab import cb7_census as cc
+    from astrolabe.research_lab import cb7_common as cm
+    from astrolabe.research_lab import cb7_hgeo_text as ht
+    from astrolabe.research_lab import history_backfill as hb
+
+    data_dumps = Path(a.data_dumps) if a.data_dumps else cm.c4.DATA_DUMPS
+    out_root = Path(a.out_root) if a.out_root else data_dumps / "research_lab" / "creative_batch7"
+    try:
+        m = ht.hgeo_text_fetch(out_root, hb.httpx_transport(), snap_root=Path(a.snapshot_root or cm.c4.SNAPSHOT_ROOT),
+                               pin_file=Path(a.pin_file) if a.pin_file else cm.SEALS_DIR / ht.PIN_NAME, window=cc.H_GEO_WINDOW, mid_band=cc.H_GEO_MID,
+                               rps=min(a.rps, 2.0), disk_cap=int(a.disk_cap_gb * 1024**3), budget_min=a.budget_min, data_dumps=data_dumps,
+                               data_dumps_cap_gb=a.data_dumps_cap_gb, live_check=None if a.standalone else hb.live_pass_or_lock)
+    except cm.Refused as exc:
+        _emit({"refused": str(exc)})
+        return REFUSED
+    except cm.NotNow as exc:
+        _emit({"tempfail": str(exc)})
+        return TEMPFAIL
+    except Exception as exc:
+        _emit({"error": f"{type(exc).__name__}: {exc}"[:300]})
+        return 1
+    if m.get("status") == cm.DISK_BUDGET_TOKEN:
+        _emit({"status": cm.DISK_BUDGET_TOKEN, "stopped": m.get("stopped")})
+        return DISK_BUDGET
+    _emit({"status": m.get("status"), "stopped": m.get("stopped"), "complete": m.get("complete"), "counts": m.get("counts"),
+           "candidates": m.get("candidates"), "transient": m.get("transient"), "requests": m.get("requests_this_session")})
+    return ht.exit_code(m)
+
+
 def cmd_census(a) -> int:
     import time
 
@@ -333,6 +364,7 @@ def cmd_census(a) -> int:
                             cv_root=Path(a.cv_root) if a.cv_root else provenance.REPO_ROOT / "data-dumps" / "research_lab" / "cross_venue",
                             snapshot_root=Path(a.snapshot_root or cm.c4.SNAPSHOT_ROOT), rules_path=Path(a.rules) if a.rules else None,
                             require_committed=not a.allow_uncommitted_rules, wall_clock=time.time,
+                            hgeo_pin_file=Path(a.hgeo_pin_file) if a.hgeo_pin_file else None, hgeo_text_dir=Path(a.hgeo_text_dir) if a.hgeo_text_dir else None,
                             trials_path=Path(a.trials_path) if a.trials_path else None, out=Path(a.out) if a.out else None)
     except cm.Refused as exc:
         _emit({"refused": str(exc)})
@@ -462,7 +494,21 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--allow-uncommitted-rules", action="store_true")
     q.add_argument("--trials-path", default=None)
     q.add_argument("--out", default=None)
+    q.add_argument("--hgeo-pin-file", default=None, help="default <seals-dir>/cb7_hgeo_window_captures.sha256")
+    q.add_argument("--hgeo-text-dir", default=None, help="default <data-dumps>/research_lab/creative_batch7/h_geo_text")
     q.set_defaults(fn=cmd_census)
+
+    q = sub.add_parser("hgeo-text")
+    q.add_argument("--rps", type=float, default=2.0)
+    q.add_argument("--disk-cap-gb", type=float, required=True)
+    q.add_argument("--data-dumps-cap-gb", type=float, default=12.5)
+    q.add_argument("--budget-min", type=float, default=None)
+    q.add_argument("--data-dumps", default=None)
+    q.add_argument("--out-root", default=None, help="default <data-dumps>/research_lab/creative_batch7")
+    q.add_argument("--pin-file", default=None, help="default <seals-dir>/cb7_hgeo_window_captures.sha256")
+    q.add_argument("--snapshot-root", default=None)
+    q.add_argument("--standalone", action="store_true")
+    q.set_defaults(fn=cmd_hgeo_text)
 
     q = sub.add_parser("verify-seal")
     common(q, "h8_text")

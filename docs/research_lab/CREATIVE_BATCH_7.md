@@ -1113,11 +1113,29 @@ Recorded before the census; no threshold, floor, gate, window or formula changes
   candle must itself be valid (`0 < bid < ask < 1`, spread <= 10c, mid in [0.03, 0.97]). There is no fall-back to an older valid candle.
   This is stricter than the study's as-of-valid-series rule and lowers the S counts (conservative). Move events are evaluated at every minute
   end between the first and the last candle; the census reports how many of those minute ends have no candle stamped exactly there.
-- **Reading 13 (`h_geo`).** The geopolitics set is `rows_ext.fee_category == "geopolitics"` only (capture rows carry no question), which is
+- **Reading 13 (`h_geo`) - superseded by 13a (2026-10-28); text kept as recorded.** The geopolitics set is `rows_ext.fee_category == "geopolitics"` only (capture rows carry no question), which is
   narrower than the §2.1 rule (`fee_category` or `topic_of`). The binding `h_geo` is the larger of the pooled median half-spread over
   (market, capture) observations and the median of per-market medians (first row per market per capture; two-sided quote; YES mid in
   [0.02, 0.10]; complete captures with a complete sidecar whose start lies in [2026-10-22T00:00Z, 2026-10-25T00:00Z)). The census refuses if
   no such capture or no geopolitics id exists.
+- **Reading 13a (2026-10-28, `h_geo`; DRAFT pending science-reviewer acceptance).** Recorded before any spread is computed; no threshold, floor,
+  gate, window, mid band or formula changes. Source: `reviews/CB7_HGEO_RULING_2026-10-28.md` findings 1, 5, 6 and answers 1-3.
+  - *Finding 1 (Reading 13 cannot match).* `pairing.fee_category` has no `geopolitics` value (unrecognised fee types become `other:<raw>`), so
+    `fee_category == "geopolitics"` is false for every row. Reading 13 is wrong; the fault is in the reading, not in the section 2.1 rule.
+  - *Binding set.* The section 2.1 rule as written: `topic_of(question, first event title, market slug, fee_category) == "geopolitics"`, or
+    `rows_ext.fee_category == "geopolitics"`. The `fee_category` half is kept and reported as matching 0. Text comes from the pinned h_geo text
+    table (job q0147t: public Gamma by id for the in-band ids of the 36 pinned in-window captures; allow-listed fields only; fetch time recorded).
+    Rows whose `fee_category` is in `FEE_FIRST` are dropped up front (exact: `topic_of` returns that category, never geopolitics). The 36 captures
+    (144 files) are pinned in `seals/cb7_hgeo_window_captures.sha256`; the census refuses on any capture or text-table pin mismatch.
+  - *Missing-text rule (fixed before any spread is computed).* Binding `h_geo` = max(`h_geo` on markets with text, `h_geo` also counting every
+    in-band market without text as geopolitics). Each variant is the larger of the pooled median and the per-market median, as in Reading 13.
+    Conservative, no new threshold. If no market can be measured at all, `h_geo` is unavailable: G1 still runs and is counted in the Holm family
+    (GG does not depend on `h_geo`) but cannot advance. Never a fallback spread (`HALF_SPREAD`, 0).
+  - *Finding 5 (disclosure).* The G1 fee rule's "geopolitics 0.0" never applies: h8_geo markets are charged as `other:*` / unknown at 0.07 or their
+    real category. This is conservative against G1; recorded only.
+  - *Finding 6 (disclosure).* The `h_geo` window overlaps the E009/E010 window (to 2026-11-03), which seems to conflict with design line 166. A
+    median spread over a broad set cannot reveal E009/E010's lead-lag statistic; recorded here.
+  - *Run order.* One combined S,G,X census (q0147c, depends on q0147t); q0147b stays failed. No separate S,X run.
 - **Ops note (headroom).** q0146 runs with the data-dumps headroom guard at 40 GiB (ops argument, not a declared design parameter), as
   recorded in its draft notes on 2026-10-17; the other CB7 data jobs keep 12.5 GiB (section 2.8).
 
