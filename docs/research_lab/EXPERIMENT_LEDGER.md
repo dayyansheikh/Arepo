@@ -4606,3 +4606,12 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   default 40 -> 50; collector `CAP_GB` 45 -> 55, keeping the 5 GiB gap. Root free at 55 GiB of data is about 13 GB, above the
   4 GB free-disk guard. Rules-hashed `DATA_DUMPS_CAP_GB = 40.0` constants in cb10-cb16 commons are untouched (their jobs pass the
   flag). The owner's restore-copy clearing decision (10.2 GB, dashboard) stays open and is now the main disk lever.
+
+## CH261 LT13 population map: code merged, q0701 queued, 2026-10-28 ~11:45Z (experiments autopilot; counts only, k = 0, uncounted)
+- `population_map_ch261.py`, `run_ch261_map.py` (feat/ch261-map f7990014, merged), CH251's readers reused; tests 19 passed
+  incl. a test that capture k + 1 is never opened. Span [2026-10-13, 2026-10-28). Printed as `unavailable` (reasons in
+  `not_mapped`): every k + 1 target (CH252 re-tightening, CH253 own change, CH254 vanished at k + 1), liquidity tier, CH258
+  klines, CH259 engine files, CH260 `res_7d` labels. Implementer's own readings, to be listed in the map note: batch chaining
+  over `created_at`, 120 s receipt-span filter, pseudo-batch by created-at decile, halted = `accepting_orders` false, flips
+  only when the new leader was the runner-up. The 40 and 690 lines are printed, no verdict applied in code.
+- q0701 queued (cpu lane, mem 500 MB unmeasured, as_cap 4,000 MB). Next: map note with counts -> LT13 draft or not.
