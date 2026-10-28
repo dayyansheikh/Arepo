@@ -219,6 +219,59 @@ def test_world9_status_liquidity_correlation_is_planted():
     assert np.mean(cs) == pytest.approx(-0.4, abs=0.08)
 
 
+# --- code-freeze check fix 1: worlds 6 and 10 draw the slow drift per EVENT (1.8 table "a slow event drift") --------------------------------------
+
+
+def _drift_spy(monkeypatch):
+    calls = []
+    real = W.ar1
+
+    def spy(rng, shape, rho, sd=1.0):
+        out = real(rng, shape, rho, sd)
+        if rho == W.MQ_RHO and sd == W.MQ_SD:
+            calls.append(out.copy())
+        return out
+
+    monkeypatch.setattr(W, "ar1", spy)
+    return calls
+
+
+@pytest.mark.parametrize("world, events", [("6", 40), ("10", 25)])
+def test_worlds_6_and_10_draw_one_drift_per_event(monkeypatch, world, events):
+    calls = _drift_spy(monkeypatch)
+    W.generate(world, _rng(60 + int(world)), small=True)
+    assert len(calls) == events and all(c.ndim == 1 for c in calls)  # one event-length drift per event, none market-wide
+    firsts = np.array([c[0] for c in calls])
+    assert len(np.unique(np.round(firsts, 12))) == events  # different events get different drifts
+
+
+def test_no_other_world_draws_a_drift(monkeypatch):
+    calls = _drift_spy(monkeypatch)
+    for w in ("1", "2", "3", "4", "5", "7", "8", "9"):
+        W.generate(w, _rng(70 + int(w)), small=True, cal={**W.DEV_CAL, "lambda": 2.0})
+    assert calls == []
+
+
+def test_world6_placebo_partner_carries_its_own_drift():
+    df = W.world_ch245("6", _rng(66), events=300)
+    th = df[df["line"] == "thin"].reset_index(drop=True)
+    by_slot = {s_: g for s_, g in th.groupby("slot")}
+    # within a slot, events no longer share one drift value
+    multi = [g for g in by_slot.values() if g["event_id"].nunique() >= 2]
+    assert multi and np.mean([g["mu_k"].nunique() > 1 for g in multi]) > 0.99
+    own, partner = [], []
+    for _, r in th[np.isfinite(th["pl_ds_c"].to_numpy(float))].iterrows():
+        g = by_slot[r["slot"]]
+        m = g[(g["event_id"] != r["event_id"]) & np.isclose(g["o_ds_c"].to_numpy(float), r["pl_ds_c"], rtol=0.0, atol=1e-12)]
+        if len(m) == 1:  # the partner's own row survived the 10% removal
+            own.append(float(r["mu_k"]))
+            partner.append(float(m["mu_k"].iloc[0]))
+    own, partner = np.array(own), np.array(partner)
+    assert len(own) > 200
+    assert np.mean(np.isclose(own, partner)) < 0.01  # the placebo's o_ds_c no longer carries the thin unit's drift by construction
+    assert abs(np.corrcoef(own, partner)[0, 1]) < 0.3  # independent event drifts (was identically 1 with the market-wide drift)
+
+
 # --- the size worlds call the analysis' own gate (1.8) --------------------------------------------------------------------------------------------------
 
 

@@ -211,7 +211,6 @@ def world_ch245(world: str, rng: np.random.Generator, *, events: int = 300, effe
     cal = cal or {}
     lam = cal.get("lambda")
     Fv = ar1(rng, (SLOTS,), 0.8, 0.6) if world == "3" else np.zeros(SLOTS)
-    mu = ar1(rng, (SLOTS,), MQ_RHO, MQ_SD) if world == "6" else np.zeros(SLOTS)
     gap = gap_sampler(cal.get("rgap_q50_s", DEV_CAL["rgap_q50_s"]), cal.get("rgap_q90_s", DEV_CAL["rgap_q90_s"]), 5.0) if world == "2" else None
     rows: list[dict] = []
     fam: dict[str, int] = {}
@@ -219,6 +218,9 @@ def world_ch245(world: str, rng: np.random.Generator, *, events: int = 300, effe
         n = int(rng.integers(8, SLOTS + 1))  # re-check fix 2: n uniform on 8..252 (worlds 1-6 and R1), so events with n_e < 16 occur
         st = _place(rng, n)
         fam[f"e{e}"] = int(rng.integers(0, FAMILIES))
+        # code-freeze check fix 1: world 6's slow drift is drawn per EVENT (1.8 table "a slow event drift"; LT11 world 13's form), so the placebo partner
+        # (another event in the slot) carries its own drift, not the identical market-wide one; drawn only in world 6 (no other world's draws move)
+        mu = ar1(rng, (n,), MQ_RHO, MQ_SD) if world == "6" else None
         extra: dict = {}
         if world in ("1", "2", "3"):
             v = ar1(rng, (n,), 0.8, 1.0) if world in ("1", "3") else np.zeros(n)
@@ -272,7 +274,7 @@ def world_ch245(world: str, rng: np.random.Generator, *, events: int = 300, effe
             if world == "5":
                 extra["liq_proxy"] = Le + rng.normal(0.0, 0.5, n)
             if world == "6":
-                extra["mu_k"], extra["mu_k1"], extra["mu_k3"] = mu[st:st + n], np.r_[mu[st + 1:st + n], 0.0], np.r_[mu[st + 3:st + n], np.zeros(3)]
+                extra["mu_k"], extra["mu_k1"], extra["mu_k3"] = mu, np.r_[mu[1:], 0.0], np.r_[mu[3:], np.zeros(3)]
         rows.extend(_ch245_lines(e, st, S[0], S[1], extra, rng))
     df = pd.DataFrame(rows)
     if df.empty:
@@ -319,18 +321,19 @@ def world_ch244(world: str, rng: np.random.Generator, *, events: int = 200, effe
     each); every member a latent liquidity ``L_j ~ N(0, 1)`` seen as ``L_j + N(0, 0.5^2)`` (``lowliq`` within event; world 9's tiers at its quartiles; LT12
     ambiguity A23: worlds 7, 8 and 10 carry ``L_j`` without any effect so that the point condition can be evaluated). World 8: every move on the favourite,
     longshots static up to noise with spreads AR(0.8) around 3c, the favourite rewarded w.p. 0.8, the longshots 0.4. World 9: ``E[ds] = 0.8c exp(-0.7 L_j)
-    shock`` and the census status-liquidity correlation. World 10: a drift ``mu_t`` (AR 0.99, SD 0.5c) entering the unrewarded members' targets and, at 0.3
+    shock`` and the census status-liquidity correlation. World 10: a per-event drift ``mu_t`` (AR 0.99, SD 0.5c; drawn per event, code-freeze check fix 1) entering the unrewarded members' targets and, at 0.3
     per SD, the shock propensity (the event shock's scale ``exp(0.3 mu_t / 0.5)``, at k and at k + 3 alike). ``effect`` = cents on ``shock x unrew``."""
     cal = cal or {}
     r9 = cal.get("world9_corr", DEV_CAL["world9_corr"])
     r9 = math.copysign(max(abs(float(r9)), 0.20), float(r9) if float(r9) != 0 else -1.0)
-    mu = ar1(rng, (SLOTS,), MQ_RHO, MQ_SD) if world == "10" else np.zeros(SLOTS)
     parts = []
     for e in range(events):
         M = int(rng.integers(3, 11))
         n = int(rng.integers(8, SLOTS + 1))  # re-check fix 2: n uniform on 8..252 (worlds 7-10), so events with n_e < 16 occur
         st = _place(rng, n)
-        scale = np.exp(MQ_LOADING * mu[st:st + n] / MQ_SD) if world == "10" else np.ones(n)
+        # code-freeze check fix 1: world 10's slow drift is drawn per EVENT (1.8 table "a slow event drift"; LT11 world 13's form); drawn only in world 10
+        mu = ar1(rng, (n,), MQ_RHO, MQ_SD) if world == "10" else None
+        scale = np.exp(MQ_LOADING * mu / MQ_SD) if world == "10" else np.ones(n)
         et = rng.normal(0.0, 1.5, n) * scale
         mj = np.sort(rng.uniform(5.0, 60.0, M))[::-1]
         w = rng.normal(0.0, 0.5, (M, n))
@@ -368,7 +371,7 @@ def world_ch244(world: str, rng: np.random.Generator, *, events: int = 200, effe
             if world == "9":
                 y = y + 0.8 * math.exp(-0.7 * L[i]) * shock[i, ks]
             if world == "10" and unrew[i] == 1:
-                y = y + mu[st + ks + 1]
+                y = y + mu[ks + 1]
             parts.append(pd.DataFrame({"event_id": f"e{e}", "nrkey": f"e{e}", "market_id": f"e{e}-{i}", "slot": st + ks, "unrew": unrew[i], "shock": shock[i, ks],
                                        "shock_size_raw": ssize[i, ks], "d": d[i, ks], "absd": a[i, ks], "own_ds_c": s[i, ks] - s[i, ks - 1], "spread_c": s[i, ks],
                                        "spread_k_c": s[i, ks], "n_members": float(M), "fav": (rank[i, ks - 1] == 1).astype(float), "liq_proxy": proxy, "L": L[i], "y": y,
