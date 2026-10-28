@@ -20,7 +20,7 @@
   "scripts/run_live_tests12.py",
   "reader",
   "--data-dumps-cap-gb",
-  "40"
+  "50"
  ],
  "timeout_s": 900,
  "max_retries": 1,
@@ -28,5 +28,5 @@
   "data-dumps/research_lab/live_tests12/"
  ],
  "next_action": "only if the host cron line (25 */2 * * *, own flock, nice 19, oom_score_adj 1000) cannot be installed: promote with repeat until END_UTC 2026-12-31T00:00Z; record the route used in the ledger; never both routes",
- "notes": "The reader refuses above 3.0 GB in live_tests12/ (1.12). backfill-series runs once within [REGISTERED_UTC - 72 h, REGISTERED_UTC - 24 h] (8.4 step 10). DRAFT, not in queue/jobs. Promote only after: the LT12 design-text freeze (LIVE_TESTS_12.md design text frozen at sha256 a543db63baeb3e85ff2dfa0189478086216c708e59b36f6db575c6b84592b62d), the LT12 code and the independent science-reviewer code-freeze check of the census, gate and size-check code against LIVE_TESTS_12.md sections 1.8, 1.8.1 and 7 (8.4 step 3; it must confirm re-check fixes 1-2 in code, see docs/research_lab/LT12_CODE_NOTES.md), and never while E015's or E022's analysis, or an LT9, LT10 or LT11 census, size check or analysis job, is running (memory-heavy-jobs rule; 7). Counts 0 (descriptive; no trials line) except q0715, which writes the single counted trials line (kind live_tests12). Reads the DRAFT spec unpinned (except q0714 and q0715, which read the pinned spec); the code_sha256 of every hashed module is written into the output. Every gate threshold is stated in section 7 before this runs; nothing is re-tuned after it. Restore, seal and census run ONCE each; max_retries 1 covers a deterministic crash only (no output written). Runs with --data-dumps-cap-gb 40 where the runner accepts it (exit 75 above the cap)."
+ "notes": "The reader refuses above 3.0 GB in live_tests12/ (1.12). backfill-series runs once within [REGISTERED_UTC - 72 h, REGISTERED_UTC - 24 h] (8.4 step 10). DRAFT, not in queue/jobs. Promote only after: the LT12 design-text freeze (LIVE_TESTS_12.md design text frozen at sha256 a543db63baeb3e85ff2dfa0189478086216c708e59b36f6db575c6b84592b62d), the LT12 code and the independent science-reviewer code-freeze check of the census, gate and size-check code against LIVE_TESTS_12.md sections 1.8, 1.8.1 and 7 (8.4 step 3; it must confirm re-check fixes 1-2 in code, see docs/research_lab/LT12_CODE_NOTES.md), and never while E015's or E022's analysis, or an LT9, LT10 or LT11 census, size check or analysis job, is running (memory-heavy-jobs rule; 7). Counts 0 (descriptive; no trials line) except q0715, which writes the single counted trials line (kind live_tests12). Reads the DRAFT spec unpinned (except q0714 and q0715, which read the pinned spec); the code_sha256 of every hashed module is written into the output. Every gate threshold is stated in section 7 before this runs; nothing is re-tuned after it. Restore, seal and census run ONCE each; max_retries 1 covers a deterministic crash only (no output written). Runs with --data-dumps-cap-gb 50 where the runner accepts it (exit 75 above the cap; 2026-10-28 ops convention, was 40)."
 }
