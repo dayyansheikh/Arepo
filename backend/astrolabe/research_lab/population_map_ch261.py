@@ -13,7 +13,8 @@ Counted (per capture; strata = category sports / crypto / nonsports_excrypto / u
          own event excluded; cap 30 cross-event mates; completeness >= 60% of members two-sided at k - 1 and k; receipt span <= 120 s about the batch
          median at both captures): size distribution, cross-event counts, the share of eligible rows in a cross-event batch of >= 3, batches with
          >= 24 complete units in a UTC day, the same-slot correlation of a unit's spread innovation with its mates', the category-factor correlation (VIF
-         derived), and pseudo-batch coverage (same category, age decile of created_at, created >= 7 days apart, enough such units);
+         derived), and pseudo-batch coverage (NO category match: the created_at age decile over the capture's complete eligible
+         units, created >= 7 days apart, enough such units; see the code in ``_batches``);
   CH254  favourite collapses between k - 1 and k (mid >= 0.85 at k - 1 and <= 0.15 at k) by category and UMA-proposed-at-k kind, their volume_num where
          present, category-days with one, the favourite share of eligible two-sided rows, favourites absent from the open rows at k;
   CH255  first-of-day leader flips (the leader by mid changes between k - 1 and k; complete events) by trade class, event size (2 held out), visibility
