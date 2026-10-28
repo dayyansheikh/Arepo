@@ -1,0 +1,49 @@
+{
+ "broad": false,
+ "derived": [
+  "base"
+ ],
+ "description": "Learner variant: se1_lgbm_mm (champion's features, se1's tree params, rows and window) refitted on every frame row after the inner fit, with the inner best iteration and temperature (DESIGN_V1 section 32). Registered because the section 32 development probe q0516 (walk forward 2026-10-19..10-23, 200k rows, event-clustered) met the rule fixed before it ran: gain over se1 on all three direction targets, each CI above zero, 5/5 days positive (dir_2h +0.0016, dir_6h +0.0027, dir_24h +0.0017 nats). That gain is development evidence, small and possibly optimistic; prospective scoring decides. Not embargoed (no family).",
+ "families": [
+  "market_state",
+  "momentum"
+ ],
+ "features_version": "se-features-v1",
+ "isolates": [],
+ "learner": "lgbm",
+ "model_id": "se26_lgbm_mm_full",
+ "params": {
+  "early_stopping": 30,
+  "lgb": {
+   "bagging_fraction": 0.8,
+   "bagging_freq": 1,
+   "feature_fraction": 0.8,
+   "lambda_l2": 1.0,
+   "learning_rate": 0.05,
+   "max_bin": 127,
+   "min_data_in_leaf": 500,
+   "num_leaves": 31,
+   "seed": 20261021
+  },
+  "max_rounds": 300,
+  "refit_full": true,
+  "refit_full_scale": 1.0,
+  "val_frac": 0.2
+ },
+ "targets": [
+  "dir_2h",
+  "dir_6h",
+  "dir_24h",
+  "res_7d"
+ ],
+ "train": {
+  "max_rows": 300000,
+  "min_days": 2,
+  "min_rows": 5000,
+  "refit": "daily",
+  "require_sources": [],
+  "res_window_days": 28,
+  "window_days": 14
+ },
+ "version": 1
+}

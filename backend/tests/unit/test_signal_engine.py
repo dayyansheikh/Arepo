@@ -1726,8 +1726,10 @@ def test_cli_features_builds_every_aux_family_of_a_new_capture_in_one_run(env, c
     assert all(A.aux_path(paths, fam, cid).exists() for fam in A.AUX_FAMILIES)  # 7 > the old budget of 4
 
 
-def test_cli_exit_codes_walkforward_and_dashboard(env, capsys):
+def test_cli_exit_codes_walkforward_and_dashboard(env, capsys, monkeypatch):
     w, paths = env
+    # pin the clock: the world's captures (10-11..10-13) must stay inside the 14-day training window whatever today is
+    monkeypatch.setattr(S, "now_ts", lambda: S.epoch("2026-10-24T12:00:00Z"))
     w.run(30)
     cli = _cli()
     base = ["--engine-root", str(paths.engine), "--dumps-root", str(w.root), "--spec-dir", str(paths.spec_dir)]
@@ -1909,11 +1911,17 @@ def test_lab_host_signal_feed_recheck(tmp_path):
 
 
 def test_refit_full_is_opt_in_and_learns_from_every_frame_row():
-    """DESIGN_V1 §32: no pinned spec sets refit_full; when set, the model is refitted on all rows with the inner rounds."""
+    """DESIGN_V1 §32: only se26 (registered after q0516 met the fixed rule) sets refit_full; when set, the model is
+    refitted on all rows with the inner rounds."""
     from astrolabe.signal_engine import learners as LR
 
     reg = SP.load_registry()
-    assert not any(s["params"].get("refit_full") for s in reg["models"].values())
+    assert {m for m, s in reg["models"].items() if s["params"].get("refit_full")} == {"se26_lgbm_mm_full"}
+    se1, s26 = reg["models"]["se1_lgbm_mm"], reg["models"]["se26_lgbm_mm_full"]  # se1 plus refit_full, nothing else
+    strip = lambda s: {k: v for k, v in s.items() if not k.startswith("_") and k not in ("model_id", "description", "params")}  # noqa: E731
+    assert strip(s26) == strip(se1) and s26["params"] == se1["params"] | {"refit_full": True, "refit_full_scale": 1.0}
+    assert SP.embargo_of(s26, S.epoch("2026-10-28T11:00:00Z")) is None and s26["isolates"] == [] and s26["broad"] is False
+    assert "se26_lgbm_mm_full" not in {e["model_id"] for e in C.PROMOTION_INELIGIBLE}
     rng = np.random.default_rng(3)
     n = 6000
     df = pd.DataFrame({c: rng.normal(size=n).astype(np.float32) for c in F.FAMILY_COLUMNS["market_state"] + F.FAMILY_COLUMNS["momentum"]})

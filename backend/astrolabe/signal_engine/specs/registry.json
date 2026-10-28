@@ -184,6 +184,13 @@
    "spec_sha256": "527fd16d39de0299ef54ee45392584262e4fceb9c9947d0621dfa9e4dc05b07b",
    "status": "active",
    "added_utc": "2026-10-23T13:10:00Z"
+  },
+  {
+   "model_id": "se26_lgbm_mm_full",
+   "file": "se26_lgbm_mm_full.json",
+   "spec_sha256": "9fdf9d175f465b5fd8ee38254df197504e20b6ab3dc5aa736a17823e6e1a5782",
+   "status": "active",
+   "added_utc": "2026-10-28T10:40:00Z"
   }
  ]
 }
