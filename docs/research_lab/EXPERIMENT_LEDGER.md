@@ -4575,3 +4575,15 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **Fix** (read path only): read `ext_manifest.json`; a capture without it is skipped as before; fixture now uses the host layout
   and a test proves a `manifest.json`-only key is not trusted. Window, mid band, thresholds, gates and argv unchanged.
   Tests 45 passed. **q0147b queued** (same spec, no `not_before`: the window closed 10-25T00Z).
+
+## Creative round 18 (CH252-CH261) merged; CANDIDATES round 18 notes, 2026-10-28 ~10:55Z (experiments autopilot; ideas only, nothing counted)
+- `CREATIVE_HYPOTHESES_2026-11-01.md` (Fable xhigh, written 10-24 from 03:44Z on `feat/creative-r18`; the session was cut by the
+  usage limit before its commit) committed 09b7d4a4 and merged. LT13 shortlist: CH252 (payer's return), CH253 (listing batch),
+  decided by the CH261 counts-only map; engine-first families CH254-CH260. The round's own prior: about 0.66 chance that no
+  LT13 test registers.
+- `signal_engine/CANDIDATES.md` gains a round 18 section: an LT13 hold request (CH252/CH253 columns stay out of broad
+  engine families until LT13's decision; tokens `payreturn`, `batch`, `attrlimit_lt13` filed for the freeze, applied by the
+  signal autopilot) and seven engine-first notes. Noted overlaps: `headline` vs `mirror`/`attrlimit_lt12` and `bandside`;
+  `attn` vs `participation`; `stress` vs the dropped `regime`; `pause` depends on `rules`.
+- **E026:** owner phone milestone "collection started" sent 10-28 (the 10-25 window start fell in the usage-limit gap);
+  recorder q0541 and labeller q0542 running since 10-25T00Z.

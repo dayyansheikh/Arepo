@@ -289,6 +289,183 @@ no test.** Per the round-4 rule, please withdraw:
 LT9 note: with LT8 dropped, LT9's window may start from 2026-12-30 (LIVE_TESTS_9.md §1.1 (c')). LT9's tokens stay at their
 filed dates until LT9 asks otherwise. Nothing here moves any LT10 date.
 
+## Idea-level families from creative round 18 (2026-11-01; ideas only, no evidence; not candidates yet)
+
+`CREATIVE_HYPOTHESES_2026-11-01.md` (CH252-CH261; section 2 gives each family's columns, clock, direction and kill line;
+section 3 ranks them). Status of every note below: **idea, untested, evidence_role none**. No edge, profit or calibration
+claim; the priors are mechanisms, not replicated effects. Every family adds one challenger and raises K by one
+(`DESIGN_V1.md` section 13), so build only with a real prior and only after its map or census. Targets are `dir_2h`
+(primary), `dir_6h`, `dir_24h` and `res_7d` as defined in `DESIGN_V1.md` section 3; every family is read **against se1
+(the logistic isolate beside the champion) and the champion**, with event-clustered, market-deduplicated scoring. A
+spread or flat-class reading is a diagnostic beside the three direction targets, not a new primary. Counts are
+**unprobed** unless a prior record is named; CH261 (below) is the counts-only map that prints them. No builder-table row is
+added: that table lists built or decided families only (rows 1-26), and none of these is built.
+
+**LT13 candidates (do not isolate before LT13's freeze).** CH252 and CH253 are the proposed LT13 (one Holm family, k <= 2;
+window proposed 2027-01-21..02-11, design text to be frozen before `T_LT12` = 2027-01-01T12:00Z; the ordered lane is
+later; both after CH261's map). They are listed here as candidates for a request the signal autopilot applies at the
+freeze, in the LT11 / LT12 wording; nothing below is applied by the experiments side.
+- **Request on file, pre-freeze (CH252, CH253; not applied):** keep every column that reads a fee-class x widening
+  interaction on the spread (CH252), the cross-event mates' spread innovation or a thin x mates' innovation product
+  (CH253), and any `paymaker` fee x reward cell interaction on the spread, **unbuilt and unscored in every broad family**
+  until LT13's design-text freeze. If one is scored earlier, the ledger records the first scored capture and the
+  test carries *informed (engine)*. Levels with no innovation are fine (below).
+- **Tokens requested only at LT13's freeze, before any isolating challenger, each until the LT13 date = the later of
+  2027-02-14T00:00Z and LT13's analysis commit** (ordered lane: the later of its analysis date plus 36 h and its analysis
+  commit): `payreturn` (CH252: `pr_wd`, `pr_wd_x_fee_free`, `pr_wd_ticks`, and the fee class x widening interactions on
+  the spread) and `batch` (CH253: `bt_mates_dspread`, `bt_thin_x_mates_dspread`); plus an attribution limit
+  `attrlimit_lt13` (`kind: attribution_limit`, same date): no attribution of the champion, se1, `se24_lgbm_tilt`,
+  `se25_lr_tilt` or any broad model on fee class x spread-change interactions inside `tilt` / `paymaker`, or on
+  batch-mate interactions; `no_broad_families: ["payreturn", "batch"]`. A census drop (CH261's lines, or the tests' own)
+  withdraws that test's token and limit items with a ledger line.
+- **Overlap with LT11 / LT12 to watch:** `tilt` (row 24) already holds `tl_fee_ps`, `tl_rebate_ps`, `tl_fee_free` is
+  planned; CH252's fee class x widening is an interaction of a held level with a spread change, which is why the limit
+  names `tilt` / `paymaker`. `nrslack` / `mirror` hold same-event spread innovations to 2026-12-12 / 2027-01-03; CH253
+  excludes same-event mates by construction, so no token overlaps, but the engine's `event` family must not be given a
+  cross-event spread innovation. CH252's M1 would be *informed (E015)* in any pin after 2026-11-15 (the traded class).
+
+### CH252 / CH253 level columns that may be built now (no test reads them; visible; no token)
+
+- **CH253 batch levels** (`batch` family, one aux table; kill if coverage < 20% of eligible non-sports rows):
+  `bt_n` (markets created within 120 s), `bt_n_events`, `bt_age_h`, `bt_cross_event`, `bt_mates_spread_med`,
+  `bt_own_rank`. Inputs: `created_at` and `event_id`, on every sidecar row (fact 7; coverage of the batch join
+  **unprobed**). Clock: the row's receipt at k; batch membership is a timestamp join over rows received at or before k,
+  complete-batch rule 60%. Targets: `dir_2h` flat class and `res_7d` against se1. Kill at census: coverage < 20%, or
+  completeness < 60% by batch age.
+- **CH252 level** `pr_fee_class` is already `tilt`'s `tl_fee_free`; build no second copy. The widening itself (`wd`, the
+  spread change >= 2 ticks over `(k - 1, k]`) is an event in the interaction, so it waits for the token.
+
+### Engine-first families, in the round's priority order
+
+Priority is the round's; a family earlier in the list is cheaper or closer to a prior, not more likely to work.
+
+**1. `shock` (CH254, the loser's exit; map first).**
+- *Hypothesis.* When a favourite collapses, its holders de-risk across the category, so the category's other favourites
+  dip and the makers widen for a slot with no news about them.
+- *Inputs.* Two Gamma mids per market (k - 1, k), sidecar status fields (proposal / resolved), `volume_num`,
+  `open_interest`, `end_date`, category one-hot. All captured; collapses a capture **unprobed** (about 60 resolutions a
+  slot derived; category-days about 170 in 21 days by arithmetic).
+- *Clock.* Capture at k; the collapse is read from the rows at k - 1 and k; other markets' public facts only, the unit's
+  own event excluded (CH67's same-event unwind is out).
+- *Columns* (aux `shock`, `A~`): `sh_cat_collapse_2h`, `sh_cat_collapse_usd_2h` (unknown a counted class),
+  `sh_cat_collapse_24h`, `sh_cat_due_24h` (the scheduled wave, a control), `sh_own_fav`, `sh_cat_collapse_2h x sh_own_fav`.
+- *Scored on.* `dir_2h` / `dir_6h` against the leading side, `dir_24h` reversion, then the flat class and `res_7d` on
+  favourites, against se1 and the champion.
+- *Killed at its map.* Fewer than the collapses a window needs for a category-day contrast (counts only, in CH261);
+  or the effect is entirely the same-event unwind (excluded, so the category level is zero). A common state: one effective
+  observation per category-day, so the engine reads it over months and a live test cannot.
+- *Embargo.* None found; no token covers another market's collapse.
+
+**2. `headline` (CH255, the leader flip; map first).**
+- *Hypothesis.* A traded first-of-day change of the two leaders' ordering in a visible event is partly bought for the
+  headline and reverts more than a quote-only flip or a flip in an unseen event.
+- *Inputs.* Mids and `volume_num` of the members of complete 3-10 member events, the event join as LT11 / LT12 define it,
+  `event_volume` rank, `page_index` (a visibility proxy only after the collector's sort order is confirmed from its
+  code). Traded first flips a capture **unprobed** (planning 20-80).
+- *Clock.* The latest leader row's `received_utc` at k; the first flip of the UTC day is the state, re-flips a counted
+  class.
+- *Columns* (aux `headline`): `hl_flip`, `hl_flip_traded` (unknown counted), `hl_leader_gap`, `hl_gap_change`,
+  `hl_hours_since_flip`, `hl_is_new_leader`, `hl_visible`, `hl_reflips_24h`, `hl_cross50` (CH93's object, reported).
+- *Scored on.* `dir_24h` and `dir_6h` reversal of the new leader, the visibility x traded interaction, then `res_7d`;
+  against se1 and the `event` isolate (se8), which holds own rank and the largest sibling as levels.
+- *Killed at its map.* Traded first-of-day flips under the engine window's needs; re-flip share in coin-toss races high.
+- *Embargo.* **Two-member events are held out until LT12's date (2027-01-03)**: their two mids are `mirror`'s levels.
+  A mids-ordering change is covered by no token or attribution limit (`attrlimit_lt11`: bid- / ask-sum differences and
+  0.10 / 0.90 crossings; `attrlimit_lt12`: twin-spread and status x shock interactions), but the same events sit in
+  LT11's CH233 window: disclose, score on all events as a mids-ordering object, and keep `hl_cross50` off any 0.10 / 0.90
+  threshold (`bandside`, to 2026-12-12). No manipulation route: this reads other participants' prints.
+
+**3. `attn` (CH256, the comment clock).**
+- *Hypothesis.* A burst of event comments without a move is attention that has not yet traded and precedes a YES drift
+  and a larger move.
+- *Inputs.* The event comment count on the sidecar (the field is on every row; presence, change share and bursts
+  **unprobed**), `volume_num`, `event_volume`. **The `participation` family excludes comment counts (row 14; reason not
+  recorded there): check CB17's use of the field before any column reads it; if a registered CB17 test reads it, wait
+  for that analysis.**
+- *Clock.* The row's receipt at k; the field's staleness is a map line.
+- *Columns* (aux `attn`): `at_com`, `at_dcom_2h`, `at_com_rate_24h`, `at_burst`, `at_com_per_vol`,
+  `at_burst_no_move`, `at_burst_with_move`.
+- *Scored on.* `dir_6h` / `dir_24h` YES drift after a burst without a move, the flat class, then `res_7d`; against se1
+  and `participation` (se16).
+- *Killed at its census.* Field present on < 30% of eligible non-sports event rows; change on < 2% of event-captures;
+  bursts < 10 a capture; or |corr| with the volume change > 0.8 (volume under another name).
+- *Embargo.* `participation` runs to 2026-11-25 and excludes the count; no token names comments. Do not copy
+  `participation`'s columns into `attn`.
+
+**4. `stress` (CH258, the shared balance sheet).**
+- *Hypothesis.* A BTC / ETH realised-volatility spike raises makers' inventory risk everywhere, so non-crypto spreads
+  widen and the flat class shrinks in the next slot with no news.
+- *Inputs.* se20's Binance klines, already fetched per capture and closed before the capture start (so no new fetch);
+  non-crypto eligible rows (about 30,000 a capture); `order_price_min_tick_size`. Stress slots in 21 days **unprobed**
+  (planning 5-20).
+- *Clock.* The kline close before the capture start.
+- *Columns* (aux `stress`): `st_btc_rv_1h`, `st_btc_rv_ratio` (1 h over 7 d), `st_btc_ret_2h`, `st_btc_absret_2h`,
+  `st_eth_rv_1h`, `st_stress` = 1[ratio >= 2], and the slot's own non-crypto mean |2 h change| as the common-factor
+  control (a receipt-order proxy, disclosed as the `regime` review flagged; the previous slot's value as the alternative),
+  with tick-size interactions.
+- *Scored on.* Spread change and the flat class on non-crypto rows (diagnostic), `dir_2h` sign none expected; against
+  se1 **with the slot factor held**. The `regime` family (row 16) was worse than se1 on every direction target; this
+  family is on the same footing and needs the control column to be honest.
+- *Killed at its census.* < 5 stress slots in 21 days; or |corr| of `st_btc_rv_1h` with the slot's common factor > 0.8.
+- *Embargo.* None; `crypto` (row 20) is crypto-template rows only, so no shadowing. After 2026-11-18 a reward-status
+  interaction is allowed (`rewards`).
+
+**5. `tilt` fee-per-stake columns and the `res_7d` fee x bin moderator (CH260).**
+- *Hypothesis.* The taker fee `rate x p(1 - p)` is 20 times heavier per dollar staked on the cheap side, so fee-on
+  markets filter cheap-side buyers and show a smaller favourite-longshot bias within tier and age than fee-free ones.
+- *Inputs.* Sidecar fee schedule, `created_at` (fee era before / after 2026-03-30), tier from `liquidity`; the engine's
+  `res_7d` label store (crypto-heavy over 21 days; long-dated politics barely represented, row 26's scope note).
+- *Clock.* The row's receipt.
+- *Columns* (levels in `tilt`, visible, no token): `tl_fee_per_stake_cheap`, `tl_fee_per_stake_dear`, their ratio, and
+  the fee-era class beside `tl_fee_free`; the moderator is fee panel x price bin x tier.
+- *Scored on.* `res_7d` calibration by panel against the market-price reference; `dir_*` none expected.
+- *Killed at its census.* Any contrasted cell under 200 labelled rows in 28 days. CH61 predicts the opposite sign in
+  geopolitics, and the category composition may explain any difference.
+- *Embargo.* None for levels (LT11 section 9 allows `tilt` levels). Not the dated fee x traded-move test (CH243, dropped
+  at LT12 R1 and not re-proposed); any fee class x spread-change interaction waits for LT13 (see the request above).
+  The fee is second-order to the half-spread at the tails: this is a composition reading, not a route.
+
+**6. `pause` (CH257, a hygiene column before a feature).**
+- *Hypothesis.* The venue's `accepting_orders` false while the market is active marks a rule clarification; the
+  reopening meets the clarified book with a large move toward the clarified side.
+- *Inputs.* Sidecar `accepting_orders`, status, `gamma_rules` diffs where present (44.7% of eligible non-sports
+  markets). Halts **unprobed** (planning a few a week, mostly sports and crypto).
+- *Clock.* The row's receipt; the reopening is false at k - 1 and true at k.
+- *Columns* (aux `pause`): `ps_halted`, `ps_reopened_2h`, `ps_hours_since_reopen`, `ps_halt_len_slots`, `ps_halts_7d`,
+  `ps_clarified_side` (NaN otherwise).
+- *Scored on.* `dir_2h` at reopening toward the clarified side and the flat class, `res_7d` after a halt; against se1.
+- *Killed at its map.* Non-sports halts a handful a month. **First use is hygiene:** a halted market with a frozen
+  two-sided book may pass base eligibility and its labels read a frozen mid; that belongs in the input-coverage
+  monitor's rules (`DESIGN_V1.md` section 2) and needs no K.
+- *Embargo.* `rules` (row 3) is an idea only; `ps_clarified_side` reads the same stream, so it follows row 3's coverage
+  check. No token.
+
+**7. `disp` (CH259, disagreement as the maker's volatility forecast; the builder's call).**
+- *Hypothesis.* The spread of the active specs' own predictions for a market names where the families disagree and
+  predicts the flat class and |dmid|.
+- *Inputs.* The same capture's prediction files of the **visible, non-embargoed** specs only, so no embargoed family
+  leaks through a meta-model, and `dp_lead_family` stays out of the interactions of every `attrlimit_*` until its date.
+- *Clock.* Predict time, before outcomes, same tick.
+- *Columns:* `dp_sd_up`, `dp_range`, `dp_sign_split`, `dp_entropy_mean`, `dp_lead_family`.
+- *Scored on.* The flat class and |dmid| against `rv24` (diagnostic); a sign read of `dp_lead_family` is a stacking
+  change needing a learner / scoring note under `DESIGN_V1.md` section 19, **before any column**.
+- *Killed at its census.* Within-slot SD of `dp_sd_up` < 0.01, or |corr| with `z log rv24` > 0.8.
+- *Embargo.* Embargoed specs are excluded by construction; hidden specs stay out until they become visible. Build as
+  a display column first (no K).
+
+### CH261 (the LT13 population map; not a family)
+
+Counts only (k = 0), one streaming reader over LT12's worn seal `[2026-11-07, 11-17)` for counts, labelled *informed
+(LT12 census)*; no LT12 object is computed and no registered window is read. It prints every **unprobed** count above and
+decides whether LT13 is drafted (kill: a median fee-free unrewarded widening count under 40 a capture). The prediction
+dispersion (CH259) is a separate light step by the builder from the engine's own files. No table, token or column is
+created by it.
+
+### Ideas this round does not hand over
+
+CH255's manipulation route (causing a flip), comment-feed sentiment, and the fee's incidence as a dated test (CH243) are
+closed; the standalone 0.50 crossing is CH93's and CH232's. Do not build features for them.
+
 ## Idea-level families from creative round 17 (2026-10-23; ideas only, no evidence; not candidates yet)
 
 `CREATIVE_HYPOTHESES_2026-10-31.md` (CH242-CH251; section 2 gives each family's columns, clock, direction and kill line;
