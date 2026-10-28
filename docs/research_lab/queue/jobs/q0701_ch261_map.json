@@ -26,7 +26,7 @@
   "--out",
   "../data-dumps/research_lab/ch261_map/CH261_map.json",
   "--data-dumps-cap-gb",
-  "40"
+  "50"
  ],
  "timeout_s": 21600,
  "max_retries": 1,
@@ -34,5 +34,5 @@
   "data-dumps/research_lab/ch261_map/CH261_map.json (counts only)"
  ],
  "next_action": "copy the headline block and shares into the LT13 census table (reported, not tuned); then decide whether LT13 is drafted (median fee-free unrewarded widenings per capture against the 40 line) and whether CH255 enters (traded first-of-day flips against the 690 line)",
- "notes": "Counts only, k = 0, uncounted (CREATIVE_HYPOTHESES_2026-11-01.md CH261). SPAN (declared parameter): [2026-10-13T00:00Z, 2026-10-28T00:00Z), fifteen UTC days, or pass --last-days 14 to the runner for the most recent 14 days of captures; overlaps the CH240 and CH251 maps' spans (also counts-only), disclosed. Streams one capture at a time and keeps only capture k-1 state (CH251 peaked at 460 MB; target similar). Reward reading is the simple MAP reading (clob_rewards non-empty at capture k), not listed_carry24h_v2 with the CLOB feed adjudicating. PRINTED AS UNAVAILABLE (output's not_mapped, with reasons): everything needing capture k+1 (CH252/CH253 targets, 'vanished at k+1', post-reopen move beyond k), the liquidity tier, CH258 (se20 klines), CH259 (engine files), CH260's res_7d label census. Reads rows.csv.gz, rows_ext.csv.gz (named columns only) and manifest.json only; refuses roots outside research_lab/snapshots and outputs outside research_lab; refuses to overwrite; exits 75 when data-dumps is above 40 GiB or the output disk has under 1 GiB free. Output carries each opened file's size and sha256 and the code sha256 of the runner and module."
+ "notes": "Counts only, k = 0, uncounted (CREATIVE_HYPOTHESES_2026-11-01.md CH261). SPAN (declared parameter): [2026-10-13T00:00Z, 2026-10-28T00:00Z), fifteen UTC days, or pass --last-days 14 to the runner for the most recent 14 days of captures; overlaps the CH240 and CH251 maps' spans (also counts-only), disclosed. Streams one capture at a time and keeps only capture k-1 state (CH251 peaked at 460 MB; target similar). Reward reading is the simple MAP reading (clob_rewards non-empty at capture k), not listed_carry24h_v2 with the CLOB feed adjudicating. PRINTED AS UNAVAILABLE (output's not_mapped, with reasons): everything needing capture k+1 (CH252/CH253 targets, 'vanished at k+1', post-reopen move beyond k), the liquidity tier, CH258 (se20 klines), CH259 (engine files), CH260's res_7d label census. Reads rows.csv.gz, rows_ext.csv.gz (named columns only) and manifest.json only; refuses roots outside research_lab/snapshots and outputs outside research_lab; refuses to overwrite; exits 75 when data-dumps is above 50 GiB (2026-10-28 ops convention) or the output disk has under 1 GiB free. Output carries each opened file's size and sha256 and the code sha256 of the runner and module."
 }
