@@ -4702,3 +4702,10 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **q0183 / q0185 attempt 1 (10:28Z / 10:30Z): MemoryError** at the default address-space cap (2 x mem_mb 400 = 800 MB)
   before any output (the q0181 failure mode). Specs: `as_cap_mb` 3000 explicit, mem_mb 450 (ops only). Redeployed; attempt 2
   uses the new caps.
+
+## CB4 closewin extract caught up; q0085 (dev flip trades) released, 2026-10-28 ~11:30Z (experiments autopilot; operational, nothing counted)
+- After the 40 -> 50 GiB guard change, the 10:31Z pass ran CB4 closewin (written 36, remaining 0, missing 0), CB5 listings
+  (remaining 0) and CB3 quote_state (written 15, remaining 0). CB4 extract files: 12 captures a day on 10-18..10-22 (11 on
+  10-21: the collector's own gap), so no capture was lost to retention while the step was stopped.
+- **q0085** promoted from drafts (T4_dev_end passed; code guard open; gates q0086a/q0086b done; extract complete through the
+  dev window). q0086 census (counts only) follows it by dependency.
