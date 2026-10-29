@@ -48,13 +48,14 @@ def test_followup_line_position_and_isolation():
     fi = next(i for i in range(then + 1, len(lines)) if lines[i].strip() == "fi")
     assert then < qs < fu < se < fi  # after quote_state (the vacuum plan reads it), before the last step, only on a complete capture
     code = lines[fu].split("   #", 1)[0].strip()
-    assert code.startswith("timeout 600 nice -n 10 $PY scripts/sample_trades_followup.py ")
-    assert code.endswith("2>&1 | tail -1 || true")  # can never fail the pass (§2.8)
+    assert code.startswith("{ timeout 600 nice -n 10 $PY scripts/sample_trades_followup.py ")
+    # can never fail the pass (§2.8); the step's exit code is logged (re-check fix 4: 124 timeout, 1 over-cap refusal, 0 ok/crash line)
+    assert code.endswith('2>&1 | tail -1; echo "cb3_followup rc=${PIPESTATUS[0]}"; } || true')
 
 
 def _args() -> dict[str, str]:
     code = _lines()[_idx("scripts/sample_trades_followup.py")].split("2>&1", 1)[0]
-    toks = shlex.split(code.replace("$PY", "PY"))
+    toks = shlex.split(code.replace("$PY", "PY").lstrip("{ "))
     toks = toks[toks.index("scripts/sample_trades_followup.py") + 1:]
     return {toks[i]: toks[i + 1] for i in range(0, len(toks), 2)}
 
