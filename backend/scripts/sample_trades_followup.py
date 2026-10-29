@@ -1,5 +1,6 @@
 # ruff: noqa: E501
-"""CB3 post-window trade follow-up (docs/research_lab/CREATIVE_BATCH_3.md §4.3.2). Data-only; NOT wired into arepo_pass.sh yet.
+"""CB3 post-window trade follow-up (docs/research_lab/CREATIVE_BATCH_3.md §4.3.2). Data-only. Wired into scripts/oracle/arepo_pass.sh
+on branch fix/cb3-followup-wire (2026-10-29; live only once deployed to the host, see CB3_FOLLOWUP_WIRE_NOTE_2026-10-29.md).
 
     python scripts/sample_trades_followup.py --snapshot latest --frac 0.5 --vacuum-max 300 --rps 4 --budget-s 540
 
