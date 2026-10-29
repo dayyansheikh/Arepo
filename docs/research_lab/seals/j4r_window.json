@@ -2,7 +2,8 @@
  "t_j4r_start": "2026-10-16T00:00:00Z",
  "t_j4r_end": "2026-10-21T00:00:00Z",
  "declared_end": "2026-10-21T00:00:00Z",
- "final": false,
+ "final": true,
  "source": "SB2-J4-R frozen declaration (queue job q0035 --since/--until as first committed); the pin is a separate committed file so a later edit of the queue spec cannot move CB3's refusal window",
- "rule": "While final is false CB3 refuses every capture at or after t_j4r_start. When J4-R has run, the coordinator commits the actual final --until here with final true; the end can only move forward."
+ "rule": "While final is false CB3 refuses every capture at or after t_j4r_start. When J4-R has run, the coordinator commits the actual final --until here with final true; the end can only move forward.",
+ "finalised": "2026-10-29: J4-R (q0035, run bounce-j4r) finished 2026-10-21T07:25Z on its declared window [2026-10-16T00:00Z, 2026-10-21T00:00Z) (EXPERIMENT_LEDGER.md 'SB2-J4-R (q0035 ...)'); the exit-3 rule did not move --until, so t_j4r_end stays the declared end. Set final per this file's rule and CB3_DEADLINE_RULING_2026-10-29.md action 2."
 }

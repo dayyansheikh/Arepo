@@ -516,11 +516,16 @@ def test_rep_pin_max_rule_floor_and_stage_time_gates(tmp_path):
 
 
 def test_spec_immutability_cuts_hash_census_check_and_j4r_pin(tmp_path):
-    assert D.single_commit(D.J4R_PIN_PATH) is True
+    assert D.single_commit(provenance.REPO_ROOT / "docs" / "research_lab" / "seals" / "cb1_t_rep_start.json") is True
     assert D.single_commit(provenance.REPO_ROOT / "docs" / "research_lab" / "CREATIVE_BATCH_3.md") is False  # many commits
     lo, hi = D.j4r_window()
-    assert lo == D.epoch("2026-10-16T00:00:00Z") and hi == math.inf  # not final: every capture at/after the J4-R start is refused
-    assert D.in_j4r(D.epoch("2026-12-01T00:00:00Z")) and not D.in_j4r(D.epoch("2026-10-15T00:00:00Z"))
+    # final since 2026-10-29 (J4-R q0035 ran on its declared window): T_J4R = [10-16T00Z, 10-21T00Z), later captures readable
+    assert (lo, hi) == (D.epoch("2026-10-16T00:00:00Z"), D.epoch("2026-10-21T00:00:00Z"))
+    assert D.in_j4r(D.epoch("2026-10-20T23:59:59Z")) and not D.in_j4r(D.epoch("2026-10-21T00:00:00Z"))
+    assert not D.in_j4r(D.epoch("2026-12-01T00:00:00Z")) and not D.in_j4r(D.epoch("2026-10-15T00:00:00Z"))
+    pin = tmp_path / "nf.json"
+    pin.write_text(json.dumps({"t_j4r_start": "2026-10-16T00:00:00Z", "t_j4r_end": "2026-10-21T00:00:00Z", "final": False}))
+    assert D.j4r_window(pin) == (D.epoch("2026-10-16T00:00:00Z"), math.inf)  # not final: every capture at/after the J4-R start is refused
     pin = tmp_path / "j.json"
     pin.write_text(json.dumps({"t_j4r_start": "2026-10-16T00:00:00Z", "t_j4r_end": "2026-10-21T00:00:00Z", "final": True}))
     assert D.j4r_window(pin) == (D.epoch("2026-10-16T00:00:00Z"), D.epoch("2026-10-21T00:00:00Z"))
