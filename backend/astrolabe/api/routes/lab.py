@@ -14,7 +14,7 @@ from ...accounts.stepup_gate import locked_body
 from ...config import get_settings
 from ...domain.models import utcnow
 from ...lab import security_keys, service
-from ...lab.signing import MAX_BODY_BYTES, SignatureError, verify_signature
+from ...lab.signing import MAX_BODY_BYTES, SignatureError, precheck_headers, verify_signature
 
 router = APIRouter(prefix="/api/lab", tags=["lab"])
 
@@ -42,6 +42,15 @@ class MessageState(BaseModel):
 
 
 async def signed_source(request: Request) -> tuple[str, bytes]:
+    # Header-only checks first: an unsigned/stale caller never gets its body read.
+    try:
+        precheck_headers(
+            source=request.headers.get("x-lab-source"),
+            timestamp=request.headers.get("x-lab-timestamp"),
+            signature=request.headers.get("x-lab-signature"),
+        )
+    except SignatureError as exc:
+        raise HTTPException(401, "invalid signature") from exc
     declared = request.headers.get("content-length")
     if declared and declared.isdigit() and int(declared) > MAX_BODY_BYTES:
         raise HTTPException(413, "payload too large")

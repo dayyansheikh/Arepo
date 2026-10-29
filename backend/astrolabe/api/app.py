@@ -67,6 +67,11 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    # Outermost (added last): reject oversized bodies before anything buffers them (audit R2-04).
+    from .body_limit import BodyLimitMiddleware
+
+    app.add_middleware(BodyLimitMiddleware)
+
     for issue in settings.production_issues():
         logger.warning("production config issue", extra={"ctx_issue": issue})
     # Fail closed on the credential-critical issues: a default/short AUTH_SECRET lets anyone forge
