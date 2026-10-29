@@ -1059,3 +1059,20 @@ shown on these terms.
 - **Builder judgement (not built this session).** Neither family is built: each would be a hidden isolating challenger until
   2027-01-03 that raises K, on a mechanism LT12 itself will settle first.
 - Tests: `test_lt12_freeze_requests`; the generic attribution-limit loop now also lists `attrlimit_lt12`.
+
+## 34. Development probe: se17 refitted on the whole window (2026-10-29 ~23:10Z; no scoring change)
+
+**Question.** The two learner changes that helped in development each did so alone: more rows (§19, `se17_lgbm_mm_900k`,
++0.0027 nats `dir_2h` over se1) and the whole-window refit (§32, `se26_lgbm_mm_full`, +0.0016). Do they add up? A
+900k-row model also has more recent rows in its held-back newest 20%, so the refit could be worth more or less there.
+- **Probe.** Queue job `q0518_se_dev_refit_full_900k`: the §32 script with `--base se17_lgbm_mm_900k` and no row cap (se17's
+  own 900k), last 5 complete days, `write=False`, gain against se17. In-memory variant only (it keeps the script's id
+  `se1f_dev_lgbm_mm_full`; the output's `reference` names se17). Priority 30 (gaps only), mem 3,400 MB, timeout 8 h. The
+  only output is a write-once `dev/refit_full_<stamp>.json`. No code change.
+- **Reading, fixed now (before the job runs; the §32 rule unchanged).** Development / historical evidence only; never
+  enters the leaderboard, dashboard or promotion rule.
+  - Register a challenger (se17's spec plus `refit_full: true`, `refit_full_scale: 1.0`; new id, K + 1) only if the variant
+    beats se17 on all three direction targets, each event-clustered CI excluding zero, at least 4 of 5 days positive.
+  - Otherwise record a dead end here; nothing is registered.
+- **Not a reason to register.** A gain over se1 or se26 alone does not count: the comparison is against se17, the model
+  the variant changes.

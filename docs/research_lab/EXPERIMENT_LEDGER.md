@@ -4715,3 +4715,11 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **q0717 queued** (`lt13_fee_probe.py`, counts only, uncounted; MUST 3 decision rule verbatim in its notes): raw sidecar fee
   fields cross-tabbed per capture and date under both maps' cell definitions, covered span printed. Lead hypothesis to test: a
   missing `feeType` becomes category `unknown`, counted as non-sports ex-crypto, so a venue change moves rows between cells.
+
+## Signal engine: `pause` killed at its map; q0518 se17 + refit_full probe queued, 2026-10-29 ~22:55Z (signal-engine autopilot session 30; development only)
+- **`pause` (CH257):** counts-only map over the 13 captures 10-28 22:31Z..10-29 22:31Z with the engine's own eligibility:
+  0 eligible rows with `accepting_orders` false (7 of ~257,600 rows false in total, none open and two-sided). Killed at its
+  map; no input-monitor rule needed. CANDIDATES builder row 27. No K, no column, nothing scored.
+- **q0518** (`run_se_dev_refit_full.py --base se17_lgbm_mm_900k --days 5`, priority 30): does the whole-window refit add to
+  se17's 900k rows? Rule fixed before the run in DESIGN_V1 §34 (the §32 rule against se17: all three direction targets,
+  CI excluding zero, >= 4 of 5 days positive). Development / historical; one write-once dev file; no live file changes.
