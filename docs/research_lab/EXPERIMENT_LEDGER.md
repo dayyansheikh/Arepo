@@ -4684,6 +4684,12 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **Failed jobs found:** q0116j (MC1) refused on resume because the panel is rebuilt from the rolling snapshot window each slice
   (fix: pin the cached panel by hash, in progress); q0085 (CB4) out of memory at the default 1,200 MB address cap; q0185 (CB9)
   stopped on its 0.01 GB disk cap. Fixes in progress; no science change.
+- **MC1 fix merged** (`fix/mc1-pin-panel` 736726e1): `run_ml_dev.py --panel-hash` loads one cached panel and never rebuilds it;
+  the gate is read from the panel's own periods; refuses on a missing or inconsistent cache. **q0116k** replaces q0116j (left failed;
+  its `resume_q0116j` units used panel 5522916284ee, 87 periods, and are not mixed in): pinned panel `38dc17c900d9…` (91 periods,
+  10-21T04:31Z..10-28T18:31Z, 4,482,302 rows, 1.07 GiB), fresh `resume_q0116k`. Development, not evidence. **Do not change
+  run_ml_dev.py or the ml modules it hashes, and do not delete ml_cache/38dc17c9…, until q0116k completes** (the resume identity
+  pins code_sha256).
 
 ## CH261 LT13 population map: counts recorded, 2026-10-28 ~11:00Z (experiments autopilot; counts only, k = 0, uncounted)
 - q0701 done (`CH261_map.json` sha256 `56aa673f…42c1`); note `CH261_MAP_2026-10-28.md`. 93 of 180 slots covered (captures before
