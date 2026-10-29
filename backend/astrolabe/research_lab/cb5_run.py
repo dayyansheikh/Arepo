@@ -9,6 +9,7 @@ functions compute counts and gates only (no target, coefficient, net or lead sta
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 from collections import Counter
@@ -389,13 +390,26 @@ def _static_ok(rec: dict, clock: float | None) -> tuple[bool, str]:
 
 
 def census_g_cohort(listings: pd.DataFrame, cohort_dir: Path) -> dict:
-    """G-v on the census cohort: seed vs the first-seen touch of the listing, for markets first sighted before their first trade."""
+    """G-v on the census cohort: seed vs the first-seen touch of the listing, for markets first sighted before their first trade.
+
+    Freeze check 2026-10-29: a market whose trade list was truncated (newest-first, capped) may show a later first trade than the
+    true one, so it is excluded from G-ii and G-v (its files are not read) and counted as ``unavailable_truncated``; a failed fetch
+    is counted as ``n_failed``, never as data."""
     assert_census_frame(listings)
     first = listings.drop_duplicates("market_id").set_index("market_id")
     facts, agree_in = [], []
+    n_trunc = n_failed = 0
     prog = hb._read_progress(Path(cohort_dir) / "progress.jsonl")
     for mid, p in prog.items():
-        if p.get("status") != "done" or mid not in first.index:
+        if mid not in first.index:
+            continue
+        if p.get("status") == "failed":
+            n_failed += 1
+            continue
+        if p.get("status") != "done":
+            continue
+        if p.get("trades_truncated"):
+            n_trunc += 1
             continue
         row = first.loc[mid]
         L = hb._epoch(row["created_at"])
@@ -405,7 +419,8 @@ def census_g_cohort(listings: pd.DataFrame, cohort_dir: Path) -> dict:
         facts.append(f)
         if f["valid_seed"]:
             agree_in.append({"sigma": f["sigma"], "t_ft": f["t_ft"], "first_seen_ts": hb._epoch(row["received_utc"]), "bid": _f(row["best_bid"]), "ask": _f(row["best_ask"])})
-    return {"n_cohort": len(facts), "seed_book_agreement": cb5_seed.seed_book_agreement(agree_in), "seed_echo": cb5_seed.seed_echo_share(facts),
+    return {"n_cohort": len(facts), "unavailable_truncated": n_trunc, "n_failed": n_failed,
+            "seed_book_agreement": cb5_seed.seed_book_agreement(agree_in), "seed_echo": cb5_seed.seed_echo_share(facts),
             "template_share": float(np.mean([f["template"] for f in facts if f["valid_seed"]])) if any(f["valid_seed"] for f in facts) else None}
 
 
@@ -421,6 +436,25 @@ def listings_per_day(listings: pd.DataFrame, *, dev_start: str, end: str) -> dic
     ok &= (df["end"] - df["created"]) >= cb5_seed.MIN_LIFE_D * DAY
     days = (hb._epoch(end) - hb._epoch(dev_start)) / DAY
     return {"n_listings_meeting_rules": int(ok.sum()), "days": days, "per_day": float(ok.sum() / days) if days > 0 else None}
+
+
+def listings_input(root: Path, *, before: str | None = None, since: str | None = None) -> dict:
+    """What :func:`read_listings` reads: the extractor manifest's sha256 and the ``listings`` status counts of the captures in
+    ``[since, before)`` (a non-extracted capture is skipped by the reader, so it is counted here, never silently)."""
+    root = Path(root)
+    mp = root / "manifest.json"
+    raw = mp.read_bytes() if mp.exists() else b""
+    man = json.loads(raw) if raw else {"captures": {}}
+    lo = hb._epoch(since) if since else -math.inf
+    hi = hb._epoch(before) if before else math.inf
+    by: dict[str, int] = {}
+    for ent in man["captures"].values():
+        st = ent.get("capture_start_utc")
+        if st and lo <= hb._epoch(st) < hi:
+            k = str(ent.get("tables", {}).get("listings", {}).get("status", "absent"))
+            by[k] = by.get(k, 0) + 1
+    return {"manifest_sha256": hashlib.sha256(raw).hexdigest() if raw else None, "since": since, "before": before,
+            "captures_in_window": sum(by.values()), "listings_status_counts": dict(sorted(by.items()))}
 
 
 def read_listings(root: Path, *, before: str | None = None, since: str | None = None) -> pd.DataFrame:

@@ -195,15 +195,22 @@ def cmd_cohort_fetch(a) -> int:
         if now.timestamp() < D.epoch(D.DATES["T5_dev_end"]):
             raise D.TooEarly(f"the census cohort fetch is refused before {D.DATES['T5_dev_end']}")
         end = D.iso(D.epoch(D.DATES["T5_dev_end"]) - 86400.0)
+        inp = R.listings_input(p["ext"], before=D.DATES["T5_dev_end"], since=D.DATES["T5_dev_start"])
         lst = R.read_listings(p["ext"], before=D.DATES["T5_dev_end"], since=D.DATES["T5_dev_start"])
         sel = F.select_cohort(lst, window="census", seed=a.seed, max_markets=a.max_markets, dev_start=D.DATES["T5_dev_start"], census_end=end)
     else:
         pin = D.rep_dates()
+        inp = R.listings_input(p["ext"], since=D.iso(pin["rep_start"]))
         lst = R.read_listings(p["ext"], since=D.iso(pin["rep_start"]))
         sel = F.select_cohort(lst, window="rep", seed=a.seed, max_markets=a.max_markets, dev_start=D.DATES["T5_dev_start"], rep_start=D.iso(pin["rep_start"]), rep_end=D.iso(pin["G_rep_end"]))
-    res = F.cohort_fetch(sel, _limiter(a.rps), _cohort_dir(a, window), window=window, now_epoch=now.timestamp(), disk_cap_bytes=int(a.disk_cap_gb * 1e9), should_stop=_deadline(a.budget_min))
+    try:
+        res = F.cohort_fetch(sel, _limiter(a.rps), _cohort_dir(a, window), window=window, now_epoch=now.timestamp(), disk_cap_bytes=int(a.disk_cap_gb * 1e9),
+                             should_stop=_deadline(a.budget_min), seed=a.seed, listings_input={**inp, "run_utc": R.iso_now()})
+    except F.SelectionChanged as exc:
+        _emit({"refused": f"SelectionChanged: {exc}"[:400]})
+        return REFUSED
     _emit(res)
-    if res.get("complete"):
+    if res.get("complete") and not res.get("n_failed"):  # failed markets are retried by the next run (repeat); the census counts any left
         print("rep_fetch_complete" if window == "rep" else "cohort_fetch_complete")
     return 0
 
@@ -301,6 +308,9 @@ def cmd_census(a) -> int:
     out_path = p["out"] / "census.json"
     if out_path.exists():
         raise FileExistsError(f"{out_path} exists; results are never overwritten")
+    cman = _load_json(_cohort_dir(a, "census") / "manifest.json")  # freeze check 2026-10-29: census.json is permanent, never from a partial cohort
+    if not cman or cman.get("complete") is not True:
+        raise D.TooEarly("census refused: the census cohort manifest does not show complete: true")
     doc: dict = {"label": D.LABEL, "version": D.VERSION, "run_utc": R.iso_now(), "outcome_guard": "census code sees no outcome, target, net or lead column"}
     run_dir = p["hist"] / "h2_main"
     D.refuse_path(run_dir)
@@ -315,6 +325,7 @@ def cmd_census(a) -> int:
         if len(lst) and (cdir / "progress.jsonl").exists():
             c = R.census_g_cohort(lst, cdir)
             g["cohort"] = c
+            g["cohort_manifest"] = {k: cman.get(k) for k in ("selected", "done", "n_failed", "complete", "seed", "selection_sha256", "listings_manifest_sha256")}
             g["seed_book_agreement"] = c["seed_book_agreement"]
             g["listings_per_day"] = R.listings_per_day(lst, dev_start=D.DATES["T5_dev_start"], end=D.iso(D.epoch(D.DATES["T5_dev_end"]) - 86400.0))
         doc["G"] = g

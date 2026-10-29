@@ -120,7 +120,7 @@ population, as in CB4 §1.3, so CB5 never touches CB2-W's live stage P.
 | `T5_L_rep_end` | `T5_rep_start` + 28 d | End of the L replication captures |
 | `T5_L_out` | `T5_L_rep_end` + 30 d | Realised-payoff read for L triggers |
 | `T_h2_clock` | 2026-10-11T23:00:33Z | `h2_main` request clock. The h2 head refetch requires `created_at + 4d + 1h ≤ T_h2_clock`, so it adds no information after the h2 sample was drawn |
-| `T_seal` | 2026-10-22T00:00Z | SB2's h4 seal boundary. CB5 has **no historical fetch whose rows reach `T_seal`**. The head refetch ends before `T_h2_clock`, and the IF-H2 and fresh-walk frame is metadata (the r_inc outcome read uses events closed before `T5_dev_start`, §CB5-L) |
+| `T_seal` | 2026-10-22T00:00Z | SB2's h4 seal boundary. CB5 has **no historical fetch whose rows reach `T_seal`**, except the census cohort (disclosed below, §1 "Census cohort vs replication cohort"). The head refetch ends before `T_h2_clock`, and the IF-H2 and fresh-walk frame is metadata (the r_inc outcome read uses events closed before `T5_dev_start`, §CB5-L) |
 | `T_E9_unseal` | 2026-11-03 | Earliest date for the optional K1-R, and only after both E009 and E010 final analyses are committed |
 | `T_CB1D_rep` | 2026-11-09T00:00Z (CB1 `T_rep_end`) | End of CB1-D's sealed replication window. CB5-L dev output (q0109) is held until CB1-D's replication results are committed or CB1-D is recorded as stopped, and never before this date (§CB5-L, round-1 item 11) |
 | `T_J4R` | 2026-10-20T03:00Z | J4-R's first fresh capture (`not_before` of q0035). The K census's wide-state count uses only captures before it |
@@ -145,6 +145,11 @@ population, as in CB4 §1.3, so CB5 never touches CB2-W's live stage P.
 - **Census cohort vs replication cohort (G).** Listings created before `T5_dev_end − 1d` form the census cohort. They are
   read only up to their first trade + 1h, for the seed-semantics check (§2.7). **They are never used for G1/G2 and
   never read past that window.** The replication cohort starts at `T5_rep_start`. The two cannot share a market.
+- **Census cohort past `T_seal` (disclosed 2026-10-29, CB5 code freeze check item 6).** The census cohort holds listings
+  created up to `T5_dev_end − 1d` = 2026-10-26T00:00Z, each stored up to `min(first trade + 1h, L + 24h)`, so its rows
+  reach about 2026-10-27, past `T_seal` (2026-10-22). They are post-hoc public API fetches of CB5's own listings (as the
+  replication data), never h4 data; they are read only for the census counts and gates G-ii and G-v, never for G1/G2,
+  and no frozen SB2 parameter changes.
 - **CB5-K.** The C1 pairs were analysed twice (v1 and r1), and E009 froze coefficients from v1. K1 is a new statistic
   on worn data and cannot change E009/E010. The runner refuses `cross_venue_live/`.
 - **Results outside data directories.** Every CB5 result goes to `research_lab/creative_batch5/`. Nothing is written
@@ -1184,6 +1189,18 @@ answered by item 5.
 
 **Declaration hash (code at the commit that applies freeze re-check must-fixes 1-6; recomputed by `cb5_declaration.declaration_sha256()`):**
 `42bde44f715f6025f986b6ef7c0035cb9730b329ec502d6c79ec42e97f898ede`. Grouper hash: `aaac0948ba1ccb209066ae3c22133aec30cc5cde77719cab9af6410bb872084b`. r_inc functions hash (sealed with the grouper): `8f51ef36e4c3c38fd082b37a332f0023f66dac4f9da22cb1a9ffd27fa9fd2fb4`. Any further code change moves them; re-read them at the freeze commit. The hash covers `cb5_run`, `cb5_fetch`, the imported rule functions (now also `cross_venue.boot_stat`, `cb1_history.load_sample` and `norm_rec`, `creative_batch1.sweep_index`, `forecast.list_complete_captures`, and the script functions `run_cross_venue.load_pair_series` and `audit_sets` executed by `cb5_hours.c1_pairs`) and the imported constants `cross_venue.POINT_LAG_S`, `if_h2.DATE_RE`, `if_h2.EXCLUDE_TAGS`, `cost_regimes.FEE_ERAS`, `ERA_BUFFER_D`, `ERA_RULE_POST`. **Operational constants** `JOB_REFUSE_GB` (12), `DATA_DUMPS_MAX_GB` (14), `DEFAULT_BUDGET_S` and `SCRATCH_CAP_GB` of `cb5_extract` are excluded from the hash (`OPERATIONAL_CONSTANTS`): headroom is an operational precondition, tuned at run time, and cannot change any result. The r_inc seal now also covers `fetch_yes_payouts`, `rinc_market_ids` (the historical-id selection) and `OUTCOME_FAILED`.
+
+**Declaration hash after the CB5 code freeze check fixes (2026-10-29; ruling `docs/research_lab/reviews/CB5_CODE_FREEZE_CHECK_2026-10-29.md`, REVISE):**
+`7c62c037979d94b9972dafd0f9c03a34c688ef1e8a7a874bcf0fad307a2d5cd0` (supersedes `42bde44f…8ede` above). It changed because the
+freeze-check fixes edited `cb5_fetch` and `cb5_run`, which are in the hash: (1) `census_g_cohort` excludes markets with a
+truncated trade list from G-ii and G-v and reports them as `unavailable_truncated`; (2) a non-200 trades or prices answer (or a
+request given up after retries) is recorded `failed`, writes no data file, is not done, is retried on resume and is counted by
+the census as `n_failed`; `cohort_fetch_complete` is printed only when no market is failed; (3) `census` refuses (exit 2) unless
+the census cohort manifest shows `complete: true`; (4) the cohort manifest records the seed, the selected-id hash and the
+listings-manifest sha256 (with the capture status counts in the window), and a census resume whose selection hash differs is
+refused (exit 2; the replication selection grows while listings arrive, so its hash is recorded per run, not pinned);
+(5) fetch-side tests `tests/unit/test_cb5_fetch.py`. No window, threshold, formula, seed or cohort rule changed. Grouper hash
+and r_inc functions hash unchanged (`aaac0948…084b`, `8f51ef36…2fb4`).
 
 **Freeze re-check must-fixes (this commit).** (1) hash coverage gaps closed as listed above. (2) operational constants out of the hash; headroom 12 GB because the collector cap is 13 GB and snapshot deletion is active. (3) Unfinished code: the K1-R stub moved to `cb5_reported.py`, **excluded from the hash with its own note** (`NOTE`); it will be sealed with its own spec before q0114 runs (q0114 stays a draft). The reported-only variants (open item 2) are **formally dropped from this declaration**: none is implemented, none will be reported as a CB5 result, and any later analysis of one is a new, labelled exploratory item outside CB5's tests and trials. (4a) `fetch_yes_payouts` records a non-200 or transport failure as `failed` (`OUTCOME_FAILED`, -1.0), distinct from `unresolved` (NaN); `r_inc` returns `blocked_fetch_failed` when any leg failed; `rinc` and `fetch-outcomes` write nothing and exit 3 on a failure, so a failed run never blocks the single-shot rerun; a mocked-session test fixes the batch format (repeated `id` params, 40 per call). (4b) the sealed r_inc set includes `fetch_yes_payouts` and the id selection. (5) the L screen asserts the frozen family list sha256 equals `census["L"]["family_list_sha256"]` and `rinc["family_list_sha256"]`. (6) a non-200 (400, 404, 422) in the frame walk counts as a failed window and `cdf-frame` refuses while any exists.
 
