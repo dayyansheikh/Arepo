@@ -8,35 +8,25 @@
 **PHASE 4 IN PROGRESS.** See `implementation/phases/PHASE_04_EDGE_EXPERIMENTS.md` and the ledger `research_lab/EXPERIMENT_LEDGER.md`.
 User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=Etc/GMT-1 date`.
 
-## Experiments autopilot live state (2026-10-28 12:17 UTC+1)
-- **Gap:** no autopilot session 10-24 09:07Z .. 10-28 10:08Z (weekly usage limit). Collectors ran throughout.
-- **Owner inbox 10-27** ("promote Forecasting gain near market close"): SB2-CTTE is already live as E014; registry points there
-  (also SB2-L1 -> E012). Windows fixed; not shortened.
-- **E026:** recording since 10-25T00Z; phone milestone "collection started" sent 10-28. Next phone note: weekly counts ~11-01.
-- **Disk/retention ops:** data-dumps 38.9 GiB; guards 40 -> 50 GiB (66fa90a5), collector cap 45 -> 55; snapshot retention 8 -> 12
-  days (99984534) to hold the CB7 h_geo window until q0147c — **revert to 8 after q0147c** (ledger line). Owner restore-copy
-  decision open. Check: CB4 closewin / CB5 / CB3 pass lines show `written > 0` after the guard change (10:31Z pass was running).
-- **CB7:** h_geo fixed twice (sidecar manifest 915c3837; Reading 13 -> 13a with text lookup, merged 218d1e85; ruling + re-check
-  in reviews/CB7_HGEO_*). **q0147t (text) queued**; when done: write its manifest sha256 + text sha256 into
-  drafts/q0147c notes and the ledger, move q0147c to jobs, deploy — **must run before ~11-01** (retention hold to 12 days).
-- **CB9:** q0183/q0185 queued (ruling GO_WITH_CHANGES applied, 8351c077); attempt 1 MemoryError at the 800 MB default cap ->
-  as_cap_mb 3000 (b50d403f, deployed). After each: manifest `exclusion_keys_sha256` must be e613604a…. q0184/q0186 promotion
-  carries ruling conditions 5-6. **CB10 q0201:** fix on `fix/cb10-q0201` (245dd030, not merged; NOT_EXTRACTABLE wrapper, exit
-  codes); blocked on q0183/q0185 frame pins (FILL_), a ruling on reviews/CB10_Q0201_FIX_NOTE_2026-10-28.md, CB10 freeze check,
-  q0200 smoke.
-- **CB4:** closewin extract caught up (no retention gap); **q0085 released** (dc90c29d); q0086 census follows by dependency.
-- **LT12:** code merged 6b443d5c (freeze check + targeted re-check ACCEPT). Census/seal from 11-07.
-- **LT11:** timing recorded (projected end 11-10T17:23Z). Census q0691 not before 11-07T08Z.
-- **MC1:** bit-identical memory fix merged (d2bf29be); **q0116j** queued fresh (~150 h of slices).
-- **CH261 map** done (note corrected: map lines are not census lines). **LT13** draft merged; challenger R1 GO_WITH_CHANGES
-  (reviews/LT13_CHALLENGER_R1_2026-10-28.md). Opus implementer on `feat/live-tests-13` applies R1 + builds **q0717** fee-label
-  probe (counts only). Then: merge, deploy q0717, run, apply MUST 3 decision rule, targeted re-check, design freeze; census code
-  first (MUST 2).
-- **Creative round 19** (Fable xhigh, CH262+) running on `feat/creative-r19` (../astrolabe-creative-r19); then CANDIDATES notes.
-- **CB3:** read-only state assessment running (freeze deadline 10-26T22Z passed in the gap; q0064a gate never created).
-- **Stalled backlog (inventory 10-28):** CB4 q0085 release after closewin catches up past 10-25; CB5 q0103b needs a freeze
-  check; CB3 q0064a gate missing and freeze deadline passed (needs a decision); CB10 q0201 needs the CB9 NOT_EXTRACTABLE fix.
-
+## Experiments autopilot live state (2026-10-30 00:10 UTC+1)
+- **Owner inbox 10-28 19:06Z (storage):** handled. data-dumps 45.2 GiB, 36.8 already in verified nightly releases. Five finished
+  census restore copies (CB18, LT3-LT6; 9.97 GiB, archived, no reader) got deletion rules (62e5363e, deployed); the nightly
+  03:30Z verified-delete removes them. A manual `--dry-run` was started 23:05Z on the host (check `deletions.jsonl` for
+  `would_delete` on `*_census/restore`). Assessment table: `research_lab/data_catalogue/RETENTION.md`. Next storage candidates:
+  ml_cache old panels (after q0116k), snapshots back to 8 days (after q0147c), history/ (review readers; h7_cb4_series feeds CB4).
+- **CB7:** q0147t done; **q0147c promoted** with pins (manifest 3544a8bd…, text 5333444b…), deployed. Must finish before ~11-03
+  03:30Z (12-day snapshot hold). After it: revert snapshots rule 12 -> 8 days + ledger line.
+- **MC1:** q0116j failed (panel rebuilt from rolling snapshots each slice -> resume refused). Fix merged (`--panel-hash`,
+  736726e1); **q0116k** queued (pinned 38dc17c9…, 91 periods, fresh resume dir), deployed. Do not edit run_ml_dev.py / hashed ml
+  modules or delete ml_cache/38dc17c9… until q0116k completes.
+- **In flight (subagents, branches):** `fix/cb4-cb9-ops` (q0085 CB4 OOM at 1,200 MB cap; q0185 CB9 0.01 GB disk cap; ops only);
+  `feat/live-tests-13b` (apply the declared q0717 decision rule to LT13 1.4.3; then targeted re-check, census code per R1 MUST 2);
+  `feat/creative-r19` (Fable xhigh round 19, CH262+, CREATIVE_HYPOTHESES_2026-11-02.md); CB3 deadline ruling
+  (reviews/CB3_DEADLINE_RULING_2026-10-29.md, read-only science-reviewer).
+- **Carried over:** CB9 q0184/q0186 promotion carries ruling conditions 5-6; CB10 q0201 fix on `fix/cb10-q0201` (not merged,
+  needs q0183/q0185 frame pins + ruling); CB5 q0103b needs a freeze check; LT11 census q0691 not before 11-07T08Z; LT12
+  census/seal from 11-07. E026 recording; next phone note: weekly counts ~11-01.
+- **Registered live analyses:** E009/E010 3 Nov, E011 11 Nov, E012-E014 13 Nov, E015 15 Nov, E022 17 Nov, E026 6 Dec.
 ## Interactive session state (2026-10-23 08:30Z)
 - **Security audit run 1 (2026-10-23):** Cloudflare security-audit skill, quick profile, source-only. 0 confirmed findings and 5 needs-validation leads; see `docs/security/AUDIT_2026-10-23_RUN1.md` (full artefacts in `~/security-audit-skill/astrolabe/run-1/`). Owner notified via ntfy. No fixes made yet. Proposed small PRs:
   1. Refuse to start in production on a default or short AUTH_SECRET.
