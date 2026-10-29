@@ -7,6 +7,8 @@ engineering dashboard; detailed diagnostics go through a protected route/CLI).
 """
 from __future__ import annotations
 
+import hmac
+
 from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -40,7 +42,9 @@ async def admin_health(
     settings = get_settings()
     if not settings.admin_token:
         raise HTTPException(status_code=404, detail="not found")
-    if not x_admin_token or x_admin_token != settings.admin_token:
+    if not x_admin_token or not hmac.compare_digest(
+        x_admin_token.encode(), settings.admin_token.encode()
+    ):
         raise HTTPException(status_code=401, detail="unauthorized")
     from ...scheduler.tick import health_from_session
     try:

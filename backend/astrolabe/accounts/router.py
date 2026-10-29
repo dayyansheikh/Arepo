@@ -30,6 +30,7 @@ from .schemas import (
     UserUpdate,
 )
 from .service import (
+    SavedLimitReached,
     add_saved,
     categories_list,
     delete_account,
@@ -68,11 +69,12 @@ auth_router.include_router(
     tags=["auth"],
     dependencies=[Depends(rate_limit)],
 )
-auth_router.include_router(
-    fastapi_users.get_users_router(UserRead, UserUpdate),
-    prefix="/api/users",
-    tags=["users"],
-)
+# Only the self-service /users/me routes are exposed. The router's /users/{id} routes are
+# superuser-only admin endpoints with no use in this product; they are deliberately not mounted.
+_users_router = fastapi_users.get_users_router(UserRead, UserUpdate)
+_me_router = APIRouter()
+_me_router.routes.extend(r for r in _users_router.routes if getattr(r, "path", "") == "/me")
+auth_router.include_router(_me_router, prefix="/api/users", tags=["users"])
 
 
 def _pref_read(pref) -> PreferenceRead:
@@ -131,13 +133,19 @@ async def get_saved(
     ]
 
 
-@account_router.post("/saved", response_model=SavedMarketRead, status_code=status.HTTP_201_CREATED)
+@account_router.post(
+    "/saved", response_model=SavedMarketRead, status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(rate_limit)],
+)
 async def post_saved(
     body: SavedMarketCreate,
     user: User = Depends(current_active_user),
     session: AsyncSession = Depends(get_async_session),
 ):
-    row = await add_saved(session, str(user.id), body.market_id, body.question)
+    try:
+        row = await add_saved(session, str(user.id), body.market_id, body.question)
+    except SavedLimitReached as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Saved-market limit reached") from exc
     return SavedMarketRead(
         market_id=row.market_id, question=row.question, created_at=row.created_at
     )

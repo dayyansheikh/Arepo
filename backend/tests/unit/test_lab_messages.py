@@ -273,3 +273,28 @@ async def test_migration_v17_creates_lab_messages():
         "created_by",
     } <= cols
     await eng.dispose()
+
+
+# ---- fixed-owner restriction (R2-01 code part) ------------------------------------------------
+async def test_fixed_owner_setting_restricts_autopilot_steering(env, monkeypatch):  # noqa: F811
+    from astrolabe.config import get_settings
+
+    client = await _make_owner(env)
+    me = client.get("/api/users/me").json()["id"]
+    # unset: legacy behaviour, any superuser may send
+    assert _send(client).status_code == 201
+    msg_id = _send(client).json()["id"]
+
+    monkeypatch.setattr(get_settings(), "lab_owner_user_id", "00000000-0000-0000-0000-000000000001")
+    assert _send(client).status_code == 404
+    assert client.post("/api/lab/commands",
+                       json={"target": "queue", "action": "pause"}).status_code == 404
+    assert client.post(f"{M}/{msg_id}/cancel").status_code == 404
+    # read-only dashboard is not narrowed by this setting
+    assert client.get("/api/lab/dashboard").status_code == 200
+
+    monkeypatch.setattr(get_settings(), "lab_owner_user_id", me.upper())
+    assert _send(client).status_code == 201
+    assert client.post("/api/lab/commands",
+                       json={"target": "queue", "action": "pause"}).status_code == 201
+    assert client.post(f"{M}/{msg_id}/cancel").status_code == 200

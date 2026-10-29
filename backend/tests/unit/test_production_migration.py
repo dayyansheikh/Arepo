@@ -214,3 +214,19 @@ def test_safe_cors_wildcard_flagged():
     s = Settings(environment="production", auth_secret="x" * 40, auth_cookie_secure=True,
                  database_url="postgresql+asyncpg://u:p@h/db", cors_origins="*")
     assert any("CORS" in i for i in s.production_issues())
+
+
+def test_create_app_refuses_weak_secret_or_insecure_cookie_in_production(monkeypatch):
+    import pytest
+
+    from astrolabe.api import app as app_mod
+
+    bad = Settings(environment="production")
+    monkeypatch.setattr(app_mod, "get_settings", lambda: bad)
+    with pytest.raises(RuntimeError, match="AUTH_SECRET"):
+        app_mod.create_app()
+
+    no_cookie = Settings(environment="production", auth_secret="x" * 40, auth_cookie_secure=False)
+    monkeypatch.setattr(app_mod, "get_settings", lambda: no_cookie)
+    with pytest.raises(RuntimeError, match="AUTH_COOKIE_SECURE"):
+        app_mod.create_app()

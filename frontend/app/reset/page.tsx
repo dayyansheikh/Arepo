@@ -56,7 +56,7 @@ function ResetInner() {
             onChange={setPassword}
             required
             autoComplete="new-password"
-            hint="Use at least 8 characters."
+            hint="Use at least 12 characters."
           />
           <SubmitButton pending={pending}>Set new password</SubmitButton>
         </form>

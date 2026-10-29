@@ -41,6 +41,28 @@ def signing_string(method: str, path: str, timestamp: str, body: bytes) -> bytes
     return f"{method.upper()}\n{path}\n{timestamp}\n{digest}".encode()
 
 
+def precheck_headers(
+    *, source: str | None, timestamp: str | None, signature: str | None, now: float | None = None
+) -> str:
+    """Cheap header-only checks (known source, fresh timestamp, signature present).
+
+    Run BEFORE the request body is read so unauthenticated callers cannot make the server buffer
+    a body. Raises SignatureError; returns the source name.
+    """
+    keys = public_keys()
+    if not source or source not in keys:
+        raise SignatureError("unknown source")
+    if not timestamp or not signature:
+        raise SignatureError("missing signature headers")
+    try:
+        ts = int(timestamp)
+    except ValueError as exc:
+        raise SignatureError("bad timestamp") from exc
+    if abs((time.time() if now is None else now) - ts) > MAX_SKEW_SECONDS:
+        raise SignatureError("stale timestamp")
+    return source
+
+
 def verify_signature(
     *,
     source: str | None,
@@ -53,16 +75,7 @@ def verify_signature(
 ) -> str:
     """Return the verified source name or raise SignatureError."""
     keys = public_keys()
-    if not source or source not in keys:
-        raise SignatureError("unknown source")
-    if not timestamp or not signature:
-        raise SignatureError("missing signature headers")
-    try:
-        ts = int(timestamp)
-    except ValueError as exc:
-        raise SignatureError("bad timestamp") from exc
-    if abs((time.time() if now is None else now) - ts) > MAX_SKEW_SECONDS:
-        raise SignatureError("stale timestamp")
+    precheck_headers(source=source, timestamp=timestamp, signature=signature, now=now)
     try:
         key = Ed25519PublicKey.from_public_bytes(base64.b64decode(keys[source]))
         key.verify(base64.b64decode(signature, validate=True),

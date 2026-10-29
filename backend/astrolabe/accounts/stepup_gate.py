@@ -17,11 +17,14 @@ checks). Machine-signed ``/api/lab/agent/*`` endpoints never read the session co
 """
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 from contextvars import ContextVar
 from typing import Any
 
 from fastapi_users.authentication import JWTStrategy
+from fastapi_users.jwt import decode_jwt, generate_jwt
 from starlette.requests import cookie_parser
 
 from ..domain.models import utcnow
@@ -45,11 +48,32 @@ def locked_body(keys: int) -> dict:
     }}
 
 
+def password_fingerprint(secret: str, hashed_password: str) -> str:
+    """Short keyed digest of the current password hash. Changing or resetting the password changes
+    it, which invalidates every previously issued session JWT."""
+    return hmac.new(str(secret).encode(), (hashed_password or "").encode(), hashlib.sha256
+                    ).hexdigest()[:24]
+
+
 class StepUpJWTStrategy(JWTStrategy):
+    async def write_token(self, user):  # type: ignore[override]
+        data = {"sub": str(user.id), "aud": self.token_audience,
+                "pwf": password_fingerprint(self.secret, user.hashed_password)}
+        return generate_jwt(data, self.encode_key, self.lifetime_seconds,
+                            algorithm=self.algorithm)
+
     async def read_token(self, token, user_manager):  # type: ignore[override]
         user = await super().read_token(token, user_manager)
         if user is None:
             return None
+        try:
+            claims = decode_jwt(token, self.decode_key, self.token_audience,
+                                algorithms=[self.algorithm])
+        except Exception:  # noqa: BLE001 - already validated by super(); defensive
+            return None
+        expected = password_fingerprint(self.secret, user.hashed_password)
+        if not hmac.compare_digest(str(claims.get("pwf", "")), expected):
+            return None  # password changed since issue (or pre-fingerprint token): re-login
         from ..lab import security_keys  # local import: lab models import accounts models
 
         ctx = _request_ctx.get()

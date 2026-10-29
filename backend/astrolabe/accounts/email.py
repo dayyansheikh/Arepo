@@ -10,6 +10,8 @@ contract and provider handoff only.
 from __future__ import annotations
 
 import os
+import time
+from collections import deque
 from dataclasses import dataclass
 from urllib.parse import quote, urlencode
 
@@ -200,13 +202,57 @@ def _service() -> AccountEmailService:
     return AccountEmailService(provider=_provider_override)
 
 
+# --- Per-recipient caps on auth emails (audit R2-07) -------------------------------------------
+# Stops the register / forgot-password endpoints being used to mail-bomb a third party's address.
+# Process-local and in-memory (bounded), so each API instance enforces its own cap; the per-IP
+# limiter and Resend's own limits remain the outer bound across instances. A restart resets it.
+# Trade-off: someone who spams a victim's address can exhaust the victim's hourly allowance, which
+# delays (not blocks) their own reset email by at most an hour.
+HOURLY_CAP = 3
+DAILY_CAP = 10
+_MAX_RECIPIENTS = 20_000
+_sent: dict[str, deque[float]] = {}
+
+
+def reset_recipient_caps() -> None:
+    """Clear the counters (tests)."""
+    _sent.clear()
+
+
+def _allow_recipient(email: str, now: float | None = None) -> bool:
+    """Record one send to ``email`` if under both caps; return False (and record nothing) if not."""
+    now = time.time() if now is None else now
+    key = email.strip().lower()
+    if key not in _sent and len(_sent) >= _MAX_RECIPIENTS:
+        for k in [k for k, q in _sent.items() if not q or q[-1] < now - 86400]:
+            del _sent[k]
+        if len(_sent) >= _MAX_RECIPIENTS:
+            del _sent[next(iter(_sent))]
+    q = _sent.setdefault(key, deque())
+    while q and q[0] < now - 86400:
+        q.popleft()
+    if len(q) >= DAILY_CAP or sum(1 for t in q if t >= now - 3600) >= HOURLY_CAP:
+        return False
+    q.append(now)
+    return True
+
+
+_CAPPED = SendResult(ok=False, detail="recipient_rate_limited")
+
+
 async def send_verification_email(
     email: str, token: str, *, user_name: str | None = None
 ) -> SendResult:
+    if not _allow_recipient(email):
+        logger.warning("verification email suppressed: per-recipient cap")
+        return _CAPPED
     return await _service().send_verification(email, token, user_name=user_name)
 
 
 async def send_reset_email(
     email: str, token: str, *, user_name: str | None = None
 ) -> SendResult:
+    if not _allow_recipient(email):
+        logger.warning("reset email suppressed: per-recipient cap")
+        return _CAPPED
     return await _service().send_password_reset(email, token, user_name=user_name)

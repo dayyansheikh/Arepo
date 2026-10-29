@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import hashlib
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..categories import USER_SELECTABLE_CATEGORIES
@@ -72,6 +72,13 @@ async def list_saved(session: AsyncSession, user_id: str) -> list[SavedMarket]:
     return list(rows)
 
 
+MAX_SAVED_PER_USER = 500
+
+
+class SavedLimitReached(Exception):
+    pass
+
+
 async def add_saved(
     session: AsyncSession, user_id: str, market_id: str, question: str
 ) -> SavedMarket:
@@ -82,6 +89,11 @@ async def add_saved(
     )
     if existing:
         return existing
+    count = await session.scalar(
+        select(func.count()).select_from(SavedMarket).where(SavedMarket.user_id == user_id)
+    )
+    if (count or 0) >= MAX_SAVED_PER_USER:
+        raise SavedLimitReached()
     row = SavedMarket(user_id=user_id, market_id=market_id, question=question)
     session.add(row)
     await session.commit()

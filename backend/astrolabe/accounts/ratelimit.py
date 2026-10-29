@@ -18,12 +18,25 @@ _WINDOW_SECONDS = 60.0
 _hits: dict[str, deque[float]] = defaultdict(deque)
 
 
+_MAX_KEYS = 10_000
+
+
 def _client_key(request: Request) -> str:
-    # Prefer the direct client; honour a single proxy hop if present.
+    """Identify the caller. X-Forwarded-For is client-controlled on its left side: each trusted
+    proxy APPENDS the address it saw, so only the entry TRUSTED_PROXY_COUNT hops from the right is
+    reliable. With 0 trusted proxies the header is ignored entirely."""
+    direct = request.client.host if request.client else "unknown"
+    n = get_settings().trusted_proxy_count
     fwd = request.headers.get("x-forwarded-for")
-    if fwd:
-        return fwd.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
+    if n > 0 and fwd:
+        hops = [h.strip() for h in fwd.split(",") if h.strip()]
+        if len(hops) >= n:
+            return hops[-n]
+    return direct
+
+
+def cutoff_all(now: float) -> float:
+    return now - _WINDOW_SECONDS
 
 
 def reset() -> None:
@@ -41,6 +54,12 @@ def rate_limit(request: Request) -> None:
         return
     now = time.monotonic()
     key = _client_key(request)
+    if key not in _hits and len(_hits) >= _MAX_KEYS:
+        # Bound memory: drop expired buckets first, then (if still full) the oldest-inserted key.
+        for k in [k for k, b in _hits.items() if not b or b[-1] < cutoff_all(now)]:
+            del _hits[k]
+        if len(_hits) >= _MAX_KEYS:
+            del _hits[next(iter(_hits))]
     bucket = _hits[key]
     cutoff = now - _WINDOW_SECONDS
     while bucket and bucket[0] < cutoff:

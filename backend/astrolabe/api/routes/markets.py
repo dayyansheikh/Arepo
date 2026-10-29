@@ -17,7 +17,7 @@ router = APIRouter(prefix="/api", tags=["markets"])
 
 @router.get("/markets/search", response_model=MarketSearchResponse)
 async def search_markets(
-    q: str = Query(..., min_length=1, description="keyword, company or ticker"),
+    q: str = Query(..., min_length=1, max_length=200, description="keyword, company or ticker"),
     active_only: bool = Query(True, description="only active markets (else include closed)"),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),

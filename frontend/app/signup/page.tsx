@@ -103,7 +103,7 @@ export default function SignUpPage() {
           onChange={setPassword}
           required
           autoComplete="new-password"
-          hint="Use at least 8 characters."
+          hint="Use at least 12 characters."
         />
         <label className="mb-4 flex items-start gap-2 text-[13px] text-arepo-ink2">
           <input

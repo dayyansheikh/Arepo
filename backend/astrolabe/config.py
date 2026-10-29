@@ -63,6 +63,9 @@ class Settings(BaseSettings):
     auth_cookie_secure: bool = False                     # AUTH_COOKIE_SECURE: True behind HTTPS
     auth_token_lifetime_seconds: int = 60 * 60 * 24 * 7  # 7 days
     require_email_verification: bool = True              # verified email required before login
+    # TRUSTED_PROXY_COUNT: reverse proxies in front of the API that append to X-Forwarded-For.
+    # Render's edge is one hop, so 1 is the production default; use 0 when exposed directly.
+    trusted_proxy_count: int = 1
     account_rate_limit_per_minute: int = 10             # per-IP limit on auth endpoints
     # General frontend origin retained for non-email integrations. Transactional auth email links
     # deliberately use the canonical https://www.arepolabs.com origin in accounts/email.py.
@@ -81,6 +84,10 @@ class Settings(BaseSettings):
     # "always" = additionally every superuser needs one even before registering (they can still
     # register a first key); "off" = operator escape hatch (password session alone suffices).
     lab_require_hardware_key: str = "auto"
+    # LAB_OWNER_USER_ID: when set, only this user id may send autopilot messages / commands or
+    # cancel messages (audit R2-01). Unset keeps the legacy behaviour (any active verified
+    # superuser) and logs a warning.
+    lab_owner_user_id: str = ""
     # WebAuthn relying-party ID. Empty = "arepolabs.com" in production (valid on www and the apex),
     # otherwise the host of APP_BASE_URL (localhost in development).
     lab_webauthn_rp_id: str = ""

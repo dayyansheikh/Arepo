@@ -10,6 +10,7 @@ import uuid
 
 from fastapi import Depends, Request
 from fastapi_users import BaseUserManager, UUIDIDMixin
+from fastapi_users.exceptions import InvalidPasswordException
 
 from ..config import get_settings
 from ..domain.models import utcnow
@@ -20,6 +21,8 @@ from .models import User
 
 logger = get_logger("astrolabe.accounts")
 
+MIN_PASSWORD_LENGTH = 12
+
 
 class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     @property
@@ -29,6 +32,32 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     @property
     def verification_token_secret(self) -> str:  # type: ignore[override]
         return get_settings().auth_secret
+
+    async def validate_password(self, password: str, user) -> None:  # type: ignore[override]
+        """Minimum length 12 (audit H3), applied at register, reset and password change."""
+        if len(password) < MIN_PASSWORD_LENGTH:
+            raise InvalidPasswordException(
+                reason=f"Password must be at least {MIN_PASSWORD_LENGTH} characters."
+            )
+        if len(password) > 1024:
+            raise InvalidPasswordException(reason="Password is too long.")
+
+    async def update(self, user_update, user, safe: bool = False, request=None):  # type: ignore[override]
+        """Self-service changes of the password or email must re-prove the current password, so a
+        stolen session cookie cannot take over the account."""
+        if safe:
+            data = user_update.model_dump(exclude_unset=True)
+            email_change = "email" in data and data["email"] != user.email
+            if data.get("password") is not None or email_change:
+                current = data.get("current_password")
+                ok = False
+                if current:
+                    ok, _ = self.password_helper.verify_and_update(current, user.hashed_password)
+                if not ok:
+                    raise InvalidPasswordException(
+                        reason="Current password is required to change password or email."
+                    )
+        return await super().update(user_update, user, safe=safe, request=request)
 
     async def on_after_register(self, user: User, request: Request | None = None) -> None:
         # Stamp consent at registration; sign-up requires accepting the terms (spec §10).
@@ -58,7 +87,12 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
 
 
 def _supported_user_name(user: User) -> str | None:
-    """Use only the private first-name field; legacy nameless users get the email fallback."""
+    """Use only the private first-name field; legacy nameless users get the email fallback.
+
+    Until the address is verified the name is attacker-chosen text going to a possibly third-party
+    inbox, so a neutral greeting is used (audit R2-07)."""
+    if not getattr(user, "is_verified", False):
+        return None
     value = getattr(user, "first_name", None)
     return value.strip() if isinstance(value, str) and value.strip() else None
 

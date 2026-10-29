@@ -67,8 +67,21 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    # Outermost (added last): reject oversized bodies before anything buffers them (audit R2-04).
+    from .body_limit import BodyLimitMiddleware
+
+    app.add_middleware(BodyLimitMiddleware)
+
     for issue in settings.production_issues():
         logger.warning("production config issue", extra={"ctx_issue": issue})
+    # Fail closed on the credential-critical issues: a default/short AUTH_SECRET lets anyone forge
+    # session JWTs, and an insecure cookie flag leaks the session over HTTP.
+    fatal = [
+        i for i in settings.production_issues()
+        if i.startswith("AUTH_SECRET") or i.startswith("AUTH_COOKIE_SECURE")
+    ]
+    if fatal:
+        raise RuntimeError("Refusing to start in production: " + " ".join(fatal))
 
     @app.middleware("http")
     async def timing_middleware(request: Request, call_next):
@@ -95,8 +108,8 @@ def create_app() -> FastAPI:
         # fixture: production surfaces a real "temporarily unavailable" state instead (Explore fix).
         return JSONResponse(
             status_code=503,
-            content={"error": "upstream_unavailable", "detail": str(exc)
-                     or "Market data is temporarily unavailable."},
+            content={"error": "upstream_unavailable",
+                     "detail": "Market data is temporarily unavailable."},
         )
 
     @app.exception_handler(Exception)
