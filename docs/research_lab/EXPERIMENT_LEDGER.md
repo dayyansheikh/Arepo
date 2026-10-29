@@ -4673,6 +4673,17 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   window captures would start to go at the 10-30 run, before q0147c. `archive_retention.json` snapshots 8 -> 12 days (adds
   about 3 GB; the deleted files are in verified releases either way). Revert to 8 days with a ledger line after q0147c.
 
+## LT13 q0717 fee probe done; CH252 withdrawn before the census, 2026-10-29 ~23:10Z (experiments autopilot; counts only, k = 0, uncounted)
+- q0717 finished 10-28T17:21Z (peak RSS 344.5 MB). Output copied to `docs/research_lab/seals/LT13_fee_probe_q0717.json`,
+  sha256 `ceaad4cb…a1c7f6`; note `reviews/LT13_Q0717_RESULT_2026-10-29.md`. Covered 93 of 180 slots (7.75 days,
+  10-20T04:31Z..10-27T22:31Z); 80 captures' rows already deleted by retention (missing, not restored).
+- The CH251 / CH261 fee-panel shift is one step: 26,441 markets `fee_on -> fee_free` in one capture pair (10-20T16:31Z ->
+  18:31Z), 0 changes in the other 89 pairs; `fee_schedule` went to `rate 0, rebateRate 0` and `fee_type` to `zero_fees`.
+  Non-sports ex-crypto unrewarded complete units a capture: fee-on 12,310 -> 96, fee-free 486 -> 13,770.
+- LT13 1.4.3 rule (b) applied as written (a venue-side value change, not a reading defect a declared rule fixes):
+  **CH252 `withdrawn_pre_census (fee reading unresolved)`**; CH253 still goes to census (rule (c)). No threshold or reading changed.
+- Next: targeted `science-reviewer` re-check of the q0717 application, then stage A census code for CH253 (R1 MUST 2).
+
 ## CB7 q0147c promoted; storage assessment and restore-copy rules, 2026-10-29 ~23:20Z (experiments autopilot; operational, nothing counted)
 - **q0147t done** (10-28T11:41Z): complete, 13,148 candidate ids, text available for all 13,148, 390 requests. Pins (re-check
   answer 4): `creative_batch7/h_geo_text/manifest.json` sha256 `3544a8bd…35fd2`; `text.csv.gz` sha256 `5333444b…9ce15` (equals the
