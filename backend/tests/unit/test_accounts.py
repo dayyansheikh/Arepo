@@ -260,3 +260,34 @@ async def test_rate_limit_on_auth_endpoints(client, monkeypatch):
         for _ in range(7)
     ]
     assert 429 in statuses, statuses
+
+
+def _req(xff, host="9.9.9.9"):
+    from starlette.requests import Request
+
+    headers = [(b"x-forwarded-for", xff.encode())] if xff else []
+    return Request({"type": "http", "headers": headers, "client": (host, 1)})
+
+
+def test_client_key_uses_rightmost_trusted_hop(monkeypatch):
+    s = get_settings()
+    monkeypatch.setattr(s, "trusted_proxy_count", 1)
+    # attacker-supplied left entries are ignored; the proxy-appended right-most wins
+    assert ratelimit._client_key(_req("1.1.1.1, 2.2.2.2, 3.3.3.3")) == "3.3.3.3"
+    monkeypatch.setattr(s, "trusted_proxy_count", 2)
+    assert ratelimit._client_key(_req("1.1.1.1, 2.2.2.2, 3.3.3.3")) == "2.2.2.2"
+    monkeypatch.setattr(s, "trusted_proxy_count", 0)
+    assert ratelimit._client_key(_req("1.1.1.1")) == "9.9.9.9"
+    monkeypatch.setattr(s, "trusted_proxy_count", 1)
+    assert ratelimit._client_key(_req(None)) == "9.9.9.9"
+
+
+def test_rate_limit_table_is_bounded(monkeypatch):
+    ratelimit.reset()
+    monkeypatch.setattr(ratelimit, "_MAX_KEYS", 5)
+    s = get_settings()
+    monkeypatch.setattr(s, "trusted_proxy_count", 1)
+    for i in range(20):
+        ratelimit.rate_limit(_req(f"x, 10.0.0.{i}"))
+    assert len(ratelimit._hits) <= 5
+    ratelimit.reset()

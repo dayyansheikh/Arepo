@@ -63,6 +63,9 @@ class Settings(BaseSettings):
     auth_cookie_secure: bool = False                     # AUTH_COOKIE_SECURE: True behind HTTPS
     auth_token_lifetime_seconds: int = 60 * 60 * 24 * 7  # 7 days
     require_email_verification: bool = True              # verified email required before login
+    # TRUSTED_PROXY_COUNT: reverse proxies in front of the API that append to X-Forwarded-For.
+    # Render's edge is one hop, so 1 is the production default; use 0 when exposed directly.
+    trusted_proxy_count: int = 1
     account_rate_limit_per_minute: int = 10             # per-IP limit on auth endpoints
     # General frontend origin retained for non-email integrations. Transactional auth email links
     # deliberately use the canonical https://www.arepolabs.com origin in accounts/email.py.
