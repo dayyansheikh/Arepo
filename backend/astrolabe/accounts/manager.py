@@ -21,6 +21,8 @@ from .models import User
 
 logger = get_logger("astrolabe.accounts")
 
+MIN_PASSWORD_LENGTH = 12
+
 
 class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     @property
@@ -30,6 +32,15 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     @property
     def verification_token_secret(self) -> str:  # type: ignore[override]
         return get_settings().auth_secret
+
+    async def validate_password(self, password: str, user) -> None:  # type: ignore[override]
+        """Minimum length 12 (audit H3), applied at register, reset and password change."""
+        if len(password) < MIN_PASSWORD_LENGTH:
+            raise InvalidPasswordException(
+                reason=f"Password must be at least {MIN_PASSWORD_LENGTH} characters."
+            )
+        if len(password) > 1024:
+            raise InvalidPasswordException(reason="Password is too long.")
 
     async def update(self, user_update, user, safe: bool = False, request=None):  # type: ignore[override]
         """Self-service changes of the password or email must re-prove the current password, so a

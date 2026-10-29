@@ -108,8 +108,8 @@ def create_app() -> FastAPI:
         # fixture: production surfaces a real "temporarily unavailable" state instead (Explore fix).
         return JSONResponse(
             status_code=503,
-            content={"error": "upstream_unavailable", "detail": str(exc)
-                     or "Market data is temporarily unavailable."},
+            content={"error": "upstream_unavailable",
+                     "detail": "Market data is temporarily unavailable."},
         )
 
     @app.exception_handler(Exception)

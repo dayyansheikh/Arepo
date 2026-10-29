@@ -94,3 +94,25 @@ async def test_saved_market_field_limits_cap_and_rate_limit(client, outbox, monk
     ratelimit.reset()
     codes = [client.post(url, json={"market_id": "a"}).status_code for _ in range(4)]
     assert 429 in codes, codes
+
+
+async def test_password_minimum_length_12_on_register_and_change(client, outbox):
+    from tests.unit.test_accounts import _register
+
+    short = _register(client, email="s@example.com", password="Short-Pass-1")  # 12 chars is ok
+    assert short.status_code == 201
+    assert _register(client, email="t@example.com", password="Eleven-Pas1").status_code == 400
+    _verify_and_login(client, outbox)
+    r = client.patch(
+        "/api/users/me",
+        json={"password": "Eleven-Pas1", "current_password": "Sufficiently-Long-1"},
+    )
+    assert r.status_code == 400
+
+
+async def test_admin_health_token_check(client, monkeypatch):
+    from astrolabe.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "admin_token", "s3cret-token")
+    assert client.get("/admin/health", headers={"X-Admin-Token": "wrong"}).status_code == 401
+    assert client.get("/admin/health").status_code == 401
