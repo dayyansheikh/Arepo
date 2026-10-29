@@ -89,16 +89,17 @@ conventions (`LIVE_TESTS_12.md`, frozen at sha256 `a543db63…2d62d`) unless a l
   2027-01-21T00:00:00Z** (never earlier; it slides later with LT9's window, never earlier), `END_UTC` = `REGISTERED_UTC` + 21 days
   (proposed **2027-02-11T00:00:00Z**); single analysis on or after `END_UTC` + 36 h (proposed **2027-02-12T12:00:00Z**). Census
   on LT12's worn seal span **`[2026-11-07T00:00Z, 2026-11-17T00:00Z)`**, re-sealed with LT13's own file list (6).
-- **Labels certain in both lanes:** both tests *informed (LT12 census span)* (the census span is LT12's seal span; no LT12
+- **Labels certain in both lanes:** CH253 *informed (q0717)* (its category and sports readings were declared after q0717's
+  counts, 1.4, 1.4.4, 1.7; re-check fix 5); both tests *informed (LT12 census span)* (the census span is LT12's seal span; no LT12
   object is computed); CH252's M1 *informed (E015)* and *informed (E022)* (E015's traded class, about 2026-11-15; E022's S2,
   about 2026-11-17). Lane-dependent labels: 1.1.
 - **Honest survival priors (the designer's judgement after the CH261 map, not measurements; round 18's in brackets).**
   **CH252 0.08 [0.22]:** **three** of round 18's own census lines fail on the map's numbers (non-stationarity median / mean 0.108
   < 0.25; fee-on >= 5x fee-free at about 0.008; cell coverage 0.096 < 0.60; the last two restated in 5 items 1-2), and LT13's
   restated count line too (about 70 < 77 a capture at retention 0.5); the census span would need a larger and steadier fee-on
-  unrewarded arm, and the map also shows an unexplained shift in the fee panel against CH251 (1.4.3): if q0717 does not explain
-  it, CH252 is withdrawn before the census (1.4.3 rule (b)). **Superseded 2026-10-29: q0717 traced the shift to a venue-side
-  value change, not a reading defect; rule (b) applied; CH252 `withdrawn_pre_census (fee reading unresolved)` (1.4.3).**
+  unrewarded arm, and the map also shows a shift in the fee panel against CH251 (1.4.3), governed by rule (b) verbatim: "If q0717 does not explain the CH251/CH261 shift with a field-semantics cause that a declared reading rule fixes, CH252 is `withdrawn_pre_census (fee reading unresolved)`."
+  **Applied 2026-10-29: q0717 traced the shift to a change in served values, not in field meaning, which no declared reading rule
+  fixes; CH252 `withdrawn_pre_census (fee reading unresolved)` (1.4.3)** (secondary reason, not the basis: CH252 is infeasible under any reading, since after the step q0717 counts 96 fee-on unrewarded non-sports ex-crypto complete units a capture (mean; median 89), about 15 widenings at CH261's widening share 0.153 and about 8 at retention 0.5, against the count gate 77, and the post-step fee-on arm is a different population; re-check 2026-10-29).
   **CH253 0.10 [0.15]:**
   the map cleared the round's three named killers (coverage 0.873, VIF 1.001, same-slot correlation 0.059) and the count has
   margin, but the rule-21 placebo coverage gate is expected to fail (0.755 on a coarser reading than the design's). **Expected k
@@ -233,7 +234,11 @@ Round 18's rules map onto LT13 as follows (rules 1-20 as in LT12 1.0's table, ap
 ### 1.4 Shared origin-side eligibility
 LT12 1.4 applies (vendored `move_join`, `classify`): binary, open, active, `accepting_orders` not false; two-sided at k - 1 and
 k (bid > 0, ask < 1); **tight** (spread <= 0.10 at k - 1 and k); end unknown or > `t` + 3 h (F arm: > `t` + 7 h, else
-`f_end_short`); category by `cb17_census.is_sports_sidecar` (non-sports primaries; sports arm reported, uncounted); crypto
+`f_end_short`); category by `cb17_census.is_sports_sidecar` (non-sports primaries; sports arm reported, uncounted), **applied
+unchanged to the values served after the 2026-10-20 fee step** (declared before the freeze, *informed (q0717)*, 1.4.3): it reads
+`fee_type`, `fee_category` and the first series slug, so the 1,800 markets that q0717 saw move from sports to non-sports ex-crypto
+when their `fee_type` became `zero_fees` are non-sports here (disclosed; no topic or sports status is reconstructed); the census
+prints units by verbatim `fee_type` x sports-slug cell (first series slug on the frozen sports list: yes / no) (6); crypto
 excluded by the pinned classifier (unknown counted and treated as crypto); `scope: non_sports_ex_crypto` fixed at the freeze;
 one row per `condition_id`; tick equal at k - 1 and k (`tick_changed`); series-family rule (the census top family holding
 > 40% of a primary population is excluded, `<test>.exclude_family`).
@@ -306,7 +311,11 @@ missing `liquidity` is NaN, excluded, counted.
   the vendored reading reads both regimes consistently and needs no change, and the only rules that would restore the pre-step
   classes (the documented rule as primary, or reading `fees_enabled = true` with a positive `taker_base_fee` as fee-on despite
   `rate 0` and `zero_fees`) either replace the sidecar reading, which this section forbids, or rest on a meaning the counts cannot
-  establish. **CH252 is `withdrawn_pre_census (fee reading unresolved)`** (uncounted, final; never `census_dropped`); **CH253 goes
+  establish. **CH252 is `withdrawn_pre_census (fee reading unresolved)`** (uncounted, final; never `census_dropped`; "unresolved"
+  because `fees_enabled = true` with a positive `taker_base_fee` beside `rate 0` / `zero_fees` cannot be settled by counts; secondary
+  reason, not the basis: CH252 is infeasible under any reading, about 15 fee-on widenings a capture after the step at CH261's
+  widening share 0.153 on q0717's 96 fee-on unrewarded complete units (median 89), about 8 at retention 0.5, against the count
+  gate 77; re-check 2026-10-29); **CH253 goes
   to census alone (rule (c))**. No reading rule is added, no threshold changes (rule (a)); no count of widenings, narrowings or
   spread changes was read. *informed (q0717)*.
   **Disclosed for the re-check (not applied):** after the step about 0.90-0.95 of non-sports ex-crypto rows carry
@@ -331,6 +340,11 @@ missing `liquidity` is NaN, excluded, counted.
   `created_at` decile (deciles over capture k's eligible complete units), (iii) were created >= 7 days before or after i, (iv)
   are not in i's batch, event key or series family (1.4 family; `none:<event key>` singletons included). If fewer than m qualify,
   the placebo is NaN (`placebo_none`, counted). The rule reads capture k - 1 and k only.
+- **Category reading in rule 21 (i) (declared before the freeze; *informed (q0717)*, 1.4.3).** "Sidecar category" is the verbatim
+  `fee_category` at k; `other:zero_fees` and `unknown` are literal categories like any other value; no topic is reconstructed from
+  slugs, tags, titles or any other field (that would change a rule-21 line after the map; R1 MUST 5). **Disclosed:** after the
+  2026-10-20 fee step about 0.90-0.95 of non-sports ex-crypto rows carry `other:zero_fees`, so the placebo's category control is
+  largely lost (most pseudo-mates share only that literal category). No threshold changes.
 
 ### 1.5 Missing data, per-capture status and attrition (never imputed)
 As LT12 1.5: every frozen unit receives one write-once status at every target slot (`two_sided`, `one_sided`, `closed_flag`,
@@ -355,7 +369,8 @@ before the LT13 seal commit, except the header pre-check (headers only) and the 
   inside it, so its main effect is absorbed and only its interactions are estimated); CH253 batch x UTC day.
 - **Known-factor block K** (LT12 1.7 unchanged): `p_k`, spread_k, `log1p liquidity`, `log1p volume24hr` (`vol_missing`), log
   hours to end (`hte_unknown`), `1[tick = 0.001]`, `z log rv24*`, `rewarded_k` (CH253 only; constant 0 in CH252), non-sports
-  `fee_category` dummies, 11 slot-of-day dummies, own `d_k`, own 6 h and 24 h changes (`mom_missing`), `chg_1h` (and `chg_1d`,
+  `fee_category` dummies (verbatim `fee_category`; `other:zero_fees` and `unknown` literal levels, no reconstruction; declared
+  before the freeze, *informed (q0717)*; disclosed: after the 2026-10-20 fee step these dummies carry little topic content), 11 slot-of-day dummies, own `d_k`, own 6 h and 24 h changes (`mom_missing`), `chg_1h` (and `chg_1d`,
   `chg_1w` as indicator pairs if present).
 - **Standard errors and p (L10):** CR1 on the cluster (CH252 event; CH253 batch), two-way cluster x UTC day, and UTC day;
   one-sided **p = max(p_cluster on t with `G - 1` df, p_two-way normal, p_day on t with `G_day - 1` df)**; conservative 95% CI
@@ -484,7 +499,9 @@ at random unless the world says otherwise; the model is the test's primary with 
   excluded* (or *falsification unavailable*); a point condition fails -> **Inconclusive** with *not payer-specific* (CH252 (a)),
   *age-confounded* (CH252 (b)) or *placebo not null* (CH253). **CH252's Supported text** reads "a **fee-on/post-03-30 versus
   fee-free/pre-03-30 contrast** in re-tightening after a widening", **never "fee effect"** (R1 MUST 4: fee and age are separated
-  only by functional form, 2.3).
+  only by functional form, 2.3). **CH253's Supported text** adds: "the pseudo-batch placebo matched on the literal sidecar
+  `fee_category`, which after the 2026-10-20 fee step is `other:zero_fees` for most rows, so its category control is largely lost"
+  (*informed (q0717)*, 1.4.4).
 - **Contradicted:** the conservative 95% CI lies entirely below 0. **Inconclusive:** otherwise. **Unavailable:** CH252 < 5,000
   fee-on widening units, < 100 fee-on events with a widening unit, < 20,000 fee-free widening units on support, < 300 fee-free
   events, fee-on `G_eff` < 15, or < 2,500 fee-on narrowing units (the placebo cannot be shown); CH253 < 20,000 units, < 300
@@ -543,6 +560,10 @@ analysis refuse; gaps stay missing; the reader refuses above 3.0 GB in `live_tes
 - **Operational deviations** (host outage, missed capture, reader crash, a capture lost to retention before extraction): recorded
   in the ledger within 24 h of discovery; the affected quantities stay missing and are counted (`capture_missing`); never refilled
   from any other stream (sweeps, engine `quotes/`, trade samples, the monitor) and never interpolated.
+- **Venue fee or category step (declared before the freeze; *informed (q0717)*).** The census and the window reader print, per
+  capture, the fee-class and category-class changes against k - 1 (q0717's reading). Another venue-side step like 2026-10-20's (a
+  capture pair with a mass change of served fee or category values) is recorded as a deviation under this section, within 24 h of
+  discovery; the affected values are read as served, never re-read, re-mapped or reconstructed.
 - **Before the freeze:** any change is a draft revision mapped to the reviewer item that caused it (section 12 after R1).
 - **After the freeze, before the census commit:** a change to a state, unit, target, estimator, gate, threshold or verdict rule
   needs a written scientific justification, a `science-reviewer` acceptance, a new design-text sha256 in the ledger and the label
@@ -874,10 +895,10 @@ captures with a previous capture, zeros included.
   `batch_incomplete`, `receipt_span`, `placebo_none` by age decile, units by batch age (genesis share), the > 30 mates arm, the sports
   arm, sports-mate share; the overlap of CH252 and CH253 units (moot since CH252's withdrawal; not printed). *informed (q0717)*,
   under 1.4.3 rule (a), print only: CH253 units and pseudo-mate candidates by verbatim `fee_type` and `fee_category` (with the
-  `zero_fees` / `other:zero_fees` and `unknown` cells), and `placebo_none` by those cells.
+  `zero_fees` / `other:zero_fees` and `unknown` cells), and `placebo_none` by those cells; units by verbatim `fee_type` x
+  sports-slug cell (1.4); per capture, the fee-class and category-class changes against k - 1 (1.13).
 - **Order:** one census job (CC13) streams the captures once and evaluates the two blocks independently.
-- **Expected fates (declared now).** CH252: withdrawn before the census if q0717 leaves the fee shift unexplained (1.4.3 rule (b));
-  else the non-stationarity line and the fee-on count decide; then support coverage, the fee switch share and fee-on events.
+- **Expected fates (declared now).** CH252: under 1.4.3 rule (b), verbatim: "If q0717 does not explain the CH251/CH261 shift with a field-semantics cause that a declared reading rule fixes, CH252 is `withdrawn_pre_census (fee reading unresolved)`." Otherwise the non-stationarity line and the fee-on count decide; then support coverage, the fee switch share and fee-on events.
   **Recorded 2026-10-29: CH252 `withdrawn_pre_census (fee reading unresolved)`** (q0717; 1.4.3 rule (b): the shift is a venue-side
   value change on 2026-10-20 that no declared reading rule fixes). CH252's gates and prints in this section are not run.
   CH253 (censused even if CH252 is withdrawn, 1.4.3 rule (c)): placebo coverage decides; then completeness and identification.
@@ -1069,7 +1090,7 @@ R1's ruling follows each item (**R1:**); the response is section 12.
    reported diagnostic (SHOULD 2).
 6. **The fee reading (1.4.3).** Are the day-fixed class, the 5% switch gate and the 95% finite-class gate the right response to an
    unexplained shift in the fee panel, or should the doc rule (category, deployment date) be the primary reading?
-   **R1: sidecar primary, contingent on MUST 3** (1.4.3's decision rule; CH252 withdrawn if the shift stays unexplained).
+   **R1: sidecar primary, contingent on MUST 3** (1.4.3's decision rule (b), verbatim: "If q0717 does not explain the CH251/CH261 shift with a field-semantics cause that a declared reading rule fixes, CH252 is `withdrawn_pre_census (fee reading unresolved)`.")
 7. **The census span.** LT13 re-seals LT12's census span `[11-07, 11-17)` (round 18's proposal; label *informed (LT12 census span)*).
    Acceptable, or must LT13 wait for the ordered lane's fresh seal?
    **R1: acceptable; freeze before `T_LT12c`, else *informed (LT12 census)*.** Kept; the freeze is planned by 11-14 (7.4).
@@ -1117,8 +1138,7 @@ R1's ruling follows each item (**R1:**); the response is section 12.
   fee-free at about 0.008; cell coverage 0.096 < 0.60; the last two restated in 5 items 1-2) and LT13's restated count line
   (about 70 < 77); CH253 fails one (placebo coverage 0.755 < 0.90 on a looser reading). The map is not the census: nothing is
   census_dropped on it; a withdrawal is withdrawn_pre_census. Designer's odds 0.08 / 0.10, P(no test) about 0.83. CH251/CH261
-  fee-panel shift unexplained: q0717 runs before the freeze under a declared rule (CH252 withdrawn_pre_census (fee reading
-  unresolved) if it stays unexplained; CH253 still censused). Census on LT12's worn span [11-07, 11-17); window 2027-01-21..02-11 (fast lane, pin before
+  fee-panel shift unexplained: q0717 runs before the freeze under a declared rule (rule (b), verbatim: "If q0717 does not explain the CH251/CH261 shift with a field-semantics cause that a declared reading rule fixes, CH252 is `withdrawn_pre_census (fee reading unresolved)`." CH253 still censused). Census on LT12's worn span [11-07, 11-17); window 2027-01-21..02-11 (fast lane, pin before
   T_LT12); analysis on or after 2027-02-12T12:00Z. Tokens payreturn, batch, attrlimit_lt13 requested at the freeze.
 - R1 GO_WITH_CHANGES (2026-10-28) applied in the second draft (section 12). Next: q0717, then the R1 re-check.
 ```
@@ -1147,3 +1167,15 @@ unresolved)`; no reading rule added; CH253 alone to census (rule (c)). Sections 
 6 (one CH253 print, expected fates), 7.4 timetable, 7.5 (q0717 row), 11 (`next`). For the re-check: (1) whether (b) is the right
 branch when the shift is explained but by a value change no reading rule fixes (the designer read the rule's conjunction
 literally); (2) the `other:zero_fees` category share and rule 21 (i) for CH253 (1.4.3, disclosed, not changed).
+
+**q0717 re-check (2026-10-29; `reviews/LT13_Q0717_RECHECK_2026-10-29.md`, ACCEPT_WITH_FIXES) applied:** fix 1, rule (b) quoted
+verbatim in 0 (priors), 6 (expected fates), 10 item 6 and 11 (draft ledger block), label kept, the infeasibility stated as the
+secondary reason (0, 1.4.3); fix 2, verbatim `fee_category` in rule 21 (i) (1.4.4) and the dummies (1.7), literal
+`other:zero_fees` / `unknown`, no reconstruction, the lost category control disclosed there and in CH253's Supported text (1.9);
+fix 3, sports classification on post-step values (1.4) with the `fee_type` x sports-slug print (6); fix 4, per-capture fee and
+category class changes printed for the census and the window, another venue step a 1.13 deviation, never re-read (1.13, 6);
+fix 5, CH253 *informed (q0717)* (0). No threshold changed.
+**Open item for the orchestrator (not acted on here):** the re-check could not verify the classifier shift's effect on LT12. LT12
+is frozen, uses the same `cb17_census.is_sports_sidecar` rule, and its census span [2026-11-07, 2026-11-17) lies wholly after the
+2026-10-20 step, so the 1,800-market sports -> non-sports move (and the `other:zero_fees` category values) apply there too. LT13
+edits nothing of LT12; whether LT12 needs a disclosure or a deviation record is the orchestrator's decision.

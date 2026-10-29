@@ -4683,6 +4683,10 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - LT13 1.4.3 rule (b) applied as written (a venue-side value change, not a reading defect a declared rule fixes):
   **CH252 `withdrawn_pre_census (fee reading unresolved)`**; CH253 still goes to census (rule (c)). No threshold or reading changed.
 - Next: targeted `science-reviewer` re-check of the q0717 application, then stage A census code for CH253 (R1 MUST 2).
+- Re-check (`reviews/LT13_Q0717_RECHECK_2026-10-29.md`) ACCEPT_WITH_FIXES: withdrawal confirmed; fixes 1-5 applied in
+  LIVE_TESTS_13.md (rule (b) quoted verbatim; verbatim `fee_category` and post-step sports reading declared, no reconstruction;
+  per-capture class-change prints, another venue step a deviation; CH253 *informed (q0717)*). No threshold changed. Open item:
+  LT12 (frozen) uses the same sports classifier on an all-post-step span; not edited. Next: full R1 re-check, then freeze.
 
 ## CB3 freeze target missed; restore-copy dry run, 2026-10-29 ~23:45Z (experiments autopilot; operational, nothing counted)
 - **CB3:** freeze target 2026-10-26T22Z (§8 item 4) missed (no session 10-24..10-28). Ruling
