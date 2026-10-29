@@ -168,8 +168,8 @@ class SavedMarketRead(BaseModel):
 
 
 class SavedMarketCreate(BaseModel):
-    market_id: str
-    question: str = ""
+    market_id: str = Field(min_length=1, max_length=128)
+    question: str = Field(default="", max_length=500)
 
 
 class AlertDeliveryRead(BaseModel):

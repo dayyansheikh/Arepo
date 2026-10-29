@@ -30,6 +30,7 @@ from .schemas import (
     UserUpdate,
 )
 from .service import (
+    SavedLimitReached,
     add_saved,
     categories_list,
     delete_account,
@@ -132,13 +133,19 @@ async def get_saved(
     ]
 
 
-@account_router.post("/saved", response_model=SavedMarketRead, status_code=status.HTTP_201_CREATED)
+@account_router.post(
+    "/saved", response_model=SavedMarketRead, status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(rate_limit)],
+)
 async def post_saved(
     body: SavedMarketCreate,
     user: User = Depends(current_active_user),
     session: AsyncSession = Depends(get_async_session),
 ):
-    row = await add_saved(session, str(user.id), body.market_id, body.question)
+    try:
+        row = await add_saved(session, str(user.id), body.market_id, body.question)
+    except SavedLimitReached as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Saved-market limit reached") from exc
     return SavedMarketRead(
         market_id=row.market_id, question=row.question, created_at=row.created_at
     )

@@ -40,3 +40,26 @@ async def test_users_id_routes_not_mounted(client, outbox):
     me_id = client.get("/api/users/me").json()["id"]
     assert client.get(f"/api/users/{me_id}").status_code == 404
     assert client.delete(f"/api/users/{me_id}").status_code in (404, 405)
+
+
+async def test_saved_market_field_limits_cap_and_rate_limit(client, outbox, monkeypatch):
+    from astrolabe.accounts import ratelimit, service
+    from astrolabe.config import get_settings
+
+    _verify_and_login(client, outbox)
+    ratelimit.reset()
+    url = "/api/account/saved"
+    assert client.post(url, json={"market_id": "m" * 129, "question": "q"}).status_code == 422
+    assert client.post(url, json={"market_id": "m1", "question": "q" * 501}).status_code == 422
+    assert client.post(url, json={"market_id": "", "question": "q"}).status_code == 422
+
+    monkeypatch.setattr(service, "MAX_SAVED_PER_USER", 2)
+    assert client.post(url, json={"market_id": "a"}).status_code == 201
+    assert client.post(url, json={"market_id": "b"}).status_code == 201
+    assert client.post(url, json={"market_id": "a"}).status_code == 201  # idempotent, not counted
+    assert client.post(url, json={"market_id": "c"}).status_code == 409
+
+    monkeypatch.setattr(get_settings(), "account_rate_limit_per_minute", 2)
+    ratelimit.reset()
+    codes = [client.post(url, json={"market_id": "a"}).status_code for _ in range(4)]
+    assert 429 in codes, codes
