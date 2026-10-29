@@ -35,8 +35,20 @@ class UserCreate(schemas.BaseUserCreate):
 
 
 class UserUpdate(schemas.BaseUserUpdate):
+    # Required (checked in UserManager.update) when changing the password or email; never stored.
+    current_password: str | None = Field(default=None, max_length=1024)
     first_name: str | None = Field(default=None, min_length=1, max_length=80)
     last_name: str | None = Field(default=None, min_length=1, max_length=80)
+
+    def create_update_dict(self):
+        d = super().create_update_dict()
+        d.pop("current_password", None)
+        return d
+
+    def create_update_dict_superuser(self):
+        d = super().create_update_dict_superuser()
+        d.pop("current_password", None)
+        return d
 
     @field_validator("first_name", "last_name")
     @classmethod

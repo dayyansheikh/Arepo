@@ -10,6 +10,7 @@ import uuid
 
 from fastapi import Depends, Request
 from fastapi_users import BaseUserManager, UUIDIDMixin
+from fastapi_users.exceptions import InvalidPasswordException
 
 from ..config import get_settings
 from ..domain.models import utcnow
@@ -29,6 +30,23 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     @property
     def verification_token_secret(self) -> str:  # type: ignore[override]
         return get_settings().auth_secret
+
+    async def update(self, user_update, user, safe: bool = False, request=None):  # type: ignore[override]
+        """Self-service changes of the password or email must re-prove the current password, so a
+        stolen session cookie cannot take over the account."""
+        if safe:
+            data = user_update.model_dump(exclude_unset=True)
+            email_change = "email" in data and data["email"] != user.email
+            if data.get("password") is not None or email_change:
+                current = data.get("current_password")
+                ok = False
+                if current:
+                    ok, _ = self.password_helper.verify_and_update(current, user.hashed_password)
+                if not ok:
+                    raise InvalidPasswordException(
+                        reason="Current password is required to change password or email."
+                    )
+        return await super().update(user_update, user, safe=safe, request=request)
 
     async def on_after_register(self, user: User, request: Request | None = None) -> None:
         # Stamp consent at registration; sign-up requires accepting the terms (spec §10).

@@ -68,11 +68,12 @@ auth_router.include_router(
     tags=["auth"],
     dependencies=[Depends(rate_limit)],
 )
-auth_router.include_router(
-    fastapi_users.get_users_router(UserRead, UserUpdate),
-    prefix="/api/users",
-    tags=["users"],
-)
+# Only the self-service /users/me routes are exposed. The router's /users/{id} routes are
+# superuser-only admin endpoints with no use in this product; they are deliberately not mounted.
+_users_router = fastapi_users.get_users_router(UserRead, UserUpdate)
+_me_router = APIRouter()
+_me_router.routes.extend(r for r in _users_router.routes if getattr(r, "path", "") == "/me")
+auth_router.include_router(_me_router, prefix="/api/users", tags=["users"])
 
 
 def _pref_read(pref) -> PreferenceRead:
