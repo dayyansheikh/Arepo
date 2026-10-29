@@ -29,6 +29,9 @@ concurrency:
   group: arepo-scan
   cancel-in-progress: false   # never cancel an in-progress scan; the next schedule catches up
 
+permissions:
+  contents: read
+
 jobs:
   scan:
     runs-on: ubuntu-latest
@@ -61,9 +64,11 @@ jobs:
           pip install -r requirements.txt
           pip install -e .
       - name: Run scan tick (refresh + freeze)
+        env:
+          FORCE_INPUT: ${{ github.event.inputs.force }}
         run: |
           EXTRA=""
-          [ "${{ github.event.inputs.force }}" = "true" ] && EXTRA="--force"
+          [ "$FORCE_INPUT" = "true" ] && EXTRA="--force"
           python -m astrolabe.scheduler.tick run --group scan $EXTRA
       - name: Health snapshot (always)
         if: always()

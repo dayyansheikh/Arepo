@@ -18,6 +18,9 @@ concurrency:
   group: arepo-digest
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   digest:
     runs-on: ubuntu-latest

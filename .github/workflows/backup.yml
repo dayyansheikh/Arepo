@@ -28,6 +28,9 @@ concurrency:
   group: arepo-db-backup
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   backup:
     runs-on: ubuntu-latest
@@ -115,8 +118,30 @@ jobs:
           SIZE=$(stat -c%s "$OUT")
           test "$SIZE" -gt 1000 || { echo "backup suspiciously small ($SIZE bytes)"; exit 1; }
           echo "OUT=$OUT" >> "$GITHUB_ENV"
-      - name: Upload backup artifact
+      - name: Encrypt backup with age (public key only)
+        id: enc
         if: steps.seen.outputs.cache-hit != 'true' || github.event.inputs.force == 'true'
+        env:
+          # Public recipient key (age1...). Set as repo variable or secret BACKUP_AGE_PUBKEY. Only
+          # the owner holds the matching private key, so the artifact is useless to anyone who
+          # can merely download it (it contains account tables: emails, password hashes).
+          AGE_PUBKEY: ${{ vars.BACKUP_AGE_PUBKEY || secrets.BACKUP_AGE_PUBKEY }}
+        run: |
+          if [ -z "$AGE_PUBKEY" ]; then
+            echo "::warning::BACKUP_AGE_PUBKEY is not set; the dump is NOT uploaded (an unencrypted artifact would expose account data). Set the repo variable BACKUP_AGE_PUBKEY to an age public key to enable backups."
+            rm -f "$OUT"
+            echo "encrypted=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          case "$AGE_PUBKEY" in age1*) ;; *) echo "::error::BACKUP_AGE_PUBKEY is not an age public key (must start with age1)"; exit 1;; esac
+          sudo apt-get install -y age
+          age -r "$AGE_PUBKEY" -o "${OUT}.age" "$OUT"
+          rm -f "$OUT"
+          test -s "${OUT}.age"
+          echo "OUT=${OUT}.age" >> "$GITHUB_ENV"
+          echo "encrypted=true" >> "$GITHUB_OUTPUT"
+      - name: Upload backup artifact
+        if: steps.enc.outputs.encrypted == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: arepo-db-backup
@@ -124,10 +149,10 @@ jobs:
           retention-days: 90
           if-no-files-found: error
       - name: Record fingerprint of the successful dump
-        if: (steps.seen.outputs.cache-hit != 'true' || github.event.inputs.force == 'true') && success()
+        if: steps.enc.outputs.encrypted == 'true' && success()
         run: echo "${{ steps.fp.outputs.hash }}" > .backup-fingerprint
       - name: Save fingerprint marker
-        if: (steps.seen.outputs.cache-hit != 'true' || github.event.inputs.force == 'true') && success()
+        if: steps.enc.outputs.encrypted == 'true' && success()
         uses: actions/cache/save@v4
         with:
           path: .backup-fingerprint

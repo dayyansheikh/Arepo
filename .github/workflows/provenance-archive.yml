@@ -35,6 +35,9 @@ concurrency:
   group: arepo-provenance-archive
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   archive:
     runs-on: ubuntu-latest
