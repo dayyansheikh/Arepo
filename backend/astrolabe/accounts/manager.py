@@ -76,7 +76,12 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
 
 
 def _supported_user_name(user: User) -> str | None:
-    """Use only the private first-name field; legacy nameless users get the email fallback."""
+    """Use only the private first-name field; legacy nameless users get the email fallback.
+
+    Until the address is verified the name is attacker-chosen text going to a possibly third-party
+    inbox, so a neutral greeting is used (audit R2-07)."""
+    if not getattr(user, "is_verified", False):
+        return None
     value = getattr(user, "first_name", None)
     return value.strip() if isinstance(value, str) and value.strip() else None
 

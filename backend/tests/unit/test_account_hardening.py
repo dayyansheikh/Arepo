@@ -42,6 +42,37 @@ async def test_users_id_routes_not_mounted(client, outbox):
     assert client.delete(f"/api/users/{me_id}").status_code in (404, 405)
 
 
+def test_recipient_email_caps_hourly_and_daily():
+    from astrolabe.accounts import email
+
+    t0 = 1_000_000.0
+    assert [email._allow_recipient("V@x.io", t0 + i) for i in range(4)] == [True] * 3 + [False]
+    assert email._allow_recipient("v@x.io", t0 + 10) is False  # case-insensitive key
+    assert email._allow_recipient("other@x.io", t0 + 10) is True
+    # hourly window slides; the daily cap of 10 then bites
+    sent = 3
+    t = t0
+    while True:
+        t += 3601
+        if not email._allow_recipient("v@x.io", t):
+            break
+        sent += 1
+    assert sent == email.DAILY_CAP
+
+
+async def test_unverified_recipient_gets_neutral_name_and_cap_applies(client, outbox):
+    from astrolabe.accounts.email import HOURLY_CAP
+    from tests.unit.test_accounts import _register
+
+    _register(client, email="victim@example.com", first_name="Click-evil-link")
+    assert outbox.sent[-1].template_variables["USER_NAME"] == "there"
+    n_after_register = len(outbox.sent)
+    for _ in range(HOURLY_CAP + 2):
+        client.post("/api/auth/request-verify-token", json={"email": "victim@example.com"})
+    assert len(outbox.sent) == HOURLY_CAP  # capped; surplus requests send nothing
+    assert n_after_register == 1
+
+
 async def test_saved_market_field_limits_cap_and_rate_limit(client, outbox, monkeypatch):
     from astrolabe.accounts import ratelimit, service
     from astrolabe.config import get_settings

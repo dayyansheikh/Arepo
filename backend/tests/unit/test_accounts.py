@@ -85,7 +85,7 @@ async def test_register_sends_verification_and_blocks_login_until_verified(clien
     r = _register(client)
     assert r.status_code == 201
     assert len(outbox.sent) == 1  # verification email queued
-    assert outbox.sent[0].template_variables["USER_NAME"] == "Ada"
+    assert outbox.sent[0].template_variables["USER_NAME"] == "there"  # unverified: neutral
     # Login is refused before verification.
     r = client.post(
         "/api/auth/login",
