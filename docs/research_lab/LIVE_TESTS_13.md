@@ -1,7 +1,11 @@
 # Live tests 13 (LT13): the payer's return and the listing batch (CH252, CH253), DRAFT pre-registrations
 
-**Status: DRAFT (second draft, 2026-10-28: challenger R1 GO_WITH_CHANGES applied, section 12), for the R1 re-check. Not
-frozen, not registered; E-numbers unassigned; nothing counted, no LT13 code, no seal, no census run.** Drafted on branch
+**Status: DRAFT (second draft, 2026-10-28: challenger R1 GO_WITH_CHANGES applied, section 12; 2026-10-29: q0717 done and its
+declared rule applied, 1.4.3), for the R1 re-check. Not frozen, not registered; E-numbers unassigned; nothing counted, no LT13
+census code, no seal, no census run.** **CH252 is `withdrawn_pre_census (fee reading unresolved)` under 1.4.3 rule (b)**
+(q0717, `reviews/LT13_Q0717_RESULT_2026-10-29.md`): the CH251 / CH261 fee shift is a one-capture change in the served
+`fee_schedule` / `fee_type` values on 2026-10-20, not a reading defect a declared reading rule fixes. CH252's sections (2, its
+rows of 1.8.1, 6, 7, 8) stay as written for the record and are never built; **CH253 alone goes to census (rule (c))**. Drafted on branch
 `feat/live-tests-13` from the `chore/arepo-claude-setup` tip `0d760612`, a design-only commit like the first commits of LT3-LT12.
 LT13 takes the next free E-numbers at its own registration, in the order CH252, CH253 (round 18's rank order). If both tests drop
 at their census or are withdrawn before it, LT13 is not registered (recorded in the ledger; nothing counted). Before registration
@@ -74,7 +78,8 @@ conventions (`LIVE_TESTS_12.md`, frozen at sha256 `a543db63…2d62d`) unless a l
 | **CH253** the listing batch | Among non-sports ex-crypto units in a **cross-event creation batch** (>= 3 markets created within a 120 s chain, >= 2 events), the own spread change over (k, k + 1] rises with the **complete cross-event mates' mean spread innovation** over (k - 1, k], given the own innovation and the category x slot factor over non-mates (> 0); a rule-21 pseudo-batch's innovation has an absolute slope < half (binding two-sided placebo) | market x capture; same-event mates excluded; **cluster batch**; batch x UTC-day demeaning | expanding-past batch x UTC-day demeaned OLS of `ds_i` on `zs_bt`; batch-phase state-shift gate (one offset per batch, demeaning re-applied every draw); F binding | 2,965 (median) units a capture before filters, retention 0.5: DE 31 **0.27c**, DE 51 0.34c, DE 79 0.43c; F 0.42 / 0.54 / 0.67c; quarter (DE 79) 0.85c, F 1.34c | 1.0c |
 
 - **Family:** one Holm family over the k surviving primaries, one-sided, familywise alpha 0.05, separate from E009-E011, LT2
-  (E012-E014), LT3 (E015), LT4 (E022), LT5-LT12, E025 and E026. **Provisional k <= 2.** Each test is killable independently at
+  (E012-E014), LT3 (E015), LT4 (E022), LT5-LT12, E025 and E026. **Provisional k <= 2; k <= 1 since q0717 (CH252
+  withdrawn before the census, 1.4.3 rule (b)).** Each test is killable independently at
   its census; a failed gate drops it before registration (`census_dropped`, uncounted, final in both lanes); a failed coverage
   check is `census_unavailable (coverage)` (6), re-censusable only in the ordered lane as its own Holm family. A test withdrawn
   before the census is `withdrawn_pre_census (<reason>)` (uncounted, final, never `census_dropped`; R1). `k_tests` is fixed
@@ -92,7 +97,9 @@ conventions (`LIVE_TESTS_12.md`, frozen at sha256 `a543db63…2d62d`) unless a l
   < 0.25; fee-on >= 5x fee-free at about 0.008; cell coverage 0.096 < 0.60; the last two restated in 5 items 1-2), and LT13's
   restated count line too (about 70 < 77 a capture at retention 0.5); the census span would need a larger and steadier fee-on
   unrewarded arm, and the map also shows an unexplained shift in the fee panel against CH251 (1.4.3): if q0717 does not explain
-  it, CH252 is withdrawn before the census (1.4.3 rule (b)). **CH253 0.10 [0.15]:**
+  it, CH252 is withdrawn before the census (1.4.3 rule (b)). **Superseded 2026-10-29: q0717 traced the shift to a venue-side
+  value change, not a reading defect; rule (b) applied; CH252 `withdrawn_pre_census (fee reading unresolved)` (1.4.3).**
+  **CH253 0.10 [0.15]:**
   the map cleared the round's three named killers (coverage 0.873, VIF 1.001, same-slot correlation 0.059) and the count has
   margin, but the rule-21 placebo coverage gate is expected to fail (0.755 on a coarser reading than the design's). **Expected k
   at census about 0.18; P(no LT13 test) about 0.83** (0.92 x 0.90, treating the fates as independent, which they are not: both
@@ -275,6 +282,37 @@ missing `liquidity` is NaN, excluded, counted.
   q0717 motivates is written into this section before the freeze, with its reason, and carries *informed (q0717)*; it may not use
   any count of widenings, narrowings or spread changes (q0717 holds none). q0717 runs before the 8-day snapshot retention removes
   more of 2026-10-20..10-21 and prints its covered span; captures already gone stay missing (never restored for it).
+- **q0717 result and the rule applied (2026-10-29; `reviews/LT13_Q0717_RESULT_2026-10-29.md`; output
+  `seals/LT13_fee_probe_q0717.json`, sha256 `ceaad4cb…a1c7f6`; counts only, k = 0).** Covered 93 of 180 slots (7.75 days,
+  2026-10-20T04:31Z..10-27T22:31Z); 2026-10-13..10-20T04:31Z is gone (80 captures' rows deleted by retention, counted missing,
+  not restored), so CH251's pre-10-20 span is not observed. Facts that decide the rule (non-sports ex-crypto, unrewarded, the
+  vendored reading unchanged):
+  - **One step, one capture pair.** Between the 2026-10-20T16:31Z and 18:31Z captures **26,441 markets changed fee class
+    `fee_on -> fee_free`** (23,888 non-sports ex-crypto; 1,800 sports -> non-sports ex-crypto; 753 sports). **No other capture
+    pair of the 90 with a k - 1 holds any fee or category class change.**
+  - **What changed in the fields:** the served values, not their form. `fee_schedule` moved from positive-rate texts (e.g. hash
+    `2437e600…` rate 0.04, `403675f9…` rate 0.05) to hash `3570c72e…` (`rate 0, rebateRate 0`), and `fee_type` moved from
+    `<topic>_fees` (politics, weather, culture, finance, tech, economics, mentions) to `zero_fees`, at the same capture. The
+    `fees_enabled` state (`true`), `taker_base_fee` state (positive), `ext_version` (`snapshot-ext-v3`) and the column set do not
+    change; `unknown` fee class is 0 throughout.
+  - **Levels either side** (per capture, mean): open rows fee-on 15,517 -> 159, fee-free 554 -> 17,437; complete units fee-on
+    12,310 -> 96 (median 89 after), fee-free 486 -> 13,770. q0717 reproduces CH261's 12,850 / 910 complete units (12,884 / 910 over
+    the same span), and CH251's 4,577 / 11,267 open rows lie between the two levels at a post-step share of about 0.24-0.28 (CH251's
+    span holds about 0.23 of its hours after the step; the pre-10-20 levels are unobserved). q0717's own fee-on complete-unit
+    median / mean (0.098; open rows 0.110) is the step (6 pre-step captures with a k - 1 against 84 after; per-capture range 72-134 after it),
+    the same shape as the map's 0.108 (q0717 holds no widening count, so the map's figure itself is not re-derived).
+  **Decision (rule (b), as written).** q0717 explains the shift by hypotheses (ii) and (v): CH251's span straddles a one-time,
+  venue-side change of the `fee_schedule` and `fee_type` values. That is not a field-semantics cause a declared reading rule fixes:
+  the vendored reading reads both regimes consistently and needs no change, and the only rules that would restore the pre-step
+  classes (the documented rule as primary, or reading `fees_enabled = true` with a positive `taker_base_fee` as fee-on despite
+  `rate 0` and `zero_fees`) either replace the sidecar reading, which this section forbids, or rest on a meaning the counts cannot
+  establish. **CH252 is `withdrawn_pre_census (fee reading unresolved)`** (uncounted, final; never `census_dropped`); **CH253 goes
+  to census alone (rule (c))**. No reading rule is added, no threshold changes (rule (a)); no count of widenings, narrowings or
+  spread changes was read. *informed (q0717)*.
+  **Disclosed for the re-check (not applied):** after the step about 0.90-0.95 of non-sports ex-crypto rows carry
+  `fee_category = other:zero_fees` (topic lost from the field), and 1,800 formerly-sports markets were read as non-sports ex-crypto
+  at the step. CH253 reads the sidecar category in rule 21 (i) and in the `fee_category` dummies (1.7); the census print added in 6
+  shows it, and whether rule 21 (i) needs a declared category reading is a question for the re-check, not decided here.
 
 ### 1.4.4 The creation batch (CH253; rule 21; pinned by sha256 before any count)
 - **Registry:** every market seen in any sealed capture of the census (or, in the window, any capture the reader has processed
@@ -834,10 +872,14 @@ captures with a previous capture, zeros included.
   the top-5 captures' share of fee-on widening units; `VIF_w(wd x FF)` with the age terms; the narrowing counts by panel; the
   off-support counts; the within-market Freedman-Lane gate is not run (no target). CH253: batch-size distribution, cross-event share,
   `batch_incomplete`, `receipt_span`, `placebo_none` by age decile, units by batch age (genesis share), the > 30 mates arm, the sports
-  arm, sports-mate share; the overlap of CH252 and CH253 units.
+  arm, sports-mate share; the overlap of CH252 and CH253 units (moot since CH252's withdrawal; not printed). *informed (q0717)*,
+  under 1.4.3 rule (a), print only: CH253 units and pseudo-mate candidates by verbatim `fee_type` and `fee_category` (with the
+  `zero_fees` / `other:zero_fees` and `unknown` cells), and `placebo_none` by those cells.
 - **Order:** one census job (CC13) streams the captures once and evaluates the two blocks independently.
 - **Expected fates (declared now).** CH252: withdrawn before the census if q0717 leaves the fee shift unexplained (1.4.3 rule (b));
   else the non-stationarity line and the fee-on count decide; then support coverage, the fee switch share and fee-on events.
+  **Recorded 2026-10-29: CH252 `withdrawn_pre_census (fee reading unresolved)`** (q0717; 1.4.3 rule (b): the shift is a venue-side
+  value change on 2026-10-20 that no declared reading rule fixes). CH252's gates and prints in this section are not run.
   CH253 (censused even if CH252 is withdrawn, 1.4.3 rule (c)): placebo coverage decides; then completeness and identification.
 
 ## 7. Implementation plan and queue drafts (no LT13 code yet; the q0717 probe is written, 7.5)
@@ -914,7 +956,8 @@ verdict-size worlds aggregate the analytic rate and set the label above 0.058; u
     REGISTERED_UTC - 24 h]` (= [2027-01-18T00:00Z, 2027-01-20T00:00Z]); `pinned: true` and `nothing_new` verified; q0725 queued with
     `not_before` 2027-02-12T12:00Z.
 
-**Timetable (fast lane, planning):** R1 done 10-28; q0717 at once (retention); response and re-check by 11-08; final verification
+**Timetable (fast lane, planning):** R1 done 10-28; q0717 done 10-28T17:21Z, rule applied 10-29 (CH252 withdrawn; stage A
+census code for CH253 only); a targeted `science-reviewer` re-check of the q0717 application with the R1 re-check, by 11-08; final verification
 and freeze by 11-14; stage A code and its check 11-14..11-22; restore and seal from 11-17T09Z (after LT12's census); census
 11-23..11-25; stage B code and its check for the survivors 11-25..12-03; size check by 12-10; reader check and dry run by 12-20;
 embargo verification and pin by 12-28 (before `T_LT12`); window 2027-01-21..02-11; analysis on or after 2027-02-12T12:00Z.
@@ -926,7 +969,7 @@ where the runner accepts it; restore, seal and census run once each, `max_retrie
 
 | Id | Lane, mem, disk | `not_before` / `depends_on` | What it does |
 |---|---|---|---|
-| `q0717_lt13_fee_probe` (**required before the freeze**, R1 MUST 3; spec `queue/jobs/q0717_lt13_fee_probe.json`, code `lt13_fee_probe.py` / `run_lt13_fee_probe.py`) | cpu, `mem_mb` 450 (start-blackout exempt), `as_cap` 4,000, priority 65 | at once: the 8-day retention keeps deleting 2026-10-20..10-21 | counts only, k = 0, uncounted: per capture over the captures still on the host for [2026-10-13, 2026-10-28) (prints its covered span; captures whose rows are gone are counted missing, never restored), the raw sidecar fields (`fees_enabled`, `fee_schedule` state and sha256, `taker_base_fee`, `fee_type`, `fee_category`, `clob_rewards` non-empty, age class, `ext_version`) cross-tabbed by CH251's open-row cell, two-sided rows and CH261's complete-unit cell, by fee class x `fee_src` x reward x category, per capture and per date; fee / category class changes against k - 1; reads captures k - 1 and k only, never k + 1; no spread or price change, no target. **Decision rule declared in 1.4.3 (R1 MUST 3 (a)-(c), verbatim in the spec's notes).** *informed (q0717)* on every reading rule it motivates |
+| `q0717_lt13_fee_probe` (**done 2026-10-28T17:21Z**, peak RSS 344.5 MB; output `seals/LT13_fee_probe_q0717.json`; rule (b) applied, 1.4.3; **required before the freeze**, R1 MUST 3; spec `queue/jobs/q0717_lt13_fee_probe.json`, code `lt13_fee_probe.py` / `run_lt13_fee_probe.py`) | cpu, `mem_mb` 450 (start-blackout exempt), `as_cap` 4,000, priority 65 | at once: the 8-day retention keeps deleting 2026-10-20..10-21 | counts only, k = 0, uncounted: per capture over the captures still on the host for [2026-10-13, 2026-10-28) (prints its covered span; captures whose rows are gone are counted missing, never restored), the raw sidecar fields (`fees_enabled`, `fee_schedule` state and sha256, `taker_base_fee`, `fee_type`, `fee_category`, `clob_rewards` non-empty, age class, `ext_version`) cross-tabbed by CH251's open-row cell, two-sided rows and CH261's complete-unit cell, by fee class x `fee_src` x reward x category, per capture and per date; fee / category class changes against k - 1; reads captures k - 1 and k only, never k + 1; no spread or price change, no target. **Decision rule declared in 1.4.3 (R1 MUST 3 (a)-(c), verbatim in the spec's notes).** *informed (q0717)* on every reading rule it motivates |
 | `q0720_lt13_census_restore` | net, 400 MB, about 1,400 MB disk | 2026-11-17T09:00Z; the LT13 freeze; LT12's q0710-q0712 done | byte-identical restore of the census inputs (6) the host no longer holds; accepts q0710's restored copies after a catalogue sha256 check; bytes measured first, exit 3 "STOP AND ASK THE OWNER" if bytes + 1 GiB exceed free disk; the lag-slot rule of 1.14 |
 | `q0721_lt13_seal` | net, 300 MB | q0720 | file list, sha256s, slot assignment, design-text sha256; committed before q0722 |
 | `q0722_lt13_census` | cpu, 750 MB (exclusive if the dry run measures more) | q0721; code-freeze check accepted | CC13 (6), once |
@@ -1052,7 +1095,7 @@ R1's ruling follows each item (**R1:**); the response is section 12.
  "status": "waiting",
  "verdict": "pending",
  "effect": null,
- "next": "Fee-reading count (q0717) now; challenger re-check of the second draft; counting checks on 7-17 Nov data; collection proposed 21 Jan - 11 Feb 2027",
+ "next": "Fee-reading count (q0717) done: the payer's-return test is withdrawn before its counting check (the fee labels changed at the source on 20 Oct); challenger re-check; counting check for the listing-batch test on 7-17 Nov data; collection proposed 21 Jan - 11 Feb 2027",
  "next_date": "2027-01-21",
  "candidate": false,
  "sources": {"verdict": "docs/research_lab/LIVE_TESTS_13.md (DRAFT)"},
@@ -1099,3 +1142,8 @@ No line round 18 set is loosened by any change below; every threshold (0.25, 77,
 
 **Left for the re-check:** q0717's output and the reading rule (if any) it motivates under 1.4.3 (a), or CH252's withdrawal under
 (b); the spline knots (2.3) and M6's definition; the staged-build wording (status block, 7).
+**q0717 applied (2026-10-29; `reviews/LT13_Q0717_RESULT_2026-10-29.md`):** rule (b): CH252 `withdrawn_pre_census (fee reading
+unresolved)`; no reading rule added; CH253 alone to census (rule (c)). Sections touched: status block, 0 (family, priors), 1.4.3,
+6 (one CH253 print, expected fates), 7.4 timetable, 7.5 (q0717 row), 11 (`next`). For the re-check: (1) whether (b) is the right
+branch when the shift is explained but by a value change no reading rule fixes (the designer read the rule's conjunction
+literally); (2) the `other:zero_fees` category share and rule 21 (i) for CH253 (1.4.3, disclosed, not changed).
