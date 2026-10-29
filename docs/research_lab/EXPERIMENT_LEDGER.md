@@ -4684,6 +4684,19 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   **CH252 `withdrawn_pre_census (fee reading unresolved)`**; CH253 still goes to census (rule (c)). No threshold or reading changed.
 - Next: targeted `science-reviewer` re-check of the q0717 application, then stage A census code for CH253 (R1 MUST 2).
 
+## CB3 freeze target missed; restore-copy dry run, 2026-10-29 ~23:45Z (experiments autopilot; operational, nothing counted)
+- **CB3:** freeze target 2026-10-26T22Z (§8 item 4) missed (no session 10-24..10-28). Ruling
+  `reviews/CB3_DEADLINE_RULING_2026-10-29.md` (REVISE, operational): the date is a target, not a terminal rule; per §1.2
+  `T3_rep_start` moves later by its declared max(); no window or floor changed; nothing counted. q0064 is blocked because the
+  follow-up step (`sample_trades_followup.py`) was never wired into the pass, the J4-R pin is still `final: false`, and the
+  q0064a gate does not exist. Hard stop stays as declared: rotation not active on 2026-11-10 -> prospective stages suspended.
+  Wiring prepared on `fix/cb3-followup-wire` (review before deploy).
+- **Restore-copy dry run** (host, 23:05-23:16Z, `archive_rotate.py --no-archive --delete --dry-run`, five `*_census/restore`
+  scans): 886 files, 9.98 GiB, all `would_delete` (current sha256 equals the verified published release); none kept. The
+  nightly run deletes them from 2026-10-30 03:30Z.
+- **Queue order note:** q0116k (MC1, exclusive) started 23:2xZ before q0147c; q0147c runs at the first slice boundary
+  (about 5.5 h), well before the ~11-03 capture-hold limit.
+
 ## CB7 q0147c promoted; storage assessment and restore-copy rules, 2026-10-29 ~23:20Z (experiments autopilot; operational, nothing counted)
 - **q0147t done** (10-28T11:41Z): complete, 13,148 candidate ids, text available for all 13,148, 390 requests. Pins (re-check
   answer 4): `creative_batch7/h_geo_text/manifest.json` sha256 `3544a8bd…35fd2`; `text.csv.gz` sha256 `5333444b…9ce15` (equals the
