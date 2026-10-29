@@ -1,0 +1,32 @@
+{
+ "id": "q0518_se_dev_refit_full_900k",
+ "title": "Signal engine development probe (DESIGN_V1 section 34): walk forward se17_lgbm_mm_900k against an in-memory copy refitted on the whole training window (params.refit_full; same 900k rows, rounds and temperature) over the last 5 complete days; writes only dev/refit_full_<stamp>.json; development/historical, never prospective, never pooled",
+ "family": "signal_engine",
+ "priority": 30,
+ "expected_value": "whether the two learner gains found so far (more rows: se17; whole-window refit: se26) add up; decides, by the rule fixed in DESIGN_V1 section 34 before this job ran, whether a se17 + refit_full challenger is worth its promotion-K cost",
+ "data": [
+  "research_lab/signal_engine/{features,aux,quotes,meta,logs/resolutions-*} (own files)"
+ ],
+ "resources": {
+  "mem_mb": 3400,
+  "as_cap_mb": 6500,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_se_dev_refit_full.py",
+  "--days",
+  "5",
+  "--base",
+  "se17_lgbm_mm_900k"
+ ],
+ "timeout_s": 28800,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/signal_engine/dev/refit_full_<stamp>.json"
+ ],
+ "next_action": "read the SE_DEV_REFIT_FULL line: per direction target, the variant's log-loss gain over se17 with its CI and days positive. Apply DESIGN_V1 section 34's fixed rule: register a se17 + refit_full challenger only if it beats se17 on all three direction targets, each CI excluding zero, at least 4 of 5 days positive; otherwise record a dead end there",
+ "notes": "Added 2026-10-29 ~23:10Z by the signal-engine autopilot (session 30). One-off development job. Same script as q0516 with --base se17_lgbm_mm_900k and no --max-rows (se17's own 900k). The in-memory variant keeps the script's id se1f_dev_lgbm_mm_full; the output's `reference` field names se17. Priority 30 runs only in gaps; the daily refit (50) still comes first. Size from q0516 (3,819 s, 1.9 GB at 200k rows with se1) and the host se17 fits (350-424 s a direction target against se1's ~100 s): expect about 4-5 h and 3-3.5 GB peak, so mem_mb 3400 (as q0512) and timeout 8 h. Reads only the engine's own files and writes one write-once dev file; no registry, spec, fit, prediction, leaderboard or dashboard file changes."
+}
