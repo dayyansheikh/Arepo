@@ -84,6 +84,10 @@ class Settings(BaseSettings):
     # "always" = additionally every superuser needs one even before registering (they can still
     # register a first key); "off" = operator escape hatch (password session alone suffices).
     lab_require_hardware_key: str = "auto"
+    # LAB_OWNER_USER_ID: when set, only this user id may send autopilot messages / commands or
+    # cancel messages (audit R2-01). Unset keeps the legacy behaviour (any active verified
+    # superuser) and logs a warning.
+    lab_owner_user_id: str = ""
     # WebAuthn relying-party ID. Empty = "arepolabs.com" in production (valid on www and the apex),
     # otherwise the host of APP_BASE_URL (localhost in development).
     lab_webauthn_rp_id: str = ""

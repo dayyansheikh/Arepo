@@ -15,7 +15,9 @@ from ...config import get_settings
 from ...domain.models import utcnow
 from ...lab import security_keys, service
 from ...lab.signing import MAX_BODY_BYTES, SignatureError, precheck_headers, verify_signature
+from ...observability.logging import get_logger
 
+logger = get_logger("astrolabe.api.lab")
 router = APIRouter(prefix="/api/lab", tags=["lab"])
 
 
@@ -116,6 +118,27 @@ async def owner(
     return user
 
 
+_warned_no_fixed_owner = False
+
+
+async def fixed_owner(user: User = Depends(owner)) -> User:
+    """Owner gate for endpoints that steer the autopilot (messages, commands, cancel).
+
+    With ``LAB_OWNER_USER_ID`` set, only that exact account passes (404 for any other superuser).
+    Unset: legacy behaviour (any superuser) plus a one-time warning.
+    """
+    global _warned_no_fixed_owner
+    fixed = (get_settings().lab_owner_user_id or "").strip().lower()
+    if not fixed:
+        if not _warned_no_fixed_owner:
+            _warned_no_fixed_owner = True
+            logger.warning("LAB_OWNER_USER_ID is not set: any superuser can steer the autopilot")
+        return user
+    if str(user.id).lower() != fixed:
+        raise HTTPException(404, "Not Found")
+    return user
+
+
 @router.post("/agent/snapshot", status_code=204)
 async def post_snapshot(
     signed: tuple[str, bytes] = Depends(signed_source),
@@ -197,7 +220,7 @@ async def get_dashboard(
 @router.post("/commands", status_code=201)
 async def post_command(
     body: CommandCreate,
-    user: User = Depends(owner),
+    user: User = Depends(fixed_owner),
     session: AsyncSession = Depends(get_async_session),
 ) -> dict:
     try:
@@ -212,7 +235,7 @@ async def post_command(
 @router.post("/messages", status_code=201)
 async def post_message(
     body: MessageCreate,
-    user: User = Depends(owner),
+    user: User = Depends(fixed_owner),
     session: AsyncSession = Depends(get_async_session),
 ) -> dict:
     try:
@@ -227,7 +250,7 @@ async def post_message(
 @router.post("/messages/{message_id}/cancel")
 async def cancel_message(
     message_id: int,
-    user: User = Depends(owner),
+    user: User = Depends(fixed_owner),
     session: AsyncSession = Depends(get_async_session),
 ) -> dict:
     try:
