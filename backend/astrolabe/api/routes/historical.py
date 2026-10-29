@@ -6,6 +6,8 @@ to that point (no look-ahead), then measures what actually happened afterwards.
 """
 from __future__ import annotations
 
+import asyncio
+import time
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, Query
@@ -15,6 +17,11 @@ from ...service import MarketService
 from ..deps import get_service
 
 router = APIRouter(prefix="/api/historical", tags=["historical"])
+
+_TTL_SECONDS = 600.0
+_CACHE_MAX = 64
+_cache: dict[tuple, tuple[float, HistoricalScreen]] = {}
+_lock = asyncio.Lock()
 
 
 @router.get("/screen", response_model=HistoricalScreen)
@@ -37,4 +44,19 @@ async def screen(
     """
     target_day = (datetime.now(UTC) - timedelta(days=days)).date()
     as_of = datetime(target_day.year, target_day.month, target_day.day, tzinfo=UTC)
-    return await run_live_historical(service, as_of=as_of, universe_limit=limit, top_n=top_n)
+    # Unauthenticated and expensive (fans out to the upstream API): serve a short-lived cached
+    # result per parameter set, and let concurrent identical requests share one computation.
+    key = (as_of, limit, top_n)
+    now = time.monotonic()
+    hit = _cache.get(key)
+    if hit and now - hit[0] < _TTL_SECONDS:
+        return hit[1]
+    async with _lock:
+        hit = _cache.get(key)
+        if hit and time.monotonic() - hit[0] < _TTL_SECONDS:
+            return hit[1]
+        result = await run_live_historical(service, as_of=as_of, universe_limit=limit, top_n=top_n)
+        if len(_cache) >= _CACHE_MAX:
+            _cache.clear()
+        _cache[key] = (time.monotonic(), result)
+        return result
