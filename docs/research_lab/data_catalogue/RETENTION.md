@@ -61,6 +61,32 @@ and delete them." The user also approved the weekly backup of the live evidence 
     nightly line, run `tests/unit/test_archive_rotate.py`, deploy and install the crontab line, all before the 10-19 03:30Z
     run. `book_sweeps/` stays deferred until q0035 is done and the MC1 q0111 panel is cached.
 
+## Restore copies cleared (owner message 2026-10-28 19:06Z; rules added 2026-10-29)
+Owner (Lab inbox): "any data that isn't currently needed for experiments should be uploaded to GitHub. Make an accurate
+assessment and judgment of what to do storage wise." This answers dashboard approval item 8.
+
+Assessment (host, 2026-10-29 ~22:55Z, read-only): data-dumps 45.2 GiB, of which 36.8 GiB is already in verified nightly
+releases (`dayyansheikh/arepo-data`, archived nightly at 03:30Z for files older than 1 day). The problem is not missing
+uploads but server copies that are kept because no deletion rule covers them. Largest uncovered items:
+| Dir | GiB | Archived | Needed on the host? |
+|---|---|---|---|
+| cb18_census/restore | 4.84 | all | No: CB18 closed k=0, drafts q0590-q0599 moot |
+| live_tests4_census/restore | 2.90 | all | No: LT4 census done; q0486 analyze reads live data |
+| live_tests6_census/restore | 1.13 | all | No: LT6 closed at census |
+| live_tests5_census/restore | 0.82 | all | No: LT5 closed at census |
+| live_tests3_census/restore | 0.28 | all | No: LT3 census done; q0475 analyze reads live data |
+| snapshots | 7.53 | 6.15 | Yes: E011 window and the CB7 h_geo hold (12 days) until q0147c; then back to 8 days |
+| ml_cache | 7.46 | 4.29 | Yes for now: MC1 (q0116 series) is still being repaired; review once MC1 runs |
+| signal_engine | 4.71 | 3.74 | Yes: the signal-engine autopilot owns it (proposal above, not active) |
+| history | 2.80 | all | Partly: h7_cb4_series feeds CB4 (q0086 queued); others to review |
+| book_sweeps | 2.07 | 1.86 | Deferred rule (MC1 panel); review with ml_cache |
+| creative_batch17/worn_restore | 0.90 | all | Kept (stated earlier) |
+
+Action: five rules with `older_than_days: 2` for the five `*/restore/` prefixes above (about 9.97 GiB). They go through the
+normal nightly `archive_rotate.py --retention --delete` path, which deletes a file only if its current sha256 equals the
+hash in a verified, still-published release, and logs every decision to `deletions.jsonl`. Restoring any of them is one
+`restore_from_archive.py` call. Nothing frozen, prospective or append-only is touched.
+
 ## Signal engine (proposed 2026-10-21; not active)
 `signal_engine/` (DESIGN_V1.md section 9): `predictions/` 35 days, `features/` and `quotes/` 45 days on the host after verified archiving
 (rules in `deferred_rules`). Its only readers are the engine's own jobs (training window <= 28 days, scorer 28 days + label lag).
