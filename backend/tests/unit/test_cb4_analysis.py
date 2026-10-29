@@ -490,3 +490,62 @@ def test_yes_token_check_rejects_events_whose_first_outcome_is_not_yes():
     assert M.keep_negrisk_event(mk(lambda i: json.dumps(["No", "Yes"]) if i == 1 else json.dumps(["Yes", "No"])), rep) is False and rep["yes_token_unverified"] == 1
     assert M.keep_negrisk_event(mk(lambda i: None), rep) is False and rep["yes_token_unverified"] == 2
     assert M.keep_negrisk_event(mk(lambda i: json.dumps(["Over", "Under"])), rep) is False and rep["yes_token_unverified"] == 3
+
+
+# ---- q0085 memory-only fix (2026-10-29): column-restricted capture loading + shared objects, outputs bit-identical -----------------------------
+
+
+def _write_fixture_extract(root: Path) -> None:
+    import gzip
+
+    from astrolabe.research_lab import cb4_data
+
+    (root / "closewin").mkdir(parents=True)
+    (root / "departures").mkdir(parents=True)
+    for k, hh in enumerate((0, 2, 4)):
+        cid = f"2026101{2}T{hh:02d}0000Z_c{k}"
+        rows = []
+        for j in range(6):
+            r = {c: "" for c in cb4_data.CLOSEWIN_COLUMNS}
+            acc = "0" if (k == 1 and j < 3) else "1"
+            r.update({"capture_id": cid, "capture_start_utc": f"2026-10-12T{hh:02d}:00:00Z", "received_utc": f"2026-10-12T{hh:02d}:00:30Z",
+                      "market_id": f"m{j}", "condition_id": f"0xc{j}", "event_id": f"e{j % 2}", "best_bid": "0.4", "best_ask": "0.6",
+                      "closed": "0", "accepting_orders": acc, "end_date": f"2026-10-12T{hh:02d}:50:00Z" if j % 2 else "2026-10-13T00:00:00Z",
+                      "created_at": "2026-09-01T00:00:00Z", "uma_resolution_statuses": "[]", "fee_category": "politics", "sweep_bid_size_1": "10",
+                      "sweep_ask_size_1": "12", "ext_present": "1", "spread": "0.2", "series_slugs": "s"})
+            rows.append(r)
+        pd.DataFrame(rows, columns=cb4_data.CLOSEWIN_COLUMNS).to_csv(root / "closewin" / f"{cid}.csv.gz", index=False, compression="gzip")
+        with gzip.open(root / "departures" / f"{cid}.csv.gz", "wt") as fh:
+            fh.write("market_id,last_seen_capture_id\nm5," + cid + "\n")
+
+
+def test_load_captures_column_restriction_and_sharing_are_bit_identical(tmp_path):
+    root = tmp_path / "x"
+    _write_fixture_extract(root)
+    full, deps_f = A.load_captures(root, 0.0, 4e9)
+    part, deps_p = A.load_captures(root, 0.0, 4e9, A.FLIP_TRADES_COLUMNS)
+    assert len(full) == len(part) == 3 and deps_f == deps_p
+    for a, b in zip(full, part, strict=True):
+        cols = [c for c in a.columns if c in A.FLIP_TRADES_COLUMNS]
+        assert set(A.FLIP_TRADES_COLUMNS) == set(b.columns) and list(b.columns) == cols
+        pd.testing.assert_frame_equal(a[cols], b, check_exact=True)
+        assert (a.dtypes[cols] == b.dtypes).all()
+    # the downstream products the flip-trades command reads are identical
+    cw_f, cw_p = pd.concat(full, ignore_index=True), pd.concat(part, ignore_index=True)
+    c2_f, rep_f = A.R.c2_units_at_tau0(cw_f)
+    c2_p, rep_p = A.R.c2_units_at_tau0(cw_p)
+    pd.testing.assert_frame_equal(c2_f, c2_p, check_exact=True)
+    assert rep_f == rep_p
+    s_f, r_f = A.R.assign_strata(full, deps_f)
+    s_p, r_p = A.R.assign_strata(part, deps_p)
+    pd.testing.assert_frame_equal(s_f, s_p, check_exact=True)
+    assert r_f == r_p and len(s_f) > 0
+    assert cw_f.drop_duplicates("market_id").set_index("market_id")["condition_id"].equals(cw_p.drop_duplicates("market_id").set_index("market_id")["condition_id"])
+
+
+def test_share_objects_keeps_values_and_dtypes():
+    df = pd.DataFrame({"a": ["x", "y", "x"], "b": [frozenset({"p"}), frozenset({"p"}), frozenset()], "c": [1.0, 2.0, 3.0]})
+    ref = df.copy()
+    out = A._share_objects(df, {})
+    pd.testing.assert_frame_equal(out, ref, check_exact=True)
+    assert out["a"].iloc[0] is out["a"].iloc[2] and out["b"].iloc[0] is out["b"].iloc[1]

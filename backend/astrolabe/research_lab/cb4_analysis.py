@@ -181,18 +181,38 @@ def _jload(p: Path) -> dict | None:
 # ---- loaders -----------------------------------------------------------------------------------------------------------------------
 
 
-def load_captures(root: Path, start: float, end: float) -> tuple[list[pd.DataFrame], dict[str, set[str]]]:
-    """Parsed closewin captures with ``start <= capture_start < end`` and the departures sets per capture id."""
+def _share_objects(df: pd.DataFrame, table: dict) -> pd.DataFrame:
+    """Memory only (ops fix 2026-10-29, q0085 OOM): make equal str / frozenset cells of object columns share ONE object across captures. Values, dtypes,
+    column order and index are unchanged (bit-identical frame); only duplicate Python objects are released."""
+    for c in df.columns:
+        if df[c].dtype == object:
+            df[c] = [table.setdefault(v, v) if isinstance(v, (str, frozenset)) else v for v in df[c]]
+    return df
+
+
+# Columns the flip-trades path reads (cb4_rules.c2_units_at_tau0, capture_pairs, flip_stratum, assign_strata and the condition_id lookup in _flip_trades).
+# Memory only (q0085 OOM, 4.8 M rows in the dev window): the other columns are never read there, so dropping them leaves its outputs unchanged.
+FLIP_TRADES_COLUMNS = ("capture_id", "market_id", "condition_id", "event_id", "best_bid", "best_ask", "fee_category", "sweep_bid_size_1", "sweep_ask_size_1",
+                       "cap_start", "recv", "e", "created", "acc", "closed_f", "ext_ok", "uma_set")
+
+
+def load_captures(root: Path, start: float, end: float, columns: tuple[str, ...] | None = None) -> tuple[list[pd.DataFrame], dict[str, set[str]]]:
+    """Parsed closewin captures with ``start <= capture_start < end`` and the departures sets per capture id. ``columns`` (memory only) keeps just those
+    parsed columns, in their original order; None keeps all (every other command)."""
     caps, deps = [], {}
+    table: dict = {}
     cdir = Path(root) / "closewin"
     for f in sorted(cdir.glob("*.csv.gz")) if cdir.exists() else []:
         df = cb4_data.read_closewin(root, f.name[: -len(".csv.gz")])
         if not len(df):
             continue
         p = R.parse_closewin(df)
+        del df
+        if columns is not None:
+            p = p[[c for c in p.columns if c in columns]]
         t = float(p["cap_start"].iloc[0])
         if start <= t < end:
-            caps.append(p)
+            caps.append(_share_objects(p, table))
             dp = Path(root) / "departures" / f.name
             if dp.exists():
                 deps[str(p["capture_id"].iloc[0])] = set(cb4_data.read_closewin(root, f.name[: -len(".csv.gz")], departures=True)["market_id"])
@@ -394,7 +414,7 @@ def load_series(rdir: Path, which: str | None, *, job: str, decl: str | None, lo
 # ---- C pipeline --------------------------------------------------------------------------------------------------------------------
 
 
-def c_inputs(ctx: Ctx, window: str, root: Path | None = None, uma_extra: tuple[str, ...] = ()) -> dict:
+def c_inputs(ctx: Ctx, window: str, root: Path | None = None, uma_extra: tuple[str, ...] = (), columns: tuple[str, ...] | None = None) -> dict:
     """Dev or rep captures, C2 units at tau0, strata and the trades dir for that window (no outcomes). ``uma_extra``: the census-pinned extension of the
     UMA block set (counted runs; the uncounted census and flip-trades run before the pins exist and use the declared set)."""
     root = Path(root) if root else ctx.extract_root
@@ -402,7 +422,7 @@ def c_inputs(ctx: Ctx, window: str, root: Path | None = None, uma_extra: tuple[s
         t0, t1 = D.epoch(D.DATES["T4_dev_start"]), D.epoch(D.DATES["T4_dev_end"])
     else:
         t0, t1 = D.rep_window(ctx.rep_pin)
-    caps, deps = load_captures(root, t0, t1)
+    caps, deps = load_captures(root, t0, t1, columns)
     cw = pd.concat(caps, ignore_index=True) if caps else pd.DataFrame()
     c2, rep2 = R.c2_units_at_tau0(cw, uma_extra=uma_extra) if len(cw) else (pd.DataFrame(), {})
     strata, reps = R.assign_strata(caps, deps, uma_extra=uma_extra)
@@ -485,7 +505,7 @@ def _flip_trades(args, ctx: Ctx) -> int:
     now = ctx.now or datetime.now(UTC)
     if window == "dev" and now < datetime.fromisoformat(FLIP_TRADES_NOT_BEFORE.replace("Z", "+00:00")):
         raise NotYet(f"the dev window is complete only after {FLIP_TRADES_NOT_BEFORE}; flip-trades (q0085) refuses before it")
-    inp = c_inputs(ctx, window, Path(args.extract_root) if args.extract_root else None)
+    inp = c_inputs(ctx, window, Path(args.extract_root) if args.extract_root else None, columns=FLIP_TRADES_COLUMNS)
     ids: dict[str, str] = {}
     cw = inp["cw"]
     if len(cw):
