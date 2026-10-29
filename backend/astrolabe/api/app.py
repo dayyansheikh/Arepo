@@ -69,6 +69,14 @@ def create_app() -> FastAPI:
 
     for issue in settings.production_issues():
         logger.warning("production config issue", extra={"ctx_issue": issue})
+    # Fail closed on the credential-critical issues: a default/short AUTH_SECRET lets anyone forge
+    # session JWTs, and an insecure cookie flag leaks the session over HTTP.
+    fatal = [
+        i for i in settings.production_issues()
+        if i.startswith("AUTH_SECRET") or i.startswith("AUTH_COOKIE_SECURE")
+    ]
+    if fatal:
+        raise RuntimeError("Refusing to start in production: " + " ".join(fatal))
 
     @app.middleware("http")
     async def timing_middleware(request: Request, call_next):
