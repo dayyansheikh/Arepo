@@ -4688,6 +4688,27 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   per-capture class-change prints, another venue step a deviation; CH253 *informed (q0717)*). No threshold changed. Open item:
   LT12 (frozen) uses the same sports classifier on an all-post-step span; not edited. Next: full R1 re-check, then freeze.
 
+## Ops batch: restore copies deleted, CB3 follow-up wired, CB4 q0085 memory fix, CB5 fixes, LT13 fixes, 2026-10-30 ~00:55Z (experiments autopilot; nothing counted)
+- **Restore copies deleted** (host 23:33-23:38Z, the verified `archive_rotate.py --no-archive --delete` path, five
+  `*_census/restore` scans, run early because data-dumps was 48.6 GB against the 50 GB decimal step guard): 926 files deleted,
+  10.92 GB freed; data-dumps 37.76e9 bytes (36 GiB), disk 33 GB free. Every decision is in `deletions.jsonl`.
+- **CB3:** wiring review `reviews/CB3_FOLLOWUP_WIRE_REVIEW_2026-10-29.md` ACCEPT_WITH_FIXES; merged (fix 4: step exit code
+  logged). `sample_trades_followup.py` runs in each complete pass after quote_state. **J4-R pin set final** (declared action;
+  `t_j4r_end` stays 10-21T00Z); **this also opens CB13's t-holdout gate** (`run_cb13.py:641-642`; no q0274 job exists, nothing
+  starts automatically). `T3_fu_start` to be recorded here after the first `cb3_followup/<cid>/manifest.json` exists; the
+  design's top-level `cb3_followup/manifest.json` (§1.2:83) was never implemented. q0064a is created only when now >= the
+  recorded `T3_dev_end` and quote_state is accounted for up to it.
+- **CB4 q0085:** flip-trades loaded every parsed closewin frame with 37 columns (~10 GB for 155 captures / 4.76 M rows). Fix
+  (5e4b36bf): only the 17 columns the flip-trades rules read, plus shared string objects; a test proves identical frames, C2
+  units, strata and condition_id lookups; host run peaked at 3.45 GB RSS. Spec mem 4200 / as_cap 6000. Retried after deploy.
+- **CB9 q0185:** not retried. Its 0.01 GB output cap is DECLARED (`cb9_kd.FRAME_OUTPUT_CAP_GB`, CREATIVE_BATCH_9 §2.8) and the
+  full frame is ~90 MB (38 of ~340 units = 10.6 MB); needs a reviewed amendment, not an ops raise.
+- **CB5:** code freeze check REVISE (`reviews/CB5_CODE_FREEZE_CHECK_2026-10-29.md`); fixes 1-6 on `fix/cb5-freeze-check`
+  (5b534a26; new declaration hash `7c62c037…5cd0`; 115 tests); re-check pending. q0105 is held (frozen grouper found 0 CDF
+  families), so q0106 cannot start: needs a recorded decision.
+- **LT13:** re-check fixes 1-5 applied and merged (DRAFT). Open item: LT12 (frozen) uses the same sports classifier on an
+  all-post-10-20-step span; impact not yet assessed.
+
 ## CB3 freeze target missed; restore-copy dry run, 2026-10-29 ~23:45Z (experiments autopilot; operational, nothing counted)
 - **CB3:** freeze target 2026-10-26T22Z (§8 item 4) missed (no session 10-24..10-28). Ruling
   `reviews/CB3_DEADLINE_RULING_2026-10-29.md` (REVISE, operational): the date is a target, not a terminal rule; per §1.2
