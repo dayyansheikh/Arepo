@@ -421,6 +421,76 @@ def get_panel(caps, sweeps, policy, delta, cache_root: Path, rebuild: bool = Fal
     return df, counts, h, cdir, cached
 
 
+def _is_hex64(h: str) -> bool:
+    return len(h) == 64 and all(ch in "0123456789abcdef" for ch in h)
+
+
+def check_pinned_panel(cache_root: Path, pinned: str) -> tuple[Path, dict, set]:
+    """Validate ``ml_cache/<pinned>/`` without reading panel data: (cache_dir, meta, columns).
+
+    Refuses (SystemExit, non-zero) when the hash is malformed, ``panel.parquet`` or ``meta.json``
+    is missing, a hash stored in ``meta.json`` disagrees, or the panel lacks the ``leak_*``
+    columns the real run needs. Never builds or rebuilds a panel."""
+    pinned = str(pinned).strip().lower()
+    if not _is_hex64(pinned):
+        raise SystemExit(f"REFUSED: --panel-hash {pinned!r} is not a 64-char lowercase sha256 hex")
+    cdir = Path(cache_root) / pinned
+    pq, meta = cdir / "panel.parquet", cdir / "meta.json"
+    if not (pq.is_file() and meta.is_file()):
+        raise SystemExit(f"REFUSED: pinned panel {pinned[:12]} not found in the cache "
+                         f"({pq} / {meta} missing); a pinned run never rebuilds the panel")
+    m = json.loads(meta.read_text())
+    stored = m.get("panel_hash")
+    if stored is not None and stored != pinned:
+        raise SystemExit(f"REFUSED: pinned panel hash mismatch: directory {pinned[:12]} but "
+                         f"meta.json stores {str(stored)[:12]}")
+    import pyarrow.parquet as papq
+
+    names = set(papq.read_schema(pq).names)
+    if not any(n.startswith(LEAK_PREFIX) for n in names):
+        raise SystemExit(f"REFUSED: pinned panel {pinned[:12]} has no {LEAK_PREFIX}* columns "
+                         "(built without with_leak); the real run needs them for the placebos")
+    return cdir, m, names
+
+
+def load_pinned_panel(cache_root: Path, pinned: str,
+                      columns: list[str] | tuple[str, ...] | None = None):
+    """Same return shape as ``get_panel`` for a panel pinned by hash; see ``check_pinned_panel``.
+
+    The panel depends on nothing but its cache directory: not on the (rolling) snapshot or
+    sweep directories, nor on the clock."""
+    cdir, m, names = check_pinned_panel(cache_root, pinned)
+    if columns is not None:
+        columns = [c for c in columns if c in names]
+    df = read_panel_compact(cdir / "panel.parquet", None if columns is None else list(columns))
+    df.attrs["category_info"] = m["category_info"]
+    return df, m["counts"], str(pinned).strip().lower(), cdir, True
+
+
+def pinned_context(counts: list[dict], minimum: int) -> tuple[list[dict], dict, dict]:
+    """(run_caps, gate, sweep_report) for a pinned panel, derived only from its stored period
+    counts: the periods actually in the panel, chained capture_j -> next capture_i."""
+    periods = [c for c in counts if "skipped" not in c]
+    best: list[str] = []
+    cur: list[str] = []
+    for c in periods:
+        if cur and cur[-1] == c["capture_i"]:
+            cur.append(c["capture_j"])
+        else:
+            cur = [c["capture_i"], c["capture_j"]]
+        if len(cur) > len(best):
+            best = list(cur)
+    ids = list(dict.fromkeys(i for c in periods for i in (c["capture_i"], c["capture_j"])))
+    gate = {"minimum": minimum, "complete_snapshots": len(ids),
+            "qualifying_with_sidecar": len(ids), "longest_consecutive_run": len(best),
+            "current_run": 0, "met": len(best) >= minimum,
+            "remaining": max(minimum - len(best), 0), "eta_utc": None,
+            "eta_assumption": "pinned panel: gate read from the panel's own periods",
+            "run_capture_ids": best, "pinned": True}
+    return ([{"capture_id": i} for i in ids], gate,
+            {"pinned": True, "note": "sweeps are baked into the pinned panel"})
+
+
 def feature_nan_rates(pq_path: Path, names) -> dict:
     """``panel_summary`` NaN rates read one column at a time (a full panel never loads)."""
     import pyarrow.parquet as papq
@@ -968,17 +1038,23 @@ def real_run(args, caps, gate, policy) -> dict:
     emit("run_start", phase="start", profile_folds=profile)
     run_ids = set(gate["run_capture_ids"])
     run_caps = [c for c in caps if c["capture_id"] in run_ids]
-    sweeps, sweep_report = usable_sweeps(args.sweep_root, run_caps)
+    pinned = getattr(args, "panel_hash", None)
+    sweeps, sweep_report = ({}, gate["sweep_report"]) if pinned else usable_sweeps(
+        args.sweep_root, run_caps)
     target, horizon = getattr(args, "target", "direction"), int(getattr(args, "horizon", 1))
     extra = list(getattr(args, "families_extra", []) or [])
     direct = not extra and target == "direction" and horizon == 1
     # direct path: only the slim columns (fold plan, summary) are read whole; the labelled frame
     # is then streamed column by column straight from the parquet (see read_labelled_panel)
     with stage("panel_load"):
-        df, counts, h, cdir, cached = get_panel(run_caps, sweeps, policy, args.delta,
-                                                args.cache_root, args.rebuild, with_leak=True,
-                                                link_frame=getattr(args, "link_frame", None),
-                                                columns=DRY_COLUMNS if direct else None)
+        if pinned:
+            df, counts, h, cdir, cached = load_pinned_panel(
+                args.cache_root, pinned, columns=DRY_COLUMNS if direct else None)
+        else:
+            df, counts, h, cdir, cached = get_panel(
+                run_caps, sweeps, policy, args.delta, args.cache_root, args.rebuild,
+                with_leak=True, link_frame=getattr(args, "link_frame", None),
+                columns=DRY_COLUMNS if direct else None)
     emit("panel_cache", phase="info", cache_hit=bool(cached), panel_hash=h[:12])
     join_report = None
     if extra:  # exploratory flow/wallet families: joined after the cached MC1 panel
@@ -1084,7 +1160,8 @@ def real_run(args, caps, gate, policy) -> dict:
         "feature_lists": {"M0": list(mm.M0_FEATURES), "M1_M2": list(mm.M12_FEATURES),
                           "M3_eb": list(mm.BAYES_FEATURES),
                           "M1_M2_no_sweep": list(mm.M12_NO_SWEEP)},
-        "utc": stamp, "panel_hash": h, "from_cache": cached, "cache_dir": str(cdir),
+        "utc": stamp, "panel_hash": h, "panel_pinned": bool(pinned), "from_cache": cached,
+        "cache_dir": str(cdir),
         "gate": {k: v for k, v in gate.items() if k != "run_capture_ids"},
         "capture_ids": [c["capture_id"] for c in run_caps], "sweeps": sweep_report,
         "manifest_sha256": man["manifest_sha256"], "n_folds": len(man["folds"]),
@@ -1378,6 +1455,11 @@ def main(argv: list[str] | None = None) -> int:
                     help="with --resume-dir: after this many seconds since start, stop at the next "
                     "unit boundary and exit 75 (queue tempfail, re-run later); at least one unit "
                     "is fitted per slice. Exit 0 only when the whole run has completed.")
+    ap.add_argument("--panel-hash", default=None, metavar="HASH",
+                    help="pin the panel: load ml_cache/<HASH>/panel.parquet and never build or "
+                    "rebuild one; refuses if missing or inconsistent. The snapshot and sweep "
+                    "directories are then not read (the gate comes from the panel's own periods), "
+                    "so a resumable run sees the same panel and fold plan in every slice.")
     ap.add_argument("--rebuild", action="store_true", help="ignore the parquet cache")
     ap.add_argument("--profile-folds", type=int, default=None, metavar="N",
                     help="measurement only: run the identical pipeline on the first N folds, "
@@ -1389,6 +1471,8 @@ def main(argv: list[str] | None = None) -> int:
         ap.error("--time-budget-s needs --resume-dir and must be >= 0")
     if args.profile_folds is not None and args.profile_folds < 1:
         ap.error("--profile-folds must be >= 1")
+    if args.panel_hash is not None and (args.dry_run or args.rebuild):
+        ap.error("--panel-hash cannot be combined with --dry-run or --rebuild")
     args.families_extra = parse_families(args.families)
     policy = ml_panel.category_policy(
         args.category_mode, [c for c in args.categories.split(",") if c])
@@ -1404,7 +1488,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[dry-run] summary: {path}")
         return 0
 
-    caps = discover_captures(args.snapshot_root)
+    caps = [] if args.panel_hash else discover_captures(args.snapshot_root)
     minimum, overridden = MIN_SNAPSHOTS, False
     if os.environ.get(TEST_GATE_ENV):
         minimum, overridden = int(os.environ[TEST_GATE_ENV]), True
@@ -1414,7 +1498,12 @@ def main(argv: list[str] | None = None) -> int:
                   "gate_overridden=true. !!!", file=sys.stderr)
         else:
             overridden = False
-    gate = gate_status(caps, minimum)
+    if args.panel_hash:
+        _, pmeta, _ = check_pinned_panel(args.cache_root, args.panel_hash)
+        caps, gate, sweep_report = pinned_context(pmeta["counts"], minimum)
+        gate["sweep_report"] = sweep_report
+    else:
+        gate = gate_status(caps, minimum)
     gate["gate_overridden"] = overridden
     if not gate["met"]:
         print(f"REFUSED: development gate not met. {gate['longest_consecutive_run']} consecutive "
