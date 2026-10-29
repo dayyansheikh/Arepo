@@ -4673,6 +4673,18 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   window captures would start to go at the 10-30 run, before q0147c. `archive_retention.json` snapshots 8 -> 12 days (adds
   about 3 GB; the deleted files are in verified releases either way). Revert to 8 days with a ledger line after q0147c.
 
+## CB7 q0147c promoted; storage assessment and restore-copy rules, 2026-10-29 ~23:20Z (experiments autopilot; operational, nothing counted)
+- **q0147t done** (10-28T11:41Z): complete, 13,148 candidate ids, text available for all 13,148, 390 requests. Pins (re-check
+  answer 4): `creative_batch7/h_geo_text/manifest.json` sha256 `3544a8bd…35fd2`; `text.csv.gz` sha256 `5333444b…9ce15` (equals the
+  manifest's `text_sha256`). **q0147c moved to jobs** (S,G,X, 1200 MB, cpu lane). The 12-day snapshot hold keeps the pinned window
+  captures until about 11-03 03:30Z; revert the snapshot rule to 8 days after q0147c finishes.
+- **Storage (owner Lab message 10-28 19:06Z):** data-dumps 45.2 GiB, 36.8 GiB already in verified nightly releases. Five finished
+  census restore copies (CB18, LT3, LT4, LT5, LT6; 9.97 GiB, all archived, no reader) get deletion rules (62e5363e); the nightly
+  verified-delete path removes them. Assessment table in `data_catalogue/RETENTION.md`.
+- **Failed jobs found:** q0116j (MC1) refused on resume because the panel is rebuilt from the rolling snapshot window each slice
+  (fix: pin the cached panel by hash, in progress); q0085 (CB4) out of memory at the default 1,200 MB address cap; q0185 (CB9)
+  stopped on its 0.01 GB disk cap. Fixes in progress; no science change.
+
 ## CH261 LT13 population map: counts recorded, 2026-10-28 ~11:00Z (experiments autopilot; counts only, k = 0, uncounted)
 - q0701 done (`CH261_map.json` sha256 `56aa673f…42c1`); note `CH261_MAP_2026-10-28.md`. 93 of 180 slots covered (captures before
   10-20 had lost their row files to the 8-day retention; disclosed), 90 with k - 1.
