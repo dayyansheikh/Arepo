@@ -5752,3 +5752,11 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   q0782 (serial M1 + M2 + M3 timing) stays a draft: depends on q0781, mem 800; promote after M2's final code is checked.
 - After J0: copy rule (a)'s result into the design text by hand as the 10.1 rule says (`keep_21` / `extend_42` /
   `not_evaluable_extend_42`), then the final pre-freeze verification. Correct the "about 8 days" retention wording at freeze.
+
+## M2 amendment 24 and fixes merged, 2026-10-30 18:13Z (experiments autopilot; before registration; nothing counted)
+- 9299d2e1 (merged f6a4d175): section 24 appended (l.808-817; predecessor `a7f30de2…3e07`; **new design sha256
+  `ff342ff36f815b5cce6851cb1c4526a4daf0829ba5e033012704c80f3bd9b98c`**): `left_before_overdue_slot` and `end_date_missing`
+  exclude M2 units; J0 disclosure extended (1,123; 1,587 / 20 markets; `status_forms`). Code filters at `m2_j1.py` l.712,
+  847, 864; explicit refusal for a state without `unit_events`; numbering fixed; three new test variants fail on aa6182ba.
+  **M2 code_sha `64b5dee0b1788c040071eafdd2b345c759c26a71a274b461315d650cdf491de2`.** q0754 moved to `drafts/`
+  (cancelled); q0754b (fresh store) awaits the diff-only check (running). 229 M1 + M2 + M3 tests.
