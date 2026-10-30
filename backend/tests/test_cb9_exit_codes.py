@@ -164,7 +164,8 @@ def test_kd_frame_refuses_the_pre_amendment_cap(monkeypatch, capsys):
 
 
 def test_q0185b_draft_parses_and_matches_the_amended_declaration():
-    spec = json.loads((JOBS.parent / "drafts" / "q0185b_cb9_kd_frame_v3.json").read_text())
+    p = next(d / "q0185b_cb9_kd_frame_v3.json" for d in (JOBS, JOBS.parent / "drafts") if (d / "q0185b_cb9_kd_frame_v3.json").exists())  # promoted to jobs/ 2026-10-30
+    spec = json.loads(p.read_text())
     assert spec["id"] == "q0185b_cb9_kd_frame_v3" and spec["depends_on"] == ["q0182b_cb9_exclusion_keys"] and "repeat" not in spec
     argv = spec["argv"]
     assert argv[:2] == ["scripts/run_cb9.py", "kd-frame"]
