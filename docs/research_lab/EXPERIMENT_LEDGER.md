@@ -5507,6 +5507,29 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   before 2026-11-01T02:45Z** (blackout, then rotation).
 - **M2 code merged** (e5d00d8f: J2 / J3 / analysis, the five l.19 code-freeze items each with a test, design-text pin; 91 M2
   tests; code_sha `f09e23a8…c705`; drafts q0754 dry run, q0755* jobs). Code-freeze check (`science-reviewer`) running.
+
+## M1 (CH263) measurement design draft, 2026-10-30 (DRAFT, nothing counted)
+- `MEASUREMENT_M1_CH263.md` final text (R1, re-check and final-verification items applied, section 17) on `feat/m1-ch263`; role `prospective_measurement` (R19 rule-26 ruling); k = 0; no
+  Holm; counted apart from registered tests. Headline: unit-weighted mean net per share after cost-model-v1 conservative
+  fee and 5% capital, ask-based `c`, event-bootstrap CI; event-level tail bound; 10 splits. Window 2026-11-24..12-14,
+  read-out on or after 2027-01-15. Final text; next: code, code-freeze check, dry run, registration.
+
+## M1 (CH263) REGISTERED, 2026-10-30T17:17:28Z (experiments autopilot; registration commit; k = 0, prospective_measurement, nothing counted)
+- The block above is design section 16 applied word for word, as `reviews/M1_FIX2_CONFIRM_2026-10-30.md` requires.
+- **Mechanical conditions, all met:** q0750c (dry run, store `m1_dryruns/q0750c/...`) rc 0, peak RSS 345.6 MB (limit 600),
+  its `j1_runs.jsonl` records code_sha `9cb8aa03…d148` (its spec_sha differs by construction). No M1 code file
+  (`m1_*.py`, `run_m1.py`, `m1_j0.py`) differs from 4d25178e; `check_pins` ok for all eight pinned modules and the design text.
+- **`seals/M1_pins.json`:** spec_sha `3afd6ad613e823b117a76b5346dc1b88a2207cb9de4ca6dea8534d1b4be068b0`, code_sha
+  `9cb8aa03b0ddde9c4fc462b4ed6bb70ef93234317ac5a1cd8d2cb27be061d148`, design `7982f199edaf559fc4e6a5150709cc49d26b16984c869b6b75e2ef7dca107639`,
+  pinned-module sha256s, `registration_commit_utc` 2026-10-30T17:17:28Z (= this commit's author and committer time).
+- Registration is before 2026-11-22T23:59Z, so the slide rule does not apply: REGISTERED_UTC 2026-11-24T00:00Z, END_UTC
+  2026-12-15T00:00Z, read-out on or after 2027-01-15.
+- q0751 (J1) and q0751b (J2) moved from `drafts/` to `jobs/` unchanged. **Still to do before 2026-11-24T00:00Z:** install
+  the J1 cron line from q0751's notes (`20 */2`) on the host; it exits 2 and writes nothing before REGISTERED_UTC.
+- **17:30Z addendum (ops only):** the J1 cron line is in `scripts/oracle/crontab.txt` and installed on the host (backup
+  `~/crontab.bak.*`). It is guarded to start only after q0751 (the queue's first J1 pass) is recorded `done` in
+  `attempts.jsonl`, because J1 has no lock of its own and the two must not overlap. **Check on 2026-11-24 that q0751 is done**;
+  if it fails, the cron never starts and the J1 passes must be restored by hand within the 6 h decision rule.
 - **2026-10-30 ~17:30Z signal engine (ops, DESIGN_V1 §46; no model, window, row cap or target change):** the 10-30 refit
   (31 models) peaked at RSS 3,870 MB in 6,295 s, above q0512's 3,400 MB reservation and an estimated ~5.6 GB VmPeak under
   the 6,000 MB address-space cap. q0512 mem_mb 3400 -> 4300, as_cap_mb 6000 -> 8000, timeout_s 10800 -> 14400; the engine

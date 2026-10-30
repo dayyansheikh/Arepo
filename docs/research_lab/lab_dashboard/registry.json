@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-30T12:51:33Z",
+ "updated": "2026-10-30T17:17:28Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1789,19 +1789,19 @@
   {
    "id": "M1",
    "title": "Measurement M1: the carry after a proposed resolution (planned)",
-   "plain": "Pre-registered measurement from ideas round 19: after a market's outcome is formally proposed, how big is the remaining discount, against the chance the proposal is overturned? A number with an error bar, never called a finding. Design frozen 30 Oct. Almost all such markets trade at 99.9 cents or more, so a coarse result is near-certain (said in advance).",
+   "plain": "Pre-registered measurement from ideas round 19: after a market's outcome is formally proposed, how big is the remaining discount, against the chance the proposal is overturned? A number with an error bar, never called a finding. Registered 30 Oct with its code locked. Almost all such markets trade at 99.9 cents or more, so a coarse result is near-certain (said in advance).",
    "batch": "M1",
    "family": "carry",
    "stage": "designed",
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Code, code check and registration by 22 Nov; window 24 Nov - 14 Dec; read-out from 15 Jan 2027",
-   "next_date": "2026-11-22",
+   "next": "Registered 30 Oct; collection window 24 Nov - 14 Dec; read-out from 15 Jan 2027",
+   "next_date": "2026-11-24",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/reviews/M1_FREEZE_DIFF_CHECK_2026-10-30.md",
-    "next": "docs/research_lab/MEASUREMENT_M1_CH263.md (FROZEN design text); docs/research_lab/EXPERIMENT_LEDGER.md § M1 freeze diff check and DESIGN-TEXT FREEZE (2026-10-30)",
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § M1 (CH263) REGISTERED (2026-10-30); docs/research_lab/seals/M1_pins.json",
+    "next": "docs/research_lab/MEASUREMENT_M1_CH263.md (FROZEN design text, sha256 7982f199); docs/research_lab/EXPERIMENT_LEDGER.md § M1 (CH263) REGISTERED",
     "status": "docs/research_lab/reviews/CH269_MAP_2026-10-30.md"
    },
    "stage_results": {
