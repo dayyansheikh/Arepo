@@ -5530,3 +5530,18 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   `~/crontab.bak.*`). It is guarded to start only after q0751 (the queue's first J1 pass) is recorded `done` in
   `attempts.jsonl`, because J1 has no lock of its own and the two must not overlap. **Check on 2026-11-24 that q0751 is done**;
   if it fails, the cron never starts and the J1 passes must be restored by hand within the 6 h decision rule.
+
+## CB7 census q0147c: GS fail, GG / GX pass, 2026-10-30 (experiments autopilot; counts only)
+- q0147c done 2026-10-30T15:33Z on the host; `census.json` (git_commit 7e9958c1, `cb7_descriptive`, EXCLUDE, uncounted; counts only,
+  no outcome read). Counts and gates inserted into `CREATIVE_BATCH_7.md` section 2.7a. No threshold, floor, window or formula changed.
+- **GS FALSE:** units 787 (need 3,000), event x week clusters 329 (need 1,000); series/event clusters 319 (need 300) and
+  within-cell SD of C 0.971 (need 0.5) met. Text-only deff 2.38; S1 MDE 7.0c per marker (design assumed 2.5c).
+- **GG TRUE:** units 1,756, event clusters 663, theme clusters 177, sum m 86.2, h_geo measured 0.012. **GX TRUE:** S prints 23,760,
+  skip windows 4,915, event clusters 70, UTC dates 295 (non-sports).
+- **Pre-declared consequence for S:** S1 "not testable", p = 1, counted; no rescue, no re-screen (section 2.8). S1-rep is not run
+  (section 8 item 5: q0152 only if S1 advanced). Open for the freeze check: whether the `textorig` step / q0151 and S2 still run.
+- **Holm:** Stage-1 k1 stays 3 (S1 counted at p = 1); Stage-2 k can only fall (at most 2 if S1-rep and S2 do not run). Cumulative
+  denominator still includes S1.
+- Ops: the 12-day snapshot hold may now be reverted to 8 days (per the 10-29 entry); not done here.
+- Next: science-reviewer freeze check for G and X (and the S questions above); then freeze `model_specs/cb7_v1.json`, pin
+  `T7_S_rep_start` (only if S2/S1-rep survive the check), deploy the `textorig` step and q0151 as the check decides. Nothing frozen or queued by this entry.
