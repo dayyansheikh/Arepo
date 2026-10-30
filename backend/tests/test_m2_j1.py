@@ -75,12 +75,12 @@ def markets(k):
     return m
 
 
-def write_capture(root: Path, k: int, mkts=None) -> Path:
+def write_capture(root: Path, k: int, mkts=None, recv: bool = True) -> Path:
     d = root / cid(k)
     d.mkdir(parents=True)
     (d / "manifest.json").write_text(json.dumps({"state": "complete", "started_utc": iso(tcap(k)), "capture_id": cid(k)}))
-    rec = iso(tcap(k) + timedelta(minutes=3))
-    rec_ext = iso(tcap(k) + timedelta(minutes=4))
+    rec = iso(tcap(k) + timedelta(minutes=3)) if recv else ""
+    rec_ext = iso(tcap(k) + timedelta(minutes=4)) if recv else ""
     with gzip.open(d / "rows.csv.gz", "wt", newline="") as fh:
         w = csv.writer(fh)
         w.writerow(RCOLS)
@@ -203,13 +203,14 @@ def test_rule_modes_and_receipt_coverage(tmp_path):
     assert ix.lookup(1, t_d, "2026-10-20")[0] == "scheduled"
     assert ix.lookup(12, t_d, "2026-10-20")[0] == "other" and ix.lookup(12, t_d + 7200, "2026-10-20")[0] == "scheduled"  # the later row is visible once its poll is committed
     assert ix.lookup(11, t_d + 7200, "2026-10-20")[0] == "scheduled"
-    assert ix.lookup(1, t_d, "2026-10-20", "day_before")[0] == "no_rules" and ix.lookup(1, t_d, "2026-10-21", "day_before")[0] == "scheduled"
     assert ix.info["poll_ok"] == 2 and ix.info["poll_ok_with_parseable_receipt"] == 2 and ix.info["rows_torn_or_failed"] >= 2
     rr2 = tmp_path / "rules2"
     write_rules(rr2, with_receipt=False)
     ix2 = m2.RulesIndex.load(rr2)
     assert ix2.info["poll_ok"] == 2 and ix2.info["poll_ok_with_parseable_receipt"] == 0
-    assert ix2.lookup(1, t_d, "2026-10-20")[0] == "no_rules"  # receipt mode never guesses
+    assert ix2.lookup(1, t_d, "2026-10-20")[0] == "no_rules"  # same UTC day as k: not visible without a receipt time
+    assert ix2.lookup(1, t_d, "2026-10-21")[0] == "scheduled"  # ruling 7: a record without finished_utc is visible once its day file is before k's day
+    assert ix2.info["records_without_receipt"] == ix2.info["rows_committed"] + ix2.info["hash_committed"] > 0
 
 
 # --- (vi) mid boundaries, (vii) S6 / S11 boundaries, (viii) E6 --------------------------------------------------------------------------
@@ -334,6 +335,8 @@ def test_iii_twelve_capture_catch_up_equals_incremental(tmp_path, full):
 
 
 def test_iv_followup_is_blind_and_never_read_by_the_extractor(tmp_path, full, monkeypatch):
+    # W10: running with the recorder off, or deleting every follow-up file, leaves every unit file and the state file byte-identical, and every
+    # status file identical except its `followup` field.
     snap, rr, st_full, _ = full
     opened = []
     real = gzip.open
@@ -348,6 +351,11 @@ def test_iv_followup_is_blind_and_never_read_by_the_extractor(tmp_path, full, mo
     assert not any("/followup/" in p for p in opened)
     assert not any(st_full.name in p for p in opened if "followup" in p)
     assert files(st, "units") == files(st_full, "units") and not files(st, "followup")
+    for p_ in (st_full / "followup").glob("*"):  # deleting every follow-up file changes nothing else on disk and nothing a later pass writes
+        p_.rename(tmp_path / ("moved_" + p_.name))
+    assert files(st, "units") == files(st_full, "units") and (st / "state.json").read_bytes() == (st_full / "state.json").read_bytes()
+    for p_ in tmp_path.glob("moved_*"):
+        p_.rename(st_full / "followup" / p_.name.removeprefix("moved_"))
     assert (st / "state.json").read_bytes() == (st_full / "state.json").read_bytes()
     for name, blob in files(st_full, "status").items():
         a, b = json.loads(blob), json.loads(files(st, "status")[name])
@@ -432,7 +440,7 @@ def test_j0_rule_e_without_receipt_times(tmp_path):
     rr = tmp_path / "research_lab" / "stream_gamma_rules"
     write_rules(rr, with_receipt=False)
     rep = m2.run_j0(snap, rr, tcap(0).timestamp(), tcap(N).timestamp(), lookback_slots=3)
-    assert rep["decisions"]["rule_e_day_before_reader_applies"] is True and rep["rules_mode"] == "day_before"
+    assert rep["decisions"]["rule_e_day_before_reader_applies"] is True and "rules_mode" not in rep
     assert rep["splits_counts"]["S2"] == {"no_rules": 9}  # the same-day files are not read by the day-before reader
 
 
@@ -482,3 +490,135 @@ def test_runner_refusals_and_write_once(tmp_path):
     assert runner.main(base + ["--out", str(out)]) == 1 and out.read_text() == first
     assert runner.main(["--snapshot-root", str(snap), "--rules-root", str(rr), "--last-days", "8", "--lookback-slots", "3", "--out", str(out.with_name("b.json"))]) == 0
     assert runner.main(["--snapshot-root", str(snap), "--out", str(out.with_name("c.json"))]) == 2  # no span given
+
+
+# --- J1 ambiguity rulings (docs/research_lab/reviews/M2_J1_AMBIGUITY_RULINGS_2026-10-30.md) ------------------------------------------------
+
+def one_market_store(tmp: Path, fields_at, ks=range(N), recv=True):
+    snap = tmp / "research_lab" / "snapshots"
+    for k in ks:
+        write_capture(snap, k, {m: f for m, f in fields_at(k).items()}, recv=recv)
+    return snap
+
+
+def test_ruling6_distinct_scope_markets_printed_beside_row_captures(rep):
+    assert rep["side_classes"]["end_date_missing"] > 1 and rep["end_date_missing_scope_distinct_markets"] == 1  # market 22 in every classified capture
+    assert "row-captures" in rep["end_date_missing_note"]
+
+
+def test_ruling7_each_record_has_its_own_reader(tmp_path):
+    rr = tmp_path / "rules"
+    rr.mkdir()
+    day = f"{T0:%Y%m%d}"
+    t_d = tcap(K).timestamp()
+
+    def row(slot, mid, text, sha):
+        return json.dumps({"kind": "row", "slot": slot, "key": f"m:{mid}", "reason": "new", "sha": sha, "data": {"question": text, "description": "", "resolutionSource": ""}})
+
+    lines = [row("a", 1, "fomc", "h1"), json.dumps({"kind": "poll", "slot": "a", "ok": True}),  # no finished_utc
+             row("b", 2, "fomc", "h2"), json.dumps({"kind": "poll", "slot": "b", "ok": True, "finished_utc": iso(tcap(K) - timedelta(hours=1))}),
+             row("c", 3, "fomc", "h3"), json.dumps({"kind": "poll", "slot": "c", "ok": True, "finished_utc": iso(tcap(K) + timedelta(hours=1))})]
+    (rr / f"{day}.jsonl").write_text("\n".join(lines) + "\n")
+    ix = m2.RulesIndex.load(rr)
+    kd_same, kd_next = "2026-10-20", "2026-10-21"
+    assert ix.lookup(1, t_d, kd_same)[0] == "no_rules" and ix.lookup(1, t_d, kd_next)[0] == "scheduled"  # no global switch: this record uses the day rule
+    assert ix.lookup(2, t_d, kd_same)[0] == "scheduled" and ix.lookup(2, t_d, kd_next)[0] == "scheduled"  # parseable and <= t_d
+    assert ix.lookup(3, t_d, kd_next)[0] == "no_rules"  # parseable and > t_d: the day rule never overrides a receipt time
+    import inspect
+
+    assert "mode" not in inspect.signature(ix.lookup).parameters and "rules_mode" not in inspect.signature(m2.M2Pass.__init__).parameters
+
+
+def test_ruling7_cross_midnight_commits_and_max_poll_duration_printed(tmp_path):
+    rr = tmp_path / "rules"
+    rr.mkdir()
+    lines = [json.dumps({"kind": "poll", "slot": "a", "ok": True, "started_utc": "2026-10-20T23:59:30Z", "finished_utc": "2026-10-21T00:00:20Z"}),
+             json.dumps({"kind": "poll", "slot": "b", "ok": True, "started_utc": "2026-10-20T12:00:00Z", "finished_utc": "2026-10-20T12:00:05Z"})]
+    (rr / "20261020.jsonl").write_text("\n".join(lines) + "\n")
+    info = m2.RulesIndex.load(rr).info
+    assert info["commits_crossing_midnight"] == 1 and info["max_poll_duration_s"] == 50.0
+
+
+def test_ruling8_t_d_source_counts(tmp_path):
+    def fields(k):
+        return {31: mk("0.80", "0.82", event="e31")}
+
+    snap = one_market_store(tmp_path, fields, recv=False)
+    rep = m2.run_j0(snap, None, tcap(0).timestamp(), tcap(N).timestamp(), lookback_slots=3)
+    assert rep["eligible_units"]["total"] == 1 and rep["t_d_source_counts"] == {"capture_start_fallback": 1}
+
+
+def test_ruling12_rule_ledger_in_state_survives_retirement_of_a_day_file(tmp_path, full):
+    snap, rr, st_full, _ = full
+    snap2 = tmp_path / "b" / "research_lab" / "snapshots"
+    for k in range(K - 1):
+        (snap2 / cid(k)).parent.mkdir(parents=True, exist_ok=True)
+        (snap2 / cid(k)).symlink_to(snap / cid(k))
+    rr2 = tmp_path / "b" / "research_lab" / "stream_gamma_rules"
+    rr2.mkdir(parents=True)
+    (rr2 / f"{T0:%Y%m%d}.jsonl").write_bytes(next(rr.glob("*.jsonl")).read_bytes())
+    st = tmp_path / "b" / "store"
+    j1(snap2, rr2, st)
+    led = json.loads((st / "state.json").read_text())["rule_ledger"]
+    assert led["records"]["1"] and led["sha_class"]
+    (rr2 / f"{T0:%Y%m%d}.jsonl").unlink()  # the day file is retired
+    for k in range(K - 1, N):
+        (snap2 / cid(k)).symlink_to(snap / cid(k))
+    j1(snap2, rr2, st)
+    assert files(st, "units") == files(st_full, "units")  # classes come from the ledger, not the retired file
+    assert (st / "state.json").read_bytes() == (st_full / "state.json").read_bytes()
+
+
+def test_ruling15_non_whitelist_forms_are_uncapped(tmp_path):
+    n_forms = 250
+
+    def fields(k):
+        return {1000 + i: mk("0.80", "0.82", event=f"e{i}", uma=f"form{i}") for i in range(n_forms)}
+
+    snap = one_market_store(tmp_path, fields)
+    rep = m2.run_j0(snap, None, tcap(0).timestamp(), tcap(N).timestamp(), lookback_slots=3)
+    assert len(rep["status_forms"]["uma_other_at_k_forms"]) == n_forms and rep["funnel"]["uma_other_at_k"] == n_forms
+
+
+def test_n1_unclassified_candidates_are_counted(tmp_path, full):
+    snap, rr, _, mp_full = full
+    n_cand = sum(mp_full.funnel.values())
+    ws = tcap(K).timestamp() - 1.0  # the first window capture is K; K - 1 is before the window
+    mp = m2.run_j1(snap, rr, tmp_path / "s1", window_start=ws, window_end=WE, spec_sha="a" * 64, now=tcap(N + 10).timestamp())
+    assert mp.funnel["k_minus_1_before_window"] == n_cand and mp.funnel.get("unit", 0) == 0
+    st2 = tmp_path / "s2"
+    snap2 = tmp_path / "b" / "research_lab" / "snapshots"
+    snap2.mkdir(parents=True)
+    for k in range(N):
+        if k != K - 1:
+            (snap2 / cid(k)).symlink_to(snap / cid(k))
+    mp2 = j1(snap2, rr, st2)  # capture K - 1 missing: k = K has no previous capture
+    assert mp2.funnel["no_previous_capture"] == n_cand and mp2.funnel.get("unit", 0) == 0
+
+
+def test_n2_unparseable_end_date_at_k_minus_1_is_a_class_not_a_unit(tmp_path):
+    def fields(k):
+        return {30: mk("0.80", "0.82", event="e30", end="" if k < K else iso(E1))}
+
+    snap = one_market_store(tmp_path, fields)
+    mp = j1(snap, None, tmp_path / "s")
+    assert mp.funnel["k_minus_1_end_date_missing"] == 1 and mp.funnel.get("unit", 0) == 0 and not read_units(tmp_path / "s")
+
+
+def test_n3_status_carries_the_per_capture_funnel(full):
+    _, _, st, _ = full
+    stt = json.loads((st / "status" / f"{cid(K)}.json").read_text())
+    assert stt["funnel"]["unit"] == 9 and stt["funnel"]["no_k_minus_1_row"] == 1
+    assert json.loads((st / "status" / f"{cid(K + 1)}.json").read_text())["funnel"] == {}
+
+
+def test_n4_lookback_slots_before_the_first_retained_capture_are_counted(full):
+    _, _, _, mp = full
+    first = m2.slot_of(tcap(0).timestamp())[0]
+    assert mp.extra["missing_lookback_slot"] == first - m2.slot_of(WS - m2.LOOKBACK_SLOTS * m2.GRID_S)[0] == 81
+
+
+def test_n5_runner_has_no_rules_mode(tmp_path):
+    snap, rr = build(tmp_path)
+    with pytest.raises(SystemExit):
+        runner.main(["--snapshot-root", str(snap), "--rules-root", str(rr), "--last-days", "8", "--rules-mode", "receipt", "--out", str(tmp_path / "research_lab" / "x.json")])

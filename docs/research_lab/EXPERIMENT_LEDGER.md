@@ -5203,3 +5203,51 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   field, `t_d` fallback, window-edge folding, J0's 12-slot look-back on 8 retained days, etc.) to be ruled before the freeze.
 - **q0733 (M2-J0) promoted** per re-check MUST 1 (J0 = J1 in dry mode, its code_sha sealed): counts only, cpu lane, 600 MB;
   only effects rules (a) / (e) and the cell distribution record. J0 uses a 12-slot look-back (host retention), disclosed.
+
+## M2 J1 ambiguity rulings REVISE; q0733 stopped before any output, 2026-10-30 ~08:45Z (experiments autopilot; nothing counted, nothing read)
+- `reviews/M2_J1_AMBIGUITY_RULINGS_2026-10-30.md`: 15 code-note ambiguities ruled (wording W1-W16) plus five unlisted
+  defects: N1 `no_previous_capture` never counted (funnel not exhaustive), N2 an unparseable `end_date_{k-1}` lets a market
+  become a unit, N3 J1 status lacks the funnel, N4 missing look-back slots before the first retained capture not counted,
+  N5 `--rules-mode` would let a hand choice bypass rule (e). Rulings 7, 10, N1, N2, N5 must be in the code **before J0**;
+  all rulings declared before any J0 output exists. J0 look-back fixed at 12 slots now (never revised after J0).
+- **q0733 stopped:** it had started at 07:10Z on the pre-ruling code; its runner was SIGTERMed at ~07:13Z (3 min, only q0733;
+  q0085 untouched) and the job cancelled. **No output file was written** (`m2_j0/` does not exist). Not counted; a fresh
+  q0733b runs after the fixes, and its seal records the fixed code.
+
+## LT14 code fixes re-check ACCEPT_WITH_FIXES; rulings recorded; q0740 promoted, 2026-10-30 ~09:00Z (experiments autopilot; nothing counted)
+- `reviews/LT14_CODE_RECHECK_2026-10-30.md` on b6bb71a7 (merged b3b6e3ed; 56 tests; frozen text unchanged; declaration sha
+  `71ec21e5…` -> **`d2b89b1a…`**, only `/mde/rule` differs): MUST 1-3 and SHOULD 1-3, 5-7 fixed (synthetic probes re-run:
+  altered / deleted sidecars refuse; sealed-absent quotes give `unavailable`, no refusal). Remaining before q0741 (seal):
+  **F1** the restore draft q0743 selects from a stale repo catalogue (stops at data-20261020) and a no-match exits 0, so
+  regenerate the catalogue, pass explicit `--tag`s and add a post-restore coverage check (exit 3, stop and ask the owner);
+  **F2** q0743 disk sizing (~4 GB of archived sidecars, estimate) and a guard against the 55 GB pass cap; **F3** MUST 4
+  narrowed to `model_id`, `spec_sha256`, `added_utc` + canonical sha (P's status printed, never a refusal: design l. 217-219).
+- **Rulings recorded (SHOULD 4 / F4), before the seal:** A1 a covered origin is a span slot whose `meta`, `quotes`, `features`
+  and sidecar are all sealed, P's file judged by the separate 90% line over 120 expected origins; A2 `misaligned` (row count
+  or `features_sha256` differs) is a capture-level class with no units; **`log_file_mismatch` ⊂ late (design 1.4), reported
+  separately, counts against the 90% line**; A8 projected labelled-eligible units = `labelled` at k + 1 x 21 / covered days
+  (1.10 l. 395-396); A11 the family rule applies after the cut to the gates, the top units and the rest-of-tier unavailable
+  share alike, pre-exclusion count recorded; A6(a) overruled by MUST 3, A6(b)/(c) stand; A2-A4, A7, A12-A18 as written.
+- Snapshot retention is currently 12 days (back to 8 after q0147c), so no span sidecar is deleted before ~11-19 at 12 days.
+- **q0740 (schema / input-clock pre-check) promoted** (schemas and registry only, no value read). F1-F3 delegated on
+  `feat/lt14-code`; q0741 / q0742 / q0743 stay drafts.
+
+## M2 rulings applied (text + code); q0733b (M2-J0) promoted, 2026-10-30 ~09:20Z (experiments autopilot; counts only, k = 0, uncounted)
+- `feat/m2-j1-code` 33ab9687 (merged f3786f79): W1-W16 in `MEASUREMENT_M2_CH264.md` (DRAFT, sha256 `690d7da5…61e3`; eight pinned
+  files incl. `cb13_label`; section 20 maps the rulings); code N1-N5 and rulings 6, 7, 8, 12, 15 (`m2_j1.py` `c0538322…51dc`,
+  `run_m2_j0.py` `c0e4d061…793d`; 32 M2 tests, 12 failing on the pre-ruling code). Rule (e) is computed (no manual mode);
+  J1 keeps an append-only rule ledger. J0 look-back fixed at 12 slots (declared before any J0 output).
+- **q0733b promoted** (supersedes the cancelled q0733, which wrote nothing). Its only effects: rules (a) / (e) and the cell
+  distribution record; then final verification and the freeze by 2026-11-16.
+
+## M1 code-freeze check PASS_WITH_FIXES (8 MUST, one needs a text amendment), 2026-10-30 ~09:45Z (experiments autopilot; nothing counted)
+- `reviews/M1_CODE_FREEZE_CHECK_2026-10-30.md` on 3f8c3428 (39 tests; design sha and all eight module pins match; no frozen,
+  pinned, engine or `m1_j0.py` file touched; no post-k leak into units). **MUST:** (1) missing-capture rule judged by wall
+  clock (a 10 h late capture processed in catch-up) -> judge by the manifest's `finished_utc <= grid + 6 h`; (2) no start-date
+  gate for J1; (3) resolved-but-not-closed read as final (8.1: not closed = pending); (4) event coverage floor = every unit of
+  the event covered (ambiguity 2, conservative); (5) void 11.6 skippable when `registration_commit_utc` is absent; (6) counted
+  missingness (sidecar / column / sweep notes, look-back record) never reaches the output; (7) missing row at k folded into
+  `not_open_at_k` silently, unparseable ids uncounted; **(8) text conflicts: `m2_overlap` needs M2's ids while 3.1 says M2's
+  store is not read; the survivorship line needs a category the engine log lacks -> a design-text amendment** (LT7 13.6 /
+  LT13 13 precedent: appended section, from code reading only, no window data exists). Ambiguities 1-15 ruled (14 as
+  interpretations). SHOULD 1-12. Fixes + amendment draft delegated on `feat/m1-code`; then a re-check before q0750.

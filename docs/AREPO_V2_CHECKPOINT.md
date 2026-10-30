@@ -8,19 +8,20 @@
 **PHASE 4 IN PROGRESS.** See `implementation/phases/PHASE_04_EDGE_EXPERIMENTS.md` and the ledger `research_lab/EXPERIMENT_LEDGER.md`.
 User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=Etc/GMT-1 date`.
 
-## Experiments autopilot live state (2026-10-30 08:00 UTC+1)
-- **Done this session (all in the ledger):** M1-J0 (q0731) recorded: 21-day window kept (median 185 units/day, 3,885
-  projected), seal `seals/M1_J0_q0731.json`; span correction (96 read, 84 processed). M1 final verification NOT_READY ->
-  MUST 1-2 + D1-D6 applied (text `91c85728…0b350`, merged 6ba9a562); M2 second draft merged, R1 re-check NOT_READY -> MUST 1-2,
-  SHOULD 1-10 applied (`f10adcf0…5d56`, cc624d10); LT14 census code merged (491b611f), code-freeze check PASS_WITH_FIXES (5 MUST).
-- **In flight (background agents):** M1 diff-only freeze check (then the FREEZE commit + ledger line); `feat/lt14-code` MUST 1-5
-  fixes (then a diff re-check; q0740 promotable after, q0741/q0742 stay drafts until 11-17); `feat/m2-j1-code` (worktree
-  ../astrolabe-m2-code: J1 extractor + tests i-viii + q0733 M2-J0 draft); creative round 20 (Fable xhigh, `feat/creative-r20`,
-  CREATIVE_HYPOTHESES_2026-11-03.md, CH270+).
-- **Next:** M1 freeze -> M1 code (J1-J3, A) + code-freeze check + dry run + registration by 11-22. M2: J1 code -> q0733 J0 ->
-  final verification -> freeze by 11-16. LT14: fixes -> re-check -> q0740 promote. Round 20: record, route to designs/maps.
-- **Queue:** q0085 (CB4) running; q0116k (MC1 exclusive), q0185b, q0103b, q0147c (CB7, before ~11-03 03:30Z), others queued.
-  After q0147c: snapshots rule 12 -> 8 days + ledger. Do not edit run_ml_dev.py / hashed ml modules or delete
+## Experiments autopilot live state (2026-10-30 08:16 UTC+1)
+- **Done this session (all in the ledger):** M1-J0 recorded (21-day window kept); **M1 DESIGN TEXT FROZEN** (bfa9960c, sha256
+  `3a4f03b9…492d`); M1 code merged (3f8c3428: J1/J2/J3/analysis, pin refusals, 39 tests, drafts q0750-q0753). M2: re-check
+  NOT_READY -> fixed; J1 code merged (02267b0c); ambiguity rulings REVISE; **q0733 stopped before any output and cancelled**.
+  LT14: code-freeze check PASS_WITH_FIXES -> fixed; diff re-check ACCEPT_WITH_FIXES; rulings A1/A2/A8/A11/log_file_mismatch in
+  the ledger; **q0740 promoted and deployed** (host at a42b7813).
+- **In flight (background agents):** M1 code-freeze check (+ rulings on 15 code ambiguities); `feat/m2-j1-code` rulings
+  W1-W16 / N1-N5 applied to text + code + q0733b draft; `feat/lt14-code` F1-F3 (restore no-op guard, disk cap, registry
+  comparison); creative round 20 (Fable xhigh, `feat/creative-r20`, CH270+).
+- **Next:** M1: fixes from the code check -> q0750 dry run -> registration commit by 11-22T23:59Z (window 11-24..12-14).
+  M2: merge rulings -> promote q0733b -> J0 record -> final verification -> freeze by 11-16. LT14: merge F1-F3 -> diff check ->
+  q0741/q0743/q0744 promote with not_before 11-17. Round 20: record, route.
+- **Queue:** q0085 (CB4) running; q0740 queued; q0116k (MC1 exclusive), q0185b, q0103b, q0147c (CB7, before ~11-03 03:30Z),
+  others. After q0147c: snapshots rule 12 -> 8 days + ledger. Do not edit run_ml_dev.py / hashed ml modules or delete
   ml_cache/38dc17c9… until q0116k completes.
 - **Carried over:** CB9 SHOULD 6; CB5 SHOULD 3 before q0111; LT13 q0722 memory dry run (from 11-17); LT11 census q0691 not
   before 11-07T08Z; LT12 census/seal from 11-07; E026 weekly-count phone note ~11-01; two order-dependent tests.

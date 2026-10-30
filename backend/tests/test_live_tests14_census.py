@@ -442,10 +442,31 @@ def test_must4_an_unrelated_registry_change_does_not_refuse_but_a_changed_p_entr
     reg_p.write_text(json.dumps(reg))
     res = lt.census_captures(seal=seal, engine_root=world["engine"], snapshot_root=[world["snaps"]], spec=spec, spec_dir=sd)
     assert res["statuses"] == {"CH262": lt.CENSUS_PASS} and res["registry_sha256_now"] != res["registry_sha256_sealed"]  # printed, not compared
-    next(m for m in reg["models"] if m["model_id"] == t.PINNED_MODEL)["status"] = "demoted_after_the_seal"
+    # F3: a changed STATUS of P's entry never refuses (printed, sealed and now); a changed added_utc does
+    ent = next(m for m in reg["models"] if m["model_id"] == t.PINNED_MODEL)
+    sealed_status = ent.get("status")
+    ent["status"] = "demoted_after_the_seal"
+    reg_p.write_text(json.dumps(reg))
+    res = lt.census_captures(seal=seal, engine_root=world["engine"], snapshot_root=[world["snaps"]], spec=spec, spec_dir=sd)
+    assert res["statuses"] == {"CH262": lt.CENSUS_PASS} and "error" not in res
+    assert res["p_registry_status"] == {"sealed": sealed_status, "now": "demoted_after_the_seal"} and res["p_registry_status"]["sealed"] != res["p_registry_status"]["now"]
+    ent["added_utc"] = "2099-01-01T00:00:00Z"
     reg_p.write_text(json.dumps(reg))
     res = lt.census_captures(seal=seal, engine_root=world["engine"], snapshot_root=[world["snaps"]], spec=spec, spec_dir=sd)
     assert "registry entry" in res["error"] and "durable" not in res
+
+
+def test_f3_a_changed_spec_sha_of_p_refuses(world, tmp_path):
+    spec = sx.loose_spec(FIRST, LAST)
+    sd = _registry_dir(tmp_path)
+    seal = _seal(world, spec, tmp_path, spec_dir=sd)
+    reg_p = sd / "registry.json"
+    reg = json.loads(reg_p.read_text())
+    next(m for m in reg["models"] if m["model_id"] == t.PINNED_MODEL)["status"] = "demoted_after_the_seal"
+    next(m for m in reg["models"] if m["model_id"] == t.PINNED_MODEL)["spec_sha256"] = "0" * 64
+    reg_p.write_text(json.dumps(reg))
+    res = lt.census_captures(seal=seal, engine_root=world["engine"], snapshot_root=[world["snaps"]], spec=spec, spec_dir=sd)
+    assert "error" in res and res["statuses"] == {"CH262": t.WITHDRAWN_CLOCK}  # the input-clock audit (pin) catches it first; never a pass
 
 
 def test_must5_the_sidecar_restore_draft_runs_before_the_seal_and_fills_the_seal_s_second_root():
@@ -545,3 +566,97 @@ def test_should2_and_6_runner_writes_a_durable_result_and_copies_cc14_under_git(
 def test_should7_the_census_prints_the_nan_mid_count(passed):
     pr = passed["CH262"]["prints"]
     assert pr["mid_k_nan_units_primary"] == 0 and pr["mid_k_nan_units_top_all_tiers"] >= 0
+
+
+# ---- re-check F1 / F2: the restore guard (synthetic trees, injected restore) -------------------------------------------------------------------------------------------------------
+
+NOW_LATE = 4102444800.0  # 2100-01-01: every lag slot is long past its tolerance
+
+
+@pytest.fixture()
+def loose_guard_spec(monkeypatch):
+    spec = sx.loose_spec(FIRST, LAST)
+    monkeypatch.setattr(t, "load_spec", lambda *a, **k: spec)
+
+
+def _cat_row(tag, cid, nbytes=1000):
+    return {"release": tag, "path": f"data-dumps/research_lab/snapshots/{cid}/rows_ext.csv.gz", "dir": "snapshots", "capture_id": cid, "capture_time_utc": "2026-11-08T00:31:00Z", "bytes": nbytes, "sha256": "a" * 64}
+
+
+def _guard_world(tmp_path, tags_rows, gap_slots=()):
+    cat = tmp_path / "cat"
+    cat.mkdir()
+    for tag, rows in tags_rows.items():
+        (cat / f"{tag}.jsonl").write_text("\n".join(json.dumps(r) for r in rows) + "\n")
+    engine, snaps, dest = tmp_path / "eng", tmp_path / "snaps", tmp_path / "dest"
+    (engine / "meta").mkdir(parents=True)
+    snaps.mkdir()
+    return cat, engine, snaps, dest
+
+
+def _guard_argv(cat, engine, snaps, dest, *extra):
+    return ["--snapshot-root", str(snaps), "--engine-root", str(engine), "--data-dumps-root", str(snaps), "--reserve-gb", "0", "--since", "2026-11-07", "--until", "2026-11-17T06:00:00Z",
+            "--path-glob", "data-dumps/research_lab/snapshots/*/rows_ext.csv.gz", "--catalogue", str(cat), "--dest", str(dest), *extra]
+
+
+@pytest.mark.usefixtures("loose_guard_spec")
+def test_f1_guard_stops_when_no_catalogue_row_matches_and_never_calls_restore(tmp_path, capsys):
+    g = _load_script("lt14_restore_guard")
+    cat, engine, snaps, dest = _guard_world(tmp_path, {"data-20261020-x": [{**_cat_row("data-20261020-x", "20261020T000000Z_aa"), "capture_time_utc": "2026-10-20T00:31:00Z"}]})
+    called = []
+    rc = g.main(_guard_argv(cat, engine, snaps, dest), restore_main=lambda a: called.append(a) or 0, now=NOW_LATE, used_bytes=0)
+    assert rc == 3 and not called and "STOP AND ASK THE OWNER" in capsys.readouterr().out
+
+
+@pytest.mark.usefixtures("loose_guard_spec")
+def test_f1_guard_passes_explicit_tags_only_for_matching_releases(tmp_path):
+    g = _load_script("lt14_restore_guard")
+    cat, engine, snaps, dest = _guard_world(tmp_path, {"data-old": [{**_cat_row("data-old", "o"), "capture_time_utc": "2026-10-20T00:31:00Z"}], "data-new": [_cat_row("data-new", "n")]})
+    seen = []
+    # an empty engine: no slot has a meta, so the coverage check has nothing to demand
+    rc = g.main(_guard_argv(cat, engine, snaps, dest), restore_main=lambda a: seen.append(list(a)) or 0, now=NOW_LATE, used_bytes=0)
+    assert rc == 0 and len(seen) == 1
+    tags = [seen[0][i + 1] for i, x in enumerate(seen[0]) if x == "--tag"]
+    assert tags == ["data-new"]
+    # an explicit --tag from the caller is left alone
+    seen.clear()
+    g.main(_guard_argv(cat, engine, snaps, dest, "--tag", "data-old"), restore_main=lambda a: seen.append(list(a)) or 0, now=NOW_LATE, used_bytes=0)
+    assert [seen[0][i + 1] for i, x in enumerate(seen[0]) if x == "--tag"] == ["data-old"]
+
+
+@pytest.mark.usefixtures("loose_guard_spec")
+def test_f1_post_restore_coverage_gap_exits_3_and_full_coverage_exits_0(tmp_path, capsys):
+    g = _load_script("lt14_restore_guard")
+    spec = sx.loose_spec(FIRST, LAST)
+    cat, engine, snaps, dest = _guard_world(tmp_path, {"data-new": [_cat_row("data-new", "n")]})
+    for k in (FIRST, FIRST + 1):
+        (engine / "meta" / f"{sx.cap_id(k)}.json").write_text(json.dumps({"slot": k, "capture_id": sx.cap_id(k)}))
+    assert [x["slot"] for x in g.coverage_gaps(engine, [snaps, dest], spec)["gaps"]] == [FIRST, FIRST + 1]
+    (snaps / sx.cap_id(FIRST)).mkdir()
+    (snaps / sx.cap_id(FIRST) / "rows_ext.csv.gz").write_bytes(b"x")  # in the host root
+    r2 = dest / "data-dumps" / "research_lab" / "snapshots" / sx.cap_id(FIRST + 1)  # in the restore tree
+    r2.mkdir(parents=True)
+    (r2 / "rows_ext.csv.gz").write_bytes(b"y")
+    assert g.coverage_gaps(engine, [snaps, dest / "data-dumps" / "research_lab" / "snapshots"], spec) == {"slots_with_meta": 2, "gaps": []}
+    # through main with the span of the real spec: loose spec is not what main loads, so exercise the exit path with a patched loader
+    if True:
+        shutil.rmtree(dest)  # the restore wrote nothing: slot FIRST+1 is a gap
+        rc = g.main(_guard_argv(cat, engine, snaps, dest), restore_main=lambda a: 0, now=NOW_LATE, used_bytes=0)
+        assert rc == 3 and "STOP AND ASK THE OWNER" in capsys.readouterr().out
+        r2.mkdir(parents=True)
+        (r2 / "rows_ext.csv.gz").write_bytes(b"y")
+        assert g.main(_guard_argv(cat, engine, snaps, dest), restore_main=lambda a: 0, now=NOW_LATE, used_bytes=0) == 0
+
+
+@pytest.mark.usefixtures("loose_guard_spec")
+def test_f2_guard_refuses_when_used_plus_bytes_plus_reserve_exceed_the_data_cap(tmp_path, capsys):
+    g = _load_script("lt14_restore_guard")
+    cat, engine, snaps, dest = _guard_world(tmp_path, {"data-new": [_cat_row("data-new", "n", 2**30)]})
+    called = []
+    now = NOW_LATE
+    argv = [*_guard_argv(cat, engine, snaps, dest), "--data-cap-gb", "55"]
+    rc = g.main(argv, restore_main=lambda a: called.append(a) or 0, now=now, used_bytes=int(54.5 * 2**30))
+    out = capsys.readouterr().out
+    assert rc == 3 and not called and "data cap" in out and "STOP AND ASK THE OWNER" in out
+    assert g.cap_check(10 * 2**30, 2**30, 2**30, 55)["fits_cap"] is True and g.cap_check(54 * 2**30, 2**30, 2**30 + 1, 55)["fits_cap"] is False
+    assert g.main(argv, restore_main=lambda a: called.append(a) or 0, now=now, used_bytes=10 * 2**30) == 0 and called
