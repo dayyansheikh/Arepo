@@ -638,3 +638,48 @@ def test_n5_runner_has_no_rules_mode(tmp_path):
     snap, rr = build(tmp_path)
     with pytest.raises(SystemExit):
         runner.main(["--snapshot-root", str(snap), "--rules-root", str(rr), "--last-days", "8", "--rules-mode", "receipt", "--out", str(tmp_path / "research_lab" / "x.json")])
+
+
+# --- amendment 22: the S8 member count and the status counts never read an earlier unit's row after its k -----------------------------
+
+def _sibling_markets(k, variant):
+    m = markets(k)
+    m[40] = mk("0.80", "0.82", event="eB")  # unit at K (end E1)
+    m[41] = mk("0.80", "0.82", event="eB", end=iso(tcap(9) + timedelta(minutes=30)))  # sibling that crosses (becomes a unit) at K + 2
+    if k > K:
+        if variant == "closed":
+            m[40]["closed"] = "true"
+        elif variant == "gone":
+            del m[40]
+        elif variant == "moved_far":
+            m[40]["end"] = iso(tcap(k) + timedelta(hours=100))
+        elif variant == "moved_reoverdue":
+            m[40]["end"] = iso(tcap(K + 1) - timedelta(hours=1))
+    return m
+
+
+def _sibling_run(tmp, variant):
+    snap = tmp / "research_lab" / "snapshots"
+    for k in range(N):
+        write_capture(snap, k, _sibling_markets(k, variant))
+    rr = write_rules(tmp / "research_lab" / "stream_gamma_rules") and tmp / "research_lab" / "stream_gamma_rules"
+    st = tmp / "store"
+    mp = j1(snap, rr, st)
+    status = {}
+    for n, blob in files(st, "status").items():
+        d = json.loads(blob)
+        d.pop("followup", None)
+        status[n] = d
+    return st, mp, status
+
+
+@pytest.mark.parametrize("variant", ["closed", "gone", "moved_far", "moved_reoverdue"])
+def test_amendment22_earlier_sibling_unit_after_its_k_changes_nothing_for_the_later_unit(tmp_path, variant):
+    st0, mp0, status0 = _sibling_run(tmp_path / "base", "none")
+    st1, mp1, status1 = _sibling_run(tmp_path / variant, variant)
+    u0 = {x["market_id"]: x for x in read_units(st0)}
+    assert 40 in u0 and 41 in u0 and u0[40]["capture_id"] != u0[41]["capture_id"]
+    assert u0[41]["event_open_binary_members"] == 2 and u0[41]["cells"]["S8"] == "2-5"
+    assert files(st0, "units") == files(st1, "units")  # byte-identical unit files, including the later unit's member count
+    assert {n: {k: v for k, v in d.items() if k != "inputs"} for n, d in status0.items()} == {n: {k: v for k, v in d.items() if k != "inputs"} for n, d in status1.items()}
+    assert mp0.extra["reoverdue_seen"] == mp1.extra["reoverdue_seen"] and mp0.extra["seen_without_k_minus_1_row"] == mp1.extra["seen_without_k_minus_1_row"]
