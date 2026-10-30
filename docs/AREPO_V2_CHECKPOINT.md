@@ -15,8 +15,9 @@ User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=E
   jobs/** (q0105/q0107 "not run"); **LT13 frozen (d940c0ab), stage-A code merged (a05d84fd), DESIGN TEXT AMENDED 13
   (ae594aa1 -> 737f8b15)**, drafts q0720-q0722; LT12 fee step = DISCLOSE; R19 rule 26 ruling; **CH269 map q0730 in jobs/**;
   stale tests fixed (CB10 trials pollution, 40/50 guard asserts, q0185b path).
-- **Pending checks:** a deploy may still be waiting on the collector lock (rerun `scripts/oracle/deploy.sh` if HEAD is not on the
-  host); full backend suite rerun (bz7gaxd3h, no -x).
+- **Tests:** full backend suite 6,741 passed / 8 failed (environment or date dependent: real Mac free disk, real clock past
+  T_seal; two order-dependent); the 6 deterministic ones fixed hermetically in 0be53419 (tests only, no code defect).
+  `compare::test_ablation_specs` and `d118_evaluator::test_frozen_value_path…` fail only in the full run (not investigated).
 - **Queue:** q0116k (MC1, exclusive) slice 1 until ~04:50Z; then q0730 (CH269, prio 62), q0085 (CB4), q0185b (CB9),
   q0103b (CB5), q0147c (CB7, before ~11-03 03:30Z). After q0147c: snapshots rule 12 -> 8 days + ledger. Do not edit
   run_ml_dev.py / hashed ml modules or delete ml_cache/38dc17c9… until q0116k completes.
