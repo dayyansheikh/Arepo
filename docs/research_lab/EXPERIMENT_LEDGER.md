@@ -5414,3 +5414,11 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   counted at read-out from unit ids. Window 11-24..12-14 (J0 may extend to 42 days below 25 crossings a day); freeze by
   11-16, registration by 11-22, read-out on or after 2027-01-29. Eleven open questions in section 18 for the challenger.
 - Next: challenger review R1 (`science-reviewer`).
+
+## M1 round-2 fix ACCEPT; registration conditions fixed, 2026-10-30 14:00Z (experiments autopilot; nothing counted)
+- `reviews/M1_FIX2_CONFIRM_2026-10-30.md` on e8c36bf0: **ACCEPT** (MUST 1, SHOULD 1-3 fixed; probes pass; 98 tests; code_sha
+  `9cb8aa03…d148`, spec_sha `3afd6ad6…68b0`, design `7982f199…7639`, pins ok). Registration needs no further review if, mechanically:
+  q0750c finishes with peak RSS <= 600 MB and its `j1_runs.jsonl` records code_sha `9cb8aa03…d148`; `seals/M1_pins.json` carries
+  spec_sha, code_sha, design sha and `registration_commit_utc` = the commit's git timestamp; the commit lands by 11-22T23:59Z;
+  no M1 code or pinned module differs from 4d25178e; the section 16 block is applied word for word; q0751 / q0751b promoted
+  unchanged. Note: q0750c's `notes` still name the q0750b store (cosmetic; its argv is correct).
