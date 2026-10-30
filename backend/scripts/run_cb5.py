@@ -296,6 +296,31 @@ def cmd_cdf_audit_apply(a) -> int:
 # ---- census / rinc ------------------------------------------------------------------------------------------------
 
 
+def _l_zero_family_result(frame_dir: Path) -> dict | None:
+    """MUST 1 (CB5 code re-check 2026-10-30): when the frame job's manifest shows 0 candidate families, emit the declared G59 result
+    (g59_gate(0): CB5-L 'not testable: 0 families', L1 counted with p = 1, CH59 closed), bound to that manifest's sha256 and family_list_sha256.
+    No audit is run or required on an empty sample and no audit failure is recorded. None when the manifest is missing, unreadable or non-empty."""
+    import hashlib
+
+    from astrolabe.research_lab import cb5_cdf
+
+    mans = sorted(frame_dir.glob("manifest_v*.json"), key=lambda q: int(q.stem.rsplit("_v", 1)[1]) if q.stem.rsplit("_v", 1)[1].isdigit() else -1)
+    if not mans:
+        return None
+    try:
+        raw = mans[-1].read_bytes()
+        man = json.loads(raw)
+        n = (man.get("counts") or {}).get("n_families")
+        fl_sha = man.get("family_list_sha256")
+    except (OSError, ValueError, AttributeError):
+        return None
+    if n != 0 or not fl_sha:
+        return None
+    return {"status": "g59_not_testable", "n_families": 0, "g59": cb5_cdf.g59_gate(0), "l1_counted_p": 1.0,
+            "ch59": "closed: too rare in the live universe (0 families)", "frame_manifest": mans[-1].name,
+            "frame_manifest_sha256": hashlib.sha256(raw).hexdigest(), "family_list_sha256": fl_sha, "frame_counts": man.get("counts")}
+
+
 def cmd_census(a) -> int:
     from astrolabe.research_lab import cb5_declaration as D
     from astrolabe.research_lab import cb5_hours
@@ -338,7 +363,7 @@ def cmd_census(a) -> int:
             caps, meta = R.load_cdf_captures(p["ext"], start=D.DATES["T5_dev_start"], end=D.DATES["T5_dev_end"])
             doc["L"] = {**R.census_l(fdoc, caps), "captures": meta, "family_list_sha256": fdoc["sha256"], "frame_counts": fdoc.get("counts")}
         else:
-            doc["L"] = {"status": "inputs_missing", "reason": "no frozen family list"}
+            doc["L"] = _l_zero_family_result(p["out"] / "cdf_frame") or {"status": "inputs_missing", "reason": "no frozen family list"}
     if "K" in fams:
         pairs = cb5_hours.c1_pairs()
         doc["K"] = R.census_k(pairs, p["snap"])
