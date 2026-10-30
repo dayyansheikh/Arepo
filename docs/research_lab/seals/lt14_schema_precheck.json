@@ -1,0 +1,41 @@
+{
+ "audit": {
+  "derived": [
+   "base"
+  ],
+  "families": [
+   "market_state",
+   "momentum"
+  ],
+  "model_id": "se0_champion_lr_mm",
+  "pass": true,
+  "reasons": [],
+  "registry_entry": {
+   "added_utc": "2026-10-21T00:00:00Z",
+   "model_id": "se0_champion_lr_mm",
+   "spec_sha256": "19549cb403b41de6974a8f3e7acf7378baf433779b16cae46d367fe6fb5ff919",
+   "status": "active"
+  },
+  "registry_sha256": "2041b0cda15dedb5a17aa19f28a8c758d97e51f638864fc671bafaec4392062d",
+  "spec_canonical_sha256": "19549cb403b41de6974a8f3e7acf7378baf433779b16cae46d367fe6fb5ff919",
+  "spec_sha256": "19549cb403b41de6974a8f3e7acf7378baf433779b16cae46d367fe6fb5ff919"
+ },
+ "capture": "20261030T143102Z_f8696e84",
+ "log_fields_missing": [],
+ "pass": true,
+ "pred_meta_keys": [
+  "aux_sha256",
+  "capture_id",
+  "created_utc",
+  "engine_version",
+  "features_sha256",
+  "fit_id",
+  "model_id",
+  "n_rows",
+  "slot",
+  "spec_sha256",
+  "targets"
+ ],
+ "problems": [],
+ "sidecar_header_missing": []
+}

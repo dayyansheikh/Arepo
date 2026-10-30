@@ -5776,3 +5776,14 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   a partial `unit_events` would still raise a KeyError (non-fresh stores only).
 - **q0754b promoted** (fresh store `m2_dryruns/q0754b/...`, dumps root argument, mem 600). Registration once it passes
   (peak RSS, code_sha `64b5dee0…` in its `j1_runs.jsonl`), by 2026-11-22T23:59Z; then q0782 (serial timing) after q0781.
+
+## Housekeeping: LT14 pre-check q0740b PASS committed; failed-job closures, 2026-10-30 18:19Z (experiments autopilot; nothing counted)
+- **q0740b (LT14 schema pre-check) done 2026-10-30T15:26Z, PASS:** `seals/lt14_schema_precheck.json` (sha256
+  `7b17fddde5c2808ead2ebe4b2f2c50cebb8f75e23e557a426ab9dbbcc049f6b9`, copied byte-identical from the host): capture
+  `20261030T143102Z_f8696e84`; champion `se0_champion_lr_mm` audit pass; no missing log fields or sidecar headers;
+  `problems` empty. The LT14 chain (q0741-q0744) from 11-17 is unchanged.
+- **Failed-job triage (repo-scout, ledger only):** every failed or parked job is superseded or closed except for missing
+  closure lines, recorded here. **q0116 and q0116b** (MC1 first runs, 10-17; failed / parked at the 2 x 3,200 MB
+  address cap), **q0116c / q0116d** (OOM era): superseded by the pinned-panel lineage now running as **q0116k**; never
+  re-run. q0116f stays parked (6 h timeout) as a backup only. Outcomes still to log when they finish: q0116k, q0185b (CB9
+  kd frame v3, resumable, in progress).
