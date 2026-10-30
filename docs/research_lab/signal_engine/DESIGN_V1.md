@@ -1647,3 +1647,71 @@ the cap that killed the 10-22 attempts with `MemoryError`.
 - **Watch.** Each new LightGBM challenger adds ~5-7 min and ~50-150 MB. At about +500 s/day, the 14,400 s timeout lasts
   roughly two more weeks, plus or minus the models still to come. Before then, the refit needs a real saving: retiring
   models by the rule, or splitting the refit. Either one gets its own section. Logistic challengers cost ~30 s each.
+
+## 47. `ens_pool`: a fixed-weight linear pool of stored predictions, challenger `se31_ens_pool3` (2026-10-30 ~18:15Z; development, no fit)
+
+**Why.** Every non-embargoed LightGBM challenger beats the champion on `dir_2h` in the 10-day development leaderboard,
+and the refit is the engine's binding cost (§46: 6,295 s, 3.9 GB, rising with each LightGBM model). A pool of models
+that already predict adds a "learned combination" challenger (NORTH_STAR, mechanism 2) at zero refit cost. For the
+log score the linear pool has a row-wise guarantee: `-log(sum_i w_i p_i(y)) <= sum_i w_i (-log p_i(y))` (concavity of
+log). So on every row it is no worse than its members' weighted mean loss, up to quantisation. Whether it beats its
+**best** member depends on how different the members' errors are. Only its prospective score decides that.
+- **Learner `ens_pool` (`ensemble.py`).** No fit, no training rows. For capture k, it reads each member's write-once
+  file of capture k. It checks the same `features_sha256`, row count and `elig` column as the capture's features. It
+  dequantises exactly as the scorer does (`dequantise_dir` / `dequantise_bin`), then averages with the spec's fixed
+  weights in probability space and requantises. A target is pooled only if every member's file carries it; otherwise its
+  columns stay 0 and it is absent from `targets`, as for a model without that fit. `fit_id` is
+  `<model_id>@pool-<sha12>` over the members' fit ids and file sha256s, which the metadata also lists.
+- **Timing.** `run_predict` queues a pool for capture k only when every member's file exists or is due in the same run,
+  and writes it after them. Its receipt time is its own `predictions` log line, so it always follows every member's.
+  The scorer's on-time rule judges that time, unchanged. If a member is pending (no fit, `aux_pending`), the pool is
+  skipped with `members_pending` and retried while the capture is predictable. It is never written from a subset.
+  A pool has no fit date to stop it back-filling, so it predicts only captures that start at or after its registry
+  `added_utc` (required for pools). Otherwise its first run would write ~12 late files, which count as `late` against
+  its coverage (condition 6) for 28 days. It would also score captures from the leaderboard period its members were
+  chosen from. se31's `added_utc` is 2026-10-30T20:00:00Z, which is after this section's commit and the deploy, so its
+  first capture is 20:31Z.
+- **Why §37's meta-family rule (a) does not apply.** Rule (a) is for feature **columns** built from earlier captures'
+  predictions. A pool is not a feature family and adds no column. It reads only the members' predictions of the
+  **same** capture, which were made from fits before that capture started. Its own receipt time follows every
+  member's, and the on-time rule judges that time. Rule (d) (no embargoed predictions) is kept by the embargo
+  inheritance below. A member file whose log append failed is not re-checked (the scorer rejects that member). This is
+  not a leak, because the file is written before its log line.
+- **Never read:** labels, scores, other captures, or embargoed members. `specs.embargo_of` gives a pool the latest
+  embargo of any member, so a pool containing an embargoed model is hidden and unscored exactly as long as that model.
+  Member ids **and their `spec_sha256`** are pinned in the spec (`params.member_sha256`), so the pool's identity
+  changes if a member's spec does. `load_registry` refuses: a pool of pools; an unknown, retired or
+  promotion-ineligible member (§21, `C.PROMOTION_INELIGIBLE`), since a pool must not carry a §21 bias into promotion; a
+  member pin that differs from the registry; a missing `added_utc`; weights that do not sum to 1; a non-probability
+  space; and any family, derived set, isolate or train block other than `{"refit": "none"}`. `embargo_of` raises for a
+  pool dict without its resolved members, rather than reading it as broad and unembargoed. Refit and walk-forward skip pools (walk-forward has no stored member predictions to replay).
+- **`se31_ens_pool3`.** Members `se1_lgbm_mm`, `se17_lgbm_mm_900k`, `se18_lgbm_all_b0`, weights 1/3 each, targets
+  `dir_2h`, `dir_6h`, `dir_24h`, `res_7d`. The members are fixed by schedule: they are the three LightGBM challengers due
+  their first promotion read on 11-04. **Declared:** the 10-day development leaderboard had been seen when they were
+  chosen, and it shows these three among the best non-embargoed `dir_2h` models. So the choice is not blind to
+  development results, but no member set or weight was compared on outcomes, and no development probe of the pool was
+  run. None of the three is embargoed; se18 is broad (§21/§22), and the pool adds no exposure beyond se18's own scored
+  predictions.
+- **Promotion.** Judged by `se-promotion-v2` against the champion, unchanged. It counts in K **from registration**
+  (`promotion.evaluate` counts every active, non-embargoed model), so K rises by 1 now. That slightly tightens the 11-04
+  level for se1, se17 and se18, which is the conservative direction. Its first prediction is today, so it cannot qualify before ~11-13. Condition 6 (coverage) can bind: the pool
+  is not written when se18's `book0` is pending, so it may be late. If promoted, the champion is the pool spec (member
+  ids pinned), and its members keep refitting daily as they do now. A member's retirement would require a new pool
+  version first, because `load_registry` refuses a pool with a retired member.
+- **Development reading (information only, at its 14 days):** the paired `dir_2h` gain of se31 over se17 (the best
+  member on the 10-day board), pooled and per day. It decides nothing about promotion. If the pool does not beat se17
+  at 28 days, it is retired by the normal retirement check. No other member set or weighting is tried as a re-read of
+  this one; a stacked (fitted-weight) pool would be a new spec with its own section.
+- **Cost.** Per capture: three member parquet reads and one write, about a second; no refit time and no refit memory.
+- **Tests.** `tests/unit/test_signal_engine_pool.py` (14):
+  - the pool equals the weighted mean of the stored member probabilities, within quantisation;
+  - it is written after its members, only when all of them exist, and only from its `added_utc`;
+  - it is write-once, never fitted, and scored and paired with the champion;
+  - it inherits a member's embargo;
+  - the eight spec and registry refusals hold, and so do the pool-of-pool refusal and the fail-closed `embargo_of`.
+- **Science review (2026-10-30 ~18:10Z): ACCEPT_WITH_FIXES.** All five fixes were applied before the commit:
+  ineligible members are refused; `embargo_of` fails closed; `added_utc` is required and set after the commit; member
+  spec hashes are pinned; and this text was corrected on K and §37 (a).
+  - It accepts the member-selection disclosure: there is one pool, its weights are fixed, the Bonferroni level counts
+    it, and the read against se17 is information only.
+  - Note: the embargo token `pool` (LT9, §8) is unrelated to this learner; pools declare no isolates.

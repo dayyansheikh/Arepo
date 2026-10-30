@@ -20,6 +20,7 @@ import numpy as np
 import pandas as pd
 
 from . import config as C
+from . import ensemble as E
 from . import labels as L
 from . import learners
 from . import specs as SP
@@ -172,6 +173,7 @@ def refit_all(paths: S.Paths, reg: dict, fit_time: float, now: float, models: di
     """Fit every (active) model x target on data available before ``fit_time``. Returns {model_id: {target: art}}
     plus a summary; with ``write`` the artifacts and a write-once ``fit.json`` are stored per model."""
     models = models if models is not None else SP.active_models(reg)
+    models = {k: v for k, v in models.items() if not E.is_pool(v)}  # pools have no fit (DESIGN_V1 §47)
     index = S.load_index(paths)
     t0 = time.time()
     if frames is None:

@@ -13,11 +13,12 @@ import json
 from pathlib import Path
 
 from . import config as C
+from . import ensemble as E
 from . import store as S
 from .aux import AUX_FAMILIES, check_spec_aux
 from .features import FAMILIES
 
-LEARNERS = ("logreg", "lgbm")
+LEARNERS = ("logreg", "lgbm", E.LEARNER)
 DERIVED = ("base", "tte")
 REQUIRED = ("model_id", "version", "features_version", "learner", "families", "derived", "isolates", "broad",
             "targets", "train", "params", "description")
@@ -37,6 +38,13 @@ def validate(spec: dict) -> None:
         raise SpecError(f"{spec.get('model_id')}: missing {miss}")
     if spec["learner"] not in LEARNERS:
         raise SpecError(f"{spec['model_id']}: learner {spec['learner']!r}")
+    if E.is_pool(spec):  # DESIGN_V1 §47: no families, no fit; members are checked in load_registry
+        why = E.validate_pool(spec)
+        if why:
+            raise SpecError(f"{spec['model_id']}: {why}")
+        if any(t not in C.TARGETS for t in spec["targets"]) or spec["features_version"] != C.FEATURES_VERSION:
+            raise SpecError(f"{spec['model_id']}: targets / features_version")
+        return
     bad = [f for f in spec["families"] if f not in FAMILIES and f not in AUX_FAMILIES]
     if bad or not {"market_state", "momentum"} <= set(spec["families"]):
         raise SpecError(f"{spec['model_id']}: families {spec['families']} (must include market_state + momentum)")
@@ -73,6 +81,19 @@ def load_registry(spec_dir: Path = C.SPEC_DIR) -> dict:
         spec["_status"] = m["status"]
         spec["_added_utc"] = m.get("added_utc")
         models[m["model_id"]] = spec
+    for mid, spec in models.items():
+        if E.is_pool(spec):
+            inelig = {e["model_id"] for e in C.PROMOTION_INELIGIBLE}  # a pool must not launder a §21 bias
+            bad = [m for m in E.members(spec) if m not in models or E.is_pool(models[m]) or models[m]["_status"] != "active"
+                   or m in inelig]
+            if bad:
+                raise SpecError(f"{mid}: members {bad} must be active, non-pool, promotion-eligible models in the registry")
+            pins = spec["params"]["member_sha256"]
+            if {m: models[m]["_sha256"] for m in E.members(spec)} != pins:
+                raise SpecError(f"{mid}: member_sha256 does not match the members' registry pins")
+            if not spec.get("_added_utc"):
+                raise SpecError(f"{mid}: a pool needs added_utc (it is the pool's first capture time)")
+            spec["_members"] = [models[m] for m in E.members(spec)]
     if reg["initial_champion"] not in models:
         raise SpecError("initial_champion not in registry")
     return {"initial_champion": reg["initial_champion"], "models": models, "rule": reg.get("promotion_rule")}
@@ -114,7 +135,17 @@ def append_champion(paths: S.Paths, row: dict) -> None:
 
 
 def embargo_of(spec: dict, now: float, embargo=C.EMBARGO) -> dict | None:
-    """The latest active embargo matching a token the spec isolates (None for broad specs and the champion set)."""
+    """The latest active embargo matching a token the spec isolates (None for broad specs and the champion set). A pool
+    (DESIGN_V1 §47) carries the latest embargo of any member, so it can never show an embargoed member's information."""
+    if spec.get("learner") == E.LEARNER and "_members" not in spec:
+        raise SpecError(f"{spec.get('model_id')}: a pool's embargo needs its members (load it with load_registry)")
+    if spec.get("_members"):
+        hits = [h for h in (embargo_of(m, now, embargo) for m in spec["_members"]) if h]
+        if not hits:
+            return None
+        last = max(hits, key=lambda h: S.epoch(h["until"]))
+        return {"until": last["until"], "tests": sorted({t for h in hits for t in h["tests"]}),
+                "tokens": sorted({k for h in hits for k in h["tokens"]})}
     if spec.get("broad"):
         return None
     hits = [e for e in embargo if e["token"] in set(spec.get("isolates") or []) and now < S.epoch(e["until"])]

@@ -219,6 +219,13 @@
    "spec_sha256": "a46d4fe8d81b6331f9a5972a287882c053141dda12a0a4b84b7a9248f58b9dbe",
    "status": "active",
    "added_utc": "2026-10-30T07:21:00Z"
+  },
+  {
+   "model_id": "se31_ens_pool3",
+   "file": "se31_ens_pool3.json",
+   "spec_sha256": "74544860ca6666f28feada63a2ff0ce3ac034a5923abc12e9efa77e5950adc82",
+   "status": "active",
+   "added_utc": "2026-10-30T20:00:00Z"
   }
  ]
 }

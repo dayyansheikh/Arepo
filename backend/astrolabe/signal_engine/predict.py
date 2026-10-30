@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 
 from . import config as C
+from . import ensemble as E
 from . import labels as L
 from . import learners
 from . import specs as SP
@@ -63,7 +64,7 @@ def run_predict(paths: S.Paths, reg: dict, now: float | None = None, max_items: 
     index = S.load_index(paths)
     models = SP.active_models(reg)
     fit_cache: dict[str, tuple[str, dict]] = {}
-    fits = {mid: T.list_fits(paths, mid) for mid in models}
+    fits = {mid: T.list_fits(paths, mid) for mid in models if not E.is_pool(models[mid])}
     written, skipped = [], []
     todo = []
     for slot, m in sorted(index.items(), reverse=True):  # newest first: its 2 h target is the most urgent
@@ -73,13 +74,22 @@ def run_predict(paths: S.Paths, reg: dict, now: float | None = None, max_items: 
         start = S.epoch(m["started_utc"])
         missing = []
         for mid in models:
-            if paths.predictions(cid, mid).exists():
+            if paths.predictions(cid, mid).exists() or E.is_pool(models[mid]):
                 continue
             fit = T.pick_fit(fits[mid], start)
             if fit is None:
                 skipped.append({"capture_id": cid, "model_id": mid, "reason": "no_fit"})
             else:
                 missing.append((mid, fit))
+        due = {x[0] for x in missing}
+        for mid, spec in models.items():  # pools last: each member's file exists already or is written first in this run
+            if E.is_pool(spec) and not paths.predictions(cid, mid).exists():
+                if start < S.epoch(spec["_added_utc"]):  # required for pools by load_registry
+                    continue  # a pool has no fit date: it starts at its registry time, never back-filling late files
+                if all(paths.predictions(cid, x).exists() or x in due for x in E.members(spec)):
+                    missing.append((mid, None))
+                else:
+                    skipped.append({"capture_id": cid, "model_id": mid, "reason": "members_pending"})
         if missing:
             todo.append((slot, m, missing))
     for slot, m, missing in todo[:max_items]:
@@ -91,6 +101,9 @@ def run_predict(paths: S.Paths, reg: dict, now: float | None = None, max_items: 
         elig = L.elig_mask(feats, slot, start)
         for mid, fit in missing:
             spec = models[mid]
+            if fit is None:
+                _write_pool(paths, spec, slot, cid, feats_sha, elig, written, skipped)
+                continue
             lacking = [fam for fam in spec_aux_families(spec) if not feats.attrs.get("aux_ok", {}).get(fam)]
             if lacking:
                 # never write an aux model's prediction without its family (it would be a different model's output);
@@ -122,6 +135,33 @@ def run_predict(paths: S.Paths, reg: dict, now: float | None = None, max_items: 
             written.append({k: line[k] for k in ("capture_id", "model_id", "fit_id", "n_rows", "seconds")})
     return {"written": written, "skipped": dict(Counter(x["reason"] for x in skipped)), "pending_captures": max(0, len(todo) - max_items),
             "peak_rss_mb": S.peak_rss_mb()}
+
+
+def _write_pool(paths: S.Paths, spec: dict, slot: int, cid: str, feats_sha: str, elig: np.ndarray, written: list,
+                skipped: list) -> str | None:
+    """Write one pool's file for a capture (DESIGN_V1 §47); the receipt time is its own log line, as for every model."""
+    mid = spec["model_id"]
+    t0 = time.time()
+    got = E.pool_frame(paths, cid, spec, feats_sha, elig)
+    if isinstance(got, str):
+        skipped.append({"capture_id": cid, "model_id": mid, "reason": got})
+        return None
+    pf, prov = got
+    md = {"capture_id": cid, "slot": slot, "model_id": mid, "spec_sha256": spec["_sha256"], "fit_id": prov["fit_id"],
+          "features_sha256": feats_sha, "members": prov["members"], "n_rows": int(len(pf)), "targets": prov["targets"],
+          "created_utc": S.iso(S.now_ts()), "engine_version": C.ENGINE_VERSION}
+    path = paths.predictions(cid, mid)
+    if not S.write_once_parquet(path, pf, md):
+        skipped.append({"capture_id": cid, "model_id": mid, "reason": "exists"})
+        return None
+    t_written = S.now_ts()
+    emb = SP.embargo_of(spec, t_written)
+    line = {"capture_id": cid, "slot": slot, "model_id": mid, "spec_sha256": spec["_sha256"], "fit_id": prov["fit_id"],
+            "sha256": S.sha256_file(path), "n_rows": int(len(pf)), "targets": prov["targets"],
+            "written_utc": S.iso(t_written), "embargoed_until": emb and emb["until"], "seconds": round(time.time() - t0, 2)}
+    S.append_log(paths, "predictions", [line], at=t_written)
+    written.append({k: line[k] for k in ("capture_id", "model_id", "fit_id", "n_rows", "seconds")})
+    return prov["fit_id"]
 
 
 def prediction_log(paths: S.Paths, since: float | None = None) -> dict[tuple[str, str], dict]:

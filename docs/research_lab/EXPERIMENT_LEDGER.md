@@ -5678,3 +5678,11 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   `MIN_CLUSTERS` 30 in every way (A1 reverted); freeze-clock and seal-pin checks; promote order; disclosures A4, A21-A23,
   placebo discordance, theme imbalance. 43 tests. **Declaration sha256 `cf84f91053385c371a875f39f72cd09bcc519dc446829b3b1fed47c7f481fd8e`.**
   Diff-only check running; then the freeze commit.
+
+- **2026-10-30 ~18:15Z signal engine (challenger, DESIGN_V1 §47; development, k = 0, no edge claim):** new learner
+  `ens_pool` (fixed-weight linear pool of stored, same-capture member predictions; no fit, no refit cost) and challenger
+  `se31_ens_pool3` (se1 / se17 / se18, weights 1/3, member spec sha256s pinned; spec sha256 `74544860...dc82`;
+  `added_utc` 2026-10-30T20:00:00Z, first capture 20:31Z). Members were fixed by schedule (the 11-04 read set). The
+  10-day development board had been seen; no outcome probe was run. K rises by 1 at registration. Judged by
+  `se-promotion-v2` against the champion; the read against se17 is information only. Science review ACCEPT_WITH_FIXES;
+  all five fixes applied before the commit.

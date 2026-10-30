@@ -1,0 +1,38 @@
+{
+ "broad": true,
+ "derived": [],
+ "description": "Fixed equal-weight linear pool (probability space) of the stored, write-once predictions of se1_lgbm_mm, se17_lgbm_mm_900k and se18_lgbm_all_b0 for the same capture (DESIGN_V1 section 47). No fit, no training rows, no refit cost. Members chosen by schedule (the three LightGBM challengers due their first promotion read on 2026-11-04), not by score; weights fixed at 1/3 without any look at outcomes. A target is pooled only when every member carries it. Inherits any member's embargo (none today). Development until its own prospective score; no edge claim.",
+ "families": [],
+ "features_version": "se-features-v1",
+ "isolates": [],
+ "learner": "ens_pool",
+ "model_id": "se31_ens_pool3",
+ "params": {
+  "member_sha256": {
+   "se17_lgbm_mm_900k": "6e27b8c6c650abcefc1a4ec7d5feca69b1049ef5ec6b0ccd69f8a98d2c2b0bb6",
+   "se18_lgbm_all_b0": "9b0a90723687a96b16fb2df67c2b507b2e72f235f6422d27e608fba4b4fb72d3",
+   "se1_lgbm_mm": "d8c2598a36446515f5fde78bb037137e1b63d3483186c12cffee7b8a611b4c1c"
+  },
+  "members": [
+   "se1_lgbm_mm",
+   "se17_lgbm_mm_900k",
+   "se18_lgbm_all_b0"
+  ],
+  "space": "probability",
+  "weights": [
+   0.3333333333333333,
+   0.3333333333333333,
+   0.3333333333333333
+  ]
+ },
+ "targets": [
+  "dir_2h",
+  "dir_6h",
+  "dir_24h",
+  "res_7d"
+ ],
+ "train": {
+  "refit": "none"
+ },
+ "version": 1
+}
