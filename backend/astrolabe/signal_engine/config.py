@@ -54,7 +54,10 @@ Q = 65535.0
 P_CLIP = 1e-6
 
 # Disk and memory guards.
-ENGINE_DISK_CAP_GB = 8.0  # the engine refuses new writes (exit 75) beyond this size of ENGINE_ROOT
+ENGINE_DISK_CAP_GB = 16.0  # the engine refuses new writes (exit 75) beyond this size of ENGINE_ROOT
+# 8 -> 16 GB 2026-10-30 (DESIGN_V1 §40): the 8 GB was sized for 8 models; 28 models grow ~0.5 GB/day and would hit
+# 8 GB ~11-03. The data-dumps cap of the writers (tick 50 GiB) stays the shared-host guard.
+DISK_WARN_FRAC = 0.8  # live_status flags the engine dir above this share of the cap
 TEMPFAIL = 75
 
 # Scoring windows (days) and bootstrap.

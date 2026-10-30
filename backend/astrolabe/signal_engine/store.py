@@ -107,6 +107,10 @@ def sha256_file(path: Path) -> str:
     return h.hexdigest()
 
 
+def sha256_bytes(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
 def _json_default(o):
     if isinstance(o, (np.floating, np.integer)):
         v = o.item()
@@ -331,6 +335,15 @@ def du_bytes(path: Path) -> int:
         return int(out.stdout.split()[0]) * 1024
     except (OSError, subprocess.SubprocessError, ValueError, IndexError):
         return sum(p.stat().st_size for p in path.rglob("*") if p.is_file())
+
+
+def disk_usage(paths: Paths) -> dict:
+    """The engine dir against its own cap (DESIGN_V1 §40). A refusal exits 75 like a job that is not due, so the
+    headroom is shown in ``status`` and ``live_status`` before it binds."""
+    eng = du_bytes(paths.engine)
+    cap = C.ENGINE_DISK_CAP_GB * 1e9
+    frac = eng / cap
+    return {"engine_bytes": eng, "cap_bytes": int(cap), "used_frac": round(frac, 3), "warn": frac >= C.DISK_WARN_FRAC}
 
 
 def disk_ok(paths: Paths, data_dumps_cap_gb: float | None) -> tuple[bool, str]:

@@ -10,6 +10,7 @@ seeded generator (so the frame never exceeds ``max_rows`` per target), and every
 
 from __future__ import annotations
 
+import gzip
 import math
 import time
 import traceback
@@ -234,13 +235,16 @@ def refit_all(paths: S.Paths, reg: dict, fit_time: float, now: float, models: di
 def write_fit(paths: S.Paths, spec: dict, fit_time: float, arts: dict, rec: dict) -> str:
     stamp = fit_stamp(fit_time)
     d = paths.sub("models", spec["model_id"], stamp)
-    shas = {}
+    shas, files = {}, {}
     for target, art in arts.items():
-        data = learners.dumps(art)
-        S.write_once_bytes(d / f"{target}.json", data)
-        shas[target] = S.sha256_file(d / f"{target}.json")
+        # gzip (mtime 0, so the bytes are deterministic) since 2026-10-30 (DESIGN_V1 §40): lossless, ~2.4x smaller.
+        # Older fits keep their plain ``<target>.json`` (no ``artifact_files`` key) and are read as before.
+        files[target] = f"{target}.json.gz"
+        S.write_once_bytes(d / files[target], gzip.compress(learners.dumps(art), compresslevel=6, mtime=0))
+        shas[target] = S.sha256_file(d / files[target])
     fit = {"fit_id": f"{spec['model_id']}@{stamp}", "model_id": spec["model_id"], "spec_sha256": spec["_sha256"],
            "fit_time": S.iso(fit_time), "fit_time_epoch": fit_time, "targets": rec["targets"], "artifact_sha256": shas,
+           "artifact_files": files,
            "engine_version": C.ENGINE_VERSION, "features_version": C.FEATURES_VERSION, "code_commit": S.git_commit(),
            "written_utc": S.iso(S.now_ts())}
     S.write_once_json(d / "fit.json", fit)  # written last: its presence marks a complete fit
@@ -277,14 +281,22 @@ def latest_fit(paths: S.Paths, model_id: str, before: float) -> dict | None:
     return pick_fit(list_fits(paths, model_id), before)
 
 
-def load_artifacts(fit: dict) -> dict[str, dict]:
-    import json
+def artifact_path(fit: dict, target: str):
     from pathlib import Path
 
-    out = {}
-    for target, sha in fit["artifact_sha256"].items():
-        p = Path(fit["_dir"]) / f"{target}.json"
-        if S.sha256_file(p) != sha:
-            raise RuntimeError(f"artifact sha mismatch {p}")
-        out[target] = json.loads(p.read_text())
-    return out
+    return Path(fit["_dir"]) / fit.get("artifact_files", {}).get(target, f"{target}.json")
+
+
+def read_artifact(fit: dict, target: str, check_sha: bool = False) -> dict:
+    """One target's artifact of a fit: plain JSON (fits before 2026-10-30) or gzip JSON (``artifact_files``)."""
+    import json
+
+    p = artifact_path(fit, target)
+    raw = p.read_bytes()
+    if check_sha and S.sha256_bytes(raw) != fit["artifact_sha256"][target]:
+        raise RuntimeError(f"artifact sha mismatch {p}")
+    return json.loads(gzip.decompress(raw) if p.suffix == ".gz" else raw)
+
+
+def load_artifacts(fit: dict) -> dict[str, dict]:
+    return {target: read_artifact(fit, target, check_sha=True) for target in fit["artifact_sha256"]}

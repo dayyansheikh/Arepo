@@ -187,7 +187,7 @@ def cmd_status(paths, args) -> tuple[dict, int]:
         return len(list(d.glob(pat))) if d.exists() else 0
 
     return {"captures": n("meta", "*.json"), "prediction_dirs": n("predictions"), "fits": len(list(paths.sub("models").glob("*/*/fit.json"))) if paths.sub("models").exists() else 0,
-            "leaderboards": n("leaderboard", "2*.json"), "engine_bytes": S.du_bytes(paths.engine),
+            "leaderboards": n("leaderboard", "2*.json"), "engine_bytes": S.du_bytes(paths.engine), "disk": S.disk_usage(paths),
             "inputs": _inputs_status(paths)}, 0
 
 

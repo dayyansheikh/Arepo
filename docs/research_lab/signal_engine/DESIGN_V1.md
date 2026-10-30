@@ -1281,3 +1281,37 @@ after registration would be.
   **Gate not met: `rsrev` is not built.** Reading: se1's trees already take almost all of the reversal the logistic
   champion leaves (-0.091 -> -0.002 on the same pairs). That is consistent with, not proof of, part of se1's lead over
   the champion on `dir_2h` coming from the nonlinear 2 h reversal. Information only; nothing is registered or re-read.
+
+## 40. Engine disk cap 8 -> 16 GB, gzip model artifacts, headroom shown (operational; no model, target or rule changes)
+
+**Why.** Section 9 set the cap at 8 GB for an 8-model registry ("steady state ~4 GB"). The registry now has 28 models.
+Host read 2026-10-30 03:30Z: engine dir 5.24 GB. Daily growth by file mtime, 10-23..10-29: predictions 164-267 MB
+(rising with each new model), models 124-182 MB, aux 68-80 MB, features 32-42 MB, quotes small. That is ~0.6 GB/day,
+so the 8 GB cap would bind around **2026-11-03**, at the first promotion reads. A refusal exits 75, which the queue
+logs exactly like "not due". The engine would then silently stop writing predictions, and prospective slots that are
+missed stay missing. The cap is a storage guard, not a scientific threshold: no model, target, score or promotion
+input depends on it.
+- **Backup:** every engine file older than a day is in the verified `arepo-data` releases (verified ledger, host
+  2026-10-30: aux 1,946, predictions 1,398, models 688, meta/features/quotes 184 each).
+- **Host disk:** 89 GB, 33 GiB free. The writers keep their own data-dumps cap (tick `--data-dumps-cap-gb 50`;
+  `research_lab` is 36.0 GiB today), and that stays the shared-host guard.
+
+**Changes.**
+1. `config.ENGINE_DISK_CAP_GB` 8 -> **16**.
+2. **New fits store `<target>.json.gz`** (gzip level 6, mtime 0, so the bytes are deterministic). `fit.json` gains
+   `artifact_files`, and `artifact_sha256` is the sha of the stored file. The change is lossless: the same JSON bytes
+   as before, about 2.4x smaller on a 3.0 MB se1 artifact (1.28 MB), which saves ~0.1 GB/day on a directory that is
+   never deleted. Fits written before keep their plain `<target>.json` (no `artifact_files` key) and are read
+   unchanged. Existing files are not rewritten. `training.read_artifact` is the one reader (predictions, dashboard
+   attribution). Predictions are already zstd parquet with uint16 probabilities, so they are left as they are.
+3. **`disk`** in `run_signal_engine.py status` and in `dashboard.live_status` (so `/lab` carries it on every push):
+   engine bytes, cap, used share, and `warn` at >= 80% of the cap (`config.DISK_WARN_FRAC`).
+
+**Projection and the owner decision.** At ~0.5 GB/day after change 2, 16 GB binds around **2026-11-20**.
+- The deferred host rules (`archive_retention.json` `deferred_rules`: predictions 35 days, features/quotes 45 days) only
+  start deleting on 11-25 and keep ~10.5 GB of predictions at 28 models. `aux/` has no rule.
+- So a steady state needs an **owner-approved** activation of those rules plus an `aux/` rule (45 days, the same as
+  features). The engine would then settle at ~14 GB and grow ~0.08 GB/day (models). The alternative is a further
+  raise of the cap.
+- That activation is destructive retention, so it is not done here (AGENTS.md). Decision needed by ~11-15. Until
+  then `disk.warn` turns on at 12.8 GB (~11-14).
