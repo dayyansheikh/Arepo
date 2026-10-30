@@ -5071,3 +5071,23 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   reported arm; label-origin gross wording; input-clock audit of the pinned champion (se0 / se1 / se17 appear to pass, se18
   appears to fail: if se18 became champion before the freeze, LT14 would withdraw); freeze deadline before 2026-11-07T00:00Z;
   LT13's aliasing rule with M6's controls declared; P(census) lowered 0.80 -> 0.65. Re-check and pre-freeze verification next.
+
+## LT14 final verification and DESIGN-TEXT FREEZE, 2026-10-30 ~05:00Z (experiments autopilot; nothing counted)
+- Pre-freeze verification (`reviews/LT14_RECHECK_PREFREEZE_2026-10-30.md`) of 4e295556: R1 discharged, nothing loosened;
+  **FREEZE_AFTER_FIXES** with two by-construction killers caught before the freeze: (1) `mid_k == ms_mid` would fail on
+  float32 storage (true on 33.8% of one-tick pairs), now `|mid_k - ms_mid| <= 1e-6`; (2) null world 9 was not a null for the
+  labelled-unit estimand, now shifted after attrition with the unshifted share printed (never a verdict change); fixes 3-7
+  wording (twin mean, receipt clock, `spread_k = ask_k - bid_k`, F-MDE planning r, per-world-type size). Applied in 5b86863e;
+  orchestrator checked the diff (fixes, mapping table and status block only).
+- **LT14 DESIGN TEXT FROZEN:** `LIVE_TESTS_14.md` at **485c63dd**, sha256 **`f047c00059ebffd0fe81dd76b6615969d0a127c593aacee0291971fd0e52f815`**, 802 lines. One Holm family, **k = 1: the
+  10k-100k tier** (label-origin 2 h gross of the pinned champion's top decile by |s| against `H_A` = 1.30c; F and the placebo
+  binding); the >= 100k tier a reported arm. Frozen before the 2026-11-07T00:00Z deadline.
+- **Pinned `P` = `se0_champion_lr_mm`, spec_sha256 `19549cb403b41de6974a8f3e7acf7378baf433779b16cae46d367fe6fb5ff919`**
+  (the engine's champion on the host dashboard at the freeze; no promotion has happened). **Input-clock audit (1.3):** `P`
+  reads the `market_state` and `momentum` families only, received at or before `t_row` (re-check verified against the
+  specs): **pass**. A later champion is never substituted (pinned `P` only).
+- `attrlimit_lt14` requested in `signal_engine/CANDIDATES.md` (applied by the signal-engine autopilot). Scope
+  `non_sports_ex_crypto`. Census on the engine files of [2026-11-07, 11-17) ("census span shared with LT12"); window
+  2026-12-10..12-31 beside LT12 (parallel lane accepted at R1), analysis after it. Priors (judgement): P(census) 0.65.
+- **Next:** LT14 census code (fee splits summed across captures, unit-tested; the CH269 dict-overwrite defect not repeated),
+  its code-freeze check on synthetic data, then the seal and the census after the span.

@@ -322,6 +322,9 @@ preparation on `feat/ch269-map`).
 not applied by the experiments side):** until LT14's freeze, no engine session computes or displays the pinned champion's
 cents gross or top-decile hit rate by liquidity tier; at the freeze `attrlimit_lt14` (`kind: attribution_limit`) is
 requested to LT14's analysis date. If one is computed earlier, the ledger records it and LT14 carries *informed (engine)*.
+**LT14 design text FROZEN 2026-10-30 (ledger): `attrlimit_lt14` is now requested** (`kind: attribution_limit`; pinned `P` =
+`se0_champion_lr_mm`, spec_sha256 `19549cb4…f919`): no computation or display of `P`'s cents gross or top-decile hit rate by
+liquidity tier, in any engine session or public surface, until LT14's analysis commit (the signal-engine autopilot applies it).
 
 **LT13 update (2026-10-29):** CH252 was `withdrawn_pre_census (fee reading unresolved)` under LT13 rule 1.4.3 (b) after the
 q0717 probe found the venue's one-step fee change of 2026-10-20 (ledger). The `payreturn` hold request and token below
