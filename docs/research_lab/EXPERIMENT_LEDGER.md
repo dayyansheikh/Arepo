@@ -5023,3 +5023,13 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   weights, decision time = latest receipt of row, sidecar and sweep 1; own resolution fetch at read-out (coverage floor 0.95 of
   units and events); window 2026-11-24..12-14, registration deadline 2026-11-22, read-out on or after 2027-01-15.
   Informed by the CH269 counts (821 proposals a day). Challenger R1 running.
+
+## LT14 (CH262) design draft; two CH269 map defects disclosed, 2026-10-30 ~04:34Z (experiments autopilot; nothing counted)
+- Draft `LIVE_TESTS_14.md` (60bca07f, merged; sha256 `9012d0d0…d47d`): the champion's top-decile 2 h gross by tier against the
+  cost-model rung, one Holm family k <= 2; planning MDE 0.081c (design effect 5) to 0.20c (31) against the 1.30c rung in
+  10k-100k; the >= 100k tier (mean 0.78 units a capture) is expected to drop at its census. Window proposed 2026-12-10..12-31
+  beside LT12 if the challenger accepts, else 2027-02-12..03-05. Designer's priors: P(census) 0.80 / 0.02; P(no test) ~0.20.
+- **CH269 map defects found by the designer (disclosed; map result file unchanged):** (1) the map ranked the top decile on the
+  champion's signed score, not |s| as CH262 specifies, so its tier and tenure prints describe up-calls only; (2) its fee-class
+  split sums to 1,059 of 126,477 units and is not usable for planning. The LT14 count line (175 >= 100) is read on the signed
+  decile; whether that reading stands is a challenger R1 question. Challenger R1 running.
