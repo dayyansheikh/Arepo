@@ -198,6 +198,7 @@ def _p_fixture(root: Path) -> None:
     (fdir / "manifest.json").write_text(json.dumps({"status": "pyth_frame_complete"}))
     _write(bdir / "states.csv.gz", py.STATE_COLUMNS, [])
     _write(bdir / "prints.csv.gz", py.PRINT_COLUMNS, [])
+    (bdir / "manifest.json").write_text(json.dumps({"status": "pyth_books_complete", "complete": True}))
 
 
 # ---- batch-Holm, trial lines and battery2 ---------------------------------------------------------------------------------------
@@ -379,3 +380,25 @@ def test_halfday_before_window_idles(monkeypatch, capsys, tmp_path):
     assert _run(argv, capsys)[1]["status"] == "idle_heartbeat"
     code, out = _run(argv, capsys)
     assert code == 75 and "half session 2026-11-27" in out["tempfail"]
+
+
+@pytest.mark.parametrize("man", [None, {"status": "in_progress", "complete": False}, {"status": "pyth_books_complete", "complete": False},
+                                 {"status": "something_else", "complete": True}])
+def test_census_not_now_while_books_manifest_not_final(capsys, tmp_path, man):
+    """Ruling CB9_Q0183 condition 5: a pending / partial q0184 must not be labelled 'source unavailable' in the write-once census."""
+    root = tmp_path / "creative_batch9"
+    _p_fixture(root)
+    if man is None:
+        (root / "pyth" / "manifest.json").unlink()
+    else:
+        (root / "pyth" / "manifest.json").write_text(json.dumps(man))
+    code, out = _run(["census", "--root", str(root), "--trials-path", str(tmp_path / "t.jsonl")], capsys)
+    assert code == 75 and "not final" in out["tempfail"]
+    assert not (root / "census.json").exists() and not (tmp_path / "t.jsonl").exists()
+
+
+def test_census_accepts_ingress_cap_reached(tmp_path):
+    root = tmp_path / "creative_batch9"
+    _p_fixture(root)
+    (root / "pyth" / "manifest.json").write_text(json.dumps({"status": "ingress_cap_reached", "complete": True}))
+    run_cb9.require_books_final(root / "pyth")

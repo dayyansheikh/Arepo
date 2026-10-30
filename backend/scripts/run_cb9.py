@@ -379,6 +379,19 @@ def census_s_block(root: Path) -> dict:
     return out
 
 
+BOOKS_FINAL_STATUSES = ("pyth_books_complete", "ingress_cap_reached")
+
+
+def require_books_final(bdir: Path) -> None:
+    """Ruling CB9_Q0183 condition 5. q0184 is a repeat job: after ``max_runs`` incomplete runs the queue marks it done, and the write-once q0189 census would
+    then label P "not testable (source unavailable)" for what is only pending. Runner-only (not a rules-hashed function): the books manifest must be
+    complete with a final status, otherwise ``NotNow`` (exit 75, nothing written). Declared stalls are handled by the caller before this check."""
+    mp = Path(bdir) / "manifest.json"
+    m = json.loads(mp.read_text()) if mp.exists() else {}
+    if m.get("complete") is not True or m.get("status") not in BOOKS_FINAL_STATUSES:
+        raise _c9().NotNow(f"P books manifest not final (status {m.get('status')!r}, complete {m.get('complete')!r}): the census would mislabel pending as unavailable")
+
+
 def census_p_block(root: Path) -> dict:
     """P census from the FEATURE files only (frame, bars_pre, strikes, states, prints); the guarded files are never opened here."""
     from astrolabe.research_lab import cb7_common as c7  # noqa: PLC0415
@@ -389,6 +402,7 @@ def census_p_block(root: Path) -> dict:
     st = c9.stall_of(fdir) or c9.stall_of(bdir)
     if st:
         return {"status": st["status"], "stall_reason": st.get("reason"), "label_P1": st["label"], "label_P2": st["label"], "gate_GP_P1": False, "gate_GP_P2": False}
+    require_books_final(bdir)  # ruling CB9_Q0183 condition 5: pending is not "source unavailable"
     if not (fdir / "frame.csv.gz").exists() or not (bdir / "states.csv.gz").exists():
         return {"status": "inputs missing", "label_P1": "not testable (source unavailable)", "label_P2": "not testable (source unavailable)"}
     fman = json.loads((fdir / "manifest.json").read_text())
