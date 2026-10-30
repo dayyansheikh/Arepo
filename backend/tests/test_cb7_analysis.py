@@ -548,13 +548,14 @@ def test_screen_deadline_state_is_not_run_p1(tmp_path, capsys):
 def test_write_spec_dry_run_and_never_overwrites(tmp_path, capsys):
     cb7, _ = _frozen(tmp_path)
     args = ["write-spec", "--census-json", str(cb7 / "census.json"), "--freeze-utc", "2026-10-31T10:00:00Z", "--screen-not-before-utc", "2026-10-31T12:00:00Z",
-            "--path", str(tmp_path / "out_spec.json")]
+            "--path", str(tmp_path / "out_spec.json"), "--now-utc", "2026-10-31T10:30:00Z"]
     assert RUN.main([*args, "--dry-run"]) == 0
     out = _out(capsys)
     assert out["dry_run"] and out["payload"]["dates"]["T7_X_list"] == "2026-11-03T06:00:00Z" and out["payload"]["dates"]["T7_S_rep_start"] == "not applicable"
     assert out["payload"]["queue"]["do_not_promote"] == ["q0151", "q0152", "q0156"] and not (tmp_path / "out_spec.json").exists()
     assert RUN.main(["write-spec", "--census-json", str(cb7 / "census.json"), "--freeze-utc", "2026-10-31T10:00:00Z", "--screen-not-before-utc", "2026-10-31T09:00:00Z",
-                     "--path", str(tmp_path / "out_spec.json"), "--dry-run"]) == 2  # a screen time before the freeze is refused
+                     "--path", str(tmp_path / "out_spec.json"), "--dry-run", "--now-utc", "2026-10-31T10:30:00Z"]) == 2  # a screen time before the freeze is refused
+    assert RUN.main([*args, "--dry-run", "--now-utc", "2026-10-31T12:30:01Z"]) == 2  # freeze_utc more than 1 h from the clock is refused
 
 
 # ---- G end to end on sealed synthetic tables ---------------------------------------------------------------------------------------------
@@ -595,6 +596,9 @@ def test_screen_g_end_to_end_reads_outcomes_only_after_the_declared_time(sealed_
     tmp_path = sealed_g
     geo_listing = json.loads((tmp_path / "history" / "h8_geo" / "SEAL.json").read_text())["listing_sha256"]
     census = _census_doc(G={"status": "ok", "gate_GG": {"GG": True}, "h_geo": {"h_geo_binding": 0.012}, "seal_listing_sha256": geo_listing})
+    from astrolabe.research_lab import h5_seal as _h5
+
+    census["seals"] = {r: {"state": "sealed", "sha256": _h5.sha256_file(_h5.committed_seal_path(r, tmp_path / "seals"))} for r in ("h8_text", "h8_geo", "h8_tail")}
     # before the declared time: refusal, and the guarded file is not touched (access log stays empty)
     early_dir = tmp_path / "early"
     early_dir.mkdir()
@@ -636,3 +640,19 @@ def test_screen_refuses_a_refused_root(tmp_path, capsys):
 def test_s_module_does_not_implement_the_slope():
     src = Path(S.__file__).read_text()
     assert "outcomes_guarded" not in src and "def s1_beta" not in src
+
+
+def test_a1_reverted_every_way_needs_30_clusters():
+    from astrolabe.research_lab import cb7_g_analysis as G
+    from astrolabe.research_lab import cb7_x_analysis as X
+
+    assert set(G.MIN_CLUSTERS.values()) == {30} and set(X.MIN_CLUSTERS.values()) == {30}
+
+
+def test_seal_pin_mismatch_refused_and_union_label():
+    from astrolabe.research_lab import cb7_astats as A
+
+    A.check_seal_pins({"h8_geo": {"state": "sealed", "sha256": "a"}}, {"seals": {"h8_geo": {"state": "sealed", "sha256": "a"}}})
+    with pytest.raises(A.Refused):
+        A.check_seal_pins({"h8_geo": {"state": "sealed", "sha256": "a"}}, {"seals": {"h8_geo": {"state": "sealed", "sha256": "b"}}})
+    assert A.count_label(None) == "pre-union lower bound" and "2026" in A.count_label("2026-11-01T05:00:00Z")

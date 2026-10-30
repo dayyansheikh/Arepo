@@ -14,19 +14,19 @@ Not done here: MUST 4 (already applied in b919b4b7), MUST 5 (census hash re-chec
 | `cb7_declaration.py` | `HYPOTHESES_CB7`, `declaration_sha256()`, `spec_payload` / `write_spec` (write-once), `mismatches` |
 | `backend/scripts/run_cb7.py` | new `screen --family S|G|X` and `write-spec [--dry-run]` |
 | `battery2.py` | `cb7_test`, `cb7_replication` in `KIND_RULES` (EXCLUDE, counted by the `creative_batch_7:*` count line) |
-| `backend/tests/test_cb7_analysis.py` | 41 tests, synthetic fixtures only |
+| `backend/tests/test_cb7_analysis.py` | 43 tests, synthetic fixtures only |
 
-## 2. Hashes (at commit 08d6a431; change if any file below changes)
+## 2. Hashes (re-taken after the code-freeze-check fixes, branch feat/cb7-cf-fixes; change if any file below changes)
 
-`declaration_sha256` = `8eb396ba74bcaecd2c21b54d58c17db5b649c77c7a4e11d7ab13f14a52e2438f` (rules_sha256 `05bf365c...21e9`).
+`declaration_sha256` = `cf84f91053385c371a875f39f72cd09bcc519dc446829b3b1fed47c7f481fd8e` (rules_sha256 `05bf365c...21e9`).
 
 | File (sha256 of bytes) | sha256 |
 |---|---|
-| cb7_declaration.py | 1f03b2419c3bb4eafb1811830296f357b39aebe589d70043e2b6bb57e3d12e9c |
-| cb7_astats.py | cb48886e112530a8ed15b2275bce99470b5bb8d33402334e2e5a6750a464982b |
-| cb7_g_analysis.py | 41109303b96154a1fe2285d5a48d9c2888095e295c06ac7e08ca366188b341fc |
-| cb7_x_analysis.py | bdc38d563e1e6b3cc02ea40d1dedeb9d25280e20e6e392436dda0e1c033205b6 |
-| cb7_s_analysis.py | c2883ca568382cdd8e3c2e16bdf700356e2ef5d88b8412c6eee1b2146adfbc0b |
+| cb7_declaration.py | 5017283862f5638e141f0f37472883a8804a281573743aec67035a58b234b605 |
+| cb7_astats.py | a9c8b20565906c32aa2c33f1752de6bd5fbe264b186cc18f3d7c8b57e21c70b4 |
+| cb7_g_analysis.py | f0972287e2cbaf4dd729ca933a74523d46a55e8c4fe47f4a6df53dff79f51109 |
+| cb7_x_analysis.py | 141ebdc653662f1809b2b6a65b9b2e8a040e20eb7c4490ff04975a73bb819cb8 |
+| cb7_s_analysis.py | 070a10d3a432407a28fb58532e95c3c12cd28c3f1b300c1468d7a52b54f2770a |
 | cb7_census.py | 351d436d039ef2558f3b4ad225f9d1a3c7a8417824494a0bd44dcff5ee82cb1d |
 | cb7_xv.py | 0d8404e6fa9dd0b296b2864e88468d977e6064ac67d90483b1282ed95485c3a8 |
 | cb7_common.py | 88dc0614f0c6296287fce93ba49ddea94e208b0af304a7bad88a2a6515ee29ef |
@@ -66,9 +66,7 @@ rules file hash. The spec additionally pins the file bytes above (so `cb7_declar
 
 ## 4. Implementation readings (A1-A20). Items marked AMENDMENT-RISK need the reviewer's explicit decision
 
-- **A1 (AMENDMENT-RISK, no effect on the census counts).** 2.3 says "testability otherwise >= 100 units and >= 30 clusters per way" and "G < 15 in any declared way -> not testable"; both cannot be literal for a way with 15-29 clusters.
-  Read as CB3 / CB8 do: >= 100 units; each EVENT-TYPE way (G1 event x week, X1 Polymarket event) >= 30 clusters; each non-event way (G1 theme, X1 UTC date) only the small-G minimum 15.
-  With the census counts (G: 663 event, 177 theme; X: 70 events, 295 dates) the literal reading gives the same answers.
+- **A1 (RULED AN AMENDMENT AND REVERTED, code-freeze check 2026-10-30).** 2.3 says "testability otherwise >= 100 units and >= 30 clusters per way" (parent: CB6 2.3, "in each declared way"). An earlier reading lowered the theme (G1) and date (X1) ways to 15; the check ruled that less conservative and written after the census was seen. `MIN_CLUSTERS` is now 30 for every declared way (G: event_week 30, theme 30; X: event 30, date 30). No effect at the census counts (G: 663 event, 177 theme; X: 70 events, 295 dates).
 - **A2.** Fee rate for `other:*` is 0.07, as the 2.1 text says; `cb1_history.fee_rate` would give 0.05 (prefix rule), so it is not used. Conservative.
 - **A3 (AMENDMENT-RISK, small).** G1's primary statistic is over RESOLVED units. The text lists "censored units -> Y = 0" under "worst cases and sensitivities (binding)", so censored / undecided units enter only robustness (v). A stricter primary (censored as Y = 0) is possible; (v) binds either way.
 - **A4 (AMENDMENT-RISK).** CB7-X declares no worst case for (v). Adopted CB8-W's rule: S prints whose mark is unavailable enter with mark-out `max(0, mean mark-out of kept fills)` plus rebate; the estimate must stay negative and keep the p threshold.
@@ -89,6 +87,13 @@ rules file hash. The spec additionally pins the file bytes above (so `cb7_declar
 - **A19.** Holm: a sibling with no Stage-1 file enters at p = 1 (only matters for S1 / X1 labels; G1 waits, A9).
 - **A20.** `R_ann` hold = close - origin in days, floor 1 day; unresolved excluded.
 
+- **A21 (undisclosed reading, check).** G1 robustness (i) also requires the p threshold (g_analysis ~l.251); the text asks only net > 0, so this is stricter.
+- **A22.** The event x week clusters use the scheduled-end ISO week, not the resolution week (as the census does; outcome-blind).
+- **A23.** The inverted tail gate re-implements `cb1_history.tail_bound` (same algorithm: one-sided Wilson on n/deff, `norm.ppf(0.99)`) instead of importing it, so that 50-50 outcomes count as half.
+- **A4 disclosure.** The X worst case for robustness (v) is invented here; it touches only 6 of 23,760 S prints (23,754 with an available mark) and fills them with a value >= 0, which is conservative.
+- **Placebo discordance (check SHOULD 1).** With comonotone per-unit draws the same market can resolve differently at its 30-day and 7-day origins (21 of 400 synthetic markets in the probe), so the G placebo has weaker within-market dependence than the real data and is a somewhat weaker check. Unavoidable if each unit's expected net must be 0.
+- **Theme imbalance (check SHOULD 2).** The theme way has 177 clusters; the 8 named themes hold about 494 of 663 events and 169 clusters are singletons. CR1 with a normal reference can be anti-conservative here; the break-even placebo is the declared guard. Per-named-theme unit counts and G end-date shares (`|close-end_at| < 1 h`, `close < end_at - 7 d`) from sample.csv.gz / origin_prices (no outcomes) are still to be reported by the operator before the screen.
+
 ## 5. Not implemented as written
 
 - S1 slope, S placebos, marker shuffle, S2, S1-rep: never run (GS false; Stage 2 only if S1 advanced). `screen_s` refuses if a census ever recorded GS true.
@@ -102,11 +107,19 @@ rules file hash. The spec additionally pins the file bytes above (so `cb7_declar
 - G end-date checks: share of frame markets with `|closed_time - end_at| < 1 h` and `closed_time < end_at - 7 d` (census computed these for S only).
 - Re-check the census declaration hashes at freeze (`write-spec` already refuses if `census.json`'s `cb7_xv_definitions_sha256` / `constants_sha256` differ from this code).
 
+### 6b. Operator notes added after the code-freeze check
+
+- `write-spec` refuses unless |freeze_utc - now| <= 1 h (`--now-utc` exists for tests only). `spec.queue.promote` order is q0148, q0150, q0149.
+- At screen time G compares the `verify_seal_copies` sha256s/states with `spec["seals"]` and refuses on mismatch.
+- Union step (A16): run `scripts/oracle/union_jsonl.py` on the host before each screen and pass `--union-recorded-utc <time>`; without it the result carries `cumulative_count_label: "pre-union lower bound"` (feeds only the BY triage label).
+- Crash recovery: if the job crashes after `results_<T>.json` and the Stage-1 copy are written but before the trial lines, a re-run refuses (write-once) and the test stays uncounted. Manual recovery: do not touch the results; append the four trial lines (`cb7_test`, optional placebo, `cb7_descriptive`, the `ml_explain` count line with n_tests 1) to the trials file with `provenance.append_trial`, using the results file's sha256 and `declaration_sha256` (copy the payloads from `cb7_astats.log_trials`), then verify `battery2.cumulative_count` rose by exactly 1.
+- Queue drafts q0148 (S, not-testable mode), q0150 (X), q0149 (G, depends on q0148 and q0150) now parse with `build_parser()`; `not_before` is null and the freeze commit sets it to `screen_not_before_utc`.
+
 ## 7. Freeze procedure these files support (not performed)
 
 `python scripts/run_cb7.py write-spec --census-json <census.json> --freeze-utc <freeze commit time> --screen-not-before-utc <t> [--dry-run]` writes `model_specs/cb7_v1.json` once. It pins the
 declaration hash, rules hash, source file hashes, `census.json` sha256, the seal pins and `h_geo` pins read from the census, `T7_X_list` = max(2026-11-03T06:00Z, freeze + 24 h),
-`T7_S_rep_start` "not applicable", promote q0148 / q0149 / q0150, do not promote q0151 / q0152 / q0156, q0153-q0155 conditional on X1.
+`T7_S_rep_start` "not applicable", promote q0148 / q0150 / q0149, do not promote q0151 / q0152 / q0156, q0153-q0155 conditional on X1.
 
 ## 8. Not verified
 

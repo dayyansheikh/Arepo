@@ -415,16 +415,16 @@ def cmd_screen(a) -> int:
         if fam == "S":
             from astrolabe.research_lab import cb7_s_analysis as mod
 
-            res = mod.screen_s(cb7_dir, seals_dir, freeze=freeze, census=census, trials_path=trials, wall_clock=time.time)
+            res = mod.screen_s(cb7_dir, seals_dir, freeze=freeze, census=census, trials_path=trials, wall_clock=time.time, union_recorded_utc=a.union_recorded_utc)
         elif fam == "G":
             from astrolabe.research_lab import cb7_g_analysis as mod
 
-            res = mod.screen_g(cb7_dir, root, seals_dir, freeze=freeze, census=census, trials_path=trials, wall_clock=time.time)
+            res = mod.screen_g(cb7_dir, root, seals_dir, freeze=freeze, census=census, trials_path=trials, wall_clock=time.time, union_recorded_utc=a.union_recorded_utc)
         else:
             from astrolabe.research_lab import cb7_x_analysis as mod
 
             cv_root = Path(a.cv_root) if a.cv_root else provenance.REPO_ROOT / "data-dumps" / "research_lab" / "cross_venue"
-            res = mod.screen_x(cb7_dir, cv_root, seals_dir, freeze=freeze, census=census, trials_path=trials, wall_clock=time.time)
+            res = mod.screen_x(cb7_dir, cv_root, seals_dir, freeze=freeze, census=census, trials_path=trials, wall_clock=time.time, union_recorded_utc=a.union_recorded_utc)
     except cm.Refused as exc:
         _emit({"refused": str(exc)})
         return REFUSED
@@ -444,6 +444,12 @@ def cmd_write_spec(a) -> int:
 
     path = Path(a.path) if a.path else d.SPEC_PATH
     try:
+        from datetime import UTC, datetime  # noqa: PLC0415
+
+        now = datetime.strptime(a.now_utc, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC) if a.now_utc else datetime.now(UTC)
+        fz = datetime.strptime(a.freeze_utc, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC)
+        if abs((fz - now).total_seconds()) > 3600:
+            raise cm.Refused(f"freeze_utc {a.freeze_utc} is more than 1 h from now ({now:%Y-%m-%dT%H:%M:%SZ}); refusing")
         kw = dict(census_json=Path(a.census_json), freeze_utc=a.freeze_utc, screen_not_before_utc=a.screen_not_before_utc)
         if a.dry_run:
             _emit({"dry_run": True, "path": str(path), "payload": d.spec_payload(**kw)})
@@ -594,6 +600,7 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--cv-root", default=None, help="cross_venue study directory (never cross_venue_live)")
     q.add_argument("--rules", default=None)
     q.add_argument("--freeze-spec", default=None, help="default model_specs/cb7_v1.json")
+    q.add_argument("--union-recorded-utc", default=None, help="time the operator ran scripts/oracle/union_jsonl.py before this screen; absent = count labelled pre-union lower bound")
     q.add_argument("--trials-path", default=None)
     q.add_argument("--allow-uncommitted-rules", action="store_true", help="tests only: also accepts an uncommitted freeze spec")
     q.set_defaults(fn=cmd_screen)
@@ -604,6 +611,7 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--screen-not-before-utc", required=True, help="declared time before which no screen runs or opens an outcome file")
     q.add_argument("--path", default=None)
     q.add_argument("--dry-run", action="store_true")
+    q.add_argument("--now-utc", default=None, help="tests only: clock for the freeze-time check")
     q.set_defaults(fn=cmd_write_spec)
 
     q = sub.add_parser("verify-seal")

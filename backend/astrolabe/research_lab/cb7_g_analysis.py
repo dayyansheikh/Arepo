@@ -36,7 +36,7 @@ TAIL_MARGIN = 0.005
 MIN_YES_CLUSTERS = 10
 TAIL_BOOT = 500
 CLOSE_DROP_DAYS = 2.0  # robustness (vii): drop closed_time < end_at - 2 d
-MIN_CLUSTERS = {"event_week": 30, "theme": 15}
+MIN_CLUSTERS = {"event_week": 30, "theme": 30}  # literal 2.3 "at least 30 clusters per way" (A1 amendment reverted at the code-freeze check)
 UNKNOWN_FEE_RATE = 0.07  # unknown or ``other:*`` (2.1)
 SAMPLE_COLS = (*cc.G_SAMPLE_COLS, "status")
 PRICE_COLS = ("market_id", "k", "origin_ts", "m", "eligible")
@@ -333,7 +333,7 @@ def _terminal_doc(g: dict, cumulative_count: int) -> dict:
     return st.not_testable_doc(label, cumulative_count, placebo_breakeven={"skipped": label})
 
 
-def screen_g(cb7_dir: Path, root: Path, seals_dir: Path, *, freeze: dict, census: dict, trials_path: Path, wall_clock: Callable[[], float] = time.time) -> dict:
+def screen_g(cb7_dir: Path, root: Path, seals_dir: Path, *, freeze: dict, census: dict, trials_path: Path, wall_clock: Callable[[], float] = time.time, union_recorded_utc: str | None = None) -> dict:
     """q0149: G1 on ``h8_geo``. Write-once results; the Stage-1 copy goes to ``seals/cb7_g1_stage1.json`` (commit it)."""
     from . import cb7_declaration as D  # noqa: PLC0415
 
@@ -345,12 +345,13 @@ def screen_g(cb7_dir: Path, root: Path, seals_dir: Path, *, freeze: dict, census
         res = _terminal_doc(g, cum) if g.get("status") != "ok" else st.not_testable_doc("not testable (GG failed in the census)", cum, placebo_breakeven={"skipped": "GG failed"})
         res["batch_holm_reject"] = False
         return st.finish(TEST, res, out_root=cb7_dir, seals_dir=seals_dir, freeze=freeze, declaration_sha=D.declaration_sha256(), trials_path=trials_path,
-                         placebo=res.get("placebo_breakeven"), descriptive={"gate_GG": g.get("gate_GG"), "state": g.get("status")}, header=header, wall_clock=wall_clock)
+                         placebo=res.get("placebo_breakeven"), descriptive={"gate_GG": g.get("gate_GG"), "state": g.get("status")}, header=header, wall_clock=wall_clock, union_recorded_utc=union_recorded_utc)
     seals = cc.verify_seal_copies(Path(root), seals_dir)
+    st.check_seal_pins(seals, freeze["spec"])
     if seals[cm.GEO_RUN_ID]["state"] != "sealed":
         res = _terminal_doc({"status": seals[cm.GEO_RUN_ID]["state"]}, cum)
         return st.finish(TEST, res, out_root=cb7_dir, seals_dir=seals_dir, freeze=freeze, declaration_sha=D.declaration_sha256(), trials_path=trials_path,
-                         placebo=res.get("placebo_breakeven"), descriptive={"state": seals[cm.GEO_RUN_ID]["state"]}, header=header, wall_clock=wall_clock)
+                         placebo=res.get("placebo_breakeven"), descriptive={"state": seals[cm.GEO_RUN_ID]["state"]}, header=header, wall_clock=wall_clock, union_recorded_utc=union_recorded_utc)
     st.require_siblings_final(cb7_dir, TEST)  # before any sealed file is opened
     rdir = Path(root) / cm.GEO_RUN_ID
     got = h5_seal.read_sealed(rdir, JOB, ["sample.csv.gz", "origin_prices.csv.gz", "drops.csv.gz"], h5_seal.committed_seal_path(cm.GEO_RUN_ID, seals_dir))
@@ -373,7 +374,7 @@ def screen_g(cb7_dir: Path, root: Path, seals_dir: Path, *, freeze: dict, census
     res = decide(res, holm)
     header["inputs"].update(h_geo=h_geo, n_units_eligible=len(units0), n_resolved=len(units), n_unresolved=len(unres), outcome_reads=gate.reads)
     return st.finish(TEST, res, out_root=cb7_dir, seals_dir=seals_dir, freeze=freeze, declaration_sha=D.declaration_sha256(), trials_path=trials_path,
-                     placebo=res.get("placebo_breakeven"), descriptive=_descriptive(res), header=header, wall_clock=wall_clock)
+                     placebo=res.get("placebo_breakeven"), descriptive=_descriptive(res), header=header, wall_clock=wall_clock, union_recorded_utc=union_recorded_utc)
 
 
 def _descriptive(res: dict) -> dict:
