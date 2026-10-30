@@ -5693,7 +5693,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   "pre-union lower bound" for the cumulative count (accepted by the diff check). Commit the Stage-1 seal copies after each
   screen.
 
-## M1 / M2: the event member count reads earlier units' rows (M3 MUST 1's defect class), 2026-10-30 18:05Z (experiments autopilot; nothing counted)
+## M1 / M2: the event member count reads earlier units' rows (M3 MUST 1's defect class), 2026-10-30 18:00Z (experiments autopilot; nothing counted)
 - `reviews/M1_M2_SIBLING_COUNT_CHECK_2026-10-30.md` (`science-reviewer`, probe on M1): both count an event's open binary
   members at the new unit's k from every row, including earlier units' rows at that k.
 - **M1 (registered): AFFECTED_BUT_PERMITTED_BY_TEXT.** M1's 3.3 and S3 define the count on every market's row at the new
