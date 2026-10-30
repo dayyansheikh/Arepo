@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-30T12:31:39Z",
+ "updated": "2026-10-30T12:51:33Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -58,12 +58,12 @@
    "status": "collecting",
    "verdict": "pending",
    "effect": null,
-   "next": "Single analysis after 3 Nov 2026",
+   "next": "Single analysis queued on the server for 3 Nov 2026, 08:30 UTC (after the pre-declared gap-fill step); runs once",
    "next_date": "2026-11-03",
    "candidate": true,
    "sources": {
     "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § E009 (frozen model, stopping rule); docs/AREPO_PROGRESS_PLAIN_ENGLISH.md § 4",
-    "next": "docs/research_lab/EXPERIMENT_LEDGER.md § E009 stopping rule"
+    "next": "docs/research_lab/E009_E010_ANALYSIS_RUNBOOK_2026-10-30.md; queue jobs q0770-q0777"
    },
    "stage_results": {
     "designed": "pass",
@@ -86,12 +86,12 @@
    "status": "collecting",
    "verdict": "pending",
    "effect": null,
-   "next": "Single analysis after 3 Nov 2026 (6-hour outcomes due 08:00 UTC)",
+   "next": "Single analysis queued on the server for 3 Nov 2026, 08:30 UTC (after the pre-declared gap-fill step); runs once",
    "next_date": "2026-11-03",
    "candidate": true,
    "sources": {
     "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § E010",
-    "next": "docs/research_lab/EXPERIMENT_LEDGER.md § E010 stopping rule"
+    "next": "docs/research_lab/E009_E010_ANALYSIS_RUNBOOK_2026-10-30.md; queue jobs q0770-q0777"
    },
    "stage_results": {
     "designed": "pass",
