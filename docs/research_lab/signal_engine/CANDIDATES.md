@@ -318,7 +318,10 @@ preparation on `feat/ch269-map`).
   class): keep `cl_class x tte_h` interactions unbuilt until LT15's freeze (token `close` requested then); the `cl_class`
   level alone may be built now as a `rules` column (44.7% coverage disclosed). LT14 candidate (CH262, the champion's top
   decile by cost tier): no token; an attribution limit `attrlimit_lt14` on any public display of the champion's gross by
-  tier would be requested at its freeze. Neither design exists yet.
+  tier would be requested at its freeze. **LT14 drafted 2026-10-30 (`LIVE_TESTS_14.md`, DRAFT); pre-freeze hold (R1 SHOULD 7,
+not applied by the experiments side):** until LT14's freeze, no engine session computes or displays the pinned champion's
+cents gross or top-decile hit rate by liquidity tier; at the freeze `attrlimit_lt14` (`kind: attribution_limit`) is
+requested to LT14's analysis date. If one is computed earlier, the ledger records it and LT14 carries *informed (engine)*.
 
 **LT13 update (2026-10-29):** CH252 was `withdrawn_pre_census (fee reading unresolved)` under LT13 rule 1.4.3 (b) after the
 q0717 probe found the venue's one-step fee change of 2026-10-20 (ledger). The `payreturn` hold request and token below

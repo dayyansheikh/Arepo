@@ -5044,3 +5044,16 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   registrations from this round" counts CH263 (0.7) and CH264 inside it. Measurements are counted apart from registered tests,
   so the round's expected number of **registered tests** is **about 0.9** (that file's own figure without rule 26); M1 and M2,
   if registered, are counted separately as measurements. The idea file is not edited.
+
+## LT14 challenger R1 GO_WITH_CHANGES; CH269 LT14 line recorded as a defective count, 2026-10-30 ~04:47Z (experiments autopilot; nothing counted)
+- `reviews/LT14_CHALLENGER_R1_2026-10-30.md` **GO_WITH_CHANGES**: MUST 1 "label-origin gross" wording (not an executable
+  entry); 2 input-clock audit of the pinned champion at the freeze; 3 rung described by its source, tier-spread rung printed
+  beside any result; 4 null worlds able to fail; 5-6 below; 7 exclusion order and tie-break. SHOULD 1-10 (k = 1 with the
+  >= 100k tier as a reported arm; freeze before 2026-11-07T00:00Z; `attrlimit_lt14` hold filed now). Revisions delegated.
+- **CH269 fee-split defect, cause found:** `census_map_ch269.py:951-952` builds the totals with a dict comprehension, so each
+  capture overwrote the last; only `20261030T023102Z` (`top_n` 1,059) survives in the printed totals. The map file is
+  unchanged; LT14's census code sums across captures (unit-tested).
+- **LT14 drafted on a defective count; |s| line unmeasured.** The declared CH269 line was on CH262's object (top decile by
+  |s|, pinned sidecar classifiers); the map counted the signed decile with the engine's own category. The map's recorded
+  outcome stands as recorded (no relabel). The binding |s| gate (>= 100 units a capture) is in LT14's own census. No outcome
+  data were involved and no threshold changes.
