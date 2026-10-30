@@ -1224,3 +1224,18 @@ census says; they change no score and are a separate step. No K, no column, no t
   section before the run. The census stops at the first origin with a pending 2 h label (the newest capture).
 - **Reading.** Both pass -> a builder section may follow (columns of CH268; challenger scored on the flat class against
   se1) after an independent review. Otherwise `fragile` stays hygiene only. Not re-run with other thresholds.
+- **Result (2026-10-30 ~04:05Z; label states only).** Committed in `8cb5ba84` before the run (sha256 `55a77c11...7491`,
+  the same file as the host's `/tmp/se_fragile_census.py`); output `census/se_fragile_census_2026-10-30.out`. 207
+  captures; 5,763,429 census rows (0.601 of eligible rows after 12 origins). **Share with `fr_unavail_12` > 0: 0.1214;
+  Pearson with `ms_log_liq` 0.0199. Reading as written: pass.**
+- **Why it is not built anyway (a pass permits a builder step, it does not require one).** The origins' unavailable
+  states are 95,784 `missing_capture` (a whole capture absent: the same for every market of the slot), 35,051
+  `one_sided` and 5,198 `absent` of 10.08 M; p90 = p99 = 1/12. An information-only rerun, committed before it ran
+  (`census/se_fragile_info_market_only_2026-10-30.{py,out}`: identical except that `missing_capture` counts as
+  available) gives a share of **0.0000**: in the census population no market has a market-specific unavailable label.
+  That is structural: a market whose next quote is one-sided or absent has no features row at that slot, so it fails
+  "eligible at all 12 origins" and is never a census row. The declared column therefore only encodes "a capture was
+  missing in the last 24 h", a slot-level value of the kind `regime` overfit (section 19). **`fragile` is not built;**
+  the display-pool rule (> 0.25) would exclude no row, so it is not added either. A market-level version would need a
+  different population (e.g. every market quoted at k, with the history read from `quotes/` status whether or not a
+  features row exists): a new definition with its own census, not this one re-read. Low priority; not scheduled.
