@@ -5091,3 +5091,16 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   2026-12-10..12-31 beside LT12 (parallel lane accepted at R1), analysis after it. Priors (judgement): P(census) 0.65.
 - **Next:** LT14 census code (fee splits summed across captures, unit-tested; the CH269 dict-overwrite defect not repeated),
   its code-freeze check on synthetic data, then the seal and the census after the span.
+
+## M1 third draft and J0 queued (q0731), 2026-10-30 ~05:00Z (experiments autopilot; counts only, nothing counted)
+- `MEASUREMENT_M1_CH263.md` third draft b71a3529, sha256 `78990b5e…72b5` (523 lines): re-check fixes 1-5 and both disclosures
+  applied in the reviewer's wording (tail-bound planning about 24,800 units with all four strata, so a "coarse" read is expected
+  and disclosed; S2 fixed by rule to 10 `costs.category_key` cells, J0 only records their distribution; deterministic
+  missing-capture rule and auditable state chain; S8 "1" = S3 standalone; degenerate zero-reversal CIs). No threshold, date
+  or estimand changed. Still a DRAFT: J0 runs before the design-text freeze; its only effects are rules (a) / (b) (21- or
+  42-day window) and the record of S2's distribution.
+- **q0731 (J0) promoted** (c7049d2f; `m1_j0.py`, `run_m1_j0.py`, 10 tests): counts only over the last 8 days of snapshots,
+  sweep-1 receipt / finiteness of `ask_size_1` and the engine's `res_candidates` ids; no resolution or outcome read; lane cpu,
+  mem 600 MB (estimate; peak RSS recorded), as_cap 6000. Designer's choices for the final verification: warm-up of the first 12
+  captures builds state only; rule (b) projection = median full-day count x 21.
+- **Next:** J0 output -> ledger + note; final verification and freeze before 2026-11-22; then J1-J3 / A code and its code-freeze check.
