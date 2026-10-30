@@ -983,3 +983,64 @@ def test_should1b_tie_on_start_uses_the_choosers_key(tmp_path):
     run(store, snap, sw)
     assert json.loads((store / "status" / "late_0_tie.json").read_text())["reason"] == "on_time_but_delivered_after_slot_decided"
     assert not (store / "status" / "dup_0_tie.json").exists()
+
+
+# --- sibling member count read at a later unit's own k (docs/research_lab/reviews/M1_M2_SIBLING_COUNT_CHECK_2026-10-30.md) ------------------
+
+def _raw_unit_lines(store):
+    out = {}
+    for p in sorted((Path(store) / "units").glob("*.jsonl.gz")):
+        for line in gzip.open(p, "rt"):
+            if line.strip():
+                out[json.loads(line)["market_id"]] = line
+    return out
+
+
+def _alter_a_after_k1(snap, how, mid, k1):
+    for k in range(k1 + 1, ms.L + ms.W):
+        p = snap / ms.cid(k) / "rows.csv.gz"
+        if not p.exists():
+            continue
+
+        def fn(rows, how=how):
+            hdr, body = rows[0], rows[1:]
+            out = []
+            for r in body:
+                if r[0] == str(mid):
+                    if how == "removed":
+                        continue
+                    if how == "closed":
+                        r[hdr.index("closed")] = "true"
+                    if how == "end_moved":
+                        r[hdr.index("end_date")] = "2026-10-25T00:00:00Z"
+                out.append(r)
+            return [hdr, *out]
+
+        rewrite_csv(p, fn)
+
+
+@pytest.mark.parametrize("how", ["closed", "removed", "end_moved"])
+def test_sibling_earlier_unit_line_is_write_once_and_later_member_count_reads_its_row_at_k2(tmp_path, monkeypatch, how):
+    """Market A (event eX) becomes a unit at k1, sibling B (same event) at k2 > k1. Altering A's row after k1 never changes A's written line
+    (write-once). B's member count at k2 counts every market's row at k2, A's included, as 3.3 and S3 define (permitted, disclosed reading)."""
+    k1, k2 = ms.L + 2, ms.L + 4
+    monkeypatch.setitem(ms.EXTRA, 20, ("eX", "0.94", "0.96", "politics", "true", k1))
+    monkeypatch.setitem(ms.EXTRA, 21, ("eX", "0.94", "0.96", "politics", "true", k2))
+    runs = {}
+    for tag in ("plain", how):
+        snap, sw = ms.build_stores(tmp_path / tag / "src")
+        if tag != "plain":
+            _alter_a_after_k1(snap, how, 20, k1)
+        store = tmp_path / tag / "research_lab" / "m1_ch263"
+        run(store, snap, sw)
+        runs[tag] = _raw_unit_lines(store)
+    plain, altered = runs["plain"], runs[how]
+    assert 20 in plain and 21 in plain and 20 in altered and 21 in altered
+    assert plain[20] == altered[20]  # A's line is byte-identical: nothing written for A depends on later captures
+    a, b_plain, b_alt = json.loads(plain[20]), json.loads(plain[21]), json.loads(altered[21])
+    assert a["event_open_binary_members"] == 2 and a["ladder"] == "member_winner"  # at k1 both A and B have open rows (B is not yet a unit)
+    assert b_plain["event_open_binary_members"] == 2  # at k2, A's row at k2 is counted as the text defines
+    if how in ("closed", "removed"):
+        assert b_alt["event_open_binary_members"] == 1 and b_alt["ladder"] == "standalone"  # A's row at k2 is read: the disclosed behaviour
+    else:
+        assert b_alt["event_open_binary_members"] == 2  # end_date is not part of the open test
