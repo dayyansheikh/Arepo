@@ -1,0 +1,35 @@
+{
+ "id": "q0793_e011_supplement",
+ "title": "E011 pre-declared descriptive supplement (secondaries c, e, f, g and d), once, on the frozen inputs after the primary; stdout saved write-once",
+ "family": "e011_analysis",
+ "priority": 94,
+ "expected_value": "registered secondaries (c)(e)(f)(g) and alert+control (d); descriptive, no verdict role, not counted",
+ "data": [
+  "data-dumps/research_lab/e011_analysis/inputs/{alerts,outcomes}.jsonl (read-only; sha256 re-checked against FREEZE_MANIFEST.json)"
+ ],
+ "resources": {
+  "mem_mb": 1000,
+  "as_cap_mb": 3000,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0791_e011_analyze"
+ ],
+ "not_before": "2026-11-11T13:30:00Z",
+ "argv": [
+  "scripts/run_e011_analysis.py",
+  "supplement",
+  "--run-dir",
+  "../data-dumps/research_lab/e011_analysis"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 0,
+ "outputs": [
+  "data-dumps/research_lab/e011_analysis/results/e011_supplement.json",
+  "data-dumps/research_lab/e011_analysis/results/e011_supplement.run.json"
+ ],
+ "next_action": "scp results/e011_supplement*.json into docs/research_lab/e011_analysis/; optionally run scripts/live_verdicts.py e011 on results/e011_analysis.json (read-only) and save its stdout; add to the ledger result entry",
+ "notes": "Pre-declared supplement (711a9107, disclosures e53dceaa; readiness 2026-10-19 A4/A7), run ONCE after the primary. The wrapper refuses unless results/e011_analysis.json exists, enforces sha256 of surprise_supplement.py (f7cf470e...) and run_surprise_supplement.py (8917f623...) as at e53dceaa, then runs run_surprise_supplement.py --root <run>/inputs and saves stdout write-once. max_retries 0; a failure leaves only results/e011_supplement.failed-<UTC>.json. Ledger 'E011 analysis readings declared before the run' item 4. DRAFT, not in queue/jobs. Runbook: docs/research_lab/E011_ANALYSIS_RUNBOOK_2026-10-30.md."
+}

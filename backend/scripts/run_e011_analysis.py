@@ -24,8 +24,19 @@ root argument. This wrapper therefore:
       ``surprise_snapshot.analyze`` is bound to ``root=D/inputs`` via functools.partial before the
       registered ``main()`` runs. The registered files are not edited; the only difference from the
       live CLI is the root of the two input files, which are byte copies cut at a recorded point.
-      stdout is saved byte for byte to D/results/e011_analysis.json (written once). Secondaries
-      (c), (e), (f), (g) are recorded as "not produced" and never filled.
+      stdout is saved byte for byte to D/results/e011_analysis.json (written once). Also checks
+      PRE_RUN.json against ``pre_run_sha256`` and records python/numpy/pandas versions. Writes
+      no trials.jsonl line: E011 is 1 counted test.
+  supplement --run-dir D
+      Refuses unless D/results/e011_analysis.json exists; enforces the sha256 of the two
+      pre-declared supplement files (pinned at e53dceaa); runs
+      ``scripts/run_surprise_supplement.py --root D/inputs`` once; stdout saved write-once to
+      D/results/e011_supplement.json. Secondaries (c), (e), (f), (g) and (d); descriptive, no
+      verdict role, not counted.
+
+  freeze exits 75 if outcomes.jsonl / passes.jsonl was modified < 10 minutes ago or the
+  collector lock is held (quiescence); freeze records whether a pass with written_utc >=
+  2026-11-11T12:31Z exists.
 
 Failure records are written once per attempt (never overwritten). A time refusal exits 75 (queue:
 "not now"); declared refusals exit 2; a child's own 75 is mapped to 1.
@@ -85,15 +96,18 @@ IMPORTED_MODULES = (
     "backend/astrolabe/research_lab/provenance.py",
     "backend/astrolabe/research_lab/wallet_sidecar.py",
 )
-SECONDARIES_NOT_PRODUCED = {
-    "c_2h_label_excess": "not produced",
-    "e_sports_vs_non_sports_split": "not produced (analyze() outputs by_fee_category only)",
-    "f_control_match_composition": "not produced",
-    "g_passes_missed_and_request_timing_stats": "not produced (data exist in passes.jsonl; "
-                                                "no statistic computed)",
-    "note": "registered secondaries that analyze() does not output are reported 'not produced', "
-            "never filled in (readiness 2026-10-19 S1; code-version ruling defect 4)",
+# pre-declared descriptive supplement (711a9107, disclosures e53dceaa): secondaries c e f g d
+SUPPLEMENT_PINS = {  # sha256 of `git show e53dceaa:<path>`, equal to HEAD when pinned
+    "backend/astrolabe/research_lab/surprise_supplement.py":
+        "f7cf470eeebfce74b4700d44e637e051eb81502f0880485fc2131e9fc15f1a84",
+    "backend/scripts/run_surprise_supplement.py":
+        "8917f6233b2eb85f63c18b6aca4d1983b9a77e01ebe686643d0a98ee7ca329b8",
 }
+SUPPLEMENT_SCRIPT = "scripts/run_surprise_supplement.py"
+QUIET_S = 600  # SHOULD 1: files written less than 10 minutes ago => collector still active
+COLLECTOR_LOCK = "/tmp/arepo_collector.lock"
+LAST_SLOT_UTC = "2026-11-11T12:31:00Z"  # the pass that ends about 12:49Z, first after 12 h grace
+SLOT_S, SLOT_TOL_S = 7200.0, 1800.0
 
 # Child: run the REGISTERED CLI main() unchanged; only analyze()'s root keyword is bound.
 CHILD_BOOT = """
@@ -171,6 +185,14 @@ def check_tree(state: tuple[str, list[str]]) -> dict:
             "imported_modules_sha256": mods}
 
 
+def _versions() -> dict:
+    import numpy
+    import pandas
+
+    return {"python": sys.version.split()[0], "numpy": numpy.__version__,
+            "pandas": pandas.__version__}
+
+
 def _child_code(rc: int) -> int:
     """A child's exit 75 would be read by the queue as 'not now, retry': report it as 1."""
     return 1 if rc == TEMPFAIL else (rc or 1)
@@ -193,6 +215,61 @@ def _not_before(now: float | None) -> None:
     now = time.time() if now is None else now
     if now < _ep(NOT_BEFORE):
         raise Refusal(f"not before {NOT_BEFORE} (now {_utc(now)})", TEMPFAIL)
+
+
+def collector_lock_busy(path: str | None = None) -> bool:
+    """True while another process holds the collector flock. Non-blocking, never creates the file,
+    False on any error (same probe as history_backfill.collector_lock_busy)."""
+    lock = path or COLLECTOR_LOCK
+    if not os.path.exists(lock):
+        return False
+    try:
+        import fcntl
+
+        fd = os.open(lock, os.O_RDONLY)
+    except (OSError, ImportError):
+        return False
+    try:
+        fcntl.flock(fd, fcntl.LOCK_SH | fcntl.LOCK_NB)
+        fcntl.flock(fd, fcntl.LOCK_UN)
+        return False
+    except BlockingIOError:
+        return True
+    except OSError:
+        return False
+    finally:
+        os.close(fd)
+
+
+def quiescence(src: Path, now: float | None = None, lock: str | None = None) -> dict:
+    """Exit 75 if outcomes.jsonl / passes.jsonl changed < QUIET_S ago or the collector lock is
+    held. File mtimes only; no content read."""
+    now_t = time.time() if now is None else now
+    rec: dict = {"quiet_s_required": QUIET_S, "files": {}}
+    recent = []
+    for f in ("outcomes.jsonl", "passes.jsonl"):
+        mt = (Path(src) / f).stat().st_mtime
+        age = now_t - mt
+        rec["files"][f] = {"mtime_utc": _utc(mt), "age_s": round(age)}
+        if age < QUIET_S:
+            recent.append(f)
+    rec["collector_lock_busy"] = collector_lock_busy(lock)
+    if recent or rec["collector_lock_busy"]:
+        raise Refusal(f"collector active (recent writes: {recent}, lock held: "
+                      f"{rec['collector_lock_busy']}); retry later", TEMPFAIL)
+    return rec
+
+
+def check_supplement_pins() -> dict:
+    got, bad = {}, {}
+    for p, pin in SUPPLEMENT_PINS.items():
+        f = REPO / p
+        got[p] = digest(f)["sha256"] if f.is_file() else None
+        if got[p] != pin:
+            bad[p] = {"found": got[p], "pinned": pin}
+    if bad:
+        raise Refusal(f"supplement files differ from their e53dceaa sha256: {bad}")
+    return got
 
 
 def _inside(path: Path, root: Path) -> bool:
@@ -239,18 +316,35 @@ def prerun_counts(inputs: Path) -> dict:
     status / written_utc only. No label, hit or move value is read."""
     t0, t1 = _ep(REGISTERED_UTC), _ep(END_UTC)
     status: dict[str, int] = {}
-    bad_pass, last_pass = 0, None
+    bad_pass, last_pass, has_last_slot = 0, None, False
+    pass_ts: list[float] = []
     for ln in _lines(inputs / "passes.jsonl"):
         try:
             d = json.loads(ln)
         except ValueError:
             bad_pass += 1
             continue
-        s = str(d.get("status"))
-        status[s] = status.get(s, 0) + 1
         w = d.get("written_utc")
         if isinstance(w, str) and (last_pass is None or w > last_pass):
             last_pass = w
+        if isinstance(w, str) and w >= LAST_SLOT_UTC:
+            has_last_slot = True
+        try:  # pass time: "t" if present, else written_utc
+            pt = float(d["t"]) if d.get("t") is not None else _ep(w)
+        except (TypeError, ValueError, KeyError):
+            continue
+        if not (t0 <= pt < t1):
+            continue
+        pass_ts.append(pt)
+        s_ = str(d.get("status"))
+        status[s_] = status.get(s_, 0) + 1
+    slots, missed = [], []
+    if pass_ts:
+        x = min(pass_ts)
+        while x < t1:
+            slots.append(x)
+            x += SLOT_S
+        missed = [_utc(x) for x in slots if not any(abs(p - x) <= SLOT_TOL_S for p in pass_ts)]
     n_alert = n_win = n_unknown = n_ctrl = bad_alert = 0
     for ln in _lines(inputs / "alerts.jsonl"):
         try:
@@ -271,7 +365,13 @@ def prerun_counts(inputs: Path) -> dict:
     return {
         "passes": {"total": sum(status.values()), "by_status": status,
                    "non_ok": sum(v for k, v in status.items() if k != "ok"),
-                   "unparsable_lines": bad_pass, "last_written_utc": last_pass},
+                   "unparsable_lines": bad_pass, "last_written_utc": last_pass,
+                   "counted_window": [REGISTERED_UTC, END_UTC],
+                   "pass_with_written_utc_ge_" + LAST_SLOT_UTC: has_last_slot,
+                   "slot_grid": {"step_s": SLOT_S, "tolerance_s": SLOT_TOL_S, "slots": len(slots),
+                                 "missed_slots": len(missed), "missed_slot_utc": missed,
+                                 "note": "outcome-blind: pass times only; first window pass "
+                                         "anchors the 2 h grid"}},
         "alerts_jsonl": {"alert_lines": n_alert, "control_lines": n_ctrl,
                          "window_alert_lines": n_win,
                          "window_alert_lines_fee_category_unknown": n_unknown,
@@ -282,7 +382,7 @@ def prerun_counts(inputs: Path) -> dict:
 
 
 def freeze(run_dir: Path, src: Path, *, now: float | None = None,
-           state: tuple[str, list[str]] | None = None) -> dict:
+           state: tuple[str, list[str]] | None = None, lock: str | None = None) -> dict:
     _not_before(now)
     tree = check_tree(state or git_state())
     run_dir, src = Path(run_dir), Path(src)
@@ -295,6 +395,7 @@ def freeze(run_dir: Path, src: Path, *, now: float | None = None,
     missing = [f for f in INPUT_FILES + RECORD_FILES if not (src / f).is_file()]
     if missing:
         raise Refusal(f"source {src} lacks {missing}")
+    quiet = quiescence(src, now, lock)
     run_dir.mkdir(parents=True, exist_ok=True)
     tmp = run_dir / f"inputs.partial-{_stamp()}"
     tmp.mkdir()
@@ -306,7 +407,7 @@ def freeze(run_dir: Path, src: Path, *, now: float | None = None,
     rec_text = json.dumps({"step": "pre_run_counts", "made_utc": _utc(now), **pre}, indent=1)
     (tmp / "PRE_RUN.json").write_text(rec_text)
     man = {"step": "freeze", "frozen_utc": _utc(now), **tree, "files": files,
-           "pre_run_sha256": hashlib.sha256(rec_text.encode()).hexdigest(),
+           "pre_run_sha256": hashlib.sha256(rec_text.encode()).hexdigest(), "quiescence": quiet,
            "analyze_reads": list(INPUT_FILES),
            "note": "byte copies cut at the last newline; analyze() reads only alerts.jsonl and "
                    "outcomes.jsonl; passes.jsonl is frozen for the record"}
@@ -325,6 +426,9 @@ def analyze(run_dir: Path, *, now: float | None = None,
     if not mp.is_file() or not (inputs / "PRE_RUN.json").is_file():
         raise Refusal(f"{mp} or PRE_RUN.json missing: run freeze first")
     fm = json.loads(mp.read_text())
+    pre_sha = hashlib.sha256((inputs / "PRE_RUN.json").read_bytes()).hexdigest()
+    if pre_sha != fm.get("pre_run_sha256"):
+        raise Refusal(f"PRE_RUN.json sha256 {pre_sha} != manifest pre_run_sha256")
     got = {f: digest(inputs / f)["sha256"] for f in INPUT_FILES + RECORD_FILES}
     bad = {f: (got[f], fm["files"][f]["sha256"]) for f in got if got[f] != fm["files"][f]["sha256"]}
     if bad:
@@ -347,6 +451,7 @@ def analyze(run_dir: Path, *, now: float | None = None,
            "argv": ["-c", "<CHILD_BOOT>", *argv[3:]], "cwd": str(BACKEND), "started_utc": t0,
            "finished_utc": _utc(), "rc": p.returncode, **tree, "inputs_sha256": got,
            "inputs_unchanged_after": after == got,
+           "versions": _versions(),
            "child_peak_rss_mb": round(rss / (1 << 20 if sys.platform == "darwin" else 1 << 10)),
            "stderr_tail": p.stderr.decode(errors="replace")[-4000:]}
     ok = p.returncode == 0 and after == got
@@ -363,9 +468,55 @@ def analyze(run_dir: Path, *, now: float | None = None,
     tmp.write_bytes(p.stdout)
     os.replace(tmp, out)
     rec["output"] = {"path": str(out), **digest(out)}
-    rec["secondaries_not_produced"] = SECONDARIES_NOT_PRODUCED
-    (res_dir / "e011_secondaries_not_produced.json").write_text(
-        json.dumps(SECONDARIES_NOT_PRODUCED, indent=1))
+    rec["secondaries"] = ("(c)(e)(f)(g) and (d) come from the supplement step "
+                          "(run_e011_analysis.py supplement); not computed here")
+    side.write_text(json.dumps(rec, indent=1))
+    return rec
+
+
+def supplement(run_dir: Path, *, now: float | None = None,
+               state: tuple[str, list[str]] | None = None) -> dict:
+    _not_before(now)
+    run_dir = Path(run_dir)
+    tree = check_tree(state or git_state())
+    sup_sha = check_supplement_pins()
+    res_dir = run_dir / "results"
+    prim = res_dir / "e011_analysis.json"
+    if not prim.is_file():
+        raise Refusal(f"{prim} missing: the supplement runs after the primary analysis")
+    inputs = run_dir / "inputs"
+    fm = json.loads((inputs / "FREEZE_MANIFEST.json").read_text())
+    got = {f: digest(inputs / f)["sha256"] for f in INPUT_FILES + RECORD_FILES}
+    bad = {f: (got[f], fm["files"][f]["sha256"]) for f in got if got[f] != fm["files"][f]["sha256"]}
+    if bad:
+        raise Refusal(f"frozen inputs differ from their manifest: {bad}")
+    out, side = res_dir / "e011_supplement.json", res_dir / "e011_supplement.run.json"
+    if out.exists() or side.exists():
+        raise Refusal(f"{out} exists: the supplement runs once")
+    argv = [sys.executable, str(BACKEND / SUPPLEMENT_SCRIPT), "--root", str(inputs)]
+    t0 = _utc()
+    p = subprocess.run(argv, cwd=BACKEND, capture_output=True)
+    after = {f: digest(inputs / f)["sha256"] for f in INPUT_FILES + RECORD_FILES}
+    rec = {"step": "supplement", "experiment": "E011", "argv": argv[1:], "cwd": str(BACKEND),
+           "started_utc": t0, "finished_utc": _utc(), "rc": p.returncode, **tree,
+           "supplement_sha256": sup_sha, "supplement_pinned_at": "e53dceaa",
+           "inputs_sha256": got, "inputs_unchanged_after": after == got,
+           "versions": _versions(), "primary_output_sha256": digest(prim)["sha256"],
+           "stderr_tail": p.stderr.decode(errors="replace")[-4000:]}
+    ok = p.returncode == 0 and after == got
+    if ok:
+        try:
+            json.loads(p.stdout)
+        except ValueError:
+            ok = False
+    if not ok:
+        fp = _write_unique(res_dir, "e011_supplement.failed", json.dumps(rec, indent=1))
+        raise Refusal(f"supplement failed (rc {p.returncode}); see {fp.name}",
+                      _child_code(p.returncode))
+    tmp = out.with_suffix(".json.tmp")
+    tmp.write_bytes(p.stdout)
+    os.replace(tmp, out)
+    rec["output"] = {"path": str(out), **digest(out)}
     side.write_text(json.dumps(rec, indent=1))
     return rec
 
@@ -374,7 +525,7 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
-    for name in ("freeze", "analyze"):
+    for name in ("freeze", "analyze", "supplement"):
         s = sub.add_parser(name)
         s.add_argument("--run-dir", type=Path, required=True)
         if name == "freeze":
@@ -385,6 +536,9 @@ def main(argv=None) -> int:
             m = freeze(a.run_dir, a.src)
             r = {"frozen_utc": m["frozen_utc"],
                  "files": {k: v["sha256"] for k, v in m["files"].items()}}
+        elif a.cmd == "supplement":
+            r = supplement(a.run_dir)
+            r = {k: r[k] for k in ("experiment", "output", "rc")}
         else:
             r = analyze(a.run_dir)
             r = {k: r[k] for k in ("experiment", "output", "child_peak_rss_mb", "rc")}

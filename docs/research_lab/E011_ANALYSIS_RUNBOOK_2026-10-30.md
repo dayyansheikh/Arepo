@@ -1,6 +1,6 @@
 # E011 one-shot analysis runbook (2026-10-30)
 
-Branch `feat/e011-analysis`. Operations note only: no protocol, rule, threshold, evidence file or registered code is
+Branch `feat/e011-analysis`, fixes on `feat/e011-fixes` (review `reviews/E011_ANALYSIS_WRAPPER_REVIEW_2026-10-30.md`, ACCEPT_WITH_FIXES; MUST 1 and SHOULD 1-4 applied). Operations note only: no protocol, rule, threshold, evidence file or registered code is
 changed. Code-version question settled by `reviews/E011_CODE_VERSION_RULING_2026-10-30.md` (PIN_HEAD_WITH_DEVIATION_NOTE)
 and the two ledger entries of 2026-10-30 18:27Z and 18:30Z. Modelled on `E009_E010_ANALYSIS_RUNBOOK_2026-10-30.md`;
 every MUST and SHOULD of `reviews/E009_E010_ANALYSIS_WRAPPER_REVIEW_2026-10-30.md` and its re-check is applied from the start.
@@ -30,7 +30,7 @@ override. Chosen option: **freeze, then run the registered CLI unchanged with on
 - A test (`test_analyze_runs_registered_cli_on_frozen_copy_and_is_write_once`) shows the saved output equals
   `json.dumps(surprise_snapshot.analyze(root=<copy>), indent=1) + "\n"` and ignores lines appended after the cut.
 
-## 2. Steps (drafts `docs/research_lab/queue/drafts/q0790`–`q0792`)
+## 2. Steps (drafts `docs/research_lab/queue/drafts/q0790`–`q0793`)
 
 `D` = `../data-dumps/research_lab/e011_analysis` (cwd `backend`). Wrapper: `backend/scripts/run_e011_analysis.py`; tests:
 `backend/tests/test_e011_analysis_wrapper.py` (synthetic lines only).
@@ -39,7 +39,18 @@ override. Chosen option: **freeze, then run the registered CLI unchanged with on
 |---|---|---|---|
 | q0790 precheck + freeze | `run_e011_analysis.py freeze --run-dir D --src ../data-dumps/research_lab/surprise_live` | `D/inputs/{alerts,outcomes,passes}.jsonl`, `PRE_RUN.json`, `FREEZE_MANIFEST.json` | 2026-11-11T13:00Z / none / 2 |
 | q0792 archive (optional) | `archive_rotate.py --include-active D/inputs/*` | GitHub release `data-YYYYMMDD-<host>-active` | 13:30Z / q0790 / 2; does not gate q0791 |
-| q0791 analyze | `run_e011_analysis.py analyze --run-dir D` | `D/results/e011_analysis.json`, `.run.json`, `e011_secondaries_not_produced.json` | 13:30Z / q0790 / **0** |
+| q0793 supplement | `run_e011_analysis.py supplement --run-dir D` | `D/results/e011_supplement.json`, `e011_supplement.run.json` | 13:30Z / q0791 / **0** |
+| q0791 analyze | `run_e011_analysis.py analyze --run-dir D` | `D/results/e011_analysis.json`, `.run.json` | 13:30Z / q0790 / **0** |
+
+**Quiescence (freeze).** Exit 75 if `outcomes.jsonl` or `passes.jsonl` was modified less than 10 minutes ago or the
+collector flock (`/tmp/arepo_collector.lock`) is held. The pre-run record states whether a pass with
+`written_utc >= 2026-11-11T12:31Z` exists. Mtimes only; no content read. `analyze` runs on the frozen copies and needs no gate.
+
+**Supplement (q0793).** Refuses (exit 2) unless `results/e011_analysis.json` exists; enforces the sha256 of
+`surprise_supplement.py` (`f7cf470eeebfce74b4700d44e637e051eb81502f0880485fc2131e9fc15f1a84`) and `run_surprise_supplement.py`
+(`8917f6233b2eb85f63c18b6aca4d1983b9a77e01ebe686643d0a98ee7ca329b8`), both as at e53dceaa and equal to HEAD; runs
+`run_surprise_supplement.py --root D/inputs` once; stdout saved write-once. Optional afterwards (read-only, describe only):
+`scripts/live_verdicts.py e011 D/results/e011_analysis.json`, save its stdout (readiness 2026-10-19 :328).
 
 Every step: refuses with exit 75 before 2026-11-11T13:00:00Z (the queue retries later); exits 2 on a declared refusal
 (sha256 pin mismatch or missing pinned file, a modified tracked file other than `docs/research_lab/trials.jsonl`, an
@@ -70,8 +81,11 @@ All seven were verified equal to HEAD on 2026-10-30. Also recorded (not enforced
 - The `analyze` output as saved: verdict, `n_alert_lines`, `n_episodes`, `n_episodes_analysed`, `dropped_episodes`,
   `outcome_accounting` (pending, unavailable, evaluated, alerts vs controls), `testable`.
 - The retroactive deviation of 2026-10-30 (afd67c3a; `ml_explain.cluster_boot` `weights`) and the `_cluster_id` fix.
-- Secondaries (c), (e), (f), (g): **"not produced"** (`e011_secondaries_not_produced.json`). `by_fee_category` is the only
-  fee split `analyze` outputs.
+- Secondaries (c), (e), (f), (g) and (d) from `e011_supplement.json` (descriptive, no verdict role, not counted).
+- PRE_RUN pass counts limited to `[2026-10-13T14:00Z, 2026-11-10T00:00Z)`, with the outcome-blind count of missed slots on the
+  2-hour :31 grid, and every missed collector slot (10-14 00:31-10:31Z, 6 passes, plus any later); the window is not extended.
+- Counting: **1 counted test; no `trials.jsonl` line written by analyze.** `analyze` verified `pre_run_sha256` and recorded
+  python/numpy/pandas versions.
 - The q0792 archive tag, or that it failed together with the prefix-rebuild path (§1 of the q0792 notes).
 
 ## 5. After q0791 (orchestrator)
@@ -80,22 +94,19 @@ All seven were verified equal to HEAD on 2026-10-30. Also recorded (not enforced
 `docs/research_lab/e011_analysis/`, commit, add the ledger result entry, update the registry status, checkpoint and
 dashboard. Promotion: merge this branch, deploy, `git mv` the 3 drafts to `jobs/`, deploy again before 2026-11-11T13:00Z.
 
-## 6. Ambiguities in the registered protocol for running the analysis (quoted, not resolved)
+## 6. Ambiguities in the registered protocol, and the declared rulings
 
-1. Live vs frozen input: "analysis **once** ... with `scripts/run_surprise_snapshot.py analyze`". Taken literally this reads the live files; the
-   wrapper reads a frozen prefix through the same code (§1). Both are the registered statistic; the choice is a recorded
-   operational one.
-2. Catch-up: "the last lines are due about 2026-11-11T00:30Z and an empty series becomes `unavailable` 12 h after due". Lines
-   whose 12 h grace ends after the last pass before the freeze stay `pending`. The wrapper does not gate on a pass time
-   (`last_written_utc` is recorded); "any line still pending at analysis time is reported as pending, never imputed."
-3. Episode rule: "alert lines of one market closer than 24 h collapse to the first" (unit) versus the code, which chains each line
-   from the previous line, not from the head (readiness 2026-10-19, "the frozen code's reading").
-4. Registered secondaries "(c) 2 h label; ... (e) by fee category and sports vs non-sports; (f) `control_match` composition; (g) ...
-   passes missed, request and timing stats" are not output by `analyze`. Reported "not produced".
-5. "No interim look at outcomes beyond operational counts" versus the ruling's pre-run counts of `fee_category == "unknown"`
-   alert lines. The latter reads alert lines only, not outcomes, and is taken as an operational count.
-6. Code version: registered file `surprise_snapshot.py` was `7c17571c…` at registration; the pinned file is `413107af…`
-   (two logged deviations, ruling PIN_HEAD_WITH_DEVIATION_NOTE). Whether the deviation is "pre-outcome" rests on the ledger's
-   record that no outcome was read.
-7. "Early stop ... does not extend the window; the shortfall is recorded": the shortfall (collector gap 2026-10-14 00:31Z–10:31Z,
-   6 passes) is a ledger entry, not a computed field; `analyze` does not report it.
+Declared before the run, outcome-blind, in the ledger entry "E011 analysis readings declared before the run"
+(`EXPERIMENT_LEDGER.md`, 2026-10-30 18:40Z; rulings adopted verbatim from the wrapper review). They bind:
+
+1. Input: frozen byte prefixes at `frozen_utc` (>= 2026-11-11T13:00Z); "analysis time" = `frozen_utc`; later outcome lines unused.
+2. Catch-up: no gate beyond 13:00Z; lines pending at `frozen_utc` are reported pending, not unavailable; last pass `written_utc`
+   and presence of the 12:31Z pass are reported.
+3. Episode: the registered `analyze()` chains each line from the previous line of the market (`surprise_snapshot.py:659-665`);
+   this reading binds; no head-anchored variant is computed.
+4. Secondaries (c)(e)(f)(g) and (d): the pre-declared supplement (711a9107 / e53dceaa), run once after the primary; descriptive,
+   no verdict role, not counted.
+5. Pre-run counts are operational, from passes and alert lines only; no outcome line is parsed.
+6. Code version: as in the 2026-10-30 18:30Z deviation (pins `413107af...` etc.); nothing added.
+7. Shortfall: every missed collector slot in the window is reported from `passes.jsonl`; the window is not extended.
+8. Counting: E011 is 1 counted test; `analyze` writes no trials line.
