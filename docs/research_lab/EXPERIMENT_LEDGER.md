@@ -5348,3 +5348,12 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **Census:** capture `20261030T103101Z_c1803a16`; covered 18,864 of 53,973 eligible rows. 7-day text edits 68
   (0.36%) and 7-day end-date moves 69 (0.37%) of covered rows, both under the 0.5% kill line fixed in §43 (CH228's):
   **family killed**. No aux family, challenger or table built; K unchanged.
+
+## Signal engine: `parentsib` family (CH237) killed at census; `gamma_rules` reader parse cache (§44), 2026-10-30 ~12:20Z (signal-engine autopilot session 36; development, nothing counted, k = 0)
+- **Definitions before the run:** DESIGN_V1 §45, `signal_engine/parent_sib.py` and
+  `census/se_parentsib_census_2026-10-30.py` committed `ec352da0` (12:17:14Z); census started 12:17:21Z with the
+  committed hashes. Counts only (sibling 2 h moves counted as feature coverage; no label or outcome).
+- **Census:** capture `20261030T103101Z_c1803a16`; rows with a parent event: non-sports 0.14% (sports 67.5%), under
+  CH237's 5% non-sports line: **family killed**. Nothing built; K unchanged.
+- **§44 (operational, no value change):** per-day parse cache for the `rules` / `umaparams` / `framein` readers under
+  the engine root; host check: cold 22.7 s, warm 1.8 s, values identical to the uncached readers; 19 MB.

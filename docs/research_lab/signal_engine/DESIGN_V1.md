@@ -1612,3 +1612,17 @@ Ideas only: no evidence yet. Nothing about the parent was counted before this se
   crypto, the rest). Otherwise the gain is reported as a category or coverage stand-in. First creditable `dir_2h`
   read after 14 days of scores from fits whose training window holds only v3-sidecar captures (dated from the
   census's sidecar line). Promotion is unchanged (`se-promotion-v2` against the champion).
+- **Census result (counts only): FAMILY KILLED.** Run started 12:17:21Z, after the definitions commit `ec352da0`
+  (12:17:14Z). Host shas of `parent_sib.py` `e3b4e85f...` and of the script `27313e66...` equal the commit. Capture
+  `20261030T103101Z_c1803a16`, 53,973 eligible rows; v3 sidecar columns present. `ps_has_parent` was known on every row,
+  with share 1 0.463 overall, **non-sports 0.0014 (of 16,958) < 0.05: killed on CH237's line**, and sports 0.675.
+  The d2h coverage line would have passed (`ps_sib_d2h` finite 14,963, 0.277), and `ps_sib_moving` > 0 on 12,782.
+  Information: parents are a sports structure (sports d2h coverage 0.404, crypto 0, other 0.0006). Child events seen
+  per parent row: mostly 2-6. 9,939 parent rows with >= 2 children seen lost their moves to the clock or the
+  share rule. corr(`ps_sib_d2h`, `ev_sib_d2h`) 0.016. The sidecar-version line printed None: it read a key that
+  `ext_manifest.json` lacks; information only, and the v3 column was read directly. Cold run 4.5 s, 389 MB.
+  Output `census/se_parentsib_census_2026-10-30.out`.
+- **Consequence.** No aux family, spec or table is built; K is unchanged. `parent_sib.py` and its test stay as the
+  census's committed code (not wired). The line is not revisited. A **sports-only** parent factor would be a
+  different idea, scored on the sports breakdown only, and it waits on the owner's open sports-scope decision. It is
+  not proposed here.
