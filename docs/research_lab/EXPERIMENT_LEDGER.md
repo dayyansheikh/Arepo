@@ -4791,7 +4791,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   se17's 900k rows? Rule fixed before the run in DESIGN_V1 §34 (the §32 rule against se17: all three direction targets,
   CI excluding zero, >= 4 of 5 days positive). Development / historical; one write-once dev file; no live file changes.
 
-## Creative round 19 recorded: CH262-CH269, 2026-10-30 ~02:20Z (experiments autopilot; ideas only, nothing tested, k = 0)
+## Creative round 19 recorded: CH262-CH269, 2026-10-30 ~02:06Z (experiments autopilot; ideas only, nothing tested, k = 0)
 - `CREATIVE_HYPOTHESES_2026-11-02.md` (Fable xhigh; 671b2351, merged a5877d70). Eight ideas: CH263 carry after a UMA proposal
   (hold to resolution; asks the `science-reviewer` to rule on rule 26, registered measurements), CH262 the engine's top decile
   against the cost model's rungs (LT14 candidate), CH267 into-close spread by rule class (LT15 candidate), CH265 residual
@@ -4799,7 +4799,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   CH269 the counts-only map that decides the rest.
 - No host probe or data read by the round. Next: CH269 counts-only map job (in progress on `feat/ch269-map`).
 
-## CB3 `T3_fu_start` recorded, 2026-10-30 ~02:40Z (experiments autopilot; operational, nothing counted)
+## CB3 `T3_fu_start` recorded, 2026-10-30 ~02:08Z (experiments autopilot; operational, nothing counted)
 - First complete follow-up pass: capture `20261030T003102Z_e883d896` (pass start 2026-10-30T00:31:02Z; code af8e0381,
   committed 10-29T23:41:09Z, deployed before that pass). Manifest
   `cb3_followup/20261030T003102Z_e883d896/manifest.json` sha256 `f4a8af20…2311f`: state complete, 962 requests, 0 x 429,
@@ -4809,7 +4809,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   and quote_state is accounted for up to it; q0064 stays held until then. The design's top-level
   `cb3_followup/manifest.json` was never implemented (per-capture manifests only; disclosed 10-30 ops batch).
 
-## LT13 full R1 re-check GO_WITH_CHANGES; LT12 fee-step impact DISCLOSE, 2026-10-30 ~03:15Z (experiments autopilot; nothing counted)
+## LT13 full R1 re-check GO_WITH_CHANGES; LT12 fee-step impact DISCLOSE, 2026-10-30 ~02:08Z (experiments autopilot; nothing counted)
 - `reviews/LT13_R1_FULL_RECHECK_2026-10-30.md` (on `LIVE_TESTS_13.md` sha256 `09501b14…6efb806`): every R1 MUST / SHOULD
   discharged; q0717 fix 1 partly ("unexplained" at two lines). CH253 alone (k = 1) is coherent. MUST before stage A code:
   (1) declare the verbatim `fee_category` reading for `cbar` and disclose it is now near a venue-wide factor; (2) stage A
@@ -4836,7 +4836,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **Science review** (read-only): causality, census and embargo PASS; must-fixes (census provenance, control attribution,
   replay dependency of the ~96 earlier inputs files) applied before registration.
 
-## CB9 kd frame cap amendment accepted; q0185b promoted, 2026-10-30 ~03:35Z (experiments autopilot; operational, nothing counted)
+## CB9 kd frame cap amendment accepted; q0185b promoted, 2026-10-30 ~02:11Z (experiments autopilot; operational, nothing counted)
 - Amendment `CREATIVE_BATCH_9.md` §11.4 (frame output cap 0.01 -> 0.4 GB; fresh run dir `kd_frame_v3`; rules
   `cb9-kd-rules-v3` sha256 `29e781b0…f60d`). Ruling `reviews/CB9_KD_CAP_AMENDMENT_RULING_2026-10-30.md` **ACCEPT_WITH_FIXES**:
   a disk budget only (no selection, sample or stopping rule), blind to outcomes (no outcome field in frame rows; books stage
@@ -4847,7 +4847,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   (11:28-11:33Z) the `disk_budget` stop. Both superseded, never read. **q0185b promoted to jobs/** (net lane, prio 42,
   depends on q0182b, done). After it: manifest `exclusion_keys_sha256` must equal `e613604a…` and `rules_sha256` the v3 hash.
 
-## Round 19 rule 26 (registered measurements) ruling: ACCEPT_WITH_CONDITIONS, 2026-10-30 ~03:40Z (experiments autopilot; nothing counted)
+## Round 19 rule 26 (registered measurements) ruling: ACCEPT_WITH_CONDITIONS, 2026-10-30 ~02:13Z (experiments autopilot; nothing counted)
 - `reviews/R19_RULE26_MEASUREMENT_RULING_2026-10-30.md`: a prospective measurement (k = 0) is a separate evidence role
   `prospective_measurement`, never confirmation or an edge claim. Conditions: estimand-only wording (no p-values; banned
   words listed), everything frozen and code-pinned before the window, every declared split reported, later tests on the same
@@ -4860,7 +4860,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   inattention contrast can only be descriptive; `not_found` reported both ways; event-clustered SEs.
 - Next: CH269 map (counts) decides which of M1 / M2 / LT14 / LT15 are drafted.
 
-## LT13 final verification and DESIGN-TEXT FREEZE, 2026-10-30 ~04:00Z (experiments autopilot; nothing counted)
+## LT13 final verification and DESIGN-TEXT FREEZE, 2026-10-30 ~02:15Z (experiments autopilot; nothing counted)
 - Final pre-freeze verification (`reviews/LT13_FINAL_PREFREEZE_VERIFICATION_2026-10-30.md`) of 3fec80a3: R1-full MUST 1-2 and
   SHOULD 1-5 discharged; no threshold, alpha, window, MDE target, placebo or estimand changed; **FREEZE_AFTER_FIXES (wording)**:
   the aliased-controls rule drops a column only if it is in the span of the retained ones, and declares its end states
@@ -4876,7 +4876,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **Next:** stage-A census code (origin-side unit builders, batch join, pseudo-batch rule, twin-state loader, states only; the
   refuse / print lists of section 6), its independent code-freeze check, then the census job per section 6.
 
-## CH269 counts-only map queued (q0730), 2026-10-30 ~04:30Z (experiments autopilot; counts only, k = 0, uncounted)
+## CH269 counts-only map queued (q0730), 2026-10-30 ~02:17Z (experiments autopilot; counts only, k = 0, uncounted)
 - `census_map_ch269.py` + `scripts/run_ch269_map.py` (merged from `feat/ch269-map`, ef88b968; 10 fixture tests). Read-only
   over the last 8 days of sidecars, the engine's `quotes/`, `features/`, `predictions/` (pinned champion
   `se0_champion_lr_mm`) and resolution logs, and `stream_gamma_rules`; prints the section 2 F lines and its decision lines
@@ -4889,7 +4889,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   class uses a placeholder keyword classifier (printed; CH239's parser is not in the repo), so its class counts are
   planning-only; tier = the sidecar `liquidity` column. Lane cpu (local stores only), mem_mb 450, as_cap 6000 (virtual).
 
-## CB5 fixes merged; zero-family decision recorded; q0103b promoted, 2026-10-30 ~04:50Z (experiments autopilot; nothing counted yet)
+## CB5 fixes merged; zero-family decision recorded; q0103b promoted, 2026-10-30 ~02:21Z (experiments autopilot; nothing counted yet)
 - Re-check `reviews/CB5_CODE_RECHECK_2026-10-30.md` ACCEPT_WITH_FIXES (fixes 1-6 verified, 116 tests; declaration
   `7c62c037…5cd0`, only the fix functions changed). MUST 1 (zero families) implemented (d7709b2b) and re-checked by a targeted
   `science-reviewer` pass: ACCEPT_WITH_FIXES; its fixes applied (766da72c): the zero-family census path writes the declared G59
@@ -4902,14 +4902,14 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   empty sample). q0106 no longer depends on q0105. SHOULD 2 declared in §10: q0106 may run on cohort `complete: true`, failed
   markets reported unavailable (never filled), their count written in the release commit. SHOULD 3 (replication selection
   drift) must be reviewed before q0111.
-- **q0103b promotion conditions (CB5_CODE_FREEZE_CHECK_2026-10-29 l. 31-36), checked on the host 2026-10-30 ~04:45Z:** (1) fixes
+- **q0103b promotion conditions (CB5_CODE_FREEZE_CHECK_2026-10-29 l. 31-36), checked on the host 2026-10-30 ~02:20Z:** (1) fixes
   committed and tested; (2) `cb5_extract/manifest.json` sha256 `10f2d371…bde368`: 179 of 179 complete captures starting in
   [10-11T12Z, 10-27T00Z) `listings.status == extracted` (179 snapshot dirs in the span, none missing either way),
   `prev_chain` ok 178 / broken 1; (3) deployed `arepo_pass.sh` passes the 50 GiB dumps guard; (4) §2.8 headroom: the dumps
   folder at 36 GiB against the 50 GiB guard, root 33 GB free; (5) lane `net`. **q0103b promoted to jobs/** (prio 41, depends on
   q0101, done). q0106 waits for q0103b's cohort manifest `complete: true`.
 
-## CB10 q0201 fix ruled and merged (draft stays in drafts), 2026-10-30 ~05:20Z (experiments autopilot; nothing counted)
+## CB10 q0201 fix ruled and merged (draft stays in drafts), 2026-10-30 ~02:28Z (experiments autopilot; nothing counted)
 - Ruling `reviews/CB10_Q0201_FIX_RULING_2026-10-30.md` **GO_WITH_CHANGES**: the run-scoped exclusion fix only adds ids, never
   drops one silently, and never exits 0 on an incomplete run. **MUST 1 caught a pin error** (present since the 10-28 draft):
   the K/D pin named the whole walked frame; the design asks for the 1,000 seeded SCREEN + HOLDOUT ids, now
