@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-30T02:40:00Z",
+ "updated": "2026-10-30T03:05:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1736,20 +1736,20 @@
   },
   {
    "id": "LT13",
-   "title": "Planned live tests LT13 (payer's return, listing batch)",
-   "plain": "Two original spread ideas from round 18. The fee-label probe showed the venue switched about 26,000 markets to zero fees on 20 Oct, so the fee-charging comparison (CH252) is withdrawn before its counting check, as its pre-declared rule says. The listing-batch idea (CH253) continues alone. The full re-check said go with changes; those changes are applied.",
+   "title": "Live tests 13: the listing batch (planned)",
+   "plain": "One planned live test from ideas round 18: when the venue lists a batch of new markets at once, does a spread move in the batch's other markets predict the spread of each one? Design frozen (30 Oct) after a challenger review, a full re-check and a final check. A second idea (the fee-paying comparison) was withdrawn before counting because the venue removed most fees on 20 Oct. It may still fail its counting check.",
    "batch": "LT13",
    "family": "mixed",
    "stage": "designed",
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Final verification of the applied changes, then design freeze and the counting-check code",
-   "next_date": null,
+   "next": "Counting-check code, its independent check, then the counting check; live window proposed 21 Jan - 11 Feb 2027",
+   "next_date": "2027-01-21",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/reviews/LT13_R1_FULL_RECHECK_2026-10-30.md",
-    "next": "docs/research_lab/LIVE_TESTS_13.md (DRAFT); docs/research_lab/EXPERIMENT_LEDGER.md § LT13 design draft and challenger R1 (2026-10-28)",
+    "verdict": "docs/research_lab/reviews/LT13_FINAL_PREFREEZE_VERIFICATION_2026-10-30.md",
+    "next": "docs/research_lab/LIVE_TESTS_13.md (FROZEN design text, d940c0ab); docs/research_lab/EXPERIMENT_LEDGER.md § LT13 final verification and DESIGN-TEXT FREEZE (2026-10-30)",
     "status": "docs/research_lab/reviews/LT13_Q0717_RECHECK_2026-10-29.md; reviews/LT13_Q0717_RESULT_2026-10-29.md"
    },
    "stage_results": {
