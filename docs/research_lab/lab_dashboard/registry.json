@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-30T00:20:00Z",
+ "updated": "2026-10-30T02:40:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1088,19 +1088,20 @@
   {
    "id": "CB9",
    "title": "Trade direction, hourly-anchored dailies, flow-skewed maker",
-   "plain": "Designed: whether trade direction labels are reliable and a few maker ideas. The overlap step and one frame finished; the second frame stopped on a declared output-size limit that was set far too small (about 10 MB for a frame of about 90 MB). A written amendment is being prepared for review. No outcome read.",
+   "plain": "Designed: whether trade direction labels are reliable and a few maker ideas. The overlap step and one frame finished; the second frame stopped on a declared output-size limit that was set far too small (about 10 MB for a frame of about 90 MB). The written amendment was independently reviewed and accepted (a disk limit only, decided without seeing any outcome); the frame is fetched again from the start. No outcome read.",
    "batch": "CB9",
    "family": "microstructure",
    "stage": "designed",
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Reviewed amendment of the frame size limit, then the second frame",
+   "next": "Second frame (q0185b) runs on the server, then the CB10 key step",
    "next_date": null,
    "candidate": false,
    "sources": {
     "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Smokes PASS (CB9 smoke v2); docs/AREPO_V2_CHECKPOINT.md; docs/research_lab/EXPERIMENT_LEDGER.md § CB9 q0182 FAILED x3 (Gamma 422); q0182b fix reviewed, merged, queued (2026-10-24)",
-    "status": "docs/research_lab/EXPERIMENT_LEDGER.md § Ops batch 2026-10-30 (CB9 q0185 held)"
+    "status": "docs/research_lab/EXPERIMENT_LEDGER.md § Ops batch 2026-10-30 (CB9 q0185 held)",
+    "next": "docs/research_lab/CREATIVE_BATCH_9.md § 11.4; docs/research_lab/reviews/CB9_KD_CAP_AMENDMENT_RULING_2026-10-30.md"
    },
    "stage_results": {
     "designed": "pass"
@@ -1736,18 +1737,18 @@
   {
    "id": "LT13",
    "title": "Planned live tests LT13 (payer's return, listing batch)",
-   "plain": "Two original spread ideas from round 18. The fee-label probe showed the venue switched about 26,000 markets to zero fees on 20 Oct, so the fee-charging comparison (CH252) is withdrawn before its counting check, as its pre-declared rule says. The listing-batch idea (CH253) continues alone; re-check fixes are applied.",
+   "plain": "Two original spread ideas from round 18. The fee-label probe showed the venue switched about 26,000 markets to zero fees on 20 Oct, so the fee-charging comparison (CH252) is withdrawn before its counting check, as its pre-declared rule says. The listing-batch idea (CH253) continues alone. The full re-check said go with changes; those changes are applied.",
    "batch": "LT13",
    "family": "mixed",
    "stage": "designed",
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Full re-check of the second draft, then final verification and design freeze",
+   "next": "Final verification of the applied changes, then design freeze and the counting-check code",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/reviews/LT13_CHALLENGER_R1_2026-10-28.md",
+    "verdict": "docs/research_lab/reviews/LT13_R1_FULL_RECHECK_2026-10-30.md",
     "next": "docs/research_lab/LIVE_TESTS_13.md (DRAFT); docs/research_lab/EXPERIMENT_LEDGER.md § LT13 design draft and challenger R1 (2026-10-28)",
     "status": "docs/research_lab/reviews/LT13_Q0717_RECHECK_2026-10-29.md; reviews/LT13_Q0717_RESULT_2026-10-29.md"
    },
