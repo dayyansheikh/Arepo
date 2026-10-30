@@ -5879,3 +5879,11 @@ Source: `reviews/E011_ANALYSIS_WRAPPER_REVIEW_2026-10-30.md` (ACCEPT_WITH_FIXES 
 - Fixes before promotion (delegated, `feat/e011-fixes`): MUST 1 supplement job q0793 (pins the two supplement files at
   e53dceaa; the wrapper's "not produced" constant removed); SHOULD 1-4 (quiescence / catch-up check, window-limited pre-run
   counts with missed slots, `pre_run_sha256` check and library versions, runbook count line). Then a diff-only check.
+
+## E011 one-shot analysis jobs PROMOTED, 2026-10-30 18:44Z (experiments autopilot; no E011 outcome read)
+- `reviews/E011_FIX_DIFF_CHECK_2026-10-30.md`: **ACCEPT** on 82925026 (pinned paths and supplement files unchanged; supplement
+  step pinned `f7cf470e…1a84` / `8917f623…329b8`, write-once; quiescence cannot lose the one-shot: tempfails are not
+  attempts, cap 48; ledger readings match the wrapper). **Promoted:** q0790 (freeze + outcome-blind pre-run counts, not
+  before 2026-11-11T13:00Z), q0791 (analysis, max_retries 0, 13:30Z), q0792 (inputs archive, not gating), q0793 (supplement,
+  after q0791, max_retries 0). Notes for the result entry: compare the missed-slot count with the ledger's 6-pass gap
+  (10-14 00:31-10:31Z); the supplement needs a `t` field on every pass line (a failure there is recorded, descriptive only).
