@@ -575,6 +575,7 @@ def test_smoke_definitive_status_still_records_a_fail(monkeypatch, capsys, tmp_p
     monkeypatch.setattr(dl, "smoke_data_api", lambda lim, cids: {"pass": True})
     rules = c10.write_rules(tmp_path / "r.json")
     out_path = tmp_path / "smoke.json"
-    code, out = _run(["smoke", "--out", str(out_path), "--rules", str(rules), "--allow-uncommitted-rules", "--standalone"], capsys)
-    assert code != 75 and out_path.exists()
+    tp = tmp_path / "trials.jsonl"  # never the real docs/research_lab/trials.jsonl
+    code, out = _run(["smoke", "--out", str(out_path), "--rules", str(rules), "--allow-uncommitted-rules", "--standalone", "--trials-path", str(tp)], capsys)
+    assert code != 75 and out_path.exists() and tp.exists()
     assert json.loads(out_path.read_text())["criteria"]["deribit"] is False
