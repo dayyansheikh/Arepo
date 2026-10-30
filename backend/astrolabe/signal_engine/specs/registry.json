@@ -205,6 +205,13 @@
    "spec_sha256": "7f76a23b1ca51ba582aa0f53e1fff36f29225db327a0397191ac44e895ff8689",
    "status": "active",
    "added_utc": "2026-10-30T04:29:00Z"
+  },
+  {
+   "model_id": "se29_lr_uma",
+   "file": "se29_lr_uma.json",
+   "spec_sha256": "40f1204c8d7e4c4a3805927e74c600bf504975a75d7f372d2bfa81d7fa3db606",
+   "status": "active",
+   "added_utc": "2026-10-30T07:15:00Z"
   }
  ]
 }

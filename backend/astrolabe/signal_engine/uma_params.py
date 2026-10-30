@@ -20,10 +20,12 @@ from pathlib import Path
 from .rules_text import RULES_FIRST_DAY, RulesGap
 
 UMA_VERSION = "se-aux-umaparams-v1"
-UMA_COLUMNS = ["up_has", "up_log_bond", "up_log_reward", "up_live_custom", "up_unreviewed", "up_fallback", "up_resolver_top"]
+# up_unreviewed (hasReviewedDates false) was defined in section 42 and dropped by its census: 0 of 18,135 covered rows
+UMA_COLUMNS = ["up_has", "up_log_bond", "up_log_reward", "up_live_custom", "up_fallback", "up_resolver_top"]
 VALUE_COLUMNS = UMA_COLUMNS[1:]  # NaN for a market with no known row
-# the resolvedBy address with the most covered rows in the section-42 census (counts only; pinned after that run)
-RESOLVER_TOP = ""
+# the resolvedBy address with the most covered rows in the section-42 census (9,096 of 18,135; counts only; pinned
+# after that run, before any table existed)
+RESOLVER_TOP = "0x69c47de9d4d3dad79590d61b9e05918e03775f24"
 _NO_FALLBACK = {"", "none", "null"}
 
 
@@ -38,12 +40,10 @@ def _num(v) -> float:
 def parse_uma(data: dict) -> list[float]:
     """The VALUE_COLUMNS of one ``m:`` row's data (pure). A missing or malformed field is NaN, never filled."""
     bond, reward, live = _num(data.get("umaBond")), _num(data.get("umaReward")), _num(data.get("customLiveness"))
-    rev = data.get("hasReviewedDates")
     fb = data.get("fallbackResolutionType")
     rb = data.get("resolvedBy")
     return [math.log1p(bond), math.log1p(reward),
             float(live > 0) if math.isfinite(live) else math.nan,
-            float(not rev) if isinstance(rev, bool) else math.nan,
             float(str(fb).strip().lower() not in _NO_FALLBACK) if isinstance(fb, str) or fb is None else math.nan,
             float(str(rb).lower() == RESOLVER_TOP.lower()) if isinstance(rb, str) and rb and RESOLVER_TOP else math.nan]
 
