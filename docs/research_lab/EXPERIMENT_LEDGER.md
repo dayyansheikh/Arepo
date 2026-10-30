@@ -4962,3 +4962,14 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   and census, from code reading only; no capture, sidecar or census output read; governs where earlier text differs).
 - Drafts q0720 (restore, not before 2026-11-17T09:00Z, after LT12 q0710-q0712), q0721 (seal), q0722 (census) stay drafts;
   q0722 needs a host dry-run memory measurement (A17) before promotion.
+
+## Signal engine: disk cap 8 -> 16 GB, gzip fit artifacts, headroom shown, 2026-10-30 ~04:00Z (signal-engine autopilot session 33; operational, nothing counted, k = 0)
+- **Why:** engine dir 5.24 GB at ~0.6 GB/day (28 models), so the 8 GB cap (sized for 8 models) would bind ~11-03. A
+  refusal exits 75 like "not due", so the engine would have stopped writing prospective predictions without an alert.
+  The cap is a storage guard; no model, target, score or promotion input depends on it (DESIGN_V1 §40).
+- **Changes (`87cfea54`, merged `e4d219f8`, deployed):** `ENGINE_DISK_CAP_GB` 16. New fits store
+  `<target>.json.gz` (lossless, deterministic bytes, sha of the stored file; ~2.4x smaller), legacy plain fits read
+  unchanged and no existing file rewritten. `disk` (bytes, cap, share, warn >= 80%) in `status` and `live_status`.
+  Host check: cap 16 GB, used 0.328, se1's legacy fit loads with sha checks.
+- **Owner decision pending (by ~11-15):** activate the deferred engine retention rules (predictions 35 d,
+  features/quotes 45 d) plus an `aux/` 45-day rule; otherwise 16 GB binds ~11-20. Engine files are in the verified releases.

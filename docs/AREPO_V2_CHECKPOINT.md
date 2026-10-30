@@ -404,7 +404,7 @@ equals its source (the test checks). Do not edit the LT5 spec while q0561/q0562 
 **Waiting:**
 - MC1: after the resize (item 4).
 - CB4 q0085 not before ~10-24T12Z. CB5 q0103b on or after 10-27, then q0106. CB3 freeze after q0064 (after 10-25).
-- Signal engine: live state in `signal_engine/STATUS.md` (10-30 ~02:58Z session 32: round-19 engine families read, none built: `resid` (CH265) killed at its census (the champion's 2 h residuals reverse, lag-1 -0.091); `fragile` (CH268) passed as written but is structurally slot-level (market-specific share 0); the data-suggested `rsrev` failed its pre-committed gate (se1's residual lag-1 -0.002: its trees already absorb the reversal). DESIGN_V1 §37-§39, science review applied. 28 models unchanged; se27 first fit at the 10-30 refit; first promotion reads ~11-04.)
+- Signal engine: live state in `signal_engine/STATUS.md` (10-30 ~03:36Z session 33: engine disk cap 8 -> 16 GB (the 8 GB, sized for 8 models, would have bound ~11-03 at 28 models and ~0.6 GB/day, silently: a refusal exits 75); new fits store gzip `<target>.json.gz` (lossless), legacy fits read unchanged; `disk` headroom in `status` / `live_status` (DESIGN_V1 §40, deployed `e4d219f8`). **Owner decision by ~11-15:** activate the deferred engine retention rules + an `aux/` 45-day rule, else 16 GB binds ~11-20. 28 models unchanged; se27 first fit at the 10-30 refit; first promotion reads ~11-04.)
 
 ## Learned surprise-move detector (2026-10-12 evening)
 `docs/research_lab/SURPRISE_MOVE_DETECTOR.md`. Labels fixed and logged before features (`surprise-labels-v1`,
