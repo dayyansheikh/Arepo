@@ -404,7 +404,7 @@ equals its source (the test checks). Do not edit the LT5 spec while q0561/q0562 
 **Waiting:**
 - MC1: after the resize (item 4).
 - CB4 q0085 not before ~10-24T12Z. CB5 q0103b on or after 10-27, then q0106. CB3 freeze after q0064 (after 10-25).
-- Signal engine: live state in `signal_engine/STATUS.md` (10-30 07:27Z session 35: aux families `umaparams` (CH207 UMA bond / reward / liveness / fallback / resolver from `gamma_rules`, census passed, DESIGN_V1 §42) and control `framein`; challengers `se29_lr_uma` and control `se30_lr_framein` (31 models); science review REVISE (minor) applied: se28 / se29 gains are credited only against se30, pooled and in 2 of 3 category groups, from ~11-18. Deployed `2f8bedda`, backfilled 210 tables. **Owner decision by ~11-15:** engine retention + `aux/` 45-day rule (session 33). First promotion reads ~11-04.)
+- Signal engine: live state in `signal_engine/STATUS.md` (10-30 12:41Z session 36: `ruleedit` (CH228, §43) and `parentsib` (CH237, §45) **killed at their counts-only censuses**, nothing built, K unchanged; §44 per-day parse cache for the `gamma_rules` readers (22 s -> 1.8 s warm, values identical; deployed `fad48d35`); input monitor `stale_stream` rule. 31 models unchanged. **Owner decisions:** engine retention + `aux/` 45-day rule by ~11-15 (session 33); sports scope also gates a sports-only parent-sibling family. First promotion reads ~11-04.)
 
 ## Learned surprise-move detector (2026-10-12 evening)
 `docs/research_lab/SURPRISE_MOVE_DETECTOR.md`. Labels fixed and logged before features (`surprise-labels-v1`,
