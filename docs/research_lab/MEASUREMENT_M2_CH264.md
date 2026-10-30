@@ -6,17 +6,17 @@ two wording defects, MUST 1-2 and SHOULD 1-10 applied, mapped in section 19, plu
 `docs/research_lab/seals/M2_J0_q0733b.json`, sha256 `31e3380c…1564`, `informed (M2-J0)`, counts only): rule (a) did not fire
 (median full-day units 138 >= 75), rule (b) record-only line not met (projected 2,898 >= 1,500), rule (e) does not apply
 (every committed poll line carries a parseable `finished_utc`; the per-record receipt-time reader stands), so the 21-day
-window and the dates are unchanged (outcome in section 21); next: final pre-freeze verification, freeze by 2026-11-16. Not frozen, not registered, nothing counted.** Evidence role
+window and the dates are unchanged (outcome in section 21); the final pre-freeze verification ran (`reviews/M2_FINAL_VERIFY_2026-10-30.md`, NOT_READY, text fixes MUST 1-4, disclosures D1-D6 and SHOULD 1/4/5/8 applied, mapped in section 22); next: a diff check that only those lines moved, then the freeze commit by 2026-11-16. Not frozen, not registered, nothing counted.** Evidence role
 `prospective_measurement` (rule 26 of `CREATIVE_HYPOTHESES_2026-11-02.md` 0.3; role and conditions set by the binding
 ruling `reviews/R19_RULE26_MEASUREMENT_RULING_2026-10-30.md`, ACCEPT_WITH_CONDITIONS for the role, **REVISE** for CH264;
 every REVISE item is mapped in section 17). Drafted on branch `feat/m2-ch264` from the `chore/arepo-claude-setup` tip
-`8eb0ad9f`, a design-only commit. No M2 code, no queue file, no seal, no host read. Structure and every defect class caught
+`8eb0ad9f`, a design-only commit. Since then the J1 code (`m2_j1.py`), the J0 runner, job q0733b and its seal exist (sections 20-21). The only host read is J0's counts-only read. Structure and every defect class caught
 on M1 (`MEASUREMENT_M1_CH263.md`, its challenger R1 and its pre-freeze re-check) and on LT14's pre-freeze re-check are
 carried over (section 17.2). Before anything is sealed this needs, in order: a challenger review (`science-reviewer`) of this
 text (R1 done), the designer's response (section 18), a re-check, the J1 extractor code for 3.2, 3.3 and 3.5 written and
 unit-tested on synthetic data (tests i-viii), **M2-J0 = that code in dry mode, its `code_sha` recorded in J0's seal**, a final
 pre-freeze verification, the design-text freeze commit (sha256 in the ledger), the remaining code (J2, J3, A), a code-freeze
-check that lists every change to the J1 code since J0's `code_sha` with its diff and reason, a host dry run with peak RSS,
+check that lists every change to the J1 code since J0's `code_sha` with its diff and reason (the list includes: `run_available` must be changed to judge missing slots by `finished_utc`, section 22), a host dry run with peak RSS,
 and the registration commit (spec and code pins plus the ledger block of 16) at least 24 h before
 `REGISTERED_UTC` (section 2). Until the pins exist, every line a reader writes is `prospective_unregistered`.
 **J0 runs before the design-text freeze and is counts only (no resolution, outcome, follow-up state or post-k price). Its
@@ -103,12 +103,13 @@ after an origin, P&L or evidence JSON was read to write it (reads listed in 14).
   `not_found`) are central to the estimand, and the hazard of 7.3 is right-censored at the read-out; 45 days gives every unit
   at least 45 days of follow-up. Units unresolved at the fetch stay `pending`.
 - **One analysis, fixed end, no extension.** The analysis refuses before `READOUT_UTC + 12 h`, requires `--out`, refuses to
-  overwrite, and keeps only unit lines whose `spec_sha` and `code_sha` equal the pins and whose role is
+  overwrite, and keeps only unit lines whose `spec_sha` (the sha256 of this file at the registration commit; the file is never edited after that, and outcomes go to the ledger) and `code_sha` equal the pins and whose role is
   `prospective_measurement`.
 - **Overlaps (time only, no shared object).** M1 (same window), LT11 (11-18..12-09), E026 (to 12-07), LT12 (from 12-10) share
   captures with M2. M2 reads raw rows, sidecars and `gamma_rules` day files and computes none of their objects; E026's
   modules and stores are not read. The engine's eligibility requires `end_date` after the origin, so M2's units (past
   `end_date`) are disjoint from every engine row by construction.
+- **Disclosure (final verification MUST 2).** M1's read-out (2027-01-15) publishes resolutions of `m1_overlap` markets before M2's read-out. M2's text, code and pins are fixed at registration, so this cannot change M2.
 - **Time of year (disclosed).** US Thanksgiving (2026-11-26) falls in the window; no DST change; the US midterm (11-03) and its
   resolution days fall before it. The fee-free population shrinks over time by construction; projections do not correct.
 
@@ -164,6 +165,8 @@ names the class):
 **Survivorship class (k-visible, counted, never a unit).** `left_before_overdue_slot`: scope markets (k - 1's own sidecar row) open by row flags at k - 1, with `age_{k-1} < 2 h` and `end_date_{k-1} <= start_k - 2 h`, that are absent from k's rows or `closed` at k. Printed per UTC day beside
 the funnel so a reader sees how many ended markets close or vanish before a first overdue capture.
 
+**Disclosure (final verification D6).** `left_before_overdue_slot` (1,123 in J0) is about the size of the unit count (1,024). Twenty scope markets have an unparseable `end_date` and can never become units.
+
 ### 3.3 Unit fields and decision time
 - **Price on the favoured side** (rows' touch at k): YES: `ask_f = ask`, `bid_f = bid`, `mid_f = mid_k`; NO:
   `ask_f = round(1 - bid, 6)`, `bid_f = round(1 - ask, 6)`, `mid_f = round(1 - mid_k, 6)`. Spread
@@ -180,7 +183,7 @@ the funnel so a reader sees how many ended markets close or vanish before a firs
   ids, `spec_sha`, `code_sha`. **Nothing from after capture k.**
 
 ### 3.4 Cluster
-The cluster is the Gamma `event_id` at k. No cap: weights are declared instead (4).
+The cluster is the Gamma `event_id` at k. No cap: weights are declared instead (4). A unit whose `event_id` is empty is its own cluster (keyed `market:<market_id>`) and its own one-market event for S8 and 7.2.
 
 ### 3.5 Rule class at `t_d` (the S2 reader; pinned)
 - **Lexicon.** CH269's placeholder lexicon, copied verbatim into M2's own module (CH269's module is not frozen and may change):
@@ -195,6 +198,7 @@ The cluster is the Gamma `event_id` at k. No cap: weights are declared instead (
 - **Coverage is selected (disclosed).** The `gamma_rules` frame holds open markets with `volume24hr > 0` (top 3,000 hourly,
   the full frame four times a day), so `no_rules` collects the quietest markets; CH269 counted 180 `no_rules` of 1,347 units
   (13%) under its looser reader. `no_rules` is a reported cell, never filled.
+- **Disclosure (final verification D5).** J0 found `no_rules` 222 (21.7%), against 13% in CH269. 82 of these units have rule text that was only polled after `t_d`, and 185 are in S1 low. With 7 `scheduled` units in J0's six full days, D2's `scheduled` arm will almost certainly be `thin`.
 
 ### 3.6 Declared readings disclosed (no size check; M2 has no test)
 - **S49, an `end_date` that is not the resolution clock.** Some rules resolve on a later publication, so "overdue" by
@@ -259,6 +263,7 @@ The cluster is the Gamma `event_id` at k. No cap: weights are declared instead (
   checked at this re-check: none of these files is pinned as a file by an earlier spec (LT11 pins only the source hashes of
   its vendored pieces by a provenance test; CB17 pins a bundle hash covering `cb17_census`), so the pins are new. 
   Liquidity rewards, holding rewards and rebates are not in any line (disclosed).
+- **Disclosure (final verification D2).** 966 of 1,024 J0 units are `other:zero_fees` -> `cat_k` other (docs rate 0.05). L2 charges that rate on markets the venue labels zero-fee. L1 charges it too unless `fees_enabled` is served false, and J0 did not print the L1 rate distribution. The statement above that the fee is comparable to the CI holds for L2 and possibly not for L1. S3 fills 3 of its 10 cells, and S4 `fee_on` has 3 units.
 
 ### 5.2 Capital and the wait
 `w_i = closedTime - t_d` in hours from the read-out record (8.4); `closedTime` missing: `w_i = fetched_utc - t_d` (upper
@@ -317,8 +322,10 @@ during the window it is **not** used; its presence share is printed only.
 - S6 (k-time zone counts): (0.5,0.6] 349, (0.6,0.7] 160, (0.7,0.8] 155, (0.8,0.9] 175, (0.9,0.95] 185.
 - S7: no 1,024 (`yes` not printed). S8: 1 = 9, 2-5 = 100, 6+ = 915. S9: 0.001 = 187, 0.01 = 837 (`other / missing` not printed).
 - S10: days 1-7 = 1,024 (J0 is a dry run; no week structure). S11 (k-time zone counts): <= 0.01 38, (0.01,0.03] 138, (0.03,0.10] 282, > 0.10 566.
-- S12 (printed cells): low|no_rules 185, high|barrier 288, mid|barrier 198, low|barrier 137, high|both 78, mid|both 74, mid|no_rules 37, low|both 9, mid|other 7, mid|scheduled 4, low|other 4, low|scheduled 3 (12 of 24 cells printed; high|no_rules, high|other and high|scheduled are not printed).
+- S12 (printed cells): low|no_rules 185, high|barrier 288, mid|barrier 198, low|barrier 137, high|both 78, mid|both 74, mid|no_rules 37, low|both 9, mid|other 7, mid|scheduled 4, low|other 4, low|scheduled 3 (12 of 24 cells printed; high|no_rules, high|other and high|scheduled are not printed; the `rules_unresolved` and `na` cells are not printed either).
 - `no_favourite` 24 (mid exactly 0.5; a funnel class, not a unit).
+- **Disclosure (final verification D1, wide books).** J0 found S11 > 0.10 for 566 of 1,024 units, S6 (0.5, 0.6] for 349, and `no_favourite` 24. Many units may be near-empty books with `ask_f` close to 1. Expect `theta` near `pi - mean h` with mean `h` of several cents, which exceeds the planned CI half-width. E7 and E8 are kept as declared: changing them after seeing J0's zone counts would be post hoc.
+- **Disclosure (final verification D5, pointer).** See 3.5: `scheduled` is 7 units in J0, so D2's `scheduled` arm is expected `thin`.
 
 **Declared descriptive contrasts (the ruling: a difference with a CI, never an identification):**
 - **D1** = `theta(S1 high) - theta(S1 low)`, and the same for `pi` and for the 24 h proposal incidence of 7.3.
@@ -356,6 +363,7 @@ interval: **printed as degenerate; the bound of 7.2 is the bound**.
   bounds an event-weighted share. Printed beside: the 10 largest events' unit counts and `I_e`; per-stratum events, flags
   and `p_U,s`. With zero flags `p_U,s` is about 4.38 / E_s, so `B_U` is at least 4.38 / N_D times the sum over non-empty strata of
   their units per event, and each non-empty stratum adds at least its lower limit (1, 2, 4, 10).
+- **Disclosure (final verification D4).** In J0 no event has 10 or more units (the largest bucket is 4-9 units, 61 events), so the planning value `m_u` of 5-10 in 10 is probably too high. For S8, 915 units are in 6+, so cells "1" (9) and "2-5" will be thin.
 
 ### 7.3 Proposal hazard (the idea's estimand 2; declared right-censoring)
 - **Data.** The blind follow-up record of 9.2 (status tokens, `closed`, `active`, row presence and `end_date` of each unit's
@@ -443,6 +451,7 @@ Store: `data-dumps/research_lab/m2_ch264/` on the host (write-once files; never 
   always fires first; R1);
   (c) the size split stays the liquidity proxy with CH269's cuts whatever J0 prints; (d) none of J0's numbers changes an
   estimand, split, cut, cost line or threshold; (e) the receipt-time reading of 3.5 (computed, never a manual mode; records with no parseable `finished_utc` use the day-before rule). No J0 output can change the E6 whitelist or the whole-token P tokens: unforeseen status forms stay `uma_other_at_k` / `uma_other_followup`. Output labelled `informed (M2-J0)`, counts only, sealed with its code hash. J0 folds 12 captures, then uses one more capture as k - 1 only; this is fixed now. A short fold can only add candidates, because the current overdue stock enters the seen set at the first fold capture and only re-overdue markets leak. J0's look-back is not changed after its output is seen.
+- **Disclosure (final verification D3).** In J0, `reoverdue_seen` (1,012) is about the size of the unit count (1,024). The 12-capture fold overstates units by an unknown amount. Rule (a) still holds unless the true median is at least 46% below J0's (lowest full day 114 against 75). `end_date_changed_after_k` may not be rare.
 - Memory: under 600 MB (CH269's 8-day map peaked at 558.8 MB over a wider read); dry run measured.
 
 ### 9.2 M2-J1: window-time extractor and blind follow-up recorder (every pass; catch-up within retention)
@@ -458,7 +467,7 @@ Store: `data-dumps/research_lab/m2_ch264/` on the host (write-once files; never 
 - **Strictly chronological (M1's re-check fix 3, adopted verbatim).** Captures are processed in increasing manifest start,
   one at a time, and a capture is processed only when every earlier slot is processed or recorded `missing_capture`;
   catch-up replays the backlog in the same order. A slot is recorded `missing_capture` once it has no complete capture 6 h
-  after its grid time; a capture appearing later stays unprocessed (`late_capture_ignored`). The run refuses unless the state
+  after its grid time, judged by the manifest's completion time (`finished_utc` <= grid + 6 h), never by when J1 runs; a capture appearing later stays unprocessed (`late_capture_ignored`). The run refuses unless the state
   file's last folded capture is the last processed-or-missing capture before k. Each `status/<capture_id>.json` records that
   capture id and the state file's sha256 before and after. **The state used at capture k holds only captures before k and
   rule records committed at or before `t_d`.**
@@ -513,9 +522,11 @@ M2 is reported **coarse** (every number still printed) if any of:
   skewed, so `m_u` plausibly 5-10) and `rho` the within-event correlation of `Q` (assumed 0.3-0.6): DE about 2.2-6.4, SE about
   1.1-2.5c, **CI half-width about 2.1-4.9c** (R1's recompute; not load-bearing). Coarse rule 2 at 3.0c is therefore **about as likely as not to fire**; disclosed
   in advance, it changes no rule. The idea's "+-2.2 points at 1,000 units" assumed independent units and is not used.
+- **Disclosure (final verification D4).** J0 shows no event with 10 or more units, so `m_u` of 5-10 above is probably too high; see 7.2. It changes no rule.
 - Splits: a third of the units widens a cell's interval by about sqrt(3): S1 cells about 4-8c. **D1's half-width is about
   5.4-11.5c, wider than the idea's own "boring" premium of 2-5 points**, so D1 is expected to be uninformative about its
   sign; disclosed in advance, it changes no rule.
+- **Disclosure (final verification D1).** J0's wide books (S11 > 0.10 for 566 of 1,024 units) may put mean `h` at several cents; see 6. It changes no rule.
 - Fee scale: L1 0.6-1.25c a share in the interior, the same order as the headline SE.
 - Hazard: the 24 h cumulative incidence over about 2,500 units has an independent SE under 1 point; with DE 2-6, a half-width
   of about 2-5 points.
@@ -527,7 +538,7 @@ M2 is reported **coarse** (every number still printed) if any of:
 M2 is **void** (recorded in the ledger, its numbers not reported as a measurement) if any of:
 1. any change to an estimand, weight, split, cut, contrast, cost line, class rule, threshold or the read-out date after
    `REGISTERED_UTC`;
-2. any read of a resolution, label, Gamma outcome field, follow-up file or any data from after a unit's k before
+2. any read, by an M2 job or for M2's purposes, of a resolution, label, Gamma outcome field, follow-up file or any data from after a unit's k before
    `READOUT_UTC` other than the blind write-and-hash of 9.2; named case **(a)**: J1 processed a capture out of chronological
    order, or used state holding a capture at or after k or a rule record committed after `t_d` (audited from the status
    files' sha256 chain); named case **(b)** (procedural blinding; not auditable from the data, only from the process record): a follow-up file
@@ -741,10 +752,10 @@ No window, read-out, deadline, threshold, estimand, weight, seed, cut or cost li
 
 Facts only; counts only, `informed (M2-J0)`, k = 0, uncounted. Job q0733b finished 2026-10-30T07:30:48Z (646 s), dry run, version `m2-j1-v1`, on the ruled code: `m2_j1.py` `c0538322be740a2fc80654d93160415777b4f445fcf6737c18339dca3a7c51dc`, `run_m2_j0.py` `c0e4d061ddba75212565cf29142c20ee7870f94f1f6b4b4698994ce28d85793d`. Seal `docs/research_lab/seals/M2_J0_q0733b.json`, sha256 `31e3380c43b35dbeb0820166824b3af4a8ef64015f7d123604761dc5e3ec1564`; spec sha256 `690d7da5e70bba8cf49baf13e4f73764fd90a9ba6c67021f3549936061dd61e3`. Peak RSS 457.7 MB (limit 600 MB).
 
-- **Span.** `last_days=8`, 2026-10-22T06:31:03Z to 2026-10-30T06:31:03Z; first window-start capture 2026-10-23T08:31:05Z. 83 classified captures; fold of 12 captures (fixed by W9) against the registered 84-slot look-back; 6 full days (10-24 to 10-29); no missing slot, `missing_capture` 0, `missing_lookback_slot` 0, `late_capture_ignored` 0, `pre_window_source` 12. J0's note: `reoverdue_seen` is understated and units slightly overstated at the start because the fold is short.
+- **Span.** `last_days=8`, 2026-10-22T06:31:03Z to 2026-10-30T06:31:03Z; first window-start capture 2026-10-23T08:31:05Z. 83 classified captures; fold of 12 captures (fixed by W9) against the registered 84-slot look-back; 6 full days (10-24 to 10-29); no missing slot, `missing_capture` 0, `missing_lookback_slot` 0, `late_capture_ignored` 0, `pre_window_source` 12. Captures: first read 2026-10-22T08:31:02Z; fold 10-22T08:31 to 10-23T06:31; k - 1 only 10-23T08:31; classified 10-23T10:31 to 10-30T06:31. 10-23 is a partial day (7 classified captures), as 10-30 is. J0's note: `reoverdue_seen` is understated and units slightly overstated at the start because the fold is short.
 - **Eligible units.** 1,024 in total, per day 10-23 123, 10-24 114, 10-25 152, 10-26 162, 10-27 123, 10-28 220, 10-29 124, 10-30 6 (partial day). Full-day median 138. 447 events; units per event (every unit counted as if final): 1 -> 141 events, 2-3 -> 245, 4-9 -> 61, 10+ -> none printed.
 - **Funnel (row-captures and candidates, 83 captures).** `unit` 1,024; `out_of_scope_sports` 202,302; `not_two_sided` 5,600; `mid_low` 858; `mid_high` 357; `uma_state_at_k` 528; `out_of_scope_crypto` 31; `no_k_minus_1_row` 30; `no_favourite` 24. Zero: `not_open_at_k`, `sidecar_missing`, `accepting_unknown`, `uma_other_at_k`, `out_of_scope_unknown`, `no_previous_capture`, `k_minus_1_before_window`, `k_minus_1_end_date_missing`. Guard classes: `already_overdue_at_k_minus_1` 0, `prior_unit` 0 (E3), both as expected. Per-day funnel is in the seal (`funnel_by_day`).
-- **Side classes.** `left_before_overdue_slot` 1,123 (per day 10-23 359, 10-24 134, 10-25 60, 10-26 221, 10-27 180, 10-28 81, 10-29 70, 10-30 18); `reoverdue_seen` 1,012; `end_date_missing` 1,587 row-captures (per day 10-23 140, 10-24 240, 10-25 240, 10-26 240, 10-27 223, 10-28 216, 10-29 216, 10-30 72) over 20 distinct markets.
+- **Side classes.** `left_before_overdue_slot` 1,123 (per day 10-23 359, 10-24 134, 10-25 60, 10-26 221, 10-27 180, 10-28 81, 10-29 70, 10-30 18); `reoverdue_seen` 1,012 (counted over every category, whereas `end_date_missing` counts scope markets only; a market in the seen set with no row at k - 1 that is overdue at k falls in no class of the funnel, so the funnel has a gap of unknown size, disclosed here in words; it is to be recorded as the class `seen_without_k_minus_1_row`, a recorded class only, which changes no unit); `end_date_missing` 1,587 row-captures (per day 10-23 140, 10-24 240, 10-25 240, 10-26 240, 10-27 223, 10-28 216, 10-29 216, 10-30 72) over 20 distinct markets.
 - **Rules.** (a) median full-day units 138 against 75: not fired. (b) projected 21-day units 2,898 against 1,500: not met (record only). (e) `rule_e_day_before_reader_applies` false: all 222 committed `ok` poll lines carry a parseable `finished_utc` (`records_without_receipt` 0), so the per-record receipt-time reader of 3.5 stands. Window, `REGISTERED_UTC`, `END_UTC` unchanged.
 - **`t_d` source.** `receipt` 1,024 of 1,024 units.
 - **Rule-class coverage at `t_d` (k-visible reader | CH269 last-row reader).** barrier|barrier 623, both|both 161, no_rules|no_rules 140, no_rules|barrier 74, no_rules|both 8, other|other 11, scheduled|scheduled 7. Rules stream: 11 day files (20261020.jsonl to 20261030.jsonl), 222 poll lines (all ok), 109,264 rows committed, 183,901 `hash` records committed, 107,798 markets, 0 torn or failed rows, 0 commits crossing midnight, maximum poll duration 237.9 s.
@@ -755,3 +766,28 @@ Facts only; counts only, `informed (M2-J0)`, k = 0, uncounted. Job q0733b finish
 - **Pins recorded (`imported_module_sha256`).** `boundary_map_ch240.py` `2bc9ff9edb97b76990579c90929e55f22cb4cfe9fdec852395bd07f7d3bea09a`; `calibration.py` `567cdbe9eab0a8fa5fccdf4350e44cb2fea0104d445e62188e3e363fba12dda1`; `cb13_label.py` `2fbf4b91e3ee3db413098866a6d99b24bcdf5e0c97750820de8edbc6fc789380`; `cb17_census.py` `6b98bab8bde4238edbe56e32d5672c72a04acc04d662bec7b393e3cbf806a15a`; `costs.py` `258856fc360fbe70ce7a062a3f156b66d9d71fd50de56bf3669935c4227f844d`; `live_tests11_base.py` `7f4d3db50311088bb6fbd1ee1eafb7f142fb58133ea1d7f6c684694eb75a9a68`; `live_tests8_base.py` `4b26756d4d1934c4da9a0b2b26d4ff3f2ac72f199bbc55d4ae6365b8ebc394e0`; `population_map_ch251.py` `82db7a75995f0b637b469f4abc421ad9be430fdf38f0a4bad7ed5e9e43a55140`; rule lexicon `2209e0adc51fd0e48edd231574d37207a80b8f3ab34bca418cd910b7abe4b97e`.
 
 No estimand, split, cell, threshold, cost line or date changed from J0.
+
+## 22. Final verification mapping (2026-10-30; `reviews/M2_FINAL_VERIFY_2026-10-30.md`, NOT_READY -> text fixes applied here)
+
+No estimand, weight, cell, cut, threshold, cost line, date, seed or window was changed. Lines refer to the text after this edit.
+
+| Item | What landed | Where |
+|---|---|---|
+| MUST 1 empty `event_id` | own cluster `market:<market_id>`, own one-market event for S8 and 7.2 | 3.4 (l.186) |
+| MUST 2 void 11.2 scope | "any read, by an M2 job or for M2's purposes, ..."; disclosure of M1's earlier read-out | 11.2 (l.541), 2 (l.112) |
+| MUST 3 status block | J1 code, J0 runner, q0733b and seal exist; only host read is J0's counts-only read | status block (l.12-14) |
+| MUST 4 missing-capture clock | "judged by the manifest's completion time (`finished_utc` <= grid + 6 h), never by when J1 runs"; code-freeze item: `run_available` judges missing slots by `finished_utc` | 9.2 (l.470), status block (l.19) |
+| D1 wide books | disclosure | 6 (l.327), 10 (l.529) |
+| D2 fees | disclosure | 5 (l.266) |
+| D3 short fold | disclosure | 9.1 (l.454) |
+| D4 clusters | disclosure | 7.2 (l.366), 10 (l.525) |
+| D5 rules | disclosure | 3.5 (l.201), 6 (l.328) |
+| D6 survivorship | disclosure | 3.2 (l.168) |
+| SHOULD 1 `reoverdue_seen` | counts every category; gap named `seen_without_k_minus_1_row` (record only, no effect on units) | 21 (l.758) |
+| SHOULD 2 rule-ledger lookup | code-freeze item: sort by commit time, not list position | code-freeze list (l.19), this table |
+| SHOULD 3 600 MB cap | code-freeze item: the host dry run uses a ledger of end-of-window size | code-freeze list (l.19), this table |
+| SHOULD 4 `spec_sha` | sha256 of this file at the registration commit; never edited after; outcomes to the ledger | 2 (l.106) |
+| SHOULD 5 section 21 span | captures named; 10-23 marked a partial day | 21 (l.755) |
+| SHOULD 6 missing-slot status files | code-freeze item: missing-slot state writes leave no status file, so the sha chain has gaps | code-freeze list (l.19), this table |
+| SHOULD 7 section 16 ledger block | stale; refreshed at registration | at registration (l.792) |
+| SHOULD 8 S12 not-printed list | `rules_unresolved` and `na` cells added | 6 (l.325) |
