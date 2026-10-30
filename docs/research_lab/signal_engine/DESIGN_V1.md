@@ -1626,3 +1626,9 @@ Ideas only: no evidence yet. Nothing about the parent was counted before this se
   census's committed code (not wired). The line is not revisited. A **sports-only** parent factor would be a
   different idea, scored on the sports breakdown only, and it waits on the owner's open sports-scope decision. It is
   not proposed here.
+- **Companion: stream staleness in the input monitor (§31; monitoring only).** A stalled `gamma_rules` stream keeps
+  the last known rows, so the coverage rules never fire. `input_health.capture_summary` now reads each stream-fed
+  table's recorded `rules_last_slot` (`rules`, `umaparams`, `framein`) and stores its age against the capture start.
+  `judge` raises one `stale_stream` alert per stream when the oldest of its tables' slots is > 6 h old
+  (`STREAM_STALE_H`; hourly polls normally leave ~1.5 h), or when a table read no poll after earlier tables had one.
+  The view gains a `streams` block. Engine metadata only: no label, prediction or score is read; no model changes.

@@ -418,6 +418,10 @@ Priority is the round's; a family earlier in the list is cheaper or closer to a 
   threshold (`bandside`, to 2026-12-12). No manipulation route: this reads other participants' prints.
 
 **3. `attn` (CH256, the comment clock).**
+- *Builder note 2026-10-30 (signal-engine session 36): deprioritised, not censused.* CB17 never reads the comment count and
+  CB18 is closed, so no test blocks it. But the 10-22 probe recorded beside the `participation` family (aux.py; 9 of 22,111
+  events changed comment count in 2 h, 0.04%) is ~50x under this row's 2% change line. A census would be expected to
+  kill it. Re-open only with evidence that the field now updates (a counts-only probe first).
 - *Hypothesis.* A burst of event comments without a move is attention that has not yet traded and precedes a YES drift
   and a larger move.
 - *Inputs.* The event comment count on the sidecar (the field is on every row; presence, change share and bursts
@@ -483,6 +487,9 @@ Priority is the round's; a family earlier in the list is cheaper or closer to a 
   check. No token.
 
 **7. `disp` (CH259, disagreement as the maker's volatility forecast; the builder's call).**
+- *Builder note 2026-10-30 (session 36): blocked as written.* Reading the same capture's predictions breaks DESIGN_V1
+  §37's meta-family rule (a) (only predictions of captures before k). A lagged version (k - 1 predictions of named,
+  non-embargoed, non-broad specs) would be a new definition needing its own section and review before any census.
 - *Hypothesis.* The spread of the active specs' own predictions for a market names where the families disagree and
   predicts the flat class and |dmid|.
 - *Inputs.* The same capture's prediction files of the **visible, non-embargoed** specs only, so no embargoed family
