@@ -1,6 +1,6 @@
 # ruff: noqa: E501
 """CB7 runner, fetch side (docs/research_lab/CREATIVE_BATCH_7.md CB7-F and 5.2). Run from cwd=backend (queue worker).
-EXPLORATORY: no edge, calibration or profitability claim. Fetch side only: no analysis or screen code.
+EXPLORATORY: no edge, calibration or profitability claim. Fetch side, census, and the Stage-1 screens (analysis in cb7_g_analysis, cb7_x_analysis, cb7_s_analysis; shared cb7_astats; freeze content cb7_declaration).
 
     python scripts/run_cb7.py rules                  # write docs/research_lab/seals/cb7_text_geo_rules_v2.json (commit it before q0140b-q0143)
     python scripts/run_cb7.py smoke ...              # q0140b (smoke v2; v1 q0140 FAILed): slug -> pinned tag id; Data API print bounds/order/coverage; counts only, WRITE-ONCE
@@ -12,6 +12,8 @@ EXPLORATORY: no edge, calibration or profitability claim. Fetch side only: no an
     python scripts/run_cb7.py hgeo-text ...          # q0147t: question / slug / first event title of the in-band window ids (Gamma by id, net lane; Reading 13a)
     python scripts/run_cb7.py census --family S,G,X  # q0147: pre-freeze counts-only census; verifies the h8_text / h8_geo / h8_tail seal copies by sha256 first
     python scripts/run_cb7.py verify-seal --run-id h8_text|h8_geo
+    python scripts/run_cb7.py screen --family S|G|X  # q0148 / q0149 / q0150: Stage 1 (after the CB7 freeze and its declared screen time); results_<t>1.json + seals/cb7_<t>1_stage1.json, WRITE-ONCE
+    python scripts/run_cb7.py write-spec [--dry-run] # the CB7 FREEZE: model_specs/cb7_v1.json (write-once; ONLY at the freeze, after the freeze check)
 
 Exit codes: 0 ok / transient pause / terminal state (text_fetch_complete, geo_fetch_complete, not_run_deadline,
 disjointness_unverified, source_unverified, exclusion_keys_complete, xv_prints_complete, census_complete); 1 error; 2 refusal of a guard (rules hash, any exclusion
@@ -380,6 +382,79 @@ def cmd_census(a) -> int:
     return 0
 
 
+def _screen_setup(a, cm):
+    """Every guard of ``screen`` before any data is opened: refused roots, the committed rules file, the committed freeze spec (declaration, source hashes, rules hash, declared
+    screen time) and the census pinned by the spec."""
+    from astrolabe.research_lab import cb7_astats as st
+
+    data_dumps = Path(a.data_dumps) if a.data_dumps else cm.c4.DATA_DUMPS
+    cb7_dir = Path(a.out_root) if a.out_root else data_dumps / "research_lab" / "creative_batch7"
+    root = Path(a.root) if a.root else cm.HIST_ROOT
+    for p in (cb7_dir, root):
+        cm.refuse_path(p)
+    commit = not a.allow_uncommitted_rules
+    cm.verify_rules(Path(a.rules) if a.rules else cm.RULES_FILE, require_committed=commit)
+    freeze = st.require_freeze(Path(a.freeze_spec) if a.freeze_spec else None, require_committed=commit)
+    census = st.load_census(cb7_dir, freeze["spec"])
+    return data_dumps, cb7_dir, root, freeze, census
+
+
+def cmd_screen(a) -> int:
+    import time
+
+    from astrolabe.research_lab import cb7_common as cm
+    from astrolabe.research_lab import provenance
+
+    fam = str(a.family or "").strip().upper()
+    try:
+        if fam not in ("S", "G", "X"):
+            raise cm.Refused(f"screen takes exactly one family S, G or X, not {a.family!r}")
+        _dd, cb7_dir, root, freeze, census = _screen_setup(a, cm)
+        seals_dir = Path(a.seals_dir) if a.seals_dir else cm.SEALS_DIR
+        trials = Path(a.trials_path) if a.trials_path else provenance.TRIALS_PATH
+        if fam == "S":
+            from astrolabe.research_lab import cb7_s_analysis as mod
+
+            res = mod.screen_s(cb7_dir, seals_dir, freeze=freeze, census=census, trials_path=trials, wall_clock=time.time)
+        elif fam == "G":
+            from astrolabe.research_lab import cb7_g_analysis as mod
+
+            res = mod.screen_g(cb7_dir, root, seals_dir, freeze=freeze, census=census, trials_path=trials, wall_clock=time.time)
+        else:
+            from astrolabe.research_lab import cb7_x_analysis as mod
+
+            cv_root = Path(a.cv_root) if a.cv_root else provenance.REPO_ROOT / "data-dumps" / "research_lab" / "cross_venue"
+            res = mod.screen_x(cb7_dir, cv_root, seals_dir, freeze=freeze, census=census, trials_path=trials, wall_clock=time.time)
+    except cm.Refused as exc:
+        _emit({"refused": str(exc)})
+        return REFUSED
+    except cm.NotNow as exc:
+        _emit({"tempfail": str(exc)})
+        return TEMPFAIL
+    except Exception as exc:
+        _emit({"error": f"{type(exc).__name__}: {exc}"[:300]})
+        return 1
+    _emit(res)
+    return 0
+
+
+def cmd_write_spec(a) -> int:
+    from astrolabe.research_lab import cb7_common as cm
+    from astrolabe.research_lab import cb7_declaration as d
+
+    path = Path(a.path) if a.path else d.SPEC_PATH
+    try:
+        kw = dict(census_json=Path(a.census_json), freeze_utc=a.freeze_utc, screen_not_before_utc=a.screen_not_before_utc)
+        if a.dry_run:
+            _emit({"dry_run": True, "path": str(path), "payload": d.spec_payload(**kw)})
+            return 0
+        _emit({"written": str(path), "payload": d.write_spec(path, **kw)})
+        return 0
+    except (cm.Refused, ValueError, OSError) as exc:
+        _emit({"refused": str(exc)})
+        return REFUSED
+
+
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -509,6 +584,27 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--snapshot-root", default=None)
     q.add_argument("--standalone", action="store_true")
     q.set_defaults(fn=cmd_hgeo_text)
+
+    q = sub.add_parser("screen")
+    q.add_argument("--family", required=True, help="exactly one of S, G, X")
+    q.add_argument("--root", default=None, help="history root (default data-dumps/research_lab/history)")
+    q.add_argument("--seals-dir", default=None)
+    q.add_argument("--data-dumps", default=None)
+    q.add_argument("--out-root", default=None, help="default <data-dumps>/research_lab/creative_batch7")
+    q.add_argument("--cv-root", default=None, help="cross_venue study directory (never cross_venue_live)")
+    q.add_argument("--rules", default=None)
+    q.add_argument("--freeze-spec", default=None, help="default model_specs/cb7_v1.json")
+    q.add_argument("--trials-path", default=None)
+    q.add_argument("--allow-uncommitted-rules", action="store_true", help="tests only: also accepts an uncommitted freeze spec")
+    q.set_defaults(fn=cmd_screen)
+
+    q = sub.add_parser("write-spec")
+    q.add_argument("--census-json", required=True)
+    q.add_argument("--freeze-utc", required=True, help="freeze commit time, YYYY-MM-DDTHH:MM:SSZ")
+    q.add_argument("--screen-not-before-utc", required=True, help="declared time before which no screen runs or opens an outcome file")
+    q.add_argument("--path", default=None)
+    q.add_argument("--dry-run", action="store_true")
+    q.set_defaults(fn=cmd_write_spec)
 
     q = sub.add_parser("verify-seal")
     common(q, "h8_text")
