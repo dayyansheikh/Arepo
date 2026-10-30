@@ -5603,3 +5603,18 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   record on an analysis pin mismatch; coarse rule 5 label; `interval_spans_missing` scope; read-out sha check; banned-word
   check must not kill the one-shot analysis on a data string.
 - q0754 (dry run) may be promoted after the MUSTs with a diff-only check. Fixes delegated (`feat/m2-cf-fixes`).
+
+## M2 code-freeze fixes ACCEPT; q0754 dry run PROMOTED, 2026-10-30 17:45Z (experiments autopilot; nothing counted)
+- Fixes 4680e7e5 (merged): post-window J1 passes no longer hold the rule index; J3 retry gap per request (>= 1 h);
+  tests for l.19 item 5; code note c records the `t_d` visibility reading; SHOULDs: pins required for j2 / j3, the dumps
+  guard enforced, manifest-listed unit files only, void record on an analysis pin mismatch, banned-word check scoped to
+  generated text. 97 M2 tests. Diff check `reviews/M2_CF_FIX_DIFF_CHECK_2026-10-30.md`: **ACCEPT**; only these lines moved;
+  design text `bb7c27e0…7cbb0` unchanged; **M2 code_sha `03984d2c278ba5872378e3f70aa78829dd05f4d3ebb503b1e18d142c4f95d6e2`**.
+- **q0754 promoted** (dry run, separate store `m2_dryruns/q0754/...`), with the dumps root argument added (diff check
+  SHOULD 2) so the rehearsal measures the guard over the real tree. Next: registration once q0754 passes (peak RSS and
+  code_sha in its `j1_runs.jsonl`), by 2026-11-22T23:59Z.
+- **Ops risk (programme-wide, before M2 registers):** the dumps guard defaults to 50 GiB; the host's data-dumps is about
+  38 GiB and grows about 1 GB a day, so at that rate the cap binds around 11-11, before M2's window (11-24), and most jobs
+  share the same `--data-dumps-cap-gb 50`. Record the cap and the size plan (nightly archive rotation) before registration.
+- M1 test `test_must2_q0751_cron_line_notes_the_gate_and_pins` now reads q0751 from `jobs/` (3227e8d8; test only, M1
+  code_sha unchanged `9cb8aa03…`).

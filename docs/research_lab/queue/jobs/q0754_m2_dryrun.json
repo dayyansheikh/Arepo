@@ -1,0 +1,39 @@
+{
+ "id": "q0754_m2_dryrun",
+ "title": "M2 (CH264) host dry run of the J1 extractor (MEASUREMENT_M2_CH264.md 9.2, final verification SHOULD 3): the newest 3 days of real captures as a stand-in window, a rule ledger padded to its end-of-window size, store research_lab/m2_ch264_dryrun, peak RSS recorded; a dry run, never the real store, nothing counted",
+ "family": "creative_hypotheses",
+ "priority": 58,
+ "expected_value": "the measured peak RSS (cap 600 MB; planned 300-500 MB) and run time of J1 on the host's real retention WITH a ledger of the size it will have at the end of the window, and a check that the pins, the state chain and the write-once files hold on real data, before the registration commit (deadline 2026-11-21T23:59Z)",
+ "data": [
+  "host originals ~/arepo/data-dumps/research_lab/snapshots and stream_gamma_rules (read-only)"
+ ],
+ "resources": {
+  "mem_mb": 600,
+  "as_cap_mb": 6000,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_m2.py",
+  "j1",
+  "--store",
+  "../data-dumps/research_lab/m2_dryruns/q0754/research_lab/m2_ch264_dryrun",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--rules-root",
+  "../data-dumps/research_lab/stream_gamma_rules",
+  "--dry-run-last-days",
+  "3",
+  "--data-dumps",
+  "../data-dumps"
+ ],
+ "timeout_s": 14400,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/m2_dryruns/q0754/research_lab/m2_ch264_dryrun/ (units/, status/, followup/, nofav/, state.json, logs/j1_runs.jsonl with peak_rss_mb, ledger_markets, ledger_records)"
+ ],
+ "next_action": "read peak_rss_mb from the last stdout line / logs/j1_runs.jsonl; if above 600 do not register on a cap breach: record it and fix the memory (the ledger is columnar already; the declared fallback is a sqlite-backed ledger with a running digest in the state header), re-run, then remove nothing (the dry-run store is not canonical and never read by the analysis)",
+ "notes": "DRAFT (not in jobs/). SHOULD 3 of the final verification (text l.20, section 22): the host dry run uses a rule ledger of END-OF-WINDOW size. How it is simulated: the dry run (and only the dry run; run_pass refuses a pad outside a dry-run spec) pads the append-only rule ledger with m2_spec.DRYRUN_LEDGER_PAD = 800,000 inert synthetic records over 250,000 synthetic markets (negative ids, no real market is touched, no unit changes; test_the_ledger_stops_merging_once_the_window_is_folded_and_a_pad_is_inert), before the first pass. Basis: M2-J0 (section 21) committed 109,264 row + 183,901 hash records over 11 day files = 26,651 records a day; J1's first pass reads about 8 retained days and merges through the 21-day window, then stops merging, so about 30 days = 800,000 records; markets assumed 250,000 against J0's 107,798. Over-stating the size only makes the check stricter. The padded ledger is written into the dry store's state file at every capture (state sha chain exercised at full size) and re-loaded on resume. Measured on the laptop with the padded ledger and no captures: 295 MB RSS after loading the state file (165 MB of it is the import baseline), 370 MB while staging it. Store name m2_ch264_dryrun under a directory named research_lab is required by the runner (it refuses the real store with --dry-run-last-days). The dry run derives a window of the last 3 days from the newest capture (spec_sha differs from the real one by construction; the real pins - design text, eight modules, lexicon - are kept and checked). Window time is simulated by now = end + 7 h so every slot is decidable. Code: backend/scripts/run_m2.py with astrolabe/research_lab/m2_spec.py, m2_j1.py, m2_j2.py, m2_readout.py, m2_analysis.py (code_sha in the unit lines). Pins checked at start (exit 3 with expected and actual values on a mismatch, exit 2 on a declared refusal). Do not run beside a multi-GB job (memory rule). PROMOTED 2026-10-30 after the code-freeze fix diff check ACCEPT (reviews/M2_CF_FIX_DIFF_CHECK_2026-10-30.md), code_sha 03984d2c278ba5872378e3f70aa78829dd05f4d3ebb503b1e18d142c4f95d6e2; the dumps root argument added (diff check SHOULD 2) so the rehearsal measures the real dumps guard over the whole tree."
+}
