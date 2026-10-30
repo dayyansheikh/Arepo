@@ -1316,7 +1316,7 @@ input depends on it.
 - That activation is destructive retention, so it is not done here (AGENTS.md). Decision needed by ~11-15. Until
   then `disk.warn` turns on at 12.8 GB (~11-14).
 
-## 41. `rules` (CH267 class levels + CH239 text columns): definitions fixed before the census (2026-10-30 ~05:00Z; development family)
+## 41. `rules` (CH267 class levels + CH239 text columns): definitions fixed before the census (committed 2026-10-30 04:14:24Z, `fd4c8bcb`; development family)
 
 **Why.** CH267 (CREATIVE_HYPOTHESES_2026-11-02) allows the rule-class *level* `cl_class` to be built now as a `rules`
 column, with the 44.7% coverage disclosed; its `cl_class x tte_h` interactions wait for LT15's freeze (token `close`,
@@ -1356,3 +1356,43 @@ Ideas only: no evidence yet.
   too, se28 is moved under it then (never earlier).
 - **Replay dependency.** A table depends on every stream day file up to its capture (the proposed 14-day host rule for
   `stream_gamma_rules/` would move older files to releases only; rebuilding then needs them restored).
+- **Census result (counts only).** Run 1 started 04:15:44Z, after the commit (host sha of `rules_text.py`
+  `5eafa5ca...` and of the script `8767287b...`, both equal to the commit). Capture `20261030T023102Z_100247db`, 51,017
+  eligible rows, 11 stream day files (10-20..10-30), 106,442 markets with a known row. **`rc_has` 0.354 of all eligible
+  rows: the family passes** (non-sports 0.700 of 16,634, sports 0.187 of 34,383; the frame has widened since CH199's
+  44.7%). Shares of 1 on covered rows: `cl_sched` 0.605, `cl_barrier` 0.635, `cl_consensus` 0.738, `rc_inclusive`
+  0.379, `rc_numeric` 0.243; `rc_n_hosts` and `rc_log_len` non-NaN 1.0, not constant. All kept. CH267 split on covered
+  non-sports rows: barrier 3,948, both 5,180, scheduled 1,179, consensus 457, other 881. corr(`rc_has`, `ms_log_liq`)
+  0.290 (the frame is by volume). Outputs `census/se_rules_census_2026-10-30.out` and `..._run2.out`.
+- **Hand audit (40 seeded texts; information only).** `cl_sched` is precise: 10 of 10 rows classed scheduled are
+  scheduled events (mostly sports fixtures and elections). CH269's `cl_barrier` lexicon is not: **3 of 13** rows classed
+  barrier are deadline questions. The rest fire on boilerplate ("if at any point it becomes impossible"), "exceeds" or
+  "before" in season, weather and on-date price rules. The large "both" class is mostly elections, awards and season
+  totals. `cl_consensus` is mostly the venue's standard clause. The CH269 lexicons stay verbatim (the map's counts
+  must match).
+- **One column added after the audit (disclosed; texts only, no outcome or score was read): `rc_occur_by`.** It is 1
+  for "by / before <month | year | quarter | the end of>" in the question, or "between (the) market creation / creation
+  of this market and" in the description. Run 2 (04:18:11Z, `rules_text.py` sha `3442ef01...`, commit `89e2aa06`):
+  1 on 0.128 of covered rows (kept); on the audit sample (in-sample: the same 40 texts the pattern was written from; CH239 asked for 50) it marks all 4 deadline questions (MetaMask by Dec 31, the
+  hurricane landfall, the House odds dip, a visit between creation and Dec 31) and none of the other 36. The final
+  column list of `se-aux-rules-v1` is the nine columns of run 2; no table existed before it.
+- **Built:** aux family `rules` (`aux.rules_features`, `_rules_builder`, `Paths.rules_stream`), challenger
+  `se28_lr_rules` (registry 29 models; K rises by one for every challenger from its first non-embargoed day). The
+  `cl_` prefix is CH267's; the withdrawn `clips` token (LT6 K) never had a column.
+- **Science review 2026-10-30 ~04:30Z (read-only, `science-reviewer`): REVISE (minor).** Causality PASS (a slot's rows
+  and its poll line are one write to one day file; `finished_utc` is read after every fetch). Embargo / shadowing PASS
+  (`derived: ["base"]`: hours-to-end enters only as main effects, so no `cl_class x tte_h` term exists). Applied:
+  1. **Reading rule (must-fix).** The learner adds a NaN flag for a partly-NaN column, so in a window holding captures
+     from before the stream (all-NaN tables) `rc_has`'s flag is a calendar-era dummy that is always 0 at prediction.
+     **No se28 gain is credited to `rules` until its fits hold no pre-stream rows** (the `dir_*` fits from the
+     2026-11-04 refit on, `res_7d` from ~11-18) **and it has 14 days of scores from those fits** (first `dir_2h` read
+     ~11-18). Earlier se28 scores are shown, labelled development, and read for the pair only.
+  2. **Rebuild guard (must-fix before any stream retention).** `rules_at` raises `RulesGap` when a day file between
+     `RULES_FIRST_DAY` (20261020) and the capture's day is missing (the capture's own day may lack a file only before
+     its first poll). A missing file would otherwise turn known text into `rc_has` 0 or older text. The build then
+     errors (counted, retried) and writes nothing. Host check: day files 20261020..20261030 contiguous. This changes
+     `rules_text.py`'s sha (the parse is unchanged; tables carry the sha they were built with).
+  3. Notes kept for the reading: `rc_has` means "ever in the by-volume frame since 10-20", so its meaning drifts as
+     the known set grows (106,442 markets by 10-30) and it tracks liquidity (corr 0.290); `rc_has` 0 lumps never-polled
+     with polled-but-not-returned; a long stream outage would leave old text as current (only `rules_last_slot` in the
+     table metadata shows it; an input-monitor line is a later step).

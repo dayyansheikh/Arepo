@@ -25,6 +25,7 @@ import numpy as np
 import pandas as pd
 
 from . import config as C
+from . import rules_text as RT
 from . import store as S
 from .features import (
     ALL_FEATURES,
@@ -1204,6 +1205,33 @@ def _slotfac_builder(ctx: dict) -> pd.DataFrame:
     return pd.DataFrame({"sf_prev_absd2h": np.full(len(ctx["f"]), pv, np.float32)})
 
 
+def rules_features(ids: np.ndarray, res: dict) -> pd.DataFrame:
+    """``res``: ``rules_text.rules_at`` at the capture start. rc_has 1 / 0 by a known row; NaN everywhere before the
+    stream's first finished poll (missing stays missing); the text columns NaN for a market without a known row."""
+    n = len(ids)
+    out = pd.DataFrame({c: np.full(n, np.nan, np.float32) for c in RT.RULES_COLUMNS})
+    if n == 0 or res["first_poll"] is None:
+        return out
+    known = res["known"]
+    has = np.fromiter((int(i) in known for i in ids), bool, n)
+    out["rc_has"] = has.astype(np.float32)
+    if has.any():
+        X = np.array([known[int(i)] for i in ids[has]], np.float32)
+        for j, c in enumerate(RT.TEXT_COLUMNS):
+            col = out[c].to_numpy(np.float32).copy()
+            col[has] = X[:, j]
+            out[c] = col
+    return out
+
+
+def _rules_builder(ctx: dict) -> pd.DataFrame:
+    """DESIGN_V1 section 41: the gamma_rules rows known at the capture start (poll finished at or before it)."""
+    res = RT.rules_at(ctx["paths"].rules_stream, ctx["cap_start"])
+    ctx["provenance"] = {"rules_text_sha256": RT.code_sha256(), "rules_files": res["files"],
+                         "rules_last_slot": res["last_slot"], "rules_known_markets": len(res["known"])}
+    return rules_features(ctx["f"]["market_id"].to_numpy(np.int64), res)
+
+
 # ---------------------------------------------------------------------------------------------- registry
 # A builder takes a context dict: rows (snapshot rows; None for a family with needs_rows False), f (features key
 # columns + ms_mid, ms_spread), prev_mid (previous slot's mids or None), cap_dir, cap_start, paths, meta, prev (the
@@ -1233,6 +1261,8 @@ AUX_FAMILIES: dict[str, dict] = {
     "stress": {"version": "se-aux-stress-v1", "columns": ST_COLUMNS, "needs_rows": False, "builder": _stress_builder},
     # the previous slot's features and crypto table only (stress's control, a family of its own)
     "slotfac": {"version": "se-aux-slotfac-v1", "columns": SF_COLUMNS, "needs_rows": False, "builder": _slotfac_builder},
+    # the gamma_rules stream's rule text known at the capture start (engine features + the stream; no snapshot rows)
+    "rules": {"version": RT.RULES_VERSION, "columns": RT.RULES_COLUMNS, "needs_rows": False, "builder": _rules_builder},
 }
 AUX_COLUMNS: dict[str, list[str]] = {k: v["columns"] for k, v in AUX_FAMILIES.items()}
 AUX_ALL: list[str] = [c for cols in AUX_COLUMNS.values() for c in cols]
@@ -1368,4 +1398,4 @@ def check_spec_aux(spec: dict) -> str | None:
 __all__ = ["AUX_FAMILIES", "AUX_COLUMNS", "AUX_ALL", "MODEL_FAMILY_COLUMNS", "aux_path", "build_aux", "run_aux",
            "aux_sources", "read_features", "spec_aux_families", "check_spec_aux", "event_features", "movetype_features",
            "surprise_features", "participation_features", "crypto_features", "hwm_features", "tilt_features",
-           "stress_values", "sf_prev_absd2h"]
+           "stress_values", "sf_prev_absd2h", "rules_features"]

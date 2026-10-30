@@ -37,6 +37,7 @@ class Paths:
     samples: Path = C.SAMPLE_ROOT
     xv_quotes: Path = C.XV_QUOTES_ROOT
     xv_quotes2: Path = C.XV_QUOTES2_ROOT
+    rules_stream: Path = C.RULES_STREAM_ROOT
     spec_dir: Path = C.SPEC_DIR
 
     def sub(self, *parts: str) -> Path:

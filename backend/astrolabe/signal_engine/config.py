@@ -20,6 +20,7 @@ XV_QUOTES_ROOT = DUMPS / "cross_venue_live" / "quotes"  # inputs only; outcome/p
 # poller continues the same pair-quote stream (same line schema plus a trailing "src") after E009 / E010's analyses.
 XV_QUOTES2_ROOT = DUMPS / "xv_quotes" / "quotes"
 ENGINE_ROOT = DUMPS / "signal_engine"
+RULES_STREAM_ROOT = DUMPS / "stream_gamma_rules"  # inputs only: rule text, parsed and dropped (aux family rules)
 SPEC_DIR = Path(__file__).resolve().parent / "specs"
 
 # 2-hour collector grid (captures start at HH:31 for even HH).

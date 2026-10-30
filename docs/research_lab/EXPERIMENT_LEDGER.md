@@ -4973,3 +4973,22 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   Host check: cap 16 GB, used 0.328, se1's legacy fit loads with sha checks.
 - **Owner decision pending (by ~11-15):** activate the deferred engine retention rules (predictions 35 d,
   features/quotes 45 d) plus an `aux/` 45-day rule; otherwise 16 GB binds ~11-20. Engine files are in the verified releases.
+
+## Signal engine: `rules` family (CH267 class levels + CH239 text columns) census passed, challenger `se28_lr_rules` added, 2026-10-30 ~04:30Z (signal-engine autopilot session 34; development, nothing counted, k = 0)
+- **Definitions before the run:** DESIGN_V1 §41 and `census/se_rules_census_2026-10-30.py` committed `fd4c8bcb`
+  (04:14:24Z); run 1 started 04:15:44Z with the committed hashes. Counts only: no label, price change, prediction or
+  outcome read.
+- **Census:** newest capture, 51,017 eligible rows; `rc_has` 0.354 (non-sports 0.700, sports 0.187) >= 0.05, so the family
+  passes; every column inside its keep line. Hand audit of 40 texts: `cl_sched` 10/10, CH269's `cl_barrier` 3/13
+  deadline questions (boilerplate). One column added after the audit, disclosed: `rc_occur_by` (strict deadline
+  wording; 0.128 of covered rows; 4/4 and 0/36 on the sample; run 2 at 04:18:11Z, `89e2aa06`).
+- **Built:** aux family `rules` (`se-aux-rules-v1`, nine columns; the rows known at the capture = poll finished at or
+  before its start; all-NaN before the stream's first poll) and `se28_lr_rules` (the champion's logistic learner on
+  market_state + momentum + rules; read against `se0_champion_lr_mm`). Logistic on purpose, so no `cl_class x tte_h`
+  interaction (reserved for LT15, token `close` not yet requested) can be formed. No embargo: no token names rule text.
+  Registry 29 models; K rises by one.
+- **Not built:** CH239's date gap / direction / other-clause columns, CH228 `ruleedit`, CH207 `umaparams`.
+- **Science review (REVISE, minor; causality and embargo PASS), applied before deploy:** reading rule: no se28 gain is
+  credited to `rules` until its fits hold no pre-stream (all-NaN, era-dummy) rows and it has 14 days of scores from
+  them (first `dir_2h` read ~11-18); `RulesGap` refuses a build when a stream day file since 10-20 is missing. The audit
+  figures for `rc_occur_by` are in-sample (40 texts, not CH239's 50).

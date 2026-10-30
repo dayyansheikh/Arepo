@@ -57,7 +57,7 @@ class World:
     def paths(self, engine: Path, spec_dir: Path) -> S.Paths:
         return S.Paths(engine=engine, snapshots=self.root / "snapshots", sweeps=self.root / "book_sweeps",
                        samples=self.root / "trade_samples", xv_quotes=self.root / "xv",
-                       xv_quotes2=self.root / "xv2", spec_dir=spec_dir)
+                       xv_quotes2=self.root / "xv2", rules_stream=self.root / "stream_gamma_rules", spec_dir=spec_dir)
 
     def step(self) -> None:
         d = self.mid - self.prev
