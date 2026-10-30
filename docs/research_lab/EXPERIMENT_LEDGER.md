@@ -5359,3 +5359,12 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   as idea-level families in `signal_engine/CANDIDATES.md` (no token requested). **M1 is not amended for CH272 / CH273**: M1
   is at its R1-R3 diff check before registration and a rule-29 amendment would need new J1 code, a new code check and a new
   dry run; both stay candidates for separate rule-26 measurements after CH276 (decision recorded here, by the orchestrator).
+
+## M1 R1-R3 diff check ACCEPT_WITH_FIXES, 2026-10-30 12:45Z (experiments autopilot; nothing counted)
+- `reviews/M1_R_DIFF_CHECK_2026-10-30.md` on 230baa5d: R1-R3, S1-S3 implemented; the six new tests fail on the old code for
+  behavioural reasons; 93 M1 tests pass; no estimand, unit, class, threshold or date changed; the dry run cannot leak into a
+  live run. **MUST 1:** a residual race (an on-time capture appearing after its slot was decided) still breaks J1's chain for
+  the rest of the window (probes `reviews/probes_m1_r/`): k - 1 must come from the chain status, not the capture list.
+  **MUST 2:** J2 (q0751b, not_before 12-15T06:00Z) would refuse before the 06:20Z J1 pass decides the last slot -> 07:00Z.
+  SHOULD 1-4. Fixes delegated on `feat/m1-code`; then a new code_sha, a re-run of the dry run (q0750b) and the registration
+  commit (pins file `seals/M1_pins.json`, ledger section 16 block) by 2026-11-22T23:59Z.
