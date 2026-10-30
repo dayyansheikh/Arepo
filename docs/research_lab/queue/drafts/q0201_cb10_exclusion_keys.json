@@ -18,9 +18,10 @@
   "as_cap_mb": 3000
  },
  "depends_on": [
+  "q0200_cb10_smoke",
   "q0182b_cb9_exclusion_keys",
   "q0183_cb9_pyth_frame",
-  "q0185_cb9_kd_frame"
+  "q0185b_cb9_kd_frame_v3"
  ],
  "argv": [
   "scripts/run_cb10.py",
@@ -34,11 +35,12 @@
   "--data-dumps-cap-gb",
   "50",
   "--cb9-keys-sha256",
-  "FILL_SHA256_OF_CB9_Q0182_EXCLUSION_KEYS",
+  "e613604ab15b4e9741275d7860fdf58180525cbd9cb22fa2088a5efdcc6d375f",
   "--extra-pin",
-  "cb9_p_frame:FILL_PATH:FILL_SHA256",
+  "cb9_p_frame:/home/opc/arepo/data-dumps/research_lab/creative_batch9/pyth_frame/frame.csv.gz:FILL_SHA256_OF_PYTH_FRAME_CSV_GZ_AFTER_Q0183",
   "--extra-pin",
-  "cb9_kd_frame:FILL_PATH:FILL_SHA256"
+  "cb9_kd_sample:/home/opc/arepo/data-dumps/research_lab/creative_batch9/kd_frame_v3/sample.csv.gz:FILL_SHA256_OF_KD_SAMPLE_V3_CSV_GZ_AFTER_Q0185B",
+  "--normalise-ids"
  ],
  "timeout_s": 1800,
  "max_retries": 2,
@@ -47,9 +49,5 @@
   "manifest.json"
  ],
  "next_action": "q0202, q0204",
- "notes": "CB10 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. Rules file seals/cb10_rules_v2.json (freeze-check v2, supersedes cb10_rules.json) (rules_sha256 d422cc70... (file sha256 5ee0ea23...)). --data-dumps-cap-gb 40 (ops convention; design text says 14). After T_seal. >2% missing metadata -> disjointness unverified (D1, B1, B2 not testable, counted). Exit 75 on data-dumps or free-disk headroom. PLACEHOLDERS to fill at commit time (after q0182/q0183/q0185 finish): the q0182 keys sha256 (--cb9-keys-sha256 is REQUIRED by run_cb10.py; the design argv omitted it) and the pinned CB9 P and K/D frame id lists (--extra-pin NAME:PATH:SHA256, ids only). Freeze-check fix 7: can return in_progress with exit 0, so a repeat block re-runs until the completion or a declared stall status. | 2026-10-23 ~17:40Z: resources raised to mem_mb 1000 / as_cap_mb 3000 (as q0164c) after q0182 attempt 1 hit MemoryError at the 2 x 400 MB address-space cap (ops only). | 2026-10-28 ops (experiments autopilot): data-dumps guard 40 -> 50 GiB (data-dumps 38.9 GiB, ~0.5 GiB/day; root 30 GB free; collector cap 45 -> 55); no rule, window or population changed.",
- "repeat": {
-  "max_runs": 4,
-  "until_log_regex": "\"status\": \"(exclusion_keys_complete|not_run_source|disjointness_unverified|upstream_not_testable|disk_budget)\""
- }
+ "notes": "CB10 q0201, PROMOTION-READY EXCEPT the two FILL_ sha256 pins and the review/freeze gates below. RELEASE ONLY WHEN: (1) science-reviewer ruling on reviews/CB10_Q0201_FIX_NOTE_2026-10-28.md is GO or GO_WITH_CHANGES with changes applied; (2) CB10 code-against-design freeze check done (cb10_rules_v2.json rules_sha256 d422cc70..., file sha256 5ee0ea23...; verify_rules passes on the committed file); (3) T_seal passed and q0200 smoke PASS (run_cb10 refuses before T_seal; a failed smoke stalls downstream, counted); (4) q0182b done (it is: keys sha256 e613604a... = exclusion_report.json keys_sha256), q0183 and q0185b done, and BOTH FILL_ pins replaced by the sha256 of the finished pyth frame.csv.gz and kd_frame_v3 sample.csv.gz on the host (sha256sum; both have a market_id column; a pin whose file is absent is recorded 'absent at q0201' and would silently shrink the exclusion set, so do not release with an absent pin); (5) the CB9 q0182b manifest/pins untouched. Behaviour: --normalise-ids (new, cb10_exclusion_fix.py) = q0182b mapping rule (composite h7_cb4_series ids -> numeric market part, pred_* market ids) + NOT_EXTRACTABLE seals counted in params.exclusion_fix.counts.n_not_extractable and per_pin (pred-only seals now contribute). Exit codes via cb9_exit: 0 only complete or declared stall (exclusion_keys_complete / disjointness_unverified); 75 transient incomplete (network, 429, should_stop, data-dumps or free-disk headroom); 1 non-transient; 4 disk budget; 2 refused. No repeat block: a transient stop exits 75 and the queue re-queues it (batches resume by position; the write-once sidecar refuses a changed id set). --budget-min is refused. >2% missing metadata -> disjointness unverified (D1, B1, B2 not testable, counted). --data-dumps-cap-gb 50 (ops 2026-10-28; design text says 14). resources mem_mb 1000 / as_cap_mb 3000 (as q0164c/q0182). Earlier notes: ops raised resources 2026-10-23 after q0182 MemoryError; data-dumps guard 40 -> 50 GiB 2026-10-28 (no rule, window or population changed). Draft stays in drafts/ until released. CB9 kd-cap amendment (2026-10-30, CREATIVE_BATCH_9.md section 11.4, ruling MUST 2): the K/D pin is the 1,000 seeded SCREEN+HOLDOUT markets, creative_batch9/kd_frame_v3/sample.csv.gz (design CB10 :184, CB9 :505; cb9_kd.py SAMPLE_FILE, market_id column), NOT the walked frame.csv.gz (250k-490k rows would break the ~300 Gamma-request / 0.005 GB budget) and never kd_frame/ (q0185 attempt, superseded, unread). Pyth pin stays the whole pyth frame. Add kd_frame_v3 to cb10_common.REFUSED_RUN_IDS at the next CB10 rules revision (ruling SHOULD 6). RELEASE CHECK (fix ruling 2026-10-30, SHOULD 5): run sha256sum on the host immediately before release and put the values in the two pins; after the run the manifest pins_absent must be EMPTY before q0202/q0204 start (an absent pin is recorded and exits 0, shrinking the exclusion set). Disclosure (SHOULD 7): params.exclusion_fix.counts.n_cb8_ids counts the CB9 q0182b key-file ids in this run. NOT_EXTRACTABLE seals and unparseable:* skipped copies are counted in params.exclusion_fix and carried into the D1/B1/B2 results as 'not verified against by id or event key' (disclosure only, no gate). params.exclusion_fix also records cb10_fix_module_sha256."
 }
