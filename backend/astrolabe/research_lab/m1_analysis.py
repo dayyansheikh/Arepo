@@ -25,7 +25,8 @@ from . import m1_j0 as j0
 from . import m1_spec as sp
 
 BANNED = re.compile(r"\b(supported|confirmed|significant|edge|profitable|route exists)\b|p-value", re.I)
-NONFINAL = ("pending", "not_found", "unavailable_fetch", "unavailable_other")
+NONFINAL = ("pending", "not_found", "unavailable_fetch", "unavailable_other", "no_readout_record")
+UNCOVERED = ("not_found", "unavailable_fetch", "no_readout_record")  # 8.3: the fetch returned no record for the unit
 
 
 # --- loading ---------------------------------------------------------------------------------------------------------------------------
@@ -78,7 +79,7 @@ def classify_units(units: list[dict], readout: dict, spec: dict) -> Counter:
     rate, hpy = spec["capital_rate"], spec["hours_per_year"]
     for u in units:
         r = readout.get(u["market_id"])
-        st = r["state"] if r else "unavailable_fetch"
+        st = r["state"] if r else "no_readout_record"
         if r is None:
             notes["no_readout_record"] += 1
         if st == "resolved":
@@ -92,6 +93,8 @@ def classify_units(units: list[dict], readout: dict, spec: dict) -> Counter:
             u["cls"], u["L"] = "not_found", None
         elif st == "unavailable_fetch":
             u["cls"], u["L"] = "unavailable_fetch", None
+        elif st == "no_readout_record":
+            u["cls"], u["L"] = "no_readout_record", None  # no record in the read-out file at all: its own counted class, not a fetch failure
         else:
             u["cls"], u["L"] = "unavailable_other", None
             u["unavailable_sub"] = st
@@ -119,7 +122,10 @@ def classify_units(units: list[dict], readout: dict, spec: dict) -> Counter:
 
 
 def sp_ts(v) -> float:
-    return sp.ts({"x": v}, "x") if v else math.nan
+    try:
+        return sp.ts({"x": v}, "x") if v else math.nan
+    except ValueError:
+        return math.nan
 
 
 # --- bootstrap ---------------------------------------------------------------------------------------------------------------------------
@@ -335,8 +341,10 @@ def cross_check(units: list[dict], log: dict) -> dict:
         mine_y = None if u["cls"] not in ("resolved_favoured", "resolved_other") else (1 if (u["side"] == "YES") == (u["cls"] == "resolved_favoured") else 0)
         if d.get("state") == "resolved":
             ok = mine_y is not None and d.get("y") == mine_y
+        elif u["final"]:
+            ok = u["cls"] == d.get("state")  # final M1 states are compared with the engine's final states only
         else:
-            ok = u["cls"] == d.get("state") or (u["cls"] == "split_50_50" and d.get("state") == "split_50_50")
+            ok = d.get("state") not in ("resolved", "split_50_50")  # M1 non-final (pending, not_found, ...) agrees with any engine non-final state (not_resolved, not_found, ...)
         agree += int(ok)
         if not ok:
             dis += 1
@@ -344,18 +352,72 @@ def cross_check(units: list[dict], log: dict) -> dict:
     return {"units_in_log": agree + dis, "agree": agree, "disagree": dis, "disagreements": lst[:100], "note": "the pinned source governs"}
 
 
-def survivorship(units: list[dict], log: dict) -> dict:
-    """13: per UTC day, M1's first-seen proposals (units) against the engine log's markets by closed day; counts only, lagged and partial.
-    The log carries no category, so the log counts are all categories (not the non-sports ex-crypto restriction of the text)."""
-    first: Counter = Counter(sp.iso(u["k_start_ts"])[:10] for u in units)
-    closed: Counter = Counter()
-    for d in log.values():
-        t = parse_closed(d.get("closed_time"))
-        if math.isfinite(t):
-            closed[sp.iso(t)[:10]] += 1
-    in_log = Counter(sp.iso(u["k_start_ts"])[:10] for u in units if u["market_id"] in log)
-    days = sorted(set(first) | set(closed))
-    return {"label": "lagged partial read: the engine log holds only its candidates and carries no category", "per_day": {d: {"m1_first_seen_units": first.get(d, 0), "log_markets_closed_that_day_all_categories": closed.get(d, 0), "m1_units_in_log": in_log.get(d, 0)} for d in days}}
+def survivorship(chain: list[dict]) -> dict:
+    """13 (amendment 18(b)): per processed capture and per UTC day of capture start, from the in-scope id sets J1 wrote at k (E5's reader at k), not from the
+    engine log. Counts only. A capture whose set is absent is printed ``unavailable`` and left out of the day's union."""
+    per_capture: dict = {}
+    day_sets: dict = defaultdict(set)
+    day_first: Counter = Counter()
+    day_units: Counter = Counter()
+    day_unavail: Counter = Counter()
+    for d in chain:
+        if d.get("kind") != "processed":
+            continue
+        day = d["capture_start_utc"][:10]
+        first_seen = sum(v for k, v in d["funnel"].items())
+        if d.get("in_scope_market_ids") is None:
+            per_capture[d["capture_id"]] = "unavailable"
+            day_unavail[day] += 1
+            continue
+        ids = ex.decode_ids(d["in_scope_market_ids"])
+        per_capture[d["capture_id"]] = {"day": day, "in_scope_ids": len(ids), "proposal_candidates_all_classes": first_seen, "units": d["units"]}
+        day_sets[day] |= ids
+        day_first[day] += first_seen
+        day_units[day] += d["units"]
+    days = sorted(set(day_sets) | set(day_unavail))
+    return {"label": "count-only, lagged: in-scope (non-sports ex-crypto, E5's reader at k) market ids per capture from J1's status files; proposal candidates are the sidecar's proposal states at k, all classes",
+            "per_day": {x: {"in_scope_ids_distinct": len(day_sets.get(x, ())), "proposal_candidates_all_classes": day_first.get(x, 0), "m1_units": day_units.get(x, 0),
+                            "captures_unavailable": day_unavail.get(x, 0)} for x in days},
+            "per_capture": per_capture}
+
+
+def m2_overlap(units: list[dict], m2_store: Path | None) -> dict | str:
+    """Section 2 (amendment 18(a)): at read-out only, the count of M1 units that are also M2 units. Reads ``market_id`` and ``capture_id`` from M2's write-once
+    unit lines and nothing else (a pattern match on those two keys; no other field is parsed, kept or printed). ``"unavailable"`` when the store is absent."""
+    if m2_store is None or not (Path(m2_store) / "units").is_dir():
+        return "unavailable"
+    mid_re, cid_re = re.compile(r'"market_id":\s*(\d+)'), re.compile(r'"capture_id":\s*"([^"]*)"')
+    seen: set = set()
+    for p in sorted((Path(m2_store) / "units").glob("*.jsonl.gz")):
+        with gzip.open(p, "rt") as fh:
+            for line in fh:
+                a, b = mid_re.search(line), cid_re.search(line)
+                if a and b:
+                    seen.add((int(a.group(1)), b.group(1)))
+    n = sum(1 for u in units if (int(u["market_id"]), u["capture_id"]) in seen)
+    return {"count": n, "m2_unit_ids_read": len(seen), "key": "market_id + capture_id", "pooled": False}
+
+
+def counted_classes(store: Path) -> dict:
+    """1.4: every counted missingness class of J1 (status-file notes, look-back record, side statuses) added up into the output."""
+    init, chain, side = ex.load_all_statuses(store)
+    notes: Counter = Counter()
+    sub: Counter = Counter()
+    fallbacks = 0
+    funnel: Counter = Counter()
+    for d in chain:
+        if d.get("kind") == "processed":
+            notes.update(d.get("notes", {}))
+            sub.update(d.get("funnel_sub", {}))
+            fallbacks += d.get("t_d_fallbacks", 0)
+            funnel.update(d.get("funnel", {}))
+    unparse = sum(v for k, v in notes.items() if k.startswith("unparseable_market_id"))
+    return {"j1_status_notes": dict(sorted(notes.items())), "unparseable_market_id": unparse, "funnel_sub": dict(sub), "t_d_fallbacks": fallbacks,
+            "not_open_at_k_incl_no_row_at_k": funnel.get("not_open_at_k", 0) + funnel.get("not_open_at_k:no_row_at_k", 0),
+            "missing_capture_slots": sum(1 for d in chain if d.get("kind") == "missing_capture"),
+            "late_capture_ignored": len(side["late_capture_ignored"]), "duplicate_slot_capture_ignored": len(side["duplicate_slot_capture_ignored"]),
+            "off_grid_capture_ignored": len(side["off_grid_capture_ignored"]),
+            "lookback": (init or {}).get("lookback"), "lookback_notes": (init or {}).get("notes")}
 
 
 # --- pins and manifest -------------------------------------------------------------------------------------------------------------------
@@ -383,7 +445,7 @@ def check_run_pins(spec: dict, pins: dict, paths=None, design=None) -> dict:
 # --- the analysis -------------------------------------------------------------------------------------------------------------------------
 
 def run_analysis(store: Path, pins: dict, out: Path | None, spec: dict = sp.SPEC, now: float | None = None, engine_root: Path | None = None,
-                 paths: dict | None = None, design: Path | None = None) -> dict:
+                 paths: dict | None = None, design: Path | None = None, m2_store: Path | None = None) -> dict:
     now = time.time() if now is None else now
     if now < sp.ts(spec, "readout_utc") + spec["analysis_after_readout_s"]:
         raise ex.M1Refusal("analysis refuses before READOUT_UTC + 12 h")
@@ -393,6 +455,9 @@ def run_analysis(store: Path, pins: dict, out: Path | None, spec: dict = sp.SPEC
     if out.exists():
         raise ex.M1Refusal("analysis refuses to overwrite --out")
     pin_rec = check_run_pins(spec, pins, paths, design)
+    reg_commit = pins.get("registration_commit_utc")
+    if not (reg_commit and math.isfinite(sp_ts(reg_commit))):
+        raise ex.M1Refusal("analysis refuses: the pins file lacks a parseable registration_commit_utc (void condition 11.6 cannot be checked)")
     store = Path(store)
     man = verify_manifest(store, pins)
     audit = ex.audit_chain(store, spec)
@@ -400,6 +465,7 @@ def run_analysis(store: Path, pins: dict, out: Path | None, spec: dict = sp.SPEC
     readout = load_readout(store)
     wait_notes = classify_units(units, readout, spec)
     _init, chain, _late = ex.load_statuses(store)
+    counted = counted_classes(store)
     funnel: Counter = Counter()
     contested_n = 0
     contested_c = 0.0
@@ -413,12 +479,13 @@ def run_analysis(store: Path, pins: dict, out: Path | None, spec: dict = sp.SPEC
     classes = Counter(u["cls"] for u in units)
     nonfinal = sum(classes[c] for c in NONFINAL)
     events_all = {u["cluster"] for u in units}
-    covered_u = [u for u in units if u["cls"] not in ("not_found", "unavailable_fetch")]
+    covered_u = [u for u in units if u["cls"] not in UNCOVERED]
     cov_units = len(covered_u) / len(units) if units else None
     by_ev: dict = defaultdict(list)
     for u in units:
-        by_ev[u["cluster"]].append(u["cls"] not in ("not_found", "unavailable_fetch"))
-    cov_events = sum(sum(v) / len(v) for v in by_ev.values()) / len(by_ev) if by_ev else None
+        by_ev[u["cluster"]].append(u["cls"] not in UNCOVERED)
+    # 8.3 (code-freeze check, ambiguity 2): an event is covered only if every one of its units' fetches returned a record
+    cov_events = sum(1 for v in by_ev.values() if all(v)) / len(by_ev) if by_ev else None
     void: list = []
     if not audit["ok"]:
         void.append(f"11.2(a) chain broken: {audit['breaks'][:5]}")
@@ -426,18 +493,18 @@ def run_analysis(store: Path, pins: dict, out: Path | None, spec: dict = sp.SPEC
         void.append(f"11.4 coverage below the floor: units {cov_units:.4f}, events {cov_events:.4f}")
     if lc.get("lines") and lc.get("dropped_pin_or_role_mismatch", 0) / lc["lines"] > spec["void_sha_mismatch_share"]:
         void.append("11.5 unit lines with a different spec_sha / code_sha / role exceed 1%")
-    reg_commit = pins.get("registration_commit_utc")
-    if reg_commit is not None and sp.ts(spec, "registered_utc") < sp_ts(reg_commit) + 86400:
+    if sp.ts(spec, "registered_utc") < sp_ts(reg_commit) + 86400:
         void.append("11.6 the window started before the registration commit plus 24 h")
     res: dict = {"kind": "M1-A analysis (descriptive measurement; no test)", "spec_sha": sp.spec_sha(spec), "code_sha": sp.code_sha(), "role": sp.ROLE, "pin_check": pin_rec,
                  "manifest_sha256": pins["manifest_sha256"], "chain_audit": audit, "unit_lines": lc, "wait_notes": dict(wait_notes), "void_reasons": void,
                  "funnel_k_time": dict(funnel), "contested": {"n": contested_n, "mean_c_nearer_1": contested_c / contested_n if contested_n else None},
                  "classes": dict(sorted(classes.items())), "eligible_units": len(units), "final_units": nf, "events": len(events_all),
-                 "coverage": {"units": cov_units, "events_event_weighted": cov_events, "floor": spec["coverage_floor"], "final_share_of_eligible": nf / len(units) if units else None},
+                 "coverage": {"units": cov_units, "events_all_units_covered": cov_events, "floor": spec["coverage_floor"], "final_share_of_eligible": nf / len(units) if units else None},
                  "ask_f_at_1": {"units": sum(1 for u in units if u["ask_f_at_1"]), "share": sum(1 for u in units if u["ask_f_at_1"]) / len(units) if units else None,
                                 "note": "entry price of a venue placeholder (c = 0); kept as declared; bias is toward lower theta (3.2, E6 note)"},
                  "uma_status_by_class": {c: dict(Counter(str(u["uma"]) for u in units if u["cls"] == c)) for c in sorted(classes)},
-                 "m2_overlap": "not computed here (M2's store is not read)"}
+                 "counted_classes": counted, "t_d_fallback_units": sum(1 for u in units if u.get("t_d_fallback")),
+                 "m2_overlap": m2_overlap(units, m2_store if m2_store is not None else store.parent / "m2_ch264")}
     nums: dict = {}
     if nf:
         h = headline(final, spec)
@@ -466,19 +533,21 @@ def run_analysis(store: Path, pins: dict, out: Path | None, spec: dict = sp.SPEC
         nums["ledger_line"] = (f"measured (prospective, k = 0; units seen at a 2 h capture and two-sided at k): unit-weighted mean net per share theta = {th['est']:.6f} "
                                f"[{th['lo']:.6f}, {th['hi']:.6f}], theta_low = {theta_low:.6f} (bound), theta_W = {theta_w:.6f} (worst case), cost-model-v1, conservative fee, touch, "
                                f"size-unlimited, capacity {capy} (covered subset {100 * (cap['coverage'] or 0):.2f}%){' [reported coarse]' if nums['coarse']['coarse'] else ''}.")
-        assert not BANNED.search(json.dumps(nums, default=str)), "banned wording in output"
     elif not void:
         void_note = "no final-state units"
         res["note"] = void_note
     log = engine_log(engine_root)
     if log:
         res["cross_check_engine_log"] = cross_check(units, log)
-        res["survivorship"] = survivorship(units, log)
+    res["survivorship"] = survivorship(chain)
     if void:
         res["void"] = True
         res["not_a_measurement"] = nums
     else:
         res["void"] = False
         res.update(nums)
+    hit = BANNED.search(json.dumps(res, default=str))
+    if hit:
+        raise ex.M1Refusal(f"analysis refuses: banned wording {hit.group(0)!r} in the output")
     ex._write_once(out, ex.dumps(res).encode(), lambda a, b: False)
     return res
