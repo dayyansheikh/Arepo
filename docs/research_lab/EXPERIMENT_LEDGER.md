@@ -5270,3 +5270,16 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   otherwise "frame or category proxy"); absent fallback / "none" resolver parsed as NaN; `customLiveness` None by
   category recorded (sports 0.282); the same-day gap-guard looseness disclosed for both stream families.
 - **Reading dates:** as se28: `dir_*` fits without pre-stream rows from the 11-04 refit; first creditable `dir_2h` read ~11-18.
+
+## LT14 census code final; code hashes re-announced; q0741-q0744 promoted (not before 2026-11-17), 2026-10-30 ~10:05Z (experiments autopilot; nothing counted)
+- F1-F3 diff re-check (`reviews/LT14_CODE_F_RECHECK_2026-10-30.md`) ACCEPT_WITH_FIXES; fixes A-D applied (42a0c996, merged
+  9f05f6b3; 64 tests): restore guard cap 50 GiB = the census cap, `du` measure; **`added_utc` print-only** (only `model_id`,
+  `spec_sha256` and the canonical spec sha refuse; reviewer corrected its own F3 wording against design l. 531-535); q0744
+  wording; the guard skips the restore when the host roots already cover the span (retention 12 days), else restores and
+  re-checks coverage (exit 3 "stop and ask the owner" on any gap or no catalogue match).
+- **LT14 code hashes (re-announced before the seal):** `live_tests14.py` `eec6f9ba25247a972f70223470928f88c46690c9031cd3afa97d9481530a27e5`,
+  `live_tests14_base.py` `12c6c93423f18bf7842ce3c9597fe14aca401d07445aa978c85d4deb66e4fded`, `run_live_tests14.py`
+  `aaa12b51f992159309cc44218d11f8d550d6b8d50e5c1b63268d1bbdd0df2865`, `lt14_restore_guard.py` (not hashed into the seal)
+  `70cd5e98…c48e`; declaration sha256 `d2b89b1af9a8bb79551747ce47465b3961cc34b96eb85e0206635c4c8affd6ab`.
+- **Promoted:** q0744 catalogue refresh, q0743 sidecar restore guard, q0741 seal (not before 11-17T05:01Z), q0742 census
+  (not before 11-17T06:00Z); chain q0740 -> q0744 -> q0743 -> q0741 -> q0742. Further LT14 code edits would need a re-announce.
