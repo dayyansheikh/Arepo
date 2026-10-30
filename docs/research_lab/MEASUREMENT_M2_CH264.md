@@ -2,8 +2,8 @@
 
 **Status: DRAFT 2026-10-30, second draft plus re-check fixes (challenger R1, `reviews/M2_CHALLENGER_R1_2026-10-30.md`,
 GO_WITH_CHANGES on `c075355b…0ca4`, mapped in section 18; re-check `reviews/M2_R1_RECHECK_2026-10-30.md`, NOT_READY on
-two wording defects, MUST 1-2 and SHOULD 1-10 applied, mapped in section 19). Next: J1 extractor code and synthetic tests,
-then M2-J0 (dry mode), final verification, freeze by 2026-11-16. Not frozen, not registered, nothing counted.** Evidence role
+two wording defects, MUST 1-2 and SHOULD 1-10 applied, mapped in section 19, plus the J1 ambiguity rulings, section 20; next: M2-J0 (q0733b) on the fixed code, final verification,
+freeze by 2026-11-16. Not frozen, not registered, nothing counted.** Evidence role
 `prospective_measurement` (rule 26 of `CREATIVE_HYPOTHESES_2026-11-02.md` 0.3; role and conditions set by the binding
 ruling `reviews/R19_RULE26_MEASUREMENT_RULING_2026-10-30.md`, ACCEPT_WITH_CONDITIONS for the role, **REVISE** for CH264;
 every REVISE item is mapped in section 17). Drafted on branch `feat/m2-ch264` from the `chore/arepo-claude-setup` tip
@@ -137,16 +137,14 @@ as new candidates. A market in the overdue-seen set that was not overdue at k - 
 names the class):
 - **E1 Capture.** Captures k and k - 1 are complete and k - 1 is the immediately previous 2 h slot (`grid0 =
   2026-10-01T00:31Z`, tolerance 30 min, first complete capture of the slot), and k - 1 was folded into the state (not
-  `missing_capture` or `late_capture_ignored`). Else `no_previous_capture`.
-- **E2 First overdue slot.** The market has a row at k - 1 (else `no_k_minus_1_row`) whose own `age_{k-1} = start_{k-1} -
+  `missing_capture` or `late_capture_ignored`). Else `no_previous_capture`. Every candidate at an in-window capture that is not classified is counted: `no_previous_capture` (k - 1 missing, not folded, or gone on resume) or `k_minus_1_before_window` (the first window capture).
+- **E2 First overdue slot.** The market has a row at k - 1 (else `no_k_minus_1_row`; `end_date_{k-1}` unparseable: `k_minus_1_end_date_missing`, first overdue status cannot be checked, never a unit) whose own `age_{k-1} = start_{k-1} -
   end_date_{k-1} < 2 h` (else `already_overdue_at_k_minus_1`: a guard class, expected 0 because a folded k - 1 puts every
-  market with `age >= 2 h` into the set; a non-zero count is printed and audited). `end_date` missing at k: `end_date_missing` (not a candidate; counted per
-  capture for scope markets).
+  market with `age >= 2 h` into the set; a non-zero count is printed and audited). `end_date` missing at k: `end_date_missing` (not a candidate; counted per capture as row-captures (every row of k with an unparseable `end_date` whose k sidecar row maps to scope, open or not), with distinct markets printed beside; never a unit).
 - **E3 One-shot.** No earlier M2 unit for the market (else `prior_unit`; a market whose `end_date` is extended and later
-  passes again is never a new unit).
-- **E4 Open at k.** `binary = 1`, `closed` false, `active` true, `accepting_orders` true (sidecar). Else `not_open_at_k`;
-  `accepting_orders` missing or unparseable is its own class `accepting_unknown`.
-- **E5 Scope.** Capture k's sidecar row exists (else `sidecar_missing`) and its category, by the CH269 map's reader
+  passes again is never a new unit). A guard class like E2, expected 0 (a unit's market entered the overdue-seen set at its own k); a non-zero count is printed and audited.
+- **E4a Open by row at k:** `binary = 1`, `closed` false, `active` true; else `not_open_at_k`. **E4b Sidecar:** capture k's sidecar row exists; else `sidecar_missing`. **E4c** `accepting_orders` true; false is `not_open_at_k`; missing or unparseable is `accepting_unknown`.
+- **E5 Scope:** the category of capture k's own sidecar row, by the CH269 map's reader
   (`boundary_map_ch240.category_of(fee_type, fee_category, series_slugs, True)`) applied to **capture k's own sidecar row**,
   is `nonsports_excrypto`. Else `out_of_scope_<category>` (sports and crypto counts printed).
 - **E6 Empty UMA status at k (a whitelist; R1 MUST 2).** `str(uma_resolution_statuses).strip().lower()` at k is one of
@@ -160,8 +158,7 @@ names the class):
 - **E9 Favourite readable.** `mid_k == 0.5` (on the rounded value): `no_favourite` (counted k-time class; its YES-resolved
   share is printed at read-out, never in any estimand). Else the unit is eligible.
 
-**Survivorship class (k-visible, counted, never a unit).** `left_before_overdue_slot`: scope markets present and open at
-k - 1 whose `end_date_{k-1} <= start_k - 2 h` and that are absent from k's rows or `closed` at k. Printed per UTC day beside
+**Survivorship class (k-visible, counted, never a unit).** `left_before_overdue_slot`: scope markets (k - 1's own sidecar row) open by row flags at k - 1, with `age_{k-1} < 2 h` and `end_date_{k-1} <= start_k - 2 h`, that are absent from k's rows or `closed` at k. Printed per UTC day beside
 the funnel so a reader sees how many ended markets close or vanish before a first overdue capture.
 
 ### 3.3 Unit fields and decision time
@@ -173,7 +170,7 @@ the funnel so a reader sees how many ended markets close or vanish before a firs
 - **The touch may be stale (disclosed, unmeasured; R1 SHOULD 6).** Gamma's best bid / ask on a past-end market may lag the
   book; no book is read (5.3), so the staleness of `ask_f` at `t_d` is not measured.
 - **Decision time** `t_d` = the later of the row's `received_utc` and the sidecar row's `received_utc` (no sweep exists for
-  these markets). The gap (sidecar minus row) is recorded. The rule-class input must be committed at or before `t_d` (3.5).
+  these markets). If neither `received_utc` parses, `t_d` = capture k's manifest start (`t_d_source = capture_start_fallback`, counted). If one parses, it is used alone. The gap (sidecar minus row) is recorded. The rule-class input must be committed at or before `t_d` (3.5).
 - **Unit record.** Everything above plus `event_id`, the event's open binary member count at k, `end_date_k`,
   `end_date_{k-1}` (the k-visible move flag of S7), `age_k`, `liquidity` at k, `open_interest` presence, category, `cat_k`,
   fee fields and the two fee lines of 5, the rule class and its commit time, the raw status strings at k and k - 1, capture
@@ -191,9 +188,7 @@ The cluster is the Gamma `event_id` at k. No cap: weights are declared instead (
   "consensus-sourced" cut is not available).
 - **k-visible reader (declared now; the CH269 map's "last row wins" read rows after k and is not used).** The market's
   class is computed from its last `row` (or `hash` resolved to its full row) in a committed poll whose `poll` line was
-  written at or before `t_d`, across retained day files. If J0 finds that committed poll lines carry no usable receipt time,
-  rule (e) of 9.1 applies: only day files of UTC days strictly before k's UTC day are read. Either way no row after `t_d`
-  is read.
+  written at or before `t_d`, across retained day files. A record's receipt time is the `finished_utc` of the committing `ok` poll line. A record with a parseable `finished_utc` is visible iff it is <= `t_d`. A record without one is visible only if its day file's UTC day is strictly before k's UTC day. Rule (e) is the case where no committed line parses. Day files are keyed by poll start (`streams/common.py:366`), so J0 prints the number of commits that cross midnight and the maximum poll duration (disclosed). A `hash` record resolves to the class of any committed `row` with an equal sha in a retained file or the ledger (equal sha means equal text). `gone` records do not change the class. No row after `t_d` is read.
 - **Coverage is selected (disclosed).** The `gamma_rules` frame holds open markets with `volume24hr > 0` (top 3,000 hourly,
   the full frame four times a day), so `no_rules` collects the quietest markets; CH269 counted 180 `no_rules` of 1,347 units
   (13%) under its looser reader. `no_rules` is a reported cell, never filled.
@@ -256,12 +251,10 @@ The cluster is the Gamma `event_id` at k. No cap: weights are declared instead (
   the fee is 0.8c a share, comparable to the CI (10). Both lines are always printed.
 - `costs.py` is E026-frozen; M2 imports it and never edits it; its sha256 (`258856fc…844d` at this draft) is in M2's pins.
   The sha256 of every imported module whose function sets an eligibility class, split cell or outcome class
-  (`boundary_map_ch240.py`, `cb17_census.py`, `live_tests11_base.py`, `population_map_ch251.py`, `calibration.py`,
-  `costs.py`) is a spec pin, recorded in J0's seal and at registration. A difference at the analysis is void 11.1. Fact
+  (`boundary_map_ch240.py`, `cb17_census.py`, `cb13_label.py`, `live_tests8_base.py`, `population_map_ch251.py`, `calibration.py`,
+  `costs.py`; these are the import graph of E5, S4, the fee lines and the outcome parser: `category_of` calls `cb17_census.is_sports_sidecar`, which reads `cb13_label.first_series_slug`, `SPORTS_CATEGORIES` and `SPORTS_SERIES_RE`, and `live_tests8_base.crypto_class`) plus `live_tests11_base.py`, which is pinned because the S3 note cites its copy (l. 718-727) and is not imported. Eight files. Each is a spec pin, recorded in J0's seal and at registration. A difference at the analysis is void 11.1. Fact
   checked at this re-check: none of these files is pinned as a file by an earlier spec (LT11 pins only the source hashes of
-  its vendored pieces by a provenance test; CB17 pins a bundle hash covering `cb17_census`), so the pins are new. Also
-  pinned: `live_tests8_base.py`, because `boundary_map_ch240.category_of` calls its `crypto_class` (the same logic as the
-  `live_tests11_base.py` copy at l. 718-727).
+  its vendored pieces by a provenance test; CB17 pins a bundle hash covering `cb17_census`), so the pins are new. 
   Liquidity rewards, holding rewards and rebates are not in any line (disclosed).
 
 ### 5.2 Capital and the wait
@@ -310,7 +303,7 @@ during the window it is **not** used; its presence share is printed only.
 | S7 | `end_date` moved at k (`end_date_k != end_date_{k-1}`) | no, yes |
 | S8 | event member count at k | 1, 2-5, 6+ |
 | S9 | tick size at k | 0.001, 0.01, other / missing |
-| S10 | window week | days 1-7, 8-14, 15-21 |
+| S10 | window week | days 1-7, 8-14, 15-21 (and 22-28, 29-35, 36-42 under 9.1 (a)) |
 | S11 | spread at k (`spread_k`, rounded, 3.3) | <= 0.01, (0.01, 0.03], (0.03, 0.10], > 0.10 |
 | S12 | S1 x S2 (the idea's size x class grid) | 4 x 6 = 24 cells |
 
@@ -325,7 +318,7 @@ market; S6 cells mirror S5 under the YES / NO symmetry and are not independent o
 variable. **Likely empty or thin cells (disclosed; R1 SHOULD 2; CH269 counts under its looser reader):** S2 `scheduled` 14
 of 1,347 units, so D2's `scheduled` arm is expected `thin`; S12 high x `no_rules` 0; S1 is confounded with rule coverage
 (154 of 180 `no_rules` units in the low cell), so S1 differences mix size and coverage. Selection width for later tests:
-**12 splits, 69 cells** (S1 4, S2 6, S3 10, S4 3, S5 2, S6 5, S7 2, S8 3, S9 3, S10 3, S11 4, S12 24) **plus 2 contrasts**.
+**12 splits, 69 cells (72 under 9.1 (a))** (S1 4, S2 6, S3 10, S4 3, S5 2, S6 5, S7 2, S8 3, S9 3, S10 3, S11 4, S12 24) **plus 2 contrasts**.
 
 ## 7. Inference
 
@@ -431,13 +424,12 @@ Store: `data-dumps/research_lab/m2_ch264/` on the host (write-once files; never 
   S1-S12 (counts; k-time zone counts of S6 and S11 only); `no_favourite` count; `cat_k` distribution with raw
   `fee_category` beside; the rule-class reader's coverage at `t_d` against CH269's last-row reading (counts); **whether
   committed `poll` lines carry a parseable receipt time**; `gamma_rules` day-file retention (oldest file); the forms of the
-  status string (distinct normalised forms, counts); the planned follow-up volume (units x captures to the read-out).
+  status string (distinct normalised forms, counts; every non-whitelist form seen at E6, uncapped, with counts); the planned follow-up volume (units x captures to the read-out).
 - **Decision rules declared now:** (a) eligible units fewer than 75 a day (median full day): window extended to 42 days,
   dates rewritten before the freeze; (b) *redundant, kept as a record only* (fewer than 1,500 projected over 21 days; since 75 x 21 = 1,575 > 1,500, rule (a)
   always fires first; R1);
   (c) the size split stays the liquidity proxy with CH269's cuts whatever J0 prints; (d) none of J0's numbers changes an
-  estimand, split, cut, cost line or threshold; (e) if committed `poll` lines carry no parseable receipt time, S2's reader is
-  the day-before rule of 3.5. No J0 output can change the E6 whitelist or the whole-token P tokens: unforeseen status forms stay `uma_other_at_k` / `uma_other_followup`. Output labelled `informed (M2-J0)`, counts only, sealed with its code hash.
+  estimand, split, cut, cost line or threshold; (e) the receipt-time reading of 3.5 (computed, never a manual mode; records with no parseable `finished_utc` use the day-before rule). No J0 output can change the E6 whitelist or the whole-token P tokens: unforeseen status forms stay `uma_other_at_k` / `uma_other_followup`. Output labelled `informed (M2-J0)`, counts only, sealed with its code hash. J0 folds 12 captures, then uses one more capture as k - 1 only; this is fixed now. A short fold can only add candidates, because the current overdue stock enters the seen set at the first fold capture and only re-overdue markets leak. J0's look-back is not changed after its output is seen.
 - Memory: under 600 MB (CH269's 8-day map peaked at 558.8 MB over a wider read); dry run measured.
 
 ### 9.2 M2-J1: window-time extractor and blind follow-up recorder (every pass; catch-up within retention)
@@ -446,10 +438,10 @@ Store: `data-dumps/research_lab/m2_ch264/` on the host (write-once files; never 
   `status/<capture_id>.json` (the funnel counts, completeness; **no P or C count and nothing derived from follow-up
   content**: for follow-up files only their sha256 and line count, R1 Q1; monitoring prints the same and no more). Idempotent per capture; refuses to overwrite; every line
   carries `spec_sha`, `code_sha`, role `prospective_measurement`. State file between runs: the overdue-seen set, the M2 unit
-  ids, the folded rule classes with their commit times.
+  ids, and an append-only rule ledger: per market, every committed record's receipt time, day file, kind and class, plus the sha-to-class map. It is merged from retained day files at each pass and never pruned, so retiring a day file never changes a later unit's class.
 - **Look-back fold timing (re-check SHOULD 4).** J1's first pass, after the registration commit and before the first window
   capture is processed, folds the look-back span in order. A slot whose capture is absent, or already removed by retention at
-  that pass, is `missing_lookback_slot`.
+  that pass, is `missing_lookback_slot`. A k is classified only if `start_k` is in [`REGISTERED_UTC`, `END_UTC`) and `start_{k-1} >= REGISTERED_UTC`. Captures at or after `END_UTC` serve follow-up only and are not folded.
 - **Strictly chronological (M1's re-check fix 3, adopted verbatim).** Captures are processed in increasing manifest start,
   one at a time, and a capture is processed only when every earlier slot is processed or recorded `missing_capture`;
   catch-up replays the backlog in the same order. A slot is recorded `missing_capture` once it has no complete capture 6 h
@@ -467,8 +459,7 @@ Store: `data-dumps/research_lab/m2_ch264/` on the host (write-once files; never 
   because the host keeps captures only about 8 days. Its non-reading before the read-out is a procedure, not a property the
   data can prove (11.2(b)).
 - **Synthetic tests to be written:** (i) out-of-order delivery processes in order and gives the same units; (ii) a state file
-  holding a capture at or after k makes the run refuse; (iii) a 12-capture catch-up gives identical unit files; (iv) deleting
-  every follow-up file leaves every unit and status file byte-identical; (v) a `gamma_rules` record committed after `t_d`
+  holding a capture at or after k makes the run refuse; (iii) a 12-capture catch-up gives identical unit files; (iv) running with the recorder off, or deleting every follow-up file, leaves every unit file and the state file byte-identical, and every status file identical except its `followup` field; (v) a `gamma_rules` record committed after `t_d`
   never changes a unit's S2 cell; (vi) `mid_k` boundary cases (0.05, 0.95, 0.5) classify on the rounded value; (vii) S11 and S6 boundaries: every one-tick
   spread at ticks 0.01 and 0.001 and the 0.03 / 0.10 / zone boundaries classify into the intended cell on the rounded values
   (R1 MUST 1); (viii) E6 passes only the four empty forms.
@@ -615,7 +606,7 @@ lexicon and `read_rules`), `book_sweep.select_tokens`, `panel.eligibility_mask`,
 >   `Q - ask - fee` (cost-model-v1 conservative fee) at the first overdue capture with an interior mid, event-bootstrap CI;
 >   `theta_NF` and the attrition band in the same line; 12 k-visible splits on a liquidity proxy (open interest empty);
 >   capacity unavailable; proposal hazard under right-censoring at read-out. Window 2026-11-24..12-14 (units disjoint from
->   M1's), read-out on or after 2027-01-29. Next: J1 extractor code and synthetic tests, then M2-J0 (J1 in dry mode, counts only).
+>   M1's), read-out on or after 2027-01-29. Next: M2-J0 (q0733b) on the J1 code with the ambiguity rulings (section 20), counts only.
 
 ## 17. The binding inputs, mapped
 
@@ -695,7 +686,7 @@ two planning figures that are not load-bearing.
 | Item | What changed | Where |
 |---|---|---|
 | MUST 1 J0 order | the order now has the J1 code (tests i-viii) before J0, J0 = that code in dry mode with its `code_sha` in J0's seal, the remaining code and a code-freeze check listing J1 changes since that `code_sha` after the freeze; "the same pinned code" replaced by "the J1 code at the commit recorded in J0's seal" | status block, 9.1, 18.4 |
-| MUST 2 imported readers | sha256 of the six imported modules is a spec pin recorded in J0's seal and at registration; a difference is void 11.1; `live_tests8_base.py` added (its `crypto_class` is what `category_of` calls); not pinned as files by an earlier spec | 5 |
+| MUST 2 imported readers | sha256 of the eight imported or cited files is a spec pin recorded in J0's seal and at registration; a difference is void 11.1; `live_tests8_base.py` added (its `crypto_class` is what `category_of` calls), then `cb13_label.py` and `live_tests11_base.py` (section 20); not pinned as files by an earlier spec | 5 |
 | SHOULD 1 `fees_enabled` for L1 | passed False / True / None as served-and-not-truthy / truthy / missing; `rate_zero` fee-free units still carry the docs rate | 5 |
 | SHOULD 2 denominators | "M2 units (passed E1-E9; `no_favourite` excluded and its fetch coverage printed separately)" | 8.4, 10 |
 | SHOULD 3 split-cell bootstrap | same event draws restricted to the cell's units; draws without a final-state unit counted and left out; day-block split of events disclosed | 7.1 |
@@ -706,3 +697,29 @@ two planning figures that are not load-bearing.
 | SHOULD 8 YES / NO | YES = outcome 0, NO = outcome 1 | 6, 8.1 |
 | SHOULD 9 J0 status forms | no J0 output changes the E6 whitelist or P tokens; unforeseen forms stay `uma_other_*` | 9.1 |
 | SHOULD 10 planning figures | SE 0.71-0.99c; half-width 2.1-4.9c (SE range 1.1-2.5c to match) | 10 |
+
+## 20. J1 code ambiguity rulings response (2026-10-30; `reviews/M2_J1_AMBIGUITY_RULINGS_2026-10-30.md`, REVISE; code in `reviews/M2_J1_CODE_NOTE_2026-10-30.md`)
+
+No window, read-out, deadline, threshold, estimand, weight, seed, cut or cost line was changed. Rulings 1-15 and defects N1-N5 were declared before any J0 output exists. The earlier q0733 stopped before any output on pre-ruling code and is superseded by q0733b.
+
+| Ruling | Where applied in the text | Code |
+|---|---|---|
+| 1, 2 pins (W1) | 5 (eight files), 19 | `PIN_MODULES` |
+| 3 E4a / E4b / E4c order (W2) | 3.2 | none |
+| 4 E3 guard class (W3) | 3.2 | none |
+| 5 survivorship definition (W4) | 3.2 | none |
+| 6 E2 row-captures (W5) | 3.2 | distinct scope markets printed |
+| 7 receipt time (W6) | 3.5, 9.1 (e) | per-record `finished_utc`, no mode switch, midnight and poll-duration prints |
+| 8 `t_d` fallback (W7) | 3.3 | `t_d_source` counts |
+| 9 k bounds (W8) | 9.2 | none |
+| 10 12-slot look-back (W9) | 9.1 | none |
+| 11 test (iv) (W10) | 9.2 | test reworded |
+| 12 rule ledger (W11) | 9.2 | ledger in the state file |
+| 13 S10 cells (W12) | 6 | none |
+| 14 `hash` resolution (W13) | 3.5 | none |
+| 15 non-whitelist E6 forms (W14) | 9.1 | uncapped |
+| N1 (W15) | 3.2 E1 | `no_previous_capture`, `k_minus_1_before_window` per candidate |
+| N2 (W16) | 3.2 E2 | `k_minus_1_end_date_missing` |
+| N3 | none | per-capture funnel in J1 status |
+| N4 | none | look-back counting from `slot_of(window_start - 84*GRID_S)` |
+| N5 | 9.1 (e) | `--rules-mode` removed from the runner |

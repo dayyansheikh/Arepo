@@ -59,12 +59,12 @@ S1_CELLS = ("low", "mid", "high", "na")
 ROW_COLS = ("market_id", "event_id", "binary", "best_bid", "best_ask", "closed", "active", "end_date", "liquidity", "received_utc")
 EXT_COLS = ("market_id", "received_utc", "uma_resolution_statuses", "accepting_orders", "fee_type", "fee_category", "series_slugs", "fees_enabled",
             "fee_schedule", "order_price_min_tick_size", "open_interest")
-FUNNEL_ORDER = ("no_previous_capture", "no_k_minus_1_row", "already_overdue_at_k_minus_1", "prior_unit", "not_open_at_k", "sidecar_missing", "accepting_unknown",
+FUNNEL_ORDER = ("no_previous_capture", "k_minus_1_before_window", "no_k_minus_1_row", "k_minus_1_end_date_missing", "already_overdue_at_k_minus_1", "prior_unit", "not_open_at_k", "sidecar_missing", "accepting_unknown",
                 "out_of_scope_sports", "out_of_scope_crypto", "out_of_scope_unknown", "uma_state_at_k", "uma_other_at_k", "not_two_sided", "mid_low", "mid_high",
                 "no_favourite", "unit")
-FORMS_CAP = 200
+FORMS_CAP = 200  # the cap on the distinct-form table of ALL status strings (diagnostic); the E6 non-whitelist forms are never capped (ruling 15)
 DECISION_LINES = {"rule_a_extend_to_42_days_if_median_full_day_units_below": 75, "rule_b_record_only_projected_21_day_units_below": 1500,
-                  "rule_e_day_before_reader_if_committed_poll_lines_carry_no_parseable_receipt_time": True}
+                  "rule_e_receipt_time_reading_computed_never_manual_day_before_for_records_without_finished_utc": True}
 
 # CH269's placeholder lexicon, copied verbatim (census_map_ch269.py l. 65-66); the sha256 of the two patterns is a spec pin (3.5).
 SCHEDULED_RE = re.compile(r"\b(scheduled|fomc|federal reserve|cpi|consumer price index|jobs report|nonfarm|unemployment rate|gdp|earnings|box office|election|vote|referendum|certified|official (?:results?|data|release|figures?)|will be (?:released|published|announced)|press release)\b")
@@ -228,7 +228,8 @@ class RulesIndex:
         self.sha_class: dict = {}
         self.last_row_class: dict = {}
         self.info = {"files": 0, "oldest_file": None, "newest_file": None, "poll_lines": 0, "poll_ok": 0, "poll_ok_with_parseable_receipt": 0,
-                     "rows_committed": 0, "hash_committed": 0, "rows_torn_or_failed": 0, "markets": 0}
+                     "rows_committed": 0, "hash_committed": 0, "rows_torn_or_failed": 0, "markets": 0, "records_without_receipt": 0,
+                     "commits_crossing_midnight": 0, "max_poll_duration_s": None}
 
     @classmethod
     def load(cls, root: Path | None) -> RulesIndex:
@@ -279,12 +280,19 @@ class RulesIndex:
                             ts = c240.parse_utc(d.get("finished_utc"))
                             if math.isfinite(ts):
                                 ix.info["poll_ok_with_parseable_receipt"] += 1
+                                if c240.day_of(ts).replace("-", "") != day:
+                                    ix.info["commits_crossing_midnight"] += 1  # day files are keyed by poll start (streams/common.py:366)
+                                t0 = c240.parse_utc(d.get("started_utc"))
+                                if math.isfinite(t0) and ts >= t0:
+                                    ix.info["max_poll_duration_s"] = max(ix.info["max_poll_duration_s"] or 0.0, ts - t0)
                             slot = d.get("slot")
                             for sl, mid, k2, cls_, sh in pending:
                                 if sl != slot:
                                     ix.info["rows_torn_or_failed"] += 1
                                     continue
-                                ix.by_mid.setdefault(mid, []).append((ts, day, k2, cls_, sh))
+                                if not math.isfinite(ts):
+                                    ix.info["records_without_receipt"] += 1
+                                ix.by_mid.setdefault(mid, []).append((ts if math.isfinite(ts) else None, day, k2, cls_, sh))
                                 ix.info["rows_committed" if k2 == "row" else "hash_committed"] += 1
                                 if k2 == "row" and sh:
                                     ix.sha_class[sh] = cls_
@@ -295,20 +303,26 @@ class RulesIndex:
         ix.info["markets"] = len(ix.by_mid)
         return ix
 
-    def lookup(self, mid: int, t_d: float, k_day: str, mode: str = "receipt") -> tuple[str, float | None]:
-        """(class, commit time) of the market's last committed record visible at ``t_d``. ``receipt``: poll ``finished_utc`` <= t_d.
-        ``day_before`` (rule (e)): only day files of UTC days strictly before k's UTC day. No record -> ``no_rules``; a ``hash`` record whose
-        full row is not in a retained file -> ``rules_unresolved``."""
-        for ts, day, kind, cls_, sh in reversed(self.by_mid.get(mid, ())):
-            if mode == "receipt":
-                if not (math.isfinite(ts) and ts <= t_d):
-                    continue
-            elif not day < k_day.replace("-", ""):
+    def lookup(self, mid: int, t_d: float, k_day: str) -> tuple[str, float | None]:
+        return lookup_records(self.by_mid.get(mid, ()), self.sha_class, t_d, k_day)
+
+
+def lookup_records(recs, sha_class: dict, t_d: float, k_day: str) -> tuple[str, float | None]:
+    """(class, commit time) of the market's last committed record visible at ``t_d`` (3.5, ruling 7). Each record has its own reader: a record
+    with a parseable poll ``finished_utc`` is visible iff it is <= ``t_d``; a record without one is visible only if its day file's UTC day is
+    strictly before k's UTC day. No record -> ``no_rules``; a ``hash`` record resolves through any committed ``row`` with an equal sha
+    (``sha_class``), else ``rules_unresolved``. ``gone`` records are never read."""
+    kd = k_day.replace("-", "")
+    for ts, day, kind, cls_, sh in reversed(recs):
+        if ts is not None:
+            if not ts <= t_d:
                 continue
-            if kind == "row":
-                return cls_, ts
-            return self.sha_class.get(sh) or "rules_unresolved", ts
-        return "no_rules", None
+        elif not day < kd:
+            continue
+        if kind == "row":
+            return cls_, ts
+        return sha_class.get(sh) or "rules_unresolved", ts
+    return "no_rules", None
 
 
 # --- discovery -----------------------------------------------------------------------------------------------------------------------
@@ -344,17 +358,17 @@ def discover_captures(root: Path, start_ts: float, end_ts: float) -> tuple[list[
 class M2Pass:
     """Folds captures strictly in time order (9.2). See the module docstring for dry (J0) versus J1."""
 
-    def __init__(self, *, window_start: float, window_end: float | None = None, rules: RulesIndex | None = None, rules_mode: str = "receipt",
+    def __init__(self, *, window_start: float, window_end: float | None = None, rules: RulesIndex | None = None, lookback_from: float | None = None,
                  dry_run: bool = True, store: Path | None = None, spec_sha: str = "", record_followup: bool = True, followup_until: float | None = None) -> None:
         if dry_run and store is not None:
             raise DryModeError("dry mode (M2-J0) writes no units store, no state file and no follow-up file")
         if not dry_run and store is None:
             raise ValueError("J1 needs a store directory")
-        if rules_mode not in ("receipt", "day_before"):
-            raise ValueError("rules_mode must be receipt or day_before")
         self.window_start, self.window_end = window_start, window_end
         self.rules = rules or RulesIndex()
-        self.rules_mode = rules_mode
+        self.lookback_from = lookback_from  # N4: J1 counts look-back slots from slot_of(lookback_from)
+        self.ledger: dict = {}  # ruling 12: append-only rule ledger {market_id: [[ts|None, day, kind, class, sha], ...]}
+        self.ledger_sha_class: dict = {}
         self.dry = dry_run
         self.store = Path(store) if store is not None else None
         self.spec_sha = spec_sha
@@ -377,6 +391,9 @@ class M2Pass:
         self.end_missing_by_day: Counter = Counter()
         self.forms: Counter = Counter()
         self.forms_other: Counter = Counter()
+        self.end_missing_markets: set = set()
+        self.t_d_source: Counter = Counter()
+        self._cap_funnel: Counter = Counter()
         self.forms_overflow = 0
         self.notes: Counter = Counter()
         self.units: list[dict] = []
@@ -399,7 +416,8 @@ class M2Pass:
     def _state_blob(self) -> bytes:
         d = {"version": VERSION, "spec_sha": self.spec_sha, "code_sha": self.code_sha, "last_slot": self.last_slot, "last_start": self.last_t if math.isfinite(self.last_t) else None,
              "processed_slots": sorted(self.processed_slots), "missing_slots": sorted(self.missing_slots),
-             "seen": sorted(self.seen), "unit_ids": sorted(self.unit_ids)}
+             "seen": sorted(self.seen), "unit_ids": sorted(self.unit_ids),
+             "rule_ledger": {"records": {str(m): self.ledger[m] for m in sorted(self.ledger)}, "sha_class": dict(sorted(self.ledger_sha_class.items()))}}
         return json.dumps(d, sort_keys=True, separators=(",", ":")).encode()
 
     def _write_state(self) -> None:
@@ -424,6 +442,22 @@ class M2Pass:
         self.missing_slots = set(d.get("missing_slots", ()))
         self.seen = {int(x) for x in d.get("seen", ())}
         self.unit_ids = {str(x) for x in d.get("unit_ids", ())}
+        led = d.get("rule_ledger") or {}
+        self.ledger = {int(m): [list(r) for r in recs] for m, recs in (led.get("records") or {}).items()}
+        self.ledger_sha_class = dict(led.get("sha_class") or {})
+
+    def merge_rule_ledger(self) -> None:
+        """Ruling 12: merge the retained day files' committed records into the append-only ledger (never pruned; a retired day file never changes
+        a later unit's class). Called at the start of every pass."""
+        for mid, recs in self.rules.by_mid.items():
+            cur = self.ledger.setdefault(mid, [])
+            have = {tuple(r) for r in cur}
+            for r in recs:
+                if tuple(r) not in have:
+                    have.add(tuple(r))
+                    cur.append(list(r))
+        for sh, c in self.rules.sha_class.items():
+            self.ledger_sha_class.setdefault(sh, c)
 
     # --- scanning one capture (no counters touched except notes / inputs) ------------------------------------------------------------
     def _scan(self, cap: dict, *, for_resume: bool = False) -> dict:
@@ -529,6 +563,7 @@ class M2Pass:
         status: dict = {"capture_id": cap["capture_id"], "id": cap["id"], "slot": s, "start_utc": iso(start), "mode": "dry" if self.dry else "j1",
                         "classified": bool(classify), "fold_only": not classify and not after_window, "state_sha256_before": sha_before}
         local: Counter = Counter()
+        self._cap_funnel = Counter()
         if after_window:
             local["after_window_followup_only"] += 1
         elif not in_window:
@@ -542,6 +577,13 @@ class M2Pass:
                     self.forms_overflow += n
         if classify:
             new_units = self._classify(sc, day, local)
+        elif in_window:
+            # N1 / W15: every candidate at an in-window capture that is not classified is counted
+            why = "k_minus_1_before_window" if has_prev else "no_previous_capture"
+            for _ in sc["cand"]:
+                self.funnel[why] += 1
+                self.funnel_by_day[f"{day}|{why}"] += 1
+                self._cap_funnel[why] += 1
         if not after_window:
             self.seen.update(sc["overdue"])
         # follow-up (blind; 9.2). Units created at this capture are not included (k < j).
@@ -565,7 +607,7 @@ class M2Pass:
             self.classified.append({"id": cap["id"], "start": start, "slot": s})
         if not self.dry:
             self._write_state()
-            status.update({"counts": dict(sorted(local.items())), "units": len(new_units), "state_sha256_after": self.state_sha,
+            status.update({"counts": dict(sorted(local.items())), "funnel": dict(sorted(self._cap_funnel.items())), "units": len(new_units), "state_sha256_after": self.state_sha,
                            "followup": fu_info})
             self._write_status(cap, status)
         return status
@@ -577,6 +619,7 @@ class M2Pass:
 
         def bump(cls: str) -> None:
             self.funnel[cls] += 1
+            self._cap_funnel[cls] += 1
             self.funnel_by_day[f"{day}|{cls}"] += 1
 
         # counted side classes
@@ -584,6 +627,7 @@ class M2Pass:
             r = ext.get(mid)
             if r is not None and c240.category_of(r[4], r[5], r[6], True) == SCOPE:
                 self.end_missing_by_day[day] += 1
+                self.end_missing_markets.add(mid)
                 local["end_date_missing"] += 1
         for mid in sc["overdue"]:
             if mid in self.seen:
@@ -604,7 +648,9 @@ class M2Pass:
             cls = None
             if mid not in prev["ends"]:
                 cls = "no_k_minus_1_row"
-            elif pe is not None and pe == pe and prev["start"] - pe >= OVERDUE_S:
+            elif pe is None or pe != pe:
+                cls = "k_minus_1_end_date_missing"
+            elif prev["start"] - pe >= OVERDUE_S:
                 cls = "already_overdue_at_k_minus_1"
             elif f"m2:{mid}" in self.unit_ids:
                 cls = "prior_unit"
@@ -655,7 +701,8 @@ class M2Pass:
         fin = [x for x in (row_rec, ext_rec) if math.isfinite(x)]
         t_d, t_d_src = (max(fin), "receipt") if fin else (start, "capture_start_fallback")
         k_day = c240.day_of(start)
-        rcls, rts = self.rules.lookup(mid, t_d, k_day, self.rules_mode)
+        self.t_d_source[t_d_src] += 1
+        rcls, rts = lookup_records(self.ledger.get(mid, ()), self.ledger_sha_class, t_d, k_day)
         self.rule_cov[f"{rcls}|{self.rules.last_row_class.get(mid, 'no_rules')}"] += 1
         self.cat_raw[f"{fc} -> {cat_k or '(empty)'}"] += 1
         oi = str(r[10]).strip().lower()
@@ -675,7 +722,7 @@ class M2Pass:
                 "side": cells["S5"], "bid": bid, "ask": ask, "mid_k": mid_k, "bid_f": bid_f, "ask_f": ask_f, "mid_f": mid_f, "spread_k": spread, "half_spread": half,
                 "tick": r[9], "event_open_binary_members": evc[ev], "end_date_k": end_k, "end_date_k_minus_1": end_prev, "age_k_s": age_k, "liquidity": liq,
                 "open_interest_present": oi not in EMPTY_FORMS and oi != "null", "category": SCOPE, "cat_k": cat_k, "fee_category_raw": fc, **fee,
-                "rule_class": rcls, "rule_commit_utc": rts, "rules_mode": self.rules_mode, "t_d": t_d, "t_d_source": t_d_src, "gap_sidecar_minus_row_s": ext_rec - row_rec,
+                "rule_class": rcls, "rule_commit_utc": rts, "t_d": t_d, "t_d_source": t_d_src, "gap_sidecar_minus_row_s": ext_rec - row_rec,
                 "uma_raw_k": r[2], "uma_raw_k_minus_1": prev["uma"].get(mid), "cells": cells, "role": ROLE, "spec_sha": self.spec_sha, "code_sha": self.code_sha}
 
     # --- writers (J1 only; write-once, deterministic bytes) ----------------------------------------------------------------------------
@@ -732,6 +779,7 @@ class M2Pass:
         """Process every capture that is next in slot order; a slot is recorded missing once it has no complete capture 6 h after its grid time;
         a capture appearing later stays unprocessed (``late_capture_ignored``). Stops at the first slot that may still arrive."""
         by_slot = {c["slot"]: c for c in sorted(caps, key=lambda c: c["start"])}
+        self.merge_rule_ledger()
         for s in sorted(by_slot):
             if self.last_slot is not None and s <= self.last_slot and s not in self.processed_slots and s not in self.missing_slots:
                 raise StateOrderError(f"the state holds a capture at or after slot {s} but slot {s} was never processed or recorded missing")
@@ -741,6 +789,8 @@ class M2Pass:
         if not by_slot:
             return []
         s = (self.last_slot + 1) if self.last_slot is not None else min(by_slot)
+        if self.last_slot is None and self.lookback_from is not None:
+            s = min(s, slot_of(self.lookback_from)[0])  # N4: look-back slots before the first retained capture are counted missing_lookback_slot
         top = max(by_slot)
         done: list[dict] = []
         while s <= top:
@@ -775,7 +825,7 @@ class M2Pass:
         pok = info["poll_ok"]
         rule_a = None if med is None else bool(med < DECISION_LINES["rule_a_extend_to_42_days_if_median_full_day_units_below"])
         rule_b = None if med is None else bool(med * 21 < DECISION_LINES["rule_b_record_only_projected_21_day_units_below"])
-        rule_e = None if pok == 0 else bool(info["poll_ok_with_parseable_receipt"] == 0)
+        rule_e = None if pok == 0 else bool(info["poll_ok_with_parseable_receipt"] == 0)  # computed, never a manual mode (N5)
         cells = {k: dict(sorted(Counter(u["cells"][k] for u in U).items())) for k in ("S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10", "S11", "S12")}
         avg_caps = (READOUT_UTC - (REGISTERED_UTC + END_UTC) / 2.0) / GRID_S
         nfin = lambda x: x if (x is not None and math.isfinite(x)) else None  # noqa: E731
@@ -784,11 +834,12 @@ class M2Pass:
             "kind": "M2-J0 counts-only pre-freeze check (MEASUREMENT_M2_CH264.md 9.1): J1 code in dry mode; counts only, k = 0, uncounted; no resolution, outcome, follow-up state or post-k price read; no store written; informed (M2-J0)",
             "version": VERSION, "dry_run": True, "code_sha256": code_sha256(), "m2_j1_code_sha256": self.code_sha, "spec_sha256": sha256_file(spec_path) if spec_path and Path(spec_path).exists() else None,
             "pins": {"imported_module_sha256": module_pins(), "rule_lexicon_sha256": lexicon_sha256(), "note": "5 / MUST 2: recorded in J0's seal and at registration"},
-            "rules_mode": self.rules_mode,
+            "rule_reader": "per-record receipt time (3.5, ruling 7): finished_utc <= t_d, else day file strictly before k's UTC day",
+            "t_d_source_counts": dict(sorted(self.t_d_source.items())),
             "span": {"start_utc": iso(start_ts), "end_utc": iso(end_ts), "window_start_utc": iso(self.window_start), "lookback_slots_used": lookback_slots_used,
                      "lookback_slots_registered": LOOKBACK_SLOTS, "classified_captures": len(self.classified), "full_days": full_days,
                      "missing_slots_utc": [iso(slot_time(s)) for s in sorted(self.missing_slots)],
-                     "note": "J0 reads the host's retained 8 days, so its fold is shorter than the registered 84-slot look-back; reoverdue_seen is understated and units slightly overstated at the start"},
+                     "note": "J0 reads the host's retained 8 days, so its fold (12 captures, fixed now, W9) is shorter than the registered 84-slot look-back; reoverdue_seen is understated and units slightly overstated at the start"},
             "decision_lines": DECISION_LINES,
             "decisions": {"median_full_day_units": med, "projected_21_day_units": None if med is None else med * 21, "rule_a_extend_to_42_days": rule_a,
                           "rule_b_record_only": rule_b, "rule_e_day_before_reader_applies": rule_e,
@@ -802,6 +853,8 @@ class M2Pass:
             "funnel_by_day": dict(sorted(self.funnel_by_day.items())),
             "left_before_overdue_slot_by_day": dict(sorted(self.left_by_day.items())),
             "end_date_missing_scope_by_day": dict(sorted(self.end_missing_by_day.items())),
+            "end_date_missing_scope_distinct_markets": len(self.end_missing_markets),
+            "end_date_missing_note": "row-captures (every row of k with an unparseable end_date whose k sidecar row maps to scope), never a unit; distinct markets beside",
             "already_overdue_at_k_minus_1_note": "a guard class, expected 0; a non-zero count is printed and audited",
             "no_favourite": self.funnel.get("no_favourite", 0),
             "splits_counts": cells,
@@ -810,7 +863,7 @@ class M2Pass:
             "fee_category_raw_to_cat_k": dict(self.cat_raw.most_common(100)),
             "rule_class_coverage_k_visible_vs_ch269_last_row": dict(sorted(self.rule_cov.items())),
             "rules_stream": {**info, "committed_poll_lines_carry_parseable_receipt_time": None if pok == 0 else info["poll_ok_with_parseable_receipt"] == pok},
-            "status_forms": {"distinct_forms": dict(self.forms.most_common(FORMS_CAP)), "forms_overflow_rows": self.forms_overflow, "uma_other_at_k_forms": dict(self.forms_other.most_common(100))},
+            "status_forms": {"distinct_forms": dict(self.forms.most_common(FORMS_CAP)), "forms_overflow_rows": self.forms_overflow, "uma_other_at_k_forms": dict(self.forms_other.most_common())},
             "open_interest": {"units_with_nonempty_value": self.oi_nonempty, "units": self.oi_rows},
             "receipt_gap_sidecar_minus_row_s": {"n": len(gaps), "median": gaps[len(gaps) // 2] if gaps else None, "min": nfin(gaps[0]) if gaps else None, "max": nfin(gaps[-1]) if gaps else None},
             "planned_followup_volume": {"unit_capture_lines_per_unit_assuming_window_midpoint": round(avg_caps, 1), "projected_lines_21_days": None if med is None else round(med * 21 * avg_caps),
@@ -823,18 +876,15 @@ class M2Pass:
 
 # --- entry points ----------------------------------------------------------------------------------------------------------------------
 
-def run_j0(snapshot_root: Path, rules_root: Path | None, start_ts: float, end_ts: float, *, lookback_slots: int = 12, spec_path: Path | None = None,
-           rules_mode: str | None = None) -> dict:
+def run_j0(snapshot_root: Path, rules_root: Path | None, start_ts: float, end_ts: float, *, lookback_slots: int = 12, spec_path: Path | None = None) -> dict:
     """M2-J0: the J1 extractor in dry mode over [start, end). The first ``lookback_slots`` captures only fold (the overdue-seen set); the rest are
-    classified. ``rules_mode=None`` lets rule (e) decide: ``day_before`` when no committed poll line has a parseable receipt time."""
+    classified. The rule reader is per record (3.5); there is no mode to choose (N5)."""
     caps, notes = discover_captures(snapshot_root, start_ts, end_ts)
     rules = RulesIndex.load(rules_root)
-    if rules_mode is None:
-        rules_mode = "day_before" if rules.info["poll_ok"] > 0 and rules.info["poll_ok_with_parseable_receipt"] == 0 else "receipt"
     window_start = start_ts
     if caps and lookback_slots and lookback_slots < len(caps):
         window_start = caps[lookback_slots]["start"] - 1.0  # the first classified k needs k - 1 at or after window_start
-    mp = M2Pass(window_start=window_start, window_end=None, rules=rules, rules_mode=rules_mode, dry_run=True, spec_sha=sha256_file(spec_path) if spec_path and Path(spec_path).exists() else "")
+    mp = M2Pass(window_start=window_start, window_end=None, rules=rules, dry_run=True, spec_sha=sha256_file(spec_path) if spec_path and Path(spec_path).exists() else "")
     mp.run_available(caps, now=math.inf)
     mp.notes.update({f"discover:{k}": v for k, v in notes.items()})
     rep = mp.report_j0(start_ts, end_ts, spec_path, lookback_slots)
@@ -843,10 +893,10 @@ def run_j0(snapshot_root: Path, rules_root: Path | None, start_ts: float, end_ts
 
 
 def run_j1(snapshot_root: Path, rules_root: Path | None, store: Path, *, window_start: float = REGISTERED_UTC, window_end: float = END_UTC, spec_sha: str,
-           now: float, record_followup: bool = True, rules_mode: str = "receipt") -> M2Pass:
+           now: float, record_followup: bool = True) -> M2Pass:
     """One J1 pass (9.2): the fixed look-back span ``[window_start - 7 d, window_start)`` and the window, then follow-up captures to READOUT."""
     caps, _ = discover_captures(snapshot_root, window_start - LOOKBACK_SLOTS * GRID_S, READOUT_UTC)
-    mp = M2Pass(window_start=window_start, window_end=window_end, rules=RulesIndex.load(rules_root), rules_mode=rules_mode, dry_run=False, store=store,
-                spec_sha=spec_sha, record_followup=record_followup)
+    mp = M2Pass(window_start=window_start, window_end=window_end, rules=RulesIndex.load(rules_root), dry_run=False, store=store,
+                spec_sha=spec_sha, record_followup=record_followup, lookback_from=window_start - LOOKBACK_SLOTS * GRID_S)
     mp.run_available(caps, now=now)
     return mp
