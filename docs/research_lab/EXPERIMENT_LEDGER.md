@@ -5145,3 +5145,12 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **M2 second draft** merged (1c12f2ed; `MEASUREMENT_M2_CH264.md` sha256 `5076322e…7d8a`): R1 MUST 1-5 and SHOULD 1-9 applied;
   R1 re-check next. **LT14 census code** stage A merged (491b611f; 42 tests pass, ruff clean; drafts q0740-q0742 not
   promoted): independent code-freeze check next; no real-data run.
+
+## M2 R1 re-check NOT_READY (two order / pin defects), fixes delegated, 2026-10-30 ~07:25Z (experiments autopilot; nothing counted)
+- `reviews/M2_R1_RECHECK_2026-10-30.md` on the second draft (`5076322e…7d8a`): every R1 MUST / SHOULD applied correctly; no
+  threshold, date, cut or cost line moved (cells 64 -> 69 only via SHOULD 8). **MUST 1:** J0 is "J1 in dry mode" but the code
+  was ordered after the freeze (M1's order defect again) -> J1 extractor + synthetic tests before J0, J0 seals its `code_sha`,
+  the code-freeze check lists every J1 change since. **MUST 2:** imported class-setting readers (`boundary_map_ch240`,
+  `cb17_census`, `live_tests11_base`, `population_map_ch251`, `calibration`, `costs`) become spec pins (void 11.1 on mismatch).
+  SHOULD 1-10 (fees_enabled parsing, denominators, split bootstrap, look-back fold timing, `reoverdue_seen`, `not_found`
+  double query, planning figures). Fixes delegated on `feat/m2-ch264`; text freeze still due by 2026-11-16.
