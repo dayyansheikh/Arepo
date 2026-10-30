@@ -5661,3 +5661,20 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   reviewer warned): CR1 with a normal reference may be anti-conservative there; the break-even placebo is the declared guard.
 - **End-date shares (1,753 units with both times):** close within 1 h of `end_at` 0.11%; close more than 7 days before
   `end_at` 2.2%. Nothing changes; disclosed before the screen.
+
+## M3 code check ACCEPT_WITH_FIXES; CB7 code-freeze fixes merged, 2026-10-30 17:57Z (experiments autopilot; nothing frozen, nothing counted)
+- **M3** `reviews/M3_CODE_CHECK_2026-10-30.md` (33cd591c, code_sha `105587be…98ef`): **MUST 1** the event member count
+  (S6 / S8) reads earlier units' rows at the later unit's k, so an earlier unit's post-its-k state (e.g. closed) changes a
+  later unit's cells (probe p1); forbidden by 10.1 / 12.2. Fix option (a): count non-unit rows plus earlier units from
+  state. **MUST 2, declared now by the orchestrator, before any J0 output:** "A full day is a UTC day with 12 classified
+  captures. If J0 yields fewer than 3 full days, rule (a) is not evaluable and the window is extended to 42 days (the branch
+  that keeps coarse rule 1 attainable); J0 is not re-run to obtain a different answer." MUST 3-5 text (R1 side files, R2
+  registration-commit refusal, rule-ledger visibility wording). SHOULD: memory (rules index reloaded every pass; q0781 likely
+  > 600 MB), timing, serial M1+M2+M3 pass, sidecar ids, write-once re-read. q0780 may be promoted after MUSTs 1-2 with a
+  diff-only check. Fixes delegated (`feat/m3-cf-fixes`).
+- **Same defect class in M1 / M2?** The reviewer could not verify; a focused `science-reviewer` check is running (M1 is
+  registered; outcome recorded in the next entry).
+- **CB7** fixes 117b57ad (merged 0cd0ec0b): drafts q0148 / q0150 / q0149 parse with the real CLI (q0149 depends on both);
+  `MIN_CLUSTERS` 30 in every way (A1 reverted); freeze-clock and seal-pin checks; promote order; disclosures A4, A21-A23,
+  placebo discordance, theme imbalance. 43 tests. **Declaration sha256 `cf84f91053385c371a875f39f72cd09bcc519dc446829b3b1fed47c7f481fd8e`.**
+  Diff-only check running; then the freeze commit.
