@@ -103,7 +103,7 @@ def _patch_kd(monkeypatch, m):
     monkeypatch.setattr(kd.hs, "httpx_size", lambda *a: 0)
 
 
-@pytest.mark.parametrize("argv,books", [(["kd-frame", "--rps", "2", "--disk-cap-gb", "0.01"], False),
+@pytest.mark.parametrize("argv,books", [(["kd-frame", "--rps", "2", "--disk-cap-gb", str(kd.FRAME_OUTPUT_CAP_GB)], False),
                                         (["kd-books", "--ingress-cap-gb", "180", "--rps", "4", "--disk-cap-gb", "0.15", "--budget-min", "85"], True)])
 def test_kd_paths(monkeypatch, capsys, argv, books):
     for m in TRANSIENT:
@@ -149,3 +149,26 @@ def test_pyth_frame_partial_with_outcomes_has_no_reader_outside_the_resume_path(
     files = sorted((root / "astrolabe" / "research_lab").glob("cb9*.py")) + [root / "scripts" / "run_cb9.py"]
     hits = [(f.name, n) for f in files for n, line in enumerate(f.read_text().splitlines(), 1) if '"frame_partial.jsonl"' in line]
     assert [h[0] for h in hits] == ["cb9_pyth.py"], hits
+
+
+def test_kd_frame_refuses_the_pre_amendment_cap(monkeypatch, capsys):
+    """Amendment 2026-10-30 (PENDING REVIEW): the q0185 spec's --disk-cap-gb 0.01 no longer matches the declaration, so that spec refuses (exit 2)
+    before any request; only the amended cap runs."""
+    _patch_kd(monkeypatch, {"complete": True, "stopped": None, "status": kd.FRAME_COMPLETE})
+    old = ["kd-frame", "--rps", "2", "--disk-cap-gb", "0.01", "--data-dumps-cap-gb", "50"]
+    assert _args(old).fn(_args(old)) == kd.REFUSED_EXIT
+    assert "differ from the declaration" in capsys.readouterr().out
+    new = ["kd-frame", "--rps", "2", "--disk-cap-gb", str(kd.FRAME_OUTPUT_CAP_GB), "--data-dumps-cap-gb", "50"]
+    assert _args(new).fn(_args(new)) == 0
+    capsys.readouterr()
+
+
+def test_q0185b_draft_parses_and_matches_the_amended_declaration():
+    spec = json.loads((JOBS.parent / "drafts" / "q0185b_cb9_kd_frame_v3.json").read_text())
+    assert spec["id"] == "q0185b_cb9_kd_frame_v3" and spec["depends_on"] == ["q0182b_cb9_exclusion_keys"] and "repeat" not in spec
+    argv = spec["argv"]
+    assert argv[:2] == ["scripts/run_cb9.py", "kd-frame"]
+    a = run_cb9.build_parser().parse_args(argv[1:])
+    assert a.rps == 2 and a.disk_cap_gb == kd.FRAME_OUTPUT_CAP_GB and a.data_dumps_cap_gb == 50 and a.budget_min and a.budget_min * 60 < spec["timeout_s"]
+    assert a.rules is None and a.root is None  # default rules file (v3) and default root; the run directory is kd.FRAME_RUN
+    assert any(f"{kd.FRAME_RUN}/" in o for o in spec["outputs"])
