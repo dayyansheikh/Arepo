@@ -317,7 +317,8 @@ preparation on `feat/ch269-map`).
 
 **LT13 update (2026-10-29):** CH252 was `withdrawn_pre_census (fee reading unresolved)` under LT13 rule 1.4.3 (b) after the
 q0717 probe found the venue's one-step fee change of 2026-10-20 (ledger). The `payreturn` hold request and token below
-lapse with it; the CH253 `batch` request stands. The round-18 text below is kept as written.
+lapse with it; the CH253 `batch` request stands. The round-18 text below is kept as written. **LT13's design text was frozen 2026-10-30 (d940c0ab; amended 13, sha256 `737f8b15…`; ledger), so the CH253
+`batch` token and `attrlimit_lt13` requests below now apply (the signal-engine autopilot applies them).**
 
 ## Idea-level families from creative round 18 (2026-11-01; ideas only, no evidence; not candidates yet)
 
