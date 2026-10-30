@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-30T05:00:00Z",
+ "updated": "2026-10-30T05:11:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1827,6 +1827,31 @@
    "sources": {
     "verdict": "docs/research_lab/reviews/LT14_RECHECK_PREFREEZE_2026-10-30.md",
     "next": "docs/research_lab/LIVE_TESTS_14.md (FROZEN design text, 485c63dd); docs/research_lab/EXPERIMENT_LEDGER.md § LT14 final verification and DESIGN-TEXT FREEZE (2026-10-30)",
+    "status": "docs/research_lab/reviews/CH269_MAP_2026-10-30.md"
+   },
+   "stage_results": {
+    "designed": "pass"
+   },
+   "reached": [
+    "designed"
+   ]
+  },
+  {
+   "id": "M2",
+   "title": "Measurement M2: the overdue favourite (planned)",
+   "plain": "Planned pre-registered measurement from ideas round 19: in markets past their end date that have not resolved, how big is the favourite's premium against what it finally pays? A number with an error bar, frozen in advance; never called a finding. First draft written; challenger review running. A coarse result is about as likely as not, said in advance.",
+   "batch": "M2",
+   "family": "carry",
+   "stage": "designed",
+   "status": "waiting",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Challenger review, text freeze by 16 Nov; window 24 Nov - 14 Dec; read-out from 29 Jan 2027",
+   "next_date": "2026-11-16",
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/reviews/R19_RULE26_MEASUREMENT_RULING_2026-10-30.md",
+    "next": "docs/research_lab/MEASUREMENT_M2_CH264.md (DRAFT); docs/research_lab/EXPERIMENT_LEDGER.md § M2 (CH264) measurement design draft (2026-10-30)",
     "status": "docs/research_lab/reviews/CH269_MAP_2026-10-30.md"
    },
    "stage_results": {
