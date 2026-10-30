@@ -87,4 +87,9 @@ for mid in sorted(pick):
     cols = known[mid]
     c = "scheduled" if cols[0] and not cols[1] else "barrier" if cols[1] and not cols[0] else "both" if cols[0] else "consensus" if cols[2] else "other"
     print(f"{mid} | {c} | {int(cols[3])} {int(cols[4])} | {str(d.get('question'))[:110]} | {str(d.get('description')).replace(chr(10), ' ')[:220]}")
+# second run (rc_occur_by added after the first run's audit; DESIGN_V1 section 41): its precision on the same sample
+occ = R.TEXT_COLUMNS.index("rc_occur_by")
+print("RC_OCCUR_BY on the audit sample (market_id | cl_barrier | rc_occur_by | question):")
+for mid in sorted(pick):
+    print(f"  {mid} | {int(known[mid][1])} | {int(known[mid][occ])} | {str(txt.get(mid, {}).get('question'))[:90]}")
 print(f"run end {S.iso(S.now_ts())}")

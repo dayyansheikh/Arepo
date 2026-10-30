@@ -28,9 +28,17 @@ CONSENSUS_RE = re.compile(r"\b(consensus of credible reporting|credible report(?
 # CH239's inclusive-threshold wording and a numeric strike in the question
 INCLUSIVE_RE = re.compile(r"\b(or (?:more|higher|greater|above|less|lower|fewer|below)|at least|at most|or equal)\b")
 NUMERIC_RE = re.compile(r"(\$\s?\d|\d\s?%|\d{1,3}(?:,\d{3})+)")
+# added after the census's hand audit (texts only, no outcome): BARRIER_RE fires on boilerplate ("if at any point it
+# becomes impossible"), "exceeds" and "before" in on-date and season rules (3 of 13 sampled barrier rows were deadline
+# questions). The strict deadline wording: "by / before <month | year | quarter | the end of>" in the question, or an
+# occurrence window "between (the) market creation / creation of this market and" in the description
+_MONTHS = "january|february|march|april|may|june|july|august|september|october|november|december"
+OCCUR_Q_RE = re.compile(rf"\b(?:by|before) (?:the end of |end of )?(?:{_MONTHS}|20\d\d|q[1-4]\b)")
+OCCUR_D_RE = re.compile(r"\bbetween (?:the )?(?:market(?:'s)? creation|creation of (?:this|the) market)\b")
 URL_HOST_RE = re.compile(r"https?://(?:www\.)?([a-z0-9.-]+)")
 N_HOSTS_CAP = 5
-RULES_COLUMNS = ["rc_has", "cl_sched", "cl_barrier", "cl_consensus", "rc_inclusive", "rc_numeric", "rc_n_hosts", "rc_log_len"]
+RULES_COLUMNS = ["rc_has", "cl_sched", "cl_barrier", "cl_consensus", "rc_inclusive", "rc_numeric", "rc_n_hosts", "rc_log_len",
+                 "rc_occur_by"]
 TEXT_COLUMNS = RULES_COLUMNS[1:]  # NaN for a market with no known row
 
 
@@ -43,7 +51,7 @@ def parse_rule(data: dict) -> list[float]:
     hosts = {h.rstrip(".") for h in URL_HOST_RE.findall(" ".join((d, src)).lower())}
     return [float(bool(SCHEDULED_RE.search(t))), float(bool(BARRIER_RE.search(t))), float(bool(CONSENSUS_RE.search(t))),
             float(bool(INCLUSIVE_RE.search(t))), float(bool(NUMERIC_RE.search(q))), float(min(len(hosts), N_HOSTS_CAP)),
-            math.log1p(len(d))]
+            math.log1p(len(d)), float(bool(OCCUR_Q_RE.search(q.lower()) or OCCUR_D_RE.search(d.lower())))]
 
 
 _MEMO: dict = {}  # path -> (size, mtime_ns, parsed); day files are append-only, so a same-size file is unchanged
