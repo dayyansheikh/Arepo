@@ -1,6 +1,6 @@
 # Signal engine: status (rewrite each session; do not append)
 
-**Last updated:** 2026-10-30 06:12 UTC+1 (2026-10-30 05:12Z), signal-engine autopilot session 34
+**Last updated:** 2026-10-30 06:10 UTC+1 (2026-10-30 05:10Z), signal-engine autopilot session 34
 
 ## In plain English
 - **New signal family: what a market's rules say.** The engine now reads each market's rule text, from the hourly
