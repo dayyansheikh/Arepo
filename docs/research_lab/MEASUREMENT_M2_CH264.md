@@ -2,8 +2,11 @@
 
 **Status: DRAFT 2026-10-30, second draft plus re-check fixes (challenger R1, `reviews/M2_CHALLENGER_R1_2026-10-30.md`,
 GO_WITH_CHANGES on `c075355b…0ca4`, mapped in section 18; re-check `reviews/M2_R1_RECHECK_2026-10-30.md`, NOT_READY on
-two wording defects, MUST 1-2 and SHOULD 1-10 applied, mapped in section 19, plus the J1 ambiguity rulings, section 20; next: M2-J0 (q0733b) on the fixed code, final verification,
-freeze by 2026-11-16. Not frozen, not registered, nothing counted.** Evidence role
+two wording defects, MUST 1-2 and SHOULD 1-10 applied, mapped in section 19, plus the J1 ambiguity rulings, section 20; **M2-J0 ran (q0733b, 2026-10-30, on the ruled code `m2_j1.py` `c0538322…51dc`; seal
+`docs/research_lab/seals/M2_J0_q0733b.json`, sha256 `31e3380c…1564`, `informed (M2-J0)`, counts only): rule (a) did not fire
+(median full-day units 138 >= 75), rule (b) record-only line not met (projected 2,898 >= 1,500), rule (e) does not apply
+(every committed poll line carries a parseable `finished_utc`; the per-record receipt-time reader stands), so the 21-day
+window and the dates are unchanged (outcome in section 21); next: final pre-freeze verification, freeze by 2026-11-16. Not frozen, not registered, nothing counted.** Evidence role
 `prospective_measurement` (rule 26 of `CREATIVE_HYPOTHESES_2026-11-02.md` 0.3; role and conditions set by the binding
 ruling `reviews/R19_RULE26_MEASUREMENT_RULING_2026-10-30.md`, ACCEPT_WITH_CONDITIONS for the role, **REVISE** for CH264;
 every REVISE item is mapped in section 17). Drafted on branch `feat/m2-ch264` from the `chore/arepo-claude-setup` tip
@@ -306,6 +309,16 @@ during the window it is **not** used; its presence share is printed only.
 | S10 | window week | days 1-7, 8-14, 15-21 (and 22-28, 29-35, 36-42 under 9.1 (a)) |
 | S11 | spread at k (`spread_k`, rounded, 3.3) | <= 0.01, (0.01, 0.03], (0.03, 0.10], > 0.10 |
 | S12 | S1 x S2 (the idea's size x class grid) | 4 x 6 = 24 cells |
+
+**J0 observed distribution (informed (M2-J0), counts only; q0733b, 1,024 eligible units, 6 full days; cells unchanged, a cell J0 did not print is not listed):**
+- S1: low 338, mid 320, high 366 (`na` not printed). S2: barrier 623, both 161, no_rules 222, other 11, scheduled 7 (`rules_unresolved` not printed).
+- S3: other 966, unknown 55, politics 3 (raw `fee_category` to `cat_k`: `other:zero_fees` -> other 966, `unknown` -> unknown 55, `politics` -> politics 3; the other seven keys not printed).
+- S4: fee_free 1,021, fee_on 3 (`unknown` not printed). S5: NO 674, YES 350.
+- S6 (k-time zone counts): (0.5,0.6] 349, (0.6,0.7] 160, (0.7,0.8] 155, (0.8,0.9] 175, (0.9,0.95] 185.
+- S7: no 1,024 (`yes` not printed). S8: 1 = 9, 2-5 = 100, 6+ = 915. S9: 0.001 = 187, 0.01 = 837 (`other / missing` not printed).
+- S10: days 1-7 = 1,024 (J0 is a dry run; no week structure). S11 (k-time zone counts): <= 0.01 38, (0.01,0.03] 138, (0.03,0.10] 282, > 0.10 566.
+- S12 (printed cells): low|no_rules 185, high|barrier 288, mid|barrier 198, low|barrier 137, high|both 78, mid|both 74, mid|no_rules 37, low|both 9, mid|other 7, mid|scheduled 4, low|other 4, low|scheduled 3 (12 of 24 cells printed; high|no_rules, high|other and high|scheduled are not printed).
+- `no_favourite` 24 (mid exactly 0.5; a funnel class, not a unit).
 
 **Declared descriptive contrasts (the ruling: a difference with a CI, never an identification):**
 - **D1** = `theta(S1 high) - theta(S1 low)`, and the same for `pi` and for the 24 h proposal incidence of 7.3.
@@ -723,3 +736,22 @@ No window, read-out, deadline, threshold, estimand, weight, seed, cut or cost li
 | N3 | none | per-capture funnel in J1 status |
 | N4 | none | look-back counting from `slot_of(window_start - 84*GRID_S)` |
 | N5 | 9.1 (e) | `--rules-mode` removed from the runner |
+
+## 21. M2-J0 outcome (q0733b)
+
+Facts only; counts only, `informed (M2-J0)`, k = 0, uncounted. Job q0733b finished 2026-10-30T07:30:48Z (646 s), dry run, version `m2-j1-v1`, on the ruled code: `m2_j1.py` `c0538322be740a2fc80654d93160415777b4f445fcf6737c18339dca3a7c51dc`, `run_m2_j0.py` `c0e4d061ddba75212565cf29142c20ee7870f94f1f6b4b4698994ce28d85793d`. Seal `docs/research_lab/seals/M2_J0_q0733b.json`, sha256 `31e3380c43b35dbeb0820166824b3af4a8ef64015f7d123604761dc5e3ec1564`; spec sha256 `690d7da5e70bba8cf49baf13e4f73764fd90a9ba6c67021f3549936061dd61e3`. Peak RSS 457.7 MB (limit 600 MB).
+
+- **Span.** `last_days=8`, 2026-10-22T06:31:03Z to 2026-10-30T06:31:03Z; first window-start capture 2026-10-23T08:31:05Z. 83 classified captures; fold of 12 captures (fixed by W9) against the registered 84-slot look-back; 6 full days (10-24 to 10-29); no missing slot, `missing_capture` 0, `missing_lookback_slot` 0, `late_capture_ignored` 0, `pre_window_source` 12. J0's note: `reoverdue_seen` is understated and units slightly overstated at the start because the fold is short.
+- **Eligible units.** 1,024 in total, per day 10-23 123, 10-24 114, 10-25 152, 10-26 162, 10-27 123, 10-28 220, 10-29 124, 10-30 6 (partial day). Full-day median 138. 447 events; units per event (every unit counted as if final): 1 -> 141 events, 2-3 -> 245, 4-9 -> 61, 10+ -> none printed.
+- **Funnel (row-captures and candidates, 83 captures).** `unit` 1,024; `out_of_scope_sports` 202,302; `not_two_sided` 5,600; `mid_low` 858; `mid_high` 357; `uma_state_at_k` 528; `out_of_scope_crypto` 31; `no_k_minus_1_row` 30; `no_favourite` 24. Zero: `not_open_at_k`, `sidecar_missing`, `accepting_unknown`, `uma_other_at_k`, `out_of_scope_unknown`, `no_previous_capture`, `k_minus_1_before_window`, `k_minus_1_end_date_missing`. Guard classes: `already_overdue_at_k_minus_1` 0, `prior_unit` 0 (E3), both as expected. Per-day funnel is in the seal (`funnel_by_day`).
+- **Side classes.** `left_before_overdue_slot` 1,123 (per day 10-23 359, 10-24 134, 10-25 60, 10-26 221, 10-27 180, 10-28 81, 10-29 70, 10-30 18); `reoverdue_seen` 1,012; `end_date_missing` 1,587 row-captures (per day 10-23 140, 10-24 240, 10-25 240, 10-26 240, 10-27 223, 10-28 216, 10-29 216, 10-30 72) over 20 distinct markets.
+- **Rules.** (a) median full-day units 138 against 75: not fired. (b) projected 21-day units 2,898 against 1,500: not met (record only). (e) `rule_e_day_before_reader_applies` false: all 222 committed `ok` poll lines carry a parseable `finished_utc` (`records_without_receipt` 0), so the per-record receipt-time reader of 3.5 stands. Window, `REGISTERED_UTC`, `END_UTC` unchanged.
+- **`t_d` source.** `receipt` 1,024 of 1,024 units.
+- **Rule-class coverage at `t_d` (k-visible reader | CH269 last-row reader).** barrier|barrier 623, both|both 161, no_rules|no_rules 140, no_rules|barrier 74, no_rules|both 8, other|other 11, scheduled|scheduled 7. Rules stream: 11 day files (20261020.jsonl to 20261030.jsonl), 222 poll lines (all ok), 109,264 rows committed, 183,901 `hash` records committed, 107,798 markets, 0 torn or failed rows, 0 commits crossing midnight, maximum poll duration 237.9 s.
+- **Status forms.** 37 distinct normalised forms over the 8 days (the largest are the empty `[]`, 21,622,698 rows, then `["proposed","proposed"]`, 222,694); `forms_overflow_rows` 0. Non-whitelist forms seen at E6: 3, all containing `propos`, so all fall in `uma_state_at_k` (528 rows) and none in `uma_other_at_k` (0): `["proposed","proposed"]` 526; two long proposed/disputed sequences 1 each (the seal files them under `uma_other_at_k_forms`). No change to the E6 whitelist or the P tokens.
+- **Receipt gaps.** Sidecar minus row receipt time: n = 1,024, min = median = max = 0.0 s.
+- **Planned follow-up volume.** 666 unit-capture lines per unit at the window midpoint; 1,930,068 projected lines over 21 days (counts only).
+- **Open interest.** Present on 0 of 1,024 units (`units_with_nonempty_value` 0); the liquidity proxy of 6 stands.
+- **Pins recorded (`imported_module_sha256`).** `boundary_map_ch240.py` `2bc9ff9edb97b76990579c90929e55f22cb4cfe9fdec852395bd07f7d3bea09a`; `calibration.py` `567cdbe9eab0a8fa5fccdf4350e44cb2fea0104d445e62188e3e363fba12dda1`; `cb13_label.py` `2fbf4b91e3ee3db413098866a6d99b24bcdf5e0c97750820de8edbc6fc789380`; `cb17_census.py` `6b98bab8bde4238edbe56e32d5672c72a04acc04d662bec7b393e3cbf806a15a`; `costs.py` `258856fc360fbe70ce7a062a3f156b66d9d71fd50de56bf3669935c4227f844d`; `live_tests11_base.py` `7f4d3db50311088bb6fbd1ee1eafb7f142fb58133ea1d7f6c684694eb75a9a68`; `live_tests8_base.py` `4b26756d4d1934c4da9a0b2b26d4ff3f2ac72f199bbc55d4ae6365b8ebc394e0`; `population_map_ch251.py` `82db7a75995f0b637b469f4abc421ad9be430fdf38f0a4bad7ed5e9e43a55140`; rule lexicon `2209e0adc51fd0e48edd231574d37207a80b8f3ab34bca418cd910b7abe4b97e`.
+
+No estimand, split, cell, threshold, cost line or date changed from J0.
