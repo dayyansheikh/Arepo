@@ -28,12 +28,12 @@
   "/home/opc/arepo_val/data-dumps/research_lab/cross_venue_live"
  ],
  "timeout_s": 3600,
- "max_retries": 0,
+ "max_retries": 3,
  "outputs": [
   "data-dumps/research_lab/e009_e010_analysis/inputs/canonical/",
   "data-dumps/research_lab/e009_e010_analysis/inputs/copy/",
   "data-dumps/research_lab/e009_e010_analysis/inputs/FREEZE_MANIFEST.json"
  ],
  "next_action": "q0771 and q0777 start; nothing to commit yet",
- "notes": "Light (< 500 MB): exempt from the blackout and from an exclusive drain. Projected size about 1.2 GB (canonical predictions about 0.7 GB, outcomes 0.28 GB, E010 0.05 GB; copy 63 MB); 31 GB free on 2026-10-30. Not_before 08:30Z = E010's analysis time 08:00Z (last 6 h outcome due 05:00Z, poller writes it by about 05:05Z) + 30 min margin. A refusal leaves no run folder unless the copy step itself failed; then move the partial folder aside (never delete evidence) and retry. DRAFT, not in queue/jobs. Promote (git mv to jobs/, commit, scripts/oracle/deploy.sh) only after feat/e009-e010-analysis is merged into the branch the host runs and deployed, so the host HEAD contains scripts/run_e009_e010_analysis.py. Runbook: docs/research_lab/E009_E010_ANALYSIS_RUNBOOK_2026-10-30.md. Blinding: until VERDICTS.json exists nobody opens an outcome, result or log value; counts and sha256s only."
+ "notes": "Light (< 500 MB): exempt from the blackout and from an exclusive drain. Projected size about 1.2 GB (canonical predictions about 0.7 GB, outcomes 0.28 GB, E010 0.05 GB; copy 63 MB); 31 GB free on 2026-10-30. Not_before 08:30Z = E010's analysis time 08:00Z (last 6 h outcome due 05:00Z, poller writes it by about 05:05Z) + 30 min margin. A refusal leaves no run folder unless the copy step itself failed; then move the partial folder aside (never delete evidence) and retry. DRAFT, not in queue/jobs. Promote (git mv to jobs/, commit, scripts/oracle/deploy.sh) only after feat/e009-e010-analysis is merged into the branch the host runs and deployed, so the host HEAD contains scripts/run_e009_e010_analysis.py. Runbook: docs/research_lab/E009_E010_ANALYSIS_RUNBOOK_2026-10-30.md. Blinding: until VERDICTS.json exists nobody opens an outcome, result or log value; counts and sha256s only. Review 2026-10-30 SHOULD 3: freeze exits 75 (retry later) if a canonical outcome file's mtime is before 2026-11-03T05:05Z (poller not caught up; mtimes only, no content), and records the check in FREEZE_MANIFEST.json catchup_check; hence max_retries 3."
 }

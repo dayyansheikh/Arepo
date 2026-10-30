@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
+import subprocess
 from datetime import datetime
 from pathlib import Path
 
@@ -70,6 +72,9 @@ def srcs(tmp_path):
     with (can / "predictions.jsonl").open("a") as f:
         f.write('{"id": "partial|1", "t": 17')
     expect = {f: rn.digest(cop / f)["sha256"] for f in rn.FILES}
+    t = ep("2026-11-03T08:00:00Z")  # the poller wrote after 05:05Z on the day
+    for f in rn.FILES:
+        os.utime(can / f, (t, t))
     return can, cop, expect
 
 
@@ -197,3 +202,126 @@ def test_queue_drafts_are_consistent():
     heavy = [s for s in specs.values() if s["resources"]["mem_mb"] >= 2000]
     assert {s["id"] for s in heavy} == {"q0772_e009_primary", "q0773_e009_sensitivity"}
     assert all(s["resources"].get("exclusive") for s in heavy)
+
+
+def test_pins_match_current_files_and_refuse_mismatch(monkeypatch):
+    t = rn.check_tree(CLEAN)
+    assert len(rn.REGISTERED_PINS) == 7
+    assert t["registered_code_sha256"] == rn.REGISTERED_PINS
+    assert set(t["imported_modules_sha256"]) == set(rn.IMPORTED_MODULES)
+    assert all(t["imported_modules_sha256"].values())
+    assert isinstance(t["economics_differs_from_9beda37e"], bool)
+    assert rn.digest(rn.REPO / rn.RULE_DOC)["sha256"] == rn.RULE_DOC_SHA256
+    pins = dict(rn.REGISTERED_PINS)
+    first = next(iter(pins))
+    pins[first] = "0" * 64
+    monkeypatch.setattr(rn, "REGISTERED_PINS", pins)
+    with pytest.raises(rn.Refusal, match="pinned") as e:
+        rn.check_tree(CLEAN)
+    assert e.value.code == rn.REFUSED != rn.TEMPFAIL
+
+
+def test_modules_recorded_not_enforced(monkeypatch):
+    monkeypatch.setattr(rn, "ECONOMICS_9BEDA37E_SHA256", "0" * 64)
+    assert rn.check_tree(CLEAN)["economics_differs_from_9beda37e"] is True
+
+
+def test_pin_mismatch_refuses_every_step(srcs, tmp_path, monkeypatch):
+    can, cop, expect = srcs
+    monkeypatch.setattr(rn, "REGISTERED_PINS", {**rn.REGISTERED_PINS,
+                                                 next(iter(rn.REGISTERED_PINS)): "0" * 64})
+    with pytest.raises(rn.Refusal) as e:
+        rn.freeze(tmp_path / "r", can, cop, now=AFTER, expect_copy=expect)
+    assert e.value.code == rn.REFUSED and not (tmp_path / "r").exists()
+    monkeypatch.undo()
+    run = tmp_path / "analysis"
+    rn.freeze(run, can, cop, now=AFTER, expect_copy=expect, state=CLEAN)
+    rn.merge(run, state=CLEAN)
+    monkeypatch.setattr(rn, "REGISTERED_PINS", {**rn.REGISTERED_PINS,
+                                                 next(iter(rn.REGISTERED_PINS)): "0" * 64})
+    for call in (lambda: rn.merge(tmp_path / "x"), lambda: rn.verdicts(run),
+                 lambda: rn.analyze(run, "e009", "sensitivity", now=AFTER)):
+        with pytest.raises(rn.Refusal) as e:
+            call()
+        assert e.value.code in (rn.REFUSED,)
+
+
+def test_freeze_records_catchup_and_refuses_stale(srcs, tmp_path):
+    can, cop, expect = srcs
+    fm = rn.freeze(tmp_path / "ok", can, cop, now=AFTER, expect_copy=expect, state=CLEAN)
+    c = fm["catchup_check"]
+    assert c["poller_caught_up"] is True and set(c["files"]) == {"outcomes.jsonl",
+                                                                   "outcomes_e010.jsonl"}
+    assert c["files"]["outcomes.jsonl"]["mtime_utc"] == "2026-11-03T08:00:00Z"
+    assert c["files"]["outcomes.jsonl"]["written_recently"] is True
+    assert json.loads((tmp_path / "ok/inputs/FREEZE_MANIFEST.json").read_text())["catchup_check"]
+    old = ep("2026-11-03T05:04:00Z")
+    os.utime(can / "outcomes_e010.jsonl", (old, old))
+    with pytest.raises(rn.Refusal, match="caught up") as e:
+        rn.freeze(tmp_path / "late", can, cop, now=AFTER, expect_copy=expect, state=CLEAN)
+    assert e.value.code == rn.TEMPFAIL and not (tmp_path / "late").exists()
+
+
+def test_rule_doc_pin_and_child_75(srcs, tmp_path, monkeypatch):
+    can, cop, expect = srcs
+    run = tmp_path / "analysis"
+    rn.freeze(run, can, cop, now=AFTER, expect_copy=expect, state=CLEAN)
+    rn.merge(run, state=CLEAN)
+    mp = run / "merged/MERGE_MANIFEST.json"
+    mm = json.loads(mp.read_text())
+    mm["rule_doc_sha256"] = "1" * 64
+    mp.write_text(json.dumps(mm))
+    with pytest.raises(rn.Refusal, match="rule_doc_sha256"):
+        rn.analyze(run, "e009", "primary", now=AFTER, state=CLEAN)
+    assert rn._child_code(75) == 1 and rn._child_code(0) == 1 and rn._child_code(3) == 3
+
+    class P:
+        returncode, stdout, stderr = 75, b"", b"x"
+
+    monkeypatch.setattr(rn.subprocess, "run", lambda *a, **k: P())
+    with pytest.raises(rn.Refusal) as e:
+        rn.analyze(run, "e009", "sensitivity", now=AFTER, state=CLEAN)
+    assert e.value.code == 1
+
+
+def test_failure_records_are_timestamped_and_never_overwritten(srcs, tmp_path, monkeypatch):
+    can, cop, expect = srcs
+    run = tmp_path / "analysis"
+    rn.freeze(run, can, cop, now=AFTER, expect_copy=expect, state=CLEAN)
+
+    class P:
+        returncode, stdout, stderr = 1, b"", b"boom"
+
+    monkeypatch.setattr(rn.subprocess, "run", lambda *a, **k: P())
+    monkeypatch.setattr(rn, "_stamp", lambda t=None: "20261103T090000Z")  # same second twice
+    for _ in range(2):
+        with pytest.raises(rn.Refusal):
+            rn.analyze(run, "e009", "sensitivity", now=AFTER, state=CLEAN)
+    fails = sorted(p.name for p in (run / "results").glob("e009_sensitivity.failed-*.json"))
+    assert fails == ["e009_sensitivity.failed-20261103T090000Z-1.json",
+                     "e009_sensitivity.failed-20261103T090000Z.json"]
+    assert not (run / "results/e009_sensitivity.json").exists()
+
+
+def test_failed_merge_leaves_no_permanent_marker_and_can_be_retried(srcs, tmp_path, monkeypatch):
+    can, cop, expect = srcs
+    run = tmp_path / "analysis"
+    rn.freeze(run, can, cop, now=AFTER, expect_copy=expect, state=CLEAN)
+    real = subprocess.run
+
+    class P:
+        returncode, stdout, stderr = 2, b"", b"refused: dirty"
+
+    monkeypatch.setattr(rn.subprocess, "run", lambda *a, **k: P())
+    with pytest.raises(rn.Refusal) as e:
+        rn.merge(run, state=("abc123", ["docs/research_lab/trials.jsonl"]))
+    assert e.value.code == rn.TEMPFAIL  # CLI exit 2 -> retryable
+    assert not (run / "MERGE_RUN.json").exists() and not (run / "merged").exists()
+    assert len(list(run.glob("MERGE_RUN.failed-*.json"))) == 1
+    monkeypatch.setattr(rn.subprocess, "run", real)
+    # trials.jsonl dirt appearing between checks no longer matters: --allow-dirty is always passed
+    rec = rn.merge(run, state=("abc123", ["docs/research_lab/trials.jsonl"]))
+    assert rec["rc"] == 0 and "--allow-dirty" in rec["argv"]
+    assert (run / "MERGE_RUN.json").is_file()
+    with pytest.raises(rn.Refusal):  # a non-allowed dirty file is still refused before the call
+        rn.merge(tmp_path / "nope", state=("h", ["backend/x.py"]))

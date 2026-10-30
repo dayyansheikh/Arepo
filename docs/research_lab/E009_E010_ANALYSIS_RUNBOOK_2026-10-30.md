@@ -40,7 +40,7 @@ about 2.5 GB in total; the host has 31 GB free.
 
 The wrapper is `backend/scripts/run_e009_e010_analysis.py`, tested by `backend/tests/test_e009_e010_analysis_runner.py`.
 `D` is `../data-dumps/research_lab/e009_e010_analysis` (cwd `backend`). Every step refuses on modified tracked files other
-than `trials.jsonl`. It also records HEAD and the sha256 of the 7 registered/verdict code files.
+than `trials.jsonl`. It also **enforces** the sha256 pins of the 7 registered/verdict code files (see §7) and records HEAD.
 
 | Job | Command (argv) | Reads | Writes | Memory | not_before / depends_on |
 |---|---|---|---|---|---|
@@ -55,7 +55,7 @@ than `trials.jsonl`. It also records HEAD and the sha256 of the 7 registered/ver
 
 Priorities run 98 (q0770) down to 91 (q0776), with the archive at 97. The analysis jobs have `max_retries 0`, and
 `analyze` refuses if its output already exists. **Analyse once** is therefore enforced twice. If a job dies before writing
-its output (OOM kill or timeout), only `<exp>_<label>.failed.json` exists, holding the rc and the stderr tail with no
+its output (OOM kill or timeout), only `<exp>_<label>.failed-<attempt UTC>.json` files exist (one per attempt, never overwritten), each holding the rc and the stderr tail with no
 statistic. Nothing has been seen, so after recording the failure in the ledger it may be re-queued by hand with
 `queue_worker.py retry <id>`. Runtime: the audit's dry run at final size took 148 s on the Mac at `n_boot=50`; the
 bootstrap works on per-event sums. A host run should take minutes, and the timeouts are 4 h (E009) and 2 h (E010).
@@ -77,7 +77,11 @@ The result entry must report:
 - the merge counts (R2 added, R3, and R4 substituted/refused per reason, including on the analysed grid);
 - the R4(d) non-random-refusal disclosure;
 - `tree_dirty`;
-- the freeze sha256s and the archive tag.
+- `canonical_predictions_in_window` from the sensitivity merge manifest: the statement "no origin in W" for the
+  sensitivity run is true only if this count is 0;
+- the freeze sha256s and the `catchup_check` block of `FREEZE_MANIFEST.json`;
+- the q0777 archive tag, or the statement that q0777 failed together with the prefix-rebuild path (§7);
+- the `imported_modules_sha256` and `economics_differs_from_9beda37e` fields of the run JSONs.
 
 ## 5. After q0776 (orchestrator)
 
@@ -92,6 +96,49 @@ The result entry must report:
 1. **Narrow `--allow-dirty` (B2).** Accept it, or make the host tree clean before 08:30Z and keep it clean (hard, because
    queue jobs append to `trials.jsonl`). Recommendation: accept. It is the rule's own disclosed exception, and code files
    are still refused.
-2. **R6 ordering.** q0777 does not gate the analyses, so a GitHub or `gh` failure cannot block them. To require the
-   off-host copy first, add `q0777_e009e010_inputs_archive` to q0771's `depends_on`.
+2. **R6 ordering.** Reviewer ruling adopted: q0777 does **not** gate the analyses, so a GitHub or `gh` failure cannot
+   block a time-anchored registered analysis. The result entry must cite q0777's archive tag or its failure (§7).
 3. **Promotion.** Merge this branch, deploy, then `git mv` the 8 drafts to `jobs/` and deploy again before 11-03T08:30Z.
+
+## 7. Review fixes (wrapper review, 2026-10-30, ACCEPT_WITH_FIXES)
+
+**Code pins (MUST 1).** `REGISTERED_PINS` in the wrapper holds the sha256 of each file at the commit the review names
+(each verified equal to the current file). Every step refuses with exit 2 (never 75) on any mismatch or missing file.
+
+| File | Commit | sha256 |
+|---|---|---|
+| `cross_venue_live.py` | 9beda37e | `eac14e68dc7a9d60610d9ea5d2edfdc39be73afd0192d6b41cd3d5459e5ef581` |
+| `cross_venue_live_e010.py` | 9beda37e | `a75aad4735b7bbf528594197032013603e0bdb53d0907419a72e6740210c5b7f` |
+| `run_cross_venue_live.py` | 9beda37e | `2a7a6cdfbb58475ca4c87619f6dada0ac99fc30c068ff42ab28e1ed865c54d7a` |
+| `cross_venue_gapfill.py` | 4751a46d | `9ca78570e9e581e2e765f108873b15cdb39107d777b58a571a46fc74c7bc74ed` |
+| `run_cross_venue_gapfill.py` | 4751a46d | `14454133d00f52d00eb175d6358f97aad5f7efb6492d641d033da2e512eb9e67` |
+| `live_verdicts.py` | e5f6ca7f | `b5b53bb020cedce869e07f2f51902617c704f02aa2711ca40e1cefe4c5388169` |
+| `scripts/live_verdicts.py` | b3b54f93 | `c786ae4e09cda00a82d310fe62285a6e02b3af227b029f963a2b3e33b206bc8f` |
+
+The rule doc `E009_E010_GAPFILL_RULE_V2.md` is pinned too: `d9d17d8deaf965e19d699c35981c83c5433147d4c4c51e1d0f5661ee7e42421f`.
+The primary-run check requires the merge manifest's `rule_doc_sha256` to equal it. `economics.py`, `cross_venue.py` and
+`forecast.py` are imported by the analysis; their sha256 is recorded (not enforced) in each step's run JSON as
+`imported_modules_sha256`, with `economics_differs_from_9beda37e` (9beda37e version `c745980b7f76f7f2fae688a041c8df4862eff71b5bea9a363670d8ff122b3e6e`).
+
+**Failed merge: move aside, never delete (SHOULD 1).** The merge reveals no outcome, so a re-run is honest. The wrapper
+always passes `--allow-dirty` to the gap-fill CLI, but only after its own allowed-dirty check immediately before the call
+(and it re-checks afterwards), so a `trials.jsonl` that turns dirty between the two checks cannot make the CLI exit 2.
+The CLI still records the true `tree_dirty`. On any non-zero CLI exit the wrapper moves `merged/` to
+`merged.failed-<UTC>/`, writes `MERGE_RUN.failed-<UTC>.json` and writes **no** `MERGE_RUN.json`; the CLI's exit 2 maps to
+75 (retry later), others to their code (75 becomes 1). Manual procedure if a failure still leaves a stale marker: move
+`D/MERGE_RUN.json` and `D/merged` to `*.failed-<UTC>` names (never delete), confirm `D/inputs` hashes still match
+`FREEZE_MANIFEST.json`, and re-queue q0771.
+
+**Failure records (SHOULD 2).** `results/<exp>_<label>.failed-<attempt UTC>.json`; a same-second collision gets a numeric
+suffix. An earlier record is never overwritten.
+
+**Freeze catch-up check (SHOULD 3).** Outcome-blind: only file mtimes. `freeze` exits 75 (retry later) if
+`outcomes.jsonl` or `outcomes_e010.jsonl` in the live folder has an mtime before 2026-11-03T05:05Z, and records the mtimes,
+ages and a `written_recently` flag (written within 3 h) in `FREEZE_MANIFEST.json` under `catchup_check`.
+
+**Exit codes (SHOULD 6).** A child's exit 75 is mapped to 1, so the queue never auto-retries a registered analysis.
+
+**q0777 and retention.** q0777 does not gate the analyses. If it fails, the frozen inputs can be rebuilt as byte prefixes of
+the append-only live files (the manifest holds their sha256 and byte length) from the host or from the later nightly
+(from 11-05) and weekly (11-08 06:10Z) snapshots. No retention step may touch the live `cross_venue_live` files until an
+archive covering at least the frozen byte length has been verified.
