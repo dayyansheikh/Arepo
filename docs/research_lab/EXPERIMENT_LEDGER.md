@@ -5618,3 +5618,15 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   share the same `--data-dumps-cap-gb 50`. Record the cap and the size plan (nightly archive rotation) before registration.
 - M1 test `test_must2_q0751_cron_line_notes_the_gate_and_pins` now reads q0751 from `jobs/` (3227e8d8; test only, M1
   code_sha unchanged `9cb8aa03…`).
+
+## CB7 analysis code written (freeze-check MUSTs 1-3), 2026-10-30 18:10Z (experiments autopilot; nothing frozen, nothing counted)
+- `feat/cb7-analysis` 08d6a431 + 38650bf2 (merged 301b6679): `cb7_declaration.py` (write-once `write-spec`; declaration
+  sha256 `8eb396ba74bcaecd2c21b54d58c17db5b649c77c7a4e11d7ab13f14a52e2438f`), `cb7_astats.py`, `cb7_g_analysis.py`,
+  `cb7_x_analysis.py`, `cb7_s_analysis.py`, `run_cb7.py screen --family S|G|X`; `cb7_test` / `cb7_replication` in
+  `battery2.KIND_RULES`; S writes the counted p = 1 line at once (q0156 dependency removed). 41 tests, synthetic only.
+- Code note `reviews/CB7_ANALYSIS_CODE_NOTE_2026-10-30.md`: readings A1-A20, of which the reviewer must rule on A1
+  (cluster minimum per way), A3 (G1 primary on resolved units; censored in robustness (v)), A4 (X robustness (v) worst
+  case from CB8-W), A6 (route gate binding, no rebate), A11 (`dates.screen_not_before_utc` in the freeze spec), A9
+  (G waits for S1 and X1; order q0148, q0150, q0149). The census was seen before this code was written, so readings that
+  touch testability or power are taken conservatively or justified independently of the counts.
+- Next: `science-reviewer` code-freeze check (running; census copy sha256 `85824be1…e6920` given read-only).
