@@ -8,7 +8,10 @@
 NOT in this runner: the size check, the placebo / F, the analysis, the window reader and ops-stats (written only if the primary survives the census).
 
 Every subcommand that writes refuses to overwrite ``--out`` (exit 1); the census runs ONCE (a marker beside the seal; a second run exits 2), only on a seal tracked by git and identical to
-HEAD (exit 2 otherwise), exits 75 ("not now") above ``--data-dumps-cap-gb`` and exits 2 on any Refused (including peak RSS above 800 MB). It writes nothing to ``trials.jsonl`` (counts 0).
+HEAD (exit 2 otherwise), exits 75 ("not now") above ``--data-dumps-cap-gb`` and exits 2 on any Refused (including peak RSS above 800 MB). A census-time audit failure and the crypto-classifier
+fail-safe are DURABLE outcomes (``withdrawn_pre_census (input clock)``, ``census_dropped (classifier fail-safe)``): written like any result (exit 0). After a written census the output is also
+copied once into ``--commit-copy-dir`` (default ``docs/research_lab/seals``, which git tracks; ``data-dumps/`` is ignored) so it can be committed with its sha256. The seal is written ONCE: any
+existing ``lt14_census_inputs*`` in the seals directory refuses. It writes nothing to ``trials.jsonl`` (counts 0).
 """
 
 from __future__ import annotations
@@ -76,6 +79,7 @@ def build_parser() -> argparse.ArgumentParser:
         if name == "census":
             p.add_argument("--seal", type=Path, default=t.SEALS / "lt14_census_inputs.json")
             p.add_argument("--data-dumps-cap-gb", type=float, default=None)
+            p.add_argument("--commit-copy-dir", type=Path, default=t.SEALS)
     return ap
 
 
@@ -109,13 +113,17 @@ def main(argv: list[str] | None = None) -> int:
         print(f"refusing: {e}")
         return 2
     res["seal_file"] = {"path": str(args.seal), "sha256": b.sha256_file(args.seal), "commit": commit}
-    if "error" in res:
+    if "error" in res and not res.get("durable"):
         print(res["error"])
         return 3
     if (msg := lt.claim_run(args.seal, args.out, {"seal_sha256": res["seal_file"]["sha256"], "status": res.get("statuses", {})})):
         print(f"refusing: {msg}")
         return 2
-    return _write_out(args.out, json.dumps(res, sort_keys=True, indent=1, default=b._json))
+    txt = json.dumps(res, sort_keys=True, indent=1, default=b._json)
+    rc = _write_out(args.out, txt)
+    if rc == 0 and args.out is not None:
+        rc = _write_out(Path(args.commit_copy_dir) / "lt14_cc14.json", txt)  # write-once copy under git's eye; its sha256 is printed
+    return rc
 
 
 if __name__ == "__main__":

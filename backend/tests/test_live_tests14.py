@@ -1,6 +1,6 @@
 # ruff: noqa: E501
 """LT14 census building blocks (LIVE_TESTS_14.md 1.3, 1.5, 1.6, 3): pins and refusals, the input-clock audit, the exclusion order, the |s| decile and its tie-break, tiers, outcome classes,
-the fee-class split SUMMED across captures (the CH269 defect), LT13's aliasing rule, and the no-later-price guard. Synthetic only (tmp paths); the real trials.jsonl is never opened."""
+the fee-class split SUMMED across captures (the CH269 defect), LT13's aliasing rule, and the no-later-price guard. Synthetic only (tmp paths); the real trials.jsonl is never opened or read (only its size and mtime are compared)."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ import ast
 import inspect
 import json
 import math
+import os
 import shutil
 
 import numpy as np
@@ -19,7 +20,7 @@ from astrolabe.research_lab import live_tests14_base as t
 from tests import lt14_synth as sx
 
 TRIALS = t.ROOT / "docs" / "research_lab" / "trials.jsonl"
-TRIALS_SHA0 = t.b.sha256_file(TRIALS) if TRIALS.exists() else None
+TRIALS_STAT0 = (os.stat(TRIALS).st_size, os.stat(TRIALS).st_mtime_ns) if TRIALS.exists() else None  # stat only: the bytes are never read
 
 
 def _reg_sha(model_id: str) -> str:
@@ -176,6 +177,23 @@ def test_gross_spread_and_mid_fields_come_from_quotes_at_k_only():
     C, _, _ = t.candidates(feat, pred, quo, ext)
     assert np.allclose(C["spread_c"], 2.0, atol=1e-4)  # ask_k - bid_k, not ms_spread
     assert (np.abs(C["mid_k"] - C["ms_mid"].astype(np.float64)) <= 1e-6).all()
+    assert np.allclose(C["mid_k"], 0.5) and np.allclose(C["ms_mid"], 0.5) and C["mid_k"].notna().all()  # not vacuous: both sides are the fixture's 0.5
+
+
+def test_should7_mid_k_is_aligned_with_the_features_row_kept_when_quotes_hold_duplicate_market_rows():
+    feat, pred, quo, ext = _frame(12)
+    # market 3: the quotes file lists a one-sided row (st = 3, no price) BEFORE its two-sided row; the engine's features hold only the two-sided one
+    dup = quo[quo["market_id"] == 3].copy()
+    quo = pd.concat([dup.assign(st=np.int8(3), bid=np.float32("nan"), ask=np.float32("nan")), quo], ignore_index=True)
+    # market 5: two two-sided rows with different prices; the FIRST one is the kept one
+    quo.loc[quo["market_id"] == 5, ["bid", "ask"]] = np.float32(0.49), np.float32(0.51)
+    second = quo[quo["market_id"] == 5].copy().assign(bid=np.float32(0.30), ask=np.float32(0.32))
+    quo = pd.concat([quo, second], ignore_index=True)
+    C, _, _ = t.candidates(feat, pred, quo, ext)
+    row = C.set_index("market_id")
+    assert row.loc[3, "mid_k"] == pytest.approx(0.5, abs=1e-6) and row.loc[3, "spread_c"] == pytest.approx(2.0, abs=1e-4)
+    assert row.loc[5, "mid_k"] == pytest.approx(0.5, abs=1e-6)
+    assert C["mid_k"].isna().sum() == 0
 
 
 # --- outcome classes at k + 1 ----------------------------------------------------------------------------------------------------------------------
@@ -292,6 +310,7 @@ def test_zero_variance_demeaned_control_is_removed_and_reported_before_the_rank(
 def test_gate_helper_fails_nan_and_kish_and_design_effect():
     assert t.gate(math.nan, lambda v: v > 0)["pass"] is False
     assert t.gate(5.0, lambda v: v >= 5)["pass"] is True
+    assert t.gate(5.0, lambda v: v >= 5.0001)["pass"] is False
     assert abs(t.kish([1, 1, 1, 1]) - 4.0) < 1e-12 and t.kish([10, 1]) < 2.0
     assert abs(t.de_cluster([3, 3], 1.0, 0.02) - 1.04) < 1e-12
 
@@ -299,4 +318,4 @@ def test_gate_helper_fails_nan_and_kish_and_design_effect():
 def test_trials_jsonl_is_never_touched():
     src = inspect.getsource(lt) + inspect.getsource(t)
     assert "trials.jsonl" not in src
-    assert (t.b.sha256_file(TRIALS) if TRIALS.exists() else None) == TRIALS_SHA0
+    assert ((os.stat(TRIALS).st_size, os.stat(TRIALS).st_mtime_ns) if TRIALS.exists() else None) == TRIALS_STAT0

@@ -89,7 +89,7 @@ DECLARED: dict = {
     "hurdle_formula": {"AS_c": 2.04, "rebates_c": 0.10, "h_from_mean_spread_c": 2.68, "H_c": 1.30, "tier_p50_half_spread_c": 0.75, "tier_spread_figure_c": 2.48,
                        "rule": "H = 2 x (AS - h) - rebates; the census recomputes h from its recorded touches (mean spread_k / 2; p50 spread_k / 2) and PRINTS both; they never replace H"},
     "mde": {"t_sum": 3.47, "day_factor": 1.5, "n_eff_frac": 0.8, "de_rho": 0.02, "de_floor": 5.0, "planning_r": 0.2, "sd_floor_c": 1.3, "mde_max_c": 0.5, "f_mde_max_c": 0.5, "g_eff_min": 15, "projection_days": 21.0,
-            "rule": "DE_gate = max(5.0, 1 + (m_21 - 1) x 0.02); MDE = 3.47 x 1.5 x SD_plan x sqrt(DE_gate / (0.8 n)); F-MDE = MDE x sqrt(2 / (1 - max(0, 0.2))); design MDE = 3.47 x 1.5 x max(se_event, se_twoway, se_day); the gate uses max(declared, design)"},
+            "rule": "DE_gate = max(5.0, 1 + (m_21 - 1) x 0.02); MDE = 3.47 x 1.5 x SD_plan x sqrt(DE_gate / (0.8 n)); F-MDE = MDE x sqrt(2 / (1 - max(0, 0.2))); design MDE = 3.47 x 1.5 x max(se_event, se_twoway, se_day); the gate uses max(declared, design); design-effect cluster sizes are the census's UNSCALED unit counts per event, per event x UTC day and per UTC day (labelled units), n = projected labelled units; the 21 / covered-days scaled cluster sizes are print only"},
     "census_inputs": {
         "span": {"start_utc": "2026-11-07T00:00:00Z", "end_utc": "2026-11-17T00:00:00Z", "first_slot_utc": "2026-11-07T00:31:00Z", "last_slot_utc": "2026-11-16T22:31:00Z"},
         "lag_slots_after": 3, "lookback_capture_slots": 0, "tail_slots_utc": ["2026-11-17T00:31:00Z", "2026-11-17T02:31:00Z", "2026-11-17T04:31:00Z"],
@@ -110,7 +110,8 @@ DECLARED: dict = {
     "seeds": {"size_check": 20261814, "rule": "declared for the later stage; the census draws nothing (no random number)"},
 }
 IMPORTED_FILES = tuple(DECLARED["imported_sha256"])
-CODE_FILES = ("live_tests14.py", "live_tests14_base.py")
+CODE_FILES = ("live_tests14.py", "live_tests14_base.py", "run_live_tests14.py")  # the runner lives in backend/scripts (code_hashes resolves it)
+ALLOW_NONDECLARED_SPEC = False  # True only in tests: a seal / census run on a spec other than DECLARED would record hashes of parameters it did not use (code-freeze check SHOULD 1)
 _PIN_LINE = re.compile(r"^SPEC_SHA256 = .*$", re.M)
 
 
@@ -135,7 +136,8 @@ def imported_hashes() -> dict:
 
 def code_hashes() -> dict:
     here = Path(__file__).resolve().parent
-    return {n: (file_sha(here / n) if (here / n).exists() else None) for n in CODE_FILES}
+    scripts = here.parents[1] / "scripts"
+    return {n: (file_sha(p) if (p := (scripts / n if n.startswith("run_") else here / n)).exists() else None) for n in CODE_FILES}
 
 
 def declaration_sha256() -> str:
@@ -144,6 +146,17 @@ def declaration_sha256() -> str:
 
 def load_spec() -> dict:
     return copy.deepcopy(DECLARED)
+
+
+def spec_hash(spec: dict) -> str:
+    return hashlib.sha256(_canon(spec).encode("utf-8")).hexdigest()
+
+
+def spec_error(spec: dict) -> dict | None:
+    """SHOULD 1: the hashes written into the seal and the output describe DECLARED; a run on any other spec is refused (tests set ``ALLOW_NONDECLARED_SPEC``)."""
+    if not ALLOW_NONDECLARED_SPEC and _canon(spec) != _canon(DECLARED):
+        return {"error": "the spec in use differs from DECLARED: the recorded declaration_sha256 would describe parameters that were not used; refused"}
+    return None
 
 
 def imported_error() -> dict | None:
@@ -216,6 +229,7 @@ def audit_input_clock(spec_dir: Path | None = None, declared: dict | None = None
     except (OSError, ValueError, KeyError) as e:
         out["reasons"].append(f"spec file unreadable: {e}")
         return out
+    out["spec_canonical_sha256"] = _spec_canonical_sha(sp)
     if _spec_canonical_sha(sp) != d["spec_sha256"]:
         out["reasons"].append("the spec file's canonical sha256 differs from the pin")
     if sp.get("features_version") != d["features_version"]:
@@ -288,8 +302,9 @@ class EngineReader:
     """Read-only access to ``<engine>/{meta,quotes,features,predictions}`` by capture id and to the sidecar under the snapshot roots. ``quotes(origin, slot, cols)`` is the ONLY quotes
     reader: for ``slot > origin`` it refuses any column outside ``market_id`` / ``t_off`` / ``st`` (3: the census reads no later bid, ask or mid)."""
 
-    def __init__(self, engine_root: Path, snapshot_roots, slots: dict[int, str], allowed: set | None = None) -> None:
+    def __init__(self, engine_root: Path, snapshot_roots, slots: dict[int, str], allowed: set | None = None, absent: set | None = None) -> None:
         self.allowed = allowed  # the seal's file names; a read of any other file is refused (3: "an input not in the seal")
+        self.absent = set(absent or ())  # files the seal recorded as ABSENT at seal time: never opened, read as missing (MUST 2), whatever is on disk now
         self.root = Path(engine_root)
         self.snaps = [Path(r) for r in (snapshot_roots if isinstance(snapshot_roots, (list, tuple)) else [snapshot_roots])]
         self.slots = slots
@@ -297,15 +312,19 @@ class EngineReader:
     def cap(self, k: int) -> str | None:
         return self.slots.get(int(k))
 
-    def _chk(self, rel: str) -> None:
+    def _chk(self, rel: str) -> bool:
+        """True if ``rel`` may be read; False if the seal recorded it as absent; raises if it is in neither list."""
+        if rel in self.absent:
+            return False
         if self.allowed is not None and rel not in self.allowed:
             raise Refused(f"{rel} is not in the seal: refused (3)")
+        return True
 
     def meta(self, k: int) -> dict | None:
         c = self.cap(k)
         p = self.root / "meta" / f"{c}.json" if c else None
-        if p:
-            self._chk(f"meta/{c}.json")
+        if p and not self._chk(f"meta/{c}.json"):
+            return None
         return json.loads(p.read_text()) if p and p.exists() else None
 
     def quotes(self, origin: int, slot: int, columns: list[str]) -> pd.DataFrame | None:
@@ -313,15 +332,15 @@ class EngineReader:
             raise Refused(f"a later-slot quotes read of columns {sorted(set(columns) - LATER_SLOT_COLUMNS)} (slot {slot} > origin {origin}) is refused: the census reads st / t_off only (3)")
         c = self.cap(slot)
         p = self.root / "quotes" / f"{c}.parquet" if c else None
-        if p:
-            self._chk(f"quotes/{c}.parquet")
+        if p and not self._chk(f"quotes/{c}.parquet"):
+            return None
         return read_cols(p, columns) if p and p.exists() else None
 
     def features(self, k: int, columns: list[str]) -> pd.DataFrame | None:
         c = self.cap(k)
         p = self.root / "features" / f"{c}.parquet" if c else None
-        if p:
-            self._chk(f"features/{c}.parquet")
+        if p and not self._chk(f"features/{c}.parquet"):
+            return None
         return read_cols(p, columns) if p and p.exists() else None
 
     def pred_path(self, k: int, model_id: str) -> Path | None:
@@ -335,7 +354,8 @@ class EngineReader:
         for r in self.snaps:
             p = r / c / "rows_ext.csv.gz" if c else None
             if p and p.exists():
-                self._chk(f"snapshots/{c}/rows_ext.csv.gz")
+                if not self._chk(f"snapshots/{c}/rows_ext.csv.gz"):
+                    return None
                 return p
         return None
 
@@ -430,7 +450,9 @@ def candidates(feat: pd.DataFrame, pred: pd.DataFrame, quo: pd.DataFrame | None,
     steps["candidates"] = int(len(df))
     # origin-side quote fields (quotes/<k> as written; spread_k = ask - bid) and the fee class (served rate, sidecar of the same capture)
     if quo is not None and len(df):
-        q = quo.drop_duplicates("market_id").set_index("market_id").reindex(df["market_id"].to_numpy())
+        # the kept features row is the FIRST row of its market among the engine's two-sided rows (features are a subset of quotes with st = 0): take the first quotes row with st = 0 (SHOULD 7)
+        qs = quo[quo["st"] == 0] if "st" in quo else quo
+        q = qs.drop_duplicates("market_id").set_index("market_id").reindex(df["market_id"].to_numpy())
         df["bid_k"], df["ask_k"] = q["bid"].to_numpy(np.float64), q["ask"].to_numpy(np.float64)
         df["t_off_k"] = q["t_off"].to_numpy(np.float64)
     else:
@@ -626,7 +648,8 @@ def kish(sizes) -> float:
 
 
 def de_cluster(sizes, f: float, rho: float) -> float:
-    """1 + (m_bar - 1) x rho with m_bar = sum m^2 / sum m (size-weighted mean cluster size) at sizes scaled by the projection factor ``f``."""
+    """1 + (m_bar - 1) x rho with m_bar = sum m^2 / sum m (size-weighted mean cluster size). The gate passes ``f = 1`` (the census's own, unscaled sizes: a 21-day window has more
+    days, not more units per day; code-freeze check MUST 3); ``f = 21 / covered days`` gives the scaled, print-only values."""
     a = np.asarray(list(sizes), dtype=float) * f
     if not len(a) or a.sum() <= 0:
         return math.nan
