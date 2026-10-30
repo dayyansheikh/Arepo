@@ -5856,3 +5856,26 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   if data-dumps > 45 GiB, raise the guards per the 10-28 precedent** (or free `ml_cache` once q0116k completes).
 - Still dated: M2 check q0460 is `done` at about 11-13T06:30Z (else `queue_worker.py retry q0460_lt2_live_collect`);
   M6 confirm the LT3 / LT4 cron readers ran through END + about 9 h (log tail and counts only).
+
+## E011 analysis readings declared before the run (outcome-blind), 2026-10-30 18:40Z (experiments autopilot; no E011 outcome read)
+Source: `reviews/E011_ANALYSIS_WRAPPER_REVIEW_2026-10-30.md` (ACCEPT_WITH_FIXES on 2917cefa), rulings adopted verbatim.
+1. Input: the registered `run_surprise_snapshot.py analyze` (defaults, unchanged) reads byte prefixes of
+   alerts.jsonl / outcomes.jsonl frozen at FREEZE_MANIFEST `frozen_utc` (>= 2026-11-11T13:00Z). "Analysis time" in
+   "any line still pending at analysis time is reported as pending, never imputed" = `frozen_utc`. Outcome lines
+   written after it are not used.
+2. Catch-up: no gate on pass times beyond the registered 13:00Z. Lines pending at `frozen_utc` are reported as
+   pending, not unavailable. Last pass `written_utc` and whether the 12:31Z pass is present are reported.
+3. Episode: registration "alert lines of one market closer than 24 h collapse to the first" is implemented by the
+   registered `analyze()` (named in secondary (g)), which chains each line from the previous line of that market
+   (surprise_snapshot.py:659-665, unchanged since 3e628ec3). This reading binds; no head-anchored variant is computed.
+4. Secondaries (c)(e)(f)(g) and the alert+control (d) come from the pre-declared supplement (711a9107 / e53dceaa) run
+   once on the same frozen inputs after the primary; descriptive, no verdict role, not counted.
+5. Pre-run counts (non-ok passes, window alert lines with fee_category == "unknown", missed slots) are operational
+   counts from passes / alert lines only; no outcome line is parsed.
+6. Code version: as in the 2026-10-30 18:30Z deviation (pins 413107af… etc.); nothing added.
+7. Shortfall: the result entry reports every missed collector slot in the window (10-14 00:31-10:31Z, 6 passes,
+   ledger :1086, plus any later), from passes.jsonl; the window is not extended.
+8. Counting: E011 is 1 counted test (one primary); analyze writes no trials line.
+- Fixes before promotion (delegated, `feat/e011-fixes`): MUST 1 supplement job q0793 (pins the two supplement files at
+  e53dceaa; the wrapper's "not produced" constant removed); SHOULD 1-4 (quiescence / catch-up check, window-limited pre-run
+  counts with missed slots, `pre_run_sha256` check and library versions, runbook count line). Then a diff-only check.
