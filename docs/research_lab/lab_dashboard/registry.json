@@ -1839,7 +1839,7 @@
   {
    "id": "M2",
    "title": "Measurement M2: the overdue favourite (planned)",
-   "plain": "Planned pre-registered measurement from ideas round 19: in markets past their end date that have not resolved, how big is the favourite's premium against what it finally pays? A number with an error bar, frozen in advance; never called a finding. Design text frozen 30 Oct; a late check found one counting rule its text forbids, so the code is being fixed with a dated amendment before registration (no data collected yet). A coarse result is about as likely as not, said in advance.",
+   "plain": "Planned pre-registered measurement from ideas round 19: in markets past their end date that have not resolved, how big is the favourite's premium against what it finally pays? A number with an error bar, never called a finding. Design frozen 30 Oct; a late check found one counting rule its text forbids, so the code is fixed with a dated amendment before registration (no data collected yet).",
    "batch": "M2",
    "family": "carry",
    "stage": "designed",
