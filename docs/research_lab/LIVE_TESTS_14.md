@@ -193,7 +193,8 @@ Round 19's rules map onto LT14 as follows:
     before the freeze.
 - **Input-clock audit at the freeze (R1 MUST 2; binding).** The freeze commit lists every feature family and derived set in
   `P`'s spec, with its source stream, its receipt clock and the code line that reads it. **Every input must be received at
-  or before the unit's own row receipt `t_row(i)` at capture k.** If any input fails, the reader refuses `P`, and LT14 is
+  or before the unit's own row receipt `t_row(i)` at capture k.** 'Received' is the receipt clock of the record read (fetch
+  time), not its venue event timestamp. If any input fails, the reader refuses `P`, and LT14 is
   `withdrawn_pre_census (input clock)`, never re-pinned to another model.
   - The `book` family fails by construction: its sweep is received about 7 min after the origin (`DESIGN_V1.md` 3, 21:
     "can be credited for a move that has already happened").
@@ -267,10 +268,13 @@ Everything below is read at capture k or earlier.
   the tier, `<tier>.exclude_family`, census-fixed). It removes units but never re-cuts the decile.
 - **Tier:** cost-model bins on `expm1(ms_log_liq)` (the row's Gamma `liquidity` as stored): `< $1k`, `$1k-10k`,
   `$10k-100k`, `>= $100k`.
+- **Spread:** `spread_k = ask_k - bid_k` from `quotes/<k>` (`ms_spread` is Gamma's `spread` field and is not used for
+  `spread_k`).
 - **Event key:** `event_id` from `features/<k>`; -1 (unknown) clusters on the market.
 - **Unit:** a 10k-100k member of the top decile at k after all of the above.
 - **Gross:** `g = 100 x sign(s) x (mid_{k+1} - mid_k)` cents, with `mid = (bid + ask) / 2` from `quotes/<k>` and
-  `quotes/<k + 1>` as written. The census checks `mid_k == ms_mid` on every unit.
+  `quotes/<k + 1>` as written. The census checks `|mid_k - ms_mid| <= 1e-6` (float32 storage; exact equality is not
+  expected) on every unit.
 
 ### 1.6 Outcome classes at k + 1 (write-once, never imputed)
 Each unit gets exactly one class:
@@ -350,12 +354,14 @@ Neither label changes a verdict.
       common-direction-free day and event shocks entering the raw mid change;
     - the twin is `mid_{k+3} - mid_{k+2} = D'_t + E'_{e,t} + noise` with no sign-aligned part.
 
-    So in a null world F and the placebo can both pass. With an up / down mix `q`, the placebo mean is about
+    The twin's sign-weighted expected mean is 0 by construction (shocks mean 0, independent of `sign(s)`); its realised
+    mean varies around 0. So in a null world F and the placebo can both pass. With an up / down mix `q`, the placebo mean is about
     `(2q - 1)^2 x H`, under half of `H` unless `q` > 0.85 or < 0.15. Size is then decided by the analytic p.
   - **Verdict size** = the share of worlds in which the analytic one-sided p < 0.05 and F and the placebo hold. It must be
     <= 0.058, else "SE check failed (size scenario)": p = 1, k unchanged, no rerun.
   - **Binding diagnostic:** in each null world, the share with analytic p < 0.05 regardless of F and the placebo. Above
     0.058 in any null world, the label *analytic p oversized in simulation* is **set** (never a verdict change).
+  - Verdict size and the analytic-p share are computed per world type.
 
   | # | World | True mean of `g` | Twin mean | Checks |
   |---|---|---|---|---|
@@ -367,10 +373,13 @@ Neither label changes a verdict.
   | 6 | **common direction:** a venue-wide `D_t` (AR(0.9), SD 0.5c) aligned with the decile's predominant sign at the census `q`, no unit term | `H + 0.5c` | about 0 | the placebo must block it (mechanical) |
   | 7 | **S45 label timing:** 5% of k + 1 rows received 2 h + 20-40 min after k, SD x 2 | `H` on 2 h rows | 0 | the horizon rule |
   | 8 | **S46 spec change:** a refit at day 11 re-ranks `\|s\|` (rank correlation 0.5) | `H` both halves | 0 | composition shift |
-  | 9 | **differential attrition:** units with `g < H - 2c` unavailable at 10 x the census top-decile share | `H` before attrition | 0 | selection at k + 1 |
+  | 9 | **differential attrition:** units with `g < H - 2c` unavailable at 10 x the census top-decile share | `H` on labelled units (the unit term is shifted after attrition) | 0 | selection at k + 1 |
 
   Worlds 5 and 6 are mechanical. Their verdict-size criterion (<= 0.058) is the share of Supported verdicts. Diagnostics:
-  planted-effect power (500 worlds, unit term `H + 0.25c`, seed `20261814 x 100 + 51`), and world 4's M1 slope.
+  planted-effect power (500 worlds, unit term `H + 0.25c`, seed `20261814 x 100 + 51`), world 4's M1 slope, and world 9
+  unshifted: share Supported, printed, never a verdict change. Why world 9 is shifted: `theta` is defined on labelled units
+  (1.8), so a world whose labelled mean exceeds `H` is not a null for it, and the unshifted version would fail the size
+  check by construction (the attrition labels and worst-case bounds of 1.6 carry that risk instead).
 
 ### 1.10 Verdicts and labels
 - **Supported (exploratory, prospective):** p < 0.05 (k = 1), `theta_hat > 0`, F holds, the placebo holds, and the size check
@@ -532,7 +541,8 @@ captures. Otherwise LT14 is `census_unavailable (coverage)` and nothing more is 
 **Definitions.** Projection = count x 21 / covered days. Per-capture statistics are over covered captures, zeros included.
 - `SD_plan = max(1.3c, 100 x SD of mo_d2h over the census 10k-100k top-decile units)`. `mo_d2h` is the own 2 h change over
   (k - 1, k], an origin-side quantity.
-- **Declared MDE:** section 2's formula at the projected `n_eff`, `DE_gate` and `SD_plan`.
+- **Declared MDE:** section 2's formula at the projected `n_eff`, `DE_gate` and `SD_plan`. The F-MDE uses planning `r` =
+  0.2; the census reads no twin value.
 - **Design MDE (R1 SHOULD 2):** `3.47 x 1.5 x max(se_event, se_twoway, se_day)`, the three standard errors of a mean
   computed from the census's unit counts per event, per event x UTC day and per UTC day, at `SD_plan` with the 0.02
   within-cluster correlation.
@@ -545,7 +555,7 @@ captures. Otherwise LT14 is `census_unavailable (coverage)` and nothing more is 
 - **venue clock:** no slot of day > 50% of units;
 - distinct events >= 300 (unprojected); Kish `G_eff` >= 15;
 - **unavailable gap** (top-decile minus rest-of-tier unavailable share at k + 1) <= 10 points (round 19);
-- finite tier on >= 95% of in-scope eligible rows; `mid_k == ms_mid` on 100% of units;
+- finite tier on >= 95% of in-scope eligible rows; `|mid_k - ms_mid| <= 1e-6` (float32 storage; exact equality is not expected) on 100% of units;
 - **MDE <= 0.5c and F-MDE <= 0.5c** at the computed `DE_gate` and `SD_plan`.
 
 The nearby map numbers (signed decile, engine scope; planning only) are: 175 median, ratio 1.02, busiest slot 10.2%, gap
@@ -647,7 +657,7 @@ Modules to be written later, in new files only: `backend/astrolabe/research_lab/
 2. The pinned sidecar classifiers may move units between scope classes relative to the engine's `category`: about -0.03.
 3. If a promotion before the freeze makes `P` a model with `flow` / `wallet` / `book`, the audit refuses it (P about 0.1 x
    refusal about 0.8): about -0.04.
-4. Coverage, `mid_k == ms_mid` and the MDE gates: small.
+4. Coverage, `|mid_k - ms_mid| <= 1e-6` and the MDE gates: small.
 
 From these:
 - **P(no LT14 test) about 0.35**, plus about 0.05 for a missed 11-07 freeze deadline.
@@ -775,6 +785,17 @@ freeze before 7 Nov; counting check on 7-17 Nov engine files; collection propose
 | SHOULD 10 registry wording | "a declared trading-cost hurdle" (not "cheapest"), proposed text for the coordinator | 11 |
 | Open questions 1-11 | answered per R1 | 10 |
 
-**Not applied: none.** One reading is the designer's and is flagged for the re-check. MUST 4's "set the twin's mean to 0"
-is implemented as the twin's raw mid change carrying no sign-aligned component. The day and event shocks still enter it,
-so the twin's sign-weighted mean is about 0 rather than exactly 0.
+**Not applied: none.** MUST 4's "set the twin's mean to 0" is implemented as the twin's raw mid change carrying no
+sign-aligned component: the twin's sign-weighted expected mean is 0 by construction (shocks mean 0, independent of
+`sign(s)`); its realised mean varies around 0 (re-check fix 3).
+
+### 12.y Pre-freeze fixes (`reviews/LT14_RECHECK_PREFREEZE_2026-10-30.md`, FREEZE_AFTER_FIXES; reviewer's wording)
+| Fix | Applied | Where |
+|---|---|---|
+| 1 (blocking) `mid_k` vs `ms_mid` float32 | `\|mid_k - ms_mid\| <= 1e-6` (float32 storage; exact equality is not expected) | 1.5 Gross; 3 primary lines; 7 item 4 |
+| 2 (blocking) world 9 not a null | mean cell "`H` on labelled units (the unit term is shifted after attrition)"; diagnostic "world 9 unshifted: share Supported, printed, never a verdict change"; one-line justification | 1.9 table and diagnostics |
+| 3 twin mean | "the twin's sign-weighted expected mean is 0 by construction (shocks mean 0, independent of `sign(s)`); its realised mean varies around 0" | 1.9 null worlds; 12 |
+| 4 receipt clock | "'received' is the receipt clock of the record read (fetch time), not its venue event timestamp" | 1.3 audit bullet |
+| 5 spread source | "`spread_k = ask_k - bid_k` from `quotes/<k>`" | 1.5 Spread |
+| 6 F-MDE in the census | "the F-MDE uses planning `r` = 0.2; the census reads no twin value" | 3 Definitions |
+| 7 per world type | "verdict size and the analytic-p share are computed per world type" | 1.9 size check |
