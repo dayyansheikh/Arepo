@@ -5840,3 +5840,19 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   `5c095deb…b6f2`, `sm_learned_v2.json` `af9b9da2…825d`, `ml_explain.py` `ac00eac8…5399`. No E011 outcome has been read
   (counts only, readiness 10-19). Pre-run, counts-only: non-ok passes in `passes.jsonl`; window alert lines with
   `fee_category == "unknown"`. Secondaries (c), (e), (f), (g) are reported "not produced", never filled.
+
+## LT2 / LT3 / LT4 analysis readiness (outcome-blind), 2026-10-30 18:34Z (experiments autopilot; ops only; nothing counted)
+- `reviews/LT2_LT3_LT4_ANALYSIS_READINESS_2026-10-30.md` (`science-reviewer`): E012-E014 (q0461), E015 (q0475), E022 (q0486)
+  **READY_WITH_OPS_FIXES**: spec and code pins match; no pinned file touched after registration; earlier review fixes all
+  landed before registration; argv / not_before / one-shot guards / battery2 kinds correct. Disclosure: the pinned LT2 spec
+  still says "DRAFT" and has no `k_tests` (no behavioural effect; cannot change without voiding the pin).
+- **Done now (ops):** M4, q0461 `timeout_s` 21,600 -> 43,200; `as_cap_mb` 8,000 for q0461 / q0475 / q0486 (queue spec only);
+  M5 recovery line in each job's notes (output exists without its trials line -> append `trial_record` once, never rerun).
+  M3 host preflight (code only, no data): `load_spec()` + `code_check()` on the deployed checkout give **match** for all
+  pinned files of LT2, LT3, LT4.
+- **M1 (dumps guard) re-assessed:** data-dumps 37 GiB (10-24), 38.9 GiB (10-28), about 38 GiB now with rotation, so about
+  0.5 GiB a day; the 50 GiB guard would bind around 11-23, after the LT2 / LT3 / LT4 windows (ends 11-12 / 11-14 / 11-16).
+  **Correction:** the "binds around 11-11" figure in the M2 entries above used a stale 1 GB/day rate. **Re-measure on 11-06;
+  if data-dumps > 45 GiB, raise the guards per the 10-28 precedent** (or free `ml_cache` once q0116k completes).
+- Still dated: M2 check q0460 is `done` at about 11-13T06:30Z (else `queue_worker.py retry q0460_lt2_live_collect`);
+  M6 confirm the LT3 / LT4 cron readers ran through END + about 9 h (log tail and counts only).

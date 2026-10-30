@@ -11,7 +11,8 @@
   "mem_mb": 3000,
   "cpu": 1,
   "lane": "cpu",
-  "network": "none"
+  "network": "none",
+  "as_cap_mb": 8000
  },
  "depends_on": [],
  "argv": [
@@ -27,6 +28,6 @@
   "trials.jsonl (one line, kind live_tests3, n_tests = k)"
  ],
  "next_action": "ledger results entry (scored once), registry update",
- "notes": "PROMOTED 2026-10-21 at the LT3 registration commit (SPEC_SHA256 72a174eb...; LIVE_TESTS_3.md 13.18). not_before = ANALYSIS_NOT_BEFORE. | DRAFT, not in queue/jobs. Runs once; --out refuses to overwrite. Refuses a pinned spec whose code_sha256 map mismatches, null k_tests, unfilled flow census values or unfilled e019.exclude_crypto. Memory estimate (not measured on window data): E015 about 0.6-1.0 M mover lines with outcomes and 200 label-permutation draws (each re-demeans one column); E016/E018 about 0.2 M flow lines x 200 donor draws; peak about 1.5-2 GB. If MemAvailable on the host is short, park it and run when memory allows (never alongside another multi-GB job). Synthetic end-to-end test passes locally. depends_on is empty because the reader may run as a cron entry (13.4); not_before enforces the date.",
+ "notes": "PROMOTED 2026-10-21 at the LT3 registration commit (SPEC_SHA256 72a174eb...; LIVE_TESTS_3.md 13.18). not_before = ANALYSIS_NOT_BEFORE. | DRAFT, not in queue/jobs. Runs once; --out refuses to overwrite. Refuses a pinned spec whose code_sha256 map mismatches, null k_tests, unfilled flow census values or unfilled e019.exclude_crypto. Memory estimate (not measured on window data): E015 about 0.6-1.0 M mover lines with outcomes and 200 label-permutation draws (each re-demeans one column); E016/E018 about 0.2 M flow lines x 200 donor draws; peak about 1.5-2 GB. If MemAvailable on the host is short, park it and run when memory allows (never alongside another multi-GB job). Synthetic end-to-end test passes locally. depends_on is empty because the reader may run as a cron entry (13.4); not_before enforces the date. OPS 2026-10-30 (reviews/LT2_LT3_LT4_ANALYSIS_READINESS_2026-10-30.md M4): timeout_s/as_cap_mb raised (was 43200/2 x mem_mb); queue spec only, no registered code or argument changed. If the output exists but its trials line is missing, append trial_record(json.load(out)) once; never rerun (M5).",
  "not_before": "2026-11-15T12:00:00Z"
 }
