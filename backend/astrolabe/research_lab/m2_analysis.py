@@ -26,6 +26,7 @@ from . import boundary_map_ch240 as c240
 from . import m2_j2 as j2
 from . import m2_spec as sp
 
+DATA_STRING_KEYS = ("uma_status_by_class", "cross_check_engine_log")
 BANNED = re.compile(r"\b(supported|confirmed|significant|edge|profitable|route exists)\b|p-value", re.I)
 NONFINAL_CLASSES = ("pending", "not_found", "unavailable_fetch", "no_readout_record")
 UNCOVERED = ("unavailable_fetch", "no_readout_record")  # 8.4: covered = a definite answer; not_found is carried by theta_NF, the band and the backlog label
@@ -56,10 +57,15 @@ def parse_iso(v) -> float:
         return math.nan
 
 
-def load_units(store: Path, pins: dict) -> tuple[list[dict], dict]:
+def load_units(store: Path, pins: dict, man: dict | None = None) -> tuple[list[dict], dict]:
+    """Unit lines of the files listed in the manifest only (a stray file in ``units/`` is never read); every file when no manifest is given."""
     units: list = []
     cnt: Counter = Counter()
-    for p in sorted((Path(store) / "units").glob("*.jsonl.gz")):
+    if man is not None:
+        paths = sorted(Path(store) / f for f in man["files"] if f.startswith("units/") and (Path(store) / f).exists())
+    else:
+        paths = sorted((Path(store) / "units").glob("*.jsonl.gz"))
+    for p in paths:
         with gzip.open(p, "rt") as fh:
             for line in fh:
                 if not line.strip():
@@ -640,8 +646,13 @@ def run_analysis(store: Path, pins: dict, out: Path | None, spec: dict = sp.SPEC
     out = Path(out)
     if out.exists():
         raise sp.M2Refusal("analysis refuses to overwrite --out")
-    pin_rec = sp.check_pins(spec, paths, design)
-    sp.check_run_pins(pins, spec)
+    try:
+        pin_rec = sp.check_pins(spec, paths, design)
+        sp.check_run_pins(pins, spec)
+    except sp.PinMismatch as e:  # 11.1: a pin mismatch is a void record, written before the runner exits 3
+        _finish({"kind": "M2-A analysis (descriptive measurement; no test)", "void": True, "void_reasons": ["11.1 pin mismatch: the registered pins do not match the code, spec or design"],
+                 "pin_mismatch": e.record, "not_a_measurement": {}}, out)
+        raise
     reg_commit = pins.get("registration_commit_utc")
     if not (reg_commit and math.isfinite(parse_iso(reg_commit))):
         raise sp.M2Refusal("analysis refuses: the pins file lacks a parseable registration_commit_utc (void condition 11.6 cannot be checked)")
@@ -660,7 +671,7 @@ def run_analysis(store: Path, pins: dict, out: Path | None, spec: dict = sp.SPEC
     audit = j2.audit_chain(store, spec)
     if not audit["ok"]:
         void.append(f"11.2(a) chain broken: {audit['breaks'][:5]}")
-    units, lc = load_units(store, pins)
+    units, lc = load_units(store, pins, man)
     readout = load_readout(store)
     ro_ends = {m: r.get("end_date") for m, r in readout.items()}
     wait_notes = classify_units(units, readout, spec)
@@ -714,7 +725,8 @@ def run_analysis(store: Path, pins: dict, out: Path | None, spec: dict = sp.SPEC
 
 
 def _finish(res: dict, out: Path) -> None:
-    hit = BANNED.search(json.dumps(res, default=str))
+    # the check covers text the code generates; strings copied from records (UMA statuses, the engine log cross-check) are data and are not screened
+    hit = BANNED.search(json.dumps({k: v for k, v in res.items() if k not in DATA_STRING_KEYS}, default=str))
     if hit:
         raise sp.M2Refusal(f"analysis refuses: banned wording {hit.group(0)!r} in the output")
     j2.write_once(out, json.dumps(res, sort_keys=True, default=str, indent=1).encode())

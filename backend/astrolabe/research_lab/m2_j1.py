@@ -630,11 +630,17 @@ class M2Pass:
             if kind == "row":
                 self.ledger.add_class(sh, cls_)
 
+    def ledger_closed(self) -> bool:
+        """True once the state has folded a slot at or after ``window_end``: the ledger is final and the rule day files are not read again."""
+        return self.window_end is not None and self.last_slot is not None and slot_time(self.last_slot) >= self.window_end
+
     def merge_rule_ledger(self) -> None:
         """Ruling 12: merge the retained day files' committed records into the append-only ledger (never pruned; a retired day file never changes
         a later unit's class). Called at the start of every pass. Once the pass has folded a slot at or after ``window_end`` it stops: no further unit can
         be created (captures at or after END_UTC are follow-up only), so the ledger keeps its end-of-window size (code-freeze item 5)."""
-        if self.window_end is not None and self.last_slot is not None and slot_time(self.last_slot) >= self.window_end:
+        if self.ledger_closed():
+            self.rules.by_mid = {}  # post-window: the index is never read again; hold no second copy (code-freeze check MUST 1)
+            self.rules.sha_class = {}
             return
         for mid, recs in self.rules.by_mid.items():
             have = set(self.ledger.records(mid))
@@ -1177,8 +1183,10 @@ def run_j1(snapshot_root: Path, rules_root: Path | None, store: Path, *, window_
     given by the caller (the registered runner passes the pinned one); see :func:`run_pass` for the gated entry point."""
     fu = READOUT_UTC if followup_until is None else followup_until
     info = discover_all(snapshot_root, window_start - LOOKBACK_SLOTS * GRID_S, fu)
-    mp = M2Pass(window_start=window_start, window_end=window_end, rules=RulesIndex.load(rules_root), dry_run=False, store=store,
+    mp = M2Pass(window_start=window_start, window_end=window_end, rules=None, dry_run=False, store=store,
                 spec_sha=spec_sha, record_followup=record_followup, lookback_from=window_start - LOOKBACK_SLOTS * GRID_S, followup_until=fu)
+    if not mp.ledger_closed():  # post-window passes never read the rule day files (the ledger is final): no second copy is loaded (MUST 1)
+        mp.rules = RulesIndex.load(rules_root)
     if pad_ledger and mp.last_slot is None:
         mp.pad_ledger(*pad_ledger)
     mp.run_available(info["caps"], now=now, side=info)

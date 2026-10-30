@@ -127,6 +127,31 @@ def test_a_failing_batch_retries_three_times_at_least_one_hour_apart_then_is_una
     assert recs[1]["attempts"] == 3
 
 
+def test_fetch_rounds_keep_every_request_a_full_hour_from_its_own_last_attempt():
+    """MUST 2: the gap is per request (no tolerance below 3,600 s), including a request late in a round after slow earlier ones."""
+    gap = SPEC["fetch"]["attempt_gap_s"]
+    assert gap >= 3600
+    t = [0.0]
+    calls: dict = {}
+
+    def clock():
+        return t[0]
+
+    def sleep(s):
+        t[0] += s
+
+    def get(req):
+        t[0] += 700.0  # each call is slow: the last request of a round starts well after the first
+        calls.setdefault(req, []).append(t[0] - 700.0)
+        return (None, "http_500") if req == "c" else ([], "ok")  # a and b answer at once; c, third in the first round, is first in later rounds
+
+    out, failed, n = ro.fetch_rounds({"a": "a", "b": "b", "c": "c"}, get, SPEC, sleep, clock)
+    assert failed == {"c"} and n == 2 + SPEC["fetch"]["attempts"]
+    for key, ts in calls.items():
+        assert len(ts) == (SPEC["fetch"]["attempts"] if key == "c" else 1)
+        assert all(b - a >= gap for a, b in zip(ts, ts[1:], strict=False)), (key, ts)
+
+
 def test_batches_of_fifty():
     db = {i: rec(i) for i in range(1, 121)}
     _, req, g, _ = fetch(list(range(1, 121)), db)
@@ -356,7 +381,28 @@ def test_analysis_refusals(world, tmp_path):
         an.run_analysis(st, pins, tmp_path / "o3.json", SPEC, now=RO_T + 13 * 3600.0, design=tmp_path / "missing.md")
     with pytest.raises(sp.M2Refusal, match="registration_commit_utc"):
         an.run_analysis(st, {k: v for k, v in pins.items() if k != "registration_commit_utc"}, tmp_path / "o4.json", SPEC, now=RO_T + 13 * 3600.0)
+    v = json.loads((tmp_path / "o2.json").read_text())  # 11.1: a pin mismatch writes a void record before the runner exits 3
+    assert v["void"] is True and v["void_reasons"][0].startswith("11.1")
     assert world["out"].exists() and json.loads(world["out"].read_text())["void"] is False
+
+
+def test_banned_words_screen_generated_text_not_record_strings(world, tmp_path):
+    out = tmp_path / "b.json"
+    an._finish({"uma_status_by_class": {"x": {"a significant status": 1}}, "note": "ok"}, out)
+    assert "significant" in out.read_text()
+    with pytest.raises(sp.M2Refusal, match="banned"):
+        an._finish({"note": "an edge was found"}, tmp_path / "b2.json")
+
+
+def test_load_units_reads_only_manifest_listed_files(world):
+    st, pins = world["st"], world["pins"]
+    man = json.loads((st / "manifest.json").read_text())
+    base, _ = an.load_units(st, pins, man)
+    f = max((st / "units").glob("*.jsonl.gz"), key=lambda q: q.stat().st_size)
+    import shutil as _sh
+    _sh.copy(f, st / "units" / "stray.jsonl.gz")
+    again, _ = an.load_units(st, pins, man)
+    assert len(again) == len(base) and len(an.load_units(st, pins)[0]) > len(base)
 
 
 def test_void_when_the_manifest_hash_or_a_file_differs_or_the_followup_manifest_is_missing(world, tmp_path):

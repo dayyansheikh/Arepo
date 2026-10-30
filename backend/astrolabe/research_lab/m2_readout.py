@@ -64,16 +64,18 @@ def fetch_rounds(reqs: dict, get, spec: dict, sleep, clock) -> tuple[dict, set, 
     todo = list(reqs)
     out: dict = {}
     n = 0
-    round_start = clock()
+    last_try: dict = {}  # each request's own last attempt time (code-freeze check MUST 2)
     for rnd in range(f["attempts"]):
         if not todo:
             break
-        if rnd:
-            sleep(max(0.0, round_start + f["attempt_gap_s"] - clock()))
-        round_start = clock()
+        if rnd:  # wait until EVERY request still to retry is at least attempt_gap_s past its own last attempt
+            wait = max(last_try[k] for k in todo) + f["attempt_gap_s"] - clock()
+            if wait > 0:
+                sleep(wait)
         nxt = []
         for key in todo:
             n += 1
+            last_try[key] = clock()
             data, _reason = get(reqs[key])
             if isinstance(data, list):
                 out[key] = (data, clock())

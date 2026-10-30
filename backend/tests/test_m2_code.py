@@ -327,6 +327,43 @@ def test_the_ledger_stops_merging_once_the_window_is_folded_and_a_pad_is_inert(t
     assert listing(st_a, "units") == listing(st_b, "units")  # a pad changes no unit
 
 
+def test_post_window_pass_does_not_hold_the_rule_index(tmp_path):
+    """MUST 1: after the window was folded a pass loads no second copy of the rule data (old code: by_mid stayed populated on every post-window pass)."""
+    snap, rr = t1.build(tmp_path)
+    st = tmp_path / "st"
+    a = m2.run_j1(snap, rr, st, now=tcap(t1.N + 12).timestamp(), **KW)
+    assert a.ledger_closed()
+    a2 = m2.run_j1(snap, rr, st, now=tcap(t1.N + 14).timestamp(), **KW)
+    assert a2.ledger_closed() and not a2.rules.by_mid and not a2.rules.sha_class
+    assert a2.ledger.n_records() == a.ledger.n_records() and a2.rules.info["files"] == 0  # nothing was read
+    # a pass handed an already populated index frees it too
+    b = m2.M2Pass(window_start=KW["window_start"], window_end=KW["window_end"], rules=m2.RulesIndex.load(rr), dry_run=False, store=st, spec_sha=KW["spec_sha"])
+    assert b.ledger_closed() and b.rules.by_mid
+    b.merge_rule_ledger()
+    assert not b.rules.by_mid
+
+
+def test_dry_run_pads_the_rule_ledger_by_default(tmp_path, monkeypatch):
+    """Code-freeze item 5: without --no-ledger-pad the runner pads the ledger; ledger_records in j1_runs.jsonl shows it."""
+    snap, rr = t1.build(tmp_path)
+    monkeypatch.setattr(sp, "DRYRUN_LEDGER_PAD", (500, 40))
+    logs = {}
+    for name, extra in (("padded", []), ("plain", ["--no-ledger-pad"])):
+        store = tmp_path / name / "research_lab" / "m2_ch264_dryrun"
+        assert runner.main(["j1", "--store", str(store), "--snapshot-root", str(snap), "--rules-root", str(rr), "--dry-run-last-days", "1", *extra]) == 0
+        logs[name] = json.loads((store / "logs" / "j1_runs.jsonl").read_text().splitlines()[-1])
+    assert logs["padded"]["ledger_records"] == logs["plain"]["ledger_records"] + 500
+    assert logs["padded"]["ledger_markets"] == logs["plain"]["ledger_markets"] + 40
+
+
+def test_j2_j3_need_pins_on_a_real_store_and_the_dumps_cap_guards(tmp_path):
+    real = tmp_path / "research_lab" / "m2_ch264"
+    assert runner.main(["j2", "--store", str(real)]) == 2 and runner.main(["j3", "--store", str(real)]) == 2
+    (tmp_path / "big.bin").write_bytes(b"x" * 4096)
+    snap, _ = t1.build(tmp_path / "w")
+    assert runner.main(["j1", "--store", str(real), "--snapshot-root", str(snap), "--pins", str(tmp_path / "no.json"), "--data-dumps", str(tmp_path), "--data-dumps-cap-gb", "0.000001"]) == runner.TEMPFAIL
+
+
 # --- registered entry point: gates, pins, dry-run separation -----------------------------------------------------------------------------
 
 def test_run_pass_refuses_before_registered_utc_and_on_pin_mismatch(tmp_path):

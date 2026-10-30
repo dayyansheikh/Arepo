@@ -1,7 +1,7 @@
 # ruff: noqa: E501
 """M2 (CH264) runner: ``j1`` (window extractor and blind follow-up recorder), ``j2`` (window close / follow-up close), ``j3`` (read-out fetch), ``analysis``.
-See docs/research_lab/MEASUREMENT_M2_CH264.md section 9. Research only. Refusals exit 2 (declared refusal) or 3 (pin mismatch, values printed); ``j1`` exits 75
-when the dumps guard trips. The store must sit in a ``research_lab`` directory named ``m2_ch264`` (``m2_ch264_dryrun`` with ``--dry-run-last-days``, which derives
+See docs/research_lab/MEASUREMENT_M2_CH264.md section 9. Research only. Refusals exit 2 (declared refusal) or 3 (pin mismatch, values printed); every job exits 75
+when data-dumps exceeds --data-dumps-cap-gb (and ``j1`` when the disk is short). The store must sit in a ``research_lab`` directory named ``m2_ch264`` (``m2_ch264_dryrun`` with ``--dry-run-last-days``, which derives
 a short window from the newest captures, pads the rule ledger to its end-of-window size and writes a different spec_sha; it never writes the real store).
 
     python scripts/run_m2.py j1 --store S --snapshot-root R/snapshots --rules-root R/stream_gamma_rules --pins PINS.json
@@ -38,6 +38,10 @@ def store_ok(p: Path, dry: bool) -> bool:
     return r.name == ("m2_ch264_dryrun" if dry else "m2_ch264") and r.parent.name == "research_lab"
 
 
+def dumps_bytes(root: Path) -> int:
+    return sum(f.stat().st_size for f in Path(root).rglob("*") if f.is_file()) if Path(root).is_dir() else 0
+
+
 def make_dry_spec(snap_root: Path, days: int) -> dict:
     caps, _ = j1.discover_captures(snap_root, 0.0, 4.1e9)
     if not caps:
@@ -59,6 +63,7 @@ def main(argv=None) -> int:
     ap.add_argument("--part", choices=("units", "followup"), default=None, help="j2: the unit manifest (END_UTC + 6 h) or the follow-up manifest (READOUT_UTC)")
     ap.add_argument("--dry-run-last-days", type=int, default=None)
     ap.add_argument("--no-ledger-pad", action="store_true", help="dry run only: do not pad the rule ledger to its end-of-window size")
+    ap.add_argument("--data-dumps", type=Path, default=None, help="the data-dumps directory the cap applies to (default: two levels above --store, i.e. data-dumps)")
     ap.add_argument("--data-dumps-cap-gb", type=float, default=50.0)
     ap.add_argument("--min-free-gb", type=float, default=1.0)
     a = ap.parse_args(argv)
@@ -72,6 +77,13 @@ def main(argv=None) -> int:
             print("refuses: --dry-run-last-days is for j1 with --snapshot-root", file=sys.stderr)
             return 2
         spec = make_dry_spec(a.snapshot_root, a.dry_run_last_days)
+    if a.job in ("j2", "j3") and not dry and a.pins is None:
+        print(f"refuses: {a.job} needs --pins on a real store", file=sys.stderr)
+        return 2
+    dumps = a.data_dumps if a.data_dumps is not None else a.store.resolve().parent.parent
+    if dumps_bytes(dumps) > a.data_dumps_cap_gb * 2**30:
+        print("not now: data-dumps exceeds --data-dumps-cap-gb", file=sys.stderr)
+        return TEMPFAIL
     pins = json.loads(a.pins.read_text()) if a.pins is not None else None
     try:
         if a.job == "j1":
