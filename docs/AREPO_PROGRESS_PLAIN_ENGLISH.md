@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-30 19:17 UTC+1
+**Last updated:** 2026-10-30 19:35 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -20,6 +20,9 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
   for a short count was declared in writing before any count is seen. Aim: freeze by 16 Nov.
 - **A counts-only map of what losing sibling outcomes do after a winner is proposed (CH276)** is queued to run before 1 Nov.
 - **The Kalshi lead tests E009/E010 are queued for their one and only analysis on 3 Nov, 08:30 UTC.**
+- **Readiness of the next one-shot analyses checked (no results looked at):** E012-E015 and E022 are ready (small server
+  settings raised). For E011 (11 Nov), a job was missing and its code had a small unlogged change from 15 Oct; a checker
+  ruled it cannot alter any result, it is now logged, and a locked one-shot analysis job is under review.
 - **Fixed:** a holders-collection job (batch 8) ran out of memory at start-up; given more memory and re-queued.
 - **Registered live tests** keep collecting: E009/E010 (3 Nov), E011 (11 Nov), E012-E014 (13 Nov), E015 (15 Nov), E022 (17 Nov),
   E026 (6 Dec). Frozen and waiting: LT11/LT12 (counting checks from 7 Nov), LT13/LT14 (from 17 Nov), CB7 screens (31 Oct).
