@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-30T07:27:00Z",
+ "updated": "2026-10-30T12:24:07Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1839,19 +1839,19 @@
   {
    "id": "M2",
    "title": "Measurement M2: the overdue favourite (planned)",
-   "plain": "Planned pre-registered measurement from ideas round 19: in markets past their end date that have not resolved, how big is the favourite's premium against what it finally pays? A number with an error bar, frozen in advance; never called a finding. Challenger review and re-check done; its counting code is being written. A coarse result is about as likely as not, said in advance.",
+   "plain": "Planned pre-registered measurement from ideas round 19: in markets past their end date that have not resolved, how big is the favourite's premium against what it finally pays? A number with an error bar, frozen in advance; never called a finding. Design text frozen 30 Oct after the final check; its remaining code is being written. A coarse result is about as likely as not, said in advance.",
    "batch": "M2",
    "family": "carry",
    "stage": "designed",
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Counting code and counting step, final check, text freeze by 16 Nov; window 24 Nov - 14 Dec; read-out from 29 Jan 2027",
-   "next_date": "2026-11-16",
+   "next": "Remaining code, code check and server rehearsal, registration by 22 Nov; window 24 Nov - 14 Dec; read-out from 29 Jan 2027",
+   "next_date": "2026-11-22",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/reviews/M2_R1_RECHECK_2026-10-30.md",
-    "next": "docs/research_lab/MEASUREMENT_M2_CH264.md (DRAFT); docs/research_lab/EXPERIMENT_LEDGER.md § M2 (CH264) measurement design draft (2026-10-30)",
+    "verdict": "docs/research_lab/reviews/M2_FREEZE_DIFF_CHECK_2026-10-30.md",
+    "next": "docs/research_lab/MEASUREMENT_M2_CH264.md (FROZEN design text, sha256 bb7c27e0)",
     "status": "docs/research_lab/reviews/CH269_MAP_2026-10-30.md"
    },
    "stage_results": {
