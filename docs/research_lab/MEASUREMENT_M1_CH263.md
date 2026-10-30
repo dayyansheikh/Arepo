@@ -1,6 +1,6 @@
 # Measurement M1 (CH263, "the carry"): the favoured side's discount after a UMA proposal state is first seen, against the reversal tail and the recorded cost, held to resolution, k = 0 (DRAFT)
 
-**Status: DRAFT 2026-10-30, third draft (after challenger R1, `reviews/M1_CHALLENGER_R1_2026-10-30.md`,
+**Status: DRAFT 2026-10-30, third draft plus the fee-line / S4 / float fix of 17.6 (after challenger R1, `reviews/M1_CHALLENGER_R1_2026-10-30.md`,
 GO_WITH_CHANGES, and the pre-freeze re-check, `reviews/M1_RECHECK_PREFREEZE_2026-10-30.md`, NOT_READY; every item applied,
 mapped in section 17), not frozen, not registered, nothing counted.** Evidence role
 `prospective_measurement` (rule 26 of `CREATIVE_HYPOTHESES_2026-11-02.md` 0.3; role and conditions set by the binding
@@ -124,6 +124,9 @@ A market enters at capture k if all of the following hold, checked in this order
   (`boundary_map_ch240.category_of(fee_type, fee_category, series_slugs, True)`) applied to **capture k's own sidecar row**
   (not the latest capture, as the map did), is `nonsports_excrypto`. Else `out_of_scope_<category>` (sports and crypto
   counts printed).
+- **Prices are rounded to 6 dp before every comparison and cell edge** (the LT14 / M2 float lesson): `bid`, `ask` as read;
+  `mid_k = round((bid + ask) / 2, 6)`; `ask_f`, `bid_f`, `c` and `h` of 3.3 each rounded to 6 dp; the tick rounded to 6 dp
+  before S9's equality. The rounded values are the recorded values (exact at the venue's 0.001 / 0.01 ticks).
 - **E6 Two-sided at k.** `0 < bid < ask <= 1` on the row at k. Else `not_two_sided`.
 - **E7 Readable side.** `mid_k = (bid + ask) / 2`; the favoured side is YES if `mid_k >= 0.90`, NO if `mid_k <= 0.10`.
   Else `contested` (counted class, its own c reported descriptively in 8.2; never folded into the headline).
@@ -147,6 +150,7 @@ A market enters at capture k if all of the following hold, checked in this order
 
 ### 3.4 Cluster
 The cluster is the Gamma `event_id` at k (a ladder proposed together is one cluster, however many members become units).
+A unit whose `event_id` is empty is its own cluster (keyed by its market id) and its own one-market event for S3 / S8.
 No cap: weights are declared instead (4).
 
 ### 3.5 Declared readings disclosed (CH263's worlds; no size check, M1 has no test)
@@ -182,13 +186,17 @@ No cap: weights are declared instead (4).
   `category_of` is the scope reader only; passed `nonsports_excrypto`, the docs rate would be NaN, `costs.py:48-53, 93`).
   `exponent` = the `fee_schedule`'s exponent where served, else 1.0; `schedule_rate` = the `fee_schedule`'s rate where
   served, else None.
-  - **L1 (headline):** `costs.taker_rate(cat_k, schedule_rate, fees_enabled, policy="conservative")`, i.e. max(served
-    schedule, docs table), fees disabled giving 0, unknown giving 0.07.
+  - **L1 (headline):** `costs.taker_rate(cat_k, schedule_rate, fees_enabled, policy="conservative")`, i.e. (as
+    `costs.py:91-104` computes it) `fees_enabled` false giving 0; else max(served rate, docs rate) for a key in the docs
+    table; for an **unknown key** (outside the table, or empty) **the served rate, possibly 0**, where a schedule is served,
+    and 0.07 only when no schedule is served.
   - **L2 (rate-0-not-trusted bound):** `costs.taker_rate(cat_k, schedule_rate, fees_enabled=None,
     policy="conservative")`, i.e. max(served schedule, docs category rate) **ignoring the served `fees_enabled`**
     (`taker_rate` returns 0 whenever `fees_enabled is False`, `costs.py:91-92`, so L2 must pass `None`; R1 MUST 7). Docs
     rates (`COST_MODEL.md` 2): 0.04 finance / politics / mentions / tech; 0.05 economics / culture / weather / other;
-    geopolitics 0; unknown 0.07. Reason: the ruling's "not verified: whether the venue charges the rate 0 it serves". At
+    geopolitics 0. Unknown key: as in L1, the served rate, possibly 0, where a schedule is served, and 0.07 only when none
+    is served (so L2 does not bound an unknown-key market whose served rate is 0; such units are counted in S2's `unknown`
+    cell with their L1 / L2 rates printed). Reason: the ruling's "not verified: whether the venue charges the rate 0 it serves". At
     `p = 0.99` this is at most about 0.07c a share. **L1 is the headline** (the ruling's conservative fee); **L2 feeds
     `theta_low`** (7.2) and a `theta` under L2 printed beside.
 - **Capital** `cap_i = ask_f * 0.05 * w_i / 8760` (5% a year; `w_i` in hours). Recorded with the line, not tuned.
@@ -220,9 +228,9 @@ numbers labelled `thin` (never suppressed).
 | # | Split | Cells |
 |---|---|---|
 | S1 | liquidity tier at k (CH269's `tier_of`) | lt1k, 1k-10k, 10k-100k, ge100k, tier_na |
-| S2 | fee category at k, `cat_k` (5) | the `CATEGORY_TAKER_RATE` keys inside scope: economics, culture, weather, other, finance, politics, mentions, tech, geopolitics; plus `unknown` (empty key, or a key outside those nine) (10 cells, fixed; J0 prints its distribution) |
-| S3 | ladder position at k | standalone (event has one open binary market), member_winner (favoured side YES), member_loser (favoured side NO); among ladder members S3 equals S5 by construction, and S3 "standalone" equals S8 cell "1" by definition (both disclosed; exact identities, not separate information) |
-| S4 | fee class at k | fee_free, fee_on, unknown |
+| S2 | fee category at k, `cat_k` (5) | the `CATEGORY_TAKER_RATE` keys inside scope: economics, culture, weather, other, finance, politics, mentions, tech, geopolitics; plus `unknown` = any other `cat_k` (an empty key, a key outside the table, or an out-of-scope key such as `sports` / `crypto` on a unit that E5's reader placed in scope) (10 cells, fixed; J0 prints its distribution). This is M1's fee-category split; M2's "S3 unknown" corresponds to this cell |
+| S3 | ladder position at k | standalone (event has one open binary market at k; a unit with an empty `event_id` is its own one-market event, 3.4), member_winner (favoured side YES), member_loser (favoured side NO); among ladder members S3 equals S5 by construction, and S3 "standalone" equals S8 cell "1" by definition (both disclosed; exact identities, not separate information); no `unknown` cell (every unit falls in one of the three) |
+| S4 | fee class at k, by `population_map_ch251.fee_class(fees_enabled, has_fees_enabled_column, fee_schedule)[0]` on capture k's sidecar row (CH269's reading) | fee_free (the `fees_enabled` column present, non-empty and false; or a served schedule rate <= 0), fee_on (a served rate > 0), unknown (no parseable served schedule and the flag not false) |
 | S5 | favoured side | YES, NO |
 | S6 | price zone `c` | `c <= 0.001`, (0.001, 0.005], (0.005, 0.01], (0.01, 0.03], (0.03, 0.10], > 0.10 (**structurally empty**: mid_f >= 0.90 implies `ask_f` >= 0.90; kept so the cell list is unchanged, printed as 0) |
 | S7 | scheduled end at `t_d` | end in future, past <= 24 h, past > 24 h, missing |
@@ -521,3 +529,16 @@ date, estimand, weight or cost line changed.
 | 5 Degenerate CI | "printed as degenerate; `T_U` is the bound" | 7.1 |
 | Non-blocking: S6 x S9 zeros | disclosed (tick 0.01 empties (0.001, 0.005]) | 6 |
 | Non-blocking: `theta_low` averaging set | the three means over the same `N_F` final-state units; labelled as mixing an estimate with a bound | 7.2 |
+
+### 17.6 Fee-line, S4 and float fix (M2 R1 designer question 9 and SHOULD 1; ledger entry "M2 challenger R1 GO_WITH_CHANGES; M1 fee-line wording defect noted")
+
+| Item | Fix | Where |
+|---|---|---|
+| L1 / L2 said "unknown giving 0.07" | corrected to `costs.py:93-104`: unknown key gives the served rate, possibly 0, where a schedule is served; 0.07 only when none is served; L2 does not bound such a unit (disclosed) | 5 |
+| S4 undefined | `population_map_ch251.fee_class(...)[0]` on capture k's sidecar row, cells defined | 6 |
+| "S3 unknown" (M2 numbering) | M1's fee-category split is S2: its `unknown` cell defined; M1's S3 (ladder) has no unknown cell; empty `event_id` = own one-market event and own cluster | 6, 3.4 |
+| Float edges | prices rounded to 6 dp before E6, E7, S6 and S9 comparisons | 3.2 |
+
+No threshold, date, estimand, weight or cell list changed. M1-J0 (`m1_j0.py`) applied the float edges and the empty-`event_id`
+reading and was corrected with tests (it computes no fee line); its counts change only for units exactly at a 0.90 / 0.10 mid,
+at an S6 edge, at a tick read with float noise, or with an empty `event_id`.

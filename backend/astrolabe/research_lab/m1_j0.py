@@ -31,7 +31,7 @@ from . import boundary_map_ch240 as c240
 from . import costs
 from . import population_map_ch251 as c251
 
-VERSION = "m1-j0-v1"
+VERSION = "m1-j0-v2"  # v2: 6 dp rounding before price edges; empty event_id = own one-market event
 GRID0 = datetime(2026, 10, 1, 0, 31, tzinfo=UTC).timestamp()
 GRID_S = 7200.0
 TOL_S = 1800.0
@@ -111,10 +111,11 @@ def tier_of(liq: float) -> int:
 
 
 def zone_of(c: float) -> str:
-    if c <= 0.001 + 1e-12:
+    c = r6(c)
+    if c <= 0.001:
         return "c<=0.001"
     for hi, name in ((0.005, "(0.001,0.005]"), (0.01, "(0.005,0.01]"), (0.03, "(0.01,0.03]"), (0.10, "(0.03,0.10]")):
-        if c <= hi + 1e-12:
+        if c <= hi:
             return name
     return ">0.10"
 
@@ -135,11 +136,16 @@ def units_bucket(n: int) -> str:
     return "1" if n <= 1 else "2-3" if n <= 3 else "4-9" if n <= 9 else "10+"
 
 
+def r6(x: float) -> float:
+    """Prices are rounded to 6 dp before every comparison and cell edge (MEASUREMENT_M1_CH263.md 3.2; the LT14 / M2 float lesson)."""
+    return round(x, 6) if math.isfinite(x) else x
+
+
 def tick_of(v) -> str:
-    t = c240._f(v)
+    t = r6(c240._f(v))
     if not math.isfinite(t):
         return "other_or_missing"
-    return "0.001" if abs(t - 0.001) < 1e-9 else "0.01" if abs(t - 0.01) < 1e-9 else "other_or_missing"
+    return "0.001" if t == 0.001 else "0.01" if t == 0.01 else "other_or_missing"
 
 
 def s2_cell(key: str) -> str:
@@ -320,11 +326,13 @@ class J0Pass:
                 row_ids.add(mid)
                 is_open = c240._truthy(binary) and not c240._truthy(closed) and c240._truthy(active)
                 if is_open:
-                    evc[ev] += 1
                     if mid not in codes and codes:
                         self.sidecar_missing_open_binary += 1
+                ev = ev if str(ev).strip() else f"market:{mid}"  # an empty event_id is its own one-market event and cluster
+                if is_open:
+                    evc[ev] += 1
                 if mid in cand:
-                    rows[mid] = (ev, c240.parse_utc(rec), closed, active, binary, c240._f(bid), c240._f(ask), c240._f(liq), c240.parse_utc(end), tok0)
+                    rows[mid] = (ev, c240.parse_utc(rec), closed, active, binary, r6(c240._f(bid)), r6(c240._f(ask)), c240._f(liq), c240.parse_utc(end), tok0)
         counted = self.n_fed >= self.warmup
         self.n_fed += 1
         if counted:
@@ -367,11 +375,11 @@ class J0Pass:
                 if not (bid > 0 and bid < ask and ask <= 1):
                     cls = "not_two_sided"
                 else:
-                    m = (bid + ask) / 2.0
+                    m = r6((bid + ask) / 2.0)
                     if m >= FAV:
                         side, ask_f = "YES", ask
-                    elif m <= 1 - FAV:
-                        side, ask_f = "NO", 1.0 - bid
+                    elif m <= r6(1 - FAV):
+                        side, ask_f = "NO", r6(1.0 - bid)
                     else:
                         cls = "contested"
             self.funnel[cls or "unit"] += 1
@@ -381,7 +389,7 @@ class J0Pass:
             ev = r[0]
             key = costs.category_key(fc)
             fee_cls = c251.fee_class(fe, bool(has_fe), fsch)[0]
-            new_units.append({"mid": mid, "day": day, "event": ev, "side": side, "zone": zone_of(1.0 - ask_f), "tier": TIER_NAMES[tier_of(r[7])],
+            new_units.append({"mid": mid, "day": day, "event": ev, "side": side, "zone": zone_of(r6(1.0 - ask_f)), "tier": TIER_NAMES[tier_of(r[7])],
                               "cat_key": key, "fee_category_raw": str(fc), "s2": s2_cell(key), "fee_class": fee_cls,
                               "ladder": "standalone" if evc[ev] <= 1 else ("member_winner" if side == "YES" else "member_loser"),
                               "members": members_of(evc[ev]), "tick": tick_of(tick), "end_ts": r[8], "row_rec": r[1], "ext_rec": rec_e,
