@@ -1,0 +1,34 @@
+{
+ "id": "q0740_lt14_schema_precheck",
+ "title": "LT14 schema and input-clock pre-check (DRAFT; LIVE_TESTS_14.md 6 job 1): P's registry sha and status, the column names and types of 1.2 in one capture's predictions / quotes / features files, the predictions-log fields, the sidecar header and P's input-clock audit; no value is read",
+ "family": "live_tests_14",
+ "priority": 47,
+ "expected_value": "pass / fail of the declared schema before the seal; committed with its sha256",
+ "data": [
+  "engine stores: quotes/, features/, predictions/<capture>/se0_champion_lr_mm.parquet (schemas only), logs/predictions-*.jsonl (last line field names), one sidecar header, signal_engine/specs/registry.json"
+ ],
+ "resources": {
+  "mem_mb": 200,
+  "lane": "cpu",
+  "cpu": 1,
+  "network": "none"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_live_tests14.py",
+  "schema-precheck",
+  "--engine-root",
+  "../data-dumps/research_lab/signal_engine",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--out",
+  "../docs/research_lab/seals/lt14_schema_precheck.json"
+ ],
+ "timeout_s": 900,
+ "max_retries": 0,
+ "outputs": [
+  "docs/research_lab/seals/lt14_schema_precheck.json"
+ ],
+ "next_action": "commit lt14_schema_precheck.json; any problem is fixed in new code or recorded before the seal (a failed audit is withdrawn_pre_census (input clock))",
+ "notes": "DRAFT, not in queue/jobs. LT14 census code ambiguities: docs/research_lab/reviews/LT14_CODE_NOTE_2026-10-30.md. Counts 0 (descriptive; no trials line). Reads no host price after the origin; the census reads st / t_off at k + 1 only. Runs under the heavy-job lock convention."
+}
