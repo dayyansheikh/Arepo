@@ -5531,7 +5531,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   `attempts.jsonl`, because J1 has no lock of its own and the two must not overlap. **Check on 2026-11-24 that q0751 is done**;
   if it fails, the cron never starts and the J1 passes must be restored by hand within the 6 h decision rule.
 
-## CH276 map: re-check MUSTs A/B fixed, q0760 PROMOTED, 2026-10-30 17:45Z (experiments autopilot; counts only, k = 0, nothing counted)
+## CH276 map: re-check MUSTs A/B fixed, q0760 PROMOTED, 2026-10-30 17:20Z (experiments autopilot; counts only, k = 0, nothing counted)
 - 97d44e5b (merged 4dd7d896): MUST A, a sibling with no `rows_ext` row is `siblings_ext_missing` (out of U and I, printed);
   line 6 gets an `ext_missing` class. MUST B, the dispute share denominator is first-seen proposal events ∪ disputed events
   (numerator ⊆ denominator; the old first-seen-only share and the missing count are printed beside it). The reading rule
