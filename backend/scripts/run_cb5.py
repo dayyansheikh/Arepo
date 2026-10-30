@@ -195,15 +195,22 @@ def cmd_cohort_fetch(a) -> int:
         if now.timestamp() < D.epoch(D.DATES["T5_dev_end"]):
             raise D.TooEarly(f"the census cohort fetch is refused before {D.DATES['T5_dev_end']}")
         end = D.iso(D.epoch(D.DATES["T5_dev_end"]) - 86400.0)
+        inp = R.listings_input(p["ext"], before=D.DATES["T5_dev_end"], since=D.DATES["T5_dev_start"])
         lst = R.read_listings(p["ext"], before=D.DATES["T5_dev_end"], since=D.DATES["T5_dev_start"])
         sel = F.select_cohort(lst, window="census", seed=a.seed, max_markets=a.max_markets, dev_start=D.DATES["T5_dev_start"], census_end=end)
     else:
         pin = D.rep_dates()
+        inp = R.listings_input(p["ext"], since=D.iso(pin["rep_start"]))
         lst = R.read_listings(p["ext"], since=D.iso(pin["rep_start"]))
         sel = F.select_cohort(lst, window="rep", seed=a.seed, max_markets=a.max_markets, dev_start=D.DATES["T5_dev_start"], rep_start=D.iso(pin["rep_start"]), rep_end=D.iso(pin["G_rep_end"]))
-    res = F.cohort_fetch(sel, _limiter(a.rps), _cohort_dir(a, window), window=window, now_epoch=now.timestamp(), disk_cap_bytes=int(a.disk_cap_gb * 1e9), should_stop=_deadline(a.budget_min))
+    try:
+        res = F.cohort_fetch(sel, _limiter(a.rps), _cohort_dir(a, window), window=window, now_epoch=now.timestamp(), disk_cap_bytes=int(a.disk_cap_gb * 1e9),
+                             should_stop=_deadline(a.budget_min), seed=a.seed, listings_input={**inp, "run_utc": R.iso_now()})
+    except F.SelectionChanged as exc:
+        _emit({"refused": f"SelectionChanged: {exc}"[:400]})
+        return REFUSED
     _emit(res)
-    if res.get("complete"):
+    if res.get("complete") and not res.get("n_failed"):  # failed markets are retried by the next run (repeat); the census counts any left
         print("rep_fetch_complete" if window == "rep" else "cohort_fetch_complete")
     return 0
 
@@ -289,6 +296,36 @@ def cmd_cdf_audit_apply(a) -> int:
 # ---- census / rinc ------------------------------------------------------------------------------------------------
 
 
+def _l_zero_family_result(frame_dir: Path) -> dict | None:
+    """MUST 1 (CB5 code re-check 2026-10-30): when the frame job's manifest shows 0 candidate families, emit the declared G59 result
+    (g59_gate(0): CB5-L 'not testable: 0 families', L1 counted with p = 1, CH59 closed), bound to that manifest's sha256 and family_list_sha256.
+    No audit is run or required on an empty sample and no audit failure is recorded. None when the manifest is missing, unreadable or non-empty."""
+    import hashlib
+
+    from astrolabe.research_lab import cb5_cdf
+
+    mans = sorted(frame_dir.glob("manifest_v*.json"), key=lambda q: int(q.stem.rsplit("_v", 1)[1]) if q.stem.rsplit("_v", 1)[1].isdigit() else -1)
+    if not mans:
+        return None
+    try:
+        raw = mans[-1].read_bytes()
+        man = json.loads(raw)
+        n = (man.get("counts") or {}).get("n_families")
+        fl_sha = man.get("family_list_sha256")
+        if type(n) is not int or n != 0 or not fl_sha:  # `False == 0` must not pass
+            return None
+        from astrolabe.research_lab.cb5_extract import family_list_sha256
+
+        cand = json.loads((frame_dir / f"families_v{man.get('version')}_candidate.json").read_bytes())
+        if cand.get("sha256") != fl_sha or family_list_sha256(cand) != fl_sha:  # the candidate file must be the one the manifest names
+            return None
+    except (OSError, ValueError, AttributeError, TypeError):
+        return None
+    return {"status": "g59_not_testable", "n_families": 0, "g59": cb5_cdf.g59_gate(0), "l1_counted_p": 1.0,
+            "ch59": "closed: too rare in the live universe (0 families)", "frame_manifest": mans[-1].name,
+            "frame_manifest_sha256": hashlib.sha256(raw).hexdigest(), "family_list_sha256": fl_sha, "frame_counts": man.get("counts")}
+
+
 def cmd_census(a) -> int:
     from astrolabe.research_lab import cb5_declaration as D
     from astrolabe.research_lab import cb5_hours
@@ -301,7 +338,11 @@ def cmd_census(a) -> int:
     out_path = p["out"] / "census.json"
     if out_path.exists():
         raise FileExistsError(f"{out_path} exists; results are never overwritten")
-    doc: dict = {"label": D.LABEL, "version": D.VERSION, "run_utc": R.iso_now(), "outcome_guard": "census code sees no outcome, target, net or lead column"}
+    cman = _load_json(_cohort_dir(a, "census") / "manifest.json")  # freeze check 2026-10-29: census.json is permanent, never from a partial cohort
+    if not cman or cman.get("complete") is not True:
+        raise D.TooEarly("census refused: the census cohort manifest does not show complete: true")
+    doc: dict = {"label": D.LABEL, "version": D.VERSION, "run_utc": R.iso_now(), "declaration_sha256": D.declaration_sha256(), "provenance": R.provenance.run_provenance(),
+                 "outcome_guard": "census code sees no outcome, target, net or lead column"}
     run_dir = p["hist"] / "h2_main"
     D.refuse_path(run_dir)
     if "G" in fams:
@@ -315,6 +356,7 @@ def cmd_census(a) -> int:
         if len(lst) and (cdir / "progress.jsonl").exists():
             c = R.census_g_cohort(lst, cdir)
             g["cohort"] = c
+            g["cohort_manifest"] = {k: cman.get(k) for k in ("selected", "done", "n_failed", "complete", "seed", "selection_sha256", "listings_manifest_sha256")}
             g["seed_book_agreement"] = c["seed_book_agreement"]
             g["listings_per_day"] = R.listings_per_day(lst, dev_start=D.DATES["T5_dev_start"], end=D.iso(D.epoch(D.DATES["T5_dev_end"]) - 86400.0))
         doc["G"] = g
@@ -327,11 +369,18 @@ def cmd_census(a) -> int:
             caps, meta = R.load_cdf_captures(p["ext"], start=D.DATES["T5_dev_start"], end=D.DATES["T5_dev_end"])
             doc["L"] = {**R.census_l(fdoc, caps), "captures": meta, "family_list_sha256": fdoc["sha256"], "frame_counts": fdoc.get("counts")}
         else:
-            doc["L"] = {"status": "inputs_missing", "reason": "no frozen family list"}
+            doc["L"] = _l_zero_family_result(p["out"] / "cdf_frame") or {"status": "inputs_missing", "reason": "no frozen family list"}
     if "K" in fams:
         pairs = cb5_hours.c1_pairs()
         doc["K"] = R.census_k(pairs, p["snap"])
     sha = write_new(out_path, doc)
+    if (doc.get("L") or {}).get("status") == "g59_not_testable":
+        # MUST 1 (2026-10-30): the untestable L1 still counts (p = 1); written once, with the write-once census.json
+        L = doc["L"]
+        R.log_trials("L", {"L1": {"p": 1.0, "testable": False, "advance": False, "n": 0, "family_status": "not testable: 0 families"}}, kind=D.KIND_TEST,
+                     role="exploratory_historical", dataset="cb5_census_g59", results_path=str(out_path), results_sha256=sha, decl_sha=doc["declaration_sha256"],
+                     cumulative=None, descriptive={"L_g59": {"g59": L["g59"], "frame_manifest_sha256": L["frame_manifest_sha256"], "family_list_sha256": L["family_list_sha256"]}},
+                     trials_path=R.provenance.TRIALS_PATH)
     R.log_descriptive({f"census_{k}": ({"keys": sorted(v)} if isinstance(v, dict) else {"v": str(v)}) for k, v in doc.items() if k in ("G", "L", "K")},
                       role="exploratory_historical", dataset="cb5_census", results_path=str(out_path), results_sha256=sha)
     _emit({"census": str(out_path), "sha256": sha, "stops": doc.get("G_stops", [])})

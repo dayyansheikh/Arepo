@@ -48,6 +48,29 @@ class DiskCapExceeded(RuntimeError):
     """The job's own output would exceed its disk cap."""
 
 
+class SelectionChanged(RuntimeError):
+    """A resumed cohort fetch whose selected-id hash differs from the one recorded in its manifest (freeze check 2026-10-29, item 4)."""
+
+
+class _StatusTap:
+    """Delegates ``get`` to the shared limiter and records every non-200 answer, so a failed request is never stored as data."""
+
+    def __init__(self, lim: hb.Limiter) -> None:
+        self.lim, self.bad = lim, []
+
+    def get(self, url: str, params, max_retries: int | None = None):
+        status, data = self.lim.get(url, params, max_retries)
+        if status != 200:
+            self.bad.append({"url": str(url).rsplit("/", 1)[-1], "status": int(status)})
+        return status, data
+
+
+def selection_sha256(selected: pd.DataFrame) -> str:
+    """sha256 of the sorted selected market ids (one per line): the cohort identity a resume must reproduce."""
+    ids = sorted(str(m) for m in selected["market_id"]) if len(selected) else []
+    return hashlib.sha256("\n".join(ids).encode()).hexdigest()
+
+
 def _gz_csv(path: Path, header: list[str], rows: list[list]) -> int:
     path.parent.mkdir(parents=True, exist_ok=True)
     buf = io.BytesIO()
@@ -190,53 +213,91 @@ def select_cohort(listings: pd.DataFrame, *, window: str, seed: str, max_markets
 
 
 def cohort_fetch(listings: pd.DataFrame, lim: hb.Limiter, out_dir: Path, *, window: str, now_epoch: float, key: bytes | None = None, disk_cap_bytes: int = 30_000_000,
-                 max_items: int | None = None, should_stop=None, due_after_h: float = REP_FETCH_AFTER_H) -> dict:
+                 max_items: int | None = None, should_stop=None, due_after_h: float = REP_FETCH_AFTER_H, seed: str | None = None,
+                 listings_input: dict | None = None) -> dict:
     """Fetch prices and trades for the selected cohort rows (``condition_id`` + tokens from the listings table). Census: stored only
     up to ``min(first trade + 1h, L + 24h)``. Replication: each market fetched only once ``now >= L + 4d + 2h``, stored up to
-    ``L + 4d + 1h``. Resumable by ``progress.jsonl``."""
+    ``L + 4d + 1h``. Resumable by ``progress.jsonl``.
+
+    Freeze check 2026-10-29: a non-200 trades or prices answer (or a request given up after retries) is recorded ``failed``, writes
+    no data file, is not done and is retried on resume. The manifest records the seed, the selected-id hash and the listings input
+    (``listings_input``: the listings-manifest sha256 and capture status counts); a census resume whose selected-id hash differs is
+    refused (:class:`SelectionChanged`; the replication selection grows while listings arrive, so its hash is recorded per run only). ``complete`` means every selected market has a terminal attempt (done or failed) and none is pending;
+    ``n_failed`` counts the failed ones separately."""
     if window not in ("census", "rep"):
         raise ValueError(window)
     out = Path(out_dir)
-    done = _progress(out / "progress.jsonl")
+    sel_sha = selection_sha256(listings)
+    mp = out / "manifest.json"
+    prior = json.loads(mp.read_text()) if mp.exists() else None
+    prog_p = out / "progress.jsonl"
+    if window == "census" and (prior is not None or prog_p.exists()):  # the replication selection grows with new listings: recorded, not pinned
+        if prior is None or prior.get("selection_sha256") != sel_sha:
+            raise SelectionChanged(f"{window} cohort: selected-id hash {sel_sha} differs from the manifest's "
+                                   f"{(prior or {}).get('selection_sha256')}; a resume must reproduce the original selection")
+    first = prior or {}
+    runs = list(first.get("listings_input_runs", [])) + [listings_input or {}]
+    sel_runs = list(first.get("selection_sha256_runs", [])) + [sel_sha]
+
+    def write_manifest(done_n: int, failed_n: int, complete: bool) -> None:
+        out.mkdir(parents=True, exist_ok=True)
+        mp.write_text(json.dumps({"version": COHORT_VERSION, "window": window, "selected": int(len(listings)), "done": done_n, "n_failed": failed_n,
+                                  "complete": complete, "seed": first.get("seed", seed), "selection_sha256": sel_sha,
+                                  "listings_manifest_sha256": first.get("listings_manifest_sha256", (listings_input or {}).get("manifest_sha256")),
+                                  "listings_input_runs": runs, "selection_sha256_runs": sel_runs}, sort_keys=True, indent=1))
+
+    status_of = {k: v.get("status") for k, v in _progress(prog_p).items()}
+    ids = [str(m) for m in listings["market_id"]] if len(listings) else []
+    write_manifest(sum(status_of.get(m) == "done" for m in ids), sum(status_of.get(m) == "failed" for m in ids), False)  # before any fetch: a crash still resumes
     used = _dir_bytes(out)
     key = key if key is not None else b"cb5-no-wallet-storage"
-    res: dict[str, Any] = {"cb5_cohort": COHORT_VERSION, "window": window, "selected": int(len(listings)), "stopped": None}
-    n = pending = 0
+    res: dict[str, Any] = {"cb5_cohort": COHORT_VERSION, "window": window, "selected": int(len(listings)), "selection_sha256": sel_sha, "stopped": None}
+    n = n_fail = pending = 0
     for _, r in listings.iterrows():
         mid = str(r["market_id"])
-        if mid in done:
+        if status_of.get(mid) == "done":
             continue
         L = float(r["created"])
         if window == "rep" and now_epoch < L + due_after_h * H:
             pending += 1
             continue
-        if (should_stop and should_stop()) or (max_items is not None and n >= max_items):
+        if (should_stop and should_stop()) or (max_items is not None and n + n_fail >= max_items):
             res["stopped"] = "budget"
             break
-        rows, st = hb.fetch_trades(lim, str(r["condition_id"]), key, MAX_TRADES)
-        rows = [[x[0], x[1], x[2], x[3], x[4], "", x[6]] for x in rows]  # wallet hash blanked: never stored
-        if window == "census":
-            kept, info = census_trim(rows, L)
-            bound = info["bound"]
-        else:
-            bound = L + HEAD_AFTER_D * D + HEAD_AFTER_H * H
-            kept = [x for x in rows if L <= x[0] <= bound]
-            info = {"first_trade": min((x[0] for x in kept), default=None)}
-        start = int(L - HEAD_BEFORE_H * H)
-        pts = fetch_price_window(lim, str(r["clob_token_id_0"]), start, int(bound), 10)
-        pts = [(t, p) for t, p in pts if t <= bound]  # parse guard: nothing past the bound is written
+        tap = _StatusTap(lim)
+        try:
+            rows, st = hb.fetch_trades(tap, str(r["condition_id"]), key, MAX_TRADES)
+            rows = [[x[0], x[1], x[2], x[3], x[4], "", x[6]] for x in rows]  # wallet hash blanked: never stored
+            if window == "census":
+                kept, info = census_trim(rows, L)
+                bound = info["bound"]
+            else:
+                bound = L + HEAD_AFTER_D * D + HEAD_AFTER_H * H
+                kept = [x for x in rows if L <= x[0] <= bound]
+                info = {"first_trade": min((x[0] for x in kept), default=None)}
+            start = int(L - HEAD_BEFORE_H * H)
+            pts = fetch_price_window(tap, str(r["clob_token_id_0"]), start, int(bound), 10)
+            pts = [(t, p) for t, p in pts if t <= bound]  # parse guard: nothing past the bound is written
+        except RuntimeError as exc:  # the limiter gave up after its retries
+            tap.bad.append({"error": str(exc)[:200]})
+        if tap.bad:
+            _append(prog_p, {"market_id": mid, "created": L, "status": "failed", "failures": tap.bad[:5], "window": window})
+            status_of[mid] = "failed"
+            n_fail += 1
+            continue
         size = _gz_csv(out / "trades" / f"{mid}.csv.gz", TRADE_COLS, kept) + _gz_csv(out / "prices" / f"{mid}.csv.gz", ["t", "p"], [[t, p] for t, p in pts])
         used += size
         if used > disk_cap_bytes:
             raise DiskCapExceeded(f"{window} cohort {used} > {disk_cap_bytes}")
-        _append(out / "progress.jsonl", {"market_id": mid, "created": L, "bound": bound, "first_trade": info["first_trade"], "n_trades": len(kept), "n_points": len(pts),
-                                          "trades_truncated": bool(st["truncated"]), "trades_oldest_ts": st["oldest_ts"], "status": "done", "window": window})
+        _append(prog_p, {"market_id": mid, "created": L, "bound": bound, "first_trade": info["first_trade"], "n_trades": len(kept), "n_points": len(pts),
+                         "trades_truncated": bool(st["truncated"]), "trades_oldest_ts": st["oldest_ts"], "status": "done", "window": window})
+        status_of[mid] = "done"
         n += 1
-    complete = pending == 0 and res["stopped"] is None
-    res.update(done=n, pending_not_due=pending, total_done=len(done) + n, complete=complete)
-    out.mkdir(parents=True, exist_ok=True)
-    (out / "manifest.json").write_text(json.dumps({"version": COHORT_VERSION, "window": window, "selected": int(len(listings)), "done": len(done) + n, "complete": complete},
-                                                 sort_keys=True, indent=1))
+    total_done = sum(status_of.get(m) == "done" for m in ids)
+    total_failed = sum(status_of.get(m) == "failed" for m in ids)
+    complete = pending == 0 and res["stopped"] is None and total_done + total_failed == len(ids)
+    res.update(done=n, failed=n_fail, pending_not_due=pending, total_done=total_done, n_failed=total_failed, complete=complete)
+    write_manifest(total_done, total_failed, complete)
     return res
 
 
