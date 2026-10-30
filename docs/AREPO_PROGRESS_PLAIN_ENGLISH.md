@@ -1,42 +1,32 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-30 05:24 UTC+1
+**Last updated:** 2026-10-30 06:02 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **LT13 (new live test) is designed, frozen and coded.** Its counting-check code passed an independent check. That check
-  found a real flaw in the frozen text: three controls that always add up exactly, which would have made every fit fail and
-  the test drop out by construction. A small reviewed amendment removed the redundant one. The maths shows this changes no
-  result, threshold or date, and the amendment is recorded openly. The counting check starts after 17 Nov.
-- **New ideas (round 19) counted:** the light counting job ran this morning (counts only, nothing tested). By the rules
-  written before it ran, three ideas go forward to written designs:
-  - the "carry" after a market's outcome is formally proposed (about 820 proposals a day), as a pre-registered
-    *measurement* (a number with an error bar, never called a finding);
-  - the "overdue favourite" past its end date (about 160 a day), also a measurement, after a redesign the reviewer asked for;
-  - LT14, an economic check of the signal engine's own top picks against trading costs (about 175 candidates a capture).
-  - One idea (the market close by rule type) fell short of its line (20 a day, needed more than 30) and is not drafted.
-  - One signal-engine idea was dropped at its own kill line; another passed.
-  - The first two drafts are being written now.
-- **Batch 9, part P is not testable:** every one of its 1,235 candidate markets had already been used by an earlier test,
-  so the no-reuse rule removes them all. An independent review confirmed the rule worked as written. It is counted as
-  "not testable", which is not a null result.
-- **Three stuck batches unblocked, each after an independent review:**
-  - Batch 9: a disk-size limit set far too small was raised. The reviewer confirmed it was a size limit only, decided
-    without seeing any result. The step is queued from scratch.
-  - Batch 10: the review caught a wrong file in the next step's settings (the whole data frame instead of the 1,000-market
-    sample the design names). Fixed before it ever ran.
-  - Batch 5: one idea found zero usable market groups. The code now records the declared result, "not testable (too rare)",
-    and counts it. The next data fetch is queued.
-- **Batch 3:** its new data step ran for the first time tonight, so its development window ends on 3 Nov (by its own rule).
-- **LT12 (frozen live test):** Polymarket's 20 Oct fee change moved about 1,800 markets from "sports" to "non-sports" under
-  LT12's fixed rule. This is recorded as a disclosure, not a breach, because LT12's whole window comes after the change.
-- **Housekeeping:** five out-of-date tests fixed (two of them wrote stray rows into the real trial log; none of the stray
-  rows were kept).
-- **Server:** the long model run (MC1) is working through its folds. When it pauses (about 05:50 UTC+1), the queued jobs
-  get their turn (the batch 7 count is due before 3 Nov).
+- **Two more live tests have frozen designs tonight (more prospective tests, as you asked):**
+  - **LT13** (listing batches): frozen, coded, independently checked. A flaw in the frozen text that would have failed it
+    by construction was found and fixed by a small reviewed amendment. Counting check after 17 Nov.
+  - **LT14** (new, round 19): the economic check beside the signal engine's accuracy. Do the engine's strongest calls move
+    by more than a round-trip trading cost? Frozen this morning with the engine model pinned; its counting-check code is
+    being written. The final check caught two more flaws of the same "fails by construction" kind before the freeze.
+- **M1, a pre-registered measurement (new):** after a market's outcome is formally proposed, how big is the remaining
+  discount compared with the risk of reversal and the cost? Two reviews done; a light counting step is queued; the freeze
+  is due before 22 Nov. The reviewer showed the result will very likely be "coarse" (too few events for a tight bound), and
+  that is written down in advance. A second measurement (M2, the overdue favourite) is being drafted.
+- **Round-19 ideas counted:** by rules written before the count, three went forward (M1, M2, LT14), one fell short and one
+  engine idea was dropped. Two small defects in that counting job were found later and recorded openly; the affected test
+  keeps its own binding count.
+- **Unblocked after independent reviews:** batch 9 (a disk limit; and part P is "not testable" because every candidate was
+  already used by an earlier test), batch 10 (a wrong file setting caught before it ran), batch 5 (the "too rare" result is
+  now recorded properly; its next fetch is queued).
+- **Batch 3:** development window ends 3 Nov (its new data step started tonight). **LT12:** the 20 Oct fee change is a
+  disclosure, not a breach.
+- **Server:** the long model run (MC1) pauses and resumes in slices; the batch 7 count (due before 3 Nov) runs at the next
+  slice break.
 - **Registered live tests** keep collecting: E009/E010 (3 Nov), E011 (11 Nov), E012-E014 (13 Nov), E015 (15 Nov), E022 (17 Nov),
   E026 (6 Dec).
 

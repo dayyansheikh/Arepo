@@ -8,23 +8,21 @@
 **PHASE 4 IN PROGRESS.** See `implementation/phases/PHASE_04_EDGE_EXPERIMENTS.md` and the ledger `research_lab/EXPERIMENT_LEDGER.md`.
 User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=Etc/GMT-1 date`.
 
-## Experiments autopilot live state (2026-10-30 05:53 UTC+1)
-- **Done this session (all in the ledger):** round 19 + CANDIDATES notes; CB3 `T3_dev_end` 11-03T00Z; CB9 kd-cap amendment,
-  **q0185b in jobs/**; **CB9-P not testable (empty frame, FAITHFUL_EMPTY)**, runner label + books waiver merged, q0184 "not
-  run"; CB10 q0201 ruled + merged (draft; pyth pin filled, kd pin FILL until q0185b); CB5 zero-family path, **q0103b in jobs/**;
-  **LT13 frozen + stage-A code merged + AMENDED 13 (737f8b15)**; LT12 fee step DISCLOSE; rule-26 ruling; **CH269 map done**
-  (M1, M2, LT14 drafted; LT15 not; `resid` killed; two map defects recorded); test hygiene (6 env/date tests, guard asserts).
-- **In flight:** `feat/m1-ch263`: M1 third draft (re-check NOT_READY fixes 1-5) + J0 counts-only job (`run_m1_j0.py`,
-  draft q0731). Then: merge, run J0 on the host, final verification, freeze **before 2026-11-22** (window 11-24..12-14).
-  LT14 second draft merged (d14981fd); re-check / pre-freeze verification running; freeze **before 2026-11-07T00:00Z**;
-  then LT14 census code (sum fee splits across captures, unit test). M2 (CH264) design: not started (needs the rule-26
-  REVISE items).
-- **Queue:** blackout to 05:30Z; then q0085 (CB4), q0116k (MC1 exclusive), q0185b, q0103b, q0147c (CB7, before ~11-03 03:30Z;
-  likely at MC1's next slice break ~11Z). After q0147c: snapshots rule 12 -> 8 days + ledger. Do not edit run_ml_dev.py /
-  hashed ml modules or delete ml_cache/38dc17c9… until q0116k completes.
-- **Carried over:** CB9 q0186 condition 6 when its spec exists; CB9 SHOULD 6 (`kd_frame_v3` in CB10 REFUSED_RUN_IDS);
-  CB5 SHOULD 3 before q0111; LT13 q0722 host memory dry run (from 11-17); LT11 census q0691 not before 11-07T08Z; LT12
-  census/seal from 11-07; E026 weekly-count phone note ~11-01; two order-dependent tests (compare ablation, d118 evaluator).
+## Experiments autopilot live state (2026-10-30 06:02 UTC+1)
+- **Done this session (all in the ledger):** round 19; CB3 `T3_dev_end` 11-03T00Z; CB9 kd-cap amendment (q0185b in jobs/);
+  CB9-P not testable (FAITHFUL_EMPTY; runner label + waiver merged; q0184 not run); CB10 q0201 ruled (draft; kd pin FILL);
+  CB5 zero-family path (q0103b in jobs/); **LT13 frozen + code + AMENDED 13**; **LT14 FROZEN 485c63dd (P = se0, spec
+  19549cb4…; attrlimit_lt14 requested)**; LT12 fee DISCLOSE; rule-26 ruling; CH269 map (M1/M2/LT14 drafted; LT15 not; resid
+  killed; two map defects recorded); **M1 third draft (78990b5e) + J0 q0731 in jobs/**; test hygiene.
+- **In flight:** `feat/lt14-code` (LT14 census code + code note -> independent code-freeze check); `feat/m2-ch264` (M2 first
+  draft -> challenger R1). A deploy is running in the background (rerun `scripts/oracle/deploy.sh` if the host is not at HEAD).
+- **Next:** J0 (q0731) output -> ledger/note -> M1 final verification and freeze **before 2026-11-22** -> J1-J3/A code + check.
+  LT14 census code -> code-freeze check -> seal/census after [11-07, 11-17). M2: R1 -> fixes -> J0 if any -> freeze.
+- **Queue:** after the 05:30Z blackout: q0085 (CB4), q0116k (MC1 exclusive), q0185b, q0103b, q0731, q0147c (CB7, before ~11-03
+  03:30Z; at MC1's next slice break). After q0147c: snapshots rule 12 -> 8 days + ledger. Do not edit run_ml_dev.py / hashed
+  ml modules or delete ml_cache/38dc17c9… until q0116k completes.
+- **Carried over:** CB9 SHOULD 6; CB5 SHOULD 3 before q0111; LT13 q0722 memory dry run (from 11-17); LT11 census q0691 not
+  before 11-07T08Z; LT12 census/seal from 11-07; E026 weekly-count phone note ~11-01; two order-dependent tests.
 - **Registered live analyses:** E009/E010 3 Nov, E011 11 Nov, E012-E014 13 Nov, E015 15 Nov, E022 17 Nov, E026 6 Dec.
 ## Interactive session state (2026-10-23 08:30Z)
 - **Security audit run 1 (2026-10-23):** Cloudflare security-audit skill, quick profile, source-only. 0 confirmed findings and 5 needs-validation leads; see `docs/security/AUDIT_2026-10-23_RUN1.md` (full artefacts in `~/security-audit-skill/astrolabe/run-1/`). Owner notified via ntfy. No fixes made yet. Proposed small PRs:
