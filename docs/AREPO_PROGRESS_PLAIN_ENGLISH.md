@@ -1,34 +1,27 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-30 06:02 UTC+1
+**Last updated:** 2026-10-30 07:58 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **Two more live tests have frozen designs tonight (more prospective tests, as you asked):**
-  - **LT13** (listing batches): frozen, coded, independently checked. A flaw in the frozen text that would have failed it
-    by construction was found and fixed by a small reviewed amendment. Counting check after 17 Nov.
-  - **LT14** (new, round 19): the economic check beside the signal engine's accuracy. Do the engine's strongest calls move
-    by more than a round-trip trading cost? Frozen this morning with the engine model pinned; its counting-check code is
-    being written. The final check caught two more flaws of the same "fails by construction" kind before the freeze.
-- **M1, a pre-registered measurement (new):** after a market's outcome is formally proposed, how big is the remaining
-  discount compared with the risk of reversal and the cost? Two reviews done; a light counting step is queued; the freeze
-  is due before 22 Nov. The reviewer showed the result will very likely be "coarse" (too few events for a tight bound), and
-  that is written down in advance. A second measurement (M2, the overdue favourite) is being drafted.
-- **Round-19 ideas counted:** by rules written before the count, three went forward (M1, M2, LT14), one fell short and one
-  engine idea was dropped. Two small defects in that counting job were found later and recorded openly; the affected test
-  keeps its own binding count.
-- **Unblocked after independent reviews:** batch 9 (a disk limit; and part P is "not testable" because every candidate was
-  already used by an earlier test), batch 10 (a wrong file setting caught before it ran), batch 5 (the "too rare" result is
-  now recorded properly; its next fetch is queued).
-- **Batch 3:** development window ends 3 Nov (its new data step started tonight). **LT12:** the 20 Oct fee change is a
-  disclosure, not a breach.
-- **Server:** the long model run (MC1) pauses and resumes in slices; the batch 7 count (due before 3 Nov) runs at the next
-  slice break.
+- **M1 (pre-registered measurement: the discount left after an outcome is proposed):** the light counting step finished.
+  There are enough markets for the planned 3-week window (about 185 a day), so the dates stand. It also showed that almost
+  all of these markets already trade at 99.9 cents or more, so the result will almost certainly be "coarse". That is now
+  written into the design in advance. The final independent check asked for two wording fixes and six disclosures. They are
+  in, and a last diff check is running before the design is frozen.
+- **M2 (the overdue favourite):** the challenger's fixes passed re-check except for two order and pinning problems. Those
+  are fixed, and its counting code is being written now.
+- **LT14 (the engine's top picks against trading costs):** its counting-check code was independently checked. Five real
+  bugs were found before it ever ran. Example: a changed input file would not have been noticed. Fixes are being made,
+  then re-checked.
+- **New ideas round 20** is being written (as you asked: original money-making ideas, Fable at top effort).
+- **Server:** busy. Batch 4's development job is running, with the long model run (MC1), batch 7's count (before 3 Nov)
+  and others queued behind it.
 - **Registered live tests** keep collecting: E009/E010 (3 Nov), E011 (11 Nov), E012-E014 (13 Nov), E015 (15 Nov), E022 (17 Nov),
-  E026 (6 Dec).
+  E026 (6 Dec). Frozen and waiting: LT11/LT12 (counting checks from 7 Nov), LT13/LT14 (from 17 Nov).
 
 ## 2. Approvals needed from you
 1. ~~Automatic Claude sessions~~ **APPROVED and installed 15 Oct** (full power, your call).

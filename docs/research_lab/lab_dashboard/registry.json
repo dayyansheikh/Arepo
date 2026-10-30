@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-30T05:11:00Z",
+ "updated": "2026-10-30T06:58:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1789,19 +1789,19 @@
   {
    "id": "M1",
    "title": "Measurement M1: the carry after a proposed resolution (planned)",
-   "plain": "Planned pre-registered measurement from ideas round 19: after a market's outcome is formally proposed, how big is the remaining discount on the proposed side, against the chance the proposal is overturned and the cost of holding? A number with an error bar, frozen in advance; never called a finding. Two reviews done; a light counting step is queued before the freeze. A coarse result is expected and was said in advance.",
+   "plain": "Planned pre-registered measurement from ideas round 19: after a market's outcome is formally proposed, how big is the remaining discount, against the chance the proposal is overturned? A number with an error bar, frozen in advance; never called a finding. The counting step found enough markets, but almost all trade at 99.9 cents or more, so a coarse result is near-certain (said in advance).",
    "batch": "M1",
    "family": "carry",
    "stage": "designed",
-   "status": "queued",
+   "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Counting step (q0731), final check and freeze before 22 Nov; window 24 Nov - 14 Dec; read-out from 15 Jan 2027",
+   "next": "Freeze the design text (final check done, fixes applied), then code and registration before 22 Nov; window 24 Nov - 14 Dec; read-out from 15 Jan 2027",
    "next_date": "2026-11-22",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/reviews/M1_RECHECK_PREFREEZE_2026-10-30.md",
-    "next": "docs/research_lab/MEASUREMENT_M1_CH263.md (DRAFT); docs/research_lab/EXPERIMENT_LEDGER.md § M1 (CH263) measurement design draft (2026-10-30)",
+    "verdict": "docs/research_lab/reviews/M1_FINAL_VERIFY_2026-10-30.md",
+    "next": "docs/research_lab/MEASUREMENT_M1_CH263.md (DRAFT, final text); docs/research_lab/EXPERIMENT_LEDGER.md § M1-J0 (q0731) counts recorded (2026-10-30)",
     "status": "docs/research_lab/reviews/CH269_MAP_2026-10-30.md"
    },
    "stage_results": {
@@ -1814,18 +1814,18 @@
   {
    "id": "LT14",
    "title": "Live tests 14: the signal engine's top picks against trading costs (planned)",
-   "plain": "Planned live test from ideas round 19, the economic check beside the signal engine's accuracy: do the engine's strongest calls in mid-liquidity markets move by more than a round-trip trading cost? Design frozen 30 Oct after a challenger review and a final check, which caught two flaws that would have failed it by construction. The engine model is pinned. It may fail its counting check.",
+   "plain": "Planned live test from ideas round 19, the economic check beside the signal engine's accuracy: do the engine's strongest calls in mid-liquidity markets move by more than a round-trip trading cost? Design frozen 30 Oct; engine model pinned. Its counting-check code was independently checked and five fixes are being made before it runs. It may fail its counting check.",
    "batch": "LT14",
    "family": "engine",
    "stage": "designed",
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Counting-check code; counting check on the 7-17 Nov engine files; live window 10-31 Dec",
+   "next": "Code fixes and re-check; counting check on the 7-17 Nov engine files; live window 10-31 Dec",
    "next_date": "2026-11-17",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/reviews/LT14_RECHECK_PREFREEZE_2026-10-30.md",
+    "verdict": "docs/research_lab/reviews/LT14_CODE_FREEZE_CHECK_2026-10-30.md",
     "next": "docs/research_lab/LIVE_TESTS_14.md (FROZEN design text, 485c63dd); docs/research_lab/EXPERIMENT_LEDGER.md § LT14 final verification and DESIGN-TEXT FREEZE (2026-10-30)",
     "status": "docs/research_lab/reviews/CH269_MAP_2026-10-30.md"
    },
@@ -1839,18 +1839,18 @@
   {
    "id": "M2",
    "title": "Measurement M2: the overdue favourite (planned)",
-   "plain": "Planned pre-registered measurement from ideas round 19: in markets past their end date that have not resolved, how big is the favourite's premium against what it finally pays? A number with an error bar, frozen in advance; never called a finding. First draft written; challenger review running. A coarse result is about as likely as not, said in advance.",
+   "plain": "Planned pre-registered measurement from ideas round 19: in markets past their end date that have not resolved, how big is the favourite's premium against what it finally pays? A number with an error bar, frozen in advance; never called a finding. Challenger review and re-check done; its counting code is being written. A coarse result is about as likely as not, said in advance.",
    "batch": "M2",
    "family": "carry",
    "stage": "designed",
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Challenger review, text freeze by 16 Nov; window 24 Nov - 14 Dec; read-out from 29 Jan 2027",
+   "next": "Counting code and counting step, final check, text freeze by 16 Nov; window 24 Nov - 14 Dec; read-out from 29 Jan 2027",
    "next_date": "2026-11-16",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/reviews/R19_RULE26_MEASUREMENT_RULING_2026-10-30.md",
+    "verdict": "docs/research_lab/reviews/M2_R1_RECHECK_2026-10-30.md",
     "next": "docs/research_lab/MEASUREMENT_M2_CH264.md (DRAFT); docs/research_lab/EXPERIMENT_LEDGER.md § M2 (CH264) measurement design draft (2026-10-30)",
     "status": "docs/research_lab/reviews/CH269_MAP_2026-10-30.md"
    },
