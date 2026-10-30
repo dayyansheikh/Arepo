@@ -1,0 +1,50 @@
+{
+ "id": "q0760_ch276_map",
+ "title": "CH276 surviving-side census (counts only, uncounted, nothing tested): one read-only pass over the last 8 days of sidecars, 45 days of the engine's quotes/ and features/, 35 days of predictions/ (the champion's s_2h as a distribution, no label), the placeholder rules lexicon, and the live trade monitor's day files and cycle lines, printing section E's nine count lines (field semantics first; one-sided proposal rows by surviving side; neg-risk events with >= 3 eligible members; the k + 1 state of eligible rows and ox_1s_84; monitor prints in proposal windows; B units; near-certain first crossings; insurance classes and dispute first appearances; the spread ops line) with the declared decision readings",
+ "family": "creative_hypotheses",
+ "priority": 62,
+ "expected_value": "measured planning counts that decide which of CH270, CH271 (b) / (c), CH272, CH273, CH274 and CH275 are built, drafted or filed, and the status-field semantics (market or event) that CH273 and CH275 depend on (CREATIVE_HYPOTHESES_2026-11-03.md section 2 E, CH276)",
+ "data": [
+  "host originals ~/arepo/data-dumps/research_lab/snapshots, signal_engine (quotes, features, predictions; never logs/), stream_gamma_rules, live_trades (trades-YYYYMMDD.jsonl and stats.jsonl only) (all read-only)"
+ ],
+ "resources": {
+  "mem_mb": 450,
+  "as_cap_mb": 6000,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_ch276_map.py",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--engine-root",
+  "../data-dumps/research_lab/signal_engine",
+  "--rules-root",
+  "../data-dumps/research_lab/stream_gamma_rules",
+  "--monitor-root",
+  "../data-dumps/research_lab/live_trades",
+  "--last-days",
+  "8",
+  "--engine-days",
+  "8",
+  "--warmup",
+  "12",
+  "--spread-before",
+  "2026-10-13:2026-10-19",
+  "--spread-after",
+  "2026-10-21:2026-10-29",
+  "--out",
+  "../data-dumps/research_lab/ch276_map/CH276_map.json",
+  "--data-dumps-cap-gb",
+  "50"
+ ],
+ "timeout_s": 21600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/ch276_map/CH276_map.json (counts only)"
+ ],
+ "next_action": "read line_1_field_semantics first (semantics_reading decides CH273's population and CH275's reading), then the decisions block and the not_mapped block; copy the counts into the CH276 census table (reported, not tuned); a decision of null means its count was unavailable, not a pass; check consistency_with_m1_j0_funnel_not_two_sided.equal is true and peak_rss_mb",
+ "notes": "DRAFT; needs reviewer code check before promotion. Code note: docs/research_lab/reviews/CH276_CODE_NOTE_2026-10-30.md (every section-E line mapped to code, every ambiguity and its reading). Counts only, k = 0, uncounted. Read-only on every store; refuses roots outside research_lab, a monitor root that is not research_lab/live_trades, missing roots, an output outside research_lab and an existing output (write-once by os.link); exits 75 above the 50 GiB dumps guard or under 1 GiB free; exits 3 on a forbidden field or path (resolution, outcome, payoff, label, wallet; the engine's logs/ and the monitor's alerts / scores / outcomes / wallets files are never opened). Lane cpu: the reader is local-store only and CPU-bound on the csv parse (the sidecar is parsed twice per capture, once by the reused M1 J0Pass), not an IO-wait job. mem_mb 450 is the instruction, NOT a measurement: the CH269 map peaked at 558.8 MB against a 450 spec and M1-J0 at 297.6 MB; the synthetic test peak says nothing about the host. The host dry run must confirm peak_rss_mb before the job is promoted, and the spec must be raised (not the reader trimmed) if it exceeds 450. The address-space cap is virtual memory (pyarrow, numpy). The spread-before / spread-after windows are the text's 10-13..10-19 and 10-21..10-29; they need the engine's quotes/ and features/ of those days to still be within the 45-day retention when the job runs (a missing capture is listed, never filled). Not mapped (printed with reasons): the augmented 'Other' member flag, sweep-1 coverage, the engine's rules table (the placeholder lexicon is used), every payoff / resolution quantity, MDE / F-MDE."
+}
