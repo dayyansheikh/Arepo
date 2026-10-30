@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-30T17:41:46Z",
+ "updated": "2026-10-30T17:59:34Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -995,19 +995,19 @@
   {
    "id": "CB7",
    "title": "Specificity, geopolitics, Kalshi-skewed maker",
-   "plain": "Designed: whether very specific markets are discounted, geopolitics longshots and a maker skewed by Kalshi. The counting check finished on 30 Oct: the specificity test has far too few markets for its pre-declared size (787 of 3,000 needed), so it is counted as untestable; the geopolitics and Kalshi parts have enough data to go ahead.",
+   "plain": "Whether very specific markets are discounted, geopolitics longshots, and a maker skewed by Kalshi. The specificity test had far too few markets for its pre-declared size (787 of 3,000 needed), so it is counted as untestable. The geopolitics and Kalshi tests were frozen on 30 Oct after independent checks; their one-shot screens run from 31 Oct.",
    "batch": "CB7",
    "family": "text",
    "stage": "designed",
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Independent freeze check of the geopolitics and Kalshi parts, then freeze",
-   "next_date": null,
+   "next": "Screens run from 31 Oct 06:00 UTC (Kalshi first, then geopolitics)",
+   "next_date": "2026-10-31",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB7 census q0147c: GS fail, GG / GX pass (2026-10-30); docs/research_lab/CREATIVE_BATCH_7.md § 2.7a",
-    "next": "docs/research_lab/CREATIVE_BATCH_7.md § 8 (steps 4-5)",
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB7 FROZEN (2026-10-30); backend/astrolabe/research_lab/model_specs/cb7_v1.json",
+    "next": "docs/research_lab/queue/jobs/q0148_cb7_screen_S.json, q0150_cb7_screen_X.json, q0149_cb7_screen_G.json",
     "status": "docs/research_lab/EXPERIMENT_LEDGER.md § CB7 q0147c promoted (2026-10-29)"
    },
    "stage_results": {

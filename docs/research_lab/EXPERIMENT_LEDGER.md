@@ -5678,3 +5678,17 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   `MIN_CLUSTERS` 30 in every way (A1 reverted); freeze-clock and seal-pin checks; promote order; disclosures A4, A21-A23,
   placebo discordance, theme imbalance. 43 tests. **Declaration sha256 `cf84f91053385c371a875f39f72cd09bcc519dc446829b3b1fed47c7f481fd8e`.**
   Diff-only check running; then the freeze commit.
+
+## CB7 FROZEN (G1, X1; S1 not testable), 2026-10-30 17:59Z (experiments autopilot; freeze; S1 counted at p = 1 when q0148 runs)
+- Diff check `reviews/CB7_CF_FIX_DIFF_CHECK_2026-10-30.md` ACCEPT_WITH_FIXES (one doc-only fix: the code note's
+  `run_cb7.py` hash row, corrected b033f9e2). Host `census.json` sha256 equals the pinned `85824be1…e6920`.
+- **Freeze commit 10722060** (commit time 2026-10-30T17:59:13Z, `freeze_utc` 17:59:04Z): `model_specs/cb7_v1.json`
+  (sha256 `e4a725c76215d2fc092f6fce14fd3e38d15ea4f3fdfe10e04ab8aae940c43f10`) written by `run_cb7.py write-spec`:
+  declaration `cf84f910…fd8e`, nine source sha256s, rules `05bf365c…21e9`, census json / constants / xv definitions,
+  seals h8_text / h8_geo / h8_tail, h_geo table and capture pins (binding 0.012). Dates: `screen_not_before_utc`
+  2026-10-31T06:00Z, `T7_X_list` 2026-11-03T06:00Z, `T7_S_rep_start` not applicable. Counting: k1 = 3 (S1, G1, X1) at
+  alpha 0.01; k2 = 1 if X1 advances, else 0; S1-rep and S2 not run.
+- **Promoted** q0148 (S, not-testable line), q0150 (X), q0149 (G; depends on both), each `not_before` 2026-10-31T06:00Z,
+  nothing else changed. Not promoted: q0151, q0152, q0156; q0153-q0155 only if X1 advances. Results carry the label
+  "pre-union lower bound" for the cumulative count (accepted by the diff check). Commit the Stage-1 seal copies after each
+  screen.
