@@ -4988,3 +4988,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   Batch Holm stays k1 = 5. P1-rep, P2-rep, q0195, q0196 are not run (trigger cannot fire). The machine label would have said
   "source unavailable" (a 0/0 audit artefact, `cb9_pyth.py:920-934`); a runner-only label fix is being made on
   `fix/cb9-q0184` (reviewer check of the diff before merge). CB10 q0201's pyth pin is the header-only file (adds 0 ids).
+- CB9-P host record (`ssh oracle`, 2026-10-30T04:26:07Z, `sha256sum` in `creative_batch9/pyth_frame/`): `manifest.json`
+  `f4deb7846be1cc2051e2f76b1fe8e41f30b3c65b0bbb3ef4db8d0d3ce31408c1`, `frame.csv.gz` (140 bytes, header only)
+  `ab34dd3ed11da5aea46876139d29b82603f94b293a4ad2ed542b455856f11f9f`. These are the pins of the runner's empty-frame waiver
+  (`fix/cb9-q0184`; diff check ACCEPT_WITH_FIXES: record the host values, verify the frame file too) and of CB10 q0201's pyth pin.
