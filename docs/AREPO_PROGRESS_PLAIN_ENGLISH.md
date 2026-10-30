@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-30 04:09 UTC+1
+**Last updated:** 2026-10-30 05:24 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -11,10 +11,18 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
   found a real flaw in the frozen text: three controls that always add up exactly, which would have made every fit fail and
   the test drop out by construction. A small reviewed amendment removed the redundant one. The maths shows this changes no
   result, threshold or date, and the amendment is recorded openly. The counting check starts after 17 Nov.
-- **New ideas (round 19):** eight original ideas are written up. The lead one: after someone formally proposes how a market
-  resolved, does the winning side still trade at a discount worth more than the small risk the proposal is overturned? A
-  reviewer agreed such questions can run as pre-registered *measurements* (a number with an error bar, frozen in advance,
-  never called a finding). A light counting job (queued) decides which ideas go forward.
+- **New ideas (round 19) counted:** the light counting job ran this morning (counts only, nothing tested). By the rules
+  written before it ran, three ideas go forward to written designs:
+  - the "carry" after a market's outcome is formally proposed (about 820 proposals a day), as a pre-registered
+    *measurement* (a number with an error bar, never called a finding);
+  - the "overdue favourite" past its end date (about 160 a day), also a measurement, after a redesign the reviewer asked for;
+  - LT14, an economic check of the signal engine's own top picks against trading costs (about 175 candidates a capture).
+  - One idea (the market close by rule type) fell short of its line (20 a day, needed more than 30) and is not drafted.
+  - One signal-engine idea was dropped at its own kill line; another passed.
+  - The first two drafts are being written now.
+- **Batch 9, part P is not testable:** every one of its 1,235 candidate markets had already been used by an earlier test,
+  so the no-reuse rule removes them all. An independent review confirmed the rule worked as written. It is counted as
+  "not testable", which is not a null result.
 - **Three stuck batches unblocked, each after an independent review:**
   - Batch 9: a disk-size limit set far too small was raised. The reviewer confirmed it was a size limit only, decided
     without seeing any result. The step is queued from scratch.
