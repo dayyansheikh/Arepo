@@ -608,13 +608,13 @@ def run_pass(store: Path, snap_root: Path, sweep_root: Path | None, spec: dict =
             continue  # an undecided slot may still change its pick: nothing is written for it (a write-once file would then contradict the chain)
         on_time = [c for c in [caps.get(s), *[x for x in extra if x["slot"] == s]] if c is not None]
         if d["kind"] == "missing_capture":
-            late_all += [(c, "delivered_after_missing_recorded") for c in on_time[:1]]
+            late_all += [(c, "delivered_after_missing_recorded") for c in on_time]
             continue
         kept = by_id.get(d["capture_id"])
         for c in on_time:
             if c["capture_id"] == d["capture_id"]:
                 continue
-            if kept is not None and c["start"] < kept["start"]:  # it would have been chosen had it been on disk when the slot was decided
+            if kept is not None and (c["start"], c["capture_id"]) < (kept["start"], kept["capture_id"]):  # it would have been chosen had it been on disk when the slot was decided
                 late_all.append((c, "on_time_but_delivered_after_slot_decided"))
             else:
                 dups.append((c, d["capture_id"]))
@@ -704,7 +704,8 @@ def close_window(store: Path, spec: dict = sp.SPEC, now: float | None = None, pa
     man = {"kind": "M1-J2 window manifest", "spec_sha": sp.spec_sha(spec), "code_sha": sp.code_sha(), "role": sp.ROLE, "window_slots": len(slots),
            "processed_slots": len(slots) - len(audit["missing_slots"]), "slot_coverage": (len(slots) - len(audit["missing_slots"])) / len(slots),
            "missing_slots": audit["missing_slots"], "late_capture_ignored": audit["late_capture_ignored"],
-           "duplicate_slot_capture_ignored": audit["duplicate_slot_capture_ignored"], "off_grid_capture_ignored": audit["off_grid_capture_ignored"], "units": n_units, "chain": audit, "files": files}
+           "duplicate_slot_capture_ignored": audit["duplicate_slot_capture_ignored"], "off_grid_capture_ignored": audit["off_grid_capture_ignored"], "units": n_units, "chain": audit, "files": files,
+           "notes": ["a window capture that became visible only after the last J1 pass (2026-12-15 06:20Z) is never recorded, because J1 refuses once this manifest exists"]}
     p = store / "manifest.json"
     _write_once(p, dumps(man).encode(), _same_json)
     return man | {"manifest_sha256": sp.sha256_file(p)}
