@@ -55,8 +55,10 @@ PRINT_FLOOR = 1000.0  # CH272: monitor prints of $1,000 or more
 MONITOR_GAP_S = 900.0  # a gap between consecutive monitor cycle lines above 3 nominal 5-minute cycles (disclosure only)
 GAP_BINS = ((900.0, 1800.0, "900-1800s"), (1800.0, 3600.0, "1800-3600s"), (3600.0, 14400.0, "3600-14400s"), (14400.0, math.inf, ">14400s"))
 MONITOR_MIN_DAYS = 3  # fewer usable full monitor days than this -> the monitor medians (and ch272) are null
-SEM_EVENT_LEVEL_IDENTICAL_MIN = 0.99  # "about 100%": share of siblings whose status string equals the proposed market's at the first-appearance capture
-SEM_PER_MARKET_GROUP_SHARE = 0.5  # share of first-appearance groups that have an open sibling with no status
+SEM_EVENT_LEVEL_IDENTICAL_MIN = 0.99  # I: share of siblings with an ext row whose status string equals A's (declared before the run, not tuned)
+SEM_PER_MARKET_U_MIN = 0.05  # U: share of groups with >= 1 unstatused sibling; U >= this -> per_market
+SEM_EVENT_LEVEL_U_MAX = 0.01  # U <= this AND I >= SEM_EVENT_LEVEL_IDENTICAL_MIN -> event_level
+SEM_MIN_GROUPS = 20  # fewer groups than this -> null
 OX_SLOTS = 84
 FULL_DAY_CAPTURES = 12  # captures for a "full" UTC day (as M1-J0)
 PERIODS_DEFAULT = (("2026-10-13", "2026-10-19"), ("2026-10-21", "2026-10-29"))
@@ -75,8 +77,10 @@ LINES = {
     "ch274_if_crossings_a_day_at_least": 30,
     "ch275_census_if_insured_units_scaled_to_21_days_at_least": 100,
     "ch275_census_if_disputes_share_of_proposal_events_at_least": 0.01,
-    "semantics_event_level_if_identical_sibling_share_at_least": SEM_EVENT_LEVEL_IDENTICAL_MIN,
-    "semantics_per_market_if_groups_with_unstatused_open_sibling_share_at_least": SEM_PER_MARKET_GROUP_SHARE,
+    "semantics_event_level_if_identical_sibling_share_I_at_least": SEM_EVENT_LEVEL_IDENTICAL_MIN,
+    "semantics_event_level_if_groups_with_unstatused_sibling_share_U_at_most": SEM_EVENT_LEVEL_U_MAX,
+    "semantics_per_market_if_groups_with_unstatused_sibling_share_U_at_least": SEM_PER_MARKET_U_MIN,
+    "semantics_null_if_groups_fewer_than": SEM_MIN_GROUPS,
     "monitor_medians_need_at_least_full_covered_days": MONITOR_MIN_DAYS,
 }
 
@@ -90,24 +94,28 @@ NOT_MAPPED = {
 }
 
 SEMANTICS_RULE_TEXT = (
-    "Unit: a GROUP at a capture where at least one open member first shows a proposal (status code 1, empty at the previous capture); A = the lowest market_id among the group's first-seen proposals at that capture, "
-    "the group being the open binary rows sharing a non-empty neg_risk_market_id and having at least one other open member (a sibling). Counts are group-level and "
-    "sibling-level at that capture only (nothing after it). Per sibling: 'identical' = its own status string is non-empty and equal to A's; 'unstatused' = its status is empty. "
-    f"event_level if (siblings identical / siblings) >= {SEM_EVENT_LEVEL_IDENTICAL_MIN} (about 100%) AND the share of groups with at least one unstatused open sibling is below {SEM_PER_MARKET_GROUP_SHARE}; "
-    f"per_market if the share of groups with at least one unstatused open sibling is >= {SEM_PER_MARKET_GROUP_SHARE} AND the identical-sibling share is below {SEM_EVENT_LEVEL_IDENTICAL_MIN}; "
-    "every other case (both or neither condition) is mixed; no group or no sibling at all is null. mixed -> the CH273 decision is null, never False; event_level -> CH273 is False "
-    "(its B population would carry the proposal flag); any null count -> the decision is null. The in-scope (non-sports ex-crypto, by A's category) reading is the one the decisions use; "
-    "the all-category reading is printed beside it (sports dominates the venue). All thresholds are named constants printed in decision_lines; the raw counts are printed."
+    "Unit: a neg-risk group (open binary rows sharing a non-empty neg_risk_market_id) at a capture k that has a capture k\u22121, where at least one open member first shows a proposal "
+    "(status code 1 containing 'propos', no status at k\u22121) and at least one other open member exists. A = the lowest market_id among those first-seen proposals. "
+    "Each group counts once per capture, and nothing after k is read. Per sibling at k: ext_missing = no rows_ext row (left out of every share, printed); "
+    "unstatused = own status string empty; identical = own status string non-empty and equal to A's. U = share of groups with \u22651 unstatused sibling. "
+    "I = identical siblings / siblings with an ext row. The in-scope reading (A's category, non-sports ex-crypto) is used by the decisions; the all-category reading is printed beside it. "
+    "Fewer than 20 groups \u2192 null. U \u2265 0.05 \u2192 per_market. U \u2264 0.01 AND I \u2265 0.99 \u2192 event_level. Otherwise mixed. "
+    "per_market lets CH273 be decided on its count; event_level \u2192 CH273 False; mixed or null \u2192 CH273 null, never False. "
+    "The constants 0.01, 0.05, 0.99 and 20 are declared before the run and not tuned; raw counts are printed."
 )
 
 
 def semantics_reading(c: Counter) -> str | None:
-    g, sib = c.get("groups_total", 0), c.get("siblings_total", 0)
-    if not g or not sib:
+    g = c.get("groups_total", 0)
+    if g < SEM_MIN_GROUPS:
         return None
-    ident = c.get("siblings_identical", 0) / sib >= SEM_EVENT_LEVEL_IDENTICAL_MIN
-    pm = c.get("groups_with_unstatused_sibling", 0) / g >= SEM_PER_MARKET_GROUP_SHARE
-    return "event_level" if ident and not pm else "per_market" if pm and not ident else "mixed"
+    u = c.get("groups_with_unstatused_sibling", 0) / g
+    if u >= SEM_PER_MARKET_U_MIN:
+        return "per_market"
+    n_ext = c.get("siblings_identical", 0) + c.get("siblings_unstatused", 0) + c.get("siblings_other_status", 0)
+    if u <= SEM_EVENT_LEVEL_U_MAX and n_ext and c.get("siblings_identical", 0) / n_ext >= SEM_EVENT_LEVEL_IDENTICAL_MIN:
+        return "event_level"
+    return "mixed"
 
 
 FORBIDDEN_EXACT = frozenset({"y", "closed_time", "closed_ts", "fetched_ts", "fetched_utc", "final_price", "payout", "state_resolved", "res_7d", "dir_2h_y"})
@@ -474,18 +482,20 @@ class SidecarPass:
             n_unst = 0
             for m in members:
                 eb = ext.get(m)
-                unst = not eb or not eb[0]
-                ident = bool(eb and eb[0] and eb[7] == e[7])
+                miss = eb is None
+                unst = (not miss) and not eb[7]
+                ident = (not miss) and bool(eb[7]) and eb[7] == e[7]
                 n_unst += unst
                 for c in cnt:
                     c["siblings_total"] += 1
+                    c["siblings_ext_missing"] += miss
                     c["siblings_unstatused"] += unst
                     c["siblings_identical"] += ident
-                    c["siblings_other_status"] += (not unst) and (not ident)
+                    c["siblings_other_status"] += (not miss) and (not unst) and (not ident)
             for c in cnt:
                 c["groups_total"] += 1
                 c["groups_with_unstatused_sibling"] += n_unst > 0
-                c["groups_all_siblings_identical"] += all(ext.get(m) and ext[m][0] and ext[m][7] == e[7] for m in members)
+                c["groups_all_siblings_identical"] += all(ext.get(m) and ext[m][7] and ext[m][7] == e[7] for m in members)
                 c["groups_all_siblings_unstatused"] += n_unst == len(members)
 
     # ------------------------------------------------------------------------------- line 2 (M1's funnel order up to the two-sided test, re-derived and cross-checked)
@@ -532,6 +542,8 @@ class SidecarPass:
                 run = self.disp_runs[m]
                 if run["open"]:
                     run["open"], run["censored"] = False, True
+                elif run["censored"]:  # resumed after an earlier gap and cut by a second one: it will resume again, not re-appear
+                    run["gap_resumed"] = False
             self.disp_active.clear()
         if not ext:
             return
@@ -678,7 +690,10 @@ class SidecarPass:
                 continue
             eb = ext.get(b)
             rb = cur[b]
-            if not eb or eb[3] != SCOPE:
+            if eb is None:
+                self.b_classes["ext_missing"] += 1
+                continue
+            if eb[3] != SCOPE:
                 self.b_classes["out_of_scope_category"] += 1
                 continue
             self.seen_b.add(b)
@@ -781,6 +796,10 @@ def monitor_line(units: list[dict], mon: dict, last_cap_start: float, full_days:
         if cyc and d0 >= first and d0 + DAY_S <= last and all(r["covered"] for r in rows if r["u"]["day"] == d):
             usable.append(d)
     enough = len(usable) >= MONITOR_MIN_DAYS
+    gap_s_day = {}
+    for d in usable:
+        d0 = c240.parse_utc(d + "T00:00:00Z")
+        gap_s_day[d] = round(sum(max(0.0, min(b, d0 + DAY_S) - max(a, d0)) for a, b in gaps), 1)
     exact_hit = sum(1 for u in units if u["cond_raw"] in mon["conds_seen_exact"])
     lower_hit = sum(1 for u in units if u["cond"] in mon["conds_seen_lower"])
     cov_ex = [r for r in cov if r["exited"]]
@@ -805,7 +824,7 @@ def monitor_line(units: list[dict], mon: dict, last_cap_start: float, full_days:
         "units_with_any_print_in_window_a_day": dict(sorted(by_day_any.items())),
         "units_with_fill_flow_print_in_window_a_day": dict(sorted(by_day_fill.items())),
         "prints_in_unit_windows_a_day": dict(sorted(by_day_prints.items())),
-        "monitor_full_days_used": usable, "monitor_full_days_used_n": len(usable), "monitor_full_days_candidates": list(full_days),
+        "monitor_full_days_used": usable, "monitor_full_days_used_n": len(usable), "gap_seconds_per_usable_monitor_day": gap_s_day, "monitor_full_days_candidates": list(full_days),
         "median_units_with_any_print_per_full_day": full_day_median(by_day_any, usable) if enough else None,
         "median_units_with_fill_flow_print_per_full_day": full_day_median(by_day_fill, usable) if enough else None,
         "median_note": f"medians use only full UTC days inside the monitor's cycle lines whose unit windows are ALL covered; null if fewer than {MONITOR_MIN_DAYS} such days (a missing day is never a measured zero)",
@@ -1214,7 +1233,7 @@ def run_map(snapshot_roots: list[Path], engine_root: Path, monitor_root: Path | 
 
 def line_1(sp: SidecarPass) -> dict:
     s = sp.sem
-    keys = ("groups_total", "siblings_total", "siblings_identical", "siblings_unstatused", "siblings_other_status", "groups_with_unstatused_sibling", "groups_all_siblings_identical", "groups_all_siblings_unstatused")
+    keys = ("groups_total", "siblings_total", "siblings_ext_missing", "siblings_identical", "siblings_unstatused", "siblings_other_status", "groups_with_unstatused_sibling", "groups_all_siblings_identical", "groups_all_siblings_unstatused")
     r_all, r_scope = semantics_reading(sp.sem_grp), semantics_reading(sp.sem_grp_scope)
     sg, sgs = sp.sem_grp, sp.sem_grp_scope
     multi = sum(1 for g in sp.ev_groups.values() if len(g) > 1)
@@ -1225,9 +1244,12 @@ def line_1(sp: SidecarPass) -> dict:
         "reading_rule": SEMANTICS_RULE_TEXT,
         "first_appearance_group_counts_in_scope": {k: sgs.get(k, 0) for k in keys},
         "first_appearance_group_counts_all_categories": {k: sg.get(k, 0) for k in keys},
-        "identical_sibling_share_in_scope": safe_div(sgs.get("siblings_identical", 0), sgs.get("siblings_total", 0)), "identical_sibling_share_all_categories": safe_div(sg.get("siblings_identical", 0), sg.get("siblings_total", 0)),
-        "groups_with_unstatused_sibling_share_in_scope": safe_div(sgs.get("groups_with_unstatused_sibling", 0), sgs.get("groups_total", 0)),
-        "groups_with_unstatused_sibling_share_all_categories": safe_div(sg.get("groups_with_unstatused_sibling", 0), sg.get("groups_total", 0)),
+        "identical_sibling_share_I_in_scope": safe_div(sgs.get("siblings_identical", 0), sgs.get("siblings_total", 0) - sgs.get("siblings_ext_missing", 0)),
+        "identical_sibling_share_I_all_categories": safe_div(sg.get("siblings_identical", 0), sg.get("siblings_total", 0) - sg.get("siblings_ext_missing", 0)),
+        "siblings_ext_missing_left_out_of_every_share": {"in_scope": sgs.get("siblings_ext_missing", 0), "all_categories": sg.get("siblings_ext_missing", 0)},
+        "reading_constants": {"I_event_level_min": SEM_EVENT_LEVEL_IDENTICAL_MIN, "U_event_level_max": SEM_EVENT_LEVEL_U_MAX, "U_per_market_min": SEM_PER_MARKET_U_MIN, "min_groups": SEM_MIN_GROUPS},
+        "groups_with_unstatused_sibling_share_U_in_scope": safe_div(sgs.get("groups_with_unstatused_sibling", 0), sgs.get("groups_total", 0)),
+        "groups_with_unstatused_sibling_share_U_all_categories": safe_div(sg.get("groups_with_unstatused_sibling", 0), sg.get("groups_total", 0)),
         "events_spanning_more_than_one_neg_risk_group": {"distinct_events_with_a_group": len(sp.ev_groups), "distinct_events_spanning_gt_1_group": multi,
                                                          "event_captures_with_a_group": sp.ev_with_group_captures, "event_captures_spanning_gt_1_group": sp.ev_multi_group_captures},
         "status_list_length_vs_neg_risk_group_size": {k: sp.sem_len_vs_size.get(k, 0) for k in ("len_lt_group_size", "len_eq_group_size", "len_gt_group_size")},
@@ -1323,7 +1345,10 @@ def line_8(sp: SidecarPass, full_days: list[str], span_days: float) -> dict:
 
     n_events = len(sp.first_seen_events)
     unit_events = len({u["event"] for u in U})
-    disp_events = len({r["event"] for r in runs_scope})
+    disp_set = {r["event"] for r in runs_scope}
+    disp_events = len(disp_set)
+    denom_events = sp.first_seen_events | disp_set
+    missing_from_old = len(disp_set - sp.first_seen_events)
     return {
         "proposal_units_total": len(U), "by_insurance_class": {c: n_cls.get(c, 0) for c in cls}, "units_a_day_by_insurance_class": {c: dict(sorted(per_day[c].items())) for c in cls},
         "median_per_full_day_by_insurance_class": {c: full_day_median(per_day[c], full_days) for c in cls},
@@ -1339,8 +1364,10 @@ def line_8(sp: SidecarPass, full_days: list[str], span_days: float) -> dict:
         "disputed_runs_resumed_after_a_missing_capture": sp.disp_resumed_after_missing,
         "proposal_events_in_scope_first_seen_rows": n_events, "proposal_events_of_m1_units": unit_events,
         "disputed_distinct_events_in_scope": disp_events,
-        "disputes_share_of_proposal_events_first_seen_rows": safe_div(disp_events, n_events), "disputes_share_of_proposal_events_of_m1_units": safe_div(disp_events, unit_events),
-        "share_numerator": "distinct events with a disputed first appearance in scope (not markets), over distinct proposal events",
+        "proposal_events_denominator_first_seen_union_disputed": len(denom_events), "disputed_events_missing_from_first_seen_denominator": missing_from_old,
+        "disputes_share_of_proposal_events": safe_div(disp_events, len(denom_events)),
+        "disputes_share_of_proposal_events_old_first_seen_denominator": safe_div(disp_events, n_events), "disputes_share_of_proposal_events_of_m1_units": safe_div(disp_events, unit_events),
+        "share_numerator": "distinct events with a disputed first appearance in scope (not markets), over (events with a first-seen proposal row in scope) union (the disputed events), all in scope and in the window",
         "lingering_and_absent_at_k_plus_1_shares": "not computed: they need the dispute target and the listing after k for a unit (a post-k state), which section E (8) does not name; the first-appearance and duration counts above are the whole of (8)'s state reads",
         "definitions": "units = M1's (J0Pass) first capture showing a proposal, two-sided, favoured side >= 0.90; disputed state = the sidecar status list contains 'disput'; first appearance = first capture of a market's first contiguous run; duration = captures in that run",
     }
@@ -1359,7 +1386,7 @@ def decisions(er: dict, l1: dict, l5: dict, l6: dict, l7: dict, l8: dict) -> dic
     # mixed -> null (never False); event_level -> False; any null count -> null
     c273 = None if b6 is None or sem is None or sem == "mixed" else bool(b6 >= LINES["ch273_drafted_if_two_sided_b_units_a_day_at_least"] and sem == "per_market")
     ins_s = l8["insured_units_scaled_to_21_days"]
-    dis = l8["disputes_share_of_proposal_events_first_seen_rows"]
+    dis = l8["disputes_share_of_proposal_events"]
     c275 = None if ins_s is None or dis is None else bool(ins_s >= LINES["ch275_census_if_insured_units_scaled_to_21_days_at_least"] and dis >= LINES["ch275_census_if_disputes_share_of_proposal_events_at_least"])
     return {
         "ch270": {"share_rows_in_events_co_n_ge_3": share3, "median_within_event_sd_s_2h": sd3, "built": c270},

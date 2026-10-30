@@ -60,7 +60,7 @@ def M(mid, ev, bid, ask, uma="[]", grp="", created=OLD, end=FAR, cat="politics",
     return dict(mid=mid, ev=ev, bid=bid, ask=ask, uma=uma, grp=grp, created=created, end=end, cat=cat, liq=liq)
 
 
-def world(k, ev_level=False, mut=False, ctl=False):
+def world(k, ev_level=False, mut=False, ctl=False, drop61=False):
     L = []
     if k <= 18:  # group g1: A = 11 is proposed at k = 16 and leaves the listing at k = 19; B = 12, 13, 14 never carry a status of their own
         ab = (0.50, 0.52) if (mut and k > 16) else (0.94, 0.96)
@@ -92,10 +92,10 @@ def world(k, ev_level=False, mut=False, ctl=False):
     if k <= 6:
         L.append(M(52, "ev52", 0.50, 0.52, DISP if k <= 3 else "[]"))
     # crossings
-    if mut and k > 28:
-        L.append(M(61, "ev61", 0.50, 0.52, PROP))
+    if mut and (k > 28 or 25 < k < 28):  # market 61 crosses at k = 25: everything after it is altered (prices from k = 26, the proposal state from k = 29)
+        L.append(M(61, "ev61", 0.50, 0.52, PROP if k > 28 else "[]"))
     else:
-        L.append(M(61, "ev61", 0.94 if k >= 25 else 0.90, 0.96 if k >= 25 else 0.92, PROP if k >= 28 else "[]"))
+        L.append(M(61, "ev61", 0.94 if k >= 25 else 0.90, 0.96 if k >= 25 else 0.92, PROP if (k >= 28 and not drop61) else "[]"))
     if k >= 20:
         L.append(M(62, "ev62", *((0.50, 0.52) if (mut and k > 20) else (0.96, 0.97)), created=iso(tcap(20) - timedelta(hours=1))))
     L.append(M(63, "ev63", 0.96, 0.97))
@@ -217,7 +217,7 @@ def build(base: Path, **kw):
     base = base / "research_lab"
     snaps, eng, mon = base / "snapshots", base / "signal_engine", base / "live_trades"
     snaps.mkdir(parents=True)
-    write_snapshots(snaps, range(N), **{k: v for k, v in kw.items() if k in ("ev_level", "mut", "ctl")})
+    write_snapshots(snaps, range(N), **{k: v for k, v in kw.items() if k in ("ev_level", "mut", "ctl", "drop61")})
     write_engine(eng, range(N + 1), mut=kw.get("mut", False))
     if kw.get("aux", True):
         write_aux_rules(eng, range(N + 1), mut=kw.get("mut", False))
@@ -243,15 +243,15 @@ def result(store):
 # --------------------------------------------------------------------------------------------------------------- lines
 
 
-def test_field_semantics_is_the_first_line_and_per_market(result):
+def test_field_semantics_is_the_first_line_and_null_below_20_groups(result):
     keys = list(result)
     assert keys[:3] == ["version", "kind", "line_1_field_semantics"]
     l1 = result["line_1_field_semantics"]
-    assert l1["semantics_reading"] == "per_market" and l1["semantics_reading_all_categories"] == "per_market"
+    assert l1["semantics_reading"] is None and l1["semantics_reading_all_categories"] is None  # one group is fewer than the 20 the rule needs
     gc = l1["first_appearance_group_counts_in_scope"]  # market 11 first shows a proposal at k = 16 in a group of 4
     assert gc["groups_total"] == 1 and gc["siblings_total"] == 3 and gc["siblings_unstatused"] == 3 and gc["siblings_identical"] == 0 and gc["groups_with_unstatused_sibling"] == 1
     assert l1["first_appearance_group_counts_all_categories"] == gc  # the sports market 71 is not in a group
-    assert l1["groups_with_unstatused_sibling_share_in_scope"] == 1.0 and l1["identical_sibling_share_in_scope"] == 0.0
+    assert l1["groups_with_unstatused_sibling_share_U_in_scope"] == 1.0 and l1["identical_sibling_share_I_in_scope"] == 0.0 and gc["siblings_ext_missing"] == 0
     assert l1["reading_rule"] == m.SEMANTICS_RULE_TEXT and l1["events_spanning_more_than_one_neg_risk_group"]["distinct_events_spanning_gt_1_group"] == 0
     # the proposal of A (list length 1) in a group of 4 at k = 16, 17, 18; the member count with a status is 1
     assert l1["status_list_length_vs_neg_risk_group_size"]["len_lt_group_size"] == 3
@@ -262,28 +262,36 @@ def test_field_semantics_is_the_first_line_and_per_market(result):
 def test_field_semantics_event_level_reading_and_no_b_units(tmp_path):
     res = run(build(tmp_path, ev_level=True))
     l1 = res["line_1_field_semantics"]
-    assert l1["semantics_reading"] == "event_level" and l1["identical_sibling_share_in_scope"] == 1.0 and l1["first_appearance_group_counts_in_scope"]["groups_all_siblings_identical"] == 1
+    assert l1["semantics_reading"] is None and l1["identical_sibling_share_I_in_scope"] == 1.0 and l1["first_appearance_group_counts_in_scope"]["groups_all_siblings_identical"] == 1
     assert l1["group_captures"]["groups_all_statused_members_identical_string"] >= 1
     assert res["line_6_b_units"]["b_units_total"] == 0 and res["line_6_b_units"]["b_candidate_classes_excluded_or_counted"]["own_status_at_k"] == 3
-    assert res["decisions"]["ch273"]["drafted"] is False
+    assert res["decisions"]["ch273"]["drafted"] is None  # one group: null, never False
 
 
 def test_semantics_reading_rule_and_decisions_mixed_is_null(result):
     C = __import__("collections").Counter
-    assert m.semantics_reading(C()) is None and m.semantics_reading(C(groups_total=1)) is None
-    ev = C(groups_total=10, siblings_total=100, siblings_identical=100, groups_with_unstatused_sibling=0)
-    assert m.semantics_reading(ev) == "event_level"
-    assert m.semantics_reading(C({**ev, "siblings_identical": 98})) == "mixed"  # 98% is not about 100%, and no group lacks a status
-    pm = C(groups_total=10, siblings_total=100, siblings_identical=5, groups_with_unstatused_sibling=5)
-    assert m.semantics_reading(pm) == "per_market"  # exactly the declared 0.5 share
-    assert m.semantics_reading(C({**pm, "groups_with_unstatused_sibling": 4})) == "mixed"
-    assert m.semantics_reading(C(groups_total=10, siblings_total=100, siblings_identical=100, groups_with_unstatused_sibling=6)) == "mixed"  # both conditions
-    assert "mixed" in m.SEMANTICS_RULE_TEXT and str(m.SEM_PER_MARKET_GROUP_SHARE) in m.SEMANTICS_RULE_TEXT and str(m.SEM_EVENT_LEVEL_IDENTICAL_MIN) in m.SEMANTICS_RULE_TEXT
+
+    def grp(g, u, ident, unst=0, other=0):  # g groups, u of them with an unstatused sibling; sibling counts with an ext row
+        return C(groups_total=g, groups_with_unstatused_sibling=u, siblings_identical=ident, siblings_unstatused=unst, siblings_other_status=other, siblings_total=ident + unst + other + 7, siblings_ext_missing=7)
+
+    assert m.semantics_reading(C()) is None and m.semantics_reading(grp(19, 19, 100, 5)) is None  # fewer than 20 groups -> null, whatever the shares
+    assert m.semantics_reading(grp(20, 1, 100, 1)) == "per_market"  # U = 1/20 = 0.05 exactly: the edge is inclusive
+    assert m.semantics_reading(grp(100, 5, 10, 90)) == "per_market"
+    assert m.semantics_reading(grp(100, 0, 100)) == "event_level"  # U = 0, I = 1
+    assert m.semantics_reading(grp(100, 1, 99, other=1)) == "event_level"  # U = 0.01 (inclusive), I = 0.99 (inclusive)
+    assert m.semantics_reading(grp(100, 1, 98, other=2)) == "mixed"  # I = 0.98
+    assert m.semantics_reading(grp(100, 2, 100)) == "mixed"  # 0.01 < U < 0.05
+    assert m.semantics_reading(grp(100, 4, 100)) == "mixed"
+    assert m.semantics_reading(C(groups_total=100, groups_with_unstatused_sibling=0, siblings_total=7, siblings_ext_missing=7)) == "mixed"  # every sibling ext_missing: I undefined, never event_level
+    assert m.SEM_MIN_GROUPS == 20 and (m.SEM_EVENT_LEVEL_U_MAX, m.SEM_PER_MARKET_U_MIN, m.SEM_EVENT_LEVEL_IDENTICAL_MIN) == (0.01, 0.05, 0.99)
+    assert m.LINES["semantics_null_if_groups_fewer_than"] == 20 and m.LINES["semantics_per_market_if_groups_with_unstatused_sibling_share_U_at_least"] == 0.05
+    assert m.SEMANTICS_RULE_TEXT.startswith("Unit: a neg-risk group") and "ext_missing" in m.SEMANTICS_RULE_TEXT and "U \u2265 0.05 \u2192 per_market" in m.SEMANTICS_RULE_TEXT
     er = {"line_3_negrisk_events_ge3": result["line_3_negrisk_events_ge3"], "line_4_k_plus_1_state": result["line_4_k_plus_1_state"]}
     l1 = result["line_1_field_semantics"]
     big_b = dict(result["line_6_b_units"], median_two_sided_b_units_per_full_day=40.0)
     args = (er, l1, result["line_5_monitor_prints"], big_b, result["line_7_near_certain_first_crossings"], result["line_8_insurance_and_disputes"])
-    assert m.decisions(*args)["ch273"]["drafted"] is True
+    assert m.decisions(*args)["ch273"]["drafted"] is None  # the fixture has one group, fewer than the 20 the rule needs: null
+    assert m.decisions(er, dict(l1, semantics_reading="per_market"), *args[2:])["ch273"]["drafted"] is True
     assert m.decisions(er, dict(l1, semantics_reading="mixed"), *args[2:])["ch273"]["drafted"] is None  # never False
     assert m.decisions(er, dict(l1, semantics_reading="event_level"), *args[2:])["ch273"]["drafted"] is False
     assert m.decisions(er, dict(l1, semantics_reading=None), *args[2:])["ch273"]["drafted"] is None
@@ -374,7 +382,7 @@ def test_line_6_b_units(result):
     assert l6["two_sided_bid_moved_vs_unmoved_k_minus_1_to_k"] == {"moved": 1, "unmoved": 1}  # 14 moved, 12 did not
     assert l6["E_B"]["b_units_in_engine_eligible_form"] == 1  # 14 (mid 0.31); 12 sits under 0.02
     assert l6["median_two_sided_b_units_per_full_day"] == 1.0  # [2, 0]
-    assert result["decisions"]["ch273"]["drafted"] is False  # 1 against the 25 a day line
+    assert result["decisions"]["ch273"]["drafted"] is None  # semantics null (one group, below the 20 minimum): never False
 
 
 def test_line_7_crossings(result):
@@ -405,10 +413,50 @@ def test_line_8_insurance_classes_and_disputes(result):
     assert l8["disputed_state_first_appearances_in_scope"] == 1 and l8["disputed_already_present_at_feed_start_excluded"] == 1
     assert l8["duration_in_captures_in_scope"] == {"ended_runs": 1, "median_captures": 3.0, "max_captures": 3, "right_censored_runs": 0}
     assert l8["proposal_events_in_scope_first_seen_rows"] == 9
-    assert l8["disputes_share_of_proposal_events_first_seen_rows"] == pytest.approx(1 / 9) and l8["disputed_distinct_events_in_scope"] == 1
+    assert l8["disputes_share_of_proposal_events"] == pytest.approx(1 / 9) and l8["disputed_distinct_events_in_scope"] == 1
+    assert l8["proposal_events_denominator_first_seen_union_disputed"] == 9 and l8["disputed_events_missing_from_first_seen_denominator"] == 0
     assert l8["of_which_preceded_by_a_proposal_state_in_the_feed"] == 1
     assert result["decisions"]["ch275"]["goes_to_census"] is False  # 52.5 insured units scaled to 21 days against the 100 line
     assert "1 - bid" in l8["insurance_class_definition"]["ins_k"]
+
+
+def _prop_ext(code, uma, cat=None):
+    return (code, "propos" in uma, 1, cat or m.SCOPE, 0.0, 0.0, False, uma if code else "")
+
+
+def test_semantics_ext_missing_sibling_is_left_out_of_every_share():
+    sp = m.SidecarPass(0.0, 1.0, None, 0)
+    sp.prev_state = {i: (0.5, 0.6, 0) for i in (1, 2, 3, 4)}
+    cur = {i: (0.5, 0.6, "ev", "g", f"c{i}", 0, 0, 0, f"C{i}") for i in (1, 2, 3, 4)}
+    ext = {1: _prop_ext(1, "proposed"), 2: _prop_ext(1, "proposed"), 3: _prop_ext(0, "")}  # 4 has no rows_ext row
+    sp._semantics(ext, cur, {"g": [1, 2, 3, 4]}, True)
+    c = sp.sem_grp_scope
+    assert (c["groups_total"], c["siblings_total"], c["siblings_ext_missing"], c["siblings_identical"], c["siblings_unstatused"], c["siblings_other_status"]) == (1, 3, 1, 1, 1, 0)
+    assert c["groups_with_unstatused_sibling"] == 1
+    # a group whose only unflagged sibling has no ext row is not an unstatused group
+    sp2 = m.SidecarPass(0.0, 1.0, None, 0)
+    sp2.prev_state = {1: (0.5, 0.6, 0), 2: (0.5, 0.6, 0)}
+    sp2._semantics({1: _prop_ext(1, "proposed")}, {i: (0.5, 0.6, "ev", "g", f"c{i}", 0, 0, 0, f"C{i}") for i in (1, 2)}, {"g": [1, 2]}, True)
+    assert sp2.sem_grp["siblings_ext_missing"] == 1 and sp2.sem_grp["siblings_unstatused"] == 0 and sp2.sem_grp["groups_with_unstatused_sibling"] == 0
+
+
+def test_line_6_ext_missing_is_its_own_class():
+    sp = m.SidecarPass(0.0, 1.0, None, 0)
+    cur = {1: (0.5, 0.6, "ev", "g", "c1", 0, 0, 0, "C1"), 2: (0.5, 0.6, "ev", "g", "c2", 0, 0, 0, "C2"), 3: (0.5, 0.6, "ev", "g", "c3", 0, 0, 0, "C3")}
+    ext = {1: _prop_ext(1, "proposed"), 3: _prop_ext(0, "", cat="sports")}  # 2: no ext row; 3: out of scope category
+    u = {"mid": 1, "day": "2026-10-17", "side": "YES", "row_rec": math.nan, "ext_rec": math.nan, "tier": "t", "event": "ev"}
+    sp._new_unit(u, cur, ext, {"g": [1, 2, 3]}, False, 0.0)
+    assert sp.b_classes["ext_missing"] == 1 and sp.b_classes["out_of_scope_category"] == 1 and sp.b_classes["b_unit"] == 0
+
+
+def test_line_8_denominator_is_the_union_of_first_seen_and_disputed_events():
+    sp = m.SidecarPass(0.0, 1.0, None, 0)
+    sp.first_seen_events = {"e1", "e2", "e3"}
+    sp.disp_runs = {10: {"counted": True, "pre_existing": False, "cat": m.SCOPE, "event": "e1", "day": "d", "after_proposal": False, "len": 1, "ended": True, "censored": False},
+                    11: {"counted": True, "pre_existing": False, "cat": m.SCOPE, "event": "e9", "day": "d", "after_proposal": False, "len": 1, "ended": True, "censored": False}}
+    l8 = m.line_8(sp, [], 1.0)
+    assert l8["proposal_events_denominator_first_seen_union_disputed"] == 4 and l8["disputed_events_missing_from_first_seen_denominator"] == 1
+    assert l8["disputes_share_of_proposal_events"] == pytest.approx(2 / 4) and l8["disputes_share_of_proposal_events_old_first_seen_denominator"] == pytest.approx(2 / 3)
 
 
 def _ext(*mids, uma="disputed"):
@@ -437,6 +485,9 @@ def test_dispute_runs_reappearance_once_and_missing_capture_censors(tmp_path):
     assert sp.disp_runs[2]["censored"] and not sp.disp_runs[2]["ended"]
     step(9, _ext(2), missing=True)  # the market is back after the missing captures: a resume, not a re-appearance
     assert sp.disp_reappear == 2 and sp.disp_resumed_after_missing == 1 and sp.disp_runs[2]["len"] == 7
+    step(10, {}, missing=True)  # a second gap, then a second resume: still a resume, never a re-appearance
+    step(12, _ext(2), missing=True)
+    assert sp.disp_reappear == 2 and sp.disp_resumed_after_missing == 2
     assert sp.disp_runs[1]["event"] == "evX"
 
 
@@ -478,6 +529,13 @@ def test_no_post_k_value_changes_the_counts(tmp_path, result):
                  "line_7_near_certain_first_crossings", "line_8_insurance_and_disputes"):
         assert res2[line] == result[line], line
     assert res2["decisions"] == result["decisions"]
+
+
+def test_line_7_does_not_read_the_later_proposal_of_market_61(tmp_path, result):
+    # market 61 crosses at k = 25 and first shows a proposal at k = 28; with that later proposal removed the crossing line must be identical
+    res2 = run(build(tmp_path, drop61=True))
+    assert res2["line_7_near_certain_first_crossings"] == result["line_7_near_certain_first_crossings"]
+    assert res2["line_8_insurance_and_disputes"]["proposal_units_total"] == result["line_8_insurance_and_disputes"]["proposal_units_total"] - 1  # the control: line 8 does see it
 
 
 def test_positive_control_the_k_plus_1_surviving_price_does_move_line_4(tmp_path, result):
