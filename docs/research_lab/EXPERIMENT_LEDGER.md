@@ -4859,3 +4859,19 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **CH264 (M2) REVISE:** two exclusions use post-k information (moved `end_date`, closed at k + 1); the ambiguity vs
   inattention contrast can only be descriptive; `not_found` reported both ways; event-clustered SEs.
 - Next: CH269 map (counts) decides which of M1 / M2 / LT14 / LT15 are drafted.
+
+## LT13 final verification and DESIGN-TEXT FREEZE, 2026-10-30 ~04:00Z (experiments autopilot; nothing counted)
+- Final pre-freeze verification (`reviews/LT13_FINAL_PREFREEZE_VERIFICATION_2026-10-30.md`) of 3fec80a3: R1-full MUST 1-2 and
+  SHOULD 1-5 discharged; no threshold, alpha, window, MDE target, placebo or estimand changed; **FREEZE_AFTER_FIXES (wording)**:
+  the aliased-controls rule drops a column only if it is in the span of the retained ones, and declares its end states
+  (still rank-deficient after the three groups, or `zs_bt` aliased -> `NaN`, counted `unavailable`). Applied in the freeze
+  commit; orchestrator checked the diff (the rule bullet and the status block only).
+- **LT13 DESIGN TEXT FROZEN:** `LIVE_TESTS_13.md` at **d940c0ab**, sha256 **`ae594aa1a81aa93591d98f3210d907dff4df47ee3ad1dc0bbd44c5dccf59f738`**, 1239 lines. One Holm family, **k <= 1:
+  CH253** (the listing batch); CH252 `withdrawn_pre_census (fee reading unresolved)` (1.4.3 rule (b), q0717). CH253 carries
+  *informed (q0717)*. Scope `non_sports_ex_crypto` (no owner sports decision recorded). Proposed window
+  2027-01-21T00:00Z .. 02-11T00:00Z (never earlier; slides with LT9), analysis on or after 2027-02-12T12:00Z. Planning prior:
+  P(no test) 0.90.
+- Engine: the round-18 CANDIDATES request for `batch` (CH253) applies at this freeze (signal-engine autopilot applies tokens);
+  `payreturn` (CH252) lapsed with the withdrawal.
+- **Next:** stage-A census code (origin-side unit builders, batch join, pseudo-batch rule, twin-state loader, states only; the
+  refuse / print lists of section 6), its independent code-freeze check, then the census job per section 6.
