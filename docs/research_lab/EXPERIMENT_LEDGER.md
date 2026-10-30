@@ -5231,3 +5231,11 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - Snapshot retention is currently 12 days (back to 8 after q0147c), so no span sidecar is deleted before ~11-19 at 12 days.
 - **q0740 (schema / input-clock pre-check) promoted** (schemas and registry only, no value read). F1-F3 delegated on
   `feat/lt14-code`; q0741 / q0742 / q0743 stay drafts.
+
+## M2 rulings applied (text + code); q0733b (M2-J0) promoted, 2026-10-30 ~09:20Z (experiments autopilot; counts only, k = 0, uncounted)
+- `feat/m2-j1-code` 33ab9687 (merged f3786f79): W1-W16 in `MEASUREMENT_M2_CH264.md` (DRAFT, sha256 `690d7da5…61e3`; eight pinned
+  files incl. `cb13_label`; section 20 maps the rulings); code N1-N5 and rulings 6, 7, 8, 12, 15 (`m2_j1.py` `c0538322…51dc`,
+  `run_m2_j0.py` `c0e4d061…793d`; 32 M2 tests, 12 failing on the pre-ruling code). Rule (e) is computed (no manual mode);
+  J1 keeps an append-only rule ledger. J0 look-back fixed at 12 slots (declared before any J0 output).
+- **q0733b promoted** (supersedes the cancelled q0733, which wrote nothing). Its only effects: rules (a) / (e) and the cell
+  distribution record; then final verification and the freeze by 2026-11-16.
