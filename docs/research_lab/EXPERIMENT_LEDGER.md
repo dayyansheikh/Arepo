@@ -5813,3 +5813,12 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **E026 skillset pin verified (read-only):** `model_specs/copy_skilled_v1.json` `skillset_sha256` `8120c12e…0f46` equals the
   sha256 of the host's `copy_skilled/skillset/skillset.csv.gz` and its manifest's `sha256` (frozen 2026-10-21T15:14:02Z by
   q0540). Nothing else read.
+
+## E011 analysis prep: registered code changed after registration (found, not acted on), 2026-10-30 18:27Z (experiments autopilot; no E011 outcome read)
+- Preparing E011's one-shot analysis wrapper, the implementer stopped as instructed: registered `surprise_snapshot.py`
+  (registration commit 3e628ec3, 10-13) changed twice: **ed7dea22** (10-19 cluster fix; already a logged, accepted pre-outcome
+  deviation that the analysis must include) and **afd67c3a** (10-15 archive-aware `load_capture`: `require_local` restores a
+  missing extension file from the archive) with **no deviation entry**. `run_surprise_snapshot.py`, `detector_eval.py`,
+  `surprise_moves.py` and `FROZEN_SURPRISE_SNAPSHOT.json` are unchanged. Nothing written, no wrapper, no queue job yet.
+- Ruling requested (`science-reviewer`): effect of afd67c3a on the analysed records, which version to pin, the retroactive
+  deviation text, the pin list. Analysis not before 2026-11-11T13:00Z (job not_before >= 13:30Z).
