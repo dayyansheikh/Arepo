@@ -1,0 +1,6 @@
+# --- CB12-O option-chain digital collector (docs/research_lab/CREATIVE_BATCH_12.md CB12-O, sections 2.8 and 11; q0261). Install after the part-O freeze is committed; remove when window 2 has closed (cap 2027-05-31). ---
+# The runner refuses (exit 2) before the O entry of backend/astrolabe/research_lab/model_specs/cb12_v1.json exists. Idempotent per call (lock; a second call returns busy); a checkpoint runs at the first call
+# in [t_c, t_c + 20 min) of 11:00 / 13:00 / 15:00 ET on regular sessions; a missed one is 'unavailable (collection)', never back-filled. flock -n keeps one call at a time; timeout 900 bounds a hung call
+# (a checkpoint is <= 450 requests, <= 5 minutes at 2 rps).
+*/5 13-21 * * 1-5 cd /home/opc/arepo/backend && flock -n /tmp/arepo_cb12_opt_live.lock timeout 900 nice -n 5 /home/opc/arepo/.venv/bin/python scripts/run_cb12.py opt-live --rules ../docs/research_lab/seals/cb12_rules.json --rps 2 --disk-cap-gb 0.3 --data-dumps-cap-gb 40 >> /home/opc/arepo_collector/logs/cb12-opt-live.log 2>&1
+# --- end CB12-O ---

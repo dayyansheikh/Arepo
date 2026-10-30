@@ -1,0 +1,180 @@
+# ruff: noqa: E501
+"""Generate ``astrolabe/research_lab/live_tests8_base.py``: unmodified copies of the LT3/LT4/LT5/LT7 functions that LT8's code
+phase 1 (the seal and the counts-only censuses) uses (LIVE_TESTS_8.md 8.1, R1 must-fix 5; the same mechanism as
+``vendor_lt7_base.py``).
+
+Sources (LIVE_TESTS_8.md 8.1: "vendor from the LT7 census code that wrote LT7's seal"): ``live_tests7_base.py`` (which already holds
+unmodified, prefix-free copies of the LT3/LT4/LT5 functions; each name's original source file and hash is carried in ``VENDORED``
+as ``origin``) and ``live_tests7.py`` (the LT7 helpers). The script REFUSES unless the raw sha256 of both sources equals the hashes
+that LT7's censuses q0602-q0604 run on after amendment 13.7 (e1c5c0c6... and 2e8baa90... at 8dd013b9; LT7's seal recorded 232c22fb... for ``live_tests7.py``, LIVE_TESTS_8.md 8.1), so a drifted LT7 file is never
+vendored. The only change to a copied source is the removal of the module prefix (``b.`` for ``live_tests7.py``, the alias of its
+vendored base; nothing for ``live_tests7_base.py``, which is flat). Provenance per name: the source file, the source file's sha256
+at copy time, the prefix regex and the sha256 of the prefix-normalised function source; ``test_research_lab_live_tests8.py``
+re-checks them. Run once; re-running overwrites the base (only before the pin).
+
+Names of 8.1's list that are NOT in the two pinned sources are not vendored here (they live in ``live_tests3_analysis.py`` /
+``live_tests3.py``, which are not hash-pinned for this vendoring, and no phase-1 census needs them): ``status_codes``, ``is_late``,
+``fit``, ``attrition``, ``lee_bounds``, ``paper_taker``, ``econ``, ``holm``. ``expanding_demean`` is reached through the vendored
+``demean`` (``bounce_decomp.expanding_demean``). LT5 R's reward parser is inline code in ``live_tests5.py`` (not a function); LT8's
+reward rule is new code (``live_tests8.reward_status``).
+
+    LT8_VENDOR_SRC=<dir with the two blobs from `git show 8dd013b9:backend/astrolabe/research_lab/<file>`> python scripts/vendor_lt8_base.py
+"""
+
+from __future__ import annotations
+
+import ast
+import hashlib
+import json
+import os
+import re
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parents[1] / "astrolabe" / "research_lab"
+OUT = HERE / "live_tests8_base.py"
+SRC = Path(os.environ["LT8_VENDOR_SRC"]) if os.environ.get("LT8_VENDOR_SRC") else HERE  # optional dir holding the two pinned blobs (git show 8dd013b9:...)
+SOURCE_PINS = {
+    "live_tests7.py": "e1c5c0c68f7c44d3d5038f9c28324008a4a8132e35f148721a33078d706766a0",
+    "live_tests7_base.py": "2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20",
+}
+SOURCE_COMMIT = "8dd013b9"  # the feat/lt7-reward-carry commit holding both pinned blobs (LT7 amendment 13.7, listed_carry24h_v2; CC7/CS7 run on it); recorded in VENDORED as source_commit
+PREFIX = {"live_tests7_base.py": r"(?!)", "live_tests7.py": r"\bb\."}  # (?!) never matches: the base is flat
+# LT8 census-code fix re-check R1: the live_tests7.py / live_tests7_base.py hash each LT7 census output may record. CV7 (q0602) ran before LT7 13.7 was
+# merged (chore 231696fc: live_tests7.py 2ee6a659...); CC7 / CS7 run on the 13.7 code e1c5c0c6.... Every vendored body CV7's results depend on is
+# byte-identical in the 2ee6a659 blob (tests/unit/test_research_lab_live_tests8.py). Any other (census, hash) pair refuses. Equal to live_tests8.LT7_CENSUS_CODE_ACCEPTED.
+ACCEPTED_CENSUS_CODE = {
+    "live_tests7.py": {"2ee6a6592890732d0951c23bd6913dd421a274c08a53410144c1e1eadcad5e27": ["CV7"],
+                       "e1c5c0c68f7c44d3d5038f9c28324008a4a8132e35f148721a33078d706766a0": ["CC7", "CS7"]},
+    "live_tests7_base.py": {"2e8baa9007f60d4c7d3553932906e8e9bac60aa43f35368ba7f2c1ff498c7e20": ["CC7", "CS7", "CV7"]},
+}
+
+PICK = {
+    "live_tests7_base.py": [
+        "epoch", "iso", "now_ts", "sha256_file", "git_commit", "_json", "append_jsonl", "dir_bytes", "du_bytes", "_truthy", "grid0", "slot_of",
+        "slot_time", "_manifest", "State", "scan_captures", "scan_sweeps", "fee_rates", "category_cols", "series_frame", "read_series", "_look", "_mid",
+        "tight_arr", "classify", "move_join", "token0_map", "project_events", "_days_of", "write_once_csv", "sweep_frame", "verify_files",
+        "capture_files", "sweep_files", "_eff", "_vif", "_ms", "_day", "design_effect", "block_anchor", "de_gate", "_family_rule", "_gate",
+        "cleanup_census", "demean", "_partial", "wcorr", "corr_ok", "design_ss", "mde_class", "mde_slope_design", "mde_slope_declared",
+        "_roots", "_scan", "_name_time", "sealed_dirs", "seal_completeness", "_read", "census_slots", "fold", "imbalance", "strata_of",
+        "shift_plan", "offset_range", "circular_shift", "block_fl_gate",
+    ],
+    "live_tests7.py": [
+        "_norm_cat", "crypto_class", "crypto_failsafe", "slot_in_day", "MidStore", "rv_from_matrix", "floored_rv", "_non_sports_ex_crypto", "_hte",
+        "_own24", "_in_band", "exact_t_sum", "mde_common", "block_min_units", "block_share", "resid_iqr", "iqr_ok", "terciles", "standardise", "_de",
+        "_gate_min_days", "_fam", "_per_market", "_events", "_tier_shares", "_share_by_tercile", "unit_overlaps", "_z", "_desc_splits",
+        "pair_correlations", "_merge_counts", "_fee_counts", "load_unavailable", "_dir_slot", "sealed_sweep_slots", "_movers_join", "_common_cols", "rewarded_x_in_band",
+        "_anatomy", "_base_out", "_utc_day", "_mid12",
+        # LIVE_TESTS_8.md 13.7 (reward-null rule listed_carry24h_v2, from LT7 13.7 and its erratum): the causal 12-slot carry and its counts
+        "_status_array", "_series_ids", "RewardCarry", "_reward_cols", "_in_band_carry_counts", "_carry_unit_cols", "_switch_distinct",
+    ],
+}
+
+HEADER = '''# ruff: noqa: E501, F401
+"""GENERATED by ``scripts/vendor_lt8_base.py``: do not edit by hand.
+
+Unmodified copies of the LT3/LT4/LT5/LT7 reader, census and analysis functions that LT8 uses (LIVE_TESTS_8.md 8.1; LT7 R1 must-fix
+10 and LT8 R1 must-fix 5), so that later LT3-LT7 maintenance cannot void LT8 lines. Sources: ``live_tests7_base.py`` and
+``live_tests7.py`` at the hashes LT7's censuses q0602-q0604 run on (e1c5c0c6... / 2e8baa90... at 8dd013b9, amendment 13.7; LT7's seal recorded 232c22fb... for live_tests7.py). The only change to each copy is the removal of the
+module prefix (``b.`` for the ``live_tests7.py`` sources). ``VENDORED`` records, per name, the source file, its sha256 at copy time,
+the prefix regex and the sha256 of the prefix-normalised source (and, for names that ``live_tests7_base.py`` itself vendored, the
+original LT3/LT4/LT5 file and hash as ``origin``); ``tests/unit/test_research_lab_live_tests8.py`` re-checks them. No LT8 module
+imports ``live_tests3`` .. ``live_tests7``.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import math
+import os
+import re
+import shutil
+import subprocess
+from datetime import UTC, datetime
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+from . import bounce_decomp as bd
+from . import cb13_label as lab
+from . import cb17_census, economics, forecast, maker_rewards, panel, trade_sample
+
+ROOT = forecast.ROOT
+REWARD_CARRY_SLOTS = 12  # live_tests7.REWARD_CARRY_SLOTS (the 13.7 carry window [k - 11, k]; used by the copied RewardCarry)
+GRID_S = 7200.0  # live_tests7_base.GRID_S
+SLOT_TOL_S = 1800.0  # live_tests7_base.SLOT_TOL_S
+DAY_S = 86400.0  # live_tests7_base.DAY_S
+# live_tests7_base.SNAP_COLS / EXT_COLS / SWEEP_COLS (used by the copied loaders)
+SNAP_COLS = ["market_id", "condition_id", "event_id", "received_utc", "closed", "active", "binary", "best_bid",
+             "best_ask", "spread", "last_trade_price", "chg_1h", "chg_1d", "chg_1w", "volume24hr", "end_date",
+             "neg_risk"]
+EXT_COLS = ["market_id", "fee_type", "fee_category", "fees_enabled", "fee_schedule", "order_price_min_tick_size",
+            "created_at", "series_slugs"]
+SWEEP_COLS = ["token_id", "market_id", "batch_receipt_utc", "best_bid", "best_ask", "state", "bid_size_1", "ask_size_1",
+              "depth_bid_1c", "depth_ask_1c", "depth_bid_5c", "depth_ask_5c", "min_order_size"]
+_NULL_LIKE = {"", "nan", "none", "null"}  # live_tests7._NULL_LIKE
+'''
+
+
+def normalised_sha(src: str, prefix: str) -> str:
+    return hashlib.sha256(re.sub(prefix, "", src).encode("utf-8")).hexdigest()
+
+
+def census_output_check() -> None:
+    """LIVE_TESTS_8.md 8.1: LT8 vendors from the hash LT7's censuses actually ran on. If LT7's census outputs (CC7* / CS7* / CV7* .json in
+    data-dumps/research_lab/live_tests7_census/, when present) record a live_tests7.py / live_tests7_base.py hash outside ``ACCEPTED_CENSUS_CODE`` for
+    that census (CV7: live_tests7.py 2ee6a659...; CC7 / CS7: e1c5c0c6...), refuse."""
+    d = HERE.parents[2] / "data-dumps" / "research_lab" / "live_tests7_census"
+    if not d.exists():
+        return
+    for pat in ("CC7*.json", "CS7*.json", "CV7*.json"):
+        for f in sorted(d.glob(pat)):
+            try:
+                ch = json.loads(f.read_text()).get("code_sha256") or {}
+            except (OSError, ValueError, AttributeError):
+                raise SystemExit(f"refusing: LT7 census output {f.name} is unreadable JSON; its code hash cannot be checked") from None
+            census = f.name[:3]
+            for name, ok in ACCEPTED_CENSUS_CODE.items():
+                if ch.get(name) and census not in ok.get(ch[name], []):
+                    raise SystemExit(f"refusing: LT7 census output {f.name} ran on {name} {ch[name]}, not an accepted hash for {census} ({sorted(k for k, v in ok.items() if census in v)}); re-vendor from that hash first (LIVE_TESTS_8.md 8.1)")
+
+
+def main() -> None:
+    census_output_check()
+    texts, fshas = {}, {}
+    for fname, want in SOURCE_PINS.items():
+        raw = (SRC / fname).read_bytes()
+        got = hashlib.sha256(raw).hexdigest()
+        if got != want:
+            raise SystemExit(f"refusing: {fname} sha256 {got} != the hash LT7's censuses q0602-q0604 run on {want} (LIVE_TESTS_8.md 8.1); nothing vendored")
+        texts[fname], fshas[fname] = raw.decode("utf-8"), got
+    # the original LT3/LT4/LT5 origin of every name the LT7 base itself vendored (its VENDORED table is read by text, not imported)
+    base_tree = ast.parse(texts["live_tests7_base.py"])
+    origin: dict = {}
+    for node in base_tree.body:
+        if isinstance(node, ast.Assign) and any(getattr(t, "id", None) == "VENDORED" for t in node.targets):
+            origin = json.loads(ast.get_source_segment(texts["live_tests7_base.py"], node.value))
+    parts, prov = [HEADER], {}
+    for fname, names in PICK.items():
+        text = texts[fname]
+        tree = ast.parse(text)
+        nodes = {n.name: n for n in tree.body if isinstance(n, (ast.FunctionDef, ast.ClassDef))}
+        parts.append(f"\n\n# --- from {fname} (sha256 {fshas[fname][:16]}...) " + "-" * 40 + "\n")
+        for name in names:
+            if name not in nodes:
+                raise SystemExit(f"{name} is not defined in {fname}")
+            if name in prov:
+                raise SystemExit(f"duplicate vendored name {name} ({prov[name]['source']} and {fname})")
+            src = ast.get_source_segment(text, nodes[name])
+            parts.append("\n\n" + re.sub(PREFIX[fname], "", src) + "\n")
+            prov[name] = {"source": fname, "source_sha256": fshas[fname], "prefix": PREFIX[fname], "normalised_sha256": normalised_sha(src, PREFIX[fname]), "source_commit": SOURCE_COMMIT}
+            if fname == "live_tests7_base.py" and name in origin:
+                prov[name]["origin"] = {"source": origin[name]["source"], "source_sha256": origin[name]["source_sha256"], "normalised_sha256": origin[name]["normalised_sha256"]}
+    parts.append("\n\nVENDORED = " + json.dumps(prov, indent=1, sort_keys=True) + "\n")
+    OUT.write_text("".join(parts))
+    print(f"wrote {OUT} ({len(prov)} names)")
+
+
+if __name__ == "__main__":
+    main()

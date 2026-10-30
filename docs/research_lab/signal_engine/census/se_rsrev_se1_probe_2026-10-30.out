@@ -1,0 +1,13 @@
+run start 2026-10-30T02:54:22.334377Z; model se1_lgbm_mm
+census window: slots 134..348; skipped captures {'no_prediction_or_features': 104, 'no_labelled_rows': 1}
+lag-1 pairs: 4,639,835 over 182,994 markets
+GATE  lag-1 residual autocorrelation (pooled Pearson) = -0.0021  [rsrev gate met if <= -0.02]
+   info: market-clustered bootstrap 95% CI [-0.0037, -0.0002] (B=400); market-demeaned Pearson -0.0327
+rs_2h_m6 rows: 2,801,008; coverage of dir_2h-eligible rows with >= 4 of 6 lags: 0.831
+   info: Pearson(rs_2h_m6, mo_chg_1d) = 0.1853
+   info: Pearson(rs_2h_l1, mo_d2h) = 0.5883 over 2,746,887 rows
+   info: partial Pearson given mo_d2h at k -0.0064 over 4,639,835 pairs
+   info: spread tercile low: Pearson 0.0004 n 1,741,248
+   info: spread tercile mid: Pearson -0.0036 n 1,389,673
+   info: spread tercile high: Pearson -0.0024 n 1,508,914
+gate as written (pooled lag-1 <= -0.02): GATE NOT MET (rsrev not built); peak RSS 1504 MB

@@ -1,0 +1,53 @@
+{
+ "id": "q0581_lt6_seal",
+ "title": "LT6 census seal (DRAFT): hash exactly the files the censuses open (host originals first, then the q0580 restore tree), each selected only if it is named in a source seal with an equal sha256, into seals/lt6_census_inputs.json; hashes bytes only, parses no rows, nothing at or after 2026-10-22T00:00Z",
+ "family": "live_tests_6",
+ "priority": 58,
+ "expected_value": "the LT6 input identity seal (design 7), committed before any LT6 census runs",
+ "data": [
+  "host originals ~/arepo/data-dumps/research_lab/{snapshots,book_sweeps} (read-only)",
+  "data-dumps/research_lab/live_tests6_census/restore (q0580; read-only)",
+  "data-dumps/research_lab/live_tests3_census/restore and live_tests4_census/restore (samples, captures; read-only)"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "lane": "net",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0580_lt6_census_restore"
+ ],
+ "argv": [
+  "scripts/run_live_tests6.py",
+  "seal",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests6_census/restore/data-dumps/research_lab/snapshots",
+  "--sweep-root",
+  "../data-dumps/research_lab/book_sweeps",
+  "--sweep-root",
+  "../data-dumps/research_lab/live_tests6_census/restore/data-dumps/research_lab/book_sweeps",
+  "--sample-root",
+  "../data-dumps/research_lab/live_tests6_census/restore/data-dumps/research_lab/trade_samples",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests5_census/restore/data-dumps/research_lab/snapshots",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests4_census/restore/data-dumps/research_lab/snapshots",
+  "--sample-root",
+  "../data-dumps/research_lab/live_tests3_census/restore/data-dumps/research_lab/trade_samples",
+  "--work",
+  "../data-dumps/research_lab/live_tests6_census/work_seal",
+  "--out",
+  "../data-dumps/research_lab/live_tests6_census/lt6_census_inputs.json"
+ ],
+ "timeout_s": 7200,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests6_census/lt6_census_inputs.json (the orchestrator copies it to docs/research_lab/seals/ and commits it)"
+ ],
+ "next_action": "orchestrator copies the output to docs/research_lab/seals/lt6_census_inputs.json, commits it and pulls it on the host; the censuses refuse a seal not tracked by git or differing from HEAD",
+ "notes": "PROMOTED 2026-10-22 ~01:25Z (autopilot): LT6 freeze-check re-check RECHECK_OK_WITH_FIXES (census path unaffected), fixes verified FIXES_OK_WITH_NOTES (N1 not reproduced; real-reader test added); LT6 merged into chore (7ebfcb8b). | FILLED 2026-10-22 ~01:15Z (orchestrator): extra roots LT5 restore (10-12 captures), LT4 restore (q0480) and LT3 samples (q0471); not_before 04:00Z so the seal is written after tonight's 03:30Z retention (a seal naming a host original deleted afterwards would make the census refuse). The seal must be committed before q0582. | DRAFT, not in queue/jobs (LIVE_TESTS_6.md, accepted for code only; the code is not yet frozen or reviewed). Promote only after the challenger review of the code and its freeze check. Counts 0 (descriptive; no trials line). The default source seals are the LT5 capture, LT3 C2 sample and LT4 capture seals under docs/research_lab/seals/ (the LT5 one is written by q0564, not yet committed when this draft was written). A hash mismatch against a source seal refuses the seal (exit 3); a capture with any file missing or not named in a source seal is not selected and its slot is counted missing, never substituted. Add the restore trees of LT3 (q0471) and LT4 (q0480) as further --sample-root / --snapshot-root arguments if they still exist (check before promotion). The seal must be committed before q0582.",
+ "not_before": "2026-10-22T04:00:00Z"
+}

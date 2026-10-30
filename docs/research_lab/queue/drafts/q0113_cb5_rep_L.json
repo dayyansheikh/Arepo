@@ -1,0 +1,37 @@
+{
+ "id": "q0113_cb5_rep_L",
+ "title": "CB5-L: replication on captures in [T5_rep_start, T5_rep_start+28d) (L1 if advanced; payoff gate read at T5_L_out)",
+ "family": "creative_batch_5",
+ "priority": 38,
+ "expected_value": "development replication (L2-dev) of CDF violations persistent at the touch",
+ "data": [
+  "cb5_extract/cdf (frozen replication capture list + sha256)",
+  "creative_batch5/outcomes_L.json (after fetch-outcomes at T5_L_out)"
+ ],
+ "resources": {
+  "mem_mb": 1000,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0109_cb5_screen_L_dev"
+ ],
+ "argv": [
+  "scripts/run_cb5.py",
+  "replicate",
+  "--family",
+  "L",
+  "--window",
+  "rep",
+  "--n-boot",
+  "2000"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 2,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch5/L_rep/results.json",
+  "trials.jsonl"
+ ],
+ "next_action": "batch Holm over the CB5 route Stage-2 set; ledger",
+ "notes": "DRAFT: the coordinator copies this to queue/jobs/ only after the science-reviewer CB5 freeze check of the code. Commit after T5_L_rep_end with the replication capture list; refuses before then. The payoff gate is read once outcomes_L.json exists (scripts/run_cb5.py fetch-outcomes --family L, refused before T5_L_out); until then a pass is recorded 'passed, pending verification, not credited'. Exits 0 'nothing advanced'."
+}

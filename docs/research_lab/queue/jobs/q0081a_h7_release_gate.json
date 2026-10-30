@@ -1,0 +1,22 @@
+{
+ "id": "q0081a_h7_release_gate",
+ "title": "Gate: CB4 h7 release re-check passed (series rules seal verified, refusals exit 75) \u2014 releases q0081f/q0082f frames",
+ "family": "gate",
+ "priority": 63,
+ "expected_value": "releases the T_seal-bound h7 frame jobs only after the reviewer verified condition (a) and items 5/6",
+ "data": [],
+ "resources": {
+  "mem_mb": 200,
+  "cpu": 1
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/cb1_h5.py",
+  "selfcheck"
+ ],
+ "timeout_s": 600,
+ "max_retries": 1,
+ "outputs": [],
+ "next_action": "q0081f/q0082f run; then the group-S amendment seal and gate q0081g release q0081/q0082",
+ "notes": "Coordinator gate 2026-10-17 ~05:10Z after the science-reviewer h7 release re-check (RELEASE_q0081a yes after must-fix 1: --data-dumps-cap-gb on the four h7 argvs). Series rules seal 719868e matches series_rules_doc() in-process (funcs 05ae3471, rule_text 77611e50). q0083b NOT promoted: create it on/after 2026-10-22T00:00Z (exiting 0 earlier would mark it done and fail q0083). Same trivial argv as q0080a."
+}

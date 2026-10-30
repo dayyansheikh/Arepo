@@ -1,0 +1,34 @@
+{
+ "capture_id": "20261017T063102Z_ae802eac",
+ "counts_only": true,
+ "criterion_a_http_ok": false,
+ "criterion_b_shape": false,
+ "criterion_c_rows_per_token_le_20": true,
+ "criterion_e_oi_units_label": "units consistent",
+ "criterion_f_key_fingerprint": true,
+ "criterion_g_paging": false,
+ "frame_size": 0,
+ "git_commit": "21e9bdc2dcbc72a8637e32e50d4e8e9be25b6609",
+ "max_rows_per_token": 0,
+ "n_gamma_lookup_failed": 0,
+ "n_http_not_ok": 0,
+ "n_http_ok": 0,
+ "n_nonempty": 0,
+ "n_oi_known": 0,
+ "n_oi_over_1_05": 0,
+ "n_requested": 0,
+ "oi_ratios": [],
+ "paging": {
+  "deep_offset": "no_market",
+  "pass": false
+ },
+ "pass": false,
+ "response_time_s": {
+  "max": null,
+  "median": null
+ },
+ "rules_sha256": "2b225da61c8676fa932d445e923e350eac204e493cb7972e0a9130680d576c09",
+ "run_utc": "2026-10-17T07:10:12Z",
+ "smoke_version": "cb8-holders-smoke-v1",
+ "wallet_key_fingerprint": "80ce5e81a539a570"
+}

@@ -1,0 +1,32 @@
+{
+ "id": "q0209_cb10_screen_B",
+ "title": "CB10-B: B1 (per-pair, census-frozen weights) and B2 (not-posted rule, size-capped trade-through fills, exit cost) Stage 1 on SCREEN events with label-swap placebo, pseudo attribution, worst-case missing marks and binding robustness",
+ "family": "creative_batch_10",
+ "priority": 30,
+ "expected_value": "B verdicts",
+ "data": [
+  "history/h10_brk/screen/"
+ ],
+ "resources": {
+  "mem_mb": 800,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0207_cb10_census"
+ ],
+ "argv": [
+  "scripts/run_cb10.py",
+  "screen",
+  "--family",
+  "B"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch10/results_B.json",
+  "trials.jsonl (cb10_test + creative_batch_10:B)"
+ ],
+ "next_action": "advanced: commit q0212",
+ "notes": "CB10 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. Rules file seals/cb10_rules_v2.json (freeze-check v2, supersedes cb10_rules.json) (rules_sha256 d422cc70... (file sha256 5ee0ea23...)). --data-dumps-cap-gb 40 (ops convention; design text says 14). Refuses to open holdout/."
+}

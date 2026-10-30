@@ -1,0 +1,410 @@
+{
+ "purpose": "LT3 census C2 inputs (LIVE_TESTS_3.md section 8, challenger R1 finding 3): the active-frame trade samples of the UTC days 2026-10-16 and 2026-10-17, restored byte for byte from the private data releases. sha256 values copied from each release's files.sha256 (whose own sha256 is listed in the release MANIFEST.sha256). Written 2026-10-20 before any LT3 census ran; counts-only use.",
+ "releases": {
+  "data-20261017-dsheikh": {
+   "files_sha256_sha256": "4ca5fc53e90a3ed32cc120496de913a08352a4f828680925c8331e5db8f46bdc"
+  },
+  "data-20261018-dsheikh": {
+   "files_sha256_sha256": "5771d2abfa1b61f59994ba8186971d24a308e491a5d354e0bd45e4139699ed6c"
+  },
+  "data-20261019-dsheikh": {
+   "files_sha256_sha256": "de90fc913936f5e5ac9d02e04534a1a3f98d0ac9cf0539254a2478ada1c748ac"
+  }
+ },
+ "samples": [
+  "20261016T004036Z_815f487b",
+  "20261016T024046Z_6c422852",
+  "20261016T044016Z_5d2acf56",
+  "20261016T064031Z_98c9c63d",
+  "20261016T084104Z_e13c618e",
+  "20261016T104101Z_b009d192",
+  "20261016T124109Z_d4fabfd0",
+  "20261016T144127Z_d24c37ac",
+  "20261016T164031Z_40fa5f84",
+  "20261016T184043Z_5266a718",
+  "20261016T204034Z_62f71dfd",
+  "20261016T224034Z_96ecc046",
+  "20261017T004123Z_09b78f1b",
+  "20261017T024024Z_6f05319f",
+  "20261017T064026Z_8b275738",
+  "20261017T084107Z_13e50af5",
+  "20261017T104030Z_362da62b",
+  "20261017T124025Z_03a211ef",
+  "20261017T144023Z_bbab0f6d",
+  "20261017T164016Z_9ae0ae47",
+  "20261017T184017Z_47763899",
+  "20261017T204002Z_904ac043",
+  "20261017T223942Z_a603c38e"
+ ],
+ "n_samples": 23,
+ "files": {
+  "data-dumps/research_lab/trade_samples/20261016T004036Z_815f487b/features.csv.gz": {
+   "sha256": "b6408370cddb37c37d0ddd0a8aaa731542c445a3b19a2b9adc229367ac770bca",
+   "release": "data-20261017-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T004036Z_815f487b/manifest.json": {
+   "sha256": "3328d44d68ea03e543abba3e422bf9c2b7a6fc7138770b15b20c2edef99355ea",
+   "release": "data-20261017-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T004036Z_815f487b/plan.json": {
+   "sha256": "25d45ffe989f36f18ea02955e1dcbe4d80d7b141b7b3a1160a4abcb7ce031b5f",
+   "release": "data-20261017-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T004036Z_815f487b/trades.csv.gz": {
+   "sha256": "194bedaeec68c2e142b17bd97664237059d4a8e6ad094b1e4e7c30a399faa429",
+   "release": "data-20261017-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T024046Z_6c422852/features.csv.gz": {
+   "sha256": "cb56e20b51176f626e1f52951f6079007ccbb4895e3c998fb9ef6162a89092be",
+   "release": "data-20261017-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T024046Z_6c422852/manifest.json": {
+   "sha256": "f913dc730f06b168b14c30141a33edfd442b8a058083977b462aef993275ee33",
+   "release": "data-20261017-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T024046Z_6c422852/plan.json": {
+   "sha256": "09d9809af9dc84a8c350da0af26a03c975ce749fda3ea4d26d8aa2ef85d32663",
+   "release": "data-20261017-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T024046Z_6c422852/trades.csv.gz": {
+   "sha256": "a8244de23e091ae49232d1a881445203682376051257a904ca3baef83ad0a7a4",
+   "release": "data-20261017-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T044016Z_5d2acf56/features.csv.gz": {
+   "sha256": "6b0ac46e741e7ae357e6fc9b0c1516b35f22481c88bd6af0eb06c6e54c96678a",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T044016Z_5d2acf56/manifest.json": {
+   "sha256": "60ee9b9a20ec37e43a9e5bbd0e4694c3c552adb9e093126eb3a2e42d7a328e3d",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T044016Z_5d2acf56/plan.json": {
+   "sha256": "78068d2cb4439c3671ee094cc1cf7d9de0e146474d8fa313de72be4671540a79",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T044016Z_5d2acf56/trades.csv.gz": {
+   "sha256": "4df1bb1c672b51c5b54182693a9fc9da759a686927afc71f4d8ad64efb56eeb2",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T064031Z_98c9c63d/features.csv.gz": {
+   "sha256": "3e50fc5265c22399356d09f737c6402925a351f01af838c898925cc5282e11a8",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T064031Z_98c9c63d/manifest.json": {
+   "sha256": "b24a5675e5f8e958c35295c7b092eae768229dfc91f6c480df42a9f206850ec7",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T064031Z_98c9c63d/plan.json": {
+   "sha256": "567695769fa16e5f171afbcda9a01c0dafd9742fa277138ec441308abfd0fbe0",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T064031Z_98c9c63d/trades.csv.gz": {
+   "sha256": "6a46c148ddce465e853161070403e8c7d190c84606388afe6d4bb8b542f9c19d",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T084104Z_e13c618e/features.csv.gz": {
+   "sha256": "af5497f003518748fd0e70e044408ff30563ac9a3dc6d0e9031aa093bba1acda",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T084104Z_e13c618e/manifest.json": {
+   "sha256": "52f9571781076a4e2fbe48c681974b7587d90d8086a79eceaa07d94771e17dda",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T084104Z_e13c618e/plan.json": {
+   "sha256": "90c2639d412725d8637197a5ac193e19c6d2dfbbf586b717943b182d368f1537",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T084104Z_e13c618e/trades.csv.gz": {
+   "sha256": "548742ea76e8c92f07cc6229620364513c64429d2b61f5417e487617811bb6e8",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T104101Z_b009d192/features.csv.gz": {
+   "sha256": "59d7e53a3a56ad6eed071afefe4ab05011f07e678e535f998019430403e1857c",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T104101Z_b009d192/manifest.json": {
+   "sha256": "89298f97241578829217b51ed313ca4c1ca582411a7455fba29077467e58a088",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T104101Z_b009d192/plan.json": {
+   "sha256": "8052336520aab6b293c2e0b0fbc7989c97aa159976d335aafa43d520211c876f",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T104101Z_b009d192/trades.csv.gz": {
+   "sha256": "59a0d151fc8cf4247f9ccdb56b2c8d8701b500bce41adcb83c825f550dfa1f65",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T124109Z_d4fabfd0/features.csv.gz": {
+   "sha256": "39ca9f809893a3fd816bffd2b71e124016804d5a8bd469c182d8b761d1a2d881",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T124109Z_d4fabfd0/manifest.json": {
+   "sha256": "d28723fba7b9b47890486bdb3d2dd15a9428e31209d62cf6cab06015b3dcf188",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T124109Z_d4fabfd0/plan.json": {
+   "sha256": "d129938d46a80dccbbd4d112f3cba74572d0f26e6ea62fdb5f0aa99c442bed5d",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T124109Z_d4fabfd0/trades.csv.gz": {
+   "sha256": "6449b531e9478e63ef7836a1d22f25798edc5f5f6fe690d5611683542b2699d5",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T144127Z_d24c37ac/features.csv.gz": {
+   "sha256": "1b947266309bb2759ba452056c7b8cf1759e18654c40f28485eb6418c3df505f",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T144127Z_d24c37ac/manifest.json": {
+   "sha256": "8b8b99a03c24e797ef8e9e47ba18d28345f1cd08da0a92b2faf367f8071da46f",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T144127Z_d24c37ac/plan.json": {
+   "sha256": "2f54a47d2b94a3f5cb06898178b3c9bb09189371d4129f9784b6af64048423a6",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T144127Z_d24c37ac/trades.csv.gz": {
+   "sha256": "6ad732ec3557438525968d529a3bfdaad7a205b0f702519103f0861b1ef7fe74",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T164031Z_40fa5f84/features.csv.gz": {
+   "sha256": "de62ff7e7a4ac43b6048892b7bb29a72f5f70c8f0f3270e5a0bcdd820817dc7e",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T164031Z_40fa5f84/manifest.json": {
+   "sha256": "e54b22fa573aba002be754217a5a7434ca167b5cc0014affae0bd2bbc95b21c0",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T164031Z_40fa5f84/plan.json": {
+   "sha256": "2b2e8b10673d4df2e7edece3713b7f3ff8806cf4067db2ad01327df0f26282ec",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T164031Z_40fa5f84/trades.csv.gz": {
+   "sha256": "0ab2e097dc61ba570ffded89600397aeef7ce6b193ebb80db9c21b14c19a4437",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T184043Z_5266a718/features.csv.gz": {
+   "sha256": "e3d95fca20065d0b8226ac702f138c78d24d486116744965407a311721702754",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T184043Z_5266a718/manifest.json": {
+   "sha256": "ae4c8423031c7147dd4f73de15ce36eaf929bcc4c59e38683b3f531d95028c15",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T184043Z_5266a718/plan.json": {
+   "sha256": "bba2b5f20c8cf439ae1e33ca44a9749f0a9e06acec2f68922c6311f1be75dee1",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T184043Z_5266a718/trades.csv.gz": {
+   "sha256": "e10efec9ba998d1775d1f9bf723e8bc2da7c4a45958618b40f35412963b59e44",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T204034Z_62f71dfd/features.csv.gz": {
+   "sha256": "07eb149093f6e45b6f5ef689fe0f40d0a458773ac8bc32ea89837feec80cea2f",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T204034Z_62f71dfd/manifest.json": {
+   "sha256": "a967d8234fbb194155170af1bbbd21c7e050c7dd2ab04ee6d0dbcad3564b5cf5",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T204034Z_62f71dfd/plan.json": {
+   "sha256": "918478e9cace162240590e1db5949de97070960362265dc50b38f10ce0b8012e",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T204034Z_62f71dfd/trades.csv.gz": {
+   "sha256": "b5c27d210f1de8b6a2ea5bfd6e8327e491aebb070d1eb9f59c97e45be66c1aff",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T224034Z_96ecc046/features.csv.gz": {
+   "sha256": "4415d773f3787be3202e048f7d3f913a5a041ffded0e30961f10227835837093",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T224034Z_96ecc046/manifest.json": {
+   "sha256": "7596854602241e63897fe4fd6dff53c72fa2277f57c3a37af7a10906fdfd0ee5",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T224034Z_96ecc046/plan.json": {
+   "sha256": "388abec887de3ee38ba9e85f28fb0a7eda65ce475798cdd640911247056f011a",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261016T224034Z_96ecc046/trades.csv.gz": {
+   "sha256": "bfba0b40e6b0510953925e5f4b5820abbe75214be2280bf5b992e36569459e2b",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T004123Z_09b78f1b/features.csv.gz": {
+   "sha256": "40c3308bb9de602effb0f9bf490af1b33ab984e1d83955103ee4d457ab8ab513",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T004123Z_09b78f1b/manifest.json": {
+   "sha256": "4f4066fc5771f4756ef68783e3916eec73c831a381b393ce21fd55334efc0eb8",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T004123Z_09b78f1b/plan.json": {
+   "sha256": "205eebc59b6be29c00fd46fa2b0aa31007ff8981af0a4ec77ce819df74a18773",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T004123Z_09b78f1b/trades.csv.gz": {
+   "sha256": "e273c63206469cf78724ebecd8d85acd8216226ee02edb57f4425bb882775f89",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T024024Z_6f05319f/features.csv.gz": {
+   "sha256": "21901156f0ef65326067a8712bbda665066ba5f97a83d8ea5e75481e043c1661",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T024024Z_6f05319f/manifest.json": {
+   "sha256": "16a85e0917bf88e8eb0e97509cf2dcc4f210f925bc3b52fad25ddfbc0d91183c",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T024024Z_6f05319f/plan.json": {
+   "sha256": "a632212ac7d456c05ccd862ceb4862d2b2b5cf45a85db638aefe61516d5b37d9",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T024024Z_6f05319f/trades.csv.gz": {
+   "sha256": "a54f0d8a589eba74936ccfeca381220e854b1c2a94b4c52828bf491cfd3c39e0",
+   "release": "data-20261018-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T064026Z_8b275738/features.csv.gz": {
+   "sha256": "66471b7f84ae747bf86b3e42b0555f67ff4f34a1e47efb4a65b27216c63dbbcc",
+   "release": "data-20261019-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T064026Z_8b275738/manifest.json": {
+   "sha256": "6e96b3e7a4a0d5c5601cd2957e6f5b72ec21a62390b447566f7f0684034fef53",
+   "release": "data-20261019-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T064026Z_8b275738/plan.json": {
+   "sha256": "4172ff384ce488299e568bfadeafd2a9bcce03b74ed78ee7504a726a29a993ff",
+   "release": "data-20261019-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T064026Z_8b275738/trades.csv.gz": {
+   "sha256": "eeaa2d021756c68e8a249db4bd5e6d5726de16df793d88d39502fc1e7c92da70",
+   "release": "data-20261019-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T084107Z_13e50af5/features.csv.gz": {
+   "sha256": "79ad56f43f0e0582b31db8edb8f1c4a300ba4c070108901347a2c60bb9d8ef6d",
+   "release": "data-20261019-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T084107Z_13e50af5/manifest.json": {
+   "sha256": "680389f01578806e485de657a7c12f53ed10ef2236840076700b21bb275a810b",
+   "release": "data-20261019-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T084107Z_13e50af5/plan.json": {
+   "sha256": "91c431899ba9c8a7e28cf5861c80683215ff508c439cc83f5d4d678de1fccee4",
+   "release": "data-20261019-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T084107Z_13e50af5/trades.csv.gz": {
+   "sha256": "1b5a6d8e376f620bd4ac963d9dcc14919c335ae98f3699cce3569168d4142153",
+   "release": "data-20261019-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T104030Z_362da62b/features.csv.gz": {
+   "sha256": "a029b9edd9fbb302f7cdaceeb3f3cd2a5da5ac8035dfd71bfdb091d0d43f4b57",
+   "release": "data-20261019-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T104030Z_362da62b/manifest.json": {
+   "sha256": "5dae183c11e986c35c433580775d6f9733ec55f0bca6217ba5aa247e98804911",
+   "release": "data-20261019-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T104030Z_362da62b/plan.json": {
+   "sha256": "63f445fa1ce319e36770347a5e4f61ea258d632bbdc36ea2177601574bd96d95",
+   "release": "data-20261019-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T104030Z_362da62b/trades.csv.gz": {
+   "sha256": "e08487579bcd285c639d46b2cde347da8a53dee718d45d5c482ba3a847ec5335",
+   "release": "data-20261019-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T124025Z_03a211ef/features.csv.gz": {
+   "sha256": "6c8c711e6402a9519803d879d9dd70923a8570d54bfe0fae2fc6b3787e0d56b9",
+   "release": "data-20261019-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T124025Z_03a211ef/manifest.json": {
+   "sha256": "975546bf835b05c46b010c8e01e1d57241eada63895527bbc767f6bb360f565d",
+   "release": "data-20261019-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T124025Z_03a211ef/plan.json": {
+   "sha256": "0bc7a3b1865ee2a32b41df7f6b693aff2c3f54e7cd3214928b692ff40b93905d",
+   "release": "data-20261019-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T124025Z_03a211ef/trades.csv.gz": {
+   "sha256": "ed96ae79fcceb6c86260d46149ec544851d18665d408020d4782d3d4d48a15d6",
+   "release": "data-20261019-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T144023Z_bbab0f6d/features.csv.gz": {
+   "sha256": "86898bb18cbb6047b22ec86002a44528a43685d566857b71cb3e4e1a3f43860e",
+   "release": "data-20261019-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T144023Z_bbab0f6d/manifest.json": {
+   "sha256": "9cd460afa23f5131e9b2e872dbd95ad44d447951efdf4c57d7aef2a03fff164d",
+   "release": "data-20261019-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T144023Z_bbab0f6d/plan.json": {
+   "sha256": "086f0e05f3b66fb29e3c25cf536cf95784fcfbff725526f7e397f7a8df262421",
+   "release": "data-20261019-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T144023Z_bbab0f6d/trades.csv.gz": {
+   "sha256": "e9181bcf7fb46309403809c010f647b598ae055eb76e8ca63fc8252bfaa0d64a",
+   "release": "data-20261019-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T164016Z_9ae0ae47/features.csv.gz": {
+   "sha256": "eadd1da036760c570b6ef0fbcada75c0e6ca7420cd48215451bf9511bd5df485",
+   "release": "data-20261019-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T164016Z_9ae0ae47/manifest.json": {
+   "sha256": "406e5eaf5231c704332525bf7436ec4c2a35a1ee0160bc52f95ddcd7e7f4b48f",
+   "release": "data-20261019-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T164016Z_9ae0ae47/plan.json": {
+   "sha256": "6cecf4dca6face00be8f91166a0007a8237149e40ce216a14971a1d54473dfea",
+   "release": "data-20261019-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T164016Z_9ae0ae47/trades.csv.gz": {
+   "sha256": "f78ec0239369cf734d481e03869e4f52bc5641a4e473be48cfd534113333c314",
+   "release": "data-20261019-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T184017Z_47763899/features.csv.gz": {
+   "sha256": "cb638c50275c7f5ce3db3d974c5b01136ba85267bec110fa6dc92ece2de947b3",
+   "release": "data-20261019-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T184017Z_47763899/manifest.json": {
+   "sha256": "71f2d486d99b0a944c746b4cc8b6a8c0e51b7347d4fa25b8b0c5350f84cbd20c",
+   "release": "data-20261019-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T184017Z_47763899/plan.json": {
+   "sha256": "95ea14b74a7eadb1f6819de6f713309f9b7f09428e14679607e2b023516b0772",
+   "release": "data-20261019-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T184017Z_47763899/trades.csv.gz": {
+   "sha256": "0154950836dd68269cc7ad9fba945ca7d4cc4814fce1945b00cd0dc01e5c7bd8",
+   "release": "data-20261019-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T204002Z_904ac043/features.csv.gz": {
+   "sha256": "a2f0b9ccf04948a1462a0550a38cef30965c3d3561d4be401a7a18882f820a44",
+   "release": "data-20261019-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T204002Z_904ac043/manifest.json": {
+   "sha256": "72cc20c789f31abfe3c25ff3aa5e95e619b2867aca9b8db5b9a89c8dc88927b2",
+   "release": "data-20261019-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T204002Z_904ac043/plan.json": {
+   "sha256": "63460064906a7087295ae760ae8225bc46391dd3a5e6f7b605e270423836936c",
+   "release": "data-20261019-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T204002Z_904ac043/trades.csv.gz": {
+   "sha256": "a6094a890cb1e1737107d5126968b00c972e21164e982e0db9b9d98705e32675",
+   "release": "data-20261019-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T223942Z_a603c38e/features.csv.gz": {
+   "sha256": "60f837aac764a18d5b199b29ae501e5ba946d3d5a7566c1231ac999fa7041927",
+   "release": "data-20261019-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T223942Z_a603c38e/manifest.json": {
+   "sha256": "4a9dbc5d86c53241a79e8356b5ef4de7f56908c513181809106aea92bda4c52d",
+   "release": "data-20261019-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T223942Z_a603c38e/plan.json": {
+   "sha256": "6d8720f776da7bfcc3c061cf9c5ec5b3c6f8ea1894b8807ef394e1bbe52cb90d",
+   "release": "data-20261019-dsheikh"
+  },
+  "data-dumps/research_lab/trade_samples/20261017T223942Z_a603c38e/trades.csv.gz": {
+   "sha256": "9f9d5972ad12745f02748361862f978d50e66a1f90a067eccd1fb6ef3579c809",
+   "release": "data-20261019-dsheikh"
+  }
+ }
+}

@@ -1,0 +1,660 @@
+{
+  "code_commit": "531c3c38b511069e1c2a5d13d9766f9385cfe2e6",
+  "input_root": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_synthetic_latency_20261005_1/fs2_screening_worker_latency",
+  "read_only": true,
+  "provenance": "synthetic",
+  "profile_overhead_included": true,
+  "results": [
+    {
+      "operation": "pre_book",
+      "elapsed_ns": 487130500,
+      "error": null,
+      "functions": [
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/research_panel/book_computation.py",
+          "line": 96,
+          "function": "read_book_computation",
+          "calls": 1,
+          "primitive_calls": 1,
+          "self_seconds": 0.000178788,
+          "cumulative_seconds": 0.484134459
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method builtins.compile>",
+          "calls": 162,
+          "primitive_calls": 162,
+          "self_seconds": 0.36391312600000003,
+          "cumulative_seconds": 0.36391312600000003
+        },
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/build_identity.py",
+          "line": 20,
+          "function": "verified_build",
+          "calls": 7,
+          "primitive_calls": 7,
+          "self_seconds": 0.008166976000000001,
+          "cumulative_seconds": 0.324513125
+        },
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/research_panel/input_read.py",
+          "line": 165,
+          "function": "read_input_read",
+          "calls": 1,
+          "primitive_calls": 1,
+          "self_seconds": 6.9415e-05,
+          "cumulative_seconds": 0.314112
+        },
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/research_panel/build_identity.py",
+          "line": 12,
+          "function": "verified_panel_build",
+          "calls": 4,
+          "primitive_calls": 4,
+          "self_seconds": 0.004421045,
+          "cumulative_seconds": 0.31205170800000004
+        },
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/research_panel/input_read.py",
+          "line": 58,
+          "function": "_source",
+          "calls": 1,
+          "primitive_calls": 1,
+          "self_seconds": 7.5169e-05,
+          "cumulative_seconds": 0.154657125
+        },
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/source_run.py",
+          "line": 238,
+          "function": "read_source_run",
+          "calls": 1,
+          "primitive_calls": 1,
+          "self_seconds": 0.00012266500000000002,
+          "cumulative_seconds": 0.105165375
+        },
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/source_run.py",
+          "line": 120,
+          "function": "_verify_run",
+          "calls": 2,
+          "primitive_calls": 2,
+          "self_seconds": 9.3206e-05,
+          "cumulative_seconds": 0.096256041
+        },
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/build_identity.py",
+          "line": 55,
+          "function": "<dictcomp>",
+          "calls": 7,
+          "primitive_calls": 7,
+          "self_seconds": 4.4917000000000004e-05,
+          "cumulative_seconds": 0.032509834
+        },
+        {
+          "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/importlib/metadata/__init__.py",
+          "line": 1001,
+          "function": "version",
+          "calls": 28,
+          "primitive_calls": 28,
+          "self_seconds": 4.0456e-05,
+          "cumulative_seconds": 0.032464917
+        },
+        {
+          "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/importlib/metadata/__init__.py",
+          "line": 629,
+          "function": "version",
+          "calls": 28,
+          "primitive_calls": 28,
+          "self_seconds": 8.9752e-05,
+          "cumulative_seconds": 0.023358753000000003
+        },
+        {
+          "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/importlib/metadata/__init__.py",
+          "line": 602,
+          "function": "metadata",
+          "calls": 28,
+          "primitive_calls": 28,
+          "self_seconds": 0.00012508700000000002,
+          "cumulative_seconds": 0.023113709000000003
+        },
+        {
+          "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/pathlib.py",
+          "line": 1046,
+          "function": "read_bytes",
+          "calls": 530,
+          "primitive_calls": 530,
+          "self_seconds": 0.000783115,
+          "cumulative_seconds": 0.021661575000000002
+        },
+        {
+          "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/email/__init__.py",
+          "line": 32,
+          "function": "message_from_string",
+          "calls": 28,
+          "primitive_calls": 28,
+          "self_seconds": 0.00011812500000000001,
+          "cumulative_seconds": 0.018235373000000003
+        },
+        {
+          "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/email/parser.py",
+          "line": 59,
+          "function": "parsestr",
+          "calls": 28,
+          "primitive_calls": 28,
+          "self_seconds": 0.00017504100000000002,
+          "cumulative_seconds": 0.018106666
+        },
+        {
+          "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/email/parser.py",
+          "line": 41,
+          "function": "parse",
+          "calls": 28,
+          "primitive_calls": 28,
+          "self_seconds": 0.00012446200000000002,
+          "cumulative_seconds": 0.017931625
+        },
+        {
+          "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/email/feedparser.py",
+          "line": 173,
+          "function": "feed",
+          "calls": 35,
+          "primitive_calls": 35,
+          "self_seconds": 5.8328e-05,
+          "cumulative_seconds": 0.016418874
+        },
+        {
+          "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/email/feedparser.py",
+          "line": 178,
+          "function": "_call_parse",
+          "calls": 63,
+          "primitive_calls": 63,
+          "self_seconds": 0.000142872,
+          "cumulative_seconds": 0.015732669
+        },
+        {
+          "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/email/feedparser.py",
+          "line": 218,
+          "function": "_parsegen",
+          "calls": 63,
+          "primitive_calls": 63,
+          "self_seconds": 0.0028649720000000004,
+          "cumulative_seconds": 0.015589797
+        },
+        {
+          "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/pathlib.py",
+          "line": 1036,
+          "function": "open",
+          "calls": 558,
+          "primitive_calls": 558,
+          "self_seconds": 0.00033788700000000004,
+          "cumulative_seconds": 0.012826083
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method io.open>",
+          "calls": 586,
+          "primitive_calls": 586,
+          "self_seconds": 0.010928201,
+          "cumulative_seconds": 0.012598239
+        },
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/build_identity.py",
+          "line": 12,
+          "function": "_codes",
+          "calls": 2722,
+          "primitive_calls": 162,
+          "self_seconds": 0.008010871000000001,
+          "cumulative_seconds": 0.011062463000000002
+        },
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/types.py",
+          "line": 76,
+          "function": "canonical_json",
+          "calls": 107,
+          "primitive_calls": 107,
+          "self_seconds": 0.000170335,
+          "cumulative_seconds": 0.009454461
+        },
+        {
+          "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/importlib/metadata/__init__.py",
+          "line": 975,
+          "function": "distribution",
+          "calls": 28,
+          "primitive_calls": 28,
+          "self_seconds": 3.7166e-05,
+          "cumulative_seconds": 0.009065708
+        },
+        {
+          "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/importlib/metadata/__init__.py",
+          "line": 549,
+          "function": "from_name",
+          "calls": 28,
+          "primitive_calls": 28,
+          "self_seconds": 0.00013233,
+          "cumulative_seconds": 0.009028542
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method builtins.next>",
+          "calls": 29,
+          "primitive_calls": 29,
+          "self_seconds": 0.000106877,
+          "cumulative_seconds": 0.008658791
+        },
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/research_panel/build_identity.py",
+          "line": 15,
+          "function": "<dictcomp>",
+          "calls": 4,
+          "primitive_calls": 4,
+          "self_seconds": 0.000402547,
+          "cumulative_seconds": 0.008604125
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<method 'read' of '_io.BufferedReader' objects>",
+          "calls": 530,
+          "primitive_calls": 530,
+          "self_seconds": 0.008117212,
+          "cumulative_seconds": 0.008117212
+        },
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/source_run.py",
+          "line": 70,
+          "function": "_pair",
+          "calls": 12,
+          "primitive_calls": 12,
+          "self_seconds": 0.000149123,
+          "cumulative_seconds": 0.007936541
+        },
+        {
+          "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/importlib/metadata/__init__.py",
+          "line": 914,
+          "function": "<genexpr>",
+          "calls": 196,
+          "primitive_calls": 196,
+          "self_seconds": 0.00020932800000000003,
+          "cumulative_seconds": 0.007509122000000001
+        },
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/build_identity.py",
+          "line": 22,
+          "function": "<dictcomp>",
+          "calls": 7,
+          "primitive_calls": 7,
+          "self_seconds": 0.00034579500000000003,
+          "cumulative_seconds": 0.007372793000000001
+        },
+        {
+          "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/importlib/metadata/__init__.py",
+          "line": 812,
+          "function": "search",
+          "calls": 168,
+          "primitive_calls": 168,
+          "self_seconds": 0.000215293,
+          "cumulative_seconds": 0.007248498000000001
+        },
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/types.py",
+          "line": 59,
+          "function": "canonical_value",
+          "calls": 3251,
+          "primitive_calls": 107,
+          "self_seconds": 0.003146232,
+          "cumulative_seconds": 0.006985291
+        },
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/types.py",
+          "line": 72,
+          "function": "<dictcomp>",
+          "calls": 530,
+          "primitive_calls": 99,
+          "self_seconds": 0.001048314,
+          "cumulative_seconds": 0.006267338000000001
+        },
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/source_bridge.py",
+          "line": 114,
+          "function": "source_parse_artifact",
+          "calls": 2,
+          "primitive_calls": 2,
+          "self_seconds": 7.963100000000001e-05,
+          "cumulative_seconds": 0.0058651250000000005
+        }
+      ]
+    },
+    {
+      "operation": "socket_analysis",
+      "elapsed_ns": 2013804375,
+      "error": null,
+      "functions": [
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/research_panel/socket_analysis.py",
+          "line": 265,
+          "function": "read_socket_analysis",
+          "calls": 1,
+          "primitive_calls": 1,
+          "self_seconds": 0.00010304300000000001,
+          "cumulative_seconds": 2.0101253750000003
+        },
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/research_panel/socket_analysis.py",
+          "line": 81,
+          "function": "_load",
+          "calls": 1,
+          "primitive_calls": 1,
+          "self_seconds": 9.725e-05,
+          "cumulative_seconds": 1.8431897910000001
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method builtins.compile>",
+          "calls": 666,
+          "primitive_calls": 666,
+          "self_seconds": 1.541182456,
+          "cumulative_seconds": 1.541182456
+        },
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/research_panel/book_computation.py",
+          "line": 96,
+          "function": "read_book_computation",
+          "calls": 3,
+          "primitive_calls": 3,
+          "self_seconds": 0.000493205,
+          "cumulative_seconds": 1.486996416
+        },
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/research_panel/build_identity.py",
+          "line": 12,
+          "function": "verified_panel_build",
+          "calls": 18,
+          "primitive_calls": 18,
+          "self_seconds": 0.021767537,
+          "cumulative_seconds": 1.458118417
+        },
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/research_panel/socket_window_journal.py",
+          "line": 506,
+          "function": "read_socket_window",
+          "calls": 2,
+          "primitive_calls": 2,
+          "self_seconds": 0.000140669,
+          "cumulative_seconds": 1.3322099580000002
+        },
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/research_panel/socket_window_journal.py",
+          "line": 221,
+          "function": "replay",
+          "calls": 2,
+          "primitive_calls": 2,
+          "self_seconds": 0.000574321,
+          "cumulative_seconds": 1.327832499
+        },
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/build_identity.py",
+          "line": 20,
+          "function": "verified_build",
+          "calls": 27,
+          "primitive_calls": 27,
+          "self_seconds": 0.032467053,
+          "cumulative_seconds": 1.2772706260000002
+        },
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/research_panel/bound_window.py",
+          "line": 39,
+          "function": "_pre",
+          "calls": 2,
+          "primitive_calls": 2,
+          "self_seconds": 9.4209e-05,
+          "cumulative_seconds": 0.9835120420000001
+        },
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/research_panel/input_read.py",
+          "line": 165,
+          "function": "read_input_read",
+          "calls": 3,
+          "primitive_calls": 3,
+          "self_seconds": 0.00021346,
+          "cumulative_seconds": 0.9707772920000001
+        },
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/research_panel/window_reconciliation.py",
+          "line": 64,
+          "function": "_book",
+          "calls": 1,
+          "primitive_calls": 1,
+          "self_seconds": 5.4125e-05,
+          "cumulative_seconds": 0.507548958
+        },
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/research_panel/input_read.py",
+          "line": 58,
+          "function": "_source",
+          "calls": 3,
+          "primitive_calls": 3,
+          "self_seconds": 0.000149421,
+          "cumulative_seconds": 0.46238479200000004
+        },
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/source_run.py",
+          "line": 238,
+          "function": "read_source_run",
+          "calls": 3,
+          "primitive_calls": 3,
+          "self_seconds": 0.00032608100000000004,
+          "cumulative_seconds": 0.315508082
+        },
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/source_run.py",
+          "line": 120,
+          "function": "_verify_run",
+          "calls": 6,
+          "primitive_calls": 6,
+          "self_seconds": 0.000275498,
+          "cumulative_seconds": 0.29152583400000004
+        },
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/build_identity.py",
+          "line": 55,
+          "function": "<dictcomp>",
+          "calls": 27,
+          "primitive_calls": 27,
+          "self_seconds": 0.00017833100000000002,
+          "cumulative_seconds": 0.10988491800000001
+        },
+        {
+          "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/importlib/metadata/__init__.py",
+          "line": 1001,
+          "function": "version",
+          "calls": 108,
+          "primitive_calls": 108,
+          "self_seconds": 0.000149204,
+          "cumulative_seconds": 0.10970658700000001
+        },
+        {
+          "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/importlib/metadata/__init__.py",
+          "line": 629,
+          "function": "version",
+          "calls": 108,
+          "primitive_calls": 108,
+          "self_seconds": 0.00037529400000000003,
+          "cumulative_seconds": 0.089594879
+        },
+        {
+          "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/importlib/metadata/__init__.py",
+          "line": 602,
+          "function": "metadata",
+          "calls": 108,
+          "primitive_calls": 108,
+          "self_seconds": 0.000522875,
+          "cumulative_seconds": 0.088582459
+        },
+        {
+          "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/pathlib.py",
+          "line": 1046,
+          "function": "read_bytes",
+          "calls": 2254,
+          "primitive_calls": 2254,
+          "self_seconds": 0.003435399,
+          "cumulative_seconds": 0.077892522
+        },
+        {
+          "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/email/__init__.py",
+          "line": 32,
+          "function": "message_from_string",
+          "calls": 108,
+          "primitive_calls": 108,
+          "self_seconds": 0.00048070500000000005,
+          "cumulative_seconds": 0.07405112400000001
+        },
+        {
+          "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/email/parser.py",
+          "line": 59,
+          "function": "parsestr",
+          "calls": 108,
+          "primitive_calls": 108,
+          "self_seconds": 0.0006133810000000001,
+          "cumulative_seconds": 0.07352842400000001
+        },
+        {
+          "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/email/parser.py",
+          "line": 41,
+          "function": "parse",
+          "calls": 108,
+          "primitive_calls": 108,
+          "self_seconds": 0.00049775,
+          "cumulative_seconds": 0.072915043
+        },
+        {
+          "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/email/feedparser.py",
+          "line": 173,
+          "function": "feed",
+          "calls": 135,
+          "primitive_calls": 135,
+          "self_seconds": 0.000222541,
+          "cumulative_seconds": 0.066841749
+        },
+        {
+          "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/email/feedparser.py",
+          "line": 178,
+          "function": "_call_parse",
+          "calls": 243,
+          "primitive_calls": 243,
+          "self_seconds": 0.000501005,
+          "cumulative_seconds": 0.06409495300000001
+        },
+        {
+          "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/email/feedparser.py",
+          "line": 218,
+          "function": "_parsegen",
+          "calls": 243,
+          "primitive_calls": 243,
+          "self_seconds": 0.011462223,
+          "cumulative_seconds": 0.063593948
+        },
+        {
+          "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/pathlib.py",
+          "line": 1036,
+          "function": "open",
+          "calls": 2362,
+          "primitive_calls": 2362,
+          "self_seconds": 0.00148974,
+          "cumulative_seconds": 0.055570066
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method io.open>",
+          "calls": 2470,
+          "primitive_calls": 2470,
+          "self_seconds": 0.047188686,
+          "cumulative_seconds": 0.054528284
+        },
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/build_identity.py",
+          "line": 12,
+          "function": "_codes",
+          "calls": 11088,
+          "primitive_calls": 666,
+          "self_seconds": 0.034435749,
+          "cumulative_seconds": 0.047467671
+        },
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/research_panel/build_identity.py",
+          "line": 15,
+          "function": "<dictcomp>",
+          "calls": 18,
+          "primitive_calls": 18,
+          "self_seconds": 0.001987883,
+          "cumulative_seconds": 0.042583376000000006
+        },
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/types.py",
+          "line": 76,
+          "function": "canonical_json",
+          "calls": 337,
+          "primitive_calls": 337,
+          "self_seconds": 0.000573707,
+          "cumulative_seconds": 0.035521842000000005
+        },
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/source_run.py",
+          "line": 70,
+          "function": "_pair",
+          "calls": 83,
+          "primitive_calls": 83,
+          "self_seconds": 0.000910545,
+          "cumulative_seconds": 0.033507751
+        },
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/build_identity.py",
+          "line": 22,
+          "function": "<dictcomp>",
+          "calls": 27,
+          "primitive_calls": 27,
+          "self_seconds": 0.00137301,
+          "cumulative_seconds": 0.029821208000000002
+        },
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/types.py",
+          "line": 59,
+          "function": "canonical_value",
+          "calls": 11869,
+          "primitive_calls": 337,
+          "self_seconds": 0.012026407000000001,
+          "cumulative_seconds": 0.026659624000000003
+        },
+        {
+          "file": "/Users/DayyanSheikh/Projects/astrolabe/backend/astrolabe/feature_store/types.py",
+          "line": 72,
+          "function": "<dictcomp>",
+          "calls": 1952,
+          "primitive_calls": 320,
+          "self_seconds": 0.004069906,
+          "cumulative_seconds": 0.024316463
+        },
+        {
+          "file": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/email/feedparser.py",
+          "line": 471,
+          "function": "_parse_headers",
+          "calls": 108,
+          "primitive_calls": 108,
+          "self_seconds": 0.008890058000000001,
+          "cumulative_seconds": 0.023212546
+        }
+      ]
+    }
+  ],
+  "profile_script": "import cProfile,json,pstats,time\nfrom pathlib import Path\nfrom astrolabe.research_panel.book_computation import read_book_computation\nfrom astrolabe.research_panel.socket_analysis import read_socket_analysis\nfrom astrolabe.feature_store.source_run import _pair\nroot=Path('/Users/DayyanSheikh/Projects/astrolabe')\nw=root/'data-dumps/fs2_synthetic_latency_20261005_1/fs2_screening_worker_latency'\nentry,_=_pair(w,'window_000'); results=[]\nfor name,fn,path in [('pre_book',read_book_computation,Path(entry['item']['book_root'])),('socket_analysis',read_socket_analysis,w/'fs2_socket_analysis_000')]:\n p=cProfile.Profile(); start=time.perf_counter_ns(); error=None\n try:\n  p.enable(); fn(path)\n except BaseException as exc:\n  error=repr(exc); raise\n finally:\n  p.disable(); stats=pstats.Stats(p)\n  rows=[dict(file=f,line=l,function=n,calls=nc,primitive_calls=cc,self_seconds=tt,cumulative_seconds=ct) for (f,l,n),(cc,nc,tt,ct,callers) in stats.stats.items()]\n  results.append(dict(operation=name,elapsed_ns=time.perf_counter_ns()-start,error=error,functions=sorted(rows,key=lambda x:-x['cumulative_seconds'])[:35]))\n  (root/'docs/implementation/PHASE_03_VERIFICATION_PROFILE.json').write_text(json.dumps({'code_commit':'531c3c38b511069e1c2a5d13d9766f9385cfe2e6','input_root':str(w),'read_only':True,'provenance':'synthetic','profile_overhead_included':True,'results':results},indent=2)+'\\n')\nprint(json.dumps([{'operation':r['operation'],'elapsed_ns':r['elapsed_ns'],'top':r['functions'][:7]} for r in results],indent=2))\n",
+  "profile_script_sha256": "6cdbb8512ef8544c56ec23d108c890e94f79d6cfa9e5afa31edb6778c9f05284",
+  "limitations": [
+    "One retained synthetic member, no public requests; cProfile overhead included.",
+    "Before-edit source files match implementation531c3c3; documentation-only HEAD2144134.",
+    "Compilation fraction measures these reads, not an end-to-end causal benchmark."
+  ]
+}

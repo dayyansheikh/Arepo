@@ -1,0 +1,41 @@
+{
+  "report": {
+    "schema_version": "fs2-stream-probe-v1",
+    "capture_directory": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_e921e013c094430ea144b02234d2cf06",
+    "frames_or_failed_attempts": 2,
+    "bytes": 5874,
+    "elapsed_seconds": "10.019000875065103",
+    "research_admitted": false,
+    "complete_continuous_history": false
+  },
+  "captures": [
+    {
+      "capture_id": "1873aca8-4882-4c43-afd8-27805e330163",
+      "source_id": "clob.market_stream",
+      "status": null,
+      "raw_bytes": 5874,
+      "raw_hash": "cdc1f34cf01e27343bb86672f597b307ea678e4e8c761f3e01160e18ee4ff0e5",
+      "received_at": "2026-09-20T22:06:18.621769Z",
+      "parse_error": null,
+      "parsed_artifact_available_at": "2026-09-20T22:06:18.623868Z",
+      "capture_kind": "live_diagnostic",
+      "research_admitted": false,
+      "message_types": [
+        "book"
+      ],
+      "message_count": 1
+    },
+    {
+      "capture_id": "e4395189-9e05-4831-b878-929cae681aab",
+      "source_id": "clob.market_stream",
+      "status": null,
+      "raw_bytes": 0,
+      "raw_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "received_at": "2026-09-20T22:06:28.471267Z",
+      "parse_error": "TimeoutError",
+      "parsed_artifact_available_at": "2026-09-20T22:06:28.473484Z",
+      "capture_kind": "live_diagnostic",
+      "research_admitted": false
+    }
+  ]
+}

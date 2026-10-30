@@ -1,0 +1,45 @@
+{
+ "id": "q0144_h8_text_seal",
+ "title": "CB7-S: h8_text seal (listing hash; drop blocks by id and event/neg-risk/series key vs h8_tail, h7_cb4_era/series and the h8_geo frame; read location)",
+ "family": "history_data",
+ "priority": 58,
+ "expected_value": "sealed, event-disjoint h8_text before any CB7 read",
+ "data": [
+  "history/h8_text",
+  "history/h8_geo/frame.csv.gz (the FULL walked tag frame, before filters and cap: ids and keys only)",
+  "docs/research_lab/seals/h8_tail_SEAL.json, h7_cb4_era_SEAL.json, h7_cb4_series_SEAL.json (ids only, if committed)",
+  "public Gamma markets by id (keys only)"
+ ],
+ "resources": {
+  "mem_mb": 500,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "gamma-api"
+ },
+ "depends_on": [
+  "q0142_h8_text_fetch"
+ ],
+ "argv": [
+  "scripts/run_cb7.py",
+  "text-seal",
+  "--run-id",
+  "h8_text",
+  "--drop-seals",
+  "../docs/research_lab/seals",
+  "--drop-runs",
+  "h8_tail,h7_cb4_era,h7_cb4_series",
+  "--drop-frame",
+  "h8_geo",
+  "--rps",
+  "2"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/history/h8_text/{SEAL.json,drops.csv.gz,drops_report.json,ACCESS_LOG.jsonl}",
+  "docs/research_lab/seals/h8_text_SEAL.json (host copy; the coordinator commits it)",
+  "trials.jsonl (history_seal_declaration)"
+ ],
+ "next_action": "coordinator commits docs/research_lab/seals/h8_text_SEAL.json before q0147",
+ "notes": "PROMOTED 2026-10-22 ~05:35Z (experiments autopilot): T_seal done, h7 seals committed (34c6580a), h8_tail seal copy committed with this promotion, q0142 done. Spec unchanged. | CREATIVE_BATCH_7.md section 1.3. DRAFT. Commit only after T_seal and after the h8_tail and both h7 seal copies are committed (or their runs are recorded not_run_deadline), so the job never waits on a refusal loop. Never runs on a not_run_deadline or disjointness_unverified h8_text. Sealed files are never edited: drops are DROPPED_* blocks in the listing. Key lookups by id at <= 2 rps (parse guard: ids and keys only). Round 1, item 4: the h8_geo drop set is the full walked tag frame taken before any filter or cap. IMPLEMENTATION 2026-10-17 (fetch side): argv matches scripts/run_cb7.py as built (declared arguments are checked; a changed one exits 2). Lane net. First step: recompute the sha256 of every fetched file against the fetch manifest's file_sha256 (exit 2 on any missing, extra or changed file). Exit 75 while h8_tail / h7_cb4_era / h7_cb4_series (seal copy or *_NOT_RUN.json in docs/research_lab/seals) or h8_geo (frame.csv.gz or a not-run record) are not terminal. Drops: DROPPED_SEALED_RUNS (id or event / neg-risk / series key vs h8_tail and h7) and DROPPED_GEO_FRAME (vs the full h8_geo frame) in drops.csv.gz. Freeze-check fix 1: no dependency on q0143; the seal exits 75 while the geo frame is pending and treats a not-run, unverified, disk_budget or source_unverified h8_geo, or a smoke result with criterion (a) false (q0143 refused), as terminal with no frame (recorded in drops_report.json)."
+}

@@ -1,0 +1,22 @@
+{
+ "id": "q0080a_cb4_freezecheck_gate",
+ "title": "Gate: CB4 data freeze-check URGENT fixes 1-4 landed \u2014 releases q0080",
+ "family": "gate",
+ "priority": 63,
+ "expected_value": "releases q0080 only after its URGENT freeze-check fixes",
+ "data": [],
+ "resources": {
+  "mem_mb": 200,
+  "cpu": 1
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/cb1_h5.py",
+  "selfcheck"
+ ],
+ "timeout_s": 600,
+ "max_retries": 1,
+ "outputs": [],
+ "next_action": "q0080 runs",
+ "notes": "Coordinator gate, 2026-10-16. Fixes in 748234d, e64d9cd; tests green locally. Same trivial argv as q0033/q0039."
+}

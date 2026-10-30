@@ -1,0 +1,37 @@
+{
+ "id": "q0472_lt3_census_flow",
+ "title": "LT3 census C2 (E016 walked / E018 trains) on the sealed restored samples (DRAFT): V* (6 h truncated share <= 2%), W/H/zN/zSize/zSPR/zRV/zHTE scales and terciles, distance-to-grid histogram of >= 4-decimal rows, side/touch agreement walked vs on-grid, corr(W, H); counts and feature distributions only, no target",
+ "family": "live_tests_3",
+ "priority": 43,
+ "expected_value": "E016/E018 census gates and the flow constants to fill into the spec before the pin (LIVE_TESTS_3.md 13.6)",
+ "data": [
+  "research_lab/live_tests3_census/restore (q0471, sha256-verified against the seal)",
+  "research_lab/snapshots (captures 2026-10-15T12:31Z .. 2026-10-17T22:31Z, read-only)"
+ ],
+ "resources": {
+  "mem_mb": 900,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0471_lt3_c2_restore"
+ ],
+ "argv": [
+  "scripts/run_live_tests3.py",
+  "census-flow",
+  "--work",
+  "../data-dumps/research_lab/live_tests3_census/work_c2",
+  "--sample-root",
+  "../data-dumps/research_lab/live_tests3_census/restore/data-dumps/research_lab/trade_samples",
+  "--out",
+  "../data-dumps/research_lab/live_tests3_census/C2.json"
+ ],
+ "timeout_s": 7200,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests3_census/C2.json (the work dir is cleaned up at exit)"
+ ],
+ "next_action": "commit C2.json and its sha256, fill flow.vol24_cap, the z scales, econ cuts and the E016/E018 entries of k_tests, record any drop in 7.6",
+ "notes": "PROMOTED 2026-10-20 ~13:05Z after the LT3 freeze check (FREEZE_READY_WITH_FIXES, CENSUS_OK_TO_RUN after fixes 1, 2, 4 + rulings; fixes in 76778698, merged 2993a5df). Counts only, pre-window, no target read. DEADLINE: captures from 2026-10-15T12:31Z (RV look-back of the first sample) are removed by the 2026-10-23T03:30Z archive run; run before then or pass a restored --snapshot-root. Refuses (lists in 'bad') any sample whose four files do not match the seal. Pre-origin trade rows only for every feature; the post-origin rows in the sample page are used only for the coverage flag, as in the reader. mem_mb is an estimate (one sample of about 220k trade rows plus one capture's series at a time). Counts 0."
+}

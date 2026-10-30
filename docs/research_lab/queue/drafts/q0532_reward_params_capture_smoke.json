@@ -1,0 +1,31 @@
+{
+ "id": "q0532_reward_params_capture_smoke",
+ "title": "Reward-parameter collector smoke: one keyless write-once capture of clob.polymarket.com/rewards/markets/current (native + sponsored)",
+ "family": "maker_rewards",
+ "priority": 20,
+ "expected_value": "engineering gate for the 2-hourly reward-parameter capture that E025 part B needs from 2026-10-22",
+ "data": [
+  "public CLOB rewards endpoint (keyless)"
+ ],
+ "resources": {
+  "mem_mb": 200,
+  "cpu": 1,
+  "lane": "net",
+  "network": "clob"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/collect_reward_params.py",
+  "--out-root",
+  "../data-dumps/research_lab/reward_params",
+  "--min-interval-s",
+  "0.5"
+ ],
+ "timeout_s": 600,
+ "max_retries": 2,
+ "outputs": [
+  "research_lab/reward_params/<capture_id>/{rows.jsonl.gz,manifest.json}"
+ ],
+ "next_action": "if state complete: add the cron line in MAKER_REWARDS_STUDY.md section 6 (35 */2, after the :31 pass) via scripts/oracle/crontab.txt and deploy (coordinator decision)",
+ "notes": "MAKER_REWARDS_STUDY.md. DRAFT, not in queue/jobs. Read-only on inputs; no network for q0530/q0531. About 30 requests, 17 s, 0.64 MB per capture (local smoke 2026-10-20T23:01Z: 14,223 native + 42 sponsored markets). Write-once directories; a failed capture stays failed."
+}

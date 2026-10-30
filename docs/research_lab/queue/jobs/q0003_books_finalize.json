@@ -1,0 +1,28 @@
+{
+ "id": "q0003_books_finalize",
+ "title": "Finalize book_features.csv.gz",
+ "family": "book/liquidity",
+ "priority": 60,
+ "expected_value": "input table for r4_book",
+ "data": [
+  "history_sources/book_features"
+ ],
+ "resources": {
+  "mem_mb": 1500,
+  "cpu": 1
+ },
+ "depends_on": [
+  "q0002_books_h2main"
+ ],
+ "argv": [
+  "scripts/run_history_features.py",
+  "finalize"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/history_sources/book_features/book_features.csv.gz"
+ ],
+ "next_action": "r4_book (q0004)",
+ "notes": ""
+}

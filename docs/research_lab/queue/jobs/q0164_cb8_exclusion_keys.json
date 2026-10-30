@@ -1,0 +1,41 @@
+{
+ "id": "q0164_cb8_exclusion_keys",
+ "title": "CB8: exclusion ids and event / negRiskMarketID / series keys of h1/h2/h3 samples, every committed seal copy (h5, h5_ladders, h6, h7, h8_tail, h8_text, h8_geo), CB5 sample listings and the C1 Polymarket legs (ids only; parse guard)",
+ "family": "creative_batch_8",
+ "priority": 49,
+ "expected_value": "event-level disjointness of the B frame and h9_flow",
+ "data": [
+  "sha256-pinned id lists and committed seal copies (ids only)",
+  "public Gamma by id"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "network": "gamma-api",
+  "lane": "net"
+ },
+ "depends_on": [
+  "q0161_cb8_smoke"
+ ],
+ "argv": [
+  "scripts/run_cb8.py",
+  "exclusion-keys",
+  "--rps",
+  "2",
+  "--extra-pin",
+  "c1_legs:/home/opc/arepo/data-dumps/research_lab/creative_batch8/pins/c1_legs_ids.csv:8341c500d897936a2d47e50bbf29372fea80e5948e762e67473a7caad5cfe7ae",
+  "--extra-pin",
+  "cb5_listings:/home/opc/arepo/data-dumps/research_lab/creative_batch8/pins/cb5_listings_ids.csv:e1a125517b6cf0a037efe68b66158d1e88501cdb3769728d7532ea8723c85ac7",
+  "--disk-cap-gb",
+  "0.01",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 2,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch8/{exclusion_keys.csv.gz,exclusion_report.json}"
+ ],
+ "next_action": "q0165, q0167; seal-time drops in q0166 (final stage) and q0168 re-read seal copies committed later (no re-run of q0164: ids are terminal once done)",
+ "notes": "PROMOTED 2026-10-22 ~00:20Z (autopilot): after T_seal and q0161 (smoke written under rules 33decb52…; criterion (a) FAIL, so W is not run; (b) and (c) PASS, so B continues). Both REQUIRED pins derived once on the host at 00:17Z (offline, ids only, write-once): c1_legs 500 ids, ids_sha256 8341c500…e7ae (source f2145766…); cb5_listings 244,420 ids from 64 listing files, ids_sha256 e1a12551…5ac7 (source 3a3cf6a6…). Tokens replaced; nothing else changed. | CREATIVE_BATCH_8.md section 1.3. DRAFT. Commit after T_seal. Absent seal copies recorded as 'absent at q0164'. > 2% exclusion ids without metadata -> disjointness unverified (B1, W1 not testable, counted). IMPLEMENTED 2026-10-17 (cb8_updown.exclusion_keys; subcommand 'exclusion-keys'). Refuses (exit 2) unless seals/cb8_rules.json matches and creative_batch8/smoke.json exists under the same rules hash. The pinned set is cb7_common.EXCLUSION_PINS (h1/h2/h3 samples, h5_cb1, h5_cb1_ladders) plus every other committed *_SEAL.json in seals/ (absent known seals are recorded as 'absent at q0164'). FREEZE-CHECK MUST-FIX 5 (2026-10-17): the C1 legs and the CB5 listings are REQUIRED pins (design 1.3); q0164 cannot be re-run, so it exits 2 without both '--extra-pin c1_legs:...' and '--extra-pin cb5_listings:...' and without their '<csv>.meta.json' sidecars (source sha256 recorded). TODO-COORDINATOR before promoting (on the host, cwd /home/opc/arepo/backend, offline): (1) python scripts/run_cb8.py derive-exclusion-ids --kind c1_legs --src /home/opc/arepo/data-dumps/research_lab/cross_venue/matches.json --out /home/opc/arepo/data-dumps/research_lab/creative_batch8/pins/c1_legs_ids.csv ; (2) python scripts/run_cb8.py derive-exclusion-ids --kind cb5_listings --src /home/opc/arepo/data-dumps/research_lab/cb5_extract/listings --out /home/opc/arepo/data-dumps/research_lab/creative_batch8/pins/cb5_listings_ids.csv . Each prints ids_sha256 and a ready pin_argument; equivalently sha256sum <csv> (macOS: shasum -a 256 <csv>) gives the 64-hex to put after the second colon. Replace both TODO-COORDINATOR tokens in argv with the 64-hex values (a placeholder is refused: the pin must be exactly 64 hex). The derivation reads ids only (C1: p_market_id of every row of matches.json, a superset of the 316-pair set; CB5: market_id of every cb5_extract/listings/<capture>.csv.gz, with the file list and per-file sha256 hashed into source_sha256). Run it as late as possible before promoting so new captures are included, and not again afterwards (write-once). Expected host paths: /home/opc/arepo/data-dumps/research_lab/cross_venue/matches.json and /home/opc/arepo/data-dumps/research_lab/cb5_extract/listings/*.csv.gz (the layout is the same under <repo>/data-dumps/research_lab/). Needs the committed seals/cb8_rules_v2.json (rules_sha256 33decb528bbafd46336296be57c91b76e6aaa0c69d7d3eecf92eaa83c4f12a6d); the v1 cb8_rules.json is superseded and refused. | 2026-10-17 15:35Z autopilot: data-dumps headroom guard 12.5 -> 40 GiB (ops only, not a declared argument): the user grew the host boot volume to 100 GB (root 89 GB, 60 GB free); collector cap 45 GiB, 4 GB free-disk guard unchanged."
+}

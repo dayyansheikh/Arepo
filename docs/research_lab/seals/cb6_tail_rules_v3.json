@@ -1,0 +1,280 @@
+{
+ "dates": {
+  "created_from": "2025-09-01",
+  "created_to_inclusive": "2026-07-31",
+  "end_before_fetch_days": 7,
+  "end_from": "2025-09-01",
+  "origin_latest_before_fetch_days": 60,
+  "t_seal": "2026-10-22T00:00:00Z"
+ },
+ "exclusion": {
+  "files": [
+   {
+    "kind": "sample",
+    "name": "h1_first",
+    "path": "history/h1_first/sample.csv.gz",
+    "sha256": "24bbda60714852679f8203f399c8852a6a97d99b01cebb2b19c7c8f8f2b53cf8"
+   },
+   {
+    "kind": "sample",
+    "name": "h2_main",
+    "path": "history/h2_main/sample.csv.gz",
+    "sha256": "77a15bd96bcd17c923e90e3e214874cad8df9ed4cd66eb6145cc8922c28954ec"
+   },
+   {
+    "kind": "sample",
+    "name": "h3_power",
+    "path": "history/h3_power/sample.csv.gz",
+    "sha256": "f8e1a7bbd16d57206fcd45c502263d2b7ceb40b22108e248c613d5148476004d"
+   },
+   {
+    "kind": "seal",
+    "name": "h5_cb1",
+    "path": "docs/research_lab/seals/h5_cb1_SEAL.json",
+    "sha256": "fbac4c8d2898447555a6e68de0d31fbc9b4efa5aec1fa58d62ce2373685fae85"
+   },
+   {
+    "kind": "seal",
+    "name": "h5_cb1_ladders",
+    "path": "docs/research_lab/seals/h5_cb1_ladders_SEAL.json",
+    "sha256": "d3e7b335c15ac5917d270f5a0cbb6ded84363408dcc6a54d47f20ba6aed28104"
+   }
+  ],
+  "ids_per_request": 50,
+  "key_types": [
+   "event",
+   "neg_risk_market",
+   "series"
+  ],
+  "max_unverified_key_share": 0.02,
+  "retry_missing_with_closed_true": true,
+  "series_ids_from": "all events of the market"
+ },
+ "features": {
+  "clarification_markers": [
+   "clarif",
+   "update:",
+   "updated",
+   "additional context",
+   "edit:"
+  ],
+  "class_c": [
+   "\\bprice\\w*",
+   "\\btemperature\\w*",
+   "\\bscore\\w*",
+   "\\bpoll\\w*"
+  ],
+  "class_d": [
+   "\\bannounc\\w*",
+   "\\bcourt\\w*",
+   "\\border\\w*",
+   "\\baward\\w*",
+   "\\bnominat\\w*",
+   "\\bstrike\\w*"
+  ],
+  "description_fallback_chars": 500,
+  "drift_days": 7,
+  "drift_min": 0.01,
+  "large_buy": {
+   "median_days": 30,
+   "median_min_prints": 10,
+   "multiple": 5.0,
+   "window_hours": 24
+  },
+  "note_date_pattern": "note:\\s*(?:\\d{4}-\\d{2}-\\d{2}|\\d{1,2}[/.\\-]\\d{1,2}(?:[/.\\-]\\d{2,4})?|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\\.?\\s+\\d{1,2}|\\d{1,2}\\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*)",
+  "young_wallet_days": 30
+ },
+ "fetch": {
+  "cap": "ts <= min(T_fetch8, T_seal)",
+  "price_fidelity_min": 60,
+  "price_window_days": [
+   8,
+   2
+  ],
+  "print_window": {
+   "after_hours": 6,
+   "before_days": 30,
+   "limit": 1000,
+   "max_pages": 3,
+   "taker_only": true
+  },
+  "wallet_lookup": {
+   "raw_addresses_written": false,
+   "scope": "origins whose usable longshot price m_c is inside longshot_band; buyers qualifying under rule (iii) only; one cached /activity first-trade lookup each"
+  }
+ },
+ "frame": {
+  "binary_only": true,
+  "capped_windows": "dropped whole and counted",
+  "description_chars": 4000,
+  "exclude_crypto_updown": "\\bup or down\\b|\\bupdown\\b|\\bup-or-down\\b",
+  "exclude_weather": {
+   "fee_category": "weather",
+   "temp_re": "^(Highest|Lowest) temperature in (.+?) on (.+?)\\?$",
+   "temp_re_flags": 0
+  },
+  "filter_order": [
+   "no_created_or_end",
+   "created_outside_window",
+   "end_after_cutoff",
+   "weather",
+   "crypto_updown",
+   "life_lt_14d",
+   "exclusion_id",
+   "exclusion_key"
+  ],
+  "forward_walk": false,
+  "frame_version": "frame-v2-random-windows",
+  "main_columns": [
+   "market_id",
+   "condition_id",
+   "token0",
+   "token1",
+   "event_id",
+   "event_ids",
+   "neg_risk_market_id",
+   "series_ids",
+   "fee_category",
+   "status",
+   "closed",
+   "created_at",
+   "start_at",
+   "end_at",
+   "start_epoch",
+   "end_epoch",
+   "neg_risk",
+   "question",
+   "event_title",
+   "slug",
+   "topic",
+   "outcomes",
+   "description"
+  ],
+  "min_life_days": 14,
+  "outcome_columns_guarded": [
+   "outcome_prices",
+   "uma_status",
+   "liquidity",
+   "volume",
+   "closed_time",
+   "close_epoch"
+  ],
+  "pages_per_window": 20,
+  "walk_order": [
+   "closed=false",
+   "closed=true"
+  ],
+  "window_minutes": 15,
+  "windows_per_day": 1
+ },
+ "funcs_sha256": "57995048ec02734e895d35674abc1eb734f7c26d9ea50195b8495871b9a732ff",
+ "origins": {
+  "draw": "random.Random(seed|market_id).sample(sorted grid, k)",
+  "end_offset_hours": 24,
+  "grid": "Monday 00:00 UTC",
+  "max_origins": 3,
+  "start_offset_days": 7
+ },
+ "rules_sha256": "ad7f5baa5d6e63a27f913b37b5b263f18579750a6c085ebafc5c5cb5bbdf35fb",
+ "rules_version": "cb6-tail-rules-v3",
+ "sample": {
+  "allocator": "hb.allocate_weighted",
+  "n_markets": 4500,
+  "order_within_stratum": "sha256(seed|market_id)",
+  "stored": [
+   "inclusion_prob",
+   "sample_weight"
+  ],
+  "strata": [
+   "status",
+   "cb1_topic",
+   "created_month"
+  ],
+  "weights": {
+   "other": 1.0,
+   "sports": 0.5
+  }
+ },
+ "seeds": {
+  "origins": "arepo-h8-tail-origins",
+  "sample": "arepo-h8-tail",
+  "smoke": "arepo-h8-smoke2",
+  "split": "arepo-cb6-tail-split"
+ },
+ "smoke": {
+  "carry_over": {
+   "from_rules_sha256": "bf05c8ee7c3a1e55dafaa4b4344d9ba0be35afe545c372e7e6b288c08eceee16",
+   "reason": "amendment A-T1 adds the h8_tail_b top-up section; no smoke, fetch, filter or feature rule function changed",
+   "smoke_file": "docs/research_lab/seals/cb6_tail_smoke2_PASS_20261017.json",
+   "smoke_file_sha256": "d1f7a4ef693e494e18320bac45fde8918d5a961565f24a5b24ae3e5589ab0bf4"
+  },
+  "median_spacing_s": [
+   3600.0,
+   300.0
+  ],
+  "min_fraction_of_expected_points": 0.8,
+  "min_pass": 18,
+  "n": 20,
+  "output": "counts only",
+  "pool": "closed markets with end_at in 2025 from the h1/h2/h3 exclusion samples, scheduled life end_at - created_at >= min_life_days (the h8 frame rule) and close_epoch >= end_at - 2 d, so the whole window lies inside [created_at, close]; drop counts by reason",
+  "seed": "arepo-h8-smoke2",
+  "superseded": {
+   "cause": "pool lacked the h8 frame's life >= 14 d rule: for 16 of 20 drawn markets the window [end - 12 d, end - 2 d] began before the market was created (scheduled life 0.1-6.5 d)",
+   "copy": "docs/research_lab/seals/cb6_tail_smoke_FAIL_20261017.json",
+   "copy_sha256": "ae21aefec15c0122310682fab70a640a21f68b8486ae18f4b9f3490be65e28be",
+   "job": "q0135_h8_tail_smoke",
+   "n_pass": 4,
+   "n_requested": 20,
+   "result": "FAIL",
+   "rules_sha256": "57a265d0620c45ea2c82e606e1194846aed6012e2848753a81cfdbb90aa2f3df",
+   "version": "h8-tail-smoke-v1"
+  },
+  "version": "h8-tail-smoke-v2",
+  "window_before_end_days": [
+   12,
+   2
+  ]
+ },
+ "split": {
+  "rule": "sha256(SPLIT_SEED + '|' + event_key), first byte even -> SCREEN else HOLDOUT; event_key = Gamma event id (market id if none), merged across negRiskMarketID (component minimum)",
+  "seed": "arepo-cb6-tail-split"
+ },
+ "topup": {
+  "amendment": "A-T1 (CREATIVE_BATCH_6.md 'h8_tail fetch result and sample shortfall'; decided from frame counts only)",
+  "clock": "pinned to the parent's T_fetch8 (parent request_clock.json, cross-checked with its manifest): frame cutoff, days and slots, origin limit <= T_fetch8 - 60 d, outcome censoring and the price / print cap min(T_fetch8, T_seal); recorded in the manifest params",
+  "endings": "complete -> the union is used whatever the yield; any other ending (not_run_deadline, disk_budget, disjointness_unverified, refusal) drops the run entirely; no third run",
+  "exclusion": "parent excluded by market id only (parent sample.csv.gz pinned by its manifest file_sha256; the read is logged in the parent ACCESS_LOG.jsonl); keys of h1/h2/h3/h5 excluded as frozen; the parent's event / neg-risk / series keys are NOT excluded (the event-hash split runs over the union rows)",
+  "parent": "h8_tail",
+  "parent_windows_per_day": 1,
+  "run_id": "h8_tail_b",
+  "sampling": "all eligible taken when the union pool (parent sample + this run's eligible) is at most n_markets; otherwise the frozen sampler (draw_tail_sample) over the union pool, keeping this run's chosen rows",
+  "seed": "arepo-h8-tail",
+  "union_seal": "tail-seal over both runs: both manifests complete with file hashes verified, equal clocks, cross-run market-id disjointness, h7 drops and the event-hash split over the union rows, one listing (union_listing_sha256), one trial line, one seal copy; verify_tail checks both runs",
+  "windows": "the picks of random.Random(seed|day).sample(valid, 9) other than the parent's k = 1 pick (nested; refuse if not), so the union equals the frozen frame rule at 9 windows per day, one selection probability",
+  "windows_per_day": 9
+ },
+ "units": {
+  "longshot_band": [
+   0.02,
+   0.1
+  ],
+  "max_point_age_s": 7200,
+  "min_prints_before_origin": 1,
+  "price_bands": [
+   [
+    0.02,
+    0.04
+   ],
+   [
+    0.04,
+    0.07
+   ],
+   [
+    0.07,
+    0.1
+   ]
+  ],
+  "print_lookback_days": 7,
+  "usable_point_lag_s": 600
+ }
+}

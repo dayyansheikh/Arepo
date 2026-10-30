@@ -1,0 +1,35 @@
+{
+ "id": "q0530_maker_dev_pnl",
+ "title": "Maker vs taker P&L held to resolution by market class (gap 5), DEVELOPMENT: h2_main + h3_power taker prints and resolved outcome_prices; pooled, event-clustered bootstrap; durable host copy of the 2026-10-20 /tmp run",
+ "family": "maker_rewards",
+ "priority": 5,
+ "expected_value": "durable copy of the development maker P&L table (already reported from a /tmp run); input for the E025 MDE",
+ "data": [
+  "history/h2_main (sample, progress, trades)",
+  "history/h3_power (sample, progress, trades)"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_maker_dev.py",
+  "pnl",
+  "--history-root",
+  "../data-dumps/research_lab/history",
+  "--runs",
+  "h2_main",
+  "h3_power",
+  "--out",
+  "../data-dumps/research_lab/maker_rewards_dev/pnl"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/maker_rewards_dev/pnl/maker_dev_pnl.json"
+ ],
+ "next_action": "compare with docs/research_lab/maker_rewards_dev/pnl_h2_h3.json (must be identical apart from runtime_s)",
+ "notes": "MAKER_REWARDS_STUDY.md. DRAFT, not in queue/jobs. Read-only on inputs; no network for q0530/q0531. Measured 2026-10-20 on the host: 64 s, 247 MB RSS. Refuses the sealed runs h5_cb1 and h6_weather. Not a test, not counted."
+}

@@ -1,0 +1,46 @@
+{
+ "id": "q0116i_mc1_dev_resumable",
+ "title": "MC1 multi-signal dev: REAL development (identity v2) run in resumable <=5.5 h slices (per-(arm, fold) checkpoints; exit 75 at the time budget; trials logged once at completion)",
+ "family": "ml_multi_signal",
+ "priority": 40,
+ "expected_value": "first MC1 development read (log-loss vs M0, incremental families) before the 8-day snapshot deletion (captures from 10-14T12:31Z pass 8 days at 10-23 03:30Z); caches the panel parquet that also unblocks the book_sweeps retention rule",
+ "data": [
+  "research_lab/snapshots (70 complete; longest consecutive run 30 at 2026-10-16T23Z)",
+  "research_lab/book_sweeps",
+  "research_lab/trade_samples"
+ ],
+ "resources": {
+  "mem_mb": 6500,
+  "as_cap_mb": 14000,
+  "exclusive": true,
+  "cpu": 1
+ },
+ "depends_on": [
+  "q0604_lt7_census_sweeps"
+ ],
+ "argv": [
+  "scripts/run_ml_dev.py",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--sweep-root",
+  "../data-dumps/research_lab/book_sweeps",
+  "--cache-root",
+  "../data-dumps/research_lab/ml_cache",
+  "--out-dir",
+  "../data-dumps/research_lab/ml_dev",
+  "--resume-dir",
+  "../data-dumps/research_lab/ml_dev/resume_q0116i",
+  "--time-budget-s",
+  "19800"
+ ],
+ "timeout_s": 21600,
+ "max_retries": 2,
+ "outputs": [
+  "data-dumps/research_lab/ml_dev/resume_q0116i/ (unit pickles + progress.json)",
+  "data-dumps/research_lab/ml_dev/ reports (final slice only)",
+  "ml_cache/<panel hash>/panel.parquet",
+  "trials.jsonl DEVELOPMENT rows (written once, at final completion)"
+ ],
+ "next_action": "Claude session: write up the dev run in MULTI_SIGNAL_PIPELINE_DESIGN.md / ledger (development, not evidence); record the panel hash; then the book_sweeps rule may move to rules once q0035 is done",
+ "notes": "max_retries 2 (reviewer note): a slice that dies on a real error (OOM, crash) is retried at most twice; finished units persist so a retry loses at most one unit, while rc 75 tempfails are separate and uncounted. Overrun safety: a unit is started only if elapsed + the longest unit duration seen so far (progress.json unit_seconds) fits the budget, and the final stage (bootstrap/SHAP/placebo scoring/report) only if elapsed + its recorded runtime (default 1800 s) fits; else exit 75. Identity also pins python/numpy/pandas/scikit-learn/lightgbm versions; a resume dir that is already complete is refused. DRAFT 2026-10-22, NOT in queue/jobs. Replaces the monolithic q0116f after the q0116g one-fold profile (fold 0 ~2 h, peak RSS 6.2 GB; full run ~32 h+ exceeds the 6 h timeout). Code: run_ml_dev.py --resume-dir/--time-budget-s, ml_resume.py, ml_models.UNIT_STORE hook; design/panel/folds/models/search/seeds/gates unchanged. Each finished (arm, fold) unit (sweep arms, no-sweep sensitivity, gap probes, placebos) is written atomically (tmp + rename) with a progress.json recording fold-manifest sha256, panel hash, sha256 of run_ml_dev.py/ml_models.py/ml_panel.py/ml_resume.py and the argv; a restart loads finished units, and REFUSES if any hash or the argv differs (so do not edit those files, or the panel inputs, between slices; if you must, use a new --resume-dir). After 19800 s (5.5 h, leaving panel-load/scoring headroom inside the 21600 s timeout) the run stops at the next unit boundary and exits 75; at least one unit is fitted per slice. Bootstrap, SHAP summary, trials flush and report writing run only once all units exist and are not interruptible, so they must fit in the final slice's remaining time (they are short next to the fits). Queue behaviour (scripts/oracle/queue_worker.py): rc 75 = tempfail -> retry_wait 30 min, attempt not counted, cap 48 consecutive tempfails; a full run needs ~7 slices of 5.5 h (~32 h+ of fitting) plus ~30 min waits, far below the cap. rc 0 only on full completion; trials lines are buffered and written once (marker trials_flush.json guards against double flush). Each slice re-reads the cached panel (the OOM-sensitive step, 6.2 GB peak measured), and being exclusive it drains the cpu lane again each time; light collectors are exempt. Do not run alongside q0116f (same outputs); keep q0116f unpromoted or cancel it first. Bit-identical to an uninterrupted run is tested on a synthetic stand-in (tests/test_ml_resume.py), not on real fits. | 2026-10-22 ~22:35Z: priority 95 -> 40 so the deadline-bound LT8 seal and censuses (52-54, must finish before 10-28T03:30Z) take the gaps between MC1 slices first (ops only; argv unchanged). | 2026-10-23 q0116i replaces q0116h (its record stays as is): q0116h was REFUSED on every re-run after slice 1 because the resume identity included the fold manifest sha256, which embeds the repo-wide git HEAD (code_sha) and so changed on every host deploy. Identity v2 hashes the fold plan WITHOUT code_sha and sha256 of every loaded astrolabe module file plus run_ml_dev.py, so deploys that leave imported code unchanged no longer break resume. New --resume-dir resume_q0116i (old dir has the old identity format and would be refused); do not run alongside q0116h."
+}

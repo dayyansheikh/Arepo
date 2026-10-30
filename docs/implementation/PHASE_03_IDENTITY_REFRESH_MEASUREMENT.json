@@ -1,0 +1,26 @@
+{
+  "schema_version": "fs2-targeted-quote-measurement-plan-v1",
+  "stage": "bounded development source verification; no origin or pilot acceptance",
+  "target_basis": "first assignment in saved historical development selection; no redraw or current-price selection",
+  "historical_plan_path": "data-dumps/fs2_selection_56ff541cb2c74477b5ae56de1a78ad54/selection_plan.json",
+  "historical_plan_file_sha256": "28bf96ed56e0848e9793814a0e2ae57631c5a9faf9233eba2f36b8e832695520",
+  "historical_plan_hash": "98dc71a2cd220732eb9a0e8250a7cf527281fb111bb9038747a243984c0ffe87",
+  "historical_selection_claim": "reference for fixed diagnostic target only; not refreshed, reverified or admitted as prospective selection",
+  "source_policy_version": "receipt-time-selected-market-v1",
+  "requests": [
+    {"source_id": "gamma.market", "params": {"market_id": "1068745"}},
+    {"source_id": "clob.book", "params": {"token_id": "71990823545476172057397539228999083435242402644332688321711165550800328090716"}}
+  ],
+  "budget": {"requests": 2, "bytes_per_response": 262144, "total_bytes": 524288, "seconds_per_request": 15, "total_seconds": 90},
+  "quote_policy": {"max_receipt_age_seconds": 300, "max_identity_age_seconds": 300},
+  "quote_policy_basis": "explicit development receipt-time ceiling; no calibrated freshness or predictive claim",
+  "storage_preflight_bytes": 2281701376,
+  "storage_preflight_basis": "2 GiB reserve plus 128 MiB for source and computation; existing per-source and computation caps remain binding",
+  "no_retry_or_alternate_target": true,
+  "run_only_after": "D046 self-review, full isolated tests, coherent commit and draft PR update",
+  "report": "exact plan/build/script hashes, source and computation roots, actual request/read/computation/durability clocks, failures, source/quote states, retained/raw bytes, elapsed time and peak memory; no raw payload printing",
+  "followup": "independent read-only computation verification at original cutoff; preserve every failed attempt and do not chase a valid quote",
+  "origin_admitted": false,
+  "feature_store_admitted": false,
+  "production_action": false
+}

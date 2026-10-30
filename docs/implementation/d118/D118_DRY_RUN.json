@@ -1,0 +1,86 @@
+{
+ "status": "ABORT: predeclared criterion met (max window age at freeze 43.09 s > 40 s); D118 must not be frozen as designed",
+ "provenance": "synthetic loopback dry run (mock HTTP transport, loopback websocket); engineering evidence only, never evidence about live data",
+ "command": "cd backend && python scripts/d118_window_dry_run.py --work-dir <scratch>/d118_dry_run_1 (defaults: --per-stratum 4 --latency 0.9 --runtime-concurrency 8)",
+ "run_count": "single run; not repeated or re-parameterised after the result",
+ "code_commit_at_run": "13b274b234212c2a69d07692a0ba440fcc45190d",
+ "code_note": "dry-run script was untracked at run time and is committed with this record; file hashes below are of the files as run",
+ "file_sha256": {
+  "backend/scripts/d118_window_dry_run.py": "58ba0a8bd0f40c182363d79327ff8ce886f7606cc146dca23a92a8fcd932838e",
+  "backend/astrolabe/research_panel/d118_evaluator.py": "39f0c85c8b044dad9c72e3d40ec03303f77cd9d968c49e126683053974956e62",
+  "backend/astrolabe/research_panel/d116_evaluator.py": "772b984a83f7d984f9d127401d3fe38cd68fcb339bb828f88438176a29893ab9",
+  "backend/astrolabe/research_panel/panel_declaration.py": "9ab71ae0c0411d5941c99ec1270067bd608dc63a76ceffc956908055fc75ba4a",
+  "backend/astrolabe/research_panel/panel_selection.py": "ecd2ddd5af58d893f3d123a2715161cd693298e93990a0100558175d2fbd9f3b",
+  "backend/astrolabe/research_panel/screening_worker.py": "dec77b51760872c37248f5143a1464dffea2883bb76e734a0ef941faaaf0a84f",
+  "backend/astrolabe/research_panel/concurrent_runtime.py": "277794b4da938d4153ff7f12f5708bb7a14d77e9c484fbcc2699d684dedf9b15"
+ },
+ "started_utc": "Sun Oct 11 08:44:34 UTC 2026",
+ "finished_utc": "Sun Oct 11 08:47:10 UTC 2026",
+ "returncode": 0,
+ "peak_memory_footprint_bytes": 74532800,
+ "abort_criteria": {
+  "max_window_age_at_freeze_s": 40,
+  "max_audit_s": 240
+ },
+ "measured": {
+  "max_window_age_at_freeze_s": 43.091444,
+  "audit_verification_s": 7.504166,
+  "breaches": {
+   "window_age": true,
+   "audit": false
+  }
+ },
+ "dry_run_summary": {
+  "provenance": "synthetic loopback dry run; never evidence about live data",
+  "per_stratum": 4,
+  "members": 16,
+  "latency_s_per_request": 0.9,
+  "runtime_concurrency": 8,
+  "worker_state": "pilot_collected_unaccepted",
+  "elapsed_s": 154.133,
+  "max_window_age_at_freeze_s": 43.091444,
+  "window_ages_at_freeze_s": [
+   14.794,
+   15.127,
+   15.155,
+   22.839,
+   23.046,
+   23.201,
+   28.145,
+   28.148,
+   34.75,
+   34.983,
+   34.991,
+   35.049,
+   42.615,
+   42.772,
+   43.075,
+   43.091
+  ],
+  "max_assessment_window_age_at_activation_s": 39.260363,
+  "audit_verification_s": 7.504166,
+  "recovery_after_runtime_s": 15.682018,
+  "evaluator_outcome": "PASS",
+  "evaluator_reasons": [
+   "non_authoritative_logic_only",
+   "observed matched pair with both members' complete chains"
+  ],
+  "pairs_both_complete": 8,
+  "role_capacity": {
+   "control": 8,
+   "scheduled": 16,
+   "triggered": 8
+  },
+  "abort_criteria": {
+   "max_window_age_at_freeze_s": 40,
+   "max_audit_s": 240
+  },
+  "abort": true
+ },
+ "reading": [
+  "Origins freeze in waves of at most concurrency-1 = 7 (concurrent_runtime.py:41-43); window ages rise in steps (~15, ~23, ~28, ~35, ~43 s) as later origins wait for earlier ones, so the last wave exceeds 40 s even at runtime concurrency 8 (the code maximum).",
+  "The 60 s code limit was not breached in this synthetic run (no window_stale_at_freeze), but the margin is below the predeclared 40 s safety criterion, and live latency (D116 origins ~2.9 s for three requests vs 3 x 0.9 s here) is comparable, not smaller.",
+  "The audit (7.5 s) is far inside 240 s and is not the constraint.",
+  "Synthetic PASS (8 complete pairs) shows only that the control path executes on loopback; it is not acceptance evidence."
+ ]
+}

@@ -1,0 +1,45 @@
+{
+ "id": "q0140b_cb7_smoke_v2",
+ "title": "CB7-F smoke v2: geopolitics slug -> pinned tag id 100265; Data API windowed-print bounds, ordering and coverage on 20 worn markets drawn from the recorded-field pool (end 2025, life >= 14 d, window inside life, not weather/Up-Down) with Gamma volume >= $10k; counts only; no CLOB history",
+ "family": "history_data",
+ "priority": 62,
+ "expected_value": "verifies the two public sources the T_seal-bound h8_text and h8_geo fetches rely on (smoke v1 FAILed on a pool spec error, not the source), before they are committed",
+ "data": [
+  "public Gamma (tags; markets by id: endDate, volumeNum, conditionId, outcomes labels, Up/Down flag only)",
+  "public Data API trades",
+  "history/h1_first, h2_main, h3_power sample.csv.gz (recorded end/start/close epochs, fee_category, text for Up/Down; recorded volume NOT used; sha256 pinned in the rules file)",
+  "docs/research_lab/seals/cb7_text_geo_rules_v2.json (hash-checked; rules_sha256 05bf365c...)"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "network": "gamma-api, data-api",
+  "lane": "net"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb7.py",
+  "smoke",
+  "--rules",
+  "../docs/research_lab/seals/cb7_text_geo_rules_v2.json",
+  "--seed",
+  "arepo-cb7-smoke-v2",
+  "--n",
+  "20",
+  "--min-volume",
+  "10000",
+  "--min-nonempty",
+  "10",
+  "--min-coverage",
+  "14",
+  "--rps",
+  "2"
+ ],
+ "timeout_s": 900,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch7/smoke_v2.json (WRITE-ONCE; the v1 smoke.json FAIL is never overwritten)"
+ ],
+ "next_action": "PASS: promote q0142/q0143 per their conditions (fetcher freeze check, q0141); FAIL is final (no smoke v3): S1 'not run (smoke FAIL)' and G1 likewise, counted; T_seal 2026-10-22T00:00Z unchanged",
+ "notes": "CREATIVE_BATCH_7.md 'Smoke v2 (2026-10-17)'. DRAFT. Reviewer ACCEPT_WITH_CHANGES (items 1-4 applied). Pool: exclusion-sample ids whose RECORDED fields satisfy end in 2025, life >= 14 d, close_epoch >= end - 7 d, not weather (fee_category), not crypto Up/Down; ranked by sha256('arepo-cb7-smoke-v2'|id); Gamma lookup by id; kept if endDate in 2025, volumeNum >= 10,000, condition id, Yes/No labels, not Up/Down; first 20 in seed order. Fewer than 20 survive -> FAIL (no widening). Thresholds and criteria (a)-(c) unchanged (min_nonempty 10, min_coverage 14, n 20, window [end-14d, end-7d-1], limit 50, takerOnly). Zero-request host count (2026-10-17): 33 ids pass the recorded-field rules, 26 with recorded volume >= 10k. The smoke JSON discloses v1's 0/2 empty responses and counts (no ids) of the v2 draws also probed by CB7 smoke v1 / CB6 smokes. About 20 trades requests + up to 10 Gamma id lookups (about 233 ids: the v2 pool plus the 200 v1 candidates re-looked-up for the overlap disclosure; a Gamma failure on any of them, pool or not, writes nothing and retries later via exit 75) + 1 tag request. Exit 2 if smoke_v2.json exists. Freeze check 2026-10-17 GO_WITH_CONDITIONS; conditions 1-3 applied (q0141 terminal and keys accepted by key-file sha only; request count corrected; q0142/q0143 notes say q0140b)."
+}

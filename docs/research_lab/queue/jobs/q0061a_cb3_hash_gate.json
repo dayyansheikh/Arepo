@@ -1,0 +1,22 @@
+{
+ "id": "q0061a_cb3_hash_gate",
+ "title": "Gate: CB3 freeze-check HOLD fixes re-checked (RELEASE) \u2014 releases q0061 census",
+ "family": "gate",
+ "priority": 48,
+ "expected_value": "releases census q0061 (counts only) after the science-reviewer re-check of 13c6ac8",
+ "data": [],
+ "resources": {
+  "mem_mb": 200,
+  "cpu": 1
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/cb1_h5.py",
+  "selfcheck"
+ ],
+ "timeout_s": 600,
+ "max_retries": 1,
+ "outputs": [],
+ "next_action": "q0061 runs (cpu lane); Claude session records census counts, then the CB3 freeze",
+ "notes": "Coordinator gate, 2026-10-17 autopilot. science-reviewer verdict RELEASE_Q0061 on 13c6ac8 (declaration eb6a143c...). Same trivial argv as q0080a."
+}

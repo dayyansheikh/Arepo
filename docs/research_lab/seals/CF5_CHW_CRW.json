@@ -1,0 +1,919 @@
+{
+ "CF5": {
+  "by_class": {
+   "common": 776,
+   "idio": 9980,
+   "interior": 3109
+  },
+  "by_level": {
+   "event": 8426,
+   "series": 5439
+  },
+  "common_21d": 8148.0,
+  "common_eff_21d": 6909.0,
+  "corr_common_liq": {
+   "n": 10756,
+   "pooled": 0.04844054859581376,
+   "within": 0.01955472425885293
+  },
+  "corr_common_parallel": {
+   "n": 10756,
+   "pooled": 0.0361171799598381,
+   "within": 0.04614519394779533
+  },
+  "crypto_share_common": 0.2847938144329897,
+  "design": {
+   "n": 7491,
+   "ss_resid": 395.6535294415746,
+   "vif_w": 1.1167543142797767
+  },
+  "design_effect_family": {
+   "DE": 10.279274823354408,
+   "DE_gate": 10.279274823354408,
+   "m_21d": 464.96374116772034,
+   "m_census": 44.282261063592415,
+   "rho": 0.02
+  },
+  "events": 765,
+  "exclude_family": "",
+  "families": 592,
+  "formed": 13865,
+  "formed_by_family_size": {
+   "11-30": 4422,
+   "3-5": 3060,
+   "6-10": 6127,
+   ">30": 256
+  },
+  "gate_F": {
+   "common_21d": true,
+   "corr_common_parallel": true,
+   "corr_liq": true,
+   "crypto_common": true,
+   "guard_loss": true,
+   "idio_21d": true,
+   "mde_eff": false,
+   "pass": false,
+   "perm_share": true
+  },
+  "guard_loss_share": 0.12451853255035676,
+  "idio_21d": 104790.0,
+  "idio_eff_21d": 97167.0,
+  "mde_class_c": 0.8575570328602943,
+  "mde_design_c": 1.0111689356465823,
+  "mde_eff_c": 1.0111689356465823,
+  "neg_risk_movers": 18011,
+  "negrisk_siblings_excluded": 58133,
+  "perm_share": {
+   "block2": 0.7090925994793603,
+   "day": 0.5302156935663815,
+   "stratum": "day"
+  },
+  "top_family_share": 0.05754927482335441,
+  "units": 29634
+ },
+ "CHW": {
+  "by_class": {
+   "far": 317,
+   "near_high": 43,
+   "near_low": 60,
+   "new_extreme": 83,
+   "rest": 1691
+  },
+  "corr_near_sd24": {
+   "n": 420,
+   "pooled": 0.09202455521990525,
+   "within": null
+  },
+  "crypto_share_near": 0.07766990291262135,
+  "d_hi_sd_markets": 9403,
+  "d_hi_sd_share": 0.45187706051260235,
+  "design_effect": {
+   "DE": 1.338,
+   "DE_gate": 5.0,
+   "m_21d": 17.9,
+   "m_census": 1.7047619047619047,
+   "rho": 0.02
+  },
+  "exclude_family": "",
+  "far_21d": 3328.5,
+  "far_eff_21d": 0.0,
+  "gate_H": {
+   "corr": false,
+   "crypto_near": true,
+   "d_hi_sd": false,
+   "far_21d": false,
+   "hwm_incomplete": false,
+   "market_strata": false,
+   "mde_eff": false,
+   "near_21d": false,
+   "pass": false
+  },
+  "hwm_gap_share": 0.002968913726859937,
+  "hwm_incomplete_share": 0.5514320642682501,
+  "market_strata_share": 0.0,
+  "mde_eff_c": Infinity,
+  "near_21d": 1081.5,
+  "near_eff_21d": 0.0,
+  "top_family_share": 0.05,
+  "units": 2194
+ },
+ "CRW": {
+  "crossing_markets": 904,
+  "crossing_unit_share": 0.21453650268372412,
+  "depth_band": "5c",
+  "design": {
+   "n": 45259,
+   "ss_resid": 1353.2081726041235,
+   "vif_w": 8.24511275977547
+  },
+  "design_effect": {
+   "DE": 11.85378627063239,
+   "DE_gate": 11.85378627063239,
+   "m_21d": 543.6893135316195,
+   "m_census": 51.779934622059,
+   "rho": 0.02
+  },
+  "exclude_family": "",
+  "fake_cutoff_band_units": 76493,
+  "gate_R": {
+   "crossing": false,
+   "imb_iqr": true,
+   "mde": false,
+   "min_size_depth_present": true,
+   "pass": false,
+   "perm_share": true,
+   "rewarded_inside": true,
+   "rewarded_outside": true,
+   "unrewarded_inside": false,
+   "unrewarded_outside": false
+  },
+  "imb_iqr_markets": 2361,
+  "imb_iqr_share": 0.7518000847098687,
+  "imb_sd": 0.4777321519592657,
+  "mde_2sd_c": 1.0275058221751336,
+  "mde_2sd_declared_c": 0.4897661588016501,
+  "mde_2sd_design_c": 1.0275058221751336,
+  "min_size_depth_present_share": 0.9995788439265785,
+  "perm_share": {
+   "block2": 0.9637394567980951,
+   "day": 0.9395254045764558,
+   "stratum": "day"
+  },
+  "primary_band_units": 49558,
+  "rewarded_inside_21d": 299176.5,
+  "rewarded_markets": 4299,
+  "rewarded_outside_21d": 221182.5,
+  "rewards_max_spread_median_band": 4.5,
+  "rewards_max_spread_quantiles": [
+   4.5,
+   4.5,
+   4.5,
+   6.5,
+   6.5
+  ],
+  "top_family_share": 0.06574115178175068,
+  "units": 126051,
+  "unrewarded_inside_21d": 0.0,
+  "unrewarded_outside_21d": 0.0
+ },
+ "captures": [
+  "20261020T003101Z_5c471884",
+  "20261020T023102Z_ec44ae21",
+  "20261020T043101Z_fdb105f3",
+  "20261020T063101Z_3a621c5c",
+  "20261020T083101Z_e8be6147",
+  "20261020T103102Z_183eb5dd",
+  "20261020T123102Z_1eb77a3d",
+  "20261020T143101Z_6c88e193",
+  "20261020T163102Z_954fefaa",
+  "20261020T183102Z_eaf6f016",
+  "20261020T203102Z_4bd248d9",
+  "20261020T223102Z_393e280b",
+  "20261021T043102Z_230e4995",
+  "20261021T063101Z_c5f2cfde",
+  "20261021T083102Z_523fc3ef",
+  "20261021T103102Z_1eba274e",
+  "20261021T123102Z_ac1810c5",
+  "20261021T143101Z_3a7aeca9",
+  "20261021T163102Z_39e9ed42",
+  "20261021T183102Z_b565df1c",
+  "20261021T203102Z_6fde526f",
+  "20261021T223101Z_06b12c86"
+ ],
+ "code_sha256": {
+  "bounce_decomp.py": "2caf0edc73fbac5b27054589afa495a2cf6844886e41a2f8eced5d9796a34c8a",
+  "cb13_label.py": "2fbf4b91e3ee3db413098866a6d99b24bcdf5e0c97750820de8edbc6fc789380",
+  "cb17_census.py": "6b98bab8bde4238edbe56e32d5672c72a04acc04d662bec7b393e3cbf806a15a",
+  "economics.py": "3418b74dbf21068d1cf6660510a94544b122bce69d5078aeeb99fce0c8e13bf6",
+  "forecast.py": "fcc0823ce892fef97799435ca0d202e8f2b320101aafeb928b5c52e3dc381d6c",
+  "live_tests5.py": "c3be9c5516eeb573e3364a47730230530d87f187c996b306c3bd42d2438ecc39",
+  "live_tests5_analysis.py": "860fb285f41ba0fa57790f1be8eadf3ad7962390f13901e85d441587543ca532",
+  "live_tests5_base.py": "43a9dd0118b7368d02103cef34b77cf27346311cfb12143ec7d813d08f953fa5",
+  "maker_rewards.py": "4dcbeadc851fe3377ea5b6c760fec6b62890fe50666e067bb77b13dd5d8eb5e7",
+  "panel.py": "f18a3e233801bfcffe626be7d01c7b16101c288a99ae0f1942fa9fecfa303281",
+  "trade_sample.py": "5cf58dba54a0f1333d919e40f5c68a5a159099b1af4438dc3247521d360b994e"
+ },
+ "days": [
+  "2026-10-20",
+  "2026-10-21"
+ ],
+ "files_checked": 382,
+ "h_origins_missing": [
+  "2026-10-21T00:31:00.000000Z"
+ ],
+ "inputs_verified": true,
+ "missing_slots": [
+  "2026-10-14T00:31:00.000000Z",
+  "2026-10-14T02:31:00.000000Z",
+  "2026-10-14T04:31:00.000000Z",
+  "2026-10-14T06:31:00.000000Z",
+  "2026-10-14T08:31:00.000000Z",
+  "2026-10-14T10:31:00.000000Z",
+  "2026-10-21T00:31:00.000000Z",
+  "2026-10-21T02:31:00.000000Z"
+ ],
+ "n_missing_slots": 8,
+ "per_capture": [
+  {
+   "F": {
+    "eligible": 44180,
+    "end_date": 940,
+    "family_reason": {
+     "": 593,
+     "guard_loss": 170,
+     "no_family": 343,
+     "too_few_siblings": 181
+    },
+    "formed": 593,
+    "mid_band": 7954,
+    "movers": 4424,
+    "non_sports_traded_or_quote_only": 1287,
+    "not_tight": 80043,
+    "not_two_sided_at_k_1": 4885,
+    "series_k": 138002,
+    "sports_or_unknown": 2347
+   },
+   "H": {
+    "by_class": {
+     "far": 317,
+     "near_high": 43,
+     "near_low": 60,
+     "new_extreme": 83,
+     "rest": 1691
+    },
+    "dormant": 336,
+    "eligible": 34496,
+    "end_date": 805,
+    "hwm_gap": 34,
+    "hwm_incomplete": 6315,
+    "mid_band": 17773,
+    "non_sports": 11452,
+    "not_tight": 80043,
+    "not_two_sided_at_k_1": 4885,
+    "prev_state_unknown": 1,
+    "range_below_min": 2572,
+    "series_k": 138002
+   },
+   "R": {
+    "dormant": 145,
+    "in_band_outside_donut": 24648,
+    "in_k_and_k1": 133117,
+    "prev_sweep_missing": 228,
+    "reward_unknown": 18199,
+    "sweep_two_sided_tight": 33151,
+    "tick_ok": 105948,
+    "units": 6076
+   },
+   "capture": "20261020T003101Z_5c471884"
+  },
+  {
+   "F": {
+    "eligible": 44150,
+    "end_date": 710,
+    "family_reason": {
+     "": 566,
+     "guard_loss": 166,
+     "no_family": 364,
+     "too_few_siblings": 165
+    },
+    "formed": 566,
+    "mid_band": 7990,
+    "movers": 4807,
+    "non_sports_traded_or_quote_only": 1261,
+    "not_tight": 82767,
+    "not_two_sided_at_k_1": 882,
+    "series_k": 136499,
+    "sports_or_unknown": 2861
+   },
+   "R": {
+    "dormant": 143,
+    "in_band_outside_donut": 23876,
+    "in_k_and_k1": 135617,
+    "prev_sweep_missing": 238,
+    "reward_unknown": 17435,
+    "sweep_two_sided_tight": 32111,
+    "tick_ok": 108689,
+    "units": 6060
+   },
+   "capture": "20261020T023102Z_ec44ae21"
+  },
+  {
+   "F": {
+    "eligible": 43931,
+    "end_date": 584,
+    "family_reason": {
+     "": 613,
+     "guard_loss": 167,
+     "no_family": 352,
+     "too_few_siblings": 193
+    },
+    "formed": 613,
+    "mid_band": 7921,
+    "movers": 4364,
+    "non_sports_traded_or_quote_only": 1325,
+    "not_tight": 82548,
+    "not_two_sided_at_k_1": 6447,
+    "series_k": 141431,
+    "sports_or_unknown": 2290
+   },
+   "R": {
+    "dormant": 182,
+    "in_band_outside_donut": 23859,
+    "in_k_and_k1": 134984,
+    "prev_sweep_missing": 282,
+    "reward_unknown": 17345,
+    "sweep_two_sided_tight": 31999,
+    "tick_ok": 108361,
+    "units": 6050
+   },
+   "capture": "20261020T043101Z_fdb105f3"
+  },
+  {
+   "F": {
+    "eligible": 44048,
+    "end_date": 644,
+    "family_reason": {
+     "": 618,
+     "guard_loss": 157,
+     "no_family": 362,
+     "too_few_siblings": 190
+    },
+    "formed": 618,
+    "mid_band": 8050,
+    "movers": 5016,
+    "non_sports_traded_or_quote_only": 1327,
+    "not_tight": 87617,
+    "not_two_sided_at_k_1": 3140,
+    "series_k": 143499,
+    "sports_or_unknown": 2922
+   },
+   "R": {
+    "dormant": 157,
+    "in_band_outside_donut": 24587,
+    "in_k_and_k1": 140359,
+    "prev_sweep_missing": 289,
+    "reward_unknown": 18035,
+    "sweep_two_sided_tight": 33042,
+    "tick_ok": 113463,
+    "units": 6106
+   },
+   "capture": "20261020T063101Z_3a621c5c"
+  },
+  {
+   "F": {
+    "eligible": 45027,
+    "end_date": 640,
+    "family_reason": {
+     "": 669,
+     "guard_loss": 117,
+     "no_family": 374,
+     "too_few_siblings": 217
+    },
+    "formed": 669,
+    "mid_band": 8265,
+    "movers": 4623,
+    "non_sports_traded_or_quote_only": 1377,
+    "not_tight": 88152,
+    "not_two_sided_at_k_1": 2027,
+    "series_k": 144111,
+    "sports_or_unknown": 2315
+   },
+   "R": {
+    "dormant": 136,
+    "in_band_outside_donut": 24816,
+    "in_k_and_k1": 142084,
+    "prev_sweep_missing": 281,
+    "reward_unknown": 18312,
+    "sweep_two_sided_tight": 33418,
+    "tick_ok": 114725,
+    "units": 6087
+   },
+   "capture": "20261020T083101Z_e8be6147"
+  },
+  {
+   "F": {
+    "eligible": 43122,
+    "end_date": 826,
+    "family_reason": {
+     "": 591,
+     "guard_loss": 47,
+     "no_family": 354,
+     "too_few_siblings": 218
+    },
+    "formed": 591,
+    "mid_band": 8519,
+    "movers": 5066,
+    "non_sports_traded_or_quote_only": 1210,
+    "not_tight": 90023,
+    "not_two_sided_at_k_1": 4044,
+    "series_k": 146534,
+    "sports_or_unknown": 2956
+   },
+   "R": {
+    "dormant": 192,
+    "in_band_outside_donut": 23258,
+    "in_k_and_k1": 142490,
+    "prev_sweep_missing": 335,
+    "reward_unknown": 16768,
+    "sweep_two_sided_tight": 31729,
+    "tick_ok": 114681,
+    "units": 5963
+   },
+   "capture": "20261020T103102Z_183eb5dd"
+  },
+  {
+   "F": {
+    "eligible": 43207,
+    "end_date": 953,
+    "family_reason": {
+     "": 645,
+     "guard_loss": 51,
+     "no_family": 381,
+     "too_few_siblings": 212
+    },
+    "formed": 645,
+    "mid_band": 8554,
+    "movers": 5721,
+    "non_sports_traded_or_quote_only": 1289,
+    "not_tight": 89178,
+    "not_two_sided_at_k_1": 2057,
+    "series_k": 143949,
+    "sports_or_unknown": 3530
+   },
+   "R": {
+    "dormant": 150,
+    "in_band_outside_donut": 24512,
+    "in_k_and_k1": 141892,
+    "prev_sweep_missing": 322,
+    "reward_unknown": 17982,
+    "sweep_two_sided_tight": 33042,
+    "tick_ok": 113832,
+    "units": 6058
+   },
+   "capture": "20261020T123102Z_1eb77a3d"
+  },
+  {
+   "F": {
+    "eligible": 44883,
+    "end_date": 1175,
+    "family_reason": {
+     "": 746,
+     "guard_loss": 45,
+     "no_family": 444,
+     "too_few_siblings": 202
+    },
+    "formed": 746,
+    "mid_band": 8545,
+    "movers": 5221,
+    "non_sports_traded_or_quote_only": 1437,
+    "not_tight": 87617,
+    "not_two_sided_at_k_1": 4717,
+    "series_k": 146937,
+    "sports_or_unknown": 2678
+   },
+   "R": {
+    "dormant": 200,
+    "in_band_outside_donut": 23836,
+    "in_k_and_k1": 142220,
+    "prev_sweep_missing": 287,
+    "reward_unknown": 17351,
+    "sweep_two_sided_tight": 32319,
+    "tick_ok": 113842,
+    "units": 5998
+   },
+   "capture": "20261020T143101Z_6c88e193"
+  },
+  {
+   "F": {
+    "eligible": 42337,
+    "end_date": 3316,
+    "family_reason": {
+     "": 766,
+     "guard_loss": 82,
+     "no_family": 440,
+     "too_few_siblings": 228
+    },
+    "formed": 766,
+    "mid_band": 8416,
+    "movers": 5827,
+    "non_sports_traded_or_quote_only": 1516,
+    "not_tight": 90802,
+    "not_two_sided_at_k_1": 5007,
+    "series_k": 149878,
+    "sports_or_unknown": 3131
+   },
+   "R": {
+    "dormant": 130,
+    "in_band_outside_donut": 23147,
+    "in_k_and_k1": 144871,
+    "prev_sweep_missing": 328,
+    "reward_unknown": 16689,
+    "sweep_two_sided_tight": 31209,
+    "tick_ok": 114332,
+    "units": 6000
+   },
+   "capture": "20261020T163102Z_954fefaa"
+  },
+  {
+   "F": {
+    "eligible": 43121,
+    "end_date": 3103,
+    "family_reason": {
+     "": 646,
+     "guard_loss": 83,
+     "no_family": 500,
+     "too_few_siblings": 191
+    },
+    "formed": 646,
+    "mid_band": 8353,
+    "movers": 4843,
+    "non_sports_traded_or_quote_only": 1420,
+    "not_tight": 90407,
+    "not_two_sided_at_k_1": 6714,
+    "series_k": 151698,
+    "sports_or_unknown": 2367
+   },
+   "R": {
+    "dormant": 188,
+    "in_band_outside_donut": 23615,
+    "in_k_and_k1": 144984,
+    "prev_sweep_missing": 350,
+    "reward_unknown": 17041,
+    "sweep_two_sided_tight": 31783,
+    "tick_ok": 114508,
+    "units": 6036
+   },
+   "capture": "20261020T183102Z_eaf6f016"
+  },
+  {
+   "F": {
+    "eligible": 42983,
+    "end_date": 1458,
+    "family_reason": {
+     "": 619,
+     "guard_loss": 83,
+     "no_family": 509,
+     "too_few_siblings": 213
+    },
+    "formed": 619,
+    "mid_band": 8678,
+    "movers": 4466,
+    "non_sports_traded_or_quote_only": 1424,
+    "not_tight": 93664,
+    "not_two_sided_at_k_1": 5147,
+    "series_k": 151930,
+    "sports_or_unknown": 2245
+   },
+   "R": {
+    "dormant": 172,
+    "in_band_outside_donut": 24008,
+    "in_k_and_k1": 146783,
+    "prev_sweep_missing": 259,
+    "reward_unknown": 17542,
+    "sweep_two_sided_tight": 32239,
+    "tick_ok": 117259,
+    "units": 6035
+   },
+   "capture": "20261020T203102Z_4bd248d9"
+  },
+  {
+   "F": {
+    "eligible": 43705,
+    "end_date": 1315,
+    "family_reason": {
+     "": 707,
+     "guard_loss": 82,
+     "no_family": 515,
+     "too_few_siblings": 200
+    },
+    "formed": 707,
+    "mid_band": 8334,
+    "movers": 4584,
+    "non_sports_traded_or_quote_only": 1504,
+    "not_tight": 92551,
+    "not_two_sided_at_k_1": 2440,
+    "series_k": 148345,
+    "sports_or_unknown": 2207
+   },
+   "R": {
+    "dormant": 154,
+    "in_band_outside_donut": 24579,
+    "in_k_and_k1": 145905,
+    "prev_sweep_missing": 291,
+    "reward_unknown": 18220,
+    "sweep_two_sided_tight": 33036,
+    "tick_ok": 116928,
+    "units": 5914
+   },
+   "capture": "20261020T223102Z_393e280b"
+  },
+  {
+   "capture": "20261021T043102Z_230e4995",
+   "skipped": "no previous slot"
+  },
+  {
+   "F": {
+    "eligible": 45535,
+    "end_date": 679,
+    "family_reason": {
+     "": 616,
+     "guard_loss": 100,
+     "no_family": 470,
+     "too_few_siblings": 163
+    },
+    "formed": 616,
+    "mid_band": 8375,
+    "movers": 4955,
+    "non_sports_traded_or_quote_only": 1349,
+    "not_tight": 94929,
+    "not_two_sided_at_k_1": 1465,
+    "series_k": 150983,
+    "sports_or_unknown": 2816
+   },
+   "R": {
+    "dormant": 185,
+    "in_band_outside_donut": 25017,
+    "in_k_and_k1": 149518,
+    "prev_sweep_missing": 210,
+    "reward_unknown": 18730,
+    "sweep_two_sided_tight": 33718,
+    "tick_ok": 121669,
+    "units": 5892
+   },
+   "capture": "20261021T063101Z_c5f2cfde"
+  },
+  {
+   "F": {
+    "eligible": 44604,
+    "end_date": 1763,
+    "family_reason": {
+     "": 702,
+     "guard_loss": 120,
+     "no_family": 455,
+     "too_few_siblings": 191
+    },
+    "formed": 702,
+    "mid_band": 8403,
+    "movers": 5535,
+    "non_sports_traded_or_quote_only": 1468,
+    "not_tight": 95042,
+    "not_two_sided_at_k_1": 4946,
+    "series_k": 154758,
+    "sports_or_unknown": 3260
+   },
+   "R": {
+    "dormant": 143,
+    "in_band_outside_donut": 25482,
+    "in_k_and_k1": 149812,
+    "prev_sweep_missing": 358,
+    "reward_unknown": 19020,
+    "sweep_two_sided_tight": 34319,
+    "tick_ok": 120806,
+    "units": 5961
+   },
+   "capture": "20261021T083102Z_523fc3ef"
+  },
+  {
+   "F": {
+    "eligible": 44486,
+    "end_date": 1160,
+    "family_reason": {
+     "": 651,
+     "guard_loss": 69,
+     "no_family": 562,
+     "too_few_siblings": 228
+    },
+    "formed": 651,
+    "mid_band": 8410,
+    "movers": 5907,
+    "non_sports_traded_or_quote_only": 1510,
+    "not_tight": 98486,
+    "not_two_sided_at_k_1": 1964,
+    "series_k": 154506,
+    "sports_or_unknown": 3555
+   },
+   "R": {
+    "dormant": 146,
+    "in_band_outside_donut": 25215,
+    "in_k_and_k1": 152542,
+    "prev_sweep_missing": 307,
+    "reward_unknown": 18882,
+    "sweep_two_sided_tight": 34340,
+    "tick_ok": 123742,
+    "units": 5880
+   },
+   "capture": "20261021T103102Z_1eba274e"
+  },
+  {
+   "F": {
+    "eligible": 45339,
+    "end_date": 834,
+    "family_reason": {
+     "": 680,
+     "guard_loss": 72,
+     "no_family": 476,
+     "too_few_siblings": 206
+    },
+    "formed": 680,
+    "mid_band": 8507,
+    "movers": 5384,
+    "non_sports_traded_or_quote_only": 1434,
+    "not_tight": 90818,
+    "not_two_sided_at_k_1": 2400,
+    "series_k": 147898,
+    "sports_or_unknown": 3141
+   },
+   "R": {
+    "dormant": 192,
+    "in_band_outside_donut": 25976,
+    "in_k_and_k1": 145498,
+    "prev_sweep_missing": 348,
+    "reward_unknown": 19502,
+    "sweep_two_sided_tight": 35050,
+    "tick_ok": 117116,
+    "units": 5934
+   },
+   "capture": "20261021T123102Z_ac1810c5"
+  },
+  {
+   "F": {
+    "eligible": 46899,
+    "end_date": 1166,
+    "family_reason": {
+     "": 698,
+     "guard_loss": 73,
+     "no_family": 506,
+     "too_few_siblings": 224
+    },
+    "formed": 698,
+    "mid_band": 8547,
+    "movers": 5300,
+    "non_sports_traded_or_quote_only": 1501,
+    "not_tight": 89197,
+    "not_two_sided_at_k_1": 2595,
+    "series_k": 148404,
+    "sports_or_unknown": 2957
+   },
+   "R": {
+    "dormant": 195,
+    "in_band_outside_donut": 26872,
+    "in_k_and_k1": 145809,
+    "prev_sweep_missing": 288,
+    "reward_unknown": 20390,
+    "sweep_two_sided_tight": 36011,
+    "tick_ok": 116944,
+    "units": 5999
+   },
+   "capture": "20261021T143101Z_3a7aeca9"
+  },
+  {
+   "F": {
+    "eligible": 47620,
+    "end_date": 1715,
+    "family_reason": {
+     "": 761,
+     "guard_loss": 75,
+     "no_family": 522,
+     "too_few_siblings": 193
+    },
+    "formed": 761,
+    "mid_band": 8632,
+    "movers": 5841,
+    "non_sports_traded_or_quote_only": 1551,
+    "not_tight": 88797,
+    "not_two_sided_at_k_1": 3142,
+    "series_k": 149906,
+    "sports_or_unknown": 3194
+   },
+   "R": {
+    "dormant": 112,
+    "in_band_outside_donut": 26789,
+    "in_k_and_k1": 146764,
+    "prev_sweep_missing": 294,
+    "reward_unknown": 20344,
+    "sweep_two_sided_tight": 36061,
+    "tick_ok": 117011,
+    "units": 6039
+   },
+   "capture": "20261021T163102Z_39e9ed42"
+  },
+  {
+   "F": {
+    "eligible": 48866,
+    "end_date": 1433,
+    "family_reason": {
+     "": 722,
+     "guard_loss": 72,
+     "no_family": 564,
+     "too_few_siblings": 203
+    },
+    "formed": 722,
+    "mid_band": 8746,
+    "movers": 5612,
+    "non_sports_traded_or_quote_only": 1561,
+    "not_tight": 89326,
+    "not_two_sided_at_k_1": 3150,
+    "series_k": 151521,
+    "sports_or_unknown": 2987
+   },
+   "R": {
+    "dormant": 86,
+    "in_band_outside_donut": 27423,
+    "in_k_and_k1": 148371,
+    "prev_sweep_missing": 269,
+    "reward_unknown": 21028,
+    "sweep_two_sided_tight": 37036,
+    "tick_ok": 118623,
+    "units": 6040
+   },
+   "capture": "20261021T183102Z_b565df1c"
+  },
+  {
+   "F": {
+    "eligible": 47924,
+    "end_date": 1546,
+    "family_reason": {
+     "": 670,
+     "guard_loss": 70,
+     "no_family": 555,
+     "too_few_siblings": 195
+    },
+    "formed": 670,
+    "mid_band": 8741,
+    "movers": 4951,
+    "non_sports_traded_or_quote_only": 1490,
+    "not_tight": 90068,
+    "not_two_sided_at_k_1": 2262,
+    "series_k": 150541,
+    "sports_or_unknown": 2482
+   },
+   "R": {
+    "dormant": 134,
+    "in_band_outside_donut": 26398,
+    "in_k_and_k1": 148279,
+    "prev_sweep_missing": 328,
+    "reward_unknown": 20003,
+    "sweep_two_sided_tight": 35701,
+    "tick_ok": 118250,
+    "units": 5933
+   },
+   "capture": "20261021T203102Z_6fde526f"
+  },
+  {
+   "F": {
+    "eligible": 48002,
+    "end_date": 1912,
+    "family_reason": {
+     "": 586,
+     "guard_loss": 71,
+     "no_family": 545,
+     "too_few_siblings": 191
+    },
+    "formed": 586,
+    "mid_band": 8644,
+    "movers": 4435,
+    "non_sports_traded_or_quote_only": 1393,
+    "not_tight": 89596,
+    "not_two_sided_at_k_1": 1990,
+    "series_k": 150144,
+    "sports_or_unknown": 2151
+   },
+   "R": {
+    "dormant": 108,
+    "in_band_outside_donut": 26479,
+    "in_k_and_k1": 148154,
+    "prev_sweep_missing": 285,
+    "reward_unknown": 20096,
+    "sweep_two_sided_tight": 35755,
+    "tick_ok": 117848,
+    "units": 5990
+   },
+   "capture": "20261021T223101Z_06b12c86"
+  }
+ ],
+ "seal": {
+  "commit": "59b179695ba73ef68780406ed47c8daffdef97c5",
+  "path": "../docs/research_lab/seals/lt5_census_inputs_captures.json",
+  "sha256": "fcd88926147051cba07d2094393d350faa7244828131e52bc9ee9b15bd108752"
+ }
+}

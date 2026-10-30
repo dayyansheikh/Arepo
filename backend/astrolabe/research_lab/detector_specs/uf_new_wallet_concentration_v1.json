@@ -1,0 +1,46 @@
+{
+ "conditions": [
+  {
+   "feature": "n_s",
+   "op": "ge",
+   "value": 3
+  },
+  {
+   "feature": "n_wallets_l",
+   "op": "ge",
+   "value": 2
+  }
+ ],
+ "description": "Unusually fresh (new-to-sample wallets) and concentrated (top-1 share) participation on one side. Hashed wallets; descriptive only.",
+ "direction_feature": "imb_s",
+ "min_terms_present": 3,
+ "rule_id": "uf_new_wallet_concentration_v1",
+ "terms": [
+  {
+   "cap": 4.0,
+   "center": 0.15,
+   "feature": "new_wallet_share_l",
+   "scale": 0.15,
+   "transform": "raw",
+   "weight": 1.0
+  },
+  {
+   "cap": 4.0,
+   "center": 0.35,
+   "feature": "top1_share_l",
+   "scale": 0.2,
+   "transform": "raw",
+   "weight": 1.0
+  },
+  {
+   "cap": 4.0,
+   "center": 0.4,
+   "feature": "imb_s",
+   "scale": 0.3,
+   "transform": "abs",
+   "weight": 1.0
+  }
+ ],
+ "theory_ref": "programme_prelisted:F03,F04,F05",
+ "version": "1"
+}

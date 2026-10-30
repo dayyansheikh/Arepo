@@ -1,0 +1,33 @@
+{
+ "id": "q0715_lt12_analysis",
+ "title": "LT12 single analysis (DRAFT): one Holm family over the k surviving primaries (CH245 the mirror, CH244 the farmed half), on or after 2027-01-01T12:00Z, on the pinned spec and code (LIVE_TESTS_12.md 1.7-1.11)",
+ "family": "live_tests_12",
+ "priority": 60,
+ "expected_value": "the verdicts of the k registered LT12 tests and the single counted trials line (kind live_tests12)",
+ "data": [
+  "data-dumps/research_lab/live_tests12/ (read-only)"
+ ],
+ "resources": {
+  "mem_mb": 4000,
+  "as_cap_mb": 8000,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none",
+  "exclusive": true
+ },
+ "depends_on": [],
+ "not_before": "2027-01-01T12:00:00Z",
+ "argv": [
+  "scripts/run_live_tests12.py",
+  "analyze",
+  "--out",
+  "../data-dumps/research_lab/live_tests12/ANALYSIS.json"
+ ],
+ "timeout_s": 43200,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests12/ANALYSIS.json"
+ ],
+ "next_action": "commit the analysis output and the ledger entry (k counted tests, kind live_tests12)",
+ "notes": "The analysis refuses before 2027-01-01T12:00:00Z, on an unpinned spec, on a code-hash mismatch, a null / empty / unknown / dropped k_tests, unfilled census values or a null informed_labels (8.4). DRAFT, not in queue/jobs. Promote only after: the LT12 design-text freeze (LIVE_TESTS_12.md design text frozen at sha256 a543db63baeb3e85ff2dfa0189478086216c708e59b36f6db575c6b84592b62d), the LT12 code and the independent science-reviewer code-freeze check of the census, gate and size-check code against LIVE_TESTS_12.md sections 1.8, 1.8.1 and 7 (8.4 step 3; it must confirm re-check fixes 1-2 in code, see docs/research_lab/LT12_CODE_NOTES.md), and never while E015's or E022's analysis, or an LT9, LT10 or LT11 census, size check or analysis job, is running (memory-heavy-jobs rule; 7). Counts 0 (descriptive; no trials line) except q0715, which writes the single counted trials line (kind live_tests12). Reads the DRAFT spec unpinned (except q0714 and q0715, which read the pinned spec); the code_sha256 of every hashed module is written into the output. Every gate threshold is stated in section 7 before this runs; nothing is re-tuned after it. Restore, seal and census run ONCE each; max_retries 1 covers a deterministic crash only (no output written). Runs with --data-dumps-cap-gb 50 where the runner accepts it (exit 75 above the cap; 2026-10-28 ops convention, was 40)."
+}

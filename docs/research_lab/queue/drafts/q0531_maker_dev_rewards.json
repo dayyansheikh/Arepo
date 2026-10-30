@@ -1,0 +1,34 @@
+{
+ "id": "q0531_maker_dev_rewards",
+ "title": "Paper liquidity-reward yield of a min-size two-sided quote (gap 6), DEVELOPMENT: last 12 snapshot sidecar + book-sweep pairs; bounded [low, high]",
+ "family": "maker_rewards",
+ "priority": 5,
+ "expected_value": "reward-yield distribution by category for the E025 design",
+ "data": [
+  "snapshots/<id>/rows_ext.csv.gz (clob_rewards, rewards_min_size, rewards_max_spread)",
+  "book_sweeps/<id>/rows.csv.gz"
+ ],
+ "resources": {
+  "mem_mb": 600,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_maker_dev.py",
+  "rewards",
+  "--research-root",
+  "../data-dumps/research_lab",
+  "--n-pairs",
+  "12",
+  "--out",
+  "../data-dumps/research_lab/maker_rewards_dev/rewards"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/maker_rewards_dev/rewards/maker_dev_rewards.json"
+ ],
+ "next_action": "none (descriptive); the live design uses the reward_params collector instead of Gamma clobRewards",
+ "notes": "MAKER_REWARDS_STUDY.md. DRAFT, not in queue/jobs. Read-only on inputs; no network for q0530/q0531. Measured 2026-10-20: 51 s, 405 MB RSS. Only pairs with snapshot ids before 2026-10-22 are read. Not a test, not counted."
+}

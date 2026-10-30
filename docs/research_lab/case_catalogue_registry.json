@@ -1,0 +1,363 @@
+{
+ "version": "case-catalogue-v1",
+ "evidence_role": "exploratory_historical",
+ "cases": [
+  {
+   "case_id": "nobel_peace_2025",
+   "domain": "awards",
+   "venue": "polymarket",
+   "event": "2025 Nobel Peace Prize awarded to Maria Corina Machado",
+   "news_utc": "2025-10-10T09:00:00Z",
+   "news_basis": "official announcement 11:00 Oslo (CEST)",
+   "news_uncertainty_h": 0.1,
+   "status": "official_probe",
+   "reported": "Newly created or recently opened accounts bought the eventual winner at low odds in the hours before the announcement; price reported moving from low single digits to ~70% before 09:00 UTC. The Norwegian Nobel Institute opened a review of a possible leak.",
+   "slugs": [
+    "will-mara-corina-machado-win-the-nobel-peace-prize-in-2025"
+   ],
+   "reported_outcome": "Machado: Yes",
+   "sources": [
+    {
+     "url": "https://www.bloomberg.com/news/articles/2025-10-10/unusual-bets-on-nobel-peace-prize-winner-prompt-probe-into-leaks",
+     "outlet": "Bloomberg",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.theblock.co/post/374199/officials-probe-polymarket-over-suspicious-trades-predicting-nobel-peace-prize-winner-reports",
+     "outlet": "The Block",
+     "kind": "news"
+    },
+    {
+     "url": "https://decrypt.co/343840/nobel-peace-prize-organizers-intestigating-polymarket-insider-trades",
+     "outlet": "Decrypt",
+     "kind": "news"
+    },
+    {
+     "url": "https://protos.com/polymarket-traders-accused-of-insider-trading-nobel-peace-prize/",
+     "outlet": "Protos",
+     "kind": "news"
+    },
+    {
+     "url": "https://cointelegraph.com/news/nobel-peace-prize-polymarket-investigation",
+     "outlet": "Cointelegraph",
+     "kind": "news"
+    }
+   ]
+  },
+  {
+   "case_id": "israel_strikes_iran_jun2025",
+   "domain": "war_geopolitics",
+   "venue": "polymarket",
+   "event": "Israel's opening strikes on Iran (start of the 12-day war)",
+   "news_utc": "2025-06-13T00:00:00Z",
+   "news_basis": "first strikes ~03:00 Israel time 13 Jun 2025",
+   "news_uncertainty_h": 1.0,
+   "status": "charged",
+   "reported": "An Israeli indictment (Feb 2026) alleges a reservist passed strike-timing information to a civilian who bet on Polymarket, reportedly winning ~$150k-163k on Israel military action against Iran; figures differ by outlet. Market-level timing not public.",
+   "slugs": [
+    "israel-military-action-against-iran-by-friday-477",
+    "israel-military-action-against-iran-before-july"
+   ],
+   "reported_outcome": "Yes",
+   "sources": [
+    {
+     "url": "https://www.timesofisrael.com/israeli-air-force-major-charged-with-using-classified-info-to-place-bets-on-polymarket/",
+     "outlet": "Times of Israel",
+     "kind": "court"
+    },
+    {
+     "url": "https://www.theblock.co/post/389575/israeli-defense-reservist-civilian-indicted-over-alleged-insider-betting-on-polymarket-reports",
+     "outlet": "The Block",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.jns.org/israelis-indicted-on-charges-of-gambling-using-classified-information/",
+     "outlet": "JNS",
+     "kind": "news"
+    }
+   ]
+  },
+  {
+   "case_id": "google_year_in_search_2025",
+   "domain": "search_rankings",
+   "venue": "polymarket",
+   "event": "Google 2025 Year in Search published",
+   "news_utc": "2025-12-04T05:00:00Z",
+   "news_basis": "publication 4 Dec 2025; most person markets closed ~07:30 UTC; exact time unconfirmed",
+   "news_uncertainty_h": 6.0,
+   "status": "charged",
+   "reported": "One account won ~$1M across Year-in-Search markets (22 of 23 calls reported), including a low-probability top-person outcome; US federal charges (May 2026) allege use of confidential company data, sometimes within hours of access. Allegations untested.",
+   "slugs": [
+    "will-d4vd-be-the-1-searched-person-on-google-this-year",
+    "will-pope-leo-xiv-be-the-1-searched-person-on-google-this-year"
+   ],
+   "reported_outcome": "d4vd: Yes (most searched person) and No on favourites",
+   "sources": [
+    {
+     "url": "https://thedefiant.io/news/defi/polymarket-users-suspect-insider-trading-after-google-trend-markets-crown-surprise-winner",
+     "outlet": "The Defiant",
+     "kind": "news"
+    },
+    {
+     "url": "https://crypto-economy.com/insider-trading-fears-emerge-after-1m-polymarket-win-on-google-search-activity/",
+     "outlet": "Crypto Economy",
+     "kind": "news"
+    },
+    {
+     "url": "https://androidauthority.com/google-employee-accused-of-insider-trading-3672044/",
+     "outlet": "Android Authority",
+     "kind": "news"
+    },
+    {
+     "url": "https://de.euronews.com/2026/05/28/google-ingenieur-wegen-angeblichen-polymarket-insiderhandels-uber-12-mio-dollar-angeklagt",
+     "outlet": "Euronews",
+     "kind": "court"
+    }
+   ]
+  },
+  {
+   "case_id": "us_strikes_iran_feb2026",
+   "domain": "war_geopolitics",
+   "venue": "polymarket",
+   "event": "US-Israeli strikes on Iran, 28 Feb 2026",
+   "news_utc": "2026-02-28T06:15:00Z",
+   "news_basis": "Israeli announcement / sirens ~08:14 local; Tehran blasts that morning (exact UTC unconfirmed)",
+   "news_uncertainty_h": 2.0,
+   "status": "alleged",
+   "reported": "Bubblemaps flagged six wallets created in February, mostly funded within 24h, that bought Yes on 'US strikes Iran by February 28, 2026?' hours before the strikes; ~$1.0-1.2M combined profit (estimates differ). Bloomberg and Al Jazeera covered the wider pattern.",
+   "slugs": [
+    "us-strikes-iran-by-february-28-2026-227-967-547-688-589-491-592-418-452-924-384-915-464-672-196-157-993-596-269-535-381-391-471-256-988-997-296-225-762-973-292-827-345-182-558-215-794-879-189-761",
+    "will-us-or-israel-strike-iran-by-february-28-2026-766"
+   ],
+   "reported_outcome": "Yes",
+   "sources": [
+    {
+     "url": "https://www.theblock.co/post/391650/fresh-accounts-netted-1-million-on-polymarket-hours-before-us-airstrikes-on-iran-bubblemaps",
+     "outlet": "The Block",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.forbes.com/sites/boazsobrado/2026/03/02/fresh-wallets-made-12m-on-polymarket-hours-before-iran-airstrikes/",
+     "outlet": "Forbes",
+     "kind": "news"
+    },
+    {
+     "url": "https://cointelegraph.com/news/bubblemaps-polymarket-cluster-win-military-bets",
+     "outlet": "Cointelegraph (Bubblemaps)",
+     "kind": "onchain_analyst"
+    },
+    {
+     "url": "https://aljazeera.com/news/2026/3/25/large-polymarket-wall-street-bets-on-trumps-war-news-under-scrutiny",
+     "outlet": "Al Jazeera",
+     "kind": "news"
+    }
+   ]
+  },
+  {
+   "case_id": "khamenei_out_feb2026",
+   "domain": "war_geopolitics",
+   "venue": "polymarket",
+   "event": "Strike that killed Iran's Supreme Leader (28 Feb 2026)",
+   "news_utc": "2026-02-28T06:15:00Z",
+   "news_basis": "first news of the initial strike (as C04); death confirmed later",
+   "news_uncertainty_h": 3.0,
+   "status": "alleged",
+   "reported": "An account reportedly made ~$553k on Khamenei markets, with a trade reported ~71 minutes before news of the initial strike; Polysights flagged new-wallet buying of 'Khamenei out' in mid-January. Resolution of the main contracts was disputed.",
+   "slugs": [
+    "khamenei-out-as-supreme-leader-of-iran-by-march-31"
+   ],
+   "reported_outcome": "Yes",
+   "sources": [
+    {
+     "url": "https://www.kjzz.org/npr-top-stories/2026-03-01/prediction-market-trader-magamyman-made-553-000-on-death-of-irans-supreme-leader",
+     "outlet": "NPR (KJZZ)",
+     "kind": "news"
+    },
+    {
+     "url": "https://news.bgov.com/securities-law/polymarket-bettors-in-limbo-as-khameneis-time-of-death-debated",
+     "outlet": "Bloomberg Law",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.businesstoday.in/latest/trends/story/500-million-betting-frenzy-crypto-bets-on-khameneis-fate-puts-trump-linked-polymarket-under-lens-518841-2026-03-02",
+     "outlet": "Business Today",
+     "kind": "news"
+    }
+   ]
+  },
+  {
+   "case_id": "us_iran_ceasefire_apr2026",
+   "domain": "war_geopolitics",
+   "venue": "polymarket",
+   "event": "US-Iran two-week ceasefire announced on Truth Social, 7 Apr 2026",
+   "news_utc": "2026-04-07T22:30:00Z",
+   "news_basis": "post ~6:30pm ET (AP); another outlet reports 4:30pm",
+   "news_uncertainty_h": 2.0,
+   "status": "alleged",
+   "reported": "AP/Dune analysis: at least 50 wallets made their first-ever Polymarket trades as substantial Yes bets before the announcement; one wallet created that morning bought ~$72k at ~8.8c. Market later marked disputed. A US senator requested answers.",
+   "slugs": [
+    "us-x-iran-ceasefire-by-april-7",
+    "us-x-iran-ceasefire-by-april-15"
+   ],
+   "reported_outcome": "Yes",
+   "sources": [
+    {
+     "url": "https://wtop.com/national/2026/04/newly-created-polymarket-accounts-bet-big-on-us-iran-ceasefire-in-hours-before-trumps-announcement/",
+     "outlet": "AP (via WTOP)",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.blumenthal.senate.gov/newsroom/press/release/blumenthal-demands-answers-from-polymarket-following-suspicious-bets-on-ceasefire",
+     "outlet": "US Senate office",
+     "kind": "regulator"
+    },
+    {
+     "url": "https://www.kuow.org/stories/well-timed-bets-on-polymarket-tied-to-the-iran-war-draw-calls-for-investigations-from-lawmakers",
+     "outlet": "NPR (KUOW)",
+     "kind": "news"
+    }
+   ]
+  },
+  {
+   "case_id": "axiom_zachxbt_feb2026",
+   "domain": "corporate_crypto",
+   "venue": "polymarket",
+   "event": "Investigator's expos\u00e9 names Axiom (26 Feb 2026)",
+   "news_utc": "2026-02-26T13:00:00Z",
+   "news_basis": "release-hour market resolved 8-9am (ET assumed) = 13-14 UTC",
+   "news_uncertainty_h": 1.0,
+   "status": "alleged",
+   "reported": "A market on which company an on-chain investigator would expose drew ~$40M; at least 12 wallets, several fresh, bought the eventual answer at low odds (one at ~13.8%) before publication; ~$1M+ combined profit reported.",
+   "slugs": [
+    "will-axiom-be-accused-of-insider-trading"
+   ],
+   "reported_outcome": "Axiom: Yes",
+   "sources": [
+    {
+     "url": "https://www.coindesk.com/markets/2026/02/27/polymarket-bettors-appear-to-have-insider-traded-on-a-market-designed-to-catch-insider-traders",
+     "outlet": "CoinDesk",
+     "kind": "news"
+    },
+    {
+     "url": "https://cointelegraph.com/news/suspected-insider-1-2m-zachxbt-axiom-expose",
+     "outlet": "Cointelegraph",
+     "kind": "news"
+    },
+    {
+     "url": "https://decrypt.co/359223/y-combinator-backed-axiom-employees-accused-insider-trading-zachxbt",
+     "outlet": "Decrypt",
+     "kind": "news"
+    }
+   ]
+  },
+  {
+   "case_id": "openai_model_dec2025",
+   "domain": "corporate_tech",
+   "venue": "polymarket",
+   "event": "OpenAI GPT-5.2 release (11 Dec 2025)",
+   "news_utc": "2025-12-11T18:00:00Z",
+   "news_basis": "launch day; exact time unconfirmed",
+   "news_uncertainty_h": 6.0,
+   "status": "speculative",
+   "reported": "Several accounts bought 'OpenAI releases a new model by Dec 13' in the week before; four accounts gained ~$13k combined. Small sizes; no insider link confirmed.",
+   "slugs": [
+    "will-openai-release-a-new-frontier-model-by-december-13-683",
+    "will-openai-release-a-new-frontier-model-on-december-11"
+   ],
+   "reported_outcome": "Yes",
+   "sources": [
+    {
+     "url": "https://www.itiger.com/news/1128153844",
+     "outlet": "Tiger Brokers news",
+     "kind": "news"
+    },
+    {
+     "url": "https://finance.yahoo.com/news/one-polymarket-user-made-more-164427975.html",
+     "outlet": "Yahoo Finance",
+     "kind": "news"
+    }
+   ]
+  },
+  {
+   "case_id": "taylor_swift_engagement_aug2025",
+   "domain": "entertainment",
+   "venue": "polymarket",
+   "event": "Taylor Swift and Travis Kelce engagement announced (26 Aug 2025)",
+   "news_utc": "2025-08-26T16:00:00Z",
+   "news_basis": "Instagram post, US midday; exact time unconfirmed",
+   "news_uncertainty_h": 3.0,
+   "status": "speculative",
+   "reported": "A small account bought Yes within ~15h of the announcement (~$2k stake, ~$3k profit) and reportedly moved the price from ~25% to ~45%; online speculation about the account's identity is unconfirmed and a fact-check called the leak claim speculative.",
+   "slugs": [
+    "taylor-swift-and-travis-kelce-engaged-in-2025"
+   ],
+   "reported_outcome": "Yes",
+   "sources": [
+    {
+     "url": "https://www.aol.com/polymarket-trader-made-50k-betting-174743223.html",
+     "outlet": "AOL",
+     "kind": "news"
+    },
+    {
+     "url": "https://beincrypto.com/taylor-swift-polymarket-engagement-guitarist/",
+     "outlet": "BeInCrypto",
+     "kind": "news"
+    },
+    {
+     "url": "https://casinobeats.com/2025/08/28/taylor-swift-engagement-foretold-by-prediction-market-price-changes-on-polymarket-kalshi/",
+     "outlet": "CasinoBeats",
+     "kind": "news"
+    }
+   ]
+  },
+  {
+   "case_id": "pope_leo_may2025",
+   "domain": "religion_announcements",
+   "venue": "polymarket",
+   "event": "Cardinal Prevost elected Pope Leo XIV (8 May 2025)",
+   "news_utc": "2025-05-08T16:07:00Z",
+   "news_basis": "white smoke 18:07 Rome; name announced ~17:13 UTC",
+   "news_uncertainty_h": 0.1,
+   "status": "public_or_luck",
+   "reported": "Contrast case: the winner was a 1-2% long shot; one account turned ~$1k into ~$64k. Reporting framed it as a market miss, not suspected leakage (the conclave is sealed).",
+   "slugs": [
+    "will-robert-francis-prevost-be-the-next-pope"
+   ],
+   "reported_outcome": "Prevost: Yes",
+   "sources": [
+    {
+     "url": "https://edition.cnn.com/2025/05/09/business/online-betting-markets-failed-pope",
+     "outlet": "CNN",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.nbcdfw.com/news/business/money-report/online-bettors-spent-over-40-million-gambling-on-the-identity-of-the-next-pope-one-winner-made-52000-on-a-longshot/3837659/",
+     "outlet": "CNBC (via NBC)",
+     "kind": "news"
+    }
+   ]
+  },
+  {
+   "case_id": "nobel_peace_2026",
+   "domain": "awards",
+   "venue": "polymarket",
+   "event": "2026 Nobel Peace Prize announcement (9 Oct 2026)",
+   "news_utc": "2026-10-09T09:00:00Z",
+   "news_basis": "official announcement 11:00 Oslo",
+   "news_uncertainty_h": 0.1,
+   "status": "no_report",
+   "reported": "Contrast case: same market family as nobel_peace_2025, no reported unusual pre-news activity (one sponsored piece described activity as ordinary).",
+   "slugs": [
+    "will-navi-pillay-win-the-nobel-peace-prize-in-2026"
+   ],
+   "reported_outcome": "(no report; winner market used)",
+   "sources": [
+    {
+     "url": "https://time.com/partner-content/prediction-markets/nobel-peace-prize-betting-surges-after-last-years-suspected-breach/",
+     "outlet": "TIME partner content",
+     "kind": "sponsored"
+    }
+   ]
+  }
+ ]
+}

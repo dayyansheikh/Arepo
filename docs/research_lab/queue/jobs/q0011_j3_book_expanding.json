@@ -1,0 +1,38 @@
+{
+ "id": "q0011_j3_book_expanding",
+ "title": "SB2-J3: book decomposition on h2_main with the expanding-past estimator (counted)",
+ "family": "book/liquidity",
+ "priority": 58,
+ "expected_value": "Q5 supporting evidence: J3 re-read with the expanding-past estimator, book-mid level controls for B2/B3 and the matched market-pooled bootstrap placebo",
+ "data": [
+  "research_lab/history/h2_main",
+  "history_sources/book_features"
+ ],
+ "resources": {
+  "mem_mb": 2000,
+  "cpu": 1
+ },
+ "depends_on": [
+  "q0003_books_finalize"
+ ],
+ "argv": [
+  "scripts/run_bounce_decomp.py",
+  "book",
+  "--run-id",
+  "h2_main",
+  "--tag",
+  "j3x",
+  "--estimator",
+  "expanding",
+  "--placebo-draws",
+  "20"
+ ],
+ "timeout_s": 7200,
+ "max_retries": 0,
+ "outputs": [
+  "data-dumps/research_lab/bounce_decomp/bounce-j3x/results.json",
+  "docs/research_lab/trials.jsonl (6 book_decomp lines + 1 ml_explain count line + placebo lines, each with family_status)"
+ ],
+ "next_action": "Claude session: read family_status first (verdicts withheld unless OK; B2/B3 may be 'untestable (collinear)'); ledger entry; ceiling L1 (h2 only)",
+ "notes": "Placebo: increments drawn with replacement from the market's pooled valid increments; placebo row counts per draw are reported against the real row count."
+}

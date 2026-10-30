@@ -1,0 +1,45 @@
+{
+ "id": "q0102_cb5_h2_head_fetch",
+ "title": "CB5-G: h2_main head prices [created-1h, created+4d+1h] at fidelity 10 (+ day-0 fidelity 1, reported) for eligible h2 markets",
+ "family": "creative_batch_5",
+ "priority": 41,
+ "expected_value": "coverage-invariant listing windows for the CH56 h2 screen",
+ "data": [
+  "history/h2_main sample.csv.gz (ids, created_at, end_epoch, fee_category; no trade and no outcome read)",
+  "public CLOB prices-history"
+ ],
+ "resources": {
+  "mem_mb": 500,
+  "cpu": 1,
+  "lane": "net",
+  "network": "clob"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb5.py",
+  "head-fetch",
+  "--run-id",
+  "h2_main",
+  "--clock-cap",
+  "2026-10-11T23:00:33Z",
+  "--rps",
+  "4",
+  "--disk-cap-gb",
+  "0.05",
+  "--data-dumps-max-gb",
+  "13",
+  "--budget-min",
+  "100"
+ ],
+ "timeout_s": 7200,
+ "max_retries": 2,
+ "repeat": {
+  "max_runs": 3,
+  "until_log_regex": "head_fetch_complete"
+ },
+ "outputs": [
+  "data-dumps/research_lab/history/h2_main/cb5/head_prices/{<market_id>.csv.gz,fid1/,progress.jsonl,manifest.json}"
+ ],
+ "next_action": "q0106 census",
+ "notes": "DRAFT: the coordinator copies this to queue/jobs/ only after the science-reviewer CB5 freeze check of the code. About 6.4k requests (30-45 min). Windows anchored on created_at (coverage invariance) and end before T_h2_clock; refuses h3/h4/h5/h6/h7 run ids; yields to the collector via the shared Limiter; resumable (progress.jsonl). Refuses (exit 75, EX_TEMPFAIL: the queue waits and retries) when data-dumps size + the output allowance + scratch would pass 12 GB; the coordinator records the section 2.8 headroom precondition in the release commit. Network-bound: lane net as instructed by the coordinator; CREATIVE_BATCH_5 section 2.8 said cpu because q0002 holds net for days, so switch lane to cpu at release if q0002 still holds it. 2026-10-17 09:30Z (autopilot): data-dumps reached 12.5 GB (MC1 panel cache + h7 frames), so every attempt tempfailed at the 12 GB refusal; refusal 12 -> 13 GB with the collector cap raised 13 -> 14 GiB and ~3 GB of host package cache cleared (9.3 GB disk free; 4 GB free-disk guard unchanged). Operational only: outputs do not depend on this value."
+}

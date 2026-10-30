@@ -1,0 +1,46 @@
+{
+ "id": "q0271_cb13_t_frame",
+ "title": "CB13-T: exclusion keys (ids + timestamps of sealed historical sets with rows in T windows, field-restricted) and SCREEN fill table: transactions in [2026-10-12, 2026-10-16) with min/max fill price, touch from the latest complete capture row (age <= 60 min, two-sided, mid in [0.03,0.97], spread <= 10c, end >= tau+3h); print-anchored fill at the maker-adverse price, side from the touch-consistency band [a0, a0+s0] / [b0-s0, b0] (inside and inconsistent counted); stale-touch variant fields; path key; frozen labeller; features only, no mark",
+ "family": "creative_batch_13",
+ "priority": 19,
+ "expected_value": "T SCREEN population",
+ "data": [
+  "live_trades/trades-202610{12..15}.jsonl (whitelist)",
+  "snapshots/<captures starting 2026-10-11T20Z..2026-10-16T00Z>/rows.csv.gz, rows_ext.csv.gz (whitelist)",
+  "history/{h5_cb1,h5_cb1_ladders,h7_cb4_era,h7_cb4_series,h8_tail,h8_tail_b,h8_text,h8_geo} (id + timestamp columns only)",
+  "creative_batch13/labeller_audit.json"
+ ],
+ "resources": {
+  "mem_mb": 800,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0270b_cb13_smoke_T_v2"
+ ],
+ "argv": [
+  "scripts/run_cb13.py",
+  "t-frame",
+  "--rules",
+  "../docs/research_lab/seals/cb13_rules.json",
+  "--split",
+  "screen",
+  "--disk-cap-gb",
+  "0.03",
+  "--data-dumps-cap-gb",
+  "40",
+  "--budget-min",
+  "35"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch13/t_screen/{fills.csv.gz,labels.csv.gz,t_exclusion_keys.csv.gz,manifest.json}"
+ ],
+ "next_action": "q0272",
+ "notes": "DRAFT. Refuses any capture/print in the J4-R window or T HOLDOUT window, and any mark capture (no forward row is read). Restores archived captures byte-for-byte if deleted from the host. mem 800 justified (section 2.8). Rules part sha256 (seals/cb13_rules.json, code of 2026-10-19 after the freeze-check round 1 fixes (CREATIVE_BATCH_13.md section 11)): common 62e90149ba7e3f282d9876626d51667fd40a559da16b813e03c431f5084ef014, LABELLER 95cde0ab70a3845977933a5a13ed2f65263eb903f86ca9da93a90924948d79b9, T f72683f5a5c315552fd6b8defc00613b6eb19c82224bb52477188bb4ddbd90d3. CB13 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes. | 2026-10-19 smoke v2 (CREATIVE_BATCH_13.md section 11.y): depends on q0270b (smoke_T_v2.json supersedes the failed v1 by disclosure; the runner reads v2 when it exists); T rules part resealed f72683f5 (smoke_offline capture-pair fix). | PROMOTED 2026-10-19 ~14:35Z (autopilot): GL round 2 PASS (full 200 and the 164-new sensitivity; audits/cb13_gl/), T smoke v2 PASS (q0270b), rules common 62e90149 / LABELLER 95cde0ab / T f72683f5 verified against seals/cb13_rules.json; per the 09:40Z plan GL -> q0271 -> q0272.",
+ "repeat": {
+  "max_runs": 20,
+  "until_log_regex": "\"status\": \"(t_frame_complete)\""
+ }
+}

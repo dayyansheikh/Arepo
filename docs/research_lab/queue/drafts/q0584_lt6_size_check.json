@@ -1,0 +1,33 @@
+{
+ "id": "q0584_lt6_size_check",
+ "title": "LT6 simulated-null size of the gates on the code to be pinned (DRAFT; the size-check code is written and re-checked, runs only after must-fixes 1-5 and with k_tests and the strata filled): 11 binding scenarios mapped to tests (LIVE_TESTS_6.md 1.8, worlds 1.8.1) x 2,000 worlds x 200 draws, seed 20261167, criterion rate <= 0.058, plus the non-binding scenario 12, the CR1 / G_treated rates and the planted-effect power runs on their own seeds",
+ "family": "live_tests_6",
+ "priority": 21,
+ "expected_value": "LIVE_TESTS_6.md 1.8 size statement at the pinned code",
+ "data": [
+  "none (simulation)"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0582_lt6_census_captures",
+  "q0583_lt6_census_flow"
+ ],
+ "argv": [
+  "scripts/run_live_tests6.py",
+  "size-check",
+  "--out",
+  "../data-dumps/research_lab/live_tests6_census/size_check.json"
+ ],
+ "timeout_s": 172800,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests6_census/size_check.json (with code_sha256 of the hashed modules and spec_sha256)"
+ ],
+ "next_action": "DO NOT PROMOTE until the `size-check` subcommand exists, the LT6 code freeze is recorded and q0582/q0583 have fixed k. Then record the rates in LIVE_TESTS_6.md; a failing scenario sets only the tests it is binding for to 'SE check failed' (p = 1 in Holm, k unchanged); no rerun, no new seed, no gate variant",
+ "notes": "MOOT 2026-10-22: LT6 closed with every test dropped at census (LIVE_TESTS_6.md 6.3); never promote. | DRAFT, not in queue/jobs (LIVE_TESTS_6.md, accepted for code only; the code is not yet frozen or reviewed). Promote only after the challenger review of the code and its freeze check. Counts 0 (descriptive; no trials line). Run once on the code to be pinned, after the censuses (k fixed before any size result exists); the output's code_sha256 must equal the spec map. Seed 20261167 is declared in LIVE_TESTS_6.md before any run; no preliminary run of the binding scenarios at this seed. max_retries 1 is a deterministic-crash retry only (same code, seed, worlds and draws, allowed only when the attempt wrote no output). The binding runner refuses --worlds/--draws without --dev. Duration unknown (11 binding scenarios plus the non-binding runs, scenarios 6, 7, 11 at 240 markets x up to 120 units); measure with a --dev run of a few worlds before promotion, never with the binding seed."
+}

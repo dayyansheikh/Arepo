@@ -1,0 +1,45 @@
+{
+ "aux_versions": {
+  "event": "se-aux-event-v1"
+ },
+ "broad": false,
+ "derived": [
+  "base"
+ ],
+ "description": "Champion + event context (aux family se-aux-event-v1, same capture's full binary listing): log event size, neg-risk overround (sum of quoted sibling mids - 1) and its quoted share, own normalisation gap, own mid rank and largest sibling mid, siblings' summed Gamma 1h/1d changes (own excluded). Trains only when every labelled capture of the target's window has the event table (comparability with the champion's row set); never predicts without it.",
+ "families": [
+  "market_state",
+  "momentum",
+  "event"
+ ],
+ "features_version": "se-features-v1",
+ "isolates": [
+  "event"
+ ],
+ "learner": "logreg",
+ "model_id": "se8_lr_event",
+ "params": {
+  "C": 1.0,
+  "max_iter": 300,
+  "tol": 0.0001
+ },
+ "targets": [
+  "dir_2h",
+  "dir_6h",
+  "dir_24h",
+  "res_7d"
+ ],
+ "train": {
+  "max_rows": 400000,
+  "min_days": 2,
+  "min_rows": 5000,
+  "refit": "daily",
+  "require_full_coverage": true,
+  "require_sources": [
+   "event"
+  ],
+  "res_window_days": 28,
+  "window_days": 14
+ },
+ "version": 1
+}

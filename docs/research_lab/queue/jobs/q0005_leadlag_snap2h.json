@@ -1,0 +1,16 @@
+{
+ "id": "q0005_leadlag_snap2h",
+ "title": "SB2-J5: sibling lead-lag (L1 family) re-screen on 2h complete-universe snapshots",
+ "family": "cross_market",
+ "priority": 70,
+ "expected_value": "Q4: powers up the inconclusive L1 screen on a homogeneous 2h cadence; decides whether to retire or park Polymarket-internal related-market work",
+ "data": ["research_lab/snapshots (complete captures up to run time; dev_snapshots_v2 absent on host)"],
+ "resources": {"mem_mb": 2600, "cpu": 1},
+ "depends_on": [],
+ "argv": ["scripts/run_leadlag_screen.py", "--tag", "sb2-snap2h", "--n-boot", "1000", "--seed", "116", "--gap-h", "1.5,3"],
+ "timeout_s": 21600,
+ "max_retries": 1,
+ "outputs": ["data-dumps/research_lab/leadlag_screen/leadlag-sb2-snap2h/results.json", "docs/research_lab/trials.jsonl (8 leadlag_screen lines)"],
+ "next_action": "Claude session: apply meets_sb2_rule (drafting rule + pooled dR2 >= 0.001), realised MDE, fresh-periods-only summary, ledger entry; retire/park/register per SCREENING_BATCH_2.md J5",
+ "notes": "DEVELOPMENT; gap filter [1.5,3]h and materiality floor declared in SCREENING_BATCH_2.md (c084a61) before the run; disclosed overlap with ~10 periods of leadlag-62d593a402; shares capture data with E011 (different hypothesis, its analysis untouched). Results written only at the end, so a retry after OOM is safe."
+}

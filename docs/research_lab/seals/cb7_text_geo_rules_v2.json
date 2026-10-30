@@ -1,0 +1,497 @@
+{
+ "dates": {
+  "cap": "min(T_fetch, T_seal)",
+  "deadline": "no chunk starts at or after T_seal -> NOT_RUN_DEADLINE.json, status not_run_deadline",
+  "end_before_fetch_days": 7,
+  "geo_end_from": "2025-06-01",
+  "t_seal": "2026-10-22T00:00:00Z",
+  "text_end_from": "2025-04-01"
+ },
+ "disk": {
+  "data_dumps_fetch_cap_gb": 12.5,
+  "disk_budget_exit": 4,
+  "headroom_exit": 75,
+  "output_cap_gb": {
+   "h8_geo": 0.05,
+   "h8_text": 0.15,
+   "keys": 0.01
+  }
+ },
+ "exclusion": {
+  "files": [
+   {
+    "kind": "sample",
+    "name": "h1_first",
+    "path": "history/h1_first/sample.csv.gz",
+    "sha256": "24bbda60714852679f8203f399c8852a6a97d99b01cebb2b19c7c8f8f2b53cf8"
+   },
+   {
+    "kind": "sample",
+    "name": "h2_main",
+    "path": "history/h2_main/sample.csv.gz",
+    "sha256": "77a15bd96bcd17c923e90e3e214874cad8df9ed4cd66eb6145cc8922c28954ec"
+   },
+   {
+    "kind": "sample",
+    "name": "h3_power",
+    "path": "history/h3_power/sample.csv.gz",
+    "sha256": "f8e1a7bbd16d57206fcd45c502263d2b7ceb40b22108e248c613d5148476004d"
+   },
+   {
+    "kind": "seal",
+    "name": "h5_cb1",
+    "path": "docs/research_lab/seals/h5_cb1_SEAL.json",
+    "sha256": "fbac4c8d2898447555a6e68de0d31fbc9b4efa5aec1fa58d62ce2373685fae85"
+   },
+   {
+    "kind": "seal",
+    "name": "h5_cb1_ladders",
+    "path": "docs/research_lab/seals/h5_cb1_ladders_SEAL.json",
+    "sha256": "d3e7b335c15ac5917d270f5a0cbb6ded84363408dcc6a54d47f20ba6aed28104"
+   }
+  ],
+  "ids_per_request": 50,
+  "key_types": [
+   "event",
+   "neg_risk_market",
+   "series"
+  ],
+  "max_unverified_key_share": 0.02,
+  "refused_roots": [
+   "cb1_extract",
+   "cb2_extract",
+   "cb3_extract",
+   "cb4_extract",
+   "cb5_extract",
+   "cb6_extract",
+   "cb3_followup",
+   "cb6_followup",
+   "cross_venue_live",
+   "surprise_live"
+  ],
+  "refused_run_ids": [
+   "h1_first",
+   "h2_main",
+   "h3_power",
+   "h4_seal",
+   "h5_cb1",
+   "h5_cb1_ladders",
+   "h6_weather",
+   "h7_cb4_era",
+   "h7_cb4_series",
+   "h8_tail"
+  ],
+  "retry_missing_with_closed_true": true,
+  "series_ids_from": "all events of the market"
+ },
+ "frame": {
+  "binary_labels": [
+   "Yes",
+   "No"
+  ],
+  "capped_windows": "dropped whole and counted",
+  "closed_time": "kept as a status field (blank after the cap)",
+  "description_chars": 4000,
+  "exclude_crypto_updown": "\\bup or down\\b|\\bupdown\\b|\\bup-or-down\\b",
+  "exclude_geopolitics": "fee_category == 'geopolitics' or history_topics.topic_of(...) == 'geopolitics'",
+  "exclude_weather": {
+   "fee_category": "weather",
+   "temp_re": "^(Highest|Lowest) temperature in (.+?) on (.+?)\\?$",
+   "temp_re_flags": 0
+  },
+  "forward_walk": false,
+  "frame_version": "frame-v2-random-windows",
+  "geo_filter_order": [
+   "no_created_or_end",
+   "end_outside_window",
+   "not_yes_no",
+   "life_lt_9d",
+   "other_placeholder",
+   "continuous_class",
+   "status_quo",
+   "exclusion_id",
+   "exclusion_key",
+   "event_cap"
+  ],
+  "main_columns": [
+   "market_id",
+   "condition_id",
+   "token0",
+   "token1",
+   "event_id",
+   "event_ids",
+   "neg_risk_market_id",
+   "series_ids",
+   "fee_category",
+   "status",
+   "closed",
+   "created_at",
+   "start_at",
+   "end_at",
+   "closed_time",
+   "start_epoch",
+   "end_epoch",
+   "close_epoch",
+   "closed_after_cap",
+   "neg_risk",
+   "neg_risk_other",
+   "group_item_title",
+   "question",
+   "event_title",
+   "slug",
+   "topic",
+   "outcomes",
+   "market_tag_ids",
+   "event_tag_ids",
+   "query_tag_id"
+  ],
+  "other_placeholder": {
+   "negRiskOther": true,
+   "neg_risk_group_item_title_pattern": "^(?:other|(?:person|candidate|option|team|player|party|company|country)\\s+[a-z])$"
+  },
+  "outcome_columns_guarded": [
+   "outcome_prices",
+   "uma_status",
+   "liquidity",
+   "volume"
+  ],
+  "pages_per_window": 20,
+  "text_filter_order": [
+   "no_created_or_end",
+   "end_outside_window",
+   "not_yes_no",
+   "life_lt_9d",
+   "weather",
+   "crypto_updown",
+   "geopolitics",
+   "other_placeholder",
+   "exclusion_id",
+   "exclusion_key"
+  ],
+  "walk_order": [
+   "closed=false",
+   "closed=true"
+  ],
+  "window_minutes": 15,
+  "windows_per_day": 5
+ },
+ "func_sources_sha256": {
+  "_rank": "b003f6a3f3ab5751ac4f774522f7dce34511583bda3cd70b817750b957d9dc3f",
+  "allocate_weighted": "459fe070ca62da621f70aaf6f44f0a2e7d3171244c726d16d4d098edab871cb9",
+  "binary_yes_no": "9300f41c5a6571b1fafa34a67bb511e8f6f3ea12b895a64864b93bb5d4f09b9d",
+  "cap_status": "231cb9dd20eefa2f02dcb28b271fb8c91b8fbf60dcbe616fa76e2089f880490d",
+  "cb1_topic": "789d963655a1c46ef7bd4f6fb17080d7b80a3766b46cd3dcba0fbe79fb74ec95",
+  "condition_count": "33a9a1403045703e2b9ed2d2b9737b4073492df20e2271b924e066438b1e38e9",
+  "cut_points": "13f33db171a754b227767487a1aa0d7a5031aeacd43c527ba4309128272d93d5",
+  "draw_geo_cap": "033398ebd174ef676dc7afab0fd8140e4c6dc2865b3892b242ad53b81d2527d5",
+  "draw_sample": "a0073dd33534d8c3765b733a121a16b62dc35666d61345439df883a976eb6caf",
+  "geo_filter_reason": "ad52ee6a74febf2b3a4f181ab9a4d8b3cc1a5e4de4b1ae79d6a05e2f350f0990",
+  "geo_origins": "cf11babb4c746c7cec4921a0f3888a8643feb9ae2a96b2e04ebcd4ad540ee81d",
+  "has_clarification": "affa7d2a768b62e24e3105db8a566fd689780df20fdeb858cd0ce3e555f6ebf0",
+  "is_continuous_question": "f561d6d2025699b5d7aa7098847f38094e8f60f652a33a11bf2c3857f0921164",
+  "is_geopolitics": "b7af4abfb419b8be3e15e1d11554d21e2a9577bb1a03fc7d8a989768f5575681",
+  "is_other_placeholder": "eee8efe6595d104a7ca0a91be23538d5b06d3e4ffc63a443859d610ce8a6b9db",
+  "is_weather": "98950df75071c0f1885b7b6dfc90fffc08860e135c70f59cffbc8afc2ff891d2",
+  "key_types_matched": "28fbd54f1bdaed2d468aef956c964b1f6daece450c95baad647f3944f66511dd",
+  "markers": "6af057244dc9eba45f94afc113f1a4d8065a2d8d8a7bf2ba87935aca56e12228",
+  "market_row": "4f99c5c05da647d60ca219ed819679b2abbfe9d5d3f2dabe8574722a2e1df88d",
+  "origin_price": "5b664a2b5ac820858f05301a8b143bdfa592c0dcdaff043d0ce9f0f980ae5b7e",
+  "origin_prints": "63ae30927b5285ccdc5f53f91862dbad45ffbee3802d47709a5585a7407eb284",
+  "run_smoke": "a53504dc1ffdcd0a83efecef3b718c777fc623381917e303c00519b3453fe0de",
+  "sample_weight_of": "232ff130af670c5fca03b98f27334ea9db0a458962f11bfdf5fb9515f1087876",
+  "smoke_pool": "787281f315f4297d7925f1b1e94cc0825e71289148cc9c07da94d5ed3d535317",
+  "smoke_pool_v2": "76e8c4cd15654dc7e817b8e7c4391a6869772bdabfee1963d9db44bd0dc220b7",
+  "smoke_verdict": "088ea3352da19a73d2a9f980eed64254857aec6c47f0600244227cc8b85f9dad",
+  "split_window": "e342924095c27f9c104053f8babfcd2b766ce2ad6191019776646798e63957bc",
+  "text_features": "1528d3355592eaef8c5e82d0bb6beea6c746d2e66400d470afac7f321ccbf8f7",
+  "text_filter_reason": "b617b0b71fff091c815938d4d26fc4a2a4051144b7f75c3cac4c022f6e08a19d",
+  "text_row": "81d021da9475bf27f780b63869f712213c369080c0032261c9978c1f2b558844",
+  "theme_of": "2707e296a1cecaf11d582890d316e6846ca78beeab3af9afffab27a12df47604"
+ },
+ "funcs_sha256": "bf3150437fc1d873ff30fab5c1065f7bc9c5b16f77d581756ac5d065346892aa",
+ "geo": {
+  "band": [
+   0.02,
+   0.1
+  ],
+  "cap_hash": "sha256('arepo-h8-geo|' + market_id)",
+  "class_c_patterns": [
+   "\\bprice\\w*",
+   "\\btemperature\\w*",
+   "\\bscore\\w*",
+   "\\bpoll\\w*"
+  ],
+  "end_from": "2025-06-01",
+  "max_failed_origin_share": 0.02,
+  "max_per_event": 8,
+  "min_life_days": 9,
+  "order": [
+   "filters",
+   "exclusion key drop",
+   "cap 8 per event",
+   "origins"
+  ],
+  "origin_days_before_end": [
+   30,
+   14,
+   7
+  ],
+  "origin_min_age_days": 2,
+  "status_quo_patterns": [
+   "\\bnot\\b",
+   "\\bremain\\w*",
+   "\\bstill\\b",
+   "\\bstay\\w*",
+   "\\bsurviv\\w*",
+   "\\bcontinu\\w*",
+   "\\bwithout\\b"
+  ],
+  "stored": [
+   "all tag ids (market, event)",
+   "event title",
+   "fee_category",
+   "closed_time (status)"
+  ],
+  "tag_id": "100265",
+  "tag_slug": "geopolitics",
+  "theme_order": "first match over question + event title",
+  "themes": [
+   [
+    "ru-ua",
+    "\\b(?:russia|russian|ukrain\\w*|putin|zelensky|kyiv|kremlin|crimea|donbas)\\b"
+   ],
+   [
+    "il-ps",
+    "\\b(?:israel\\w*|gaza|hamas|netanyahu|west bank|hostage\\w*)\\b"
+   ],
+   [
+    "iran",
+    "\\b(?:iran\\w*|khamenei|tehran|hormuz)\\b"
+   ],
+   [
+    "lb-sy-ye",
+    "\\b(?:hezbollah|lebanon|syria\\w*|assad|houthi\\w*|yemen\\w*)\\b"
+   ],
+   [
+    "cn-tw",
+    "\\b(?:china|chinese|taiwan\\w*|xi jinping|beijing)\\b"
+   ],
+   [
+    "kp",
+    "\\b(?:north korea\\w*|kim jong)\\b"
+   ],
+   [
+    "ve",
+    "\\b(?:venezuela\\w*|maduro)\\b"
+   ],
+   [
+    "in-pk",
+    "\\b(?:india\\w*|pakistan\\w*|kashmir)\\b"
+   ]
+  ],
+  "walk_order": [
+   "closed=true",
+   "closed=false (ended-unclosed, censored)"
+  ],
+  "window_split": "monthly end_date windows halved while capped; capped at one day -> excluded and counted"
+ },
+ "prints": {
+  "cap": "ts <= min(T_fetch, T_seal)",
+  "clob_history_used": false,
+  "end": "t - 1",
+  "limit": 50,
+  "lookback_days": 7,
+  "order": "newest first (verified by the smoke)",
+  "paging": false,
+  "price": "size-weighted VWAP in [t-24h, t) in YES terms, else latest print (size-weighted at the latest ts)",
+  "start": "t - 7 d",
+  "taker_only": true,
+  "url": "https://data-api.polymarket.com/trades",
+  "vwap_hours": 24,
+  "wallets_kept": false
+ },
+ "rules_sha256": "05bf365cbb885d0183f31da1b032b2337830afaf262c90bfa1f0e9f9061221e9",
+ "rules_version": "cb7-text-geo-rules-v2",
+ "seeds": {
+  "bootstrap": 717,
+  "geo": "arepo-h8-geo",
+  "geo_cap_prefix": "arepo-h8-geo|",
+  "placebos": [
+   7171,
+   7172,
+   7173,
+   7174,
+   7175,
+   7176
+  ],
+  "smoke": "arepo-cb7-smoke-v2",
+  "text_sample": "arepo-h8-text",
+  "uma_audit": "arepo-cb7-uma-audit"
+ },
+ "smoke": {
+  "criteria": {
+   "a": "slug resolves to the pinned tag id",
+   "b": "every returned row inside [start, end], newest first, over >= min_nonempty non-empty responses",
+   "c": ">= min_coverage of n markets return >= 1 print"
+  },
+  "final": "a v2 FAIL is final: no smoke v3; S1/G1 are 'not run (smoke FAIL)' and counted; T_seal unchanged",
+  "min_coverage": 14,
+  "min_nonempty": 10,
+  "min_volume": 10000.0,
+  "n": 20,
+  "needs": {
+   "geo_fetch": [
+    "a",
+    "b",
+    "c"
+   ],
+   "text_fetch": [
+    "b",
+    "c"
+   ]
+  },
+  "output": "counts only, write-once",
+  "pool": {
+   "gamma_step": [
+    "lookup by id, parse guard",
+    "endDate in 2025",
+    "volumeNum >= 10000",
+    "condition id",
+    "labels exactly Yes/No",
+    "not Up/Down on question/slug/event title"
+   ],
+   "order": "sha256(seed|market_id)",
+   "recorded_fields": [
+    "end_epoch in 2025",
+    "end_epoch - start_epoch >= 14 d",
+    "close_epoch >= end_epoch - 7 d (missing close_epoch fails)",
+    "fee_category != weather",
+    "not crypto Up/Down (CB1_UPDOWN_RE on recorded text)"
+   ],
+   "recorded_volume_filter": false,
+   "source": "h1_first/h2_main/h3_power sample.csv.gz ids",
+   "take": "first n survivors in seed order; fewer than n -> FAIL (no widening)"
+  },
+  "result_file": "creative_batch7/smoke_v2.json",
+  "seed": "arepo-cb7-smoke-v2",
+  "superseded": {
+   "cause": "pool spec: 200 candidates drawn before the 2025/volume filter",
+   "criterion_a": true,
+   "job": "q0140_cb7_smoke",
+   "n_in_pool": 2,
+   "n_nonempty": 0,
+   "n_requested": 2,
+   "result": "FAIL",
+   "version": "cb7-smoke-v1"
+  },
+  "tag_id": "100265",
+  "tag_slug": "geopolitics",
+  "version": "cb7-smoke-v2",
+  "window_before_end_days": [
+   14,
+   7
+  ]
+ },
+ "text": {
+  "allocator": "hb.allocate_weighted",
+  "also_stored": [
+   "description length",
+   "description sha256"
+  ],
+  "band": [
+   0.05,
+   0.95
+  ],
+  "cell_bands": [
+   [
+    0.05,
+    0.25
+   ],
+   [
+    0.25,
+    0.5
+   ],
+   [
+    0.5,
+    0.75
+   ],
+   [
+    0.75,
+    0.95
+   ]
+  ],
+  "cell_fixed_effects": "cb1_topic x band",
+  "clarification_markers": [
+   "clarif",
+   "update:",
+   "updated",
+   "additional context",
+   "edit:"
+  ],
+  "cut_rule": "per cb1_topic over the sampled markets' C: c_L = smallest integer with share(C <= c_L) >= 1/3; c_H = largest integer with share(C >= c_H) >= 1/3; c_H <= c_L -> no tercile contrast; text only, written before any print request",
+  "end_from": "2025-04-01",
+  "features_on_full_description": true,
+  "markers": [
+   {
+    "case_insensitive": true,
+    "name": "M1_must",
+    "pattern": "\\bmust\\b",
+    "text": "description"
+   },
+   {
+    "case_insensitive": true,
+    "name": "M2_official",
+    "pattern": "\\bofficial(?:ly|s)?\\b",
+    "text": "description"
+   },
+   {
+    "case_insensitive": true,
+    "name": "M3_named_source",
+    "pattern": "\\baccording to\\b",
+    "text": "description"
+   },
+   {
+    "case_insensitive": true,
+    "name": "M4_conjunction",
+    "pattern": "\\band\\b|&",
+    "text": "question"
+   },
+   {
+    "case_insensitive": true,
+    "name": "M5_time_of_day_deadline",
+    "pattern": "\\b(?:before|by|prior to|no later than)\\s+\\d{1,2}(?::\\d{2})?\\s*(?:a\\.?m\\.?|p\\.?m\\.?)",
+    "text": "description"
+   },
+   {
+    "case_insensitive": false,
+    "name": "M6_time_zone",
+    "pattern": "\\b(?:ET|EST|EDT)\\b",
+    "text": "description"
+   },
+   {
+    "case_insensitive": true,
+    "name": "M7_named_url",
+    "pattern": "https?://|\\bwww\\.",
+    "text": "description"
+   }
+  ],
+  "min_life_days": 9,
+  "n_markets": 18000,
+  "note_date_pattern": "note:\\s*(?:\\d{4}-\\d{2}-\\d{2}|\\d{1,2}[/.\\-]\\d{1,2}(?:[/.\\-]\\d{2,4})?|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\\.?\\s+\\d{1,2}|\\d{1,2}\\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*)",
+  "order_within_stratum": "sha256(seed|market_id)",
+  "origin": {
+   "days_before_end": 7,
+   "one_request_per_market": true
+  },
+  "stored_description_chars": 4000,
+  "strata": [
+   "status",
+   "cb1_topic",
+   "end_month"
+  ],
+  "weights": {
+   "other": 1.0,
+   "sports": 0.25
+  }
+ }
+}

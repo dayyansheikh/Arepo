@@ -1,0 +1,30 @@
+{
+ "id": "q0646_lt9_reader",
+ "title": "LT9 reader (DRAFT fallback only, code phase 2): run_live_tests9.py run once a pass; NEVER promoted while the host cron line of LIVE_TESTS_9.md 8.2 exists (never both)",
+ "family": "live_tests_9",
+ "priority": 30,
+ "expected_value": "the write-once series / status / sweeps / feed / frozen / outcome files of live_tests9/ at the pass cadence (fallback route)",
+ "data": [
+  "host originals (read-only)"
+ ],
+ "resources": {
+  "mem_mb": 650,
+  "as_cap_mb": 1536,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [],
+ "not_before": "2027-01-18T00:00:00Z",
+ "argv": [
+  "scripts/run_live_tests9.py",
+  "run"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 3,
+ "outputs": [
+  "data-dumps/research_lab/live_tests9/"
+ ],
+ "next_action": "only if the host cron line (15 */2 * * *) cannot be installed: promote with repeat until END_UTC; record the route used in the ledger",
+ "notes": "CODE PHASE 2: run is not written yet and refuses. Install window [REGISTERED_UTC - 72 h, REGISTERED_UTC - 24 h] with backfill-series (8.1); peak RSS <= 650 MB by the 8.2 ladder (measured by a host dry run before the pin). DRAFT, not in queue/jobs. Promote only after: the design-text freeze (LIVE_TESTS_9.md design text frozen at sha256 098aa3fb5f6765f08dcad3f85ad63ec70e29df65249413608f0f7ad5fd505b77 (6b78ba90)), the LT9 code phase 1 and the science-reviewer freeze check of the census and size-check code against LIVE_TESTS_9.md sections 1.4.1, 1.8, 1.8.1 and 7 (8.4 step 3), and never while an LT7 or LT8 census, size-check or analysis job runs (memory-heavy-jobs rule). Counts 0 (descriptive; no trials line). Reads the DRAFT spec unpinned; the code_sha256 of every hashed module is written into the output. Every gate threshold is stated in section 7 before this runs; nothing is re-tuned after it. Each census runs once; max_retries 1 covers a deterministic crash only (no output written)."
+}

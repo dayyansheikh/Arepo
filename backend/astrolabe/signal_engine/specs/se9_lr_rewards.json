@@ -1,0 +1,45 @@
+{
+ "aux_versions": {
+  "rewards": "se-aux-rewards-v1"
+ },
+ "broad": false,
+ "derived": [
+  "base"
+ ],
+ "description": "Champion + liquidity-reward programme (aux family se-aux-rewards-v1, same capture's Gamma sidecar): has an active programme, log daily rate, max spread, log min size, spread inside the reward band, programme started in the last 2 days. Embargoed (token rewards, E020) until 2026-11-18. Trains only when every labelled capture of the target's window has the table; never predicts without it.",
+ "families": [
+  "market_state",
+  "momentum",
+  "rewards"
+ ],
+ "features_version": "se-features-v1",
+ "isolates": [
+  "rewards"
+ ],
+ "learner": "logreg",
+ "model_id": "se9_lr_rewards",
+ "params": {
+  "C": 1.0,
+  "max_iter": 300,
+  "tol": 0.0001
+ },
+ "targets": [
+  "dir_2h",
+  "dir_6h",
+  "dir_24h",
+  "res_7d"
+ ],
+ "train": {
+  "max_rows": 400000,
+  "min_days": 2,
+  "min_rows": 5000,
+  "refit": "daily",
+  "require_full_coverage": true,
+  "require_sources": [
+   "rewards"
+  ],
+  "res_window_days": 28,
+  "window_days": 14
+ },
+ "version": 1
+}

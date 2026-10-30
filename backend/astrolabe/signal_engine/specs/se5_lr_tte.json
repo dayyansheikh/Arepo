@@ -1,0 +1,39 @@
+{
+ "broad": false,
+ "derived": [
+  "base",
+  "tte"
+ ],
+ "description": "Champion + time-to-end interactions (near-24h / near-72h indicators and their products with momentum; the C-TTE near-close effect).",
+ "families": [
+  "market_state",
+  "momentum"
+ ],
+ "features_version": "se-features-v1",
+ "isolates": [
+  "tte"
+ ],
+ "learner": "logreg",
+ "model_id": "se5_lr_tte",
+ "params": {
+  "C": 1.0,
+  "max_iter": 300,
+  "tol": 0.0001
+ },
+ "targets": [
+  "dir_2h",
+  "dir_6h",
+  "dir_24h",
+  "res_7d"
+ ],
+ "train": {
+  "max_rows": 400000,
+  "min_days": 2,
+  "min_rows": 5000,
+  "refit": "daily",
+  "require_sources": [],
+  "res_window_days": 28,
+  "window_days": 14
+ },
+ "version": 1
+}

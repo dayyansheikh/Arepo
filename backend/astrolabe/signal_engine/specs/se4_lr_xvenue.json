@@ -1,0 +1,41 @@
+{
+ "broad": false,
+ "derived": [
+  "base"
+ ],
+ "description": "Champion + Kalshi cross-venue gap for rule-matched pairs (Kalshi mid minus Polymarket mid, Kalshi spread, quote age).",
+ "families": [
+  "market_state",
+  "momentum",
+  "xvenue"
+ ],
+ "features_version": "se-features-v1",
+ "isolates": [
+  "xvenue"
+ ],
+ "learner": "logreg",
+ "model_id": "se4_lr_xvenue",
+ "params": {
+  "C": 1.0,
+  "max_iter": 300,
+  "tol": 0.0001
+ },
+ "targets": [
+  "dir_2h",
+  "dir_6h",
+  "dir_24h",
+  "res_7d"
+ ],
+ "train": {
+  "max_rows": 400000,
+  "min_days": 2,
+  "min_rows": 5000,
+  "refit": "daily",
+  "require_sources": [
+   "xvenue"
+  ],
+  "res_window_days": 28,
+  "window_days": 14
+ },
+ "version": 1
+}

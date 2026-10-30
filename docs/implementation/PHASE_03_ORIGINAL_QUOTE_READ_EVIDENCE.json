@@ -1,0 +1,71 @@
+{
+  "accepted_panel": false,
+  "feature_store_admitted": false,
+  "origin_admitted": false,
+  "original_computation_summary": {
+    "computation_available_at": {
+      "clock_session_id": "ca7d6d68-5b8c-4905-8231-0e07eaec9565",
+      "monotonic_ns": "1098296381340333",
+      "utc": "2026-09-22T13:13:11.141974Z"
+    },
+    "computation_hash": "ccd2d1e163b2eec03db7e9f6d8b120ca5fc68e0bc51e62bf2416081f26331e8a",
+    "computation_started_at": {
+      "clock_session_id": "ca7d6d68-5b8c-4905-8231-0e07eaec9565",
+      "monotonic_ns": "1098296358182125",
+      "utc": "2026-09-22T13:13:11.118811Z"
+    },
+    "computed_at": {
+      "clock_session_id": "ca7d6d68-5b8c-4905-8231-0e07eaec9565",
+      "monotonic_ns": "1098296358964291",
+      "utc": "2026-09-22T13:13:11.119597Z"
+    },
+    "feature_store_admitted": false,
+    "input_read_hash": "e92dd9e592657b1451e97e414da22586264cd46044389f3c72069b63be9f4ede",
+    "origin_admitted": false,
+    "policy_hash": "2772eb6ba839d302d30d691720c240799fa13a58f2229ebd886af27ee0ec04bd",
+    "projection_hash": "d39cf50735b72aa7154bdb528e4816d59faf8aded19f3e95688f2319a9cabe74",
+    "quote_count": 1,
+    "quote_states": {
+      "observed": 1
+    },
+    "schema_version": "fs2-quote-computation-v1",
+    "source_observation_count": 2,
+    "source_provenance_class": "prospective"
+  },
+  "original_implementation_commit": "761d27991fb24073dda3bc819114c8f912a205e9",
+  "original_summary_equality": true,
+  "read_available_at": {
+    "clock_session_id": "c88d4c84-ee82-42ce-935e-b0074f99c944",
+    "monotonic_ns": "1098930484660625",
+    "utc": "2026-09-22T13:23:45.247836Z"
+  },
+  "read_receipt": {
+    "completed_at": {
+      "clock_session_id": "c88d4c84-ee82-42ce-935e-b0074f99c944",
+      "monotonic_ns": "1098930484323750",
+      "utc": "2026-09-22T13:23:45.247482Z"
+    },
+    "metadata_read_started_at": {
+      "clock_session_id": "c88d4c84-ee82-42ce-935e-b0074f99c944",
+      "monotonic_ns": "1098929604547583",
+      "utc": "2026-09-22T13:23:44.367716Z"
+    },
+    "observation_clocks_changed": false,
+    "origin_admitted": false,
+    "original_provenance_class": "prospective",
+    "original_report_hash": "ccd2d1e163b2eec03db7e9f6d8b120ca5fc68e0bc51e62bf2416081f26331e8a",
+    "original_state": "verified_quote_computation",
+    "output_bytes": 4663,
+    "output_hash": "bb09116e98e6e503b15799f24e7177cb5ed98dedeac23e1e764157bed7971bcd",
+    "read_policy_hash": "8977f21de81400b07ee5a017e1f331272406ce2feb6fdfa7968aed1bd4fe9c96",
+    "schema_version": "fs2-original-quote-computation-read-v1",
+    "verification_started_at": {
+      "clock_session_id": "c88d4c84-ee82-42ce-935e-b0074f99c944",
+      "monotonic_ns": "1098930083019416",
+      "utc": "2026-09-22T13:23:44.846194Z"
+    }
+  },
+  "read_receipt_hash": "be34d1a7e20f7d9b1ec8c3426e82477e7c811e66c858ef84ddc11ff6b0254b20",
+  "read_root": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_quote_computation_read_c08fa81c7aab4fbc8197547591b57876",
+  "source_and_computation_unchanged": true
+}

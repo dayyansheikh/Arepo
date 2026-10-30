@@ -1,0 +1,47 @@
+{
+ "id": "q0641_lt9_seal",
+ "title": "LT9 seal (DRAFT): run_live_tests9.py seal hashes every complete capture, sweep 1 and reward_params capture of the sealed windows (captures 2026-11-01T00:31Z..11-12T02:31Z, sweeps 11-01T20:31Z..11-12T02:31Z, feed captures starting 2026-10-31T22:00Z..11-12T04:00Z) into seals/lt9_census_inputs.json with the seal's own slot assignment and the frozen design-text sha256",
+ "family": "live_tests_9",
+ "priority": 52,
+ "expected_value": "the LT9 census seal (written once, committed by the orchestrator before any LT9 census)",
+ "data": [
+  "host originals and the q0640 restore tree (read-only)"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "lane": "net",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0640_lt9_census_restore"
+ ],
+ "not_before": "2026-11-12T06:00:00Z",
+ "argv": [
+  "scripts/run_live_tests9.py",
+  "seal",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests9_census/restore/data-dumps/research_lab/snapshots",
+  "--sweep-root",
+  "../data-dumps/research_lab/book_sweeps",
+  "--sweep-root",
+  "../data-dumps/research_lab/live_tests9_census/restore/data-dumps/research_lab/book_sweeps",
+  "--feed-root",
+  "../data-dumps/research_lab/reward_params",
+  "--feed-root",
+  "../data-dumps/research_lab/live_tests9_census/restore/data-dumps/research_lab/reward_params",
+  "--work",
+  "../data-dumps/research_lab/live_tests9_census/work_seal",
+  "--out",
+  "../data-dumps/research_lab/live_tests9_census/lt9_census_inputs.json"
+ ],
+ "timeout_s": 7200,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests9_census/lt9_census_inputs.json (copied to docs/research_lab/seals/ and committed by the orchestrator)"
+ ],
+ "next_action": "add --unavailable <RESTORE_REPORT> for each q0640 report before promotion; the orchestrator copies the seal to docs/research_lab/seals/lt9_census_inputs.json, commits it with its sha256 and pulls it on the host; only then q0642",
+ "notes": "The seal refuses unless LIVE_TESTS_9.md has the frozen sha256 and the spec declares listed_carry24h_v2; it refuses a directory found in two roots with different bytes and a slot at or after the sealed bound (2026-11-12T04:00Z). It records missing slots (counted, never filled) and every feed capture, failed ones included (skipped, never used). DRAFT, not in queue/jobs. Promote only after: the design-text freeze (LIVE_TESTS_9.md design text frozen at sha256 098aa3fb5f6765f08dcad3f85ad63ec70e29df65249413608f0f7ad5fd505b77 (6b78ba90)), the LT9 code phase 1 and the science-reviewer freeze check of the census and size-check code against LIVE_TESTS_9.md sections 1.4.1, 1.8, 1.8.1 and 7 (8.4 step 3), and never while an LT7 or LT8 census, size-check or analysis job runs (memory-heavy-jobs rule). Counts 0 (descriptive; no trials line). Reads the DRAFT spec unpinned; the code_sha256 of every hashed module is written into the output. Every gate threshold is stated in section 7 before this runs; nothing is re-tuned after it. Each census runs once; max_retries 1 covers a deterministic crash only (no output written)."
+}

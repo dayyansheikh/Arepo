@@ -1,0 +1,12 @@
+{
+ "committed_utc": "2026-10-17",
+ "consequence": "CB4-E: S|P0 = 6, S|P1 = 92 markets against 800 targeted per cell; S|P0 has fewer than 30 event clusters, so the CB4-E stop rule fires on frame counts alone (no outcome read): E1 and E2 are not testable (p = 1, counted in family M); era_rule = pooled_allowed, labelled 'era effect untested (CH53 not testable)'. CH46, CH50, CH52 unaffected.",
+ "decision": "as_declared",
+ "era_frame_report_sha256": "03e58086d00250b927a63e81ee11c7a4c8dc0e4ccd6c5ace42b62946fa64231d",
+ "note": "Frame report hashes verified against the host files by the coordinator (sha256sum). No threshold or formula changed.",
+ "ruled_by": "science-reviewer, 2026-10-17 (ruling A, as_declared)",
+ "series_frame_report_sha256": "50e51b87acd393e221fe49cd12c2aa56109466b78cfd8dfb8c6c22f6cdf26606",
+ "sports_fee_categories": [
+  "sports"
+ ]
+}

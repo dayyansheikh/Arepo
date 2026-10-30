@@ -1,0 +1,35 @@
+{
+ "id": "q0281_cb13_census_R",
+ "title": "CB13-R census, counts only: events/markets by template (weekly primary; monthly, yearly, by census-only), asset, direction, end month; window components; parser and flag failures; key, overlap and full-series counterfactual drops; poly_markets completeness; units by label incl. unavailable (no klines); q_touch - p_reg distribution (klines before t only); HOLDOUT counts only; gates GR (incl. >= 30 components), GRP (one nested latent per asset x window x direction, price-calibrated at the first checkpoint); MDEs",
+ "family": "creative_batch_13",
+ "priority": 17,
+ "expected_value": "R gates and MDEs before the freeze",
+ "data": [
+  "history/h13_touch/screen (no guarded file; HOLDOUT counts only)",
+  "history/h13_binance/screen (guarded accessor: klines < t)"
+ ],
+ "resources": {
+  "mem_mb": 600,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0280_cb13_seal_R"
+ ],
+ "argv": [
+  "scripts/run_cb13.py",
+  "census",
+  "--family",
+  "R",
+  "--rules",
+  "../docs/research_lab/seals/cb13_rules.json"
+ ],
+ "timeout_s": 2400,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch13/census_R.json",
+  "trials.jsonl (cb13_descriptive)"
+ ],
+ "next_action": "science-reviewer freeze check (R part)",
+ "notes": "PROMOTED 2026-10-21 (autopilot): q0280 done 09:11Z; seal copy committed as seals/cb13_touch_holdout_SEAL.json (sha256 98a5404a…, byte copy of creative_batch13/holdout_SEAL_R.json); CB13 freeze-checked; rules part hashes re-verified 2026-10-21. | DRAFT. No Y, slope or net computed. Refuses on an incomplete manifest. Rules part sha256 (seals/cb13_rules.json, code of 2026-10-19 after the freeze-check round 1 fixes (CREATIVE_BATCH_13.md section 11)): common 62e90149ba7e3f282d9876626d51667fd40a559da16b813e03c431f5084ef014, R 919070246add0ef76100a9d375c1c16b18c15fa817e2be9492bd9fc03f1775f7. CB13 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes."
+}

@@ -1,0 +1,27 @@
+{
+ "bounds_ok": true,
+ "counts_only": true,
+ "criterion_a_slug_resolves_to_pinned_id": true,
+ "criterion_b_bounds_and_order": false,
+ "criterion_c_coverage": false,
+ "git_commit": "21e9bdc2dcbc72a8637e32e50d4e8e9be25b6609",
+ "n_candidates_drawn": 200,
+ "n_candidates_found_on_gamma": 200,
+ "n_covered": 0,
+ "n_failed_requests": 0,
+ "n_gamma_failed_requests": 0,
+ "n_in_pool": 2,
+ "n_nonempty": 0,
+ "n_requested": 2,
+ "newest_first_ok": true,
+ "pass": false,
+ "pass_thresholds": {
+  "min_coverage": 14,
+  "min_nonempty": 10,
+  "n": 20
+ },
+ "rules_sha256": "28347c13c5e3f62955f9d69da7846cea7629b5877ada63dc5c357e00e55b9583",
+ "run_utc": "2026-10-17T07:26:08Z",
+ "smoke_version": "cb7-smoke-v1",
+ "tag_request_failed": false
+}

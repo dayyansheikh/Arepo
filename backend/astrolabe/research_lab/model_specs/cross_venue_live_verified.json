@@ -1,0 +1,1342 @@
+{
+ "description": "Title-level hand verification of live matched pairs (cross_venue_live). verdict 'same' = prioritised; 'different' = excluded. Resolution rules were not read line by line. Verified 2026-10-12 from the first live refresh (21:32Z), before any outcome existed.",
+ "verified_utc": "2026-10-12T21:50:00Z",
+ "pairs": [
+  {
+   "k_ticker": "KXBALLONDOR-26-LMES",
+   "p_market_id": "608565",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Who will win the Ballon d'Or in 2026? Lionel Messi",
+   "p_text": "Will Lionel Messi win the 2026 Ballon d'Or?"
+  },
+  {
+   "k_ticker": "KXBALLONDOR-26-LYAM",
+   "p_market_id": "608545",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Who will win the Ballon d'Or in 2026? Lamine Yamal",
+   "p_text": "Will Lamine Yamal win the 2026 Ballon d'Or?"
+  },
+  {
+   "k_ticker": "KXBALLONDOR-26-HKAN",
+   "p_market_id": "608547",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Who will win the Ballon d'Or in 2026? Harry Kane",
+   "p_text": "Will Harry Kane win the 2026 Ballon d'Or?"
+  },
+  {
+   "k_ticker": "KXMISENATE-26-MROG",
+   "p_market_id": "630806",
+   "verdict": "different",
+   "note": "Polymarket asks whether the party wins; Kalshi whether this candidate wins",
+   "k_text": "Who will win the 2026 Michigan Senate race? Mike Rogers",
+   "p_text": "Will the Republicans win the Michigan Senate race in 2026? Mike Rogers (R)"
+  },
+  {
+   "k_ticker": "KXMISENATE-26-AELS",
+   "p_market_id": "630805",
+   "verdict": "different",
+   "note": "Polymarket asks whether the party wins; Kalshi whether this candidate wins",
+   "k_text": "Who will win the 2026 Michigan Senate race? Abdul El-Sayed",
+   "p_text": "Will the Democrats win the Michigan Senate race in 2026? Abdul El-Sayed (D)"
+  },
+  {
+   "k_ticker": "KXGAMEAWARDS-2026-GTA",
+   "p_market_id": "3344896",
+   "verdict": "same",
+   "note": "",
+   "k_text": "2026 Game of the Year? Grand Theft Auto VI",
+   "p_text": "Will Grand Theft Auto VI win Game of the Year at the 2026 Game Awards?"
+  },
+  {
+   "k_ticker": "KXNFLTD-26OCT12BUFLAR-BUFKCOLEMAN0-2",
+   "p_market_id": "5420397",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Keon Coleman: 2+ touchdowns",
+   "p_text": "Keon Coleman: 2+ Touchdowns"
+  },
+  {
+   "k_ticker": "KXTORONTOMAYOR-26OCT26-BBRA",
+   "p_market_id": "1812608",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Brad Bradford win the 2026 Toronto mayoral election?",
+   "p_text": "Will Brad Bradford win the 2026 Toronto mayoral election?"
+  },
+  {
+   "k_ticker": "KXCA11PERSON-26-SWIE",
+   "p_market_id": "2866200",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Who will win the CA-11 House election? Scott Wiener",
+   "p_text": "Will Scott Wiener win the CA-11 House seat?"
+  },
+  {
+   "k_ticker": "KXPRESNOMD-28-ESLO",
+   "p_market_id": "559699",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Elissa Slotkin be the Democratic Presidential nominee in 2028?",
+   "p_text": "Will Elissa Slotkin win the 2028 Democratic presidential nomination?"
+  },
+  {
+   "k_ticker": "KXTIME-26-DT",
+   "p_market_id": "2363842",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Donald Trump be Time Person of the Year in 2026?",
+   "p_text": "Will Donald Trump be TIME Person of the Year 2026?"
+  },
+  {
+   "k_ticker": "KXGAMEAWARDS-2026-RES",
+   "p_market_id": "3344897",
+   "verdict": "same",
+   "note": "",
+   "k_text": "2026 Game of the Year? Resident Evil Requiem",
+   "p_text": "Will Resident Evil Requiem win Game of the Year at the 2026 Game Awards?"
+  },
+  {
+   "k_ticker": "KXDANCINGWITHTHESTARS-26DEC31-AGLE",
+   "p_market_id": "2060103",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Amber Glenn win Dancing with the Stars Season 35?",
+   "p_text": "Will Amber Glenn win Dancing With the Stars: Season 35?"
+  },
+  {
+   "k_ticker": "KXTORONTOMAYOR-26OCT26-OCHO",
+   "p_market_id": "1812607",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Olivia Chow win the 2026 Toronto mayoral election?",
+   "p_text": "Will Olivia Chow win the 2026 Toronto mayoral election?"
+  },
+  {
+   "k_ticker": "KXARREST-27JAN-HCLIN",
+   "p_market_id": "2116871",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Hillary Clinton be arrested before Jan 2027?",
+   "p_text": "Will Hillary Clinton be arrested before 2027?"
+  },
+  {
+   "k_ticker": "KXPRESNOMD-28-AOC",
+   "p_market_id": "1981568",
+   "verdict": "different",
+   "note": "presidential nominee vs vice-presidential nominee",
+   "k_text": "Will Alexandria Ocasio-Cortez be the Democratic Presidential nominee in 2028?",
+   "p_text": "Will Alexandria Ocasio-Cortez be the 2028 Democratic Vice-Presidential nominee?"
+  },
+  {
+   "k_ticker": "KXARREST-27JAN-JBRE",
+   "p_market_id": "2116865",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will John Brennan be arrested before Jan 2027?",
+   "p_text": "Will John Brennan be arrested before 2027?"
+  },
+  {
+   "k_ticker": "KXPRESNOMD-28-JS",
+   "p_market_id": "1981570",
+   "verdict": "different",
+   "note": "presidential nominee vs vice-presidential nominee",
+   "k_text": "Will Josh Shapiro be the Democratic Presidential nominee in 2028?",
+   "p_text": "Will Josh Shapiro be the 2028 Democratic Vice-Presidential nominee?"
+  },
+  {
+   "k_ticker": "KXDANCINGWITHTHESTARS-26DEC31-JDEW",
+   "p_market_id": "2060101",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Jenna Dewan win Dancing with the Stars Season 35?",
+   "p_text": "Will Jenna Dewan win Dancing With the Stars: Season 35?"
+  },
+  {
+   "k_ticker": "KXPRESNOMD-28-GW",
+   "p_market_id": "1981574",
+   "verdict": "different",
+   "note": "presidential nominee vs vice-presidential nominee",
+   "k_text": "Will Gretchen Whitmer be the Democratic Presidential nominee in 2028?",
+   "p_text": "Will Gretchen Whitmer be the 2028 Democratic Vice-Presidential nominee?"
+  },
+  {
+   "k_ticker": "KXARREST-27JAN-THOM",
+   "p_market_id": "2116881",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Tom Homan be arrested before Jan 2027?",
+   "p_text": "Will Tom Homan be arrested before 2027?"
+  },
+  {
+   "k_ticker": "KXUFCMOV-26OCT13BULVIS-BULKOTKODQ",
+   "p_market_id": "4893621",
+   "verdict": "different",
+   "note": "KO/TKO/DQ vs KO/TKO (DQ differs)",
+   "k_text": "Ilias Bulaid wins by KO/TKO/DQ? Ilias Bulaid by KO/TKO/DQ",
+   "p_text": "Will Ilias Bulaid win by KO or TKO? Bulaid to win by KO/TKO?"
+  },
+  {
+   "k_ticker": "KXRNGOV-26OCT04-CADU",
+   "p_market_id": "5401325",
+   "verdict": "different",
+   "note": "election winner vs second-round (runoff) market",
+   "k_text": "Will Cadu de Lula win the 2026 Rio Grande do Norte gubernatorial election?",
+   "p_text": "Will Cadu de Lula win the 2026 Rio Grande do Norte gubernatorial second round? Cadu wins"
+  },
+  {
+   "k_ticker": "KXARREST-27JAN-JCLA",
+   "p_market_id": "2116867",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will James Clapper be arrested before Jan 2027?",
+   "p_text": "Will James Clapper be arrested before 2027?"
+  },
+  {
+   "k_ticker": "KXPRESNOMD-28-CMUR",
+   "p_market_id": "1981605",
+   "verdict": "different",
+   "note": "presidential nominee vs vice-presidential nominee",
+   "k_text": "Will Chris Murphy be the Democratic Presidential nominee in 2028?",
+   "p_text": "Will Chris Murphy be the 2028 Democratic Vice-Presidential nominee?"
+  },
+  {
+   "k_ticker": "KXALBUMRELEASE-26-TRA",
+   "p_market_id": "1686657",
+   "verdict": "same",
+   "note": "'new album' vs 'an album': wording differs, judged same proposition",
+   "k_text": "Will Travis Scott release a new album in 2026?",
+   "p_text": "Will Travis Scott release an album in 2026?"
+  },
+  {
+   "k_ticker": "KXMOTOGP-26-MAMA",
+   "p_market_id": "3958407",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Marc Marquez be the 2026 MotoGP World Champion?",
+   "p_text": "Will Marc Marquez win the 2026 MotoGP World Championship?"
+  },
+  {
+   "k_ticker": "KXTIME-26-POP",
+   "p_market_id": "2363843",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Pope Leo XIV be Time Person of the Year in 2026?",
+   "p_text": "Will Pope Leo XIV be TIME Person of the Year 2026?"
+  },
+  {
+   "k_ticker": "KXPRESNOMD-28-ZMAM",
+   "p_market_id": "1981586",
+   "verdict": "different",
+   "note": "presidential nominee vs vice-presidential nominee",
+   "k_text": "Will Zohran Mamdani be the Democratic Presidential nominee in 2028?",
+   "p_text": "Will Zohran Mamdani be the 2028 Democratic Vice-Presidential nominee?"
+  },
+  {
+   "k_ticker": "KXARREST-27JAN-SRIC",
+   "p_market_id": "2116874",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Susan Rice be arrested before Jan 2027?",
+   "p_text": "Will Susan Rice be arrested before 2027?"
+  },
+  {
+   "k_ticker": "KXAMAZONASGOV-26OCT04-MCAR",
+   "p_market_id": "5401204",
+   "verdict": "different",
+   "note": "election winner vs second-round (runoff) market",
+   "k_text": "Will Professora Maria do Carmo win the 2026 Amazonas gubernatorial election?",
+   "p_text": "Will Professora Maria do Carmo win the 2026 Amazonas gubernatorial second round? Maria do Carmo wins"
+  },
+  {
+   "k_ticker": "KXAFCA-27-VIE",
+   "p_market_id": "4411171",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Vietnam win the 2027 AFC Asian Cup?",
+   "p_text": "Will Vietnam win the 2027 AFC Asian Cup?"
+  },
+  {
+   "k_ticker": "KXDFBPOKAL-27-SCF",
+   "p_market_id": "3957653",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Freiburg win the 2026-27 DFB Pokal?",
+   "p_text": "Will SC Freiburg win the 2026-27 DFB-Pokal?"
+  },
+  {
+   "k_ticker": "KXMOTOGP-26-JOMA",
+   "p_market_id": "3958401",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Jorge Martin be the 2026 MotoGP World Champion?",
+   "p_text": "Will Jorge Martin win the 2026 MotoGP World Championship?"
+  },
+  {
+   "k_ticker": "KXPRESNOMD-28-GN",
+   "p_market_id": "1981567",
+   "verdict": "different",
+   "note": "presidential nominee vs vice-presidential nominee",
+   "k_text": "Will Gavin Newsom be the Democratic Presidential nominee in 2028?",
+   "p_text": "Will Gavin Newsom be the 2028 Democratic Vice-Presidential nominee?"
+  },
+  {
+   "k_ticker": "KXARREST-27JAN-AFAU",
+   "p_market_id": "2116864",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Anthony Fauci be arrested before Jan 2027?",
+   "p_text": "Will Anthony Fauci be arrested before 2027?"
+  },
+  {
+   "k_ticker": "KXTIME-26-ZOH",
+   "p_market_id": "2363844",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Zohran Mamdani be Time Person of the Year in 2026?",
+   "p_text": "Will Zohran Mamdani be TIME Person of the Year 2026?"
+  },
+  {
+   "k_ticker": "KXGAMEAWARDS-2026-CRI",
+   "p_market_id": "3344902",
+   "verdict": "same",
+   "note": "",
+   "k_text": "2026 Game of the Year? Crimson Desert",
+   "p_text": "Will Crimson Desert win Game of the Year at the 2026 Game Awards?"
+  },
+  {
+   "k_ticker": "KXARREST-27JAN-BCLIN",
+   "p_market_id": "2116872",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Bill Clinton be arrested before Jan 2027?",
+   "p_text": "Will Bill Clinton be arrested before 2027?"
+  },
+  {
+   "k_ticker": "KXDFBPOKAL-27-BVB",
+   "p_market_id": "3957647",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Dortmund win the 2026-27 DFB Pokal?",
+   "p_text": "Will Borussia Dortmund win the 2026-27 DFB-Pokal?"
+  },
+  {
+   "k_ticker": "KXARREST-27JAN-BJOH",
+   "p_market_id": "2116883",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Brandon Johnson be arrested before Jan 2027?",
+   "p_text": "Will Brandon Johnson be arrested before 2027?"
+  },
+  {
+   "k_ticker": "KXCA11PERSON-26-CCHA",
+   "p_market_id": "2866199",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Who will win the CA-11 House election? Connie Chan",
+   "p_text": "Will Connie Chan win the CA-11 House seat?"
+  },
+  {
+   "k_ticker": "KXMOTOGP-26-MABE",
+   "p_market_id": "3958403",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Marco Bezzecchi be the 2026 MotoGP World Champion?",
+   "p_text": "Will Marco Bezzecchi win the 2026 MotoGP World Championship?"
+  },
+  {
+   "k_ticker": "KXAFCA-27-BHR",
+   "p_market_id": "4411158",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Bahrain win the 2027 AFC Asian Cup?",
+   "p_text": "Will Bahrain win the 2027 AFC Asian Cup?"
+  },
+  {
+   "k_ticker": "KXDFBPOKAL-27-BMU",
+   "p_market_id": "3957646",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Bayern Munich win the 2026-27 DFB Pokal?",
+   "p_text": "Will Bayern Munich win the 2026-27 DFB-Pokal?"
+  },
+  {
+   "k_ticker": "KXPRESNOMD-28-JTAL",
+   "p_market_id": "1981608",
+   "verdict": "different",
+   "note": "presidential nominee vs vice-presidential nominee",
+   "k_text": "Will James Talarico be the Democratic Presidential nominee in 2028?",
+   "p_text": "Will James Talarico be the 2028 Democratic Vice-Presidential nominee?"
+  },
+  {
+   "k_ticker": "KXARREST-27JAN-KPAT",
+   "p_market_id": "2116882",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Kash Patel be arrested before Jan 2027?",
+   "p_text": "Will Kash Patel be arrested before 2027?"
+  },
+  {
+   "k_ticker": "KXDANCINGWITHTHESTARS-26DEC31-EFRE",
+   "p_market_id": "2060106",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Ezra Frech win Dancing with the Stars Season 35?",
+   "p_text": "Will Ezra Frech win Dancing With the Stars: Season 35?"
+  },
+  {
+   "k_ticker": "KXAFCA-27-CHN",
+   "p_market_id": "4411197",
+   "verdict": "different",
+   "note": "tournament winner vs group winner",
+   "k_text": "Will China PR win the 2027 AFC Asian Cup?",
+   "p_text": "Will China win Group C at the 2027 AFC Asian Cup?"
+  },
+  {
+   "k_ticker": "KXAFCA-27-JOR",
+   "p_market_id": "4411190",
+   "verdict": "different",
+   "note": "tournament winner vs group winner",
+   "k_text": "Will Jordan win the 2027 AFC Asian Cup?",
+   "p_text": "Will Jordan win Group B at the 2027 AFC Asian Cup?"
+  },
+  {
+   "k_ticker": "KXAFCA-27-JPN",
+   "p_market_id": "4411361",
+   "verdict": "different",
+   "note": "tournament winner vs group winner",
+   "k_text": "Will Japan win the 2027 AFC Asian Cup?",
+   "p_text": "Will Japan win Group F at the 2027 AFC Asian Cup?"
+  },
+  {
+   "k_ticker": "KXAFCCLGAME-26OCT13POHJOH-JOH",
+   "p_market_id": "5602604",
+   "verdict": "different",
+   "note": "match winner vs leading at halftime",
+   "k_text": "Johor Darul Ta'zim wins",
+   "p_text": "Johor Darul Ta'zim leading at halftime?"
+  },
+  {
+   "k_ticker": "KXALBUMRELEASE-26-FRA",
+   "p_market_id": "1013244",
+   "verdict": "same",
+   "note": "'new album' vs 'an album': wording differs, judged same proposition",
+   "k_text": "Will Frank Ocean release a new album in 2026?",
+   "p_text": "Will Frank Ocean release an album in 2026?"
+  },
+  {
+   "k_ticker": "KXALBUMRELEASE-26-JAY",
+   "p_market_id": "1438611",
+   "verdict": "same",
+   "note": "'new album' vs 'an album': wording differs, judged same proposition",
+   "k_text": "Will Jay-Z release a new album in 2026?",
+   "p_text": "Will Jay Z release an album in 2026?"
+  },
+  {
+   "k_ticker": "KXALBUMRELEASE-26-JUS",
+   "p_market_id": "1013242",
+   "verdict": "same",
+   "note": "'new album' vs 'an album': wording differs, judged same proposition",
+   "k_text": "Will Justin Bieber release a new album in 2026?",
+   "p_text": "Will Justin Bieber release an album in 2026?"
+  },
+  {
+   "k_ticker": "KXALBUMRELEASE-26-KEN",
+   "p_market_id": "1013248",
+   "verdict": "same",
+   "note": "'new album' vs 'an album': wording differs, judged same proposition",
+   "k_text": "Will Kendrick Lamar release a new album in 2026?",
+   "p_text": "Will Kendrick Lamar release an album in 2026?"
+  },
+  {
+   "k_ticker": "KXALBUMRELEASE-26-LAN",
+   "p_market_id": "1013246",
+   "verdict": "same",
+   "note": "'new album' vs 'an album': wording differs, judged same proposition",
+   "k_text": "Will Lana Del Rey release a new album in 2026?",
+   "p_text": "Will Lana Del Rey release an album in 2026?"
+  },
+  {
+   "k_ticker": "KXALBUMRELEASE-26-PLA",
+   "p_market_id": "1013240",
+   "verdict": "same",
+   "note": "'new album' vs 'an album': wording differs, judged same proposition",
+   "k_text": "Will Playboi Carti release a new album in 2026?",
+   "p_text": "Will Playboi Carti release an album in 2026?"
+  },
+  {
+   "k_ticker": "KXARREST-27JAN-ASCH",
+   "p_market_id": "2116869",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Adam Schiff be arrested before Jan 2027?",
+   "p_text": "Will Adam Schiff be arrested before 2027?"
+  },
+  {
+   "k_ticker": "KXARREST-27JAN-BNET",
+   "p_market_id": "2116877",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Benjamin Netanyahu be arrested before Jan 2027?",
+   "p_text": "Will Benjamin Netanyahu be arrested before 2027?"
+  },
+  {
+   "k_ticker": "KXARREST-27JAN-BOM",
+   "p_market_id": "2116879",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Barack Obama be arrested before Jan 2027?",
+   "p_text": "Will Barack Obama be arrested before 2027?"
+  },
+  {
+   "k_ticker": "KXARREST-27JAN-COWE",
+   "p_market_id": "2116875",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Candace Owens be arrested before Jan 2027?",
+   "p_text": "Will Candace Owens be arrested before 2027?"
+  },
+  {
+   "k_ticker": "KXARREST-27JAN-GNEW",
+   "p_market_id": "2116876",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Gavin Newsom be arrested before Jan 2027?",
+   "p_text": "Will Gavin Newsom be arrested before 2027?"
+  },
+  {
+   "k_ticker": "KXARREST-27JAN-JBID",
+   "p_market_id": "2116886",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Joe Biden be arrested before Jan 2027?",
+   "p_text": "Will Joe Biden be arrested before 2027?"
+  },
+  {
+   "k_ticker": "KXARREST-27JAN-JKER",
+   "p_market_id": "2116878",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will John Kerry be arrested before Jan 2027?",
+   "p_text": "Will John Kerry be arrested before 2027?"
+  },
+  {
+   "k_ticker": "KXARREST-27JAN-JZAP",
+   "p_market_id": "2116868",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will José Luis Rodríguez Zapatero be arrested before Jan 2027?",
+   "p_text": "Will José Luis Rodríguez Zapatero be arrested before 2027?"
+  },
+  {
+   "k_ticker": "KXARREST-27JAN-LCOO",
+   "p_market_id": "2116884",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Lisa Cook be arrested before Jan 2027?",
+   "p_text": "Will Lisa Cook be arrested before 2027?"
+  },
+  {
+   "k_ticker": "KXARREST-27JAN-LJAE",
+   "p_market_id": "665363",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Lee Jae Myung be arrested before Jan 2027?",
+   "p_text": "Lee Jae-myung arrested before 2027?"
+  },
+  {
+   "k_ticker": "KXARREST-27JAN-LJAM",
+   "p_market_id": "2116870",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Letitia James be arrested before Jan 2027?",
+   "p_text": "Will Letitia James be arrested before 2027?"
+  },
+  {
+   "k_ticker": "KXARREST-27JAN-LLYN",
+   "p_market_id": "2116873",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Loretta Lynch be arrested before Jan 2027?",
+   "p_text": "Will Loretta Lynch be arrested before 2027?"
+  },
+  {
+   "k_ticker": "KXARREST-27JAN-PBON",
+   "p_market_id": "2116880",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Pam Bondi be arrested before Jan 2027?",
+   "p_text": "Will Pam Bondi be arrested before 2027?"
+  },
+  {
+   "k_ticker": "KXCOPADOBRASIL-26-PAL",
+   "p_market_id": "3957746",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Palmeiras win the 2026 Copa do Brasil?",
+   "p_text": "Will Palmeiras win the 2026 Copa do Brasil?"
+  },
+  {
+   "k_ticker": "KXDANCINGWITHTHESTARS-26DEC31-CWOO",
+   "p_market_id": "2060107",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Connor Wood win Dancing with the Stars Season 35?",
+   "p_text": "Will Connor Wood win Dancing With the Stars: Season 35?"
+  },
+  {
+   "k_ticker": "KXDANCINGWITHTHESTARS-26DEC31-GROD",
+   "p_market_id": "2060108",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Guillermo Rodriguez win Dancing with the Stars Season 35?",
+   "p_text": "Will Guillermo Rodriguez win Dancing With the Stars: Season 35?"
+  },
+  {
+   "k_ticker": "KXDANCINGWITHTHESTARS-26DEC31-HSHU",
+   "p_market_id": "2060104",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Harry Shum Jr. win Dancing with the Stars Season 35?",
+   "p_text": "Will Harry Shum Jr. win Dancing With the Stars: Season 35?"
+  },
+  {
+   "k_ticker": "KXDANCINGWITHTHESTARS-26DEC31-JOLS",
+   "p_market_id": "2060102",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Jackson Olson win Dancing with the Stars Season 35?",
+   "p_text": "Will Jackson Olson win Dancing With the Stars: Season 35?"
+  },
+  {
+   "k_ticker": "KXDFBPOKAL-27-LEV",
+   "p_market_id": "3957648",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Leverkusen win the 2026-27 DFB Pokal?",
+   "p_text": "Will Bayer Leverkusen win the 2026-27 DFB-Pokal?"
+  },
+  {
+   "k_ticker": "KXDFBPOKAL-27-RBL",
+   "p_market_id": "3957649",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Leipzig win the 2026-27 DFB Pokal?",
+   "p_text": "Will RB Leipzig win the 2026-27 DFB-Pokal?"
+  },
+  {
+   "k_ticker": "KXDFBPOKAL-27-SGE",
+   "p_market_id": "3957650",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Frankfurt win the 2026-27 DFB Pokal?",
+   "p_text": "Will Eintracht Frankfurt win the 2026-27 DFB-Pokal?"
+  },
+  {
+   "k_ticker": "KXDFBPOKAL-27-TSG",
+   "p_market_id": "3957652",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Hoffenheim win the 2026-27 DFB Pokal?",
+   "p_text": "Will TSG Hoffenheim win the 2026-27 DFB-Pokal?"
+  },
+  {
+   "k_ticker": "KXDFBPOKAL-27-VFB",
+   "p_market_id": "3957651",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Stuttgart win the 2026-27 DFB Pokal?",
+   "p_text": "Will VfB Stuttgart win the 2026-27 DFB-Pokal?"
+  },
+  {
+   "k_ticker": "KXEERSTEDIVGAME-26OCT16VENAZ-AZ",
+   "p_market_id": "5572460",
+   "verdict": "different",
+   "note": "match winner vs leading at halftime",
+   "k_text": "Jong AZ Alkmaar wins",
+   "p_text": "Jong AZ Alkmaar leading at halftime?"
+  },
+  {
+   "k_ticker": "KXEPLLAST-27-MUN",
+   "p_market_id": "3957465",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Manchester United finish in last place in the EPL 2026-27 season?",
+   "p_text": "Will Manchester United finish in last place in the 2026-27 English Premier League season?"
+  },
+  {
+   "k_ticker": "KXGAMEAWARDS-2026-CON",
+   "p_market_id": "3344906",
+   "verdict": "same",
+   "note": "",
+   "k_text": "2026 Game of the Year? Control Resonant",
+   "p_text": "Will Control Resonant win Game of the Year at the 2026 Game Awards?"
+  },
+  {
+   "k_ticker": "KXGAMEAWARDS-BIG-CAI",
+   "p_market_id": "3357530",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Cairn win the 2026 Game Award for Best Independent Game?",
+   "p_text": "Will Cairn win Best Independent Game at the 2026 Game Awards?"
+  },
+  {
+   "k_ticker": "KXGAMEAWARDS-BIG-EST",
+   "p_market_id": "3357532",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Esoteric Ebb win the 2026 Game Award for Best Independent Game?",
+   "p_text": "Will Esoteric Ebb win Best Independent Game at the 2026 Game Awards?"
+  },
+  {
+   "k_ticker": "KXGAMEAWARDS-BMUL-GEA",
+   "p_market_id": "3357350",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Gears of War: E-Day win the 2026 Game Award for Best Multiplayer?",
+   "p_text": "Will Gears of War: E-Day win Best Multiplayer at the 2026 Game Awards?"
+  },
+  {
+   "k_ticker": "KXGAMEAWARDSBGD-2026-GTA6",
+   "p_market_id": "3357391",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Grand Theft Auto VI win the 2026 Game Award for Best Game Direction?",
+   "p_text": "Will Grand Theft Auto VI win Best Game Direction at the 2026 Game Awards?"
+  },
+  {
+   "k_ticker": "KXGAMEAWARDSBGD-2026-MAR",
+   "p_market_id": "3357394",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Marvel's Wolverine win the 2026 Game Award for Best Game Direction?",
+   "p_text": "Will Marvel's Wolverine win Best Game Direction at the 2026 Game Awards?"
+  },
+  {
+   "k_ticker": "KXIPO-26-AINTUITION",
+   "p_market_id": "676797",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Who will IPO before 2027? Applied Intuition",
+   "p_text": "Applied Intuition IPO before 2027?"
+  },
+  {
+   "k_ticker": "KXIPO-26-ANYSPHERE",
+   "p_market_id": "676788",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Who will IPO before 2027? Anysphere (Cursor)",
+   "p_text": "Anysphere (Cursor) IPO before 2027?"
+  },
+  {
+   "k_ticker": "KXIPO-26-MISTRAL",
+   "p_market_id": "676790",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Who will IPO before 2027? Mistral AI",
+   "p_text": "Mistral AI IPO before 2027?"
+  },
+  {
+   "k_ticker": "KXIPO-26-RIPPLE",
+   "p_market_id": "676779",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Who will IPO before 2027? Ripple Labs",
+   "p_text": "Ripple Labs IPO before 2027?"
+  },
+  {
+   "k_ticker": "KXLIGAEXPGAME-26OCT16CLUTLA-CLU",
+   "p_market_id": "5586020",
+   "verdict": "different",
+   "note": "match winner vs leading at halftime",
+   "k_text": "Club Atletico La Paz wins",
+   "p_text": "Club Atletico La Paz leading at halftime?"
+  },
+  {
+   "k_ticker": "KXLIGAEXPGAME-26OCT17CAHMZA-CAH",
+   "p_market_id": "5533573",
+   "verdict": "different",
+   "note": "match winner vs leading at halftime",
+   "k_text": "Cruz Azul Hidalgo wins",
+   "p_text": "Cruz Azul Hidalgo leading at halftime?"
+  },
+  {
+   "k_ticker": "KXLOUISVILLEMAYOR-26-CGRE",
+   "p_market_id": "2694978",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Who will win the 2026 Louisville, KY mayoral election? Craig Greenberg",
+   "p_text": "Will Craig Greenberg win the 2026 Louisville mayoral election?"
+  },
+  {
+   "k_ticker": "KXLOUISVILLEMAYOR-26-SPAR",
+   "p_market_id": "2694979",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Who will win the 2026 Louisville, KY mayoral election? Shameka Parrish-Wright",
+   "p_text": "Will Shameka Parrish-Wright win the 2026 Louisville mayoral election?"
+  },
+  {
+   "k_ticker": "KXMLBGG-26NLSS-OLOPEZ6",
+   "p_market_id": "5155128",
+   "verdict": "different",
+   "note": "Gold Glove at shortstop vs any NL Gold Glove",
+   "k_text": "Will Otto Lopez win the NL Gold Glove for Shortstop in the 2026 season?",
+   "p_text": "Will Otto Lopez win a 2026 NL Gold Glove Award?"
+  },
+  {
+   "k_ticker": "KXNFLTD-26OCT12BUFLAR-BUFDKNOX88-2",
+   "p_market_id": "5444176",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Dawson Knox: 2+ touchdowns",
+   "p_text": "Dawson Knox: 2+ Touchdowns"
+  },
+  {
+   "k_ticker": "KXOTTAWAMAYOR-26OCT26-ALAW",
+   "p_market_id": "1822576",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Alex Lawson win the 2026 Ottawa mayoral election?",
+   "p_text": "Will Alex Lawson win the 2026 Ottawa mayoral election?"
+  },
+  {
+   "k_ticker": "KXOTTAWAMAYOR-26OCT26-CMCK",
+   "p_market_id": "1822580",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Catherine McKenney win the 2026 Ottawa mayoral election?",
+   "p_text": "Will Catherine McKenney win the 2026 Ottawa mayoral election?"
+  },
+  {
+   "k_ticker": "KXOTTAWAMAYOR-26OCT26-JLEI",
+   "p_market_id": "1822578",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Jeff Leiper win the 2026 Ottawa mayoral election?",
+   "p_text": "Will Jeff Leiper win the 2026 Ottawa mayoral election?"
+  },
+  {
+   "k_ticker": "KXOTTAWAMAYOR-26OCT26-MSUT",
+   "p_market_id": "1822574",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Mark Sutcliffe win the 2026 Ottawa mayoral election?",
+   "p_text": "Will Mark Sutcliffe win the 2026 Ottawa mayoral election?"
+  },
+  {
+   "k_ticker": "KXPRESNOMD-28-AB",
+   "p_market_id": "1981575",
+   "verdict": "different",
+   "note": "presidential nominee vs vice-presidential nominee",
+   "k_text": "Will Andy Beshear be the Democratic Presidential nominee in 2028?",
+   "p_text": "Will Andy Beshear be the 2028 Democratic Vice-Presidential nominee?"
+  },
+  {
+   "k_ticker": "KXPRESNOMD-28-BOBA",
+   "p_market_id": "1981591",
+   "verdict": "different",
+   "note": "presidential nominee vs vice-presidential nominee",
+   "k_text": "Will Barack Obama be the Democratic Presidential nominee in 2028?",
+   "p_text": "Will Barack Obama be the 2028 Democratic Vice-Presidential nominee?"
+  },
+  {
+   "k_ticker": "KXPRESNOMD-28-BS",
+   "p_market_id": "1981594",
+   "verdict": "different",
+   "note": "presidential nominee vs vice-presidential nominee",
+   "k_text": "Will Bernie Sanders be the Democratic Presidential nominee in 2028?",
+   "p_text": "Will Bernie Sanders be the 2028 Democratic Vice-Presidential nominee?"
+  },
+  {
+   "k_ticker": "KXPRESNOMD-28-CBOO",
+   "p_market_id": "1981580",
+   "verdict": "different",
+   "note": "presidential nominee vs vice-presidential nominee",
+   "k_text": "Will Cory Booker be the Democratic Presidential nominee in 2028?",
+   "p_text": "Will Cory Booker be the 2028 Democratic Vice-Presidential nominee?"
+  },
+  {
+   "k_ticker": "KXPRESNOMD-28-HBID",
+   "p_market_id": "1981597",
+   "verdict": "different",
+   "note": "presidential nominee vs vice-presidential nominee",
+   "k_text": "Will Hunter Biden be the Democratic Presidential nominee in 2028?",
+   "p_text": "Will Hunter Biden be the 2028 Democratic Vice-Presidential nominee?"
+  },
+  {
+   "k_ticker": "KXPRESNOMD-28-HCLI",
+   "p_market_id": "1981592",
+   "verdict": "different",
+   "note": "presidential nominee vs vice-presidential nominee",
+   "k_text": "Will Hilary Clinton be the Democratic Presidential nominee in 2028? Hillary Clinton",
+   "p_text": "Will Hillary Clinton be the 2028 Democratic Vice-Presidential nominee?"
+  },
+  {
+   "k_ticker": "KXPRESNOMD-28-JBP",
+   "p_market_id": "1981578",
+   "verdict": "different",
+   "note": "presidential nominee vs vice-presidential nominee",
+   "k_text": "Will J.B. Pritzker be the Democratic Presidential nominee in 2028?",
+   "p_text": "Will J.B. Pritzker be the 2028 Democratic Vice-Presidential nominee?"
+  },
+  {
+   "k_ticker": "KXPRESNOMD-28-JF",
+   "p_market_id": "1981588",
+   "verdict": "different",
+   "note": "presidential nominee vs vice-presidential nominee",
+   "k_text": "Will John Fetterman be the Democratic Presidential nominee in 2028?",
+   "p_text": "Will John Fetterman be the 2028 Democratic Vice-Presidential nominee?"
+  },
+  {
+   "k_ticker": "KXPRESNOMD-28-JOSS",
+   "p_market_id": "1981576",
+   "verdict": "different",
+   "note": "presidential nominee vs vice-presidential nominee",
+   "k_text": "Will Jon Ossoff be the Democratic Presidential nominee in 2028?",
+   "p_text": "Will Jon Ossoff be the 2028 Democratic Vice-Presidential nominee?"
+  },
+  {
+   "k_ticker": "KXPRESNOMD-28-JSTE",
+   "p_market_id": "1981590",
+   "verdict": "different",
+   "note": "presidential nominee vs vice-presidential nominee",
+   "k_text": "Will Jon Stewart be the Democratic Presidential nominee in 2028?",
+   "p_text": "Will Jon Stewart be the 2028 Democratic Vice-Presidential nominee?"
+  },
+  {
+   "k_ticker": "KXPRESNOMD-28-KH",
+   "p_market_id": "1981573",
+   "verdict": "different",
+   "note": "presidential nominee vs vice-presidential nominee",
+   "k_text": "Will Kamala Harris be the Democratic Presidential nominee in 2028?",
+   "p_text": "Will Kamala Harris be the 2028 Democratic Vice-Presidential nominee?"
+  },
+  {
+   "k_ticker": "KXPRESNOMD-28-MC",
+   "p_market_id": "1981577",
+   "verdict": "different",
+   "note": "presidential nominee vs vice-presidential nominee",
+   "k_text": "Will Mark Cuban be the Democratic Presidential nominee in 2028?",
+   "p_text": "Will Mark Cuban be the 2028 Democratic Vice-Presidential nominee?"
+  },
+  {
+   "k_ticker": "KXPRESNOMD-28-MK",
+   "p_market_id": "1981583",
+   "verdict": "different",
+   "note": "presidential nominee vs vice-presidential nominee",
+   "k_text": "Will Mark Kelly be the Democratic Presidential nominee in 2028?",
+   "p_text": "Will Mark Kelly be the 2028 Democratic Vice-Presidential nominee?"
+  },
+  {
+   "k_ticker": "KXPRESNOMD-28-MO",
+   "p_market_id": "1981582",
+   "verdict": "different",
+   "note": "presidential nominee vs vice-presidential nominee",
+   "k_text": "Will Michelle Obama be the Democratic Presidential nominee in 2028?",
+   "p_text": "Will Michelle Obama be the 2028 Democratic Vice-Presidential nominee?"
+  },
+  {
+   "k_ticker": "KXPRESNOMD-28-PB",
+   "p_market_id": "1981569",
+   "verdict": "different",
+   "note": "presidential nominee vs vice-presidential nominee",
+   "k_text": "Will Pete Buttigieg be the Democratic Presidential nominee in 2028?",
+   "p_text": "Will Pete Buttigieg be the 2028 Democratic Vice-Presidential nominee?"
+  },
+  {
+   "k_ticker": "KXPRESNOMD-28-RC",
+   "p_market_id": "1981587",
+   "verdict": "different",
+   "note": "presidential nominee vs vice-presidential nominee",
+   "k_text": "Will Roy Cooper be the Democratic Presidential nominee in 2028?",
+   "p_text": "Will Roy Cooper be the 2028 Democratic Vice-Presidential nominee?"
+  },
+  {
+   "k_ticker": "KXPRESNOMD-28-REMA",
+   "p_market_id": "1981584",
+   "verdict": "different",
+   "note": "presidential nominee vs vice-presidential nominee",
+   "k_text": "Will Rahm Emanuel be the Democratic Presidential nominee in 2028?",
+   "p_text": "Will Rahm Emanuel be the 2028 Democratic Vice-Presidential nominee?"
+  },
+  {
+   "k_ticker": "KXPRESNOMD-28-RGAL",
+   "p_market_id": "1981606",
+   "verdict": "different",
+   "note": "presidential nominee vs vice-presidential nominee",
+   "k_text": "Will Ruben Gallego be the Democratic Presidential nominee in 2028?",
+   "p_text": "Will Ruben Gallego be the 2028 Democratic Vice-Presidential nominee?"
+  },
+  {
+   "k_ticker": "KXPRESNOMD-28-RKHA",
+   "p_market_id": "1981607",
+   "verdict": "different",
+   "note": "presidential nominee vs vice-presidential nominee",
+   "k_text": "Will Ro Khanna be the Democratic Presidential nominee in 2028?",
+   "p_text": "Will Ro Khanna be the 2028 Democratic Vice-Presidential nominee?"
+  },
+  {
+   "k_ticker": "KXPRESNOMD-28-RW",
+   "p_market_id": "1981579",
+   "verdict": "different",
+   "note": "presidential nominee vs vice-presidential nominee",
+   "k_text": "Will Raphael Warnock be the Democratic Presidential nominee in 2028?",
+   "p_text": "Will Raphael Warnock be the 2028 Democratic Vice-Presidential nominee?"
+  },
+  {
+   "k_ticker": "KXPRESNOMD-28-SAS",
+   "p_market_id": "1981572",
+   "verdict": "different",
+   "note": "presidential nominee vs vice-presidential nominee",
+   "k_text": "Will Stephen A. Smith be the Democratic Presidential nominee in 2028?",
+   "p_text": "Will Stephen A. Smith be the 2028 Democratic Vice-Presidential nominee?"
+  },
+  {
+   "k_ticker": "KXPRESNOMD-28-TW",
+   "p_market_id": "1981581",
+   "verdict": "different",
+   "note": "presidential nominee vs vice-presidential nominee",
+   "k_text": "Will Tim Walz be the Democratic Presidential nominee in 2028?",
+   "p_text": "Will Tim Walz be the 2028 Democratic Vice-Presidential nominee?"
+  },
+  {
+   "k_ticker": "KXPRESNOMD-28-WM",
+   "p_market_id": "1981571",
+   "verdict": "different",
+   "note": "presidential nominee vs vice-presidential nominee",
+   "k_text": "Will Wes Moore be the Democratic Presidential nominee in 2028?",
+   "p_text": "Will Wes Moore be the 2028 Democratic Vice-Presidential nominee?"
+  },
+  {
+   "k_ticker": "KXRENOMAYOR-26-KMAR",
+   "p_market_id": "2695044",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Who will win the 2026 Reno, Nevada mayoral election? Kate Marshall",
+   "p_text": "Will Kate Marshall win the 2026 Reno mayoral election?"
+  },
+  {
+   "k_ticker": "KXRENOMAYOR-26-KTAY",
+   "p_market_id": "2695045",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Who will win the 2026 Reno, Nevada mayoral election? Kathleen Taylor",
+   "p_text": "Will Kathleen Taylor win the 2026 Reno mayoral election?"
+  },
+  {
+   "k_ticker": "KXSCOURT-29-AC",
+   "p_market_id": "2674177",
+   "verdict": "different",
+   "note": "becomes a Justice vs is the next nominee",
+   "k_text": "Will Aileen Cannon become the next Justice on the Supreme Court?",
+   "p_text": "Will Aileen Cannon be the next Supreme Court nominee?"
+  },
+  {
+   "k_ticker": "KXSCOURT-29-AO",
+   "p_market_id": "2674176",
+   "verdict": "different",
+   "note": "becomes a Justice vs is the next nominee",
+   "k_text": "Will Andrew Oldham become the next Justice on the Supreme Court?",
+   "p_text": "Will Andrew Oldham be the next Supreme Court nominee?"
+  },
+  {
+   "k_ticker": "KXSCOURT-29-GGK",
+   "p_market_id": "2674180",
+   "verdict": "different",
+   "note": "becomes a Justice vs is the next nominee",
+   "k_text": "Will Gregory G. Katsas become the next Justice on the Supreme Court?",
+   "p_text": "Will Gregory Katsas be the next Supreme Court nominee?"
+  },
+  {
+   "k_ticker": "KXSCOURT-29-JH",
+   "p_market_id": "2674178",
+   "verdict": "different",
+   "note": "becomes a Justice vs is the next nominee",
+   "k_text": "Will James Ho become the next Justice on the Supreme Court?",
+   "p_text": "Will James Ho be the next Supreme Court nominee?"
+  },
+  {
+   "k_ticker": "KXSCOURT-29-JSAU",
+   "p_market_id": "2674173",
+   "verdict": "different",
+   "note": "becomes a Justice vs is the next nominee",
+   "k_text": "Will D. John Sauer become the next Justice on the Supreme Court?",
+   "p_text": "Will John Sauer be the next Supreme Court nominee?"
+  },
+  {
+   "k_ticker": "KXSCOURT-29-ML",
+   "p_market_id": "2674174",
+   "verdict": "different",
+   "note": "becomes a Justice vs is the next nominee",
+   "k_text": "Will Mike Lee become the next Justice on the Supreme Court?",
+   "p_text": "Will Mike Lee be the next Supreme Court nominee?"
+  },
+  {
+   "k_ticker": "KXSCOURT-29-NR",
+   "p_market_id": "2674179",
+   "verdict": "different",
+   "note": "becomes a Justice vs is the next nominee",
+   "k_text": "Will Neomi Rao become the next Justice on the Supreme Court?",
+   "p_text": "Will Neomi Rao be the next Supreme Court nominee?"
+  },
+  {
+   "k_ticker": "KXSCOURT-29-PB",
+   "p_market_id": "2674181",
+   "verdict": "different",
+   "note": "becomes a Justice vs is the next nominee",
+   "k_text": "Will Patrick Bumatay become the next Justice on the Supreme Court?",
+   "p_text": "Will Patrick Bumatay be the next Supreme Court nominee?"
+  },
+  {
+   "k_ticker": "KXSCOURT-29-TED",
+   "p_market_id": "2674175",
+   "verdict": "different",
+   "note": "becomes a Justice vs is the next nominee",
+   "k_text": "Will Ted Cruz become the next Justice on the Supreme Court?",
+   "p_text": "Will Ted Cruz be the next Supreme Court nominee?"
+  },
+  {
+   "k_ticker": "KXSEXYMAN-26-BAD",
+   "p_market_id": "1367022",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Who will be People's Sexiest Man Alive in 2026? Bad Bunny",
+   "p_text": "Will Bad Bunny be named People's Sexiest Man Alive in 2026?"
+  },
+  {
+   "k_ticker": "KXSEXYMAN-26-NOA",
+   "p_market_id": "1367030",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Who will be People's Sexiest Man Alive in 2026? Noah Wyle",
+   "p_text": "Will Noah Wyle be named People's Sexiest Man Alive in 2026?"
+  },
+  {
+   "k_ticker": "KXTIME-26-ALE",
+   "p_market_id": "5262639",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Alexandria Ocasio-Cortez be Time Person of the Year in 2026?",
+   "p_text": "Will Alexandria Ocasio-Cortez be TIME Person of the Year 2026?"
+  },
+  {
+   "k_ticker": "KXTIME-26-BER",
+   "p_market_id": "5262635",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Bernie Sanders be Time Person of the Year in 2026?",
+   "p_text": "Will Bernie Sanders be TIME Person of the Year 2026?"
+  },
+  {
+   "k_ticker": "KXTIME-26-CHR",
+   "p_market_id": "2363846",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Christina Koch be Time Person of the Year in 2026?",
+   "p_text": "Will Christina Koch be TIME Person of the Year 2026?"
+  },
+  {
+   "k_ticker": "KXTIME-26-DAR",
+   "p_market_id": "2363832",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Dario Amodei be Time Person of the Year in 2026?",
+   "p_text": "Will Dario Amodei be TIME Person of the Year 2026?"
+  },
+  {
+   "k_ticker": "KXTIME-26-GPT",
+   "p_market_id": "2363835",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will ChatGPT be Time Person of the Year in 2026?",
+   "p_text": "Will ChatGPT be TIME Person of the Year 2026?"
+  },
+  {
+   "k_ticker": "KXTIME-26-JAM",
+   "p_market_id": "2363845",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will James Talarico be Time Person of the Year in 2026?",
+   "p_text": "Will James Talarico be TIME Person of the Year 2026?"
+  },
+  {
+   "k_ticker": "KXTIME-26-JP",
+   "p_market_id": "2363831",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Jerome Powell be Time Person of the Year in 2026?",
+   "p_text": "Will Jerome Powell be TIME Person of the Year 2026?"
+  },
+  {
+   "k_ticker": "KXTIME-26-MARK",
+   "p_market_id": "4798151",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Mark Carney be Time Person of the Year in 2026?",
+   "p_text": "Will Mark Carney be TIME Person of the Year 2026?"
+  },
+  {
+   "k_ticker": "KXTIME-26-MAR",
+   "p_market_id": "2363838",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Marco Rubio be Time Person of the Year in 2026?",
+   "p_text": "Will Marco Rubio be TIME Person of the Year 2026?"
+  },
+  {
+   "k_ticker": "KXTIME-26-MOH",
+   "p_market_id": "2363840",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Mohammad-Bagher Ghalibaf be Time Person of the Year in 2026?",
+   "p_text": "Will Mohammad-Bagher Ghalibaf be TIME Person of the Year 2026?"
+  },
+  {
+   "k_ticker": "KXTIME-26-MOJ",
+   "p_market_id": "4798150",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Mojtaba Khamenei be Time Person of the Year in 2026?",
+   "p_text": "Will Mojtaba Khamenei be TIME Person of the Year 2026?"
+  },
+  {
+   "k_ticker": "KXTIME-26-PET",
+   "p_market_id": "2363841",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Péter Magyar be Time Person of the Year in 2026?",
+   "p_text": "Will Péter Magyar be TIME Person of the Year 2026?"
+  },
+  {
+   "k_ticker": "KXTIME-26-REI",
+   "p_market_id": "2363833",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Reid Wiseman be Time Person of the Year in 2026?",
+   "p_text": "Will Reid Wiseman be TIME Person of the Year 2026?"
+  },
+  {
+   "k_ticker": "KXTIME-26-SA",
+   "p_market_id": "2363836",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Sam Altman be Time Person of the Year in 2026?",
+   "p_text": "Will Sam Altman be TIME Person of the Year 2026?"
+  },
+  {
+   "k_ticker": "KXTIME-26-SHE",
+   "p_market_id": "2363834",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Shehbaz Sharif be Time Person of the Year in 2026?",
+   "p_text": "Will Shehbaz Sharif be TIME Person of the Year 2026?"
+  },
+  {
+   "k_ticker": "KXTIME-26-TS",
+   "p_market_id": "2363837",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Taylor Swift be Time Person of the Year in 2026?",
+   "p_text": "Will Taylor Swift be TIME Person of the Year 2026?"
+  },
+  {
+   "k_ticker": "KXTIME-26-VIC",
+   "p_market_id": "2363839",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Victor Glover be Time Person of the Year in 2026?",
+   "p_text": "Will Victor Glover be TIME Person of the Year 2026?"
+  },
+  {
+   "k_ticker": "KXTRUMPREMOVE",
+   "p_market_id": "1643703",
+   "verdict": "different",
+   "note": "impeached and removed vs impeached",
+   "k_text": "Will Trump be impeached and removed from office? Before his term ends",
+   "p_text": "Will Trump be impeached before his term ends?"
+  },
+  {
+   "k_ticker": "KXUFCLHEAVYWEIGHTTITLE-26-CULB",
+   "p_market_id": "1090072",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Who will be the Light Heavyweight Title on Dec 31, 2026? Carlos Ulberg",
+   "p_text": "Will Carlos Ulberg be the UFC Light Heavyweight Champion on December 31, 2026?"
+  },
+  {
+   "k_ticker": "KXUFCLHEAVYWEIGHTTITLE-26-MANK",
+   "p_market_id": "1090071",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Who will be the Light Heavyweight Title on Dec 31, 2026? Magomed Ankalaev",
+   "p_text": "Will Magomed Ankalaev be the UFC Light Heavyweight Champion on December 31, 2026?"
+  },
+  {
+   "k_ticker": "KXUSLGAME-26OCT17LASLEX-LAS",
+   "p_market_id": "5574570",
+   "verdict": "different",
+   "note": "match winner vs leading at halftime",
+   "k_text": "Las Vegas Lights wins",
+   "p_text": "Las Vegas Lights leading at halftime?"
+  },
+  {
+   "k_ticker": "KXUSLGAME-26OCT17SANNEW-NEW",
+   "p_market_id": "5574388",
+   "verdict": "different",
+   "note": "match winner vs leading at halftime",
+   "k_text": "New Mexico United wins",
+   "p_text": "New Mexico United leading at halftime?"
+  },
+  {
+   "k_ticker": "KXUSLGAME-26OCT17TULOAK-OAK",
+   "p_market_id": "5574342",
+   "verdict": "different",
+   "note": "match winner vs leading at halftime",
+   "k_text": "Oakland Roots SC wins",
+   "p_text": "Oakland Roots SC leading at halftime?"
+  },
+  {
+   "k_ticker": "KXWCW-27-DEN",
+   "p_market_id": "4411456",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Denmark win the 2027 FIFA Women's World Cup?",
+   "p_text": "Will Denmark win the 2027 FIFA Women's World Cup?"
+  },
+  {
+   "k_ticker": "KXWCW-27-ESP",
+   "p_market_id": "4411433",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Spain win the 2027 FIFA Women's World Cup?",
+   "p_text": "Will Spain win the 2027 FIFA Women's World Cup?"
+  },
+  {
+   "k_ticker": "KXWCW-27-JPN",
+   "p_market_id": "4411442",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Japan win the 2027 FIFA Women's World Cup?",
+   "p_text": "Will Japan win the 2027 FIFA Women's World Cup?"
+  },
+  {
+   "k_ticker": "KXWCW-27-NOR",
+   "p_market_id": "4411454",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Norway win the 2027 FIFA Women's World Cup?",
+   "p_text": "Will Norway win the 2027 FIFA Women's World Cup?"
+  },
+  {
+   "k_ticker": "KXWCW-27-SWE",
+   "p_market_id": "4411446",
+   "verdict": "same",
+   "note": "",
+   "k_text": "Will Sweden win the 2027 FIFA Women's World Cup?",
+   "p_text": "Will Sweden win the 2027 FIFA Women's World Cup?"
+  }
+ ]
+}

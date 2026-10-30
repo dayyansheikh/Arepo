@@ -1,0 +1,3315 @@
+{
+ "archive_root": "data-dumps/research_lab/creative_batch15/ge0_sources",
+ "files": [
+  {
+   "fetched_utc": "2026-10-19T04:39:29Z",
+   "file": "pass_A/sources/c8bdafae6163ad64eda9627bf02386674fd903aceab71ce8122dddff412004e5.html",
+   "kind": "ncsl",
+   "kind_pass": "ncsl_table16_processing_counting_wayback",
+   "pass": "A",
+   "sha256": "c8bdafae6163ad64eda9627bf02386674fd903aceab71ce8122dddff412004e5",
+   "url": "https://web.archive.org/web/20261010050450id_/https://www.ncsl.org/elections-and-campaigns/table-16-when-absentee-mail-ballot-processing-and-counting-can-begin"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:41:13Z",
+   "file": "pass_A/sources/c74c94645dd8746b7224b6b11c0a0b81f845749ae918a3a709051baed435c068.html",
+   "kind": "ncsl",
+   "kind_pass": "ncsl_table-17-how-election-results-are-reported_wayback",
+   "pass": "A",
+   "sha256": "c74c94645dd8746b7224b6b11c0a0b81f845749ae918a3a709051baed435c068",
+   "url": "https://web.archive.org/web/20260915200749id_/https://www.ncsl.org/elections-and-campaigns/table-17-how-election-results-are-reported"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:41:15Z",
+   "file": "pass_A/sources/958f3b3a0c2e3b4a658787abd4dc0c29cf1803cb30640ed24b782b58c6f6db71.html",
+   "kind": "ncsl",
+   "kind_pass": "ncsl_table-11-receipt-and-postmark-deadlines-for-absentee-mail-ballots_wayback",
+   "pass": "A",
+   "sha256": "958f3b3a0c2e3b4a658787abd4dc0c29cf1803cb30640ed24b782b58c6f6db71",
+   "url": "https://web.archive.org/web/20261013104457id_/https://www.ncsl.org/elections-and-campaigns/table-11-receipt-and-postmark-deadlines-for-absentee-mail-ballots"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:47:30Z",
+   "file": "pass_A/sources/f739e7290c513ae7993cddc2ec719ec6f2f26b5e255ca27899ff952b177c589d.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241105230345",
+   "pass": "A",
+   "sha256": "f739e7290c513ae7993cddc2ec719ec6f2f26b5e255ca27899ff952b177c589d",
+   "url": "https://web.archive.org/web/20241105230345id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:47:31Z",
+   "file": "pass_A/sources/d378996516acdfb00189251aec57824886f5465269142b2f6483b9a06d13f518.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241105231208",
+   "pass": "A",
+   "sha256": "d378996516acdfb00189251aec57824886f5465269142b2f6483b9a06d13f518",
+   "url": "https://web.archive.org/web/20241105231208id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:47:32Z",
+   "file": "pass_A/sources/8cadfc71f6803b04e09b8691714f10b53f90ff49ffd3979b908b921e49be550f.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241105232015",
+   "pass": "A",
+   "sha256": "8cadfc71f6803b04e09b8691714f10b53f90ff49ffd3979b908b921e49be550f",
+   "url": "https://web.archive.org/web/20241105232015id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:47:33Z",
+   "file": "pass_A/sources/40e90592b6beb4154c172a5070b249c37083218390c692903c2c8fbe052d70b0.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241105233003",
+   "pass": "A",
+   "sha256": "40e90592b6beb4154c172a5070b249c37083218390c692903c2c8fbe052d70b0",
+   "url": "https://web.archive.org/web/20241105233003id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:47:34Z",
+   "file": "pass_A/sources/02a950ec26a0080d474d9141c5545b1461912bfe0bf662639cdb7673a4a3696b.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241105234029",
+   "pass": "A",
+   "sha256": "02a950ec26a0080d474d9141c5545b1461912bfe0bf662639cdb7673a4a3696b",
+   "url": "https://web.archive.org/web/20241105234029id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:47:35Z",
+   "file": "pass_A/sources/b5a63a68bf29ac54f28ef590b24a92b3fc1a2949328b16f9214fe581dc0769d9.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241105235011",
+   "pass": "A",
+   "sha256": "b5a63a68bf29ac54f28ef590b24a92b3fc1a2949328b16f9214fe581dc0769d9",
+   "url": "https://web.archive.org/web/20241105235011id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:47:36Z",
+   "file": "pass_A/sources/40ba48735c45a600908dde199d0be6d749140617bc97f6a747a92f286acb5440.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106000003",
+   "pass": "A",
+   "sha256": "40ba48735c45a600908dde199d0be6d749140617bc97f6a747a92f286acb5440",
+   "url": "https://web.archive.org/web/20241106000003id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:47:37Z",
+   "file": "pass_A/sources/2127066d43fa77d2338292113e28a7086c42395cac47355efda01d24f12acb7c.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106001051",
+   "pass": "A",
+   "sha256": "2127066d43fa77d2338292113e28a7086c42395cac47355efda01d24f12acb7c",
+   "url": "https://web.archive.org/web/20241106001051id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:47:38Z",
+   "file": "pass_A/sources/279aa1bfbaf1a6ec828b52ff9ac73a43f0e02b7597156d76b5392cae875dc78f.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106002042",
+   "pass": "A",
+   "sha256": "279aa1bfbaf1a6ec828b52ff9ac73a43f0e02b7597156d76b5392cae875dc78f",
+   "url": "https://web.archive.org/web/20241106002042id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:47:39Z",
+   "file": "pass_A/sources/294d064c272d19fe1035fb960d0d33e355fcbbc6206a350676ffe8190354d4ef.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106003013",
+   "pass": "A",
+   "sha256": "294d064c272d19fe1035fb960d0d33e355fcbbc6206a350676ffe8190354d4ef",
+   "url": "https://web.archive.org/web/20241106003013id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:47:41Z",
+   "file": "pass_A/sources/c6d10a3276e691ee4077dbeaff41eebce56e6a9922900e5a916cf5e5164774fa.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106004001",
+   "pass": "A",
+   "sha256": "c6d10a3276e691ee4077dbeaff41eebce56e6a9922900e5a916cf5e5164774fa",
+   "url": "https://web.archive.org/web/20241106004001id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:47:41Z",
+   "file": "pass_A/sources/6279dd0c4a85daa58e46755db3f290332e342aee6d86b6bfbf47b1086f8c91f3.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106005002",
+   "pass": "A",
+   "sha256": "6279dd0c4a85daa58e46755db3f290332e342aee6d86b6bfbf47b1086f8c91f3",
+   "url": "https://web.archive.org/web/20241106005002id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:47:42Z",
+   "file": "pass_A/sources/12ee8c0025e87f16bda212b31a3f50c306e622c8253574bea35a0f8d2b8a31cc.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106010040",
+   "pass": "A",
+   "sha256": "12ee8c0025e87f16bda212b31a3f50c306e622c8253574bea35a0f8d2b8a31cc",
+   "url": "https://web.archive.org/web/20241106010040id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:47:44Z",
+   "file": "pass_A/sources/2aa00c91456e1d4e8216ec58d1b372578ebf686720f1ce9e333e8ab28ed69151.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106011029",
+   "pass": "A",
+   "sha256": "2aa00c91456e1d4e8216ec58d1b372578ebf686720f1ce9e333e8ab28ed69151",
+   "url": "https://web.archive.org/web/20241106011029id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:47:45Z",
+   "file": "pass_A/sources/30b2ba7ff4e4e930cdcfdfbbcbb191d4578f89c18808bd45f04c972c6c7c7867.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106012028",
+   "pass": "A",
+   "sha256": "30b2ba7ff4e4e930cdcfdfbbcbb191d4578f89c18808bd45f04c972c6c7c7867",
+   "url": "https://web.archive.org/web/20241106012028id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:47:46Z",
+   "file": "pass_A/sources/18d3459fe5b67b3f1c24f83b46358a414c8f48b304d22e15e50126ec0eb80501.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106013224",
+   "pass": "A",
+   "sha256": "18d3459fe5b67b3f1c24f83b46358a414c8f48b304d22e15e50126ec0eb80501",
+   "url": "https://web.archive.org/web/20241106013224id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:47:47Z",
+   "file": "pass_A/sources/087633c3826126bba6fb0aac4583fd549a257d39e157e6598fc086768c050b56.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106014000",
+   "pass": "A",
+   "sha256": "087633c3826126bba6fb0aac4583fd549a257d39e157e6598fc086768c050b56",
+   "url": "https://web.archive.org/web/20241106014000id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:47:48Z",
+   "file": "pass_A/sources/c61d55ebb228c91f565caaf346553861663f1d8704f86098ccff90d9c0501a70.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106015046",
+   "pass": "A",
+   "sha256": "c61d55ebb228c91f565caaf346553861663f1d8704f86098ccff90d9c0501a70",
+   "url": "https://web.archive.org/web/20241106015046id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:47:49Z",
+   "file": "pass_A/sources/251eb5fbc37512df342fe9fe9257407a5ef7f0c579c1c2a722b01c2f3584a489.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106020017",
+   "pass": "A",
+   "sha256": "251eb5fbc37512df342fe9fe9257407a5ef7f0c579c1c2a722b01c2f3584a489",
+   "url": "https://web.archive.org/web/20241106020017id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:47:50Z",
+   "file": "pass_A/sources/c0027a88d3fbbeec48ab2464f933fd7b051ce1e3a404723db7435b960b38ed01.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106021005",
+   "pass": "A",
+   "sha256": "c0027a88d3fbbeec48ab2464f933fd7b051ce1e3a404723db7435b960b38ed01",
+   "url": "https://web.archive.org/web/20241106021005id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:48:21Z",
+   "file": "pass_A/sources/929aa4266bce21de8f72254c10950faa5e09d60bfee418acbfdbea9ec6f0aa09.html",
+   "kind": "poll_close",
+   "kind_pass": "official_statute_poll_hours_AZ",
+   "pass": "A",
+   "sha256": "929aa4266bce21de8f72254c10950faa5e09d60bfee418acbfdbea9ec6f0aa09",
+   "url": "https://www.azleg.gov/ars/16/00565.htm"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:48:22Z",
+   "file": "pass_A/sources/25932802d6d6b065e85330dd8aaa894cd9d6bb0954db9d3af98e62f78c2e1fca.html",
+   "kind": "poll_close",
+   "kind_pass": "official_statute_poll_hours_CT",
+   "pass": "A",
+   "sha256": "25932802d6d6b065e85330dd8aaa894cd9d6bb0954db9d3af98e62f78c2e1fca",
+   "url": "https://www.cga.ct.gov/current/pub/chap_145.htm"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:48:23Z",
+   "file": "pass_A/sources/4524313bd0e21d49d08ea51b68fc92150547e3a4175f991a4be7294751d639bc.html",
+   "kind": "poll_close",
+   "kind_pass": "official_statute_poll_hours_FL",
+   "pass": "A",
+   "sha256": "4524313bd0e21d49d08ea51b68fc92150547e3a4175f991a4be7294751d639bc",
+   "url": "http://www.leg.state.fl.us/statutes/index.cfm?App_mode=Display_Statute&URL=0100-0199/0100/Sections/0100.011.html"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:48:52Z",
+   "file": "pass_A/sources/895b5ffafa69838aca58d286e511fa62bf79417f3055bbabc11aa3c5baf4a12e.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106050248",
+   "pass": "A",
+   "sha256": "895b5ffafa69838aca58d286e511fa62bf79417f3055bbabc11aa3c5baf4a12e",
+   "url": "https://web.archive.org/web/20241106050248id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:48:57Z",
+   "file": "pass_A/sources/4221ca07e959c6470e62d0b6f8c834ec2b7467e29c3e3ffb42c242a67fd7d1b3.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106051205",
+   "pass": "A",
+   "sha256": "4221ca07e959c6470e62d0b6f8c834ec2b7467e29c3e3ffb42c242a67fd7d1b3",
+   "url": "https://web.archive.org/web/20241106051205id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:49:01Z",
+   "file": "pass_A/sources/eb7b8d5a8bd3448df1d4d009124c5f00839389ca882648338cddf87c5d206248.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106052055",
+   "pass": "A",
+   "sha256": "eb7b8d5a8bd3448df1d4d009124c5f00839389ca882648338cddf87c5d206248",
+   "url": "https://web.archive.org/web/20241106052055id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:49:05Z",
+   "file": "pass_A/sources/188922f1334f328cfd56d9b70e7f24e791e7d913d480c621e0fec429d6977b11.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106055940",
+   "pass": "A",
+   "sha256": "188922f1334f328cfd56d9b70e7f24e791e7d913d480c621e0fec429d6977b11",
+   "url": "https://web.archive.org/web/20241106055940id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:49:10Z",
+   "file": "pass_A/sources/d5dfe49c4713f516a8de9307308f5b6fa7a99fb2b4aab37236f737f56d134996.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106060013",
+   "pass": "A",
+   "sha256": "d5dfe49c4713f516a8de9307308f5b6fa7a99fb2b4aab37236f737f56d134996",
+   "url": "https://web.archive.org/web/20241106060013id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:49:14Z",
+   "file": "pass_A/sources/ef227906c1f9430a0eef0a8e38643324b51ad90846c6729eb9f6926641abac85.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106061952",
+   "pass": "A",
+   "sha256": "ef227906c1f9430a0eef0a8e38643324b51ad90846c6729eb9f6926641abac85",
+   "url": "https://web.archive.org/web/20241106061952id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:49:19Z",
+   "file": "pass_A/sources/06a7a20e6b32d93fd42fbae3e67a5602a20812a71cbf4f7d513208715ae62c80.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106063320",
+   "pass": "A",
+   "sha256": "06a7a20e6b32d93fd42fbae3e67a5602a20812a71cbf4f7d513208715ae62c80",
+   "url": "https://web.archive.org/web/20241106063320id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:49:23Z",
+   "file": "pass_A/sources/0729795b936f3953e9962a7cd219fac6a686bc80153585822c1a5e8182d03be1.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106064154",
+   "pass": "A",
+   "sha256": "0729795b936f3953e9962a7cd219fac6a686bc80153585822c1a5e8182d03be1",
+   "url": "https://web.archive.org/web/20241106064154id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:49:27Z",
+   "file": "pass_A/sources/6f4c8797e1751904968b2cd5b7b3d70fcd274f4d3fd28e3a0af5f4c286684afb.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106065215",
+   "pass": "A",
+   "sha256": "6f4c8797e1751904968b2cd5b7b3d70fcd274f4d3fd28e3a0af5f4c286684afb",
+   "url": "https://web.archive.org/web/20241106065215id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:49:31Z",
+   "file": "pass_A/sources/4925dbe1fc7a507fe357d6f7568be2a879ea8eb755bdf13bfc7e95a7db2ca157.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106070134",
+   "pass": "A",
+   "sha256": "4925dbe1fc7a507fe357d6f7568be2a879ea8eb755bdf13bfc7e95a7db2ca157",
+   "url": "https://web.archive.org/web/20241106070134id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:49:36Z",
+   "file": "pass_A/sources/24de4a25731af376b7c4cc1ecf42211fa1d5a3c1ef8e808a41e265802160215a.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106072306",
+   "pass": "A",
+   "sha256": "24de4a25731af376b7c4cc1ecf42211fa1d5a3c1ef8e808a41e265802160215a",
+   "url": "https://web.archive.org/web/20241106072306id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:49:40Z",
+   "file": "pass_A/sources/12326906bb6927265ffe42b33283047242ec0a7eef3d9d743c94af8bccbd6e79.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106073708",
+   "pass": "A",
+   "sha256": "12326906bb6927265ffe42b33283047242ec0a7eef3d9d743c94af8bccbd6e79",
+   "url": "https://web.archive.org/web/20241106073708id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:49:44Z",
+   "file": "pass_A/sources/39cb9a9a4d23a00a480ea0a95e33a5ee1d0c87ee2d85975733e2a57896670fc0.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241231214646",
+   "pass": "A",
+   "sha256": "39cb9a9a4d23a00a480ea0a95e33a5ee1d0c87ee2d85975733e2a57896670fc0",
+   "url": "https://web.archive.org/web/20241231214646id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:49:49Z",
+   "file": "pass_A/sources/1b1d68155a0a6b0aa83836738e586c0d25085a169855b0293971e328e21fd248.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106022304",
+   "pass": "A",
+   "sha256": "1b1d68155a0a6b0aa83836738e586c0d25085a169855b0293971e328e21fd248",
+   "url": "https://web.archive.org/web/20241106022304id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:49:53Z",
+   "file": "pass_A/sources/2dfe7a712e1f510490f1a5dd9672e040690ce110da0959c1d7e7c340f77b24c4.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106023052",
+   "pass": "A",
+   "sha256": "2dfe7a712e1f510490f1a5dd9672e040690ce110da0959c1d7e7c340f77b24c4",
+   "url": "https://web.archive.org/web/20241106023052id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:49:58Z",
+   "file": "pass_A/sources/c089d15685602c667cd616a048a3f7747b5a873134f3849a623540755aa4bb62.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106024156",
+   "pass": "A",
+   "sha256": "c089d15685602c667cd616a048a3f7747b5a873134f3849a623540755aa4bb62",
+   "url": "https://web.archive.org/web/20241106024156id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:02Z",
+   "file": "pass_A/sources/46e054005b6743c9fab7c3bf1ca711d0235932ad3bf0696a6d6773bfeaa2825c.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106025009",
+   "pass": "A",
+   "sha256": "46e054005b6743c9fab7c3bf1ca711d0235932ad3bf0696a6d6773bfeaa2825c",
+   "url": "https://web.archive.org/web/20241106025009id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:06Z",
+   "file": "pass_A/sources/5ffb0a7b897e0310d4329ccb4ce206f3f2e87279258eabf8d94a9e2684b65c5d.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106030016",
+   "pass": "A",
+   "sha256": "5ffb0a7b897e0310d4329ccb4ce206f3f2e87279258eabf8d94a9e2684b65c5d",
+   "url": "https://web.archive.org/web/20241106030016id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:10Z",
+   "file": "pass_A/sources/af8efb974baaccbd45c4c19e9933db01f7870ac7a55af8e95a7d4d3153701560.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106031218",
+   "pass": "A",
+   "sha256": "af8efb974baaccbd45c4c19e9933db01f7870ac7a55af8e95a7d4d3153701560",
+   "url": "https://web.archive.org/web/20241106031218id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:14Z",
+   "file": "pass_A/sources/fcbd475b97ed5e8f7cdc93c62f393b6e12cef0b75ebf79d304205c57d04c0316.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106032838",
+   "pass": "A",
+   "sha256": "fcbd475b97ed5e8f7cdc93c62f393b6e12cef0b75ebf79d304205c57d04c0316",
+   "url": "https://web.archive.org/web/20241106032838id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:19Z",
+   "file": "pass_A/sources/0da7bd1390b9ed8519b363ee78446f6493646506e359161f46c16de36fa11f9c.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106033249",
+   "pass": "A",
+   "sha256": "0da7bd1390b9ed8519b363ee78446f6493646506e359161f46c16de36fa11f9c",
+   "url": "https://web.archive.org/web/20241106033249id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:23Z",
+   "file": "pass_A/sources/a872a95f4701f63dc4008b41b94343332f7aeed528620d476117c3c1283d2d80.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106034444",
+   "pass": "A",
+   "sha256": "a872a95f4701f63dc4008b41b94343332f7aeed528620d476117c3c1283d2d80",
+   "url": "https://web.archive.org/web/20241106034444id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:27Z",
+   "file": "pass_A/sources/771a089250962eaf5346abbd554b238287b4d0b2b0ff9313df49e3a08bf86e76.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106035339",
+   "pass": "A",
+   "sha256": "771a089250962eaf5346abbd554b238287b4d0b2b0ff9313df49e3a08bf86e76",
+   "url": "https://web.archive.org/web/20241106035339id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:32Z",
+   "file": "pass_A/sources/d493c39e1ed3402543a9fb95bf5a078bac3bca1ad260c3862fe38868684ea6d0.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106040754",
+   "pass": "A",
+   "sha256": "d493c39e1ed3402543a9fb95bf5a078bac3bca1ad260c3862fe38868684ea6d0",
+   "url": "https://web.archive.org/web/20241106040754id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:36Z",
+   "file": "pass_A/sources/813f89278ec4e41f62039ef57450a4af01848dd9a4324b3b4437b289b1b7b522.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106042027",
+   "pass": "A",
+   "sha256": "813f89278ec4e41f62039ef57450a4af01848dd9a4324b3b4437b289b1b7b522",
+   "url": "https://web.archive.org/web/20241106042027id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:40Z",
+   "file": "pass_A/sources/01f6fec9cc40a2ee8706d90d690190416d32043efe1d8680a9beb8cc499e2fe6.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106044438",
+   "pass": "A",
+   "sha256": "01f6fec9cc40a2ee8706d90d690190416d32043efe1d8680a9beb8cc499e2fe6",
+   "url": "https://web.archive.org/web/20241106044438id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:44Z",
+   "file": "pass_A/sources/51e36494092fa0875a7037f1c684da6dc5a3f5763998476a1904f9b96df61559.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106045009",
+   "pass": "A",
+   "sha256": "51e36494092fa0875a7037f1c684da6dc5a3f5763998476a1904f9b96df61559",
+   "url": "https://web.archive.org/web/20241106045009id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:58Z",
+   "file": "pass_A/sources/e62d80f82eb85936f1acdd236979e1a3c2c407e10f49395a2b204a16c3493667.pdf",
+   "kind": "poll_close",
+   "kind_pass": "official_statute_poll_hours_IA",
+   "pass": "A",
+   "sha256": "e62d80f82eb85936f1acdd236979e1a3c2c407e10f49395a2b204a16c3493667",
+   "url": "https://www.legis.iowa.gov/docs/code/49.73.pdf"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:59Z",
+   "file": "pass_A/sources/cf2d1119a84d1697f10cb70dee38100b793e41e898f03e1a2098e2fc8bd3f62a.html",
+   "kind": "poll_close",
+   "kind_pass": "official_statute_poll_hours_KS",
+   "pass": "A",
+   "sha256": "cf2d1119a84d1697f10cb70dee38100b793e41e898f03e1a2098e2fc8bd3f62a",
+   "url": "https://www.ksrevisor.org/statutes/chapters/ch25/025_001_0006.html"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:00Z",
+   "file": "pass_A/sources/5e553fa23741aa3681fa95947162b5d88475054091ba5cb5a612042a512b7d3a.html",
+   "kind": "poll_close",
+   "kind_pass": "official_statute_poll_hours_ME",
+   "pass": "A",
+   "sha256": "5e553fa23741aa3681fa95947162b5d88475054091ba5cb5a612042a512b7d3a",
+   "url": "https://legislature.maine.gov/statutes/21-A/title21-Asec626.html"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:01Z",
+   "file": "pass_A/sources/b79adec0e880b425fa4b0c3837316639abccdeffe2df8a94520e87f761da20b4.html",
+   "kind": "poll_close",
+   "kind_pass": "official_statute_poll_hours_MD",
+   "pass": "A",
+   "sha256": "b79adec0e880b425fa4b0c3837316639abccdeffe2df8a94520e87f761da20b4",
+   "url": "https://mgaleg.maryland.gov/mgawebsite/Laws/StatuteText?article=gel&section=10-301.1"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:17Z",
+   "file": "pass_A/sources/d466d1e10c36d4e994a56d267c9d1ea711f1a2c4821982fe10928740b13837a1.html",
+   "kind": "poll_close",
+   "kind_pass": "official_statute_poll_hours_MN",
+   "pass": "A",
+   "sha256": "d466d1e10c36d4e994a56d267c9d1ea711f1a2c4821982fe10928740b13837a1",
+   "url": "https://www.revisor.mn.gov/statutes/cite/204C.05"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:18Z",
+   "file": "pass_A/sources/7f5421579b82bb6804df8b7d4d64b6510d0dd3261657b7945f535157b0137a66.html",
+   "kind": "poll_close",
+   "kind_pass": "official_statute_poll_hours_MO",
+   "pass": "A",
+   "sha256": "7f5421579b82bb6804df8b7d4d64b6510d0dd3261657b7945f535157b0137a66",
+   "url": "https://revisor.mo.gov/main/OneSection.aspx?section=115.407"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:29Z",
+   "file": "pass_A/sources/6b1af624a55c2d10451571d39941df4a8fd3e2f7ea4cb214222744c7ece4494d.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_2024_results_president_json_wayback_20241106124944",
+   "pass": "A",
+   "sha256": "6b1af624a55c2d10451571d39941df4a8fd3e2f7ea4cb214222744c7ece4494d",
+   "url": "https://web.archive.org/web/20241106124944id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:49Z",
+   "file": "pass_A/sources/20201b90574213c4c935646ff7926617b3d28a90aebca1fb461996d8f7d6c70d.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt_2022_results_senate_json_wayback_20221109101938",
+   "pass": "A",
+   "sha256": "20201b90574213c4c935646ff7926617b3d28a90aebca1fb461996d8f7d6c70d",
+   "url": "https://web.archive.org/web/20221109101938id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-senate.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:57Z",
+   "file": "pass_A/sources/070c1b70a03b01bc34ad4dfdc8a15672681fdcc6d78108f70b3450977b326a94.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt_2022_results_senate_json_wayback_20221227150246",
+   "pass": "A",
+   "sha256": "070c1b70a03b01bc34ad4dfdc8a15672681fdcc6d78108f70b3450977b326a94",
+   "url": "https://web.archive.org/web/20221227150246id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-senate.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:59Z",
+   "file": "pass_A/sources/f98ba13de25a17dcc7e58952b0d54d3c534b451fada281b042862c6c49fd9326.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt_2022_results_governor_json_wayback_20221109103641",
+   "pass": "A",
+   "sha256": "f98ba13de25a17dcc7e58952b0d54d3c534b451fada281b042862c6c49fd9326",
+   "url": "https://web.archive.org/web/20221109103641id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-governor.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:53:00Z",
+   "file": "pass_A/sources/3427876ce5ce04d9f697996dfc3f783111e2e361a6af617c02ab43bf60c36f94.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt_2022_results_governor_json_wayback_20230213181954",
+   "pass": "A",
+   "sha256": "3427876ce5ce04d9f697996dfc3f783111e2e361a6af617c02ab43bf60c36f94",
+   "url": "https://web.archive.org/web/20230213181954id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-governor.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:53:02Z",
+   "file": "pass_A/sources/bd699228f818d9c953b6278340cb80cb9b4fa362feaab1e5285b724107bed9be.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt_2022_results_house_json_wayback_20221109102109",
+   "pass": "A",
+   "sha256": "bd699228f818d9c953b6278340cb80cb9b4fa362feaab1e5285b724107bed9be",
+   "url": "https://web.archive.org/web/20221109102109id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-house.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:53:03Z",
+   "file": "pass_A/sources/c5b2047bb689bc7548d1bc153c64f73d68b285b823370a20426eae52b29eee77.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt_2022_results_house_json_wayback_20230219174412",
+   "pass": "A",
+   "sha256": "c5b2047bb689bc7548d1bc153c64f73d68b285b823370a20426eae52b29eee77",
+   "url": "https://web.archive.org/web/20230219174412id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-house.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:56:06Z",
+   "file": "pass_A/sources/bb15d2985a8db52c78cddcbc89b9d99e68492566a71f52dffb4547fd53d85715.html",
+   "kind": "poll_close",
+   "kind_pass": "official_statute_poll_hours_SC",
+   "pass": "A",
+   "sha256": "bb15d2985a8db52c78cddcbc89b9d99e68492566a71f52dffb4547fd53d85715",
+   "url": "https://www.scstatehouse.gov/code/t07c013.php"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:56:07Z",
+   "file": "pass_A/sources/dbfba8a96dc3cd584157ca66aaafdf67e0ed15dd5a0c8a58f3d4bd0f109fc646.html",
+   "kind": "poll_close",
+   "kind_pass": "official_statute_poll_hours_TX",
+   "pass": "A",
+   "sha256": "dbfba8a96dc3cd584157ca66aaafdf67e0ed15dd5a0c8a58f3d4bd0f109fc646",
+   "url": "https://statutes.capitol.texas.gov/Docs/EL/htm/EL.41.htm"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:56:07Z",
+   "file": "pass_A/sources/23058f07e9011c959924f9cf604beab8d838ee7235025eab27a658505d04c8fb.html",
+   "kind": "poll_close",
+   "kind_pass": "official_statute_poll_hours_VT",
+   "pass": "A",
+   "sha256": "23058f07e9011c959924f9cf604beab8d838ee7235025eab27a658505d04c8fb",
+   "url": "https://legislature.vermont.gov/statutes/section/17/051/02561"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:56:08Z",
+   "file": "pass_A/sources/7b69f6e8233ea7428d9c8e70766f3108f5c3a7cc1d57d840aca9e50aa0f2cb61.html",
+   "kind": "poll_close",
+   "kind_pass": "official_statute_poll_hours_VA",
+   "pass": "A",
+   "sha256": "7b69f6e8233ea7428d9c8e70766f3108f5c3a7cc1d57d840aca9e50aa0f2cb61",
+   "url": "https://law.lis.virginia.gov/vacode/title24.2/chapter6/section24.2-603/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:56:09Z",
+   "file": "pass_A/sources/131a0668889798054e4ec9a94a5d8ab8d306daa1c3493ec55c4643b374847f0f.html",
+   "kind": "poll_close",
+   "kind_pass": "official_statute_poll_hours_WA",
+   "pass": "A",
+   "sha256": "131a0668889798054e4ec9a94a5d8ab8d306daa1c3493ec55c4643b374847f0f",
+   "url": "https://app.leg.wa.gov/RCW/default.aspx?cite=29A.40.091"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:56:10Z",
+   "file": "pass_A/sources/3f9419924fece245dbb58482e87d0d83a3ea3e807b669239e984ccb996eacf8a.html",
+   "kind": "poll_close",
+   "kind_pass": "official_statute_poll_hours_WV",
+   "pass": "A",
+   "sha256": "3f9419924fece245dbb58482e87d0d83a3ea3e807b669239e984ccb996eacf8a",
+   "url": "https://code.wvlegislature.gov/3-1-31/"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:14:41Z",
+   "file": "pass_A/sources/ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae.html",
+   "kind": "ncsl",
+   "kind_pass": "ncsl_polling_places",
+   "pass": "A",
+   "sha256": "ef5ad478cbcffb4090efba90433aec8c0053905ea1ca817fea9d8d9eef2db0ae",
+   "url": "https://web.archive.org/web/20260921165352id_/https://www.ncsl.org/elections-and-campaigns/polling-places"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:18:20Z",
+   "file": "pass_A/sources/7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9.html",
+   "kind": "other",
+   "kind_pass": "cfr49_71",
+   "pass": "A",
+   "sha256": "7dc3bc445552684473762b82af9643bc1bddddf32c41cd72642ae114d2a73fb9",
+   "url": "https://www.ecfr.gov/api/renderer/v1/content/enhanced/current/title-49?part=71"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:18:23Z",
+   "file": "pass_A/sources/4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8.html",
+   "kind": "other",
+   "kind_pass": "usc15_260a",
+   "pass": "A",
+   "sha256": "4f6f701e4c2d1f415a88ed88b4b0f570b20590805078d4c84f293920f6df9fa8",
+   "url": "https://www.law.cornell.edu/uscode/text/15/260a"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:18:25Z",
+   "file": "pass_A/sources/a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379.html",
+   "kind": "other",
+   "kind_pass": "usc15_261",
+   "pass": "A",
+   "sha256": "a882754ed295847a81791c76f6a3f5b9c136375d64cd207e327575fd151af379",
+   "url": "https://www.law.cornell.edu/uscode/text/15/261"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:20:07Z",
+   "file": "pass_A/sources/dd4ef4bc3fa6b80da57d9e708dea3e47e530d9715e76eab7d363679da8fb2cfd.pdf",
+   "kind": "state_law",
+   "kind_pass": "stat_ND",
+   "pass": "A",
+   "sha256": "dd4ef4bc3fa6b80da57d9e708dea3e47e530d9715e76eab7d363679da8fb2cfd",
+   "url": "https://ndlegis.gov/cencode/t16-1c01.pdf"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:21:57Z",
+   "file": "pass_A/sources/0ab47d9fb45de7fd0935690d9a8a95b3175398d45e6a905646248f208f2773f8.html",
+   "kind": "state_law",
+   "kind_pass": "stat_NH",
+   "pass": "A",
+   "sha256": "0ab47d9fb45de7fd0935690d9a8a95b3175398d45e6a905646248f208f2773f8",
+   "url": "https://web.archive.org/web/20260915033655id_/https://gc.nh.gov/rsa/html/LXIII/659/659-4.htm"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:22:09Z",
+   "file": "pass_A/sources/975f6faa1e812495b2b1bba6a81c688b828386259a9e41a8ec0936c0ddc377db.html",
+   "kind": "state_law",
+   "kind_pass": "stat_OR",
+   "pass": "A",
+   "sha256": "975f6faa1e812495b2b1bba6a81c688b828386259a9e41a8ec0936c0ddc377db",
+   "url": "https://web.archive.org/web/20260605100917id_/https://www.oregonlegislature.gov/bills_laws/ors/ors254.html"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:23:04Z",
+   "file": "pass_A/sources/c9560e7f39ac9a48bf960e0ae192cd8467c79c96b8fe23e54f92935ce5416b86.html",
+   "kind": "state_law",
+   "kind_pass": "stat_AK",
+   "pass": "A",
+   "sha256": "c9560e7f39ac9a48bf960e0ae192cd8467c79c96b8fe23e54f92935ce5416b86",
+   "url": "https://web.archive.org/web/20241105162143id_/https://law.justia.com/codes/alaska/title-15/chapter-15/section-15-15-080/"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:28:55Z",
+   "file": "pass_A/sources/7d33288c3476f14fdfdbd90cdd9f624b173214fe847fde425214aab2537f6c46.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-senate",
+   "pass": "A",
+   "sha256": "7d33288c3476f14fdfdbd90cdd9f624b173214fe847fde425214aab2537f6c46",
+   "url": "https://web.archive.org/web/20221203155230id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-senate.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:28:57Z",
+   "file": "pass_A/sources/5687efd90d18fcd9ea3515292509854f006349a7017ff66772937352ea119f8e.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-massachusetts-governor",
+   "pass": "A",
+   "sha256": "5687efd90d18fcd9ea3515292509854f006349a7017ff66772937352ea119f8e",
+   "url": "https://web.archive.org/web/20251230182900id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-massachusetts-governor.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:28:59Z",
+   "file": "pass_A/sources/cce35606a497fed8c1497c57026959f5a18877ccbe501269056b5dd0f44b81f2.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-minnesota-governor",
+   "pass": "A",
+   "sha256": "cce35606a497fed8c1497c57026959f5a18877ccbe501269056b5dd0f44b81f2",
+   "url": "https://web.archive.org/web/20250903134852id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-minnesota-governor.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:29:01Z",
+   "file": "pass_A/sources/78c61a24a1010aaec84eec3e48b85632076ce7ccc1ef6418dbbdb6d6a4ff926a.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-nebraska",
+   "pass": "A",
+   "sha256": "78c61a24a1010aaec84eec3e48b85632076ce7ccc1ef6418dbbdb6d6a4ff926a",
+   "url": "https://web.archive.org/web/20251106173851id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-nebraska.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:29:03Z",
+   "file": "pass_A/sources/02ff704a81d1401d9371ecaf131991bef2154c4ee038df9365918f5b8755ba75.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-rhode-island",
+   "pass": "A",
+   "sha256": "02ff704a81d1401d9371ecaf131991bef2154c4ee038df9365918f5b8755ba75",
+   "url": "https://web.archive.org/web/20251106173854id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-rhode-island.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:29:15Z",
+   "file": "pass_A/sources/33e4c75e39934d0fd982452b52d811b942f337cd1290806dd021184f28b932a8.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-tennessee",
+   "pass": "A",
+   "sha256": "33e4c75e39934d0fd982452b52d811b942f337cd1290806dd021184f28b932a8",
+   "url": "https://web.archive.org/web/20251106173852id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-tennessee.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:29:17Z",
+   "file": "pass_A/sources/46df82b02b251d094834d9ac0c5a7f1a928713051332513afeb8dbda302f77fd.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-wyoming",
+   "pass": "A",
+   "sha256": "46df82b02b251d094834d9ac0c5a7f1a928713051332513afeb8dbda302f77fd",
+   "url": "https://web.archive.org/web/20251106173853id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-wyoming.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:29:41Z",
+   "file": "pass_A/sources/54aecd3adf21934cdfc9c14c1f2a0bdf20d8232744c7df6711e40fbd054e7f61.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-alabama",
+   "pass": "A",
+   "sha256": "54aecd3adf21934cdfc9c14c1f2a0bdf20d8232744c7df6711e40fbd054e7f61",
+   "url": "https://web.archive.org/web/20221109022528id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-alabama.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:29:43Z",
+   "file": "pass_A/sources/20396f1aecad37b3e60e27fd2b1a9157a845fd548003c4f9ee717d5eae290025.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-senate",
+   "pass": "A",
+   "sha256": "20396f1aecad37b3e60e27fd2b1a9157a845fd548003c4f9ee717d5eae290025",
+   "url": "https://web.archive.org/web/20221109060924id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-senate.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:29:46Z",
+   "file": "pass_A/sources/565771c649339e20cc18ea029b9c157738b4e1f083a7545a7fce9f897b134cad.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-arkansas",
+   "pass": "A",
+   "sha256": "565771c649339e20cc18ea029b9c157738b4e1f083a7545a7fce9f897b134cad",
+   "url": "https://web.archive.org/web/20221108235747id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-arkansas.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:29:48Z",
+   "file": "pass_A/sources/f96cc9c649b16ec5e34513a9e62249f66f68d4e1eb1b594b288d943674c0460a.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-arizona",
+   "pass": "A",
+   "sha256": "f96cc9c649b16ec5e34513a9e62249f66f68d4e1eb1b594b288d943674c0460a",
+   "url": "https://web.archive.org/web/20221108233307id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-arizona.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:29:50Z",
+   "file": "pass_A/sources/1d2396dff727f110261c1029b606744b423e36767c2043c0589b578b40350ac1.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-arizona-us-senate",
+   "pass": "A",
+   "sha256": "1d2396dff727f110261c1029b606744b423e36767c2043c0589b578b40350ac1",
+   "url": "https://web.archive.org/web/20221109001156id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-arizona-us-senate.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:29:52Z",
+   "file": "pass_A/sources/96b32ed504b0e7444f2b4139dbb0aa980a2d2804603a046bd0fc7846e7ba0345.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-california",
+   "pass": "A",
+   "sha256": "96b32ed504b0e7444f2b4139dbb0aa980a2d2804603a046bd0fc7846e7ba0345",
+   "url": "https://web.archive.org/web/20221108234904id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-california.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:29:54Z",
+   "file": "pass_A/sources/88c75823c8bd2eaec55a549474e601dabd86f1a31fe8e48c37bb366cc632205e.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-colorado",
+   "pass": "A",
+   "sha256": "88c75823c8bd2eaec55a549474e601dabd86f1a31fe8e48c37bb366cc632205e",
+   "url": "https://web.archive.org/web/20221108234700id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-colorado.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:29:56Z",
+   "file": "pass_A/sources/84aaef44512715c20e5b7f4a081306b8a0bfc671ab112f292273b9c54ab82cc0.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-colorado-us-senate",
+   "pass": "A",
+   "sha256": "84aaef44512715c20e5b7f4a081306b8a0bfc671ab112f292273b9c54ab82cc0",
+   "url": "https://web.archive.org/web/20221108235817id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-colorado-us-senate.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:29:58Z",
+   "file": "pass_A/sources/efd552549fb78c7ac5e84be9051ec5deadb6398c83947d1d3501f825fb332e1a.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-connecticut",
+   "pass": "A",
+   "sha256": "efd552549fb78c7ac5e84be9051ec5deadb6398c83947d1d3501f825fb332e1a",
+   "url": "https://web.archive.org/web/20221108235000id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-connecticut.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:30:01Z",
+   "file": "pass_A/sources/76b6bcfcbd717aa045b0115067ee1fe7e7f633da26e3d0d475276ffb44550f88.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-connecticut-us-senate",
+   "pass": "A",
+   "sha256": "76b6bcfcbd717aa045b0115067ee1fe7e7f633da26e3d0d475276ffb44550f88",
+   "url": "https://web.archive.org/web/20221109033401id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-connecticut-us-senate.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:30:03Z",
+   "file": "pass_A/sources/23de20e9617513f7dc4f4ffc30b90f33fac29cc9d0f01b4813bdc447533ff3d5.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-delaware",
+   "pass": "A",
+   "sha256": "23de20e9617513f7dc4f4ffc30b90f33fac29cc9d0f01b4813bdc447533ff3d5",
+   "url": "https://web.archive.org/web/20221108234808id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-delaware.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:30:05Z",
+   "file": "pass_A/sources/09130f8a78292f3e93d29cb148a9743d750063760fc97ae35dde88a10a074509.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-house",
+   "pass": "A",
+   "sha256": "09130f8a78292f3e93d29cb148a9743d750063760fc97ae35dde88a10a074509",
+   "url": "https://web.archive.org/web/20221109055502id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-house.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:30:07Z",
+   "file": "pass_A/sources/14c671e415edb561557a84c30b77ae4799c86acf23f26712c2bdbb23a66c00ca.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-florida-us-senate",
+   "pass": "A",
+   "sha256": "14c671e415edb561557a84c30b77ae4799c86acf23f26712c2bdbb23a66c00ca",
+   "url": "https://web.archive.org/web/20221109021733id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-florida-us-senate.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:30:17Z",
+   "file": "pass_A/sources/f3c1304e86274e879369f1c4adace23f50b1dcdcef4eb28f67315a0bcb623859.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-georgia",
+   "pass": "A",
+   "sha256": "f3c1304e86274e879369f1c4adace23f50b1dcdcef4eb28f67315a0bcb623859",
+   "url": "https://web.archive.org/web/20221108235551id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-georgia.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:30:20Z",
+   "file": "pass_A/sources/81700d6ec656018211ddb74bff378646ec6c3cb43a5620d42fea38d04d602053.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-hawaii",
+   "pass": "A",
+   "sha256": "81700d6ec656018211ddb74bff378646ec6c3cb43a5620d42fea38d04d602053",
+   "url": "https://web.archive.org/web/20221109021643id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-hawaii.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:30:22Z",
+   "file": "pass_A/sources/5a6948e40b4fc43c84f04f4fa947356468b5a4edc0def2f14ed080a2cc22e28d.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-senate",
+   "pass": "A",
+   "sha256": "5a6948e40b4fc43c84f04f4fa947356468b5a4edc0def2f14ed080a2cc22e28d",
+   "url": "https://web.archive.org/web/20221109074021id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-senate.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:30:24Z",
+   "file": "pass_A/sources/6ef16f8199279fee7c212563dba72cee90eaf558b514224194ff0eecbdfb20e6.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-iowa",
+   "pass": "A",
+   "sha256": "6ef16f8199279fee7c212563dba72cee90eaf558b514224194ff0eecbdfb20e6",
+   "url": "https://web.archive.org/web/20221108234759id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-iowa.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:30:34Z",
+   "file": "pass_A/sources/a2de234c899333b7cb08998770f727f7c32cd1673dae300351409a9b8abcf676.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-iowa-us-senate",
+   "pass": "A",
+   "sha256": "a2de234c899333b7cb08998770f727f7c32cd1673dae300351409a9b8abcf676",
+   "url": "https://web.archive.org/web/20221109021235id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-iowa-us-senate.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:30:44Z",
+   "file": "pass_A/sources/8b72d25ca7685b70156424b6d8822077cc492d7a84b61be8f20ce0663a8d100e.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-idaho",
+   "pass": "A",
+   "sha256": "8b72d25ca7685b70156424b6d8822077cc492d7a84b61be8f20ce0663a8d100e",
+   "url": "https://web.archive.org/web/20221108235714id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-idaho.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:30:46Z",
+   "file": "pass_A/sources/f52074ac159a045118a35b9684146690c2f499eb7a1ada13d0aee500a3d13424.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-illinois",
+   "pass": "A",
+   "sha256": "f52074ac159a045118a35b9684146690c2f499eb7a1ada13d0aee500a3d13424",
+   "url": "https://web.archive.org/web/20221108234933id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-illinois.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:30:48Z",
+   "file": "pass_A/sources/0edea62380e18f5464cefb81f50e0978d39e9ced15301fa16083c41f2b49c19c.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-indiana",
+   "pass": "A",
+   "sha256": "0edea62380e18f5464cefb81f50e0978d39e9ced15301fa16083c41f2b49c19c",
+   "url": "https://web.archive.org/web/20221108230436id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-indiana.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:30:58Z",
+   "file": "pass_A/sources/065aed8dabad9fe464770b29a7ff0a30517145bd44e9c19db7412e27e8d6219b.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-kansas",
+   "pass": "A",
+   "sha256": "065aed8dabad9fe464770b29a7ff0a30517145bd44e9c19db7412e27e8d6219b",
+   "url": "https://web.archive.org/web/20221108234814id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-kansas.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:31:09Z",
+   "file": "pass_A/sources/a177c5c69282c673937f4ab61ff53aab29e61371a818386b23332e73e203c3a6.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-kentucky",
+   "pass": "A",
+   "sha256": "a177c5c69282c673937f4ab61ff53aab29e61371a818386b23332e73e203c3a6",
+   "url": "https://web.archive.org/web/20221108230427id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-kentucky.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:31:19Z",
+   "file": "pass_A/sources/632421151dfe4e0e94dee315782c0e8ade11c1cf3ed98269a1d0431a43ed27ce.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-kentucky-us-senate",
+   "pass": "A",
+   "sha256": "632421151dfe4e0e94dee315782c0e8ade11c1cf3ed98269a1d0431a43ed27ce",
+   "url": "https://web.archive.org/web/20221109012250id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-kentucky-us-senate.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:31:21Z",
+   "file": "pass_A/sources/0e562a4c196b63f76a78863f0f73140bb729a202d4b62f881ebf06755d64eff2.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-louisiana",
+   "pass": "A",
+   "sha256": "0e562a4c196b63f76a78863f0f73140bb729a202d4b62f881ebf06755d64eff2",
+   "url": "https://web.archive.org/web/20221108234907id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-louisiana.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:31:24Z",
+   "file": "pass_A/sources/d320ab5aed21d63aeca58ec623b8a43594f14e938b72b9e19c4250abad738d88.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-louisiana-us-senate",
+   "pass": "A",
+   "sha256": "d320ab5aed21d63aeca58ec623b8a43594f14e938b72b9e19c4250abad738d88",
+   "url": "https://web.archive.org/web/20221109015406id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-louisiana-us-senate.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:31:26Z",
+   "file": "pass_A/sources/1ea31344f71bae40bc8cd8347d2f694621807a5800cf5d4f0e5db9af4c4608b6.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-massachusetts",
+   "pass": "A",
+   "sha256": "1ea31344f71bae40bc8cd8347d2f694621807a5800cf5d4f0e5db9af4c4608b6",
+   "url": "https://web.archive.org/web/20221109010509id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-massachusetts.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:31:28Z",
+   "file": "pass_A/sources/4b0e0c426971868bbe24cc4e87540a7e3278d560f08a5defbf5c6b7a7e1746fe.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-massachusetts-governor",
+   "pass": "A",
+   "sha256": "4b0e0c426971868bbe24cc4e87540a7e3278d560f08a5defbf5c6b7a7e1746fe",
+   "url": "https://web.archive.org/web/20221109013600id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-massachusetts-governor.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:31:30Z",
+   "file": "pass_A/sources/8f28c1f878438b8c4851b4e1f924291fa5427c2b007d0a0bf2f6cab55ab73890.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-massachusetts",
+   "pass": "A",
+   "sha256": "8f28c1f878438b8c4851b4e1f924291fa5427c2b007d0a0bf2f6cab55ab73890",
+   "url": "https://web.archive.org/web/20221109075454id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-massachusetts.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:31:32Z",
+   "file": "pass_A/sources/6610e52b97116d4758267eaa1d2991930371678e992fedf75285bbef59447ffd.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-maryland",
+   "pass": "A",
+   "sha256": "6610e52b97116d4758267eaa1d2991930371678e992fedf75285bbef59447ffd",
+   "url": "https://web.archive.org/web/20221108235706id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-maryland.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:31:42Z",
+   "file": "pass_A/sources/e7073239b8ab70ead26bda0f13a20b3c4f546ce2d326108d1f4126a145ca9fbe.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-maine",
+   "pass": "A",
+   "sha256": "e7073239b8ab70ead26bda0f13a20b3c4f546ce2d326108d1f4126a145ca9fbe",
+   "url": "https://web.archive.org/web/20221109011608id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-maine.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:31:44Z",
+   "file": "pass_A/sources/1c53e92625c629641a75eda28563e93428543e737b2a913cbfc03243215768ec.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-governor",
+   "pass": "A",
+   "sha256": "1c53e92625c629641a75eda28563e93428543e737b2a913cbfc03243215768ec",
+   "url": "https://web.archive.org/web/20221109041115id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-governor.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:31:47Z",
+   "file": "pass_A/sources/ab6bd1c2cb6472055aa0b6d7401f51e65646c3b7b332903e0a621b9866fabe12.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-michigan",
+   "pass": "A",
+   "sha256": "ab6bd1c2cb6472055aa0b6d7401f51e65646c3b7b332903e0a621b9866fabe12",
+   "url": "https://web.archive.org/web/20221108235656id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-michigan.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:31:57Z",
+   "file": "pass_A/sources/313f01e803253fcb31f8dee33aeef33311fed0492ab119ca67ee9250b8373703.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-michigan-governor",
+   "pass": "A",
+   "sha256": "313f01e803253fcb31f8dee33aeef33311fed0492ab119ca67ee9250b8373703",
+   "url": "https://web.archive.org/web/20221109022551id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-michigan-governor.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:32:07Z",
+   "file": "pass_A/sources/3b730e95efbebab3dda56a7c6f4652f1ea8e3f559e63a8925c64da147cbd615f.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-minnesota",
+   "pass": "A",
+   "sha256": "3b730e95efbebab3dda56a7c6f4652f1ea8e3f559e63a8925c64da147cbd615f",
+   "url": "https://web.archive.org/web/20221109005556id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-minnesota.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:32:09Z",
+   "file": "pass_A/sources/d0551a627ca78bc2f512fc2363af9301d50edb49b19757f4b5dbb1325719abbc.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-minnesota-governor",
+   "pass": "A",
+   "sha256": "d0551a627ca78bc2f512fc2363af9301d50edb49b19757f4b5dbb1325719abbc",
+   "url": "https://web.archive.org/web/20221109010233id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-minnesota-governor.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:32:11Z",
+   "file": "pass_A/sources/e4800344550f5942b52b5b8faa2a4ec80e1a26d36f1deea496f6809e2da303e1.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-minnesota",
+   "pass": "A",
+   "sha256": "e4800344550f5942b52b5b8faa2a4ec80e1a26d36f1deea496f6809e2da303e1",
+   "url": "https://web.archive.org/web/20221109075508id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-minnesota.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:32:22Z",
+   "file": "pass_A/sources/2649ac7392a2450c0629ed6da92ac3f04d75c98df4b8744c709cb0b89e4100e8.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-missouri",
+   "pass": "A",
+   "sha256": "2649ac7392a2450c0629ed6da92ac3f04d75c98df4b8744c709cb0b89e4100e8",
+   "url": "https://web.archive.org/web/20221109010550id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-missouri.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:32:24Z",
+   "file": "pass_A/sources/bb2a72525b7562df980c15d6d366d8fe41492b0404246569f89ccaccf37da45a.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-mississippi",
+   "pass": "A",
+   "sha256": "bb2a72525b7562df980c15d6d366d8fe41492b0404246569f89ccaccf37da45a",
+   "url": "https://web.archive.org/web/20221108234752id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-mississippi.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:32:51Z",
+   "file": "pass_A/sources/a2385e48915460219f7f02ab58d94faebb7398346bf0b9a754dd72a188dc2298.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-montana",
+   "pass": "A",
+   "sha256": "a2385e48915460219f7f02ab58d94faebb7398346bf0b9a754dd72a188dc2298",
+   "url": "https://web.archive.org/web/20221109004625id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-montana.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:32:53Z",
+   "file": "pass_A/sources/4c68f73459c8e38403a0fa0ca47c89afb300483710f6ea45db3ac6430d4229f3.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-north-carolina",
+   "pass": "A",
+   "sha256": "4c68f73459c8e38403a0fa0ca47c89afb300483710f6ea45db3ac6430d4229f3",
+   "url": "https://web.archive.org/web/20221108235803id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-north-carolina.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:32:55Z",
+   "file": "pass_A/sources/d46287c1c19c898d895bae4ecafb0b7db93362c7bb7a201a829cac96f6b28b45.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-north-carolina-us-senate",
+   "pass": "A",
+   "sha256": "d46287c1c19c898d895bae4ecafb0b7db93362c7bb7a201a829cac96f6b28b45",
+   "url": "https://web.archive.org/web/20221109010532id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-north-carolina-us-senate.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:32:57Z",
+   "file": "pass_A/sources/566b0f3929b8c1b3846cf0c2fc626054ce8dec77726c559416c4cad492796460.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-north-dakota",
+   "pass": "A",
+   "sha256": "566b0f3929b8c1b3846cf0c2fc626054ce8dec77726c559416c4cad492796460",
+   "url": "https://web.archive.org/web/20221108235641id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-north-dakota.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:33:02Z",
+   "file": "pass_A/sources/7e5f21afb4d2fc0f5e6a4a4ea32a2df06189de3edc8b028e09d5fc6378894b51.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-nebraska",
+   "pass": "A",
+   "sha256": "7e5f21afb4d2fc0f5e6a4a4ea32a2df06189de3edc8b028e09d5fc6378894b51",
+   "url": "https://web.archive.org/web/20221108235636id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-nebraska.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:33:04Z",
+   "file": "pass_A/sources/fe8321fe4ac9d0b1f3a9bbdce8111062431edac70921e26b9f3b794104dbf342.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-nebraska",
+   "pass": "A",
+   "sha256": "fe8321fe4ac9d0b1f3a9bbdce8111062431edac70921e26b9f3b794104dbf342",
+   "url": "https://web.archive.org/web/20221109075537id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-nebraska.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:33:06Z",
+   "file": "pass_A/sources/e0590e22a174fa5d4b980f7f27151d867ad01f3e004c6a66ededf07625374b9b.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-new-hampshire",
+   "pass": "A",
+   "sha256": "e0590e22a174fa5d4b980f7f27151d867ad01f3e004c6a66ededf07625374b9b",
+   "url": "https://web.archive.org/web/20221108234732id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-new-hampshire.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:33:10Z",
+   "file": "pass_A/sources/9acd4185242fa19863d6cd9f898cbefdb35bf8c96325619603f78ba01dbd5dbb.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-new-hampshire-us-senate",
+   "pass": "A",
+   "sha256": "9acd4185242fa19863d6cd9f898cbefdb35bf8c96325619603f78ba01dbd5dbb",
+   "url": "https://web.archive.org/web/20221108235733id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-new-hampshire-us-senate.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:33:12Z",
+   "file": "pass_A/sources/edec378d246d305bd7c737b28b39788aa05c4f7356428d3e2f7c5d48cd99e8ea.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-new-jersey",
+   "pass": "A",
+   "sha256": "edec378d246d305bd7c737b28b39788aa05c4f7356428d3e2f7c5d48cd99e8ea",
+   "url": "https://web.archive.org/web/20221109021553id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-new-jersey.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:33:14Z",
+   "file": "pass_A/sources/627d8cf5e05a757dd5402384e4b79a871104e6e13537456e57bd470fd8ab2819.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-new-mexico",
+   "pass": "A",
+   "sha256": "627d8cf5e05a757dd5402384e4b79a871104e6e13537456e57bd470fd8ab2819",
+   "url": "https://web.archive.org/web/20221108234734id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-new-mexico.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:33:24Z",
+   "file": "pass_A/sources/a682d4ea76b901744bc780b579e0e488918159ce1061985f4d1581ba5e115b8c.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-nevada",
+   "pass": "A",
+   "sha256": "a682d4ea76b901744bc780b579e0e488918159ce1061985f4d1581ba5e115b8c",
+   "url": "https://web.archive.org/web/20221109010427id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-nevada.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:33:26Z",
+   "file": "pass_A/sources/9832ca7fe4267c2e163f32b30f973a40445bc1058b7d8dfa9ae9e024f3778f14.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-nevada-us-senate",
+   "pass": "A",
+   "sha256": "9832ca7fe4267c2e163f32b30f973a40445bc1058b7d8dfa9ae9e024f3778f14",
+   "url": "https://web.archive.org/web/20221109023528id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-nevada-us-senate.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:33:37Z",
+   "file": "pass_A/sources/0fe8c244f7c9f72989a0fec608476efb1bdd00d5fcf0aec2a52c824d733067ae.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-new-york-us-senate",
+   "pass": "A",
+   "sha256": "0fe8c244f7c9f72989a0fec608476efb1bdd00d5fcf0aec2a52c824d733067ae",
+   "url": "https://web.archive.org/web/20221109024540id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-new-york-us-senate.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:33:39Z",
+   "file": "pass_A/sources/8cbe218aff95120cda7524dffb2207d4d7fa9becfdef8f88557517a41382611b.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-ohio",
+   "pass": "A",
+   "sha256": "8cbe218aff95120cda7524dffb2207d4d7fa9becfdef8f88557517a41382611b",
+   "url": "https://web.archive.org/web/20221108234750id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-ohio.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:33:41Z",
+   "file": "pass_A/sources/92e387f829df3642aa3ccf6836946e22ab106ddca4a4eca1b0bfffaf624b589e.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-ohio-us-senate",
+   "pass": "A",
+   "sha256": "92e387f829df3642aa3ccf6836946e22ab106ddca4a4eca1b0bfffaf624b589e",
+   "url": "https://web.archive.org/web/20221108235739id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-ohio-us-senate.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:33:52Z",
+   "file": "pass_A/sources/5eae4dce6064485bf4fdd76d4c8b9925ec0fc1776e25a9c6f3f6abc1c2f2138c.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-oklahoma",
+   "pass": "A",
+   "sha256": "5eae4dce6064485bf4fdd76d4c8b9925ec0fc1776e25a9c6f3f6abc1c2f2138c",
+   "url": "https://web.archive.org/web/20221109005522id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-oklahoma.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:33:54Z",
+   "file": "pass_A/sources/33e5d578cf4a7eb3f10a5bb2c2781d948c23de7471934b5f76cf321ae3ebd915.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-oregon",
+   "pass": "A",
+   "sha256": "33e5d578cf4a7eb3f10a5bb2c2781d948c23de7471934b5f76cf321ae3ebd915",
+   "url": "https://web.archive.org/web/20221108235801id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-oregon.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:33:56Z",
+   "file": "pass_A/sources/04f621289c331dbb96ea0cc9e8d5849d529eb7199ccc9fc481dc01ef0139e3c3.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-pennsylvania",
+   "pass": "A",
+   "sha256": "04f621289c331dbb96ea0cc9e8d5849d529eb7199ccc9fc481dc01ef0139e3c3",
+   "url": "https://web.archive.org/web/20221108234116id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-pennsylvania.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:34:06Z",
+   "file": "pass_A/sources/6478cb086cc047ded96e74c730347027896bf893f24bf63b58996fb382ab661b.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-pennsylvania-us-senate",
+   "pass": "A",
+   "sha256": "6478cb086cc047ded96e74c730347027896bf893f24bf63b58996fb382ab661b",
+   "url": "https://web.archive.org/web/20221108235822id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-pennsylvania-us-senate.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:34:17Z",
+   "file": "pass_A/sources/663d8e6fa0c069d019229b499dd84d7d7694ebe9b3537397d4b955b9e928a255.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-rhode-island",
+   "pass": "A",
+   "sha256": "663d8e6fa0c069d019229b499dd84d7d7694ebe9b3537397d4b955b9e928a255",
+   "url": "https://web.archive.org/web/20221108234941id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-rhode-island.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:34:19Z",
+   "file": "pass_A/sources/1688a0ebe0b2e5677a32b3ca27b1862929619e4a9fc4b94965a8b8612365a2f9.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-rhode-island",
+   "pass": "A",
+   "sha256": "1688a0ebe0b2e5677a32b3ca27b1862929619e4a9fc4b94965a8b8612365a2f9",
+   "url": "https://web.archive.org/web/20221109075706id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-rhode-island.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:34:21Z",
+   "file": "pass_A/sources/30b472fb92f582a74b937d87e35b97166b923ce51748fe3efc3bbaabe6a7b014.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-south-carolina",
+   "pass": "A",
+   "sha256": "30b472fb92f582a74b937d87e35b97166b923ce51748fe3efc3bbaabe6a7b014",
+   "url": "https://web.archive.org/web/20221109021741id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-south-carolina.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:34:23Z",
+   "file": "pass_A/sources/c2d077742902086b4426795d79bc9692b5bd160de8bfd029aaa04315fe73dd13.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-south-dakota",
+   "pass": "A",
+   "sha256": "c2d077742902086b4426795d79bc9692b5bd160de8bfd029aaa04315fe73dd13",
+   "url": "https://web.archive.org/web/20221109004636id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-south-dakota.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:34:25Z",
+   "file": "pass_A/sources/8a514b53fc0f9c2bb61469042fd90eb0d1ce0fdeb5a695ccf6db88f781685cb6.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-tennessee",
+   "pass": "A",
+   "sha256": "8a514b53fc0f9c2bb61469042fd90eb0d1ce0fdeb5a695ccf6db88f781685cb6",
+   "url": "https://web.archive.org/web/20221108234859id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-tennessee.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:34:27Z",
+   "file": "pass_A/sources/8501b70c5a9f6d78b1ce70093d12b48898e99fb09b0fe1c990a7d8a3a64f217a.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-tennessee",
+   "pass": "A",
+   "sha256": "8501b70c5a9f6d78b1ce70093d12b48898e99fb09b0fe1c990a7d8a3a64f217a",
+   "url": "https://web.archive.org/web/20221109075739id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-tennessee.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:34:30Z",
+   "file": "pass_A/sources/1ae81819da6ca376b271f830f167adc9a07dd1aa5491ec577e7e383f9eb65f81.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-texas",
+   "pass": "A",
+   "sha256": "1ae81819da6ca376b271f830f167adc9a07dd1aa5491ec577e7e383f9eb65f81",
+   "url": "https://web.archive.org/web/20221108235806id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-texas.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:34:32Z",
+   "file": "pass_A/sources/514feb92ec3395601df5552edd00c38cad12ab2b58b0fc736b82779bb2045a19.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-texas-governor",
+   "pass": "A",
+   "sha256": "514feb92ec3395601df5552edd00c38cad12ab2b58b0fc736b82779bb2045a19",
+   "url": "https://web.archive.org/web/20221109011137id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-texas-governor.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:34:34Z",
+   "file": "pass_A/sources/3d9bcf6132a0855e24fb0250ccee265c946e254bc9b292769017ae4b73d53c67.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-governor",
+   "pass": "A",
+   "sha256": "3d9bcf6132a0855e24fb0250ccee265c946e254bc9b292769017ae4b73d53c67",
+   "url": "https://web.archive.org/web/20221109075103id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-governor.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:34:36Z",
+   "file": "pass_A/sources/7b98c2cadd473e737bbebe8d464a29cf357b6a7a8f9329874e965658770a7dbb.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-texas",
+   "pass": "A",
+   "sha256": "7b98c2cadd473e737bbebe8d464a29cf357b6a7a8f9329874e965658770a7dbb",
+   "url": "https://web.archive.org/web/20221109075747id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-texas.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:34:38Z",
+   "file": "pass_A/sources/c97fd79b8e8f8070c1f404d4c9d46f629da6cb15edbf69f603330573354f06ed.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-utah",
+   "pass": "A",
+   "sha256": "c97fd79b8e8f8070c1f404d4c9d46f629da6cb15edbf69f603330573354f06ed",
+   "url": "https://web.archive.org/web/20221108235700id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-utah.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:34:49Z",
+   "file": "pass_A/sources/4239630e861f6cc55ff927e3820192cf6a6cf206ad7765545510211c0735678c.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-virginia",
+   "pass": "A",
+   "sha256": "4239630e861f6cc55ff927e3820192cf6a6cf206ad7765545510211c0735678c",
+   "url": "https://web.archive.org/web/20221108234926id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-virginia.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:34:51Z",
+   "file": "pass_A/sources/872e304cf568e2eaaa6de1e0d4b8a9785a4ab2592c1a4a4201e68f656cc09af6.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-vermont",
+   "pass": "A",
+   "sha256": "872e304cf568e2eaaa6de1e0d4b8a9785a4ab2592c1a4a4201e68f656cc09af6",
+   "url": "https://web.archive.org/web/20221108234844id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-vermont.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:34:53Z",
+   "file": "pass_A/sources/c78aa7f4f34442c2b8b885e6df7062bff64d5a6b41fac79b4e7032ebd8338d34.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-washington",
+   "pass": "A",
+   "sha256": "c78aa7f4f34442c2b8b885e6df7062bff64d5a6b41fac79b4e7032ebd8338d34",
+   "url": "https://web.archive.org/web/20221108235656id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-washington.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:34:55Z",
+   "file": "pass_A/sources/6ba1a50d782632c41c99e586166af26ae20a408908081569965cb59f1e4a9d00.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-wisconsin",
+   "pass": "A",
+   "sha256": "6ba1a50d782632c41c99e586166af26ae20a408908081569965cb59f1e4a9d00",
+   "url": "https://web.archive.org/web/20221108230400id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-wisconsin.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:34:57Z",
+   "file": "pass_A/sources/e2b34876243d8a36f2b14935e89615bb14bc6f15d6178ffd9be216f3b3c59366.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-wisconsin-us-senate",
+   "pass": "A",
+   "sha256": "e2b34876243d8a36f2b14935e89615bb14bc6f15d6178ffd9be216f3b3c59366",
+   "url": "https://web.archive.org/web/20221109035356id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-wisconsin-us-senate.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:34:59Z",
+   "file": "pass_A/sources/40d4ba3adcd2173e3577426fb2f80015ed560ac65f4427d74f1ef52842009086.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-west-virginia",
+   "pass": "A",
+   "sha256": "40d4ba3adcd2173e3577426fb2f80015ed560ac65f4427d74f1ef52842009086",
+   "url": "https://web.archive.org/web/20221109021751id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-west-virginia.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:35:10Z",
+   "file": "pass_A/sources/8234c9b805c0e6ae3035ddd815cadc72417b93d5fa4cf6e8d9349241c01b763e.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-wyoming",
+   "pass": "A",
+   "sha256": "8234c9b805c0e6ae3035ddd815cadc72417b93d5fa4cf6e8d9349241c01b763e",
+   "url": "https://web.archive.org/web/20221108234932id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-wyoming.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:35:12Z",
+   "file": "pass_A/sources/ba74253fb2e678d357320330562113c42cfe54c2422b84ce7fb027f9bf5202d5.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-wyoming",
+   "pass": "A",
+   "sha256": "ba74253fb2e678d357320330562113c42cfe54c2422b84ce7fb027f9bf5202d5",
+   "url": "https://web.archive.org/web/20221109075851id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-wyoming.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:35:52Z",
+   "file": "pass_A/sources/294909b997c2f432a1efc6ef0b78caa8f854d03743c8e5bb736675b6750ed05a.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_hp-multi",
+   "pass": "A",
+   "sha256": "294909b997c2f432a1efc6ef0b78caa8f854d03743c8e5bb736675b6750ed05a",
+   "url": "https://web.archive.org/web/20221109013821id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/hp-multi.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:35:54Z",
+   "file": "pass_A/sources/e8d4f894fcae40d23f87993bf0ee6f0a210e9d9d1b13cb43a6f1682306bb6af5.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_results-needle-forecast",
+   "pass": "A",
+   "sha256": "e8d4f894fcae40d23f87993bf0ee6f0a210e9d9d1b13cb43a6f1682306bb6af5",
+   "url": "https://web.archive.org/web/20221109024005id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-needle-forecast.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:36:11Z",
+   "file": "pass_A/sources/c4d6263e0b92a91b3aa8ef8ae5cb3cef8abb39b111602b8fe7e944691cf6601f.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_hp-multi",
+   "pass": "A",
+   "sha256": "c4d6263e0b92a91b3aa8ef8ae5cb3cef8abb39b111602b8fe7e944691cf6601f",
+   "url": "https://web.archive.org/web/20221108232929id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/hp-multi.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:36:14Z",
+   "file": "pass_A/sources/9e3bdde6e0863a05f108225e83e8f1a77b784902fb1e4a8deba6abf291ab6738.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_hp-multi",
+   "pass": "A",
+   "sha256": "9e3bdde6e0863a05f108225e83e8f1a77b784902fb1e4a8deba6abf291ab6738",
+   "url": "https://web.archive.org/web/20221109044335id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/hp-multi.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:36:16Z",
+   "file": "pass_A/sources/c2589b31b369351e429309e5ff9ebf85d88f6a1675059e91035ee7f2445a281c.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt22_hp-multi",
+   "pass": "A",
+   "sha256": "c2589b31b369351e429309e5ff9ebf85d88f6a1675059e91035ee7f2445a281c",
+   "url": "https://web.archive.org/web/20221109064327id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/hp-multi.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:37:15Z",
+   "file": "pass_A/sources/c06465b09ffd9add9b42f3c0015a5e03df5f191a9c74ec5e42007be96544c269.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt24_ms_final_20251027211004",
+   "pass": "A",
+   "sha256": "c06465b09ffd9add9b42f3c0015a5e03df5f191a9c74ec5e42007be96544c269",
+   "url": "https://web.archive.org/web/20251027211004id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-mississippi-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:40:22Z",
+   "file": "pass_A/sources/63d7a5a0259489895cd1defe7135d2c70c565ab74903c6921e3575360ee816a4.pdf",
+   "kind": "poll_close",
+   "kind_pass": "nh_media_guide",
+   "pass": "A",
+   "sha256": "63d7a5a0259489895cd1defe7135d2c70c565ab74903c6921e3575360ee816a4",
+   "url": "https://web.archive.org/web/20241030010219id_/https://www.sos.nh.gov/sites/g/files/ehbemt561/files/documents/2024-10/2024-state-general-election-media-guide.pdf"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:38:17Z",
+   "file": "pass_B/sources/bcb7199ef500b07310d6e0faed12029ab70b78e3f354f685bc0d4125613900b2.html",
+   "kind": "ncsl",
+   "kind_pass": "ncsl_table16_wayback",
+   "pass": "B",
+   "sha256": "bcb7199ef500b07310d6e0faed12029ab70b78e3f354f685bc0d4125613900b2",
+   "url": "https://web.archive.org/web/2025id_/https://www.ncsl.org/elections-and-campaigns/table-16-when-absentee-mail-ballot-processing-and-counting-can-begin"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:38:18Z",
+   "file": "pass_B/sources/5ed4dddf6560382b098d67af5bf14dce6e684302220328da1762f1159bcb4819.html",
+   "kind": "other",
+   "kind_pass": "npr_2024_counting",
+   "pass": "B",
+   "sha256": "5ed4dddf6560382b098d67af5bf14dce6e684302220328da1762f1159bcb4819",
+   "url": "https://www.npr.org/2024/11/04/nx-s1-5178029/mail-in-absentee-ballots-counted"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:38:34Z",
+   "file": "pass_B/sources/1bbb6716618f2a31e87a441b3a5fa6016dfa217f531b8324c3143dfb73b75bfc.html",
+   "kind": "ncsl",
+   "kind_pass": "ncsl_table16_wayback",
+   "pass": "B",
+   "sha256": "1bbb6716618f2a31e87a441b3a5fa6016dfa217f531b8324c3143dfb73b75bfc",
+   "url": "https://web.archive.org/web/2025id_/https://www.ncsl.org/elections-and-campaigns/table-16-when-absentee-mail-ballot-processing-and-counting-can-begin"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:38:34Z",
+   "file": "pass_B/sources/0120756282f5ca16d92986be2cef07fefb877c7a35fe92676b453f60586d1f59.html",
+   "kind": "other",
+   "kind_pass": "npr_2024_counting",
+   "pass": "B",
+   "sha256": "0120756282f5ca16d92986be2cef07fefb877c7a35fe92676b453f60586d1f59",
+   "url": "https://www.npr.org/2024/11/04/nx-s1-5178029/mail-in-absentee-ballots-counted"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:39:08Z",
+   "file": "pass_B/sources/fd1023d46fb091b5ef66981f5f7b17c8675470149e784dfe6b3a7fee2f338dab.html",
+   "kind": "other",
+   "kind_pass": "mit_2024_count_time",
+   "pass": "B",
+   "sha256": "fd1023d46fb091b5ef66981f5f7b17c8675470149e784dfe6b3a7fee2f338dab",
+   "url": "https://electionlab.mit.edu/articles/how-long-did-it-take-count-vote-2024"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:39:33Z",
+   "file": "pass_B/sources/64df3adef7a44a13ce71292805df445838122fa543b2676bb78cc6eb7677a5fe.html",
+   "kind": "other",
+   "kind_pass": "caltech_blue_red_shift",
+   "pass": "B",
+   "sha256": "64df3adef7a44a13ce71292805df445838122fa543b2676bb78cc6eb7677a5fe",
+   "url": "https://electionupdates.caltech.edu/2024/10/31/blue-shift-red-shift"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:39:55Z",
+   "file": "pass_B/sources/bc420acff5ab9ecdb730aaf8cbdcd0e0584316fc3bb6cd3f5b823307a3e3f579.pdf",
+   "kind": "other",
+   "kind_pass": "cmc_ca_late_count_report",
+   "pass": "B",
+   "sha256": "bc420acff5ab9ecdb730aaf8cbdcd0e0584316fc3bb6cd3f5b823307a3e3f579",
+   "url": "https://www.cmc.edu/sites/default/files/Election%20Admin%20Press%20Release%20with%20image_0.pdf"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:40:12Z",
+   "file": "pass_B/sources/06f39536d1e28b4d8a7762cc52ea2d2cf6782511c82bd6274d90de4c6cdd379a.pdf",
+   "kind": "other",
+   "kind_pass": "rose_delayed_democracy",
+   "pass": "B",
+   "sha256": "06f39536d1e28b4d8a7762cc52ea2d2cf6782511c82bd6274d90de4c6cdd379a",
+   "url": "https://www.cmc.edu/sites/default/files/Delayed%20Democracy.pdf"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:41:05Z",
+   "file": "pass_B/sources/7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952.html",
+   "kind": "poll_close",
+   "kind_pass": "greenpapers_polling_hours",
+   "pass": "B",
+   "sha256": "7bb32777add3be972c08722471970734c86ffc284fe7137564f714d065a49952",
+   "url": "https://www.thegreenpapers.com/G26/PollingHours.phtml"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:41:06Z",
+   "file": "pass_B/sources/8fd30b184a9d4a7caaf9d72cb132ad794d64d698ec17c6b5838266e2911f8afd.html",
+   "kind": "poll_close",
+   "kind_pass": "270towin_poll_close",
+   "pass": "B",
+   "sha256": "8fd30b184a9d4a7caaf9d72cb132ad794d64d698ec17c6b5838266e2911f8afd",
+   "url": "https://www.270towin.com/content/local-poll-closing-times-november-2026-general-election"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:41:34Z",
+   "file": "pass_B/sources/4cc01591ba873a5b57e7dc9f4a0a7659fdb9d825e3e910598d0910d34e485505.html",
+   "kind": "ncsl",
+   "kind_pass": "ncsl_table11_wayback",
+   "pass": "B",
+   "sha256": "4cc01591ba873a5b57e7dc9f4a0a7659fdb9d825e3e910598d0910d34e485505",
+   "url": "https://web.archive.org/web/2025id_/https://www.ncsl.org/elections-and-campaigns/table-11-receipt-and-postmark-deadlines-for-absentee-mail-ballots"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:49:47Z",
+   "file": "pass_B/sources/061107068327741992545e6e9cdfa5cf2fc47c6b46f80ccfaf9eae93de634f15.html",
+   "kind": "election_office",
+   "kind_pass": "official",
+   "pass": "B",
+   "sha256": "061107068327741992545e6e9cdfa5cf2fc47c6b46f80ccfaf9eae93de634f15",
+   "url": "https://www.sos.ca.gov/elections"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:49:48Z",
+   "file": "pass_B/sources/31757bf433bb24055036944acbd1ba8d276d86ce49dd11dbb7ea3f5025ce6671.html",
+   "kind": "election_office",
+   "kind_pass": "official",
+   "pass": "B",
+   "sha256": "31757bf433bb24055036944acbd1ba8d276d86ce49dd11dbb7ea3f5025ce6671",
+   "url": "https://elections.delaware.gov/elections/general/general.shtml"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:49:49Z",
+   "file": "pass_B/sources/426fdc65651ecc70e170f77741c2d430029eec3d76904436a9a9bbf9858a1cb0.pdf",
+   "kind": "election_office",
+   "kind_pass": "official",
+   "pass": "B",
+   "sha256": "426fdc65651ecc70e170f77741c2d430029eec3d76904436a9a9bbf9858a1cb0",
+   "url": "https://elections.delaware.gov/voter/pdfs/2026_Voter_Information_Brochure.pdf"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:49:52Z",
+   "file": "pass_B/sources/ea152ed33795f24d78dfaf1c5a38ec534bbba045d0525579f3e19d82996ba29b.html",
+   "kind": "election_office",
+   "kind_pass": "official",
+   "pass": "B",
+   "sha256": "ea152ed33795f24d78dfaf1c5a38ec534bbba045d0525579f3e19d82996ba29b",
+   "url": "https://portal.ct.gov/sots/election-services/voter-information/voting-faqs"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:49:52Z",
+   "file": "pass_B/sources/f3dfa407fb3524197a67b05e87089a5ae56c0c4b58457842ed51de31dd4bd304.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "f3dfa407fb3524197a67b05e87089a5ae56c0c4b58457842ed51de31dd4bd304",
+   "url": "https://www.news4jax.com/news/politics/2024/10/21/ap-decision-notes-what-to-expect-in-georgia-on-election-day/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:49:54Z",
+   "file": "pass_B/sources/a13eb2467699d627fb0fec2bc02bc935ebfa6923d71fe464e65ffc824acebfe2.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "a13eb2467699d627fb0fec2bc02bc935ebfa6923d71fe464e65ffc824acebfe2",
+   "url": "https://www.gpb.org/news/2022/11/03/what-expect-on-election-night-and-beyond-in-georgia"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:14Z",
+   "file": "pass_B/sources/6ce6c950e8ac8fb893186f8d29aa78c68f2a41a603d00aecc0819b8b46a0a8d8.html",
+   "kind": "other",
+   "kind_pass": "probe",
+   "pass": "B",
+   "sha256": "6ce6c950e8ac8fb893186f8d29aa78c68f2a41a603d00aecc0819b8b46a0a8d8",
+   "url": "https://portal.ct.gov/sots/election-services/voter-information/voting-in-connecticut"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:14Z",
+   "file": "pass_B/sources/b71ae422d87d68fe3c1387e58c8a2a234272c1eb724bd6c2de23eb9edd6f9ff6.html",
+   "kind": "other",
+   "kind_pass": "probe",
+   "pass": "B",
+   "sha256": "b71ae422d87d68fe3c1387e58c8a2a234272c1eb724bd6c2de23eb9edd6f9ff6",
+   "url": "https://portal.ct.gov/sots/election-services/election-calendar"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:15Z",
+   "file": "pass_B/sources/459a51ba6a9c6e0ea6eb60977c8fc4353eb6bfd2e1c75fc7f0f155c02862e000.html",
+   "kind": "other",
+   "kind_pass": "probe",
+   "pass": "B",
+   "sha256": "459a51ba6a9c6e0ea6eb60977c8fc4353eb6bfd2e1c75fc7f0f155c02862e000",
+   "url": "https://www.sos.alabama.gov/alabama-votes"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:16Z",
+   "file": "pass_B/sources/bb8588c4d5655a716e759b8cb4a559b5d4ac28b7b9e4a7e7e1ba4f517e8fa33c.html",
+   "kind": "other",
+   "kind_pass": "probe",
+   "pass": "B",
+   "sha256": "bb8588c4d5655a716e759b8cb4a559b5d4ac28b7b9e4a7e7e1ba4f517e8fa33c",
+   "url": "https://www.sos.arkansas.gov/elections"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:17Z",
+   "file": "pass_B/sources/4345ebf5f53a1a429c433deea2ca221459db05e230ade058f3176d5fabca7acf.html",
+   "kind": "poll_close",
+   "kind_pass": "official_pollclose",
+   "pass": "B",
+   "sha256": "4345ebf5f53a1a429c433deea2ca221459db05e230ade058f3176d5fabca7acf",
+   "url": "https://oklahoma.gov/elections/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:17Z",
+   "file": "pass_B/sources/b8d41740bb2860f3354d15d68fb13c1f889ef0f09237f520ab8a0ec562836326.html",
+   "kind": "other",
+   "kind_pass": "probe",
+   "pass": "B",
+   "sha256": "b8d41740bb2860f3354d15d68fb13c1f889ef0f09237f520ab8a0ec562836326",
+   "url": "https://www.coloradosos.gov/pubs/elections/main.html"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:18Z",
+   "file": "pass_B/sources/fc0e84e61dfe4471851eb49efb96adc192842f004acbe71622fe38657245fa52.html",
+   "kind": "poll_close",
+   "kind_pass": "official_pollclose",
+   "pass": "B",
+   "sha256": "fc0e84e61dfe4471851eb49efb96adc192842f004acbe71622fe38657245fa52",
+   "url": "https://www.pa.gov/agencies/dos/programs/voting-and-elections/upcoming-elections"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:20Z",
+   "file": "pass_B/sources/ab88eb60f5ef65f4590f96903665c41c4bca769d86895ee13a56168c6512c81c.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "ab88eb60f5ef65f4590f96903665c41c4bca769d86895ee13a56168c6512c81c",
+   "url": "https://www.politifact.com/factchecks/2022/nov/10/instagram-posts/no-this-graph-doesnt-prove-gretchen-whitmer-stole"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:20Z",
+   "file": "pass_B/sources/727bfbb9d07db4c3c06403abe980784f7e8b3cc1f4e05f4ab2b07ec7ede06056.html",
+   "kind": "other",
+   "kind_pass": "probe",
+   "pass": "B",
+   "sha256": "727bfbb9d07db4c3c06403abe980784f7e8b3cc1f4e05f4ab2b07ec7ede06056",
+   "url": "https://www.arkansas.gov/sos/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:20Z",
+   "file": "pass_B/sources/ef7a71ff5e1e5f963630a701330316846b8830e774d595538de7d7525a0ccff0.pdf",
+   "kind": "poll_close",
+   "kind_pass": "official_pollclose",
+   "pass": "B",
+   "sha256": "ef7a71ff5e1e5f963630a701330316846b8830e774d595538de7d7525a0ccff0",
+   "url": "https://sos.oregon.gov/elections/Documents/toolkit/2026-Dont-Wait-Vote-Early-General-Election-English-11x17.pdf"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:20Z",
+   "file": "pass_B/sources/abd4ddb70b829c8a1dcd4e3fcdece593c9c4a8db8cea93857cd79f5cbb6637f1.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "abd4ddb70b829c8a1dcd4e3fcdece593c9c4a8db8cea93857cd79f5cbb6637f1",
+   "url": "https://www.cbsnews.com/detroit/news/why-ap-called-michigan-governors-race-for-gretchen-whitmer/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:21Z",
+   "file": "pass_B/sources/84cdc77757a51d81b68c8260d8ee73a0f10baade5b20e8e38d4317bf4098cf6e.pdf",
+   "kind": "poll_close",
+   "kind_pass": "official_pollclose",
+   "pass": "B",
+   "sha256": "84cdc77757a51d81b68c8260d8ee73a0f10baade5b20e8e38d4317bf4098cf6e",
+   "url": "https://vote.sos.ri.gov/Forms/Elections/Guides/2026ElecCal.pdf"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:21Z",
+   "file": "pass_B/sources/f2895f602a9f7b75d74ee85b3a8cbd382043f01a4a2c5e5fc52de2dbea0cf4f6.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "f2895f602a9f7b75d74ee85b3a8cbd382043f01a4a2c5e5fc52de2dbea0cf4f6",
+   "url": "https://www.wsls.com/news/politics/2024/11/06/why-ap-called-michigan-for-trump/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:22Z",
+   "file": "pass_B/sources/41ec086e8e16c0ad716315bc9577dfe71ec676be2ab2d03bec05fda5321fd8fc.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "41ec086e8e16c0ad716315bc9577dfe71ec676be2ab2d03bec05fda5321fd8fc",
+   "url": "https://www.cnn.com/2022/11/07/politics/blue-shift-red-mirage-2022-election-results"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:22Z",
+   "file": "pass_B/sources/982f5553ec23618da72506620b6d5936698cdae74837077ba7810ac3e8756ffb.html",
+   "kind": "poll_close",
+   "kind_pass": "official_pollclose",
+   "pass": "B",
+   "sha256": "982f5553ec23618da72506620b6d5936698cdae74837077ba7810ac3e8756ffb",
+   "url": "https://vote.utah.gov/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:25Z",
+   "file": "pass_B/sources/3312e8d321d86dfa9257ca75cb232698e1e12ff68d2ef78e8cb2053f70fd0619.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "3312e8d321d86dfa9257ca75cb232698e1e12ff68d2ef78e8cb2053f70fd0619",
+   "url": "https://www.pbs.org/newshour/politics/what-to-expect-in-florida-on-election-day"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:26Z",
+   "file": "pass_B/sources/384f480181e50db9e3608c0780731b51e3a87f7317a7cfdcda3aa498e4f3f740.html",
+   "kind": "other",
+   "kind_pass": "article",
+   "pass": "B",
+   "sha256": "384f480181e50db9e3608c0780731b51e3a87f7317a7cfdcda3aa498e4f3f740",
+   "url": "https://chronline.com/stories/perez-lead-over-kent-narrows-in-3rd-congressional-district-race,303475"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:27Z",
+   "file": "pass_B/sources/593db54c43155889b003aa33d26a04248d70dc1bddda8f30b4ab273ba93aa780.html",
+   "kind": "other",
+   "kind_pass": "article",
+   "pass": "B",
+   "sha256": "593db54c43155889b003aa33d26a04248d70dc1bddda8f30b4ab273ba93aa780",
+   "url": "https://opb.org/article/2022/11/12/marie-gluesenkamp-perez-declares-victory-in-congressional-bid-as-kent-votes-dwindle"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:32Z",
+   "file": "pass_B/sources/7cd2356ac6e2fdc4063073ac5244cdd1f846978cc73490656cbc56f8539be6a9.html",
+   "kind": "other",
+   "kind_pass": "article",
+   "pass": "B",
+   "sha256": "7cd2356ac6e2fdc4063073ac5244cdd1f846978cc73490656cbc56f8539be6a9",
+   "url": "https://www.thestranger.com/slog-pm/slog-pm-the-future-of-seattle-elections-still-in-limbo-king-county-progressives-continue-to-dominate-and-clark-county-will-decide-congressi-78721568/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:33Z",
+   "file": "pass_B/sources/ae06f71b7d1db5a61cffa1f11ff32caf88830a22451f02dc4357db85b01e6875.html",
+   "kind": "other",
+   "kind_pass": "article",
+   "pass": "B",
+   "sha256": "ae06f71b7d1db5a61cffa1f11ff32caf88830a22451f02dc4357db85b01e6875",
+   "url": "https://www.knkx.org/politics/2024-11-06/rep-marie-gluesenkamp-perez-leading-in-tight-race-for-was-3rd-congressional-district"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:34Z",
+   "file": "pass_B/sources/3dcf00fb3ce53c347b82def25f8589b709dbeb659094befd0fadab17d5f20bf3.html",
+   "kind": "other",
+   "kind_pass": "article",
+   "pass": "B",
+   "sha256": "3dcf00fb3ce53c347b82def25f8589b709dbeb659094befd0fadab17d5f20bf3",
+   "url": "https://www.politifact.com/factchecks/2024/nov/14/instagram-posts/no-an-early-morning-influx-of-milwaukee-votes-does/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:35Z",
+   "file": "pass_B/sources/0546c08977d585cba846ef33f885198c57233de3df6a87b2330f6fe0ee57bf8b.html",
+   "kind": "other",
+   "kind_pass": "article",
+   "pass": "B",
+   "sha256": "0546c08977d585cba846ef33f885198c57233de3df6a87b2330f6fe0ee57bf8b",
+   "url": "https://www.wvtf.org/news/2022-11-07/a-look-at-how-early-votes-will-be-counted-in-virginia-this-year"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:36Z",
+   "file": "pass_B/sources/183a90ce21c67766f5a7eaaae2945852a7ad9dbfaa46ca77eaadb152443d898d.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "183a90ce21c67766f5a7eaaae2945852a7ad9dbfaa46ca77eaadb152443d898d",
+   "url": "https://www.ipm.org/2024-11-05/ap-decision-notes-what-to-expect-in-indiana-on-election-day"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:36Z",
+   "file": "pass_B/sources/d02032286070b4dd9d8fbd985a7bdca8af8edf52b89ff177db3bfcb2c8a9c43d.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "d02032286070b4dd9d8fbd985a7bdca8af8edf52b89ff177db3bfcb2c8a9c43d",
+   "url": "https://www.dailyherald.com/20221102/news/indiana-what-to-expect-on-election-night/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:37Z",
+   "file": "pass_B/sources/e3b36d0788975989e5f767ada1d46258b4789fbec041a54e8d003244facca7f2.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "e3b36d0788975989e5f767ada1d46258b4789fbec041a54e8d003244facca7f2",
+   "url": "https://www.25newsnow.com/2024/10/22/ap-decision-notes-what-expect-illinois-election-day/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:38Z",
+   "file": "pass_B/sources/a86cfd390c552509c8528b7b3fda8c20e638c24c595e74cb97b23b622a2a1254.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "a86cfd390c552509c8528b7b3fda8c20e638c24c595e74cb97b23b622a2a1254",
+   "url": "https://ipmnewsroom.org/ap-decision-notes-what-to-expect-in-illinois-on-election-day-2/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:39Z",
+   "file": "pass_B/sources/d1dfd2caf815bcc61e7457823b3832ac0d24e14907dd40e7bfaa0018af9f1c18.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "d1dfd2caf815bcc61e7457823b3832ac0d24e14907dd40e7bfaa0018af9f1c18",
+   "url": "https://www.pbs.org/newshour/politics/what-to-expect-in-kentuckys-general-election"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:40Z",
+   "file": "pass_B/sources/d0509913c728a6add6eaae1dccfa8dc060147354254132e77364c13eb1e4e9ab.html",
+   "kind": "poll_close",
+   "kind_pass": "official_pollclose",
+   "pass": "B",
+   "sha256": "d0509913c728a6add6eaae1dccfa8dc060147354254132e77364c13eb1e4e9ab",
+   "url": "https://scvotes.gov/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:40Z",
+   "file": "pass_B/sources/f81e554af162ea4efda115a436235593b45f8773ddfac6cc551dee1d3ca869d7.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "f81e554af162ea4efda115a436235593b45f8773ddfac6cc551dee1d3ca869d7",
+   "url": "https://spectrumnews1.com/ky/louisville/news/2022/11/02/what-to-expect-on-election-night-in-kentucky"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:40Z",
+   "file": "pass_B/sources/91e530da68cf27a6ddae5c4726b8d5efde52a1d8f67fe7597e1691ff599a3a3b.html",
+   "kind": "poll_close",
+   "kind_pass": "official_pollclose",
+   "pass": "B",
+   "sha256": "91e530da68cf27a6ddae5c4726b8d5efde52a1d8f67fe7597e1691ff599a3a3b",
+   "url": "https://sdsos.gov/elections-voting/voting/default.aspx"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:41Z",
+   "file": "pass_B/sources/9ef12074307601ce7a13c65384678b50ddaa924a56e3abe74ca00728f68d2233.html",
+   "kind": "poll_close",
+   "kind_pass": "official_pollclose",
+   "pass": "B",
+   "sha256": "9ef12074307601ce7a13c65384678b50ddaa924a56e3abe74ca00728f68d2233",
+   "url": "https://sdsos.gov/elections-voting/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:41Z",
+   "file": "pass_B/sources/dd7c5414b3e8503cd15a9764674381db861831be216bf956e46adf5c499d1bf2.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "dd7c5414b3e8503cd15a9764674381db861831be216bf956e46adf5c499d1bf2",
+   "url": "https://srnnews.com/ap-decision-notes-what-to-expect-in-kansas-on-election-day/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:43Z",
+   "file": "pass_B/sources/94a621c6f052d95f1e5ffdd4a048a60a144c4f7a15ef800d659a3daf0d7c9ff4.html",
+   "kind": "poll_close",
+   "kind_pass": "official_pollclose",
+   "pass": "B",
+   "sha256": "94a621c6f052d95f1e5ffdd4a048a60a144c4f7a15ef800d659a3daf0d7c9ff4",
+   "url": "https://sos.tn.gov/elections"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:43Z",
+   "file": "pass_B/sources/2369fe83e703ec904270043110adae4fbea4f0e1b1fded0f776517c7202b134f.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "2369fe83e703ec904270043110adae4fbea4f0e1b1fded0f776517c7202b134f",
+   "url": "https://srnnews.com/ap-decision-notes-what-to-expect-in-florida-on-election-day/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:43Z",
+   "file": "pass_B/sources/66f5ea1305204eb003e7ca07a44ca94dca45e4fe78b93c63e922440c9d50ff39.html",
+   "kind": "poll_close",
+   "kind_pass": "official_pollclose",
+   "pass": "B",
+   "sha256": "66f5ea1305204eb003e7ca07a44ca94dca45e4fe78b93c63e922440c9d50ff39",
+   "url": "https://www.votetexas.gov/voting/when.html"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:43Z",
+   "file": "pass_B/sources/3bc52f990fb25d2cccd063c5894348a15ce96751f6a8474fa376b348bf3a2c02.html",
+   "kind": "poll_close",
+   "kind_pass": "official_pollclose",
+   "pass": "B",
+   "sha256": "3bc52f990fb25d2cccd063c5894348a15ce96751f6a8474fa376b348bf3a2c02",
+   "url": "https://www.votetexas.gov/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:44Z",
+   "file": "pass_B/sources/8a4081c7b0fc2040b9e78f8c4b04aaa73dacd9e2fd5aadff52b2ac45dd40bfa9.html",
+   "kind": "poll_close",
+   "kind_pass": "official_pollclose",
+   "pass": "B",
+   "sha256": "8a4081c7b0fc2040b9e78f8c4b04aaa73dacd9e2fd5aadff52b2ac45dd40bfa9",
+   "url": "https://www.sos.texas.gov/elections/voter/index.shtml"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:44Z",
+   "file": "pass_B/sources/e667cdc09aeef05943fcdcce74d8466c683b62fe28a5c313b0df529178dd34c0.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "e667cdc09aeef05943fcdcce74d8466c683b62fe28a5c313b0df529178dd34c0",
+   "url": "https://www.aol.com/ap-decision-notes-expect-kansas-221653746.html"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:44Z",
+   "file": "pass_B/sources/989407a69407dff881551261223f2e147ee15bf79577bd86e6b9e6363225aaa4.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "989407a69407dff881551261223f2e147ee15bf79577bd86e6b9e6363225aaa4",
+   "url": "https://www.wsbtv.com/news/politics/ap-decision-notes/CGGDLROOEU4VZITRWXHQEXS7RE/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:44Z",
+   "file": "pass_B/sources/a9edbc1b498215e9d958352287600be7468872c72971c59469ff30e80999506d.html",
+   "kind": "poll_close",
+   "kind_pass": "official_pollclose",
+   "pass": "B",
+   "sha256": "a9edbc1b498215e9d958352287600be7468872c72971c59469ff30e80999506d",
+   "url": "https://sdlegislature.gov/Statutes/12-18-1"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:45Z",
+   "file": "pass_B/sources/73262a93fd717c72cc0d386673bd5c1393427ac92791664f33cf1f0f3dffcae0.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "73262a93fd717c72cc0d386673bd5c1393427ac92791664f33cf1f0f3dffcae0",
+   "url": "https://www.fox32chicago.com/election/election-results-2022-illinois-midterms"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:46Z",
+   "file": "pass_B/sources/5c2800a156f356c1150f95c8d606f543dd233e95ceb24f8e5f9a5ae7ef2a40db.pdf",
+   "kind": "poll_close",
+   "kind_pass": "official_pollclose",
+   "pass": "B",
+   "sha256": "5c2800a156f356c1150f95c8d606f543dd233e95ceb24f8e5f9a5ae7ef2a40db",
+   "url": "https://www.sos.alabama.gov/sites/default/files/election-2026/2026-VoterGuide.pdf"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:46Z",
+   "file": "pass_B/sources/e4ffb262ddc14d741f0f67f852ed0572d99f4bd1bb4de5b78f97d65d294aaf89.pdf",
+   "kind": "poll_close",
+   "kind_pass": "official_pollclose",
+   "pass": "B",
+   "sha256": "e4ffb262ddc14d741f0f67f852ed0572d99f4bd1bb4de5b78f97d65d294aaf89",
+   "url": "https://www.sos.arkansas.gov/uploads/elections/2026_Election_Calendar_Rev._6-2025_.pdf"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:47Z",
+   "file": "pass_B/sources/91010b88fe33edb3910d874b18c6681b81071ad9fc7ce08ac0d61fc066be4e71.html",
+   "kind": "poll_close",
+   "kind_pass": "official_pollclose",
+   "pass": "B",
+   "sha256": "91010b88fe33edb3910d874b18c6681b81071ad9fc7ce08ac0d61fc066be4e71",
+   "url": "https://www.sos.state.co.us/pubs/elections/FAQs/ElectionDay.html"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:48Z",
+   "file": "pass_B/sources/afff516eaf414b989db84f88d109e4d93faeee266791082f3c74879656a79583.html",
+   "kind": "poll_close",
+   "kind_pass": "official_pollclose",
+   "pass": "B",
+   "sha256": "afff516eaf414b989db84f88d109e4d93faeee266791082f3c74879656a79583",
+   "url": "https://www.coloradosos.gov/pubs/newsRoom/pressReleases/2026/PR20261012DropBoxes.html"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:48Z",
+   "file": "pass_B/sources/942c120f2809940edd4dd042fd55d7ad0b70211be2525f97d6a60060b94281a0.html",
+   "kind": "poll_close",
+   "kind_pass": "official_pollclose",
+   "pass": "B",
+   "sha256": "942c120f2809940edd4dd042fd55d7ad0b70211be2525f97d6a60060b94281a0",
+   "url": "https://portal.ct.gov/sots/election-services/voter-information/where-and-how-do-i-vote"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:51Z",
+   "file": "pass_B/sources/bb15d2985a8db52c78cddcbc89b9d99e68492566a71f52dffb4547fd53d85715.html",
+   "kind": "poll_close",
+   "kind_pass": "official_pollclose",
+   "pass": "B",
+   "sha256": "bb15d2985a8db52c78cddcbc89b9d99e68492566a71f52dffb4547fd53d85715",
+   "url": "https://www.scstatehouse.gov/code/t07c013.php"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:52Z",
+   "file": "pass_B/sources/dbfba8a96dc3cd584157ca66aaafdf67e0ed15dd5a0c8a58f3d4bd0f109fc646.html",
+   "kind": "poll_close",
+   "kind_pass": "official_pollclose",
+   "pass": "B",
+   "sha256": "dbfba8a96dc3cd584157ca66aaafdf67e0ed15dd5a0c8a58f3d4bd0f109fc646",
+   "url": "https://statutes.capitol.texas.gov/Docs/EL/htm/EL.41.htm"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:53Z",
+   "file": "pass_B/sources/074fd5aa8082792d7ae0f415e773951ef4975913ba281542ef9a590df98a2267.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "074fd5aa8082792d7ae0f415e773951ef4975913ba281542ef9a590df98a2267",
+   "url": "https://www.nbcwashington.com/decision-2022/what-to-expect-on-election-night-in-maryland/3199140/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:53Z",
+   "file": "pass_B/sources/9cac30d439a70a50c8fb662969988fff79dfc4a4d231f7fbef4c4b45e6029516.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "9cac30d439a70a50c8fb662969988fff79dfc4a4d231f7fbef4c4b45e6029516",
+   "url": "https://analysis.decisiondeskhq.com/?p=3644"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:54Z",
+   "file": "pass_B/sources/09e7bbbc653880bfa783dc838978d6452fe62ee1a2db23b3a3a9ee0e74176649.html",
+   "kind": "poll_close",
+   "kind_pass": "official_pollclose",
+   "pass": "B",
+   "sha256": "09e7bbbc653880bfa783dc838978d6452fe62ee1a2db23b3a3a9ee0e74176649",
+   "url": "https://scvotes.gov/voters/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:54Z",
+   "file": "pass_B/sources/cf8ed60051bee96eef353c3391f7ddc1ca56dbade775cddaa5ff65aba087dba3.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "cf8ed60051bee96eef353c3391f7ddc1ca56dbade775cddaa5ff65aba087dba3",
+   "url": "https://www.wbur.org/news/2024/11/04/election-results-massachusetts-timing-ballot-counting-newsletter"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:56Z",
+   "file": "pass_B/sources/8240af929ab88a1281eab263b2c495f7b961ad4d5de2e34a51f9fc27a8471923.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "8240af929ab88a1281eab263b2c495f7b961ad4d5de2e34a51f9fc27a8471923",
+   "url": "https://www.pressherald.com/?p=7390734"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:56Z",
+   "file": "pass_B/sources/cf41e5d4c02a73ad374290fa0cc185e621f85d016594a4a3a2b02303249aa8ec.pdf",
+   "kind": "poll_close",
+   "kind_pass": "official_pollclose_wayback",
+   "pass": "B",
+   "sha256": "cf41e5d4c02a73ad374290fa0cc185e621f85d016594a4a3a2b02303249aa8ec",
+   "url": "https://web.archive.org/web/2026id_/https://www.elections.alaska.gov/doc/mp/2026/MediaPacket-2026-General.%20V3.pdf"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:56Z",
+   "file": "pass_B/sources/d4c773e0de41dfbf634122a5db93ae443d36cb75b100c5b8ce49f7fff8163f0b.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "d4c773e0de41dfbf634122a5db93ae443d36cb75b100c5b8ce49f7fff8163f0b",
+   "url": "https://elections.maryland.gov/elections/2026/vote2026/index.html"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:59Z",
+   "file": "pass_B/sources/daa1a741d3c55e6d092a0bd8953305a207718c6b6e8baf4e78c810483b7c0478.html",
+   "kind": "poll_close",
+   "kind_pass": "official_pollclose_wayback",
+   "pass": "B",
+   "sha256": "daa1a741d3c55e6d092a0bd8953305a207718c6b6e8baf4e78c810483b7c0478",
+   "url": "https://web.archive.org/web/2026id_/https://azsos.gov/elections/about-elections/elections-procedures/election-day-operations"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:50:59Z",
+   "file": "pass_B/sources/8d85092fd7fa8b8306d848e335ae7fb103fac1f328158022f3f88972166fa668.html",
+   "kind": "other",
+   "kind_pass": "article",
+   "pass": "B",
+   "sha256": "8d85092fd7fa8b8306d848e335ae7fb103fac1f328158022f3f88972166fa668",
+   "url": "https://wpr.org/election-results-wisconsin-governor-tony-evers-tim-michels"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:00Z",
+   "file": "pass_B/sources/5ce38d40f2998e33b9c6ca1ec6623f0d6b8365bb356e3a7747bef2efd9a28da9.html",
+   "kind": "other",
+   "kind_pass": "article",
+   "pass": "B",
+   "sha256": "5ce38d40f2998e33b9c6ca1ec6623f0d6b8365bb356e3a7747bef2efd9a28da9",
+   "url": "https://civicmedia.us/shows/recombobulation-area/2024/10/22/milwaukees-late-night-ballot-dump-explained/transcript"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:01Z",
+   "file": "pass_B/sources/4982f20ee9544a1928787ab0b5dcc97e2793290cab4509c06a445634d0d6b2c1.html",
+   "kind": "other",
+   "kind_pass": "article",
+   "pass": "B",
+   "sha256": "4982f20ee9544a1928787ab0b5dcc97e2793290cab4509c06a445634d0d6b2c1",
+   "url": "https://tmj4.com/decision2022/wisconsin-2022-election-live-updates-on-midterm-elections"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:02Z",
+   "file": "pass_B/sources/b565494a6db365d7b7acbbb732f746f3848779f35cf65cef851d7954ff0dddce.html",
+   "kind": "other",
+   "kind_pass": "article",
+   "pass": "B",
+   "sha256": "b565494a6db365d7b7acbbb732f746f3848779f35cf65cef851d7954ff0dddce",
+   "url": "https://chronline.com/stories/gluesenkamp-perez-maintains-narrow-lead-over-kent-in-3rd-district-race,303815"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:02Z",
+   "file": "pass_B/sources/5f3c67de0f486d26624db548c2e9be7dde9d9075841495dac01d4e97ef1b0a23.html",
+   "kind": "other",
+   "kind_pass": "article",
+   "pass": "B",
+   "sha256": "5f3c67de0f486d26624db548c2e9be7dde9d9075841495dac01d4e97ef1b0a23",
+   "url": "https://www.kuow.org/stories/southwest-washington-congressional-race-too-close-to-call-as-vote-counting-continues"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:03Z",
+   "file": "pass_B/sources/01fbd44149bad55e1fa9b52504923dab51ad182c5715ba0655aedec11ba0bb99.html",
+   "kind": "other",
+   "kind_pass": "article",
+   "pass": "B",
+   "sha256": "01fbd44149bad55e1fa9b52504923dab51ad182c5715ba0655aedec11ba0bb99",
+   "url": "https://www.williamsmullen.com/insights/news/legal-news/2024-virginia-election-recap"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:06Z",
+   "file": "pass_B/sources/a625fd03808a12b9ac75a414b35af35a630064cd092cbff3c0719630d266725d.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "a625fd03808a12b9ac75a414b35af35a630064cd092cbff3c0719630d266725d",
+   "url": "https://votingrightslab.org/2024/08/26/ballot-counting-a-big-head-start-often-explains-an-earlier-finish/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:06Z",
+   "file": "pass_B/sources/93833fa6803ea8bd504311049f619024df0646829ef83de07591ff2ccb715964.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "93833fa6803ea8bd504311049f619024df0646829ef83de07591ff2ccb715964",
+   "url": "https://www.cbsnews.com/miami/news/vote-mail-early-voting-florida-election-results/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:08Z",
+   "file": "pass_B/sources/f1fb06814640f7339520df95782011bac46c4560a49ab3269ee9e1ba44460e58.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "f1fb06814640f7339520df95782011bac46c4560a49ab3269ee9e1ba44460e58",
+   "url": "https://web.archive.org/web/2024id_/https://georgiarecorder.com/2024/11/06/after-bitter-defeat-in-2020-trump-comes-back-to-win-georgia-in-2024/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:10Z",
+   "file": "pass_B/sources/e9381bb6f45745d442aeb3b90e79b343f3eb0ddf21b75936e5cd9f24c4bf3eb9.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "e9381bb6f45745d442aeb3b90e79b343f3eb0ddf21b75936e5cd9f24c4bf3eb9",
+   "url": "https://web.archive.org/web/2022id_/https://georgiarecorder.com/2022/11/08/battle-for-georgia-ballot-2022-ongoing-election-day-coverage-2/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:18Z",
+   "file": "pass_B/sources/efb20b40bcce33a9571fcc73b6f1251b409b315b83fe9d23f53d82e3f765060c.html",
+   "kind": "poll_close",
+   "kind_pass": "official_pollclose",
+   "pass": "B",
+   "sha256": "efb20b40bcce33a9571fcc73b6f1251b409b315b83fe9d23f53d82e3f765060c",
+   "url": "https://maps2.dcgis.dc.gov/DCGIS/rest/services/DCGIS_DATA/Government_Operations/MapServer/9/iteminfo?f=pjson"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:19Z",
+   "file": "pass_B/sources/01850f0e39c7f2cb514e44432dad0282460d47b57fe6e740adf43c27a93153e4.html",
+   "kind": "poll_close",
+   "kind_pass": "official_pollclose",
+   "pass": "B",
+   "sha256": "01850f0e39c7f2cb514e44432dad0282460d47b57fe6e740adf43c27a93153e4",
+   "url": "https://opendata.dc.gov/datasets/find-a-vote-center-and-ballot-drop-box"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:20Z",
+   "file": "pass_B/sources/7a38f1ac0e871fb09e2038b7879c2b1cb7fa300dc22107c897df8cae920c4364.pdf",
+   "kind": "election_office",
+   "kind_pass": "official",
+   "pass": "B",
+   "sha256": "7a38f1ac0e871fb09e2038b7879c2b1cb7fa300dc22107c897df8cae920c4364",
+   "url": "https://ndlegis.gov/cencode/t16-1c05.pdf"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:20Z",
+   "file": "pass_B/sources/45135ffa4d8fc5ed334390eb8e87411be516f0056a8428d809f55e09d787d646.html",
+   "kind": "other",
+   "kind_pass": "article",
+   "pass": "B",
+   "sha256": "45135ffa4d8fc5ed334390eb8e87411be516f0056a8428d809f55e09d787d646",
+   "url": "https://www.wpr.org/politics/why-full-results-wisconsin-after-election-day-may-take-some-time"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:20Z",
+   "file": "pass_B/sources/ed183e4c75aa02ef42315ed5c994a778f90f07c2ebed76cee2e63a5bc764d0c0.pdf",
+   "kind": "election_office",
+   "kind_pass": "official",
+   "pass": "B",
+   "sha256": "ed183e4c75aa02ef42315ed5c994a778f90f07c2ebed76cee2e63a5bc764d0c0",
+   "url": "https://www.sec.state.ma.us/divisions/elections/download/information-for-voters/archive/IFV_2026%20English.pdf"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:21Z",
+   "file": "pass_B/sources/12183082ff768ef927aea25ba6676daa5a7d359f7525bd173ea5f9809acaa8f8.html",
+   "kind": "election_office",
+   "kind_pass": "official",
+   "pass": "B",
+   "sha256": "12183082ff768ef927aea25ba6676daa5a7d359f7525bd173ea5f9809acaa8f8",
+   "url": "https://www.sos.mo.gov/elections/calendar"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:21Z",
+   "file": "pass_B/sources/85d0098099131444a7ec775c477e078c0d6576596b628b1ae135aad562b441b6.html",
+   "kind": "other",
+   "kind_pass": "article",
+   "pass": "B",
+   "sha256": "85d0098099131444a7ec775c477e078c0d6576596b628b1ae135aad562b441b6",
+   "url": "https://www.weau.com/2022/11/08/gop-sen-johnson-faces-off-against-democratic-challenger-lt-gov-barnes/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:22Z",
+   "file": "pass_B/sources/f695cfa56764203cad2c907ec49303a0ede40b79add6c3813a5e08171c8a5df3.html",
+   "kind": "election_office",
+   "kind_pass": "official",
+   "pass": "B",
+   "sha256": "f695cfa56764203cad2c907ec49303a0ede40b79add6c3813a5e08171c8a5df3",
+   "url": "https://www.thegreenpapers.com/G26/ME"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:22Z",
+   "file": "pass_B/sources/0d43d6b2f5fdbbf4b96d216ae5132c8d6e7269c36d569f2d6a92dfe62a6e9c4b.html",
+   "kind": "other",
+   "kind_pass": "article",
+   "pass": "B",
+   "sha256": "0d43d6b2f5fdbbf4b96d216ae5132c8d6e7269c36d569f2d6a92dfe62a6e9c4b",
+   "url": "https://wpr.org/democratic-lt-gov-mandela-barnes-concedes-us-senate-race-republican-incumbent-ron-johnson"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:23Z",
+   "file": "pass_B/sources/7f08dfe17c255b52d0bc52a1bc4c7ab3e80d68030771767868d9740c5fe2333b.html",
+   "kind": "election_office",
+   "kind_pass": "official",
+   "pass": "B",
+   "sha256": "7f08dfe17c255b52d0bc52a1bc4c7ab3e80d68030771767868d9740c5fe2333b",
+   "url": "https://sos.mn.gov/elections-voting/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:23Z",
+   "file": "pass_B/sources/344bf5b1d17e02649ef9eb3caf273bc5dc83eb85c3c7e9881cd810425379598d.html",
+   "kind": "other",
+   "kind_pass": "article",
+   "pass": "B",
+   "sha256": "344bf5b1d17e02649ef9eb3caf273bc5dc83eb85c3c7e9881cd810425379598d",
+   "url": "https://www.wxpr.org/election/2022-11-09/wisconsins-johnson-beats-barnes-key-senate-seat-stays-gop"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:24Z",
+   "file": "pass_B/sources/0fb5246c369b1fc7985da325bc812c713a42d7ff8723741e3eed7ab4601b9602.html",
+   "kind": "other",
+   "kind_pass": "article",
+   "pass": "B",
+   "sha256": "0fb5246c369b1fc7985da325bc812c713a42d7ff8723741e3eed7ab4601b9602",
+   "url": "https://www.pbs.org/video/recapping-wisconsins-vote-for-president-us-senate-in-2024-azamwi"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:25Z",
+   "file": "pass_B/sources/d5be27db1127e898b5dc482e8e479fbfb3a40802b895a62bd3beffac25e663d2.html",
+   "kind": "poll_close",
+   "kind_pass": "official_pollclose",
+   "pass": "B",
+   "sha256": "d5be27db1127e898b5dc482e8e479fbfb3a40802b895a62bd3beffac25e663d2",
+   "url": "https://sos.tn.gov/newsroom/press-releases/everything-voters-need-to-know-for-the-august-6-election-this-thursday"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:25Z",
+   "file": "pass_B/sources/ea312337de49300275b244a310881ea84ddb240664b369b2869e1a52ac8e57fc.html",
+   "kind": "election_office",
+   "kind_pass": "official",
+   "pass": "B",
+   "sha256": "ea312337de49300275b244a310881ea84ddb240664b369b2869e1a52ac8e57fc",
+   "url": "https://maine.gov/sos/cec/elec/upcoming/index.html"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:26Z",
+   "file": "pass_B/sources/d28a4c6d88300dc68d78488d47baf162a073e79efd9f13b7e3cded2b03524aa7.html",
+   "kind": "election_office",
+   "kind_pass": "official",
+   "pass": "B",
+   "sha256": "d28a4c6d88300dc68d78488d47baf162a073e79efd9f13b7e3cded2b03524aa7",
+   "url": "https://web.archive.org/web/2024id_/https://www.ohiosos.gov/elections/voting-schedule-text-only"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:26Z",
+   "file": "pass_B/sources/1e5c58f298c5fa0681eeaa7e4d1ad45d5723c33801000f60891a851ec66ef0ac.html",
+   "kind": "poll_close",
+   "kind_pass": "official_pollclose",
+   "pass": "B",
+   "sha256": "1e5c58f298c5fa0681eeaa7e4d1ad45d5723c33801000f60891a851ec66ef0ac",
+   "url": "https://www.sos.state.tx.us/about/newsreleases/2025/103125.shtml"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:26Z",
+   "file": "pass_B/sources/76bf94710ad1885fddaca33d41ab723740a098d4322a9873a12a6eb1e5da658f.html",
+   "kind": "poll_close",
+   "kind_pass": "official_pollclose",
+   "pass": "B",
+   "sha256": "76bf94710ad1885fddaca33d41ab723740a098d4322a9873a12a6eb1e5da658f",
+   "url": "https://www.sos.state.tx.us/elections/voter/important-election-dates.shtml"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:30Z",
+   "file": "pass_B/sources/993ab4c0c518748b8034d36999493498fe7da715391c95643192ffc7c7fad198.html",
+   "kind": "election_office",
+   "kind_pass": "official",
+   "pass": "B",
+   "sha256": "993ab4c0c518748b8034d36999493498fe7da715391c95643192ffc7c7fad198",
+   "url": "https://web.archive.org/web/2024id_/https://www.nebraskalegislature.gov/laws/statutes.php?statute=32-908"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:31Z",
+   "file": "pass_B/sources/4ad70d2ca8488da5a835e2e907727ea8ad0cea9c27f33a2f6fbe0533a7caa2d0.html",
+   "kind": "election_office",
+   "kind_pass": "official",
+   "pass": "B",
+   "sha256": "4ad70d2ca8488da5a835e2e907727ea8ad0cea9c27f33a2f6fbe0533a7caa2d0",
+   "url": "https://web.archive.org/web/2024id_/https://gc.nh.gov/rsa/html/LXIII/659/659-4.htm"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:35Z",
+   "file": "pass_B/sources/93b2af54d41572adba7de17238d997b999750d2a5de02ed28961495ef64ea2fd.html",
+   "kind": "election_office",
+   "kind_pass": "official",
+   "pass": "B",
+   "sha256": "93b2af54d41572adba7de17238d997b999750d2a5de02ed28961495ef64ea2fd",
+   "url": "https://web.archive.org/web/2024id_/https://www.leg.state.nv.us/nrs/nrs-293.html"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:35Z",
+   "file": "pass_B/sources/5e553fa23741aa3681fa95947162b5d88475054091ba5cb5a612042a512b7d3a.html",
+   "kind": "state_law",
+   "kind_pass": "statute",
+   "pass": "B",
+   "sha256": "5e553fa23741aa3681fa95947162b5d88475054091ba5cb5a612042a512b7d3a",
+   "url": "https://legislature.maine.gov/statutes/21-A/title21-Asec626.html"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:36Z",
+   "file": "pass_B/sources/e9c499fa8e7839194b02c5afabb0d1d62c367850adaffe816df527b67e8d6c0b.html",
+   "kind": "state_law",
+   "kind_pass": "statute",
+   "pass": "B",
+   "sha256": "e9c499fa8e7839194b02c5afabb0d1d62c367850adaffe816df527b67e8d6c0b",
+   "url": "https://legis.la.gov/Legis/Law.aspx?d=86571"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:37Z",
+   "file": "pass_B/sources/82b1387c6472bcbf13f37e1808387d363b68fee5fa459fa9a891bab256d74a5e.html",
+   "kind": "election_office",
+   "kind_pass": "official",
+   "pass": "B",
+   "sha256": "82b1387c6472bcbf13f37e1808387d363b68fee5fa459fa9a891bab256d74a5e",
+   "url": "https://elections.hawaii.gov/frequently-asked-questions/voting/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:37Z",
+   "file": "pass_B/sources/d466d1e10c36d4e994a56d267c9d1ea711f1a2c4821982fe10928740b13837a1.html",
+   "kind": "state_law",
+   "kind_pass": "statute",
+   "pass": "B",
+   "sha256": "d466d1e10c36d4e994a56d267c9d1ea711f1a2c4821982fe10928740b13837a1",
+   "url": "https://www.revisor.mn.gov/statutes/cite/204C.05"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:38Z",
+   "file": "pass_B/sources/d9966ecf3c3a67a446d2cb57d19881f5288d3ef277552c8916b66c1290d759db.html",
+   "kind": "state_law",
+   "kind_pass": "statute",
+   "pass": "B",
+   "sha256": "d9966ecf3c3a67a446d2cb57d19881f5288d3ef277552c8916b66c1290d759db",
+   "url": "https://revisor.mo.gov/main/OneSection.aspx?section=115.407"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:39Z",
+   "file": "pass_B/sources/8ff956078363b6c9a8873652bfabb1205d337122d45805362d77a50b9c8eaad0.html",
+   "kind": "election_office",
+   "kind_pass": "official",
+   "pass": "B",
+   "sha256": "8ff956078363b6c9a8873652bfabb1205d337122d45805362d77a50b9c8eaad0",
+   "url": "https://voteidaho.gov/voters/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:40Z",
+   "file": "pass_B/sources/3fe239c709f2170736c5a266d1e73482e54ed77da3e1a8c947da2ec3429bfbc1.html",
+   "kind": "election_office",
+   "kind_pass": "official",
+   "pass": "B",
+   "sha256": "3fe239c709f2170736c5a266d1e73482e54ed77da3e1a8c947da2ec3429bfbc1",
+   "url": "https://www.elections.il.gov/ElectionOperations/VotingInformation.aspx"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:40Z",
+   "file": "pass_B/sources/ca77ca0038ddec289cd3887b7c47d81519e1a48c734de868b6f5dd1e33641c2a.html",
+   "kind": "election_office",
+   "kind_pass": "official",
+   "pass": "B",
+   "sha256": "ca77ca0038ddec289cd3887b7c47d81519e1a48c734de868b6f5dd1e33641c2a",
+   "url": "https://www.in.gov/sos/elections/voter-information/ways-to-vote/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:40Z",
+   "file": "pass_B/sources/3ca497422bd8844ed5ace649a8d2aec683b064fe1d1b1749e07faba5e388d519.html",
+   "kind": "state_law",
+   "kind_pass": "statute",
+   "pass": "B",
+   "sha256": "3ca497422bd8844ed5ace649a8d2aec683b064fe1d1b1749e07faba5e388d519",
+   "url": "https://leg.mt.gov/bills/mca/title_0130/chapter_0130/part_0010/section_0150/0130-0130-0010-0150.html"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:44Z",
+   "file": "pass_B/sources/3273df1c814eaf79558adf38ca83441e828201ef1079094b173ec91f988d65bf.html",
+   "kind": "election_office",
+   "kind_pass": "official",
+   "pass": "B",
+   "sha256": "3273df1c814eaf79558adf38ca83441e828201ef1079094b173ec91f988d65bf",
+   "url": "https://sos.ks.gov/elections/elections.html"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:47Z",
+   "file": "pass_B/sources/0c7c02a6daea1859d16bd682a6decf193e287ceded3d3f0ff623274cf44689bd.html",
+   "kind": "election_office",
+   "kind_pass": "official",
+   "pass": "B",
+   "sha256": "0c7c02a6daea1859d16bd682a6decf193e287ceded3d3f0ff623274cf44689bd",
+   "url": "https://www.kssos.org/elections/elections_calendar.html"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:49Z",
+   "file": "pass_B/sources/e9c499fa8e7839194b02c5afabb0d1d62c367850adaffe816df527b67e8d6c0b.html",
+   "kind": "state_law",
+   "kind_pass": "statute",
+   "pass": "B",
+   "sha256": "e9c499fa8e7839194b02c5afabb0d1d62c367850adaffe816df527b67e8d6c0b",
+   "url": "https://legis.la.gov/Legis/Law.aspx?d=86571"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:49Z",
+   "file": "pass_B/sources/bf3b2cf928cb6a8b5a9f3bd394a0246d25c94033a0949d71ef92ddfde9b71d77.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "bf3b2cf928cb6a8b5a9f3bd394a0246d25c94033a0949d71ef92ddfde9b71d77",
+   "url": "https://abc17news.com/news/ap-national-news/2022/11/10/late-counted-arizona-votes-will-decide-winners-of-key-races/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:49Z",
+   "file": "pass_B/sources/7dca1effb38cb1d3c25c868a34f3221d8b81e1eca04b339772150bcd236833f0.html",
+   "kind": "other",
+   "kind_pass": "article",
+   "pass": "B",
+   "sha256": "7dca1effb38cb1d3c25c868a34f3221d8b81e1eca04b339772150bcd236833f0",
+   "url": "https://andrestepankowsky.substack.com/p/mgps-rematch-victory-margin-over"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:50Z",
+   "file": "pass_B/sources/96cd611b869e1a34c93398597de71e6d944e9740a637e5b903d521fc4ba4c8b9.html",
+   "kind": "state_law",
+   "kind_pass": "statute",
+   "pass": "B",
+   "sha256": "96cd611b869e1a34c93398597de71e6d944e9740a637e5b903d521fc4ba4c8b9",
+   "url": "https://legis.la.gov/legis/Law.aspx?d=86777"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:50Z",
+   "file": "pass_B/sources/6c075fba495940eb81419e7f2021d6a973e16d2c93c38112e763cbde52858e47.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "6c075fba495940eb81419e7f2021d6a973e16d2c93c38112e763cbde52858e47",
+   "url": "https://fox10phoenix.com/news/2022-election-why-is-it-taking-so-long-for-arizona-to-count-ballots"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:50Z",
+   "file": "pass_B/sources/6a5347766e6852a63c6fa85d6abe3f6faf845a26d91cc0f11471460ddf5b0c39.html",
+   "kind": "other",
+   "kind_pass": "article",
+   "pass": "B",
+   "sha256": "6a5347766e6852a63c6fa85d6abe3f6faf845a26d91cc0f11471460ddf5b0c39",
+   "url": "https://www.ksat.com/news/politics/2024/11/09/democrat-marie-gluesenkamp-perez-wins-reelection-in-washingtons-closely-watched-3rd-district/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:50Z",
+   "file": "pass_B/sources/485e222c98fb5192fb51d523dcd52807754a9eed9bd259723dbb22fc2111c114.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "485e222c98fb5192fb51d523dcd52807754a9eed9bd259723dbb22fc2111c114",
+   "url": "https://www.abc15.com/news/political/elections/why-arizona-election-results-are-taking-days"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:51Z",
+   "file": "pass_B/sources/89bf9b21533702f54deee505acb458ed52055fbe6253c854e93da3fa6833836c.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "89bf9b21533702f54deee505acb458ed52055fbe6253c854e93da3fa6833836c",
+   "url": "https://www.kjzz.org/politics/2024-11-09/donald-trump-wins-arizona"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:51Z",
+   "file": "pass_B/sources/b2b9cdba95126b91af2342365316837efed492a2099abfc52f6c80ced17ba09d.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "b2b9cdba95126b91af2342365316837efed492a2099abfc52f6c80ced17ba09d",
+   "url": "https://cronkitenews.azpbs.org/2024/11/21/maricopa-county-highlights-voter-turnout-2024-election-results-canvass/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:53Z",
+   "file": "pass_B/sources/0edb0276db05e00d6642051fece92980e87101525bfda2a24ca904707dca4854.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "0edb0276db05e00d6642051fece92980e87101525bfda2a24ca904707dca4854",
+   "url": "https://www.gpb.org/news/2024/11/10/donald-trump-wins-arizona"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:53Z",
+   "file": "pass_B/sources/dec077fb7f735a74c5eb4e40bc1fe7f48200e069b8afa835174d123e7e8d2e8f.html",
+   "kind": "other",
+   "kind_pass": "article",
+   "pass": "B",
+   "sha256": "dec077fb7f735a74c5eb4e40bc1fe7f48200e069b8afa835174d123e7e8d2e8f",
+   "url": "https://sos.wa.gov/node/13101"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:53Z",
+   "file": "pass_B/sources/86a04da4210f187d0a2baeb73455994493856b9dda32cd7cf2b1279c063f0b11.html",
+   "kind": "state_law",
+   "kind_pass": "statute",
+   "pass": "B",
+   "sha256": "86a04da4210f187d0a2baeb73455994493856b9dda32cd7cf2b1279c063f0b11",
+   "url": "https://content.govdelivery.com/accounts/MSSOS/bulletins/3789cb0"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:54Z",
+   "file": "pass_B/sources/b2447fd6f7c92b4428366d927bf6ad33aafd2295a01edcf7b09cc6cba6f1ee7d.html",
+   "kind": "other",
+   "kind_pass": "article",
+   "pass": "B",
+   "sha256": "b2447fd6f7c92b4428366d927bf6ad33aafd2295a01edcf7b09cc6cba6f1ee7d",
+   "url": "https://www.knkx.org/politics/2022-11-08/washington-what-to-expect-on-election-night"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:54Z",
+   "file": "pass_B/sources/3d115f41e7075521a27f1cb33b1f77da0a18455045b0abeaefd949aa076348b3.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "3d115f41e7075521a27f1cb33b1f77da0a18455045b0abeaefd949aa076348b3",
+   "url": "https://www.cbsnews.com/news/2022-midterm-elections-lauren-boebert-recount"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:54Z",
+   "file": "pass_B/sources/b8a75aa28f619e6eb6231546f1f2b9d3a39a09ac488b02fa257d5510eacd7b9b.html",
+   "kind": "other",
+   "kind_pass": "article",
+   "pass": "B",
+   "sha256": "b8a75aa28f619e6eb6231546f1f2b9d3a39a09ac488b02fa257d5510eacd7b9b",
+   "url": "https://en.wikipedia.org/wiki/2024_Washington_gubernatorial_election"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:54Z",
+   "file": "pass_B/sources/0f4270e9a1c9a27ddb5584efc6b622e75167a0782bf0baaf7906692c2f2b88a1.html",
+   "kind": "other",
+   "kind_pass": "news2022_OR",
+   "pass": "B",
+   "sha256": "0f4270e9a1c9a27ddb5584efc6b622e75167a0782bf0baaf7906692c2f2b88a1",
+   "url": "https://www.wweek.com/news/2022/11/09/tina-kotek-on-track-to-be-oregons-next-governor/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:55Z",
+   "file": "pass_B/sources/949c1d0daf04ba673d5808d8c03d5c8352417e1c887ee20e40b92a36a021a412.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "949c1d0daf04ba673d5808d8c03d5c8352417e1c887ee20e40b92a36a021a412",
+   "url": "https://web.archive.org/web/2024id_/https://coloradonewsline.com/2022/11/09/frisch-ahead-of-rep-boebert-early-colorado-election-results-show/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:56Z",
+   "file": "pass_B/sources/f38626bb381384c5a1cd3fc049a4382988fb241fa62681996d28a6e446581a6c.html",
+   "kind": "other",
+   "kind_pass": "news2022_OR",
+   "pass": "B",
+   "sha256": "f38626bb381384c5a1cd3fc049a4382988fb241fa62681996d28a6e446581a6c",
+   "url": "https://opb.org/article/2022/11/10/oregon-democrats-tina-kotek-keep-governors-office-after-scare"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:56Z",
+   "file": "pass_B/sources/dd4ef4bc3fa6b80da57d9e708dea3e47e530d9715e76eab7d363679da8fb2cfd.pdf",
+   "kind": "election_office",
+   "kind_pass": "official",
+   "pass": "B",
+   "sha256": "dd4ef4bc3fa6b80da57d9e708dea3e47e530d9715e76eab7d363679da8fb2cfd",
+   "url": "https://ndlegis.gov/cencode/t16-1c01.pdf"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:57Z",
+   "file": "pass_B/sources/4f3847c90c30baab4666fc3c658f3650e12bd709e1d99ac9620c3c9cf0b5e9d6.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "4f3847c90c30baab4666fc3c658f3650e12bd709e1d99ac9620c3c9cf0b5e9d6",
+   "url": "https://coloradosun.com/2024/11/09/yadira-caraveo-gabe-evans-colorado-race-update/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:58Z",
+   "file": "pass_B/sources/3d503603268db6ab31934787dafc76f6b23b4665ae3d614b6c6090e86a21d6ef.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "3d503603268db6ab31934787dafc76f6b23b4665ae3d614b6c6090e86a21d6ef",
+   "url": "https://www.ksat.com/news/politics/2022/11/12/congresswoman-ahead-of-developer-in-seesaw-la-mayors-race/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:59Z",
+   "file": "pass_B/sources/137fee8ec18c2029d470b2478421cf1ab14586c13adc890a1cd9279cc1f6aa97.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "137fee8ec18c2029d470b2478421cf1ab14586c13adc890a1cd9279cc1f6aa97",
+   "url": "https://kqed.org/news/12012387/california-will-help-decide-control-of-congress-but-multiple-seats-too-close-to-call"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:51:59Z",
+   "file": "pass_B/sources/ff83dcdd9a6ea4460c80a10bfd6cdb0986bf1e35bcc77bcfe468c72d457843c8.html",
+   "kind": "other",
+   "kind_pass": "x",
+   "pass": "B",
+   "sha256": "ff83dcdd9a6ea4460c80a10bfd6cdb0986bf1e35bcc77bcfe468c72d457843c8",
+   "url": "https://www.nhpr.org/nh-news/2024-10-30/follow-the-ballot-what-happens-after-you-vote-in-nh"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:00Z",
+   "file": "pass_B/sources/30b64a6c0566b8400f643296b04f9dc67e1cc59ea3022f04e588bc206022fab2.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "30b64a6c0566b8400f643296b04f9dc67e1cc59ea3022f04e588bc206022fab2",
+   "url": "https://sanjoseinside.com/news/central-valley-democrat-flips-seat-in-last-house-race-to-be-called"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:10Z",
+   "file": "pass_B/sources/73e713e72c1dcf4f8af31f260f5cb94618c90aca4e2245d56b76c879280acc00.html",
+   "kind": "state_law",
+   "kind_pass": "statute",
+   "pass": "B",
+   "sha256": "73e713e72c1dcf4f8af31f260f5cb94618c90aca4e2245d56b76c879280acc00",
+   "url": "https://www.legis.la.gov/Legis/Law.aspx?d=81634"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:10Z",
+   "file": "pass_B/sources/eb12be5dda2ce9bf1baf5b982ec0f19f695745c2d33fab493ad478b200572874.html",
+   "kind": "state_law",
+   "kind_pass": "statute",
+   "pass": "B",
+   "sha256": "eb12be5dda2ce9bf1baf5b982ec0f19f695745c2d33fab493ad478b200572874",
+   "url": "https://mca.legmt.gov/bills/mca/title_0130/chapter_0010/part_0010/section_0060/0130-0010-0010-0060.html"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:12Z",
+   "file": "pass_B/sources/787bfdfee86e481aa475e23232f221113eef8fec30581445d82210d14aeaf2e0.pdf",
+   "kind": "election_office",
+   "kind_pass": "official",
+   "pass": "B",
+   "sha256": "787bfdfee86e481aa475e23232f221113eef8fec30581445d82210d14aeaf2e0",
+   "url": "https://www.in.gov/dA/a8ee46432d/2026-Election-Day-Handbook.pdf?language_id=1"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:13Z",
+   "file": "pass_B/sources/e62d80f82eb85936f1acdd236979e1a3c2c407e10f49395a2b204a16c3493667.pdf",
+   "kind": "election_office",
+   "kind_pass": "official",
+   "pass": "B",
+   "sha256": "e62d80f82eb85936f1acdd236979e1a3c2c407e10f49395a2b204a16c3493667",
+   "url": "https://www.legis.iowa.gov/docs/code/49.73.pdf"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:13Z",
+   "file": "pass_B/sources/ffc2114c01dc1675a8c23a1349c0de519375a8508dc5a912637993cf6e735bda.html",
+   "kind": "election_office",
+   "kind_pass": "official",
+   "pass": "B",
+   "sha256": "ffc2114c01dc1675a8c23a1349c0de519375a8508dc5a912637993cf6e735bda",
+   "url": "https://www.elections.il.gov/ElectionDayHome.aspx?T=638664080175273838"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:13Z",
+   "file": "pass_B/sources/040311ac1ac9728cf31fea46b4566ac021c9a9aa46a55e67c588a2eb77d81729.html",
+   "kind": "other",
+   "kind_pass": "article",
+   "pass": "B",
+   "sha256": "040311ac1ac9728cf31fea46b4566ac021c9a9aa46a55e67c588a2eb77d81729",
+   "url": "https://andrestepankowsky.substack.com/p/mgp-declares-victory-defying-the"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:14Z",
+   "file": "pass_B/sources/d867217dfd647b3ef78f02ab19e3287c8b6782b024a05ad92a4af99086488910.html",
+   "kind": "election_office",
+   "kind_pass": "official",
+   "pass": "B",
+   "sha256": "d867217dfd647b3ef78f02ab19e3287c8b6782b024a05ad92a4af99086488910",
+   "url": "https://sos.ks.gov/elections/voter-information.html"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:14Z",
+   "file": "pass_B/sources/9f41ff98429600ef233546328d5639bad03146c1a4b739a38e70f3643f447ff4.html",
+   "kind": "other",
+   "kind_pass": "article",
+   "pass": "B",
+   "sha256": "9f41ff98429600ef233546328d5639bad03146c1a4b739a38e70f3643f447ff4",
+   "url": "https://www.opb.org/article/2024/11/07/marie-gluesenkamp-perez-projected-win/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:15Z",
+   "file": "pass_B/sources/122b6557f0ef6bf58c9ca2870ff0cb6fbf549bba81b9cf6b97941f9820197c82.html",
+   "kind": "election_office",
+   "kind_pass": "official",
+   "pass": "B",
+   "sha256": "122b6557f0ef6bf58c9ca2870ff0cb6fbf549bba81b9cf6b97941f9820197c82",
+   "url": "https://voteidaho.gov/election-information/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:15Z",
+   "file": "pass_B/sources/8de8f9c7a9b7f690929cc7f17511a48a6f0eed12d06985e059bac6a31a100189.html",
+   "kind": "other",
+   "kind_pass": "article",
+   "pass": "B",
+   "sha256": "8de8f9c7a9b7f690929cc7f17511a48a6f0eed12d06985e059bac6a31a100189",
+   "url": "https://www.news4jax.com/news/politics/2024/11/09/democrat-marie-gluesenkamp-perez-wins-reelection-in-washingtons-closely-watched-3rd-district/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:18Z",
+   "file": "pass_B/sources/34f62ce7f324ad6f3dd8a19601866298c83d60226490ac76ba60eda86dd04149.html",
+   "kind": "election_office",
+   "kind_pass": "official",
+   "pass": "B",
+   "sha256": "34f62ce7f324ad6f3dd8a19601866298c83d60226490ac76ba60eda86dd04149",
+   "url": "https://voteidaho.gov/idaho-general-election/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:22Z",
+   "file": "pass_B/sources/a4edb89f3a3405ce2fafc24918d8eb15bcdd5724da6c9436fa5ccd87c8a4a5ca.html",
+   "kind": "election_office",
+   "kind_pass": "official",
+   "pass": "B",
+   "sha256": "a4edb89f3a3405ce2fafc24918d8eb15bcdd5724da6c9436fa5ccd87c8a4a5ca",
+   "url": "https://www.nj.gov/state/elections/vote-3-ways-to-vote.shtml"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:23Z",
+   "file": "pass_B/sources/934f518ee2f2f14e131df21b74c763278ae22c3670e38a51764a48dd4c004de6.html",
+   "kind": "election_office",
+   "kind_pass": "official",
+   "pass": "B",
+   "sha256": "934f518ee2f2f14e131df21b74c763278ae22c3670e38a51764a48dd4c004de6",
+   "url": "https://www.nj.gov/state/elections/vote.shtml"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:23Z",
+   "file": "pass_B/sources/778c04668c91bbdc0a365e06583105bf574aec42f6b8feac68048569c816deb9.pdf",
+   "kind": "election_office",
+   "kind_pass": "official",
+   "pass": "B",
+   "sha256": "778c04668c91bbdc0a365e06583105bf574aec42f6b8feac68048569c816deb9",
+   "url": "https://www.sos.nm.gov/wp-content/uploads/2026/06/2026-Important-General-Election-Dates.pdf"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:24Z",
+   "file": "pass_B/sources/a8dec0dcbfa3efe29a4cf31d2ebaffd2162ae809c350abb229be66f42d1f2ce7.html",
+   "kind": "election_office",
+   "kind_pass": "official",
+   "pass": "B",
+   "sha256": "a8dec0dcbfa3efe29a4cf31d2ebaffd2162ae809c350abb229be66f42d1f2ce7",
+   "url": "https://web.archive.org/web/2026id_/https://elect.ky.gov/Frequently-Asked-Questions/Pages/Election-Day-Information.aspx"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:25Z",
+   "file": "pass_B/sources/84226ee4b39af1c7f300bb5b585adf8ffef15efafd542120747d9b78fd9166d4.html",
+   "kind": "other",
+   "kind_pass": "news2024_OR",
+   "pass": "B",
+   "sha256": "84226ee4b39af1c7f300bb5b585adf8ffef15efafd542120747d9b78fd9166d4",
+   "url": "https://wweek.com/news/2024/11/06/bynum-extends-her-lead-slightly-as-counties-tally-additional-ballots-in-oregons-5th-congressional-district"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:25Z",
+   "file": "pass_B/sources/ddcd24fdf6ad0e3b51a7cf54e6b52eee5e28ff210a174155a088b64c11c295c0.html",
+   "kind": "election_office",
+   "kind_pass": "official",
+   "pass": "B",
+   "sha256": "ddcd24fdf6ad0e3b51a7cf54e6b52eee5e28ff210a174155a088b64c11c295c0",
+   "url": "https://web.archive.org/web/2024id_/https://elections.ny.gov/election-information"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:26Z",
+   "file": "pass_B/sources/18838982bfbc4c4736dcdd28f74305a8b43c106405a4184f2a9cfae54a709b16.pdf",
+   "kind": "election_office",
+   "kind_pass": "official",
+   "pass": "B",
+   "sha256": "18838982bfbc4c4736dcdd28f74305a8b43c106405a4184f2a9cfae54a709b16",
+   "url": "https://web.archive.org/web/2026id_/https://elect.ky.gov/Resources/Documents/2026%20Election%20Calendar.pdf"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:26Z",
+   "file": "pass_B/sources/f770f155bf68aba3f6cd5882fcffe2cede35723f47ee40fd53a72b1e27e5bbc7.html",
+   "kind": "other",
+   "kind_pass": "news2024_OR",
+   "pass": "B",
+   "sha256": "f770f155bf68aba3f6cd5882fcffe2cede35723f47ee40fd53a72b1e27e5bbc7",
+   "url": "https://opb.org/article/2024/11/05/oregon-5th-congressional-race-bynum-chavez-deremer"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:27Z",
+   "file": "pass_B/sources/9e00b49a718291c9615e6557d255e8de97ff8bb7367051df9330afb25694258e.html",
+   "kind": "election_office",
+   "kind_pass": "official",
+   "pass": "B",
+   "sha256": "9e00b49a718291c9615e6557d255e8de97ff8bb7367051df9330afb25694258e",
+   "url": "https://web.archive.org/web/2024id_/https://www.nysenate.gov/legislation/laws/ELN/8-100"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:29Z",
+   "file": "pass_B/sources/44a61e610b34a75003b7a3a3d3c09efdb13be2ec21aa82b2432b03710dcefb5b.html",
+   "kind": "election_office",
+   "kind_pass": "official",
+   "pass": "B",
+   "sha256": "44a61e610b34a75003b7a3a3d3c09efdb13be2ec21aa82b2432b03710dcefb5b",
+   "url": "https://web.archive.org/web/2024id_/https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_163/GS_163-166.25.html"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:29Z",
+   "file": "pass_B/sources/95d217105098ad344258066ce89f84b9b57a3d5632d57d3d657f9e25e45485d0.html",
+   "kind": "election_office",
+   "kind_pass": "official",
+   "pass": "B",
+   "sha256": "95d217105098ad344258066ce89f84b9b57a3d5632d57d3d657f9e25e45485d0",
+   "url": "https://www.ncsbe.gov/voting/vote-person-election-day"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:35Z",
+   "file": "pass_B/sources/ae7c61c5b9b4a3ffb989b0f83f747bebaa1924820c5074eca9860304a169ed1b.html",
+   "kind": "other",
+   "kind_pass": "news",
+   "pass": "B",
+   "sha256": "ae7c61c5b9b4a3ffb989b0f83f747bebaa1924820c5074eca9860304a169ed1b",
+   "url": "https://www.veridus.com/post/veridus-advisory-arizona-general-election-2024-update-2"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:38Z",
+   "file": "pass_B/sources/30beeec5890e4a5e1a8d82ae034d680632d47626cf0f0519921c6aa4481f1e64.html",
+   "kind": "other",
+   "kind_pass": "article",
+   "pass": "B",
+   "sha256": "30beeec5890e4a5e1a8d82ae034d680632d47626cf0f0519921c6aa4481f1e64",
+   "url": "https://jewishinsider.com/2022/11/elaine-luria-jen-kiggans-election-day-virginias-2nd-congressional-district/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:39Z",
+   "file": "pass_B/sources/0ac8c4b120ce9a5fd2c01182819a0877394f9fd5bcbd8c3ecb37d618e3534c46.html",
+   "kind": "other",
+   "kind_pass": "article",
+   "pass": "B",
+   "sha256": "0ac8c4b120ce9a5fd2c01182819a0877394f9fd5bcbd8c3ecb37d618e3534c46",
+   "url": "https://www.29news.com/2021/11/02/virginias-early-absentee-ballots-will-be-reported-1st-this-election"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:40Z",
+   "file": "pass_B/sources/5812f4d1f61c035b5aa9675203f71b0325cde6e94b813562c490b89705a0499b.html",
+   "kind": "other",
+   "kind_pass": "article",
+   "pass": "B",
+   "sha256": "5812f4d1f61c035b5aa9675203f71b0325cde6e94b813562c490b89705a0499b",
+   "url": "https://wtop.com/virginia/2022/11/2022-virginia-election/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:41Z",
+   "file": "pass_B/sources/ca2b19b705a2b58dd0e2f495162fc1a81610cfc4b27effd9757a08c2334457b2.html",
+   "kind": "other",
+   "kind_pass": "article",
+   "pass": "B",
+   "sha256": "ca2b19b705a2b58dd0e2f495162fc1a81610cfc4b27effd9757a08c2334457b2",
+   "url": "https://northernvirginiamag.com/news/2024/11/06/projected-results-of-northern-virginias-2024-elections/"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:48Z",
+   "file": "pass_B/sources/91064bcaa8ab9a12a4a5fc19a87563b1e5df06148680baa6ea654e92657ce291.html",
+   "kind": "other",
+   "kind_pass": "news2022_PA",
+   "pass": "B",
+   "sha256": "91064bcaa8ab9a12a4a5fc19a87563b1e5df06148680baa6ea654e92657ce291",
+   "url": "https://mirror.triblive.com/news/pennsylvania/early-results-show-fetterman-with-lead-over-oz-but-still-millions-of-votes-to-count"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:48Z",
+   "file": "pass_B/sources/dc0790b6165e49fd6e7dfd7ee737bede6501d986d66fe5a89c6c627ddc8193e4.html",
+   "kind": "other",
+   "kind_pass": "news2022_PA",
+   "pass": "B",
+   "sha256": "dc0790b6165e49fd6e7dfd7ee737bede6501d986d66fe5a89c6c627ddc8193e4",
+   "url": "https://www.inquirer.com/newsletters/morning/fetterman-senate-pennsylvania-elections-race-20221110.html"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:52:50Z",
+   "file": "pass_B/sources/a5ad9239dc092158b70fa76266d0979174f3c0f9a861699c87adae05afb5427f.html",
+   "kind": "other",
+   "kind_pass": "news2024_PA",
+   "pass": "B",
+   "sha256": "a5ad9239dc092158b70fa76266d0979174f3c0f9a861699c87adae05afb5427f",
+   "url": "https://thedp.com/article/2024/11/penn-bob-casey-dave-mccormick-senate-ballots-count"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:53:27Z",
+   "file": "pass_B/sources/93f34ed84c7ec1b9c4bf418ba540802cd0b08479847d5ca0443a771d89c64374.html",
+   "kind": "state_law",
+   "kind_pass": "statute",
+   "pass": "B",
+   "sha256": "93f34ed84c7ec1b9c4bf418ba540802cd0b08479847d5ca0443a771d89c64374",
+   "url": "https://fox2detroit.com/news/when-do-polls-open-close-michigan-election-day"
+  },
+  {
+   "fetched_utc": "2026-10-19T04:53:27Z",
+   "file": "pass_B/sources/6aa6a304bac133bc67fb223913ce64a52115f757fe4e9f7559cb8aa2831d6b22.html",
+   "kind": "state_law",
+   "kind_pass": "statute",
+   "pass": "B",
+   "sha256": "6aa6a304bac133bc67fb223913ce64a52115f757fe4e9f7559cb8aa2831d6b22",
+   "url": "https://www.wnmufm.org/elections/2026-05-05/may-consolidated-election-today"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:28:13Z",
+   "file": "pass_B/sources/c8bdafae6163ad64eda9627bf02386674fd903aceab71ce8122dddff412004e5.html",
+   "kind": "ncsl",
+   "kind_pass": "ncsl_table16_wayback_2026",
+   "pass": "B",
+   "sha256": "c8bdafae6163ad64eda9627bf02386674fd903aceab71ce8122dddff412004e5",
+   "url": "https://web.archive.org/web/20261010050450id_/https://www.ncsl.org/elections-and-campaigns/table-16-when-absentee-mail-ballot-processing-and-counting-can-begin"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:28:16Z",
+   "file": "pass_B/sources/958f3b3a0c2e3b4a658787abd4dc0c29cf1803cb30640ed24b782b58c6f6db71.html",
+   "kind": "ncsl",
+   "kind_pass": "ncsl_table11_wayback_2026",
+   "pass": "B",
+   "sha256": "958f3b3a0c2e3b4a658787abd4dc0c29cf1803cb30640ed24b782b58c6f6db71",
+   "url": "https://web.archive.org/web/20261013104457id_/https://www.ncsl.org/elections-and-campaigns/table-11-receipt-and-postmark-deadlines-for-absentee-mail-ballots"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:28:20Z",
+   "file": "pass_B/sources/0aa23f21d26f48daf055cd056cfdd9c55a74fb4787414b16a95b25c6e7b09e98.html",
+   "kind": "ncsl",
+   "kind_pass": "ncsl_table18_wayback_2026",
+   "pass": "B",
+   "sha256": "0aa23f21d26f48daf055cd056cfdd9c55a74fb4787414b16a95b25c6e7b09e98",
+   "url": "https://web.archive.org/web/20260920021541id_/https://www.ncsl.org/elections-and-campaigns/table-18-states-with-all-mail-elections"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:30:57Z",
+   "file": "pass_B/sources/6b1af624a55c2d10451571d39941df4a8fd3e2f7ea4cb214222744c7ece4494d.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_early2024_pres",
+   "pass": "B",
+   "sha256": "6b1af624a55c2d10451571d39941df4a8fd3e2f7ea4cb214222744c7ece4494d",
+   "url": "https://web.archive.org/web/20241106124944id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:31:00Z",
+   "file": "pass_B/sources/3ce144c6155068a628b7b9b0b3d9c370e829251ad2bcf8ba9108b90ae34d65a0.json",
+   "kind": "results_2024",
+   "kind_pass": "nyt_final2024_pres",
+   "pass": "B",
+   "sha256": "3ce144c6155068a628b7b9b0b3d9c370e829251ad2bcf8ba9108b90ae34d65a0",
+   "url": "https://web.archive.org/web/20250930202735id_/https://static01.nyt.com/elections-assets/pages/data/2024-11-05/results-president.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:31:34Z",
+   "file": "pass_B/sources/20201b90574213c4c935646ff7926617b3d28a90aebca1fb461996d8f7d6c70d.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt_early2022_senate",
+   "pass": "B",
+   "sha256": "20201b90574213c4c935646ff7926617b3d28a90aebca1fb461996d8f7d6c70d",
+   "url": "https://web.archive.org/web/20221109101938id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-senate.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:31:48Z",
+   "file": "pass_B/sources/708c828a4b4f55c702ae058e2aeb134eba0504ed1cd1badca1b151c6b2eb7a30.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt_final2022_senate",
+   "pass": "B",
+   "sha256": "708c828a4b4f55c702ae058e2aeb134eba0504ed1cd1badca1b151c6b2eb7a30",
+   "url": "https://web.archive.org/web/20240702063212id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-senate.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:32:22Z",
+   "file": "pass_B/sources/f98ba13de25a17dcc7e58952b0d54d3c534b451fada281b042862c6c49fd9326.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt_early2022_governor",
+   "pass": "B",
+   "sha256": "f98ba13de25a17dcc7e58952b0d54d3c534b451fada281b042862c6c49fd9326",
+   "url": "https://web.archive.org/web/20221109103641id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-governor.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:32:36Z",
+   "file": "pass_B/sources/3427876ce5ce04d9f697996dfc3f783111e2e361a6af617c02ab43bf60c36f94.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt_final2022_governor",
+   "pass": "B",
+   "sha256": "3427876ce5ce04d9f697996dfc3f783111e2e361a6af617c02ab43bf60c36f94",
+   "url": "https://web.archive.org/web/20230213181954id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-governor.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:32:50Z",
+   "file": "pass_B/sources/bd699228f818d9c953b6278340cb80cb9b4fa362feaab1e5285b724107bed9be.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt_early2022_house",
+   "pass": "B",
+   "sha256": "bd699228f818d9c953b6278340cb80cb9b4fa362feaab1e5285b724107bed9be",
+   "url": "https://web.archive.org/web/20221109102109id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-house.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:32:53Z",
+   "file": "pass_B/sources/c5b2047bb689bc7548d1bc153c64f73d68b285b823370a20426eae52b29eee77.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt_final2022_house",
+   "pass": "B",
+   "sha256": "c5b2047bb689bc7548d1bc153c64f73d68b285b823370a20426eae52b29eee77",
+   "url": "https://web.archive.org/web/20230219000943id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-house.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:35:44Z",
+   "file": "pass_B/sources/95b1fa911690eec5553d2a79573767b3751f32ce60ed8644fb4ba3f0bdec869a.json",
+   "kind": "results_2022",
+   "kind_pass": "statepage_early_MA",
+   "pass": "B",
+   "sha256": "95b1fa911690eec5553d2a79573767b3751f32ce60ed8644fb4ba3f0bdec869a",
+   "url": "https://web.archive.org/web/20221109100505id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-massachusetts.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:35:48Z",
+   "file": "pass_B/sources/9609fdb453aa9a181f5dacdc722701693ddc8faaeebdc2325d9138526ceda143.json",
+   "kind": "results_2022",
+   "kind_pass": "statepage_final_MA",
+   "pass": "B",
+   "sha256": "9609fdb453aa9a181f5dacdc722701693ddc8faaeebdc2325d9138526ceda143",
+   "url": "https://web.archive.org/web/20231111182034id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-massachusetts.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:35:54Z",
+   "file": "pass_B/sources/1942ec3dcf178cbd0d92980c4e0316f929a0b6640a287ee33c4e87a13057ab50.json",
+   "kind": "results_2022",
+   "kind_pass": "statepage_early_MN",
+   "pass": "B",
+   "sha256": "1942ec3dcf178cbd0d92980c4e0316f929a0b6640a287ee33c4e87a13057ab50",
+   "url": "https://web.archive.org/web/20221109100911id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-minnesota.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:35:58Z",
+   "file": "pass_B/sources/cdc8a902ae1234da8a5aec1ad9c58f1ebecef30a02461d73b45afcdf76e7265e.json",
+   "kind": "results_2022",
+   "kind_pass": "statepage_final_MN",
+   "pass": "B",
+   "sha256": "cdc8a902ae1234da8a5aec1ad9c58f1ebecef30a02461d73b45afcdf76e7265e",
+   "url": "https://web.archive.org/web/20231111182008id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-minnesota.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:36:01Z",
+   "file": "pass_B/sources/e7718ed7ca13ae3db6e49a393763756735c9a4f90d7387ac7e90f3e4ddabaf7f.json",
+   "kind": "results_2022",
+   "kind_pass": "statepage_early_NE",
+   "pass": "B",
+   "sha256": "e7718ed7ca13ae3db6e49a393763756735c9a4f90d7387ac7e90f3e4ddabaf7f",
+   "url": "https://web.archive.org/web/20221109105821id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-nebraska.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:36:04Z",
+   "file": "pass_B/sources/78c61a24a1010aaec84eec3e48b85632076ce7ccc1ef6418dbbdb6d6a4ff926a.json",
+   "kind": "results_2022",
+   "kind_pass": "statepage_final_NE",
+   "pass": "B",
+   "sha256": "78c61a24a1010aaec84eec3e48b85632076ce7ccc1ef6418dbbdb6d6a4ff926a",
+   "url": "https://web.archive.org/web/20231111182104id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-nebraska.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:36:07Z",
+   "file": "pass_B/sources/170c40a36b44893e359195bdddb77119b591a40dd18ed93a4901033acaaac7e5.json",
+   "kind": "results_2022",
+   "kind_pass": "statepage_early_RI",
+   "pass": "B",
+   "sha256": "170c40a36b44893e359195bdddb77119b591a40dd18ed93a4901033acaaac7e5",
+   "url": "https://web.archive.org/web/20221109110407id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-rhode-island.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:36:11Z",
+   "file": "pass_B/sources/02ff704a81d1401d9371ecaf131991bef2154c4ee038df9365918f5b8755ba75.json",
+   "kind": "results_2022",
+   "kind_pass": "statepage_final_RI",
+   "pass": "B",
+   "sha256": "02ff704a81d1401d9371ecaf131991bef2154c4ee038df9365918f5b8755ba75",
+   "url": "https://web.archive.org/web/20240815102746id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-rhode-island.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:36:14Z",
+   "file": "pass_B/sources/a054284ec299a1629e43427ee0f58d44c8181b348d460eb112a37b3e31e8d2c2.json",
+   "kind": "results_2022",
+   "kind_pass": "statepage_early_TN",
+   "pass": "B",
+   "sha256": "a054284ec299a1629e43427ee0f58d44c8181b348d460eb112a37b3e31e8d2c2",
+   "url": "https://web.archive.org/web/20221109110439id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-tennessee.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:36:17Z",
+   "file": "pass_B/sources/33e4c75e39934d0fd982452b52d811b942f337cd1290806dd021184f28b932a8.json",
+   "kind": "results_2022",
+   "kind_pass": "statepage_final_TN",
+   "pass": "B",
+   "sha256": "33e4c75e39934d0fd982452b52d811b942f337cd1290806dd021184f28b932a8",
+   "url": "https://web.archive.org/web/20231111182128id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-tennessee.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:36:22Z",
+   "file": "pass_B/sources/44333d36b2f61d6614c4d9acf6d2c9c9d507f8ac59fefa52ca23bb2cf2c79629.json",
+   "kind": "results_2022",
+   "kind_pass": "statepage_early_TX",
+   "pass": "B",
+   "sha256": "44333d36b2f61d6614c4d9acf6d2c9c9d507f8ac59fefa52ca23bb2cf2c79629",
+   "url": "https://web.archive.org/web/20221109100942id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-texas.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:36:25Z",
+   "file": "pass_B/sources/bda05dde325e0e4526653fca4c7293a1d99e370f16e69e8a6dac2493ad7237c9.json",
+   "kind": "results_2022",
+   "kind_pass": "statepage_final_TX",
+   "pass": "B",
+   "sha256": "bda05dde325e0e4526653fca4c7293a1d99e370f16e69e8a6dac2493ad7237c9",
+   "url": "https://web.archive.org/web/20250130000240id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-texas.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:37:18Z",
+   "file": "pass_B/sources/71c57cb717ef0297184f2aa2d529cd5ec6f68cf457481cec82ede239bfbd028a.json",
+   "kind": "results_2022",
+   "kind_pass": "statepage_early_WY",
+   "pass": "B",
+   "sha256": "71c57cb717ef0297184f2aa2d529cd5ec6f68cf457481cec82ede239bfbd028a",
+   "url": "https://web.archive.org/web/20221109110624id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-wyoming.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:37:24Z",
+   "file": "pass_B/sources/46df82b02b251d094834d9ac0c5a7f1a928713051332513afeb8dbda302f77fd.json",
+   "kind": "results_2022",
+   "kind_pass": "statepage_final_WY",
+   "pass": "B",
+   "sha256": "46df82b02b251d094834d9ac0c5a7f1a928713051332513afeb8dbda302f77fd",
+   "url": "https://web.archive.org/web/20251106173853id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-wyoming.json"
+  },
+  {
+   "fetched_utc": "2026-10-19T09:38:22Z",
+   "file": "pass_B/sources/7d33288c3476f14fdfdbd90cdd9f624b173214fe847fde425214aab2537f6c46.json",
+   "kind": "results_2022",
+   "kind_pass": "nyt_final2022_senate_GA",
+   "pass": "B",
+   "sha256": "7d33288c3476f14fdfdbd90cdd9f624b173214fe847fde425214aab2537f6c46",
+   "url": "https://web.archive.org/web/20221203155230id_/https://static01.nyt.com/elections-assets/2022/data/2022-11-08/results-senate.json"
+  }
+ ],
+ "n_lines": {
+  "pass_A": 171,
+  "pass_B": 196
+ },
+ "n_unique_sha256": 347,
+ "note": "Union of the pass A and pass B manifest.jsonl lines, verbatim (pass column added; file = path under ge0_sources/; kind mapped mechanically to the schema vocabulary, the pass's own label kept as kind_pass; duplicate manifest lines kept as in the pass). Every sha256 verified against its file at assembly. Source classification (no 2026 poll / forecast / market page / 2026 news) is the science-reviewer audit's job, not this assembly's.",
+ "version": "cb15-ge0-sources-v1"
+}

@@ -1,0 +1,104 @@
+run start 2026-10-30T04:18:11.575088Z; rules_text sha256 3442ef01ab2b1e23298c95df76b403b9e010e2fb2ecd6cddedf7e7c1e0c21242
+capture 20261030T023102Z_100247db start 2026-10-30T02:31:02.413331Z; eligible rows 51017; stream files read 11 (20261020.jsonl..20261030.jsonl); last slot 2026-10-30T01:00:00Z; markets with a known row 106442
+rc_has share: all 0.3540; non-sports 0.7001 (n 16634); sports 0.1866 (n 34383)
+FAMILY PASSES (line: rc_has share >= 0.05)
+  cl_sched: share 1 0.6046 -> keep
+  cl_barrier: share 1 0.6349 -> keep
+  cl_consensus: share 1 0.7381 -> keep
+  rc_inclusive: share 1 0.3789 -> keep
+  rc_numeric: share 1 0.2432 -> keep
+  rc_n_hosts: non-NaN 1.0000; mean 0.592; sd 0.620; dist {np.int64(1): 8671, np.int64(0): 8460, np.int64(2): 819, np.int64(3): 68, np.int64(4): 44} -> keep
+  rc_log_len: non-NaN 1.0000; mean 7.158; sd 0.548; dist {np.int64(7): 11088, np.int64(8): 4974, np.int64(6): 1939, np.int64(9): 43, np.int64(5): 18} -> keep
+  rc_occur_by: share 1 0.1278 -> keep
+KEPT ['rc_has', 'cl_sched', 'cl_barrier', 'cl_consensus', 'rc_inclusive', 'rc_numeric', 'rc_n_hosts', 'rc_log_len', 'rc_occur_by']
+CH267 class split (covered rows): {np.str_('barrier'): 5060, np.str_('both'): 6407, np.str_('scheduled'): 4513, np.str_('consensus'): 1112, np.str_('other'): 970}
+CH267 class split (covered non-sports rows): {np.str_('barrier'): 3948, np.str_('both'): 5180, np.str_('scheduled'): 1179, np.str_('consensus'): 457, np.str_('other'): 881}
+  cl_sched by category (share, n): {'crypto': (0.013, 988), 'other:zero_fees': (0.645, 9170), 'sports': (0.711, 6417), 'unknown': (0.26, 1360)}
+  cl_barrier by category (share, n): {'crypto': (0.74, 988), 'other:zero_fees': (0.777, 9170), 'sports': (0.365, 6417), 'unknown': (0.878, 1360)}
+  cl_consensus by category (share, n): {'crypto': (0.218, 988), 'other:zero_fees': (0.702, 9170), 'sports': (0.87, 6417), 'unknown': (0.78, 1360)}
+  rc_inclusive by category (share, n): {'crypto': (0.255, 988), 'other:zero_fees': (0.425, 9170), 'sports': (0.349, 6417), 'unknown': (0.32, 1360)}
+  rc_numeric by category (share, n): {'crypto': (0.751, 988), 'other:zero_fees': (0.366, 9170), 'sports': (0.026, 6417), 'unknown': (0.062, 1360)}
+corr(rc_has, ms_log_liq) 0.290
+AUDIT SAMPLE (market_id | class | inclusive numeric | question | description head)
+648383 | both | 1 0 | Billionaire one-time wealth tax passes in California election 2026? | A one-time wealth tax on billionaires has been proposed to potentially appear on California's ballot for the November 3, 2026 general election. You can read more about that here: https://6abc.com/post/california-union-pr
+1028588 | barrier | 0 1 | Pacifica FDV above $300M one day after launch? | This market will resolve to "Yes" if the Fully Diluted Valuation of Pacifica's token is greater than the value specified in the title 1 day after launch. Otherwise, the market will resolve to "No."  The token must be act
+1283112 | scheduled | 0 0 | Will the Republican Party win the FL-22 House seat? | This market will resolve according to the party of the candidate who wins the FL-22 congressional district seat in the U.S. House of Representatives in the 2026 midterm elections. The midterm elections will take place on
+1356655 | barrier | 0 0 | Will MetaMask launch a token by December 31, 2026? | This market will resolve to "Yes" if Metamask officially launches a token by 11:59 PM ET on the date specified in the title. Otherwise, this market will resolve to "No".  The token must be actively and publicly transfera
+2155356 | barrier | 0 0 | Will the Los Angeles Chargers make the 2027 NFL Playoffs? | This market will resolve to "Yes" if the listed team clinches a spot in the 2026-27 NFL Playoffs per the rules of the NFL. Otherwise, the associated market will resolve to "No".  If at any point it becomes impossible for
+2371057 | both | 0 0 | Will Jean-Luc Mélenchon advance to the second round of the next French presidential election? | The next French presidential election is currently expected to be held around April 2027. This market pertains to the outcome of the next French presidential election, regardless of whether it follows the scheduled end o
+2685076 | consensus | 0 0 | Will Donald Trump visit Venezuela in 2026? | If U.S. President Donald Trump visits a listed country between the creation of this market and December 31, 2026 11:59 PM ET, the relevant market will resolve to "Yes". Otherwise, this market will resolve to "No".  For t
+3343950 | both | 1 1 | Will the Democratic Party candidate win the 2026 New Jersey Senate election by 3%-6%? | The 2026 New Jersey Senate election is currently expected to be held on November 3, 2026.  This market will resolve according to the margin of victory between the top two candidates in the specified election.  The "margi
+3376935 | both | 0 0 | Will Bully (Ye) win Best Rap Album at the 69th Annual GRAMMY Awards? | The GRAMMY Awards are presented annually by the Recording Academy. For the 69th Annual GRAMMY Awards, nominations are scheduled for November 16, 2026, and the ceremony for February 7, 2027.  This market will resolve acco
+3377232 | both | 0 0 | Will Dune: Part Three win Best Cinematography at the 99th Academy Awards? | The Academy Awards are presented annually by the Academy of Motion Picture Arts and Sciences (AMPAS) to honor outstanding artistic and technical achievements in film. For the 99th Academy Awards in 2027, nominations are 
+3401878 | other | 1 0 | Will Mike Evans be the highest-scoring WR of the 2026-27 NFL season? | This market will resolve to the wide receiver who finishes the 2026-27 NFL regular season (Weeks 1 through 18) as the highest-scoring wide receiver under standard PPR (points-per-reception) scoring per the default scorin
+3408524 | both | 1 1 | Will the Republican Party candidate win the 2026 FL-28 House election by 10%-15%? | The 2026 FL-28 House election is currently expected to be held on November 3, 2026.  This market will resolve according to the margin of victory between the top two candidates in the specified election.  The "margin of v
+3488549 | both | 1 1 | Will the Republican Party candidate win the 2026 IL-12 House election by 45%-50%? | The 2026 IL-12 House election is currently expected to be held on November 3, 2026.  This market will resolve according to the margin of victory between the top two candidates in the specified election.  The "margin of v
+3503578 | both | 0 0 | Will Drake Maye have 824.5+ rushing yards in the 2026-27 NFL regular season? | This market will resolve to "Yes" if the number of rushing yards Drake Maye records during the 2026-27 NFL regular season equals or exceeds 824.5. Otherwise, this market will resolve to "No".  If Drake Maye does not play
+3503929 | both | 0 1 | Will C.J. Stroud have 3,599.5+ passing yards in the 2026-27 NFL regular season? | This market will resolve to "Yes" if the number of passing yards C.J. Stroud records during the 2026-27 NFL regular season equals or exceeds 3,599.5. Otherwise, this market will resolve to "No".  If C.J. Stroud does not 
+3516137 | both | 0 0 | Will Republicans win the Ohio Governor election and Democrats win the Ohio Senate election? | This market will resolve according to the outcome of both the Gubernatorial and United States Senate general elections in Ohio that are currently scheduled for November 3, 2026.   A candidate will be considered to repres
+3540063 | both | 0 0 | Will Iowa have more than 9.5 wins during the 2026 CFB season? | This market will resolve to "Yes" if the listed team's regular season win total exceeds the listed number. Otherwise this market will resolve to "No".  Only official regular-season games count. Conference championship ga
+3709673 | barrier | 1 0 | Will a hurricane make landfall in Alabama by November 30, 2026? | This market resolves based on whether a hurricane will make landfall in the state specified in the title between market creation and November 30, 2026, 11:59 PM ET. A market resolves to "Yes" if a hurricane makes landfal
+3959911 | both | 0 0 | Will Drake Maye have 30+ passing touchdowns in the 2026-27 NFL regular season? | This market will resolve to "Yes" if the number of passing touchdowns the listed player records during the 2026-27 NFL regular season equals or exceeds 30. Otherwise, the associated market will resolve to "No".  Only reg
+4175670 | barrier | 0 0 | Will AZ reach the 2027 UEFA Europa League Round of 16? | This market will resolve “Yes” if the listed team reaches the 2027 UEFA Europa League Round of 16.   If at any point it becomes impossible for the listed club to advance to the UEFA Europa League Round of 16 (e.g. they a
+4411405 | barrier | 0 0 | Will Mexico win the 2027 Concacaf Gold Cup? | This market will resolve according to the team that wins the 2027 CONCACAF Gold Cup.  If at any point it becomes impossible for a listed team to win the 2027 CONCACAF Gold Cup per the rules of CONCACAF (e.g., they are el
+4566308 | barrier | 1 0 | Will VfB Stuttgart finish top 8 in UCL league phase? | This market will resolve to "Yes" if the listed club finishes in the top 8 of the final league phase standings of the 2026-27 UEFA Champions League. Otherwise, this market will resolve to "No".  Only matches played in th
+4844549 | barrier | 1 1 | Republican House odds dip to 7% by October 31? | This market will resolve to "Yes" if the Republican Party's hourly odds value in the "House Control 2026" listing on PredictionMarketOdds.com is equal to or below 7% for 4 consecutive hourly odds values, all published fo
+5166830 | barrier | 0 1 | Will the Ornn B200 Index be less than $7.00 on November 30, 2026? | This market will resolve according to the finalized Ornn B200 Index price for November 30, 2026.  If the recorded data falls exactly between two brackets, this market will resolve to the higher bracket.  The resolution s
+5194693 | both | 1 1 | Will the median home value in San Francisco Metro be at least $1,165,000 on December 31? | This market will resolve according to the median home value for all property types in the San Francisco Metro area on December 31, 2026.  If the reported value falls exactly between two brackets, then this market will re
+5216540 | both | 0 0 | Will Gnar be the most played champion at Worlds 2026? | This market will resolve according to the champion that is played in the most official games during the 2026 League of Legends World Championship (Worlds 2026), currently scheduled for October 15 to November 14, 2026.  A
+5216633 | both | 0 0 | Will Nidalee be the most played champion at Worlds 2026? | This market will resolve according to the champion that is played in the most official games during the 2026 League of Legends World Championship (Worlds 2026), currently scheduled for October 15 to November 14, 2026.  A
+5464376 | both | 1 0 | Will Morena win the most seats in the 2027 State of Mexico Congress election? | Legislative elections to elect the 75 members of the Congress of the State of Mexico are scheduled to take place on June 6, 2027.  This market will resolve according to the political party that wins the greatest number o
+5686262 | both | 0 0 | Will Merritt Wever be nominated for Best Supporting Actress at the 99th Academy Awards? | The Academy Awards are presented annually by the Academy of Motion Picture Arts and Sciences (AMPAS) to honor outstanding artistic and technical achievements in film. For the 99th Academy Awards in 2027, nominations are 
+5796152 | scheduled | 1 0 | Le Havre AC vs. Paris Saint-Germain FC: Both Teams to Score | In the upcoming Ligue 1 game between Le Havre AC and Paris Saint-Germain FC, scheduled for October 30 at 2:00 PM ET:  This market will resolve to "Yes" if both Le Havre AC and Paris Saint-Germain FC each score at least o
+5856821 | scheduled | 1 0 | Chelsea FC vs. Manchester United FC: O/U 0.5 | In the upcoming Premier League game between Chelsea FC and Manchester United FC, scheduled for October 31 at 8:30 AM ET:  This market will resolve to "Over" if Chelsea FC and Manchester United FC combine to score 1 or mo
+5859068 | scheduled | 1 0 | FK Shakhtar Donetsk vs. FK Obolon Kyiv: FK Obolon Kyiv O/U 0.5 | In the upcoming Ukraine Premier Liha game between FK Shakhtar Donetsk and FK Obolon Kyiv, scheduled for October 30 at 12:00 PM ET: This market will resolve to "Over" if FK Obolon Kyiv score 1 or more goals within the fir
+5864730 | scheduled | 0 0 | Will Luton Town FC win on 2026-10-31? | In the upcoming game, scheduled for October 31, 2026 If Luton Town FC wins, this market will resolve to "Yes". Otherwise, this market will resolve to "No". If the game is postponed, this market will remain open until the
+5941590 | scheduled | 1 0 | Spread: UCF (-10.5) | In the upcoming college football game, scheduled for October 30 at 7:30 PM ET:  This market will resolve to "UCF" if UCF win the game by 11 or more points.  Otherwise, this market will resolve to "Baylor".  If the game i
+6018622 | scheduled | 0 0 | Will Paris Saint-Germain FC win on 2026-11-03? | In the upcoming game, scheduled for November 3, 2026 If Paris Saint-Germain FC wins, this market will resolve to "Yes". Otherwise, this market will resolve to "No". If the game is postponed, this market will remain open 
+6161059 | scheduled | 1 0 | Spread: FC Volendam (-1.5) | In the upcoming Netherlands Eerste Divisie game, scheduled for October 30 at 3:00 PM ET:  This market will resolve to "FC Volendam" if FC Volendam win the game by 2 or more goals.  Otherwise, this market will resolve to 
+6230533 | scheduled | 1 0 | Odds BK vs. Sandnes Ulf: Both Teams to Score | In the upcoming OBOS-ligaen game between Odds BK and Sandnes Ulf, scheduled for November 1 at 11:00 AM ET:  This market will resolve to "Yes" if both Odds BK and Sandnes Ulf each score at least one goal during the game. 
+6332460 | barrier | 0 0 | Will the highest temperature in Lucknow be 27°C on October 30? | This market will resolve to the temperature range that contains the highest temperature reported at Chaudhary Charan Singh Intl Airport (VILK) on 30 Oct '26.  The qualifying value is the highest temperature reported in t
+6379061 | barrier | 0 0 | Will the highest temperature in Karachi be 37°C on October 31? | This market will resolve to the temperature range that contains the highest temperature reported at Jinnah International Airport (OPKC) on 31 Oct '26.  The qualifying value is the highest temperature reported in the hour
+6389695 | scheduled | 1 0 | Spread: Shanghai Sharks (-4.5) | In the upcoming CBA game, scheduled for October 30 at 7:35 AM ET:  This market will resolve to "Shanghai Sharks" if Shanghai Sharks win the game by 5 or more points.  Otherwise, this market will resolve to "Zhejiang Gold
+RC_OCCUR_BY on the audit sample (market_id | cl_barrier | rc_occur_by | question):
+  648383 | 1 | 0 | Billionaire one-time wealth tax passes in California election 2026?
+  1028588 | 1 | 0 | Pacifica FDV above $300M one day after launch?
+  1283112 | 0 | 0 | Will the Republican Party win the FL-22 House seat?
+  1356655 | 1 | 1 | Will MetaMask launch a token by December 31, 2026?
+  2155356 | 1 | 0 | Will the Los Angeles Chargers make the 2027 NFL Playoffs?
+  2371057 | 1 | 0 | Will Jean-Luc Mélenchon advance to the second round of the next French presidential electi
+  2685076 | 0 | 1 | Will Donald Trump visit Venezuela in 2026?
+  3343950 | 1 | 0 | Will the Democratic Party candidate win the 2026 New Jersey Senate election by 3%-6%?
+  3376935 | 1 | 0 | Will Bully (Ye) win Best Rap Album at the 69th Annual GRAMMY Awards?
+  3377232 | 1 | 0 | Will Dune: Part Three win Best Cinematography at the 99th Academy Awards?
+  3401878 | 0 | 0 | Will Mike Evans be the highest-scoring WR of the 2026-27 NFL season?
+  3408524 | 1 | 0 | Will the Republican Party candidate win the 2026 FL-28 House election by 10%-15%?
+  3488549 | 1 | 0 | Will the Republican Party candidate win the 2026 IL-12 House election by 45%-50%?
+  3503578 | 1 | 0 | Will Drake Maye have 824.5+ rushing yards in the 2026-27 NFL regular season?
+  3503929 | 1 | 0 | Will C.J. Stroud have 3,599.5+ passing yards in the 2026-27 NFL regular season?
+  3516137 | 1 | 0 | Will Republicans win the Ohio Governor election and Democrats win the Ohio Senate election
+  3540063 | 1 | 0 | Will Iowa have more than 9.5 wins during the 2026 CFB season?
+  3709673 | 1 | 1 | Will a hurricane make landfall in Alabama by November 30, 2026?
+  3959911 | 1 | 0 | Will Drake Maye have 30+ passing touchdowns in the 2026-27 NFL regular season?
+  4175670 | 1 | 0 | Will AZ reach the 2027 UEFA Europa League Round of 16?
+  4411405 | 1 | 0 | Will Mexico win the 2027 Concacaf Gold Cup?
+  4566308 | 1 | 0 | Will VfB Stuttgart finish top 8 in UCL league phase?
+  4844549 | 1 | 1 | Republican House odds dip to 7% by October 31?
+  5166830 | 1 | 0 | Will the Ornn B200 Index be less than $7.00 on November 30, 2026?
+  5194693 | 1 | 0 | Will the median home value in San Francisco Metro be at least $1,165,000 on December 31?
+  5216540 | 1 | 0 | Will Gnar be the most played champion at Worlds 2026?
+  5216633 | 1 | 0 | Will Nidalee be the most played champion at Worlds 2026?
+  5464376 | 1 | 0 | Will Morena win the most seats in the 2027 State of Mexico Congress election?
+  5686262 | 1 | 0 | Will Merritt Wever be nominated for Best Supporting Actress at the 99th Academy Awards?
+  5796152 | 0 | 0 | Le Havre AC vs. Paris Saint-Germain FC: Both Teams to Score
+  5856821 | 0 | 0 | Chelsea FC vs. Manchester United FC: O/U 0.5
+  5859068 | 0 | 0 | FK Shakhtar Donetsk vs. FK Obolon Kyiv: FK Obolon Kyiv O/U 0.5
+  5864730 | 0 | 0 | Will Luton Town FC win on 2026-10-31?
+  5941590 | 0 | 0 | Spread: UCF (-10.5)
+  6018622 | 0 | 0 | Will Paris Saint-Germain FC win on 2026-11-03?
+  6161059 | 0 | 0 | Spread: FC Volendam (-1.5)
+  6230533 | 0 | 0 | Odds BK vs. Sandnes Ulf: Both Teams to Score
+  6332460 | 1 | 0 | Will the highest temperature in Lucknow be 27°C on October 30?
+  6379061 | 1 | 0 | Will the highest temperature in Karachi be 37°C on October 31?
+  6389695 | 0 | 0 | Spread: Shanghai Sharks (-4.5)
+run end 2026-10-30T04:18:38.504076Z

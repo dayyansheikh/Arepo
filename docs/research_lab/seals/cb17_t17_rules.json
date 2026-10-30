@@ -1,0 +1,20 @@
+{
+ "t17_rules_utc": "2026-10-20T18:27:58Z",
+ "rules_commit": "2d6d3aa93cf1b456e8eee19c2567e19e7523f912",
+ "parts": {
+  "B": "64e61091574ec4406b6f235f48f37ab2d0bf8b41bf89bfbeace9153186c96a10",
+  "C": "3e24af26db1c827b6ff8dadc5bc63743a4cd03280d510211edf0ad87137b2647",
+  "E": "9b1eba65e5de9de0f67e31f9d7dccf6f012ef8ee37895a603aaa5a6103067412",
+  "common": "2343744082bcb664ac06f18f967c166aae09c216e9437045d7aa07aa77ef8c9f",
+  "pre": "ddc0249b23eedf8cfe50b2b60e94378264804ca4791c82c01cf3993df54df6a7"
+ },
+ "part_A": "withdrawn uncounted (branch T); never declared",
+ "s8_utc_expected": "2026-10-26T00:00:00Z",
+ "rule": "ruling O2 (reviews/CB17_OPEN_QUESTION_RULINGS_2026-10-20.md): T17_rules = committer UTC time of the commit that lands the final re-hashed parts on chore/arepo-claude-setup; S_8 = max(2026-10-26T00:00Z, first 00:00Z at or after T17_rules + 24 h)",
+ "previous_part_shas": {
+  "B": "fd9ce65606ed94d90ecc9a364bf6f6ad99754ae3a8f77e1aa778f723ef28c4aa",
+  "C": "68bd50a2 (see CREATIVE_BATCH_17.md section 11.6)",
+  "E": "337382d6 (see CREATIVE_BATCH_17.md section 11.6)"
+ },
+ "written_by": "orchestrator (autopilot), 2026-10-20"
+}

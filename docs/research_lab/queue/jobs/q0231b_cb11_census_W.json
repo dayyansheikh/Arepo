@@ -1,0 +1,40 @@
+{
+ "id": "q0231b_cb11_census_W",
+ "title": "CB11-W census, counts only (W units by window/category/frame source/end hour; GWC censoring gate; GW, GW2; W2 coverage audit; triggers and S-arm counts; MDEs)",
+ "family": "creative_batch_11",
+ "priority": 25,
+ "expected_value": "W gates and MDEs before the freeze",
+ "data": [
+  "creative_batch11/w (no target, no guarded file)",
+  "creative_batch11/w/censoring.json",
+  "history/h11_wprints/screen"
+ ],
+ "resources": {
+  "mem_mb": 900,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0222b_cb11_w_frame",
+  "q0223b_cb11_w_prints",
+  "q0224b_cb11_w_censoring",
+  "q0230b_cb11_seal"
+ ],
+ "argv": [
+  "scripts/run_cb11.py",
+  "census",
+  "--family",
+  "W",
+  "--rules",
+  "../docs/research_lab/seals/cb11_rules.json"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch11/census_W_b.json",
+  "trials.jsonl (cb11_descriptive)"
+ ],
+ "next_action": "science-reviewer freeze check, then model_specs/cb11_v1.json (W part may freeze first)",
+ "notes": "ENGINEERING DEFECT (CREATIVE_BATCH_11.md section 11.3): q0222 stalled W as 'not testable (censoring windows)' (N8 match 0.592 h2_main, 0.574 h3_power) because cb11_w tested the reconstructed 15-minute windows as half-open [a, b) while the Gamma walk that built the frames (hb.fetch_frame: end_date_min / end_date_max, both inclusive) and the q0224 count (count_in_window, 'endDate in [a, b]') use [a, b]. Read-only host evidence 2026-10-19: every unmatched closed row (h2_main 81,574 of 199,868; h3_power 94,273 of 221,169) has end_epoch EXACTLY equal to a reconstructed window's end b (minute % 15 = 0, second 0; next quarter hour not drawn), across every month and category (sports, crypto, unknown, weather, finance, ...); with [a, b] both frames match 100%. Not a source limitation. Fix: cb11_w.in_frame_windows / closed_rows_per_window use [a, b] (tests in test_cb11_w.py); rules W regenerated a3a16f987f7478143c9210e22ef7edddcaca7902f8ada55191d53f21755af0aa (was 6d3f1613...; an intermediate 7734729d... with an h11_wprints_b dir was never used). The q0222-q0224/q0230/q0231 outputs (creative_batch11/w, w_censoring, census_W.json, history/h11_wprints/manifest.json) keep their stall and are never rewritten; this v2 chain writes creative_batch11/w_b, w_censoring_b and census_W_b.json, and NEW files only in the shared history/h11_wprints (manifest_b.json, screen/ and holdout/ tx and markets files, an id-only markets.csv.gz for the CB12-CB15 id readers; the q0223 stall manifest.json is never read as the run's state). No W outcome, wait, print or net was ever read (q0222 stalled before any unit file). DRAFT: not promoted; needs a science-reviewer check of section 11.3,. | prior notes: PROMOTED 2026-10-18 by the autopilot after the CB11 focused re-check and verify round (GO for smoke/keys, W data, P/A data, seals, censuses; fixes 19a8c9f + 1f9a208; rules W 2d2bb169\u2026, PA 2d48bd73\u2026). DRAFT-REVISED round 1 (per-family census so W can screen before T_seal). No wait, outcome, status or net computed. Verifies the W rules part, both seal copies as committed (HEAD blobs) and the three fetch manifests. GW2 counts filled S units only; uncovered markets are excluded and counted; availability < 60% -> not testable (availability). Refuses on an incomplete manifest. Needs the committed seals/cb11_w_hold_SEAL.json and seals/cb11_wprints_holdout_SEAL.json. CB11 not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. rules sha256 a3a16f987f7478143c9210e22ef7edddcaca7902f8ada55191d53f21755af0aa (W v2, section 11.3; was 6d3f1613...) (regenerated 2026-10-19 for the q0221b amendment, CREATIVE_BATCH_11.md section 11.2; was 2d2bb169...) (part W of cb11_rules.json v2, 2026-10-18 freeze-check fixes; sample pins filled and rules regenerated 2026-10-18 after the re-check fixes b1-b2, c1-c2, d1-d3). PROMOTED 2026-10-19 (autopilot) after science-reviewer review of \u00a711.3/\u00a711.4 (9ede7dd, 211b48a): GO; rules W a3a16f98, P/A 94f0d5e0 reproduced.",
+ "supersedes": "q0231_cb11_census_W"
+}

@@ -1,0 +1,33 @@
+{
+ "id": "q0114_cb5_K_rep_live",
+ "title": "CB5-K: optional K1-R on E009/E010 live pairs (conditional; after both final analyses are committed and owner sign-off)",
+ "family": "creative_batch_5",
+ "priority": 38,
+ "expected_value": "replication of the hour moderation on receipt-timed quotes",
+ "data": [
+  "cross_venue_live/ (unsealed, after E009 and E010 final analyses)"
+ ],
+ "resources": {
+  "mem_mb": 1000,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0110_cb5_measure_K"
+ ],
+ "argv": [
+  "scripts/run_cb5.py",
+  "measure-K",
+  "--live-replication",
+  "--n-boot",
+  "4000"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch5/K_rep/results.json",
+  "trials.jsonl (1 cb5_measurement + count line)"
+ ],
+ "next_action": "ledger",
+ "notes": "DRAFT: the coordinator copies this to queue/jobs/ only after the science-reviewer CB5 freeze check of the code. DRAFT ONLY: not committed without a ledger sign-off line from the E009/E010 owner and docs/research_lab/seals/cb5_k1r_signoff.json; never before 2026-11-03. The runner refuses (exit 2) before then; the live pair loader and the receipt-timed 2-minute grid mapping are NOT implemented (exit 3 after the refusal checks pass): implement and freeze-check them before release. Cannot change any E009/E010 verdict."
+}

@@ -1,0 +1,41 @@
+{
+ "id": "q0040b_cb2_ladder_refresh",
+ "title": "CB2-L: weekly additive ladder-list refresh (v>=2, prospective only), latest capture",
+ "family": "creative_batch_2",
+ "priority": 62,
+ "expected_value": "keeps the L/X rung universe current for the replication window; rungs added here are visible only to captures after listed_utc",
+ "data": [
+  "research_lab/snapshots (latest complete capture, ids and fee fields)",
+  "Gamma /markets metadata (only ids not in ladder_text_cache.jsonl)"
+ ],
+ "resources": {
+  "mem_mb": 800,
+  "cpu": 1,
+  "network": "gamma-api"
+ },
+ "depends_on": [
+  "q0040_cb2_ladder_list"
+ ],
+ "argv": [
+  "scripts/run_cb2.py",
+  "ladder-list",
+  "--refresh",
+  "--not-before",
+  "2026-10-23T00:00Z",
+  "--from",
+  "2026-10-11T12:00Z",
+  "--rps",
+  "2",
+  "--max-requests",
+  "1500"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 0,
+ "outputs": [
+  "data-dumps/research_lab/cb2_extract/ladder_lists/<grouper-hash12>/ladder_list_v<n>.json",
+  "data-dumps/research_lab/cb2_extract/ladder_list.json (+ .sha256, head)",
+  "data-dumps/research_lab/cb2_extract/audit_sample_v<n>.json"
+ ],
+ "next_action": "repeat weekly until T2_rep_start (clone with a new id and a new --not-before; job ids are terminal once done)",
+ "notes": "DRAFT, deliberately NOT in queue/jobs/ (freeze-check fix 5): move it there on the intended date, one clone per week. Gates: depends_on q0040 (v1 must exist); --refresh refuses (exit 3) unless v1 of the CURRENT grouper-hash lineage exists; --not-before refuses (exit 3) earlier than its time; the grouper seal must be committed. v>=2 is additive (earlier rungs and ladders are never altered) and prospective only: a rung added at version v is visible to captures strictly after that version's listed_utc. Dev analysis stays pinned to the committed v1 sha via --ladder-list-sha256."
+}

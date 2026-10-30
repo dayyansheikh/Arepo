@@ -1,0 +1,41 @@
+{
+ "id": "q0108_cb5_screen_G",
+ "title": "CB5-G: Stage-1 screen on h2_main (G1 slope, G2 maker; 0.50-seed attribution; seed-permutation on beta_LC and break-even placebos; era rule)",
+ "family": "creative_batch_5",
+ "priority": 38,
+ "expected_value": "whether CH56 advances to the prospective replication",
+ "data": [
+  "history/h2_main",
+  "h2_main/cb5/head_prices",
+  "model_specs/cb5_v1.json",
+  "model_specs/cost_regimes_v1.json",
+  "creative_batch5/census.json"
+ ],
+ "resources": {
+  "mem_mb": 1200,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0106_cb5_census",
+  "q0089_cb4_measure_commit"
+ ],
+ "argv": [
+  "scripts/run_cb5.py",
+  "screen",
+  "--family",
+  "G",
+  "--run-id",
+  "h2_main",
+  "--n-boot",
+  "2000"
+ ],
+ "timeout_s": 5400,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch5/G_screen/results.json",
+  "trials.jsonl (2 cb5_test + count line + placebos + descriptive)"
+ ],
+ "next_action": "if advanced or carried: commit q0111/q0112",
+ "notes": "DRAFT: the coordinator copies this to queue/jobs/ only after the science-reviewer CB5 freeze check of the code. Commit after the freeze. Refuses until cost_regimes_v1.json is committed; exits 0 'not testable' (p = 1, counted) if a census stop or G56 fails; labels 'beyond budget, L1' and 'seed semantics unverified for era'."
+}

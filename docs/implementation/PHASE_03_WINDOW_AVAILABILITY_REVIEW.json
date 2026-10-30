@@ -1,0 +1,183 @@
+{
+  "basis": "Read-only review of retained D085 screening Gamma payloads; no new source request",
+  "historical_implementation": "1c27f31d6c526758d4b27cff4def7d2275de26b5",
+  "count": 8,
+  "unavailable_pre_books": 4,
+  "rows": [
+    {
+      "market_id": "3249632",
+      "window_missing_reason": "pre_snapshot_unavailable",
+      "lifecycle": {
+        "active": true,
+        "closed": true,
+        "archived": false,
+        "acceptingOrders": false,
+        "enableOrderBook": true
+      },
+      "end_date_raw": null,
+      "closed_time_raw": "2026-10-04 01:42:14+00",
+      "receipt_first_received": {
+        "clock_session_id": "55c59eed-8162-4ecb-b894-8c634bfc92e4",
+        "monotonic_ns": "2042415361367458",
+        "utc": "2026-10-04T18:28:27.912787Z"
+      },
+      "raw_path": "data-dumps/fs2_screening_worker_window_pilot_20261004_1/fs2_capture_screen_000/48d9c6e5-7536-4319-b973-82dfd034a973/raw.bin",
+      "raw_sha256": "3be970180e9b4039783108a9a22c6adfaa47ec40e5f5671b81535fc0e43261a2",
+      "raw_bytes": 3460
+    },
+    {
+      "market_id": "3249678",
+      "window_missing_reason": null,
+      "lifecycle": {
+        "active": true,
+        "closed": false,
+        "archived": false,
+        "acceptingOrders": true,
+        "enableOrderBook": true
+      },
+      "end_date_raw": null,
+      "closed_time_raw": null,
+      "receipt_first_received": {
+        "clock_session_id": "55c59eed-8162-4ecb-b894-8c634bfc92e4",
+        "monotonic_ns": "2042414886035291",
+        "utc": "2026-10-04T18:28:27.437450Z"
+      },
+      "raw_path": "data-dumps/fs2_screening_worker_window_pilot_20261004_1/fs2_capture_screen_001/8be8c29a-4737-4181-954a-2999c2e0d400/raw.bin",
+      "raw_sha256": "7bf32afccd5631b5891afe4a9c26da0134d7326d88f485d3ac31f09092b2e468",
+      "raw_bytes": 3373
+    },
+    {
+      "market_id": "3365423",
+      "window_missing_reason": null,
+      "lifecycle": {
+        "active": true,
+        "closed": false,
+        "archived": false,
+        "acceptingOrders": true,
+        "enableOrderBook": true
+      },
+      "end_date_raw": null,
+      "closed_time_raw": null,
+      "receipt_first_received": {
+        "clock_session_id": "55c59eed-8162-4ecb-b894-8c634bfc92e4",
+        "monotonic_ns": "2042414169087166",
+        "utc": "2026-10-04T18:28:26.720499Z"
+      },
+      "raw_path": "data-dumps/fs2_screening_worker_window_pilot_20261004_1/fs2_capture_screen_002/0b03045c-8ac0-471c-8f2e-5f1d840a623a/raw.bin",
+      "raw_sha256": "6a8d7222b9d715acc15a886ba09da914396929a9af01b6c460e0490d82500142",
+      "raw_bytes": 3364
+    },
+    {
+      "market_id": "3919499",
+      "window_missing_reason": null,
+      "lifecycle": {
+        "active": true,
+        "closed": false,
+        "archived": false,
+        "acceptingOrders": true,
+        "enableOrderBook": true
+      },
+      "end_date_raw": "2026-10-04T17:00:00Z",
+      "closed_time_raw": null,
+      "receipt_first_received": {
+        "clock_session_id": "55c59eed-8162-4ecb-b894-8c634bfc92e4",
+        "monotonic_ns": "2042413922954000",
+        "utc": "2026-10-04T18:28:26.474361Z"
+      },
+      "raw_path": "data-dumps/fs2_screening_worker_window_pilot_20261004_1/fs2_capture_screen_003/55411917-a31d-40be-9689-9d61910fcf8a/raw.bin",
+      "raw_sha256": "14b825743527f1f52f698870d1bdbdf7ad142ae6942f92afac084851ca57ce7e",
+      "raw_bytes": 3295
+    },
+    {
+      "market_id": "4061145",
+      "window_missing_reason": null,
+      "lifecycle": {
+        "active": true,
+        "closed": false,
+        "archived": false,
+        "acceptingOrders": true,
+        "enableOrderBook": true
+      },
+      "end_date_raw": null,
+      "closed_time_raw": null,
+      "receipt_first_received": {
+        "clock_session_id": "55c59eed-8162-4ecb-b894-8c634bfc92e4",
+        "monotonic_ns": "2042415123516291",
+        "utc": "2026-10-04T18:28:27.674935Z"
+      },
+      "raw_path": "data-dumps/fs2_screening_worker_window_pilot_20261004_1/fs2_capture_screen_004/5f4d159c-c50c-4933-aea8-0fc65370b4cd/raw.bin",
+      "raw_sha256": "ad038967b15c7bdcecaf6b95336c67bc8cb8e837b9a6294e83b5a172e88b65e5",
+      "raw_bytes": 2893
+    },
+    {
+      "market_id": "4790713",
+      "window_missing_reason": "pre_snapshot_unavailable",
+      "lifecycle": {
+        "active": true,
+        "closed": true,
+        "archived": false,
+        "acceptingOrders": false,
+        "enableOrderBook": true
+      },
+      "end_date_raw": "2026-10-03T18:00:00Z",
+      "closed_time_raw": "2026-10-03 22:36:14+00",
+      "receipt_first_received": {
+        "clock_session_id": "55c59eed-8162-4ecb-b894-8c634bfc92e4",
+        "monotonic_ns": "2042414408853166",
+        "utc": "2026-10-04T18:28:26.960264Z"
+      },
+      "raw_path": "data-dumps/fs2_screening_worker_window_pilot_20261004_1/fs2_capture_screen_005/b493be35-7b81-4f5e-96a8-f81f7020f1ff/raw.bin",
+      "raw_sha256": "d0e86ee30f25e2f48d89761b261b81cb97f98134603e05123979e755d1328a6b",
+      "raw_bytes": 4774
+    },
+    {
+      "market_id": "4819787",
+      "window_missing_reason": "pre_snapshot_unavailable",
+      "lifecycle": {
+        "active": true,
+        "closed": true,
+        "archived": false,
+        "acceptingOrders": false,
+        "enableOrderBook": true
+      },
+      "end_date_raw": "2026-10-03T23:00:00Z",
+      "closed_time_raw": "2026-10-04 02:26:29+00",
+      "receipt_first_received": {
+        "clock_session_id": "55c59eed-8162-4ecb-b894-8c634bfc92e4",
+        "monotonic_ns": "2042414648309500",
+        "utc": "2026-10-04T18:28:27.199724Z"
+      },
+      "raw_path": "data-dumps/fs2_screening_worker_window_pilot_20261004_1/fs2_capture_screen_006/a4f07a33-3b20-4075-84be-bc4ca0ef9715/raw.bin",
+      "raw_sha256": "99acdd150f15860af704ab90256f145c4ceeeb2e0568193771dbab4236027b42",
+      "raw_bytes": 3417
+    },
+    {
+      "market_id": "5102781",
+      "window_missing_reason": "pre_snapshot_unavailable",
+      "lifecycle": {
+        "active": true,
+        "closed": true,
+        "archived": false,
+        "acceptingOrders": false,
+        "enableOrderBook": true
+      },
+      "end_date_raw": "2026-10-03T16:00:00Z",
+      "closed_time_raw": "2026-10-03 17:04:57+00",
+      "receipt_first_received": {
+        "clock_session_id": "55c59eed-8162-4ecb-b894-8c634bfc92e4",
+        "monotonic_ns": "2042413683029875",
+        "utc": "2026-10-04T18:28:26.234440Z"
+      },
+      "raw_path": "data-dumps/fs2_screening_worker_window_pilot_20261004_1/fs2_capture_screen_007/9549e848-1eb0-48cc-b0b1-bc5c61a44f83/raw.bin",
+      "raw_sha256": "a0b086bcab0b8f2a2bdd8600422acb26d3b6dd773c21a9d987fd04cb02ad8656",
+      "raw_bytes": 3322
+    }
+  ],
+  "conclusion": "All four unavailable pre-books accompanied fresh closed/non-accepting Gamma state. The older frame no longer represented current lifecycle for those selected members.",
+  "limitations": [
+    "No redraw, retrospective eligibility change, denominator change or successful-pilot claim.",
+    "closed_time_raw is a source field, not locally observed closure time.",
+    "Future lifecycle eligibility/fresh-frame decisions must be declared before a new draw; retain the complete population inventory and explicit unknown/excluded states.",
+    "This explains the four pre-book absences, not the later one-sided quote or replay delay."
+  ]
+}

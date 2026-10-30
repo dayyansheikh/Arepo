@@ -1,0 +1,39 @@
+{
+ "id": "q0116_mc1_dev_run",
+ "title": "MC1 multi-signal dev: REAL development run (M0, elastic net, LightGBM 20-config, M3_eb; clustered bootstrap; OOF SHAP; trials logged) once the 40-consecutive-capture gate is met",
+ "family": "ml_multi_signal",
+ "priority": 50,
+ "expected_value": "first MC1 development read (log-loss vs M0, incremental families) before the 8-day snapshot deletion (captures from 10-14T12:31Z pass 8 days at 10-23 03:30Z); caches the panel parquet that also unblocks the book_sweeps retention rule",
+ "data": [
+  "research_lab/snapshots (70 complete; longest consecutive run 30 at 2026-10-16T23Z)",
+  "research_lab/book_sweeps",
+  "research_lab/trade_samples"
+ ],
+ "resources": {
+  "mem_mb": 2500,
+  "cpu": 1
+ },
+ "depends_on": [
+  "q0115_mc1_dev_dryrun2"
+ ],
+ "argv": [
+  "scripts/run_ml_dev.py",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--sweep-root",
+  "../data-dumps/research_lab/book_sweeps",
+  "--cache-root",
+  "../data-dumps/research_lab/ml_cache",
+  "--out-dir",
+  "../data-dumps/research_lab/ml_dev"
+ ],
+ "timeout_s": 21600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/ml_dev/ reports",
+  "ml_cache/<panel hash>/panel.parquet",
+  "trials.jsonl DEVELOPMENT rows"
+ ],
+ "next_action": "Claude session: write up the dev run in MULTI_SIGNAL_PIPELINE_DESIGN.md / ledger (development, not evidence); record the panel hash; then the book_sweeps rule may move to rules once q0035 is done",
+ "notes": "Created 2026-10-17 (autopilot). Design MULTI_SIGNAL_PIPELINE_DESIGN.md (reviewed twice, amendment A1). run_ml_dev.py now exits 75 (not 2) when the gate is unmet, so the queue waits 30 min per try without burning attempts (48 tempfails ~ 24 h; gate expected ~2026-10-17T19Z). mem_mb 2500 pending the q0115 measured peak; adjust before it starts if q0115 shows more."
+}

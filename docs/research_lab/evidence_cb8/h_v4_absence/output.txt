@@ -1,0 +1,11 @@
+# Recorded output of 02_verify_absence.py (2026-10-17, laptop IP; sample from 01_draw_sample_on_host.py, seed 20261017).
+# Condition ids are public market ids but are not stored here; sample_ids.sha256 is the sha256 of the 600-line id file.
+# The 'ABSENT holders' line prints 'http_fail 40' because the script's counter treats a 200 reply of JSON null as not "ok"; those 40 replies were
+# HTTP 200 with body null (no holders), re-checked directly on 8 of them: Counter({(200, 'null'): 8}).
+sampled 600 absent 490 present 110 present<1000 90 present==0 0
+smallest present [0.14, 0.98, 1.39, 1.51, 1.63, 1.64, 2.23, 2.5, 3.2, 3.56]
+ABSENT holders n 40 http_fail 40 empty 0 with_positive 0 max_top20_total 0
+ABSENT nonempty detail []
+ABSENT single /oi n 15 empty list 15 other []
+PRESENT small n 10 oi [0.14, 0.98, 1.39, 1.51, 1.63, 1.64, 2.23, 2.5, 3.2, 3.56] holders [('ok', 5, 5), ('ok', 21, 21), ('ok', 2, 2), ('ok', 13, 13), ('ok', 12, 12), ('ok', 2, 2), ('ok', 2, 2), ('ok', 13, 13), ('ok', 3, 3), ('ok', 7, 7)]
+requests 107

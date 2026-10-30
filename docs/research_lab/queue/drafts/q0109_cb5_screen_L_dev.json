@@ -1,0 +1,39 @@
+{
+ "id": "q0109_cb5_screen_L_dev",
+ "title": "CB5-L: dev screen (L1 at c' touches; coherence placebo; family-level divergence gate; depth; persistence and pair-hours reported)",
+ "family": "creative_batch_5",
+ "priority": 38,
+ "expected_value": "whether CH59 advances to the replication captures",
+ "data": [
+  "cb5_extract/cdf (dev captures < 2026-10-27T00:00Z, frozen list + sha256)",
+  "creative_batch5/rinc.json",
+  "model_specs/cb5_v1.json"
+ ],
+ "resources": {
+  "mem_mb": 1000,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0106_cb5_census",
+  "q0107_cb5_rinc"
+ ],
+ "argv": [
+  "scripts/run_cb5.py",
+  "screen",
+  "--family",
+  "L",
+  "--window",
+  "dev",
+  "--n-boot",
+  "2000"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch5/L_dev/results.json",
+  "trials.jsonl (1 cb5_test + count line + placebo + descriptive)"
+ ],
+ "next_action": "if advanced: commit q0113",
+ "notes": "DRAFT: the coordinator copies this to queue/jobs/ only after the science-reviewer CB5 freeze check of the code. HELD: not committed, and nothing computed, until CB1-D's replication results (data-dumps/research_lab/creative_batch1/D_rep/results.json) are committed or CB1-D is recorded as stopped (docs/research_lab/seals/cb1_d_stopped.json), and never before 2026-11-09T00:00Z; the runner refuses otherwise (exit 2). Exits 0 'not testable' if G59, the coherence placebo or an unknown r_inc blocks."
+}

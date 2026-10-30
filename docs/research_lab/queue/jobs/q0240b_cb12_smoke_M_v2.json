@@ -1,0 +1,35 @@
+{
+ "id": "q0240b_cb12_smoke_M_v2",
+ "title": "CB12: smoke v2 for family M only (rules parts common and M; guarded accessors and refusals; Gamma tag 100343 paging on 2 out-of-window weeks with startTime; first 4 members in page order: Data API newest-first prints and prices-history with explicit bounds over [start - 26 h, start]; criterion m_prices_history_v2 = status 200 for every member, >= 1 point for every member with a pre-start print, >= 2 members with a pre-start print); counts only. smoke.json (v1, m_prices_history FAIL on member liquidity, all X criteria PASS) is kept untouched",
+ "family": "creative_batch_12",
+ "priority": 24,
+ "expected_value": "go/no-go for the CB12-M sources (the v1 gate conflated source and member liquidity)",
+ "data": [
+  "public Gamma, CLOB prices-history, Data API"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "gamma-api, clob, data-api"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb12.py",
+  "smoke",
+  "--rules",
+  "../docs/research_lab/seals/cb12_rules.json",
+  "--rps",
+  "1",
+  "--families",
+  "M"
+ ],
+ "timeout_s": 1200,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch12/smoke_M_v2.json (write-once; the default output of an M-only smoke)",
+  "trials.jsonl (cb12_descriptive)"
+ ],
+ "next_action": "PASS: q0241 and the M chain read smoke.json + smoke_M_v2.json; FAIL: M not testable (source), counted; no smoke v3",
+ "notes": "PROMOTED 2026-10-18 by the autopilot after the smoke-fix review (q0240b GO after the record fix; q0251b GO; fixes 6daf67e; rules common f2f672c1\u2026, M a2e420b0\u2026, X 7485a272\u2026). DRAFT. CREATIVE_BATCH_12.md section 11 item A6 (disclosed amendment, precedent CB9 smoke v2 and CB8-H smoke v3). q0240 (v1) wrote smoke.json with m_prices_history false because one of 2 picked members had no trade in the 26 h before its start (status 200, 0 points; 528 prints, all during the event); all X criteria passed. Changes: M examines the first 4 members and the criterion is m_prices_history_v2 (see title); family smoke version cb12-smoke-M-v2; no analysis threshold, floor, formula or gate changes; X code and part X sha unchanged. <= 25 requests. Write-once; exit 2 if smoke_M_v2.json exists or on a rules-hash mismatch. Rules part sha256 (seals/cb12_rules.json): common f2f672c1dfa22ce1388fd85b42bebc23248f58c5bb4349f6745c4b2493dcc647; M a2e420b031421642b97398ff284e2e2a9364b92004969b4421d5daa7c0910455; X 7485a272bb57d7afd3b114b3382b79ffdb81c0bdf1e2c4cfbc1458280abf3a9f . mem_mb 400 (scikit-learn import in rules verification). (X code amended by A7 after the v1 smoke; X is not smoked here)"
+}

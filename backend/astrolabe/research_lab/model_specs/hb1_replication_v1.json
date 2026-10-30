@@ -1,0 +1,967 @@
+{
+ "alpha": 0.05,
+ "embargo_s": 86400.0,
+ "family_r": [
+  "MI1",
+  "MI2",
+  "MI3",
+  "MI5",
+  "MI6",
+  "FL1",
+  "FL2",
+  "FL3",
+  "FL5",
+  "FL6",
+  "FL8",
+  "FL10",
+  "WA4",
+  "PX1",
+  "PX2",
+  "PX6",
+  "IX3",
+  "VO4"
+ ],
+ "family_w": [
+  "WA1",
+  "WA2",
+  "WA3"
+ ],
+ "hb1_cuts": {
+  "illiq_median_N24": 0.2560000000000002,
+  "lrv1d_mean": -6.0002587381625085,
+  "lrv1d_sd": 1.8584160679598738,
+  "lte_mean": 6.6545920600433535,
+  "lte_sd": 1.705908894143985
+ },
+ "hb1_declaration_sha256": "9e0f15ded297e5193ea318a01a257ef3a5801e17f4a44309b91d2b1e45f8d5fe",
+ "hypotheses": {
+  "FL1": {
+   "controls": [
+    "ml_logit_mid",
+    "ml_abs_mid_dev",
+    "c_chg_1h",
+    "c_chg_1d",
+    "c_chg_1w",
+    "ml_chg_1h_missing",
+    "ml_chg_1d_missing",
+    "ml_chg_1w_missing",
+    "c_dprev",
+    "c_dprev_missing"
+   ],
+   "econ_tau": 0.003978748220364086,
+   "family": "R",
+   "h": 2,
+   "hb1_ci": [
+    0.0024606000094940864,
+    0.00646761037158206
+   ],
+   "hb1_discovery_beta": 0.003597555134389112,
+   "hb1_effect": 0.004035675405692402,
+   "hb1_n": 10164,
+   "hb1_n_event": 422,
+   "hb1_p": 5.745450843249061e-05,
+   "hb1_z_event": 3.8567405437945923,
+   "pop": "n1h",
+   "scale": "sd",
+   "scaling": {
+    "scale": "sd",
+    "sd": 0.9041927096507929,
+    "winsor": [
+     -1.0000000000012492,
+     1.000000000001012
+    ]
+   },
+   "sign": 1,
+   "target": "d",
+   "test": "beta",
+   "text": "1h notional imbalance predicts 2h drift",
+   "x": [
+    "f_imb_1h"
+   ]
+  },
+  "FL10": {
+   "controls": [
+    "ml_logit_mid",
+    "ml_abs_mid_dev",
+    "c_chg_1h",
+    "c_chg_1d",
+    "c_chg_1w",
+    "ml_chg_1h_missing",
+    "ml_chg_1d_missing",
+    "ml_chg_1w_missing",
+    "c_dprev",
+    "c_dprev_missing"
+   ],
+   "econ_tau": 0.006523697338473926,
+   "family": "R",
+   "h": 24,
+   "hb1_ci": [
+    0.003982021143071976,
+    0.008523770167645944
+   ],
+   "hb1_discovery_beta": 0.00583545946100207,
+   "hb1_effect": 0.0059071560808776355,
+   "hb1_n": 15541,
+   "hb1_n_event": 333,
+   "hb1_p": 1.2918171837461717e-06,
+   "hb1_z_event": 4.701416086622081,
+   "pop": "n2h",
+   "scale": "sd",
+   "scaling": {
+    "scale": "sd",
+    "sd": 0.8945018688386013,
+    "winsor": [
+     -1.0000000000011369,
+     1.0000000000009095
+    ]
+   },
+   "sign": 1,
+   "target": "d",
+   "test": "beta",
+   "text": "2h notional imbalance predicts 24h drift",
+   "x": [
+    "f_imb_2h"
+   ]
+  },
+  "FL2": {
+   "controls": [
+    "ml_logit_mid",
+    "ml_abs_mid_dev",
+    "c_chg_1h",
+    "c_chg_1d",
+    "c_chg_1w",
+    "ml_chg_1h_missing",
+    "ml_chg_1d_missing",
+    "ml_chg_1w_missing",
+    "c_dprev",
+    "c_dprev_missing"
+   ],
+   "econ_tau": 0.0033095935527508898,
+   "family": "R",
+   "h": 6,
+   "hb1_ci": [
+    0.0021622953766780597,
+    0.00441237470618646
+   ],
+   "hb1_discovery_beta": 0.0028390513786493614,
+   "hb1_effect": 0.003181715094755253,
+   "hb1_n": 33042,
+   "hb1_n_event": 425,
+   "hb1_p": 2.9632298375075042e-08,
+   "hb1_z_event": 5.421005921473004,
+   "pop": "n6h",
+   "scale": "sd",
+   "scaling": {
+    "scale": "sd",
+    "sd": 0.8578247852488129,
+    "winsor": [
+     -1.0000000000006264,
+     1.0000000000004547
+    ]
+   },
+   "sign": 1,
+   "target": "d",
+   "test": "beta",
+   "text": "6h notional imbalance predicts 6h drift",
+   "x": [
+    "f_imb_6h"
+   ]
+  },
+  "FL3": {
+   "controls": [
+    "ml_logit_mid",
+    "ml_abs_mid_dev",
+    "c_chg_1h",
+    "c_chg_1d",
+    "c_chg_1w",
+    "ml_chg_1h_missing",
+    "ml_chg_1d_missing",
+    "ml_chg_1w_missing",
+    "c_dprev",
+    "c_dprev_missing"
+   ],
+   "econ_tau": 0.005019078680977499,
+   "family": "R",
+   "h": 24,
+   "hb1_ci": [
+    0.0032970454090061607,
+    0.0062283888266224715
+   ],
+   "hb1_discovery_beta": 0.004086630867809155,
+   "hb1_effect": 0.0046514532865238175,
+   "hb1_n": 64315,
+   "hb1_n_event": 344,
+   "hb1_p": 5.872156614947985e-11,
+   "hb1_z_event": 6.442601031778617,
+   "pop": "n24h",
+   "scale": "sd",
+   "scaling": {
+    "scale": "sd",
+    "sd": 0.8142193274031836,
+    "winsor": [
+     -1.00000000000017,
+     1.0000000000001517
+    ]
+   },
+   "sign": 1,
+   "target": "d",
+   "test": "beta",
+   "text": "24h notional imbalance predicts 24h drift",
+   "x": [
+    "f_imb_24h"
+   ]
+  },
+  "FL5": {
+   "controls": [
+    "ml_logit_mid",
+    "ml_abs_mid_dev",
+    "c_chg_1h",
+    "c_chg_1d",
+    "c_chg_1w",
+    "ml_chg_1h_missing",
+    "ml_chg_1d_missing",
+    "ml_chg_1w_missing",
+    "c_dprev",
+    "c_dprev_missing"
+   ],
+   "econ_tau": 0.003259537966886374,
+   "family": "R",
+   "h": 6,
+   "hb1_ci": [
+    0.001970142072190057,
+    0.004040571842820146
+   ],
+   "hb1_discovery_beta": 0.0027363657872957596,
+   "hb1_effect": 0.002897971099121958,
+   "hb1_n": 31134,
+   "hb1_n_event": 416,
+   "hb1_p": 7.142110657576537e-08,
+   "hb1_z_event": 5.271202607604898,
+   "pop": "small6h",
+   "scale": "sd",
+   "scaling": {
+    "scale": "sd",
+    "sd": 0.8394949882757909,
+    "winsor": [
+     -1.0000000000001228,
+     1.000000000000091
+    ]
+   },
+   "sign": 1,
+   "target": "d",
+   "test": "beta",
+   "text": "imbalance of trades < $50 over 6h predicts 6h drift (retail: reversal prior)",
+   "x": [
+    "f_small_imb_6h"
+   ]
+  },
+  "FL6": {
+   "controls": [
+    "ml_logit_mid",
+    "ml_abs_mid_dev",
+    "c_chg_1h",
+    "c_chg_1d",
+    "c_chg_1w",
+    "ml_chg_1h_missing",
+    "ml_chg_1d_missing",
+    "ml_chg_1w_missing",
+    "c_dprev",
+    "c_dprev_missing"
+   ],
+   "econ_tau": 0.005019333801335939,
+   "family": "R",
+   "h": 6,
+   "hb1_ci": [
+    0.003227916862450691,
+    0.005438939374390492
+   ],
+   "hb1_discovery_beta": 0.0033026058652785937,
+   "hb1_effect": 0.004301634161894847,
+   "hb1_n": 33042,
+   "hb1_n_event": 425,
+   "hb1_p": 6.061322460581596e-14,
+   "hb1_z_event": 7.415434781778442,
+   "pop": "n6h",
+   "scale": "sd",
+   "scaling": {
+    "scale": "sd",
+    "sd": 0.6579769339906376,
+    "winsor": [
+     -1.000000000000128,
+     1.000000000000091
+    ]
+   },
+   "sign": 1,
+   "target": "d",
+   "test": "beta",
+   "text": "net share of trades paying >= 1c through the prevailing price predicts 6h drift",
+   "x": [
+    "f_agg_flow_6h"
+   ]
+  },
+  "FL8": {
+   "controls": [
+    "ml_logit_mid",
+    "ml_abs_mid_dev",
+    "c_chg_1h",
+    "c_chg_1d",
+    "c_chg_1w",
+    "ml_chg_1h_missing",
+    "ml_chg_1d_missing",
+    "ml_chg_1w_missing",
+    "c_dprev",
+    "c_dprev_missing"
+   ],
+   "econ_tau": 0.0015421727285597053,
+   "family": "R",
+   "h": 24,
+   "hb1_ci": [
+    0.0009351150327941379,
+    0.0030790720063809812
+   ],
+   "hb1_discovery_beta": 0.0008412295076923031,
+   "hb1_effect": 0.0019344701517484092,
+   "hb1_n": 64286,
+   "hb1_n_event": 344,
+   "hb1_p": 0.00017911634331945357,
+   "hb1_z_event": 3.5690831769828684,
+   "pop": "n24h_7d",
+   "scale": "sd",
+   "scaling": {
+    "scale": "sd",
+    "sd": 0.7106296779141864,
+    "winsor": [
+     -1.8129224064370582,
+     1.912621013120407
+    ]
+   },
+   "sign": 1,
+   "target": "d",
+   "test": "beta",
+   "text": "24h imbalance minus own 7d imbalance predicts 24h drift",
+   "x": [
+    "f_flow_surprise"
+   ]
+  },
+  "IX3": {
+   "controls": [
+    "ml_logit_mid",
+    "ml_abs_mid_dev",
+    "c_chg_1h",
+    "c_chg_1d",
+    "c_chg_1w",
+    "ml_chg_1h_missing",
+    "ml_chg_1d_missing",
+    "ml_chg_1w_missing",
+    "c_dprev",
+    "c_dprev_missing",
+    "f_imb_6h",
+    "f_quiet"
+   ],
+   "econ_tau": 0.0030431653842799412,
+   "family": "R",
+   "h": 24,
+   "hb1_ci": [
+    -0.002801793133444091,
+    -0.0007362653993639728
+   ],
+   "hb1_discovery_beta": -0.001275462082312342,
+   "hb1_effect": -0.0017140844366072248,
+   "hb1_n": 26405,
+   "hb1_n_event": 175,
+   "hb1_p": 0.0001715085310331441,
+   "hb1_z_event": -3.644904976279988,
+   "pop": "n6h_quiet",
+   "scale": "sd",
+   "scaling": {
+    "scale": "sd",
+    "sd": 0.4191234853356929,
+    "winsor": [
+     -1.000000000010277,
+     1.0000000000018816
+    ]
+   },
+   "sign": -1,
+   "target": "d",
+   "test": "beta",
+   "text": "6h flow in a quiet market (24h notional below own 29-day median) predicts more",
+   "x": [
+    "f_flow_quiet"
+   ]
+  },
+  "MI1": {
+   "controls": [
+    "ml_logit_mid",
+    "ml_abs_mid_dev",
+    "c_chg_1h",
+    "c_chg_1d",
+    "c_chg_1w",
+    "ml_chg_1h_missing",
+    "ml_chg_1d_missing",
+    "ml_chg_1w_missing",
+    "c_dprev",
+    "c_dprev_missing",
+    "f_illiq"
+   ],
+   "econ_tau": 0.0018235576846729077,
+   "family": "R",
+   "h": 2,
+   "hb1_ci": [
+    -0.24012496343437809,
+    -0.13392071867614094
+   ],
+   "hb1_discovery_beta": -0.1823557684672926,
+   "hb1_effect": -0.1889094417152931,
+   "hb1_n": 172519,
+   "hb1_n_event": 490,
+   "hb1_p": 3.194710917391749e-12,
+   "hb1_z_event": -6.870685276872925,
+   "pop": "n24h_cov",
+   "scale": "raw",
+   "scaling": {
+    "scale": "raw"
+   },
+   "sign": -1,
+   "target": "d",
+   "test": "beta",
+   "text": "2h reversal stronger when 24h notional is below the discovery median",
+   "x": [
+    "f_rev_illiq"
+   ]
+  },
+  "MI2": {
+   "controls": [
+    "ml_logit_mid",
+    "ml_abs_mid_dev",
+    "c_chg_1h",
+    "c_chg_1d",
+    "c_chg_1w",
+    "ml_chg_1h_missing",
+    "ml_chg_1d_missing",
+    "ml_chg_1w_missing",
+    "c_dprev",
+    "c_dprev_missing",
+    "f_no_trade_2h"
+   ],
+   "econ_tau": 0.004531064164030945,
+   "family": "R",
+   "h": 2,
+   "hb1_ci": [
+    -0.33146955440001413,
+    -0.2052672445928426
+   ],
+   "hb1_discovery_beta": -0.26653318611946747,
+   "hb1_effect": -0.27130533855534583,
+   "hb1_n": 172519,
+   "hb1_n_event": 490,
+   "hb1_p": 3.8366327648737225e-17,
+   "hb1_z_event": -8.336174498801292,
+   "pop": "n24h_cov",
+   "scale": "raw",
+   "scaling": {
+    "scale": "raw"
+   },
+   "sign": -1,
+   "target": "d",
+   "test": "beta",
+   "text": "2h reversal stronger when the 2h move had no trade (quote noise)",
+   "x": [
+    "f_rev_notrade"
+   ]
+  },
+  "MI3": {
+   "controls": [
+    "ml_logit_mid",
+    "ml_abs_mid_dev",
+    "c_chg_1h",
+    "c_chg_1d",
+    "c_chg_1w",
+    "ml_chg_1h_missing",
+    "ml_chg_1d_missing",
+    "ml_chg_1w_missing",
+    "c_dprev",
+    "c_dprev_missing",
+    "f_z_lrv1d"
+   ],
+   "econ_tau": 0.0052352304482070795,
+   "family": "R",
+   "h": 2,
+   "hb1_ci": [
+    -0.26722367891132787,
+    -0.12082901232581873
+   ],
+   "hb1_discovery_beta": -0.22286228200920793,
+   "hb1_effect": -0.21136580025877114,
+   "hb1_n": 172519,
+   "hb1_n_event": 490,
+   "hb1_p": 1.6891811440659665e-08,
+   "hb1_z_event": -5.625823666406302,
+   "pop": "all",
+   "scale": "raw",
+   "scaling": {
+    "scale": "raw"
+   },
+   "sign": -1,
+   "target": "d",
+   "test": "beta",
+   "text": "2h reversal stronger at high 1d realised volatility",
+   "x": [
+    "f_rev_vol"
+   ]
+  },
+  "MI5": {
+   "controls": [
+    "ml_logit_mid",
+    "ml_abs_mid_dev",
+    "c_chg_1h",
+    "c_chg_1d",
+    "c_chg_1w",
+    "ml_chg_1h_missing",
+    "ml_chg_1d_missing",
+    "ml_chg_1w_missing",
+    "c_dprev",
+    "c_dprev_missing",
+    "f_z_lte"
+   ],
+   "econ_tau": 0.00041835494910886806,
+   "family": "R",
+   "h": 2,
+   "hb1_ci": [
+    -0.07446170209712771,
+    -0.024648046948324755
+   ],
+   "hb1_discovery_beta": -0.023555628475125434,
+   "hb1_effect": -0.05205812939565047,
+   "hb1_n": 171574,
+   "hb1_n_event": 489,
+   "hb1_p": 1.72827140326862e-05,
+   "hb1_z_event": -4.141093323551873,
+   "pop": "all",
+   "scale": "raw",
+   "scaling": {
+    "scale": "raw"
+   },
+   "sign": -1,
+   "target": "d",
+   "test": "beta",
+   "text": "2h reversal stronger further from scheduled end (E006 H2 analogue)",
+   "x": [
+    "f_rev_tte"
+   ]
+  },
+  "MI6": {
+   "controls": [
+    "ml_logit_mid",
+    "ml_abs_mid_dev",
+    "c_chg_1h",
+    "c_chg_1d",
+    "c_chg_1w",
+    "ml_chg_1h_missing",
+    "ml_chg_1d_missing",
+    "ml_chg_1w_missing",
+    "c_dprev",
+    "c_dprev_missing",
+    "f_confirm"
+   ],
+   "econ_tau": 0.0,
+   "family": "R",
+   "h": 2,
+   "hb1_ci": [
+    0.27668981693998224,
+    0.39654877908659014
+   ],
+   "hb1_discovery_beta": 0.3250928927676534,
+   "hb1_effect": 0.3392272849338446,
+   "hb1_n": 172519,
+   "hb1_n_event": 490,
+   "hb1_p": 1.307305799449283e-28,
+   "hb1_z_event": 11.034167654373542,
+   "pop": "n24h_cov",
+   "scale": "raw",
+   "scaling": {
+    "scale": "raw"
+   },
+   "sign": 1,
+   "target": "d",
+   "test": "beta",
+   "text": "a 2h move confirmed by same-sign 2h taker flow reverses less",
+   "x": [
+    "f_rev_confirm"
+   ]
+  },
+  "PX1": {
+   "controls": [
+    "c_chg_1h",
+    "c_chg_1d",
+    "c_chg_1w",
+    "ml_chg_1h_missing",
+    "ml_chg_1d_missing",
+    "ml_chg_1w_missing",
+    "c_dprev",
+    "c_dprev_missing"
+   ],
+   "econ_tau": 0.005076504375328938,
+   "family": "R",
+   "h": 24,
+   "hb1_ci": [
+    0.003061473830068936,
+    0.006735314871277573
+   ],
+   "hb1_discovery_beta": 0.005076504375328938,
+   "hb1_effect": 0.004816289913723741,
+   "hb1_n": 168295,
+   "hb1_n_event": 353,
+   "hb1_p": 1.275308699114758e-07,
+   "hb1_z_event": 5.249307277056486,
+   "pop": "all",
+   "scale": "raw",
+   "scaling": {
+    "scale": "raw"
+   },
+   "sign": 1,
+   "target": "d",
+   "test": "beta",
+   "text": "mid <= 0.15 predicts 24h downward drift (favourite-longshot)",
+   "x": [
+    "f_longshot"
+   ]
+  },
+  "PX2": {
+   "controls": [
+    "c_chg_1h",
+    "c_chg_1d",
+    "c_chg_1w",
+    "ml_chg_1h_missing",
+    "ml_chg_1d_missing",
+    "ml_chg_1w_missing",
+    "c_dprev",
+    "c_dprev_missing"
+   ],
+   "econ_tau": 0.0,
+   "family": "R",
+   "h": 24,
+   "hb1_ci": [
+    0.002000163858669012,
+    0.005658423033532205
+   ],
+   "hb1_discovery_beta": 0.004288032329357521,
+   "hb1_effect": 0.003572609711657166,
+   "hb1_n": 168295,
+   "hb1_n_event": 353,
+   "hb1_p": 1.9135551561659585e-05,
+   "hb1_z_event": 4.23489558524213,
+   "pop": "all",
+   "scale": "raw",
+   "scaling": {
+    "scale": "raw"
+   },
+   "sign": 1,
+   "target": "d",
+   "test": "beta",
+   "text": "mid >= 0.85 predicts 24h upward drift",
+   "x": [
+    "f_favourite"
+   ]
+  },
+  "PX6": {
+   "controls": [
+    "ml_logit_mid",
+    "ml_abs_mid_dev",
+    "c_chg_1h",
+    "c_chg_1d",
+    "c_chg_1w",
+    "ml_chg_1h_missing",
+    "ml_chg_1d_missing",
+    "ml_chg_1w_missing",
+    "c_dprev",
+    "c_dprev_missing",
+    "f_imb_24h",
+    "f_low20"
+   ],
+   "econ_tau": 0.0050605155837535,
+   "family": "R",
+   "h": 24,
+   "hb1_ci": [
+    -0.006659732315336,
+    -0.00278203409383139
+   ],
+   "hb1_discovery_beta": -0.003047841622614351,
+   "hb1_effect": -0.0046359853294005385,
+   "hb1_n": 64315,
+   "hb1_n_event": 344,
+   "hb1_p": 1.0963508088830313e-06,
+   "hb1_z_event": -4.734800973705907,
+   "pop": "n24h",
+   "scale": "sd",
+   "scaling": {
+    "scale": "sd",
+    "sd": 0.6022788730063937,
+    "winsor": [
+     -1.0000000000000795,
+     1.0000000000001137
+    ]
+   },
+   "sign": -1,
+   "target": "d",
+   "test": "beta",
+   "text": "24h flow at mid <= 0.20 (longshot buying) predicts 24h drift differently",
+   "x": [
+    "f_flow_longshot"
+   ]
+  },
+  "VO4": {
+   "controls": [],
+   "econ_tau": null,
+   "family": "R",
+   "h": 6,
+   "hb1_ci": [
+    0.0012156179431995293,
+    0.0030972984087608976
+   ],
+   "hb1_discovery_beta": null,
+   "hb1_effect": 0.002147868497275602,
+   "hb1_n": 171770,
+   "hb1_n_event": 444,
+   "hb1_p": 4.169604195404323e-06,
+   "hb1_z_event": 4.456285177925928,
+   "pop": "all",
+   "scale": "sd",
+   "scaling": null,
+   "sign": 1,
+   "target": "ya",
+   "test": "dll",
+   "text": "hours since the last >= 1c 10-min move adds to M0v for |move| 6h",
+   "x": [
+    "f_hours_since_move"
+   ]
+  },
+  "WA1": {
+   "controls": [],
+   "econ_tau": null,
+   "family": "W",
+   "h": 24,
+   "hb1_ci": [
+    -0.00040172650033007493,
+    0.004737765279874579
+   ],
+   "hb1_discovery_beta": null,
+   "hb1_effect": 0.0021071139995150257,
+   "hb1_n": 43796,
+   "hb1_n_event": 287,
+   "hb1_p": 0.0471397945805448,
+   "hb1_z_event": 1.6732423866496728,
+   "pop": "nw",
+   "scale": "sd",
+   "scaling": null,
+   "sign": 1,
+   "target": "ya",
+   "test": "dll",
+   "text": "24h volume share of wallets < 7d old (true first trade) adds to M0v for |move| 24h",
+   "x": [
+    "nw_share_new7d"
+   ]
+  },
+  "WA2": {
+   "controls": [
+    "ml_logit_mid",
+    "ml_abs_mid_dev",
+    "c_chg_1h",
+    "c_chg_1d",
+    "c_chg_1w",
+    "ml_chg_1h_missing",
+    "ml_chg_1d_missing",
+    "ml_chg_1w_missing",
+    "c_dprev",
+    "c_dprev_missing"
+   ],
+   "econ_tau": null,
+   "family": "W",
+   "h": 24,
+   "hb1_ci": [
+    -0.005433010238761502,
+    0.006406467199477256
+   ],
+   "hb1_discovery_beta": 0.001262913512195479,
+   "hb1_effect": 0.00013163582840777088,
+   "hb1_n": 2609,
+   "hb1_n_event": 64,
+   "hb1_p": 0.48204513579629693,
+   "hb1_z_event": 0.04936397032255365,
+   "pop": "fresh",
+   "scale": "sd",
+   "scaling": {
+    "scale": "sd",
+    "sd": 0.36059979331784503,
+    "winsor": [
+     -1.0000000000000002,
+     1.0
+    ]
+   },
+   "sign": 1,
+   "target": "d",
+   "test": "beta",
+   "text": "net notional share of fresh (< 7d) wallets over 24h predicts 24h drift",
+   "x": [
+    "f_fresh_flow_24h"
+   ]
+  },
+  "WA3": {
+   "controls": [
+    "ml_logit_mid",
+    "ml_abs_mid_dev",
+    "c_chg_1h",
+    "c_chg_1d",
+    "c_chg_1w",
+    "ml_chg_1h_missing",
+    "ml_chg_1d_missing",
+    "ml_chg_1w_missing",
+    "c_dprev",
+    "c_dprev_missing"
+   ],
+   "econ_tau": null,
+   "family": "W",
+   "h": 24,
+   "hb1_ci": [
+    -0.0038882939620694234,
+    0.011063809783722475
+   ],
+   "hb1_discovery_beta": 0.0006282901927053507,
+   "hb1_effect": 0.002402878129499102,
+   "hb1_n": 2037,
+   "hb1_n_event": 53,
+   "hb1_p": 0.21959245567206281,
+   "hb1_z_event": 0.7735703503779178,
+   "pop": "fresh_extreme",
+   "scale": "sd",
+   "scaling": {
+    "scale": "sd",
+    "sd": 0.3789828745120236,
+    "winsor": [
+     -1.000000000000001,
+     0.9999999999999978
+    ]
+   },
+   "sign": 1,
+   "target": "d",
+   "test": "beta",
+   "text": "WA2 restricted to mid <= 0.20 or >= 0.80 (convex acquisition by fresh wallets)",
+   "x": [
+    "f_fresh_flow_24h"
+   ]
+  },
+  "WA4": {
+   "controls": [
+    "ml_logit_mid",
+    "ml_abs_mid_dev",
+    "c_chg_1h",
+    "c_chg_1d",
+    "c_chg_1w",
+    "ml_chg_1h_missing",
+    "ml_chg_1d_missing",
+    "ml_chg_1w_missing",
+    "c_dprev",
+    "c_dprev_missing"
+   ],
+   "econ_tau": 0.0048285558876611425,
+   "family": "R",
+   "h": 24,
+   "hb1_ci": [
+    0.0025644673125745326,
+    0.00614477865694875
+   ],
+   "hb1_discovery_beta": 0.0032788081185684444,
+   "hb1_effect": 0.004135007222511516,
+   "hb1_n": 42825,
+   "hb1_n_event": 298,
+   "hb1_p": 4.578809593008784e-06,
+   "hb1_z_event": 4.565249269110917,
+   "pop": "top1",
+   "scale": "sd",
+   "scaling": {
+    "scale": "sd",
+    "sd": 0.6332703683507116,
+    "winsor": [
+     -0.9923273657289001,
+     0.9822052696630132
+    ]
+   },
+   "sign": 1,
+   "target": "d",
+   "test": "beta",
+   "text": "top wallet's 24h notional share x its net direction predicts 24h drift",
+   "x": [
+    "f_top1_dir"
+   ]
+  }
+ },
+ "shared_events": [
+  "e:1004597",
+  "e:1005033",
+  "e:1019093",
+  "e:1033539",
+  "e:1038622",
+  "e:1048075",
+  "e:1058119",
+  "e:1060505",
+  "e:1060516",
+  "e:1068944",
+  "e:1072958",
+  "e:1074372",
+  "e:1114189",
+  "e:1136338",
+  "e:1136342",
+  "e:1169241",
+  "e:159778",
+  "e:183279",
+  "e:209747",
+  "e:210572",
+  "e:237605",
+  "e:248380",
+  "e:248800",
+  "e:251857",
+  "e:288749",
+  "e:290931",
+  "e:290951",
+  "e:302802",
+  "e:302816",
+  "e:302818",
+  "e:308766",
+  "e:317966",
+  "e:323163",
+  "e:327837",
+  "e:354248",
+  "e:376403",
+  "e:414610",
+  "e:428400",
+  "e:431288",
+  "e:433475",
+  "e:485926",
+  "e:508139",
+  "e:546629",
+  "e:547874",
+  "e:549194",
+  "e:549546",
+  "e:578189",
+  "e:580706",
+  "e:580724",
+  "e:597987",
+  "e:607137",
+  "e:618849",
+  "e:624397",
+  "e:630973",
+  "e:660351",
+  "e:661899",
+  "e:667574",
+  "e:706878",
+  "e:728983",
+  "e:734348",
+  "e:742942",
+  "e:743733",
+  "e:753805",
+  "e:900096",
+  "e:90401",
+  "e:978310"
+ ],
+ "split_ts": 1782864000.0,
+ "version": "hb1-r1"
+}

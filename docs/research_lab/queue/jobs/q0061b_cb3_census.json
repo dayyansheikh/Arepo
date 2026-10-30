@@ -1,0 +1,35 @@
+{
+ "id": "q0061b_cb3_census",
+ "title": "CB3: pre-freeze census (A dev onset counts and exclusions; B h2/pmxt opportunities, fills, classification coverage, RT decile cuts; counts only, no marks)",
+ "family": "creative_batch_3",
+ "priority": 48,
+ "expected_value": "testability, MDEs and frozen cuts before the freeze",
+ "data": [
+  "cb3_extract/quote_state (< T3_A_dev_end)",
+  "history_sources/book_features/book_features.csv.gz",
+  "history/h2_main (trades, frame; outcome columns dropped; no price series read)"
+ ],
+ "resources": {
+  "mem_mb": 2500,
+  "cpu": 1
+ },
+ "depends_on": [
+  "q0003_books_finalize",
+  "q0060_cb3_quote_state_backfill",
+  "q0061a_cb3_hash_gate"
+ ],
+ "argv": [
+  "scripts/run_cb3.py",
+  "census",
+  "--family",
+  "A,B"
+ ],
+ "timeout_s": 5400,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch3/census.json",
+  "docs/research_lab/trials.jsonl (1 cb3_descriptive)"
+ ],
+ "next_action": "Claude session: insert counts and the frozen_cuts proposal into CREATIVE_BATCH_3.md; freeze after q0064",
+ "notes": "retry of q0061 after OOM fix 6e41476 (streamed gz, usecols, one capture frame alive, census drops unused matrices; values identical, unit-tested). Measured on a synthetic 100k-market x 50-capture panel: peak RSS 0.7-0.85 GB (legacy path 1.03 GB, scales with the market universe); mem_mb 1500 -> 2500 for margin (cap is 2x mem_mb of address space). | Counts only: no mark, mark-out, recovery mark, T-capture mid or price after a fill is built or reachable (census guard, unit-tested); outcome columns dropped; reserved run ids and T_J4R captures refused. Definitions are hashed into the declaration before this runs; floors are never revised from the census. Needs the quote_state backfill (q0060) and the finalised pmxt book table (q0003) on the host. | Held behind q0061a_cb3_hash_gate: CB3 freeze-check fix 3 (declaration hash binds applying code) and fix 4 first."
+}
