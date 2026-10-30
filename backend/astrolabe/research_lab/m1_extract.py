@@ -8,6 +8,7 @@ and after is chained through the status files. It never reads a capture after k 
 
 from __future__ import annotations
 
+import base64
 import gzip
 import io
 import json
@@ -109,6 +110,34 @@ def fee_exponent(fee_schedule) -> float:
         return 1.0
 
 
+def encode_ids(ids) -> dict:
+    """A set of integer ids as sorted deltas, newline-separated, gzip (mtime 0), base64: small, deterministic, round-trips exactly."""
+    prev, parts = 0, []
+    for i in sorted(ids):
+        parts.append(str(i - prev))
+        prev = i
+    return {"n": len(parts), "encoding": "sorted ids as deltas from 0, decimal, newline-separated, gzip mtime 0, base64", "gz_b64": base64.b64encode(gz_bytes("\n".join(parts))).decode()}
+
+
+def decode_ids(d: dict) -> set:
+    txt = gzip.decompress(base64.b64decode(d["gz_b64"])).decode()
+    out, acc = set(), 0
+    for line in txt.split("\n"):
+        if line:
+            acc += int(line)
+            out.add(acc)
+    return out
+
+
+def fees_enabled_tri(has_fe: bool, raw) -> bool | None:
+    """L1 flag (ambiguity 7): ``False`` only for a literal false, ``True`` for a truthy value, otherwise ``None`` (the conservative fee)."""
+    if not has_fe or str(raw).strip() == "":
+        return None
+    if j0.false_flag(raw):
+        return False
+    return True if c240._truthy(raw) else None
+
+
 # --- state ------------------------------------------------------------------------------------------------------------------------------
 
 class State:
@@ -164,28 +193,52 @@ def list_complete(root: Path) -> list[dict]:
         t = c240.parse_utc(m.get("started_utc"))
         if m.get("state") != "complete" or not math.isfinite(t) or not (p.parent / "rows.csv.gz").exists():
             continue
-        out.append({"id": p.parent.name, "capture_id": str(m.get("capture_id") or p.parent.name), "start": t, "dir": p.parent})
+        out.append({"id": p.parent.name, "capture_id": str(m.get("capture_id") or p.parent.name), "start": t, "dir": p.parent,
+                    "fin": c240.parse_utc(m.get("finished_utc"))})  # the manifest's finish time (collector.py), judged by 9.2's missing rule
     return sorted(out, key=lambda c: (c["start"], c["id"]))
 
 
-def window_captures(root: Path, spec: dict) -> tuple[dict, list[dict]]:
-    """({slot: capture} the first complete capture of each window slot by start, [later duplicates of a slot])."""
+def count_noncomplete(root: Path, before: float) -> int:
+    """Manifests that exist and start before ``before`` but are not complete (state not complete or rows missing); counted, never used."""
+    n = 0
+    for p in sorted(Path(root).glob("*/manifest.json")):
+        try:
+            m = json.loads(p.read_text())
+        except (OSError, ValueError):
+            n += 1
+            continue
+        t = c240.parse_utc(m.get("started_utc"))
+        if math.isfinite(t) and t < before and (m.get("state") != "complete" or not (p.parent / "rows.csv.gz").exists()):
+            n += 1
+    return n
+
+
+def window_captures(root: Path, spec: dict) -> tuple[dict, list[dict], list[dict], list[dict]]:
+    """({slot: capture} the first on-time complete capture of each window slot by start, [later on-time duplicates], [late captures], [off-grid captures]).
+    On time (9.2): the manifest's ``finished_utc`` is at most grid time + 6 h; the rule is a fact about the capture, not about when J1 runs. A manifest
+    without a parseable ``finished_utc`` falls back to the start time and is flagged ``fin_missing``."""
     a, b = sp.ts(spec, "registered_utc"), sp.ts(spec, "end_utc")
     wslots = set(sp.window_slots(spec))
     by: dict = {}
     extra: list = []
+    late: list = []
+    off: list = []
     for c in list_complete(root):
         if not (a <= c["start"] < b):
             continue
         s, on = sp.slot_of(spec, c["start"])
         if not on or s not in wslots:
+            off.append(c | {"slot": s})
             continue
-        c = c | {"slot": s}
-        if s in by:
+        fin_missing = not math.isfinite(c["fin"])
+        c = c | {"slot": s, "fin_eff": c["start"] if fin_missing else c["fin"], "fin_missing": fin_missing}
+        if c["fin_eff"] > sp.slot_time(spec, s) + spec["missing_after_grid_s"]:
+            late.append(c)
+        elif s in by:
             extra.append(c)
         else:
             by[s] = c
-    return by, extra
+    return by, extra, late, off
 
 
 def sweep_dirs(root: Path | None) -> dict:
@@ -194,9 +247,10 @@ def sweep_dirs(root: Path | None) -> dict:
 
 # --- readers ----------------------------------------------------------------------------------------------------------------------------
 
-def read_sidecar(path: Path, notes: Counter) -> dict:
-    """{codes: {mid: code}, raw: {mid: raw status string}, cand: {mid: fields}, has_fe: bool}; column-selected."""
-    out = {"codes": {}, "raw": {}, "cand": {}, "has_fe": False}
+def read_sidecar(path: Path, notes: Counter, scope: str | None = None) -> dict:
+    """{codes: {mid: code}, raw: {mid: raw status string}, cand: {mid: fields}, has_fe: bool, in_scope: set | None}; column-selected.
+    With ``scope`` the ids of every row whose E5 category (capture k's own sidecar row) equals it are collected; ``None`` when unreadable."""
+    out = {"codes": {}, "raw": {}, "cand": {}, "has_fe": False, "in_scope": None}
     if not Path(path).exists():
         notes["captures_without_sidecar"] += 1
         return out
@@ -209,16 +263,27 @@ def read_sidecar(path: Path, notes: Counter) -> dict:
             notes[f"sidecar_column_missing:{c}"] += 1
     out["has_fe"] = pres[EXT_COLS.index("fees_enabled")]
     codes, raw, cand = out["codes"], out["raw"], out["cand"]
+    in_scope: set | None = set() if scope is not None else None
+    cat_cache: dict = {}
     for mid_s, rec, tok1, uma, acc, ft, fc, ss, fe, fsch, tick in it:
         try:
             mid = int(mid_s)
         except ValueError:
+            notes["unparseable_market_id:sidecar"] += 1
             continue
+        if in_scope is not None:
+            key = (ft, fc, ss)
+            cat = cat_cache.get(key)
+            if cat is None:
+                cat = cat_cache[key] = c240.category_of(ft, fc, ss, True)
+            if cat == scope:
+                in_scope.add(mid)
         code, _both = j0.status_code(uma)
         codes[mid] = code
         raw[mid] = sys.intern(str(uma))  # raw status strings at k and k - 1 go into the unit record; interned (most are the same few strings)
         if code in (1, 2) and "propos" in str(uma).lower():
             cand[mid] = {"ext_rec": c240.parse_utc(rec), "tok1": tok1, "code": code, "acc": acc, "ft": ft, "fc": fc, "ss": ss, "fe": fe, "fsch": fsch, "tick": tick}
+    out["in_scope"] = in_scope
     return out
 
 
@@ -237,6 +302,7 @@ def read_rows(path: Path, cand_ids, notes: Counter, want_rows: bool = True) -> t
         try:
             mid = int(mid_s)
         except ValueError:
+            notes["unparseable_market_id:rows"] += 1
             continue
         row_ids.add(mid)
         if not want_rows:
@@ -295,7 +361,9 @@ def classify(cap: dict, has_prev: bool, k: dict, prev: dict | None, prev_row_ids
         elif mid in st.unit_markets or mid in st.state_markets:
             cls = "prior_proposal_state"
         r = rows.get(mid)
-        if cls is None and (r is None or not c240._truthy(r["binary"]) or c240._truthy(r["closed"]) or not c240._truthy(r["active"]) or j0.false_flag(f["acc"])):
+        if cls is None and r is None:
+            cls = "not_open_at_k:no_row_at_k"  # a sidecar candidate with no row at k (counted apart from a closed or inactive row)
+        if cls is None and (not c240._truthy(r["binary"]) or c240._truthy(r["closed"]) or not c240._truthy(r["active"]) or j0.false_flag(f["acc"])):
             cls = "not_open_at_k"
         if cls is None and cat != spec["scope"]:
             cls = f"out_of_scope_{cat}"
@@ -330,11 +398,12 @@ def build_unit(u: dict, cap: dict, prev_cap: dict, k: dict, prev: dict, sweep: d
     sw = sweep.get(tok)
     times = [x for x in (r["rec"], f["ext_rec"], sw["rec"] if sw else math.nan) if math.isfinite(x)]
     t_d = max(times) if times else cap["start"]
+    t_d_fallback = not times  # no parseable row, sidecar or sweep time: the capture start stands in (counted)
     key = costs.category_key(f["fc"])
     rate, _rebate = c251.fee_parse(f["fsch"])
     sched = rate if math.isfinite(rate) else None
     exponent = fee_exponent(f["fsch"])
-    fe_tri = None if (not k["has_fe"] or str(f["fe"]).strip() == "") else bool(c240._truthy(f["fe"]))
+    fe_tri = fees_enabled_tri(bool(k["has_fe"]), f["fe"])
     rate1 = costs.taker_rate(key, sched, fe_tri, policy=spec["fee_policy"])  # L1 (headline): honours fees_enabled
     rate2 = costs.taker_rate(key, sched, None, policy=spec["fee_policy"])  # L2: ignores the served fees_enabled
     tick = j0.r6(c240._f(f["tick"]))
@@ -353,7 +422,7 @@ def build_unit(u: dict, cap: dict, prev_cap: dict, k: dict, prev: dict, sweep: d
         "fee_schedule_rate": sched, "fee_class": c251.fee_class(f["fe"], bool(k["has_fe"]), f["fsch"])[0],
         "rate_L1": rate1, "rate_L2": rate2, "fee_L1": costs.taker_fee_ps(ask_f, rate1, exponent), "fee_L2": costs.taker_fee_ps(ask_f, rate2, exponent),
         "ladder": "standalone" if n_members <= 1 else ("member_winner" if side == "YES" else "member_loser"), "members": j0.members_of(n_members),
-        "t_d": t_d, "t_d_utc": sp.iso(t_d), "row_received_utc": r["rec"], "sidecar_received_utc": f["ext_rec"],
+        "t_d": t_d, "t_d_utc": sp.iso(t_d), "t_d_fallback": t_d_fallback, "row_received_utc": r["rec"], "sidecar_received_utc": f["ext_rec"],
         "gap_ext_row_s": f["ext_rec"] - r["rec"], "gap_sweep_row_s": (sw["rec"] - r["rec"]) if sw else None,
         "sweep_covered": covered, "sweep_ask_size_1": sw["ask_size_1"] if sw else None, "sweep_best_ask": sw["best_ask"] if sw else None,
         "sweep_depth_ask_1c": sw["depth_ask_1c"] if sw else None, "sweep_batch_receipt_utc": sw["rec"] if sw else None,
@@ -371,10 +440,11 @@ def process_capture(store: Path, cap: dict, prev_cap: dict | None, sweeps: dict,
     """Classify capture k and return (state after, status dict, n units). Writes the unit and status files (write-once)."""
     notes: Counter = Counter()
     before = st.sha()
-    k = read_sidecar(cap["dir"] / "rows_ext.csv.gz", notes)
+    k = read_sidecar(cap["dir"] / "rows_ext.csv.gz", notes, scope=spec["scope"])
     has_prev = prev_cap is not None
-    prev = read_sidecar(prev_cap["dir"] / "rows_ext.csv.gz", notes) if has_prev else {"codes": {}, "raw": {}, "cand": {}, "has_fe": False}
-    prev_rows = read_rows(prev_cap["dir"] / "rows.csv.gz", set(), notes, want_rows=False)[0] if has_prev else set()
+    # capture k - 1 was already counted when it was k: its read notes go to a throwaway counter so no capture's gaps are counted twice
+    prev = read_sidecar(prev_cap["dir"] / "rows_ext.csv.gz", Counter()) if has_prev else {"codes": {}, "raw": {}, "cand": {}, "has_fe": False}
+    prev_rows = read_rows(prev_cap["dir"] / "rows.csv.gz", set(), Counter(), want_rows=False)[0] if has_prev else set()
     _ids, evc, rows = read_rows(cap["dir"] / "rows.csv.gz", set(k["cand"]), notes)
     funnel, by_cat, units, contested = classify(cap, has_prev, k, prev, prev_rows, rows, evc, st, spec)
     sd = sweeps.get(cap["capture_id"]) or sweeps.get(cap["id"])
@@ -385,7 +455,13 @@ def process_capture(store: Path, cap: dict, prev_cap: dict | None, sweeps: dict,
         sweep, sweep_present = {}, bool(sd is not None and (Path(sd) / "rows.csv.gz").exists())
     if sd is None:
         notes["captures_without_sweep_1"] += 1
-    lines = [dumps(build_unit(u, cap, prev_cap, k, prev, sweep, spec, sha)) for u in units]
+    recs = [build_unit(u, cap, prev_cap, k, prev, sweep, spec, sha) for u in units]
+    lines = [dumps(x) for x in recs]
+    if cap.get("fin_missing"):
+        notes["finished_utc_absent"] += 1
+    sub: Counter = Counter()
+    if not has_prev and cap["slot"] == sp.window_slots(spec)[0]:
+        sub["no_previous_capture:first_window_slot"] = funnel.get("no_previous_capture", 0)  # the first window slot has no k - 1 by construction
     body = ("\n".join(lines) + "\n") if lines else ""
     ub = gz_bytes(body)
     after_state = st.copy()
@@ -403,6 +479,8 @@ def process_capture(store: Path, cap: dict, prev_cap: dict | None, sweeps: dict,
         "kind": "processed", "capture_id": cap["capture_id"], "slot": cap["slot"], "grid_utc": sp.iso(sp.slot_time(spec, cap["slot"])), "capture_start_utc": sp.iso(cap["start"]),
         "complete": True, "prev_capture_id": prev_cap["capture_id"] if has_prev else None, "has_previous_capture": has_prev, "sweep_1_present": sweep_present,
         "units": len(lines), "unit_file_sha256": sha_bytes(ub), "funnel": {c: funnel.get(c, 0) for c in CLASSES} | {k2: v for k2, v in funnel.items() if k2 not in CLASSES},
+        "funnel_sub": dict(sub), "t_d_fallbacks": sum(1 for x in recs if x["t_d_fallback"]),
+        "in_scope_market_ids": encode_ids(k["in_scope"]) if k["in_scope"] is not None else None,  # amendment 18(b): E5's reader at k, for the survivorship line
         "funnel_by_category": dict(sorted(by_cat.items())), "contested_n": len(contested), "contested_c_sum": sum(contested), "notes": dict(sorted(notes.items())), "inputs": ins,
         "state_last_capture_before": st.last_capture_id, "state_last_slot_before": st.last_slot, "state_sha256_before": before, "state_sha256_after": after_state.sha(),
         "spec_sha": sha["spec"], "code_sha": sha["code"], "role": sp.ROLE, "pin_check": pin_rec,
@@ -430,9 +508,13 @@ def status_path(store: Path, spec: dict, slot: int, cap: dict | None) -> Path:
     return store / "status" / f"missing_{sp.iso(sp.slot_time(spec, slot)).replace('-', '').replace(':', '')}.json"
 
 
-def init_state(store: Path, snap_root: Path, spec: dict, sha: dict, pin_rec: dict) -> State:
-    """Look-back (E3): every retained complete capture starting before ``registered_utc``, raw sidecars only (``pre_window_source``)."""
+def init_state(store: Path, snap_root: Path, spec: dict, sha: dict, pin_rec: dict, now: float) -> State:
+    """Look-back (E3): every retained complete capture starting before ``registered_utc``, raw sidecars only (``pre_window_source``).
+    Refuses before ``registered_utc``: a run in the days before would build the look-back at once and every capture between that run and the
+    window would be missing from E3's history."""
     reg = sp.ts(spec, "registered_utc")
+    if now < reg:
+        raise M1Refusal(f"J1 refuses before REGISTERED_UTC ({spec['registered_utc']}): the look-back state is built by the first run and must see every pre-window capture")
     caps = [c for c in list_complete(snap_root) if c["start"] < reg]
     notes: Counter = Counter()
     st = State()
@@ -442,8 +524,12 @@ def init_state(store: Path, snap_root: Path, spec: dict, sha: dict, pin_rec: dic
     st.last_slot = sp.window_slots(spec)[0] - 1
     st.last_kind = "init"
     n = len(caps)
+    slots_on = {sp.slot_of(spec, c["start"])[0] for c in caps if sp.slot_of(spec, c["start"])[1]}
+    gaps = (max(slots_on) - min(slots_on) + 1 - len(slots_on)) if slots_on else 0  # grid slots inside the look-back span with no on-grid capture (counted, never filled)
     st.lookback = {"pre_window_source": n, "below_minimum": n < spec["lookback_min_captures"], "minimum": spec["lookback_min_captures"],
-                   "first_capture_utc": sp.iso(caps[0]["start"]) if caps else None, "last_capture_utc": sp.iso(caps[-1]["start"]) if caps else None}
+                   "first_capture_utc": sp.iso(caps[0]["start"]) if caps else None, "last_capture_utc": sp.iso(caps[-1]["start"]) if caps else None,
+                   "slot_gaps": gaps, "off_grid_captures": sum(1 for c in caps if not sp.slot_of(spec, c["start"])[1]),
+                   "noncomplete_manifests_before_window": count_noncomplete(snap_root, reg)}
     status = {"kind": "init", "lookback": st.lookback, "notes": dict(sorted(notes.items())),
               "inputs": hash_inputs([p for c in caps for p in (c["dir"] / "manifest.json", c["dir"] / "rows_ext.csv.gz")]),
               "state_sha256_before": None, "state_sha256_after": st.sha(), "spec_sha": sha["spec"], "code_sha": sha["code"], "role": sp.ROLE, "pin_check": pin_rec}
@@ -457,17 +543,22 @@ def init_state(store: Path, snap_root: Path, spec: dict, sha: dict, pin_rec: dic
 # --- the pass -------------------------------------------------------------------------------------------------------------------------
 
 def run_pass(store: Path, snap_root: Path, sweep_root: Path | None, spec: dict = sp.SPEC, now: float | None = None,
-             paths: dict | None = None, design: Path | None = None) -> dict:
-    """Process every decidable window slot in increasing order; returns counts. Refuses on pin mismatch or a broken state chain."""
+             paths: dict | None = None, design: Path | None = None, pins: dict | None = None) -> dict:
+    """Process every decidable window slot in increasing order; returns counts. Refuses on pin mismatch, a broken state chain, a closed window
+    (``manifest.json`` exists), a start before ``registered_utc`` and, when ``pins`` is given, a ``spec_sha`` / ``code_sha`` different from the registered pins."""
     pin_rec = sp.check_pins(spec, paths, design)
     now = time.time() if now is None else now
     store = Path(store)
     sha = {"spec": sp.spec_sha(spec), "code": sp.code_sha()}
+    if pins is not None and (pins.get("spec_sha") != sha["spec"] or pins.get("code_sha") != sha["code"]):
+        raise sp.PinMismatch({"spec_sha": {"pin": pins.get("spec_sha"), "actual": sha["spec"]}, "code_sha": {"pin": pins.get("code_sha"), "actual": sha["code"]}})
+    if (store / "manifest.json").exists():
+        raise M1Refusal("J1 refuses: the window is closed (manifest.json exists)")
     for d in OUTPUTS:
         (store / d).mkdir(parents=True, exist_ok=True)
     loaded = load_state(store)
-    st = loaded[0] if loaded else init_state(store, snap_root, spec, sha, pin_rec)
-    caps, extra = window_captures(snap_root, spec)
+    st = loaded[0] if loaded else init_state(store, snap_root, spec, sha, pin_rec, now)
+    caps, extra, late, off = window_captures(snap_root, spec)
     sweeps = sweep_dirs(sweep_root)
     slots = sp.window_slots(spec)
     res: Counter = Counter()
@@ -497,13 +588,23 @@ def run_pass(store: Path, snap_root: Path, sweep_root: Path | None, spec: dict =
         save_state(store, st)
         res["processed"] += 1
         res["units"] += nu
-    for s in slots:  # late captures of slots already recorded missing stay unprocessed (counted)
-        cap = caps.get(s)
-        if cap is not None and status_path(store, spec, s, None).exists():
-            p = store / "status" / f"late_{cap['capture_id']}.json"
-            _write_once(p, dumps({"kind": "late_capture_ignored", "capture_id": cap["capture_id"], "slot": s, "capture_start_utc": sp.iso(cap["start"])}).encode(), _same_json)
-            res["late_capture_ignored"] += 1
-    res["duplicate_slot_capture_ignored"] += len(extra)
+    # Captures that never enter the chain are counted in write-once status files, so J2's manifest carries them (not only the append log).
+    # A late capture is one whose manifest finished after grid + 6 h; a slot recorded missing also keeps an on-time capture that was delivered later.
+    decided = {s for s in slots if status_path(store, spec, s, None).exists() or status_path(store, spec, s, caps.get(s)).exists()}
+    late_all = [(c, "finished_after_grid_plus_6h") for c in late if c["slot"] in decided]
+    late_all += [(caps[s], "delivered_after_missing_recorded") for s in slots if s in caps and status_path(store, spec, s, None).exists()]
+    for c, why in late_all:
+        _write_once(store / "status" / f"late_{c['capture_id']}.json", dumps({"kind": "late_capture_ignored", "capture_id": c["capture_id"], "slot": c["slot"], "reason": why,
+                    "capture_start_utc": sp.iso(c["start"]), "finished_utc": None if c["fin_missing"] else sp.iso(c["fin"])}).encode(), _same_json)
+        res["late_capture_ignored"] += 1
+    for c in extra:
+        _write_once(store / "status" / f"dup_{c['capture_id']}.json", dumps({"kind": "duplicate_slot_capture_ignored", "capture_id": c["capture_id"], "slot": c["slot"],
+                    "kept_capture_id": caps[c["slot"]]["capture_id"], "capture_start_utc": sp.iso(c["start"])}).encode(), _same_json)
+        res["duplicate_slot_capture_ignored"] += 1
+    for c in off:
+        _write_once(store / "status" / f"offgrid_{c['capture_id']}.json", dumps({"kind": "off_grid_capture_ignored", "capture_id": c["capture_id"], "nearest_slot": c["slot"],
+                    "capture_start_utc": sp.iso(c["start"])}).encode(), _same_json)
+        res["off_grid_capture_ignored"] += 1
     rec = {"now_utc": sp.iso(now), "peak_rss_mb": peak_rss_mb(), "spec_sha": sha["spec"], "code_sha": sha["code"]} | dict(res)
     (store / "logs").mkdir(parents=True, exist_ok=True)
     with open(store / "logs" / "j1_runs.jsonl", "a") as fh:
@@ -513,24 +614,34 @@ def run_pass(store: Path, snap_root: Path, sweep_root: Path | None, spec: dict =
 
 # --- audit and close ----------------------------------------------------------------------------------------------------------------------
 
-def load_statuses(store: Path) -> tuple[dict | None, list[dict], list[dict]]:
+SIDE_KINDS = ("late_capture_ignored", "duplicate_slot_capture_ignored", "off_grid_capture_ignored")
+
+
+def load_all_statuses(store: Path) -> tuple[dict | None, list[dict], dict]:
+    """(init status, chain statuses by slot, {side kind: [records]}) for late, duplicate and off-grid captures."""
     init = None
     chain: list = []
-    late: list = []
+    side: dict = {k: [] for k in SIDE_KINDS}
     for p in sorted((Path(store) / "status").glob("*.json")):
         d = json.loads(p.read_text())
         if d.get("kind") == "init":
             init = d
-        elif d.get("kind") == "late_capture_ignored":
-            late.append(d)
+        elif d.get("kind") in side:
+            side[d["kind"]].append(d)
         else:
             chain.append(d)
-    return init, sorted(chain, key=lambda d: d["slot"]), late
+    return init, sorted(chain, key=lambda d: d["slot"]), side
+
+
+def load_statuses(store: Path) -> tuple[dict | None, list[dict], list[dict]]:
+    init, chain, side = load_all_statuses(store)
+    return init, chain, side["late_capture_ignored"]
 
 
 def audit_chain(store: Path, spec: dict) -> dict:
     """Void case 11.2(a): every slot in order, each status's state sha before equal to the previous one's after (starting at the init status)."""
-    init, chain, late = load_statuses(store)
+    init, chain, side = load_all_statuses(store)
+    late = side["late_capture_ignored"]
     breaks: list = []
     if init is None:
         breaks.append("no_init_status")
@@ -545,6 +656,7 @@ def audit_chain(store: Path, spec: dict) -> dict:
             breaks.append(f"last_slot_before_mismatch_at_{d['slot']}")
         prev_after, prev_slot = d["state_sha256_after"], d["slot"]
     return {"ok": not breaks, "breaks": breaks, "decided_slots": len(chain), "last_slot": prev_slot, "late_capture_ignored": len(late),
+            "duplicate_slot_capture_ignored": len(side["duplicate_slot_capture_ignored"]), "off_grid_capture_ignored": len(side["off_grid_capture_ignored"]),
             "missing_slots": [d["slot"] for d in chain if d["kind"] == "missing_capture"]}
 
 
@@ -565,7 +677,8 @@ def close_window(store: Path, spec: dict = sp.SPEC, now: float | None = None, pa
         n_units += sum(1 for _ in gzip.open(p, "rt"))
     man = {"kind": "M1-J2 window manifest", "spec_sha": sp.spec_sha(spec), "code_sha": sp.code_sha(), "role": sp.ROLE, "window_slots": len(slots),
            "processed_slots": len(slots) - len(audit["missing_slots"]), "slot_coverage": (len(slots) - len(audit["missing_slots"])) / len(slots),
-           "missing_slots": audit["missing_slots"], "late_capture_ignored": audit["late_capture_ignored"], "units": n_units, "chain": audit, "files": files}
+           "missing_slots": audit["missing_slots"], "late_capture_ignored": audit["late_capture_ignored"],
+           "duplicate_slot_capture_ignored": audit["duplicate_slot_capture_ignored"], "off_grid_capture_ignored": audit["off_grid_capture_ignored"], "units": n_units, "chain": audit, "files": files}
     p = store / "manifest.json"
     _write_once(p, dumps(man).encode(), _same_json)
     return man | {"manifest_sha256": sp.sha256_file(p)}

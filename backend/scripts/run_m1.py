@@ -4,10 +4,10 @@ See docs/research_lab/MEASUREMENT_M1_CH263.md section 9. Research only. Refusals
 ``j1`` exits 75 when the dumps guard trips. The store must sit in a ``research_lab`` directory named ``m1_ch263`` (``m1_ch263_dryrun`` with
 ``--dry-run-last-days``, which derives a short window from the newest captures and writes a different spec_sha; it never writes the real store).
 
-    python scripts/run_m1.py j1 --store S --snapshot-root R/snapshots --sweep-root R/book_sweeps
+    python scripts/run_m1.py j1 --store S --snapshot-root R/snapshots --sweep-root R/book_sweeps --pins PINS.json
     python scripts/run_m1.py j2 --store S
     python scripts/run_m1.py j3 --store S
-    python scripts/run_m1.py analysis --store S --pins PINS.json --out OUT.json [--engine-root R/signal_engine]
+    python scripts/run_m1.py analysis --store S --pins PINS.json --out OUT.json [--engine-root R/signal_engine] [--m2-store S2]
 """
 
 from __future__ import annotations
@@ -56,6 +56,7 @@ def main(argv=None) -> int:
     ap.add_argument("--snapshot-root", type=Path)
     ap.add_argument("--sweep-root", type=Path)
     ap.add_argument("--engine-root", type=Path)
+    ap.add_argument("--m2-store", type=Path, help="analysis: M2's store, read at read-out for unit ids only (m2_overlap); default <research_lab>/m2_ch264")
     ap.add_argument("--pins", type=Path)
     ap.add_argument("--out", type=Path)
     ap.add_argument("--dry-run-last-days", type=int, default=None)
@@ -81,8 +82,14 @@ def main(argv=None) -> int:
             if shutil.disk_usage(a.store).free < a.min_free_gb * 2**30:
                 print("not now: the output disk is short of space", file=sys.stderr)
                 return TEMPFAIL
+            pins = None
+            if not dry:
+                if a.pins is None:
+                    print("refuses: j1 needs --pins (the registered spec_sha / code_sha; the code is checked against them at every pass)", file=sys.stderr)
+                    return 2
+                pins = json.loads(a.pins.read_text())
             now = ex.time.time() if not dry else spec_now(spec)
-            res = ex.run_pass(a.store, a.snapshot_root, a.sweep_root, spec, now=now)
+            res = ex.run_pass(a.store, a.snapshot_root, a.sweep_root, spec, now=now, pins=pins)
         elif a.job == "j2":
             res = ex.close_window(a.store, spec)
         elif a.job == "j3":
@@ -91,10 +98,12 @@ def main(argv=None) -> int:
             if a.pins is None:
                 print("refuses: analysis needs --pins", file=sys.stderr)
                 return 2
-            res = an.run_analysis(a.store, json.loads(a.pins.read_text()), a.out, spec, engine_root=a.engine_root)
+            res = an.run_analysis(a.store, json.loads(a.pins.read_text()), a.out, spec, engine_root=a.engine_root, m2_store=a.m2_store)
             print(res.get("ledger_line") or json.dumps({"void": res.get("void"), "void_reasons": res.get("void_reasons")}))
             ad = res.get("ask_f_at_1") or {}
             print(f"ask_f_at_1: {ad.get('units')} units, share {ad.get('share')} (beside theta)")
+            ov = res.get("m2_overlap")
+            print(f"m2_overlap: {ov['count'] if isinstance(ov, dict) else ov}")
             return 0
     except sp.PinMismatch as e:
         print(json.dumps({"refuses": "pin mismatch", "record": e.record}, sort_keys=True), file=sys.stderr)

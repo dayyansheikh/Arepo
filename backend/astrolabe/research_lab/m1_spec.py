@@ -58,7 +58,7 @@ SPEC: dict = {
     "void_sha_mismatch_share": 0.01,
     # section 9.4
     "fetch": {"batch": 50, "attempts": 3, "attempt_gap_s": 3600.0},
-    "design_sha256": "3a4f03b917a197cd60b7d6735f2e6c7a47ede6597b029c63a74d4a56c04d492d",
+    "design_sha256": "7982f199edaf559fc4e6a5150709cc49d26b16984c869b6b75e2ef7dca107639",
     "pinned_module_sha256": {
         "boundary_map_ch240": "2bc9ff9edb97b76990579c90929e55f22cb4cfe9fdec852395bd07f7d3bea09a",
         "population_map_ch251": "82db7a75995f0b637b469f4abc421ad9be430fdf38f0a4bad7ed5e9e43a55140",
@@ -98,7 +98,10 @@ def spec_sha(spec: dict = SPEC) -> str:
 
 
 def code_sha_parts(files=CODE_FILES) -> dict:
-    return {Path(p).name: sha256_file(Path(p)) for p in files if Path(p).exists()}
+    missing = sorted(Path(p).name for p in files if not Path(p).exists())
+    if missing:
+        raise PinMismatch({"missing_code_files": missing})  # a missing code file must not silently shrink code_sha
+    return {Path(p).name: sha256_file(Path(p)) for p in files}
 
 
 def code_sha(files=CODE_FILES) -> str:

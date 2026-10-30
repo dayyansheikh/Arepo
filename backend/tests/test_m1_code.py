@@ -237,7 +237,7 @@ def test_missing_rule_waits_six_hours_and_late_capture_is_ignored(tmp_path):
     assert r.get("waiting_for_slot") == 1 and "missing_capture" not in r and r["processed"] == ms.MISSING_K - ms.L
     r = ex.run_pass(store, snap, sw, SPEC, now=g + 6 * 3600)
     assert r["missing_capture"] == 1
-    ms.write_capture(snap, ms.MISSING_K)  # arrives later
+    ms.write_capture(snap, ms.MISSING_K, finish_after_min=600)  # finishes 10 h after its start, so after grid + 6 h
     r = ex.run_pass(store, snap, sw, SPEC, now=ms.after_end(SPEC))
     assert r["late_capture_ignored"] == 1
     assert not (store / "units" / f"{ms.cid(ms.MISSING_K)}.jsonl.gz").exists()
@@ -410,7 +410,8 @@ def test_ci_is_deterministic_and_event_clustered():
 # --- A: end to end on the synthetic store ------------------------------------------------------------------------------------------------
 
 def pins_for(store, man):
-    return {"spec_sha": sp.spec_sha(SPEC), "code_sha": sp.code_sha(), "manifest_sha256": man["manifest_sha256"]}
+    return {"spec_sha": sp.spec_sha(SPEC), "code_sha": sp.code_sha(), "manifest_sha256": man["manifest_sha256"],
+            "registration_commit_utc": ms.iso(ms.tcap(ms.L) - ms.timedelta(days=3))}
 
 
 @pytest.fixture()
@@ -445,7 +446,8 @@ def test_analysis_end_to_end(tmp_path, full):
     assert res["eligible_units"] == 4 and res["final_units"] == 4 and res["events"] == 3
     # market 1 YES, y = 1: favoured; market 2 NO side with y = 0 (outcome 0 lost): favoured; 9 YES y = 0: other; 10 NO y = 1: other
     assert res["classes"]["resolved_favoured"] == 2 and res["classes"]["resolved_other"] == 2
-    assert res["headline_components"]["theta"]["est"] == pytest.approx(res["headline_components"]["theta"]["est"])
+    th = res["headline_components"]["theta"]
+    assert th["lo"] <= th["est"] <= th["hi"] and f"theta = {th['est']:.6f} [{th['lo']:.6f}, {th['hi']:.6f}]" in res["ledger_line"]  # not a self-comparison
     assert res["coarse"]["coarse"] is True and res["coarse"]["rules_fired"]["1_final_units_below"] is True
     assert res["coverage"]["units"] == 1.0 and res["ask_f_at_1"]["units"] == 0
     assert set(res["splits"]) == {f"S{i}" for i in range(1, 11)}
@@ -532,3 +534,279 @@ def test_runner_refusals_and_dry_run(tmp_path, capsys):
     out = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
     assert out["peak_rss_mb"] > 0 and out["processed"] >= 1
     assert r.main(["j1", "--store", str(real), "--snapshot-root", str(snap), "--dry-run-last-days", "1"]) == 2  # a dry run never writes the real store
+
+
+# --- code-freeze check fixes (reviews/M1_CODE_FREEZE_CHECK_2026-10-30.md): each test fails on the old behaviour ----------------------------------
+
+import csv  # noqa: E402
+
+
+def rewrite_csv(path, fn):
+    with gzip.open(path, "rt", newline="") as fh:
+        rows = list(csv.reader(fh))
+    rows = fn(rows)
+    with gzip.open(path, "wt", newline="") as fh:
+        csv.writer(fh).writerows(rows)
+
+
+def test_must1_missing_rule_reads_manifest_finish_not_run_time(tmp_path, world):
+    _s, _w, ref_store, _r = world
+    snap, sw = ms.build_stores(tmp_path / "catch_src")
+    ms.write_capture(snap, ms.MISSING_K, finish_after_min=600)  # finished 10 h after its start: after grid + 6 h
+    store = tmp_path / "research_lab" / "m1_ch263_catch"
+    r = run(store, snap, sw)  # a single catch-up run long after the window: live running would have recorded the slot missing
+    assert r["missing_capture"] == 1 and r["late_capture_ignored"] == 1 and r["processed"] == ms.W - 1
+    assert not (store / "units" / f"{ms.cid(ms.MISSING_K)}.jsonl.gz").exists()
+    late = json.loads((store / "status" / f"late_{ms.cid(ms.MISSING_K)}.json").read_text())
+    assert late["reason"] == "finished_after_grid_plus_6h"
+    for p in (ref_store / "units").glob("*.jsonl.gz"):
+        assert gzip.decompress(p.read_bytes()) == gzip.decompress((store / "units" / p.name).read_bytes())
+    assert (store / STATE_FILE).read_bytes() == (ref_store / STATE_FILE).read_bytes()
+    # the same capture finished on time but delivered late is processed: the rule is a fact about the capture
+    snap2, sw2 = ms.build_stores(tmp_path / "ontime_src", skip=())
+    r2 = run(tmp_path / "research_lab" / "m1_ch263_ontime", snap2, sw2)
+    assert r2["processed"] == ms.W and "missing_capture" not in r2
+
+
+def test_must2_j1_refuses_before_registered_and_records_noncomplete(tmp_path):
+    snap, sw = ms.build_stores(tmp_path / "src")
+    d = snap / "partial_before_window"  # a manifest that exists but is not complete, before the window
+    d.mkdir()
+    (d / "manifest.json").write_text(json.dumps({"state": "running", "started_utc": ms.iso(ms.tcap(2) + ms.timedelta(minutes=20)), "capture_id": "partial"}))
+    store = tmp_path / "research_lab" / "m1_ch263"
+    with pytest.raises(ex.M1Refusal, match="REGISTERED_UTC"):
+        ex.run_pass(store, snap, sw, SPEC, now=sp.ts(SPEC, "registered_utc") - 3 * 86400)
+    assert not (store / "state" / "m1_state.json").exists() and not (store / "status" / "_init.json").exists()
+    run(store, snap, sw)
+    lb = json.loads((store / "status" / "_init.json").read_text())["lookback"]
+    assert lb["noncomplete_manifests_before_window"] == 1 and lb["pre_window_source"] == ms.L
+
+
+def test_must2_q0751_cron_line_notes_the_gate_and_pins():
+    d = json.loads((Path(__file__).resolve().parents[2] / "docs" / "research_lab" / "queue" / "drafts" / "q0751_m1_j1.json").read_text())
+    assert "REGISTERED_UTC" in d["notes"] and "--pins" in d["notes"] and "--pins" in " ".join(d["argv"])
+
+
+def test_must3_open_record_with_outcome_vector_is_pending():
+    assert ro.classify_record(mk(1, closed=False))["state"] == "pending"
+    assert ro.classify_record(mk(1, closed="false"))["state"] == "pending"
+    assert ro.classify_record(mk(1, closed=True))["state"] == "resolved"
+    assert ro.classify_record(mk(1, closed="true"))["state"] == "resolved"
+
+
+def test_must4_event_is_covered_only_if_every_unit_returned_a_record(tmp_path, world):
+    store = closed_world(tmp_path, world)
+    man = ex.close_window(store, SPEC, now=ms.after_end(SPEC))
+    days = {1: mk(1), 2: mk(2, prices='["0","1"]'), 9: mk(9, prices='["0","1"]')}  # no record for 10, found neither with nor without the closed filter
+    ro.run_j3(store, FakeGet(days, {}), SPEC, now=ms.after_readout(SPEC), sleep=lambda s: None, clock=lambda: sp.ts(SPEC, "readout_utc") + 5.0)
+    res = an.run_analysis(store, pins_for(store, man), tmp_path / "o.json", SPEC, now=ms.after_readout(SPEC))
+    assert res["coverage"]["units"] == pytest.approx(0.75)
+    assert res["coverage"]["events_all_units_covered"] == pytest.approx(2 / 3)  # e9 has a unit without a record; the old event-weighted mean was 5/6
+
+
+def test_must5_registration_commit_is_required_and_void_rule_works(tmp_path, full):
+    store, pins = full
+    bare = {k: v for k, v in pins.items() if k != "registration_commit_utc"}
+    with pytest.raises(ex.M1Refusal, match="registration_commit_utc"):
+        an.run_analysis(store, bare, tmp_path / "a.json", SPEC, now=ms.after_readout(SPEC))
+    with pytest.raises(ex.M1Refusal, match="registration_commit_utc"):
+        an.run_analysis(store, pins | {"registration_commit_utc": "not a time"}, tmp_path / "b.json", SPEC, now=ms.after_readout(SPEC))
+    res = an.run_analysis(store, pins | {"registration_commit_utc": sp.iso(sp.ts(SPEC, "registered_utc") - 3600)}, tmp_path / "c.json", SPEC, now=ms.after_readout(SPEC))
+    assert res["void"] is True and any("11.6" in r for r in res["void_reasons"])
+
+
+def test_must6_counted_missingness_reaches_the_output(tmp_path, full):
+    store, pins = full
+    res = an.run_analysis(store, pins, tmp_path / "o.json", SPEC, now=ms.after_readout(SPEC))
+    cc = res["counted_classes"]
+    assert cc["j1_status_notes"]["captures_without_sweep_1"] == ms.W - 1 - len(ms.SWEEPS) and cc["missing_capture_slots"] == 1
+    assert cc["lookback"]["pre_window_source"] == ms.L and cc["lookback"]["slot_gaps"] == 0 and cc["lookback_notes"] == {}
+    assert cc["funnel_sub"] == {"no_previous_capture:first_window_slot": 1} and cc["t_d_fallbacks"] == 0
+
+
+def test_must6_sidecar_gap_is_counted_once_not_twice(tmp_path):
+    snap, sw = ms.build_stores(tmp_path / "src")
+    (snap / ms.cid(8) / "rows_ext.csv.gz").unlink()  # capture 8 has no sidecar; it is k - 1 of capture 9 as well
+    store = tmp_path / "research_lab" / "m1_ch263"
+    run(store, snap, sw)
+    cc = an.counted_classes(store)
+    assert cc["j1_status_notes"]["captures_without_sidecar"] == 1
+    surv = an.survivorship(ex.load_statuses(store)[1])
+    assert surv["per_capture"][ms.cid(8)] == "unavailable" and isinstance(surv["per_capture"][ms.cid(9)], dict)
+    assert surv["per_day"]["2026-10-20"]["captures_unavailable"] >= 1
+
+
+def test_must7_missing_row_at_k_and_unparseable_ids_are_counted(tmp_path, monkeypatch):
+    monkeypatch.setitem(ms.EXTRA, 13, ("e13", "0.94", "0.96", "politics", "true", 14))
+    snap, sw = ms.build_stores(tmp_path / "src")
+    rewrite_csv(snap / ms.cid(14) / "rows.csv.gz", lambda rows: [r for r in rows if r[0] != "13"])  # sidecar names 13, the rows do not
+    rewrite_csv(snap / ms.cid(9) / "rows.csv.gz", lambda rows: rows + [["abc"] + rows[1][1:]])
+    rewrite_csv(snap / ms.cid(9) / "rows_ext.csv.gz", lambda rows: rows + [["xyz"] + rows[1][1:]])
+    store = tmp_path / "research_lab" / "m1_ch263"
+    run(store, snap, sw)
+    f = funnel_total(store)
+    assert f["not_open_at_k:no_row_at_k"] == 1 and f["not_open_at_k"] == 1  # market 11's closed row stays not_open_at_k
+    cc = an.counted_classes(store)
+    assert cc["unparseable_market_id"] == 2 and cc["j1_status_notes"]["unparseable_market_id:rows"] == 1 and cc["j1_status_notes"]["unparseable_market_id:sidecar"] == 1
+    assert cc["not_open_at_k_incl_no_row_at_k"] == 2
+
+
+def test_should1_first_window_slot_sub_count(world):
+    _s, _w, store, _r = world
+    first = json.loads((store / "status" / f"{ms.cid(ms.L)}.json").read_text())
+    assert first["funnel_sub"] == {"no_previous_capture:first_window_slot": first["funnel"]["no_previous_capture"]} and first["funnel"]["no_previous_capture"] > 0
+    after_gap = json.loads((store / "status" / f"{ms.cid(ms.MISSING_K + 1)}.json").read_text())
+    assert after_gap["funnel_sub"] == {} and after_gap["funnel"]["no_previous_capture"] > 0
+
+
+def test_should2_l1_flag_parsing_is_conservative():
+    f = ex.fees_enabled_tri
+    assert f(True, "false") is False and f(True, "0") is False and f(True, "FALSE") is False
+    assert f(True, "true") is True and f(True, "1") is True
+    assert f(True, "garbage") is None and f(True, "") is None and f(False, "false") is None  # old code: "garbage" -> False (fee 0)
+
+
+def test_should3_t_d_fallback_is_counted(tmp_path):
+    snap, sw = ms.build_stores(tmp_path / "src")
+    blank = lambda rows: [rows[0]] + [[r[0], "", *r[2:]] if rows[0][1] == "received_utc" else r for r in rows[1:]]  # noqa: E731
+    rewrite_csv(snap / ms.cid(8) / "rows.csv.gz", lambda rows: [rows[0]] + [r[:2] + [""] + r[3:] for r in rows[1:]])
+    rewrite_csv(snap / ms.cid(8) / "rows_ext.csv.gz", blank)
+    store = tmp_path / "research_lab" / "m1_ch263"
+    run(store, snap, sw)
+    st = json.loads((store / "status" / f"{ms.cid(8)}.json").read_text())
+    us = [u for u in units_of(store) if u["capture_id"] == ms.cid(8)]
+    assert us and all(u["t_d_fallback"] and u["t_d"] == u["k_start_ts"] for u in us) and st["t_d_fallbacks"] == len(us)
+    assert an.counted_classes(store)["t_d_fallbacks"] == len(us)
+
+
+def test_should4_unit_without_readout_record_has_its_own_class():
+    units, rd = fixture()
+    del rd[6]
+    notes = an.classify_units(units, rd, SPEC)
+    assert units[5]["cls"] == "no_readout_record" and not units[5]["final"] and notes["no_readout_record"] == 1
+    assert "no_readout_record" in an.NONFINAL and "no_readout_record" in an.UNCOVERED
+
+
+def test_should5_duplicate_and_off_grid_captures_are_written_and_counted(tmp_path):
+    snap, sw = ms.build_stores(tmp_path / "src")
+    for name, minutes in (("dup_of_8", 5), ("off_of_9", 50)):
+        src = snap / ms.cid(8 if name.startswith("dup") else 9)
+        dst = snap / name
+        shutil.copytree(src, dst)
+        m = json.loads((dst / "manifest.json").read_text())
+        k = 8 if name.startswith("dup") else 9
+        m |= {"capture_id": name, "started_utc": ms.iso(ms.tcap(k) + ms.timedelta(minutes=minutes)), "finished_utc": ms.iso(ms.tcap(k) + ms.timedelta(minutes=minutes + 5))}
+        (dst / "manifest.json").write_text(json.dumps(m))
+    store = tmp_path / "research_lab" / "m1_ch263"
+    r = run(store, snap, sw)
+    assert r["duplicate_slot_capture_ignored"] == 1 and r["off_grid_capture_ignored"] == 1
+    assert (store / "status" / "dup_dup_of_8.json").exists() and (store / "status" / "offgrid_off_of_9.json").exists()
+    assert json.loads((store / "status" / "dup_dup_of_8.json").read_text())["kept_capture_id"] == ms.cid(8)
+    a = ex.audit_chain(store, SPEC)
+    assert a["ok"] and a["duplicate_slot_capture_ignored"] == 1 and a["off_grid_capture_ignored"] == 1
+    man = ex.close_window(store, SPEC, now=ms.after_end(SPEC))
+    assert man["duplicate_slot_capture_ignored"] == 1 and "status/offgrid_off_of_9.json" in man["files"]
+
+
+def test_should6_j1_refuses_once_the_window_is_closed(tmp_path, world):
+    snap, sw, store, _r = world
+    ex.close_window(store, SPEC, now=ms.after_end(SPEC))
+    with pytest.raises(ex.M1Refusal, match="window is closed"):
+        run(store, snap, sw)
+
+
+def test_should7_cross_check_compares_final_states_only():
+    units = [{"market_id": 1, "cls": "pending", "final": False, "side": "YES"}, {"market_id": 2, "cls": "not_found", "final": False, "side": "YES"},
+             {"market_id": 3, "cls": "pending", "final": False, "side": "YES"}, {"market_id": 4, "cls": "split_50_50", "final": True, "side": "YES"},
+             {"market_id": 5, "cls": "resolved_favoured", "final": True, "side": "YES"}]
+    log = {1: {"state": "not_resolved"}, 2: {"state": "not_found"}, 3: {"state": "resolved", "y": 1}, 4: {"state": "split_50_50"}, 5: {"state": "resolved", "y": 1}}
+    cc = an.cross_check(units, log)
+    assert cc["agree"] == 4 and cc["disagree"] == 1 and cc["disagreements"][0]["market_id"] == 3  # M1 pending against an engine resolution is a real difference
+
+
+def test_should8_banned_wording_anywhere_in_the_output_refuses(tmp_path, world):
+    store = closed_world(tmp_path, world)
+    man = ex.close_window(store, SPEC, now=ms.after_end(SPEC))
+    days = {1: mk(1), 2: mk(2, prices='["0","1"]'), 9: mk(9, prices='["0","1"]', uma="confirmed"), 10: mk(10, prices='["1","0"]')}
+    ro.run_j3(store, FakeGet(days, {}), SPEC, now=ms.after_readout(SPEC), sleep=lambda s: None, clock=lambda: sp.ts(SPEC, "readout_utc") + 5.0)
+    with pytest.raises(ex.M1Refusal, match="banned wording"):  # the word sits in uma_status_by_class, outside the numbers block the old assert scanned
+        an.run_analysis(store, pins_for(store, man), tmp_path / "o.json", SPEC, now=ms.after_readout(SPEC))
+    assert not (tmp_path / "o.json").exists()
+
+
+def test_should9_missing_code_file_refuses(tmp_path):
+    with pytest.raises(sp.PinMismatch) as e:
+        sp.code_sha_parts((*sp.CODE_FILES, tmp_path / "gone.py"))
+    assert e.value.record["missing_code_files"] == ["gone.py"]
+
+
+def test_should10_j1_checks_code_against_the_registered_pins(tmp_path):
+    snap, sw = ms.build_stores(tmp_path / "src")
+    good = {"spec_sha": sp.spec_sha(SPEC), "code_sha": sp.code_sha()}
+    with pytest.raises(sp.PinMismatch):
+        ex.run_pass(tmp_path / "research_lab" / "m1_ch263_a", snap, sw, SPEC, now=ms.after_end(SPEC), pins=good | {"code_sha": "0" * 64})
+    assert ex.run_pass(tmp_path / "research_lab" / "m1_ch263_b", snap, sw, SPEC, now=ms.after_end(SPEC), pins=good)["processed"] == ms.W - 1
+    r = _runner()
+    real = tmp_path / "research_lab" / "m1_ch263"
+    assert r.main(["j1", "--store", str(real), "--snapshot-root", str(snap)]) == 2  # a real-window pass needs --pins
+    (tmp_path / "pins.json").write_text(json.dumps({"spec_sha": "x", "code_sha": "y"}))
+    assert r.main(["j1", "--store", str(real), "--snapshot-root", str(snap), "--pins", str(tmp_path / "pins.json")]) == 3  # pins differ from the running code
+
+
+def test_should11_e4_crypto_and_ask_f_at_1(tmp_path, monkeypatch):
+    monkeypatch.setitem(ms.EXTRA, 13, ("e13", "0.94", "0.96", "politics", "false", 14))   # E4: accepting_orders false
+    monkeypatch.setitem(ms.EXTRA, 14, ("e14", "0.94", "0.96", "crypto", "true", 14))      # E5: crypto, out of scope
+    monkeypatch.setitem(ms.EXTRA, 15, ("e15", "0.98", "1", "politics", "true", 14))       # E6 note: ask_f = 1
+    snap, sw = ms.build_stores(tmp_path / "src")
+    store = tmp_path / "research_lab" / "m1_ch263"
+    run(store, snap, sw)
+    f = funnel_total(store)
+    assert f["not_open_at_k"] == 2 and f["out_of_scope_crypto"] == 1 and f["unit"] == 5  # 11 (closed) and 13 (not accepting); 14; 15 joins 1, 2, 9, 10
+    u15 = [u for u in units_of(store) if u["market_id"] == 15]
+    assert len(u15) == 1 and u15[0]["ask_f_at_1"] is True and u15[0]["c"] == 0.0 and u15[0]["side"] == "YES"
+    man = ex.close_window(store, SPEC, now=ms.after_end(SPEC))
+    days = {1: mk(1), 2: mk(2, prices='["0","1"]'), 9: mk(9, prices='["0","1"]'), 10: mk(10, prices='["1","0"]'), 15: mk(15)}
+    ro.run_j3(store, FakeGet(days, {}), SPEC, now=ms.after_readout(SPEC), sleep=lambda s: None, clock=lambda: sp.ts(SPEC, "readout_utc") + 5.0)
+    res = an.run_analysis(store, pins_for(store, man), tmp_path / "o.json", SPEC, now=ms.after_readout(SPEC))
+    assert res["ask_f_at_1"]["units"] == 1 and res["ask_f_at_1"]["share"] == pytest.approx(0.2)
+
+
+def test_should12_lookback_slot_gaps_are_counted(tmp_path):
+    snap, sw = ms.build_stores(tmp_path / "src", skip=(2, ms.MISSING_K))
+    store = tmp_path / "research_lab" / "m1_ch263"
+    run(store, snap, sw)
+    lb = json.loads((store / "status" / "_init.json").read_text())["lookback"]
+    assert lb["pre_window_source"] == ms.L - 1 and lb["slot_gaps"] == 1 and lb["off_grid_captures"] == 0
+
+
+# --- amendment 18 (docs/research_lab/MEASUREMENT_M1_CH263.md section 18) ---------------------------------------------------------------------
+
+def test_amendment18_m2_overlap_reads_ids_only_and_is_unavailable_without_a_store(tmp_path, full):
+    store, pins = full
+    res = an.run_analysis(store, pins, tmp_path / "o1.json", SPEC, now=ms.after_readout(SPEC))
+    assert res["m2_overlap"] == "unavailable"
+    m2 = tmp_path / "research_lab" / "m2_ch264"
+    (m2 / "units").mkdir(parents=True)
+    lines = [json.dumps({"market_id": 1, "capture_id": ms.cid(8), "ask_f": 0.123457, "class": "SECRETCLASS", "y": 1}, sort_keys=True),
+             json.dumps({"market_id": 1, "capture_id": "other_capture", "ask_f": 0.5}), json.dumps({"market_id": 77, "capture_id": ms.cid(9)})]
+    (m2 / "units" / "x.jsonl.gz").write_bytes(gzip.compress(("\n".join(lines) + "\n").encode()))
+    res2 = an.run_analysis(store, pins, tmp_path / "o2.json", SPEC, now=ms.after_readout(SPEC))
+    assert res2["m2_overlap"] == {"count": 1, "m2_unit_ids_read": 3, "key": "market_id + capture_id", "pooled": False}
+    blob = (tmp_path / "o2.json").read_text()
+    assert "0.123457" not in blob and "SECRETCLASS" not in blob  # no M2 price, class or outcome reaches the output
+    res3 = an.run_analysis(store, pins, tmp_path / "o3.json", SPEC, now=ms.after_readout(SPEC), m2_store=tmp_path / "nowhere")
+    assert res3["m2_overlap"] == "unavailable"
+
+
+def test_amendment18_survivorship_comes_from_j1_in_scope_sets(tmp_path, full):
+    store, pins = full
+    st8 = json.loads((store / "status" / f"{ms.cid(8)}.json").read_text())
+    ids8 = ex.decode_ids(st8["in_scope_market_ids"])
+    assert ids8 == {1, 2, 4, 5, 6, 8, 9, 10, 11, 12} and 3 not in ids8 and st8["in_scope_market_ids"]["n"] == 10  # sports market 3 is out; 7 not yet present
+    assert ex.decode_ids(ex.encode_ids({5, 1, 1000003})) == {1, 5, 1000003}
+    res = an.run_analysis(store, pins, tmp_path / "o.json", SPEC, now=ms.after_readout(SPEC))
+    sv = res["survivorship"]
+    assert sv["per_capture"][ms.cid(8)]["in_scope_ids"] == 10 and "cross_check_engine_log" not in res  # no engine log was given
+    assert sv["per_day"]["2026-10-20"]["in_scope_ids_distinct"] == 10 and sum(d["m1_units"] for d in sv["per_day"].values()) == res["eligible_units"]
+    gone = [dict(d, in_scope_market_ids=None) if d.get("capture_id") == ms.cid(8) else d for d in ex.load_statuses(store)[1]]
+    assert an.survivorship(gone)["per_capture"][ms.cid(8)] == "unavailable"
