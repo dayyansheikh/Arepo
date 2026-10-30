@@ -1,0 +1,39 @@
+{
+ "id": "q0777_e009e010_inputs_archive",
+ "title": "E009/E010 R6 backup: point-in-time archive of the frozen inputs to arepo-data (archive_rotate --include-active on e009_e010_analysis/inputs; archive only, never deletes)",
+ "family": "e009_e010_analysis",
+ "priority": 97,
+ "expected_value": "an off-host verified copy of exactly the bytes analysed, before the analyses (audit R6)",
+ "data": [
+  "data-dumps/research_lab/e009_e010_analysis/inputs/ (read-only)"
+ ],
+ "resources": {
+  "mem_mb": 1500,
+  "as_cap_mb": 8000,
+  "cpu": 1,
+  "lane": "net",
+  "network": "github"
+ },
+ "depends_on": [
+  "q0770_e009e010_freeze"
+ ],
+ "not_before": "2026-11-03T08:30:00Z",
+ "argv": [
+  "scripts/archive_rotate.py",
+  "--root",
+  "/home/opc/arepo",
+  "--scan",
+  "data-dumps/research_lab/e009_e010_analysis",
+  "--older-than-days",
+  "1",
+  "--include-active",
+  "data-dumps/research_lab/e009_e010_analysis/inputs/*"
+ ],
+ "timeout_s": 7200,
+ "max_retries": 2,
+ "outputs": [
+  "GitHub release data-YYYYMMDD-<host>-active in dayyansheikh/arepo-data (VERIFY.json)"
+ ],
+ "next_action": "cite the release tag and the ACTIVE_SNAPSHOT.json sha256s (must equal FREEZE_MANIFEST) in the result entry",
+ "notes": "Optional for the verdict (the analyses do not depend on it), recommended by the readiness audit R6. Same command shape as the weekly Sunday 06:10Z active snapshot (crontab.txt), default --state, so its rotate.lock serialises it with the 03:30Z nightly. No --delete. gh must be on the worker PATH (~/.local/bin, crontab 2026-10-20). The nightly archive also picks the folder up from 2026-11-05 (files older than 1 day; the folder has no retention rule, so it is never deleted). DRAFT, not in queue/jobs. Promote (git mv to jobs/, commit, scripts/oracle/deploy.sh) only after feat/e009-e010-analysis is merged into the branch the host runs and deployed, so the host HEAD contains scripts/run_e009_e010_analysis.py. Runbook: docs/research_lab/E009_E010_ANALYSIS_RUNBOOK_2026-10-30.md. Blinding: until VERDICTS.json exists nobody opens an outcome, result or log value; counts and sha256s only."
+}

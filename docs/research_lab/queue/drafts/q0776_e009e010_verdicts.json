@@ -1,0 +1,36 @@
+{
+ "id": "q0776_e009e010_verdicts",
+ "title": "E009/E010 mechanical verdicts: scripts/live_verdicts.py on the four saved outputs -> results/VERDICTS.json (primary and sensitivity, input sha256s)",
+ "family": "e009_e010_analysis",
+ "priority": 91,
+ "expected_value": "the registered verdicts, read mechanically (no new statistic)",
+ "data": [
+  "data-dumps/research_lab/e009_e010_analysis/results/{e009,e010}_{primary,sensitivity}.json (read-only)"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0772_e009_primary",
+  "q0773_e009_sensitivity",
+  "q0774_e010_primary",
+  "q0775_e010_sensitivity"
+ ],
+ "not_before": "2026-11-03T08:30:00Z",
+ "argv": [
+  "scripts/run_e009_e010_analysis.py",
+  "verdicts",
+  "--run-dir",
+  "../data-dumps/research_lab/e009_e010_analysis"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/e009_e010_analysis/results/VERDICTS.json"
+ ],
+ "next_action": "copy results/*.json, inputs/FREEZE_MANIFEST.json, merged/MERGE_MANIFEST.json and MERGE_RUN.json to docs/research_lab/e009_e010_analysis/ in the repo; commit (this is the E009 and E010 analysis commit LT10's seal q0661 needs); ledger result entries for E009 and E010 (primary verdict, sensitivity, merge counts, tree_dirty disclosure, R4(d) refusal counts, commit, sha256s), registry status, dashboard",
+ "notes": "Deterministic and read-only on saved outputs, so a retry cannot change a result. The primary verdict is the registered one; the sensitivity is reported beside it. E010 reports the declared Holm (ledger 2026-10-21) and the frozen holm_m1 side by side when they differ. DRAFT, not in queue/jobs. Promote (git mv to jobs/, commit, scripts/oracle/deploy.sh) only after feat/e009-e010-analysis is merged into the branch the host runs and deployed, so the host HEAD contains scripts/run_e009_e010_analysis.py. Runbook: docs/research_lab/E009_E010_ANALYSIS_RUNBOOK_2026-10-30.md. Blinding: until VERDICTS.json exists nobody opens an outcome, result or log value; counts and sha256s only."
+}
