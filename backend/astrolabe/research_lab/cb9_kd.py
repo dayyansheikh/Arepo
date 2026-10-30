@@ -44,7 +44,7 @@ from . import history_sources as hs
 # ---- declared constants (CREATIVE_BATCH_9.md; hashed into seals/cb9_kd_rules.json through declared() and rule_funcs()) -------------------------
 
 RULES_VERSION = c9.RULES_VERSION_KD
-FRAME_RUN, BOOKS_RUN = "kd_frame", "kd"
+FRAME_RUN, BOOKS_RUN = "kd_frame_v3", "kd"  # amendment 2026-10-30 (PENDING REVIEW): a fresh frame directory; attempt 1 (kd_frame/) is left as it is, never read
 FRAME_COMPLETE, BOOKS_COMPLETE, INGRESS_CAP_STATUS = "kd_frame_complete", "kd_books_complete", "ingress_cap_reached"
 SEAL_STATUS = "kd_sealed"
 # Terminal not-testable (stall) states, freeze check M5, in cb9_common's shared vocabulary: exit 0 with the status and label in the run manifest, carried
@@ -80,7 +80,10 @@ PRINT_POST_S = 7 * 3600
 PRINT_PAGES = 10
 PRINT_LIMIT = 1000
 INGRESS_CAP_GB = 180.0  # freeze check M8: 90 -> 180 GB because the 13Z lookback roughly doubles ingress per day (no gate, floor or output cap changed)
-FRAME_OUTPUT_CAP_GB = 0.01
+FRAME_OUTPUT_CAP_GB = 0.4  # amendment 2026-10-30 (PENDING REVIEW): was 0.01; attempt 1 hit it after 38 of 338 units (CREATIVE_BATCH_9.md section 11.4)
+FRAME_ATTEMPT1 = {"run_dir": "kd_frame", "status": "disk_budget", "stopped": "disk budget exceeded: 10894465 > 10737418 bytes", "rules_sha256": "8ee7bf366a013a87eae5a061fba788ebbbacc5945940df5de1e57510256886a1",
+                  "frame_partial_sha256": "47502b18df1cd48c8bf245af06872551d8a5679a2d6cbead1e03cfeda4b08a46", "units_done": 38, "units_total": 338, "requests": 603,
+                  "fetched_utc": ["2026-10-28T11:28:07Z", "2026-10-28T11:33:09Z"], "use": "none: superseded, never read by any CB9 path, kept unchanged"}
 BOOKS_OUTPUT_CAP_GB = 0.15
 DATA_DUMPS_CAP_GB = c9.DATA_DUMPS_CAP_GB
 MAX_RPS_FRAME, MAX_RPS_BOOKS, MAX_RPS_SEAL = 2.0, 4.0, 2.0
@@ -235,7 +238,12 @@ def declared() -> dict:
             "open (long-dated) markets kept in the frame (freeze check M7)",
             "D uses the outcome-0 token's book and prints (one unit per market-minute); both tokens' minute states are stored",
             "Book events are kept as derived per-minute D states plus raw last_trade_price events of 14Z and of the 13Z lookback (ruling c); raw book JSON is not stored (0.15 GB output cap)",
+            f"amendment 2026-10-30 (PENDING REVIEW): frame output cap 0.01 -> {FRAME_OUTPUT_CAP_GB:g} GB (the cap is checked on the run directory, which holds the partial "
+            "walk (about 190 B per row) and the final frame (about 180 B per row) at once, so 0.01 GB held about 28,000 rows; attempt 1 returned about 1,450 rows "
+            "per closed end-date unit, about 250,000 rows or more over 338 units); "
+            f"the frame is fetched afresh in {FRAME_RUN}/ at one request clock and one rules hash, attempt 1 is superseded (frame_attempt1)",
         ],
+        "frame_attempt1": FRAME_ATTEMPT1,
     }
 
 

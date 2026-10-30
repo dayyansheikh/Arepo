@@ -37,12 +37,12 @@ NotNow = cm.NotNow
 
 RULES_VERSION_SIGN = "cb9-sign-rules-v5"  # v5: smoke v2 (draw markets until 20 distinct receipts, cap 40; seed arepo-cb9-smoke-v2; smoke_v2.json); v4 file kept. v4: focused re-check (2026-10-17): S0b upstream K/D stall check, feed_label not_measured for unread lookback; v3 file kept (q0180 stays on it). v3: data-dumps cap default 14 -> 40 (host disk enlarged); v2 file kept. v2: freeze-check M1-M5 (smoke per-exchange counts, unavailable != failed, paging reasons, stall statuses); v1 file kept
 RULES_VERSION_PYTH = "cb9-rules-v4"  # v4: focused re-check (2026-10-17): pyth-frame stalls are sticky; v3 file kept. v3: data-dumps cap default 14 -> 40; v2 file kept. v2: M3-M6, M9-M11 (same-sentence equality flag, stall statuses, cap 14, Stage-2 outcomes and rule); v1 file kept
-RULES_VERSION_KD = "cb9-kd-rules-v2"  # v2: the shared cb9_common changes (and B's M7/M8) change the hashed functions; v1 file kept
+RULES_VERSION_KD = "cb9-kd-rules-v3"  # v3: amendment 2026-10-30 (PENDING REVIEW): frame output cap 0.01 -> 0.4 GB, fresh frame run kd_frame_v3; v2 file kept. v2: the shared cb9_common changes (and B's M7/M8) change the hashed functions; v1 file kept
 SEALS_DIR = cm.SEALS_DIR
 SIGN_RULES_FILE = SEALS_DIR / "cb9_sign_rules_v5.json"
 PYTH_RULES_FILE = SEALS_DIR / "cb9_rules_v4.json"
-KD_RULES_FILE = SEALS_DIR / "cb9_kd_rules_v2.json"
-SUPERSEDED_RULES_FILES = tuple(SEALS_DIR / n for n in ("cb9_sign_rules.json", "cb9_rules.json", "cb9_kd_rules.json", "cb9_sign_rules_v2.json", "cb9_rules_v2.json", "cb9_sign_rules_v3.json", "cb9_rules_v3.json", "cb9_sign_rules_v4.json"))  # never rewritten
+KD_RULES_FILE = SEALS_DIR / "cb9_kd_rules_v3.json"
+SUPERSEDED_RULES_FILES = tuple(SEALS_DIR / n for n in ("cb9_sign_rules.json", "cb9_rules.json", "cb9_kd_rules.json", "cb9_sign_rules_v2.json", "cb9_rules_v2.json", "cb9_sign_rules_v3.json", "cb9_rules_v3.json", "cb9_sign_rules_v4.json", "cb9_kd_rules_v2.json"))  # never rewritten
 DATA_DUMPS = cm.DATA_DUMPS
 CB9_DIR = cm.DATA_DUMPS / "research_lab" / "creative_batch9"
 HIST_ROOT = cm.HIST_ROOT

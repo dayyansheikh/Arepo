@@ -4835,3 +4835,14 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   no se27 gain is credited to BTC / ETH stress until a slotfac-only reference arm has been scored over the same days.
 - **Science review** (read-only): causality, census and embargo PASS; must-fixes (census provenance, control attribution,
   replay dependency of the ~96 earlier inputs files) applied before registration.
+
+## CB9 kd frame cap amendment accepted; q0185b promoted, 2026-10-30 ~03:35Z (experiments autopilot; operational, nothing counted)
+- Amendment `CREATIVE_BATCH_9.md` §11.4 (frame output cap 0.01 -> 0.4 GB; fresh run dir `kd_frame_v3`; rules
+  `cb9-kd-rules-v3` sha256 `29e781b0…f60d`). Ruling `reviews/CB9_KD_CAP_AMENDMENT_RULING_2026-10-30.md` **ACCEPT_WITH_FIXES**:
+  a disk budget only (no selection, sample or stopping rule), blind to outcomes (no outcome field in frame rows; books stage
+  never ran), seal equals code; no gate, floor, unit, sample, split or estimand changed. MUST 1 (q0185b mem 2000 / as_cap
+  4500, not blackout-exempt) and MUST 2 (q0201 draft depends on q0185b, pins `kd_frame_v3/frame.csv.gz`; on
+  `fix/cb10-q0201`, d970fb45) applied; SHOULD 3-5 and 7 in §11.4; SHOULD 6 deferred to the next CB10 rules revision.
+- Attempt naming: queue attempt 1 (10-28 10:30Z) MemoryError, wrote only `kd_frame/request_clock.json`; attempt 2
+  (11:28-11:33Z) the `disk_budget` stop. Both superseded, never read. **q0185b promoted to jobs/** (net lane, prio 42,
+  depends on q0182b, done). After it: manifest `exclusion_keys_sha256` must equal `e613604a…` and `rules_sha256` the v3 hash.
