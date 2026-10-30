@@ -5715,3 +5715,13 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   file changed since f939c0b5; code_sha `9cb8aa03…d148`; 64 M1 tests incl. the new write-once sibling test (c7d1532e).
   No other per-unit field reads another unit's row. One further reading disclosed in the note's addendum (the count's
   "open" uses row fields only, not the sidecar's `accepting_orders`), before any window data.
+
+## M2 amendment 23 (sibling member count) and code fix merged, 2026-10-30 18:06Z (experiments autopilot; before registration; nothing counted)
+- 4ddf53d8 (merged ad04c0b9): section 23 appended to `MEASUREMENT_M2_CH264.md` (l.796-806; predecessor `bb7c27e0…7cbb0`;
+  new sha256 `a7f30de2121a4c8817cca89a688f276ed72a449315b7dcbcc847b95ec3736e07`): the member count (3.3 / 3.4 / S8) counts
+  non-unit rows plus earlier M2 units from state, never reading their rows after their k; `reoverdue_seen` and
+  `seen_without_k_minus_1_row` exclude unit ids; M2-J0 ran the old path (feeds rules (a), (e) only; no number changes).
+  Made from code reading only, before registration and before any window data.
+- **M2 code_sha `aa6182badf87cd3e7ffb63b822f41171e13b91cd2fafc9f5861419b2f6b2270b`** (`m2_j1.py`, `m2_spec.py` changed).
+  Same-event tests fail on the old code. Open for review: `left_before_overdue_slot`, `end_date_missing`. Draft q0754b
+  (fresh store). Review running.
