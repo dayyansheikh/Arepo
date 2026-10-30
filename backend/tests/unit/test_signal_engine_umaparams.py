@@ -42,8 +42,8 @@ def test_parse_uma_hand_examples_and_missing_fields():
     assert w["up_live_custom"] == 0 and w["up_fallback"] == 0 and w["up_resolver_top"] == 0
     # missing or malformed stays missing (customLiveness None on 13% of covered rows in the census); never filled
     z = UP.parse_uma({"umaBond": "abc", "customLiveness": None, "resolvedBy": ""})
-    assert all(math.isnan(x) for x in (z[0], z[1], z[2], z[4]))
-    assert z[3] == 0  # fallbackResolutionType absent = not set
+    assert all(math.isnan(x) for x in z)  # an absent fallback type is NaN, not "none" (review 2026-10-30, item 4)
+    assert math.isnan(UP.parse_uma({"resolvedBy": "none"})[4])
     assert len(UP.UMA_COLUMNS) == len(UP.VALUE_COLUMNS) + 1 and "up_unreviewed" not in UP.UMA_COLUMNS
 
 
@@ -127,3 +127,29 @@ def test_se29_spec_is_a_logistic_isolate_without_tte_or_embargo():
     assert "tte" not in s["derived"] and s["train"]["require_sources"] == ["umaparams"]
     assert SP.embargo_of(s, S.epoch("2026-10-31T00:00:00Z")) is None
     assert not any(c.startswith(("end", "start")) or "hours" in c for c in UP.UMA_COLUMNS)  # no stream copy of tte
+
+
+def test_framein_is_up_has_alone_and_se30_is_its_logistic_control(env):  # noqa: F811
+    w, paths = env
+    w.run(4)
+    build_all(paths)
+    idx = S.load_index(paths)
+    k = idx[SLOT0 + 2]
+    t_k = S.epoch(k["started_utc"])
+    ids = S.read_parquet(paths.features(k["capture_id"]), ["market_id"])["market_id"].to_numpy(np.int64)
+    root = paths.rules_stream
+    root.mkdir(parents=True, exist_ok=True)
+    s1 = S.iso_s(t_k - 3600)
+    (root / f"{S.day_of(t_k).replace('-', '')}.jsonl").write_text(_row(int(ids[0]), s1) + _poll(s1, S.iso(t_k - 60)))
+    for m in idx.values():
+        for fam in ("umaparams", "framein"):
+            A.aux_path(paths, fam, m["capture_id"]).unlink(missing_ok=True)
+    while A.run_aux(paths, max_items=50)["written"]:
+        pass
+    fk = A.read_features(paths, k["capture_id"])
+    np.testing.assert_array_equal(fk["fi_has"].to_numpy(), fk["up_has"].to_numpy())
+    assert np.nansum(fk["fi_has"]) == 1
+    assert A.read_features(paths, idx[SLOT0]["capture_id"])["fi_has"].isna().all()
+    s = SP.load_registry()["models"]["se30_lr_framein"]
+    assert s["learner"] == "logreg" and s["families"] == ["market_state", "momentum", "framein"] and s["isolates"] == ["framein"]
+    assert SP.embargo_of(s, S.epoch("2026-10-31T00:00:00Z")) is None

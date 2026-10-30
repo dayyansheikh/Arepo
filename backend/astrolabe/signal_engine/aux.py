@@ -1251,6 +1251,19 @@ def _umaparams_builder(ctx: dict) -> pd.DataFrame:
     return umaparams_features(ctx["f"]["market_id"].to_numpy(np.int64), res)
 
 
+FRAMEIN_COLUMNS = ["fi_has"]
+
+
+def _framein_builder(ctx: dict) -> pd.DataFrame:
+    """Section 42 review: ``up_has`` / ``rc_has`` alone (in the gamma_rules by-volume frame), the control arm that
+    separates frame membership from the UMA and rule-text values. Same read as umaparams (memoised in the process)."""
+    res = UP.uma_at(ctx["paths"].rules_stream, ctx["cap_start"])
+    ctx["provenance"] = {"uma_params_sha256": UP.code_sha256(), "rules_files": res["files"],
+                         "rules_last_slot": res["last_slot"], "uma_known_markets": len(res["known"])}
+    has = umaparams_features(ctx["f"]["market_id"].to_numpy(np.int64), res)["up_has"].to_numpy(np.float32)
+    return pd.DataFrame({"fi_has": has})
+
+
 def _rules_builder(ctx: dict) -> pd.DataFrame:
     """DESIGN_V1 section 41: the gamma_rules rows known at the capture start (poll finished at or before it)."""
     res = RT.rules_at(ctx["paths"].rules_stream, ctx["cap_start"])
@@ -1292,6 +1305,8 @@ AUX_FAMILIES: dict[str, dict] = {
     "rules": {"version": RT.RULES_VERSION, "columns": RT.RULES_COLUMNS, "needs_rows": False, "builder": _rules_builder},
     # the same stream's static UMA dispute fields (bond, reward, liveness, fallback, resolver); section 42
     "umaparams": {"version": UP.UMA_VERSION, "columns": UP.UMA_COLUMNS, "needs_rows": False, "builder": _umaparams_builder},
+    # frame membership only (umaparams' up_has): the control arm for se28 / se29 (section 42 review)
+    "framein": {"version": "se-aux-framein-v1", "columns": FRAMEIN_COLUMNS, "needs_rows": False, "builder": _framein_builder},
 }
 AUX_COLUMNS: dict[str, list[str]] = {k: v["columns"] for k, v in AUX_FAMILIES.items()}
 AUX_ALL: list[str] = [c for cols in AUX_COLUMNS.values() for c in cols]

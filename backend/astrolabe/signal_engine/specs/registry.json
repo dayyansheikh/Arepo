@@ -212,6 +212,13 @@
    "spec_sha256": "40f1204c8d7e4c4a3805927e74c600bf504975a75d7f372d2bfa81d7fa3db606",
    "status": "active",
    "added_utc": "2026-10-30T07:15:00Z"
+  },
+  {
+   "model_id": "se30_lr_framein",
+   "file": "se30_lr_framein.json",
+   "spec_sha256": "a46d4fe8d81b6331f9a5972a287882c053141dda12a0a4b84b7a9248f58b9dbe",
+   "status": "active",
+   "added_utc": "2026-10-30T07:21:00Z"
   }
  ]
 }

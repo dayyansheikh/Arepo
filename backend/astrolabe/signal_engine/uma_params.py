@@ -26,7 +26,7 @@ VALUE_COLUMNS = UMA_COLUMNS[1:]  # NaN for a market with no known row
 # the resolvedBy address with the most covered rows in the section-42 census (9,096 of 18,135; counts only; pinned
 # after that run, before any table existed)
 RESOLVER_TOP = "0x69c47de9d4d3dad79590d61b9e05918e03775f24"
-_NO_FALLBACK = {"", "none", "null"}
+_ABSENT = {"", "null"}  # an empty string field is absent (NaN); the literal "none" is a value only for the fallback type
 
 
 def _num(v) -> float:
@@ -44,8 +44,8 @@ def parse_uma(data: dict) -> list[float]:
     rb = data.get("resolvedBy")
     return [math.log1p(bond), math.log1p(reward),
             float(live > 0) if math.isfinite(live) else math.nan,
-            float(str(fb).strip().lower() not in _NO_FALLBACK) if isinstance(fb, str) or fb is None else math.nan,
-            float(str(rb).lower() == RESOLVER_TOP.lower()) if isinstance(rb, str) and rb and RESOLVER_TOP else math.nan]
+            float(fb.strip().lower() != "none") if isinstance(fb, str) and fb.strip().lower() not in _ABSENT else math.nan,
+            float(rb.lower() == RESOLVER_TOP.lower()) if isinstance(rb, str) and rb.strip().lower() not in _ABSENT | {"none"} else math.nan]
 
 
 _MEMO: dict = {}  # path -> (size, mtime_ns, parsed); day files are append-only, so a same-size file is unchanged
