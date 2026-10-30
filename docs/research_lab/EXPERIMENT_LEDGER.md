@@ -5422,3 +5422,25 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   spec_sha, code_sha, design sha and `registration_commit_utc` = the commit's git timestamp; the commit lands by 11-22T23:59Z;
   no M1 code or pinned module differs from 4d25178e; the section 16 block is applied word for word; q0751 / q0751b promoted
   unchanged. Note: q0750c's `notes` still name the q0750b store (cosmetic; its argv is correct).
+
+## Three reviews: E009/E010 analysis wrapper, CH276 map code, M3 challenger R1, 2026-10-30 14:20Z (experiments autopilot; nothing counted)
+- **E009/E010 one-shot analysis prep** (`feat/e009-e010-analysis` 4bdadd83: runbook `E009_E010_ANALYSIS_RUNBOOK_2026-10-30.md`,
+  wrapper `run_e009_e010_analysis.py`, drafts q0770-q0777; outcome-blind host checks only): review
+  `reviews/E009_E010_ANALYSIS_WRAPPER_REVIEW_2026-10-30.md` **ACCEPT_WITH_FIXES**: the registered code runs unchanged with the
+  registered START/END/roots/role; the prefix freeze cannot change the analysed records (window filter in the registered code).
+  MUST 1: enforce (not only record) the sha256 of the registered files and record the imported modules. SHOULD 1-6 (failed-merge
+  retry procedure, per-attempt failure records, poller catch-up check in the freeze manifest, `canonical_predictions_in_window`
+  disclosure, rule-doc sha check, map child exit 75 -> 1). **q0777 (off-host inputs archive) does not gate the analyses**
+  (reviewer's ruling, adopted: the inputs are append-only prefixes rebuildable from the host / later archives; the result entry
+  cites q0777's tag or its failure). `--allow-dirty` limited to `trials.jsonl` accepted (rule R9, disclosed).
+- **CH276 map** (`feat/ch276-map` d3795a38, 17 tests): review `reviews/CH276_CODE_CHECK_2026-10-30.md` **PROMOTE_WITH_FIXES**:
+  MUST 1 rule 28 (only bid-only >= 0.90 -> YES and ask-only <= 0.10 -> NO decide a side), MUST 2 rules class read
+  point-in-time from `aux/rules/<cap>.parquet` (the CH269 reader takes the last row: future leakage), MUST 3 the semantics
+  reading rule declared in this ledger before the run, MUST 4 missing monitor days never scored 0, MUST 5-6 dispute counting,
+  MUST 7 q0760 `mem_mb` 900. Line 7's `proposed_before_end_date` share is dropped from CH276 (M3's estimand; M3 is designed
+  without it).
+- **M3** challenger R1 `reviews/M3_CHALLENGER_R1_2026-10-30.md` **GO_WITH_CHANGES**: MUST 1-9 (void scope; six later-caught
+  M1/M2 defects; three follow-up-dependent denominators; receipt-time brackets; CH276 collision; J0 rule (a) at 48 a day; status
+  semantics robustness, S8 = 1 line; `rules_gap`; headline `F_S(7 d)`), SHOULD 1-9, rulings Q1-Q12. Freeze by 11-16 judged
+  realistic if J3 is shared with M2 and optional machinery dropped.
+- All three fix sets delegated.
