@@ -1,712 +1,780 @@
-# Live tests 14 (LT14): the engine at the touch (CH262), DRAFT pre-registration
+# Live tests 14 (LT14): the engine at the touch (CH262; the label-origin gross), DRAFT pre-registration
 
-**Status: DRAFT (first draft, 2026-10-30 05:30 UTC+1).** Written before challenger R1. Not frozen, not registered;
-E-numbers unassigned; nothing counted; no LT14 code, seal or census run. Drafted on branch `feat/live-tests-14` from the
-`chore/arepo-claude-setup` tip `c0818dfe`, as a design-only commit (like the first commits of LT3-LT13). LT14 takes the next
-free E-number at its own registration. If its primaries all drop at the census, LT14 is not registered (a ledger line
-records it; nothing is counted). Before registration it needs these steps, in order:
-1. challenger R1 (`science-reviewer`), the designer's response, a re-check and a final pre-freeze verification;
-2. the **design-text freeze commit**, with its sha256 recorded in the ledger. It fills in the pinned champion `P` (1.3) by
-   `model_id` and `spec_sha256` and files the `attrlimit_lt14` request (section 5);
-3. the census code only (section 3, with its seal helper), and a `science-reviewer` code-freeze check on synthetic data;
-4. the census inputs' seal (once, after the census span and its lag slots end), then the counts-only census (once). The
-   census fixes `k_tests`;
-5. **only if a primary survives:** the size-check and analysis code, a second code-freeze check against the frozen text,
-   the size check (1.9), a host dry run with peak RSS measured, the pins, and the ledger entry at least 24 h before
-   `REGISTERED_UTC`.
+**Status: DRAFT, second draft (2026-10-30 05:49 UTC+1).** This draft applies challenger R1
+(`reviews/LT14_CHALLENGER_R1_2026-10-30.md`, GO_WITH_CHANGES, on first-draft sha256 `9012d0d0…d47d`). Every item is mapped in
+section 12. Not frozen, not registered; E-numbers unassigned; nothing counted; no LT14 code, seal or census run. Drafted on
+branch `feat/live-tests-14` (first draft `60bca07f`; this draft on the tip `c2ec0a16`), design-only. LT14 takes the next
+free E-number at its own registration. If its primary drops at the census, LT14 is not registered (a ledger line;
+nothing counted).
 
-Until the pin exists, every line a reader writes is `prospective_unregistered` by construction.
+Before registration it needs, in order:
+1. A re-check of this draft and a final pre-freeze verification (`science-reviewer`).
+2. **The design-text freeze commit, before 2026-11-07T00:00Z (hard deadline, 1.1).** The commit records:
+   - the sha256 of this file in the ledger;
+   - the pinned model `P`, by `model_id` and `spec_sha256`;
+   - `P`'s input-clock audit (1.3).
+
+   The same commit files the `attrlimit_lt14` request (5).
+3. The census code (3), with a `science-reviewer` code-freeze check on synthetic data.
+4. The seal (once, after the census span and its lag slots end), then the counts-only census (once).
+5. Only if the primary survives the census:
+   - the size-check and analysis code;
+   - a second code-freeze check;
+   - the size check (1.9);
+   - a host dry run with peak RSS measured;
+   - the pins;
+   - the ledger entry, at least 24 h before `REGISTERED_UTC`.
+
+Until the pin exists, every line a reader writes is `prospective_unregistered`.
 
 This is research tooling. AREPO never trades. **No claim is made or implied about tradability, calibration, profit or a
-lasting market advantage.** LT14 measures one number: the pinned champion's top-decile 2 h gross move in the direction it
-predicted, at the mids the engine recorded, set against the cost rungs that `COST_MODEL.md` already declares. Every count
-quoted from round 19, the CH269 map, the cost model or the ledger is a counts-only operational or development figure,
-never a target. Every MDE is a planning estimate on stated assumptions. Writing this file involved no host, network,
-`ssh` or `data-dumps` read, and no prediction, target, mid after an origin, outcome or P&L (reads listed in 9).
+lasting market advantage.** LT14 measures one number, the **label-origin gross**: the pinned model's top-decile 2 h mid move
+in the direction it predicted, from the mid the engine recorded at capture k (the engine's label origin) to the mid it
+recorded at capture k + 1. **It starts before the prediction exists, and it is not an executable entry.** It is set against
+declared cost hurdles from `COST_MODEL.md`. "At the touch" in this file always means this label-origin gross, compared
+with touch-based costs. Every count quoted from round 19, the CH269 map, the cost model or the ledger is a counts-only
+operational or development figure, never a target. Every MDE is a planning estimate. Writing this file read no host,
+network, `ssh` or `data-dumps` data, and no prediction value, target, mid after an origin, outcome or P&L (reads: 9).
 
-**What the CH269 map says (declared up front, not softened below).** The map is `reviews/CH269_MAP_2026-10-30.md` and
-`seals/CH269_map_q0730.json`, section `champion_top_decile_ch262`. It covered 104 engine captures from 2026-10-21T12:31Z to
-10-30T02:31Z, used `se0_champion_lr_mm`, and read counts only. Its numbers:
-- **10k-100k tier:** top-decile units a capture min 95 / p25 140 / **median 175** / mean 172.2 / max 370. That clears round
-  19's drafting line (>= 100), and the median-to-mean ratio of 1.02 shows a steady count. The busiest slot of day holds
-  10.2% of the tier's units.
-- **>= 100k tier:** **median 0, mean 0.78 a capture** (81 units in 104 captures; 56 captures had none). That is far under
-  round 19's line for this tier (>= 10 a capture, >= 40 markets). On the map's numbers the >= 100k primary cannot enter, so
-  **k is expected to be 1**.
-- **Decile:** about 1,216 units a capture (median 1,218) from about 12,174 eligible non-sports ex-crypto rows. The decile
-  sits mostly in the < 1k tier (median 687.5) and the 1k-10k tier (331.5). Round 19 planned 425 a capture in 10k-100k from
-  the cost model's token shares; the map counts 175, so the decile under-weights the liquid tiers.
-- **Tenure:** completed runs average 1.84 captures, and 66.6% last one capture. There were 16,934 distinct markets over the
-  window, about 7.5 decile units per market in 104 captures.
-- **Unavailable at k + 1** (quotes status codes): top-decile share 0.17% in 10k-100k (30 of 17,748), against 0.011% for the
-  rest. The gap is 0.16 points (1k-10k 0.34, < 1k 0.20, >= 100k 1.24 on 80 units), well under round 19's 10-point census line.
-- **Two map readings that differ from this design (disclosed, item 10.2):**
-  - The map ranked the decile by **signed** `s` (`argsort(-s)`, `census_map_ch269.py` l. 843), so it counted the top decile
-    of the "up" calls. CH262 and this design rank by `|s|`, and the `|s|` decile's tier split is **unprobed**.
-  - The map's fee-class split adds up to **1,059 units** (about one capture's decile) against 126,477 decile units. It is
-    not a usable planning count; its cause is not investigated here (10.10).
+**What the CH269 map says, and what it does not (R1 MUST 5-6; ledger 2026-10-30 ~04:47Z, referenced, not duplicated).** The
+map (`reviews/CH269_MAP_2026-10-30.md`, `seals/CH269_map_q0730.json` section `champion_top_decile_ch262`; 104 engine
+captures, 10-21T12:31Z..10-30T02:31Z, `se0_champion_lr_mm`) counted the decile of **signed** `s` (up calls only;
+`census_map_ch269.py:843`), with the engine's own `category` as scope (`:709`). It did not count CH262's object (the `|s|`
+decile with the pinned sidecar classifiers). The ledger records this as "**LT14 drafted on a defective count; |s| line
+unmeasured**". The map's recorded outcome stands; nothing is relabelled. **The binding `|s|` count gate (>= 100 units a
+capture) is LT14's own census line (3).** No re-read of the CH269 inputs is planned. If one is ever made, it is declared in
+the ledger first, labelled *informed (CH269 re-read)*, and changes no declared value.
 
-**The map is not the census.** Its span (10-21..10-30) is disjoint from LT14's census span `[2026-11-07, 2026-11-17)` (3),
-so every LT14 gate is still declared before its own census. Every value near a map number is marked [map] in 4 and 9.1.
+The signed-decile counts (planning only, a different object) were:
+- 10k-100k tier: median 175 a capture (p25 140, min 95, mean 172.2); median-to-mean ratio 1.02; busiest slot of day 10.2%;
+- >= 100k tier: median 0, mean 0.78 a capture;
+- runs average 1.84 captures; 16,934 distinct markets;
+- k + 1 unavailable share, top decile minus rest, by tier: 0.16 points (10k-100k), 0.34 (1k-10k), 0.20 (< 1k), 1.24
+  (>= 100k).
 
-Source idea: `CREATIVE_HYPOTHESES_2026-11-02.md` (round 19), CH262, section 2 A, and the LT14 lines of sections 1 and 3.
-This file follows round 14's rules 1-11, round 15's 12-14, round 16's 15-17, round 17's 18-20, round 18's 21-23 and round
-19's 24-27 (rule 27 binds directly: LT14's inputs are the engine's own stores). It also keeps LT4's lessons L1-L15 and the
-rulings LT7-LT13 carry. LT14 reuses `LIVE_TESTS_13.md`'s conventions (design text frozen 2026-10-30) unless a line here says
-otherwise and why.
+The map's fee-class split (1,059 units) is a defect: `:951-952` overwrote each capture's totals, so only the last capture
+survives (ledger). LT14's census code sums across captures, with a unit test (3, 6). The map's span is disjoint from LT14's
+census span `[2026-11-07, 2026-11-17)`. Values near a map number are marked [map] (4, 9.1).
+
+Source idea: `CREATIVE_HYPOTHESES_2026-11-02.md` (round 19), CH262 (section 2 A; sections 1 and 3's LT14 lines). This file
+is written to the design rules of rounds 14-19 (rules 1-27; rule 27 binds directly), LT4's L1-L15 and the rulings LT7-LT13
+carry. It reuses `LIVE_TESTS_13.md`'s conventions unless a line here says otherwise and why.
 
 ## 0. Summary
 
-| Handle | Hypothesis (one-sided) | Unit (dependence) | Primary | Planning MDE (DE 5 / DE 31); quarter count; F-MDE | Rung `H` |
+| Handle | Hypothesis (one-sided) | Unit (dependence) | Primary | Planning MDE (DE 5 / DE 31); quarter; F-MDE | Hurdle `H` |
 |---|---|---|---|---|---|
-| **CH262-A** (10k-100k) | Over the window, the mean 2 h gross move `g` of the pinned champion's top `|s|` decile in the 10k-100k tier, taken in the predicted direction at recorded mids, **exceeds 1.30c**. That is the most optimistic maker rung: both legs passive, fills independent of the signal (`COST_MODEL.md` 5). | eligible non-sports ex-crypto market x capture in the top decile at k; **cluster: event**; two-way event x UTC day | the mean of `g` minus `H`, cluster-robust, one-sided `H1: E[g] > H` | median 175 a capture: **0.081c / 0.20c**; quarter 0.16c / 0.40c; F 0.13c / 0.32c (SD 1.3c; at 2 x SD, all double) | **1.30c** |
-| **CH262-B** (>= 100k) | The same quantity in the >= 100k tier **exceeds 0.50c**, the tier's half-spread at p50. | as A | as A | map mean 0.78 a capture: **1.76c / 4.39c**; at the tier's own line (10 a capture) 0.49c / 1.23c, F 0.78c / 1.94c | **0.50c** |
+| **CH262** (10k-100k) | Over the window, the mean **label-origin gross** `g` of the pinned model `P`'s top `\|s\|` decile in the 10k-100k tier **exceeds 1.30c**. Here 1.30c = `2 x (AS - h) - rebates` with h = 1.34c from F4 / F5's mean spread of 2.68c (`COST_MODEL.md` 5). With the tier's own p50 half-spread (0.75c) the same formula gives **2.48c**, which is printed beside every result (1.8). | in-scope eligible market x capture in the top decile at k; **cluster: event**; two-way event x UTC day; UTC day | the mean of `g` minus `H`, cluster-robust; `H1: E[g] > H` | `\|s\|` decile **unmeasured**. At the signed decile's 175 a capture [map]: **0.081c / 0.20c**; quarter 0.16c / 0.40c; F 0.13c / 0.32c (SD 1.3c; all double at 2 x SD) | **1.30c** |
 
-- **Family:** one Holm family over the k surviving primaries, **k <= 2** (the two tiers), one-sided, familywise alpha 0.05.
-  It is separate from E009-E011, LT2-LT13, E025 and E026. Each tier can be dropped on its own at the census (3). A dropped
-  tier is `census_dropped` (uncounted, final); a failed coverage check is `census_unavailable (coverage)`. A primary that
-  is unavailable or fails a size scenario enters Holm with p = 1. There is no replacement primary. The < 1k and 1k-10k tiers
-  are reported arms only: their cheapest rungs are 2.4c and above, and the cost model's recommendation 2 already puts a
-  gross under about 2c below a registered economic test there.
-- **Window, parallel lane (proposed; the challenger rules, 10.1):** `REGISTERED_UTC` **2026-12-10T00:00Z**, `END_UTC`
-  **2026-12-31T00:00Z** (21 days), single analysis on or after **2027-01-01T12:00Z**. This runs in parallel with LT12's
-  window, on disjoint objects.
-- **Window, ordered lane (fallback):** **2027-02-12T00:00Z..2027-03-05T00:00Z**, single analysis on or after
-  **2027-03-06T12:00Z**.
-- **Census:** on the engine's files of LT12's census span `[2026-11-07T00:00Z, 2026-11-17T00:00Z)`, for the decile's tier
-  split and the origin-side gates only. No mid after an origin is read.
-- **Labels certain in both lanes:** ***informed (LT12 census)*** (the census reads LT12's census span; no LT12 object is
-  computed); *informed (CH269)* (the counts above were seen before every gate).
-- **Honest priors (designer's judgement, section 7):**
-  - P(census): 10k-100k **0.80**; >= 100k **0.02**.
-  - **P(no LT14 test) about 0.20.**
-  - Given registration, P(A Supported) about 0.08.
-  - P(A below the rung, i.e. Contradicted) about 0.75.
-- **Expected answer:** the gross is a few tenths of a cent, grows with the spread, and lies below 1.30c. In that case LT14
-  closes the question of whether the current champion's strongest 2 h calls are worth anything at the touch. A Supported
-  primary is an exploratory prospective finding. At most it nominates a later, separately registered maker-fill design with
-  signal-conditional fills.
+- **Family:** one Holm family, **k = 1** (R1 SHOULD 1), one-sided, alpha 0.05. With one test, Holm is the unadjusted p. The
+  family is separate from E009-E011, LT2-LT13, E025, E026 and M1 / M2.
+  - The **>= 100k tier is a reported arm** (M5), not a primary. Its 0.50c is a half-spread, not a round-trip hurdle; it
+    fails its count line on the signed map (mean 0.78 a capture against 10); and it fails its F-MDE line even at 10 a
+    capture (2).
+  - The < 1k and 1k-10k tiers are reported arms.
+  - A primary that drops at the census is `census_dropped` (uncounted, final); a failed coverage check is `census_unavailable
+    (coverage)`; a failed input-clock audit is `withdrawn_pre_census (input clock)` (1.3). No replacement test.
+- **Window, parallel lane (R1 open question 1: accepted, disjoint objects):** `REGISTERED_UTC` **2026-12-10T00:00Z**,
+  `END_UTC` **2026-12-31T00:00Z**, single analysis on or after **2027-01-01T12:00Z**, beside LT12's window. The reader runs
+  under the host's heavy-job lock convention. December thinning (thin books from 12-24) is disclosed (1.1).
+- **Window, ordered lane (fallback):** 2027-02-12T00:00Z..2027-03-05T00:00Z; analysis on or after 2027-03-06T12:00Z.
+- **Census:** on the engine's files (and the span's sidecars for scope and fee fields) of `[2026-11-07T00:00Z,
+  2026-11-17T00:00Z)`, origin-side only. Label: **census span shared with LT12** (LT14 reads no LT12 output; R1 SHOULD 4).
+- **Labels certain in both lanes:** *census span shared with LT12*; *informed (CH269)* (the signed-decile counts were seen).
+- **Honest priors (7):**
+  - **P(census) 0.65**, lowered from 0.80 by R1 MUST 6: the only count behind the drafting is of a different object;
+  - **P(no LT14 test) about 0.35**, plus about 0.05 for a missed freeze deadline;
+  - given registration, P(Supported) about 0.08 and P(Contradicted) about 0.75.
+- **Expected answer:** the label-origin gross is a few tenths of a cent, grows with the spread, and lies below 1.30c. Even a
+  gross above 1.30c would sit below the tier-spread figure of 2.48c unless it were very large. A Supported primary is an
+  exploratory prospective finding about the label-origin gross. It is not an executable return. At most it nominates a
+  separately registered design with entries at or after the decision time and fills measured on the signal.
 
 ## 1. Common rules
 
 ### 1.0 Lessons carried over (binding from the first draft)
-`LIVE_TESTS_13.md` 1.0 applies unless 1.8-1.10 say otherwise. That covers: exact `%.17g` writes; NaN refusals; sealed inputs
-re-hashed; slots from the seal; the pessimistic MDE gate `max(declared, design)`; a size check of >= 2,000 worlds at limit
-0.058; spec and code pins; write-once series; clustering by the cluster unit, cluster x UTC day and UTC day, with p the
-largest; Holm counted once; economics never changes a verdict; `DE_gate = max(5.0, 1 + (m_21 - 1) x 0.02)`; the lag-slot
-loader; `T_X` conditions; the pinned sports and crypto classifiers; LT7's one-rule F; count gates on gross projected counts;
-whether F binds is fixed now by design; distinct-cluster gates unprojected; `census_unavailable (coverage)` kept distinct
-from `census_dropped`; Kish `G_eff >= 15`; NaN draws count as exceedances; untestable worlds count as rejections;
-`analyze --out` is required and never overwrites; any dry run before the pin is logged. Round 19's rules map onto LT14 as
-follows:
+`LIVE_TESTS_13.md` 1.0 applies unless 1.8-1.10 say otherwise. That covers:
+- exact `%.17g` writes; NaN refusals; sealed inputs re-hashed; slots from the seal;
+- the pessimistic MDE gate `max(declared, design)`; size check >= 2,000 worlds, limit 0.058;
+- spec and code pins; write-once series;
+- clustering by the cluster unit, cluster x UTC day and UTC day, p the largest; Holm counted once;
+- economics never changes a verdict;
+- `DE_gate = max(5.0, 1 + (m_21 - 1) x 0.02)`;
+- the lag-slot loader; `T_X` conditions; the pinned sports and crypto classifiers; LT7's one-rule F, binding fixed now;
+- distinct-cluster gates unprojected; `census_unavailable (coverage)` distinct from `census_dropped`; Kish `G_eff >= 15`;
+- NaN draws count as exceedances; untestable worlds count as rejections;
+- `analyze --out` required, never overwrites; dry runs before the pin logged;
+- **LT13's pivoted-QR aliasing rule** (3.3 there; used here by M6, 1.11).
+
+Round 19's rules map onto LT14 as follows:
 
 | Rule | LT14 |
 |---|---|
-| 1. Panel-complete units | every unit is a market x capture of the engine's complete-capture stores; no sweep, trade sample or monitor print |
-| 3. Innovations, not levels | **not applied, and disclosed**: the primary is a level (a mean against a constant), as round 19 4.1 allows for CH262; no level is used as a contrast state |
-| 5. Field semantics first | 1.3 (champion pin), 1.5 (tier, scope, the eligibility bit), 1.6 (status codes) |
-| 7. DE and kill lines | `DE_gate` as 1.0; kill lines per tier (3) |
-| 8. Floors | the 0.5c mid floor binds on the MDE and the F-MDE (3); the rung `H` is the tested constant, not a floor |
-| 11. Economic check | this test *is* the economic check of the engine's `dir_2h` accuracy claim |
-| 19. No resolution read by a live primary | none read; a market that closes before k + 1 is `unavailable_closed` (1.6) |
-| 25. Zone floors | the 0.001-tick zone sits outside base eligibility (mid in [0.02, 0.98] excludes most of it); units with tick 0.001 are reported as an arm |
-| 27. The engine's own stores | only files whose capture is at or before the origin feed the unit; only `P`'s visible files at its pinned spec; if `P` stops predicting, the unit is `unavailable`, counted, never filled; no new column, family or model |
+| 1. Panel-complete units | engine stores of complete captures only; no sweep, trade sample or monitor print |
+| 3. Innovations, not levels | **not applied, disclosed:** the primary is a level against a constant (round 19 4.1) |
+| 5. Field semantics first | 1.3 (pin, input clock), 1.5 (columns, bits, scope, tier), 1.6 (status codes) |
+| 7. DE and kill lines | `DE_gate` as 1.0; kill lines (3) |
+| 8. Floors | 0.5c mid floor on the MDE and the F-MDE (3); `H` is the tested constant |
+| 11. Economic check | this test is the economic check of the engine's `dir_2h` claim, on the label-origin gross |
+| 19. No resolution read | none read; a market closed at k + 1 is `unavailable_closed` |
+| 25. Zone floors | tick 0.001 units reported as an arm |
+| 27. Engine stores as inputs | only `P`'s files at its pinned spec; capture <= k for every input; `P` stopping -> `unavailable_spec`, never filled; no new column, family or model |
 
 ### 1.1 Registration, lanes, single analysis
-- **Parallel lane (proposed).** `REGISTERED_UTC` is the first 00:00Z that is **(a)** at least 24 h after the LT14
-  registration commit and **(b)** never earlier than **2026-12-10T00:00Z**. The proposal is 2026-12-10T00:00Z, with
-  `END_UTC` 2026-12-31T00:00Z and the analysis on or after `END_UTC + 36 h` = 2027-01-01T12:00Z. The lane needs the
-  challenger's explicit acceptance that LT14 and LT12 may run in the same days on disjoint objects (10.1). LT12 reads
-  same-event spread innovations of two-member neg-risk pairs and sibling shocks on mixed ladders. LT14 reads the engine's
-  prediction against the row's own next mid. The same market can appear in both, so the objects are disjoint but the
-  markets are not.
-- **Ordered lane (fallback, declared now).** It applies if R1 refuses the parallel lane, or if the registration commit is
-  not at least 24 h before 2026-12-10T00:00Z. Then `REGISTERED_UTC` = the first 00:00Z at least 24 h after the later of
-  LT13's fast-lane `END_UTC` (proposed 2027-02-11T00:00Z) and the registration commit, and never before 2027-02-12T00:00Z.
-  The window lasts 21 days, with a single analysis >= 36 h after the end. The census of 3 stands unchanged in both lanes,
-  because it reads no target, so a later window does not wear it. A pin after LT12's analysis (`T_LT12`) adds
+- **Freeze deadline (R1 SHOULD 8): the design-text freeze commit is before 2026-11-07T00:00Z.** That way `P` is pinned
+  before any census-span file exists. If the deadline is missed, LT14 is recorded `not registered (freeze deadline
+  missed)`. Any later attempt is a new design round with its own census span. No lane uses the 11-07..11-17 span after a
+  late freeze.
+- **Parallel lane.** `REGISTERED_UTC` is the first 00:00Z at least 24 h after the registration commit and never earlier than
+  2026-12-10T00:00Z. That gives a proposed window of 2026-12-10..12-31, with the analysis on or after
+  `END_UTC + 36 h` = 2027-01-01T12:00Z.
+  - R1 accepted that LT14 and LT12 may share these days. LT12 reads same-event spread innovations and sibling shocks; LT14
+    reads `P`'s prediction against the row's own next mid.
+  - The markets can overlap: the census prints the share of LT14 units in two-member neg-risk events. No LT12 object is
+    computed.
+  - The LT14 reader and any LT14 job take the heavy-job lock convention and never run beside a memory-heavy job.
+- **Ordered lane (fallback).** It applies if the registration commit is not at least 24 h before 2026-12-10T00:00Z.
+  `REGISTERED_UTC` is then the first 00:00Z at least 24 h after the later of LT13's fast-lane `END_UTC` (proposed
+  2027-02-11T00:00Z) and the registration commit, never before 2027-02-12T00:00Z. The window is 21 days; the analysis is
+  >= 36 h after its end. The census stands unchanged, because it reads no target. A pin after `T_LT12` adds
   *informed (LT12)*.
-- **Adjacent analyses** (`T_X` = the earlier of X's analysis job start and its analysis commit):
+- **Adjacent analyses** (`T_X` = the earlier of X's analysis job start and its commit):
 
   | Adjacent | Why | Consequence |
   |---|---|---|
-  | **LT12 census** (`T_LT12c`, about 2026-11-18) | LT14's census reads the same span (engine files only) | *informed (LT12 census)*, certain in both lanes; no LT12 census output is read by any LT14 designer before the freeze |
-  | **LT12** (`T_LT12`, about 2027-01-01T12Z) | same days in the parallel lane | parallel lane: none (both analyses after their own windows); ordered lane: *informed (LT12)* |
-  | **LT13** (fast lane 2027-01-21..02-11) | ordered lane follows it | time only; no LT13 object (`batch`) computed |
-  | **LT11** (11-18..12-09), LT10, E026 (to 12-07), E015, E022 | time only, or different states | none computed; no E026 frozen module edited (1.11) |
-  | **The engine's own leaderboard** (`dir_2h` log loss, daily) | a public accuracy measure of the same predictions | not a cents measure; visible to everyone as the engine's operation; LT14 reads none of it as an input and never as a result |
-- **Boundary.** The first origin is the first capture whose start is at or after `REGISTERED_UTC`. The last origin is the
-  last capture starting before `END_UTC`; its k + 1 (target) and its k + 2 and k + 3 (F twin) are read through the lag-slot
-  loader.
-- **Design-text freeze.** After the final pre-freeze verification accepts, a commit records this file's sha256 in the
-  ledger and fills `P`. After that the text changes only by the census-fixed values named in 3, and by code-check fixes
-  that change no unit, target, estimator, gate, threshold or verdict rule (1.13).
-- **Fixed end, no extension; one analysis.** `run_live_tests14.py analyze` refuses before the analysis date, requires
-  `--out`, and refuses to overwrite (exit 2). The spec's `k_tests`, `dropped_tests` and `census_unavailable` lists are
-  mutually exclusive.
-- **Time of year (disclosed).** The parallel window holds the December holidays (thin books from 12-24); the ordered
-  window holds no US federal election. There is no DST change in the census span or either window.
+  | LT12 census (`T_LT12c`, about 11-18) | the same span (engine files and sidecars only) | *census span shared with LT12*; no LT12 census output read by any LT14 designer |
+  | LT12 (`T_LT12`, about 2027-01-01T12Z) | same days (parallel lane) | none in the parallel lane; ordered lane *informed (LT12)* |
+  | LT13 (2027-01-21..02-11) | the ordered lane follows it | time only |
+  | LT11, LT10, E026 (to 12-07), E015, E022, M1 / M2 | time or different states | none computed; no E026 frozen file edited |
+  | The engine's leaderboard (`dir_2h` log loss) | a public accuracy measure of the same predictions | not a cents measure; never an LT14 input or result |
+- **Boundary.** The first origin is the first capture starting at or after `REGISTERED_UTC`. The last origin is the last
+  capture starting before `END_UTC`; its k + 1..k + 3 are read through the lag-slot loader.
+- **Freeze, fixed end, one analysis:** as LT13 1.1. `run_live_tests14.py analyze` refuses before the analysis date, requires
+  `--out` and never overwrites. `k_tests`, `dropped_tests` and `census_unavailable` are mutually exclusive.
+- **Time of year (disclosed).** The parallel window holds the December holidays (thin books from about 12-24, fewer
+  in-scope units, possibly larger moves per unit). No correction is made; the Unavailable floors catch a collapse. There is
+  no DST change in any span.
 
-### 1.2 Stores read (all already written by the host's pass and the engine's tick; no new collector, no network)
-- **Engine stores** (`signal_engine/`, write-once, `DESIGN_V1.md` 1, 6):
-  - `predictions/<capture>/<P>.parquet`: the uint16-quantised `p_up`, `p_down`, `p_flat` and the eligibility bit;
-  - `logs/predictions-YYYYMMDD.jsonl`: the first valid log line per (capture, `P`) is the **receipt time**, plus spec sha,
-    fit id and features sha;
-  - `quotes/<capture>.parquet`: `market_id`, `t_off`, `bid`, `ask`, `st`, where `st` is 0 ok, 1 closed, 2 inactive,
-    3 one-sided;
-  - `features/<capture>.parquet`: `market_id`, `event_id`, `category`, `ms_mid`, `ms_spread`, `ms_log_liq`,
-    `ms_hours_to_end`, `ms_rv24`, `ms_tick`, `mo_d2h`, `t_row`, `end_ts`;
-  - `meta/<capture>.json`: slot, capture start and finish, sha256s;
-  - `specs/registry.json`: `P`'s `spec_sha256`;
-  - `champion/history.jsonl`: champion changes, **disclosure only** (1.3).
-- **Capture sidecar** `rows_ext.csv.gz`. Read only for the scope classifiers (`fee_type`, `fee_category`, `series_slugs`)
-  and the served-fee cost line (`fee_schedule`, `fees_enabled`), never as a state or target. In the window these fields
-  are extracted on arrival (1.14). In the census they come from the sealed span, where a byte-identical copy restored for
-  LT12 or LT13 is accepted after a sha256 check.
-- **Not read:** snapshot `rows.csv.gz` prices (the engine's `quotes/` and `features/` already hold the mids it recorded);
-  sweeps; trade samples; the monitor; `cross_venue_live/`; `xv_quotes/`; `surprise_live/`; `aux/`; the label store and
-  label logs (LT14 computes `g` from `quotes/`, not from the engine's 3-class label); `leaderboard/`; `dashboard.json`; any
-  other model's predictions; `live_tests2/` .. `live_tests13/`; the CH240, CH251, CH261 and CH269 map outputs beyond the
-  bounded section named above; Gamma outcome fields. **No LT11, LT12 or LT13 object is computed or read.** J4-R and
-  CB13-T's holdouts are untouched; LT14 holds no maker mark-out object.
+### 1.2 Stores read (already written by the pass and the engine's tick; no new collector, no network)
+- **Engine stores** (`signal_engine/`, write-once; verified read-only in `predict.py`, `labels.py`, `features.py`,
+  `specs.py`, `config.py`):
+  - `predictions/<capture>/<P>.parquet`. Rows are aligned with `features/<capture>.parquet` (same order). Its columns:
+    - `elig` (uint8 bit mask, `config.ELIG_BITS`: `dir_2h` = 1, `dir_6h` = 2, `dir_24h` = 4, `res_7d` = 8; target eligibility
+      only, i.e. the scheduled end after the target slot or unknown, `labels.elig_mask`);
+    - **`dir_2h_dn`, `dir_2h_up`** (uint16 = `floor(clip(p, 0, 1) x 65535)`);
+    - `dir_6h_dn`, `dir_6h_up`, `dir_24h_dn`, `dir_24h_up`, `res_7d_yes`.
 
-### 1.3 The pinned champion `P` (pinned champion only)
-- **Definition.** `P` is the model that `champion/history.jsonl` records as champion at the **design-text freeze commit**,
-  pinned in the frozen text by `model_id` and `spec_sha256` (as `specs/registry.json` holds it), with `FEATURES_VERSION`.
-  Today that would be `se0_champion_lr_mm`. The first promotion read (`se-promotion-v2`) is due about 2026-11-04, so `P`
-  may be `se1_lgbm_mm`, `se17_lgbm_mm_900k` or `se18_lgbm_all_b0` if a promotion happens before the freeze. The rule
-  fixes `P` before any LT14 count either way.
-- **The deployed object.** `P` is read at its pinned spec, with the walk-forward fits the engine makes on its own schedule
-  (`DESIGN_V1.md` 5). Refits are part of the object as deployed. The fit id of every file is recorded, and the per-day
-  decile composition is printed (world 8). A prediction file whose spec sha differs from the pin is not `P` (`spec_mismatch`,
-  counted; the unit is `unavailable_spec`).
-- **Champion changes during the window (declared rule).** LT14 reads **`P` only**, whatever the engine's champion becomes.
-  A promotion inside the census span or the window changes nothing in LT14: it is recorded with its capture in the
-  analysis output under the label *champion changed in window*, and that label never changes a verdict. If `P` stops
-  writing prediction files (retired, disabled or embargoed), every later unit is `unavailable_spec`, counted, never filled
-  from another model. If `P`'s files cover fewer than 80% of window captures, the primary is Unavailable (1.10). No LT14
-  line promotes, demotes or refits a model; no engine gain or loss changes an LT14 verdict.
-- **Embargo.** `P` must not be embargoed at the freeze (today's candidates are not). If an embargo entry is ever added for
-  `P`, LT14 still reads its files under the registered role, and no LT14 number is displayed (5).
+    The file metadata holds `spec_sha256`, `fit_id`, `features_sha256` and `aux_sha256`. Rows with the bit unset hold 0.
+  - `logs/predictions-YYYYMMDD.jsonl`: the first valid line per (capture, `P`) gives `written_utc` (the **receipt time**),
+    `spec_sha256`, `fit_id` and `sha256` of the file.
+  - `quotes/<capture>.parquet`: `market_id`, `t_off` (row receipt minus capture start, s), `bid`, `ask` (open two-sided rows
+    only), `st` (0 open two-sided, 1 closed, 2 inactive, 3 otherwise not two-sided).
+  - `features/<capture>.parquet`: `market_id`, `event_id`, `category`, `t_row`, `end_ts`, `ms_mid`, `ms_spread`,
+    `ms_log_liq`, `ms_hours_to_end`, `ms_rv24`, `ms_tick`, `ms_neg_risk`, `mo_d2h`. Its rows are the markets that pass base
+    eligibility (`features.eligibility`: `panel.eligibility_mask` rules plus no UMA proposal).
+  - `meta/<capture>.json` (slot, capture start and finish, sha256s); `specs/registry.json` (`P`'s `spec_sha256` and
+    `status`); `champion/history.jsonl` (champion changes, disclosure only).
+- **Capture sidecar** `rows_ext.csv.gz`: `fee_type`, `fee_category`, `series_slugs` (scope classifiers), `fee_schedule`,
+  `fees_enabled` (the served-fee cost line). Never a state or target. In the window these are extracted on arrival (1.14);
+  in the census they come from the sealed span (sha256-checked LT12 / LT13 copies accepted).
+- **Not read:**
+  - snapshot `rows.csv.gz` prices; sweeps; trade samples; the monitor; `cross_venue_live/`, `xv_quotes/`, `surprise_live/`;
+    `aux/`;
+  - the label store and label logs; `leaderboard/`; `dashboard.json`; other models' predictions;
+  - `live_tests2/`..`live_tests13/`; map outputs beyond the bounded CH269 section named above; Gamma outcome fields.
+  - No LT11-LT13 or M1 / M2 object is computed. J4-R and CB13-T's holdouts are untouched.
+
+### 1.3 The pinned model `P` (pinned `P` only; R1 SHOULD 8)
+- **Definition.** `P` is the model `champion/history.jsonl` records as champion at the design-text freeze commit (before
+  2026-11-07T00:00Z). The frozen text pins it by `model_id`, `spec_sha256` and `FEATURES_VERSION`. Every sentence of this
+  file speaks of "the pinned `P`", never of "the current champion".
+  - Today that would be `se0_champion_lr_mm`.
+  - The first `se-promotion-v2` read is due about 11-04, so `P` could instead be se1 / se17 / se18 if a promotion lands
+    before the freeze.
+- **Input-clock audit at the freeze (R1 MUST 2; binding).** The freeze commit lists every feature family and derived set in
+  `P`'s spec, with its source stream, its receipt clock and the code line that reads it. **Every input must be received at
+  or before the unit's own row receipt `t_row(i)` at capture k.** If any input fails, the reader refuses `P`, and LT14 is
+  `withdrawn_pre_census (input clock)`, never re-pinned to another model.
+  - The `book` family fails by construction: its sweep is received about 7 min after the origin (`DESIGN_V1.md` 3, 21:
+    "can be credited for a move that has already happened").
+  - `flow` and `wallet` read the pass's trade sample, which is fetched after the capture. The designer's reading is that
+    they fail; the audit rules.
+  - `xvenue` (quotes received before the capture start) and `book0` (a book strictly before the origin) are audited on
+    their code.
+  - **Pre-audit (designer, read-only, for the reviewer to check at the freeze):**
+    - `market_state` and `momentum` read capture k's own row, earlier `quotes/` files, and sidecar fields.
+    - `ext_sidecar.py` derives the sidecar from the same Gamma page bodies as the row, with the same `received_utc`.
+    - So se0, se1 and se17 (market_state + momentum only) appear to pass.
+    - se18 (`lgbm_all_b0`) holds `flow` and `wallet` and would appear to fail.
+- **The deployed object.** `P` is read at its pinned spec with its own walk-forward refits (`DESIGN_V1.md` 5).
+  - Fit ids are recorded per file, and the per-day decile composition is printed.
+  - A file whose `spec_sha256` differs from the pin is `spec_mismatch` (counted; its units `unavailable_spec`).
+- **Champion changes during the census span or window (declared rule).** LT14 reads **`P` only**.
+  - A promotion or demotion is recorded with its capture under the label *champion changed in window* and never changes a
+    verdict.
+  - Every model with `status: active` in `specs/registry.json` writes predictions (`specs.active_models`, `predict.py`);
+    promotion does not change a model's status (`promotion.py` sets none). So a demoted `P` keeps writing.
+  - If `P` stops writing (status not active), later units are `unavailable_spec`, never filled from another model. Under 80%
+    file coverage, the result is Unavailable (1.10).
+  - An embargo entry added for `P` does not stop LT14's reading, and no LT14 number is displayed (5).
+- No LT14 line promotes, demotes or refits a model.
 
 ### 1.4 Clocks, slots and the decision time
-- **Slots:** as LT3-LT13 (`grid0 = 2026-10-01T00:31Z`, 2 h, tolerance 30 min, first complete capture of a slot). A missing
-  slot leaves every quantity that needs it NaN (counted), never interpolated.
-- **Decision time:** the receipt time of `P`'s prediction file for capture k (the first valid log line, 1.2). The engine
-  writes it after capture k's features. Every state input sits at or before capture k: the prediction, `features/<k>`,
-  `quotes/<k>`, and the sidecar at k.
-- **On time:** the unit exists only if `P`'s file for k was logged before slot k + 1's time (the engine's own rule,
-  `DESIGN_V1.md` 6). A late file gives no unit and is counted as `late`.
-- **The horizon rule (S45, round 19).** `g`'s end point is the mid in `quotes/<k + 1>`. The row's own receipt time,
-  `t_row(k + 1) = capture start(k + 1) + t_off`, minus `t_row(k)` (from `features/<k>`) must lie in **2 h +/- 15 min**;
-  otherwise the unit is `unavailable_timing` (counted).
-- **Execution latency (disclosed; item 10.6).** `g` starts at capture k's recorded mid, which is the engine's label origin
-  and is earlier than the decision time. So `g` credits any move between the row's receipt at k and the prediction write.
-  The census and the analysis print the latency `L = receipt(P, k) - t_row(k)` (per capture: min / median / p90). The
-  analysis reports the primary on units with `L` at or under the census median as a sensitivity, under the label
-  *latency-sensitive* (1.10). No later quote at or after the decision time exists in the engine's stores, and none is
-  taken from another stream.
+- **Slots:** as LT3-LT13 (`grid0 = 2026-10-01T00:31Z`, 2 h, tolerance 30 min, first complete capture of a slot). Missing
+  slots stay NaN (counted).
+- **Decision time:** `P`'s file receipt time for capture k (`written_utc`). All state inputs are at capture k or earlier.
+- **On time:** a unit exists only if `P`'s file for k was logged before slot k + 1's time (the engine's rule). Otherwise the
+  whole capture is `late` (counted).
+- **Horizon rule (S45):** `t_row(k + 1) = start(k + 1) + t_off(k + 1)` minus `t_row(k)` must lie in 2 h +/- 15 min. Otherwise
+  the unit is `unavailable_timing`.
+- **Start point (R1 MUST 1).** `g` starts at capture k's recorded mid, the engine's label origin, at `t_row(k)`. That is
+  earlier than the decision time, so **`g` is the label-origin gross; it starts before the prediction exists and is not an
+  executable entry.** No quote at or after the decision time exists in the engine's stores; none is taken from another
+  stream. R1 rules no latency exclusion.
+- **Latency (R1 SHOULD 3).**
+  - Capture-level latency `L_c = written_utc(P, k) - finish(k)` (`meta/`). `L` hardly varies within a capture, so the
+    sensitivity splits **captures**, not units.
+  - The sensitivity is the primary refitted on captures with `L_c` at or under the census median of `L_c` (census-fixed).
+  - Within-capture `t_off` quantiles are printed separately.
+  - **Label *latency-sensitive* (numeric trigger):** set if (a) the primary's `gbar` exceeds `H` and the sensitivity's
+    `gbar` does not, or (b) `|gbar_sens - gbar| > 0.25c`. Never a verdict change.
 
-### 1.5 Eligibility at <= k and the unit
+### 1.5 Eligibility at <= k, the unit and the order of exclusions (R1 MUST 7)
 Everything below is read at capture k or earlier.
-- **Engine eligibility:** `P`'s eligibility bit = 1 at k. That is base eligibility, `DESIGN_V1.md` 2: binary, open,
-  active, two-sided, spread <= 0.10, mid in [0.02, 0.98], end after the origin, and no UMA proposal in the origin sidecar
-  row. On top of it, `dir_2h` eligibility (scheduled end after slot k + 1, or unknown).
-- **Scope (a parameter; `scope: non_sports_ex_crypto` at the freeze):**
-  - The pinned sports classifier `cb17_census.is_sports_sidecar(fee_type, fee_category, series_slugs)` is vendored by hash
-    and applied unchanged to the values served after the 2026-10-20 fee step, as `LIVE_TESTS_13.md` 1.4 does. So the about
-    1,800 markets q0717 saw re-classified count as non-sports (disclosed).
-  - Crypto is excluded by LT13's pinned classifier; unknown is counted and treated as crypto.
-  - A unit with no sidecar row is `sidecar_missing` (excluded, counted).
-  - The census prints the confusion table of the engine's own `category` against this classifier (item 10.8). The sports
-    and crypto arms are the same reader under `scope: sports` / `scope: crypto`; they are reported and not counted.
-- **The decile.** `s = p_up - p_down` from `P`'s file (uint16 / 65535 as stored; never recomputed).
-  - Within capture k, over the in-scope eligible on-time units (all tiers together), the top `ceil(n / 10)` by `|s|` form
-    the **top decile**. Ties are broken by `market_id` ascending, a stable sort. A unit with `s = 0` exactly has no
-    direction and is excluded (`s_zero`, counted).
-  - Middle deciles 4-6 (the secondary's comparison) and the `P(flat)` deciles (M2) are cut the same way.
-- **Tier:** the cost model's bins on `expm1(ms_log_liq)` at k, i.e. the row's Gamma `liquidity` as the engine stored it:
-  `< $1k`, `$1k-10k`, `$10k-100k`, `>= $100k`. A NaN liquidity is `tier_na` (excluded, counted).
-- **One row per `market_id`** per capture. The event key is `event_id` from `features/<k>` (the engine's; -1 means
-  unknown, and those units cluster on the market).
-- **Series family rule** (LT convention): a series family holding more than 40% of a tier's census top-decile units is
-  excluded from that tier (`<tier>.exclude_family`, census-fixed).
-- **Unit:** an in-scope market x capture k in the top decile, in tier T, with every field above finite.
-- **Gross:** `g = 100 x sign(s) x (mid_{k+1} - mid_k)` in cents. `mid = (bid + ask) / 2` from `quotes/<k>` and
-  `quotes/<k + 1>`, both as the engine wrote them (`mid_k` equals `ms_mid`; the census checks equality on every unit).
+- **Columns.**
+  - `s = (dir_2h_up - dir_2h_dn) / 65535`, from the stored uint16 values, never recomputed or renormalised (the engine's
+    scored probabilities clip at 1e-6 and renormalise, `predict.dequantise_dir`; LT14 uses the stored values).
+  - `p_flat = 1 - (dir_2h_up + dir_2h_dn) / 65535` (M2).
+  - Up call: `s > 0`; down call: `s < 0`.
+- **Candidate set and exclusions, in this order, all before the decile cut:**
+  1. **capture-level:** `P`'s file absent, `late` or `spec_mismatch` -> no units at k (counted);
+  2. a row of `P`'s file (= a base-eligible row of `features/<k>`) with `elig & 1 = 0` -> not `dir_2h` eligible (counted);
+  3. duplicate `market_id` -> keep the first row (counted);
+  4. `sidecar_missing` (no sidecar row at k);
+  5. **scope** (a parameter; `scope: non_sports_ex_crypto` at the freeze; R1 open question 8):
+     - the pinned `cb17_census.is_sports_sidecar(fee_type, fee_category, series_slugs)` is vendored by hash and applied to
+       post-fee-step values as LT13 1.4 does, so the about 1,800 re-classified markets count as non-sports (disclosed);
+     - crypto is excluded by LT13's pinned classifier, with unknown treated as crypto;
+     - the sports and crypto arms use the same reader;
+  6. `tier_na` (non-finite `ms_log_liq`);
+  7. `s_zero` (`s = 0` exactly).
+
+  Every step is counted per capture.
+- **The decile cut:** over the remaining set `C_k` (all tiers together), sort by `|s|` descending, ties by `market_id`
+  ascending (stable), and take the first `ceil(|C_k| / 10)`. Middle deciles 4-6 (M6) and the `p_flat` deciles (M2) use the
+  same set, order rule and tie-break.
+- **After the cut:** the series-family rule (a family holding > 40% of the tier's census top-decile units is excluded from
+  the tier, `<tier>.exclude_family`, census-fixed). It removes units but never re-cuts the decile.
+- **Tier:** cost-model bins on `expm1(ms_log_liq)` (the row's Gamma `liquidity` as stored): `< $1k`, `$1k-10k`,
+  `$10k-100k`, `>= $100k`.
+- **Event key:** `event_id` from `features/<k>`; -1 (unknown) clusters on the market.
+- **Unit:** a 10k-100k member of the top decile at k after all of the above.
+- **Gross:** `g = 100 x sign(s) x (mid_{k+1} - mid_k)` cents, with `mid = (bid + ask) / 2` from `quotes/<k>` and
+  `quotes/<k + 1>` as written. The census checks `mid_k == ms_mid` on every unit.
 
 ### 1.6 Outcome classes at k + 1 (write-once, never imputed)
-Every unit gets one write-once class:
-- `labelled`: `st = 0` in `quotes/<k + 1>` and the horizon rule holds. **Only these have `g`.**
-- `unavailable_one_sided` (`st = 3`), `unavailable_closed` (`st = 1`), `unavailable_inactive` (`st = 2`).
-- `unavailable_absent`: not in `quotes/<k + 1>`.
-- `unavailable_missing_capture`: no complete capture in slot k + 1 within tolerance, or none 3 h after the slot.
-- `unavailable_timing`: the horizon rule fails (1.4).
-- `unavailable_spec`: `P` missing or at the wrong spec at k.
+Each unit gets exactly one class:
+- `labelled` (`st = 0` and the horizon rule holds): **only these have `g`**;
+- `unavailable_one_sided` (`st = 3`), `unavailable_closed` (`st = 1`), `unavailable_inactive` (`st = 2`);
+- `unavailable_absent`; `unavailable_missing_capture`; `unavailable_timing`; `unavailable_spec`.
 
-`late` and `s_zero` are counted before the unit forms.
+**Unavailable units are counted and reported separately** by class, tier and decile, and never enter the mean. CH269's
+signed-decile gaps were small, 0.16 points in 10k-100k [map].
+- *attrition-differential*: the top decile's unavailable share exceeds the rest of the tier's by > 2 points in the window.
+- **Worst-case bounds, always printed:** every unavailable unit is set to `-100 x mid_k` (up call) or `-100 x (1 - mid_k)`
+  (down call), and then to the most favourable value.
+- *attrition-sensitive*: the lower bound falls below `H` while the primary clears it.
 
-**The unavailable classes are counted and reported separately, by tier and decile, and never enter the mean.** CH269 shows
-small gaps (0.16 points in 10k-100k), so the attrition rule is: if the top decile's unavailable share exceeds the rest of
-the tier's by more than 2 points in the window, the label is *attrition-differential*. The analysis always prints
-**worst-case bounds**: every unavailable unit is set to its least favourable move (`-100 x mid_k` for an up call,
-`-100 x (1 - mid_k)` for a down call, i.e. the price going to the losing extreme) and to its most favourable move. If the
-lower bound falls below `H` while the primary clears it, the label is *attrition-sensitive*. Neither label changes a
-verdict.
+Neither label changes a verdict.
 
 ### 1.7 What is not looked at before the analysis date
-- No mid after an origin, `g`, decile mean, regression, plot or cents summary of `P`'s predictions by tier, from the
-  census span or the window, by any LT14 designer, coder or reviewer.
-- During the window, only `run_live_tests14.py ops-stats`: file, line, class and status counts. It reads no price, spread,
-  liquidity or `s` value (unit test).
-- No change of `H`, thresholds, scope, decile rule, estimators or k after registration.
-- Nobody opens the census-span engine files or sidecars before the LT14 seal commit, except the schema pre-check (column
-  names and types only) and the seal's sha256 checks.
-- No LT14 designer reads LT12's census output before the freeze, or E015's, E022's, LT9's-LT13's analysis outputs before
-  the pin.
-- The designer has read the engine's STATUS lines (the LightGBM models lead the champion by about 0.045 nats on `dir_2h`
-  over 9 days). That is not by tier and not in cents; disclosed.
+- No mid after an origin, `g`, decile mean, cents summary or plot of `P`'s predictions by tier, from the census span or the
+  window, by any LT14 designer, coder or reviewer.
+- During the window, only `ops-stats` (file, line, class and status counts; no price, spread, liquidity or `s`; unit test).
+- Nobody opens census-span files before the LT14 seal commit, except the schema pre-check and the sha256 checks.
+- No LT14 designer reads LT12's census output before the freeze, nor E015, E022 or LT9-LT13 analysis outputs before the pin.
+- The pre-freeze hold in `signal_engine/CANDIDATES.md` (filed 2026-10-30; referenced, R1 SHOULD 7) bars any engine session
+  from computing or displaying the champion's cents gross or top-decile hit rate by tier before the freeze.
+- Seen by the designer: the engine's STATUS lines (log-loss leads, not by tier and not in cents).
 
-### 1.8 Estimand, estimator and inference (per tier T)
-- **Estimand:** `theta_T = E[g | top decile, tier T, labelled] - H_T`, with `H_A = 1.30c` (10k-100k) and `H_B = 0.50c`
-  (>= 100k), both **fixed constants declared now** from `COST_MODEL.md` 4-5. The census recomputes the rung constants from
-  its own recorded touches with cost-model-v1 formulas and prints them; **they never replace `H`** (4 item 3).
-  **H1 (one-sided): `theta_T > 0`.**
-- **Estimator:** the unweighted mean of `g` over the tier's labelled units, minus `H_T`. Every unit weighs one share at
-  the touch, size-unlimited. That is "touch, size-unlimited" in the cost model's words (rule 3 of `COST_MODEL.md` 6).
-- **Standard errors and p (L10, as LT13 1.7):**
-  - CR1 on **event** (`G - 1` df t);
+### 1.8 Estimand, estimator and inference
+- **Estimand:** `theta = E[g | top decile, 10k-100k, labelled] - H`, the mean label-origin gross minus a fixed hurdle.
+- **The hurdle and its source (R1 MUST 3).** `H` = **1.30c**, fixed now.
+  - Its source is `COST_MODEL.md` 5's "maker both legs, independent" figure, `2 x (AS - h) - rebates`: AS = 2.04c (the
+    10k-100k filled-touch adverse selection at a 1-2 h mark, `COST_MODEL.md` 4) and h = 1.34c (half of F4 / F5's mean
+    spread of 2.68c), with rebates about 0.10c over both legs: `2 x (2.04 - 1.34) - 0.10 = 1.30c`.
+  - It assumes both legs fill passively, fills independent of the signal, and no non-fill or inventory cost.
+  - **The tier's own p50 half-spread** (0.75c, `COST_MODEL.md` 4) in the same formula gives `2 x (2.04 - 0.75) - 0.10 =
+    2.48c`. It is printed beside every result, including the Supported sentence (1.10).
+  - `H` stays 1.30c: a lower bar makes a Contradicted result stronger (R1).
+  - The census recomputes both figures from its recorded touches and prints them. **They never replace `H`.**
+- **H1 (one-sided):** `theta > 0`.
+- **Estimator:** the unweighted mean of `g` minus `H` (one share at the touch, size-unlimited).
+- **Standard errors and p (as LT13 1.7):**
+  - CR1 on **event** (t, `G - 1` df);
   - two-way event x UTC day (normal);
-  - UTC day (t with `G_day - 1` df).
-  - **One-sided p = the largest of the three.** The conservative 95% CI is the hull of a 2,000-draw event-cluster
-    bootstrap (seed 20261814) and the three Wald intervals. `G_eff` (Kish, on event unit counts) is printed and floored at 15.
-  - Why event: markets of one event share news. A market re-enters the decile across captures, a 1.84-capture mean run
-    in CH269, so units of one market are dependent. Event clusters nest markets. The day term holds venue-wide shocks: the
-    decile is cut within a capture, so all units of a capture share its common move.
-- **Sports arm (uncounted):** clusters are the event (the game) and the **fixture day** (the game's scheduled UTC day from
-  `end_ts`), two-way, p the largest.
-- **Dependence sensitivities (reported, never the verdict):** clusters on capture; market; event x two-day block.
-- **MDE multiplier** `3.47 = t_{20, 1 - 0.05/6} + t_{20, 0.8}` (LT7-LT13), not lowered for k <= 2.
+  - UTC day (t, `G_day - 1` df).
+
+  **One-sided p = the largest of the three.** The conservative 95% CI is the hull of a 2,000-draw event-cluster bootstrap
+  (seed 20261814) and the three Wald intervals. Kish `G_eff` is printed, with floor 15.
+  Why event: markets of an event share news, and a market re-enters the decile across captures. The day term holds
+  venue-wide moves, because the decile is cut within a capture.
+- **Sports arm:** clusters on event (the game) and fixture day (the game's scheduled UTC day from `end_ts`), two-way, p the
+  largest.
+- **Sensitivities (reported):** clusters on capture; on market; event x two-day block.
+- **MDE multiplier** 3.47, not lowered for k = 1.
 
 ### 1.9 Placebo, F and the size check
-- **Placebo: the shuffled prediction file** (round 19 0.0 item 6: the placebo lives on the same units). The draw runs
-  this way:
-  1. Within each capture x tier stratum, the in-scope eligible units' `s` values are permuted across units (seeded, 200
-     draws). Each unit keeps its own mids, timing and class.
-  2. The placebo top decile of tier T is the tier's units whose shuffled `|s|` reaches capture k's real top-decile cut-off.
-     The count matches the real one exactly, because the multiset of `s` in the tier is unchanged.
-  3. `g_pl = 100 x sign(s_shuffled) x (mid_{k+1} - mid_k)` on labelled units. `gbar_pl` is the mean over draws of the
-     placebo decile's mean.
+- **Placebo: the shuffled prediction file (binding; R1 open question 4).**
+  1. In each capture x tier stratum of `C_k`, the units' `s` values are permuted across units (200 seeded draws). Each unit
+     keeps its own mids, timing and class.
+  2. The placebo top decile is recut by the same rule as the real one (1.5): over all of `C_k`, sort by shuffled `|s|`
+     descending, **ties by `market_id` ascending**, and take the first `ceil(|C_k| / 10)`. Each tier's count equals the real
+     count, except where ties sit at the cut-off value; the tie-break is the real cut's.
+  3. `g_pl = 100 x sign(s_shuffled) x (mid_{k+1} - mid_k)` on labelled 10k-100k units. `gbar_pl` is the mean over draws.
 
-  The shuffle breaks the link between a unit and its own prediction while keeping each stratum's mix of signs and
-  magnitudes. What survives it is a common direction (the decile's predominant sign meeting a venue-wide drift) or a
-  measurement artefact.
-  **Binding point condition (two-sided, LT12 R1 MUST 5's form):** `|gbar_pl| < 0.5 x gbar`.
-  **Diagnostic (reported, not a gate):** `p_shuffle = (1 + #{draw mean >= gbar}) / 201`.
-- **F (LT7's one-rule form; binding for both tiers, fixed now; round 19 4.1).**
-  - The twin is the same units' `g_tw = 100 x sign(s_k) x (mid_{k+3} - mid_{k+2})`. It is NaN unless the unit is `st = 0`
-    at k + 2 and k + 3, each horizon rule holds, and the scheduled end is after k + 7 h (else `f_end_short`).
-  - `Delta = gbar_lead - gbar_twin`, both on units that have both terms.
-  - **F holds iff Delta's one-sided p < 0.05** (1.8's rule; not Holm-adjusted; counted 0) **and `Delta_hat >= 0.5 x
-    gbar_lead`**. An arm with < 50% of the primary's units is *falsification unavailable*.
-  - Why: a slow per-market drift that the champion's momentum inputs pick up gives `g` at every lag. F asks that the gross
-    belong to the horizon the engine predicts (item 10.3 asks whether binding F is too strict for an economic level).
-- **Size check, after the census, on the code to be pinned:** **2,000 worlds, seed 20261814**, limit **0.058**, 200
-  placebo draws per world.
-  - **Verdict size** = the share of worlds in which the analytic one-sided p (1.8) is < 0.05 **and** F and the placebo
-    condition hold.
-  - Untestable worlds count as rejections. A failing scenario makes the tier "SE check failed (size scenario)": p = 1 in
-    Holm, k unchanged, no rerun, reseed or variant.
-  - Common to every world: the census's event-size distribution and tier unit count; 252 captures; 10% of units removed at
-    random; drifts and shocks drawn per cluster inside that cluster's loop.
+  **Binding condition (two-sided):** `|gbar_pl| < 0.5 x gbar`. **Diagnostic:** `p_shuffle = (1 + #{draw mean >= gbar}) /
+  201`.
+- **F (LT7's one-rule form; binding; R1 open question 3).**
+  - Twin: `g_tw = 100 x sign(s_k) x (mid_{k+3} - mid_{k+2})`. It is NaN unless `st = 0` at k + 2 and k + 3, both horizons
+    hold, and the end is after k + 7 h (`f_end_short`).
+  - `Delta = gbar_lead - gbar_twin` on units with both.
+  - **F holds iff Delta's one-sided p < 0.05 (1.8's rule) and `Delta_hat >= 0.5 x gbar_lead`.** Under 50% of the primary's
+    units in the arm, the result is *falsification unavailable*.
+- **Size check (R1 MUST 4: able to fail).** It runs after the census, on the code to be pinned: **2,000 worlds, seed
+  20261814**, limit **0.058**, 200 placebo draws per world.
+  - Every world uses the census's 10k-100k event-size distribution, unit count, up / down share and spread quantiles; 252
+    captures; 10% of units removed at random; shocks drawn per cluster inside the cluster's loop.
+  - **Null worlds (1-4, 7-9) put the move on the unit and set the twin's mean to 0:**
+    - `mid_{k+1} - mid_k = sign(s_i) x (H + u_i) / 100 + D_t + E_{e,t}`, with unit noise `u_i` and the world's
+      common-direction-free day and event shocks entering the raw mid change;
+    - the twin is `mid_{k+3} - mid_{k+2} = D'_t + E'_{e,t} + noise` with no sign-aligned part.
 
-  | # | World | True mean of `g` | What it checks |
-  |---|---|---|---|
-  | 1 | boundary null: event shocks N(0, 0.5c), day shocks AR(0.5) SD 0.3c, unit noise SD 1.3c | `= H` | the three-way p at the census's `G` |
-  | 2 | heavy tails: unit noise t(3) scaled to SD 1.3c plus 1% jumps of +/-30-60c, symmetric about `H` | `= H` | small-sample t with jumps |
-  | 3 | concentration: 10% of events hold 50% of units (or the census's top-decile event concentration if larger), event mean shifts N(0, 0.5c) | `= H` | CR1 with a few large clusters |
-  | 4 | **S44 stale side:** `g = 0.4 x spread_k + noise`, spreads from the census's top-decile spread quantiles, shifted to mean `H` | `= H` | spread-linked heteroskedasticity |
-  | 5 | **per-market drift (M-Q):** a per-market AR(0.99) drift, SD 1.0c, aligned with `sign(s)`, entering lead and twin alike | `= H + 0.5c` | F must block it |
-  | 6 | **common direction:** a venue-wide drift `D_t` (AR(0.9), SD 0.5c) aligned with the decile's predominant sign at the census's up / down share, no unit information | `= H + 0.5c` | the placebo must block it |
-  | 7 | **S45 label timing:** 5% of k + 1 rows received 2 h + 20-40 min after k, with SD x 2 | `= H` on the 2 h rows | the horizon rule |
-  | 8 | **S46 spec change:** a refit at day 11 re-ranks `|s|` (rank correlation 0.5 with the old ranking) | `= H` in both halves | composition shift |
-  | 9 | **differential attrition:** units with `g < H - 2c` go unavailable at 10 x the census's top-decile share, others at the census share | `= H` before attrition | selection on k + 1 availability |
+    So in a null world F and the placebo can both pass. With an up / down mix `q`, the placebo mean is about
+    `(2q - 1)^2 x H`, under half of `H` unless `q` > 0.85 or < 0.15. Size is then decided by the analytic p.
+  - **Verdict size** = the share of worlds in which the analytic one-sided p < 0.05 and F and the placebo hold. It must be
+    <= 0.058, else "SE check failed (size scenario)": p = 1, k unchanged, no rerun.
+  - **Binding diagnostic:** in each null world, the share with analytic p < 0.05 regardless of F and the placebo. Above
+    0.058 in any null world, the label *analytic p oversized in simulation* is **set** (never a verdict change).
 
-  Diagnostics, not criteria: a planted-effect power run (500 worlds, true mean `H + 0.25c`, seed `20261814 x 100 + 51`),
-  and world 4 with the M1 slope printed.
+  | # | World | True mean of `g` | Twin mean | Checks |
+  |---|---|---|---|---|
+  | 1 | boundary null: event shocks N(0, 0.5c), day shocks AR(0.5) SD 0.3c, `u` SD 1.3c | `H` | 0 | three-way p at the census `G` |
+  | 2 | heavy tails: `u` t(3) scaled to SD 1.3c, plus 1% jumps +/-30-60c symmetric about `H` | `H` | 0 | small-sample t with jumps |
+  | 3 | concentration: 10% of events hold 50% of units (or the census's share if larger), event mean shifts N(0, 0.5c) on the unit term | `H` | 0 | CR1 with few large clusters |
+  | 4 | **S44 stale side:** the unit term is `0.4 x spread_k + u`, shifted to mean `H` | `H` | 0 | spread-linked heteroskedasticity |
+  | 5 | **per-market drift (M-Q):** an AR(0.99) per-market drift aligned with `sign(s)`, SD 1.0c, in lead and twin alike | `H + 0.5c` | `H + 0.5c` | F must block it (mechanical) |
+  | 6 | **common direction:** a venue-wide `D_t` (AR(0.9), SD 0.5c) aligned with the decile's predominant sign at the census `q`, no unit term | `H + 0.5c` | about 0 | the placebo must block it (mechanical) |
+  | 7 | **S45 label timing:** 5% of k + 1 rows received 2 h + 20-40 min after k, SD x 2 | `H` on 2 h rows | 0 | the horizon rule |
+  | 8 | **S46 spec change:** a refit at day 11 re-ranks `\|s\|` (rank correlation 0.5) | `H` both halves | 0 | composition shift |
+  | 9 | **differential attrition:** units with `g < H - 2c` unavailable at 10 x the census top-decile share | `H` before attrition | 0 | selection at k + 1 |
 
-### 1.10 Verdicts and labels (per tier, after Holm over k)
-- **Supported (exploratory, prospective):** Holm-adjusted one-sided p < 0.05, `theta_hat > 0`, F holds, the placebo
-  condition holds, and the size check passed. Its text reads: "*the pinned champion's top-decile mean 2 h gross at recorded
-  mids exceeded the {1.30c / 0.50c} rung in tier T over the window (touch, size-unlimited; no fills measured)*". It never
-  says "route", "tradable" or anything stronger.
-- **Contradicted (below the rung):** the conservative 95% CI of `gbar` lies entirely below `H`. This is the expected
-  outcome, and it is a result: "the gross does not reach the most optimistic maker rung".
-- **Inconclusive:** otherwise. If F fails or is unavailable, *mechanical null not excluded* (or *falsification
-  unavailable*). If the placebo fails, *common direction not excluded*.
-- **Unavailable:**
-  - A: < 15,000 labelled units, < 200 events, `G_eff` < 15, < 10 UTC days with units, or `P`'s files on < 80% of window
-    captures.
-  - B: < 2,000 labelled units, < 40 distinct markets, or the same day and file floors.
-  - Why 15,000 for A: at `n_eff` 12,000 and DE 5 the F-MDE is `5.205 x 1.3 x sqrt(5 / 12,000) x 1.58` = 0.22c, still under
-    the 0.5c floor at twice the planning SD.
-- **Labels (never change a verdict):** *spread-scaling consistent* (M1: slope one-sided p < 0.05 and intercept CI
-  including 0); *latency-sensitive* (1.4); *attrition-differential*, *attrition-sensitive* (1.6); *champion changed in
-  window* (1.3); *informed (X)*; *analytic p oversized in simulation*; *underpowered* (the window's MDE above `0.5c`);
-  *series-concentrated*; *fee regime changed* (1.13).
+  Worlds 5 and 6 are mechanical. Their verdict-size criterion (<= 0.058) is the share of Supported verdicts. Diagnostics:
+  planted-effect power (500 worlds, unit term `H + 0.25c`, seed `20261814 x 100 + 51`), and world 4's M1 slope.
+
+### 1.10 Verdicts and labels
+- **Supported (exploratory, prospective):** p < 0.05 (k = 1), `theta_hat > 0`, F holds, the placebo holds, and the size check
+  passed. **The text, one sentence (R1 SHOULD 9):** "*The pinned `P`'s top-decile mean label-origin gross (from the mid at
+  capture k, before the prediction existed; not an executable entry) exceeded 1.30c in the 10k-100k tier: `gbar - H` = x
+  [CI], `gbar - gbar_pl - H` = y; the tier-spread figure is 2.48c (`gbar` - 2.48c = z); M1: {spread-scaling consistent /
+  not}; touch, size-unlimited, no fills measured.*" It never says "route", "tradable" or anything stronger.
+- **Contradicted (below the hurdle):** the conservative 95% CI of `gbar` lies entirely below 1.30c. This is the expected
+  outcome.
+- **Inconclusive:** otherwise. If F fails or is unavailable: *mechanical null not excluded* / *falsification
+  unavailable*. If the placebo fails: *common direction not excluded*.
+- **Unavailable:** < 15,000 labelled units, < 200 events, `G_eff` < 15, < 10 UTC days with units, or `P`'s files on < 80% of
+  window captures. The 15,000: at `n_eff` 12,000 and DE 5 the F-MDE is `5.205 x 1.3 x sqrt(5 / 12,000) x 1.58` = 0.22c.
+- **Labels (never change a verdict):**
+  - *spread-scaling consistent* (M1: slope one-sided p < 0.05 and the zero-spread intercept's CI includes 0);
+  - *latency-sensitive* (1.4); *attrition-differential*, *attrition-sensitive* (1.6);
+  - *champion changed in window* (1.3); *informed (X)*; *analytic p oversized in simulation* (1.9);
+  - *underpowered* (window MDE > 0.5c); *series-concentrated*; *fee regime changed* (1.13).
 
 ### 1.11 Secondaries and economics (reported; count 0; never change a verdict)
-- **M1, the spread-scaling alternative (round 19, Roll 1984).** Within each tier's top decile: OLS of `g` on `spread_k`
-  (cents) with an intercept, CR1 on event. The stale-side world predicts an intercept near 0 and a slope of about 0.3-0.5.
-  The output prints the intercept, the slope, and the share of `gbar` that `slope x mean spread` accounts for. Also
-  printed: the primary on spread terciles of the tier.
-- **M2, the flat decile (the maker's selection).** Within capture x tier, the top and bottom deciles of `P(flat)` (`p_flat`
-  as stored). The output prints the share of labelled units with `|mid_{k+1} - mid_k| <= spread_k / 2` in each, their
-  difference with an event-CR1 CI, and mean `|Δmid|`. A maker quoting both touches is not picked off when the move stays
-  inside the half-spread. This is a selection fact, not a fill measurement.
-- **M3, the cost ladder, all at recorded touches, cost-model-v1 constants:**
-  - `gbar - H_j` with CIs for every rung of `COST_MODEL.md` 5: 0.65c (maker entry held to resolution; a 2 h gross is not a
-    hold gross, so this is printed only), 1.30c, 2.41c, 2.84c, 3.18c, 3.52c, and the tier's $100 taker round trip p50
-    (3.9c for 10k-100k, 2.9c for >= 100k).
-  - The per-unit taker round trip `spread_k + fees on both legs`, computed twice: at the docs rate (`conservative` policy:
-    max of schedule and docs rate) and at the served `fee_schedule` rate (0 on most non-sports rows since 2026-10-20). Its
-    mean `g - c_taker` is printed both ways.
-  - The cost formulas are a **vendored copy** in a new LT14 file, with the source sha of `costs.py` recorded. A unit test
-    checks equality against `costs.cost_check` on synthetic inputs. **No E026 frozen module is edited** (`costs.py` is
-    E026-frozen; item 10.9 asks whether a read-only import is acceptable instead).
-- **M4, arms by fee class and category:** fee class at k (served rate 0, > 0, unknown) and the engine's `category`.
-- **M5, other arms:**
-  - the up and down calls separately;
-  - the **signed** top decile (the CH269 map's reading);
-  - a within-tier decile (the top `|s|` decile cut inside each tier);
-  - the display pool (spread <= 2c);
-  - tick 0.001 units;
-  - the < 1k and 1k-10k tiers against their own rungs;
-  - B's numbers when B is dropped at the census (descriptive);
+- **M1, the spread-scaling alternative.** Within the 10k-100k top decile: OLS of `g` on **centred** `spread_k` (`spread_k`
+  minus its window mean over these units; R1 SHOULD 6), with an intercept, CR1 on event. It prints:
+  - the slope;
+  - the centred intercept;
+  - the **implied zero-spread intercept** (centred intercept minus slope x mean spread; delta-method CI);
+  - the share of `gbar` that `slope x mean spread` explains;
+  - the primary by spread tercile.
+
+  The stale-side reading predicts a zero-spread intercept near 0 and a slope of 0.3-0.5. The primary has no regressor, so
+  no aliasing arises there.
+- **M2, the flat decile.** Within capture x tier, the top and bottom deciles of `p_flat` (1.5). It prints the share with
+  `|mid_{k+1} - mid_k| <= spread_k / 2` in each, their difference with an event-CR1 CI, and mean `|Δmid|`. A selection
+  fact, not a fill measurement.
+- **M3, the cost ladder** at recorded touches (cost-model-v1 constants):
+  - `gbar - H_j` with CIs for 0.65c (maker entry held to resolution; a 2 h gross is not a hold gross, so print only), 1.30c,
+    **2.48c (tier-spread figure)**, 2.41c, 2.84c, 3.18c, 3.52c and 3.9c (the tier's $100 taker round trip p50);
+  - the per-unit taker round trip `spread_k + fees on both legs`, at the docs rate (`conservative`) and at the served
+    `fee_schedule` rate;
+  - the formulas are a **vendored copy** in a new LT14 file, with `costs.py`'s source sha recorded and an equality unit test
+    against `costs.cost_check` on synthetic inputs. **No E026 frozen file is edited**, and LT14 does not depend on E026's
+    pin, which expires 12-07 (R1 open question 9 allows either; vendoring chosen).
+- **M4, arms:** fee class at k (served rate 0 / > 0 / unknown); the engine's `category`.
+- **M5, arms:**
+  - **the >= 100k tier against 0.50c** (its half-spread; R1 SHOULD 1) and 2.9c (its $100 round trip p50);
+  - the < 1k and 1k-10k tiers against their own ladders;
+  - up and down calls separately; the signed decile (the map's object);
+  - a within-tier decile; the display pool (spread <= 2c); tick 0.001 units;
   - the sports and crypto arms.
-- **M6, within-market secondary (round 19).** The top decile's `g` against the middle deciles' (4-6) in the same market x
-  UTC day, by expanding-past demeaned OLS. Freedman-Lane gate on market x UTC-day strata (200 draws). Reported only.
+- **M6, within-market secondary** (R1 SHOULD 6).
+  - Model: the top decile's `g` against the middle deciles' (4-6), `D_i = 1[top]`, by expanding-past market x UTC-day
+    demeaned OLS.
+  - **Controls (declared now):** `spread_k`, `log1p liquidity`, `|ms_mid - 0.5|`, log1p hours to end with `hte_unknown`,
+    `z log ms_rv24` with `rv_missing`, `mo_d2h`, and 11 slot-of-day dummies.
+  - **Left out on purpose:** `category`, `ms_neg_risk` and the tick. Each is a market constant within a market x UTC-day
+    stratum, so it is zero after demeaning.
+  - **Disclosed:** `D_i` is a function of `P`'s inputs, several of which are these controls, so M6 measures the top-decile
+    contrast net of a linear adjustment for part of the ranking's own inputs. It is reported only.
+  - **Aliasing (LT13's rule, vendored):** before each fit, compute the rank of the demeaned control matrix without `D_i`
+    (column-pivoted QR, tolerance `max(n, p) x eps x the largest singular value`). If it falls short of the column count,
+    drop a column only if it lies in the span of the other retained columns, in this fixed order:
+    1. slot-of-day dummies, latest slot first;
+    2. `hte_unknown`, `rv_missing`;
+    3. log1p hours to end;
+    4. `|ms_mid - 0.5|`.
+
+    `D_i` is never dropped. If the controls are still rank-deficient after these groups, or `D_i` lies in the span of the
+    retained controls, the fit is NaN (`unavailable`, counted). No pseudo-inverse is used. Rank, column count and dropped
+    columns are printed per fit and per gate draw.
+  - Gate: Freedman-Lane on market x UTC-day strata, 200 draws.
 
 ### 1.12 Overlaps, dependence and counting
 | LT14 | Closest prior | Same contrast? | Why not a double count |
 |---|---|---|---|
-| CH262 | LT12 CH245 / CH244 (spread innovations; parallel lane) | no: LT14's target is the mid move in the engine's direction | different object; same markets possible; the census prints the share of LT14 census units in two-member neg-risk events (no LT12 object computed) |
-| CH262 | F4 / F5 (`COST_MODEL.md` 5; development) | no: those are flow interactions at 6 h on history | prospective, engine's own predictions, 2 h |
-| CH262 | the engine's leaderboard | no: log loss on a 3-class label | LT14 reads no score; a verdict never promotes |
-| CH262 | E002 (1 h reversal; ledger) | no | different signal and clock |
+| CH262 | LT12 CH245 / CH244 (spread innovations; same days in the parallel lane) | no: LT14's target is the mid move in `P`'s direction | different object; shared-market share printed; no LT12 object computed |
+| CH262 | F4 / F5 (`COST_MODEL.md` 5; development) | no | prospective, `P`'s own predictions, 2 h |
+| CH262 | the engine's leaderboard | no: log loss on a 3-class label | no score read; a verdict never promotes |
+| CH262 | M1 / M2 (CH263 / CH264 measurements) | no | different units, k = 0 measurements; never pooled |
 
-**Counting:** the analysis adds **k counted tests**, kind `live_tests14` (a fail-closed `battery2.KIND_RULES` entry).
-Placebo, F, secondaries, arms, economics, the census, the CH269 map and the size check count 0.
+**Counting:** **k = 1 counted test**, kind `live_tests14` (a fail-closed `battery2.KIND_RULES` entry). Placebo, F,
+secondaries, arms (including >= 100k), economics, the census, the CH269 map and the size check count 0.
 
 ### 1.13 Stop rules and deviations
-- **Stop rules (LT13 1.12):** no interim look; the test runs to `END_UTC` whatever the counts. After 7 days, a tier whose
-  units run below one third of its census projection gets the ledger note "likely Unavailable" and nothing else changes.
-  Any change to a pinned file makes the analysis refuse. The reader refuses above 1.0 GB in `live_tests14/`.
-- **Deviations (LT13 1.13 unchanged):**
-  - Operational losses stay missing and are counted, never refilled from another stream.
-  - A venue-side fee or category step like 2026-10-20's is recorded within 24 h. Values are read as served, and the label
-    is *fee regime changed*.
-  - Before the freeze: draft revisions mapped to the reviewer items.
-  - After the freeze: written justification, `science-reviewer` acceptance, a new sha and the label *amended after freeze*.
-  - After the census commit: no gate or definition change; a defect gives `census_dropped (defect)` for that tier.
-  - After the pin: none; a defect gives "SE check failed (deviation)", with p = 1.
+- **Stop rules (LT13 1.12):**
+  - no interim look; no extension;
+  - after 7 days, units below one third of the census projection get the ledger note "likely Unavailable" and nothing else
+    changes;
+  - a pinned-file change makes the analysis refuse;
+  - the reader refuses above 1.0 GB in `live_tests14/`.
+- **Deviations (LT13 1.13):**
+  - operational losses stay missing and are counted;
+  - a venue fee or category step is recorded within 24 h and labelled *fee regime changed*;
+  - after the freeze, any change needs a justification, a reviewer acceptance, a new sha and the label *amended after
+    freeze*;
+  - after the census commit, no gate or definition change (a defect gives `census_dropped (defect)`);
+  - after the pin, a defect gives "SE check failed (deviation)", p = 1.
 
 ### 1.14 Retention and the write-once extraction
-- **The constraint.** Engine retention is not yet active: the owner's decision on the drafted 35-day rule for
-  `predictions/` and 45 days for `quotes/` and `features/` is due by about 11-15 (`signal_engine/STATUS.md`), and deletion
-  happens only after a verified release. Snapshot sidecars are deleted after 8 days.
-- **Window reader (light; `mem_mb` < 500; `net` lane or cron).** Every 2 h, for each new complete capture whose `P` file is
-  logged, it writes **write-once** (`%.17g`, atomic hard link) to `live_tests14/series/<capture>.parquet`:
-  - one line per in-scope eligible unit, with `market_id`, `event_id`, `s`, `p_flat`, the prediction receipt time, fit id,
-    spec sha, `mid_k`, `bid_k`, `ask_k`, `t_row(k)`, tier inputs, `ms_hours_to_end`, `ms_rv24`, `ms_tick`, the sidecar's
-    `fee_type`, `fee_category`, first series slug, `fee_schedule` and `fees_enabled`;
-  - then the k + 1, k + 2 and k + 3 status, mid and `t_row` lines for earlier units, once those captures' `quotes/` exist.
+- **Retention.** The engine's retention is not active yet: the owner decides on the drafted 35-day rule for predictions and
+  45 days for quotes and features about 11-15, with deletion only after a verified release. Sidecars are deleted after 8
+  days.
+- **Window reader** (cron every 2 h; `mem_mb` < 500; under the heavy-job lock). For each new complete capture whose `P` file
+  is logged, it writes write-once (`%.17g`, atomic hard link) `live_tests14/series/<capture>.parquet`:
+  - one line per row of `C_k` (1.5), with `market_id`, `event_id`, `dir_2h_dn`, `dir_2h_up` (verbatim uint16), `elig`,
+    `written_utc`, `fit_id`, `spec_sha256`, `bid_k`, `ask_k`, `st_k`, `t_row(k)`, `ms_*` inputs, `mo_d2h`, and the sidecar's
+    `fee_type`, `fee_category`, first series slug, `fee_schedule`, `fees_enabled`;
+  - then the k + 1..k + 3 `st`, `bid`, `ask` and `t_off` lines once those `quotes/` exist.
 
-  Every value is copied as the engine wrote it; nothing is recomputed or re-scored. `g` is computed only at analysis time,
-  from these series files.
-- **Lag guard:** above 72 h of complete-but-unextracted captures the reader writes a ledger alert (`lt14_lag`). One-shot
-  restore from the verified release (sha256-equal) as LT13 1.14. A capture found nowhere is `unavailable_missing_capture`,
-  never awaited and never reconstructed.
-- **No retention rule covers `live_tests14/`** before the analysis is committed.
+  Values are copied as the engine wrote them; nothing is re-scored. `g` is computed only at analysis, from these files.
+- **Lag guard:** 72 h of complete-but-unextracted captures triggers a ledger alert (`lt14_lag`). There is a one-shot
+  sha-equal restore from the verified release. A capture found nowhere is `unavailable_missing_capture`, never awaited.
+- No retention rule covers `live_tests14/` before the analysis commit.
 
-## 2. Planning counts and MDE (planning only; the map counted the decile, never an effect)
-**Formula (round 19 0.3, a level against a constant):** `MDE = 3.47 x 1.5 x SD x sqrt(DE / n_eff)`, with `n_eff = 0.8 x n`,
-and `VIF_w` = 1 because the primary has no regressor. `F-MDE = MDE x sqrt(2 / (1 - max(0, r)))`, with planning `r` 0.2,
-giving x 1.581.
+## 2. Planning counts and MDE (planning only)
+**Formula:** `MDE = 3.47 x 1.5 x SD x sqrt(DE / n_eff)`, with `n_eff = 0.8 n` and `VIF_w` = 1 (no regressor).
+`F-MDE = MDE x sqrt(2 / (1 - max(0, r)))`, with planning `r` 0.2 (x 1.581).
 
-**Design effect, stated.** `DE_gate = max(5.0, 1 + (m_21 - 1) x 0.02)`, where `m_21` is the size-weighted mean event cluster
-size projected to 21 days.
-- From CH269: 126,477 decile units / 16,934 markets = 7.47 units per market in 104 captures, about **18 per market in 252
-  captures** (an upper value, since markets resolve).
-- With 1-5 decile markets per event (unprobed), `m_21` is about 18-90, and the formula gives DE **1.3-2.8**.
-- **So the floor 5.0 binds at planning.** The whole-panel convention **DE 31** is quoted beside it.
-- The 0.02 within-event correlation is an assumption. For a level, shared news inside an event may push it higher; the
-  three-way p (1.8) carries that risk in the verdict, and the DE 31 column shows the pessimistic plan.
+**Design effect.** `DE_gate = max(5.0, 1 + (m_21 - 1) x 0.02)`.
+- From the signed map [map]: 7.47 units per market in 104 captures, about 18 in 252.
+- With 1-5 decile markets per event (unprobed), `m_21` is 18-90, so the formula gives 1.3-2.8 and **the floor 5.0 binds**.
+  DE 31 is quoted beside it.
+- The 0.02 within-event correlation is an assumption. The three-way p carries the risk in the verdict.
 
-**SD.** The cost model's 2 h mid SD by tier is 1.3c (10k-100k) and 1.9c (>= 100k). The decile is chosen partly on recent
-moves, so its SD may be higher, and every MDE is also given at 2 x SD.
+**SD:** 1.3c (the cost model's 10k-100k 2 h mid SD), and 2 x SD as a sensitivity (the decile is chosen partly on recent
+moves).
 
-| Tier, count | n (252 captures) | n_eff | MDE DE 5 / DE 31 (SD 1.3c or 1.9c) | F-MDE DE 5 / DE 31 | at 2 x SD (MDE DE 5 / DE 31) |
+| Count (10k-100k unless stated) | n (252 captures) | n_eff | MDE DE 5 / DE 31 | F-MDE DE 5 / DE 31 | 2 x SD (MDE DE 5 / DE 31) |
 |---|---|---|---|---|---|
-| A, median 175 a capture [map] | 44,100 | 35,280 | **0.081c / 0.20c** (`5.205 x 1.3 x sqrt(5 / 35,280)` = 0.0806) | 0.13c / 0.32c | 0.16c / 0.40c |
-| A, p25 140 a capture [map] | 35,280 | 28,224 | 0.090c / 0.22c | 0.14c / 0.35c | 0.18c / 0.45c |
-| A, quarter of the median | 11,025 | 8,820 | 0.16c / 0.40c | 0.26c / 0.63c | 0.32c / 0.80c |
-| B, map mean 0.78 a capture [map] | 197 | 157 | 1.76c / 4.39c | 2.79c / 6.94c | - |
-| B, at its line 10 a capture | 2,520 | 2,016 | 0.49c / 1.23c | 0.78c / 1.94c | - |
+| signed-decile median 175 a capture [map; a different object] | 44,100 | 35,280 | **0.081c / 0.20c** (`5.205 x 1.3 x sqrt(5 / 35,280)` = 0.0806) | 0.13c / 0.32c | 0.16c / 0.40c |
+| the census line, 100 a capture | 25,200 | 20,160 | 0.11c / 0.27c | 0.17c / 0.42c | 0.21c / 0.53c |
+| a quarter of 175 | 11,025 | 8,820 | 0.16c / 0.40c | 0.26c / 0.63c | 0.32c / 0.80c |
+| arm: >= 100k, signed mean 0.78 a capture (SD 1.9c) | 197 | 157 | 1.76c / 4.39c | 2.79c / 6.94c | - |
+| arm: >= 100k at 10 a capture | 2,520 | 2,016 | 0.49c / 1.23c | 0.78c / 1.94c | - |
 
-**Readings.**
-- A's precision is not the risk. At the planning median, the test resolves `gbar` to about a tenth of a cent against a
-  1.30c rung at DE 5, and a fifth of a cent at DE 31.
-- B cannot enter on the map's count. Even at its own line of 10 a capture its F-MDE is 0.78c, over the 0.5c floor. B
-  needs about **24 units a capture** to pass the F-MDE gate at DE 5 (`2,016 x (0.779 / 0.5)^2 / 0.8 / 252`).
-- Round 19's planning (425 and 20 a capture from token shares) is superseded by the map [map].
+**Reading.** At the census's own count line (100 a capture), the primary resolves `gbar` to about a tenth of a cent at DE 5
+and about a quarter at DE 31, against a 1.30c hurdle. Precision is not the risk; the count of the `|s|` decile is. The
+>= 100k tier would need about 24 units a capture to pass an F-MDE line at DE 5, which is why it is an arm (R1 SHOULD 1).
 
 ## 3. Pre-registration census (counts only; once; before registration; no target read)
-The census runs once on the sealed inputs. It reads origin-side fields of capture k. The only later-slot fields it reads
-are the `quotes/` **status codes and row receipt offsets** at k + 1, k + 2 and k + 3, for the unavailable shares and the
-horizon rule. It reads no bid, ask or mid of a later slot (unit test). It prints counts, is committed with its sha256
-before the registration commit, and **every threshold below is stated now**. A failed line drops that tier
-(`census_dropped`, uncounted).
+The census runs once on sealed inputs and reads origin-side fields of capture k. Its only later-slot reads are `quotes/`
+`st` and `t_off` at k + 1..k + 3 (the unavailable shares and the horizon rule). It reads no later bid, ask or mid (unit
+test). It is committed with its sha256 before the registration commit. **Every threshold below is stated now.**
 
 **Inputs.**
-- Span **`[2026-11-07T00:00Z, 2026-11-17T00:00Z)`**, 10 UTC days, 120 slots, plus the 3 slots after it (to
-  2026-11-17T06:31Z) for k + 1..k + 3 status only. That is before LT11's window opens (2026-11-18).
-- Engine files: `predictions/<cap>/<P>.parquet`, the predictions log lines, `quotes/`, `features/`, `meta/` for those
-  captures (on the host within retention, else restored once from the verified release).
-- Sidecars `rows_ext.csv.gz` of the span (scope and fee fields), with byte-identical LT12 / LT13 copies accepted after a
-  sha256 check.
-- The seal records files, sha256s, slot assignment, `P`'s spec sha and the frozen LT14 design-text sha256. It is sealed
-  once, after 2026-11-17T08:31Z.
-- The census never runs while another memory-heavy job runs.
-- **What the census code must refuse:** an input not in the seal; a seal whose design-text sha is not the ledger's; any
-  later-slot price; any `g`; any LT11-LT13 object; a second run.
+- Span **`[2026-11-07T00:00Z, 2026-11-17T00:00Z)`**, 10 UTC days, 120 slots, plus **the three slots 00:31Z, 02:31Z and
+  04:31Z of 2026-11-17** for k + 1..k + 3 status only (R1 SHOULD 5). Those end before LT11's window (11-18).
+- Engine files for those captures: `predictions/<cap>/<P>.parquet`, the predictions log lines, `quotes/`, `features/`,
+  `meta/` (on the host within retention, else restored once from the verified release).
+- The span's sidecars (scope and fee fields; sha256-checked LT12 / LT13 copies accepted).
+- **Seal:** once, after the 04:31Z capture of 11-17 is complete or past its tolerance. It records files, sha256s, slots,
+  `P`'s spec sha, the input-clock audit and the frozen design-text sha256.
+- **Refusals:** an input not in the seal; a seal whose design-text sha is not the ledger's; any later-slot price; any `g`;
+  any LT11-LT13 or M1 / M2 object; a second run; a `P` that fails the audit.
+- **Fee-class prints sum across captures** (the CH269 defect, R1 MUST 5), with a unit test that a two-capture synthetic
+  input gives the sum.
 
-**Coverage first.** Covered days (covered origins / 12) must be **>= 7.0**, and `P`'s on-time files must cover **>= 90%**
-of census captures. If either fails, LT14 is `census_unavailable (coverage)` and nothing else is printed.
+**Coverage first.** Covered days (covered origins / 12) must be >= 7.0, and `P`'s on-time files must cover >= 90% of census
+captures. Otherwise LT14 is `census_unavailable (coverage)` and nothing more is printed.
 
 **Definitions.** Projection = count x 21 / covered days. Per-capture statistics are over covered captures, zeros included.
-The **declared MDE** is section 2's formula at the census's projected `n_eff`, `DE_gate` and
-`SD_plan = max(tier SD of 2, 100 x SD of mo_d2h over the tier's census top-decile units)`. `mo_d2h` is the own 2 h mid
-change over (k - 1, k], an origin-side quantity. The **design MDE** is `3.47 x 1.5 x se`, with `se` the event-CR1 standard
-error of a mean computed from the census's event sizes at `SD_plan`. The MDE gate uses `max(declared, design)`.
+- `SD_plan = max(1.3c, 100 x SD of mo_d2h over the census 10k-100k top-decile units)`. `mo_d2h` is the own 2 h change over
+  (k - 1, k], an origin-side quantity.
+- **Declared MDE:** section 2's formula at the projected `n_eff`, `DE_gate` and `SD_plan`.
+- **Design MDE (R1 SHOULD 2):** `3.47 x 1.5 x max(se_event, se_twoway, se_day)`, the three standard errors of a mean
+  computed from the census's unit counts per event, per event x UTC day and per UTC day, at `SD_plan` with the 0.02
+  within-cluster correlation.
+- The gate uses `max(declared, design)`.
 
-| Tier | Lines (all must hold; NaN fails) | Map number nearby (planning only) |
-|---|---|---|
-| **A (10k-100k)** | <ul><li>**median top-decile units a capture >= 100** (round 19's line, on the `\|s\|` decile)</li><li>projected labelled-eligible units >= 25,200</li><li>**non-stationarity:** per-capture median >= 0.25 x mean</li><li>**venue clock:** no slot of day > 50% of units</li><li>distinct events >= 300 (unprojected)</li><li>Kish `G_eff` >= 15</li><li>**unavailable gap** (top-decile minus rest-of-tier unavailable share at k + 1) <= **10 points** (round 19)</li><li>finite tier on >= 95% of in-scope eligible rows</li><li>`mid_k == ms_mid` on 100% of units</li><li>**MDE <= 0.5c and F-MDE <= 0.5c** at the computed `DE_gate` and `SD_plan`</li></ul> | 175 median (signed decile), ratio 1.02, max slot 10.2%, gap 0.16 points |
-| **B (>= 100k)** | <ul><li>**median top-decile units a capture >= 10** and **>= 40 distinct markets** (round 19)</li><li>every A line except the counts, with distinct events >= 40</li></ul> | median 0, mean 0.78, 80 units |
+**Lines for the primary (10k-100k; all must hold; NaN fails):**
+- **median `|s|`-decile units a capture >= 100** (round 19's line, on CH262's object; the binding `|s|` gate, R1 MUST 6);
+- projected labelled-eligible units >= 25,200;
+- **non-stationarity:** per-capture median >= 0.25 x mean;
+- **venue clock:** no slot of day > 50% of units;
+- distinct events >= 300 (unprojected); Kish `G_eff` >= 15;
+- **unavailable gap** (top-decile minus rest-of-tier unavailable share at k + 1) <= 10 points (round 19);
+- finite tier on >= 95% of in-scope eligible rows; `mid_k == ms_mid` on 100% of units;
+- **MDE <= 0.5c and F-MDE <= 0.5c** at the computed `DE_gate` and `SD_plan`.
+
+The nearby map numbers (signed decile, engine scope; planning only) are: 175 median, ratio 1.02, busiest slot 10.2%, gap
+0.16 points.
 
 - **Census-fixed values (exhaustive):**
-  1. `k_tests`, `dropped_tests`, `census_unavailable` (mutually exclusive).
-  2. `<tier>.exclude_family`.
-  3. The world inputs:
-     - the event-size distribution of each tier's top decile (quantiles q10..q90 and the top-10% share);
-     - the top-decile spread quantiles q10..q90 (cents);
-     - the up / down share;
-     - the top-decile unavailable share;
-     - the latency median (1.4).
-  4. `SD_plan` per tier.
+  1. `k_tests`, `dropped_tests`, `census_unavailable` (mutually exclusive);
+  2. `<tier>.exclude_family`;
+  3. the world inputs:
+     - the 10k-100k top decile's event-size quantiles q10..q90 and its top-10% share;
+     - its spread quantiles q10..q90;
+     - its up / down share `q`;
+     - its unavailable share;
+  4. `SD_plan`;
+  5. the census median of `L_c` (1.4).
 
-  `DE_gate`, the MDEs and the recomputed rungs are recorded gate values, never re-used to change a threshold.
+  `DE_gate`, the MDEs and the recomputed hurdles (1.30c-formula and tier-spread) are recorded, never used to change a
+  threshold.
 - **Prints (descriptive):**
-  - **Units per capture by tier** (min / median / mean / max), by tier x fee class (served rate 0 / > 0 / unknown, from
-    the sidecar), by tier x engine category and x the pinned classifier (the confusion table), by up / down sign, and for
-    the **signed** decile (the map's reading) beside the `|s|` decile.
-  - Distinct markets and events per tier.
-  - **Tenure** (completed and open runs).
-  - **Unavailable shares by class**, decile and tier.
-  - Latency `L` per capture.
-  - `VIF_w` of decile membership against `spread_k`, `log1p liquidity` and `z log rv24` (for M6).
-  - The rung constants recomputed from the span's recorded touches (cost-model-v1 formulas, both fee readings).
-  - `P`'s spec sha per capture and any `spec_mismatch`; champion changes in the span.
-  - The share of units in two-member neg-risk events (the LT12 overlap print).
-  - The sports and crypto arms' counts.
-- **Expected fates (declared now):**
-  - A passes unless the `|s|` decile shifts strongly toward small books. The map's signed decile gives 175; the `|s|`
-    decile adds the down calls, and its tier split is unprobed.
-  - **B is expected to be `census_dropped`** on its count line (map mean 0.78 a capture), so k = 1 is the expected
-    registration.
+  - units a capture by tier (min / median / mean / max), for the `|s|` decile and the signed decile side by side;
+  - by tier x fee class, summed over captures;
+  - by tier x engine `category` and x the pinned classifier (the confusion table);
+  - by up / down;
+  - every exclusion step of 1.5 per capture;
+  - distinct markets and events; tenure; unavailable shares by class, decile and tier;
+  - `L_c` per capture, and `t_off` quantiles;
+  - `VIF_w` of `D_i` against M6's controls, and M6's control rank and dropped columns on the census design (no target);
+  - `P`'s spec sha per capture, any `spec_mismatch`, champion changes;
+  - the share of units in two-member neg-risk events;
+  - **the >= 100k arm's count lines as prints only** (median >= 10, >= 40 markets: printed pass / fail, never a gate);
+  - the sports and crypto arms' counts.
+- **Expected fate:** the primary passes unless the `|s|` decile under the pinned classifiers sits mostly in the small
+  tiers. Adding the down calls doubles the candidate pool of signed extremes, so the 10k-100k count could fall or rise;
+  it is unmeasured. The >= 100k arm is expected far under its print lines.
 
-## 4. Design changes from the round-19 sketch (made before any LT14 data; each needs the challenger's acceptance)
-1. **`DE_gate` floor 5.0** (LT13 1.0) in place of the sketch's 1.98, with DE 31 beside it. More conservative.
-2. **Planning counts from CH269** [map]: 175 a capture in A (not 425) and 0.78 in B (not 20). B is expected to drop.
-3. **`H` fixed now.** The sketch had the census recompute the rung constants; here they are print-only, so no threshold
-   is set by data.
-4. **Pinned champion only.** The sketch's unit needed visible predictions from both se0 and the pinned se1. LT14 reads
-   `P` only, with the freeze-time pin and the declared rule for changes (1.3). se1 is not read.
-5. **Scope by the pinned classifiers on the sidecar** (LT13 1.4) in place of the engine's `category`, because after the
-   fee step `fee_category` is mostly `other:zero_fees`. The confusion is printed (10.8).
-6. **A binding placebo** (the shuffled prediction file, 1.9). The sketch had F only.
-7. **Outcome classes and worst-case bounds** (1.6), the horizon rule (S45), and the latency print (1.4).
-8. **MDE and F-MDE gates at the 0.5c floor**, and **Unavailable floors** (1.10).
-9. **`|s|` decile kept** as the sketch wrote it, although the map counted the signed decile [map]. The census re-counts it.
+## 4. Design changes from the round-19 sketch (made before any LT14 data; R1 ruled on each)
+1. `DE_gate` floor 5.0 in place of 1.98; DE 31 beside it.
+2. Planning counts from CH269 [map], disclosed as a **different object** (signed decile, engine scope; MUST 6).
+3. `H` fixed now (1.30c), with its formula and source, and the tier-spread figure (2.48c) printed beside it (MUST 3). The
+   recomputed hurdles are print-only.
+4. Pinned `P` only, with the freeze-time pin, an input-clock audit (MUST 2) and a declared rule for changes. se1 is not
+   read.
+5. Scope by the pinned sidecar classifiers (R1 open question 8), with the confusion against the engine's `category`
+   printed.
+6. A binding shuffled-file placebo (open question 4) and a binding F (open question 3).
+7. Outcome classes, worst-case bounds, the horizon rule, and capture-level latency with a numeric label trigger (SHOULD 3).
+   No latency exclusion (open question 6).
+8. MDE and F-MDE gates at the 0.5c floor; the design MDE on the largest of three SEs (SHOULD 2); Unavailable floors.
+9. **k = 1:** the >= 100k tier moved from the family to an arm (SHOULD 1).
+10. The label-origin gross named everywhere (MUST 1); the exclusion order and tie-break declared (MUST 7); null worlds able
+    to fail (MUST 4); M6's controls and the aliasing rule (SHOULD 6); the freeze deadline (SHOULD 8).
 
-## 5. `attrlimit_lt14`: request text for `signal_engine/CANDIDATES.md` (to be filed at the freeze; not applied; CANDIDATES not edited here)
+## 5. `attrlimit_lt14`: request text for `signal_engine/CANDIDATES.md` (filed at the freeze; not applied here)
+The **pre-freeze hold is already filed** in `CANDIDATES.md` (2026-10-30, R1 SHOULD 7; referenced, not duplicated). The
+freeze files this request:
+
 > **LT14 request (CH262; filed at LT14's design-text freeze).** No token: LT14 builds no feature, family or model. One
 > **attribution limit `attrlimit_lt14`** (`kind: attribution_limit`) until **the LT14 date**. The LT14 date is the later of
 > 2027-01-03T00:00Z and LT14's analysis commit (ordered lane: the later of 2027-03-08T00:00Z and the analysis commit). It
 > is moved later only by a ledger line.
-> - **Models:** the pinned champion `P` (named at the freeze by `model_id` and `spec_sha256`).
-> - **Scope:** no public display (website feed, `/lab` dashboard, `dashboard.json`, any shared document or chart) of
->   `P`'s **realised gross in cents**, either by liquidity tier or for its top `|s|` (or signed) decile, and no cents-valued
->   economic summary of `P`'s signals by tier. That covers the mean move in the predicted direction, the hit-rate-times-move
->   products, and net-of-cost figures.
-> - **Unchanged:** the engine's log-loss, Brier, calibration and AUC leaderboard, the promotion rule and the per-market
->   `se-feed-v1` signal-strength display stay as they are.
+> - **Models:** the pinned `P` (`model_id`, `spec_sha256` as frozen).
+> - **Scope, display:** no public display (website feed, `/lab`, `dashboard.json`, any shared document or chart) of `P`'s
+>   realised gross in cents, by liquidity tier or for its top `|s|` (or signed) decile. That includes the mean move in the
+>   predicted direction, top-decile hit rates by tier and net-of-cost figures.
+> - **Scope, computing (R1 SHOULD 7):** **no engine session computes** `P`'s cents gross or top-decile hit rate by tier,
+>   whether displayed or not.
+> - **Unchanged:** the log-loss, Brier, calibration and AUC leaderboard, the promotion rule and the `se-feed-v1`
+>   signal-strength display.
 > - `no_broad_families: []`.
-> - **Pre-freeze hold:** if any such cents-by-tier number for `P` is computed or shown before the freeze, the ledger
->   records the first one and LT14 carries *informed (engine)*.
-> - A census drop of both tiers withdraws the limit with a ledger line. An engine result never changes an LT14 verdict;
->   an LT14 verdict never promotes a model.
+> - If such a number is computed before the LT14 date, the ledger records it and LT14 carries *informed (engine)*.
+> - A census drop withdraws the limit with a ledger line.
+> - An engine result never changes an LT14 verdict; an LT14 verdict never promotes a model.
 
 ## 6. Jobs (described in text only; no queue file, no code in this commit)
-1. **Schema pre-check** (light): column names and types of `predictions/`, `quotes/`, `features/`, the predictions log
-   and the sidecar fields of 1.2, plus `P`'s registry sha. It is committed before the census code freeze and reads no value.
-2. **Seal** (light, once): the sha256 list of the census inputs (3), after 2026-11-17T08:31Z.
-3. **Census `CC14`** (counts only, once; `net` lane, `mem_mb` < 500 planned; the peak RSS is measured and the job is
-   refused above 800 MB; the CH269 map peaked at 558.8 MB against a 450 MB spec). It streams captures one at a time.
-4. **Size check** (once; `cpu` lane; only if a tier survives): 2,000 worlds, seed 20261814.
-5. **Window reader** (cron every 2 h, light): the write-once extraction of 1.14, with the lag guard and the one-shot
-   restore.
-6. **`ops-stats`** (any time): counts only (1.7).
-7. **Analysis** (once, on or after the analysis date, `--out` required): primary, Holm, F, placebo, labels, secondaries,
-   economics.
+1. **Schema and clock pre-check** (light; at the freeze). It records:
+   - `P`'s registry sha and status;
+   - the column names and types of 1.2 in `P`'s prediction file and in `quotes/` and `features/`;
+   - the predictions log fields;
+   - the sidecar fields;
+   - `P`'s input-clock audit (1.3).
 
-Modules to be written later, in new files only: `backend/astrolabe/research_lab/live_tests14.py`,
-`backend/scripts/run_live_tests14.py`, `backend/tests/unit/test_research_lab_live_tests14.py` (synthetic only). No
-signal-engine code or E026 frozen file is touched.
+   It reads no value.
+2. **Seal** (light, once): after the 04:31Z capture of 2026-11-17.
+3. **Census `CC14`** (counts only, once; `net` lane; planned `mem_mb` < 500; the job is refused above 800 MB; runs under the
+   heavy-job lock). It streams captures one at a time and sums the fee prints across captures (unit test).
+4. **Size check** (once; `cpu` lane; only if the primary survives): 2,000 worlds, seed 20261814.
+5. **Window reader** (cron every 2 h, light; 1.14).
+6. **`ops-stats`** (counts only).
+7. **Analysis** (once; `--out` required).
+
+Modules to be written later, in new files only: `backend/astrolabe/research_lab/live_tests14.py`, `live_tests14_costs.py`
+(the vendored formulas), `backend/scripts/run_live_tests14.py`, `backend/tests/unit/test_research_lab_live_tests14.py`
+(synthetic only). No signal-engine code or E026 frozen file is touched.
 
 ## 7. Priors (the designer's judgement, not measurements)
-- **P(census):** A **0.80**. The map's signed decile clears the count line with margin, and the MDE is far under the floor.
-  The risks are the `|s|` decile's tier split, an `L` or scope surprise, and `P`'s coverage. B **0.02**: its map mean is
-  0.78 a capture against 10, and its F-MDE fails even at 10.
-- **P(no LT14 test) = 1 - P(A or B survives) about 0.20.** That is `0.20 x 0.98` for the census alone. It excludes the
-  chance that R1 refuses the design or that registration slips past both lanes (about 0.05 more).
-- **Given A registered:**
-  - P(Supported) **0.08**: round 19's P(clears 1.30c) 0.10, times about 0.8 for F and the placebo;
-  - P(Contradicted, below the rung) **0.75**;
-  - P(Inconclusive) 0.12;
-  - P(Unavailable) 0.05.
-- P(`gbar` clears 0.65c) about 0.35 (round 19). P(M1 *spread-scaling consistent*) about 0.6.
-- **Given Supported, P(the number holds on a second prospective window) 0.4** (round 19's P(replicates)).
+**P(census) 0.65 (was 0.80; R1 MUST 6).** The reasoning:
+1. The only count behind the drafting is of a different object, the signed decile with the engine's scope. The `|s|`
+   decile adds the down calls, and its tier split is unmeasured: about -0.08.
+2. The pinned sidecar classifiers may move units between scope classes relative to the engine's `category`: about -0.03.
+3. If a promotion before the freeze makes `P` a model with `flow` / `wallet` / `book`, the audit refuses it (P about 0.1 x
+   refusal about 0.8): about -0.04.
+4. Coverage, `mid_k == ms_mid` and the MDE gates: small.
+
+From these:
+- **P(no LT14 test) about 0.35**, plus about 0.05 for a missed 11-07 freeze deadline.
+- Given registration: P(Supported) **0.08**; P(Contradicted) **0.75**; P(Inconclusive) 0.12; P(Unavailable) 0.05.
+- P(`gbar` > 0.65c) about 0.35; P(`gbar` > 2.48c) about 0.03; P(*spread-scaling consistent*) about 0.6.
+- Given Supported, P(the number holds on a second prospective window) 0.4.
 
 ## 8. What LT14 can and cannot say
 **It can say:**
-- whether the pinned champion's strongest 2 h directional calls in the 10k-100k tier moved, at the mids the engine
-  recorded, by more than the most optimistic maker cost the programme has measured (1.30c), over 21 prospective days,
-  with event- and day-robust uncertainty;
-- by how much the gross falls short of each rung on the cost ladder (M3);
-- whether the gross scales with the spread (M1, the stale-side reading);
-- whether the engine's flat calls pick books that stay inside the half-spread (M2);
-- how much attrition and latency could move the number.
+- whether the pinned `P`'s strongest 2 h directional calls in the 10k-100k tier carried a **label-origin gross** (from the
+  mid at capture k, before the prediction existed) above a declared 1.30c hurdle over 21 prospective days, with event- and
+  day-robust uncertainty;
+- how far that gross sits from every rung of the cost ladder, including the 2.48c tier-spread figure;
+- whether it scales with the spread;
+- whether `P`'s flat calls pick books that stay inside the half-spread;
+- how attrition and latency could move it.
 
 **It cannot say:**
-- anything about fills, queue position, signal-conditional adverse selection, size beyond the touch, the exit leg,
-  inventory risk, rewards or rebates. A gross over a rung is necessary for a maker route, not sufficient;
-- anything about another champion, another horizon (6 h, 24 h, `res_7d`), another window or season, or a later fee regime;
-- anything about the >= 100k tier, unless it unexpectedly enters;
-- that the champion is uninformative if the gross is below the rung. Accuracy in log loss is the engine's own yardstick
-  and is untouched.
+- what an order placed at or after the decision time would have earned (**the label-origin gross is not an executable
+  entry**);
+- anything about fills, queue position, signal-conditional adverse selection, size beyond the touch, the exit, inventory,
+  rewards or rebates;
+- anything about another model, horizon, window, season or fee regime, or about the >= 100k tier;
+- that `P` is uninformative if the gross is below the hurdle. Log-loss accuracy is the engine's own yardstick and is
+  untouched.
 
-A Supported primary is an exploratory prospective finding that can at most nominate a separately registered maker design
-with fills measured on its own signal. A Contradicted primary is the programme's answer to "is the current champion's top
-decile worth anything at the touch over 2 h": not at the rung, by the printed margin.
+A Supported primary can at most nominate a separately registered design with entries at or after the decision time and
+fills measured on the signal. A Contradicted primary says the label-origin gross does not reach the 1.30c hurdle, by the
+printed margin, which is stronger still against 2.48c.
 
 ## 9. Disclosures
-- **Read to write this file:**
+- **Read for the first draft:**
   - `CLAUDE.md`, `AGENTS.md`;
-  - `CREATIVE_HYPOTHESES_2026-11-02.md` (sections 0-0.3, 1's lanes, CH262, CH269, 3);
-  - `reviews/CH269_MAP_2026-10-30.md` (whole);
-  - `seals/CH269_map_q0730.json` (section `champion_top_decile_ch262`, plus `decisions`, `span`, `not_mapped`,
-    `captures_engine`);
-  - `census_map_ch269.py` l. 836-870 (the decile definition only);
-  - `COST_MODEL.md` (sections 4-8);
-  - `signal_engine/NORTH_STAR.md`;
-  - `signal_engine/DESIGN_V1.md` (sections 1-6, 20, 28, 30, 33);
-  - `signal_engine/STATUS.md` (head);
-  - `signal_engine/CANDIDATES.md` (the LT13 request block and the round-19 LT14 note);
-  - `backend/astrolabe/signal_engine/features.py` (column names and the quotes frame only);
-  - `LIVE_TESTS_13.md` (sections 0-1.14, 6, 8-11), `LIVE_TESTS_12.md` (headings and window lines);
-  - `EXPERIMENT_LEDGER.md` (header and the round-19 / CH269 lines).
-
-  No host, network, `ssh`, `data-dumps`, census output, prediction value, target or P&L was read.
-- **Seen before the gates:** the CH269 counts above [map]; the engine's STATUS lines (log-loss leads, not by tier or in
-  cents).
-- **Not known at the planned freeze:** LT12's census output; E015, E022, LT9-LT13 results; whether a promotion happens on
-  about 11-04.
+  - round 19 (sections 0-0.3, 1, CH262, CH269, 3); the CH269 map review; the seal section `champion_top_decile_ch262` and
+    its `decisions` / `span` / `not_mapped` / `captures_engine`; `census_map_ch269.py` l. 836-870;
+  - `COST_MODEL.md` 4-8;
+  - `NORTH_STAR.md`; `DESIGN_V1.md` 1-6, 20, 28, 30, 33; `STATUS.md` (head); `CANDIDATES.md` (LT13 block, LT14 note);
+    `features.py` (columns, quotes frame);
+  - `LIVE_TESTS_13.md` 0-1.14, 6, 8-11; `LIVE_TESTS_12.md` (headings, window lines); the ledger header and the
+    round-19 / CH269 lines.
+- **Read for this draft:**
+  - the R1 review (whole); the ledger's LT14 R1 entry; the `CANDIDATES.md` pre-freeze hold;
+  - `predict.py` (l. 1-125), `labels.elig_mask` / `dir_eligible`, `config.ELIG_BITS` / `Q` / `P_CLIP`,
+    `specs.active_models`, `promotion.py` (grep for status changes), `features.py` l. 476-490 (row selection);
+  - `ext_sidecar.py` (docstring, `received_utc`);
+  - `LIVE_TESTS_13.md` l. 743-752 (the aliasing rule).
+- No host, network, `ssh`, `data-dumps`, census output, prediction value, target or P&L was read.
+- **Verified read-only for R1's "could not verify" list:**
+  - the column names (`dir_2h_dn` / `dir_2h_up`);
+  - the bit encoding (`elig & 1` = `dir_2h`, target eligibility only; base eligibility is membership of `features/`);
+  - demoted models keep writing while `status: active`;
+  - sidecar rows share the page `received_utc`.
+- **Still unverified:** the `|s|` distribution.
 
 ### 9.1 Values declared now and their sources
 | Value | Where | Source | Informed by CH269? |
 |---|---|---|---|
-| `H_A` 1.30c, `H_B` 0.50c | 1.8 | `COST_MODEL.md` 5 (maker both legs, independent) and 4 (>= 100k half-spread p50) | no |
-| decile by `\|s\|`, all tiers pooled, ties by `market_id` | 1.5 | round 19 | the map's signed reading seen |
-| A count line 100 a capture; B 10 a capture and 40 markets | 3 | round 19 | the A line drafted the test [map] |
-| unavailable gap 10 points | 3 | round 19 | values seen (0.16 points) [map] |
-| non-stationarity 0.25; venue clock 50%; series family 40%; `G_eff` 15 | 3 | rounds 14-18 and LT13 conventions | values seen [map] |
-| `DE_gate` floor 5.0; DE 31 beside it | 2, 3 | LT13 1.0 | tenure seen [map] |
-| MDE and F-MDE <= 0.5c | 3 | rule 8 mid floor | no |
-| horizon 2 h +/- 15 min | 1.4 | round 19 S45 | no |
-| attrition-differential 2 points | 1.6 | LT13 1.5 | gap values seen [map] |
-| Unavailable A 15,000 / 200 / 10 days / 80% files; B 2,000 / 40 | 1.10 | F-MDE arithmetic; conventions | no |
-| placebo two-sided half; F half | 1.9 | LT12 R1 MUST 5; LT7 | no |
-| seed 20261814 | 1.8, 1.9 | unused (git grep, 2026-10-30) | no |
-| census span `[11-07, 11-17)` | 3 | round 19 section 3 | no |
+| `H` 1.30c; tier-spread figure 2.48c (printed) | 1.8 | `COST_MODEL.md` 4-5 formula | no |
+| k = 1; >= 100k an arm | 0, 1.11 | R1 SHOULD 1 | yes (0.78 a capture) [map] |
+| decile by `\|s\|`, all tiers pooled, exclusions before the cut, ties by `market_id` | 1.5 | round 19; R1 MUST 7 | the map's signed reading seen |
+| count line 100 a capture (`\|s\|`) | 3 | round 19 | drafting on a defective count [map] |
+| unavailable gap 10 points; attrition label 2 points | 3, 1.6 | round 19; LT13 1.5 | values seen [map] |
+| non-stationarity 0.25; venue clock 50%; family 40%; `G_eff` 15; events 300 | 3 | conventions | values seen [map] |
+| `DE_gate` floor 5.0; design MDE on max of three SEs | 2, 3 | LT13 1.0; R1 SHOULD 2 | tenure seen [map] |
+| MDE and F-MDE <= 0.5c | 3 | rule 8 | no |
+| horizon 2 h +/- 15 min; latency trigger 0.25c | 1.4 | round 19 S45; R1 SHOULD 3 | no |
+| Unavailable 15,000 / 200 / 10 days / 80% | 1.10 | F-MDE arithmetic | no |
+| placebo half, two-sided; F half | 1.9 | LT12 R1 MUST 5; LT7 | no |
+| M6 controls and aliasing order | 1.11 | LT13 3.3; R1 SHOULD 6 | no |
+| freeze deadline 2026-11-07T00:00Z | 1.1 | R1 SHOULD 8 | no |
+| seed 20261814 | 1.8, 1.9 | unused (git grep; R1 checked) | no |
+| census span and tail (to 11-17T04:31Z) | 3 | round 19; R1 SHOULD 5 | no |
 
-## 10. Open questions for the challenger (R1), the riskiest first
-1. **The parallel lane.** May LT14 run on 2026-12-10..12-31 beside LT12, given disjoint objects but overlapping markets
-   (two-member neg-risk members can be decile units)? Or must it take the ordered lane (2027-02-12..03-05)?
-2. **`|s|` versus the map's signed decile.** CH269 counted the top decile of signed `s` (up calls only). The design keeps
-   `|s|`, and its tier split is unprobed. Is the drafting decision ("175 >= 100") still valid for the `|s|` decile, or is
-   it re-decided only at the census (the designer's reading)?
-3. **Binding F on an economic level.** F rejects a gross that persists at 4-6 h, which is a slow diffusion that a holder
-   could still capture. It is conservative, but is it the right condition for a rung test, or should F be a label here?
-4. **The shuffled-file placebo as a binding two-sided condition.** A common directional drift aligned with the decile's
-   sign mix is a real component of the gross. Should it fail Supported (designer: yes, because the claim is the engine's
-   unit-level signal), or only carry a label?
-5. **The rung's provenance.** 1.30c was derived for F4 / F5's inputs (mean spread 2.68c, fee 0.84c round trip), not for
-   the 10k-100k top decile. Under the served fee of 0 it would be lower. Is a fixed constant from the cost model correct,
-   with the recomputed rungs print-only?
-6. **Latency.** `g` starts at capture k's mid, before the prediction is written. Is "the engine's claim at its label
-   origin" with a latency sensitivity acceptable, or must the primary exclude units above a latency bound?
-7. **B's place in the family.** On the map, B cannot pass its count or F-MDE lines. Keep k <= 2 as round 19 registered
-   it, or declare k = 1 now and make B a reported arm?
-8. **Scope reading.** Pinned classifiers on the sidecar (needs the sidecar extraction) versus the engine's own `category`
-   (`other:zero_fees` for most non-sports rows after 10-20).
-9. **`costs.py`.** It is E026-frozen. Is a read-only import acceptable (its sha unchanged), or must the cost formulas be
-   vendored (the designer's default)?
-10. **The CH269 fee-class split** totals 1,059 units against 126,477 decile units. Is that a map defect that needs a
-    ledger note before the census relies on the same code path?
-11. **Champion pin timing.** Is the freeze-time champion the right `P` if a promotion happens between the freeze and
-    `REGISTERED_UTC`, or should the pin move to the registration commit (after the census, so `P` could change after its
-    census)? The designer's answer: the freeze, so the census and the window read the same model.
+## 10. The first draft's open questions, answered by R1
+1. **Parallel lane: accepted** (disjoint objects). Readers run under the heavy-job lock, and December thinning is disclosed
+   (1.1).
+2. **`|s|` vs signed:** MUST 6. The map counted a different object; the binding `|s|` gate is the census's (3); P(census)
+   lowered (7).
+3. **F stays binding** (1.9).
+4. **Placebo stays binding** (1.9).
+5. **Keep 1.30c**, described by its formula and source, with 2.48c printed beside it (MUST 3; 1.8).
+6. **No latency exclusion** (MUST 1-2); a capture-level sensitivity with a numeric trigger (SHOULD 3; 1.4).
+7. **k = 1** (SHOULD 1).
+8. **Pinned sidecar classifiers** (1.5).
+9. **Either way.** Vendored (designer's choice; it avoids E026's pin, which expires 12-07; 1.11).
+10. **Yes, a defect** (MUST 5; ledger); LT14's census sums across captures, with a unit test (3).
+11. **Pin at the freeze**, before 2026-11-07T00:00Z (SHOULD 8; 1.1, 1.3).
 
-## 11. Proposed registry entry and draft ledger block (DRAFT; not applied)
-**`docs/research_lab/lab_dashboard/registry.json`, `live_tests` (proposed, not applied):**
-```json
-{
- "id": "LT14",
- "title": "Live tests 14: the engine at the touch (planned)",
- "plain": "One planned live test from ideas round 19: do the signal engine's strongest two-hour calls in mid-liquidity markets move, at the prices the engine recorded, by more than the cheapest trading cost the programme has measured? A counting check on 7-17 Nov data comes first; the expected answer is no.",
- "batch": "LT14",
- "family": "economic",
- "stage": "idea",
- "status": "waiting",
- "verdict": "pending",
- "effect": null,
- "next": "Challenger review of the draft; counting check on 7-17 Nov engine files; collection proposed 10-31 Dec (or 12 Feb - 5 Mar 2027)",
- "next_date": "2026-12-10",
- "candidate": false,
- "sources": {"verdict": "docs/research_lab/LIVE_TESTS_14.md (DRAFT)"},
- "stage_results": {"idea": "pending"},
- "reached": ["idea"]
-}
+## 11. Proposed registry text (for the coordinator, who edits `registry.json`; R1 SHOULD 10)
+`plain` (proposed): "One planned live test from ideas round 19: do the signal engine's strongest two-hour calls in
+mid-liquidity markets move, measured from the price the engine recorded just before it made the call, by more than a
+declared trading-cost hurdle from the programme's cost model (1.3 cents; the tier's own spread would put it near 2.5)? A
+counting check on 7-17 Nov data comes first; the expected answer is no." `next`: "Re-check of the second draft; design
+freeze before 7 Nov; counting check on 7-17 Nov engine files; collection proposed 10-31 Dec (or 12 Feb - 5 Mar 2027)".
+`family`: "economic"; `next_date`: "2026-11-07".
+
+**Ledger block (draft, for the freeze; not applied):**
+```
+## LT14 second draft, 2026-10-30 (experiments autopilot; DRAFT, nothing counted)
+- LIVE_TESTS_14.md second draft applies R1 (GO_WITH_CHANGES) MUST 1-7, SHOULD 1-10: k = 1 (10k-100k, H 1.30c, label-origin
+  gross; tier-spread figure 2.48c printed beside it), >= 100k a reported arm; pinned P with an input-clock audit at the freeze
+  (deadline 2026-11-07T00:00Z); exclusion order and tie-break; null worlds able to fail; M6 controls with LT13's aliasing rule;
+  census span shared with LT12, tail to 11-17T04:31Z. P(census) 0.65; P(no test) about 0.35.
 ```
 
-**Ledger block (draft):**
-```
-## LT14 design draft, 2026-10-30 (experiments autopilot; DRAFT, nothing counted)
-- LIVE_TESTS_14.md drafted on feat/live-tests-14 (CH262, the engine at the touch): one Holm family k <= 2 (10k-100k at
-  1.30c, >= 100k at 0.50c), pinned champion only, engine write-once files, census on [2026-11-07, 11-17) labelled
-  informed (LT12 census); window 2026-12-10..12-31 (parallel with LT12, challenger to rule) else 2027-02-12..03-05;
-  attrlimit_lt14 requested at the freeze. CH269: A 175 a capture (signed decile), B 0.78 (expected census_dropped).
-  Priors: P(census) A 0.80 / B 0.02; P(no test) about 0.20. Nothing counted; no code; not frozen.
-```
+## 12. R1 response (`reviews/LT14_CHALLENGER_R1_2026-10-30.md`, GO_WITH_CHANGES; each item -> where it is applied)
+| R1 item | Applied | Where |
+|---|---|---|
+| MUST 1 label-origin gross wording | "label-origin gross; it starts before the prediction exists; it is not an executable entry" in the estimand, title, header, 0, 1.4, 1.10 (Supported sentence), 8; "at the touch" only with that qualifier | header, 0, 1.4, 1.8, 1.10, 8 |
+| MUST 2 input-clock audit | binding audit at the freeze; `P` refused -> `withdrawn_pre_census (input clock)`; designer pre-audit (se0 / se1 / se17 appear to pass; se18 appears to fail) | 1.3, 3, 6 item 1 |
+| MUST 3 hurdle by its source | 1.30c = `2 x (2.04 - 1.34) - 0.10` from F4 / F5's spread; "most optimistic maker rung" deleted; 2.48c tier-spread figure printed beside every result and in the Supported sentence; `H` unchanged | 0, 1.8, 1.10, 1.11 M3, 8 |
+| MUST 4 size check able to fail | null worlds put the move on the unit with twin mean 0; analytic-p share a binding diagnostic setting *analytic p oversized* | 1.9 |
+| MUST 5 CH269 fee defect | cause referenced (ledger); census sums across captures with a unit test | header, 3, 6 item 3 |
+| MUST 6 defective drafting count | "drafted on a defective count; \|s\| line unmeasured" (ledger, referenced); outcome not relabelled; binding \|s\| gate in the census; no re-read planned (rule for one stated); P(census) 0.80 -> 0.65 with reasons | header, 3, 7 |
+| MUST 7 exclusion order and tie-break | seven ordered steps before the cut, the family rule after; the placebo recut with the same `market_id` tie-break | 1.5, 1.9 |
+| SHOULD 1 k = 1 | >= 100k is a reported arm (M5); its census lines print-only | 0, 1.11, 1.12, 2, 3 |
+| SHOULD 2 design MDE | `max(se_event, se_twoway, se_day)` | 3 |
+| SHOULD 3 latency label | capture-level `L_c`, split of captures, numeric trigger (a) or (b) at 0.25c | 1.4, 1.10 |
+| SHOULD 4 label rename | *census span shared with LT12* | 0, 1.1 |
+| SHOULD 5 census tail | 00:31, 02:31, 04:31Z of 11-17; seal after the 04:31Z capture | 3, 6 item 2 |
+| SHOULD 6 collinearity | M1 centred, zero-spread intercept implied; M6 controls listed, market constants left out, LT13's pivoted-QR rule with a drop order; `D_i` never dropped | 1.0, 1.11, 3 prints |
+| SHOULD 7 attrlimit computing | the limit covers computing in any engine session; the hold already in `CANDIDATES.md` is referenced | 1.7, 5 |
+| SHOULD 8 pinned `P`, deadline | "pinned `P`" throughout; freeze before 2026-11-07T00:00Z, with a lapse rule | 1.1, 1.3 |
+| SHOULD 9 Supported sentence | `gbar - gbar_pl - H` and the M1 label in the same sentence | 1.10 |
+| SHOULD 10 registry wording | "a declared trading-cost hurdle" (not "cheapest"), proposed text for the coordinator | 11 |
+| Open questions 1-11 | answered per R1 | 10 |
+
+**Not applied: none.** One reading is the designer's and is flagged for the re-check. MUST 4's "set the twin's mean to 0"
+is implemented as the twin's raw mid change carrying no sign-aligned component. The day and event shocks still enter it,
+so the twin's sign-weighted mean is about 0 rather than exactly 0.
