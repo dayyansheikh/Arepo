@@ -4888,3 +4888,23 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   the latest capture, so CH264's terciles use a labelled liquidity proxy and the output prints OI presence; CH267's rule
   class uses a placeholder keyword classifier (printed; CH239's parser is not in the repo), so its class counts are
   planning-only; tier = the sidecar `liquidity` column. Lane cpu (local stores only), mem_mb 450, as_cap 6000 (virtual).
+
+## CB5 fixes merged; zero-family decision recorded; q0103b promoted, 2026-10-30 ~04:50Z (experiments autopilot; nothing counted yet)
+- Re-check `reviews/CB5_CODE_RECHECK_2026-10-30.md` ACCEPT_WITH_FIXES (fixes 1-6 verified, 116 tests; declaration
+  `7c62c037…5cd0`, only the fix functions changed). MUST 1 (zero families) implemented (d7709b2b) and re-checked by a targeted
+  `science-reviewer` pass: ACCEPT_WITH_FIXES; its fixes applied (766da72c): the zero-family census path writes the declared G59
+  result `g59_gate(0)` ("not testable: 0 families", CH59 closed "too rare in the live universe (0 families)") bound to the frame
+  manifest sha256 and `family_list_sha256`, plus **one counted L1 trial (p = 1, testable false)** at the write-once census;
+  `census.json` records provenance and the declaration hash; the zero check requires an int 0 and a matching candidate-file
+  sha256. `cmd_census` is outside the declaration hash (the census records its git commit instead). 125 CB5 tests. Merged.
+- **Recorded decision (rule, not a rescue; CREATIVE_BATCH_5.md:375-376, :696, :248-250):** the 0-family result is **q0104b's**
+  frame (not q0105). **q0105 and q0107 are "not run: empty frame family list"** (distinct from failed; no audit is run on an
+  empty sample). q0106 no longer depends on q0105. SHOULD 2 declared in §10: q0106 may run on cohort `complete: true`, failed
+  markets reported unavailable (never filled), their count written in the release commit. SHOULD 3 (replication selection
+  drift) must be reviewed before q0111.
+- **q0103b promotion conditions (CB5_CODE_FREEZE_CHECK_2026-10-29 l. 31-36), checked on the host 2026-10-30 ~04:45Z:** (1) fixes
+  committed and tested; (2) `cb5_extract/manifest.json` sha256 `10f2d371…bde368`: 179 of 179 complete captures starting in
+  [10-11T12Z, 10-27T00Z) `listings.status == extracted` (179 snapshot dirs in the span, none missing either way),
+  `prev_chain` ok 178 / broken 1; (3) deployed `arepo_pass.sh` passes the 50 GiB dumps guard; (4) §2.8 headroom: the dumps
+  folder at 36 GiB against the 50 GiB guard, root 33 GB free; (5) lane `net`. **q0103b promoted to jobs/** (prio 41, depends on
+  q0101, done). q0106 waits for q0103b's cohort manifest `complete: true`.
