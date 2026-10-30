@@ -4798,3 +4798,13 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   momentum and CH268 quote fragility (engine-first, for the signal-engine builder), CH266 "<1%" tails, CH264 the overdue mid,
   CH269 the counts-only map that decides the rest.
 - No host probe or data read by the round. Next: CH269 counts-only map job (in progress on `feat/ch269-map`).
+
+## CB3 `T3_fu_start` recorded, 2026-10-30 ~02:40Z (experiments autopilot; operational, nothing counted)
+- First complete follow-up pass: capture `20261030T003102Z_e883d896` (pass start 2026-10-30T00:31:02Z; code af8e0381,
+  committed 10-29T23:41:09Z, deployed before that pass). Manifest
+  `cb3_followup/20261030T003102Z_e883d896/manifest.json` sha256 `f4a8af20…2311f`: state complete, 962 requests, 0 x 429,
+  0 not reached, 0 page-cap hits (operational counts only; no rows read).
+- **`T3_fu_start` = 2026-10-30T00:31:02Z.** With `T_J4R_end` 10-21T00Z, `dev_window_end` (`cb3_declaration.py:407-414`)
+  moves `T3_dev_end` to **2026-11-03T00:00Z** (as the wire review computed). q0064a is created only when now >= 11-03T00Z
+  and quote_state is accounted for up to it; q0064 stays held until then. The design's top-level
+  `cb3_followup/manifest.json` was never implemented (per-capture manifests only; disclosed 10-30 ops batch).
