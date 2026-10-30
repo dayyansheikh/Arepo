@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-30T03:05:00Z",
+ "updated": "2026-10-30T03:55:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -923,14 +923,14 @@
   {
    "id": "CB5-L",
    "title": "Ladder vs bucket consistency (CH59)",
-   "plain": "The frame found 0 usable families in the live universe, so this idea is expected to be not testable (too rare); the census rule makes it official.",
+   "plain": "The frame found 0 usable families in the live universe. The counting check will record the declared result 'not testable (too rare)' and count it, as the design's rule says; the code for this was added and independently checked.",
    "batch": "CB5",
    "family": "ladders",
    "stage": "screened",
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Expected not testable at the G59 census",
+   "next": "Recorded as not testable at the counting check (q0106)",
    "next_date": null,
    "candidate": false,
    "sources": {
@@ -948,18 +948,19 @@
   {
    "id": "CB5-G",
    "title": "Seed-anchor reversion and hour-of-day lead (CH56, CH58)",
-   "plain": "Designed: seed-anchor reversion and hour-of-day effects on the Kalshi lead. Later steps start on or after 27 Oct.",
+   "plain": "Designed: seed-anchor reversion and hour-of-day effects on the Kalshi lead. The code passed its independent re-check after six fixes (for example, a failed download can no longer be recorded as finished). The sample fetch is queued on the server; the counting check follows.",
    "batch": "CB5",
    "family": "carry",
    "stage": "designed",
-   "status": "waiting",
+   "status": "queued",
    "verdict": "pending",
    "effect": null,
-   "next": "q0103b on or after 27 Oct",
-   "next_date": "2026-10-27",
+   "next": "Sample fetch (q0103b), then the counting check (q0106)",
+   "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/CREATIVE_BATCH_5.md header; docs/AREPO_V2_CHECKPOINT.md (CB5 q0103b on/after 10-27)"
+    "verdict": "docs/research_lab/CREATIVE_BATCH_5.md header; docs/AREPO_V2_CHECKPOINT.md (CB5 q0103b on/after 10-27)",
+    "next": "docs/research_lab/reviews/CB5_CODE_RECHECK_2026-10-30.md; docs/research_lab/EXPERIMENT_LEDGER.md § CB5 fixes merged (2026-10-30)"
    },
    "stage_results": {
     "designed": "pass"
