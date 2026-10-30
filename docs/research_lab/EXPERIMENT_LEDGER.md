@@ -5213,3 +5213,21 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **q0733 stopped:** it had started at 07:10Z on the pre-ruling code; its runner was SIGTERMed at ~07:13Z (3 min, only q0733;
   q0085 untouched) and the job cancelled. **No output file was written** (`m2_j0/` does not exist). Not counted; a fresh
   q0733b runs after the fixes, and its seal records the fixed code.
+
+## LT14 code fixes re-check ACCEPT_WITH_FIXES; rulings recorded; q0740 promoted, 2026-10-30 ~09:00Z (experiments autopilot; nothing counted)
+- `reviews/LT14_CODE_RECHECK_2026-10-30.md` on b6bb71a7 (merged b3b6e3ed; 56 tests; frozen text unchanged; declaration sha
+  `71ec21e5…` -> **`d2b89b1a…`**, only `/mde/rule` differs): MUST 1-3 and SHOULD 1-3, 5-7 fixed (synthetic probes re-run:
+  altered / deleted sidecars refuse; sealed-absent quotes give `unavailable`, no refusal). Remaining before q0741 (seal):
+  **F1** the restore draft q0743 selects from a stale repo catalogue (stops at data-20261020) and a no-match exits 0, so
+  regenerate the catalogue, pass explicit `--tag`s and add a post-restore coverage check (exit 3, stop and ask the owner);
+  **F2** q0743 disk sizing (~4 GB of archived sidecars, estimate) and a guard against the 55 GB pass cap; **F3** MUST 4
+  narrowed to `model_id`, `spec_sha256`, `added_utc` + canonical sha (P's status printed, never a refusal: design l. 217-219).
+- **Rulings recorded (SHOULD 4 / F4), before the seal:** A1 a covered origin is a span slot whose `meta`, `quotes`, `features`
+  and sidecar are all sealed, P's file judged by the separate 90% line over 120 expected origins; A2 `misaligned` (row count
+  or `features_sha256` differs) is a capture-level class with no units; **`log_file_mismatch` ⊂ late (design 1.4), reported
+  separately, counts against the 90% line**; A8 projected labelled-eligible units = `labelled` at k + 1 x 21 / covered days
+  (1.10 l. 395-396); A11 the family rule applies after the cut to the gates, the top units and the rest-of-tier unavailable
+  share alike, pre-exclusion count recorded; A6(a) overruled by MUST 3, A6(b)/(c) stand; A2-A4, A7, A12-A18 as written.
+- Snapshot retention is currently 12 days (back to 8 after q0147c), so no span sidecar is deleted before ~11-19 at 12 days.
+- **q0740 (schema / input-clock pre-check) promoted** (schemas and registry only, no value read). F1-F3 delegated on
+  `feat/lt14-code`; q0741 / q0742 / q0743 stay drafts.
