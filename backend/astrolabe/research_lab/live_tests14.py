@@ -277,12 +277,12 @@ def _load_for_census(seal: Path, engine_root: Path, spec: dict, verify: bool, de
     if not au["pass"]:
         return _durable(t.WITHDRAWN_CLOCK, "P fails the input-clock audit (1.3), re-run at the start: LT14 is withdrawn_pre_census (input clock)",
                         {"audit": au, "design_text_sha256": t.DESIGN_TEXT_SHA256, "declaration_sha256": t.declaration_sha256(), "code_sha256": t.code_hashes()})
-    # re-check F3: only model_id, spec_sha256 and added_utc of P's entry are compared (with the spec's canonical sha256); ``status`` is printed, never compared (a demotion of P is not a
+    # re-check F3: only model_id and spec_sha256 of P's entry are compared (with the spec's canonical sha256); ``status`` and ``added_utc`` are printed, never compared (a demotion of P is not a
     # refusal: the audit does not read it, and a P that stopped is ``unavailable_spec``, not a refusal, design 1.4 / l.217-219)
-    cmp_keys = ("model_id", "spec_sha256", "added_utc")
+    cmp_keys = ("model_id", "spec_sha256")
     ent_s, ent_n = seal_d.get("registry_entry") or {}, au.get("registry_entry") or {}
     if {k_: ent_n.get(k_) for k_ in cmp_keys} != {k_: ent_s.get(k_) for k_ in cmp_keys} or not ent_s or au.get("spec_canonical_sha256") != seal_d.get("spec_canonical_sha256"):
-        return {"error": "P's registry entry (model_id, spec_sha256, added_utc) or P's spec file (canonical sha256) differs from the sealed one: census refused",
+        return {"error": "P's registry entry (model_id, spec_sha256) or P's spec file (canonical sha256) differs from the sealed one: census refused",
                 "sealed": {"registry_entry": seal_d.get("registry_entry"), "spec_canonical_sha256": seal_d.get("spec_canonical_sha256")},
                 "now": {"registry_entry": au.get("registry_entry"), "spec_canonical_sha256": au.get("spec_canonical_sha256")}}
     # the whole registry file's sha256 is PRINT ONLY: other models may be added after the seal without voiding it (MUST 4)
@@ -304,7 +304,8 @@ def _load_for_census(seal: Path, engine_root: Path, spec: dict, verify: bool, de
     if bad:
         return {"error": "input identity check failed (an input is not named in the seal with an equal sha256): census refused", "bad": bad[:50], "n_bad": len(bad)}
     return {"seal": seal_d, "registry_sha256_now": au.get("registry_sha256"),
-            "p_registry_status": {"sealed": (seal_d.get("registry_entry") or {}).get("status"), "now": (au.get("registry_entry") or {}).get("status")}}  # print only (F3)
+            "p_registry_status": {"sealed": (seal_d.get("registry_entry") or {}).get("status"), "now": (au.get("registry_entry") or {}).get("status")},
+            "p_registry_added_utc": {"sealed": (seal_d.get("registry_entry") or {}).get("added_utc"), "now": (au.get("registry_entry") or {}).get("added_utc")}}  # print only (F3, re-check B)
 
 
 # --- the data pass ------------------------------------------------------------------------------------------------------------------------------------
@@ -327,7 +328,7 @@ def census_units(*, seal: Path, engine_root: Path, snapshot_root, spec: dict | N
     cov = seal_coverage(sd, spec)
     head = {"design_text_sha256": t.DESIGN_TEXT_SHA256, "declaration_sha256": t.declaration_sha256(), "code_sha256": t.code_hashes(), "imported_sha256": t.imported_hashes(),
             "spec_used_sha256": t.spec_hash(spec), "pinned_model": sd["pinned_model"], "audit": sd["audit"], "registry_sha256_sealed": sd.get("registry_sha256"),
-            "registry_sha256_now": ld["registry_sha256_now"], "p_registry_status": ld["p_registry_status"], "coverage": cov, "span": sd["span"]}
+            "registry_sha256_now": ld["registry_sha256_now"], "p_registry_status": ld["p_registry_status"], "p_registry_added_utc": ld["p_registry_added_utc"], "coverage": cov, "span": sd["span"]}
     if not cov["ok"]:
         return {"unavailable": {**head, "status": CENSUS_UNAVAILABLE, "statuses": {"CH262": CENSUS_UNAVAILABLE}}}
     rdr = t.EngineReader(engine_root, snapshot_root, {int(k): v for k, v in sd["slots"].items()}, allowed=set(sd["files"]), absent=set(sd.get("absent_files") or ()))

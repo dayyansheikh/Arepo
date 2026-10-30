@@ -1,6 +1,6 @@
 {
  "id": "q0744_lt14_catalogue_refresh",
- "title": "LT14 data catalogue refresh (DRAFT): regenerate the data catalogue from the published arepo-data releases (through the latest, including the 2026-11-17 release) into a scratch directory, so that the sidecar restore q0743 selects against a current catalogue; read-only on GitHub, writes nothing outside --out",
+ "title": "LT14 data catalogue refresh (DRAFT): regenerate the data catalogue from the published arepo-data releases (through the latest published release) into a scratch directory, so that the sidecar restore q0743 selects against a current catalogue; read-only on GitHub, writes nothing outside --out",
  "family": "live_tests_14",
  "priority": 47,
  "expected_value": "a current catalogue for q0743 (re-check F1: the repo catalogue stops at data-20261020-dsheikh and a stale catalogue makes the restore a silent no-op)",
@@ -11,7 +11,7 @@
   "mem_mb": 300,
   "cpu": 1,
   "lane": "net",
-  "network": "github releases metadata (private data repo, read-only; needs gh authenticated on the host)",
+  "network": "github releases metadata (private data repo, read-only; gh authenticated on the host)",
   "disk_mb": 200
  },
  "depends_on": [
@@ -29,6 +29,6 @@
   "data-dumps/research_lab/live_tests14_census/catalogue/<tag>.jsonl",
   "data-dumps/research_lab/live_tests14_census/catalogue/releases.json"
  ],
- "next_action": "q0743 (sidecar restore) reads this catalogue through --catalogue; check that a data-2026111* release row exists (releases.json) before relying on it. If archive_catalogue.py cannot run on the host (no authenticated gh), run the same command on the Mac with --out pointing at a directory and copy it to the host path above (or stop and ask the owner); the repo catalogue in docs/research_lab/data_catalogue is NOT touched by this job",
- "notes": "DRAFT, not in queue/jobs. Re-check F1 (reviews/LT14_CODE_RECHECK_2026-10-30.md). The command is archive_catalogue.py unchanged (docs/research_lab/data_catalogue/README.md; idempotent, writes only under --out; draft releases are skipped). A scratch --out keeps the host checkout's tracked catalogue unmodified. Whether gh is authenticated on the Oracle host was NOT verified here (no ssh access). Counts 0 (descriptive; no trials line). Runs ONCE; max_retries 1 covers a transient network failure."
+ "next_action": "q0743 (sidecar restore) reads this catalogue through --catalogue; optionally check releases.json for a data-20261117* release row, but q0743's pre- and post-restore coverage checks are the real guard (a missing 11-17 release shows up as a gap, exit 3). gh is installed and authenticated on the host; the repo catalogue in docs/research_lab/data_catalogue is NOT touched by this job",
+ "notes": "DRAFT, not in queue/jobs. Re-check F1 (reviews/LT14_CODE_RECHECK_2026-10-30.md). The command is archive_catalogue.py unchanged (docs/research_lab/data_catalogue/README.md; idempotent, writes only under --out; draft releases are skipped). A scratch --out keeps the host checkout's tracked catalogue unmodified. gh is installed and authenticated on the Oracle host. Counts 0 (descriptive; no trials line). Runs ONCE; max_retries 1 covers a transient network failure."
 }

@@ -442,7 +442,7 @@ def test_must4_an_unrelated_registry_change_does_not_refuse_but_a_changed_p_entr
     reg_p.write_text(json.dumps(reg))
     res = lt.census_captures(seal=seal, engine_root=world["engine"], snapshot_root=[world["snaps"]], spec=spec, spec_dir=sd)
     assert res["statuses"] == {"CH262": lt.CENSUS_PASS} and res["registry_sha256_now"] != res["registry_sha256_sealed"]  # printed, not compared
-    # F3: a changed STATUS of P's entry never refuses (printed, sealed and now); a changed added_utc does
+    # F3: a changed STATUS or added_utc of P's entry never refuses (printed, sealed and now)
     ent = next(m for m in reg["models"] if m["model_id"] == t.PINNED_MODEL)
     sealed_status = ent.get("status")
     ent["status"] = "demoted_after_the_seal"
@@ -453,7 +453,7 @@ def test_must4_an_unrelated_registry_change_does_not_refuse_but_a_changed_p_entr
     ent["added_utc"] = "2099-01-01T00:00:00Z"
     reg_p.write_text(json.dumps(reg))
     res = lt.census_captures(seal=seal, engine_root=world["engine"], snapshot_root=[world["snaps"]], spec=spec, spec_dir=sd)
-    assert "registry entry" in res["error"] and "durable" not in res
+    assert res["statuses"] == {"CH262": lt.CENSUS_PASS} and "error" not in res and res["p_registry_added_utc"]["now"] == "2099-01-01T00:00:00Z" != res["p_registry_added_utc"]["sealed"]
 
 
 def test_f3_a_changed_spec_sha_of_p_refuses(world, tmp_path):
@@ -583,7 +583,7 @@ def _cat_row(tag, cid, nbytes=1000):
     return {"release": tag, "path": f"data-dumps/research_lab/snapshots/{cid}/rows_ext.csv.gz", "dir": "snapshots", "capture_id": cid, "capture_time_utc": "2026-11-08T00:31:00Z", "bytes": nbytes, "sha256": "a" * 64}
 
 
-def _guard_world(tmp_path, tags_rows, gap_slots=()):
+def _guard_world(tmp_path, tags_rows, gap_slots=(FIRST,)):
     cat = tmp_path / "cat"
     cat.mkdir()
     for tag, rows in tags_rows.items():
@@ -591,7 +591,14 @@ def _guard_world(tmp_path, tags_rows, gap_slots=()):
     engine, snaps, dest = tmp_path / "eng", tmp_path / "snaps", tmp_path / "dest"
     (engine / "meta").mkdir(parents=True)
     snaps.mkdir()
+    for k in gap_slots:  # a host meta/ with no sidecar anywhere = a gap (re-check D: only gaps make the guard restore)
+        (engine / "meta" / f"{sx.cap_id(k)}.json").write_text(json.dumps({"slot": k, "capture_id": sx.cap_id(k)}))
     return cat, engine, snaps, dest
+
+
+def _fill(snaps, k=FIRST):
+    (snaps / sx.cap_id(k)).mkdir(exist_ok=True)
+    (snaps / sx.cap_id(k) / "rows_ext.csv.gz").write_bytes(b"x")
 
 
 def _guard_argv(cat, engine, snaps, dest, *extra):
@@ -613,13 +620,14 @@ def test_f1_guard_passes_explicit_tags_only_for_matching_releases(tmp_path):
     g = _load_script("lt14_restore_guard")
     cat, engine, snaps, dest = _guard_world(tmp_path, {"data-old": [{**_cat_row("data-old", "o"), "capture_time_utc": "2026-10-20T00:31:00Z"}], "data-new": [_cat_row("data-new", "n")]})
     seen = []
-    # an empty engine: no slot has a meta, so the coverage check has nothing to demand
-    rc = g.main(_guard_argv(cat, engine, snaps, dest), restore_main=lambda a: seen.append(list(a)) or 0, now=NOW_LATE, used_bytes=0)
+    rc = g.main(_guard_argv(cat, engine, snaps, dest), restore_main=lambda a: seen.append(list(a)) or _fill(snaps) or 0, now=NOW_LATE, used_bytes=0)
     assert rc == 0 and len(seen) == 1
     tags = [seen[0][i + 1] for i, x in enumerate(seen[0]) if x == "--tag"]
     assert tags == ["data-new"]
     # an explicit --tag from the caller is left alone
     seen.clear()
+    (snaps / sx.cap_id(FIRST) / "rows_ext.csv.gz").write_bytes(b"")
+    (snaps / sx.cap_id(FIRST) / "rows_ext.csv.gz").rename(snaps / "moved_away")  # reopen the gap
     g.main(_guard_argv(cat, engine, snaps, dest, "--tag", "data-old"), restore_main=lambda a: seen.append(list(a)) or 0, now=NOW_LATE, used_bytes=0)
     assert [seen[0][i + 1] for i, x in enumerate(seen[0]) if x == "--tag"] == ["data-old"]
 
@@ -628,7 +636,7 @@ def test_f1_guard_passes_explicit_tags_only_for_matching_releases(tmp_path):
 def test_f1_post_restore_coverage_gap_exits_3_and_full_coverage_exits_0(tmp_path, capsys):
     g = _load_script("lt14_restore_guard")
     spec = sx.loose_spec(FIRST, LAST)
-    cat, engine, snaps, dest = _guard_world(tmp_path, {"data-new": [_cat_row("data-new", "n")]})
+    cat, engine, snaps, dest = _guard_world(tmp_path, {"data-new": [_cat_row("data-new", "n")]}, gap_slots=())
     for k in (FIRST, FIRST + 1):
         (engine / "meta" / f"{sx.cap_id(k)}.json").write_text(json.dumps({"slot": k, "capture_id": sx.cap_id(k)}))
     assert [x["slot"] for x in g.coverage_gaps(engine, [snaps, dest], spec)["gaps"]] == [FIRST, FIRST + 1]
@@ -659,4 +667,36 @@ def test_f2_guard_refuses_when_used_plus_bytes_plus_reserve_exceed_the_data_cap(
     out = capsys.readouterr().out
     assert rc == 3 and not called and "data cap" in out and "STOP AND ASK THE OWNER" in out
     assert g.cap_check(10 * 2**30, 2**30, 2**30, 55)["fits_cap"] is True and g.cap_check(54 * 2**30, 2**30, 2**30 + 1, 55)["fits_cap"] is False
-    assert g.main(argv, restore_main=lambda a: called.append(a) or 0, now=now, used_bytes=10 * 2**30) == 0 and called
+    assert g.main(argv, restore_main=lambda a: called.append(a) or _fill(snaps) or 0, now=now, used_bytes=10 * 2**30) == 0 and called
+
+
+@pytest.mark.usefixtures("loose_guard_spec")
+def test_d_no_gaps_means_no_restore_no_catalogue_match_and_no_download(tmp_path, capsys):
+    g = _load_script("lt14_restore_guard")
+    cat, engine, snaps, dest = _guard_world(tmp_path, {"data-20261020-x": [{**_cat_row("data-20261020-x", "o"), "capture_time_utc": "2026-10-20T00:31:00Z"}]})  # nothing in the catalogue matches
+    _fill(snaps)  # the host holds the sidecar
+    called = []
+    rc = g.main(_guard_argv(cat, engine, snaps, dest), restore_main=lambda a: called.append(a) or 0, now=NOW_LATE, used_bytes=0)
+    out = capsys.readouterr().out
+    assert rc == 0 and not called and "no restore needed" in out and "STOP AND ASK" not in out and "lt14_restore_measure" not in out
+
+
+@pytest.mark.usefixtures("loose_guard_spec")
+def test_d_gaps_take_the_restore_path_and_a_gap_without_a_catalogue_match_still_stops(tmp_path, capsys):
+    g = _load_script("lt14_restore_guard")
+    cat, engine, snaps, dest = _guard_world(tmp_path, {"data-new": [_cat_row("data-new", "n")]})  # a gap at FIRST
+    called = []
+    assert g.main(_guard_argv(cat, engine, snaps, dest), restore_main=lambda a: called.append(a) or _fill(snaps) or 0, now=NOW_LATE, used_bytes=0) == 0 and len(called) == 1
+    (tmp_path / "b").mkdir()
+    cat2, engine2, snaps2, dest2 = _guard_world(tmp_path / "b", {"data-old": [{**_cat_row("data-old", "o"), "capture_time_utc": "2026-10-20T00:31:00Z"}]})
+    called.clear()
+    assert g.main(_guard_argv(cat2, engine2, snaps2, dest2), restore_main=lambda a: called.append(a) or 0, now=NOW_LATE, used_bytes=0) == 3 and not called
+
+
+def test_a_q0743_passes_the_census_cap_of_50_and_the_guard_measures_with_du():
+    q3 = json.loads((DRAFTS / "q0743_lt14_sidecar_restore.json").read_text())
+    q2 = json.loads((DRAFTS / "q0742_lt14_census.json").read_text())
+    assert q3["argv"][q3["argv"].index("--data-cap-gb") + 1] == "50" == q2["argv"][q2["argv"].index("--data-dumps-cap-gb") + 1]
+    g = _load_script("lt14_restore_guard")
+    assert g.du_bytes.__module__.endswith("live_tests11_base") and not hasattr(g, "tree_bytes")
+    assert g.cap_check(49 * 2**30, 2**30, 2**30, 50)["fits_cap"] is False and g.cap_check(49 * 2**30, 2**30, 2**30, 55)["fits_cap"] is True
