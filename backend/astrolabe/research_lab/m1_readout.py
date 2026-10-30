@@ -27,7 +27,7 @@ def classify_record(m: dict) -> dict:
     y, why = calibration.parse_outcome(m)
     state = "resolved" if y is not None else CLASS_OF_REASON.get(why, f"unavailable_{why}")
     if state in ("resolved", "split_50_50") and not c240._truthy(m.get("closed")):
-        state, why = "pending", "not_closed"  # 8.1: pending is "not closed or not resolved"; an outcome vector on an open record is not final
+        state, why, y = "pending", "not_closed", None  # 8.1: pending is "not closed or not resolved"; an outcome vector on an open record is not final
     return {"state": state, "y": y, "parse_reason": why, "closed": m.get("closed"), "closed_time": m.get("closedTime") or None, "uma": m.get("umaResolutionStatus")}
 
 

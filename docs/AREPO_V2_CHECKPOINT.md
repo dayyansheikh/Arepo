@@ -8,24 +8,29 @@
 **PHASE 4 IN PROGRESS.** See `implementation/phases/PHASE_04_EDGE_EXPERIMENTS.md` and the ledger `research_lab/EXPERIMENT_LEDGER.md`.
 User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=Etc/GMT-1 date`.
 
-## Experiments autopilot live state (2026-10-30 08:16 UTC+1)
-- **Done this session (all in the ledger):** M1-J0 recorded (21-day window kept); **M1 DESIGN TEXT FROZEN** (bfa9960c, sha256
-  `3a4f03b9…492d`); M1 code merged (3f8c3428: J1/J2/J3/analysis, pin refusals, 39 tests, drafts q0750-q0753). M2: re-check
-  NOT_READY -> fixed; J1 code merged (02267b0c); ambiguity rulings REVISE; **q0733 stopped before any output and cancelled**.
-  LT14: code-freeze check PASS_WITH_FIXES -> fixed; diff re-check ACCEPT_WITH_FIXES; rulings A1/A2/A8/A11/log_file_mismatch in
-  the ledger; **q0740 promoted and deployed** (host at a42b7813).
-- **In flight (background agents):** M1 code-freeze check (+ rulings on 15 code ambiguities); `feat/m2-j1-code` rulings
-  W1-W16 / N1-N5 applied to text + code + q0733b draft; `feat/lt14-code` F1-F3 (restore no-op guard, disk cap, registry
-  comparison); creative round 20 (Fable xhigh, `feat/creative-r20`, CH270+).
-- **Next:** M1: fixes from the code check -> q0750 dry run -> registration commit by 11-22T23:59Z (window 11-24..12-14).
-  M2: merge rulings -> promote q0733b -> J0 record -> final verification -> freeze by 11-16. LT14: merge F1-F3 -> diff check ->
-  q0741/q0743/q0744 promote with not_before 11-17. Round 20: record, route.
-- **Queue:** q0085 (CB4) running; q0740 queued; q0116k (MC1 exclusive), q0185b, q0103b, q0147c (CB7, before ~11-03 03:30Z),
-  others. After q0147c: snapshots rule 12 -> 8 days + ledger. Do not edit run_ml_dev.py / hashed ml modules or delete
-  ml_cache/38dc17c9… until q0116k completes.
+## Experiments autopilot live state (2026-10-30 13:51 UTC+1)
+- **Done this session:** q0740b (LT14 pre-check re-issue, as_cap 3000). Round 20 committed + routed. q0147c priority 46; q0085
+  max_retries 8 (resumable 2 h slices). **M1:** three review rounds -> final ACCEPT (`reviews/M1_FIX2_CONFIRM_2026-10-30.md`),
+  code_sha `9cb8aa03…d148`; **q0750c** dry run queued (fresh store `m1_dryruns/q0750c/research_lab/m1_ch263_dryrun`).
+  **M2 DESIGN TEXT FROZEN** (689de040, sha256 `bb7c27e0…cbb0`). **M3 (CH274) drafted** + challenger R1 GO_WITH_CHANGES.
+  **E009/E010 analysis chain q0770-q0777 promoted** (not before 11-03T08:30Z; pins enforced; analyse once).
+  CH276 code check PROMOTE_WITH_FIXES.
+- **In flight (background agents):** M2 J2/J3/analysis + l.19 list on `feat/m2-j1-code`; CH276 MUST 1-7 on `feat/ch276-map`;
+  M3 designer response to R1 on `feat/m3-ch274`. A deploy started ~11:33Z may still be waiting on the collector lock; re-run
+  `scripts/oracle/deploy.sh` after it ends (q0770-q0777 and q0085's retries must reach the host before 11-03).
+- **Next:** M1: when q0750c is done with peak RSS <= 600 and code_sha `9cb8aa03…` in `j1_runs.jsonl`, make the registration
+  commit exactly as `reviews/M1_FIX2_CONFIRM_2026-10-30.md` lists (pins file, section 16 block, q0751/q0751b promoted
+  unchanged) by 11-22T23:59Z. M2: code -> code-freeze check -> dry run -> registration by 11-22. CH276: re-check -> write the
+  semantics reading rule into the ledger BEFORE the run -> promote q0760 (mem 900). M3: re-check -> J1 code -> J0 -> final
+  verification -> freeze by 11-16 (M3's response must be committed before q0760's output is opened). E009/E010 on 11-03:
+  commit results into `docs/research_lab/e009_e010_analysis/`, ledger verdicts, registry.
+- **Queue:** q0085 (CB4, net) + q0163 running; q0147c (46) next on cpu; q0740b, q0750c light; q0116k (MC1, exclusive,
+  resumable) after; q0185b, q0103b (net); LT14 chain from 11-17. **Keep snapshot retention at 12 days until LT14's census
+  (q0742, 11-17) unless disk forces it.** Do not edit run_ml_dev.py / hashed ml modules or delete ml_cache/38dc17c9… until
+  q0116k completes.
 - **Carried over:** CB9 SHOULD 6; CB5 SHOULD 3 before q0111; LT13 q0722 memory dry run (from 11-17); LT11 census q0691 not
   before 11-07T08Z; LT12 census/seal from 11-07; E026 weekly-count phone note ~11-01; two order-dependent tests.
-- **Registered live analyses:** E009/E010 3 Nov, E011 11 Nov, E012-E014 13 Nov, E015 15 Nov, E022 17 Nov, E026 6 Dec.
+- **Registered live analyses:** E009/E010 3 Nov (queued), E011 11 Nov, E012-E014 13 Nov, E015 15 Nov, E022 17 Nov, E026 6 Dec.
 ## Interactive session state (2026-10-23 08:30Z)
 - **Security audit run 1 (2026-10-23):** Cloudflare security-audit skill, quick profile, source-only. 0 confirmed findings and 5 needs-validation leads; see `docs/security/AUDIT_2026-10-23_RUN1.md` (full artefacts in `~/security-audit-skill/astrolabe/run-1/`). Owner notified via ntfy. No fixes made yet. Proposed small PRs:
   1. Refuse to start in production on a default or short AUTH_SECRET.

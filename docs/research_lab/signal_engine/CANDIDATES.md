@@ -289,6 +289,32 @@ no test.** Per the round-4 rule, please withdraw:
 LT9 note: with LT8 dropped, LT9's window may start from 2026-12-30 (LIVE_TESTS_9.md §1.1 (c')). LT9's tokens stay at their
 filed dates until LT9 asks otherwise. Nothing here moves any LT10 date.
 
+## Idea-level families from creative round 20 (2026-11-03; ideas only, no evidence; not candidates yet)
+
+`CREATIVE_HYPOTHESES_2026-11-03.md` (CH270-CH276; section 2 A gives the two engine families' columns, clocks, placebos and
+kill lines; design rules 28-30 in section 0.3; section 3 ranks the round). Status of every note below: **idea, untested,
+evidence_role none**. Same reading rules as rounds 18-19 (one challenger and one K each, `DESIGN_V1.md` section 13; read
+against se1 and the champion, event-clustered, market-deduplicated). CH276 is the counts-only map that prints the round's
+unprobed numbers (code in preparation on `feat/ch276-map`); its field-semantics line comes first.
+- **`coh` (CH270, the adding-up constraint; engine-first, rule 30).** The champion forecasts each member of a neg-risk event
+  alone; `coh` adds each eligible member's deviation of the champion's P(up) / P(down) from its event's mean at the same
+  capture k (`predictions/<capture>/se0_champion_lr_mm.parquet`, join on the as-of event key) and the event's sums of P(up)
+  and P(down) as the incoherence measure. Unit: events with >= 3 eligible members at k (two-member events stay LT12's
+  `mirror` object, excluded until 2027-01-03). **Declared placebo:** the same columns after a shuffled join (members
+  permuted across events within the capture). Needs a DESIGN_V1 section 37 note before the first column (rule 30) and its
+  census line from CH276. The proposal's name `se29_lr_coh` collides with the built `se29_lr_uma`: the builder picks the
+  next free number.
+- **`edge` / `ox` (CH271, the surviving side; engine-first, rule 28).** A one-sided book (`st = 3`) is a firm bound that the
+  engine discards at the label and in the features: (a) a `quotes/` v2 keeping the surviving `bid` or `ask`; (b) a
+  `dir_2h_x` label read from the surviving side, calibrated by |s| decile; (c) `ox`, the signed history of one-sided
+  ("vacuum") states over the market's recent slots. **Declared placebo for (c):** the same columns from the market's own
+  slots shifted back by 84. Needs a new DESIGN_V1 section (quotes v2 and the label) and CH276's surviving-side counts
+  first. Proposed `se30_lgbm_ox` collides with the built `se30_lr_framein`: renumber.
+- **Not engine objects (for the record):** CH273 (the losers' NO), CH274 (the wait, possible M3), CH272 (the impatient
+  seller) are measurements; CH275 (the insurance price) is an LT15 candidate after CH276. No token or embargo is requested
+  by this round; nothing here changes any existing token, limit or date (LT11 `nrslack` / `dollarw` / `bandside` to
+  12-09; LT12 `mirror` / `mixedlad` to 2027-01-03; LT14 `attrlimit_lt14`).
+
 ## Idea-level families from creative round 19 (2026-11-02; ideas only, no evidence; not candidates yet)
 
 `CREATIVE_HYPOTHESES_2026-11-02.md` (CH262-CH269; section 2 D gives the engine families' columns, clocks, placebos and

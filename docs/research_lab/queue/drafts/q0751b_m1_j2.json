@@ -15,7 +15,7 @@
   "network": "none"
  },
  "depends_on": [],
- "not_before": "2026-12-15T06:00:00Z",
+ "not_before": "2026-12-15T07:00:00Z",
  "argv": [
   "scripts/run_m1.py",
   "j2",
@@ -28,5 +28,5 @@
   "data-dumps/research_lab/m1_ch263/manifest.json"
  ],
  "next_action": "commit manifest_sha256 to the ledger and into the pins file (docs/research_lab/seals/M1_pins.json) before the analysis",
- "notes": "DRAFT (not in jobs/). Run J1 to completion first: J2 refuses unless every one of the window's slots is processed or recorded missing_capture and the state-file sha256 chain verifies (void case 11.2(a) otherwise). Write-once. Code: backend/scripts/run_m1.py with astrolabe/research_lab/m1_spec.py, m1_extract.py, m1_readout.py, m1_analysis.py and the imported m1_j0.py (code_sha in the unit lines); pins checked at start (exit 3 with expected and actual values on a mismatch, exit 2 on a declared refusal)."
+ "notes": "DRAFT (not in jobs/). Run J1 to completion first: J2 refuses unless every one of the window's slots is processed or recorded missing_capture and the state-file sha256 chain verifies (void case 11.2(a) otherwise). Write-once. Code: backend/scripts/run_m1.py with astrolabe/research_lab/m1_spec.py, m1_extract.py, m1_readout.py, m1_analysis.py and the imported m1_j0.py (code_sha in the unit lines); pins checked at start (exit 3 with expected and actual values on a mismatch, exit 2 on a declared refusal). not_before moved from 06:00Z to 07:00Z (diff check MUST 2): the last slot's grid is 2026-12-14T22:31Z, it is decided from grid + 6 h; the J1 pass at 06:20Z (even hours, :20) can decide it, the 04:20Z pass is too early, so J2 must start after the 06:20Z pass."
 }
