@@ -1,0 +1,39 @@
+{
+ "id": "q0781_m3_dryrun",
+ "title": "M3 (CH274) host dry run of the J1 extractor and blind recorders (MEASUREMENT_M3_CH274.md 10.2, 20 step 8): the newest 3 days of real captures as a stand-in window, the state (rule ledger, ever-seen set, near-seen set) padded to its end-of-window size, FRESH store research_lab/m3_ch274_dryrun, peak RSS and wall time recorded; a dry run, never the real store, nothing counted",
+ "family": "creative_hypotheses",
+ "priority": 58,
+ "expected_value": "the measured peak RSS (cap 600 MB; planned 300-500 MB) and run time of J1 on the host's real retention WITH a state of the size it will have at the end of the window, and a check that the pins, the state chain and the write-once files hold on real data, before the registration commit (deadline 2026-11-21T23:59Z)",
+ "data": [
+  "host originals ~/arepo/data-dumps/research_lab/snapshots and stream_gamma_rules (read-only)"
+ ],
+ "resources": {
+  "mem_mb": 600,
+  "as_cap_mb": 6000,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_m3.py",
+  "j1",
+  "--store",
+  "../data-dumps/research_lab/m3_dryruns/q0781/research_lab/m3_ch274_dryrun",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--rules-root",
+  "../data-dumps/research_lab/stream_gamma_rules",
+  "--dry-run-last-days",
+  "3",
+  "--data-dumps-cap-gb",
+  "50"
+ ],
+ "timeout_s": 14400,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/m3_dryruns/q0781/research_lab/m3_ch274_dryrun/ (units/, status/, followup/, proposals/, state.json, logs/j1_runs.jsonl with peak_rss_mb, ledger_markets, ledger_records, near_seen, ever_seen)"
+ ],
+ "next_action": "read peak_rss_mb from the last stdout line / logs/j1_runs.jsonl and the wall time; if above 600 do not register on a cap breach: record it and fix the memory (the declared fallback is a sqlite-backed ledger with a running digest in the state header, and an incremental state for the two sets), re-run in a fresh store, then remove nothing (the dry-run store is not canonical and never read by the analysis)",
+ "notes": "DRAFT (not in jobs/). Same shape as q0750c (M1) and q0754 (M2). The store name m3_ch274_dryrun under a directory named research_lab is required by the runner (it refuses the real store with --dry-run-last-days). The dry run derives a window of the last 3 days from the newest capture (spec_sha is the sha256 of the dry spec's own JSON, differing from the real one by construction), keeps the real pins of the eight modules and the lexicon (exit 3 on a mismatch) and simulates window time with now = end + 7 h so every slot is decidable. Pad (m3_spec.DRYRUN_LEDGER_PAD, DRYRUN_SET_PAD; assumptions, over-stated on purpose): the rule ledger 800,000 records over 250,000 markets (M2's planning), the ever-seen set 600,000 and the near-seen set 150,000 synthetic negative ids; the pad is refused outside a dry-run spec and touches no real market (test_state_pad_is_refused_outside_a_dry_run_and_is_inert). The padded state is written at every capture, so the state chain is exercised at full size. Both blind recorders are on, so the follow-up and proposals/ files are exercised too. Serial run of the M1 + M2 + M3 passes against the 2 h slot is a separate host measurement (20 step 8) and is not this job. Promote only after the code note's reading list is ruled and the commit is merged. Do not run beside a multi-GB job (memory rule)."
+}
