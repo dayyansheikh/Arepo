@@ -5692,3 +5692,20 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   nothing else changed. Not promoted: q0151, q0152, q0156; q0153-q0155 only if X1 advances. Results carry the label
   "pre-union lower bound" for the cumulative count (accepted by the diff check). Commit the Stage-1 seal copies after each
   screen.
+
+## M1 / M2: the event member count reads earlier units' rows (M3 MUST 1's defect class), 2026-10-30 18:05Z (experiments autopilot; nothing counted)
+- `reviews/M1_M2_SIBLING_COUNT_CHECK_2026-10-30.md` (`science-reviewer`, probe on M1): both count an event's open binary
+  members at the new unit's k from every row, including earlier units' rows at that k.
+- **M1 (registered): AFFECTED_BUT_PERMITTED_BY_TEXT.** M1's 3.3 and S3 define the count on every market's row at the new
+  unit's own k; 9.2 / principle 3 restrict reads "for a unit"; M1 has no sealed follow-up data that this could leak. Reading
+  11.2 as "after any unit's k" cannot be applied consistently (J1 must read captures after the first unit's k to find later
+  units). **No code change, no re-registration.** Before 11-24 (no window data exists; not outcome-informed): an
+  implementation-reading note plus a test that an earlier unit's line is unchanged by later captures, confirmed by a
+  `science-reviewer`. The M1 code_sha stays `9cb8aa03…`.
+- **M2 (not registered): AFFECTED_AND_FORBIDDEN.** l.439 "no follow-up state after any unit's k"; an earlier unit's later
+  `closed` / missing row is the sealed follow-up defining competing event C (7.3), so a later unit's S8 cell would leak it
+  into an unsealed unit file. Also `reoverdue_seen` / `seen_without_k_minus_1_row` counts iterate over earlier units.
+  **q0754 cancelled on the host** (queued, never started). Fix: M3's option (a) (non-unit rows plus earlier units from
+  state), exclude unit ids from those status counts, an appended amendment to the frozen text (3.3, 3.4, S8; precedent M1
+  section 18 / LT13 amendment 13), a same-event test, disclosure that M2-J0 ran the old path (it feeds only rules (a), (e);
+  no number changes). Then review, diff check, new code_sha, q0754b.
