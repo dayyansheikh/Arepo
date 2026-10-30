@@ -649,7 +649,8 @@ def _lf(tmp_path, fake, **kw):
         tmp_path, "lad", fake, start=datetime(2024, 1, 1, tzinfo=UTC), end=datetime(2024, 1, 15, tzinfo=UTC),
         exclude_runs=["old"], ifh2_ladder_file=_ifh2_file(tmp_path, [
             {"ladder_id": "9:x", "event_id": "9", "rungs": [{"market_id": "90"}]}]),
-        key=KEY, now=1_730_000_000.0, sleep=lambda s: None, live_check=None, **kw)
+        key=KEY, now=1_730_000_000.0, sleep=lambda s: None, live_check=None,
+        **{"wall_clock": lambda: 1_730_000_000.0, **kw})  # pinned: real time is past T_seal
 
 
 def test_ladders_fetch_resume_guards_and_completion(tmp_path):
@@ -688,7 +689,8 @@ def test_ladders_missing_ifh2_file_fails_loudly_not_disk_budget(tmp_path):
         h5_ladders.ladders_fetch(
             tmp_path, "lad", fake, start=datetime(2024, 1, 1, tzinfo=UTC), end=datetime(2024, 1, 15, tzinfo=UTC),
             exclude_runs=["old"], ifh2_ladder_file=tmp_path / "nope" / "ladders.jsonl.gz",
-            key=KEY, now=1_730_000_000.0, sleep=lambda s: None, live_check=None)
+            key=KEY, now=1_730_000_000.0, sleep=lambda s: None, live_check=None,
+            wall_clock=lambda: 1_730_000_000.0)
 
 
 def test_ladders_missing_excluded_run_sample_fails_loudly(tmp_path):
