@@ -25,3 +25,11 @@ prints `9cb8aa03b0ddde9c4fc462b4ed6bb70ef93234317ac5a1cd8d2cb27be061d148`). Line
 `backend/tests/test_m1_code.py::test_sibling_earlier_unit_line_is_write_once_and_later_member_count_reads_its_row_at_k2` (parametrised: A closed, A's row removed, A's
 `end_date` moved after k1). It asserts A's unit line is byte-identical with and without the alteration, and documents that B's member count at k2 reflects A's row at k2
 (closed or removed gives `1` and `standalone`; unaltered or `end_date` moved gives `2`). The test file is not pinned; no non-test file changed.
+
+## Addendum (2026-10-30, after `reviews/M1_SIBLING_READING_CONFIRM_2026-10-30.md`, CONFIRMED)
+- **"Open" in the member count uses the row fields only.** The count at `m1_extract.py:313` checks `binary`, `closed` and
+  `active` on the main row; `accepting_orders` (E4's extra condition for unit eligibility, design l.129) lives in the
+  sidecar, which J1 reads for candidates only. So a sibling with `accepting_orders` false but open on the row fields is
+  counted as an open binary member in the event member count, S3 and S8. The design's "open binary member count at k"
+  (l.161) does not say whether E4's definition applies; this is an implementation reading, disclosed here before any
+  window data exists (window from 2026-11-24). No code change; M1 code_sha unchanged `9cb8aa03…d148`.

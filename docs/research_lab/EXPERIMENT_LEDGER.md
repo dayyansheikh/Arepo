@@ -5709,3 +5709,9 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   state), exclude unit ids from those status counts, an appended amendment to the frozen text (3.3, 3.4, S8; precedent M1
   section 18 / LT13 amendment 13), a same-event test, disclosure that M2-J0 ran the old path (it feeds only rules (a), (e);
   no number changes). Then review, diff check, new code_sha, q0754b.
+
+## M1 sibling member-count reading CONFIRMED, 2026-10-30 18:04Z (experiments autopilot; M1 stays as registered)
+- `reviews/M1_SIBLING_READING_CONFIRM_2026-10-30.md`: **CONFIRMED**, a reading of 3.3 / S3 / 9.2, no void risk; no pinned
+  file changed since f939c0b5; code_sha `9cb8aa03…d148`; 64 M1 tests incl. the new write-once sibling test (c7d1532e).
+  No other per-unit field reads another unit's row. One further reading disclosed in the note's addendum (the count's
+  "open" uses row fields only, not the sidecar's `accepting_orders`), before any window data.
