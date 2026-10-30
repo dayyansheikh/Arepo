@@ -1089,7 +1089,7 @@
   {
    "id": "CB9",
    "title": "Trade direction, hourly-anchored dailies, flow-skewed maker",
-   "plain": "Designed: whether trade direction labels are reliable and a few maker ideas. One part (hourly-anchored equity dailies, P) is not testable: every candidate market was already used by an earlier test, so the declared no-reuse rule removes them all (an independent review confirmed the rule was applied as written). It is counted as not testable, not as a null. The other parts continue; their second data step (q0185b) is queued after a reviewed fix to a disk-size limit. No outcome read.",
+   "plain": "Trade direction labels and a few maker ideas. Part P (equity dailies) is not testable: every candidate was already used by an earlier test, so the no-reuse rule removes them all (independently confirmed). Counted as not testable, not a null. The other parts continue; their second data step is queued after a reviewed fix to a disk-size limit. No outcome read.",
    "batch": "CB9",
    "family": "microstructure",
    "stage": "designed",
@@ -1738,7 +1738,7 @@
   {
    "id": "LT13",
    "title": "Live tests 13: the listing batch (planned)",
-   "plain": "One planned live test from ideas round 18: when the venue lists a batch of new markets at once, does a spread move in the batch's other markets predict the spread of each one? Design frozen (30 Oct) after a challenger review, a full re-check and a final check. The counting-check code is written and passed an independent check. That check found a flaw in the frozen text that would have made the test fail by construction (two controls that always add up to a third); a small reviewed amendment removed the redundant control, changing no threshold or result definition. A second idea was withdrawn before counting because the venue removed most fees on 20 Oct. It may still fail its counting check.",
+   "plain": "Planned live test from round 18: when a batch of markets is listed together, does a spread move in the batch's other markets predict each one's spread? Design frozen 30 Oct after three reviews. The code check found a flaw in the frozen text (three controls that always add up), fixed by a small reviewed amendment that changes no threshold. The fee idea was withdrawn before counting. It may still fail its counting check.",
    "batch": "LT13",
    "family": "mixed",
    "stage": "designed",
