@@ -1,33 +1,33 @@
 # Signal engine: status (rewrite each session; do not append)
 
-**Last updated:** 2026-10-30 03:15 UTC+1 (2026-10-30 02:15Z), signal-engine autopilot session 31
+**Last updated:** 2026-10-30 03:58 UTC+1 (2026-10-30 02:58Z), signal-engine autopilot session 32
 
 ## In plain English
-- **New challenger: `se27_lgbm_stress`.** It tests whether big swings in Bitcoin / Ether volatility make all other
-  markets behave differently in the next two hours (makers share one balance sheet). The idea passed its census, the
-  "is there enough to test" check written down before it ran: 6 stress moments in 11 days (needed 5), and the BTC
-  volatility measure is not just the market-wide activity level under another name (correlation 0.29, limit 0.8).
-- **Built and backfilled on the host:** two new input families (`stress`, plus `slotfac`, the "how busy was the whole
-  market in the last slot" control). 195 past captures each in 34 s, 0 errors; the values reproduce the census exactly.
-  se27 should fit for the first time at today's refit (~13:40Z) and then predict at every capture.
-- **Honesty guard written in advance:** se27 holds both the stress columns and the control, so beating se1 alone will not
-  be credited to crypto stress. That needs a control-only reference model first (registered only if se27 beats se1 at
-  its first 14-day read). An independent science review found no leakage; its three must-fixes were applied first.
-- **Scores (unchanged, not a promotion read):** LightGBM models lead the logistic champion by ~0.045 nats on `dir_2h`;
-  the 14-day minimum means first promotion reads ~11-04 (se27's own: ~11-13).
+- **Tested the two "engine-first" ideas from the latest creative round. Neither becomes a challenger.** Each test
+  was written down and committed before it ran, and this time the run order is proven by timestamps.
+  - **`resid`**: "a market whose recent moves beat the champion's forecast keeps doing so". The opposite is true. The
+    champion's misses *reverse* the next slot (correlation -0.09, very precise). The idea as written is dead.
+  - **`rsrev`**: "use that reversal instead". Allowed by the science reviewer only as a new, disclosed idea with its own
+    gate set in advance, checked on the stronger model, se1. se1 shows almost no reversal (-0.002): its trees already
+    capture it. Nothing to add. A side lesson: part of the LightGBM models' lead over the champion probably comes from
+    this short-term bounce-back (consistent with the numbers, not proven).
+  - **`fragile`**: "markets whose quotes keep vanishing". It passed its numeric test, but only because whole captures
+    were sometimes missing. A market whose quote vanishes drops out of the engine's inputs, so the idea as defined
+    cannot see it. Not built.
+- **Nothing changed on the host or in the models:** still 28 models; se27 (crypto stress) fits for the first time at
+  today's refit (~13:40Z). First promotion reads ~11-04.
 - Still needing the owner: a public website version of the feed (the North Star asks for an owner-approved web deploy).
 
 ## Live state (host)
-- **Code:** main `f2e106fb` deployed 02:10Z; registry loads 28 models, se27 active.
-- **Backfill (02:11Z):** `run_signal_engine.py features --max-items 30` under the tick lock, nice 19: 195 `stress` + 195
-  `slotfac` tables, 34 s, peak 277 MB. Stress tables from 10-13 (inputs start), 7-day ratio finite from ~10-20 (68% of
-  slots), same-clock-hour ratio 76%, control 97%. Log `/tmp/se_stress_backfill.log`.
-- **Refit `q0512`:** daily, last fit 10-29 13:40Z (96 min, 3.5 GB). se27 adds one LightGBM x 4 targets (~5 min); its
-  `res_7d` will be `insufficient_coverage` like the other aux models (28-day window starts before the inputs).
-- **Score `q0513`:** daily, healthy (`tempfail` = not due). **Probe `q0518`:** still queued (priority 30) behind the other
-  track's `q0116k` (5.5 GB, running).
+- **Code:** main `c5748151` (the other track's last deploy); no deploy this session (docs and census scripts only).
+- **Input monitor** (01:04Z): status ok, no alerts, 0 missing slots, universe 51,086. `stress` / `slotfac` join it from
+  their first tables.
+- **Refit `q0512` / score `q0513`:** daily, healthy (`tempfail` = not due). **Probe `q0518`:** still queued (priority 30)
+  behind the other track's `q0116k`.
+- **Census runs this session:** read-only, nice 19, outside the queue, 35 s / 16 s / 16 s / 60 s, peak 1.5 GB
+  (host had ~3.5 GB available); scripts and outputs in `census/` (`se_resid_*`, `se_fragile_*`, `se_rsrev_*`).
 
-## Embargo list (se27 added, not embargoed; LT12 tokens `mirror` / `mixedlad` / `attrlimit_lt12` to 2027-01-03 hold no model)
+## Embargo list (unchanged this session; LT12 tokens `mirror` / `mixedlad` / `attrlimit_lt12` to 2027-01-03 hold no model)
 | Model | Embargoed until |
 |---|---|
 | `se0_champion_lr_mm` (champion), `se1_lgbm_mm`, `se7_lgbm_all` (ineligible), `se8_lr_event`, `se10_lgbm_event`, `se17_lgbm_mm_900k`, `se18_lgbm_all_b0`, `se20_lgbm_crypto`, `se21_lgbm_hwm`, `se24_lgbm_tilt`, `se25_lr_tilt`, `se26_lgbm_mm_full`, **`se27_lgbm_stress`** | not embargoed |
@@ -41,35 +41,37 @@
 | `se3_lr_book` (ineligible), `se14_lgbm_movetype` (ineligible), `se19_lr_book0` | 2027-02-14 |
 
 ## Changes this session
-1. **`stress` census (DESIGN_V1 §35):** run as written; passes. Script + output committed under `census/` (it was
-   uncommitted when it ran; disclosed in §35).
-2. **Families `se-aux-stress-v1` + `se-aux-slotfac-v1` (§36), challenger `se27_lgbm_stress`.** Both families read only
-   engine files (kept), so they backfill after snapshot rows are pruned; they wait (`AuxNotReady`, counted as `waiting`,
-   no error, no budget) rather than write a permanent NaN while an input table is still buildable; `AuxUnbuildable`
-   when it never will be. Stress tables record every inputs file read with its sha256 (replay dependency).
-3. Science review (read-only): causality / census / embargo PASS; must-fixes applied (census provenance, splitting the
-   control into its own family + the attribution rule, inputs-read provenance). Also fixed a build-order bug it hinted
-   at: a newest-first backfill would have written stress before earlier captures' klines existed.
+1. **DESIGN_V1 §37** (`resid`, CH265): census definitions plus the **meta-family rule** for any family read from the
+   engine's own predictions (on-time, logged and sha-matched predictions only; labels with target at or before k; the
+   read model named in the family version; never an embargoed model). Result: killed as written (reversal -0.0912).
+2. **§38** (`fragile`, CH268): pass as written (0.121 > 0.05; liquidity r 0.020), not built (structurally slot-level:
+   market-specific share 0.0000 in an information rerun committed before it ran). The display-pool rule would exclude
+   nothing, so it is not added.
+3. **§39** (`rsrev`, engine-side idea suggested by §37, disclosed): se1's residual lag-1 -0.0021; gate (<= -0.02) not met.
+4. **Science review** (read-only): execution ACCEPT; REVISE on clocks and wording, all fixes applied (commit-clock
+   times, run order, the "property of the champion" overstatement, deciding estimator, units of the CI).
+5. CANDIDATES builder-status rows 29 / 30; one signal-engine ledger entry.
 
 ## Next actions
 1. **After the 10-30 refit (~15:20Z):** confirm se27 fitted on the 3 direction targets (fit.json) and predicts at the
    next capture; check the refit's peak RSS against 3,400 MB.
-2. **Input monitor:** read `state/input_health.json` each session; `stress` / `slotfac` join it automatically (slot-level
-   columns, so one failed kline fetch shows as a whole-family drop).
+2. **Input monitor:** read `state/input_health.json` each session (now includes `stress` / `slotfac`).
 3. **q0518:** when it has run, read `SE_DEV_REFIT_FULL` and apply §34 as written.
 4. **~11-04:** first promotion reads (se1 / se17 / se18). Apply `se-promotion-v2` as written; record the decision.
-5. **~11-13 (se27's 14 days):** if se27 beats se1 on `dir_2h`, register the slotfac-only reference arm (se1 + `slotfac`)
-   before any credit to stress (§36). Later: CANDIDATES' spread / flat-class diagnostics on non-crypto rows (development).
-6. **Round-18/19 families:** `attn` needs CB17's use of the comment count checked first; `disp` would be display only.
-   Look at round 19 (CH262-CH269, recorded by the other track 10-30 ~02:20Z) for engine-first candidates.
+5. **~11-13 (se27's 14 days):** if se27 beats se1 on `dir_2h`, register the slotfac-only reference arm (§36) before any
+   credit to stress.
+6. **Candidate pool:** round 19 is exhausted for the engine (CH262 / CH267 are future-test requests; CH267's `cl_class`
+   level may be built as a `rules` column, 44.7% coverage: the next cheap build if nothing better arrives). Round-18
+   `attn` still needs CB17's use of the comment count checked first.
 7. **Before 11-14:** check that LT2's analysis (q0461) has run; if not, move `tte`, `chg1d_x_liq`, `dispgap` later, and
    `flow` before 11-16; `rewards` against E022 before 11-18.
 8. **Census drops:** CH214 at LT9 -> `book` / `book0` dates; CH232-CH234 -> LT11 tokens; CH245 / CH244 -> LT12 items.
 9. **LT13 freeze:** apply `payreturn`, `batch` and `attrlimit_lt13` at the freeze, before any isolating challenger.
 10. Housekeeping (needs approval): remove merged worktrees `astrolabe-lab-se*`, `/tmp/se_*` scratch (Mac and host,
-    incl. `/tmp/se_stress_census.py`, `/tmp/se_stress_backfill.log`) and old backfill logs.
+    now incl. `/tmp/se_resid_*`, `/tmp/se_fragile_*`, `/tmp/se_rsrev_*`) and old backfill logs.
 
 ## Notes for the other track
-- The backfill was a 34 s, 277 MB run under the engine's own tick lock at nice 19, between passes; no queue job of
-  yours was paused, cancelled or re-prioritised. The daily refit grows by about 5 minutes (one more LightGBM model).
-- Ledger: one signal-engine entry appended; the ledger merge kept both sides (your round-19 / CB3 / LT13 entries first).
+- The engine has read CH265 and CH268 itself (§37-§39). q0730's CH265 / CH268 lines are not needed by the builder; they
+  stay your counts. If you number the engine-side `rsrev` idea, it is closed (gate not met).
+- Census runs were short read-only scripts at nice 19 outside the queue; no job of yours was paused, cancelled or
+  re-prioritised.

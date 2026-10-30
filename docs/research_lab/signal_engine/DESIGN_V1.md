@@ -1160,3 +1160,124 @@ PASS; three must-fixes (census provenance, control attribution, replay dependenc
   2026-11-18 a reward-status interaction is allowed (`rewards`); not built.
 - **Diagnostics CANDIDATES lists (spread change, flat class on non-crypto rows)** are not computed here; they would be a
   separate counts read after se27 has scored days, labelled development.
+
+## 37. `resid` (CH265) census and the meta-family rule: definitions fixed before the run (committed 2026-10-30 02:48:51Z; no scoring change)
+
+**Meta-family rule (CH265's "rule 27"; applies to every family built from the engine's own outputs).** A column may be
+built from the engine's write-once predictions only if, for origin capture k: (a) every prediction it reads belongs to a
+capture before k and passed the scorer's own validity tests (logged, rows and `features_sha256` matching the features
+file, written before its target slot: the `on_time` rule of `scoring.score_prospective`); (b) every label it reads has
+its target slot at or before k (`labels.direction_labels`, the label of origin k - j at horizon h needs h/2 <= j), so
+the label's quotes file is the one the features of k are built from or an earlier one; (c) the model whose predictions
+are read is named in the family's version, and a refit of that model changes the column's meaning, so a promotion of
+a new champion does **not** silently re-point the family (a new aux version would be needed); (d) predictions of
+embargoed models are never read (their scores would leak through the column). Only `se0_champion_lr_mm` is read here.
+- **What the census decides.** Only CH265's two census kills (CANDIDATES round 19): the champion's 2 h residual's lag-1
+  autocorrelation under 0.02 (CH265 says "within market"; the pooled Pearson over within-market pairs decides), or |Pearson(`rs_2h_m6`, `mo_chg_1d`)| > 0.8. The 28-day "no gain over se1"
+  kill belongs to the challenger's prospective score, not to the census. No K, no column, no table, no model.
+- **This census reads outcomes.** The residual needs realised 2 h labels, so the lag-1 autocorrelation is a development
+  look at the family's core relation on the champion's prospective predictions of 10-21 .. 10-30. The census declares
+  that; the challenger's evidence is only its own prospective score after registration.
+- **Inputs.** Engine files only: `index`, `features/<cid>.parquet` (`market_id`, `end_ts`, `ms_mid`, `mo_chg_1d`,
+  `mo_d2h`), `predictions/<cid>/se0_champion_lr_mm.parquet` (`dir_2h_dn`, `dir_2h_up`), the `predictions` log and
+  `quotes/`. Script `census/se_resid_census_2026-10-30.py` (committed with this section, before the run).
+- **Residual.** For origin k, a row that is `dir_2h`-eligible (`labels.elig_mask`), labelled (state 0) and whose champion
+  prediction is valid and on time: r = (y - 1) - (P(up) - P(down)), y the 3-class label, probabilities dequantised as the
+  scorer does (`predict.dequantise_dir`). Departure from CH265, fixed here: (y - 1) is the engine's 3-class label (flat
+  within DELTA), not CH265's `sign(dmid)`.
+- **Lag-1 autocorrelation.** Pooled Pearson over every (market, k - 1, k) pair of consecutive slots with both residuals.
+  Kill if < 0.02 (as written, one-sided: CH265's hypothesis is continuation). A value <= -0.02 is printed as "killed as
+  written (reversal)": a reversal family would be a new idea with its own review, not this family re-read. Information
+  only: a market-clustered bootstrap 95% CI (B = 400, seed 265) and the market-demeaned Pearson.
+- **`rs_2h_m6` at origin k.** The mean of the residuals of k - 1 .. k - 6 that exist (each known at k by rule (b)), NaN
+  with fewer than 4. Correlation with `mo_chg_1d` at k: pooled Pearson over `dir_2h`-eligible rows with both finite.
+  Kill if |.| > 0.8. Information only: Pearson(`rs_2h_l1`, `mo_d2h`) and the coverage of eligible rows.
+- **Reading.** Both lines pass -> a builder section (columns of CH265, the shuffled placebo, the isolate challengers)
+  follows after an independent science review. Either kill -> `resid` is not built; the result is recorded here and in
+  CANDIDATES' builder status. The census is not re-run with other thresholds or windows.
+- **Result (output written 02:49:27Z; development look, not a score).** Script committed in `a3e6adf1` at 02:48:51Z
+  (sha256 `e2902cc2...0324`); the host copy `/tmp/se_resid_census.py` has the same hash and mtime 02:48:52Z, the output
+  02:49:27Z, so the run started after the commit (file times, not a log). Output `census/se_resid_census_2026-10-30.out`.
+  Slots 134 .. 348; the 104 skipped captures all precede the champion's first prediction (slot 246, 10-21 12:31Z; none
+  missing after it); 1 capture (the newest) had no labelled rows yet.
+  **Lag-1 autocorrelation (pooled, deciding) -0.0912** over 4,639,835 pairs in 182,994 markets (the units are the markets,
+  not independent pairs; market-clustered 95% CI -0.0934 .. -0.0890, not clustered by event or day;
+  market-demeaned -0.1238, information, biased negative by the short per-market series). **Pearson(`rs_2h_m6`,
+  `mo_chg_1d`) 0.2178** (passes); Pearson(`rs_2h_l1`, `mo_d2h`) 0.5997 (information); coverage 0.831. Peak RSS 1,083 MB
+  (above CH265's "< 300 MB" planning figure; inside the host budget). **Reading as written: killed (reversal).** The
+  champion's 2 h residuals revert rather than continue, so CH265's continuation family is not built. The reversal is
+  information only and its cause is untested: it may reflect the champion's linear `mo_d2h` term and/or reversal from
+  the shared mid endpoint (label k - 1 and label k both use the mid at k: quote bounce gives a negative lag-1 correlation
+  by construction), which se1's trees on `mo_d2h` and `ms_spread` may already take. Any reversal family is a new idea with its own definition, judged against se1 and reviewed
+  before any census; this result is not re-read with another sign or threshold.
+
+## 38. `fragile` (CH268) census: definitions fixed before the run (committed 2026-10-30 02:51:10Z; no scoring change)
+
+**What it decides.** Only CH268's two census kills (CANDIDATES round 19): `fr_unavail_12` > 0 on fewer than 5% of the
+census rows (fragility is rare: hygiene use only, no family), or |Pearson(`fr_unavail_12`, `ms_log_liq`)| > 0.8
+(illiquidity under another name). The display-pool rule and the input-monitor line are CH268's first use whatever the
+census says; they change no score and are a separate step. No K, no column, no table, no model.
+- **No label value is read.** Only the label *state* (labelled or one of the `unavailable_*` states of
+  `labels.direction_labels`) of each origin's 2 h label; the direction itself is never used.
+- **`fr_unavail_12` at origin k.** Over the last 12 indexed captures before k that have a features file: the share of the
+  market's 2 h labels whose state is not `labelled`. Each of those origins' targets is at or before k (rule (b) of
+  section 37). A census row is a `dir_2h`-eligible row at k whose market had a `dir_2h`-eligible row at all 12 origins
+  (CH268's population: ">= 12 prior label states"); other rows are not census rows (their share is printed).
+- **Readings.** Share of census rows with `fr_unavail_12` > 0 (kill if < 0.05); pooled Pearson with `ms_log_liq` at k
+  over rows with a finite liquidity (kill if |.| > 0.8). Information: the state breakdown, `fr_unavail_12` quantiles and
+  the share above 0.25 (the display-pool line). Script `census/se_fragile_census_2026-10-30.py`, committed with this
+  section before the run. The census stops at the first origin with a pending 2 h label (the newest capture).
+- **Reading.** Both pass -> a builder section may follow (columns of CH268; challenger scored on the flat class against
+  se1) after an independent review. Otherwise `fragile` stays hygiene only. Not re-run with other thresholds.
+- **Result (output written 02:51:26Z; label states only).** Committed in `8cb5ba84` at 02:51:10Z (sha256 `55a77c11...7491`;
+  host copy same hash, mtime 02:51:10.9Z, after the commit); output `census/se_fragile_census_2026-10-30.out`. 207
+  captures; 5,763,429 census rows (0.601 of eligible rows after 12 origins). **Share with `fr_unavail_12` > 0: 0.1214;
+  Pearson with `ms_log_liq` 0.0199. Reading as written: pass.**
+- **Why it is not built anyway (a pass permits a builder step, it does not require one).** The origins' unavailable
+  states are 95,784 `missing_capture` (a whole capture absent: the same for every market of the slot), 35,051
+  `one_sided` and 5,198 `absent` of 10.08 M; p90 = p99 = 1/12. An information-only rerun, committed before it ran
+  (`census/se_fragile_info_market_only_2026-10-30.{py,out}`: identical except that `missing_capture` counts as
+  available; committed 02:51:48Z, host copy 02:51:49Z, output 02:52:05Z) gives a share of **0.0000**: in the census population no market has a market-specific unavailable label.
+  That is structural: a market whose next quote is one-sided or absent has no features row at that slot, so it fails
+  "eligible at all 12 origins" and is never a census row. The declared column therefore only encodes "a capture was
+  missing in the last 24 h", a slot-level value of the kind `regime` overfit (section 19). **`fragile` is not built;**
+  the display-pool rule (> 0.25) would exclude no row, so it is not added either. A market-level version would need a
+  different population (e.g. every market quoted at k, with the history read from `quotes/` status whether or not a
+  features row exists): a new definition with its own census, not this one re-read. Low priority; not scheduled.
+- **Science review (2026-10-30, read-only, `science-reviewer`): REVISE, applied above.** Execution and reading ACCEPT (on-time,
+  causality, slot pairing and horizon match the scorer). MUST fixes applied: commit-clock times with the run order shown
+  by file times; the "property of the champion" overstatement; the deciding estimator. SHOULD fixes applied: the (y - 1)
+  departure, the split of the skipped captures, the units of the CI.
+- **A reversal family (`rsrev`) is allowed only as a new, data-suggested idea** (the ruling's conditions): a new CH entry
+  disclosing that this census suggested it; the champion's -0.091 can never be its gate; a se1-residual probe may gate it
+  only if committed before it runs with its sign and threshold fixed, and with the host run time after the commit; the
+  residuals read are se1's (named with its fit lineage, rule (c)); every registered arm, including the LR isolate and any
+  placebo (promotion-ineligible from registration), raises K; "beats se1" must be declared as its own condition with a
+  clustered interval, since `se-promotion-v2` compares against the champion; and any gain may be predicting Gamma-mid
+  noise, so the CH262 cost yardstick precedes any economic reading. Not started this session.
+
+## 39. `rsrev` gate probe: se1's residual reversal (engine-side idea, data-suggested; definitions fixed before the run)
+
+**The idea, and where it came from (disclosed).** Section 37's census, run for CH265's continuation hypothesis, found the
+champion's 2 h residuals reverse (lag-1 -0.091). `rsrev` (engine-side idea; a CH number to be assigned by the experiments
+track) asks whether **se1's** own lagged 2 h residuals, as columns beside se1's families, improve se1's forecast. It was
+suggested by that look, so the champion's -0.091 is not its gate and is no evidence for it; only a prospective score
+after registration would be.
+- **Gate (fixed now).** The pooled Pearson of se1's 2 h residuals at consecutive slots, computed exactly as section 37
+  (same script with the model set to `se1_lgbm_mm`: on-time, logged, sha-matched predictions; labels with target <= k;
+  slot-keyed pairs). **Gate met iff <= -0.02.** Anything else: `rsrev` is not built (a positive value is printed and
+  not re-read as a continuation family). Script `census/se_rsrev_se1_probe_2026-10-30.py`, committed with this section;
+  the script prints its own start time, which must follow the commit time.
+- **Information only (cannot change the gate):** the market-clustered CI and the market-demeaned value as in section
+  37; the partial Pearson given `mo_d2h` at k; the pooled Pearson by `ms_spread` tercile at k (cuts from the pairs).
+- **If the gate is met,** a builder section (columns: se1's lagged residuals with rule (c) naming se1 and its fit
+  lineage; the within-capture shuffled-prediction placebo; arms and K; a declared "beats se1" condition with a clustered
+  interval beside `se-promotion-v2`) follows only after an independent review. Nothing is registered by this section.
+- **Result (development look).** Committed in `7a97b797` at 02:54:20Z (sha256 `3c81d98c...c415`; host copy same hash);
+  the script's own first line `run start 2026-10-30T02:54:22Z`, so the run followed the commit (a log line this time).
+  Output `census/se_rsrev_se1_probe_2026-10-30.out`. Same 4,639,835 pairs in 182,994 markets as section 37. **se1's
+  lag-1 residual autocorrelation -0.0021** (market-clustered CI -0.0037 .. -0.0002; market-demeaned -0.0327, biased
+  negative as in section 37); partial given `mo_d2h` -0.0064; by spread tercile +0.0004 / -0.0036 / -0.0024.
+  **Gate not met: `rsrev` is not built.** Reading: se1's trees already take almost all of the reversal the logistic
+  champion leaves (-0.091 -> -0.002 on the same pairs). That is consistent with, not proof of, part of se1's lead over
+  the champion on `dir_2h` coming from the nonlinear 2 h reversal. Information only; nothing is registered or re-read.

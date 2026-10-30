@@ -405,7 +405,7 @@ equals its source (the test checks). Do not edit the LT5 spec while q0561/q0562 
 **Waiting:**
 - MC1: after the resize (item 4).
 - CB4 q0085 not before ~10-24T12Z. CB5 q0103b on or after 10-27, then q0106. CB3 freeze after q0064 (after 10-25).
-- Signal engine: live state in `signal_engine/STATUS.md` (10-30 ~02:15Z session 31: the `stress` (CH258) census passed as written (6 stress slots in 11 days, Pearson 0.294 with the slot factor); families `stress` + `slotfac` built and backfilled on the host (195 captures each, 0 errors); challenger `se27_lgbm_stress` registered (28 models, K + 1, not embargoed), first fit at the 10-30 refit. No se27 gain credited to stress before a slotfac-only arm is read (DESIGN_V1 §36). First promotion reads ~11-04; q0518 probe still queued.)
+- Signal engine: live state in `signal_engine/STATUS.md` (10-30 ~02:58Z session 32: round-19 engine families read, none built: `resid` (CH265) killed at its census (the champion's 2 h residuals reverse, lag-1 -0.091); `fragile` (CH268) passed as written but is structurally slot-level (market-specific share 0); the data-suggested `rsrev` failed its pre-committed gate (se1's residual lag-1 -0.002: its trees already absorb the reversal). DESIGN_V1 §37-§39, science review applied. 28 models unchanged; se27 first fit at the 10-30 refit; first promotion reads ~11-04.)
 
 ## Learned surprise-move detector (2026-10-12 evening)
 `docs/research_lab/SURPRISE_MOVE_DETECTOR.md`. Labels fixed and logged before features (`surprise-labels-v1`,

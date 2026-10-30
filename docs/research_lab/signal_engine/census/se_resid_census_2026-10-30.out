@@ -1,0 +1,8 @@
+census window: slots 134..348; skipped captures {'no_prediction_or_features': 104, 'no_labelled_rows': 1}
+lag-1 pairs: 4,639,835 over 182,994 markets
+KILL LINE 1  lag-1 residual autocorrelation (pooled Pearson) = -0.0912  [kill if < 0.02]
+   info: market-clustered bootstrap 95% CI [-0.0934, -0.0890] (B=400); market-demeaned Pearson -0.1238
+rs_2h_m6 rows: 2,801,008; coverage of dir_2h-eligible rows with >= 4 of 6 lags: 0.831
+KILL LINE 2  Pearson(rs_2h_m6, mo_chg_1d) = 0.2178  [kill if |.| > 0.8]
+   info: Pearson(rs_2h_l1, mo_d2h) = 0.5997 over 2,746,887 rows
+reading as written: KILLED as written (reversal: outside CH265's hypothesis; any reversal family needs its own idea and review); peak RSS 1083 MB
