@@ -8,7 +8,7 @@
 **PHASE 4 IN PROGRESS.** See `implementation/phases/PHASE_04_EDGE_EXPERIMENTS.md` and the ledger `research_lab/EXPERIMENT_LEDGER.md`.
 User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=Etc/GMT-1 date`.
 
-## Experiments autopilot live state (2026-10-30 18:35Z)
+## Experiments autopilot live state (2026-10-30 18:45Z)
 - **Done this session:** **M1 REGISTERED** (f939c0b5, `registration_commit_utc` 2026-10-30T17:17:28Z; J1 cron on host,
   guarded on q0751 `done`); M1 sibling member-count reading note + test (c7d1532e; code_sha unchanged; reviewer
   confirmation running). **CB7 FROZEN** (10722060, `model_specs/cb7_v1.json`, declaration `cf84f910…`; S1 not testable,
@@ -26,9 +26,10 @@ User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=E
   code preflight match). **E011:** registered `surprise_snapshot.py` changed after registration (ed7dea22 logged; afd67c3a
   not) -> ruling PIN_HEAD + retroactive deviation logged; wrapper `run_e011_analysis.py` + drafts q0790-q0792 merged
   (2917cefa). E026 skillset pin verified. LT14 q0740b PASS seal committed.
-- **In flight (agents):** E011 wrapper review (`science-reviewer` -> `reviews/E011_ANALYSIS_WRAPPER_REVIEW_2026-10-30.md`).
-- **Next:** E011: apply review, declare ambiguity rulings in the ledger BEFORE the run, promote q0790-q0792 (not before
-  11-11T13:00Z). M2: when q0754b passes -> registration commit per the conditions file, by 11-22. M3: after q0780 copy rule
+- **E011 one-shot analysis READY:** wrapper review ACCEPT_WITH_FIXES -> readings declared in the ledger before the run ->
+  fixes (supplement step q0793, quiescence, window counts) -> diff check ACCEPT -> **q0790-q0793 promoted** (11-11T13:00Z+).
+- **In flight (agents):** none. A deploy is waiting on the collector lock (`/tmp/deploy3.log`); re-run deploy.sh if it fails.
+- **Next:** confirm the host is at dc288de0 or later (E011 jobs, LT2-4 ops changes). M2: when q0754b passes -> registration commit per the conditions file, by 11-22. M3: after q0780 copy rule
   (a)'s result into 10.1 by hand; q0781 memory; final verification; freeze by 11-16. CB7: Stage-1 seal copies + ledger
   after each screen (from 10-31 06:00Z). Verify q0760 ran (before 11-01T02:45Z). E009/E010 on 11-03.
   **Dated checks:** 11-06 data-dumps (> 45 GiB -> raise guards per 10-28 precedent); ~11-13T06:30Z q0460 `done` (else
