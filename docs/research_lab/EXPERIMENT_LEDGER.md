@@ -5760,3 +5760,11 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   847, 864; explicit refusal for a state without `unit_events`; numbering fixed; three new test variants fail on aa6182ba.
   **M2 code_sha `64b5dee0b1788c040071eafdd2b345c759c26a71a274b461315d650cdf491de2`.** q0754 moved to `drafts/`
   (cancelled); q0754b (fresh store) awaits the diff-only check (running). 229 M1 + M2 + M3 tests.
+
+- **2026-10-30 ~18:15Z signal engine (challenger, DESIGN_V1 §47; development, k = 0, no edge claim):** new learner
+  `ens_pool` (fixed-weight linear pool of stored, same-capture member predictions; no fit, no refit cost) and challenger
+  `se31_ens_pool3` (se1 / se17 / se18, weights 1/3, member spec sha256s pinned; spec sha256 `74544860...dc82`;
+  `added_utc` 2026-10-30T20:00:00Z, first capture 20:31Z). Members were fixed by schedule (the 11-04 read set). The
+  10-day development board had been seen; no outcome probe was run. K rises by 1 at registration. Judged by
+  `se-promotion-v2` against the champion; the read against se17 is information only. Science review ACCEPT_WITH_FIXES;
+  all five fixes applied before the commit.

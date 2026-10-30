@@ -18,6 +18,7 @@ import numpy as np
 import pandas as pd
 
 from . import config as C
+from . import ensemble as E
 from . import labels as L
 from . import learners
 from . import scoring as SC
@@ -35,7 +36,8 @@ def run_walkforward(paths: S.Paths, reg: dict, champion: str, now: float, max_te
     for slot, m in sorted(index.items()):
         by_day.setdefault(S.day_of(S.epoch(m["started_utc"])), []).append((slot, m))
     days = sorted(by_day)
-    models = {k: copy.deepcopy(v) for k, v in SP.active_models(reg).items() if not SP.embargo_of(v, now)}
+    # pools (DESIGN_V1 §47) have no fit to replay; they are scored only prospectively
+    models = {k: copy.deepcopy(v) for k, v in SP.active_models(reg).items() if not SP.embargo_of(v, now) and not E.is_pool(v)}
     if max_rows:
         for s in models.values():
             s["train"]["max_rows"] = min(s["train"]["max_rows"], max_rows)
