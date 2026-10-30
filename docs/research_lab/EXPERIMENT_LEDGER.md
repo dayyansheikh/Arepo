@@ -5114,3 +5114,12 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   likely as not "coarse"; the liquidity contrast cannot resolve the idea's own 2-5 point premium (disclosed).
 - Designer's question 5 also concerns M1: with an unknown fee category and a served rate 0, the docs-rate fee line evaluates to
   0 rather than 0.07; to be checked in M1's final verification. Challenger R1 running.
+
+## M2 challenger R1 GO_WITH_CHANGES; M1 fee-line wording defect noted, 2026-10-30 ~05:16Z (experiments autopilot; nothing counted)
+- `reviews/M2_CHALLENGER_R1_2026-10-30.md` **GO_WITH_CHANGES**: MUST 1 rounded spread / mid before cell edges (float edges
+  misclassify most one-tick spreads); 2 E6 on CH269's empty-form whitelist, other forms a counted class; 3 coverage = a definite
+  answer from the source, floor on `unavailable (fetch)` only, `not_found` an outcome class; 4 `theta_open` removed (post-k
+  selection); 5 fixed 7-day look-back. SHOULD 1-9. Designer Q1: blind follow-up store acceptable (procedural blinding).
+  Revisions delegated on `feat/m2-ch264`.
+- **M1 (to fix at its final verification):** `MEASUREMENT_M1_CH263.md` l. 185-186 and 191 say an unknown fee category gives
+  0.07; `costs.py:93-104` returns the served rate (possibly 0) when a schedule is served. Also define S4 there (M2 SHOULD 1).
