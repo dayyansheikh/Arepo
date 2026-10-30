@@ -5180,3 +5180,18 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   restore step before the one-time seal (about 27 of 120 origins' sidecars would be past 8-day retention). SHOULD 1-7 and
   weak/vacuous tests listed. Code-note correction: the tests hash (not parse) `trials.jsonl`. q0740-q0742 stay drafts until
   a diff re-check accepts the fixes. Fixes delegated on `feat/lt14-code`.
+
+## M1 freeze diff check and DESIGN-TEXT FREEZE, 2026-10-30 ~08:12Z (experiments autopilot; nothing counted)
+- Freeze diff check (`reviews/M1_FREEZE_DIFF_CHECK_2026-10-30.md`) of ea63b75e: MUST 2 span matches the seal, D1-D6
+  faithful, no estimand / weight / cell / threshold / cost line / class rule / date moved; **one fix:** the "full" pin list
+  missed `cb13_label.py` (`cb17_census.is_sports_sidecar` reads its sports lexicon; E5 scope). Applied by the orchestrator at
+  l. 228-229, 443, 630 only (diff checked), plus the status line.
+- **M1 DESIGN TEXT FROZEN:** `MEASUREMENT_M1_CH263.md` at **bfa9960c**, sha256
+  **`3a4f03b917a197cd60b7d6735f2e6c7a47ede6597b029c63a74d4a56c04d492d`**, 640 lines. Role `prospective_measurement` (rule 26),
+  k = 0, not in any Holm family. Window 2026-11-24..12-14 (21 days, J0 rules (a) / (b) not fired); read-out on or after
+  2027-01-15. Pin list: `boundary_map_ch240`, `population_map_ch251`, `census_map_ch269`, `cb17_census`, `cb13_label`
+  (now `2fbf4b91…9380`), `live_tests8_base`, `calibration`, `costs`; values recorded at registration. A coarse read is
+  near-certain (D3) and was declared before any window data.
+- **M2 note:** M2's pin list (MUST 2 of its re-check) has the same `cb13_label` gap; to fix before its freeze.
+- **Next:** M1 code (J1-J3, A) + code-freeze check (incl. the import-graph and pin refusal) + host dry run + registration
+  commit by 2026-11-22T23:59Z.
