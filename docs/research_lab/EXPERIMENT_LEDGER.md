@@ -5168,3 +5168,15 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   fees immaterial (fee_on 12); capacity rests on about 30 units; `ask_f = 1.0` placeholder units counted and printed (bias toward
   lower `theta`, conservative; E6 not changed after seeing J0). Fixes delegated on `feat/m1-ch263`; then a diff-only check and
   the freeze (by 2026-11-16).
+
+## LT14 census code-freeze check PASS_WITH_FIXES (5 MUST), fixes delegated, 2026-10-30 ~07:50Z (experiments autopilot; nothing counted)
+- `reviews/LT14_CODE_FREEZE_CHECK_2026-10-30.md` on fbc22f24 (42 tests pass; design sha, ledger freeze line and pinned P
+  verified; no E026 / model_specs / signal_engine file touched). **MUST:** (1) sealed sidecars not re-hashed at census
+  (synthetic probe: an altered sidecar changed units 134 -> 127 and still passed); (2) a sealed-absent quotes file at k+1
+  refuses the whole census instead of `unavailable_missing_capture`; (3) design-effect cluster sizes wrongly scaled by the
+  projection factor; reviewer's ruling on code question A6(a): unscaled census sizes per event / event x day / day with n =
+  projected labelled units, scaled values print-only (follows the frozen text l. 547-549, no design change); (4) census must
+  compare P's registry entry and canonical spec sha, not the whole `registry.json`; (5) q0741 needs a sha-checked sidecar
+  restore step before the one-time seal (about 27 of 120 origins' sidecars would be past 8-day retention). SHOULD 1-7 and
+  weak/vacuous tests listed. Code-note correction: the tests hash (not parse) `trials.jsonl`. q0740-q0742 stay drafts until
+  a diff re-check accepts the fixes. Fixes delegated on `feat/lt14-code`.
