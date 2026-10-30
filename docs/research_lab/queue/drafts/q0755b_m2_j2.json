@@ -1,0 +1,36 @@
+{
+ "id": "q0755b_m2_j2",
+ "title": "M2 (CH264) J2 window close (MEASUREMENT_M2_CH264.md 9.3): at END_UTC + 6 h write the unit manifest (sha256 of every unit, no_favourite and status file, slot coverage over the 252 slots, missing-capture list); the unit set is closed after it",
+ "family": "creative_hypotheses",
+ "priority": 70,
+ "expected_value": "the manifest sha256 that the ledger records and that the analysis verifies (void 11.7 otherwise)",
+ "data": [
+  "data-dumps/research_lab/m2_ch264/ (units/, nofav/, status/; read-only)"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "as_cap_mb": 3000,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [],
+ "not_before": "2026-12-15T06:30:00Z",
+ "argv": [
+  "scripts/run_m2.py",
+  "j2",
+  "--part",
+  "units",
+  "--store",
+  "../data-dumps/research_lab/m2_ch264",
+  "--pins",
+  "../docs/research_lab/seals/M2_pins.json"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/m2_ch264/manifest.json"
+ ],
+ "next_action": "commit manifest_sha256 to the ledger and into the pins file (docs/research_lab/seals/M2_pins.json) before the analysis; then q0755c_m2_j2_followup after the read-out",
+ "notes": "DRAFT (not in jobs/). The last window slot (grid 2026-12-14T22:31Z) is decided from grid + 6 h = 2026-12-15T04:31Z, so the 04:50Z J1 pass decides it; END_UTC + 6 h is 06:00Z; not_before 06:30Z. J2 refuses unless every one of the 252 window slots has a chain status (processed or its own missing_capture status) and the state-file sha256 chain verifies (void case 11.2(a) otherwise). Write-once; an identical re-run is accepted. The 06:50Z J1 pass may add post-window status files; the manifest lists only the files that exist when it is written, and the analysis checks those. Code: backend/scripts/run_m2.py with astrolabe/research_lab/m2_spec.py, m2_j1.py, m2_j2.py, m2_readout.py, m2_analysis.py (code_sha in the unit lines); pins checked at start (exit 3 with expected and actual values on a mismatch, exit 2 on a declared refusal)."
+}
