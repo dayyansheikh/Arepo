@@ -1205,3 +1205,22 @@ embargoed models are never read (their scores would leak through the column). On
   is information only: it is a property of the logistic champion (it holds `mo_d2h` linearly), and se1's trees may
   already take most of it. Any reversal family is a new idea with its own definition, judged against se1 and reviewed
   before any census; this result is not re-read with another sign or threshold.
+
+## 38. `fragile` (CH268) census: definitions fixed before the run (2026-10-30 ~03:55Z; no scoring change)
+
+**What it decides.** Only CH268's two census kills (CANDIDATES round 19): `fr_unavail_12` > 0 on fewer than 5% of the
+census rows (fragility is rare: hygiene use only, no family), or |Pearson(`fr_unavail_12`, `ms_log_liq`)| > 0.8
+(illiquidity under another name). The display-pool rule and the input-monitor line are CH268's first use whatever the
+census says; they change no score and are a separate step. No K, no column, no table, no model.
+- **No label value is read.** Only the label *state* (labelled or one of the `unavailable_*` states of
+  `labels.direction_labels`) of each origin's 2 h label; the direction itself is never used.
+- **`fr_unavail_12` at origin k.** Over the last 12 indexed captures before k that have a features file: the share of the
+  market's 2 h labels whose state is not `labelled`. Each of those origins' targets is at or before k (rule (b) of
+  section 37). A census row is a `dir_2h`-eligible row at k whose market had a `dir_2h`-eligible row at all 12 origins
+  (CH268's population: ">= 12 prior label states"); other rows are not census rows (their share is printed).
+- **Readings.** Share of census rows with `fr_unavail_12` > 0 (kill if < 0.05); pooled Pearson with `ms_log_liq` at k
+  over rows with a finite liquidity (kill if |.| > 0.8). Information: the state breakdown, `fr_unavail_12` quantiles and
+  the share above 0.25 (the display-pool line). Script `census/se_fragile_census_2026-10-30.py`, committed with this
+  section before the run. The census stops at the first origin with a pending 2 h label (the newest capture).
+- **Reading.** Both pass -> a builder section may follow (columns of CH268; challenger scored on the flat class against
+  se1) after an independent review. Otherwise `fragile` stays hygiene only. Not re-run with other thresholds.
