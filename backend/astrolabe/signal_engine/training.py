@@ -229,6 +229,7 @@ def refit_all(paths: S.Paths, reg: dict, fit_time: float, now: float, models: di
             write_fit(paths, spec, fit_time, arts[mid], rec)
     summary["seconds"] = round(time.time() - t0, 1)
     summary["peak_rss_mb"] = S.peak_rss_mb()
+    summary["peak_vm_mb"] = S.peak_vm_mb()
     return {"arts": arts, "summary": summary}
 
 

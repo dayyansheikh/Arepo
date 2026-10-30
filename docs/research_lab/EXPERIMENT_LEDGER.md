@@ -5507,3 +5507,8 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   before 2026-11-01T02:45Z** (blackout, then rotation).
 - **M2 code merged** (e5d00d8f: J2 / J3 / analysis, the five l.19 code-freeze items each with a test, design-text pin; 91 M2
   tests; code_sha `f09e23a8…c705`; drafts q0754 dry run, q0755* jobs). Code-freeze check (`science-reviewer`) running.
+- **2026-10-30 ~17:30Z signal engine (ops, DESIGN_V1 §46; no model, window, row cap or target change):** the 10-30 refit
+  (31 models) peaked at RSS 3,870 MB in 6,295 s, above q0512's 3,400 MB reservation and an estimated ~5.6 GB VmPeak under
+  the 6,000 MB address-space cap. q0512 mem_mb 3400 -> 4300, as_cap_mb 6000 -> 8000, timeout_s 10800 -> 14400; the engine
+  now logs `peak_vm_mb` (VmPeak). se27 (3 direction fits; res_7d insufficient_coverage), se28, se29 and se30 (4 targets
+  each) fitted at 13:34Z with `.json.gz` artifacts.

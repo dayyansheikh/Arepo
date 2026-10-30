@@ -1632,3 +1632,18 @@ Ideas only: no evidence yet. Nothing about the parent was counted before this se
   `judge` raises one `stale_stream` alert per stream when the oldest of its tables' slots is > 6 h old
   (`STREAM_STALE_H`; hourly polls normally leave ~1.5 h), or when a table read no poll after earlier tables had one.
   The view gains a `streams` block. Engine metadata only: no label, prediction or score is read; no model changes.
+
+## 46. Refit memory headroom and a VmPeak reading (2026-10-30 ~17:30Z; operational, no model, window, row cap or target change)
+
+**Why.** The 10-30 refit (31 models, first fits of se27-se30) peaked at RSS 3,870 MB in 6,295 s. The trend from 10-22 to
+10-30 was 2,903 -> 3,870 MB and 2,887 -> 6,295 s, rising with each added model and with the `res_7d` LightGBM fits
+as their coverage fills. The q0512 reservation was 3,400 MB. The queue caps the address space (`as_cap_mb` 6,000), not
+RSS, and VmPeak was not logged. At the 10-22 ratio (VmPeak 4.6 GB at RSS 2.9 GB), today's VmPeak was about 5.6 GB, near
+the cap that killed the 10-22 attempts with `MemoryError`.
+- **What.** q0512 `mem_mb` 3,400 -> 4,300, `as_cap_mb` 6,000 -> 8,000, `timeout_s` 10,800 -> 14,400. A higher
+  `mem_mb` makes the start gate stricter: it needs 5,500 MB available. `store.peak_vm_mb()` reads VmPeak from
+  `/proc/self/status` (None on macOS). The refit summary and every `run_signal_engine.py` marker line now carry
+  `peak_vm_mb` next to `peak_rss_mb`.
+- **Watch.** Each new LightGBM challenger adds ~5-7 min and ~50-150 MB. At about +500 s/day, the 14,400 s timeout lasts
+  roughly two more weeks, plus or minus the models still to come. Before then, the refit needs a real saving: retiring
+  models by the rule, or splitting the refit. Either one gets its own section. Logistic challengers cost ~30 s each.

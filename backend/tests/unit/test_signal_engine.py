@@ -2116,3 +2116,17 @@ def test_disk_usage_flags_the_engine_dir_near_its_cap(tmp_path, monkeypatch):
     assert D.live_status(paths, S.epoch("2026-10-30T12:00:00Z"))["disk"] == d
     monkeypatch.setattr(S, "du_bytes", lambda p: 10**9)
     assert not S.disk_usage(paths)["warn"]
+
+
+def test_peak_vm_mb_reads_vmpeak_or_none(monkeypatch, tmp_path):
+    status = tmp_path / "status"
+    status.write_text("Name:\tpython\nVmPeak:\t 5767168 kB\nVmSize:\t 4194304 kB\n")
+    real = Path
+
+    def fake_path(p, *a, **k):
+        return status if str(p) == "/proc/self/status" else real(p, *a, **k)
+
+    monkeypatch.setattr(S, "Path", fake_path)
+    assert S.peak_vm_mb() == 5632.0
+    status.unlink()
+    assert S.peak_vm_mb() is None
