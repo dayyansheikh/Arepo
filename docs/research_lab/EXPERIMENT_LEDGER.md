@@ -4918,3 +4918,13 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   SHOULD 3-7 applied (module sha256 in params, q0200 smoke in `depends_on`, release check in notes, `n_cb8_ids` disclosure).
   CB10 rules hash unchanged (no hashed file edited). 163d96e2, merged; 288 CB9/CB10 tests.
 - q0201 stays a draft until q0183 and q0185b finish and both FILL_ pins hold host sha256 values (`pins_absent` must be empty).
+
+## LT13 stage-A census code written; frozen-text collinearity found (A3), 2026-10-30 ~02:42Z (experiments autopilot; nothing counted)
+- `feat/lt13-code` 93755c70 (not merged): `live_tests13_base.py`, `live_tests13.py`, `lt13_restore_guard.py`,
+  `run_live_tests13.py`, `model_specs/live_tests13_v1.json`, drafts q0720-q0722; 93 fixture tests; declaration sha256
+  `0b6dca70…1786`; code note `reviews/LT13_CODE_NOTE_2026-10-30.md` (17 readings A1-A17). No run on real data.
+- **A3 (material, found by the implementer before any data):** as frozen, the 3.3 control list holds `spread_k` (in K),
+  `spread_{k-1}` and the own innovation `spread_k - spread_{k-1}`, which are exactly collinear and outside the aliasing
+  rule's drop groups, so every fit would be `NaN` and CH253 `census_dropped` by construction. The code implements the text
+  as written (a test documents it). Independent code-freeze check and A3 amendment ruling running; q0722 is not promoted
+  before an accepted amendment. No threshold, estimand or window is to change.
